@@ -272,6 +272,7 @@ async def answer_stream(
         # Een klik op een vraagkaartje geldt alleen deze beurt; de intake zelf blijft staan.
         "intake_actie": (intake_actie.model_dump() if hasattr(intake_actie, "model_dump")
                          else (intake_actie or {})),
+        "intake_modus": "",
         "source_trace": [],
         "turns": 0,
         "corrected": False,

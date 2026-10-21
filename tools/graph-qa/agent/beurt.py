@@ -143,6 +143,20 @@ async def _maak_werkgebied(api: WetsanalyseApi, verzoek: dict[str, Any]
     return werkgebied, gelukt, mislukt, gekoppeld
 
 
+def wijzig_tekst(werkgebied: dict[str, Any], wijzigingen: list[dict[str, Any]]) -> str:
+    """Wat Lex zegt na het aanvullen: welke velden, ingevuld of gewijzigd; uit de wijziging, geen model."""
+    delen = [f"{w['label'].lower()} {'gewijzigd' if (w.get('toen') or '').strip() else 'ingevuld'}" for w in wijzigingen]
+    lijst = delen[0] if len(delen) == 1 else ", ".join(delen[:-1]) + " en " + delen[-1]
+    return (f"Het dossier van *{werkgebied.get('naam', '')}* is aangepast: {lijst}. "
+            "De wijziging staat in de historie van het werkgebied.")
+
+
+async def _wijzig_werkgebied(api: WetsanalyseApi, verzoek: dict[str, Any]) -> dict[str, Any]:
+    """Het dossier aanpassen tegen de revisie waarop de analist begon (412 als die intussen veranderde)."""
+    return await api.wijzig_werkgebied(verzoek["werkgebied_id"], {"verwachte_revisie": verzoek["verwachte_revisie"],
+                                                                  **verzoek["wijziging"]})
+
+
 class BeurtSchrijver:
     """Verzamelt wat er in één beurt binnenkomt en legt het aan het eind vast."""
 
@@ -160,6 +174,8 @@ class BeurtSchrijver:
         self.tool_executions: list[dict[str, Any]] = []
         self.vraagkaart: dict[str, Any] = {}
         self.aanmaken: dict[str, Any] = {}
+        # Het aanvullen van het dossier (`werkgebied_wijzigen`): de PATCH na *Opslaan*.
+        self.wijzigen: dict[str, Any] = {}
         # Wat een agent-taak opleverde (F3c, `nodes/agent_taak.py`): het paneel en de knop.
         self.artefact: dict[str, Any] = {}
         self.bevestiging: dict[str, Any] = {}
@@ -193,6 +209,8 @@ class BeurtSchrijver:
             self.vraagkaart = event.get("vraagkaart") or {}
         elif soort == "werkgebied_aanmaken":
             self.aanmaken = {k: v for k, v in event.items() if k != "type"}
+        elif soort == "werkgebied_wijzigen":
+            self.wijzigen = {k: v for k, v in event.items() if k != "type"}
         elif soort == "artefact":
             self.artefact = event.get("artefact") or {}
         elif soort == "bevestiging":
@@ -313,6 +331,9 @@ async def voer_beurt_uit(
     elif schrijver.aanmaken:
         yield {"type": "error",
                "message": "Het werkgebied is niet aangemaakt: deze agent heeft geen verbinding met de wetsanalyse-API."}
+    elif schrijver.wijzigen:
+        yield {"type": "error", "foutcode": "werkgebied_niet_gewijzigd",
+               "message": "Het dossier is niet aangepast: deze agent heeft geen verbinding met de wetsanalyse-API."}
     elif schrijver.is_annotatie:
         logger.warning(
             "beurt: markeringen niet vastgelegd (geen schrijfpad)",
@@ -437,6 +458,32 @@ async def _leg_vast(
             tekst = werkgebied_tekst(werkgebied, gelukt, mislukt, gekoppeld)
             yield {"type": "token", "content": tekst}
             bericht |= {"tekst": tekst, "denk": schrijver.denk, "artefact": werkgebied_artefact(werkgebied)}
+        elif schrijver.wijzigen:
+            # Het dossier aanvullen: pas na *Opslaan*, tegen de revisie waarop de analist begon. Een 412 of
+            # 404 is een antwoord (niets opgeslagen, en waarom); een andere fout een zichtbare `error`.
+            verzoek = schrijver.wijzigen
+            try:
+                werkgebied = await _wijzig_werkgebied(api, verzoek)
+            except WetsanalyseApiFout as fout:
+                if fout.status not in (404, 412):
+                    logger.exception("aanvullen: werkgebied niet gewijzigd",
+                                     extra={"categorie": "technisch", "run_id": run.run_id, "http_status": fout.status})
+                    yield {"type": "error", "foutcode": "werkgebied_niet_gewijzigd",
+                           "message": "Het dossier kon niet worden aangepast; er is niets opgeslagen. Klik opnieuw op Opslaan."}
+                    return
+                tekst = ("Dat werkgebied bestaat niet meer; er is niets opgeslagen." if fout.status == 404 else
+                         "Iemand anders wijzigde het werkgebied net; er is niets opgeslagen. Klik nog eens op Opslaan: "
+                         "dan leg ik je antwoorden naast de nieuwe stand.")
+                yield {"type": "token", "content": tekst}
+                bericht |= {"tekst": tekst, "denk": schrijver.denk}
+                if fout.status == 412 and verzoek.get("kaart"):
+                    # Het samenvattingskaartje terug, live en na herladen, zodat opnieuw opslaan kan.
+                    yield {"type": "vraagkaart", "vraagkaart": verzoek["kaart"]}
+                    bericht["vraagkaart"] = verzoek["kaart"]
+            else:
+                tekst = wijzig_tekst(werkgebied, verzoek.get("wijzigingen") or [])
+                yield {"type": "token", "content": tekst}
+                bericht |= {"tekst": tekst, "denk": schrijver.denk, "artefact": werkgebied_artefact(werkgebied)}
         else:
             tekst = schrijver.tekst.strip()
             if gestopt:

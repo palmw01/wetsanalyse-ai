@@ -164,6 +164,9 @@ export function WerkplekClient({
   /** Het open artefact van een werkgebied (begripsvoorstellen of gevonden bepalingen). Er staat
    *  hoogstens één artefact open: wie een annotatie opent, sluit dit, en andersom. */
   const [wgArtefact, setWgArtefact] = useState<WerkgebiedArtefact>();
+  // Telt elke beurt die een werkgebied opleverde of aanpaste: het paneel laadt dan opnieuw, ook als het al
+  // op dat werkgebied openstond (het dossier aanvullen geeft hetzelfde artefact terug).
+  const [wgLading, setWgLading] = useState(0);
   /** Het overzicht waaruit de jurist een werkgebied maakt (de dialoog staat open). */
   const [wgUitOverzicht, setWgUitOverzicht] = useState<Overzicht>();
   /** Wat er bij het maken misging (een bepaling die de api niet kon opnemen): zichtbaar, niet stil. */
@@ -855,7 +858,7 @@ export function WerkplekClient({
     if (uitkomst.artefact && begrippen) {
       const artefact = uitkomst.artefact;
       setItems((xs) => xs.map((x) => x.id === antId ? { id: antId, type: "artefact", artefact, tekst: tekst?.trim() || undefined, denk } : x));
-      setNodeDoel(undefined); setWgArtefact(begrippen);
+      setNodeDoel(undefined); setWgArtefact(begrippen); setWgLading((n) => n + 1);
       // Een werkgebied dat Lex met je samenstelde: de werkplek gaat erin verder (de werkgebiedbalk
       // biedt bepalingen zoeken en begrippen voorstellen), het paneel ernaast toont wat er staat.
       if (begrippen.soort === "werkgebied") onKiesWerkgebied?.(begrippen.werkgebied_id);
@@ -1055,7 +1058,7 @@ export function WerkplekClient({
       requestAnimationFrame(() => taRef.current?.focus());
     }} /> : (wgArtefact && (
     <WerkgebiedArtefactPaneel
-      key={artefactSleutel(wgArtefact)}
+      key={`${artefactSleutel(wgArtefact)}:${wgLading}`}
       doel={wgArtefact}
       variant={breed ? "kolom" : "side"}
       onSluit={() => setWgArtefact(undefined)}

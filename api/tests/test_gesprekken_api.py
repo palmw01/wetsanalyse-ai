@@ -398,7 +398,7 @@ async def test_het_antwoord_op_een_bevestiging_blijft_bewaard(client):
 
 
 VRAAGKAART = {
-    "intake_id": "ik-1", "soort": "vraag", "stap": "regelingen", "nr": 3, "totaal": 5,
+    "intake_id": "ik-1", "modus": "samenstellen", "soort": "vraag", "stap": "regelingen", "nr": 3, "totaal": 5,
     "vraag": "Welke regeling(en) horen bij het werkgebied?", "toelichting": "",
     "opties": [{"label": "Wet inkomstenbelasting 2001", "waarde": "BWBR0011353",
                 "bron": {"bwb_id": "BWBR0011353"}, "omschrijving": "wet · 2 hoofdstukken"}],
@@ -424,8 +424,35 @@ async def test_een_vraagkaart_overleeft_het_heropenen(client):
     assert r.status_code == 201 and r.json()["vraagkaart"] == BEPALINGENKAART
 
 
+#: Het dossier van een bestaand werkgebied aanvullen: hetzelfde kaartje, met de wijzigingen in de samenvatting.
+AANVULKAART = {**VRAAGKAART, "modus": "aanvullen", "soort": "samenvatting", "stap": "samenvatting", "nr": 1, "totaal": 1,
+               "opties": [], "vooringevuld": [],
+               "samenvatting": {"wijzigingen": [{"veld": "praktijkvoorbeeld", "label": "Praktijkvoorbeeld",
+                                                 "toen": "", "nu": "Een spaarder met een tweede huis."}]}}
+
+
+async def test_een_aanvulkaart_overleeft_het_heropenen(client):
+    gid = await _maak(client)
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "tekst": "Dit verandert er.",
+                                                            "run_id": "ra", "vraagkaart": AANVULKAART}, headers=A)
+    assert r.status_code == 201 and r.json()["vraagkaart"] == AANVULKAART
+    doc = (await client.get(f"{BASIS}/{gid}", headers=A)).json()
+    assert doc["berichten"][-1]["vraagkaart"]["modus"] == "aanvullen"
+    # Een kaartje zonder modus is er een van het samenstellen.
+    zonder = {k: v for k, v in VRAAGKAART.items() if k != "modus"}
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "run_id": "rs", "vraagkaart": zonder},
+                          headers=A)
+    assert r.json()["vraagkaart"]["modus"] == "samenstellen"
+    # Opslaan staat op het user-bericht van de klik, zoals aanmaken.
+    ia = {"intake_id": "ik-1", "stap": "samenvatting", "deel": None, "actie": "opslaan"}
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "user", "tekst": "Sla het op.", "intake_antwoord": ia},
+                          headers=A)
+    assert r.status_code == 201 and r.json()["intake_antwoord"] == ia
+
+
 @pytest.mark.parametrize("fout", [{"stap": "peildatum"}, {"stap": "onderdelen"}, {"intake_id": "met spatie"}, {"nr": 0},
-                                  {"vraag": ""}, {"nr": 41}, {"deel": {"index": 20, "totaal": 20}}])
+                                  {"vraag": ""}, {"nr": 41}, {"deel": {"index": 20, "totaal": 20}},
+                                  {"modus": "wijzigen"}])
 async def test_een_ongeldige_vraagkaart_wordt_geweigerd(client, fout):
     gid = await _maak(client)
     r = await client.post(f"{BASIS}/{gid}/berichten", json={

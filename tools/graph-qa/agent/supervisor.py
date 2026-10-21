@@ -8,7 +8,8 @@ get_artikel) is een gedeelde tool die de gekozen worker zelf aanroept.
 
 Sinds F3c (ADR-005) kiest hij ook de agents op een werkgebied – `deelvragen` en `begrippen` – met een
 `TAAK:` uit een vaste lijst (`agents/register.py`); een klik op een suggestie (`actie`) kiest agent en taak
-zonder model. `werkgebied` (samenstellen), `deelvragen` en `begrippen` ketenen met niets.
+zonder model. `werkgebied` (samenstellen, of met `TAAK: aanvullen` het dossier van een bestaand werkgebied
+aanvullen), `deelvragen` en `begrippen` ketenen met niets.
 
 Backward-compatible met het oude router-formaat: een respons met alleen `SPECIALIST:`/`PLAN:` (zonder
 `WORKERS:`) wordt gelezen als één `antwoord`-worker met die specialist – zo blijven de bestaande
@@ -22,8 +23,8 @@ SUPERVISOR_SYSTEM = (
     "volgorde. Antwoord in EXACT dit formaat, vier regels:\n"
     "WORKERS: <komma-gescheiden uit: antwoord, annotatie, werkgebied, deelvragen, begrippen>\n"
     "SPECIALIST: <definitie|duiding|algemeen>\n"
-    "TAAK: <alleen bij deelvragen, begrippen of het werkgebied (of zijn deelvragen) annoteren: één taak uit de lijsten "
-    "hieronder; anders leeg>\n"
+    "TAAK: <alleen bij deelvragen, begrippen, het dossier aanvullen of het werkgebied (of zijn deelvragen) "
+    "annoteren: één taak uit de lijsten hieronder; anders leeg>\n"
     "PLAN: <1-2 zinnen aanpak, of AFWIJZEN als de vraag niet over Nederlandse wet- en regelgeving "
     "gaat>\n"
     "AFWIJZEN is alleen voor vragen die BUITEN de wetgeving vallen: het weer, actualiteit, "
@@ -39,7 +40,10 @@ SUPERVISOR_SYSTEM = (
     "vragen, 'duiding' voor betekenis/structuur/samenhang van een bepaling, anders 'algemeen'. "
     "SPECIALIST geldt alleen voor 'antwoord'. Kies 'werkgebied' (alleen) als de gebruiker een "
     "werkgebied wil samenstellen of een wetsanalyse wil beginnen, of als het bericht een antwoord is "
-    "op een open vraag van het samenstellen (zie OPEN KAARTJE).\n"
+    "op een open vraag van het samenstellen of aanvullen (zie OPEN KAARTJE). Kies 'werkgebied' met TAAK: "
+    "aanvullen als de gebruiker in een bestaand werkgebied een gegeven van het dossier wil invullen of "
+    "wijzigen (naam, aanleiding, context, doel, analysevraag, praktijkvoorbeeld, afbakening) – deelvragen en "
+    "bronnen horen bij 'deelvragen'.\n"
     "Kies 'deelvragen' (alleen) als de gebruiker in een werkgebied iets met de deelvragen of de bronnen wil "
     "laten DOEN. TAAK: voorstellen (deelvragen opstellen bij de analysevraag), verbeteren (één deelvraag "
     "scherper formuleren of splitsen), bronnen_zoeken (bepalingen zoeken die bij het werkgebied of een "
@@ -58,16 +62,17 @@ SUPERVISOR_SYSTEM = (
     "dat het om een vastgelegd begrip van een werkgebied gaat, is 'antwoord' met SPECIALIST definitie. 'Welke "
     "artikelen gaan over X?' is 'antwoord'. Heeft de analist een object aangewezen in de werkplek, dan gaat de "
     "vraag daar meestal over: bij een deelvraag of bron ligt 'deelvragen' voor de hand, bij een begrip 'begrippen' – "
-    "maar alleen als er om een van hun taken gevraagd wordt."
+    "maar alleen als er om een van hun taken gevraagd wordt. Past geen van de taken, kies dan geen agent en laat "
+    "TAAK leeg."
 )
 
-# Alleen als er een samenstelling loopt: het kaartje dat open staat. Een getypt antwoord in het
+# Alleen als er een samenstelling (of een aanvulling) loopt: het kaartje dat open staat. Een getypt antwoord in het
 # invoerveld ("Box 3", "geen overgangsrecht") is dan een antwoord op dat kaartje, geen nieuwe vraag.
 INTAKE_SYSTEM = (
-    "\n\nOPEN KAARTJE: Lex stelt met de gebruiker een werkgebied samen en vroeg zojuist: \"{vraag}\". "
+    "\n\nOPEN KAARTJE: Lex {wat} en vroeg zojuist: \"{vraag}\". "
     "Is het bericht een antwoord op die vraag (een naam, een aanleiding, context of doel, een vraag, een "
     "praktijkvoorbeeld, deelvragen, wat erbuiten valt, een regeling), "
-    "kies dan WORKERS: werkgebied. Is het een andere vraag over wetgeving, kies dan zoals altijd; het "
+    "kies dan WORKERS: werkgebied, zonder TAAK. Is het een andere vraag over wetgeving, kies dan zoals altijd; het "
     "kaartje blijft open staan."
 )
 

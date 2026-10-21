@@ -14,7 +14,7 @@ from langgraph.config import get_stream_writer
 
 from ..aanwijzing import lees_aanwijzing, melding_meerdere
 from ..doel import _heeft_opgegeven_doel
-from ..models import ACTIE_TAAK
+from ..models import ACTIE_TAAK, INTAKE_ACTIES
 from ..focus import bij_advies, bij_onderwerp
 from ..narratie import _stap
 from ..state import State
@@ -25,7 +25,7 @@ from ..supervisor import INTAKE_SYSTEM, SUPERVISOR_SYSTEM, VERVOLG_SYSTEM, parse
 from ..overzicht import is_overzichtsvraag
 from ..tools.annotatie_tools import is_leesvraag
 from ..tools.begrip_tools import is_begrip_leesvraag
-from ..werkgebied_intake import is_open, is_werkgebiedvraag, kaart
+from ..werkgebied_intake import is_aanvullen, is_open, is_werkgebiedvraag, kaart
 from .context import Bouw
 
 logger = logging.getLogger("graph_qa.orchestrator")
@@ -67,11 +67,13 @@ def _overzicht(writer, vraag: str) -> dict[str, Any]:
     }
 
 
-def _werkgebied(writer, waarom: str) -> dict[str, Any]:
-    """Samenstellen van een werkgebied (activiteit 1): de werkgebied-worker, geen specialist."""
+def _werkgebied(writer, waarom: str, *, aanvullen: bool = False) -> dict[str, Any]:
+    """Samenstellen van een werkgebied (activiteit 1), of het dossier van het werkgebied van het gesprek
+    aanvullen: de werkgebied-worker, geen specialist."""
     _stap(writer, "Lex", waarom)
     return {"specialist": "werkgebied", "worker_plan": ["werkgebied"], "worker_idx": 0,
-            "plan": "een werkgebied samenstellen", "afwijzen": False, "annotaties_lezen": False}
+            "plan": "het dossier aanvullen" if aanvullen else "een werkgebied samenstellen", "afwijzen": False,
+            "annotaties_lezen": False, "intake_modus": "aanvullen" if aanvullen else ""}
 
 
 def _agent(writer, state: State, agent: str, taak: str, vraag: str, *, actie: str = "") -> dict[str, Any]:
@@ -93,7 +95,9 @@ def _open_kaartje(state: State) -> str:
     if not is_open(intake):
         return ""
     try:
-        return INTAKE_SYSTEM.format(vraag=kaart(intake)["vraag"])
+        wat = ("vult met de gebruiker het dossier van het werkgebied aan" if is_aanvullen(intake)
+               else "stelt met de gebruiker een werkgebied samen")
+        return INTAKE_SYSTEM.format(wat=wat, vraag=kaart(intake)["vraag"])
     except Exception:  # noqa: BLE001 – een onleesbare intake is geen reden om de beurt te laten vallen
         return ""
 
@@ -125,6 +129,9 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
     # zonder modelaanroep. De klik weet al waar hij bij hoort; de startzin heeft een vaste vorm.
     if state.get("intake_actie"):
         return _werkgebied(writer, "verwerkt het antwoord op het kaartje")
+    if state.get("actie") in INTAKE_ACTIES:
+        # Een klik op *Vul het dossier aan*: de vraagkaarten van de intake, op het werkgebied van het gesprek.
+        return _werkgebied(writer, "vult met je het dossier aan", aanvullen=True)
     if (actie := state.get("actie")) and actie in ACTIE_TAAK:
         # Een klik op een suggestie: agent en taak liggen vast, dus geen modelaanroep – net als een doel.
         agent, taak = ACTIE_TAAK[actie]
@@ -224,6 +231,8 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         return {**upd, "specialist": "", "plan": plan, "worker_plan": [], "worker_idx": 0,
                 "afwijzen": True, "annotaties_lezen": False}
     eerste = worker_plan[0]
+    if eerste == "werkgebied" and taak == "aanvullen":
+        return {**upd, **_werkgebied(writer, "vult met je het dossier aan", aanvullen=True)}
     if eerste == "werkgebied":
         return {**upd, **_werkgebied(writer, "stelt met je een werkgebied samen")}
     if eerste == "annotatie":

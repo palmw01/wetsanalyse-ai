@@ -50,6 +50,9 @@ _ROUTE_REGELS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"^Lex · meer dan één artikel genoemd"), "afgewezen"),
     (re.compile(r"^Supervisor · buiten de wet"), "afgewezen"),
     (re.compile(r"^Supervisor · kiest de annotatie-worker"), "annotatie"),
+    # De werkgebied-worker: samenstellen, een klik op een kaartje, of het dossier aanvullen.
+    (re.compile(r"^Lex · (?:stelt met je een werkgebied samen|verwerkt het antwoord op het kaartje|vult met je het "
+                r"dossier aan)"), "werkgebied"),
     # De agents op een werkgebied (F3c): groep 1 is de agent; de annotatie-agent telt als `annotatie`.
     (re.compile(r"^Supervisor · kiest de (deelvragen|begrippen|annotatie)-agent"), ""),
     (re.compile(r"^Specialist (\w+) ·"), ""),  # groep 1 is de specialist

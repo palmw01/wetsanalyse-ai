@@ -702,8 +702,9 @@ werkgebied zonder deelvragen werkt zoals altijd.
   vraag, opties[{label, waarde, bron, omschrijving}], meerkeuze, vrije_tekst, meer_tekst, overslaanbaar,
   vooringevuld, samenvatting, terug, beantwoord}`; de stappen (`IntakeStap`) zijn `naam`, `aanleiding`,
   `context`, `doel`, `analysevraag`, `praktijkvoorbeeld`, `deelvragen`, `buiten`, `regelingen`,
-  `onderdelen`, `samenvatting`. Het user-bericht van een klik draagt
-  **`intake_antwoord`** `{intake_id, stap, actie}`: zo bundelt de werkplek na herladen de antwoorden
+  `bepalingen`, `samenvatting`. `modus` is `samenstellen` (default) of `aanvullen`: het dossier van een
+  bestaand werkgebied, met in de samenvatting `{wijzigingen: [{veld, label, toen, nu}]}`. Het user-bericht van een klik draagt
+  **`intake_antwoord`** `{intake_id, stap, actie}` (`actie` ook `opslaan`, de knop van het aanvullen): zo bundelt de werkplek na herladen de antwoorden
   in één Vragen-kaart en onderscheidt hij ze van een getypte tussenvraag. `reeks.totaal` mag 1 zijn: een werkgebied kan één nieuwe
   bepaling hebben.
   De review-state zelf blijft in het annotatiedomein. **Een veld dat graph-qa meestuurt moet in

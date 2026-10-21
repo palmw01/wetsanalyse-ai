@@ -39,7 +39,8 @@ describe("parseVraagkaart", () => {
         deelvragen: ["Wat telt mee?", 7], afbakening: "Regelingen: nog te bepalen.", bronnen: ["Afd. 5.1", 3] } });
     expect(s.samenvatting).toEqual({ naam: "Box 3", aanleiding: "Wetswijziging.", context: "", doel: "Webservices.",
       analysevraag: "Wie?", praktijkvoorbeeld: "", deelvragen: ["Wat telt mee?"],
-      afbakening: "Regelingen: nog te bepalen.", bronnen: ["Afd. 5.1"] });
+      afbakening: "Regelingen: nog te bepalen.", bronnen: ["Afd. 5.1"], wijzigingen: [] });
+    expect(s.modus).toBe("samenstellen");
   });
 
   it("kent de stappen van startactiviteit a en de deelvragen", () => {
@@ -48,6 +49,34 @@ describe("parseVraagkaart", () => {
     }
     expect(kaart({ meer_tekst: true }).meer_tekst).toBe(true);
     expect(kaart().meer_tekst).toBe(false);
+  });
+});
+
+describe("aanvullen", () => {
+  const aanvul = (over: Partial<Record<string, unknown>> = {}) =>
+    kaart({ modus: "aanvullen", stap: "praktijkvoorbeeld", nr: 1, totaal: 2, opties: [], vooringevuld: [], ...over });
+
+  it("leest de modus en de wijzigingen toen → nu; een rij zonder veld valt weg", () => {
+    const s = aanvul({ soort: "samenvatting", stap: "samenvatting", samenvatting: { wijzigingen: [
+      { veld: "praktijkvoorbeeld", label: "Praktijkvoorbeeld", toen: "", nu: "Een spaarder." }, { label: "kapot" }] } });
+    expect(s.modus).toBe("aanvullen");
+    expect(s.samenvatting?.wijzigingen).toEqual([{ veld: "praktijkvoorbeeld", label: "Praktijkvoorbeeld", toen: "",
+      nu: "Een spaarder." }]);
+    expect(kaart({ modus: "iets" }).modus).toBe("samenstellen");
+  });
+
+  it("vooringevuld staat in het tekstveld; Verzend op de laatste gevraagde stap", () => {
+    expect(beginstand(aanvul({ vooringevuld: ["Een spaarder."] })).eigen).toBe("Een spaarder.");
+    expect(isLaatsteVraag(aanvul())).toBe(false);
+    expect(isLaatsteVraag(aanvul({ nr: 2 }))).toBe(true);
+    expect(isLaatsteVraag(aanvul({ soort: "samenvatting", stap: "samenvatting", nr: 2 }))).toBe(false);
+  });
+
+  it("opslaan is een klik met een eigen tekst en een eigen antwoord", () => {
+    const s = aanvul({ soort: "samenvatting", stap: "samenvatting" });
+    expect(antwoordTekst(s, { intake_id: "ik1", stap: "samenvatting", actie: "opslaan" })).toBe("Sla de wijziging op.");
+    expect(antwoordTekst(s, { intake_id: "ik1", stap: "samenvatting", actie: "afbreken" })).toBe("Stop met aanvullen.");
+    expect(parseAntwoordOp({ intake_id: "ik1", stap: "samenvatting", actie: "opslaan" })?.actie).toBe("opslaan");
   });
 });
 

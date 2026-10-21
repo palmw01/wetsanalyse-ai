@@ -60,7 +60,7 @@ describe("een object stuurt alleen soort en id's", () => {
   it("het werkgebied zonder id, met de handelingen als suggestie met een actie", () => {
     expect(verzoekVan(werkgebied)).toEqual({ onderwerp: { soort: "werkgebied", werkgebied_id: "wg1", label: "Invordering" } });
     const s = suggestiesVan(werkgebied);
-    expect(s.map((x) => x.actie)).toEqual(["deelvragen_voorstellen", "bronnen_zoeken", "dekking", "werkgebied_annoteren", "deelvragen_annoteren",
+    expect(s.map((x) => x.actie)).toEqual(["dossier_aanvullen", "deelvragen_voorstellen", "bronnen_zoeken", "dekking", "werkgebied_annoteren", "deelvragen_annoteren",
       "begrippen_voorstellen", "begrippen_meedenken"]);
     expect(actieVerzoek(werkgebied as Extract<Onderwerp, { soort: "werkgebied" }>, "bronnen_zoeken")).toEqual({
       actie: "bronnen_zoeken", onderwerp: { soort: "werkgebied", werkgebied_id: "wg1", label: "Invordering" },
@@ -93,12 +93,16 @@ describe("een object stuurt alleen soort en id's", () => {
 describe("contract met graph-qa", () => {
   const models = readFileSync(resolve(__dirname, "../../tools/graph-qa/agent/models.py"), "utf8");
 
-  it("de acties zijn die van ACTIE_TAAK", () => {
+  it("de acties zijn die van Actie: de taken uit ACTIE_TAAK en het dossier aanvullen", () => {
     const begin = models.indexOf("ACTIE_TAAK: dict[str, tuple[str, str]] = {");
     expect(begin).toBeGreaterThan(-1);
     const blok = models.slice(begin, models.indexOf("\n}", begin));
-    const sleutels = [...blok.matchAll(/^\s+"([a-z_]+)":/gm)].map((m) => m[1]);
-    expect(sleutels.sort()).toEqual([...ACTIES].sort());
+    const taken = [...blok.matchAll(/^\s+"([a-z_]+)":/gm)].map((m) => m[1]);
+    const intake = [...(models.match(/^INTAKE_ACTIES = \((.*?)\)/m)?.[1] ?? "").matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
+    expect(intake).toEqual(["dossier_aanvullen"]);
+    expect([...taken, ...intake].sort()).toEqual([...ACTIES].sort());
+    const actie = models.match(/^Actie = Literal\[(.*?)\]/ms)?.[1] ?? "";
+    expect([...actie.matchAll(/"([a-z_]+)"/g)].map((m) => m[1]).sort()).toEqual([...ACTIES].sort());
   });
 
   it("de soorten zijn die van Onderwerp, zonder markering", () => {
@@ -115,6 +119,18 @@ describe("buiten de werkplek", () => {
     expect(onderwerpUitUrl(new URL(url, "http://x").searchParams)).toEqual(deelvraag);
     const wg = vraagUrl(werkgebied as Extract<Onderwerp, { soort: "werkgebied" }>);
     expect(onderwerpUitUrl(new URL(wg, "http://x").searchParams)).toEqual(werkgebied);
+  });
+
+  it("een leeg dossierveld reist mee en geeft eerst de suggestie voor dat veld", () => {
+    const leeg = { ...werkgebied, veld: "praktijkvoorbeeld" } as Extract<Onderwerp, { soort: "werkgebied" }>;
+    const url = vraagUrl(leeg);
+    expect(url).toContain("vraag_veld=praktijkvoorbeeld");
+    expect(onderwerpUitUrl(new URL(url, "http://x").searchParams)).toEqual(leeg);
+    expect(suggestiesVan(leeg)[0]).toEqual({ tekst: "Vul het praktijkvoorbeeld aan", actie: "dossier_aanvullen" });
+    // Het veld gaat niet als onderwerp naar graph-qa: dat leest het veld uit de tekst van de suggestie.
+    expect(verzoekVan(leeg)).toEqual(verzoekVan(werkgebied));
+    expect(onderwerpUitUrl(new URLSearchParams("werkgebied=wg1&vraag=werkgebied:wg1&vraag_veld=deelvragen"))).toEqual(
+      { soort: "werkgebied", werkgebied_id: "wg1", id: "", label: "" });
   });
 
   it("een onbekende soort, een markering of een vreemd id is geen onderwerp", () => {

@@ -752,3 +752,289 @@ def test_een_intake_op_een_vervallen_stap_loopt_niet_meer():
     assert not wi.is_open(oud)
     assert wi.is_open({**oud, "stap": "bepalingen"}) and wi.is_open({**oud, "stap": "samenvatting"})
     assert not wi.is_open({**oud, "stap": "klaar"})
+
+
+# --- Aanvullen: het dossier van een bestaand werkgebied ----------------------------------------------
+
+WG = {"id": "wg1", "revisie": 4, "naam": "Box 3", "aanleiding": "Een wetswijziging raakt de heffing.", "context": "",
+      "doel": "", "analysevraag": "Wie betaalt box 3?", "praktijkvoorbeeld": "",
+      "afbakening": "Regelingen: Wet IB 2001.\nBuiten de afbakening: overgangsrecht.",
+      "deelvragen": [{"id": "d1", "vraag": DV1, "status": "actief"}],
+      "bronnen": [{"id": "s1", "label": "Artikel 5.2 – Wet IB 2001", "bron_iri": L52, "rol": "analyseren"}]}
+
+
+@pytest.mark.parametrize("vraag,velden", [
+    ("kun je praktijkvoorbeeld toevoegen?", ["praktijkvoorbeeld"]),
+    ("Voeg een voorbeeld uit de praktijk toe", ["praktijkvoorbeeld"]),
+    ("Pas de analysevraag en het doel aan", ["doel", "analysevraag"]),
+    ("Wat is de hoofdvraag eigenlijk? Wijzig hem", ["analysevraag"]),
+    ("Vul de aanleiding en de context in", ["aanleiding", "context"]),
+    ("Wat valt erbuiten? Pas de afbakening aan", ["buiten"]),
+    ("Geef het werkgebied een andere naam", ["naam"]),
+    ("Vul het dossier aan", []),
+    ("Wat ontbreekt er nog in het dossier?", []),
+])
+def test_welke_velden_de_vraag_noemt(vraag, velden):
+    assert wi.dossiervelden_in(vraag) == velden
+
+
+def test_de_beginstand_komt_uit_het_werkgebied():
+    i = wi.aanvul_intake(WG, ["praktijkvoorbeeld", "naam"], "x")
+    # Alleen het gevraagde, in de volgorde van het samenstellen; nooit deelvragen of bronnen.
+    assert i["stappen"] == ["naam", "praktijkvoorbeeld"] and i["stap"] == "naam"
+    assert i["modus"] == "aanvullen" and i["werkgebied_id"] == "wg1" and i["revisie"] == 4
+    a = i["antwoorden"]
+    # Aanleiding en doel als eigen tekst, de afbakening bij `buiten`: er gaat niets verloren.
+    assert a["aanleiding"] == {"keuze": "", "tekst": WG["aanleiding"]} and a["buiten"] == WG["afbakening"]
+    assert wi.als_werkgebied(i)["afbakening"] == WG["afbakening"]
+    # Het dossier voor Lex draagt het hele werkgebied: ook de deelvragen en de bronnen.
+    assert f"- {DV1}" in wi.dossier(i) and "Artikel 5.2 – Wet IB 2001" in wi.dossier(i)
+    assert wi.lege_velden(WG) == ["context", "doel", "praktijkvoorbeeld"]
+    with pytest.raises(ValueError):
+        wi.aanvul_intake(WG, ["deelvragen", "regelingen"], "x")
+
+
+def test_aanvullen_vraagt_alleen_het_gevraagde_vooringevuld():
+    i = wi.aanvul_intake(WG, ["analysevraag", "praktijkvoorbeeld"], "x")
+    k = wi.kaart(i)
+    assert (k["modus"], k["stap"], k["nr"], k["totaal"], k["terug"]) == ("aanvullen", "analysevraag", 1, 2, False)
+    assert k["vooringevuld"] == ["Wie betaalt box 3?"] and k["overslaanbaar"]
+    i, uit = wi.verwerk(i, _klik(i, "analysevraag", tekst="Wie betaalt box 3 over 2026?"))
+    k = wi.kaart(i)
+    assert uit == "verder" and (k["stap"], k["nr"], k["totaal"], k["terug"]) == ("praktijkvoorbeeld", 2, 2, True)
+    # Terug: de werkplek vraagt de vorige stap van het samenstellen (de analysevraag) – die is gevraagd.
+    terug, uit = wi.verwerk(i, _klik(i, "praktijkvoorbeeld", actie="wijzig", naar="analysevraag"))
+    assert uit == "verder" and terug["stap"] == "analysevraag"
+    i, _ = wi.verwerk(i, _klik(i, "praktijkvoorbeeld", tekst="Een spaarder met een tweede huis."))
+    assert i["stap"] == "samenvatting"
+    # Vanaf de samenvatting vraagt de werkplek de bepalingen: dat wordt de laatste gevraagde stap.
+    terug, uit = wi.verwerk(i, _klik(i, "samenvatting", actie="wijzig", naar="bepalingen"))
+    assert uit == "verder" and terug["stap"] == "praktijkvoorbeeld"
+    # Een stap die er niet bij hoort: een oud kaartje.
+    assert wi.verwerk(i, _klik(i, "samenvatting", actie="wijzig", naar="naam"))[1] == "verouderd"
+
+
+def test_overslaan_laat_het_veld_staan():
+    i = wi.aanvul_intake(WG, ["naam", "analysevraag"], "x")
+    i, uit = wi.verwerk(i, _klik(i, "naam", actie="overslaan"))
+    assert uit == "verder" and i["antwoorden"]["naam"] == "Box 3" and i["stap"] == "analysevraag"
+    i, _ = wi.verwerk(i, _klik(i, "analysevraag", actie="overslaan"))
+    assert i["stap"] == "samenvatting" and wi.wijzigingen(i) == []
+
+
+def test_de_samenvatting_toont_alleen_wat_verandert():
+    i = wi.aanvul_intake(WG, ["aanleiding", "praktijkvoorbeeld"], "x")
+    # De aanleiding ongewijzigd laten (de werkplek stuurt de vooringevulde tekst terug) is geen wijziging.
+    i, _ = wi.verwerk(i, _klik(i, "aanleiding", tekst=WG["aanleiding"]))
+    zonder = wi.kaart({**i, "stap": "samenvatting"})
+    assert zonder["samenvatting"] == {"wijzigingen": []} and zonder["toelichting"] == "Er verandert niets."
+    # Zonder wijziging valt er niets op te slaan.
+    assert wi.verwerk({**i, "stap": "samenvatting"}, _klik({**i, "stap": "samenvatting"}, "samenvatting",
+                                                           actie="opslaan"))[1] == "verouderd"
+    i, _ = wi.verwerk(i, _klik(i, "praktijkvoorbeeld", tekst="Een spaarder met een tweede huis."))
+    k = wi.kaart(i)
+    assert k["soort"] == "samenvatting" and k["modus"] == "aanvullen"
+    assert k["samenvatting"]["wijzigingen"] == [{"veld": "praktijkvoorbeeld", "label": "Praktijkvoorbeeld",
+                                                 "toen": "", "nu": "Een spaarder met een tweede huis."}]
+    # Aanmaken hoort bij het samenstellen; opslaan geeft het event met alleen de gewijzigde velden.
+    assert wi.verwerk(i, _klik(i, "samenvatting", actie="aanmaken"))[1] == "verouderd"
+    klaar, uit = wi.verwerk(i, _klik(i, "samenvatting", actie="opslaan"))
+    assert uit == "opslaan" and klaar["stap"] == "klaar"
+    verzoek = wi.wijzigverzoek(klaar)
+    assert (verzoek["werkgebied_id"], verzoek["verwachte_revisie"]) == ("wg1", 4)
+    assert verzoek["wijziging"] == {"praktijkvoorbeeld": "Een spaarder met een tweede huis."}
+    # Bij het samenstellen bestaat opslaan niet.
+    s = {**wi.nieuwe_intake("x"), "stap": "samenvatting"}
+    assert wi.verwerk(s, _klik(s, "samenvatting", actie="opslaan"))[1] == "verouderd"
+
+
+def test_het_aanvulkaartje_volgt_het_api_contract():
+    import importlib.util
+    import sys
+    from pathlib import Path
+
+    pad = Path(__file__).parents[3] / "api" / "app" / "gesprek_contracts.py"
+    spec = importlib.util.spec_from_file_location("gesprek_contracts_aanvullen", pad)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = mod
+    spec.loader.exec_module(mod)
+    i = wi.aanvul_intake(WG, list(wi.DOSSIERSTAPPEN), "x")
+    for stap in (*wi.DOSSIERSTAPPEN, "samenvatting"):
+        k = mod.Vraagkaart.model_validate(wi.kaart({**i, "stap": stap}))
+        assert k.modus == "aanvullen"
+    assert mod.IntakeAntwoord(intake_id="ik1", stap="samenvatting", actie="opslaan").actie == "opslaan"
+
+
+def test_een_nieuwe_stand_legt_de_antwoorden_ernaast():
+    i = wi.aanvul_intake(WG, ["praktijkvoorbeeld"], "x")
+    i, _ = wi.verwerk(i, _klik(i, "praktijkvoorbeeld", tekst="Een spaarder."))
+    nieuw = wi.op_nieuwe_stand(i, {**WG, "revisie": 6, "context": "Na het Kerstarrest."})
+    assert nieuw["id"] != i["id"] and nieuw["revisie"] == 6 and nieuw["stap"] == "samenvatting"
+    assert nieuw["antwoorden"]["context"] == "Na het Kerstarrest." and nieuw["antwoorden"]["praktijkvoorbeeld"] == "Een spaarder."
+    # Stond het al zo, dan verandert er niets.
+    assert wi.wijzigingen(wi.op_nieuwe_stand(i, {**WG, "revisie": 6, "praktijkvoorbeeld": "Een spaarder."})) == []
+
+
+class AanvulApi:
+    """De api voor de node (ophalen) en de driver (PATCH, met de revisietoets)."""
+
+    def __init__(self, wg=None, patch_status=0):
+        self.wg = dict(wg or WG)
+        self.patch_status = patch_status
+        self.gewijzigd: list[dict[str, Any]] = []
+        self.berichten: list[dict[str, Any]] = []
+
+    async def haal_werkgebied(self, wid):
+        from agent.wetsanalyse_api import WetsanalyseApiFout
+        if wid != self.wg["id"]:
+            raise WetsanalyseApiFout("GET → 404", 404)
+        return dict(self.wg)
+
+    async def wijzig_werkgebied(self, wid, wijziging):
+        from agent.wetsanalyse_api import WetsanalyseApiFout
+        if self.patch_status:
+            raise WetsanalyseApiFout("PATCH → x", self.patch_status)
+        if wijziging["verwachte_revisie"] != self.wg["revisie"]:
+            raise WetsanalyseApiFout("PATCH → 412", 412)
+        self.gewijzigd.append(wijziging)
+        self.wg.update({k: v for k, v in wijziging.items() if k != "verwachte_revisie"}, revisie=self.wg["revisie"] + 1)
+        return dict(self.wg)
+
+    async def voeg_bericht_toe(self, gid, bericht):
+        self.berichten.append(bericht)
+        return {}
+
+    async def aclose(self):
+        pass
+
+
+def _aanvulbeurt(settings, llm, nep, vraag, klik=None, cid="ga", **kw):
+    from agent.agent import answer_stream
+    from agent.models import IntakeActie
+
+    async def run():
+        return [e async for e in answer_stream(vraag, cid, settings=settings, llm=llm, graph=FakeGraph(),
+                                               werkgebied_id="wg1", agent_api=lambda s, u: nep, user_id="u",
+                                               intake_actie=IntakeActie(**klik) if klik else None, **kw)]
+    return asyncio.run(run())
+
+
+def _aanvulsettings(tmp_path):
+    return make_settings(enable_decomposition=False, checkpoint_db_path=str(tmp_path / "cp.db"),
+                         wetsanalyse_api_url="http://api", wetsanalyse_api_token="t")
+
+
+def test_kun_je_praktijkvoorbeeld_toevoegen_vraagt_het_zonder_model(tmp_path):
+    """De aanleiding van dit plan: de supervisor kiest het aanvullen, en het praktijkvoorbeeld verzint Lex niet –
+    na de supervisor geen enkele modelaanroep."""
+    settings = _aanvulsettings(tmp_path)
+    nep = AanvulApi()
+    llm = FakeLLM([response([text_block("WORKERS: werkgebied\nSPECIALIST: algemeen\nTAAK: aanvullen\nPLAN: dossier")], "end_turn")])
+    e = _aanvulbeurt(settings, llm, nep, "kun je praktijkvoorbeeld toevoegen?")
+    k = _kaart(e)
+    assert (k["modus"], k["stap"], k["totaal"], k["vooringevuld"]) == ("aanvullen", "praktijkvoorbeeld", 1, [])
+    assert len(llm.calls) == 1 and "deelvragen" not in json.dumps([x for x in e if x["type"] == "status"])
+    assert any("vult het dossier aan" in x.get("message", "") for x in e if x["type"] == "status")
+    a = {"intake_id": k["intake_id"], "stap": "praktijkvoorbeeld", "tekst": "Een spaarder met een tweede huis."}
+    k = _kaart(_aanvulbeurt(settings, FakeLLM([]), nep, "Een spaarder met een tweede huis.", a))
+    assert k["soort"] == "samenvatting" and k["samenvatting"]["wijzigingen"][0]["toen"] == ""
+    opslaan = {"intake_id": k["intake_id"], "stap": "samenvatting", "actie": "opslaan"}
+    e = _aanvulbeurt(settings, FakeLLM([]), nep, "Sla het op.", opslaan)
+    [ev] = [x for x in e if x["type"] == "werkgebied_wijzigen"]
+    assert ev["wijziging"] == {"praktijkvoorbeeld": "Een spaarder met een tweede huis."} and ev["verwachte_revisie"] == 4
+
+
+def test_de_actie_vult_de_lege_velden_aan_en_een_vol_dossier_zegt_dat(tmp_path):
+    settings = _aanvulsettings(tmp_path)
+    # Zonder genoemd veld de lege velden; de context heeft geen voorstel, dus geen modelaanroep.
+    e = _aanvulbeurt(settings, FakeLLM([]), AanvulApi(), "Vul het dossier aan", actie="dossier_aanvullen")
+    k = _kaart(e)
+    assert (k["stap"], k["totaal"]) == ("context", 3)
+    assert "Er ontbreekt nog: context, doel en praktijkvoorbeeld." in _tekst(e)
+    vol = {**WG, "context": "c", "doel": "d", "praktijkvoorbeeld": "p"}
+    e = _aanvulbeurt(settings, FakeLLM([]), AanvulApi(vol), "Vul het dossier aan", actie="dossier_aanvullen", cid="gv")
+    assert not [x for x in e if x["type"] == "vraagkaart"]
+    assert "staat alles al ingevuld" in _tekst(e) and "Analysevraag: Wie betaalt box 3?" in _tekst(e)
+
+
+def test_zonder_werkgebied_of_als_het_weg_is_zegt_lex_het(tmp_path):
+    from agent.agent import answer_stream
+
+    settings = _aanvulsettings(tmp_path)
+    weg = _aanvulbeurt(settings, FakeLLM([]), AanvulApi({**WG, "id": "ander"}), "Vul het dossier aan",
+                       actie="dossier_aanvullen")
+    assert "bestaat niet meer" in _tekst(weg)
+    from agent.nodes.werkgebied import ZONDER_WERKGEBIED
+
+    async def zonder():
+        llm = FakeLLM([response([text_block("WORKERS: werkgebied\nTAAK: aanvullen\nPLAN: x")], "end_turn")])
+        return [e async for e in answer_stream("kun je het praktijkvoorbeeld toevoegen?", "gz", settings=settings,
+                                               llm=llm, graph=FakeGraph(), agent_api=lambda s, u: AanvulApi())]
+    assert _tekst(asyncio.run(zonder())) == ZONDER_WERKGEBIED
+
+
+def test_opslaan_op_een_gewijzigd_werkgebied_legt_je_antwoord_naast_de_nieuwe_stand(tmp_path):
+    settings = _aanvulsettings(tmp_path)
+    nep = AanvulApi()
+    llm = FakeLLM([response([text_block("WORKERS: werkgebied\nTAAK: aanvullen\nPLAN: x")], "end_turn")])
+    k = _kaart(_aanvulbeurt(settings, llm, nep, "Voeg een praktijkvoorbeeld toe"))
+    k = _kaart(_aanvulbeurt(settings, FakeLLM([]), nep, "x",
+                            {"intake_id": k["intake_id"], "stap": "praktijkvoorbeeld", "tekst": "Een spaarder."}))
+    nep.wg.update(revisie=5, context="Iemand anders schreef dit.")
+    e = _aanvulbeurt(settings, FakeLLM([]), nep, "Sla het op.",
+                     {"intake_id": k["intake_id"], "stap": "samenvatting", "actie": "opslaan"})
+    assert not [x for x in e if x["type"] == "werkgebied_wijzigen"] and "intussen gewijzigd" in _tekst(e)
+    nieuw = _kaart(e)
+    assert nieuw["intake_id"] != k["intake_id"] and nieuw["samenvatting"]["wijzigingen"][0]["nu"] == "Een spaarder."
+    e = _aanvulbeurt(settings, FakeLLM([]), nep, "Sla het op.",
+                     {"intake_id": nieuw["intake_id"], "stap": "samenvatting", "actie": "opslaan"})
+    [ev] = [x for x in e if x["type"] == "werkgebied_wijzigen"]
+    assert ev["verwachte_revisie"] == 5
+
+
+VERZOEK_WIJZIG = {"type": "werkgebied_wijzigen", "werkgebied_id": "wg1", "verwachte_revisie": 4,
+                  "wijziging": {"praktijkvoorbeeld": "Een spaarder."},
+                  "wijzigingen": [{"veld": "praktijkvoorbeeld", "label": "Praktijkvoorbeeld", "toen": "",
+                                   "nu": "Een spaarder."}],
+                  "kaart": {"intake_id": "ik1", "stap": "samenvatting", "soort": "samenvatting", "modus": "aanvullen"}}
+
+
+def test_de_driver_wijzigt_het_werkgebied_na_opslaan(monkeypatch):
+    nep = AanvulApi()
+    uit = _driver(monkeypatch, nep, [dict(VERZOEK_WIJZIG), {"type": "done"}])
+    assert nep.gewijzigd == [{"verwachte_revisie": 4, "praktijkvoorbeeld": "Een spaarder."}]
+    [bericht] = nep.berichten
+    assert bericht["artefact"] == {"soort": "werkgebied", "titel": "Box 3", "ref": {"werkgebied_id": "wg1"}}
+    assert "praktijkvoorbeeld ingevuld" in bericht["tekst"]
+    assert [e for e in uit if e["type"] == "opgeslagen"][0]["artefact"] == bericht["artefact"]
+
+
+def test_de_driver_bij_412_en_404_niets_opgeslagen_en_zegt_waarom(monkeypatch):
+    nep = AanvulApi({**WG, "revisie": 5})
+    uit = _driver(monkeypatch, nep, [dict(VERZOEK_WIJZIG), {"type": "done"}])
+    [bericht] = nep.berichten
+    assert not nep.gewijzigd and "Iemand anders wijzigde het werkgebied net" in bericht["tekst"]
+    # Het samenvattingskaartje komt terug, zodat opnieuw opslaan kan.
+    assert bericht["vraagkaart"] == VERZOEK_WIJZIG["kaart"] and "artefact" not in bericht
+    assert [e["vraagkaart"] for e in uit if e["type"] == "vraagkaart"] == [VERZOEK_WIJZIG["kaart"]]
+    nep = AanvulApi(patch_status=404)
+    _driver(monkeypatch, nep, [dict(VERZOEK_WIJZIG), {"type": "done"}])
+    assert "bestaat niet meer" in nep.berichten[0]["tekst"]
+
+
+def test_de_driver_een_andere_fout_is_zichtbaar(monkeypatch):
+    nep = AanvulApi(patch_status=503)
+    uit = _driver(monkeypatch, nep, [dict(VERZOEK_WIJZIG), {"type": "done"}])
+    assert [e.get("foutcode") for e in uit if e["type"] == "error"] == ["werkgebied_niet_gewijzigd"]
+    assert not nep.berichten and uit[-1]["type"] == "done"
+
+
+def test_dossier_aanvullen_is_een_actie_zonder_agent():
+    from agent.models import ACTIE_TAAK, INTAKE_ACTIES
+
+    r = ChatRequest(question="Vul het praktijkvoorbeeld aan", actie="dossier_aanvullen",
+                    onderwerp={"soort": "werkgebied", "werkgebied_id": "wg1"})
+    assert r.werkgebied_id == "wg1" and r.modus == "auto" and "dossier_aanvullen" in INTAKE_ACTIES
+    assert "dossier_aanvullen" not in ACTIE_TAAK
+    with pytest.raises(Exception, match="werkgebied_id"):
+        ChatRequest(question="x", actie="dossier_aanvullen")
