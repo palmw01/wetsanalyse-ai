@@ -170,27 +170,107 @@ def test_het_onderwerp_van_een_deelvraag(vraag, onderwerp):
     assert bronnen_vinden.onderwerp_van_deelvraag(vraag) == onderwerp
 
 
-def test_met_deelvragen_zoekt_lex_ook_per_deelvraag(monkeypatch):
-    dv = [{"id": "d1", "vraag": "Wanneer is een aanslag invorderbaar?"}, {"id": "d2", "vraag": "Wat?"}]
-    assert bronnen_vinden.standaard_voor({**INVOER, "deelvragen": dv})[-1] == "deelvraag"
-    assert bronnen_vinden.standaard_voor({**INVOER, "kern": [], "deelvragen": dv}) == ("overzicht", "deelvraag")
-    ov = {"volledig": True, "onderwerp_tekst": "aanslag invorderbaar", "regelingen": [
-        {"delen": [{"bepalingen": [{"iri": ART8, "label": "Artikel 8"}, {"iri": ART9, "label": "Artikel 9"}]}],
-         "ook_genoemd": [{"iri": ART10, "label": "Artikel 10"}]}]}
-    gevraagd: list[str] = []
-    monkeypatch.setattr(overzicht, "bouw_overzicht", lambda g, vraag, **kw: gevraagd.append(kw["onderwerp"]) or ov)
-    uit = vind(Graaf(), {**INVOER, "deelvragen": dv}, methoden=("deelvraag",))
-    assert gevraagd == ["een aanslag invorderbaar"], "een deelvraag zonder onderwerp zoekt niets"
+# --- bepalingen bij één deelvraag (F3f): de intake en de deelvragen-agent delen `bepaling_opties` ---
+
+IWB = "BWBR0004770"
+L9_2, ART12_1 = f"{IW}:artikel:9:lid:2", f"{IW}:artikel:12:lid:1"
+FTS_KOP = ["node", "score", "soort", "label", "tekst", "jci", "bwbId", "citeertitel"]
+
+
+def _fts(*rijen):
+    return _tsv(FTS_KOP, [[n, "1.0", "", "", t, "", b, ""] for n, t, b in rijen])
+
+
+TREFFERS = {
+    "Lid": _fts((L1, "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.", IWB),
+                (L9_2, "In afwijking van het eerste lid is een navorderingsaanslag invorderbaar één maand na de dagtekening.", IWB),
+                (ART12_1, "De kosten van vervolging zijn invorderbaar.", IWB),
+                ("urn:bwb:BWBR0002320:artikel:30:lid:1", "Een belastingaanslag ...", "BWBR0002320")),
+    # Artikel 9 zelf valt weg: er is een lid van geraakt. Artikel 10 heeft geen geraakt lid.
+    "Artikel": _fts((ART9, "Een belastingaanslag is invorderbaar ...", IWB),
+                    (ART10, "In afwijking van artikel 9 is een belastingaanslag terstond invorderbaar.", IWB)),
+    # Een onderdeel telt voor zijn lid.
+    "Onderdeel": _fts((f"{IW}:artikel:8:lid:1:o:a", "de aanslag wordt bekendgemaakt door het aanslagbiljet;", IWB)),
+}
+
+
+class BepalingGraaf(FakeGraph):
+    def __init__(self, faal: bool = False) -> None:
+        super().__init__(results=self._antwoord)
+        self.faal = faal
+
+    def _antwoord(self, q: str) -> str:
+        if "bwb:opschrift" in q:
+            return _tsv(["r", "citeertitel", "opschrift"], [[f"urn:bwb:{IWB}", "Invorderingswet 1990", ""]])
+        if "definieertBegrip:" in q:
+            return _tsv(["node", "begrip", "label", "tekst", "jci", "bwbId", "citeertitel"],
+                        [[ART2K, "belastingaanslag", "", "belastingaanslag: aanslag als bedoeld in ...", "", IWB, ""]])
+        if "VALUES ?bepaling" in q:
+            return _tsv(["bepaling", "deel", "soort", "label"], [[L1, H2, "Hoofdstuk", "Hoofdstuk II – Invordering"]])
+        if self.faal:
+            raise RuntimeError("graaf hapert")
+        return next(t for soort, t in TREFFERS.items() if f"?node a bwb:{soort} ." in q)
+
+
+DOSSIER = {"analysevraag": "Wanneer is een aanslag invorderbaar?",
+           "praktijkvoorbeeld": "Een aanslagbiljet met dagtekening 1 maart."}
+
+
+def _opties(graaf=None, **kw):
+    from agent.werkgebied_context import uitsluitstammen
+
+    args = {"regelingen": [IWB], "deelvraag": "Wanneer is een belastingaanslag invorderbaar?", "dossier": DOSSIER,
+            "buiten": uitsluitstammen("de kosten van vervolging")} | kw
+    return bronnen_vinden.bepaling_opties(graaf or BepalingGraaf(), **args)
+
+
+def test_bepalingen_bij_een_deelvraag_op_lid_niveau_en_in_vaste_volgorde():
+    uit = _opties()
+    # Volgorde: deelvraagtermen, dan dossiertermen, dan kop, dan documentvolgorde. Een andere regeling valt
+    # weg; een artikel met een geraakt lid ook; een onderdeel telt voor zijn lid.
+    assert [o["bron_iri"] for o in uit] == [L1, ART10, L9_2, f"{IW}:artikel:2:lid:1", f"{IW}:artikel:8:lid:1", ART12_1]
+    eerste = uit[0]
+    assert eerste["label"] == "Artikel 9, lid 1 – Invorderingswet 1990" and not eerste["buiten"]
+    assert eerste["omschrijving"].startswith("Een belastingaanslag is invorderbaar zes weken")
+    assert eerste["omschrijving"].endswith("raakt: belastingaanslag, invorderbaar, aanslag, aanslagbiljet, dagtekening")
+    # Hetzelfde gesprek, dezelfde opties.
+    assert _opties() == uit
+
+
+def test_wat_buiten_de_afbakening_raakt_valt_niet_stil_weg():
+    """Het invorderingsgeval: 'de kosten van vervolging' valt erbuiten. Een lid dat daar meer over gaat dan
+    over de deelvraag staat onderaan, gemarkeerd, en telt niet mee voor het maximum."""
+    uit = _opties(limit=2)
+    assert [o["bron_iri"] for o in uit] == [L1, ART10, ART12_1]
+    assert uit[-1]["buiten"] and uit[-1]["omschrijving"] == bronnen_vinden.BUITEN_TEKST
+    # Zonder uitsluiting is hetzelfde lid gewoon een optie.
+    assert not [o for o in _opties(buiten=[]) if o["buiten"]]
+
+
+def test_zonder_deelvraag_zoekt_lex_op_de_analysevraag_en_een_storing_is_leeg():
+    assert _opties(deelvraag=None)[0]["bron_iri"] in (L1, ART10)
+    assert _opties(BepalingGraaf(faal=True)) == []
+    assert _opties(deelvraag="Wat?", dossier={}) == []
+
+
+def test_de_deelvragen_agent_zoekt_per_deelvraag_met_dezelfde_functie():
+    dv = [{"id": "d1", "vraag": "Wanneer is een belastingaanslag invorderbaar?"}, {"id": "d2", "vraag": "Wat?"}]
+    invoer = {**INVOER, "deelvragen": dv, "dossier": {"afbakening": "Regelingen: Invorderingswet 1990.\n"
+                                                                      "Buiten de afbakening: kosten van vervolging."}}
+    assert bronnen_vinden.standaard_voor(invoer)[-1] == "deelvraag"
+    assert bronnen_vinden.standaard_voor({**invoer, "kern": []}) == ("overzicht", "deelvraag")
+    uit = vind(BepalingGraaf(), invoer, methoden=("deelvraag",))
     k = _per_iri(uit)
-    # Met een kern: aanverwant, met de deelvraag in het bewijs; de selectie zelf valt weg.
-    assert ART9 not in k and k[ART8]["rol"] == "aanverwant"
-    assert k[ART8]["bewijs"][0]["detail"] == {"deelvraag_id": "d1", "vraag": dv[0]["vraag"],
-                                              "onderwerp": "aanslag invorderbaar"}
-    assert uit["meting"]["deelvraag"] == {"aantal": 2, "volledig": True, "ms": uit["meting"]["deelvraag"]["ms"]}
-    # Zonder kern: kern, en het plafond per deelvraag maakt de methode onvolledig.
-    monkeypatch.setattr(bronnen_vinden, "MAX_PER_DEELVRAAG", 1)
-    uit = vind(Graaf(), {**INVOER, "kern": [], "deelvragen": dv}, methoden=("deelvraag",))
-    assert [x["rol"] for x in uit["kandidaten"]] == ["kern"] and uit["meting"]["deelvraag"]["volledig"] is False
+    # Met een kern: aanverwant, binnen de regeling van de kern; wat al in de selectie valt, valt weg.
+    assert L1 not in k and L9_2 not in k and k[ART10]["rol"] == "aanverwant"
+    assert k[ART10]["bewijs"][0]["detail"] == {"deelvraag_id": "d1", "vraag": dv[0]["vraag"],
+                                               "raakt": ["belastingaanslag", "invorderbaar"]}
+    assert k[ART12_1]["bewijs"][0]["detail"]["buiten"] is True
+    assert uit["meting"]["deelvraag"]["aantal"] == len(k)
+    # Zonder kern: kern.
+    uit = vind(BepalingGraaf(), {**invoer, "kern": []}, methoden=("deelvraag",))
+    assert {x["rol"] for x in uit["kandidaten"]} == {"kern"}
+    assert bronnen_vinden.buiten_uit_afbakening(invoer["dossier"]["afbakening"]) == "kosten van vervolging."
 
 
 def test_een_geraakt_plafond_is_onvolledig(geen_overzicht, monkeypatch):

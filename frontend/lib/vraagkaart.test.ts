@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   ONBEKEND, antwoordActie, antwoordTekst, beginstand, groepeerVragen, isLaatsteVraag, openVraag, parseAntwoordOp,
-  parseVraagkaart, vorigeStap, type Vraagkaart,
+  parseVraagkaart, vorige, type Vraagkaart,
 } from "./vraagkaart";
 
 const RUW = {
@@ -102,14 +102,36 @@ describe("parse van de nieuwe velden", () => {
 });
 
 describe("bladeren", () => {
-  it("‹ gaat naar de vorige stap, vanaf de samenvatting naar de laatste vraag", () => {
+  const bep = (index: number, totaal = 3) => kaart({ stap: "bepalingen", terug: true, nr: 10 + index, totaal: 9 + totaal,
+    deel: { index, totaal, deelvraag: `Deelvraag ${index + 1}?` } });
+
+  it("‹ gaat naar de vorige stap, vanaf de samenvatting naar het laatste bepalingen-kaartje", () => {
     // De bronnen komen pas na de deelvragen en wat erbuiten valt (Handleiding 1f).
-    expect(vorigeStap(kaart({ terug: true }))).toBe("buiten");
-    expect(vorigeStap(kaart({ stap: "analysevraag", terug: true }))).toBe("doel");
-    expect(vorigeStap(kaart({ terug: false }))).toBeUndefined();
-    expect(vorigeStap(kaart({ stap: "samenvatting", soort: "samenvatting", terug: true }))).toBe("onderdelen");
-    expect(isLaatsteVraag(kaart({ stap: "onderdelen" }))).toBe(true);
+    expect(vorige(kaart({ terug: true }))).toEqual({ naar: "buiten" });
+    expect(vorige(kaart({ stap: "analysevraag", terug: true }))).toEqual({ naar: "doel" });
+    expect(vorige(kaart({ terug: false }))).toBeUndefined();
+    // Negen vaste stappen en drie deelvragen: de samenvatting is 12 van 12, terug is deel 3 (index 2).
+    expect(vorige(kaart({ stap: "samenvatting", soort: "samenvatting", terug: true, nr: 12, totaal: 12 })))
+      .toEqual({ naar: "bepalingen", naar_deel: 2 });
+  });
+
+  it("de bepalingen hebben een kaartje per deelvraag: ‹ bladert per deel, Verzend op het laatste", () => {
+    expect(bep(0).deel).toEqual({ index: 0, totaal: 3, deelvraag: "Deelvraag 1?" });
+    expect(vorige(bep(0))).toEqual({ naar: "regelingen" });
+    expect(vorige(bep(2))).toEqual({ naar: "bepalingen", naar_deel: 1 });
+    expect(isLaatsteVraag(bep(1))).toBe(false);
+    expect(isLaatsteVraag(bep(2))).toBe(true);
     expect(isLaatsteVraag(kaart())).toBe(false);
+    // Zonder deelvragen één kaartje over de analysevraag.
+    expect(isLaatsteVraag(kaart({ stap: "bepalingen", deel: { index: 0, totaal: 1, deelvraag: null } }))).toBe(true);
+    // Een keuze en terugbladeren dragen het deel.
+    expect(antwoordActie(bep(1), ["urn:bwb:x"], "")).toMatchObject({ stap: "bepalingen", deel: 1 });
+    expect(antwoordTekst(bep(2), { intake_id: "ik1", stap: "bepalingen", deel: 2, actie: "wijzig", naar: "bepalingen", naar_deel: 1 }))
+      .toBe("Terug naar de bepalingen bij deelvraag 2.");
+    // `deel` alleen bij de bepalingen.
+    expect(kaart({ deel: { index: 0, totaal: 1, deelvraag: null } }).deel).toBeNull();
+    expect(parseAntwoordOp({ intake_id: "ik1", stap: "bepalingen", deel: 1 })).toEqual(
+      { intake_id: "ik1", stap: "bepalingen", deel: 1, actie: "antwoord" });
   });
 });
 
@@ -156,6 +178,23 @@ describe("groepeerVragen", () => {
     const { groepen, verborgen } = groepeerVragen(items, false);
     expect(verborgen.has("u2") || verborgen.has("l3")).toBe(false);
     expect(openVraag(groepen)?.open?.stap).toBe("analysevraag");
+  });
+
+  it("elk bepalingen-kaartje is een eigen paar: deelvraag 2 vervangt deelvraag 1 niet", () => {
+    const bep = (index: number) => kaart({ stap: "bepalingen", vraag: `Welke bepalingen horen bij deelvraag ${index + 1}?`,
+      deel: { index, totaal: 2, deelvraag: "?" } });
+    const antDeel = (id: string, deel: number, tekst: string, actie: "antwoord" | "wijzig" = "antwoord") =>
+      ({ id, type: "user", tekst, antwoordOp: { intake_id: "ik1", stap: "bepalingen" as const, deel, actie } });
+    const items = [{ id: "l1", type: "antwoord", tekst: "", vraagkaart: bep(0) }, antDeel("u1", 0, "Artikel 6:7"),
+      { id: "l2", type: "antwoord", tekst: "", vraagkaart: bep(1) }, antDeel("u2", 1, "Artikel 6:5, lid 1"),
+      { id: "l3", type: "antwoord", tekst: "", vraagkaart: kaart({ stap: "samenvatting", soort: "samenvatting" }) }];
+    const g = groepeerVragen(items, false).groepen.get("l1")!;
+    expect(g.paren.map((p) => [p.deel, p.antwoord])).toEqual([[0, "Artikel 6:7"], [1, "Artikel 6:5, lid 1"]]);
+    // Terug naar deel 1 en opnieuw beantwoorden: de reeks begint daar opnieuw.
+    const opnieuw = [...items, antDeel("u3", 0, "Terug.", "wijzig"),
+      { id: "l4", type: "antwoord", tekst: "", vraagkaart: bep(0) }, antDeel("u4", 0, "Artikel 6:8, lid 1")];
+    const h = groepeerVragen(opnieuw, false).groepen.get("l1")!;
+    expect(h.paren.map((p) => [p.deel, p.antwoord])).toEqual([[0, "Artikel 6:8, lid 1"]]);
   });
 
   it("overslaan heet zo, en opnieuw beantwoorden na terugbladeren vervangt het paar", () => {

@@ -33,6 +33,14 @@ staat, laat die methode falen (`volledig: false`) en het rapport noemt het.
     python -m eval.bronselectie_eval                      # offline, tegen de opname
     python -m eval.bronselectie_eval --opnemen            # live tegen de graaf, en de opname vernieuwen
     python -m eval.bronselectie_eval --json uit.json      # het rapport ook als JSON
+    python -m eval.bronselectie_eval --intake             # per deelvraag (F3f), op een set met deelvragen
+
+**`--intake`** (F3f) meet de bepalingen per deelvraag: `bepaling_opties` – de functie van de intake én
+van de deelvragen-agent – tegen de verwachte bepalingen van elke deelvraag (`verwacht[].deelvraag`),
+naast de vorige deelvraagmethode (het overzicht per deelvraag, op artikelniveau) als ijkpunt. Maten per
+deelvraag en samen: `recall`, `recall_nodig`, `recall_exact` (het lid zelf, of erbinnen), `precisie`
+(het aandeel opties dat een verwachte bepaling van díé deelvraag raakt), `uitgesloten` (opties die een
+uitgesloten bepaling raken, niet gemarkeerd) en `uitgesloten_gemarkeerd` (wel gemarkeerd, onderaan).
 
 `--opnemen` vraagt `GRAPHDB_MCP_URL` en `GRAPHDB_TOKEN` (en voor gelijkenis `SIMILARITY_INDEX`).
 """
@@ -209,6 +217,112 @@ def tabel(s: dict[str, Any], rapport: dict[str, Any]) -> str:
     return "\n".join(regels)
 
 
+# --- per deelvraag (F3f) ---------------------------------------------------------------------------
+
+INTAKE_SET = "bezwaar-ontvankelijkheid-concept"
+
+
+def _vorige_deelvraagmethode(graph: Any, s: dict[str, Any], vraag: str) -> list[dict[str, Any]]:
+    """De deelvraagmethode van vóór F3f (`bronnen_vinden._deelvraag` tot 21 okt 2026), als ijkpunt: het
+    overzicht per deelvraag, op artikelniveau, hoogstens 15 – letterlijk overgenomen."""
+    from agent.overzicht import bouw_overzicht
+
+    onderwerp = bronnen_vinden.onderwerp_van_deelvraag(vraag)
+    if not onderwerp:
+        return []
+    try:
+        ov = bouw_overzicht(graph, vraag, onderwerp=onderwerp)
+    except ValueError:
+        return []
+    uit = []
+    for r in ov.get("regelingen", []):
+        for b in [b for deel in r.get("delen", []) for b in deel.get("bepalingen", [])] + r.get("ook_genoemd", []):
+            if len(uit) < 15 and b["iri"] not in [u["bron_iri"] for u in uit]:
+                uit.append({"bron_iri": b["iri"], "buiten": False})
+    return uit
+
+
+def _bepaling_opties(graph: Any, s: dict[str, Any], vraag: str) -> list[dict[str, Any]]:
+    from agent.werkgebied_context import uitsluitstammen
+
+    return bronnen_vinden.bepaling_opties(
+        graph, regelingen=s["regelingen"], deelvraag=vraag,
+        dossier={k: s.get(k, "") for k in ("naam", "analysevraag", "praktijkvoorbeeld", "context")},
+        buiten=uitsluitstammen(s.get("buiten", "")))
+
+
+ROUTES = {"bepaling_opties": _bepaling_opties, "vorige deelvraagmethode": _vorige_deelvraagmethode}
+
+
+def scoor_deelvraag(s: dict[str, Any], i: int, opties: list[dict[str, Any]]) -> dict[str, Any]:
+    verwacht = [v for v in s["verwacht"] if v["deelvraag"] == i]
+    nodig = [v for v in verwacht if v["rol"] in ("kern", "afhankelijkheid")]
+    gewoon = [o["bron_iri"] for o in opties if not o.get("buiten")]
+    gemarkeerd = [o["bron_iri"] for o in opties if o.get("buiten")]
+    alles = gewoon + gemarkeerd
+
+    def gevonden(v: dict[str, Any]) -> bool:
+        return any(_raakt(c, v["bron_iri"]) for c in alles)
+
+    def precies(v: dict[str, Any]) -> bool:
+        return any(c == v["bron_iri"] or c.startswith(v["bron_iri"] + ":") for c in alles)
+
+    def raakt_uitgesloten(c: str) -> bool:
+        return any(_raakt(c, u["bron_iri"]) for u in s["uitgesloten"])
+
+    return {"verwacht": len(verwacht), "nodig": len(nodig), "aantal": len(gewoon), "gemarkeerd": len(gemarkeerd),
+            "gevonden": sum(map(gevonden, verwacht)), "gevonden_nodig": sum(map(gevonden, nodig)),
+            "exact": sum(map(precies, verwacht)),
+            "raak": sum(1 for c in gewoon if any(_raakt(c, v["bron_iri"]) for v in verwacht)),
+            "uitgesloten": [c for c in gewoon if raakt_uitgesloten(c)],
+            "uitgesloten_gemarkeerd": [c for c in gemarkeerd if raakt_uitgesloten(c)],
+            "gemist": [v["bron_iri"] for v in verwacht if not gevonden(v)],
+            "opties": alles}
+
+
+def _deel(a: int, b: int) -> float | None:
+    return round(a / b, 3) if b else None
+
+
+def meet_intake(graaf: Any, s: dict[str, Any]) -> dict[str, Any]:
+    from agent import overzicht, regelingnamen
+
+    rapport = {}
+    for naam, route in ROUTES.items():
+        regelingnamen._CACHE.clear()
+        overzicht._REGELINGEN_CACHE.clear()
+        per = [scoor_deelvraag(s, i, route(graaf, s, vraag)) for i, vraag in enumerate(s["deelvragen"])]
+        som = {k: sum(p[k] for p in per) for k in ("verwacht", "nodig", "aantal", "gevonden", "gevonden_nodig", "exact", "raak")}
+        rapport[naam] = {"recall": _deel(som["gevonden"], som["verwacht"]),
+                         "recall_nodig": _deel(som["gevonden_nodig"], som["nodig"]),
+                         "recall_exact": _deel(som["exact"], som["verwacht"]),
+                         "precisie": _deel(som["raak"], som["aantal"]), "aantal": som["aantal"],
+                         "uitgesloten": sum(len(p["uitgesloten"]) for p in per),
+                         "uitgesloten_gemarkeerd": sum(len(p["uitgesloten_gemarkeerd"]) for p in per),
+                         "per_deelvraag": per}
+    return rapport
+
+
+def tabel_intake(s: dict[str, Any], rapport: dict[str, Any]) -> str:
+    def f(x):
+        return "–" if x is None else f"{x:.2f}" if isinstance(x, float) else str(x)
+    regels = [f"Set: {s['naam']} – status {s['status']} (trendmeting, geen kwaliteitsoordeel tot vaststelling)",
+              f"Analysevraag: {s['analysevraag']}",
+              f"Deelvragen: {len(s['deelvragen'])}, verwacht: {len(s['verwacht'])}, uitgesloten: {len(s['uitgesloten'])}",
+              "", "| route | aantal | recall | recall nodig | exact | precisie | uitgesloten | uitgesloten gemarkeerd |",
+              "|---|---|---|---|---|---|---|---|"]
+    for naam, r in rapport.items():
+        regels.append(f"| {naam} | {r['aantal']} | {f(r['recall'])} | {f(r['recall_nodig'])} | {f(r['recall_exact'])} | "
+                      f"{f(r['precisie'])} | {r['uitgesloten']} | {r['uitgesloten_gemarkeerd']} |")
+    for naam, r in rapport.items():
+        regels += ["", f"**{naam}** per deelvraag:"]
+        for i, p in enumerate(r["per_deelvraag"]):
+            regels.append(f"- {i + 1}. {p['gevonden']}/{p['verwacht']} gevonden (exact {p['exact']}), {p['raak']}/{p['aantal']} raak"
+                          f"{', gemarkeerd ' + str(p['gemarkeerd']) if p['gemarkeerd'] else ''}; gemist: "
+                          f"{', '.join(g.split(':', 2)[2] for g in p['gemist']) or 'niets'}")
+    return "\n".join(regels)
+
+
 def _echte_graaf():
     from agent.adapters.graphdb_graph import make_graph
     from agent.config import Settings
@@ -217,25 +331,30 @@ def _echte_graaf():
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    p.add_argument("--set", default=STANDAARD_SET)
+    p.add_argument("--set", default=None)
+    p.add_argument("--intake", action="store_true", help="per deelvraag meten (F3f), op een set met deelvragen")
     p.add_argument("--opnemen", action="store_true", help="live tegen de graaf en de opname vernieuwen")
     p.add_argument("--json", type=Path, help="het rapport ook als JSON wegschrijven")
     a = p.parse_args(argv)
+    a.set = a.set or (INTAKE_SET if a.intake else STANDAARD_SET)
     s = laad_set(a.set)
+    if a.intake and not s.get("deelvragen"):
+        p.error(f"set {a.set} heeft geen deelvragen")
+    meting, opmaak = (meet_intake, tabel_intake) if a.intake else (meet, tabel)
     pad = SETS / a.set / "graafantwoorden.json"
     if a.opnemen:
         graaf = OpnemendeGraaf(_echte_graaf())
         try:
-            rapport = meet(graaf, s)
+            rapport = meting(graaf, s)
         finally:
             graaf.close()
         pad.write_text(json.dumps(graaf.opname, ensure_ascii=False, indent=1, sort_keys=True) + "\n")
     else:
         graaf = OpnameGraaf(json.loads(pad.read_text()))
-        rapport = meet(graaf, s)
+        rapport = meting(graaf, s)
         if graaf.ontbrekend:
             print(f"Let op: {graaf.ontbrekend} query's stonden niet in de opname; draai --opnemen.", file=sys.stderr)
-    print(tabel(s, rapport))
+    print(opmaak(s, rapport))
     if a.json:
         a.json.write_text(json.dumps({"set": a.set, "status": s["status"], "rapport": rapport}, ensure_ascii=False, indent=1))
     return 0

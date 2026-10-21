@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { ChevronOmlaag, Kruis, PijlRechts, Vinkje } from "@/components/ui/Icoon";
 import { Regel, Regels } from "@/components/ui/Lijst";
 import {
-  ONBEKEND, antwoordActie, beginstand, isLaatsteVraag, vorigeStap, type IntakeActie, type Vraagkaart,
+  ONBEKEND, antwoordActie, beginstand, isLaatsteVraag, vorige as vorigeKaart, type IntakeActie, type Vraagkaart,
 } from "@/lib/vraagkaart";
 
 /** De open vraag van Lex bij het samenstellen van een werkgebied (activiteit 1), onderaan de werkplek op
@@ -63,14 +63,14 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
     if (!kaart.meerkeuze) setEigen("");
   }
 
-  const basis = { intake_id: kaart.intake_id, stap: kaart.stap };
+  const basis = { intake_id: kaart.intake_id, stap: kaart.stap, ...(kaart.deel ? { deel: kaart.deel.index } : {}) };
   const actie = antwoordActie(kaart, gekozen, eigen, teksten);
   const regelErbij = (na: number) => {
     setTeksten((t) => [...t.slice(0, na + 1), "", ...t.slice(na + 1)]);
     setNieuweRegel(na + 1);
   };
   const stuur = (a: IntakeActie | undefined) => { if (!uitgeschakeld && a) onActie(a); };
-  const vorige = vorigeStap(kaart);
+  const vorige = vorigeKaart(kaart);
   const zoekt = kaart.stap === "regelingen" && !!eigen.trim() && !gekozen.length;
   const knop = kaart.soort === "samenvatting" ? "Werkgebied aanmaken" : zoekt ? "Zoek" : isLaatsteVraag(kaart) ? "Verzend" : "Volgende";
 
@@ -78,6 +78,7 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
     <section
       aria-label="Vraag van Lex"
       data-vraagdock={kaart.stap}
+      data-deel={kaart.deel?.index}
       className="relative w-full overflow-hidden rounded-[24px] border border-line bg-white shadow-kaart"
     >
       <div className="overflow-y-auto overscroll-contain px-5 pb-4"
@@ -85,7 +86,7 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
         {/* Bladeren en sluiten blijven staan terwijl de vraag meescrollt. */}
         <div className="sticky top-0 z-10 -mx-5 flex items-center gap-1 bg-white/95 px-3 pt-3 pb-1 backdrop-blur">
           <button type="button" aria-label="Vorige vraag" disabled={!vorige || uitgeschakeld}
-            onClick={() => vorige && stuur({ ...basis, actie: "wijzig", naar: vorige })}
+            onClick={() => vorige && stuur({ ...basis, actie: "wijzig", ...vorige })}
             className="focus-ring inline-flex h-9 w-9 items-center justify-center rounded-full text-ink hover:bg-surface disabled:opacity-30 coarse:h-11 coarse:w-11">
             <ChevronOmlaag className="rotate-90 text-lg" />
           </button>
@@ -104,6 +105,7 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
         </div>
 
         <h2 className="mt-1 font-display text-lg font-semibold leading-snug text-ink sm:text-xl">{kaart.vraag}</h2>
+        {kaart.deel?.deelvraag && <p className="mt-1 text-[15px] text-ink">“{kaart.deel.deelvraag}”</p>}
         {kaart.toelichting && <p className="mt-1 text-sm text-muted">{kaart.toelichting}</p>}
 
         {kaart.soort === "samenvatting" && kaart.samenvatting ? (

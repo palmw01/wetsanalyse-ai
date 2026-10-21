@@ -1,6 +1,6 @@
 # Plan — wetsanalyse-ai
 
-Soort: *plan* (zie [`README.md`](README.md)) · Bijgewerkt: 14 oktober 2026
+Soort: *plan* (zie [`README.md`](README.md)) · Bijgewerkt: 21 oktober 2026
 
 Dit is het **enige plan** van het project. Het vervangt de losse plannen voor de workbench, het
 herkomstspoor, werkgebieden en begrippen en de kennisbank. Hier staat wat er openstaat, niet wat er
@@ -888,7 +888,14 @@ van de gebruiker op 20 okt 2026).
     `deelvragen_stroom`), `AnnoterenDoorLex`, `AnnoterenBevestiging`, `MeedenkBevestiging`, `BegripLex` en
     `lib/begripLex.ts` (wat nog gebruikt werd, staat in `lib/kaartVoorstel.ts`);
   - **F3f**: de intake met bepalingen per deelvraag en de twee fixes, met een meting op een **nieuwe**
-    set.
+    set – **gebouwd** (21 okt 2026): de stap `onderdelen` is `bepalingen`, één kaartje per deelvraag
+    (`deel` in kaart, klik en antwoord; ‹ per deel), met `bronnen_vinden.bepaling_opties` (zonder model,
+    lid-niveau, hoogstens acht) – ook voor de deelvragen-agent (besluit gebruiker 21 okt 2026); een keuze
+    wordt een bronselectie gekoppeld aan díé deelvraag. Fix 1: wat aan de afbakening raakt staat
+    gemarkeerd onderaan. Fix 2: de afrondingstekst volgt de echte koppelingen. Meting blind op de nieuwe
+    set *Ontvankelijkheid van bezwaar* (Awb + AWR, door de agent opgesteld, concept): recall 0,21 tegen
+    0,16 voor de vorige methode, exact 0,21 tegen 0,05 – beter, maar absoluut zwak; de rangschikking
+    mist stemming en gewicht (meetlogboek `bronselectie-2026-10-21`).
 - **Technisch risico.** De bestaande stromen zijn async; de LangGraph-nodes draaien synchroon. De
   agent draait op de event loop van de beurt. Stopvlag en runstore-sleutels blijven daarbij gelden.
   Een spike-test komt als eerste.
@@ -904,6 +911,9 @@ van de gebruiker op 20 okt 2026).
   bestaande bronnenrun en deelvragen staan klaar als volgende stap na het aanmaken).
 - De rest van activiteit 1 uit de Leidraad: juridische scenario's met gebeurtenissen (1c) en die
   verbinden met de deelvragen (1e) – de controle die volgens de Handleiding de afbakening scherp maakt.
+- **Een betere rangschikking van `bepaling_opties`** (uit de meting van F3f): de verwachte leden staan
+  hoog in de index, de letterlijke termtelling gooit ze eruit. Stemming en een structuursignaal (de kop
+  van het deel), gemeten op een nieuwe set – de bezwaarset is nu een ontwikkelset.
 - **Minder en betere bronvoorstellen** (de volgende iteratie, volgens de gebruiker): de bronnenrun het
   dossier laten gebruiken – wat erbuiten valt weglaten zoals de intake dat al doet, zoeken met
   aanleiding en praktijkvoorbeeld – met een meting op de referentieset bronselectie ervoor en erna.

@@ -16,7 +16,9 @@
  *  - F2: de deelvragen – voorstellen kiezen én meerdere eigen regels (Enter of *+ Nog een deelvraag*),
  *    als `teksten`; de samenvatting toont het hele dossier; het paneel na aanmaken ook, met de dekking
  *    per deelvraag;
- *  - de laatste vraag heeft *Verzend*; de samenvatting *Werkgebied aanmaken*;
+ *  - F3f: de bepalingen per deelvraag – een kaartje per deelvraag met de deelvraag erbij en `deel` in de
+ *    klik; ‹ bladert naar het vorige deel (`naar_deel`), en de Vragen-kaart houdt een paar per deel;
+ *  - de laatste vraag (het laatste deel) heeft *Verzend*; de samenvatting *Werkgebied aanmaken*;
  *  - ✕ geeft het invoerveld terug, "Een vraag stellen ›" opent de vraag weer;
  *  - ‹ stuurt `wijzig` naar de vorige stap;
  *  - na aanmaken: de werkgebiedkaart, het eigen paneel met link, de werkplek in het werkgebied, en
@@ -38,7 +40,7 @@ await context.addCookies(await sessieCookies(base));
 await context.addInitScript(() => localStorage.setItem("wa_rondleiding", JSON.stringify({ versie: 999, gezien: true })));
 
 const nu = "2026-10-20T10:00:00+00:00";
-const IB = "BWBR0011353", AFD = `urn:bwb:${IB}:hoofdstuk:5:afdeling:5.1`;
+const IB = "BWBR0011353", L21 = `urn:bwb:${IB}:artikel:2.1:lid:1`, L52 = `urn:bwb:${IB}:artikel:5.2:lid:1`;
 const kaart = (stap, nr, vraag, over = {}) => ({
   intake_id: "ik1", soort: "vraag", stap, nr, totaal: 10, vraag, toelichting: "", opties: [], meerkeuze: false,
   vrije_tekst: true, meer_tekst: false, overslaanbaar: stap !== "naam", vooringevuld: [], samenvatting: {},
@@ -62,16 +64,24 @@ const REGELINGEN = kaart("regelingen", 9, "Welke regeling(en) horen erbij?", {
     { label: "Algemene wet inzake rijksbelastingen", waarde: "BWBR0002320", bron: { bwb_id: "BWBR0002320" }, omschrijving: "genoemd in je vraag" },
     { label: "Weet ik (nog) niet", waarde: "onbekend", bron: {}, omschrijving: "Je kunt bronnen later toevoegen" }],
 });
-const ONDERDELEN = kaart("onderdelen", 10, "Welke onderdelen van die regeling(en)?", {
-  meerkeuze: true,
-  opties: [{ label: "Afdeling 5.1 – Box 3", waarde: AFD, bron: { bwb_id: IB, iri: AFD }, omschrijving: "Wet IB 2001 · deelvraag 1" }],
+const bepalingen = (index, over = {}) => kaart("bepalingen", 10 + index, `Welke bepalingen horen bij deelvraag ${index + 1}?`, {
+  meerkeuze: true, totaal: 11, deel: { index, totaal: 2, deelvraag: index ? "Telt een tweede huis mee?" : DV1 },
+  opties: [{ label: "Artikel 2.1, lid 1 – Wet IB 2001", waarde: L21, bron: { bwb_id: IB, iri: L21 },
+    omschrijving: "Belastingplichtig zijn natuurlijke personen … · raakt: belastingplichtig" },
+  { label: "Artikel 5.2, lid 1 – Wet IB 2001", waarde: L52, bron: { bwb_id: IB, iri: L52 },
+    omschrijving: "valt mogelijk buiten de afbakening" },
+  { label: "Weet ik (nog) niet", waarde: "onbekend", bron: {}, omschrijving: "Je kunt bronnen later toevoegen" }],
+  ...over,
 });
-const SAMENVATTING = kaart("samenvatting", 10, "Klopt dit werkgebied?", {
+const BEP1 = bepalingen(0), BEP2 = bepalingen(1);
+const BEP1_TERUG = bepalingen(0, { vooringevuld: [L21], beantwoord: true });
+const SAMENVATTING = kaart("samenvatting", 11, "Klopt dit werkgebied?", {
+  totaal: 11,
   soort: "samenvatting", vrije_tekst: false, overslaanbaar: false, terug: true,
   samenvatting: { naam: "Box 3", aanleiding: "Een wetswijziging raakt een bestaand proces.", context: "", doel: "",
     analysevraag: "Wie is belastingplichtig voor box 3?", praktijkvoorbeeld: "",
     deelvragen: [DV1, "Telt een tweede huis mee?", "Wat is het heffingsvermogen?"],
-    afbakening: "Regelingen: Wet inkomstenbelasting 2001.", bronnen: [] },
+    afbakening: "Regelingen: Wet inkomstenbelasting 2001.", bronnen: ["Artikel 2.1, lid 1 – Wet IB 2001 (deelvraag 1)"] },
 });
 const ARTEFACT = { soort: "werkgebied", titel: "Box 3", ref: { werkgebied_id: "wg5" } };
 const wg = { id: "wg5", naam: "Box 3", analysevraag: "Wie is belastingplichtig voor box 3?",
@@ -91,9 +101,12 @@ const stromen = {
   r2: beurt("r2", "Eerst waarom we analyseren.", AANLEIDING),
   r3: beurt("r3", "Nu maken we de analysevraag concreet.", DEELVRAGEN),
   r4: beurt("r4", "Nu de bronnen.", REGELINGEN),
-  r5: beurt("r5", "Welke delen daarvan?", ONDERDELEN),
-  r6: beurt("r6", "Dit is het werkgebied.", SAMENVATTING),
-  r7: [{ type: "token", content: "Werkgebied *Box 3* is aangemaakt." }, { type: "opgeslagen", run_id: "r7", artefact: ARTEFACT }, { type: "done" }],
+  r5: beurt("r5", "Nu per deelvraag de bepalingen die erbij horen.", BEP1),
+  r6: beurt("r6", "Dan deelvraag 2.", BEP2),
+  r7: beurt("r7", "", BEP1_TERUG),
+  r8: beurt("r8", "Dan deelvraag 2.", BEP2),
+  r9: beurt("r9", "Dit is het werkgebied.", SAMENVATTING),
+  r10: [{ type: "token", content: "Werkgebied *Box 3* is aangemaakt." }, { type: "opgeslagen", run_id: "r10", artefact: ARTEFACT }, { type: "done" }],
 };
 const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
 const leeg = { denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" };
@@ -136,7 +149,7 @@ await context.route("**/api/**", async (route) => {
 });
 
 const wacht = async (n) => { for (let i = 0; i < 80 && starts.length < n; i++) await page.waitForTimeout(50); };
-const dock = (stap) => page.locator(`[data-vraagdock=${stap}]`);
+const dock = (stap, deel) => page.locator(deel === undefined ? `[data-vraagdock=${stap}]` : `[data-vraagdock=${stap}][data-deel="${deel}"]`);
 const invoer = () => page.getByPlaceholder("Stel een vraag of geef een opdracht aan Lex…");
 const kaartIn = () => page.locator("[data-vragenkaart]");
 
@@ -214,19 +227,47 @@ try {
   await wacht(5);
   assert.deepEqual(starts[4].intake_actie.keuzes, [IB]);
 
-  // --- De laatste vraag (de onderdelen): Verzend; de samenvatting: het hele dossier en aanmaken ---
-  await dock("onderdelen").getByText("Wet IB 2001 · deelvraag 1").waitFor();
-  await dock("onderdelen").getByRole("button", { name: "Verzend" }).waitFor();
-  await dock("onderdelen").getByRole("button", { name: "Sla over" }).click();
+  // --- F3f: de bepalingen, een kaartje per deelvraag ---
+  const b1 = dock("bepalingen", 0);
+  await b1.getByText(`“${DV1}”`).waitFor();
+  await b1.getByText("10 van 11").waitFor();
+  await b1.getByText("valt mogelijk buiten de afbakening").waitFor();
+  assert.equal(await b1.locator("[aria-selected=true]").count(), 0, "niets is aangevinkt");
+  assert.equal(await b1.getByRole("button", { name: "Verzend" }).count(), 0, "deelvraag 1 is niet de laatste vraag");
+  await b1.getByRole("option", { name: /^Artikel 2\.1, lid 1/ }).click();
+  await b1.getByRole("button", { name: "Volgende", exact: true }).click();
   await wacht(6);
-  assert.equal(starts[5].intake_actie.actie, "overslaan");
-  await kaartIn().locator("[data-vraagpaar=onderdelen]").getByText("Overgeslagen").waitFor();
+  assert.deepEqual(starts[5].intake_actie, { intake_id: "ik1", stap: "bepalingen", deel: 0, actie: "antwoord", keuzes: [L21] });
+  assert.deepEqual(berichten.find((b) => b.rol === "user" && b.intake_antwoord?.stap === "bepalingen")?.intake_antwoord,
+    { intake_id: "ik1", stap: "bepalingen", deel: 0, actie: "antwoord" });
+  // Deelvraag 2: de laatste vraag, en ‹ gaat naar deelvraag 1 (niet naar de regelingen).
+  const b2 = dock("bepalingen", 1);
+  await b2.getByText("“Telt een tweede huis mee?”").waitFor();
+  await b2.getByRole("button", { name: "Verzend" }).waitFor();
+  await b2.getByRole("button", { name: "Vorige vraag" }).click();
+  await wacht(7);
+  assert.deepEqual({ ...starts[6].intake_actie }, { intake_id: "ik1", stap: "bepalingen", deel: 1, actie: "wijzig",
+    naar: "bepalingen", naar_deel: 0 });
+  // Terug op deelvraag 1 staat de keuze er nog; › gaat verder met hetzelfde antwoord.
+  await dock("bepalingen", 0).getByRole("option", { name: /^Artikel 2\.1, lid 1/, selected: true }).waitFor();
+  await dock("bepalingen", 0).getByRole("button", { name: "Volgende vraag" }).click();
+  await wacht(8);
+  assert.deepEqual(starts[7].intake_actie.keuzes, [L21]);
+  await dock("bepalingen", 1).getByRole("button", { name: "Sla over" }).click();
+  await wacht(9);
+  assert.deepEqual([starts[8].intake_actie.actie, starts[8].intake_actie.deel], ["overslaan", 1]);
+  // Een paar per deel in de Vragen-kaart: deelvraag 2 vervangt deelvraag 1 niet.
+  assert.equal(await kaartIn().locator("[data-vraagpaar=bepalingen]").count(), 2);
+  await kaartIn().locator("[data-vraagpaar=bepalingen]").last().getByText("Overgeslagen").waitFor();
+
+  // --- De samenvatting: het hele dossier, de bronnen met hun deelvraag, en aanmaken ---
   const samen = dock("samenvatting");
   await samen.getByText("Een wetswijziging raakt een bestaand proces.").waitFor();
   assert.equal(await samen.locator("ol li").count(), 3, "de drie deelvragen");
+  await samen.getByText("Artikel 2.1, lid 1 – Wet IB 2001 (deelvraag 1)").waitFor();
   await samen.getByRole("button", { name: /Werkgebied aanmaken/ }).click();
-  await wacht(7);
-  assert.equal(starts[6].intake_actie.actie, "aanmaken");
+  await wacht(10);
+  assert.equal(starts[9].intake_actie.actie, "aanmaken");
 
   // --- Na aanmaken: kaart, eigen paneel, de werkplek in het werkgebied, geen open vraag ---
   const paneel = page.locator("[data-artefact-soort=werkgebied][data-artefact]");
@@ -271,7 +312,7 @@ try {
   }
 
   assert.deepEqual(errors, []);
-  console.log("Browser OK: vraag onderaan i.p.v. het invoerveld, ✕ en 'Een vraag stellen ›', antwoorden in één Vragen-kaart zonder bubbels (ook na herladen), intake_antwoord bewaard, omschrijving, eigen tekst vervangt keuze, deelvragen met meerdere eigen regels, Weet ik (nog) niet exclusief, Verzend, samenvatting met het dossier, Werkgebied aanmaken, ‹ terug, werkgebiedpaneel met dossier en dekking, smal scherm.");
+  console.log("Browser OK: vraag onderaan i.p.v. het invoerveld, ✕ en 'Een vraag stellen ›', antwoorden in één Vragen-kaart zonder bubbels (ook na herladen), intake_antwoord bewaard, omschrijving, eigen tekst vervangt keuze, deelvragen met meerdere eigen regels, Weet ik (nog) niet exclusief, bepalingen per deelvraag met ‹ per deel, Verzend, samenvatting met het dossier, Werkgebied aanmaken, ‹ terug, werkgebiedpaneel met dossier en dekking, smal scherm.");
 } finally {
   await browser.close();
 }

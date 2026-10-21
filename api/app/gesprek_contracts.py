@@ -101,7 +101,16 @@ class VraagOptie(BaseModel):
 # De stappen van het samenstellen, in de volgorde van graph-qa (`agent/werkgebied_intake.STAPPEN`):
 # startactiviteit a, dan activiteit 1 – de bronnen pas als vraag en deelvragen er zijn (Handleiding 1f).
 IntakeStap = Literal["naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld",
-                     "deelvragen", "buiten", "regelingen", "onderdelen", "samenvatting"]
+                     "deelvragen", "buiten", "regelingen", "bepalingen", "samenvatting"]
+
+
+class IntakeDeel(BaseModel):
+    """Bij de bepalingen: één kaart per deelvraag. `deelvraag` is leeg als er geen deelvragen zijn –
+    dan gaat de ene kaart over de analysevraag."""
+
+    index: int = Field(ge=0, le=19)
+    totaal: int = Field(ge=1, le=20)
+    deelvraag: str | None = Field(default=None, max_length=1000)
 
 
 class Vraagkaart(BaseModel):
@@ -117,8 +126,10 @@ class Vraagkaart(BaseModel):
     intake_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
     soort: Literal["vraag", "samenvatting"] = "vraag"
     stap: IntakeStap
-    nr: int = Field(ge=1, le=20)
-    totaal: int = Field(ge=1, le=20)
+    # Negen vaste stappen plus één kaart per deelvraag (hoogstens twintig).
+    nr: int = Field(ge=1, le=40)
+    totaal: int = Field(ge=1, le=40)
+    deel: IntakeDeel | None = None
     vraag: str = Field(min_length=1, max_length=500)
     toelichting: str = Field(default="", max_length=1000)
     opties: list[VraagOptie] = Field(default_factory=list, max_length=20)
@@ -141,6 +152,7 @@ class IntakeAntwoord(BaseModel):
 
     intake_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
     stap: IntakeStap
+    deel: int | None = Field(default=None, ge=0, le=19)
     actie: Literal["antwoord", "overslaan", "wijzig", "aanmaken", "afbreken"] = "antwoord"
 
 

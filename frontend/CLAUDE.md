@@ -337,12 +337,15 @@ agent ná je vraag voorlegt uit wat hij vond (kandidaten, `KeuzeKaart`) is een a
 "Kunnen we een werkgebied samenstellen?" of "ik wil een wetsanalyse uitvoeren" laat Lex één vraag per
 kaartje stellen (graph-qa `agent/werkgebied_intake.py`), in de volgorde van de methode (F2): naam,
 aanleiding, context, doel (startactiviteit a), analysevraag, praktijkvoorbeeld, deelvragen, wat valt
-erbuiten, regeling(en), onderdelen, en een samenvatting met *Werkgebied aanmaken*. Het kaartje komt als
+erbuiten, regeling(en), per deelvraag een kaartje met de bepalingen (F3f), en een samenvatting met
+*Werkgebied aanmaken*. Het kaartje komt als
 `vraagkaart`-event (`parseVraagkaart` in `lib/vraagkaart.ts`) en staat op het bewaarde bericht
 (`Bericht.vraagkaart`). De vorm volgt hoe Claude een vraag stelt (F1):
 
 - **De open vraag staat onderaan, op de plek van het invoerveld** (`VraagDock`, mobiel en desktop):
-  ‹ n van 10 › (‹ = `wijzig` naar de vorige stap; › alleen als de stap al beantwoord was), ✕ klapt hem weg
+  ‹ n van N › (negen vaste stappen plus één per deelvraag; ‹ = `wijzig` naar het vorige kaartje (`vorige`):
+  de vorige stap, of bij de bepalingen het vorige deel met `naar_deel`; › alleen als het kaartje al
+  beantwoord was), ✕ klapt hem weg
   en geeft het invoerveld terug (UI-state, niets beantwoord). De hoogte volgt `visualViewport`, zodat de
   sheet boven het mobiele toetsenbord past.
 - **Opties zijn regels met titel en omschrijving** (uit de graaf); een klik selecteert alleen, pas
@@ -354,8 +357,14 @@ erbuiten, regeling(en), onderdelen, en een samenvatting met *Werkgebied aanmaken
   Enter in een gevulde regel of *+ Nog een deelvraag* opent de volgende, Ctrl/⌘+Enter of *Volgende*
   stuurt in. Ze gaan als `teksten` mee (`antwoordActie`), lege regels niet. Na terugbladeren staat elke
   eigen deelvraag weer op een eigen regel (`beginstand`).
+- **De bepalingen** (F3f): één kaartje per deelvraag (`Vraagkaart.deel: {index, totaal, deelvraag}`, de
+  deelvraag staat onder de vraag), zonder deelvragen één over de analysevraag. Elke klik en het
+  user-bericht (`intake_antwoord`, `antwoordOp`) dragen `deel`; een paar in de Vragen-kaart is er één per
+  deel (`groepeerVragen` sleutelt op stap + deel – anders wist deelvraag 2 het antwoord op 1). *Verzend*
+  staat op het laatste deel (`isLaatsteVraag`). Wat aan de afbakening raakt, staat onderaan met "valt
+  mogelijk buiten de afbakening" en is nooit aangevinkt.
 - **De samenvatting** toont het hele dossier: aanleiding, context, doel, analysevraag,
-  praktijkvoorbeeld, de deelvragen, afbakening en bronnen.
+  praktijkvoorbeeld, de deelvragen, afbakening en bronnen (met hun deelvragen).
 - **In de thread één Vragen-kaart per reeks** (`groepeerVragen`, `VragenKaart`): per vraag de vraag
   (grijs) en je antwoord, "Vraag" bij één en "Vragen" bij meer, daaronder "● Een vraag stellen ›" (opent
   de dock weer) of "Nadenken…" terwijl Lex de volgende voorbereidt. De antwoordbubbels en de zinnen van

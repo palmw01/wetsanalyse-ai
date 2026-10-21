@@ -206,3 +206,22 @@ def test_search_annotaties_vraagt_niets_wat_de_api_niet_kent():
         m = re.search(rf"^\s*{naam}\s*:\s*list\[Literal\[(.*?)\]\]", blok, re.S | re.M)
         assert m, f"{naam}: geen keuzelijst in Zoekvraag"
         assert set(enum) == set(re.findall(r'"([^"]+)"', m.group(1))), naam
+
+
+def test_de_stappen_van_de_intake_zijn_overal_dezelfde():
+    """Vier lijsten van dezelfde stappen (F3f): graph-qa `STAPPEN`, `IntakeActie.stap`, api `IntakeStap`
+    en de werkplek (`frontend/lib/vraagkaart.ts`). Een stap die er aan één kant niet is, maakt het
+    kaartje onleesbaar (api 422, werkplek toont niets) of de klik ongeldig."""
+    import typing
+
+    from agent import werkgebied_intake as wi
+
+    root = Path(__file__).resolve().parents[3]
+    stappen = [*wi.STAPPEN, "samenvatting"]
+    assert list(typing.get_args(am.IntakeActie.model_fields["stap"].annotation)) == stappen
+    api = re.search(r"^IntakeStap = Literal\[(.*?)\]", (root / "api" / "app" / "gesprek_contracts.py").read_text(),
+                    re.S | re.M)
+    assert api and re.findall(r'"(\w+)"', api.group(1)) == stappen
+    ts = re.search(r"export const STAPPEN = \[(.*?)\] as const", (root / "frontend" / "lib" / "vraagkaart.ts").read_text(),
+                   re.S)
+    assert ts and re.findall(r'"(\w+)"', ts.group(1)) == list(wi.STAPPEN)
