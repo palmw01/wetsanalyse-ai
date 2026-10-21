@@ -58,7 +58,12 @@ export function BevestigKnop({
   // op een verdwenen component is geen fout meer in React 19, maar de vlag houdt de bedoeling
   // expliciet: alleen de nog levende knop keert terug naar zijn ruststand.
   const levendRef = useRef(true);
-  useEffect(() => () => { levendRef.current = false; }, []);
+  // Bij elke mount opnieuw waar: StrictMode (dev) mount, ontkoppelt en mount opnieuw, en zonder dit bleef de
+  // vlag na die proef onwaar – dan bleef een knop die na een mislukte handeling blijft staan op `Bezig…`.
+  useEffect(() => {
+    levendRef.current = true;
+    return () => { levendRef.current = false; };
+  }, []);
 
   useEffect(() => {
     if (!scherp || hover) return;

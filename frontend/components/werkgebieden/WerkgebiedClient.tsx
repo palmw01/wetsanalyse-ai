@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { Button } from "@/components/ui/Button";
 import { ButtonRow } from "@/components/ui/ButtonRow";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
@@ -21,7 +20,10 @@ import { SamenhangTab } from "@/components/werkgebieden/SamenhangTab";
 import { WerkgebiedSamenvatting } from "@/components/werkgebieden/WerkgebiedSamenvatting";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
-import { archiveerWerkgebied, foutTekst, haalWerkgebied, isApiError, wijzigWerkgebied } from "@/lib/api";
+import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
+import { foutTekst, haalWerkgebied, isApiError, verwijderWerkgebied, wijzigWerkgebied } from "@/lib/api";
+import { metSpoor } from "@/lib/uiSpoor";
+import { verwijderdUit, verwijderdZin, type Verwijderd } from "@/lib/verwijderen";
 import type { BegripWeergave } from "@/lib/begrippen";
 import type { Werkgebied, WerkgebiedStatus } from "@/lib/types";
 import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
@@ -53,6 +55,7 @@ export function WerkgebiedClient({ id, beginTab, beginBegrip, beginWeergave = "l
   const router = useRouter();
   const [wg, setWg] = useState<Werkgebied | null>(null);
   const [nietGevonden, setNietGevonden] = useState(false);
+  const [verwijderd, setVerwijderd] = useState<Verwijderd | null>(null);
   const [fout, setFout] = useState<string | null>(null);
   const [melding, setMelding] = useState<{ type: "bevestiging" | "waarschuwing"; tekst: string } | null>(null);
   const [tab, setTab] = useState<WerkgebiedTab>(beginTab);
@@ -77,7 +80,10 @@ export function WerkgebiedClient({ id, beginTab, beginBegrip, beginWeergave = "l
     try {
       setWg(await haalWerkgebied(id));
     } catch (e) {
-      if (isApiError(e) && e.status === 404) setNietGevonden(true);
+      if (isApiError(e) && e.status === 404) {
+        setNietGevonden(true);
+        setVerwijderd(verwijderdUit(e));
+      }
       else setFout(foutTekst(e, "Het werkgebied kon niet worden geladen."));
     }
   }, [id]);
@@ -143,8 +149,22 @@ export function WerkgebiedClient({ id, beginTab, beginBegrip, beginWeergave = "l
     zetUrl("begrippen", b, w ?? weergave);
   }
 
-  async function archiveer() {
-    if (await muteer((r) => archiveerWerkgebied(id, r))) router.push("/werkgebieden");
+  /** Echt wissen, zoals een annotatie (`lib/verwijderen.ts`); daarna naar de lijst. Een 412 laadt de
+   *  nieuwste stand: op die stand kan verwijderen iets anders betekenen. */
+  async function verwijder() {
+    if (!wg) return;
+    setFout(null);
+    setMelding(null);
+    try {
+      await metSpoor("werkgebied_verwijderen", () => verwijderWerkgebied(id, wg.revisie));
+      router.push("/werkgebieden");
+    } catch (e) {
+      if (isRevisieConflict(e)) {
+        await laad();
+        setMelding({ type: "waarschuwing",
+          tekst: "Iemand anders wijzigde dit werkgebied net. Bekijk de nieuwe stand voordat je het verwijdert." });
+      } else setFout(foutTekst(e, "Het werkgebied is niet verwijderd."));
+    }
   }
 
   const terug = (
@@ -160,7 +180,9 @@ export function WerkgebiedClient({ id, beginTab, beginBegrip, beginWeergave = "l
     return (
       <WerkgebiedSchil titel="Werkgebied" onFout={setFout}>
         {terug}
-        <Melding type="uitleg">Dit werkgebied bestaat niet (meer), of het is gearchiveerd.</Melding>
+        <Melding type="uitleg">
+          <span data-verwijderd>{verwijderd ? verwijderdZin(verwijderd) : "Dit werkgebied bestaat niet (meer)."}</span>
+        </Melding>
       </WerkgebiedSchil>
     );
 
@@ -203,14 +225,7 @@ export function WerkgebiedClient({ id, beginTab, beginBegrip, beginWeergave = "l
                   <Button variant="secondary" size="sm" onClick={() => setBewerken(true)}>
                     Gegevens bewerken
                   </Button>
-                  <BevestigKnop
-                    bevestigTekst="Archiveren?"
-                    onBevestig={archiveer}
-                    className="focus-ring inline-flex min-h-[32px] items-center justify-center rounded-button border border-line px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-ink coarse:min-h-[44px]"
-                    bevestigClassName="border-fout/40 text-fout"
-                  >
-                    Archiveren
-                  </BevestigKnop>
+                  <VerwijderKnop soort="werkgebied" onBevestig={verwijder} className="self-center" />
                 </ButtonRow>
               </div>
               <WerkgebiedSamenvatting wg={wg} vraagLex className="mt-3" />

@@ -65,7 +65,7 @@ await page.route("**/api/**", async (route) => {
   if (p.startsWith("/api/auth/")) return route.continue();
   if (p.startsWith("/api/werkgebieden")) requests.push({ p, m, body: m === "GET" || m === "DELETE" ? null : req.postDataJSON(), q: url.search });
   if (p === "/api/werkgebieden" && m === "GET")
-    return route.fulfill({ json: { werkgebieden: wg ? [{ ...uit(), bronnen: undefined, aantal_bronnen: uit().bronnen.length }] : [] } });
+    return route.fulfill({ json: { werkgebieden: wg && !wg.verwijderd ? [{ ...uit(), bronnen: undefined, aantal_bronnen: uit().bronnen.length }] : [] } });
   if (p === "/api/werkgebieden" && m === "POST") {
     const b = req.postDataJSON();
     wg = { id: "wg1", naam: b.naam, analysevraag: b.analysevraag, afbakening: b.afbakening, peildatum: null,
@@ -74,7 +74,17 @@ await page.route("**/api/**", async (route) => {
     audit.unshift({ id: 1, actor: "browser-test", actie: "aangemaakt", detail: { revisie: 1 }, tijdstip: nu });
     return route.fulfill({ status: 201, json: uit() });
   }
-  if (p === "/api/werkgebieden/wg1" && m === "GET") return route.fulfill({ json: uit() });
+  if (p === "/api/werkgebieden/wg1" && m === "GET") {
+    // Verwijderd: een 404 met wanneer en door wie, zoals de api (`werkgebied_store.niet_gevonden`).
+    if (wg.verwijderd) return route.fulfill({ status: 404, json: { detail: { fout: "verwijderd", soort: "werkgebied",
+      op: nu, door: "browser-test", melding: "Werkgebied is verwijderd." } } });
+    return route.fulfill({ json: uit() });
+  }
+  if (p === "/api/werkgebieden/wg1" && m === "DELETE") {
+    const r = mutatie(route, Number(url.searchParams.get("verwachte_revisie")), "werkgebied-verwijderd", {},
+      () => { wg.verwijderd = true; });
+    return r ?? route.fulfill({ json: { verwijderd: "wg1" } });
+  }
   if (p === "/api/werkgebieden/wg1/bronnen" && m === "POST") {
     const b = req.postDataJSON();
     const iri = b.bron_iri || (b.bwb_id === "BWBR0004770" ? IRI9 : b.bwb_id === "BWBR0002320" ? IRI3 : null);
@@ -266,8 +276,45 @@ try {
   await page.getByRole("tab", { name: "Bronnen (3)" }).waitFor();
   await foto("werkgebied-mobiel");
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+  await page.setViewportSize({ width: 1280, height: 900 });
+
+  // Verwijderen is echt wissen, net als een annotatie: op de pagina (tweede klik bevestigt), met de
+  // revisie in beeld; een 412 laadt de nieuwe stand en zegt het.
+  const verwijderKnop = () => page.getByRole("button", { name: "Werkgebied verwijderen" });
+  const verwijderTweeKeer = async () => {
+    await verwijderKnop().click();
+    await page.getByRole("button", { name: "Verwijderen?", exact: true }).click();
+  };
+  await page.goto(`${base}/werkgebieden/wg1`);
+  await page.getByRole("tab", { name: "Bronnen (3)" }).waitFor();
+  assert.equal(await page.getByRole("button", { name: "Archiveren" }).count(), 0, "archiveren bestaat niet meer");
+  volgendeConflict = true;
+  await verwijderTweeKeer();
+  await melding("Iemand anders wijzigde dit werkgebied net");
+  assert.equal(new URL(page.url()).pathname, "/werkgebieden/wg1");
+  const revisie = wg.revisie;
+  await verwijderTweeKeer();
+  await page.waitForURL(`${base}/werkgebieden`);
+  const wis = requests.filter((r) => r.m === "DELETE" && r.p === "/api/werkgebieden/wg1").at(-1);
+  assert.equal(wis.q, `?verwachte_revisie=${revisie}`);
+  await page.getByText("Nog geen werkgebieden", { exact: false }).waitFor();
+  // Wie het later opent, hoort wanneer en door wie.
+  await page.goto(`${base}/werkgebieden/wg1`);
+  await page.locator("[data-verwijderd]").getByText("Dit werkgebied is verwijderd op 15 okt 2026 door browser-test.").waitFor();
+
+  // In de lijst: dezelfde knop per kaart; de kaart gaat meteen weg.
+  await page.goto(`${base}/werkgebieden`);
+  await page.getByRole("button", { name: "Nieuw werkgebied" }).click();
+  await page.getByLabel("Naam").fill("Weg ermee");
+  await page.getByRole("button", { name: "Aanmaken" }).click();
+  await page.waitForURL(`${base}/werkgebieden/wg1`);
+  await page.goto(`${base}/werkgebieden`);
+  await page.getByRole("link", { name: "Weg ermee" }).waitFor();
+  await verwijderTweeKeer();
+  await page.getByText("Nog geen werkgebieden", { exact: false }).waitFor();
+  assert.equal(requests.filter((r) => r.m === "DELETE" && r.p === "/api/werkgebieden/wg1").at(-1).q, "?verwachte_revisie=1");
   assert.deepEqual(errors, []);
-  console.log("Browser OK: werkgebied aanmaken, bron opnemen (ongeldig/idempotent/422/context), rol wijzigen, revisieconflict, inventaris met open punt en signalen, tab in de URL, historie, samenhang met opnemen vanuit de inspector, weghalen met bevestiging, opnemen vanaf een annotatie met herkansing na 412, smal scherm.");
+  console.log("Browser OK: werkgebied aanmaken, bron opnemen (ongeldig/idempotent/422/context), rol wijzigen, revisieconflict, inventaris met open punt en signalen, tab in de URL, historie, samenhang met opnemen vanuit de inspector, weghalen met bevestiging, opnemen vanaf een annotatie met herkansing na 412, smal scherm, verwijderen op de pagina (met 412) en in de lijst, de verwijderd-stand.");
 } catch (e) {
   await foto("fout");
   throw e;

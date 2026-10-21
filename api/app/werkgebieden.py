@@ -32,8 +32,8 @@ async def resolve_bron(doel: dict) -> dict:
 
 
 @router.get("")
-async def get_lijst(gearchiveerd: bool = False, actor: str = Depends(actieve_userid)):
-    return {"werkgebieden": await store.lijst(gearchiveerd)}
+async def get_lijst(actor: str = Depends(actieve_userid)):
+    return {"werkgebieden": await store.lijst()}
 
 
 @router.post("", status_code=201)
@@ -55,7 +55,7 @@ async def patch_werkgebied(werkgebied_id: str, req: WerkgebiedWijziging,
 @router.delete("/{werkgebied_id}")
 async def delete_werkgebied(werkgebied_id: str, verwachte_revisie: int = Query(ge=1),
                             actor: str = Depends(actieve_userid)):
-    return await store.archiveer(werkgebied_id, verwachte_revisie, actor)
+    return await store.verwijder(werkgebied_id, verwachte_revisie, actor)
 
 
 @router.post("/{werkgebied_id}/bronnen")

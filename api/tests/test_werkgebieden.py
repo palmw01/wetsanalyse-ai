@@ -162,11 +162,11 @@ async def test_gedeeld_tussen_analisten_en_de_audit_zegt_wie(client):
     assert [(a["actor"], a["actie"]) for a in audit] == [("jurist-b", "gewijzigd"), ("jurist-a", "aangemaakt")]
 
 
-async def test_archiveren_haalt_uit_de_lijst(client):
+async def test_verwijderen_haalt_uit_de_lijst(client):
+    """Echt wissen: zie `test_werkgebied_verwijderen.py`."""
     wg = await _nieuw(client)
     assert (await client.delete(f"/v1/werkgebieden/{wg['id']}", params={"verwachte_revisie": 1})).status_code == 200
     assert (await client.get("/v1/werkgebieden")).json()["werkgebieden"] == []
-    assert len((await client.get("/v1/werkgebieden", params={"gearchiveerd": 1})).json()["werkgebieden"]) == 1
     assert (await client.get(f"/v1/werkgebieden/{wg['id']}")).status_code == 404
 
 

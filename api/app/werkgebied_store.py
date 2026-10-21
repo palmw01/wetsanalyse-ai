@@ -5,8 +5,10 @@ Gedeeld tussen analisten, zoals de annotaties. Elke mutatie neemt een rij-lock o
 revisie op en schrijft een auditregel. Het annotatieslot (`annotatie_v2_state`) wordt niet
 geraakt: een werkgebied schrijft geen annotaties.
 
-Archiveren en een bronselectie weghalen zijn soft: een tijdstip, zodat de historie klopt en de
-annotaties van de bron onaangeroerd blijven.
+Een bronselectie weghalen is soft: een tijdstip, zodat de historie klopt. Een werkgebied
+**verwijderen** is echt wissen, net als een annotatie: het werkgebied en alles wat eraan hangt gaat uit
+de database (`wis`), de auditregels blijven als bewijs, en de annotaties van de bronnen blijven
+onaangeroerd – die horen bij een bronnode, niet bij een werkgebied.
 """
 from __future__ import annotations
 
@@ -15,7 +17,7 @@ from contextlib import asynccontextmanager
 from typing import Any, Awaitable, Callable
 
 from fastapi import HTTPException
-from sqlalchemy import func, insert, select, update
+from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import db
@@ -48,6 +50,36 @@ async def _audit(conn, werkgebied_id: str, actor: str, actie: str, detail: dict)
     db.noteer_na_commit(conn, "werkgebieden", werkgebied_id)
     await conn.execute(insert(db.werkgebied_audit).values(
         werkgebied_id=werkgebied_id, actor=actor, actie=actie, detail=detail, tijdstip=db.utcnow()))
+
+
+#: Elke tabel met een `werkgebied_id`, behalve de audit: wat `wis` leegmaakt. Een nieuwe tabel met die
+#: kolom hoort hier (of bewust niet); `tests/test_werkgebied_verwijderen.py` bewaakt dat.
+WERKGEBIED_TABELLEN = ("werkgebied_bronselecties", "werkgebied_element_besluiten", "werkgebied_deelvragen",
+                       "begrippen", "begrip_koppelingen", "begrip_relaties", "begrip_voorstellen",
+                       "begrip_kaartruns", "bronnen_runs", "bron_kandidaten", "begrippen_runs",
+                       "betekenisgroepen", "begrippen_batches")
+#: Wat bij een verwijderd object in de audit staat (oude stand: archiveren, een soft verwijderd begrip).
+VERWIJDERD_ACTIES = ("werkgebied-verwijderd", "gearchiveerd")
+
+
+async def niet_gevonden(werkgebied_id: str, begrip_id: str | None = None) -> HTTPException:
+    """De 404 voor een werkgebied of begrip dat er niet is. Was het er wel en is het verwijderd, dan
+    zegt de 404 wanneer en door wie (uit de audit), zodat een paneel of oud gesprek dat kan tonen in
+    plaats van een kale fout – zoals een verwijderde annotatie."""
+    a = db.werkgebied_audit
+    acties = (*VERWIJDERD_ACTIES, "begrip-verwijderd") if begrip_id else VERWIJDERD_ACTIES
+    async with db.get_engine().connect() as conn:
+        rows = (await conn.execute(select(a).where(a.c.werkgebied_id == werkgebied_id, a.c.actie.in_(acties))
+                                   .order_by(a.c.id.desc()))).all()
+    soort = "Werkgebied"
+    for r in rows:
+        if r.actie == "begrip-verwijderd" and (r.detail or {}).get("begrip_id") != begrip_id:
+            continue
+        if r.actie == "begrip-verwijderd":
+            soort = "Begrip"
+        return HTTPException(404, {"fout": "verwijderd", "soort": soort.lower(), "op": db.aware(r.tijdstip).isoformat(),
+                                   "door": r.actor, "melding": f"{soort} is verwijderd."})
+    return HTTPException(404, "Begrip bestaat niet." if begrip_id else "Werkgebied bestaat niet.")
 
 
 @asynccontextmanager
@@ -115,13 +147,13 @@ async def _deelvragen_bij_aanmaken(conn, wid: str, invoer: WerkgebiedInvoer, act
     return len(gezien)
 
 
-async def lijst(gearchiveerd: bool = False) -> list[dict]:
+async def lijst() -> list[dict]:
     t, s = db.werkgebieden, db.werkgebied_bronselecties
     aantal = (select(s.c.werkgebied_id, func.count().label("n")).where(s.c.verwijderd.is_(None))
               .group_by(s.c.werkgebied_id).subquery())
     q = (select(t, func.coalesce(aantal.c.n, 0).label("aantal_bronnen"))
          .outerjoin(aantal, aantal.c.werkgebied_id == t.c.id)
-         .where(t.c.gearchiveerd.is_not(None) if gearchiveerd else t.c.gearchiveerd.is_(None))
+         .where(t.c.gearchiveerd.is_(None))
          .order_by(t.c.gewijzigd.desc(), t.c.id))
     async with db.get_engine().connect() as conn:
         rows = (await conn.execute(q)).all()
@@ -142,7 +174,7 @@ async def haal(werkgebied_id: str, met_gearchiveerd: bool = False) -> dict:
     async with db.get_engine().connect() as conn:
         row = (await conn.execute(select(t).where(t.c.id == werkgebied_id))).first()
     if row is None or (row.gearchiveerd is not None and not met_gearchiveerd):
-        raise HTTPException(404, "Werkgebied bestaat niet.")
+        raise await niet_gevonden(werkgebied_id)
     from . import werkgebied_deelvragen  # leest dit schrijfpad zelf; dus hier, niet bovenaan
     return {**_werkgebied(row), "bronnen": await selecties(werkgebied_id),
             "deelvragen": await werkgebied_deelvragen.lijst(werkgebied_id)}
@@ -161,11 +193,38 @@ async def wijzig(werkgebied_id: str, w: WerkgebiedWijziging, actor: str) -> dict
     return await haal(werkgebied_id)
 
 
-async def archiveer(werkgebied_id: str, verwacht: int, actor: str) -> dict:
-    async with _gewijzigd(werkgebied_id, verwacht, actor, "gearchiveerd", {}) as (conn, _):
-        await conn.execute(update(db.werkgebieden).where(db.werkgebieden.c.id == werkgebied_id)
-                           .values(gearchiveerd=db.utcnow()))
-    return await haal(werkgebied_id, met_gearchiveerd=True)
+async def verwijder(werkgebied_id: str, verwacht: int, actor: str) -> dict:
+    """Echt wissen, onder het rij-slot en met de revisietoets: het werkgebied en alles wat eraan hangt.
+    De audit krijgt een laatste regel en blijft staan; via die regel volgt de begrippengraaf (de
+    projectie vindt geen werkgebied meer en haalt de graph weg)."""
+    t = db.werkgebieden
+    async with db.get_engine().begin() as conn:
+        row = (await conn.execute(select(t).where(t.c.id == werkgebied_id).with_for_update())).first()
+        if row is None or row.gearchiveerd is not None:
+            raise await niet_gevonden(werkgebied_id)
+        if row.revisie != verwacht:
+            raise HTTPException(412, {"fout": "revisie_conflict", "revisie": row.revisie,
+                                      "melding": "Iemand anders wijzigde dit werkgebied intussen; laad het opnieuw."})
+        await wis(conn, werkgebied_id)
+        await _audit(conn, werkgebied_id, actor, "werkgebied-verwijderd", {"naam": row.naam, "revisie": row.revisie})
+    return {"verwijderd": werkgebied_id}
+
+
+async def wis(conn, werkgebied_id: str) -> None:
+    """Alles van één werkgebied uit de database, behalve de audit. Twee tabellen dragen geen
+    `werkgebied_id` en gaan via hun ouder: de begriprevisies en de koppelingen van de deelvragen."""
+    t = db.metadata.tables
+    begrippen = (await conn.execute(select(db.begrippen.c.id).where(db.begrippen.c.werkgebied_id == werkgebied_id))).scalars().all()
+    deelvragen = (await conn.execute(select(db.werkgebied_deelvragen.c.id)
+                                     .where(db.werkgebied_deelvragen.c.werkgebied_id == werkgebied_id))).scalars().all()
+    if begrippen:
+        await conn.execute(delete(db.begrip_revisies).where(db.begrip_revisies.c.begrip_id.in_(begrippen)))
+    if deelvragen:
+        k = db.werkgebied_deelvraag_koppelingen
+        await conn.execute(delete(k).where(k.c.deelvraag_id.in_(deelvragen)))
+    for naam in WERKGEBIED_TABELLEN:
+        await conn.execute(delete(t[naam]).where(t[naam].c.werkgebied_id == werkgebied_id))
+    await conn.execute(delete(db.werkgebieden).where(db.werkgebieden.c.id == werkgebied_id))
 
 
 async def voeg_bron_toe(werkgebied_id: str, invoer: BronselectieInvoer, bron: dict, actor: str,

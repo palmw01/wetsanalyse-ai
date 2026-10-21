@@ -51,6 +51,11 @@ const gesprekken = {
     { rol: "assistant", tekst: "Ik stel 1 begrip voor.", ...leeg, run_id: "b1", artefact: begrippenArtefact },
     { rol: "assistant", tekst: "", ...leeg, run_id: "c1", artefact: { soort: "regels", ref: {}, titel: "Regels bij invordering" } },
   ],
+  // Een werkgebied dat Lex samenstelde (activiteit 1): verwijderen kan in het paneel.
+  g5: [
+    { rol: "assistant", tekst: "Werkgebied *Invordering* is aangemaakt.", ...leeg, run_id: "w1",
+      artefact: { soort: "werkgebied", titel: "Invordering", ref: { werkgebied_id: "wg1" } } },
+  ],
   // Een kaartactie vanuit het gesprek (fase F4): het artefact wijst naar één begrip.
   g3: [
     { rol: "user", tekst: "Geef voorbeelden van termijn", ...leeg },
@@ -121,7 +126,21 @@ await page.route("**/api/**", async (route) => {
       { type: "done" }]) });
   }
   if (p.endsWith("/weergave")) return route.fulfill({ json: view });
-  if (p === "/api/werkgebieden/wg1") return route.fulfill({ json: wg1 });
+  // Verwijderd: een 404 met wanneer en door wie, zoals de api (`werkgebied_store.niet_gevonden`).
+  const weg = (soort) => route.fulfill({ status: 404, json: { detail: { fout: "verwijderd", soort, op: nu, door: "t",
+    melding: "Is verwijderd." } } });
+  if (p === "/api/werkgebieden/wg1" && m === "DELETE") {
+    assert.equal(url.searchParams.get("verwachte_revisie"), String(wg1.revisie));
+    wg1.verwijderd = true;
+    return route.fulfill({ json: { verwijderd: "wg1" } });
+  }
+  if (p === "/api/werkgebieden/wg1") return wg1.verwijderd ? weg("werkgebied") : route.fulfill({ json: wg1 });
+  if (p === "/api/werkgebieden/wg1/begrippen/b9" && m === "DELETE") {
+    assert.equal(url.searchParams.get("verwachte_revisie"), String(termijn.revisie));
+    termijn.verwijderd = true;
+    return route.fulfill({ json: { verwijderd: "b9", hersteld: [] } });
+  }
+  if (p === "/api/werkgebieden/wg1/begrippen/b9" && termijn.verwijderd) return weg("begrip");
   if (p === "/api/werkgebieden/wg1/deelvragen/dekking") {
     const actief = wg1.deelvragen.filter((d) => d.status === "actief");
     return route.fulfill({ json: { deelvragen: actief.map((d) => ({ id: d.id, vraag: d.vraag, stand: d.bronnen.length ? "geen_begrip" : "geen_bron",
@@ -322,8 +341,31 @@ try {
   for (let i = 0; i < 50 && runs.length < 1; i++) await page.waitForTimeout(100);
   assert.equal(runs[0]?.werkgebied_id, undefined, "na verlaten draagt een beurt geen werkgebied meer");
 
+  // --- Verwijderen in het paneel, zoals een annotatie: begrip en werkgebied, daarna de verwijderd-stand ---
+  await page.goto(`${base}/workbench?gesprek=g3`);
+  await page.locator('button[data-artefact-soort="begrip"]', { hasText: "Termijn" }).click();
+  const bp = page.getByRole("region", { name: "Begrip: Termijn" });
+  await bp.getByRole("button", { name: "Begrip verwijderen" }).click();
+  await bp.getByRole("button", { name: "Verwijderen?", exact: true }).click();
+  await bp.locator("[data-verwijderd]").getByText("Dit begrip is verwijderd op 15 okt 2026 door t.").waitFor();
+  // Werkgebied: vanuit de werkplek in dat werkgebied; na verwijderen verlaat de werkplek het.
+  await page.goto(`${base}/workbench?werkgebied=wg1&gesprek=g5`);
+  await balk2.waitFor();
+  await page.locator('button[data-artefact-soort="werkgebied"]').click();
+  const wp = page.getByRole("region", { name: "Werkgebied: Invordering" });
+  await wp.locator("[data-werkgebied-inhoud]").waitFor();
+  await wp.getByRole("button", { name: "Werkgebied verwijderen" }).click();
+  await wp.getByRole("button", { name: "Verwijderen?", exact: true }).click();
+  await wp.locator("[data-verwijderd]").getByText("Dit werkgebied is verwijderd op 15 okt 2026 door t.").waitFor();
+  await balk2.waitFor({ state: "detached" });
+  // Een oud gesprek dat het opent, krijgt dezelfde stand in plaats van een fout.
+  await page.goto(`${base}/workbench?gesprek=g5`);
+  await page.locator('button[data-artefact-soort="werkgebied"]').click();
+  await wp.locator("[data-verwijderd]").waitFor();
+  assert.equal(await wp.getByText("kon niet worden geladen", { exact: false }).count(), 0);
+
   assert.deepEqual(errors, []);
-  console.log("Browser OK: begrippenartefact na herladen en live, één artefact tegelijk, laatste-artefactbalk, regels gereserveerd, begrip- en deelvraagpaneel, suggesties, werkgebiedcontext in de werkplek.");
+  console.log("Browser OK: begrippenartefact na herladen en live, één artefact tegelijk, laatste-artefactbalk, regels gereserveerd, begrip- en deelvraagpaneel, suggesties, werkgebiedcontext in de werkplek, verwijderen in het begrip- en werkgebiedpaneel.");
 } finally {
   await browser.close();
 }

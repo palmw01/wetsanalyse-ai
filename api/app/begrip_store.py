@@ -25,14 +25,14 @@ from contextlib import asynccontextmanager
 from typing import Awaitable, Callable
 
 from fastapi import HTTPException
-from sqlalchemy import insert, select, update
+from sqlalchemy import delete, insert, select, update
 
 from . import annotatie_v2_store as annotaties, db
 from .begrip_contracts import (
     BegripInhoud, BegripInvoer, BegripWijziging, KoppelInvoer, KoppelWijziging,
 )
 from .werkgebied_inventaris import inventaris
-from .werkgebied_store import _audit as werkgebied_audit
+from .werkgebied_store import _audit as werkgebied_audit, niet_gevonden
 
 Resolver = Callable[[dict], Awaitable[dict]]
 
@@ -201,7 +201,7 @@ async def _werkgebied_bestaat(conn, werkgebied_id: str, slot: bool = False):
     q = select(t).where(t.c.id == werkgebied_id)
     row = (await conn.execute(q.with_for_update() if slot else q)).first()
     if row is None or row.gearchiveerd is not None:
-        raise HTTPException(404, "Werkgebied bestaat niet.")
+        raise await niet_gevonden(werkgebied_id)
     return row
 
 
@@ -212,7 +212,7 @@ async def haal(werkgebied_id: str, begrip_id: str) -> dict:
         row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id == werkgebied_id,
                                                   b.c.verwijderd.is_(None)))).first()
         if row is None:
-            raise HTTPException(404, "Begrip bestaat niet.")
+            raise await niet_gevonden(werkgebied_id, begrip_id)
         return _begrip(row, await _koppelingen_van(conn, werkgebied_id, begrip_id), await _opvolging(conn, werkgebied_id))
 
 
@@ -431,18 +431,48 @@ async def wijzig(werkgebied_id: str, begrip_id: str, w: BegripWijziging, actor: 
 
 
 async def verwijder(werkgebied_id: str, begrip_id: str, verwacht: int, actor: str) -> dict:
-    """Soft: het begrip en zijn koppelingen krijgen een tijdstip; de annotaties blijven onaangeroerd.
-    Daarmee is een primaire duiding weer vrij."""
-    hersteld: list[str] = []
-    async with _gewijzigd(werkgebied_id, begrip_id, verwacht, actor, "begrip-verwijderd",
-                          {"hersteld": hersteld}) as (conn, _, stand):
-        nu = db.utcnow()
-        stand["waarden"] = {"verwijderd": nu}
-        await conn.execute(update(db.begrip_koppelingen).where(
-            db.begrip_koppelingen.c.begrip_id == begrip_id, db.begrip_koppelingen.c.verwijderd.is_(None))
-            .values(verwijderd=nu))
-        hersteld += await _herstel_voorgangers(conn, werkgebied_id, begrip_id, actor, nu)
+    """Echt wissen, net als een annotatie: het begrip met zijn revisies, koppelingen, relaties,
+    voorstellen en kaartruns, en zijn plek bij de deelvragen. De annotaties blijven onaangeroerd; de
+    auditregel blijft als bewijs. Was het de opvolger van een vervangen begrip, dan krijgt dat zijn
+    vorige status terug. Een vervangen begrip zelf gaat niet weg: verwijder dan de opvolger."""
+    b = db.begrippen
+    async with db.get_engine().begin() as conn:
+        await _werkgebied_bestaat(conn, werkgebied_id, slot=True)
+        row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id == werkgebied_id,
+                                                  b.c.verwijderd.is_(None)).with_for_update())).first()
+        if row is None:
+            raise await niet_gevonden(werkgebied_id, begrip_id)
+        if row.status == "vervangen":
+            raise HTTPException(409, {"fout": "vervangen", "melding": "Dit begrip is vervangen door een opvolger. "
+                                      "Verwijder de opvolger om het terug te zetten."})
+        if row.revisie != verwacht:
+            raise HTTPException(412, {"fout": "revisie_conflict", "revisie": row.revisie,
+                                      "melding": "Iemand anders wijzigde dit begrip intussen; laad het opnieuw."})
+        hersteld = await _herstel_voorgangers(conn, werkgebied_id, begrip_id, actor, db.utcnow())
+        await wis_begrippen(conn, [begrip_id])
+        await werkgebied_audit(conn, werkgebied_id, actor, "begrip-verwijderd",
+                               {"begrip_id": begrip_id, "naam": (row.inhoud or {}).get("naam", ""),
+                                "begrip_revisie": row.revisie, "hersteld": hersteld})
     return {"verwijderd": begrip_id, "hersteld": hersteld}
+
+
+#: Elke tabel met een `begrip_id`: wat `wis_begrippen` opruimt (de relaties via `van_begrip`/`naar_begrip`,
+#: de groepen houden hun uitkomst en verliezen alleen de verwijzing). `tests/test_werkgebied_verwijderen.py`
+#: bewaakt dat een nieuwe tabel met die kolom hier staat.
+BEGRIP_TABELLEN = ("begrip_revisies", "begrip_koppelingen", "begrip_voorstellen", "begrip_kaartruns", "betekenisgroepen")
+
+
+async def wis_begrippen(conn, ids: list[str]) -> None:
+    t = db.metadata.tables
+    r, k = db.begrip_relaties, db.werkgebied_deelvraag_koppelingen
+    await conn.execute(delete(r).where(r.c.van_begrip.in_(ids) | r.c.naar_begrip.in_(ids)))
+    await conn.execute(delete(k).where(k.c.soort == "begrip", k.c.doel_id.in_(ids)))
+    for naam in BEGRIP_TABELLEN:
+        if naam == "betekenisgroepen":
+            await conn.execute(update(t[naam]).where(t[naam].c.begrip_id.in_(ids)).values(begrip_id=None))
+        else:
+            await conn.execute(delete(t[naam]).where(t[naam].c.begrip_id.in_(ids)))
+    await conn.execute(delete(db.begrippen).where(db.begrippen.c.id.in_(ids)))
 
 
 async def _herstel_voorgangers(conn, werkgebied_id: str, begrip_id: str, actor: str, nu) -> list[str]:

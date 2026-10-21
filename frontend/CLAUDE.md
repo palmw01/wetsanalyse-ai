@@ -518,6 +518,23 @@ sidebar blijft staan.
   deed – een laag heeft geen eigenaar, de API leest dat uit de audit. De kaart telt verouderde
   markeringen apart. Alle query-parameters gaan ongewijzigd door de BFF-route; een parameter die daar
   sneuvelt faalt stil.
+- **Verwijderen werkt voor annotatie, werkgebied en begrip gelijk** (besluit gebruiker 21 okt 2026,
+  `lib/verwijderen.ts`): echt wissen (api), één knop `components/ui/VerwijderKnop` (*Verwijderen*, tweede
+  klik *Verwijderen?*, `aria-label` "<Soort> verwijderen", de tooltip zegt wat weggaat en wat blijft) op
+  dezelfde plekken, en daarna een toestand in plaats van een fout:
+
+  | | paneel naast het gesprek | pagina | lijst |
+  |---|---|---|---|
+  | annotatie | `ArtefactInhoud` | nodepagina (dezelfde inhoud) | `AnnotatieKaart` in `/annotaties` (`verwijderAnnotatie`: eerst de weergave) |
+  | werkgebied | `WerkgebiedInhoud` in `WerkgebiedArtefactPaneel` | kop van `WerkgebiedClient` | kaart in `WerkgebiedenClient` |
+  | begrip | kop van `BegripPaneel` | `BegripPaneel` in de Begrippen-tab, en onderaan `BegripKaart` | rij in `BegrippenOverzichtClient` |
+
+  Een verwijderd werkgebied of begrip geeft een 404 met `{fout: "verwijderd", op, door}`; `verwijderdUit`
+  leest die en het paneel of de pagina zegt "Dit werkgebied is verwijderd op … door …" (`data-verwijderd`).
+  Een lijst haalt de rij meteen weg en zet hem bij een fout terug; een 412 laadt opnieuw. Verwijder je het
+  werkgebied waarin de werkplek staat vanuit het paneel, dan verlaat de werkplek het (`onVerwijderd`).
+  Een vervangen begrip heeft geen knop (verwijder de opvolger). `metSpoor` met `annotatie_verwijderen`,
+  `werkgebied_verwijderen` en `begrip_verwijderen`. Archiveren bestaat niet meer.
 - **Verwijderen staat naast afronden**: *Verwijderen* in de actierij van `ArtefactInhoud`
   (`onVerwijder`, alleen als er een laag in beeld is), als `BevestigKnop`. Elke gebruiker mag het, ook
   op een afgeronde annotatie; de audit legt vast wie. `NodeAnnotatiePaneel.verwijder` stuurt
@@ -585,6 +602,8 @@ bestaat los van de gesprekken.
 - **Het dossier** (F2, F3a): de kop van de pagina toont de `WerkgebiedSamenvatting`, dezelfde als in het
   paneel naast het gesprek, en *Gegevens bewerken* bewerkt de velden van `DOSSIER_VELDEN`. Eén lijst voor
   samenvatting en formulier; een oudere api zonder de velden leest als leeg.
+- **Verwijderen** (*Verwijderen* in de kop, en per kaart in de lijst) wist het werkgebied echt; zie
+  §*Annotaties buiten het gesprek* voor hoe verwijderen overal gelijk werkt.
 - **Gedeeld, dus elke mutatie draagt de revisie in beeld.** Alle mutaties lopen via één `muteer` in
   `WerkgebiedClient`. Een 412 (`revisie_conflict`) laadt de nieuwste stand en zegt dat iemand anders
   het werkgebied wijzigde; de handeling wordt **niet** stil opnieuw uitgevoerd, want op de nieuwe stand
@@ -925,6 +944,8 @@ is dubbelop. Bij **verwerpen** blijft de reden een vraag aan de jurist; die staa
 - **Bevestigen doet de knop zelf.** Onomkeerbare handelingen vragen een tweede klik op dezelfde plek
   (`components/ui/BevestigKnop.tsx`), nooit `window.confirm`: een systeemvenster is niet te stylen,
   niet te testen en soms geblokkeerd. Scherp gezet ontwapent de knop vanzelf (4 s, blur of Escape).
+  De vlag "nog gemount" zet hij bij elke mount opnieuw: onder StrictMode (dev) bleef een knop die na een
+  mislukte handeling blijft staan anders op `Bezig…` hangen.
 - **× betekent weghalen**, met twee uitkomsten: een agent-voorstel klapt de redenen-chips uit (één
   klik = verworpen, terug te draaien met *Heropenen*); een eigen markering wordt "Wissen?" en is na de
   tweede klik weg (`DELETE`). Een agent-voorstel verwijder je niet maar verwerp je, zodat het

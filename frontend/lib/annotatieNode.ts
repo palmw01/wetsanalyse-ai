@@ -198,6 +198,16 @@ export interface NodeOpslag {
   levend: boolean;
 }
 
+/** De annotatie van één bepaling verwijderen vanuit een lijst (`lib/verwijderen.ts`): eerst de weergave,
+ *  voor de revisies in beeld, dan hetzelfde verzoek als het paneel. Een 412 betekent ook hier dat iemand
+ *  intussen iets wijzigde. */
+export async function verwijderAnnotatie(doel: NodeDoel, opslag: NodeOpslag = apiOpslag) {
+  const view = await opslag.weergave(doel);
+  return opslag.verwijder({
+    bron_iri: view.doel.bron_iri, snapshot_id: view.snapshot_id, verwachte_revisies: verwachteRevisies(view),
+  });
+}
+
 export const apiOpslag: NodeOpslag = {
   weergave: haalNodeWeergave,
   beslis: (id, body) => nodeRequest(`elementen/${encodeURIComponent(id)}/beslissing`, body),

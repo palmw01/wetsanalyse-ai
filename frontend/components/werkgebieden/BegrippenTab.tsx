@@ -336,7 +336,8 @@ function GekozenBegrip({ id, begripId, lijst, weergave, onWeergave, onGewijzigd,
         />
       )}
       {weergave === "lezen" ? (
-        <BegripPaneel werkgebiedId={id} begripId={begripId} onOnbewaard={meld} onNaarBegrip={onNaarBegrip} />
+        <BegripPaneel werkgebiedId={id} begripId={begripId} onOnbewaard={meld} onNaarBegrip={onNaarBegrip}
+          onVerwijderd={() => void onWeg()} />
       ) : (
         <BegripWerk
           id={id}

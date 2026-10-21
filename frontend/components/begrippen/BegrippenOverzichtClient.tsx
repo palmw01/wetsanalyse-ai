@@ -6,12 +6,14 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
-import { foutTekst, lijstWerkgebieden, zoekBegrippen } from "@/lib/api";
+import { foutTekst, lijstWerkgebieden, verwijderBegrip, zoekBegrippen } from "@/lib/api";
 import {
   BEGRIP_STATUSSEN, BEGRIP_STATUS_LABEL, filtersUitParams, kaartUrl, kort, paramsVan,
-  type BegrippenOverzicht, type OverzichtFilters,
+  type BegripOverzichtRij, type BegrippenOverzicht, type OverzichtFilters,
 } from "@/lib/begrippenOverzicht";
+import { metSpoor } from "@/lib/uiSpoor";
 import type { BegripStatus, WerkgebiedSamenvatting } from "@/lib/types";
 
 const PIL: Record<BegripStatus, string> = {
@@ -65,6 +67,20 @@ export function BegrippenOverzichtClient() {
   useEffect(() => {
     lijstWerkgebieden().then(setWerkgebieden).catch(() => setWerkgebieden([]));
   }, []);
+
+  /** Echt wissen, zoals een annotatie (`lib/verwijderen.ts`): de rij gaat meteen weg en komt bij een fout
+   *  terug. */
+  async function verwijder(b: BegripOverzichtRij) {
+    const voor = data;
+    setData((d) => d && { ...d, resultaten: d.resultaten.filter((x) => x.id !== b.id), totaal: d.totaal - 1 });
+    setFout(null);
+    try {
+      await metSpoor("begrip_verwijderen", () => verwijderBegrip(b.werkgebied_id, b.id, b.revisie));
+    } catch (e) {
+      setData(voor);
+      setFout(foutTekst(e, "Het begrip is niet verwijderd."));
+    }
+  }
 
   function wisselStatus(s: BegripStatus) {
     const status = filters.status.includes(s) ? filters.status.filter((x) => x !== s) : [...filters.status, s];
@@ -149,11 +165,8 @@ export function BegrippenOverzichtClient() {
           </p>
           <ul className="space-y-2" data-testid="begrippen-overzicht">
             {data.resultaten.map((b) => (
-              <li key={b.id}>
-                <Link
-                  href={kaartUrl(b.werkgebied_id, b.id)}
-                  className="focus-ring block rounded-button border border-line bg-paper p-4 transition-shadow hover:shadow-kaart"
-                >
+              <li key={b.id} className="rounded-button border border-line bg-paper transition-shadow hover:shadow-kaart">
+                <Link href={kaartUrl(b.werkgebied_id, b.id)} className="focus-ring block rounded-button p-4 pb-2">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <span className="min-w-0 font-display text-sm font-semibold text-lint">{b.naam}</span>
                     <span className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${PIL[b.status]}`}>
@@ -178,6 +191,13 @@ export function BegrippenOverzichtClient() {
                     </p>
                   )}
                 </Link>
+                {/* Naast de link, niet erin: een knop in een link is niet te bedienen. Een vervangen begrip
+                    gaat niet weg (verwijder de opvolger). */}
+                {b.status !== "vervangen" && (
+                  <div className="flex justify-end px-4 pb-3">
+                    <VerwijderKnop soort="begrip" onBevestig={() => verwijder(b)} />
+                  </div>
+                )}
               </li>
             ))}
           </ul>

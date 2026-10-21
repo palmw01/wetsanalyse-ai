@@ -13,7 +13,7 @@ import { sessieCookies } from "./sessie.mjs";
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
-const errors = [], queries = [];
+const errors = [], queries = [], verwijderd = [];
 page.on("pageerror", (e) => errors.push(e.message));
 await page.context().addCookies(await sessieCookies(base));
 await page.addInitScript(() => localStorage.setItem("wa_rondleiding", JSON.stringify({ versie: 999, gezien: true })));
@@ -34,6 +34,12 @@ const BEGRIPPEN = [
 await page.route("**/api/**", async (route) => {
   const req = route.request(), url = new URL(req.url()), p = url.pathname;
   if (p.startsWith("/api/auth/")) return route.continue();
+  const wis = p.match(/^\/api\/werkgebieden\/(wg\d)\/begrippen\/(b\d)$/);
+  if (wis && req.method() === "DELETE") {
+    verwijderd.push({ werkgebied: wis[1], begrip: wis[2], q: url.search });
+    BEGRIPPEN.splice(BEGRIPPEN.findIndex((b) => b.id === wis[2]), 1);
+    return route.fulfill({ json: { verwijderd: wis[2], hersteld: [] } });
+  }
   if (p === "/api/begrippen") {
     queries.push(url.search);
     const q = (url.searchParams.get("q") ?? "").toLowerCase();
@@ -95,6 +101,19 @@ try {
   await lijst.waitFor();
   assert.equal(await page.getByRole("button", { name: "Concept" }).getAttribute("aria-pressed"), "true");
   assert.equal(await page.getByLabel("Werkgebied").inputValue(), "wg1");
+
+  // Verwijderen per rij, zoals in het paneel en op de kaart: de rij gaat meteen weg. Een vervangen begrip
+  // heeft geen knop (verwijder de opvolger).
+  await page.goto(`${base}/begrippen`);
+  await lijst.waitFor();
+  assert.equal(await lijst.locator("li", { hasText: "Belastingschuldige" }).getByRole("button", { name: "Begrip verwijderen" }).count(), 0);
+  const termijnRij = lijst.locator("li", { hasText: "Termijn" }).first();
+  await termijnRij.getByRole("button", { name: "Begrip verwijderen" }).click();
+  await termijnRij.getByRole("button", { name: "Verwijderen?", exact: true }).click();
+  await page.waitForFunction(() => document.querySelectorAll('[data-testid="begrippen-overzicht"] li').length === 2);
+  assert.deepEqual(verwijderd, [{ werkgebied: "wg1", begrip: "b1", q: "?verwachte_revisie=2" }]);
+  await page.goto(`${base}/begrippen?status=concept&werkgebied=wg1`);
+  await lijst.waitFor();
 
   // Doorklikken opent de kaart in zijn werkgebied.
   await lijst.getByRole("link", { name: /Uitstel van betaling/ }).click();

@@ -14,7 +14,11 @@ import { WerkgebiedSamenvatting } from "@/components/werkgebieden/WerkgebiedSame
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import { Melding } from "@/components/ui/Melding";
 import { SkeletonCard } from "@/components/ui/Skeleton";
-import { foutTekst, haalWerkgebied } from "@/lib/api";
+import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
+import { foutTekst, haalWerkgebied, verwijderWerkgebied } from "@/lib/api";
+import { metSpoor } from "@/lib/uiSpoor";
+import { verwijderdUit, verwijderdZin, type Verwijderd } from "@/lib/verwijderen";
+import { isRevisieConflict } from "@/lib/werkgebied";
 import { werkgebiedLabel, type WerkgebiedArtefact } from "@/lib/artefact";
 import type { Werkgebied } from "@/lib/types";
 import { STATUS_LABEL } from "@/lib/werkgebied";
@@ -46,10 +50,12 @@ const KOP: Record<WerkgebiedArtefact["soort"], string> = {
  *
  *  Eén inhoud, twee schillen. Net als op de tab vraagt het paneel eerst bevestiging als de kaart
  *  niet-bewaarde wijzigingen draagt: bij sluiten (kruisje, Escape, achtergrond) en bij een link weg. */
-export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWissel }: {
+export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWissel, onVerwijderd }: {
   doel: WerkgebiedArtefact;
   variant?: DialogVariant;
   onSluit: () => void;
+  /** Het werkgebied is vanuit dit paneel verwijderd: de werkplek verlaat het dan, als ze erin stond. */
+  onVerwijderd?: (werkgebiedId: string) => void;
   /** Een ander artefact in hetzelfde paneel (de opvolger van een vervangen deelvraag of begrip). */
   onWissel?: (doel: WerkgebiedArtefact) => void;
 }) {
@@ -108,7 +114,8 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
             />
           )}
           {doel.soort === "werkgebied" ? (
-            <WerkgebiedInhoud id={doel.werkgebied_id} naarWerkgebied={naarWerkgebied} />
+            <WerkgebiedInhoud id={doel.werkgebied_id} naarWerkgebied={naarWerkgebied}
+              onVerwijderd={() => onVerwijderd?.(doel.werkgebied_id)} />
           ) : doel.soort === "begrip" && doel.begrip_id ? (
             <BegripPaneel werkgebiedId={doel.werkgebied_id} begripId={doel.begrip_id} onOnbewaard={setOnbewaard}
               onNaarBegrip={(b) => onWissel
@@ -139,15 +146,47 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
 
 /** Het werkgebied zelf: wat er met Lex is samengesteld, zoals het nu bij de api staat – dezelfde
  *  samenvatting als bovenaan de werkgebiedpagina. */
-function WerkgebiedInhoud({ id, naarWerkgebied }: { id: string; naarWerkgebied: string }) {
+function WerkgebiedInhoud({ id, naarWerkgebied, onVerwijderd }: {
+  id: string;
+  naarWerkgebied: string;
+  onVerwijderd: () => void;
+}) {
   const [wg, setWg] = useState<Werkgebied | null>(null);
   const [fout, setFout] = useState<string | null>(null);
+  const [melding, setMelding] = useState<string | null>(null);
+  const [verwijderd, setVerwijderd] = useState<Verwijderd | null>(null);
   const [poging, setPoging] = useState(0);
   useEffect(() => {
     let levend = true;
-    haalWerkgebied(id).then((w) => { if (levend) setWg(w); }).catch((e) => { if (levend) setFout(foutTekst(e)); });
+    haalWerkgebied(id).then((w) => { if (levend) setWg(w); }).catch((e) => {
+      if (!levend) return;
+      // Een verwijderd werkgebied is een toestand, geen fout – zoals een verwijderde annotatie.
+      const v = verwijderdUit(e);
+      if (v) setVerwijderd(v);
+      else setFout(foutTekst(e));
+    });
     return () => { levend = false; };
   }, [id, poging]);
+
+  async function verwijder() {
+    if (!wg) return;
+    setMelding(null);
+    try {
+      await metSpoor("werkgebied_verwijderen", () => verwijderWerkgebied(id, wg.revisie));
+      setWg(null);
+      setPoging((p) => p + 1);              // de api zegt nu wanneer en door wie
+      onVerwijderd();
+    } catch (e) {
+      if (isRevisieConflict(e)) {
+        setPoging((p) => p + 1);
+        setMelding("Iemand anders wijzigde dit werkgebied net. Bekijk de nieuwe stand voordat je het verwijdert.");
+      } else setMelding(foutTekst(e, "Het werkgebied is niet verwijderd."));
+    }
+  }
+
+  if (verwijderd) {
+    return <Melding type="uitleg"><span data-verwijderd>{verwijderdZin(verwijderd)}</span></Melding>;
+  }
   if (fout) {
     return (
       <Melding type="fout" titel="Het werkgebied kon niet worden geladen.">
@@ -161,7 +200,11 @@ function WerkgebiedInhoud({ id, naarWerkgebied }: { id: string; naarWerkgebied: 
   if (!wg) return <SkeletonCard regels={4} />;
   return (
     <div data-werkgebied-inhoud className="space-y-4 text-sm text-ink">
-      <p className="text-xs text-muted">{STATUS_LABEL[wg.status]} · revisie {wg.revisie}</p>
+      <div className="flex items-center gap-2">
+        <p className="text-xs text-muted">{STATUS_LABEL[wg.status]} · revisie {wg.revisie}</p>
+        <VerwijderKnop soort="werkgebied" onBevestig={verwijder} className="ml-auto" />
+      </div>
+      {melding && <Melding type="waarschuwing" compact>{melding}</Melding>}
       <WerkgebiedSamenvatting wg={wg} vraagLex />
       <Link href={naarWerkgebied}
         className="focus-ring inline-flex w-full items-center justify-center rounded-button bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent/90 sm:w-auto">
