@@ -65,6 +65,24 @@ def _hoofd(t: str) -> str:
     return t[:1].upper() + t[1:]
 
 
+def _bronnen_en_bepalingen(wv: dict[str, Any], n: int) -> str:
+    """Waarom er meer bepalingen zijn dan bronnen: een artikel met leden gaat per lid, een bepaling met
+    subbepalingen per subbepaling (`bronmodel.annotatie_eenheden`). Zonder die zin leest "60 bepalingen"
+    bij 18 bronnen als een fout. Met de bronnen die het meest bijdragen; leeg als elke bron één is."""
+    selecties = [s for s in wv.get("selecties") or [] if not s.get("onbereikbaar")]
+    if not selecties or n <= len(selecties):
+        return ""
+    k = len(selecties)
+    zin = (f"Ze komen uit {k} {'bron' if k == 1 else 'bronnen'}: een artikel met leden annoteer ik per lid, "
+           "een bepaling met subbepalingen per subbepaling.")
+    groot = sorted((s for s in selecties if int((s.get("per_stand") or {}).get("nieuw") or 0) > 1),
+                   key=lambda s: -int(s["per_stand"]["nieuw"]))[:3]
+    if groot:
+        zin += " Het meest: " + ", ".join(f"{s.get('label') or s.get('bron_iri', '')} ({s['per_stand']['nieuw']})"
+                                          for s in groot) + "."
+    return zin
+
+
 def voorstel(naam: str, wv: dict[str, Any], alternatief: dict[str, Any] | None = None
              ) -> tuple[str, dict[str, Any] | None]:
     """De tekst vóór de bevestiging, en de bevestiging zelf (geen als er niets te doen is).
@@ -87,6 +105,8 @@ def voorstel(naam: str, wv: dict[str, Any], alternatief: dict[str, Any] | None =
                       "analysebronnen heeft al een annotatie.")
     else:
         zin = f"{_hoofd(waar)} {'is' if n == 1 else 'zijn'} **{n}** {_bepalingen(n)} nog niet geannoteerd."
+        if uitleg := _bronnen_en_bepalingen(wv, n):
+            zin += " " + uitleg
         if n > PLAFOND:
             zin += f" Per run doe ik er hoogstens {PLAFOND}; de rest volgt bij een volgende run."
         zinnen.append(zin)
