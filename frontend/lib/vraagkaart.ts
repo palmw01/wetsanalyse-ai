@@ -9,6 +9,9 @@
 // van graph-qa, niet van de werkplek. De werkplek kiest alleen welk kaartje nog bedienbaar is: het
 // laatste in de thread.
 //
+// Hetzelfde kaartje vult ook het dossier van een bestaand werkgebied aan (`modus: "aanvullen"`): alleen de
+// gevraagde velden, vooringevuld, en een samenvatting toen → nu met *Opslaan* (`actie: "opslaan"`).
+//
 // Pure functies, zodat ze zonder DOM te testen zijn (lib/vraagkaart.test.ts).
 
 export const STAPPEN = ["naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld", "deelvragen",
@@ -37,6 +40,8 @@ export interface VraagOptie {
 
 export interface Vraagkaart {
   intake_id: string;
+  /** Een werkgebied samenstellen, of het dossier van een bestaand werkgebied aanvullen. */
+  modus: "samenstellen" | "aanvullen";
   soort: "vraag" | "samenvatting";
   stap: IntakeStap;
   nr: number;
@@ -71,6 +76,16 @@ export interface Samenvatting {
   deelvragen: string[];
   afbakening: string;
   bronnen: string[];
+  /** Bij het aanvullen: alleen wat verandert. Leeg = er verandert niets, en er is niets op te slaan. */
+  wijzigingen: Wijziging[];
+}
+
+/** Eén veld van het dossier dat het aanvullen verandert: wat er stond, en wat het wordt. */
+export interface Wijziging {
+  veld: string;
+  label: string;
+  toen: string;
+  nu: string;
 }
 
 /** Op het user-bericht van een klik (api `Bericht.intake_antwoord`): zo herkent de thread een antwoord. */
@@ -87,7 +102,7 @@ export interface IntakeActie {
   stap: IntakeStap;
   /** Bij de bepalingen: het deel van het kaartje; een ander deel is een oud kaartje. */
   deel?: number;
-  actie: "antwoord" | "overslaan" | "wijzig" | "aanmaken" | "afbreken";
+  actie: "antwoord" | "overslaan" | "wijzig" | "aanmaken" | "opslaan" | "afbreken";
   keuzes?: string[];
   tekst?: string;
   /** Meer dan één eigen antwoord (`meer_tekst`). */
@@ -119,8 +134,14 @@ export function parseVraagkaart(ruw: unknown): Vraagkaart | undefined {
   const d = r.deel && typeof r.deel === "object" ? r.deel as Record<string, unknown> : null;
   const deel = stap === "bepalingen" && d && typeof d.index === "number" && Number.isInteger(d.index) && d.index >= 0
     ? { index: d.index, totaal: getal(d.totaal, d.index + 1), deelvraag: tekst(d.deelvraag) || null } : null;
+  const wijzigingen = s && Array.isArray(s.wijzigingen) ? s.wijzigingen.flatMap((w): Wijziging[] => {
+    const x = (w ?? {}) as Record<string, unknown>;
+    return tekst(x.veld) && tekst(x.label)
+      ? [{ veld: tekst(x.veld), label: tekst(x.label), toen: tekst(x.toen), nu: tekst(x.nu) }] : [];
+  }) : [];
   return {
     intake_id, stap: stap as IntakeStap, vraag, deel,
+    modus: r.modus === "aanvullen" ? "aanvullen" : "samenstellen",
     soort: r.soort === "samenvatting" ? "samenvatting" : "vraag",
     nr: getal(r.nr, 1), totaal: getal(r.totaal, STAPPEN.length),
     toelichting: tekst(r.toelichting),
@@ -135,7 +156,7 @@ export function parseVraagkaart(ruw: unknown): Vraagkaart | undefined {
     samenvatting: s && r.soort === "samenvatting" ? {
       naam: tekst(s.naam), aanleiding: tekst(s.aanleiding), context: tekst(s.context), doel: tekst(s.doel),
       analysevraag: tekst(s.analysevraag), praktijkvoorbeeld: tekst(s.praktijkvoorbeeld),
-      deelvragen: lijst(s.deelvragen), afbakening: tekst(s.afbakening), bronnen: lijst(s.bronnen),
+      deelvragen: lijst(s.deelvragen), afbakening: tekst(s.afbakening), bronnen: lijst(s.bronnen), wijzigingen,
     } : null,
   };
 }
@@ -158,7 +179,8 @@ export function beginstand(k: Vraagkaart): { gekozen: string[]; eigen: string; t
  *  leest de `intake_actie`, niet deze tekst; ze staat er voor de jurist en voor de historie. */
 export function antwoordTekst(k: Vraagkaart, actie: IntakeActie): string {
   if (actie.actie === "aanmaken") return "Maak het werkgebied aan.";
-  if (actie.actie === "afbreken") return "Stop met samenstellen.";
+  if (actie.actie === "opslaan") return "Sla de wijziging op.";
+  if (actie.actie === "afbreken") return k.modus === "aanvullen" ? "Stop met aanvullen." : "Stop met samenstellen.";
   if (actie.actie === "overslaan") return "Sla deze vraag over.";
   if (actie.actie === "wijzig") {
     const metDeelvragen = !!k.deel?.deelvraag || !!k.samenvatting?.deelvragen.length;
@@ -203,7 +225,7 @@ export function parseAntwoordOp(ruw: unknown): AntwoordOp | undefined {
   const r = ruw as Record<string, unknown>;
   const intake_id = tekst(r.intake_id), stap = tekst(r.stap), actie = tekst(r.actie) || "antwoord";
   if (!/^[A-Za-z0-9-]{1,64}$/.test(intake_id) || !STAP_SET.has(stap)) return undefined;
-  if (!["antwoord", "overslaan", "wijzig", "aanmaken", "afbreken"].includes(actie)) return undefined;
+  if (!["antwoord", "overslaan", "wijzig", "aanmaken", "opslaan", "afbreken"].includes(actie)) return undefined;
   const deel = typeof r.deel === "number" && Number.isInteger(r.deel) && r.deel >= 0 ? r.deel : undefined;
   return { intake_id, stap: stap as IntakeStap, ...(deel !== undefined ? { deel } : {}),
     actie: actie as IntakeActie["actie"] };
@@ -215,7 +237,8 @@ export function antwoordOp(a: IntakeActie): AntwoordOp {
 }
 
 /** Het kaartje vóór dit (‹): de vorige stap, of bij de bepalingen het vorige deel. Vanaf de
- *  samenvatting is dat het laatste bepalingen-kaartje. */
+ *  samenvatting is dat het laatste bepalingen-kaartje. Bij het aanvullen kent de werkplek de gevraagde
+ *  stappen niet: graph-qa neemt dan de laatste gevraagde stap die niet na deze komt. */
 export function vorige(k: Vraagkaart): { naar: IntakeStap; naar_deel?: number } | undefined {
   if (!k.terug) return undefined;
   if (k.stap === "samenvatting") return { naar: "bepalingen", naar_deel: Math.max(0, k.totaal - VASTE_STAPPEN - 1) };
@@ -224,8 +247,10 @@ export function vorige(k: Vraagkaart): { naar: IntakeStap; naar_deel?: number } 
   return i > 0 ? { naar: STAPPEN[i - 1] } : undefined;
 }
 
-/** Is dit de laatste vraag vóór de samenvatting? Dan heet de knop *Verzend*. */
+/** Is dit de laatste vraag vóór de samenvatting? Dan heet de knop *Verzend*. Bij het aanvullen is dat de
+ *  laatste gevraagde stap. */
 export function isLaatsteVraag(k: Vraagkaart): boolean {
+  if (k.modus === "aanvullen") return k.soort === "vraag" && k.nr >= k.totaal;
   return k.stap === "bepalingen" && (!k.deel || k.deel.index >= k.deel.totaal - 1);
 }
 

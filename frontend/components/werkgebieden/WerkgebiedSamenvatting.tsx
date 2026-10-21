@@ -12,11 +12,12 @@ import { DOSSIER_VELDEN } from "@/lib/werkgebied";
  *  bronnen die geanalyseerd worden. In de lijststijl van de samenvatting op de vraagkaart.
  *
  *  Eén samenvatting op twee plekken (F3a): het paneel naast het gesprek en de kop van de werkgebiedpagina.
- *  Een leeg veld staat er ook, zodat zichtbaar is wat er nog ontbreekt. */
+ *  Een leeg veld staat er ook, zodat zichtbaar is wat er nog ontbreekt – met *Vraag Lex*, die het veld
+ *  laat aanvullen met de vraagkaarten (de suggestie *Vul … aan*). */
 export function WerkgebiedSamenvatting({ wg, vraagLex = false, className = "" }: {
   wg: Werkgebied;
-  /** *Vraag Lex* bij elke deelvraag (F3d): in de werkplek zet hij de deelvraag als onderwerp, daarbuiten
-   *  opent hij een gesprek. */
+  /** *Vraag Lex* bij elke deelvraag (F3d) en bij elk leeg dossierveld: in de werkplek zet hij het object als
+   *  onderwerp, daarbuiten opent hij een gesprek. */
   vraagLex?: boolean;
   className?: string;
 }) {
@@ -30,7 +31,15 @@ export function WerkgebiedSamenvatting({ wg, vraagLex = false, className = "" }:
         <Regel key={veld} naam={label} data-dossier-veld={veld}>
           {(wg[veld] ?? "").trim()
             ? <span className="whitespace-pre-line">{wg[veld]}</span>
-            : <span className="text-muted">{`Nog geen ${label.toLowerCase()}.`}</span>}
+            : (
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="text-muted">{`Nog geen ${label.toLowerCase()}.`}</span>
+                {vraagLex && (
+                  <VraagLexKnop naam={`Vraag Lex: ${label.toLowerCase()} aanvullen`}
+                    onderwerp={{ soort: "werkgebied", werkgebied_id: wg.id, id: "", label: wg.naam, veld }} />
+                )}
+              </span>
+            )}
         </Regel>
       ))}
       <Regel naam={`Deelvragen (${deelvragen.length})`} data-samenvatting="deelvragen">

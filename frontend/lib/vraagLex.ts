@@ -1,6 +1,7 @@
 import { vraagSuggesties as markeringSuggesties } from "./annotatie";
 import type { NodeElement, NodeWeergave } from "./annotatieNode";
 import type { AgentContext } from "./types";
+import type { DossierVeld } from "./werkgebied";
 
 /** Eén *Vraag Lex* vanuit elk object (spoor F, F3b).
  *
@@ -17,22 +18,34 @@ import type { AgentContext } from "./types";
  *    en een taak bij (`models.ACTIE_TAAK`). Wat duur is vraagt daar eerst een bevestiging, zoals altijd.
  *  - **Een suggestie zonder actie** is een vraag die je zo ook had kunnen typen: ze gaat met het onderwerp
  *    langs de supervisor. Met `invullen` komt ze in het invoerveld in plaats van verstuurd te worden –
- *    voor een vraag die de analist zelf moet afmaken ("Wat is het betekenisverschil met …"). */
+ *    voor een vraag die de analist zelf moet afmaken ("Wat is het betekenisverschil met …").
+ *  - **Het dossier aanvullen** (`dossier_aanvullen`) is geen taak van een agent maar de vraagkaarten van de
+ *    intake (graph-qa `INTAKE_ACTIES`); welk veld leest graph-qa uit de tekst ("Vul het praktijkvoorbeeld
+ *    aan"). *Vraag Lex* bij een leeg veld zet dat veld op het werkgebied (`veld`), en de suggestie noemt het. */
 
 export type OnderwerpSoort = "markering" | "deelvraag" | "bron" | "kandidaat" | "begrip" | "werkgebied";
 export type ObjectSoort = Exclude<OnderwerpSoort, "markering">;
 
 export type Onderwerp =
   | { soort: "markering"; element: NodeElement; view: NodeWeergave }
-  | { soort: ObjectSoort; werkgebied_id: string; id: string; label: string };
+  | { soort: ObjectSoort; werkgebied_id: string; id: string; label: string;
+      /** Bij het werkgebied: het lege dossierveld waarvoor de analist *Vraag Lex* koos. */
+      veld?: DossierVeld };
 
-/** De acties die graph-qa kent (`agent/models.py`, `ACTIE_TAAK`: elke actie is een taak van een agent);
- *  `vraagLex.test.ts` leest die bron. */
+/** De acties die graph-qa kent (`agent/models.py`, `Actie`: een taak van een agent uit `ACTIE_TAAK`, of het
+ *  dossier aanvullen); `vraagLex.test.ts` leest die bron. */
 export const ACTIES = [
   "werkgebied_annoteren", "deelvragen_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
   "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie", "scherper",
-  "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties",
+  "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen",
 ] as const;
+
+/** Hoe de suggestie bij een leeg dossierveld het veld noemt; graph-qa herkent het woord (`dossiervelden_in`). */
+const VELD_ZIN: Record<DossierVeld, string> = {
+  aanleiding: "Vul de aanleiding aan", context: "Vul de context aan", doel: "Vul het doel aan",
+  analysevraag: "Vul de analysevraag aan", praktijkvoorbeeld: "Vul het praktijkvoorbeeld aan",
+  afbakening: "Vul de afbakening aan",
+};
 export type VraagLexActie = (typeof ACTIES)[number];
 
 export interface Suggestie {
@@ -96,6 +109,7 @@ function objectModule(suggesties: (o: Object_) => Suggestie[] = () => []): Modul
  *  werkgebied ook zonder chip boven het invoerveld (`werkgebiedSuggesties`). */
 const SUGGESTIES: Record<ObjectSoort, Suggestie[]> = {
   werkgebied: [
+    { tekst: "Vul het dossier aan", actie: "dossier_aanvullen" },
     { tekst: "Stel deelvragen voor", actie: "deelvragen_voorstellen" },
     { tekst: "Zoek bepalingen bij alle deelvragen", actie: "bronnen_zoeken" },
     { tekst: "Hoe staat de dekking ervoor?", actie: "dekking" },
@@ -136,7 +150,10 @@ export const MODULES: { markering: Module<Markering> } & Record<ObjectSoort, Mod
   bron: objectModule(() => SUGGESTIES.bron),
   kandidaat: objectModule(() => SUGGESTIES.kandidaat),
   begrip: objectModule(() => SUGGESTIES.begrip),
-  werkgebied: objectModule(() => SUGGESTIES.werkgebied),
+  // Bij een leeg veld (`veld`) eerst de suggestie die precies dat veld aanvult.
+  werkgebied: objectModule((o) => o.veld
+    ? [{ tekst: VELD_ZIN[o.veld], actie: "dossier_aanvullen" }, ...SUGGESTIES.werkgebied]
+    : SUGGESTIES.werkgebied),
 };
 
 /** De suggesties van het werkgebied, voor de werkplek in een werkgebied zonder ander onderwerp. */
@@ -167,17 +184,22 @@ const ID = /^[A-Za-z0-9-]{1,64}$/;
 export function vraagUrl(o: Object_): string {
   const qs = new URLSearchParams({ werkgebied: o.werkgebied_id, vraag: `${o.soort}:${o.id || o.werkgebied_id}` });
   if (o.label) qs.set("vraag_label", o.label.slice(0, 200));
+  if (o.soort === "werkgebied" && o.veld) qs.set("vraag_veld", o.veld);
   return `/workbench?${qs}`;
 }
+
+const VELDEN = new Set<string>(Object.keys(VELD_ZIN));
 
 /** Het onderwerp uit de URL van de werkplek, of `null` als het er niet (geldig) staat. */
 export function onderwerpUitUrl(zoek: { get(naam: string): string | null }): Object_ | null {
   const [soort, id] = (zoek.get("vraag") ?? "").split(":");
   const werkgebied = zoek.get("werkgebied") ?? "";
   if (!SOORTEN.includes(soort as ObjectSoort) || !ID.test(id ?? "") || !ID.test(werkgebied)) return null;
+  const veld = zoek.get("vraag_veld") ?? "";
   return {
     soort: soort as ObjectSoort, werkgebied_id: werkgebied, id: soort === "werkgebied" ? "" : id,
     label: (zoek.get("vraag_label") ?? "").slice(0, 200),
+    ...(soort === "werkgebied" && VELDEN.has(veld) ? { veld: veld as DossierVeld } : {}),
   };
 }
 

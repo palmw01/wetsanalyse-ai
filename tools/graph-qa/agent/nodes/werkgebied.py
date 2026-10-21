@@ -6,6 +6,11 @@ altijd met het hele dossier, en opnieuw zodra dat veranderde – en het uitsture
 node alleen een `werkgebied_aanmaken`-event: het schrijven doet de beurt-driver, aan het eind van de
 beurt, zoals bij een annotatie.
 
+**Aanvullen** (`State.intake_modus == "aanvullen"`, door de supervisor gezet): het werkgebied van het
+gesprek komt bij de api vandaan, de velden uit de vraag (`dossiervelden_in`) of anders de lege, en daarna
+dezelfde kaartjes. Bij *Opslaan* stuurt de node een `werkgebied_wijzigen`-event; ook dat schrijft de
+beurt-driver. Een praktijkvoorbeeld verzint Lex niet: die stap heeft geen voorstel en geen modelaanroep.
+
 Geen verify/finalize: er wordt niets over wetgeving beweerd, alleen gevraagd en voorgesteld.
 """
 from __future__ import annotations
@@ -36,7 +41,16 @@ _ZIN = {
 }
 
 
+# Bij het aanvullen: dezelfde zinnen, behalve waar het samenstellen een begin of een einde aankondigt.
+_ZIN_AANVULLEN = {
+    "naam": "Eerst de naam.",
+    "samenvatting": "Dit verandert er in het dossier.",
+}
+
+
 def _zin(intake: dict[str, Any]) -> str:
+    if wi.is_aanvullen(intake):
+        return _ZIN_AANVULLEN.get(intake["stap"]) or _ZIN[intake["stap"]]
     deel = int(intake.get("deel") or 0)
     if intake["stap"] == "bepalingen" and deel:
         return f"Dan deelvraag {deel + 1}."
@@ -163,7 +177,8 @@ def _bereid_voor(b, intake: dict[str, Any], writer) -> dict[str, Any]:
         return intake
     intake = _met(_met(intake, "voorbereid", sleutel, h), "meldingen", sleutel, "")
     a = intake.get("antwoorden") or {}
-    if stap == "naam" and wi.inhoud(intake.get("eerste_zin", "")):
+    # Een naam stelt Lex voor bij een startzin met inhoud, of bij het aanvullen: dan ligt er een dossier.
+    if stap == "naam" and (wi.is_aanvullen(intake) or wi.inhoud(intake.get("eerste_zin", ""))):
         intake = _model(b, intake, writer)
         if (namen := intake["model"].get("naam")):
             intake = _met(_met(intake, "voorstellen", "naam", wi.tekst_opties(namen)), "vooringevuld", "naam", namen[:1])
@@ -183,6 +198,88 @@ def _bereid_voor(b, intake: dict[str, Any], writer) -> dict[str, Any]:
     return intake
 
 
+def _zeg(writer, tekst: str, **upd: Any) -> dict[str, Any]:
+    writer({"type": "token", "content": tekst})
+    return {**upd, "answer": tekst, "messages": [{"role": "assistant", "content": tekst}]}
+
+
+ZONDER_WERKGEBIED = ("Het dossier vul ik aan in een werkgebied. Open het gesprek vanuit het werkgebied (Vraag Lex "
+                     "in de kop), dan vraag ik wat er ontbreekt.")
+WERKGEBIED_WEG = "Dat werkgebied bestaat niet meer, dus er valt niets aan te vullen."
+
+
+def _haal_werkgebied(b, state: State, writer) -> tuple[dict[str, Any] | None, str]:
+    """Het werkgebied van het gesprek, vers bij de api; anders (None, wat Lex zegt)."""
+    from ..agents.uitvoering import draai
+    from ..wetsanalyse_api import WetsanalyseApiFout
+    from .agent_taak import STORING, ZONDER_API, _maak_api
+
+    wid = state.get("werkgebied_id", "")
+    if not wid:
+        return None, ZONDER_WERKGEBIED
+    if not b.settings.legt_zelf_vast:
+        return None, ZONDER_API
+
+    async def haal(_stuur):
+        api = _maak_api(b, state.get("user_id", ""))
+        try:
+            return await api.haal_werkgebied(wid)
+        finally:
+            if (aclose := getattr(api, "aclose", None)) is not None:
+                await aclose()
+
+    try:
+        return draai(haal, loop=b.loop, schrijf=writer), ""
+    except WetsanalyseApiFout as fout:
+        if fout.status == 404:
+            return None, WERKGEBIED_WEG
+        logger.warning("aanvullen: werkgebied niet opgehaald", extra={"categorie": "technisch",
+                                                                      "http_status": fout.status})
+    except Exception:  # noqa: BLE001 – een storing is een zin in het gesprek
+        logger.warning("aanvullen: werkgebied niet opgehaald", extra={"categorie": "technisch"}, exc_info=True)
+    return None, STORING
+
+
+def _wat_er_staat(werkgebied: dict[str, Any]) -> str:
+    """"Naam: Box 3; Analysevraag: Wie …?" – wat het dossier al heeft, kort."""
+    delen = []
+    for stap, veld in wi.DOSSIERVELD.items():
+        waarde = " ".join(str(werkgebied.get(veld) or "").split())
+        if waarde:
+            delen.append(f"{wi.VELD_LABEL[stap]}: {waarde[:80]}{'…' if len(waarde) > 80 else ''}")
+    return "; ".join(delen)
+
+
+def _begin_aanvullen(b, state: State, writer) -> tuple[dict[str, Any] | None, str]:
+    """De aanvul-intake op het werkgebied van het gesprek, met de zin waarmee Lex begint; of (None, wat Lex
+    zegt) als er niets te vragen is."""
+    vraag = state.get("question", "")
+    werkgebied, melding = _haal_werkgebied(b, state, writer)
+    if werkgebied is None:
+        return None, melding
+    genoemd = wi.dossiervelden_in(vraag)
+    velden = genoemd or wi.lege_velden(werkgebied)
+    if not velden:
+        return None, (f"In het dossier van *{werkgebied.get('naam', '')}* staat alles al ingevuld – {_wat_er_staat(werkgebied)}. "
+                      "Wil je iets wijzigen, noem dan het veld, bijvoorbeeld ‘pas de analysevraag aan’.")
+    _stap(writer, "Lex", f"vult het dossier aan: {', '.join(wi.VELD_LABEL[s].lower() for s in velden)}")
+    intake = wi.aanvul_intake(werkgebied, velden, vraag)
+    if genoemd:
+        return intake, "Laten we het dossier aanvullen."
+    namen = [wi.VELD_LABEL[s].lower() for s in velden]
+    lijst = namen[0] if len(namen) == 1 else ", ".join(namen[:-1]) + " en " + namen[-1]
+    return intake, f"Laten we het dossier aanvullen. Er ontbreekt nog: {lijst}."
+
+
+def _toon(writer, intake: dict[str, Any], tekst: str) -> dict[str, Any]:
+    """De zin van Lex en het kaartje van de huidige stap."""
+    kaart = wi.kaart(intake)
+    writer({"type": "token", "content": tekst})
+    writer({"type": "vraagkaart", "vraagkaart": kaart})
+    return {"intake": intake, "answer": tekst,
+            "messages": [{"role": "assistant", "content": f"{tekst}\n\n[Vraag: {kaart['vraag']}]".strip()}]}
+
+
 def werkgebied_intake_node(b, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
     vraag = state.get("question", "")
@@ -190,7 +287,14 @@ def werkgebied_intake_node(b, state: State) -> dict[str, Any]:
     intake = dict(state.get("intake") or {})
     zinnen: list[str] = []
 
-    if not actie and (wi.is_werkgebiedvraag(vraag) or not wi.is_open(intake)):
+    if not actie and state.get("intake_modus") == "aanvullen":
+        nieuw, zin = _begin_aanvullen(b, state, writer)
+        if nieuw is None:
+            return _zeg(writer, zin)
+        intake = nieuw
+        zinnen.append(zin)
+        uitkomst = "begin"
+    elif not actie and (wi.is_werkgebiedvraag(vraag) or not wi.is_open(intake)):
         intake = wi.nieuwe_intake(vraag)
         _stap(writer, "Lex", "begint met het samenstellen van een werkgebied")
         if wi.is_wetsanalysevraag(vraag):
@@ -208,10 +312,30 @@ def werkgebied_intake_node(b, state: State) -> dict[str, Any]:
             return {"answer": tekst, "messages": [{"role": "assistant", "content": tekst}]}
         intake, uitkomst = wi.verwerk(intake, actie)
 
+    aanvullen = wi.is_aanvullen(intake)
     if uitkomst == "afgebroken":
-        tekst = "Ik stop met samenstellen; er is geen werkgebied aangemaakt."
-        writer({"type": "token", "content": tekst})
-        return {"intake": intake, "answer": tekst, "messages": [{"role": "assistant", "content": tekst}]}
+        return _zeg(writer, "Ik stop met aanvullen; er is niets gewijzigd." if aanvullen
+                    else "Ik stop met samenstellen; er is geen werkgebied aangemaakt.", intake=intake)
+    if uitkomst == "opslaan":
+        # Eerst de stand van nu: veranderde het werkgebied terwijl de analist aanvulde, dan legt Lex zijn
+        # antwoorden naast de nieuwe stand in plaats van een wijziging op een oude stand te sturen. Zo is
+        # ook een tweede klik na een geslaagde opslag geen dubbele wijziging.
+        werkgebied, melding = _haal_werkgebied(b, {**state, "werkgebied_id": intake.get("werkgebied_id", "")}, writer)
+        if werkgebied is None and melding == WERKGEBIED_WEG:
+            return _zeg(writer, melding, intake=intake)
+        if werkgebied is None:
+            # Een storing: het kaartje blijft, opnieuw klikken mag.
+            return _toon(writer, {**intake, "stap": "samenvatting"}, f"{melding} Er is nog niets opgeslagen.")
+        if int(werkgebied.get("revisie") or 0) != int(intake.get("revisie") or 0):
+            intake = wi.op_nieuwe_stand(intake, werkgebied)
+            return _toon(writer, intake, "Het werkgebied is intussen gewijzigd; er is nog niets opgeslagen. "
+                         + ("Hieronder je antwoorden naast de stand van nu." if wi.wijzigingen(intake)
+                            else "Het staat al zoals je het wilde."))
+        _stap(writer, "Lex", "past het dossier van het werkgebied aan")
+        writer({"type": "werkgebied_wijzigen", **wi.wijzigverzoek(intake)})
+        # De tekst schrijft de beurt-driver, die weet wat de api ervan maakte.
+        return {"intake": intake, "answer": "",
+                "messages": [{"role": "assistant", "content": "Het dossier van het werkgebied aangepast."}]}
     if uitkomst == "aanmaken":
         _stap(writer, "Lex", "maakt het werkgebied aan")
         writer({"type": "werkgebied_aanmaken", **wi.aanmaakverzoek(intake)})
@@ -220,6 +344,9 @@ def werkgebied_intake_node(b, state: State) -> dict[str, Any]:
                 "messages": [{"role": "assistant",
                               "content": f"Werkgebied ‘{intake['antwoorden'].get('naam', '')}’ aangemaakt."}]}
     if uitkomst == "verouderd":
+        if intake.get("stap") == "klaar" and aanvullen:
+            return _zeg(writer, "Dit aanvullen is al afgerond." if not intake.get("afgebroken") else
+                        "Dit aanvullen is afgebroken. Vraag me opnieuw het dossier aan te vullen.", intake=intake)
         if intake.get("stap") == "klaar":
             tekst = ("Deze samenstelling is al afgerond." if not intake.get("afgebroken") else
                      "Deze samenstelling is afgebroken. Vraag me opnieuw een werkgebied samen te stellen.")
@@ -235,11 +362,6 @@ def werkgebied_intake_node(b, state: State) -> dict[str, Any]:
 
     if uitkomst != "zoek":
         intake = _bereid_voor(b, intake, writer)
-        if uitkomst == "verder":
+        if uitkomst in ("verder", "begin"):
             zinnen.append(_zin(intake))
-    kaart = wi.kaart(intake)
-    tekst = " ".join(zinnen)
-    writer({"type": "token", "content": tekst})
-    writer({"type": "vraagkaart", "vraagkaart": kaart})
-    return {"intake": intake, "answer": tekst,
-            "messages": [{"role": "assistant", "content": f"{tekst}\n\n[Vraag: {kaart['vraag']}]".strip()}]}
+    return _toon(writer, intake, " ".join(zinnen))

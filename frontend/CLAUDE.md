@@ -374,7 +374,15 @@ erbuiten, regeling(en), per deelvraag een kaartje met de bepalingen (F3f), en ee
   (`parseAntwoordOp`), zodat de kaart na herladen hetzelfde is. De volgorde is van graph-qa.
 - `ThreadRij` vergelijkt `vragen` op inhoud in zijn `memo` (`zelfdeRij`): de groepering is elke render
   vers.
-- Browserregressie: `scripts/test-werkgebied-intake.mjs`.
+- **Aanvullen** (`Vraagkaart.modus: "aanvullen"`): dezelfde dock op een bestaand werkgebied, voor de velden
+  van het dossier. ‹ n van N › telt over de gevraagde stappen, een gevuld veld staat vooringevuld in het
+  tekstveld (`beginstand`), *Verzend* op de laatste gevraagde stap (`isLaatsteVraag`). De samenvatting toont
+  per veld toen → nu (`Samenvatting.wijzigingen`, "(leeg)" bij een leeg veld) en de knop heet *Opslaan*
+  (`actie: "opslaan"`, ook op `intake_antwoord`); zonder wijziging is er geen knop. *Stop met aanvullen*.
+  ‹ stuurt de vorige stap van het samenstellen; graph-qa kiest de gevraagde stap. Na het opslaan komt het
+  werkgebiedartefact binnen via `opgeslagen` en laadt het paneel opnieuw (`wgLading` in de `key`), ook als
+  het al op dat werkgebied openstond.
+- Browserregressie: `scripts/test-werkgebied-intake.mjs` en `scripts/test-dossier-aanvullen.mjs`.
 
 ### Kiezen binnen één artikel, en de reeks
 
@@ -415,13 +423,18 @@ begrip, werkgebied), met per soort een module in `MODULES` (`chip`, `suggesties`
   `agent/onderwerp.py`). Een suggestie met een **`actie`** (`ACTIES`, gelijk aan graph-qa `ACTIE_TAAK`;
   de test leest die bron) stuurt `actie` + `onderwerp` + het `werkgebied_id` van het onderwerp, zonder
   modus, context of doel – graph-qa kiest er zonder model een agent en taak bij (F3c, ADR-005).
-- **Suggesties per soort** (`SUGGESTIES`, F3d): werkgebied (deelvragen voorstellen, bepalingen zoeken,
+- **Suggesties per soort** (`SUGGESTIES`, F3d): werkgebied (het dossier aanvullen, deelvragen voorstellen, bepalingen zoeken,
   dekking, annoteren, de bepalingen van de deelvragen annoteren, begrippen voorstellen, meedenken), deelvraag
   (zoeken, de bepalingen hierbij annoteren, gedekt?, scherper, splitsen),
   begrip (uitwerken, brondefinitie, voorbeelden, relaties, en *Wat is het betekenisverschil met …* met
   `invullen`: in het veld, de analist noemt het andere begrip). Bron en kandidaat hebben alleen vragen
   zonder actie (waarom deze bepaling, verwijzingen, bij welke deelvraag): die gaan met het object langs de
   supervisor naar de antwoord-worker.
+- **Het dossier aanvullen** (`dossier_aanvullen`) is in `ACTIES` maar geen taak van een agent: graph-qa
+  routeert het naar de vraagkaarten (`INTAKE_ACTIES`; de test leest `Actie` en `ACTIE_TAAK`). Bij een leeg
+  veld in de `WerkgebiedSamenvatting` staat *Vraag Lex* met het werkgebied als onderwerp en `veld`; de eerste
+  suggestie is dan *Vul het … aan* (`VELD_ZIN`), en graph-qa leest het veld uit die tekst. `veld` reist via
+  `vraag_veld` in de URL, maar niet als onderwerp naar graph-qa.
 - **`VraagLexKnop`** (`components/werkplek/VraagLexKnop.tsx`): binnen de werkplek zet hij het onderwerp
   via `VraagLexContext` (`kiesOnderwerp` in `WerkplekClient`: chip, leeg veld, focus, op een smal scherm
   het paneel dicht); daarbuiten is hij een **link** naar `vraagUrl` (`/workbench?werkgebied=…&vraag=<soort>:<id>&vraag_label=…`),

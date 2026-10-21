@@ -125,9 +125,13 @@ class Vraagkaart(BaseModel):
     `vooringevuld` zijn de waarden die Lex uit de eerste zin haalde: voorgeselecteerd, nooit stil
     aangenomen. Een samenvattingskaart (`soort: samenvatting`) draagt in `samenvatting` wat er
     aangemaakt wordt: `{naam, aanleiding, context, doel, analysevraag, praktijkvoorbeeld,
-    deelvragen[], afbakening, bronnen[]}`."""
+    deelvragen[], afbakening, bronnen[]}`.
+
+    `modus: aanvullen` is hetzelfde kaartje op een bestaand werkgebied: alleen de gevraagde velden van
+    het dossier, en de samenvatting draagt `{wijzigingen: [{veld, label, toen, nu}]}` met *Opslaan*."""
 
     intake_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
+    modus: Literal["samenstellen", "aanvullen"] = "samenstellen"
     soort: Literal["vraag", "samenvatting"] = "vraag"
     stap: IntakeStap
     # Negen vaste stappen plus één kaart per deelvraag (hoogstens twintig).
@@ -164,7 +168,7 @@ class IntakeAntwoord(BaseModel):
     intake_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
     stap: IntakeStap
     deel: int | None = Field(default=None, ge=0, le=19)
-    actie: Literal["antwoord", "overslaan", "wijzig", "aanmaken", "afbreken"] = "antwoord"
+    actie: Literal["antwoord", "overslaan", "wijzig", "aanmaken", "opslaan", "afbreken"] = "antwoord"
 
 
 class Bericht(BaseModel):

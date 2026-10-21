@@ -225,3 +225,18 @@ def test_de_stappen_van_de_intake_zijn_overal_dezelfde():
     ts = re.search(r"export const STAPPEN = \[(.*?)\] as const", (root / "frontend" / "lib" / "vraagkaart.ts").read_text(),
                    re.S)
     assert ts and re.findall(r'"(\w+)"', ts.group(1)) == list(wi.STAPPEN)
+
+
+def test_de_acties_op_een_kaartje_zijn_overal_dezelfde():
+    """`IntakeActie.actie` (graph-qa), `IntakeAntwoord.actie` (api) en de werkplek kennen dezelfde klikken,
+    ook `opslaan` van het aanvullen: anders weigert de api het user-bericht of toont de werkplek het niet."""
+    import typing
+
+    root = Path(__file__).resolve().parents[3]
+    acties = list(typing.get_args(am.IntakeActie.model_fields["actie"].annotation))
+    assert "opslaan" in acties and "aanmaken" in acties
+    api = re.search(r"class IntakeAntwoord\(BaseModel\):.*?actie: Literal\[(.*?)\]",
+                    (root / "api" / "app" / "gesprek_contracts.py").read_text(), re.S)
+    assert api and re.findall(r'"(\w+)"', api.group(1)) == acties
+    ts = re.search(r'actie: ("antwoord".*?);', (root / "frontend" / "lib" / "vraagkaart.ts").read_text(), re.S)
+    assert ts and re.findall(r'"(\w+)"', ts.group(1)) == acties

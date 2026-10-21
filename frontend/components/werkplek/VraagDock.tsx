@@ -22,6 +22,8 @@ import {
  *    vervangt hij een gekozen optie; bij de regelingen is hij een zoekopdracht. Bij de deelvragen
  *    (`meer_tekst`) is elke eigen deelvraag een regel: Enter of *+ Nog een deelvraag* opent de
  *    volgende, *Volgende* stuurt alles in.
+ *  - **Aanvullen** (`modus: "aanvullen"`): hetzelfde kaartje op een bestaand werkgebied. De samenvatting
+ *    toont per veld toen → nu en de knop heet *Opslaan*; verandert er niets, dan is er geen knop.
  *  - **Toetsenbord op mobiel**: de hoogte volgt `visualViewport`, zodat de sheet boven het toetsenbord
  *    past; kop en vraag scrollen mee, de knoppen ‹ › en ✕ blijven staan. */
 export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
@@ -72,7 +74,11 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
   const stuur = (a: IntakeActie | undefined) => { if (!uitgeschakeld && a) onActie(a); };
   const vorige = vorigeKaart(kaart);
   const zoekt = kaart.stap === "regelingen" && !!eigen.trim() && !gekozen.length;
-  const knop = kaart.soort === "samenvatting" ? "Werkgebied aanmaken" : zoekt ? "Zoek" : isLaatsteVraag(kaart) ? "Verzend" : "Volgende";
+  const aanvullen = kaart.modus === "aanvullen";
+  const knop = kaart.soort === "samenvatting" ? (aanvullen ? "Opslaan" : "Werkgebied aanmaken")
+    : zoekt ? "Zoek" : isLaatsteVraag(kaart) ? "Verzend" : "Volgende";
+  // Bij het aanvullen zonder wijziging is er niets op te slaan: dan geen knop, alleen "Er verandert niets."
+  const toonKnop = !(kaart.soort === "samenvatting" && aanvullen && !kaart.samenvatting?.wijzigingen.length);
 
   return (
     <section
@@ -108,7 +114,25 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
         {kaart.deel?.deelvraag && <p className="mt-1 text-[15px] text-ink">“{kaart.deel.deelvraag}”</p>}
         {kaart.toelichting && <p className="mt-1 text-sm text-muted">{kaart.toelichting}</p>}
 
-        {kaart.soort === "samenvatting" && kaart.samenvatting ? (
+        {kaart.soort === "samenvatting" && kaart.samenvatting && aanvullen ? (
+          kaart.samenvatting.wijzigingen.length > 0 && (
+            <Regels className="mt-3 text-[15px]" data-wijzigingen>
+              {kaart.samenvatting.wijzigingen.map((w) => (
+                <Regel key={w.veld} naam={w.label} data-wijziging={w.veld}>
+                  <span className="block text-muted" data-toen>
+                    {w.toen.trim()
+                      ? <><span className="sr-only">Was: </span><del className="whitespace-pre-line">{w.toen}</del></>
+                      : "(leeg)"}
+                  </span>
+                  <span className="mt-0.5 flex gap-1.5" data-nu>
+                    <PijlRechts className="mt-1 shrink-0 text-muted" />
+                    <span className="whitespace-pre-line"><span className="sr-only">Wordt: </span>{w.nu}</span>
+                  </span>
+                </Regel>
+              ))}
+            </Regels>
+          )
+        ) : kaart.soort === "samenvatting" && kaart.samenvatting ? (
           <Regels className="mt-3 text-[15px]">
             <Regel naam="Naam">{kaart.samenvatting.naam}</Regel>
             {(["aanleiding", "context", "doel"] as const).map((v) => (
@@ -240,7 +264,7 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
         <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
           <button type="button" disabled={uitgeschakeld} onClick={() => stuur({ ...basis, actie: "afbreken" })}
             className="focus-ring self-center rounded text-xs text-muted underline-offset-2 hover:underline disabled:opacity-50 sm:mr-auto sm:self-auto">
-            Stop met samenstellen
+            {aanvullen ? "Stop met aanvullen" : "Stop met samenstellen"}
           </button>
           <div className="flex gap-2 sm:justify-end">
             {kaart.overslaanbaar && (
@@ -249,10 +273,12 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
                 Sla over
               </Button>
             )}
-            <Button pil disabled={uitgeschakeld || (kaart.soort !== "samenvatting" && !actie)} className="flex-1 sm:flex-none"
-              onClick={() => stuur(kaart.soort === "samenvatting" ? { ...basis, actie: "aanmaken" } : actie)}>
-              {knop}{knop !== "Verzend" && <PijlRechts />}
-            </Button>
+            {toonKnop && (
+              <Button pil disabled={uitgeschakeld || (kaart.soort !== "samenvatting" && !actie)} className="flex-1 sm:flex-none"
+                onClick={() => stuur(kaart.soort === "samenvatting" ? { ...basis, actie: aanvullen ? "opslaan" : "aanmaken" } : actie)}>
+                {knop}{knop !== "Verzend" && knop !== "Opslaan" && <PijlRechts />}
+              </Button>
+            )}
           </div>
         </div>
       </div>

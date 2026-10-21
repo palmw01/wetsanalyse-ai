@@ -23,7 +23,11 @@ plaats van schijnzekerheid.
 > deelvragen, wat valt erbuiten, en pas dan regeling(en) en per deelvraag de bepalingen – en een samenvatting met
 > *Aanmaken*; daarna staat het werkgebied bij Werkgebieden en in een eigen paneel naast het gesprek.
 > Alles wat er ligt is de context van Lex: elk voorstel krijgt het hele dossier, en in een gesprek
-> binnen een werkgebied krijgt Lex het dossier ook mee (`agent/werkgebied_context.py`).
+> binnen een werkgebied krijgt Lex het dossier ook mee (`agent/werkgebied_context.py`). Een **bestaand**
+> werkgebied vult Lex met dezelfde vraagkaarten aan ("kun je het praktijkvoorbeeld toevoegen?", *Vul het
+> dossier aan*, of *Vraag Lex* bij een leeg veld): alleen de dossiervelden, vooringevuld, een samenvatting
+> toen → nu, en pas na *Opslaan* een wijziging van het werkgebied. Deelvragen en bronnen blijven bij de
+> deelvragen-agent; een praktijkvoorbeeld verzint Lex niet.
 
 > **Scope: activiteit 2, en het begin van activiteit 3.** Het platform levert het markeren +
 > classificeren in JAS-klassen; de annotatiecontracten dragen `scope: "act2"`. Van activiteit 3

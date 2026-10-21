@@ -147,6 +147,11 @@ class WetsanalyseApi:
         """Een werkgebied uit het gesprek (activiteit 1); met `intake_id` idempotent bij de api."""
         return await self._post("/v1/werkgebieden", invoer)
 
+    async def wijzig_werkgebied(self, werkgebied_id: str, wijziging: dict[str, Any]) -> dict[str, Any]:
+        """Het dossier aanpassen (`PATCH`, `WerkgebiedWijziging` met `verwachte_revisie`); geeft het werkgebied
+        terug. Een 412: iemand anders wijzigde het intussen."""
+        return await self._verstuur("PATCH", self._werkgebied_pad(werkgebied_id), wijziging)
+
     async def voeg_bron_toe(self, werkgebied_id: str, bron: dict[str, Any]) -> dict[str, Any]:
         """Een bronselectie; geeft `{selectie, werkgebied}` terug (met de nieuwe revisie)."""
         return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronnen", bron)

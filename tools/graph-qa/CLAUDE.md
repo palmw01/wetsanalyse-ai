@@ -773,7 +773,8 @@ het voorstel met de bevestiging (`werkgebied_voorstel`, F3c).
 ### Lex stelt een werkgebied samen (`agent/werkgebied_intake.py`, `nodes/werkgebied.py`, activiteit 1)
 
 "Kunnen we een werkgebied samenstellen?" of "ik wil een wetsanalyse uitvoeren" (`is_werkgebiedvraag`)
-start een **intake**: één vraag per kaartje in de volgorde van de methode (spoor F, F2) – naam, dan
+start een **intake** (en met dezelfde kaartjes vult Lex het dossier van een bestaand werkgebied aan, zie
+*Aanvullen* onderaan): één vraag per kaartje in de volgorde van de methode (spoor F, F2) – naam, dan
 startactiviteit a (aanleiding, context, doel), analysevraag, praktijkvoorbeeld, deelvragen, wat valt
 erbuiten, en pas dan regeling(en) en per deelvraag de bepalingen – en een samenvatting met *Aanmaken*. De
 werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en ketent met niets.
@@ -838,6 +839,36 @@ werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en
   Het bericht draagt het artefact `{soort: "werkgebied", ref: {werkgebied_id}}`.
 - **Het kaartje reist mee**: een `vraagkaart`-event (vorm `api/app/gesprek_contracts.Vraagkaart`) en
   het veld `vraagkaart` op het bericht, zodat het na herladen nog te beantwoorden is.
+- **Aanvullen: het dossier van een bestaand werkgebied** (`modus: "aanvullen"`, `aanvul_intake`). "Kun je
+  het praktijkvoorbeeld toevoegen?" leverde eerst deelvragen-voorstellen op: er was geen taak voor het
+  dossier, dus de supervisor pakte de dichtstbijzijnde. Nu:
+  - **Ingang**: de supervisor kiest `werkgebied` met `TAAK: aanvullen` (getypt), of de actie
+    `dossier_aanvullen` (`models.INTAKE_ACTIES`, geen taak van een agent en dus niet in `ACTIE_TAAK`). Beide
+    zetten `State.intake_modus` (per beurt gereset). De prompt zegt ook: past geen taak, kies dan geen agent.
+  - **Welke velden**: `dossiervelden_in(vraag)` (woorden → stap; *afbakening* en *buiten* → `buiten`), en
+    zonder genoemd veld de lege velden (`lege_velden`). Is niets leeg, dan noemt Lex wat er staat, zonder
+    kaartje. Alleen `DOSSIERSTAPPEN` (naam, aanleiding, context, doel, analysevraag, praktijkvoorbeeld,
+    buiten); deelvragen en bronnen blijven bij de deelvragen-agent.
+  - **Beginstand uit het werkgebied** (`antwoorden_uit`, de omgekeerde richting van `als_werkgebied`):
+    aanleiding en doel als eigen tekst zonder keuze, de afbakening bij `buiten` (de hele tekst, tot 4000
+    tekens). `intake["werkgebied"]` bewaart het dossier met deelvragen en bronlabels, zodat `dossier` en
+    `stel_voor` het hele werkgebied zien. Vooringevuld komt uit `eerder_antwoord`, ook voor vrije tekst.
+  - **Stappen**: alleen de gevraagde (`intake["stappen"]`), ‹ n van N › daarover. Overslaan laat het veld
+    staan. ‹ vraagt de werkplek de vorige stap van het samenstellen: `verwerk` neemt de laatste gevraagde
+    stap die daar niet na komt. Een praktijkvoorbeeld en de context hebben geen voorstel en dus geen
+    modelaanroep; voor de naam stelt Lex altijd voor (er ligt een dossier).
+  - **Samenvatting** draagt `{wijzigingen: [{veld, label, toen, nu}]}` (`wijzigingen`; witruimte en een
+    slotpunt tellen niet). Zonder wijziging "Er verandert niets." en geen *Opslaan* – `verwerk` weigert
+    `opslaan` dan ook. `aanmaken` en `opslaan` horen elk bij hun eigen modus.
+  - **Opslaan**: de node haalt eerst het werkgebied. Is de revisie veranderd (ook door een eerdere
+    geslaagde opslag), dan een nieuwe intake op de stand van nu met de antwoorden van de analist ernaast
+    (`op_nieuwe_stand`), geen wijziging. Anders een `werkgebied_wijzigen`-event (`wijzigverzoek`: alleen de
+    gewijzigde velden, de revisie van het begin, en het samenvattingskaartje).
+  - **De beurt-driver** (`beurt._wijzig_werkgebied` → `WetsanalyseApi.wijzig_werkgebied`, PATCH) legt het
+    bericht vast met het werkgebiedartefact en een zin uit de wijziging (`wijzig_tekst`). 412 (iemand was
+    net eerder): niets opgeslagen, en het samenvattingskaartje komt terug zodat opnieuw opslaan op de
+    nieuwe stand landt; 404: het werkgebied bestaat niet meer; anders `error` met `foutcode:
+    werkgebied_niet_gewijzigd`. De revisie in de historie is van de analist (`X-User-Id`).
 - Tests: `tests/test_werkgebied_intake.py` en `tests/test_werkgebied_context.py`.
 
 ### Het werkgebied als context in het gesprek (`agent/werkgebied_context.py`)
@@ -877,8 +908,9 @@ kandidaten, het begrip met zijn open kaartvoorstellen) en zet het blok in `State
 
 ### De agents onder de supervisor (`agent/agents/`, `nodes/agent_taak.py`, F3c, ADR-005)
 
-Naast `antwoord`, `annotatie` en `werkgebied` kiest de supervisor **`deelvragen`** en **`begrippen`**, met
-een `TAAK:`-regel uit een vaste lijst (`agents/register.py`; `parse_taak`). De tekstpatronen die vroeger
+Naast `antwoord`, `annotatie` en `werkgebied` (met `TAAK: aanvullen` het dossier aanvullen, zie hierboven)
+kiest de supervisor **`deelvragen`** en **`begrippen`**, met een `TAAK:`-regel uit een vaste lijst
+(`agents/register.py`; `parse_taak`). De tekstpatronen die vroeger
 harde routes vóór de supervisor kozen (`is_bronnenvraag`, `is_begrippenvraag`, `is_kaartvraag`,
 `is_verdiepvraag`, `is_werkgebied_annoteervraag`) zijn **weg**: getypte tekst gaat altijd langs de
 supervisor. `_stroom_voor` kent alleen nog `intake_actie`, het werkgebied annoteren als modus/actie (de

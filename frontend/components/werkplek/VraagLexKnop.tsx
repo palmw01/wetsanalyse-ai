@@ -16,19 +16,25 @@ const KLASSE = "focus-ring inline-flex min-h-[24px] shrink-0 items-center rounde
 
 /** *Vraag Lex* over één object (F3b): één knop voor elke soort, met het object als onderwerp. Een link
  *  buiten de werkplek, zodat de bewaker van niet-bewaarde wijzigingen hem ziet (`useOnbewaardBewaker`). */
-export function VraagLexKnop({ onderwerp, className = "" }: { onderwerp: Object_; className?: string }) {
+export function VraagLexKnop({ onderwerp, naam: eigenNaam, className = "" }: {
+  onderwerp: Object_;
+  /** De toegankelijke naam, als de standaard ("Vraag Lex over …") niet zegt waar de knop voor is. */
+  naam?: string;
+  className?: string;
+}) {
   const kies = useContext(VraagLexContext);
-  const naam = `Vraag Lex over ${SOORT_LABEL[onderwerp.soort].toLowerCase()}${onderwerp.label ? `: ${onderwerp.label}` : ""}`;
+  // Een knop bij een leeg dossierveld heet anders dan *Vraag Lex* over het werkgebied zelf (in de kop).
+  const naam = eigenNaam ?? `Vraag Lex over ${SOORT_LABEL[onderwerp.soort].toLowerCase()}${onderwerp.label ? `: ${onderwerp.label}` : ""}`;
   if (kies) {
     return (
-      <button type="button" data-vraag-lex={onderwerp.soort} aria-label={naam} className={`${KLASSE} ${className}`}
+      <button type="button" data-vraag-lex={onderwerp.veld ? "veld" : onderwerp.soort} data-vraag-veld={onderwerp.veld} aria-label={naam} className={`${KLASSE} ${className}`}
         onClick={() => kies(onderwerp)}>
         Vraag Lex
       </button>
     );
   }
   return (
-    <Link href={vraagUrl(onderwerp)} data-vraag-lex={onderwerp.soort} aria-label={naam} className={`${KLASSE} ${className}`}>
+    <Link href={vraagUrl(onderwerp)} data-vraag-lex={onderwerp.veld ? "veld" : onderwerp.soort} data-vraag-veld={onderwerp.veld} aria-label={naam} className={`${KLASSE} ${className}`}>
       Vraag Lex
     </Link>
   );

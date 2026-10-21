@@ -72,7 +72,8 @@ class IntakeActie(BaseModel):
                   "buiten", "regelingen", "bepalingen", "samenvatting"]
     # Bij de bepalingen: het kaartje van welke deelvraag (0-based); een ander deel is een oud kaartje.
     deel: int = Field(default=0, ge=0, le=19)
-    actie: Literal["antwoord", "overslaan", "wijzig", "aanmaken", "afbreken"] = "antwoord"
+    # `aanmaken` sluit het samenstellen af, `opslaan` het aanvullen van een bestaand werkgebied.
+    actie: Literal["antwoord", "overslaan", "wijzig", "aanmaken", "opslaan", "afbreken"] = "antwoord"
     keuzes: list[str] = Field(default_factory=list, max_length=20)
     tekst: str = Field(default="", max_length=4000)
     # Meer dan één eigen antwoord (de deelvragen, `meer_tekst` op het kaartje).
@@ -131,9 +132,12 @@ ACTIE_TAAK: dict[str, tuple[str, str]] = {
     "begrip_uitwerken": ("begrippen", "uitwerken"),
     "relaties": ("begrippen", "relaties"),
 }
+# Een actie die geen taak van een agent is: het dossier van het werkgebied aanvullen loopt via de
+# werkgebied-worker (de vraagkaarten van de intake). Welk veld, leest de worker uit de vraag.
+INTAKE_ACTIES = ("dossier_aanvullen",)
 Actie = Literal["werkgebied_annoteren", "deelvragen_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
                 "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie",
-                "scherper", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties"]
+                "scherper", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen"]
 # Acties die eerst om een bevestiging vragen; alleen daar hoort `bevestigd` bij.
 BEVESTIG_ACTIES = ("werkgebied_annoteren", "deelvragen_annoteren", "begrippen_meedenken")
 

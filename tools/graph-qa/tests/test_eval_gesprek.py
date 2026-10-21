@@ -18,7 +18,7 @@ from eval.gesprek import (
 )
 
 ROUTES = {"annotaties_lezen", "annotatie", "advies", "afgewezen", "definitie", "duiding", "algemeen",
-          "deelvragen", "begrippen"}
+          "deelvragen", "begrippen", "werkgebied"}
 VELDEN = {"route", "niet_route", "tools_wel", "tools_niet", "max_tools", "bevat", "bevat_een",
           "verboden", "niet_ongegrond"}
 
@@ -43,13 +43,16 @@ def test_routes_uit_status_volgt_de_supervisorregels():
     assert routes_uit_status(["Supervisor · kiest de deelvragen-agent · taak dekking"]) == ["deelvragen"]
     assert routes_uit_status(["Supervisor · kiest de begrippen-agent · taak voorbeelden (suggestie)"]) == ["begrippen"]
     assert routes_uit_status(["Supervisor · kiest de annotatie-agent · taak werkgebied"]) == ["annotatie"]
+    # De werkgebied-worker, ook bij het aanvullen van het dossier.
+    assert routes_uit_status(["Lex · vult met je het dossier aan"]) == ["werkgebied"]
+    assert routes_uit_status(["Lex · stelt met je een werkgebied samen"]) == ["werkgebied"]
 
 
 def test_de_routeringscases_naar_de_agents_staan_in_de_set():
     """F3c: getypte vragen naar deelvragen en begrippen, een vervolgvraag, en de negatieven."""
     f = [c for c in _cases() if c.get("scenario") == "F"]
     routes = {b["verwacht"].get("route") for c in f for b in c["beurten"]}
-    assert {"deelvragen", "begrippen", "annotatie"} <= routes
+    assert {"deelvragen", "begrippen", "annotatie", "werkgebied"} <= routes
     # De negatieven: een wetsvraag, een uitleg en een overzicht binnen een werkgebied blijven bij de antwoordroute.
     assert sum(1 for c in f for b in c["beurten"] if "deelvragen" in (b["verwacht"].get("niet_route") or [])) >= 3
     assert any(len(c["beurten"]) > 1 for c in f) and any("onderwerp" in b for c in f for b in c["beurten"])

@@ -101,6 +101,9 @@ class State(TypedDict, total=False):
     intake: dict[str, Any]
     # De klik op een kaartje van deze beurt; per beurt gereset.
     intake_actie: dict[str, Any]
+    # "aanvullen" als de supervisor het dossier van het werkgebied liet aanvullen (taak `aanvullen` of de
+    # actie `dossier_aanvullen`): de werkgebied-worker begint dan een aanvul-intake. Per beurt gereset.
+    intake_modus: str
     # De tekst waarop deze annotatiebeurt draait: de niet-lege bronsegmenten van de snapshot,
     # samengevoegd (`bronmodel.CorpusMap`). Eén ophaalactie, en alles daarna leest deze tekst.
     corpus: str
