@@ -743,3 +743,12 @@ def test_een_nieuwe_stap_is_nog_niet_beantwoord():
 def test_omschrijving_van_een_regeling_uit_het_overzicht():
     r = {"soort": "wet", "delen": [{}, {}], "ook_genoemd": [{}]}
     assert wi._omschrijving_regeling(r, "box 3") == "wet · 2 delen over ‘box 3’ · 1 bepaling noemt het"
+
+
+def test_een_intake_op_een_vervallen_stap_loopt_niet_meer():
+    """Het agent-geheugen kan een intake van vóór F3f dragen (stap `onderdelen`): die is niet meer open, dus
+    een volgende vraag begint opnieuw in plaats van op een onbekende stap te struikelen."""
+    oud = {**wi.nieuwe_intake("x"), "stap": "onderdelen"}
+    assert not wi.is_open(oud)
+    assert wi.is_open({**oud, "stap": "bepalingen"}) and wi.is_open({**oud, "stap": "samenvatting"})
+    assert not wi.is_open({**oud, "stap": "klaar"})

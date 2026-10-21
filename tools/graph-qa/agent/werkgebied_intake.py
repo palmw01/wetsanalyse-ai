@@ -154,7 +154,9 @@ def nieuwe_intake(eerste_zin: str) -> dict[str, Any]:
 
 
 def is_open(intake: dict[str, Any] | None) -> bool:
-    return bool(intake and intake.get("id") and intake.get("stap") not in ("", "klaar"))
+    """Loopt er een intake? Een intake op een stap die er niet meer is (van vóór F3f: `onderdelen`) loopt
+    niet meer: die staat nog in het agent-geheugen, maar heeft geen kaartje dat bij de stappen van nu past."""
+    return bool(intake and intake.get("id") and intake.get("stap") in (*STAPPEN, "samenvatting"))
 
 
 def deelvraagteksten(antwoorden: dict[str, Any]) -> list[str | None]:

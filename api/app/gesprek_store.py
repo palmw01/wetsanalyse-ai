@@ -8,17 +8,30 @@ uit Python (`db.utcnow`) zodat de queries portable blijven (SQLite-tests).
 """
 from __future__ import annotations
 
+import logging
+
+from pydantic import ValidationError
 from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import db
 from .gesprek_contracts import Bericht, BerichtInvoer, Gesprek, GesprekSamenvatting
 
+logger = logging.getLogger(__name__)
+
+
+#: De gestructureerde velden van een bericht: wat de agent erbij legde. Klopt zo'n veld niet meer met het
+#: contract van nu – een kaartje met een stap die intussen anders heet, een artefact van een vervallen
+#: soort –, dan valt alleen dat veld weg. Anders weigerde de api het hele gesprek (500), en daarmee ook
+#: laden én verwijderen: een gesprek is een verslag en moet altijd te openen en weg te halen zijn.
+_OPTIONEEL = ("hergebruik", "dekking", "overzicht", "annotatie_doel", "tool_executions", "reeks", "artefact",
+              "bevestiging", "vraagkaart", "intake_antwoord")
+
 
 def _bericht_uit_row(row) -> Bericht:
     d = row._mapping
     inhoud = d["inhoud"] or {}
-    return Bericht(
+    velden = dict(
         id=d["id"],
         rol=d["rol"],
         tekst=inhoud.get("tekst", ""),
@@ -39,6 +52,16 @@ def _bericht_uit_row(row) -> Bericht:
         intake_antwoord=inhoud.get("intake_antwoord") or None,
         created=db.aware(d["created"]),
     )
+    try:
+        return Bericht(**velden)
+    except ValidationError as fout:
+        weg = sorted({str(e["loc"][0]) for e in fout.errors() if e["loc"] and e["loc"][0] in _OPTIONEEL})
+        if not weg:
+            raise
+        logger.warning("bericht: veraald veld weggelaten",
+                       extra={"categorie": "functioneel", "bericht_id": d["id"], "velden": weg})
+        return Bericht(**{**velden, **{k: Bericht.model_fields[k].get_default(call_default_factory=True)
+                                       for k in weg}})
 
 
 def _inhoud(inv: BerichtInvoer | Bericht) -> dict:

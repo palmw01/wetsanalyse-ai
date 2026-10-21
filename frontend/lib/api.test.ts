@@ -483,3 +483,10 @@ describe("loginVerify / login2fa – storing vs. afwijzing", () => {
     await expect(login2fa("jan", "123456", false)).resolves.toMatchObject({ code: "invalid" });
   });
 });
+
+describe("parseError zonder leesbaar antwoord", () => {
+  it("noemt de status in plaats van niets (HTTP/2 heeft geen statusText)", async () => {
+    const err = await parseError(new Response("Internal Server Error", { status: 500 }));
+    expect(err.detail).toBe("HTTP 500");
+  });
+});
