@@ -256,6 +256,8 @@ spoor D (*Werkgebied als node*).
   (+ `lid`)); de canonieke `bron_iri`, het label, `snapshot_id` en `bron_hash` worden bewaard.
   Dezelfde bron met dezelfde rol en hetzelfde bereik opnieuw toevoegen is idempotent (200, geen
   revisiesprong); met een andere rol of ander bereik 409.
+- **De lijst** (`GET /v1/werkgebieden`) met `mijn=true` geeft alleen werkgebieden met een auditregel
+  van deze gebruiker (*Door mij bewerkt* in de webapp, zoals bij de annotaties).
 - **Een selectie weghalen is soft** (een tijdstip). De annotaties van de bron blijven altijd staan.
 - **Een werkgebied verwijderen is echt wissen**, net als een annotatie (`DELETE /v1/werkgebieden/{id}`,
   `werkgebied_store.verwijder`/`wis`): onder het rij-slot en met de revisietoets (412) gaan het werkgebied
@@ -589,7 +591,10 @@ werkgebieden. Een verwijderd begrip of werkgebied (en een oud gearchiveerd werkg
   vervangen. Een rij noemt het werkgebied, `vervangen_door`, `aantal_dragend` en bij een geaccordeerd begrip
   `herbeoordelen`: het aantal dragende passages dat sinds het accorderen veranderde (de actualiteit uit
   Postgres, zoals de aandachtspunten van de kaart; een nieuwe wettekst zonder herannotatie ziet alleen
-  `…/herbeoordelingen`). Ook in `verifieer`, zodat Lex het kan noemen. Het contract is
+  `…/herbeoordelingen`). Ook in `verifieer`, zodat Lex het kan noemen. `mijn=true` (een route-parameter,
+  geen veld van `BegripZoekvraag`: graph-qa heeft het niet nodig) geeft alleen begrippen met een revisie
+  van deze gebruiker; `per_status` telt met dezelfde filters zonder het statusfilter, voor de tellers op
+  de knoppen. Het contract is
   `BegripZoekvraag`; graph-qa (`search_begrippen`) vraagt niets wat daar niet in staat.
 - **Lex zoekt in de graaf, de api bevestigt** (`POST /v1/begrippen/verifieer {ids, werkgebieden}`), net
   als bij `search_annotaties`: per id de rij van nu of `null`, en per werkgebied de `projectie_hash`

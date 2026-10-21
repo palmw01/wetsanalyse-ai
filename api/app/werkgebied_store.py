@@ -147,14 +147,18 @@ async def _deelvragen_bij_aanmaken(conn, wid: str, invoer: WerkgebiedInvoer, act
     return len(gezien)
 
 
-async def lijst() -> list[dict]:
-    t, s = db.werkgebieden, db.werkgebied_bronselecties
+async def lijst(door: str | None = None) -> list[dict]:
+    """Alle werkgebieden; met `door` alleen die waar deze gebruiker iets aan deed (de audit), zoals
+    *Door mij bewerkt* bij de annotaties."""
+    t, s, a = db.werkgebieden, db.werkgebied_bronselecties, db.werkgebied_audit
     aantal = (select(s.c.werkgebied_id, func.count().label("n")).where(s.c.verwijderd.is_(None))
               .group_by(s.c.werkgebied_id).subquery())
     q = (select(t, func.coalesce(aantal.c.n, 0).label("aantal_bronnen"))
          .outerjoin(aantal, aantal.c.werkgebied_id == t.c.id)
          .where(t.c.gearchiveerd.is_(None))
          .order_by(t.c.gewijzigd.desc(), t.c.id))
+    if door:
+        q = q.where(t.c.id.in_(select(a.c.werkgebied_id).where(a.c.actor == door)))
     async with db.get_engine().connect() as conn:
         rows = (await conn.execute(q)).all()
     return [{**_werkgebied(r), "aantal_bronnen": r.aantal_bronnen} for r in rows]

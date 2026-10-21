@@ -3,8 +3,9 @@
  * AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109
  * en draai `node scripts/test-begrippenoverzicht.mjs`.
  *
- * Toetst: het sidebar-item, de filters in de URL én in de query naar de BFF, de status en het
- * werkgebied per rij, en doorklikken naar de kaart in zijn werkgebied.
+ * Toetst: het sidebar-item, de balk zoals bij de annotaties (één statuskeuze met tellers, *Door mij
+ * bewerkt*, de werkgebiedkeuze en het zoekveld), de filters in de URL én in de query naar de BFF, kaarten
+ * met status en werkgebied, verwijderen per kaart, en doorklikken naar de kaart in zijn werkgebied.
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -45,9 +46,14 @@ await page.route("**/api/**", async (route) => {
     const q = (url.searchParams.get("q") ?? "").toLowerCase();
     const status = url.searchParams.getAll("status");
     const wg = url.searchParams.get("werkgebied_id");
-    const res = BEGRIPPEN.filter((b) => (!q || b.naam.toLowerCase().includes(q) || b.definitie.toLowerCase().includes(q))
-      && (!status.length || status.includes(b.status)) && (!wg || b.werkgebied_id === wg));
-    return route.fulfill({ json: { resultaten: res, totaal: res.length, volgende_offset: null } });
+    const mijn = url.searchParams.get("mijn") === "true";
+    // Zoals de api: dezelfde filters, met de tellers per status zonder het statusfilter.
+    const zonderStatus = BEGRIPPEN.filter((b) => (!q || b.naam.toLowerCase().includes(q) || b.definitie.toLowerCase().includes(q))
+      && (!wg || b.werkgebied_id === wg) && (!mijn || b.id === "b2"));
+    const res = zonderStatus.filter((b) => !status.length || status.includes(b.status));
+    const per_status = {};
+    for (const b of zonderStatus) per_status[b.status] = (per_status[b.status] ?? 0) + 1;
+    return route.fulfill({ json: { resultaten: res, totaal: res.length, volgende_offset: null, per_status } });
   }
   if (p === "/api/werkgebieden") return route.fulfill({ json: { werkgebieden: [
     { id: "wg1", naam: "Termijnen", analysevraag: "", afbakening: "", peildatum: null, status: "in_voorbereiding", revisie: 1,
@@ -67,24 +73,26 @@ try {
   await page.waitForURL(`${base}/begrippen`);
   const lijst = page.getByTestId("begrippen-overzicht");
   await lijst.waitFor();
-  assert.equal(await lijst.locator("li").count(), 3);
+  assert.equal(await lijst.locator("article").count(), 3);
   assert.equal(await page.getByRole("link", { name: "Begrippen", exact: true }).getAttribute("aria-current"), "page");
-  const termijn = lijst.locator("li", { hasText: "Termijn" }).first();
+  const termijn = lijst.locator("article", { hasText: "Termijn" }).first();
   assert.match(await termijn.innerText(), /Geaccordeerd/);
   assert.match(await termijn.innerText(), /Termijnen · ook: tijdvak/);
-  assert.match(await lijst.locator("li", { hasText: "Belastingschuldige" }).innerText(), /Vervangen door Belastingschuldige \(ruim\)/);
+  assert.match(await lijst.locator("article", { hasText: "Belastingschuldige" }).innerText(), /Vervangen door Belastingschuldige \(ruim\)/);
   // Geaccordeerd, maar een dragende passage veranderde: het overzicht zegt het.
-  assert.match(await lijst.locator("li", { hasText: "Termijn" }).first().innerText(), /Herbeoordelen: 1 dragende passage veranderde/);
+  assert.match(await lijst.locator("article", { hasText: "Termijn" }).first().innerText(), /Herbeoordelen: 1 dragende passage veranderde/);
   assert.equal(await lijst.locator("[data-herbeoordelen]").count(), 1);
 
   // Zoeken: de term staat in de URL én gaat ongewijzigd naar de BFF.
   await page.getByRole("searchbox", { name: "Zoeken in begrippen" }).fill("termijn");
   await page.waitForURL(/\?q=termijn$/);
-  await page.waitForFunction(() => document.querySelectorAll('[data-testid="begrippen-overzicht"] li').length === 1);
+  await page.waitForFunction(() => document.querySelectorAll('[data-testid="begrippen-overzicht"] article').length === 1);
   assert.equal(queries.at(-1), "?q=termijn");
 
-  // Status en werkgebied als filter; leeg resultaat zegt dat.
-  await page.getByRole("button", { name: "Concept" }).click();
+  // Status als één keuze met teller, zoals de andere overzichten; leeg resultaat zegt dat.
+  await page.getByRole("button", { name: /^Concept \(0\)$/ }).waitFor();
+  await page.getByRole("button", { name: /^Alle \(1\)$/ }).waitFor();
+  await page.getByRole("button", { name: /^Concept/ }).click();
   await page.waitForURL(/status=concept/);
   await page.getByText("Geen begrippen bij deze filters.").waitFor();
   await page.getByRole("searchbox", { name: "Zoeken in begrippen" }).fill("");
@@ -94,23 +102,30 @@ try {
   await lijst.waitFor();
   assert.match(queries.at(-1), /status=concept/);
   assert.match(queries.at(-1), /werkgebied_id=wg1/);
-  assert.equal(await lijst.locator("li").count(), 1);
+  assert.equal(await lijst.locator("article").count(), 1);
 
   // Na herladen staan de filters er nog.
   await page.reload();
   await lijst.waitFor();
-  assert.equal(await page.getByRole("button", { name: "Concept" }).getAttribute("aria-pressed"), "true");
+  assert.equal(await page.getByRole("button", { name: /^Concept/ }).getAttribute("aria-pressed"), "true");
   assert.equal(await page.getByLabel("Werkgebied").inputValue(), "wg1");
 
   // Verwijderen per rij, zoals in het paneel en op de kaart: de rij gaat meteen weg. Een vervangen begrip
   // heeft geen knop (verwijder de opvolger).
   await page.goto(`${base}/begrippen`);
   await lijst.waitFor();
-  assert.equal(await lijst.locator("li", { hasText: "Belastingschuldige" }).getByRole("button", { name: "Begrip verwijderen" }).count(), 0);
-  const termijnRij = lijst.locator("li", { hasText: "Termijn" }).first();
+  // Door mij bewerkt: in de URL en als `mijn=true` naar de api.
+  await page.getByRole("checkbox", { name: "Door mij bewerkt" }).click();
+  await page.waitForURL(/mijn=1/);
+  await page.waitForFunction(() => document.querySelectorAll('[data-testid="begrippen-overzicht"] article').length === 1);
+  assert.match(queries.at(-1), /mijn=true/);
+  await page.getByRole("checkbox", { name: "Door mij bewerkt" }).click();
+  await page.waitForFunction(() => document.querySelectorAll('[data-testid="begrippen-overzicht"] article').length === 3);
+  assert.equal(await lijst.locator("article", { hasText: "Belastingschuldige" }).getByRole("button", { name: "Begrip verwijderen" }).count(), 0);
+  const termijnRij = lijst.locator("article", { hasText: "Termijn" }).first();
   await termijnRij.getByRole("button", { name: "Begrip verwijderen" }).click();
   await termijnRij.getByRole("button", { name: "Verwijderen?", exact: true }).click();
-  await page.waitForFunction(() => document.querySelectorAll('[data-testid="begrippen-overzicht"] li').length === 2);
+  await page.waitForFunction(() => document.querySelectorAll('[data-testid="begrippen-overzicht"] article').length === 2);
   assert.deepEqual(verwijderd, [{ werkgebied: "wg1", begrip: "b1", q: "?verwachte_revisie=2" }]);
   await page.goto(`${base}/begrippen?status=concept&werkgebied=wg1`);
   await lijst.waitFor();

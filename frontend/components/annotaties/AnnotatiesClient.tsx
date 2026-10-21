@@ -7,6 +7,7 @@ import { AnnotatieKaart } from "@/components/annotaties/AnnotatieKaart";
 import { AppSidebar } from "@/components/werkplek/AppSidebar";
 import { MobieleTopbar } from "@/components/werkplek/MobieleTopbar";
 import { Melding } from "@/components/ui/Melding";
+import { OverzichtBalk } from "@/components/ui/OverzichtBalk";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { SkipLink, HOOFDINHOUD_ID } from "@/components/ui/SkipLink";
 import { foutTekst, isApiError, lijstLagen } from "@/lib/api";
@@ -106,47 +107,18 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
               </p>
             </header>
 
-            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              {/* Twee knoppen in plaats van een dropdown: bij twee standen is kiezen sneller dan
-                  uitklappen – zelfde afweging als de filters in de reviewlijst. */}
-              <div role="group" aria-label="Weergave" className="flex gap-1.5">
-                {WEERGAVEN.map((w) => (
-                  <button
-                    key={w.waarde}
-                    type="button"
-                    aria-pressed={weergave === w.waarde}
-                    onClick={() => kiesWeergave(w.waarde)}
-                    className={`focus-ring min-h-[24px] rounded-full border px-2.5 py-0.5 text-[0.7rem] transition coarse:min-h-[44px] ${
-                      weergave === w.waarde
-                        ? "border-lint bg-lint text-paper"
-                        : "border-line text-muted hover:border-lint hover:text-ink"
-                    }`}
-                  >
-                    {w.label}
-                    {w.waarde === "te-doen" ? ` (${aantalTeDoen})` : ` (${alles.length})`}
-                  </button>
-                ))}
-              </div>
-
-              <label className="inline-flex items-center gap-1.5 text-xs text-muted">
-                <input
-                  type="checkbox"
-                  checked={alleenMijn}
-                  onChange={(e) => setAlleenMijn(e.target.checked)}
-                  className="focus-ring h-3.5 w-3.5 accent-lint"
-                />
-                Door mij bewerkt
-              </label>
-
-              <input
-                type="search"
-                value={term}
-                onChange={(e) => setTerm(e.target.value)}
-                aria-label="Zoeken in annotaties"
-                placeholder="Zoek op wet, artikel of onderwerp"
-                className="w-full rounded-field border border-line bg-paper px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-faint focus:border-lint focus:ring-2 focus:ring-lint/20 coarse:min-h-[48px] sm:w-72"
-              />
-            </div>
+            <OverzichtBalk
+              filters={WEERGAVEN.map((w) => ({ ...w, aantal: w.waarde === "te-doen" ? aantalTeDoen : alles.length }))}
+              gekozen={weergave}
+              onKies={kiesWeergave}
+              filterLabel="Weergave"
+              mijn={alleenMijn}
+              onMijn={setAlleenMijn}
+              zoekterm={term}
+              onZoek={setTerm}
+              zoekLabel="Zoeken in annotaties"
+              placeholder="Zoek op wet, artikel of onderwerp"
+            />
 
             {fout && (
               <Melding type="fout" className="mb-4">

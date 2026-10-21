@@ -26,6 +26,9 @@ export interface BegrippenOverzicht {
   resultaten: BegripOverzichtRij[];
   totaal: number;
   volgende_offset: number | null;
+  /** De tellers bij de statusknoppen: dezelfde filters zonder het statusfilter (een oudere api stuurt ze
+   *  niet; dan staan er geen tellers). */
+  per_status?: Partial<Record<BegripStatus, number>>;
 }
 
 export const BEGRIP_STATUSSEN: BegripStatus[] = ["geaccordeerd", "concept", "vervangen"];
@@ -36,27 +39,33 @@ export const BEGRIP_STATUS_LABEL: Record<BegripStatus, string> = {
   vervangen: "Vervangen",
 };
 
+/** Eén status of alle (`""`), zoals de filterknoppen van de andere overzichten (`OverzichtBalk`). */
 export interface OverzichtFilters {
   q: string;
-  status: BegripStatus[];
+  status: BegripStatus | "";
   werkgebied: string;
+  /** *Door mij bewerkt*: alleen begrippen met een revisie van jou (de api, `mijn`). */
+  mijn: boolean;
 }
 
 const ID = /^[A-Za-z0-9-]{1,64}$/;
 
-/** De filters uit de URL; wat niet klopt valt weg in plaats van een fout te geven. */
+/** De filters uit de URL; wat niet klopt valt weg in plaats van een fout te geven. Een oude URL met meer
+ *  statussen leest als de eerste geldige. */
 export function filtersUitParams(p: URLSearchParams): OverzichtFilters {
-  const status = p.getAll("status").filter((s): s is BegripStatus => (BEGRIP_STATUSSEN as string[]).includes(s));
+  const status = p.getAll("status").find((s): s is BegripStatus => (BEGRIP_STATUSSEN as string[]).includes(s)) ?? "";
   const werkgebied = p.get("werkgebied") ?? "";
-  return { q: (p.get("q") ?? "").slice(0, 200), status: [...new Set(status)], werkgebied: ID.test(werkgebied) ? werkgebied : "" };
+  return { q: (p.get("q") ?? "").slice(0, 200), status, werkgebied: ID.test(werkgebied) ? werkgebied : "",
+    mijn: p.get("mijn") === "1" };
 }
 
-/** De querystring voor de pagina-URL én de api – dezelfde namen, behalve het werkgebied. */
+/** De querystring voor de pagina-URL én de api – dezelfde namen, behalve het werkgebied en `mijn`. */
 export function paramsVan(f: OverzichtFilters, voor: "pagina" | "api"): URLSearchParams {
   const p = new URLSearchParams();
   if (f.q.trim()) p.set("q", f.q.trim());
-  for (const s of f.status) p.append("status", s);
+  if (f.status) p.set("status", f.status);
   if (f.werkgebied) p.set(voor === "api" ? "werkgebied_id" : "werkgebied", f.werkgebied);
+  if (f.mijn) p.set("mijn", voor === "api" ? "true" : "1");
   return p;
 }
 

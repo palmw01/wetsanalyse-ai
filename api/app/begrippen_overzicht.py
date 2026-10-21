@@ -59,8 +59,10 @@ def treffer(q: str, naam: str, termen: list[str], definitie: str) -> int | None:
     return 5 if all(w in hooiberg for w in q.split()) else None
 
 
-async def _rijen(conn, ids: list[str] | None = None, werkgebied_id: str | None = None) -> list[dict]:
-    """De begrippen van alle actieve werkgebieden (of de gevraagde), als lichte rij."""
+async def _rijen(conn, ids: list[str] | None = None, werkgebied_id: str | None = None,
+                 door: str | None = None) -> list[dict]:
+    """De begrippen van alle actieve werkgebieden (of de gevraagde), als lichte rij. Met `door` alleen
+    de begrippen waarvan deze gebruiker een revisie maakte (*Door mij bewerkt*)."""
     b, w, k, r = db.begrippen, db.werkgebieden, db.begrip_koppelingen, db.begrip_relaties
     q = (select(b, w.c.naam.label("wg_naam")).join_from(b, w, b.c.werkgebied_id == w.c.id)
          .where(b.c.verwijderd.is_(None), w.c.gearchiveerd.is_(None)))
@@ -68,6 +70,9 @@ async def _rijen(conn, ids: list[str] | None = None, werkgebied_id: str | None =
         q = q.where(b.c.id.in_(ids))
     if werkgebied_id:
         q = q.where(b.c.werkgebied_id == werkgebied_id)
+    if door:
+        rev = db.begrip_revisies
+        q = q.where(b.c.id.in_(select(rev.c.begrip_id).where(rev.c.actor == door)))
     rows = (await conn.execute(q.order_by(b.c.aangemaakt, b.c.id))).all()
     if not rows:
         return []
@@ -124,13 +129,19 @@ async def get_begrippen(q: str = Query("", max_length=200), status: list[BegripS
                         werkgebied_id: str | None = Query(None, max_length=64),
                         eerst: str | None = Query(None, max_length=64),
                         limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0),
-                        actor: str = Depends(actieve_userid)):
+                        mijn: bool = False, actor: str = Depends(actieve_userid)):
     vraag = BegripZoekvraag(q=q, status=status, werkgebied_id=werkgebied_id, eerst=eerst)
     async with db.get_engine().connect() as conn:
-        gevonden = zoek(await _rijen(conn, werkgebied_id=werkgebied_id), vraag)
+        rijen = await _rijen(conn, werkgebied_id=werkgebied_id, door=actor if mijn else None)
+    gevonden = zoek(rijen, vraag)
+    # De tellers bij de statusknoppen: dezelfde filters, zonder het statusfilter – zo klopt een teller
+    # met wat je krijgt als je op die knop drukt.
+    per_status: dict[str, int] = {}
+    for x in zoek(rijen, vraag.model_copy(update={"status": []})):
+        per_status[x["status"]] = per_status.get(x["status"], 0) + 1
     pagina = gevonden[offset:offset + limit]
     volgende = offset + limit if offset + limit < len(gevonden) else None
-    return {"resultaten": pagina, "totaal": len(gevonden), "volgende_offset": volgende}
+    return {"resultaten": pagina, "totaal": len(gevonden), "volgende_offset": volgende, "per_status": per_status}
 
 
 @router.post("/verifieer")

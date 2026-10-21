@@ -48,6 +48,14 @@ function samenhang(iri) {
     verwijzingen_beschikbaar: true, afgekapt: false };
 }
 const uit = () => ({ ...wg, bronnen: wg.bronnen.filter((b) => !b.weg) });
+/** Zoals de api een werkgebied aanmaakt. Op het overzicht staat geen formulier meer: een werkgebied
+ *  stel je samen met Lex in het gesprek (activiteit 1). Het script laat het hier ontstaan. */
+function nieuwWerkgebied(b) {
+  wg = { id: "wg1", naam: b.naam, analysevraag: b.analysevraag ?? "", afbakening: b.afbakening ?? "", peildatum: null,
+    status: "in_voorbereiding", revisie: 1, aangemaakt_door: "browser-test", aangemaakt: nu, gewijzigd: nu,
+    gearchiveerd: null, bronnen: [] };
+  audit.unshift({ id: 1, actor: "browser-test", actie: "aangemaakt", detail: { revisie: 1 }, tijdstip: nu });
+}
 function mutatie(route, verwacht, actie, detail, doe) {
   if (volgendeConflict || verwacht !== wg.revisie) {
     volgendeConflict = false;
@@ -67,11 +75,7 @@ await page.route("**/api/**", async (route) => {
   if (p === "/api/werkgebieden" && m === "GET")
     return route.fulfill({ json: { werkgebieden: wg && !wg.verwijderd ? [{ ...uit(), bronnen: undefined, aantal_bronnen: uit().bronnen.length }] : [] } });
   if (p === "/api/werkgebieden" && m === "POST") {
-    const b = req.postDataJSON();
-    wg = { id: "wg1", naam: b.naam, analysevraag: b.analysevraag, afbakening: b.afbakening, peildatum: null,
-      status: "in_voorbereiding", revisie: 1, aangemaakt_door: "browser-test", aangemaakt: nu, gewijzigd: nu,
-      gearchiveerd: null, bronnen: [] };
-    audit.unshift({ id: 1, actor: "browser-test", actie: "aangemaakt", detail: { revisie: 1 }, tijdstip: nu });
+    nieuwWerkgebied(req.postDataJSON());
     return route.fulfill({ status: 201, json: uit() });
   }
   if (p === "/api/werkgebieden/wg1" && m === "GET") {
@@ -147,10 +151,29 @@ try {
   await page.getByText("Nog geen werkgebieden", { exact: false }).waitFor();
   await foto("werkgebieden-leeg");
   assert.equal(await page.getByRole("link", { name: "Werkgebieden" }).first().getAttribute("aria-current"), "page");
-  await page.getByRole("button", { name: "Nieuw werkgebied" }).click();
-  await page.getByLabel("Naam").fill("Invordering bij nalatigheid");
-  await page.getByLabel("Analysevraag").fill("Wanneer is een aanslag invorderbaar?");
-  await page.getByRole("button", { name: "Aanmaken" }).click();
+  // Aanmaken gaat via Lex: geen formulier, wel een link naar de werkplek met de vraag klaar.
+  assert.equal(await page.getByRole("button", { name: "Nieuw werkgebied" }).count(), 0);
+  assert.equal(await page.getByRole("link", { name: "Samenstellen met Lex" }).first().getAttribute("href"), "/workbench?start=werkgebied");
+  nieuwWerkgebied({ naam: "Invordering bij nalatigheid", analysevraag: "Wanneer is een aanslag invorderbaar?" });
+
+  // De balk zoals bij de annotaties: status met tellers, Door mij bewerkt, zoeken; kaarten.
+  await page.reload();
+  const kaart = page.locator("[data-werkgebied-kaart=wg1]");
+  await kaart.waitFor();
+  await page.getByRole("button", { name: "In voorbereiding (1)" }).waitFor();
+  await page.getByRole("button", { name: "Actief (0)" }).click();
+  await page.waitForURL(/\/werkgebieden\?status=actief$/);
+  await page.getByText("Geen werkgebied dat hierop past.").waitFor();
+  await page.getByRole("button", { name: "Alle (1)" }).click();
+  await kaart.waitFor();
+  await page.getByRole("searchbox", { name: "Zoeken in werkgebieden" }).fill("box 3");
+  await kaart.waitFor({ state: "detached" });
+  await page.getByRole("searchbox", { name: "Zoeken in werkgebieden" }).fill("invorderbaar");
+  await kaart.waitFor();
+  await page.getByRole("checkbox", { name: "Door mij bewerkt" }).click();
+  for (let i = 0; i < 50 && !requests.some((r) => r.p === "/api/werkgebieden" && r.q === "?mijn=true"); i++) await page.waitForTimeout(100);
+  assert.ok(requests.some((r) => r.p === "/api/werkgebieden" && r.q === "?mijn=true"), "Door mij bewerkt vraagt mijn=true");
+  await kaart.getByRole("link", { name: "Invordering bij nalatigheid" }).click();
   await page.waitForURL("**/werkgebieden/wg1");
   await page.getByRole("heading", { name: "Invordering bij nalatigheid" }).waitFor();
   await page.getByText("Nog geen bronnen. Neem hieronder", { exact: false }).waitFor();
@@ -304,17 +327,14 @@ try {
 
   // In de lijst: dezelfde knop per kaart; de kaart gaat meteen weg.
   await page.goto(`${base}/werkgebieden`);
-  await page.getByRole("button", { name: "Nieuw werkgebied" }).click();
-  await page.getByLabel("Naam").fill("Weg ermee");
-  await page.getByRole("button", { name: "Aanmaken" }).click();
-  await page.waitForURL(`${base}/werkgebieden/wg1`);
+  nieuwWerkgebied({ naam: "Weg ermee" });
   await page.goto(`${base}/werkgebieden`);
   await page.getByRole("link", { name: "Weg ermee" }).waitFor();
   await verwijderTweeKeer();
   await page.getByText("Nog geen werkgebieden", { exact: false }).waitFor();
   assert.equal(requests.filter((r) => r.m === "DELETE" && r.p === "/api/werkgebieden/wg1").at(-1).q, "?verwachte_revisie=1");
   assert.deepEqual(errors, []);
-  console.log("Browser OK: werkgebied aanmaken, bron opnemen (ongeldig/idempotent/422/context), rol wijzigen, revisieconflict, inventaris met open punt en signalen, tab in de URL, historie, samenhang met opnemen vanuit de inspector, weghalen met bevestiging, opnemen vanaf een annotatie met herkansing na 412, smal scherm, verwijderen op de pagina (met 412) en in de lijst, de verwijderd-stand.");
+  console.log("Browser OK: overzicht met status, tellers, zoeken en Door mij bewerkt, aanmaken via Lex, bron opnemen (ongeldig/idempotent/422/context), rol wijzigen, revisieconflict, inventaris met open punt en signalen, tab in de URL, historie, samenhang met opnemen vanuit de inspector, weghalen met bevestiging, opnemen vanaf een annotatie met herkansing na 412, smal scherm, verwijderen op de pagina (met 412) en in de lijst, de verwijderd-stand.");
 } catch (e) {
   await foto("fout");
   throw e;

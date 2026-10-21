@@ -1039,8 +1039,8 @@ const jsonInit = (method: string, body: unknown): RequestInit => ({
   body: JSON.stringify(body),
 });
 
-export async function lijstWerkgebieden(): Promise<WerkgebiedSamenvatting[]> {
-  const res = await fetch("/api/werkgebieden", { cache: "no-store" });
+export async function lijstWerkgebieden(opties: { mijn?: boolean } = {}): Promise<WerkgebiedSamenvatting[]> {
+  const res = await fetch(opties.mijn ? "/api/werkgebieden?mijn=true" : "/api/werkgebieden", { cache: "no-store" });
   return (await json<{ werkgebieden: WerkgebiedSamenvatting[] }>(res)).werkgebieden;
 }
 
