@@ -694,7 +694,9 @@ werkgebied zonder deelvragen werkt zoals altijd.
   `overzicht` dat graph-qa uit de graaf bouwde, zodat het blok na herladen hetzelfde is.
   Een voorstel dat Lex niet zonder akkoord start (fase B: het werkgebied annoteren) draagt een
   **`bevestiging`** `{soort: "werkgebied_annoteren" | "begrippen_verdiepen", werkgebied_id, aantal, schatting,
-  bereik: "werkgebied" | "deelvragen", deelvraag_id}` (het bereik van de werkvoorraad, zodat de knop na herladen hetzelfde annoteert); de werkplek
+  bereik: "werkgebied" | "deelvragen", deelvraag_id}` (het bereik van de werkvoorraad, zodat de knop na herladen hetzelfde annoteert). Het user-bericht
+  dat zo'n voorstel beantwoordt – de knop of *Annuleren* – draagt **`bevestiging_antwoord`** `{keuze: "gestart" | "geannuleerd"}`,
+  zodat de knoppen na herladen weg zijn; de werkplek
   toont er een knop bij, ook na herladen. Bij het samenstellen van een werkgebied (activiteit 1) draagt
   elke vraag van Lex een **`vraagkaart`** `{intake_id, soort: vraag|samenvatting, stap, nr, totaal,
   vraag, opties[{label, waarde, bron, omschrijving}], meerkeuze, vrije_tekst, meer_tekst, overslaanbaar,

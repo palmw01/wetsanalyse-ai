@@ -150,6 +150,13 @@ class Vraagkaart(BaseModel):
     beantwoord: bool = False
 
 
+class BevestigingAntwoord(BaseModel):
+    """Op het user-bericht dat een `bevestiging` beantwoordt: gestart (de knop) of geannuleerd. Daaraan
+    ziet de werkplek na herladen dat het voorstel erboven afgehandeld is, en toont hij geen knop meer."""
+
+    keuze: Literal["gestart", "geannuleerd"]
+
+
 class IntakeAntwoord(BaseModel):
     """Op het user-bericht van een klik op een vraagkaartje: daaraan herkent de werkplek na herladen een
     antwoord, en onderscheidt hij het van een getypte tussenvraag (die de "Vragen"-kaart onderbreekt)."""
@@ -199,6 +206,7 @@ class Bericht(BaseModel):
     artefact: Artefact | None = None
     bevestiging: Bevestiging | None = None
     vraagkaart: Vraagkaart | None = None
+    bevestiging_antwoord: BevestigingAntwoord | None = None
     intake_antwoord: IntakeAntwoord | None = None
     created: datetime | None = None
 
@@ -241,6 +249,7 @@ class BerichtInvoer(BaseModel):
     reeks: ReeksPlek | None = None
     artefact: Artefact | None = None
     bevestiging: Bevestiging | None = None
+    bevestiging_antwoord: BevestigingAntwoord | None = None
     vraagkaart: Vraagkaart | None = None
     intake_antwoord: IntakeAntwoord | None = None
 

@@ -762,7 +762,12 @@ bestaat los van de gesprekken.
     bronnen onder de deelvragen, of onder die ene. De bevestiging draagt `bereik` en `deelvraag_id`.
   - **In het gesprek**: een antwoord met `bevestiging` (`parseBevestiging`; ook na herladen) krijgt de
     knop *Laat Lex annoteren*. Die gaat via `verstuur(…, annoteren)` →
-    `startRun({modus: "werkgebied_annoteren", werkgebied_id, bevestigd, bereik?, deelvraag_id?})`. Is de werkvoorraad intussen
+    `startRun({modus: "werkgebied_annoteren", werkgebied_id, bevestigd, bereik?, deelvraag_id?})`.
+  - **Annuleren** staat naast de knop (ook bij *Laat Lex meedenken*): geen beurt bij de agent, alleen een
+    user-bericht "Annuleren" met `bevestiging_antwoord: {keuze: "geannuleerd"}`. De knop zelf zet
+    `keuze: "gestart"` op zijn bericht. Een beantwoord voorstel toont geen knoppen meer maar een regel
+    (`data-bevestiging-keuze`); welk voorstel een antwoord beantwoordt, rekent `afgehandeld`
+    (`lib/werkgebiedAnnoteren.ts`): het laatste voorstel ervóór. Is de werkvoorraad intussen
     veranderd, dan begint graph-qa niet en komt er een nieuwe bevestiging.
   - De voortgang is het gewone `ReeksBlok` (labels met de regeling erbij); de samenvatting van de run
     staat eronder (`item.tekst` van het reeksitem).

@@ -383,6 +383,20 @@ async def test_een_bevestiging_overleeft_het_heropenen(client):
     assert fout.status_code == 422
 
 
+async def test_het_antwoord_op_een_bevestiging_blijft_bewaard(client):
+    """Annuleren (of starten) legt de werkplek vast op het user-bericht, zodat de knop na herladen weg is."""
+    gid = await _maak(client)
+    for keuze in ("geannuleerd", "gestart"):
+        r = await client.post(f"{BASIS}/{gid}/berichten", json={
+            "rol": "user", "tekst": "Annuleren", "bevestiging_antwoord": {"keuze": keuze}}, headers=A)
+        assert r.status_code == 201 and r.json()["bevestiging_antwoord"] == {"keuze": keuze}
+    doc = (await client.get(f"{BASIS}/{gid}", headers=A)).json()
+    assert [b["bevestiging_antwoord"] for b in doc["berichten"]] == [{"keuze": "geannuleerd"}, {"keuze": "gestart"}]
+    fout = await client.post(f"{BASIS}/{gid}/berichten", json={
+        "rol": "user", "bevestiging_antwoord": {"keuze": "misschien"}}, headers=A)
+    assert fout.status_code == 422
+
+
 VRAAGKAART = {
     "intake_id": "ik-1", "soort": "vraag", "stap": "regelingen", "nr": 3, "totaal": 5,
     "vraag": "Welke regeling(en) horen bij het werkgebied?", "toelichting": "",

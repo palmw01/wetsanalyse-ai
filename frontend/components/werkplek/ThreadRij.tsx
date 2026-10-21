@@ -33,7 +33,7 @@ import { overzichtAlsMarkdown, overzichtDoelen, overzichtFocus, overzichtKnopTek
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 import { beurtSamenvatting, laatsteRun } from "@/lib/waarom";
 import type { ThreadItem } from "@/lib/threadItem";
-import { ANNOTEER_PROMPT, PLAFOND, bepalingen } from "@/lib/werkgebiedAnnoteren";
+import { ANNOTEER_PROMPT, PLAFOND, bepalingen, type BevestigingKeuze } from "@/lib/werkgebiedAnnoteren";
 import { MEEDENK_PROMPT } from "@/lib/begripVoorstellen";
 import type { IntakeActie, VragenGroep } from "@/lib/vraagkaart";
 import type {
@@ -65,6 +65,8 @@ export interface ThreadActies {
   /** Eén lid uit een reeksblok openen, met bladeren door de rest van de reeks. */
   openReeksLid: (runId: string, doel: NodeDoel) => void;
   stop: () => void;
+  /** *Annuleren* bij een voorstel van Lex: niets starten, en dat vastleggen in het gesprek. */
+  annuleer: () => void;
   /** *Maak hier een werkgebied van* onder een overzicht (spoor D, fase A). */
   maakWerkgebied: (overzicht: Overzicht) => void;
   /** "Een vraag stellen ›": de weggeklikte vraag onderaan weer openen (activiteit 1). */
@@ -88,11 +90,13 @@ interface Props {
   verwijderd: boolean;
   /** Het eerste item van een reeks vragen (activiteit 1): de Vragen-kaart die het draagt. */
   vragen?: VragenGroep;
+  /** Een voorstel van Lex met een bevestiging: al beantwoord (gestart of geannuleerd)? Dan geen knoppen. */
+  keuze?: BevestigingKeuze;
   acties: ThreadActies;
 }
 
 export const ThreadRij = memo(function ThreadRij({
-  item, streamt, bezig, geblokkeerd, demo, samenhangAan, loopt, doc, verwijderd, vragen, acties,
+  item, streamt, bezig, geblokkeerd, demo, samenhangAan, loopt, doc, verwijderd, vragen, keuze, acties,
 }: Props) {
   if (vragen) {
     // Het samenstellen van een werkgebied: wat Lex bij de eerste vraag zei, en de vragen met je antwoorden.
@@ -167,9 +171,15 @@ export const ThreadRij = memo(function ThreadRij({
           </button>;
         })()}
         {/* Lex begint niet zonder akkoord: het voorstel noemt aantal en kosten, de knop start. */}
-        {item.bevestiging && item.bevestiging.aantal > 0 && !demo && (
-          item.bevestiging.soort === "begrippen_verdiepen" ? (
-            <Button size="sm" className="mt-3 w-full sm:w-auto" disabled={bezig || geblokkeerd}
+        {item.bevestiging && item.bevestiging.aantal > 0 && !demo && keuze && (
+          <p className="mt-3 text-xs text-muted" data-bevestiging-keuze={keuze}>
+            {keuze === "geannuleerd" ? "Geannuleerd: Lex is niet begonnen." : "Gestart."}
+          </p>
+        )}
+        {item.bevestiging && item.bevestiging.aantal > 0 && !demo && !keuze && (
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          {item.bevestiging.soort === "begrippen_verdiepen" ? (
+            <Button size="sm" className="w-full sm:w-auto" disabled={bezig || geblokkeerd}
               data-bevestiging={item.bevestiging.aantal}
               onClick={() => acties.verstuur(MEEDENK_PROMPT, undefined, undefined, undefined,
                 { werkgebiedId: item.bevestiging!.werkgebied_id, bevestigd: item.bevestiging!.aantal,
@@ -177,7 +187,7 @@ export const ThreadRij = memo(function ThreadRij({
               Laat Lex meedenken ({item.bevestiging.aantal})
             </Button>
           ) : (
-            <Button size="sm" className="mt-3 w-full sm:w-auto" disabled={bezig || geblokkeerd}
+            <Button size="sm" className="w-full sm:w-auto" disabled={bezig || geblokkeerd}
               data-bevestiging={item.bevestiging.aantal}
               onClick={() => acties.verstuur(ANNOTEER_PROMPT, undefined, undefined, undefined,
                 { werkgebiedId: item.bevestiging!.werkgebied_id, bevestigd: item.bevestiging!.aantal,
@@ -185,7 +195,12 @@ export const ThreadRij = memo(function ThreadRij({
                   ...(item.bevestiging!.deelvraag_id ? { deelvraagId: item.bevestiging!.deelvraag_id } : {}) })}>
               Laat Lex annoteren ({bepalingen(Math.min(item.bevestiging.aantal, PLAFOND))})
             </Button>
-          )
+          )}
+            <Button size="sm" variant="secondary" className="w-full sm:w-auto" disabled={bezig}
+              onClick={() => acties.annuleer()}>
+              Annuleren
+            </Button>
+          </div>
         )}
         {item.tekst && item.grounding && <Brongetrouwheid grounding={item.grounding} />}
         {item.tekst && <KopieerKnop tekst={item.overzicht ? `${item.tekst}\n\n${overzichtAlsMarkdown(item.overzicht)}` : item.tekst} />}

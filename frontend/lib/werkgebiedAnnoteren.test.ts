@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { parseBevestiging } from "./werkgebiedAnnoteren";
+import type { ThreadItem } from "./threadItem";
+import { afgehandeld, parseBevestiging, parseBevestigingKeuze } from "./werkgebiedAnnoteren";
 
 describe("parseBevestiging", () => {
   it("neemt een geldige bevestiging over", () => {
@@ -29,4 +30,29 @@ describe("parseBevestiging", () => {
     [{ soort: "werkgebied_annoteren", werkgebied_id: "wg1", aantal: -1 }],
     [{ soort: "werkgebied_annoteren", werkgebied_id: "wg1", aantal: 1.5 }],
   ])("weigert %j", (ruw) => expect(parseBevestiging(ruw)).toBeUndefined());
+});
+
+describe("het antwoord op een bevestiging", () => {
+  const b = { soort: "werkgebied_annoteren" as const, werkgebied_id: "wg1", aantal: 3, schatting: null };
+  const voorstel = (id: string): ThreadItem => ({ id, type: "antwoord", tekst: "…", bevestiging: b });
+  const vraag = (id: string, keuze?: "gestart" | "geannuleerd"): ThreadItem =>
+    ({ id, type: "user", tekst: "x", ...(keuze ? { bevestigingKeuze: keuze } : {}) });
+
+  it("leest alleen de twee keuzes", () => {
+    expect(parseBevestigingKeuze({ keuze: "geannuleerd" })).toBe("geannuleerd");
+    expect(parseBevestigingKeuze({ keuze: "gestart" })).toBe("gestart");
+    expect(parseBevestigingKeuze({ keuze: "later" })).toBeUndefined();
+    expect(parseBevestigingKeuze(null)).toBeUndefined();
+  });
+
+  it("hoort bij het laatste voorstel ervóór, en een gewone vraag beantwoordt niets", () => {
+    const items = [voorstel("a"), vraag("v1"), vraag("v2", "geannuleerd"), voorstel("b"), voorstel("c"), vraag("v3", "gestart")];
+    const uit = afgehandeld(items);
+    expect(Object.fromEntries(uit)).toEqual({ a: "geannuleerd", c: "gestart" });
+    expect(uit.has("b")).toBe(false);              // een ouder voorstel houdt zijn knoppen
+  });
+
+  it("een antwoord zonder open voorstel telt niet", () => {
+    expect(afgehandeld([vraag("v", "gestart"), voorstel("a")]).size).toBe(0);
+  });
 });

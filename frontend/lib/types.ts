@@ -597,6 +597,9 @@ export interface Bericht {
   vraagkaart?: unknown;
   /** Op het user-bericht van een klik op een vraagkaartje (zie `lib/vraagkaart.ts:parseAntwoordOp`). */
   intake_antwoord?: unknown;
+  /** Op het user-bericht dat een `bevestiging` beantwoordt: `{keuze: "gestart" | "geannuleerd"}`
+   *  (zie `lib/werkgebiedAnnoteren.ts:parseBevestigingKeuze`). */
+  bevestiging_antwoord?: unknown;
   created?: string;
 }
 

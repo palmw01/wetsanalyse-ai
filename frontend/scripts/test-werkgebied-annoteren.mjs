@@ -16,7 +16,9 @@
  *  - de voortgang als reeksblok over artikelen heen, met de samenvatting erna;
  *  - alleen de bronnen onder de deelvragen: de suggestie *Annoteer de bepalingen van de deelvragen* (actie
  *    `deelvragen_annoteren`), en bij een deelvraag *Annoteer de bepalingen hierbij*; de knop bij zo'n voorstel
- *    stuurt `bereik` en `deelvraag_id` terug, ook na herladen.
+ *    stuurt `bereik` en `deelvraag_id` terug, ook na herladen;
+ *  - *Annuleren* naast de knop: geen run, een bericht met `bevestiging_antwoord: geannuleerd`, en na herladen
+ *    geen knoppen meer; na de knop zelf ("Gestart.") ook niet.
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -72,8 +74,15 @@ const gesprekken = {
       bevestiging: { soort: "werkgebied_annoteren", werkgebied_id: "wg1", aantal: 1, schatting: null,
         bereik: "deelvragen", deelvraag_id: "dv-2" } },
   ],
+  g4: [
+    { rol: "user", tekst: "Annoteer het werkgebied", ...leeg },
+    { rol: "assistant", tekst: "In werkgebied *Invorderbaarheid* zijn **2** bepalingen nog niet geannoteerd.", ...leeg, run_id: "v3",
+      bevestiging: { soort: "werkgebied_annoteren", werkgebied_id: "wg1", aantal: 2, schatting: null } },
+    { rol: "user", tekst: "Annuleren", ...leeg, bevestiging_antwoord: { keuze: "geannuleerd" } },
+  ],
   g9: [],
 };
+const bewaard = [];
 const starts = [];
 const metStroom = new Set();   // de runs met een bevestigd aantal: die leveren de reeks
 
@@ -103,6 +112,7 @@ await context.route("**/api/**", async (route) => {
   if (events) return route.fulfill({ contentType: "text/event-stream", body: sse(metStroom.has(events[1]) ? runStroom : [{ type: "done" }]) });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: false } });
+  if (p.endsWith("/berichten") && m === "POST") bewaard.push({ p, body });
   return route.fulfill({ json: p.endsWith("/berichten") && m === "POST" ? { id: 1 } : [] });
 });
 
@@ -171,8 +181,29 @@ try {
   { modus: "werkgebied_annoteren", bevestigd: 1, bereik: "deelvragen", deelvraag_id: "dv-2" },
   "de knop annoteert de deelvraag, niet het hele werkgebied");
 
+  // --- Annuleren: geen run, wel een bericht; daarna geen knoppen ---
+  await page.goto(`${base}/workbench?gesprek=g2`);
+  const voorAnnuleren = starts.length;
+  await page.getByRole("button", { name: "Laat Lex annoteren (3 bepalingen)" }).waitFor();
+  await page.getByRole("button", { name: "Annuleren", exact: true }).click();
+  await page.locator("[data-bevestiging-keuze=geannuleerd]").waitFor();
+  assert.equal(await page.getByRole("button", { name: /^Laat Lex annoteren/ }).count(), 0);
+  await page.waitForTimeout(200);
+  assert.equal(starts.length, voorAnnuleren, "annuleren start niets");
+  const annuleerBericht = bewaard.find((x) => x.p === "/api/gesprekken/g2/berichten" && x.body?.bevestiging_antwoord?.keuze === "geannuleerd");
+  assert.deepEqual({ rol: annuleerBericht?.body.rol, tekst: annuleerBericht?.body.tekst, antwoord: annuleerBericht?.body.bevestiging_antwoord },
+    { rol: "user", tekst: "Annuleren", antwoord: { keuze: "geannuleerd" } });
+  // Het starten zelf legt ook vast dat het voorstel beantwoord is.
+  assert.ok(bewaard.some((x) => x.p === "/api/gesprekken/g3/berichten" && x.body?.bevestiging_antwoord?.keuze === "gestart"));
+
+  // --- Na herladen: een geannuleerd voorstel heeft geen knoppen meer ---
+  await page.goto(`${base}/workbench?gesprek=g4`);
+  await page.locator("[data-bevestiging-keuze=geannuleerd]").waitFor();
+  assert.equal(await page.getByRole("button", { name: /^Laat Lex annoteren/ }).count(), 0);
+  assert.equal(await page.getByRole("button", { name: "Annuleren", exact: true }).count(), 0);
+
   assert.deepEqual(errors, []);
-  console.log("Browser OK: geen Lex-knop op de tab Elementen, Vraag Lex in de kop, annoteer= start niets, de suggestie in het werkgebied, knop bij een voorstel na herladen met het bevestigde aantal, reeks over artikelen met samenvatting, en annoteren onder de deelvragen (alle en één, knop met bereik).");
+  console.log("Browser OK: annuleren zonder run en na herladen zonder knoppen; geen Lex-knop op de tab Elementen, Vraag Lex in de kop, annoteer= start niets, de suggestie in het werkgebied, knop bij een voorstel na herladen met het bevestigde aantal, reeks over artikelen met samenvatting, en annoteren onder de deelvragen (alle en één, knop met bereik).");
 } finally {
   await browser.close();
 }
