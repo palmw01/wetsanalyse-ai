@@ -178,8 +178,8 @@ const begrippenChip = () => page.locator('button[data-artefact-soort="begrippen"
 try {
   // --- Na herladen: drie soorten, elk met zijn eigen kaart ---
   await page.goto(`${base}/workbench?gesprek=g1`);
-  await begrippenChip().waitFor();
-  assert.match(await begrippenChip().innerText(), /Invordering[\s\S]*Begripsvoorstellen/);
+  // Wachten op de tekst, niet alleen op de knop: op een koude server staat de chip er even leeg.
+  await begrippenChip().filter({ hasText: /Invordering[\s\S]*Begripsvoorstellen/ }).waitFor();
   const regels = page.locator('[data-artefact-soort="regels"]');
   assert.equal(await regels.count(), 1, "de kaart van de afleidingsregels hoort er te staan");
   assert.equal(await regels.evaluate((el) => el.tagName), "DIV", "afleidingsregels zijn nog niet te openen: geen knop");
