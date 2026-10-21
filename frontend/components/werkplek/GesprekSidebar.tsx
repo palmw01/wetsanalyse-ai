@@ -140,27 +140,13 @@ export function GesprekSidebar({
           annotaties leven los van de gesprekken – een annotatie overleeft het gesprek waarin hij
           gemaakt is, en moet dus ook zonder dat gesprek te vinden zijn. */}
       <div className="px-3 pb-1">
-        <Link
-          href="/annotaties"
-          onClick={onSluit}
-          aria-current={annotatiesActief ? "page" : undefined}
-          className={`focus-ring flex min-h-[36px] items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors coarse:min-h-[44px] ${
-            annotatiesActief ? "bg-lint/10 font-medium text-lint" : "text-ink hover:bg-paper"
-          }`}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M4 5h16M4 12h10M4 19h7" />
-            <circle cx="18" cy="17" r="3" />
-          </svg>
-          Annotaties
-        </Link>
         {/* Een werkgebied brengt bepalingen samen rond één analysevraag; net als de annotaties
             bestaat het los van de gesprekken. */}
         <Link
           href="/werkgebieden"
           onClick={onSluit}
           aria-current={werkgebiedenActief ? "page" : undefined}
-          className={`focus-ring mt-0.5 flex min-h-[36px] items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors coarse:min-h-[44px] ${
+          className={`focus-ring flex min-h-[36px] items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors coarse:min-h-[44px] ${
             werkgebiedenActief ? "bg-lint/10 font-medium text-lint" : "text-ink hover:bg-paper"
           }`}
         >
@@ -169,6 +155,20 @@ export function GesprekSidebar({
             <path d="M3 9h18M9 9v11" />
           </svg>
           Werkgebieden
+        </Link>
+        <Link
+          href="/annotaties"
+          onClick={onSluit}
+          aria-current={annotatiesActief ? "page" : undefined}
+          className={`focus-ring mt-0.5 flex min-h-[36px] items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors coarse:min-h-[44px] ${
+            annotatiesActief ? "bg-lint/10 font-medium text-lint" : "text-ink hover:bg-paper"
+          }`}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M4 5h16M4 12h10M4 19h7" />
+            <circle cx="18" cy="17" r="3" />
+          </svg>
+          Annotaties
         </Link>
         {/* De begrippen over alle werkgebieden heen: een leesingang, het werk gebeurt op de kaart. */}
         <Link

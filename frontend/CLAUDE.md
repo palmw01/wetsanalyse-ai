@@ -1287,7 +1287,7 @@ leest als "hij laadt", niet als "log eerst in".
   wettekst en ankers die per lid berekend zijn (`segmentAnker`): artikel 9 **lid 1** van de
   Invorderingswet 1990 met de vier markeringen van de echte annotatie op acceptatie (Rechtsfeit over de
   hele zin, dus overlappend zoals bij echt werk), en één bewuste afwijking: Rechtsfeit staat op *Keuze voor
-  jou*, zodat de badge-stap iets aanwijst. Werkgebieden en begrippen horen (nog) niet in de rondleiding. Hij staat in **hetzelfde
+  jou*, zodat de badge-stap iets aanwijst. Werkgebieden en begrippen hebben (nog) geen eigen stap; de stap *Je werk terugvinden* en het slot noemen de zijbalk in de volgorde Werkgebieden, Annotaties, Begrippen (de volgorde van de navigatie, besluit gebruiker 21 okt 2026). Hij staat in **hetzelfde
   `NodeAnnotatiePaneel` als echt werk**, via de prop `opslag` (`NodeOpslag` in `lib/annotatieNode.ts`;
   standaard `apiOpslag`): een opslag in het geheugen die de lichamen van de api krijgt en niets
   verstuurt. Zo kan de rondleiding niet meer achterlopen op het paneel; een eigen documentvorm in een

@@ -66,8 +66,9 @@ export const STAPPEN: Stap[] = [
     fase: "orientatie",
     titel: "Je werk terugvinden",
     tekst:
-      "Je gesprekken staan hier. Onder Annotaties vind je alle geannoteerde bepalingen, met wat nog " +
-      "te beoordelen is bovenaan. Onderin staat hoeveel van je tokenbudget je gebruikt, en de bel " +
+      "Je gesprekken staan hier. Daarboven vind je je werk terug, in de volgorde waarin je werkt: " +
+      "Werkgebieden (de analyses), Annotaties (alle geannoteerde bepalingen, met wat nog te beoordelen " +
+      "is bovenaan) en Begrippen. Onderin staat hoeveel van je tokenbudget je gebruikt, en de bel " +
       "bovenin meldt wat er nieuw is.",
     waarom:
       "Een annotatie is gedeeld werk en blijft bestaan als je het gesprek verwijdert. Opruimen kost je " +
