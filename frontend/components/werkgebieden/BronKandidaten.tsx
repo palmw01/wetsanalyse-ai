@@ -12,7 +12,8 @@ import {
   besluitKandidaat, foutTekst, haalKandidaten, haalLaatsteBronnenRun, neemKandidaatOp,
 } from "@/lib/api";
 import {
-  FILTER_LABEL, KANDIDAAT_ROL_LABEL, KANDIDAAT_ROL_UITLEG, METHODE_LABEL, bewijsZin, bijDeelvraag, filterVan, sorteerKandidaten,
+  FILTER_LABEL, KANDIDAAT_ROL_LABEL, KANDIDAAT_ROL_UITLEG, METHODE_LABEL, bewijsZin, bijDeelvraag, filterVan, plekNaam,
+  sorteerKandidaten,
   standaardRol, telPerFilter, type KandidaatFilter,
 } from "@/lib/bronKandidaten";
 import type { BronKandidaat, BronMethode, BronRol, BronnenRun, KandidatenAntwoord } from "@/lib/types";
@@ -186,7 +187,7 @@ function KandidaatKaart({ werkgebiedId, k, index, actief, labels, bezig, uitslui
   const [reden, setReden] = useState("");
   const redenRef = useRef<HTMLInputElement>(null);
   const f = filterVan(k);
-  const naam = k.label || k.bron_iri;
+  const naam = k.label || plekNaam(k.bron_iri);
   const voorkeur = standaardRol(k);
   const ander: BronRol = voorkeur === "analyseren" ? "context" : "analyseren";
 

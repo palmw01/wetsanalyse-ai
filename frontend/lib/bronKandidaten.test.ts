@@ -60,7 +60,8 @@ it("sorteert op rol, dan op hoeveelheid bewijs", () => {
 });
 
 it("plekNaam valt terug op het pad na de regeling", () => {
-  expect(plekNaam("urn:bwb:BWBR0024096:id:abc")).toBe("id:abc");
+  expect(plekNaam("urn:bwb:BWBR0024096:id:abc")).toBe("abc");
+  expect(plekNaam("urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1")).toBe("divisie 9.1");
   expect(plekNaam("")).toBe("");
 });
 

@@ -64,7 +64,19 @@ export function plekNaam(iri: string, labels: Map<string, string> = new Map()): 
   if (!iri) return "";
   if (labels.has(iri)) return labels.get(iri)!;
   const vp = vindplaatsVan(iri);
-  return vp?.label || iri.replace(/^urn:bwb:BWB[A-Z]\d+:?/, "") || iri;
+  if (vp?.label) return vp.label;
+  const rest = iri.replace(/^urn:bwb:BWB[A-Z]\d+:?/, "");
+  // Een wet-lokale divisie (`id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1`): het laatste
+  // stuk van het pad, gedecodeerd ("divisie 9.1"), in plaats van de hele IRI die de rij uit beeld duwt.
+  const id = rest.match(/^id:(.+)$/);
+  if (id) {
+    let pad = id[1];
+    try { pad = decodeURIComponent(pad); } catch { /* laat staan */ }
+    const laatste = pad.split("/").pop() ?? pad;
+    const divisie = laatste.match(/divisie([\d.]+[a-z]?)$/i);
+    return divisie ? `divisie ${divisie[1]}` : laatste;
+  }
+  return rest || iri;
 }
 
 /** Het bewijs van één methode in gewone woorden. `labels`: bron-IRI → naam (de selecties). */
