@@ -126,7 +126,7 @@ export function BegrippenOverzichtClient() {
       )}
 
       {data === null ? (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {[1, 2].map((i) => (
             <div key={i} className="space-y-3 rounded-button border border-line bg-paper p-4">
               <Skeleton className="h-4 w-48" />
@@ -146,7 +146,7 @@ export function BegrippenOverzichtClient() {
             {data.totaal === 1 ? "1 begrip" : `${data.totaal} begrippen`}
             {data.resultaten.length < data.totaal ? ` (de eerste ${data.resultaten.length})` : ""}
           </p>
-          <div className="grid gap-3 sm:grid-cols-2" data-testid="begrippen-overzicht">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" data-testid="begrippen-overzicht">
             {data.resultaten.map((b) => <BegripOverzichtKaart key={b.id} b={b} onVerwijder={() => verwijder(b)} />)}
           </div>
         </>

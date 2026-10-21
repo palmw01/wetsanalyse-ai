@@ -34,7 +34,7 @@ export function AnnotatieKaart({ doc, onVerwijder }: {
   const href = nodeLink({ bron_iri: doc.bron_iri ?? "", snapshot_id: doc.snapshot_id });
   const beoordeeld = doc.aantal_elementen - doc.te_beoordelen;
   return (
-    <article className="flex flex-col gap-3 rounded-button border border-line bg-paper p-4 transition-shadow hover:shadow-kaart">
+    <article className="flex min-w-0 flex-col gap-3 rounded-button border border-line bg-paper p-4 transition-shadow hover:shadow-kaart">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           {/* De hele kaart aanklikbaar maken zou de knoppen eronder onbereikbaar maken voor het
