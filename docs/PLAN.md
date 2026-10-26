@@ -103,6 +103,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | E | Kennisbank (tweede corpus) | Ontwerp klaar, niets gebouwd |
 | F | Activiteit 1 in het gesprek: werkgebied bepalen | F0 en F1 gebouwd (vraagkaarten zoals Claude → werkgebied); vervolg open |
 | G | Lex als projectgerichte werkplek (mock-up v4) | G1–G5 gebouwd (gesprek bij een werkgebied, de projectpagina, eigen pagina's per object, het contextpaneel, de begripskaart in NL-SBB-volgorde) |
+| H | Structuur: begrippen per term, bepalingen als boom | H1–H2 gebouwd (plek van een bepaling, bronvoorstellen met vinkjes en actiebalk, geen sneltoetsen); H3–H4 open |
 
 ---
 
@@ -993,6 +994,33 @@ volledige pagina*.
 
 **Buiten scope**: een begrip in meerdere werkgebieden zonder kopie (open keuze 3: één kader per
 werkgebied). Annotaties zijn al gedeeld per bronnode.
+
+---
+
+### H. Structuur: begrippen per term, bepalingen als boom
+
+**Aanleiding** (26 okt 2026, schermafdrukken van acceptatie): het begrippenkader toonde *tijdvak* 7× en 119
+losse twijfelvragen; de keten maakt één betekenisgroep per term per bronnode en de vragen zijn de links
+daartussen. De deelvragen toonden hun bronnen als kommareeks, de voorstellen van Lex 73 kaarten met elk tot
+tien bewijsregels en vier knoppen. De afbakening bevatte ruwe IRI's van Leidraad-divisies.
+
+**Besluiten** (gebruiker, 26 okt 2026): per term een eigen pagina; bepalingen in een boom regeling ›
+hoofdstuk › artikel › lid met vinkjes en één actiebalk; mét hoofdstuk (een api-route); **geen sneltoetsen
+in Lex** (letters, `[`/`]`, hints) – Tab, Enter, Escape en de pijltjes van een keuzelijst blijven; en
+"Verwijderen" in plaats van "Weghalen".
+
+- **H1 – gebouwd**: `POST /v1/annotatie/plaatsen` (de plek van een bepaling uit de bronboom, gecachet per
+  toestand), `lib/bronPlaats.ts` (`bouwBoom`), `usePlaatsen`, `components/ui/BronBoom`; graph-qa noemt een
+  divisie zonder label "divisie 26.3.9", nooit de IRI.
+- **H2 – gebouwd**: de bronvoorstellen als boom met vinkjes, één zin bewijs per regel en een actiebalk; de
+  sneltoetsen weg uit de annotatie, de reeks en de bronvoorstellen.
+- **H3**: deelvragen als rijen naar hun pagina; daar de bronnen als boom en koppelen in een venster met
+  dezelfde boom; *Verwijderen*.
+- **H4**: het begrippenkader per term (`lib/begripTermen.ts`) met een termpagina: de passages per regeling ›
+  artikel, één besluit (*Eén begrip maken*), `Akkoord.kandidaat_ids` in de api; de toetsenbord-review
+  (`BegripReview`) verdwijnt.
+
+**Open**: groepen op een stopwoord ("en") zijn een signaal voor de keten, geen weergavekwestie.
 
 ---
 

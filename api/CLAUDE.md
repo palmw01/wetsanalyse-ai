@@ -179,6 +179,11 @@ Hieronder wat je moet weten om de code te wijzigen.
   cachet de werkplek de layout. Een BWB-id gaat letterlijk een query in en wordt strikt gevalideerd.
   Het label van een deel krijgt zijn nummer (`_label`: de bronboom draagt "Hoofdstuk" en "II" apart);
   bewust hier en niet in `bronmodel`, waar het de snapshot-identiteit van bestaande lagen zou raken.
+  **`POST /plaatsen`** (`graaf.plaatsen`, hoogstens 500 `bron_iris`) geeft per bepaling de regeling en het pad
+  eronder (hoofdstuk/afdeling/divisie › artikel › lid › onderdeel) met `_label` en `volgorde`, om in de
+  werkplek te groeperen (spoor H). De structuur per regeling staat in een eigen cache op `(bwb_id,
+  toestandUrl)` (`_structuur`) die `/graaf` deelt; een onbekende IRI krijgt `pad: []`. Alleen het BWB-id gaat
+  een query in.
   **`/knoop`** (`knoopinfo.py`, `bron_iri`) geeft wat de BWB-import en de WTI-verrijking verder aan
   één knoop hangen, letterlijk en zonder afleiding: de bekende predicaten in vaste groepen met een
   Nederlandse naam (`FEITEN`: geldigheid – ook die van de regeling erboven –, herkomst, regeling,
