@@ -15,6 +15,7 @@ export interface BronBoomProps<T> {
   boom: readonly BoomKnoop<T>[];
   label: string;
   renderBlad: (blad: Blad<T>) => ReactNode;
+  /** Gekozen = de `sleutel` van een blad (standaard de bron-IRI). */
   vinkjes?: {
     gekozen: ReadonlySet<string>;
     onZet: (iris: string[], aan: boolean) => void;
@@ -55,7 +56,7 @@ function Knoop<T>({ knoop, diepte, dicht, wissel, renderBlad, vinkjes, bladAttrs
   return (
     <li data-boom-knoop={knoop.soort} data-boom-sleutel={knoop.sleutel}>
       <div className="flex min-h-[32px] items-center gap-2">
-        {vinkjes && <KopVinkje iris={alle.map((b) => b.bron_iri)} vinkjes={vinkjes} naam={knoop.label} />}
+        {vinkjes && <KopVinkje iris={alle.map((b) => b.sleutel)} vinkjes={vinkjes} naam={knoop.label} />}
         <button type="button" onClick={() => wissel(knoop.sleutel)} aria-expanded={open}
           className={`focus-ring flex min-w-0 flex-1 items-center gap-1.5 rounded text-left ${kop}`}>
           <ChevronOmlaag className={`shrink-0 text-faint transition-transform ${open ? "" : "-rotate-90"}`} />
@@ -68,8 +69,8 @@ function Knoop<T>({ knoop, diepte, dicht, wissel, renderBlad, vinkjes, bladAttrs
           {knoop.bladeren.map((b) => (
             <li key={b.sleutel} className="flex items-start gap-2" data-boom-blad={b.bron_iri} {...(bladAttrs?.(b) ?? {})}>
               {vinkjes && (
-                <input type="checkbox" checked={vinkjes.gekozen.has(b.bron_iri)} aria-label={vinkjes.naam(b)}
-                  onChange={(e) => vinkjes.onZet([b.bron_iri], e.target.checked)}
+                <input type="checkbox" checked={vinkjes.gekozen.has(b.sleutel)} aria-label={vinkjes.naam(b)}
+                  onChange={(e) => vinkjes.onZet([b.sleutel], e.target.checked)}
                   className="focus-ring mt-1.5 shrink-0 accent-lint" />
               )}
               <div className="min-w-0 flex-1">{renderBlad(b)}</div>

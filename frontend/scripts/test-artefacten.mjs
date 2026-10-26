@@ -27,7 +27,7 @@ import { sessieCookies } from "./sessie.mjs";
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-const errors = [], runs = [];
+const errors = [], runs = [], requests = [];
 page.on("pageerror", (e) => errors.push(e.message));
 await page.context().addCookies(await sessieCookies(base));
 await page.addInitScript(() => localStorage.setItem("wa_rondleiding", JSON.stringify({ versie: 999, gezien: true })));
@@ -104,6 +104,7 @@ const kandidaat = { id: "k1", bron_iri: "urn:art10", label: "art. 10 Iw", bwb_id
 const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
 
 await page.route("**/api/**", async (route) => {
+  requests.push({ p: new URL(route.request().url()).pathname, m: route.request().method() });
   const req = route.request(), url = new URL(req.url()), p = url.pathname, m = req.method();
   if (p.startsWith("/api/auth/")) return route.continue();
   if (p === "/api/annotatie/run") {
@@ -231,15 +232,13 @@ try {
     "/werkgebieden/wg1/artefacten/begrippen");
   assert.equal(await begrippenPaneel().locator('button[aria-expanded]').filter({ hasText: "Voorstellen van Lex" }).count(), 0,
     "in het paneel is de strook niet in te klappen");
-  // De review werkt in het paneel met het toetsenbord (fase D) – maar niet zolang de focus in het gesprek
-  // staat (op de chip): pas met de focus in het paneel kiest j het eerste voorstel en klapt het uit.
-  await page.keyboard.press("j");
-  assert.equal(await begrippenPaneel().locator("[data-review-item][aria-current=true]").count(), 0,
-    "een toets vanuit het gesprek doet niets in het paneel");
-  await begrippenPaneel().getByText(/^Review – /).click();
-  await page.keyboard.press("j");
-  await begrippenPaneel().locator('[data-review-item="G1"][aria-current=true]').waitFor();
-  await begrippenPaneel().getByRole("button", { name: /^Akkoord.*groep “belastingschuldige”/ }).waitFor();
+  // Spoor H4: per term één rij naar de pagina van de term; geen reviewlijst en geen sneltoetsen in het paneel.
+  assert.equal(await begrippenPaneel().locator('[data-term="belastingschuldige"] a').getAttribute("href"),
+    "/werkgebieden/wg1/artefacten/begrippen/term/belastingschuldige");
+  assert.equal(await begrippenPaneel().locator("[data-review-item]").count(), 0);
+  await begrippenPaneel().locator('[data-term="belastingschuldige"]').hover();
+  await page.keyboard.press("a");
+  assert.equal(requests.filter((r) => r.p.includes("/groepen/")).length, 0, "een letter beslist niets");
 
   // --- Een annotatie openen sluit de begrippen: er staat één artefact open ---
   await page.locator("button", { hasText: "Invorderingswet – artikel 9 lid 1" }).first().click();

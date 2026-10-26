@@ -397,8 +397,10 @@ bouwt de invoer, toetst en bewaart de uitkomst, en legt de besluiten vast.
   alternatieve term dragen.
 - **Akkoord** (`POST groepen/akkoord`, fase D) is overnemen plus het oordeel van de jurist, in **één
   transactie** (`_neem_over`): begrip, koppelingen met `beoordeling: akkoord`, accorderen als de poort
-  het toelaat (`begrip_store.accordeer_in`), groepsbesluit en – met `kandidaat_id` – de twijfelvraag
-  als *samen*. Antwoord `{begrip, geaccordeerd, poort}`: lukt accorderen niet, dan blijft het een
+  het toelaat (`begrip_store.accordeer_in`), groepsbesluit en – met `kandidaat_id` of `kandidaat_ids`
+  (spoor H4: alle vragen tussen de gekozen passages van een term, ≤ 500) – de twijfelvragen als *samen*.
+  Een onbekende vraag is 404; een vraag waarvan een kant niet bij de gekozen passages hoort 422
+  `vraag_buiten_keuze`. Antwoord `{begrip, geaccordeerd, poort}`: lukt accorderen niet, dan blijft het een
   concept en noemt de poort wat er openstaat. Met `aanpassing` wijzigt de jurist naam, definitie,
   context, begripstype of alternatieve termen; een gewijzigde definitie wordt `geformuleerd` en de
   onderbouwing noemt het voorstel, behalve bij de keuze `letterlijk` als de tekst zo in een bron van

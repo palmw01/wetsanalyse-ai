@@ -1,14 +1,19 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { ChevronOmlaag } from "@/components/ui/Icoon";
 import { Melding } from "@/components/ui/Melding";
-import { BegripReview } from "@/components/werkgebieden/BegripReview";
-import { foutTekst, haalGroepen, haalLaatsteBegrippenRun } from "@/lib/api";
+import { ObjectRij, ObjectRijen } from "@/components/ui/Pagina";
+import { VraagRegel } from "@/components/werkgebieden/BegripTerm";
+import { StatusLabel } from "@/components/ui/Lijst";
+import { akkoordGroep, beantwoordVraag, foutTekst, haalGroepen, haalLaatsteBegrippenRun } from "@/lib/api";
 import { hypotheseZin } from "@/lib/begripRelaties";
-import { AANDACHT_LABEL, openVragen, passageTekst, reviewVoortgang } from "@/lib/begripVoorstellen";
+import { losseVragen, termenVan, termOmvang } from "@/lib/begripTermen";
+import { AANDACHT_LABEL, BESLUIT_LABEL, openVragen, passageTekst, samenAkkoord } from "@/lib/begripVoorstellen";
 import type { BegrippenRun, GroepenAntwoord } from "@/lib/types";
+import { begripPad, termPad } from "@/lib/werkgebiedPaden";
 
 const INGEKLAPT = "wa_voorstellen_ingeklapt";
 
@@ -22,9 +27,10 @@ const datum = (iso: string) =>
  *  Lex draait de deterministische begrippenketen (ADR-004) op de passages van het werkgebied en stelt
  *  groepen voor: formuleringen die mogelijk één begrip aanduiden. Starten en meedenken vraag je Lex in
  *  het gesprek (*Stel begrippen voor*, *Denk mee over de begrippen*; F3e): de strook toont de laatste
- *  ronde en de relaties, en het beoordelen zelf is de reviewlijst `BegripReview` (fase D). Een voorstel
- *  is geen begrip, en geen besluit wijzigt een annotatie. */
-export function BegripVoorstellen({ id, runId, onBegrip, onGewijzigd, inklapbaar = true }: {
+ *  ronde, de voorstellen **per term** (spoor H4: de keten maakt één groep per term per bepaling, dus
+ *  "tijdvak" stond er zeven keer) en de relaties. Beoordelen gebeurt op de pagina van een term
+ *  (`BegripTermPagina`). Een voorstel is geen begrip, en geen besluit wijzigt een annotatie. */
+export function BegripVoorstellen({ id, runId, inklapbaar = true }: {
   id: string;
   /** De ronde waar een artefact in het gesprek naar wijst. De voorstellen zijn altijd die van de
    *  laatste ronde – daar wordt verder beoordeeld –, maar is dat een andere, dan zegt de strook dat. */
@@ -32,31 +38,27 @@ export function BegripVoorstellen({ id, runId, onBegrip, onGewijzigd, inklapbaar
   /** Op de tab Begrippen een strook die je kunt inklappen; in het artefactpaneel is hij de hele
    *  inhoud en staat hij altijd open. */
   inklapbaar?: boolean;
-  /** Een overgenomen of gekoppeld begrip openen in de werkplek. */
-  onBegrip: (begripId: string) => void;
-  /** De begrippenlijst ernaast is veranderd (een overname maakt een begrip). */
-  onGewijzigd: () => void;
 }) {
   const [ingeklaptBewaard, setIngeklapt] = useState(false);
   const ingeklapt = inklapbaar && ingeklaptBewaard;
   const [data, setData] = useState<GroepenAntwoord | null>(null);
   const [laatste, setLaatste] = useState<BegrippenRun | null>(null);
   const [fout, setFout] = useState<string | null>(null);
+  const [bezig, setBezig] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     try { setIngeklapt(localStorage.getItem(INGEKLAPT) === "1"); } catch { /* geen opslag */ }
   }, []);
 
-  const laad = useCallback(async (): Promise<GroepenAntwoord | null> => {
+  const laad = useCallback(async () => {
     try {
       const [g, l] = await Promise.all([haalGroepen(id), haalLaatsteBegrippenRun(id)]);
       setData(g);
       setLaatste(l);
-      return g;
     } catch (e) {
       setFout(foutTekst(e, "De voorstellen konden niet worden geladen."));
-      return null;
     }
   }, [id]);
 
@@ -72,8 +74,17 @@ export function BegripVoorstellen({ id, runId, onBegrip, onGewijzigd, inklapbaar
     });
   }
 
-  const review = reviewVoortgang(data);
-  const teGaan = review.totaal - review.beslist;
+  const termen = termenVan(data);
+  const open = termen.filter((t) => t.open.length > 0);
+  const besloten = termen.filter((t) => t.open.length === 0);
+  const los = losseVragen(data, termen);
+
+  async function voer(actie: () => Promise<unknown>) {
+    setBezig(true);
+    setFout(null);
+    try { await actie(); await laad(); } catch (e) { setFout(foutTekst(e)); } finally { setBezig(false); }
+  }
+  const teGaan = open.length;
   const run = laatste ?? data?.run ?? null;
   const vragen = openVragen(data);
   const relaties = data?.run?.uitkomst?.relaties ?? [];
@@ -86,12 +97,12 @@ export function BegripVoorstellen({ id, runId, onBegrip, onGewijzigd, inklapbaar
             className="focus-ring flex items-center gap-1.5 rounded text-left">
             <ChevronOmlaag className={`transition-transform ${ingeklapt ? "-rotate-90" : ""}`} />
             <span id="voorstellen-kop" className="font-display text-sm font-semibold text-lint">Voorstellen van Lex</span>
-            {teGaan > 0 && <span className="text-xs text-muted">· {teGaan} te beoordelen</span>}
+            {teGaan > 0 && <span className="text-xs text-muted">· {telling(teGaan, "term", "termen")} te beoordelen</span>}
           </button>
         ) : (
           <p className="flex items-center gap-1.5">
             <span id="voorstellen-kop" className="font-display text-sm font-semibold text-lint">Voorstellen van Lex</span>
-            {teGaan > 0 && <span className="text-xs text-muted">· {teGaan} te beoordelen</span>}
+            {teGaan > 0 && <span className="text-xs text-muted">· {telling(teGaan, "term", "termen")} te beoordelen</span>}
           </p>
         )}
       </div>
@@ -143,8 +154,49 @@ export function BegripVoorstellen({ id, runId, onBegrip, onGewijzigd, inklapbaar
             </p>
           )}
 
-          {data && data.run && (data.groepen.length > 0 || vragen.length > 0) && (
-            <BegripReview id={id} data={data} onHerlaad={laad} onBegrip={onBegrip} onGewijzigd={onGewijzigd} />
+          {data?.run && open.length > 0 && (
+            <ObjectRijen label="Voorstellen van Lex per term">
+              {open.map((t) => (
+                <ObjectRij key={t.sleutel} href={termPad(id, t.sleutel)} data-term={t.sleutel} titel={t.naam}
+                  sub={<>
+                    {termOmvang(t)} · {telling(t.passages, "passage", "passages")}
+                    {t.vragenBuiten.length > 0 && ` · ${telling(t.vragenBuiten.length, "vraag", "vragen")} naar een andere term`}
+                  </>}
+                  status={<>
+                    {t.lijktOp.length > 0 && <StatusLabel>lijkt op {t.lijktOp[0].naam}</StatusLabel>}
+                    {t.open.some((g) => g.aandacht === "geel") && <StatusLabel toon="geel">{AANDACHT_LABEL.geel}</StatusLabel>}
+                  </>} />
+              ))}
+            </ObjectRijen>
+          )}
+          {data?.run && open.length === 0 && termen.length > 0 && (
+            <p className="text-sm text-muted">Alle voorstellen van deze ronde zijn beoordeeld.</p>
+          )}
+          {data?.run && los.length > 0 && (
+            <details className="text-sm">
+              <summary className="focus-ring cursor-pointer rounded text-sm font-semibold text-lint">Losse twijfelvragen ({los.length})</summary>
+              <ul className="divide-y divide-line" aria-label="Losse twijfelvragen">
+                {los.map((v) => (
+                  <VraagRegel key={v.kandidaat_id} vraag={v} data={data} bezig={bezig}
+                    onApart={() => void voer(() => beantwoordVraag(id, data.run!.id, v.kandidaat_id, "apart"))}
+                    onSamen={(naam) => void voer(async () => {
+                      const uit = await akkoordGroep(id, samenAkkoord(v, data.groepen, data.passages, naam));
+                      router.push(begripPad(id, uit.begrip.id));
+                    })} />
+                ))}
+              </ul>
+            </details>
+          )}
+          {besloten.length > 0 && (
+            <details className="text-sm">
+              <summary className="focus-ring cursor-pointer rounded text-sm font-semibold text-lint">Beoordeelde termen ({besloten.length})</summary>
+              <ObjectRijen label="Beoordeelde termen">
+                {besloten.map((t) => (
+                  <ObjectRij key={t.sleutel} href={termPad(id, t.sleutel)} titel={t.naam}
+                    sub={[...new Set(t.besloten.map((g) => BESLUIT_LABEL[g.besluit]))].join(", ")} />
+                ))}
+              </ObjectRijen>
+            </details>
           )}
 
           {relaties.length > 0 && data && (

@@ -100,6 +100,9 @@ class Akkoord(Overname):
     definitie_van: str | None = None
     # "Samen" bij een twijfelvraag: de vraag wordt met dit akkoord beantwoord.
     kandidaat_id: str | None = None
+    # Spoor H4, de termpagina: alle twijfelvragen tussen de gekozen groepen in één keer "samen". Elke vraag
+    # moet twee passages van deze keuze verbinden.
+    kandidaat_ids: list[str] = Field(default_factory=list, max_length=500)
 
     @model_validator(mode="after")
     def _definitie_van(self) -> "Akkoord":

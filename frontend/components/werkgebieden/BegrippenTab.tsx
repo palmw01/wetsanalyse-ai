@@ -116,14 +116,7 @@ export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard, weer
         />
       )}
 
-      <BegripVoorstellen
-        id={id}
-        onGewijzigd={laadLijst}
-        onBegrip={(b) => {
-          // Na een overname staat het nieuwe begrip er pas na het verversen van de lijst.
-          void laadLijst().then(() => kies(b));
-        }}
-      />
+      <BegripVoorstellen id={id} />
 
       {herbeoordeling && herbeoordeling.begrippen.length > 0 && (
         <section aria-label="Herbeoordelen" className="rounded-kaart border border-aandacht-geel-rand bg-aandacht-geel-bg/40 px-3 py-2">

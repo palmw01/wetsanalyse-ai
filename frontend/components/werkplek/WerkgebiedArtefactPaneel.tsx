@@ -133,14 +133,7 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
               onKies={onWissel ? (d) => onWissel({ soort: "deelvraag", werkgebied_id: doel.werkgebied_id, run_id: "",
                 deelvraag_id: d.id, titel: d.vraag }) : undefined} />
           ) : doel.soort === "begrippen" ? (
-            <BegripVoorstellen
-              id={doel.werkgebied_id}
-              runId={doel.run_id}
-              inklapbaar={false}
-              onBegrip={(b) => router.push(begripPad(doel.werkgebied_id, b))}
-              // Er staat hier geen begrippenlijst naast die ververst moet worden.
-              onGewijzigd={() => {}}
-            />
+            <BegripVoorstellen id={doel.werkgebied_id} runId={doel.run_id} inklapbaar={false} />
           ) : (
             // Opnemen wijzigt het werkgebied; hier staat geen selectie naast die ververst moet worden.
             <BronKandidaten id={doel.werkgebied_id} onGewijzigd={() => {}} />

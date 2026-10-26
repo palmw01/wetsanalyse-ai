@@ -1,10 +1,9 @@
-// Rekenkern van de strook "Voorstellen van Lex" (spoor D, levering 3a): volgorde, wat een overname
-// wordt, en de woorden waarmee de werkplek de uitkomst van de keten noemt. Puur, voor vitest.
+// Rekenkern van de voorstellen van Lex (spoor D, levering 3a; per term in `begripTermen.ts`): wat een
+// overname wordt, en de woorden waarmee de werkplek de uitkomst van de keten noemt. Puur, voor vitest.
 
-import { klasseLabel } from "./jas";
 import type {
-  Aanpassing, AkkoordInvoer, Begrip, Begripstype, Betekenisgroep, DefinitieHerkomst, GroepBesluit, GroepenAntwoord,
-  KaartFragment, Koppeling, ModelOordeelSoort, Passage, TwijfelVraag,
+  Aanpassing, AkkoordInvoer, Begripstype, Betekenisgroep, DefinitieHerkomst, GroepBesluit, GroepenAntwoord,
+  KaartFragment, ModelOordeelSoort, Passage, TwijfelVraag,
 } from "./types";
 
 /** De vraag die in het gesprek komt te staan; graph-qa herkent hem ook zonder `modus` (fase C). */
@@ -94,21 +93,6 @@ export const BESLUIT_LABEL: Record<GroepBesluit, string> = {
 
 const OPEN = (g: Betekenisgroep) => g.besluit === "open" || g.besluit === "geparkeerd";
 
-/** Wat nog een besluit vraagt eerst (open, dan geparkeerd), daarbinnen geel vóór groen en meer leden
- *  eerst; besloten groepen achteraan. Stabiel op naam. */
-export function sorteerGroepen(groepen: readonly Betekenisgroep[]): Betekenisgroep[] {
-  const rang = (g: Betekenisgroep) => (g.besluit === "open" ? 0 : g.besluit === "geparkeerd" ? 1 : 2);
-  return [...groepen].sort(
-    (a, b) =>
-      rang(a) - rang(b) ||
-      (a.aandacht === b.aandacht ? 0 : a.aandacht === "geel" ? -1 : 1) ||
-      b.leden.length - a.leden.length ||
-      a.voorstel.naam.localeCompare(b.voorstel.naam, "nl"),
-  );
-}
-
-export const isBeslisbaar = OPEN;
-
 /** De overname voor de api: één of meer groepen, met de gekozen leden. Zijn alle leden gekozen, dan
  *  hoeven ze niet mee (de api neemt dan de hele groep); is het een deel, dan is het splitsen. */
 export function overnameVoor(
@@ -169,73 +153,6 @@ export function samenOvername(
   return { groep_ids: ids, naam, element_ids: leden, met_definitie: true };
 }
 
-// --- De review (fase D): één lijst met groepen en twijfelvragen, zoals de annotatiereview ---------
-
-export type ReviewFilter = "te_beoordelen" | "aandacht" | "alles";
-
-export const REVIEW_FILTERS: { waarde: ReviewFilter; label: string }[] = [
-  { waarde: "te_beoordelen", label: "Te beoordelen" },
-  { waarde: "aandacht", label: "Aandacht" },
-  { waarde: "alles", label: "Alles" },
-];
-
-export type ReviewItem =
-  | { soort: "groep"; id: string; groep: Betekenisgroep }
-  | { soort: "vraag"; id: string; vraag: TwijfelVraag };
-
-/** Een groep is beoordeeld zodra er een besluit is; parkeren telt mee (het is een keuze), en een
- *  gesplitste groep met een rest is nog open. */
-const groepBeslist = (g: Betekenisgroep) => g.besluit !== "open";
-
-function vraagBeslist(v: TwijfelVraag, data: GroepenAntwoord | null): boolean {
-  return !!data?.run?.vragen_besluiten?.[v.kandidaat_id];
-}
-
-/** De items in de volgorde van de review: open gele groepen, de open twijfelvragen, open groene
- *  groepen; daarna wat al een besluit heeft (alleen bij "alles"). Het toetsenbord loopt precies deze
- *  volgorde door. */
-export function reviewItems(data: GroepenAntwoord | null, filter: ReviewFilter): ReviewItem[] {
-  const groepen = sorteerGroepen(data?.groepen ?? []);
-  const vragen = openVragen(data);
-  const g = (x: Betekenisgroep): ReviewItem => ({ soort: "groep", id: x.id, groep: x });
-  const v = (x: TwijfelVraag): ReviewItem => ({ soort: "vraag", id: x.kandidaat_id, vraag: x });
-  const openG = groepen.filter((x) => !groepBeslist(x));
-  const openV = vragen.filter((x) => !vraagBeslist(x, data));
-  const open = [...openG.filter((x) => x.aandacht === "geel").map(g), ...openV.map(v),
-    ...openG.filter((x) => x.aandacht !== "geel").map(g)];
-  if (filter === "te_beoordelen") return open;
-  if (filter === "aandacht") return open.filter((i) => i.soort === "vraag" || i.groep.aandacht === "geel");
-  return [...open, ...groepen.filter(groepBeslist).map(g), ...vragen.filter((x) => vraagBeslist(x, data)).map(v)];
-}
-
-/** "4/11 beoordeeld": groepen en twijfelvragen samen. */
-export function reviewVoortgang(data: GroepenAntwoord | null): { totaal: number; beslist: number; aandacht: number } {
-  const groepen = data?.groepen ?? [];
-  const vragen = openVragen(data);
-  const openG = groepen.filter((g) => !groepBeslist(g));
-  return {
-    totaal: groepen.length + vragen.length,
-    beslist: groepen.filter(groepBeslist).length + vragen.filter((v) => vraagBeslist(v, data)).length,
-    aandacht: openG.filter((g) => g.aandacht === "geel").length + vragen.filter((v) => !vraagBeslist(v, data)).length,
-  };
-}
-
-/** Het volgende (of vorige) item; zonder selectie het eerste (of laatste). */
-export function volgendeItem(items: readonly ReviewItem[], actiefId: string | undefined, richting: 1 | -1): ReviewItem | undefined {
-  if (!items.length) return undefined;
-  const i = items.findIndex((x) => x.id === actiefId);
-  if (i < 0) return richting === 1 ? items[0] : items[items.length - 1];
-  return items[i + richting];
-}
-
-/** Na een besluit door naar het volgende item dat nog open is – zoals `a` bij annoteren. */
-export function naBesluit(itemsVoor: readonly ReviewItem[], beslotenId: string, itemsNa: readonly ReviewItem[]): string | undefined {
-  const plek = itemsVoor.findIndex((x) => x.id === beslotenId);
-  const daarna = itemsVoor.slice(plek + 1).map((x) => x.id);
-  const nogOpen = new Set(itemsNa.map((x) => x.id));
-  return daarna.find((id) => nogOpen.has(id)) ?? itemsNa.find((x) => x.id !== beslotenId)?.id;
-}
-
 /** Wat de akkoordknop belooft: de poort vooraf zegt of het een geaccordeerd begrip wordt. */
 export function akkoordLabel(g: Betekenisgroep): { label: string; concept: boolean; redenen: string[] } {
   const p = g.poort_vooraf;
@@ -294,38 +211,4 @@ export function herkomstNaAanpassing(oud: { tekst: string; herkomst: DefinitieHe
   if (gekozen === "letterlijk") return "letterlijk";
   if (tekst.trim() !== oud.tekst.trim() || gekozen === "geformuleerd" || !oud.herkomst) return "geformuleerd";
   return oud.herkomst;
-}
-
-/** Wat combineren naast elkaar zet, met de signalen die ertegen pleiten (PLAN §D: combineren toont
- *  eerst een vergelijking). Een signaal is geen verbod. */
-export interface Vergelijking {
-  groepen: { id: string; naam: string; definitie: GroepDefinitie | null; begripstype: Begripstype | null;
-    klassen: string[]; leden: Passage[]; aandacht: "groen" | "geel" }[];
-  signalen: string[];
-  /** Groepen met een definitie: daaruit kiest de jurist er één (of geen). */
-  metDefinitie: string[];
-}
-
-export function vergelijk(groepen: readonly Betekenisgroep[]): Vergelijking {
-  const rijen = groepen.map((g) => ({
-    id: g.id, naam: g.voorstel.naam, definitie: groepDefinitie(g), begripstype: g.kaart?.begripstype ?? null,
-    klassen: [...new Set(g.leden.map((l) => klasseLabel(l.jas_klasse)))], leden: g.leden, aandacht: g.aandacht,
-  }));
-  const signalen: string[] = [];
-  const typen = new Set(rijen.map((r) => r.begripstype).filter(Boolean));
-  if (typen.size > 1) signalen.push(`Verschillende begripstypen: ${[...typen].map((t) => BEGRIPSTYPE_LABEL[t!]).join(", ")}.`);
-  const klassen = new Set(rijen.flatMap((r) => r.klassen));
-  if (klassen.size > 1) signalen.push(`Verschillende JAS-klassen: ${[...klassen].join(", ")}.`);
-  const defs = new Set(rijen.map((r) => r.definitie?.tekst).filter(Boolean));
-  if (defs.size > 1) signalen.push("De groepen hebben elk een eigen definitie; kies er één, of geen.");
-  const conflicten = groepen.reduce((n, g) => n + g.conflicten.length, 0);
-  if (conflicten) signalen.push(`Lex zag ${conflicten === 1 ? "één aanwijzing" : `${conflicten} aanwijzingen`} dat passages níét hetzelfde betekenen.`);
-  return { groepen: rijen, signalen, metDefinitie: rijen.filter((r) => r.definitie).map((r) => r.id) };
-}
-
-/** De dragende passages van een concept waarvan de annotatie nog niet door een jurist is beoordeeld:
- *  daar staat in de review de knop "Annotatie akkoord". */
-export function onbeoordeeldeAnnotaties(b: Begrip): Koppeling[] {
-  return b.koppelingen.filter((k) => (k.rol === "duiding" || k.rol === "definitie") && k.beoordeling !== "afgewezen"
-    && k.actualiteit === "actueel" && !k.annotatie_beoordeeld);
 }
