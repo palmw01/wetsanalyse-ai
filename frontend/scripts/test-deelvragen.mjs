@@ -133,15 +133,26 @@ try {
 
   // 3. Koppelen: een bron en een concept-begrip → nog geen geaccordeerd begrip; met het geaccordeerde → gedekt.
   const vraag = "Wanneer is een aanslag invorderbaar?";
-  await sectie().getByRole("button", { name: `Bronnen en begrippen bij: ${vraag}` }).click();
-  await rij(vraag).getByLabel("Artikel 9 – Invorderingswet 1990").check();
-  await rij(vraag).getByLabel(/termijn/).check();
-  await rij(vraag).getByRole("button", { name: "Opslaan" }).click();
+  // Spoor H3: koppelen staat achter ⋯ en gaat in een venster, met de bronnen als boom per regeling.
+  const koppel = async () => {
+    await sectie().getByRole("button", { name: `Acties: ${vraag}` }).click();
+    await page.getByRole("button", { name: `Bronnen en begrippen bij: ${vraag}` }).click();
+    const venster = page.getByRole("dialog", { name: `Bronnen en begrippen bij: ${vraag}` });
+    await venster.locator("[data-bronboom]").waitFor();
+    return venster;
+  };
+  let venster = await koppel();
+  await venster.getByLabel("Artikel 9 – Invorderingswet 1990").check();
+  await venster.getByLabel(/termijn/).check();
+  await venster.getByRole("button", { name: "Opslaan" }).click();
+  await venster.waitFor({ state: "detached" });
   await page.waitForFunction((v) => [...document.querySelectorAll("[data-deelvraag]")]
     .find((li) => li.textContent.includes(v))?.querySelector("[data-stand]")?.textContent === "Nog geen geaccordeerd begrip", vraag);
-  await sectie().getByRole("button", { name: `Bronnen en begrippen bij: ${vraag}` }).click();
-  await rij(vraag).getByLabel(/invorderbaar \(geaccordeerd\)/).check();
-  await rij(vraag).getByRole("button", { name: "Opslaan" }).click();
+  // De rij noemt de omvang in plaats van een kommareeks.
+  await rij(vraag).getByText("1 bron · 1 begrip", { exact: false }).waitFor();
+  venster = await koppel();
+  await venster.getByLabel(/invorderbaar \(geaccordeerd\)/).check();
+  await venster.getByRole("button", { name: "Opslaan" }).click();
   await page.waitForFunction((v) => [...document.querySelectorAll("[data-deelvraag]")]
     .find((li) => li.textContent.includes(v))?.querySelector("[data-stand]")?.textContent === "Gedekt", vraag);
   assert.equal(await stand(vraag).textContent(), "Gedekt");
@@ -149,10 +160,11 @@ try {
   const koppeling = requests.filter((r) => r.m === "PUT").at(-1).body;
   assert.deepEqual([koppeling.bronnen, [...koppeling.begrippen].sort()], [["s9"], ["b1", "b2"]]);
 
-  // 4. Weghalen: eerst scherp zetten, dan pas weg.
-  await sectie().getByRole("button", { name: "Weghalen: Wie is de belastingschuldige?" }).click();
+  // 4. Verwijderen (niet "weghalen"): achter ⋯, eerst scherp zetten, dan pas weg.
+  await sectie().getByRole("button", { name: "Acties: Wie is de belastingschuldige?" }).click();
+  await page.getByRole("button", { name: "Verwijderen: Wie is de belastingschuldige?" }).click();
   assert.equal(await rij("Wie is de belastingschuldige?").count(), 1, "één klik haalt nog niets weg");
-  await sectie().getByRole("button", { name: "Weghalen?" }).click();
+  await page.getByRole("button", { name: "Verwijderen?" }).click();
   await rij("Wie is de belastingschuldige?").waitFor({ state: "detached" });
 
   assert.deepEqual(errors, []);
