@@ -102,7 +102,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | D | Activiteit 3: werkgebieden en begrippen | Ontwerp klaar, niets gebouwd |
 | E | Kennisbank (tweede corpus) | Ontwerp klaar, niets gebouwd |
 | F | Activiteit 1 in het gesprek: werkgebied bepalen | F0 en F1 gebouwd (vraagkaarten zoals Claude → werkgebied); vervolg open |
-| G | Lex als projectgerichte werkplek (mock-up v4) | G1–G3 gebouwd (gesprek bij een werkgebied, de projectpagina, eigen pagina's per object); G4–G5 open |
+| G | Lex als projectgerichte werkplek (mock-up v4) | G1–G4 gebouwd (gesprek bij een werkgebied, de projectpagina, eigen pagina's per object, het contextpaneel); G5 open |
 
 ---
 
@@ -978,10 +978,15 @@ volledige pagina*.
   wettekst en álle markeringen, de elementen, de kennisgraaf en de werkgebieden – `GET /v1/werkgebieden?bron_iri=`),
   JAS-element (`/annotaties/element/[id]`: bronvoorkomen, classificatie, accorderen, afwijzen met reden,
   heropenen) en begrip (`/begrippen/[wg]/[id]`, de volledige kaart). De artefactpagina's kwamen in G2.
-- **G4 – zijpaneel in het gesprek**: één `ContextPaneel` voor bron, element, begrip, artefact en de
-  bronnen van het werkgebied, met *Open volledige pagina*.
-- **G5 – verdieping**: alle JAS-spans tegelijk in de wettekst van de bepalingspagina; de begripskaart in
-  NL-SBB-volgorde, met het onderscheid brondefinitie en analysebegrip zichtbaar.
+- **G4 – zijpaneel in het gesprek** – **gebouwd** (26 okt 2026): `ContextPaneel` naast de artefact- en
+  annotatiepanelen, voor een bepaling, een JAS-element en de bronnen van het werkgebied (*Bronnen* in de
+  chatkop, *Naast het gesprek* op de bronkaart van een citatie). Om te raadplegen: geen beoordelingsknoppen.
+  Elk paneel heeft *Open volledige pagina*. Hoogstens één paneel; kolom ≥1280px, sheet daaronder; weg uit
+  de werkplek is het paneel weg. Begrip, deelvraag en werkgebied bleven in het bestaande artefactpaneel
+  (dat had ze al), nu met dezelfde ingang naar de pagina.
+- **G5 – verdieping**: alle JAS-spans tegelijk in de wettekst van de bepalingspagina (op de bronpagina al
+  sinds G3; de annotatiepagina toont bewust één markering tegelijk); de begripskaart in NL-SBB-volgorde, met
+  het onderscheid brondefinitie en analysebegrip zichtbaar.
 
 **Buiten scope**: een begrip in meerdere werkgebieden zonder kopie (open keuze 3: één kader per
 werkgebied). Annotaties zijn al gedeeld per bronnode.
