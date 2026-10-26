@@ -115,3 +115,25 @@ export function sorteerKandidaten(lijst: BronKandidaat[]): BronKandidaat[] {
 export function bijDeelvraag(k: Pick<BronKandidaat, "bewijs">, deelvraagId: string): boolean {
   return k.bewijs.some((b) => b.detail?.deelvraag_id === deelvraagId);
 }
+
+/** Het bewijs van een kandidaat in één regel (spoor H): per methode één stuk, herhalingen geteld –
+ *  "8× verwezen vanuit de kern · definieert “rijksbelastingen”". Het volledige bewijs (`bewijsZin` per
+ *  regel) staat uitklapbaar; hier gaat het om in één oogopslag waarom Lex de bepaling noemt. */
+export function bewijsSamenvatting(bewijs: readonly KandidaatBewijs[], labels: Map<string, string> = new Map()): string {
+  const per = new Map<BronMethode, KandidaatBewijs[]>();
+  for (const b of bewijs) per.set(b.methode, [...(per.get(b.methode) ?? []), b]);
+  const stukken: string[] = [];
+  for (const [m, lijst] of per) {
+    if (lijst.length === 1) { stukken.push(bewijsZin(lijst[0], labels)); continue; }
+    const n = lijst.length;
+    switch (m) {
+      case "verwijzing_uit": stukken.push(`${n}× verwezen vanuit de kern`); break;
+      case "verwijzing_in": stukken.push(`verwijst ${n}× naar de kern`); break;
+      case "definitie": stukken.push(`definieert ${[...new Set(lijst.map((b) => `“${b.detail?.begrip ?? "?"}”`))].join(", ")}`); break;
+      case "deelvraag": stukken.push(`gevonden bij ${new Set(lijst.map((b) => b.detail?.deelvraag_id)).size} deelvragen`); break;
+      case "opbouw": stukken.push(`staat in hetzelfde deel als ${n} bepalingen van de kern`); break;
+      default: stukken.push(`${METHODE_LABEL[m]} (${n}×)`);
+    }
+  }
+  return stukken.join(" · ");
+}

@@ -427,7 +427,7 @@ herken je aan `reeks.run_id` (de berichten zelf dragen `<run>.<n>`), en bij opni
 lopende reeks gaat het gehydrateerde blok eerst weg – de eventlog speelt het geheel opnieuw af.
 
 *Open ›* opent het paneel **op dat ene lid**, met een reeksbalk (`ReeksBalk` in
-`NodeAnnotatiePaneel`, `reeksNavigatie` in `lib/reeks.ts`): "2 van 3" en ‹ › of `[` `]` naar het
+`NodeAnnotatiePaneel`, `reeksNavigatie` in `lib/reeks.ts`): "2 van 3" en ‹ › naar het
 buurlid. Bewust niet het hele artikel in één paneel: *Afronden* en *Verwijderen* werken op álle lagen
 in beeld, ook op leden die niet gekozen waren. Alleen leden met een vastgelegde annotatie tellen mee
 in het bladeren.
@@ -731,10 +731,14 @@ bestaat los van de gesprekken.
     lid 1 (“artikel 8”) – uitzondering"). Per methode de telling en "onvolledig" als ze haar plafond
     raakte. Filters open / later / uitgesloten / opgenomen (`filterVan`: met de hand opgenomen telt als
     opgenomen).
-  - **Besluiten**: *Opnemen als …* (de voorgestelde rol eerst: `standaardRol`, kern → analyseren,
-    anders contextbron) – `neemKandidaatOp` haalt de revisie zelf op en probeert bij een 412 één keer
-    opnieuw; *Later*; *Uitsluiten* opent een redenveld (verplicht, krijgt de focus); *Heropenen*.
-  - **Toetsenbord** alleen met de focus in de lijst: `j`/`k`, `a` opnemen, `x` uitsluiten.
+  - **Een boom met een actiebalk** (spoor H2): de kandidaten in `BronBoom` per regeling › hoofdstuk ›
+    artikel › lid (de plek uit `usePlaatsen`), per regel een vinkje, de rol en één zin bewijs
+    (`bewijsSamenvatting`); *Bewijs* klapt het hele bewijs uit. Geen knoppen per regel.
+  - **Besluiten** in de actiebalk, voor alles wat aangevinkt is (ook een heel artikel of hoofdstuk via
+    het vinkje van de kop): *Opnemen om te analyseren* / *als context* – `neemKandidaatOp` haalt de revisie
+    zelf op en probeert bij een 412 één keer opnieuw –, *Later*, *Uitsluiten…* (één verplichte reden,
+    krijgt de focus) en *Heropenen*. Elk besluit is een eigen verzoek, in de volgorde van de boom; bij een
+    fout stopt het en zegt het hoe ver.
   - De allowlist (`isWerkgebiedRoute`) laat `kandidaten/*` en `bronnen-runs/laatste|{run}` door, nooit
     een kale POST op `bronnen-runs` of `…/uitkomst|loopt|mislukt` (dat is van graph-qa).
   - **Werkgebied vanuit een overzicht**: onder `OverzichtBlok` de knop *Maak hier een werkgebied van*
@@ -999,13 +1003,12 @@ de markering (`DocumentPaneel`) en de kaart (`ReviewQueue`), met respect voor
   spreken elkaar nooit tegen.
 - **Zwevende markeringen worden benoemd.** Is een fragment niet meer in de tekst te vinden
   (`vindPositie` → `-1`), dan staat dat op de kaart en in de teller.
-- **Toetsenbord**: `j`/`k` (of ↓/↑) door de getoonde lijst, `a` akkoord, `x` verwerpen, `c` klasse,
-  `Escape` loslaten. De listener doet **niets zolang de focus in een invoerveld staat** – anders keur
-  je iets goed door "a" te typen. Na *Akkoord* springt de selectie naar het volgende dat aandacht
-  vraagt; knop en toets lopen via dezelfde `onAkkoord`.
-- **Volgorde en open bedieningsrij leven in `ArtefactInhoud`**, niet in de lijst:
-  zo doorloopt het toetsenbord dezelfde volgorde als je ziet, en staat er nooit op twee kaarten
-  tegelijk een rij open.
+- **Geen sneltoetsen** (besluit gebruiker 26 okt 2026): geen letters, geen `[`/`]`, geen hint. Een kaart
+  kies je met een klik; beoordelen gaat met de knoppen. Alleen Escape pelt de lagen af (selectie →
+  bedieningsrij → gekozen element → sluiten), en niet vanuit de chat ernaast. Na *Akkoord* springt de
+  selectie naar het volgende dat aandacht vraagt (`onAkkoord`).
+- **Volgorde en open bedieningsrij leven in `ArtefactInhoud`**, niet in de lijst: er staat nooit op twee
+  kaarten tegelijk een rij open.
 
 ### De reviewkaart
 
@@ -1409,10 +1412,8 @@ leest als "hij laadt", niet als "log eerst in".
   (`beslissingMelding`); anders is annoteren voor een schermlezer stil.
 - **Escape en Tab zijn voor het bovenste venster.** `Dialog` houdt een stapel bij; alleen het
   bovenste venster reageert, en bij sluiten gaat de focus terug naar waar hij vandaan kwam. `Popover`
-  en een scherpe `BevestigKnop` vangen hun Escape in de capture-fase af. De sneltoetsen van het
-  artefact (`j/k/a/x/c`, `[`/`]`) werken alleen met de focus in het artefact (`focusBijArtefact`):
-  in de kolomvariant staat de chat ernaast, en een `a` op een chatknop zou anders het gekozen element
-  goedkeuren.
+  en een scherpe `BevestigKnop` vangen hun Escape in de capture-fase af. Lex heeft geen sneltoetsen;
+  Escape van het artefact geldt alleen met de focus in het artefact (`focusBijArtefact`).
 
 ## Observability
 
@@ -1547,8 +1548,8 @@ npm run test:browser # Playwright op de echte Next-UI met gemockte BFF (scripts/
 (`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`).
 Praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,
 waarna de pagina niet hydrateert en elke stap zonder duidelijke fout time-out.
-`scripts/test-toetsen.mjs` bewaakt wat alleen in een browser te zien is: sneltoetsen alleen met de
-focus in het artefact, Escape voor het bovenste venster, focus terug na sluiten, geen herstellus na
+`scripts/test-toetsen.mjs` bewaakt wat alleen in een browser te zien is: een letter beslist niets (geen
+sneltoetsen), Escape voor het bovenste venster, focus terug na sluiten, geen herstellus na
 een geslaagde beurt, een vraag die blijft staan tijdens het laden, en zelf markeren op een
 aanraakscherm (`TOUCH_ENGINE=webkit` voor de Safari-engine, als het systeem die kan draaien).
 

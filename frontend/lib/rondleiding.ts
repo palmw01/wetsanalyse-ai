@@ -186,8 +186,7 @@ export const STAPPEN: Stap[] = [
     tekst:
       "Probeer het: klik de kaart aan. Hij klapt open, met onder Waarom? hoe Lex tot het voorstel " +
       "kwam. Klik dan op Akkoord, kies via de klassebadge een andere klasse, of verwerp het voorstel " +
-      "met × (met reden). Sneller gaat het met j en k door de lijst, a voor akkoord, x voor verwerpen " +
-      "en c voor klasse.",
+      "met × (met reden).",
     waarom:
       "Elke beslissing komt in het auditspoor. Een voorstel dat je verwerpt blijft zichtbaar, met " +
       "jouw reden erbij.",

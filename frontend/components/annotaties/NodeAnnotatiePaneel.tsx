@@ -9,7 +9,7 @@ import { RevisieHistorie } from "@/components/annotaties/RevisieHistorie";
 import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { ArtefactInhoud, focusBijArtefact } from "@/components/werkplek/ArtefactInhoud";
+import { ArtefactInhoud } from "@/components/werkplek/ArtefactInhoud";
 import { foutTekst, type ExportFormaat } from "@/lib/api";
 import {
   apiOpslag, nodeLink, verwachteRevisies,
@@ -223,21 +223,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
     </div>
   );
 
-  // `[` en `]` bladeren door de reeks, net als j/k door de reviewlijst – niet vanuit een invoerveld.
-  useEffect(() => {
-    if (!reeks) return;
-    const opToets = (e: KeyboardEvent) => {
-      const doelEl = e.target as HTMLElement | null;
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (doelEl && (doelEl.tagName === "INPUT" || doelEl.tagName === "TEXTAREA" || doelEl.isContentEditable)) return;
-      // Niet vanuit de chat ernaast (kolomvariant): daar horen `[` en `]` bij wat je typt of kiest.
-      if (!focusBijArtefact(doelEl)) return;
-      const naar = e.key === "[" ? reeks.vorige : e.key === "]" ? reeks.volgende : undefined;
-      if (naar) { e.preventDefault(); reeks.onGa(naar); }
-    };
-    document.addEventListener("keydown", opToets);
-    return () => document.removeEventListener("keydown", opToets);
-  }, [reeks]);
+  // Bladeren door de reeks gaat met ‹ › in de balk; Lex heeft geen sneltoetsen (besluit 26 okt 2026).
   const reeksBalk = reeks && <ReeksBalk reeks={reeks} label={view?.doel.label || doel.label || ""} />;
 
   const inhoud = !view || !nb || !doc ? (
@@ -312,14 +298,14 @@ function ReeksBalk({ reeks, label }: { reeks: ReeksNavigatie & { onGa: (doel: No
   return (
     <nav aria-label="Reeks" className="flex shrink-0 items-center gap-2 border-b border-line bg-surface/60 px-4 py-1.5">
       <button type="button" className={knop} disabled={!reeks.vorige} onClick={() => reeks.vorige && reeks.onGa(reeks.vorige)}
-        aria-label={reeks.vorige ? `Vorige: ${reeks.vorige.label || "vorig lid"}` : "Vorige"} title="Vorige ( [ )">‹</button>
+        aria-label={reeks.vorige ? `Vorige: ${reeks.vorige.label || "vorig lid"}` : "Vorige"} title="Vorige">‹</button>
       <span className="min-w-0 flex-1 truncate text-center text-xs text-muted">
         {reeks.ouder && <span>{reeks.ouder} · </span>}
         <span className="text-ink">{label.replace(`${reeks.ouder}, `, "")}</span>
         <span> · {reeks.index + 1} van {reeks.totaal}</span>
       </span>
       <button type="button" className={knop} disabled={!reeks.volgende} onClick={() => reeks.volgende && reeks.onGa(reeks.volgende)}
-        aria-label={reeks.volgende ? `Volgende: ${reeks.volgende.label || "volgend lid"}` : "Volgende"} title="Volgende ( ] )">›</button>
+        aria-label={reeks.volgende ? `Volgende: ${reeks.volgende.label || "volgend lid"}` : "Volgende"} title="Volgende">›</button>
     </nav>
   );
 }

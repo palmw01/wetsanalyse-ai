@@ -231,9 +231,8 @@ try {
   await page.getByText("Invorderingswet – artikel 9 lid 1", { exact: true }).last().click();
   await wettekst().getByText("ontvanger", { exact: false }).waitFor();
   assert.equal(await wettekst().getByText("UITSLUITEND TWEE", { exact: false }).count(), 0);
-  // Kaart kiezen met het toetsenbord (de focus mag niet in het chatveld staan), dan Vraag Lex.
-  await wettekst().click();
-  await page.keyboard.press("j");
+  // Een kaart kiezen (met een klik; er zijn geen sneltoetsen), dan Vraag Lex.
+  await page.locator("[data-review-kaart]").first().click();
   await page.getByRole("button", { name: "Vraag Lex", exact: true }).click();
   // Drie vragen per klasse als chips, het invoerveld blijft leeg; één klik verstuurt.
   const suggesties = page.getByTestId("vraag-suggesties").getByRole("button");

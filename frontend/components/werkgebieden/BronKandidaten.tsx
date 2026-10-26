@@ -3,21 +3,25 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { BronBoom } from "@/components/ui/BronBoom";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
-import { Lijst, LijstRij, Sectie } from "@/components/ui/Lijst";
+import { Sectie } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import {
   besluitKandidaat, foutTekst, haalKandidaten, haalLaatsteBronnenRun, neemKandidaatOp,
 } from "@/lib/api";
 import {
-  FILTER_LABEL, KANDIDAAT_ROL_LABEL, KANDIDAAT_ROL_UITLEG, METHODE_LABEL, bewijsZin, bijDeelvraag, filterVan, plekNaam,
+  FILTER_LABEL, KANDIDAAT_ROL_LABEL, KANDIDAAT_ROL_UITLEG, METHODE_LABEL, bewijsSamenvatting, bewijsZin, bijDeelvraag, filterVan, plekNaam,
   sorteerKandidaten,
   standaardRol, telPerFilter, type KandidaatFilter,
 } from "@/lib/bronKandidaten";
 import type { BronKandidaat, BronMethode, BronRol, BronnenRun, KandidatenAntwoord } from "@/lib/types";
-import { ROL_LABEL, annotatieHref } from "@/lib/werkgebied";
+import { bladerenVan, bouwBoom, regelingUitLabel } from "@/lib/bronPlaats";
+import { usePlaatsen } from "@/lib/usePlaatsen";
+import { ROL_LABEL } from "@/lib/werkgebied";
+import { bronPad } from "@/lib/werkgebiedPaden";
 
 const KNOP =
   "focus-ring inline-flex min-h-[24px] items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors disabled:opacity-50 coarse:min-h-[44px]";
@@ -35,8 +39,11 @@ const FILTERS: KandidaatFilter[] = ["open", "later", "uitgesloten", "opgenomen"]
  *  beslist: opnemen (als analyseren of context), later, of uitsluiten met een reden – een uitgesloten
  *  kandidaat stelt Lex niet opnieuw voor.
  *
- *  Toetsenbord, alleen met de focus in de lijst: `j`/`k` door de kandidaten, `a` opnemen met de
- *  voorgestelde rol, `x` uitsluiten (de reden krijgt de focus).
+ *  Spoor H: de kandidaten staan als boom per regeling › hoofdstuk › artikel › lid (`BronBoom`, de plek uit
+ *  `usePlaatsen`), per regel één zin bewijs (`bewijsSamenvatting`; de gekozen regel toont alles). Geen knoppen
+ *  per regel: je vinkt aan – een regel, of een heel artikel, hoofdstuk of regeling – en besluit in de
+ *  actiebalk voor alles wat gekozen is. Elk besluit is een eigen verzoek, in volgorde. Een klik op een regel
+ *  toont het hele bewijs; geen sneltoetsen (besluit gebruiker 26 okt 2026).
  *
  *  Zoeken vraag je Lex in het gesprek (*Zoek bepalingen bij alle deelvragen*, of *Zoek bepalingen hierbij*
  *  op een deelvraag, F3e); hier staat wat hij vond. Met `deelvraagId` (het deelvraagpaneel, F3d) alleen
@@ -54,10 +61,11 @@ export function BronKandidaten({ id, deelvraagId, labels, onGewijzigd }: {
   const [fout, setFout] = useState<string | null>(null);
   const [melding, setMelding] = useState<string | null>(null);
   const [filter, setFilter] = useState<KandidaatFilter>("open");
-  const [actief, setActief] = useState(0);
-  const [uitsluiten, setUitsluiten] = useState<string | null>(null);   // kandidaat-id met open redenveld
-  const [bezig, setBezig] = useState<string | null>(null);
-  const lijstRef = useRef<HTMLUListElement & HTMLOListElement>(null);
+  // Welke regel haar hele bewijs toont (hoogstens één); geen regel standaard.
+  const [open, setOpen] = useState<string | null>(null);
+  const [gekozen, setGekozen] = useState<ReadonlySet<string>>(new Set());
+  const [uitsluiten, setUitsluiten] = useState(false);
+  const [bezig, setBezig] = useState<{ klaar: number; totaal: number } | null>(null);
 
   const laad = useCallback(async () => {
     try {
@@ -74,51 +82,68 @@ export function BronKandidaten({ id, deelvraagId, labels, onGewijzigd }: {
     void laad();
   }, [laad]);
 
-  async function besluit(k: BronKandidaat, actie: () => Promise<unknown>, gelukt: string) {
-    setFout(null);
-    setMelding(null);
-    setBezig(k.id);
-    try {
-      await actie();
-      setUitsluiten(null);
-      await laad();
-      setMelding(gelukt);
-      return true;
-    } catch (e) {
-      setFout(foutTekst(e));
-      return false;
-    } finally {
-      setBezig(null);
-    }
-  }
-
-  const opnemen = (k: BronKandidaat, rol: BronRol) => besluit(k, async () => {
-    await neemKandidaatOp(id, k.id, rol);
-    onGewijzigd();
-  }, `${k.label || k.bron_iri} opgenomen als ${ROL_LABEL[rol].toLowerCase()}.`);
-
   const alle = useMemo(() => sorteerKandidaten((data?.kandidaten ?? [])
     .filter((k) => !deelvraagId || bijDeelvraag(k, deelvraagId))), [data, deelvraagId]);
+  const plaatsen = usePlaatsen(alle.map((k) => k.bron_iri));
   const telling = useMemo(() => telPerFilter(alle), [alle]);
   const getoond = useMemo(() => alle.filter((k) => filterVan(k) === filter), [alle, filter]);
+  const boom = useMemo(() => bouwBoom(getoond, {
+    iri: (k) => k.bron_iri, naam: (k) => k.label || plekNaam(k.bron_iri), plaatsen,
+    regelingNaam: (k) => regelingUitLabel(k.label),
+  }), [getoond, plaatsen]);
+  // De volgorde van de boom: die volgen de besluiten in de actiebalk.
+  const volgorde = useMemo(() => boom.flatMap(bladerenVan).map((b) => b.data), [boom]);
   const run = laatste ?? data?.run ?? null;
-  const huidig = getoond[Math.min(actief, Math.max(0, getoond.length - 1))];
+  const doelen = volgorde.filter((k) => gekozen.has(k.bron_iri));
+  const beslisbaar = filter !== "opgenomen";
 
-  function opToets(e: React.KeyboardEvent) {
-    const doel = e.target as HTMLElement;
-    if (doel.closest("input, textarea, select") || e.metaKey || e.ctrlKey || e.altKey) return;
-    if (e.key === "j" || e.key === "ArrowDown") { e.preventDefault(); setActief((i) => Math.min(i + 1, getoond.length - 1)); }
-    else if (e.key === "k" || e.key === "ArrowUp") { e.preventDefault(); setActief((i) => Math.max(i - 1, 0)); }
-    else if (e.key === "a" && huidig && filterVan(huidig) !== "opgenomen") { e.preventDefault(); void opnemen(huidig, standaardRol(huidig)); }
-    else if (e.key === "x" && huidig && filterVan(huidig) !== "opgenomen" && huidig.status !== "uitgesloten") {
-      e.preventDefault();
-      setUitsluiten(huidig.id);
+  /** Eén besluit voor elke gekozen kandidaat, in volgorde; bij een fout stopt het en zegt het hoe ver. */
+  async function voorAlle(lijst: BronKandidaat[], actie: (k: BronKandidaat) => Promise<unknown>, gelukt: (n: number) => string,
+    wijzigtSelectie = false) {
+    if (!lijst.length || bezig) return;
+    setFout(null);
+    setMelding(null);
+    setBezig({ klaar: 0, totaal: lijst.length });
+    let klaar = 0;
+    try {
+      for (const k of lijst) {
+        await actie(k);
+        klaar += 1;
+        setBezig({ klaar, totaal: lijst.length });
+      }
+      setMelding(gelukt(klaar));
+      setGekozen(new Set());
+      setUitsluiten(false);
+    } catch (e) {
+      setFout(`${klaar ? `${klaar} van ${lijst.length} verwerkt; daarna ging het mis: ` : ""}${foutTekst(e)}`);
+    } finally {
+      setBezig(null);
+      if (wijzigtSelectie && klaar) onGewijzigd();
+      await laad();
     }
   }
 
-  useEffect(() => {
-    lijstRef.current?.querySelector<HTMLElement>(`[data-index="${actief}"]`)?.scrollIntoView({ block: "nearest" });
-  }, [actief]);
+  // Zonder gekozen rol neemt elke bepaling haar voorgestelde rol; de melding noemt die als ze voor alle gelijk is.
+  const opnemen = (lijst: BronKandidaat[], rol?: BronRol) => {
+    const rollen = new Set(lijst.map((k) => rol ?? standaardRol(k)));
+    const als = rollen.size === 1 ? ` als ${ROL_LABEL[[...rollen][0]].toLowerCase()}` : "";
+    return voorAlle(lijst, (k) => neemKandidaatOp(id, k.id, rol ?? standaardRol(k)),
+      (n) => `${n} ${n === 1 ? "bepaling" : "bepalingen"} opgenomen${als}.`, true);
+  };
+  const later = (lijst: BronKandidaat[]) => voorAlle(lijst, (k) => besluitKandidaat(id, k.id, "later"),
+    (n) => `${n} voor later bewaard.`);
+  const heropenen = (lijst: BronKandidaat[]) => voorAlle(lijst, (k) => besluitKandidaat(id, k.id, "heropenen"),
+    (n) => `${n} weer een open voorstel.`);
+  const sluitUit = (lijst: BronKandidaat[], reden: string) => voorAlle(lijst, (k) => besluitKandidaat(id, k.id, "uitsluiten", reden),
+    (n) => `${n} uitgesloten; Lex stelt ${n === 1 ? "deze bepaling" : "ze"} niet opnieuw voor.`);
+
+  function zet(iris: string[], aan: boolean) {
+    setGekozen((g) => {
+      const n = new Set(g);
+      for (const i of iris) if (aan) n.add(i); else n.delete(i);
+      return n;
+    });
+  }
 
   return (
     <Sectie data-bronkandidaten titel={deelvraagId ? "Bepalingen die Lex hierbij vond" : "Bepalingen gevonden door Lex"}
@@ -143,7 +168,7 @@ export function BronKandidaten({ id, deelvraagId, labels, onGewijzigd }: {
         <div role="tablist" aria-label="Filter" className="flex flex-wrap gap-1.5">
           {FILTERS.map((f) => (
             <button key={f} type="button" role="tab" aria-selected={filter === f}
-              onClick={() => { setFilter(f); setActief(0); }}
+              onClick={() => { setFilter(f); setOpen(null); setGekozen(new Set()); setUitsluiten(false); }}
               className={`${KNOP} ${filter === f ? "border-lint bg-lint text-white" : "border-line text-ink hover:bg-surface"}`}>
               {FILTER_LABEL[f]} ({telling[f]})
             </button>
@@ -159,109 +184,113 @@ export function BronKandidaten({ id, deelvraagId, labels, onGewijzigd }: {
       {alle.length > 0 && getoond.length === 0 && <p className="text-sm text-muted">Geen kandidaten in dit filter.</p>}
 
       {getoond.length > 0 && (
-        <Lijst ref={lijstRef} label={`Kandidaten – ${FILTER_LABEL[filter].toLowerCase()}`}
-          tabIndex={0} onKeyDown={opToets} className="focus-ring rounded-lg">
-          {getoond.map((k, i) => (
-            <KandidaatKaart key={k.id} werkgebiedId={id} k={k} index={i} actief={i === actief} labels={labels} bezig={bezig === k.id}
-              uitsluitenOpen={uitsluiten === k.id}
-              onKies={() => setActief(i)}
-              onOpnemen={(rol) => void opnemen(k, rol)}
-              onLater={() => void besluit(k, () => besluitKandidaat(id, k.id, "later"), "Voor later bewaard.")}
-              onHeropenen={() => void besluit(k, () => besluitKandidaat(id, k.id, "heropenen"), "Weer een open voorstel.")}
-              onUitsluitenOpen={(open) => setUitsluiten(open ? k.id : null)}
-              onUitsluiten={(reden) => besluit(k, () => besluitKandidaat(id, k.id, "uitsluiten", reden),
-                "Uitgesloten; Lex stelt deze bepaling niet opnieuw voor.")} />
-          ))}
-        </Lijst>
+        <div role="group" aria-label={`Kandidaten – ${FILTER_LABEL[filter].toLowerCase()}`}>
+          <BronBoom boom={boom} label={`Kandidaten per regeling – ${FILTER_LABEL[filter].toLowerCase()}`}
+            vinkjes={beslisbaar ? { gekozen, onZet: zet, naam: (b) => `Kies ${b.data.label || plekNaam(b.bron_iri)}` } : undefined}
+            bladAttrs={(b) => ({ "data-kandidaat": b.bron_iri })}
+            renderBlad={(b) => (
+              <KandidaatRegel werkgebiedId={id} k={b.data} plek={b.label} labels={labels}
+                open={open === b.bron_iri} onWissel={() => setOpen((o) => (o === b.bron_iri ? null : b.bron_iri))} />
+            )} />
+        </div>
+      )}
+
+      {beslisbaar && doelen.length > 0 && (
+        <ActieBalk filter={filter} aantal={doelen.length} bezig={bezig} uitsluiten={uitsluiten}
+          onUitsluitenOpen={setUitsluiten}
+          onOpnemen={(rol) => void opnemen(doelen, rol)}
+          onLater={() => void later(doelen)}
+          onHeropenen={() => void heropenen(doelen)}
+          onUitsluiten={(reden) => void sluitUit(doelen, reden)}
+          onWis={() => { setGekozen(new Set()); setUitsluiten(false); }} />
       )}
     </Sectie>
   );
 }
 
-function KandidaatKaart({ werkgebiedId, k, index, actief, labels, bezig, uitsluitenOpen, onKies, onOpnemen, onLater, onHeropenen,
-  onUitsluitenOpen, onUitsluiten }: {
-  werkgebiedId: string; k: BronKandidaat; index: number; actief: boolean; labels?: Map<string, string>; bezig: boolean; uitsluitenOpen: boolean;
-  onKies: () => void; onOpnemen: (rol: BronRol) => void; onLater: () => void; onHeropenen: () => void;
-  onUitsluitenOpen: (open: boolean) => void; onUitsluiten: (reden: string) => Promise<boolean>;
+/** Eén kandidaat in de boom: de plek onder het artikel (een link naar de bepaling), de rol, en één zin
+ *  bewijs; *Bewijs* klapt het hele bewijs uit. Geen besluitknoppen: besluiten gaat in de actiebalk. */
+function KandidaatRegel({ werkgebiedId, k, plek, labels, open, onWissel }: {
+  werkgebiedId: string; k: BronKandidaat; plek: string; labels?: Map<string, string>; open: boolean; onWissel: () => void;
 }) {
-  const [reden, setReden] = useState("");
-  const redenRef = useRef<HTMLInputElement>(null);
-  const f = filterVan(k);
   const naam = k.label || plekNaam(k.bron_iri);
-  const voorkeur = standaardRol(k);
-  const ander: BronRol = voorkeur === "analyseren" ? "context" : "analyseren";
-
-  useEffect(() => {
-    if (uitsluitenOpen) redenRef.current?.focus();
-  }, [uitsluitenOpen]);
-
   return (
-    <LijstRij data-index={index} data-kandidaat={k.bron_iri} onClick={onKies} actief={actief}
-      titel={
-        <Link href={annotatieHref(k.bron_iri)} className="focus-ring rounded font-medium text-lint hover:underline">
-          {naam}
-        </Link>
-      }
-      status={
+    <div className={`rounded-md px-2 py-1.5 ${open ? "bg-lint/[0.06] ring-1 ring-lint/20" : ""}`}>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+        <Link href={bronPad(k.bron_iri, werkgebiedId)} title={naam}
+          className="focus-ring rounded text-sm font-medium text-lint hover:underline">{plek}</Link>
         <span title={KANDIDAAT_ROL_UITLEG[k.rol]}
           className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${ROL_STIJL[k.rol]}`}>
           {KANDIDAAT_ROL_LABEL[k.rol]}
         </span>
-      }
-      meta={
-        <>
-          <ul className="space-y-0.5" aria-label={`Bewijs voor ${naam}`}>
-            {k.bewijs.map((b, i) => <li key={i}>· {bewijsZin(b, labels)}</li>)}
-          </ul>
-          {k.status === "uitgesloten" && k.reden && (
-            <p className="mt-1 text-ink">Uitgesloten{k.besloten_door ? ` door ${k.besloten_door}` : ""}: {k.reden}</p>
-          )}
-          {!k.in_laatste_run && f === "open" && (
-            <p className="mt-1 text-aandacht-geel-tekst">Niet meer gevonden bij de laatste zoekopdracht.</p>
-          )}
-        </>
-      }
-      acties={f !== "opgenomen" && (
-        <div className="flex flex-wrap gap-1.5">
-          {(f === "open" || f === "later") && (
-            <>
-              <button type="button" disabled={bezig} className={`${KNOP} border-lint bg-lint text-white hover:bg-lint/90`}
-                aria-label={`Opnemen als ${ROL_LABEL[voorkeur].toLowerCase()}: ${naam}`} onClick={() => onOpnemen(voorkeur)}>
-                Opnemen als {ROL_LABEL[voorkeur].toLowerCase()}
-              </button>
-              <button type="button" disabled={bezig} className={`${KNOP} border-line text-lint hover:bg-surface`}
-                aria-label={`Opnemen als ${ROL_LABEL[ander].toLowerCase()}: ${naam}`} onClick={() => onOpnemen(ander)}>
-                als {ROL_LABEL[ander].toLowerCase()}
-              </button>
-            </>
-          )}
-          {f === "open" && (
-            <button type="button" disabled={bezig} className={`${KNOP} border-line text-ink hover:bg-surface`}
-              aria-label={`Later: ${naam}`} onClick={onLater}>Later</button>
-          )}
-          {(f === "open" || f === "later") && (
-            <button type="button" disabled={bezig} className={`${KNOP} border-line text-ink hover:bg-surface`}
-              aria-label={`Uitsluiten: ${naam}`} aria-expanded={uitsluitenOpen} onClick={() => onUitsluitenOpen(!uitsluitenOpen)}>
-              Uitsluiten
-            </button>
-          )}
-          {(f === "later" || f === "uitgesloten") && (
-            <button type="button" disabled={bezig} className={`${KNOP} border-line text-ink hover:bg-surface`}
-              aria-label={`Heropenen: ${naam}`} onClick={onHeropenen}>Heropenen</button>
-          )}
+        {!k.in_laatste_run && filterVan(k) === "open" && (
+          <span className="text-xs text-aandacht-geel-tekst">niet meer gevonden bij de laatste zoekopdracht</span>
+        )}
+      </div>
+      <button type="button" onClick={onWissel} aria-expanded={open} aria-label={`Bewijs voor ${naam}`}
+        className="focus-ring mt-0.5 block w-full rounded text-left text-xs text-muted hover:text-ink">
+        {open ? "Bewijs verbergen" : <span className="block truncate">{bewijsSamenvatting(k.bewijs, labels)}</span>}
+      </button>
+      {open && (
+        <ul className="mt-1 space-y-0.5 text-xs text-muted" aria-label={`Bewijs: ${naam}`}>
+          {k.bewijs.map((b, i) => <li key={i}>· {bewijsZin(b, labels)}</li>)}
+        </ul>
+      )}
+      {k.status === "uitgesloten" && k.reden && (
+        <p className="mt-1 text-xs text-ink">Uitgesloten{k.besloten_door ? ` door ${k.besloten_door}` : ""}: {k.reden}</p>
+      )}
+      {open && (
+        <div className="mt-1.5">
           <VraagLexKnop alleenInGesprek onderwerp={{ soort: "kandidaat", werkgebied_id: werkgebiedId, id: k.id, label: naam }} />
         </div>
-      )}>
-      {uitsluitenOpen && (
-        <form className="mt-2 flex flex-col gap-2 sm:flex-row" onClick={(e) => e.stopPropagation()}
-          onSubmit={(e) => { e.preventDefault(); if (reden.trim()) void onUitsluiten(reden.trim()).then((ok) => ok && setReden("")); }}>
-          <label className="sr-only" htmlFor={`reden-${k.id}`}>Reden om {naam} uit te sluiten</label>
-          <Input id={`reden-${k.id}`} ref={redenRef} value={reden} onChange={(e) => setReden(e.target.value)}
-            placeholder="Waarom hoort deze bepaling er niet bij?" maxLength={2000}
+      )}
+    </div>
+  );
+}
+
+/** De actiebalk: één besluit voor alles wat gekozen is (of de regel onder de cursor). */
+function ActieBalk({ filter, aantal, bezig, uitsluiten, onUitsluitenOpen, onOpnemen, onLater, onHeropenen, onUitsluiten, onWis }: {
+  filter: KandidaatFilter; aantal: number; bezig: { klaar: number; totaal: number } | null; uitsluiten: boolean;
+  onUitsluitenOpen: (open: boolean) => void; onOpnemen: (rol: BronRol) => void; onLater: () => void; onHeropenen: () => void;
+  onUitsluiten: (reden: string) => void; onWis: () => void;
+}) {
+  const [reden, setReden] = useState("");
+  const redenRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (uitsluiten) redenRef.current?.focus();
+  }, [uitsluiten]);
+  const n = `(${aantal})`;
+  return (
+    <div data-actiebalk className="sticky bottom-0 z-10 -mx-1 rounded-kaart border border-line bg-paper p-3 shadow-kaart">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <span className="text-sm font-medium text-ink">
+          {bezig ? `Bezig: ${bezig.klaar} van ${bezig.totaal}…` : `${aantal} ${aantal === 1 ? "bepaling" : "bepalingen"} gekozen`}
+        </span>
+        {(filter === "open" || filter === "later") && <>
+          <Button size="sm" disabled={!!bezig} onClick={() => onOpnemen("analyseren")}>Opnemen om te analyseren {n}</Button>
+          <Button size="sm" variant="secondary" disabled={!!bezig} onClick={() => onOpnemen("context")}>Opnemen als context {n}</Button>
+        </>}
+        {filter === "open" && <Button size="sm" variant="ghost" disabled={!!bezig} onClick={onLater}>Later {n}</Button>}
+        {(filter === "open" || filter === "later") && (
+          <Button size="sm" variant="ghost" disabled={!!bezig} aria-expanded={uitsluiten} onClick={() => onUitsluitenOpen(!uitsluiten)}>
+            Uitsluiten… {n}
+          </Button>
+        )}
+        {(filter === "later" || filter === "uitgesloten") && (
+          <Button size="sm" variant="secondary" disabled={!!bezig} onClick={onHeropenen}>Heropenen {n}</Button>
+        )}
+        <button type="button" onClick={onWis} className="focus-ring rounded text-xs text-muted underline sm:ml-auto">Keuze wissen</button>
+      </div>
+      {uitsluiten && (
+        <form className="mt-2 flex flex-col gap-2 sm:flex-row"
+          onSubmit={(e) => { e.preventDefault(); if (reden.trim()) { onUitsluiten(reden.trim()); setReden(""); } }}>
+          <label className="sr-only" htmlFor="reden-uitsluiten">Reden om uit te sluiten</label>
+          <Input id="reden-uitsluiten" ref={redenRef} value={reden} onChange={(e) => setReden(e.target.value)}
+            placeholder="Waarom horen deze bepalingen er niet bij?" maxLength={2000}
             onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); onUitsluitenOpen(false); } }} />
-          <Button type="submit" size="sm" disabled={bezig || !reden.trim()} className="w-full sm:w-auto">Uitsluiten</Button>
+          <Button type="submit" size="sm" disabled={!!bezig || !reden.trim()} className="w-full sm:w-auto">Uitsluiten</Button>
         </form>
       )}
-    </LijstRij>
+    </div>
   );
 }
