@@ -126,6 +126,22 @@ async def get_graaf(bwb_id: list[str] = Query(default=[]), actor: str = Depends(
         raise HTTPException(503, "De brongraaf is tijdelijk niet beschikbaar.") from exc
 
 
+class PlaatsenVraag(BaseModel):
+    bron_iris: list[str] = Field(default_factory=list, max_length=graaf_mod.MAX_PLAATSEN)
+
+
+@router.post("/plaatsen")
+async def post_plaatsen(req: PlaatsenVraag, actor: str = Depends(actieve_userid)):
+    """De plek van bepalingen in hun regeling (regeling › hoofdstuk › artikel › lid), om ze in de werkplek
+    te groeperen. Zie `graaf.plaatsen`."""
+    try:
+        return {"plaatsen": await graaf_mod.plaatsen(req.bron_iris)}
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except (httpx.HTTPError, ConnectionError) as exc:
+        raise HTTPException(503, "De brongraaf is tijdelijk niet beschikbaar.") from exc
+
+
 @router.get("/knoop")
 async def get_knoop(bron_iri: str = "", actor: str = Depends(actieve_userid)):
     """Wat de kennisgraaf over één knoop weet – geldigheid, herkomst, grondslag, "genoemd in",

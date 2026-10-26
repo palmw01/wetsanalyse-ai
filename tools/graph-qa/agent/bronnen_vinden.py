@@ -567,6 +567,22 @@ def vind(graph: GraphPort, invoer: dict[str, Any], methoden: tuple[str, ...] | N
     return {"kandidaten": kandidaten, "meting": meting}
 
 
+def plek_uit_iri(iri: str) -> str:
+    """Een naam voor een bepaling waarvan de graaf geen label en de IRI geen vindplaats geeft – een wet-lokale
+    divisie van een beleidsregel (`…:id:BWBR0024096%2FCirculaire.divisie26%2F…divisie26.3.9`): "divisie
+    26.3.9", nooit de IRI zelf (die kwam anders in labels en in de afbakening van het dossier terecht). De
+    tweeling van `plekNaam` in `frontend/lib/bronKandidaten.ts`."""
+    from urllib.parse import unquote
+
+    rest = re.sub(r"^urn:bwb:BWB[A-Z]\d+:?", "", iri)
+    m = re.match(r"^id:(.+)$", rest)
+    if m:
+        laatste = unquote(m.group(1)).split("/")[-1]
+        divisie = re.search(r"divisie([\d.]+[a-z]?)$", laatste, re.I)
+        return f"divisie {divisie.group(1)}" if divisie else laatste
+    return rest or iri
+
+
 def _benoem(graph: GraphPort, kandidaten: list[dict[str, Any]]) -> None:
     """"Artikel 30g, lid 2, onderdeel a – Algemene wet inzake rijksbelastingen" in plaats van het kale
     "Onderdeel a." uit de graaf. De vindplaats komt uit de IRI (`bronmodel.vindplaats`, dezelfde regels
@@ -577,5 +593,5 @@ def _benoem(graph: GraphPort, kandidaten: list[dict[str, Any]]) -> None:
 
     namen = regelingnamen(graph, {k["bwb_id"] for k in kandidaten})
     for k in kandidaten:
-        plek = definitie_vindplaats(k["bron_iri"]) or k["label"] or k["bron_iri"]
+        plek = definitie_vindplaats(k["bron_iri"]) or k["label"] or plek_uit_iri(k["bron_iri"])
         k["label"] = f"{plek} – {namen[k['bwb_id']]}" if k["bwb_id"] in namen else plek

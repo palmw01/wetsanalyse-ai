@@ -468,3 +468,12 @@ def test_chat_weigert_een_actie():
     import api.main as main
     c = TestClient(main.app)
     assert c.post("/v1/chat", json={"question": "x", "actie": "bronnen_zoeken", "werkgebied_id": "wg1"}).status_code == 422
+
+
+def test_een_divisie_zonder_label_krijgt_een_naam_en_nooit_de_iri():
+    """Spoor H: anders kwam de IRI in het label van de kandidaat en in de afbakening van het dossier."""
+    from agent.bronnen_vinden import plek_uit_iri
+    iri = "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.3%2FCirculaire.divisie26.3.9"
+    assert plek_uit_iri(iri) == "divisie 26.3.9"
+    assert "urn:bwb" not in plek_uit_iri("urn:bwb:BWBR0024096:id:BWBR0024096%2FTekst%2FOnderdeel._3")
+    assert plek_uit_iri("urn:bwb:BWBR0004770") == "urn:bwb:BWBR0004770"
