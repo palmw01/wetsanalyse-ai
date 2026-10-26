@@ -1357,6 +1357,8 @@ export interface AkkoordInvoer {
   aanpassing?: Aanpassing;
   definitie_van?: string;
   kandidaat_id?: string;
+  /** Spoor H4: alle twijfelvragen tussen de gekozen groepen in één keer "samen". */
+  kandidaat_ids?: string[];
 }
 
 export interface AkkoordAntwoord {

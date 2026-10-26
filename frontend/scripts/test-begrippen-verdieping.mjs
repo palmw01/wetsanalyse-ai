@@ -11,9 +11,10 @@
  * Bewaakt:
  *  - op de tab Begrippen geen aanbod en geen knop om mee te denken; `?meedenk=` start niets;
  *  - de knop bij een voorstel van Lex in het gesprek start het meedenken met het bevestigde aantal;
- *  - na het meedenken: advies bij de twijfelvraag (die blijft staan), een groep op advies van Lex, de
- *    herkomst van de definitie en de aandachtspunten;
- *  - akkoord op een groep met een definitie die Lex formuleerde (de review van fase D).
+ *  - na het meedenken: advies bij de twijfelvraag die open bleef (los in het kader: geen van beide
+ *    passages staat in een groep), een groep op advies van Lex, de herkomst van de definitie en de
+ *    aandachtspunten op de pagina van de term (spoor H4);
+ *  - één begrip maken met een definitie die Lex formuleerde.
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -110,7 +111,7 @@ try {
   // --- De tab Begrippen: geen aanbod en geen knop; meedenken vraag je Lex in het gesprek ---
   await page.goto(`${base}/werkgebieden/wg1?tab=begrippen`);
   await page.locator("[data-begripvoorstellen]").waitFor();
-  await page.locator("[data-review-item]").first().waitFor();
+  await page.locator("[data-term]").first().waitFor();
   assert.equal(await page.locator("[data-meedenk-aanbod]").count(), 0);
   assert.equal(await page.getByRole("button", { name: /^Laat Lex meedenken/ }).count(), 0);
 
@@ -129,30 +130,34 @@ try {
     conversation_id: starts[0].conversation_id },
   { modus: "begrippen_verdiepen", bevestigd: 3, werkgebied_id: "wg1", conversation_id: "g2" });
 
-  // --- Na het meedenken: advies, groep op advies van Lex, herkomst en aandachtspunten ---
-  await page.goto(`${base}/werkgebieden/wg1?tab=begrippen`);
+  // --- Na het meedenken: de termen, en de vraag die open bleef los in het kader, met het advies van Lex ---
+  await page.goto(`${base}/werkgebieden/wg1/artefacten/begrippen`);
   await zie("Lex dacht mee");
-  // De review: de twijfelvraag die open bleef, met het advies van Lex.
-  assert.deepEqual(await page.locator("[data-review-item]").evaluateAll((els) => els.map((e) => e.dataset.reviewItem)),
-    ["GM", "G1", "P1"], "alleen de vraag die open bleef staat in de review");
-  await page.locator('[data-review-item="P1"]').click();
+  assert.deepEqual(await page.locator("[data-term]").evaluateAll((els) => els.map((e) => e.dataset.term)),
+    ["aanslag", "aanslagbiljet"]);
+  await page.getByText("Losse twijfelvragen (1)").click();
   await zie("Advies van Lex: verwant, maar een ander begrip");
   await zie("Lid 10 noemt alle termijnen.");
   assert.equal(await page.locator("[data-advies]").count(), 1);
+  // De groep op advies van Lex, op de pagina van haar term.
+  await page.locator('[data-term="aanslag"] a').click();
   await zie("samengevoegd op advies van Lex");
-  await page.locator('[data-review-item="G1"]').click();
-  await zie("Definitie, geformuleerd door Lex:");
+  // aanslagbiljet: de definitie die Lex formuleerde, met waarop ze rust en het aandachtspunt.
+  await page.goto(`${base}/werkgebieden/wg1/artefacten/begrippen`);
+  await page.locator('[data-term="aanslagbiljet"] a').click();
+  await zie("Definitie – geformuleerd door Lex");
+  assert.equal(await page.getByRole("textbox", { name: /^Definitie/ }).inputValue(), "Het document waarmee de aanslag wordt bekendgemaakt.");
   await zie("De definitie is door Lex geformuleerd; toets haar aan de passages.");
   await page.getByText("Rust op 1 passage uit de bron").click();
   await zie("“de beschikking”");
 
-  // --- Akkoord op de groep: de definitie van Lex gaat mee ---
-  await page.getByRole("button", { name: "Akkoord: groep “aanslagbiljet”" }).click();
+  // --- Eén begrip: de definitie van Lex gaat mee ---
+  await page.locator("[data-actiebalk]").getByRole("button", { name: "Eén begrip maken (2)" }).click();
   await zie("Overname vastgelegd door de test.");
-  assert.deepEqual([overname.groep_ids, overname.met_definitie], [["G1"], true]);
+  assert.deepEqual([overname.groep_ids, overname.met_definitie, overname.aanpassing], [["G1"], true, undefined]);
 
   assert.deepEqual(errors, []);
-  console.log("Browser OK: geen aanbod op de tab, meedenk= start niets, de knop in het gesprek met het bevestigde aantal, advies bij de open twijfelvraag, groep op advies van Lex, herkomst en aandachtspunten van de kaart, akkoord met een geformuleerde definitie.");
+  console.log("Browser OK: geen aanbod op de tab, meedenk= start niets, de knop in het gesprek met het bevestigde aantal, advies bij de open twijfelvraag, groep op advies van Lex, herkomst en aandachtspunten van de kaart, één begrip met een geformuleerde definitie, alles per term.");
 } finally {
   await browser.close();
 }

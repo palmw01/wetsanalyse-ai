@@ -1,5 +1,5 @@
-/** Browserregressie voor de strook "Voorstellen van Lex" (spoor D, levering 3a) en de begrippenreview
- * (fase D) op de echte Next-UI met een gemockte BFF. Start Next met
+/** Browserregressie voor de strook "Voorstellen van Lex" (spoor D, levering 3a) en het beoordelen per term
+ * (spoor H4) op de echte Next-UI met een gemockte BFF. Start Next met
  * AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109
  * en draai `node scripts/test-begripvoorstellen.mjs`.
  *
@@ -23,8 +23,13 @@ await page.addInitScript(() => localStorage.setItem("wa_rondleiding", JSON.strin
 const nu = "2026-10-15T10:00:00+00:00";
 const wg = { id: "wg1", naam: "Invordering", analysevraag: "", afbakening: "", peildatum: null, status: "actief", revisie: 2,
   aangemaakt_door: "a", aangemaakt: nu, gewijzigd: nu, gearchiveerd: null, bronnen: [] };
+// De bron-IRI volgt de vindplaats, zodat de boom per artikel en lid groepeert (zonder /plaatsen: uit de IRI).
+const iriVan = (v) => {
+  const [, art, lid] = v.match(/Artikel (\w+)(?: · Lid (\w+))?/);
+  return `urn:bwb:BWBR0004770:artikel:${art}${lid ? `:lid:${lid}` : ""}`;
+};
 const P = (id, tekst, vindplaats = "Artikel 9 · Lid 1 – IW 1990", review_status = "human_approved") =>
-  ({ element_id: id, tekst, jas_klasse: "Rechtssubject", review_status, bron_iri: "urn:x", vindplaats });
+  ({ element_id: id, tekst, jas_klasse: "Rechtssubject", review_status, bron_iri: iriVan(vindplaats), vindplaats });
 // De stand van de annotaties nú: "Annotatie akkoord" in de review zet er een op beoordeeld.
 const beoordeeld = new Set(["e1", "e2", "e3", "e6", "e7", "e8", "e9", "e10"]);
 const metStand = (l) => ({ ...l, lifecycle: beoordeeld.has(l.element_id) ? "human_approved" : "voorgesteld",
@@ -35,17 +40,18 @@ const groepen = [
     leden: [P("e1", "belastingschuldige", "Artikel 2 · Lid 1 – IW 1990"), P("e2", "de belastingschuldige")] },
   { id: "G2", aandacht: "geel", voorstel: { naam: "aanslag" }, uitleg: ["Zelfde term"], conflicten: ["P9"],
     leden: [P("e3", "de aanslag"), P("e4", "die aanslag", "Artikel 9 · Lid 2 – IW 1990", "voorgesteld")] },
-  { id: "G3", aandacht: "groen", voorstel: { naam: "belastingaanslag" }, uitleg: [], conflicten: [],
-    leden: [P("e6", "belastingaanslag"), P("e7", "de belastingaanslag")] },
+  { id: "G3", aandacht: "groen", voorstel: { naam: "aanslag" }, uitleg: [], conflicten: [],
+    leden: [P("e6", "aanslag", "Artikel 10 – IW 1990"), P("e7", "de aanslag", "Artikel 11 · Lid 3 – IW 1990")] },
   { id: "G4", aandacht: "groen", voorstel: { naam: "termijn" }, uitleg: [], conflicten: [],
-    leden: [P("e8", "de termijn"), P("e9", "deze termijn")] },
+    leden: [P("e8", "de termijn", "Artikel 9 · Lid 3 – IW 1990"), P("e9", "deze termijn", "Artikel 9 · Lid 4 – IW 1990")] },
 ].map((g) => ({ ...g, besluit: "open", reden: "", begrip_id: null, besloten_door: null, lijkt_op: [], afgehandeld: [] }));
 const uitkomst = {
   groep_ids: groepen.map((g) => g.id), meting: {},
-  vragen: [{ kandidaat_id: "P1", van: "e3", naar: "e6", regel: "Z-ANDERS", uitleg: ["Zelfde kern, geen bron die het vastlegt."] }],
+  vragen: [{ kandidaat_id: "P1", van: "e3", naar: "e6", regel: "Z-ANDERS", uitleg: ["Zelfde kern, geen bron die het vastlegt."] },
+    { kandidaat_id: "P2", van: "e4", naar: "e8", regel: "Z-ANDERS", uitleg: ["Staan in hetzelfde artikel."] }],
   relaties: [{ kandidaat_id: "R1", hypothese: "kwalificatie", van: "e10", naar: "e2", aandacht: "groen", uitleg: [] }],
 };
-const passages = { e10: P("e10", "de aansprakelijkgestelde", "Artikel 24 · Lid 1 – IW 1990"), e3: groepen[1].leden[0], e6: groepen[2].leden[0], e2: groepen[0].leden[1] };
+const passages = { e10: P("e10", "de aansprakelijkgestelde", "Artikel 24 · Lid 1 – IW 1990"), e3: groepen[1].leden[0], e4: groepen[1].leden[1], e6: groepen[2].leden[0], e8: groepen[3].leden[0], e2: groepen[0].leden[1] };
 let run = null;               // de laatste api-run
 let verouderd = false;
 // Wat Lex in het gesprek opleverde: de ronde die de begrippen-agent maakte.
@@ -124,7 +130,8 @@ await page.route("**/api/**", async (route) => {
       g.afgehandeld = [...new Set([...g.afgehandeld, ...g.leden.map((l) => l.element_id).filter((e) => leden.includes(e))])];
       if (g.leden.every((l) => g.afgehandeld.includes(l.element_id))) Object.assign(g, { besluit: "overgenomen", begrip_id: b.id });
     }
-    if (body.kandidaat_id) run.vragen_besluiten = { ...run.vragen_besluiten, [body.kandidaat_id]: { antwoord: "samen", door: "browser-test", op: nu } };
+    for (const kid of [body.kandidaat_id, ...(body.kandidaat_ids ?? [])].filter(Boolean))
+      run.vragen_besluiten = { ...run.vragen_besluiten, [kid]: { antwoord: "samen", door: "browser-test", op: nu } };
     const uit = begripUit(begrippen.get(b.id));
     return route.fulfill({ status: 201, json: { begrip: uit, geaccordeerd: uit.status === "geaccordeerd", poort: uit.accorderen } });
   }
@@ -168,113 +175,106 @@ await page.route("**/api/**", async (route) => {
 const foto = (naam) => process.env.SCREENSHOT_DIR
   ? page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/${naam}.png`, fullPage: true }) : null;
 const zie = (tekst) => page.getByText(tekst, { exact: false }).first().waitFor();
-const lijst = () => page.getByRole("list", { name: "Voorstellen om te beoordelen" });
-const actief = () => page.locator("[data-review-item][aria-current=true]");
+const termen = () => page.getByRole("list", { name: "Voorstellen van Lex per term" });
 const laatsteBody = (pad) => requests.filter((r) => r.p.endsWith(pad) && r.m === "POST").at(-1)?.body;
-const toets = (t) => page.keyboard.press(t);
+const balk = () => page.locator("[data-actiebalk]");
+const kader = `${base}/werkgebieden/wg1/artefacten/begrippen`;
+const naarTerm = async (t) => {
+  await page.goto(kader);
+  await termen().locator(`[data-term="${t}"] a`).click();
+  await page.locator(`[data-begripterm-pagina="${t}"] [data-bronboom]`).waitFor();
+};
 try {
   // 1. Zonder voorstellen: de uitleg wijst naar het gesprek; geen Lex-knoppen op de pagina (F3e).
-  await page.goto(`${base}/werkgebieden/wg1?tab=begrippen`);
+  await page.goto(kader);
   await zie("Vraag Lex in het gesprek om begrippen voor te stellen.");
   await zie("Een voorstel is een vraag aan jou, geen begrip.");
   for (const naam of ["Stel begrippen voor", "Opnieuw voorstellen", /^Laat Lex meedenken/])
     assert.equal(await page.getByRole("button", { name: naam }).count(), 0, String(naam));
-  assert.equal(await page.getByRole("link", { name: "Bespreek met Lex" }).count(), 0);
-  // Lex stelde in het gesprek begrippen voor: de reviewlijst staat er.
+  // Lex stelde in het gesprek begrippen voor: per term één rij, de meeste passages eerst.
   run = ronde();
   await page.reload();
-  await lijst().waitFor();
+  await termen().waitFor();
   await zie("1 passage niet meegenomen");
-  await zie("Review – 0/5 beoordeeld");
-  // Volgorde: geel, de twijfelvraag, dan groen (op naam bij gelijke omvang).
-  assert.deepEqual(await page.locator("[data-review-item]").evaluateAll((els) => els.map((e) => e.dataset.reviewItem)),
-    ["G2", "P1", "G3", "G1", "G4"]);
+  await zie("3 termen te beoordelen");
+  assert.deepEqual(await page.locator("[data-term]").evaluateAll((els) => els.map((e) => e.dataset.term)),
+    ["aanslag", "belastingschuldige", "termijn"]);
+  await termen().locator('[data-term="aanslag"]').getByText("2 voorstellen · IW 1990 · 4 passages · 1 vraag naar een andere term").waitFor();
+  // Geen reviewlijst, geen knoppen per voorstel.
+  assert.equal(await page.locator("[data-review-item]").count(), 0);
+  assert.equal(await termen().getByRole("button").count(), 0);
   await page.getByText("Relaties (1)").click();
   await zie("“de aansprakelijkgestelde” (Artikel 24 · Lid 1 – IW 1990) geldt als “de belastingschuldige”");
-  await foto("review");
+  await foto("kader-per-term");
 
-  // 2. Alleen het toetsenbord. j → de gele groep; de knop zegt vooraf dat het een concept blijft.
-  await toets("j");
-  assert.equal(await actief().getAttribute("data-review-item"), "G2");
-  await zie("Akkoord als concept (3 open punten)");
-  await foto("review-actief");
-  await zie("vraagt een oordeel");
-  // m markeert; j, j → belastingaanslag; m: de vergelijking verschijnt, met het signaal ertegen.
-  await toets("m");
-  await toets("j");
-  assert.equal(await actief().getAttribute("data-review-item"), "P1");
-  await zie("Horen “de aanslag” (Artikel 9 · Lid 1 – IW 1990) en “belastingaanslag” (Artikel 9 · Lid 1 – IW 1990) bij hetzelfde begrip?");
-  await toets("j");
-  await toets("m");
-  const vergelijking = page.getByRole("region", { name: "Vergelijking om te combineren" });
-  await vergelijking.waitFor();
-  await vergelijking.getByText("aanwijzing dat passages níét hetzelfde betekenen").waitFor();
-  const combiNaam = vergelijking.getByRole("textbox", { name: "Naam van het gecombineerde begrip" });
-  await combiNaam.focus();
-  await page.keyboard.press("Control+A");
-  await page.keyboard.type("Aanslag");
-  await toets("Enter");
-  await zie("concept, nog te accorderen");
-  const combi = laatsteBody("/groepen/akkoord");
-  assert.deepEqual([combi.groep_ids, combi.naam, combi.element_ids], [["G2", "G3"], "Aanslag", undefined]);
-  // Het concept zegt wat er openstaat en lost het hier op: eerst de annotatie, dan een definitie.
-  const concept = page.locator("[data-concept]");
-  await concept.getByText("1 dragende annotatie is nog niet door een jurist beoordeeld.").waitFor();
-  await foto("review-concept");
-  await concept.getByRole("button", { name: "Annotatie akkoord: die aanslag" }).click();
-  await concept.getByRole("button", { name: /^Annotatie akkoord/ }).waitFor({ state: "detached" });
-  await concept.getByText("Er is nog geen definitie.").waitFor();
-  await concept.getByRole("button", { name: "Definitie toevoegen" }).click();
-  await page.keyboard.type("de vaststelling van de verschuldigde belasting");
-  await toets("Enter");
-  await zie("Begrip “Aanslag” is geaccordeerd.");
-  assert.equal(begrippen.get("b1").status, "geaccordeerd");
-  assert.equal(begrippen.get("b1").inhoud.definitie_herkomst, "geformuleerd");
+  // 2. De term "aanslag": twee groepen op drie artikelen in één boom, alles aangevinkt.
+  await naarTerm("aanslag");
+  const boom = page.locator("[data-bronboom]");
+  for (const kop of ["Artikel 9", "Artikel 10", "Artikel 11"])
+    await boom.getByRole("button", { name: new RegExp(`^${kop}\\b`) }).first().waitFor();
+  assert.equal(await page.locator("[data-passage]").count(), 4);
+  assert.equal(await page.getByRole("checkbox", { name: /^Neem/ }).evaluateAll((els) => els.every((e) => e.checked)), true);
+  await zie("Het begrip blijft eerst een concept");
+  await zie("1 dragende annotatie is nog niet door een jurist beoordeeld.");
+  await page.getByText("Waarom stelt Lex dit voor?").click();
+  await zie("1 twijfelvraag tussen deze passages; met één begrip zijn ze beantwoord.");
+  await page.getByRole("list", { name: "Vragen naar andere termen" }).getByText("Horen “die aanslag”").waitFor();
+  // Letters doen niets: geen sneltoetsen.
+  await page.locator("body").click({ position: { x: 5, y: 5 } });
+  for (const t of ["a", "j", "x", "s"]) await page.keyboard.press(t);
+  assert.equal(requests.filter((r) => r.m === "POST" && /\/(groepen|vragen)\//.test(r.p)).length, 0);
+  await foto("term-aanslag");
+  // Eén begrip, met de vraag binnen de term in hetzelfde akkoord; daarna de begripspagina.
+  await balk().getByRole("button", { name: "Eén begrip maken (4)" }).click();
+  await page.waitForURL(/\/begrippen\/wg1\/b1$/);
+  const een = laatsteBody("/groepen/akkoord");
+  assert.deepEqual([een.groep_ids, een.naam, een.element_ids, een.kandidaat_ids, een.aanpassing],
+    [["G2", "G3"], "aanslag", undefined, ["P1"], undefined]);
+  assert.equal(run.vragen_besluiten.P1.antwoord, "samen");
 
-  // 3. De twijfelvraag is nu de actieve: n = apart.
-  await page.evaluate(() => document.activeElement?.blur());
-  assert.equal(await actief().getAttribute("data-review-item"), "P1");
-  await toets("n");
-  await zie("Review – 3/5 beoordeeld");
-  assert.equal(laatsteBody("/vragen/P1").antwoord, "apart");
+  // 3. Het kader: aanslag is beoordeeld, de rest staat er nog.
+  await page.goto(kader);
+  await termen().waitFor();
+  assert.deepEqual(await page.locator("[data-term]").evaluateAll((els) => els.map((e) => e.dataset.term)),
+    ["belastingschuldige", "termijn"]);
+  await page.getByText("Beoordeelde termen (1)").waitFor();
 
-  // 4. belastingschuldige: één lid uitvinken (splitsen), e = aanpassen, context wijzigen, Ctrl+Enter.
-  assert.equal(await actief().getAttribute("data-review-item"), "G1");
-  await page.getByRole("checkbox", { name: "Neem “belastingschuldige” mee" }).uncheck();
-  await page.evaluate(() => document.activeElement?.blur());
-  await toets("e");
-  const context = actief().getByRole("textbox", { name: /^Context/ });
-  await context.fill("Invordering van rijksbelastingen");
-  await context.press("Control+Enter");
-  await zie("Begrip “belastingschuldige” is geaccordeerd.");
+  // 4. belastingschuldige: één passage uitvinken (splitsen); de brondefinitie gaat mee.
+  await naarTerm("belastingschuldige");
+  await zie("Definitie – brondefinitie (Artikel 2 · Lid 1 – IW 1990)");
+  await page.getByRole("checkbox", { name: "Neem “belastingschuldige” mee (Artikel 2 · Lid 1 – IW 1990)" }).uncheck();
+  await balk().getByText("1 passage gekozen").waitFor();
+  await balk().getByRole("button", { name: "Eén begrip maken (1)" }).click();
+  await page.waitForURL(/\/begrippen\/wg1\/b2$/);
   const split = laatsteBody("/groepen/akkoord");
-  assert.deepEqual([split.groep_ids, split.element_ids, split.aanpassing], [["G1"], ["e2"], { context: "Invordering van rijksbelastingen" }]);
-  // De rest van de groep blijft als voorstel staan.
-  await page.locator('[data-review-item="G1"]').getByText("1 al een begrip").waitFor();
+  assert.deepEqual([split.groep_ids, split.element_ids, split.kandidaat_ids], [["G1"], ["e2"], undefined]);
+  assert.equal(begrippen.get("b2").status, "geaccordeerd");
 
-  // 5. termijn afwijzen met x en een reden; daarna de rest van belastingschuldige met a.
-  assert.equal(await actief().getAttribute("data-review-item"), "G4");
-  await toets("x");
+  // 5. termijn: de vraag naar "aanslag" apart, en dan geen begrip – met een reden.
+  await naarTerm("termijn");
+  const vragen = page.getByRole("list", { name: "Vragen naar andere termen" });
+  await vragen.getByRole("button", { name: /^Apart: Horen “die aanslag”/ }).click();
+  await vragen.waitFor({ state: "detached" });
+  assert.equal(laatsteBody("/vragen/P2").antwoord, "apart");
+  await balk().getByRole("button", { name: "Geen begrip…" }).click();
   await page.keyboard.type("Verschillende termijnen");
-  await toets("Enter");
-  await zie("Review – 4/5 beoordeeld");
-  await page.evaluate(() => document.activeElement?.blur());
-  assert.equal(await actief().getAttribute("data-review-item"), "G1");
-  await toets("a");
-  await zie("Review afgerond");
-  await zie("Review – 5/5 beoordeeld");
-  assert.deepEqual(laatsteBody("/groepen/akkoord").element_ids, undefined);
+  await page.keyboard.press("Enter");
+  await page.getByText("Al besloten (1)").waitFor();
+  assert.deepEqual(laatsteBody("/groepen/G4/afwijzen"), { reden: "Verschillende termijnen" });
 
-  // 6. Alles: het besluit staat er, en heropenen kan.
-  await page.getByRole("button", { name: /^Alles/ }).click();
-  await page.locator('[data-review-item="G4"]').click();
-  await zie("afgewezen: Verschillende termijnen");
-  await page.getByRole("button", { name: "Heropen groep “termijn”" }).click();
-  await zie("Review – 4/5 beoordeeld");
+  // 6. De rest van belastingschuldige voor later, en weer heropenen.
+  await naarTerm("belastingschuldige");
+  await balk().getByRole("button", { name: "Later" }).click();
+  await zie("voor later bewaard");
+  await balk().getByText("0 passages gekozen").waitFor();
+  await page.getByRole("checkbox", { name: /^Neem “belastingschuldige” mee/ }).check();
+  await balk().getByRole("button", { name: "Heropenen" }).click();
+  await balk().getByText("1 passage gekozen").waitFor();
+  assert.equal(groepen[0].besluit, "open");
 
   // 7. Verouderd na een nieuwe annotatie: de strook zegt het.
   verouderd = true;
-  await page.reload();
+  await page.goto(kader);
   await zie("Gebaseerd op een oudere stand van het werkgebied");
 
   // 8. Een mislukte ronde van Lex is zichtbaar.
@@ -282,12 +282,14 @@ try {
   await page.reload();
   await zie("mislukt: De begrippenketen liep vast.");
 
-  // 10. Smal scherm.
+  // 9. Smal scherm, ook op een termpagina.
+  run = ronde();
   await page.setViewportSize({ width: 390, height: 844 });
+  await naarTerm("belastingschuldige");
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
-  await foto("voorstellen-mobiel");
+  await foto("term-mobiel");
   assert.deepEqual(errors, []);
-  console.log("Browser OK: geen Lex-knoppen, de laatste ronde van Lex, reviewlijst in volgorde, met alleen het toetsenbord: combineren via de vergelijking, concept → annotatie akkoord → definitie → geaccordeerd, vraag apart, splitsen + aanpassen → geaccordeerd, afwijzen, rest akkoord, review afgerond; heropenen, verouderd, mislukte ronde zichtbaar, smal scherm.");
+  console.log("Browser OK: geen Lex-knoppen, de voorstellen per term, een termpagina als boom met vinkjes, één begrip uit twee groepen met de vraag erin, splitsen met de brondefinitie, een vraag apart, geen begrip met reden, later en heropenen, geen sneltoetsen, verouderd, mislukte ronde, smal scherm.");
 } catch (e) {
   await foto("voorstellen-fout");
   throw e;

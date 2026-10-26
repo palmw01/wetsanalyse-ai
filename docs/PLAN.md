@@ -103,7 +103,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | E | Kennisbank (tweede corpus) | Ontwerp klaar, niets gebouwd |
 | F | Activiteit 1 in het gesprek: werkgebied bepalen | F0 en F1 gebouwd (vraagkaarten zoals Claude → werkgebied); vervolg open |
 | G | Lex als projectgerichte werkplek (mock-up v4) | G1–G5 gebouwd (gesprek bij een werkgebied, de projectpagina, eigen pagina's per object, het contextpaneel, de begripskaart in NL-SBB-volgorde) |
-| H | Structuur: begrippen per term, bepalingen als boom | H1–H3 gebouwd (plek van een bepaling, bronvoorstellen met vinkjes en actiebalk, geen sneltoetsen, deelvragen met structuur); H4 open |
+| H | Structuur: begrippen per term, bepalingen als boom | H1–H4 gebouwd (plek van een bepaling, bronvoorstellen met vinkjes en actiebalk, geen sneltoetsen, deelvragen met structuur, begrippenkader per term) |
 
 ---
 
@@ -1017,9 +1017,11 @@ in Lex** (letters, `[`/`]`, hints) – Tab, Enter, Escape en de pijltjes van een
 - **H3 – gebouwd**: deelvragen als rijen naar hun pagina (acties achter ⋯); daar de bronnen als boom en
   koppelen in een venster met dezelfde boom; *Verwijderen* in plaats van *Weghalen*; ruwe IRI's in oudere
   dossiertekst leesbaar.
-- **H4**: het begrippenkader per term (`lib/begripTermen.ts`) met een termpagina: de passages per regeling ›
-  artikel, één besluit (*Eén begrip maken*), `Akkoord.kandidaat_ids` in de api; de toetsenbord-review
-  (`BegripReview`) verdwijnt.
+- **H4 – gebouwd**: het begrippenkader per term (`lib/begripTermen.ts`) met een termpagina: de passages per
+  regeling › artikel › lid met vinkjes, naam en definitie, één actiebalk (*Eén begrip maken*, *Koppelen aan …*,
+  *Later*, *Geen begrip…*) en de vragen naar andere termen; `Akkoord.kandidaat_ids` in de api beantwoordt de
+  twijfelvragen tussen de gekozen passages in hetzelfde akkoord. De toetsenbord-review (`BegripReview`) is weg;
+  een vraag die bij geen term meer hoort staat los in het kader.
 
 **Open**: groepen op een stopwoord ("en") zijn een signaal voor de keten, geen weergavekwestie.
 

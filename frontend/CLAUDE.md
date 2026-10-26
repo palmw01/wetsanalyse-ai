@@ -55,7 +55,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
 - **De rekenkern staat in `lib/`**, niet in componenten: vitest draait node-env zonder DOM, dus alleen
   pure helpers zijn testbaar (`selectie`, `annotatie`, `annotatieOverzicht`, `reeks`, `samenhang`,
   `markering`, `popover`, `wetstructuur`, `lopendeRun`, `rondleiding`, `werkgebied`, `begrippen`,
-  `begripVoorstellen`, `kaartVoorstel`, `herbeoordeling`, `begripRelaties`, `begripGraaf`, `begrippenOverzicht`, `artefact`, `bronKandidaten`, `deelvragen`, `onbewaard`, `vraagkaart`, `gesprekGroepen`, `werkgebiedPaden`, …).
+  `begripVoorstellen`, `begripTermen`, `bronPlaats`, `kaartVoorstel`, `herbeoordeling`, `begripRelaties`, `begripGraaf`, `begrippenOverzicht`, `artefact`, `bronKandidaten`, `deelvragen`, `onbewaard`, `vraagkaart`, `gesprekGroepen`, `werkgebiedPaden`, …).
 - **`app/**/page.tsx`** (Server Components) – data via `lib/server.ts`, interactie in een
   `*Client.tsx`. `app/page.tsx` doet `redirect("/workbench")`. De werkplek zit in
   `app/workbench/page.tsx` én in `app/default.tsx` (de default van het children-slot); beide renderen
@@ -826,30 +826,27 @@ bestaat los van de gesprekken.
   - **De allowlist** (`isWerkgebiedRoute`) laat `groepen/*`, `begrippen-runs/laatste|{run}` en
     `…/vragen/{kid}` door, maar nooit `…/uitkomst`, `…/loopt`, `…/mislukt` of een kale POST op
     `begrippen-runs`: een run maakt graph-qa.
-  - **De review** (`BegripReview`, fase D; api §*Voorstellen van Lex* – akkoord) is de vorm van de
-    annotatiereview: groepen én open twijfelvragen in één lijst (`reviewItems` in
-    `lib/begripVoorstellen.ts`: geel, de vragen, groen; besluiten alleen bij *Alles*), voortgang
-    (`reviewVoortgang`, parkeren telt als besluit), filters, en alleen het actieve item uitgeklapt.
-    - **Akkoord** (`a`) gaat via `POST …/groepen/akkoord`: begrip, beoordeelde koppelingen en accorderen in
-      één handeling. De knop zegt vooraf of het een concept blijft (`akkoordLabel` uit `poort_vooraf`).
-      Blijft het een concept, dan staat het bovenaan met de redenen en de oplossing ter plekke:
-      *Annotatie akkoord* per onbeoordeelde passage (`keurElementGoed` in `lib/annotatieNode.ts` – een
-      aparte beslissing op de annotatie, met haar laagrevisie) en *Definitie toevoegen*; daarna probeert de
-      review opnieuw te accorderen.
-    - **Aanpassen** (`e`): naam, definitie met herkomst, context, begripstype; alleen wat veranderde gaat
-      mee (`aanpassingUit`), en de werkplek toont welke herkomst het wordt (`herkomstNaAanpassing`, zoals
-      de api). Enter in een veld of Ctrl+Enter in een tekstvak = akkoord.
-    - **Splitsen** met de vinkjes; de rest van de groep blijft staan ("n al een begrip"). Na elk besluit
-      vervalt de vinkjeskeuze. **Combineren**: `m` markeert, vanaf twee groepen staat de vergelijking
-      bovenaan (`vergelijk`: definities naast elkaar, kies er één of geen, signalen ertegen).
-      **Afwijzen** (`x`) en **parkeren** (`p`) vragen een reden; *Koppelen aan …* (bij *lijkt op*) koppelt
-      met `akkoord: true`. Een vraag: `s` samen (één begrip, de vraag gaat met het akkoord mee) of `n` apart.
-    - **Toetsen** alleen met de focus in de strook, in het artefactpaneel of nergens; nooit vanuit de chat
-      of een tekstveld (een vinkje of keuzerondje telt niet als tekstveld). Na een besluit springt de
-      selectie naar het volgende open item (`naBesluit`). Een 409 `al_besloten` opent het bestaande begrip.
-  - Browserregressie: `scripts/test-begripvoorstellen.mjs` (de volledige review met alleen het toetsenbord)
-    en de toetsen in het paneel in `test-artefacten.mjs`. Let op: een label om een tekstveld neemt de
-    **inhoud** van het veld op in de toegankelijke naam – zoek een gevuld veld op een prefix.
+  - **Per term** (spoor H4; api §*Voorstellen van Lex* – akkoord). De keten maakt één groep per term per
+    bepaling, dus de strook toont geen groepen maar **termen** (`termenVan` in `lib/begripTermen.ts`: dezelfde
+    normalisatie als de api, kleine letters zonder lidwoord): één `ObjectRij` per term met omvang, "lijkt op …"
+    en *Keuze voor jou*, naar de **termpagina** `artefacten/begrippen/term/<term>` (`termPad`,
+    `BegripTermPagina`). Beoordeelde termen staan ingeklapt; een twijfelvraag die bij geen term meer hoort
+    (`losseVragen`) staat ingeklapt onder *Losse twijfelvragen*, met *Samen*/*Apart*. Naast het gesprek
+    dezelfde rijen; een rij opent de pagina.
+    - **De termpagina**: de passages van alle open groepen van de term in een `BronBoom` (per passage een
+      blad, `sleutel` = element-id), standaard alles aangevinkt behalve wat voor later bewaard is
+      (`standaardKeuze`); *Waarom stelt Lex dit voor?* ingeklapt. Daaronder **Het begrip**: naam, de definitie
+      (bij meer dan één kies je uit welke groep, of geen; aanpassen telt als `aanpassing`, `herkomstNaAanpassing`
+      zegt wat het wordt), de fragmenten en aandachtspunten van een kaart van Lex, en vooraf of het een concept
+      blijft (`akkoordLabel`). Onderaan de vragen naar een andere term (*Samen* met een naam, *Apart*).
+    - **De actiebalk** (sticky): *Eén begrip maken (n)* → `groepen/akkoord` met de groepen van de gekozen
+      passages, `element_ids` bij een deel, en `kandidaat_ids`: de twijfelvragen met beide kanten gekozen
+      (`termAkkoord`); daarna naar de begripspagina, waar een concept verder wordt afgemaakt. *Koppelen aan …*
+      (per `lijkt_op`), *Later* en *Heropenen*, en *Geen begrip…* met een verplichte reden (afwijzen, per hele
+      groep). Een 409 `al_besloten` noemt het bestaande begrip.
+    - **Geen sneltoetsen**: de oude toetsenbord-review (`BegripReview`, `j`/`k`/`a`/…) is weg.
+  - Browserregressie: `scripts/test-begripvoorstellen.mjs` (het kader per term en de termpagina) en de
+    termrijen in het paneel in `test-artefacten.mjs`.
 - **Lex annoteert het werkgebied** (fase B; api §*Werkgebieden* – de annotatie-werkvoorraad, graph-qa
   §*Lex annoteert het werkgebied*). Lex begint nooit zonder akkoord.
   - **In de werkplek** (F3d): de suggestie *Annoteer wat nog niet geannoteerd is* vraagt Lex om het voorstel
@@ -877,7 +874,8 @@ bestaat los van de gesprekken.
     `bevestiging` (`soort: "begrippen_verdiepen"`) die *Laat Lex meedenken (n)* geeft. Die knop gaat via
     `verstuur(MEEDENK_PROMPT, …, {werkgebiedId, bevestigd, modus: "begrippen_verdiepen"})`.
     `parseBevestiging` kent beide soorten; een onbekende soort krijgt geen knop.
-  - **Na het meedenken**: twijfelvragen tonen alleen wat open bleef (`openVragen`), met *Advies van Lex*;
+  - **Na het meedenken**: twijfelvragen tonen alleen wat open bleef (`openVragen`), met *Advies van Lex*
+    (op de termpagina, of los in het kader);
     een groep `door: "model"` zegt "samengevoegd op advies van Lex"; de definitie komt uit de kaart
     (`groepDefinitie`: letterlijk heet "Brondefinitie", anders "Definitie, samengesteld uit de bron /
     geformuleerd door Lex", met de fragmenten en de toelichting ingeklapt); de aandachtspunten in tekst

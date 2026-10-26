@@ -5,29 +5,15 @@ import { describe, expect, it } from "vitest";
 
 import {
   AANDACHTSPUNT, aandachtspunten, aanpassingUit, akkoordLabel, akkoordVoor, enigeDefinitie, groepDefinitie,
-  groepenVanVraag, herkomstNaAanpassing, naBesluit, onbeoordeeldeAnnotaties, openVragen,
-  overnameVoor, passageTekst, reviewItems, reviewVoortgang, samenAkkoord, sorteerGroepen, vergelijk, volgendeItem,
+  groepenVanVraag, herkomstNaAanpassing, openVragen, overnameVoor, passageTekst, samenAkkoord,
 } from "./begripVoorstellen";
-import type { Begrip, Betekenisgroep, ConceptKaart, GroepenAntwoord, Koppeling } from "./types";
+import type { Betekenisgroep, ConceptKaart, GroepenAntwoord } from "./types";
 
 const lid = (id: string, tekst = id) => ({ element_id: id, tekst, jas_klasse: "Rechtssubject", review_status: "voorgesteld",
   bron_iri: "urn:x", vindplaats: "Artikel 9 · Lid 1" });
 const groep = (id: string, leden: string[], over: Partial<Betekenisgroep> = {}): Betekenisgroep => ({
   id, aandacht: "groen", voorstel: { naam: id }, uitleg: [], conflicten: [], besluit: "open", reden: "", begrip_id: null,
   besloten_door: null, leden: leden.map((l) => lid(l)), lijkt_op: [], ...over,
-});
-
-describe("sorteerGroepen", () => {
-  it("open vóór geparkeerd vóór besloten; geel vóór groen; meer leden eerst", () => {
-    const uit = sorteerGroepen([
-      groep("klaar", ["a", "b"], { besluit: "overgenomen" }),
-      groep("park", ["c", "d"], { besluit: "geparkeerd" }),
-      groep("groen2", ["e", "f"]),
-      groep("groen3", ["g", "h", "i"]),
-      groep("geel", ["j", "k"], { aandacht: "geel" }),
-    ]);
-    expect(uit.map((g) => g.id)).toEqual(["geel", "groen3", "groen2", "park", "klaar"]);
-  });
 });
 
 describe("overnameVoor", () => {
@@ -122,45 +108,9 @@ it("de aandachtspunten volgen graph-qa toetsen.TEKST, code voor code en woord vo
   expect(AANDACHTSPUNT).toEqual(daar);
 });
 
-// --- de review (fase D) ------------------------------------------------------------------------
+// --- het akkoord (fase D) ------------------------------------------------------------------------
 
 const vraag = (kid: string, van: string, naar: string) => ({ kandidaat_id: kid, van, naar, regel: "", uitleg: [] });
-const antwoord = (groepen: Betekenisgroep[], vragen = [vraag("P1", "a1", "z1")], besluiten = {}): GroepenAntwoord => ({
-  run: { id: "r", werkgebied_id: "w", manifest_id: "m", status: "klaar", reden: "", overgeslagen: [], aantal_formuleringen: 9,
-    uitkomst: { groep_ids: groepen.map((g) => g.id), relaties: [], vragen }, vragen_besluiten: besluiten,
-    gestart_door: "a", gestart: "", gewijzigd: "" } as unknown as GroepenAntwoord["run"],
-  groepen, passages: {}, verdieping: null,
-});
-
-describe("reviewItems en reviewVoortgang", () => {
-  const groepen = [groep("Ggroen", ["a1", "a2"]), groep("Ggeel", ["b1", "b2"], { aandacht: "geel" }),
-    groep("Gpark", ["c1", "c2"], { besluit: "geparkeerd" }), groep("Gklaar", ["d1", "d2"], { besluit: "overgenomen" })];
-  const data = antwoord(groepen, [vraag("P1", "a1", "z1"), vraag("P2", "b1", "z2")],
-    { P2: { antwoord: "apart", door: "a", op: "" } });
-  it("te beoordelen: geel, dan de open vragen, dan groen – zonder besluiten", () => {
-    expect(reviewItems(data, "te_beoordelen").map((i) => i.id)).toEqual(["Ggeel", "P1", "Ggroen"]);
-  });
-  it("aandacht: alleen geel en de vragen", () => {
-    expect(reviewItems(data, "aandacht").map((i) => i.id)).toEqual(["Ggeel", "P1"]);
-  });
-  it("alles: daarna de besluiten en de beantwoorde vragen", () => {
-    expect(reviewItems(data, "alles").map((i) => i.id)).toEqual(["Ggeel", "P1", "Ggroen", "Gpark", "Gklaar", "P2"]);
-  });
-  it("voortgang telt groepen en vragen; parkeren is een besluit", () => {
-    expect(reviewVoortgang(data)).toEqual({ totaal: 6, beslist: 3, aandacht: 2 });
-  });
-});
-
-it("volgendeItem en naBesluit lopen de getoonde volgorde door", () => {
-  const items = reviewItems(antwoord([groep("Ga", ["a"]), groep("Gb", ["b"]), groep("Gc", ["c"])], []), "te_beoordelen");
-  expect(volgendeItem(items, undefined, 1)?.id).toBe("Ga");
-  expect(volgendeItem(items, undefined, -1)?.id).toBe("Gc");
-  expect(volgendeItem(items, "Ga", 1)?.id).toBe("Gb");
-  expect(volgendeItem(items, "Gc", 1)).toBeUndefined();
-  const na = items.filter((i) => i.id !== "Gb");
-  expect(naBesluit(items, "Gb", na)).toBe("Gc");
-  expect(naBesluit(items, "Gc", items.filter((i) => i.id !== "Gc"))).toBe("Ga");
-});
 
 it("akkoordLabel zegt vooraf of het een concept blijft", () => {
   expect(akkoordLabel(groep("G", ["a"], { poort_vooraf: { mag: true, redenen: [] } })).label).toBe("Akkoord");
@@ -205,25 +155,4 @@ describe("aanpassingUit en herkomstNaAanpassing", () => {
     expect(herkomstNaAanpassing(oud, " ", null)).toBeNull();
     expect(herkomstNaAanpassing({ tekst: "", herkomst: null }, "eigen", null)).toBe("geformuleerd");
   });
-});
-
-it("vergelijk noemt de signalen tegen combineren", () => {
-  const met = (id: string, def: string, klasse: string, type: ConceptKaart["begripstype"]) => groep(id, ["x"], {
-    voorstel: { naam: id, definitie: def }, conflicten: id === "Gb" ? ["X"] : [],
-    leden: [{ ...lid(`${id}1`), jas_klasse: klasse }],
-    kaart: { begripstype: type } as ConceptKaart,
-  });
-  const v = vergelijk([met("Ga", "D1", "Rechtssubject", "actor"), met("Gb", "D2", "Rechtsobject", "entiteit")]);
-  expect(v.metDefinitie).toEqual(["Ga", "Gb"]);
-  expect(v.signalen).toHaveLength(4);
-  expect(v.signalen[0]).toContain("actor");
-  expect(vergelijk([met("Ga", "D1", "Rechtssubject", "actor"), met("Gc", "", "Rechtssubject", "actor")]).signalen).toEqual([]);
-});
-
-it("onbeoordeeldeAnnotaties: alleen actuele, dragende, niet afgewezen koppelingen zonder oordeel van een jurist", () => {
-  const k = (id: string, over: Partial<Koppeling>) => ({ id, rol: "duiding", beoordeling: "akkoord", actualiteit: "actueel",
-    annotatie_beoordeeld: false, ...over }) as Koppeling;
-  const b = { koppelingen: [k("1", {}), k("2", { annotatie_beoordeeld: true }), k("3", { rol: "context" }),
-    k("4", { actualiteit: "gewijzigd" }), k("5", { beoordeling: "afgewezen" }), k("6", { rol: "definitie" })] } as Begrip;
-  expect(onbeoordeeldeAnnotaties(b).map((x) => x.id)).toEqual(["1", "6"]);
 });

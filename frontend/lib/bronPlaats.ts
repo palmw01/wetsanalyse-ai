@@ -79,6 +79,8 @@ export function bouwBoom<T>(items: readonly T[], opties: {
   iri: (item: T) => string;
   /** Hoe het blad heet als er geen plek is (meestal het label van de bron). */
   naam: (item: T) => string;
+  /** De sleutel van een blad, als er meer items op één bepaling staan (passages); standaard de IRI. */
+  sleutel?: (item: T) => string;
   plaatsen?: ReadonlyMap<string, Plaats> | null;
   /** De naam van een regeling als de api hem niet gaf (bv. uit het label "… – Invorderingswet 1990"). */
   regelingNaam?: (item: T, bwbId: string) => string | undefined;
@@ -109,9 +111,9 @@ export function bouwBoom<T>(items: readonly T[], opties: {
     for (const d of delen) ouder = kind(ouder, d.sleutel, "deel", d.label);
     if (artikel) {
       const a = kind(ouder, artikel.sleutel, "artikel", artikel.label);
-      a.bladeren.push({ sleutel: iri, bron_iri: iri, label: rest || "Hele bepaling", data: item });
+      a.bladeren.push({ sleutel: opties.sleutel?.(item) ?? iri, bron_iri: iri, label: rest || "Hele bepaling", data: item });
     } else {
-      ouder.bladeren.push({ sleutel: iri, bron_iri: iri, label: opties.naam(item), data: item });
+      ouder.bladeren.push({ sleutel: opties.sleutel?.(item) ?? iri, bron_iri: iri, label: opties.naam(item), data: item });
     }
   }
   return [...regelingen.values()];

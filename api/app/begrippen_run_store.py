@@ -478,6 +478,15 @@ async def _neem_over(werkgebied: dict, o: Overname, actor: str, resolve: Resolve
         inhoud, velden = _pas_aan(inhoud, o.aanpassing, manifest)
         if o.kandidaat_id and (run is None or o.kandidaat_id not in {v["kandidaat_id"] for v in run.uitkomst.get("vragen", [])}):
             raise HTTPException(404, "Deze vraag staat niet in de voorstellen.")
+        if o.kandidaat_ids:
+            vragen = {v["kandidaat_id"]: v for v in (run.uitkomst.get("vragen", []) if run else [])}
+            if any(k not in vragen for k in o.kandidaat_ids):
+                raise HTTPException(404, "Een van deze vragen staat niet in de voorstellen.")
+            gekozen = set(leden)
+            buiten = [k for k in o.kandidaat_ids if not {vragen[k]["van"], vragen[k]["naar"]} <= gekozen]
+            if buiten:
+                raise HTTPException(422, {"fout": "vraag_buiten_keuze", "vragen": buiten,
+                                          "melding": "Een twijfelvraag verbindt een passage die niet in deze keuze zit."})
     if inhoud.get("definitie"):
         # Een definitie uit het voorstel is van Lex; heeft de jurist haar aangepast, dan is ze van hem.
         inhoud["definitie_door"] = "analist" if {"definitie", "definitie_herkomst"} & set(velden) else "lex"
@@ -500,8 +509,9 @@ async def _neem_over(werkgebied: dict, o: Overname, actor: str, resolve: Resolve
         detail = {"geaccordeerd": p["mag"], **({"aangepast": velden} if velden else {})} if akkoord else {}
         await _verwerk(conn, wid, rows, leden, actor, bid, "overgenomen",
                        "groep-akkoord" if akkoord else "groep-overgenomen", detail)
-        if akkoord and o.kandidaat_id:
-            await _vraag_in(conn, wid, run.id, o.kandidaat_id, "samen", actor)
+        if akkoord:
+            for kid in dict.fromkeys([*([o.kandidaat_id] if o.kandidaat_id else []), *o.kandidaat_ids]):
+                await _vraag_in(conn, wid, run.id, kid, "samen", actor)
     begrip = await begrip_store.haal(wid, bid)
     return {"begrip": begrip, "geaccordeerd": begrip["status"] == "geaccordeerd", "poort": begrip["accorderen"]}
 

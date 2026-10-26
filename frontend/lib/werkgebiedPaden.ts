@@ -62,6 +62,11 @@ export function artefactPad(id: string, soort: ArtefactSoort,
 
 /** De eigen pagina's van de juridische objecten (spoor G3): één bepaling uit de graaf, één JAS-element en
  *  één begrip. Elk is direct te openen en te delen; het werkgebied gaat mee als context, niet als eigenaar. */
+/** De voorstellen van Lex voor één term in het begrippenkader (spoor H4); de term genormaliseerd. */
+export function termPad(id: string, sleutel: string): string {
+  return `${artefactPad(id, "begrippen")}/term/${encodeURIComponent(sleutel)}`;
+}
+
 export function bronPad(bronIri: string, werkgebiedId?: string): string {
   const qs = new URLSearchParams({ bron_iri: bronIri });
   if (werkgebiedId) qs.set("werkgebied", werkgebiedId);

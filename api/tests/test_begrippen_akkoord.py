@@ -159,6 +159,26 @@ async def test_samen_bij_een_twijfelvraag_beantwoordt_de_vraag(client):
     assert run["vragen_besluiten"]["P1"]["antwoord"] == "samen"
 
 
+async def test_een_begrip_van_een_term_beantwoordt_al_zijn_vragen(client):
+    """Spoor H4, de termpagina: één akkoord over de gekozen groepen zet elke twijfelvraag ertussen op
+    *samen*; een vraag naar een passage buiten de keuze kan niet mee."""
+    ids = await _annoteer()
+    wg = await _werkgebied(client)
+    run = await _start(client, wg)
+    await _uitkomst(client, wg, run, _alfa(ids), vragen=[
+        {"kandidaat_id": "P1", "van": ids["alfa1"], "naar": ids["beta"]},
+        {"kandidaat_id": "P2", "van": ids["alfa2"], "naar": ids["beta"]},
+        {"kandidaat_id": "P3", "van": ids["alfa1"], "naar": ids["awr"]}])
+    body = {"groep_ids": ["Gaaa111"], "element_ids": [ids["alfa1"], ids["alfa2"], ids["beta"]]}
+    r = await _akkoord(client, wg, **body, kandidaat_ids=["P1", "P3"])
+    assert r.status_code == 422 and r.json()["detail"]["vragen"] == ["P3"]
+    assert (await _akkoord(client, wg, **body, kandidaat_ids=["P9"])).status_code == 404
+    r = await _akkoord(client, wg, **body, kandidaat_ids=["P1", "P2"])
+    assert r.status_code == 201, r.text
+    run = (await client.get(f"/v1/werkgebieden/{wg['id']}/begrippen-runs/{run['id']}")).json()
+    assert {k: v["antwoord"] for k, v in run["vragen_besluiten"].items()} == {"P1": "samen", "P2": "samen"}
+
+
 async def test_een_fout_halverwege_laat_niets_achter(client, monkeypatch):
     _, wg, _ = await _voorstel(client, _alfa)
 
