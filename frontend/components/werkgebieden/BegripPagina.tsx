@@ -14,6 +14,7 @@ import { foutTekst, haalWerkgebied, lijstBegrippen } from "@/lib/api";
 import type { BegrippenLijst, Werkgebied } from "@/lib/types";
 import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
 import { artefactPad, begripPad } from "@/lib/werkgebiedPaden";
+import { definitieAard } from "@/lib/begrippen";
 
 const STATUS: Record<string, { tekst: string; toon: "groen" | "neutraal" }> = {
   geaccordeerd: { tekst: "Geaccordeerd", toon: "groen" },
@@ -65,7 +66,11 @@ export function BegripPagina({ werkgebiedId, begripId }: { werkgebiedId: string;
           meta={<>
             {status && <StatusLabel toon={status.toon}>{status.tekst}</StatusLabel>}
             {wg && <><Stip /><span>Begrippenkader {wg.naam}</span></>}
-            <Stip /><span>Een analysebegrip, geen wettelijke definitie</span>
+            {begrip && (() => {
+              // Brondefinitie of analysebegrip: een geformuleerd begrip is geen wettelijke definitie (spoor G5).
+              const aard = definitieAard(begrip.inhoud);
+              return <><Stip /><span data-definitie-aard={aard.soort} title={aard.uitleg}>{aard.titel}</span></>;
+            })()}
           </>}
           acties={begrip && (
             <VraagLexKnop primair onderwerp={{ soort: "begrip", werkgebied_id: werkgebiedId, id: begripId, label: naam }}

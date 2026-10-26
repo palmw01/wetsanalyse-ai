@@ -206,7 +206,14 @@ try {
   await foto("begrip-nieuw");
 
   await kaart().getByLabel("Definitie", { exact: true }).fill("Degene die de belasting verschuldigd is.");
+  // Spoor G5: de kaart in de volgorde van NL-SBB, en bij de definitie of het een brondefinitie is of een
+  // analysebegrip – dat volgt de gekozen herkomst meteen, ook vóór het opslaan.
+  assert.deepEqual(await kaart().locator("[data-kaart-groep]").evaluateAll((g) => g.map((x) => x.dataset.kaartGroep)),
+    ["Term", "Betekenis", "Voorbeelden", "Indeling in deze analyse", "Onderbouwing en open vragen"]);
+  await kaart().getByLabel("Letterlijk uit de bron").check();
+  await kaart().locator("[data-definitie-aard=brondefinitie]").waitFor();
   await kaart().getByLabel("Samengesteld uit bronpassages").check();
+  await kaart().locator("[data-definitie-aard=analysebegrip]").getByText("geen wettelijke definitie", { exact: false }).waitFor();
   await kaart().getByLabel(/^Context/).fill("Invordering van rijksbelastingen.");
   await zie("Sla eerst je wijzigingen op");
   await page.getByRole("button", { name: "Opslaan" }).click();

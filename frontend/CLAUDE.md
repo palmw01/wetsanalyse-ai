@@ -775,6 +775,16 @@ bestaat los van de gesprekken.
   revisie in beeld, 412 laadt opnieuw en zegt het, een fout met een `melding` van de api (`al_primair`,
   `poort`, `element_buiten_werkgebied`) verschijnt zoals de api hem formuleert. Kaart en passages staan
   vanaf `xl` naast elkaar, daaronder wissel je; de schil is op deze tab breed (`max-w-7xl`).
+  - **De kaart staat in de volgorde van NL-SBB** (spoor G5, ADR-003): groepen *Term* (voorkeursterm,
+    alternatieve termen), *Betekenis* (definitie met herkomst, uitleg = toelichting, context = toepassings-
+    gebied), *Voorbeelden*, dan wat eigen is aan de analyse (*Indeling*: JAS-duiding, begripstype,
+    geldigheid, eigenschappen; *Onderbouwing en open vragen*). Bij elke kop staat klein de NL-SBB-eigenschap
+    waarop de export landt. Een groep draagt geen label (`data-kaart-groep`): een label "Onderbouwing en …"
+    zou het veld *Onderbouwing* overstemmen. **Brondefinitie of analysebegrip** staat bij de definitie
+    (`DefinitieAard`, `definitieAard` in `lib/begrippen.ts`): alleen een letterlijk overgenomen definitie is
+    een brondefinitie; samengesteld of geformuleerd is "een analyse-uitkomst, geen wettelijke definitie". Het
+    volgt de gekozen herkomst meteen, ook vóór het opslaan; de kop van de begripspagina en `BegripPaneel`
+    tonen hetzelfde.
   - **`BegripKaart` is één formulier met *Opslaan*, geen autosave**: elke bewaring is een revisie. De
     kaart werkt op een concept naast de serverstand (`basis`). Verandert de inhoud op de server terwijl
     er niets onbewaard is, dan neemt hij die over; mét onbewaarde wijzigingen zegt hij dat en blijft
