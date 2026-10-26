@@ -71,3 +71,17 @@ it("een kandidaat hoort bij de deelvraag die zijn bewijs noemt", () => {
   expect(bijDeelvraag(k, "d2")).toBe(false);
   expect(bijDeelvraag({ bewijs: [{ methode: "opbouw" as const, vanuit: "", detail: {} }] }, "d1")).toBe(false);
 });
+
+describe("bewijsSamenvatting", () => {
+  it("telt herhalingen per methode en houdt één bewijs letterlijk", async () => {
+    const { bewijsSamenvatting } = await import("./bronKandidaten");
+    const uit = (vanuit: string) => ({ methode: "verwijzing_uit" as const, vanuit, detail: { functie: "toepassing" } });
+    expect(bewijsSamenvatting([uit("a"), uit("b"), uit("c"),
+      { methode: "definitie", vanuit: "", detail: { begrip: "rijksbelastingen" } }]))
+      .toBe("3× verwezen vanuit de kern · definieert “rijksbelastingen”");
+    expect(bewijsSamenvatting([uit("urn:bwb:BWBR0004770:artikel:9:lid:1")])).toMatch(/^verwezen vanuit Artikel 9, lid 1/);
+    expect(bewijsSamenvatting([
+      { methode: "deelvraag", vanuit: "", detail: { deelvraag_id: "d1" } },
+      { methode: "deelvraag", vanuit: "", detail: { deelvraag_id: "d2" } }])).toBe("gevonden bij 2 deelvragen");
+  });
+});

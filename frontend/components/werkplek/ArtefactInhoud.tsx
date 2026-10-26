@@ -13,7 +13,7 @@ import { ReviewQueue, type OpenRij } from "@/components/werkplek/ReviewQueue";
 import { SelectiePopover, type SelectieDoel } from "@/components/werkplek/SelectiePopover";
 import {
   DOCUMENT_STATUS_LABEL, DOCUMENT_STATUS_STYLE, LIFECYCLE_LABEL, bronVan, isDocumentVergrendeld,
-  isVergrendeld, overlaptSelectie, pastInFilter, regelsVan, sorteerReview, splitsVerouderd,
+  overlaptSelectie, pastInFilter, regelsVan, sorteerReview, splitsVerouderd,
   volgendeElement, type ReviewFilter,
 } from "@/lib/annotatie";
 import { jasStyle } from "@/lib/jas";
@@ -185,8 +185,9 @@ export function ArtefactInhoud({
     }
   }
 
-  /** Sneltoetsen. Bewust inactief zodra de focus in een invoerveld staat: anders keur je iets goed
-   *  door "a" te typen in een toelichting. Escape werkt altijd – dat is de uitweg. */
+  /** Escape is de uitweg: de bovenste laag eerst (selectie → bedieningsrij → gekozen element → sluiten).
+   *  Andere toetsen doet het artefact niet: Lex heeft geen sneltoetsen (besluit gebruiker 26 okt 2026);
+   *  beoordelen gaat met de knoppen op de kaart. */
   useEffect(() => {
     function opToets(e: KeyboardEvent) {
       const doel = e.target as HTMLElement | null;
@@ -200,47 +201,6 @@ export function ArtefactInhoud({
         // Niet vanuit de chat ernaast of vanuit een venster dat eroverheen ligt (instellingen):
         // dan hoort Escape bij dát venster.
         if (inVeld ? !!doel?.closest("[data-artefact]") : focusBijArtefact(doel)) opEscape();
-        return;
-      }
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-
-      if (inVeld) return;
-      // De rest alleen als de focus in het artefact staat, of nergens (op de pagina zelf). In de
-      // kolomvariant staat de chat ernaast: daar zijn de pijltjes van de keuzekaart en het scrollen
-      // door de thread, en een `a` op een chatknop keurde hier ongemerkt het gekozen element goed.
-      if (!focusBijArtefact(doel)) return;
-
-      const stap = (richting: 1 | -1) => {
-        const volgend = volgendeElement(getoond, actiefId, richting);
-        if (volgend) {
-          e.preventDefault();
-          setOpen("geen");
-          onKies(volgend.id);
-        }
-      };
-
-      if (e.key === "j" || e.key === "ArrowDown") return stap(1);
-      if (e.key === "k" || e.key === "ArrowUp") return stap(-1);
-      if (!actiefId) return;
-      const actiefEl = actueel.find((el) => el.id === actiefId);
-      if (!actiefEl) return;
-
-      // Ook het slot op dít element telt: anders opent `x` een redenen-rij die alleen nog een 409
-      // kan opleveren. De sneltoets doet precies wat de knop doet – of hij doet niets.
-      if (vergrendeld || isVergrendeld(actiefEl)) return;
-
-      if (e.key === "a") {
-        e.preventDefault();
-        if (!actiefEl.klasse) return;            // net als de knop: eerst een klasse kiezen
-        // De fout staat al in de melding boven de lijst (`beslis`); hier alleen niet laten
-        // doorlopen als onafgehandelde rejection – de knop vangt hem net zo af.
-        keurGoed(actiefEl.id).catch(() => {});
-      } else if (e.key === "x") {
-        e.preventDefault();
-        setOpen((h) => (h === "verwerp" ? "geen" : "verwerp"));
-      } else if (e.key === "c") {
-        e.preventDefault();
-        setOpen((h) => (h === "klasse" ? "geen" : "klasse"));
       }
     }
     window.addEventListener("keydown", opToets);

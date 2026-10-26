@@ -298,6 +298,7 @@ function DecisionCard({
     <div
       ref={kaartRef}
       data-tour={tourAnker ? "review-kaart" : undefined}
+      data-review-kaart={el.id}
       onClick={onKies}
       className={`rounded-kaart border border-line border-l-4 bg-paper p-3 shadow-zacht transition ${
         beslist ? "opacity-75" : aandacht ? `${aandacht.rand} ${aandacht.tint}` : "border-l-line"
@@ -705,16 +706,6 @@ export function ReviewQueue({
           })}
         </div>
 
-        <p className="mt-2 text-[0.65rem] text-faint">
-          {docVergrendeld ? (
-            <>Sneltoetsen: <kbd>j</kbd>/<kbd>k</kbd> volgende · <kbd>Esc</kbd> loslaten</>
-          ) : (
-            <>
-              Sneltoetsen: <kbd>j</kbd>/<kbd>k</kbd> volgende · <kbd>a</kbd> akkoord · <kbd>x</kbd> verwerpen
-              · <kbd>c</kbd> klasse · <kbd>Esc</kbd> loslaten
-            </>
-          )}
-        </p>
       </div>
 
       {getoond.length === 0 && (
