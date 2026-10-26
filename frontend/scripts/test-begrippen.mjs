@@ -186,8 +186,11 @@ try {
   assert.ok(await page.locator("[data-begrip-rij]").count() > 0);
   assert.equal(await page.locator("[data-begrip-rij] [data-vraag-lex]").count(), 0);
   assert.equal(await page.locator("[data-paginakop]").getByRole("link", { name: /^Bespreek .* met Lex$/ }).count(), 1);
+  // De kaart is de eigen pagina van het begrip (spoor G3).
   await page.getByRole("button", { name: "Begripskaart" }).click();
-  await page.waitForURL(/&weergave=kaart/);   // terugbladeren en herladen houden de kaart open
+  await page.waitForURL(/\/begrippen\/wg1\/b\d+$/);
+  await page.locator("[data-begrip-pagina]").waitFor();
+  assert.equal(await page.locator("[data-paginakop]").getByRole("link", { name: /^Bespreek .* met Lex$/ }).count(), 1);
   const passages = page.getByRole("list", { name: "Passages van dit begrip" }).getByRole("listitem");
   await page.getByRole("heading", { name: "Bronpassages (3)" }).waitFor();
   assert.equal(await passages.count(), 3);
@@ -220,13 +223,14 @@ try {
   assert.equal(await kaart().getByLabel(/^Onderbouwing/).inputValue(), "Van een ander");
   assert.equal(await kaart().getByLabel(/^Uitleg/).inputValue(), "");
 
-  // Een wissel naar Samenhang met onbewaarde wijzigingen vraagt eerst bevestiging (het is een link).
+  // Terug naar het begrippenkader met onbewaarde wijzigingen vraagt eerst bevestiging (het is een link).
   await kaart().getByLabel(/^Uitleg/).fill("Nog niet bewaard");
-  await page.getByRole("navigation", { name: "Begrippenkader" }).getByRole("link", { name: "Samenhang" }).click();
+  const kaartUrl = page.url();
+  await page.getByRole("navigation", { name: "Kruimelpad" }).getByRole("link").nth(1).click();
   await zie("Niet-bewaarde wijzigingen");
   await page.getByRole("button", { name: "Blijf hier" }).click();
-  await page.locator("[data-artefact-pagina=begrippen]").waitFor();
-  assert.ok(!page.url().includes("deel=samenhang"));
+  await page.locator("[data-begrip-pagina]").waitFor();
+  assert.equal(page.url(), kaartUrl);
   assert.equal(await kaart().getByLabel(/^Uitleg/).inputValue(), "Nog niet bewaard");
   // Ook een link in de sidebar (client-side navigatie) wacht op die vraag.
   const voor = page.url();
@@ -257,6 +261,8 @@ try {
   // 4. Elke passage terugvinden: de link naar de annotatie wijst het element aan, en de export draagt ze alle drie.
   const href = await passages.first().getByRole("link", { name: /^Bekijk “.*” in de annotatie$/ }).getAttribute("href");
   assert.match(href, /^\/annotaties\/node\?bron_iri=.+&element=e\d$/);
+  // Exporteren hoort bij het begrippenkader, niet bij één begrip.
+  await page.goto(`${base}/werkgebieden/wg1/artefacten/begrippen`);
   await page.getByRole("button", { name: "Exporteren" }).click();
   const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: /^CSV/ }).click()]);
   assert.equal(download.suggestedFilename(), "begrippen.csv");
@@ -265,8 +271,9 @@ try {
     assert.ok(csv.includes(`Belastingschuldige,geaccordeerd,`) && csv.includes(v), v);
 
   // Herladen houdt de pagina en het begrip; de historie leest als zinnen.
+  await page.goto(kaartUrl);
   await page.reload();
-  await page.locator("[data-artefact-pagina=begrippen]").waitFor();
+  await page.locator("[data-begrip-pagina]").waitFor();
   await kaart().waitFor();
   await kaart().getByText("Historie").click();
   await page.getByRole("list", { name: "Historie van het begrip" }).getByText("Geaccordeerd").waitFor();
@@ -276,10 +283,8 @@ try {
   await page.getByRole("button", { name: "Bronnen (3)" }).click();
   await page.getByRole("heading", { name: "Bronpassages (3)" }).waitFor();
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
-  // De subtabs van het begrippenkader blijven bereikbaar.
-  const samenhangTab = page.getByRole("navigation", { name: "Begrippenkader" }).getByRole("link", { name: "Samenhang" });
-  await samenhangTab.scrollIntoViewIfNeeded();
-  assert.ok(await samenhangTab.isVisible());
+  // Het kruimelpad blijft bereikbaar.
+  assert.ok(await page.getByRole("navigation", { name: "Kruimelpad" }).isVisible());
   await page.waitForTimeout(300);
   await foto("begrip-mobiel");
   assert.deepEqual(errors, []);

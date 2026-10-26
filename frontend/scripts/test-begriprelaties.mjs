@@ -171,12 +171,16 @@ try {
   await sectie().getByRole("button", { name: "Nieuwe betekenis" }).click();
   await sectie().getByLabel("Reden voor de nieuwe betekenis").fill("Ruimer na de wetswijziging.");
   await sectie().getByRole("button", { name: "Maak opvolger" }).click();
-  await page.waitForURL(/begrip=b4/);
+  await page.waitForURL(/(begrip=|\/begrippen\/wg1\/)b4/);
   await zie("Vervangt");
   await sectie().getByRole("button", { name: "belastingaanslag" }).waitFor();
+  // Het vervangen begrip staat in het begrippenkader, ingeklapt; zijn kaart is zijn eigen pagina.
+  await page.goto(`${base}/werkgebieden/wg1/artefacten/begrippen`);
   await page.getByText("Vervangen (1)").click();
   await page.getByRole("list", { name: "Vervangen begrippen" }).getByRole("button").click();
   await page.waitForURL(/begrip=b1/);
+  await page.getByRole("button", { name: "Begripskaart" }).click();
+  await page.waitForURL(/\/begrippen\/wg1\/b1$/);
   await zie("Dit begrip is alleen nog te lezen.");
   assert.equal(await page.locator("[data-begrip-lex]").count(), 0);
   assert.equal(await sectie().getByRole("button", { name: "Nieuwe betekenis" }).count(), 0);
@@ -191,7 +195,7 @@ try {
   await comb.getByRole("radio").nth(1).check();
   await comb.getByLabel("Reden om te combineren").fill("Zelfde begrip.");
   await comb.getByRole("button", { name: "Combineren" }).click();
-  await page.waitForURL(/begrip=b3/);
+  await page.waitForURL(/(begrip=|\/begrippen\/wg1\/)b3/);
   const c = requests.find((r) => r.p.endsWith("/combineren"));
   assert.equal(c.p, "/api/werkgebieden/wg1/begrippen/b3/combineren");
   assert.deepEqual(c.body, { verwachte_revisie: 1, ander_begrip_id: "b2", ander_revisie: 1, reden: "Zelfde begrip." });

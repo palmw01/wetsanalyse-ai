@@ -32,8 +32,9 @@ async def resolve_bron(doel: dict) -> dict:
 
 
 @router.get("")
-async def get_lijst(mijn: bool = False, actor: str = Depends(actieve_userid)):
-    return {"werkgebieden": await store.lijst(actor if mijn else None)}
+async def get_lijst(mijn: bool = False, bron_iri: str | None = Query(None, max_length=2000),
+                    actor: str = Depends(actieve_userid)):
+    return {"werkgebieden": await store.lijst(actor if mijn else None, bron_iri)}
 
 
 @router.post("", status_code=201)

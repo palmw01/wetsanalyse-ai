@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { isBeslist, isVergrendeld, type ReviewFilter } from "@/lib/annotatie";
@@ -9,6 +10,7 @@ import { JAS_KLASSEN, jasStyle } from "@/lib/jas";
 import { redenVoorAlternatief } from "@/lib/waarom";
 import { useVerklaringen, WaaromUitklap } from "@/components/annotaties/WaaromUitklap";
 import type { AnnotatieElement, BeslissingInvoer, ReviewReason, Wijziging } from "@/lib/types";
+import { elementPad } from "@/lib/werkgebiedPaden";
 
 const REDENEN: { waarde: ReviewReason; label: string }[] = [
   { waarde: "verkeerde_klasse", label: "verkeerde klasse" },
@@ -507,6 +509,13 @@ function DecisionCard({
       {uitgeklapt && el.review_uitleg && <p className="mt-1 text-xs italic text-muted">Review: {el.review_uitleg}</p>}
 
       {uitgeklapt && <WaaromUitklap el={el} />}
+      {/* Het element heeft een eigen pagina (spoor G3): bronvoorkomen, classificatie en beoordeling. */}
+      {uitgeklapt && (
+        <Link href={elementPad(el.id)} data-element-pagina-link={el.id}
+          className="focus-ring mt-1 inline-block rounded text-xs font-medium text-lint hover:underline">
+          Open als pagina
+        </Link>
+      )}
 
       {uitgeklapt && !slot && el.alternatieven.length > 0 && (
         <div className="mt-1.5 flex flex-wrap items-center gap-1 text-xs text-muted" onClick={(e) => e.stopPropagation()}>

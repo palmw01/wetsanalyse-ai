@@ -60,13 +60,31 @@ export function artefactPad(id: string, soort: ArtefactSoort,
   return qs.size ? `${pad}?${qs}` : pad;
 }
 
+/** De eigen pagina's van de juridische objecten (spoor G3): één bepaling uit de graaf, één JAS-element en
+ *  één begrip. Elk is direct te openen en te delen; het werkgebied gaat mee als context, niet als eigenaar. */
+export function bronPad(bronIri: string, werkgebiedId?: string): string {
+  const qs = new URLSearchParams({ bron_iri: bronIri });
+  if (werkgebiedId) qs.set("werkgebied", werkgebiedId);
+  return `/bronnen?${qs}`;
+}
+
+export function elementPad(elementId: string): string {
+  return `/annotaties/element/${encodeURIComponent(elementId)}`;
+}
+
+export function begripPad(werkgebiedId: string, begripId: string): string {
+  return `/begrippen/${encodeURIComponent(werkgebiedId)}/${encodeURIComponent(begripId)}`;
+}
+
 /** Waar een oude link met `?tab=` heen gaat: bladwijzers en berichten van vóór G2 blijven werken. */
 export function oudeTabNaar(id: string, p: { tab?: string; begrip?: string; weergave?: string }): string | null {
   const weergave = p.weergave === "kaart" ? "kaart" : "lezen";
   switch (p.tab) {
     case "bronnen": return projectPad(id, "bronnen");
     case "elementen": return artefactPad(id, "annotaties");
-    case "begrippen": return artefactPad(id, "begrippen", { begrip: p.begrip, weergave });
+    // Een begrip als kaart heeft nu een eigen pagina; lezen blijft in het begrippenkader.
+    case "begrippen": return p.begrip && weergave === "kaart" ? begripPad(id, p.begrip)
+      : artefactPad(id, "begrippen", { begrip: p.begrip });
     case "samenhang": return artefactPad(id, "begrippen", { deel: "samenhang" });
     case "historie": return historiePad(id);
     default: return null;

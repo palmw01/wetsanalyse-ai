@@ -14,6 +14,7 @@ import { ACTUALITEIT_LABEL, BEOORDELING_LABEL, KOPPELROL_LABEL, sorteerKoppeling
 import { jasStyle, klasseLabel } from "@/lib/jas";
 import type { Begrip, GeraakteKoppeling, InventarisElement, KoppelBeoordeling, KoppelRol, Koppeling } from "@/lib/types";
 import { annotatieHref, filterElementen } from "@/lib/werkgebied";
+import { elementPad } from "@/lib/werkgebiedPaden";
 
 const KNOP =
   "focus-ring inline-flex min-h-[24px] items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors disabled:opacity-50 coarse:min-h-[44px]";
@@ -132,6 +133,9 @@ function Passage({ id, begrip, koppeling: k, muteer, geraakt }: {
           </span>
         )}
         <span className="flex gap-1.5 sm:ml-auto">
+          <Link href={elementPad(k.element_id)} aria-label={`Open het element ${bij}`} className={`${KNOP} border-line text-lint hover:bg-surface`}>
+            Element
+          </Link>
           <Link href={annotatieHref(k.bewijs.eigenaar_iri, k.element_id)} aria-label={`Bekijk ${bij} in de annotatie`} className={`${KNOP} border-line text-lint hover:bg-surface`}>
             Bekijk in de annotatie
           </Link>

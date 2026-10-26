@@ -23,14 +23,14 @@ import { werkgebiedLabel, type WerkgebiedArtefact } from "@/lib/artefact";
 import type { Werkgebied } from "@/lib/types";
 import { STATUS_LABEL } from "@/lib/werkgebied";
 import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
-import { artefactPad, deelvraagPad, projectPad, voorstellenPad } from "@/lib/werkgebiedPaden";
+import { artefactPad, begripPad, deelvraagPad, projectPad, voorstellenPad } from "@/lib/werkgebiedPaden";
 
 /** Waar *Open het werkgebied* heen gaat: de pagina van wat het paneel toont (spoor G2). */
 function paginaVan(doel: WerkgebiedArtefact): string {
   const id = doel.werkgebied_id;
   switch (doel.soort) {
     case "begrippen": return artefactPad(id, "begrippen");
-    case "begrip": return artefactPad(id, "begrippen", { begrip: doel.begrip_id });
+    case "begrip": return doel.begrip_id ? begripPad(id, doel.begrip_id) : artefactPad(id, "begrippen");
     case "bronnen": return voorstellenPad(id);
     case "deelvraag": return doel.deelvraag_id ? deelvraagPad(id, doel.deelvraag_id) : projectPad(id);
     default: return projectPad(id);
@@ -127,7 +127,7 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
             <BegripPaneel werkgebiedId={doel.werkgebied_id} begripId={doel.begrip_id} onOnbewaard={setOnbewaard}
               onNaarBegrip={(b) => onWissel
                 ? onWissel({ soort: "begrip", werkgebied_id: doel.werkgebied_id, run_id: "", begrip_id: b, titel: "" })
-                : router.push(artefactPad(doel.werkgebied_id, "begrippen", { begrip: b }))} />
+                : router.push(begripPad(doel.werkgebied_id, b))} />
           ) : doel.soort === "deelvraag" && doel.deelvraag_id ? (
             <DeelvraagPaneel werkgebiedId={doel.werkgebied_id} deelvraagId={doel.deelvraag_id}
               onKies={onWissel ? (d) => onWissel({ soort: "deelvraag", werkgebied_id: doel.werkgebied_id, run_id: "",
@@ -137,7 +137,7 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
               id={doel.werkgebied_id}
               runId={doel.run_id}
               inklapbaar={false}
-              onBegrip={(b) => router.push(`${naarWerkgebied}&begrip=${encodeURIComponent(b)}`)}
+              onBegrip={(b) => router.push(begripPad(doel.werkgebied_id, b))}
               // Er staat hier geen begrippenlijst naast die ververst moet worden.
               onGewijzigd={() => {}}
             />

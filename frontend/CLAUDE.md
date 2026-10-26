@@ -658,6 +658,21 @@ bestaat los van de gesprekken.
     berichten van vóór G2 blijven werken. Bouw zelf geen `?tab=` meer; gebruik de padhelpers.
   - **De kop** (`ProjectKop`) draagt *Gegevens bewerken* en *Nieuw gesprek* (een gesprek dat bij het
     werkgebied hoort); historie en verwijderen staan in het menu ⋯.
+- **Elk juridisch object heeft een eigen pagina** (spoor G3; paden in `lib/werkgebiedPaden.ts`):
+  - **Bepaling** `/bronnen?bron_iri=…[&werkgebied=]` (`components/bronnen/BronPagina`): de letterlijke
+    wettekst met álle markeringen in hun JAS-kleur (`KnoopTekst groot`; een klik opent het element), de
+    elementen als rijen, wat de kennisgraaf weet (`KnoopFeiten`), de werkgebieden met deze bepaling
+    (`lijstWerkgebieden({bronIri})`) en *Opnemen in werkgebied*. Met `werkgebied` gaat het kruimelpad via
+    dat werkgebied en staat *Bespreek met Lex* over de bronselectie in de kop. Het bronregister linkt hierheen.
+  - **JAS-element** `/annotaties/element/[id]` (`components/annotaties/ElementPagina`, `haalElementDetail`):
+    het bronvoorkomen, de classificatie met *Waarom?*, en accorderen, afwijzen met een reden of heropenen
+    (`beslisElement`, tegen de laagrevisie en bronstand van het element). Klasse en grens aanpassen blijft in
+    de annotatie van de bepaling, waar de buren ernaast staan. De reviewkaart (*Open als pagina*) en de
+    passages van een begrip (*Element*) linken hierheen.
+  - **Begrip** `/begrippen/[wg]/[id]` (`BegripPagina` → `BegripWerk`): de volledige kaart, zonder lijst.
+    *Begripskaart* in het begrippenkader, het begrippenoverzicht (`kaartUrl`), de samenhangsgraaf en het
+    paneel naast het gesprek openen hem; lezen naast de lijst blijft in het begrippenkader. Een oude link met
+    `&weergave=kaart` gaat hierheen.
 - **Het overzicht** (`WerkgebiedenClient`): statusfilter met tellers (`lib/werkgebiedOverzicht.ts`; de
   status in de URL, `?status=`), *Door mij bewerkt* (`lijstWerkgebieden({mijn})`) en zoeken op naam,
   analysevraag, afbakening en context, client-side. **Aanmaken gaat via Lex**: er is geen formulier
@@ -1507,7 +1522,7 @@ npm run test:browser # Playwright op de echte Next-UI met gemockte BFF (scripts/
 
 `test:browser` draait `scripts/test-annotatie-nodes.mjs`, `test-samenhang.mjs`, `test-reeks.mjs`,
 `test-toetsen.mjs`, `test-werkgebieden.mjs`, `test-begrippen.mjs`, `test-begripvoorstellen.mjs` en
-`test-artefacten.mjs` (de soorten artefacten in de werkplek), `test-bronkandidaten.mjs`, `test-sidebar-groepen.mjs` (spoor G1),
+`test-artefacten.mjs` (de soorten artefacten in de werkplek), `test-bronkandidaten.mjs`, `test-sidebar-groepen.mjs` (spoor G1), `test-detailpaginas.mjs` (spoor G3),
 `test-werkgebied-annoteren.mjs`, `test-begrippen-verdieping.mjs`, `test-herbeoordeling.mjs`, `test-begriprelaties.mjs`, `test-begrippengraaf.mjs`, `test-begrippenoverzicht.mjs`, `test-deelvragen.mjs`, `test-vraaglex.mjs` en `test-rondleiding.mjs`, en verwacht een devserver op poort 3109
 (`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`).
 Praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,

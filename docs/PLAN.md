@@ -102,7 +102,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | D | Activiteit 3: werkgebieden en begrippen | Ontwerp klaar, niets gebouwd |
 | E | Kennisbank (tweede corpus) | Ontwerp klaar, niets gebouwd |
 | F | Activiteit 1 in het gesprek: werkgebied bepalen | F0 en F1 gebouwd (vraagkaarten zoals Claude → werkgebied); vervolg open |
-| G | Lex als projectgerichte werkplek (mock-up v4) | G1 en G2 gebouwd (gesprek bij een werkgebied, de projectpagina); G3–G5 open |
+| G | Lex als projectgerichte werkplek (mock-up v4) | G1–G3 gebouwd (gesprek bij een werkgebied, de projectpagina, eigen pagina's per object); G4–G5 open |
 
 ---
 
@@ -974,8 +974,10 @@ volledige pagina*.
   Lex* per detailpagina, en een doorverwijzing van de oude `?tab=`. Geen `GET …/artefacten` in de api: de
   kaarten lezen wat er al exact ligt (werkgebied, begrippen, kandidaten, annotatie-werkvoorraad); een
   telling op IRI-voorvoegsel zou bij een selectie op een hoofdstuk verkeerd uitkomen.
-- **G3 – detailpagina's**: bron (`/bronnen?bron_iri=`), JAS-element, begrip (`/begrippen/[wg]/[id]`) en de
-  artefactpagina's.
+- **G3 – detailpagina's** – **gebouwd** (26 okt 2026): bepaling (`/bronnen?bron_iri=[&werkgebied=]`, met de
+  wettekst en álle markeringen, de elementen, de kennisgraaf en de werkgebieden – `GET /v1/werkgebieden?bron_iri=`),
+  JAS-element (`/annotaties/element/[id]`: bronvoorkomen, classificatie, accorderen, afwijzen met reden,
+  heropenen) en begrip (`/begrippen/[wg]/[id]`, de volledige kaart). De artefactpagina's kwamen in G2.
 - **G4 – zijpaneel in het gesprek**: één `ContextPaneel` voor bron, element, begrip, artefact en de
   bronnen van het werkgebied, met *Open volledige pagina*.
 - **G5 – verdieping**: alle JAS-spans tegelijk in de wettekst van de bepalingspagina; de begripskaart in

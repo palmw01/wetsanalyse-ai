@@ -147,9 +147,18 @@ async def _deelvragen_bij_aanmaken(conn, wid: str, invoer: WerkgebiedInvoer, act
     return len(gezien)
 
 
-async def lijst(door: str | None = None) -> list[dict]:
+def omvat(selectie: dict, bron_iri: str) -> bool:
+    """Valt `bron_iri` onder deze selectie? De bepaling zelf, of – bij `onderliggend` – een bronnode eronder
+    volgens het pad van de IRI (artikel → lid → onderdeel). Een selectie op een structuurdeel (hoofdstuk)
+    draagt de artikelen niet in haar pad: die mist deze toets. Liever een gemiste dan een verkeerde."""
+    sel = selectie["bron_iri"]
+    return bron_iri == sel or (selectie["bereik"] == "onderliggend" and bron_iri.startswith(sel + ":"))
+
+
+async def lijst(door: str | None = None, bron_iri: str | None = None) -> list[dict]:
     """Alle werkgebieden; met `door` alleen die waar deze gebruiker iets aan deed (de audit), zoals
-    *Door mij bewerkt* bij de annotaties."""
+    *Door mij bewerkt* bij de annotaties; met `bron_iri` alleen die met een selectie die deze bepaling omvat
+    (`omvat`), voor de bronpagina."""
     t, s, a = db.werkgebieden, db.werkgebied_bronselecties, db.werkgebied_audit
     aantal = (select(s.c.werkgebied_id, func.count().label("n")).where(s.c.verwijderd.is_(None))
               .group_by(s.c.werkgebied_id).subquery())
@@ -161,6 +170,11 @@ async def lijst(door: str | None = None) -> list[dict]:
         q = q.where(t.c.id.in_(select(a.c.werkgebied_id).where(a.c.actor == door)))
     async with db.get_engine().connect() as conn:
         rows = (await conn.execute(q)).all()
+        if bron_iri is not None:
+            sels = (await conn.execute(select(s.c.werkgebied_id, s.c.bron_iri, s.c.bereik)
+                                       .where(s.c.verwijderd.is_(None)))).all()
+            met = {r.werkgebied_id for r in sels if omvat(r._mapping, bron_iri)}
+            rows = [r for r in rows if r.id in met]
     return [{**_werkgebied(r), "aantal_bronnen": r.aantal_bronnen} for r in rows]
 
 

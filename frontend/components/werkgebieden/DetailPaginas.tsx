@@ -21,9 +21,9 @@ import { wijzigWerkgebied } from "@/lib/api";
 import type { BegripWeergave } from "@/lib/begrippen";
 import { splits } from "@/lib/deelvragen";
 import type { Werkgebied } from "@/lib/types";
-import { BEREIK_LABEL, DOSSIER_VELDEN, ROL_LABEL, STATUS_LABEL, annotatieHref } from "@/lib/werkgebied";
+import { BEREIK_LABEL, DOSSIER_VELDEN, ROL_LABEL, STATUS_LABEL } from "@/lib/werkgebied";
 import {
-  ARTEFACT_LABEL, artefactKaarten, artefactPad, projectPad, voorstellenPad, type ArtefactSoort,
+  ARTEFACT_LABEL, artefactKaarten, artefactPad, begripPad, bronPad, projectPad, voorstellenPad, type ArtefactSoort,
 } from "@/lib/werkgebiedPaden";
 
 function basisKruimels(wg: Werkgebied): Kruimel[] {
@@ -147,7 +147,7 @@ function Bronselectie() {
                 <ul className="divide-y divide-line">
                   {lijst.map((b) => (
                     <li key={b.id} className="py-2.5 text-sm">
-                      <Link href={annotatieHref(b.bron_iri)} className="focus-ring rounded font-medium text-lint hover:underline">
+                      <Link href={bronPad(b.bron_iri, wg.id)} className="focus-ring rounded font-medium text-lint hover:underline">
                         {b.label || b.bron_iri}
                       </Link>
                       <p className="text-xs text-muted">{BEREIK_LABEL[b.bereik]} · opgenomen door {b.toegevoegd_door}</p>
@@ -203,10 +203,13 @@ function Begrippenkader({ begrip, weergave, deel }: { begrip?: string; weergave:
         { key: "samenhang", label: "Samenhang", href: artefactPad(wg.id, "begrippen", { deel: "samenhang" }) },
       ]} />
       {deel === "samenhang" ? (
-        <SamenhangTab wg={wg} muteer={muteer} onKiesBegrip={(b) => router.push(artefactPad(wg.id, "begrippen", { begrip: b, weergave: "kaart" }))} />
+        <SamenhangTab wg={wg} muteer={muteer} onKiesBegrip={(b) => router.push(begripPad(wg.id, b))} />
       ) : (
-        <BegrippenTab id={wg.id} gekozen={begrip} onbewaard={onbewaard} onOnbewaard={zetOnbewaard} weergave={weergave}
-          onKies={(b, w) => naar(b, w ?? weergave)} onWeergave={(w) => naar(begrip, w)} />
+        // Lezen gebeurt hier, naast de lijst; de kaart (passages, relaties, accorderen) is de pagina van het
+        // begrip (spoor G3).
+        <BegrippenTab id={wg.id} gekozen={begrip} onbewaard={onbewaard} onOnbewaard={zetOnbewaard} weergave="lezen"
+          onKies={(b, w) => (b && w === "kaart" ? router.push(begripPad(wg.id, b)) : naar(b, "lezen"))}
+          onWeergave={(w) => (begrip && w === "kaart" ? router.push(begripPad(wg.id, begrip)) : naar(begrip, "lezen"))} />
       )}
     </>
   );
