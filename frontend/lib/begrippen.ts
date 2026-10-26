@@ -77,6 +77,21 @@ export const HERKOMST_LABEL: Record<DefinitieHerkomst, string> = {
   geformuleerd: "Geformuleerd (door de analist of door Lex)",
 };
 
+/** Wat voor definitie dit is, in de woorden van de begripskaart (spoor G5). Een analysebegrip is niet
+ *  automatisch een wettelijke definitie: alleen een letterlijk overgenomen brondefinitie is dat; een
+ *  samengestelde of geformuleerde definitie is een analyse-uitkomst. Zonder definitie: nog niets. */
+export function definitieAard(inhoud: { definitie?: string; definitie_herkomst?: DefinitieHerkomst | "" | null }):
+  { soort: "brondefinitie" | "analysebegrip" | "geen"; titel: string; uitleg: string } {
+  if (!inhoud.definitie?.trim()) return { soort: "geen", titel: "Nog geen definitie", uitleg: "De betekenis is nog niet vastgelegd." };
+  if (inhoud.definitie_herkomst === "letterlijk")
+    return { soort: "brondefinitie", titel: "Brondefinitie",
+      uitleg: "Letterlijk uit de wettekst overgenomen; de bronpassage is de wettelijke definitie." };
+  return { soort: "analysebegrip", titel: "Analysebegrip",
+    uitleg: inhoud.definitie_herkomst === "samengesteld"
+      ? "Samengesteld uit bronpassages. Dit is een analyse-uitkomst, geen wettelijke definitie."
+      : "Geformuleerd in de analyse. Dit is een analyse-uitkomst, geen wettelijke definitie." };
+}
+
 export const OORDEEL_LABEL: Record<VoorbeeldOordeel, string> = {
   wel: "valt eronder",
   niet: "valt er niet onder",

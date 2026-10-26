@@ -102,7 +102,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | D | Activiteit 3: werkgebieden en begrippen | Ontwerp klaar, niets gebouwd |
 | E | Kennisbank (tweede corpus) | Ontwerp klaar, niets gebouwd |
 | F | Activiteit 1 in het gesprek: werkgebied bepalen | F0 en F1 gebouwd (vraagkaarten zoals Claude → werkgebied); vervolg open |
-| G | Lex als projectgerichte werkplek (mock-up v4) | G1–G4 gebouwd (gesprek bij een werkgebied, de projectpagina, eigen pagina's per object, het contextpaneel); G5 open |
+| G | Lex als projectgerichte werkplek (mock-up v4) | G1–G5 gebouwd (gesprek bij een werkgebied, de projectpagina, eigen pagina's per object, het contextpaneel, de begripskaart in NL-SBB-volgorde) |
 
 ---
 
@@ -984,9 +984,12 @@ volledige pagina*.
   Elk paneel heeft *Open volledige pagina*. Hoogstens één paneel; kolom ≥1280px, sheet daaronder; weg uit
   de werkplek is het paneel weg. Begrip, deelvraag en werkgebied bleven in het bestaande artefactpaneel
   (dat had ze al), nu met dezelfde ingang naar de pagina.
-- **G5 – verdieping**: alle JAS-spans tegelijk in de wettekst van de bepalingspagina (op de bronpagina al
-  sinds G3; de annotatiepagina toont bewust één markering tegelijk); de begripskaart in NL-SBB-volgorde, met
-  het onderscheid brondefinitie en analysebegrip zichtbaar.
+- **G5 – verdieping** – **gebouwd** (26 okt 2026): de begripskaart in de volgorde van NL-SBB (Term → Betekenis
+  → Voorbeelden, dan de eigen indeling en de onderbouwing), met bij elke groep de NL-SBB-eigenschap van de
+  export, en bij de definitie zichtbaar of het een brondefinitie is of een analysebegrip (`definitieAard`),
+  ook in de kop van de begripspagina en naast het gesprek. Alle JAS-spans tegelijk in de wettekst staan op de
+  bronpagina (G3); de annotatiepagina toont bewust één markering tegelijk (twee markeringen kunnen op
+  dezelfde tekst liggen) – open: of die ook een weergave met alle markeringen krijgt.
 
 **Buiten scope**: een begrip in meerdere werkgebieden zonder kopie (open keuze 3: één kader per
 werkgebied). Annotaties zijn al gedeeld per bronnode.

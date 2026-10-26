@@ -15,7 +15,7 @@ import {
 } from "@/lib/api";
 import { conformZin, veldVanPad, type Conformiteit } from "@/lib/begripGraaf";
 import {
-  HERKOMST_LABEL, OORDEEL_LABEL, inhoudGewijzigd, naarRijen, regels, revisieZin, uitRegels, uitRijen,
+  HERKOMST_LABEL, OORDEEL_LABEL, definitieAard, inhoudGewijzigd, naarRijen, regels, revisieZin, uitRegels, uitRijen,
   volledigeInhoud,
 } from "@/lib/begrippen";
 import { definitieDoor, openPerVeld, type Verouderd } from "@/lib/kaartVoorstel";
@@ -151,112 +151,131 @@ export function BegripKaart({ id, begrip, muteer, onOnbewaard, onVerwijder, lex 
         </Melding>
       )}
 
-      <form onSubmit={bewaar} className="space-y-4">
-        <Field label="Naam" required>
-          <Input value={concept.inhoud.naam} onChange={(e) => zet("naam", e.target.value)} maxLength={200} required />
-        </Field>
-        <Field label="Alternatieve termen" hint="één per regel">
-          <Textarea value={concept.termen} onChange={(e) => setConcept((c) => ({ ...c, termen: e.target.value }))} rows={2} />
-        </Field>
-        <Field label="Context" hint="waarbinnen deze betekenis geldt">
-          <Textarea value={concept.inhoud.context} onChange={(e) => zet("context", e.target.value)} rows={2} maxLength={4000} />
-        </Field>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="JAS-duiding">
-            <Select value={concept.inhoud.jas_klasse} onChange={(e) => zet("jas_klasse", e.target.value)}>
-              <option value="">Geen</option>
-              {JAS_KLASSEN.map((k) => (
-                <option key={k} value={k}>{k}</option>
-              ))}
-            </Select>
+      {/* De kaart in de volgorde van NL-SBB (spoor G5, ADR-003): eerst de term, dan de betekenis met de
+          herkomst van de definitie, dan voorbeelden; daarna wat eigen is aan deze analyse. De NL-SBB-
+          eigenschap staat klein bij de kop, zodat de export (`begrip_projectie.py`) herkenbaar blijft. */}
+      <form onSubmit={bewaar} className="space-y-6">
+        <Groep titel="Term" nlsbb="skos:prefLabel · skos:altLabel">
+          <Field label="Voorkeursterm" hint="de naam van het begrip" required>
+            <Input value={concept.inhoud.naam} onChange={(e) => zet("naam", e.target.value)} maxLength={200} required />
           </Field>
-          <Field label="Begripstype" hint="werkindeling, geen JAS-klasse">
-            <Select value={concept.inhoud.begripstype ?? ""} onChange={(e) => zet("begripstype", e.target.value as Begripstype | "")}>
-              <option value="">Nog niet ingedeeld</option>
-              {(Object.keys(BEGRIPSTYPE_LABEL) as Begripstype[]).map((t) => (
-                <option key={t} value={t}>{BEGRIPSTYPE_LABEL[t]}</option>
-              ))}
-            </Select>
+          <Field label="Alternatieve termen" hint="één per regel">
+            <Textarea value={concept.termen} onChange={(e) => setConcept((c) => ({ ...c, termen: e.target.value }))} rows={2} />
           </Field>
-          <Field label="Geldigheid">
-            <Input value={concept.inhoud.geldigheid} onChange={(e) => zet("geldigheid", e.target.value)} maxLength={1000} />
-          </Field>
-        </div>
+        </Groep>
 
-        <Field label="Definitie" hint={door || undefined}>
-          <Textarea value={concept.inhoud.definitie} onChange={(e) => zet("definitie", e.target.value)} rows={3} maxLength={8000} />
-        </Field>
-        {vanLex("definitie")}
-        <fieldset>
-          <legend className="mb-1 text-sm font-medium text-ink">Herkomst van de definitie</legend>
-          <div className="flex flex-col gap-1.5 sm:flex-row sm:gap-4">
-            {(Object.keys(HERKOMST_LABEL) as DefinitieHerkomst[]).map((h) => (
-              <label key={h} className="inline-flex items-center gap-1.5 text-sm text-ink">
-                <input
-                  type="radio"
-                  name={`herkomst-${begrip.id}`}
-                  checked={concept.inhoud.definitie_herkomst === h}
-                  onChange={() => zet("definitie_herkomst", h)}
-                  className="focus-ring accent-lint"
-                />
-                {HERKOMST_LABEL[h]}
-              </label>
+        <Groep titel="Betekenis" nlsbb="skos:definition · rdfs:comment · skos:scopeNote">
+          <DefinitieAard inhoud={concept.inhoud} />
+          <Field label="Definitie" hint={door || undefined}>
+            <Textarea value={concept.inhoud.definitie} onChange={(e) => zet("definitie", e.target.value)} rows={3} maxLength={8000} />
+          </Field>
+          {vanLex("definitie")}
+          <fieldset>
+            <legend className="mb-1 text-sm font-medium text-ink">Herkomst van de definitie</legend>
+            <div className="flex flex-col gap-1.5 sm:flex-row sm:gap-4">
+              {(Object.keys(HERKOMST_LABEL) as DefinitieHerkomst[]).map((h) => (
+                <label key={h} className="inline-flex items-center gap-1.5 text-sm text-ink">
+                  <input
+                    type="radio"
+                    name={`herkomst-${begrip.id}`}
+                    checked={concept.inhoud.definitie_herkomst === h}
+                    onChange={() => zet("definitie_herkomst", h)}
+                    className="focus-ring accent-lint"
+                  />
+                  {HERKOMST_LABEL[h]}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <Field label="Uitleg" hint="toelichting op de betekenis en de interpretatie">
+            <Textarea value={concept.inhoud.uitleg} onChange={(e) => zet("uitleg", e.target.value)} rows={2} maxLength={8000} />
+          </Field>
+          {vanLex("uitleg")}
+          <Field label="Context" hint="toepassingsgebied: waarbinnen deze betekenis geldt">
+            <Textarea value={concept.inhoud.context} onChange={(e) => zet("context", e.target.value)} rows={2} maxLength={4000} />
+          </Field>
+        </Groep>
+
+        <Groep titel="Voorbeelden" nlsbb="skos:example">
+          <fieldset className="space-y-2">
+            <legend className="sr-only">Voorbeelden</legend>
+            <p className="text-xs text-muted">Ook grensgevallen en tegenvoorbeelden: ze toetsen de afbakening.</p>
+            {voorbeelden.map((v, i) => (
+              <div key={i} className="space-y-2 rounded-kaart border border-line p-2">
+                <Textarea value={v.tekst} onChange={(e) => zetVoorbeeld(i, { tekst: e.target.value })} rows={2} aria-label={`Voorbeeld ${i + 1}`} />
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Select value={v.oordeel} onChange={(e) => zetVoorbeeld(i, { oordeel: e.target.value as VoorbeeldOordeel })} aria-label={`Oordeel bij voorbeeld ${i + 1}`} className="sm:w-48">
+                    {(Object.keys(OORDEEL_LABEL) as VoorbeeldOordeel[]).map((o) => (
+                      <option key={o} value={o}>{OORDEEL_LABEL[o]}</option>
+                    ))}
+                  </Select>
+                  <Input value={v.toelichting} onChange={(e) => zetVoorbeeld(i, { toelichting: e.target.value })} placeholder="Toelichting" aria-label={`Toelichting bij voorbeeld ${i + 1}`} />
+                  <button type="button" className={KNOP_KLEIN} onClick={() => zet("voorbeelden", voorbeelden.filter((_, j) => j !== i))}>
+                    Weghalen
+                  </button>
+                </div>
+              </div>
             ))}
-          </div>
-        </fieldset>
-        <Field label="Uitleg" hint="toelichting op de interpretatie">
-          <Textarea value={concept.inhoud.uitleg} onChange={(e) => zet("uitleg", e.target.value)} rows={2} maxLength={8000} />
-        </Field>
-        {vanLex("uitleg")}
-        <Field label="Onderbouwing">
-          <Textarea value={concept.inhoud.onderbouwing} onChange={(e) => zet("onderbouwing", e.target.value)} rows={2} maxLength={8000} />
-        </Field>
+            <button type="button" className={KNOP_KLEIN} onClick={() => zet("voorbeelden", [...voorbeelden, { tekst: "", oordeel: "wel", toelichting: "" }])}>
+              Voorbeeld toevoegen
+            </button>
+            {vanLex("voorbeelden")}
+          </fieldset>
 
-        <fieldset className="space-y-2">
-          <legend className="text-sm font-medium text-ink">Voorbeelden</legend>
-          <p className="text-xs text-muted">Ook grensgevallen en tegenvoorbeelden: ze toetsen de afbakening.</p>
-          {voorbeelden.map((v, i) => (
-            <div key={i} className="space-y-2 rounded-kaart border border-line p-2">
-              <Textarea value={v.tekst} onChange={(e) => zetVoorbeeld(i, { tekst: e.target.value })} rows={2} aria-label={`Voorbeeld ${i + 1}`} />
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Select value={v.oordeel} onChange={(e) => zetVoorbeeld(i, { oordeel: e.target.value as VoorbeeldOordeel })} aria-label={`Oordeel bij voorbeeld ${i + 1}`} className="sm:w-48">
-                  {(Object.keys(OORDEEL_LABEL) as VoorbeeldOordeel[]).map((o) => (
-                    <option key={o} value={o}>{OORDEEL_LABEL[o]}</option>
-                  ))}
-                </Select>
-                <Input value={v.toelichting} onChange={(e) => zetVoorbeeld(i, { toelichting: e.target.value })} placeholder="Toelichting" aria-label={`Toelichting bij voorbeeld ${i + 1}`} />
-                <button type="button" className={KNOP_KLEIN} onClick={() => zet("voorbeelden", voorbeelden.filter((_, j) => j !== i))}>
+        </Groep>
+
+        <Groep titel="Indeling in deze analyse" nlsbb="eigen, buiten NL-SBB">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="JAS-duiding">
+              <Select value={concept.inhoud.jas_klasse} onChange={(e) => zet("jas_klasse", e.target.value)}>
+                <option value="">Geen</option>
+                {JAS_KLASSEN.map((k) => (
+                  <option key={k} value={k}>{k}</option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Begripstype" hint="werkindeling, geen JAS-klasse">
+              <Select value={concept.inhoud.begripstype ?? ""} onChange={(e) => zet("begripstype", e.target.value as Begripstype | "")}>
+                <option value="">Nog niet ingedeeld</option>
+                {(Object.keys(BEGRIPSTYPE_LABEL) as Begripstype[]).map((t) => (
+                  <option key={t} value={t}>{BEGRIPSTYPE_LABEL[t]}</option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Geldigheid">
+              <Input value={concept.inhoud.geldigheid} onChange={(e) => zet("geldigheid", e.target.value)} maxLength={1000} />
+            </Field>
+          </div>
+
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium text-ink">Eigenschappen</legend>
+            {concept.rijen.map(([k, v], i) => (
+              <div key={i} className="flex flex-col gap-2 sm:flex-row">
+                <Input value={k} onChange={(e) => setConcept((c) => ({ ...c, rijen: c.rijen.map((r, j) => (j === i ? [e.target.value, r[1]] : r)) }))} placeholder="Eigenschap" aria-label={`Eigenschap ${i + 1}`} className="sm:w-48" />
+                <Input value={v} onChange={(e) => setConcept((c) => ({ ...c, rijen: c.rijen.map((r, j) => (j === i ? [r[0], e.target.value] : r)) }))} placeholder="Waarde" aria-label={`Waarde van eigenschap ${i + 1}`} />
+                <button type="button" className={KNOP_KLEIN} onClick={() => setConcept((c) => ({ ...c, rijen: c.rijen.filter((_, j) => j !== i) }))}>
                   Weghalen
                 </button>
               </div>
-            </div>
-          ))}
-          <button type="button" className={KNOP_KLEIN} onClick={() => zet("voorbeelden", [...voorbeelden, { tekst: "", oordeel: "wel", toelichting: "" }])}>
-            Voorbeeld toevoegen
-          </button>
-          {vanLex("voorbeelden")}
-        </fieldset>
+            ))}
+            <button type="button" className={KNOP_KLEIN} onClick={() => setConcept((c) => ({ ...c, rijen: [...c.rijen, ["", ""]] }))}>
+              Eigenschap toevoegen
+            </button>
+          </fieldset>
 
-        <fieldset className="space-y-2">
-          <legend className="text-sm font-medium text-ink">Eigenschappen</legend>
-          {concept.rijen.map(([k, v], i) => (
-            <div key={i} className="flex flex-col gap-2 sm:flex-row">
-              <Input value={k} onChange={(e) => setConcept((c) => ({ ...c, rijen: c.rijen.map((r, j) => (j === i ? [e.target.value, r[1]] : r)) }))} placeholder="Eigenschap" aria-label={`Eigenschap ${i + 1}`} className="sm:w-48" />
-              <Input value={v} onChange={(e) => setConcept((c) => ({ ...c, rijen: c.rijen.map((r, j) => (j === i ? [r[0], e.target.value] : r)) }))} placeholder="Waarde" aria-label={`Waarde van eigenschap ${i + 1}`} />
-              <button type="button" className={KNOP_KLEIN} onClick={() => setConcept((c) => ({ ...c, rijen: c.rijen.filter((_, j) => j !== i) }))}>
-                Weghalen
-              </button>
-            </div>
-          ))}
-          <button type="button" className={KNOP_KLEIN} onClick={() => setConcept((c) => ({ ...c, rijen: [...c.rijen, ["", ""]] }))}>
-            Eigenschap toevoegen
-          </button>
-        </fieldset>
+        </Groep>
 
-        <Field label="Open vragen" hint="één per regel">
-          <Textarea value={concept.vragen} onChange={(e) => setConcept((c) => ({ ...c, vragen: e.target.value }))} rows={2} />
-        </Field>
-        {vanLex("open_vragen")}
+        <Groep titel="Onderbouwing en open vragen">
+          <Field label="Onderbouwing">
+            <Textarea value={concept.inhoud.onderbouwing} onChange={(e) => zet("onderbouwing", e.target.value)} rows={2} maxLength={8000} />
+          </Field>
+
+          <Field label="Open vragen" hint="één per regel">
+            <Textarea value={concept.vragen} onChange={(e) => setConcept((c) => ({ ...c, vragen: e.target.value }))} rows={2} />
+          </Field>
+          {vanLex("open_vragen")}
+
+        </Groep>
 
         <ButtonRow align="start">
           <Button type="submit" disabled={!onbewaard || bezig || !inhoud.naam.trim()}>
@@ -277,6 +296,33 @@ export function BegripKaart({ id, begrip, muteer, onOnbewaard, onVerwijder, lex 
         <VerwijderKnop soort="begrip" onBevestig={onVerwijder} />
       </div>
     </article>
+  );
+}
+
+/** Een groep velden van de kaart, met de NL-SBB-eigenschappen waar ze in de export op landen. */
+function Groep({ titel, nlsbb, children }: { titel: string; nlsbb?: string; children: React.ReactNode }) {
+  return (
+    // Geen label op de sectie: de kop draagt de naam, en een label zou een veld met dezelfde aanhef overstemmen.
+    <section className="space-y-4 border-t border-line pt-4 first:border-t-0 first:pt-0" data-kaart-groep={titel}>
+      <h3 className="flex flex-wrap items-baseline gap-x-2 font-display text-sm font-semibold text-ink">
+        {titel}
+        {nlsbb && <span className="font-mono text-[0.65rem] font-normal text-faint">{nlsbb}</span>}
+      </h3>
+      {children}
+    </section>
+  );
+}
+
+/** Brondefinitie of analysebegrip, zichtbaar bij de definitie: een geformuleerd analysebegrip is niet
+ *  automatisch een wettelijke definitie (`definitieAard`). Volgt wat er in het formulier staat. */
+export function DefinitieAard({ inhoud }: { inhoud: Parameters<typeof definitieAard>[0] }) {
+  const aard = definitieAard(inhoud);
+  const stijl = aard.soort === "brondefinitie" ? "border-aandacht-groen-rand bg-aandacht-groen-bg/50"
+    : aard.soort === "analysebegrip" ? "border-lint/40 bg-lint/5" : "border-line bg-surface";
+  return (
+    <p data-definitie-aard={aard.soort} className={`rounded-md border-l-4 px-3 py-2 text-sm ${stijl}`}>
+      <span className="font-medium text-ink">{aard.titel}.</span> <span className="text-muted">{aard.uitleg}</span>
+    </p>
   );
 }
 

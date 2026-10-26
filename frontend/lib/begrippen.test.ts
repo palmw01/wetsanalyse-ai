@@ -76,3 +76,15 @@ it("een met de hand gewijzigde definitie is geformuleerd; ongewijzigd houdt ze h
   expect(handmatigeInhoud(oud, { definitie: "de periode", uitleg: "" }).definitie_herkomst).toBe("geformuleerd");
   expect(handmatigeInhoud(oud, { definitie: "", uitleg: "" }).definitie_herkomst).toBeNull();
 });
+
+describe("definitieAard", () => {
+  it("alleen een letterlijke definitie is een brondefinitie; de rest is een analysebegrip", async () => {
+    const { definitieAard } = await import("./begrippen");
+    expect(definitieAard({ definitie: "", definitie_herkomst: "letterlijk" }).soort).toBe("geen");
+    expect(definitieAard({ definitie: "x", definitie_herkomst: "letterlijk" }).soort).toBe("brondefinitie");
+    expect(definitieAard({ definitie: "x", definitie_herkomst: "samengesteld" })).toMatchObject({
+      soort: "analysebegrip", uitleg: expect.stringContaining("geen wettelijke definitie") });
+    expect(definitieAard({ definitie: "x", definitie_herkomst: "geformuleerd" }).soort).toBe("analysebegrip");
+    expect(definitieAard({ definitie: "x" }).soort).toBe("analysebegrip");
+  });
+});

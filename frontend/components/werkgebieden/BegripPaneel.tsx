@@ -17,7 +17,7 @@ import { metSpoor } from "@/lib/uiSpoor";
 import { verwijderdUit, verwijderdZin, type Verwijderd } from "@/lib/verwijderen";
 import { VELD_LABEL, definitieDoor, openPerVeld, verouderdUit, type Verouderd } from "@/lib/kaartVoorstel";
 import { relatieZin } from "@/lib/begripRelaties";
-import { HERKOMST_LABEL, OORDEEL_LABEL, handmatigeInhoud } from "@/lib/begrippen";
+import { HERKOMST_LABEL, OORDEEL_LABEL, definitieAard, handmatigeInhoud } from "@/lib/begrippen";
 import { BEGRIP_STATUS_LABEL } from "@/lib/begrippenOverzicht";
 import type { Begrip, KaartVeld, KaartVoorstel, KaartVoorstellenAntwoord, RelatiesAntwoord } from "@/lib/types";
 import { isRevisieConflict } from "@/lib/werkgebied";
@@ -240,6 +240,10 @@ export function BegripPaneel({ werkgebiedId, begripId, onOnbewaard, onNaarBegrip
             {b.definitie ? (
               <>
                 <span className="whitespace-pre-line">{b.definitie}</span>
+                {/* Brondefinitie of analysebegrip (spoor G5): een geformuleerde definitie is geen wettelijke. */}
+                <span className="mt-1 block text-xs font-medium text-ink" data-definitie-aard={definitieAard(b).soort}>
+                  {definitieAard(b).titel}
+                </span>
                 <span className="mt-0.5 block text-xs text-muted">
                   {[b.definitie_herkomst ? HERKOMST_LABEL[b.definitie_herkomst] : "", definitieDoor(b)].filter(Boolean).join(" · ")}
                 </span>
