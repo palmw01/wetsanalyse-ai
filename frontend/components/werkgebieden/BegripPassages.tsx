@@ -142,7 +142,7 @@ function Passage({ id, begrip, koppeling: k, muteer, geraakt }: {
           <BevestigKnop
             bevestigTekst="Losmaken?"
             ariaLabel={`Maak ${bij} los van dit begrip`}
-            titel="Haalt de passage bij dit begrip weg; de annotatie blijft staan."
+            titel="Maakt de passage los van dit begrip; de annotatie blijft staan."
             onBevestig={async () => { await muteer((r) => ontkoppel(id, begrip.id, k.id, r)); }}
             className={`${KNOP} border-line text-muted hover:bg-surface hover:text-ink`}
             bevestigClassName="border-fout/40 text-fout"

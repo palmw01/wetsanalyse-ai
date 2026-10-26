@@ -95,11 +95,11 @@ async def _onder_slot(conn, werkgebied_id: str, deelvraag_id: str):
 
 
 async def _bestaande(conn, werkgebied_id: str) -> dict[str, str]:
-    """Genormaliseerde tekst → status, over alles wat er ooit stond (ook afgewezen en weggehaald)."""
+    """Genormaliseerde tekst → status, over alles wat er ooit stond (ook afgewezen en verwijderd)."""
     d = db.werkgebied_deelvragen
     rows = (await conn.execute(select(d.c.vraag, d.c.status, d.c.verwijderd).where(
         d.c.werkgebied_id == werkgebied_id))).all()
-    return {normaliseer(r.vraag): ("weggehaald" if r.verwijderd else r.status) for r in rows}
+    return {normaliseer(r.vraag): ("verwijderd" if r.verwijderd else r.status) for r in rows}
 
 
 async def _volgende_plek(conn, werkgebied_id: str) -> int:

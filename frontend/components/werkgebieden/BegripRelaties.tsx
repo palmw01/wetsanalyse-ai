@@ -111,7 +111,7 @@ export function BegripRelaties({ id, begrip, andere, onGewijzigd, onNaarBegrip }
           {vastgelegd.map((r) => (
             <RelatieRij key={r.id} relatie={r} vervangen={vervangen}
               onBevestig={() => doe(() => bevestigRelatie(id, r.id), "Relatie bevestigd.")}
-              onWeg={() => doe(() => verwijderRelatie(id, r.id), "Relatie weggehaald.")} />
+              onWeg={() => doe(() => verwijderRelatie(id, r.id), "Relatie verwijderd.")} />
           ))}
         </ul>
       )}
@@ -217,9 +217,9 @@ function RelatieRij({ relatie: r, vervangen, onBevestig, onWeg }: {
               <button type="button" className={`${KNOP} border-lint text-lint hover:bg-surface`} aria-label={`Klopt nog: ${naam}`}
                 onClick={() => void onBevestig()}>Klopt nog</button>
             )}
-            <BevestigKnop bevestigTekst="Weghalen?" ariaLabel={`Haal weg: ${naam}`} onBevestig={async () => { await onWeg(); }}
+            <BevestigKnop bevestigTekst="Verwijderen?" ariaLabel={`Verwijder: ${naam}`} onBevestig={async () => { await onWeg(); }}
               className={`${KNOP} border-line text-muted hover:bg-surface hover:text-ink`} bevestigClassName="border-fout/40 text-fout">
-              Weghalen
+              Verwijderen
             </BevestigKnop>
           </span>
         )}

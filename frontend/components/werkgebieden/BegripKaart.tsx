@@ -211,7 +211,7 @@ export function BegripKaart({ id, begrip, muteer, onOnbewaard, onVerwijder, lex 
                   </Select>
                   <Input value={v.toelichting} onChange={(e) => zetVoorbeeld(i, { toelichting: e.target.value })} placeholder="Toelichting" aria-label={`Toelichting bij voorbeeld ${i + 1}`} />
                   <button type="button" className={KNOP_KLEIN} onClick={() => zet("voorbeelden", voorbeelden.filter((_, j) => j !== i))}>
-                    Weghalen
+                    Verwijderen
                   </button>
                 </div>
               </div>
@@ -254,7 +254,7 @@ export function BegripKaart({ id, begrip, muteer, onOnbewaard, onVerwijder, lex 
                 <Input value={k} onChange={(e) => setConcept((c) => ({ ...c, rijen: c.rijen.map((r, j) => (j === i ? [e.target.value, r[1]] : r)) }))} placeholder="Eigenschap" aria-label={`Eigenschap ${i + 1}`} className="sm:w-48" />
                 <Input value={v} onChange={(e) => setConcept((c) => ({ ...c, rijen: c.rijen.map((r, j) => (j === i ? [r[0], e.target.value] : r)) }))} placeholder="Waarde" aria-label={`Waarde van eigenschap ${i + 1}`} />
                 <button type="button" className={KNOP_KLEIN} onClick={() => setConcept((c) => ({ ...c, rijen: c.rijen.filter((_, j) => j !== i) }))}>
-                  Weghalen
+                  Verwijderen
                 </button>
               </div>
             ))}

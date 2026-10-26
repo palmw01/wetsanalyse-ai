@@ -300,7 +300,7 @@ export function auditZin(regel: WerkgebiedAuditRegel, labels: Map<string, string
     case "relatie-afgewezen":
       return `Voorstel voor een relatie afgewezen${typeof d.reden === "string" && d.reden ? ` – ${d.reden}` : ""}`;
     case "relatie-verwijderd":
-      return "Relatie weggehaald";
+      return "Relatie verwijderd";
     case "relatie-bevestigd":
       return "Relatie bevestigd na een wijziging";
     case "deelvraag-toegevoegd":
@@ -312,7 +312,7 @@ export function auditZin(regel: WerkgebiedAuditRegel, labels: Map<string, string
     case "deelvraag-afgewezen":
       return "Deelvraag van Lex afgewezen";
     case "deelvraag-verwijderd":
-      return "Deelvraag weggehaald";
+      return "Deelvraag verwijderd";
     case "deelvraag-gekoppeld":
       return `Bij een deelvraag ${d.bronnen ?? 0} ${d.bronnen === 1 ? "bron" : "bronnen"} en ${d.begrippen ?? 0} ${d.begrippen === 1 ? "begrip" : "begrippen"} vastgelegd`;
     case "deelvragen-voorgesteld": {
