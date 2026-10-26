@@ -111,6 +111,7 @@ class GesprekStore:
                 id=gesprek.id,
                 user_id=gesprek.user_id,
                 titel=gesprek.titel,
+                werkgebied_id=gesprek.werkgebied_id,
                 created=now,
                 updated=now,
             ))
@@ -132,33 +133,42 @@ class GesprekStore:
             id=d["id"],
             user_id=d["user_id"],
             titel=d["titel"],
+            werkgebied_id=d["werkgebied_id"] or "",
+            gearchiveerd=db.aware(d["gearchiveerd"]),
             berichten=[_bericht_uit_row(b) for b in berichten],
             created=db.aware(d["created"]),
             updated=db.aware(d["updated"]),
         )
 
     async def lijst_samenvattingen(
-        self, user_id: str, limit: int = 100, offset: int = 0
+        self, user_id: str, limit: int = 100, offset: int = 0,
+        werkgebied_id: str | None = None, gearchiveerd: bool | None = None,
     ) -> list[GesprekSamenvatting]:
-        aantal = func.count(db.gesprek_berichten.c.id).label("aantal")
+        """Eigen gesprekken, nieuwste eerst. `werkgebied_id=""` geeft alleen de losse gesprekken;
+        `gearchiveerd=None` geeft alles, zodat de sidebar met één call kan indelen."""
+        g, b, w = db.gesprekken, db.gesprek_berichten, db.werkgebieden
+        aantal = func.count(b.c.id).label("aantal")
+        q = (
+            select(g, aantal, w.c.naam.label("werkgebied_naam"))
+            .select_from(g.outerjoin(b, g.c.id == b.c.gesprek_id).outerjoin(w, g.c.werkgebied_id == w.c.id))
+            .where(g.c.user_id == user_id)
+        )
+        if werkgebied_id is not None:
+            q = q.where(g.c.werkgebied_id == werkgebied_id)
+        if gearchiveerd is not None:
+            q = q.where(g.c.gearchiveerd.is_not(None) if gearchiveerd else g.c.gearchiveerd.is_(None))
+        q = q.group_by(g.c.id, w.c.naam).order_by(g.c.updated.desc()).limit(limit).offset(offset)
         async with db.get_engine().connect() as conn:
-            rows = (await conn.execute(
-                select(db.gesprekken, aantal)
-                .select_from(db.gesprekken.outerjoin(
-                    db.gesprek_berichten,
-                    db.gesprekken.c.id == db.gesprek_berichten.c.gesprek_id,
-                ))
-                .where(db.gesprekken.c.user_id == user_id)
-                .group_by(db.gesprekken.c.id)
-                .order_by(db.gesprekken.c.updated.desc())
-                .limit(limit).offset(offset)
-            )).all()
+            rows = (await conn.execute(q)).all()
         return [
             GesprekSamenvatting(
                 id=r._mapping["id"],
                 titel=r._mapping["titel"],
                 aantal_berichten=r._mapping["aantal"],
                 updated=db.aware(r._mapping["updated"]),
+                werkgebied_id=r._mapping["werkgebied_id"] or "",
+                werkgebied_naam=r._mapping["werkgebied_naam"] or "",
+                gearchiveerd=db.aware(r._mapping["gearchiveerd"]),
             )
             for r in rows
         ]
@@ -229,13 +239,23 @@ class GesprekStore:
         # Het hele bericht terug, niet een deel: wie het antwoord gebruikt, krijgt wat er staat.
         return Bericht(id=nieuw_id, created=db.aware(now), **inv.model_dump())
 
-    async def hernoem_gesprek(self, gesprek_id: str, titel: str) -> None:
+    async def wijzig_gesprek(
+        self, gesprek_id: str, *, titel: str | None = None,
+        werkgebied_id: str | None = None, gearchiveerd: bool | None = None,
+    ) -> None:
+        """Titel, werkgebied of archief. Alleen een nieuwe titel telt als bijwerken (`updated`):
+        verplaatsen of archiveren mag een gesprek niet bovenaan de lijst zetten."""
+        waarden: dict = {}
+        if titel is not None:
+            waarden.update(titel=titel, updated=db.utcnow())
+        if werkgebied_id is not None:
+            waarden["werkgebied_id"] = werkgebied_id
+        if gearchiveerd is not None:
+            waarden["gearchiveerd"] = db.utcnow() if gearchiveerd else None
+        if not waarden:
+            return
         async with db.get_engine().begin() as conn:
-            await conn.execute(
-                update(db.gesprekken)
-                .where(db.gesprekken.c.id == gesprek_id)
-                .values(titel=titel, updated=db.utcnow())
-            )
+            await conn.execute(update(db.gesprekken).where(db.gesprekken.c.id == gesprek_id).values(**waarden))
 
     async def verwijder_gesprek(self, gesprek_id: str) -> None:
         async with db.get_engine().begin() as conn:

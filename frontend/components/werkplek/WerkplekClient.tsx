@@ -12,7 +12,6 @@ import { VraagLexContext } from "@/components/werkplek/VraagLexKnop";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 
 import { WerkgebiedArtefactPaneel } from "@/components/werkplek/WerkgebiedArtefactPaneel";
-import { WerkgebiedBalk } from "@/components/werkplek/WerkgebiedBalk";
 import { WerkgebiedUitOverzicht } from "@/components/werkplek/WerkgebiedUitOverzicht";
 import { annotatieDoelVan, artefactSleutel, werkgebiedLabel, artefactVanBericht, werkgebiedArtefactVan, type Artefact, type WerkgebiedArtefact } from "@/lib/artefact";
 import { Melding } from "@/components/ui/Melding";
@@ -38,6 +37,7 @@ import type {
   BeslissingType,
   Bron,
   Bevestiging,
+  Gesprek,
   Verbruiksstand,
   VoorstelElement,
 } from "@/lib/types";
@@ -120,10 +120,13 @@ interface Props {
   /** De eigen verbruiksstand: bij een vol budget gaat de invoer dicht. `null` = onbekend, en dan
    *  blijft alles gewoon werken – een meter die niet laadt mag het werk niet stilleggen. */
   verbruik?: Verbruiksstand | null;
-  /** De werkplek staat in de context van dit werkgebied (`?werkgebied=`): een balk boven de chat
-   *  noemt het, en elke beurt draagt het mee (`werkgebied_id`). */
+  /** Het werkgebied van dit gesprek (spoor G1; bij een nieuw gesprek dat van `?werkgebied=`): de
+   *  chatkop van de shell noemt het, elke beurt draagt het mee (`werkgebied_id`), en een nieuw gesprek
+   *  wordt eraan gekoppeld. */
   werkgebiedId?: string | null;
   onVerlaatWerkgebied?: () => void;
+  /** Het gesprek is geladen: de shell leest er het werkgebied en het archief uit. */
+  onGesprekGeladen?: (gesprek: Gesprek) => void;
   /** Een werkgebied gemaakt vanuit een overzicht: de werkplek gaat in die context verder. */
   onKiesWerkgebied?: (id: string) => void;
   /** Roept terug zodra een beurt is afgerond, zodat de stand meteen ververst. */
@@ -139,7 +142,7 @@ interface Props {
 export function WerkplekClient({
   initialGesprekId, onGesprekAangemaakt, onGewijzigd, demo, onDemoBeslissing,
   onDemoArtefact, demoOpenSignaal = 0, demoSluitSignaal = 0, onRondleiding,
-  verbruik = null, onBeurtKlaar, werkgebiedId = null, onVerlaatWerkgebied, onKiesWerkgebied,
+  verbruik = null, onBeurtKlaar, werkgebiedId = null, onVerlaatWerkgebied, onKiesWerkgebied, onGesprekGeladen,
   beginOnderwerp = null,
   beginInvoer = null,
 }: Props) {
@@ -266,6 +269,7 @@ export function WerkplekClient({
     haalGesprek(id)
       .then((g) => {
         if (!geldt()) return;
+        onGesprekGeladen?.(g);
         // De berichten van één reeks (zelfde `reeks.run_id`) worden weer één reeksblok.
         const reeksen = new Map<string, typeof g.berichten>();
         for (const b of g.berichten) if (b.reeks) reeksen.set(b.reeks.run_id, [...(reeksen.get(b.reeks.run_id) ?? []), b]);
@@ -479,7 +483,7 @@ export function WerkplekClient({
     let gid = gesprekId;
     if (!gid) {
       try {
-        const g = await maakGesprek(prompt.slice(0, 80));
+        const g = await maakGesprek(prompt.slice(0, 80), werkgebiedId ?? "");
         gid = g.id;
         setGesprekId(gid);
         onGesprekAangemaakt(gid);
@@ -523,7 +527,7 @@ export function WerkplekClient({
         // Een suggestie met een actie: een vaste route op het werkgebied van het onderwerp, zonder model.
         : actie && vraagOver && vraagOver.soort !== "markering"
           ? { ...actieVerzoek(vraagOver, actie), werkgebied_id: vraagOver.werkgebied_id }
-        // Een knop in de werkgebiedbalk: dezelfde vaste handeling, op het werkgebied van het gesprek.
+        // Een werkgebiedsuggestie: dezelfde vaste handeling, op het werkgebied van het gesprek.
         : actie && werkgebiedId ? { actie, werkgebied_id: werkgebiedId }
         : werkgebiedId ? { ...extra, werkgebied_id: werkgebiedId } : extra);
     } catch (e) {
@@ -859,8 +863,8 @@ export function WerkplekClient({
       const artefact = uitkomst.artefact;
       setItems((xs) => xs.map((x) => x.id === antId ? { id: antId, type: "artefact", artefact, tekst: tekst?.trim() || undefined, denk } : x));
       setNodeDoel(undefined); setWgArtefact(begrippen); setWgLading((n) => n + 1);
-      // Een werkgebied dat Lex met je samenstelde: de werkplek gaat erin verder (de werkgebiedbalk
-      // biedt bepalingen zoeken en begrippen voorstellen), het paneel ernaast toont wat er staat.
+      // Een werkgebied dat Lex met je samenstelde: het gesprek gaat erin verder (de shell koppelt het,
+      // de suggesties bieden bepalingen zoeken en begrippen voorstellen), het paneel toont wat er staat.
       if (begrippen.soort === "werkgebied") onKiesWerkgebied?.(begrippen.werkgebied_id);
       return;
     }
@@ -1103,9 +1107,6 @@ export function WerkplekClient({
             setMelding("Werkgebied gemaakt.");
             setWgMelding(mislukt.length ? `Niet opgenomen (niet in de graaf of niet te verifiëren): ${mislukt.join(", ")}.` : null);
           }} />
-      )}
-      {werkgebiedId && !demo && (
-        <WerkgebiedBalk id={werkgebiedId} onVerlaat={() => onVerlaatWerkgebied?.()} />
       )}
       {wgMelding && (
         <div className="shrink-0 px-4 py-2">

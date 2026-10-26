@@ -594,6 +594,11 @@ gesprekken = Table(
     Column("titel", Text, nullable=False, default=""),
     Column("created", _DT, nullable=False),
     Column("updated", _DT, nullable=False),
+    # Het werkgebied waar dit gesprek bij hoort (leeg = een los gesprek). Geen foreign key: een
+    # gewist werkgebied maakt het gesprek los (`werkgebied_store.wis`), het verslag blijft staan.
+    Column("werkgebied_id", String(64), nullable=False, default="", server_default=""),
+    # Gearchiveerd = uit de navigatie, niet weg. Zelfde vorm als `werkgebieden.gearchiveerd`.
+    Column("gearchiveerd", _DT, nullable=True),
     Index("ix_gesprekken_user_updated", "user_id", "updated"),
 )
 

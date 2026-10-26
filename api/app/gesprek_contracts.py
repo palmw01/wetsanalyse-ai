@@ -221,6 +221,9 @@ class Gesprek(BaseModel):
     id: str
     user_id: str = ""
     titel: str = ""
+    # Leeg = een los gesprek. Met een werkgebied krijgt elke beurt dat dossier als context mee.
+    werkgebied_id: str = ""
+    gearchiveerd: datetime | None = None
     berichten: list[Bericht] = []
     created: datetime | None = None
     updated: datetime | None = None
@@ -230,10 +233,15 @@ class Gesprek(BaseModel):
 
 class GesprekCreate(BaseModel):
     titel: str = ""
+    werkgebied_id: str = ""
 
 
 class GesprekPatch(BaseModel):
-    titel: str
+    """Alleen wat meekomt verandert. `werkgebied_id: ""` koppelt het gesprek los."""
+
+    titel: str | None = None
+    werkgebied_id: str | None = None
+    gearchiveerd: bool | None = None
 
 
 class BerichtInvoer(BaseModel):
@@ -265,3 +273,7 @@ class GesprekSamenvatting(BaseModel):
     titel: str = ""
     aantal_berichten: int = 0
     updated: datetime | None = None
+    werkgebied_id: str = ""
+    # De naam erbij, zodat de sidebar per werkgebied kan groeperen zonder tweede call.
+    werkgebied_naam: str = ""
+    gearchiveerd: datetime | None = None

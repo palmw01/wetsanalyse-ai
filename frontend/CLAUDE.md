@@ -141,8 +141,15 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
 `AuthFrame` (zie §*Buiten de schil*).
 
 - **Links de sidebar** (`AppSidebar` → `GesprekSidebar` + `GesprekLijst`): logo, *Nieuw gesprek*,
-  de per gebruiker bewaarde chatgeschiedenis en onderin het gebruikersblok (instellingen, feedback,
-  rondleiding, uitloggen, verbruiksmeter). Onder `lg` is het een off-canvas drawer via **`Dialog`
+  de per gebruiker bewaarde gesprekken en onderin het gebruikersblok (instellingen, feedback,
+  rondleiding, uitloggen, verbruiksmeter). **De gesprekken zijn ingedeeld zoals projecten** (spoor G1,
+  `deelIn` in `lib/gesprekGroepen.ts`): per werkgebied een uitklapbare groep met de eigen gesprekken
+  (de stand per browser, `leesDicht`/`bewaarDicht`, in try/catch) en een *+* voor een nieuw gesprek in dat
+  werkgebied, daaronder *Recente gesprekken* (los) en ingeklapt *Archief*. Elke rij heeft een menu
+  (`GesprekActies`, inline onder de rij omdat de lijst scrolt): hernoemen, verplaatsen, naar recente
+  gesprekken, archiveren of herstellen, en verwijderen – dat laatste pas na een eigen bevestiging die eerst
+  archiveren aanbiedt en zegt dat annotaties, begrippen en werkgebieden blijven. Alles optimistisch met
+  herstel bij een fout, en met `metSpoor` (`gesprek_archiveren`, `gesprek_verplaatsen`). Onder `lg` is het een off-canvas drawer via **`Dialog`
   met variant `drawer`** – niet als eigen constructie, want `Dialog` levert de enige focus-trap in de
   codebase; zonder die trap loopt Tab achter de scrim door naar de chat.
 - **Rechts het chatvenster** (`WerkplekClient.tsx`): vragen én annotatie, beide als run bij
@@ -184,16 +191,20 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     analysevraag, praktijkvoorbeeld, afbakening, een leeg veld als "Nog geen …" –, de actieve deelvragen
     met hun stand (`useDeelvragenDekking`: `GET …/deelvragen/dekking` per revisie, faalt stil) en de
     bronnen met rol *analyseren*. Komt het binnen via `opgeslagen`, dan opent het
-    paneel én gaat de werkplek verder in dat werkgebied (`onKiesWerkgebied`, de werkgebiedbalk).
+    paneel én gaat de werkplek verder in dat werkgebied (`onKiesWerkgebied`; het gesprek wordt eraan gekoppeld, de chatkop noemt het).
   - **regels** – gereserveerd voor de afleidingsregels: de kaart staat er, maar is geen knop.
-  - **Vanuit een werkgebied** (`/workbench?werkgebied=<id>`, via *Vraag Lex* op de werkgebiedpagina):
-    `WorkbenchShell` leest de parameter, `WerkgebiedBalk` boven de chat noemt het werkgebied
-    en biedt alleen *Verlaten*. Wat Lex met het werkgebied kan, staat sinds F3d als **suggesties boven het
+  - **Het werkgebied hoort bij het gesprek** (spoor G1). Een geopend gesprek neemt zijn `werkgebied_id`
+    mee (uit de lijst of, via `onGesprekGeladen`, uit het geladen gesprek); een nieuw gesprek krijgt het van
+    `/workbench?werkgebied=<id>` (*Vraag Lex* op de werkgebiedpagina, de *+* bij een groep) en `maakGesprek`
+    koppelt het bij de eerste beurt. Een expliciete keuze (verplaatsen, een werkgebied dat Lex net
+    samenstelde – dat koppelt ook een bestaand gesprek) staat in `gekozenWg` en gaat voor. De URL volgt het
+    werkgebied van het gesprek. **`ChatKop`** boven de chat noemt de titel (vanaf `lg`; daaronder staat die
+    in de topbar), het werkgebied of *Los gesprek*, en het menu van het gesprek; hij vervangt de
+    werkgebiedbalk met *Verlaten* (dat heet nu *Naar recente gesprekken* en koppelt echt los). Wat Lex met het werkgebied kan, staat sinds F3d als **suggesties boven het
     invoerveld** (`werkgebiedSuggesties`, zonder chip; ze wijken zodra je typt of er een onderwerp is).
     Elke beurt draagt dan `werkgebied_id`; een getypte vraag kiest graph-qa's supervisor de agent, een
     suggestie met actie doet dat zonder model. *Annoteer wat nog niet geannoteerd is* gaat zonder
-    `bevestigd`: de bevestiging komt in het gesprek. *Verlaten* haalt de parameter weg en houdt dat ook in state bij – de
-    native `replaceState` alleen werkte `useSearchParams` hier niet bij.
+    `bevestigd`: de bevestiging komt in het gesprek.
   - `artefactVanBericht` maakt van een ouder bericht met alleen `annotatie_doel` een
     annotatie-artefact; `parseArtefact` is streng (onbekende soort of ref zonder verplichte sleutels:
     geen chip). Het `opgeslagen`-event draagt het artefact, `toonVastgelegdeBeurt` opent het.
@@ -1468,7 +1479,7 @@ npm run test:browser # Playwright op de echte Next-UI met gemockte BFF (scripts/
 
 `test:browser` draait `scripts/test-annotatie-nodes.mjs`, `test-samenhang.mjs`, `test-reeks.mjs`,
 `test-toetsen.mjs`, `test-werkgebieden.mjs`, `test-begrippen.mjs`, `test-begripvoorstellen.mjs` en
-`test-artefacten.mjs` (de soorten artefacten in de werkplek), `test-bronkandidaten.mjs`,
+`test-artefacten.mjs` (de soorten artefacten in de werkplek), `test-bronkandidaten.mjs`, `test-sidebar-groepen.mjs` (spoor G1),
 `test-werkgebied-annoteren.mjs`, `test-begrippen-verdieping.mjs`, `test-herbeoordeling.mjs`, `test-begriprelaties.mjs`, `test-begrippengraaf.mjs`, `test-begrippenoverzicht.mjs`, `test-deelvragen.mjs`, `test-vraaglex.mjs` en `test-rondleiding.mjs`, en verwacht een devserver op poort 3109
 (`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`).
 Praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,

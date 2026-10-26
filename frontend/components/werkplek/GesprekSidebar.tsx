@@ -30,6 +30,9 @@ interface Props {
   onOpen: (id: string) => void;
   onHernoem: (id: string, titel: string) => void;
   onVerwijder: (id: string) => void;
+  onArchiveer: (id: string, gearchiveerd: boolean) => void;
+  onVerplaats: (id: string, werkgebiedId: string) => void;
+  onNieuwInWerkgebied?: (werkgebiedId: string) => void;
   /** Eerste gesprekken-fetch loopt nog: sidebar toont skeleton-rijen. */
   laden?: boolean;
   /** Alleen mobiel: sluitknop voor de drawer. */
@@ -51,6 +54,9 @@ export function GesprekSidebar({
   onOpen,
   onHernoem,
   onVerwijder,
+  onArchiveer,
+  onVerplaats,
+  onNieuwInWerkgebied,
   laden,
   onSluit,
   onRondleiding,
@@ -187,17 +193,17 @@ export function GesprekSidebar({
         </Link>
       </div>
 
-      {/* Chatgeschiedenis (scrollt) */}
+      {/* De gesprekken, per werkgebied en los (scrolt); de koppen staan in de lijst zelf. */}
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
-        <p className="px-2 pb-1 pt-2 text-[0.65rem] font-semibold uppercase tracking-wide text-faint">
-          Geschiedenis
-        </p>
         <GesprekLijst
           gesprekken={gesprekken}
           activeId={activeId}
           onOpen={onOpen}
           onHernoem={onHernoem}
           onVerwijder={onVerwijder}
+          onArchiveer={onArchiveer}
+          onVerplaats={onVerplaats}
+          onNieuwInWerkgebied={onNieuwInWerkgebied}
           laden={laden}
         />
       </div>

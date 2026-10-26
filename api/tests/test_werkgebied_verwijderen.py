@@ -128,7 +128,8 @@ async def test_de_opvolger_verwijderen_zet_de_voorganger_terug(client):
 
 def test_elke_tabel_met_een_werkgebied_of_begrip_staat_in_de_wislijst():
     """Een nieuwe tabel met `werkgebied_id` of `begrip_id` laat anders stil een wees achter."""
-    werkgebied = {t.name for t in db.metadata.sorted_tables if "werkgebied_id" in t.c} - {"werkgebied_audit"}
+    # De audit blijft staan, en gesprekken worden los in plaats van gewist (`wis`, spoor G1).
+    werkgebied = {t.name for t in db.metadata.sorted_tables if "werkgebied_id" in t.c} - {"werkgebied_audit", "gesprekken"}
     assert werkgebied == set(werkgebied_store.WERKGEBIED_TABELLEN)
     begrip = {t.name for t in db.metadata.sorted_tables if "begrip_id" in t.c}
     assert begrip == set(begrip_store.BEGRIP_TABELLEN)
