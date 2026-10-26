@@ -57,6 +57,9 @@ testpaths = ["tests"]
 
 [tool.uv]
 package = false
+# filelock < 4.2.1 heeft drie bekende kwetsbaarheden (CVE-2026-112907, -112913, -112940); het komt indirect
+# binnen via litellm en huggingface-hub. Geldt tot die zelf een veilige ondergrens eisen.
+constraint-dependencies = ["filelock>=4.2.1"]
 
 [tool.uv.sources]
 wetsanalyse-bronmodel = { path = "../packages/bronmodel" }
