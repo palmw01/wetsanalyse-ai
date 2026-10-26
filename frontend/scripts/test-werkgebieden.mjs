@@ -232,7 +232,7 @@ try {
 
   // Rol wijzigen staat achter ⋯ (geen knoppen in elke rij). Daarna een conflict: iemand anders was ons
   // voor – de pagina laadt opnieuw en zegt het.
-  await page.getByRole("button", { name: "Rol en weghalen: Invorderingswet 1990 – artikel 9" }).click();
+  await page.getByRole("button", { name: "Rol en verwijderen: Invorderingswet 1990 – artikel 9" }).click();
   const rol9 = page.locator(`[data-bron] select`).first();
   await rol9.selectOption("context");
   await melding("Rol gewijzigd naar contextbron.");
@@ -303,10 +303,10 @@ try {
   // Weghalen vraagt een tweede klik; de bepaling verdwijnt uit het werkgebied.
   await page.goto(`${base}/werkgebieden/wg1/bronnen`);
   await tab("Bronnen (3)").waitFor();
-  await page.getByRole("button", { name: /^Rol en weghalen:/ }).first().click();
-  await page.getByRole("button", { name: "Weghalen", exact: true }).first().click();
-  await page.getByRole("button", { name: "Weghalen?" }).click();
-  await melding("De annotaties van de bepaling blijven staan.");
+  await page.getByRole("button", { name: /^Rol en verwijderen:/ }).first().click();
+  await page.getByRole("button", { name: "Verwijderen uit werkgebied", exact: true }).first().click();
+  await page.getByRole("button", { name: "Verwijderen?" }).click();
+  await melding("De bepaling en haar annotaties blijven bestaan.");
   await tab("Bronnen (2)").waitFor();
   const del = requests.filter((r) => r.m === "DELETE").at(-1);
   assert.match(del.q, /verwachte_revisie=\d+/);

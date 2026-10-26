@@ -762,6 +762,13 @@ bestaat los van de gesprekken.
   - De allowlist laat `deelvragen`, `deelvragen/{id}`, `deelvragen/dekking` en `deelvragen/{id}/koppelingen`
     door, nooit `deelvragen/voorstellen` (van graph-qa).
   - Browserregressie: `scripts/test-deelvragen.mjs`.
+- **Deelvragen met structuur** (spoor H3): in het dossier is een deelvraag een rij – de vraag als link naar
+  haar pagina, herkomst en omvang ("7 bronnen in 3 regelingen · 0 begrippen"), de stand – met *Bronnen en
+  begrippen koppelen*, *Bewerken* en **Verwijderen** achter ⋯. Koppelen gaat in een venster
+  (`KoppelDialoog`): de bronnen als `BronBoom` met vinkjes (een heel artikel, hoofdstuk of regeling in één
+  klik) en de begrippen. Op de deelvraagpagina staan haar bronnen als boom, met *Koppelen*. Een bronselectie
+  heet *Verwijderen uit werkgebied*. Ruwe IRI's in oudere dossiertekst toont de werkplek als hun plek
+  (`metLeesbareBronnen`).
 - **Opnemen vanuit een annotatie**: *Opnemen in werkgebied* in de kop van `/annotaties/node`
   (`OpnemenInWerkgebied`). Daar is geen revisie in beeld; `neemOpInWerkgebied` haalt hem op en
   probeert bij een 412 één keer opnieuw – de bedoeling hangt niet af van de rest van het werkgebied,

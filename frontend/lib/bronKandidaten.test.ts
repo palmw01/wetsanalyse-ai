@@ -85,3 +85,12 @@ describe("bewijsSamenvatting", () => {
       { methode: "deelvraag", vanuit: "", detail: { deelvraag_id: "d2" } }])).toBe("gevonden bij 2 deelvragen");
   });
 });
+
+describe("metLeesbareBronnen", () => {
+  it("vervangt ruwe IRI's door hun plek en laat de rest staan", async () => {
+    const { metLeesbareBronnen } = await import("./bronKandidaten");
+    expect(metLeesbareBronnen("Bepalingen: urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.3.9 – Leidraad Invordering 2008, Artikel 22"))
+      .toBe("Bepalingen: divisie 26.3.9 – Leidraad Invordering 2008, Artikel 22");
+    expect(metLeesbareBronnen("zie urn:bwb:BWBR0004770:artikel:9:lid:1.")).toBe("zie Artikel 9, lid 1.");
+  });
+});

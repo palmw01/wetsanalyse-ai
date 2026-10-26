@@ -22,6 +22,7 @@ import type { BegripWeergave } from "@/lib/begrippen";
 import { splits } from "@/lib/deelvragen";
 import type { Werkgebied } from "@/lib/types";
 import { BEREIK_LABEL, DOSSIER_VELDEN, ROL_LABEL, STATUS_LABEL } from "@/lib/werkgebied";
+import { metLeesbareBronnen } from "@/lib/bronKandidaten";
 import {
   ARTEFACT_LABEL, artefactKaarten, artefactPad, begripPad, bronPad, projectPad, voorstellenPad, type ArtefactSoort,
 } from "@/lib/werkgebiedPaden";
@@ -101,7 +102,7 @@ function Dossier() {
             {DOSSIER_VELDEN.map(({ veld, label }) => (
               <Regel key={veld} naam={label} data-dossier-veld={veld}>
                 {(wg[veld] ?? "").trim()
-                  ? <span className="whitespace-pre-line">{wg[veld]}</span>
+                  ? <span className="whitespace-pre-line">{metLeesbareBronnen(wg[veld] ?? "")}</span>
                   : <span className="text-muted">{`Nog geen ${label.toLowerCase()}. Lex vult het aan in het gesprek.`}</span>}
               </Regel>
             ))}

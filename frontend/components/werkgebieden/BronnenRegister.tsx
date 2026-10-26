@@ -90,7 +90,7 @@ export function BronnenRegister() {
 }
 
 /** Eén bron als rij: naam en wat hij in het werkgebied doet; de rij opent de pagina van de bepaling.
- *  Rol en weghalen staan achter ⋯, niet als knoppen in elke rij. */
+ *  Rol en verwijderen staan achter ⋯, niet als knoppen in elke rij. */
 function BronRij({ wgId, selectie: s, muteer, stand }: {
   wgId: string;
   selectie: Bronselectie;
@@ -112,7 +112,7 @@ function BronRij({ wgId, selectie: s, muteer, stand }: {
           {stand ? <StatusLabel toon={stand.toon}>{stand.tekst}</StatusLabel>
             : s.rol === "context" && <StatusLabel>Context</StatusLabel>}
         </span>
-        <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-label={`Rol en weghalen: ${naam}`}
+        <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-label={`Rol en verwijderen: ${naam}`}
           className="focus-ring shrink-0 rounded p-1 text-muted hover:text-lint">
           <Meer />
         </button>
@@ -131,17 +131,17 @@ function BronRij({ wgId, selectie: s, muteer, stand }: {
             {(["analyseren", "context"] as const).map((r) => <option key={r} value={r}>{ROL_LABEL[r]}</option>)}
           </select>
           <BevestigKnop
-            bevestigTekst="Weghalen?"
+            bevestigTekst="Verwijderen?"
             titel="Haalt de bepaling uit dit werkgebied; de bepaling en haar annotaties blijven bestaan."
             onBevestig={async () => {
               await muteer((r) => verwijderBron(wgId, s.id, r), {
-                gelukt: "Uit het werkgebied gehaald. De annotaties van de bepaling blijven staan.",
+                gelukt: "Uit het werkgebied verwijderd. De bepaling en haar annotaties blijven bestaan.",
               });
             }}
             className="focus-ring inline-flex min-h-[32px] items-center justify-center rounded-button border border-line bg-paper px-3 text-sm font-medium text-muted hover:text-ink sm:ml-auto"
             bevestigClassName="border-fout/40 text-fout"
           >
-            Weghalen
+            Verwijderen uit werkgebied
           </BevestigKnop>
         </div>
       )}

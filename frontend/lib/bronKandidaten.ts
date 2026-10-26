@@ -137,3 +137,14 @@ export function bewijsSamenvatting(bewijs: readonly KandidaatBewijs[], labels: M
   }
   return stukken.join(" · ");
 }
+
+/** Vrije tekst met ruwe bron-IRI's leesbaar (spoor H): elke `urn:bwb:…` wordt haar plek ("divisie 26.3.9",
+ *  "Artikel 9, lid 1"). Voor oudere afbakeningen waar de intake de IRI van een divisie in schreef; de tekst
+ *  zelf blijft zoals hij is opgeslagen. */
+export function metLeesbareBronnen(tekst: string): string {
+  return tekst.replace(/urn:bwb:BWB[A-Z]\d+(?::[^\s,;)]+)?/g, (gevonden) => {
+    // Een punt aan het eind hoort bij de zin, niet bij de IRI.
+    const [, iri, punt] = gevonden.match(/^(.*?)(\.*)$/)!;
+    return (plekNaam(iri) || iri) + punt;
+  });
+}

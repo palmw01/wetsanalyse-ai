@@ -6,6 +6,7 @@ import { STAND_LABEL, STAND_TOON, STAND_UITLEG, dekkingZin, splits } from "@/lib
 import type { Werkgebied } from "@/lib/types";
 import { useDeelvragenDekking } from "@/lib/useDeelvragenDekking";
 import { DOSSIER_VELDEN } from "@/lib/werkgebied";
+import { metLeesbareBronnen } from "@/lib/bronKandidaten";
 
 /** Wat het werkgebied is, in één oogopslag: het dossier in de volgorde van de methode (aanleiding,
  *  context, doel, analysevraag, praktijkvoorbeeld, afbakening), de actieve deelvragen met hun stand en de
@@ -30,7 +31,7 @@ export function WerkgebiedSamenvatting({ wg, vraagLex = false, className = "" }:
       {DOSSIER_VELDEN.map(({ veld, label }) => (
         <Regel key={veld} naam={label} data-dossier-veld={veld}>
           {(wg[veld] ?? "").trim()
-            ? <span className="whitespace-pre-line">{wg[veld]}</span>
+            ? <span className="whitespace-pre-line">{metLeesbareBronnen(wg[veld] ?? "")}</span>
             : (
               <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="text-muted">{`Nog geen ${label.toLowerCase()}.`}</span>
