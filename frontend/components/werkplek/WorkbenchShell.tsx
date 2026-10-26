@@ -75,6 +75,8 @@ export function WorkbenchShell({
   const [drawerOpen, setDrawerOpen] = useState(false);
   // Verhoogd zodra de chat een gesprek aanmaakte: de sidebar bezit de lijst en haalt hem dan opnieuw.
   const [verversSignaal, setVerversSignaal] = useState(0);
+  // *Bronnen* in de chatkop: het venster opent de bronnen van het werkgebied naast het gesprek.
+  const [bronnenSignaal, setBronnenSignaal] = useState(0);
   // Een mislukte hernoem- of verwijderactie mag de werkplek niet blokkeren, maar hoort ook niet stil
   // te blijven: zonder melding is "de nieuwe naam staat er niet" niet te onderscheiden van "de naam
   // is niet aangeslagen", en blijft een gesprek na een bevestigde verwijdering gewoon staan.
@@ -366,6 +368,7 @@ export function WorkbenchShell({
             onArchiveer={(a) => void archiveerActief(a)}
             onVerplaats={(w) => void verplaatsActief(w)}
             onVerwijder={() => void verwijderActief()}
+            onBronnen={() => setBronnenSignaal((n) => n + 1)}
           />
         )}
 
@@ -395,6 +398,7 @@ export function WorkbenchShell({
             onVerlaatWerkgebied={() => zetWerkgebied(null)}
             onKiesWerkgebied={zetWerkgebied}
             onGesprekGeladen={setGeladen}
+            bronnenSignaal={bronnenSignaal}
             onGesprekAangemaakt={gesprekAangemaakt}
             onGewijzigd={() => setVerversSignaal((n) => n + 1)}
             onRondleiding={startRondleiding}

@@ -227,7 +227,7 @@ try {
   // F3e: geen Lex-knoppen in het paneel; starten en meedenken vraag je in het gesprek.
   for (const naam of ["Stel begrippen voor", "Opnieuw voorstellen", /^Laat Lex meedenken/])
     assert.equal(await begrippenPaneel().getByRole("button", { name: naam }).count(), 0, String(naam));
-  assert.equal(await begrippenPaneel().getByRole("link", { name: "Open het werkgebied" }).getAttribute("href"),
+  assert.equal(await begrippenPaneel().getByRole("link", { name: "Open volledige pagina" }).getAttribute("href"),
     "/werkgebieden/wg1/artefacten/begrippen");
   assert.equal(await begrippenPaneel().locator('button[aria-expanded]').filter({ hasText: "Voorstellen van Lex" }).count(), 0,
     "in het paneel is de strook niet in te klappen");
@@ -269,7 +269,7 @@ try {
   await begripPaneel.locator("[data-begrip-paneel=b9]").waitFor();
   assert.equal(await begripPaneel.getByRole("button", { name: /Bedenk voorbeelden|Zoek de brondefinitie/ }).count(), 0,
     "het paneel is voor beoordelen: geen Lex-knoppen");
-  assert.equal(await begripPaneel.getByRole("link", { name: "Open het werkgebied" }).getAttribute("href"),
+  assert.equal(await begripPaneel.getByRole("link", { name: "Open volledige pagina" }).getAttribute("href"),
     "/begrippen/wg1/b9");
   // Het open voorstel van Lex staat erin en wordt overgenomen: een nieuwe revisie.
   await begripPaneel.locator('[data-voorstel="v1"]').waitFor();
@@ -300,7 +300,9 @@ try {
   await page.goto(`${base}/workbench?werkgebied=wg1`);
   const balk2 = page.locator("[data-werkgebied=wg1]");
   await balk2.getByRole("link", { name: "Invordering" }).waitFor();
-  assert.equal(await balk2.getByRole("button").count(), 0, "een nieuw gesprek heeft nog geen menu: er valt niets te archiveren");
+  assert.equal(await balk2.getByRole("button", { name: "Acties voor dit gesprek" }).count(), 0,
+    "een nieuw gesprek heeft nog geen menu: er valt niets te archiveren");
+  await balk2.getByRole("button", { name: "Bronnen" }).waitFor();
   // De handelingen op het werkgebied staan als suggesties boven het invoerveld, zonder chip.
   const suggesties = page.locator('[data-testid="vraag-suggesties"][data-suggesties-van="werkgebied"]');
   await suggesties.getByRole("button", { name: "Stel begrippen voor" }).click();

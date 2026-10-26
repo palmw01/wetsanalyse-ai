@@ -205,6 +205,16 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     Elke beurt draagt dan `werkgebied_id`; een getypte vraag kiest graph-qa's supervisor de agent, een
     suggestie met actie doet dat zonder model. *Annoteer wat nog niet geannoteerd is* gaat zonder
     `bevestigd`: de bevestiging komt in het gesprek.
+  - **Een context naast het gesprek** (spoor G4, `ContextPaneel`): wat geen artefact van een beurt is – een
+    bepaling (`bron`), één JAS-element (`element`) of de bronnen van het werkgebied van het gesprek
+    (`bibliotheek`). Zelfde schil (kolom vanaf 1280px, anders een sheet) en hoogstens één paneel: een
+    artefact of annotatie sluit de context, een context sluit die (`ctx` in `WerkplekClient`, bijgesteld in de
+    render). Ingangen: *Naast het gesprek* op de bronkaart van een citatie-chip (via `ContextPaneelContext`,
+    alleen in de werkplek), *Bronnen* in de chatkop (`bronnenSignaal`) en een markering of elementrij in het
+    paneel zelf (`onWissel`). Een bron krijgt het werkgebied van het gesprek mee. **Om te raadplegen, niet om
+    in te werken**: geen beoordelingsknoppen; elk paneel – ook het artefact- en het annotatiepaneel – heeft
+    bovenaan *Open volledige pagina* (`paginaVanContext`, `paginaVan`, `nodeLink`). Weg uit de werkplek is het
+    paneel weg: het is lokale state. Browserregressie: `scripts/test-contextpaneel.mjs`.
   - `artefactVanBericht` maakt van een ouder bericht met alleen `annotatie_doel` een
     annotatie-artefact; `parseArtefact` is streng (onbekende soort of ref zonder verplichte sleutels:
     geen chip). Het `opgeslagen`-event draagt het artefact, `toonVastgelegdeBeurt` opent het.
@@ -1522,7 +1532,7 @@ npm run test:browser # Playwright op de echte Next-UI met gemockte BFF (scripts/
 
 `test:browser` draait `scripts/test-annotatie-nodes.mjs`, `test-samenhang.mjs`, `test-reeks.mjs`,
 `test-toetsen.mjs`, `test-werkgebieden.mjs`, `test-begrippen.mjs`, `test-begripvoorstellen.mjs` en
-`test-artefacten.mjs` (de soorten artefacten in de werkplek), `test-bronkandidaten.mjs`, `test-sidebar-groepen.mjs` (spoor G1), `test-detailpaginas.mjs` (spoor G3),
+`test-artefacten.mjs` (de soorten artefacten in de werkplek), `test-bronkandidaten.mjs`, `test-sidebar-groepen.mjs` (spoor G1), `test-detailpaginas.mjs` (spoor G3), `test-contextpaneel.mjs` (spoor G4),
 `test-werkgebied-annoteren.mjs`, `test-begrippen-verdieping.mjs`, `test-herbeoordeling.mjs`, `test-begriprelaties.mjs`, `test-begrippengraaf.mjs`, `test-begrippenoverzicht.mjs`, `test-deelvragen.mjs`, `test-vraaglex.mjs` en `test-rondleiding.mjs`, en verwacht een devserver op poort 3109
 (`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`).
 Praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,

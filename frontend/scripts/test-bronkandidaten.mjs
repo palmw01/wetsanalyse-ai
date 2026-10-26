@@ -195,8 +195,8 @@ try {
   await page.locator('button[data-artefact-soort="bronnen"]').click();
   const paneel = page.getByRole("region", { name: "Gevonden bepalingen: Invorderbaarheid" });
   await paneel.locator("[data-bronkandidaten]").waitFor();
-  await paneel.getByRole("link", { name: "Open het werkgebied" }).waitFor();
-  assert.equal(await paneel.getByRole("link", { name: "Open het werkgebied" }).getAttribute("href"), "/werkgebieden/wg1/bronnen/voorstellen");
+  await paneel.getByRole("link", { name: "Open volledige pagina" }).waitFor();
+  assert.equal(await paneel.getByRole("link", { name: "Open volledige pagina" }).getAttribute("href"), "/werkgebieden/wg1/bronnen/voorstellen");
 
   assert.deepEqual(errors, []);
   console.log("Browser OK: gevonden bepalingen met meting, geen zoekknop, bewijs in gewone woorden, opnemen met rol en revisie, uitsluiten met reden, de voorstellen op een eigen pagina, geen Vraag Lex per rij, heropenen, toetsenbord in de lijst, werkgebied uit een overzicht, bronnenartefact.");

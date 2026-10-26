@@ -25,7 +25,7 @@ import { STATUS_LABEL } from "@/lib/werkgebied";
 import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
 import { artefactPad, begripPad, deelvraagPad, projectPad, voorstellenPad } from "@/lib/werkgebiedPaden";
 
-/** Waar *Open het werkgebied* heen gaat: de pagina van wat het paneel toont (spoor G2). */
+/** Waar *Open volledige pagina* heen gaat: de pagina van wat het paneel toont (spoor G2). */
 function paginaVan(doel: WerkgebiedArtefact): string {
   const id = doel.werkgebied_id;
   switch (doel.soort) {
@@ -84,7 +84,7 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
             <h2 className="truncate font-display text-base font-semibold text-lint">{titel}</h2>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
               <Link href={naarWerkgebied} className="focus-ring text-xs font-medium text-lint underline-offset-2 hover:underline">
-                Open het werkgebied
+                Open volledige pagina
               </Link>
               {doel.soort === "werkgebied" && (
                 <VraagLexKnop onderwerp={{ soort: "werkgebied", werkgebied_id: doel.werkgebied_id, id: "", label: doel.titel ?? "" }} />
