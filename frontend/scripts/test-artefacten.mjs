@@ -15,7 +15,7 @@
  *    voorstel van Lex wordt er overgenomen, en een eigen bewerking vraagt bevestiging bij sluiten;
  *  - vanuit een werkgebied (`?werkgebied=`): de balk noemt het werkgebied en heeft geen actieknoppen meer;
  *    de suggestie *Stel begrippen voor* boven het invoerveld stuurt een beurt mét `werkgebied_id` en de
- *    actie `begrippen_voorstellen`, en na *Verlaten* draagt een beurt het niet meer (fase AF2, F3c, F3d);
+ *    actie `begrippen_voorstellen`, en na *Naar recente gesprekken* draagt een beurt het niet meer (fase AF2, F3c, F3d, G1);
  *  - één deelvraag (F3d): *Vraag Lex* bij de deelvraag → *Formuleer scherper* stuurt de actie met het
  *    onderwerp → het deelvraagpaneel opent met het voorstel dat haar vervangt → *Overnemen* → na herladen
  *    zegt het paneel dat ze vervangen is en opent het de opvolger; de kandidaat bij de deelvraag staat erin.
@@ -41,6 +41,9 @@ const view = { schema_versie: 2, doel: { ...doel, type: "Lid", bwb_id: "BWBR0004
   lagen: [{ id: "laag1", bron_iri: "urn:lid1", status: "in_review", revisie: 1 }],
   elementen: [], verwijzingen: [], dekking: {} };
 const begrippenArtefact = { soort: "begrippen", ref: { werkgebied_id: "wg1", run_id: "r1" }, titel: "Invordering" };
+// Bij welk werkgebied een gesprek hoort (spoor G1), en de PATCH-verzoeken van de chatkop.
+const gesprekWg = { g5: "wg1" };
+const patches = [];
 const leeg = { denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" };
 const gesprekken = {
   g1: [
@@ -178,8 +181,19 @@ await page.route("**/api/**", async (route) => {
   }
   if (p === "/api/werkgebieden/wg1/relaties") return route.fulfill({ json: { relaties: [], voorstellen: [] } });
   const gesprek = p.match(/^\/api\/gesprekken\/(g\d)$/);
-  if (gesprek) return route.fulfill({ json: { id: gesprek[1], titel: "Test", berichten: gesprekken[gesprek[1]] ?? [] } });
-  if (p === "/api/gesprekken" && m === "POST") return route.fulfill({ status: 201, json: { id: "g2", titel: "", berichten: [] } });
+  if (gesprek && m === "PATCH") {
+    // Verplaatsen in de chatkop (spoor G1): het gesprek krijgt een ander werkgebied of wordt los.
+    const body = req.postDataJSON();
+    patches.push({ id: gesprek[1], ...body });
+    if (body.werkgebied_id !== undefined) gesprekWg[gesprek[1]] = body.werkgebied_id;
+    return route.fulfill({ json: { id: gesprek[1], titel: "Test", werkgebied_id: gesprekWg[gesprek[1]] ?? "", berichten: [] } });
+  }
+  if (gesprek) return route.fulfill({ json: { id: gesprek[1], titel: "Test", werkgebied_id: gesprekWg[gesprek[1]] ?? "", berichten: gesprekken[gesprek[1]] ?? [] } });
+  if (p === "/api/gesprekken" && m === "POST") {
+    // Een nieuw gesprek vanuit een werkgebied hoort er meteen bij.
+    gesprekWg.g2 = req.postDataJSON().werkgebied_id ?? "";
+    return route.fulfill({ status: 201, json: { id: "g2", titel: "", werkgebied_id: gesprekWg.g2, berichten: [] } });
+  }
   if (p === "/api/gesprekken/g2/berichten" && m === "POST") {
     (gesprekken.g2 ??= []).push({ ...leeg, ...req.postDataJSON() });
     return route.fulfill({ json: { id: gesprekken.g2.length } });
@@ -286,7 +300,7 @@ try {
   await page.goto(`${base}/workbench?werkgebied=wg1`);
   const balk2 = page.locator("[data-werkgebied=wg1]");
   await balk2.getByRole("link", { name: "Invordering" }).waitFor();
-  assert.equal(await balk2.getByRole("button").count(), 1, "de balk heeft alleen *Verlaten* nog (F3d)");
+  assert.equal(await balk2.getByRole("button").count(), 0, "een nieuw gesprek heeft nog geen menu: er valt niets te archiveren");
   // De handelingen op het werkgebied staan als suggesties boven het invoerveld, zonder chip.
   const suggesties = page.locator('[data-testid="vraag-suggesties"][data-suggesties-van="werkgebied"]');
   await suggesties.getByRole("button", { name: "Stel begrippen voor" }).click();
@@ -329,17 +343,26 @@ try {
   await dvPaneel.locator("[data-opvolger=d2]").click();
   await page.getByRole("region", { name: "Deelvraag: Wie is de belastingschuldige?" }).locator("[data-deelvraag-paneel=d2]").waitFor();
 
-  // --- Verlaten: een beurt draagt het werkgebied niet meer ---
+  // --- Naar recente gesprekken (spoor G1): het gesprek wordt los, en een beurt draagt geen werkgebied ---
   runs.length = 0;
   await page.goto(`${base}/workbench?werkgebied=wg1`);
-  await balk2.getByRole("button", { name: /Uit de context/ }).click();
+  const invoer3 = page.getByRole("textbox").last();
+  await invoer3.fill("Wat valt hieronder?");
+  await invoer3.press("Enter");
+  for (let i = 0; i < 50 && runs.length < 1; i++) await page.waitForTimeout(100);
+  assert.equal(gesprekWg.g2, "wg1", "een gesprek vanuit een werkgebied wordt eraan gekoppeld");
+  await balk2.getByRole("button", { name: "Acties voor dit gesprek" }).click();
+  await page.getByRole("menuitem", { name: "Naar recente gesprekken" }).click();
   await balk2.waitFor({ state: "detached" });
-  assert.ok(!new URL(page.url()).searchParams.has("werkgebied"), "verlaten haalt het werkgebied uit de URL");
+  await page.locator("[data-chatkop]").getByText("Los gesprek").waitFor();
+  assert.deepEqual(patches.at(-1), { id: "g2", werkgebied_id: "" });
+  assert.ok(!new URL(page.url()).searchParams.has("werkgebied"), "los haalt het werkgebied uit de URL");
+  runs.length = 0;
   const invoer2 = page.getByRole("textbox").last();
   await invoer2.fill("Stel begrippen voor");
   await invoer2.press("Enter");
   for (let i = 0; i < 50 && runs.length < 1; i++) await page.waitForTimeout(100);
-  assert.equal(runs[0]?.werkgebied_id, undefined, "na verlaten draagt een beurt geen werkgebied meer");
+  assert.equal(runs[0]?.werkgebied_id, undefined, "een los gesprek draagt geen werkgebied meer");
 
   // --- Verwijderen in het paneel, zoals een annotatie: begrip en werkgebied, daarna de verwijderd-stand ---
   await page.goto(`${base}/workbench?gesprek=g3`);
@@ -348,8 +371,8 @@ try {
   await bp.getByRole("button", { name: "Begrip verwijderen" }).click();
   await bp.getByRole("button", { name: "Verwijderen?", exact: true }).click();
   await bp.locator("[data-verwijderd]").getByText("Dit begrip is verwijderd op 15 okt 2026 door t.").waitFor();
-  // Werkgebied: vanuit de werkplek in dat werkgebied; na verwijderen verlaat de werkplek het.
-  await page.goto(`${base}/workbench?werkgebied=wg1&gesprek=g5`);
+  // Werkgebied: g5 hoort bij wg1, dus de werkplek staat erin; na verwijderen wordt het gesprek los.
+  await page.goto(`${base}/workbench?gesprek=g5`);
   await balk2.waitFor();
   await page.locator('button[data-artefact-soort="werkgebied"]').click();
   const wp = page.getByRole("region", { name: "Werkgebied: Invordering" });

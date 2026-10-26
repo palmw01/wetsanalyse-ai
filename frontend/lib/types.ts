@@ -691,6 +691,9 @@ export interface Gesprek {
   id: string;
   user_id: string;
   titel: string;
+  /** Leeg = een los gesprek; anders krijgt elke beurt het dossier van dit werkgebied mee. */
+  werkgebied_id?: string;
+  gearchiveerd?: string | null;
   berichten: Bericht[];
   created?: string;
   updated?: string;
@@ -702,6 +705,9 @@ export interface GesprekSamenvatting {
   titel: string;
   aantal_berichten: number;
   updated?: string;
+  werkgebied_id?: string;
+  werkgebied_naam?: string;
+  gearchiveerd?: string | null;
 }
 
 /** Eén toe te voegen bericht (append). */

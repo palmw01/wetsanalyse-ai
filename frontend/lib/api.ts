@@ -462,11 +462,11 @@ export async function lijstGesprekken(): Promise<GesprekSamenvatting[]> {
   return json<GesprekSamenvatting[]>(await fetch("/api/gesprekken", { cache: "no-store" }));
 }
 
-export async function maakGesprek(titel = ""): Promise<Gesprek> {
+export async function maakGesprek(titel = "", werkgebiedId = ""): Promise<Gesprek> {
   const res = await fetch("/api/gesprekken", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ titel }),
+    body: JSON.stringify({ titel, werkgebied_id: werkgebiedId }),
   });
   return json<Gesprek>(res);
 }
@@ -485,10 +485,18 @@ export async function voegBerichtToe(id: string, bericht: BerichtInvoer): Promis
 }
 
 export async function hernoemGesprek(id: string, titel: string): Promise<Gesprek> {
+  return wijzigGesprek(id, { titel });
+}
+
+/** Titel, werkgebied (`""` = loskoppelen) of archief; alleen wat meekomt verandert. */
+export async function wijzigGesprek(
+  id: string,
+  wijziging: { titel?: string; werkgebied_id?: string; gearchiveerd?: boolean },
+): Promise<Gesprek> {
   const res = await fetch(`/api/gesprekken/${pathSegment(id)}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ titel }),
+    body: JSON.stringify(wijziging),
   });
   return json<Gesprek>(res);
 }

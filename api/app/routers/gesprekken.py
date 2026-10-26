@@ -7,10 +7,11 @@ uit de auth-router); de router zit achter de client-bearer (`require_client`), z
 404 (niet 403) bij andermans gesprek, zodat het bestaan niet lekt.
 
 POST   /v1/gesprekken                       – nieuw gesprek
-GET    /v1/gesprekken?limit=&offset=        – eigen gesprekken (samenvatting, nieuwste eerst)
+GET    /v1/gesprekken?limit=&offset=&werkgebied_id=&gearchiveerd=
+                                            – eigen gesprekken (samenvatting, nieuwste eerst)
 GET    /v1/gesprekken/{id}                  – volledig gesprek (met berichten)
 POST   /v1/gesprekken/{id}/berichten        – bericht toevoegen
-PATCH  /v1/gesprekken/{id}                  – titel wijzigen
+PATCH  /v1/gesprekken/{id}                  – titel, werkgebied (koppelen/loskoppelen), archief
 DELETE /v1/gesprekken/{id}                  – verwijder eigen gesprek
 """
 from __future__ import annotations
@@ -25,6 +26,7 @@ from ..gesprek_contracts import (
     Bericht, BerichtInvoer, Gesprek, GesprekCreate, GesprekPatch, GesprekSamenvatting,
 )
 from ..gesprek_store import GesprekStore
+from .. import werkgebied_store
 from .auth import actieve_userid
 
 router = APIRouter(prefix="/gesprekken", tags=["gesprekken"], dependencies=[Depends(require_client)])
@@ -38,13 +40,21 @@ async def _gesprek_or_404(store: GesprekStore, gesprek_id: str, user_id: str) ->
     return gesprek
 
 
+async def _bestaand_werkgebied(werkgebied_id: str) -> None:
+    """Werkgebieden zijn gedeeld, dus bestaan is genoeg; een gearchiveerd werkgebied telt niet."""
+    if werkgebied_id:
+        await werkgebied_store.haal(werkgebied_id)
+
+
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=Gesprek)
 async def maak_gesprek(
     req: GesprekCreate,
     user_id: str = Depends(actieve_userid),
     store: GesprekStore = Depends(get_gesprek_store),
 ):
-    gesprek = Gesprek(id=uuid.uuid4().hex[:16], user_id=user_id, titel=req.titel)
+    await _bestaand_werkgebied(req.werkgebied_id)
+    gesprek = Gesprek(id=uuid.uuid4().hex[:16], user_id=user_id, titel=req.titel,
+                      werkgebied_id=req.werkgebied_id)
     await store.maak_gesprek(gesprek)
     return await store.laad_gesprek(gesprek.id)
 
@@ -53,10 +63,12 @@ async def maak_gesprek(
 async def lijst_gesprekken(
     limit: int = Query(100, ge=1, le=200),
     offset: int = Query(0, ge=0),
+    werkgebied_id: str | None = Query(None, description='Leeg ("") = alleen losse gesprekken.'),
+    gearchiveerd: bool | None = Query(None, description="Weglaten = actief én gearchiveerd."),
     user_id: str = Depends(actieve_userid),
     store: GesprekStore = Depends(get_gesprek_store),
 ):
-    return await store.lijst_samenvattingen(user_id, limit, offset)
+    return await store.lijst_samenvattingen(user_id, limit, offset, werkgebied_id, gearchiveerd)
 
 
 @router.get("/{gesprek_id}", response_model=Gesprek)
@@ -80,14 +92,17 @@ async def voeg_bericht_toe(
 
 
 @router.patch("/{gesprek_id}", response_model=Gesprek)
-async def hernoem_gesprek(
+async def wijzig_gesprek(
     gesprek_id: str,
     req: GesprekPatch,
     user_id: str = Depends(actieve_userid),
     store: GesprekStore = Depends(get_gesprek_store),
 ):
     await _gesprek_or_404(store, gesprek_id, user_id)
-    await store.hernoem_gesprek(gesprek_id, req.titel)
+    if req.werkgebied_id:
+        await _bestaand_werkgebied(req.werkgebied_id)
+    await store.wijzig_gesprek(gesprek_id, titel=req.titel, werkgebied_id=req.werkgebied_id,
+                               gearchiveerd=req.gearchiveerd)
     return await store.laad_gesprek(gesprek_id)
 
 

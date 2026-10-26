@@ -265,7 +265,8 @@ spoor D (*Werkgebied als node*).
   ouder. **De audit blijft**, met een laatste regel `werkgebied-verwijderd`; via `_audit` volgt de
   begrippengraaf (geen werkgebied → DROP van de graph). De annotaties blijven: die horen bij een
   bronnode. De `intake_id` is daarna weer vrij. Een nieuwe tabel met `werkgebied_id` (of `begrip_id`)
-  hoort in de wislijst; `tests/test_werkgebied_verwijderen.py` faalt anders. Archiveren bestaat niet
+  hoort in de wislijst; `tests/test_werkgebied_verwijderen.py` faalt anders – behalve `gesprekken`: die
+  worden los (`werkgebied_id = ""`), niet gewist, want een gesprek is een verslag van de gebruiker. Archiveren bestaat niet
   meer: oude gearchiveerde rijen blijven onzichtbaar (`gearchiveerd` geeft 404), maar worden niet
   automatisch gewist.
 - **Een verwijderd object zegt wanneer en door wie.** `GET` op een verwijderd werkgebied of begrip
@@ -680,6 +681,16 @@ werkgebied zonder deelvragen werkt zoals altijd.
 
 `gesprek_contracts.py`, `gesprek_store.py`, `routers/gesprekken.py`. Per gebruiker gescopet via
 `actieve_userid`; 404 op andermans gesprek.
+
+- **Een gesprek hoort bij een werkgebied of is los** (spoor G1): `werkgebied_id` (leeg = los) en
+  `gearchiveerd` (een tijdstip, zoals bij werkgebieden). `POST` neemt `werkgebied_id` aan, `PATCH` wijzigt
+  alleen wat meekomt (`titel`, `werkgebied_id` – `""` koppelt los –, `gearchiveerd`), `GET` filtert op
+  `werkgebied_id` (`""` = alleen losse) en `gearchiveerd`, en geeft per rij `werkgebied_naam` mee. Koppelen
+  aan een onbekend werkgebied geeft de 404 van het werkgebied; werkgebieden zijn gedeeld, dus bestaan is
+  genoeg. Verplaatsen of archiveren zet `updated` niet: het gesprek springt niet bovenaan de lijst. Geen
+  foreign key: een gewist werkgebied maakt zijn gesprekken los (`werkgebied_store.wis`), en een gewist
+  gesprek raakt niets in de andere domeinen. Archiveren, verplaatsen en verwijderen zijn bewust drie
+  handelingen; verwijderen blijft echt wissen.
 
 - Een bericht verwijst via **`artefact`** naar wat de beurt opleverde: `{soort, ref, titel}` met
   `soort` `annotatie` (ref `{bron_iri, label?, snapshot_id?}`), `begrippen` (ref

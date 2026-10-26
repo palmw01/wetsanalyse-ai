@@ -228,6 +228,9 @@ async def wis(conn, werkgebied_id: str) -> None:
         await conn.execute(delete(k).where(k.c.deelvraag_id.in_(deelvragen)))
     for naam in WERKGEBIED_TABELLEN:
         await conn.execute(delete(t[naam]).where(t[naam].c.werkgebied_id == werkgebied_id))
+    # De gesprekken blijven: het zijn verslagen van de gebruiker, en ze worden weer los.
+    await conn.execute(update(db.gesprekken).where(db.gesprekken.c.werkgebied_id == werkgebied_id)
+                       .values(werkgebied_id=""))
     await conn.execute(delete(db.werkgebieden).where(db.werkgebieden.c.id == werkgebied_id))
 
 

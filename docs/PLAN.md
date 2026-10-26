@@ -102,6 +102,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | D | Activiteit 3: werkgebieden en begrippen | Ontwerp klaar, niets gebouwd |
 | E | Kennisbank (tweede corpus) | Ontwerp klaar, niets gebouwd |
 | F | Activiteit 1 in het gesprek: werkgebied bepalen | F0 en F1 gebouwd (vraagkaarten zoals Claude → werkgebied); vervolg open |
+| G | Lex als projectgerichte werkplek (mock-up v4) | G1 gebouwd (gesprek hoort bij een werkgebied); G2–G5 open |
 
 ---
 
@@ -877,7 +878,8 @@ van de gebruiker op 20 okt 2026).
     in de werkgebiedbalk, `DeelvraagPaneel` en `BegripPaneel` (zonder Lex-knoppen) in het werkgebiedpaneel,
     en `vervangt` (besluit gebruiker 21 okt 2026: **overnemen vervangt** – de oude deelvraag wordt
     `vervangen`, de opvolger krijgt haar plek en koppelingen, kandidaten volgen de opvolger);
-  - **F3e**: de werkgebiedpagina wordt raadplegen; de ongebruikte BFF-run-routes gaan eruit – **gebouwd**
+  - **F3e** (*Vraag Lex* per rij vervangen door één *Bespreek met Lex* per detailpagina in spoor G2,
+    besluit gebruiker 26 okt 2026): de werkgebiedpagina wordt raadplegen; de ongebruikte BFF-run-routes gaan eruit – **gebouwd**
     (21 okt 2026): geen Lex-knoppen meer op de pagina en in de werkgebiedpanelen (annoteren, begrippen
     voorstellen, meedenken, deelvragen voorstellen, bepalingen zoeken, de kaartacties, *Bespreek met Lex*);
     *Vraag Lex* bij elke deelvraag, bronselectie, kandidaat en elk begrip (niet bij een element: een
@@ -920,6 +922,62 @@ van de gebruiker op 20 okt 2026).
 - Startactiviteit b (projecttypologie), c (hoofd- en deelactiviteiten) en d (het team): bewust nog niet
   (besloten 20 okt 2026); ze sturen vooral keuzes die het platform nog niet maakt.
 - De doorstap naar activiteit 2 (annoteren) en 3 (begrippen) vanuit hetzelfde gesprek.
+
+---
+
+### G. Lex als projectgerichte werkplek
+
+**Aanleiding** (26 okt 2026). De werkgebiedpagina is één lange kolom geworden: het dossier met kale
+bron-IRI's, deelvragen met een knop per rij, voorstellen van Lex, alle bronselecties met hun rol, een
+opneemformulier, en op de tab Begrippen honderden passages onder elkaar. Begrippen openen in een paneel
+binnen die pagina, een bron en een annotatie-element hebben geen eigen pagina, en een gesprek weet niet
+bij welk werkgebied het hoort (alleen `?werkgebied=` per beurt). De gebruiker leverde een mock-up
+(`lex_projectruimte_v4.html`, lokaal, niet in deze publieke repo) en een functioneel wijzigingsvoorstel:
+werkgebied = project zoals in ChatGPT, één chatvenster, en per juridisch object een rustige eigen pagina.
+
+**Het ontwerpidioom** (uit de mock-up, op elke pagina): kruimelpad en kop (titel, één zin, statuspil,
+hoogstens twee knoppen); *split-detail* (links de inhoud in kaarten, rechts relaties, voortgang en één
+*Bespreek met Lex*); compacte rijen (titel, subregel, status, chevron) die naar een detailpagina gaan,
+zonder knoppen of IRI's per rij; een overzicht met tellers, samenvattingen en *Alles bekijken*, en lange
+lijsten op hun eigen tab met zoeken en een statusfilter; een zijpaneel alleen in het gesprek, met *Open
+volledige pagina*.
+
+**Besluiten** (gebruiker, 26 okt 2026):
+
+1. Een werkgebied heeft vier tabs: Overzicht, Gesprekken, Bronnen, Artefacten. Elementen gaat op in het
+   artefact Annotaties, Begrippen en Samenhang in het artefact Begrippen, Historie wordt een knop in de kop.
+2. Een artefact is een bestaand zelfstandig object, als projectproduct getoond (dossier, bronselectie,
+   annotaties, begrippenkader); geen nieuwe tabel. *Specificaties* blijft gereserveerd.
+3. Eén *Bespreek met Lex* per detailpagina; *Vraag Lex* per rij vervalt (vervangt F3e op dat punt).
+4. Drie handelingen op een gesprek, bewust verschillend: **archiveren** (uit de navigatie, terug te halen),
+   **verplaatsen** (naar een werkgebied of los) en **verwijderen** (definitief, na een expliciete bevestiging
+   die eerst archiveren aanbiedt). Analyseproducten overleven het gesprek altijd; ze hebben er geen
+   verwijzing naar. Anders dan ChatGPT bij een project: een gewist werkgebied maakt zijn gesprekken los,
+   het wist ze niet.
+5. Wat Lex aan context meekrijgt, komt uit de projectgegevens (het dossier), nooit uit andere gesprekken;
+   een verwijderd gesprek wist ook het agentgeheugen. Dat gold al (`agent/werkgebied_context.py`, de
+   BFF-DELETE) en blijft zo.
+
+**Fasen** (elk een PR, gestapeld):
+
+- **G1 – gesprek hoort bij een werkgebied; navigatie** – **gebouwd** (26 okt 2026). api: `gesprekken`
+  krijgt `werkgebied_id` en `gearchiveerd` (additief), `PATCH` koppelt, ontkoppelt en archiveert, `GET`
+  filtert en geeft de werkgebiednaam mee, `wis` maakt gesprekken los. Werkplek: de sidebar per werkgebied
+  (uitklapbaar, stand per browser), *Recente gesprekken* en ingeklapt *Archief*, een menu per gesprek
+  (`GesprekActies`); de chatkop (`ChatKop`) vervangt de werkgebiedbalk en noemt het werkgebied of *Los
+  gesprek*; het werkgebied volgt het gesprek; een nieuw gesprek vanuit een werkgebied wordt eraan gekoppeld.
+- **G2 – werkgebiedpagina**: de vier tabs als padsegmenten (`/werkgebieden/[id]/{gesprekken,bronnen,artefacten}`),
+  gedeelde paginacomponenten (kop, split-detail, rij, teller), de deelvraagpagina, `GET …/artefacten`,
+  *Bespreek met Lex*, en een doorverwijzing van de oude `?tab=`.
+- **G3 – detailpagina's**: bron (`/bronnen?bron_iri=`), JAS-element, begrip (`/begrippen/[wg]/[id]`) en de
+  artefactpagina's.
+- **G4 – zijpaneel in het gesprek**: één `ContextPaneel` voor bron, element, begrip, artefact en de
+  bronnen van het werkgebied, met *Open volledige pagina*.
+- **G5 – verdieping**: alle JAS-spans tegelijk in de wettekst van de bepalingspagina; de begripskaart in
+  NL-SBB-volgorde, met het onderscheid brondefinitie en analysebegrip zichtbaar.
+
+**Buiten scope**: een begrip in meerdere werkgebieden zonder kopie (open keuze 3: één kader per
+werkgebied). Annotaties zijn al gedeeld per bronnode.
 
 ---
 

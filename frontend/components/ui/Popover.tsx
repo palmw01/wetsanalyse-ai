@@ -6,7 +6,8 @@ import { klemHorizontaal } from "@/lib/popover";
 
 interface PopoverProps {
   trigger: (open: boolean, toggle: () => void) => ReactNode;
-  children: ReactNode;
+  /** Of een functie die `sluit` krijgt: voor een menu dat na een keuze dicht moet. */
+  children: ReactNode | ((sluit: () => void) => ReactNode);
   className?: string;
   /** Toegankelijke naam voor het paneel (role="dialog"). */
   ariaLabel?: string;
@@ -98,7 +99,7 @@ export function Popover({ trigger, children, className = "", ariaLabel, onClose,
           className={`absolute z-40 ${positie} ${className}`}
           style={dx ? { transform: `translateX(${dx}px)` } : undefined}
         >
-          {children}
+          {typeof children === "function" ? children(close) : children}
         </div>
       )}
     </div>

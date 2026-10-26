@@ -127,3 +127,31 @@ export function Kruis({ className = "" }: IcoonProps) {
 export function Terug({ className = "" }: IcoonProps) {
   return svg(<path d="M5.5 3.5 2.5 6.5l3 3M2.5 6.5H10a3.5 3.5 0 0 1 0 7H7" />, className);
 }
+
+/** Drie puntjes: meer handelingen. */
+export function Meer({ className = "" }: IcoonProps) {
+  return svg(
+    <>
+      <circle cx="3.5" cy="8" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="8" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="12.5" cy="8" r="1.1" fill="currentColor" stroke="none" />
+    </>,
+    className,
+  );
+}
+
+/** Een map: een werkgebied in de navigatie. */
+export function Mapje({ className = "" }: IcoonProps) {
+  return svg(<path d="M2 4.5a1 1 0 0 1 1-1h3.2l1.4 1.5H13a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z" />, className);
+}
+
+/** Een archiefdoos: archiveren en het archief. */
+export function Archief({ className = "" }: IcoonProps) {
+  return svg(
+    <>
+      <rect x="2" y="3" width="12" height="3" rx="0.6" />
+      <path d="M3.2 6v6.5a.5.5 0 0 0 .5.5h8.6a.5.5 0 0 0 .5-.5V6M6.5 9h3" />
+    </>,
+    className,
+  );
+}
