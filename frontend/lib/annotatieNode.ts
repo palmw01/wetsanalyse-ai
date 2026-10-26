@@ -192,6 +192,16 @@ export interface ElementGraaf { element_id: string; laag_id: string; turtle: str
 export function haalElementGraaf(id: string): Promise<ElementGraaf> {
   return nodeRequest(`elementen/${pathSegment(id)}/graaf`);
 }
+/** De plek van bepalingen in hun regeling (`POST plaatsen`, spoor H), in partijen van hoogstens 500. */
+export async function haalPlaatsen(iris: readonly string[]): Promise<import("./bronPlaats").Plaats[]> {
+  const uniek = [...new Set(iris)];
+  const uit: import("./bronPlaats").Plaats[] = [];
+  for (let i = 0; i < uniek.length; i += 500) {
+    const { plaatsen } = await nodeRequest<{ plaatsen: import("./bronPlaats").Plaats[] }>("plaatsen", { bron_iris: uniek.slice(i, i + 500) });
+    uit.push(...plaatsen);
+  }
+  return uit;
+}
 export async function haalNodeWeergave(doel: NodeDoel): Promise<NodeWeergave> {
   return nodeRequest(`weergave?${new URLSearchParams({ bron_iri: doel.bron_iri,
     ...(doel.snapshot_id ? { snapshot_id: doel.snapshot_id } : {}) })}`);

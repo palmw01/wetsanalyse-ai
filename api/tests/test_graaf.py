@@ -134,3 +134,51 @@ async def test_de_route_comprimeert(bron, monkeypatch):
     assert len(r.json()["knopen"]) >= 8
     assert fout.status_code == 422
     get_settings.cache_clear()
+
+
+# --- de plek van een bepaling (spoor H) ------------------------------------------------------------
+
+async def test_plaatsen_geeft_het_pad_onder_de_regeling(bron):
+    uit = await graaf.plaatsen([L1, A10, A4_94A])
+    lid = uit[0]
+    assert lid["regeling"] == {"bwb_id": "BWBR0004770", "citeertitel": "Invorderingswet 1990"}
+    # Het hoofdstuk krijgt zijn nummer erbij, zoals in de graaf; de regeling zelf staat er niet in.
+    assert [(p["type"], p["label"]) for p in lid["pad"]] == [("Hoofdstuk", "Hoofdstuk II"), ("Artikel", "Artikel 9"), ("Lid", "Lid 1")]
+    assert lid["volgorde"] < uit[1]["volgorde"]
+    assert uit[2]["regeling"]["bwb_id"] == "BWBR0005537" and uit[2]["pad"][-1]["label"] == "Artikel 4:94a"
+
+
+async def test_plaatsen_onbekende_bepaling_en_cache(bron):
+    onbekend = "urn:bwb:BWBR0004770:artikel:999"
+    uit = await graaf.plaatsen([onbekend, L1, L1])
+    assert uit[0]["pad"] == [] and uit[0]["volgorde"] is None
+    assert len(uit) == 2, "een dubbele IRI komt één keer terug"
+    await graaf.plaatsen([A9])
+    assert bron.bronbomen.count("BWBR0004770") == 1, "de structuur komt per toestand één keer uit de graaf"
+    # De graaf deelt die structuur: geen tweede bronboom voor dezelfde toestand.
+    await graaf.graaf(["BWBR0004770"])
+    assert bron.bronbomen.count("BWBR0004770") == 1
+
+
+async def test_plaatsen_weigert_wat_geen_bron_iri_is(bron):
+    with pytest.raises(ValueError):
+        await graaf.plaatsen(["https://example.org/x"])
+    with pytest.raises(ValueError):
+        await graaf.plaatsen([L1] * (graaf.MAX_PLAATSEN + 1))
+
+
+async def test_de_route_plaatsen(bron, monkeypatch):
+    from httpx import ASGITransport, AsyncClient
+    from app.config import get_settings
+    from conftest import maak_testgebruikers
+    monkeypatch.setenv("WETSANALYSE_AUTH_REQUIRED", "0")
+    get_settings.cache_clear()
+    await maak_testgebruikers("plaats-route")
+    from app.main import app
+    h = {"X-User-Id": "plaats-route"}
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        r = await client.post("/v1/annotatie/plaatsen", json={"bron_iris": [L1]}, headers=h)
+        fout = await client.post("/v1/annotatie/plaatsen", json={"bron_iris": ["nee"]}, headers=h)
+    assert r.status_code == 200 and r.json()["plaatsen"][0]["pad"][-1]["label"] == "Lid 1"
+    assert fout.status_code == 422
+    get_settings.cache_clear()
