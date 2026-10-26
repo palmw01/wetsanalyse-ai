@@ -179,13 +179,13 @@ try {
   await zie('duidt al het begrip "Ontvanger" aan');
   await page.getByRole("checkbox", { name: 'Kies "de ontvanger"' }).uncheck();
   await page.getByRole("button", { name: "Nieuw begrip uit selectie" }).click();
-  await page.waitForURL(/tab=begrippen&begrip=b\d+/);
-  // F3e: een begrip opent om te lezen; *Begripskaart* opent de kaart met passages en accorderen. Geen
-  // Lex-knoppen op de tab, wel *Vraag Lex* bij elk begrip in de lijst.
+  await page.waitForURL(/\/artefacten\/begrippen\?begrip=b\d+/);
+  // F3e: een begrip opent om te lezen; *Begripskaart* opent de kaart met passages en accorderen. Spoor G2:
+  // geen *Vraag Lex* in elke rij, wel één *Bespreek met Lex* in de kop van de pagina.
   await page.locator("[data-begrip-paneel]").waitFor();
-  const rijen = await page.locator("[data-begrip-rij]").count();
-  assert.ok(rijen > 0 && await page.locator("[data-begrip-rij] [data-vraag-lex=begrip]").count() === rijen);
-  assert.equal(await page.getByRole("link", { name: "Bespreek met Lex" }).count(), 0);
+  assert.ok(await page.locator("[data-begrip-rij]").count() > 0);
+  assert.equal(await page.locator("[data-begrip-rij] [data-vraag-lex]").count(), 0);
+  assert.equal(await page.locator("[data-paginakop]").getByRole("link", { name: /^Bespreek .* met Lex$/ }).count(), 1);
   await page.getByRole("button", { name: "Begripskaart" }).click();
   await page.waitForURL(/&weergave=kaart/);   // terugbladeren en herladen houden de kaart open
   const passages = page.getByRole("list", { name: "Passages van dit begrip" }).getByRole("listitem");
@@ -220,12 +220,13 @@ try {
   assert.equal(await kaart().getByLabel(/^Onderbouwing/).inputValue(), "Van een ander");
   assert.equal(await kaart().getByLabel(/^Uitleg/).inputValue(), "");
 
-  // Een tabwissel met onbewaarde wijzigingen vraagt eerst bevestiging (de tabs renderen lazy).
+  // Een wissel naar Samenhang met onbewaarde wijzigingen vraagt eerst bevestiging (het is een link).
   await kaart().getByLabel(/^Uitleg/).fill("Nog niet bewaard");
-  await page.getByRole("tab", { name: "Elementen" }).click();
+  await page.getByRole("navigation", { name: "Begrippenkader" }).getByRole("link", { name: "Samenhang" }).click();
   await zie("Niet-bewaarde wijzigingen");
   await page.getByRole("button", { name: "Blijf hier" }).click();
-  await page.getByRole("tab", { name: "Begrippen", selected: true }).waitFor();
+  await page.locator("[data-artefact-pagina=begrippen]").waitFor();
+  assert.ok(!page.url().includes("deel=samenhang"));
   assert.equal(await kaart().getByLabel(/^Uitleg/).inputValue(), "Nog niet bewaard");
   // Ook een link in de sidebar (client-side navigatie) wacht op die vraag.
   const voor = page.url();
@@ -263,9 +264,9 @@ try {
   for (const v of ["Invorderingswet 1990 – artikel 9 · Lid 1", "Invorderingswet 1990 – artikel 9 · Lid 2", "AWR – artikel 2"])
     assert.ok(csv.includes(`Belastingschuldige,geaccordeerd,`) && csv.includes(v), v);
 
-  // Herladen houdt de tab en het begrip; de historie leest als zinnen.
+  // Herladen houdt de pagina en het begrip; de historie leest als zinnen.
   await page.reload();
-  await page.getByRole("tab", { name: "Begrippen", selected: true }).waitFor();
+  await page.locator("[data-artefact-pagina=begrippen]").waitFor();
   await kaart().waitFor();
   await kaart().getByText("Historie").click();
   await page.getByRole("list", { name: "Historie van het begrip" }).getByText("Geaccordeerd").waitFor();
@@ -275,9 +276,10 @@ try {
   await page.getByRole("button", { name: "Bronnen (3)" }).click();
   await page.getByRole("heading", { name: "Bronpassages (3)" }).waitFor();
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
-  // Vijf tabs passen niet naast elkaar: de rij scrolt, en de laatste is te bereiken.
-  await page.getByRole("tab", { name: "Historie" }).scrollIntoViewIfNeeded();
-  assert.ok(await page.getByRole("tab", { name: "Historie" }).isVisible());
+  // De subtabs van het begrippenkader blijven bereikbaar.
+  const samenhangTab = page.getByRole("navigation", { name: "Begrippenkader" }).getByRole("link", { name: "Samenhang" });
+  await samenhangTab.scrollIntoViewIfNeeded();
+  assert.ok(await samenhangTab.isVisible());
   await page.waitForTimeout(300);
   await foto("begrip-mobiel");
   assert.deepEqual(errors, []);

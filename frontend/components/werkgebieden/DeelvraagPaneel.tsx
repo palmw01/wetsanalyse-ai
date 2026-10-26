@@ -7,7 +7,7 @@ import { Melding } from "@/components/ui/Melding";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { BronKandidaten } from "@/components/werkgebieden/BronKandidaten";
 import { DeelvraagVoorstel } from "@/components/werkgebieden/Deelvragen";
-import type { Mutatie } from "@/components/werkgebieden/WerkgebiedClient";
+import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
 import { foutTekst, haalDeelvraag, haalWerkgebied } from "@/lib/api";
 import { STAND_LABEL, STAND_TOON, STAND_UITLEG, splits } from "@/lib/deelvragen";
 import type { DeelvraagDetail, Werkgebied } from "@/lib/types";
@@ -24,11 +24,14 @@ import { ROL_LABEL, isRevisieConflict } from "@/lib/werkgebied";
  *
  *  Geen Lex-knoppen: wat Lex moet doen vraag je in het gesprek. Elke wijziging draagt de revisie in beeld;
  *  wijzigde iemand anders het werkgebied intussen, dan komt de nieuwe stand in beeld en zegt het paneel dat. */
-export function DeelvraagPaneel({ werkgebiedId, deelvraagId, onKies }: {
+export function DeelvraagPaneel({ werkgebiedId, deelvraagId, onKies, onGewijzigd }: {
   werkgebiedId: string;
   deelvraagId: string;
   /** Een andere deelvraag openen (de opvolger van een vervangen deelvraag). */
   onKies?: (deelvraag: { id: string; vraag: string }) => void;
+  /** Het werkgebied is gewijzigd (een voorstel overgenomen, een bron opgenomen): de pagina eromheen laadt
+   *  dan ook opnieuw. */
+  onGewijzigd?: () => void;
 }) {
   const [wg, setWg] = useState<Werkgebied | null>(null);
   const [detail, setDetail] = useState<DeelvraagDetail | null>(null);
@@ -57,6 +60,7 @@ export function DeelvraagPaneel({ werkgebiedId, deelvraagId, onKies }: {
     try {
       setWg(await actie(wg.revisie));
       setDetail(await haalDeelvraag(werkgebiedId, deelvraagId));
+      onGewijzigd?.();
       if (gelukt) setMelding({ type: "bevestiging", tekst: typeof gelukt === "function" ? gelukt() : gelukt });
       return true;
     } catch (e) {
@@ -68,7 +72,7 @@ export function DeelvraagPaneel({ werkgebiedId, deelvraagId, onKies }: {
       }
       return false;
     }
-  }, [wg, werkgebiedId, deelvraagId, laad]);
+  }, [wg, werkgebiedId, deelvraagId, laad, onGewijzigd]);
 
   const actief = splits(wg?.deelvragen).actief;
   const dekking = useDeelvragenDekking(werkgebiedId, wg?.revisie ?? 0, actief.length);
@@ -156,7 +160,7 @@ export function DeelvraagPaneel({ werkgebiedId, deelvraagId, onKies }: {
       )}
 
       {detail.status === "actief" && (
-        <BronKandidaten id={werkgebiedId} deelvraagId={detail.id} onGewijzigd={() => void laad()} />
+        <BronKandidaten id={werkgebiedId} deelvraagId={detail.id} onGewijzigd={() => { void laad(); onGewijzigd?.(); }} />
       )}
     </div>
   );

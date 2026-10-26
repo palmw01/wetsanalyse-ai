@@ -55,7 +55,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
 - **De rekenkern staat in `lib/`**, niet in componenten: vitest draait node-env zonder DOM, dus alleen
   pure helpers zijn testbaar (`selectie`, `annotatie`, `annotatieOverzicht`, `reeks`, `samenhang`,
   `markering`, `popover`, `wetstructuur`, `lopendeRun`, `rondleiding`, `werkgebied`, `begrippen`,
-  `begripVoorstellen`, `kaartVoorstel`, `herbeoordeling`, `begripRelaties`, `begripGraaf`, `begrippenOverzicht`, `artefact`, `bronKandidaten`, `deelvragen`, `onbewaard`, `vraagkaart`, …).
+  `begripVoorstellen`, `kaartVoorstel`, `herbeoordeling`, `begripRelaties`, `begripGraaf`, `begrippenOverzicht`, `artefact`, `bronKandidaten`, `deelvragen`, `onbewaard`, `vraagkaart`, `gesprekGroepen`, `werkgebiedPaden`, …).
 - **`app/**/page.tsx`** (Server Components) – data via `lib/server.ts`, interactie in een
   `*Client.tsx`. `app/page.tsx` doet `redirect("/workbench")`. De werkplek zit in
   `app/workbench/page.tsx` én in `app/default.tsx` (de default van het children-slot); beide renderen
@@ -630,19 +630,44 @@ bestaat los van de gesprekken.
   proxy; een nieuwe api-route vraagt daar een regel. De query gaat ongewijzigd mee
   (`verwachte_revisie` bij DELETE). De inventaris en elke POST onder `begrippen` (koppelen toetst
   tegen de inventaris) krijgen 90 s, want de api haalt per regeling de bronboom uit de graaf.
-- **Het dossier** (F2, F3a): de kop van de pagina toont de `WerkgebiedSamenvatting`, dezelfde als in het
-  paneel naast het gesprek, en *Gegevens bewerken* bewerkt de velden van `DOSSIER_VELDEN`. Eén lijst voor
-  samenvatting en formulier; een oudere api zonder de velden leest als leeg.
+- **Een werkgebied is een project** (spoor G2, naar de mock-up v4). `app/werkgebieden/[id]/layout.tsx`
+  zet `WerkgebiedProject` om alle pagina's eronder: die laadt het werkgebied één keer, draagt `muteer`,
+  verwijderen, de meldingen en de bewaker van niet-bewaarde wijzigingen, en laadt de stand voor tellers en
+  kaarten (`useWerkgebiedStand`: eigen gesprekken, begrippen, kandidaten, annotatie-werkvoorraad – elk faalt
+  stil, dan geen getal). Pagina's lezen het met `useWerkgebied()`. Een tabwissel is een navigatie (eigen URL,
+  Terug werkt) maar laadt niets opnieuw: de layout blijft staan.
+  - **Vier tabs als paden** (`PROJECT_TABS`, `projectPad` in `lib/werkgebiedPaden.ts`): Overzicht
+    (`OverzichtTab`: tellers, de analyseopdracht met de analysevraag centraal, deelvragen als rijen naar hun
+    pagina, de laatste gesprekken, de artefacten), Gesprekken (`GesprekkenTab`: de eigen gesprekken, een klik
+    opent de werkplek), Bronnen (`BronnenRegister`: zoeken, rolfilter, per bron de stand uit de werkvoorraad
+    – `selectieStand` –, rol en weghalen achter ⋯, opnemen in een venster `BronOpnemen`, de voorstellen van
+    Lex in één regel naar `bronnen/voorstellen`) en Artefacten (`ArtefactenTab`: vier kaarten,
+    `artefactKaarten`).
+  - **Detailpagina's** (`DetailPaginas.tsx`): `artefacten/[soort]` – `dossier` (de velden, *Bewerken* in
+    een venster `GegevensDialoog`, het beheer van de deelvragen), `bronselectie`, `annotaties` (de
+    inventaris, `ElementenTab`) en `begrippen` (`BegrippenTab` en, met `?deel=samenhang`, `SamenhangTab`;
+    `?begrip=` en `&weergave=kaart` in de URL) –, `deelvragen/[did]` (`DeelvraagPaneel` op een pagina),
+    `historie` en `bronnen/voorstellen` (`BronKandidaten`).
+  - **Een artefact is een bestaand object** (besluit 26 okt 2026): geen eigen opslag, de kaart leest wat
+    er ligt. *Specificaties* blijft gereserveerd.
+  - **Het idioom staat in `components/ui/Pagina.tsx`**: `PaginaKop` (kruimelpad, titel, één zin, meta,
+    hoogstens twee knoppen), `TabLinks` (links met `aria-current`; een teller hoort in de naam, "Bronnen
+    (4)"), `Kaart`, `SplitDetail`, `ObjectRij` (titel, subregel, status, chevron – geen knoppen en geen
+    IRI's in een rij) en `Teller`.
+  - **Een oude link met `?tab=`** gaat server-side naar zijn nieuwe plek (`oudeTabNaar`): bladwijzers en
+    berichten van vóór G2 blijven werken. Bouw zelf geen `?tab=` meer; gebruik de padhelpers.
+  - **De kop** (`ProjectKop`) draagt *Gegevens bewerken* en *Nieuw gesprek* (een gesprek dat bij het
+    werkgebied hoort); historie en verwijderen staan in het menu ⋯.
 - **Het overzicht** (`WerkgebiedenClient`): statusfilter met tellers (`lib/werkgebiedOverzicht.ts`; de
   status in de URL, `?status=`), *Door mij bewerkt* (`lijstWerkgebieden({mijn})`) en zoeken op naam,
   analysevraag, afbakening en context, client-side. **Aanmaken gaat via Lex**: er is geen formulier
   meer, wel *Samenstellen met Lex* (`WERKGEBIED_START_URL`, `/workbench?start=werkgebied`): de werkplek
   zet "Kunnen we een werkgebied samenstellen?" klaar in het invoerveld met de focus erin
   (`startVraagUitUrl`, één keer gelezen en uit de URL gehaald) en verstuurt niets zelf.
-- **Verwijderen** (*Verwijderen* in de kop, en per kaart in de lijst) wist het werkgebied echt; zie
+- **Verwijderen** (in het menu ⋯ van de kop, en per kaart in de lijst) wist het werkgebied echt; zie
   §*Annotaties buiten het gesprek* voor hoe verwijderen overal gelijk werkt.
 - **Gedeeld, dus elke mutatie draagt de revisie in beeld.** Alle mutaties lopen via één `muteer` in
-  `WerkgebiedClient`. Een 412 (`revisie_conflict`) laadt de nieuwste stand en zegt dat iemand anders
+  `WerkgebiedProject`. Een 412 (`revisie_conflict`) laadt de nieuwste stand en zegt dat iemand anders
   het werkgebied wijzigde; de handeling wordt **niet** stil opnieuw uitgevoerd, want op de nieuwe stand
   kan ze iets anders betekenen. Een fout die over de invoer gaat (409 `al_opgenomen`, 422 van de
   graaf) vangt het formulier zelf af via `opFout`.
@@ -655,16 +680,19 @@ bestaat los van de gesprekken.
   onbeoordeeld element (voorstel van Lex, hergebruik) met zichtbaar voorbehoud (`isBeoordeeld`). Elk
   element staat één keer, onder de eerste selectie die het dekt (`groepeerPerSelectie`). De voortgang
   telt alleen de werkvoorraad en zegt niets over juridische dekking.
-- **De tab staat in de URL** (`?tab=elementen`, via `replace`); `Tabs` is `lazy`, zodat de inventaris
-  pas laadt als je hem opent, en opnieuw bij elke nieuwe revisie (`key`).
+- **De inventaris laadt pas op zijn pagina** (het artefact Annotaties), en opnieuw bij elke nieuwe
+  revisie (`key`).
 - **Samenhang** is de samenhangsgraaf met de bronselecties als doelen en focus (`useGraafStand` met
   stabiele doelen – een nieuw doel-object per render laadt eindeloos opnieuw) en `benaming` op het
   werkgebied in plaats van het antwoord. Opnemen kan in de inspector (`bijKnoop`), altijd met een rol.
   De suggestielijst die hier stond, is vervangen door de kandidaten van Lex op de tab Bronnen.
 - **De pagina is raadplegen** (F3e). Wat Lex met een werkgebied doet – deelvragen voorstellen of
   verbeteren, bepalingen zoeken, de dekking, annoteren, begrippen voorstellen, meedenken, een begrip
-  uitwerken – vraag je in het gesprek: met *Vraag Lex* bij een rij (deelvraag, bronselectie, kandidaat,
-  begrip) of in de kop (het werkgebied), en dan een suggestie of een eigen vraag (§*Eén gesprek*). Op de
+  uitwerken – vraag je in het gesprek: met **één *Bespreek met Lex* in de kop van een detailpagina**
+  (`VraagLexKnop primair`; spoor G2 verving *Vraag Lex* per rij, besluit 26 okt 2026), of *Nieuw gesprek* in
+  de kop van het project, en dan een suggestie of een eigen vraag (§*Eén gesprek*). Een knop in een rij
+  (`alleenInGesprek`) verschijnt alleen in de panelen naast het gesprek, waar hij het object klaarzet in
+  hetzelfde gesprek. Op de
   pagina staan geen knoppen die Lex starten, en de werkplek start niets vanuit de URL. De pagina toont
   wat Lex opleverde en draagt de handmatige besluiten erover. Er is daardoor geen BFF-route meer die een
   run start: de vier statische routes (`deelvragen-run`, `kaart-run`, `bronnen-run`, `begrippen-run`)
@@ -908,7 +936,7 @@ bestaat los van de gesprekken.
   *Herbeoordelen* (`herbeoordelen` van de api); een klik gaat naar de kaart (`kaartUrl`). BFF: de statische
   `app/api/begrippen/route.ts` geeft de query ongewijzigd door; `zoekBegrippen` toetst de vorm. Werk aan
   een begrip gebeurt op de kaart, niet hier. Browserregressie: `scripts/test-begrippenoverzicht.mjs`.
-- **Tabs scrollen.** Vijf tabs passen niet naast elkaar op een telefoon; de horizontale `Tabs` scrollt
+- **Tabs scrollen.** Tabs passen niet altijd naast elkaar op een telefoon; `TabLinks` en `Tabs` scrollen
   (`overflow-x-auto`, tabs `whitespace-nowrap`). Een afgekapte tab is onbereikbaar, en een toets op
   horizontale scroll van de pagina ziet dat niet.
 - Browserregressie: `scripts/test-werkgebieden.mjs` en `scripts/test-begrippen.mjs` (mocks die revisies,

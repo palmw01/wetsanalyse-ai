@@ -228,7 +228,7 @@ try {
   for (const naam of ["Stel begrippen voor", "Opnieuw voorstellen", /^Laat Lex meedenken/])
     assert.equal(await begrippenPaneel().getByRole("button", { name: naam }).count(), 0, String(naam));
   assert.equal(await begrippenPaneel().getByRole("link", { name: "Open het werkgebied" }).getAttribute("href"),
-    "/werkgebieden/wg1?tab=begrippen");
+    "/werkgebieden/wg1/artefacten/begrippen");
   assert.equal(await begrippenPaneel().locator('button[aria-expanded]').filter({ hasText: "Voorstellen van Lex" }).count(), 0,
     "in het paneel is de strook niet in te klappen");
   // De review werkt in het paneel met het toetsenbord (fase D) – maar niet zolang de focus in het gesprek
@@ -270,7 +270,7 @@ try {
   assert.equal(await begripPaneel.getByRole("button", { name: /Bedenk voorbeelden|Zoek de brondefinitie/ }).count(), 0,
     "het paneel is voor beoordelen: geen Lex-knoppen");
   assert.equal(await begripPaneel.getByRole("link", { name: "Open het werkgebied" }).getAttribute("href"),
-    "/werkgebieden/wg1?tab=begrippen&begrip=b9");
+    "/werkgebieden/wg1/artefacten/begrippen?begrip=b9");
   // Het open voorstel van Lex staat erin en wordt overgenomen: een nieuwe revisie.
   await begripPaneel.locator('[data-voorstel="v1"]').waitFor();
   await begripPaneel.locator('[data-voorstel="v1"]').getByRole("button", { name: /^Overnemen/ }).click();

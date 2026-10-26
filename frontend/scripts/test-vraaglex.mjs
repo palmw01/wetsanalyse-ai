@@ -71,8 +71,9 @@ const wachtOp = async (n, lijst = runs) => {
 
 try {
   // --- Buiten de werkplek: een link met het onderwerp ---
-  await page.goto(`${base}/werkgebieden/wg1`);
-  const link = page.getByRole("link", { name: "Vraag Lex over werkgebied: Invordering" });
+  // Op een detailpagina is het één knop in de kop: *Bespreek met Lex* (spoor G2).
+  await page.goto(`${base}/werkgebieden/wg1/artefacten/dossier`);
+  const link = page.getByRole("link", { name: "Bespreek Invordering met Lex" });
   const href = await link.getAttribute("href");
   assert.equal(href, "/workbench?werkgebied=wg1&vraag=werkgebied%3Awg1&vraag_label=Invordering");
 

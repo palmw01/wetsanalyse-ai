@@ -285,7 +285,7 @@ function BegripRij({ id, begrip: b, gekozen, aandacht, onKies }: {
         {b.aantal_koppelingen === 1 ? "1 passage" : `${b.aantal_koppelingen} passages`}
         {aandacht && <span className="mt-0.5 block text-aandacht-geel-tekst">{aandacht}</span>}
       </>}
-      acties={<VraagLexKnop onderwerp={{ soort: "begrip", werkgebied_id: id, id: b.id, label: b.inhoud.naam }}
+      acties={<VraagLexKnop alleenInGesprek onderwerp={{ soort: "begrip", werkgebied_id: id, id: b.id, label: b.inhoud.naam }}
         className="justify-center" />}
     />
   );

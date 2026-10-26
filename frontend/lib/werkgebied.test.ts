@@ -111,13 +111,6 @@ it("annotatieHref codeert de IRI als query-parameter", () => {
   expect(annotatieHref("urn:bwb:BWBR0004770:a#1")).toBe("/annotaties/node?bron_iri=urn%3Abwb%3ABWBR0004770%3Aa%231");
 });
 
-it("tabUitParam valt terug op Bronnen", async () => {
-  const { tabUitParam } = await import("./werkgebied");
-  expect(tabUitParam("elementen")).toBe("elementen");
-  expect(tabUitParam(undefined)).toBe("bronnen");
-  expect(tabUitParam("begrippen")).toBe("begrippen");
-  expect(tabUitParam("onbekend")).toBe("bronnen");
-});
 
 describe("scopeInModel", async () => {
   const { bouwModel } = await import("./graaf/model");

@@ -16,26 +16,38 @@ const KLASSE = "focus-ring inline-flex min-h-[24px] shrink-0 items-center rounde
 
 /** *Vraag Lex* over één object (F3b): één knop voor elke soort, met het object als onderwerp. Een link
  *  buiten de werkplek, zodat de bewaker van niet-bewaarde wijzigingen hem ziet (`useOnbewaardBewaker`). */
-export function VraagLexKnop({ onderwerp, naam: eigenNaam, className = "" }: {
+/** De ene knop op een detailpagina (spoor G2, de mock-up): primair, met de tekst *Bespreek met Lex*. */
+const PRIMAIR = "focus-ring inline-flex min-h-[32px] shrink-0 items-center justify-center rounded-button bg-accent px-3 py-1.5 "
+  + "text-sm font-medium text-paper transition-colors hover:bg-accent-soft coarse:min-h-[44px]";
+
+export function VraagLexKnop({ onderwerp, naam: eigenNaam, primair = false, alleenInGesprek = false, className = "" }: {
   onderwerp: Object_;
   /** De toegankelijke naam, als de standaard ("Vraag Lex over …") niet zegt waar de knop voor is. */
   naam?: string;
+  /** *Bespreek met Lex* in de kop van een detailpagina, in plaats van de kleine *Vraag Lex*. */
+  primair?: boolean;
+  /** Alleen naast het gesprek, waar de knop het object klaarzet in hetzelfde gesprek. Op een pagina staat
+   *  per object één *Bespreek met Lex* in de kop, niet een knop in elke rij (spoor G2, besluit 26 okt 2026). */
+  alleenInGesprek?: boolean;
   className?: string;
 }) {
+  const tekst = primair ? "Bespreek met Lex" : "Vraag Lex";
+  const klasse = `${primair ? PRIMAIR : KLASSE} ${className}`;
   const kies = useContext(VraagLexContext);
+  if (alleenInGesprek && !kies) return null;
   // Een knop bij een leeg dossierveld heet anders dan *Vraag Lex* over het werkgebied zelf (in de kop).
   const naam = eigenNaam ?? `Vraag Lex over ${SOORT_LABEL[onderwerp.soort].toLowerCase()}${onderwerp.label ? `: ${onderwerp.label}` : ""}`;
   if (kies) {
     return (
-      <button type="button" data-vraag-lex={onderwerp.veld ? "veld" : onderwerp.soort} data-vraag-veld={onderwerp.veld} aria-label={naam} className={`${KLASSE} ${className}`}
+      <button type="button" data-vraag-lex={onderwerp.veld ? "veld" : onderwerp.soort} data-vraag-veld={onderwerp.veld} aria-label={naam} className={klasse}
         onClick={() => kies(onderwerp)}>
-        Vraag Lex
+        {tekst}
       </button>
     );
   }
   return (
-    <Link href={vraagUrl(onderwerp)} data-vraag-lex={onderwerp.veld ? "veld" : onderwerp.soort} data-vraag-veld={onderwerp.veld} aria-label={naam} className={`${KLASSE} ${className}`}>
-      Vraag Lex
+    <Link href={vraagUrl(onderwerp)} data-vraag-lex={onderwerp.veld ? "veld" : onderwerp.soort} data-vraag-veld={onderwerp.veld} aria-label={naam} className={klasse}>
+      {tekst}
     </Link>
   );
 }

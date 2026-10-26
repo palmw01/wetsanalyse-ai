@@ -1,109 +1,22 @@
 "use client";
 
-import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
-import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { Button } from "@/components/ui/Button";
 import { ButtonRow } from "@/components/ui/ButtonRow";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
-import { Lijst, LijstRij, Sectie } from "@/components/ui/Lijst";
+import { Sectie } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
-import { BronKandidaten } from "@/components/werkgebieden/BronKandidaten";
-import { Deelvragen } from "@/components/werkgebieden/Deelvragen";
-import type { Mutatie } from "@/components/werkgebieden/WerkgebiedClient";
-import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
-import { foutTekst, isApiError, verwijderBron, voegBronToe, wijzigBron } from "@/lib/api";
-import type { BronBereik, BronRol, Bronselectie, Werkgebied } from "@/lib/types";
-import {
-  BEREIK_LABEL, ROL_LABEL, ROL_UITLEG, annotatieHref, bronInvoer, isAlOpgenomen,
-} from "@/lib/werkgebied";
+import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
+import { foutTekst, isApiError, voegBronToe } from "@/lib/api";
+import type { BronBereik, BronRol, Werkgebied } from "@/lib/types";
+import { ROL_LABEL, ROL_UITLEG, bronInvoer, isAlOpgenomen } from "@/lib/werkgebied";
 
 const ROLLEN: BronRol[] = ["analyseren", "context"];
 
-/** De bronselecties: welke bepalingen bij dit werkgebied horen, met rol, bereik en reden.
- *
- *  Een selectie is een eigen object, geen kopie van de bron: dezelfde bepaling kan in een ander
- *  werkgebied staan met een andere rol, en weghalen laat de bepaling en haar annotaties staan. */
-export function BronnenTab({ wg, muteer, onHerlaad }: { wg: Werkgebied; muteer: Mutatie; onHerlaad: () => void }) {
-  const labels = useMemo(() => new Map(wg.bronnen.map((b) => [b.bron_iri, b.label || b.bron_iri])), [wg.bronnen]);
-  return (
-    <div className="space-y-6">
-      {/* Optioneel: de analysevraag in deelvragen; Lex zoekt daarna ook per deelvraag. */}
-      <Deelvragen wg={wg} muteer={muteer} />
-      {/* Wat Lex vond als je hem in het gesprek liet zoeken (fase A); opnemen maakt een selectie hieronder. */}
-      <BronKandidaten id={wg.id} labels={labels} onGewijzigd={onHerlaad} />
-      <Sectie titel="Bronselecties" telling={wg.bronnen.length}>
-        {wg.bronnen.length === 0 ? (
-          <p className="text-sm text-muted">Nog geen bronnen. Neem hieronder een bepaling op.</p>
-        ) : (
-          <Lijst label="Bronselecties">
-            {wg.bronnen.map((s) => (
-              <SelectieRij key={s.id} wgId={wg.id} selectie={s} muteer={muteer} />
-            ))}
-          </Lijst>
-        )}
-      </Sectie>
-      <BronToevoegen wg={wg} muteer={muteer} />
-    </div>
-  );
-}
-
-function SelectieRij({ wgId, selectie: s, muteer }: { wgId: string; selectie: Bronselectie; muteer: Mutatie }) {
-  return (
-    <LijstRij
-      titel={
-        <Link href={annotatieHref(s.bron_iri)} className="focus-ring rounded font-medium text-lint hover:underline">
-          {s.label || s.bron_iri}
-        </Link>
-      }
-      meta={<>{s.bwb_id} · {BEREIK_LABEL[s.bereik]} · opgenomen door {s.toegevoegd_door}</>}
-      acties={
-        <>
-          <label className="sr-only" htmlFor={`rol-${s.id}`}>
-            Rol van {s.label}
-          </label>
-          <Select
-            id={`rol-${s.id}`}
-            value={s.rol}
-            className="sm:w-44"
-            onChange={(e) => {
-              const rol = e.target.value as BronRol;
-              void muteer((r) => wijzigBron(wgId, s.id, { verwachte_revisie: r, rol }), {
-                gelukt: `Rol gewijzigd naar ${ROL_LABEL[rol].toLowerCase()}.`,
-              });
-            }}
-          >
-            {ROLLEN.map((r) => (
-              <option key={r} value={r}>
-                {ROL_LABEL[r]}
-              </option>
-            ))}
-          </Select>
-          <BevestigKnop
-            bevestigTekst="Weghalen?"
-            titel="Haalt de bepaling uit dit werkgebied; de bepaling en haar annotaties blijven bestaan."
-            onBevestig={async () => {
-              await muteer((r) => verwijderBron(wgId, s.id, r), {
-                gelukt: "Uit het werkgebied gehaald. De annotaties van de bepaling blijven staan.",
-              });
-            }}
-            className="focus-ring inline-flex min-h-[40px] items-center justify-center rounded-button border border-line px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-ink coarse:min-h-[48px]"
-            bevestigClassName="border-fout/40 text-fout"
-          >
-            Weghalen
-          </BevestigKnop>
-          <VraagLexKnop onderwerp={{ soort: "bron", werkgebied_id: wgId, id: s.id, label: s.label || s.bron_iri }}
-            className="justify-center" />
-        </>
-      }
-    >
-      {s.reden && <p className="mt-1 whitespace-pre-line text-sm text-ink">{s.reden}</p>}
-    </LijstRij>
-  );
-}
-
-function BronToevoegen({ wg, muteer }: { wg: Werkgebied; muteer: Mutatie }) {
+/** Een bepaling opnemen in het werkgebied: regeling + artikel (+ lid) of een bron-IRI, met rol, bereik en
+ *  reden. De api zoekt de bepaling op in de actuele wettekst. Op de tab Bronnen in een venster. */
+export function BronOpnemen({ wg, muteer, onKlaar }: { wg: Werkgebied; muteer: Mutatie; onKlaar?: () => void }) {
   const [regeling, setRegeling] = useState("");
   const [artikel, setArtikel] = useState("");
   const [lid, setLid] = useState("");
@@ -153,6 +66,7 @@ function BronToevoegen({ wg, muteer }: { wg: Werkgebied; muteer: Mutatie }) {
       setArtikel("");
       setLid("");
       setReden("");
+      onKlaar?.();
     }
   }
 
