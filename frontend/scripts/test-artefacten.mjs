@@ -270,7 +270,7 @@ try {
   assert.equal(await begripPaneel.getByRole("button", { name: /Bedenk voorbeelden|Zoek de brondefinitie/ }).count(), 0,
     "het paneel is voor beoordelen: geen Lex-knoppen");
   assert.equal(await begripPaneel.getByRole("link", { name: "Open het werkgebied" }).getAttribute("href"),
-    "/werkgebieden/wg1/artefacten/begrippen?begrip=b9");
+    "/begrippen/wg1/b9");
   // Het open voorstel van Lex staat erin en wordt overgenomen: een nieuwe revisie.
   await begripPaneel.locator('[data-voorstel="v1"]').waitFor();
   await begripPaneel.locator('[data-voorstel="v1"]').getByRole("button", { name: /^Overnemen/ }).click();

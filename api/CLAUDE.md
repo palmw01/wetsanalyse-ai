@@ -257,7 +257,11 @@ spoor D (*Werkgebied als node*).
   Dezelfde bron met dezelfde rol en hetzelfde bereik opnieuw toevoegen is idempotent (200, geen
   revisiesprong); met een andere rol of ander bereik 409.
 - **De lijst** (`GET /v1/werkgebieden`) met `mijn=true` geeft alleen werkgebieden met een auditregel
-  van deze gebruiker (*Door mij bewerkt* in de webapp, zoals bij de annotaties).
+  van deze gebruiker (*Door mij bewerkt* in de webapp, zoals bij de annotaties). Met `bron_iri` alleen de
+  werkgebieden met een actieve selectie die die bepaling omvat (`werkgebied_store.omvat`: de bepaling zelf,
+  of bij `onderliggend` een bronnode eronder volgens het pad van de IRI) – voor de bronpagina (spoor G3).
+  Een selectie op een structuurdeel draagt de artikelen niet in haar pad en mist deze toets: liever een
+  gemiste dan een verkeerde.
 - **Een selectie weghalen is soft** (een tijdstip). De annotaties van de bron blijven altijd staan.
 - **Een werkgebied verwijderen is echt wissen**, net als een annotatie (`DELETE /v1/werkgebieden/{id}`,
   `werkgebied_store.verwijder`/`wis`): onder het rij-slot en met de revisietoets (412) gaan het werkgebied

@@ -1055,8 +1055,12 @@ const jsonInit = (method: string, body: unknown): RequestInit => ({
   body: JSON.stringify(body),
 });
 
-export async function lijstWerkgebieden(opties: { mijn?: boolean } = {}): Promise<WerkgebiedSamenvatting[]> {
-  const res = await fetch(opties.mijn ? "/api/werkgebieden?mijn=true" : "/api/werkgebieden", { cache: "no-store" });
+export async function lijstWerkgebieden(opties: { mijn?: boolean; bronIri?: string } = {}): Promise<WerkgebiedSamenvatting[]> {
+  const qs = new URLSearchParams();
+  if (opties.mijn) qs.set("mijn", "true");
+  // Alleen de werkgebieden met een selectie die deze bepaling omvat (de bronpagina, spoor G3).
+  if (opties.bronIri) qs.set("bron_iri", opties.bronIri);
+  const res = await fetch(qs.size ? `/api/werkgebieden?${qs}` : "/api/werkgebieden", { cache: "no-store" });
   return (await json<{ werkgebieden: WerkgebiedSamenvatting[] }>(res)).werkgebieden;
 }
 

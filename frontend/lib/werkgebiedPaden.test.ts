@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Werkgebied } from "./types";
-import { artefactKaarten, artefactPad, deelvraagPad, oudeTabNaar, projectPad, selectieStand, type Werkvoorraad } from "./werkgebiedPaden";
+import { artefactKaarten, artefactPad, begripPad, bronPad, deelvraagPad, elementPad, oudeTabNaar, projectPad, selectieStand, type Werkvoorraad } from "./werkgebiedPaden";
 
 const wg = (extra: Partial<Werkgebied> = {}): Werkgebied => ({
   id: "wg1", naam: "Invorderingsrente", status: "in_voorbereiding", revisie: 4, peildatum: null, aangemaakt_door: "t",
@@ -19,6 +19,13 @@ describe("paden", () => {
     expect(artefactPad("wg1", "begrippen", { deel: "samenhang", begrip: "b9" }))
       .toBe("/werkgebieden/wg1/artefacten/begrippen?deel=samenhang");
     expect(artefactPad("wg1", "dossier", { begrip: "b9" })).toBe("/werkgebieden/wg1/artefacten/dossier");
+  });
+
+  it("elk juridisch object heeft een eigen pad", () => {
+    expect(bronPad("urn:bwb:BWBR0004770:artikel:9")).toBe("/bronnen?bron_iri=urn%3Abwb%3ABWBR0004770%3Aartikel%3A9");
+    expect(bronPad("urn:bwb:X", "wg1")).toBe("/bronnen?bron_iri=urn%3Abwb%3AX&werkgebied=wg1");
+    expect(elementPad("e 1")).toBe("/annotaties/element/e%201");
+    expect(begripPad("wg1", "b9")).toBe("/begrippen/wg1/b9");
   });
 
   it("een oude ?tab= gaat naar zijn nieuwe plek", () => {

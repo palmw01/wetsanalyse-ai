@@ -153,6 +153,24 @@ export async function haalElement(id: string): Promise<NodeElement> {
   if (!element) throw new Error("Geen element in het antwoord.");
   return element;
 }
+/** Eén element op zijn eigen pagina (spoor G3): het element, zijn laag, de bronstand waarop het rust en de
+ *  bronnodes van zijn ankers met hun tekst (`GET elementen/{id}`). */
+export interface ElementDetail {
+  element: NodeElement;
+  laag: NodeLaag;
+  snapshot_id: string;
+  actuele_snapshot_id?: string;
+  bronnen: NodeSegment[];
+}
+export function haalElementDetail(id: string): Promise<ElementDetail> {
+  return nodeRequest(`elementen/${pathSegment(id)}`);
+}
+/** Een beslissing op één element, tegen de laagrevisie en de bronstand van de detailpagina. */
+export function beslisElement(d: ElementDetail, body: { type: "approve" | "reject" | "heropen"; review_reason?: string }) {
+  return nodeRequest(`elementen/${pathSegment(d.element.id)}/beslissing`, {
+    ...body, snapshot_id: d.snapshot_id, verwachte_revisies: { [d.element.eigenaar_iri]: d.laag.revisie },
+  });
+}
 /** "Annotatie akkoord" vanuit de begrippenreview (spoor D, fase D): een aparte, expliciete beslissing op
  *  het element, tegen de laagrevisie en bronstand van nu – nooit stil meegenomen in een begripsakkoord. */
 export async function keurElementGoed(id: string): Promise<void> {

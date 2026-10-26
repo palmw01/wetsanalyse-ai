@@ -205,8 +205,8 @@ try {
   const eerste = requests.find((r) => r.p.endsWith("/bronnen") && r.m === "POST").body;
   assert.deepEqual([eerste.bwb_id, eerste.artikel, eerste.verwachte_revisie, eerste.rol, eerste.bereik],
     ["BWBR0004770", "9", 1, "analyseren", "onderliggend"]);
-  // De rij gaat naar de annotatie van de bepaling, met de IRI als query-parameter; geen IRI in beeld.
-  assert.equal(await rij9.getAttribute("href"), `/annotaties/node?bron_iri=${encodeURIComponent(IRI9)}`);
+  // De rij gaat naar de pagina van de bepaling (spoor G3), met het werkgebied als context; geen IRI in beeld.
+  assert.equal(await rij9.getAttribute("href"), `/bronnen?bron_iri=${encodeURIComponent(IRI9)}&werkgebied=wg1`);
   assert.equal(await page.locator("[data-bronnen-register]").getByText(IRI9).count(), 0, "geen IRI in de rij");
 
   // Dezelfde bron nog eens: idempotent, en dat staat er.

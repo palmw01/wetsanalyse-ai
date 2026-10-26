@@ -14,8 +14,8 @@ import { ProjectKop } from "@/components/werkgebieden/ProjectKop";
 import { useWerkgebied } from "@/components/werkgebieden/WerkgebiedProject";
 import { verwijderBron, wijzigBron } from "@/lib/api";
 import type { BronRol, Bronselectie } from "@/lib/types";
-import { BEREIK_LABEL, ROL_LABEL, annotatieHref } from "@/lib/werkgebied";
-import { selectieStand, voorstellenPad } from "@/lib/werkgebiedPaden";
+import { BEREIK_LABEL, ROL_LABEL } from "@/lib/werkgebied";
+import { bronPad, selectieStand, voorstellenPad } from "@/lib/werkgebiedPaden";
 
 type RolFilter = "alle" | BronRol;
 
@@ -89,7 +89,7 @@ export function BronnenRegister() {
   );
 }
 
-/** Eén bron als rij: naam en wat hij in het werkgebied doet; de rij opent de annotatie van de bepaling.
+/** Eén bron als rij: naam en wat hij in het werkgebied doet; de rij opent de pagina van de bepaling.
  *  Rol en weghalen staan achter ⋯, niet als knoppen in elke rij. */
 function BronRij({ wgId, selectie: s, muteer, stand }: {
   wgId: string;
@@ -102,7 +102,7 @@ function BronRij({ wgId, selectie: s, muteer, stand }: {
   return (
     <li data-bron={s.id}>
       <div className="group flex items-center gap-2 rounded-md px-2 py-2.5 hover:bg-surface">
-        <Link href={annotatieHref(s.bron_iri)} className="focus-ring min-w-0 flex-1 rounded">
+        <Link href={bronPad(s.bron_iri, wgId)} className="focus-ring min-w-0 flex-1 rounded">
           <span className="block text-sm font-medium text-ink [overflow-wrap:anywhere] group-hover:text-lint">{naam}</span>
           <span className="mt-0.5 block text-xs text-muted [overflow-wrap:anywhere]">
             {ROL_LABEL[s.rol]} · {BEREIK_LABEL[s.bereik]}{s.reden ? ` · ${s.reden}` : ""}

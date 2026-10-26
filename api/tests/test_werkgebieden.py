@@ -309,3 +309,25 @@ async def test_door_mij_bewerkt_volgt_de_audit(client):
     assert sorted(namen(await client.get("/v1/werkgebieden", params={"mijn": "true"}, headers=mijn_b))) == ["Van A", "Van B"]
     assert namen(await client.get("/v1/werkgebieden", params={"mijn": "true"})) == ["Van A"]
     assert len((await client.get("/v1/werkgebieden")).json()["werkgebieden"]) == 2 and b
+
+
+async def test_lijst_op_bron_noemt_de_werkgebieden_met_die_bepaling(client):
+    """Spoor G3, de bronpagina: welke werkgebieden deze bepaling dragen – de bepaling zelf of een selectie
+    erboven met alles eronder. Een weggehaalde selectie telt niet."""
+    met = await _nieuw(client, "Met artikel 2")
+    zonder = await _nieuw(client, "Zonder")
+    r = await client.post(f"/v1/werkgebieden/{met['id']}/bronnen", json={"verwachte_revisie": 1, "bron_iri": ART2})
+    assert r.status_code == 201, r.text
+    namen = lambda r: [w["naam"] for w in r.json()["werkgebieden"]]  # noqa: E731
+    assert namen(await client.get("/v1/werkgebieden", params={"bron_iri": ART2})) == ["Met artikel 2"]
+    assert namen(await client.get("/v1/werkgebieden", params={"bron_iri": ART2 + ":lid:1"})) == ["Met artikel 2"]
+    assert namen(await client.get("/v1/werkgebieden", params={"bron_iri": LAW2})) == []
+    assert zonder["naam"] in namen(await client.get("/v1/werkgebieden"))
+
+
+def test_omvat_volgt_het_pad_en_het_bereik():
+    from app.werkgebied_store import omvat
+    sel = {"bron_iri": ART, "bereik": "onderliggend"}
+    assert omvat(sel, ART) and omvat(sel, ONE)
+    assert not omvat(sel, ART + "0")                      # artikel 90 is geen kind van artikel 9
+    assert not omvat({"bron_iri": ART, "bereik": "node"}, ONE)
