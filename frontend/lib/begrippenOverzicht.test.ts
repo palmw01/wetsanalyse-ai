@@ -20,7 +20,7 @@ describe("begrippenoverzicht", () => {
   });
 
   it("klikt door naar de kaart in zijn werkgebied", () => {
-    expect(kaartUrl("wg 1", "b-2")).toBe("/werkgebieden/wg%201?tab=begrippen&begrip=b-2");
+    expect(kaartUrl("wg 1", "b-2")).toBe("/werkgebieden/wg%201/artefacten/begrippen?begrip=b-2");
   });
 
   it("kort een definitie in op een woordgrens met een weglatingsteken", () => {

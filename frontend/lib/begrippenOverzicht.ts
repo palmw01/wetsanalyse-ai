@@ -2,6 +2,7 @@
 // filteren en doorklikken naar de kaart in zijn werkgebied. Wat er gezocht wordt, doet de api
 // (`GET /v1/begrippen`); hier staan de URL-stand van de filters en de labels.
 import type { BegripStatus } from "./types";
+import { artefactPad } from "./werkgebiedPaden";
 
 export interface BegripOverzichtRij {
   id: string;
@@ -71,7 +72,7 @@ export function paramsVan(f: OverzichtFilters, voor: "pagina" | "api"): URLSearc
 
 /** Waar een klik op een begrip heen gaat: de kaart in zijn werkgebied. */
 export function kaartUrl(werkgebiedId: string, begripId: string): string {
-  return `/werkgebieden/${encodeURIComponent(werkgebiedId)}?tab=begrippen&begrip=${encodeURIComponent(begripId)}`;
+  return artefactPad(werkgebiedId, "begrippen", { begrip: begripId });
 }
 
 export function kort(tekst: string, n = 220): string {

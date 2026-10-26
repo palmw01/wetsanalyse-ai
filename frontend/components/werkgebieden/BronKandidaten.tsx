@@ -249,7 +249,7 @@ function KandidaatKaart({ werkgebiedId, k, index, actief, labels, bezig, uitslui
             <button type="button" disabled={bezig} className={`${KNOP} border-line text-ink hover:bg-surface`}
               aria-label={`Heropenen: ${naam}`} onClick={onHeropenen}>Heropenen</button>
           )}
-          <VraagLexKnop onderwerp={{ soort: "kandidaat", werkgebied_id: werkgebiedId, id: k.id, label: naam }} />
+          <VraagLexKnop alleenInGesprek onderwerp={{ soort: "kandidaat", werkgebied_id: werkgebiedId, id: k.id, label: naam }} />
         </div>
       )}>
       {uitsluitenOpen && (

@@ -23,10 +23,19 @@ import { werkgebiedLabel, type WerkgebiedArtefact } from "@/lib/artefact";
 import type { Werkgebied } from "@/lib/types";
 import { STATUS_LABEL } from "@/lib/werkgebied";
 import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
+import { artefactPad, deelvraagPad, projectPad, voorstellenPad } from "@/lib/werkgebiedPaden";
 
-const TAB: Record<WerkgebiedArtefact["soort"], string> = {
-  begrippen: "begrippen", bronnen: "bronnen", werkgebied: "", deelvraag: "bronnen", begrip: "begrippen",
-};
+/** Waar *Open het werkgebied* heen gaat: de pagina van wat het paneel toont (spoor G2). */
+function paginaVan(doel: WerkgebiedArtefact): string {
+  const id = doel.werkgebied_id;
+  switch (doel.soort) {
+    case "begrippen": return artefactPad(id, "begrippen");
+    case "begrip": return artefactPad(id, "begrippen", { begrip: doel.begrip_id });
+    case "bronnen": return voorstellenPad(id);
+    case "deelvraag": return doel.deelvraag_id ? deelvraagPad(id, doel.deelvraag_id) : projectPad(id);
+    default: return projectPad(id);
+  }
+}
 const KOP: Record<WerkgebiedArtefact["soort"], string> = {
   begrippen: "Begripsvoorstellen van Lex", bronnen: "Gevonden bepalingen van Lex", werkgebied: "Samengesteld met Lex",
   deelvraag: "Deelvraag", begrip: "Begrip",
@@ -63,9 +72,7 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
   const [onbewaard, setOnbewaard] = useState(false);
   const bewaker = useOnbewaardBewaker(onbewaard);
   const sluit = () => bewaker.bewaak(onSluit, "sluiten");
-  const naarWerkgebied = `/werkgebieden/${encodeURIComponent(doel.werkgebied_id)}` +
-    (TAB[doel.soort] ? `?tab=${TAB[doel.soort]}` : "") +
-    (doel.begrip_id ? `&begrip=${encodeURIComponent(doel.begrip_id)}` : "");
+  const naarWerkgebied = paginaVan(doel);
   const soort = werkgebiedLabel(doel);
   const titel = doel.titel || soort;
   return (
@@ -120,7 +127,7 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
             <BegripPaneel werkgebiedId={doel.werkgebied_id} begripId={doel.begrip_id} onOnbewaard={setOnbewaard}
               onNaarBegrip={(b) => onWissel
                 ? onWissel({ soort: "begrip", werkgebied_id: doel.werkgebied_id, run_id: "", begrip_id: b, titel: "" })
-                : router.push(`/werkgebieden/${encodeURIComponent(doel.werkgebied_id)}?tab=begrippen&begrip=${encodeURIComponent(b)}`)} />
+                : router.push(artefactPad(doel.werkgebied_id, "begrippen", { begrip: b }))} />
           ) : doel.soort === "deelvraag" && doel.deelvraag_id ? (
             <DeelvraagPaneel werkgebiedId={doel.werkgebied_id} deelvraagId={doel.deelvraag_id}
               onKies={onWissel ? (d) => onWissel({ soort: "deelvraag", werkgebied_id: doel.werkgebied_id, run_id: "",

@@ -6,7 +6,7 @@ import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
 import { Lijst, LijstRij, Sectie, StatusLabel, Voorstel as VoorstelRij } from "@/components/ui/Lijst";
-import type { Mutatie } from "@/components/werkgebieden/WerkgebiedClient";
+import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import {
   koppelDeelvraag, lijstBegrippen, maakDeelvraag, verwijderDeelvraag, wijzigDeelvraag,
@@ -168,7 +168,7 @@ function DeelvraagRij({ nummer, wg, deelvraag: d, dekking, muteer }: {
             onClick={() => { setTekst(d.vraag); setBewerken(true); }}>
             Bewerken
           </Button>
-          <VraagLexKnop onderwerp={{ soort: "deelvraag", werkgebied_id: wg.id, id: d.id, label: d.vraag }}
+          <VraagLexKnop alleenInGesprek onderwerp={{ soort: "deelvraag", werkgebied_id: wg.id, id: d.id, label: d.vraag }}
             className="justify-center" />
           <BevestigKnop bevestigTekst="Weghalen?" ariaLabel={`Weghalen: ${d.vraag}`}
             onBevestig={async () => { await muteer((r) => verwijderDeelvraag(wg.id, d.id, r), { gelukt: "Deelvraag weggehaald." }); }}

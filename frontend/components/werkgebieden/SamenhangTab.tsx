@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Graaf, type GraafContext } from "@/components/graaf/Graaf";
 import { useGraafStand } from "@/components/graaf/useGraafStand";
-import type { Mutatie } from "@/components/werkgebieden/WerkgebiedClient";
+import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
 import { haalBegripSamenhang, voegBronToe } from "@/lib/api";
 import { begripBron, begripIdVan } from "@/lib/begripGraaf";
 import type { GraafBron } from "@/lib/graaf/model";

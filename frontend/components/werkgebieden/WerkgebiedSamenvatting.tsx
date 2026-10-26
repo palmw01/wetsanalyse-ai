@@ -35,7 +35,7 @@ export function WerkgebiedSamenvatting({ wg, vraagLex = false, className = "" }:
               <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="text-muted">{`Nog geen ${label.toLowerCase()}.`}</span>
                 {vraagLex && (
-                  <VraagLexKnop naam={`Vraag Lex: ${label.toLowerCase()} aanvullen`}
+                  <VraagLexKnop alleenInGesprek naam={`Vraag Lex: ${label.toLowerCase()} aanvullen`}
                     onderwerp={{ soort: "werkgebied", werkgebied_id: wg.id, id: "", label: wg.naam, veld }} />
                 )}
               </span>
@@ -50,7 +50,7 @@ export function WerkgebiedSamenvatting({ wg, vraagLex = false, className = "" }:
                 const s = stand.get(d.id);
                 return (
                   <LijstRij key={d.id} className="py-1.5" voor={`${i + 1}.`} titel={d.vraag} data-samenvatting-deelvraag={d.id}
-                    acties={vraagLex ? <VraagLexKnop onderwerp={{ soort: "deelvraag", werkgebied_id: wg.id, id: d.id, label: d.vraag }} />
+                    acties={vraagLex ? <VraagLexKnop alleenInGesprek onderwerp={{ soort: "deelvraag", werkgebied_id: wg.id, id: d.id, label: d.vraag }} />
                       : undefined}
                     status={s && (
                       <StatusLabel toon={STAND_TOON[s]} uitleg={STAND_UITLEG[s]} data-samenvatting-stand={s}>

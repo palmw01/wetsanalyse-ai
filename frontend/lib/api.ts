@@ -458,8 +458,11 @@ export async function lijstLagen(opties: { mijn?: boolean; limit?: number } = {}
 
 // --- Gesprekken (chatgeschiedenis; per-gebruiker via de BFF-X-User-Id) ------
 
-export async function lijstGesprekken(): Promise<GesprekSamenvatting[]> {
-  return json<GesprekSamenvatting[]>(await fetch("/api/gesprekken", { cache: "no-store" }));
+export async function lijstGesprekken(opties: { werkgebiedId?: string; gearchiveerd?: boolean } = {}): Promise<GesprekSamenvatting[]> {
+  const qs = new URLSearchParams();
+  if (opties.werkgebiedId !== undefined) qs.set("werkgebied_id", opties.werkgebiedId);
+  if (opties.gearchiveerd !== undefined) qs.set("gearchiveerd", String(opties.gearchiveerd));
+  return json<GesprekSamenvatting[]>(await fetch(qs.size ? `/api/gesprekken?${qs}` : "/api/gesprekken", { cache: "no-store" }));
 }
 
 export async function maakGesprek(titel = "", werkgebiedId = ""): Promise<Gesprek> {
@@ -1409,6 +1412,12 @@ export async function wijsKaartVoorstelAf(id: string, begripId: string, voorstel
 
 export async function haalLaatsteBronnenRun(id: string): Promise<BronnenRun | null> {
   return (await json<{ run: BronnenRun | null }>(await fetch(wg(id, "bronnen-runs", "laatste"), { cache: "no-store" }))).run;
+}
+
+/** Wat Lex in dit werkgebied nog moet annoteren, en de stand per bronselectie en per bepaling. Vraagt de
+ *  bronboom uit de graaf, dus traag en soms onvolledig (`volledig`). */
+export async function haalWerkvoorraad(id: string): Promise<import("./werkgebiedPaden").Werkvoorraad> {
+  return json(await fetch(`/api/werkgebieden/${pathSegment(id)}/annotatie-werkvoorraad`, { cache: "no-store" }));
 }
 
 export async function haalKandidaten(id: string): Promise<KandidatenAntwoord> {

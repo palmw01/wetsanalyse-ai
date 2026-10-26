@@ -133,19 +133,6 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   return b === "koppelingen" && !!c;                                  // één koppeling
 }
 
-export const TABS = [
-  { key: "bronnen", label: "Bronnen" },
-  { key: "elementen", label: "Elementen" },
-  { key: "begrippen", label: "Begrippen" },
-  { key: "samenhang", label: "Samenhang" },
-  { key: "historie", label: "Historie" },
-] as const;
-export type WerkgebiedTab = (typeof TABS)[number]["key"];
-
-export function tabUitParam(p: string | undefined): WerkgebiedTab {
-  return TABS.some((t) => t.key === p) ? (p as WerkgebiedTab) : "bronnen";
-}
-
 const BWB_ID = /^BWB[RV]\d{7}$/;
 
 /** Wat de analist intypt om een bepaling op te nemen, als api-invoer – of een leesbare fout.

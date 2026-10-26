@@ -90,7 +90,8 @@ const rij = (vraag) => sectie().locator("[data-deelvraag]", { hasText: vraag });
 const stand = (vraag) => rij(vraag).locator("[data-stand]");
 
 try {
-  await page.goto(`${base}/werkgebieden/wg1?tab=bronnen`);
+  // De deelvragen beheer je in het dossier (spoor G2); het overzicht toont ze als rijen.
+  await page.goto(`${base}/werkgebieden/wg1/artefacten/dossier`);
   await sectie().getByRole("heading", { name: "Deelvragen" }).waitFor();
 
   // 1. Zelf een deelvraag toevoegen; de revisie gaat mee.
@@ -101,11 +102,17 @@ try {
   await page.waitForFunction(() => document.querySelector("[data-stand]")?.textContent === "Nog geen bron");
   await sectie().getByText("0 van 1 deelvraag gedekt", { exact: false }).waitFor();
 
-  // 2. Lex vraag je in het gesprek: geen knop op de pagina, wel *Vraag Lex* bij de deelvraag.
+  // 2. Lex vraag je in het gesprek: geen knop in de rij, wel *Bespreek met Lex* op de pagina van de
+  //    deelvraag – die opent het gesprek met de deelvraag als onderwerp.
   assert.equal(await page.getByRole("button", { name: /^Laat Lex/ }).count(), 0);
   const d1 = wg.deelvragen[0];
-  assert.equal(await rij(d1.vraag).locator("[data-vraag-lex=deelvraag]").getAttribute("href"),
+  assert.equal(await rij(d1.vraag).locator("[data-vraag-lex]").count(), 0);
+  await page.goto(`${base}/werkgebieden/wg1`);
+  await page.locator(`[data-deelvraag-rij="${d1.id}"]`).click();
+  await page.waitForURL(`**/werkgebieden/wg1/deelvragen/${d1.id}`);
+  assert.equal(await page.locator("[data-paginakop] [data-vraag-lex=deelvraag]").getAttribute("href"),
     `/workbench?werkgebied=wg1&vraag=deelvraag%3A${d1.id}&vraag_label=${encodeURIComponent(d1.vraag).replace(/%20/g, "+")}`);
+  await page.goto(`${base}/werkgebieden/wg1/artefacten/dossier`);
 
   // Lex stelde in het gesprek twee deelvragen voor: geel; één overnemen, één afwijzen (pas met een reden).
   wg.deelvragen.push(dv("Wie is de belastingschuldige?", { status: "voorgesteld", herkomst: "lex" }),

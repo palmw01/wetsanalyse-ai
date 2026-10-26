@@ -122,11 +122,14 @@ const zie = (tekst) => sectie().getByText(tekst, { exact: false }).first().waitF
 const laatsteBesluit = (soort) => requests.filter((r) => r.m === "POST" && r.p.endsWith(`/${soort}`)).at(-1);
 
 try {
-  // --- Zoeken op de tab Bronnen ---
+  // --- De tab Bronnen noemt de voorstellen in één regel; ze staan op een eigen pagina (spoor G2) ---
   await page.goto(`${base}/werkgebieden/wg1?tab=bronnen`);
+  await page.waitForURL("**/werkgebieden/wg1/bronnen");
+  await page.locator("[data-voorstellen-lex]").getByText("3 bepalingen voorgesteld door Lex").click();
+  await page.waitForURL("**/werkgebieden/wg1/bronnen/voorstellen");
   await kaart(A8).waitFor();
   assert.equal(await sectie().getByRole("button", { name: /zoek/i }).count(), 0, "zoeken vraag je Lex in het gesprek");
-  assert.equal(await kaart(A8).locator("[data-vraag-lex=kandidaat]").count(), 1);
+  assert.equal(await kaart(A8).locator("[data-vraag-lex]").count(), 0, "geen Vraag Lex per rij op een pagina");
   await zie("verwijzingen vanuit de kern: 1");
   await zie("opbouw van de wet: 2");
   assert.equal(await sectie().getByText("(onvolledig)").count(), 1, "een methode die haar plafond raakte, zegt dat");
@@ -141,7 +144,7 @@ try {
   assert.equal(opname.body.rol, "context");
   assert.equal(opname.body.verwachte_revisie, 2);
   await sectie().getByRole("tab", { name: "Opgenomen (1)" }).waitFor();
-  await page.getByRole("tab", { name: "Bronnen (2)" }).waitFor();
+  assert.equal(wg.bronnen.length, 2);
 
   // --- Uitsluiten vraagt een reden ---
   await kaart(A10).getByRole("button", { name: /^Uitsluiten:/ }).click();
@@ -155,9 +158,13 @@ try {
   await sectie().getByRole("tab", { name: "Uitgesloten (1)" }).click();
   await kaart(A10).getByText("Gaat over uitstel, niet over invorderbaarheid", { exact: false }).waitFor();
 
-  // --- *Vraag Lex* bij elke bronselectie, ook de zojuist opgenomen ---
-  const selecties = page.getByRole("region", { name: /^Bronselecties/ });
-  assert.equal(await selecties.locator("[data-vraag-lex=bron]").count(), wg.bronnen.length);
+  // --- Het register toont de zojuist opgenomen bron, zonder knop per rij ---
+  await page.goto(`${base}/werkgebieden/wg1/bronnen`);
+  await page.locator("[data-bronnen-register] [data-bron]").nth(wg.bronnen.length - 1).waitFor();
+  assert.equal(await page.locator("[data-bronnen-register] [data-bron]").count(), wg.bronnen.length);
+  assert.equal(await page.locator("[data-bronnen-register] [data-vraag-lex]").count(), 0);
+  await page.goBack();
+  await sectie().getByRole("tab", { name: "Uitgesloten (1)" }).click();
   await kaart(A10).getByRole("button", { name: /^Heropenen:/ }).click();
   await sectie().getByRole("tab", { name: "Open (2)" }).click();
 
@@ -189,10 +196,10 @@ try {
   const paneel = page.getByRole("region", { name: "Gevonden bepalingen: Invorderbaarheid" });
   await paneel.locator("[data-bronkandidaten]").waitFor();
   await paneel.getByRole("link", { name: "Open het werkgebied" }).waitFor();
-  assert.equal(await paneel.getByRole("link", { name: "Open het werkgebied" }).getAttribute("href"), "/werkgebieden/wg1?tab=bronnen");
+  assert.equal(await paneel.getByRole("link", { name: "Open het werkgebied" }).getAttribute("href"), "/werkgebieden/wg1/bronnen/voorstellen");
 
   assert.deepEqual(errors, []);
-  console.log("Browser OK: gevonden bepalingen met meting, geen zoekknop, bewijs in gewone woorden, opnemen met rol en revisie, uitsluiten met reden, Vraag Lex bij kandidaat en bronselectie, heropenen, toetsenbord in de lijst, werkgebied uit een overzicht, bronnenartefact.");
+  console.log("Browser OK: gevonden bepalingen met meting, geen zoekknop, bewijs in gewone woorden, opnemen met rol en revisie, uitsluiten met reden, de voorstellen op een eigen pagina, geen Vraag Lex per rij, heropenen, toetsenbord in de lijst, werkgebied uit een overzicht, bronnenartefact.");
 } finally {
   await browser.close();
 }

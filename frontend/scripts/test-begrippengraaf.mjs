@@ -134,7 +134,7 @@ try {
 
   // Naar de begripskaart: NL-SBB-conform staat erbij, met de meldingen; accorderen volgt de poort.
   await zijbalk().getByRole("button", { name: "Open de begripskaart" }).click();
-  await page.waitForURL(/tab=begrippen&begrip=b2/);
+  await page.waitForURL(/artefacten\/begrippen\?begrip=b2/);
   const stand = page.getByTestId("nl-sbb-stand");
   await stand.getByText("Niet NL-SBB-conform (profiel 1.0.0): definitie ontbreekt of klopt niet").waitFor();
   await stand.getByText("Meldingen (1)").click();
