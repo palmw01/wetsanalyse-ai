@@ -104,6 +104,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | F | Activiteit 1 in het gesprek: werkgebied bepalen | F0 en F1 gebouwd (vraagkaarten zoals Claude → werkgebied); vervolg open |
 | G | Lex als projectgerichte werkplek (mock-up v4) | G1–G5 gebouwd (gesprek bij een werkgebied, de projectpagina, eigen pagina's per object, het contextpaneel, de begripskaart in NL-SBB-volgorde) |
 | H | Structuur: begrippen per term, bepalingen als boom | H1–H4 gebouwd (plek van een bepaling, bronvoorstellen met vinkjes en actiebalk, geen sneltoetsen, deelvragen met structuur, begrippenkader per term) |
+| I | Begrippen volgens NL-SBB met uitleg in B1, TOOI, één bedieningsstijl | gepland (I5 → I1 → I2 → I3 → I4 → I6 → I7) |
 
 ---
 
@@ -1024,6 +1025,78 @@ in Lex** (letters, `[`/`]`, hints) – Tab, Enter, Escape en de pijltjes van een
   een vraag die bij geen term meer hoort staat los in het kader.
 
 **Open**: groepen op een stopwoord ("en") zijn een signaal voor de keten, geen weergavekwestie.
+
+---
+
+### I. Begrippen volgens NL-SBB met uitleg in B1, TOOI, één bedieningsstijl
+
+**Aanleiding** (26 okt 2026):
+- *Werk het begrip volledig uit* levert geen uitleg. `agents/begrippen.py:uitwerken` kent geen
+  uitlegstap, en de api laat het veld uitleg alleen bij `betekenisverschil` toe.
+- De begripskaart draagt velden die niets toevoegen.
+- Voorbeelden tonen niet alles en hebben een dropdown voor het oordeel.
+- Er staat nog "Weghalen".
+- Knoppen, panelen en dropdowns zijn niet gelijk.
+- In de sidebar valt *Definitief verwijderen* buiten beeld.
+
+**Standaarden**:
+- **NL-SBB** (verplicht sinds 1 jan 2026):
+  - definitie `skos:definition`, bij voorkeur genus + differentia (ISO 704);
+  - uitleg `rdfs:comment`, "in eenvoudige taal, op taalniveau B1";
+  - toelichting `skos:scopeNote`;
+  - voorbeeld `skos:example`;
+  - bron `dct:source`.
+- **SKOS** is de publicatievorm.
+- **B1** volgens Rijkswebsites: korte actieve zinnen, bekende woorden, vaktermen uitleggen, voorbeelden.
+- **TOOI**:
+  - organisaties als `https://identifier.overheid.nl/tooi/id/ministerie/mnreNNNN`;
+  - thema's uit `tooitop`.
+
+**Besluiten** (gebruiker, 26 okt 2026):
+- de herkomst van een definitie wordt automatisch afgeleid; het label *Brondefinitie* of *Analysebegrip*
+  blijft;
+- JAS-duiding, begripstype, geldigheid, eigenschappen, onderbouwing, open vragen en de toelichting bij een
+  voorbeeld gaan helemaal uit het model (UI, api, export, Lex);
+- alle knoppen worden pillen, behalve *Nieuw gesprek*;
+- het icoon-idioom in rijen en lijsten: prullenbak → rood *Verwijderen*, vinkje → groen *Akkoord*, de
+  tweede klik voert uit;
+- TOOI in de kennis van Lex, als organisatie-URI en als thema.
+
+**Fasen** (volgorde I5 → I1 → I2 → I3 → I4 → I6 → I7):
+- **I5**: *Verwijderen* overal in beeld, met een toets die "weghalen" in UI-tekst weert.
+- **I1**: het slanke begripmodel.
+  - api-contracten, poort, projectie en conformiteit;
+  - kaartvoorstellen zonder `open_vragen`; `betekenisverschil` stelt uitleg en toelichting voor;
+  - graph-qa en de skill;
+  - de kaart en het paneel.
+- **I2**: de kaartactie `uitleg` in B1.
+  - een strict modelstap;
+  - de B1-toetsen in code (`begrip_b1.py`: lange zin, lijdende vorm, moeilijke woorden, onverklaarde
+    vakterm, herhaling van de definitie);
+  - `uitwerken` doet brondefinitie → definitie → uitleg → voorbeelden;
+  - de skill `references/nl-sbb-en-b1.md`;
+  - de suggestie *Schrijf de uitleg in B1*;
+  - een eval van 3 runs.
+- **I3**: voorbeelden met een gekleurd oordeel (groen, rood, oranje, met tekst) en meegroeiende tekstvakken,
+  zonder toelichting.
+- **I4**: één bedieningsstijl.
+  - `Button` standaard als pil;
+  - `IcoonBevestig`;
+  - `GesprekActies` past in de sidebar;
+  - `Select` met een eigen chevron en één menu-rijstijl;
+  - één `PaneelKop` voor alle zijpanelen.
+- **I6**: TOOI.
+  - een snapshot van het register ministeries, zodat de importer het eerstverantwoordelijke ministerie als
+    TOOI-URI zet;
+  - `dct:publisher` in de export;
+  - het werkgebied krijgt een `thema` uit `tooitop`, dat Lex voorstelt uit de WTI-rechtsgebieden, en dat
+    in de export als `dct:subject` staat.
+- **I7**: Lex en het gesprek in lijn.
+  - de suggesties en vervolgsuggesties;
+  - de schrijfrichtlijn krijgt een B1-regel;
+  - de antwoord-worker beantwoordt vragen over NL-SBB, SKOS, TOOI en B1 uit de methode, met de vermelding
+    "geen wettekst";
+  - de docs en ADR-003 bijwerken.
 
 ---
 
