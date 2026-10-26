@@ -12,6 +12,7 @@ import { VraagLexContext } from "@/components/werkplek/VraagLexKnop";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 
 import { WerkgebiedArtefactPaneel } from "@/components/werkplek/WerkgebiedArtefactPaneel";
+import { ContextPaneel, ContextPaneelContext, contextSleutel, type ContextDoel } from "@/components/werkplek/ContextPaneel";
 import { WerkgebiedUitOverzicht } from "@/components/werkplek/WerkgebiedUitOverzicht";
 import { annotatieDoelVan, artefactSleutel, werkgebiedLabel, artefactVanBericht, werkgebiedArtefactVan, type Artefact, type WerkgebiedArtefact } from "@/lib/artefact";
 import { Melding } from "@/components/ui/Melding";
@@ -127,6 +128,8 @@ interface Props {
   onVerlaatWerkgebied?: () => void;
   /** Het gesprek is geladen: de shell leest er het werkgebied en het archief uit. */
   onGesprekGeladen?: (gesprek: Gesprek) => void;
+  /** Verhoogd door de chatkop (*Bronnen*): open de bronnen van het werkgebied naast het gesprek (spoor G4). */
+  bronnenSignaal?: number;
   /** Een werkgebied gemaakt vanuit een overzicht: de werkplek gaat in die context verder. */
   onKiesWerkgebied?: (id: string) => void;
   /** Roept terug zodra een beurt is afgerond, zodat de stand meteen ververst. */
@@ -142,7 +145,7 @@ interface Props {
 export function WerkplekClient({
   initialGesprekId, onGesprekAangemaakt, onGewijzigd, demo, onDemoBeslissing,
   onDemoArtefact, demoOpenSignaal = 0, demoSluitSignaal = 0, onRondleiding,
-  verbruik = null, onBeurtKlaar, werkgebiedId = null, onVerlaatWerkgebied, onKiesWerkgebied, onGesprekGeladen,
+  verbruik = null, onBeurtKlaar, werkgebiedId = null, onVerlaatWerkgebied, onKiesWerkgebied, onGesprekGeladen, bronnenSignaal = 0,
   beginOnderwerp = null,
   beginInvoer = null,
 }: Props) {
@@ -167,6 +170,24 @@ export function WerkplekClient({
   /** Het open artefact van een werkgebied (begripsvoorstellen of gevonden bepalingen). Er staat
    *  hoogstens één artefact open: wie een annotatie opent, sluit dit, en andersom. */
   const [wgArtefact, setWgArtefact] = useState<WerkgebiedArtefact>();
+  // Een context naast het gesprek die geen artefact van een beurt is (spoor G4): een bepaling, een
+  // element, de bronnen van het werkgebied. Ook hier hoogstens één paneel tegelijk: opent er een
+  // annotatie of artefact, dan gaat de context dicht; opent de context, dan gaan die dicht.
+  const [ctx, setCtx] = useState<ContextDoel>();
+  const [vorigPaneel, setVorigPaneel] = useState<{ n?: NodeDoel; w?: WerkgebiedArtefact }>({});
+  if (vorigPaneel.n !== nodeDoel || vorigPaneel.w !== wgArtefact) {
+    setVorigPaneel({ n: nodeDoel, w: wgArtefact });
+    if (nodeDoel || wgArtefact) setCtx(undefined);
+  }
+  const [vorigBronnenSignaal, setVorigBronnenSignaal] = useState(bronnenSignaal);
+  if (vorigBronnenSignaal !== bronnenSignaal) {
+    setVorigBronnenSignaal(bronnenSignaal);
+    if (werkgebiedId) {
+      setNodeDoel(undefined);
+      setWgArtefact(undefined);
+      setCtx({ soort: "bibliotheek", werkgebied_id: werkgebiedId, titel: "" });
+    }
+  }
   // Telt elke beurt die een werkgebied opleverde of aanpaste: het paneel laadt dan opnieuw, ook als het al
   // op dat werkgebied openstond (het dossier aanvullen geeft hetzelfde artefact terug).
   const [wgLading, setWgLading] = useState(0);
@@ -1071,6 +1092,19 @@ export function WerkplekClient({
     />
   ));
 
+  /** Een context naast het gesprek (`ContextPaneelContext`): een bron uit een antwoord krijgt het werkgebied
+   *  van het gesprek mee, zodat *Open volledige pagina* in dat werkgebied landt. */
+  function openContext(d: ContextDoel) {
+    setNodeDoel(undefined);
+    setWgArtefact(undefined);
+    setCtx(d.soort === "bron" && !d.werkgebied_id && werkgebiedId ? { ...d, werkgebied_id: werkgebiedId } : d);
+  }
+
+  const paneel = ctx ? (
+    <ContextPaneel key={contextSleutel(ctx)} doel={ctx} variant={breed ? "kolom" : "side"}
+      onSluit={() => setCtx(undefined)} onWissel={setCtx} />
+  ) : artefact;
+
   /** *Vraag Lex* vanuit een object in een paneel (`VraagLexKnop`): de chip boven het invoerveld. Op een smal
    *  scherm ligt het paneel over de chat en sluit het – anders typ je in een veld dat je niet ziet. De
    *  focus in dezelfde gebeurtenis als de klik: iOS opent het toetsenbord alleen binnen een gebaar. */
@@ -1080,6 +1114,7 @@ export function WerkplekClient({
     if (!breed) {
       setNodeDoel(undefined);
       setWgArtefact(undefined);
+      setCtx(undefined);
     }
     taRef.current?.focus();
   }
@@ -1087,6 +1122,7 @@ export function WerkplekClient({
   return (
     <GraafKoppelingContext.Provider value={graafKoppeling}>
     <VraagLexContext.Provider value={demo ? null : kiesOnderwerp}>
+    <ContextPaneelContext.Provider value={demo ? null : openContext}>
     <div className="flex min-h-0 min-w-0 flex-1">
     <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
       {/* Beknopte statusmelding voor schermlezers (niet de hele thread live maken → geen token-spam). */}
@@ -1118,7 +1154,7 @@ export function WerkplekClient({
           </Melding>
         </div>
       )}
-      {!nodeDoel && !wgArtefact && laatsteWgArtefact && (
+      {!nodeDoel && !wgArtefact && !ctx && laatsteWgArtefact && (
         <button
           type="button"
           onClick={() => setWgArtefact(laatsteWgArtefact)}
@@ -1128,7 +1164,7 @@ export function WerkplekClient({
           <span className="ml-auto shrink-0 font-medium text-lint">Openen</span>
         </button>
       )}
-      {!nodeDoel && !wgArtefact && laatsteNodeAnnotatie && (
+      {!nodeDoel && !wgArtefact && !ctx && laatsteNodeAnnotatie && (
         <button
           type="button"
           onClick={() => void openArtefact(laatsteNodeAnnotatie.slug, laatsteNodeAnnotatie.annotatie_doel)}
@@ -1423,14 +1459,15 @@ export function WerkplekClient({
       </div>
 
       {/* Op een smal scherm schuift het artefact als overlay over de chat heen. */}
-      {!breed && artefact}
+      {!breed && paneel}
     </div>
 
     {/* Op een breed scherm staat het ernaast: chat en review tegelijk in beeld. */}
-    {breed && artefact && (
-      <div className="hidden w-[min(34rem,42vw)] shrink-0 xl:block">{artefact}</div>
+    {breed && paneel && (
+      <div className="hidden w-[min(34rem,42vw)] shrink-0 xl:block">{paneel}</div>
     )}
     </div>
+    </ContextPaneelContext.Provider>
     </VraagLexContext.Provider>
     </GraafKoppelingContext.Provider>
   );

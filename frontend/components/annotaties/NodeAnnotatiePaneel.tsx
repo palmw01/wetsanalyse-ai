@@ -291,6 +291,16 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
         else if (groot) setGroot(false);
         else onSluit();
       } : undefined}>
+      {/* Het paneel is om te raadplegen naast het gesprek; verder werken kan op de eigen pagina (spoor G4).
+          Niet in de rondleiding: daar is de annotatie een voorbeeld in het geheugen. */}
+      {opslag.levend && (
+        <div className="flex shrink-0 justify-end border-b border-line px-5 py-1.5">
+          <Link href={nodeLink({ bron_iri: view?.doel.bron_iri ?? doel.bron_iri, snapshot_id: doel.snapshot_id })}
+            className="focus-ring rounded text-xs font-medium text-lint underline-offset-2 hover:underline">
+            Open volledige pagina
+          </Link>
+        </div>
+      )}
       {inhoud}
     </Dialog>
   );

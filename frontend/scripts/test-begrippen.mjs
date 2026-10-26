@@ -190,7 +190,10 @@ try {
   await page.getByRole("button", { name: "Begripskaart" }).click();
   await page.waitForURL(/\/begrippen\/wg1\/b\d+$/);
   await page.locator("[data-begrip-pagina]").waitFor();
-  assert.equal(await page.locator("[data-paginakop]").getByRole("link", { name: /^Bespreek .* met Lex$/ }).count(), 1);
+  // De knop staat er zodra het begrip geladen is; eerst wachten, dan tellen.
+  const bespreek = page.locator("[data-paginakop]").getByRole("link", { name: /^Bespreek .* met Lex$/ });
+  await bespreek.first().waitFor();
+  assert.equal(await bespreek.count(), 1);
   const passages = page.getByRole("list", { name: "Passages van dit begrip" }).getByRole("listitem");
   await page.getByRole("heading", { name: "Bronpassages (3)" }).waitFor();
   assert.equal(await passages.count(), 3);

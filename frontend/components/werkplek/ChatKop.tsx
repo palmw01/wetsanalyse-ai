@@ -16,7 +16,7 @@ import { haalWerkgebied } from "@/lib/api";
  *  gesprekken* en maakt het gesprek ook echt los, zodat het niet bij het volgende openen weer in
  *  het werkgebied staat. De naam laden mag mislukken: dan staat er het id. */
 export function ChatKop({
-  titel, gesprekId, werkgebiedId, gearchiveerd = false, onArchiveer, onVerplaats, onVerwijder,
+  titel, gesprekId, werkgebiedId, gearchiveerd = false, onArchiveer, onVerplaats, onVerwijder, onBronnen,
 }: {
   titel: string;
   /** `null` = een nieuw gesprek dat nog geen beurt had: er valt nog niets te archiveren. */
@@ -26,6 +26,8 @@ export function ChatKop({
   onArchiveer: (gearchiveerd: boolean) => void;
   onVerplaats: (werkgebiedId: string) => void;
   onVerwijder: () => void;
+  /** De bronnen van het werkgebied naast het gesprek openen (spoor G4). */
+  onBronnen?: () => void;
 }) {
   // De naam hoort bij het id waarvoor hij geladen is: na een verplaatsing staat er tot het laden "…",
   // niet de naam van het vorige werkgebied.
@@ -67,6 +69,12 @@ export function ChatKop({
           {gearchiveerd && " · Gearchiveerd"}
         </p>
       </div>
+      {werkgebiedId && onBronnen && (
+        <button type="button" onClick={onBronnen} data-chatkop-bronnen
+          className="focus-ring inline-flex min-h-[32px] items-center gap-1.5 rounded-button border border-line px-3 text-xs font-medium text-lint hover:bg-surface coarse:min-h-[44px]">
+          Bronnen
+        </button>
+      )}
       {werkgebiedId && (
         <Link
           href={`/werkgebieden/${encodeURIComponent(werkgebiedId)}`}
