@@ -26,3 +26,22 @@ def test_het_manifest_id_van_de_keten_staat_vast(vector):
 def test_de_velden_van_bron_en_formulering_staan_vast():
     assert sorted(Bron.model_fields) == VECTOREN["velden"]["bron"]
     assert sorted(Formulering.model_fields) == VECTOREN["velden"]["formulering"]
+
+
+# --- de onderzoeksstand (spoor M) ---------------------------------------------------------------
+
+from agent.begrippen_pipeline.model import Contextbron, Onderzoek, Ontbrekend, Vergelijkingsbegrip  # noqa: E402
+
+ONDERZOEK = json.loads((SETS / "onderzoek-id.vectoren.json").read_text())
+
+
+@pytest.mark.parametrize("vector", ONDERZOEK["vectoren"], ids=lambda v: v["naam"])
+def test_het_onderzoek_id_van_de_keten_staat_vast(vector):
+    assert Onderzoek(**vector["onderzoek"]).id == vector["onderzoek_id"]
+
+
+def test_de_velden_van_het_onderzoek_staan_vast():
+    assert sorted(Onderzoek.model_fields) == ONDERZOEK["velden"]["onderzoek"]
+    assert sorted(Contextbron.model_fields) == ONDERZOEK["velden"]["contextbron"]
+    assert sorted(Vergelijkingsbegrip.model_fields) == ONDERZOEK["velden"]["begrip"]
+    assert sorted(Ontbrekend.model_fields) == ONDERZOEK["velden"]["ontbrekend"]

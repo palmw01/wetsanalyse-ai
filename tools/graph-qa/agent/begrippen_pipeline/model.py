@@ -137,6 +137,112 @@ class Manifest(_Vast):
         return next(f for f in self.formuleringen if f.element_id == element_id)
 
 
+# ---------------------------------------------------------------------------------------------
+# De onderzoeksstand (spoor M): de context naast het manifest
+# ---------------------------------------------------------------------------------------------
+
+ONDERZOEK_VERSIE = "1"
+
+
+class Rol(str, Enum):
+    """Waarom een contextbron er is, vanuit het werkgebied gezien."""
+
+    ANALYSEREN = "analyseren"          # binnen een analyseselectie, maar zonder bruikbare annotatie
+    CONTEXT = "context"                # binnen een contextselectie
+    ONDERZOEK = "onderzoek"            # door de keten zelf gevonden (zelfde artikel, definitie, verwijzing)
+    VERGELIJKING = "vergelijking"      # alleen ter vergelijking, niet als onderbouwing
+
+
+class Reden(str, Enum):
+    """Hoe een contextbron gevonden is; ook de volgorde waarin het budget hem toelaat."""
+
+    ZELFDE_ARTIKEL = "zelfde_artikel"
+    DEFINITIE_IN_REGELING = "definitie_in_regeling"
+    VERWIJZING = "verwijzing"
+    CONTEXTSELECTIE = "contextselectie"
+
+
+class Contextbron(Bron):
+    """Een bronnode die de keten onderzoekt zonder dat er een formulering op staat."""
+
+    rol: Rol
+    reden: Reden
+    voor: tuple[str, ...] = ()         # de element-id's of bron-IRI's die hem aanleverden
+
+
+class Vergelijkingsbegrip(_Vast):
+    """Een bestaand begrip als vergelijkingsmateriaal; nooit een bron, nooit bewijs."""
+
+    id: str
+    naam: str
+    definitie: str = ""
+    status: str = ""
+    werkgebied_id: str = ""
+    eigen: bool = True                 # uit hetzelfde werkgebied
+
+
+class Ontbrekend(_Vast):
+    """Wat er onderzocht had moeten worden en niet onderzocht is, met de reden."""
+
+    wat: str                           # een bron-IRI, of een omschrijving
+    reden: str                         # budget | niet_in_graaf | onbereikbaar | buiten_selectie
+
+    @field_validator("reden")
+    @classmethod
+    def _reden(cls, r: str) -> str:
+        if r not in ("budget", "niet_in_graaf", "onbereikbaar", "buiten_selectie"):
+            raise ValueError(f"onbekende reden: {r}")
+        return r
+
+
+def onderzoek_id(manifest_id: str, bronnen: tuple[Contextbron, ...] | list,
+                 begrippen: tuple[Vergelijkingsbegrip, ...] | list, versie: str) -> str:
+    """Inhoud, geen moment: zelfde manifest, dezelfde contextbronnen op dezelfde stand en dezelfde
+    vergelijkingsbegrippen geven hetzelfde id. Het vergelijkingsmateriaal telt mee omdat het in de
+    prompt komt; een gewijzigde definitie elders maakt een eerder dossier dus verouderd."""
+    delen = [manifest_id, versie]
+    delen += sorted(f"{b.bron_iri}@{b.bron_hash}" for b in bronnen)
+    delen += sorted(f"{x.id}|{x.status}|{_hash(x.naam, x.definitie)[:12]}" for x in begrippen)
+    return "O" + _hash(*delen)[:16]
+
+
+class Onderzoek(_Vast):
+    """De onderzoeksstand van één manifest: welke context er gelezen is, en wat niet.
+
+    Onveranderlijk en inhoudelijk geïdentificeerd, net als het manifest. Een contextbron valt nooit
+    samen met een manifestbron: wat geannoteerd is, staat al in het manifest.
+    """
+
+    manifest_id: str
+    bronnen: tuple[Contextbron, ...] = ()
+    begrippen: tuple[Vergelijkingsbegrip, ...] = ()
+    ontbrekend: tuple[Ontbrekend, ...] = ()
+    versie: str = ONDERZOEK_VERSIE
+
+    @model_validator(mode="after")
+    def _samenhang(self) -> Onderzoek:
+        iris = [b.bron_iri for b in self.bronnen]
+        if len(set(iris)) != len(iris):
+            raise ValueError("een contextbron staat dubbel in het onderzoek")
+        return self
+
+    @property
+    def id(self) -> str:
+        return onderzoek_id(self.manifest_id, self.bronnen, self.begrippen, self.versie)
+
+    def past_bij(self, manifest: Manifest) -> Onderzoek:
+        """Toets het onderzoek tegen zijn manifest; geeft zichzelf terug of faalt."""
+        if self.manifest_id != manifest.id:
+            raise ValueError("het onderzoek hoort bij een ander manifest")
+        dubbel = {b.bron_iri for b in self.bronnen} & {b.bron_iri for b in manifest.bronnen}
+        if dubbel:
+            raise ValueError(f"een contextbron is ook een manifestbron: {sorted(dubbel)[0]}")
+        return self
+
+    def bron(self, bron_iri: str) -> Contextbron:
+        return next(b for b in self.bronnen if b.bron_iri == bron_iri)
+
+
 class Taalanalyse(_Vast):
     """Wat de taalstap over één formulering vaststelt. Alles herleidbaar tot tokens in de bron."""
 

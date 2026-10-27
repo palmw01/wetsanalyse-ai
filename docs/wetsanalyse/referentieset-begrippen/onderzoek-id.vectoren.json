@@ -1,0 +1,122 @@
+{
+ "_toelichting": "Het onderzoek-id van de begrippenketen (Onderzoek.id in tools/graph-qa/agent/begrippen_pipeline/model.py) en van de api (begrip_onderzoek.onderzoek_id) moet voor dezelfde invoer gelijk zijn (spoor M). Beide kanten toetsen tegen deze vectoren. Niet met de hand aanpassen: na een bewuste wijziging opnieuw laten berekenen door de keten.",
+ "vectoren": [
+  {
+   "naam": "leeg",
+   "onderzoek": {
+    "manifest_id": "Mdbc3d345df135d71",
+    "bronnen": [],
+    "begrippen": [],
+    "ontbrekend": []
+   },
+   "onderzoek_id": "Ofedce8a18525604f"
+  },
+  {
+   "naam": "bronnen",
+   "onderzoek": {
+    "manifest_id": "Mdbc3d345df135d71",
+    "bronnen": [
+     {
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:30fb:lid:5",
+      "tekst": "tekst van urn:bwb:BWBR0002320:artikel:30fb:lid:5",
+      "bron_hash": "h5",
+      "label": "",
+      "aanhef": "",
+      "regeling": "BWBR0002320",
+      "rol": "onderzoek",
+      "reden": "zelfde_artikel",
+      "voor": [
+       "e0"
+      ]
+     },
+     {
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:30fb:lid:1",
+      "tekst": "tekst van urn:bwb:BWBR0002320:artikel:30fb:lid:1",
+      "bron_hash": "h1",
+      "label": "",
+      "aanhef": "",
+      "regeling": "BWBR0002320",
+      "rol": "onderzoek",
+      "reden": "zelfde_artikel",
+      "voor": [
+       "e0"
+      ]
+     }
+    ],
+    "begrippen": [],
+    "ontbrekend": [
+     {
+      "wat": "x",
+      "reden": "budget"
+     }
+    ]
+   },
+   "onderzoek_id": "Ob24ee71675ed558b"
+  },
+  {
+   "naam": "begrippen",
+   "onderzoek": {
+    "manifest_id": "Mdbc3d345df135d71",
+    "bronnen": [
+     {
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:30fb:lid:1",
+      "tekst": "tekst van urn:bwb:BWBR0002320:artikel:30fb:lid:1",
+      "bron_hash": "h1",
+      "label": "",
+      "aanhef": "",
+      "regeling": "BWBR0002320",
+      "rol": "onderzoek",
+      "reden": "zelfde_artikel",
+      "voor": [
+       "e0"
+      ]
+     }
+    ],
+    "begrippen": [
+     {
+      "id": "b1",
+      "naam": "herziening",
+      "definitie": "De wijziging van een voorlopige aanslag.",
+      "status": "concept",
+      "werkgebied_id": "wg",
+      "eigen": true
+     }
+    ],
+    "ontbrekend": []
+   },
+   "onderzoek_id": "O8c9b69daa379f769"
+  }
+ ],
+ "velden": {
+  "onderzoek": [
+   "begrippen",
+   "bronnen",
+   "manifest_id",
+   "ontbrekend",
+   "versie"
+  ],
+  "contextbron": [
+   "aanhef",
+   "bron_hash",
+   "bron_iri",
+   "label",
+   "reden",
+   "regeling",
+   "rol",
+   "tekst",
+   "voor"
+  ],
+  "begrip": [
+   "definitie",
+   "eigen",
+   "id",
+   "naam",
+   "status",
+   "werkgebied_id"
+  ],
+  "ontbrekend": [
+   "reden",
+   "wat"
+  ]
+ }
+}

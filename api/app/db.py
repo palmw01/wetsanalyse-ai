@@ -457,6 +457,10 @@ begrippen_runs = Table("begrippen_runs", metadata,
     Column("gewijzigd", _DT, nullable=False),
     # De model-laag (fase C): groepen, kaarten en oordelen na de verdieping; NULL = nog niet verdiept.
     Column("verdieping", _JSON, nullable=True),
+    # De onderzoeksstand (spoor M, `begrip_onderzoek`): de context naast het manifest. Additief, dus
+    # `reconcile_schema` zet ze bij; een oude run heeft `onderzoek_id` "" en geen onderzoek.
+    Column("onderzoek_id", String(32), nullable=False, server_default="", default=""),
+    Column("onderzoek", _JSON, nullable=True),
     Index("ix_begrippen_runs_manifest", "werkgebied_id", "manifest_id"))
 betekenisgroepen = Table("betekenisgroepen", metadata,
     Column("werkgebied_id", String(64), primary_key=True),

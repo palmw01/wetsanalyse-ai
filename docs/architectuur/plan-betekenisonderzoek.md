@@ -16,12 +16,12 @@
 
 ## Voortgang
 
-- [ ] **M0** Plan vastleggen (plan, PLAN.md en memory: gedaan 28 okt 2026; nulmeting nog open):
+- [x] **M0** Plan vastleggen (gedaan 28 okt 2026; de nulmeting staat onder *Nulmeting*):
   - deze tekst naar `docs/architectuur/plan-betekenisonderzoek.md`;
   - een regel "spoor M" in `docs/PLAN.md`;
   - het memory-bestand `spoor-m-betekenisonderzoek.md` met een regel in `MEMORY.md`;
   - nulmeting: `eval.begrippen_eval --variant keten`, de suites groen op master, de casus-fixtures uit de graaf.
-- [ ] **M1** (branch `spoor-m1-onderzoeksstand`):
+- [x] **M1** (branch `spoor-m1-onderzoeksstand`; afwijkingen onder *Afwijkingen van het plan*):
   - het model `Onderzoek`/`Contextbron`;
   - de samenvoeging van `fragmenten`;
   - api `begrip_onderzoek.py`, met opslag en identiteit (§1, §2);
@@ -40,6 +40,27 @@
   - frontend (§9) en documentatie plus skill (§10);
   - de live meting en het meetlogboek;
   - het eindrapport (opdrachttoets, oorzaken, bestanden, metingen, beperkingen, wat de jurist nog moet beoordelen).
+
+### Nulmeting (28 okt 2026, master `03739283`)
+
+- `begrippen_eval --variant keten`: v1 BCubed F 1,000 (13 groen, 2 geel); heldout-v1 F 0,956 (recall
+  0,916; 8 groen, 1 geel); heldout-v2 F 0,973 (recall 0,947; 9 groen, 1 geel). Alle drie deterministisch.
+- Suites op master groen (graph-qa, api).
+- Casus A en B: `tools/graph-qa/eval/betekenisonderzoek_casus.json`, letterlijk uit de graaf op
+  acceptatie (art. 30fb en 30fc AWR, alle leden en onderdelen), `bron_hash` = `bronmodel.tekst_hash`.
+
+### Afwijkingen van het plan
+
+- **M1, verwijzingen**: geen querybouwer in `packages/bronmodel`. De api heeft er al een
+  (`samenhang._uitgaand`, dezelfde `bwb:heeftVerwijzing`-vorm als de graafweergave), en graph-qa
+  verzamelt zelf geen context: de api bouwt het onderzoek. Eén vocabulaire, op één plek.
+- **M1, identiteit**: `onderzoek_id` neemt ook de vergelijkingsbegrippen op (id, status, hash van naam en
+  definitie). Ze komen in de prompt, dus een gewijzigde definitie elders moet een ander dossier geven.
+- **M1, kaartruns**: `invoer_id` neemt `onderzoek_id` op; de promptversie niet. Die kent alleen
+  graph-qa, en zijn batch-id's dragen haar al (`verdieping.batch_id`); in M3 gaat ze in de
+  `werkvoorraad_id` van het meedenken.
+- **M1, versies**: `fragmenten.VERSIE` blijft 1 tot M2 het onderzoek echt aan de prompts geeft; zonder
+  onderzoek is de fragmentkeuze bitgelijk (getest).
 
 Werkwijze per PR:
 

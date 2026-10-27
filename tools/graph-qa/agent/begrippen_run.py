@@ -21,7 +21,7 @@ from typing import Any, AsyncIterator
 from .begrippen_pipeline import definities
 from .begrippen_pipeline.kaart import naam_en_letterlijk
 from .begrippen_pipeline.keten import Uitkomst, analyseer
-from .begrippen_pipeline.model import Bron, Formulering, Manifest
+from .begrippen_pipeline.model import Bron, Formulering, Manifest, Onderzoek
 from .jas_pipeline.taal.provider import TaalProvider
 from .config import Settings
 from .runstore import Run
@@ -33,6 +33,11 @@ logger = logging.getLogger(__name__)
 def manifest_uit(data: dict[str, Any]) -> Manifest:
     return Manifest(bronnen=tuple(Bron(**b) for b in data["bronnen"]),
                     formuleringen=tuple(Formulering(**f) for f in data["formuleringen"]))
+
+
+def onderzoek_uit(data: dict[str, Any] | None, manifest: Manifest) -> Onderzoek | None:
+    """De onderzoeksstand van de run (spoor M), getoetst tegen het manifest; None bij een run van daarvoor."""
+    return Onderzoek(**data).past_bij(manifest) if data else None
 
 
 def voorstel(manifest: Manifest, uitkomst: Uitkomst, leden: tuple[str, ...]) -> dict[str, str]:
@@ -68,6 +73,7 @@ async def begrippen_stroom(werkgebied_id: str, api_run_id: str, run: Run, *, set
             data = await api.haal_begrippen_run(werkgebied_id, api_run_id)
             await api.meld_begrippen_loopt(werkgebied_id, api_run_id)
             manifest = manifest_uit(data["manifest"])
+            onderzoek = onderzoek_uit(data.get("onderzoek"), manifest)
         except WetsanalyseApiFout as fout:
             yield {"type": "error", "message": "De voorstellen konden niet beginnen: de run is niet op te halen.",
                    "soort": "api", "status": fout.status}
@@ -78,7 +84,8 @@ async def begrippen_stroom(werkgebied_id: str, api_run_id: str, run: Run, *, set
                    "soort": "manifest"}
             return
 
-        yield _status(f"{len(manifest.formuleringen)} passages uit {len(manifest.bronnen)} bepalingen")
+        yield _status(f"{len(manifest.formuleringen)} passages uit {len(manifest.bronnen)} bepalingen"
+                      + (f", {len(onderzoek.bronnen)} bepalingen als context" if onderzoek else ""))
         if run.stop_gevraagd:
             await _mislukt(api, werkgebied_id, api_run_id, "Gestopt op verzoek.")
             yield {"type": "done"}
@@ -111,7 +118,10 @@ async def begrippen_stroom(werkgebied_id: str, api_run_id: str, run: Run, *, set
             yield {"type": "done"}
             return
         try:
-            await api.zet_begrippen_uitkomst(werkgebied_id, api_run_id, naar_uitkomst(manifest, uitkomst))
+            uit = naar_uitkomst(manifest, uitkomst)
+            if onderzoek is not None:
+                uit["meting"] = {**uit["meting"], "onderzoek_id": onderzoek.id}
+            await api.zet_begrippen_uitkomst(werkgebied_id, api_run_id, uit)
         except WetsanalyseApiFout as fout:
             await _mislukt(api, werkgebied_id, api_run_id, f"Opslaan geweigerd ({fout.status}): {fout.reden}")
             yield {"type": "error", "message": "De voorstellen zijn gemaakt, maar de api weigerde ze op te slaan.",
