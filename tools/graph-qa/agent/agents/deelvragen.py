@@ -33,6 +33,8 @@ class Taak(StrEnum):
     VERBETEREN = "verbeteren"
     BRONNEN_ZOEKEN = "bronnen_zoeken"
     DEKKING = "dekking"
+    # Spoor I7: een TOOI-thema voor het werkgebied voorstellen, zonder model (de api rekent het voorstel).
+    THEMA = "thema"
 
 
 #: Taken met een modelstap; de rest draait aantoonbaar zonder model.
@@ -69,7 +71,46 @@ async def voer_uit(invoer: Invoer, ctx: Context) -> Uitkomst:
         return await verbeteren_kern(ctx, invoer.werkgebied_id, invoer.deelvraag_id, invoer.soort)
     if taak is Taak.BRONNEN_ZOEKEN:
         return await bronnen_kern(ctx, invoer.werkgebied_id, invoer.deelvraag_id)
+    if taak is Taak.THEMA:
+        return await thema(ctx, invoer.werkgebied_id)
     return await dekking(ctx, invoer.werkgebied_id, invoer.deelvraag_id)
+
+
+async def thema(ctx: Context, werkgebied_id: str) -> Uitkomst:
+    """Het TOOI-thema (tooitop) dat bij de rechtsgebieden van de bronnen past. Lex wijzigt het werkgebied niet:
+    de analist kiest het in *Gegevens bewerken*, waar het voorstel klaarstaat."""
+    from ..beurt import werkgebied_artefact
+
+    taak = Taak.THEMA
+    try:
+        wg = await ctx.api.haal_werkgebied(werkgebied_id)
+        voorstel = await ctx.api.haal_thema_voorstel(werkgebied_id)
+    except WetsanalyseApiFout as fout:
+        if fout.status == 404:
+            return geweigerd(taak, "Dit werkgebied bestaat niet (meer).")
+        raise
+    ctx.melding("Thema · uit de rechtsgebieden van de bronnen")
+    themas = voorstel.get("voorstel") or []
+    gebieden = voorstel.get("rechtsgebieden") or []
+    huidig = wg.get("thema_label") or ""
+    if not themas:
+        tekst = ("Ik vind geen thema dat past: de regelingen van de bronnen hebben geen rechtsgebied dat ik ken."
+                 if gebieden or wg.get("bronnen") else "Er zijn nog geen bronnen; daaruit leid ik het thema af.")
+        tekst += " Je kiest een thema zelf in *Gegevens bewerken*."
+    else:
+        eerste = themas[0]["label"]
+        uit = f" De rechtsgebieden van de bronnen: {', '.join(gebieden)}." if gebieden else ""
+        if huidig == eerste:
+            tekst = f"Het thema is al *{eerste}*; dat past bij de bronnen.{uit}"
+        else:
+            andere = [t["label"] for t in themas[1:3]]
+            tekst = (f"Ik stel het thema *{eerste}* voor (TOOI, tooitop)." + uit
+                     + (f" Ook mogelijk: {', '.join(andere)}." if andere else "")
+                     + " Kies het in *Gegevens bewerken*; mijn voorstel staat daar klaar.")
+            if huidig:
+                tekst += f" Nu staat er *{huidig}*."
+    return Uitkomst(taak=taak, tekst=tekst, artefact=werkgebied_artefact(wg),
+                    meting={"voorstel": [t["thema"] for t in themas], "model": False})
 
 
 async def deelvraag_op_nummer(ctx: Context, werkgebied_id: str, nr: int) -> tuple[str, str]:

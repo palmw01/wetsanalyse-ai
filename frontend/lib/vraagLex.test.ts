@@ -60,7 +60,7 @@ describe("een object stuurt alleen soort en id's", () => {
   it("het werkgebied zonder id, met de handelingen als suggestie met een actie", () => {
     expect(verzoekVan(werkgebied)).toEqual({ onderwerp: { soort: "werkgebied", werkgebied_id: "wg1", label: "Invordering" } });
     const s = suggestiesVan(werkgebied);
-    expect(s.map((x) => x.actie)).toEqual(["dossier_aanvullen", "deelvragen_voorstellen", "bronnen_zoeken", "dekking", "werkgebied_annoteren", "deelvragen_annoteren",
+    expect(s.map((x) => x.actie)).toEqual(["dossier_aanvullen", "thema", "deelvragen_voorstellen", "bronnen_zoeken", "dekking", "werkgebied_annoteren", "deelvragen_annoteren",
       "begrippen_voorstellen", "begrippen_meedenken"]);
     expect(actieVerzoek(werkgebied as Extract<Onderwerp, { soort: "werkgebied" }>, "bronnen_zoeken")).toEqual({
       actie: "bronnen_zoeken", onderwerp: { soort: "werkgebied", werkgebied_id: "wg1", label: "Invordering" },

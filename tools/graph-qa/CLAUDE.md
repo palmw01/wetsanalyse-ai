@@ -945,7 +945,8 @@ reeks) en `doelen`.
   vraag of 2–4, anders `geen`) landen als voorstel bij de api – een verbetering met `vervangt` (F3d), zodat
   overnemen de oude deelvraag vervangt; `bronnen_zoeken` is de bronnenrun
   (`bronnen_run.bronnen_kern`, met wat er bij de aangewezen deelvraag hoort); `dekking` per actieve
-  deelvraag uit de api (stand, bronnen met rol, open kandidaten).
+  deelvraag uit de api (stand, bronnen met rol, open kandidaten); `thema` (spoor I7) stelt zonder model een
+  TOOI-thema voor uit `GET …/thema-voorstel` van de api en wijzigt niets – de analist kiest in *Gegevens bewerken*.
 - **Het artefact volgt het object** (F3d): een taak op één deelvraag (`verbeteren`, en `bronnen_zoeken` of
   `dekking` met een deelvraag) levert `{soort: "deelvraag", ref: {werkgebied_id, deelvraag_id}}`
   (`beurt.deelvraag_artefact`); zonder deelvraag het werkgebied- of bronnenartefact. Een taak op één
@@ -956,7 +957,8 @@ reeks) en `doelen`.
   `meedenken` (`begrippen_verdieping.verdieping_kern`; zonder `bevestigd` het voorstel met bevestiging),
   de vijf kaartacties (`kaart_beurt.kaart_kern`, dezelfde kaart-run als de knop), `uitwerken`
   (brondefinitie → zonder definitie een definitievoorstel → op een overgenomen definitie de uitleg in B1, als
-  die er nog niet is, en voorbeelden; daarna zegt Lex wat er nog open is)
+  die er nog niet is, en voorbeelden; daarna zegt Lex wat er nog open is) – en na elke losse kaartactie noemt Lex het volgende logische stuk
+  (`kaart_beurt.VOLGENDE`: definitie → uitleg → voorbeelden → relaties)
   en `relaties` (`GET …/relaties`, zonder model). Het begrip komt van het onderwerp (`als_rij`) of uit de
   term (`los_op`). Skillrol `begrippen`.
 - **De annotatie-agent** heeft twee taken hier: `werkgebied` en `deelvragen` (alleen de bronnen onder de

@@ -214,6 +214,10 @@ class WetsanalyseApi:
         return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/deelvragen/voorstellen",
                                 {"vragen": vragen, "model": model, **({"vervangt": vervangt} if vervangt else {})})
 
+    async def haal_thema_voorstel(self, werkgebied_id: str) -> dict[str, Any]:
+        """Spoor I6/I7: de TOOI-thema's die passen bij de rechtsgebieden van de bronnen (de api, zonder model)."""
+        return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/thema-voorstel")
+
     async def haal_deelvragen_dekking(self, werkgebied_id: str) -> dict[str, Any]:
         """De stand per actieve deelvraag: gekoppelde bronnen en begrippen, en of er een geaccordeerd
         begrip bij hoort."""

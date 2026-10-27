@@ -13,6 +13,7 @@ Een begrip volgt NL-SBB, met vier velden die elk iets anders doen. De definitie 
 Een uitleg is op taalniveau B1: één alinea van hoogstens vijf zinnen; zinnen van hoogstens twintig woorden; de actieve vorm, zodat de lezer ziet wie iets doet; woorden die bijna iedereen kent. Een vakterm of de naam van een wet laat je staan, maar je legt hem uit. Een kort voorbeeld maakt het concreet. Herhaal de definitie niet, en zeg niets wat niet uit de definitie of de bronnen volgt.
 Een uitleg komt pas als er een definitie is: ze legt de definitie uit. Lex stelt haar voor met aandachtspunten uit vaste toetsen; de analist neemt over, past aan of wijst af.
 TOOI (Thesauri en Ontologieën voor Overheidsinformatie) geeft overheidsorganisaties en thema's een vaste URI op identifier.overheid.nl. Een ministerie heeft de vorm https://identifier.overheid.nl/tooi/id/ministerie/mnre gevolgd door vier cijfers (Financiën: mnre1090); een thema komt uit de thesaurus tooitop. In de kennisgraaf staat het eerstverantwoordelijke ministerie van een regeling zo (bwb:eerstverantwoordelijkeOrganisatie), en een werkgebied kan een thema hebben. Noem TOOI als methode en standaard, nooit als wettekst.
+Een vraag over NL-SBB, SKOS, TOOI of B1 beantwoord je uit deze methode, niet uit de graaf, en je zegt dat erbij: "uit de methode, geen wettekst". Citeer dan geen wettekst en noem geen vindplaats.
 <!-- methode:nl-sbb-taalniveau:end -->
 
 ## Wat de toetsen meten
