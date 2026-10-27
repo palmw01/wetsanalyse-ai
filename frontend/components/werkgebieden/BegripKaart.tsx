@@ -5,17 +5,19 @@ import { useEffect, useState } from "react";
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
 import { Button } from "@/components/ui/Button";
 import { ButtonRow } from "@/components/ui/ButtonRow";
-import { Field, Input, Select, Textarea } from "@/components/ui/Field";
+import { AutoTextarea } from "@/components/ui/AutoTextarea";
+import { Field, Input } from "@/components/ui/Field";
 import { ChevronOmlaag } from "@/components/ui/Icoon";
 import { Melding } from "@/components/ui/Melding";
 import type { BegripMutatie } from "@/components/werkgebieden/BegripWerk";
 import { KaartVoorstelKaart } from "@/components/werkgebieden/KaartVoorstel";
+import { OordeelKeuze } from "@/components/werkgebieden/Voorbeelden";
 import {
   accordeerBegrip, foutTekst, haalBegripRevisies, haalConformiteit, heropenBegrip, wijzigBegrip,
 } from "@/lib/api";
 import { conformZin, veldVanPad, type Conformiteit } from "@/lib/begripGraaf";
 import {
-  OORDEEL_LABEL, definitieAard, inhoudGewijzigd, regels, revisieZin, uitRegels, volledigeInhoud,
+  definitieAard, inhoudGewijzigd, regels, revisieZin, uitRegels, volledigeInhoud,
 } from "@/lib/begrippen";
 import { definitieDoor, openPerVeld, type Verouderd } from "@/lib/kaartVoorstel";
 import { herkomstNaAanpassing } from "@/lib/begripVoorstellen";
@@ -155,7 +157,7 @@ export function BegripKaart({ id, begrip, muteer, onOnbewaard, onVerwijder, lex 
             <Input value={concept.inhoud.naam} onChange={(e) => zet("naam", e.target.value)} maxLength={200} required />
           </Field>
           <Field label="Alternatieve termen" hint="één per regel">
-            <Textarea value={concept.termen} onChange={(e) => setConcept((c) => ({ ...c, termen: e.target.value }))} rows={2} />
+            <AutoTextarea value={concept.termen} onChange={(e) => setConcept((c) => ({ ...c, termen: e.target.value }))} rows={2} />
           </Field>
         </Groep>
 
@@ -166,15 +168,15 @@ export function BegripKaart({ id, begrip, muteer, onOnbewaard, onVerwijder, lex 
               { tekst: begrip.inhoud.definitie ?? "", herkomst: begrip.inhoud.definitie_herkomst ?? null }, concept.inhoud.definitie),
           }} />
           <Field label="Definitie" hint={door || undefined}>
-            <Textarea value={concept.inhoud.definitie} onChange={(e) => zet("definitie", e.target.value)} rows={3} maxLength={8000} />
+            <AutoTextarea value={concept.inhoud.definitie} onChange={(e) => zet("definitie", e.target.value)} rows={3} maxLength={8000} />
           </Field>
           {vanLex("definitie")}
           <Field label="Uitleg" hint="in eenvoudige taal: wat betekent het begrip">
-            <Textarea value={concept.inhoud.uitleg} onChange={(e) => zet("uitleg", e.target.value)} rows={2} maxLength={8000} />
+            <AutoTextarea value={concept.inhoud.uitleg} onChange={(e) => zet("uitleg", e.target.value)} rows={2} maxLength={8000} />
           </Field>
           {vanLex("uitleg")}
           <Field label="Toelichting" hint="de grenzen of het gebruik van het begrip">
-            <Textarea value={concept.inhoud.context} onChange={(e) => zet("context", e.target.value)} rows={2} maxLength={4000} />
+            <AutoTextarea value={concept.inhoud.context} onChange={(e) => zet("context", e.target.value)} rows={2} maxLength={4000} />
           </Field>
           {vanLex("context")}
         </Groep>
@@ -185,13 +187,10 @@ export function BegripKaart({ id, begrip, muteer, onOnbewaard, onVerwijder, lex 
             <p className="text-xs text-muted">Ook grensgevallen en tegenvoorbeelden: ze toetsen de afbakening.</p>
             {voorbeelden.map((v, i) => (
               <div key={i} className="space-y-2 rounded-kaart border border-line p-2">
-                <Textarea value={v.tekst} onChange={(e) => zetVoorbeeld(i, { tekst: e.target.value })} rows={2} aria-label={`Voorbeeld ${i + 1}`} />
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Select value={v.oordeel} onChange={(e) => zetVoorbeeld(i, { oordeel: e.target.value as VoorbeeldOordeel })} aria-label={`Oordeel bij voorbeeld ${i + 1}`} className="sm:w-48">
-                    {(Object.keys(OORDEEL_LABEL) as VoorbeeldOordeel[]).map((o) => (
-                      <option key={o} value={o}>{OORDEEL_LABEL[o]}</option>
-                    ))}
-                  </Select>
+                <AutoTextarea value={v.tekst} onChange={(e) => zetVoorbeeld(i, { tekst: e.target.value })} rows={2} aria-label={`Voorbeeld ${i + 1}`} />
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <OordeelKeuze waarde={v.oordeel} onKies={(o) => zetVoorbeeld(i, { oordeel: o })}
+                    label={`Oordeel bij voorbeeld ${i + 1}`} naam={`oordeel-${begrip.id}-${i}`} />
                   <button type="button" className={KNOP_KLEIN} onClick={() => zet("voorbeelden", voorbeelden.filter((_, j) => j !== i))}>
                     Verwijderen
                   </button>

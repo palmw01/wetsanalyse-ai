@@ -3,12 +3,13 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/Button";
-import { Input, Select, Textarea } from "@/components/ui/Field";
+import { AutoTextarea } from "@/components/ui/AutoTextarea";
+import { Input } from "@/components/ui/Field";
+import { OordeelKeuze, OordeelLabel } from "@/components/werkgebieden/Voorbeelden";
 import { Melding } from "@/components/ui/Melding";
 import {
   VERGELIJKING_LABEL, aandachtTekst, herkomstLabel, isDefinitie, voorstelTekst, type Verouderd,
 } from "@/lib/kaartVoorstel";
-import { OORDEEL_LABEL } from "@/lib/begrippen";
 import type { KaartVoorstel, TekstWaarde, VoorbeeldOordeel } from "@/lib/types";
 
 const TINT = {
@@ -76,8 +77,8 @@ export function KaartVoorstelKaart({ v, verouderd, onbewaard, geaccordeerd, onOv
       )}
 
       {!isDefinitie(v) && (w as TekstWaarde).oordeel && (
-        <p className="text-xs text-muted">
-          Verwacht oordeel: {OORDEEL_LABEL[(w as TekstWaarde).oordeel!]}
+        <p className="flex items-center gap-1.5 text-xs text-muted">
+          Verwacht oordeel: <OordeelLabel oordeel={(w as TekstWaarde).oordeel!} />
         </p>
       )}
       {!isDefinitie(v) && (w as TekstWaarde).vergelijking && (
@@ -103,14 +104,12 @@ export function KaartVoorstelKaart({ v, verouderd, onbewaard, geaccordeerd, onOv
       {stand === "aanpassen" && (
         <div className="space-y-2">
           {isDefinitie(v) ? (
-            <Textarea value={tekst} onChange={(e) => setTekst(e.target.value)} rows={3} aria-label="Aangepaste definitie" />
+            <AutoTextarea value={tekst} onChange={(e) => setTekst(e.target.value)} rows={3} aria-label="Aangepaste definitie" />
           ) : (
-            <Input value={tekst} onChange={(e) => setTekst(e.target.value)} aria-label="Aangepaste tekst" />
+            <AutoTextarea value={tekst} onChange={(e) => setTekst(e.target.value)} rows={2} aria-label="Aangepaste tekst" />
           )}
           {v.veld === "voorbeelden" && (
-            <Select value={oordeel} onChange={(e) => setOordeel(e.target.value as VoorbeeldOordeel)} aria-label="Verwacht oordeel" className="sm:w-48">
-              {(Object.keys(OORDEEL_LABEL) as VoorbeeldOordeel[]).map((o) => <option key={o} value={o}>{OORDEEL_LABEL[o]}</option>)}
-            </Select>
+            <OordeelKeuze waarde={oordeel ?? "wel"} onKies={setOordeel} label="Verwacht oordeel" naam={`oordeel-voorstel-${v.id}`} />
           )}
           {isDefinitie(v) && tekst.trim() !== v.waarde.definitie && (
             <p className="text-xs text-muted">Een aangepaste definitie wordt “geformuleerd”, door de analist.</p>
