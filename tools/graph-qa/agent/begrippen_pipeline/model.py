@@ -458,6 +458,25 @@ class Fragment(_Vast):
         return self
 
 
+class Duiding(_Vast):
+    """Hoe het model het voorgestelde begrip duidt (spoor M): een interpretatie, geen bewijs. Ze wordt
+    bewaard bij het voorstel en stuurt geen beslisregel aan."""
+
+    soort: str = "begrip"              # begrip | berekeningsresultaat | afleidingsregel | toepassingsgeval
+    bereik: str = "algemeen"           # algemeen | specifiek
+    voorkeursterm: str = ""
+    ontbreekt: str = ""                # bij herkomst geen: wat er ontbreekt om te definiëren
+
+    @model_validator(mode="after")
+    def _waarden(self) -> Duiding:
+        if self.soort not in DUIDING_SOORTEN or self.bereik not in ("algemeen", "specifiek"):
+            raise ValueError("onbekende duiding")
+        return self
+
+
+DUIDING_SOORTEN = ("begrip", "berekeningsresultaat", "afleidingsregel", "toepassingsgeval")
+
+
 class Kaart(_Vast):
     """De concept-kaart bij een groep: een voorstel, nooit een begrip."""
 
@@ -473,6 +492,7 @@ class Kaart(_Vast):
     motivatie: str = ""                # van het model, bij samengesteld/geformuleerd
     aandacht: Aandacht = Aandacht.GEEL
     aandachtspunten: tuple[str, ...] = ()
+    duiding: Duiding | None = None
 
     @model_validator(mode="after")
     def _vorm(self) -> Kaart:

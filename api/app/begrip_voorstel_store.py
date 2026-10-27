@@ -36,7 +36,7 @@ from .begrip_voorstel_contracts import (
     MODEL_ACTIES, VELDEN, KaartRunStart, KaartUitkomst, VoorstelInvoer, VoorstelOvername,
 )
 from .begrippen_run_store import VERLOPEN, _werkgebied
-from .begrippen_verdieping import definitie_fouten, fragment_fouten
+from .begrippen_verdieping import definitie_fouten, fragment_fouten, fragmentruimte
 from .werkgebied_inventaris import nodes_met_titel
 from .werkgebied_store import _audit as werkgebied_audit
 
@@ -204,7 +204,7 @@ async def _toets(invoer: dict, v: VoorstelInvoer, resolve: Resolver) -> list[str
     """De garanties op één voorstel; een lege lijst = in orde."""
     if v.veld not in VELDEN[invoer["actie"]]:
         return ["VELD_HOORT_NIET_BIJ_ACTIE"]
-    manifest = invoer["manifest"]
+    manifest = fragmentruimte(invoer["manifest"], invoer.get("onderzoek"))
     fouten = fragment_fouten(manifest, v.fragmenten)
     d = v.definitie
     if d is None:
@@ -226,7 +226,10 @@ async def _toets(invoer: dict, v: VoorstelInvoer, resolve: Resolver) -> list[str
 
 def _waarde(v: VoorstelInvoer) -> dict:
     if v.definitie is not None:
-        return v.definitie.model_dump(mode="json")
+        uit = v.definitie.model_dump(mode="json")
+        if v.duiding is not None:                     # spoor M: bij het voorstel, niet in het begrip
+            uit["duiding"] = v.duiding.model_dump(mode="json")
+        return uit
     uit = {"tekst": v.tekst.strip(), "fragmenten": [f.model_dump() for f in v.fragmenten]}
     if v.veld == "voorbeelden":
         uit["oordeel"] = v.oordeel.value

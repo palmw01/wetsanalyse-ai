@@ -1,0 +1,41 @@
+# Berekeningspatronen op een term (spoor M, `betekenis.berekening`). Een treffer zegt dat de bepaling
+# de term zelf bewerkt: het resultaat is mogelijk een eigen begrip (een berekeningsresultaat), of het
+# woord is binnen één bepaling een homoniem door een berekening (Wetsanalyse 3a: bijdrage-inkomen in
+# art. 43 lid 3 Zvw). Zo'n treffer is een vraag, nooit een besluit.
+#
+# Velden: id, code, bron, versie, patroon, tests (positief / negatief / rand / overlap – verplicht, zie
+# tests/test_betekenis.py). `{TERM}` is de term (letterlijk, hoofdletterongevoelig), `{LW}` een lidwoord.
+# Een positieve test noemt `term` en de `tekst`; een negatieve test mag niet matchen.
+
+- id: betekenis.berekening.term_bewerkt
+  code: BEREKENING_OP_TERM
+  bron: "Wetsanalyse, stap 3a (homoniem door een berekening)"
+  versie: 1
+  patroon: '(?<!\w){TERM}(?!\w)\s+(?:wordt|worden)\s+(?:\w+\s+){0,6}?(?:op\s+nihil\s+gesteld|verminderd\s+met|vermeerderd\s+met|verhoogd\s+met|verlaagd\s+met|gesteld\s+op|naar\s+evenredigheid\s+verminderd)'
+  tests:
+    positief: [{term: "bijdrage-inkomen", tekst: "Het bijdrage-inkomen wordt verminderd met het bedrag van de aftrek."}]
+    negatief: [{term: "bijdrage-inkomen", tekst: "Het bijdrage-inkomen wordt vastgesteld door de inspecteur."}]
+    rand: [{term: "belasting", tekst: "de belasting wordt in dat geval op nihil gesteld"}]
+    overlap: [{term: "inkomen", tekst: "het inkomen wordt voor de toepassing van dit lid vermeerderd met de rente en verminderd met de kosten"}]
+
+- id: betekenis.berekening.met_term
+  code: BEREKENING_OP_TERM
+  bron: "Wetsanalyse, stap 3a (homoniem door een berekening)"
+  versie: 1
+  patroon: '\b(?:verminderd|vermeerderd|verhoogd|verlaagd)\s+met\s+(?:{LW}\s+)?(?:\w+\s+){0,3}?(?<!\w){TERM}(?!\w)'
+  tests:
+    positief: [{term: "premie", tekst: "Het loon wordt verminderd met de verschuldigde premie."}]
+    negatief: [{term: "premie", tekst: "De premie is verschuldigd over het loon."}]
+    rand: [{term: "belastingrente", tekst: "het bedrag vermeerderd met belastingrente"}]
+    overlap: [{term: "aftrek", tekst: "verminderd met de aftrek en vermeerderd met de bijtelling"}]
+
+- id: betekenis.berekening.niet_hoger
+  code: BEREKENING_OP_TERM
+  bron: "Wetsanalyse, stap 3a (homoniem door een berekening)"
+  versie: 1
+  patroon: '(?<!\w){TERM}(?!\w)\s+(?:\w+\s+){0,6}?(?:tot\s+geen\s+hoger\s+bedrag|ten\s+hoogste|niet\s+meer\s+dan)\b'
+  tests:
+    positief: [{term: "vergoeding", tekst: "De vergoeding bedraagt ten hoogste het bedrag van de kosten."}]
+    negatief: [{term: "vergoeding", tekst: "Er wordt een vergoeding toegekend."}]
+    rand: [{term: "teruggaaf", tekst: "de teruggaaf wordt tot geen hoger bedrag verleend dan de betaalde belasting"}]
+    overlap: [{term: "rente", tekst: "de rente bedraagt ten hoogste het verschil en niet meer dan de belasting"}]

@@ -184,3 +184,33 @@ async def test_de_vorm_van_het_onderzoek_is_die_van_de_keten():
     assert sorted(uit) == ONDERZOEK["velden"]["onderzoek"]
     assert all(sorted(b) == ONDERZOEK["velden"]["contextbron"] for b in uit["bronnen"])
     assert all(sorted(b) == ONDERZOEK["velden"]["begrip"] for b in uit["begrippen"])
+
+
+# --- de garanties en de duiding (M2) --------------------------------------------------------------
+
+def test_een_fragment_uit_een_contextbron_doorstaat_de_garanties():
+    from app.begrippen_run_contracts import KaartFragment
+    from app.begrippen_verdieping import fragment_fouten, fragment_id, fragmentruimte
+    m, mid = _manifest("A")
+    lid1 = next(n for n in CASUS["nodes"] if n["bron_iri"] == f"{A}:lid:1")
+    tekst = "Bij herziening van een voorlopige aanslag"
+    fid = fragment_id(lid1["bron_iri"], 0, len(tekst))
+    fr = KaartFragment(id=fid, bron_iri=lid1["bron_iri"], start=0, eind=len(tekst), tekst=tekst)
+    assert fragment_fouten(m, [fr]) == ["FRAGMENT_ONBEKEND"]
+    onderzoek = {"bronnen": [{"bron_iri": lid1["bron_iri"], "tekst": lid1["tekst"]}]}
+    assert fragment_fouten(fragmentruimte(m, onderzoek), [fr]) == []
+    assert fragmentruimte(m, None) is m
+
+
+def test_een_definitievoorstel_draagt_zijn_duiding():
+    from app.begrip_voorstel_contracts import VoorstelInvoer
+    from app.begrip_voorstel_store import _waarde
+    v = VoorstelInvoer.model_validate({
+        "veld": "definitie", "aandacht": "geel",
+        "definitie": {"definitie": "x", "herkomst": "letterlijk", "definitie_bron_iri": "urn:bwb:BWBR1:artikel:1"},
+        "duiding": {"soort": "toepassingsgeval", "bereik": "specifiek", "voorkeursterm": "herziening naar positief"}})
+    assert _waarde(v)["duiding"] == {"soort": "toepassingsgeval", "bereik": "specifiek",
+                                     "voorkeursterm": "herziening naar positief", "ontbreekt": ""}
+    with pytest.raises(ValueError):
+        VoorstelInvoer.model_validate({"veld": "definitie", "definitie": {"definitie": "x", "herkomst": "letterlijk",
+                                       "definitie_bron_iri": "u"}, "duiding": {"soort": "verzonnen"}})

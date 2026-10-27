@@ -98,7 +98,7 @@ async def begrippen_stroom(werkgebied_id: str, api_run_id: str, run: Run, *, set
         def melding(fase: str, samenvatting: str, ms: int) -> None:
             lus.call_soon_threadsafe(wachtrij.put_nowait, _status(f"{fase}: {samenvatting} ({ms} ms)"))
 
-        taak = asyncio.ensure_future(asyncio.to_thread(analyseer, manifest, provider, melding))
+        taak = asyncio.ensure_future(asyncio.to_thread(analyseer, manifest, provider, melding, onderzoek))
         while not taak.done() or not wachtrij.empty():
             try:
                 yield await asyncio.wait_for(wachtrij.get(), timeout=0.2)

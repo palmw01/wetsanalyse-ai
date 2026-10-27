@@ -27,7 +27,7 @@
   - api `begrip_onderzoek.py`, met opslag en identiteit (§1, §2);
   - de verwijzingsquery in bronmodel;
   - tests.
-- [ ] **M2** (`spoor-m2-betekenisanalyse`):
+- [x] **M2** (`spoor-m2-betekenisanalyse`):
   - `betekenis.py`;
   - signalen (contextdefinitie, `BEREKENING_IN_BEPALING`);
   - prompt, schema en toetsen van kaart en scherper (§3–§5);
@@ -61,6 +61,21 @@
   `werkvoorraad_id` van het meedenken.
 - **M1, versies**: `fragmenten.VERSIE` blijft 1 tot M2 het onderzoek echt aan de prompts geeft; zonder
   onderzoek is de fragmentkeuze bitgelijk (getest).
+
+- **M2, dossier zonder onderzoek**: de kaart en *scherper* bouwen het dossier altijd, ook zonder
+  onderzoek (een run van vóór spoor M). Dan zegt het "alleen de bepalingen met de passages onderzocht"
+  en krijgt een geformuleerde definitie `CONTEXT_NIET_ONDERZOCHT`. De **keten** (groepen, vragen) is
+  zonder onderzoek bitgelijk: `begrippen_eval --variant keten` geeft op v1, heldout-v1 en heldout-v2
+  exact het rapport van de nulmeting (`metingen/betekenisonderzoek-2026-10-28/m2-keten-*.json`).
+- **M2, kwalificatie**: "geldt als X:" staat niet in `definities._definitie` (dat zou de keten raken),
+  maar in het dossier (`betekenis._KWALIFICATIE`). De keten kent de kwalificatie al als relatiepatroon.
+- **M2, `ROL_IN_BEPALING`**: alleen *voorwaarde* (bij/indien/ingeval … vóór de passage) en *grondslag
+  van een berekening*. Een rechtsgevolg aan de passage zelf herkennen vraagt de zinsbouw; de toets
+  `RECHTSGEVOLG_IN_DEFINITIE` kijkt naar de definitie, en daar zit het probleem.
+- **M2, frontend**: de nieuwe codes van `toetsen.TEKST` staan al in `frontend/lib/begripVoorstellen.ts`,
+  want de drift-test eist het per PR; de weergave (§9) volgt in M4.
+- **M2, `BEREKENING_IN_BEPALING`**: de patronen staan in `begrippen_pipeline/betekenisregels/berekening.yaml`
+  (niet in `regels/`: dat register eist groepen `van`/`naar`), met dezelfde vier testsoorten.
 
 Werkwijze per PR:
 
