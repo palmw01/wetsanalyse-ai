@@ -265,3 +265,16 @@ async def test_verwijderen_van_het_werkgebied_wist_de_voortgang(client):
     assert r.status_code == 200, r.text
     async with db.get_engine().connect() as conn:
         assert (await conn.execute(select(db.bronselectie_voortgang))).all() == []
+
+
+def test_een_kaartje_van_de_bronselectie_houdt_zijn_deelvraag_en_de_intake_verandert_niet():
+    from app.gesprek_contracts import Artefact, IntakeAntwoord, Vraagkaart
+
+    basis = {"intake_id": "bs-wg1", "stap": "bs_bepalingen", "nr": 2, "totaal": 4, "vraag": "Welke bepalingen?"}
+    k = Vraagkaart(**basis, modus="bronselectie", deelvraag_id="d2").model_dump()
+    assert (k["modus"], k["deelvraag_id"]) == ("bronselectie", "d2")
+    intake = Vraagkaart(intake_id="i1", stap="naam", nr=1, totaal=10, vraag="Hoe heet het?").model_dump()
+    assert "deelvraag_id" not in intake
+    assert IntakeAntwoord(intake_id="bs-wg1", stap="bs_kies", deelvraag_id="d1").model_dump()["deelvraag_id"] == "d1"
+    assert "deelvraag_id" not in IntakeAntwoord(intake_id="i1", stap="naam").model_dump()
+    assert Artefact(soort="bronselectie", ref={"werkgebied_id": "wg1"}).soort == "bronselectie"

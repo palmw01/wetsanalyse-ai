@@ -14,7 +14,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_serializer, model_validator
 
 
 class Rol(str, Enum):
@@ -43,9 +43,10 @@ class Artefact(BaseModel):
     run_id}`; werkgebied (een werkgebied dat Lex in het gesprek samenstelde, activiteit 1):
     `{werkgebied_id}`; deelvraag (één deelvraag, F3d): `{werkgebied_id, deelvraag_id}`; begrip (één begrip,
     F3d): `{werkgebied_id, begrip_id, kaart_run_id?, actie?}` – bewaarde berichten van vóór F3d dragen
-    dat als begrippen mét `begrip_id`; regels: nog niet in gebruik (gereserveerd)."""
+    dat als begrippen mét `begrip_id`; bronselectie (de bronselectie per deelvraag, spoor J): `{werkgebied_id,
+    deelvraag_id?}`; regels: nog niet in gebruik (gereserveerd)."""
 
-    soort: Literal["annotatie", "begrippen", "bronnen", "werkgebied", "deelvraag", "begrip", "regels"]
+    soort: Literal["annotatie", "begrippen", "bronnen", "werkgebied", "deelvraag", "begrip", "bronselectie", "regels"]
     ref: dict
     titel: str = Field(default="", max_length=300)
 
@@ -54,7 +55,7 @@ class Artefact(BaseModel):
         nodig = {"annotatie": ("bron_iri",), "begrippen": ("werkgebied_id", "run_id"),
                  "bronnen": ("werkgebied_id", "run_id"), "werkgebied": ("werkgebied_id",),
                  "deelvraag": ("werkgebied_id", "deelvraag_id"), "begrip": ("werkgebied_id", "begrip_id"),
-                 "regels": ()}[self.soort]
+                 "bronselectie": ("werkgebied_id",), "regels": ()}[self.soort]
         if self.soort == "begrippen" and self.ref.get("begrip_id"):
             nodig = ("werkgebied_id", "begrip_id")
         ontbreekt = [k for k in nodig if not isinstance(self.ref.get(k), str) or not self.ref.get(k)]
@@ -91,6 +92,15 @@ class Bevestiging(BaseModel):
     deelvraag_id: str = Field(default="", pattern=r"^[A-Za-z0-9-]{0,64}$")
 
 
+def _zonder_lege_deelvraag(self, handler):
+    """Een lege `deelvraag_id` (alles buiten de bronselectie) valt weg: zo blijft een kaartje van de intake,
+    en elk bewaard bericht, precies zoals het was."""
+    data = handler(self)
+    if isinstance(data, dict) and not data.get("deelvraag_id"):
+        data.pop("deelvraag_id", None)
+    return data
+
+
 class VraagOptie(BaseModel):
     """Eén voorstel op een vraagkaart. `bron` draagt bij een regeling of onderdeel waar het in de graaf
     staat (`{bwb_id, iri?, label?}`): zo'n optie komt uit de graaf, nooit uit het model."""
@@ -105,7 +115,9 @@ class VraagOptie(BaseModel):
 # De stappen van het samenstellen, in de volgorde van graph-qa (`agent/werkgebied_intake.STAPPEN`):
 # startactiviteit a, dan activiteit 1 – de bronnen pas als vraag en deelvragen er zijn (Handleiding 1f).
 IntakeStap = Literal["naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld", "thema",
-                     "deelvragen", "buiten", "regelingen", "bepalingen", "samenvatting"]
+                     "deelvragen", "buiten", "regelingen", "bepalingen", "samenvatting",
+                     # De bronselectie per deelvraag (spoor J): dezelfde kaartjes, de stand staat bij de api.
+                     "bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder"]
 
 
 class IntakeDeel(BaseModel):
@@ -131,7 +143,10 @@ class Vraagkaart(BaseModel):
     het dossier, en de samenvatting draagt `{wijzigingen: [{veld, label, toen, nu}]}` met *Opslaan*."""
 
     intake_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
-    modus: Literal["samenstellen", "aanvullen"] = "samenstellen"
+    # `bronselectie` (spoor J): de kaartjes van de bronselectie per deelvraag; `intake_id` is dan
+    # `bs-<werkgebied>` en `deelvraag_id` de deelvraag waar het kaartje over gaat.
+    modus: Literal["samenstellen", "aanvullen", "bronselectie"] = "samenstellen"
+    deelvraag_id: str = Field(default="", pattern=r"^[A-Za-z0-9-]{0,64}$")
     soort: Literal["vraag", "samenvatting"] = "vraag"
     stap: IntakeStap
     # Negen vaste stappen plus één kaart per deelvraag (hoogstens twintig).
@@ -153,6 +168,8 @@ class Vraagkaart(BaseModel):
     terug: bool = False
     beantwoord: bool = False
 
+    _serialiseer = model_serializer(mode="wrap")(_zonder_lege_deelvraag)
+
 
 class BevestigingAntwoord(BaseModel):
     """Op het user-bericht dat een `bevestiging` beantwoordt: gestart (de knop) of geannuleerd. Daaraan
@@ -169,6 +186,9 @@ class IntakeAntwoord(BaseModel):
     stap: IntakeStap
     deel: int | None = Field(default=None, ge=0, le=19)
     actie: Literal["antwoord", "overslaan", "wijzig", "aanmaken", "opslaan", "afbreken"] = "antwoord"
+    deelvraag_id: str = Field(default="", pattern=r"^[A-Za-z0-9-]{0,64}$")
+
+    _serialiseer = model_serializer(mode="wrap")(_zonder_lege_deelvraag)
 
 
 class Bericht(BaseModel):

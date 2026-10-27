@@ -69,7 +69,8 @@ class IntakeActie(BaseModel):
 
     intake_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
     stap: Literal["naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld", "thema", "deelvragen",
-                  "buiten", "regelingen", "bepalingen", "samenvatting"]
+                  "buiten", "regelingen", "bepalingen", "samenvatting",
+                  "bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder"]
     # Bij de bepalingen: het kaartje van welke deelvraag (0-based); een ander deel is een oud kaartje.
     deel: int = Field(default=0, ge=0, le=19)
     # `aanmaken` sluit het samenstellen af, `opslaan` het aanvullen van een bestaand werkgebied.
@@ -81,6 +82,12 @@ class IntakeActie(BaseModel):
     # Bij `wijzig`: naar welke stap, en bij de bepalingen naar welk deel.
     naar: str = ""
     naar_deel: int = Field(default=0, ge=0, le=19)
+    # De bronselectie (spoor J, `intake_id` `bs-…`): de deelvraag van het kaartje.
+    deelvraag_id: str = Field(default="", pattern=r"^[A-Za-z0-9-]{0,64}$")
+
+    @property
+    def is_bronselectie(self) -> bool:
+        return self.intake_id.startswith("bs-")
 
 
 # Routes op een werkgebied die in werkgebied en gesprek schrijven; alleen via `POST /v1/runs`.
@@ -136,9 +143,13 @@ ACTIE_TAAK: dict[str, tuple[str, str]] = {
 # Een actie die geen taak van een agent is: het dossier van het werkgebied aanvullen loopt via de
 # werkgebied-worker (de vraagkaarten van de intake). Welk veld, leest de worker uit de vraag.
 INTAKE_ACTIES = ("dossier_aanvullen",)
+# De bronselectie per deelvraag (spoor J) beginnen of hervatten: de bronselectie-worker, op de stand die de
+# api bewaart. Ook geen taak van een agent.
+BRONSELECTIE_ACTIES = ("bronselectie",)
 Actie = Literal["werkgebied_annoteren", "deelvragen_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
                 "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie",
-                "scherper", "uitleg", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen"]
+                "scherper", "uitleg", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen",
+                "bronselectie"]
 # Acties die eerst om een bevestiging vragen; alleen daar hoort `bevestigd` bij.
 BEVESTIG_ACTIES = ("werkgebied_annoteren", "deelvragen_annoteren", "begrippen_meedenken")
 
