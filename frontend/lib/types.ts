@@ -965,30 +965,21 @@ export type BegripStatus = "concept" | "geaccordeerd" | "vervangen";
 export interface Voorbeeld {
   tekst: string;
   oordeel: VoorbeeldOordeel;
-  toelichting: string;
 }
 
-/** Werkindeling (PLAN §D), geen JAS-klasse. */
-export type Begripstype = "entiteit" | "actor" | "toestand" | "gebeurtenis" | "eigenschap" | "relatie";
-
+/** Het begrip volgens NL-SBB (spoor I1): term, definitie, uitleg, toelichting (`context`) en voorbeelden. */
 export interface BegripInhoud {
   naam: string;
   alternatieve_termen: string[];
+  /** NL-SBB `skos:scopeNote`; in beeld *Toelichting*. */
   context: string;
-  /** Leeg = nog niet ingedeeld. Oudere begrippen hebben het veld niet. */
-  begripstype?: Begripstype | "";
-  jas_klasse: string;
-  jas_subtype: string;
-  geldigheid: string;
   definitie: string;
+  /** De api rekent herkomst en `definitie_door`, nooit de client. Oudere begrippen missen `definitie_door`. */
   definitie_herkomst: DefinitieHerkomst | null;
-  /** Wie de definitie voorstelde (fase E); de api zet het, nooit de client. Oudere begrippen missen het. */
   definitie_door?: "" | "analist" | "lex";
+  /** NL-SBB `rdfs:comment`: uitleg in eenvoudige taal. */
   uitleg: string;
-  onderbouwing: string;
   voorbeelden: Voorbeeld[];
-  eigenschappen: Record<string, string>;
-  open_vragen: string[];
 }
 
 /** De bewaarde bewijsstand van een passage: zo zag het element eruit toen het gekoppeld werd. */
@@ -1289,8 +1280,6 @@ export interface ConceptKaart {
   groep_id: string;
   naam: string;
   alternatieve_termen: string[];
-  begripstype: Begripstype | null;
-  begripstype_door: "regel" | "model" | "";
   context: string;
   definitie: string;
   herkomst: DefinitieHerkomst | null;
@@ -1342,9 +1331,7 @@ export interface Betekenisgroep {
 /** Wat de jurist bij een akkoord anders wil dan het voorstel (api `Aanpassing`). */
 export interface Aanpassing {
   definitie?: string;
-  definitie_herkomst?: DefinitieHerkomst;
   context?: string;
-  begripstype?: Begripstype | "";
   alternatieve_termen?: string[];
 }
 
@@ -1429,7 +1416,8 @@ export interface GroepenAntwoord {
 // --- Lex naast de kaart (spoor D, fase E) ------------------------------------------------------
 
 export type KaartActie = "brondefinitie" | "scherper" | "betekenisverschil" | "voorbeelden";
-export type KaartVeld = "definitie" | "uitleg" | "open_vragen" | "voorbeelden";
+/** `context` is het veld toelichting (NL-SBB `skos:scopeNote`). */
+export type KaartVeld = "definitie" | "uitleg" | "context" | "voorbeelden";
 export type VindplaatsSoort = "" | "werkgebied" | "regeling" | "definitieverwijzing" | "elders";
 
 /** Een definitie zoals Lex haar voorstelt (`api/app/begrip_voorstel_contracts.DefinitieWaarde`). */
@@ -1442,12 +1430,11 @@ export interface DefinitieWaarde {
   vindplaats_soort: VindplaatsSoort;
 }
 
-/** De waarde van een voorstel voor uitleg, een open vraag of een voorbeeld. */
+/** De waarde van een voorstel voor uitleg, toelichting of een voorbeeld. */
 export interface TekstWaarde {
   tekst: string;
   fragmenten: KaartFragment[];
   oordeel?: VoorbeeldOordeel;
-  toelichting?: string;
   vergelijking?: "zelfde_betekenis" | "verwant" | "verschil" | "onbeslist";
 }
 

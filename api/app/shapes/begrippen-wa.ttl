@@ -22,7 +22,6 @@ wav:BegripShape a sh:NodeShape ;
                 sh:message "Een begrip heeft precies één revisie (≥ 1)." ] ;
   sh:property [ sh:path wa:definitieHerkomst ; sh:maxCount 1 ; sh:in ( "letterlijk" "samengesteld" "geformuleerd" ) ] ;
   sh:property [ sh:path wa:definitieDoor ; sh:maxCount 1 ; sh:in ( "analist" "lex" ) ] ;
-  sh:property [ sh:path wa:jasKlasse ; sh:nodeKind sh:IRI ; sh:maxCount 1 ; sh:pattern "^urn:jas-ns:klasse:" ] ;
   sh:property [ sh:path wa:koppeling ; sh:class wa:Koppeling ] ;
   # Een definitie zonder herkomst is schijnzekerheid: zeg waar ze vandaan komt.
   sh:sparql [

@@ -17,17 +17,17 @@ import { metSpoor } from "@/lib/uiSpoor";
 import { verwijderdUit, verwijderdZin, type Verwijderd } from "@/lib/verwijderen";
 import { VELD_LABEL, definitieDoor, openPerVeld, verouderdUit, type Verouderd } from "@/lib/kaartVoorstel";
 import { relatieZin } from "@/lib/begripRelaties";
-import { HERKOMST_LABEL, OORDEEL_LABEL, definitieAard, handmatigeInhoud } from "@/lib/begrippen";
+import { OORDEEL_LABEL, definitieAard, handmatigeInhoud } from "@/lib/begrippen";
 import { BEGRIP_STATUS_LABEL } from "@/lib/begrippenOverzicht";
 import type { Begrip, KaartVeld, KaartVoorstel, KaartVoorstellenAntwoord, RelatiesAntwoord } from "@/lib/types";
 import { isRevisieConflict } from "@/lib/werkgebied";
 
-const VELDEN: KaartVeld[] = ["definitie", "uitleg", "voorbeelden", "open_vragen"];
+const VELDEN: KaartVeld[] = ["definitie", "uitleg", "context", "voorbeelden"];
 const STATUS_TOON = { geaccordeerd: "groen", concept: "neutraal", vervangen: "neutraal" } as const;
 
 /** Eén begrip naast het gesprek (F3d): wat Lex voor dit begrip opleverde, om te beoordelen.
  *
- *  - een rustige leesweergave: naam, status, termen, definitie met herkomst, uitleg, voorbeelden, en de
+ * *  - een rustige leesweergave: naam, status, termen, definitie met haar label, uitleg, toelichting, voorbeelden, en de
  *    relaties ingeklapt;
  *  - de open voorstellen van Lex per veld, met *Overnemen · Aanpassen · Afwijzen* (`KaartVoorstelKaart`,
  *    dezelfde als op de begripskaart);
@@ -244,15 +244,16 @@ export function BegripPaneel({ werkgebiedId, begripId, onOnbewaard, onNaarBegrip
                 <span className="mt-1 block text-xs font-medium text-ink" data-definitie-aard={definitieAard(b).soort}>
                   {definitieAard(b).titel}
                 </span>
-                <span className="mt-0.5 block text-xs text-muted">
-                  {[b.definitie_herkomst ? HERKOMST_LABEL[b.definitie_herkomst] : "", definitieDoor(b)].filter(Boolean).join(" · ")}
-                </span>
+                {definitieDoor(b) && <span className="mt-0.5 block text-xs text-muted">{definitieDoor(b)}</span>}
               </>
             ) : <span className="text-muted">Nog geen definitie.</span>}
           </Regel>
           <Regel naam="Uitleg">
             {b.uitleg ? <span className="whitespace-pre-line">{b.uitleg}</span> : <span className="text-muted">Nog geen uitleg.</span>}
           </Regel>
+          {b.context && (
+            <Regel naam="Toelichting"><span className="whitespace-pre-line">{b.context}</span></Regel>
+          )}
           <Regel naam={`Voorbeelden (${b.voorbeelden.length})`}>
             {b.voorbeelden.length ? (
               <ul className="space-y-1">

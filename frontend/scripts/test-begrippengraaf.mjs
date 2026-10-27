@@ -51,13 +51,13 @@ const begripSamenhang = {
   relaties: [relatie("r1", "b1", "b2", "hierarchie", "akkoord", "analist")],
   voorstellen: [relatie("R2", "b2", "b1", "kwalificatie", "voorgesteld", "lex")],
 };
-const LEEG = { naam: "", alternatieve_termen: [], context: "", jas_klasse: "", jas_subtype: "", geldigheid: "", definitie: "",
-  definitie_herkomst: null, definitie_door: "", uitleg: "", onderbouwing: "", voorbeelden: [], eigenschappen: {}, open_vragen: [] };
+const LEEG = { naam: "", alternatieve_termen: [], context: "", definitie: "",
+  definitie_herkomst: null, definitie_door: "", uitleg: "", voorbeelden: []  };
 const begrip = (id, naam, status, definitie) => ({ id, iri: `urn:wa:begrip:${id}`, werkgebied_id: "wg1", kader_iri: "urn:wa:kader:wg1",
   status, revisie: 3, inhoud: { ...LEEG, naam, definitie, definitie_herkomst: definitie ? "letterlijk" : null },
   aangemaakt_door: "t", aangemaakt: nu, gewijzigd: nu, geaccordeerd_door: status === "geaccordeerd" ? "jurist-a" : null,
   geaccordeerd_op: status === "geaccordeerd" ? nu : null, geaccordeerd_revisie: null, koppelingen: [],
-  accorderen: { mag: false, redenen: ["De context ontbreekt."] }, aandachtspunten: [], vervangen_door: null, vervangt: [] });
+  accorderen: { mag: false, redenen: ["De toelichting ontbreekt."] }, aandachtspunten: [], vervangen_door: null, vervangt: [] });
 const begrippen = { b1: begrip("b1", "belastingaanslag", "geaccordeerd", "De aanslag die de inspecteur vaststelt."),
   b2: begrip("b2", "navorderingsaanslag", "concept", "") };
 const DEF = "http://www.w3.org/2004/02/skos/core#definition";

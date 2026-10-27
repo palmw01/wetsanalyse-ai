@@ -37,9 +37,8 @@ const wg = { id: "wg1", naam: "Termijnen", analysevraag: "", afbakening: "", pei
   aangemaakt_door: "t", aangemaakt: nu, gewijzigd: nu, gearchiveerd: null,
   bronnen: [{ id: "s1", bron_iri: `${IW}:artikel:9`, label: "Artikel 9", rol: "analyseren", bereik: "onderliggend", reden: "",
     bwb_id: "BWBR0004770", snapshot_id: "s", bron_hash: "h", toegevoegd_door: "t", toegevoegd: nu }] };
-const LEEG = { naam: "", alternatieve_termen: [], context: "Invordering.", jas_klasse: "", jas_subtype: "", geldigheid: "",
-  definitie: "Degene die de belasting verschuldigd is.", definitie_herkomst: "samengesteld", definitie_door: "analist", uitleg: "",
-  onderbouwing: "", voorbeelden: [], eigenschappen: {}, open_vragen: [] };
+const LEEG = { naam: "", alternatieve_termen: [], context: "Invordering.", definitie: "Degene die de belasting verschuldigd is.", definitie_herkomst: "samengesteld", definitie_door: "analist", uitleg: "",
+  voorbeelden: []  };
 const bewijs = (tekst, iri) => ({ tekst, klasse: "Rechtssubject", ankers: [{ bron_iri: iri, start: 0, eind: tekst.length, tekst }],
   eigenaar_iri: iri, laag_id: "l", snapshot_id: "s", lifecycle: "human_approved",
   vindplaats: iri === LID1 ? "Artikel 9 · Lid 1" : "Artikel 9 · Lid 2", element_hash: "h" });

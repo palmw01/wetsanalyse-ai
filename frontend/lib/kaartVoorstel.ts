@@ -43,7 +43,7 @@ export const VERGELIJKING_LABEL: Record<NonNullable<TekstWaarde["vergelijking"]>
 export const VELD_LABEL: Record<KaartVeld, string> = {
   definitie: "Definitie",
   uitleg: "Uitleg",
-  open_vragen: "Open vraag",
+  context: "Toelichting",
   voorbeelden: "Voorbeeld",
 };
 
@@ -77,7 +77,7 @@ export function definitieDoor(inhoud: Begrip["inhoud"]): string {
 
 /** De open voorstellen per veld, in de volgorde van de api (nieuwste run eerst, dan de volgorde van Lex). */
 export function openPerVeld(voorstellen: readonly KaartVoorstel[]): Record<KaartVeld, KaartVoorstel[]> {
-  const uit: Record<KaartVeld, KaartVoorstel[]> = { definitie: [], uitleg: [], open_vragen: [], voorbeelden: [] };
+  const uit: Record<KaartVeld, KaartVoorstel[]> = { definitie: [], uitleg: [], context: [], voorbeelden: [] };
   for (const v of voorstellen) if (v.status === "open") uit[v.veld].push(v);
   return uit;
 }

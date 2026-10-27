@@ -46,7 +46,7 @@ const groep = (id, leden, over = {}) => ({ id, aandacht: "groen", voorstel: { na
 let verdiept = false;
 const groepen = () => verdiept
   ? [groep("G1", [P("e1", "aanslagbiljet"), P("e2", "het aanslagbiljet")], { aandacht: "geel", door: "regel",
-      kaart: { groep_id: "G1", naam: "aanslagbiljet", alternatieve_termen: [], begripstype: "entiteit", begripstype_door: "regel",
+      kaart: { groep_id: "G1", naam: "aanslagbiljet", alternatieve_termen: [], 
         context: "Komt voor in Artikel 9 · Lid 1 – IW 1990.", definitie: "Het document waarmee de aanslag wordt bekendgemaakt.",
         herkomst: "geformuleerd", definitie_bron_iri: "", definitie_vindplaats: "", fragmenten: [fr], motivatie: "Uit lid 1.",
         aandacht: "geel", aandachtspunten: ["DOOR_LEX_GEFORMULEERD"] } }),

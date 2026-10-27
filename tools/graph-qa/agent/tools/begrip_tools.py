@@ -203,8 +203,7 @@ def _koppeling(k: dict[str, Any]) -> dict[str, Any]:
 def compact_begrip(result: dict[str, Any]) -> dict[str, Any]:
     b, wg = result.get("begrip") or {}, result.get("werkgebied") or {}
     i = b.get("inhoud") or {}
-    velden = ("naam", "alternatieve_termen", "begripstype", "definitie", "definitie_herkomst", "definitie_door",
-              "context", "uitleg", "geldigheid", "jas_klasse")
+    velden = ("naam", "alternatieve_termen", "definitie", "definitie_herkomst", "definitie_door", "context", "uitleg")
     uit: dict[str, Any] = {"status": "ok", "volledig": True, "id": b.get("id", ""), "begrip_status": b.get("status", ""),
                            "revisie": b.get("revisie"), "werkgebied": wg.get("naam", ""), "werkgebied_id": wg.get("id", ""),
                            **{k: i[k] for k in velden if i.get(k)}}

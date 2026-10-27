@@ -63,7 +63,7 @@ it("samenOvername neemt beide passages en de open groep van een ervan", async ()
 // --- de verdieping (fase C) ---------------------------------------------------------------------
 
 const kaart = (over: Partial<ConceptKaart> = {}): ConceptKaart => ({
-  groep_id: "G1", naam: "aanslag", alternatieve_termen: [], begripstype: "entiteit", begripstype_door: "regel",
+  groep_id: "G1", naam: "aanslag", alternatieve_termen: [],
   context: "", definitie: "", herkomst: null, definitie_bron_iri: "", definitie_vindplaats: "", fragmenten: [],
   motivatie: "", aandacht: "geel", aandachtspunten: [], ...over,
 });
@@ -136,23 +136,18 @@ describe("akkoordVoor en samenAkkoord", () => {
 });
 
 describe("aanpassingUit en herkomstNaAanpassing", () => {
-  const voorstel = { definitie: "de eerste", herkomst: "letterlijk" as const, context: "", begripstype: "" as const };
+  const voorstel = { definitie: "de eerste", context: "" };
   it("ongewijzigd is geen aanpassing", () => {
-    expect(aanpassingUit(voorstel, { ...voorstel, herkomst: null })).toEqual({});
+    expect(aanpassingUit(voorstel, { ...voorstel })).toEqual({});
   });
   it("alleen wat veranderde gaat mee", () => {
-    expect(aanpassingUit(voorstel, { ...voorstel, herkomst: null, definitie: "de tweede", begripstype: "actor" }))
-      .toEqual({ definitie: "de tweede", begripstype: "actor" });
+    expect(aanpassingUit(voorstel, { ...voorstel, definitie: "de tweede" })).toEqual({ definitie: "de tweede" });
   });
-  it("een gekozen herkomst neemt de tekst mee", () => {
-    expect(aanpassingUit(voorstel, { ...voorstel, herkomst: "geformuleerd" })).toEqual({ definitie: "de eerste", definitie_herkomst: "geformuleerd" });
-  });
-  it("een andere tekst is geformuleerd, tenzij letterlijk gekozen", () => {
+  it("een andere tekst is geformuleerd; de herkomst kiest niemand", () => {
     const oud = { tekst: "de eerste", herkomst: "letterlijk" as const };
-    expect(herkomstNaAanpassing(oud, "de eerste", null)).toBe("letterlijk");
-    expect(herkomstNaAanpassing(oud, "de tweede", null)).toBe("geformuleerd");
-    expect(herkomstNaAanpassing(oud, "de tweede", "letterlijk")).toBe("letterlijk");
-    expect(herkomstNaAanpassing(oud, " ", null)).toBeNull();
-    expect(herkomstNaAanpassing({ tekst: "", herkomst: null }, "eigen", null)).toBe("geformuleerd");
+    expect(herkomstNaAanpassing(oud, "de eerste")).toBe("letterlijk");
+    expect(herkomstNaAanpassing(oud, "de tweede")).toBe("geformuleerd");
+    expect(herkomstNaAanpassing(oud, " ")).toBeNull();
+    expect(herkomstNaAanpassing({ tekst: "", herkomst: null }, "eigen")).toBe("geformuleerd");
   });
 });

@@ -98,10 +98,8 @@ def poort(inhoud: dict, koppelingen: list[dict]) -> dict:
     redenen = []
     if not inhoud.get("definitie", "").strip():
         redenen.append("Er is nog geen definitie.")
-    if not inhoud.get("definitie_herkomst"):
-        redenen.append("De herkomst van de definitie is niet gekozen.")
     if not inhoud.get("context", "").strip():
-        redenen.append("De context ontbreekt.")
+        redenen.append("De toelichting ontbreekt.")
     dragend = [k for k in koppelingen if k["rol"] in DRAGEND and k["beoordeling"] != "afgewezen"]
     if not any(k["rol"] == "duiding" for k in dragend):
         redenen.append("Er is nog geen passage die dit begrip aanduidt.")
@@ -166,7 +164,7 @@ def _begrip(row, koppelingen: list[dict], opvolging: dict | None = None) -> dict
     o = (opvolging or {}).get(row.id, {})
     return {"id": row.id, "iri": begrip_iri(row.id), "werkgebied_id": row.werkgebied_id,
             "kader_iri": kader_iri(row.werkgebied_id), "status": row.status, "revisie": row.revisie,
-            "inhoud": row.inhoud, "aangemaakt_door": row.aangemaakt_door,
+            "inhoud": slank(row.inhoud), "aangemaakt_door": row.aangemaakt_door,
             "aangemaakt": db.aware(row.aangemaakt).isoformat(), "gewijzigd": db.aware(row.gewijzigd).isoformat(),
             "geaccordeerd_door": row.geaccordeerd_door,
             "geaccordeerd_op": db.aware(row.geaccordeerd_op).isoformat() if row.geaccordeerd_op else None,
@@ -377,23 +375,39 @@ async def _koppel(conn, werkgebied_id: str, begrip_id: str, bewijs: dict[str, di
     return nieuw
 
 
-def met_door(oud: dict | None, nieuw: dict) -> dict:
-    """`definitie_door` rekent de api, nooit de client: een ongewijzigde definitie houdt wie ze
-    voorstelde, een nieuwe of andere tekst (of herkomst) is van de analist, geen definitie = leeg."""
-    if not (nieuw.get("definitie") or "").strip():
-        door = ""
-    elif oud is not None and (oud.get("definitie"), oud.get("definitie_herkomst")) == \
-            (nieuw.get("definitie"), nieuw.get("definitie_herkomst")):
-        door = oud.get("definitie_door") or ""
+#: Wat een begrip vóór spoor I1 nog meer droeg; het valt bij het lezen weg (er staat geen te behouden
+#: data op Azure, dus geen migratie).
+VERVALLEN = ("jas_klasse", "jas_subtype", "begripstype", "geldigheid", "eigenschappen", "onderbouwing",
+             "open_vragen")
+
+
+def slank(inhoud: dict) -> dict:
+    """De inhoud zonder de velden die vervielen, en voorbeelden zonder toelichting."""
+    uit = {k: v for k, v in (inhoud or {}).items() if k not in VERVALLEN}
+    if "voorbeelden" in uit:
+        uit["voorbeelden"] = [{k: v for k, v in x.items() if k != "toelichting"} for x in uit["voorbeelden"] or []]
+    return uit
+
+
+def met_afgeleid(oud: dict | None, nieuw: dict) -> dict:
+    """Herkomst en `definitie_door` rekent de api, nooit de client (spoor I1: geen keuzerondjes meer).
+    Een ongewijzigde definitie houdt haar herkomst en wie ze voorstelde; een nieuwe of andere tekst is
+    door de analist geformuleerd; geen definitie = geen herkomst. Letterlijk wordt een definitie alleen
+    door een overgenomen brondefinitie (`begrip_voorstel_store`, het akkoord in `begrippen_run_store`)."""
+    tekst = (nieuw.get("definitie") or "").strip()
+    if not tekst:
+        herkomst, door = None, ""
+    elif oud is not None and (oud.get("definitie") or "").strip() == tekst and oud.get("definitie_herkomst"):
+        herkomst, door = oud["definitie_herkomst"], oud.get("definitie_door") or ""
     else:
-        door = "analist"
-    return {**nieuw, "definitie_door": door}
+        herkomst, door = "geformuleerd", "analist"
+    return {**nieuw, "definitie_herkomst": herkomst, "definitie_door": door}
 
 
 async def maak(werkgebied: dict, invoer: BegripInvoer, actor: str, resolve: Resolver) -> dict:
     bewijs = await bewijzen(werkgebied, invoer.element_ids, resolve) if invoer.element_ids else {}
     async with db.get_engine().begin() as conn:
-        bid = await maak_in(conn, werkgebied["id"], met_door(None, invoer.inhoud.model_dump(mode="json")), bewijs,
+        bid = await maak_in(conn, werkgebied["id"], met_afgeleid(None, invoer.inhoud.model_dump(mode="json")), bewijs,
                             invoer.rol.value, actor)
     return await haal(werkgebied["id"], bid)
 
@@ -421,10 +435,12 @@ async def wijzig(werkgebied_id: str, begrip_id: str, w: BegripWijziging, actor: 
     detail: dict = {}
     async with _gewijzigd(werkgebied_id, begrip_id, w.verwachte_revisie, actor, "begrip-gewijzigd",
                           detail) as (_, row, stand):
-        nieuw = met_door(row.inhoud, nieuw)
-        # `definitie_door` volgt uit de definitie en is dus geen eigen wijziging (een begrip van vóór
-        # fase E mist het veld; opslaan zonder wijziging mag daar geen revisie van maken).
-        detail["velden"] = sorted(k for k in nieuw if k != "definitie_door" and nieuw.get(k) != row.inhoud.get(k))
+        oud = slank(row.inhoud)
+        nieuw = met_afgeleid(oud, nieuw)
+        # Herkomst en `definitie_door` volgen uit de definitie en zijn dus geen eigen wijziging (een
+        # begrip van vóór fase E mist het veld; opslaan zonder wijziging mag daar geen revisie van maken).
+        detail["velden"] = sorted(k for k in nieuw if k not in ("definitie_door", "definitie_herkomst")
+                                  and nieuw.get(k) != oud.get(k))
         stand["inhoud"] = nieuw
         stand["geen_wijziging"] = not detail["velden"]
     return await haal(werkgebied_id, begrip_id)
@@ -622,7 +638,7 @@ async def heropen(werkgebied_id: str, begrip_id: str, verwacht: int, actor: str)
 EXPORT_SCHEMA = "begrippen-export-v1"
 # Nieuwe kolommen komen achteraan, zodat wie de export al inleest niet breekt.
 _KOLOMMEN = ["begrip_iri", "begrip", "status", "revisie", "definitie", "definitie_herkomst", "context",
-             "jas_klasse", "alternatieve_termen", "rol", "beoordeling", "actualiteit", "annotatie_beoordeeld",
+             "alternatieve_termen", "rol", "beoordeling", "actualiteit", "annotatie_beoordeeld",
              "passage", "klasse_passage", "vindplaats", "bron_iri", "element_id", "motivatie", "definitie_door"]
 
 
@@ -660,7 +676,7 @@ def csv_export(data: dict) -> bytes:
     for b in data["begrippen"]:
         i = b["inhoud"]
         kop = [b["iri"], i["naam"], b["status"], b["revisie"], i.get("definitie", ""),
-               i.get("definitie_herkomst") or "", i.get("context", ""), i.get("jas_klasse", ""),
+               i.get("definitie_herkomst") or "", i.get("context", ""),
                "; ".join(i.get("alternatieve_termen", []))]
         door = i.get("definitie_door") or ""
         if not b["koppelingen"]:

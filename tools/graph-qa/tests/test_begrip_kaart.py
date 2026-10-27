@@ -166,28 +166,33 @@ def test_een_geformuleerde_definitie_is_geel_met_haar_signalen():
 
 # --- betekenisverschil en voorbeelden -------------------------------------------------------------
 
-def test_verschil_geeft_uitleg_en_bij_onbeslist_een_open_vraag():
+def test_verschil_geeft_uitleg_en_de_grens_als_toelichting():
     a = _kant()
     b = ka.kant_uit({"id": "b2", "inhoud": {"naam": "ontvanger"}, "leden": ["e2"]}, MANIFEST)
     frs = ka.fragmenten_voor(MANIFEST, [a, b])
-    uit = ka.valideer_verschil(a, b, frs, {"vergelijking": "onbeslist", "uitleg": "De tekst zegt het niet.",
-                                           "fragmenten": [frs[0].id], "open_vraag": ""})
-    uitleg, vraag = uit.voorstellen
-    assert uitleg["tekst"] == "Ten opzichte van “ontvanger”: De tekst zegt het niet."
-    assert uitleg["vergelijking"] == "onbeslist" and vraag["veld"] == "open_vragen"
-    assert vraag["tekst"] == "Duiden “belastingaanslag” en “ontvanger” hetzelfde begrip aan?"
+    uit = ka.valideer_verschil(a, b, frs, {"vergelijking": "verschil", "uitleg": "Het ene is een besluit.",
+                                           "fragmenten": [frs[0].id], "toelichting": "Een persoon valt er niet onder."})
+    uitleg, grens = uit.voorstellen
+    assert uitleg["tekst"] == "Ten opzichte van “ontvanger”: Het ene is een besluit."
+    assert uitleg["vergelijking"] == "verschil"
+    assert (grens["veld"], grens["tekst"]) == ("context", "Een persoon valt er niet onder.")
+    # Zonder grens geen toelichting, ook niet bij onbeslist (spoor I1: geen open vragen meer).
+    [alleen] = ka.valideer_verschil(a, b, frs, {"vergelijking": "onbeslist", "uitleg": "De tekst zegt het niet.",
+                                                "fragmenten": [frs[0].id], "waarom": ""}).voorstellen
+    assert alleen["veld"] == "uitleg"
     assert ka.valideer_verschil(a, b, frs, {"vergelijking": "verschil", "uitleg": "x", "fragmenten": ["Fnep"],
-                                            "open_vraag": ""}).voorstellen == []
+                                            "waarom": ""}).voorstellen == []
 
 
 def test_voorbeelden_zonder_dubbelen_en_met_signalen():
     k = _kant(definitie="de voorlopige aanslag en de aanslag", voorbeelden=[{"tekst": "Een aanslag IB 2025", "oordeel": "wel"}])
     uit = ka.valideer_voorbeelden(k, {"voorbeelden": [
-        {"tekst": "Een aanslag IB 2025", "oordeel": "wel", "toelichting": ""},          # staat er al
-        {"tekst": "Een voorlopige aanslag IB", "oordeel": "wel", "toelichting": "voorlopig"},
-        {"tekst": "Het is de voorlopige aanslag en de aanslag", "oordeel": "onzeker", "toelichting": ""},
-        {"tekst": "", "oordeel": "wel", "toelichting": ""}]})
+        {"tekst": "Een aanslag IB 2025", "oordeel": "wel", "waarom": ""},          # staat er al
+        {"tekst": "Een voorlopige aanslag IB", "oordeel": "wel", "waarom": "voorlopig"},
+        {"tekst": "Het is de voorlopige aanslag en de aanslag", "oordeel": "onzeker", "waarom": ""},
+        {"tekst": "", "oordeel": "wel", "waarom": ""}]})
     assert [v["tekst"] for v in uit.voorstellen] == ["Een voorlopige aanslag IB", "Het is de voorlopige aanslag en de aanslag"]
+    assert uit.voorstellen[0]["motivatie"] == "voorlopig" and "toelichting" not in uit.voorstellen[0]
     assert "GEEN_TEGENVOORBEELD" in uit.voorstellen[0]["aandachtspunten"]
     assert "HERHAALT_DEFINITIE" in uit.voorstellen[1]["aandachtspunten"]
 
@@ -214,7 +219,7 @@ def test_elk_voorstel_heeft_de_vorm_van_het_api_contract():
                    *ka.valideer_scherper(MANIFEST, _kant(), frs, {"herkomst": "geformuleerd", "fragmenten": [frs[0].id],
                                                                   "definitie": "een vastgesteld bedrag", "motivatie": ""}).voorstellen,
                    *ka.valideer_voorbeelden(_kant(definitie="x"), {"voorbeelden": [
-                       {"tekst": "y", "oordeel": "niet", "toelichting": ""}]}).voorstellen]
+                       {"tekst": "y", "oordeel": "niet", "waarom": ""}]}).voorstellen]
     for v in voorstellen:
         assert set(v) <= _velden("VoorstelInvoer"), set(v) - _velden("VoorstelInvoer")
         if "definitie" in v:

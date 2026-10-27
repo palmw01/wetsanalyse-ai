@@ -111,7 +111,7 @@ class NepModel:
         else:
             p = props["kaarten"]["items"]["properties"]
             items = [{"groep": g, "herkomst": "samengesteld", "fragmenten": [p["fragmenten"]["items"]["enum"][0]],
-                      "definitie": "", "begripstype": "", "motivatie": "m"} for g in p["groep"]["enum"]]
+                      "definitie": "", "motivatie": "m"} for g in p["groep"]["enum"]]
             resp = response([tool_block("t", kaart.TOOL, {"kaarten": items})], "tool_use")
         resp.usage = SimpleNamespace(input_tokens=100, output_tokens=20)
         self.meter.tel_response(resp)

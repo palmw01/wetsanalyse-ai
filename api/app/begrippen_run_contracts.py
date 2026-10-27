@@ -79,13 +79,10 @@ class Overname(BaseModel):
 class Aanpassing(BaseModel):
     """Wat de jurist bij een akkoord anders wil dan het voorstel (fase D). Alleen wat hij meestuurt
     telt; de rest komt uit het voorstel. Een gewijzigde definitie is niet meer letterlijk of
-    samengesteld: de api zet de herkomst dan op `geformuleerd`, tenzij de jurist `letterlijk` kiest
-    en de tekst zo in de bron staat."""
+    samengesteld: de api zet de herkomst dan op `geformuleerd` (spoor I1: geen keuze meer)."""
 
     definitie: str | None = Field(default=None, max_length=8000)
-    definitie_herkomst: Literal["letterlijk", "samengesteld", "geformuleerd"] | None = None
     context: str | None = Field(default=None, max_length=4000)
-    begripstype: str | None = Field(default=None, pattern=r"^(|entiteit|actor|toestand|gebeurtenis|eigenschap|relatie)$")
     alternatieve_termen: list[str] | None = Field(default=None, max_length=50)
 
 
@@ -131,7 +128,6 @@ class VraagBesluit(BaseModel):
 # De vorm volgt graph-qa `begrippen_pipeline.model` (`ModelOordeel`, `Fragment`, `Kaart`);
 # `tools/graph-qa/tests/test_begrippen_verdieping_run.py` leest deze klassen uit de bron.
 
-Begripstype = Literal["entiteit", "actor", "toestand", "gebeurtenis", "eigenschap", "relatie"]
 
 
 class ModelOordeel(BaseModel):
@@ -153,8 +149,6 @@ class Kaart(BaseModel):
     groep_id: str = Field(pattern=r"^G[0-9a-f]{6,64}$")
     naam: str = Field(min_length=1, max_length=200)
     alternatieve_termen: list[str] = Field(default_factory=list, max_length=50)
-    begripstype: Begripstype | None = None
-    begripstype_door: Literal["regel", "model", ""] = ""
     context: str = Field(default="", max_length=4000)
     definitie: str = Field(default="", max_length=8000)
     herkomst: Literal["letterlijk", "samengesteld", "geformuleerd"] | None = None

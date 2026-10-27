@@ -10,10 +10,10 @@ const inhoud = (over = {}) => ({ ...LEGE_INHOUD, naam: "Belastingschuldige", ...
 
 describe("inhoudGewijzigd", () => {
   it("ziet een echte wijziging, en niets bij lege regels of een andere sleutelvolgorde", () => {
-    const oud = inhoud({ eigenschappen: { a: "1", b: "2" }, alternatieve_termen: ["schuldenaar"] });
+    const oud = inhoud({ voorbeelden: [{ tekst: "a", oordeel: "wel" }], alternatieve_termen: ["schuldenaar"] });
     expect(inhoudGewijzigd(oud, { ...oud, definitie: "Wie de belasting verschuldigd is." })).toBe(true);
     expect(inhoudGewijzigd(oud, { ...oud, alternatieve_termen: ["schuldenaar", "  "] })).toBe(false);
-    expect(inhoudGewijzigd(oud, { ...oud, eigenschappen: { b: "2", a: "1" } })).toBe(false);
+    expect(inhoudGewijzigd(oud, { ...oud, voorbeelden: [...oud.voorbeelden, { tekst: " ", oordeel: "niet" }] })).toBe(false);
     expect(inhoudGewijzigd(oud, { ...oud, naam: " Belastingschuldige " })).toBe(false);
     expect(gewijzigdeVelden(oud, { ...oud, context: "x", definitie_herkomst: "letterlijk" }))
       .toEqual(["context", "definitie_herkomst"]);
@@ -21,6 +21,11 @@ describe("inhoudGewijzigd", () => {
 
   it("vult een onvolledige inhoud van de api aan", () => {
     expect(volledigeInhoud({ naam: "X" }).voorbeelden).toEqual([]);
+    // Spoor I1: wat een oud begrip nog meer droeg, valt weg.
+    const oud = volledigeInhoud({ naam: "X", jas_klasse: "Rechtssubject", open_vragen: ["v"],
+      voorbeelden: [{ tekst: "a", oordeel: "wel", toelichting: "t" }] } as never);
+    expect(Object.keys(oud).sort()).toEqual(Object.keys(LEGE_INHOUD).sort());
+    expect(oud.voorbeelden).toEqual([{ tekst: "a", oordeel: "wel" }]);
     expect(inhoudGewijzigd({ naam: "X" } as never, volledigeInhoud({ naam: "X" }))).toBe(false);
   });
 });
@@ -62,12 +67,6 @@ describe("revisieZin", () => {
     expect(revisieZin({ actie: "koppeling-gewijzigd", detail: { beoordeling: "akkoord" } })).toBe("Passage beoordeeld: akkoord");
     expect(revisieZin({ actie: "iets-nieuws", detail: {} })).toBe("iets-nieuws");
   });
-});
-
-it("eigenschappen gaan heen en terug als rijen, zonder lege sleutels", async () => {
-  const { naarRijen, uitRijen } = await import("./begrippen");
-  expect(naarRijen({ a: "1", b: "2" })).toEqual([["a", "1"], ["b", "2"]]);
-  expect(uitRijen([["a", "1"], ["  ", "weg"], [" b ", "2"], ["a", "3"]])).toEqual({ a: "3", b: "2" });
 });
 
 it("een met de hand gewijzigde definitie is geformuleerd; ongewijzigd houdt ze haar herkomst", () => {

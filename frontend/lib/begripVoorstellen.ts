@@ -2,7 +2,7 @@
 // overname wordt, en de woorden waarmee de werkplek de uitkomst van de keten noemt. Puur, voor vitest.
 
 import type {
-  Aanpassing, AkkoordInvoer, Begripstype, Betekenisgroep, DefinitieHerkomst, GroepBesluit, GroepenAntwoord,
+  Aanpassing, AkkoordInvoer, Betekenisgroep, DefinitieHerkomst, GroepBesluit, GroepenAntwoord,
   KaartFragment, ModelOordeelSoort, Passage, TwijfelVraag,
 } from "./types";
 
@@ -21,11 +21,6 @@ export const OORDEEL_LABEL: Record<ModelOordeelSoort, string> = {
   verwant_ander_begrip: "verwant, maar een ander begrip",
   betekenisverschil: "andere betekenis",
   onbeslist: "geen uitsluitsel",
-};
-
-export const BEGRIPSTYPE_LABEL: Record<Begripstype, string> = {
-  entiteit: "entiteit", actor: "actor", toestand: "toestand", gebeurtenis: "gebeurtenis",
-  eigenschap: "eigenschap", relatie: "relatie",
 };
 
 /** De aandachtspunten van een concept-kaart – dezelfde codes en teksten als graph-qa
@@ -187,28 +182,22 @@ export function samenAkkoord(
 }
 
 /** Alleen wat de jurist echt veranderde gaat als aanpassing mee: een ongewijzigd veld laat de api het
- *  voorstel gebruiken (en de herkomst staan). */
+ *  voorstel gebruiken (en de herkomst staan). De herkomst kiest niemand (spoor I1). */
 export function aanpassingUit(
-  voorstel: { definitie: string; herkomst: DefinitieHerkomst | null; context: string; begripstype: Begripstype | "" },
-  invoer: { definitie: string; herkomst: DefinitieHerkomst | null; context: string; begripstype: Begripstype | "" },
+  voorstel: { definitie: string; context: string },
+  invoer: { definitie: string; context: string },
 ): Aanpassing {
   const a: Aanpassing = {};
   if (invoer.definitie.trim() !== voorstel.definitie.trim()) a.definitie = invoer.definitie.trim();
-  if (invoer.herkomst && invoer.herkomst !== voorstel.herkomst) {
-    a.definitie_herkomst = invoer.herkomst;
-    if (a.definitie === undefined) a.definitie = invoer.definitie.trim();
-  }
   if (invoer.context.trim() !== voorstel.context.trim()) a.context = invoer.context.trim();
-  if (invoer.begripstype !== voorstel.begripstype) a.begripstype = invoer.begripstype;
   return a;
 }
 
-/** De herkomst na een aanpassing, zoals de api haar zet: een andere tekst is `geformuleerd`, behalve
- *  als de jurist `letterlijk` kiest (de api toetst dan of de tekst zo in de bron staat). */
-export function herkomstNaAanpassing(oud: { tekst: string; herkomst: DefinitieHerkomst | null }, tekst: string,
-  gekozen: DefinitieHerkomst | null): DefinitieHerkomst | null {
+/** De herkomst na een aanpassing, zoals de api haar zet: een andere tekst is `geformuleerd`, een
+ *  ongewijzigde houdt haar herkomst, leeg heeft er geen. */
+export function herkomstNaAanpassing(oud: { tekst: string; herkomst: DefinitieHerkomst | null }, tekst: string):
+  DefinitieHerkomst | null {
   if (!tekst.trim()) return null;
-  if (gekozen === "letterlijk") return "letterlijk";
-  if (tekst.trim() !== oud.tekst.trim() || gekozen === "geformuleerd" || !oud.herkomst) return "geformuleerd";
+  if (tekst.trim() !== oud.tekst.trim() || !oud.herkomst) return "geformuleerd";
   return oud.herkomst;
 }

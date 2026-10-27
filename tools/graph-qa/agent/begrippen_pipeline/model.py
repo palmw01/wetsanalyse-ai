@@ -332,17 +332,6 @@ class Herkomst(str, Enum):
     GEFORMULEERD = "geformuleerd"      # door het model geschreven, rustend op genoemde fragmenten
 
 
-class Begripstype(str, Enum):
-    """Werkindeling (PLAN §D), geen JAS-klasse."""
-
-    ENTITEIT = "entiteit"
-    ACTOR = "actor"
-    TOESTAND = "toestand"
-    GEBEURTENIS = "gebeurtenis"
-    EIGENSCHAP = "eigenschap"
-    RELATIE = "relatie"
-
-
 def fragment_id(bron_iri: str, start: int, eind: int) -> str:
     return "F" + _hash(bron_iri, str(start), str(eind))[:10]
 
@@ -369,8 +358,6 @@ class Kaart(_Vast):
     groep_id: str
     naam: str
     alternatieve_termen: tuple[str, ...] = ()
-    begripstype: Begripstype | None = None
-    begripstype_door: str = ""         # "regel" | "model" | ""
     context: str = ""
     definitie: str = ""
     herkomst: Herkomst | None = None

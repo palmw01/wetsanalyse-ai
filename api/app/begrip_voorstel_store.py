@@ -8,10 +8,10 @@ rekent (`agent/begrip_kaart.py`), de api legt de invoer vast, toetst en bewaart:
   audit) – in dezelfde transactie als het besluit over het voorstel.
 - **Niets stil overschreven.** Een definitievoorstel bewaart de definitie waarop het rust (`basis`).
   Staat er intussen een andere, dan weigert overnemen met 409 `voorstel_verouderd` en de drie waarden
-  (toen, nu, voorstel). Uitleg, open vragen en voorbeelden worden toegevoegd, nooit vervangen.
-- **Herkomst gaat mee.** Overnemen zet `definitie_herkomst`, `definitie_door` (`lex`, of `analist`
-  bij een aanpassing) en een `onderbouwing` met de vindplaats of de fragmenten; de revisieregel
-  noemt het voorstel, de actie en het model.
+  (toen, nu, voorstel). Uitleg, toelichting en voorbeelden worden toegevoegd, nooit vervangen.
+- **Herkomst gaat mee.** Overnemen zet `definitie_herkomst` en `definitie_door` (`lex`, of `analist`
+  bij een aanpassing); de revisieregel noemt het voorstel, de actie en het model. Alleen een
+  overgenomen brondefinitie is letterlijk.
 - **De garanties toetst de api zelf** (`begrippen_verdieping.definitie_fouten`): fragmenten letterlijk
   in het manifest, een samengestelde definitie precies haar fragmenten, een letterlijke definitie in
   haar bron – en ligt die bron buiten het werkgebied, dan vraagt de api de tekst aan de graaf.
@@ -225,7 +225,7 @@ def _waarde(v: VoorstelInvoer) -> dict:
         return v.definitie.model_dump(mode="json")
     uit = {"tekst": v.tekst.strip(), "fragmenten": [f.model_dump() for f in v.fragmenten]}
     if v.veld == "voorbeelden":
-        uit.update(oordeel=v.oordeel.value, toelichting=v.toelichting.strip())
+        uit["oordeel"] = v.oordeel.value
     if v.vergelijking:
         uit["vergelijking"] = v.vergelijking
     return uit
@@ -334,20 +334,6 @@ async def _voorstel_rij(conn, werkgebied_id: str, begrip_id: str, voorstel_id: s
     return row
 
 
-def _onderbouwing(waarde: dict, motivatie: str) -> str:
-    """Wat de begripskaart onder de definitie zet: waar ze vandaan komt."""
-    if waarde["herkomst"] == "letterlijk":
-        zin = f"Letterlijk uit {waarde.get('definitie_vindplaats') or waarde['definitie_bron_iri']}"
-        if waarde.get("vindplaats_soort") not in ("", "werkgebied", None):
-            zin += " (buiten de bronnen van het werkgebied)"
-        zin = f"Voorgesteld door Lex. {zin}."
-    else:
-        delen = "; ".join(f"“{f['tekst']}”" for f in waarde.get("fragmenten") or [])
-        soort = "Samengesteld" if waarde["herkomst"] == "samengesteld" else "Geformuleerd"
-        zin = f"Voorgesteld door Lex. {soort} op grond van: {delen}."
-    return (zin + (f" {motivatie}" if motivatie else ""))[:8000]
-
-
 def _neem_veld_over(inhoud: dict, row, o: VoorstelOvername) -> tuple[dict, bool]:
     """De inhoud na overnemen, en of de analist het voorstel aanpaste."""
     w = row.waarde
@@ -362,26 +348,19 @@ def _neem_veld_over(inhoud: dict, row, o: VoorstelOvername) -> tuple[dict, bool]
         tekst = (o.aanpassing or "").strip()
         aangepast = bool(tekst) and tekst != w["definitie"]
         if aangepast:
-            uit.update(definitie=tekst, definitie_herkomst="geformuleerd", definitie_door="analist",
-                       onderbouwing=(f"Aangepast door de analist; het voorstel van Lex was “{w['definitie']}” "
-                                     f"({w['herkomst']}). " + _onderbouwing(w, row.motivatie))[:8000])
+            uit.update(definitie=tekst, definitie_herkomst="geformuleerd", definitie_door="analist")
         else:
-            uit.update(definitie=w["definitie"], definitie_herkomst=w["herkomst"], definitie_door="lex",
-                       onderbouwing=_onderbouwing(w, row.motivatie))
+            uit.update(definitie=w["definitie"], definitie_herkomst=w["herkomst"], definitie_door="lex")
         return uit, aangepast
     tekst = (o.aanpassing or "").strip() or w["tekst"]
     aangepast = tekst != w["tekst"] or (o.oordeel is not None and o.oordeel.value != w.get("oordeel"))
-    if row.veld == "uitleg":
-        oud = (inhoud.get("uitleg") or "").strip()
-        uit["uitleg"] = tekst if not oud else (oud if tekst in oud else f"{oud}\n\n{tekst}")
-    elif row.veld == "open_vragen":
-        vragen = list(inhoud.get("open_vragen") or [])
-        uit["open_vragen"] = vragen if tekst in vragen else [*vragen, tekst]
+    if row.veld in ("uitleg", "context"):
+        oud = (inhoud.get(row.veld) or "").strip()
+        uit[row.veld] = tekst if not oud else (oud if tekst in oud else f"{oud}\n\n{tekst}")
     else:
         vbs = list(inhoud.get("voorbeelden") or [])
         if not any(x.get("tekst") == tekst for x in vbs):
-            vbs.append({"tekst": tekst, "oordeel": (o.oordeel.value if o.oordeel else w["oordeel"]),
-                        "toelichting": w.get("toelichting", "")})
+            vbs.append({"tekst": tekst, "oordeel": (o.oordeel.value if o.oordeel else w["oordeel"])})
         uit["voorbeelden"] = vbs
     return uit, aangepast
 

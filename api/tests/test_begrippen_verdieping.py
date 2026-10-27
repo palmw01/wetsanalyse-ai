@@ -150,7 +150,6 @@ async def test_overnemen_vult_het_begrip_uit_de_kaart(client):
     assert r.status_code == 201, r.text
     inhoud = r.json()["inhoud"]
     assert inhoud["definitie"] == "Alfa Alfa … Beta" and inhoud["definitie_herkomst"] == "samengesteld"
-    assert inhoud["begripstype"] == "actor" and inhoud["alternatieve_termen"] == ["beta"]
+    assert inhoud["alternatieve_termen"] == ["beta"] and "begripstype" not in inhoud
     assert inhoud["context"] == "Komt voor in Lid 1."
-    assert "“Alfa Alfa” (Artikel 9 · Lid 1 – Wet)" in inhoud["onderbouwing"]
-    assert "Toelichting van Lex: Alfa en Beta samen." in inhoud["onderbouwing"]
+    assert "onderbouwing" not in inhoud

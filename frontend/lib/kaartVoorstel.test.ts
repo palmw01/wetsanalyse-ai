@@ -8,8 +8,8 @@ import { revisieZin } from "./begrippen";
 import type { Begrip, KaartVoorstel } from "./types";
 
 const inhoud = (over: Partial<Begrip["inhoud"]> = {}): Begrip["inhoud"] => ({
-  naam: "belastingaanslag", alternatieve_termen: [], context: "", jas_klasse: "", jas_subtype: "", geldigheid: "",
-  definitie: "", definitie_herkomst: null, uitleg: "", onderbouwing: "", voorbeelden: [], eigenschappen: {}, open_vragen: [],
+  naam: "belastingaanslag", alternatieve_termen: [], context: "",
+  definitie: "", definitie_herkomst: null, uitleg: "", voorbeelden: [],
   ...over,
 });
 const voorstel = (over: Partial<KaartVoorstel> = {}): KaartVoorstel => ({
