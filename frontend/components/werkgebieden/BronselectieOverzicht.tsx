@@ -128,7 +128,7 @@ function Deelvraag({ o, d, open, huidig, inGesprek, beslis }: {
       </summary>
       <div className="space-y-3 border-t border-line px-3 py-3">
         {inGesprek && !huidig && o.modus === "deelvragen" && (
-          <VraagLexKnop alleenInGesprek naam={`Ga verder met deelvraag ${d.nr}`}
+          <VraagLexKnop alleenInGesprek naam={`Ga verder met deelvraag ${d.nr}`} tekst={`Ga verder met deelvraag ${d.nr}`}
             onderwerp={{ soort: "deelvraag", werkgebied_id: o.werkgebied_id, id: d.id, label: d.vraag }} />
         )}
         {d.opnieuw_bekijken && (

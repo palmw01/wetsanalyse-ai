@@ -13,7 +13,6 @@ import { BegripVoorstellen } from "@/components/werkgebieden/BegripVoorstellen";
 import { BegripWerk } from "@/components/werkgebieden/BegripWerk";
 import { OnbewaardMelding } from "@/components/werkgebieden/OnbewaardMelding";
 import { ExportKnop } from "@/components/werkplek/ExportKnop";
-import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import { exporteerBegrippen, foutTekst, haalHerbeoordelingen, lijstBegrippen, maakBegrip } from "@/lib/api";
 import type { BegripWeergave } from "@/lib/begrippen";
 import { geraakteBegrippen, herbeoordelingZin, strookKop } from "@/lib/herbeoordeling";
@@ -32,7 +31,7 @@ const EXPORT_FORMATEN = [
  *  Het gekozen begrip opent om te lezen (`BegripPaneel`, F3e: de leesweergave met de voorstellen van Lex
  *  per veld); *Begripskaart* wisselt naar de kaart met passages, relaties en accorderen (`BegripWerk`).
  *  Er staat er steeds één, en de keuze blijft staan bij een wissel van begrip: wie op de kaart werkt en
- *  een opvolger maakt, landt op diens kaart. Lex vraag je in het gesprek, via *Vraag Lex* bij elk begrip.
+ *  een opvolger maakt, landt op diens kaart. Lex vraag je in het gesprek (*Bespreek met Lex* op de begripspagina).
  *
  *  Het gekozen begrip staat in de URL (via `onKies`). Wie wisselt terwijl de kaart wijzigingen draagt
  *  die nog niet bewaard zijn, krijgt eerst de vraag of dat de bedoeling is – zonder systeemvenster. */
@@ -183,7 +182,7 @@ export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard, weer
             <>
             <Lijst label="Begrippen in dit werkgebied">
               {lijst.begrippen.filter((b) => b.status !== "vervangen").map((b) => (
-                <BegripRij key={b.id} id={id} begrip={b} gekozen={b.id === gekozen} onKies={() => kies(b.id)}
+                <BegripRij key={b.id} begrip={b} gekozen={b.id === gekozen} onKies={() => kies(b.id)}
                   aandacht={geraakt.has(b.id)
                     ? `Herbeoordelen: ${herbeoordelingZin(geraakt.get(b.id)!.passages, geraakt.get(b.id)!.relaties)}`
                     : b.aandachtspunten[0]} />
@@ -254,9 +253,8 @@ export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard, weer
   );
 }
 
-/** Eén begrip in de lijst: de naam kiest het, *Vraag Lex* zet het als onderwerp in het gesprek. */
-function BegripRij({ id, begrip: b, gekozen, aandacht, onKies }: {
-  id: string;
+/** Eén begrip in de lijst: de naam kiest het. */
+function BegripRij({ begrip: b, gekozen, aandacht, onKies }: {
   begrip: BegripSamenvatting;
   gekozen: boolean;
   /** Geel onder de rij: wat herbeoordeeld moet, of het eerste aandachtspunt. */
@@ -278,8 +276,6 @@ function BegripRij({ id, begrip: b, gekozen, aandacht, onKies }: {
         {b.aantal_koppelingen === 1 ? "1 passage" : `${b.aantal_koppelingen} passages`}
         {aandacht && <span className="mt-0.5 block text-aandacht-geel-tekst">{aandacht}</span>}
       </>}
-      acties={<VraagLexKnop alleenInGesprek onderwerp={{ soort: "begrip", werkgebied_id: id, id: b.id, label: b.inhoud.naam }}
-        className="justify-center" />}
     />
   );
 }

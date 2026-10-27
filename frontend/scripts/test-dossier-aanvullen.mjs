@@ -13,7 +13,7 @@
  *  - de samenvatting toont per veld toen → nu ("(leeg)" bij een leeg veld), de knop heet *Opslaan* en stuurt
  *    `intake_actie.actie: "opslaan"`, ook op het user-bericht; *Stop met aanvullen* in plaats van samenstellen;
  *  - na het opslaan laadt het werkgebiedpaneel opnieuw en toont het nieuwe praktijkvoorbeeld;
- *  - *Vraag Lex* bij een leeg veld in het paneel geeft eerst *Vul het doel aan*;
+ *  - een leeg veld in het paneel heeft geen *Vraag Lex* (spoor K); *Vul het dossier aan* staat bij de suggesties;
  *  - een samenvatting zonder wijziging zegt "Er verandert niets." en heeft geen knop.
  */
 import assert from "node:assert/strict";
@@ -157,17 +157,16 @@ try {
   await paneel.locator("[data-dossier-veld=analysevraag]").getByText(NIEUWE_VRAAG).waitFor();
   assert.equal(await page.locator("[data-vraagdock]").count(), 0, "geen open vraag meer");
 
-  // --- Vraag Lex bij een leeg veld: eerst de suggestie voor dat veld ---
-  await paneel.locator("[data-dossier-veld=doel]").getByRole("button", { name: "Vraag Lex: doel aanvullen" }).click();
-  const eerste = suggesties().getByRole("button").first();
-  assert.equal(await eerste.textContent(), "Vul het doel aan");
-  assert.equal(await eerste.getAttribute("data-actie"), "dossier_aanvullen");
-  await eerste.click();
+  // --- Een leeg veld in het paneel: geen Vraag Lex (spoor K); aanvullen gaat via de suggestie ---
+  await paneel.locator("[data-dossier-veld=doel]").getByText("Nog geen doel.").waitFor();
+  assert.equal(await paneel.locator("[data-vraag-lex]").count(), 0, "geen Vraag Lex naast het gesprek");
+  const aanvullen = suggesties().getByRole("button", { name: "Vul het dossier aan" });
+  assert.equal(await aanvullen.getAttribute("data-actie"), "dossier_aanvullen");
+  await aanvullen.click();
   await wacht(5);
   assert.equal(starts[4].actie, "dossier_aanvullen");
-  assert.equal(starts[4].question, "Vul het doel aan");
-  assert.equal(starts[4].onderwerp?.soort, "werkgebied");
-  assert.equal(starts[4].onderwerp?.veld, undefined, "het veld gaat niet als onderwerp mee: graph-qa leest de tekst");
+  assert.equal(starts[4].question, "Vul het dossier aan");
+  assert.equal(starts[4].onderwerp?.veld, undefined, "een veld gaat nooit als onderwerp mee: graph-qa leest de tekst");
 
   // --- Een samenvatting zonder wijziging: geen knop ---
   await dock("samenvatting").getByText("Er verandert niets.").waitFor();
@@ -188,7 +187,7 @@ try {
   assert.deepEqual(starts[6].intake_actie, { intake_id: "ia3", stap: "thema", actie: "antwoord", keuzes: [BELASTING] });
 
   assert.deepEqual(errors, []);
-  console.log("Browser OK: Vul het dossier aan als actie, kaartjes over de gevraagde stappen, vooringevuld, Verzend, samenvatting toen → nu met Opslaan (ook op het user-bericht), Stop met aanvullen, het paneel laadt opnieuw, Vraag Lex bij een leeg veld, geen knop zonder wijziging, Kies een thema als kaartje met het voorstel aangevinkt.");
+  console.log("Browser OK: Vul het dossier aan als actie, kaartjes over de gevraagde stappen, vooringevuld, Verzend, samenvatting toen → nu met Opslaan (ook op het user-bericht), Stop met aanvullen, het paneel laadt opnieuw, geen Vraag Lex bij een leeg veld, geen knop zonder wijziging, Kies een thema als kaartje met het voorstel aangevinkt.");
 } finally {
   await browser.close();
 }

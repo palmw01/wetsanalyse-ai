@@ -7,7 +7,6 @@ import { BronBoom } from "@/components/ui/BronBoom";
 import { KNOP_XS } from "@/components/ui/Button";
 import { Sectie } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
-import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import { foutTekst, haalKandidaten, haalLaatsteBronnenRun } from "@/lib/api";
 import {
   FILTER_LABEL, KANDIDAAT_ROL_LABEL, KANDIDAAT_ROL_UITLEG, METHODE_LABEL, bewijsSamenvatting, bewijsZin, bijDeelvraag, filterVan, plekNaam,
@@ -155,11 +154,6 @@ function KandidaatRegel({ werkgebiedId, k, plek, labels, open, onWissel }: {
       )}
       {k.status === "uitgesloten" && k.reden && (
         <p className="mt-1 text-xs text-ink">Uitgesloten{k.besloten_door ? ` door ${k.besloten_door}` : ""}: {k.reden}</p>
-      )}
-      {open && (
-        <div className="mt-1.5">
-          <VraagLexKnop alleenInGesprek onderwerp={{ soort: "kandidaat", werkgebied_id: werkgebiedId, id: k.id, label: naam }} />
-        </div>
       )}
     </div>
   );

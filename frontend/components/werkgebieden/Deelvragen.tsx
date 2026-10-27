@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
 import { Lijst, LijstRij, Sectie, StatusLabel, Voorstel as VoorstelRij } from "@/components/ui/Lijst";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
-import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import { koppelDeelvraag, maakDeelvraag, verwijderDeelvraag, wijzigDeelvraag } from "@/lib/api";
 import { bronnenZin, deelvraagStand, voortgangZin, type DeelvraagSelectie } from "@/lib/bronselectie";
 import { overgenomenZin, splits, vervangtZin, zelfdeSet } from "@/lib/deelvragen";
@@ -28,8 +27,7 @@ import { deelvraagPad } from "@/lib/werkgebiedPaden";
  *  Een deelvraag splitst de analysevraag. Per deelvraag leg je vast welke bronnen haar beantwoorden (methode
  *  1g); de stand is de voortgang van haar bronselectie. Begrippen horen bij het werkgebied, niet bij een
  *  deelvraag (spoor K). Lex stelt deelvragen voor
- *  als je hem dat in het gesprek vraagt (geel): overnemen of afwijzen, met een reden. *Vraag Lex* bij een
- *  deelvraag zet haar als onderwerp in het gesprek (F3e). Zonder deelvragen verandert er niets aan
+ *  als je hem dat in het gesprek vraagt (geel): overnemen of afwijzen, met een reden. Zonder deelvragen verandert er niets aan
  *  het werkgebied. Elke wijziging draagt de revisie in beeld (`muteer`), want deelvragen horen bij de
  *  scope; Lex zoekt bij een volgende ronde ook per deelvraag naar bepalingen. */
 export function Deelvragen({ wg, muteer }: { wg: Werkgebied; muteer: Mutatie }) {
@@ -187,7 +185,6 @@ function DeelvraagRij({ nummer, wg, deelvraag: d, selectie, muteer }: {
               </div>
             )}
           </Popover>
-          <VraagLexKnop alleenInGesprek onderwerp={{ soort: "deelvraag", werkgebied_id: wg.id, id: d.id, label: d.vraag }} />
         </span>
       )}>
       {koppelen && <KoppelDialoog wg={wg} deelvraag={d} muteer={muteer} onKlaar={() => setKoppelen(false)} />}

@@ -115,8 +115,9 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     akkoord op de reviewkaart. Hoofdacties blijven een pil met tekst (`VerwijderKnop` in een kop);
   - **menu's** delen één rijstijl (`components/ui/Menu`: `MENU_RIJ`, `MENU_PANEEL`);
   - **`Select`** heeft een eigen chevron (`appearance-none`) en dezelfde maat en focus als `Input`;
-  - **elk zijpaneel** heeft dezelfde kop (`components/ui/PaneelKop`: soort, titel, *Open volledige pagina* en
-    *Vraag Lex* als pillen, `SluitKnop` rechtsboven, eventuele acties op een eigen regel).
+  - **elk zijpaneel** heeft dezelfde kop (`components/ui/PaneelKop`: soort, titel, *Open volledige pagina*,
+    `SluitKnop` rechtsboven, eventuele acties op een eigen regel). Het `lex`-slot gebruikt alleen nog het
+    annotatiepaneel; de werkgebiedpanelen hebben geen *Vraag Lex* (spoor K).
 - **Symbolen zijn iconen, geen tekens.** `components/ui/Icoon.tsx` levert chevron, waarschuwing,
   vinkje, ruit en cirkel als inline SVG (`1em`, `currentColor`). Het font laadt alleen de
   latin-subset van Fira Sans (`app/fonts.ts`), dus tekens als `▾ ◇ ▸ ⚠ ✓ ← ○` vallen terug op het
@@ -493,26 +494,24 @@ begrip, werkgebied), met per soort een module in `MODULES` (`chip`, `suggesties`
   dekking, annoteren, de bepalingen van de deelvragen annoteren, begrippen voorstellen, meedenken), deelvraag
   (zoeken, de bepalingen hierbij annoteren, gedekt?, scherper, splitsen),
   begrip (uitwerken, brondefinitie, *Schrijf de uitleg in B1* (spoor I2), voorbeelden, relaties, en *Wat is
-  het betekenisverschil met …* met `invullen`: in het veld, de analist noemt het andere begrip). Bij een lege
-  uitleg in `BegripPaneel` staat *Vraag Lex* met `veld: "uitleg"`; de suggestie voor de uitleg staat dan
-  voorop. De B1-aandachtspunten staan in `AANDACHTSPUNT_LEX` (gelijk aan graph-qa `kaartacties.TEKST`). Bron en kandidaat hebben alleen vragen
+  het betekenisverschil met …* met `invullen`: in het veld, de analist noemt het andere begrip). De B1-aandachtspunten staan in `AANDACHTSPUNT_LEX` (gelijk aan graph-qa `kaartacties.TEKST`). Bron en kandidaat hebben alleen vragen
   zonder actie (waarom deze bepaling, verwijzingen, bij welke deelvraag): die gaan met het object langs de
   supervisor naar de antwoord-worker.
 - **Het dossier aanvullen** (`dossier_aanvullen`) is in `ACTIES` maar geen taak van een agent: graph-qa
-  routeert het naar de vraagkaarten (`INTAKE_ACTIES`; de test leest `Actie` en `ACTIE_TAAK`). Bij een leeg
-  veld in de `WerkgebiedSamenvatting` staat *Vraag Lex* met het werkgebied als onderwerp en `veld`; de eerste
-  suggestie is dan *Vul het … aan* (`VELD_ZIN`), en graph-qa leest het veld uit die tekst. `veld` reist via
-  `vraag_veld` in de URL, maar niet als onderwerp naar graph-qa.
+  routeert het naar de vraagkaarten (`INTAKE_ACTIES`; de test leest `Actie` en `ACTIE_TAAK`). Een onderwerp
+  met `veld` (van een oude link met `vraag_veld`) zet *Vul het … aan* (`VELD_ZIN`) voorop; graph-qa leest het
+  veld uit die tekst, niet uit het onderwerp.
 - **`VraagLexKnop`** (`components/werkplek/VraagLexKnop.tsx`): binnen de werkplek zet hij het onderwerp
   via `VraagLexContext` (`kiesOnderwerp` in `WerkplekClient`: chip, leeg veld, focus, op een smal scherm
   het paneel dicht); daarbuiten is hij een **link** naar `vraagUrl` (`/workbench?werkgebied=…&vraag=<soort>:<id>&vraag_label=…`),
   zodat de bewaker van niet-bewaarde wijzigingen hem ziet. `WorkbenchShell` leest `vraag` één keer
   (`onderwerpUitUrl`, streng op soort en id's), haalt de parameters uit de URL en geeft
-  `beginOnderwerp` alleen aan het venster waarmee de pagina opende. In de kop van de werkgebiedpagina en
-  van elk werkgebiedpaneel (werkgebied, deelvraag, begrip), bij elke deelvraag in de
-  `WerkgebiedSamenvatting` (`vraagLex`), en op de werkgebiedpagina bij elke rij (F3e): deelvraag,
-  bronselectie, open kandidaat en begrip. Een element op de tab Elementen heeft er geen: een markering
-  heeft geen URL-weg, en *Vraag Lex* staat al op de markering in de annotatie. `annoteer=`/`meedenk=`
+  `beginOnderwerp` alleen aan het venster waarmee de pagina opende. Hij staat als *Bespreek met Lex* (`primair`)
+  in de kop van een detailpagina, en als *Vraag Lex* alleen nog op een markering (de adviesroute). **Niet in de
+  panelen naast het gesprek** (spoor K, besluit 27 okt 2026): je zit al in het gesprek en de suggesties boven het
+  invoerveld doen het werk. Daar zet een klik op een deelvraag in de `WerkgebiedSamenvatting` haar als onderwerp
+  (`VraagLexContext`, `data-deelvraag-onderwerp`), en *Ga verder met deelvraag n* in de bronselectie is een
+  `VraagLexKnop` met eigen `tekst`. `annoteer=`/`meedenk=`
   bestaan niet meer (F3e): de bevestiging komt in het gesprek; `app/geenRunRoutes.test.ts` bewaakt dat.
 - Browserregressie: `scripts/test-vraaglex.mjs`.
 
@@ -768,9 +767,8 @@ bestaat los van de gesprekken.
   verbeteren, bepalingen zoeken, de dekking, annoteren, begrippen voorstellen, meedenken, een begrip
   uitwerken – vraag je in het gesprek: met **één *Bespreek met Lex* in de kop van een detailpagina**
   (`VraagLexKnop primair`; spoor G2 verving *Vraag Lex* per rij, besluit 26 okt 2026), of *Nieuw gesprek* in
-  de kop van het project, en dan een suggestie of een eigen vraag (§*Eén gesprek*). Een knop in een rij
-  (`alleenInGesprek`) verschijnt alleen in de panelen naast het gesprek, waar hij het object klaarzet in
-  hetzelfde gesprek. Op de
+  de kop van het project, en dan een suggestie of een eigen vraag (§*Eén gesprek*). Geen knop in een rij,
+  ook niet naast het gesprek (spoor K). Op de
   pagina staan geen knoppen die Lex starten, en de werkplek start niets vanuit de URL. De pagina toont
   wat Lex opleverde en draagt de handmatige besluiten erover. Er is daardoor geen BFF-route meer die een
   run start: de vier statische routes (`deelvragen-run`, `kaart-run`, `bronnen-run`, `begrippen-run`)
@@ -799,7 +797,7 @@ bestaat los van de gesprekken.
   - Een deelvraag hoort bij de scope: toevoegen, bewerken, verwijderen (`BevestigKnop`) en *Bronnen en
     begrippen* (vinkjes, één keer opslaan, de hele set) lopen via `muteer` met de revisie in beeld.
   - Voorstellen en verbeteren doet de deelvragen-agent in het gesprek (*Stel deelvragen voor*, of
-    *Formuleer scherper* / *Splits* via *Vraag Lex* bij de deelvraag). Een voorstel staat hier geel met
+    *Formuleer scherper* / *Splits* via *Bespreek met Lex* op de deelvraagpagina). Een voorstel staat hier geel met
     *Overnemen* of *Afwijzen…* (reden verplicht; Lex stelt het niet opnieuw voor).
   - De stand per deelvraag is de voortgang van haar bronselectie (spoor K; `GET …/bronselectie` per revisie,
     faalt stil, via `useBronselectieStand`): *Nog niet gestart*, *In behandeling*, *Voorlopig afgerond*,
@@ -825,7 +823,7 @@ bestaat los van de gesprekken.
 - **Begrippen** (levering 2; api in `../api/CLAUDE.md` §*Begrippen*). De tab staat tussen Elementen en
   Samenhang; het gekozen begrip staat in de URL (`?tab=begrippen&begrip=<id>`, via `kiesBegrip` in
   `WerkgebiedClient`, ook vanuit de tab Elementen). `BegrippenTab` is de lijst (`Lijst`/`LijstRij`, met
-  *Vraag Lex* per begrip, export en *Nieuw begrip*). Het gekozen begrip opent om te **lezen**
+  export en *Nieuw begrip*). Het gekozen begrip opent om te **lezen**
   (`BegripPaneel`, hetzelfde paneel als naast het gesprek: de leesweergave, de open voorstellen van Lex per
   veld, een kleine bewerking); *Begripskaart* wisselt naar de **kaart** (`BegripWerk`). Er staat er steeds
   één. De weergave staat in de URL (`&weergave=kaart`, `weergaveUitParam` in `lib/begrippen.ts`) en blijft
@@ -940,7 +938,7 @@ bestaat los van de gesprekken.
   - Browserregressie: `scripts/test-begrippen-verdieping.mjs`.
 - **Lex naast de kaart** (fase E; api §*Lex naast de kaart*, graph-qa §*Lex naast de kaart*). De vier
   acties – de brondefinitie zoeken (zonder model), een scherpere definitie, het betekenisverschil, voorbeelden
-  – zijn sinds F3c/F3e taken van de begrippen-agent: *Vraag Lex* bij het begrip en een suggestie (*Zoek de
+  – zijn sinds F3c/F3e taken van de begrippen-agent: *Bespreek met Lex* op de begripspagina en een suggestie (*Zoek de
   brondefinitie*, *Geef voorbeelden*, *Wat is het betekenisverschil met …*, *Werk het begrip volledig
   uit*). Er staan geen Lex-knoppen boven de kaart. De rekenkern van een voorstel staat in
   `lib/kaartVoorstel.ts`.

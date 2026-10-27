@@ -20,10 +20,12 @@ const KLASSE = "focus-ring inline-flex min-h-[24px] shrink-0 items-center rounde
 const PRIMAIR = "focus-ring inline-flex min-h-[32px] shrink-0 items-center justify-center rounded-full bg-accent px-3 py-1.5 "
   + "text-sm font-medium text-paper transition-colors hover:bg-accent-soft coarse:min-h-[44px]";
 
-export function VraagLexKnop({ onderwerp, naam: eigenNaam, primair = false, alleenInGesprek = false, className = "" }: {
+export function VraagLexKnop({ onderwerp, naam: eigenNaam, tekst: eigenTekst, primair = false, alleenInGesprek = false, className = "" }: {
   onderwerp: Object_;
   /** De toegankelijke naam, als de standaard ("Vraag Lex over …") niet zegt waar de knop voor is. */
   naam?: string;
+  /** De zichtbare tekst, als de knop een handeling is en geen vraag (*Ga verder met deelvraag 2*, spoor K). */
+  tekst?: string;
   /** *Bespreek met Lex* in de kop van een detailpagina, in plaats van de kleine *Vraag Lex*. */
   primair?: boolean;
   /** Alleen naast het gesprek, waar de knop het object klaarzet in hetzelfde gesprek. Op een pagina staat
@@ -31,7 +33,7 @@ export function VraagLexKnop({ onderwerp, naam: eigenNaam, primair = false, alle
   alleenInGesprek?: boolean;
   className?: string;
 }) {
-  const tekst = primair ? "Bespreek met Lex" : "Vraag Lex";
+  const tekst = eigenTekst ?? (primair ? "Bespreek met Lex" : "Vraag Lex");
   const klasse = `${primair ? PRIMAIR : KLASSE} ${className}`;
   const kies = useContext(VraagLexContext);
   if (alleenInGesprek && !kies) return null;
