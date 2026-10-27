@@ -66,7 +66,14 @@ def test_de_uitkomst_heeft_een_vaste_vorm():
 def test_de_taken_in_de_supervisorprompt_zijn_de_taken_van_de_agents():
     """De supervisor kent de taken alleen uit zijn prompt; een taak die daar ontbreekt, wordt nooit gekozen."""
     from agent.supervisor import SUPERVISOR_SYSTEM
+    # Spoor J: bepalingen zoeken of bepalen gaat naar de bronselectie (`werkgebied` met TAAK: bronselectie); de taak
+    # `bronnen_zoeken` blijft bestaan als zoekfunctie van de bronselectie, maar de supervisor kiest hem niet meer.
+    bewust_niet = {("deelvragen", "bronnen_zoeken")}
     for agent in ("deelvragen", "begrippen"):
         for taak in register.taken(agent):
+            if (agent, taak) in bewust_niet:
+                assert f"{taak} (" not in SUPERVISOR_SYSTEM, (agent, taak)
+                continue
             assert f"{taak} (" in SUPERVISOR_SYSTEM, (agent, taak)
     assert "TAAK: werkgebied" in SUPERVISOR_SYSTEM
+    assert "TAAK: bronselectie" in SUPERVISOR_SYSTEM

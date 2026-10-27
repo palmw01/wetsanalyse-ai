@@ -8,7 +8,9 @@
 // Pure functies, zodat ze zonder DOM te testen zijn (lib/bronselectie.test.ts).
 
 export type Voortgang = "niet_gestart" | "in_behandeling" | "voorlopig_afgerond" | "beoordeeld";
-export type KandidaatStand = "voorgesteld" | "later" | "uitgesloten" | "opgenomen";
+/** `niet_gekozen`: bij het beantwoorden van het kaartje niet aangevinkt (de api leidt het af uit de fase). Er is
+ *  geen *later*: wie de vragen doorloopt, kiest; opnieuw doorlopen maakt er weer een keuze van. */
+export type KandidaatStand = "voorgesteld" | "niet_gekozen" | "uitgesloten" | "opgenomen";
 export type BewijsSoort = "verwijzing" | "definitie" | "structuur" | "tekst" | "gelijkenis";
 
 export interface BronHier {
@@ -26,7 +28,7 @@ export interface KandidaatHier {
   rol: "kern" | "afhankelijkheid" | "aanverwant";
   bewijs_soorten: BewijsSoort[];
   stand: KandidaatStand;
-  /** Het besluit geldt voor het hele werkgebied (een uitsluiting of *later* van vóór spoor J). */
+  /** De uitsluiting geldt voor het hele werkgebied. */
   overal: boolean;
   /** Al opgenomen bij een andere deelvraag. */
   elders_opgenomen: boolean;
@@ -47,7 +49,7 @@ export interface DeelvraagSelectie {
   klaar: boolean;
   bronnen: BronHier[];
   kandidaten: KandidaatHier[];
-  telling: { voorgesteld: number; later: number; uitgesloten: number; opgenomen: number };
+  telling: { voorgesteld: number; niet_gekozen: number; uitgesloten: number; opgenomen: number };
   beoordelen: { mag: boolean; redenen: string[] };
 }
 
@@ -86,7 +88,7 @@ export function voortgangToon(d: Pick<DeelvraagSelectie, "status" | "opnieuw_bek
 }
 
 export const STAND_LABEL: Record<KandidaatStand, string> = {
-  voorgesteld: "voorstel", later: "later", uitgesloten: "uitgesloten", opgenomen: "opgenomen",
+  voorgesteld: "voorstel", niet_gekozen: "niet gekozen", uitgesloten: "uitgesloten", opgenomen: "opgenomen",
 };
 
 /** Een tekstuele overeenkomst is geen bewijs van noodzaak; een verwijzing of definitie in de graaf wel van
@@ -105,7 +107,7 @@ const obj = (v: unknown) => (v && typeof v === "object" && !Array.isArray(v) ? v
 const een = <T extends string>(v: unknown, mag: readonly T[], anders: T): T => (mag.includes(v as T) ? v as T : anders);
 
 const VOORTGANGEN = ["niet_gestart", "in_behandeling", "voorlopig_afgerond", "beoordeeld"] as const;
-const STANDEN = ["voorgesteld", "later", "uitgesloten", "opgenomen"] as const;
+const STANDEN = ["voorgesteld", "niet_gekozen", "uitgesloten", "opgenomen"] as const;
 const BEWIJZEN = ["verwijzing", "definitie", "structuur", "tekst", "gelijkenis"] as const;
 
 /** Streng waar het iets uitmaakt (een deelvraag zonder id telt niet), vergevend in de details. */
@@ -136,7 +138,8 @@ export function parseBronselectie(ruw: unknown): BronselectieOverzicht | undefin
           stand: een(k.stand, STANDEN, "voorgesteld"), overal: k.overal === true, elders_opgenomen: k.elders_opgenomen === true,
           reden: tekst(k.reden) }] : [];
       }) : [],
-      telling: { voorgesteld: getal(t.voorgesteld), later: getal(t.later), uitgesloten: getal(t.uitgesloten), opgenomen: getal(t.opgenomen) },
+      telling: { voorgesteld: getal(t.voorgesteld), niet_gekozen: getal(t.niet_gekozen), uitgesloten: getal(t.uitgesloten),
+        opgenomen: getal(t.opgenomen) },
       beoordelen: { mag: b.mag === true, redenen: Array.isArray(b.redenen) ? b.redenen.filter((x): x is string => typeof x === "string") : [] },
     }];
   });

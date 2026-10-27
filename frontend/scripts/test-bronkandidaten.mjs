@@ -9,9 +9,9 @@
  *
  * Bewaakt:
  *  - geen zoekknop op de pagina; de meting per methode, kandidaten met rol en bewijs in gewone woorden;
- *  - opnemen met de voorgestelde rol (kern → analyseren, anders context) en de revisie in beeld;
- *  - uitsluiten alleen met een reden, en het filter Uitgesloten met die reden; heropenen;
- *  - het toetsenbord (`j`, `a`) alleen met de focus in de lijst;
+ *  - spoor J: de boom is een bronverkenner – geen vinkjes, actiebalk of besluiten, geen *later*; kiezen gaat
+ *    per deelvraag in de bronselectie;
+ *  - geen sneltoetsen;
  *  - *Vraag Lex* bij elke open kandidaat en elke bronselectie;
  *  - in de werkplek: *Maak hier een werkgebied van* onder een overzicht, en het bronnenartefact.
  */
@@ -135,62 +135,32 @@ try {
   assert.equal(await sectie().getByText("(onvolledig)").count(), 1, "een methode die haar plafond raakte, zegt dat");
   await kaart(A8).getByText("verwezen vanuit Artikel 9, lid 1 (“artikel 8”) – uitzondering").waitFor();
   await kaart(D2).getByText("definieert “belastingaanslag”, dat in Artikel 9, lid 1 staat").waitFor();
-  assert.equal(await sectie().getByRole("tab", { name: "Open (3)" }).count(), 1);
+  assert.equal(await sectie().getByRole("tab", { name: "Voorstellen (3)" }).count(), 1);
 
-  // --- Spoor H: een boom per regeling › artikel, per regel een vinkje en één zin bewijs; geen knoppen ---
+  // --- Spoor H/J: een boom per regeling › artikel als bronverkenner – geen vinkjes, geen actiebalk, geen besluiten ---
   await sectie().locator("[data-bronboom] [data-boom-knoop=regeling]").first().waitFor();
-  assert.equal(await kaart(A8).getByRole("button", { name: /Opnemen|Later|Uitsluiten|Heropenen/ }).count(), 0,
-    "geen besluitknoppen in een regel");
-  const balk = sectie().locator("[data-actiebalk]");
-  assert.equal(await balk.count(), 0, "zonder keuze geen actiebalk");
+  assert.equal(await sectie().getByRole("checkbox").count(), 0, "kiezen gaat per deelvraag, in de bronselectie");
+  assert.equal(await sectie().locator("[data-actiebalk]").count(), 0, "geen actiebalk");
+  assert.equal(await sectie().getByRole("button", { name: /Opnemen|Later|Uitsluiten|Heropenen/ }).count(), 0,
+    "geen besluitknoppen");
+  assert.equal(await sectie().getByRole("tab", { name: /^Later/ }).count(), 0, "er is geen later meer");
+  await zie("Kiezen doe je per deelvraag");
 
-  // --- Opnemen: een afhankelijkheid wordt context, met de revisie in beeld ---
-  await kaart(A8).getByRole("checkbox").check();
-  await balk.getByText("1 bepaling gekozen").waitFor();
-  await balk.getByRole("button", { name: "Opnemen als context (1)" }).click();
-  await zie("opgenomen als contextbron");
-  const opname = laatsteBesluit("opnemen");
-  assert.equal(opname.body.rol, "context");
-  assert.equal(opname.body.verwachte_revisie, 2);
-  await sectie().getByRole("tab", { name: "Opgenomen (1)" }).waitFor();
-  assert.equal(wg.bronnen.length, 2);
-
-  // --- Uitsluiten vraagt een reden ---
-  await kaart(A10).getByRole("checkbox").check();
-  await balk.getByRole("button", { name: "Uitsluiten… (1)" }).click();
-  const reden = balk.getByRole("textbox", { name: /^Reden om/ });
-  await reden.waitFor();
-  assert.equal(await reden.evaluate((el) => el === document.activeElement), true, "de reden krijgt de focus");
-  assert.equal(await balk.getByRole("button", { name: "Uitsluiten", exact: true }).isDisabled(), true);
-  await reden.fill("Gaat over uitstel, niet over invorderbaarheid");
-  await balk.getByRole("button", { name: "Uitsluiten", exact: true }).click();
-  await zie("Lex stelt deze bepaling niet opnieuw voor");
-  await sectie().getByRole("tab", { name: "Uitgesloten (1)" }).click();
-  await kaart(A10).getByText("Gaat over uitstel, niet over invorderbaarheid", { exact: false }).waitFor();
-
-  // --- Het register toont de zojuist opgenomen bron, zonder knop per rij ---
+  // --- Het register toont de bronnen, zonder knop per rij ---
   await page.goto(`${base}/werkgebieden/wg1/bronnen`);
   await page.locator("[data-bronnen-register] [data-bron]").nth(wg.bronnen.length - 1).waitFor();
   assert.equal(await page.locator("[data-bronnen-register] [data-bron]").count(), wg.bronnen.length);
   assert.equal(await page.locator("[data-bronnen-register] [data-vraag-lex]").count(), 0);
   await page.goBack();
-  await sectie().getByRole("tab", { name: "Uitgesloten (1)" }).click();
-  await kaart(A10).getByRole("checkbox").check();
-  await balk.getByRole("button", { name: "Heropenen (1)" }).click();
-  await sectie().getByRole("tab", { name: "Open (2)" }).click();
+  await kaart(A8).waitFor();
 
-  // --- Geen sneltoetsen: een letter neemt niets op; het bewijs klapt uit met een knop ---
-  await sectie().getByRole("group", { name: /^Kandidaten –/ }).click({ position: { x: 2, y: 2 } });
+  // --- Geen sneltoetsen; het bewijs klapt uit met een knop; er gaat geen besluit naar de api ---
+  await sectie().getByRole("group", { name: /^Bepalingen –/ }).click({ position: { x: 2, y: 2 } });
   for (const t of ["a", "x", "j"]) await page.keyboard.press(t);
   await page.waitForTimeout(300);
-  assert.equal(requests.filter((r) => r.p.endsWith("/opnemen")).length, 1, "een letter neemt niets op");
   await sectie().getByRole("button", { name: /^Bewijs voor / }).first().click();
   await sectie().getByRole("list", { name: /^Bewijs: / }).first().waitFor();
-  // Een heel artikel in één klik, en dan opnemen.
-  await sectie().getByRole("checkbox", { name: /^Alles in / }).first().check();
-  await balk.getByRole("button", { name: /^Opnemen om te analyseren/ }).click();
-  await zie("opgenomen als");
-  assert.ok(requests.filter((r) => r.p.endsWith("/opnemen")).length >= 2);
+  assert.equal(requests.filter((r) => r.m === "POST" && r.p.includes("/kandidaten/")).length, 0, "de verkenner beslist niets");
 
   // --- De werkplek: een werkgebied uit een overzicht, en het bronnenartefact ---
   await page.goto(`${base}/workbench?gesprek=g1`);
@@ -213,7 +183,7 @@ try {
   assert.equal(await paneel.getByRole("link", { name: "Open volledige pagina" }).getAttribute("href"), "/werkgebieden/wg1/bronnen/voorstellen");
 
   assert.deepEqual(errors, []);
-  console.log("Browser OK: gevonden bepalingen met meting, geen zoekknop, bewijs in gewone woorden, opnemen met rol en revisie, uitsluiten met reden, de voorstellen op een eigen pagina, geen Vraag Lex per rij, de boom per regeling met vinkjes en actiebalk, heropenen, toetsenbord in de lijst, werkgebied uit een overzicht, bronnenartefact.");
+  console.log("Browser OK: gevonden bepalingen met meting, geen zoekknop, bewijs in gewone woorden, de voorstellen op een eigen pagina, geen Vraag Lex per rij, de boom per regeling als verkenner zonder besluiten en zonder later, geen sneltoetsen, werkgebied uit een overzicht, bronnenartefact.");
 } finally {
   await browser.close();
 }

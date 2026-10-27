@@ -626,7 +626,7 @@ def test_de_afronding_belooft_alleen_wat_er_gekoppeld_is():
                                                                     {"vraag": "Twee?", "status": "actief"}]}
     niets = werkgebied_tekst(wg, [], [], 0)
     assert "als concept, nog zonder bronnen" in niets and "gekoppeld" not in niets and "koos" not in niets
-    assert "Het heeft 2 deelvragen, nog zonder bronnen." in niets and "bepalingen zoeken bij de deelvragen" in niets
+    assert "Het heeft 2 deelvragen, nog zonder bronnen." in niets and "*Bepaal de bronnen per deelvraag*" in niets
     deels = werkgebied_tekst(wg, ["Art. 1"], [], 1)
     assert "1 daarvan heeft de bronnen die je erbij koos, de rest nog geen." in deels
     alles = werkgebied_tekst(wg, ["Art. 1", "Art. 2"], [], 2)

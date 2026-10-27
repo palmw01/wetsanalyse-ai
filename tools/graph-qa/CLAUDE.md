@@ -900,11 +900,19 @@ onder de supervisor, naast de intake; zie `docs/architectuur/bronselectie-per-de
   actie `bronselectie` (`models.BRONSELECTIE_ACTIES`, geen taak van een agent), of de vaste zin
   (`is_bronselectievraag`, met werkgebied) – die gaat vóór het startzinpatroon van het samenstellen, en dat
   patroon sluit hem uit ("werkgebied … bepalen" nam hem anders over). Getypt kiest de supervisor `werkgebied`
-  met `TAAK: bronselectie`. Een deelvraag aangewezen in de werkplek (`onderwerp`) of genoemd ("deelvraag 4",
+  met `TAAK: bronselectie` – ook voor "zoek bepalingen bij deelvraag 2": de losse zoekknop is weg, en de taak
+  `bronnen_zoeken` van de deelvragen-agent staat niet meer in de prompt (wel nog in `ACTIE_TAAK`, en de
+  bronselectie gebruikt zijn zoekfunctie). Een deelvraag aangewezen in de werkplek (`onderwerp`) of genoemd ("deelvraag 4",
   `deelvraag_nr_in`) gaat voor.
 - **Een klik wordt een besluit of een stap** (`verwerk`): aangevinkt = opnemen bij deze deelvraag (rol
   *analyseren* bij een kernbepaling op het kernkaartje, anders *context*), een opgenomen bron die niet meer
-  aangevinkt is wordt losgekoppeld, eigen tekst wordt een onderzoekspunt, en de fase schuift door. Alles is
+  aangevinkt is wordt losgekoppeld, en de fase schuift door. Wat niet aangevinkt is, is niet gekozen (de api
+  leidt het af); er is geen *later*. **Eigen tekst op een bepalingenkaartje is een bepaling die de analist zelf
+  toevoegt** (`bepalingen_uit_tekst`: artikel en lid uit de tekst, de regeling uit de tekst via
+  `overzicht.regelingen_in_vraag` of – als het werkgebied er één heeft – uit het werkgebied; dan
+  `POST …/bronselectie/{d}/bronnen`). Geen artikel, geen eenduidige regeling of een onbekende bepaling: een zin
+  en hetzelfde kaartje. Eigen tekst op het afrondkaartje is een onderzoekspunt. Iets toevoegen kan later altijd
+  door de vragen opnieuw te doorlopen (*Bepaal de bronnen bij deze deelvraag*, *verder onderzoeken*). Alles is
   idempotent bij de api, dus een oud kaartje of een dubbele klik wordt verwerkt op de stand van nu. Een 412
   geeft het kaartje van nu met "Iemand anders werkte intussen …".
 - **Zoeken** is `bronnen_run.bronnen_kern` (zonder model) wanneer er nog niet, of op een andere selectie,

@@ -252,6 +252,12 @@ class WetsanalyseApi:
         return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronselectie/"
                                 f"{quote(deelvraag_id, safe='')}/status", actie)
 
+    async def voeg_bepaling_toe(self, werkgebied_id: str, deelvraag_id: str, bron: dict[str, Any]) -> dict[str, Any]:
+        """Zelf een bepaling als keuze bij één deelvraag (`BronselectieInvoer`); de api toetst haar in de graaf (422
+        als ze niet bestaat). Geeft het overzicht."""
+        return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronselectie/"
+                                f"{quote(deelvraag_id, safe='')}/bronnen", bron)
+
     async def besluit_bronselectie(self, werkgebied_id: str, deelvraag_id: str, kandidaat_id: str,
                                    besluit: dict[str, Any]) -> dict[str, Any]:
         """Een besluit over één kandidaat bij één deelvraag; geeft het overzicht."""

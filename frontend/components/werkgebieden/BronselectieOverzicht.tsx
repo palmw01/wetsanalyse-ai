@@ -122,7 +122,7 @@ function Deelvraag({ o, d, open, huidig, inGesprek, beslis }: {
         </StatusLabel>
         <span className="w-full text-xs text-muted">
           {d.telling.opgenomen} opgenomen · {d.telling.voorgesteld} open
-          {d.telling.later ? ` · ${d.telling.later} later` : ""}{d.telling.uitgesloten ? ` · ${d.telling.uitgesloten} uitgesloten` : ""}
+          {d.telling.niet_gekozen ? ` · ${d.telling.niet_gekozen} niet gekozen` : ""}{d.telling.uitgesloten ? ` · ${d.telling.uitgesloten} uitgesloten` : ""}
           {huidig && inGesprek ? " · hier staat het gesprek" : ""}
         </span>
       </summary>
@@ -152,6 +152,8 @@ function Deelvraag({ o, d, open, huidig, inGesprek, beslis }: {
         {open_.length > 0 && (
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wide text-muted">Voorstellen van Lex</h4>
+            <p className="mt-0.5 text-xs text-muted">Wat je op het kaartje niet aanvinkte, is niet gekozen. Iets toevoegen:
+              doorloop de vragen van deze deelvraag opnieuw in het gesprek.</p>
             <Lijst label={`Voorstellen bij ${titel}`}>
               {open_.map((k) => <Kandidaat key={k.id} o={o} d={d} k={k} beslis={beslis} />)}
             </Lijst>
@@ -212,13 +214,12 @@ function Kandidaat({ o, d, k, beslis }: {
           <Button type="submit" size="xs" variant="secondary" disabled={!reden.trim() || bezig}>Uitsluiten</Button>
           <Button type="button" size="xs" variant="ghost" onClick={() => setUitsluiten(false)}>Annuleren</Button>
         </form>
-      ) : k.stand === "voorgesteld" ? (
+      ) : k.stand !== "uitgesloten" ? (
         <>
           <Button size="xs" variant="secondary" disabled={bezig}
             onClick={() => doe({ besluit: "opnemen", verwachte_revisie: o.revisie, rol: k.rol === "kern" ? "analyseren" : "context" })}>
             Opnemen
           </Button>
-          <Button size="xs" variant="secondary" disabled={bezig} onClick={() => doe({ besluit: "later" })}>Later</Button>
           <Button size="xs" variant="secondary" disabled={bezig} onClick={() => setUitsluiten(true)}>Uitsluiten…</Button>
         </>
       ) : (

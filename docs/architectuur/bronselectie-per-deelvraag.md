@@ -12,7 +12,7 @@ analist besluit.
 | wat | waar | levensduur |
 |---|---|---|
 | de stand van het werk per deelvraag (voortgang, fase, onderzoekspunten) | api, `bronselectie_voortgang` | duurzaam, gedeeld |
-| de besluiten: een bron opgenomen bij een deelvraag (met rol), *later* of *uitgesloten* bij een deelvraag | api, `werkgebied_deelvraag_koppelingen.rol` en `bron_kandidaat_deelvragen`; werkgebiedbreed `bron_kandidaten` | duurzaam, gedeeld, geaudit |
+| de besluiten: een bron opgenomen bij een deelvraag (met rol), of *uitgesloten* bij een deelvraag | api, `werkgebied_deelvraag_koppelingen.rol` en `bron_kandidaat_deelvragen`; werkgebiedbreed `bron_kandidaten` | duurzaam, gedeeld, geaudit |
 | het gesprek: welke kaartjes er zijn gesteld en beantwoord | api, `gesprek_berichten` (`vraagkaart`, `intake_antwoord`) | per gebruiker, een verslag |
 
 De gesprek-checkpointer van graph-qa draagt **niets** van de bronselectie. Daardoor is hervatten gewoon een
@@ -27,9 +27,12 @@ bs_kies ──► bs_bepalingen (fase A/B: kern) ──► bs_afhankelijkheden (
 ```
 
 - **Een kaartje per stap**, in het vraagkaartcontract van de intake (`modus: "bronselectie"`, `intake_id`
-  `bs-<werkgebied>`, `deelvraag_id`). Eén kaart per deelvraag met meerkeuze voor *opnemen*; uitsluiten, later
-  en context zijn besluiten in het paneel of op de pagina. Een eigen tekst op een kaartje wordt een
-  onderzoekspunt.
+  `bs-<werkgebied>`, `deelvraag_id`). Eén kaart per deelvraag met meerkeuze voor *opnemen*. **Kiezen is het
+  besluit**: wat niet aangevinkt is, is *niet gekozen* (afgeleid uit de fase, niet bewaard). Er is geen *later*.
+- **Zelf toevoegen**: een eigen tekst op een bepalingenkaartje ("artikel 25 lid 2 Invorderingswet 1990") is een
+  bepaling die de analist als keuze toevoegt; de api toetst haar in de graaf. Een eigen tekst op het
+  afrondkaartje is een onderzoekspunt. Later iets toevoegen = de vragen van de deelvraag opnieuw doorlopen; dan
+  is wat niet gekozen was weer kiesbaar.
 - **Zoeken** is de bestaande bronnenrun (`bronnen_run.bronnen_kern`), idempotent op de selectie: na het opnemen
   verandert de invoer, en de volgende stap vindt wat aan de nieuwe bron hangt (verwijzing, definitie, opbouw).
 - **De volgende deelvraag** rekent de api (`volgende`): de eerste niet-klare na de huidige, dan vooraan verder.
@@ -39,8 +42,8 @@ bs_kies ──► bs_bepalingen (fase A/B: kern) ──► bs_afhankelijkheden (
 ## Statussen
 
 - `niet_gestart` (geen rij) → `in_behandeling` (openen, of het eerste besluit) → `voorlopig_afgerond` (de
-  analist sluit af; open punten mogen) → `beoordeeld` (alleen door een poort: geen open voorstel en geen
-  onderzoekspunt). `heropenen` gaat terug naar `in_behandeling`.
+  analist sluit af; open punten mogen) → `beoordeeld` (alleen door een poort: de vragen zijn doorlopen en er
+  staat geen onderzoekspunt open). `heropenen` gaat terug naar `in_behandeling`.
 - Los daarvan staan de deelvraagstatus (`actief`, `vervangen`, …) en de dekkingscheck met begrippen
   (`gedekt`, `geen_begrip`, `geen_bron`). Die worden niet vermengd.
 - **Een afronding staat op een scope** (`scope_stand`: analysevraag, afbakening, deelvraagtekst). Verandert die,

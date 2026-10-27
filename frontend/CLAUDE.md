@@ -428,16 +428,21 @@ heeft *Verzend* (`isLaatsteVraag`), want wat erna komt hangt af van het antwoord
   naast het gesprek en de pagina Bronselectie lezen hetzelfde overzicht: **`BronselectieOverzicht`** – per
   deelvraag de voortgang (`VOORTGANG_LABEL`, groen alleen bij *beoordeeld*, geel bij *opnieuw bekijken*), de
   bronnen met hun rol bij díé deelvraag, de voorstellen met hun stand en het soort bewijs (`BEWIJS_LABEL`), de
-  onderzoekspunten, de zoekbeperkingen en de slotzin (`slotZin`: nooit "volledig"). Op de pagina de besluiten
-  per deelvraag (opnemen, later, uitsluiten met reden, heropenen; `besluitBronselectie`); de stappen zet Lex.
+  onderzoekspunten, de zoekbeperkingen en de slotzin (`slotZin`: nooit "volledig"). Per voorstel opnemen,
+  uitsluiten met reden of heropenen (`besluitBronselectie`); de stappen zet Lex. **Geen *later***: wat je op het
+  kaartje niet aanvinkt, is *niet gekozen*; iets toevoegen doe je door de vragen opnieuw te doorlopen, of door
+  een bepaling in het tekstveld van het kaartje te typen.
 - **Een bronselectiebeurt blijft een antwoord met kaartje**: het artefact `bronselectie` maakt er geen
   artefact-item van (anders is de open vraag weg), live (`toonVastgelegdeBeurt`) en na herladen. Het paneel
   opent vanzelf alleen vanaf 1280px; daaronder via de balk *laatste artefact* (`bronselectieVanKaart`).
+- **De suggesties volgen de methode** (`SUGGESTIES` in `lib/vraagLex.ts`): bij het werkgebied dossier, thema,
+  deelvragen, *Bepaal de bronnen per deelvraag*, annoteren, begrippen en als laatste de dekking; bij een deelvraag
+  eerst scherper of splitsen, dan de bronnen, annoteren en gedekt.
 - **Van deelvraag wisselen** gaat in het gesprek: *Ga verder met deelvraag n* in het paneel zet de deelvraag als
   onderwerp (`VraagLexKnop alleenInGesprek`), en de suggestie *Bepaal de bronnen bij deze deelvraag* stuurt de
   actie `bronselectie`. Kiezen van een onderwerp klapt een open vraag weg (`kiesOnderwerp`), anders staan chip en
-  suggesties eronder; *Een vraag stellen ›* haalt hem terug. *Verder met de bronselectie* staat bij de
-  werkgebiedsuggesties, ook in een nieuw gesprek.
+  suggesties eronder; *Een vraag stellen ›* haalt hem terug. *Bepaal de bronnen per deelvraag* staat bij de
+  werkgebiedsuggesties en gaat ook in een nieuw gesprek verder waar je was.
 - De allowlist laat `bronselectie`, `bronselectie/{d}/status` en `bronselectie/{d}/kandidaten/{k}` door.
 - **De bronboom** (`BronKandidaten` op `bronnen/voorstellen`) blijft als bronverkenner; de pagina Bronselectie
   linkt ernaar.
@@ -770,25 +775,20 @@ bestaat los van de gesprekken.
   wat Lex opleverde en draagt de handmatige besluiten erover. Er is daardoor geen BFF-route meer die een
   run start: de vier statische routes (`deelvragen-run`, `kaart-run`, `bronnen-run`, `begrippen-run`)
   en `annoteer=`/`meedenk=` zijn weg, en `app/geenRunRoutes.test.ts` bewaakt dat ze niet terugkomen.
-- **Bronnen vinden met Lex** (fase A; api §*Bronnen vinden met Lex*, graph-qa §*Bronnen vinden met
-  Lex*): `BronKandidaten` bovenaan de tab Bronnen én als artefact naast het gesprek – één inhoud, twee
-  schillen, allebei zonder zoekknop. Zoeken is de taak `bronnen_zoeken` van de deelvragen-agent; de
-  strook toont de laatste ronde (`bronnen-runs/laatste`) en de kandidaten.
+- **De bronverkenner** (fase A; sinds spoor J alleen om rond te kijken): `BronKandidaten` op
+  `bronnen/voorstellen`, in het deelvraagpaneel en als artefact `bronnen` – zonder zoekknop, zonder vinkjes,
+  actiebalk of besluiten. Kiezen gaat per deelvraag in de bronselectie; zoeken doet de bronselectie zelf (er is
+  geen suggestie *Zoek bepalingen* meer). De strook toont de laatste ronde (`bronnen-runs/laatste`) en de
+  kandidaten.
   - **Per kandidaat** de rol als badge (kern / afhankelijkheid / aanverwant, met uitleg) en het bewijs
     per methode in gewone woorden (`bewijsZin` in `lib/bronKandidaten.ts`: "verwezen vanuit Artikel 9,
     lid 1 (“artikel 8”) – uitzondering"). Per methode de telling en "onvolledig" als ze haar plafond
-    raakte. Filters open / later / uitgesloten / opgenomen (`filterVan`: met de hand opgenomen telt als
-    opgenomen).
-  - **Een boom met een actiebalk** (spoor H2): de kandidaten in `BronBoom` per regeling › hoofdstuk ›
-    artikel › lid (de plek uit `usePlaatsen`), per regel een vinkje, de rol en één zin bewijs
-    (`bewijsSamenvatting`); *Bewijs* klapt het hele bewijs uit. Geen knoppen per regel.
-  - **Besluiten** in de actiebalk, voor alles wat aangevinkt is (ook een heel artikel of hoofdstuk via
-    het vinkje van de kop): *Opnemen om te analyseren* / *als context* – `neemKandidaatOp` haalt de revisie
-    zelf op en probeert bij een 412 één keer opnieuw –, *Later*, *Uitsluiten…* (één verplichte reden,
-    krijgt de focus) en *Heropenen*. Elk besluit is een eigen verzoek, in de volgorde van de boom; bij een
-    fout stopt het en zegt het hoe ver.
-  - De allowlist (`isWerkgebiedRoute`) laat `kandidaten/*` en `bronnen-runs/laatste|{run}` door, nooit
-    een kale POST op `bronnen-runs` of `…/uitkomst|loopt|mislukt` (dat is van graph-qa).
+    raakte. Filters *Voorstellen* / *Uitgesloten* / *Opgenomen* (`filterVan`: met de hand opgenomen telt als
+    opgenomen, een oud *later* als voorstel).
+  - **Een boom** (spoor H2): de kandidaten in `BronBoom` per regeling › hoofdstuk › artikel › lid (de plek uit
+    `usePlaatsen`), per regel de rol en één zin bewijs (`bewijsSamenvatting`); *Bewijs* klapt het hele bewijs uit.
+  - De allowlist (`isWerkgebiedRoute`) laat alleen `kandidaten` (lezen) en `bronnen-runs/laatste|{run}` door,
+    nooit een besluit op een kandidaat, een kale POST op `bronnen-runs` of `…/uitkomst|loopt|mislukt`.
   - **Werkgebied vanuit een overzicht**: onder `OverzichtBlok` de knop *Maak hier een werkgebied van*
     (`WerkgebiedUitOverzicht`): naam en analysevraag vooringevuld, de bepalingen uit het overzicht
     (`bepalingenVanOverzicht`) voorgeselecteerd. Daarna staat de werkplek in dat werkgebied; wat niet

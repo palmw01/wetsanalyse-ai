@@ -80,15 +80,20 @@ async def test_vier_deelvragen_van_1_naar_2_springen_naar_4_en_2_blijft_staan(cl
     ov = await _status(client, wg, ids[0], "afronden", verwachte_revisie=_dq(ov, ids[0])["revisie"])
     assert _dq(ov, ids[0])["status"] == "voorlopig_afgerond" and ov["volgende"] == ids[1]
 
-    # Deelvraag 2: openen en de kandidaat voor later bewaren.
+    # Deelvraag 2: het kernkaartje beantwoorden zonder iets aan te vinken – dan is het voorstel niet gekozen.
     ov = await _status(client, wg, ids[1], "openen")
-    ov = await _besluit(client, wg, ids[1], _kid(_dq(ov, ids[1]), ONE)["id"], "later")
-    assert _kid(_dq(ov, ids[1]), ONE)["stand"] == "later"
+    assert _kid(_dq(ov, ids[1]), ONE)["stand"] == "voorgesteld"
+    ov = await _status(client, wg, ids[1], "fase", fase="afhankelijkheden", verwachte_revisie=_dq(ov, ids[1])["revisie"])
+    assert _kid(_dq(ov, ids[1]), ONE)["stand"] == "niet_gekozen" and _dq(ov, ids[1])["telling"]["niet_gekozen"] == 1
 
     # Springen naar 4 zonder 2 af te ronden.
     ov = await _status(client, wg, ids[3], "openen")
     assert ov["actief"] == ids[3]
-    assert _dq(ov, ids[1])["status"] == "in_behandeling" and _kid(_dq(ov, ids[1]), ONE)["stand"] == "later"
+    assert _dq(ov, ids[1])["status"] == "in_behandeling" and _kid(_dq(ov, ids[1]), ONE)["stand"] == "niet_gekozen"
+    # De vragen opnieuw doorlopen maakt er weer een keuze van.
+    terug = await _status(client, wg, ids[1], "fase", fase="kern", verwachte_revisie=_dq(ov, ids[1])["revisie"])
+    assert _kid(_dq(terug, ids[1]), ONE)["stand"] == "voorgesteld"
+    ov = await _status(client, wg, ids[3], "openen")
     # Na 4 komt de eerste die niet klaar is: vooraan verder, en 1 is klaar → 2.
     assert ov["volgende"] == ids[1]
 
@@ -108,7 +113,10 @@ async def test_zonder_deelvragen_is_de_analysevraag_het_vertrekpunt(client):
     await _status(client, wg, "analysevraag", "openen")
     ov = await _besluit(client, wg, "analysevraag", dq["kandidaten"][0]["id"], "opnemen", verwachte_revisie=wg["revisie"])
     dq = ov["deelvragen"][0]
-    assert [b["bron_iri"] for b in dq["bronnen"]] == [ART] and dq["beoordelen"]["mag"]
+    assert [b["bron_iri"] for b in dq["bronnen"]] == [ART] and not dq["beoordelen"]["mag"]
+    ov = await _status(client, wg, "analysevraag", "fase", fase="afronden", verwachte_revisie=dq["revisie"])
+    dq = ov["deelvragen"][0]
+    assert dq["beoordelen"]["mag"]
     ov = await _status(client, wg, "analysevraag", "beoordelen", verwachte_revisie=dq["revisie"])
     assert ov["deelvragen"][0]["status"] == "beoordeeld" and ov["alle_klaar"] and ov["volgende"] is None
     # Met deelvragen bestaat de analysevraag als eenheid niet meer.
@@ -169,7 +177,7 @@ async def test_beoordeeld_alleen_door_de_poort_en_een_dubbele_klik_is_geen_confl
     rev = _dq(ov, ids[0])["revisie"]
     await _status(client, wg, ids[0], "afronden", verwacht=422)                 # zonder revisie
     r = await _status(client, wg, ids[0], "beoordelen", verwacht=409, verwachte_revisie=rev)
-    assert r["detail"]["fout"] == "poort" and "1 voorstel open" in r["detail"]["redenen"][0]
+    assert r["detail"]["fout"] == "poort" and r["detail"]["redenen"] == ["De vragen bij deze deelvraag zijn nog niet doorlopen."]
     # Voorlopig afronden mag met open punten; een tweede klik met de oude revisie is geen 412.
     punten = [{"tekst": "Bijzondere invorderbaarheid nog niet onderzocht."}]
     ov = await _status(client, wg, ids[0], "afronden", verwachte_revisie=rev, open_punten=punten)
@@ -177,7 +185,9 @@ async def test_beoordeeld_alleen_door_de_poort_en_een_dubbele_klik_is_geen_confl
     ov = await _status(client, wg, ids[0], "afronden", verwachte_revisie=rev, open_punten=punten)
     rev = _dq(ov, ids[0])["revisie"]
     assert rev == 2
-    ov = await _besluit(client, wg, ids[0], _kid(_dq(ov, ids[0]), ART)["id"], "later")
+    # Een voorstel dat niet gekozen is, houdt het beoordelen niet tegen; een onderzoekspunt wel.
+    assert _kid(_dq(ov, ids[0]), ART)["stand"] == "niet_gekozen"
+    await _besluit(client, wg, ids[0], _kid(_dq(ov, ids[0]), ART)["id"], "later", verwacht=422)    # bestaat niet meer
     r = await _status(client, wg, ids[0], "beoordelen", verwacht=409, verwachte_revisie=rev)
     assert r["detail"]["redenen"] == ["Er staan nog onderzoekspunten open."]
     ov = await _status(client, wg, ids[0], "beoordelen", verwachte_revisie=rev, open_punten=[])
@@ -194,10 +204,47 @@ async def test_een_besluit_start_de_deelvraag_en_wordt_geaudit(client):
     wg, ids = await _vier(client)
     await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=[ids[1]])])
     ov = await _overzicht(client, wg)
-    ov = await _besluit(client, wg, ids[1], _kid(_dq(ov, ids[1]), ART)["id"], "later")
+    ov = await _besluit(client, wg, ids[1], _kid(_dq(ov, ids[1]), ART)["id"], "uitsluiten", reden="Niet bij deze vraag.")
     assert _dq(ov, ids[1])["status"] == "in_behandeling"
     acties = [a["actie"] for a in (await client.get(f"/v1/werkgebieden/{wg['id']}/audit")).json()["audit"]]
-    assert "bronselectie-later" in acties and "bronselectie-gestart" in acties
+    assert "bronselectie-uitgesloten" in acties and "bronselectie-gestart" in acties
+
+
+async def test_een_oud_besluit_later_telt_als_voorstel(client):
+    """Er is geen *later* meer: een bepaling die in de oude bronnenboom voor later bewaard werd, staat gewoon weer
+    op het kaartje."""
+    wg, ids = await _vier(client)
+    await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=[ids[0]])])
+    kid = (await client.get(f"/v1/werkgebieden/{wg['id']}/kandidaten")).json()["kandidaten"][0]["id"]
+    assert (await client.post(f"/v1/werkgebieden/{wg['id']}/kandidaten/{kid}/later")).status_code == 200
+    k = _kid(_dq(await _overzicht(client, wg), ids[0]), ART)
+    assert (k["stand"], k["overal"]) == ("voorgesteld", False)
+
+
+async def test_zelf_een_bepaling_toevoegen_bij_een_deelvraag(client):
+    """Een eigen tekst op het kaartje: Lex vond haar niet, de analist kiest haar zelf. Opnemen en koppelen in
+    één keer; bij een tweede deelvraag een koppeling met een eigen rol, geen tweede selectie."""
+    wg, ids = await _vier(client)
+
+    async def voeg_toe(did, rol, verwacht=200, **bron):
+        rev = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()["revisie"]
+        r = await client.post(f"/v1/werkgebieden/{wg['id']}/bronselectie/{did}/bronnen",
+                              json={"verwachte_revisie": rev, "rol": rol, **bron})
+        assert r.status_code == verwacht, r.text
+        return r.json()
+
+    ov = await voeg_toe(ids[1], "analyseren", bron_iri=ONE)
+    assert [(b["bron_iri"], b["rol"]) for b in _dq(ov, ids[1])["bronnen"]] == [(ONE, "analyseren")]
+    assert _dq(ov, ids[1])["status"] == "in_behandeling"
+    ov = await voeg_toe(ids[1], "analyseren", bron_iri=ONE)                    # nog eens: niets dubbel
+    assert len(_dq(ov, ids[1])["bronnen"]) == 1
+    ov = await voeg_toe(ids[2], "context", bron_iri=ONE)
+    assert [b["rol"] for b in _dq(ov, ids[2])["bronnen"]] == ["context"]
+    assert [b["bron_iri"] for b in (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()["bronnen"]] == [ONE]
+    # Regeling + artikel, zoals Lex het uit een eigen tekst haalt; een onbekende bepaling is 422.
+    ov = await voeg_toe(ids[0], "analyseren", bwb_id="BWBR0004770", artikel="9")
+    assert [b["bron_iri"] for b in _dq(ov, ids[0])["bronnen"]] == [ART]
+    await voeg_toe(ids[0], "analyseren", 422, bwb_id="BWBR0004770", artikel="77")
 
 
 async def test_een_gewijzigde_scope_zet_een_afronding_op_opnieuw_bekijken(client):

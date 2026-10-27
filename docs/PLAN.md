@@ -1118,10 +1118,13 @@ selectie gekoppeld aan meer deelvragen, `bepaling_opties` per deelvraag); wat on
 deelvraag, een besluit per deelvraag, een vraagkaart buiten de intake en het soort bewijs.
 
 **Besluiten** (27 okt 2026, door Claude op verzoek van de gebruiker, in de lijn van Lex):
-- **één kaart per deelvraag**, meerkeuze voor *opnemen*; *later*, *uitsluiten*, *context* en *bespreken*
-  zijn een vervolgvraag in het gesprek, niet 32 losse kaartjes;
+- **één kaart per deelvraag**, meerkeuze voor *opnemen*; *uitsluiten*, *context* en *bespreken* zijn een
+  vervolgvraag in het gesprek of een besluit op de pagina, niet 32 losse kaartjes;
+- **geen *later*** (besluit gebruiker 27 okt 2026): kiezen is het besluit, wat niet aangevinkt is, is niet gekozen;
+  iets toevoegen = de vragen opnieuw doorlopen, of zelf een bepaling als keuze typen op het kaartje. De losse
+  zoekknop en de beslisknoppen in de bronnenboom zijn weg; de boom is een verkenner;
 - **vier standen**: `niet_gestart`, `in_behandeling`, `voorlopig_afgerond` (de analist sluit af, open punten
-  mogen) en `beoordeeld` – dat laatste alleen **door een poort** (geen open voorstellen, geen open punten),
+  mogen) en `beoordeeld` – dat laatste alleen **door een poort** (de vragen doorlopen, geen open onderzoekspunt),
   zoals het accorderen van een begrip;
 - **uitsluiten geldt standaard voor één deelvraag**; *voor het hele werkgebied* is een bewuste keuze. Het
   bestaande besluit op een kandidaat is het werkgebiedbrede en blijft staan;

@@ -11,11 +11,12 @@
  *  - "help mij de bronnen bij dit werkgebied te bepalen" geeft de keuze met deelvraag 1 aangevinkt, en het
  *    paneel ernaast met de vier deelvragen;
  *  - deelvraag 1: een bepaling opnemen, voorlopig afronden → *Hoe wil je verder?* met deelvraag 2 voorop;
- *  - deelvraag 2: een tussenvraag (✕, typen) breekt niets; *Een vraag stellen ›* haalt het kaartje terug;
+ *  - deelvraag 2: zelf een bepaling als keuze toevoegen (eigen tekst op het bepalingenkaartje), een onderzoekspunt
+ *    bij het afronden; een tussenvraag (✕, typen) breekt niets; *Een vraag stellen ›* haalt het kaartje terug;
  *  - in het paneel *Ga verder met deelvraag 4* → de suggestie → de beurt met `actie: bronselectie` en die deelvraag;
  *  - herladen: de Vragen-kaart, de open vraag van deelvraag 4 en de stand van deelvraag 2 (met onderzoekspunt);
  *  - hervatten: het kaartje beantwoorden draagt `deelvraag_id`; een nieuw gesprek in hetzelfde werkgebied begint met
- *    *Verder met de bronselectie*;
+ *    *Bepaal de bronnen per deelvraag*;
  *  - het user-bericht draagt `intake_antwoord` met de deelvraag; de pagina Bronselectie toont dezelfde stand.
  */
 import assert from "node:assert/strict";
@@ -44,7 +45,7 @@ const wg = { id: "wg1", naam: "Betalingstermijnen", status: "in_voorbereiding", 
 
 // --- "De api": de stand per deelvraag, bijgewerkt zoals api/app/bronselectie.py dat doet -----------------
 const kand = { d1: [["K9", A9, "Artikel 9, lid 1"]], d2: [["K10", A10, "Artikel 10"]], d3: [], d4: [["K19", A19, "Artikel 19"]] };
-const stand = Object.fromEntries(IDS.map((id) => [id, { status: "niet_gestart", fase: "kern", open_punten: [], revisie: 0, opgenomen: [] }]));
+const stand = Object.fromEntries(IDS.map((id) => [id, { status: "niet_gestart", fase: "kern", open_punten: [], revisie: 0, opgenomen: [], zelf: [] }]));
 let actief = null;
 function overzicht() {
   const deelvragen = IDS.map((id, i) => {
@@ -56,9 +57,10 @@ function overzicht() {
     return { id, nr: i + 1, vraag: VRAGEN[i], status: s.status, fase: s.fase, open_punten: s.open_punten, revisie: s.revisie,
       gewijzigd_door: s.revisie ? "t" : null, gewijzigd: s.revisie ? nu : null, opnieuw_bekijken: false,
       klaar: ["voorlopig_afgerond", "beoordeeld"].includes(s.status),
-      bronnen: s.opgenomen.map((kid) => ({ selectie_id: `s-${kid}`, bron_iri: kand[id].find((k) => k[0] === kid)[1],
+      bronnen: [...s.opgenomen.map((kid) => ({ selectie_id: `s-${kid}`, bron_iri: kand[id].find((k) => k[0] === kid)[1],
         label: kand[id].find((k) => k[0] === kid)[2], rol: "analyseren" })),
-      kandidaten, telling: { voorgesteld: open, later: 0, uitgesloten: 0, opgenomen: s.opgenomen.length },
+        ...s.zelf.map((label, n) => ({ selectie_id: `z-${n}`, bron_iri: `urn:bwb:${IW}:artikel:10a:lid:2`, label, rol: "analyseren" }))],
+      kandidaten, telling: { voorgesteld: open, niet_gekozen: 0, uitgesloten: 0, opgenomen: s.opgenomen.length + s.zelf.length },
       beoordelen: { mag: !open && !s.open_punten.length, redenen: open ? [`Er staat nog ${open} voorstel open.`] : [] } };
   });
   return { werkgebied_id: "wg1", naam: wg.naam, revisie: wg.revisie, modus: "deelvragen", deelvragen, actief,
@@ -104,9 +106,15 @@ function beurt(body) {
   if (a.stap === "bs_kies") { open_(a.keuzes[0]); return { tekst: "Dan deelvraag 1.", k: BEPALINGEN(a.keuzes[0]), id: a.keuzes[0] }; }
   if (a.stap === "bs_bepalingen") {
     stand[id].opgenomen.push(...a.keuzes);
-    if (a.tekst) stand[id].open_punten.push({ tekst: a.tekst });
+    // Een eigen tekst op het bepalingenkaartje is een bepaling die de analist zelf toevoegt.
+    if (a.tekst) stand[id].zelf.push("Artikel 10a, lid 2 – Invorderingswet 1990");
     stand[id].fase = "afronden"; stand[id].revisie++;
     return { tekst: a.keuzes.length ? "Opgenomen." : "", k: AFRONDEN(id), id };
+  }
+  if (a.stap === "bs_afronden" && a.tekst && !a.keuzes.length) {
+    // Een eigen tekst bij het afronden is een onderzoekspunt; het kaartje blijft.
+    stand[id].open_punten.push({ tekst: a.tekst }); stand[id].revisie++;
+    return { tekst: `Genoteerd als onderzoekspunt: ‘${a.tekst}’.`, k: AFRONDEN(id), id };
   }
   if (a.stap === "bs_afronden") {
     Object.assign(stand[id], { status: "voorlopig_afgerond" }); stand[id].revisie++;
@@ -206,19 +214,24 @@ try {
   await wacht(5);
   assert.deepEqual(starts[4].intake_actie.keuzes, ["verder:d2"]);
   await dock("bs_bepalingen").getByText("2 van 4").waitFor();
-  // Een onderzoekspunt bij deelvraag 2, zonder iets op te nemen – het blijft openstaan.
-  await dock("bs_bepalingen").getByLabel("Typ je antwoord").fill("Onderzoek ook de bijzondere invorderbaarheid.");
+  // Bij deelvraag 2 het voorstel niet aanvinken, en zelf een bepaling als keuze toevoegen.
+  await dock("bs_bepalingen").getByLabel("Typ je antwoord").fill("artikel 10a lid 2 Invorderingswet 1990");
   await dock("bs_bepalingen").getByRole("button", { name: "Verzend", exact: true }).click();
   await wacht(6);
-  assert.equal(starts[5].intake_actie.tekst, "Onderzoek ook de bijzondere invorderbaarheid.");
+  assert.deepEqual([starts[5].intake_actie.keuzes, starts[5].intake_actie.tekst], [[], "artikel 10a lid 2 Invorderingswet 1990"]);
+  // Een onderzoekspunt noteer je bij het afronden; het blijft openstaan.
+  await dock("bs_afronden").getByLabel("Typ je antwoord").fill("Onderzoek ook de bijzondere invorderbaarheid.");
+  await dock("bs_afronden").getByRole("button", { name: "Verzend", exact: true }).click();
+  await wacht(7);
+  assert.deepEqual([starts[6].intake_actie.keuzes, starts[6].intake_actie.tekst], [[], "Onderzoek ook de bijzondere invorderbaarheid."]);
   await dock("bs_afronden").waitFor();
 
   // --- Een tussenvraag: ✕, typen, antwoord; de vraag komt terug met "Een vraag stellen ›" ---
   await dock("bs_afronden").getByRole("button", { name: "Vraag sluiten" }).click();
   await invoer().fill("Waarom is artikel 10 relevant?");
   await page.getByRole("button", { name: "Versturen" }).click();
-  await wacht(7);
-  assert.equal(starts[6].intake_actie, undefined, "een tussenvraag is geen klik op het kaartje");
+  await wacht(8);
+  assert.equal(starts[7].intake_actie, undefined, "een tussenvraag is geen klik op het kaartje");
   await page.getByText("geen verwijzing", { exact: false }).waitFor();
   assert.equal(stand.d2.status, "in_behandeling", "de tussenvraag verandert de stand niet");
   await page.locator("[data-vraag-open]").click();
@@ -227,12 +240,13 @@ try {
   // --- In het paneel naar deelvraag 4 springen, zonder deelvraag 2 af te ronden ---
   await paneel().waitFor();
   await deelvraagInPaneel("d2").locator("[data-onderzoekspunten]").getByText("bijzondere invorderbaarheid", { exact: false }).waitFor();
+  await deelvraagInPaneel("d2").getByText("Artikel 10a, lid 2 – Invorderingswet 1990").waitFor();
   await deelvraagInPaneel("d4").locator("summary").click();
   await deelvraagInPaneel("d4").getByRole("button", { name: "Ga verder met deelvraag 4" }).click();
   await page.getByRole("button", { name: "Bepaal de bronnen bij deze deelvraag" }).click();
-  await wacht(8);
-  assert.equal(starts[7].actie, "bronselectie");
-  assert.deepEqual([starts[7].onderwerp?.soort, starts[7].onderwerp?.id], ["deelvraag", "d4"]);
+  await wacht(9);
+  assert.equal(starts[8].actie, "bronselectie");
+  assert.deepEqual([starts[8].onderwerp?.soort, starts[8].onderwerp?.id], ["deelvraag", "d4"]);
   await dock("bs_bepalingen").getByText("4 van 4").waitFor();
   assert.equal(stand.d2.status, "in_behandeling", "de voortgang van deelvraag 2 blijft");
   assert.deepEqual(stand.d2.open_punten, [{ tekst: "Onderzoek ook de bijzondere invorderbaarheid." }]);
@@ -248,8 +262,8 @@ try {
   // --- Hervatten: het kaartje van deelvraag 4 beantwoorden ---
   await dock("bs_bepalingen").getByRole("option", { name: /^Artikel 19/ }).click();
   await dock("bs_bepalingen").getByRole("button", { name: "Verzend", exact: true }).click();
-  await wacht(9);
-  assert.deepEqual([starts[8].intake_actie.stap, starts[8].intake_actie.deelvraag_id, starts[8].intake_actie.keuzes],
+  await wacht(10);
+  assert.deepEqual([starts[9].intake_actie.stap, starts[9].intake_actie.deelvraag_id, starts[9].intake_actie.keuzes],
     ["bs_bepalingen", "d4", ["K19"]]);
   assert.deepEqual(stand.d4.opgenomen, ["K19"]);
 
@@ -257,9 +271,9 @@ try {
   const ander = await context.newPage();
   ander.on("pageerror", (e) => errors.push(e.message));
   await ander.goto(`${base}/workbench?werkgebied=wg1`);
-  await ander.getByRole("button", { name: "Verder met de bronselectie" }).click();
-  for (let i = 0; i < 100 && starts.length < 10; i++) await ander.waitForTimeout(50);
-  assert.equal(starts[9].actie, "bronselectie");
+  await ander.getByRole("button", { name: "Bepaal de bronnen per deelvraag" }).click();
+  for (let i = 0; i < 100 && starts.length < 11; i++) await ander.waitForTimeout(50);
+  assert.equal(starts[10].actie, "bronselectie");
   await ander.locator("[data-vraagdock=bs_bepalingen]").getByText("4 van 4").waitFor();
   await ander.close();
 

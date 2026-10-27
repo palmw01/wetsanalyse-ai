@@ -61,7 +61,6 @@ import type {
   Begrip,
   BegripInhoud,
   BegrippenRun,
-  BronKandidaat,
   BronnenRun,
   BegripRevisie,
   BegrippenLijst,
@@ -1446,7 +1445,7 @@ export async function haalBronselectie(id: string): Promise<BronselectieOverzich
 export type BronselectieBesluit =
   | { besluit: "opnemen"; verwachte_revisie: number; rol?: "analyseren" | "context" }
   | { besluit: "loskoppelen"; verwachte_revisie: number }
-  | { besluit: "later" | "heropenen"; overal?: boolean }
+  | { besluit: "heropenen"; overal?: boolean }
   | { besluit: "uitsluiten"; reden: string; overal?: boolean };
 
 export async function besluitBronselectie(id: string, deelvraagId: string, kandidaatId: string,
@@ -1461,26 +1460,4 @@ export async function haalKandidaten(id: string): Promise<KandidatenAntwoord> {
   return json<KandidatenAntwoord>(await fetch(wg(id, "kandidaten"), { cache: "no-store" }));
 }
 
-export async function besluitKandidaat(
-  id: string, kandidaatId: string, besluit: "later" | "uitsluiten" | "heropenen", reden = "",
-): Promise<BronKandidaat> {
-  return json<BronKandidaat>(await fetch(wg(id, "kandidaten", kandidaatId, besluit),
-    jsonInit("POST", besluit === "uitsluiten" ? { reden } : {})));
-}
 
-/** Een kandidaat opnemen als bronselectie. Opnemen wijzigt de scope en draagt de revisie; die haalt
- *  deze helper zelf op en probeert bij een 412 één keer opnieuw – net als `neemOpInWerkgebied`: de
- *  bedoeling hangt niet af van de rest van het werkgebied. */
-export async function neemKandidaatOp(
-  id: string, kandidaatId: string, rol?: BronRol,
-): Promise<{ kandidaat: BronKandidaat; selectie: Bronselectie; werkgebied: Werkgebied }> {
-  for (let poging = 0; ; poging++) {
-    const { revisie } = await haalWerkgebied(id);
-    try {
-      return await json(await fetch(wg(id, "kandidaten", kandidaatId, "opnemen"),
-        jsonInit("POST", { verwachte_revisie: revisie, ...(rol ? { rol } : {}) })));
-    } catch (e) {
-      if (poging > 0 || !(isApiError(e) && e.status === 412)) throw e;
-    }
-  }
-}

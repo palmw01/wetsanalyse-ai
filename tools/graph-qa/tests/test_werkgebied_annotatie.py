@@ -299,7 +299,7 @@ def test_een_deelvraag_via_het_onderwerp(api):
 def test_een_deelvraag_zonder_bronnen_zegt_wat_er_eerst_moet():
     leeg = {**_onder(deelvragen=(("d1", "Wie?", 0),)), "eenheden": [], "deelvraag_id": "d1"}
     tekst, bevestiging = wa.voorstel("Inv", leeg)
-    assert bevestiging is None and "nog geen analysebronnen" in tekst and "*Zoek bepalingen hierbij*" in tekst
+    assert bevestiging is None and "nog geen analysebronnen" in tekst and "*Bepaal de bronnen bij deze deelvraag*" in tekst
 
 
 def test_het_hele_werkgebied_noemt_de_kortere_weg(api):

@@ -115,10 +115,8 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
     if (pad.length === 4) return !!a && b === "status";
     return pad.length === 5 && !!a && b === "kandidaten" && !!c;
   }
-  if (deel === "kandidaten") {
-    if (pad.length === 2) return true;
-    return pad.length === 4 && !!a && ["opnemen", "later", "uitsluiten", "heropenen"].includes(b);
-  }
+  // De bronverkenner leest alleen (spoor J): kiezen gaat per deelvraag, via `bronselectie`.
+  if (deel === "kandidaten") return pad.length === 2;
   if (deel === "groepen") {
     if (pad.length === 2) return true;
     if (pad.length === 3) return a === "overnemen" || a === "akkoord";

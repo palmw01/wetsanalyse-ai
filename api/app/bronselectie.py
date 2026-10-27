@@ -6,15 +6,19 @@ collega.
 
 - **Voortgang per deelvraag** (`bronselectie_voortgang`): `niet_gestart` (geen rij) → `in_behandeling` →
   `voorlopig_afgerond` (de analist sluit af, open punten mogen blijven) → `beoordeeld` (alleen door de
-  poort: geen open voorstellen en geen open punten). Een werkgebied zonder deelvragen heeft één rij onder
+  poort: de vragen zijn doorlopen en er staat geen onderzoekspunt open). Een werkgebied zonder deelvragen heeft één rij onder
   `ANALYSEVRAAG`. Elke rij draagt een eigen revisie (412); `openen` is navigeren en draagt er geen.
 - **Wat is afgerond, staat op een scope.** `scope_stand` is de hash van analysevraag, afbakening en de
   tekst van de deelvraag bij het afronden. Wijkt die nu af, dan staat de afronding op `opnieuw_bekijken`
   en telt ze niet meer als klaar; er wordt niets gewist.
 - **Eén bron, meer deelvragen.** Een bronselectie is één rij per werkgebied; opnemen bij een deelvraag is
-  een koppeling (met een eigen rol), geen tweede selectie. Een besluit *later* of *uitgesloten* hoort bij
+  een koppeling (met een eigen rol), geen tweede selectie. Een besluit *uitgesloten* hoort bij
   één deelvraag (`bron_kandidaat_deelvragen`); het besluit op `bron_kandidaten` blijft het
-  werkgebiedbrede besluit en geldt voor elke deelvraag. Bestaande besluiten blijven dus wat ze waren.
+  werkgebiedbrede besluit en geldt voor elke deelvraag. Bestaande uitsluitingen blijven dus wat ze waren.
+- **Kiezen is het besluit.** Wie het kaartje van een deelvraag beantwoordt, kiest; wat niet aangevinkt is, heet
+  daarna `niet_gekozen` (afgeleid uit de fase, niet bewaard). Er is geen *later*: een oud besluit *later* telt
+  als voorstel. Een bepaling die er niet bij stond, voegt de analist zelf toe (`toevoegen`), en de vragen
+  opnieuw doorlopen maakt van *niet gekozen* weer een keuze.
 - **De volgende deelvraag kiest de code** (`volgende`): na de gegeven deelvraag de eerste in de volgorde
   die niet klaar is, en anders vooraan verder. Het model kiest hier niets.
 """
@@ -33,6 +37,8 @@ from .werkgebied_contracts import DeelvraagStatus
 from .werkgebied_store import _audit, _gewijzigd
 
 KLAAR = (Voortgang.voorlopig_afgerond.value, Voortgang.beoordeeld.value)
+#: Hoe een voorstel bij een deelvraag ervoor staat (naast `opgenomen`, dat de bronnen telt).
+STANDEN_TELLING = ("voorgesteld", "niet_gekozen", "uitgesloten")
 
 #: Wat voor bewijs een methode levert. Een tekstuele overeenkomst is geen bewijs van juridische noodzaak;
 #: een verwijzing of definitie in de graaf is een aantoonbare relatie.
@@ -151,6 +157,16 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
         bronnen.sort(key=lambda x: (x["rol"] != "analyseren", x["label"], x["bron_iri"]))
         iris_hier = {x["bron_iri"] for x in bronnen}
         eigen = {did} | lees["voorgangers"].get(did, set())
+        r = lees["rijen"].get(did)
+        stand_nu = scope_stand(werkgebied, vraag["vraag"] if not alleen else "")
+        voortgang = _rij(r) if r is not None else {
+            "status": Voortgang.niet_gestart.value, "fase": Fase.kern.value, "open_punten": [], "revisie": 0,
+            "scope_stand": "", "gewijzigd_door": None, "gewijzigd": None, "geopend": None}
+        # Het kaartje beantwoorden is het besluit: wat er toen niet aangevinkt werd, is niet gekozen. Dat volgt
+        # uit de fase (de kernbepalingen zijn gehad zodra de deelvraag voorbij `kern` is, de rest bij `afronden`)
+        # en wordt niet bewaard; de vragen opnieuw doorlopen maakt er weer een keuze van.
+        gehad = {"kern": voortgang["status"] in KLAAR or voortgang["fase"] != Fase.kern.value,
+                 "rest": voortgang["status"] in KLAAR or voortgang["fase"] == Fase.afronden.value}
         lijst = []
         for kd in kandidaten:
             if not alleen and not ((kd.id, did) in besluit or kd.bron_iri in iris_hier
@@ -162,33 +178,27 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
                 stand, overal = "opgenomen", False
             elif kd.status == "uitgesloten":
                 stand, overal = "uitgesloten", True
-            elif rij is not None:
-                stand, overal = rij.status, False
-            elif kd.status == "later":
-                stand, overal = "later", True
+            elif rij is not None and rij.status == "uitgesloten":
+                stand, overal = "uitgesloten", False
+            # Een oud besluit *later* (van vóór spoor J, of uit de boom) is geen besluit: weer een keuze.
+            elif gehad["kern" if kd.rol == "kern" else "rest"]:
+                stand, overal = "niet_gekozen", False
             else:
                 stand, overal = "voorgesteld", False
+            uitgesloten_hier = rij is not None and stand == "uitgesloten" and not overal
             lijst.append({"id": kd.id, "bron_iri": kd.bron_iri, "label": kd.label, "bwb_id": kd.bwb_id,
                           "rol": kd.rol, "bewijs": kd.bewijs, "bewijs_soorten": bewijs_soorten(kd.bewijs or []),
                           "stand": stand, "overal": overal, "elders_opgenomen": elders,
-                          "reden": (rij.reden if rij is not None and stand == rij.status else
-                                    kd.reden if overal else ""),
-                          "besloten_door": (rij.besloten_door if rij is not None and stand == rij.status
-                                            else kd.besloten_door if overal else None)})
+                          "reden": rij.reden if uitgesloten_hier else kd.reden if overal else "",
+                          "besloten_door": rij.besloten_door if uitgesloten_hier else kd.besloten_door if overal else None})
         lijst.sort(key=lambda x: (ROL_VOLGORDE.get(x["rol"], 9), BEWIJS_VOLGORDE.get(
             (x["bewijs_soorten"] or ["tekst"])[0], 9), -len(x["bewijs"] or []), x["label"], x["bron_iri"]))
-        telling = {st: sum(1 for x in lijst if x["stand"] == st) for st in ("voorgesteld", "later", "uitgesloten")}
+        telling = {st: sum(1 for x in lijst if x["stand"] == st) for st in STANDEN_TELLING}
         telling["opgenomen"] = len(bronnen)
-        r = lees["rijen"].get(did)
-        stand_nu = scope_stand(werkgebied, vraag["vraag"] if not alleen else "")
-        voortgang = _rij(r) if r is not None else {
-            "status": Voortgang.niet_gestart.value, "fase": Fase.kern.value, "open_punten": [], "revisie": 0,
-            "scope_stand": "", "gewijzigd_door": None, "gewijzigd": None, "geopend": None}
         opnieuw = voortgang["status"] in KLAAR and voortgang["scope_stand"] != stand_nu
         redenen = []
-        if telling["voorgesteld"]:
-            redenen.append(f"Er {'staat' if telling['voorgesteld'] == 1 else 'staan'} nog "
-                           f"{telling['voorgesteld']} {'voorstel' if telling['voorgesteld'] == 1 else 'voorstellen'} open.")
+        if not gehad["rest"]:
+            redenen.append("De vragen bij deze deelvraag zijn nog niet doorlopen.")
         if voortgang["open_punten"]:
             redenen.append("Er staan nog onderzoekspunten open.")
         uit.append({"id": did, "nr": nr, "vraag": vraag["vraag"], **voortgang, "opnieuw_bekijken": opnieuw,
@@ -317,7 +327,7 @@ async def zet_status(werkgebied_id: str, deelvraag_id: str, req: StatusActie, ac
             if redenen:
                 raise HTTPException(409, {"fout": "poort", "redenen": redenen,
                                           "melding": " ".join(redenen) + " Rond de deelvraag voorlopig af, of "
-                                                     "beslis eerst over wat openstaat."})
+                                                     "doorloop eerst de vragen en los de onderzoekspunten op."})
         waarden: dict = {"status": doel, "revisie": row.revisie + 1, "gewijzigd_door": actor,
                          "gewijzigd": db.utcnow()}
         if req.actie == "fase":
@@ -372,14 +382,9 @@ async def besluit(werkgebied_id: str, deelvraag_id: str, kandidaat_id: str, req:
                 werkgebied_id, kandidaat_id,
                 Opnemen(verwachte_revisie=req.verwachte_revisie, rol=req.rol, reden=req.reden), bron, actor,
                 deelvraag_ids=None if alleen else [deelvraag_id], koppel_rol=req.rol or "", binnen=wis_besluit)
-        elif not alleen and (koppeling is None or (req.rol and (koppeling.rol or "") != req.rol)):
-            async with _gewijzigd(werkgebied_id, req.verwachte_revisie, actor, "bronselectie-opgenomen",
-                                  {**detail, "rol": req.rol or ""}) as (conn, _):
-                await conn.execute(delete(kp).where(kp.c.deelvraag_id == deelvraag_id, kp.c.soort == "bron",
-                                                    kp.c.doel_id == sid))
-                await conn.execute(insert(kp).values(deelvraag_id=deelvraag_id, soort="bron", doel_id=sid,
-                                                     rol=req.rol or "", gekoppeld_door=actor, gekoppeld=db.utcnow()))
-                await wis_besluit(conn)
+        elif not alleen:
+            await _koppel(werkgebied_id, deelvraag_id, sid, req.rol or "", req.verwachte_revisie, actor, detail,
+                          koppeling, binnen=wis_besluit)
     elif req.besluit == "loskoppelen":
         if alleen:
             raise HTTPException(422, {"fout": "geen_deelvraag",
@@ -389,11 +394,11 @@ async def besluit(werkgebied_id: str, deelvraag_id: str, kandidaat_id: str, req:
                                   detail) as (conn, _):
                 await conn.execute(delete(kp).where(kp.c.deelvraag_id == deelvraag_id, kp.c.soort == "bron",
                                                     kp.c.doel_id == sid))
-    elif req.besluit in ("later", "uitsluiten"):
+    elif req.besluit == "uitsluiten":
         if koppeling is not None or (alleen and sid):
             raise HTTPException(409, {"fout": "status", "status": "opgenomen",
                                       "melding": "Deze bepaling is bij deze deelvraag opgenomen; koppel haar eerst los."})
-        naar = "later" if req.besluit == "later" else "uitgesloten"
+        naar = "uitgesloten"
         reden = req.reden.strip()
         async with db.get_engine().begin() as conn:
             await _slot(conn, werkgebied_id)
@@ -424,6 +429,65 @@ async def besluit(werkgebied_id: str, deelvraag_id: str, kandidaat_id: str, req:
                                            gewijzigd=db.utcnow()))
                 await _audit(conn, werkgebied_id, actor, "kandidaat-voorgesteld", detail)
     # Wie over een kandidaat beslist, werkt aan deze deelvraag.
+    async with db.get_engine().begin() as conn:
+        await _slot(conn, werkgebied_id)
+        await _start_in(conn, werkgebied_id, deelvraag_id, actor)
+
+
+async def _koppel(werkgebied_id: str, deelvraag_id: str, sid: str, rol: str, verwacht: int, actor: str,
+                  detail: dict, koppeling, binnen=None) -> None:
+    """Een bronselectie die al in het werkgebied staat aan deze deelvraag koppelen, met haar rol hier. Dezelfde
+    koppeling met dezelfde rol nog eens: niets, ook geen revisie."""
+    if koppeling is not None and (not rol or (koppeling.rol or "") == rol):
+        return
+    kp = db.werkgebied_deelvraag_koppelingen
+    async with _gewijzigd(werkgebied_id, verwacht, actor, "bronselectie-opgenomen", {**detail, "rol": rol}) as (conn, _):
+        await conn.execute(delete(kp).where(kp.c.deelvraag_id == deelvraag_id, kp.c.soort == "bron", kp.c.doel_id == sid))
+        await conn.execute(insert(kp).values(deelvraag_id=deelvraag_id, soort="bron", doel_id=sid, rol=rol,
+                                             gekoppeld_door=actor, gekoppeld=db.utcnow()))
+        if binnen is not None:
+            await binnen(conn)
+
+
+async def toevoegen(werkgebied_id: str, deelvraag_id: str, invoer, bron: dict, actor: str) -> None:
+    """Zelf een bepaling als keuze toevoegen bij één deelvraag (een eigen tekst op het kaartje): opnemen in het
+    werkgebied als ze er nog niet staat, en koppelen aan deze deelvraag – in één transactie. `bron` komt uit de
+    resolver, zoals bij zelf opnemen. Een besluit *uitgesloten* bij deze deelvraag vervalt: de analist koos haar."""
+    wg = await werkgebied_store.haal(werkgebied_id)
+    _toets_deelvraag(wg, deelvraag_id)
+    alleen = deelvraag_id == ANALYSEVRAAG
+    s, kp, b, k = db.werkgebied_bronselecties, db.werkgebied_deelvraag_koppelingen, db.bron_kandidaat_deelvragen, \
+        db.bron_kandidaten
+    detail = {"deelvraag": deelvraag_id, "bron_iri": bron["bron_iri"], "zelf": True}
+
+    async def wis_besluit(conn) -> None:
+        kid = bronnen_run_store.kandidaat_id(bron["bron_iri"])
+        await conn.execute(delete(b).where(b.c.werkgebied_id == werkgebied_id, b.c.kandidaat_id == kid,
+                                           b.c.deelvraag_id == deelvraag_id))
+
+    async with db.get_engine().connect() as conn:
+        bestaand = (await conn.execute(select(s).where(s.c.werkgebied_id == werkgebied_id, s.c.bron_iri == bron["bron_iri"],
+                                                       s.c.verwijderd.is_(None)))).first()
+        uitgesloten = (await conn.execute(select(k.c.status).where(
+            k.c.werkgebied_id == werkgebied_id, k.c.id == bronnen_run_store.kandidaat_id(bron["bron_iri"])))).scalar()
+    if uitgesloten == "uitgesloten":
+        raise HTTPException(409, {"fout": "status", "status": "uitgesloten",
+                                  "melding": "Deze bepaling is voor het hele werkgebied uitgesloten; heropen haar eerst."})
+    rol = invoer.rol.value
+    if bestaand is None:
+        async def koppel(conn) -> None:
+            sid = (await conn.execute(select(s.c.id).where(s.c.werkgebied_id == werkgebied_id, s.c.bron_iri == bron["bron_iri"],
+                                                           s.c.verwijderd.is_(None)))).scalar()
+            if not alleen:
+                await werkgebied_deelvragen.koppel_bron_in(conn, werkgebied_id, sid, [deelvraag_id], actor)
+            await wis_besluit(conn)
+        await werkgebied_store.voeg_bron_toe(werkgebied_id, invoer, bron, actor, binnen=koppel)
+    elif not alleen:
+        async with db.get_engine().connect() as conn:
+            koppeling = (await conn.execute(select(kp).where(kp.c.deelvraag_id == deelvraag_id, kp.c.soort == "bron",
+                                                             kp.c.doel_id == bestaand.id))).first()
+        await _koppel(werkgebied_id, deelvraag_id, bestaand.id, "" if bestaand.rol == rol else rol,
+                      invoer.verwachte_revisie, actor, detail, koppeling, binnen=wis_besluit)
     async with db.get_engine().begin() as conn:
         await _slot(conn, werkgebied_id)
         await _start_in(conn, werkgebied_id, deelvraag_id, actor)

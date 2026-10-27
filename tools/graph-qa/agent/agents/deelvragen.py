@@ -127,7 +127,7 @@ def dekkingstekst(naam: str, dek: dict[str, Any], wg: dict[str, Any], kandidaten
            else f"Dekking in werkgebied *{naam}*:")
     tekst = kop + "\n\n" + "\n".join(regels)
     if any(d.get("stand") == "geen_bron" for d in vragen if not deelvraag_id or d.get("id") == deelvraag_id):
-        tekst += "\n\nBij een deelvraag zonder bron kan ik bepalingen zoeken; neem op wat erbij hoort."
+        tekst += "\n\nBij een deelvraag zonder bron: bepaal met me de bronnen per deelvraag (*Bepaal de bronnen per deelvraag*)."
     return tekst
 
 
