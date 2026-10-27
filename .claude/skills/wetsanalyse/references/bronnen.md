@@ -21,6 +21,7 @@ De oorspronkelijke bronbestanden worden niet aangepast bij een wijziging van de 
 | M10 | [W3C Web Annotation Data Model](https://www.w3.org/TR/2017/REC-annotation-model-20170223/), §4.2.4 Text Quote Selector en §4.2.5 Text Position Selector | Exact citaat/context/positie; posities zijn versiegevoelig. Geen reden om de bestaande ankers te vervangen. |
 | M11 | [NL-SBB 1.0](https://docs.geostandaarden.nl/nl-sbb/nl-sbb/), §§ Definitie, Uitleg, Toelichting, Voorbeeld; Forum Standaardisatie: pas-toe-of-leg-uit sinds 1 jan 2026 | Rol van definitie (`skos:definition`), uitleg in eenvoudige taal (`rdfs:comment`), toelichting (`skos:scopeNote`), voorbeeld (`skos:example`) en bron (`dct:source`). |
 | M12 | [Schrijven op B1-niveau – Rijksoverheid/Direct Duidelijk](https://www.communicatierijk.nl/vakkennis/rijkswebsites/aanbevolen-richtlijnen/taalniveau-b1) | Korte zinnen, actieve vorm, bekende woorden, vaktermen uitleggen, voorbeelden. Richtlijn, geen meetbare norm: de drempels zijn projectkeuzes. |
+| M13 | [TOOI – Thesauri en Ontologieën voor Overheidsinformatie](https://standaarden.overheid.nl/tooi), waardelijsten rwc_ministeries_compleet (versie 6) en scw_toplijst (versie 1), CC0 | Vaste URI's voor ministeries en thema's; snapshots in `tools/bwb-import/app/tooi_ministeries.json` en `api/app/tooi_themas.json`, met bron en datum. |
 
 ## Beslisregister: van bron naar instructie
 

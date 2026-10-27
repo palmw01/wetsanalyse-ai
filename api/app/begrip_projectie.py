@@ -120,7 +120,7 @@ async def invoer(conn, werkgebied_id: str) -> dict | None:
                     ([bewijs["eigenaar_iri"]] if bewijs.get("eigenaar_iri") else [])})
     return {
         "schema": SCHEMA_VERSIE,
-        "werkgebied": {"id": wg.id, "naam": wg.naam, "analysevraag": wg.analysevraag or ""},
+        "werkgebied": {"id": wg.id, "naam": wg.naam, "analysevraag": wg.analysevraag or "", "thema": wg.thema or ""},
         "begrippen": [{"id": x.id, "status": x.status, "revisie": x.revisie, "inhoud": x.inhoud,
                        "geaccordeerd_op": _t(x.geaccordeerd_op), "geaccordeerd_revisie": x.geaccordeerd_revisie,
                        "gewijzigd": _t(x.gewijzigd), "koppelingen": per_begrip.get(x.id, [])} for x in begrippen],
@@ -146,9 +146,10 @@ def alleen_geaccordeerd(inv: dict) -> dict:
             "relaties": [r for r in inv["relaties"] if r["van"] in ids and r["naar"] in ids]}
 
 
-def bouw_graaf(inv: dict, paginas: dict[str, str] | None = None) -> Graph:
-    """De named graph van één werkgebied. `paginas` (bron-IRI → URL op wetten.overheid.nl) alleen bij de
-    export: de projectie leunt niet op de brongraaf, zodat ze uit Postgres alleen te herbouwen is."""
+def bouw_graaf(inv: dict, paginas: dict[str, str] | None = None, uitgevers: dict[str, str] | None = None) -> Graph:
+    """De named graph van één werkgebied. `paginas` (bron-IRI → URL op wetten.overheid.nl) en `uitgevers`
+    (bron-IRI → TOOI-organisatie, spoor I6) alleen bij de export: de projectie leunt niet op de brongraaf,
+    zodat ze uit Postgres alleen te herbouwen is."""
     g = Graph()
     for prefix, ns in (("skos", SKOS), ("dct", DCT), ("foaf", FOAF), ("wa", WA), ("isothes", ISOTHES)):
         g.bind(prefix, ns)
@@ -159,11 +160,14 @@ def bouw_graaf(inv: dict, paginas: dict[str, str] | None = None) -> Graph:
     if wg["analysevraag"].strip():
         g.add((kader, DCT.description, _nl(wg["analysevraag"])))
     g.add((kader, RDFS.comment, _nl(TOELICHTING)))
+    # Spoor I6: het thema van het werkgebied, een TOOI-URI uit tooitop.
+    if wg.get("thema"):
+        g.add((kader, DCT.subject, URIRef(wg["thema"])))
     g.add((kader, WA.werkgebiedId, Literal(wg["id"])))
     g.add((kader, WA.schemaVersie, Literal(SCHEMA_VERSIE)))
     g.add((kader, WA.projectieHash, Literal(invoer_hash(inv))))
     for b in inv["begrippen"]:
-        _begrip(g, kader, b, paginas or {})
+        _begrip(g, kader, b, paginas or {}, uitgevers or {})
     aanwezig = {b["id"] for b in inv["begrippen"]}
     for r in inv["relaties"]:
         if r["van"] not in aanwezig or r["naar"] not in aanwezig:
@@ -187,7 +191,7 @@ def bouw_graaf(inv: dict, paginas: dict[str, str] | None = None) -> Graph:
     return g
 
 
-def _begrip(g: Graph, kader: URIRef, b: dict, paginas: dict[str, str]) -> None:
+def _begrip(g: Graph, kader: URIRef, b: dict, paginas: dict[str, str], uitgevers: dict[str, str]) -> None:
     c, i = begrip_iri(b["id"]), b["inhoud"]
     g.add((c, RDF.type, SKOS.Concept))
     g.add((c, SKOS.inScheme, kader))
@@ -237,6 +241,8 @@ def _begrip(g: Graph, kader: URIRef, b: dict, paginas: dict[str, str]) -> None:
             g.add((doc, DCT.bibliographicCitation, Literal(vindplaats)))
         if paginas.get(bron):
             g.add((doc, FOAF.page, URIRef(paginas[bron])))
+        if uitgevers.get(bron):
+            g.add((doc, DCT.publisher, URIRef(uitgevers[bron])))
 
 
 # --- conformiteit ------------------------------------------------------------------------------
@@ -318,6 +324,32 @@ async def paginas(bronnen: set[str]) -> dict[str, str]:
     return uit
 
 
+_UITGEVER_QUERY = """PREFIX bwb: <urn:bwb-ns:>
+SELECT ?r ?org WHERE {{ VALUES ?r {{ {waarden} }}
+  GRAPH ?g {{ ?r bwb:eerstverantwoordelijkeOrganisatie ?org }} FILTER(STRSTARTS(STR(?g), "urn:bwb:graph:")) }}"""
+
+
+def _regeling(bron: str) -> str:
+    return ":".join(bron.split(":")[:3])
+
+
+async def uitgevers(bronnen: set[str]) -> dict[str, str]:
+    """Bron-IRI → de TOOI-organisatie van haar regeling (`bwb:eerstverantwoordelijkeOrganisatie`, spoor I6),
+    voor `dct:publisher` op het brondocument. Best-effort, net als `paginas`."""
+    iris = sorted(i for i in bronnen if _BWB_IRI.fullmatch(i))
+    regelingen = sorted({_regeling(i) for i in iris})
+    if not regelingen or not get_settings().graphdb_url:
+        return {}
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            rijen = await _select(client, _UITGEVER_QUERY.format(waarden=" ".join(URIRef(r).n3() for r in regelingen)))
+    except (httpx.HTTPError, ConnectionError, ValueError) as exc:
+        logger.warning("begrippen_export_uitgevers_onbeschikbaar", extra={"fouttype": type(exc).__name__})
+        return {}
+    per = {r["r"]: r["org"] for r in rijen if r.get("org", "").startswith("https://identifier.overheid.nl/tooi/")}
+    return {i: per[_regeling(i)] for i in iris if _regeling(i) in per}
+
+
 async def export_turtle(werkgebied_id: str, alles: bool) -> bytes:
     """De Turtle-export: dezelfde `bouw_graaf` als de projectie (standaard alleen geaccordeerd), met
     `foaf:page` naar de wettekst, de NL-SBB-versie en per begrip `wa:nlSbbConform`."""
@@ -329,12 +361,13 @@ async def export_turtle(werkgebied_id: str, alles: bool) -> bytes:
         if wg is None or wg.gearchiveerd is not None:
             raise HTTPException(404, "Werkgebied bestaat niet.")
         inv = await invoer(conn, werkgebied_id) or {
-            "schema": SCHEMA_VERSIE, "werkgebied": {"id": wg.id, "naam": wg.naam, "analysevraag": wg.analysevraag or ""},
+            "schema": SCHEMA_VERSIE, "werkgebied": {"id": wg.id, "naam": wg.naam, "analysevraag": wg.analysevraag or "",
+                                                    "thema": wg.thema or ""},
             "begrippen": [], "relaties": []}
     if not alles:
         inv = alleen_geaccordeerd(inv)
     bronnen = {bron for b in inv["begrippen"] for k in b["koppelingen"] for bron in k["bron"]}
-    g = bouw_graaf(inv, await paginas(bronnen))
+    g = bouw_graaf(inv, await paginas(bronnen), await uitgevers(bronnen))
     kader = kader_iri(werkgebied_id)
     g.add((kader, DCT.conformsTo, NL_SBB))
     g.add((kader, WA.nlSbbVersie, Literal(NL_SBB_VERSIE)))

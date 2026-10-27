@@ -123,3 +123,12 @@ async def test_de_route_zonder_graaf(route, monkeypatch):
     monkeypatch.setattr(knoopinfo, "_rijen", faalt)
     r = await route(bron_iri=A9)
     assert r.status_code == 503 and "tijdelijk niet beschikbaar" in r.json()["detail"]
+
+
+def test_de_organisatie_als_tooi_uri_met_haar_naam_en_link():
+    """Spoor I6: bwb:eerstverantwoordelijkeOrganisatie is een TOOI-URI; de inspector toont de naam en linkt."""
+    tooi = "https://identifier.overheid.nl/tooi/id/ministerie/mnre1090"
+    uit = [{"p": knoopinfo.BWB + "eerstverantwoordelijkeOrganisatie", "o": tooi, "isIri": "true",
+            "naam": "ministerie van Financiën"}]
+    f = feiten(knoopinfo.knoop_info_uit(IW, uit, [], [], []))
+    assert f[("Herkomst van de tekst", "Organisatie (TOOI)")] == [{"tekst": "ministerie van Financiën", "link": tooi}]

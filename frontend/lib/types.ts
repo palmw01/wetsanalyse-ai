@@ -813,6 +813,9 @@ export interface WerkgebiedSamenvatting {
   context?: string;
   doel?: string;
   praktijkvoorbeeld?: string;
+  /** Spoor I6: het thema als TOOI-URI uit tooitop, met zijn naam; leeg = nog niet gekozen. */
+  thema?: string;
+  thema_label?: string;
   peildatum: string | null;
   status: WerkgebiedStatus;
   revisie: number;
@@ -887,8 +890,15 @@ export interface WerkgebiedWijziging {
   context?: string;
   doel?: string;
   praktijkvoorbeeld?: string;
+  thema?: string;
   peildatum?: string | null;
   status?: WerkgebiedStatus;
+}
+
+/** `GET …/thema-voorstel` (spoor I6): de thema's die passen bij de WTI-rechtsgebieden van de bronnen. */
+export interface ThemaVoorstel {
+  rechtsgebieden: string[];
+  voorstel: { thema: string; label: string }[];
 }
 
 /** Een bepaling opnemen: via de bron-IRI, of via regeling + artikel (+ lid). */

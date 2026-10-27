@@ -1,13 +1,13 @@
 # Gegenereerd uit de wetsanalyse-skill; niet handmatig bewerken.
 # Draai scripts/genereer_jas_klassen.py.
 PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd036c0853ccc0d4315653a58c17f',
-                   'agentrollen.json': 'e533b90c42eff60e8d07e43c3349a6d885c481f4548d3bb2d6f145e5859b0ca7',
+                   'agentrollen.json': '845c5acababf521cca1e29be7b8d5e4deee93cd0912e191de49722cec30f7078',
                    'references/agentrollen.md': 'f46b17b5d7f7054bed32767a063b3212428956ee7c85aa78de68887035291787',
                    'references/begrippen.md': 'efeb87eee75c3a1ef44706267424efbb4c7afa55ba09cae8df26d0851c1d5084',
-                   'references/bronnen.md': 'a15cec95e6e7e3e999b1b8ebbd64841331be2863ba2c5af541ad663dbba653cd',
+                   'references/bronnen.md': '47b2c98af5a21f29afe97fdab4521a4a4dc0cc8e789b62c74d472a9cfc0d6e16',
                    'references/deelvragen-en-bronnen.md': '3f1297e0e4852a27adcacb843ff185cd89be9ce58e8ebe87bf0173cbb8204053',
                    'references/jas-klassen-referentie.md': '5fe94a8c3718eb3d0f21a04cda9e89d9c35db4260b39f1900ead19a86ee91a95',
-                   'references/nl-sbb-en-b1.md': 'f042af00f1c9863331a40ad14a2bf605037975e417525ecb9c3e281a351b7937'},
+                   'references/nl-sbb-en-b1.md': 'e143c9f58f4b1967b78ee953f608be1728cafc30bc5f0744664d904806a3454d'},
  'rollen': {'algemeen': ['basis'],
             'begrippen': ['basis', 'begrippen', 'nl-sbb-taalniveau'],
             'decompositie': ['basis', 'decompositie'],
@@ -139,8 +139,8 @@ PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd03
                                   'ongewijzigd; JRM-verrijking is aanvullende uitleg, geen nieuwe '
                                   'annotatieklasse.'},
              'nl-sbb-taalniveau': {'bestand': 'references/nl-sbb-en-b1.md',
-                                   'bronnen': ['M11', 'M12', 'P16'],
-                                   'sha256': '4f470633fa5a4eae41277ddc9bd7d3a6277c63b7488765c00805c2b4c3e2e565',
+                                   'bronnen': ['M11', 'M12', 'M13', 'P16'],
+                                   'sha256': '747ee9aea6f6c70d32febfe7b0f0ece4239572b232c26d3aa7f61ec86d45e8eb',
                                    'tekst': 'Een begrip volgt NL-SBB, met vier velden die elk iets '
                                             'anders doen. De definitie (skos:definition) '
                                             'onderscheidt het begrip van andere: bij voorkeur het '
@@ -163,7 +163,19 @@ PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd03
                                             'Een uitleg komt pas als er een definitie is: ze legt '
                                             'de definitie uit. Lex stelt haar voor met '
                                             'aandachtspunten uit vaste toetsen; de analist neemt '
-                                            'over, past aan of wijst af.'},
+                                            'over, past aan of wijst af.\n'
+                                            'TOOI (Thesauri en Ontologieën voor '
+                                            'Overheidsinformatie) geeft overheidsorganisaties en '
+                                            "thema's een vaste URI op identifier.overheid.nl. Een "
+                                            'ministerie heeft de vorm '
+                                            'https://identifier.overheid.nl/tooi/id/ministerie/mnre '
+                                            'gevolgd door vier cijfers (Financiën: mnre1090); een '
+                                            'thema komt uit de thesaurus tooitop. In de '
+                                            'kennisgraaf staat het eerstverantwoordelijke '
+                                            'ministerie van een regeling zo '
+                                            '(bwb:eerstverantwoordelijkeOrganisatie), en een '
+                                            'werkgebied kan een thema hebben. Noem TOOI als '
+                                            'methode en standaard, nooit als wettekst.'},
              'retrieval': {'bestand': 'references/agentrollen.md',
                            'bronnen': ['M01', 'P01', 'P06', 'P11', 'P12'],
                            'sha256': '1735cf5f96b30511fc30b7ac91daae69911b7c80a46d1f1b9913d94334e40a54',
@@ -197,5 +209,5 @@ PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd03
                                    'interpretatieverschillen zichtbaar; presenteer ze niet als '
                                    'vaststaande conclusies. Voeg zonder beschikbare bronnen geen '
                                    'nieuw juridisch feit toe.'}},
- 'sha256': '9a2e98f34ff7da25fffc37a38ba40211920108cd92e77eef43e1e82bfca02bb5',
+ 'sha256': 'a4407220dd2377435e579d9c9e86d76904aaeb7f0200040b3a1132bde8d8e129',
  'versie': '2.1'}

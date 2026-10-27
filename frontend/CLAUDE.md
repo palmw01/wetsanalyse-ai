@@ -672,7 +672,9 @@ bestaat los van de gesprekken.
     Lex in één regel naar `bronnen/voorstellen`) en Artefacten (`ArtefactenTab`: vier kaarten,
     `artefactKaarten`).
   - **Detailpagina's** (`DetailPaginas.tsx`): `artefacten/[soort]` – `dossier` (de velden, *Bewerken* in
-    een venster `GegevensDialoog`, het beheer van de deelvragen), `bronselectie`, `annotaties` (de
+    een venster `GegevensDialoog` – met het TOOI-thema (spoor I6: een keuzelijst per hoofdthema uit
+    `lib/tooiThemas.ts`, gelijk aan de api-snapshot, en het voorstel van Lex uit `…/thema-voorstel` met
+    *Overnemen*) –, het beheer van de deelvragen), `bronselectie`, `annotaties` (de
     inventaris, `ElementenTab`) en `begrippen` (`BegrippenTab` en, met `?deel=samenhang`, `SamenhangTab`;
     `?begrip=` en `&weergave=kaart` in de URL) –, `deelvragen/[did]` (`DeelvraagPaneel` op een pagina),
     `historie` en `bronnen/voorstellen` (`BronKandidaten`).

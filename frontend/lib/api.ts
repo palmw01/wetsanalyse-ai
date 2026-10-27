@@ -16,6 +16,7 @@ import {
 import { isBegripSamenhang, isConformiteit, type BegripSamenhang, type Conformiteit } from "./begripGraaf";
 import type { BegrippenOverzicht } from "./begrippenOverzicht";
 import type {
+  ThemaVoorstel,
   ApiError,
   ApiTokenCreated,
   ApiTokenOut,
@@ -1140,6 +1141,15 @@ export async function koppelDeelvraag(
 ): Promise<Werkgebied> {
   return json<Werkgebied>(await fetch(wg(id, "deelvragen", deelvraagId, "koppelingen"),
     jsonInit("PUT", { ...koppelingen, verwachte_revisie: verwachteRevisie })));
+}
+
+/** Het thema dat Lex voorstelt, zonder model; faalt stil (`null`). */
+export async function haalThemaVoorstel(id: string): Promise<ThemaVoorstel | null> {
+  try {
+    return await json<ThemaVoorstel>(await fetch(wg(id, "thema-voorstel"), { cache: "no-store" }));
+  } catch {
+    return null;
+  }
 }
 
 export async function haalDeelvragenDekking(id: string): Promise<DeelvragenDekking> {

@@ -7,6 +7,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from . import tooi
+
 
 class Status(str, Enum):
     in_voorbereiding = "in_voorbereiding"
@@ -57,6 +59,8 @@ class WerkgebiedInvoer(BaseModel):
     context: str = Field(default="", max_length=4000)
     doel: str = Field(default="", max_length=4000)
     praktijkvoorbeeld: str = Field(default="", max_length=4000)
+    # Spoor I6: een TOOI-thema uit tooitop (`tooi.themas`), of leeg.
+    thema: str = Field(default="", max_length=200)
     peildatum: str | None = None
     # Gezet door graph-qa bij het samenstellen in het gesprek: maak is dan idempotent op deze id.
     intake_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9-]{1,64}$")
@@ -74,6 +78,18 @@ class WerkgebiedInvoer(BaseModel):
             raise ValueError("naam is verplicht")
         return v.strip()
 
+    @field_validator("thema")
+    @classmethod
+    def _t(cls, v: str) -> str:
+        return _thema(v)
+
+
+def _thema(v: str) -> str:
+    v = v.strip()
+    if v and v not in tooi.themas():
+        raise ValueError("onbekend thema: kies een thema uit de TOOI-thesaurus tooitop")
+    return v
+
 
 class WerkgebiedWijziging(BaseModel):
     verwachte_revisie: int = Field(ge=1)
@@ -84,8 +100,14 @@ class WerkgebiedWijziging(BaseModel):
     context: str | None = Field(default=None, max_length=4000)
     doel: str | None = Field(default=None, max_length=4000)
     praktijkvoorbeeld: str | None = Field(default=None, max_length=4000)
+    thema: str | None = Field(default=None, max_length=200)
     peildatum: str | None = None
     status: Status | None = None
+
+    @field_validator("thema")
+    @classmethod
+    def _t(cls, v: str | None) -> str | None:
+        return _thema(v) if v is not None else None
 
     @field_validator("peildatum")
     @classmethod

@@ -20,7 +20,7 @@ from fastapi import HTTPException
 from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.exc import IntegrityError
 
-from . import db
+from . import db, tooi
 from .werkgebied_contracts import (
     BronselectieInvoer, BronselectieWijziging, WerkgebiedInvoer, WerkgebiedWijziging,
 )
@@ -30,6 +30,7 @@ def _werkgebied(row) -> dict:
     return {"id": row.id, "naam": row.naam, "analysevraag": row.analysevraag,
             "afbakening": row.afbakening, "aanleiding": row.aanleiding, "context": row.context,
             "doel": row.doel, "praktijkvoorbeeld": row.praktijkvoorbeeld,
+            "thema": row.thema, "thema_label": tooi.thema_label(row.thema),
             "peildatum": row.peildatum, "status": row.status,
             "revisie": row.revisie, "aangemaakt_door": row.aangemaakt_door,
             "aangemaakt": db.aware(row.aangemaakt).isoformat(),
@@ -119,7 +120,7 @@ async def maak(invoer: WerkgebiedInvoer, actor: str) -> dict:
             await conn.execute(insert(db.werkgebieden).values(
                 id=wid, naam=invoer.naam, analysevraag=invoer.analysevraag, afbakening=invoer.afbakening,
                 aanleiding=invoer.aanleiding, context=invoer.context, doel=invoer.doel,
-                praktijkvoorbeeld=invoer.praktijkvoorbeeld,
+                praktijkvoorbeeld=invoer.praktijkvoorbeeld, thema=invoer.thema,
                 peildatum=invoer.peildatum, status="in_voorbereiding", revisie=1, aangemaakt_door=actor,
                 aangemaakt=nu, gewijzigd=nu, intake_id=invoer.intake_id))
             deelvragen = await _deelvragen_bij_aanmaken(conn, wid, invoer, actor, nu)

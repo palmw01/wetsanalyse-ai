@@ -47,6 +47,31 @@ async def get_werkgebied(werkgebied_id: str, actor: str = Depends(actieve_userid
     return await store.haal(werkgebied_id)
 
 
+@router.get("/{werkgebied_id}/thema-voorstel")
+async def get_thema_voorstel(werkgebied_id: str, actor: str = Depends(actieve_userid)):
+    """Spoor I6: de thema's (tooitop) die passen bij de WTI-rechtsgebieden van de regelingen van de bronnen,
+    zonder model. Best-effort: zonder graaf een lege lijst."""
+    from . import tooi
+    from .graaf_projectie_v2 import _select
+
+    wg = await store.haal(werkgebied_id)
+    regelingen = sorted({":".join(b["bron_iri"].split(":")[:3]) for b in wg.get("bronnen") or []
+                         if (b.get("bron_iri") or "").startswith("urn:bwb:BWB")})
+    gebieden: list[str] = []
+    if regelingen:
+        waarden = " ".join(f"<{r}>" for r in regelingen)
+        q = f"""PREFIX dct: <http://purl.org/dc/terms/> PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+SELECT ?r ?l WHERE {{ VALUES ?r {{ {waarden} }} ?r dct:subject ?b . ?b skos:prefLabel ?l }}"""
+        try:
+            async with httpx.AsyncClient(timeout=20) as client:
+                gebieden = [x["l"] for x in await _select(client, q)]
+        except (httpx.HTTPError, ConnectionError, ValueError):
+            gebieden = []
+    voorstel = tooi.thema_voorstel(gebieden)
+    return {"rechtsgebieden": sorted(set(gebieden)),
+            "voorstel": [{"thema": u, "label": tooi.thema_label(u)} for u in voorstel]}
+
+
 @router.patch("/{werkgebied_id}")
 async def patch_werkgebied(werkgebied_id: str, req: WerkgebiedWijziging,
                            actor: str = Depends(actieve_userid)):
