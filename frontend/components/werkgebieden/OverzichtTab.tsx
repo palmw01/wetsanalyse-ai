@@ -7,9 +7,10 @@ import { Melding } from "@/components/ui/Melding";
 import { Kaart, ObjectRij, ObjectRijen, Teller, Tellers } from "@/components/ui/Pagina";
 import { ProjectKop } from "@/components/werkgebieden/ProjectKop";
 import { useWerkgebied } from "@/components/werkgebieden/WerkgebiedProject";
-import { STAND_LABEL, STAND_TOON, STAND_UITLEG, dekkingZin, splits } from "@/lib/deelvragen";
+import { bronnenZin, deelvraagStand, voortgangZin } from "@/lib/bronselectie";
+import { splits } from "@/lib/deelvragen";
 import type { GesprekSamenvatting } from "@/lib/types";
-import { useDeelvragenDekking } from "@/lib/useDeelvragenDekking";
+import { useBronselectieStand } from "@/lib/useBronselectieStand";
 import { artefactKaarten, artefactPad, deelvraagPad, projectPad } from "@/lib/werkgebiedPaden";
 
 /** Het overzicht van een werkgebied (mock-up v4, `overview`): tellers, en daaronder twee kolommen. Links de
@@ -18,8 +19,8 @@ import { artefactKaarten, artefactPad, deelvraagPad, projectPad } from "@/lib/we
 export function OverzichtTab() {
   const { wg, stand } = useWerkgebied();
   const { actief, voorgesteld } = splits(wg.deelvragen);
-  const dekking = useDeelvragenDekking(wg.id, wg.revisie, actief.length);
-  const standVan = new Map((dekking?.deelvragen ?? []).map((d) => [d.id, d.stand]));
+  const selectie = useBronselectieStand(wg.id, wg.revisie, actief.length);
+  const standVan = new Map((selectie?.deelvragen ?? []).map((d) => [d.id, d]));
   const kaarten = artefactKaarten(wg, stand);
   const annotaties = kaarten.find((k) => k.soort === "annotaties")!;
   const wv = stand.werkvoorraad;
@@ -56,16 +57,16 @@ export function OverzichtTab() {
             </dl>
           </Kaart>
 
-          <Kaart titel="Deelvragen" telling={actief.length} toelichting={dekkingZin(dekking) || undefined}
+          <Kaart titel="Deelvragen" telling={actief.length} toelichting={(selectie?.modus === "deelvragen" && voortgangZin(selectie)) || undefined}
             meer={{ href: artefactPad(wg.id, "dossier"), label: "Beheren" }} data-kaart="deelvragen">
             <ObjectRijen label="Deelvragen" leeg="Nog geen deelvragen. Lex stelt ze voor in het gesprek, of voeg ze toe in het dossier.">
               {actief.map((d, i) => {
-                const s = standVan.get(d.id);
+                const s = deelvraagStand(standVan.get(d.id));
                 return (
                   <ObjectRij key={d.id} href={deelvraagPad(wg.id, d.id)} voor={`${i + 1}.`} titel={d.vraag}
                     data-deelvraag-rij={d.id}
-                    sub={`${d.bronnen.length} ${d.bronnen.length === 1 ? "bron" : "bronnen"} · ${d.begrippen.length} ${d.begrippen.length === 1 ? "begrip" : "begrippen"}`}
-                    status={s && <StatusLabel toon={STAND_TOON[s]} uitleg={STAND_UITLEG[s]}>{STAND_LABEL[s]}</StatusLabel>} />
+                    sub={bronnenZin(d.bronnen.length)}
+                    status={s && <StatusLabel toon={s.toon}>{s.label}</StatusLabel>} />
                 );
               })}
             </ObjectRijen>

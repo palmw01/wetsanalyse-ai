@@ -145,11 +145,16 @@ await page.route("**/api/**", async (route) => {
     return route.fulfill({ json: { verwijderd: "b9", hersteld: [] } });
   }
   if (p === "/api/werkgebieden/wg1/begrippen/b9" && termijn.verwijderd) return weg("begrip");
-  if (p === "/api/werkgebieden/wg1/deelvragen/dekking") {
+  if (p === "/api/werkgebieden/wg1/bronselectie") {
+    // De stand per deelvraag is de voortgang van haar bronselectie (spoor K).
     const actief = wg1.deelvragen.filter((d) => d.status === "actief");
-    return route.fulfill({ json: { deelvragen: actief.map((d) => ({ id: d.id, vraag: d.vraag, stand: d.bronnen.length ? "geen_begrip" : "geen_bron",
-      bronnen: d.bronnen.map((b) => ({ id: b, label: "art. 9 lid 1 Iw" })), begrippen: [] })),
-      telling: { gedekt: 0, geen_begrip: 1, geen_bron: 0 }, totaal: actief.length } });
+    return route.fulfill({ json: { werkgebied_id: "wg1", naam: wg1.naam, revisie: wg1.revisie, modus: "deelvragen",
+      actief: null, volgende: null, alle_klaar: false, zonder_deelvraag: [],
+      zoekdekking: { gezocht: false, verouderd: false, volledig: true, onvolledig: [], reden: "" },
+      deelvragen: actief.map((d, i) => ({ id: d.id, nr: i + 1, vraag: d.vraag, status: d.bronnen.length ? "in_behandeling" : "niet_gestart",
+        fase: "kern", open_punten: [], revisie: 0, opnieuw_bekijken: false, klaar: false, kandidaten: [],
+        bronnen: d.bronnen.map((b) => ({ selectie_id: b, bron_iri: "", label: "art. 9 lid 1 Iw", rol: "analyseren" })),
+        telling: { voorgesteld: 0, niet_gekozen: 0, uitgesloten: 0, opgenomen: d.bronnen.length }, beoordelen: { mag: false, redenen: [] } })) } });
   }
   const deelvraag = p.match(/^\/api\/werkgebieden\/wg1\/deelvragen\/(d\d)$/);
   if (deelvraag && m === "GET") return route.fulfill({ json: dvDetail(deelvraag[1]) });

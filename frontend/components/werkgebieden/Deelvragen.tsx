@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { BronBoom } from "@/components/ui/BronBoom";
@@ -14,29 +14,27 @@ import { Input } from "@/components/ui/Field";
 import { Lijst, LijstRij, Sectie, StatusLabel, Voorstel as VoorstelRij } from "@/components/ui/Lijst";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
-import {
-  koppelDeelvraag, lijstBegrippen, maakDeelvraag, verwijderDeelvraag, wijzigDeelvraag,
-} from "@/lib/api";
-import {
-  STAND_LABEL, STAND_TOON, STAND_UITLEG, dekkingZin, overgenomenZin, splits, vervangtZin, wissel, zelfdeSet,
-} from "@/lib/deelvragen";
-import type { BegripSamenvatting, Deelvraag, DeelvragenDekking, Werkgebied } from "@/lib/types";
-import { useDeelvragenDekking } from "@/lib/useDeelvragenDekking";
+import { koppelDeelvraag, maakDeelvraag, verwijderDeelvraag, wijzigDeelvraag } from "@/lib/api";
+import { bronnenZin, deelvraagStand, voortgangZin, type DeelvraagSelectie } from "@/lib/bronselectie";
+import { overgenomenZin, splits, vervangtZin, zelfdeSet } from "@/lib/deelvragen";
+import type { Deelvraag, Werkgebied } from "@/lib/types";
+import { useBronselectieStand } from "@/lib/useBronselectieStand";
 import { bouwBoom, omvangZin, regelingUitLabel } from "@/lib/bronPlaats";
 import { usePlaatsen } from "@/lib/usePlaatsen";
 import { deelvraagPad } from "@/lib/werkgebiedPaden";
 
 /** Deelvragen bij een werkgebied, bovenaan de tab Bronnen (optioneel; open keuze 4).
  *
- *  Een deelvraag splitst de analysevraag. Per deelvraag leg je vast welke bronnen en begrippen haar
- *  beantwoorden; de dekking zegt dan of er een geaccordeerd begrip bij hoort. Lex stelt deelvragen voor
+ *  Een deelvraag splitst de analysevraag. Per deelvraag leg je vast welke bronnen haar beantwoorden (methode
+ *  1g); de stand is de voortgang van haar bronselectie. Begrippen horen bij het werkgebied, niet bij een
+ *  deelvraag (spoor K). Lex stelt deelvragen voor
  *  als je hem dat in het gesprek vraagt (geel): overnemen of afwijzen, met een reden. *Vraag Lex* bij een
  *  deelvraag zet haar als onderwerp in het gesprek (F3e). Zonder deelvragen verandert er niets aan
  *  het werkgebied. Elke wijziging draagt de revisie in beeld (`muteer`), want deelvragen horen bij de
  *  scope; Lex zoekt bij een volgende ronde ook per deelvraag naar bepalingen. */
 export function Deelvragen({ wg, muteer }: { wg: Werkgebied; muteer: Mutatie }) {
   const { actief, voorgesteld } = splits(wg.deelvragen);
-  const stand = useDeelvragenDekking(wg.id, wg.revisie, actief.length);
+  const stand = useBronselectieStand(wg.id, wg.revisie, actief.length);
   const [nieuw, setNieuw] = useState("");
 
   async function voegToe(e: React.FormEvent) {
@@ -50,7 +48,7 @@ export function Deelvragen({ wg, muteer }: { wg: Werkgebied; muteer: Mutatie }) 
 
   return (
     <Sectie data-deelvragen titel="Deelvragen" telling={actief.length}
-      toelichting={<>Optioneel. {dekkingZin(stand) || "Splits de analysevraag; per deelvraag zie je of er een bron en een geaccordeerd begrip bij hoort."}</>}>
+      toelichting={<>Optioneel. {(stand?.modus === "deelvragen" && voortgangZin(stand)) || "Splits de analysevraag; per deelvraag zie je haar bronnen en hoe ver de bronselectie is."}</>}>
       {(voorgesteld.length > 0 || actief.length > 0) && (
         <div>
           {voorgesteld.length > 0 && (
@@ -62,7 +60,7 @@ export function Deelvragen({ wg, muteer }: { wg: Werkgebied; muteer: Mutatie }) 
           {actief.length > 0 && (
             <Lijst genummerd label="Deelvragen">
               {actief.map((d, i) => (
-                <DeelvraagRij key={d.id} nummer={i + 1} wg={wg} deelvraag={d} dekking={perId.get(d.id)} muteer={muteer} />
+                <DeelvraagRij key={d.id} nummer={i + 1} wg={wg} deelvraag={d} selectie={perId.get(d.id)} muteer={muteer} />
               ))}
             </Lijst>
           )}
@@ -132,11 +130,11 @@ export function DeelvraagVoorstel({ wgId, deelvraag: d, alle, muteer }: {
 
 /** Eén deelvraag als rij (spoor H3): de vraag als link naar haar pagina, waar de bronnen als boom staan;
  *  hier alleen wie haar stelde en hoeveel er bij hoort. Bewerken, koppelen en verwijderen staan achter ⋯. */
-function DeelvraagRij({ nummer, wg, deelvraag: d, dekking, muteer }: {
+function DeelvraagRij({ nummer, wg, deelvraag: d, selectie, muteer }: {
   nummer: number;
   wg: Werkgebied;
   deelvraag: Deelvraag;
-  dekking?: DeelvragenDekking["deelvragen"][number];
+  selectie?: DeelvraagSelectie;
   muteer: Mutatie;
 }) {
   const [bewerken, setBewerken] = useState(false);
@@ -144,11 +142,8 @@ function DeelvraagRij({ nummer, wg, deelvraag: d, dekking, muteer }: {
   const [koppelen, setKoppelen] = useState(false);
   const bronnen = wg.bronnen.filter((b) => d.bronnen.includes(b.id));
   const regelingen = new Set(bronnen.map((b) => b.bwb_id || b.bron_iri.split(":")[2])).size;
-  const nBegrippen = dekking?.begrippen.length ?? d.begrippen.length;
-  const omvang = [
-    bronnen.length ? `${bronnen.length} ${bronnen.length === 1 ? "bron" : "bronnen"}${regelingen > 1 ? ` in ${regelingen} regelingen` : ""}` : "nog geen bronnen",
-    `${nBegrippen} ${nBegrippen === 1 ? "begrip" : "begrippen"}`,
-  ].join(" · ");
+  const omvang = `${bronnenZin(bronnen.length)}${regelingen > 1 ? ` in ${regelingen} regelingen` : ""}`;
+  const st = deelvraagStand(selectie);
   return (
     <LijstRij data-deelvraag={d.id} voor={`${nummer}.`}
       titel={bewerken ? (
@@ -169,11 +164,7 @@ function DeelvraagRij({ nummer, wg, deelvraag: d, dekking, muteer }: {
       meta={!bewerken && <>{d.herkomst === "lex" ? "Voorgesteld door Lex" : `Door ${d.aangemaakt_door}`} · {omvang}</>}
       status={!bewerken && (
         <span className="flex items-center gap-1.5">
-          {dekking && (
-            <StatusLabel toon={STAND_TOON[dekking.stand]} uitleg={STAND_UITLEG[dekking.stand]} data-stand={dekking.stand}>
-              {STAND_LABEL[dekking.stand]}
-            </StatusLabel>
-          )}
+          {st && <StatusLabel toon={st.toon} data-stand={selectie?.status}>{st.label}</StatusLabel>}
           <Popover ariaLabel={`Acties voor deelvraag ${nummer}`} className="w-56 rounded-kaart border border-line bg-paper p-1 shadow-kaart"
             trigger={(open, toggle) => (
               <button type="button" onClick={toggle} aria-expanded={open} aria-label={`Acties: ${d.vraag}`}
@@ -183,12 +174,12 @@ function DeelvraagRij({ nummer, wg, deelvraag: d, dekking, muteer }: {
             )}>
             {(sluit) => (
               <div className="flex flex-col">
-                <button type="button" className={MENU} aria-label={`Bronnen en begrippen bij: ${d.vraag}`}
-                  onClick={() => { sluit(); setKoppelen(true); }}>Bronnen en begrippen koppelen</button>
+                <button type="button" className={MENU} aria-label={`Bronnen bij: ${d.vraag}`}
+                  onClick={() => { sluit(); setKoppelen(true); }}>Bronnen koppelen</button>
                 <button type="button" className={MENU} aria-label={`Bewerken: ${d.vraag}`}
                   onClick={() => { sluit(); setTekst(d.vraag); setBewerken(true); }}>Bewerken</button>
                 <BevestigKnop bevestigTekst="Verwijderen?" ariaLabel={`Verwijderen: ${d.vraag}`}
-                  titel="Verwijdert de deelvraag; de bronnen en begrippen blijven in het werkgebied."
+                  titel="Verwijdert de deelvraag; de bronnen blijven in het werkgebied."
                   onBevestig={async () => { await muteer((r) => verwijderDeelvraag(wg.id, d.id, r), { gelukt: "Deelvraag verwijderd." }); }}
                   className={`${MENU} text-fout`} bevestigClassName="font-medium">
                   Verwijderen
@@ -206,9 +197,9 @@ function DeelvraagRij({ nummer, wg, deelvraag: d, dekking, muteer }: {
 
 const MENU = MENU_RIJ;
 
-/** Welke bronselecties en begrippen deze deelvraag beantwoorden (spoor H3): in een venster, met de bronnen
- *  als boom per regeling › hoofdstuk › artikel › lid – een heel artikel of hoofdstuk in één vinkje – en de
- *  begrippen eronder. Eén keer opslaan, de hele set. */
+/** Welke bronselecties deze deelvraag beantwoorden (spoor H3, methode 1g): in een venster, als boom per
+ *  regeling › hoofdstuk › artikel › lid – een heel artikel of hoofdstuk in één vinkje. Eén keer opslaan, de hele
+ *  set. Begrippen koppel je hier niet: die horen bij het werkgebied (spoor K); wat er al gekoppeld was, blijft. */
 export function KoppelDialoog({ wg, deelvraag: d, muteer, onKlaar }: {
   wg: Werkgebied;
   deelvraag: Pick<Deelvraag, "id" | "vraag" | "bronnen" | "begrippen">;
@@ -216,14 +207,6 @@ export function KoppelDialoog({ wg, deelvraag: d, muteer, onKlaar }: {
   onKlaar: () => void;
 }) {
   const [bronnen, setBronnen] = useState<string[]>(d.bronnen);
-  const [begrippen, setBegrippen] = useState<string[]>(d.begrippen);
-  const [lijst, setLijst] = useState<BegripSamenvatting[] | null>(null);
-  useEffect(() => {
-    let levend = true;
-    lijstBegrippen(wg.id).then((l) => { if (levend) setLijst(l.begrippen.filter((b) => b.status !== "vervangen")); })
-      .catch(() => { if (levend) setLijst([]); });
-    return () => { levend = false; };
-  }, [wg.id]);
   const plaatsen = usePlaatsen(wg.bronnen.map((b) => b.bron_iri));
   const boom = useMemo(() => bouwBoom(wg.bronnen, {
     iri: (b) => b.bron_iri, naam: (b) => b.label || b.bron_iri, plaatsen, regelingNaam: (b) => regelingUitLabel(b.label),
@@ -231,12 +214,12 @@ export function KoppelDialoog({ wg, deelvraag: d, muteer, onKlaar }: {
   // De boom vinkt per bron-IRI; de deelvraag koppelt selecties (id's).
   const idVan = useMemo(() => new Map(wg.bronnen.map((b) => [b.bron_iri, b.id])), [wg.bronnen]);
   const gekozen = useMemo(() => new Set(wg.bronnen.filter((b) => bronnen.includes(b.id)).map((b) => b.bron_iri)), [wg.bronnen, bronnen]);
-  const ongewijzigd = zelfdeSet(bronnen, d.bronnen) && zelfdeSet(begrippen, d.begrippen);
+  const ongewijzigd = zelfdeSet(bronnen, d.bronnen);
   return (
-    <Dialog label={`Bronnen en begrippen bij: ${d.vraag}`} variant="compact" onSluit={onKlaar}>
+    <Dialog label={`Bronnen bij: ${d.vraag}`} variant="compact" onSluit={onKlaar}>
       <div className="flex min-h-0 flex-1 flex-col" data-koppel-dialoog={d.id}>
         <div className="shrink-0 border-b border-line px-5 py-3.5">
-          <p className="text-xs text-muted">Bronnen en begrippen bij de deelvraag</p>
+          <p className="text-xs text-muted">Bronnen bij de deelvraag</p>
           <h2 className="font-display text-base font-semibold text-lint">{d.vraag}</h2>
         </div>
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4">
@@ -251,28 +234,10 @@ export function KoppelDialoog({ wg, deelvraag: d, muteer, onKlaar }: {
                 renderBlad={(b) => <span className="text-sm text-ink">{b.label}</span>} />
             )}
           </fieldset>
-          <fieldset>
-            <legend className="mb-2 text-sm font-medium text-ink">Begrippen</legend>
-            {lijst === null ? <p className="text-sm text-muted">Begrippen laden…</p> : lijst.length === 0 ? (
-              <p className="text-sm text-muted">Nog geen begrippen in dit werkgebied.</p>
-            ) : (
-              <ul className="space-y-1">
-                {lijst.map((b) => (
-                  <li key={b.id}>
-                    <label className="flex items-start gap-2 text-sm">
-                      <input type="checkbox" className="focus-ring mt-1 accent-lint" checked={begrippen.includes(b.id)}
-                        onChange={() => setBegrippen((x) => wissel(x, b.id))} />
-                      <span>{b.inhoud.naam || "Naamloos begrip"} <span className="text-xs text-muted">({b.status})</span></span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </fieldset>
         </div>
         <div className="flex shrink-0 flex-col gap-2 border-t border-line px-5 py-3 sm:flex-row">
           <Button size="sm" className="w-full sm:w-auto" disabled={ongewijzigd} onClick={async () => {
-            if (await muteer((r) => koppelDeelvraag(wg.id, d.id, { bronnen, begrippen }, r), { gelukt: "Vastgelegd bij de deelvraag." }))
+            if (await muteer((r) => koppelDeelvraag(wg.id, d.id, { bronnen, begrippen: d.begrippen }, r), { gelukt: "Vastgelegd bij de deelvraag." }))
               onKlaar();
           }}>
             Opslaan

@@ -4,8 +4,8 @@ PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd03
                    'agentrollen.json': 'fdf5eac91127601d3782015f3dfc1a3a347a787c4d74bfb810f9d0955694bc66',
                    'references/agentrollen.md': 'f46b17b5d7f7054bed32767a063b3212428956ee7c85aa78de68887035291787',
                    'references/begrippen.md': 'efeb87eee75c3a1ef44706267424efbb4c7afa55ba09cae8df26d0851c1d5084',
-                   'references/bronnen.md': '47b2c98af5a21f29afe97fdab4521a4a4dc0cc8e789b62c74d472a9cfc0d6e16',
-                   'references/deelvragen-en-bronnen.md': '3f1297e0e4852a27adcacb843ff185cd89be9ce58e8ebe87bf0173cbb8204053',
+                   'references/bronnen.md': '368cf0634277c59b52f7eaa28f1be574b7caec4d67bef6c459e95256140970bd',
+                   'references/deelvragen-en-bronnen.md': 'b97192a707c11df4f5b547accf94ab3f6594270d37df62615be0d0cd88fbb1d8',
                    'references/jas-klassen-referentie.md': '5fe94a8c3718eb3d0f21a04cda9e89d9c35db4260b39f1900ead19a86ee91a95',
                    'references/nl-sbb-en-b1.md': 'ceeb1110d57ed267ef04fe4289ae701562290689525b14c9783908dcb3575411'},
  'rollen': {'algemeen': ['basis', 'nl-sbb-taalniveau'],
@@ -74,7 +74,7 @@ PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd03
                                        'contract met genummerde regels.'},
              'deelvragen': {'bestand': 'references/deelvragen-en-bronnen.md',
                             'bronnen': ['M03', 'P13', 'P14'],
-                            'sha256': '94df726fe1d5ca3ff7bc1576edff5a1e520feb4c50e0eb3ebd075f0ce6b3a7da',
+                            'sha256': '99aa88287d4332442ad3e40346943a2984b6b25922756fe27bada6fdd09f8057',
                             'tekst': 'Een deelvraag maakt de analysevraag concreet. Samen dekken '
                                      'de deelvragen de hele analysevraag, en elke deelvraag gaat '
                                      'over één onderwerp: wie (een rechtssubject), wat (een '
@@ -98,10 +98,12 @@ PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd03
                                      'delegatie. Een bron hoort bij de deelvraag die hij helpt '
                                      'beantwoorden.\n'
                                      'Dekking betekent dat elke deelvraag een bron heeft om te '
-                                     'analyseren en uiteindelijk een geaccordeerd begrip. Een '
-                                     'deelvraag met alleen contextbronnen, alleen open of '
-                                     'uitgesloten kandidaten, of zonder bron is nog open; zeg dat, '
-                                     'in plaats van de dekking mooier te maken dan ze is.\n'
+                                     'analyseren. Begrippen horen bij het werkgebied als geheel, '
+                                     'niet bij één deelvraag: het begrippenkader gaat over het '
+                                     'hele scenario. Een deelvraag met alleen contextbronnen, '
+                                     'alleen open of uitgesloten kandidaten, of zonder bron is nog '
+                                     'open; zeg dat, in plaats van de dekking mooier te maken dan '
+                                     'ze is.\n'
                                      'Lex stelt voor – deelvragen, formuleringen, kandidaatbronnen '
                                      '– en de analist beslist: overnemen, aanpassen of afwijzen.'},
              'definitie': {'bestand': 'references/agentrollen.md',
@@ -213,5 +215,5 @@ PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd03
                                    'interpretatieverschillen zichtbaar; presenteer ze niet als '
                                    'vaststaande conclusies. Voeg zonder beschikbare bronnen geen '
                                    'nieuw juridisch feit toe.'}},
- 'sha256': '3fe041ab30aab5eac24683e17290732817178c4a2ae78f8168b271fb16e85f53',
+ 'sha256': '8539e3c1cfbcdaaf7362e7eba0f450d1fd1f07f94643ec433120b692917b2e55',
  'versie': '2.1'}

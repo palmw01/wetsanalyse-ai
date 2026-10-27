@@ -859,21 +859,6 @@ export interface DeelvraagDetail extends Deelvraag {
   voorstellen: Deelvraag[];
 }
 
-export type DeelvraagStand = "gedekt" | "geen_begrip" | "geen_bron";
-
-/** `GET …/deelvragen/dekking`: per actieve deelvraag of er een bron en een geaccordeerd begrip bij hoort. */
-export interface DeelvragenDekking {
-  deelvragen: {
-    id: string;
-    vraag: string;
-    stand: DeelvraagStand;
-    bronnen: { id: string; label: string }[];
-    begrippen: { id: string; naam: string; status: BegripStatus }[];
-  }[];
-  telling: Record<DeelvraagStand, number>;
-  totaal: number;
-}
-
 export interface WerkgebiedInvoer {
   naam: string;
   analysevraag?: string;

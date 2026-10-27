@@ -1,7 +1,7 @@
 """Wirecontract voor de bronselectie per deelvraag (spoor J).
 
 De voortgang is de stand van het wérk aan een deelvraag, los van haar inhoudelijke status (`actief`,
-`vervangen`) en van de dekkingscheck (`gedekt`, `geen_bron`). Geen rij betekent `niet_gestart`.
+`vervangen`) en van de dekkingscheck (`met_bron`, `geen_bron`). Geen rij betekent `niet_gestart`.
 """
 from __future__ import annotations
 

@@ -695,9 +695,9 @@ werkgebied zonder deelvragen werkt zoals altijd.
   en Lex stelt haar tekst niet opnieuw voor. `koppel_bron_in` volgt een vervangen deelvraag naar haar
   actieve opvolger(s). `GET …/deelvragen/{id}` geeft één deelvraag in elke stand, met `opvolgers` en de open
   `voorstellen` die haar vervangen (het deelvraagpaneel van de werkplek).
-- **Dekking** (`GET …/deelvragen/dekking`): per actieve deelvraag `gedekt` (een gekoppeld geaccordeerd
-  begrip), `geen_begrip` (wel bronnen of begrippen, geen geaccordeerd) of `geen_bron`; uit Postgres, zonder
-  graaf. Een vervangen begrip dekt niets meer.
+- **Dekking** (`GET …/deelvragen/dekking`): per actieve deelvraag `met_bron` of `geen_bron`, met de gekoppelde
+  bronnen; uit Postgres, zonder graaf. Een begrip telt niet mee: begrippen horen bij het werkgebied, niet bij
+  een deelvraag (spoor K, methode M04 H3). De werkplek toont per deelvraag de voortgang van de bronselectie.
 - **De bronnenrun zoekt per deelvraag**: `bronnen_run_store.invoer_van` neemt de actieve deelvragen op (alleen
   met deelvragen een sleutel, zodat de `invoer_id` van een werkgebied zonder deelvragen gelijk blijft); met
   alleen deelvragen is er ook een vertrekpunt. Op dezelfde manier gaat het dossier mee als sleutel `dossier`

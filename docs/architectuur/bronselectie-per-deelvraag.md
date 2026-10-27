@@ -44,8 +44,9 @@ bs_kies ──► bs_bepalingen (fase A/B: kern) ──► bs_afhankelijkheden (
 - `niet_gestart` (geen rij) → `in_behandeling` (openen, of het eerste besluit) → `voorlopig_afgerond` (de
   analist sluit af; open punten mogen) → `beoordeeld` (alleen door een poort: de vragen zijn doorlopen en er
   staat geen onderzoekspunt open). `heropenen` gaat terug naar `in_behandeling`.
-- Los daarvan staan de deelvraagstatus (`actief`, `vervangen`, …) en de dekkingscheck met begrippen
-  (`gedekt`, `geen_begrip`, `geen_bron`). Die worden niet vermengd.
+- Los daarvan staan de deelvraagstatus (`actief`, `vervangen`, …) en de dekkingscheck (`met_bron`, `geen_bron`;
+  sinds spoor K zonder begrippen: die horen bij het werkgebied). Die worden niet vermengd. De rijen van de
+  deelvragen in de werkplek tonen de voortgang hierboven, met het aantal bronnen.
 - **Een afronding staat op een scope** (`scope_stand`: analysevraag, afbakening, deelvraagtekst). Verandert die,
   dan is de deelvraag `opnieuw_bekijken` en niet meer klaar; de besluiten blijven staan. Een verbeterde
   deelvraag erft voortgang en besluiten, en staat daardoor op *opnieuw bekijken*.

@@ -31,7 +31,9 @@ from .werkgebied_contracts import (
 )
 from .werkgebied_store import _audit, _gewijzigd
 
-STANDEN = ("geen_bron", "geen_begrip", "gedekt")
+# De dekking van een deelvraag is of er een bron bij hoort (methode 1g). Begrippen horen bij het werkgebied,
+# niet bij een deelvraag (spoor K); de stand van het wérk staat in de bronselectie (`bronselectie.py`).
+STANDEN = ("geen_bron", "met_bron")
 
 
 def normaliseer(vraag: str) -> str:
@@ -333,27 +335,19 @@ async def stel_voor(werkgebied_id: str, v: DeelvraagVoorstellen, actor: str) -> 
 
 
 async def dekking(werkgebied_id: str) -> dict:
-    """Per actieve deelvraag: `geen_bron` (niets gekoppeld), `geen_begrip` (bronnen, maar geen
-    geaccordeerd begrip) of `gedekt`. Een vervangen begrip dekt niets meer; zijn opvolger wel, als die
-    gekoppeld is. Uit Postgres, zonder graaf."""
+    """Per actieve deelvraag: `geen_bron` (niets gekoppeld) of `met_bron`, met de gekoppelde bronnen. Uit
+    Postgres, zonder graaf."""
     async with db.get_engine().connect() as conn:
         t = db.werkgebieden
         row = (await conn.execute(select(t.c.id, t.c.gearchiveerd).where(t.c.id == werkgebied_id))).first()
         if row is None or row.gearchiveerd is not None:
             raise HTTPException(404, "Werkgebied bestaat niet.")
         vragen = [d for d in await lijst_in(conn, werkgebied_id) if d["status"] == DeelvraagStatus.actief.value]
-        _, begrippen = await _actieve_doelen(conn, werkgebied_id)
         s = db.werkgebied_bronselecties
         labels = {r.id: r.label for r in (await conn.execute(select(s.c.id, s.c.label).where(
             s.c.werkgebied_id == werkgebied_id, s.c.verwijderd.is_(None)))).all()}
-    uit = []
-    for d in vragen:
-        bs = [begrippen[b] for b in d["begrippen"]]
-        stand = ("gedekt" if any(b["status"] == "geaccordeerd" for b in bs)
-                 else "geen_begrip" if d["bronnen"] or bs else "geen_bron")
-        uit.append({"id": d["id"], "vraag": d["vraag"], "stand": stand,
-                    "bronnen": [{"id": x, "label": labels.get(x, "")} for x in d["bronnen"]],
-                    "begrippen": bs})
+    uit = [{"id": d["id"], "vraag": d["vraag"], "stand": "met_bron" if d["bronnen"] else "geen_bron",
+            "bronnen": [{"id": x, "label": labels.get(x, "")} for x in d["bronnen"]]} for d in vragen]
     telling = {st: sum(1 for x in uit if x["stand"] == st) for st in STANDEN}
     return {"deelvragen": uit, "telling": telling, "totaal": len(uit)}
 

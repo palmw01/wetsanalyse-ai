@@ -14,7 +14,7 @@
  *  - opties met omschrijving; een klik selecteert alleen; "Weet ik (nog) niet" sluit de rest uit; eigen
  *    tekst vervangt bij één keuze de gekozen optie (de aanleiding);
  *  - F2: de deelvragen – voorstellen kiezen én meerdere eigen regels (Enter of *+ Nog een deelvraag*),
- *    als `teksten`; de samenvatting toont het hele dossier; het paneel na aanmaken ook, met de dekking
+ *    als `teksten`; de samenvatting toont het hele dossier; het paneel na aanmaken ook, met de voortgang
  *    per deelvraag;
  *  - F3f: de bepalingen per deelvraag – een kaartje per deelvraag met de deelvraag erbij en `deel` in de
  *    klik; ‹ bladert naar het vorige deel (`naar_deel`), en de Vragen-kaart houdt een paar per deel;
@@ -91,8 +91,12 @@ const wg = { id: "wg5", naam: "Box 3", analysevraag: "Wie is belastingplichtig v
   aangemaakt_door: "t", aangemaakt: nu, gewijzigd: nu, gearchiveerd: null, bronnen: [],
   deelvragen: [{ id: "d1", vraag: DV1, volgorde: 0, status: "actief", herkomst: "lex", reden: "", aangemaakt_door: "t",
     aangemaakt: nu, bronnen: [], begrippen: [] }] };
-const DEKKING = { deelvragen: [{ id: "d1", vraag: DV1, stand: "geen_bron", bronnen: [], begrippen: [] }],
-  telling: { gedekt: 0, geen_begrip: 0, geen_bron: 1 }, totaal: 1 };
+// De stand per deelvraag is de voortgang van haar bronselectie (spoor K), niet een begrip.
+const BRONSELECTIE = { werkgebied_id: "wg5", naam: "Box 3", revisie: 1, modus: "deelvragen", actief: null, volgende: "d1",
+  alle_klaar: false, zonder_deelvraag: [], zoekdekking: { gezocht: false, verouderd: false, volledig: true, onvolledig: [], reden: "" },
+  deelvragen: [{ id: "d1", nr: 1, vraag: DV1, status: "niet_gestart", fase: "kern", open_punten: [], revisie: 0,
+    opnieuw_bekijken: false, klaar: false, bronnen: [], kandidaten: [],
+    telling: { voorgesteld: 0, niet_gekozen: 0, uitgesloten: 0, opgenomen: 0 }, beoordelen: { mag: false, redenen: [] } }] };
 
 const beurt = (run, tekst, k) => [{ type: "token", content: tekst }, { type: "vraagkaart", vraagkaart: k },
   { type: "opgeslagen", run_id: run }, { type: "done" }];
@@ -129,7 +133,7 @@ await context.route("**/api/**", async (route) => {
   if (p.startsWith("/api/auth/")) return route.continue();
   const body = m === "GET" ? null : req.postDataJSON?.() ?? null;
   if (p === "/api/werkgebieden/wg5") return route.fulfill({ json: wg });
-  if (p === "/api/werkgebieden/wg5/deelvragen/dekking") return route.fulfill({ json: DEKKING });
+  if (p === "/api/werkgebieden/wg5/bronselectie") return route.fulfill({ json: BRONSELECTIE });
   if (p.startsWith("/api/werkgebieden/wg5/")) return route.fulfill({ json: {} });
   if (p === "/api/gesprekken" && m === "POST") return route.fulfill({ status: 201, json: { id: "g9", titel: body?.titel ?? "", berichten: [] } });
   if (p === "/api/gesprekken") return route.fulfill({ json: [] });
@@ -272,11 +276,11 @@ try {
   // --- Na aanmaken: kaart, eigen paneel, de werkplek in het werkgebied, geen open vraag ---
   const paneel = page.locator("[data-artefact-soort=werkgebied][data-artefact]");
   await paneel.getByText("Samengesteld met Lex").waitFor();
-  // F2: het hele dossier en de deelvragen met hun dekking, ook naast het gesprek.
+  // F2: het hele dossier en de deelvragen met hun voortgang (spoor K), ook naast het gesprek.
   await paneel.locator("[data-dossier-veld=context]").getByText("De aangifte 2026 moet blijven werken.").waitFor();
   await paneel.locator("[data-dossier-veld=doel]").getByText("Nog geen doel.").waitFor();
-  await paneel.locator("[data-samenvatting=deelvragen]").getByText("Nog geen bron").waitFor();
-  await paneel.locator("[data-samenvatting=deelvragen]").getByText("0 van 1 deelvraag gedekt", { exact: false }).waitFor();
+  await paneel.locator("[data-samenvatting=deelvragen]").getByText("Nog niet gestart").waitFor();
+  await paneel.locator("[data-samenvatting=deelvragen]").getByText("0 van 1 deelvraag afgerond", { exact: false }).waitFor();
   assert.equal(await paneel.getByRole("link", { name: "Open het werkgebied" }).first().getAttribute("href"), "/werkgebieden/wg5");
   for (let i = 0; i < 40 && new URL(page.url()).searchParams.get("werkgebied") !== "wg5"; i++) await page.waitForTimeout(50);
   assert.equal(new URL(page.url()).searchParams.get("werkgebied"), "wg5");
