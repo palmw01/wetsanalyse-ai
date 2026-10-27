@@ -241,6 +241,10 @@ gebeurt in Python, want de elementen staan als JSON en de tests draaien op SQLit
 `werkgebieden.py`, `werkgebied_store.py`, `werkgebied_inventaris.py`; het ontwerp staat in PLAN
 spoor D (*Werkgebied als node*).
 
+- **Het thema is een TOOI-URI** (spoor I6, `app/tooi.py`): `thema` komt uit de snapshot van tooitop
+  (`tooi_themas.json`, CC0, met bron en datum); een ander thema geeft 422. `GET …/thema-voorstel` stelt
+  zonder model thema's voor uit de WTI-rechtsgebieden van de regelingen van de bronnen (een kleine
+  afbeeldingstabel, `RECHTSGEBIED_THEMA`); zonder graaf een lege lijst.
 - **Gedeeld**, zoals de annotaties: elke actieve gebruiker ziet en wijzigt alle werkgebieden; wie
   wat deed staat in `werkgebied_audit` (alleen inserts).
 - **Eén schrijfpad per mutatie** (`werkgebied_store._gewijzigd`): rij-lock op het werkgebied
@@ -557,6 +561,9 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
 
 `begrip_projectie.py`, `shapes/`; PLAN spoor D, fase F3; ADR-003 (NL-SBB is het datacontract).
 
+- **TOOI in de export** (spoor I6): het kader krijgt `dct:subject <thema>`, en in de Turtle-export krijgt elk
+  brondocument `dct:publisher <TOOI-organisatie>` van zijn regeling (`uitgevers`, uit
+  `bwb:eerstverantwoordelijkeOrganisatie`, best-effort zoals `paginas`).
 - **Per werkgebied één named graph** `urn:wa:graph:werkgebied:<id>`, register
   `urn:wa:graph:register:begrippen` (`wa:werkgebiedId`, `wa:projectieHash`, `wa:inGraaf`). Kader =
   `skos:ConceptScheme` met `dct:title` en de toelichting "analyse-uitkomst, geen wettelijke definitie";

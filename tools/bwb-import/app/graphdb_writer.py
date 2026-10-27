@@ -25,6 +25,7 @@ from app.collect import (
     structuurindex as structuurindex_van,
 )
 from app.models import ImportSummary, Wet
+from app import tooi
 from app.ontology import build_ontology
 from app.rdf_vocab import Vocab
 from app.wti_parser import WtiInfo
@@ -649,6 +650,10 @@ class GraphDbWriter:
             g.add((wet_iri, v.ns.afkorting, Literal(afkorting)))
         if wti.eerstverantwoordelijke:
             g.add((wet_iri, v.ns.eerstverantwoordelijke, Literal(wti.eerstverantwoordelijke)))
+            # Spoor I6: hetzelfde ministerie als TOOI-URI, naast de tekst (die blijft voor wie hem al leest).
+            if org := tooi.ministerie(wti.eerstverantwoordelijke):
+                g.add((wet_iri, v.ns.eerstverantwoordelijkeOrganisatie, URIRef(org[0])))
+                g.add((URIRef(org[0]), RDFS.label, Literal(org[1], lang="nl")))
         if wti.authority:
             # Verantwoordelijke organisatie als wet-overstijgende node (dezelfde
             # organisatie valt over regelingen heen samen op de slug-IRI).

@@ -243,6 +243,8 @@ werkgebieden = Table("werkgebieden", metadata,
     Column("context", Text, nullable=False, server_default="", default=""),
     Column("doel", Text, nullable=False, server_default="", default=""),
     Column("praktijkvoorbeeld", Text, nullable=False, server_default="", default=""),
+    # Spoor I6: het thema als TOOI-URI uit tooitop (`app/tooi.py`); leeg = nog niet gekozen.
+    Column("thema", String(200), nullable=False, server_default="", default=""),
     Column("peildatum", String(10), nullable=True),
     Column("status", String(24), nullable=False, default="in_voorbereiding"),
     Column("revisie", Integer, nullable=False, default=1),

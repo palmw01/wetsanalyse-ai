@@ -68,6 +68,7 @@ function mutatie(route, verwacht, actie, detail, doe) {
   return null;
 }
 
+const THEMA = "https://identifier.overheid.nl/tooi/def/thes/top/c_25e30d03";
 await page.route("**/api/**", async (route) => {
   const req = route.request(), url = new URL(req.url()), p = url.pathname, m = req.method();
   if (p.startsWith("/api/auth/")) return route.continue();
@@ -83,6 +84,15 @@ await page.route("**/api/**", async (route) => {
     if (wg.verwijderd) return route.fulfill({ status: 404, json: { detail: { fout: "verwijderd", soort: "werkgebied",
       op: nu, door: "browser-test", melding: "Werkgebied is verwijderd." } } });
     return route.fulfill({ json: uit() });
+  }
+  // Spoor I6: het thema dat Lex voorstelt (zonder model) en het opslaan ervan.
+  if (p === "/api/werkgebieden/wg1/thema-voorstel") return route.fulfill({ json: {
+    rechtsgebieden: ["Belastingrecht"], voorstel: [{ thema: THEMA, label: "belasting" }] } });
+  if (p === "/api/werkgebieden/wg1" && m === "PATCH") {
+    const b = req.postDataJSON();
+    const r = mutatie(route, b.verwachte_revisie, "gewijzigd", { velden: Object.keys(b) },
+      () => { Object.assign(wg, { thema: b.thema ?? wg.thema, thema_label: b.thema ? "belasting" : "" }); });
+    return r ?? route.fulfill({ json: uit() });
   }
   if (p === "/api/werkgebieden/wg1" && m === "DELETE") {
     const r = mutatie(route, Number(url.searchParams.get("verwachte_revisie")), "werkgebied-verwijderd", {},
@@ -274,6 +284,15 @@ try {
   await page.reload();
   await page.locator("[data-artefact-pagina=annotaties]").waitFor();
   await page.goto(`${base}/werkgebieden/wg1`);
+  // Spoor I6: in Gegevens bewerken stelt Lex een TOOI-thema voor; overnemen en opslaan stuurt de URI.
+  await page.getByRole("button", { name: "Gegevens bewerken" }).click();
+  const voorstelThema = page.locator("[data-thema-voorstel]");
+  await voorstelThema.getByText("belasting", { exact: true }).waitFor();
+  await voorstelThema.getByRole("button", { name: "Overnemen" }).click();
+  assert.equal(await page.getByLabel(/^Thema/).inputValue(), THEMA);
+  await page.locator("[data-gegevens-formulier]").getByRole("button", { name: "Opslaan" }).click();
+  await page.locator("[data-gegevens-formulier]").waitFor({ state: "detached" });
+  assert.equal(requests.filter((r) => r.m === "PATCH" && r.p === "/api/werkgebieden/wg1").at(-1).body.thema, THEMA);
   await page.getByRole("button", { name: "Meer voor dit werkgebied" }).click();
   await page.getByRole("link", { name: "Historie" }).click();
   await page.waitForURL("**/werkgebieden/wg1/historie");

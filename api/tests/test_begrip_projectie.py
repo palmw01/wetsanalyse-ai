@@ -237,3 +237,34 @@ def _schoon():
     bp._geschreven.clear()
     yield
     bp.activeer(False)
+
+
+def test_tooi_thema_op_het_kader_en_de_organisatie_per_bron():
+    """Spoor I6: `dct:subject` naar een tooitop-thema, `dct:publisher` naar de TOOI-organisatie van de regeling."""
+    thema = "https://identifier.overheid.nl/tooi/def/thes/top/c_25e30d03"
+    fin = "https://identifier.overheid.nl/tooi/id/ministerie/mnre1090"
+    bron = "urn:bwb:BWBR0004770:artikel:9:lid:1"
+    inv = {"schema": 1, "werkgebied": {"id": "w1", "naam": "W", "analysevraag": "", "thema": thema}, "relaties": [],
+           "begrippen": [{"id": "b1", "status": "geaccordeerd", "revisie": 2, "geaccordeerd_op": None,
+                          "geaccordeerd_revisie": None, "gewijzigd": None,
+                          "inhoud": {"naam": "x", "definitie": "Een x.", "definitie_herkomst": "letterlijk"},
+                          "koppelingen": [{"id": "k1", "element_id": "e1", "rol": "duiding", "beoordeling": "akkoord",
+                                           "element_hash": "h", "vindplaats": "art. 9", "tekst": "x", "bron": [bron]}]}]}
+    g = bp.bouw_graaf(inv, uitgevers={bron: fin})
+    assert (kader_iri("w1"), DCT.subject, URIRef(thema)) in g
+    [doc] = list(g.objects(begrip_iri("b1"), DCT.source))
+    assert (doc, DCT.publisher, URIRef(fin)) in g
+    # Zonder uitgevers (de projectie) geen publisher; het thema staat er wel.
+    assert not list(bp.bouw_graaf(inv).triples((None, DCT.publisher, None)))
+    assert bp._regeling(bron) == "urn:bwb:BWBR0004770"
+
+
+async def test_een_werkgebied_kiest_een_thema_uit_tooitop(client):
+    wg = await _werkgebied(client)
+    thema = "https://identifier.overheid.nl/tooi/def/thes/top/c_25e30d03"
+    r = await client.patch(f"/v1/werkgebieden/{wg['id']}", json={"verwachte_revisie": wg["revisie"], "thema": thema})
+    assert r.status_code == 200, r.text
+    assert (r.json()["thema"], r.json()["thema_label"]) == (thema, "belasting")
+    r = await client.patch(f"/v1/werkgebieden/{wg['id']}", json={"verwachte_revisie": r.json()["revisie"],
+                                                               "thema": "https://example.org/verzonnen"})
+    assert r.status_code == 422

@@ -1,5 +1,7 @@
 "use client";
 
+import { themaLabel } from "@/lib/tooiThemas";
+import { bronHref } from "@/lib/url";
 import { Lijst, LijstRij, Regel, Regels, StatusLabel } from "@/components/ui/Lijst";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import { STAND_LABEL, STAND_TOON, STAND_UITLEG, dekkingZin, splits } from "@/lib/deelvragen";
@@ -43,6 +45,16 @@ export function WerkgebiedSamenvatting({ wg, vraagLex = false, className = "" }:
             )}
         </Regel>
       ))}
+      {/* Spoor I6: het TOOI-thema, als het gekozen is; kiezen gaat in *Gegevens bewerken*. */}
+      {wg.thema && (
+        <Regel naam="Thema" data-dossier-veld="thema">
+          {bronHref(wg.thema) ? (
+            <a href={bronHref(wg.thema)} target="_blank" rel="noopener noreferrer" className="text-lint underline-offset-2 hover:underline">
+              {wg.thema_label || themaLabel(wg.thema) || wg.thema}
+            </a>
+          ) : (wg.thema_label || themaLabel(wg.thema) || wg.thema)}
+        </Regel>
+      )}
       <Regel naam={`Deelvragen (${deelvragen.length})`} data-samenvatting="deelvragen">
         {deelvragen.length ? (
           <>

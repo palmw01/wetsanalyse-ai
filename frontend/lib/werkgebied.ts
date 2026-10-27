@@ -89,7 +89,7 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   }
   // `verdieping` (fase C) is alleen lezen; de batches en de uitkomst zet graph-qa, niet de werkplek.
   if (deel === "elementen" || deel === "audit" || deel === "annotatie-werkvoorraad" || deel === "verdieping"
-      || deel === "herbeoordelingen")
+      || deel === "herbeoordelingen" || deel === "thema-voorstel")
     return pad.length === 2;
   // Relaties (fase F2): lezen en vastleggen, één relatie weghalen of bevestigen, een voorstel afwijzen.
   if (deel === "relaties") {

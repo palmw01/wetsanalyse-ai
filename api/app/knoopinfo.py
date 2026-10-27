@@ -50,6 +50,8 @@ FEITEN: dict[str, tuple[str, str, Soort]] = {
     BWB + "publicatienr": ("Herkomst van de tekst", "Publicatienummer", "tekst"),
     BWB + "dossier": ("Herkomst van de tekst", "Kamerstukdossier", "tekst"),
     BWB + "eerstverantwoordelijke": ("Herkomst van de tekst", "Eerstverantwoordelijke", "tekst"),
+    # Spoor I6: hetzelfde ministerie als TOOI-URI; met zijn naam en een link naar identifier.overheid.nl.
+    BWB + "eerstverantwoordelijkeOrganisatie": ("Herkomst van de tekst", "Organisatie (TOOI)", "knoop"),
     BWB + "uitgegevenDoor": ("Herkomst van de tekst", "Uitgegeven door", "knoop"),
     BWB + "citeertitel": ("Regeling", "Citeertitel", "tekst"),
     BWB + "afkorting": ("Regeling", "Afkorting", "tekst"),
@@ -159,7 +161,8 @@ def _waarde(rij: dict, soort: Soort) -> dict:
     if not _is_iri(rij):
         return {"tekst": o}
     if soort == "link" or not o.startswith("urn:bwb:"):
-        return {"tekst": o, "link": o}
+        # Een IRI buiten de wettekst (een TOOI-organisatie) heet naar zijn label als de graaf dat kent.
+        return {"tekst": (rij.get("naam") if soort == "knoop" else "") or o, "link": o}
     naam = rij.get("naam") or o.removeprefix("urn:bwb:")
     if rij.get("functie"):
         naam = f"{naam} ({rij['functie']})"
