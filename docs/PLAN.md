@@ -1108,6 +1108,48 @@ in Lex** (letters, `[`/`]`, hints) – Tab, Enter, Escape en de pijltjes van een
 
 ---
 
+### J. Bronselectie in het gesprek, per deelvraag
+
+**Aanleiding** (27 okt 2026). De bronselectie is een boom met kandidaten waarin de analist zelf moet kiezen.
+De gebruiker wil een begeleid proces in het gesprek: Lex werkt de deelvragen één voor één af, met voorstellen
+en onderbouwing, en de applicatie onthoudt waar de analist is – ook na herladen, in een ander gesprek of bij
+een collega. Een beoordeling van de opdracht liet zien dat veel er al is (kandidaten met besluiten, één
+selectie gekoppeld aan meer deelvragen, `bepaling_opties` per deelvraag); wat ontbreekt is de voortgang per
+deelvraag, een besluit per deelvraag, een vraagkaart buiten de intake en het soort bewijs.
+
+**Besluiten** (27 okt 2026, door Claude op verzoek van de gebruiker, in de lijn van Lex):
+- **één kaart per deelvraag**, meerkeuze voor *opnemen*; *later*, *uitsluiten*, *context* en *bespreken*
+  zijn een vervolgvraag in het gesprek, niet 32 losse kaartjes;
+- **vier standen**: `niet_gestart`, `in_behandeling`, `voorlopig_afgerond` (de analist sluit af, open punten
+  mogen) en `beoordeeld` – dat laatste alleen **door een poort** (geen open voorstellen, geen open punten),
+  zoals het accorderen van een begrip;
+- **uitsluiten geldt standaard voor één deelvraag**; *voor het hele werkgebied* is een bewuste keuze. Het
+  bestaande besluit op een kandidaat is het werkgebiedbrede en blijft staan;
+- **de rangschikking is een eigen stap, ná de workflow**, op een nieuwe held-out set (de bezwaarset is een
+  ontwikkelset). Een betere workflow om zwakke voorstellen heen lost de recall van 0,21 niet op;
+- **de volgende deelvraag kiest de code**, niet het model; een afronding staat op de scope waarop ze
+  gedaan is en komt op *opnieuw bekijken* als die verandert; een verbeterde deelvraag erft de voortgang.
+
+**Fasen:**
+- **J1** api – **gebouwd**: `bronselectie_voortgang` en `bron_kandidaat_deelvragen`, `rol` per
+  deelvraagkoppeling, `GET …/bronselectie` (per deelvraag stand, bronnen met rol, kandidaten met hun stand
+  hier en het soort bewijs, de volgende deelvraag, zoekdekking uit de meting, wat bij geen deelvraag hoort),
+  `POST …/bronselectie/{deelvraag}/status` en `…/kandidaten/{id}`.
+- **J2** graph-qa: de bronselectie als stapmachine naast de intake, die de stand per beurt vers uit de api
+  leest; *Hoe wil je verder?* na een afronding; een tussenvraag gaat naar de antwoord-worker en laat de
+  stand staan.
+- **J3** werkplek: de vraagkaart generiek (`intake` of `bronselectie`), dezelfde `VraagDock` en `VragenKaart`.
+- **J4** het werkgebiedpaneel en de tab Bronnen op dezelfde data; de bronboom wordt een verkenner.
+- **J5** de onderbouwing en de overkoepelende controle (zoek-, juridische en beoordelingsdekking, apart van
+  de dekkingscheck met begrippen); de afsluitzin "binnen de vastgestelde afbakening en de beschikbare
+  bronnen", nooit "volledig".
+- **Daarna**: de rangschikking van `bepaling_opties` (stemming, de kop van het deel), blind gemeten.
+
+**Bekende beperking.** De functie van een verwijzing (definitie, uitzondering, delegatie) wordt nog niet
+afgeleid; tot dan zegt Lex bij een afhankelijkheid alleen welke relatie in de graaf staat.
+
+---
+
 ## Volgorde en samenhang
 
 - **A** loopt los van de rest en is vooral werk voor beoordelaars. Het blokkeert alleen semantisch

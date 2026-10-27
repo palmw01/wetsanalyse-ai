@@ -301,9 +301,14 @@ async def heropenen(werkgebied_id: str, kid: str, actor: str) -> dict:
     return await _besluit(werkgebied_id, kid, actor, van=("later", "uitgesloten"), naar="voorgesteld")
 
 
-async def opnemen(werkgebied_id: str, kid: str, req: Opnemen, bron: dict, actor: str) -> dict:
+async def opnemen(werkgebied_id: str, kid: str, req: Opnemen, bron: dict, actor: str, *,
+                  deelvraag_ids: list[str] | None = None, koppel_rol: str = "", binnen=None) -> dict:
     """De kandidaat wordt een bronselectie; beide in één transactie. `bron` komt uit de resolver,
-    net als bij zelf opnemen. Geeft {kandidaat, selectie}."""
+    net als bij zelf opnemen. Geeft {kandidaat, selectie}.
+
+    Zonder `deelvraag_ids` hoort de selectie bij de deelvragen waarvoor Lex haar vond; de bronselectie per
+    deelvraag (spoor J) geeft er precies één mee, met `koppel_rol` als de rol bij die deelvraag, en `binnen`
+    om in dezelfde transactie het besluit bij die deelvraag op te ruimen."""
     k = db.bron_kandidaten
     async with db.get_engine().connect() as conn:
         row = await _haal_kandidaat(conn, werkgebied_id, kid)
@@ -316,8 +321,9 @@ async def opnemen(werkgebied_id: str, kid: str, req: Opnemen, bron: dict, actor:
                                 reden=req.reden or f"Voorgesteld door Lex ({row.rol}).")
 
     # Vond Lex de bepaling bij een deelvraag, dan hoort de nieuwe selectie bij die deelvraag.
-    deelvraag_ids = sorted({str((b.get("detail") or {}).get("deelvraag_id", "")) for b in row.bewijs
-                            if b.get("methode") == "deelvraag"} - {""})
+    if deelvraag_ids is None:
+        deelvraag_ids = sorted({str((b.get("detail") or {}).get("deelvraag_id", "")) for b in row.bewijs
+                                if b.get("methode") == "deelvraag"} - {""})
 
     async def markeer(conn) -> None:
         nu = db.utcnow()
@@ -329,7 +335,9 @@ async def opnemen(werkgebied_id: str, kid: str, req: Opnemen, bron: dict, actor:
         sid = (await conn.execute(select(s.c.id).where(s.c.werkgebied_id == werkgebied_id, s.c.bron_iri == row.bron_iri,
                                                        s.c.verwijderd.is_(None)))).scalar()
         if sid:
-            await werkgebied_deelvragen.koppel_bron_in(conn, werkgebied_id, sid, deelvraag_ids, actor)
+            await werkgebied_deelvragen.koppel_bron_in(conn, werkgebied_id, sid, deelvraag_ids, actor, rol=koppel_rol)
+        if binnen is not None:
+            await binnen(conn)
 
     selectie, nieuw = await werkgebied_store.voeg_bron_toe(werkgebied_id, invoer, bron, actor, binnen=markeer)
     if not nieuw:
