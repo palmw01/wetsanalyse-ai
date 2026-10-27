@@ -655,7 +655,8 @@ invoer vast, toetst en bewaart de kandidaten, en legt de besluiten vast.
   wordt geen kandidaat.
 - **Het besluit hoort bij de kandidaat**: een latere run werkt bewijs, rol en `run_id` bij en laat de
   status staan. **Een uitgesloten kandidaat komt dus niet terug** (de acceptatie van L1). Uitsluiten
-  vraagt een reden (422 zonder). `later`, `uitsluiten` en `heropenen` nemen het slot op het werkgebied
+  vraagt een reden (422 zonder). `later` (sinds spoor J niet meer in de werkplek; de bronselectie leest het als
+  voorstel), `uitsluiten` en `heropenen` nemen het slot op het werkgebied
   maar dragen geen revisie: ze wijzigen de scope niet.
 - **Opnemen** wijzigt de scope en draagt daarom `verwachte_revisie` (412). De api verifieert de bron
   zoals bij zelf opnemen en schrijft selectie én kandidaatstatus in één transactie
@@ -719,8 +720,13 @@ na herladen, in een ander gesprek en bij een collega ook is.
   niet gebeurd was, maakt haar de actieve – de laatst geopende in behandeling –, geen revisie), `fase`,
   `afronden`, `beoordelen`, `heropenen` (elk met `verwachte_revisie` van de rij → 412). Staat de rij al
   waar de actie heen wil, dan gebeurt er niets, ook geen revisietoets: een dubbele klik of een opnieuw
-  afgespeelde actie is geen conflict. `beoordelen` gaat door een **poort** (409 `poort` met `redenen`): geen
-  open voorstel bij deze deelvraag en geen open punten. Niet gestart: 409 `niet_gestart`.
+  afgespeelde actie is geen conflict. `beoordelen` gaat door een **poort** (409 `poort` met `redenen`): de vragen
+  zijn doorlopen (fase `afronden`, of al afgerond) en er staat geen onderzoekspunt open. Niet gestart: 409
+  `niet_gestart`.
+- **Kiezen is het besluit; er is geen *later*.** Wie het kaartje beantwoordt, kiest: een voorstel dat toen niet
+  aangevinkt werd, heeft bij het lezen de stand `niet_gekozen` – afgeleid uit de fase (kernvoorstellen zodra de
+  deelvraag voorbij `kern` is, de rest bij `afronden`), niet bewaard. De fase terugzetten (de vragen opnieuw
+  doorlopen) maakt er weer een `voorgesteld` van. Een oud besluit *later* op `bron_kandidaten` telt als voorstel.
 - **Een afronding staat op een scope**: `scope_stand` = hash van analysevraag, afbakening en de genormaliseerde
   deelvraagtekst. Wijkt die bij het lezen af, dan `opnieuw_bekijken: true` en `klaar: false`; er wordt niets
   gewist. Een verbeterde deelvraag (F3d) erft voortgang en besluiten (`erf_in`, vanuit
@@ -731,12 +737,18 @@ na herladen, in een ander gesprek en bij een collega ook is.
     `bronnen_run_store.opnemen` met `deelvraag_ids=[deze]`. Eén selectie, meer koppelingen: nooit een duplicaat.
     Scope, dus `verwachte_revisie` van het werkgebied; dezelfde koppeling nog eens geeft geen revisie;
   - `loskoppelen` haalt alleen de koppeling weg (revisie);
-  - `later` en `uitsluiten` (reden verplicht) schrijven `bron_kandidaat_deelvragen`; met `overal: true` gaat een
+  - `uitsluiten` (reden verplicht) schrijft `bron_kandidaat_deelvragen`; met `overal: true` gaat de
     uitsluiting naar `bron_kandidaten` en geldt ze bij elke deelvraag. `heropenen` wist het besluit hier, met
     `overal` ook het werkgebiedbrede. Geen revisie, wel het slot en een audit `bronselectie-*`;
   - een besluit start de deelvraag als dat nog niet gebeurd was.
+- **Zelf een bepaling toevoegen** (`POST …/bronselectie/{deelvraag}/bronnen`, `BronselectieInvoer`: bron-IRI, of
+  regeling + artikel (+ lid), met `rol` en `verwachte_revisie`): geverifieerd in de graaf zoals bij zelf opnemen
+  (422 als ze niet bestaat), opgenomen in het werkgebied als ze er nog niet stond en gekoppeld aan deze deelvraag
+  – in één transactie (`bronselectie.toevoegen`). Staat ze er al met een andere rol, dan wordt die de rol bij
+  deze deelvraag. Uitgesloten voor het hele werkgebied: 409. Lex gebruikt dit voor een eigen tekst op het
+  kaartje ("artikel 25 lid 2 Invorderingswet 1990").
 - **`GET …/bronselectie?na=`**: per eenheid `nr`, stand, `revisie`, `opnieuw_bekijken`, `klaar`, `bronnen` (met
-  rol hier), `kandidaten` met `stand` hier (`voorgesteld`, `later`, `uitgesloten`, `opgenomen`), `overal`,
+  rol hier), `kandidaten` met `stand` hier (`voorgesteld`, `niet_gekozen`, `uitgesloten`, `opgenomen`), `overal`,
   `elders_opgenomen` en `bewijs_soorten` (`verwijzing`, `definitie`, `structuur`, `tekst`, `gelijkenis`:
   een tekstuele overeenkomst is geen bewijs van noodzaak), `telling` en `beoordelen: {mag, redenen}`. Plus
   `actief`, `volgende` (deterministisch: de eerste niet-klare na `na`, anders vooraan verder), `alle_klaar`,

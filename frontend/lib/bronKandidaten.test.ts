@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  bewijsZin, bijDeelvraag, filterVan, plekNaam, sorteerKandidaten, standaardRol, telPerFilter,
+  bewijsZin, bijDeelvraag, filterVan, plekNaam, sorteerKandidaten, telPerFilter,
 } from "./bronKandidaten";
 import type { BronKandidaat } from "./types";
 
@@ -42,14 +42,11 @@ describe("filters", () => {
     expect(filterVan(k({}))).toBe("open");
     expect(filterVan(k({ in_selectie: true }))).toBe("opgenomen");
     expect(filterVan(k({ status: "uitgesloten" }))).toBe("uitgesloten");
+    // Een oud besluit *later* is geen besluit meer (spoor J): het telt als voorstel.
+    expect(filterVan(k({ status: "later" }))).toBe("open");
     expect(telPerFilter([k({}), k({ status: "later" }), k({ status: "opgenomen" })]))
-      .toEqual({ open: 1, later: 1, uitgesloten: 0, opgenomen: 1 });
+      .toEqual({ open: 2, uitgesloten: 0, opgenomen: 1 });
   });
-});
-
-it("standaardRol: kern wordt analyseren, de rest context", () => {
-  expect(standaardRol({ rol: "kern" })).toBe("analyseren");
-  expect(standaardRol({ rol: "afhankelijkheid" })).toBe("context");
 });
 
 it("sorteert op rol, dan op hoeveelheid bewijs", () => {

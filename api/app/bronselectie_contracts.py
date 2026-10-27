@@ -57,11 +57,12 @@ class KandidaatBesluit(BaseModel):
     - `opnemen` koppelt de bepaling aan deze deelvraag (en neemt haar zo nodig eerst op in het werkgebied);
       dat wijzigt de scope en draagt de revisie van het werkgebied. `rol` is de rol bij díé deelvraag.
     - `loskoppelen` haalt de koppeling met deze deelvraag weg; de bronselectie zelf blijft.
-    - `later` en `uitsluiten` gelden voor deze deelvraag. Met `overal` geldt een uitsluiting voor het hele
-      werkgebied: dan stelt Lex de bepaling bij geen enkele deelvraag meer voor.
+    - `uitsluiten` geldt voor deze deelvraag. Met `overal` geldt een uitsluiting voor het hele werkgebied: dan
+      stelt Lex de bepaling bij geen enkele deelvraag meer voor. Een *later* bestaat niet: wie de vragen
+      doorloopt, kiest; wat niet gekozen is, is niet gekozen.
     - `heropenen` haalt het besluit bij deze deelvraag weg (met `overal` ook het werkgebiedbrede)."""
 
-    besluit: Literal["opnemen", "loskoppelen", "later", "uitsluiten", "heropenen"]
+    besluit: Literal["opnemen", "loskoppelen", "uitsluiten", "heropenen"]
     verwachte_revisie: int | None = Field(default=None, ge=1)
     rol: Literal["analyseren", "context"] | None = None
     reden: str = Field(default="", max_length=2000)

@@ -66,18 +66,24 @@ class NepApi:
             for kid, k in self.kandidaten.items():
                 if not self._hoort(kid, did):
                     continue
-                stand = "opgenomen" if kid in self.opgenomen.get(did, {}) else self.besluiten.get((kid, did), "voorgesteld")
+                # Zoals de api: wat bij het beantwoorden van het kaartje niet gekozen werd, is niet gekozen.
+                gehad = r["status"] in ("voorlopig_afgerond", "beoordeeld") or (
+                    r["fase"] != "kern" if k["rol"] == "kern" else r["fase"] == "afronden")
+                stand = "opgenomen" if kid in self.opgenomen.get(did, {}) else self.besluiten.get(
+                    (kid, did), "niet_gekozen" if gehad else "voorgesteld")
                 lijst.append({"id": kid, "bron_iri": f"urn:bwb:BWBR0004770:artikel:{kid}", "label": k["label"],
                               "bwb_id": "BWBR0004770", "rol": k["rol"], "bewijs": [], "bewijs_soorten": ["tekst"],
                               "stand": stand, "overal": False, "elders_opgenomen": False, "reden": "", "besloten_door": None})
-            telling = {s: sum(1 for x in lijst if x["stand"] == s) for s in ("voorgesteld", "later", "uitgesloten")}
+            telling = {s: sum(1 for x in lijst if x["stand"] == s) for s in ("voorgesteld", "niet_gekozen", "uitgesloten")}
             telling["opgenomen"] = len(self.opgenomen.get(did, {}))
-            redenen = ([f"Er staan nog {telling['voorgesteld']} voorstellen open."] if telling["voorgesteld"] else []) + (
+            doorlopen = r["status"] in ("voorlopig_afgerond", "beoordeeld") or r["fase"] == "afronden"
+            redenen = ([] if doorlopen else ["De vragen bij deze deelvraag zijn nog niet doorlopen."]) + (
                 ["Er staan nog onderzoekspunten open."] if r["open_punten"] else [])
             vragen.append({"id": did, "nr": nr, "vraag": self.vragen[did], **{k: v for k, v in r.items() if k != "geopend"},
                            "geopend": r["geopend"] or None, "opnieuw_bekijken": False,
                            "klaar": r["status"] in ("voorlopig_afgerond", "beoordeeld"),
-                           "bronnen": [{"selectie_id": k, "rol": rol} for k, rol in self.opgenomen.get(did, {}).items()],
+                           "bronnen": [{"selectie_id": k, "bron_iri": f"urn:bwb:BWBR0004770:artikel:{k}", "label": k, "rol": rol}
+                                       for k, rol in self.opgenomen.get(did, {}).items()],
                            "kandidaten": lijst, "telling": telling, "beoordelen": {"mag": not redenen, "redenen": redenen}})
         bezig = [v for v in vragen if v["status"] == "in_behandeling"]
         actief = max(bezig, key=lambda v: self.rijen[v["id"]]["geopend"])["id"] if bezig else None
@@ -126,7 +132,21 @@ class NepApi:
         elif besluit["besluit"] == "loskoppelen":
             self.opgenomen.get(did, {}).pop(kid, None)
         else:
-            self.besluiten[(kid, did)] = {"later": "later", "uitsluiten": "uitgesloten"}[besluit["besluit"]]
+            self.besluiten[(kid, did)] = {"uitsluiten": "uitgesloten"}[besluit["besluit"]]
+        self.rijen.setdefault(did, {"status": "in_behandeling", "fase": "kern", "open_punten": [], "revisie": 1, "geopend": 0})
+        return await self.haal_bronselectie(werkgebied_id, na=did)
+
+    async def voeg_bepaling_toe(self, werkgebied_id, did, bron):
+        """Zoals `POST …/bronselectie/{d}/bronnen`: 422 voor een artikel dat niet in de graaf staat."""
+        from agent.wetsanalyse_api import WetsanalyseApiFout
+        self.aanroepen.append(("toevoegen", did, bron.get("bwb_id"), bron.get("artikel"), bron.get("lid", ""), bron["rol"]))
+        if bron.get("artikel") == "999":
+            raise WetsanalyseApiFout("422", 422)
+        assert bron["verwachte_revisie"] == self.revisie
+        self.revisie += 1
+        self.verouderd = True
+        sleutel = f"{bron['artikel']}" + (f":lid:{bron['lid']}" if bron.get("lid") else "")
+        self.opgenomen.setdefault(did, {})[sleutel] = bron["rol"]
         self.rijen.setdefault(did, {"status": "in_behandeling", "fase": "kern", "open_punten": [], "revisie": 1, "geopend": 0})
         return await self.haal_bronselectie(werkgebied_id, na=did)
 
@@ -193,12 +213,18 @@ def test_vier_deelvragen_van_1_naar_2_springen_naar_4_en_hervatten():
     assert verder["stap"] == "bs_verder" and verder["vraag"] == "Hoe wil je verder met de bronselectie?"
     assert [o["label"] for o in verder["opties"]][:2] == ["Verder met deelvraag 2", "Deelvraag 1 verder onderzoeken"]
 
-    # Deelvraag 2: één voorstel voor later bewaren door het niet aan te vinken – het blijft een voorstel.
+    # Deelvraag 2: het voorstel niet aanvinken (niet gekozen) en zelf een bepaling toevoegen als keuze.
     uit = _klik(api, verder, "verder:d2")
-    assert uit["kaart"]["deelvraag_id"] == "d2"
+    assert uit["kaart"]["deelvraag_id"] == "d2" and "typ haar dan zelf" in uit["kaart"]["toelichting"]
+    uit = _klik(api, uit["kaart"], tekst="artikel 10a lid 2")
+    assert ("toevoegen", "d2", "BWBR0004770", "10a", "2", "analyseren") in api.aanroepen
+    assert "Zelf toegevoegd: artikel 10a lid 2." in uit["zinnen"]
+    assert _run(api.haal_bronselectie(WID))["deelvragen"][1]["kandidaten"][0]["stand"] == "niet_gekozen"
+    # Een onderzoekspunt noteer je bij het afronden.
+    assert uit["kaart"]["stap"] == "bs_afronden"
     uit = _klik(api, uit["kaart"], tekst="Onderzoek ook de bijzondere invorderbaarheid.")
     assert api.rijen["d2"]["open_punten"] == [{"tekst": "Onderzoek ook de bijzondere invorderbaarheid."}]
-    assert "onderzoekspunt" in " ".join(uit["zinnen"])
+    assert "onderzoekspunt" in " ".join(uit["zinnen"]) and uit["kaart"]["stap"] == "bs_afronden"
 
     # Springen naar 4 vanuit het overzicht, zonder 2 af te ronden.
     uit = _klik(api, uit["kaart"], "overzicht")
@@ -235,20 +261,23 @@ def test_zonder_deelvragen_is_er_geen_keuzekaart():
     assert bs.SLOT in controle and "volledig is" in controle
 
 
-def test_beoordelen_kan_niet_met_open_voorstellen_en_de_controle_zegt_het():
+def test_niet_gekozen_houdt_beoordelen_niet_tegen_een_onderzoekspunt_wel():
+    """Kiezen is het besluit: na het doorlopen van de vragen kan de deelvraag beoordeeld worden, ook als er
+    voorstellen niet gekozen zijn. Een onderzoekspunt houdt haar uit *beoordeeld*, en de controle zegt het."""
     api = NepApi(vragen=VRAGEN[:1], kandidaten={"k1": {"label": "Artikel 9", "rol": "kern", "bij": ["d1"]},
                                                 "k2": {"label": "Artikel 10", "rol": "kern", "bij": ["d1"]}})
     k = _run(bs.start(api, WID, api.zoek, deelvraag_id="d1"))["kaart"]
-    uit = _klik(api, k, "k1")
+    k = _klik(api, k, "k1")["kaart"]
+    assert k["stap"] == "bs_afronden" and "beoordelen" in [o["waarde"] for o in k["opties"]]
+    assert "1 niet gekozen" in k["toelichting"]
+    uit = _klik(api, k, tekst="Bijzondere invorderbaarheid nog nagaan.")
     k = uit["kaart"]
-    assert k["stap"] == "bs_afronden" and "beoordelen" not in [o["waarde"] for o in k["opties"]]
-    assert "1 voorstel" in k["toelichting"] or "voorstellen open" in k["toelichting"]
+    assert "beoordelen" not in [o["waarde"] for o in k["opties"]] and "onderzoekspunten" in k["toelichting"]
     uit = _klik(api, k, "beoordelen")
     assert "kan nog niet" in " ".join(uit["zinnen"]) and api.rijen["d1"]["status"] == "in_behandeling"
     uit = _klik(api, k, "afronden")
     assert api.rijen["d1"]["status"] == "voorlopig_afgerond"
-    tekst = _klik(api, uit["kaart"], "controle")["zinnen"][0] if any(
-        o["waarde"] == "controle" for o in uit["kaart"]["opties"]) else bs.controle_tekst(_run(api.haal_bronselectie(WID)))
+    tekst = _klik(api, uit["kaart"], "controle")["zinnen"][0]
     assert "nog niet beoordeeld" in tekst and bs.SLOT not in tekst
 
 
@@ -363,3 +392,21 @@ def test_getypt_kiest_de_supervisor_de_bronselectie_met_een_taak(tmp_path):
                             "end_turn")])
     e, llm = _beurt(tmp_path, nep, "Zullen we per deelvraag kijken wat erbij hoort?", llm=llm)
     assert _kaart_uit(e)["stap"] == "bs_kies" and len(llm.calls) == 1
+
+
+def test_zelf_toevoegen_zonder_eenduidige_regeling_of_artikel_laat_het_kaartje_staan():
+    kand = {"k1": {"label": "Artikel 9", "rol": "kern", "bij": ["d1"]}}
+    api = NepApi(vragen=VRAGEN[:1], kandidaten=kand)
+    k = _run(bs.start(api, WID, api.zoek, deelvraag_id="d1"))["kaart"]
+    # Geen artikel in de tekst: het kaartje blijft, met een aanwijzing.
+    uit = _klik(api, k, tekst="de bijzondere invorderbaarheid")
+    assert uit["kaart"]["stap"] == "bs_bepalingen" and "geen artikel" in " ".join(uit["zinnen"])
+    # Een artikel dat niet in de graaf staat: gemeld, het kaartje blijft.
+    uit = _klik(api, k, tekst="artikel 999")
+    assert uit["kaart"]["stap"] == "bs_bepalingen" and "niet in de kennisgraaf" in " ".join(uit["zinnen"])
+    # Twee regelingen in het werkgebied en geen genoemd: Lex vraagt welke.
+    assert "Bij welke regeling" in bs.bepalingen_uit_tekst("artikel 9", [], ["BWBR0002320", "BWBR0004770"])
+    assert bs.bepalingen_uit_tekst("artikel 9 lid 1 en 2 IW", ["BWBR0004770"], []) == [
+        {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"}, {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "2"}]
+    assert bs.bepalingen_uit_tekst("artikel 5.2 en 5.3", ["BWBR0011353"], []) == [
+        {"bwb_id": "BWBR0011353", "artikel": "5.2"}, {"bwb_id": "BWBR0011353", "artikel": "5.3"}]

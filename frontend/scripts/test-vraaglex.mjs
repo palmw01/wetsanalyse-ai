@@ -89,16 +89,18 @@ try {
 
   // --- Een suggestie met een actie: vaste route, geen modus, context of doel ---
   const suggesties = page.getByTestId("vraag-suggesties").getByRole("button");
-  assert.equal(await suggesties.count(), 10);   // spoor I7: ook *Kies een thema*; spoor J: *Verder met de bronselectie*
-  await page.getByRole("button", { name: "Zoek bepalingen bij alle deelvragen" }).click();
+  // Spoor I7: ook *Kies een thema*; spoor J: *Bepaal de bronnen per deelvraag* in plaats van de losse zoekknop.
+  assert.equal(await suggesties.count(), 9);
+  assert.equal(await page.getByRole("button", { name: "Zoek bepalingen bij alle deelvragen" }).count(), 0);
+  await page.getByRole("button", { name: "Bepaal de bronnen per deelvraag" }).click();
   await wachtOp(1);
   assert.deepEqual(runs[0], {
-    question: "Zoek bepalingen bij alle deelvragen", conversation_id: "g2", werkgebied_id: "wg1",
-    onderwerp: { soort: "werkgebied", werkgebied_id: "wg1", label: "Invordering" }, actie: "bronnen_zoeken",
+    question: "Bepaal de bronnen per deelvraag", conversation_id: "g2", werkgebied_id: "wg1",
+    onderwerp: { soort: "werkgebied", werkgebied_id: "wg1", label: "Invordering" }, actie: "bronselectie",
   });
   await chip().waitFor({ state: "detached" });
   await wachtOp(1, berichten);
-  assert.equal(berichten[0].tekst, "Bij werkgebied Invordering: Zoek bepalingen bij alle deelvragen");
+  assert.equal(berichten[0].tekst, "Bij werkgebied Invordering: Bepaal de bronnen per deelvraag");
 
   // --- In de werkplek: de knop in het paneel zet de chip, een getypte vraag gaat als onderwerp ---
   await page.goto(`${base}/workbench?gesprek=g5`);

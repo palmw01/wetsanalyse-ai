@@ -54,9 +54,14 @@ def bronselectie_node(b, state: State) -> dict[str, Any]:
             uit = await bronnen_kern(ctx, wid, "" if deelvraag_id == bs.ANALYSEVRAAG else deelvraag_id)
             return "" if uit.status == "ok" else (uit.reden or "het zoeken lukte niet")
 
+        def vind(tekst: str) -> list[str]:
+            """De regelingen die een eigen tekst bij naam of afkorting noemt (uit de graaf, zonder model)."""
+            from ..overzicht import regelingen_in_vraag
+            return regelingen_in_vraag(b.graph, tekst) if b.graph is not None else []
+
         try:
             if actie:
-                return await bs.verwerk(api, actie, zoek)
+                return await bs.verwerk(api, actie, zoek, vind)
             return await bs.start(api, wid, zoek, vraag=state.get("question", ""), deelvraag_id=aangewezen)
         except WetsanalyseApiFout as fout:
             if fout.status == 412:

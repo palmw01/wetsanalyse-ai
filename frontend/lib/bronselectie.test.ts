@@ -7,7 +7,7 @@ import { parseVraagkaart } from "./vraagkaart";
 const deelvraag = (id: string, over: Record<string, unknown> = {}) => ({
   id, nr: Number(id.slice(1)), vraag: `Vraag ${id}?`, status: "niet_gestart", fase: "kern", open_punten: [], revisie: 0,
   opnieuw_bekijken: false, klaar: false, bronnen: [], kandidaten: [],
-  telling: { voorgesteld: 0, later: 0, uitgesloten: 0, opgenomen: 0 }, beoordelen: { mag: true, redenen: [] }, ...over,
+  telling: { voorgesteld: 0, niet_gekozen: 0, uitgesloten: 0, opgenomen: 0 }, beoordelen: { mag: true, redenen: [] }, ...over,
 });
 const RUW = {
   werkgebied_id: "wg1", naam: "Betalingstermijnen", revisie: 3, modus: "deelvragen", actief: "d2", volgende: "d3",
@@ -17,7 +17,7 @@ const RUW = {
       bronnen: [{ selectie_id: "s1", bron_iri: "urn:bwb:BWBR0004770:artikel:9", label: "Artikel 9", rol: "context" }] }),
     deelvraag("d2", { status: "in_behandeling", open_punten: [{ tekst: "Bijzondere invorderbaarheid" }],
       kandidaten: [{ id: "K1", bron_iri: "urn:bwb:BWBR0004770:artikel:10", label: "Artikel 10", rol: "kern",
-        bewijs_soorten: ["verwijzing", "onzin"], stand: "later", overal: false }] }),
+        bewijs_soorten: ["verwijzing", "onzin"], stand: "niet_gekozen", overal: false }] }),
     deelvraag("d3"), { geen: "id" },
   ],
   zoekdekking: { gezocht: true, verouderd: false, volledig: false, onvolledig: ["deelvraag"], reden: "" },
@@ -28,7 +28,7 @@ describe("bronselectie", () => {
     const o = parseBronselectie(RUW)!;
     expect(o.deelvragen.map((d) => d.id)).toEqual(["d1", "d2", "d3"]);
     expect(o.deelvragen[0].bronnen[0].rol).toBe("context");
-    expect(o.deelvragen[1].kandidaten[0]).toMatchObject({ stand: "later", bewijs_soorten: ["verwijzing"] });
+    expect(o.deelvragen[1].kandidaten[0]).toMatchObject({ stand: "niet_gekozen", bewijs_soorten: ["verwijzing"] });
     expect(parseBronselectie({ deelvragen: [] })).toBeUndefined();
     expect(voortgangZin(o)).toBe("1 van 3 deelvragen afgerond");
   });

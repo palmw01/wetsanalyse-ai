@@ -2,7 +2,7 @@
 // kandidaat en zijn bewijs noemt, de filters en de standaardrol bij opnemen. Puur, voor vitest.
 
 import { vindplaatsVan } from "./samenhang";
-import type { BronKandidaat, BronMethode, BronRol, KandidaatBewijs, KandidaatRol, KandidaatStatus } from "./types";
+import type { BronKandidaat, BronMethode, KandidaatBewijs, KandidaatRol } from "./types";
 
 export const KANDIDAAT_ROL_LABEL: Record<KandidaatRol, string> = {
   kern: "kern",
@@ -35,28 +35,24 @@ export const FUNCTIE_LABEL: Record<string, string> = {
   onbekend: "functie onbekend",
 };
 
-export type KandidaatFilter = "open" | "later" | "uitgesloten" | "opgenomen";
+export type KandidaatFilter = "open" | "uitgesloten" | "opgenomen";
 
 export const FILTER_LABEL: Record<KandidaatFilter, string> = {
-  open: "Open", later: "Later", uitgesloten: "Uitgesloten", opgenomen: "Opgenomen",
+  open: "Voorstellen", uitgesloten: "Uitgesloten", opgenomen: "Opgenomen",
 };
 
 /** In welk filter een kandidaat valt. Intussen met de hand opgenomen telt als opgenomen: dat is geen
- *  open voorstel meer, ook al staat zijn status nog op voorgesteld. */
+ *  open voorstel meer, ook al staat zijn status nog op voorgesteld. Er is geen *later* meer (spoor J): een oud
+ *  besluit *later* telt als voorstel. */
 export function filterVan(k: Pick<BronKandidaat, "status" | "in_selectie">): KandidaatFilter {
   if (k.status === "opgenomen" || k.in_selectie) return "opgenomen";
-  return k.status === "voorgesteld" ? "open" : (k.status satisfies Exclude<KandidaatStatus, "voorgesteld" | "opgenomen">);
+  return k.status === "uitgesloten" ? "uitgesloten" : "open";
 }
 
 export function telPerFilter(lijst: BronKandidaat[]): Record<KandidaatFilter, number> {
-  const uit: Record<KandidaatFilter, number> = { open: 0, later: 0, uitgesloten: 0, opgenomen: 0 };
+  const uit: Record<KandidaatFilter, number> = { open: 0, uitgesloten: 0, opgenomen: 0 };
   for (const k of lijst) uit[filterVan(k)] += 1;
   return uit;
-}
-
-/** De rol bij opnemen: analyseren bij een kernbepaling, anders context – dezelfde regel als de api. */
-export function standaardRol(k: Pick<BronKandidaat, "rol">): BronRol {
-  return k.rol === "kern" ? "analyseren" : "context";
 }
 
 /** Een bron-IRI als vindplaats ("Artikel 9, lid 1"); onbekend → wat er na de regeling staat. */

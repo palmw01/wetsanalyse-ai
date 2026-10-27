@@ -119,22 +119,23 @@ const SUGGESTIES: Record<ObjectSoort, Suggestie[]> = {
     // Een vraagkaart van het aanvullen (spoor I7): graph-qa leest het veld `thema` uit de tekst.
     { tekst: "Kies een thema", actie: "dossier_aanvullen" },
     { tekst: "Stel deelvragen voor", actie: "deelvragen_voorstellen" },
-    // De bronselectie per deelvraag (spoor J): beginnen of verder waar je was, ook in een ander gesprek.
-    { tekst: "Verder met de bronselectie", actie: "bronselectie" },
-    { tekst: "Zoek bepalingen bij alle deelvragen", actie: "bronnen_zoeken" },
-    { tekst: "Hoe staat de dekking ervoor?", actie: "dekking" },
-    { tekst: "Annoteer wat nog niet geannoteerd is", actie: "werkgebied_annoteren" },
+    // De bronselectie per deelvraag (spoor J): beginnen, of verder waar je was – ook in een ander gesprek. Er is
+    // geen losse zoekknop meer: de bronselectie zoekt zelf.
+    { tekst: "Bepaal de bronnen per deelvraag", actie: "bronselectie" },
     { tekst: "Annoteer de bepalingen van de deelvragen", actie: "deelvragen_annoteren" },
+    { tekst: "Annoteer wat nog niet geannoteerd is", actie: "werkgebied_annoteren" },
     { tekst: "Stel begrippen voor", actie: "begrippen_voorstellen" },
     { tekst: "Denk mee over de begrippen", actie: "begrippen_meedenken" },
+    // De dekking als controle achteraf: hebben de deelvragen een bron en een geaccordeerd begrip?
+    { tekst: "Hoe staat de dekking ervoor?", actie: "dekking" },
   ],
   deelvraag: [
-    { tekst: "Bepaal de bronnen bij deze deelvraag", actie: "bronselectie" },
-    { tekst: "Zoek bepalingen hierbij", actie: "bronnen_zoeken" },
-    { tekst: "Annoteer de bepalingen hierbij", actie: "deelvragen_annoteren" },
-    { tekst: "Is deze deelvraag gedekt?", actie: "dekking" },
+    // Eerst de vraag zelf, dan haar bronnen.
     { tekst: "Formuleer scherper", actie: "deelvraag_herformuleren" },
     { tekst: "Splits deze deelvraag", actie: "deelvraag_splitsen" },
+    { tekst: "Bepaal de bronnen bij deze deelvraag", actie: "bronselectie" },
+    { tekst: "Annoteer de bepalingen hierbij", actie: "deelvragen_annoteren" },
+    { tekst: "Is deze deelvraag gedekt?", actie: "dekking" },
   ],
   bron: [
     { tekst: "Waarom hoort deze bepaling bij het werkgebied?" },

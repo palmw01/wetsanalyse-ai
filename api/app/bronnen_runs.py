@@ -12,6 +12,7 @@ from . import annotatie_v2_store, bronnen_run_store as store, bronselectie, werk
 from .auth import require_client
 from .bronnen_run_contracts import BronnenMislukt, BronnenUitkomst, Opnemen, Uitsluiten
 from .bronselectie_contracts import KandidaatBesluit, StatusActie
+from .werkgebied_contracts import BronselectieInvoer
 from .routers.auth import actieve_userid
 from .werkgebieden import resolve_bron
 
@@ -72,7 +73,12 @@ async def _bron_van(werkgebied_id: str, kandidaat_id: str) -> dict:
     bron_iri = next((k["bron_iri"] for k in lijst["kandidaten"] if k["id"] == kandidaat_id), "")
     if not bron_iri:
         return {"bron_iri": ""}
-    snapshot = await resolve_bron({"bron_iri": bron_iri})
+    return await _geverifieerd({"bron_iri": bron_iri})
+
+
+async def _geverifieerd(doel_in: dict) -> dict:
+    """De bron uit de resolver: canonieke IRI, label, regeling, snapshot en hash. 422 als hij niet bestaat."""
+    snapshot = await resolve_bron(doel_in)
     doel = snapshot["doel"]
     node = annotatie_v2_store.nodes_van(snapshot).get(doel["bron_iri"], {})
     return {"bron_iri": doel["bron_iri"], "label": doel.get("label") or node.get("label", ""),
@@ -126,4 +132,15 @@ async def post_bronselectie_besluit(werkgebied_id: str, deelvraag_id: str, kandi
         if iri and iri not in {b["bron_iri"] for b in wg["bronnen"]}:
             bron = await _bron_van(werkgebied_id, kandidaat_id)
     await bronselectie.besluit(werkgebied_id, deelvraag_id, kandidaat_id, req, bron, actor)
+    return await bronselectie.overzicht(werkgebied_id, na=deelvraag_id)
+
+
+@router.post("/bronselectie/{deelvraag_id}/bronnen")
+async def post_bronselectie_bron(werkgebied_id: str, deelvraag_id: str, req: BronselectieInvoer,
+                                 actor: str = Depends(actieve_userid)):
+    """Zelf een bepaling als keuze toevoegen bij één deelvraag (bron-IRI, of regeling + artikel (+ lid)); de api
+    verifieert haar in de graaf zoals bij zelf opnemen."""
+    await werkgebied_store.haal(werkgebied_id)                 # 404 vóór de graaf wordt gevraagd
+    bron = await _geverifieerd({"bron_iri": req.bron_iri, "bwb_id": req.bwb_id, "artikel": req.artikel, "lid": req.lid})
+    await bronselectie.toevoegen(werkgebied_id, deelvraag_id, req, bron, actor)
     return await bronselectie.overzicht(werkgebied_id, na=deelvraag_id)
