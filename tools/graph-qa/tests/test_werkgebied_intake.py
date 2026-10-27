@@ -177,8 +177,8 @@ def test_de_volgorde_ligt_vast_en_de_samenvatting_volgt():
         "doel": "Bruikbaar voor de bouw van webservices; Traceerbaar koppelen aan de bestaande uitvoering.",
         "praktijkvoorbeeld": "Een spaarder met een tweede huis.",
         "deelvragen": [{"vraag": DV1, "herkomst": "lex"}, {"vraag": "Telt een tweede huis mee?", "herkomst": "analist"}],
+        # De afbakening is een scope: de regelingen en wat erbuiten valt; de bepalingen zijn de bronnen (spoor K).
         "afbakening": ("Regelingen: Wet inkomstenbelasting 2001.\n"
-                       "Bepalingen: Artikel 2.1, lid 1 – Wet IB 2001 en Artikel 5.2, lid 1 – Wet IB 2001.\n"
                        "Buiten de afbakening: geen overgangsrecht.")}
     # Elke gekozen bepaling is één bron, met de deelvragen op wier kaartje ze gekozen werd.
     assert verzoek["bronnen"] == [
@@ -227,7 +227,7 @@ def test_ook_bij_de_bepalingen_kan_weet_ik_niet():
     assert k["vraag"] == "Welke bepalingen horen bij de analysevraag?" and k["totaal"] == 10
     i, _ = wi.verwerk(i, _klik(i, "bepalingen", keuzes=[wi.ONBEKEND]))
     assert i["stap"] == "samenvatting"
-    assert wi.afbakening(i["antwoorden"]) == "Regelingen: Wet IB 2001.\nBepalingen: nog te bepalen."
+    assert wi.afbakening(i["antwoorden"]) == "Regelingen: Wet IB 2001."
     assert wi.eerder_antwoord(i["antwoorden"], "bepalingen", None) == [wi.ONBEKEND]
 
 
@@ -730,7 +730,7 @@ def test_bladeren_tussen_de_bepalingen_per_deelvraag():
                               "naar_deel": 2})
     assert (terug["stap"], terug["deel"]) == ("bepalingen", 2) and wi.kaart(terug)["beantwoord"]
     # Een overgeslagen deelvraag laat geen regel achter; de artikelen bij één regeling worden een bron.
-    assert wi.afbakening(i["antwoorden"]) == "Regelingen: Wet inkomstenbelasting 2001.\nBepalingen: artikel 3.1."
+    assert wi.afbakening(i["antwoorden"]) == "Regelingen: Wet inkomstenbelasting 2001."
     assert wi.bronnen(i["antwoorden"])[0]["deelvragen"] == ["Tweede?"]
 
 

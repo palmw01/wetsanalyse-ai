@@ -30,7 +30,8 @@ Wat hier vastligt en wat niet:
 - **Alleen een gekozen bepaling wordt een bronselectie** (rol *analyseren*, bereik *onderliggend*),
   gekoppeld aan de deelvraag van het kaartje waarop ze gekozen werd. Een regeling zonder gekozen
   bepaling staat alleen in de afbakeningstekst: een selectie van duizenden bepalingen waar er twaalf
-  nodig zijn is onbruikbaar.
+  nodig zijn is onbruikbaar. Die tekst noemt de regelingen en wat erbuiten valt, niet de gekozen
+  bepalingen: die staan één keer, als bronselectie (spoor K).
 
 **Aanvullen** (`aanvul_intake`, `modus: "aanvullen"`): dezelfde kaartjes op een bestaand werkgebied, voor
 de velden van het dossier (naam, aanleiding, context, doel, analysevraag, praktijkvoorbeeld, afbakening).
@@ -492,20 +493,15 @@ def doel_tekst(a: dict[str, Any]) -> str:
 
 
 def afbakening(antwoorden: dict[str, Any]) -> str:
-    """De afbakeningstekst, deterministisch uit de antwoorden."""
+    """De afbakeningstekst, deterministisch uit de antwoorden: de regelingen en wat erbuiten valt. De gekozen
+    bepalingen staan er niet in; die zijn bronselecties, per deelvraag gekoppeld (spoor K: de methode kent één
+    bronnentabel, 1f/1g, en de afbakening is een scope, geen tweede lijst)."""
     regels = []
     regelingen = [r["label"] for r in antwoorden.get("regelingen") or []]
     if regelingen:
         regels.append(f"Regelingen: {_lijst(regelingen)}.")
     elif antwoorden.get("regelingen_onbekend"):
         regels.append("Regelingen: nog te bepalen.")
-    gekozen = _gekozen(antwoorden)
-    labels = list(dict.fromkeys(b["label"] for _, x in gekozen for b in x["bronnen"]))
-    extra = [x["tekst"].strip() for _, x in gekozen if (x.get("tekst") or "").strip()]
-    if labels or extra:
-        regels.append(f"Bepalingen: {_lijst(labels + extra)}.")
-    elif gekozen and all(x.get("onbekend") for _, x in gekozen):
-        regels.append("Bepalingen: nog te bepalen.")
     if (buiten := (antwoorden.get("buiten") or "").strip()):
         regels.append(f"Buiten de afbakening: {buiten.rstrip('.')}.")
     return "\n".join(regels)
@@ -525,7 +521,8 @@ def als_werkgebied(intake: dict[str, Any]) -> dict[str, Any]:
             "doel": doel_tekst(a), "analysevraag": a.get("analysevraag", ""),
             "praktijkvoorbeeld": a.get("praktijkvoorbeeld", ""), "afbakening": afbakening(a),
             "deelvragen": [{"vraag": d["vraag"], "status": "actief"} for d in a.get("deelvragen") or []],
-            "bronnen": []}
+            "bronnen": [{"label": b["label"], "bron_iri": b.get("bron_iri", ""), "rol": "analyseren"}
+                        for b in bronnen(a)]}
 
 
 def dossier(intake: dict[str, Any]) -> str:

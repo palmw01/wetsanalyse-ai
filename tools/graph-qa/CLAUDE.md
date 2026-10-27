@@ -839,7 +839,10 @@ werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en
 - **Alleen een gekozen bepaling wordt een bronselectie** (rol *analyseren*, bereik *onderliggend*),
   gekoppeld aan de deelvragen op wier kaartje ze gekozen werd (één bron voor meer deelvragen), plus
   artikelen uit eigen tekst als er precies één regeling is (`artikelen_in`). Een regeling zonder
-  gekozen bepaling staat alleen in de afbakeningstekst (`afbakening`).
+  gekozen bepaling staat alleen in de afbakeningstekst (`afbakening`). Die tekst noemt de regelingen en wat
+  erbuiten valt, niet de bepalingen: die staan één keer, als bronselectie per deelvraag (spoor K). Bij een
+  deelvraag moet een optie een deelvraagterm raken; dossiertermen rangschikken alleen (anders vulde het dossier
+  elk kaartje tot het maximum).
 - **Aanmaken doet de beurt-driver** (`beurt._maak_werkgebied`), na het `werkgebied_aanmaken`-event:
   `POST /v1/werkgebieden` met het dossier, de deelvragen en de `intake_id` (idempotent bij de api),
   per bron `POST …/bronnen`, en daarna per deelvraag `PUT …/koppelingen` met de bronnen die Lex erbij
