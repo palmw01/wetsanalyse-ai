@@ -105,7 +105,8 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | G | Lex als projectgerichte werkplek (mock-up v4) | G1–G5 gebouwd (gesprek bij een werkgebied, de projectpagina, eigen pagina's per object, het contextpaneel, de begripskaart in NL-SBB-volgorde) |
 | H | Structuur: begrippen per term, bepalingen als boom | H1–H4 gebouwd (plek van een bepaling, bronvoorstellen met vinkjes en actiebalk, geen sneltoetsen, deelvragen met structuur, begrippenkader per term) |
 | I | Begrippen volgens NL-SBB met uitleg in B1, TOOI, één bedieningsstijl | Af: I5, I1–I4, I6, I7 gemerged (#752–#756, #762, #763), het thema als vraagkaart erna; open: de meting `eval.uitleg_eval` (3 runs, kost geld) |
-| K | Eén bronnenlijst, deelvragen zonder begrip, rustige panelen, één stijl | K1–K5 gebouwd als PR-stapel (#767–#771) |
+| K | Eén bronnenlijst, deelvragen zonder begrip, rustige panelen, één stijl | K1–K5 gemerged (#767–#771) |
+| L | Getypte bepalingen bij het samenstellen, één plek voor de bronnen per deelvraag | L1 (#772) en L2–L3 gebouwd |
 
 ---
 
@@ -1186,6 +1187,23 @@ gekoppeld; de afbakening is een tekstuele scope. Begrippen gaan over het hele sc
 die alle koppelingen erfde, of het oude opneem-endpoint) vraagt de audit van dat werkgebied. Een splitsing erft
 nog alle koppelingen; dat als voorstel laten landen is een eigen wijziging. `NodeAnnotatiePaneel` heeft nog eigen
 sluitknoppen en de reviewkaart eigen knopconstanten.
+
+---
+
+### L. Getypte bepalingen bij het samenstellen, één plek voor de bronnen per deelvraag
+
+**Aanleiding** (27 okt 2026). Op acceptatie typte de analist bij het samenstellen eigen bepalingen per deelvraag;
+bij drie regelingen negeerde Lex ze en maakte het werkgebied "nog zonder bronnen". Daarnaast toonden de tab
+Bronnen, de pagina Bronselectie en de deelvraagpagina bijna hetzelfde, elk met een deel van de handelingen.
+
+**Besluiten** (door Claude op verzoek van de gebruiker, 27 okt 2026):
+1. Een getypte bepaling is een keuze: ontleed (meer artikelen en regelingen in één tekst), in de graaf getoetst, en
+   bij twijfel een vraag op hetzelfde kaartje met de tekst erin – nooit stil weg. Lange velden houden hun alinea's.
+2. Eén inhoud voor de bronnen per deelvraag (`BronnenBijDeelvraag`) op de tab Bronnen, de deelvraagpagina en naast
+   het gesprek; de besluiten, onderzoekspunten en zoekbeperkingen van de Bronselectie-pagina gaan mee. Het artefact
+   Bronselectie is de tab Bronnen. De bronverkenner blijft (alles wat Lex vond, met bewijs).
+
+**Fasen**: L1 (#772) graph-qa; L2 het gedeelde component; L3 de deelvraagpagina als `SplitDetail`.
 
 ---
 

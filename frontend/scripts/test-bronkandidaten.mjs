@@ -125,7 +125,8 @@ try {
   // --- De tab Bronnen noemt de voorstellen in één regel; ze staan op een eigen pagina (spoor G2) ---
   await page.goto(`${base}/werkgebieden/wg1?tab=bronnen`);
   await page.waitForURL("**/werkgebieden/wg1/bronnen");
-  await page.locator("[data-voorstellen-lex]").getByText("3 bepalingen voorgesteld door Lex").click();
+  // Spoor L: de voorstellen staan per deelvraag op de tab; alles wat Lex vond staat in de bronverkenner.
+  await page.getByRole("link", { name: /^Bronverkenner/ }).click();
   await page.waitForURL("**/werkgebieden/wg1/bronnen/voorstellen");
   await kaart(A8).waitFor();
   assert.equal(await sectie().getByRole("button", { name: /zoek/i }).count(), 0, "zoeken vraag je Lex in het gesprek");

@@ -432,8 +432,11 @@ Dezelfde dock en Vragen-kaart dragen de bronselectie (`Vraagkaart.modus: "bronse
 (`deelvraag_id`, ook op de klik en op `intake_antwoord`); "n van N" is de deelvraag van het totaal; elk kaartje
 heeft *Verzend* (`isLaatsteVraag`), want wat erna komt hangt af van het antwoord.
 
-- **De stand staat bij de api** (`GET …/bronselectie`, `lib/bronselectie.ts`), niet in de werkplek. Het paneel
-  naast het gesprek en de pagina Bronselectie lezen hetzelfde overzicht: **`BronselectieOverzicht`** – per
+- **De stand staat bij de api** (`GET …/bronselectie`, `lib/bronselectie.ts`), niet in de werkplek. Eén inhoud op
+  drie plekken (spoor L): de tab Bronnen, de deelvraagpagina (`deelvraagId`) en het paneel naast het gesprek
+  (`inGesprek`: de deelvraag van het gesprek volledig, de andere als kop met *Ga verder met deelvraag n*) –
+  **`BronnenBijDeelvraag`**. Het artefact Bronselectie ís de tab Bronnen (`artefactPad` en de route sturen erheen).
+  Per
   deelvraag de voortgang (`VOORTGANG_LABEL`, groen alleen bij *beoordeeld*, geel bij *opnieuw bekijken*), de
   bronnen met hun rol bij díé deelvraag, de voorstellen met hun stand en het soort bewijs (`BEWIJS_LABEL`), de
   onderzoekspunten, de zoekbeperkingen en de slotzin (`slotZin`: nooit "volledig"). Per voorstel opnemen,
@@ -452,8 +455,9 @@ heeft *Verzend* (`isLaatsteVraag`), want wat erna komt hangt af van het antwoord
   suggesties eronder; *Een vraag stellen ›* haalt hem terug. *Bepaal de bronnen per deelvraag* staat bij de
   werkgebiedsuggesties en gaat ook in een nieuw gesprek verder waar je was.
 - De allowlist laat `bronselectie`, `bronselectie/{d}/status` en `bronselectie/{d}/kandidaten/{k}` door.
-- **De bronboom** (`BronKandidaten` op `bronnen/voorstellen`) blijft als bronverkenner; de pagina Bronselectie
-  linkt ernaar.
+- **De bronverkenner** (`BronKandidaten` op `bronnen/voorstellen`) blijft: alles wat Lex vond, ook zonder
+  deelvraag, met het bewijs per methode; `BronnenBijDeelvraag` linkt ernaar. Kan de stand per deelvraag niet laden,
+  dan toont de tab de bronnen van het werkgebied met een melding: een storing kost de indeling, niet de lijst.
 - Browserregressie: `scripts/test-bronselectie.mjs` (vier deelvragen: 1 → 2, tussenvraag, via het paneel naar
   4, herladen, hervatten, een ander gesprek, de pagina).
 
@@ -706,19 +710,21 @@ bestaat los van de gesprekken.
   - **Vier tabs als paden** (`PROJECT_TABS`, `projectPad` in `lib/werkgebiedPaden.ts`): Overzicht
     (`OverzichtTab`: tellers, de analyseopdracht met de analysevraag centraal, deelvragen als rijen naar hun
     pagina, de laatste gesprekken, de artefacten), Gesprekken (`GesprekkenTab`: de eigen gesprekken, een klik
-    opent de werkplek), Bronnen (`BronnenRegister`, spoor K: **één lijst, per deelvraag getoond** (methode
-    1f/1g) – per actieve deelvraag een `Groep` met haar voortgang en haar bronnen als `GroepRij` (bepaling als
-    titel, regeling · rol · annotatiestand · "ook bij deelvraag n" eronder, *Geselecteerd* of *Context*), de open
-    voorstellen van Lex bij die deelvraag als *Ter beoordeling*, en wat bij geen deelvraag hoort onder *Zonder
-    deelvraag*; rekenkern `lib/bronnenPerDeelvraag.ts`; zoeken, rolfilter, rol en verwijderen achter ⋯, opnemen
-    in een venster `BronOpnemen`, de voorstellen van Lex in één regel naar `bronnen/voorstellen`) en Artefacten (`ArtefactenTab`: vier kaarten,
+    opent de werkplek), Bronnen (`BronnenRegister` om `BronnenBijDeelvraag`, spoor K/L: **één lijst, per deelvraag
+    getoond** (methode 1f/1g) – per actieve deelvraag een `Groep` met haar voortgang en haar bronnen als `GroepRij`
+    (bepaling als titel, regeling · rol · annotatiestand · "ook bij deelvraag n" eronder, *Geselecteerd* of
+    *Context*), de voorstellen van Lex bij die deelvraag (*Ter beoordeling*) met *Opnemen* / *Uitsluiten…* /
+    *Heropenen*, de onderzoekspunten, en wat bij geen deelvraag hoort onder *Zonder deelvraag*; erboven de
+    afbakening als tekst, zoeken, rolfilter en *Bepaling opnemen* (een venster, `BronOpnemen`); rol en verwijderen
+    achter ⋯) en Artefacten (`ArtefactenTab`: vier kaarten,
     `artefactKaarten`).
   - **Detailpagina's** (`DetailPaginas.tsx`): `artefacten/[soort]` – `dossier` (de velden, *Bewerken* in
     een venster `GegevensDialoog` – met het TOOI-thema (spoor I6: een keuzelijst per hoofdthema uit
     `lib/tooiThemas.ts`, gelijk aan de api-snapshot, en het voorstel van Lex uit `…/thema-voorstel` met
     *Overnemen*) –, het beheer van de deelvragen), `bronselectie`, `annotaties` (de
     inventaris, `ElementenTab`) en `begrippen` (`BegrippenTab` en, met `?deel=samenhang`, `SamenhangTab`;
-    `?begrip=` en `&weergave=kaart` in de URL) –, `deelvragen/[did]` (`DeelvraagPaneel` op een pagina),
+    `?begrip=` en `&weergave=kaart` in de URL) –, `deelvragen/[did]` (`DeelvraagPaneel` op een pagina, `SplitDetail`: links de
+    deelvraag met haar bronnen, rechts de analysevraag en de andere deelvragen),
     `historie` en `bronnen/voorstellen` (`BronKandidaten`).
   - **Een artefact is een bestaand object** (besluit 26 okt 2026): geen eigen opslag, de kaart leest wat
     er ligt. *Specificaties* blijft gereserveerd.
