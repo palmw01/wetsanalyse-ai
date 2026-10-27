@@ -96,7 +96,7 @@ export function FeedbackLijstClient() {
                   disabled={bezig === item.id}
                   ariaLabel={`Feedbackbericht #${item.id} verwijderen`}
                   bevestigTekst="Verwijderen?"
-                  className="focus-ring -mr-2 inline-flex min-h-[32px] items-center rounded-kaart px-2 text-xs text-fout opacity-60 transition-opacity hover:opacity-100 disabled:cursor-not-allowed coarse:min-h-[44px]"
+                  className="focus-ring -mr-2 inline-flex min-h-[32px] items-center rounded-full px-2 text-xs text-fout opacity-60 transition-opacity hover:opacity-100 disabled:cursor-not-allowed coarse:min-h-[44px]"
                   bevestigClassName="font-medium opacity-100"
                 >
                   {bezig === item.id ? "…" : "Verwijderen"}

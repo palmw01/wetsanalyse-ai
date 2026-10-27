@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
-import { Archief, Mapje, Opstellen } from "@/components/ui/Icoon";
+import { Archief, Mapje, Opstellen, Prullenbak } from "@/components/ui/Icoon";
+import { MENU_RIJ } from "@/components/ui/Menu";
 import { lijstWerkgebieden } from "@/lib/api";
 import type { WerkgebiedSamenvatting } from "@/lib/types";
 
@@ -28,8 +29,7 @@ export interface GesprekActiesProps {
 
 type Stap = "menu" | "verplaats" | "verwijder";
 
-const RIJ =
-  "focus-ring flex min-h-[32px] w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm text-ink hover:bg-surface coarse:min-h-[44px]";
+const RIJ = MENU_RIJ;
 
 export function GesprekActies({
   werkgebiedId = "", gearchiveerd = false, onHernoem, onArchiveer, onVerplaats, onVerwijder, onKlaar,
@@ -53,16 +53,18 @@ export function GesprekActies({
           begrippen en werkgebieden blijven bestaan.
           {!gearchiveerd && " Wil je het alleen uit beeld hebben, archiveer het dan."}
         </p>
-        <div className="flex flex-col gap-1.5 sm:flex-row">
+        {/* Altijd onder elkaar (spoor I4): de sidebar is smal, en naast elkaar viel *Definitief verwijderen*
+            er vanaf `sm:` buiten. */}
+        <div className="flex flex-col gap-1.5">
           {!gearchiveerd && (
-            <Button size="sm" variant="secondary" onClick={klaar(() => onArchiveer(true))}>
+            <Button size="sm" variant="secondary" className="w-full" onClick={klaar(() => onArchiveer(true))}>
               Archiveren
             </Button>
           )}
-          <Button size="sm" variant="danger" onClick={klaar(onVerwijder)}>
+          <Button size="sm" variant="danger" className="w-full" onClick={klaar(onVerwijder)}>
             Definitief verwijderen
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => setStap("menu")}>
+          <Button size="sm" variant="ghost" className="w-full" onClick={() => setStap("menu")}>
             Annuleren
           </Button>
         </div>
@@ -98,12 +100,7 @@ export function GesprekActies({
       </li>
       <li role="none">
         <button type="button" role="menuitem" className={`${RIJ} text-fout`} onClick={() => setStap("verwijder")}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M3 6h18" />
-            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-            <path d="M6 6v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6" />
-          </svg>
-          Verwijderen…
+          <Prullenbak /> Verwijderen…
         </button>
       </li>
     </ul>

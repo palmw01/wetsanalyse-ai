@@ -1,5 +1,6 @@
 "use client";
 
+import { IcoonBevestig } from "@/components/ui/IcoonBevestig";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
@@ -51,12 +52,11 @@ const AANDACHT_PILL =
 // tweede keuze een outline. Dit was volvlak groen en volvlak hemelblauw: statuskleuren, die naast de
 // gedempte tinten van een reviewkaart schreeuwen. Zo draagt de kaart alleen nog kleur waar die
 // betekenis heeft – het aandacht-rondje, de JAS-badges en de rand.
-const KNOP_PRIMAIR = "bg-accent text-paper hover:bg-accent-soft";
 const KNOP_TWEEDE = "border border-lint bg-paper text-lint hover:bg-surface";
 // Klikdoelen halen minimaal 24x24 CSS-px (WCAG 2.2 AA, 2.5.8) en groeien op aanraakschermen naar
 // 44px – het AAA-niveau (2.5.5) dat NL Design System voor overheidsdiensten aanhoudt.
 const KNOP_BASIS =
-  "focus-ring inline-flex min-h-[24px] items-center rounded-lg px-2.5 py-1.5 text-xs font-medium " +
+  "focus-ring inline-flex min-h-[24px] items-center rounded-full px-2.5 py-1.5 text-xs font-medium " +
   "transition coarse:min-h-[44px] disabled:opacity-50";
 const CHIP =
   "focus-ring inline-flex min-h-[24px] items-center rounded-full border border-line px-2.5 py-0.5 " +
@@ -370,13 +370,13 @@ function DecisionCard({
           className="order-2 ml-auto flex shrink-0 items-center gap-1 sm:order-3 sm:ml-0"
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Het icoon-idioom (spoor I4): het vinkje wordt bij de eerste klik groen *Akkoord?*, de tweede beslist.
+              Akkoord op een voorstel zonder klasse kan niet: er is nog niets om mee in te stemmen. */}
           {!slot && (
-            <button
-              type="button"
-              // Akkoord op een voorstel zonder klasse kan niet: er is nog niets om mee in te stemmen.
+            <IcoonBevestig soort="akkoord" label="Akkoord"
               disabled={bezig || !el.klasse}
-              title={el.klasse ? undefined : "Kies eerst een klasse"}
-              onClick={async () => {
+              titel={el.klasse ? "Akkoord" : "Kies eerst een klasse"}
+              onBevestig={async () => {
                 setBezig(true);
                 try {
                   await onAkkoord();
@@ -385,11 +385,7 @@ function DecisionCard({
                 } finally {
                   setBezig(false);
                 }
-              }}
-              className={`${KNOP_BASIS} ${KNOP_PRIMAIR}`}
-            >
-              Akkoord
-            </button>
+              }} />
           )}
           {/* De weg terug. Zonder deze knop is een akkoord een doodlopende weg: de bediening ligt
               stil en er is niets dat hem weer aanzet. Tweede keuze qua vorm – heropenen is een
@@ -412,7 +408,7 @@ function DecisionCard({
               onClick={() => openRij(verwerpOpen ? "geen" : "verwerp")}
               aria-label={eigen ? "Markering wissen" : "Voorstel verwerpen"}
               title={eigen ? "Wissen" : "Verwerpen"}
-              className="focus-ring inline-flex min-h-[24px] min-w-[24px] items-center justify-center rounded-lg p-1.5 text-muted transition hover:bg-surface hover:text-fout coarse:min-h-[44px] coarse:min-w-[44px]"
+              className="focus-ring inline-flex min-h-[24px] min-w-[24px] items-center justify-center rounded-full p-1.5 text-muted transition hover:bg-surface hover:text-fout coarse:min-h-[44px] coarse:min-w-[44px]"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
                 <path d="M18 6 6 18M6 6l12 12" />
@@ -558,7 +554,7 @@ function DecisionCard({
             e.stopPropagation();
             onVraag();
           }}
-          className="focus-ring mt-2 inline-flex min-h-[24px] items-center gap-1.5 rounded-lg border border-line px-2 py-1 text-xs text-lint transition hover:border-lint hover:bg-surface coarse:min-h-[44px]"
+          className="focus-ring mt-2 inline-flex min-h-[24px] items-center gap-1.5 rounded-full border border-line px-2 py-1 text-xs text-lint transition hover:border-lint hover:bg-surface coarse:min-h-[44px]"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />

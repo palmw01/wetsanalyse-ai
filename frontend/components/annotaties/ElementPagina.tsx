@@ -110,7 +110,7 @@ export function ElementPagina({ id }: { id: string }) {
               <Stip /><span>{bepalingNaam}</span>
             </>}
             acties={<Link href={naarAnnotatie}
-              className="focus-ring inline-flex min-h-[32px] items-center rounded-button border border-lint px-3 text-sm font-medium text-lint hover:bg-surface coarse:min-h-[44px]">
+              className="focus-ring inline-flex min-h-[32px] items-center rounded-full border border-lint px-3 text-sm font-medium text-lint hover:bg-surface coarse:min-h-[44px]">
               Naar de bepaling
             </Link>}
           />

@@ -1,5 +1,6 @@
 "use client";
 
+import { MENU_PANEEL, MENU_RIJ } from "@/components/ui/Menu";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -50,17 +51,17 @@ export function ProjectKop({ tab }: { tab: ProjectTab }) {
           <>
             <Button variant="secondary" size="sm" onClick={() => setBewerken(true)}>Gegevens bewerken</Button>
             <Link href={`/workbench?werkgebied=${encodeURIComponent(wg.id)}`}
-              className="focus-ring inline-flex min-h-[32px] items-center justify-center rounded-button bg-accent px-3 py-1.5 text-sm font-medium text-paper hover:bg-accent-soft coarse:min-h-[44px]">
+              className="focus-ring inline-flex min-h-[32px] items-center justify-center rounded-full bg-accent px-3 py-1.5 text-sm font-medium text-paper hover:bg-accent-soft coarse:min-h-[44px]">
               Nieuw gesprek
             </Link>
-            <Popover ariaLabel="Meer voor dit werkgebied" className="w-56 rounded-kaart border border-line bg-paper p-1 shadow-kaart"
+            <Popover ariaLabel="Meer voor dit werkgebied" className={`w-56 ${MENU_PANEEL}`}
               trigger={(open, toggle) => (
                 <button type="button" onClick={toggle} aria-expanded={open} aria-label="Meer voor dit werkgebied"
-                  className="focus-ring inline-flex min-h-[32px] min-w-[32px] items-center justify-center self-start rounded-button border border-line text-muted hover:bg-surface hover:text-lint coarse:min-h-[44px] coarse:min-w-[44px] sm:self-auto">
+                  className="focus-ring inline-flex min-h-[32px] min-w-[32px] items-center justify-center self-start rounded-full border border-line text-muted hover:bg-surface hover:text-lint coarse:min-h-[44px] coarse:min-w-[44px] sm:self-auto">
                   <Meer />
                 </button>
               )}>
-              <Link href={historiePad(wg.id)} className="focus-ring flex min-h-[32px] items-center rounded-md px-2.5 py-1.5 text-sm text-ink hover:bg-surface">
+              <Link href={historiePad(wg.id)} className={MENU_RIJ}>
                 Historie
               </Link>
               <div className="px-2.5 py-1.5">

@@ -268,13 +268,13 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
           </button>
           <div className="flex gap-2 sm:justify-end">
             {kaart.overslaanbaar && (
-              <Button pil variant="secondary" disabled={uitgeschakeld} className="flex-1 sm:flex-none"
+              <Button variant="secondary" disabled={uitgeschakeld} className="flex-1 px-5 sm:flex-none"
                 onClick={() => stuur({ ...basis, actie: "overslaan" })}>
                 Sla over
               </Button>
             )}
             {toonKnop && (
-              <Button pil disabled={uitgeschakeld || (kaart.soort !== "samenvatting" && !actie)} className="flex-1 sm:flex-none"
+              <Button disabled={uitgeschakeld || (kaart.soort !== "samenvatting" && !actie)} className="flex-1 px-5 sm:flex-none"
                 onClick={() => stuur(kaart.soort === "samenvatting" ? { ...basis, actie: aanvullen ? "opslaan" : "aanmaken" } : actie)}>
                 {knop}{knop !== "Verzend" && knop !== "Opslaan" && <PijlRechts />}
               </Button>

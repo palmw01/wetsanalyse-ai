@@ -1,5 +1,6 @@
 "use client";
 
+import { KNOP_XS } from "@/components/ui/Button";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -11,8 +12,7 @@ import { jasStyle, klasseLabel } from "@/lib/jas";
 import type { Begrip, BronSignaal, GeraakteKoppeling, Opvolger } from "@/lib/types";
 import { annotatieHref } from "@/lib/werkgebied";
 
-const KNOP =
-  "focus-ring inline-flex min-h-[24px] items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors disabled:opacity-50 coarse:min-h-[44px]";
+const KNOP = KNOP_XS;
 
 const RICHTING_KLEUR = {
   steun: "text-ink",

@@ -1,5 +1,6 @@
 "use client";
 
+import { MENU_RIJ } from "@/components/ui/Menu";
 import { useState } from "react";
 
 import { Popover } from "@/components/ui/Popover";
@@ -69,7 +70,7 @@ export function ExportKnop({ onFout, onDownload, formaten = FORMATEN }: Props) {
               type="button"
               disabled={bezig !== null}
               onClick={() => void download(f.formaat)}
-              className="focus-ring flex w-full flex-col items-start gap-0.5 rounded-md px-2.5 py-1.5 text-left transition-colors hover:bg-surface disabled:opacity-60"
+              className={`${MENU_RIJ} flex-col !items-start !gap-0.5`}
             >
               <span className="text-sm font-medium text-ink">
                 {bezig === f.formaat ? `${f.label} – bezig…` : f.label}

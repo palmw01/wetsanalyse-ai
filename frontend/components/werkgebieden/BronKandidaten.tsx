@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { BronBoom } from "@/components/ui/BronBoom";
-import { Button } from "@/components/ui/Button";
+import { Button, KNOP_XS } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
 import { Sectie } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
@@ -23,8 +23,7 @@ import { usePlaatsen } from "@/lib/usePlaatsen";
 import { ROL_LABEL } from "@/lib/werkgebied";
 import { bronPad } from "@/lib/werkgebiedPaden";
 
-const KNOP =
-  "focus-ring inline-flex min-h-[24px] items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors disabled:opacity-50 coarse:min-h-[44px]";
+const KNOP = KNOP_XS;
 const ROL_STIJL: Record<BronKandidaat["rol"], string> = {
   kern: "border-lint/40 bg-lint/10 text-lint",
   afhankelijkheid: "border-line bg-surface text-ink",

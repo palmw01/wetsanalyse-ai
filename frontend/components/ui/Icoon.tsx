@@ -60,6 +60,17 @@ export function Vinkje({ className = "" }: IcoonProps) {
   return svg(<path d="M3 8.5 6.5 12 13 4.5" />, className);
 }
 
+/** Verwijderen: een prullenbak. */
+export function Prullenbak({ className = "" }: IcoonProps) {
+  return svg(
+    <>
+      <path d="M2.5 4.5h11M6.5 4.5V3a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v1.5" />
+      <path d="M4 4.5l.7 8.6a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9l.7-8.6M6.8 7v4.5M9.2 7v4.5" />
+    </>,
+    className,
+  );
+}
+
 /** Neutraal, onbepaald – er valt niets te melden of niets te controleren. */
 export function Cirkel({ className = "" }: IcoonProps) {
   return svg(<circle cx="8" cy="8" r="5.2" />, className);

@@ -35,6 +35,21 @@ export function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement
   return <textarea {...props} className={`${inputBase} resize-y ${props.className ?? ""}`} />;
 }
 
-export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} className={`${inputBase} cursor-pointer ${props.className ?? ""}`} />;
+/** Een keuzelijst met een eigen chevron (spoor I4): dezelfde hoogte, radius en focus als `Input`, en op elk
+ *  platform hetzelfde pijltje in plaats van dat van het besturingssysteem. `className` gaat naar de schil, zodat
+ *  een breedte (`sm:w-56`) ook het pijltje meeneemt. */
+export function Select({ className = "", ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <span className={`relative block ${className}`}>
+      <select {...props} className={`${inputBase} cursor-pointer appearance-none pr-9`} />
+      <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.6}
+        strokeLinecap="round" strokeLinejoin="round"
+        className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted">
+        <path d="M4 6l4 4 4-4" />
+      </svg>
+    </span>
+  );
 }
+
+/** De klassen van een keuzelijst, voor een `<select>` die geen `Select` kan zijn; zonder eigen chevron. */
+export const SELECT_KLASSE = `${inputBase} cursor-pointer`;

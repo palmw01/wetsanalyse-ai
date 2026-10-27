@@ -314,7 +314,7 @@ export function Rondleiding({
             <button
               type="button"
               onClick={() => sluit(false)}
-              className="focus-ring min-h-[40px] rounded-button border border-line px-4 text-sm text-ink transition-colors hover:bg-surface coarse:min-h-[48px]"
+              className="focus-ring min-h-[40px] rounded-full border border-line px-4 text-sm text-ink transition-colors hover:bg-surface coarse:min-h-[48px]"
             >
               Nu even niet
             </button>
@@ -322,7 +322,7 @@ export function Rondleiding({
               <button
                 type="button"
                 onClick={() => begin(0)}
-                className="focus-ring min-h-[40px] rounded-button border border-line px-4 text-sm text-ink transition-colors hover:bg-surface coarse:min-h-[48px]"
+                className="focus-ring min-h-[40px] rounded-full border border-line px-4 text-sm text-ink transition-colors hover:bg-surface coarse:min-h-[48px]"
               >
                 Opnieuw beginnen
               </button>
@@ -330,7 +330,7 @@ export function Rondleiding({
             <button
               type="button"
               onClick={() => begin(hervatIndex(stappen, hervatBij === null ? undefined : stappen[hervatBij].id))}
-              className="focus-ring min-h-[40px] rounded-button bg-accent px-4 text-sm font-medium text-paper transition-opacity hover:opacity-90 coarse:min-h-[48px]"
+              className="focus-ring min-h-[40px] rounded-full bg-accent px-4 text-sm font-medium text-paper transition-opacity hover:opacity-90 coarse:min-h-[48px]"
             >
               {hervatBij !== null ? `Verder bij stap ${hervatBij + 1}` : "Start de rondleiding"}
             </button>
@@ -363,7 +363,7 @@ export function Rondleiding({
             <button
               type="button"
               onClick={onKlaar}
-              className="focus-ring min-h-[40px] rounded-button bg-accent px-4 text-sm font-medium text-paper transition-opacity hover:opacity-90 coarse:min-h-[48px]"
+              className="focus-ring min-h-[40px] rounded-full bg-accent px-4 text-sm font-medium text-paper transition-opacity hover:opacity-90 coarse:min-h-[48px]"
             >
               Aan de slag
             </button>

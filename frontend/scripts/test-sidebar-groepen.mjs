@@ -137,6 +137,13 @@ try {
   await bevestig.getByText("Annotaties, begrippen en werkgebieden blijven bestaan", { exact: false }).waitFor();
   await bevestig.getByRole("button", { name: "Archiveren" }).waitFor();
   assert.deepEqual(deletes, [], "nog niets verwijderd zonder de tweede bevestiging");
+  // Spoor I4: de knoppen staan onder elkaar en passen in de smalle sidebar.
+  const zijbalk = await page.locator("aside").first().boundingBox();
+  for (const naam of ["Archiveren", "Definitief verwijderen", "Annuleren"]) {
+    const b = await bevestig.getByRole("button", { name: naam }).boundingBox();
+    assert.ok(b && zijbalk && b.x + b.width <= zijbalk.x + zijbalk.width + 0.5, `${naam} past in de sidebar`);
+  }
+  if (process.env.SCREENSHOT_DIR) await page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/sidebar-verwijderen.png` });
   await bevestig.getByRole("button", { name: "Definitief verwijderen" }).click();
   await rij("g1").waitFor({ state: "detached" });
   assert.deepEqual(deletes, ["g1"]);
