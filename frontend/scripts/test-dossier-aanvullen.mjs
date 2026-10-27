@@ -50,6 +50,11 @@ const SAMEN = samenvatting([
   { veld: "praktijkvoorbeeld", label: "Praktijkvoorbeeld", toen: "", nu: VOORBEELD },
 ]);
 const NIETS = samenvatting([], { intake_id: "ia2", totaal: 1, nr: 1, terug: true });
+// Spoor I7: het thema als kaartje van het aanvullen, met het voorstel van Lex aangevinkt.
+const BELASTING = "https://identifier.overheid.nl/tooi/def/thes/top/c_25e30d03";
+const THEMA = kaart("thema", 1, "Welk thema heeft het werkgebied?", { intake_id: "ia3", totaal: 1, vrije_tekst: false,
+  beantwoord: false, terug: false, vooringevuld: [BELASTING],
+  opties: [{ label: "belasting", waarde: BELASTING, bron: {}, omschrijving: "voorstel van Lex, uit Belastingrecht" }] });
 const ARTEFACT = { soort: "werkgebied", titel: "Box 3", ref: { werkgebied_id: "wg7" } };
 
 const wg = { id: "wg7", naam: "Box 3", analysevraag: VRAAG, afbakening: "", aanleiding: "", context: "", doel: "",
@@ -65,6 +70,7 @@ const stromen = {
   r4: [{ type: "token", content: "Het dossier van *Box 3* is aangepast: analysevraag gewijzigd en praktijkvoorbeeld ingevuld." },
     { type: "opgeslagen", run_id: "r4", artefact: ARTEFACT }, { type: "done" }],
   r5: beurt("r5", "Laten we het dossier aanvullen.", NIETS),
+  r6: beurt("r6", "Dan het thema. Ik leid het af uit de rechtsgebieden van de bronnen.", THEMA),
 };
 const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
 const starts = [], berichten = [];
@@ -167,8 +173,22 @@ try {
   await dock("samenvatting").getByText("Er verandert niets.").waitFor();
   assert.equal(await dock("samenvatting").getByRole("button", { name: "Opslaan" }).count(), 0);
 
+  // --- Kies een thema: dezelfde vraagkaarten, met het voorstel van Lex aangevinkt ---
+  await dock("samenvatting").getByRole("button", { name: "Vraag sluiten" }).click();
+  await suggesties().getByRole("button", { name: "Kies een thema" }).click();
+  await wacht(6);
+  assert.equal(starts[5].actie, "dossier_aanvullen");
+  assert.equal(starts[5].question, "Kies een thema");
+  const thema = dock("thema");
+  await thema.getByText("voorstel van Lex, uit Belastingrecht").waitFor();
+  assert.equal(await thema.getByRole("option", { name: /belasting/ }).getAttribute("aria-selected"), "true");
+  assert.equal(await thema.getByLabel("Typ je antwoord").count(), 0, "een thema typ je niet: het komt uit tooitop");
+  await thema.getByRole("button", { name: "Verzend" }).click();
+  await wacht(7);
+  assert.deepEqual(starts[6].intake_actie, { intake_id: "ia3", stap: "thema", actie: "antwoord", keuzes: [BELASTING] });
+
   assert.deepEqual(errors, []);
-  console.log("Browser OK: Vul het dossier aan als actie, kaartjes over de gevraagde stappen, vooringevuld, Verzend, samenvatting toen → nu met Opslaan (ook op het user-bericht), Stop met aanvullen, het paneel laadt opnieuw, Vraag Lex bij een leeg veld, geen knop zonder wijziging.");
+  console.log("Browser OK: Vul het dossier aan als actie, kaartjes over de gevraagde stappen, vooringevuld, Verzend, samenvatting toen → nu met Opslaan (ook op het user-bericht), Stop met aanvullen, het paneel laadt opnieuw, Vraag Lex bij een leeg veld, geen knop zonder wijziging, Kies een thema als kaartje met het voorstel aangevinkt.");
 } finally {
   await browser.close();
 }

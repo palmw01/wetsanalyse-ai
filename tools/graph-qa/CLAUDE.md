@@ -855,6 +855,11 @@ werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en
   - **Ingang**: de supervisor kiest `werkgebied` met `TAAK: aanvullen` (getypt), of de actie
     `dossier_aanvullen` (`models.INTAKE_ACTIES`, geen taak van een agent en dus niet in `ACTIE_TAAK`). Beide
     zetten `State.intake_modus` (per beurt gereset). De prompt zegt ook: past geen taak, kies dan geen agent.
+  - **Het thema** (spoor I7): een stap `thema` die alleen bij het aanvullen bestaat (`KAARTSTAPPEN`; het
+    samenstellen houdt `STAPPEN`), na het praktijkvoorbeeld (`VOLGORDE_AANVULLEN`). De node haalt het voorstel
+    zonder model bij de api (`…/thema-voorstel`, uit de WTI-rechtsgebieden van de bronnen) en vinkt het eerste
+    aan als er nog geen thema is; alleen een thema dat op het kaartje stond telt. De samenvatting toont namen,
+    de wijziging stuurt de TOOI-URI. *Kies een thema* (de suggestie) is `dossier_aanvullen` met die tekst.
   - **Welke velden**: `dossiervelden_in(vraag)` (woorden → stap; *afbakening* en *buiten* → `buiten`), en
     zonder genoemd veld de lege velden (`lege_velden`). Is niets leeg, dan noemt Lex wat er staat, zonder
     kaartje. Alleen `DOSSIERSTAPPEN` (naam, aanleiding, context, doel, analysevraag, praktijkvoorbeeld,
@@ -945,8 +950,7 @@ reeks) en `doelen`.
   vraag of 2–4, anders `geen`) landen als voorstel bij de api – een verbetering met `vervangt` (F3d), zodat
   overnemen de oude deelvraag vervangt; `bronnen_zoeken` is de bronnenrun
   (`bronnen_run.bronnen_kern`, met wat er bij de aangewezen deelvraag hoort); `dekking` per actieve
-  deelvraag uit de api (stand, bronnen met rol, open kandidaten); `thema` (spoor I7) stelt zonder model een
-  TOOI-thema voor uit `GET …/thema-voorstel` van de api en wijzigt niets – de analist kiest in *Gegevens bewerken*.
+  deelvraag uit de api (stand, bronnen met rol, open kandidaten).
 - **Het artefact volgt het object** (F3d): een taak op één deelvraag (`verbeteren`, en `bronnen_zoeken` of
   `dekking` met een deelvraag) levert `{soort: "deelvraag", ref: {werkgebied_id, deelvraag_id}}`
   (`beurt.deelvraag_artefact`); zonder deelvraag het werkgebied- of bronnenartefact. Een taak op één

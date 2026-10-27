@@ -16,7 +16,8 @@
 
 export const STAPPEN = ["naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld", "deelvragen",
   "buiten", "regelingen", "bepalingen"] as const;
-export type IntakeStap = (typeof STAPPEN)[number] | "samenvatting";
+/** `thema` (spoor I7) is een kaartje van het aanvullen alleen: het samenstellen kent het niet (`STAPPEN`). */
+export type IntakeStap = (typeof STAPPEN)[number] | "thema" | "samenvatting";
 /** De vaste kaartjes vóór de bepalingen; daarna één per deelvraag (graph-qa `VASTE_STAPPEN`). */
 const VASTE_STAPPEN = STAPPEN.length - 1;
 
@@ -113,7 +114,7 @@ export interface IntakeActie {
 
 const tekst = (v: unknown) => (typeof v === "string" ? v : "");
 const lijst = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
-const STAP_SET = new Set<string>([...STAPPEN, "samenvatting"]);
+const STAP_SET = new Set<string>([...STAPPEN, "thema", "samenvatting"]);
 
 /** Streng: een kaartje zonder intake, met een onbekende stap of zonder vraag wordt niet getoond. Liever
  *  geen kaartje dan een kaartje dat een klik naar een niet-bestaande stap stuurt. */
@@ -213,6 +214,7 @@ export const STAP_NAAM: Record<IntakeStap, string> = {
   doel: "het doel",
   analysevraag: "de analysevraag",
   praktijkvoorbeeld: "het praktijkvoorbeeld",
+  thema: "het thema",
   deelvragen: "de deelvragen",
   regelingen: "de regelingen",
   bepalingen: "de bepalingen",
@@ -243,6 +245,9 @@ export function vorige(k: Vraagkaart): { naar: IntakeStap; naar_deel?: number } 
   if (!k.terug) return undefined;
   if (k.stap === "samenvatting") return { naar: "bepalingen", naar_deel: Math.max(0, k.totaal - VASTE_STAPPEN - 1) };
   if (k.stap === "bepalingen" && k.deel && k.deel.index > 0) return { naar: "bepalingen", naar_deel: k.deel.index - 1 };
+  // Het thema staat bij het aanvullen na het praktijkvoorbeeld; vanaf de afbakening vraagt de werkplek de
+  // deelvragen, en graph-qa maakt daar het thema van (`VOLGORDE_AANVULLEN`).
+  if (k.stap === "thema") return { naar: "praktijkvoorbeeld" };
   const i = STAPPEN.indexOf(k.stap as (typeof STAPPEN)[number]);
   return i > 0 ? { naar: STAPPEN[i - 1] } : undefined;
 }

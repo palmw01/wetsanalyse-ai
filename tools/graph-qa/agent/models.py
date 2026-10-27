@@ -68,7 +68,7 @@ class IntakeActie(BaseModel):
     intake, dan toont Lex het huidige kaartje opnieuw in plaats van stil iets anders te doen."""
 
     intake_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
-    stap: Literal["naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld", "deelvragen",
+    stap: Literal["naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld", "thema", "deelvragen",
                   "buiten", "regelingen", "bepalingen", "samenvatting"]
     # Bij de bepalingen: het kaartje van welke deelvraag (0-based); een ander deel is een oud kaartje.
     deel: int = Field(default=0, ge=0, le=19)
@@ -123,7 +123,6 @@ ACTIE_TAAK: dict[str, tuple[str, str]] = {
     "deelvraag_splitsen": ("deelvragen", "verbeteren"),
     "bronnen_zoeken": ("deelvragen", "bronnen_zoeken"),
     "dekking": ("deelvragen", "dekking"),
-    "thema": ("deelvragen", "thema"),
     "begrippen_voorstellen": ("begrippen", "voorstellen"),
     "begrippen_meedenken": ("begrippen", "meedenken"),
     "brondefinitie": ("begrippen", "brondefinitie"),
@@ -138,7 +137,7 @@ ACTIE_TAAK: dict[str, tuple[str, str]] = {
 # werkgebied-worker (de vraagkaarten van de intake). Welk veld, leest de worker uit de vraag.
 INTAKE_ACTIES = ("dossier_aanvullen",)
 Actie = Literal["werkgebied_annoteren", "deelvragen_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
-                "bronnen_zoeken", "dekking", "thema", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie",
+                "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie",
                 "scherper", "uitleg", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen"]
 # Acties die eerst om een bevestiging vragen; alleen daar hoort `bevestigd` bij.
 BEVESTIG_ACTIES = ("werkgebied_annoteren", "deelvragen_annoteren", "begrippen_meedenken")

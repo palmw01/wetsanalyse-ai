@@ -104,7 +104,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | F | Activiteit 1 in het gesprek: werkgebied bepalen | F0 en F1 gebouwd (vraagkaarten zoals Claude → werkgebied); vervolg open |
 | G | Lex als projectgerichte werkplek (mock-up v4) | G1–G5 gebouwd (gesprek bij een werkgebied, de projectpagina, eigen pagina's per object, het contextpaneel, de begripskaart in NL-SBB-volgorde) |
 | H | Structuur: begrippen per term, bepalingen als boom | H1–H4 gebouwd (plek van een bepaling, bronvoorstellen met vinkjes en actiebalk, geen sneltoetsen, deelvragen met structuur, begrippenkader per term) |
-| I | Begrippen volgens NL-SBB met uitleg in B1, TOOI, één bedieningsstijl | I5, I1–I4 gemerged (#752–#756), I6 (#762) en I7 gebouwd; open: de meting `eval.uitleg_eval` (3 runs, kost geld) en het thema als vraagkaart bij *Vul het dossier aan* |
+| I | Begrippen volgens NL-SBB met uitleg in B1, TOOI, één bedieningsstijl | Af: I5, I1–I4, I6, I7 gemerged (#752–#756, #762, #763), het thema als vraagkaart erna; open: de meting `eval.uitleg_eval` (3 runs, kost geld) |
 
 ---
 
@@ -1034,8 +1034,8 @@ in Lex** (letters, `[`/`]`, hints) – Tab, Enter, Escape en de pijltjes van een
 - de B1-woordenlijst staat naast de code (`begrippen_pipeline/b1_woorden.yaml`), de regels in de skill;
 - het veld *toelichting* heet op de wire `context` (ook als kaartvoorstel);
 - `bwb:eerstverantwoordelijke` blijft tekst; de TOOI-URI staat ernaast op `bwb:eerstverantwoordelijkeOrganisatie`;
-- het thema-voorstel staat in *Gegevens bewerken* en als taak *Kies een thema* (deelvragen-agent, zonder
-  model), nog niet als vraagkaart in de intake;
+- het thema is een vraagkaart van *Vul het dossier aan* (stap `thema`, alleen bij het aanvullen, na het
+  praktijkvoorbeeld; het voorstel van Lex staat aangevinkt) en staat ook in *Gegevens bewerken*;
 - `IcoonBevestig` ontwapent na 8 s zoals elke `BevestigKnop`, niet na 4 s.
 
 **Aanleiding** (26 okt 2026):

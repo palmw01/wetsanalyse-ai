@@ -758,6 +758,7 @@ def test_een_intake_op_een_vervallen_stap_loopt_niet_meer():
 
 WG = {"id": "wg1", "revisie": 4, "naam": "Box 3", "aanleiding": "Een wetswijziging raakt de heffing.", "context": "",
       "doel": "", "analysevraag": "Wie betaalt box 3?", "praktijkvoorbeeld": "",
+      "thema": "https://identifier.overheid.nl/tooi/def/thes/top/c_25e30d03", "thema_label": "belasting",
       "afbakening": "Regelingen: Wet IB 2001.\nBuiten de afbakening: overgangsrecht.",
       "deelvragen": [{"id": "d1", "vraag": DV1, "status": "actief"}],
       "bronnen": [{"id": "s1", "label": "Artikel 5.2 – Wet IB 2001", "bron_iri": L52, "rol": "analyseren"}]}
@@ -904,6 +905,9 @@ class AanvulApi:
         self.berichten.append(bericht)
         return {}
 
+    async def haal_thema_voorstel(self, wid):
+        return {"rechtsgebieden": ["Belastingrecht"], "voorstel": [{"thema": BELASTING, "label": "belasting"}]}
+
     async def aclose(self):
         pass
 
@@ -1038,3 +1042,62 @@ def test_dossier_aanvullen_is_een_actie_zonder_agent():
     assert "dossier_aanvullen" not in ACTIE_TAAK
     with pytest.raises(Exception, match="werkgebied_id"):
         ChatRequest(question="x", actie="dossier_aanvullen")
+
+
+# --- spoor I7: het thema als kaartje bij het aanvullen -----------------------------------------------
+
+BELASTING = "https://identifier.overheid.nl/tooi/def/thes/top/c_25e30d03"
+BEGROTING = "https://identifier.overheid.nl/tooi/def/thes/top/c_0000begr"
+
+
+def test_het_thema_is_een_kaartje_van_het_aanvullen_met_de_voorstellen_en_stuurt_de_uri():
+    wg = {**WG, "thema": "", "thema_label": ""}
+    assert "thema" in wi.lege_velden(wg) and wi.dossiervelden_in("kies een thema") == ["thema"]
+    assert "thema" not in wi.STAPPEN, "het samenstellen kent geen thema"
+    i = wi.aanvul_intake(wg, ["thema", "buiten"], "Kies een thema")
+    i = {**i, "voorstellen": {"thema": [{"label": "belasting", "waarde": BELASTING, "bron": {}, "omschrijving": "voorstel"}]},
+         "vooringevuld": {"thema": [BELASTING]}}
+    k = wi.kaart(i)
+    assert (k["stap"], k["nr"], k["totaal"], k["vrije_tekst"]) == ("thema", 1, 2, False)
+    assert k["vooringevuld"] == [BELASTING] and [o["waarde"] for o in k["opties"]] == [BELASTING]
+    # Een keuze die niet op het kaartje stond, telt niet.
+    i2, uit = wi.verwerk(i, {"actie": "antwoord", "stap": "thema", "keuzes": ["https://example.org/x"]})
+    assert uit == "verder" and not (i2["antwoorden"].get("thema") or {}).get("uri")
+    i, uit = wi.verwerk(i, {"actie": "antwoord", "stap": "thema", "keuzes": [BELASTING]})
+    assert (uit, i["stap"], i["antwoorden"]["thema"]) == ("verder", "buiten", {"uri": BELASTING, "label": "belasting"})
+    # ‹ vanaf de afbakening: de werkplek vraagt het thema (de vorige van het aanvullen) of de deelvragen
+    # (de vorige van het samenstellen); allebei landen ze op het thema.
+    for naar in ("thema", "deelvragen"):
+        terug, uit = wi.verwerk(i, {"actie": "wijzig", "stap": "buiten", "naar": naar})
+        assert (uit, terug["stap"]) == ("verder", "thema"), naar
+    i, _ = wi.verwerk(i, {"actie": "overslaan", "stap": "buiten"})
+    assert i["stap"] == "samenvatting"
+    # De samenvatting toont namen, de api krijgt de URI.
+    assert wi.wijzigingen(i) == [{"veld": "thema", "label": "Thema", "toen": "", "nu": "belasting", "waarde": BELASTING}]
+    verzoek = wi.wijzigverzoek(i)
+    assert verzoek["wijziging"] == {"thema": BELASTING}
+    assert verzoek["wijzigingen"] == [{"veld": "thema", "label": "Thema", "toen": "", "nu": "belasting"}]
+
+
+def test_overslaan_laat_het_thema_staan():
+    i = wi.aanvul_intake(WG, ["thema"], "Kies een thema")
+    i, uit = wi.verwerk(i, {"actie": "overslaan", "stap": "thema"})
+    assert (uit, i["stap"], wi.wijzigingen(i)) == ("verder", "samenvatting", [])
+
+
+def test_kies_een_thema_is_een_kaartje_met_het_voorstel_en_opslaan_stuurt_de_uri(tmp_path):
+    """Spoor I7: *Kies een thema* (de suggestie, actie `dossier_aanvullen`) vraagt het thema met een kaartje;
+    het voorstel van de api staat aangevinkt; opslaan wijzigt het werkgebied met de TOOI-URI."""
+    settings = _aanvulsettings(tmp_path)
+    nep = AanvulApi({**WG, "thema": "", "thema_label": ""})
+    e = _aanvulbeurt(settings, FakeLLM([]), nep, "Kies een thema", actie="dossier_aanvullen")
+    k = _kaart(e)
+    assert (k["modus"], k["stap"], k["totaal"], k["vooringevuld"]) == ("aanvullen", "thema", 1, [BELASTING])
+    assert k["opties"][0]["omschrijving"] == "voorstel van Lex, uit Belastingrecht"
+    klik = {"intake_id": k["intake_id"], "stap": "thema", "keuzes": [BELASTING]}
+    k = _kaart(_aanvulbeurt(settings, FakeLLM([]), nep, "belasting", klik))
+    assert k["soort"] == "samenvatting" and k["samenvatting"]["wijzigingen"][0]["nu"] == "belasting"
+    opslaan = {"intake_id": k["intake_id"], "stap": "samenvatting", "actie": "opslaan"}
+    e = _aanvulbeurt(settings, FakeLLM([]), nep, "Sla het op.", opslaan)
+    [ev] = [x for x in e if x["type"] == "werkgebied_wijzigen"]
+    assert ev["wijziging"] == {"thema": BELASTING}
