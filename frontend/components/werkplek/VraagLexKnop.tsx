@@ -17,7 +17,7 @@ const KLASSE = "focus-ring inline-flex min-h-[24px] shrink-0 items-center rounde
 /** *Vraag Lex* over één object (F3b): één knop voor elke soort, met het object als onderwerp. Een link
  *  buiten de werkplek, zodat de bewaker van niet-bewaarde wijzigingen hem ziet (`useOnbewaardBewaker`). */
 /** De ene knop op een detailpagina (spoor G2, de mock-up): primair, met de tekst *Bespreek met Lex*. */
-const PRIMAIR = "focus-ring inline-flex min-h-[32px] shrink-0 items-center justify-center rounded-button bg-accent px-3 py-1.5 "
+const PRIMAIR = "focus-ring inline-flex min-h-[32px] shrink-0 items-center justify-center rounded-full bg-accent px-3 py-1.5 "
   + "text-sm font-medium text-paper transition-colors hover:bg-accent-soft coarse:min-h-[44px]";
 
 export function VraagLexKnop({ onderwerp, naam: eigenNaam, primair = false, alleenInGesprek = false, className = "" }: {

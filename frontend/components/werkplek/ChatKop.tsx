@@ -71,14 +71,14 @@ export function ChatKop({
       </div>
       {werkgebiedId && onBronnen && (
         <button type="button" onClick={onBronnen} data-chatkop-bronnen
-          className="focus-ring inline-flex min-h-[32px] items-center gap-1.5 rounded-button border border-line px-3 text-xs font-medium text-lint hover:bg-surface coarse:min-h-[44px]">
+          className="focus-ring inline-flex min-h-[32px] items-center gap-1.5 rounded-full border border-line px-3 text-xs font-medium text-lint hover:bg-surface coarse:min-h-[44px]">
           Bronnen
         </button>
       )}
       {werkgebiedId && (
         <Link
           href={`/werkgebieden/${encodeURIComponent(werkgebiedId)}`}
-          className="focus-ring hidden min-h-[32px] items-center gap-1.5 rounded-button border border-line px-3 text-xs font-medium text-lint hover:bg-surface sm:inline-flex"
+          className="focus-ring hidden min-h-[32px] items-center gap-1.5 rounded-full border border-line px-3 text-xs font-medium text-lint hover:bg-surface sm:inline-flex"
         >
           <Mapje /> Werkgebied
         </Link>
@@ -93,7 +93,7 @@ export function ChatKop({
               onClick={toggle}
               aria-expanded={open}
               aria-label="Acties voor dit gesprek"
-              className="focus-ring inline-flex min-h-[32px] min-w-[32px] items-center justify-center rounded-button border border-line text-muted hover:bg-surface hover:text-lint coarse:min-h-[44px] coarse:min-w-[44px]"
+              className="focus-ring inline-flex min-h-[32px] min-w-[32px] items-center justify-center rounded-full border border-line text-muted hover:bg-surface hover:text-lint coarse:min-h-[44px] coarse:min-w-[44px]"
             >
               <Meer />
             </button>

@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { BevestigKnop } from "@/components/ui/BevestigKnop";
-import { Button } from "@/components/ui/Button";
+import { IcoonBevestig } from "@/components/ui/IcoonBevestig";
+import { Button, KNOP_XS } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
 import {
@@ -16,8 +16,7 @@ import {
 import type { Begrip, BegripRelatie, BegripSamenvatting, RelatiesAntwoord } from "@/lib/types";
 import { isRevisieConflict } from "@/lib/werkgebied";
 
-const KNOP =
-  "focus-ring inline-flex min-h-[24px] items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors disabled:opacity-50 coarse:min-h-[44px]";
+const KNOP = KNOP_XS;
 
 /** Relaties met andere begrippen en de opvolging (fase F2). Een relatie is een eigen object met type en
  *  richting: "belastingaanslag omvat ook navorderingsaanslag", nooit alleen "verwant". Voorstellen van
@@ -217,10 +216,7 @@ function RelatieRij({ relatie: r, vervangen, onBevestig, onWeg }: {
               <button type="button" className={`${KNOP} border-lint text-lint hover:bg-surface`} aria-label={`Klopt nog: ${naam}`}
                 onClick={() => void onBevestig()}>Klopt nog</button>
             )}
-            <BevestigKnop bevestigTekst="Verwijderen?" ariaLabel={`Verwijder: ${naam}`} onBevestig={async () => { await onWeg(); }}
-              className={`${KNOP} border-line text-muted hover:bg-surface hover:text-ink`} bevestigClassName="border-fout/40 text-fout">
-              Verwijderen
-            </BevestigKnop>
+            <IcoonBevestig soort="verwijderen" label={`Verwijder: ${naam}`} onBevestig={async () => { await onWeg(); }} />
           </span>
         )}
       </div>

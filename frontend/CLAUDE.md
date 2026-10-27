@@ -105,6 +105,18 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   vanaf `sm:` naast elkaar). Staat een knop buiten een `ButtonRow`, geef hem dan
   `className="w-full sm:w-auto"` en laat de container op mobiel stapelen (`flex flex-col …
   sm:flex-row`). Geen vaste of `flex-wrap`-knoprijen die op een smal scherm overlopen.
+- **Eén bedieningsstijl** (spoor I4, besluit gebruiker 26 okt 2026; `app/knoppen.test.ts` legt het vast):
+  - **elke knop is een pil** (`rounded-full` in `Button`/`LinkButton`/`knopKlasse`), ook de handgemaakte
+    actie- en icoonknoppen; de enige uitzondering is *Nieuw gesprek* in `GesprekSidebar`, letterlijk zoals hij
+    was. Rijacties gebruiken maat `xs` of `KNOP_XS` (de losse `KNOP`-constanten zijn daarin opgegaan);
+  - **het icoon-idioom in rijen** (`components/ui/IcoonBevestig`): een prullenbak of vinkje dat bij de eerste
+    klik rood *Verwijderen?* of groen *Akkoord?* toont, de tweede voert uit (een `BevestigKnop`, dus ontwapenen
+    na een paar seconden, bij blur of met Escape). Voor voorbeelden, passages (*Losmaken?*), relaties en het
+    akkoord op de reviewkaart. Hoofdacties blijven een pil met tekst (`VerwijderKnop` in een kop);
+  - **menu's** delen één rijstijl (`components/ui/Menu`: `MENU_RIJ`, `MENU_PANEEL`);
+  - **`Select`** heeft een eigen chevron (`appearance-none`) en dezelfde maat en focus als `Input`;
+  - **elk zijpaneel** heeft dezelfde kop (`components/ui/PaneelKop`: soort, titel, *Open volledige pagina* en
+    *Vraag Lex* als pillen, `SluitKnop` rechtsboven, eventuele acties op een eigen regel).
 - **Symbolen zijn iconen, geen tekens.** `components/ui/Icoon.tsx` levert chevron, waarschuwing,
   vinkje, ruit en cirkel als inline SVG (`1em`, `currentColor`). Het font laadt alleen de
   latin-subset van Fira Sans (`app/fonts.ts`), dus tekens als `▾ ◇ ▸ ⚠ ✓ ← ○` vallen terug op het

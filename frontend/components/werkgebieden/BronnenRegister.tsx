@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
+import { Select } from "@/components/ui/Field";
 import { Meer } from "@/components/ui/Icoon";
 import { StatusLabel } from "@/components/ui/Lijst";
 import { Kaart } from "@/components/ui/Pagina";
@@ -120,8 +121,7 @@ function BronRij({ wgId, selectie: s, muteer, stand }: {
       {open && (
         <div className="mx-2 mb-2 flex flex-col gap-2 rounded-md border border-line bg-surface p-3 sm:flex-row sm:items-center" data-bron-acties>
           <label className="text-xs text-muted" htmlFor={`rol-${s.id}`}>Rol</label>
-          <select id={`rol-${s.id}`} value={s.rol}
-            className="focus-ring min-h-[32px] rounded-field border border-line bg-paper px-2 text-sm"
+          <Select id={`rol-${s.id}`} value={s.rol} className="sm:w-48"
             onChange={(e) => {
               const rol = e.target.value as BronRol;
               void muteer((r) => wijzigBron(wgId, s.id, { verwachte_revisie: r, rol }), {
@@ -129,7 +129,7 @@ function BronRij({ wgId, selectie: s, muteer, stand }: {
               });
             }}>
             {(["analyseren", "context"] as const).map((r) => <option key={r} value={r}>{ROL_LABEL[r]}</option>)}
-          </select>
+          </Select>
           <BevestigKnop
             bevestigTekst="Verwijderen?"
             titel="Haalt de bepaling uit dit werkgebied; de bepaling en haar annotaties blijven bestaan."
@@ -138,7 +138,7 @@ function BronRij({ wgId, selectie: s, muteer, stand }: {
                 gelukt: "Uit het werkgebied verwijderd. De bepaling en haar annotaties blijven bestaan.",
               });
             }}
-            className="focus-ring inline-flex min-h-[32px] items-center justify-center rounded-button border border-line bg-paper px-3 text-sm font-medium text-muted hover:text-ink sm:ml-auto"
+            className="focus-ring inline-flex min-h-[32px] items-center justify-center rounded-full border border-line bg-paper px-3 text-sm font-medium text-muted hover:text-ink sm:ml-auto"
             bevestigClassName="border-fout/40 text-fout"
           >
             Verwijderen uit werkgebied

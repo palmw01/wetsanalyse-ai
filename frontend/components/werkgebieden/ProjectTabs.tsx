@@ -21,7 +21,7 @@ export function GesprekkenTab() {
         toelichting="Klik op een gesprek om het in de werkplek te openen. Je ziet je eigen gesprekken; die van collega's zijn van hen."
         acties={
           <Link href={`/workbench?werkgebied=${encodeURIComponent(wg.id)}`}
-            className="focus-ring inline-flex min-h-[32px] items-center rounded-button bg-accent px-3 text-sm font-medium text-paper hover:bg-accent-soft coarse:min-h-[44px]">
+            className="focus-ring inline-flex min-h-[32px] items-center rounded-full bg-accent px-3 text-sm font-medium text-paper hover:bg-accent-soft coarse:min-h-[44px]">
             Nieuw gesprek
           </Link>
         }>

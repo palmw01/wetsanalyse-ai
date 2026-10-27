@@ -15,9 +15,9 @@ import { KnoopFeiten } from "./KnoopFeiten";
 import { KnoopTekst } from "./KnoopTekst";
 import type { DetailStand } from "./useKnoopDetail";
 
-const ICOON = "focus-ring flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-surface hover:text-ink coarse:h-11 coarse:w-11";
+const ICOON = "focus-ring flex h-8 w-8 items-center justify-center rounded-full text-muted hover:bg-surface hover:text-ink coarse:h-11 coarse:w-11";
 const TEKSTKNOP = "focus-ring rounded px-1 py-1 text-xs text-lint underline-offset-2 hover:underline coarse:min-h-11";
-const HOOFD = "focus-ring inline-flex min-h-9 items-center justify-center rounded-button bg-accent px-3.5 text-xs font-medium text-paper transition-colors hover:bg-accent-soft disabled:opacity-50 coarse:min-h-11";
+const HOOFD = "focus-ring inline-flex min-h-9 items-center justify-center rounded-full bg-accent px-3.5 text-xs font-medium text-paper transition-colors hover:bg-accent-soft disabled:opacity-50 coarse:min-h-11";
 const ZICHTBAAR_PER_GROEP = 5;
 
 /** Wat is dit? Eén kaart per gekozen knoop, meteen helemaal open: naam, de wettekst met de markeringen

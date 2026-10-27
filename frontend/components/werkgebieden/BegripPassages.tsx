@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { BevestigKnop } from "@/components/ui/BevestigKnop";
-import { Button } from "@/components/ui/Button";
+import { IcoonBevestig } from "@/components/ui/IcoonBevestig";
+import { Button, KNOP_XS } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
 import type { BegripMutatie } from "@/components/werkgebieden/BegripWerk";
@@ -16,8 +16,7 @@ import type { Begrip, GeraakteKoppeling, InventarisElement, KoppelBeoordeling, K
 import { annotatieHref, filterElementen } from "@/lib/werkgebied";
 import { elementPad } from "@/lib/werkgebiedPaden";
 
-const KNOP =
-  "focus-ring inline-flex min-h-[24px] items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors disabled:opacity-50 coarse:min-h-[44px]";
+const KNOP = KNOP_XS;
 const ROLLEN = Object.keys(KOPPELROL_LABEL) as KoppelRol[];
 
 /** De bronpassages van het begrip, elk apart: de letterlijke tekst zoals die gekoppeld werd, waar
@@ -139,16 +138,9 @@ function Passage({ id, begrip, koppeling: k, muteer, geraakt }: {
           <Link href={annotatieHref(k.bewijs.eigenaar_iri, k.element_id)} aria-label={`Bekijk ${bij} in de annotatie`} className={`${KNOP} border-line text-lint hover:bg-surface`}>
             Bekijk in de annotatie
           </Link>
-          <BevestigKnop
-            bevestigTekst="Losmaken?"
-            ariaLabel={`Maak ${bij} los van dit begrip`}
+          <IcoonBevestig soort="verwijderen" vraag="Losmaken?" label={`Maak ${bij} los van dit begrip`}
             titel="Maakt de passage los van dit begrip; de annotatie blijft staan."
-            onBevestig={async () => { await muteer((r) => ontkoppel(id, begrip.id, k.id, r)); }}
-            className={`${KNOP} border-line text-muted hover:bg-surface hover:text-ink`}
-            bevestigClassName="border-fout/40 text-fout"
-          >
-            Losmaken
-          </BevestigKnop>
+            onBevestig={async () => { await muteer((r) => ontkoppel(id, begrip.id, k.id, r)); }} />
         </span>
       </div>
     </li>

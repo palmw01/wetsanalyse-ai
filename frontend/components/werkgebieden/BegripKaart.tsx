@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
-import { Button } from "@/components/ui/Button";
+import { Button, KNOP_XS } from "@/components/ui/Button";
 import { ButtonRow } from "@/components/ui/ButtonRow";
 import { AutoTextarea } from "@/components/ui/AutoTextarea";
 import { Field, Input } from "@/components/ui/Field";
 import { ChevronOmlaag } from "@/components/ui/Icoon";
+import { IcoonBevestig } from "@/components/ui/IcoonBevestig";
 import { Melding } from "@/components/ui/Melding";
 import type { BegripMutatie } from "@/components/werkgebieden/BegripWerk";
 import { KaartVoorstelKaart } from "@/components/werkgebieden/KaartVoorstel";
@@ -33,8 +34,7 @@ export interface LexBijKaart {
   afwijzen: (v: KaartVoorstel, reden: string) => Promise<boolean>;
 }
 
-const KNOP_KLEIN =
-  "focus-ring inline-flex min-h-[24px] items-center rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-lint transition-colors hover:bg-surface coarse:min-h-[44px]";
+const KNOP_KLEIN = `${KNOP_XS} border-line text-lint hover:bg-surface`;
 
 const tijd = (iso: string) =>
   new Date(iso).toLocaleString("nl-NL", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -191,9 +191,8 @@ export function BegripKaart({ id, begrip, muteer, onOnbewaard, onVerwijder, lex 
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <OordeelKeuze waarde={v.oordeel} onKies={(o) => zetVoorbeeld(i, { oordeel: o })}
                     label={`Oordeel bij voorbeeld ${i + 1}`} naam={`oordeel-${begrip.id}-${i}`} />
-                  <button type="button" className={KNOP_KLEIN} onClick={() => zet("voorbeelden", voorbeelden.filter((_, j) => j !== i))}>
-                    Verwijderen
-                  </button>
+                  <IcoonBevestig soort="verwijderen" label={`Verwijder voorbeeld ${i + 1}`}
+                    onBevestig={() => zet("voorbeelden", voorbeelden.filter((_, j) => j !== i))} />
                 </div>
               </div>
             ))}

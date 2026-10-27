@@ -272,6 +272,7 @@ try {
     "/begrippen/wg1/b9");
   // Het open voorstel van Lex staat erin en wordt overgenomen: een nieuwe revisie.
   await begripPaneel.locator('[data-voorstel="v1"]').waitFor();
+  if (process.env.SCREENSHOT_DIR) await page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/begrippaneel.png` });
   await begripPaneel.locator('[data-voorstel="v1"]').getByRole("button", { name: /^Overnemen/ }).click();
   await begripPaneel.getByText("Overgenomen van Lex", { exact: false }).waitFor();
   await begripPaneel.locator("[data-begrip-lees]").getByText("Het tijdvak waarbinnen betaald moet zijn.").waitFor();

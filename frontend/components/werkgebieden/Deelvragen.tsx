@@ -7,6 +7,7 @@ import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { BronBoom } from "@/components/ui/BronBoom";
 import { Dialog } from "@/components/ui/Dialog";
 import { Meer } from "@/components/ui/Icoon";
+import { MENU_RIJ } from "@/components/ui/Menu";
 import { Popover } from "@/components/ui/Popover";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
@@ -203,7 +204,7 @@ function DeelvraagRij({ nummer, wg, deelvraag: d, dekking, muteer }: {
   );
 }
 
-const MENU = "focus-ring flex min-h-[32px] w-full items-center rounded-md px-2.5 py-1.5 text-left text-sm text-ink hover:bg-surface coarse:min-h-[44px]";
+const MENU = MENU_RIJ;
 
 /** Welke bronselecties en begrippen deze deelvraag beantwoorden (spoor H3): in een venster, met de bronnen
  *  als boom per regeling › hoofdstuk › artikel › lid – een heel artikel of hoofdstuk in één vinkje – en de

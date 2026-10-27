@@ -117,6 +117,9 @@ try {
   const akkoord = kaart.getByRole("button", { name: /^Akkoord/ }).first();
   await akkoord.waitFor();
   await akkoord.focus();
+  // Het icoon-idioom (spoor I4): de eerste Enter zet het vinkje op *Akkoord?*, de tweede beslist.
+  await page.keyboard.press("Enter");
+  await kaart.getByRole("button", { name: "Akkoord?" }).waitFor();
   await page.keyboard.press("Enter");
   await bubbel(page).getByText(/^Beoordeeld\./).waitFor();
   assert.equal(await titel(page), "Jij beslist", "Enter op Akkoord hoort de rondleiding niet door te zetten");

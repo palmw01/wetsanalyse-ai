@@ -1,5 +1,6 @@
 "use client";
 
+import { PaneelKop } from "@/components/ui/PaneelKop";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { vindplaatsLabel } from "@/lib/annotatieOverzicht";
@@ -46,6 +47,8 @@ export interface ArtefactInhoudProps {
   /** Meegeven in de dialoogschil (het kruisje, en de laatste laag van Escape); weglaten op de
    *  eigen pagina, die niets te sluiten heeft. */
   onSluiten?: () => void;
+  /** *Open volledige pagina* in de kop (alleen in de dialoogschil naast het gesprek). */
+  pagina?: string;
   /** De export van de bronnode-annotatie; de knop, het keuzepaneel en de foutmelding blijven die
    *  van het paneel. */
   onExport?: (formaat: ExportFormaat) => Promise<void>;
@@ -63,7 +66,7 @@ export interface ArtefactInhoudProps {
  *  schillen – anders gaan de twee weergaven uit elkaar lopen. */
 export function ArtefactInhoud({
   doc, info, actiefId, onKies, onBeslissing, onEigenMarkering,
-  onWisEigenMarkering, onVraag, onStatus, onVerwijder, onSluiten, onExport, extra, ongedekt,
+  onWisEigenMarkering, onVraag, onStatus, onVerwijder, onSluiten, pagina, onExport, extra, ongedekt,
 }: ArtefactInhoudProps) {
   // Eén bron voor de bewoording: `vindplaatsLabel` weet uit het graaf-`soort` of dit een artikel
   // met leden is of een bepaling van een beleidsregel. Hier raden op puntjes in het nummer zou bij
@@ -308,40 +311,16 @@ export function ArtefactInhoud({
 
             De acties krijgen hun eigen regel en lijnen rechts uit, onder het kruisje. Dat kost op een
             breed scherm een regel hoogte, en dat is de prijs voor een sluitknop die niet wandelt. */}
-        <div className="flex shrink-0 flex-col gap-2 border-b border-line px-5 py-3.5 pt-[max(0.875rem,env(safe-area-inset-top))]">
-          <div className="flex items-start gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[0.65rem] font-semibold uppercase tracking-wide text-faint">Annotatie · JAS</p>
-              <h2 className="truncate font-display text-base font-semibold text-lint">{opschrift}</h2>
-            </div>
-            {onSluiten && (
-              <button
-                type="button"
-                onClick={onSluiten}
-                aria-label="Sluiten"
-                // `-mr-1` haalt de optische ruimte van het icoon weg, zodat het kruisje uitlijnt met
-                // de rechterkantlijn van de kop – hetzelfde als in `InstellingenDialog`.
-                className="focus-ring -mr-1 shrink-0 rounded-kaart p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink"
-              >
-                {/* Zelfde icoon en lijndikte als in het instellingenvenster: één kruisje in de app,
-                    niet drie die net iets anders wegen. */}
-                <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-                  <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
-                </svg>
-              </button>
-            )}
-          </div>
-          <div data-tour="artefact-acties" className="flex flex-wrap items-center justify-end gap-2">
-            <span className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${DOCUMENT_STATUS_STYLE[doc.status]}`}>
-              {DOCUMENT_STATUS_LABEL[doc.status]}
-            </span>
-            <ExportKnop onFout={setFout} onDownload={onExport} />
-            {onStatus && <StatusKnop status={doc.status} bezig={statusBezig} onZet={zetStatus} />}
-            {/* Elke gebruiker mag dit, ook op een afgeronde annotatie; de audit legt vast wie het deed.
-                Tweede klik bevestigt, zoals elders in de app. */}
-            {onVerwijder && <VerwijderKnop soort="annotatie" onBevestig={verwijder} />}
-          </div>
-        </div>
+        <PaneelKop soort="Annotatie · JAS" titel={opschrift} pagina={pagina} onSluit={onSluiten} acties={<>
+          <span className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${DOCUMENT_STATUS_STYLE[doc.status]}`}>
+            {DOCUMENT_STATUS_LABEL[doc.status]}
+          </span>
+          <ExportKnop onFout={setFout} onDownload={onExport} />
+          {onStatus && <StatusKnop status={doc.status} bezig={statusBezig} onZet={zetStatus} />}
+          {/* Elke gebruiker mag dit, ook op een afgeronde annotatie; de audit legt vast wie het deed.
+              Tweede klik bevestigt, zoals elders in de app. */}
+          {onVerwijder && <VerwijderKnop soort="annotatie" onBevestig={verwijder} />}
+        </>} />
 
         {/* Twee zones met een EIGEN scroll. Eén gedeelde scroller liet de wettekst uit beeld lopen
             zodra je verderop in de lijst kwam – precies de context die je nodig hebt om te oordelen. */}

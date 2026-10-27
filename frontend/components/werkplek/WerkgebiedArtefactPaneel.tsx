@@ -1,5 +1,6 @@
 "use client";
 
+import { PaneelKop } from "@/components/ui/PaneelKop";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -78,36 +79,11 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
   return (
     <Dialog label={`${soort}: ${titel}`} variant={variant} onSluit={sluit}>
       <div data-artefact data-artefact-soort={doel.soort} className="flex min-h-0 flex-1 flex-col">
-        <div className="flex shrink-0 items-start gap-3 border-b border-line px-5 py-3.5 pt-[max(0.875rem,env(safe-area-inset-top))]">
-          <div className="min-w-0 flex-1">
-            <p className="text-xs text-muted">{KOP[doel.soort]}</p>
-            <h2 className="truncate font-display text-base font-semibold text-lint">{titel}</h2>
-            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-              <Link href={naarWerkgebied} className="focus-ring text-xs font-medium text-lint underline-offset-2 hover:underline">
-                Open volledige pagina
-              </Link>
-              {doel.soort === "werkgebied" && (
-                <VraagLexKnop onderwerp={{ soort: "werkgebied", werkgebied_id: doel.werkgebied_id, id: "", label: doel.titel ?? "" }} />
-              )}
-              {doel.soort === "deelvraag" && doel.deelvraag_id && (
-                <VraagLexKnop onderwerp={{ soort: "deelvraag", werkgebied_id: doel.werkgebied_id, id: doel.deelvraag_id, label: doel.titel }} />
-              )}
-              {doel.soort === "begrip" && doel.begrip_id && (
-                <VraagLexKnop onderwerp={{ soort: "begrip", werkgebied_id: doel.werkgebied_id, id: doel.begrip_id, label: doel.titel }} />
-              )}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={sluit}
-            aria-label="Sluiten"
-            className="focus-ring -mr-1 shrink-0 rounded-kaart p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink"
-          >
-            <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-              <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
-            </svg>
-          </button>
-        </div>
+        <PaneelKop soort={KOP[doel.soort]} titel={titel} pagina={naarWerkgebied} onSluit={sluit} lex={
+          doel.soort === "werkgebied" ? <VraagLexKnop onderwerp={{ soort: "werkgebied", werkgebied_id: doel.werkgebied_id, id: "", label: doel.titel ?? "" }} />
+            : doel.soort === "deelvraag" && doel.deelvraag_id ? <VraagLexKnop onderwerp={{ soort: "deelvraag", werkgebied_id: doel.werkgebied_id, id: doel.deelvraag_id, label: doel.titel }} />
+            : doel.soort === "begrip" && doel.begrip_id ? <VraagLexKnop onderwerp={{ soort: "begrip", werkgebied_id: doel.werkgebied_id, id: doel.begrip_id, label: doel.titel }} />
+            : undefined} />
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           {bewaker.wachtend && (
             <OnbewaardMelding
@@ -207,7 +183,7 @@ function WerkgebiedInhoud({ id, naarWerkgebied, onVerwijderd }: {
       {melding && <Melding type="waarschuwing" compact>{melding}</Melding>}
       <WerkgebiedSamenvatting wg={wg} vraagLex />
       <Link href={naarWerkgebied}
-        className="focus-ring inline-flex w-full items-center justify-center rounded-button bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent/90 sm:w-auto">
+        className="focus-ring inline-flex w-full items-center justify-center rounded-full bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent/90 sm:w-auto">
         Open het werkgebied
       </Link>
     </div>

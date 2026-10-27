@@ -1,5 +1,6 @@
 "use client";
 
+import { KNOP_XS } from "@/components/ui/Button";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
@@ -17,8 +18,7 @@ const WERKGEBIED: GraafContext = {
   naam: "Dit werkgebied", kort: "Werkgebied", terug: "het werkgebied", focus: "de bronnen van dit werkgebied",
 };
 
-const KNOP =
-  "focus-ring inline-flex min-h-[24px] items-center rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-lint transition-colors hover:bg-surface disabled:opacity-50 coarse:min-h-[44px]";
+const KNOP = `${KNOP_XS} border-line text-lint hover:bg-surface`;
 
 /** De samenhang van het werkgebied: de bestaande samenhangsgraaf met de bronselecties als doelen, en
  *  de begrippen erbij (fase F3: laag *Begrippen*, lijnen naar hun passages en relaties met type).

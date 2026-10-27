@@ -1,5 +1,6 @@
 "use client";
 
+import { PaneelKop } from "@/components/ui/PaneelKop";
 import Link from "next/link";
 import { createContext, useEffect, useState } from "react";
 
@@ -58,21 +59,7 @@ export function ContextPaneel({ doel, variant, onSluit, onWissel }: {
   return (
     <Dialog label={`${KOP[doel.soort]}: ${titel}`} variant={variant} onSluit={onSluit}>
       <div data-context-paneel={doel.soort} className="flex min-h-0 flex-1 flex-col">
-        <div className="flex shrink-0 items-start gap-3 border-b border-line px-5 py-3.5 pt-[max(0.875rem,env(safe-area-inset-top))]">
-          <div className="min-w-0 flex-1">
-            <p className="text-xs text-muted">{KOP[doel.soort]}</p>
-            <h2 className="truncate font-display text-base font-semibold text-lint">{titel}</h2>
-            <Link href={paginaVanContext(doel)} className="focus-ring mt-1 inline-block text-xs font-medium text-lint underline-offset-2 hover:underline">
-              Open volledige pagina
-            </Link>
-          </div>
-          <button type="button" onClick={onSluit} aria-label="Sluiten"
-            className="focus-ring -mr-1 shrink-0 rounded-kaart p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink">
-            <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-              <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
-            </svg>
-          </button>
-        </div>
+        <PaneelKop soort={KOP[doel.soort]} titel={titel} pagina={paginaVanContext(doel)} onSluit={onSluit} />
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
           {doel.soort === "bron" ? <BronInhoud doel={doel} onWissel={onWissel} />
             : doel.soort === "element" ? <ElementInhoud id={doel.element_id} />
