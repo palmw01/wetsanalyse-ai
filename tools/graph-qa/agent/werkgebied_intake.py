@@ -28,7 +28,8 @@ Wat hier vastligt en wat niet:
   onderaan, gemarkeerd, en is nooit aangevinkt. Een regeling verzinnen kan niet; wie zijn bronnen nog
   niet kent, kiest "Weet ik (nog) niet" (`ONBEKEND`).
 - **Alleen een gekozen bepaling wordt een bronselectie** (rol *analyseren*, bereik *onderliggend*),
-  gekoppeld aan de deelvraag van het kaartje waarop ze gekozen werd. Een regeling zonder gekozen
+  gekoppeld aan de deelvraag van het kaartje waarop ze gekozen werd. Gekozen is aangevinkt, of zelf getypt en
+  door de node in de graaf gevonden (`eigen`, spoor L); wat niet te vinden is, wordt een vraag op het kaartje. Een regeling zonder gekozen
   bepaling staat alleen in de afbakeningstekst: een selectie van duizenden bepalingen waar er twaalf
   nodig zijn is onbruikbaar. Die tekst noemt de regelingen en wat erbuiten valt, niet de gekozen
   bepalingen: die staan één keer, als bronselectie (spoor K).
@@ -307,6 +308,12 @@ def deel_sleutel(vraag: str | None) -> str:
     return normaliseer(vraag) if vraag else ANALYSEVRAAG
 
 
+def _met_alineas(tekst: str) -> str:
+    """Witruimte binnen een regel samengevoegd, alinea's behouden (hoogstens één lege regel ertussen)."""
+    regels = [" ".join(r.split()) for r in tekst.replace("\r\n", "\n").split("\n")]
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(regels)).strip()
+
+
 def kaartsleutel(intake: dict[str, Any], stap: str | None = None) -> str:
     """De sleutel van het kaartje in `voorstellen`, `vooringevuld`, `meldingen` en `voorbereid`: de stap,
     en bij de bepalingen ook het deel."""
@@ -419,6 +426,9 @@ def verwerk(intake: dict[str, Any], actie: dict[str, Any]) -> tuple[dict[str, An
     antwoorden = dict(intake.get("antwoorden") or {})
     keuzes = [str(k) for k in actie.get("keuzes") or [] if str(k).strip()]
     tekst = " ".join(str(actie.get("tekst") or "").split())
+    # Een lang veld houdt zijn alinea's (context, praktijkvoorbeeld, wat erbuiten valt, de toelichting bij aanleiding
+    # en doel): alleen de spaties binnen een regel en lege regels in een reeks worden samengevoegd.
+    alinea = _met_alineas(str(actie.get("tekst") or ""))
     teksten = [str(t) for t in actie.get("teksten") or []] + ([tekst] if tekst else [])
     overslaan = soort == "overslaan"
 
@@ -433,19 +443,24 @@ def verwerk(intake: dict[str, Any], actie: dict[str, Any]) -> tuple[dict[str, An
         antwoorden["naam"] = naam
     elif stap == "aanleiding":
         keuze = "" if overslaan else next((k for k in keuzes if k in AANLEIDING), "")
-        antwoorden["aanleiding"] = {"keuze": keuze, "tekst": "" if overslaan else tekst[:2000]}
+        antwoorden["aanleiding"] = {"keuze": keuze, "tekst": "" if overslaan else alinea[:2000]}
     elif stap == "doel":
         antwoorden["doel"] = {"keuzes": [] if overslaan else [k for k in keuzes if k in DOEL],
-                              "tekst": "" if overslaan else tekst[:2000]}
+                              "tekst": "" if overslaan else alinea[:2000]}
     elif stap in ("context", "praktijkvoorbeeld"):
-        antwoorden[stap] = "" if overslaan else tekst[:4000]
+        antwoorden[stap] = "" if overslaan else alinea[:4000]
     elif stap == "analysevraag":
         antwoorden["analysevraag"] = "" if overslaan else (tekst or (keuzes[0] if keuzes else ""))[:4000]
     elif stap == "deelvragen":
         antwoorden["deelvragen"] = [] if overslaan else _deelvragen_uit(intake, keuzes, teksten)
     elif stap == "regelingen":
-        if not overslaan and tekst and not keuzes:
-            return {**intake, "zoekterm": tekst[:200]}, "zoek"
+        if not overslaan and tekst and ONBEKEND not in keuzes:
+            # Een getypte regeling is een zoekopdracht. Wat er al aangevinkt was, blijft gekozen en staat op het
+            # volgende kaartje aangevinkt: typen naast aanvinken liet de tekst eerst stil vallen (spoor L).
+            if keuzes:
+                antwoorden["regelingen"] = [{"bwb_id": o["waarde"], "label": o["label"]}
+                                            for k in keuzes if (o := _optie(intake, stap, k))]
+            return {**intake, "antwoorden": antwoorden, "zoekterm": tekst[:200]}, "zoek"
         gekozen = [] if overslaan or ONBEKEND in keuzes else [
             {"bwb_id": o["waarde"], "label": o["label"]} for k in keuzes if (o := _optie(intake, stap, k))]
         antwoorden["regelingen"] = gekozen
@@ -459,17 +474,22 @@ def verwerk(intake: dict[str, Any], actie: dict[str, Any]) -> tuple[dict[str, An
             "bronnen": [] if overslaan or onbekend else [
                 {"bron_iri": o["waarde"], "label": o["label"], "bwb_id": (o.get("bron") or {}).get("bwb_id", "")}
                 for k in keuzes if (o := _optie(intake, sleutel, k))][:MAX_BEPALINGEN + 4],
-            "tekst": "" if overslaan or onbekend else tekst[:1000], "onbekend": onbekend}}
+            "tekst": "" if overslaan or onbekend else tekst[:1000], "onbekend": onbekend,
+            # Wat de analist zelf typte, door de node in de graaf getoetst (`nodes/werkgebied._eigen_bepalingen`):
+            # gewone keuzes, net als de aangevinkte voorstellen.
+            "eigen": [] if overslaan or onbekend else [
+                {"bron_iri": e["bron_iri"], "label": e.get("label") or e["bron_iri"], "bwb_id": e.get("bwb_id", "")}
+                for e in actie.get("eigen") or [] if isinstance(e, dict) and e.get("bron_iri")][:MAX_BEPALINGEN + 4]}}
     elif stap == "thema":
         # Alleen een thema dat op het kaartje stond (de voorstellen van Lex en het huidige): een URI uit tooitop.
         o = None if overslaan else next((x for k in keuzes if (x := _optie(intake, "thema", k))), None)
         antwoorden["thema"] = {"uri": o["waarde"], "label": o["label"]} if o else (antwoorden.get("thema") or {})
     elif stap == "buiten":
         # Bij het aanvullen is dit de hele afbakening (tot 4000 tekens, zoals de api).
-        antwoorden["buiten"] = "" if overslaan else tekst[:4000 if aanvullen else 2000]
+        antwoorden["buiten"] = "" if overslaan else alinea[:4000 if aanvullen else 2000]
 
     volgende, volgend_deel = _volgende(stap, antwoorden, deel, intake.get("stappen") if aanvullen else None)
-    return {**intake, "antwoorden": antwoorden, "stap": volgende, "deel": volgend_deel, "zoekterm": ""}, "verder"
+    return {**intake, "antwoorden": antwoorden, "stap": volgende, "deel": volgend_deel, "zoekterm": "", "concept": {}}, "verder"
 
 
 # --- Het dossier: alles wat er ligt ------------------------------------------------------------------
@@ -543,8 +563,9 @@ def dossier_hash(intake: dict[str, Any], zonder: tuple[str, ...] = ()) -> str:
 
 # --- Wat er aangemaakt wordt -----------------------------------------------------------------------
 
-_ARTIKELEN = re.compile(r"\bart(?:ikel(?:en)?|\.)\s*((?:\d+[a-z]*(?:\.\d+[a-z]*)*(?:\s*(?:,|en|t/m)\s*)?)+)", re.I)
-_NUMMER = re.compile(r"\d+[a-z]*(?:\.\d+[a-z]*)*", re.I)
+# Een nummer met punten (Leidraad 25.1) of dubbele punten (Awb 4:86) is één artikel, geen twee.
+_ARTIKELEN = re.compile(r"\bart(?:ikel(?:en)?|\.)\s*((?:\d+[a-z]*(?:[.:]\d+[a-z]*)*(?:\s*(?:,|en|t/m)\s*)?)+)", re.I)
+_NUMMER = re.compile(r"\d+[a-z]*(?:[.:]\d+[a-z]*)*", re.I)
 
 
 def artikelen_in(tekst: str) -> list[str]:
@@ -562,21 +583,15 @@ def _gekozen(antwoorden: dict[str, Any]) -> list[tuple[str | None, dict[str, Any
 
 
 def bronnen(antwoorden: dict[str, Any]) -> list[dict[str, Any]]:
-    """De bronselecties: elke gekozen bepaling, met de deelvragen op wier kaartje ze gekozen werd (één
-    bron voor meer deelvragen), en de artikelen uit de vrije tekst als er precies één regeling is (de
-    api toetst ze tegen de graaf)."""
-    uit: dict[tuple, dict[str, Any]] = {}
-    regelingen = antwoorden.get("regelingen") or []
+    """De bronselecties: elke gekozen bepaling – aangevinkt, of zelf getypt en in de graaf getoetst (`eigen`) –
+    met de deelvragen op wier kaartje ze gekozen werd (één bron voor meer deelvragen). Een getypte tekst die de
+    node niet kon thuisbrengen, komt hier niet: die liet het kaartje staan met een vraag (nooit stil weg)."""
+    uit: dict[str, dict[str, Any]] = {}
     for vraag, x in _gekozen(antwoorden):
-        items = [((b["bron_iri"],), {"bron_iri": b["bron_iri"], "label": b["label"]}) for b in x["bronnen"]]
-        if len(regelingen) == 1 and x.get("tekst"):
-            bwb, naam = regelingen[0]["bwb_id"], regelingen[0]["label"]
-            items += [((bwb, a), {"bwb_id": bwb, "artikel": a, "label": f"{naam} – art. {a}"})
-                      for a in artikelen_in(x["tekst"])]
-        for sleutel, bron in items:
-            b = uit.setdefault(sleutel, {**bron, "deelvragen": []})
-            if vraag and vraag not in b["deelvragen"]:
-                b["deelvragen"].append(vraag)
+        for b in [*x["bronnen"], *(x.get("eigen") or [])]:
+            bron = uit.setdefault(b["bron_iri"], {"bron_iri": b["bron_iri"], "label": b["label"], "deelvragen": []})
+            if vraag and vraag not in bron["deelvragen"]:
+                bron["deelvragen"].append(vraag)
     return list(uit.values())
 
 
@@ -746,7 +761,8 @@ def kaart(intake: dict[str, Any]) -> dict[str, Any]:
             "vraag": vraag,
             "toelichting": toelichting, "opties": opties, "meerkeuze": stap in _MEERKEUZE,
             "vrije_tekst": stap != "thema", "meer_tekst": stap == "deelvragen", "overslaanbaar": stap != "naam",
-            "vooringevuld": eerder or list(intake.get("vooringevuld", {}).get(sleutel, [])), "samenvatting": {},
+            "vooringevuld": (intake.get("concept") or {}).get(sleutel) or eerder
+                            or list(intake.get("vooringevuld", {}).get(sleutel, [])), "samenvatting": {},
             "terug": stap != STAPPEN[0], "beantwoord": bool(eerder) or _beantwoord(intake, stap)}
 
 

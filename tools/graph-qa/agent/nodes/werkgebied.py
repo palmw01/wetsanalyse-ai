@@ -168,6 +168,45 @@ def _bepalingen(b, intake: dict[str, Any], writer) -> dict[str, Any]:
     return _met(_met(intake, "meldingen", sleutel, melding), "voorstellen", sleutel, eerder + opties)
 
 
+def _eigen_bepalingen(b, intake: dict[str, Any], tekst: str, writer) -> tuple[list[dict[str, Any]], str]:
+    """Wat de analist zelf op een bepalingenkaartje typte ("artikel 9 lid 1 en 5 Invorderingswet 1990"): per
+    bepaling getoetst in de graaf. (bepalingen, "") als alles gevonden is; anders ([], een vraag) en blijft het
+    kaartje staan. De regeling komt uit de tekst (naam of afkorting), anders uit de intake als die er één heeft –
+    dezelfde regels als de bronselectie (`bronselectie.bepalingen_uit_tekst`)."""
+    from ..bronnen_vinden import bepaling_in_graaf
+    from ..bronselectie import bepalingen_uit_tekst
+    from ..overzicht import regelingen_in_vraag
+    from ..regelingnamen import regelingnamen
+
+    gekozen = [r["bwb_id"] for r in (intake.get("antwoorden") or {}).get("regelingen") or []]
+    _stap(writer, "Lex", "zoekt de bepaling die je noemde")
+    try:
+        verzoeken = bepalingen_uit_tekst(tekst, lambda t: regelingen_in_vraag(b.graph, t), gekozen)
+        if isinstance(verzoeken, str):
+            return [], f"{verzoeken} Of vink een voorstel aan."
+        if not verzoeken:
+            return [], ("Ik zie geen artikel in je tekst. Noem de bepaling, bijvoorbeeld ‘artikel 9 lid 2 "
+                        "Invorderingswet 1990’, of vink een voorstel aan.")
+        gevonden, mis = [], []
+        for v in verzoeken:
+            x = bepaling_in_graaf(b.graph, v["bwb_id"], v["artikel"], v.get("lid", ""))
+            (gevonden if x else mis).append(x or v)
+        if not mis:
+            return gevonden, ""
+        namen = regelingnamen(b.graph, {v["bwb_id"] for v in mis} | set(gekozen))
+        zinnen = []
+        for v in mis:
+            wat = f"Artikel {v['artikel']}" + (f", lid {v['lid']}" if v.get("lid") else "")
+            elders = [namen.get(r, r) for r in gekozen if r != v["bwb_id"]
+                      and bepaling_in_graaf(b.graph, r, v["artikel"], v.get("lid", ""))]
+            zinnen.append(f"{wat} staat niet in {namen.get(v['bwb_id'], v['bwb_id'])}"
+                          + (f"; wel in {' en '.join(elders)} – bedoel je die?" if elders else "."))
+        return [], " ".join(zinnen) + " Pas je tekst aan, of vink een voorstel aan."
+    except Exception:  # noqa: BLE001 – een haperende graaf: niets aannemen, de analist kan het opnieuw proberen
+        logger.warning("intake: getypte bepaling niet te toetsen", exc_info=True)
+        return [], "Ik kon de bepaling die je noemde nu niet opzoeken; probeer het zo opnieuw, of vink een voorstel aan."
+
+
 def _thema(b, intake: dict[str, Any], writer, user_id: str) -> dict[str, Any]:
     """Het kaartje van het thema (spoor I7): de voorstellen van de api (zonder model, uit de rechtsgebieden van de
     bronnen), plus het huidige thema; het eerste voorstel staat aangevinkt als er nog geen thema is."""
@@ -347,6 +386,19 @@ def werkgebied_intake_node(b, state: State) -> dict[str, Any]:
                      "werkgebied samen te stellen om te beginnen.")
             writer({"type": "token", "content": tekst})
             return {"answer": tekst, "messages": [{"role": "assistant", "content": tekst}]}
+        # Een getypte bepaling op een bepalingenkaartje wordt hier een keuze, in de graaf getoetst; lukt dat niet,
+        # dan blijft het kaartje staan met een vraag – nooit stil weg (spoor L). `eigen` komt nooit van de client.
+        actie = {k: v for k, v in actie.items() if k != "eigen"}
+        if (intake.get("stap") == "bepalingen" and actie.get("actie") == "antwoord" and actie.get("stap") == "bepalingen"
+                and int(actie.get("deel") or 0) == int(intake.get("deel") or 0)
+                and (tekst := " ".join(str(actie.get("tekst") or "").split()))
+                and wi.ONBEKEND not in (actie.get("keuzes") or [])):
+            eigen, vraag_terug = _eigen_bepalingen(b, intake, tekst, writer)
+            if vraag_terug:
+                # Het kaartje komt terug met wat de analist koos én typte (`concept`), om te verbeteren.
+                concept = [*(str(k) for k in actie.get("keuzes") or []), tekst]
+                return _toon(writer, {**intake, "concept": {wi.kaartsleutel(intake): concept}}, vraag_terug)
+            actie = {**actie, "eigen": eigen}
         intake, uitkomst = wi.verwerk(intake, actie)
 
     aanvullen = wi.is_aanvullen(intake)
