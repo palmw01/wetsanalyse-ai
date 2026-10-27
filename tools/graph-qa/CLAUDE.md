@@ -837,8 +837,15 @@ werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en
   **"Weet ik (nog) niet"** (`ONBEKEND`) staat altijd bij regelingen en bepalingen; bij de regelingen
   gaat het dan meteen naar de samenvatting.
 - **Alleen een gekozen bepaling wordt een bronselectie** (rol *analyseren*, bereik *onderliggend*),
-  gekoppeld aan de deelvragen op wier kaartje ze gekozen werd (één bron voor meer deelvragen), plus
-  artikelen uit eigen tekst als er precies één regeling is (`artikelen_in`). Een regeling zonder
+  gekoppeld aan de deelvragen op wier kaartje ze gekozen werd (één bron voor meer deelvragen). **Een getypte
+  bepaling is ook een keuze** (spoor L): de node ontleedt de tekst vóór `verwerk` (`_eigen_bepalingen` →
+  `bronselectie.bepalingen_uit_tekst`, dezelfde regels als spoor J: geknipt vóór elk "artikel", per stuk de
+  regeling die het noemt, anders de enige van de tekst of van de intake; Awb-nummers als 4:86) en toetst elke
+  bepaling in de graaf (`bronnen_vinden.bepaling_in_graaf`, één lichte query). Gevonden: `eigen` op het antwoord.
+  Niet te bepalen, niet gevonden ("staat niet in AWR; wel in Awb – bedoel je die?") of een haperende graaf: het
+  kaartje blijft staan met de vraag en de getypte tekst (`concept`) – nooit stil weg. `eigen` komt nooit van de
+  client. Lange velden houden hun alinea's (`_met_alineas`), en een getypte regeling naast aangevinkte is een
+  zoekopdracht die het aangevinkte laat staan. Een regeling zonder
   gekozen bepaling staat alleen in de afbakeningstekst (`afbakening`). Die tekst noemt de regelingen en wat
   erbuiten valt, niet de bepalingen: die staan één keer, als bronselectie per deelvraag (spoor K). Bij een
   deelvraag moet een optie een deelvraagterm raken; dossiertermen rangschikken alleen (anders vulde het dossier

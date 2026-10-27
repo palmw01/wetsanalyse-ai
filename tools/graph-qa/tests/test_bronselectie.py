@@ -410,3 +410,17 @@ def test_zelf_toevoegen_zonder_eenduidige_regeling_of_artikel_laat_het_kaartje_s
         {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"}, {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "2"}]
     assert bs.bepalingen_uit_tekst("artikel 5.2 en 5.3", ["BWBR0011353"], []) == [
         {"bwb_id": "BWBR0011353", "artikel": "5.2"}, {"bwb_id": "BWBR0011353", "artikel": "5.3"}]
+    # Spoor L: één tekst mag meer bepalingen in meer regelingen noemen; elk stuk krijgt zijn eigen regeling, en een
+    # Awb-nummer met een dubbele punt is één artikel.
+    def vind(t):
+        t = t.lower()
+        return sorted({b for naam, b in (("invorderingswet", "BWBR0004770"), ("awb", "BWBR0005537")) if naam in t})
+    assert bs.bepalingen_uit_tekst("artikel 9 lid 1 en 5 Invorderingswet 1990 en artikel 4:86 Awb", vind, []) == [
+        {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"}, {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "5"},
+        {"bwb_id": "BWBR0005537", "artikel": "4:86"}]
+    # Een stuk zonder eigen regeling neemt de enige die de tekst noemt.
+    assert bs.bepalingen_uit_tekst("artikel 9 lid 1 en artikel 10 Invorderingswet 1990", vind, []) == [
+        {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"}, {"bwb_id": "BWBR0004770", "artikel": "10"}]
+    # Twee regelingen genoemd en een stuk zonder: Lex weet niet welke, en vraagt het.
+    assert "noem de regeling direct na het artikel" in bs.bepalingen_uit_tekst(
+        "artikel 9 en artikel 4:86 Invorderingswet en Awb", vind, [])
