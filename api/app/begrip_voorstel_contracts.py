@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field, model_validator
 from .begrip_contracts import Oordeel
 from .begrippen_run_contracts import KaartFragment
 
-Actie = Literal["brondefinitie", "scherper", "betekenisverschil", "voorbeelden"]
+Actie = Literal["brondefinitie", "scherper", "uitleg", "betekenisverschil", "voorbeelden"]
 # `context` is het veld toelichting van NL-SBB (`skos:scopeNote`); in beeld heet het *Toelichting*.
 Veld = Literal["definitie", "uitleg", "context", "voorbeelden"]
 
@@ -20,12 +20,14 @@ Veld = Literal["definitie", "uitleg", "context", "voorbeelden"]
 VELDEN: dict[str, set[str]] = {
     "brondefinitie": {"definitie"},
     "scherper": {"definitie"},
+    # Spoor I2: de uitleg in B1 (NL-SBB `rdfs:comment`); graph-qa toetst haar in code (`begrip_b1`).
+    "uitleg": {"uitleg"},
     "betekenisverschil": {"uitleg", "context"},
     "voorbeelden": {"voorbeelden"},
 }
 
 #: Acties die het model gebruiken (en dus tokens kosten); brondefinitie is een graafquery.
-MODEL_ACTIES = {"scherper", "betekenisverschil", "voorbeelden"}
+MODEL_ACTIES = {"scherper", "uitleg", "betekenisverschil", "voorbeelden"}
 
 
 class KaartRunStart(BaseModel):

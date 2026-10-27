@@ -1,14 +1,15 @@
 # Gegenereerd uit de wetsanalyse-skill; niet handmatig bewerken.
 # Draai scripts/genereer_jas_klassen.py.
 PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd036c0853ccc0d4315653a58c17f',
-                   'agentrollen.json': '811ce91d94f8abca30b360f5dd5f9f5f08bc68be8ac2f2bc3b59974d293f76aa',
+                   'agentrollen.json': 'e533b90c42eff60e8d07e43c3349a6d885c481f4548d3bb2d6f145e5859b0ca7',
                    'references/agentrollen.md': 'f46b17b5d7f7054bed32767a063b3212428956ee7c85aa78de68887035291787',
                    'references/begrippen.md': 'efeb87eee75c3a1ef44706267424efbb4c7afa55ba09cae8df26d0851c1d5084',
-                   'references/bronnen.md': 'fff5dc1c7a33a88219d2767986882b0f7552b0e99a1ba8c4c52c7aa9ace46b36',
+                   'references/bronnen.md': 'a15cec95e6e7e3e999b1b8ebbd64841331be2863ba2c5af541ad663dbba653cd',
                    'references/deelvragen-en-bronnen.md': '3f1297e0e4852a27adcacb843ff185cd89be9ce58e8ebe87bf0173cbb8204053',
-                   'references/jas-klassen-referentie.md': '5fe94a8c3718eb3d0f21a04cda9e89d9c35db4260b39f1900ead19a86ee91a95'},
+                   'references/jas-klassen-referentie.md': '5fe94a8c3718eb3d0f21a04cda9e89d9c35db4260b39f1900ead19a86ee91a95',
+                   'references/nl-sbb-en-b1.md': 'f042af00f1c9863331a40ad14a2bf605037975e417525ecb9c3e281a351b7937'},
  'rollen': {'algemeen': ['basis'],
-            'begrippen': ['basis', 'begrippen'],
+            'begrippen': ['basis', 'begrippen', 'nl-sbb-taalniveau'],
             'decompositie': ['basis', 'decompositie'],
             'deelvragen': ['basis', 'deelvragen'],
             'definitie': ['basis', 'definitie'],
@@ -137,6 +138,32 @@ PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd03
                                   'verdedigbare alternatieven. De dertien JAS-labels blijven '
                                   'ongewijzigd; JRM-verrijking is aanvullende uitleg, geen nieuwe '
                                   'annotatieklasse.'},
+             'nl-sbb-taalniveau': {'bestand': 'references/nl-sbb-en-b1.md',
+                                   'bronnen': ['M11', 'M12', 'P16'],
+                                   'sha256': '4f470633fa5a4eae41277ddc9bd7d3a6277c63b7488765c00805c2b4c3e2e565',
+                                   'tekst': 'Een begrip volgt NL-SBB, met vier velden die elk iets '
+                                            'anders doen. De definitie (skos:definition) '
+                                            'onderscheidt het begrip van andere: bij voorkeur het '
+                                            'soortbegrip plus het kenmerk dat het onderscheidt, in '
+                                            'één zin. De uitleg (rdfs:comment) helpt een lezer het '
+                                            'begrip te begrijpen, in eenvoudige taal en zonder '
+                                            'verdere context. De toelichting (skos:scopeNote) zegt '
+                                            'waar de grens van het begrip ligt of hoe het gebruikt '
+                                            'wordt. Een voorbeeld (skos:example) is een concreet '
+                                            'geval. De bron gaat via de passages die het begrip '
+                                            'dragen.\n'
+                                            'Een uitleg is op taalniveau B1: één alinea van '
+                                            'hoogstens vijf zinnen; zinnen van hoogstens twintig '
+                                            'woorden; de actieve vorm, zodat de lezer ziet wie '
+                                            'iets doet; woorden die bijna iedereen kent. Een '
+                                            'vakterm of de naam van een wet laat je staan, maar je '
+                                            'legt hem uit. Een kort voorbeeld maakt het concreet. '
+                                            'Herhaal de definitie niet, en zeg niets wat niet uit '
+                                            'de definitie of de bronnen volgt.\n'
+                                            'Een uitleg komt pas als er een definitie is: ze legt '
+                                            'de definitie uit. Lex stelt haar voor met '
+                                            'aandachtspunten uit vaste toetsen; de analist neemt '
+                                            'over, past aan of wijst af.'},
              'retrieval': {'bestand': 'references/agentrollen.md',
                            'bronnen': ['M01', 'P01', 'P06', 'P11', 'P12'],
                            'sha256': '1735cf5f96b30511fc30b7ac91daae69911b7c80a46d1f1b9913d94334e40a54',
@@ -170,5 +197,5 @@ PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd03
                                    'interpretatieverschillen zichtbaar; presenteer ze niet als '
                                    'vaststaande conclusies. Voeg zonder beschikbare bronnen geen '
                                    'nieuw juridisch feit toe.'}},
- 'sha256': '53b981f280297f073ed6a4918aa684d2a76e653f54458bea38120fe3e23d526e',
+ 'sha256': '9a2e98f34ff7da25fffc37a38ba40211920108cd92e77eef43e1e82bfca02bb5',
  'versie': '2.1'}

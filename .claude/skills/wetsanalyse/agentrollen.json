@@ -85,6 +85,14 @@
         "M04",
         "P15"
       ]
+    },
+    "nl-sbb-taalniveau": {
+      "bestand": "references/nl-sbb-en-b1.md",
+      "bronnen": [
+        "M11",
+        "M12",
+        "P16"
+      ]
     }
   },
   "rollen": {
@@ -121,7 +129,8 @@
     ],
     "begrippen": [
       "basis",
-      "begrippen"
+      "begrippen",
+      "nl-sbb-taalniveau"
     ]
   }
 }

@@ -9,7 +9,7 @@ voorstellen terug (`PUT …/uitkomst`); de api toetst de garanties opnieuw. Het 
   alternatieve termen, en per treffer zijn plaats (`plaats`): in het werkgebied, in een regeling van
   het werkgebied, in een regeling waar een begripsbepaling van het werkgebied naar verwijst
   (`q_verwezen`), of elders. Geen budgetpoort.
-- **Scherper, betekenisverschil en voorbeelden** gebruiken het model (`begrippen_pipeline/kaartacties.py`),
+- **Scherper, uitleg, betekenisverschil en voorbeelden** gebruiken het model (`begrippen_pipeline/kaartacties.py`),
   op `LLM_MODEL`: een oordeel over wetgeving. Vooraf de budgetpoort; het verbruik wordt geboekt op
   `kaart-<run>`, ook als de actie faalt.
 - **Elk faalpad is zichtbaar**: run niet op te halen, graaf of model faalt, de api weigert de
@@ -33,9 +33,9 @@ from .wetsanalyse_api import WetsanalyseApi, WetsanalyseApiFout
 
 logger = logging.getLogger("graph_qa.begrip_kaart")
 
-MODEL_ACTIES = {"scherper", "betekenisverschil", "voorbeelden"}
-NAAM = {"brondefinitie": "Brondefinitie zoeken", "scherper": "Scherpere definitie", "betekenisverschil":
-        "Betekenisverschil", "voorbeelden": "Voorbeelden"}
+MODEL_ACTIES = {"scherper", "uitleg", "betekenisverschil", "voorbeelden"}
+NAAM = {"brondefinitie": "Brondefinitie zoeken", "scherper": "Scherpere definitie", "uitleg": "Uitleg in B1",
+        "betekenisverschil": "Betekenisverschil", "voorbeelden": "Voorbeelden"}
 MAX_TREFFERS = 40
 
 
@@ -113,6 +113,8 @@ def reken_met_model(llm: Any, model: str, invoer: dict[str, Any], meting: dict[s
         return ka.scherper(llm, model, manifest, kant, meting)
     if actie == "voorbeelden":
         return ka.voorbeelden(llm, model, manifest, kant, meting)
+    if actie == "uitleg":
+        return ka.uitleg(llm, model, manifest, kant, meting)
     ander = ka.kant_uit(invoer.get("ander"), manifest)
     if ander is None:
         return ka.Uitkomst(melding="Er is geen begrip om mee te vergelijken.")

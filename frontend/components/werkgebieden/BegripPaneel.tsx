@@ -9,6 +9,7 @@ import { Melding } from "@/components/ui/Melding";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
 import { KaartVoorstelKaart } from "@/components/werkgebieden/KaartVoorstel";
+import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import {
   foutTekst, haalBegrip, haalKaartVoorstellen, haalRelaties, neemKaartVoorstelOver, verwijderBegrip, wijsKaartVoorstelAf,
   wijzigBegrip,
@@ -249,7 +250,16 @@ export function BegripPaneel({ werkgebiedId, begripId, onOnbewaard, onNaarBegrip
             ) : <span className="text-muted">Nog geen definitie.</span>}
           </Regel>
           <Regel naam="Uitleg">
-            {b.uitleg ? <span className="whitespace-pre-line">{b.uitleg}</span> : <span className="text-muted">Nog geen uitleg.</span>}
+            {b.uitleg ? <span className="whitespace-pre-line">{b.uitleg}</span> : (
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="text-muted">Nog geen uitleg.</span>
+                {/* Spoor I2: Lex schrijft de uitleg in B1; dat vraag je in het gesprek. */}
+                {b.definitie && !vervangen && (
+                  <VraagLexKnop alleenInGesprek naam="Vraag Lex: uitleg in B1 schrijven"
+                    onderwerp={{ soort: "begrip", werkgebied_id: werkgebiedId, id: begripId, label: b.naam, veld: "uitleg" }} />
+                )}
+              </span>
+            )}
           </Regel>
           {b.context && (
             <Regel naam="Toelichting"><span className="whitespace-pre-line">{b.context}</span></Regel>

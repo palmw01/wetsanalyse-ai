@@ -111,9 +111,10 @@ async def start(werkgebied: dict, begrip_id: str, s: KaartRunStart, actor: str, 
         if s.ander_begrip_id == begrip_id:
             raise HTTPException(422, "Vergelijk met een ander begrip.")
         ander = await begrip_store.haal(wid, s.ander_begrip_id)
-    if s.actie == "voorbeelden" and not (begrip["inhoud"].get("definitie") or "").strip():
+    if s.actie in ("voorbeelden", "uitleg") and not (begrip["inhoud"].get("definitie") or "").strip():
+        wat = "Voorbeelden toetsen" if s.actie == "voorbeelden" else "Een uitleg legt"
         raise HTTPException(409, {"fout": "geen_definitie",
-                                  "melding": "Voorbeelden toetsen een definitie; geef het begrip eerst een definitie."})
+                                  "melding": f"{wat} een definitie; geef het begrip eerst een definitie."})
     m = await begrip_manifest.bouw(werkgebied, resolve)
     if not m["volledig"]:
         raise HTTPException(409, {"fout": "inventaris_onvolledig",

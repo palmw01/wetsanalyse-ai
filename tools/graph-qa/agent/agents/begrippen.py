@@ -5,8 +5,8 @@
 | `voorstellen` | begrippenrun + keten (ADR-004), `begrippen_beurt.begrippen_kern` | nee |
 | `meedenken` | de verdieping (`begrippen_verdieping.verdieping_kern`); zonder `bevestigd` het voorstel | ja, na bevestiging |
 | `brondefinitie` | kaart-run, graafquery op `bwb:definieertBegrip` | nee |
-| `scherper`, `voorbeelden`, `betekenisverschil` | kaart-run, één strict tool + `toetsen` (`kaart_beurt.kaart_kern`) | ja, één stap |
-| `uitwerken` | brondefinitie → zonder definitie een definitievoorstel → voorbeelden alleen op een overgenomen definitie | waar de deelstap het heeft |
+| `scherper`, `uitleg`, `voorbeelden`, `betekenisverschil` | kaart-run, één strict tool + `toetsen` (`kaart_beurt.kaart_kern`) | ja, één stap |
+| `uitwerken` | brondefinitie → zonder definitie een definitievoorstel → uitleg in B1 en voorbeelden alleen op een overgenomen definitie | waar de deelstap het heeft |
 | `relaties` | de relaties en de voorstellen van de keten (`GET …/relaties`) | nee |
 
 Het begrip komt van *Vraag Lex* (het onderwerp) of uit de vraag (de term, opgelost via de api). De
@@ -33,6 +33,7 @@ class Taak(StrEnum):
     MEEDENKEN = "meedenken"
     BRONDEFINITIE = "brondefinitie"
     SCHERPER = "scherper"
+    UITLEG = "uitleg"
     VOORBEELDEN = "voorbeelden"
     BETEKENISVERSCHIL = "betekenisverschil"
     UITWERKEN = "uitwerken"
@@ -42,8 +43,9 @@ class Taak(StrEnum):
 #: Taken op het hele werkgebied; de rest gaat over één begrip.
 OP_WERKGEBIED = frozenset({Taak.VOORSTELLEN, Taak.MEEDENKEN})
 #: Taken die het model kunnen gebruiken (meedenken pas na bevestiging).
-MODEL_TAKEN = frozenset({Taak.MEEDENKEN, Taak.SCHERPER, Taak.VOORBEELDEN, Taak.BETEKENISVERSCHIL, Taak.UITWERKEN})
-KAARTACTIES = frozenset({Taak.BRONDEFINITIE, Taak.SCHERPER, Taak.VOORBEELDEN, Taak.BETEKENISVERSCHIL})
+MODEL_TAKEN = frozenset({Taak.MEEDENKEN, Taak.SCHERPER, Taak.UITLEG, Taak.VOORBEELDEN, Taak.BETEKENISVERSCHIL,
+                         Taak.UITWERKEN})
+KAARTACTIES = frozenset({Taak.BRONDEFINITIE, Taak.SCHERPER, Taak.UITLEG, Taak.VOORBEELDEN, Taak.BETEKENISVERSCHIL})
 
 _ID = r"^[A-Za-z0-9-]{0,64}$"
 
@@ -141,19 +143,21 @@ async def relaties(ctx: Context, b: dict[str, Any]) -> Uitkomst:
 
 
 async def uitwerken(ctx: Context, b: dict[str, Any]) -> Uitkomst:
-    """Een begrip volledig uitwerken, in de volgorde van de methode: eerst de brondefinitie; staat er dan nog
-    geen definitie, een definitievoorstel; voorbeelden pas op een overgenomen definitie – een voorbeeld toetst
-    een definitie, dus zonder definitie is er niets te toetsen."""
+    """Een begrip volledig uitwerken, in de volgorde van de methode (spoor I2): eerst de brondefinitie; staat er
+    dan nog geen definitie, een definitievoorstel; op een overgenomen definitie de uitleg in B1 (als die er nog
+    niet is) en voorbeelden – een uitleg en een voorbeeld rusten op een definitie, dus zonder definitie is er
+    niets uit te leggen of te toetsen. Aan het eind zegt Lex wat er nog open is."""
     taak = Taak.UITWERKEN
     stappen: list[Uitkomst] = [await kaart_kern(ctx, "brondefinitie", b)]
     heeft_definitie = bool((b.get("definitie") or "").strip())
     if not heeft_definitie and not stappen[0].voorstellen and not ctx.gestopt():
         stappen.append(await kaart_kern(ctx, "scherper", b))
+    if heeft_definitie and not (b.get("uitleg") or "").strip() and not ctx.gestopt():
+        stappen.append(await kaart_kern(ctx, "uitleg", b))
     if heeft_definitie and not ctx.gestopt():
         stappen.append(await kaart_kern(ctx, "voorbeelden", b))
     zinnen = [s.gesprekstekst for s in stappen if s.gesprekstekst]
-    if not heeft_definitie:
-        zinnen.append("Neem een definitie over op de begripskaart; dan maak ik er voorbeelden bij.")
+    zinnen.append(_nog_open(heeft_definitie))
     laatste = next((s.artefact for s in reversed(stappen) if s.artefact), None)
     status = "fout" if all(s.status == "fout" for s in stappen) else "ok"
     return Uitkomst(taak=taak, status=status, tekst="\n\n".join(zinnen),
@@ -161,3 +165,12 @@ async def uitwerken(ctx: Context, b: dict[str, Any]) -> Uitkomst:
                     artefact=laatste or begrip_artefact(b["werkgebied_id"], b["id"], b["naam"]),
                     meting={"stappen": [{"taak": s.taak, "status": s.status, **s.meting} for s in stappen],
                             "model": any(s.meting.get("model") for s in stappen)})
+
+
+def _nog_open(heeft_definitie: bool) -> str:
+    """Het volgende logische stuk: zonder definitie eerst die, daarna uitleg en voorbeelden, en dan relaties."""
+    if not heeft_definitie:
+        return ("Nog open: neem een definitie over op de begripskaart. Daarna schrijf ik de uitleg in B1 en maak ik "
+                "voorbeelden.")
+    return ("Nog open: neem de uitleg en de voorbeelden over die je goed vindt. Daarna kan ik relaties met andere "
+            "begrippen voorstellen.")

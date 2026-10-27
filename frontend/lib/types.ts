@@ -1415,7 +1415,7 @@ export interface GroepenAntwoord {
 
 // --- Lex naast de kaart (spoor D, fase E) ------------------------------------------------------
 
-export type KaartActie = "brondefinitie" | "scherper" | "betekenisverschil" | "voorbeelden";
+export type KaartActie = "brondefinitie" | "scherper" | "uitleg" | "betekenisverschil" | "voorbeelden";
 /** `context` is het veld toelichting (NL-SBB `skos:scopeNote`). */
 export type KaartVeld = "definitie" | "uitleg" | "context" | "voorbeelden";
 export type VindplaatsSoort = "" | "werkgebied" | "regeling" | "definitieverwijzing" | "elders";

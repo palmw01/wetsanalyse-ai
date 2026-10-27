@@ -1,0 +1,51 @@
+# Woorden die op taalniveau B1 moeilijk zijn, met een gewoon woord dat meestal past (spoor I2).
+#
+# Eigen keuze, in eigen woorden; de B1-regels zelf staan in de skill
+# (`.claude/skills/wetsanalyse/references/nl-sbb-en-b1.md`). Een treffer is een aandachtspunt bij een
+# uitleg van Lex, geen verbod: soms is het moeilijke woord het juiste. Vaktermen en wetsnamen staan
+# hier niet: die laat een uitleg staan en legt ze uit.
+#
+# Sleutel: het woord zoals het in de tekst staat, in kleine letters (ook vervoegde vormen apart).
+aangaande: over
+aanvang: begin
+aanvangen: beginnen
+alsmede: en
+behoeven: hoeven
+benodigd: nodig
+benodigde: nodige
+betreffende: over
+betreft: gaat over
+bewerkstelligen: zorgen voor
+dienen: moeten
+dient: moet
+doch: maar
+echter: maar
+evenwel: toch
+geschiedt: gebeurt
+geschieden: gebeuren
+hetgeen: wat
+hiertoe: daarvoor
+indien: als
+inzake: over
+middels: met
+mits: als
+nadien: daarna
+omtrent: over
+onverwijld: meteen
+op grond van: volgens
+overeenkomstig: volgens
+reeds: al
+retour: terug
+teneinde: om
+terzake: daarover
+thans: nu
+trachten: proberen
+ten aanzien van: over
+ter zake: daarover
+uiterlijk: op zijn laatst
+vervolgens: daarna
+verstrekken: geven
+verstrekt: gegeven
+voorafgaand: vóór
+woonachtig: wonend
+zulks: dat

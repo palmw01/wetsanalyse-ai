@@ -71,7 +71,7 @@ describe("een object stuurt alleen soort en id's", () => {
     const acties = (soort: ObjectSoort) => suggestiesVan({ soort, werkgebied_id: "wg1", id: "x1", label: "" }).map((x) => x.actie);
     expect(acties("deelvraag")).toEqual(["bronnen_zoeken", "deelvragen_annoteren", "dekking", "deelvraag_herformuleren",
       "deelvraag_splitsen"]);
-    expect(acties("begrip")).toEqual(["begrip_uitwerken", "brondefinitie", "voorbeelden", "relaties", undefined]);
+    expect(acties("begrip")).toEqual(["begrip_uitwerken", "brondefinitie", "uitleg", "voorbeelden", "relaties", undefined]);
     // Een bron of kandidaat heeft alleen vragen: de antwoord-worker, met het object als context.
     expect(acties("bron").every((x) => x === undefined)).toBe(true);
     expect(acties("kandidaat").every((x) => x === undefined)).toBe(true);
@@ -131,6 +131,16 @@ describe("buiten de werkplek", () => {
     expect(verzoekVan(leeg)).toEqual(verzoekVan(werkgebied));
     expect(onderwerpUitUrl(new URLSearchParams("werkgebied=wg1&vraag=werkgebied:wg1&vraag_veld=deelvragen"))).toEqual(
       { soort: "werkgebied", werkgebied_id: "wg1", id: "", label: "" });
+  });
+
+  it("een lege uitleg bij een begrip geeft eerst de suggestie voor de uitleg in B1 (spoor I2)", () => {
+    const leeg = { ...begrip, veld: "uitleg" } as Extract<Onderwerp, { soort: "begrip" }>;
+    const url = vraagUrl(leeg);
+    expect(url).toContain("vraag_veld=uitleg");
+    expect(onderwerpUitUrl(new URL(url, "http://x").searchParams)).toEqual(leeg);
+    expect(suggestiesVan(leeg)[0]).toEqual({ tekst: "Schrijf de uitleg in B1", actie: "uitleg" });
+    expect(suggestiesVan(leeg)).toHaveLength(suggestiesVan(begrip).length);
+    expect(verzoekVan(leeg)).toEqual(verzoekVan(begrip));
   });
 
   it("een onbekende soort, een markering of een vreemd id is geen onderwerp", () => {
