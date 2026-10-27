@@ -401,10 +401,16 @@ def test_uitwerken_volgt_de_methode():
                    begrip={"status": "concept", "inhoud": {"naam": "Termijn", "definitie": ""}})
     uit = _taak(api, "uitwerken", begrip_id="b1")
     assert [c[3] for c in api.calls if c[0] == "start"] == ["brondefinitie", "scherper"]
-    assert "Neem een definitie over" in uit.tekst
-    # Met een definitie op de kaart: de brondefinitie en dan de voorbeelden.
+    assert "neem een definitie over" in uit.tekst
+    # Met een definitie op de kaart (spoor I2): de brondefinitie, de uitleg in B1 en de voorbeelden.
     api = KaartApi([], begrip={"status": "concept", "inhoud": {"naam": "Termijn", "definitie": "Een tijdvak."}})
     uit = _taak(api, "uitwerken", begrip_id="b1")
+    assert [c[3] for c in api.calls if c[0] == "start"] == ["brondefinitie", "uitleg", "voorbeelden"]
+    assert "Nog open: neem de uitleg en de voorbeelden over" in uit.tekst
+    # Staat er al een uitleg, dan schrijft Lex er geen nieuwe.
+    api = KaartApi([], begrip={"status": "concept", "inhoud": {"naam": "Termijn", "definitie": "Een tijdvak.",
+                                                                "uitleg": "Zo lang heb je."}})
+    _taak(api, "uitwerken", begrip_id="b1")
     assert [c[3] for c in api.calls if c[0] == "start"] == ["brondefinitie", "voorbeelden"]
 
 

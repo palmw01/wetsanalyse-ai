@@ -127,6 +127,7 @@ ACTIE_TAAK: dict[str, tuple[str, str]] = {
     "begrippen_meedenken": ("begrippen", "meedenken"),
     "brondefinitie": ("begrippen", "brondefinitie"),
     "scherper": ("begrippen", "scherper"),
+    "uitleg": ("begrippen", "uitleg"),
     "voorbeelden": ("begrippen", "voorbeelden"),
     "betekenisverschil": ("begrippen", "betekenisverschil"),
     "begrip_uitwerken": ("begrippen", "uitwerken"),
@@ -137,7 +138,7 @@ ACTIE_TAAK: dict[str, tuple[str, str]] = {
 INTAKE_ACTIES = ("dossier_aanvullen",)
 Actie = Literal["werkgebied_annoteren", "deelvragen_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
                 "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie",
-                "scherper", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen"]
+                "scherper", "uitleg", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen"]
 # Acties die eerst om een bevestiging vragen; alleen daar hoort `bevestigd` bij.
 BEVESTIG_ACTIES = ("werkgebied_annoteren", "deelvragen_annoteren", "begrippen_meedenken")
 

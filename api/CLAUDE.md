@@ -457,7 +457,8 @@ laatste klare run. graph-qa rekent (`agent/begrippen_verdieping.py`), de api bew
 ## Lex naast de kaart
 
 `begrip_voorstellen.py`, `begrip_voorstel_store.py`, `begrip_voorstel_contracts.py`; PLAN spoor D, fase E.
-Vier acties op één begrip: `brondefinitie` (een graafquery, geen model), `scherper`, `betekenisverschil`
+Vijf acties op één begrip: `brondefinitie` (een graafquery, geen model), `scherper`, `uitleg` (spoor I2: de
+uitleg in B1, alleen op een definitie – anders 409 `geen_definitie`, net als `voorbeelden`), `betekenisverschil`
 (met een ander begrip, `ander_begrip_id`) en `voorbeelden`. graph-qa rekent, de api legt vast en toetst.
 
 - **Een voorstel is geen wijziging.** `begrip_voorstellen` is een eigen tabel; Lex schrijft nooit in het

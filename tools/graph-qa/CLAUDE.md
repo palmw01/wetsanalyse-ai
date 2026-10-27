@@ -640,7 +640,7 @@ zonder definitie zijn.
 
 ### Lex naast de kaart (`agent/begrip_kaart.py`, `begrippen_pipeline/kaartacties.py`, fase E)
 
-Vier acties op één begrip, elk een voorstel per veld; de api bewaart ze als eigen object en het begrip
+Vijf acties op één begrip, elk een voorstel per veld; de api bewaart ze als eigen object en het begrip
 verandert pas als de analist overneemt (`api/app/begrip_voorstel_store.py`). Ingang: de taken van de
 begrippen-agent (`kaart_beurt.kaart_kern`: `POST …/kaart-runs` bij de api, dan `kaart_stroom` – run met
 invoer ophalen, `…/loopt`, rekenen, `PUT …/uitkomst`; loopt dezelfde actie al, dan wacht hij). Het eigen
@@ -665,8 +665,16 @@ endpoint `/v1/kaart-runs` is met F3e vervallen.
 - **Codes**: de aandachtspunten van deze acties staan in `kaartacties.TEKST`, los van `toetsen.TEKST`
   (de werkplek leest die laatste letterlijk mee; een nieuwe code daar breekt de frontend-drift-test).
 - **Contract**: `tests/test_begrip_kaart.py` leest `api/app/begrip_voorstel_contracts.py` uit de bron.
+- **Schrijf de uitleg in B1** (spoor I2, `kaartacties.uitleg`): alleen op een definitie, één strict tool
+  (`schrijf_uitleg`: één alinea van hoogstens vijf zinnen, met fragmenten), daarna de **B1-toetsen in code**
+  (`begrippen_pipeline/begrip_b1.py`, met de woordenlijst `b1_woorden.yaml`): `B1_LANGE_ZIN`, `B1_TE_LANG`,
+  `B1_LIJDENDE_VORM` (spaCy `aux:pass`, zonder parser een patroon), `B1_MOEILIJK_WOORD`,
+  `B1_VAKTERM_ONVERKLAARD`, `B1_HERHAALT_DEFINITIE`. Een treffer is een aandachtspunt, geen weigering; het
+  voorstel is altijd geel. De regels staan in de skill (`references/nl-sbb-en-b1.md`, sectie
+  `nl-sbb-taalniveau` van de rol `begrippen`).
 - Meten: `uv run python -m eval.kaartacties_eval` (live tegen de graaf, geen model; een ontwikkelset,
-  meetlogboek `kaartacties-2026-10-16`).
+  meetlogboek `kaartacties-2026-10-16`); de uitleg met `uv run python -m eval.uitleg_eval --runs 3` (graaf én
+  model, kost geld: per code hoe vaak een B1-toets afgaat).
 
 ### Begrippen voorstellen in het gesprek (`agent/begrippen_beurt.py`, fase AF2)
 
@@ -946,8 +954,9 @@ reeks) en `doelen`.
   `deelvragen` (`deelvragen.systeem`), ook in de intake.
 - **De begrippen-agent** (`agents/begrippen.py`): `voorstellen` (`begrippen_beurt.begrippen_kern`),
   `meedenken` (`begrippen_verdieping.verdieping_kern`; zonder `bevestigd` het voorstel met bevestiging),
-  de vier kaartacties (`kaart_beurt.kaart_kern`, dezelfde kaart-run als de knop), `uitwerken`
-  (brondefinitie → zonder definitie een definitievoorstel → voorbeelden pas op een overgenomen definitie)
+  de vijf kaartacties (`kaart_beurt.kaart_kern`, dezelfde kaart-run als de knop), `uitwerken`
+  (brondefinitie → zonder definitie een definitievoorstel → op een overgenomen definitie de uitleg in B1, als
+  die er nog niet is, en voorbeelden; daarna zegt Lex wat er nog open is)
   en `relaties` (`GET …/relaties`, zonder model). Het begrip komt van het onderwerp (`als_rij`) of uit de
   term (`los_op`). Skillrol `begrippen`.
 - **De annotatie-agent** heeft twee taken hier: `werkgebied` en `deelvragen` (alleen de bronnen onder de

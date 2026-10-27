@@ -29,15 +29,19 @@ export type ObjectSoort = Exclude<OnderwerpSoort, "markering">;
 export type Onderwerp =
   | { soort: "markering"; element: NodeElement; view: NodeWeergave }
   | { soort: ObjectSoort; werkgebied_id: string; id: string; label: string;
-      /** Bij het werkgebied: het lege dossierveld waarvoor de analist *Vraag Lex* koos. */
-      veld?: DossierVeld };
+      /** Het lege veld waarvoor de analist *Vraag Lex* koos: een dossierveld bij het werkgebied, de uitleg
+       *  bij een begrip (spoor I2). */
+      veld?: DossierVeld | BegripVeld };
+
+/** De velden van een begrip waarvoor *Vraag Lex* bij een leeg veld een eigen suggestie heeft. */
+export type BegripVeld = "uitleg";
 
 /** De acties die graph-qa kent (`agent/models.py`, `Actie`: een taak van een agent uit `ACTIE_TAAK`, of het
  *  dossier aanvullen); `vraagLex.test.ts` leest die bron. */
 export const ACTIES = [
   "werkgebied_annoteren", "deelvragen_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
   "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie", "scherper",
-  "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen",
+  "uitleg", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen",
 ] as const;
 
 /** Hoe de suggestie bij een leeg dossierveld het veld noemt; graph-qa herkent het woord (`dossiervelden_in`). */
@@ -138,6 +142,7 @@ const SUGGESTIES: Record<ObjectSoort, Suggestie[]> = {
   begrip: [
     { tekst: "Werk het begrip volledig uit", actie: "begrip_uitwerken" },
     { tekst: "Zoek de brondefinitie", actie: "brondefinitie" },
+    { tekst: "Schrijf de uitleg in B1", actie: "uitleg" },
     { tekst: "Geef voorbeelden", actie: "voorbeelden" },
     { tekst: "Stel relaties voor", actie: "relaties" },
     { tekst: "Wat is het betekenisverschil met ", invullen: true },
@@ -149,10 +154,12 @@ export const MODULES: { markering: Module<Markering> } & Record<ObjectSoort, Mod
   deelvraag: objectModule(() => SUGGESTIES.deelvraag),
   bron: objectModule(() => SUGGESTIES.bron),
   kandidaat: objectModule(() => SUGGESTIES.kandidaat),
-  begrip: objectModule(() => SUGGESTIES.begrip),
   // Bij een leeg veld (`veld`) eerst de suggestie die precies dat veld aanvult.
-  werkgebied: objectModule((o) => o.veld
-    ? [{ tekst: VELD_ZIN[o.veld], actie: "dossier_aanvullen" }, ...SUGGESTIES.werkgebied]
+  begrip: objectModule((o) => o.veld === "uitleg"
+    ? [...SUGGESTIES.begrip.filter((s) => s.actie === "uitleg"), ...SUGGESTIES.begrip.filter((s) => s.actie !== "uitleg")]
+    : SUGGESTIES.begrip),
+  werkgebied: objectModule((o) => o.veld && o.veld in VELD_ZIN
+    ? [{ tekst: VELD_ZIN[o.veld as DossierVeld], actie: "dossier_aanvullen" }, ...SUGGESTIES.werkgebied]
     : SUGGESTIES.werkgebied),
 };
 
@@ -184,7 +191,7 @@ const ID = /^[A-Za-z0-9-]{1,64}$/;
 export function vraagUrl(o: Object_): string {
   const qs = new URLSearchParams({ werkgebied: o.werkgebied_id, vraag: `${o.soort}:${o.id || o.werkgebied_id}` });
   if (o.label) qs.set("vraag_label", o.label.slice(0, 200));
-  if (o.soort === "werkgebied" && o.veld) qs.set("vraag_veld", o.veld);
+  if ((o.soort === "werkgebied" || o.soort === "begrip") && o.veld) qs.set("vraag_veld", o.veld);
   return `/workbench?${qs}`;
 }
 
@@ -200,6 +207,7 @@ export function onderwerpUitUrl(zoek: { get(naam: string): string | null }): Obj
     soort: soort as ObjectSoort, werkgebied_id: werkgebied, id: soort === "werkgebied" ? "" : id,
     label: (zoek.get("vraag_label") ?? "").slice(0, 200),
     ...(soort === "werkgebied" && VELDEN.has(veld) ? { veld: veld as DossierVeld } : {}),
+    ...(soort === "begrip" && veld === "uitleg" ? { veld: "uitleg" as const } : {}),
   };
 }
 

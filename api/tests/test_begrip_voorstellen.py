@@ -230,7 +230,7 @@ async def test_voorbeelden_worden_toegevoegd_nooit_vervangen(client):
         "naam": "Alfa", "definitie": "de eerste", "definitie_herkomst": "geformuleerd",
         "voorbeelden": [{"tekst": "eigen", "oordeel": "wel"}]}})).json()
     run = await _run(client, wg, b, "voorbeelden", 201)
-    vbs = [{"veld": "voorbeelden", "tekst": "A is de eerste", "oordeel": "wel", "toelichting": "past"},
+    vbs = [{"veld": "voorbeelden", "tekst": "A is de eerste", "oordeel": "wel"},
            {"veld": "voorbeelden", "tekst": "B komt later", "oordeel": "niet"}]
     v1, v2 = (await _uitkomst(client, wg, b, run, vbs)).json()["voorstellen"]
     assert "verouderd" not in v1
@@ -240,6 +240,25 @@ async def test_voorbeelden_worden_toegevoegd_nooit_vervangen(client):
         ("eigen", "wel"), ("A is de eerste", "wel"), ("B komt later", "onzeker")]
     statussen = {x["id"]: x["status"] for x in (await client.get(f"{_pad(wg, b)}/voorstellen")).json()["voorstellen"]}
     assert (statussen[v1["id"]], statussen[v2["id"]]) == ("overgenomen", "aangepast")
+
+
+async def test_de_uitleg_in_b1_rust_op_een_definitie_en_wordt_toegevoegd(client):
+    """Spoor I2: de actie `uitleg` vraagt een definitie en stelt alleen het veld uitleg voor."""
+    wg = await _werkgebied(client)
+    b = await _begrip(client, wg)
+    r = await client.post(f"{_pad(wg, b)}/kaart-runs", json={"actie": "uitleg"})
+    assert r.status_code == 409 and "Een uitleg legt een definitie" in r.json()["detail"]["melding"]
+    b = (await client.patch(_pad(wg, b), json={"verwachte_revisie": 1, "inhoud": {
+        "naam": "Alfa", "definitie": "de eerste"}})).json()
+    run = await _run(client, wg, b, "uitleg", 201)
+    r = await _uitkomst(client, wg, b, run, [{"veld": "voorbeelden", "tekst": "x", "oordeel": "wel"}])
+    assert r.status_code == 422
+    [v] = (await _uitkomst(client, wg, b, run, [{"veld": "uitleg", "tekst": "Alfa komt eerst.",
+                                                 "aandachtspunten": ["DOOR_LEX_UITLEG", "B1_LIJDENDE_VORM"]}])
+           ).json()["voorstellen"]
+    assert v["aandachtspunten"] == ["DOOR_LEX_UITLEG", "B1_LIJDENDE_VORM"]
+    b = (await _neem_over(client, wg, b, v)).json()
+    assert b["inhoud"]["uitleg"] == "Alfa komt eerst."
 
 
 async def test_betekenisverschil_met_een_ander_begrip(client):

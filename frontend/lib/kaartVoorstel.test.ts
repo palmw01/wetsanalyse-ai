@@ -25,7 +25,7 @@ it("de aandachtspunten volgen graph-qa kaartacties.TEKST, code voor code en woor
   const bron = readFileSync(resolve(__dirname, "../../tools/graph-qa/agent/begrippen_pipeline/kaartacties.py"), "utf8");
   const tabel = bron.slice(bron.indexOf("TEKST: dict"), bron.indexOf("}\n", bron.indexOf("TEKST: dict")));
   // Een Python-string mag over regels doorlopen ("…" "…"): de stukken samen zijn de tekst.
-  const daar = Object.fromEntries([...tabel.matchAll(/"([A-Z_]+)":\s*((?:"[^"]*"\s*)+),/g)]
+  const daar = Object.fromEntries([...tabel.matchAll(/"([A-Z0-9_]+)":\s*((?:"[^"]*"\s*)+),/g)]
     .map((m) => [m[1], [...m[2].matchAll(/"([^"]*)"/g)].map((x) => x[1]).join("")]));
   expect(AANDACHTSPUNT_LEX).toEqual(daar);
   expect(aandachtTekst("DOOR_LEX_GEFORMULEERD")).toMatch(/door Lex geformuleerd/);

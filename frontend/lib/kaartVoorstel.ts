@@ -19,6 +19,13 @@ export const AANDACHTSPUNT_LEX: Record<string, string> = {
   DOOR_LEX_VOORBEELD: "Dit voorbeeld is door Lex bedacht en heeft geen bronanker; toets het aan de definitie.",
   HERHAALT_DEFINITIE: "Het voorbeeld herhaalt de definitie; het toetst de afbakening niet.",
   GEEN_TEGENVOORBEELD: "Er is geen tegenvoorbeeld; een voorbeeld dat er net buiten valt, toetst de grens.",
+  DOOR_LEX_UITLEG: "Deze uitleg is door Lex geschreven; toets haar aan de definitie en de passages.",
+  B1_LANGE_ZIN: "Een zin is langer dan 20 woorden; maak er twee zinnen van.",
+  B1_TE_LANG: "De uitleg heeft meer dan vijf zinnen; houd het bij één korte alinea.",
+  B1_LIJDENDE_VORM: "De uitleg gebruikt een lijdende vorm; zeg wie iets doet.",
+  B1_MOEILIJK_WOORD: "De uitleg gebruikt een moeilijk woord waarvoor een gewoner woord bestaat.",
+  B1_VAKTERM_ONVERKLAARD: "Een vakterm uit de definitie staat in de uitleg zonder dat die hem uitlegt.",
+  B1_HERHAALT_DEFINITIE: "De uitleg herhaalt de definitie; zeg het in eigen, eenvoudige woorden.",
 };
 
 /** De tekst bij een aandachtspunt; een onbekende code verschijnt als zichzelf. */

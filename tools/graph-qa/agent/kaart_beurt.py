@@ -35,6 +35,7 @@ _ACTIES = (
     ("brondefinitie", re.compile(r"\bbrondefinitie\w*\b")),
     ("betekenisverschil", re.compile(r"\bbetekenisverschil\w*\b|\bverschil in betekenis\b|\bverschil\b.*\btussen\b")),
     ("scherper", re.compile(r"\b(aanscherp\w*|verscherp\w*|scherper\w*|scherp)\b.*\bdefinitie|\bdefinitie\b.*\b(aanscherp\w*|verscherp\w*|scherper\w*|scherp)\b")),
+    ("uitleg", re.compile(r"\b(schrijf|maak|geef|stel)\b.*\buitleg\b|\buitleg\b.*\b(b1|eenvoudige taal)\b")),
     ("voorbeelden", re.compile(r"\bvoorbeeld(en)?\b")),
 )
 _AANHALING = re.compile(r"[\"“”'‘’]([^\"“”'‘’]{2,80})[\"“”'‘’]")
@@ -46,10 +47,10 @@ _MET = re.compile(r"\bmet\s+(.+?)\s*[?.!]*$")
 _HET_BEGRIP = re.compile(r"\bhet\s+begrip\s+(?!volledig\b|uit\b)([\w-]+)")
 _LIDWOORD = re.compile(r"^(?:het\s+begrip|de\s+term|het|de|een)\s+")
 # "maak de definitie van termijn scherper": de handeling hoort niet bij de term.
-_STAART = re.compile(r"\s+(?:scherper|scherp|aanscherpen|verscherpen|aan te scherpen|maken)$")
+_STAART = re.compile(r"\s+(?:scherper|scherp|aanscherpen|verscherpen|aan te scherpen|maken|in b1|in eenvoudige taal)$")
 
 WEIGERING = {
-    "geen_definitie": "Voorbeelden toetsen een definitie; geef het begrip eerst een definitie.",
+    "geen_definitie": "Voorbeelden en een uitleg rusten op een definitie; geef het begrip eerst een definitie.",
     "geen_passages": "Dit begrip heeft nog geen actuele dragende passage; daar kan ik niets op baseren.",
     "inventaris_onvolledig": "Niet elke bron van het werkgebied kon worden opgehaald; probeer het zo opnieuw.",
 }
@@ -139,7 +140,7 @@ def kies(term: str, rijen: list[dict[str, Any]], eerst: str) -> tuple[dict[str, 
 
 
 def samenvatting(actie: str, naam: str, werkgebied: str, aantal: int, melding: str, al_gedaan: bool) -> str:
-    plek = {"brondefinitie": "onder de definitie", "scherper": "onder de definitie",
+    plek = {"brondefinitie": "onder de definitie", "scherper": "onder de definitie", "uitleg": "bij de uitleg",
             "betekenisverschil": "bij de uitleg", "voorbeelden": "bij de voorbeelden"}.get(actie, "op de kaart")
     kop = f"{NAAM.get(actie, actie)} voor *{naam}* (werkgebied {werkgebied})"
     if al_gedaan:
@@ -166,6 +167,7 @@ async def als_rij(ctx: Context, werkgebied_id: str, begrip_id: str) -> dict[str,
     inhoud = b.get("inhoud") or {}
     return {"id": begrip_id, "naam": inhoud.get("naam") or "naamloos", "werkgebied_id": werkgebied_id,
             "werkgebied_naam": wg_naam, "status": b.get("status", ""), "definitie": inhoud.get("definitie") or "",
+            "uitleg": inhoud.get("uitleg") or "",
             "vervangen_door": b.get("vervangen_door") or {}}
 
 

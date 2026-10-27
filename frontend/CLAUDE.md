@@ -447,8 +447,10 @@ begrip, werkgebied), met per soort een module in `MODULES` (`chip`, `suggesties`
 - **Suggesties per soort** (`SUGGESTIES`, F3d): werkgebied (het dossier aanvullen, deelvragen voorstellen, bepalingen zoeken,
   dekking, annoteren, de bepalingen van de deelvragen annoteren, begrippen voorstellen, meedenken), deelvraag
   (zoeken, de bepalingen hierbij annoteren, gedekt?, scherper, splitsen),
-  begrip (uitwerken, brondefinitie, voorbeelden, relaties, en *Wat is het betekenisverschil met …* met
-  `invullen`: in het veld, de analist noemt het andere begrip). Bron en kandidaat hebben alleen vragen
+  begrip (uitwerken, brondefinitie, *Schrijf de uitleg in B1* (spoor I2), voorbeelden, relaties, en *Wat is
+  het betekenisverschil met …* met `invullen`: in het veld, de analist noemt het andere begrip). Bij een lege
+  uitleg in `BegripPaneel` staat *Vraag Lex* met `veld: "uitleg"`; de suggestie voor de uitleg staat dan
+  voorop. De B1-aandachtspunten staan in `AANDACHTSPUNT_LEX` (gelijk aan graph-qa `kaartacties.TEKST`). Bron en kandidaat hebben alleen vragen
   zonder actie (waarom deze bepaling, verwijzingen, bij welke deelvraag): die gaan met het object langs de
   supervisor naar de antwoord-worker.
 - **Het dossier aanvullen** (`dossier_aanvullen`) is in `ACTIES` maar geen taak van een agent: graph-qa
