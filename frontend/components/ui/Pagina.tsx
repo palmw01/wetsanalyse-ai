@@ -11,6 +11,8 @@ import { ChevronOmlaag } from "@/components/ui/Icoon";
  *  - `SplitDetail` – links de inhoud, rechts de relaties en de voortgang;
  *  - `ObjectRij` – een compacte rij (titel, subregel, status, chevron) die naar een detailpagina gaat.
  *    Geen knoppen per rij en geen IRI's in beeld: wat je met het object doet, staat op zijn pagina;
+ *  - `Groep` + `GroepRij` – een groep rijen in één kader met een kop erboven (`groupbox` + `itemrow` van de
+ *    mock-up): de bronnen per deelvraag, de bepalingen per regeling (spoor K);
  *  - `Teller` – een getal met een label, als link naar waar het over gaat. */
 
 export interface Kruimel {
@@ -162,6 +164,65 @@ export function ObjectRij({ href, titel, sub, status, voor, ...rest }: {
         {status && <span className="flex shrink-0 flex-wrap justify-end gap-1.5">{status}</span>}
         <ChevronOmlaag className="shrink-0 -rotate-90 text-faint group-hover:text-lint" />
       </Link>
+    </li>
+  );
+}
+
+/** Een groep rijen in één kader (spoor K, de `groupbox` van de mock-up): een kop met telling en status, en
+ *  daaronder de rijen met een scheidingslijn – rustiger dan losse kaartjes, en geen boom. */
+export function Groep({ kop, sub, telling, status, label, children, leeg, ...rest }: {
+  kop: React.ReactNode;
+  sub?: React.ReactNode;
+  telling?: React.ReactNode;
+  status?: React.ReactNode;
+  /** De toegankelijke naam van de lijst. */
+  label: string;
+  children?: React.ReactNode;
+  /** Wat er staat als de groep geen rijen heeft. */
+  leeg?: React.ReactNode;
+} & Omit<React.HTMLAttributes<HTMLElement>, "title">) {
+  const kinderen = Array.isArray(children) ? children.flat().filter(Boolean) : children ? [children] : [];
+  return (
+    <section {...rest}>
+      <div className="mb-2 flex flex-wrap items-baseline gap-x-2.5 gap-y-1 border-b border-line pb-2">
+        <h3 className="min-w-0 font-display text-sm font-semibold text-lint [overflow-wrap:anywhere]">{kop}</h3>
+        {telling !== undefined && <span className="text-xs tabular-nums text-muted">{telling}</span>}
+        {status && <span className="ml-auto flex shrink-0 items-center gap-1.5">{status}</span>}
+        {sub && <p className="w-full text-xs text-muted">{sub}</p>}
+      </div>
+      {kinderen.length ? (
+        <ul aria-label={label} className="divide-y divide-line overflow-hidden rounded-kaart border border-line bg-paper shadow-zacht">
+          {kinderen}
+        </ul>
+      ) : leeg ? <p className="text-sm text-muted">{leeg}</p> : null}
+    </section>
+  );
+}
+
+/** Eén rij in een `Groep` (de `itemrow` van de mock-up): titel, subregel, status en een chevron naar de pagina
+ *  van het object. `eind` staat buiten de link (een menu ⋯), `onder` eronder (dat menu, uitgeklapt). */
+export function GroepRij({ href, titel, sub, status, eind, onder, ...rest }: {
+  href: string;
+  titel: React.ReactNode;
+  sub?: React.ReactNode;
+  status?: React.ReactNode;
+  eind?: React.ReactNode;
+  onder?: React.ReactNode;
+} & Omit<React.LiHTMLAttributes<HTMLLIElement>, "title">) {
+  return (
+    <li {...rest}>
+      <div className="flex items-center gap-2 pr-2 transition-colors hover:bg-surface">
+        <Link href={href} className="focus-ring group flex min-h-[48px] min-w-0 flex-1 items-center gap-3 rounded-md py-3 pl-4">
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-lint [overflow-wrap:anywhere] group-hover:underline">{titel}</span>
+            {sub && <span className="mt-0.5 block text-xs leading-relaxed text-muted [overflow-wrap:anywhere]">{sub}</span>}
+          </span>
+          {status && <span className="flex shrink-0 flex-wrap justify-end gap-1.5">{status}</span>}
+          <ChevronOmlaag className="shrink-0 -rotate-90 text-faint group-hover:text-lint" />
+        </Link>
+        {eind}
+      </div>
+      {onder}
     </li>
   );
 }

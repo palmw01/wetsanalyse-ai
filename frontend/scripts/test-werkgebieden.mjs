@@ -210,7 +210,8 @@ try {
   await page.getByLabel("Regeling of bron-IRI").fill("bwbr0004770");
   await page.getByLabel("Artikel", { exact: true }).fill("artikel 9");
   await page.getByRole("button", { name: "Opnemen", exact: true }).click();
-  const rij9 = page.getByRole("link", { name: /^Invorderingswet 1990 – artikel 9/ });
+  // Spoor K: de rij noemt de bepaling als titel en de regeling eronder (de mock-up), per deelvraag gegroepeerd.
+  const rij9 = page.locator("[data-bron]").filter({ hasText: "Invorderingswet 1990" }).getByRole("link", { name: /^artikel 9/ });
   await rij9.waitFor();
   const eerste = requests.find((r) => r.p.endsWith("/bronnen") && r.m === "POST").body;
   assert.deepEqual([eerste.bwb_id, eerste.artikel, eerste.verwachte_revisie, eerste.rol, eerste.bereik],
@@ -236,7 +237,7 @@ try {
   await page.getByLabel("Artikel", { exact: true }).fill("3");
   await page.getByLabel("Contextbron", { exact: false }).check();
   await page.getByRole("button", { name: "Opnemen", exact: true }).click();
-  await page.getByRole("link", { name: /^Algemene wet inzake rijksbelastingen – artikel 3/ }).waitFor();
+  await page.locator("[data-bron]").filter({ hasText: "Algemene wet inzake rijksbelastingen" }).getByRole("link", { name: /^artikel 3/ }).waitFor();
   await tab("Bronnen (2)").waitFor();
   await foto("werkgebied-bronnen");
 

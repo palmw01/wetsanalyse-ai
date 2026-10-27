@@ -124,6 +124,17 @@ export function bladerenVan<T>(k: BoomKnoop<T>): Blad<T>[] {
   return [...k.bladeren, ...k.kinderen.flatMap(bladerenVan)];
 }
 
+/** De boom plat per regeling (spoor K): elke bepaling één rij met haar plek ("Artikel 9 · Lid 2"), in de volgorde
+ *  van de wet, zonder in te klappen niveaus. Voor lezen; kiezen met vinkjes per hoofdstuk blijft de boom. */
+export function rijenPerRegeling<T>(boom: readonly BoomKnoop<T>[]): { sleutel: string; regeling: string; rijen: { blad: Blad<T>; plek: string }[] }[] {
+  const plat = (k: BoomKnoop<T>, artikel?: string): { blad: Blad<T>; plek: string }[] => [
+    ...k.bladeren.map((blad) => ({ blad, plek: k.soort === "artikel"
+      ? (blad.label === "Hele bepaling" ? k.label : `${k.label} · ${blad.label}`) : blad.label })),
+    ...k.kinderen.flatMap((c) => plat(c, c.soort === "artikel" ? c.label : artikel)),
+  ];
+  return boom.map((r) => ({ sleutel: r.sleutel, regeling: r.label, rijen: plat(r) }));
+}
+
 /** "18 bepalingen in 4 regelingen": de omvang van een boom in één regel. */
 export function omvangZin<T>(boom: readonly BoomKnoop<T>[]): string {
   const n = boom.reduce((s, r) => s + bladerenVan(r).length, 0);

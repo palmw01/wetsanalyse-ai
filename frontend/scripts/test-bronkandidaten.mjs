@@ -137,8 +137,9 @@ try {
   await kaart(D2).getByText("definieert “belastingaanslag”, dat in Artikel 9, lid 1 staat").waitFor();
   assert.equal(await sectie().getByRole("tab", { name: "Voorstellen (3)" }).count(), 1);
 
-  // --- Spoor H/J: een boom per regeling › artikel als bronverkenner – geen vinkjes, geen actiebalk, geen besluiten ---
-  await sectie().locator("[data-bronboom] [data-boom-knoop=regeling]").first().waitFor();
+  // --- Spoor K: rijen per regeling als bronverkenner (geen boom) – geen vinkjes, geen actiebalk, geen besluiten ---
+  await sectie().locator("[data-bronregelingen] section").first().waitFor();
+  assert.equal(await sectie().locator("[data-bronboom]").count(), 0, "geen boom om te lezen");
   assert.equal(await sectie().getByRole("checkbox").count(), 0, "kiezen gaat per deelvraag, in de bronselectie");
   assert.equal(await sectie().locator("[data-actiebalk]").count(), 0, "geen actiebalk");
   assert.equal(await sectie().getByRole("button", { name: /Opnemen|Later|Uitsluiten|Heropenen/ }).count(), 0,

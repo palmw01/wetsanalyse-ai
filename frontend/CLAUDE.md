@@ -699,9 +699,12 @@ bestaat los van de gesprekken.
   - **Vier tabs als paden** (`PROJECT_TABS`, `projectPad` in `lib/werkgebiedPaden.ts`): Overzicht
     (`OverzichtTab`: tellers, de analyseopdracht met de analysevraag centraal, deelvragen als rijen naar hun
     pagina, de laatste gesprekken, de artefacten), Gesprekken (`GesprekkenTab`: de eigen gesprekken, een klik
-    opent de werkplek), Bronnen (`BronnenRegister`: zoeken, rolfilter, per bron de stand uit de werkvoorraad
-    – `selectieStand` –, rol en verwijderen achter ⋯, opnemen in een venster `BronOpnemen`, de voorstellen van
-    Lex in één regel naar `bronnen/voorstellen`) en Artefacten (`ArtefactenTab`: vier kaarten,
+    opent de werkplek), Bronnen (`BronnenRegister`, spoor K: **één lijst, per deelvraag getoond** (methode
+    1f/1g) – per actieve deelvraag een `Groep` met haar voortgang en haar bronnen als `GroepRij` (bepaling als
+    titel, regeling · rol · annotatiestand · "ook bij deelvraag n" eronder, *Geselecteerd* of *Context*), de open
+    voorstellen van Lex bij die deelvraag als *Ter beoordeling*, en wat bij geen deelvraag hoort onder *Zonder
+    deelvraag*; rekenkern `lib/bronnenPerDeelvraag.ts`; zoeken, rolfilter, rol en verwijderen achter ⋯, opnemen
+    in een venster `BronOpnemen`, de voorstellen van Lex in één regel naar `bronnen/voorstellen`) en Artefacten (`ArtefactenTab`: vier kaarten,
     `artefactKaarten`).
   - **Detailpagina's** (`DetailPaginas.tsx`): `artefacten/[soort]` – `dossier` (de velden, *Bewerken* in
     een venster `GegevensDialoog` – met het TOOI-thema (spoor I6: een keuzelijst per hoofdthema uit
@@ -783,8 +786,10 @@ bestaat los van de gesprekken.
     lid 1 (“artikel 8”) – uitzondering"). Per methode de telling en "onvolledig" als ze haar plafond
     raakte. Filters *Voorstellen* / *Uitgesloten* / *Opgenomen* (`filterVan`: met de hand opgenomen telt als
     opgenomen, een oud *later* als voorstel).
-  - **Een boom** (spoor H2): de kandidaten in `BronBoom` per regeling › hoofdstuk › artikel › lid (de plek uit
-    `usePlaatsen`), per regel de rol en één zin bewijs (`bewijsSamenvatting`); *Bewijs* klapt het hele bewijs uit.
+  - **Rijen per regeling** (spoor K, was een boom in H2): de kandidaten per regeling als `Groep`, in de volgorde
+    van de wet (`rijenPerRegeling` over `bouwBoom`, de plek uit `usePlaatsen`), per rij de plek ("Artikel 9 · Lid
+    2"), de rol en één zin bewijs (`bewijsSamenvatting`); *Bewijs* klapt het hele bewijs uit. `BronBoom` blijft
+    alleen waar je kiest met vinkjes: het koppelvenster van een deelvraag en de termpagina.
   - De allowlist (`isWerkgebiedRoute`) laat alleen `kandidaten` (lezen) en `bronnen-runs/laatste|{run}` door,
     nooit een besluit op een kandidaat, een kale POST op `bronnen-runs` of `…/uitkomst|loopt|mislukt`.
   - **Werkgebied vanuit een overzicht**: onder `OverzichtBlok` de knop *Maak hier een werkgebied van*
@@ -810,10 +815,11 @@ bestaat los van de gesprekken.
     door, nooit `deelvragen/voorstellen` (van graph-qa).
   - Browserregressie: `scripts/test-deelvragen.mjs`.
 - **Deelvragen met structuur** (spoor H3): in het dossier is een deelvraag een rij – de vraag als link naar
-  haar pagina, herkomst en omvang ("7 bronnen in 3 regelingen · 0 begrippen"), de stand – met *Bronnen en
-  begrippen koppelen*, *Bewerken* en **Verwijderen** achter ⋯. Koppelen gaat in een venster
+  haar pagina, herkomst en omvang ("7 bronnen in 3 regelingen"), de voortgang van haar bronselectie – met
+  *Bronnen koppelen*, *Bewerken* en **Verwijderen** achter ⋯. Koppelen gaat in een venster
   (`KoppelDialoog`): de bronnen als `BronBoom` met vinkjes (een heel artikel, hoofdstuk of regeling in één
-  klik) en de begrippen. Op de deelvraagpagina staan haar bronnen als boom, met *Koppelen*. Een bronselectie
+  klik); begrippen koppel je niet aan een deelvraag (spoor K). Op de deelvraagpagina staan haar bronnen als
+  rijen (`Groep`/`GroepRij`), met *Koppelen*. Een bronselectie
   heet *Verwijderen uit werkgebied*. Ruwe IRI's in oudere dossiertekst toont de werkplek als hun plek
   (`metLeesbareBronnen`).
 - **Opnemen vanuit een annotatie**: *Opnemen in werkgebied* in de kop van `/annotaties/node`

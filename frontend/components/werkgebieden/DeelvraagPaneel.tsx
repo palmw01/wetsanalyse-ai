@@ -9,16 +9,14 @@ import { BronKandidaten } from "@/components/werkgebieden/BronKandidaten";
 import { DeelvraagVoorstel, KoppelDialoog } from "@/components/werkgebieden/Deelvragen";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
 import { foutTekst, haalDeelvraag, haalWerkgebied } from "@/lib/api";
-import { deelvraagStand } from "@/lib/bronselectie";
+import { bronnenZin, deelvraagStand } from "@/lib/bronselectie";
+import { bepalingEnRegeling } from "@/lib/bronnenPerDeelvraag";
 import { splits } from "@/lib/deelvragen";
 import type { DeelvraagDetail, Werkgebied } from "@/lib/types";
 import { useBronselectieStand } from "@/lib/useBronselectieStand";
 import { ROL_LABEL, isRevisieConflict } from "@/lib/werkgebied";
-import Link from "next/link";
-import { BronBoom } from "@/components/ui/BronBoom";
 import { Button } from "@/components/ui/Button";
-import { bouwBoom, regelingUitLabel } from "@/lib/bronPlaats";
-import { usePlaatsen } from "@/lib/usePlaatsen";
+import { Groep, GroepRij } from "@/components/ui/Pagina";
 import { bronPad } from "@/lib/werkgebiedPaden";
 
 /** Eén deelvraag naast het gesprek (F3d): wat Lex over haar opleverde, om te beoordelen.
@@ -46,7 +44,6 @@ export function DeelvraagPaneel({ werkgebiedId, deelvraagId, onKies, onGewijzigd
   const [melding, setMelding] = useState<{ type: "bevestiging" | "waarschuwing"; tekst: string } | null>(null);
   const [koppelen, setKoppelen] = useState(false);
   // De plek van alle bronnen van het werkgebied (één verzoek), voor de boom van deze deelvraag.
-  const plaatsen = usePlaatsen(wg?.bronnen.map((b) => b.bron_iri) ?? []);
 
   const laad = useCallback(async () => {
     try {
@@ -103,8 +100,6 @@ export function DeelvraagPaneel({ werkgebiedId, deelvraagId, onKies, onGewijzigd
   const hier = selectie?.deelvragen.find((d) => d.id === detail.id);
   const stand = deelvraagStand(hier);
   const bronnen = wg.bronnen.filter((b) => detail.bronnen.includes(b.id));
-  const boom = bouwBoom(bronnen, { iri: (b) => b.bron_iri, naam: (b) => b.label || b.bron_iri, plaatsen,
-    regelingNaam: (b) => regelingUitLabel(b.label) });
 
   return (
     <div data-deelvraag-paneel={detail.id} data-status={detail.status} className="space-y-5 text-sm text-ink">
@@ -150,23 +145,23 @@ export function DeelvraagPaneel({ werkgebiedId, deelvraagId, onKies, onGewijzigd
         </Sectie>
       )}
 
-      {/* De bronnen als boom per regeling › hoofdstuk › artikel › lid (spoor H3); koppelen in een venster. */}
-      <Sectie titel="Bronnen" telling={bronnen.length} niveau={3}
-        acties={detail.status === "actief" && (
+      {/* De bronnen als rijen (spoor K, de `itemrow` van de mock-up); koppelen in een venster. */}
+      <Groep kop="Bronnen" telling={bronnenZin(bronnen.length)} label="Bronnen bij deze deelvraag"
+        status={detail.status === "actief" && (
           <Button size="sm" variant="secondary" onClick={() => setKoppelen(true)}
             aria-label={`Bronnen bij: ${detail.vraag}`}>Koppelen</Button>
-        )}>
-        {bronnen.length ? (
-          <BronBoom boom={boom} label="Bronnen bij deze deelvraag"
-            bladAttrs={(b) => ({ "data-bron": b.data.id })}
-            renderBlad={(b) => (
-              <span className="flex flex-wrap items-center gap-x-2 text-sm">
-                <Link href={bronPad(b.bron_iri, werkgebiedId)} className="focus-ring rounded text-lint hover:underline">{b.label}</Link>
-                <span className="text-xs text-muted">{ROL_LABEL[b.data.rol]}</span>
-              </span>
-            )} />
-        ) : <p className="text-muted">Er hoort nog geen bron bij deze deelvraag.</p>}
-      </Sectie>
+        )}
+        leeg="Er hoort nog geen bron bij deze deelvraag.">
+        {bronnen.map((b) => {
+          const { bepaling, regeling } = bepalingEnRegeling(b.label || b.bron_iri);
+          const rol = hier?.bronnen.find((x) => x.selectie_id === b.id)?.rol ?? b.rol;
+          return (
+            <GroepRij key={b.id} data-bron={b.id} href={bronPad(b.bron_iri, werkgebiedId)} titel={bepaling}
+              sub={[regeling, ROL_LABEL[rol].toLowerCase()].filter(Boolean).join(" · ")}
+              status={rol === "context" ? <StatusLabel>Context</StatusLabel> : <StatusLabel toon="groen">Geselecteerd</StatusLabel>} />
+          );
+        })}
+      </Groep>
       {koppelen && <KoppelDialoog wg={wg} deelvraag={detail} muteer={muteer} onKlaar={() => setKoppelen(false)} />}
 
       {detail.status === "actief" && (
