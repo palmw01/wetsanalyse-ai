@@ -1,6 +1,5 @@
 "use client";
 
-import { MENU_PANEEL, MENU_RIJ } from "@/components/ui/Menu";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
