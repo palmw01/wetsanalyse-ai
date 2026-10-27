@@ -1,7 +1,7 @@
 # Bronselectie per deelvraag (spoor J)
 
 Soort: *specificatie, beweegt mee met de code* · Hoort bij: PLAN spoor J · Code: `api/app/bronselectie.py`,
-`tools/graph-qa/agent/bronselectie.py`, `frontend/components/werkgebieden/BronselectieOverzicht.tsx`
+`tools/graph-qa/agent/bronselectie.py`, `frontend/components/werkgebieden/BronnenBijDeelvraag.tsx`
 
 Lex begeleidt de bronselectie van een werkgebied in het gesprek, deelvraag voor deelvraag. Het model kiest
 daarbij niets: de stand en de volgorde zijn van de applicatie, de zoekmethoden zijn deterministisch, en de

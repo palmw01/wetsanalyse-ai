@@ -240,8 +240,10 @@ try {
   // --- In het paneel naar deelvraag 4 springen, zonder deelvraag 2 af te ronden ---
   await paneel().waitFor();
   await deelvraagInPaneel("d2").locator("[data-onderzoekspunten]").getByText("bijzondere invorderbaarheid", { exact: false }).waitFor();
-  await deelvraagInPaneel("d2").getByText("Artikel 10a, lid 2 – Invorderingswet 1990").waitFor();
-  await deelvraagInPaneel("d4").locator("summary").click();
+  // De rij noemt de bepaling als titel en de regeling eronder (spoor K/L).
+  await deelvraagInPaneel("d2").getByText("Artikel 10a, lid 2", { exact: true }).waitFor();
+  // Een andere deelvraag staat in het paneel als kop met *Ga verder* (spoor L), zonder uit te klappen.
+  assert.equal(await deelvraagInPaneel("d4").locator("[data-bron-hier]").count(), 0, "alleen de deelvraag van het gesprek staat open");
   await deelvraagInPaneel("d4").getByRole("button", { name: "Ga verder met deelvraag 4" }).click();
   await page.getByRole("button", { name: "Bepaal de bronnen bij deze deelvraag" }).click();
   await wacht(9);
@@ -277,16 +279,17 @@ try {
   await ander.locator("[data-vraagdock=bs_bepalingen]").getByText("4 van 4").waitFor();
   await ander.close();
 
-  // --- De pagina Bronselectie: dezelfde stand, zonder gesprek ---
+  // --- De pagina Bronselectie is de tab Bronnen (spoor L): dezelfde stand, zonder gesprek ---
   await page.goto(`${base}/werkgebieden/wg1/artefacten/bronselectie`);
-  const pagina = page.locator("[data-bronselectie]");
+  await page.waitForURL("**/werkgebieden/wg1/bronnen");
+  const pagina = page.locator("[data-bronnen-bij-deelvraag]");
   await pagina.locator("[data-bronselectie-deelvraag=d1]").getByText("Artikel 9, lid 1").waitFor();
   await pagina.locator("[data-bronselectie-voortgang]").getByText("1 van 4 deelvragen afgerond").waitFor();
   await pagina.locator("[data-bronselectie-slot]").getByText("nog niet beoordeeld", { exact: false }).waitFor();
   assert.equal(await pagina.getByRole("button", { name: /Ga verder met deelvraag/ }).count(), 0, "de pagina start Lex niet");
 
   assert.deepEqual(errors, []);
-  console.log("Browser OK: bronselectie starten met vier deelvragen, deelvraag 1 opnemen en afronden, Hoe wil je verder? met deelvraag 2, een onderzoekspunt, een tussenvraag zonder verlies, via het paneel naar deelvraag 4, herladen met de open vraag en de stand, hervatten met deelvraag_id, een ander gesprek gaat verder bij deelvraag 4, de pagina toont dezelfde stand.");
+  console.log("Browser OK: bronselectie starten met vier deelvragen, deelvraag 1 opnemen en afronden, Hoe wil je verder? met deelvraag 2, een onderzoekspunt, een tussenvraag zonder verlies, via het paneel naar deelvraag 4, herladen met de open vraag en de stand, hervatten met deelvraag_id, een ander gesprek gaat verder bij deelvraag 4, de tab Bronnen toont dezelfde stand.");
 } finally {
   await browser.close();
 }

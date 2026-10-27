@@ -152,7 +152,10 @@ await page.route("**/api/**", async (route) => {
       actief: null, volgende: null, alle_klaar: false, zonder_deelvraag: [],
       zoekdekking: { gezocht: false, verouderd: false, volledig: true, onvolledig: [], reden: "" },
       deelvragen: actief.map((d, i) => ({ id: d.id, nr: i + 1, vraag: d.vraag, status: d.bronnen.length ? "in_behandeling" : "niet_gestart",
-        fase: "kern", open_punten: [], revisie: 0, opnieuw_bekijken: false, klaar: false, kandidaten: [],
+        fase: "kern", open_punten: [], revisie: 0, opnieuw_bekijken: false, klaar: false,
+        // Wat Lex bij d1 vond, als voorstel bij die deelvraag (spoor L: de deelvraag toont de bronselectie).
+        kandidaten: d.id === "d1" ? [{ id: kandidaat.id, bron_iri: kandidaat.bron_iri, label: kandidaat.label, rol: "kern",
+          bewijs_soorten: [], stand: "voorgesteld" }] : [],
         bronnen: d.bronnen.map((b) => ({ selectie_id: b, bron_iri: "", label: "art. 9 lid 1 Iw", rol: "analyseren" })),
         telling: { voorgesteld: 0, niet_gekozen: 0, uitgesloten: 0, opgenomen: d.bronnen.length }, beoordelen: { mag: false, redenen: [] } })) } });
   }

@@ -5,33 +5,32 @@ import { useCallback, useEffect, useState } from "react";
 import { Lijst, Sectie, StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { SkeletonCard } from "@/components/ui/Skeleton";
-import { BronKandidaten } from "@/components/werkgebieden/BronKandidaten";
+import { BronnenBijDeelvraag } from "@/components/werkgebieden/BronnenBijDeelvraag";
 import { DeelvraagVoorstel, KoppelDialoog } from "@/components/werkgebieden/Deelvragen";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
 import { foutTekst, haalDeelvraag, haalWerkgebied } from "@/lib/api";
-import { bronnenZin, deelvraagStand } from "@/lib/bronselectie";
-import { bepalingEnRegeling } from "@/lib/bronnenPerDeelvraag";
+import { deelvraagStand } from "@/lib/bronselectie";
 import { splits } from "@/lib/deelvragen";
 import type { DeelvraagDetail, Werkgebied } from "@/lib/types";
 import { useBronselectieStand } from "@/lib/useBronselectieStand";
-import { ROL_LABEL, isRevisieConflict } from "@/lib/werkgebied";
+import { isRevisieConflict } from "@/lib/werkgebied";
 import { Button } from "@/components/ui/Button";
-import { Groep, GroepRij } from "@/components/ui/Pagina";
-import { bronPad } from "@/lib/werkgebiedPaden";
 
 /** Eén deelvraag naast het gesprek (F3d): wat Lex over haar opleverde, om te beoordelen.
  *
  *  - de vraag en haar stand (dezelfde dekking als op de pagina); is ze vervangen, dan door welke;
  *  - de voorstellen van Lex die haar vervangen (een scherpere formulering of een splitsing): overnemen zet
  *    het voorstel op haar plek, met haar bronnen;
- *  - de bronnen die erbij horen (begrippen horen bij het werkgebied, spoor K);
- *  - de bepalingen die Lex bij haar vond, met opnemen, later en uitsluiten (`BronKandidaten`).
+ *  - de bronnen en de voorstellen van Lex bij haar, met opnemen en uitsluiten (`BronnenBijDeelvraag`, dezelfde inhoud
+ *    als de tab Bronnen; spoor L). Begrippen horen bij het werkgebied (spoor K).
  *
  *  Geen Lex-knoppen: wat Lex moet doen vraag je in het gesprek. Elke wijziging draagt de revisie in beeld;
  *  wijzigde iemand anders het werkgebied intussen, dan komt de nieuwe stand in beeld en zegt het paneel dat. */
-export function DeelvraagPaneel({ werkgebiedId, deelvraagId, onKies, onGewijzigd }: {
+export function DeelvraagPaneel({ werkgebiedId, deelvraagId, onKies, onGewijzigd, opPagina = false }: {
   werkgebiedId: string;
   deelvraagId: string;
+  /** Op de deelvraagpagina staat de vraag al als titel in de kop; dan niet nog eens hier. */
+  opPagina?: boolean;
   /** Een andere deelvraag openen (de opvolger van een vervangen deelvraag). */
   onKies?: (deelvraag: { id: string; vraag: string }) => void;
   /** Het werkgebied is gewijzigd (een voorstel overgenomen, een bron opgenomen): de pagina eromheen laadt
@@ -43,7 +42,6 @@ export function DeelvraagPaneel({ werkgebiedId, deelvraagId, onKies, onGewijzigd
   const [fout, setFout] = useState<string | null>(null);
   const [melding, setMelding] = useState<{ type: "bevestiging" | "waarschuwing"; tekst: string } | null>(null);
   const [koppelen, setKoppelen] = useState(false);
-  // De plek van alle bronnen van het werkgebied (één verzoek), voor de boom van deze deelvraag.
 
   const laad = useCallback(async () => {
     try {
@@ -99,7 +97,6 @@ export function DeelvraagPaneel({ werkgebiedId, deelvraagId, onKies, onGewijzigd
   const nummer = actief.findIndex((d) => d.id === detail.id) + 1;
   const hier = selectie?.deelvragen.find((d) => d.id === detail.id);
   const stand = deelvraagStand(hier);
-  const bronnen = wg.bronnen.filter((b) => detail.bronnen.includes(b.id));
 
   return (
     <div data-deelvraag-paneel={detail.id} data-status={detail.status} className="space-y-5 text-sm text-ink">
@@ -108,7 +105,7 @@ export function DeelvraagPaneel({ werkgebiedId, deelvraagId, onKies, onGewijzigd
           {nummer ? `Deelvraag ${nummer} van ${actief.length}` : detail.status === "voorgesteld" ? "Voorstel van Lex" : "Deelvraag"}
           {" · "}{detail.herkomst === "lex" ? "voorgesteld door Lex" : `door ${detail.aangemaakt_door}`}
         </p>
-        <p className="font-medium" data-deelvraag-vraag>{detail.vraag}</p>
+        {!opPagina && <p className="font-medium" data-deelvraag-vraag>{detail.vraag}</p>}
         {stand && <StatusLabel toon={stand.toon} data-stand={hier?.status}>{stand.label}</StatusLabel>}
       </div>
 
@@ -145,28 +142,19 @@ export function DeelvraagPaneel({ werkgebiedId, deelvraagId, onKies, onGewijzigd
         </Sectie>
       )}
 
-      {/* De bronnen als rijen (spoor K, de `itemrow` van de mock-up); koppelen in een venster. */}
-      <Groep kop="Bronnen" telling={bronnenZin(bronnen.length)} label="Bronnen bij deze deelvraag"
-        status={detail.status === "actief" && (
-          <Button size="sm" variant="secondary" onClick={() => setKoppelen(true)}
-            aria-label={`Bronnen bij: ${detail.vraag}`}>Koppelen</Button>
-        )}
-        leeg="Er hoort nog geen bron bij deze deelvraag.">
-        {bronnen.map((b) => {
-          const { bepaling, regeling } = bepalingEnRegeling(b.label || b.bron_iri);
-          const rol = hier?.bronnen.find((x) => x.selectie_id === b.id)?.rol ?? b.rol;
-          return (
-            <GroepRij key={b.id} data-bron={b.id} href={bronPad(b.bron_iri, werkgebiedId)} titel={bepaling}
-              sub={[regeling, ROL_LABEL[rol].toLowerCase()].filter(Boolean).join(" · ")}
-              status={rol === "context" ? <StatusLabel>Context</StatusLabel> : <StatusLabel toon="groen">Geselecteerd</StatusLabel>} />
-          );
-        })}
-      </Groep>
-      {koppelen && <KoppelDialoog wg={wg} deelvraag={detail} muteer={muteer} onKlaar={() => setKoppelen(false)} />}
-
+      {/* De bronnen en de voorstellen van Lex bij deze deelvraag, met hun besluiten: dezelfde inhoud als op de tab
+          Bronnen (spoor L). Koppelen gaat in een venster; het bewijs per voorstel staat in de bronverkenner. */}
       {detail.status === "actief" && (
-        <BronKandidaten id={werkgebiedId} deelvraagId={detail.id} onGewijzigd={() => { void laad(); onGewijzigd?.(); }} />
+        <div className="flex justify-end">
+          <Button size="sm" variant="secondary" onClick={() => setKoppelen(true)}
+            aria-label={`Bronnen bij: ${detail.vraag}`}>Bronnen koppelen</Button>
+        </div>
       )}
+      {detail.status === "actief" && (
+        <BronnenBijDeelvraag werkgebiedId={werkgebiedId} revisie={wg.revisie} deelvraagId={detail.id}
+          beheer={{ wg, muteer, laad: async () => { await laad(); onGewijzigd?.(); } }} />
+      )}
+      {koppelen && <KoppelDialoog wg={wg} deelvraag={detail} muteer={muteer} onKlaar={() => setKoppelen(false)} />}
     </div>
   );
 }

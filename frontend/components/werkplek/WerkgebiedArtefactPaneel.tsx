@@ -9,7 +9,7 @@ import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
 import { BegripPaneel } from "@/components/werkgebieden/BegripPaneel";
 import { BegripVoorstellen } from "@/components/werkgebieden/BegripVoorstellen";
 import { BronKandidaten } from "@/components/werkgebieden/BronKandidaten";
-import { BronselectieOverzicht } from "@/components/werkgebieden/BronselectieOverzicht";
+import { BronnenBijDeelvraag } from "@/components/werkgebieden/BronnenBijDeelvraag";
 import { DeelvraagPaneel } from "@/components/werkgebieden/DeelvraagPaneel";
 import { OnbewaardMelding } from "@/components/werkgebieden/OnbewaardMelding";
 import { WerkgebiedSamenvatting } from "@/components/werkgebieden/WerkgebiedSamenvatting";
@@ -54,7 +54,7 @@ const KOP: Record<WerkgebiedArtefact["soort"], string> = {
  *    van Lex per veld en een kleine bewerking; de begripskaart zelf staat in het werkgebied.
  *  - **deelvraag** (F3d) – één deelvraag (`DeelvraagPaneel`): stand, de voorstellen die haar vervangen,
  *    bronnen en de kandidaten die Lex erbij vond.
- *  - **bronselectie** (spoor J) – de bronselectie per deelvraag (`BronselectieOverzicht`): de voortgang, de
+ *  - **bronselectie** (spoor J) – de bronselectie per deelvraag (`BronnenBijDeelvraag`, dezelfde als de tab Bronnen): de voortgang, de
  *    bronnen met hun rol per deelvraag, de voorstellen en de onderzoekspunten; de deelvraag waar het gesprek
  *    staat is open, en *Ga verder met deelvraag n* zet een andere klaar in hetzelfde gesprek.
  *  - **werkgebied** – het werkgebied dat Lex met de analist samenstelde (activiteit 1): de
@@ -110,7 +110,7 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
               onKies={onWissel ? (d) => onWissel({ soort: "deelvraag", werkgebied_id: doel.werkgebied_id, run_id: "",
                 deelvraag_id: d.id, titel: d.vraag }) : undefined} />
           ) : doel.soort === "bronselectie" ? (
-            <BronselectieOverzicht werkgebiedId={doel.werkgebied_id} deelvraagId={doel.deelvraag_id} inGesprek />
+            <BronnenBijDeelvraag werkgebiedId={doel.werkgebied_id} huidig={doel.deelvraag_id} inGesprek />
           ) : doel.soort === "begrippen" ? (
             <BegripVoorstellen id={doel.werkgebied_id} runId={doel.run_id} inklapbaar={false} />
           ) : (
