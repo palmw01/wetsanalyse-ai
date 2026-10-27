@@ -139,6 +139,15 @@ def kies(term: str, rijen: list[dict[str, Any]], eerst: str) -> tuple[dict[str, 
     return None, ""
 
 
+#: Het volgende logische stuk na een voorstel (spoor I7): definitie → uitleg in B1 → voorbeelden → relaties.
+VOLGENDE = {
+    "brondefinitie": "Neem je een definitie over, dan kan ik daarna de uitleg in B1 schrijven.",
+    "scherper": "Neem je een definitie over, dan kan ik daarna de uitleg in B1 schrijven.",
+    "uitleg": "Daarna kan ik voorbeelden maken die de definitie toetsen.",
+    "voorbeelden": "Daarna kan ik relaties met andere begrippen voorstellen.",
+}
+
+
 def samenvatting(actie: str, naam: str, werkgebied: str, aantal: int, melding: str, al_gedaan: bool) -> str:
     plek = {"brondefinitie": "onder de definitie", "scherper": "onder de definitie", "uitleg": "bij de uitleg",
             "betekenisverschil": "bij de uitleg", "voorbeelden": "bij de voorbeelden"}.get(actie, "op de kaart")
@@ -185,10 +194,12 @@ async def los_op(ctx: Context, termen: list[str], eerst: str) -> tuple[list[dict
     return gekozen, ""
 
 
-async def kaart_kern(ctx: Context, actie: str, b: dict[str, Any], ander: dict[str, Any] | None = None) -> Uitkomst:
+async def kaart_kern(ctx: Context, actie: str, b: dict[str, Any], ander: dict[str, Any] | None = None,
+                     *, volgende: bool = True) -> Uitkomst:
     """Eén kaartactie op één begrip, als de knop op de begripskaart: `POST …/kaart-runs` en
     `begrip_kaart.kaart_stroom` (met zijn budgetpoort), of wachten als dezelfde actie al loopt. `b` en
-    `ander` zijn rijen in de vorm van `GET /v1/begrippen`."""
+    `ander` zijn rijen in de vorm van `GET /v1/begrippen`. Met `volgende` noemt Lex na een voorstel het
+    volgende logische stuk (spoor I7); `uitwerken` zegt dat zelf aan het eind."""
     if b.get("status") == "vervangen":
         opvolger = (b.get("vervangen_door") or {}).get("naam", "")
         return geweigerd(actie, f"Het begrip *{b['naam']}* is vervangen" + (f" door *{opvolger}*" if opvolger else "")
@@ -237,6 +248,9 @@ async def kaart_kern(ctx: Context, actie: str, b: dict[str, Any], ander: dict[st
             elif ev.get("type") == "error":
                 return Uitkomst(taak=actie, status="fout", artefact=artefact,
                                 reden=str(ev.get("message") or "De actie op het begrip mislukte; probeer het opnieuw."))
-    return Uitkomst(taak=actie, tekst=samenvatting(actie, naam, wg_naam, aantal, melding, al_gedaan),
+    tekst = samenvatting(actie, naam, wg_naam, aantal, melding, al_gedaan)
+    if volgende and aantal and actie in VOLGENDE:
+        tekst += f" {VOLGENDE[actie]}"
+    return Uitkomst(taak=actie, tekst=tekst,
                     artefact=artefact, voorstellen=[kr["id"]] if aantal else [],
                     meting={"voorstellen": aantal, "model": actie in MODEL_ACTIES and not al_gedaan})

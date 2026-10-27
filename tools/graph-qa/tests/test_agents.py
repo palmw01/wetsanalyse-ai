@@ -48,6 +48,10 @@ class NepApi:
     async def haal_deelvragen_dekking(self, wid):
         return DEKKING
 
+    async def haal_thema_voorstel(self, wid):
+        return {"rechtsgebieden": ["Belastingrecht"],
+                "voorstel": [{"thema": "https://identifier.overheid.nl/tooi/def/thes/top/c_25e30d03", "label": "belasting"}]}
+
     async def haal_kandidaten(self, wid):
         return KANDIDATEN
 
@@ -314,3 +318,10 @@ def test_de_verbetering_past_in_het_api_contract():
     _, vragen, _ = valideer_verbetering({"soort": "splits", "vragen": ["Vraag een?", "Vraag twee?"]},
                                         WG["deelvragen"][1], [])
     DeelvraagVoorstellen(vragen=vragen, model="m", vervangt="d2")
+
+
+def test_thema_stelt_een_tooi_thema_voor_zonder_model():
+    """Spoor I7: *Kies een thema* – het voorstel van de api, en de analist kiest in Gegevens bewerken."""
+    uit, _ = _taak("thema")
+    assert "Ik stel het thema *belasting* voor (TOOI, tooitop)." in uit.tekst and "Belastingrecht" in uit.tekst
+    assert uit.artefact["soort"] == "werkgebied" and uit.meting["model"] is False

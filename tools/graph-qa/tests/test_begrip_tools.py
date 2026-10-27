@@ -350,6 +350,8 @@ def test_kaartactie_start_de_kaartrun_en_wijst_naar_het_begrip():
     assert uit.artefact == {"soort": "begrip", "titel": "Termijn", "ref": {
         "werkgebied_id": WG, "begrip_id": "b1", "kaart_run_id": "k1", "actie": "voorbeelden"}}
     assert "2 voorstellen staan bij de voorbeelden" in uit.tekst and uit.status == "ok"
+    # Spoor I7: Lex noemt het volgende logische stuk.
+    assert uit.tekst.endswith("Daarna kan ik relaties met andere begrippen voorstellen.")
 
 
 def test_het_aangewezen_begrip_gaat_voor_de_term():

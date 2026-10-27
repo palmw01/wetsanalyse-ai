@@ -123,6 +123,7 @@ ACTIE_TAAK: dict[str, tuple[str, str]] = {
     "deelvraag_splitsen": ("deelvragen", "verbeteren"),
     "bronnen_zoeken": ("deelvragen", "bronnen_zoeken"),
     "dekking": ("deelvragen", "dekking"),
+    "thema": ("deelvragen", "thema"),
     "begrippen_voorstellen": ("begrippen", "voorstellen"),
     "begrippen_meedenken": ("begrippen", "meedenken"),
     "brondefinitie": ("begrippen", "brondefinitie"),
@@ -137,7 +138,7 @@ ACTIE_TAAK: dict[str, tuple[str, str]] = {
 # werkgebied-worker (de vraagkaarten van de intake). Welk veld, leest de worker uit de vraag.
 INTAKE_ACTIES = ("dossier_aanvullen",)
 Actie = Literal["werkgebied_annoteren", "deelvragen_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
-                "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie",
+                "bronnen_zoeken", "dekking", "thema", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie",
                 "scherper", "uitleg", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen"]
 # Acties die eerst om een bevestiging vragen; alleen daar hoort `bevestigd` bij.
 BEVESTIG_ACTIES = ("werkgebied_annoteren", "deelvragen_annoteren", "begrippen_meedenken")

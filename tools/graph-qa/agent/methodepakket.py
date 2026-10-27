@@ -1,18 +1,18 @@
 # Gegenereerd uit de wetsanalyse-skill; niet handmatig bewerken.
 # Draai scripts/genereer_jas_klassen.py.
 PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd036c0853ccc0d4315653a58c17f',
-                   'agentrollen.json': '845c5acababf521cca1e29be7b8d5e4deee93cd0912e191de49722cec30f7078',
+                   'agentrollen.json': 'fdf5eac91127601d3782015f3dfc1a3a347a787c4d74bfb810f9d0955694bc66',
                    'references/agentrollen.md': 'f46b17b5d7f7054bed32767a063b3212428956ee7c85aa78de68887035291787',
                    'references/begrippen.md': 'efeb87eee75c3a1ef44706267424efbb4c7afa55ba09cae8df26d0851c1d5084',
                    'references/bronnen.md': '47b2c98af5a21f29afe97fdab4521a4a4dc0cc8e789b62c74d472a9cfc0d6e16',
                    'references/deelvragen-en-bronnen.md': '3f1297e0e4852a27adcacb843ff185cd89be9ce58e8ebe87bf0173cbb8204053',
                    'references/jas-klassen-referentie.md': '5fe94a8c3718eb3d0f21a04cda9e89d9c35db4260b39f1900ead19a86ee91a95',
-                   'references/nl-sbb-en-b1.md': 'e143c9f58f4b1967b78ee953f608be1728cafc30bc5f0744664d904806a3454d'},
- 'rollen': {'algemeen': ['basis'],
+                   'references/nl-sbb-en-b1.md': 'ceeb1110d57ed267ef04fe4289ae701562290689525b14c9783908dcb3575411'},
+ 'rollen': {'algemeen': ['basis', 'nl-sbb-taalniveau'],
             'begrippen': ['basis', 'begrippen', 'nl-sbb-taalniveau'],
             'decompositie': ['basis', 'decompositie'],
             'deelvragen': ['basis', 'deelvragen'],
-            'definitie': ['basis', 'definitie'],
+            'definitie': ['basis', 'definitie', 'nl-sbb-taalniveau'],
             'duiding': ['basis', 'duiding'],
             'retrieval': ['basis', 'retrieval'],
             'supervisor': ['basis', 'supervisor'],
@@ -140,7 +140,7 @@ PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd03
                                   'annotatieklasse.'},
              'nl-sbb-taalniveau': {'bestand': 'references/nl-sbb-en-b1.md',
                                    'bronnen': ['M11', 'M12', 'M13', 'P16'],
-                                   'sha256': '747ee9aea6f6c70d32febfe7b0f0ece4239572b232c26d3aa7f61ec86d45e8eb',
+                                   'sha256': 'ac237c3c32df50c8b1f988d8cd3938ff9035640cffd5ca7eea3b03371db96c08',
                                    'tekst': 'Een begrip volgt NL-SBB, met vier velden die elk iets '
                                             'anders doen. De definitie (skos:definition) '
                                             'onderscheidt het begrip van andere: bij voorkeur het '
@@ -175,7 +175,11 @@ PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd03
                                             'ministerie van een regeling zo '
                                             '(bwb:eerstverantwoordelijkeOrganisatie), en een '
                                             'werkgebied kan een thema hebben. Noem TOOI als '
-                                            'methode en standaard, nooit als wettekst.'},
+                                            'methode en standaard, nooit als wettekst.\n'
+                                            'Een vraag over NL-SBB, SKOS, TOOI of B1 beantwoord je '
+                                            'uit deze methode, niet uit de graaf, en je zegt dat '
+                                            'erbij: "uit de methode, geen wettekst". Citeer dan '
+                                            'geen wettekst en noem geen vindplaats.'},
              'retrieval': {'bestand': 'references/agentrollen.md',
                            'bronnen': ['M01', 'P01', 'P06', 'P11', 'P12'],
                            'sha256': '1735cf5f96b30511fc30b7ac91daae69911b7c80a46d1f1b9913d94334e40a54',
@@ -209,5 +213,5 @@ PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd03
                                    'interpretatieverschillen zichtbaar; presenteer ze niet als '
                                    'vaststaande conclusies. Voeg zonder beschikbare bronnen geen '
                                    'nieuw juridisch feit toe.'}},
- 'sha256': 'a4407220dd2377435e579d9c9e86d76904aaeb7f0200040b3a1132bde8d8e129',
+ 'sha256': '3fe041ab30aab5eac24683e17290732817178c4a2ae78f8168b271fb16e85f53',
  'versie': '2.1'}

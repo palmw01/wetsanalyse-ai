@@ -148,14 +148,14 @@ async def uitwerken(ctx: Context, b: dict[str, Any]) -> Uitkomst:
     niet is) en voorbeelden – een uitleg en een voorbeeld rusten op een definitie, dus zonder definitie is er
     niets uit te leggen of te toetsen. Aan het eind zegt Lex wat er nog open is."""
     taak = Taak.UITWERKEN
-    stappen: list[Uitkomst] = [await kaart_kern(ctx, "brondefinitie", b)]
+    stappen: list[Uitkomst] = [await kaart_kern(ctx, "brondefinitie", b, volgende=False)]
     heeft_definitie = bool((b.get("definitie") or "").strip())
     if not heeft_definitie and not stappen[0].voorstellen and not ctx.gestopt():
-        stappen.append(await kaart_kern(ctx, "scherper", b))
+        stappen.append(await kaart_kern(ctx, "scherper", b, volgende=False))
     if heeft_definitie and not (b.get("uitleg") or "").strip() and not ctx.gestopt():
-        stappen.append(await kaart_kern(ctx, "uitleg", b))
+        stappen.append(await kaart_kern(ctx, "uitleg", b, volgende=False))
     if heeft_definitie and not ctx.gestopt():
-        stappen.append(await kaart_kern(ctx, "voorbeelden", b))
+        stappen.append(await kaart_kern(ctx, "voorbeelden", b, volgende=False))
     zinnen = [s.gesprekstekst for s in stappen if s.gesprekstekst]
     zinnen.append(_nog_open(heeft_definitie))
     laatste = next((s.artefact for s in reversed(stappen) if s.artefact), None)
