@@ -156,6 +156,19 @@ try {
   const koppeling = requests.filter((r) => r.m === "PUT").at(-1).body;
   assert.deepEqual([koppeling.bronnen, koppeling.begrippen], [["s9"], []]);
 
+  // Spoor K: de tab Bronnen toont dezelfde ene lijst per deelvraag – de gekoppelde bron onder deelvraag 1, met
+  // haar status; de lege deelvraag zegt dat er nog niets bij hoort. Geen boom.
+  await page.goto(`${base}/werkgebieden/wg1/bronnen`);
+  const groep1 = page.locator(`[data-bronnen-groep="${d1.id}"]`);
+  await groep1.locator('[data-bron="s9"]').getByText("Geselecteerd").waitFor();
+  await groep1.getByText("In behandeling").waitFor();
+  const groep2 = page.locator(`[data-bronnen-groep="${wg.deelvragen.find((x) => x.vraag === "Wie is de belastingschuldige?").id}"]`);
+  await groep2.getByText("Er hoort nog geen bron bij deze deelvraag", { exact: false }).waitFor();
+  assert.equal(await page.locator('[data-bronnen-groep="zonder"]').count(), 0, "s9 hoort bij een deelvraag");
+  assert.equal(await page.locator("[data-bronboom]").count(), 0);
+  await page.goto(`${base}/werkgebieden/wg1/artefacten/dossier`);
+  await rij(vraag).waitFor();
+
   // 4. Verwijderen (niet "weghalen"): achter ⋯, eerst scherp zetten, dan pas weg.
   await sectie().getByRole("button", { name: "Acties: Wie is de belastingschuldige?" }).click();
   await page.getByRole("button", { name: "Verwijderen: Wie is de belastingschuldige?" }).click();

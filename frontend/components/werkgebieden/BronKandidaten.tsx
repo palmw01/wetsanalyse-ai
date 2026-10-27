@@ -3,17 +3,17 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { BronBoom } from "@/components/ui/BronBoom";
 import { KNOP_XS } from "@/components/ui/Button";
 import { Sectie } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
+import { Groep } from "@/components/ui/Pagina";
 import { foutTekst, haalKandidaten, haalLaatsteBronnenRun } from "@/lib/api";
 import {
   FILTER_LABEL, KANDIDAAT_ROL_LABEL, KANDIDAAT_ROL_UITLEG, METHODE_LABEL, bewijsSamenvatting, bewijsZin, bijDeelvraag, filterVan, plekNaam,
   sorteerKandidaten, telPerFilter, type KandidaatFilter,
 } from "@/lib/bronKandidaten";
 import type { BronKandidaat, BronMethode, BronnenRun, KandidatenAntwoord } from "@/lib/types";
-import { bouwBoom, regelingUitLabel } from "@/lib/bronPlaats";
+import { bouwBoom, regelingUitLabel, rijenPerRegeling } from "@/lib/bronPlaats";
 import { usePlaatsen } from "@/lib/usePlaatsen";
 import { bronPad } from "@/lib/werkgebiedPaden";
 
@@ -28,8 +28,9 @@ const FILTERS: KandidaatFilter[] = ["open", "uitgesloten", "opgenomen"];
 /** De bronverkenner: alle bepalingen die Lex voor een werkgebied vond (spoor D, fase A), om rond te kijken.
  *
  *  Sinds spoor J beslis je hier niets: kiezen gaat per deelvraag, in de bronselectie (in het gesprek, of op de
- *  pagina Bronselectie). De boom toont per regeling › hoofdstuk › artikel › lid (`BronBoom`, de plek uit
- *  `usePlaatsen`) de rol en één zin bewijs (`bewijsSamenvatting`); een klik op een regel toont het hele bewijs.
+ *  pagina Bronselectie). Per regeling een groep rijen in de volgorde van de wet (`rijenPerRegeling`, de plek uit
+ *  `usePlaatsen`; spoor K: rijen in plaats van een boom), elk met de rol en één zin bewijs (`bewijsSamenvatting`);
+ *  een klik op een regel toont het hele bewijs.
  *  Een oud besluit *later* telt als voorstel. Met `deelvraagId` (het deelvraagpaneel) alleen wat Lex bij die
  *  deelvraag vond. */
 export function BronKandidaten({ id, deelvraagId, labels }: {
@@ -111,20 +112,26 @@ export function BronKandidaten({ id, deelvraagId, labels }: {
       {alle.length > 0 && getoond.length === 0 && <p className="text-sm text-muted">Geen bepalingen in dit filter.</p>}
 
       {getoond.length > 0 && (
-        <div role="group" aria-label={`Bepalingen – ${FILTER_LABEL[filter].toLowerCase()}`}>
-          <BronBoom boom={boom} label={`Bepalingen per regeling – ${FILTER_LABEL[filter].toLowerCase()}`}
-            bladAttrs={(b) => ({ "data-kandidaat": b.bron_iri })}
-            renderBlad={(b) => (
-              <KandidaatRegel werkgebiedId={id} k={b.data} plek={b.label} labels={labels}
-                open={open === b.bron_iri} onWissel={() => setOpen((o) => (o === b.bron_iri ? null : b.bron_iri))} />
-            )} />
+        <div role="group" aria-label={`Bepalingen – ${FILTER_LABEL[filter].toLowerCase()}`} className="space-y-5"
+          data-bronregelingen>
+          {rijenPerRegeling(boom).map((r) => (
+            <Groep key={r.sleutel} kop={r.regeling} telling={`${r.rijen.length} ${r.rijen.length === 1 ? "bepaling" : "bepalingen"}`}
+              label={`${r.regeling} – ${FILTER_LABEL[filter].toLowerCase()}`}>
+              {r.rijen.map(({ blad, plek }) => (
+                <li key={blad.sleutel} data-kandidaat={blad.bron_iri} className="px-4 py-2.5">
+                  <KandidaatRegel werkgebiedId={id} k={blad.data} plek={plek} labels={labels}
+                    open={open === blad.bron_iri} onWissel={() => setOpen((o) => (o === blad.bron_iri ? null : blad.bron_iri))} />
+                </li>
+              ))}
+            </Groep>
+          ))}
         </div>
       )}
     </Sectie>
   );
 }
 
-/** Eén kandidaat in de boom: de plek onder het artikel (een link naar de bepaling), de rol, en één zin
+/** Eén kandidaat in een rij: de plek ("Artikel 9 · Lid 2") (een link naar de bepaling), de rol, en één zin
  *  bewijs; *Bewijs* klapt het hele bewijs uit. Geen besluitknoppen: kiezen gaat per deelvraag (spoor J). */
 function KandidaatRegel({ werkgebiedId, k, plek, labels, open, onWissel }: {
   werkgebiedId: string; k: BronKandidaat; plek: string; labels?: Map<string, string>; open: boolean; onWissel: () => void;

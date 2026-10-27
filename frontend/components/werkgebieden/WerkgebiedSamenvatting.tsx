@@ -7,17 +7,17 @@ import { themaLabel } from "@/lib/tooiThemas";
 import { bronHref } from "@/lib/url";
 import { Lijst, LijstRij, Regel, Regels, StatusLabel } from "@/components/ui/Lijst";
 import { VraagLexContext } from "@/components/werkplek/VraagLexKnop";
-import { deelvraagStand, voortgangZin } from "@/lib/bronselectie";
+import { bronnenZin, deelvraagStand, voortgangZin } from "@/lib/bronselectie";
 import { splits } from "@/lib/deelvragen";
 import type { Werkgebied } from "@/lib/types";
 import { useBronselectieStand } from "@/lib/useBronselectieStand";
 import { DOSSIER_VELDEN } from "@/lib/werkgebied";
-import { deelvraagPad } from "@/lib/werkgebiedPaden";
+import { deelvraagPad, projectPad } from "@/lib/werkgebiedPaden";
 import { metLeesbareBronnen } from "@/lib/bronKandidaten";
 
 /** Wat het werkgebied is, in één oogopslag: het dossier in de volgorde van de methode (aanleiding,
- *  context, doel, analysevraag, praktijkvoorbeeld, afbakening), de actieve deelvragen met hun stand en de
- *  bronnen die geanalyseerd worden. In de lijststijl van de samenvatting op de vraagkaart.
+ *  context, doel, analysevraag, praktijkvoorbeeld, afbakening), de actieve deelvragen met hun stand, en hoeveel
+ *  bronnen er zijn (de lijst staat per deelvraag op de tab Bronnen, spoor K). In de lijststijl van de samenvatting op de vraagkaart.
  *
  *  Eén samenvatting op twee plekken (F3a): het paneel naast het gesprek en de kop van de werkgebiedpagina.
  *  Een leeg veld staat er ook, zodat zichtbaar is wat er nog ontbreekt; aanvullen vraag je in het gesprek (de
@@ -31,6 +31,7 @@ export function WerkgebiedSamenvatting({ wg, className = "" }: {
   const deelvragen = splits(wg.deelvragen).actief;
   const selectie = useBronselectieStand(wg.id, wg.revisie, deelvragen.length);
   const analyse = wg.bronnen.filter((b) => b.rol === "analyseren");
+  const regelingen = new Set(wg.bronnen.map((b) => b.bwb_id || b.bron_iri.split(":")[2])).size;
   const stand = new Map((selectie?.deelvragen ?? []).map((d) => [d.id, d]));
   return (
     <Regels data-werkgebied-samenvatting className={`text-sm ${className}`}>
@@ -78,11 +79,13 @@ export function WerkgebiedSamenvatting({ wg, className = "" }: {
           <span className="text-muted">Nog geen deelvragen.</span>
         )}
       </Regel>
-      <Regel naam={`Bronnen (${analyse.length})`} data-samenvatting="bronnen">
-        {analyse.length ? (
-          <ul className="space-y-0.5">
-            {analyse.map((b) => <li key={b.id}>{b.label || b.bron_iri}</li>)}
-          </ul>
+      {/* Eén regel, geen tweede lijst (spoor K): de bronnen staan per deelvraag op de tab Bronnen. */}
+      <Regel naam="Bronnen" data-samenvatting="bronnen">
+        {wg.bronnen.length ? (
+          <Link href={projectPad(wg.id, "bronnen")} className="focus-ring rounded text-lint underline-offset-2 hover:underline">
+            {bronnenZin(wg.bronnen.length)}{regelingen > 1 ? ` in ${regelingen} regelingen` : ""}
+            {analyse.length < wg.bronnen.length ? ` (${wg.bronnen.length - analyse.length} context)` : ""}
+          </Link>
         ) : (
           <span className="text-muted">Nog geen bronnen.</span>
         )}

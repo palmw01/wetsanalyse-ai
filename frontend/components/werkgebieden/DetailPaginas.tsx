@@ -22,10 +22,10 @@ import { wijzigWerkgebied } from "@/lib/api";
 import type { BegripWeergave } from "@/lib/begrippen";
 import { splits } from "@/lib/deelvragen";
 import type { Werkgebied } from "@/lib/types";
-import { BEREIK_LABEL, DOSSIER_VELDEN, ROL_LABEL, STATUS_LABEL } from "@/lib/werkgebied";
+import { DOSSIER_VELDEN, ROL_LABEL, STATUS_LABEL } from "@/lib/werkgebied";
 import { metLeesbareBronnen } from "@/lib/bronKandidaten";
 import {
-  ARTEFACT_LABEL, artefactKaarten, artefactPad, begripPad, bronPad, projectPad, voorstellenPad, type ArtefactSoort,
+  ARTEFACT_LABEL, artefactKaarten, artefactPad, begripPad, projectPad, voorstellenPad, type ArtefactSoort,
 } from "@/lib/werkgebiedPaden";
 
 function basisKruimels(wg: Werkgebied): Kruimel[] {
@@ -145,26 +145,7 @@ function Bronselectie() {
         <Kaart titel={wg.deelvragen?.some((d) => d.status === "actief") ? "Per deelvraag" : "Bij de analysevraag"}>
           <BronselectieOverzicht key={wg.revisie} werkgebiedId={wg.id} />
         </Kaart>
-        {(["analyseren", "context"] as const).map((rol) => {
-          const lijst = wg.bronnen.filter((b) => b.rol === rol);
-          return (
-            <Kaart key={rol} titel={rol === "analyseren" ? "Om te analyseren" : "Context"} telling={lijst.length}>
-              {lijst.length === 0 ? <p className="text-sm text-muted">Geen.</p> : (
-                <ul className="divide-y divide-line">
-                  {lijst.map((b) => (
-                    <li key={b.id} className="py-2.5 text-sm">
-                      <Link href={bronPad(b.bron_iri, wg.id)} className="focus-ring rounded font-medium text-lint hover:underline">
-                        {b.label || b.bron_iri}
-                      </Link>
-                      <p className="text-xs text-muted">{BEREIK_LABEL[b.bereik]} · opgenomen door {b.toegevoegd_door}</p>
-                      {b.reden && <p className="mt-1 whitespace-pre-line text-ink">{b.reden}</p>}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Kaart>
-          );
-        })}
+        {/* Geen tweede lijst per rol (spoor K): de bronnen staan per deelvraag hierboven en op de tab Bronnen. */}
       </>}
       zij={<>
         <Kaart titel="Beheren">
