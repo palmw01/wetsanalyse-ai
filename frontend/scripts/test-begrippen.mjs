@@ -218,12 +218,25 @@ try {
     assert.equal(await kaart().getByText(weg, { exact: true }).count(), 0, weg);
   await kaart().locator("[data-definitie-aard=analysebegrip]").getByText("geen wettelijke definitie", { exact: false }).waitFor();
   await kaart().getByLabel(/^Toelichting/).fill("Invordering van rijksbelastingen.");
+  // Spoor I3: een voorbeeld met het oordeel als gekleurde keuzepil, in een tekstvak dat alles toont.
+  await kaart().getByRole("button", { name: "Voorbeeld toevoegen" }).click();
+  const vb = kaart().getByLabel("Voorbeeld 1", { exact: true });
+  await vb.fill("Iemand die een aanslag inkomstenbelasting krijgt maar in het buitenland woont en daar ook zijn "
+    + "inkomen verdient, met een lange zin die over meerdere regels loopt zodat het vak moet meegroeien.");
+  assert.equal(await vb.evaluate((el) => getComputedStyle(el).resize), "none");
+  assert.ok(await vb.evaluate((el) => el.scrollHeight <= el.clientHeight + 1), "het tekstvak toont alle tekst");
+  const oordeel = kaart().getByRole("radiogroup", { name: "Oordeel bij voorbeeld 1" });
+  assert.equal(await oordeel.getByRole("radio").count(), 3);
+  await oordeel.getByText("valt er niet onder").click();
+  assert.equal(await oordeel.getByRole("radio", { name: "valt er niet onder" }).isChecked(), true);
+  await foto("begrip-voorbeelden");
   await zie("Sla eerst je wijzigingen op");
   await page.getByRole("button", { name: "Opslaan" }).click();
   await zie("Opgeslagen.");
   const patch = requests.filter((r) => r.m === "PATCH" && /begrippen\/b\d+$/.test(r.p)).at(-1).body;
   assert.equal(patch.verwachte_revisie, 1);
   assert.equal(patch.inhoud.jas_klasse, undefined);
+  assert.deepEqual(patch.inhoud.voorbeelden.map((v) => v.oordeel), ["niet"]);
 
   // Een tweede wijziging terwijl iemand anders net opsloeg: 412, de nieuwe stand in beeld, jouw tekst blijft.
   await kaart().getByLabel(/^Uitleg/).fill("Mijn uitleg");

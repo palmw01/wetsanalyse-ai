@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
-import { Field, Textarea } from "@/components/ui/Field";
+import { AutoTextarea } from "@/components/ui/AutoTextarea";
+import { Field } from "@/components/ui/Field";
 import { Lijst, LijstRij, Regel, Regels, Sectie, StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
 import { KaartVoorstelKaart } from "@/components/werkgebieden/KaartVoorstel";
+import { VoorbeeldRijen } from "@/components/werkgebieden/Voorbeelden";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import {
   foutTekst, haalBegrip, haalKaartVoorstellen, haalRelaties, neemKaartVoorstelOver, verwijderBegrip, wijsKaartVoorstelAf,
@@ -18,7 +20,7 @@ import { metSpoor } from "@/lib/uiSpoor";
 import { verwijderdUit, verwijderdZin, type Verwijderd } from "@/lib/verwijderen";
 import { VELD_LABEL, definitieDoor, openPerVeld, verouderdUit, type Verouderd } from "@/lib/kaartVoorstel";
 import { relatieZin } from "@/lib/begripRelaties";
-import { OORDEEL_LABEL, definitieAard, handmatigeInhoud } from "@/lib/begrippen";
+import { definitieAard, handmatigeInhoud } from "@/lib/begrippen";
 import { BEGRIP_STATUS_LABEL } from "@/lib/begrippenOverzicht";
 import type { Begrip, KaartVeld, KaartVoorstel, KaartVoorstellenAntwoord, RelatiesAntwoord } from "@/lib/types";
 import { isRevisieConflict } from "@/lib/werkgebied";
@@ -219,11 +221,11 @@ export function BegripPaneel({ werkgebiedId, begripId, onOnbewaard, onNaarBegrip
       {bewerk ? (
         <form onSubmit={bewaar} className="space-y-3" aria-label="Definitie en uitleg bewerken">
           <Field label="Definitie" hint="een gewijzigde definitie heet geformuleerd">
-            <Textarea value={bewerk.definitie} rows={3} maxLength={8000} autoFocus
+            <AutoTextarea value={bewerk.definitie} rows={3} maxLength={8000} autoFocus
               onChange={(e) => setBewerk({ ...bewerk, definitie: e.target.value })} />
           </Field>
           <Field label="Uitleg">
-            <Textarea value={bewerk.uitleg} rows={2} maxLength={8000}
+            <AutoTextarea value={bewerk.uitleg} rows={2} maxLength={8000}
               onChange={(e) => setBewerk({ ...bewerk, uitleg: e.target.value })} />
           </Field>
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -265,13 +267,8 @@ export function BegripPaneel({ werkgebiedId, begripId, onOnbewaard, onNaarBegrip
             <Regel naam="Toelichting"><span className="whitespace-pre-line">{b.context}</span></Regel>
           )}
           <Regel naam={`Voorbeelden (${b.voorbeelden.length})`}>
-            {b.voorbeelden.length ? (
-              <ul className="space-y-1">
-                {b.voorbeelden.map((v, i) => (
-                  <li key={i}>{v.tekst} <span className="text-xs text-muted">({OORDEEL_LABEL[v.oordeel]})</span></li>
-                ))}
-              </ul>
-            ) : <span className="text-muted">Nog geen voorbeelden.</span>}
+            {b.voorbeelden.length ? <VoorbeeldRijen voorbeelden={b.voorbeelden} />
+              : <span className="text-muted">Nog geen voorbeelden.</span>}
           </Regel>
         </Regels>
       )}

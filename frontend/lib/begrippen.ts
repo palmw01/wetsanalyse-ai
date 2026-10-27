@@ -91,7 +91,15 @@ export function definitieAard(inhoud: { definitie?: string; definitie_herkomst?:
 export const OORDEEL_LABEL: Record<VoorbeeldOordeel, string> = {
   wel: "valt eronder",
   niet: "valt er niet onder",
-  onzeker: "onzeker",
+  onzeker: "twijfel",
+};
+
+/** De kleur van een oordeel (spoor I3): groen valt eronder, rood niet, oker twijfel. Kleur draagt het oordeel
+ *  nooit alleen: het label staat er altijd bij. */
+export const OORDEEL_TOON: Record<VoorbeeldOordeel, "groen" | "rood" | "geel"> = {
+  wel: "groen",
+  niet: "rood",
+  onzeker: "geel",
 };
 
 export const KOPPELROL_LABEL: Record<KoppelRol, string> = {

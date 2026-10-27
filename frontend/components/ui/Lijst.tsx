@@ -113,11 +113,12 @@ export function Voorstel({ titel, acties, children, className = "", ...rest }: {
   );
 }
 
-export type StatusToon = "groen" | "geel" | "neutraal";
+export type StatusToon = "groen" | "geel" | "rood" | "neutraal";
 
-const TOON: Record<StatusToon, string> = {
+export const TOON: Record<StatusToon, string> = {
   groen: "border-aandacht-groen-rand bg-aandacht-groen-bg text-aandacht-groen-tekst",
   geel: "border-aandacht-geel-rand bg-aandacht-geel-bg text-aandacht-geel-tekst",
+  rood: "border-aandacht-rood-rand bg-aandacht-rood-bg text-aandacht-rood-tekst",
   neutraal: "border-line bg-surface text-muted",
 };
 

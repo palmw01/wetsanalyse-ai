@@ -802,6 +802,12 @@ bestaat los van de gesprekken.
     analyse-uitkomst, geen wettelijke definitie". Het label volgt de tekst meteen, ook vóór het opslaan
     (`herkomstNaAanpassing`: een andere tekst is geformuleerd); de kop van de begripspagina en
     `BegripPaneel` tonen hetzelfde, het paneel met *Van Lex overgenomen* of *Door de analist* eronder.
+  - **Voorbeelden in kleur, en alles zichtbaar** (spoor I3, `components/werkgebieden/Voorbeelden.tsx`): lezen
+    gaat als rijen met een `OordeelLabel` (groen *valt eronder*, rood *valt er niet onder*, oker *twijfel*;
+    `OORDEEL_TOON` in `lib/begrippen.ts` – kleur draagt het oordeel nooit alleen), in `BegripPaneel` en bij een
+    voorbeeld van Lex in `KaartVoorstelKaart`. Bewerken kiest het oordeel met `OordeelKeuze`: drie pillen over
+    echte keuzerondjes (`role="radiogroup"`), geen uitklaplijst. Tekstvakken op de kaart en in het paneel zijn
+    `components/ui/AutoTextarea`: ze groeien mee met de inhoud, zonder uitrekgreep.
   - **`BegripKaart` is één formulier met *Opslaan*, geen autosave**: elke bewaring is een revisie. De
     kaart werkt op een concept naast de serverstand (`basis`). Verandert de inhoud op de server terwijl
     er niets onbewaard is, dan neemt hij die over; mét onbewaarde wijzigingen zegt hij dat en blijft
