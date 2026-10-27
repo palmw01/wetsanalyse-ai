@@ -13,7 +13,7 @@ from app.annotatie_v2_contracts import Beslissing
 from test_annotatie_v2 import ART, ONE, TWO, element, request, snapshot
 from test_werkgebieden import ART2, _bron, _nieuw, client, database, graaf, snapshot2  # noqa: F401
 
-DEFINITIE = {"definitie": "Degene die de belasting verschuldigd is.", "definitie_herkomst": "samengesteld",
+DEFINITIE = {"definitie": "Degene die de belasting verschuldigd is.",
              "context": "Invordering van rijksbelastingen."}
 
 
@@ -79,7 +79,7 @@ async def test_uit_meerdere_annotaties_een_begrip_en_elke_passage_terug(client):
     # Nog niet te accorderen, en de poort zegt waarom.
     assert b["accorderen"]["mag"] is False
     redenen = " ".join(b["accorderen"]["redenen"])
-    for stuk in ("geen definitie", "herkomst", "context", "3 dragende koppelingen",
+    for stuk in ("geen definitie", "toelichting", "3 dragende koppelingen",
                  "3 dragende annotaties zijn nog niet door een jurist"):
         assert stuk in redenen, redenen
     assert (await client.post(_url(wg, b, "accorderen"), json={"verwachte_revisie": b["revisie"]})).status_code == 409
@@ -247,7 +247,7 @@ async def test_een_gearchiveerd_werkgebied_heeft_geen_begrippen_meer(client):
     assert r.status_code == 404
 
 
-@pytest.mark.parametrize("inhoud", [{"naam": " "}, {"naam": "X", "jas_klasse": "Verzonnen"},
+@pytest.mark.parametrize("inhoud", [{"naam": " "},
                                     {"naam": "X", "voorbeelden": [{"tekst": "a", "oordeel": "misschien"}]}])
 async def test_ongeldige_inhoud_geeft_422(client, inhoud):
     wg = await _werkgebied(client)
@@ -290,11 +290,22 @@ async def test_een_revisieconflict_draagt_een_leesbare_melding(client):
     assert r.status_code == 412 and "Iemand anders" in r.json()["detail"]["melding"]
 
 
-async def test_het_subtype_volgt_de_vaste_lijst(client):
+async def test_het_model_is_slank_en_de_herkomst_rekent_de_api(client):
+    """Spoor I1: JAS-duiding, begripstype, onderbouwing e.d. vallen weg; de herkomst kiest niemand."""
     wg = await _werkgebied(client)
-    r = await client.post(f"/v1/werkgebieden/{wg['id']}/begrippen",
-                          json={"inhoud": {"naam": "X", "jas_subtype": "verzonnen"}})
-    assert r.status_code == 422
-    r = await client.post(f"/v1/werkgebieden/{wg['id']}/begrippen",
-                          json={"inhoud": {"naam": "X", "jas_klasse": "Variabele en variabelewaarde", "jas_subtype": "variabele"}})
-    assert r.status_code == 201
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/begrippen", json={"inhoud": {
+        "naam": "X", "jas_klasse": "Variabele en variabelewaarde", "begripstype": "actor", "onderbouwing": "o",
+        "open_vragen": ["v?"], "eigenschappen": {"a": "b"}, "geldigheid": "g",
+        "definitie": "Iets.", "definitie_herkomst": "letterlijk",
+        "voorbeelden": [{"tekst": "a", "oordeel": "wel", "toelichting": "t"}]}})
+    assert r.status_code == 201, r.text
+    b = r.json()
+    for weg in ("jas_klasse", "begripstype", "onderbouwing", "open_vragen", "eigenschappen", "geldigheid"):
+        assert weg not in b["inhoud"]
+    assert b["inhoud"]["voorbeelden"] == [{"tekst": "a", "oordeel": "wel"}]
+    # Een eigen definitie is geformuleerd, wat de client ook meestuurt.
+    assert (b["inhoud"]["definitie_herkomst"], b["inhoud"]["definitie_door"]) == ("geformuleerd", "analist")
+    # Zonder definitie geen herkomst.
+    r = await client.patch(_url(wg, b), json={"verwachte_revisie": b["revisie"],
+                                              "inhoud": {"naam": "X", "definitie_herkomst": "letterlijk"}})
+    assert r.json()["inhoud"]["definitie_herkomst"] is None

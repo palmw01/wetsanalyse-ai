@@ -67,12 +67,12 @@ const gesprekken = {
         ref: { werkgebied_id: "wg1", begrip_id: "b9", kaart_run_id: "kr1", actie: "voorbeelden" } } },
   ],
 };
-const LEEG = { naam: "", alternatieve_termen: [], context: "", jas_klasse: "", jas_subtype: "", geldigheid: "", definitie: "",
-  definitie_herkomst: null, definitie_door: "", uitleg: "", onderbouwing: "", voorbeelden: [], eigenschappen: {}, open_vragen: [] };
+const LEEG = { naam: "", alternatieve_termen: [], context: "", definitie: "",
+  definitie_herkomst: null, definitie_door: "", uitleg: "", voorbeelden: []  };
 const termijn = { id: "b9", iri: "urn:wa:begrip:b9", werkgebied_id: "wg1", kader_iri: "urn:wa:kader:wg1", status: "concept", revisie: 1,
   inhoud: { ...LEEG, naam: "Termijn", definitie: "Een tijdvak." }, koppelingen: [], aangemaakt_door: "t", aangemaakt: nu, gewijzigd: nu,
   geaccordeerd_door: null, geaccordeerd_op: null, geaccordeerd_revisie: null,
-  accorderen: { mag: false, redenen: ["De context ontbreekt."] }, aandachtspunten: [], vervangen_door: null, vervangt: [] };
+  accorderen: { mag: false, redenen: ["De toelichting ontbreekt."] }, aandachtspunten: [], vervangen_door: null, vervangt: [] };
 const P = (id, tekst) => ({ element_id: id, tekst, jas_klasse: "Rechtssubject", review_status: "human_approved", bron_iri: "urn:x",
   vindplaats: "Artikel 9 · Lid 1 – IW 1990" });
 const groep = { id: "G1", aandacht: "groen", voorstel: { naam: "belastingschuldige" }, uitleg: [], conflicten: [],
@@ -83,7 +83,7 @@ const run = { id: "r1", werkgebied_id: "wg1", manifest_id: "M1", status: "klaar"
 // Eén open voorstel van Lex op de definitie van termijn; overnemen zet het in het begrip.
 const kaartVoorstellen = [{ id: "v1", begrip_id: "b9", run_id: "kr1", actie: "scherper", veld: "definitie", volgorde: 0,
   basis: { definitie: "Een tijdvak." }, waarde: { definitie: "Het tijdvak waarbinnen betaald moet zijn.", herkomst: "geformuleerd",
-    fragmenten: [], toelichting: "" }, aandacht: "geel", aandachtspunten: [], status: "open", reden: "", besloten_door: null,
+    fragmenten: [] }, aandacht: "geel", aandachtspunten: [], status: "open", reden: "", besloten_door: null,
   besloten_op: null, verouderd: false }];
 // Het werkgebied met een deelvraag; *Formuleer scherper* laat Lex een verbetering voorstellen (d2 vervangt d1).
 const dv = (id, vraag, status, extra = {}) => ({ id, vraag, volgorde: id === "d1" ? 0 : 1, status, herkomst: status === "voorgesteld" ? "lex" : "analist",

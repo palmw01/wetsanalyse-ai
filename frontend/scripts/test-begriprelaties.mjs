@@ -31,8 +31,8 @@ await page.addInitScript(() => localStorage.setItem("wa_rondleiding", JSON.strin
 const nu = "2026-10-16T10:00:00+00:00";
 const wg = { id: "wg1", naam: "Termijnen", analysevraag: "", afbakening: "", peildatum: null, status: "actief", revisie: 2,
   aangemaakt_door: "t", aangemaakt: nu, gewijzigd: nu, gearchiveerd: null, bronnen: [] };
-const LEEG = { naam: "", alternatieve_termen: [], context: "", jas_klasse: "", jas_subtype: "", geldigheid: "", definitie: "",
-  definitie_herkomst: null, definitie_door: "", uitleg: "", onderbouwing: "", voorbeelden: [], eigenschappen: {}, open_vragen: [] };
+const LEEG = { naam: "", alternatieve_termen: [], context: "", definitie: "",
+  definitie_herkomst: null, definitie_door: "", uitleg: "", voorbeelden: [] };
 const begrip = (id, naam, status = "concept", definitie = "") => ({ id, status, revisie: 1, inhoud: { ...LEEG, naam, definitie },
   koppelingen: [], vervangen_door: null, vervangt: [] });
 const begrippen = {

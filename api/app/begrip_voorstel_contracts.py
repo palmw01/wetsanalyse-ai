@@ -13,13 +13,14 @@ from .begrip_contracts import Oordeel
 from .begrippen_run_contracts import KaartFragment
 
 Actie = Literal["brondefinitie", "scherper", "betekenisverschil", "voorbeelden"]
-Veld = Literal["definitie", "uitleg", "open_vragen", "voorbeelden"]
+# `context` is het veld toelichting van NL-SBB (`skos:scopeNote`); in beeld heet het *Toelichting*.
+Veld = Literal["definitie", "uitleg", "context", "voorbeelden"]
 
 #: Welke velden een actie mag voorstellen.
 VELDEN: dict[str, set[str]] = {
     "brondefinitie": {"definitie"},
     "scherper": {"definitie"},
-    "betekenisverschil": {"uitleg", "open_vragen"},
+    "betekenisverschil": {"uitleg", "context"},
     "voorbeelden": {"voorbeelden"},
 }
 
@@ -59,13 +60,12 @@ class DefinitieWaarde(BaseModel):
 
 class VoorstelInvoer(BaseModel):
     """Eén voorstel van graph-qa. `definitie` bij het veld definitie; `tekst` bij de andere velden
-    (een alinea uitleg, een open vraag, een voorbeeld), met `oordeel` bij een voorbeeld."""
+    (een alinea uitleg, een toelichting, een voorbeeld), met `oordeel` bij een voorbeeld."""
 
     veld: Veld
     definitie: DefinitieWaarde | None = None
     tekst: str = Field(default="", max_length=4000)
     oordeel: Oordeel | None = None
-    toelichting: str = Field(default="", max_length=2000)
     fragmenten: list[KaartFragment] = Field(default_factory=list, max_length=60)
     # Bij betekenisverschil: de uitkomst van de vergelijking (de vier van ADR-004).
     vergelijking: Literal["zelfde_betekenis", "verwant", "verschil", "onbeslist"] | None = None

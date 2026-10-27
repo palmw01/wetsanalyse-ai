@@ -368,7 +368,6 @@ def context_uit(manifest: dict, leden: list[str], definitie_vindplaats: str = ""
 def _inhoud(rows, o: Overname, manifest: dict | None, leden: list[str]) -> dict:
     """De inhoud van het begrip zoals het voorstel hem draagt: de kaart van de verdieping (fase C) als
     die er is, anders de letterlijke definitie van de keten, en de context uit de vindplaatsen."""
-    labels = {b["bron_iri"]: b.get("label", "") for b in manifest["bronnen"]} if manifest else {}
     inhoud: dict = {"naam": o.naam}
     gekozen = getattr(o, "definitie_van", None)
     bron = next((x for x in rows if x.id == gekozen), None) if gekozen else None
@@ -377,16 +376,16 @@ def _inhoud(rows, o: Overname, manifest: dict | None, leden: list[str]) -> dict:
     k = bron.kaart if bron is not None else (kaarten[0] if len(kaarten) == 1 else None)
     if k:
         inhoud.update(alternatieve_termen=[t for t in k.get("alternatieve_termen", []) if t != o.naam],
-                      context=k.get("context", ""), begripstype=k.get("begripstype") or "")
+                      context=k.get("context", ""))
     if bron is not None:
-        definitie, vindplaats = _definitie_uit(bron, labels), _definitie_vindplaats(bron)
+        definitie, vindplaats = _definitie_uit(bron), _definitie_vindplaats(bron)
     else:
-        metdef = [x for x in rows if _definitie_uit(x, labels)]
-        definities = {_definitie_uit(x, labels) for x in metdef}
+        metdef = [x for x in rows if _definitie_uit(x)]
+        definities = {_definitie_uit(x) for x in metdef}
         definitie = definities.pop() if len(definities) == 1 else None
         vindplaats = _definitie_vindplaats(metdef[0]) if definitie else ""
     if o.met_definitie and definitie:
-        inhoud.update(zip(("definitie", "definitie_herkomst", "onderbouwing"), definitie))
+        inhoud.update(zip(("definitie", "definitie_herkomst"), definitie))
     else:
         vindplaats = ""
     if not inhoud.get("context") and manifest:
@@ -394,40 +393,26 @@ def _inhoud(rows, o: Overname, manifest: dict | None, leden: list[str]) -> dict:
     return inhoud
 
 
-def _pas_aan(inhoud: dict, a: Aanpassing | None, manifest: dict | None) -> tuple[dict, list[str]]:
+def _pas_aan(inhoud: dict, a: Aanpassing | None) -> tuple[dict, list[str]]:
     """De aanpassing van de jurist over het voorstel heen; geeft ook de gewijzigde velden.
 
-    Een andere definitietekst is niet meer letterlijk of samengesteld, dus `geformuleerd` – tenzij de
-    jurist `letterlijk` kiest; dan moet de tekst zo in een bron van het manifest staan."""
+    Een andere definitietekst is niet meer letterlijk of samengesteld, dus `geformuleerd` (spoor I1: de
+    api leidt de herkomst af, de jurist kiest haar niet)."""
     if a is None:
         return inhoud, []
     w = {k: v for k, v in a.model_dump(exclude_unset=True).items() if v is not None}
     uit = dict(inhoud)
-    for veld in ("context", "begripstype", "alternatieve_termen"):
+    for veld in ("context", "alternatieve_termen"):
         if veld in w:
             uit[veld] = w[veld]
-    if "definitie" in w or "definitie_herkomst" in w:
+    if "definitie" in w:
         oud = inhoud.get("definitie", "")
-        nieuw = w.get("definitie", oud).strip()
-        gevraagd = w.get("definitie_herkomst")
+        nieuw = w["definitie"].strip()
         if not nieuw:
-            for veld in ("definitie", "definitie_herkomst", "onderbouwing"):
+            for veld in ("definitie", "definitie_herkomst"):
                 uit.pop(veld, None)
-        else:
-            if gevraagd == "letterlijk":
-                if not any(nieuw in b.get("tekst", "") for b in (manifest or {}).get("bronnen", [])):
-                    raise HTTPException(422, {"fout": "niet_letterlijk",
-                                              "melding": "Deze definitie staat niet zo in een bron van dit werkgebied; "
-                                                         "kies ‘geformuleerd’."})
-                herkomst = "letterlijk"
-            elif nieuw != oud or gevraagd == "geformuleerd" or not inhoud.get("definitie_herkomst"):
-                herkomst = "geformuleerd"
-            else:
-                herkomst = inhoud["definitie_herkomst"]
-            uit.update(definitie=nieuw, definitie_herkomst=herkomst)
-            if nieuw != oud and oud:
-                vorig = f"Aangepast door de analist; het voorstel was “{oud}” ({inhoud.get('definitie_herkomst')})."
-                uit["onderbouwing"] = (vorig + (" " + inhoud["onderbouwing"] if inhoud.get("onderbouwing") else ""))[:8000]
+        elif nieuw != oud or not inhoud.get("definitie_herkomst"):
+            uit.update(definitie=nieuw, definitie_herkomst="geformuleerd")
     velden = sorted(k for k in set(uit) | set(inhoud) if uit.get(k) != inhoud.get(k))
     return uit, velden
 
@@ -475,7 +460,7 @@ async def _neem_over(werkgebied: dict, o: Overname, actor: str, resolve: Resolve
     inhoud = _inhoud(rows, o, manifest, leden)
     velden: list[str] = []
     if akkoord:
-        inhoud, velden = _pas_aan(inhoud, o.aanpassing, manifest)
+        inhoud, velden = _pas_aan(inhoud, o.aanpassing)
         if o.kandidaat_id and (run is None or o.kandidaat_id not in {v["kandidaat_id"] for v in run.uitkomst.get("vragen", [])}):
             raise HTTPException(404, "Deze vraag staat niet in de voorstellen.")
         if o.kandidaat_ids:
@@ -489,7 +474,7 @@ async def _neem_over(werkgebied: dict, o: Overname, actor: str, resolve: Resolve
                                           "melding": "Een twijfelvraag verbindt een passage die niet in deze keuze zit."})
     if inhoud.get("definitie"):
         # Een definitie uit het voorstel is van Lex; heeft de jurist haar aangepast, dan is ze van hem.
-        inhoud["definitie_door"] = "analist" if {"definitie", "definitie_herkomst"} & set(velden) else "lex"
+        inhoud["definitie_door"] = "analist" if "definitie" in velden else "lex"
     try:
         inhoud = BegripInhoud(**inhoud).model_dump(mode="json")
     except ValidationError as e:
@@ -516,24 +501,14 @@ async def _neem_over(werkgebied: dict, o: Overname, actor: str, resolve: Resolve
     return {"begrip": begrip, "geaccordeerd": begrip["status"] == "geaccordeerd", "poort": begrip["accorderen"]}
 
 
-def _definitie_uit(x, labels: dict[str, str]) -> tuple[str, str, str] | None:
-    """(definitie, herkomst, onderbouwing) van een groep: uit de kaart als die er is, anders het
-    letterlijke voorstel van de keten."""
+def _definitie_uit(x) -> tuple[str, str] | None:
+    """(definitie, herkomst) van een groep: uit de kaart als die er is, anders het letterlijke voorstel
+    van de keten. De bron draagt het begrip via zijn passages (`dct:source` in de projectie)."""
     k = x.kaart or {}
     if k.get("definitie"):
-        frs = k.get("fragmenten") or []
-        if k["herkomst"] == "letterlijk":
-            onderbouwing = f"Letterlijk uit {k.get('definitie_vindplaats')}." if k.get("definitie_vindplaats") else ""
-        else:
-            delen = "; ".join(f"“{f['tekst']}” ({labels.get(f['bron_iri']) or f['bron_iri']})" for f in frs)
-            onderbouwing = ("Samengesteld uit de bron: " if k["herkomst"] == "samengesteld"
-                            else "Geformuleerd door Lex, op grond van: ") + delen + "."
-            if k.get("motivatie"):
-                onderbouwing += f" Toelichting van Lex: {k['motivatie']}"
-        return k["definitie"], k["herkomst"], onderbouwing[:8000]
+        return k["definitie"], k["herkomst"]
     if x.voorstel.get("definitie"):
-        vindplaats = x.voorstel.get("definitie_vindplaats") or ""
-        return x.voorstel["definitie"], "letterlijk", f"Letterlijk uit {vindplaats}." if vindplaats else ""
+        return x.voorstel["definitie"], "letterlijk"
     return None
 
 

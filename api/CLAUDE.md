@@ -310,6 +310,14 @@ spoor D (*Werkgebied als node*).
 `begrippen.py`, `begrip_store.py`, `begrip_contracts.py`; het ontwerp staat in PLAN spoor D
 (*Elementen, groepen en begrippen*, *Datamodel*).
 
+- **Een slank begrip volgens NL-SBB** (spoor I1, `BegripInhoud`): naam, alternatieve termen,
+  definitie, uitleg (`rdfs:comment`), context (de *toelichting*, `skos:scopeNote`) en voorbeelden
+  (tekst + oordeel). JAS-duiding, begripstype, geldigheid, eigenschappen, onderbouwing en open vragen
+  bestaan niet meer; een oude rij verliest ze bij het lezen (`begrip_store.slank`, `extra="ignore"`).
+  **De herkomst kiest niemand**: `begrip_store.met_afgeleid` rekent bij elke schrijfactie herkomst en
+  `definitie_door` – een ongewijzigde definitie houdt ze, een nieuwe of andere tekst is `geformuleerd`
+  door de `analist`, geen definitie heeft geen herkomst. Letterlijk wordt een definitie alleen door een
+  overgenomen brondefinitie (kaartvoorstel of het akkoord op een groep).
 - **Eén kader per werkgebied, impliciet.** Een begrip hangt aan een werkgebied; het kader heeft geen
   tabel, alleen een afgeleide IRI (`urn:wa:kader:<werkgebied>`). Begrippen zijn analyse-uitkomsten,
   nooit wettelijke definities; de export zegt dat ook.
@@ -346,8 +354,8 @@ spoor D (*Werkgebied als node*).
   een rol. Het werkgebiedslot maakt dit race-vrij; `GET …/begrippen` geeft per element het primaire
   begrip mee (`primair`).
 - **De poort** (`begrip_store.poort`) staat bij elke GET als `accorderen: {mag, redenen}`; accorderen
-  zonder geeft 409 `{fout: "poort", redenen}`. Voorwaarden: definitie, herkomst van de definitie,
-  context, minstens één aanduidende passage, en elke dragende koppeling (`duiding`/`definitie`, niet
+  zonder geeft 409 `{fout: "poort", redenen}`. Voorwaarden: definitie, toelichting (`context`),
+  minstens één aanduidende passage, en elke dragende koppeling (`duiding`/`definitie`, niet
   afgewezen) beoordeeld, actueel en op een door een jurist beoordeelde annotatie. Een voorbeeld is
   geen voorwaarde. Elke analist mag accorderen; de revisie en de audit leggen vast wie.
 - **Verwijderen is echt wissen** (`DELETE …/begrippen/{id}`, `begrip_store.verwijder`/`wis_begrippen`):
@@ -402,9 +410,8 @@ bouwt de invoer, toetst en bewaart de uitkomst, en legt de besluiten vast.
   Een onbekende vraag is 404; een vraag waarvan een kant niet bij de gekozen passages hoort 422
   `vraag_buiten_keuze`. Antwoord `{begrip, geaccordeerd, poort}`: lukt accorderen niet, dan blijft het een
   concept en noemt de poort wat er openstaat. Met `aanpassing` wijzigt de jurist naam, definitie,
-  context, begripstype of alternatieve termen; een gewijzigde definitie wordt `geformuleerd` en de
-  onderbouwing noemt het voorstel, behalve bij de keuze `letterlijk` als de tekst zo in een bron van
-  het manifest staat (anders 422 `niet_letterlijk`). Bij combineren kiest `definitie_van` welke
+  context of alternatieve termen; een gewijzigde definitie wordt `geformuleerd` (een herkomst kiezen kan
+  niet meer, spoor I1). Bij combineren kiest `definitie_van` welke
   groep zijn definitie en kaart meegeeft. Een tweede akkoord geeft 409 `al_besloten` met
   `begrippen: {groep: begrip}`.
 - **Splitsen laat de rest staan.** Worden niet alle leden van een groep een begrip, dan blijft de
@@ -443,9 +450,8 @@ laatste klare run. graph-qa rekent (`agent/begrippen_verdieping.py`), de api bew
 - `GET …/groepen` geeft na de verdieping de groepen ná hergroeperen, plus elke groep van de keten met
   een besluit; per groep `door` en `kaart`, en bovenaan `verdieping` (open vragen, oordelen, model).
   `lijkt_op` kijkt ook naar de alternatieve termen van de kaart.
-- **Overnemen** vult het begrip uit de kaart: alternatieve termen, context, `begripstype` en de
-  definitie met haar herkomst; de onderbouwing noemt de fragmenten met vindplaats en de toelichting van
-  Lex. Een definitie gaat alleen mee als er precies één is.
+- **Overnemen** vult het begrip uit de kaart: alternatieve termen, context en de definitie met haar
+  herkomst; de bron draagt het begrip via zijn passages (`dct:source`). Een definitie gaat alleen mee als er precies één is.
 - Tests: `tests/test_begrippen_verdieping.py`.
 
 ## Lex naast de kaart
@@ -461,13 +467,12 @@ Vier acties op één begrip: `brondefinitie` (een graafquery, geen model), `sche
 - **Niets stil overschreven.** Een definitievoorstel bewaart `basis` (de definitie en herkomst bij het
   starten). Wijkt het begrip daarvan af, dan 409 `voorstel_verouderd` met `toen`, `nu` en `voorstel`;
   `GET …/voorstellen` meldt het vooraf als `verouderd`. Vervangen kan dan alleen bewust: met
-  `nu_gezien` = de definitie die de analist naast het voorstel zag (klopt die niet meer: weer 409). Uitleg, open vragen en voorbeelden worden
+  `nu_gezien` = de definitie die de analist naast het voorstel zag (klopt die niet meer: weer 409). Uitleg, toelichting en voorbeelden worden
   toegevoegd, nooit vervangen; wat er al staat, geeft geen revisie (wel het besluit).
 - **Herkomst gaat mee.** `BegripInhoud.definitie_door` (`lex` | `analist` | leeg) zet de api, nooit de
-  client (`begrip_store.met_door`): een ongewijzigde definitie houdt wie haar voorstelde, een nieuwe of
-  andere tekst of herkomst is van de analist. Overnemen zet `lex` plus een `onderbouwing` met
-  vindplaats of fragmenten; met `aanpassing` wordt het `geformuleerd` + `analist` en noemt de
-  onderbouwing het voorstel. Het akkoordpad van fase D zet `lex` (of `analist` bij een aanpassing).
+  client (`begrip_store.met_afgeleid`): een ongewijzigde definitie houdt wie haar voorstelde, een nieuwe of
+  andere tekst is van de analist. Overnemen zet `lex` en de herkomst van het voorstel; met `aanpassing`
+  wordt het `geformuleerd` + `analist`. Het akkoordpad van fase D zet `lex` (of `analist` bij een aanpassing).
   Het afgeleide veld telt niet als gewijzigd veld in de revisie.
 - **De run**: `POST …/kaart-runs` legt de invoer vast (begrip op zijn revisie, de actuele dragende
   passages die in het manifest staan, het manifest, de selecties). Idempotent op (actie, revisie van

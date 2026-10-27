@@ -12,7 +12,7 @@ import pytest
 
 from agent.begrippen_pipeline import classificatie, fragmenten, kaart, keten, toetsen, verdieping
 from agent.begrippen_pipeline.model import (
-    Aandacht, Begripstype, Besluit, Bron, Formulering, Fragment, Herkomst, Kaart, Manifest, ModelOordeel,
+    Aandacht, Besluit, Bron, Formulering, Fragment, Herkomst, Kaart, Manifest, ModelOordeel,
     Oordeel, fragment_id,
 )
 from agent.jas_pipeline.taal.provider import NullProvider
@@ -163,17 +163,17 @@ def _opdracht(manifest, uitkomst):
 
 def test_de_basiskaart_zonder_model(manifest, uitkomst):
     k, o = _opdracht(manifest, uitkomst)
-    assert k.naam == "aanslag" and k.begripstype is Begripstype.ENTITEIT and k.begripstype_door == "regel"
+    assert k.naam == "aanslag"
     assert k.context == "Komt voor in art. 1 X; art. 4 Y."
     assert k.definitie == "" and "GEEN_DEFINITIE" in k.aandachtspunten and k.aandacht is Aandacht.GEEL
-    assert o.fragmenten and not o.type_open
+    assert o.fragmenten
 
 
 def test_samengesteld_is_alleen_brontekst_wat_het_model_ook_typt(manifest, uitkomst):
     k, o = _opdracht(manifest, uitkomst)
     fr = next(f for f in o.fragmenten if f.tekst.startswith("Tegen de aanslag"))
     [uit] = kaart.valideer(manifest, [o], [{"groep": k.groep_id, "herkomst": "samengesteld", "fragmenten": [fr.id],
-                                             "definitie": "verzonnen tekst", "begripstype": "", "motivatie": "m"}],
+                                             "definitie": "verzonnen tekst", "motivatie": "m"}],
                            {k.groep_id: True})
     assert uit.herkomst is Herkomst.SAMENGESTELD and uit.definitie == fr.tekst
     assert toetsen.garanties(manifest, uit) == []
@@ -184,7 +184,7 @@ def test_geformuleerd_is_geel_en_noemt_zijn_fragmenten(manifest, uitkomst):
     fr = o.fragmenten[0]
     [uit] = kaart.valideer(manifest, [o], [{"groep": k.groep_id, "herkomst": "geformuleerd", "fragmenten": [fr.id],
                                              "definitie": "Een beschikking die een belastingschuld vaststelt.",
-                                             "begripstype": "", "motivatie": "m"}], {k.groep_id: False})
+                                             "motivatie": "m"}], {k.groep_id: False})
     assert uit.herkomst is Herkomst.GEFORMULEERD and uit.fragmenten == (fr,) and uit.aandacht is Aandacht.GEEL
     assert "DOOR_LEX_GEFORMULEERD" in uit.aandachtspunten
 
@@ -198,7 +198,7 @@ def test_geformuleerd_is_geel_en_noemt_zijn_fragmenten(manifest, uitkomst):
 ])
 def test_zonder_bruikbaar_voorstel_geen_definitie(manifest, uitkomst, item):
     k, o = _opdracht(manifest, uitkomst)
-    item = {"groep": k.groep_id, "begripstype": "", "motivatie": "m",
+    item = {"groep": k.groep_id, "motivatie": "m",
             **{x: ([v.replace("{fr}", o.fragmenten[0].id) for v in y] if isinstance(y, list) else y)
                for x, y in item.items()}}
     [uit] = kaart.valideer(manifest, [o], [item], {k.groep_id: True})
@@ -209,18 +209,6 @@ def test_een_ontbrekende_groep_houdt_de_basiskaart(manifest, uitkomst):
     k, o = _opdracht(manifest, uitkomst)
     [uit] = kaart.valideer(manifest, [o], None, {k.groep_id: True})
     assert uit.definitie == "" and "MODEL_GEEN_DEFINITIE" in uit.aandachtspunten
-
-
-def test_het_begripstype_kiest_het_model_alleen_als_het_open_is(manifest, uitkomst):
-    k, o = _opdracht(manifest, uitkomst)
-    item = {"groep": k.groep_id, "herkomst": "geen", "fragmenten": [], "definitie": "", "begripstype": "actor",
-            "motivatie": ""}
-    [dicht] = kaart.valideer(manifest, [o], [item], {k.groep_id: True})
-    assert dicht.begripstype is Begripstype.ENTITEIT
-    open_ = kaart.Opdracht(k.model_copy(update={"begripstype": None, "begripstype_door": ""}), o.leden,
-                           o.fragmenten, True)
-    [gekozen] = kaart.valideer(manifest, [open_], [item], {k.groep_id: True})
-    assert (gekozen.begripstype, gekozen.begripstype_door) == (Begripstype.ACTOR, "model")
 
 
 def test_letterlijk_uit_een_begripsbepaling_zonder_model():
@@ -299,7 +287,7 @@ def test_verdiep_doorloopt_vraag_en_kaart(manifest, uitkomst):
             fr = kw["tools"][0]["input_schema"]["properties"]["kaarten"]["items"]["properties"]["fragmenten"]["items"]["enum"][0]
             return _antwoord(kaart.TOOL, "kaarten", [{"groep": groep, "herkomst": "geformuleerd", "fragmenten": [fr],
                                                       "definitie": "Een beschikking tot betaling.",
-                                                      "begripstype": "", "motivatie": "m"}])
+                                                      "motivatie": "m"}])
 
     llm = Script([])
     v = verdieping.verdiep(manifest, uitkomst, llm, "m")
@@ -333,5 +321,5 @@ def test_een_geformuleerde_cirkel_wordt_niet_overgenomen(manifest, uitkomst):
     [uit] = kaart.valideer(manifest, [o], [{"groep": k.groep_id, "herkomst": "geformuleerd",
                                              "fragmenten": [o.fragmenten[0].id],
                                              "definitie": "Een aanslag is een aanslag als bedoeld in de wet.",
-                                             "begripstype": "", "motivatie": "m"}], {k.groep_id: True})
+                                             "motivatie": "m"}], {k.groep_id: True})
     assert uit.definitie == "" and "CIRCULAIR_VERWORPEN" in uit.aandachtspunten

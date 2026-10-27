@@ -578,7 +578,7 @@ JAS-classifier, en draait op `LLM_MODEL` (een oordeel, dus geen eigen modelknop)
   scheiding zou anders onzichtbaar zijn (gemeten: `metingen/begrippen-model-2026-10-15`).
   `hergroepeer` gebruikt dezelfde `groeperen.groepeer`, dus dezelfde conflictcontrole.
 - **De concept-kaart** (`kaart.basis` zonder model, `kaart.vul` met): naam, alternatieve termen,
-  begripstype (uit de JAS-klasse; het model kiest alleen bij gemengde klassen), context, en een
+  context, en een
   definitie: *letterlijk* (de definiens, zonder model) > *samengesteld* (het model kiest fragmenten op
   id, code plakt ze aan elkaar) > *geformuleerd* (het model schrijft, noemt zijn fragmenten, altijd
   geel; een cirkel wordt verworpen). Voorbeelden horen bij fase E.
@@ -657,8 +657,10 @@ endpoint `/v1/kaart-runs` is met F3e vervallen.
   fragmenten op id uit de bronnen van de passages en de begripsbepalingen van de term
   (`fragmenten_voor`); daarna `toetsen` in code. Een ongeldig antwoord, een onbekend fragment of geen
   verbetering levert een `melding` en geen voorstel; een geformuleerde cirkel wordt verworpen.
-  Betekenisverschil (met `ander` uit de invoer) levert een alinea `uitleg` en bij twijfel een open
-  vraag; voorbeelden zijn altijd geel en zonder bronanker, met een signaal zonder tegenvoorbeeld.
+  Betekenisverschil (met `ander` uit de invoer) levert een alinea `uitleg` en, als de tekst de grens
+  aanwijst, een `context` (de toelichting, `skos:scopeNote`); voorbeelden zijn altijd geel en zonder
+  bronanker, met een signaal zonder tegenvoorbeeld, en het *waarom* van Lex staat als `motivatie` bij
+  het voorstel, niet bij het begrip (spoor I1).
 - **Budget** vóór een model-actie (`reeks._budget_poort`); het verbruik op `kaart-<run>`, ook bij een fout.
 - **Codes**: de aandachtspunten van deze acties staan in `kaartacties.TEKST`, los van `toetsen.TEKST`
   (de werkplek leest die laatste letterlijk mee; een nieuwe code daar breekt de frontend-drift-test).

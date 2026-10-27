@@ -3,7 +3,7 @@
 PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd036c0853ccc0d4315653a58c17f',
                    'agentrollen.json': '811ce91d94f8abca30b360f5dd5f9f5f08bc68be8ac2f2bc3b59974d293f76aa',
                    'references/agentrollen.md': 'f46b17b5d7f7054bed32767a063b3212428956ee7c85aa78de68887035291787',
-                   'references/begrippen.md': '9116dc40369b1d4258d1de61dbb44ca5854c5148e2c43782e63b8c9e43927b16',
+                   'references/begrippen.md': 'efeb87eee75c3a1ef44706267424efbb4c7afa55ba09cae8df26d0851c1d5084',
                    'references/bronnen.md': 'fff5dc1c7a33a88219d2767986882b0f7552b0e99a1ba8c4c52c7aa9ace46b36',
                    'references/deelvragen-en-bronnen.md': '3f1297e0e4852a27adcacb843ff185cd89be9ce58e8ebe87bf0173cbb8204053',
                    'references/jas-klassen-referentie.md': '5fe94a8c3718eb3d0f21a04cda9e89d9c35db4260b39f1900ead19a86ee91a95'},
@@ -32,14 +32,17 @@ PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd03
                                 'extra tools of bevoegdheden.'},
              'begrippen': {'bestand': 'references/begrippen.md',
                            'bronnen': ['M01', 'M04', 'P15'],
-                           'sha256': 'fa16b2ceea0780a598bd4f87003ae4c39d11977886fdbda86bf18e8e7f396028',
+                           'sha256': '5b3093b19d58f3fbdba721d1e46798eb764db5bf1af1decc6b5646ef66e2a54e',
                            'tekst': 'Een begrip is een analyse-uitkomst, geen wettelijke '
                                     'definitie: het brengt de formuleringen samen die in het '
-                                    'werkgebied hetzelfde aanduiden, met een naam, een definitie, '
-                                    'context en de passages waarop het rust. Een gelijk woord '
-                                    'bewijst geen gelijke betekenis; sterk bewijs is wat de wet '
-                                    'zelf vastlegt – een begripsbepaling binnen haar bereik, of '
-                                    'een verwijzing. Houd de wettelijke definitie en het '
+                                    'werkgebied hetzelfde aanduiden, met de passages waarop het '
+                                    'rust. Het volgt NL-SBB en draagt alleen een term (naam en '
+                                    'alternatieve termen), een definitie, een uitleg, een '
+                                    'toelichting (de grenzen of het gebruik) en voorbeelden; een '
+                                    'begripstype of JAS-duiding stel je niet voor. Een gelijk '
+                                    'woord bewijst geen gelijke betekenis; sterk bewijs is wat de '
+                                    'wet zelf vastlegt – een begripsbepaling binnen haar bereik, '
+                                    'of een verwijzing. Houd de wettelijke definitie en het '
                                     'vastgelegde begrip uit elkaar.\n'
                                     'Een definitie noemt het soortbegrip en het onderscheidende '
                                     'kenmerk, dekt wat de passages aanduiden en niet meer, '
@@ -51,7 +54,8 @@ PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd03
                                     'Voorbeelden toetsen een definitie. Ze komen pas als er een '
                                     'overgenomen definitie is, en een grensgeval of tegenvoorbeeld '
                                     'hoort erbij. Een betekenisverschil leg je uit met de context '
-                                    'van beide begrippen, niet met het woord alleen.\n'
+                                    'van beide begrippen, niet met het woord alleen; waar de grens '
+                                    'ligt, hoort in de toelichting.\n'
                                     'Relaties houden hun type – kwalificatie, inclusie, '
                                     'uitsluiting, soort van, verwant – en hun richting. Een begrip '
                                     'met een andere betekenis wordt een opvolger, het oude wordt '
@@ -166,5 +170,5 @@ PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd03
                                    'interpretatieverschillen zichtbaar; presenteer ze niet als '
                                    'vaststaande conclusies. Voeg zonder beschikbare bronnen geen '
                                    'nieuw juridisch feit toe.'}},
- 'sha256': '6b1b77487430692c1f2f69e906f29d0625c4af427349e2bf76c85e61bf65f87f',
+ 'sha256': '53b981f280297f073ed6a4918aa684d2a76e653f54458bea38120fe3e23d526e',
  'versie': '2.1'}

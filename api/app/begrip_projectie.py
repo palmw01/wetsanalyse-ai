@@ -2,7 +2,7 @@
 
 Per werkgebied één named graph `urn:wa:graph:werkgebied:<id>`: het begrippenkader als
 `skos:ConceptScheme`, elk begrip als `skos:Concept` volgens NL-SBB 1.0.0 (ADR-003), plus eigen predicaten
-onder `urn:wa-ns:` voor wat NL-SBB niet kent – status, revisie, herkomst van de definitie, JAS-duiding,
+onder `urn:wa-ns:` voor wat NL-SBB niet kent – status, revisie, herkomst van de definitie,
 de koppelingen met hun bewijsstand en de begripsrelaties met hun juridische type.
 
 - **Postgres is de waarheid, de graaf een herbouwbare projectie** – net als de JAS-lagen
@@ -42,7 +42,7 @@ from sqlalchemy import select
 
 from . import db
 from .config import get_settings
-from .graaf_projectie_v2 import _lit, _repo, _select, element_iri, klasse_iri
+from .graaf_projectie_v2 import _lit, _repo, _select, element_iri
 
 logger = logging.getLogger(__name__)
 
@@ -205,12 +205,9 @@ def _begrip(g: Graph, kader: URIRef, b: dict, paginas: dict[str, str]) -> None:
             g.add((c, SKOS.example, _nl(v["tekst"])))
     g.add((c, WA.status, Literal(b["status"])))
     g.add((c, WA.revisie, Literal(b["revisie"])))
-    for p, k in ((WA.definitieHerkomst, "definitie_herkomst"), (WA.definitieDoor, "definitie_door"),
-                 (WA.begripstype, "begripstype"), (WA.jasSubtype, "jas_subtype"), (WA.geldigheid, "geldigheid")):
+    for p, k in ((WA.definitieHerkomst, "definitie_herkomst"), (WA.definitieDoor, "definitie_door")):
         if i.get(k):
             g.add((c, p, Literal(i[k])))
-    if i.get("jas_klasse"):
-        g.add((c, WA.jasKlasse, klasse_iri(i["jas_klasse"])))
     if b["status"] == "geaccordeerd" and b.get("geaccordeerd_op"):
         g.add((c, WA.geaccordeerdOp, Literal(b["geaccordeerd_op"], datatype=XSD.dateTime)))
         g.add((c, WA.geaccordeerdRevisie, Literal(b["geaccordeerd_revisie"])))

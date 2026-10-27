@@ -78,7 +78,6 @@ export function KaartVoorstelKaart({ v, verouderd, onbewaard, geaccordeerd, onOv
       {!isDefinitie(v) && (w as TekstWaarde).oordeel && (
         <p className="text-xs text-muted">
           Verwacht oordeel: {OORDEEL_LABEL[(w as TekstWaarde).oordeel!]}
-          {(w as TekstWaarde).toelichting ? ` – ${(w as TekstWaarde).toelichting}` : ""}
         </p>
       )}
       {!isDefinitie(v) && (w as TekstWaarde).vergelijking && (

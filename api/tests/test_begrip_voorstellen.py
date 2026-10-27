@@ -84,7 +84,7 @@ async def test_overnemen_zet_definitie_herkomst_en_revisie(client):
     i = nb["inhoud"]
     assert (i["definitie"], i["definitie_herkomst"], i["definitie_door"]) == (
         "iemand die als eerste genoemd wordt", "geformuleerd", "lex")
-    assert i["onderbouwing"].startswith("Voorgesteld door Lex. Geformuleerd op grond van: “Alfa”.")
+    assert "onderbouwing" not in i
     assert nb["revisie"] == 2
     [laatste, *_] = (await client.get(f"{_pad(wg, b)}/revisies")).json()["revisies"]
     assert (laatste["actie"], laatste["detail"]["voorstel_id"], laatste["detail"]["door"]["model"]) == (
@@ -134,7 +134,6 @@ async def test_aanpassen_maakt_de_definitie_van_de_analist(client):
     i = r.json()["inhoud"]
     assert (i["definitie"], i["definitie_herkomst"], i["definitie_door"]) == (
         "de eerste persoon in lid 1", "geformuleerd", "analist")
-    assert i["onderbouwing"].startswith("Aangepast door de analist; het voorstel van Lex was “iemand die als eerste")
     [v] = (await client.get(f"{_pad(wg, b)}/voorstellen")).json()["voorstellen"]
     assert v["status"] == "aangepast"
 
@@ -206,8 +205,6 @@ async def test_een_brondefinitie_buiten_het_werkgebied_toetst_de_api_tegen_de_gr
     assert v["door"]["bron"] == "graaf"
     i = (await _neem_over(client, wg, b, v)).json()["inhoud"]
     assert (i["definitie"], i["definitie_herkomst"], i["definitie_door"]) == ("Deze wet", "letterlijk", "lex")
-    assert i["onderbouwing"] == ("Voorgesteld door Lex. Letterlijk uit Artikel 2 – AWR "
-                                 "(buiten de bronnen van het werkgebied).")
 
 
 async def test_een_lege_uitkomst_draagt_haar_melding(client):
@@ -256,11 +253,11 @@ async def test_betekenisverschil_met_een_ander_begrip(client):
     assert run["ander_begrip_id"] == beta["id"]
     uit, vraag = (await _uitkomst(client, wg, b, run, [
         {"veld": "uitleg", "tekst": "Alfa is iets anders dan Beta.", "vergelijking": "verschil", "fragmenten": [_fragment()]},
-        {"veld": "open_vragen", "tekst": "Valt Beta onder Alfa?"}])).json()["voorstellen"]
+        {"veld": "context", "tekst": "Beta valt er niet onder."}])).json()["voorstellen"]
     assert uit["waarde"]["vergelijking"] == "verschil"
     b = (await _neem_over(client, wg, b, uit)).json()
     b = (await _neem_over(client, wg, b, vraag)).json()
-    assert (b["inhoud"]["uitleg"], b["inhoud"]["open_vragen"]) == ("Alfa is iets anders dan Beta.", ["Valt Beta onder Alfa?"])
+    assert (b["inhoud"]["uitleg"], b["inhoud"]["context"]) == ("Alfa is iets anders dan Beta.", "Beta valt er niet onder.")
 
 
 async def test_afwijzen_laat_het_begrip_staan(client):

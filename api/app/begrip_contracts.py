@@ -1,16 +1,16 @@
-"""Wirecontract voor begrippen (spoor D, levering 2).
+"""Wirecontract voor begrippen (spoor D, levering 2; slank volgens NL-SBB sinds spoor I1).
 
 Een begrip is een analyse-uitkomst binnen één werkgebied, nooit een wettelijke definitie. De inhoud
-houdt definitie, letterlijke herkomst en toelichting uit elkaar (PLAN D, uitgangspunt 4).
+volgt NL-SBB: term (naam, alternatieve termen), definitie, uitleg, context (toelichting) en
+voorbeelden. Wat een oude rij nog meer draagt (JAS-duiding, begripstype, onderbouwing …) valt bij het
+lezen weg (`extra="ignore"`).
 """
 from __future__ import annotations
 
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
-
-from .validation import GELDIGE_JAS_KLASSEN
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class Herkomst(str, Enum):
@@ -38,34 +38,32 @@ class Beoordeling(str, Enum):
 
 
 class Voorbeeld(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     tekst: str = Field(min_length=1, max_length=2000)
     oordeel: Oordeel
-    toelichting: str = Field(default="", max_length=2000)
 
 
 class BegripInhoud(BaseModel):
     """Alles optioneel behalve de naam: een begrip groeit. De accorderingspoort vraagt de rest."""
 
+    model_config = ConfigDict(extra="ignore")
+
     naam: str = Field(min_length=1, max_length=200)
     alternatieve_termen: list[str] = Field(default_factory=list, max_length=50)
+    # NL-SBB `skos:scopeNote`: de grenzen of het gebruik van het begrip (in beeld: *Toelichting*).
     context: str = Field(default="", max_length=4000)
-    jas_klasse: str = ""
-    # Dezelfde vaste lijst als bij een annotatie-element (`annotatie_v2_contracts.Element`).
-    jas_subtype: str = Field(default="", pattern=r"^(|variabele|variabelewaarde|parameter|parameterwaarde|delegatiebevoegdheid|delegatie-invulling)$")
-    geldigheid: str = Field(default="", max_length=1000)
-    # Werkindeling (PLAN §D), geen JAS-klasse: entiteit, actor, toestand, gebeurtenis, eigenschap, relatie.
-    begripstype: str = Field(default="", pattern=r"^(|entiteit|actor|toestand|gebeurtenis|eigenschap|relatie)$")
     definitie: str = Field(default="", max_length=8000)
+    # De api rekent herkomst en `definitie_door` bij elke schrijfactie (`begrip_store.met_afgeleid`); wat
+    # een client meestuurt telt niet. Letterlijk is alleen een overgenomen brondefinitie.
     definitie_herkomst: Herkomst | None = None
     # Wie de definitie voorstelde (fase E): `lex` als ze van een voorstel van Lex komt en ongewijzigd
     # is overgenomen, `analist` zodra een mens de tekst schreef of aanpaste; leeg = onbekend of geen
-    # definitie. De api zet dit veld; wat een client meestuurt telt niet (`begrip_store.met_door`).
+    # definitie.
     definitie_door: Literal["", "analist", "lex"] = ""
+    # NL-SBB `rdfs:comment`: in eenvoudige taal (B1), gericht op begrijpen.
     uitleg: str = Field(default="", max_length=8000)
-    onderbouwing: str = Field(default="", max_length=8000)
     voorbeelden: list[Voorbeeld] = Field(default_factory=list, max_length=100)
-    eigenschappen: dict[str, str] = Field(default_factory=dict)
-    open_vragen: list[str] = Field(default_factory=list, max_length=100)
 
     @field_validator("naam")
     @classmethod
@@ -74,17 +72,10 @@ class BegripInhoud(BaseModel):
             raise ValueError("naam is verplicht")
         return v.strip()
 
-    @field_validator("alternatieve_termen", "open_vragen")
+    @field_validator("alternatieve_termen")
     @classmethod
     def _lijst(cls, v: list[str]) -> list[str]:
         return [t.strip() for t in v if t.strip()]
-
-    @field_validator("jas_klasse")
-    @classmethod
-    def _klasse(cls, v: str) -> str:
-        if v and v not in GELDIGE_JAS_KLASSEN:
-            raise ValueError(f"onbekende JAS-klasse: {v}")
-        return v
 
 
 class BegripInvoer(BaseModel):

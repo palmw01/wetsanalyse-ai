@@ -44,8 +44,7 @@ const inventaris = () => ({ werkgebied_id: "wg1", revisie: wg.revisie, volledig:
   elementen: Object.entries(elementen).map(([id, e]) => ({ id, klasse: "Rechtssubject", tekst: e.tekst, lifecycle: e.lifecycle,
     eigenaar_iri: e.eigenaar_iri, laag_id: "l", ankers: [], rol: "analyseren", selecties: [e.selectie], deels_buiten: false })) });
 
-const LEEG = { naam: "", alternatieve_termen: [], context: "", jas_klasse: "", jas_subtype: "", geldigheid: "", definitie: "",
-  definitie_herkomst: null, uitleg: "", onderbouwing: "", voorbeelden: [], eigenschappen: {}, open_vragen: [] };
+const LEEG = { naam: "", alternatieve_termen: [], context: "", definitie: "", definitie_herkomst: null, uitleg: "", voorbeelden: [] };
 const begrippen = new Map();
 let teller = 0, conflictBijOpslaan = false;
 const koppeling = (bid, eid, rol) => ({ id: `k${++teller}`, begrip_id: bid, element_id: eid, rol, motivatie: "",
@@ -64,8 +63,7 @@ const meervoud = (n, een, meer) => (n === 1 ? een : meer.replace("{n}", n));
 function poort(b) {
   const r = [], i = b.inhoud;
   if (!i.definitie.trim()) r.push("Er is nog geen definitie.");
-  if (!i.definitie_herkomst) r.push("De herkomst van de definitie is niet gekozen.");
-  if (!i.context.trim()) r.push("De context ontbreekt.");
+  if (!i.context.trim()) r.push("De toelichting ontbreekt.");
   const dragend = b.koppelingen.filter((k) => k.rol !== "context" && k.beoordeling !== "afgewezen");
   if (!dragend.some((k) => k.rol === "duiding")) r.push("Er is nog geen passage die dit begrip aanduidt.");
   const open = dragend.filter((k) => k.beoordeling === "open").length;
@@ -131,9 +129,14 @@ await page.route("**/api/**", async (route) => {
       if (conflictBijOpslaan) {         // iemand anders slaat net eerder op
         conflictBijOpslaan = false;
         b.revisie += 1;
-        b.inhoud = { ...b.inhoud, onderbouwing: "Van een ander" };
+        b.inhoud = { ...b.inhoud, context: "Van een ander" };
       }
-      return muteer(route, b, body.verwachte_revisie, "begrip-gewijzigd", { velden: ["definitie"] }, () => { b.inhoud = { ...LEEG, ...body.inhoud }; });
+      return muteer(route, b, body.verwachte_revisie, "begrip-gewijzigd", { velden: ["definitie"] }, () => {
+        // Zoals de api (spoor I1): de herkomst rekent de server; een eigen of gewijzigde tekst is geformuleerd.
+        const def = (body.inhoud.definitie ?? "").trim();
+        const herkomst = !def ? null : def === b.inhoud.definitie.trim() && b.inhoud.definitie_herkomst ? b.inhoud.definitie_herkomst : "geformuleerd";
+        b.inhoud = { ...LEEG, ...body.inhoud, definitie_herkomst: herkomst };
+      });
     }
     if (deel === "revisies") return route.fulfill({ json: { revisies: b.revisies.map((r) => ({ ...r, status: b.status, inhoud: b.inhoud, tijdstip: nu })) } });
     if (deel === "koppelingen" && !kid)
@@ -200,27 +203,27 @@ try {
 
   // 2. De poort zegt wat er nog nodig is; accorderen kan nog niet.
   const nodig = page.getByRole("list", { name: "Nog nodig om te accorderen" });
-  for (const r of ["Er is nog geen definitie.", "De context ontbreekt.", "3 dragende koppelingen zijn nog niet beoordeeld.",
+  for (const r of ["Er is nog geen definitie.", "De toelichting ontbreekt.", "3 dragende koppelingen zijn nog niet beoordeeld.",
     "1 dragende annotatie is nog niet door een jurist beoordeeld."]) await nodig.getByText(r).waitFor();
   assert.equal(await page.getByRole("button", { name: "Accorderen" }).isDisabled(), true);
   await foto("begrip-nieuw");
 
   await kaart().getByLabel("Definitie", { exact: true }).fill("Degene die de belasting verschuldigd is.");
-  // Spoor G5: de kaart in de volgorde van NL-SBB, en bij de definitie of het een brondefinitie is of een
-  // analysebegrip – dat volgt de gekozen herkomst meteen, ook vóór het opslaan.
+  // Spoor I1: de kaart volgt NL-SBB (term, betekenis, voorbeelden) en niemand kiest de herkomst – een eigen
+  // definitie is een analysebegrip, en dat label volgt meteen, ook vóór het opslaan.
   assert.deepEqual(await kaart().locator("[data-kaart-groep]").evaluateAll((g) => g.map((x) => x.dataset.kaartGroep)),
-    ["Term", "Betekenis", "Voorbeelden", "Indeling in deze analyse", "Onderbouwing en open vragen"]);
-  await kaart().getByLabel("Letterlijk uit de bron").check();
-  await kaart().locator("[data-definitie-aard=brondefinitie]").waitFor();
-  await kaart().getByLabel("Samengesteld uit bronpassages").check();
+    ["Term", "Betekenis", "Voorbeelden"]);
+  assert.equal(await kaart().getByRole("radio").count(), 0);
+  for (const weg of ["JAS-duiding", "Begripstype", "Onderbouwing", "Open vragen", "Eigenschappen"])
+    assert.equal(await kaart().getByText(weg, { exact: true }).count(), 0, weg);
   await kaart().locator("[data-definitie-aard=analysebegrip]").getByText("geen wettelijke definitie", { exact: false }).waitFor();
-  await kaart().getByLabel(/^Context/).fill("Invordering van rijksbelastingen.");
+  await kaart().getByLabel(/^Toelichting/).fill("Invordering van rijksbelastingen.");
   await zie("Sla eerst je wijzigingen op");
   await page.getByRole("button", { name: "Opslaan" }).click();
   await zie("Opgeslagen.");
   const patch = requests.filter((r) => r.m === "PATCH" && /begrippen\/b\d+$/.test(r.p)).at(-1).body;
   assert.equal(patch.verwachte_revisie, 1);
-  assert.equal(patch.inhoud.definitie_herkomst, "samengesteld");
+  assert.equal(patch.inhoud.jas_klasse, undefined);
 
   // Een tweede wijziging terwijl iemand anders net opsloeg: 412, de nieuwe stand in beeld, jouw tekst blijft.
   await kaart().getByLabel(/^Uitleg/).fill("Mijn uitleg");
@@ -230,7 +233,7 @@ try {
   await zie("Iemand anders sloeg intussen een nieuwe versie van dit begrip op.");
   assert.equal(await kaart().getByLabel(/^Uitleg/).inputValue(), "Mijn uitleg");
   await page.getByRole("button", { name: "Nieuwe versie overnemen" }).click();
-  assert.equal(await kaart().getByLabel(/^Onderbouwing/).inputValue(), "Van een ander");
+  assert.equal(await kaart().getByLabel(/^Toelichting/).inputValue(), "Van een ander");
   assert.equal(await kaart().getByLabel(/^Uitleg/).inputValue(), "");
 
   // Terug naar het begrippenkader met onbewaarde wijzigingen vraagt eerst bevestiging (het is een link).

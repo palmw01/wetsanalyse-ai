@@ -64,7 +64,7 @@ let teller = 0;
 const alleLeden = () => groepen.flatMap((g) => g.leden);
 const poortVan = (inhoud, eids) => {
   const r = [];
-  if (!inhoud.definitie) r.push("Er is nog geen definitie.", "De herkomst van de definitie is niet gekozen.");
+  if (!inhoud.definitie) r.push("Er is nog geen definitie.");
   const open = eids.filter((e) => !beoordeeld.has(e)).length;
   if (open) r.push(open === 1 ? "1 dragende annotatie is nog niet door een jurist beoordeeld."
     : `${open} dragende annotaties zijn nog niet door een jurist beoordeeld.`);
@@ -80,8 +80,8 @@ function maakBegrip(naam, eids, definitie, beoordeling = "open", extra = {}) {
   const id = `b${++teller}`;
   begrippen.set(id, { id, status: "concept", revisie: 1, aangemaakt_door: "t", aangemaakt: nu, gewijzigd: nu,
     geaccordeerd_door: null, geaccordeerd_op: null, geaccordeerd_revisie: null,
-    inhoud: { naam, alternatieve_termen: [], context: "", jas_klasse: "", jas_subtype: "", geldigheid: "", definitie: definitie ?? "",
-      definitie_herkomst: definitie ? "letterlijk" : null, uitleg: "", onderbouwing: "", voorbeelden: [], eigenschappen: {}, open_vragen: [],
+    inhoud: { naam, alternatieve_termen: [], context: "", definitie: definitie ?? "",
+      definitie_herkomst: definitie ? "letterlijk" : null, uitleg: "", voorbeelden: [] ,
       ...extra },
     koppelingen: eids.map((e, i) => { const p = alleLeden().find((l) => l.element_id === e) ?? passages[e]; return { id: `k${id}${i}`,
       begrip_id: id, element_id: e, rol: "duiding", motivatie: "", beoordeling, beoordeeld_door: null, beoordeeld_op: null,

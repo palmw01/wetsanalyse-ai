@@ -92,8 +92,7 @@ async def test_onbeoordeelde_annotaties_laten_een_concept_achter_dat_later_kan(c
 async def test_zonder_definitie_een_concept_en_met_eigen_definitie_geformuleerd(client):
     ids, wg, _ = await _voorstel(client, _alfa)
     await _keur_goed(ids["alfa1"], ids["alfa2"])
-    assert (await _groepen(client, wg))["Gaaa111"]["poort_vooraf"]["redenen"][:2] == [
-        "Er is nog geen definitie.", "De herkomst van de definitie is niet gekozen."]
+    assert (await _groepen(client, wg))["Gaaa111"]["poort_vooraf"]["redenen"][:1] == ["Er is nog geen definitie."]
     uit = (await _akkoord(client, wg, groep_ids=["Gaaa111"], element_ids=[ids["alfa1"]],
                           aanpassing={"definitie": "de eerste van twee"})).json()
     b = uit["begrip"]
@@ -106,19 +105,19 @@ async def test_zonder_definitie_een_concept_en_met_eigen_definitie_geformuleerd(
 
 async def test_een_aangepaste_letterlijke_definitie_is_niet_meer_letterlijk(client):
     _, wg, _ = await _voorstel(client, lambda ids: _alfa(ids, definitie="Alfa Alfa", definitie_vindplaats=LID1))
-    r = await _akkoord(client, wg, groep_ids=["Gaaa111"],
-                       aanpassing={"definitie": "Alfa en meer", "definitie_herkomst": "letterlijk"})
-    assert r.status_code == 422 and r.json()["detail"]["fout"] == "niet_letterlijk"
-    r = await _akkoord(client, wg, groep_ids=["Gaaa111"], aanpassing={"definitie": "Alfa en meer", "context": "Eigen"})
+    # Letterlijk kiezen bestaat niet meer (spoor I1): wat de client meestuurt, telt niet.
+    r = await _akkoord(client, wg, groep_ids=["Gaaa111"], aanpassing={
+        "definitie": "Alfa en meer", "definitie_herkomst": "letterlijk", "context": "Eigen"})
+    assert r.status_code == 201, r.text
     inhoud = r.json()["begrip"]["inhoud"]
-    assert (inhoud["definitie_herkomst"], inhoud["context"]) == ("geformuleerd", "Eigen")
-    assert inhoud["onderbouwing"].startswith("Aangepast door de analist; het voorstel was “Alfa Alfa” (letterlijk).")
+    assert (inhoud["definitie_herkomst"], inhoud["definitie_door"], inhoud["context"]) == (
+        "geformuleerd", "analist", "Eigen")
+    assert "onderbouwing" not in inhoud
 
 
-async def test_letterlijk_kiezen_mag_als_de_tekst_zo_in_de_bron_staat(client):
-    _, wg, _ = await _voorstel(client, _alfa)
-    r = await _akkoord(client, wg, groep_ids=["Gaaa111"],
-                       aanpassing={"definitie": "Alfa Alfa", "definitie_herkomst": "letterlijk"})
+async def test_een_ongewijzigde_brondefinitie_blijft_letterlijk(client):
+    _, wg, _ = await _voorstel(client, lambda ids: _alfa(ids, definitie="Alfa Alfa", definitie_vindplaats=LID1))
+    r = await _akkoord(client, wg, groep_ids=["Gaaa111"], aanpassing={"definitie": "Alfa Alfa"})
     assert r.status_code == 201, r.text
     assert r.json()["begrip"]["inhoud"]["definitie_herkomst"] == "letterlijk"
 

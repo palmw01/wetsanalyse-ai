@@ -312,8 +312,7 @@ def variant_keten_model(manifest: Manifest, llm: Any, model: str, uit: Any = Non
                "garantiefouten": garanties, "llm_calls": v.meting["llm_calls"],
                "promptversie": v.meting["promptversie"],
                "kaartvoorbeelden": [{"naam": k.naam, "herkomst": k.herkomst.value if k.herkomst else "",
-                                     "definitie": k.definitie, "begripstype": k.begripstype.value
-                                     if k.begripstype else "", "aandachtspunten": list(k.aandachtspunten)}
+                                     "definitie": k.definitie, "aandachtspunten": list(k.aandachtspunten)}
                                     for k in sorted(v.kaarten.values(), key=lambda k: k.naam)],
                "oordeelvoorbeelden": [o.model_dump(mode="json") for o in her.oordelen]})
 

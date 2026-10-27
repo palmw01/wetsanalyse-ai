@@ -130,7 +130,7 @@ function TermBeoordeling({ werkgebiedId, term, data, onHerlaad, onGewijzigd }: {
   const def = defGroep ? groepDefinitie(defGroep) : null;
   const punten = aandachtspunten([...new Set(akkoord.groepen.flatMap((g) => g.kaart?.aandachtspunten ?? []))]);
   const definitie = definitieTekst ?? def?.tekst ?? "";
-  const wordt = herkomstNaAanpassing({ tekst: def?.tekst ?? "", herkomst: def?.herkomst ?? null }, definitie, null);
+  const wordt = herkomstNaAanpassing({ tekst: def?.tekst ?? "", herkomst: def?.herkomst ?? null }, definitie);
   const concept = akkoord.groepen.map(akkoordLabel).filter((l) => l.concept);
   const redenen = [...new Set(concept.flatMap((l) => l.redenen))];
 
@@ -161,8 +161,8 @@ function TermBeoordeling({ werkgebiedId, term, data, onHerlaad, onGewijzigd }: {
     if (!n) return setFout("Kies minstens één passage.");
     if (!naam.trim()) return setFout("Geef het begrip een naam.");
     const aanpassing = aanpassingUit(
-      { definitie: def?.tekst ?? "", herkomst: def?.herkomst ?? null, context: "", begripstype: "" },
-      { definitie, herkomst: null, context: "", begripstype: "" },
+      { definitie: def?.tekst ?? "", context: "" },
+      { definitie, context: "" },
     );
     const invoer = {
       ...akkoordVoor(akkoord.groepen, gekozen, naam, { aanpassing, definitieVan: van || undefined }),

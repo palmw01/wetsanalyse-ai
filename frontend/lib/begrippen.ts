@@ -17,22 +17,21 @@ export const LEGE_INHOUD: BegripInhoud = {
   naam: "",
   alternatieve_termen: [],
   context: "",
-  begripstype: "",
-  jas_klasse: "",
-  jas_subtype: "",
-  geldigheid: "",
   definitie: "",
   definitie_herkomst: null,
   uitleg: "",
-  onderbouwing: "",
   voorbeelden: [],
-  eigenschappen: {},
-  open_vragen: [],
 };
 
-/** Vult een inhoud van de api aan tot een volledige: een ouder begrip kan velden missen. */
+/** Vult een inhoud van de api aan tot een volledige: een ouder begrip kan velden missen. Alleen de velden
+ *  van het slanke model (spoor I1) blijven over. */
 export function volledigeInhoud(inhoud: Partial<BegripInhoud>): BegripInhoud {
-  return { ...LEGE_INHOUD, ...inhoud };
+  const uit = { ...LEGE_INHOUD } as Record<string, unknown>;
+  for (const k of [...Object.keys(LEGE_INHOUD), "definitie_door"]) {
+    if (k in inhoud) uit[k] = (inhoud as Record<string, unknown>)[k];
+  }
+  const i = uit as unknown as BegripInhoud;
+  return { ...i, voorbeelden: (i.voorbeelden ?? []).map((v) => ({ tekst: v.tekst, oordeel: v.oordeel })) };
 }
 
 /** Wat de api bij opslaan als lijst bewaart: lege regels vallen weg, de rest wordt getrimd. Zo is
@@ -43,9 +42,7 @@ export function genormaliseerd(i: BegripInhoud): BegripInhoud {
     ...i,
     naam: i.naam.trim(),
     alternatieve_termen: lijst(i.alternatieve_termen),
-    open_vragen: lijst(i.open_vragen),
     voorbeelden: i.voorbeelden.filter((v) => v.tekst.trim()),
-    eigenschappen: Object.fromEntries(Object.entries(i.eigenschappen).filter(([k]) => k.trim())),
   };
 }
 
@@ -73,8 +70,7 @@ function stabiel(v: unknown): string {
 export const HERKOMST_LABEL: Record<DefinitieHerkomst, string> = {
   letterlijk: "Letterlijk uit de bron",
   samengesteld: "Samengesteld uit bronpassages",
-  // Ook een definitie die Lex formuleerde en de analist overnam (fase C); de onderbouwing zegt wie.
-  geformuleerd: "Geformuleerd (door de analist of door Lex)",
+  geformuleerd: "Geformuleerd",
 };
 
 /** Wat voor definitie dit is, in de woorden van de begripskaart (spoor G5). Een analysebegrip is niet
@@ -154,22 +150,16 @@ export function isPoortFout(e: unknown): boolean {
   return isApiError(e) && e.status === 409 && e.data?.fout === "poort";
 }
 
-const VELD: Record<keyof BegripInhoud, string> = {
+// Een revisie van vóór spoor I1 kan nog andere velden noemen; die verschijnen zoals de api ze noemt.
+const VELD: Record<string, string> = {
   naam: "naam",
   alternatieve_termen: "alternatieve termen",
-  context: "context",
-  begripstype: "begripstype",
-  jas_klasse: "JAS-duiding",
-  jas_subtype: "subtype",
-  geldigheid: "geldigheid",
+  context: "toelichting",
   definitie: "definitie",
   definitie_herkomst: "herkomst van de definitie",
   definitie_door: "voorgesteld door",
   uitleg: "uitleg",
-  onderbouwing: "onderbouwing",
   voorbeelden: "voorbeelden",
-  eigenschappen: "eigenschappen",
-  open_vragen: "open vragen",
 };
 
 const ACTIE: Record<string, string> = {
@@ -192,7 +182,7 @@ const ACTIE: Record<string, string> = {
 export function revisieZin(r: Pick<BegripRevisie, "actie" | "detail">): string {
   const d = r.detail ?? {};
   if (r.actie === "begrip-gewijzigd") {
-    const velden = Array.isArray(d.velden) ? (d.velden as (keyof BegripInhoud)[]).map((v) => VELD[v] ?? v) : [];
+    const velden = Array.isArray(d.velden) ? (d.velden as string[]).map((v) => VELD[v] ?? v) : [];
     return velden.length ? `Gewijzigd: ${velden.join(", ")}` : "Gewijzigd";
   }
   if (r.actie === "begrip-gekoppeld" || r.actie === "begrip-aangemaakt") {
@@ -202,24 +192,13 @@ export function revisieZin(r: Pick<BegripRevisie, "actie" | "detail">): string {
   }
   if (r.actie === "voorstel-overgenomen") {
     // Lex naast de kaart (fase E): het voorstel, en of de analist het aanpaste.
-    const veld = typeof d.veld === "string" ? (VELD[d.veld as keyof BegripInhoud] ?? d.veld).toLowerCase() : "";
+    const veld = typeof d.veld === "string" ? (VELD[d.veld] ?? d.veld).toLowerCase() : "";
     return `${d.aangepast ? "Aangepast overgenomen" : "Overgenomen"} van Lex${veld ? `: ${veld}` : ""}`;
   }
   if (r.actie === "koppeling-gewijzigd" && typeof d.beoordeling === "string") {
     return `Passage beoordeeld: ${BEOORDELING_LABEL[d.beoordeling as KoppelBeoordeling] ?? d.beoordeling}`;
   }
   return ACTIE[r.actie] ?? r.actie;
-}
-
-/** Eigenschappen worden als rijen bewerkt: een sleutel hernoemen in een object kan niet zonder de
- *  volgorde kwijt te raken. */
-export function naarRijen(eigenschappen: Record<string, string>): [string, string][] {
-  return Object.entries(eigenschappen);
-}
-
-/** Terug naar een object; rijen zonder sleutel vallen weg, bij een dubbele sleutel wint de laatste. */
-export function uitRijen(rijen: readonly [string, string][]): Record<string, string> {
-  return Object.fromEntries(rijen.map(([k, v]) => [k.trim(), v] as const).filter(([k]) => k));
 }
 
 /** Een lijst als tekst met één item per regel, en terug. */
