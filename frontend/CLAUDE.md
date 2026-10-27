@@ -201,7 +201,7 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     werkgebied*) – los van het annotatiepaneel. De samenvatting staat ook bovenaan de werkgebiedpagina
     (één component, F3a): het dossier in de volgorde van `DOSSIER_VELDEN` – aanleiding, context, doel,
     analysevraag, praktijkvoorbeeld, afbakening, een leeg veld als "Nog geen …" –, de actieve deelvragen
-    met hun stand (`useDeelvragenDekking`: `GET …/deelvragen/dekking` per revisie, faalt stil) en de
+    met de voortgang van hun bronselectie (`useBronselectieStand`: `GET …/bronselectie` per revisie, faalt stil) en de
     bronnen met rol *analyseren*. Komt het binnen via `opgeslagen`, dan opent het
     paneel én gaat de werkplek verder in dat werkgebied (`onKiesWerkgebied`; het gesprek wordt eraan gekoppeld, de chatkop noemt het).
   - **regels** – gereserveerd voor de afleidingsregels: de kaart staat er, maar is geen knop.
@@ -801,10 +801,11 @@ bestaat los van de gesprekken.
   - Voorstellen en verbeteren doet de deelvragen-agent in het gesprek (*Stel deelvragen voor*, of
     *Formuleer scherper* / *Splits* via *Vraag Lex* bij de deelvraag). Een voorstel staat hier geel met
     *Overnemen* of *Afwijzen…* (reden verplicht; Lex stelt het niet opnieuw voor).
-  - De stand per deelvraag komt uit `GET …/deelvragen/dekking` (per revisie, faalt stil,
-    `isDeelvragenDekking`, via `useDeelvragenDekking`): *Gedekt* (groen), *Nog geen geaccordeerd
-    begrip* (geel), *Nog geen bron* – een `StatusLabel` met `STAND_TOON`.
-    Rekenkern in `lib/deelvragen.ts`.
+  - De stand per deelvraag is de voortgang van haar bronselectie (spoor K; `GET …/bronselectie` per revisie,
+    faalt stil, via `useBronselectieStand`): *Nog niet gestart*, *In behandeling*, *Voorlopig afgerond*,
+    *Beoordeeld* (groen) of *Opnieuw bekijken* (geel) – `deelvraagStand` in `lib/bronselectie.ts`, met het
+    aantal bronnen (`bronnenZin`). Geen begrip: begrippen horen bij het werkgebied, niet bij een deelvraag, en
+    het koppelvenster koppelt alleen bronnen (bestaande begripskoppelingen blijven staan).
   - Een kandidaat die Lex bij een deelvraag vond, zegt dat (`bewijsZin`: "gevonden bij de deelvraag …");
     opnemen koppelt hem aan die deelvraag (api).
   - De allowlist laat `deelvragen`, `deelvragen/{id}`, `deelvragen/dekking` en `deelvragen/{id}/koppelingen`

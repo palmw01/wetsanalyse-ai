@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { bronselectieVanKaart } from "./artefact";
-import { parseBronselectie, slotZin, voortgangToon, voortgangZin, zoekBeperkingen } from "./bronselectie";
+import {
+  bronnenZin, deelvraagStand, parseBronselectie, slotZin, voortgangToon, voortgangZin, zoekBeperkingen,
+} from "./bronselectie";
 import { parseVraagkaart } from "./vraagkaart";
 
 const deelvraag = (id: string, over: Record<string, unknown> = {}) => ({
@@ -54,5 +56,18 @@ describe("bronselectie", () => {
       vraag: "Hoe rond je deelvraag 2 af?" });
     expect(bronselectieVanKaart(k)).toEqual({ soort: "bronselectie", werkgebied_id: "wg1", run_id: "", deelvraag_id: "d2", titel: "Bronselectie" });
     expect(bronselectieVanKaart(parseVraagkaart({ intake_id: "ik1", stap: "naam", vraag: "Naam?" }))).toBeUndefined();
+  });
+});
+
+describe("de stand van een deelvraag in een rij (spoor K)", () => {
+  it("is de voortgang van de bronselectie, geen begrip", () => {
+    expect(deelvraagStand(undefined)).toBeNull();
+    expect(deelvraagStand({ status: "voorlopig_afgerond", opnieuw_bekijken: false })).toEqual({ label: "Voorlopig afgerond", toon: "neutraal" });
+    expect(deelvraagStand({ status: "beoordeeld", opnieuw_bekijken: false })).toEqual({ label: "Beoordeeld", toon: "groen" });
+    expect(deelvraagStand({ status: "beoordeeld", opnieuw_bekijken: true })).toEqual({ label: "Opnieuw bekijken", toon: "geel" });
+  });
+
+  it("telt bronnen in gewone woorden", () => {
+    expect([bronnenZin(0), bronnenZin(1), bronnenZin(3)]).toEqual(["nog geen bronnen", "1 bron", "3 bronnen"]);
   });
 });

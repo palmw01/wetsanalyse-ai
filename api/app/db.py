@@ -373,7 +373,7 @@ werkgebied_deelvraag_koppelingen = Table("werkgebied_deelvraag_koppelingen", met
 # --- Bronselectie per deelvraag (spoor J) --------------------------------------
 # De voortgang van de bronselectie, per deelvraag (`deelvraag_id` leeg = de analysevraag van een werkgebied
 # zonder deelvragen). Geen rij = `niet_gestart`. Dit is de stand van het wérk, niet van de inhoud: de
-# deelvraagstatus (actief, vervangen) en de dekkingscheck (gedekt, geen_bron) staan los. `scope_stand` is de
+# deelvraagstatus (actief, vervangen) en de dekkingscheck (met_bron, geen_bron) staan los. `scope_stand` is de
 # hash van analysevraag, afbakening en deelvraagtekst bij het afronden; wijkt die later af, dan moet de
 # afronding opnieuw bekeken worden. `geopend`: de laatst geopende deelvraag is de actieve.
 bronselectie_voortgang = Table("bronselectie_voortgang", metadata,

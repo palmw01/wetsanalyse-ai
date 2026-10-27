@@ -3,7 +3,8 @@
 // Lex begeleidt de bronselectie in het gesprek met vraagkaarten (`modus: "bronselectie"`, `lib/vraagkaart.ts`);
 // de stand – per deelvraag de voortgang, de bronnen met hun rol bij díé deelvraag, de voorstellen en hun stand
 // hier, de onderzoekspunten – staat bij de api. Het paneel naast het gesprek en de pagina Bronselectie lezen
-// hetzelfde overzicht. De voortgang is de stand van het wérk, niet de dekkingscheck met begrippen (`deelvragen.ts`).
+// hetzelfde overzicht. De voortgang is de stand van het wérk; de rijen van de deelvragen elders tonen haar ook
+// (`deelvraagStand`, spoor K): begrippen horen bij het werkgebied, niet bij een deelvraag.
 //
 // Pure functies, zodat ze zonder DOM te testen zijn (lib/bronselectie.test.ts).
 
@@ -85,6 +86,19 @@ export const VOORTGANG_LABEL: Record<Voortgang, string> = {
 export function voortgangToon(d: Pick<DeelvraagSelectie, "status" | "opnieuw_bekijken">): "groen" | "geel" | "neutraal" {
   if (d.opnieuw_bekijken) return "geel";
   return d.status === "beoordeeld" ? "groen" : "neutraal";
+}
+
+/** De stand van één deelvraag in een rij (spoor K): de voortgang van haar bronselectie, met kleur alleen als die
+ *  een oordeel draagt. Zonder overzicht (nog niet geladen, of een storing) geen label. */
+export function deelvraagStand(d: Pick<DeelvraagSelectie, "status" | "opnieuw_bekijken"> | undefined):
+  { label: string; toon: "groen" | "geel" | "neutraal" } | null {
+  if (!d) return null;
+  return { label: d.opnieuw_bekijken ? "Opnieuw bekijken" : VOORTGANG_LABEL[d.status], toon: voortgangToon(d) };
+}
+
+/** "3 bronnen", "1 bron", "nog geen bronnen". */
+export function bronnenZin(n: number): string {
+  return n ? `${n} ${n === 1 ? "bron" : "bronnen"}` : "nog geen bronnen";
 }
 
 export const STAND_LABEL: Record<KandidaatStand, string> = {

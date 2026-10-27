@@ -2,16 +2,17 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { Lijst, LijstRij, Sectie, StatusLabel } from "@/components/ui/Lijst";
+import { Lijst, Sectie, StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { BronKandidaten } from "@/components/werkgebieden/BronKandidaten";
 import { DeelvraagVoorstel, KoppelDialoog } from "@/components/werkgebieden/Deelvragen";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
 import { foutTekst, haalDeelvraag, haalWerkgebied } from "@/lib/api";
-import { STAND_LABEL, STAND_TOON, STAND_UITLEG, splits } from "@/lib/deelvragen";
+import { deelvraagStand } from "@/lib/bronselectie";
+import { splits } from "@/lib/deelvragen";
 import type { DeelvraagDetail, Werkgebied } from "@/lib/types";
-import { useDeelvragenDekking } from "@/lib/useDeelvragenDekking";
+import { useBronselectieStand } from "@/lib/useBronselectieStand";
 import { ROL_LABEL, isRevisieConflict } from "@/lib/werkgebied";
 import Link from "next/link";
 import { BronBoom } from "@/components/ui/BronBoom";
@@ -24,8 +25,8 @@ import { bronPad } from "@/lib/werkgebiedPaden";
  *
  *  - de vraag en haar stand (dezelfde dekking als op de pagina); is ze vervangen, dan door welke;
  *  - de voorstellen van Lex die haar vervangen (een scherpere formulering of een splitsing): overnemen zet
- *    het voorstel op haar plek, met haar bronnen en begrippen;
- *  - de bronnen en begrippen die erbij horen;
+ *    het voorstel op haar plek, met haar bronnen;
+ *  - de bronnen die erbij horen (begrippen horen bij het werkgebied, spoor K);
  *  - de bepalingen die Lex bij haar vond, met opnemen, later en uitsluiten (`BronKandidaten`).
  *
  *  Geen Lex-knoppen: wat Lex moet doen vraag je in het gesprek. Elke wijziging draagt de revisie in beeld;
@@ -84,7 +85,7 @@ export function DeelvraagPaneel({ werkgebiedId, deelvraagId, onKies, onGewijzigd
   }, [wg, werkgebiedId, deelvraagId, laad, onGewijzigd]);
 
   const actief = splits(wg?.deelvragen).actief;
-  const dekking = useDeelvragenDekking(werkgebiedId, wg?.revisie ?? 0, actief.length);
+  const selectie = useBronselectieStand(werkgebiedId, wg?.revisie ?? 0, actief.length);
 
   if (fout) {
     return (
@@ -99,7 +100,8 @@ export function DeelvraagPaneel({ werkgebiedId, deelvraagId, onKies, onGewijzigd
   if (!wg || !detail) return <SkeletonCard regels={4} />;
 
   const nummer = actief.findIndex((d) => d.id === detail.id) + 1;
-  const stand = dekking?.deelvragen.find((d) => d.id === detail.id);
+  const hier = selectie?.deelvragen.find((d) => d.id === detail.id);
+  const stand = deelvraagStand(hier);
   const bronnen = wg.bronnen.filter((b) => detail.bronnen.includes(b.id));
   const boom = bouwBoom(bronnen, { iri: (b) => b.bron_iri, naam: (b) => b.label || b.bron_iri, plaatsen,
     regelingNaam: (b) => regelingUitLabel(b.label) });
@@ -112,11 +114,7 @@ export function DeelvraagPaneel({ werkgebiedId, deelvraagId, onKies, onGewijzigd
           {" · "}{detail.herkomst === "lex" ? "voorgesteld door Lex" : `door ${detail.aangemaakt_door}`}
         </p>
         <p className="font-medium" data-deelvraag-vraag>{detail.vraag}</p>
-        {stand && (
-          <StatusLabel toon={STAND_TOON[stand.stand]} uitleg={STAND_UITLEG[stand.stand]} data-stand={stand.stand}>
-            {STAND_LABEL[stand.stand]}
-          </StatusLabel>
-        )}
+        {stand && <StatusLabel toon={stand.toon} data-stand={hier?.status}>{stand.label}</StatusLabel>}
       </div>
 
       {melding && <Melding type={melding.type} compact>{melding.tekst}</Melding>}
@@ -143,7 +141,7 @@ export function DeelvraagPaneel({ werkgebiedId, deelvraagId, onKies, onGewijzigd
 
       {detail.voorstellen.length > 0 && (
         <Sectie titel="Voorstellen van Lex" telling={detail.voorstellen.length} niveau={3}
-          toelichting="Overnemen vervangt deze deelvraag: het voorstel neemt haar plek, bronnen en begrippen over.">
+          toelichting="Overnemen vervangt deze deelvraag: het voorstel neemt haar plek en haar bronnen over.">
           <Lijst label="Voorstellen van Lex">
             {detail.voorstellen.map((v) => (
               <DeelvraagVoorstel key={v.id} wgId={werkgebiedId} deelvraag={v} alle={[...(wg.deelvragen ?? []), detail]} muteer={muteer} />
@@ -156,7 +154,7 @@ export function DeelvraagPaneel({ werkgebiedId, deelvraagId, onKies, onGewijzigd
       <Sectie titel="Bronnen" telling={bronnen.length} niveau={3}
         acties={detail.status === "actief" && (
           <Button size="sm" variant="secondary" onClick={() => setKoppelen(true)}
-            aria-label={`Bronnen en begrippen bij: ${detail.vraag}`}>Koppelen</Button>
+            aria-label={`Bronnen bij: ${detail.vraag}`}>Koppelen</Button>
         )}>
         {bronnen.length ? (
           <BronBoom boom={boom} label="Bronnen bij deze deelvraag"
@@ -170,14 +168,6 @@ export function DeelvraagPaneel({ werkgebiedId, deelvraagId, onKies, onGewijzigd
         ) : <p className="text-muted">Er hoort nog geen bron bij deze deelvraag.</p>}
       </Sectie>
       {koppelen && <KoppelDialoog wg={wg} deelvraag={detail} muteer={muteer} onKlaar={() => setKoppelen(false)} />}
-
-      {stand && stand.begrippen.length > 0 && (
-        <Sectie titel="Begrippen" telling={stand.begrippen.length} niveau={3}>
-          <Lijst label="Begrippen bij deze deelvraag">
-            {stand.begrippen.map((b) => <LijstRij key={b.id} titel={b.naam || "Naamloos begrip"} meta={b.status} />)}
-          </Lijst>
-        </Sectie>
-      )}
 
       {detail.status === "actief" && (
         <BronKandidaten id={werkgebiedId} deelvraagId={detail.id} onGewijzigd={() => { void laad(); onGewijzigd?.(); }} />

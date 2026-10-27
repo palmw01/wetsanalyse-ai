@@ -85,7 +85,6 @@ import type {
   VoorstelElement,
   Werkgebied,
   DeelvraagDetail,
-  DeelvragenDekking,
   WerkgebiedAuditRegel,
   WerkgebiedInvoer,
   WerkgebiedSamenvatting,
@@ -1150,10 +1149,6 @@ export async function haalThemaVoorstel(id: string): Promise<ThemaVoorstel | nul
   } catch {
     return null;
   }
-}
-
-export async function haalDeelvragenDekking(id: string): Promise<DeelvragenDekking> {
-  return json<DeelvragenDekking>(await fetch(wg(id, "deelvragen", "dekking"), { cache: "no-store" }));
 }
 
 export async function haalInventaris(id: string): Promise<Inventaris> {

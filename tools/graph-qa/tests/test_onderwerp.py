@@ -26,9 +26,8 @@ WG = {
     "bronnen": [{"id": "s9", "bron_iri": "urn:bwb:BWBR0004770:artikel:9", "label": "Artikel 9 – Invorderingswet 1990",
                  "rol": "analyseren", "bereik": "onderliggend", "reden": "De kern van de termijn."}],
 }
-DEKKING = {"deelvragen": [{"id": "dv1", "vraag": "…", "stand": "geen_begrip",
-                           "bronnen": [{"id": "s9", "label": "Artikel 9"}],
-                           "begrippen": [{"id": "b1", "naam": "termijn", "status": "concept"}]}],
+DEKKING = {"deelvragen": [{"id": "dv1", "vraag": "…", "stand": "met_bron",
+                           "bronnen": [{"id": "s9", "label": "Artikel 9"}]}],
            "telling": {}, "totaal": 1}
 KANDIDATEN = {"kandidaten": [{"id": "k1", "bron_iri": "urn:bwb:BWBR0004770:artikel:8", "label": "Artikel 8",
                               "rol": "afhankelijkheid", "status": "open", "reden": "",
@@ -185,8 +184,9 @@ def test_een_deelvraag_met_stand_en_wat_eraan_gekoppeld_is():
     blok = _blok({"soort": "deelvraag", "werkgebied_id": "wg1", "id": "dv1"})
     assert blok.startswith("\n\nAANGEWEZEN IN DE WERKPLEK") and "geen opdracht" in blok
     assert 'Deelvraag: "Wanneer is een aanslag invorderbaar?"' in blok and "voorgesteld door Lex" in blok
-    assert "Stand: nog geen geaccordeerd begrip" in blok
-    assert "- Artikel 9 – Invorderingswet 1990" in blok and "- termijn (concept)" in blok
+    assert "Stand: gedekt (er hoort een bron bij)" in blok
+    # Begrippen horen bij het werkgebied, niet bij een deelvraag (spoor K).
+    assert "- Artikel 9 – Invorderingswet 1990" in blok and "begrip" not in blok.casefold()
     assert "ONDERWERP" not in blok, "dat woord draagt in de systeemprompt de onderwerp-afbakening"
 
 

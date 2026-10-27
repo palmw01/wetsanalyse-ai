@@ -25,8 +25,7 @@ logger = logging.getLogger("graph_qa.onderwerp")
 
 SOORT_NAAM = {"deelvraag": "Deelvraag", "bron": "Bronselectie", "kandidaat": "Kandidaat van Lex",
               "begrip": "Begrip", "werkgebied": "Werkgebied"}
-STAND = {"gedekt": "gedekt (er hoort een geaccordeerd begrip bij)",
-         "geen_begrip": "nog geen geaccordeerd begrip", "geen_bron": "nog geen bron"}
+STAND = {"met_bron": "gedekt (er hoort een bron bij)", "geen_bron": "nog geen bron"}
 MAX_REGELS = 12
 MAX_TEKENS = 4000
 
@@ -55,9 +54,6 @@ def deelvraag_regels(wg: dict[str, Any], dekking: dict[str, Any] | None, did: st
         regels.append(f"Stand: {STAND[stand['stand']]}")
     bronnen = wg.get("bronnen") or []
     _lijst(regels, "Gekoppelde bronnen", [_bronlabel(bronnen, b) for b in d.get("bronnen") or []])
-    begrippen = (stand or {}).get("begrippen") or []
-    _lijst(regels, "Gekoppelde begrippen", [f"{b.get('naam') or 'naamloos'} ({b.get('status', '')})".replace(" ()", "")
-                                            for b in begrippen])
     return regels
 
 

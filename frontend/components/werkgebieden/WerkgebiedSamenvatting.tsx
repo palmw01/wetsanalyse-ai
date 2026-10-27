@@ -4,9 +4,10 @@ import { themaLabel } from "@/lib/tooiThemas";
 import { bronHref } from "@/lib/url";
 import { Lijst, LijstRij, Regel, Regels, StatusLabel } from "@/components/ui/Lijst";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
-import { STAND_LABEL, STAND_TOON, STAND_UITLEG, dekkingZin, splits } from "@/lib/deelvragen";
+import { deelvraagStand, voortgangZin } from "@/lib/bronselectie";
+import { splits } from "@/lib/deelvragen";
 import type { Werkgebied } from "@/lib/types";
-import { useDeelvragenDekking } from "@/lib/useDeelvragenDekking";
+import { useBronselectieStand } from "@/lib/useBronselectieStand";
 import { DOSSIER_VELDEN } from "@/lib/werkgebied";
 import { metLeesbareBronnen } from "@/lib/bronKandidaten";
 
@@ -25,9 +26,9 @@ export function WerkgebiedSamenvatting({ wg, vraagLex = false, className = "" }:
   className?: string;
 }) {
   const deelvragen = splits(wg.deelvragen).actief;
-  const dekking = useDeelvragenDekking(wg.id, wg.revisie, deelvragen.length);
+  const selectie = useBronselectieStand(wg.id, wg.revisie, deelvragen.length);
   const analyse = wg.bronnen.filter((b) => b.rol === "analyseren");
-  const stand = new Map((dekking?.deelvragen ?? []).map((d) => [d.id, d.stand]));
+  const stand = new Map((selectie?.deelvragen ?? []).map((d) => [d.id, d]));
   return (
     <Regels data-werkgebied-samenvatting className={`text-sm ${className}`}>
       {DOSSIER_VELDEN.map(({ veld, label }) => (
@@ -60,20 +61,16 @@ export function WerkgebiedSamenvatting({ wg, vraagLex = false, className = "" }:
           <>
             <Lijst genummerd label="Deelvragen" className="-my-1.5">
               {deelvragen.map((d, i) => {
-                const s = stand.get(d.id);
+                const s = deelvraagStand(stand.get(d.id));
                 return (
                   <LijstRij key={d.id} className="py-1.5" voor={`${i + 1}.`} titel={d.vraag} data-samenvatting-deelvraag={d.id}
                     acties={vraagLex ? <VraagLexKnop alleenInGesprek onderwerp={{ soort: "deelvraag", werkgebied_id: wg.id, id: d.id, label: d.vraag }} />
                       : undefined}
-                    status={s && (
-                      <StatusLabel toon={STAND_TOON[s]} uitleg={STAND_UITLEG[s]} data-samenvatting-stand={s}>
-                        {STAND_LABEL[s]}
-                      </StatusLabel>
-                    )} />
+                    status={s && <StatusLabel toon={s.toon} data-samenvatting-stand={stand.get(d.id)?.status}>{s.label}</StatusLabel>} />
                 );
               })}
             </Lijst>
-            {dekkingZin(dekking) && <p className="mt-1.5 text-xs text-muted">{dekkingZin(dekking)}</p>}
+            {selectie?.modus === "deelvragen" && <p className="mt-1.5 text-xs text-muted">{voortgangZin(selectie)}</p>}
           </>
         ) : (
           <span className="text-muted">Nog geen deelvragen.</span>
