@@ -282,9 +282,9 @@ try {
   await begripPaneel.getByText("Overgenomen van Lex", { exact: false }).waitFor();
   await begripPaneel.locator("[data-begrip-lees]").getByText("Het tijdvak waarbinnen betaald moet zijn.").waitFor();
   assert.equal(await begripPaneel.locator('[data-voorstel="v1"]').count(), 0, "een overgenomen voorstel is niet meer open");
-  // Spoor I2: er is nu een definitie maar nog geen uitleg; Vraag Lex bij dat lege veld zet de uitleg in B1 voorop.
-  await begripPaneel.getByRole("button", { name: "Vraag Lex: uitleg in B1 schrijven" }).click();
-  await page.getByRole("button", { name: "Schrijf de uitleg in B1" }).waitFor();
+  // Spoor I2: er is nu een definitie maar nog geen uitleg; in het paneel staat daar geen Vraag Lex (spoor K).
+  await begripPaneel.getByText("Nog geen uitleg.").waitFor();
+  assert.equal(await begripPaneel.locator("[data-vraag-lex]").count(), 0, "geen Vraag Lex naast het gesprek");
   // Een eigen bewerking: sluiten vraagt eerst, net als een tabwissel in het werkgebied.
   await begripPaneel.getByRole("button", { name: "Definitie en uitleg bewerken" }).click();
   await begripPaneel.getByLabel(/^Uitleg/).fill("Nog niet bewaard");

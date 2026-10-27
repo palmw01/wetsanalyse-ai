@@ -1,14 +1,18 @@
 "use client";
 
+import Link from "next/link";
+import { useContext } from "react";
+
 import { themaLabel } from "@/lib/tooiThemas";
 import { bronHref } from "@/lib/url";
 import { Lijst, LijstRij, Regel, Regels, StatusLabel } from "@/components/ui/Lijst";
-import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
+import { VraagLexContext } from "@/components/werkplek/VraagLexKnop";
 import { deelvraagStand, voortgangZin } from "@/lib/bronselectie";
 import { splits } from "@/lib/deelvragen";
 import type { Werkgebied } from "@/lib/types";
 import { useBronselectieStand } from "@/lib/useBronselectieStand";
 import { DOSSIER_VELDEN } from "@/lib/werkgebied";
+import { deelvraagPad } from "@/lib/werkgebiedPaden";
 import { metLeesbareBronnen } from "@/lib/bronKandidaten";
 
 /** Wat het werkgebied is, in één oogopslag: het dossier in de volgorde van de methode (aanleiding,
@@ -16,15 +20,14 @@ import { metLeesbareBronnen } from "@/lib/bronKandidaten";
  *  bronnen die geanalyseerd worden. In de lijststijl van de samenvatting op de vraagkaart.
  *
  *  Eén samenvatting op twee plekken (F3a): het paneel naast het gesprek en de kop van de werkgebiedpagina.
- *  Een leeg veld staat er ook, zodat zichtbaar is wat er nog ontbreekt – met *Vraag Lex*, die het veld
- *  laat aanvullen met de vraagkaarten (de suggestie *Vul … aan*). */
-export function WerkgebiedSamenvatting({ wg, vraagLex = false, className = "" }: {
+ *  Een leeg veld staat er ook, zodat zichtbaar is wat er nog ontbreekt; aanvullen vraag je in het gesprek (de
+ *  suggestie *Vul het dossier aan*). Geen *Vraag Lex* in het paneel (spoor K): naast het gesprek zet een klik op
+ *  een deelvraag haar als onderwerp, daarbuiten opent hij haar pagina. */
+export function WerkgebiedSamenvatting({ wg, className = "" }: {
   wg: Werkgebied;
-  /** *Vraag Lex* bij elke deelvraag (F3d) en bij elk leeg dossierveld: in de werkplek zet hij het object als
-   *  onderwerp, daarbuiten opent hij een gesprek. */
-  vraagLex?: boolean;
   className?: string;
 }) {
+  const kies = useContext(VraagLexContext);
   const deelvragen = splits(wg.deelvragen).actief;
   const selectie = useBronselectieStand(wg.id, wg.revisie, deelvragen.length);
   const analyse = wg.bronnen.filter((b) => b.rol === "analyseren");
@@ -36,13 +39,7 @@ export function WerkgebiedSamenvatting({ wg, vraagLex = false, className = "" }:
           {(wg[veld] ?? "").trim()
             ? <span className="whitespace-pre-line">{metLeesbareBronnen(wg[veld] ?? "")}</span>
             : (
-              <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="text-muted">{`Nog geen ${label.toLowerCase()}.`}</span>
-                {vraagLex && (
-                  <VraagLexKnop alleenInGesprek naam={`Vraag Lex: ${label.toLowerCase()} aanvullen`}
-                    onderwerp={{ soort: "werkgebied", werkgebied_id: wg.id, id: "", label: wg.naam, veld }} />
-                )}
-              </span>
+              <span className="text-muted">{`Nog geen ${label.toLowerCase()}.`}</span>
             )}
         </Regel>
       ))}
@@ -63,9 +60,14 @@ export function WerkgebiedSamenvatting({ wg, vraagLex = false, className = "" }:
               {deelvragen.map((d, i) => {
                 const s = deelvraagStand(stand.get(d.id));
                 return (
-                  <LijstRij key={d.id} className="py-1.5" voor={`${i + 1}.`} titel={d.vraag} data-samenvatting-deelvraag={d.id}
-                    acties={vraagLex ? <VraagLexKnop alleenInGesprek onderwerp={{ soort: "deelvraag", werkgebied_id: wg.id, id: d.id, label: d.vraag }} />
-                      : undefined}
+                  <LijstRij key={d.id} className="py-1.5" voor={`${i + 1}.`} data-samenvatting-deelvraag={d.id}
+                    titel={kies ? (
+                      <button type="button" className={DEELVRAAG_LINK} data-deelvraag-onderwerp={d.id}
+                        aria-label={`Bespreek deelvraag ${i + 1} in dit gesprek: ${d.vraag}`}
+                        onClick={() => kies({ soort: "deelvraag", werkgebied_id: wg.id, id: d.id, label: d.vraag })}>
+                        {d.vraag}
+                      </button>
+                    ) : <Link href={deelvraagPad(wg.id, d.id)} className={DEELVRAAG_LINK}>{d.vraag}</Link>}
                     status={s && <StatusLabel toon={s.toon} data-samenvatting-stand={stand.get(d.id)?.status}>{s.label}</StatusLabel>} />
                 );
               })}
@@ -88,3 +90,5 @@ export function WerkgebiedSamenvatting({ wg, vraagLex = false, className = "" }:
     </Regels>
   );
 }
+
+const DEELVRAAG_LINK = "focus-ring rounded text-left text-ink underline-offset-2 hover:text-lint hover:underline";
