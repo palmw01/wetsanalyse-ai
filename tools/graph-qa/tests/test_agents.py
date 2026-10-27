@@ -319,9 +319,3 @@ def test_de_verbetering_past_in_het_api_contract():
                                         WG["deelvragen"][1], [])
     DeelvraagVoorstellen(vragen=vragen, model="m", vervangt="d2")
 
-
-def test_thema_stelt_een_tooi_thema_voor_zonder_model():
-    """Spoor I7: *Kies een thema* – het voorstel van de api, en de analist kiest in Gegevens bewerken."""
-    uit, _ = _taak("thema")
-    assert "Ik stel het thema *belasting* voor (TOOI, tooitop)." in uit.tekst and "Belastingrecht" in uit.tekst
-    assert uit.artefact["soort"] == "werkgebied" and uit.meting["model"] is False

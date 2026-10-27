@@ -40,7 +40,7 @@ export type BegripVeld = "uitleg";
  *  dossier aanvullen); `vraagLex.test.ts` leest die bron. */
 export const ACTIES = [
   "werkgebied_annoteren", "deelvragen_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
-  "bronnen_zoeken", "dekking", "thema", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie", "scherper",
+  "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie", "scherper",
   "uitleg", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen",
 ] as const;
 
@@ -114,7 +114,8 @@ function objectModule(suggesties: (o: Object_) => Suggestie[] = () => []): Modul
 const SUGGESTIES: Record<ObjectSoort, Suggestie[]> = {
   werkgebied: [
     { tekst: "Vul het dossier aan", actie: "dossier_aanvullen" },
-    { tekst: "Kies een thema", actie: "thema" },
+    // Een vraagkaart van het aanvullen (spoor I7): graph-qa leest het veld `thema` uit de tekst.
+    { tekst: "Kies een thema", actie: "dossier_aanvullen" },
     { tekst: "Stel deelvragen voor", actie: "deelvragen_voorstellen" },
     { tekst: "Zoek bepalingen bij alle deelvragen", actie: "bronnen_zoeken" },
     { tekst: "Hoe staat de dekking ervoor?", actie: "dekking" },

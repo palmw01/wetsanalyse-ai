@@ -138,6 +138,9 @@ describe("bladeren", () => {
     // De bronnen komen pas na de deelvragen en wat erbuiten valt (Handleiding 1f).
     expect(vorige(kaart({ terug: true }))).toEqual({ naar: "buiten" });
     expect(vorige(kaart({ stap: "analysevraag", terug: true }))).toEqual({ naar: "doel" });
+    // Spoor I7: het thema is een kaartje van het aanvullen; ‹ gaat naar het praktijkvoorbeeld.
+    expect(kaart({ stap: "thema", modus: "aanvullen", terug: true }).stap).toBe("thema");
+    expect(vorige(kaart({ stap: "thema", modus: "aanvullen", terug: true }))).toEqual({ naar: "praktijkvoorbeeld" });
     expect(vorige(kaart({ terug: false }))).toBeUndefined();
     // Negen vaste stappen en drie deelvragen: de samenvatting is 12 van 12, terug is deel 3 (index 2).
     expect(vorige(kaart({ stap: "samenvatting", soort: "samenvatting", terug: true, nr: 12, totaal: 12 })))

@@ -217,7 +217,8 @@ def test_de_stappen_van_de_intake_zijn_overal_dezelfde():
     from agent import werkgebied_intake as wi
 
     root = Path(__file__).resolve().parents[3]
-    stappen = [*wi.STAPPEN, "samenvatting"]
+    # Het thema is een kaartje van het aanvullen alleen (spoor I7): in de contracten wel, in het samenstellen niet.
+    stappen = [*wi.KAARTSTAPPEN, "samenvatting"]
     assert list(typing.get_args(am.IntakeActie.model_fields["stap"].annotation)) == stappen
     api = re.search(r"^IntakeStap = Literal\[(.*?)\]", (root / "api" / "app" / "gesprek_contracts.py").read_text(),
                     re.S | re.M)

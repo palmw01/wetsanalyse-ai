@@ -456,8 +456,8 @@ begrip, werkgebied), met per soort een module in `MODULES` (`chip`, `suggesties`
   `agent/onderwerp.py`). Een suggestie met een **`actie`** (`ACTIES`, gelijk aan graph-qa `ACTIE_TAAK`;
   de test leest die bron) stuurt `actie` + `onderwerp` + het `werkgebied_id` van het onderwerp, zonder
   modus, context of doel – graph-qa kiest er zonder model een agent en taak bij (F3c, ADR-005).
-- **Suggesties per soort** (`SUGGESTIES`, F3d): werkgebied (het dossier aanvullen, *Kies een thema* (spoor I7: de taak
-  `thema`, zonder model), deelvragen voorstellen, bepalingen zoeken,
+- **Suggesties per soort** (`SUGGESTIES`, F3d): werkgebied (het dossier aanvullen, *Kies een thema* (spoor I7: `dossier_aanvullen`
+  met die tekst – een vraagkaart `thema` met het voorstel van Lex aangevinkt), deelvragen voorstellen, bepalingen zoeken,
   dekking, annoteren, de bepalingen van de deelvragen annoteren, begrippen voorstellen, meedenken), deelvraag
   (zoeken, de bepalingen hierbij annoteren, gedekt?, scherper, splitsen),
   begrip (uitwerken, brondefinitie, *Schrijf de uitleg in B1* (spoor I2), voorbeelden, relaties, en *Wat is

@@ -44,6 +44,7 @@ _ZIN = {
 # Bij het aanvullen: dezelfde zinnen, behalve waar het samenstellen een begin of een einde aankondigt.
 _ZIN_AANVULLEN = {
     "naam": "Eerst de naam.",
+    "thema": "Dan het thema. Ik leid het af uit de rechtsgebieden van de bronnen.",
     "samenvatting": "Dit verandert er in het dossier.",
 }
 
@@ -167,13 +168,47 @@ def _bepalingen(b, intake: dict[str, Any], writer) -> dict[str, Any]:
     return _met(_met(intake, "meldingen", sleutel, melding), "voorstellen", sleutel, eerder + opties)
 
 
-def _bereid_voor(b, intake: dict[str, Any], writer) -> dict[str, Any]:
+def _thema(b, intake: dict[str, Any], writer, user_id: str) -> dict[str, Any]:
+    """Het kaartje van het thema (spoor I7): de voorstellen van de api (zonder model, uit de rechtsgebieden van de
+    bronnen), plus het huidige thema; het eerste voorstel staat aangevinkt als er nog geen thema is."""
+    from ..agents.uitvoering import draai
+    from .agent_taak import _maak_api
+
+    async def haal(_stuur):
+        api = _maak_api(b, user_id)
+        try:
+            return await api.haal_thema_voorstel(intake["werkgebied_id"])
+        finally:
+            if (aclose := getattr(api, "aclose", None)) is not None:
+                await aclose()
+
+    try:
+        voorstel = draai(haal, loop=b.loop, schrijf=writer) if b.settings.legt_zelf_vast else {}
+    except Exception:  # noqa: BLE001 – zonder voorstel blijft het huidige thema te kiezen
+        logger.warning("aanvullen: thema-voorstel niet opgehaald", extra={"categorie": "technisch"}, exc_info=True)
+        voorstel = {}
+    gebieden = ", ".join(voorstel.get("rechtsgebieden") or [])
+    opties = [{"label": t["label"], "waarde": t["thema"], "bron": {},
+               "omschrijving": f"voorstel van Lex, uit {gebieden}" if gebieden else "voorstel van Lex"}
+              for t in voorstel.get("voorstel") or []][:3]
+    huidig = ((intake.get("antwoorden") or {}).get("thema") or {})
+    if huidig.get("uri") and huidig["uri"] not in {o["waarde"] for o in opties}:
+        opties.append({"label": huidig.get("label") or huidig["uri"], "waarde": huidig["uri"], "bron": {},
+                       "omschrijving": "het huidige thema"})
+    melding = "" if opties else "Ik vond geen thema in de rechtsgebieden van de bronnen; kies het in Gegevens bewerken."
+    intake = _met(_met(intake, "voorstellen", "thema", opties), "meldingen", "thema", melding)
+    if not huidig.get("uri") and opties:
+        intake = _met(intake, "vooringevuld", "thema", [opties[0]["waarde"]])
+    return intake
+
+
+def _bereid_voor(b, intake: dict[str, Any], writer, user_id: str = "") -> dict[str, Any]:
     """Wat het kaartje van de huidige stap nodig heeft – opnieuw zodra het dossier veranderde, anders
     niet (terugbladeren zonder iets te wijzigen kost geen aanroep)."""
     stap, sleutel = intake["stap"], wi.kaartsleutel(intake)
     # De keuzes op de bepalingen-kaartjes veranderen de zoekopdracht van een ander kaartje niet.
     h = wi.dossier_hash(intake, zonder=("bepalingen",) if stap == "bepalingen" else ())
-    if stap not in wi.STAPPEN or (intake.get("voorbereid") or {}).get(sleutel) == h:
+    if stap not in (*wi.STAPPEN, "thema") or (intake.get("voorbereid") or {}).get(sleutel) == h:
         return intake
     intake = _met(_met(intake, "voorbereid", sleutel, h), "meldingen", sleutel, "")
     a = intake.get("antwoorden") or {}
@@ -195,6 +230,8 @@ def _bereid_voor(b, intake: dict[str, Any], writer) -> dict[str, Any]:
         intake = _regelingen(b, intake, intake["model"].get("onderwerp") or a.get("naam", ""), writer, per_deelvraag=True)
     elif stap == "bepalingen":
         intake = _bepalingen(b, intake, writer)
+    elif stap == "thema" and wi.is_aanvullen(intake):
+        intake = _thema(b, intake, writer, user_id)
     return intake
 
 
@@ -361,7 +398,7 @@ def werkgebied_intake_node(b, state: State) -> dict[str, Any]:
                       else "Probeer een andere naam of een ander onderwerp, of kies ‘Weet ik (nog) niet’.")
 
     if uitkomst != "zoek":
-        intake = _bereid_voor(b, intake, writer)
+        intake = _bereid_voor(b, intake, writer, state.get("user_id", ""))
         if uitkomst in ("verder", "begin"):
             zinnen.append(_zin(intake))
     return _toon(writer, intake, " ".join(zinnen))
