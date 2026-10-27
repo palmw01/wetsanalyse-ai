@@ -415,24 +415,42 @@ def regelingen_van(ov: dict[str, Any]) -> list[str]:
     return sorted({i.split(":")[2] for i in iris if i.startswith("urn:bwb:") and i.count(":") >= 2})
 
 
-def bepalingen_uit_tekst(tekst: str, genoemd: list[str], regelingen: list[str]) -> list[dict[str, str]] | str:
-    """Wat de analist zelf als keuze typte: per artikel (en lid) een verzoek aan de api, die het in de graaf
-    toetst. De regeling komt uit de tekst (`genoemd`), of uit het werkgebied als dat er maar één heeft. Geen artikel:
-    een lege lijst; geen eenduidige regeling: de vraag om haar te noemen."""
+_NIEUW_ARTIKEL = re.compile(r"(?=\bart(?:ikel(?:en)?|\.)\s*\d)", re.I)
+
+
+def bepalingen_uit_tekst(tekst: str, vind: Callable[[str], list[str]] | list[str], regelingen: list[str]
+                         ) -> list[dict[str, str]] | str:
+    """Wat de analist zelf als keuze typte, ontleed tot verzoeken per artikel (en lid), die daarna in de graaf
+    getoetst worden. Een tekst mag meer bepalingen in meer regelingen noemen ("artikel 9 lid 1 en 5
+    Invorderingswet 1990 en artikel 4:86 Awb"): hij wordt geknipt vóór elk "artikel"/"art.", en elk stuk krijgt
+    de regeling die het zelf noemt; anders de enige die de hele tekst noemt; anders de enige van het werkgebied.
+    Geen artikel: een lege lijst; geen eenduidige regeling voor een stuk: de vraag om haar te noemen.
+
+    `vind` geeft de regelingen die een tekst bij naam of afkorting noemt (`overzicht.regelingen_in_vraag`); een
+    lijst is de uitkomst daarvan voor de hele tekst (oude aanroepers)."""
     from .aanwijzing import lees_aanwijzing
     from .werkgebied_intake import artikelen_in
 
-    artikelen = artikelen_in(tekst)
-    if not artikelen:
-        return []
-    bwb = genoemd[0] if len(genoemd) == 1 else regelingen[0] if not genoemd and len(regelingen) == 1 else ""
-    if not bwb:
-        return ("Bij welke regeling hoort dat? Noem haar erbij, bijvoorbeeld ‘artikel 9 lid 2 Invorderingswet "
-                "1990’." if not genoemd else "Je noemt meer dan één regeling; voeg de bepalingen één voor één toe.")
-    leden = lees_aanwijzing(tekst).leden if len(artikelen) == 1 and re.search(r"\b(?:lid|leden)\b", tekst, re.I) else ()
-    if leden:
-        return [{"bwb_id": bwb, "artikel": artikelen[0], "lid": lid} for lid in leden]
-    return [{"bwb_id": bwb, "artikel": a} for a in artikelen]
+    zoek = vind if callable(vind) else (lambda _t, _v=list(vind): _v)
+    heel = zoek(tekst)
+    stukken = [x.strip() for x in _NIEUW_ARTIKEL.split(tekst) if x.strip()]
+    uit: list[dict[str, str]] = []
+    for stuk in stukken:
+        artikelen = artikelen_in(stuk)
+        if not artikelen:
+            continue
+        eigen = zoek(stuk) if len(stukken) > 1 else heel
+        bwb = eigen[0] if len(eigen) == 1 else heel[0] if not eigen and len(heel) == 1 \
+            else regelingen[0] if not eigen and not heel and len(regelingen) == 1 else ""
+        if not bwb:
+            return ("Bij welke regeling hoort dat? Noem haar erbij, bijvoorbeeld ‘artikel 9 lid 2 Invorderingswet "
+                    "1990’." if not eigen and not heel else
+                    f"Ik weet niet bij welke regeling ‘{stuk[:80]}’ hoort; noem de regeling direct na het artikel.")
+        leden = lees_aanwijzing(stuk).leden if len(artikelen) == 1 and re.search(r"\b(?:lid|leden)\b", stuk, re.I) else ()
+        uit += [{"bwb_id": bwb, "artikel": artikelen[0], "lid": lid} for lid in leden] if leden \
+            else [{"bwb_id": bwb, "artikel": a} for a in artikelen]
+    # Twee keer dezelfde bepaling genoemd is één verzoek.
+    return list({(v["bwb_id"], v["artikel"], v.get("lid", "")): v for v in uit}.values())
 
 
 async def _zelf(api, wid: str, ov: dict, did: str, stap: str, tekst: str,
@@ -441,7 +459,7 @@ async def _zelf(api, wid: str, ov: dict, did: str, stap: str, tekst: str,
     zinnen, gelukt) – niet gelukt laat het kaartje staan, zodat de analist het kan verbeteren."""
     from .wetsanalyse_api import WetsanalyseApiFout
 
-    verzoeken = bepalingen_uit_tekst(tekst, vind(tekst) if vind else [], regelingen_van(ov))
+    verzoeken = bepalingen_uit_tekst(tekst, vind or [], regelingen_van(ov))
     if isinstance(verzoeken, str):
         return ov, [verzoeken], False
     if not verzoeken:

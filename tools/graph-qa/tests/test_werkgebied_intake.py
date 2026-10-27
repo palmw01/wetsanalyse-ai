@@ -231,15 +231,96 @@ def test_ook_bij_de_bepalingen_kan_weet_ik_niet():
     assert wi.eerder_antwoord(i["antwoorden"], "bepalingen", None) == [wi.ONBEKEND]
 
 
-def test_artikelen_in_eigen_tekst_worden_bronnen_bij_een_regeling():
-    a = {"regelingen": [{"bwb_id": IB, "label": "Wet IB 2001"}], "deelvragen": [{"vraag": DV1, "herkomst": "lex"}],
-         "bepalingen": {wi.deel_sleutel(DV1): {"bronnen": [], "tekst": "artikel 5.2 en 5.3", "onbekend": False}}}
-    assert wi.bronnen(a) == [{"bwb_id": IB, "artikel": "5.2", "label": "Wet IB 2001 – art. 5.2", "deelvragen": [DV1]},
-                             {"bwb_id": IB, "artikel": "5.3", "label": "Wet IB 2001 – art. 5.3", "deelvragen": [DV1]}]
-    # Bij twee regelingen is niet te zeggen waar de artikelen staan: alleen tekst.
-    assert wi.bronnen({**a, "regelingen": a["regelingen"] * 2}) == []
+def test_een_getypte_bepaling_is_een_keuze_als_de_node_haar_vond():
+    """Spoor L: wat de analist typte en de node in de graaf vond (`eigen`), telt als gekozen – ook bij meer
+    regelingen. Een tekst zonder `eigen` (niet thuisgebracht) maakt geen bron: die liet het kaartje staan."""
+    i = {**_tot_bepalingen([DV1]), "voorstellen": {"bepalingen:0": []}}
+    eigen = [{"bron_iri": L52, "label": "Artikel 5.2, lid 1 – Wet IB 2001", "bwb_id": IB}]
+    i, _ = wi.verwerk(i, {**_klik(i, "bepalingen", tekst="artikel 5.2 lid 1 Wet IB 2001"), "deel": 0, "eigen": eigen})
+    a = i["antwoorden"]
+    assert wi.bronnen(a) == [{"bron_iri": L52, "label": "Artikel 5.2, lid 1 – Wet IB 2001", "deelvragen": [DV1]}]
+    assert wi.bronnen({**a, "regelingen": a["regelingen"] * 3}) == wi.bronnen(a), "het aantal regelingen doet er niet toe"
+    # Alleen tekst, zonder wat de node vond: geen bron (de oude regel 'precies één regeling' bestaat niet meer).
+    x = a["bepalingen"][wi.deel_sleutel(DV1)]
+    assert wi.bronnen({**a, "bepalingen": {wi.deel_sleutel(DV1): {**x, "eigen": []}}}) == []
     # Een keuze bij een deelvraag die er niet meer is, telt niet.
     assert wi.bronnen({**a, "deelvragen": [{"vraag": "Iets anders?", "herkomst": "analist"}]}) == []
+
+
+class _B:
+    graph = FakeGraph()
+
+
+def _nep_graaf(monkeypatch, bestaat):
+    """De graaf voor `_eigen_bepalingen`: welke regelingen een tekst noemt, en welke bepalingen bestaan."""
+    from agent import bronnen_vinden, overzicht, regelingnamen
+
+    def noemt(_graph, tekst):
+        t = tekst.lower()
+        return sorted({b for naam, b in (("invorderingswet", IW), ("awb", AWB), ("awr", AWR)) if naam in t})
+    monkeypatch.setattr(overzicht, "regelingen_in_vraag", noemt)
+    monkeypatch.setattr(bronnen_vinden, "bepaling_in_graaf", lambda _g, bwb, art, lid="": (
+        {"bron_iri": f"urn:bwb:{bwb}:artikel:{art}" + (f":lid:{lid}" if lid else ""), "bwb_id": bwb,
+         "label": f"Artikel {art}" + (f", lid {lid}" if lid else "")} if (bwb, art, lid) in bestaat else None))
+    monkeypatch.setattr(regelingnamen, "regelingnamen", lambda _g, ids: {IW: "Invorderingswet 1990", AWB: "Awb",
+                                                                          AWR: "AWR"})
+
+
+IW, AWB, AWR = "BWBR0004770", "BWBR0005537", "BWBR0002320"
+
+
+def test_getypte_bepalingen_over_meer_regelingen_worden_opgehaald(monkeypatch):
+    from agent.nodes.werkgebied import _eigen_bepalingen
+
+    _nep_graaf(monkeypatch, {(IW, "9", "1"), (IW, "9", "5"), (AWB, "4:86", "")})
+    intake = {"antwoorden": {"regelingen": [{"bwb_id": IW}, {"bwb_id": AWB}, {"bwb_id": "BWBR0024096"}]}}
+    eigen, vraag = _eigen_bepalingen(_B(), intake, "artikel 9 lid 1 en 5 Invorderingswet 1990 en artikel 4:86 Awb",
+                                     lambda e: None)
+    assert vraag == "" and [e["label"] for e in eigen] == ["Artikel 9, lid 1", "Artikel 9, lid 5", "Artikel 4:86"]
+
+
+@pytest.mark.parametrize("tekst, verwacht", [
+    ("artikel 9", "Bij welke regeling hoort dat?"),                                   # drie regelingen, geen genoemd
+    ("Artikel 4:86 awr", "Artikel 4:86 staat niet in AWR; wel in Awb – bedoel je die?"),
+    ("de termijnbepaling", "Ik zie geen artikel in je tekst"),
+])
+def test_een_getypte_bepaling_die_niet_te_bepalen_is_wordt_een_vraag(monkeypatch, tekst, verwacht):
+    from agent.nodes.werkgebied import _eigen_bepalingen
+
+    _nep_graaf(monkeypatch, {(AWB, "4:86", "")})
+    intake = {"antwoorden": {"regelingen": [{"bwb_id": IW}, {"bwb_id": AWB}, {"bwb_id": "BWBR0024096"}]}}
+    eigen, vraag = _eigen_bepalingen(_B(), intake, tekst, lambda e: None)
+    assert eigen == [] and verwacht in vraag and "vink een voorstel aan" in vraag
+
+
+def test_een_haperende_graaf_is_een_vraag_om_het_opnieuw_te_proberen(monkeypatch):
+    from agent import overzicht
+    from agent.nodes.werkgebied import _eigen_bepalingen
+
+    def stuk(*_a):
+        raise RuntimeError("graaf weg")
+    monkeypatch.setattr(overzicht, "regelingen_in_vraag", stuk)
+    eigen, vraag = _eigen_bepalingen(_B(), {"antwoorden": {}}, "artikel 9 Invorderingswet 1990", lambda e: None)
+    assert eigen == [] and "probeer het zo opnieuw" in vraag
+
+
+def test_het_kaartje_komt_terug_met_de_getypte_tekst():
+    i = {**_tot_bepalingen([DV1]), "voorstellen": {"bepalingen:0": []}}
+    sleutel = wi.kaartsleutel(i)
+    k = wi.kaart({**i, "concept": {sleutel: ["artikel 9"]}})
+    assert k["stap"] == "bepalingen" and k["vooringevuld"] == ["artikel 9"]
+
+
+def test_alineas_blijven_en_getypt_naast_aangevinkt_bij_de_regelingen_valt_niet_weg():
+    i = wi.nieuwe_intake("x")
+    i, _ = wi.verwerk(i, _klik(i, "naam", tekst="Box 3"))
+    i, _ = wi.verwerk(i, _klik(i, "aanleiding", actie="overslaan"))
+    i, _ = wi.verwerk(i, _klik(i, "context", tekst="Eerste alinea  met  spaties.\n\n\n\nTweede alinea."))
+    assert i["antwoorden"]["context"] == "Eerste alinea met spaties.\n\nTweede alinea."
+    j = {**_tot_bepalingen(), "stap": "regelingen"}
+    j, uitkomst = wi.verwerk(j, _klik(j, "regelingen", keuzes=[IB], tekst="Awb"))
+    assert uitkomst == "zoek" and j["zoekterm"] == "Awb"
+    assert [r["bwb_id"] for r in j["antwoorden"]["regelingen"]] == [IB], "het aangevinkte blijft gekozen"
 
 
 def test_naam_is_verplicht():
@@ -729,9 +810,10 @@ def test_bladeren_tussen_de_bepalingen_per_deelvraag():
     terug, _ = wi.verwerk(i, {"intake_id": i["id"], "stap": "samenvatting", "actie": "wijzig", "naar": "bepalingen",
                               "naar_deel": 2})
     assert (terug["stap"], terug["deel"]) == ("bepalingen", 2) and wi.kaart(terug)["beantwoord"]
-    # Een overgeslagen deelvraag laat geen regel achter; de artikelen bij één regeling worden een bron.
+    # Een overgeslagen deelvraag laat geen regel achter. Een getypte tekst wordt pas een bron als de node haar in de
+    # graaf vond (`eigen`, spoor L); hier, zonder node, blijft het tekst.
     assert wi.afbakening(i["antwoorden"]) == "Regelingen: Wet inkomstenbelasting 2001."
-    assert wi.bronnen(i["antwoorden"])[0]["deelvragen"] == ["Tweede?"]
+    assert wi.bronnen(i["antwoorden"]) == []
 
 
 def test_een_nieuwe_stap_is_nog_niet_beantwoord():

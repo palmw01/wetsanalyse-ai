@@ -587,6 +587,27 @@ def plek_uit_iri(iri: str) -> str:
     return rest or iri
 
 
+def bepaling_in_graaf(graph: GraphPort, bwb_id: str, artikel: str, lid: str = "") -> dict[str, Any] | None:
+    """Eén bepaling die de analist zelf noemde (artikel en eventueel lid in een regeling), getoetst in de graaf:
+    `{bron_iri, bwb_id, label}` als ze bestaat, anders None. Licht: één query op het patroon van de bepaling
+    (`queries.node_patroon`, ook een Awb-nummer als 4:86 en een Leidraad-divisie), geen hele bronboom."""
+    try:
+        patroon = queries.node_patroon(bwb_id, artikel, lid or None)
+    except ValueError:
+        return None
+    soorten = ", ".join(queries.CONCRETE_TYPES)
+    q = queries.PREFIXES + f"""SELECT ?node WHERE {{
+  {patroon}
+  ?node a ?t . FILTER(?t IN ({soorten}))
+}} LIMIT 1"""
+    rijen = _rijen(graph, q)
+    if not rijen or not rijen[0].get("node"):
+        return None
+    uit = [{"bron_iri": rijen[0]["node"], "bwb_id": bwb_id.upper(), "label": ""}]
+    _benoem(graph, uit)
+    return uit[0]
+
+
 def _benoem(graph: GraphPort, kandidaten: list[dict[str, Any]]) -> None:
     """"Artikel 30g, lid 2, onderdeel a – Algemene wet inzake rijksbelastingen" in plaats van het kale
     "Onderdeel a." uit de graaf. De vindplaats komt uit de IRI (`bronmodel.vindplaats`, dezelfde regels
