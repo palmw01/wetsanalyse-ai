@@ -9,6 +9,7 @@ import { Regel, Regels, StatusLabel } from "@/components/ui/Lijst";
 import { Kaart, PaginaKop, SplitDetail, Stip, TabLinks, type Kruimel } from "@/components/ui/Pagina";
 import { BegrippenTab } from "@/components/werkgebieden/BegrippenTab";
 import { BronKandidaten } from "@/components/werkgebieden/BronKandidaten";
+import { BronselectieOverzicht } from "@/components/werkgebieden/BronselectieOverzicht";
 import { DeelvraagPaneel } from "@/components/werkgebieden/DeelvraagPaneel";
 import { Deelvragen } from "@/components/werkgebieden/Deelvragen";
 import { ElementenTab } from "@/components/werkgebieden/ElementenTab";
@@ -140,6 +141,10 @@ function Bronselectie() {
         {wg.afbakening.trim() && (
           <Kaart titel="Afbakening"><p className="whitespace-pre-line text-sm text-ink">{wg.afbakening}</p></Kaart>
         )}
+        {/* Spoor J: per deelvraag wat Lex en de analist besloten; de stappen zet je in het gesprek. */}
+        <Kaart titel={wg.deelvragen?.some((d) => d.status === "actief") ? "Per deelvraag" : "Bij de analysevraag"}>
+          <BronselectieOverzicht key={wg.revisie} werkgebiedId={wg.id} />
+        </Kaart>
         {(["analyseren", "context"] as const).map((rol) => {
           const lijst = wg.bronnen.filter((b) => b.rol === rol);
           return (

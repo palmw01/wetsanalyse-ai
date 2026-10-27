@@ -1135,14 +1135,16 @@ deelvraag, een besluit per deelvraag, een vraagkaart buiten de intake en het soo
   deelvraagkoppeling, `GET …/bronselectie` (per deelvraag stand, bronnen met rol, kandidaten met hun stand
   hier en het soort bewijs, de volgende deelvraag, zoekdekking uit de meting, wat bij geen deelvraag hoort),
   `POST …/bronselectie/{deelvraag}/status` en `…/kandidaten/{id}`.
-- **J2** graph-qa: de bronselectie als stapmachine naast de intake, die de stand per beurt vers uit de api
-  leest; *Hoe wil je verder?* na een afronding; een tussenvraag gaat naar de antwoord-worker en laat de
-  stand staan.
-- **J3** werkplek: de vraagkaart generiek (`intake` of `bronselectie`), dezelfde `VraagDock` en `VragenKaart`.
-- **J4** het werkgebiedpaneel en de tab Bronnen op dezelfde data; de bronboom wordt een verkenner.
-- **J5** de onderbouwing en de overkoepelende controle (zoek-, juridische en beoordelingsdekking, apart van
-  de dekkingscheck met begrippen); de afsluitzin "binnen de vastgestelde afbakening en de beschikbare
-  bronnen", nooit "volledig".
+- **J2** graph-qa – **gebouwd**: de bronselectie-worker (`agent/bronselectie.py`), die de stand per beurt vers
+  uit de api leest; *Hoe wil je verder?* na een afronding; een tussenvraag gaat naar de antwoord-worker en laat
+  de stand staan; routering zonder model (klik, actie `bronselectie`, de vaste zin).
+- **J3** werkplek – **gebouwd**: de vraagkaart met `modus: "bronselectie"` en `deelvraag_id`, dezelfde
+  `VraagDock` en `VragenKaart`; een bronselectiebeurt blijft een antwoord met kaartje.
+- **J4** – **gebouwd**: `BronselectieOverzicht` in het paneel naast het gesprek en op de pagina Bronselectie,
+  op dezelfde data; de bronboom blijft als bronverkenner (`bronnen/voorstellen`).
+- **J5** – **gebouwd, in J1–J4**: het soort bewijs per voorstel, de zoekdekking, wat bij geen deelvraag hoort,
+  en de controle in drie delen met de afsluitzin "binnen de vastgestelde afbakening en de beschikbare
+  bronnen", nooit "volledig". Architectuur: `docs/architectuur/bronselectie-per-deelvraag.md`.
 - **Daarna**: de rangschikking van `bepaling_opties` (stemming, de kop van het deel), blind gemeten.
 
 **Bekende beperking.** De functie van een verwijzing (definitie, uitzondering, delegatie) wordt nog niet

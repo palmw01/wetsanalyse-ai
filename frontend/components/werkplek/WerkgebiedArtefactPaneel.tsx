@@ -9,6 +9,7 @@ import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
 import { BegripPaneel } from "@/components/werkgebieden/BegripPaneel";
 import { BegripVoorstellen } from "@/components/werkgebieden/BegripVoorstellen";
 import { BronKandidaten } from "@/components/werkgebieden/BronKandidaten";
+import { BronselectieOverzicht } from "@/components/werkgebieden/BronselectieOverzicht";
 import { DeelvraagPaneel } from "@/components/werkgebieden/DeelvraagPaneel";
 import { OnbewaardMelding } from "@/components/werkgebieden/OnbewaardMelding";
 import { WerkgebiedSamenvatting } from "@/components/werkgebieden/WerkgebiedSamenvatting";
@@ -34,12 +35,13 @@ function paginaVan(doel: WerkgebiedArtefact): string {
     case "begrip": return doel.begrip_id ? begripPad(id, doel.begrip_id) : artefactPad(id, "begrippen");
     case "bronnen": return voorstellenPad(id);
     case "deelvraag": return doel.deelvraag_id ? deelvraagPad(id, doel.deelvraag_id) : projectPad(id);
+    case "bronselectie": return artefactPad(id, "bronselectie");
     default: return projectPad(id);
   }
 }
 const KOP: Record<WerkgebiedArtefact["soort"], string> = {
   begrippen: "Begripsvoorstellen van Lex", bronnen: "Gevonden bepalingen van Lex", werkgebied: "Samengesteld met Lex",
-  deelvraag: "Deelvraag", begrip: "Begrip",
+  deelvraag: "Deelvraag", begrip: "Begrip", bronselectie: "Bronselectie met Lex",
 };
 
 /** Een artefact van een werkgebied in de werkplek, in dezelfde schil als een annotatie (een kolom naast
@@ -52,6 +54,9 @@ const KOP: Record<WerkgebiedArtefact["soort"], string> = {
  *    van Lex per veld en een kleine bewerking; de begripskaart zelf staat in het werkgebied.
  *  - **deelvraag** (F3d) – één deelvraag (`DeelvraagPaneel`): stand, de voorstellen die haar vervangen,
  *    bronnen en de kandidaten die Lex erbij vond.
+ *  - **bronselectie** (spoor J) – de bronselectie per deelvraag (`BronselectieOverzicht`): de voortgang, de
+ *    bronnen met hun rol per deelvraag, de voorstellen en de onderzoekspunten; de deelvraag waar het gesprek
+ *    staat is open, en *Ga verder met deelvraag n* zet een andere klaar in hetzelfde gesprek.
  *  - **werkgebied** – het werkgebied dat Lex met de analist samenstelde (activiteit 1): de
  *    `WerkgebiedSamenvatting` (dezelfde als bovenaan de pagina) en de weg naar die pagina.
  *
@@ -80,7 +85,7 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
     <Dialog label={`${soort}: ${titel}`} variant={variant} onSluit={sluit}>
       <div data-artefact data-artefact-soort={doel.soort} className="flex min-h-0 flex-1 flex-col">
         <PaneelKop soort={KOP[doel.soort]} titel={titel} pagina={naarWerkgebied} onSluit={sluit} lex={
-          doel.soort === "werkgebied" ? <VraagLexKnop onderwerp={{ soort: "werkgebied", werkgebied_id: doel.werkgebied_id, id: "", label: doel.titel ?? "" }} />
+          doel.soort === "werkgebied" || doel.soort === "bronselectie" ? <VraagLexKnop onderwerp={{ soort: "werkgebied", werkgebied_id: doel.werkgebied_id, id: "", label: doel.titel ?? "" }} />
             : doel.soort === "deelvraag" && doel.deelvraag_id ? <VraagLexKnop onderwerp={{ soort: "deelvraag", werkgebied_id: doel.werkgebied_id, id: doel.deelvraag_id, label: doel.titel }} />
             : doel.soort === "begrip" && doel.begrip_id ? <VraagLexKnop onderwerp={{ soort: "begrip", werkgebied_id: doel.werkgebied_id, id: doel.begrip_id, label: doel.titel }} />
             : undefined} />
@@ -108,6 +113,8 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
             <DeelvraagPaneel werkgebiedId={doel.werkgebied_id} deelvraagId={doel.deelvraag_id}
               onKies={onWissel ? (d) => onWissel({ soort: "deelvraag", werkgebied_id: doel.werkgebied_id, run_id: "",
                 deelvraag_id: d.id, titel: d.vraag }) : undefined} />
+          ) : doel.soort === "bronselectie" ? (
+            <BronselectieOverzicht werkgebiedId={doel.werkgebied_id} deelvraagId={doel.deelvraag_id} inGesprek />
           ) : doel.soort === "begrippen" ? (
             <BegripVoorstellen id={doel.werkgebied_id} runId={doel.run_id} inklapbaar={false} />
           ) : (

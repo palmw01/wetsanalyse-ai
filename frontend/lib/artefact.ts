@@ -9,8 +9,10 @@
 
 import type { NodeDoel } from "./annotatieNode";
 import type { Bericht } from "./types";
+import type { Vraagkaart } from "./vraagkaart";
 
-export type ArtefactSoort = "annotatie" | "begrippen" | "bronnen" | "werkgebied" | "deelvraag" | "begrip" | "regels";
+export type ArtefactSoort = "annotatie" | "begrippen" | "bronnen" | "werkgebied" | "deelvraag" | "begrip" | "bronselectie"
+  | "regels";
 
 export interface Artefact {
   soort: ArtefactSoort;
@@ -22,7 +24,7 @@ export interface Artefact {
  *  één run (`run_id`); het werkgebied zelf, dat Lex in het gesprek samenstelde (activiteit 1); één
  *  deelvraag (`deelvraag_id`, F3d) of één begrip (`begrip_id`, F3d). */
 export interface WerkgebiedArtefact {
-  soort: "begrippen" | "bronnen" | "werkgebied" | "deelvraag" | "begrip";
+  soort: "begrippen" | "bronnen" | "werkgebied" | "deelvraag" | "begrip" | "bronselectie";
   werkgebied_id: string;
   run_id: string;
   begrip_id?: string;
@@ -38,6 +40,7 @@ export const ARTEFACT_SOORT_LABEL: Record<ArtefactSoort, string> = {
   werkgebied: "Werkgebied",
   deelvraag: "Deelvraag",
   begrip: "Begrip",
+  bronselectie: "Bronselectie",
   regels: "Afleidingsregels",
 };
 
@@ -48,6 +51,8 @@ const VERPLICHT: Record<ArtefactSoort, string[]> = {
   werkgebied: ["werkgebied_id"],
   deelvraag: ["werkgebied_id", "deelvraag_id"],
   begrip: ["werkgebied_id", "begrip_id"],
+  // De bronselectie per deelvraag (spoor J); `deelvraag_id` is de deelvraag waar het gesprek nu staat.
+  bronselectie: ["werkgebied_id"],
   regels: [],
 };
 
@@ -100,7 +105,8 @@ export function werkgebiedArtefactVan(a: Artefact | undefined): WerkgebiedArtefa
   return {
     soort: p.soort as WerkgebiedArtefact["soort"], werkgebied_id: tekst(r.werkgebied_id), run_id: tekst(r.run_id),
     ...(p.soort === "begrip" ? { begrip_id: tekst(r.begrip_id) } : {}),
-    ...(p.soort === "deelvraag" ? { deelvraag_id: tekst(r.deelvraag_id) } : {}),
+    ...(p.soort === "deelvraag" || (p.soort === "bronselectie" && tekst(r.deelvraag_id))
+      ? { deelvraag_id: tekst(r.deelvraag_id) } : {}),
     titel: p.titel,
   };
 }
@@ -123,4 +129,13 @@ export function artefactSleutel(a: WerkgebiedArtefact): string {
 /** Kan de werkplek dit artefact openen? Afleidingsregels zijn gereserveerd, nog niet gebouwd. */
 export function isTeOpenen(a: Artefact): boolean {
   return a.soort !== "regels";
+}
+
+/** Het paneel bij een kaartje van de bronselectie (spoor J): het werkgebied uit de `intake_id` (`bs-<id>`), de
+ *  deelvraag van het kaartje. Zo is de stand per deelvraag ook op een smal scherm één klik weg (de balk boven
+ *  de chat), waar het paneel niet vanzelf opent. */
+export function bronselectieVanKaart(k: Vraagkaart | undefined): WerkgebiedArtefact | undefined {
+  if (k?.modus !== "bronselectie" || !k.intake_id.startsWith("bs-") || k.intake_id.length <= 3) return undefined;
+  return { soort: "bronselectie", werkgebied_id: k.intake_id.slice(3), run_id: "",
+    ...(k.deelvraag_id ? { deelvraag_id: k.deelvraag_id } : {}), titel: "Bronselectie" };
 }

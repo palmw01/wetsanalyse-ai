@@ -239,3 +239,35 @@ describe("groepeerVragen", () => {
     expect(g.paren.map((p) => [p.stap, p.antwoord, p.overgeslagen])).toEqual([["naam", "Box 3-heffing", false]]);
   });
 });
+
+describe("de bronselectie per deelvraag (spoor J)", () => {
+  const bs = (over: Partial<Record<string, unknown>> = {}) => kaart({
+    intake_id: "bs-wg1", modus: "bronselectie", stap: "bs_bepalingen", deelvraag_id: "d2", nr: 2, totaal: 4,
+    vraag: "Welke bepalingen regelen deelvraag 2 zelf?", vooringevuld: [], ...over,
+  });
+
+  it("leest modus, stap en deelvraag, en een klik en het antwoord dragen de deelvraag", () => {
+    const k = bs();
+    expect([k.modus, k.stap, k.deelvraag_id, isLaatsteVraag(k)]).toEqual(["bronselectie", "bs_bepalingen", "d2", true]);
+    const a = antwoordActie(k, ["BWBR0011353"], "Onderzoek ook de bijzondere invorderbaarheid.")!;
+    expect(a.deelvraag_id).toBe("d2");
+    expect(parseAntwoordOp({ intake_id: "bs-wg1", stap: "bs_bepalingen", actie: "antwoord", deelvraag_id: "d2" })?.deelvraag_id).toBe("d2");
+    expect(antwoordTekst(k, { ...a, actie: "afbreken" })).toBe("Zet de bronselectie even stil.");
+    // Een intakekaartje draagt geen deelvraag.
+    expect(antwoordActie(kaart(), ["BWBR0011353"], "")?.deelvraag_id).toBeUndefined();
+    expect(parseVraagkaart({ ...RUW, intake_id: "bs-wg1", stap: "bs_onbekend" })).toBeUndefined();
+  });
+
+  it("dezelfde stap bij twee deelvragen geeft twee paren in de Vragen-kaart", () => {
+    const k1 = bs({ deelvraag_id: "d1", nr: 1 }), k2 = bs();
+    const items = [
+      { id: "a1", type: "antwoord", tekst: "", vraagkaart: k1 },
+      { id: "u1", type: "user", tekst: "Artikel 9", antwoordOp: { intake_id: "bs-wg1", stap: "bs_bepalingen" as const, actie: "antwoord" as const, deelvraag_id: "d1" } },
+      { id: "a2", type: "antwoord", tekst: "", vraagkaart: k2 },
+      { id: "u2", type: "user", tekst: "Artikel 10", antwoordOp: { intake_id: "bs-wg1", stap: "bs_bepalingen" as const, actie: "antwoord" as const, deelvraag_id: "d2" } },
+    ];
+    const { groepen } = groepeerVragen(items, false);
+    const [g] = [...groepen.values()];
+    expect(g.paren.map((p) => [p.deelvraag_id, p.antwoord])).toEqual([["d1", "Artikel 9"], ["d2", "Artikel 10"]]);
+  });
+});
