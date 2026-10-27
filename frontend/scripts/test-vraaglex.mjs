@@ -89,7 +89,7 @@ try {
 
   // --- Een suggestie met een actie: vaste route, geen modus, context of doel ---
   const suggesties = page.getByTestId("vraag-suggesties").getByRole("button");
-  assert.equal(await suggesties.count(), 9);   // spoor I7: ook *Kies een thema*
+  assert.equal(await suggesties.count(), 10);   // spoor I7: ook *Kies een thema*; spoor J: *Verder met de bronselectie*
   await page.getByRole("button", { name: "Zoek bepalingen bij alle deelvragen" }).click();
   await wachtOp(1);
   assert.deepEqual(runs[0], {

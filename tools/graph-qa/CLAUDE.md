@@ -886,6 +886,38 @@ werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en
     werkgebied_niet_gewijzigd`. De revisie in de historie is van de analist (`X-User-Id`).
 - Tests: `tests/test_werkgebied_intake.py` en `tests/test_werkgebied_context.py`.
 
+### De bronselectie per deelvraag (`agent/bronselectie.py`, `nodes/bronselectie.py`, spoor J)
+
+"Help mij de bronnen bij dit werkgebied te bepalen" laat Lex de deelvragen één voor één afwerken met
+vraagkaarten: kiezen (`bs_kies`), de kernbepalingen (`bs_bepalingen`), wat eraan hangt
+(`bs_afhankelijkheden`), afronden (`bs_afronden`) en *Hoe wil je verder?* (`bs_verder`). Een eigen worker
+onder de supervisor, naast de intake; zie `docs/architectuur/bronselectie-per-deelvraag.md`.
+
+- **De stand staat bij de api, niet in de state** (`GET …/bronselectie`, api §*Bronselectie per deelvraag*):
+  elke beurt leest hem vers. Hervatten (herladen, ander gesprek, collega) is dus `start` op de stand van nu;
+  een tussenvraag raakt hem niet. De node schrijft niets in `State`.
+- **Routering zonder model**: een klik met `intake_id` `bs-<werkgebied>` (de intake heeft een uuid-hex), de
+  actie `bronselectie` (`models.BRONSELECTIE_ACTIES`, geen taak van een agent), of de vaste zin
+  (`is_bronselectievraag`, met werkgebied) – die gaat vóór het startzinpatroon van het samenstellen, en dat
+  patroon sluit hem uit ("werkgebied … bepalen" nam hem anders over). Getypt kiest de supervisor `werkgebied`
+  met `TAAK: bronselectie`. Een deelvraag aangewezen in de werkplek (`onderwerp`) of genoemd ("deelvraag 4",
+  `deelvraag_nr_in`) gaat voor.
+- **Een klik wordt een besluit of een stap** (`verwerk`): aangevinkt = opnemen bij deze deelvraag (rol
+  *analyseren* bij een kernbepaling op het kernkaartje, anders *context*), een opgenomen bron die niet meer
+  aangevinkt is wordt losgekoppeld, eigen tekst wordt een onderzoekspunt, en de fase schuift door. Alles is
+  idempotent bij de api, dus een oud kaartje of een dubbele klik wordt verwerkt op de stand van nu. Een 412
+  geeft het kaartje van nu met "Iemand anders werkte intussen …".
+- **Zoeken** is `bronnen_run.bronnen_kern` (zonder model) wanneer er nog niet, of op een andere selectie,
+  gezocht is; na het opnemen dus opnieuw, voor de afhankelijkheden. Een lege fase slaat Lex over met een zin.
+- **Uit code, niet van het model**: `waarom` (rol en soort bewijs onder een optie: een tekstuele overeenkomst
+  heet zo), `beperkingen` (afgekapt, mislukt, verouderd), `controle_tekst` (zoek-, juridische en
+  beoordelingsdekking apart, met `SLOT` alleen als alles beoordeeld is – nooit "volledig"). Hoogstens
+  `MAX_OPTIES` open voorstellen per kaartje; de rest noemt het kaartje ("Nog n in het paneel").
+- **Uit gaan** `token`, `vraagkaart` (`modus: "bronselectie"`, `deelvraag_id`) en het artefact
+  `{soort: "bronselectie", ref: {werkgebied_id, deelvraag_id?}}`. `tests/test_contract_drift.py` toetst de stappen
+  tegen api en werkplek.
+- Tests: `tests/test_bronselectie.py` (de cyclus met vier deelvragen, hervatten, de vaste zin, de beurt).
+
 ### Het werkgebied als context in het gesprek (`agent/werkgebied_context.py`)
 
 Draagt een beurt een `werkgebied_id`, dan haalt `answer_stream` het werkgebied bij de api

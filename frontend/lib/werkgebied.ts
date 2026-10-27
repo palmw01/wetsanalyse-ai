@@ -108,6 +108,13 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   // Bronnen vinden met Lex (fase A): zelfde regel – een run maken, `loopt`, `uitkomst` en `mislukt`
   // zijn van graph-qa (de deelvragen-agent).
   if (deel === "bronnen-runs") return pad.length === 3 && !!a;
+  // De bronselectie per deelvraag (spoor J): het overzicht lezen, de stand van één deelvraag en een besluit
+  // over één kandidaat bij één deelvraag. Dezelfde routes gebruikt Lex in het gesprek.
+  if (deel === "bronselectie") {
+    if (pad.length === 2) return true;
+    if (pad.length === 4) return !!a && b === "status";
+    return pad.length === 5 && !!a && b === "kandidaten" && !!c;
+  }
   if (deel === "kandidaten") {
     if (pad.length === 2) return true;
     return pad.length === 4 && !!a && ["opnemen", "later", "uitsluiten", "heropenen"].includes(b);

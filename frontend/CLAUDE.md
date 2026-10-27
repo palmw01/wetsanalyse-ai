@@ -417,6 +417,33 @@ erbuiten, regeling(en), per deelvraag een kaartje met de bepalingen (F3f), en ee
   het al op dat werkgebied openstond.
 - Browserregressie: `scripts/test-werkgebied-intake.mjs` en `scripts/test-dossier-aanvullen.mjs`.
 
+### De bronselectie per deelvraag (spoor J)
+
+Dezelfde dock en Vragen-kaart dragen de bronselectie (`Vraagkaart.modus: "bronselectie"`, graph-qa
+`agent/bronselectie.py`; zie `docs/architectuur/bronselectie-per-deelvraag.md`). Het kaartje noemt zijn deelvraag
+(`deelvraag_id`, ook op de klik en op `intake_antwoord`); "n van N" is de deelvraag van het totaal; elk kaartje
+heeft *Verzend* (`isLaatsteVraag`), want wat erna komt hangt af van het antwoord.
+
+- **De stand staat bij de api** (`GET …/bronselectie`, `lib/bronselectie.ts`), niet in de werkplek. Het paneel
+  naast het gesprek en de pagina Bronselectie lezen hetzelfde overzicht: **`BronselectieOverzicht`** – per
+  deelvraag de voortgang (`VOORTGANG_LABEL`, groen alleen bij *beoordeeld*, geel bij *opnieuw bekijken*), de
+  bronnen met hun rol bij díé deelvraag, de voorstellen met hun stand en het soort bewijs (`BEWIJS_LABEL`), de
+  onderzoekspunten, de zoekbeperkingen en de slotzin (`slotZin`: nooit "volledig"). Op de pagina de besluiten
+  per deelvraag (opnemen, later, uitsluiten met reden, heropenen; `besluitBronselectie`); de stappen zet Lex.
+- **Een bronselectiebeurt blijft een antwoord met kaartje**: het artefact `bronselectie` maakt er geen
+  artefact-item van (anders is de open vraag weg), live (`toonVastgelegdeBeurt`) en na herladen. Het paneel
+  opent vanzelf alleen vanaf 1280px; daaronder via de balk *laatste artefact* (`bronselectieVanKaart`).
+- **Van deelvraag wisselen** gaat in het gesprek: *Ga verder met deelvraag n* in het paneel zet de deelvraag als
+  onderwerp (`VraagLexKnop alleenInGesprek`), en de suggestie *Bepaal de bronnen bij deze deelvraag* stuurt de
+  actie `bronselectie`. Kiezen van een onderwerp klapt een open vraag weg (`kiesOnderwerp`), anders staan chip en
+  suggesties eronder; *Een vraag stellen ›* haalt hem terug. *Verder met de bronselectie* staat bij de
+  werkgebiedsuggesties, ook in een nieuw gesprek.
+- De allowlist laat `bronselectie`, `bronselectie/{d}/status` en `bronselectie/{d}/kandidaten/{k}` door.
+- **De bronboom** (`BronKandidaten` op `bronnen/voorstellen`) blijft als bronverkenner; de pagina Bronselectie
+  linkt ernaar.
+- Browserregressie: `scripts/test-bronselectie.mjs` (vier deelvragen: 1 → 2, tussenvraag, via het paneel naar
+  4, herladen, hervatten, een ander gesprek, de pagina).
+
 ### Kiezen binnen één artikel, en de reeks
 
 Wijst de vraag een artikel met leden aan (of een beleidsregel met subbepalingen), dan draagt het

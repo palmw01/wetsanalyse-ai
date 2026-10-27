@@ -58,7 +58,8 @@ async def _audit(conn, werkgebied_id: str, actor: str, actie: str, detail: dict)
 WERKGEBIED_TABELLEN = ("werkgebied_bronselecties", "werkgebied_element_besluiten", "werkgebied_deelvragen",
                        "begrippen", "begrip_koppelingen", "begrip_relaties", "begrip_voorstellen",
                        "begrip_kaartruns", "bronnen_runs", "bron_kandidaten", "begrippen_runs",
-                       "betekenisgroepen", "begrippen_batches")
+                       "betekenisgroepen", "begrippen_batches", "bronselectie_voortgang",
+                       "bron_kandidaat_deelvragen")
 #: Wat bij een verwijderd object in de audit staat (oude stand: archiveren, een soft verwijderd begrip).
 VERWIJDERD_ACTIES = ("werkgebied-verwijderd", "gearchiveerd")
 

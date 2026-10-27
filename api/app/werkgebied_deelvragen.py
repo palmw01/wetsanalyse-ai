@@ -172,7 +172,9 @@ async def _vervang(conn, werkgebied_id: str, voorstel, actor: str) -> dict:
         geldig = x.doel_id in selecties if x.soort == "bron" else x.doel_id in begrippen
         if geldig and (x.soort, x.doel_id) not in al:
             await conn.execute(insert(k).values(deelvraag_id=voorstel.id, soort=x.soort, doel_id=x.doel_id,
-                                                gekoppeld_door=actor, gekoppeld=db.utcnow()))
+                                                rol=x.rol or "", gekoppeld_door=actor, gekoppeld=db.utcnow()))
+    from . import bronselectie  # leest deze module zelf; dus hier, niet bovenaan
+    await bronselectie.erf_in(conn, werkgebied_id, oud.id, voorstel.id)
     await _op_de_plek_van(conn, werkgebied_id, oud, voorstel.id)
     return {}
 
@@ -244,11 +246,14 @@ async def verwijder(werkgebied_id: str, deelvraag_id: str, verwacht: int, actor:
 
 async def _zet_koppelingen(conn, deelvraag_id: str, soort: str, ids: list[str], actor: str) -> None:
     k = db.werkgebied_deelvraag_koppelingen
+    # De rol bij deze deelvraag (spoor J) blijft staan voor wat gekoppeld blijft.
+    rollen = {r.doel_id: r.rol or "" for r in (await conn.execute(select(k.c.doel_id, k.c.rol).where(
+        k.c.deelvraag_id == deelvraag_id, k.c.soort == soort))).all()}
     await conn.execute(delete(k).where(k.c.deelvraag_id == deelvraag_id, k.c.soort == soort))
     nu = db.utcnow()
     for doel in dict.fromkeys(ids):
         await conn.execute(insert(k).values(deelvraag_id=deelvraag_id, soort=soort, doel_id=doel,
-                                            gekoppeld_door=actor, gekoppeld=nu))
+                                            rol=rollen.get(doel, ""), gekoppeld_door=actor, gekoppeld=nu))
 
 
 async def koppel(werkgebied_id: str, deelvraag_id: str, w: DeelvraagKoppelingen, actor: str) -> dict:
@@ -268,9 +273,11 @@ async def koppel(werkgebied_id: str, deelvraag_id: str, w: DeelvraagKoppelingen,
     return await _werkgebied(werkgebied_id)
 
 
-async def koppel_bron_in(conn, werkgebied_id: str, selectie_id: str, deelvraag_ids: list[str], actor: str) -> None:
+async def koppel_bron_in(conn, werkgebied_id: str, selectie_id: str, deelvraag_ids: list[str], actor: str,
+                         rol: str = "") -> None:
     """Binnen een lopende transactie (opnemen van een kandidaat): de nieuwe selectie hoort bij de
-    deelvragen waarvoor Lex haar vond. Alleen actieve deelvragen van dit werkgebied."""
+    deelvragen waarvoor Lex haar vond. Alleen actieve deelvragen van dit werkgebied. `rol` is de rol bij
+    die deelvragen (leeg = de rol van de selectie)."""
     if not deelvraag_ids:
         return
     d, k = db.werkgebied_deelvragen, db.werkgebied_deelvraag_koppelingen
@@ -284,7 +291,7 @@ async def koppel_bron_in(conn, werkgebied_id: str, selectie_id: str, deelvraag_i
         bestaat = (await conn.execute(select(k.c.doel_id).where(
             k.c.deelvraag_id == did, k.c.soort == "bron", k.c.doel_id == selectie_id))).first()
         if bestaat is None:
-            await conn.execute(insert(k).values(deelvraag_id=did, soort="bron", doel_id=selectie_id,
+            await conn.execute(insert(k).values(deelvraag_id=did, soort="bron", doel_id=selectie_id, rol=rol,
                                                 gekoppeld_door=actor, gekoppeld=db.utcnow()))
 
 

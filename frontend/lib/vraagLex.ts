@@ -21,7 +21,9 @@ import type { DossierVeld } from "./werkgebied";
  *    voor een vraag die de analist zelf moet afmaken ("Wat is het betekenisverschil met …").
  *  - **Het dossier aanvullen** (`dossier_aanvullen`) is geen taak van een agent maar de vraagkaarten van de
  *    intake (graph-qa `INTAKE_ACTIES`); welk veld leest graph-qa uit de tekst ("Vul het praktijkvoorbeeld
- *    aan"). *Vraag Lex* bij een leeg veld zet dat veld op het werkgebied (`veld`), en de suggestie noemt het. */
+ *    aan"). *Vraag Lex* bij een leeg veld zet dat veld op het werkgebied (`veld`), en de suggestie noemt het.
+ *  - **De bronselectie** (`bronselectie`, spoor J) is evenmin een taak van een agent: graph-qa routeert hem naar
+ *    de bronselectie-worker (`BRONSELECTIE_ACTIES`), op de stand die de api bewaart. */
 
 export type OnderwerpSoort = "markering" | "deelvraag" | "bron" | "kandidaat" | "begrip" | "werkgebied";
 export type ObjectSoort = Exclude<OnderwerpSoort, "markering">;
@@ -41,7 +43,7 @@ export type BegripVeld = "uitleg";
 export const ACTIES = [
   "werkgebied_annoteren", "deelvragen_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
   "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie", "scherper",
-  "uitleg", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen",
+  "uitleg", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen", "bronselectie",
 ] as const;
 
 /** Hoe de suggestie bij een leeg dossierveld het veld noemt; graph-qa herkent het woord (`dossiervelden_in`). */
@@ -117,6 +119,8 @@ const SUGGESTIES: Record<ObjectSoort, Suggestie[]> = {
     // Een vraagkaart van het aanvullen (spoor I7): graph-qa leest het veld `thema` uit de tekst.
     { tekst: "Kies een thema", actie: "dossier_aanvullen" },
     { tekst: "Stel deelvragen voor", actie: "deelvragen_voorstellen" },
+    // De bronselectie per deelvraag (spoor J): beginnen of verder waar je was, ook in een ander gesprek.
+    { tekst: "Verder met de bronselectie", actie: "bronselectie" },
     { tekst: "Zoek bepalingen bij alle deelvragen", actie: "bronnen_zoeken" },
     { tekst: "Hoe staat de dekking ervoor?", actie: "dekking" },
     { tekst: "Annoteer wat nog niet geannoteerd is", actie: "werkgebied_annoteren" },
@@ -125,6 +129,7 @@ const SUGGESTIES: Record<ObjectSoort, Suggestie[]> = {
     { tekst: "Denk mee over de begrippen", actie: "begrippen_meedenken" },
   ],
   deelvraag: [
+    { tekst: "Bepaal de bronnen bij deze deelvraag", actie: "bronselectie" },
     { tekst: "Zoek bepalingen hierbij", actie: "bronnen_zoeken" },
     { tekst: "Annoteer de bepalingen hierbij", actie: "deelvragen_annoteren" },
     { tekst: "Is deze deelvraag gedekt?", actie: "dekking" },

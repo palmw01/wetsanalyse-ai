@@ -6,11 +6,12 @@ De routes `…/uitkomst`, `…/loopt` en `…/mislukt` zijn voor graph-qa; de BF
 niet door, en de api toetst de uitkomst tegen de eigen invoer."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Query, Response
 
-from . import annotatie_v2_store, bronnen_run_store as store, werkgebied_store
+from . import annotatie_v2_store, bronnen_run_store as store, bronselectie, werkgebied_store
 from .auth import require_client
 from .bronnen_run_contracts import BronnenMislukt, BronnenUitkomst, Opnemen, Uitsluiten
+from .bronselectie_contracts import KandidaatBesluit, StatusActie
 from .routers.auth import actieve_userid
 from .werkgebieden import resolve_bron
 
@@ -59,19 +60,24 @@ async def get_kandidaten(werkgebied_id: str, actor: str = Depends(actieve_userid
 @router.post("/kandidaten/{kandidaat_id}/opnemen")
 async def post_opnemen(werkgebied_id: str, kandidaat_id: str, req: Opnemen, actor: str = Depends(actieve_userid)):
     await werkgebied_store.haal(werkgebied_id)
-    lijst = await store.kandidaten(werkgebied_id)
-    bron_iri = next((k["bron_iri"] for k in lijst["kandidaten"] if k["id"] == kandidaat_id), "")
-    # De bron verifiëren zoals bij zelf opnemen; een onbekende kandidaat geeft hieronder 404.
-    bron = {"bron_iri": bron_iri}
-    if bron_iri:
-        snapshot = await resolve_bron({"bron_iri": bron_iri})
-        doel = snapshot["doel"]
-        node = annotatie_v2_store.nodes_van(snapshot).get(doel["bron_iri"], {})
-        bron = {"bron_iri": doel["bron_iri"], "label": doel.get("label") or node.get("label", ""),
-                "bwb_id": doel.get("bwb_id") or node.get("bwb_id", ""),
-                "snapshot_id": snapshot.get("snapshot_id", ""), "bron_hash": node.get("bron_hash", "")}
+    bron = await _bron_van(werkgebied_id, kandidaat_id)
     uit = await store.opnemen(werkgebied_id, kandidaat_id, req, bron, actor)
     return {**uit, "werkgebied": await werkgebied_store.haal(werkgebied_id)}
+
+
+async def _bron_van(werkgebied_id: str, kandidaat_id: str) -> dict:
+    """De bron van een kandidaat, geverifieerd zoals bij zelf opnemen; een onbekende kandidaat geeft
+    daarna in de store 404."""
+    lijst = await store.kandidaten(werkgebied_id)
+    bron_iri = next((k["bron_iri"] for k in lijst["kandidaten"] if k["id"] == kandidaat_id), "")
+    if not bron_iri:
+        return {"bron_iri": ""}
+    snapshot = await resolve_bron({"bron_iri": bron_iri})
+    doel = snapshot["doel"]
+    node = annotatie_v2_store.nodes_van(snapshot).get(doel["bron_iri"], {})
+    return {"bron_iri": doel["bron_iri"], "label": doel.get("label") or node.get("label", ""),
+            "bwb_id": doel.get("bwb_id") or node.get("bwb_id", ""),
+            "snapshot_id": snapshot.get("snapshot_id", ""), "bron_hash": node.get("bron_hash", "")}
 
 
 @router.post("/kandidaten/{kandidaat_id}/later")
@@ -88,3 +94,36 @@ async def post_uitsluiten(werkgebied_id: str, kandidaat_id: str, req: Uitsluiten
 @router.post("/kandidaten/{kandidaat_id}/heropenen")
 async def post_heropenen(werkgebied_id: str, kandidaat_id: str, actor: str = Depends(actieve_userid)):
     return await store.heropenen(werkgebied_id, kandidaat_id, actor)
+
+
+# --- Bronselectie per deelvraag (spoor J) ------------------------------------------------------
+# Het overzicht dat Lex, het werkgebiedpaneel en de tab Bronnen delen; `na` is de deelvraag waar de
+# analist nu staat (de code kiest de volgende). De deelvraag `analysevraag` is de analysevraag zelf, voor
+# een werkgebied zonder deelvragen.
+
+@router.get("/bronselectie")
+async def get_bronselectie(werkgebied_id: str, na: str | None = Query(default=None, max_length=64),
+                           actor: str = Depends(actieve_userid)):
+    return await bronselectie.overzicht(werkgebied_id, na=na)
+
+
+@router.post("/bronselectie/{deelvraag_id}/status")
+async def post_bronselectie_status(werkgebied_id: str, deelvraag_id: str, req: StatusActie,
+                                   actor: str = Depends(actieve_userid)):
+    await bronselectie.zet_status(werkgebied_id, deelvraag_id, req, actor)
+    return await bronselectie.overzicht(werkgebied_id, na=deelvraag_id)
+
+
+@router.post("/bronselectie/{deelvraag_id}/kandidaten/{kandidaat_id}")
+async def post_bronselectie_besluit(werkgebied_id: str, deelvraag_id: str, kandidaat_id: str, req: KandidaatBesluit,
+                                    actor: str = Depends(actieve_userid)):
+    # Alleen opnemen van een bepaling die nog niet in het werkgebied staat, vraagt de graaf.
+    bron = {"bron_iri": ""}
+    if req.besluit == "opnemen":
+        wg = await werkgebied_store.haal(werkgebied_id)
+        lijst = await store.kandidaten(werkgebied_id)
+        iri = next((k["bron_iri"] for k in lijst["kandidaten"] if k["id"] == kandidaat_id), "")
+        if iri and iri not in {b["bron_iri"] for b in wg["bronnen"]}:
+            bron = await _bron_van(werkgebied_id, kandidaat_id)
+    await bronselectie.besluit(werkgebied_id, deelvraag_id, kandidaat_id, req, bron, actor)
+    return await bronselectie.overzicht(werkgebied_id, na=deelvraag_id)

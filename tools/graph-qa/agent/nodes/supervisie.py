@@ -14,7 +14,8 @@ from langgraph.config import get_stream_writer
 
 from ..aanwijzing import lees_aanwijzing, melding_meerdere
 from ..doel import _heeft_opgegeven_doel
-from ..models import ACTIE_TAAK, INTAKE_ACTIES
+from ..bronselectie import is_bronselectievraag
+from ..models import ACTIE_TAAK, BRONSELECTIE_ACTIES, INTAKE_ACTIES
 from ..focus import bij_advies, bij_onderwerp
 from ..narratie import _stap
 from ..state import State
@@ -76,6 +77,14 @@ def _werkgebied(writer, waarom: str, *, aanvullen: bool = False) -> dict[str, An
             "annotaties_lezen": False, "intake_modus": "aanvullen" if aanvullen else ""}
 
 
+def _bronselectie(writer, waarom: str) -> dict[str, Any]:
+    """De bronselectie per deelvraag (spoor J): de bronselectie-worker, op de stand die de api bewaart."""
+    _stap(writer, "Lex", waarom)
+    return {"specialist": "bronselectie", "worker_plan": ["bronselectie"], "worker_idx": 0,
+            "plan": "de bronnen per deelvraag bepalen", "afwijzen": False, "annotaties_lezen": False,
+            "intake_modus": ""}
+
+
 def _agent(writer, state: State, agent: str, taak: str, vraag: str, *, actie: str = "") -> dict[str, Any]:
     """Eén taak van een agent (F3c): de node `agent_taak` voert hem uit. De parameters komen uit wat er
     ligt – werkgebied, het aangewezen object (of dat in de focus), en wat code uit de vraag kan lezen."""
@@ -128,7 +137,11 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
     # Een klik op een vraagkaartje, of een verzoek om een werkgebied samen te stellen: vóór alles en
     # zonder modelaanroep. De klik weet al waar hij bij hoort; de startzin heeft een vaste vorm.
     if state.get("intake_actie"):
+        if str((state.get("intake_actie") or {}).get("intake_id", "")).startswith("bs-"):
+            return _bronselectie(writer, "verwerkt je keuze in de bronselectie")
         return _werkgebied(writer, "verwerkt het antwoord op het kaartje")
+    if state.get("actie") in BRONSELECTIE_ACTIES:
+        return _bronselectie(writer, "pakt de bronselectie op waar die was")
     if state.get("actie") in INTAKE_ACTIES:
         # Een klik op *Vul het dossier aan*: de vraagkaarten van de intake, op het werkgebied van het gesprek.
         return _werkgebied(writer, "vult met je het dossier aan", aanvullen=True)
@@ -136,6 +149,8 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # Een klik op een suggestie: agent en taak liggen vast, dus geen modelaanroep – net als een doel.
         agent, taak = ACTIE_TAAK[actie]
         return _agent(writer, state, agent, taak, "", actie=actie)
+    if modus == "auto" and state.get("werkgebied_id") and is_bronselectievraag(state.get("question", "")):
+        return _bronselectie(writer, "bepaalt met je de bronnen per deelvraag")
     if modus == "auto" and is_werkgebiedvraag(state.get("question", "")):
         return _werkgebied(writer, "stelt met je een werkgebied samen")
 
@@ -231,6 +246,8 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         return {**upd, "specialist": "", "plan": plan, "worker_plan": [], "worker_idx": 0,
                 "afwijzen": True, "annotaties_lezen": False}
     eerste = worker_plan[0]
+    if eerste == "werkgebied" and taak == "bronselectie":
+        return {**upd, **_bronselectie(writer, "bepaalt met je de bronnen per deelvraag")}
     if eerste == "werkgebied" and taak == "aanvullen":
         return {**upd, **_werkgebied(writer, "vult met je het dossier aan", aanvullen=True)}
     if eerste == "werkgebied":
@@ -257,6 +274,8 @@ def _entry_node(b: Bouw, state: State) -> str:
         return "afwijzen"
     if state.get("specialist") == "werkgebied":
         return "werkgebied_intake"
+    if state.get("specialist") == "bronselectie":
+        return "bronselectie"
     if state.get("specialist") == "agent_taak":
         return "agent_taak"
     if state.get("overzicht_route"):

@@ -1,6 +1,7 @@
 // Client-side fetch-helpers. Praten UITSLUITEND met de eigen Next.js-origin (/api/**);
 // de BFF-laag injecteert het token server-side. Hier dus geen Authorization-header.
 
+import { parseBronselectie, type BronselectieOverzicht } from "./bronselectie";
 import {
   geldig,
   parseBronnen,
@@ -1432,6 +1433,28 @@ export async function haalLaatsteBronnenRun(id: string): Promise<BronnenRun | nu
  *  bronboom uit de graaf, dus traag en soms onvolledig (`volledig`). */
 export async function haalWerkvoorraad(id: string): Promise<import("./werkgebiedPaden").Werkvoorraad> {
   return json(await fetch(`/api/werkgebieden/${pathSegment(id)}/annotatie-werkvoorraad`, { cache: "no-store" }));
+}
+
+// De bronselectie per deelvraag (spoor J): het overzicht dat paneel en pagina delen, en een besluit over één
+// kandidaat bij één deelvraag. De stappen (openen, afronden) zet Lex in het gesprek; de pagina beslist alleen.
+export async function haalBronselectie(id: string): Promise<BronselectieOverzicht> {
+  const o = parseBronselectie(await json<unknown>(await fetch(wg(id, "bronselectie"), { cache: "no-store" })));
+  if (!o) throw { status: 502, message: "De bronselectie kwam in een onverwachte vorm terug." };
+  return o;
+}
+
+export type BronselectieBesluit =
+  | { besluit: "opnemen"; verwachte_revisie: number; rol?: "analyseren" | "context" }
+  | { besluit: "loskoppelen"; verwachte_revisie: number }
+  | { besluit: "later" | "heropenen"; overal?: boolean }
+  | { besluit: "uitsluiten"; reden: string; overal?: boolean };
+
+export async function besluitBronselectie(id: string, deelvraagId: string, kandidaatId: string,
+  besluit: BronselectieBesluit): Promise<BronselectieOverzicht> {
+  const o = parseBronselectie(await json<unknown>(await fetch(wg(id, "bronselectie", deelvraagId, "kandidaten", kandidaatId),
+    jsonInit("POST", besluit))));
+  if (!o) throw { status: 502, message: "De bronselectie kwam in een onverwachte vorm terug." };
+  return o;
 }
 
 export async function haalKandidaten(id: string): Promise<KandidatenAntwoord> {

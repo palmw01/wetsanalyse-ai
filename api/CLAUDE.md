@@ -41,6 +41,8 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
    lezen*.
 16. **Deelvragen** (`/v1/werkgebieden/{id}/deelvragen/*`, vervolg op F): optionele deelvragen bij een
    werkgebied, voorstellen van Lex en de dekkingscheck per deelvraag – zie §*Deelvragen*.
+17. **Bronselectie per deelvraag** (`/v1/werkgebieden/{id}/bronselectie/*`, spoor J): de voortgang van de
+   bronselectie per deelvraag en de besluiten per deelvraag – zie §*Bronselectie per deelvraag*.
 
 > **De wettekst komt uit de graaf.** De API leest uit GraphDB de **bronboom** (`bron_resolver.py`):
 > daarmee toetst hij ankers, legt hij snapshots vast en levert hij de segmenten van de weergave.
@@ -72,6 +74,7 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 | `begrippen_runs.py` (router), `begrippen_run_store.py`, `begrippen_run_contracts.py`, `begrip_manifest.py` | Voorstellen van Lex: manifest voor de begrippenketen, runs, betekenisgroepen en besluiten. |
 | `begrip_voorstellen.py` (router), `begrip_voorstel_store.py`, `begrip_voorstel_contracts.py` | Lex naast de kaart: kaartruns en voorstellen per veld, overnemen en afwijzen. |
 | `bronnen_runs.py` (router), `bronnen_run_store.py`, `bronnen_run_contracts.py` | Bronnen vinden met Lex: runs van de ontdekmethoden, kandidaatbepalingen en hun besluiten. |
+| `bronselectie.py`, `bronselectie_contracts.py` (routes in `bronnen_runs.py`) | Bronselectie per deelvraag: voortgang, besluiten per deelvraag, de volgende deelvraag en het overzicht. |
 | `begrip_onderhoud.py` (router), `begrip_onderhoud_store.py`, `begrip_onderhoud_contracts.py` | Onderhoud van begrippen: herbeoordelingen, opvolgers, herkoppelen, bevestigen en dekking. |
 | `begrip_relaties.py` (router), `begrip_relatie_store.py`, `begrip_relatie_contracts.py` | Begripsrelaties (voorstellen uit de keten, vastleggen, afwijzen, doorwerking) en opvolging: nieuwe betekenis, combineren. |
 | `begrip_projectie.py`, `shapes/nl-sbb-1.0.0.ttl`, `shapes/begrippen-wa.ttl` | Begrippen naar de kennisgraaf (NL-SBB), conformiteit per begrip en de Turtle-export. |
@@ -700,6 +703,49 @@ werkgebied zonder deelvragen werkt zoals altijd.
   (alleen de gevulde velden van aanleiding, context, doel, praktijkvoorbeeld en afbakening). Bewijs van de methode `deelvraag` draagt `deelvraag_id`;
   opnemen koppelt de nieuwe selectie in dezelfde transactie aan die deelvragen (`koppel_bron_in`).
 - Tests: `tests/test_werkgebied_deelvragen.py`.
+
+## Bronselectie per deelvraag
+
+`bronselectie.py`, `bronselectie_contracts.py`, routes in `bronnen_runs.py`; PLAN spoor J. Lex begeleidt
+de bronselectie in het gesprek, maar de stand staat hier – niet in de gesprek-checkpointer –, zodat hij er
+na herladen, in een ander gesprek en bij een collega ook is.
+
+- **Voortgang per deelvraag** (`bronselectie_voortgang`, sleutel werkgebied + deelvraag): geen rij =
+  `niet_gestart`, dan `in_behandeling`, `voorlopig_afgerond`, `beoordeeld`; plus `fase` (`kern`,
+  `afhankelijkheden`, `afronden`) en `open_punten`. Dit is de stand van het werk; de deelvraagstatus
+  (`actief`, `vervangen`) en de dekkingscheck (`gedekt`, `geen_bron`) staan los. Een werkgebied zonder
+  actieve deelvragen heeft één eenheid, `analysevraag`; met deelvragen geeft die 409 `heeft_deelvragen`.
+- **`POST …/bronselectie/{deelvraag}/status {actie}`**: `openen` (navigeren: start de deelvraag als dat nog
+  niet gebeurd was, maakt haar de actieve – de laatst geopende in behandeling –, geen revisie), `fase`,
+  `afronden`, `beoordelen`, `heropenen` (elk met `verwachte_revisie` van de rij → 412). Staat de rij al
+  waar de actie heen wil, dan gebeurt er niets, ook geen revisietoets: een dubbele klik of een opnieuw
+  afgespeelde actie is geen conflict. `beoordelen` gaat door een **poort** (409 `poort` met `redenen`): geen
+  open voorstel bij deze deelvraag en geen open punten. Niet gestart: 409 `niet_gestart`.
+- **Een afronding staat op een scope**: `scope_stand` = hash van analysevraag, afbakening en de genormaliseerde
+  deelvraagtekst. Wijkt die bij het lezen af, dan `opnieuw_bekijken: true` en `klaar: false`; er wordt niets
+  gewist. Een verbeterde deelvraag (F3d) erft voortgang en besluiten (`erf_in`, vanuit
+  `werkgebied_deelvragen._vervang`), met de oude stand – dus op *opnieuw bekijken*.
+- **Besluiten per deelvraag** (`POST …/bronselectie/{deelvraag}/kandidaten/{id} {besluit}`):
+  - `opnemen` koppelt de bepaling aan deze deelvraag met een eigen `rol` (`werkgebied_deelvraag_koppelingen.rol`;
+    leeg = de rol van de selectie). Staat ze nog niet in het werkgebied, dan loopt het via
+    `bronnen_run_store.opnemen` met `deelvraag_ids=[deze]`. Eén selectie, meer koppelingen: nooit een duplicaat.
+    Scope, dus `verwachte_revisie` van het werkgebied; dezelfde koppeling nog eens geeft geen revisie;
+  - `loskoppelen` haalt alleen de koppeling weg (revisie);
+  - `later` en `uitsluiten` (reden verplicht) schrijven `bron_kandidaat_deelvragen`; met `overal: true` gaat een
+    uitsluiting naar `bron_kandidaten` en geldt ze bij elke deelvraag. `heropenen` wist het besluit hier, met
+    `overal` ook het werkgebiedbrede. Geen revisie, wel het slot en een audit `bronselectie-*`;
+  - een besluit start de deelvraag als dat nog niet gebeurd was.
+- **`GET …/bronselectie?na=`**: per eenheid `nr`, stand, `revisie`, `opnieuw_bekijken`, `klaar`, `bronnen` (met
+  rol hier), `kandidaten` met `stand` hier (`voorgesteld`, `later`, `uitgesloten`, `opgenomen`), `overal`,
+  `elders_opgenomen` en `bewijs_soorten` (`verwijzing`, `definitie`, `structuur`, `tekst`, `gelijkenis`:
+  een tekstuele overeenkomst is geen bewijs van noodzaak), `telling` en `beoordelen: {mag, redenen}`. Plus
+  `actief`, `volgende` (deterministisch: de eerste niet-klare na `na`, anders vooraan verder), `alle_klaar`,
+  `zonder_deelvraag` (open voorstellen die bij geen deelvraag horen – niet stil weg) en `zoekdekking` uit de
+  laatste run (`gezocht`, `volledig`, `onvolledig` per methode, `verouderd`, `reden`).
+- **Welke kandidaat hoort bij een deelvraag** is deterministisch: bewijs `deelvraag` met haar id (of dat van
+  een voorganger), een besluit hier, opgenomen hier, of een bewijs `vanuit` een bron die hier opgenomen is
+  (een afhankelijkheid).
+- Tests: `tests/test_bronselectie.py`.
 
 ## Gesprekken
 

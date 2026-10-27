@@ -240,6 +240,24 @@ class WetsanalyseApi:
     async def haal_kandidaten(self, werkgebied_id: str) -> dict[str, Any]:
         return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/kandidaten")
 
+    # -- bronselectie per deelvraag (spoor J) --------------------------------------------------------
+
+    async def haal_bronselectie(self, werkgebied_id: str, na: str = "") -> dict[str, Any]:
+        """De stand per deelvraag, met `actief` en de `volgende` die de api kiest."""
+        return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/bronselectie", **({"na": na} if na else {}))
+
+    async def zet_bronselectie_status(self, werkgebied_id: str, deelvraag_id: str,
+                                      actie: dict[str, Any]) -> dict[str, Any]:
+        """`{actie: openen|fase|afronden|beoordelen|heropenen, verwachte_revisie?, …}`; geeft het overzicht."""
+        return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronselectie/"
+                                f"{quote(deelvraag_id, safe='')}/status", actie)
+
+    async def besluit_bronselectie(self, werkgebied_id: str, deelvraag_id: str, kandidaat_id: str,
+                                   besluit: dict[str, Any]) -> dict[str, Any]:
+        """Een besluit over één kandidaat bij één deelvraag; geeft het overzicht."""
+        return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronselectie/"
+                                f"{quote(deelvraag_id, safe='')}/kandidaten/{quote(kandidaat_id, safe='')}", besluit)
+
     async def haal_groepen(self, werkgebied_id: str) -> dict[str, Any]:
         """De betekenisgroepen van de laatste klare run, met hun besluiten."""
         return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/groepen")

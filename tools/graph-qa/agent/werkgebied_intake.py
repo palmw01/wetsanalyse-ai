@@ -153,6 +153,9 @@ def is_werkgebiedvraag(vraag: str) -> bool:
 
     "Annoteer het werkgebied" en "welke bepalingen horen bij het werkgebied" noemen geen handeling
     van samenstellen en blijven hun eigen route."""
+    from .bronselectie import is_bronselectievraag  # de bronnen van een werkgebied bepalen is iets anders (spoor J)
+    if is_bronselectievraag(vraag):
+        return False
     return bool(_WERKGEBIED.search(vraag or "") or is_wetsanalysevraag(vraag))
 
 
