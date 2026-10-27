@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/Button";
+import { Button, knopKlasse } from "@/components/ui/Button";
 import { ButtonRow } from "@/components/ui/ButtonRow";
 import { Dialog } from "@/components/ui/Dialog";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
@@ -52,7 +52,7 @@ export function ProjectKop({ tab }: { tab: ProjectTab }) {
           <>
             <Button variant="secondary" size="sm" onClick={() => setBewerken(true)}>Gegevens bewerken</Button>
             <Link href={`/workbench?werkgebied=${encodeURIComponent(wg.id)}`}
-              className="focus-ring inline-flex min-h-[32px] items-center justify-center rounded-full bg-accent px-3 py-1.5 text-sm font-medium text-paper hover:bg-accent-soft coarse:min-h-[44px]">
+              className={knopKlasse("primary", "sm")}>
               Nieuw gesprek
             </Link>
             <Popover ariaLabel="Meer voor dit werkgebied" className={`w-56 ${MENU_PANEEL}`}

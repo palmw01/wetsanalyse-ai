@@ -105,6 +105,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | G | Lex als projectgerichte werkplek (mock-up v4) | G1–G5 gebouwd (gesprek bij een werkgebied, de projectpagina, eigen pagina's per object, het contextpaneel, de begripskaart in NL-SBB-volgorde) |
 | H | Structuur: begrippen per term, bepalingen als boom | H1–H4 gebouwd (plek van een bepaling, bronvoorstellen met vinkjes en actiebalk, geen sneltoetsen, deelvragen met structuur, begrippenkader per term) |
 | I | Begrippen volgens NL-SBB met uitleg in B1, TOOI, één bedieningsstijl | Af: I5, I1–I4, I6, I7 gemerged (#752–#756, #762, #763), het thema als vraagkaart erna; open: de meting `eval.uitleg_eval` (3 runs, kost geld) |
+| K | Eén bronnenlijst, deelvragen zonder begrip, rustige panelen, één stijl | K1–K5 gebouwd als PR-stapel (#767–#771) |
 
 ---
 
@@ -1152,6 +1153,39 @@ deelvraag, een besluit per deelvraag, een vraagkaart buiten de intake en het soo
 
 **Bekende beperking.** De functie van een verwijzing (definitie, uitzondering, delegatie) wordt nog niet
 afgeleid; tot dan zegt Lex bij een afhankelijkheid alleen welke relatie in de graaf staat.
+
+### K. Eén bronnenlijst, deelvragen zonder begrip, rustige panelen, één stijl
+
+**Aanleiding** (27 okt 2026). Op acceptatie stond dezelfde bronnenlijst op drie plekken: in de afbakening (de
+intake schreef alle gekozen bepalingen erin), bij de deelvragen en op de tab Bronnen – en op de pagina
+Bronselectie nog eens per rol. Elke deelvraag had acht bronnen: het bepalingenkaartje vulde tot het maximum aan
+met bepalingen die alleen een dossierterm raakten. Een deelvraag zei "Nog geen geaccordeerd begrip", terwijl
+begrippen in de methode bij het werkgebied horen. In de panelen naast het gesprek stond nog *Vraag Lex*. En de
+stijl liep uiteen: vier kaartvormen, drie filterchips, handgemaakte knoppen. Vergelijking: de mock-up v4.
+
+**Methode** (handleiding 1f/1g): één tabel met juridische bronnen voor het werkgebied, daarna per deelvraag
+gekoppeld; de afbakening is een tekstuele scope. Begrippen gaan over het hele scenario (M04 H3).
+
+**Besluiten** (gebruiker, 27 okt 2026):
+1. Eén lijst, getoond per deelvraag, met *Zonder deelvraag*; de afbakening is tekst (regelingen, wat erbuiten
+   valt).
+2. Een hoofdknop heeft de vorm van *Nieuw gesprek* (afgeronde rechthoek, zachte schaduw, diepere schaduw bij
+   hover); rijacties, statuslabels en filterchips blijven pillen. Vervangt I4 voor de hoofdknoppen.
+3. Een deelvraag toont de voortgang van haar bronselectie en het aantal bronnen, geen begrip.
+4. Geen *Vraag Lex* in de panelen naast het gesprek; een deelvraag daar is aan te klikken.
+
+**Fasen** (PR-stapel):
+- **K1** (#767): de afbakening zonder bepalingen; `bepaling_opties` eist bij een deelvraag een deelvraagterm.
+- **K2** (#768): de dekking per deelvraag zonder begrip (`met_bron`/`geen_bron`); de werkplek toont de voortgang.
+- **K3** (#769): geen *Vraag Lex* naast het gesprek.
+- **K4** (#770): de tab Bronnen per deelvraag in rijen (`Groep`/`GroepRij`); geen boom om te lezen.
+- **K5** (#771): één stijl – knoppen, kaartfamilie (`KLIK_KAART`), `FilterChip`, tellers en artefactkaarten
+  zoals de mock-up.
+
+**Daarna**: welke van de drie wegen op acceptatie de acht bronnen per deelvraag gaf (de opvulling, een splitsing
+die alle koppelingen erfde, of het oude opneem-endpoint) vraagt de audit van dat werkgebied. Een splitsing erft
+nog alle koppelingen; dat als voorstel laten landen is een eigen wijziging. `NodeAnnotatiePaneel` heeft nog eigen
+sluitknoppen en de reviewkaart eigen knopconstanten.
 
 ---
 

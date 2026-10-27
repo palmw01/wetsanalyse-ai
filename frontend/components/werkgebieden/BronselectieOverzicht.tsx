@@ -114,7 +114,7 @@ function Deelvraag({ o, d, open, huidig, inGesprek, beslis }: {
   const open_ = d.kandidaten.filter((k) => k.stand !== "opgenomen");
   return (
     <details open={open} data-bronselectie-deelvraag={d.id} data-voortgang={d.status} data-huidig={huidig || undefined}
-      className={`rounded-lg border ${huidig ? "border-lint" : "border-line"} bg-paper`}>
+      className={`rounded-kaart border ${huidig ? "border-lint" : "border-line"} bg-paper shadow-zacht`}>
       <summary className="focus-ring flex cursor-pointer list-none flex-wrap items-center gap-2 px-3 py-2.5">
         <span className="min-w-0 flex-1 font-medium">{titel}</span>
         <StatusLabel toon={voortgangToon(d)}>

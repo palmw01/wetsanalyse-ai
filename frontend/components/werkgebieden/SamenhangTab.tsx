@@ -94,7 +94,7 @@ function SamenhangGraaf({ wg, muteer, onKiesBegrip }: {
   return (
     <div>
       {/* De graaf vult zijn doos; zonder vaste hoogte heeft het canvas er geen. */}
-      <div className="flex h-[70vh] min-h-[28rem] flex-col overflow-hidden rounded-button border border-line bg-paper">
+      <div className="flex h-[70vh] min-h-[28rem] flex-col overflow-hidden rounded-kaart border border-line bg-paper shadow-zacht">
         <Graaf
           stand={stand}
           zichtbaar

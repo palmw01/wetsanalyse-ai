@@ -90,7 +90,7 @@ export function BegripVoorstellen({ id, runId, inklapbaar = true }: {
   const relaties = data?.run?.uitkomst?.relaties ?? [];
 
   return (
-    <section data-begripvoorstellen className="rounded-button border border-line bg-paper" aria-labelledby="voorstellen-kop">
+    <section data-begripvoorstellen className="rounded-kaart border border-line bg-paper shadow-zacht" aria-labelledby="voorstellen-kop">
       <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         {inklapbaar ? (
           <button type="button" onClick={wisselIngeklapt} aria-expanded={!ingeklapt}

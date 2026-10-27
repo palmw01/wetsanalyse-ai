@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/Button";
+import { Button, knopKlasse } from "@/components/ui/Button";
 import { Regel, Regels, StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { Kaart, PaginaKop, SplitDetail, Stip } from "@/components/ui/Pagina";
@@ -110,7 +110,7 @@ export function ElementPagina({ id }: { id: string }) {
               <Stip /><span>{bepalingNaam}</span>
             </>}
             acties={<Link href={naarAnnotatie}
-              className="focus-ring inline-flex min-h-[32px] items-center rounded-full border border-lint px-3 text-sm font-medium text-lint hover:bg-surface coarse:min-h-[44px]">
+              className={knopKlasse("secondary", "sm")}>
               Naar de bepaling
             </Link>}
           />

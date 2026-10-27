@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
+import { knopKlasse } from "@/components/ui/Button";
 import {
   klikGat, maskRechthoeken, plaatsBubbel, uitsnede, vakVan, zichtbaarDeel,
   type Afmeting, type Plaatsing, type Stap, type Vak,
@@ -309,7 +310,7 @@ export function TourBubbel({
           <button
             type="button"
             onClick={onVolgende}
-            className="focus-ring min-h-[28px] rounded-full bg-accent px-3 text-[0.75rem] font-medium text-paper transition-opacity hover:opacity-90 coarse:min-h-[44px]"
+            className={knopKlasse("primary", "sm")}
           >
             {nummer === totaal ? "Afronden" : "Volgende"}
           </button>

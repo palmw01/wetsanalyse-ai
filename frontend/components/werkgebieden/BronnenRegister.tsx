@@ -13,6 +13,7 @@ import { Groep, GroepRij } from "@/components/ui/Pagina";
 import { BronOpnemen } from "@/components/werkgebieden/BronOpnemen";
 import { ProjectKop } from "@/components/werkgebieden/ProjectKop";
 import { useWerkgebied } from "@/components/werkgebieden/WerkgebiedProject";
+import { FilterChip } from "@/components/ui/FilterChip";
 import { verwijderBron, wijzigBron } from "@/lib/api";
 import { bronnenZin, deelvraagStand } from "@/lib/bronselectie";
 import {
@@ -77,11 +78,9 @@ export function BronnenRegister() {
           className="focus-ring min-h-[36px] w-full rounded-field border border-line bg-paper px-3 text-sm sm:max-w-sm" />
         <div className="flex gap-1" role="group" aria-label="Rol">
           {(["alle", "analyseren", "context"] as const).map((r) => (
-            <button key={r} type="button" onClick={() => setRol(r)} aria-pressed={rol === r}
-              className={`focus-ring min-h-[32px] rounded-full border px-3 text-xs font-medium ${
-                rol === r ? "border-lint bg-lint/10 text-lint" : "border-line text-muted hover:text-lint"}`}>
+            <FilterChip key={r} gekozen={rol === r} onKies={() => setRol(r)}>
               {r === "alle" ? "Alle" : ROL_LABEL[r]}
-            </button>
+            </FilterChip>
           ))}
         </div>
         <span className="text-xs text-muted sm:ml-auto">{weergegeven} weergegeven</span>

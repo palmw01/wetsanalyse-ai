@@ -11,6 +11,7 @@ import { BerichtenPanel } from "@/components/BerichtenPanel";
 import { FeedbackDialoog } from "@/components/FeedbackDialoog";
 import { GesprekLijst } from "@/components/werkplek/GesprekLijst";
 import { Meter } from "@/components/ui/Meter";
+import { knopKlasse } from "@/components/ui/Button";
 import { wisDisclaimer } from "@/lib/api";
 import { verbruikSamenvatting } from "@/lib/tokenbudget";
 import type { GesprekSamenvatting, Verbruiksstand } from "@/lib/types";
@@ -135,7 +136,7 @@ export function GesprekSidebar({
         <button
           type="button"
           onClick={onNieuw}
-          className="flex min-h-[44px] w-full items-center gap-2 rounded-kaart border border-line bg-paper px-3 py-2.5 text-sm font-medium text-lint shadow-zacht transition-colors hover:bg-white hover:shadow-kaart focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint"
+          className={`${knopKlasse("secondary", "md")} w-full !justify-start`}
         >
           <Opstellen className="text-base" />
           Nieuw gesprek

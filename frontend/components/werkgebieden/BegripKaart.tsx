@@ -121,7 +121,7 @@ export function BegripKaart({ id, begrip, muteer, onOnbewaard, onVerwijder, lex 
     zet("voorbeelden", voorbeelden.map((x, j) => (j === i ? { ...x, ...v } : x)));
 
   return (
-    <article className="space-y-5 rounded-button border border-line bg-paper p-4" aria-label={`Begrip ${begrip.inhoud.naam}`}>
+    <article className="space-y-5 rounded-kaart border border-line bg-paper shadow-zacht p-4" aria-label={`Begrip ${begrip.inhoud.naam}`}>
       <header className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
         <h3 className="font-display text-base font-semibold text-lint">{begrip.inhoud.naam}</h3>
         <p className="text-xs text-muted">

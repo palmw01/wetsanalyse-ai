@@ -129,7 +129,7 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
             {docs === null ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="space-y-3 rounded-button border border-line bg-paper p-4">
+                  <div key={i} className="space-y-3 rounded-kaart border border-line bg-paper shadow-zacht p-4">
                     <Skeleton className="h-4 w-48" />
                     <Skeleton className="h-1.5 w-full" />
                     <Skeleton className="h-3 w-64" />

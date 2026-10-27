@@ -105,14 +105,21 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   vanaf `sm:` naast elkaar). Staat een knop buiten een `ButtonRow`, geef hem dan
   `className="w-full sm:w-auto"` en laat de container op mobiel stapelen (`flex flex-col …
   sm:flex-row`). Geen vaste of `flex-wrap`-knoprijen die op een smal scherm overlopen.
-- **Eén bedieningsstijl** (spoor I4, besluit gebruiker 26 okt 2026; `app/knoppen.test.ts` legt het vast):
-  - **elke knop is een pil** (`rounded-full` in `Button`/`LinkButton`/`knopKlasse`), ook de handgemaakte
-    actie- en icoonknoppen; de enige uitzondering is *Nieuw gesprek* in `GesprekSidebar`, letterlijk zoals hij
-    was. Rijacties gebruiken maat `xs` of `KNOP_XS` (de losse `KNOP`-constanten zijn daarin opgegaan);
+- **Eén bedieningsstijl** (spoor I4, voor de hoofdknoppen herzien in spoor K, besluit gebruiker 27 okt 2026;
+  `app/knoppen.test.ts` legt het vast):
+  - **een hoofdknop heeft de vorm van *Nieuw gesprek*** (`Button`/`LinkButton`/`knopKlasse` in maat `sm`/`md`):
+    een afgeronde rechthoek (`rounded-knop` op 32px, `rounded-kaart` op 40px), en als hij een vlak heeft
+    (primair, tweede keuze) een zachte schaduw die bij hover dieper wordt. *Nieuw gesprek* zelf is
+    `knopKlasse("secondary", "md")`. Geen handgemaakte primaire knop naast `knopKlasse`;
+  - **een rijactie blijft een kleine pil** (maat `xs` of `KNOP_XS`), net als statuslabels en filterchips
+    (`components/ui/FilterChip`, één vorm in de overzichten, de tab Bronnen, de artefacten en de bronverkenner);
+  - **kaarten zijn één familie**: `rounded-kaart`, een lichte rand en `shadow-zacht`; klikbaar met `KLIK_KAART`
+    (`components/ui/Pagina`: een lichte lift, een lintblauwe rand en `shadow-kaart` bij hover, zoals het
+    artefactkaartje in het gesprek) – de tellers, de artefactkaarten en de drie overzichtskaarten;
   - **het icoon-idioom in rijen** (`components/ui/IcoonBevestig`): een prullenbak of vinkje dat bij de eerste
     klik rood *Verwijderen?* of groen *Akkoord?* toont, de tweede voert uit (een `BevestigKnop`, dus ontwapenen
     na een paar seconden, bij blur of met Escape). Voor voorbeelden, passages (*Losmaken?*), relaties en het
-    akkoord op de reviewkaart. Hoofdacties blijven een pil met tekst (`VerwijderKnop` in een kop);
+    akkoord op de reviewkaart. Hoofdacties blijven een knop met tekst (`VerwijderKnop` in een kop);
   - **menu's** delen één rijstijl (`components/ui/Menu`: `MENU_RIJ`, `MENU_PANEEL`);
   - **`Select`** heeft een eigen chevron (`appearance-none`) en dezelfde maat en focus als `Input`;
   - **elk zijpaneel** heeft dezelfde kop (`components/ui/PaneelKop`: soort, titel, *Open volledige pagina*,
