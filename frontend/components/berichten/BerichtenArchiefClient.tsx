@@ -17,7 +17,7 @@ function BerichtArchiefItem({ bericht }: { bericht: BerichtenPaginaOut["items"][
   });
 
   return (
-    <article className="rounded-button border border-line bg-paper p-5">
+    <article className="rounded-kaart border border-line bg-paper shadow-zacht p-5">
       <div className="flex flex-wrap items-center gap-1.5">
         <BerichtBadge type={bericht.type as BerichtType} />
         {bericht.versie && <Tag>{bericht.versie}</Tag>}
@@ -63,7 +63,7 @@ export function BerichtenArchiefClient() {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="rounded-button border border-line bg-paper p-5 space-y-3">
+          <div key={i} className="rounded-kaart border border-line bg-paper shadow-zacht p-5 space-y-3">
             <Skeleton className="h-4 w-24" />
             <Skeleton className="h-5 w-2/3" />
             <Skeleton className="h-3 w-full" />

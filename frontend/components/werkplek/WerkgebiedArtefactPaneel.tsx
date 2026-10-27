@@ -16,6 +16,7 @@ import { WerkgebiedSamenvatting } from "@/components/werkgebieden/WerkgebiedSame
 import { Melding } from "@/components/ui/Melding";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
+import { knopKlasse } from "@/components/ui/Button";
 import { foutTekst, haalWerkgebied, verwijderWerkgebied } from "@/lib/api";
 import { metSpoor } from "@/lib/uiSpoor";
 import { verwijderdUit, verwijderdZin, type Verwijderd } from "@/lib/verwijderen";
@@ -185,7 +186,7 @@ function WerkgebiedInhoud({ id, naarWerkgebied, onVerwijderd }: {
       {melding && <Melding type="waarschuwing" compact>{melding}</Melding>}
       <WerkgebiedSamenvatting wg={wg} />
       <Link href={naarWerkgebied}
-        className="focus-ring inline-flex w-full items-center justify-center rounded-full bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent/90 sm:w-auto">
+        className={`${knopKlasse("primary", "md")} w-full sm:w-auto`}>
         Open het werkgebied
       </Link>
     </div>

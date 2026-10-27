@@ -142,7 +142,8 @@ export function SplitDetail({ hoofd, zij }: { hoofd: React.ReactNode; zij: React
 export function ObjectRijen({ label, children, leeg }: { label: string; children: React.ReactNode; leeg?: React.ReactNode }) {
   const kinderen = Array.isArray(children) ? children.filter(Boolean) : children;
   if (leeg && Array.isArray(kinderen) && kinderen.length === 0) return <p className="text-sm text-muted">{leeg}</p>;
-  return <ul aria-label={label} className="-mx-2 divide-y divide-line">{kinderen}</ul>;
+  // Elke rij een eigen rustig kader (de `itemrow` van de mock-up, spoor K), met wat lucht ertussen.
+  return <ul aria-label={label} className="space-y-2">{kinderen}</ul>;
 }
 
 export function ObjectRij({ href, titel, sub, status, voor, ...rest }: {
@@ -155,7 +156,7 @@ export function ObjectRij({ href, titel, sub, status, voor, ...rest }: {
   return (
     <li {...rest}>
       <Link href={href}
-        className="focus-ring group flex min-h-[44px] items-center gap-3 rounded-md px-2 py-2.5 transition-colors hover:bg-surface">
+        className="focus-ring group flex min-h-[48px] items-center gap-3 rounded-lg border border-line bg-paper px-3.5 py-3 transition hover:border-lint/40 hover:shadow-zacht">
         {voor !== undefined && <span className="shrink-0 text-sm tabular-nums text-muted">{voor}</span>}
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-medium text-ink [overflow-wrap:anywhere] group-hover:text-lint">{titel}</span>
@@ -227,16 +228,20 @@ export function GroepRij({ href, titel, sub, status, eind, onder, ...rest }: {
   );
 }
 
+/** Een klikbare kaart (spoor K): dezelfde hoek, schaduw en hover als het artefactkaartje in het gesprek – een lichte
+ *  lift, een lintblauwe rand en een diepere schaduw. Voor tellers, artefactkaarten en de overzichtskaarten. */
+export const KLIK_KAART = "focus-ring rounded-kaart border border-line bg-paper shadow-zacht transition "
+  + "hover:-translate-y-0.5 hover:border-lint/40 hover:shadow-kaart motion-reduce:hover:translate-y-0";
+
 export function Tellers({ children }: { children: React.ReactNode }) {
   return <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">{children}</div>;
 }
 
 export function Teller({ getal, label, href }: { getal: React.ReactNode; label: string; href: string }) {
   return (
-    <Link href={href} data-teller={label}
-      className="focus-ring flex flex-col rounded-kaart border border-line bg-paper px-4 py-3 shadow-zacht transition-colors hover:border-lint">
-      <span className="font-display text-2xl font-semibold tabular-nums text-lint">{getal ?? "–"}</span>
-      <span className="text-xs text-muted">{label}</span>
+    <Link href={href} data-teller={label} className={`${KLIK_KAART} flex flex-col px-4 py-3.5`}>
+      <span className="font-display text-[1.65rem] font-semibold leading-tight tabular-nums text-lint">{getal ?? "–"}</span>
+      <span className="mt-1 text-xs text-muted">{label}</span>
     </Link>
   );
 }

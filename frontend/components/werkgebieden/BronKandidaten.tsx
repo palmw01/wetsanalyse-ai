@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { KNOP_XS } from "@/components/ui/Button";
 import { Sectie } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { Groep } from "@/components/ui/Pagina";
+import { FilterChip } from "@/components/ui/FilterChip";
 import { foutTekst, haalKandidaten, haalLaatsteBronnenRun } from "@/lib/api";
 import {
   FILTER_LABEL, KANDIDAAT_ROL_LABEL, KANDIDAAT_ROL_UITLEG, METHODE_LABEL, bewijsSamenvatting, bewijsZin, bijDeelvraag, filterVan, plekNaam,
@@ -17,7 +17,6 @@ import { bouwBoom, regelingUitLabel, rijenPerRegeling } from "@/lib/bronPlaats";
 import { usePlaatsen } from "@/lib/usePlaatsen";
 import { bronPad } from "@/lib/werkgebiedPaden";
 
-const KNOP = KNOP_XS;
 const ROL_STIJL: Record<BronKandidaat["rol"], string> = {
   kern: "border-lint/40 bg-lint/10 text-lint",
   afhankelijkheid: "border-line bg-surface text-ink",
@@ -95,11 +94,9 @@ export function BronKandidaten({ id, deelvraagId, labels }: {
       {alle.length > 0 && (
         <div role="tablist" aria-label="Filter" className="flex flex-wrap gap-1.5">
           {FILTERS.map((f) => (
-            <button key={f} type="button" role="tab" aria-selected={filter === f}
-              onClick={() => { setFilter(f); setOpen(null); }}
-              className={`${KNOP} ${filter === f ? "border-lint bg-lint text-white" : "border-line text-ink hover:bg-surface"}`}>
+            <FilterChip key={f} rol="tab" gekozen={filter === f} onKies={() => { setFilter(f); setOpen(null); }}>
               {FILTER_LABEL[f]} ({telling[f]})
-            </button>
+            </FilterChip>
           ))}
         </div>
       )}

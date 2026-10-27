@@ -6,7 +6,7 @@ export function Card({
   className?: string;
 }) {
   return (
-    <div className={`rounded-button border border-line bg-surface ${className}`}>{children}</div>
+    <div className={`rounded-kaart border border-line bg-surface ${className}`}>{children}</div>
   );
 }
 
