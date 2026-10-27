@@ -223,7 +223,7 @@ function DecisionCard({
 }) {
   const [notitie, setNotitie] = useState(false);
   const palet = open === "klasse";
-  const wegHalen = open === "verwerp";
+  const verwerpOpen = open === "verwerp";
   const [bezig, setBezig] = useState(false);
   const kaartRef = useRef<HTMLDivElement>(null);
 
@@ -409,7 +409,7 @@ function DecisionCard({
             <button
               type="button"
               disabled={bezig}
-              onClick={() => openRij(wegHalen ? "geen" : "verwerp")}
+              onClick={() => openRij(verwerpOpen ? "geen" : "verwerp")}
               aria-label={eigen ? "Markering wissen" : "Voorstel verwerpen"}
               title={eigen ? "Wissen" : "Verwerpen"}
               className="focus-ring inline-flex min-h-[24px] min-w-[24px] items-center justify-center rounded-lg p-1.5 text-muted transition hover:bg-surface hover:text-fout coarse:min-h-[44px] coarse:min-w-[44px]"
@@ -441,7 +441,7 @@ function DecisionCard({
       {/* Wissen (eigen markering) of verwerpen (agent-voorstel): hetzelfde gebaar, twee uitkomsten.
           Wissen is onomkeerbaar – vandaar de tweede klik in plaats van een dialoog. Bij verwerpen is
           de reden echte informatie die alleen de mens heeft; die is niet af te leiden. */}
-      {wegHalen && !slot && (
+      {verwerpOpen && !slot && (
         <div className="mt-2 flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
           {eigen ? (
             <button

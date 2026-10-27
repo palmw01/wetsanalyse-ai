@@ -163,7 +163,7 @@ function Bronselectie() {
       </>}
       zij={<>
         <Kaart titel="Beheren">
-          <p className="text-sm text-muted">Opnemen, de rol wijzigen of weghalen doe je in het register.</p>
+          <p className="text-sm text-muted">Opnemen, de rol wijzigen of verwijderen doe je in het register.</p>
           <Link href={projectPad(wg.id, "bronnen")} className="focus-ring mt-2 inline-block rounded text-sm font-medium text-lint hover:underline">
             Naar de bronnen
           </Link>

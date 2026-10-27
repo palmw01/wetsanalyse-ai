@@ -574,7 +574,11 @@ sidebar blijft staan.
   leest die en het paneel of de pagina zegt "Dit werkgebied is verwijderd op … door …" (`data-verwijderd`).
   Een lijst haalt de rij meteen weg en zet hem bij een fout terug; een 412 laadt opnieuw. Verwijder je het
   werkgebied waarin de werkplek staat vanuit het paneel, dan verlaat de werkplek het (`onVerwijderd`).
-  Een vervangen begrip heeft geen knop (verwijder de opvolger). `metSpoor` met `annotatie_verwijderen`,
+  Een vervangen begrip heeft geen knop (verwijder de opvolger).
+  **In beeld heet het altijd *verwijderen*** (spoor I5): niet weghalen, wegklikken of "haalt … weg".
+  `app/verwijderenNietWeghalen.test.ts` toetst de tekst buiten commentaar in `app/`, `components/` en `lib/`;
+  graph-qa heeft dezelfde toets op zijn strings (`tests/test_verwijderen_niet_weghalen.py`).
+  `metSpoor` met `annotatie_verwijderen`,
   `werkgebied_verwijderen` en `begrip_verwijderen`. Archiveren bestaat niet meer.
 - **Verwijderen staat naast afronden**: *Verwijderen* in de actierij van `ArtefactInhoud`
   (`onVerwijder`, alleen als er een laag in beeld is), als `BevestigKnop`. Elke gebruiker mag het, ook
@@ -650,7 +654,7 @@ bestaat los van de gesprekken.
     (`OverzichtTab`: tellers, de analyseopdracht met de analysevraag centraal, deelvragen als rijen naar hun
     pagina, de laatste gesprekken, de artefacten), Gesprekken (`GesprekkenTab`: de eigen gesprekken, een klik
     opent de werkplek), Bronnen (`BronnenRegister`: zoeken, rolfilter, per bron de stand uit de werkvoorraad
-    – `selectieStand` –, rol en weghalen achter ⋯, opnemen in een venster `BronOpnemen`, de voorstellen van
+    – `selectieStand` –, rol en verwijderen achter ⋯, opnemen in een venster `BronOpnemen`, de voorstellen van
     Lex in één regel naar `bronnen/voorstellen`) en Artefacten (`ArtefactenTab`: vier kaarten,
     `artefactKaarten`).
   - **Detailpagina's** (`DetailPaginas.tsx`): `artefacten/[soort]` – `dossier` (de velden, *Bewerken* in
@@ -698,7 +702,7 @@ bestaat los van de gesprekken.
   graaf) vangt het formulier zelf af via `opFout`.
 - **Bronnen**: opnemen met regeling (BWB-id) + artikel (+ lid) of een graaf-IRI (`bronInvoer` in
   `lib/werkgebied.ts` leest "artikel 9" als "9"; de api verifieert tegen de graaf). Dezelfde bron met
-  dezelfde rol nog eens is idempotent en wordt zo gemeld. Weghalen is een `BevestigKnop` en laat de
+  dezelfde rol nog eens is idempotent en wordt zo gemeld. Verwijderen is een `BevestigKnop` en laat de
   bepaling en haar annotaties staan.
 - **Elementen** toont wat de api meldt in plaats van het weg te poetsen: `volledig: false` en
   `onbereikbaar` als open punt, `bron_gewijzigd` als signaal, `deels_buiten` bij het element, en een
@@ -748,7 +752,7 @@ bestaat los van de gesprekken.
   - Browserregressie: `scripts/test-bronkandidaten.mjs`.
 - **Deelvragen** (optioneel, open keuze 4; api §*Deelvragen*, graph-qa §*Lex stelt deelvragen voor*):
   `Deelvragen` bovenaan de tab Bronnen. Zonder deelvragen verandert er niets.
-  - Een deelvraag hoort bij de scope: toevoegen, bewerken, weghalen (`BevestigKnop`) en *Bronnen en
+  - Een deelvraag hoort bij de scope: toevoegen, bewerken, verwijderen (`BevestigKnop`) en *Bronnen en
     begrippen* (vinkjes, één keer opslaan, de hele set) lopen via `muteer` met de revisie in beeld.
   - Voorstellen en verbeteren doet de deelvragen-agent in het gesprek (*Stel deelvragen voor*, of
     *Formuleer scherper* / *Splits* via *Vraag Lex* bij de deelvraag). Een voorstel staat hier geel met
@@ -938,7 +942,7 @@ bestaat los van de gesprekken.
     `voorstel_id`) of *Afwijzen* met reden. **Zelf toevoegen** vanuit dit begrip (`KEUZES`: geldt als, omvat
     ook, omvat niet, is een soort, heeft als soort, is verwant aan); `relatieInvoer` zet de richting,
     `magVastleggen` eist een toelichting bij verwant. Een relatie waarvan een kant veranderde staat geel met
-    *Klopt nog*; *Weghalen* is een `BevestigKnop`.
+    *Klopt nog*; *Verwijderen* is een `BevestigKnop`.
   - **Nieuwe betekenis** (reden verplicht) en **Combineren met…** (vergelijking van de definities vooraf,
     een keuzerondje welk begrip blijft) leveren een ander begrip op; `onNaarBegrip` opent dat. Een vervangen
     begrip toont *Vervangen door …*, heeft geen *Lex naast de kaart* en geen opvolgknoppen; in de lijst staat
@@ -1064,7 +1068,7 @@ is dubbelop. Bij **verwerpen** blijft de reden een vraag aan de jurist; die staa
   niet te testen en soms geblokkeerd. Scherp gezet ontwapent de knop vanzelf (4 s, blur of Escape).
   De vlag "nog gemount" zet hij bij elke mount opnieuw: onder StrictMode (dev) bleef een knop die na een
   mislukte handeling blijft staan anders op `Bezig…` hangen.
-- **× betekent weghalen**, met twee uitkomsten: een agent-voorstel klapt de redenen-chips uit (één
+- **× betekent verwerpen of wissen**, met twee uitkomsten: een agent-voorstel klapt de redenen-chips uit (één
   klik = verworpen, terug te draaien met *Heropenen*); een eigen markering wordt "Wissen?" en is na de
   tweede klik weg (`DELETE`). Een agent-voorstel verwijder je niet maar verwerp je, zodat het
   auditspoor laat zien dát er een voorstel was.

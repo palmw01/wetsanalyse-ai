@@ -97,7 +97,7 @@ export function OverzichtTab() {
           </Kaart>
 
           <Melding type="uitleg" compact>
-            Annotaties en begrippen zijn zelfstandige, gedeelde objecten. Een gesprek verwijderen haalt ze niet weg.
+            Annotaties en begrippen zijn zelfstandige, gedeelde objecten. Wie een gesprek verwijdert, houdt ze.
             {!annotaties.status && wg.bronnen.length > 0 && !wv && " De stand van de annotaties wordt nog geladen."}
           </Melding>
         </div>

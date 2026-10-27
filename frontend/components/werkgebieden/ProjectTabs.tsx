@@ -40,7 +40,7 @@ export function ArtefactenTab() {
   return (
     <div data-werkgebied-artefacten>
       <ProjectKop tab="artefacten" />
-      <p className="mb-3 text-sm text-muted">Zelfstandig opgeslagen analyseproducten. Een gesprek verwijderen haalt ze niet weg.</p>
+      <p className="mb-3 text-sm text-muted">Zelfstandig opgeslagen analyseproducten. Wie een gesprek verwijdert, houdt ze.</p>
       <div className="mb-4 flex flex-wrap gap-1.5" role="group" aria-label="Soort artefact">
         {(["alle", ...ARTEFACT_SOORTEN] as const).map((s) => (
           <button key={s} type="button" onClick={() => setFilter(s)} aria-pressed={filter === s}

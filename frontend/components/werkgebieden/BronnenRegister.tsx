@@ -48,7 +48,7 @@ export function BronnenRegister() {
         </Link>
       )}
       <Kaart titel="Bronnen van het werkgebied" telling={wg.bronnen.length}
-        toelichting="Een bronselectie is geen kopie van de bepaling: weghalen laat de bepaling en haar annotaties staan."
+        toelichting="Een bronselectie is geen kopie van de bepaling: verwijderen uit het werkgebied laat de bepaling en haar annotaties staan."
         acties={<Button size="sm" onClick={() => setOpnemen(true)}>Bepaling opnemen</Button>}>
         <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
           <input type="search" value={zoek} onChange={(e) => setZoek(e.target.value)} placeholder="Zoek op regeling of bepaling"

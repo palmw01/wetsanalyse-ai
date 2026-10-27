@@ -104,7 +104,7 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
             className="focus-ring inline-flex h-9 w-9 items-center justify-center rounded-full text-ink hover:bg-surface disabled:opacity-30 coarse:h-11 coarse:w-11">
             <ChevronOmlaag className="-rotate-90 text-lg" />
           </button>
-          <button type="button" aria-label="Vraag wegklikken" onClick={onSluit}
+          <button type="button" aria-label="Vraag sluiten" onClick={onSluit}
             className="focus-ring ml-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-line bg-white text-ink shadow-zacht hover:bg-surface coarse:h-11 coarse:w-11">
             <Kruis className="text-base" />
           </button>

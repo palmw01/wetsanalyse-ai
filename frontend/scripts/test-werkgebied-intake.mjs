@@ -166,7 +166,7 @@ try {
   await page.locator("[data-vraag-open]").waitFor();
 
   // --- ✕ geeft het invoerveld terug; "Een vraag stellen ›" opent de vraag weer ---
-  await dock("naam").getByRole("button", { name: "Vraag wegklikken" }).click();
+  await dock("naam").getByRole("button", { name: "Vraag sluiten" }).click();
   await invoer().waitFor();
   await page.locator("[data-vraag-open]").click();
   await dock("naam").waitFor();

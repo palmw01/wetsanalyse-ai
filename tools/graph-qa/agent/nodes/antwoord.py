@@ -225,8 +225,8 @@ def correct_node(b: Bouw, state: State) -> dict[str, Any]:
         passages = "; ".join(f'"{c[:120]}…"' if len(c) > 120 else f'"{c}"' for c in niet_letterlijk)
         opdrachten.append(
             f"Deze passages staan tussen aanhalingstekens maar niet letterlijk in de opgehaalde "
-            f"tekst: {passages}. Herstel ze woord voor woord zoals ze in de bron staan, of haal "
-            "de aanhalingstekens weg en geef het in je eigen woorden weer. Weglatingen met (...), "
+            f"tekst: {passages}. Herstel ze woord voor woord zoals ze in de bron staan, of "
+            "verwijder de aanhalingstekens en geef het in je eigen woorden weer. Weglatingen met (...), "
             "eigen samenvattingen tussen [ ] en vet of cursief binnen een citaat maken het een "
             "parafrase – die presenteer je niet als citaat."
         )
