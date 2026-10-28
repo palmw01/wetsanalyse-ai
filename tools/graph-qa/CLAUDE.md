@@ -558,7 +558,19 @@ manifest → taal.py → definities.py + signalen.py + patronen.py → kandidate
 - **Patronen** staan in `regels/relaties.yaml` met groepen `van`/`naar` en vier verplichte
   testsoorten (`tests/test_begrippen_patronen.py`); elke code heeft een regel in `verklaringen.yaml`.
 - **Geen graafverkeer in de keten.** Definities buiten het werkgebied horen als contextbron in het
-  manifest.
+  manifest, of in de **onderzoeksstand** (spoor M): `Onderzoek`/`Contextbron` in `model.py`, gebouwd
+  door de api (`api/app/begrip_onderzoek.py`), id `O…` uit de inhoud, getoetst met `past_bij(manifest)`.
+  `keten.analyseer(..., onderzoek=)` laat definities in contextbronnen meetellen
+  (`signalen.uit_contextdefinities`); zonder onderzoek is de uitkomst bitgelijk (`begrippen_eval`).
+- **Het betekenisdossier** (`betekenis.py`, spoor M): per groep of begrip bronfeiten en signalen
+  (`VOORKOMENS`, `PARALLELLE_BEPALINGEN` met de variantwoorden, `DEFINITIE_IN_CONTEXT`,
+  `KWALIFICATIE_SAMENGESTELD`, `BEREKENING_OP_TERM`, `ROL_IN_BEPALING`, `AFLEIDINGSREGEL`,
+  `GEEN_DEFINITIE_GEVONDEN`) plus open vragen. Deterministisch; het gaat naar de prompt (`blok`) en de
+  toetsen (`toetsen.met_dossier`), nooit naar `besluit.py`. De berekeningspatronen staan in
+  `betekenisregels/berekening.yaml` (vier testsoorten, `tests/test_betekenis.py`); `BEREKENING_IN_BEPALING`
+  (onbeslist, zwak) maakt van `ZELFDE_BEPALING` een vraag. De fragmentruimte is manifest + onderzoek
+  (`fragmenten.alle`, `onderzoeksfragmenten`: contextdefinities, eigen bronnen, zelfde artikel,
+  verwijzingen, contextselecties). Meten: `uv run python -m eval.betekenisonderzoek_eval` (offline).
 - Meten: `python -m eval.begrippen_eval --variant lemma|keten|keten_zonder_parse` op
   `docs/wetsanalyse/referentieset-begrippen/` (provisional, en een ontwikkelset – zie het meetlogboek).
 
@@ -584,11 +596,17 @@ JAS-classifier, en draait op `LLM_MODEL` (een oordeel, dus geen eigen modelknop)
   geel; een cirkel wordt verworpen). Voorbeelden horen bij fase E.
 - **Fragmenten** (`fragmenten.knip`): zinsdelen met een id uit bron en offsets. Het model typt nooit
   brontekst over.
-- **Toetsen** (`toetsen.py`): garanties (id bestaat, tekst letterlijk op offsets) halen een definitie
-  weg; signalen (circulair, rekenregel, gemengde klassen, geen begrip) maken haar geel. Signalen gaan
+- **Toetsen** (`toetsen.py`): garanties (id bestaat, tekst letterlijk op offsets, over manifest +
+  onderzoek) halen een definitie weg; signalen (circulair, rekenregel, gemengde klassen, geen begrip, en
+  met het dossier: algemene naam met specifieke definitie, rechtsgevolg of afleiding in de definitie,
+  onderbouwing uit één voorkomen, fragment draagt niet, tegenbewijs, context niet onderzocht) maken haar
+  geel. Het model geeft per voorstel een `Duiding` (soort, bereik, voorkeursterm, ontbreekt): een
+  interpretatie bij het voorstel, geen bewijs; afzien met `ontbreekt` wordt "Onvoldoende bewijs: …". Signalen gaan
   over wat Lex voorstelt, niet over de wet. Elke code heeft een tekst in `TEKST`.
-- **Batches** zijn inhoudelijk (`verdieping.batch_id`: soort, id's, promptversie, model): dezelfde batch
-  draait één keer, dus een herstart is hervatbaar én reproduceerbaar.
+- **Batches** zijn inhoudelijk (`verdieping.batch_id`: soort, id's, promptversie, model en – met een
+  onderzoek – het `onderzoek_id`): dezelfde batch draait één keer, dus een herstart is hervatbaar én
+  reproduceerbaar. De bevestiging draagt een `werkvoorraad_id` (`begrippen_verdieping.werkvoorraad_id`:
+  vragen, kaarten, onderzoek, model, promptversies); een gelijk aantal met een andere inhoud start niet.
 - Meten: `python -m eval.begrippen_eval --model --versie <set>` (drie herhalingen, kost geld).
 
 ### De begrippenrun (`agent/begrippen_run.py`, spoor D levering 3a)
