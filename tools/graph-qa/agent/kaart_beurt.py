@@ -221,9 +221,11 @@ async def kaart_kern(ctx: Context, actie: str, b: dict[str, Any], ander: dict[st
         return geweigerd(actie, WEIGERING.get(fout.reden) or (fout.reden if fout.status == 404 else
                                                              "De api weigerde deze actie op dit begrip."))
     artefact = begrip_artefact(wid, b["id"], naam, kr["id"], actie)
-    aantal, melding, al_gedaan = 0, "", False
+    aantal, melding, al_gedaan, open_ = 0, "", False, False
     if kr.get("status") == "klaar":
-        al_gedaan = True
+        # De api geeft een klare run alleen terug als er nog open voorstellen op staan: die tellen. Anders
+        # leek een brondefinitie die al klaarstond "niets", en startte *uitwerken* het model voor scherper.
+        al_gedaan = open_ = True
     elif not kr.get("nieuw"):
         # Dezelfde actie loopt al (de knop op de kaart): wacht op die uitkomst.
         ctx.melding("Deze actie loopt al; ik wacht op de uitkomst")
@@ -252,5 +254,5 @@ async def kaart_kern(ctx: Context, actie: str, b: dict[str, Any], ander: dict[st
     if volgende and aantal and actie in VOLGENDE:
         tekst += f" {VOLGENDE[actie]}"
     return Uitkomst(taak=actie, tekst=tekst,
-                    artefact=artefact, voorstellen=[kr["id"]] if aantal else [],
+                    artefact=artefact, voorstellen=[kr["id"]] if aantal or open_ else [],
                     meting={"voorstellen": aantal, "model": actie in MODEL_ACTIES and not al_gedaan})

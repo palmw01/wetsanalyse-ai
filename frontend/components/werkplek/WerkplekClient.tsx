@@ -544,7 +544,8 @@ export function WerkplekClient({
         ? { modus: annoteren.modus ?? "werkgebied_annoteren", werkgebied_id: annoteren.werkgebiedId,
             ...(annoteren.bevestigd !== undefined ? { bevestigd: annoteren.bevestigd } : {}),
             ...(annoteren.bereik ? { bereik: annoteren.bereik } : {}),
-            ...(annoteren.deelvraagId ? { deelvraag_id: annoteren.deelvraagId } : {}) }
+            ...(annoteren.deelvraagId ? { deelvraag_id: annoteren.deelvraagId } : {}),
+            ...(annoteren.werkvoorraadId ? { werkvoorraad_id: annoteren.werkvoorraadId } : {}) }
         // Een klik op een vraagkaartje: geen context en geen doel; het werkgebied van het gesprek mag mee.
         : intake ? { intake_actie: intake, ...(werkgebiedId ? { werkgebied_id: werkgebiedId } : {}) }
         // Een suggestie met een actie: een vaste route op het werkgebied van het onderwerp, zonder model.

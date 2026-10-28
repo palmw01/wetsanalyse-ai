@@ -35,7 +35,8 @@ def model_taak(agent: str, taak: str) -> bool:
 
 
 def parameters(agent: str, taak: str, *, vraag: str = "", onderwerp: dict[str, Any] | None = None,
-               werkgebied_id: str = "", actie: str = "", bevestigd: int | None = None) -> dict[str, Any]:
+               werkgebied_id: str = "", actie: str = "", bevestigd: int | None = None,
+               werkvoorraad_id: str = "") -> dict[str, Any]:
     """De invoer van een taak, behalve de taak zelf."""
     from ..kaart_beurt import termen_uit
 
@@ -56,6 +57,8 @@ def parameters(agent: str, taak: str, *, vraag: str = "", onderwerp: dict[str, A
             p["termen"] = termen_uit(vraag, taak if taak in begrippen.KAARTACTIES else "brondefinitie")[:2]
         if taak == "meedenken" and bevestigd is not None:
             p["bevestigd"] = bevestigd
+            if werkvoorraad_id:
+                p["werkvoorraad_id"] = werkvoorraad_id
     return p
 
 

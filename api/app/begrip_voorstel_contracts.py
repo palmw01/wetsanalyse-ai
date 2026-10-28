@@ -76,6 +76,11 @@ class VoorstelInvoer(BaseModel):
     aandachtspunten: list[str] = Field(default_factory=list, max_length=20)
     # Bij een definitie: hoe Lex het begrip duidt (spoor M) – een interpretatie, geen besluit.
     duiding: Duiding | None = None
+    # Bij een voorbeeld (spoor M): wat voor voorbeeld, waarop het toetst en welk kenmerk van de definitie.
+    # Achterwaarts compatibel; het oordeel blijft het veld van het begrip.
+    soort_voorbeeld: Literal["positief", "tegenvoorbeeld", "grensgeval", "afwijkend"] | None = None
+    toetst: Literal["begrip", "scenario", "voorwaarde", "rechtsgevolg"] | None = None
+    kenmerk: str = Field(default="", max_length=1000)
 
     @model_validator(mode="after")
     def _vorm(self) -> "VoorstelInvoer":

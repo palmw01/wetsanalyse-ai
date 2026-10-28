@@ -591,6 +591,8 @@ export async function startRun(
     /** Bij "werkgebied_annoteren": alleen de bronnen onder de deelvragen, met `deelvraag_id` onder die ene. */
     bereik?: "deelvragen";
     deelvraag_id?: string;
+    /** Bij "begrippen_verdiepen" met `bevestigd`: de inhoud van de bevestigde werkvoorraad (spoor M). */
+    werkvoorraad_id?: string;
     context?: AgentContext;
     doel?: AgentDoelInvoer;
     /** "opnieuw" = de jurist vraagt expliciet om een nieuwe ronde op een al geannoteerd artikel.
@@ -627,6 +629,7 @@ export async function startRun(
       ...(typeof extra?.bevestigd === "number" ? { bevestigd: extra.bevestigd } : {}),
       ...(extra?.bereik ? { bereik: extra.bereik } : {}),
       ...(extra?.deelvraag_id ? { deelvraag_id: extra.deelvraag_id } : {}),
+      ...(extra?.werkvoorraad_id ? { werkvoorraad_id: extra.werkvoorraad_id } : {}),
       ...(extra?.intake_actie ? { intake_actie: extra.intake_actie } : {}),
       ...(extra?.onderwerp ? { onderwerp: extra.onderwerp } : {}),
       ...(extra?.actie ? { actie: extra.actie } : {}),

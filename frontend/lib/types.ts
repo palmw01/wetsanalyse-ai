@@ -617,6 +617,8 @@ export interface Bevestiging {
    *  Afwezig = het hele werkgebied. De knop start precies dit bereik. */
   bereik?: "deelvragen";
   deelvraag_id?: string;
+  /** Bij `begrippen_verdiepen`: de inhoud van de werkvoorraad; de knop stuurt hem terug (spoor M). */
+  werkvoorraad_id?: string;
 }
 
 /** Stand van één annotatie-eenheid (een lid, of een artikel zonder leden) in een werkgebied. */

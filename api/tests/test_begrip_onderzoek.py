@@ -214,3 +214,22 @@ def test_een_definitievoorstel_draagt_zijn_duiding():
     with pytest.raises(ValueError):
         VoorstelInvoer.model_validate({"veld": "definitie", "definitie": {"definitie": "x", "herkomst": "letterlijk",
                                        "definitie_bron_iri": "u"}, "duiding": {"soort": "verzonnen"}})
+
+
+def test_een_voorbeeldvoorstel_draagt_soort_toets_en_kenmerk():
+    from app.begrip_voorstel_contracts import VoorstelInvoer
+    from app.begrip_voorstel_store import _waarde
+    v = VoorstelInvoer.model_validate({"veld": "voorbeelden", "tekst": "Een geval.", "oordeel": "niet",
+                                       "soort_voorbeeld": "tegenvoorbeeld", "toetst": "begrip", "kenmerk": "een tijdvak"})
+    assert _waarde(v) == {"tekst": "Een geval.", "fragmenten": [], "oordeel": "niet", "soort_voorbeeld": "tegenvoorbeeld",
+                          "toetst": "begrip", "kenmerk": "een tijdvak"}
+    oud = VoorstelInvoer.model_validate({"veld": "voorbeelden", "tekst": "Een geval.", "oordeel": "wel"})
+    assert _waarde(oud) == {"tekst": "Een geval.", "fragmenten": [], "oordeel": "wel"}
+
+
+def test_de_bevestiging_draagt_de_werkvoorraad():
+    from app.gesprek_contracts import Bevestiging
+    b = Bevestiging(soort="begrippen_verdiepen", werkgebied_id="wg", aantal=2, werkvoorraad_id="W0123456789abcdef")
+    assert b.model_dump()["werkvoorraad_id"] == "W0123456789abcdef"
+    with pytest.raises(ValueError):
+        Bevestiging(soort="begrippen_verdiepen", werkgebied_id="wg", aantal=2, werkvoorraad_id="nep")

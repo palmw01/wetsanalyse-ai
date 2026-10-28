@@ -48,6 +48,7 @@ _MACRO = {"LW": r"(?:de|het|een|die|deze|dat|dit)"}
 _STOP = frozenset("""de het een en of van in op met tot aan voor door bij als die dat dit deze is zijn wordt worden
 te ter zake naar over om uit dan niet ook nog al wel zo er hij zij ze zich wat welke waarop waarover waarbij
 eerder onderscheidenlijk ingevolge bedoeld artikel lid""".split())
+STOPWOORDEN = _STOP
 _VOORWAARDE = re.compile(r"(?:^|[.;:]\s+|,\s+)(?:bij|indien|ingeval|in het geval|wanneer|voor zover|zodra)\b[^.;:]*$",
                          re.IGNORECASE)
 _GRONDSLAG = re.compile(r"\b(?:als|tot)\s+grondslag\s+(?:\w+\s+){0,4}$", re.IGNORECASE)

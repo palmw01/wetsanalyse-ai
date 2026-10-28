@@ -241,3 +241,76 @@ def test_een_contextdefinitie_verbindt_passages_binnen_haar_bereik():
     smal = defbron.model_copy(update={"tekst": "Voor de toepassing van artikel 5 wordt verstaan onder termijn: zes weken."})
     [t] = signalen.uit_contextdefinities(m, _taal(m, "termijn"), Onderzoek(manifest_id=m.id, bronnen=(smal,)))
     assert t.bewijs.code == "BUITEN_BEREIK"
+
+
+# --- voorbeelden (M3) ------------------------------------------------------------------------------
+
+DEF_A = "De wijziging van een voorlopige aanslag inkomstenbelasting of vennootschapsbelasting in een andere voorlopige aanslag"
+
+
+def test_kenmerken_volgen_deterministisch_uit_de_definitie():
+    km = ka.kenmerken(DEF_A)
+    assert km == ka.kenmerken(DEF_A) and len(km) >= 2
+    assert ka.kenmerken("Een tijdvak.") == ["Een tijdvak."]
+    assert ka.kenmerken("") == []
+
+
+def test_ontdubbelen_op_kenmerk_en_oordeel_niet_op_getallen_en_namen():
+    grens = {"6"}
+    a = ka.ontdubbelsleutel("wel", "K1", "Jan krijgt in 2024 een aanslag van € 1.200 na 6 maanden.", grens)
+    b = ka.ontdubbelsleutel("wel", "K1", "Piet krijgt in 2025 een aanslag van € 3.400 na 6 maanden.", grens)
+    c = ka.ontdubbelsleutel("wel", "K1", "Piet krijgt in 2025 een aanslag van € 3.400 na 7 maanden.", grens)
+    assert a == b and a != c                     # de grenswaarde 6 blijft letterlijk
+    neg = ka.ontdubbelsleutel("wel", "K1", "Een aanslag met een negatief bedrag van € 100.", grens)
+    pos = ka.ontdubbelsleutel("wel", "K1", "Een aanslag met een positief bedrag van € 100.", grens)
+    assert neg != pos                            # het teken maakt het verschil
+    assert a != ka.ontdubbelsleutel("niet", "K1", "Jan krijgt in 2024 een aanslag van € 1.200 na 6 maanden.", grens)
+
+
+def test_voorbeelden_met_soort_toets_en_kenmerk_en_een_dubbel_valt_weg():
+    m, o = casus("A")
+    k = ka.Kant(id="b1", inhoud={"naam": "herziening", "definitie": DEF_A}, leden=("e0",))
+    km = ka.kenmerken(DEF_A)
+    llm = FakeLLM([response([tool_block("t", ka.TOOL_VOORBEELDEN, {"voorbeelden": [
+        {"tekst": "Jan krijgt een voorlopige aanslag van € 1.000 die wordt verhoogd naar € 2.000.", "oordeel": "wel",
+         "soort": "positief", "toetst": "begrip", "kenmerk": "K1", "waarom": "a"},
+        {"tekst": "Piet krijgt een voorlopige aanslag van € 3.000 die wordt verhoogd naar € 4.000.", "oordeel": "wel",
+         "soort": "positief", "toetst": "begrip", "kenmerk": "K1", "waarom": "b"},
+        {"tekst": "Een definitieve aanslag wordt verminderd.", "oordeel": "niet", "soort": "tegenvoorbeeld",
+         "toetst": "begrip", "kenmerk": "K2", "waarom": "c"},
+        {"tekst": "Over het verschil wordt belastingrente in rekening gebracht.", "oordeel": "wel",
+         "soort": "afwijkend", "toetst": "rechtsgevolg", "kenmerk": "K1", "waarom": "d"},
+    ]})], "tool_use")])
+    uit = ka.voorbeelden(llm, "m", m, k, {}, o)
+    assert [v["tekst"][:4] for v in uit.voorstellen] == ["Jan ", "Een ", "Over"]
+    assert uit.voorstellen[0]["kenmerk"] == km[0] and uit.voorstellen[1]["soort_voorbeeld"] == "tegenvoorbeeld"
+    assert "SEMANTISCH_DUBBEL" in uit.voorstellen[0]["aandachtspunten"] and uit.melding.startswith("1 voorbeeld viel weg")
+    assert "TOETST_ANDERE_VRAAG" in uit.voorstellen[2]["aandachtspunten"]
+    prompt = llm.calls[0]["messages"][0]["content"]
+    assert "KENMERKEN" in prompt and "[K1]" in prompt and "FRAGMENTEN" in prompt and "PARALLELLE_BEPALINGEN" in prompt
+    items = llm.calls[0]["tools"][0]["input_schema"]["properties"]["voorbeelden"]["items"]
+    assert items["properties"]["kenmerk"]["enum"] == [f"K{i}" for i in range(1, len(km) + 1)]
+
+
+def test_er_is_geen_vast_minimum_aan_voorbeelden():
+    k = ka.Kant(id="b1", inhoud={"naam": "x", "definitie": "Een tijdvak van zes weken."}, leden=())
+    uit = ka.valideer_voorbeelden(k, {"voorbeelden": [{"tekst": "Een periode van drie dagen.", "oordeel": "niet",
+                                                       "soort": "tegenvoorbeeld", "toetst": "begrip", "kenmerk": "K1",
+                                                       "waarom": ""}]})
+    assert len(uit.voorstellen) == 1 and "GEEN_TEGENVOORBEELD" not in uit.voorstellen[0]["aandachtspunten"]
+    assert "drie tot vijf" not in ka.SYSTEEM_VOORBEELDEN
+
+
+# --- runs en cache (M3) ----------------------------------------------------------------------------
+
+def test_de_promptversie_van_uitleg_is_eigen():
+    assert ka.promptversie("uitleg") != ka.promptversie("brondefinitie")
+    assert len({ka.promptversie(a) for a in ("brondefinitie", "scherper", "uitleg", "voorbeelden",
+                                             "betekenisverschil")}) == 5
+
+
+def test_het_batch_id_neemt_het_onderzoek_op_en_blijft_zonder_gelijk():
+    from agent.begrippen_pipeline import verdieping as vd
+    zonder = vd.batch_id("kaart", ["G1"], "p", "m")
+    assert vd.batch_id("kaart", ["G1"], "p", "m", "") == zonder
+    assert vd.batch_id("kaart", ["G1"], "p", "m", "O1") != zonder

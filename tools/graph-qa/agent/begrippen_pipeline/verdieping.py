@@ -66,10 +66,12 @@ def hergroepeer(manifest: Manifest, uitkomst: Uitkomst, oordelen: list[ModelOord
                          tuple(sorted(oordelen, key=lambda o: o.kandidaat_id)))
 
 
-def batch_id(soort: str, ids: list[str], promptversie: str, model: str) -> str:
+def batch_id(soort: str, ids: list[str], promptversie: str, model: str, onderzoek_id: str = "") -> str:
     """Inhoudelijk: dezelfde batch op dezelfde invoer met hetzelfde model en dezelfde prompt draait één keer.
-    Daarmee is een herstart hervatbaar én reproduceerbaar, ondanks het model."""
-    return "B" + _hash(soort, promptversie, model, *sorted(ids))[:16]
+    Daarmee is een herstart hervatbaar én reproduceerbaar, ondanks het model. Met een onderzoek (spoor M)
+    telt de onderzoeksstand mee: dezelfde groepen met andere context zijn een andere batch. Zonder
+    onderzoek blijft het id zoals het was."""
+    return "B" + _hash(soort, promptversie, model, *sorted(ids), *([onderzoek_id] if onderzoek_id else []))[:16]
 
 
 def kaartopdrachten(manifest: Manifest, uitkomst: Uitkomst, groepen: tuple[Betekenisgroep, ...],
