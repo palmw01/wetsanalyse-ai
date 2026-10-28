@@ -314,3 +314,16 @@ def test_het_batch_id_neemt_het_onderzoek_op_en_blijft_zonder_gelijk():
     zonder = vd.batch_id("kaart", ["G1"], "p", "m")
     assert vd.batch_id("kaart", ["G1"], "p", "m", "") == zonder
     assert vd.batch_id("kaart", ["G1"], "p", "m", "O1") != zonder
+
+
+# --- het gesprek (M4) ------------------------------------------------------------------------------
+
+def test_de_zinnen_over_het_onderzoek_komen_uit_code():
+    from agent.begrippen_beurt import onderzoekszin
+    assert onderzoekszin(None) == ""
+    assert onderzoekszin({"bronnen": 7, "ontbrekend": {"budget": 3, "onbereikbaar": 1}}) == (
+        " Ik las 7 bepalingen eromheen mee als context; niet onderzocht: 3 buiten het budget, 1 onbereikbaar.")
+    m, o = casus("A")
+    s = betekenis.samenvatting(betekenis.dossier(m, o, ("e0",), ["herziening"]))
+    assert betekenis.zin(s) == "Ik las 7 bepalingen eromheen mee; 1 open betekenisvraag staat in de motivatie."
+    assert betekenis.zin({}) == ""

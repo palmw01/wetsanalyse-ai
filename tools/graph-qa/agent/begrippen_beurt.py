@@ -59,11 +59,26 @@ def samenvatting(naam: str, open_groepen: int, passages: int, vragen: int, al_ge
     return zin + " Open de voorstellen om ze te beoordelen."
 
 
-async def meedenk_aanbod(api: WetsanalyseApi, werkgebied_id: str) -> tuple[str, dict[str, Any] | None]:
+def onderzoekszin(o: dict[str, Any] | None) -> str:
+    """Wat er naast de passages onderzocht is (spoor M), uit de samenvatting die de api bij de run bewaart."""
+    if not o:
+        return ""
+    n = int(o.get("bronnen") or 0)
+    zin = f" Ik las {n} {'bepaling' if n == 1 else 'bepalingen'} eromheen mee als context" if n else \
+        " Er waren geen bepalingen eromheen om als context mee te lezen"
+    weg = o.get("ontbrekend") or {}
+    if weg:
+        woorden = {"budget": "buiten het budget", "niet_in_graaf": "niet in de graaf", "onbereikbaar": "onbereikbaar",
+                   "buiten_selectie": "buiten de selectie"}
+        zin += "; niet onderzocht: " + ", ".join(f"{k} {woorden.get(r, r)}" for r, k in sorted(weg.items()))
+    return zin + "."
+
+
+async def meedenk_aanbod(api: WetsanalyseApi, werkgebied_id: str, model: str = "") -> tuple[str, dict[str, Any] | None]:
     """Fase C: kan het model meedenken (twijfelpunten, begrippen zonder definitie), dan een zin en een
     bevestiging erbij – nooit meteen starten. Lukt het ophalen niet, dan geen aanbod: de voorstellen
     zelf staan er wel."""
-    from .begrippen_verdieping import voorstel_tekst
+    from .begrippen_verdieping import voorstel_tekst, werkvoorraad_id
     try:
         wv = await api.haal_verdieping(werkgebied_id)
     except Exception:  # noqa: BLE001 – een aanbod is bijzaak
@@ -71,7 +86,10 @@ async def meedenk_aanbod(api: WetsanalyseApi, werkgebied_id: str) -> tuple[str, 
         return "", None
     if wv.get("verdiept") or not int(wv.get("aantal") or 0):
         return "", None
-    _, bevestiging = voorstel_tekst("", {"werkgebied_id": werkgebied_id, **wv})
+    # De knop stuurt de inhoud van deze werkvoorraad terug (spoor M); zonder model geen id, dan vraagt
+    # Lex bij de klik opnieuw om bevestiging.
+    wid = werkvoorraad_id(wv, model) if model else ""
+    _, bevestiging = voorstel_tekst("", {"werkgebied_id": werkgebied_id, **wv}, wid)
     vragen, kaarten = len(wv.get("vragen") or []), len(wv.get("kaarten") or [])
     delen = [x for x in (f"{vragen} {'twijfelpunt' if vragen == 1 else 'twijfelpunten'}" if vragen else "",
                          f"{kaarten} {'begrip' if kaarten == 1 else 'begrippen'} zonder definitie" if kaarten else "") if x]
@@ -110,7 +128,8 @@ async def begrippen_kern(ctx: Context, werkgebied_id: str) -> Uitkomst:
     vragen = len(((groepen.get("run") or {}).get("uitkomst") or {}).get("vragen") or [])
     tekst = samenvatting(naam, len(open_ids), int(api_run.get("aantal_formuleringen") or 0), vragen,
                          al_gerekend=uitkomst)
-    aanbod, bevestiging = await meedenk_aanbod(api, werkgebied_id)
+    tekst += onderzoekszin(api_run.get("onderzoek_samenvatting"))
+    aanbod, bevestiging = await meedenk_aanbod(api, werkgebied_id, ctx.settings.llm_model)
     return Uitkomst(taak=taak, tekst=tekst + aanbod, voorstellen=open_ids, bevestiging=bevestiging,
                     artefact=begrippen_artefact(werkgebied_id, str(api_run["id"]), naam),
                     meting={"groepen": len(open_ids), "vragen": vragen, "model": False})

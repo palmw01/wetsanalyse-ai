@@ -317,6 +317,29 @@ def dossier(manifest: Manifest, onderzoek: Onderzoek | None, leden: tuple[str, .
                    ontbrekend=tuple(f"{r}: {n}" for r, n in sorted(ontbrekend.items())))
 
 
+def samenvatting(d: Dossier | None) -> dict[str, Any]:
+    """Wat het gesprek over het dossier zegt: onderzocht, wat ontbreekt, en hoeveel open vragen."""
+    if d is None:
+        return {}
+    return {"onderzocht": d.onderzocht, "ontbrekend": list(d.ontbrekend), "vragen": len(d.vragen),
+            "onderzoek_id": d.onderzoek_id}
+
+
+def zin(s: dict[str, Any] | None) -> str:
+    """Eén zin voor het gesprek, uit `samenvatting` – geen model."""
+    if not s:
+        return ""
+    n, v = int(s.get("onderzocht") or 0), int(s.get("vragen") or 0)
+    delen = [f"ik las {n} {'bepaling' if n == 1 else 'bepalingen'} eromheen mee" if n else
+             "ik las alleen de bepalingen met de passages"]
+    if s.get("ontbrekend"):
+        delen.append("niet alles is onderzocht (" + ", ".join(s["ontbrekend"]) + ")")
+    if v:
+        delen.append(f"{v} open {'betekenisvraag staat' if v == 1 else 'betekenisvragen staan'} in de motivatie")
+    tekst = "; ".join(delen)
+    return tekst[0].upper() + tekst[1:] + "."
+
+
 def blok(d: Dossier | None) -> list[str]:
     """Het dossier als promptregels: eerst wat er onderzocht is, dan de bevindingen, dan de vragen."""
     if d is None:

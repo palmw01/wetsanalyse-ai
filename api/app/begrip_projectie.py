@@ -108,6 +108,14 @@ async def invoer(conn, werkgebied_id: str) -> dict | None:
                                       .order_by(k.c.id))).all()
     relaties = (await conn.execute(select(r).where(r.c.werkgebied_id == werkgebied_id, r.c.verwijderd.is_(None),
                                                    r.c.beoordeling == "akkoord").order_by(r.c.id))).all()
+    from .begrip_store import definitie_onderbouwing      # begrip_store schrijft; de projectie leest alleen
+    onderbouwing = {}
+    for x in begrippen:
+        o = await definitie_onderbouwing(conn, x.id, x.inhoud)
+        iris = sorted({f["bron_iri"] for f in (o or {}).get("fragmenten") or []}
+                      | ({o["definitie_bron_iri"]} if o and o.get("definitie_bron_iri") else set()))
+        if iris:
+            onderbouwing[x.id] = iris
     per_begrip: dict[str, list[dict]] = {}
     for x in koppelingen:
         bewijs = x.bewijs or {}
@@ -123,7 +131,11 @@ async def invoer(conn, werkgebied_id: str) -> dict | None:
         "werkgebied": {"id": wg.id, "naam": wg.naam, "analysevraag": wg.analysevraag or "", "thema": wg.thema or ""},
         "begrippen": [{"id": x.id, "status": x.status, "revisie": x.revisie, "inhoud": x.inhoud,
                        "geaccordeerd_op": _t(x.geaccordeerd_op), "geaccordeerd_revisie": x.geaccordeerd_revisie,
-                       "gewijzigd": _t(x.gewijzigd), "koppelingen": per_begrip.get(x.id, [])} for x in begrippen],
+                       "gewijzigd": _t(x.gewijzigd), "koppelingen": per_begrip.get(x.id, []),
+                       # Spoor M: de bronnen waarop de overgenomen definitie rust (alleen als die er zijn,
+                       # zodat de hash van een werkgebied zonder zulke definitie gelijk blijft).
+                       **({"onderbouwing": onderbouwing[x.id]} if x.id in onderbouwing else {})}
+                      for x in begrippen],
         "relaties": [{"id": x.id, "van": x.van_begrip, "naar": x.naar_begrip, "type": x.type,
                       "herkomst": x.herkomst, "toelichting": x.toelichting or ""} for x in relaties],
     }
@@ -204,9 +216,12 @@ def _begrip(g: Graph, kader: URIRef, b: dict, paginas: dict[str, str], uitgevers
         g.add((c, RDFS.comment, _nl(i["uitleg"])))
     if (i.get("context") or "").strip():
         g.add((c, SKOS.scopeNote, _nl(i["context"])))
+    # NL-SBB `skos:example` is een voorbeeld van het begrip: alleen *wel*. Een tegenvoorbeeld en een
+    # grensgeval toetsen de afbakening; ze gaan mee onder een eigen predicaat, niet als voorbeeld.
     for v in i.get("voorbeelden") or []:
-        if v.get("oordeel") == "wel":
-            g.add((c, SKOS.example, _nl(v["tekst"])))
+        p = {"wel": SKOS.example, "niet": WA.tegenvoorbeeld, "onzeker": WA.grensgeval}.get(v.get("oordeel"))
+        if p is not None:
+            g.add((c, p, _nl(v["tekst"])))
     g.add((c, WA.status, Literal(b["status"])))
     g.add((c, WA.revisie, Literal(b["revisie"])))
     for p, k in ((WA.definitieHerkomst, "definitie_herkomst"), (WA.definitieDoor, "definitie_door")):
@@ -230,9 +245,15 @@ def _begrip(g: Graph, kader: URIRef, b: dict, paginas: dict[str, str], uitgevers
             g.add((n, WA.bron, URIRef(bron)))
             if k["rol"] in DRAGEND and k["beoordeling"] != "afgewezen":
                 bronnen.add((bron, k["vindplaats"]))
+    # Spoor M: de bronnen waarop de overgenomen definitie rust, ook een contextbron zonder passage. Een
+    # bron die alleen onderzocht is maar niet gekozen, wordt geen bron.
+    onderbouwing = set(b.get("onderbouwing") or [])
+    bronnen |= {(bron, "") for bron in onderbouwing if not any(x == bron for x, _ in bronnen)}
     # NL-SBB: de bron als `dct:source` → brondocument. Eén per bronnode van een dragende passage.
     for bron, vindplaats in sorted(bronnen):
         doc = URIRef("urn:wa:bron:" + hashlib.sha256(f"{b['id']}\x1f{bron}".encode()).hexdigest()[:16])
+        if bron in onderbouwing:
+            g.add((doc, WA.rol, Literal("definitieonderbouwing")))
         g.add((c, DCT.source, doc))
         g.add((doc, RDF.type, FOAF.Document))
         g.add((doc, WA.bron, URIRef(bron)))
@@ -366,7 +387,8 @@ async def export_turtle(werkgebied_id: str, alles: bool) -> bytes:
             "begrippen": [], "relaties": []}
     if not alles:
         inv = alleen_geaccordeerd(inv)
-    bronnen = {bron for b in inv["begrippen"] for k in b["koppelingen"] for bron in k["bron"]}
+    bronnen = {bron for b in inv["begrippen"] for k in b["koppelingen"] for bron in k["bron"]} \
+        | {bron for b in inv["begrippen"] for bron in b.get("onderbouwing") or []}
     g = bouw_graaf(inv, await paginas(bronnen), await uitgevers(bronnen))
     kader = kader_iri(werkgebied_id)
     g.add((kader, DCT.conformsTo, NL_SBB))

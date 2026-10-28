@@ -258,6 +258,10 @@ async def zet_uitkomst(werkgebied_id: str, begrip_id: str, run_id: str, u: Kaart
                                   "melding": "Een voorstel noemt tekst die niet zo in de bron staat."})
     basis = {"revisie": row.invoer["begrip"]["revisie"], **_definitie_stand(row.invoer["begrip"]["inhoud"])}
     door = {"bron": "model" if row.actie in MODEL_ACTIES else "graaf", "model": u.model, "promptversie": u.promptversie}
+    if isinstance(u.meting.get("onderzoek"), dict):
+        # Spoor M: wat Lex naast de passages onderzocht (aantal, wat ontbrak, open vragen) – bij elk voorstel.
+        door["onderzoek"] = {k: u.meting["onderzoek"][k] for k in ("onderzocht", "ontbrekend", "vragen")
+                             if k in u.meting["onderzoek"]}
     r, t = db.begrip_kaartruns, db.begrip_voorstellen
     async with db.get_engine().begin() as conn:
         await _werkgebied(conn, werkgebied_id, slot=True)
