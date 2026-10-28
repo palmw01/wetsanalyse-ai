@@ -1233,8 +1233,8 @@ JSON / RDF (TriG)**. De vorm staat in de api (`api/app/annotatie_export.py`); de
 `NodeAnnotatiePaneel` heeft naast *Tekst* een tab **Graaf** (`components/graaf/Graaf.tsx`), en onder een
 antwoord met een bron naar een BWB-bepaling staat een knop die hetzelfde paneel op die tab opent
 ("Bekijk samenhang van … in de graaf"; in de bronkaart van een citatie-chip *Bekijk in de graaf*). Een
-2D-graaf op **sigma.js v3 + graphology**: WebGL, gebouwd om de hele kennisgraaf (~6.500 knopen, ~10.000
-lijnen) vloeiend te tekenen. Sigma 4 kwam uit op 8 okt 2026; de overstap raakt alleen `GraafTekenaar`.
+2D-graaf op **sigma.js v4 + graphology**: WebGL 2 (ook de labels), gebouwd om de hele kennisgraaf (~6.500
+knopen, ~10.000 lijnen) vloeiend te tekenen. De overstap van v3 (okt 2026) raakte alleen `GraafTekenaar`.
 
 **Lagen met één taak** – houd ze gescheiden:
 
@@ -1275,8 +1275,8 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   - lijnen naar een JAS-klasse alleen bij een gekozen markering of klasse.
 - **`lib/graaf/labels.ts`** – **welke knopen een label krijgen**: nooit twee over elkaar, en meer detail
   naarmate je inzoomt. Sigma's eigen labelraster toetst de breedte van een label niet en zet
-  `forceLabel` ongetoetst bovenop; daarom staat het op nul (`labelDensity: 0`) en kiest `kiesLabels`
-  per beeld: gulzig op prioriteit (keuze/aangewezen > nadruk > gewoon > gedimd, dan de soort), een
+  `labelVisibility: "visible"` ongetoetst bovenop; daarom staat het op nul (`labelDensity: 0`) en kiest
+  `kiesLabels` per camerastand: gulzig op prioriteit (keuze/aangewezen > nadruk > gewoon > gedimd, dan de soort), een
   label alleen als zijn rechthoek vrij ligt én helemaal in beeld past; wat vorig beeld stond wint bij
   gelijke prioriteit (geen geflikker). De zwevende bediening telt als bezet. Detailniveau per soort
   (`LABEL_VANAF`, `magLabel`) op een *effectieve* zoom die de grootte van de kaart meeweegt: uitgezoomd
@@ -1291,15 +1291,23 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   telling in gewone woorden. **`lib/graaf/stijl.ts`** – het palet; WebGL kent geen CSS-variabelen, dus
   concrete kleuren, afgestemd op de tokens.
 - **`components/graaf/GraafTekenaar.tsx`** – de **enige plek die sigma kent**: tekent het model op zijn
-  posities, vraagt per knoop/lijn het beeld op bij `weergave.ts` (reducers) en meldt klik/achtergrond
-  terug. Eén programma voor alle knopen (`@sigma/node-border`): omtrek = randbepaling of laag Dekking.
-  Lui geladen (`next/dynamic`). Valkuilen die hier opgelost zijn: een keuze verandert grootte en
-  tekenvolgorde, dus `refresh()` zonder `skipIndexation`; een `ResizeObserver` doet `resize` én
-  `refresh`; bij unmount wordt het **doel** van een lopende camerabeweging bewaard, niet de tussenstand
-  (anders staat het vergrote beeld halverwege een vlucht); geen WebGL of contextverlies → `onFout`.
-  **De labelkeuze gebeurt bij het eerste label dat sigma tekent, niet in `beforeRender`**: daar zijn
-  de knoopdata (na een `refresh`) en de cameramatrix nog die van het vorige beeld. De reducer houdt per
-  knoop bij wat de keuze nodig heeft (`labelInfo`), zodat die geen 6.500 knoopdata hoeft te kopiëren.
+  posities, vraagt per knoop/lijn het beeld op bij `weergave.ts` en meldt klik/achtergrond terug. Eén
+  knoopvorm (cirkel + `layerBorder` van `@sigma/node-border`): omtrek = randbepaling of laag Dekking; een
+  verwijzing krijgt `head: "arrow"`. Lui geladen (`next/dynamic`).
+  **Het beeld staat in de attributen van de tekengraaf, niet in een reducer** (`schrijfBeeld`, bij elke
+  nieuwe context en bij een zoomdrempel van `detailFactor`): de styles lezen alleen attributen en
+  knoopstatus. Een reducer laat sigma 4 bij elke hover en elk begin of einde van een gebaar álle knopen
+  en lijnen opnieuw doorrekenen. **De labelkeuze is een eigen knoopstatus `label`**: `kiesLabels` draait
+  op elke camera-`updated` en zet alleen het verschil met `setNodesState`, dus sigma ververst alleen die
+  knopen. `schrijfBeeld` houdt per knoop bij wat de keuze nodig heeft (`labelInfo`).
+  **Het font staat per label** (`labelFont`, met het gewicht in de string): sigma zet anders
+  "sans-serif" en negeert het font van de primitives. Sigma tekent elke letter één keer in een
+  SDF-atlas, dus de tekenaar wacht (hoogstens 1 s) tot het labelfont geladen is; anders blijft het
+  reservefont voorgoed staan. SDF-tekst oogt zwaarder, vandaar gewicht 400.
+  Valkuilen die hier verder opgelost zijn: een `ResizeObserver` doet `resize` én `refresh`; bij unmount
+  wordt het **doel** van een lopende camerabeweging bewaard, niet de tussenstand (anders staat het
+  vergrote beeld halverwege een vlucht); geen WebGL 2 of contextverlies → `onFout`. Een klik of hover
+  op een label telt als op zijn knoop (`nodeLabelEvents: "extend"`).
   Inpassen op één knoop zoomt niet dieper dan de kaart vraagt (`minRatio`), zodat de buurt in beeld
   blijft.
   **Een klik herkent de tekenaar zelf** (`downNode`/`downStage` → `upNode`/`upStage`, hoogstens 5 px
