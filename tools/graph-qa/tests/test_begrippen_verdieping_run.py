@@ -123,10 +123,15 @@ def _leeg():
     NepModel.aanroepen = []
 
 
-def _draai(api, bevestigd=None, maak=None, budget=None, stop=False):
+def _draai(api, bevestigd=None, maak=None, budget=None, stop=False, werkvoorraad_id=None):
+    """Met `bevestigd` stuurt de knop ook de `werkvoorraad_id` van het voorstel terug (spoor M), tenzij de
+    test er zelf een geeft."""
     ctx = agent_ctx(api, gestopt=stop, maak_llm=maak or (lambda s: NepModel()), provider=NullProvider(),
                     budget_toegestaan=budget)
-    return asyncio.run(bv.verdieping_kern(ctx, "wg1", bevestigd))
+    if bevestigd is not None and werkvoorraad_id is None:
+        voorstel = asyncio.run(bv.verdieping_kern(ctx, "wg1"))
+        werkvoorraad_id = (voorstel.bevestiging or {}).get("werkvoorraad_id", "")
+    return asyncio.run(bv.verdieping_kern(ctx, "wg1", bevestigd, werkvoorraad_id or ""))
 
 
 def _tekst(u):
@@ -152,7 +157,9 @@ def test_zonder_bevestiging_alleen_het_voorstel():
     evs = _draai(api)
     assert NepModel.aanroepen == [] and not api.batches and api.verdieping is None
     assert evs.status == "bevestiging" and evs.bevestiging == {"soort": "begrippen_verdiepen", "werkgebied_id": "wg1",
-                                                               "aantal": 1, "schatting": None}
+                                                               "aantal": 1, "schatting": None,
+                                                               "werkvoorraad_id": evs.bevestiging["werkvoorraad_id"]}
+    assert evs.bevestiging["werkvoorraad_id"].startswith("W")
     assert "1 twijfelpunt" in _tekst(evs) and "50.000 tokens" in _tekst(evs)
 
 
@@ -161,6 +168,28 @@ def test_een_gewijzigde_werkvoorraad_start_niet():
     evs = _draai(api, bevestigd=3)
     assert NepModel.aanroepen == [] and "De werkvoorraad veranderde: nu 1 in plaats van 3" in _tekst(evs)
     assert evs.bevestiging["aantal"] == 1
+
+
+def test_een_gelijk_aantal_met_een_andere_werkvoorraad_start_niet():
+    """Spoor M: de bevestiging dekt de inhoud, niet alleen het aantal."""
+    api = NepApi(aantal=1)
+    evs = _draai(api, bevestigd=1, werkvoorraad_id="W0000000000000000")
+    assert NepModel.aanroepen == [] and evs.status == "bevestiging"
+    assert "even groot, maar niet meer dezelfde" in _tekst(evs)
+    oud = _draai(api, bevestigd=1, werkvoorraad_id="")          # een knop van vóór spoor M
+    assert NepModel.aanroepen == [] and oud.status == "bevestiging"
+
+
+def test_de_werkvoorraad_id_volgt_vragen_kaarten_onderzoek_en_model():
+    wv = {"vragen": ["P1"], "kaarten": ["G1"], "run": {"onderzoek_id": "O1"}}
+    een = bv.werkvoorraad_id(wv, "m")
+    assert een == bv.werkvoorraad_id({**wv, "vragen": ["P1"]}, "m")
+    assert een != bv.werkvoorraad_id({**wv, "kaarten": ["G2"]}, "m")
+    assert een != bv.werkvoorraad_id({**wv, "run": {"onderzoek_id": "O2"}}, "m")
+    assert een != bv.werkvoorraad_id(wv, "ander-model")
+    ChatRequest(question="x", werkgebied_id="wg1", actie="begrippen_meedenken", bevestigd=1, werkvoorraad_id=een)
+    with pytest.raises(ValueError):
+        ChatRequest(question="x", werkgebied_id="wg1", actie="begrippen_meedenken", werkvoorraad_id=een)
 
 
 def test_met_bevestiging_batches_en_uitkomst():

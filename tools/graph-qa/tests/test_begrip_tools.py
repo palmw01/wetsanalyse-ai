@@ -398,12 +398,19 @@ def test_loopt_de_actie_al_dan_wacht_lex():
 
 
 def test_uitwerken_volgt_de_methode():
-    # Zonder definitie: eerst de brondefinitie, dan een definitievoorstel, en nog geen voorbeelden.
+    # Zonder definitie: eerst de brondefinitie; levert die voorstellen op, dan geen definitievoorstel van het
+    # model ernaast, en nog geen voorbeelden. (Zonder brondefinitie volgt scherper: `test_uitwerken_zonder_brondefinitie`.)
+    api = KaartApi([], begrip={"status": "concept", "inhoud": {"naam": "Termijn", "definitie": ""}})
+    uit = _taak(api, "uitwerken", begrip_id="b1")
+    assert [c[3] for c in api.calls if c[0] == "start"] == ["brondefinitie"]
+    assert "neem een definitie over" in uit.tekst
+    # Staat er al een brondefinitie-run met open voorstellen klaar (de api geeft die terug), dan is er een
+    # brondefinitie om over te nemen en start Lex het model niet voor scherper (spoor M, M3).
     api = KaartApi([], start={"id": "k1", "status": "klaar", "nieuw": False},
                    begrip={"status": "concept", "inhoud": {"naam": "Termijn", "definitie": ""}})
     uit = _taak(api, "uitwerken", begrip_id="b1")
-    assert [c[3] for c in api.calls if c[0] == "start"] == ["brondefinitie", "scherper"]
-    assert "neem een definitie over" in uit.tekst
+    assert [c[3] for c in api.calls if c[0] == "start"] == ["brondefinitie"]
+    assert uit.voorstellen == ["k1"]
     # Met een definitie op de kaart (spoor I2): de brondefinitie, de uitleg in B1 en de voorbeelden.
     api = KaartApi([], begrip={"status": "concept", "inhoud": {"naam": "Termijn", "definitie": "Een tijdvak."}})
     uit = _taak(api, "uitwerken", begrip_id="b1")
@@ -414,6 +421,17 @@ def test_uitwerken_volgt_de_methode():
                                                                 "uitleg": "Zo lang heb je."}})
     _taak(api, "uitwerken", begrip_id="b1")
     assert [c[3] for c in api.calls if c[0] == "start"] == ["brondefinitie", "voorbeelden"]
+
+
+def test_uitwerken_zonder_brondefinitie(monkeypatch):
+    """Geen brondefinitie gevonden (0 voorstellen): dan een definitievoorstel met het model."""
+    async def leeg(wid, bid, rid, run, **_):
+        yield {"type": "opgeslagen", "kaart_run": rid, "voorstellen": 0, "melding": "Geen brondefinitie gevonden."}
+    import agent.kaart_beurt as kb
+    monkeypatch.setattr(kb, "kaart_stroom", leeg)
+    api = KaartApi([], begrip={"status": "concept", "inhoud": {"naam": "Termijn", "definitie": ""}})
+    _taak(api, "uitwerken", begrip_id="b1")
+    assert [c[3] for c in api.calls if c[0] == "start"] == ["brondefinitie", "scherper"]
 
 
 def test_relaties_zonder_model():

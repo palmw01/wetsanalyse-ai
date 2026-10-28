@@ -233,6 +233,8 @@ def _waarde(v: VoorstelInvoer) -> dict:
     uit = {"tekst": v.tekst.strip(), "fragmenten": [f.model_dump() for f in v.fragmenten]}
     if v.veld == "voorbeelden":
         uit["oordeel"] = v.oordeel.value
+        uit.update({k: x for k, x in (("soort_voorbeeld", v.soort_voorbeeld), ("toetst", v.toetst),
+                                      ("kenmerk", v.kenmerk)) if x})
     if v.vergelijking:
         uit["vergelijking"] = v.vergelijking
     return uit

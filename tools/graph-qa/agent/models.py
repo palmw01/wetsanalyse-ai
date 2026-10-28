@@ -179,6 +179,9 @@ class ChatRequest(BaseModel):
     # Het aantal bepalingen dat de analist bevestigde (fase B). Wijkt de actuele werkvoorraad af,
     # dan begint de run niet; zonder dit veld noemt Lex alleen wat er te doen is.
     bevestigd: int | None = Field(default=None, ge=0, le=100_000)
+    # Bij het meedenken (spoor M): de inhoud van de werkvoorraad die de analist bevestigde. Wijkt die af
+    # (andere vragen of kaarten, ander onderzoek, model of prompt), dan begint Lex niet.
+    werkvoorraad_id: str = Field(default="", pattern=r"^(W[0-9a-f]{16})?$")
     # Wat er bij `werkgebied_annoteren` meegaat: het hele werkgebied, of alleen de bronnen onder de
     # actieve deelvragen (met `deelvraag_id`: onder die ene). De bevestigingsknop stuurt het terug.
     bereik: Literal["werkgebied", "deelvragen"] = "werkgebied"
@@ -211,6 +214,8 @@ class ChatRequest(BaseModel):
             self.werkgebied_id = self.onderwerp.werkgebied_id
         if not self.werkgebied_id:
             raise ValueError(f"de actie '{self.actie}' vraagt een werkgebied_id of een onderwerp")
+        if self.werkvoorraad_id and self.bevestigd is None:
+            raise ValueError("'werkvoorraad_id' hoort bij 'bevestigd'")
         if self.bevestigd is not None and self.actie not in BEVESTIG_ACTIES:
             raise ValueError("'bevestigd' hoort bij een actie die om bevestiging vraagt")
         if self.actie == "werkgebied_annoteren":

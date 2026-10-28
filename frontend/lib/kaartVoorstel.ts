@@ -26,6 +26,8 @@ export const AANDACHTSPUNT_LEX: Record<string, string> = {
   B1_MOEILIJK_WOORD: "De uitleg gebruikt een moeilijk woord waarvoor een gewoner woord bestaat.",
   B1_VAKTERM_ONVERKLAARD: "Een vakterm uit de definitie staat in de uitleg zonder dat die hem uitlegt.",
   B1_HERHAALT_DEFINITIE: "De uitleg herhaalt de definitie; zeg het in eigen, eenvoudige woorden.",
+  TOETST_ANDERE_VRAAG: "Dit voorbeeld toetst niet het begrip maar een scenario, voorwaarde of rechtsgevolg; controleer of het de afbakening van de definitie raakt.",
+  SEMANTISCH_DUBBEL: "Een voorbeeld toetste hetzelfde kenmerk met hetzelfde oordeel als een ander, alleen met andere getallen of namen; het is weggelaten.",
 };
 
 /** De tekst bij een aandachtspunt; een onbekende code verschijnt als zichzelf. */

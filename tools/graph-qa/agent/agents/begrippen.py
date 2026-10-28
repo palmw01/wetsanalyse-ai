@@ -59,6 +59,7 @@ class Invoer(BaseModel):
     # De term(en) uit de vraag, als er geen begrip is aangewezen (bij betekenisverschil twee).
     termen: list[str] = Field(default_factory=list, max_length=2)
     bevestigd: int | None = Field(default=None, ge=0, le=100_000)
+    werkvoorraad_id: str = Field(default="", pattern=r"^(W[0-9a-f]{16})?$")
 
 
 async def voer_uit(invoer: Invoer, ctx: Context) -> Uitkomst:
@@ -69,7 +70,7 @@ async def voer_uit(invoer: Invoer, ctx: Context) -> Uitkomst:
                                    "het gesprek vanuit een werkgebied.")
         if taak is Taak.VOORSTELLEN:
             return await begrippen_kern(ctx, invoer.werkgebied_id)
-        return await verdieping_kern(ctx, invoer.werkgebied_id, invoer.bevestigd)
+        return await verdieping_kern(ctx, invoer.werkgebied_id, invoer.bevestigd, invoer.werkvoorraad_id)
     begrip, ander, zin = await _begrippen(ctx, invoer)
     if begrip is None:
         return geweigerd(taak, zin)

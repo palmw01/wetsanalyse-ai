@@ -91,7 +91,8 @@ def _agent(writer, state: State, agent: str, taak: str, vraag: str, *, actie: st
     onderwerp = state.get("onderwerp") or (state.get("focus") or {}).get("onderwerp") or {}
     parameters = register.parameters(agent, taak, vraag=vraag or state.get("question", ""), onderwerp=onderwerp,
                                      werkgebied_id=state.get("werkgebied_id", ""), actie=actie,
-                                     bevestigd=state.get("bevestigd"))
+                                     bevestigd=state.get("bevestigd"),
+                                     werkvoorraad_id=state.get("werkvoorraad_id", ""))
     _stap(writer, "Supervisor", f"kiest de {register.NAAM.get(agent, agent)} · taak {taak or '?'}"
           + (" (suggestie)" if actie else ""))
     return {"specialist": "agent_taak", "worker_plan": ["agent_taak"], "worker_idx": 0,

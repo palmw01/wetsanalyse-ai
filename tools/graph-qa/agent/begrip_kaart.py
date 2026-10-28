@@ -113,7 +113,7 @@ def reken_met_model(llm: Any, model: str, invoer: dict[str, Any], meting: dict[s
     if actie == "scherper":
         return ka.scherper(llm, model, manifest, kant, meting, onderzoek)
     if actie == "voorbeelden":
-        return ka.voorbeelden(llm, model, manifest, kant, meting)
+        return ka.voorbeelden(llm, model, manifest, kant, meting, onderzoek)
     if actie == "uitleg":
         return ka.uitleg(llm, model, manifest, kant, meting)
     ander = ka.kant_uit(invoer.get("ander"), manifest)

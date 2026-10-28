@@ -32,7 +32,7 @@
   - signalen (contextdefinitie, `BEREKENING_IN_BEPALING`);
   - prompt, schema en toetsen van kaart en scherper (§3–§5);
   - `eval/betekenisonderzoek_eval.py`.
-- [ ] **M3** (`spoor-m3-voorbeelden-runs`):
+- [x] **M3** (`spoor-m3-voorbeelden-runs`):
   - de voorbeelden (§6);
   - `werkvoorraad_id`, batch-id en de twee bugfixes (§7).
 - [ ] **M4** (`spoor-m4-bewijs-export`):
@@ -76,6 +76,18 @@
   want de drift-test eist het per PR; de weergave (§9) volgt in M4.
 - **M2, `BEREKENING_IN_BEPALING`**: de patronen staan in `begrippen_pipeline/betekenisregels/berekening.yaml`
   (niet in `regels/`: dat register eist groepen `van`/`naar`), met dezelfde vier testsoorten.
+
+- **M3, `werkvoorraad_id`**: de hash van de twijfelvragen en groepen zonder definitie (de inhoud van
+  de batches), het `onderzoek_id`, het model en de promptversies – niet van de batch-id's zelf: die
+  vragen de hergroepering, en die draait pas na de bevestiging. Een knop van vóór spoor M draagt geen
+  id; Lex vraagt dan opnieuw om bevestiging (liever één klik meer dan een onbedoelde run).
+- **M3, ontdubbelen**: een naam is een kort woord met een hoofdletter (vooraan in de zin hoogstens
+  acht letters en geen functiewoord, of midden in de zin). Een heuristiek: "Bedrijf X …" vooraan wordt
+  ook `<naam>`. De kenmerken knipt code uit de definitie (komma's en verbindingswoorden).
+- **M3, de klare brondefinitie**: `kaart_kern` telt een klare run die de api teruggeeft als voorstel
+  (de api geeft hem alleen terug met open voorstellen). `test_uitwerken_volgt_de_methode` legde het
+  oude gedrag vast; die test zegt nu het omgekeerde, met een eigen test voor "geen brondefinitie →
+  scherper".
 
 Werkwijze per PR:
 

@@ -49,6 +49,8 @@ export interface WerkgebiedAnnoteren {
   /** Alleen de bronnen onder de deelvragen (met `deelvraagId`: onder die ene), uit de bevestiging. */
   bereik?: "deelvragen";
   deelvraagId?: string;
+  /** Bij meedenken: de inhoud van de werkvoorraad uit de bevestiging (spoor M). */
+  werkvoorraadId?: string;
 }
 
 /** Wat een rij kan laten gebeuren. Eén stabiel object per venster, zodat `memo` iets oplevert. */
@@ -183,7 +185,8 @@ export const ThreadRij = memo(function ThreadRij({
               data-bevestiging={item.bevestiging.aantal}
               onClick={() => acties.verstuur(MEEDENK_PROMPT, undefined, undefined, undefined,
                 { werkgebiedId: item.bevestiging!.werkgebied_id, bevestigd: item.bevestiging!.aantal,
-                  modus: "begrippen_verdiepen" })}>
+                  modus: "begrippen_verdiepen",
+                  ...(item.bevestiging!.werkvoorraad_id ? { werkvoorraadId: item.bevestiging!.werkvoorraad_id } : {}) })}>
               Laat Lex meedenken ({item.bevestiging.aantal})
             </Button>
           ) : (

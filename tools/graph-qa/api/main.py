@@ -356,6 +356,7 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
                     # Een klik op een suggestie: de supervisor kiest er zonder model agent en taak bij (F3c).
                     actie=request.actie or "",
                     bevestigd=request.bevestigd,
+                    werkvoorraad_id=request.werkvoorraad_id,
                 ),
                 settings=settings,
                 run=run,

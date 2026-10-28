@@ -90,6 +90,17 @@ class Bevestiging(BaseModel):
     # `deelvraag_id`: onder die ene). De knop start dan hetzelfde bereik.
     bereik: Literal["werkgebied", "deelvragen"] = "werkgebied"
     deelvraag_id: str = Field(default="", pattern=r"^[A-Za-z0-9-]{0,64}$")
+    # Bij `begrippen_verdiepen` (spoor M): de inhoud van de werkvoorraad die de knop bevestigt. De knop
+    # stuurt hem terug; wijkt hij af, dan begint Lex niet, ook niet bij een gelijk aantal.
+    werkvoorraad_id: str = Field(default="", pattern=r"^(W[0-9a-f]{16})?$")
+
+    @model_serializer(mode="wrap")
+    def _zonder_lege_werkvoorraad(self, handler):
+        """Zonder werkvoorraad (annoteren, of een bericht van vóór spoor M) blijft het bericht zoals het was."""
+        data = handler(self)
+        if isinstance(data, dict) and not data.get("werkvoorraad_id"):
+            data.pop("werkvoorraad_id", None)
+        return data
 
 
 def _zonder_lege_deelvraag(self, handler):
