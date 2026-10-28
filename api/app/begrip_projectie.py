@@ -389,18 +389,25 @@ async def export_turtle(werkgebied_id: str, alles: bool) -> bytes:
         inv = alleen_geaccordeerd(inv)
     bronnen = {bron for b in inv["begrippen"] for k in b["koppelingen"] for bron in k["bron"]} \
         | {bron for b in inv["begrippen"] for bron in b.get("onderbouwing") or []}
-    g = bouw_graaf(inv, await paginas(bronnen), await uitgevers(bronnen))
-    kader = kader_iri(werkgebied_id)
-    g.add((kader, DCT.conformsTo, NL_SBB))
-    g.add((kader, WA.nlSbbVersie, Literal(NL_SBB_VERSIE)))
-    g.add((kader, WA.exportOmvang, Literal("alle" if alles else "geaccordeerd")))
-    g.add((kader, PROV.generatedAtTime, Literal(db.utcnow().isoformat(), datatype=XSD.dateTime)))
-    c = conformiteit(g)
-    for iri, stand in c["begrippen"].items():
-        if stand["conform"] is not None:
-            g.add((URIRef(iri), WA.nlSbbConform, Literal(stand["conform"])))
-    g.bind("prov", PROV)
-    return g.serialize(format="turtle").encode("utf-8")
+    pag, uitg = await paginas(bronnen), await uitgevers(bronnen)
+    nu = db.utcnow().isoformat()
+
+    def bouw() -> bytes:
+        g = bouw_graaf(inv, pag, uitg)
+        kader = kader_iri(werkgebied_id)
+        g.add((kader, DCT.conformsTo, NL_SBB))
+        g.add((kader, WA.nlSbbVersie, Literal(NL_SBB_VERSIE)))
+        g.add((kader, WA.exportOmvang, Literal("alle" if alles else "geaccordeerd")))
+        g.add((kader, PROV.generatedAtTime, Literal(nu, datatype=XSD.dateTime)))
+        c = conformiteit(g)
+        for iri, stand in c["begrippen"].items():
+            if stand["conform"] is not None:
+                g.add((URIRef(iri), WA.nlSbbConform, Literal(stand["conform"])))
+        g.bind("prov", PROV)
+        return g.serialize(format="turtle").encode("utf-8")
+
+    # rdflib en SHACL zijn pure Python: in een thread, zodat de event loop van de api vrij blijft.
+    return await asyncio.to_thread(bouw)
 
 
 async def conformiteit_van(werkgebied_id: str) -> dict[str, Any]:
@@ -409,7 +416,7 @@ async def conformiteit_van(werkgebied_id: str) -> dict[str, Any]:
         inv = await invoer(conn, werkgebied_id)
     if inv is None:
         return {"beschikbaar": True, "nl_sbb_versie": NL_SBB_VERSIE, "begrippen": {}, "kader": []}
-    c = conformiteit(bouw_graaf(inv))
+    c = await asyncio.to_thread(lambda: conformiteit(bouw_graaf(inv)))
     prefix = str(begrip_iri(""))
     return {**c, "begrippen": {iri[len(prefix):]: v for iri, v in c["begrippen"].items()}}
 
@@ -448,7 +455,7 @@ async def projecteer(werkgebied_id: str, zeker: bool = False) -> str:
                 r.raise_for_status()
                 _geschreven[werkgebied_id] = None
                 return "verwijderd"
-            data = bouw_graaf(inv).serialize(format="turtle").encode()
+            data = await asyncio.to_thread(lambda: bouw_graaf(inv).serialize(format="turtle").encode())
             r = await client.put(_repo() + "/rdf-graphs/service", params={"graph": str(graph_iri(werkgebied_id))},
                                  content=data, headers={"Content-Type": "text/turtle"})
             r.raise_for_status()

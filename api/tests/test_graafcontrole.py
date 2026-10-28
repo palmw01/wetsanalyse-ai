@@ -247,3 +247,29 @@ async def test_per_laag_onbereikbaar_uit_en_onbekend(omgeving, monkeypatch):
     assert (await controleer_laag(laag_id))["status"] == "uit"
     with pytest.raises(LookupError):
         await controleer_laag("bestaat-niet")
+
+
+async def test_het_rdflib_werk_draait_niet_op_de_event_loop(omgeving, monkeypatch):
+    """Parsen, bouwen en isomorfie zijn pure Python; op de event loop hield één ronde van de lichte
+    controle ruim een halve minuut elk verzoek van de api vast (acceptatie, 28 okt 2026: 504's op elk
+    scherm). Ze horen in een thread, ook in de projectie zelf."""
+    import threading
+
+    from app import graafcontrole
+    lus = threading.get_ident()
+    threads: dict[str, set[int]] = {}
+
+    def spion(naam, echt):
+        def f(*a, **k):
+            threads.setdefault(naam, set()).add(threading.get_ident())
+            return echt(*a, **k)
+        return f
+
+    monkeypatch.setattr(projectie, "bouw_graaf", spion("projectie", projectie.bouw_graaf))
+    monkeypatch.setattr(graafcontrole, "bouw_graaf", spion("bouw", graafcontrole.bouw_graaf))
+    monkeypatch.setattr(graafcontrole, "isomorphic", spion("isomorfie", graafcontrole.isomorphic))
+    monkeypatch.setattr(graafcontrole, "_parse", spion("parse", graafcontrole._parse))
+    await _geprojecteerd(omgeving)
+    assert (await controleer())["in_orde"] is True
+    assert set(threads) == {"projectie", "bouw", "isomorfie", "parse"}
+    assert all(lus not in t for t in threads.values()), threads

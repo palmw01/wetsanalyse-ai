@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Dialog } from "@/components/ui/Dialog";
 import { GesprekSidebar } from "@/components/werkplek/GesprekSidebar";
-import { hernoemGesprek, lijstGesprekken, verwijderGesprek, wijzigGesprek } from "@/lib/api";
+import { foutTekst, hernoemGesprek, lijstGesprekken, verwijderGesprek, wijzigGesprek } from "@/lib/api";
 import { metSpoor } from "@/lib/uiSpoor";
 import type { GesprekSamenvatting, Verbruiksstand } from "@/lib/types";
 
@@ -51,6 +51,9 @@ export function AppSidebar({
 }: Props) {
   const [gesprekken, setGesprekken] = useState<GesprekSamenvatting[]>(demoGesprekken ?? []);
   const [laden, setLaden] = useState(!demoGesprekken);
+  // Een mislukte lijst is iets anders dan een lege: anders staat er "Nog geen gesprekken" terwijl de api
+  // alleen even niet antwoordde (acceptatie, 28 okt 2026).
+  const [laadFout, setLaadFout] = useState<string | null>(null);
   const demo = Boolean(demoGesprekken);
   // Elke ophaalronde krijgt een nummer; alleen het antwoord van de laatste telt. De rondleiding
   // start bij een eerste bezoek vlak na het openen van de werkplek, terwijl de echte lijst nog
@@ -70,9 +73,12 @@ export function AppSidebar({
       .then((lijst) => {
         if (deze !== ronde.current) return;
         setGesprekken(lijst);
+        setLaadFout(null);
         onLijst?.(lijst);
       })
-      .catch(() => {})
+      .catch((e) => {
+        if (deze === ronde.current) setLaadFout(foutTekst(e, "De gesprekken konden niet geladen worden."));
+      })
       .finally(() => setLaden(false));
     // `onLijst` bewust buiten de deps: het is vaak een inline callback en zou de fetch anders bij
     // elke render opnieuw laten lopen.
@@ -189,6 +195,11 @@ export function AppSidebar({
       onVerplaats={verplaats}
       onNieuwInWerkgebied={onNieuwInWerkgebied}
       laden={laden}
+      laadFout={laadFout}
+      onOpnieuw={() => {
+        setLaden(true);
+        verversLijst();
+      }}
       onSluit={extra?.onSluit}
       onRondleiding={onRondleiding}
       verbruik={verbruik}

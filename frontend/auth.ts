@@ -9,6 +9,7 @@ import Credentials from "next-auth/providers/credentials";
 import { authConfig, SESSIE_KORT, SESSIE_LANG, type Role } from "./auth.config";
 import { getAccountStatus, verifyCredentials, type AccountStatus } from "@/lib/server";
 import { sessieGerevoceerd } from "@/lib/sessie";
+import { maakStatusCache } from "@/lib/statusCache";
 import { clearLoginTicketCookie, getLoginTicketCookie, getTrustedDeviceCookie } from "@/lib/authCookies";
 
 // Hoe lang een JWT op de laatste verificatie mag teren voordat we de accountstatus opnieuw
@@ -23,21 +24,13 @@ const HERVERIFICATIE_MS = 5 * 60 * 1000;
 // sessie-aanroep weg. Het token in de cookie bleef dus op zijn oude `verifiedAt` staan, en vanaf
 // vijf minuten na het inloggen deed élke BFF-call eerst `/v1/auth/me`. Met deze cache is dat
 // weer hooguit één keer per vijf minuten per gebruiker (per replica), en blijft de revocatiegrens
-// dezelfde. "Onbekend" (API-hapering) wordt niet onthouden: dan volgende keer opnieuw proberen.
-const statusCache = new Map<string, { status: AccountStatus; tot: number }>();
-
-async function accountStatus(userid: string): Promise<AccountStatus> {
-  const nu = Date.now();
-  const bekend = statusCache.get(userid);
-  if (bekend && bekend.tot > nu) return bekend.status;
-  const status = await getAccountStatus(userid);
-  if (status.status !== "onbekend") {
-    // Verlopen regels opruimen zodra de map groeit; anders blijft elke ooit ingelogde gebruiker staan.
-    if (statusCache.size > 500) for (const [k, v] of statusCache) if (v.tot <= nu) statusCache.delete(k);
-    statusCache.set(userid, { status, tot: nu + HERVERIFICATIE_MS });
-  }
-  return status;
-}
+// dezelfde. "Onbekend" (API-hapering) geldt kort (`ONBEKEND_MS`), en gelijktijdige aanroepen delen één
+// verzoek: anders wachtte tijdens een hapering elk BFF-verzoek eerst 10 s op de api (`lib/statusCache.ts`).
+const ONBEKEND_MS = 30 * 1000;
+const accountStatus = maakStatusCache<AccountStatus>(getAccountStatus, {
+  geldigMs: HERVERIFICATIE_MS,
+  onbekendMs: ONBEKEND_MS,
+});
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
