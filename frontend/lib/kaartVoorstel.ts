@@ -62,7 +62,7 @@ export function isDefinitie(v: KaartVoorstel): v is KaartVoorstel & { waarde: De
 
 /** "Onderzochte context: 7 bepalingen; ontbreekt: budget: 3; 1 open vraag" (spoor M), of null. */
 export function onderzoekTekst(v: KaartVoorstel): string | null {
-  const o = v.door.onderzoek;
+  const o = v.door?.onderzoek;
   if (!o) return null;
   const delen = [`Onderzochte context: ${o.onderzocht === 1 ? "1 bepaling" : `${o.onderzocht} bepalingen`}`];
   if (o.ontbrekend.length) delen.push(`ontbreekt: ${o.ontbrekend.join(", ")}`);
