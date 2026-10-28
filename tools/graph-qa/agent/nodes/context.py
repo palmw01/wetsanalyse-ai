@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 from ..config import Settings
 from ..ports import GraphPort, LLMPort
@@ -38,3 +39,9 @@ class Bouw:
     corpus: Callable[[State], str]
     advies_context: Callable[[State], str]
     annotaties: object | None = None
+    begrippen: object | None = None
+    # De event loop van de beurt: de agents (`nodes/agent_taak.py`) draaien daarop, omdat hun api-client
+    # erbij hoort. None buiten een lopende loop (een synchrone aanroep): dan een eigen loop.
+    loop: Any = None
+    # Voor tests: een eigen api-client voor de agents, `(settings, user_id) -> api`.
+    agent_api: Callable[[Settings, str], Any] | None = None

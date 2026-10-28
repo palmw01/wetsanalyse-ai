@@ -47,7 +47,22 @@ const ZIJBALK = "wa_graaf_zijbalk";
  *
  *  Het selectiemodel staat in `lib/graaf/weergave.ts`: lagen bepalen wat zichtbaar is, een keuze
  *  bepaalt alleen de nadruk. */
-export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekking, koppelingRef, onKiesElement, onOpenTekst, onWisselArtikel, onVraag }: {
+/** De benamingen rond de doelen van de graaf: de bereikschakelaar, de weg terug, de focus en de kop
+ *  in de inspector. */
+export interface GraafContext {
+  /** "Dit antwoord" – bereikschakelaar en inspectorkop. */
+  naam: string;
+  /** "Antwoord" – de schakelaar op een smal scherm. */
+  kort: string;
+  /** "het antwoord" – "Terug naar …". */
+  terug: string;
+  /** "wat het antwoord noemt" – "Nadruk op …". */
+  focus: string;
+}
+export const ANTWOORD: GraafContext = { naam: "Dit antwoord", kort: "Antwoord", terug: "het antwoord", focus: "wat het antwoord noemt" };
+
+export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekking, koppelingRef, onKiesElement, onOpenTekst, onWisselArtikel, onVraag,
+  benaming = ANTWOORD, bijKnoop }: {
   stand: GraafStand; zichtbaar: boolean; groot: boolean;
   actiefElementId?: string;
   /** De weergave in het paneel: daaruit haalt de inspector tekst, markeringen en hun spoor zonder
@@ -59,12 +74,17 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
    *  beeld is. */
   koppelingRef?: RefObject<GraafKoppeling | null>;
   onKiesElement: (elementId?: string) => void;
-  onOpenTekst: (knoop: KnoopData) => void;
+  /** *Bekijk in de tekst*. Bij een markering staat `anker` op de bronknoop waar zij op ligt. */
+  onOpenTekst: (knoop: KnoopData, anker?: string) => void;
   /** Een knoop uit een ander geladen artikel: het paneel opent op dat artikel, met het bereik van nu
    *  en – als die actueel is – de kennisgraaf die al geladen is. Zonder deze haak is elke knoop "Toon
    *  in tekst". */
   onWisselArtikel?: (doel: NodeDoel, graaf: GraafOpties) => void;
   onVraag?: (knoop: KnoopData) => void;
+  /** Hoe de graaf zijn doelen noemt: standaard het antwoord, op de werkgebiedpagina het werkgebied. */
+  benaming?: GraafContext;
+  /** Een extra handeling bij de gekozen knoop, naast de hoofdactie – bv. opnemen in een werkgebied. */
+  bijKnoop?: (knoop: KnoopData & { id: string }) => ReactNode;
 }) {
   const { bronnen, getekend, laadfase, fout, melding, selectie, setSelectie, wachtendeKeuze, setWachtendeKeuze,
     lagen, setLagen, markering, setMarkering, lagenOpen, setLagenOpen, aangeraakt, setAangeraakt, camera, bediening,
@@ -122,6 +142,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
   const inPaneel = useMemo(() => (onWisselArtikel && weergave ? knopenInWeergave(model, weergave) : undefined),
     [model, weergave, onWisselArtikel]);
   const gekozenData = gekozen ? model.getNodeAttributes(gekozen) : undefined;
+  const heeftBegrippen = useMemo(() => model.someNode((_, a) => a.soort === "begrip"), [model]);
   const actie = gekozen && gekozenData ? bepaalHoofdactie(gekozenData, gekozen, inPaneel) : null;
   // De tekst voor de inspector: van de gekozen bepaling, of bij een markering van haar anker. Alleen
   // bepalingen: de tekst van een heel hoofdstuk of een regeling past niet in een inspector.
@@ -130,7 +151,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
   const detail = useKnoopDetail(tekstBron, weergave, stand.detailCache, stand.detailVersie);
   // Wat de kennisgraaf over een bronknoop weet; een markering of klasse staat niet in de BWB-graaf,
   // een niet-geïmporteerde bepaling evenmin.
-  const info = useKnoopInfo(gekozen && gekozenData && !["markering", "klasse", "extern"].includes(gekozenData.soort) ? gekozen : null,
+  const info = useKnoopInfo(gekozen && gekozenData && !["markering", "klasse", "extern", "begrip"].includes(gekozenData.soort) ? gekozen : null,
     stand.infoCache);
   const bekendeElementen = useMemo(() => [...(weergave?.elementen ?? []), ...(detail && typeof detail === "object" ? detail.elementen : [])],
     [weergave, detail]);
@@ -214,7 +235,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
 
   function doeHoofdactie() {
     if (!gekozen || !gekozenData) return;
-    if (actie === "tekst") onOpenTekst(gekozenData);
+    if (actie === "tekst") onOpenTekst(gekozenData, gekozenData.soort === "markering" ? ankerVan(model, gekozen) : undefined);
     else if (actie === "laden") void laadErbij(gekozen);
     else if (actie === "wissel") {
       // Een markering opent het paneel op haar anker (het lid), niet op het hele artikel.
@@ -239,11 +260,11 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
         {bereik === "kennisgraaf" ? "De hele kennisgraaf" : `Samenhang van ${titel}`}
         {getekend && <span className="ml-2 text-xs font-normal text-muted" data-testid="graaf-telling">{tellingTekst(tel)}</span>}
       </h2>
-      {focus && opBereik && <p className="mt-1 text-xs text-muted" data-testid="graaf-focus">Nadruk op wat het antwoord noemt
+      {focus && opBereik && <p className="mt-1 text-xs text-muted" data-testid="graaf-focus">Nadruk op {benaming.focus}{" "}
         ({focus.doelen.size === 1 ? "1 deel of bepaling" : `${focus.doelen.size} delen en bepalingen`}<span className="hidden sm:inline">, met wat eronder valt en waarnaar het verwijst</span>)<span className="hidden sm:inline">; de rest staat gedimd op de kaart</span>.</p>}
       {hoofd && !hoofd.verwijzingen_beschikbaar && <p className="mt-1 text-xs text-muted">Verwijzingen zijn nu niet beschikbaar; je ziet de bronstructuur en de annotaties.</p>}
       {bronnen?.some((d) => d.afgekapt) && <p className="mt-1 text-xs text-muted">Er zijn meer verwijzingen dan getoond; de eerste 200 per richting staan in beeld.</p>}
-      {bronnen && bronnen.length > 1 && bereik === "antwoord" && <p className="mt-1 text-xs text-muted">De tekst en de annotatie in het paneel gaan over {hoofdNaam}; een knoop uit een ander artikel opent dat artikel in het paneel.{bronnen.some(isDeelCluster) ? " Een hoofdstuk of afdeling staat er met zijn artikelen; open een artikel voor leden, annotaties en verwijzingen." : ""}</p>}
+      {weergave && bronnen && bronnen.length > 1 && bereik === "antwoord" && <p className="mt-1 text-xs text-muted">De tekst en de annotatie in het paneel gaan over {hoofdNaam}; een knoop uit een ander artikel opent dat artikel in het paneel.{bronnen.some(isDeelCluster) ? " Een hoofdstuk of afdeling staat er met zijn artikelen; open een artikel voor leden, annotaties en verwijzingen." : ""}</p>}
       {stand.nietGeladen > 0 && <p className="mt-1 text-xs text-muted">{stand.nietGeladen === 1 ? "1 deel is" : `${stand.nietGeladen} delen zijn`} niet geladen.</p>}
       {melding && <p role="alert" className="mt-1 text-xs text-fout" data-testid="graaf-melding">{melding}</p>}
     </div>
@@ -265,25 +286,25 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
             <div role="group" aria-label="Wat de graaf toont" className="pointer-events-auto flex shrink-0 rounded-full border border-line bg-paper/95 p-0.5 shadow-kaart">
               {/* Mobiel kort, zodat het zoekveld ernaast leesbaar blijft; de volle naam staat in het label. */}
               {(["antwoord", "kennisgraaf"] as const).map((b) => <button key={b} type="button" aria-pressed={bereik === b}
-                aria-label={b === "antwoord" ? "Dit antwoord" : "Hele kennisgraaf"}
+                aria-label={b === "antwoord" ? benaming.naam : "Hele kennisgraaf"}
                 onClick={() => wisselBereik(b)}
                 className={`focus-ring min-h-8 rounded-full px-3 text-xs coarse:min-h-11 ${bereik === b ? "bg-lint text-paper" : "text-muted hover:text-lint"}`}>
-                <span className="sm:hidden">{b === "antwoord" ? "Antwoord" : "Alles"}</span>
-                <span className="hidden sm:inline">{b === "antwoord" ? "Dit antwoord" : "Hele kennisgraaf"}</span></button>)}
+                <span className="sm:hidden">{b === "antwoord" ? benaming.kort : "Alles"}</span>
+                <span className="hidden sm:inline">{b === "antwoord" ? benaming.naam : "Hele kennisgraaf"}</span></button>)}
             </div>
           </div>
           {/* Zolang er een keuze is: de weg terug naar het begin, onder het zoekveld. */}
           {gekozen && focus && <button type="button" onClick={naarAntwoord} data-testid="graaf-terug"
             className="focus-ring pointer-events-auto flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-line bg-paper/95 px-3 text-xs text-lint shadow-kaart hover:bg-surface coarse:min-h-11">
-            <Terug />Terug naar het antwoord</button>}
+            <Terug />Terug naar {benaming.terug}</button>}
           </div>
           <div className="flex items-end justify-between gap-2">
             <GraafLagen lagen={lagen} open={lagenOpen} onOpen={setLagenOpen}
               onWissel={(l) => setLagen((oud) => ({ ...oud, [l]: !oud[l] }))}
-              dekking={ongedekt.size > 0} markering={{ waarde: markering, onKies: setMarkering }} />
-            <GraafHint klaar={aangeraakt} />
+              dekking={ongedekt.size > 0} begrippen={heeftBegrippen} markering={{ waarde: markering, onKies: setMarkering }} />
+            <GraafHint klaar={aangeraakt} terug={benaming.terug} />
             <GraafBeeld onPasIn={() => bediening.current?.pasIn()} onZoom={(f) => bediening.current?.zoom(f)}
-              onNaarAntwoord={focus ? naarAntwoord : undefined} />
+              onNaarAntwoord={focus ? naarAntwoord : undefined} terug={benaming.terug} />
           </div>
         </div>}
       </div>
@@ -310,7 +331,8 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
           onCentreer={() => gekozen && bediening.current?.focus(gekozen)}
           onSluit={() => kies(null)}
           onHoofdactie={doeHoofdactie}
-          onVraag={onVraag && gekozenData && gekozenData.soort !== "klasse" ? () => onVraag(gekozenData) : undefined}
+          onVraag={onVraag && gekozenData && gekozenData.soort !== "klasse" && gekozenData.soort !== "begrip" ? () => onVraag(gekozenData) : undefined}
+          doelenKop={benaming.naam} extra={bijKnoop && gekozen && gekozenData ? bijKnoop({ ...gekozenData, id: gekozen }) : undefined}
           onKies={(id) => kies(id)} />
         </div>
       </div>

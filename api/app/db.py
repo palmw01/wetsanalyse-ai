@@ -11,6 +11,8 @@ zonder verbinding importeerbaar blijven.
 
 from __future__ import annotations
 
+import logging
+from collections.abc import Callable
 from datetime import datetime, timezone
 
 from sqlalchemy import (
@@ -29,6 +31,7 @@ from sqlalchemy import (
     Text,
     text,
 )
+from sqlalchemy import event
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
@@ -224,6 +227,342 @@ annotatie_v2_audit = Table("annotatie_v2_audit", metadata,
     Column("laag_id", String(64), nullable=True),
     Index("ix_annotatie_v2_audit_laag", "laag_id", "id"))
 
+# --- Werkgebieden (spoor D, levering 1) ---------------------------------------
+# Een werkgebied is een benoemde analyse met bronselecties. Gedeeld tussen analisten, net als de
+# annotaties; wie wat deed staat in `werkgebied_audit`. Een werkgebied schrijft nooit annotaties:
+# de inventaris leest de bestaande lagen. Archiveren en een selectie weghalen zijn soft (tijdstip),
+# zodat de historie blijft kloppen.
+werkgebieden = Table("werkgebieden", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("naam", String(200), nullable=False),
+    Column("analysevraag", Text, nullable=False, default=""),
+    Column("afbakening", Text, nullable=False, default=""),
+    # Startactiviteit a van de Leidraad (aanleiding, context, doel) en een gangbaar praktijkvoorbeeld
+    # (activiteit 1b): het dossier waarop Lex zijn voorstellen voor dit werkgebied baseert.
+    Column("aanleiding", Text, nullable=False, server_default="", default=""),
+    Column("context", Text, nullable=False, server_default="", default=""),
+    Column("doel", Text, nullable=False, server_default="", default=""),
+    Column("praktijkvoorbeeld", Text, nullable=False, server_default="", default=""),
+    # Spoor I6: het thema als TOOI-URI uit tooitop (`app/tooi.py`); leeg = nog niet gekozen.
+    Column("thema", String(200), nullable=False, server_default="", default=""),
+    Column("peildatum", String(10), nullable=True),
+    Column("status", String(24), nullable=False, default="in_voorbereiding"),
+    Column("revisie", Integer, nullable=False, default=1),
+    Column("aangemaakt_door", String(64), nullable=False),
+    Column("aangemaakt", _DT, nullable=False),
+    Column("gewijzigd", _DT, nullable=False),
+    Column("gearchiveerd", _DT, nullable=True),
+    # Het samenstellen in het gesprek (activiteit 1) maakt een werkgebied met de id van die intake:
+    # een tweede klik op *Aanmaken*, of een herhaling na een storing, levert hetzelfde werkgebied op.
+    Column("intake_id", String(64), nullable=True),
+    Index("ux_werkgebieden_intake", "intake_id", unique=True))
+werkgebied_bronselecties = Table("werkgebied_bronselecties", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("bron_iri", Text, nullable=False),
+    Column("bereik", String(16), nullable=False, default="onderliggend"),
+    Column("rol", String(16), nullable=False, default="analyseren"),
+    Column("reden", Text, nullable=False, default=""),
+    Column("label", Text, nullable=False, default=""),
+    Column("bwb_id", String(32), nullable=False, default=""),
+    Column("snapshot_id", String(128), nullable=False, default=""),
+    Column("bron_hash", String(64), nullable=False, default=""),
+    Column("toegevoegd_door", String(64), nullable=False),
+    Column("toegevoegd", _DT, nullable=False),
+    Column("verwijderd", _DT, nullable=True))
+werkgebied_audit = Table("werkgebied_audit", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("werkgebied_id", String(64), nullable=False),
+    Column("actor", String(64), nullable=False),
+    Column("actie", String(40), nullable=False),
+    Column("detail", _JSON, nullable=False),
+    Column("tijdstip", _DT, nullable=False),
+    Index("ix_werkgebied_audit_werkgebied", "werkgebied_id", "id"))
+
+# --- Begrippen (spoor D, levering 2) ------------------------------------------
+# Een begrip hoort bij één werkgebied (het begrippenkader is impliciet: één per werkgebied). De inhoud
+# staat als JSON; `begrip_revisies` bewaart per revisie een volledige kopie, want historie is hier een
+# eis. Een koppeling verwijst naar een annotatie-element ZONDER foreign key en draagt haar eigen
+# bewijsstand: elementen worden hard verwijderd, en een begrip mag zijn onderbouwing daar niet mee
+# verliezen. Weghalen is soft (tijdstip).
+begrippen = Table("begrippen", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("status", String(16), nullable=False, default="concept"),
+    Column("revisie", Integer, nullable=False, default=1),
+    Column("inhoud", _JSON, nullable=False),
+    Column("aangemaakt_door", String(64), nullable=False),
+    Column("aangemaakt", _DT, nullable=False),
+    Column("gewijzigd", _DT, nullable=False),
+    Column("geaccordeerd_door", String(64), nullable=True),
+    Column("geaccordeerd_op", _DT, nullable=True),
+    Column("geaccordeerd_revisie", Integer, nullable=True),
+    Column("verwijderd", _DT, nullable=True))
+begrip_revisies = Table("begrip_revisies", metadata,
+    Column("begrip_id", String(64), primary_key=True),
+    Column("revisie", Integer, primary_key=True),
+    Column("actie", String(40), nullable=False),
+    Column("detail", _JSON, nullable=False),
+    Column("status", String(16), nullable=False),
+    Column("inhoud", _JSON, nullable=False),
+    Column("actor", String(64), nullable=False),
+    Column("tijdstip", _DT, nullable=False))
+begrip_koppelingen = Table("begrip_koppelingen", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("begrip_id", String(64), nullable=False, index=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("element_id", String(64), nullable=False, index=True),
+    Column("rol", String(16), nullable=False),
+    Column("motivatie", Text, nullable=False, default=""),
+    Column("bewijs", _JSON, nullable=False),
+    Column("beoordeling", String(16), nullable=False, default="open"),
+    Column("beoordeeld_door", String(64), nullable=True),
+    Column("beoordeeld_op", _DT, nullable=True),
+    Column("toegevoegd_door", String(64), nullable=False),
+    Column("toegevoegd", _DT, nullable=False),
+    Column("verwijderd", _DT, nullable=True),
+    # Herbeoordeling (fase F1). `bewijs` blijft de stand van het koppelen en verandert nooit. Herkoppelen
+    # aan een opvolger haalt deze koppeling weg en noemt de nieuwe hier; zo blijft de oude bewijsstand
+    # als historie leesbaar. `bevestigingen` = [{element_hash, bron_hashes, door, op, motivatie}]: de
+    # analist zag de veranderde passage en het begrip klopt nog – de nieuwste is de stand waartegen de
+    # actualiteit daarna rekent. Additief, dus `reconcile_schema` zet ze bij.
+    Column("vervangen_door", String(64), nullable=True),
+    Column("bevestigingen", _JSON, nullable=True))
+# Een element bewust buiten behandeling (fase F1, dekking): geen begrip nodig, met reden. Gedeeld zoals
+# het werkgebied; terugdraaien is soft (tijdstip), zodat de audit en de rij het besluit bewaren.
+werkgebied_element_besluiten = Table("werkgebied_element_besluiten", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False),
+    Column("element_id", String(64), nullable=False),
+    Column("stand", String(24), nullable=False, default="buiten_behandeling"),
+    Column("reden", Text, nullable=False, default=""),
+    Column("besloten_door", String(64), nullable=False),
+    Column("besloten_op", _DT, nullable=False),
+    Column("verwijderd", _DT, nullable=True),
+    Index("ix_werkgebied_element_besluiten", "werkgebied_id", "element_id"))
+# Deelvragen (vervolg op F, open keuze 4: optioneel). Een deelvraag splitst de analysevraag; ze is
+# `actief`, of een `voorgesteld` voorstel van Lex dat de analist overneemt of `afgewezen` (dan stelt Lex
+# hem niet opnieuw voor). Een actieve deelvraag hoort bij de scope en draagt dus de revisie van het
+# werkgebied; een voorstel niet. Koppelingen naar bronselecties en begrippen zijn een set per deelvraag
+# (`soort` bron | begrip), zonder foreign key, zoals de begripskoppelingen. Weghalen is soft.
+werkgebied_deelvragen = Table("werkgebied_deelvragen", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("vraag", Text, nullable=False),
+    Column("volgorde", Integer, nullable=False, default=0),
+    Column("status", String(16), nullable=False, default="actief"),
+    Column("herkomst", String(16), nullable=False, default="analist"),
+    Column("reden", Text, nullable=False, default=""),
+    # Bij een voorstel van Lex dat een actieve deelvraag verbetert: die deelvraag. Overnemen zet haar op
+    # `vervangen`, en de opvolger krijgt haar plek en koppelingen.
+    Column("vervangt", String(64), nullable=False, default="", server_default=""),
+    Column("aangemaakt_door", String(64), nullable=False),
+    Column("aangemaakt", _DT, nullable=False),
+    Column("gewijzigd", _DT, nullable=False),
+    Column("verwijderd", _DT, nullable=True))
+werkgebied_deelvraag_koppelingen = Table("werkgebied_deelvraag_koppelingen", metadata,
+    Column("deelvraag_id", String(64), primary_key=True),
+    Column("soort", String(16), primary_key=True),
+    Column("doel_id", String(64), primary_key=True),
+    Column("gekoppeld_door", String(64), nullable=False),
+    Column("gekoppeld", _DT, nullable=False),
+    # Bij een bron (spoor J): de rol bij díé deelvraag – `analyseren` of `context`. Leeg = de rol van de
+    # selectie. Zo is één bepaling kernbron bij de ene deelvraag en contextbron bij de andere.
+    Column("rol", String(16), nullable=False, default="", server_default=""))
+
+# --- Bronselectie per deelvraag (spoor J) --------------------------------------
+# De voortgang van de bronselectie, per deelvraag (`deelvraag_id` leeg = de analysevraag van een werkgebied
+# zonder deelvragen). Geen rij = `niet_gestart`. Dit is de stand van het wérk, niet van de inhoud: de
+# deelvraagstatus (actief, vervangen) en de dekkingscheck (met_bron, geen_bron) staan los. `scope_stand` is de
+# hash van analysevraag, afbakening en deelvraagtekst bij het afronden; wijkt die later af, dan moet de
+# afronding opnieuw bekeken worden. `geopend`: de laatst geopende deelvraag is de actieve.
+bronselectie_voortgang = Table("bronselectie_voortgang", metadata,
+    Column("werkgebied_id", String(64), primary_key=True),
+    Column("deelvraag_id", String(64), primary_key=True),
+    Column("status", String(24), nullable=False),
+    Column("fase", String(24), nullable=False, default="kern"),
+    Column("open_punten", _JSON, nullable=False),
+    Column("scope_stand", String(64), nullable=False, default="", server_default=""),
+    Column("revisie", Integer, nullable=False, default=1),
+    Column("gewijzigd_door", String(64), nullable=False),
+    Column("gewijzigd", _DT, nullable=False),
+    Column("geopend", _DT, nullable=False))
+# Een besluit over een kandidaat bij één deelvraag: `later` of `uitgesloten` (met reden). Opnemen is geen rij
+# hier maar een koppeling van de selectie aan de deelvraag. Het besluit op `bron_kandidaten` blijft het
+# werkgebiedbrede besluit; een uitsluiting daar geldt voor elke deelvraag.
+bron_kandidaat_deelvragen = Table("bron_kandidaat_deelvragen", metadata,
+    Column("werkgebied_id", String(64), primary_key=True),
+    Column("kandidaat_id", String(64), primary_key=True),
+    Column("deelvraag_id", String(64), primary_key=True),
+    Column("status", String(16), nullable=False),
+    Column("reden", Text, nullable=False, default=""),
+    Column("besloten_door", String(64), nullable=False),
+    Column("besloten_op", _DT, nullable=False))
+
+# --- Bronnen vinden met Lex (spoor D, fase A) ---------------------------------
+# Een bronnenrun past de ontdekmethoden van graph-qa toe op de selectie van een werkgebied. De api
+# legt de invoer vast (kern- en contextbronnen, analysevraag), graph-qa zoekt en zet de kandidaten
+# terug. Idempotent op (werkgebied, invoer): dezelfde selectie geeft dezelfde run.
+# Een kandidaat is per (werkgebied, bron_iri) één rij: vinden meer methoden dezelfde bepaling, dan
+# groeit zijn bewijs. Zijn besluit (later, uitgesloten met reden, opgenomen) blijft staan als een
+# latere run hem opnieuw vindt – een uitgesloten kandidaat stelt Lex niet opnieuw voor.
+bronnen_runs = Table("bronnen_runs", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("invoer_id", String(32), nullable=False),
+    Column("invoer", _JSON, nullable=False),
+    Column("status", String(16), nullable=False, default="wacht"),
+    Column("meting", _JSON, nullable=True),
+    Column("uitkomst_hash", String(64), nullable=True),
+    Column("reden", Text, nullable=False, default=""),
+    Column("gestart_door", String(64), nullable=False),
+    Column("gestart", _DT, nullable=False),
+    Column("gewijzigd", _DT, nullable=False),
+    Index("ix_bronnen_runs_invoer", "werkgebied_id", "invoer_id"))
+bron_kandidaten = Table("bron_kandidaten", metadata,
+    Column("werkgebied_id", String(64), primary_key=True),
+    Column("id", String(64), primary_key=True),
+    Column("bron_iri", Text, nullable=False),
+    Column("label", Text, nullable=False, default=""),
+    Column("bwb_id", String(32), nullable=False, default=""),
+    Column("rol", String(16), nullable=False),
+    Column("bewijs", _JSON, nullable=False),
+    Column("run_id", String(64), nullable=False),
+    Column("status", String(16), nullable=False, default="voorgesteld"),
+    Column("reden", Text, nullable=False, default=""),
+    Column("besloten_door", String(64), nullable=True),
+    Column("besloten_op", _DT, nullable=True),
+    Column("voorgesteld", _DT, nullable=False),
+    Column("gewijzigd", _DT, nullable=False))
+
+# --- Voorstellen van Lex (spoor D, levering 3; ADR-004) -----------------------
+# Een run is één toepassing van de begrippenketen op het manifest van een werkgebied. De api bouwt en
+# bewaart het manifest (de vaste invoer), graph-qa rekent en zet de uitkomst terug. Idempotent op
+# (werkgebied, manifest): dezelfde invoer geeft dezelfde groepen, dus een tweede start rekent niet
+# opnieuw. Een groep-id is de inhoudshash van de keten (`G…`); een besluit over een groep (afgewezen,
+# overgenomen) blijft daardoor staan als dezelfde groep in een latere run terugkomt.
+begrippen_runs = Table("begrippen_runs", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("manifest_id", String(32), nullable=False),
+    Column("manifest", _JSON, nullable=False),
+    Column("overgeslagen", _JSON, nullable=False),
+    Column("status", String(16), nullable=False, default="wacht"),
+    Column("uitkomst", _JSON, nullable=True),
+    Column("uitkomst_hash", String(64), nullable=True),
+    Column("vragen_besluiten", _JSON, nullable=False),
+    Column("reden", Text, nullable=False, default=""),
+    Column("gestart_door", String(64), nullable=False),
+    Column("gestart", _DT, nullable=False),
+    Column("gewijzigd", _DT, nullable=False),
+    # De model-laag (fase C): groepen, kaarten en oordelen na de verdieping; NULL = nog niet verdiept.
+    Column("verdieping", _JSON, nullable=True),
+    # De onderzoeksstand (spoor M, `begrip_onderzoek`): de context naast het manifest. Additief, dus
+    # `reconcile_schema` zet ze bij; een oude run heeft `onderzoek_id` "" en geen onderzoek.
+    Column("onderzoek_id", String(32), nullable=False, server_default="", default=""),
+    Column("onderzoek", _JSON, nullable=True),
+    Index("ix_begrippen_runs_manifest", "werkgebied_id", "manifest_id"))
+betekenisgroepen = Table("betekenisgroepen", metadata,
+    Column("werkgebied_id", String(64), primary_key=True),
+    Column("id", String(64), primary_key=True),
+    Column("run_id", String(64), nullable=False),
+    Column("leden", _JSON, nullable=False),
+    Column("aandacht", String(8), nullable=False),
+    Column("voorstel", _JSON, nullable=False),
+    Column("uitleg", _JSON, nullable=False),
+    Column("conflicten", _JSON, nullable=False),
+    Column("besluit", String(16), nullable=False, default="open"),
+    Column("reden", Text, nullable=False, default=""),
+    Column("begrip_id", String(64), nullable=True),
+    Column("besloten_door", String(64), nullable=True),
+    Column("besloten_op", _DT, nullable=True),
+    # Fase C: wie de groep vormde (de beslistabel of een oordeel van het model) en de concept-kaart.
+    Column("door", String(8), nullable=False, server_default="regel"),
+    Column("kaart", _JSON, nullable=True),
+    # Fase D: leden die al een begrip werden terwijl de groep open bleef (splitsen). De groep toont
+    # alleen de rest; zijn alle leden afgehandeld, dan is de groep overgenomen.
+    Column("afgehandeld", _JSON, nullable=True))
+# Eén afgeronde batch van de verdieping (fase C). Er staat alleen wat klaar is: een herstart doet de
+# batches die hier ontbreken. De sleutel is inhoudelijk (graph-qa `verdieping.batch_id`), dus
+# dezelfde batch met hetzelfde model en dezelfde prompt draait één keer.
+begrippen_batches = Table("begrippen_batches", metadata,
+    Column("run_id", String(64), primary_key=True),
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("soort", String(8), nullable=False),          # vraag | kaart
+    Column("ids", _JSON, nullable=False),                # kandidaat- of groep-id's
+    Column("resultaat", _JSON, nullable=False),
+    Column("model", String(128), nullable=False),
+    Column("promptversie", String(32), nullable=False),
+    Column("tokens", Integer, nullable=False, default=0),
+    Column("gemaakt_door", String(64), nullable=False),
+    Column("gemaakt", _DT, nullable=False))
+
+# --- Lex naast de kaart (spoor D, fase E) -------------------------------------
+# Een kaartrun is één actie van Lex op één begrip (brondefinitie zoeken, scherpere definitie,
+# betekenisverschil, voorbeelden). De api legt de invoer vast – het begrip op zijn revisie, de dragende
+# passages en het manifest van het werkgebied –, graph-qa rekent en zet de voorstellen terug. Een
+# voorstel is een eigen rij, geen wijziging: pas overnemen door de analist raakt het begrip, en `basis`
+# bewaart de waarde van het veld waarop het voorstel rust, zodat niets stil wordt overschreven.
+begrip_kaartruns = Table("begrip_kaartruns", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("begrip_id", String(64), nullable=False, index=True),
+    Column("actie", String(24), nullable=False),
+    Column("invoer_id", String(32), nullable=False),
+    Column("invoer", _JSON, nullable=False),
+    Column("status", String(16), nullable=False, default="wacht"),
+    Column("melding", Text, nullable=False, default=""),
+    Column("meting", _JSON, nullable=True),
+    Column("uitkomst_hash", String(64), nullable=True),
+    Column("reden", Text, nullable=False, default=""),
+    Column("gestart_door", String(64), nullable=False),
+    Column("gestart", _DT, nullable=False),
+    Column("gewijzigd", _DT, nullable=False),
+    Index("ix_begrip_kaartruns_invoer", "begrip_id", "actie", "invoer_id"))
+# --- Begripsrelaties (spoor D, fase F2) ----------------------------------------
+# Een relatie tussen twee begrippen van één werkgebied, met type, richting en bewijs. Voorstellen van Lex
+# (uit de relaties tussen elementen van de laatste klare begrippenrun) worden bij het lezen afgeleid; pas
+# een besluit schrijft een rij, zodat een afgewezen voorstel niet terugkomt. `stand_van`/`stand_naar` =
+# de hash van definitie + context van beide kanten bij het vastleggen: wijkt die af, dan staat de relatie
+# in de herbeoordeling. `opvolging` (nieuwe betekenis, combineren) draagt in `bewijs` de vorige status
+# van het vervangen begrip, zodat het verwijderen van de opvolger hem terugzet.
+begrip_relaties = Table("begrip_relaties", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("van_begrip", String(64), nullable=False, index=True),
+    Column("naar_begrip", String(64), nullable=False, index=True),
+    Column("type", String(16), nullable=False),
+    Column("herkomst", String(16), nullable=False),          # lex | analist | systeem
+    Column("bewijs", _JSON, nullable=False),
+    Column("toelichting", Text, nullable=False, default=""),
+    Column("beoordeling", String(16), nullable=False),       # akkoord | afgewezen
+    Column("stand_van", String(64), nullable=False, default=""),
+    Column("stand_naar", String(64), nullable=False, default=""),
+    Column("door", String(64), nullable=False),
+    Column("op", _DT, nullable=False),
+    Column("verwijderd", _DT, nullable=True))
+begrip_voorstellen = Table("begrip_voorstellen", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("begrip_id", String(64), nullable=False, index=True),
+    Column("run_id", String(64), nullable=False, index=True),
+    Column("actie", String(24), nullable=False),
+    Column("veld", String(16), nullable=False),           # definitie | uitleg | open_vragen | voorbeelden
+    Column("volgorde", Integer, nullable=False, default=0),
+    Column("basis", _JSON, nullable=False),               # {revisie, definitie, definitie_herkomst}
+    Column("waarde", _JSON, nullable=False),
+    Column("motivatie", Text, nullable=False, default=""),
+    Column("aandacht", String(8), nullable=False, default="geel"),
+    Column("aandachtspunten", _JSON, nullable=False),
+    Column("door", _JSON, nullable=False),                # {bron: model|graaf, model, promptversie}
+    Column("status", String(16), nullable=False, default="open"),
+    Column("reden", Text, nullable=False, default=""),
+    Column("besloten_door", String(64), nullable=True),
+    Column("besloten_op", _DT, nullable=True),
+    Column("begrip_revisie", Integer, nullable=True),     # de revisie die het overnemen opleverde
+    Column("gemaakt", _DT, nullable=False))
+
 # --- Tokenbudget --------------------------------------------------------------
 # Verbruik is een JOURNAAL, geen teller. Eén rij per LLM-call; de stand van nu is een som over het
 # huidige venster. Dat heeft drie eigenschappen die een teller niet heeft:
@@ -293,11 +632,17 @@ gesprekken = Table(
     Column("titel", Text, nullable=False, default=""),
     Column("created", _DT, nullable=False),
     Column("updated", _DT, nullable=False),
+    # Het werkgebied waar dit gesprek bij hoort (leeg = een los gesprek). Geen foreign key: een
+    # gewist werkgebied maakt het gesprek los (`werkgebied_store.wis`), het verslag blijft staan.
+    Column("werkgebied_id", String(64), nullable=False, default="", server_default=""),
+    # Gearchiveerd = uit de navigatie, niet weg. Zelfde vorm als `werkgebieden.gearchiveerd`.
+    Column("gearchiveerd", _DT, nullable=True),
     Index("ix_gesprekken_user_updated", "user_id", "updated"),
 )
 
-# De berichten binnen een gesprek. `inhoud` (JSON) draagt de heterogene payload van één beurt:
-# {tekst, denk?, bronnen?, annotatie_slug?, annotatie_titel?, ontbrekend?}. De tijdlijn = ORDER BY id.
+# De berichten binnen een gesprek. `inhoud` (JSON) draagt de heterogene payload van één beurt – de
+# velden van `gesprek_contracts.BerichtInvoer` die niet leeg zijn (tekst, denk, bronnen, artefact,
+# annotatie_doel, reeks, …; zie `gesprek_store._inhoud`). De tijdlijn = ORDER BY id.
 gesprek_berichten = Table(
     "gesprek_berichten",
     metadata,
@@ -345,7 +690,43 @@ def init_engine(url: str, **kwargs) -> AsyncEngine:
     elif not url.startswith("sqlite"):
         kwargs.setdefault("pool_pre_ping", True)
     _engine = create_async_engine(url, **kwargs)
+    event.listen(_engine.sync_engine, "commit", _na_commit)
+    event.listen(_engine.sync_engine, "rollback", _na_rollback)
     return _engine
+
+
+# --- Na de commit -----------------------------------------------------------------------------
+# Een schrijfpad noteert op de verbinding wat er na de commit moet gebeuren (`noteer_na_commit`); een
+# geregistreerde haak (`na_commit_haak`) krijgt het na de commit, een rollback gooit het weg. Zo hoeft
+# niet elk schrijfpad zelf aan de projectie te denken (fase F3: elke audited werkgebiedmutatie). Het
+# `commit`-event valt vóór de COMMIT op de database: een haak plant dus alleen werk in, en dat werk
+# wacht met een leesslot tot de transactie echt klaar is (`begrip_projectie.projecteer`).
+_NA_COMMIT = "wa_na_commit"
+_haken: dict[str, Callable[[set], None]] = {}
+
+
+def na_commit_haak(sleutel: str, haak: Callable[[set], None]) -> None:
+    _haken[sleutel] = haak
+
+
+def noteer_na_commit(conn, sleutel: str, waarde: str) -> None:
+    """`conn` is een (Async)Connection; de notitie hangt aan de onderliggende DBAPI-verbinding."""
+    sync = getattr(conn, "sync_connection", None) or conn
+    sync.info.setdefault(_NA_COMMIT, {}).setdefault(sleutel, set()).add(waarde)
+
+
+def _na_commit(conn) -> None:
+    for sleutel, waarden in (conn.info.pop(_NA_COMMIT, None) or {}).items():
+        haak = _haken.get(sleutel)
+        if haak is not None:
+            try:
+                haak(waarden)
+            except Exception:  # noqa: BLE001 – een haak mag een commit nooit laten falen
+                logging.getLogger(__name__).warning("na_commit_haak_mislukt", extra={"sleutel": sleutel})
+
+
+def _na_rollback(conn) -> None:
+    conn.info.pop(_NA_COMMIT, None)
 
 
 def get_engine() -> AsyncEngine:

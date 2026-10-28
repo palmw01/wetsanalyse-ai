@@ -1,0 +1,527 @@
+{
+ "voor": {
+  "definities": [
+   {
+    "run": 0,
+    "casus": "A",
+    "bron": "scherper",
+    "herkomst": "geformuleerd",
+    "definitie": "Aanpassing van een voorlopige aanslag inkomstenbelasting of vennootschapsbelasting met een negatief bedrag tot een voorlopige aanslag met een positief bedrag, vastgesteld ambtshalve, overeenkomstig een op de door de inspecteur aangegeven wijze ingediend verzoek, of overeenkomstig de ingediende aangifte met betrekking tot het tijdvak waarover de belasting wordt geheven.",
+    "kern_signalen": [
+     "ALGEMENE_NAAM_SPECIFIEKE_DEFINITIE"
+    ],
+    "duiding": null
+   },
+   {
+    "run": 0,
+    "casus": "B",
+    "bron": "scherper",
+    "herkomst": "geformuleerd",
+    "definitie": "Bedrag dat de belastingplichtige verschuldigd is op grond van een aanslag of navorderingsaanslag inkomstenbelasting of vennootschapsbelasting.",
+    "kern_signalen": [
+     "TEGENBEWIJS_IN_ONDERZOEK"
+    ],
+    "duiding": null
+   },
+   {
+    "run": 1,
+    "casus": "A",
+    "bron": "scherper",
+    "herkomst": "geformuleerd",
+    "definitie": "Vaststelling van een voorlopige aanslag inkomstenbelasting of vennootschapsbelasting met een positief bedrag ter vervanging van een eerdere voorlopige aanslag met een negatief bedrag.",
+    "kern_signalen": [
+     "ALGEMENE_NAAM_SPECIFIEKE_DEFINITIE"
+    ],
+    "duiding": null
+   },
+   {
+    "run": 1,
+    "casus": "B",
+    "bron": "scherper",
+    "herkomst": "geformuleerd",
+    "definitie": "Het bedrag dat de belastingplichtige verschuldigd is op een vastgestelde aanslag of navorderingsaanslag inzake inkomstenbelasting of vennootschapsbelasting.",
+    "kern_signalen": [
+     "TEGENBEWIJS_IN_ONDERZOEK"
+    ],
+    "duiding": null
+   },
+   {
+    "run": 2,
+    "casus": "A",
+    "bron": "scherper",
+    "herkomst": "geformuleerd",
+    "definitie": "Een vaststelling waarbij een voorlopige aanslag inkomstenbelasting of vennootschapsbelasting met een negatief bedrag wordt gewijzigd tot een voorlopige aanslag met een positief bedrag.",
+    "kern_signalen": [
+     "ALGEMENE_NAAM_SPECIFIEKE_DEFINITIE"
+    ],
+    "duiding": null
+   },
+   {
+    "run": 2,
+    "casus": "B",
+    "bron": "scherper",
+    "herkomst": "geformuleerd",
+    "definitie": "Het bedrag aan inkomstenbelasting of vennootschapsbelasting dat door de belastingplichtige verschuldigd is op grond van een vastgestelde aanslag of navorderingsaanslag.",
+    "kern_signalen": [
+     "TEGENBEWIJS_IN_ONDERZOEK"
+    ],
+    "duiding": null
+   }
+  ],
+  "tokens": {
+   "kaart": [
+    1635,
+    1701,
+    1660,
+    1700,
+    1640,
+    1683
+   ],
+   "scherper": [
+    2171,
+    2114,
+    2177,
+    2050,
+    2104,
+    2120
+   ],
+   "voorbeelden": [
+    1953,
+    1856,
+    1871,
+    1830,
+    1863,
+    1817
+   ]
+  },
+  "duur_s": [
+   60.7,
+   61.0,
+   33.1,
+   27.9,
+   27.8,
+   30.9
+  ],
+  "voorbeelden": [
+   {
+    "casus": "A",
+    "aantal": 5,
+    "niet": 1,
+    "onzeker": 1,
+    "soorten": [
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "toetst_anders": 0,
+    "dubbel": false
+   },
+   {
+    "casus": "B",
+    "aantal": 5,
+    "niet": 2,
+    "onzeker": 1,
+    "soorten": [
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "toetst_anders": 0,
+    "dubbel": false
+   },
+   {
+    "casus": "A",
+    "aantal": 5,
+    "niet": 1,
+    "onzeker": 2,
+    "soorten": [
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "toetst_anders": 0,
+    "dubbel": false
+   },
+   {
+    "casus": "B",
+    "aantal": 5,
+    "niet": 2,
+    "onzeker": 1,
+    "soorten": [
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "toetst_anders": 0,
+    "dubbel": false
+   },
+   {
+    "casus": "A",
+    "aantal": 5,
+    "niet": 2,
+    "onzeker": 1,
+    "soorten": [
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "toetst_anders": 0,
+    "dubbel": false
+   },
+   {
+    "casus": "B",
+    "aantal": 5,
+    "niet": 2,
+    "onzeker": 1,
+    "soorten": [
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "toetst_anders": 0,
+    "dubbel": false
+   }
+  ],
+  "meldingen": [
+   {
+    "casus": "A",
+    "actie": "kaart",
+    "melding": "De fragmenten beschrijven de renteberekening bij herziening maar definiëren het begrip zelf niet expliciet; uit F3996049708 valt echter op te maken dat een herziening een omzetting van een voorlopige aanslag betreft. F346db1c918 bevat alleen een uitzondering op de tijdvakberekening en draagt niet bij aan de definitie van het begrip zelf.",
+    "aandachtspunten": [
+     "CIRCULAIR_VERWORPEN",
+     "GEEN_DEFINITIE"
+    ]
+   },
+   {
+    "casus": "B",
+    "actie": "kaart",
+    "melding": "De fragmenten omschrijven het begrip niet zelfstandig maar in de context van de renteberekening; een geformuleerde definitie maakt het soortbegrip (verschuldigd bedrag op een aanslag) en het onderscheidend kenmerk (grondslag voor belastingrente) expliciet. Samenstelling zou een te lange en procedureel gekleurde omschrijving opleveren die geen zuivere definitie vormt.",
+    "aandachtspunten": [
+     "CIRCULAIR_VERWORPEN",
+     "GEEN_DEFINITIE"
+    ]
+   },
+   {
+    "casus": "A",
+    "actie": "kaart",
+    "melding": "De fragmenten beschrijven de gevolgen van een herziening (renteberekening) maar definiëren het begrip niet expliciet; een geformuleerde definitie put het soortbegrip (wijziging van een voorlopige aanslag) en het onderscheidend kenmerk (verandering van het vastgestelde bedrag) uit de context van beide fragmenten. Een samengestelde definitie is niet mogelijk omdat geen enkel fragment een afgeronde omschrijving van het begrip zelf bevat.",
+    "aandachtspunten": [
+     "CIRCULAIR_VERWORPEN",
+     "GEEN_DEFINITIE"
+    ]
+   },
+   {
+    "casus": "B",
+    "actie": "kaart",
+    "melding": "De fragmenten noemen het begrip steeds in functionele zin (als grondslag en als drempel voor belastingrente), maar geven geen afgeronde definitie die letterlijk kan worden overgenomen. Een geformuleerde definitie brengt het soortbegrip (bedrag op aanslag/navorderingsaanslag) en het onderscheidend kenmerk (verschuldigd door belastingplichtige, grondslag voor belastingrente) samen.",
+    "aandachtspunten": [
+     "CIRCULAIR_VERWORPEN",
+     "GEEN_DEFINITIE"
+    ]
+   },
+   {
+    "casus": "A",
+    "actie": "kaart",
+    "melding": "De fragmenten beschrijven de gevolgen van een herziening (renteberekening en tijdvakken), maar omschrijven het begrip zelf niet als zodanig. Een geformuleerde definitie is nodig omdat de fragmenten alleen de context en rekenregels bevatten, niet een afgeronde begripsomschrijving.",
+    "aandachtspunten": [
+     "CIRCULAIR_VERWORPEN",
+     "GEEN_DEFINITIE"
+    ]
+   },
+   {
+    "casus": "B",
+    "actie": "kaart",
+    "melding": "Geen van de fragmenten bevat een afgeronde definitie; beide fragmenten samen omschrijven het begrip als het op de aanslag vastgestelde, door de belastingplichtige verschuldigde bedrag dat tevens de grondslag vormt voor de belastingrente. Een geformuleerde definitie brengt deze twee elementen samen zonder nieuwe inhoud toe te voegen.",
+    "aandachtspunten": [
+     "CIRCULAIR_VERWORPEN",
+     "GEEN_DEFINITIE"
+    ]
+   }
+  ],
+  "samen": {
+   "definities": 6,
+   "met_kernsignaal": 6,
+   "tokens_mediaan": {
+    "kaart": 1671.5,
+    "scherper": 2117.0,
+    "voorbeelden": 1859.5
+   },
+   "duur_mediaan_s": 32.0
+  }
+ },
+ "na": {
+  "definities": [
+   {
+    "run": 0,
+    "casus": "A",
+    "bron": "scherper",
+    "herkomst": "geformuleerd",
+    "definitie": "Wijziging van een voorlopige aanslag inkomstenbelasting of vennootschapsbelasting, waarbij het bedrag van die aanslag wordt gewijzigd van het ene bedrag tot een ander bedrag.",
+    "kern_signalen": [],
+    "duiding": {
+     "soort": "begrip",
+     "bereik": "algemeen",
+     "voorkeursterm": "herziening",
+     "ontbreekt": ""
+    }
+   },
+   {
+    "run": 1,
+    "casus": "A",
+    "bron": "scherper",
+    "herkomst": "geformuleerd",
+    "definitie": "Wijziging van een voorlopige aanslag inkomstenbelasting of vennootschapsbelasting waarbij het bedrag van die aanslag verandert.",
+    "kern_signalen": [],
+    "duiding": {
+     "soort": "begrip",
+     "bereik": "algemeen",
+     "voorkeursterm": "herziening",
+     "ontbreekt": ""
+    }
+   },
+   {
+    "run": 1,
+    "casus": "B",
+    "bron": "kaart",
+    "herkomst": "samengesteld",
+    "definitie": "Voor de toepassing van dit artikel geldt als het te betalen bedrag aan belasting … het bedrag na de verrekening ingevolge: … artikel 15 … de artikelen 3 152, zesde lid, en 4.51, zesde lid, van de Wet inkomstenbelasting 2001 … artikel 21, derde lid, van de Wet op de vennootschapsbelasting 1969",
+    "kern_signalen": [
+     "AFLEIDING_IN_DEFINITIE"
+    ],
+    "duiding": {
+     "soort": "begrip",
+     "bereik": "specifiek",
+     "voorkeursterm": "te betalen bedrag aan belasting",
+     "ontbreekt": ""
+    }
+   },
+   {
+    "run": 2,
+    "casus": "A",
+    "bron": "kaart",
+    "herkomst": "geformuleerd",
+    "definitie": "Het wijzigen van een voorlopige aanslag inkomstenbelasting of vennootschapsbelasting tot een voorlopige aanslag met een ander bedrag.",
+    "kern_signalen": [],
+    "duiding": {
+     "soort": "begrip",
+     "bereik": "algemeen",
+     "voorkeursterm": "herziening",
+     "ontbreekt": "Een expliciete definitie ontbreekt; de wet gebruikt de term alleen functioneel in de beschrijving van de gevolgen per variant, zodat het wezenlijke kenmerk (het wijzigen van de hoogte van de aanslag) uit de parallelstructuur moet worden afgeleid."
+    }
+   },
+   {
+    "run": 2,
+    "casus": "A",
+    "bron": "scherper",
+    "herkomst": "geformuleerd",
+    "definitie": "Wijziging van een voorlopige aanslag inkomstenbelasting of vennootschapsbelasting waarbij het bedrag van die aanslag verandert.",
+    "kern_signalen": [],
+    "duiding": {
+     "soort": "begrip",
+     "bereik": "algemeen",
+     "voorkeursterm": "herziening",
+     "ontbreekt": ""
+    }
+   }
+  ],
+  "tokens": {
+   "kaart": [
+    3979,
+    3356,
+    3991,
+    3605,
+    3969,
+    3283
+   ],
+   "scherper": [
+    4345,
+    3895,
+    4480,
+    3873,
+    4404,
+    3748
+   ],
+   "voorbeelden": [
+    4244,
+    3381,
+    4266,
+    3430,
+    4296,
+    3585
+   ]
+  },
+  "duur_s": [
+   92.9,
+   87.2,
+   41.1,
+   51.7,
+   40.2,
+   39.6
+  ],
+  "voorbeelden": [
+   {
+    "casus": "A",
+    "aantal": 5,
+    "niet": 2,
+    "onzeker": 1,
+    "soorten": [
+     "positief",
+     "tegenvoorbeeld",
+     "positief",
+     "grensgeval",
+     "tegenvoorbeeld"
+    ],
+    "toetst_anders": 0,
+    "dubbel": false
+   },
+   {
+    "casus": "B",
+    "aantal": 4,
+    "niet": 1,
+    "onzeker": 2,
+    "soorten": [
+     "positief",
+     "grensgeval",
+     "tegenvoorbeeld",
+     "afwijkend"
+    ],
+    "toetst_anders": 0,
+    "dubbel": false
+   },
+   {
+    "casus": "A",
+    "aantal": 5,
+    "niet": 2,
+    "onzeker": 1,
+    "soorten": [
+     "positief",
+     "positief",
+     "tegenvoorbeeld",
+     "grensgeval",
+     "tegenvoorbeeld"
+    ],
+    "toetst_anders": 0,
+    "dubbel": false
+   },
+   {
+    "casus": "B",
+    "aantal": 4,
+    "niet": 1,
+    "onzeker": 1,
+    "soorten": [
+     "positief",
+     "afwijkend",
+     "tegenvoorbeeld",
+     "grensgeval"
+    ],
+    "toetst_anders": 0,
+    "dubbel": false
+   },
+   {
+    "casus": "A",
+    "aantal": 5,
+    "niet": 2,
+    "onzeker": 1,
+    "soorten": [
+     "positief",
+     "positief",
+     "tegenvoorbeeld",
+     "tegenvoorbeeld",
+     "grensgeval"
+    ],
+    "toetst_anders": 0,
+    "dubbel": false
+   },
+   {
+    "casus": "B",
+    "aantal": 5,
+    "niet": 1,
+    "onzeker": 2,
+    "soorten": [
+     "positief",
+     "afwijkend",
+     "tegenvoorbeeld",
+     "grensgeval",
+     "afwijkend"
+    ],
+    "toetst_anders": 0,
+    "dubbel": false
+   }
+  ],
+  "meldingen": [
+   {
+    "casus": "A",
+    "actie": "kaart",
+    "melding": "De fragmenten bevatten geen expliciete definitie maar beschrijven steeds hetzelfde patroon: een voorlopige aanslag wordt vervangen door een voorlopige aanslag met een ander (positief, negatief, hoger, lager) bedrag; dat patroon draagt de wezenlijke betekenis. Open vraag: de fragmenten beschrijven zes verschillende combinaties van bedragen (zes parallelle bepalingen) – of 'herziening' in al die gevallen hetzelfde begrip is of dat Lid 4 een specifiek geval betreft, blijkt niet uit de tekst.",
+    "aandachtspunten": [
+     "CIRCULAIR_VERWORPEN",
+     "GEEN_DEFINITIE"
+    ]
+   },
+   {
+    "casus": "B",
+    "actie": "scherper",
+    "melding": "Onvoldoende bewijs: De fragmenten bevatten geen omschrijving van het soortbegrip en het onderscheidende kenmerk van \"belasting\" zelf; de Lid 7-kwalificatie betreft de samenstelling \"te betalen bedrag aan belasting\" en levert geen definitie van de kale term op."
+   },
+   {
+    "casus": "B",
+    "actie": "kaart",
+    "melding": "Onvoldoende bewijs: Er ontbreekt een bepaling die de wezenlijke kenmerken van 'te betalen bedrag aan belasting' als zelfstandig begrip vastlegt; Lid 7 kwalificeert alleen een samengestelde variant binnen een beperkt bereik, en de overige passages plaatsen de term in een voorwaarde of berekeningsgrondslag zonder hem te definiëren.",
+    "aandachtspunten": [
+     "ONVOLDOENDE_BEWIJS",
+     "GEEN_DEFINITIE"
+    ]
+   },
+   {
+    "casus": "A",
+    "actie": "kaart",
+    "melding": "Onvoldoende bewijs: Een omschrijving van wat een herziening van een voorlopige aanslag inhoudt (de handeling of het besluit waarmee een voorlopige aanslag wordt gewijzigd); de fragmenten geven alleen de rechtsgevolgen per variant, niet de betekenis van het begrip zelf.",
+    "aandachtspunten": [
+     "ONVOLDOENDE_BEWIJS",
+     "GEEN_DEFINITIE"
+    ]
+   },
+   {
+    "casus": "B",
+    "actie": "scherper",
+    "melding": "Onvoldoende bewijs: De fragmenten definiëren nergens wat \"belasting\" zelf is; Lid 7 kwalificeert uitsluitend de samengestelde term \"te betalen bedrag aan belasting\" voor de toepassing van dit artikel, en dat is geen definitie van het soortbegrip \"belasting\"."
+   },
+   {
+    "casus": "B",
+    "actie": "scherper",
+    "melding": "Onvoldoende bewijs: Er is geen fragment dat de wezenlijke kenmerken van de kale term \"belasting\" omschrijft; alle relevante fragmenten betreffen de samenstelling \"te betalen bedrag aan belasting\" of regelen een rechtsgevolg (grondslag, voorwaarde, kwalificatie)."
+   },
+   {
+    "casus": "B",
+    "actie": "kaart",
+    "melding": "Onvoldoende bewijs: Er is geen omschrijving van de wezenlijke kenmerken van 'te betalen bedrag aan belasting' als zodanig; Lid 7 geeft alleen een wettelijke kwalificatie voor de toepassing van het artikel (een fictie), en de overige fragmenten gebruiken de term slechts in een voorwaarde of als grondslag van een berekening.",
+    "aandachtspunten": [
+     "ONVOLDOENDE_BEWIJS",
+     "GEEN_DEFINITIE"
+    ]
+   }
+  ],
+  "samen": {
+   "definities": 5,
+   "met_kernsignaal": 1,
+   "tokens_mediaan": {
+    "kaart": 3787.0,
+    "scherper": 4120.0,
+    "voorbeelden": 3914.5
+   },
+   "duur_mediaan_s": 46.400000000000006
+  }
+ }
+}

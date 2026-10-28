@@ -11,7 +11,8 @@ eval-kanaal in de agent: wat hier meetbaar is, ziet de jurist ook.
 
 Verwachtingen per beurt (alle optioneel):
   route        : één van de gezien-routes (`annotaties_lezen`, `annotatie`, `advies`, `afgewezen`,
-                 `definitie`, `duiding`, `algemeen`) die in deze beurt moet voorkomen
+                 `definitie`, `duiding`, `algemeen`, `deelvragen`, `begrippen`) die in deze beurt moet
+                 voorkomen
   niet_route   : routes die NIET mogen voorkomen
   tools_wel    : tools waarvan er minstens één moet zijn aangeroepen
   tools_niet   : tools die niet aangeroepen mogen worden
@@ -20,6 +21,11 @@ Verwachtingen per beurt (alle optioneel):
   bevat_een    : minstens één van deze deelstrings staat in het antwoord
   verboden     : deelstrings die er niet in mogen staan
   niet_ongegrond: true → het grounding-niveau mag niet `ongegrond` zijn
+
+Per beurt mag de case ook `werkgebied_id` en `onderwerp` meegeven (F3c): de werkplek in een werkgebied, en
+het object waarop de analist *Vraag Lex* koos. Zonder api haalt de eval het object niet op – de supervisor
+krijgt dan het label met de zin dat de gegevens ontbreken – en de agents zeggen dat ze niets kunnen
+bewaren; gemeten wordt de routering.
 """
 from __future__ import annotations
 
@@ -44,6 +50,11 @@ _ROUTE_REGELS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"^Lex · meer dan één artikel genoemd"), "afgewezen"),
     (re.compile(r"^Supervisor · buiten de wet"), "afgewezen"),
     (re.compile(r"^Supervisor · kiest de annotatie-worker"), "annotatie"),
+    # De werkgebied-worker: samenstellen, een klik op een kaartje, of het dossier aanvullen.
+    (re.compile(r"^Lex · (?:stelt met je een werkgebied samen|verwerkt het antwoord op het kaartje|vult met je het "
+                r"dossier aan)"), "werkgebied"),
+    # De agents op een werkgebied (F3c): groep 1 is de agent; de annotatie-agent telt als `annotatie`.
+    (re.compile(r"^Supervisor · kiest de (deelvragen|begrippen|annotatie)-agent"), ""),
     (re.compile(r"^Specialist (\w+) ·"), ""),  # groep 1 is de specialist
 )
 
@@ -200,6 +211,7 @@ async def run_beurt(spec: dict[str, Any], conversation_id: str, *, settings: Set
         spec["vraag"], conversation_id, settings=settings, llm=llm, graph=graph, meter=meter,
         modus=spec.get("modus", "auto"), context=spec.get("context"), doel=spec.get("doel"),
         annotaties=annotaties or getattr(graph, "annotaties", None),
+        werkgebied_id=spec.get("werkgebied_id", ""), onderwerp=spec.get("onderwerp"),
     ):
         soort = ev.get("type")
         if soort == "status":

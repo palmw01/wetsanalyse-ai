@@ -62,6 +62,98 @@ class AgentDoel(BaseModel):
     geheel: bool = False
 
 
+class IntakeActie(BaseModel):
+    """Een klik op een vraagkaartje bij het samenstellen van een werkgebied (activiteit 1,
+    `agent/werkgebied_intake.py`). `stap` is de stap waarop geklikt werd: hoort die niet meer bij de
+    intake, dan toont Lex het huidige kaartje opnieuw in plaats van stil iets anders te doen."""
+
+    intake_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
+    stap: Literal["naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld", "thema", "deelvragen",
+                  "buiten", "regelingen", "bepalingen", "samenvatting",
+                  "bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder"]
+    # Bij de bepalingen: het kaartje van welke deelvraag (0-based); een ander deel is een oud kaartje.
+    deel: int = Field(default=0, ge=0, le=19)
+    # `aanmaken` sluit het samenstellen af, `opslaan` het aanvullen van een bestaand werkgebied.
+    actie: Literal["antwoord", "overslaan", "wijzig", "aanmaken", "opslaan", "afbreken"] = "antwoord"
+    keuzes: list[str] = Field(default_factory=list, max_length=20)
+    tekst: str = Field(default="", max_length=4000)
+    # Meer dan één eigen antwoord (de deelvragen, `meer_tekst` op het kaartje).
+    teksten: list[str] = Field(default_factory=list, max_length=20)
+    # Bij `wijzig`: naar welke stap, en bij de bepalingen naar welk deel.
+    naar: str = ""
+    naar_deel: int = Field(default=0, ge=0, le=19)
+    # De bronselectie (spoor J, `intake_id` `bs-…`): de deelvraag van het kaartje.
+    deelvraag_id: str = Field(default="", pattern=r"^[A-Za-z0-9-]{0,64}$")
+
+    @property
+    def is_bronselectie(self) -> bool:
+        return self.intake_id.startswith("bs-")
+
+
+# Routes op een werkgebied die in werkgebied en gesprek schrijven; alleen via `POST /v1/runs`.
+WERKGEBIED_MODI = ("werkgebied_annoteren", "begrippen_verdiepen")
+
+_ID = r"^[A-Za-z0-9-]{1,64}$"
+
+
+class Onderwerp(BaseModel):
+    """Het object waarop de analist *Vraag Lex* koos (spoor F, F3b): een deelvraag, een bronselectie, een
+    kandidaat van Lex, een begrip of het werkgebied zelf. De browser stuurt alleen soort en id's; wat
+    het object is, haalt `agent/onderwerp.py` bij de api. Context, geen filter – net als de focus.
+
+    Een markering is hier geen soort: die vraag blijft de adviesvraag (`modus: "advies"` met
+    `context`), byte-gelijk aan wat de werkplek al stuurde."""
+
+    soort: Literal["deelvraag", "bron", "kandidaat", "begrip", "werkgebied"]
+    werkgebied_id: str = Field(pattern=_ID)
+    # Het id van het object binnen het werkgebied; bij soort `werkgebied` leeg.
+    id: str = Field(default="", pattern=r"^[A-Za-z0-9-]{0,64}$")
+    # Hoe de werkplek het object noemt; alleen voor wanneer de api het niet (meer) kent.
+    label: str = Field(default="", max_length=300)
+
+    @model_validator(mode="after")
+    def _id_hoort_bij_de_soort(self) -> "Onderwerp":
+        if self.soort != "werkgebied" and not self.id:
+            raise ValueError(f"een onderwerp van soort '{self.soort}' vraagt een id")
+        return self
+
+
+# Een klik op een suggestie bij *Vraag Lex* (F3b, F3c): een vaste handeling die zonder model naar haar agent en
+# taak gaat (`agents/register.py`). `werkgebied_annoteren` (en `deelvragen_annoteren`: alleen de bronnen onder
+# de deelvragen, of onder de aangewezen deelvraag) is de reeks over het werkgebied: die loopt als eigen stroom
+# (`werkgebied_annotatie_beurt`), met en zonder `bevestigd`.
+ACTIE_TAAK: dict[str, tuple[str, str]] = {
+    "werkgebied_annoteren": ("annotatie", "werkgebied"),
+    "deelvragen_annoteren": ("annotatie", "deelvragen"),
+    "deelvragen_voorstellen": ("deelvragen", "voorstellen"),
+    "deelvraag_herformuleren": ("deelvragen", "verbeteren"),
+    "deelvraag_splitsen": ("deelvragen", "verbeteren"),
+    "bronnen_zoeken": ("deelvragen", "bronnen_zoeken"),
+    "dekking": ("deelvragen", "dekking"),
+    "begrippen_voorstellen": ("begrippen", "voorstellen"),
+    "begrippen_meedenken": ("begrippen", "meedenken"),
+    "brondefinitie": ("begrippen", "brondefinitie"),
+    "scherper": ("begrippen", "scherper"),
+    "uitleg": ("begrippen", "uitleg"),
+    "voorbeelden": ("begrippen", "voorbeelden"),
+    "betekenisverschil": ("begrippen", "betekenisverschil"),
+    "begrip_uitwerken": ("begrippen", "uitwerken"),
+    "relaties": ("begrippen", "relaties"),
+}
+# Een actie die geen taak van een agent is: het dossier van het werkgebied aanvullen loopt via de
+# werkgebied-worker (de vraagkaarten van de intake). Welk veld, leest de worker uit de vraag.
+INTAKE_ACTIES = ("dossier_aanvullen",)
+# De bronselectie per deelvraag (spoor J) beginnen of hervatten: de bronselectie-worker, op de stand die de
+# api bewaart. Ook geen taak van een agent.
+BRONSELECTIE_ACTIES = ("bronselectie",)
+Actie = Literal["werkgebied_annoteren", "deelvragen_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
+                "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie",
+                "scherper", "uitleg", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen",
+                "bronselectie"]
+# Acties die eerst om een bevestiging vragen; alleen daar hoort `bevestigd` bij.
+BEVESTIG_ACTIES = ("werkgebied_annoteren", "deelvragen_annoteren", "begrippen_meedenken")
+
+
 class ChatRequest(BaseModel):
     question: str
     conversation_id: str | None = None  # stuur mee voor gespreksgeheugen
@@ -69,7 +161,11 @@ class ChatRequest(BaseModel):
     # "advies" = een vraag bij een bestaande annotatie. De supervisor kiest dan niet zelf, maar
     # routeert hard naar de antwoord-worker: zo kan een adviesvraag structureel geen annotatie
     # wijzigen (die route emit simpelweg geen doel/element-events).
-    modus: Literal["auto", "advies", "annotaties_lezen"] = "auto"
+    # "werkgebied_annoteren" = de nieuwe bepalingen van het werkgebied annoteren (fase B,
+    # `agent/werkgebied_annotatie.py`); zonder `bevestigd` alleen het voorstel.
+    # "begrippen_verdiepen" = het model op twijfelparen en kaarten (fase C); de werkplek stuurt het nog
+    # bij de bevestigingsknop. Het wordt de actie `begrippen_meedenken` (de begrippen-agent).
+    modus: Literal["auto", "advies", "annotaties_lezen", "werkgebied_annoteren", "begrippen_verdiepen"] = "auto"
     context: ChatContext | None = None
     # Een al geannoteerd artikel wordt hergebruikt (`auto`), tenzij de jurist expliciet om een nieuwe
     # ronde vraagt (`opnieuw`). Die voegt toe aan de gedeelde laag; wat beoordeeld is blijft staan.
@@ -77,6 +173,78 @@ class ChatRequest(BaseModel):
     # Meerdere onderdelen van één artikel, gekozen op de keuzekaart: één run die ze na elkaar
     # annoteert, elk met een eigen laag, batch en review (`agent/reeks.py`). Sluit `doel` uit.
     doelen: list[AgentDoel] | None = Field(default=None, min_length=2, max_length=60)
+    # De werkplek is geopend vanuit een werkgebied (spoor D, fase AF2): de context van de beurt, het
+    # werkgebied van de agents, en in de antwoordroute staan zijn begrippen vooraan (`search_begrippen`).
+    werkgebied_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9-]{1,64}$")
+    # Het aantal bepalingen dat de analist bevestigde (fase B). Wijkt de actuele werkvoorraad af,
+    # dan begint de run niet; zonder dit veld noemt Lex alleen wat er te doen is.
+    bevestigd: int | None = Field(default=None, ge=0, le=100_000)
+    # Bij het meedenken (spoor M): de inhoud van de werkvoorraad die de analist bevestigde. Wijkt die af
+    # (andere vragen of kaarten, ander onderzoek, model of prompt), dan begint Lex niet.
+    werkvoorraad_id: str = Field(default="", pattern=r"^(W[0-9a-f]{16})?$")
+    # Wat er bij `werkgebied_annoteren` meegaat: het hele werkgebied, of alleen de bronnen onder de
+    # actieve deelvragen (met `deelvraag_id`: onder die ene). De bevestigingsknop stuurt het terug.
+    bereik: Literal["werkgebied", "deelvragen"] = "werkgebied"
+    deelvraag_id: str = Field(default="", pattern=r"^[A-Za-z0-9-]{0,64}$")
+    # Een klik op een vraagkaartje (activiteit 1): de supervisor stuurt de beurt dan zonder modelaanroep
+    # naar de werkgebied-worker, en geen van de harde werkgebiedroutes neemt hem over.
+    intake_actie: IntakeActie | None = None
+    # Waar de analist *Vraag Lex* op koos (F3b); de beurt krijgt het object als contextblok mee.
+    onderwerp: Onderwerp | None = None
+    # Een klik op een suggestie (F3b): een vaste handeling, zonder model gerouteerd (`ACTIE_TAAK`).
+    actie: Actie | None = None
+
+    @model_validator(mode="after")
+    def _actie_kiest_de_route(self) -> "ChatRequest":
+        """Een actie is een vaste handeling: de supervisor kiest er zonder model agent en taak bij. Alleen
+        `werkgebied_annoteren` zet de modus: met `bevestigd` is dat de reeks (`_stroom_voor`). De modus
+        `begrippen_verdiepen` van de bevestigingsknop wordt de actie `begrippen_meedenken`. Staat vóór de
+        andere validators, zodat die de modus toetsen die de actie koos."""
+        if self.modus == "begrippen_verdiepen" and self.actie is None:
+            self.actie, self.modus = "begrippen_meedenken", "auto"
+            if not self.werkgebied_id:
+                raise ValueError("modus 'begrippen_verdiepen' vraagt een werkgebied_id")
+        if self.actie is None:
+            return self
+        if self.modus != "auto":
+            raise ValueError("geef 'actie' of 'modus', niet allebei")
+        if self.doel is not None or self.doelen is not None or self.intake_actie is not None:
+            raise ValueError("een actie kiest zelf wat ze doet; geef geen 'doel', 'doelen' of 'intake_actie'")
+        if not self.werkgebied_id and self.onderwerp is not None:
+            self.werkgebied_id = self.onderwerp.werkgebied_id
+        if not self.werkgebied_id:
+            raise ValueError(f"de actie '{self.actie}' vraagt een werkgebied_id of een onderwerp")
+        if self.werkvoorraad_id and self.bevestigd is None:
+            raise ValueError("'werkvoorraad_id' hoort bij 'bevestigd'")
+        if self.bevestigd is not None and self.actie not in BEVESTIG_ACTIES:
+            raise ValueError("'bevestigd' hoort bij een actie die om bevestiging vraagt")
+        if self.actie == "werkgebied_annoteren":
+            self.modus = "werkgebied_annoteren"
+        if self.actie == "deelvragen_annoteren":
+            self.modus, self.bereik = "werkgebied_annoteren", "deelvragen"
+            if not self.deelvraag_id and self.onderwerp is not None and self.onderwerp.soort == "deelvraag":
+                self.deelvraag_id = self.onderwerp.id
+        return self
+
+    @property
+    def is_werkgebied_annotatie(self) -> bool:
+        """De reeks over het werkgebied (fase B): de modus of de actie, nooit een tekstpatroon. Zonder
+        `bevestigd` levert hij het voorstel, met `bevestigd` de annotaties."""
+        return bool(self.werkgebied_id) and self.modus == "werkgebied_annoteren"
+
+    @model_validator(mode="after")
+    def _begrippen_horen_bij_een_werkgebied(self) -> "ChatRequest":
+        if self.modus in WERKGEBIED_MODI and not self.werkgebied_id:
+            raise ValueError(f"modus '{self.modus}' vraagt een werkgebied_id")
+        if self.modus in WERKGEBIED_MODI and (self.doel is not None or self.doelen is not None):
+            raise ValueError(f"de route '{self.modus}' kiest zelf wat ze doet; geef geen 'doel' of 'doelen'")
+        if self.bevestigd is not None and self.modus != "werkgebied_annoteren" and self.actie not in BEVESTIG_ACTIES:
+            raise ValueError("'bevestigd' hoort bij modus 'werkgebied_annoteren' of een actie die om bevestiging vraagt")
+        if (self.bereik != "werkgebied" or self.deelvraag_id) and self.modus != "werkgebied_annoteren":
+            raise ValueError("'bereik' en 'deelvraag_id' horen bij het annoteren van het werkgebied")
+        if self.deelvraag_id and self.bereik != "deelvragen":
+            raise ValueError("'deelvraag_id' hoort bij bereik 'deelvragen'")
+        return self
 
     @model_validator(mode="after")
     def _advies_heeft_een_onderwerp(self) -> "ChatRequest":

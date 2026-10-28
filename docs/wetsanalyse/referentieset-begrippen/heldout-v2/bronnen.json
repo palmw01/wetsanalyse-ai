@@ -1,0 +1,97 @@
+{
+  "_herkomst": {
+    "bron": "Algemene wet inzake rijksbelastingen (BWBR0002320), kennisgraaf acceptatie (repository inning), opgehaald 2026-10-14 via de GraphDB-MCP-proxy",
+    "let_op": "Letterlijke wettekst (art. 11 Aw). Niet overtypen; bron_hash is sha256 van de tekst en is tegen SHA256() in de graaf gecontroleerd.",
+    "held_out": "Niet gebruiken om regels te ontwikkelen of af te stellen. Een regel die na het zien van deze set verandert, wordt op een nieuwe held-out set gemeten."
+  },
+  "bronnen": [
+    {
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:1:o:b",
+      "label": "art. 2 lid 1 onderdeel b AWR",
+      "aanhef": "Deze wet verstaat onder:",
+      "regeling": "BWBR0002320",
+      "tekst": "lichamen: verenigingen en andere rechtspersonen, maat- en vennootschappen, ondernemingen van publiekrechtelijke rechtspersonen en doelvermogens.",
+      "bron_hash": "85809f4c872e8a19ac40c183138a3a903526b1c545cdddb28360f6845043dbbd"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:2:o:a",
+      "label": "art. 2 lid 2 onderdeel a AWR",
+      "aanhef": "Waar in de belastingwet wordt gesproken:",
+      "regeling": "BWBR0002320",
+      "tekst": "van vereniging, is daaronder begrepen de samenwerkingsvorm zonder rechtspersoonlijkheid die met een vereniging maatschappelijk gelijk kan worden gesteld;",
+      "bron_hash": "a0b0332f62f2fa20e0ef58bda5d77cc0b20a8a6e8cd3079b2f1901c2ca616e36"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:2:o:c",
+      "label": "art. 2 lid 2 onderdeel c AWR",
+      "aanhef": "Waar in de belastingwet wordt gesproken:",
+      "regeling": "BWBR0002320",
+      "tekst": "van Mogendheid, wordt daaronder mede begrepen een daarmee gelijk te stellen bestuurlijke eenheid;",
+      "bron_hash": "dc71f1156eff9e6b89379b11ddc4af4d45bcd3bdd4cb26a8e58f2a570c14c7e0"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:2:o:d",
+      "label": "art. 2 lid 2 onderdeel d AWR",
+      "aanhef": "Waar in de belastingwet wordt gesproken:",
+      "regeling": "BWBR0002320",
+      "tekst": "van staat, wordt daaronder mede begrepen Mogendheid;",
+      "bron_hash": "ae299ea02d9d52f3a324900d27cd8aa8db8a0f7740ced3b76eaebfff6212029e"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:3:o:b",
+      "label": "art. 2 lid 3 onderdeel b AWR",
+      "aanhef": "De belastingwet verstaat onder:",
+      "regeling": "BWBR0002320",
+      "tekst": "directeur, inspecteur of ontvanger: de functionaris die als zodanig bij ministeriële regeling is aangewezen;",
+      "bron_hash": "33f4cb8e2cc4fc29c759dab4bebde440050a32a653f2d368a5e02d4323ac84d2"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:3:o:d",
+      "label": "art. 2 lid 3 onderdeel d AWR",
+      "aanhef": "De belastingwet verstaat onder:",
+      "regeling": "BWBR0002320",
+      "tekst": "belastingaanslag: de voorlopige aanslag, de aanslag, de navorderingsaanslag en de naheffingsaanslag, alsmede de voorlopige conserverende aanslag, de conserverende aanslag en de conserverende navorderingsaanslag in de inkomstenbelasting, de schenk- en erfbelasting;",
+      "bron_hash": "d8f1b84ae9ee23ce786000567da0808363eed99710bcc85f3d474156953ae89b"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:3:o:l",
+      "label": "art. 2 lid 3 onderdeel l AWR",
+      "aanhef": "De belastingwet verstaat onder:",
+      "regeling": "BWBR0002320",
+      "tekst": "partner: persoon als bedoeld in artikel 5a;",
+      "bron_hash": "307652319befdb5b04f1776fad73e1b848151db57377db94da1500a4c655ecaa"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:5",
+      "label": "art. 2 lid 5 AWR",
+      "aanhef": "",
+      "regeling": "BWBR0002320",
+      "tekst": "Hetgeen bij of krachtens deze wet wordt bepaald inzake de in het derde lid, onderdeel e, bedoelde voorlopige aanslag, aanslag of navorderingsaanslag, is van overeenkomstige toepassing met betrekking tot de in dat onderdeel bedoelde voorlopige conserverende aanslag, onderscheidenlijk conserverende aanslag of conserverende navorderingsaanslag, met dien verstande dat:",
+      "bron_hash": "04320517bbc67230affc90a6a4e85214474dc27078d1a04a9237471b4addd9f1"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:5a:lid:1:o:a",
+      "label": "art. 5a lid 1 onderdeel a AWR",
+      "aanhef": "Als partner wordt aangemerkt:",
+      "regeling": "BWBR0002320",
+      "tekst": "de echtgenoot;",
+      "bron_hash": "af0bb0c9a20f89e2c7b8b928de789e110c8dfac6daa585985edabd02ef4e88ee"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:5a:lid:2",
+      "label": "art. 5a lid 2 AWR",
+      "aanhef": "",
+      "regeling": "BWBR0002320",
+      "tekst": "Degene die ingevolge het eerste lid voor een deel van het kalenderjaar als partner wordt aangemerkt, wordt ook als partner aangemerkt in de andere perioden van het kalenderjaar, voor zover hij in die perioden op hetzelfde woonadres als de belastingplichtige staat ingeschreven in de basisregistratie personen of een daarmee naar aard en strekking overeenkomende registratie buiten Nederland.",
+      "bron_hash": "bff742ca7a42da843b85649a28e601a19566962ef66314f0927af84908d51a12"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:5a:lid:7",
+      "label": "art. 5a lid 7 AWR",
+      "aanhef": "",
+      "regeling": "BWBR0002320",
+      "tekst": "Personen die partners waren op grond van het eerste lid, onderdeel b, blijven als partners aangemerkt nadat de in dat onderdeel bedoelde inschrijving op hetzelfde woonadres niet langer mogelijk is als gevolg van opname in een verpleeghuis of verzorgingshuis vanwege medische redenen of ouderdom van een van hen, zolang na het einde van die inschrijving op hetzelfde woonadres ten aanzien van geen van beiden een derde persoon als partner wordt aangemerkt. De eerste volzin vindt geen toepassing meer indien één van beiden door middel van een schriftelijke kennisgeving aan de inspecteur laat weten dat zij niet langer als partners willen worden aangemerkt. Bij ministeriële regeling kunnen nadere regels worden gesteld ten behoeve van de uitvoering van dit lid.",
+      "bron_hash": "b2ac0c14e8fe90e8bd53409d12ab56345598fbe9d8cc927a4387f52c2f0557ac"
+    }
+  ]
+}

@@ -13,6 +13,7 @@ import Link from "next/link";
 import { memo, useEffect, useMemo, useState } from "react";
 
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
+import { Button } from "@/components/ui/Button";
 import { ChevronOmlaag, Cirkel, Waarschuwing } from "@/components/ui/Icoon";
 import { HergebruikMelding } from "@/components/werkplek/HergebruikMelding";
 import { KeuzeKaart } from "@/components/werkplek/KeuzeKaart";
@@ -20,24 +21,45 @@ import { Markdown, StreamendeTekst } from "@/components/werkplek/Markdown";
 import { OverzichtBlok } from "@/components/werkplek/OverzichtBlok";
 import { ReeksBlok } from "@/components/werkplek/ReeksBlok";
 import { ToolSpoor } from "@/components/werkplek/ToolSpoor";
+import { VragenKaart } from "@/components/werkplek/VragenKaart";
 import {
   annotatieTitel, doelVanKandidaat, doelVoorOpnieuw, kandidaatLabel, kandidaatPrompt,
 } from "@/lib/annotatie";
 import type { NodeDoel } from "@/lib/annotatieNode";
+import { artefactLabel, isTeOpenen, type Artefact } from "@/lib/artefact";
 import { doelenVanKandidaten, reeksPrompt } from "@/lib/reeks";
 import { normaliseerBronnen, samenhangDoelen, samenhangKnopTekst } from "@/lib/bronnen";
 import { overzichtAlsMarkdown, overzichtDoelen, overzichtFocus, overzichtKnopTekst } from "@/lib/overzicht";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 import { beurtSamenvatting, laatsteRun } from "@/lib/waarom";
 import type { ThreadItem } from "@/lib/threadItem";
+import { ANNOTEER_PROMPT, PLAFOND, bepalingen, type BevestigingKeuze } from "@/lib/werkgebiedAnnoteren";
+import { MEEDENK_PROMPT } from "@/lib/begripVoorstellen";
+import type { IntakeActie, VragenGroep } from "@/lib/vraagkaart";
 import type {
-  AgentDoelInvoer, AgentGrounding, AgentKandidaat, AnnotatieDocument, Bron,
+  AgentDoelInvoer, AgentGrounding, AgentKandidaat, AnnotatieDocument, Bron, Overzicht,
 } from "@/lib/types";
+
+/** Een werkgebiedopdracht die Lex pas na akkoord start: het werkgebied annoteren (fase B, de default)
+ *  of meedenken over de begripsvoorstellen (fase C). `bevestigd` = het aantal dat de analist zag. */
+export interface WerkgebiedAnnoteren {
+  werkgebiedId: string;
+  bevestigd?: number;
+  modus?: "werkgebied_annoteren" | "begrippen_verdiepen";
+  /** Alleen de bronnen onder de deelvragen (met `deelvraagId`: onder die ene), uit de bevestiging. */
+  bereik?: "deelvragen";
+  deelvraagId?: string;
+  /** Bij meedenken: de inhoud van de werkvoorraad uit de bevestiging (spoor M). */
+  werkvoorraadId?: string;
+}
 
 /** Wat een rij kan laten gebeuren. Eén stabiel object per venster, zodat `memo` iets oplevert. */
 export interface ThreadActies {
-  verstuur: (vast?: string, doel?: AgentDoelInvoer, hergebruik?: "opnieuw", doelen?: AgentDoelInvoer[]) => void;
+  verstuur: (vast?: string, doel?: AgentDoelInvoer, hergebruik?: "opnieuw", doelen?: AgentDoelInvoer[],
+    annoteren?: WerkgebiedAnnoteren, intake?: IntakeActie) => void;
   openArtefact: (slug: string, doel?: NodeDoel) => void;
+  /** Een artefact dat geen annotatie is (begripsvoorstellen) in het artefactpaneel openen. */
+  openArtefactVan: (artefact: Artefact) => void;
   /** De samenhang van een bron onder een antwoord in de graaf; `extra` zijn de andere genoemde
    *  artikelen, of de andere delen van een overzicht. `graaf`: met welk bereik hij opent en wat de
    *  nadruk krijgt (een overzicht: de hele kennisgraaf, met alles uit het overzicht). */
@@ -45,6 +67,12 @@ export interface ThreadActies {
   /** Eén lid uit een reeksblok openen, met bladeren door de rest van de reeks. */
   openReeksLid: (runId: string, doel: NodeDoel) => void;
   stop: () => void;
+  /** *Annuleren* bij een voorstel van Lex: niets starten, en dat vastleggen in het gesprek. */
+  annuleer: () => void;
+  /** *Maak hier een werkgebied van* onder een overzicht (spoor D, fase A). */
+  maakWerkgebied: (overzicht: Overzicht) => void;
+  /** "Een vraag stellen ›": de weggeklikte vraag onderaan weer openen (activiteit 1). */
+  openVraag: () => void;
 }
 
 interface Props {
@@ -62,12 +90,29 @@ interface Props {
   doc?: AnnotatieDocument;
   /** Een annotatiekaart: het document bestaat niet meer. */
   verwijderd: boolean;
+  /** Het eerste item van een reeks vragen (activiteit 1): de Vragen-kaart die het draagt. */
+  vragen?: VragenGroep;
+  /** Een voorstel van Lex met een bevestiging: al beantwoord (gestart of geannuleerd)? Dan geen knoppen. */
+  keuze?: BevestigingKeuze;
   acties: ThreadActies;
 }
 
 export const ThreadRij = memo(function ThreadRij({
-  item, streamt, bezig, geblokkeerd, demo, samenhangAan, loopt, doc, verwijderd, acties,
+  item, streamt, bezig, geblokkeerd, demo, samenhangAan, loopt, doc, verwijderd, vragen, keuze, acties,
 }: Props) {
+  if (vragen) {
+    // Het samenstellen van een werkgebied: wat Lex bij de eerste vraag zei, en de vragen met je antwoorden.
+    return (
+      <div className="group flex animate-rise gap-3">
+        <LexAvatar />
+        <div className="min-w-0 flex-1 text-sm text-ink">
+          <p className="mb-1 text-xs font-medium text-muted">Lex</p>
+          {vragen.tekst && <div className="mb-2"><Markdown tekst={vragen.tekst} /></div>}
+          <VragenKaart groep={vragen} onOpen={acties.openVraag} />
+        </div>
+      </div>
+    );
+  }
   return item.type === "user" ? (
     <div className="flex animate-rise flex-col items-end gap-1">
       {item.over && (
@@ -105,6 +150,12 @@ export const ThreadRij = memo(function ThreadRij({
         )}
         {/* Het overzicht uit de graaf staat los van de tekst: dezelfde vraag, hetzelfde blok. */}
         {item.overzicht && <OverzichtBlok overzicht={item.overzicht} />}
+        {item.overzicht && !demo && item.overzicht.regelingen.length > 0 && (
+          <button type="button" onClick={() => acties.maakWerkgebied(item.overzicht!)}
+            className="focus-ring mt-3 flex items-center gap-2 rounded-lg border border-lint/20 bg-lint/[0.03] px-3 py-2 text-left text-xs font-medium text-lint transition-colors hover:bg-lint/10">
+            Maak hier een werkgebied van
+          </button>
+        )}
         {/* Bij een overzicht linkt het blok elke vindplaats: een bronnenlijst van 40–90 regels ernaast
             zegt niets nieuws. De bronnen blijven in het bericht (herkomst, eval). */}
         {!item.overzicht && item.bronnen && item.bronnen.length > 0 && <Bronnen bronnen={item.bronnen} />}
@@ -121,6 +172,39 @@ export const ThreadRij = memo(function ThreadRij({
             <GraafIcoon />{tekst}
           </button>;
         })()}
+        {/* Lex begint niet zonder akkoord: het voorstel noemt aantal en kosten, de knop start. */}
+        {item.bevestiging && item.bevestiging.aantal > 0 && !demo && keuze && (
+          <p className="mt-3 text-xs text-muted" data-bevestiging-keuze={keuze}>
+            {keuze === "geannuleerd" ? "Geannuleerd: Lex is niet begonnen." : "Gestart."}
+          </p>
+        )}
+        {item.bevestiging && item.bevestiging.aantal > 0 && !demo && !keuze && (
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          {item.bevestiging.soort === "begrippen_verdiepen" ? (
+            <Button size="sm" className="w-full sm:w-auto" disabled={bezig || geblokkeerd}
+              data-bevestiging={item.bevestiging.aantal}
+              onClick={() => acties.verstuur(MEEDENK_PROMPT, undefined, undefined, undefined,
+                { werkgebiedId: item.bevestiging!.werkgebied_id, bevestigd: item.bevestiging!.aantal,
+                  modus: "begrippen_verdiepen",
+                  ...(item.bevestiging!.werkvoorraad_id ? { werkvoorraadId: item.bevestiging!.werkvoorraad_id } : {}) })}>
+              Laat Lex meedenken ({item.bevestiging.aantal})
+            </Button>
+          ) : (
+            <Button size="sm" className="w-full sm:w-auto" disabled={bezig || geblokkeerd}
+              data-bevestiging={item.bevestiging.aantal}
+              onClick={() => acties.verstuur(ANNOTEER_PROMPT, undefined, undefined, undefined,
+                { werkgebiedId: item.bevestiging!.werkgebied_id, bevestigd: item.bevestiging!.aantal,
+                  ...(item.bevestiging!.bereik ? { bereik: item.bevestiging!.bereik } : {}),
+                  ...(item.bevestiging!.deelvraag_id ? { deelvraagId: item.bevestiging!.deelvraag_id } : {}) })}>
+              Laat Lex annoteren ({bepalingen(Math.min(item.bevestiging.aantal, PLAFOND))})
+            </Button>
+          )}
+            <Button size="sm" variant="secondary" className="w-full sm:w-auto" disabled={bezig}
+              onClick={() => acties.annuleer()}>
+              Annuleren
+            </Button>
+          </div>
+        )}
         {item.tekst && item.grounding && <Brongetrouwheid grounding={item.grounding} />}
         {item.tekst && <KopieerKnop tekst={item.overzicht ? `${item.tekst}\n\n${overzichtAlsMarkdown(item.overzicht)}` : item.tekst} />}
       </div>
@@ -154,7 +238,6 @@ export const ThreadRij = memo(function ThreadRij({
       <LexAvatar />
       <div className="min-w-0 flex-1 text-sm text-ink">
         <p className="mb-1 text-xs font-medium text-muted">Lex</p>
-        {item.tekst && <Markdown tekst={item.tekst} />}
         <ReeksBlok
           reeks={item.reeks}
           loopt={loopt}
@@ -169,6 +252,20 @@ export const ThreadRij = memo(function ThreadRij({
             </>
           )}
         />
+        {/* De samenvatting van een werkgebied-run komt ná de bepalingen. */}
+        {item.tekst && <div className="mt-3"><Markdown tekst={item.tekst} /></div>}
+      </div>
+    </div>
+  ) : item.type === "artefact" ? (
+    // Een ander artefact (begripsvoorstellen): dezelfde vorm als een annotatie – naam, wat Lex erover
+    // zegt, de chip naar het paneel, en hoe het tot stand kwam.
+    <div className="group flex animate-rise gap-3">
+      <LexAvatar />
+      <div className="min-w-0 flex-1 text-sm text-ink">
+        <p className="mb-1 text-xs font-medium text-muted">Lex</p>
+        {item.tekst && <div className="mb-3"><Markdown tekst={item.tekst} /></div>}
+        <ArtefactChip artefact={item.artefact} onOpen={() => acties.openArtefactVan(item.artefact)} />
+        {item.denk && <div className="mt-3"><DenkProces tekst={item.denk} actief={false} label="Zo is dit tot stand gekomen" /></div>}
       </div>
     </div>
   ) : (
@@ -187,9 +284,10 @@ export const ThreadRij = memo(function ThreadRij({
           onOpen={() => acties.openArtefact(item.slug, item.annotatie_doel)}
         />
         {(() => {
-          // De meting van de laatste ronde: wat er uitkwam, wat zonder zinsontleding ging en hoe lang
-          // het duurde. Uit het document, want de meting reist mee op elk element (`geproduceerd_door`).
-          const samenvatting = !verwijderd && doc ? beurtSamenvatting(laatsteRun(doc.elementen)?.instellingen?.meting) : "";
+          // De meting van deze ronde: wat er uitkwam, wat zonder zinsontleding ging en hoe lang het
+          // duurde. Uit het bericht zelf; een oud artikeldocument draagt hem nog op zijn elementen.
+          const meting = item.meting ?? (doc ? laatsteRun(doc.elementen)?.instellingen?.meting : undefined);
+          const samenvatting = !verwijderd ? beurtSamenvatting(meting) : "";
           return samenvatting && <p className="mt-1 px-1 text-xs text-muted" data-testid="beurtsamenvatting">Laatste ronde van Lex: {samenvatting}</p>;
         })()}
         {(() => {
@@ -215,7 +313,56 @@ export const ThreadRij = memo(function ThreadRij({
       </div>
     </div>
   );
-});
+}, zelfdeRij);
+
+/** De `memo`-vergelijking: alles op identiteit, behalve de Vragen-kaart – die wordt elke render opnieuw
+ *  gegroepeerd (`groepeerVragen`) en telt als gelijk zolang de inhoud gelijk is. */
+function zelfdeRij(a: Props, b: Props): boolean {
+  const sleutels = Object.keys(b) as (keyof Props)[];
+  if (Object.keys(a).length !== sleutels.length) return false;
+  return sleutels.every((k) => k === "vragen" ? JSON.stringify(a.vragen) === JSON.stringify(b.vragen) : a[k] === b[k]);
+}
+
+/** De chip van een artefact dat geen annotatie is. Afleidingsregels zijn gereserveerd: de kaart staat
+ *  er, maar opent nog niets – en zegt dat, in plaats van een knop die niets doet. */
+function ArtefactChip({ artefact, onOpen }: { artefact: Artefact; onOpen: () => void }) {
+  const soort = artefactLabel(artefact);
+  const titel = artefact.titel || soort;
+  if (!isTeOpenen(artefact)) {
+    return (
+      <div className="flex w-full items-center gap-3 rounded-kaart border border-dashed border-line bg-surface px-4 py-3" data-artefact-soort={artefact.soort}>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium text-ink">{titel}</span>
+          <span className="block text-xs text-muted">{soort} · nog niet te openen in de werkplek</span>
+        </span>
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      data-artefact-soort={artefact.soort}
+      className="flex w-full items-center gap-3 rounded-kaart border border-line bg-surface px-4 py-3 text-left shadow-zacht transition-all hover:-translate-y-0.5 hover:border-lint/40 hover:shadow-kaart focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint"
+    >
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-lint/10 text-lint" aria-hidden>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="6" cy="6" r="3" /><circle cx="18" cy="18" r="3" /><circle cx="18" cy="6" r="3" />
+          <path d="M9 6h6M18 9v6M8.2 8.2l7.6 7.6" />
+        </svg>
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-medium text-ink">{titel}</span>
+        <span className="block text-xs text-muted">{soort} · {artefact.soort === "werkgebied" ? "bekijken" : "beoordelen"}</span>
+      </span>
+      <span className="shrink-0 text-muted" aria-hidden>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m9 18 6-6-6-6" />
+        </svg>
+      </span>
+    </button>
+  );
+}
 
 /** Compacte kaart in de chatstroom die naar het annotatie-artefact leidt (opent het slide-in paneel). */
 function AnnotatieChip({

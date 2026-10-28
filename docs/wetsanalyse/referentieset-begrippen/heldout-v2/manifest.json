@@ -1,0 +1,7 @@
+{
+  "referentie_versie": "heldout-v2",
+  "referentie_status": "provisional",
+  "bevroren_op": null,
+  "sha256": "e681f270d277cc65e0be00ddbf55898c520bd1b68f9691e8b31faf9e4c7d1965",
+  "toelichting": "Held-out set uit de AWR (BWBR0002320), opgesteld vóór de reparaties na de blinde Awir-meting, zonder de keten te raadplegen. Wordt pas gemeten nadat die reparaties af zijn. Correctie na de blinde meting (14 okt 2026): paar H16 (k16→k20, hiërarchie) toegevoegd; de blinde uitkomst staat ongewijzigd in metingen/begrippen-heldout-2026-10-14/awr-blind/."
+}

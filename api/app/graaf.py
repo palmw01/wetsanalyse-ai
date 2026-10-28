@@ -24,7 +24,7 @@ import httpx
 from . import annotatie_v2_store as store
 from .bron_resolver import haal_bronrijen, snapshot_uit
 from .graaf_projectie_v2 import _select
-from .samenhang import _PREFIXES, Knoop, Relatie, bronknoop, markeringen, verwijzingen
+from .samenhang import _PREFIXES, Knoop, Relatie, _label, bronknoop, markeringen, verwijzingen
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +56,29 @@ def _verwijzingen_query(bwb: str) -> str:
 }} ORDER BY ?van ?naar"""
 
 
+# De structuur van een regeling (knopen + citeertitel) apart van haar verwijzingen: de plek van een
+# bepaling (`plaatsen`) heeft alleen de structuur nodig, en die is per toestand dezelfde.
+_STRUCTUUR: dict[tuple[str, str], dict] = {}
+
+
+async def _structuur(bwb: str, toestand: str) -> dict:
+    """De knopen en citeertitel van één regeling, uit de cache of vers (één SPARQL-query)."""
+    sleutel = (bwb, toestand)
+    if sleutel in _STRUCTUUR:
+        return _STRUCTUUR[sleutel]
+    async with _SLOTEN.setdefault(f"structuur:{bwb}", asyncio.Lock()):
+        if sleutel in _STRUCTUUR:       # een gelijktijdig verzoek haalde hem intussen op
+            return _STRUCTUUR[sleutel]
+        snapshot = snapshot_uit(await haal_bronrijen(bwb), bwb, {})
+        deel = {"nodes": store.nodes_van(snapshot), "citeertitel": snapshot.get("citeertitel", "")}
+        for oud in [k for k in _STRUCTUUR if k[0] == bwb]:
+            del _STRUCTUUR[oud]         # een vorige toestand van deze regeling is voorbij
+        while len(_STRUCTUUR) >= MAX_CACHE:
+            del _STRUCTUUR[next(iter(_STRUCTUUR))]
+        _STRUCTUUR[sleutel] = deel
+        return deel
+
+
 async def _regeling(client: httpx.AsyncClient, bwb: str, toestand: str) -> dict:
     """Structuur en uitgaande verwijzingen van één regeling, uit de cache of vers."""
     sleutel = (bwb, toestand)
@@ -64,10 +87,9 @@ async def _regeling(client: httpx.AsyncClient, bwb: str, toestand: str) -> dict:
     async with _SLOTEN.setdefault(bwb, asyncio.Lock()):
         if sleutel in _CACHE:           # een gelijktijdig verzoek haalde hem intussen op
             return _CACHE[sleutel]
-        snapshot = snapshot_uit(await haal_bronrijen(bwb), bwb, {})
+        structuur = await _structuur(bwb, toestand)
         rijen = await _select(client, _verwijzingen_query(bwb))
-        deel = {"nodes": store.nodes_van(snapshot), "citeertitel": snapshot.get("citeertitel", ""),
-                "verwijzingen": rijen}
+        deel = {**structuur, "verwijzingen": rijen}
         for oud in [k for k in _CACHE if k[0] == bwb]:
             del _CACHE[oud]             # een vorige toestand van deze regeling is voorbij
         while len(_CACHE) >= MAX_CACHE:
@@ -120,7 +142,48 @@ async def graaf(bwbs: list[str] | None = None) -> dict:
     }
 
 
+_IRI_BWB = re.compile(r"^urn:bwb:(BWB[RV]\d+)(?::.*)?$")
+MAX_PLAATSEN = 500
+
+
+async def plaatsen(iris: list[str]) -> list[dict]:
+    """De plek van elke bepaling in haar regeling, voor het groeperen in de werkplek (spoor H): per IRI de
+    regeling en het pad eronder – hoofdstuk, afdeling, paragraaf of divisie, artikel, lid, onderdeel – met
+    het label zoals de graaf het toont (`_label`, met het nummer) en de documentvolgorde.
+
+    Alleen de structuur, letterlijk uit de bronboom; niets afgeleid. Een IRI die de graaf niet (meer) kent,
+    krijgt `pad: []` en `volgorde: None`: de werkplek valt dan terug op wat de IRI zelf zegt. Een IRI gaat
+    niet letterlijk een query in; alleen het BWB-id, en dat wordt strikt gelezen."""
+    if len(iris) > MAX_PLAATSEN:
+        raise ValueError(f"Hoogstens {MAX_PLAATSEN} bepalingen per verzoek.")
+    per_bwb: dict[str, list[str]] = {}
+    for iri in iris:
+        m = _IRI_BWB.match(iri)
+        if not m:
+            raise ValueError(f"Geen bron-IRI: {iri[:80]}")
+        per_bwb.setdefault(m.group(1), []).append(iri)
+    async with httpx.AsyncClient(timeout=60) as client:
+        toestanden = {r["bwbId"]: r for r in await _select(client, _toestanden_query(sorted(per_bwb))) if r.get("bwbId")}
+    uit: dict[str, dict] = {}
+    for bwb, lijst in per_bwb.items():
+        r = toestanden.get(bwb)
+        deel = await _structuur(bwb, r.get("toestand", "")) if r else {"nodes": {}, "citeertitel": ""}
+        nodes = deel["nodes"]
+        regeling = {"bwb_id": bwb, "citeertitel": (r or {}).get("citeertitel") or deel["citeertitel"]}
+        for iri in lijst:
+            pad, node, gezien = [], nodes.get(iri), set()
+            while node and node.get("type") != "Regeling" and node["bron_iri"] not in gezien:
+                gezien.add(node["bron_iri"])
+                pad.append({"iri": node["bron_iri"], "type": node.get("type", ""),
+                            "nummer": node.get("nummer", ""), "label": _label(node)})
+                node = nodes.get(node.get("parent_iri", ""))
+            uit[iri] = {"bron_iri": iri, "regeling": regeling, "pad": pad[::-1],
+                        "volgorde": nodes[iri].get("volgorde") if iri in nodes else None}
+    return [uit[i] for i in dict.fromkeys(iris)]
+
+
 def leeg_cache() -> None:
     """Voor tests en na een bewuste herimport."""
     _CACHE.clear()
+    _STRUCTUUR.clear()
 

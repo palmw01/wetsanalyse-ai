@@ -34,13 +34,128 @@ logger = logging.getLogger("graph_qa.beurt")
 
 
 def _titel(doel: dict[str, Any]) -> str:
-    """Het leesbare label van de annotatie, zoals de werkplek het toont.
+    """Het leesbare label van de annotatie, zoals de werkplek het toont: het label van de bronnode,
+    anders opgebouwd uit regeling, artikel en lid.
 
-    Reist mee met het bericht zodat de kaart in het gesprek zichzelf kan benoemen als het document
+    Reist mee met het bericht zodat de chip in het gesprek zichzelf kan benoemen als de annotatie
     later verwijderd wordt – er is geen foreign key die dat afdwingt."""
+    if doel.get("label"):
+        return str(doel["label"])
     naam = doel.get("citeertitel") or doel.get("bwbId") or ""
     lid = doel.get("lid") or ""
     return f"{naam} – art. {doel.get('artikel', '')}" + (f" lid {lid}" if lid else "")
+
+
+def annotatie_artefact(doel: dict[str, Any], titel: str) -> dict[str, Any]:
+    """Het artefact van een annotatiebeurt: de bronnode in de vorm van `api/app/gesprek_contracts.Artefact`."""
+    return {"soort": "annotatie", "titel": titel,
+            "ref": {"bron_iri": doel["bron_iri"], "label": doel.get("label", ""),
+                    "snapshot_id": doel.get("snapshot_id", "")}}
+
+
+def werkgebied_artefact(werkgebied: dict[str, Any]) -> dict[str, Any]:
+    """Het artefact van een werkgebied dat Lex in het gesprek samenstelde (activiteit 1)."""
+    return {"soort": "werkgebied", "titel": str(werkgebied.get("naam", ""))[:300],
+            "ref": {"werkgebied_id": werkgebied["id"]}}
+
+
+def deelvraag_artefact(werkgebied_id: str, deelvraag: dict[str, Any]) -> dict[str, Any]:
+    """Het artefact van één deelvraag (F3d): het paneel toont haar stand, bronnen, kandidaten en de
+    voorstellen die haar vervangen."""
+    return {"soort": "deelvraag", "titel": str(deelvraag.get("vraag", ""))[:300],
+            "ref": {"werkgebied_id": werkgebied_id, "deelvraag_id": str(deelvraag["id"])}}
+
+
+def werkgebied_tekst(werkgebied: dict[str, Any], gelukt: list[str], mislukt: list[str], gekoppeld: int = 0) -> str:
+    """Wat Lex zegt na het aanmaken; uit de getallen, geen model. Beloof niets wat er niet is: de zin
+    over koppelingen volgt wat de api werkelijk koppelde (`gekoppeld`, het aantal deelvragen met een
+    nieuwe koppeling)."""
+    naam = werkgebied.get("naam", "")
+    if gelukt:
+        zin = (f"Werkgebied *{naam}* is aangemaakt met {len(gelukt)} "
+               f"{'bron' if len(gelukt) == 1 else 'bronnen'}; je vindt het bij Werkgebieden.")
+    else:
+        zin = f"Werkgebied *{naam}* is aangemaakt als concept, nog zonder bronnen; je vindt het bij Werkgebieden."
+    if mislukt:
+        zin += f" Niet toegevoegd, omdat ik ze niet in de wet- en regelgeving kon terugvinden: {', '.join(mislukt)}."
+    n = len([d for d in werkgebied.get("deelvragen") or [] if d.get("status", "actief") == "actief"])
+    if n:
+        zin += f" Het heeft {n} {'deelvraag' if n == 1 else 'deelvragen'}"
+        if gekoppeld == n:
+            zin += f"; {'die heeft' if n == 1 else 'elk heeft'} de bronnen die je erbij koos."
+        elif gekoppeld:
+            zin += f"; {gekoppeld} daarvan {'heeft' if gekoppeld == 1 else 'hebben'} de bronnen die je erbij koos, de rest nog geen."
+        else:
+            zin += ", nog zonder bronnen."
+        if gekoppeld < n:
+            zin += " Een volgende stap: bepaal met me de bronnen per deelvraag (*Bepaal de bronnen per deelvraag*)."
+    elif werkgebied.get("analysevraag"):
+        zin += (" Een volgende stap: laat me deelvragen voorstellen bij de analysevraag, of bepaal met me de bronnen "
+                "(*Bepaal de bronnen per deelvraag*).")
+    return zin
+
+
+async def _maak_werkgebied(api: WetsanalyseApi, verzoek: dict[str, Any]
+                           ) -> tuple[dict[str, Any], list[str], list[str], int]:
+    """Werkgebied en bronselecties bij de api. Het werkgebied is idempotent op de intake-id, een bron op
+    bron + rol + bereik: een herhaling na een storing maakt niets dubbel."""
+    from .werkgebied_intake import REDEN
+
+    from .werkgebied_intake import normaliseer
+
+    werkgebied = await api.maak_werkgebied(verzoek["werkgebied"])
+    gelukt, mislukt = [], []
+    per_deelvraag: dict[str, list[str]] = {}
+    for bron in verzoek.get("bronnen") or []:
+        label = bron.get("label", "")
+        invoer = {k: v for k, v in bron.items() if k in ("bron_iri", "bwb_id", "artikel", "lid")}
+        try:
+            uit = await api.voeg_bron_toe(werkgebied["id"], {**invoer, "verwachte_revisie": werkgebied["revisie"],
+                                                              "rol": "analyseren", "bereik": "onderliggend",
+                                                              "reden": REDEN})
+            werkgebied = uit.get("werkgebied") or werkgebied
+            gelukt.append(label)
+            if (sid := (uit.get("selectie") or {}).get("id")):
+                for vraag in bron.get("deelvragen") or []:
+                    per_deelvraag.setdefault(normaliseer(vraag), []).append(sid)
+        except WetsanalyseApiFout as fout:
+            logger.warning("intake: bron niet toegevoegd",
+                           extra={"categorie": "functioneel", "http_status": fout.status})
+            mislukt.append(label)
+    # Een bron die Lex bij een deelvraag vond, hoort bij die deelvraag (Handleiding 1g): de dekkingscheck
+    # ziet het dan meteen. Een set, dus een herhaling na een storing koppelt niets dubbel. `gekoppeld` telt
+    # de deelvragen die hun bronnen hebben, ook als ze er na een herhaling al stonden.
+    gekoppeld = 0
+    for d in list(werkgebied.get("deelvragen") or []):
+        nieuw = per_deelvraag.get(normaliseer(d["vraag"]))
+        if not nieuw or d.get("status") != "actief":
+            continue
+        if set(nieuw) <= set(d.get("bronnen") or []):
+            gekoppeld += 1
+            continue
+        try:
+            werkgebied = await api.koppel_deelvraag(werkgebied["id"], d["id"], {
+                "verwachte_revisie": werkgebied["revisie"], "bronnen": list(dict.fromkeys([*d.get("bronnen", []), *nieuw])),
+                "begrippen": list(d.get("begrippen") or [])}) or werkgebied
+            gekoppeld += 1
+        except WetsanalyseApiFout as fout:
+            logger.warning("intake: deelvraag niet gekoppeld",
+                           extra={"categorie": "functioneel", "http_status": fout.status})
+    return werkgebied, gelukt, mislukt, gekoppeld
+
+
+def wijzig_tekst(werkgebied: dict[str, Any], wijzigingen: list[dict[str, Any]]) -> str:
+    """Wat Lex zegt na het aanvullen: welke velden, ingevuld of gewijzigd; uit de wijziging, geen model."""
+    delen = [f"{w['label'].lower()} {'gewijzigd' if (w.get('toen') or '').strip() else 'ingevuld'}" for w in wijzigingen]
+    lijst = delen[0] if len(delen) == 1 else ", ".join(delen[:-1]) + " en " + delen[-1]
+    return (f"Het dossier van *{werkgebied.get('naam', '')}* is aangepast: {lijst}. "
+            "De wijziging staat in de historie van het werkgebied.")
+
+
+async def _wijzig_werkgebied(api: WetsanalyseApi, verzoek: dict[str, Any]) -> dict[str, Any]:
+    """Het dossier aanpassen tegen de revisie waarop de analist begon (412 als die intussen veranderde)."""
+    return await api.wijzig_werkgebied(verzoek["werkgebied_id"], {"verwachte_revisie": verzoek["verwachte_revisie"],
+                                                                  **verzoek["wijziging"]})
 
 
 class BeurtSchrijver:
@@ -58,6 +173,13 @@ class BeurtSchrijver:
         self.denk = ""
         self.bronnen: list[dict[str, Any]] = []
         self.tool_executions: list[dict[str, Any]] = []
+        self.vraagkaart: dict[str, Any] = {}
+        self.aanmaken: dict[str, Any] = {}
+        # Het aanvullen van het dossier (`werkgebied_wijzigen`): de PATCH na *Opslaan*.
+        self.wijzigen: dict[str, Any] = {}
+        # Wat een agent-taak opleverde (F3c, `nodes/agent_taak.py`): het paneel en de knop.
+        self.artefact: dict[str, Any] = {}
+        self.bevestiging: dict[str, Any] = {}
 
     def verwerk(self, event: dict[str, Any]) -> None:
         """Eén event bijhouden. Dezelfde toewijzing als de handlers in de werkplek."""
@@ -84,6 +206,16 @@ class BeurtSchrijver:
             self.dekking = event.get("dekking") or {}
         elif soort == "overzicht":
             self.overzicht = event.get("overzicht") or {}
+        elif soort == "vraagkaart":
+            self.vraagkaart = event.get("vraagkaart") or {}
+        elif soort == "werkgebied_aanmaken":
+            self.aanmaken = {k: v for k, v in event.items() if k != "type"}
+        elif soort == "werkgebied_wijzigen":
+            self.wijzigen = {k: v for k, v in event.items() if k != "type"}
+        elif soort == "artefact":
+            self.artefact = event.get("artefact") or {}
+        elif soort == "bevestiging":
+            self.bevestiging = event.get("bevestiging") or {}
         elif soort == "tool_execution":
             self._voeg_tool_toe({k: v for k, v in event.items() if k != "type"})
 
@@ -197,6 +329,12 @@ async def voer_beurt_uit(
         async for na in _leg_vast(schrijver, settings=settings, run=run, reeks=reeks,
                                   gesprek_id=gesprek_id, gestopt=gestopt, user_id=user_id):
             yield na
+    elif schrijver.aanmaken:
+        yield {"type": "error",
+               "message": "Het werkgebied is niet aangemaakt: deze agent heeft geen verbinding met de wetsanalyse-API."}
+    elif schrijver.wijzigen:
+        yield {"type": "error", "foutcode": "werkgebied_niet_gewijzigd",
+               "message": "Het dossier is niet aangepast: deze agent heeft geen verbinding met de wetsanalyse-API."}
     elif schrijver.is_annotatie:
         logger.warning(
             "beurt: markeringen niet vastgelegd (geen schrijfpad)",
@@ -263,7 +401,6 @@ async def _leg_vast(
         bericht: dict[str, Any] = {"rol": "assistant", "run_id": run.run_id,
                                  "tool_executions": schrijver.tool_executions,
                                  **({"reeks": reeks} if reeks else {})}
-        slug = ""
         annotatie_bewaard = False
         opgeslagen_doel = None
 
@@ -290,7 +427,6 @@ async def _leg_vast(
                 # lijst.
                 "beslissingen": schrijver.dekking.get("beslissingen") or [],
             })
-            slug = str(laag.get("slug", ""))
             annotatie_bewaard = True
             opgeslagen_doel = {"bron_iri": doel["bron_iri"], "label": doel.get("label", ""),
                                "snapshot_id": doel["snapshot_id"]}
@@ -299,15 +435,56 @@ async def _leg_vast(
                 # Zonder dit veld zag je hem alleen live: na herladen of op een ander apparaat
                 # stond er alleen de kaart.
                 "tekst": schrijver.tekst.strip(),
-                "annotatie_slug": slug,
-                "annotatie_titel": _titel(doel),
                 "denk": schrijver.denk,
                 **({"hergebruik": schrijver.hergebruik} if schrijver.hergebruik else {}),
                 # Zonder het beslisregister: dat hoort bij de batch, niet in de gespreksgeschiedenis.
                 **({"dekking": {k: v for k, v in schrijver.dekking.items() if k != "beslissingen"}}
                    if schrijver.dekking else {}),
+                # Het doel blijft naast het artefact staan: de reeks en "opnieuw annoteren" lezen het.
                 "annotatie_doel": opgeslagen_doel,
+                "artefact": annotatie_artefact(opgeslagen_doel, _titel(doel)),
             }
+        elif schrijver.aanmaken:
+            # Activiteit 1: het werkgebied dat Lex met de analist samenstelde. Mislukt het aanmaken, dan
+            # blijft het samenvattingskaartje werken: opnieuw klikken maakt niets dubbel.
+            try:
+                werkgebied, gelukt, mislukt, gekoppeld = await _maak_werkgebied(api, schrijver.aanmaken)
+            except WetsanalyseApiFout:
+                logger.exception("intake: werkgebied niet aangemaakt",
+                                 extra={"categorie": "technisch", "run_id": run.run_id})
+                yield {"type": "error", "foutcode": "werkgebied_niet_aangemaakt",
+                       "message": "Het werkgebied kon niet worden aangemaakt. Klik opnieuw op Aanmaken; "
+                                  "er ontstaat dan geen dubbel werkgebied."}
+                return
+            tekst = werkgebied_tekst(werkgebied, gelukt, mislukt, gekoppeld)
+            yield {"type": "token", "content": tekst}
+            bericht |= {"tekst": tekst, "denk": schrijver.denk, "artefact": werkgebied_artefact(werkgebied)}
+        elif schrijver.wijzigen:
+            # Het dossier aanvullen: pas na *Opslaan*, tegen de revisie waarop de analist begon. Een 412 of
+            # 404 is een antwoord (niets opgeslagen, en waarom); een andere fout een zichtbare `error`.
+            verzoek = schrijver.wijzigen
+            try:
+                werkgebied = await _wijzig_werkgebied(api, verzoek)
+            except WetsanalyseApiFout as fout:
+                if fout.status not in (404, 412):
+                    logger.exception("aanvullen: werkgebied niet gewijzigd",
+                                     extra={"categorie": "technisch", "run_id": run.run_id, "http_status": fout.status})
+                    yield {"type": "error", "foutcode": "werkgebied_niet_gewijzigd",
+                           "message": "Het dossier kon niet worden aangepast; er is niets opgeslagen. Klik opnieuw op Opslaan."}
+                    return
+                tekst = ("Dat werkgebied bestaat niet meer; er is niets opgeslagen." if fout.status == 404 else
+                         "Iemand anders wijzigde het werkgebied net; er is niets opgeslagen. Klik nog eens op Opslaan: "
+                         "dan leg ik je antwoorden naast de nieuwe stand.")
+                yield {"type": "token", "content": tekst}
+                bericht |= {"tekst": tekst, "denk": schrijver.denk}
+                if fout.status == 412 and verzoek.get("kaart"):
+                    # Het samenvattingskaartje terug, live en na herladen, zodat opnieuw opslaan kan.
+                    yield {"type": "vraagkaart", "vraagkaart": verzoek["kaart"]}
+                    bericht["vraagkaart"] = verzoek["kaart"]
+            else:
+                tekst = wijzig_tekst(werkgebied, verzoek.get("wijzigingen") or [])
+                yield {"type": "token", "content": tekst}
+                bericht |= {"tekst": tekst, "denk": schrijver.denk, "artefact": werkgebied_artefact(werkgebied)}
         else:
             tekst = schrijver.tekst.strip()
             if gestopt:
@@ -322,18 +499,25 @@ async def _leg_vast(
                 # Het overzicht uit de graaf (`agent/overzicht.py`): zonder dit veld toonde de werkplek
                 # na herladen alleen de duiding, en het blok en de 3D-doelen waren weg.
                 **({"overzicht": schrijver.overzicht} if schrijver.overzicht else {}),
+                # Het kaartje van het samenstellen (activiteit 1): ook na herladen te beantwoorden.
+                **({"vraagkaart": schrijver.vraagkaart} if schrijver.vraagkaart else {}),
+                # Wat een agent opleverde (F3c): het paneel en, bij duur werk, de knop – ook na herladen.
+                **({"artefact": schrijver.artefact} if schrijver.artefact else {}),
+                **({"bevestiging": schrijver.bevestiging} if schrijver.bevestiging else {}),
             }
 
         await api.voeg_bericht_toe(gesprek_id, bericht)
         logger.info(
             "beurt vastgelegd",
             extra={"categorie": "functioneel", "run_id": run.run_id,
-                   "chat_session_id": gesprek_id, "annotatie_slug": slug},
+                   "chat_session_id": gesprek_id},
         )
-        # De client hoeft de inhoud niet mee te krijgen: hij haalt het document bij de api op. Zo
-        # blijft er één bron van waarheid en groeit het SSE-contract niet mee met het datamodel.
-        yield {"type": "opgeslagen", "annotatie_slug": slug, "run_id": run.run_id,
-               **({"annotatie_doel": bericht["annotatie_doel"]} if bericht.get("annotatie_doel") else {})}
+        # De client hoeft de inhoud niet mee te krijgen: hij haalt hem bij de api op. Zo blijft er
+        # één bron van waarheid en groeit het SSE-contract niet mee met het datamodel.
+        yield {"type": "opgeslagen", "run_id": run.run_id,
+               **({"annotatie_doel": bericht["annotatie_doel"]} if bericht.get("annotatie_doel") else {}),
+               **({"artefact": bericht["artefact"]} if bericht.get("artefact") else {}),
+               **({"bevestiging": bericht["bevestiging"]} if bericht.get("bevestiging") else {})}
     except GesprekVerdwenen:
         # De jurist verwijderde het gesprek terwijl de beurt liep. Dat is geen fout om over te
         # klagen – alarm slaan over iemands eigen handeling leert mensen meldingen negeren.
@@ -347,22 +531,21 @@ async def _leg_vast(
     except (WetsanalyseApiFout, Exception) as exc:
         logger.exception(
             "beurt niet vastgelegd",
-            extra={"categorie": "technisch", "run_id": run.run_id, "chat_session_id": gesprek_id,
-                   "annotatie_slug": slug},
+            extra={"categorie": "technisch", "run_id": run.run_id, "chat_session_id": gesprek_id},
         )
         # Zichtbaar falen: de jurist moet weten dat dit werk niet bewaard is, niet later ontdekken
         # dat het gesprek een gat heeft. Wél eerlijk zijn over wat er al staat: "probeer opnieuw" is
         # een slecht advies als de annotatie er al is.
         #
         # Het geval "document bestaat, markeringen niet" is er niet meer: de laag en haar
-        # markeringen gaan in één PUT. Mislukt die, dan is er geen slug en valt dit in de laatste tak.
+        # markeringen gaan in één PUT. Mislukt die, dan valt dit in de laatste tak.
         if annotatie_bewaard:
             yield {
                 "type": "error",
                 "message": ("De annotatie is bewaard, alleen het bericht in dit gesprek niet. "
                             "Je vindt hem terug bij Annotaties."),
-                "annotatie_slug": slug,
-                **({"annotatie_doel": opgeslagen_doel} if opgeslagen_doel else {}),
+                **({"annotatie_doel": opgeslagen_doel,
+                    "artefact": annotatie_artefact(opgeslagen_doel, _titel(opgeslagen_doel))} if opgeslagen_doel else {}),
             }
         elif isinstance(exc, WetsanalyseApiFout) and exc.status == 409 and "Heropen" in exc.reden:
             # De laag werd afgerond terwijl de beurt liep (vooraf controleert de annotatie-route

@@ -92,6 +92,24 @@ def test_paged_mcp_resolution_and_full_label():
     assert len(result["segmenten"]) == 3
 
 
+def test_een_structuurdeel_heet_naar_nummer_en_opschrift():
+    """De importer schrijft bij een hoofdstuk alleen "Hoofdstuk" als label; nummer en opschrift staan apart.
+    De kop wordt "Hoofdstuk V – Invorderingsrente" – zonder dat de snapshot-id verandert."""
+    rows = fixture() + [
+        {"node": ROOT + ":hoofdstuk:V", "type": "urn:bwb-ns:Hoofdstuk", "parent": ROOT, "nummer": "V",
+         "label": "Hoofdstuk", "titel": "Invorderingsrente"},
+        {"node": ROOT + ":hoofdstuk:V:afdeling:1", "type": "urn:bwb-ns:Afdeling", "parent": ROOT + ":hoofdstuk:V",
+         "nummer": "1", "label": "Afdeling", "titel": "Algemeen"}]
+    rows[0]["citeertitel"] = "Invorderingswet 1990"
+    h = bouw_snapshot(rows, bwb_id=BWB, bron_iri=ROOT + ":hoofdstuk:V")
+    assert h["doel"]["label"] == "Invorderingswet 1990 – Hoofdstuk V – Invorderingsrente"
+    a = bouw_snapshot(rows, bwb_id=BWB, bron_iri=ROOT + ":hoofdstuk:V:afdeling:1")
+    assert a["doel"]["label"] == "Invorderingswet 1990 – Hoofdstuk V, Afdeling 1 – Algemeen"
+    # De nodes zelf blijven zoals de importer ze schreef: de bronidentiteit verandert niet.
+    assert next(n for n in h["nodes"] if n["bron_iri"].endswith(":hoofdstuk:V"))["label"] == "Hoofdstuk"
+    assert bouw_snapshot(rows, bwb_id=BWB, artikel="9")["doel"]["label"] == "Invorderingswet 1990 – Artikel 9"
+
+
 def test_foreign_law_with_same_prefix_rejected():
     rows = fixture() + [{"node": ROOT + "1:artikel:3", "type": "urn:bwb-ns:Artikel", "parent": ROOT}]
     with pytest.raises(BronFout, match="bronvreemde"):
@@ -160,3 +178,23 @@ def test_reeks_moet_onder_een_bepaling_hangen():
                  [ROOT + ":id:a", ROOT + ":id:aa"]):        # onderdelen zijn niet kiesbaar
         with pytest.raises(BronFout):
             gedeelde_bepaling(nodes, fout)
+
+
+def test_annotatie_eenheden_volgen_de_keuzekaart():
+    from bronmodel import annotatie_eenheden
+    rows = fixture() + [{"node": ROOT + ":hoofdstuk:2", "type": "urn:bwb-ns:Hoofdstuk", "parent": ROOT},
+                        {"node": ROOT + ":artikel:10", "type": "urn:bwb-ns:Artikel",
+                         "parent": ROOT + ":hoofdstuk:2", "nummer": "10", "tekst": "Zonder leden."}]
+    nodes = bouw_snapshot(rows, bwb_id=BWB)["nodes"]
+    leden = [ROOT + ":id:lid-een", ROOT + ":artikel:9:lid:2"]
+    assert annotatie_eenheden(nodes, ROOT + ":artikel:9") == leden            # per lid
+    assert annotatie_eenheden(nodes, ROOT + ":artikel:10") == [ROOT + ":artikel:10"]
+    assert annotatie_eenheden(nodes, ROOT + ":id:lid-een") == [ROOT + ":id:lid-een"]
+    assert annotatie_eenheden(nodes, ROOT + ":id:a") == [ROOT + ":id:a"]
+    hele = annotatie_eenheden(nodes, ROOT)                                    # de hele regeling
+    assert sorted(hele) == sorted([*leden, ROOT + ":artikel:10"]) and len(hele) == 3
+    assert annotatie_eenheden(nodes, ROOT + ":hoofdstuk:2", onderliggend=False) == []
+    leidraad = bouw_snapshot(_leidraad(), bwb_id=BWB)["nodes"]
+    assert annotatie_eenheden(leidraad, ROOT) == [ROOT + ":d:9.1", ROOT + ":d:9.2"]
+    with pytest.raises(BronFout):
+        annotatie_eenheden(nodes, ROOT + ":bestaat:niet")

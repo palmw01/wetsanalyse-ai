@@ -93,7 +93,8 @@ def lees_aanwijzing(vraag: str) -> Aanwijzing:
 MELDING_MEERDERE = (
     "Je noemt meer dan één artikel ({artikelen}). Ik annoteer per vraag één artikel, zodat elke "
     "annotatie een eigen laag en beoordeling krijgt. Stel de vraag opnieuw voor één artikel – "
-    "binnen dat artikel kun je daarna zelf de leden kiezen."
+    "binnen dat artikel kun je daarna zelf de leden kiezen. Wil je meerdere artikelen samen "
+    "analyseren, vraag me dan een werkgebied samen te stellen."
 )
 
 

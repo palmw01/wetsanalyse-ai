@@ -64,6 +64,7 @@ def bij_advies(oud: dict[str, Any] | None, context: dict[str, Any] | None) -> di
     c = context or {}
     focus = dict(oud or {})
     focus["laatste_route"] = "advies"
+    focus.pop("onderwerp", None)
     element = {"id": c.get("element_id"), "klasse": c.get("klasse"), "tekst": c.get("fragment")}
     element = {k: truncate(str(v), 160) for k, v in element.items() if v}
     if element:
@@ -71,6 +72,16 @@ def bij_advies(oud: dict[str, Any] | None, context: dict[str, Any] | None) -> di
     if c.get("bron_iri"):
         focus["bron_iri"] = str(c["bron_iri"])
         focus.setdefault("label", vindplaats_label(str(c["bron_iri"])))
+    return focus
+
+
+def bij_onderwerp(oud: dict[str, Any] | None, onderwerp: dict[str, Any] | None) -> dict[str, Any]:
+    """De analist koos *Vraag Lex* op een object (F3b). Dat blijft het onderwerp tot er een ander komt;
+    een eerder aangewezen markering vervalt, de bepaling van een annotatie blijft staan."""
+    o = onderwerp or {}
+    focus = dict(oud or {})
+    focus.pop("element", None)
+    focus["onderwerp"] = {k: truncate(str(o[k]), 160) for k in ("soort", "werkgebied_id", "id", "label") if o.get(k)}
     return focus
 
 
@@ -91,6 +102,10 @@ def als_context(focus: dict[str, Any] | None, gezien: list[str] | None,
         regels.append(f"Markeringen daarin{meer}, als id · klasse · tekst:")
         regels += [f"- {e.get('id', '?')} · {e.get('klasse', '')} · \"{e.get('tekst', '')}\""
                    + (f" ({e['aandacht']})" if e.get("aandacht") else "") for e in f["elementen"]]
+    if f.get("onderwerp"):
+        o = f["onderwerp"]
+        regels.append(f"Aangewezen in de werkplek: {o.get('soort', '')} · {o.get('label') or o.get('id', '')}"
+                      + (f" (id {o['id']}, werkgebied {o.get('werkgebied_id', '')})" if o.get("id") else ""))
     if f.get("element"):
         e = f["element"]
         regels.append(f"Aangewezen markering: {e.get('id', '?')} · {e.get('klasse', '')} · \"{e.get('tekst', '')}\"")

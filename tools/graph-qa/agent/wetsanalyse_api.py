@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -30,6 +31,8 @@ logger = logging.getLogger("graph_qa.api")
 # Ruim genoeg voor een batch met tientallen elementen, krap genoeg dat een hangende api de run niet
 # eindeloos ophoudt.
 TIMEOUT = httpx.Timeout(connect=5.0, read=30.0, write=30.0, pool=5.0)
+# Zelfde grens als de BFF bij het starten van begrippen (`MANIFEST_TIMEOUT_MS`).
+MANIFEST_TIMEOUT = httpx.Timeout(connect=5.0, read=90.0, write=30.0, pool=5.0)
 
 
 #: De agent gebruikt de lege string voor "geen aandacht" (`aandacht: str = ""`), de api `None`. De
@@ -122,6 +125,231 @@ class WetsanalyseApi:
     async def zet_bronnode_batch(self, payload: dict[str, Any]) -> dict[str, Any]:
         data = {**payload, "elementen": [naar_contract(e) for e in payload.get("elementen", [])]}
         return await self._post("/v1/annotatie/lagen/batch", data)
+
+    # -- begrippen: voorstellen van Lex (spoor D, levering 3a) --------------------------------------
+
+    def _run_pad(self, werkgebied_id: str, run_id: str) -> str:
+        return f"/v1/werkgebieden/{quote(werkgebied_id, safe='')}/begrippen-runs/{quote(run_id, safe='')}"
+
+    def _werkgebied_pad(self, werkgebied_id: str) -> str:
+        return f"/v1/werkgebieden/{quote(werkgebied_id, safe='')}"
+
+    async def _haal(self, pad: str, **params: str) -> dict[str, Any]:
+        antwoord = await self._client.get(f"{self._basis}{pad}", params=params or None, headers=self._headers)
+        if antwoord.status_code >= 400:
+            raise WetsanalyseApiFout(f"GET {pad} → {antwoord.status_code}", antwoord.status_code, api_reden(antwoord))
+        return antwoord.json()
+
+    async def haal_werkgebied(self, werkgebied_id: str) -> dict[str, Any]:
+        return await self._haal(self._werkgebied_pad(werkgebied_id))
+
+    async def maak_werkgebied(self, invoer: dict[str, Any]) -> dict[str, Any]:
+        """Een werkgebied uit het gesprek (activiteit 1); met `intake_id` idempotent bij de api."""
+        return await self._post("/v1/werkgebieden", invoer)
+
+    async def wijzig_werkgebied(self, werkgebied_id: str, wijziging: dict[str, Any]) -> dict[str, Any]:
+        """Het dossier aanpassen (`PATCH`, `WerkgebiedWijziging` met `verwachte_revisie`); geeft het werkgebied
+        terug. Een 412: iemand anders wijzigde het intussen."""
+        return await self._verstuur("PATCH", self._werkgebied_pad(werkgebied_id), wijziging)
+
+    async def voeg_bron_toe(self, werkgebied_id: str, bron: dict[str, Any]) -> dict[str, Any]:
+        """Een bronselectie; geeft `{selectie, werkgebied}` terug (met de nieuwe revisie)."""
+        return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronnen", bron)
+
+    async def koppel_deelvraag(self, werkgebied_id: str, deelvraag_id: str, koppelingen: dict[str, Any]) -> dict[str, Any]:
+        """De bronselecties en begrippen bij een deelvraag – de hele set; geeft het werkgebied terug."""
+        return await self._verstuur("PUT", f"{self._werkgebied_pad(werkgebied_id)}/deelvragen/"
+                                           f"{quote(deelvraag_id, safe='')}/koppelingen", koppelingen)
+
+    async def start_begrippen_run(self, werkgebied_id: str) -> dict[str, Any]:
+        """Manifest vastleggen en de run maken, of de bestaande op dezelfde stand (`nieuw: false`).
+
+        Het manifest vraagt per regeling de bronboom uit de graaf; vandaar de ruimere leestijd."""
+        antwoord = await self._client.post(f"{self._basis}{self._werkgebied_pad(werkgebied_id)}/begrippen-runs",
+                                           json={}, headers=self._headers, timeout=MANIFEST_TIMEOUT)
+        if antwoord.status_code >= 400:
+            raise WetsanalyseApiFout(f"POST begrippen-runs → {antwoord.status_code}", antwoord.status_code,
+                                     api_reden(antwoord))
+        return antwoord.json()
+
+    async def haal_annotatie_werkvoorraad(self, werkgebied_id: str, bereik: str = "werkgebied",
+                                          deelvraag_id: str = "") -> dict[str, Any]:
+        """Wat Lex in het werkgebied nog moet annoteren (fase B). De api vraagt per regeling de
+        bronboom uit de graaf; vandaar de ruimere leestijd. `bereik="deelvragen"` beperkt het tot de
+        bronnen onder de actieve deelvragen, met `deelvraag_id` tot die ene."""
+        pad = f"{self._werkgebied_pad(werkgebied_id)}/annotatie-werkvoorraad"
+        params = {"bereik": bereik, **({"deelvraag_id": deelvraag_id} if deelvraag_id else {})} \
+            if bereik != "werkgebied" else None
+        antwoord = await self._client.get(f"{self._basis}{pad}", headers=self._headers, params=params,
+                                          timeout=MANIFEST_TIMEOUT)
+        if antwoord.status_code >= 400:
+            raise WetsanalyseApiFout(f"GET {pad} → {antwoord.status_code}", antwoord.status_code, api_reden(antwoord))
+        return antwoord.json()
+
+    # -- bronnen vinden met Lex (spoor D, fase A) -----------------------------------------------------
+
+    def _bronnen_pad(self, werkgebied_id: str, run_id: str) -> str:
+        return f"{self._werkgebied_pad(werkgebied_id)}/bronnen-runs/{quote(run_id, safe='')}"
+
+    async def start_bronnen_run(self, werkgebied_id: str) -> dict[str, Any]:
+        return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronnen-runs", {})
+
+    async def haal_bronnen_run(self, werkgebied_id: str, run_id: str) -> dict[str, Any]:
+        """De run met zijn invoer: de selectie zoals de api hem vastlegde."""
+        return await self._haal(self._bronnen_pad(werkgebied_id, run_id), invoer="true")
+
+    async def meld_bronnen_loopt(self, werkgebied_id: str, run_id: str) -> dict[str, Any]:
+        return await self._post(f"{self._bronnen_pad(werkgebied_id, run_id)}/loopt", {})
+
+    async def zet_bronnen_uitkomst(self, werkgebied_id: str, run_id: str, uitkomst: dict[str, Any]) -> dict[str, Any]:
+        return await self._verstuur("PUT", f"{self._bronnen_pad(werkgebied_id, run_id)}/uitkomst", uitkomst)
+
+    async def meld_bronnen_mislukt(self, werkgebied_id: str, run_id: str, reden: str) -> dict[str, Any]:
+        return await self._post(f"{self._bronnen_pad(werkgebied_id, run_id)}/mislukt", {"reden": reden[:2000]})
+
+    async def stel_deelvragen_voor(self, werkgebied_id: str, vragen: list[str], model: str = "",
+                                   vervangt: str = "") -> dict[str, Any]:
+        """Deelvragen als voorstel; de api laat weg wat er al staat of is afgewezen. Met `vervangt` een
+        verbetering van die actieve deelvraag: overnemen vervangt haar (F3d)."""
+        return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/deelvragen/voorstellen",
+                                {"vragen": vragen, "model": model, **({"vervangt": vervangt} if vervangt else {})})
+
+    async def haal_thema_voorstel(self, werkgebied_id: str) -> dict[str, Any]:
+        """Spoor I6/I7: de TOOI-thema's die passen bij de rechtsgebieden van de bronnen (de api, zonder model)."""
+        return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/thema-voorstel")
+
+    async def haal_deelvragen_dekking(self, werkgebied_id: str) -> dict[str, Any]:
+        """De stand per actieve deelvraag: gekoppelde bronnen en begrippen, en of er een geaccordeerd
+        begrip bij hoort."""
+        return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/deelvragen/dekking")
+
+    async def haal_begrip(self, werkgebied_id: str, begrip_id: str) -> dict[str, Any]:
+        """Eén begrip met kaart en koppelingen (de passages)."""
+        return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/begrippen/{quote(begrip_id, safe='')}")
+
+    async def haal_kaartvoorstellen(self, werkgebied_id: str, begrip_id: str) -> dict[str, Any]:
+        """De voorstellen van Lex op de kaart van een begrip (fase E), open en besloten."""
+        return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/begrippen/"
+                                f"{quote(begrip_id, safe='')}/voorstellen")
+
+    async def haal_relaties(self, werkgebied_id: str, begrip_id: str = "") -> dict[str, Any]:
+        """De relaties van een werkgebied (of één begrip): vastgelegd, en voorgesteld door de keten (fase F2)."""
+        return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/relaties",
+                                **({"begrip_id": begrip_id} if begrip_id else {}))
+
+    async def haal_kandidaten(self, werkgebied_id: str) -> dict[str, Any]:
+        return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/kandidaten")
+
+    # -- bronselectie per deelvraag (spoor J) --------------------------------------------------------
+
+    async def haal_bronselectie(self, werkgebied_id: str, na: str = "") -> dict[str, Any]:
+        """De stand per deelvraag, met `actief` en de `volgende` die de api kiest."""
+        return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/bronselectie", **({"na": na} if na else {}))
+
+    async def zet_bronselectie_status(self, werkgebied_id: str, deelvraag_id: str,
+                                      actie: dict[str, Any]) -> dict[str, Any]:
+        """`{actie: openen|fase|afronden|beoordelen|heropenen, verwachte_revisie?, …}`; geeft het overzicht."""
+        return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronselectie/"
+                                f"{quote(deelvraag_id, safe='')}/status", actie)
+
+    async def voeg_bepaling_toe(self, werkgebied_id: str, deelvraag_id: str, bron: dict[str, Any]) -> dict[str, Any]:
+        """Zelf een bepaling als keuze bij één deelvraag (`BronselectieInvoer`); de api toetst haar in de graaf (422
+        als ze niet bestaat). Geeft het overzicht."""
+        return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronselectie/"
+                                f"{quote(deelvraag_id, safe='')}/bronnen", bron)
+
+    async def besluit_bronselectie(self, werkgebied_id: str, deelvraag_id: str, kandidaat_id: str,
+                                   besluit: dict[str, Any]) -> dict[str, Any]:
+        """Een besluit over één kandidaat bij één deelvraag; geeft het overzicht."""
+        return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronselectie/"
+                                f"{quote(deelvraag_id, safe='')}/kandidaten/{quote(kandidaat_id, safe='')}", besluit)
+
+    async def haal_groepen(self, werkgebied_id: str) -> dict[str, Any]:
+        """De betekenisgroepen van de laatste klare run, met hun besluiten."""
+        return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/groepen")
+
+    async def haal_begrippen_run(self, werkgebied_id: str, run_id: str) -> dict[str, Any]:
+        """De run met zijn manifest: de vaste invoer die de api heeft vastgelegd."""
+        antwoord = await self._client.get(f"{self._basis}{self._run_pad(werkgebied_id, run_id)}",
+                                          params={"manifest": "true"}, headers=self._headers)
+        if antwoord.status_code >= 400:
+            raise WetsanalyseApiFout(f"GET begrippen-run → {antwoord.status_code}", antwoord.status_code,
+                                     api_reden(antwoord))
+        return antwoord.json()
+
+    async def meld_begrippen_loopt(self, werkgebied_id: str, run_id: str) -> dict[str, Any]:
+        return await self._post(f"{self._run_pad(werkgebied_id, run_id)}/loopt", {})
+
+    async def zet_begrippen_uitkomst(self, werkgebied_id: str, run_id: str, uitkomst: dict[str, Any]) -> dict[str, Any]:
+        """Idempotent aan de api-kant: dezelfde uitkomst nog eens geeft de run terug."""
+        return await self._verstuur("PUT", f"{self._run_pad(werkgebied_id, run_id)}/uitkomst", uitkomst)
+
+    async def meld_begrippen_mislukt(self, werkgebied_id: str, run_id: str, reden: str) -> dict[str, Any]:
+        return await self._post(f"{self._run_pad(werkgebied_id, run_id)}/mislukt", {"reden": reden[:2000]})
+
+    # -- Lex naast de kaart: voorstellen per veld op één begrip (fase E) ---------------------------
+
+    def _kaart_pad(self, werkgebied_id: str, begrip_id: str, run_id: str) -> str:
+        return (f"{self._werkgebied_pad(werkgebied_id)}/begrippen/{quote(begrip_id, safe='')}"
+                f"/kaart-runs/{quote(run_id, safe='')}")
+
+    async def haal_kaartrun(self, werkgebied_id: str, begrip_id: str, run_id: str) -> dict[str, Any]:
+        """De run met zijn invoer: het begrip op zijn revisie, de passages en het manifest."""
+        antwoord = await self._client.get(f"{self._basis}{self._kaart_pad(werkgebied_id, begrip_id, run_id)}",
+                                          params={"invoer": "true"}, headers=self._headers, timeout=MANIFEST_TIMEOUT)
+        if antwoord.status_code >= 400:
+            raise WetsanalyseApiFout(f"GET kaart-run → {antwoord.status_code}", antwoord.status_code,
+                                     api_reden(antwoord))
+        return antwoord.json()
+
+    async def meld_kaart_loopt(self, werkgebied_id: str, begrip_id: str, run_id: str) -> dict[str, Any]:
+        return await self._post(f"{self._kaart_pad(werkgebied_id, begrip_id, run_id)}/loopt", {})
+
+    async def zet_kaart_uitkomst(self, werkgebied_id: str, begrip_id: str, run_id: str,
+                                 uitkomst: dict[str, Any]) -> dict[str, Any]:
+        """De api toetst de garanties opnieuw (422 bij een gebroken) en bewaart de voorstellen."""
+        return await self._verstuur("PUT", f"{self._kaart_pad(werkgebied_id, begrip_id, run_id)}/uitkomst", uitkomst)
+
+    async def meld_kaart_mislukt(self, werkgebied_id: str, begrip_id: str, run_id: str, reden: str) -> dict[str, Any]:
+        return await self._post(f"{self._kaart_pad(werkgebied_id, begrip_id, run_id)}/mislukt", {"reden": reden[:2000]})
+
+    async def start_kaart_run(self, werkgebied_id: str, begrip_id: str, actie: str,
+                              ander_begrip_id: str | None = None) -> dict[str, Any]:
+        """Een kaartactie vanuit het gesprek (fase F4), zoals de knop op de kaart: de api legt de invoer vast,
+        of geeft de lopende run (of een klare met open voorstellen) terug (`nieuw: false`). Het manifest
+        vraagt de bronboom uit de graaf; vandaar de ruimere leestijd."""
+        pad = f"{self._werkgebied_pad(werkgebied_id)}/begrippen/{quote(begrip_id, safe='')}/kaart-runs"
+        antwoord = await self._client.post(
+            f"{self._basis}{pad}", headers=self._headers, timeout=MANIFEST_TIMEOUT,
+            json={"actie": actie, **({"ander_begrip_id": ander_begrip_id} if ander_begrip_id else {})})
+        if antwoord.status_code >= 400:
+            raise WetsanalyseApiFout(f"POST kaart-runs → {antwoord.status_code}", antwoord.status_code,
+                                     api_reden(antwoord))
+        return antwoord.json()
+
+    async def haal_kaartrun_stand(self, werkgebied_id: str, begrip_id: str, run_id: str) -> dict[str, Any]:
+        """De run zonder invoer: alleen status en melding, om op een lopende run te wachten."""
+        return await self._haal(self._kaart_pad(werkgebied_id, begrip_id, run_id))
+
+    # -- begrippen over werkgebieden heen (fase F4) ------------------------------------------------
+
+    async def zoek_begrippen(self, q: str, eerst: str = "", limit: int = 20) -> dict[str, Any]:
+        return await self._haal("/v1/begrippen", q=q, limit=str(limit), **({"eerst": eerst} if eerst else {}))
+
+    # -- de verdieping: het model op twijfelparen en kaarten (fase C) ------------------------------
+
+    async def haal_verdieping(self, werkgebied_id: str) -> dict[str, Any]:
+        """Werkvoorraad, klare batches, schatting en budget voor de laatste klare run."""
+        return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/verdieping")
+
+    async def zet_begrippen_batch(self, werkgebied_id: str, run_id: str, batch_id: str,
+                                  batch: dict[str, Any]) -> dict[str, Any]:
+        """Idempotent aan de api-kant; de api toetst de garanties opnieuw (422 bij een gebroken)."""
+        return await self._verstuur("PUT", f"{self._run_pad(werkgebied_id, run_id)}/batches/{quote(batch_id, safe='')}",
+                                    batch)
+
+    async def zet_verdieping(self, werkgebied_id: str, run_id: str, verdieping: dict[str, Any]) -> dict[str, Any]:
+        return await self._verstuur("PUT", f"{self._run_pad(werkgebied_id, run_id)}/verdieping", verdieping)
 
     # -- gesprekken-domein -----------------------------------------------------------------------
 

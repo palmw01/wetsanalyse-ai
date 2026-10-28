@@ -1,4 +1,4 @@
-import { naarInloggen } from "./api";
+import { downloadAntwoord, naarInloggen, type ExportFormaat } from "./api";
 import { pathSegment } from "./url";
 
 /** Canonieke bronnodeweergave. Posities zijn Unicode-codepunten, niet UTF-16. */
@@ -153,6 +153,33 @@ export async function haalElement(id: string): Promise<NodeElement> {
   if (!element) throw new Error("Geen element in het antwoord.");
   return element;
 }
+/** Eén element op zijn eigen pagina (spoor G3): het element, zijn laag, de bronstand waarop het rust en de
+ *  bronnodes van zijn ankers met hun tekst (`GET elementen/{id}`). */
+export interface ElementDetail {
+  element: NodeElement;
+  laag: NodeLaag;
+  snapshot_id: string;
+  actuele_snapshot_id?: string;
+  bronnen: NodeSegment[];
+}
+export function haalElementDetail(id: string): Promise<ElementDetail> {
+  return nodeRequest(`elementen/${pathSegment(id)}`);
+}
+/** Een beslissing op één element, tegen de laagrevisie en de bronstand van de detailpagina. */
+export function beslisElement(d: ElementDetail, body: { type: "approve" | "reject" | "heropen"; review_reason?: string }) {
+  return nodeRequest(`elementen/${pathSegment(d.element.id)}/beslissing`, {
+    ...body, snapshot_id: d.snapshot_id, verwachte_revisies: { [d.element.eigenaar_iri]: d.laag.revisie },
+  });
+}
+/** "Annotatie akkoord" vanuit de begrippenreview (spoor D, fase D): een aparte, expliciete beslissing op
+ *  het element, tegen de laagrevisie en bronstand van nu – nooit stil meegenomen in een begripsakkoord. */
+export async function keurElementGoed(id: string): Promise<void> {
+  const d = await nodeRequest<{ element: NodeElement; laag: { revisie: number }; snapshot_id: string }>(
+    `elementen/${pathSegment(id)}`);
+  await nodeRequest(`elementen/${pathSegment(id)}/beslissing`, {
+    type: "approve", snapshot_id: d.snapshot_id, verwachte_revisies: { [d.element.eigenaar_iri]: d.laag.revisie },
+  });
+}
 /** Technisch detail van één markering: haar RDF zoals de projectie hem schrijft, en de graafcontrole
  *  van haar laag (`GET elementen/{id}/graaf`). */
 export interface LaagGraafcontrole {
@@ -165,7 +192,64 @@ export interface ElementGraaf { element_id: string; laag_id: string; turtle: str
 export function haalElementGraaf(id: string): Promise<ElementGraaf> {
   return nodeRequest(`elementen/${pathSegment(id)}/graaf`);
 }
+/** De plek van bepalingen in hun regeling (`POST plaatsen`, spoor H), in partijen van hoogstens 500. */
+export async function haalPlaatsen(iris: readonly string[]): Promise<import("./bronPlaats").Plaats[]> {
+  const uniek = [...new Set(iris)];
+  const uit: import("./bronPlaats").Plaats[] = [];
+  for (let i = 0; i < uniek.length; i += 500) {
+    const { plaatsen } = await nodeRequest<{ plaatsen: import("./bronPlaats").Plaats[] }>("plaatsen", { bron_iris: uniek.slice(i, i + 500) });
+    uit.push(...plaatsen);
+  }
+  return uit;
+}
 export async function haalNodeWeergave(doel: NodeDoel): Promise<NodeWeergave> {
   return nodeRequest(`weergave?${new URLSearchParams({ bron_iri: doel.bron_iri,
     ...(doel.snapshot_id ? { snapshot_id: doel.snapshot_id } : {}) })}`);
 }
+
+/** Waar `NodeAnnotatiePaneel` zijn weergave vandaan haalt en zijn handelingen heen stuurt.
+ *
+ *  Gewoon is dat de api (`apiOpslag`). De rondleiding geeft een opslag in het geheugen mee
+ *  (`lib/rondleidingDemo.ts`), zodat de voorbeeldannotatie in hetzelfde paneel staat als echt werk,
+ *  zonder één verzoek naar de api. Zo kan de rondleiding niet meer achterlopen op het paneel. De
+ *  lichamen zijn die van de api: wat de demo ontvangt, is precies wat de api zou krijgen. */
+export interface NodeOpslag {
+  weergave(doel: NodeDoel): Promise<NodeWeergave>;
+  beslis(elementId: string, body: Record<string, unknown>): Promise<unknown>;
+  markeer(body: Record<string, unknown>): Promise<{ element?: { id?: string } } | undefined>;
+  wis(elementId: string, verwachteRevisie: number): Promise<unknown>;
+  status(laagId: string, body: { status: string; verwachte_revisie: number }): Promise<unknown>;
+  verwijder(body: Record<string, unknown>): Promise<{ graaf?: string } | undefined>;
+  exporteer(body: { bron_iri: string; snapshot_id: string; formaat: ExportFormaat }): Promise<void>;
+  /** Hoort er een kennisgraaf en een revisiehistorie achter? Zonder (de rondleiding) toont het
+   *  paneel geen Graaf-tab en geen Historie: daar is niets op te halen. */
+  levend: boolean;
+}
+
+/** De annotatie van één bepaling verwijderen vanuit een lijst (`lib/verwijderen.ts`): eerst de weergave,
+ *  voor de revisies in beeld, dan hetzelfde verzoek als het paneel. Een 412 betekent ook hier dat iemand
+ *  intussen iets wijzigde. */
+export async function verwijderAnnotatie(doel: NodeDoel, opslag: NodeOpslag = apiOpslag) {
+  const view = await opslag.weergave(doel);
+  return opslag.verwijder({
+    bron_iri: view.doel.bron_iri, snapshot_id: view.snapshot_id, verwachte_revisies: verwachteRevisies(view),
+  });
+}
+
+export const apiOpslag: NodeOpslag = {
+  weergave: haalNodeWeergave,
+  beslis: (id, body) => nodeRequest(`elementen/${encodeURIComponent(id)}/beslissing`, body),
+  markeer: (body) => nodeRequest("elementen", body),
+  wis: (id, revisie) => nodeRequest(`elementen/${encodeURIComponent(id)}?verwachte_revisie=${revisie}`, {}, "DELETE"),
+  status: (laagId, body) => nodeRequest(`lagen/${encodeURIComponent(laagId)}/status`, body),
+  verwijder: (body) => nodeRequest("weergave/verwijder", body),
+  async exporteer(body) {
+    const response = await fetch("/api/annotatie/v2/weergave/export", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    });
+    if (!response.ok) throw await nodeError(response);
+    // Hetzelfde downloadpatroon als de artikelexport: bestandsnaam van de server, link in het document.
+    await downloadAntwoord(response, `annotatie.${body.formaat}`);
+  },
+  levend: true,
+};

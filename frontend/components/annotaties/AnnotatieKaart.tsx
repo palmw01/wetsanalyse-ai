@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { KleurStrip } from "@/components/annotaties/KleurStrip";
+import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
 import { DOCUMENT_STATUS_LABEL, DOCUMENT_STATUS_STYLE } from "@/lib/annotatie";
 import { naamVan, vindplaatsLabel } from "@/lib/annotatieOverzicht";
 import type { DocumentSamenvatting } from "@/lib/types";
@@ -25,11 +26,15 @@ const AANDACHT_STIJL: Record<string, string> = {
   geel: "bg-aandacht-geel-bg text-aandacht-geel-tekst border-aandacht-geel-rand",
 };
 
-export function AnnotatieKaart({ doc }: { doc: DocumentSamenvatting }) {
+export function AnnotatieKaart({ doc, onVerwijder }: {
+  doc: DocumentSamenvatting;
+  /** Verwijderen vanuit de lijst, zoals in het paneel (`lib/verwijderen.ts`). */
+  onVerwijder?: () => Promise<void>;
+}) {
   const href = nodeLink({ bron_iri: doc.bron_iri ?? "", snapshot_id: doc.snapshot_id });
   const beoordeeld = doc.aantal_elementen - doc.te_beoordelen;
   return (
-    <article className="flex flex-col gap-3 rounded-button border border-line bg-paper p-4 transition-shadow hover:shadow-kaart">
+    <article className="flex min-w-0 flex-col gap-3 rounded-kaart border border-line bg-paper p-4 shadow-zacht transition hover:-translate-y-0.5 hover:border-lint/40 hover:shadow-kaart motion-reduce:hover:translate-y-0">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           {/* De hele kaart aanklikbaar maken zou de knoppen eronder onbereikbaar maken voor het
@@ -84,6 +89,7 @@ export function AnnotatieKaart({ doc }: { doc: DocumentSamenvatting }) {
         >
           Openen
         </Link>
+        {onVerwijder && doc.bron_iri && <VerwijderKnop soort="annotatie" onBevestig={onVerwijder} className="ml-auto" />}
       </div>
     </article>
   );

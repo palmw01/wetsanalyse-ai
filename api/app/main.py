@@ -89,16 +89,20 @@ async def lifespan(app: FastAPI):
     # elke hook een no-op; Postgres blijft hoe dan ook de waarheid.
     projectie_taak = None
     if settings.graphdb_url:
+        from . import begrip_projectie
         from .graaf_projectie_v2 import activeer, lus
 
-        # Direct na elke commit projecteren, met de lus als vangnet.
+        # Direct na elke commit projecteren, met de lus als vangnet – de lagen én de begrippen.
         activeer(True)
+        begrip_projectie.activeer(True)
         projectie_taak = asyncio.create_task(lus(settings.jas_projectie_interval_s))
     yield
     if projectie_taak is not None:
+        from . import begrip_projectie
         from .graaf_projectie_v2 import stop
 
         await stop()
+        await begrip_projectie.stop()
         projectie_taak.cancel()
         try:
             await projectie_taak
@@ -132,8 +136,17 @@ observability.instrument_fastapi(app)
 
 app.include_router(admin.router, prefix="/v1")
 app.include_router(auth.router, prefix="/v1")
-from . import annotatie_v2
+from . import (annotatie_v2, begrip_onderhoud, begrip_relaties, begrip_voorstellen, begrippen, begrippen_overzicht,
+               begrippen_runs, bronnen_runs, werkgebieden)
 app.include_router(annotatie_v2.router, prefix="/v1")
+app.include_router(werkgebieden.router, prefix="/v1")
+app.include_router(begrippen.router, prefix="/v1")
+app.include_router(begrippen_overzicht.router, prefix="/v1")
+app.include_router(begrippen_runs.router, prefix="/v1")
+app.include_router(begrip_voorstellen.router, prefix="/v1")
+app.include_router(begrip_onderhoud.router, prefix="/v1")
+app.include_router(begrip_relaties.router, prefix="/v1")
+app.include_router(bronnen_runs.router, prefix="/v1")
 app.include_router(berichten.router, prefix="/v1")
 app.include_router(feedback.router, prefix="/v1")
 app.include_router(gesprekken.router, prefix="/v1")

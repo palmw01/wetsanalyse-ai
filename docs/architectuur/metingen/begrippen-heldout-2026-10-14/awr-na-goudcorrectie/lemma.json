@@ -1,0 +1,57 @@
+{
+  "variant": "lemma",
+  "referentie_versie": "heldout-v2",
+  "referentie_status": "provisional",
+  "referentie_sha256": "e681f270d277cc65e0be00ddbf55898c520bd1b68f9691e8b31faf9e4c7d1965",
+  "manifest_id": "M26a195ffc06078dd",
+  "formuleringen": 19,
+  "paren": 16,
+  "deterministisch": true,
+  "per_relatie": {
+    "zelfde_betekenis": {
+      "tp": 5,
+      "voorspeld": 5,
+      "goud": 6,
+      "precisie": 1.0,
+      "recall": 0.8333
+    },
+    "kwalificatie": {
+      "tp": 0,
+      "voorspeld": 0,
+      "goud": 1,
+      "precisie": null,
+      "recall": 0.0
+    },
+    "inclusie": {
+      "tp": 0,
+      "voorspeld": 0,
+      "goud": 3,
+      "precisie": null,
+      "recall": 0.0
+    },
+    "uitsluiting": {
+      "tp": 0,
+      "voorspeld": 0,
+      "goud": 0,
+      "precisie": null,
+      "recall": null
+    },
+    "hierarchie": {
+      "tp": 0,
+      "voorspeld": 0,
+      "goud": 4,
+      "precisie": null,
+      "recall": 0.0
+    }
+  },
+  "bcubed": {
+    "precisie": 1.0,
+    "recall": 0.9474,
+    "f": 0.973
+  },
+  "samengevoegd_verschillend": [],
+  "aandacht": {
+    "groen": 5,
+    "geel": 0
+  }
+}

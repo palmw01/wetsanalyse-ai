@@ -4,17 +4,22 @@ import { Opstellen } from "@/components/ui/Icoon";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 import { AppSidebar } from "@/components/werkplek/AppSidebar";
+import { ChatKop } from "@/components/werkplek/ChatKop";
 import { SkipLink, HOOFDINHOUD_ID } from "@/components/ui/SkipLink";
 import { leesStand, moetStarten } from "@/lib/rondleiding";
 import { maakDemoScene, type DemoScene } from "@/lib/rondleidingDemo";
 import { MobieleTopbar, TOPBAR_KNOP } from "@/components/werkplek/MobieleTopbar";
 import { WerkplekClient } from "@/components/werkplek/WerkplekClient";
-import { getVerbruik } from "@/lib/api";
+import { foutTekst, getVerbruik, verwijderGesprek, wijzigGesprek } from "@/lib/api";
+import { metSpoor } from "@/lib/uiSpoor";
 import { resetdatum, tokensKort } from "@/lib/tokenbudget";
-import type { BeslissingType, GesprekSamenvatting, Verbruiksstand } from "@/lib/types";
+import type { BeslissingType, Gesprek, GesprekSamenvatting, Verbruiksstand } from "@/lib/types";
+import { onderwerpUitUrl } from "@/lib/vraagLex";
+import { startVraagUitUrl } from "@/lib/werkgebied";
 
 // De rondleiding rendert alleen bij `demo` – eerste bezoek of een expliciete klik. Statisch
 // geïmporteerd zat hij (met TourBubbel) toch in de bundel van iedereen die de werkplek opent,
@@ -37,10 +42,41 @@ export function WorkbenchShell({
 } = {}) {
   const [gesprekken, setGesprekken] = useState<GesprekSamenvatting[]>([]);
   const [activeId, setActiveId] = useState<string | null>(beginGesprekId);
+  // Het werkgebied hoort bij het gesprek (spoor G1): een geopend gesprek neemt het zijne mee, uit de
+  // lijst of uit het geladen gesprek. Een nieuw gesprek krijgt het van `?werkgebied=<id>` (*Vraag Lex*
+  // op een werkgebiedpagina, of *Nieuw gesprek* bij een groep) en wordt er bij de eerste beurt aan
+  // gekoppeld. Een expliciete keuze (verplaatsen, een werkgebied dat Lex net samenstelde) staat in
+  // `gekozenWg` en gaat vóór; op de native `replaceState` alleen leunen bleek niet genoeg.
+  const zoek = useSearchParams();
+  const [gekozenWg, setGekozenWg] = useState<{ id: string | null } | null>(null);
+  const [geladen, setGeladen] = useState<Gesprek | null>(null);
+  const actief = gesprekken.find((g) => g.id === activeId);
+  const geladenActief = geladen && geladen.id === activeId ? geladen : null;
+  const werkgebiedId = gekozenWg
+    ? gekozenWg.id
+    : activeId
+      ? (actief?.werkgebied_id ?? geladenActief?.werkgebied_id) || null
+      : werkgebiedUitUrl(zoek.get("werkgebied"));
+  const gearchiveerd = Boolean(actief ? actief.gearchiveerd : geladenActief?.gearchiveerd);
+  // *Vraag Lex* van buiten de werkplek (`?vraag=<soort>:<id>&vraag_label=…`, F3b): de chip staat klaar
+  // in een vers gesprek. Eén keer gelezen en meteen uit de URL gehaald – herladen zet hem niet opnieuw;
+  // het werkgebied blijft in de URL.
+  const [beginOnderwerp] = useState(() => onderwerpUitUrl(zoek));
+  // *Samenstellen met Lex* vanuit het overzicht Werkgebieden (`?start=werkgebied`): de vraag staat klaar
+  // in het invoerveld, versturen doet de analist. Ook één keer gelezen.
+  const [beginInvoer] = useState(() => startVraagUitUrl(zoek));
+  useEffect(() => {
+    if (beginOnderwerp === null && beginInvoer === null) return;
+    const url = new URL(window.location.href);
+    for (const naam of ["vraag", "vraag_label", "vraag_veld", "start"]) url.searchParams.delete(naam);
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  }, [beginOnderwerp, beginInvoer]);
   const [mountKey, setMountKey] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
   // Verhoogd zodra de chat een gesprek aanmaakte: de sidebar bezit de lijst en haalt hem dan opnieuw.
   const [verversSignaal, setVerversSignaal] = useState(0);
+  // *Bronnen* in de chatkop: het venster opent de bronnen van het werkgebied naast het gesprek.
+  const [bronnenSignaal, setBronnenSignaal] = useState(0);
   // Een mislukte hernoem- of verwijderactie mag de werkplek niet blokkeren, maar hoort ook niet stil
   // te blijven: zonder melding is "de nieuwe naam staat er niet" niet te onderscheiden van "de naam
   // is niet aangeslagen", en blijft een gesprek na een bevestigde verwijdering gewoon staan.
@@ -110,23 +146,63 @@ export function WorkbenchShell({
     if (moetStarten(leesStand())) startRondleiding();
   }, []);
 
-  function nieuwGesprek() {
+  function nieuwGesprek(werkgebied: string | null = null) {
     setActiveId(null);
+    setGekozenWg({ id: werkgebied });
     setMountKey((k) => k + 1);
     setDrawerOpen(false);
-    zetGesprekInUrl(null);
+    zetGesprekInUrl(null, werkgebied);
   }
 
   function openGesprek(id: string) {
     setActiveId(id);
+    setGekozenWg(null);
     setMountKey((k) => k + 1);
     setDrawerOpen(false);
-    zetGesprekInUrl(id);
+    zetGesprekInUrl(id, gesprekken.find((g) => g.id === id)?.werkgebied_id || null);
+  }
+
+  /** Het open gesprek archiveren, verplaatsen of verwijderen vanuit de chatkop. Daarna haalt de
+   *  sidebar zijn lijst opnieuw; een fout landt in dezelfde strook als die van de sidebar. */
+  async function archiveerActief(a: boolean) {
+    if (!activeId) return;
+    try {
+      await metSpoor("gesprek_archiveren", () => wijzigGesprek(activeId, { gearchiveerd: a }));
+      setVerversSignaal((n) => n + 1);
+    } catch (e) {
+      setFout(`Het gesprek is niet ${a ? "gearchiveerd" : "hersteld"}. ${foutTekst(e)}`);
+    }
+  }
+
+  async function verplaatsActief(w: string) {
+    if (!activeId) return;
+    try {
+      await metSpoor("gesprek_verplaatsen", () => wijzigGesprek(activeId, { werkgebied_id: w }));
+      setGekozenWg({ id: w || null });
+      zetWerkgebiedInUrl(w || null);
+      setVerversSignaal((n) => n + 1);
+    } catch (e) {
+      setFout(`Het gesprek is niet verplaatst. ${foutTekst(e)}`);
+    }
+  }
+
+  async function verwijderActief() {
+    if (!activeId) return;
+    try {
+      await metSpoor("gesprek_verwijderen", () => verwijderGesprek(activeId));
+      nieuwGesprek();
+      setVerversSignaal((n) => n + 1);
+    } catch (e) {
+      setFout(`Het gesprek is niet verwijderd. ${foutTekst(e)}`);
+    }
   }
 
   // Het chatvenster maakte zojuist (bij de eerste beurt) een gesprek aan → highlight bijwerken zónder
   // remount, en de lijst verversen zodat het bovenaan verschijnt.
   function gesprekAangemaakt(id: string) {
+    // Het gesprek is net gekoppeld aan het werkgebied van dit moment; de lijst weet dat pas na het
+    // verversen, en tot dan zou de context anders even wegvallen.
+    setGekozenWg({ id: werkgebiedId });
     setActiveId(id);
     setVerversSignaal((n) => n + 1);
     zetGesprekInUrl(id);
@@ -141,11 +217,42 @@ export function WorkbenchShell({
    *  `replace` en geen `push`: van gesprek wisselen is geen stap die je met Terug ongedaan maakt, net
    *  als de weergavewissel op `/annotaties`. Een meegekomen `?annotatie=` hoort bij het vorige
    *  gesprek en gaat weg. */
-  function zetGesprekInUrl(id: string | null) {
+  /** Een werkgebied dat Lex net samenstelde of dat uit een overzicht kwam: de werkplek gaat erin
+   *  verder, en een gesprek dat al bestaat hoort er voortaan bij. */
+  function zetWerkgebied(id: string | null) {
+    setGekozenWg({ id });
+    zetWerkgebiedInUrl(id);
+    if (activeId) {
+      void wijzigGesprek(activeId, { werkgebied_id: id ?? "" })
+        .then(() => setVerversSignaal((n) => n + 1))
+        .catch((e) => setFout(`Het gesprek is niet aan het werkgebied gekoppeld. ${foutTekst(e)}`));
+    }
+  }
+
+  function zetWerkgebiedInUrl(id: string | null) {
+    const url = new URL(window.location.href);
+    if (id) url.searchParams.set("werkgebied", id);
+    else url.searchParams.delete("werkgebied");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  }
+
+  /** Het actieve gesprek hoort in de URL: anders opende herladen een leeg gesprek (of weer het
+   *  gesprek uit de oorspronkelijke deep-link), en was een gesprek niet te bookmarken.
+   *
+   *  Bewust de native `history.replaceState` en geen `router.replace`: die laatste rendert de
+   *  server-pagina opnieuw, terwijl hier alleen het adres hoeft mee te bewegen – het venster zelf
+   *  wisselt al in lokale state. `replace` en geen `push`: van gesprek wisselen is geen stap die je
+   *  met Terug ongedaan maakt, net als de weergavewissel op `/annotaties`. Een meegekomen
+   *  `?annotatie=` hoort bij het vorige gesprek en gaat weg; het werkgebied volgt het gesprek. */
+  function zetGesprekInUrl(id: string | null, werkgebied?: string | null) {
     const url = new URL(window.location.href);
     url.searchParams.delete("annotatie");
     if (id) url.searchParams.set("gesprek", id);
     else url.searchParams.delete("gesprek");
+    if (werkgebied !== undefined) {
+      if (werkgebied) url.searchParams.set("werkgebied", werkgebied);
+      else url.searchParams.delete("werkgebied");
+    }
     window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
   }
 
@@ -213,8 +320,14 @@ export function WorkbenchShell({
       <div className="flex min-h-0 flex-1" inert={achtergrondSlot}>
       <AppSidebar
         activeId={activeId}
-        onNieuw={nieuwGesprek}
+        onNieuw={() => nieuwGesprek()}
+        onNieuwInWerkgebied={(w) => nieuwGesprek(w)}
         onOpen={openGesprek}
+        onVerplaatst={(id, w) => {
+          if (id !== activeId) return;
+          setGekozenWg({ id: w || null });
+          zetWerkgebiedInUrl(w || null);
+        }}
         onVerwijderd={(id) => {
           if (id === activeId) nieuwGesprek();
         }}
@@ -237,7 +350,7 @@ export function WorkbenchShell({
           actie={
             <button
               type="button"
-              onClick={nieuwGesprek}
+              onClick={() => nieuwGesprek()}
               aria-label="Nieuw gesprek"
               className={TOPBAR_KNOP}
             >
@@ -245,6 +358,19 @@ export function WorkbenchShell({
             </button>
           }
         />
+
+        {!demo && (activeId || werkgebiedId) && (
+          <ChatKop
+            titel={actieveTitel}
+            gesprekId={activeId}
+            werkgebiedId={werkgebiedId}
+            gearchiveerd={gearchiveerd}
+            onArchiveer={(a) => void archiveerActief(a)}
+            onVerplaats={(w) => void verplaatsActief(w)}
+            onVerwijder={() => void verwijderActief()}
+            onBronnen={() => setBronnenSignaal((n) => n + 1)}
+          />
+        )}
 
         {demo ? (
           <WerkplekClient
@@ -265,6 +391,14 @@ export function WorkbenchShell({
           <WerkplekClient
             key={mountKey}
             initialGesprekId={activeId}
+            werkgebiedId={werkgebiedId}
+            // Alleen het venster waarmee de pagina opende; een nieuw gesprek start niets.
+            beginOnderwerp={mountKey === 0 && !beginGesprekId ? beginOnderwerp : null}
+            beginInvoer={mountKey === 0 && !beginGesprekId ? beginInvoer : null}
+            onVerlaatWerkgebied={() => zetWerkgebied(null)}
+            onKiesWerkgebied={zetWerkgebied}
+            onGesprekGeladen={setGeladen}
+            bronnenSignaal={bronnenSignaal}
             onGesprekAangemaakt={gesprekAangemaakt}
             onGewijzigd={() => setVerversSignaal((n) => n + 1)}
             onRondleiding={startRondleiding}
@@ -291,4 +425,9 @@ export function WorkbenchShell({
       )}
     </div>
   );
+}
+
+/** Alleen een geldig werkgebied-id; al het andere is geen context (de api kent de vorm ook zo). */
+function werkgebiedUitUrl(waarde: string | null): string | null {
+  return waarde && /^[A-Za-z0-9-]{1,64}$/.test(waarde) ? waarde : null;
 }

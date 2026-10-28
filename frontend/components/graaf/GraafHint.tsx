@@ -9,7 +9,7 @@ const SLEUTEL = "wa_graaf_hint_2d";
 /** Eenmalige uitleg van de bediening, onder in het canvas. Verdwijnt bij de eerste eigen
  *  interactie (`klaar`) of met het kruisje, en blijft dan per kijker weg. Opslag kan ontbreken
  *  (privévenster): dan verschijnt de hint gewoon weer, verder gaat er niets mis. */
-export function GraafHint({ klaar }: { klaar: boolean }) {
+export function GraafHint({ klaar, terug = "het antwoord" }: { klaar: boolean; terug?: string }) {
   const [gezien, setGezien] = useState(true);
   useEffect(() => {
     // Pas na de eerste render lezen: de server kent geen localStorage.
@@ -24,7 +24,7 @@ export function GraafHint({ klaar }: { klaar: boolean }) {
   }, [klaar, gezien]);
   if (gezien) return null;
   return <p role="status" data-testid="graaf-hint" className="pointer-events-auto flex min-w-0 items-center gap-2 rounded-full border border-line bg-paper/95 py-1.5 pl-3 pr-1.5 text-[11px] text-muted shadow-kaart">
-    Klik: kiezen · achtergrond: terug naar het antwoord · sleep en scroll: verschuiven en zoomen
+    Klik: kiezen · achtergrond: terug naar {terug} · sleep en scroll: verschuiven en zoomen
     <button type="button" aria-label="Uitleg sluiten" onClick={() => { try { localStorage.setItem(SLEUTEL, "1"); } catch { /* */ } setGezien(true); }}
       className="focus-ring rounded-full p-1 hover:bg-surface hover:text-ink"><Kruis /></button>
   </p>;

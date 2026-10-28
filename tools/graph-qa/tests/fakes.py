@@ -157,3 +157,14 @@ class FakeGraph:
 
     def close(self) -> None:
         self.closed = True
+
+
+def agent_ctx(api, *, settings=None, run_id: str = "run9", gestopt: bool = False, **kw):
+    """Een `agents.Context` voor tests: de meldingen komen in `ctx.meldingen`."""
+    from agent.agents import Context
+
+    meldingen: list[str] = []
+    ctx = Context(api=api, settings=settings or make_settings(), user_id="u", run_id=run_id, gesprek_id="g1",
+                  melding=meldingen.append, gestopt=lambda: gestopt, **kw)
+    ctx.meldingen = meldingen
+    return ctx

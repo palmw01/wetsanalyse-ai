@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
+import { knopKlasse } from "@/components/ui/Button";
 import {
   klikGat, maskRechthoeken, plaatsBubbel, uitsnede, vakVan, zichtbaarDeel,
   type Afmeting, type Plaatsing, type Stap, type Vak,
@@ -168,12 +169,16 @@ export function TourBubbel({
   const gat = zichtbaar ? uitsnede(zichtbaar, GAT_MARGE) : null;
   const bedienbaar = Boolean(klikGat(stap, actiefVak, GAT_MARGE));
 
+  // Centreren zonder `transform`: de bubbel draait `animate-rise`, en die animatie houdt (fill-mode
+  // `both`) haar eigen `transform: translateY(0)` vast. Een `translate(-50%, -50%)` hier viel daardoor
+  // weg, en de linkerbovenhoek van de bubbel stond op het midden van het scherm – op een telefoon met
+  // *Volgende* buiten beeld, waarna de rondleiding niet verder kon.
   const stijl: React.CSSProperties =
     plaatsing.modus === "midden"
       ? {
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
+          inset: 0,
+          margin: "auto",
+          height: "fit-content",
           width: BUBBEL_BREEDTE,
           maxWidth: "calc(100vw - 1.5rem)",
         }
@@ -232,6 +237,7 @@ export function TourBubbel({
 
       <div
         ref={bubbelRef}
+        data-rondleiding-bubbel=""
         role="dialog"
         aria-label={`Rondleiding, stap ${nummer} van ${totaal}: ${stap.titel}`}
         className={`fixed z-[61] rounded-kaart border bg-paper p-4 shadow-kaart animate-rise transition-[border-color,box-shadow,transform] duration-200 motion-reduce:animate-none motion-reduce:transition-none ${
@@ -251,7 +257,7 @@ export function TourBubbel({
             type="button"
             onClick={onSluit}
             aria-label="Rondleiding afsluiten"
-            className="focus-ring -mr-1 -mt-1 shrink-0 rounded-kaart p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink"
+            className="focus-ring -mr-1 -mt-1 shrink-0 rounded-full p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink"
           >
             <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
               <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
@@ -297,14 +303,14 @@ export function TourBubbel({
             type="button"
             onClick={onVorige}
             disabled={!onVorige}
-            className="focus-ring min-h-[28px] rounded-button border border-line px-2.5 text-[0.75rem] text-ink transition-colors hover:bg-surface disabled:opacity-40 coarse:min-h-[44px]"
+            className="focus-ring min-h-[28px] rounded-full border border-line px-2.5 text-[0.75rem] text-ink transition-colors hover:bg-surface disabled:opacity-40 coarse:min-h-[44px]"
           >
             Vorige
           </button>
           <button
             type="button"
             onClick={onVolgende}
-            className="focus-ring min-h-[28px] rounded-button bg-accent px-3 text-[0.75rem] font-medium text-paper transition-opacity hover:opacity-90 coarse:min-h-[44px]"
+            className={knopKlasse("primary", "sm")}
           >
             {nummer === totaal ? "Afronden" : "Volgende"}
           </button>

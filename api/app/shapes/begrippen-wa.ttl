@@ -1,0 +1,67 @@
+# Eigen SHACL-shapes voor de begrippenprojectie (spoor D, fase F3; ADR-003).
+#
+# Naast de NL-SBB-shapes (nl-sbb-1.0.0.ttl): wat NL-SBB niet zegt maar dit platform wel belooft.
+#   herkomst – elke koppeling wijst naar een annotatie-element en draagt de bewijsstand (element-hash);
+#              een begrip met een dragende passage heeft een bron.
+#   review   – status, revisie, en wanneer geaccordeerd: op welk moment en welke revisie.
+#   schoon   – geen subject onder urn:bwb: (de wettekst blijft schoon).
+# Diagnostisch: deze shapes draaien nooit in het schrijfpad (app/begrip_projectie.conformiteit).
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix dct:  <http://purl.org/dc/terms/> .
+@prefix wa:   <urn:wa-ns:> .
+@prefix wav:  <urn:wa-ns:validatie:> .
+
+wav:BegripShape a sh:NodeShape ;
+  sh:targetClass skos:Concept ;
+  sh:property [ sh:path wa:status ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:in ( "concept" "geaccordeerd" "vervangen" ) ;
+                sh:message "Een begrip heeft precies één status: concept, geaccordeerd of vervangen." ] ;
+  sh:property [ sh:path wa:revisie ; sh:datatype xsd:integer ; sh:minCount 1 ; sh:maxCount 1 ; sh:minInclusive 1 ;
+                sh:message "Een begrip heeft precies één revisie (≥ 1)." ] ;
+  sh:property [ sh:path wa:definitieHerkomst ; sh:maxCount 1 ; sh:in ( "letterlijk" "samengesteld" "geformuleerd" ) ] ;
+  sh:property [ sh:path wa:definitieDoor ; sh:maxCount 1 ; sh:in ( "analist" "lex" ) ] ;
+  sh:property [ sh:path wa:koppeling ; sh:class wa:Koppeling ] ;
+  # Een definitie zonder herkomst is schijnzekerheid: zeg waar ze vandaan komt.
+  sh:sparql [
+    sh:message "De definitie heeft geen herkomst (letterlijk, samengesteld of geformuleerd)." ;
+    sh:select """SELECT $this WHERE { $this <http://www.w3.org/2004/02/skos/core#definition> ?d .
+                 FILTER NOT EXISTS { $this <urn:wa-ns:definitieHerkomst> ?h } }""" ] ;
+  # Geaccordeerd: wanneer, en op welke revisie.
+  sh:sparql [
+    sh:message "Een geaccordeerd begrip mist het tijdstip of de revisie van het accorderen." ;
+    sh:select """SELECT $this WHERE { $this <urn:wa-ns:status> "geaccordeerd" .
+                 FILTER NOT EXISTS { $this <urn:wa-ns:geaccordeerdOp> ?op ; <urn:wa-ns:geaccordeerdRevisie> ?r } }""" ] ;
+  # Een dragende, niet afgewezen passage maakt van haar bronnode een bron van het begrip.
+  sh:sparql [
+    sh:message "Een begrip met een dragende passage heeft geen bron (dct:source)." ;
+    sh:select """SELECT $this WHERE { $this <urn:wa-ns:koppeling> ?k .
+                 ?k <urn:wa-ns:rol> ?rol ; <urn:wa-ns:beoordeling> ?b ; <urn:wa-ns:bron> ?bron .
+                 FILTER(?rol IN ("duiding", "definitie") && ?b != "afgewezen")
+                 FILTER NOT EXISTS { $this <http://purl.org/dc/terms/source> ?doc } }""" ] .
+
+wav:KoppelingShape a sh:NodeShape ;
+  sh:targetClass wa:Koppeling ;
+  sh:property [ sh:path wa:rol ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( "duiding" "definitie" "context" ) ] ;
+  sh:property [ sh:path wa:beoordeling ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( "open" "akkoord" "afgewezen" ) ] ;
+  sh:property [ sh:path wa:element ; sh:nodeKind sh:IRI ; sh:minCount 1 ; sh:maxCount 1 ; sh:pattern "^urn:jas:element:" ;
+                sh:message "Een koppeling wijst naar precies één annotatie-element." ] ;
+  sh:property [ sh:path wa:elementHash ; sh:datatype xsd:string ; sh:minCount 1 ; sh:maxCount 1 ; sh:minLength 1 ;
+                sh:message "Een koppeling draagt haar bewijsstand (element-hash)." ] ;
+  sh:property [ sh:path wa:bron ; sh:nodeKind sh:IRI ; sh:pattern "^urn:bwb:BWB[RV][0-9]+" ] .
+
+wav:RelatieShape a sh:NodeShape ;
+  sh:targetClass wa:Begripsrelatie ;
+  sh:property [ sh:path wa:van ; sh:class skos:Concept ; sh:minCount 1 ; sh:maxCount 1 ] ;
+  sh:property [ sh:path wa:naar ; sh:class skos:Concept ; sh:minCount 1 ; sh:maxCount 1 ] ;
+  sh:property [ sh:path wa:type ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:in ( "kwalificatie" "inclusie" "uitsluiting" "hierarchie" "verwant" "opvolging" ) ] ;
+  sh:property [ sh:path wa:herkomst ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( "lex" "analist" "systeem" ) ] .
+
+wav:KaderShape a sh:NodeShape ;
+  sh:targetClass skos:ConceptScheme ;
+  sh:property [ sh:path wa:werkgebiedId ; sh:datatype xsd:string ; sh:minCount 1 ; sh:maxCount 1 ] ;
+  sh:sparql [
+    sh:message "Een subject onder urn:bwb: in een begrippengraph – een begrip zou als wettekst lezen." ;
+    sh:select """SELECT $this ?value WHERE { ?value ?p ?o . FILTER(isIRI(?value) && STRSTARTS(STR(?value), "urn:bwb:")) }""" ] .

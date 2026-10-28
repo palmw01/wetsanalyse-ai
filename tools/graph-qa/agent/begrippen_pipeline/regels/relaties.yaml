@@ -1,0 +1,107 @@
+# Patronen voor begripsrelaties (ADR-004). Elk patroon verbindt twee termen via de benoemde groepen
+# `van` en `naar`: bij een kwalificatie is `van` wat als `naar` geldt, bij een inclusie en
+# hiërarchie is `van` de bredere term. Een patroon stelt een relatie VOOR; het besluit niet.
+#
+# Velden: id, hypothese, code, polariteit, sterkte, bron, versie, patroon, tests (positief /
+# negatief / rand / overlap – verplicht, zie tests/test_begrippen_patronen.py). Een positieve test
+# noemt de woorden die `van` en `naar` moeten vangen; een negatieve test mag niet matchen.
+#
+# Lidwoorden en aanwijzende woorden staan buiten de groepen: `(?:{LW})`.
+
+- id: begrip.kwalificatie.geldt_als
+  hypothese: kwalificatie
+  code: KWALIFICATIE
+  polariteit: steun
+  sterkte: sterk
+  bron: "Aanwijzingen voor de regelgeving (fictie, gelijkstelling)"
+  versie: 1
+  patroon: '\b(?P<van>[\w-]+)\s+(?:geldt|gelden)\s+(?:mede\s+|tevens\s+)?als\s+(?:{LW}\s+)?(?P<naar>[\w-]+)'
+  tests:
+    positief: [{tekst: "Een fiscale eenheid geldt als belastingplichtige.", van: "eenheid", naar: "belastingplichtige"}]
+    negatief: [{tekst: "Hij treedt op als bestuurder."}]
+    rand: [{tekst: "de schulden gelden mede als een belastingschuld", van: "schulden", naar: "belastingschuld"}]
+    overlap: [{tekst: "het lichaam geldt als ondernemer en geldt niet als particulier", van: "lichaam", naar: "ondernemer"}]
+
+- id: begrip.kwalificatie.aangemerkt
+  hypothese: kwalificatie
+  code: KWALIFICATIE
+  polariteit: steun
+  sterkte: sterk
+  bron: "Aanwijzingen voor de regelgeving (fictie, gelijkstelling)"
+  versie: 1
+  patroon: '\b(?P<van>[\w-]+)\s+(?:wordt|worden)\s+(?:mede\s+|tevens\s+)?aangemerkt\s+als\s+(?:{LW}\s+)?(?P<naar>[\w-]+)'
+  tests:
+    positief: [{tekst: "De bestuurder wordt aangemerkt als belastingschuldige.", van: "bestuurder", naar: "belastingschuldige"}]
+    negatief: [{tekst: "De bestuurder wordt aangemerkt."}]
+    rand: [{tekst: "partners worden mede aangemerkt als een echtgenoot", van: "partners", naar: "echtgenoot"}]
+    overlap: [{tekst: "de inspecteur wordt aangemerkt als ontvanger, en de ontvanger als inspecteur", van: "inspecteur", naar: "ontvanger"}]
+
+- id: begrip.kwalificatie.gelijkgestelde
+  hypothese: kwalificatie
+  code: KWALIFICATIE
+  polariteit: steun
+  sterkte: sterk
+  bron: "Aanwijzingen voor de regelgeving (fictie, gelijkstelling)"
+  versie: 1
+  patroon: '\bmet\s+(?:{LW}\s+)?(?P<naar>[\w-]+)\s+gelijkgestelde?\s+(?P<van>[\w-]+)'
+  tests:
+    positief: [{tekst: "een met een belastingaanslag gelijkgestelde beschikking", van: "beschikking", naar: "belastingaanslag"}]
+    negatief: [{tekst: "een gelijkgestelde beschikking"}]
+    rand: [{tekst: "met de aanslag gelijkgesteld besluit", van: "besluit", naar: "aanslag"}]
+    overlap: [{tekst: "met een belastingaanslag gelijkgestelde beschikking inzake rente", van: "beschikking", naar: "belastingaanslag"}]
+
+- id: begrip.kwalificatie.gelijkgesteld_met
+  hypothese: kwalificatie
+  code: KWALIFICATIE
+  polariteit: steun
+  sterkte: sterk
+  bron: "Aanwijzingen voor de regelgeving (fictie, gelijkstelling)"
+  versie: 1
+  patroon: '\b(?:wordt|worden)\s+(?:{LW}\s+)?(?:[\w-]+\s+){0,3}?(?P<van>[\w-]+)\s+gelijkgesteld\s+met\s+(?:{LW}\s+)?(?:[\w-]+\s+){0,3}?(?P<naar>[\w-]+)(?=\s*(?:[.,;:]|$)|\s+(?:en|of|indien|tenzij|voor)\b)'
+  tests:
+    positief: [{tekst: "wordt een Europese coöperatieve vennootschap gelijkgesteld met een Europese naamloze vennootschap.", van: "vennootschap", naar: "vennootschap"}]
+    negatief: [{tekst: "wordt gelijk behandeld met een ander"}]
+    rand: [{tekst: "worden pleegkinderen gelijkgesteld met kinderen", van: "pleegkinderen", naar: "kinderen"}]
+    overlap: [{tekst: "wordt de partner gelijkgesteld met de echtgenoot en het kind", van: "partner", naar: "echtgenoot"}]
+
+- id: begrip.inclusie.mede_verstaan
+  hypothese: inclusie
+  code: MEDE_VERSTAAN
+  polariteit: steun
+  sterkte: sterk
+  bron: "Aanwijzingen voor de regelgeving (begripsbepalingen)"
+  versie: 1
+  patroon: '\bonder\s+(?:{LW}\s+)?(?P<van>[\w-]+)\s+(?:(?:wordt|worden)\s+)?(?:mede|tevens|ook)\s+verstaan\s+(?:{LW}\s+)?(?P<naar>[\w-]+)'
+  tests:
+    positief: [{tekst: "Onder belasting wordt mede verstaan de rente.", van: "belasting", naar: "rente"}]
+    negatief: [{tekst: "Onder belasting wordt verstaan de rente."}]
+    rand: [{tekst: "onder een werknemer worden tevens verstaan de bestuurders", van: "werknemer", naar: "bestuurders"}]
+    overlap: [{tekst: "wordt voor de toepassing van deze wet onder partner mede verstaan degene die", van: "partner", naar: "degene"}]
+
+- id: begrip.uitsluiting.niet_verstaan
+  hypothese: uitsluiting
+  code: NIET_VERSTAAN
+  polariteit: steun
+  sterkte: sterk
+  bron: "Aanwijzingen voor de regelgeving (begripsbepalingen)"
+  versie: 1
+  patroon: '\bonder\s+(?:{LW}\s+)?(?P<van>[\w-]+)\s+(?:(?:wordt|worden)\s+)?niet\s+verstaan\s+(?:{LW}\s+)?(?P<naar>[\w-]+)'
+  tests:
+    positief: [{tekst: "Onder werknemer wordt niet verstaan de bestuurder.", van: "werknemer", naar: "bestuurder"}]
+    negatief: [{tekst: "Onder werknemer wordt mede verstaan de bestuurder."}]
+    rand: [{tekst: "onder een lichaam worden niet verstaan de stichtingen", van: "lichaam", naar: "stichtingen"}]
+    overlap: [{tekst: "wordt in dat geval onder werknemer niet verstaan de bestuurder", van: "werknemer", naar: "bestuurder"}]
+
+- id: begrip.hierarchie.zoals
+  hypothese: hierarchie
+  code: HEARST
+  polariteit: steun
+  sterkte: middel
+  bron: "Hearst 1992; Nederlandse hyperoniemen (RANLP 2013)"
+  versie: 1
+  patroon: '\b(?P<van>[\w-]+),?\s+(?:zoals|waaronder|in\s+het\s+bijzonder|daaronder\s+begrepen)\s+(?:{LW}\s+)?(?!bedoeld\b)(?P<naar>[\w-]+)'
+  tests:
+    positief: [{tekst: "belastingaanslagen, zoals navorderingsaanslagen", van: "belastingaanslagen", naar: "navorderingsaanslagen"}]
+    negatief: [{tekst: "de aanslag, zoals bedoeld in het eerste lid"}]
+    rand: [{tekst: "rijksbelastingen, daaronder begrepen de rente", van: "rijksbelastingen", naar: "rente"}]
+    overlap: [{tekst: "kosten, waaronder de kosten van ambtelijke werkzaamheden", van: "kosten", naar: "kosten"}]

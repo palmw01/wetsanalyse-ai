@@ -165,8 +165,8 @@ try {
   await balk.getByRole("button", { name: /^Volgende: / }).click();
   await balk.getByText("2 van 2", { exact: false }).waitFor();
   await wacht(() => weergaven.includes(lid(3)), "de weergave van lid 3");
-  await page.locator("body").click({ position: { x: 5, y: 500 } });
-  await page.keyboard.press("[");
+  // Terug met ‹ (geen sneltoetsen).
+  await balk.getByRole("button", { name: /^Vorige: / }).click();
   await balk.getByText("1 van 2", { exact: false }).waitFor();
   assert.deepEqual(weergaven.filter((w) => w !== lid(1) && w !== lid(3)), []);
   assert.deepEqual(errors, []);

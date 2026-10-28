@@ -27,6 +27,7 @@ from ..state import State
 from ..tools import anthropic_schemas
 from ..tool_execution import execute_tool
 from ..tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN, begrens_antwoord
+from ..tools.begrip_tools import begrens_begrippen_antwoord
 from .context import Bouw
 
 logger = logging.getLogger("graph_qa.orchestrator")
@@ -125,6 +126,12 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
                                                  if naam in ANNOTATIE_TOOL_NAMEN)},
                 )
             antwoord = begrensd
+        elif state.get("begrippen_lezen"):
+            begrensd = begrens_begrippen_antwoord(antwoord, state.get("source_trace", []))
+            if begrensd != antwoord:
+                logger.warning("leesroute begrippen: antwoord begrensd",
+                               extra={"categorie": "functioneel", "run_id": state.get("run_id", "")})
+            antwoord = begrensd
         # Vóór het antwoord de deur uit gaat: een bijna-letterlijk citaat (hoofdletter, punt binnen de
         # aanhalingstekens) wordt de brontekst. Anders zag de jurist het afgekeurde citaat al, en
         # volgde er een volledige correctieronde voor een afwijking die mechanisch te herstellen is.
@@ -218,8 +225,8 @@ def correct_node(b: Bouw, state: State) -> dict[str, Any]:
         passages = "; ".join(f'"{c[:120]}…"' if len(c) > 120 else f'"{c}"' for c in niet_letterlijk)
         opdrachten.append(
             f"Deze passages staan tussen aanhalingstekens maar niet letterlijk in de opgehaalde "
-            f"tekst: {passages}. Herstel ze woord voor woord zoals ze in de bron staan, of haal "
-            "de aanhalingstekens weg en geef het in je eigen woorden weer. Weglatingen met (...), "
+            f"tekst: {passages}. Herstel ze woord voor woord zoals ze in de bron staan, of "
+            "verwijder de aanhalingstekens en geef het in je eigen woorden weer. Weglatingen met (...), "
             "eigen samenvattingen tussen [ ] en vet of cursief binnen een citaat maken het een "
             "parafrase – die presenteer je niet als citaat."
         )

@@ -1,11 +1,12 @@
 "use client";
 
+import { PaneelKop } from "@/components/ui/PaneelKop";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { vindplaatsLabel } from "@/lib/annotatieOverzicht";
 import { foutTekst, type ExportFormaat } from "@/lib/api";
 
-import { BevestigKnop } from "@/components/ui/BevestigKnop";
+import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
 import { Melding } from "@/components/ui/Melding";
 import { DocumentPaneel } from "@/components/werkplek/DocumentPaneel";
 import { ExportKnop } from "@/components/werkplek/ExportKnop";
@@ -13,7 +14,7 @@ import { ReviewQueue, type OpenRij } from "@/components/werkplek/ReviewQueue";
 import { SelectiePopover, type SelectieDoel } from "@/components/werkplek/SelectiePopover";
 import {
   DOCUMENT_STATUS_LABEL, DOCUMENT_STATUS_STYLE, LIFECYCLE_LABEL, bronVan, isDocumentVergrendeld,
-  isVergrendeld, overlaptSelectie, pastInFilter, regelsVan, sorteerReview, splitsVerouderd,
+  overlaptSelectie, pastInFilter, regelsVan, sorteerReview, splitsVerouderd,
   volgendeElement, type ReviewFilter,
 } from "@/lib/annotatie";
 import { jasStyle } from "@/lib/jas";
@@ -46,6 +47,8 @@ export interface ArtefactInhoudProps {
   /** Meegeven in de dialoogschil (het kruisje, en de laatste laag van Escape); weglaten op de
    *  eigen pagina, die niets te sluiten heeft. */
   onSluiten?: () => void;
+  /** *Open volledige pagina* in de kop (alleen in de dialoogschil naast het gesprek). */
+  pagina?: string;
   /** De export van de bronnode-annotatie; de knop, het keuzepaneel en de foutmelding blijven die
    *  van het paneel. */
   onExport?: (formaat: ExportFormaat) => Promise<void>;
@@ -63,7 +66,7 @@ export interface ArtefactInhoudProps {
  *  schillen – anders gaan de twee weergaven uit elkaar lopen. */
 export function ArtefactInhoud({
   doc, info, actiefId, onKies, onBeslissing, onEigenMarkering,
-  onWisEigenMarkering, onVraag, onStatus, onVerwijder, onSluiten, onExport, extra, ongedekt,
+  onWisEigenMarkering, onVraag, onStatus, onVerwijder, onSluiten, pagina, onExport, extra, ongedekt,
 }: ArtefactInhoudProps) {
   // Eén bron voor de bewoording: `vindplaatsLabel` weet uit het graaf-`soort` of dit een artikel
   // met leden is of een bepaling van een beleidsregel. Hier raden op puntjes in het nummer zou bij
@@ -185,8 +188,9 @@ export function ArtefactInhoud({
     }
   }
 
-  /** Sneltoetsen. Bewust inactief zodra de focus in een invoerveld staat: anders keur je iets goed
-   *  door "a" te typen in een toelichting. Escape werkt altijd – dat is de uitweg. */
+  /** Escape is de uitweg: de bovenste laag eerst (selectie → bedieningsrij → gekozen element → sluiten).
+   *  Andere toetsen doet het artefact niet: Lex heeft geen sneltoetsen (besluit gebruiker 26 okt 2026);
+   *  beoordelen gaat met de knoppen op de kaart. */
   useEffect(() => {
     function opToets(e: KeyboardEvent) {
       const doel = e.target as HTMLElement | null;
@@ -200,47 +204,6 @@ export function ArtefactInhoud({
         // Niet vanuit de chat ernaast of vanuit een venster dat eroverheen ligt (instellingen):
         // dan hoort Escape bij dát venster.
         if (inVeld ? !!doel?.closest("[data-artefact]") : focusBijArtefact(doel)) opEscape();
-        return;
-      }
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-
-      if (inVeld) return;
-      // De rest alleen als de focus in het artefact staat, of nergens (op de pagina zelf). In de
-      // kolomvariant staat de chat ernaast: daar zijn de pijltjes van de keuzekaart en het scrollen
-      // door de thread, en een `a` op een chatknop keurde hier ongemerkt het gekozen element goed.
-      if (!focusBijArtefact(doel)) return;
-
-      const stap = (richting: 1 | -1) => {
-        const volgend = volgendeElement(getoond, actiefId, richting);
-        if (volgend) {
-          e.preventDefault();
-          setOpen("geen");
-          onKies(volgend.id);
-        }
-      };
-
-      if (e.key === "j" || e.key === "ArrowDown") return stap(1);
-      if (e.key === "k" || e.key === "ArrowUp") return stap(-1);
-      if (!actiefId) return;
-      const actiefEl = actueel.find((el) => el.id === actiefId);
-      if (!actiefEl) return;
-
-      // Ook het slot op dít element telt: anders opent `x` een redenen-rij die alleen nog een 409
-      // kan opleveren. De sneltoets doet precies wat de knop doet – of hij doet niets.
-      if (vergrendeld || isVergrendeld(actiefEl)) return;
-
-      if (e.key === "a") {
-        e.preventDefault();
-        if (!actiefEl.klasse) return;            // net als de knop: eerst een klasse kiezen
-        // De fout staat al in de melding boven de lijst (`beslis`); hier alleen niet laten
-        // doorlopen als onafgehandelde rejection – de knop vangt hem net zo af.
-        keurGoed(actiefEl.id).catch(() => {});
-      } else if (e.key === "x") {
-        e.preventDefault();
-        setOpen((h) => (h === "verwerp" ? "geen" : "verwerp"));
-      } else if (e.key === "c") {
-        e.preventDefault();
-        setOpen((h) => (h === "klasse" ? "geen" : "klasse"));
       }
     }
     window.addEventListener("keydown", opToets);
@@ -348,51 +311,16 @@ export function ArtefactInhoud({
 
             De acties krijgen hun eigen regel en lijnen rechts uit, onder het kruisje. Dat kost op een
             breed scherm een regel hoogte, en dat is de prijs voor een sluitknop die niet wandelt. */}
-        <div className="flex shrink-0 flex-col gap-2 border-b border-line px-5 py-3.5 pt-[max(0.875rem,env(safe-area-inset-top))]">
-          <div className="flex items-start gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[0.65rem] font-semibold uppercase tracking-wide text-faint">Annotatie · JAS</p>
-              <h2 className="truncate font-display text-base font-semibold text-lint">{opschrift}</h2>
-            </div>
-            {onSluiten && (
-              <button
-                type="button"
-                onClick={onSluiten}
-                aria-label="Sluiten"
-                // `-mr-1` haalt de optische ruimte van het icoon weg, zodat het kruisje uitlijnt met
-                // de rechterkantlijn van de kop – hetzelfde als in `InstellingenDialog`.
-                className="focus-ring -mr-1 shrink-0 rounded-kaart p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink"
-              >
-                {/* Zelfde icoon en lijndikte als in het instellingenvenster: één kruisje in de app,
-                    niet drie die net iets anders wegen. */}
-                <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-                  <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
-                </svg>
-              </button>
-            )}
-          </div>
-          <div data-tour="artefact-acties" className="flex flex-wrap items-center justify-end gap-2">
-            <span className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${DOCUMENT_STATUS_STYLE[doc.status]}`}>
-              {DOCUMENT_STATUS_LABEL[doc.status]}
-            </span>
-            <ExportKnop onFout={setFout} onDownload={onExport} />
-            {onStatus && <StatusKnop status={doc.status} bezig={statusBezig} onZet={zetStatus} />}
-            {/* Elke gebruiker mag dit, ook op een afgeronde annotatie; de audit legt vast wie het deed.
-                Tweede klik bevestigt, zoals elders in de app. */}
-            {onVerwijder && (
-              <BevestigKnop
-                onBevestig={verwijder}
-                bevestigTekst="Verwijderen?"
-                ariaLabel="Annotatie verwijderen"
-                titel="Verwijdert alle markeringen en beoordelingen van deze bepaling, ook uit de kennisgraaf"
-                className="focus-ring inline-flex min-h-[24px] shrink-0 items-center rounded-full border border-line px-2 py-0.5 text-[11px] font-medium text-muted transition-colors hover:border-fout/40 hover:text-fout disabled:opacity-60 coarse:min-h-[44px] coarse:px-3"
-                bevestigClassName="border-fout bg-fout text-paper hover:text-paper"
-              >
-                Verwijderen
-              </BevestigKnop>
-            )}
-          </div>
-        </div>
+        <PaneelKop soort="Annotatie · JAS" titel={opschrift} pagina={pagina} onSluit={onSluiten} acties={<>
+          <span className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${DOCUMENT_STATUS_STYLE[doc.status]}`}>
+            {DOCUMENT_STATUS_LABEL[doc.status]}
+          </span>
+          <ExportKnop onFout={setFout} onDownload={onExport} />
+          {onStatus && <StatusKnop status={doc.status} bezig={statusBezig} onZet={zetStatus} />}
+          {/* Elke gebruiker mag dit, ook op een afgeronde annotatie; de audit legt vast wie het deed.
+              Tweede klik bevestigt, zoals elders in de app. */}
+          {onVerwijder && <VerwijderKnop soort="annotatie" onBevestig={verwijder} />}
+        </>} />
 
         {/* Twee zones met een EIGEN scroll. Eén gedeelde scroller liet de wettekst uit beeld lopen
             zodra je verderop in de lijst kwam – precies de context die je nodig hebt om te oordelen. */}

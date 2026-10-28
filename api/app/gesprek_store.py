@@ -8,17 +8,30 @@ uit Python (`db.utcnow`) zodat de queries portable blijven (SQLite-tests).
 """
 from __future__ import annotations
 
+import logging
+
+from pydantic import ValidationError
 from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import db
 from .gesprek_contracts import Bericht, BerichtInvoer, Gesprek, GesprekSamenvatting
 
+logger = logging.getLogger(__name__)
+
+
+#: De gestructureerde velden van een bericht: wat de agent erbij legde. Klopt zo'n veld niet meer met het
+#: contract van nu – een kaartje met een stap die intussen anders heet, een artefact van een vervallen
+#: soort –, dan valt alleen dat veld weg. Anders weigerde de api het hele gesprek (500), en daarmee ook
+#: laden én verwijderen: een gesprek is een verslag en moet altijd te openen en weg te halen zijn.
+_OPTIONEEL = ("hergebruik", "dekking", "overzicht", "annotatie_doel", "tool_executions", "reeks", "artefact",
+              "bevestiging", "bevestiging_antwoord", "vraagkaart", "intake_antwoord")
+
 
 def _bericht_uit_row(row) -> Bericht:
     d = row._mapping
     inhoud = d["inhoud"] or {}
-    return Bericht(
+    velden = dict(
         id=d["id"],
         rol=d["rol"],
         tekst=inhoud.get("tekst", ""),
@@ -33,8 +46,23 @@ def _bericht_uit_row(row) -> Bericht:
         annotatie_doel=inhoud.get("annotatie_doel") or None,
         tool_executions=inhoud.get("tool_executions", []) or [],
         reeks=inhoud.get("reeks") or None,
+        artefact=inhoud.get("artefact") or None,
+        bevestiging=inhoud.get("bevestiging") or None,
+        bevestiging_antwoord=inhoud.get("bevestiging_antwoord") or None,
+        vraagkaart=inhoud.get("vraagkaart") or None,
+        intake_antwoord=inhoud.get("intake_antwoord") or None,
         created=db.aware(d["created"]),
     )
+    try:
+        return Bericht(**velden)
+    except ValidationError as fout:
+        weg = sorted({str(e["loc"][0]) for e in fout.errors() if e["loc"] and e["loc"][0] in _OPTIONEEL})
+        if not weg:
+            raise
+        logger.warning("bericht: veraald veld weggelaten",
+                       extra={"categorie": "functioneel", "bericht_id": d["id"], "velden": weg})
+        return Bericht(**{**velden, **{k: Bericht.model_fields[k].get_default(call_default_factory=True)
+                                       for k in weg}})
 
 
 def _inhoud(inv: BerichtInvoer | Bericht) -> dict:
@@ -62,6 +90,16 @@ def _inhoud(inv: BerichtInvoer | Bericht) -> dict:
         inhoud["run_id"] = inv.run_id
     if inv.reeks:
         inhoud["reeks"] = inv.reeks.model_dump()
+    if inv.artefact:
+        inhoud["artefact"] = inv.artefact.model_dump()
+    if inv.bevestiging:
+        inhoud["bevestiging"] = inv.bevestiging.model_dump()
+    if inv.bevestiging_antwoord:
+        inhoud["bevestiging_antwoord"] = inv.bevestiging_antwoord.model_dump()
+    if inv.vraagkaart:
+        inhoud["vraagkaart"] = inv.vraagkaart.model_dump()
+    if inv.intake_antwoord:
+        inhoud["intake_antwoord"] = inv.intake_antwoord.model_dump()
     return inhoud
 
 
@@ -73,6 +111,7 @@ class GesprekStore:
                 id=gesprek.id,
                 user_id=gesprek.user_id,
                 titel=gesprek.titel,
+                werkgebied_id=gesprek.werkgebied_id,
                 created=now,
                 updated=now,
             ))
@@ -94,33 +133,42 @@ class GesprekStore:
             id=d["id"],
             user_id=d["user_id"],
             titel=d["titel"],
+            werkgebied_id=d["werkgebied_id"] or "",
+            gearchiveerd=db.aware(d["gearchiveerd"]),
             berichten=[_bericht_uit_row(b) for b in berichten],
             created=db.aware(d["created"]),
             updated=db.aware(d["updated"]),
         )
 
     async def lijst_samenvattingen(
-        self, user_id: str, limit: int = 100, offset: int = 0
+        self, user_id: str, limit: int = 100, offset: int = 0,
+        werkgebied_id: str | None = None, gearchiveerd: bool | None = None,
     ) -> list[GesprekSamenvatting]:
-        aantal = func.count(db.gesprek_berichten.c.id).label("aantal")
+        """Eigen gesprekken, nieuwste eerst. `werkgebied_id=""` geeft alleen de losse gesprekken;
+        `gearchiveerd=None` geeft alles, zodat de sidebar met één call kan indelen."""
+        g, b, w = db.gesprekken, db.gesprek_berichten, db.werkgebieden
+        aantal = func.count(b.c.id).label("aantal")
+        q = (
+            select(g, aantal, w.c.naam.label("werkgebied_naam"))
+            .select_from(g.outerjoin(b, g.c.id == b.c.gesprek_id).outerjoin(w, g.c.werkgebied_id == w.c.id))
+            .where(g.c.user_id == user_id)
+        )
+        if werkgebied_id is not None:
+            q = q.where(g.c.werkgebied_id == werkgebied_id)
+        if gearchiveerd is not None:
+            q = q.where(g.c.gearchiveerd.is_not(None) if gearchiveerd else g.c.gearchiveerd.is_(None))
+        q = q.group_by(g.c.id, w.c.naam).order_by(g.c.updated.desc()).limit(limit).offset(offset)
         async with db.get_engine().connect() as conn:
-            rows = (await conn.execute(
-                select(db.gesprekken, aantal)
-                .select_from(db.gesprekken.outerjoin(
-                    db.gesprek_berichten,
-                    db.gesprekken.c.id == db.gesprek_berichten.c.gesprek_id,
-                ))
-                .where(db.gesprekken.c.user_id == user_id)
-                .group_by(db.gesprekken.c.id)
-                .order_by(db.gesprekken.c.updated.desc())
-                .limit(limit).offset(offset)
-            )).all()
+            rows = (await conn.execute(q)).all()
         return [
             GesprekSamenvatting(
                 id=r._mapping["id"],
                 titel=r._mapping["titel"],
                 aantal_berichten=r._mapping["aantal"],
                 updated=db.aware(r._mapping["updated"]),
+                werkgebied_id=r._mapping["werkgebied_id"] or "",
+                werkgebied_naam=r._mapping["werkgebied_naam"] or "",
+                gearchiveerd=db.aware(r._mapping["gearchiveerd"]),
             )
             for r in rows
         ]
@@ -188,19 +236,26 @@ class GesprekStore:
                 .values(updated=now)
             )
             nieuw_id = result.inserted_primary_key[0] if result.inserted_primary_key else None
-        return Bericht(
-            id=nieuw_id, rol=inv.rol, tekst=inv.tekst, denk=inv.denk, bronnen=inv.bronnen,
-            annotatie_slug=inv.annotatie_slug, annotatie_titel=inv.annotatie_titel,
-            run_id=inv.run_id, created=db.aware(now),
-        )
+        # Het hele bericht terug, niet een deel: wie het antwoord gebruikt, krijgt wat er staat.
+        return Bericht(id=nieuw_id, created=db.aware(now), **inv.model_dump())
 
-    async def hernoem_gesprek(self, gesprek_id: str, titel: str) -> None:
+    async def wijzig_gesprek(
+        self, gesprek_id: str, *, titel: str | None = None,
+        werkgebied_id: str | None = None, gearchiveerd: bool | None = None,
+    ) -> None:
+        """Titel, werkgebied of archief. Alleen een nieuwe titel telt als bijwerken (`updated`):
+        verplaatsen of archiveren mag een gesprek niet bovenaan de lijst zetten."""
+        waarden: dict = {}
+        if titel is not None:
+            waarden.update(titel=titel, updated=db.utcnow())
+        if werkgebied_id is not None:
+            waarden["werkgebied_id"] = werkgebied_id
+        if gearchiveerd is not None:
+            waarden["gearchiveerd"] = db.utcnow() if gearchiveerd else None
+        if not waarden:
+            return
         async with db.get_engine().begin() as conn:
-            await conn.execute(
-                update(db.gesprekken)
-                .where(db.gesprekken.c.id == gesprek_id)
-                .values(titel=titel, updated=db.utcnow())
-            )
+            await conn.execute(update(db.gesprekken).where(db.gesprekken.c.id == gesprek_id).values(**waarden))
 
     async def verwijder_gesprek(self, gesprek_id: str) -> None:
         async with db.get_engine().begin() as conn:

@@ -6,11 +6,11 @@ import { voegToe, type GraafModel, type KnoopData, type KnoopSoort, type Relatie
 
 export const SOORT_LABEL: Record<KnoopSoort, string> = {
   regeling: "Regeling", deel: "Structuur", artikel: "Artikel", lid: "Lid", onderdeel: "Onderdeel",
-  markering: "Markering", klasse: "JAS-klasse", extern: "Niet-geïmporteerde bepaling",
+  markering: "Markering", klasse: "JAS-klasse", extern: "Niet-geïmporteerde bepaling", begrip: "Begrip",
 };
 
 const normaal = (s: string) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLocaleLowerCase("nl");
-const RANG: Record<KnoopSoort, number> = { artikel: 0, lid: 1, onderdeel: 2, regeling: 3, deel: 3, markering: 4, klasse: 5, extern: 6 };
+const RANG: Record<KnoopSoort, number> = { artikel: 0, lid: 1, onderdeel: 2, regeling: 3, deel: 3, begrip: 4, markering: 4, klasse: 5, extern: 6 };
 
 /** Knopen die bij de zoekvraag passen, over het hele model (ook wat een laag verbergt): eerst wat met
  *  de vraag begint, dan wat hem bevat; daarbinnen geladen vóór rand, bronnen vóór markeringen en
@@ -29,12 +29,20 @@ export function zoekKnopen(g: GraafModel, vraag: string, max = 12): string[] {
     .slice(0, max).map((t) => t.id);
 }
 
-export type RelatieGroepNaam = "Onderdeel van" | "Bevat" | "Markeringen" | "Markeert" | "Klasse" | "Verwijst naar" | "Wordt verwezen door";
+export type RelatieGroepNaam = "Onderdeel van" | "Bevat" | "Markeringen" | "Markeert" | "Klasse" | "Verwijst naar" | "Wordt verwezen door"
+  | "Begrippen" | "Dragende passages" | "Relaties met begrippen" | "Voorgestelde relaties";
 export interface RelatieRegel { id: string; anker_tekst: string }
 
-const UIT: Record<RelatieData["soort"], RelatieGroepNaam> = { bevat: "Bevat", verwijst_naar: "Verwijst naar", markeert: "Markeert", heeft_klasse: "Klasse" };
-const IN: Record<RelatieData["soort"], RelatieGroepNaam> = { bevat: "Onderdeel van", verwijst_naar: "Wordt verwezen door", markeert: "Markeringen", heeft_klasse: "Markeringen" };
-const VOLGORDE: RelatieGroepNaam[] = ["Onderdeel van", "Bevat", "Markeringen", "Markeert", "Klasse", "Verwijst naar", "Wordt verwezen door"];
+const UIT: Record<RelatieData["soort"], RelatieGroepNaam> = {
+  bevat: "Bevat", verwijst_naar: "Verwijst naar", markeert: "Markeert", heeft_klasse: "Klasse",
+  duidt: "Dragende passages", begripsrelatie: "Relaties met begrippen", begripsvoorstel: "Voorgestelde relaties",
+};
+const IN: Record<RelatieData["soort"], RelatieGroepNaam> = {
+  bevat: "Onderdeel van", verwijst_naar: "Wordt verwezen door", markeert: "Markeringen", heeft_klasse: "Markeringen",
+  duidt: "Begrippen", begripsrelatie: "Relaties met begrippen", begripsvoorstel: "Voorgestelde relaties",
+};
+const VOLGORDE: RelatieGroepNaam[] = ["Onderdeel van", "Bevat", "Begrippen", "Markeringen", "Markeert", "Klasse",
+  "Dragende passages", "Relaties met begrippen", "Voorgestelde relaties", "Verwijst naar", "Wordt verwezen door"];
 
 /** De relaties van een knoop, per soort en richting, in vaste volgorde. Over het hele model: een buur
  *  die een laag verbergt staat er ook in, zodat je hem vanuit de inspector kunt kiezen. */
@@ -59,7 +67,7 @@ export function relatieGroepen(g: GraafModel, id: string): { naam: RelatieGroepN
 export type Hoofdactie = "tekst" | "wissel" | "laden" | null;
 
 export function hoofdactie(a: Pick<KnoopData, "soort" | "rand" | "bwb_id">, id: string, inPaneel?: ReadonlySet<string>): Hoofdactie {
-  if (a.soort === "klasse" || a.soort === "extern") return null;
+  if (a.soort === "klasse" || a.soort === "extern" || a.soort === "begrip") return null;
   if (a.rand) return a.bwb_id ? "laden" : null;
   if (inPaneel && !inPaneel.has(id)) return a.soort === "regeling" ? null : "wissel";
   return "tekst";
@@ -99,15 +107,16 @@ export function paneelDoel(id: string, a: Pick<KnoopData, "bwb_id" | "artikel" |
   return undefined;
 }
 
-export interface Telling { regelingen: number; bepalingen: number; markeringen: number; verwijzingen: number }
+export interface Telling { regelingen: number; bepalingen: number; markeringen: number; verwijzingen: number; begrippen?: number }
 
 /** Wat er geladen is, voor de kop en de inspector zonder keuze. Randbepalingen tellen niet mee. */
 export function telling(g: GraafModel): Telling {
-  const t: Telling = { regelingen: 0, bepalingen: 0, markeringen: 0, verwijzingen: 0 };
+  const t: Telling = { regelingen: 0, bepalingen: 0, markeringen: 0, verwijzingen: 0, begrippen: 0 };
   g.forEachNode((_, a) => {
     if (a.rand) return;
     if (a.soort === "regeling") t.regelingen++;
     else if (a.soort === "markering") t.markeringen++;
+    else if (a.soort === "begrip") t.begrippen!++;
     else if (a.soort === "artikel" || a.soort === "lid" || a.soort === "onderdeel") t.bepalingen++;
   });
   g.forEachEdge((_, a) => { if (a.soort === "verwijst_naar") t.verwijzingen++; });
@@ -119,5 +128,6 @@ const getal = new Intl.NumberFormat("nl-NL");
 export function tellingTekst(t: Telling): string {
   const deel = (n: number, een: string, meer: string) => (n ? `${getal.format(n)} ${n === 1 ? een : meer}` : "");
   return [deel(t.regelingen, "regeling", "regelingen"), deel(t.bepalingen, "bepaling", "bepalingen"),
-    deel(t.markeringen, "markering", "markeringen"), deel(t.verwijzingen, "verwijzing", "verwijzingen")].filter(Boolean).join(" · ");
+    deel(t.markeringen, "markering", "markeringen"), deel(t.begrippen ?? 0, "begrip", "begrippen"),
+    deel(t.verwijzingen, "verwijzing", "verwijzingen")].filter(Boolean).join(" · ");
 }

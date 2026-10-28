@@ -1,0 +1,57 @@
+{
+  "variant": "keten_zonder_parse",
+  "referentie_versie": "v1",
+  "referentie_status": "provisional",
+  "referentie_sha256": "a04035a02eec63ce17947aa0819754341ece1d5ee0794444923a0815292684c2",
+  "manifest_id": "Mdbc3d345df135d71",
+  "formuleringen": 25,
+  "paren": 22,
+  "deterministisch": true,
+  "per_relatie": {
+    "zelfde_betekenis": {
+      "tp": 21,
+      "voorspeld": 22,
+      "goud": 22,
+      "precisie": 0.9545,
+      "recall": 0.9545
+    },
+    "kwalificatie": {
+      "tp": 1,
+      "voorspeld": 1,
+      "goud": 1,
+      "precisie": 1.0,
+      "recall": 1.0
+    },
+    "inclusie": {
+      "tp": 2,
+      "voorspeld": 2,
+      "goud": 2,
+      "precisie": 1.0,
+      "recall": 1.0
+    },
+    "uitsluiting": {
+      "tp": 0,
+      "voorspeld": 0,
+      "goud": 0,
+      "precisie": null,
+      "recall": null
+    },
+    "hierarchie": {
+      "tp": 4,
+      "voorspeld": 4,
+      "goud": 5,
+      "precisie": 1.0,
+      "recall": 0.8
+    }
+  },
+  "bcubed": {
+    "precisie": 0.96,
+    "recall": 0.96,
+    "f": 0.96
+  },
+  "samengevoegd_verschillend": [],
+  "aandacht": {
+    "groen": 13,
+    "geel": 1
+  }
+}

@@ -73,7 +73,7 @@ export function FeedbackDialoog({ onSluit }: { onSluit: () => void }) {
           type="button"
           onClick={onSluit}
           aria-label="Feedback sluiten"
-          className="focus-ring -mr-1 rounded-kaart p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink"
+          className="focus-ring -mr-1 rounded-full p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink"
         >
           <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
             <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />

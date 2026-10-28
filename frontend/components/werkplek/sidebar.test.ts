@@ -46,3 +46,17 @@ describe("AppSidebar is op elk scherm bereikbaar", () => {
     },
   );
 });
+
+describe("de navigatie in de zijbalk", () => {
+  it("staat in de volgorde waarin je werkt: Werkgebieden, Annotaties, Begrippen", () => {
+    // Besluit gebruiker 21 okt 2026; de rondleiding (`lib/rondleiding.ts`, stap "sidebar") noemt dezelfde volgorde.
+    const bron = readFileSync(join(__dirname, "GesprekSidebar.tsx"), "utf8");
+    const plek = (href: string) => bron.indexOf(`href="${href}"`);
+    expect(plek("/werkgebieden")).toBeGreaterThan(-1);
+    expect(plek("/werkgebieden")).toBeLessThan(plek("/annotaties"));
+    expect(plek("/annotaties")).toBeLessThan(plek("/begrippen"));
+    const rondleiding = readFileSync(join(__dirname, "..", "..", "lib", "rondleiding.ts"), "utf8");
+    const tekst = (w: string) => rondleiding.indexOf(`${w} (`);
+    expect(tekst("Werkgebieden")).toBeLessThan(tekst("Annotaties"));
+  });
+});

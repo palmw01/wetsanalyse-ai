@@ -54,9 +54,10 @@ const config: Config = {
         mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
       borderRadius: {
-        // Rijkshuisstijl: button ≈ 10% van de hoogte (48px), formulierveld ≈ 5%.
-        button: "5px",
+        // Rijkshuisstijl: formulierveld ≈ 5% van de hoogte. Knoppen en kaarten delen `kaart` (spoor K).
         field: "3px",
+        // Een compacte knop (sm, 32px): dezelfde vorm als Nieuw gesprek, op zijn hoogte – 14px zou daar een pil worden.
+        knop: "10px",
         // Modern jasje: rondere kaarten/bubbels (Claude-achtig) náást de RH-knopradius.
         kaart: "14px",
         bubbel: "16px",
