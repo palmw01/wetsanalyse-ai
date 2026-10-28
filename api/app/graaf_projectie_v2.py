@@ -481,10 +481,12 @@ async def projecteer(laag_id: str) -> bool:
                 return False
             laag = dict(row)
             elements, dekking = await laag_invoer(conn, laag)
-            data = bouw_graaf(laag, elements, dekking=dekking)
+            # rdflib is pure Python: in een thread, want deze lus deelt de event loop met elk verzoek.
+            data = await asyncio.to_thread(
+                lambda: bouw_graaf(laag, elements, dekking=dekking).serialize(format="turtle").encode())
             async with httpx.AsyncClient(timeout=30) as client:
                 r = await client.put(_repo() + "/rdf-graphs/service", params={"graph": str(graph_iri(laag_id))},
-                                     content=data.serialize(format="turtle").encode(),
+                                     content=data,
                                      headers={"Content-Type": "text/turtle"})
                 r.raise_for_status()
                 # Update only this registry entry: parallel different-layer projectors cannot

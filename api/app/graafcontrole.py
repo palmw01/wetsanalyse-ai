@@ -20,6 +20,7 @@ Een onbereikbare graaf is nooit "alles in orde": dan is `graaf_beschikbaar` Fals
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -63,7 +64,21 @@ async def _haal_graph(client: httpx.AsyncClient, iri: str) -> Graph:
     if r.status_code == 404:
         return Graph()
     r.raise_for_status()
-    return Graph().parse(data=r.text, format="turtle")
+    return await asyncio.to_thread(_parse, r.text)
+
+
+# Rekenwerk met rdflib (parsen, bouwen, isomorfie, SHACL) is pure Python en duurt per laag al snel
+# honderden milliseconden. Het draait daarom in een thread: de lus deelt de event loop met elk verzoek
+# van de api, en synchroon hield één ronde van de controle ruim een halve minuut alles vast (acceptatie,
+# 28 okt 2026: elk scherm wachtte, tot een 504 van de BFF).
+
+def _parse(tekst: str) -> Graph:
+    return Graph().parse(data=tekst, format="turtle")
+
+
+def _vergelijk(verwacht: Graph, echt: Graph) -> dict[str, int] | None:
+    """None als de graphs isomorf zijn, anders `_verschil`."""
+    return None if isomorphic(verwacht, echt) else _verschil(verwacht, echt)
 
 
 async def _postgres() -> tuple[list[dict], dict[str, tuple[list[dict], dict]]]:
@@ -108,13 +123,13 @@ async def _controleer_laag(client: httpx.AsyncClient, laag: dict, invoer: tuple[
     if graaf_rev != Literal(rev):
         afw.append({"laag_id": lid, "soort": "graphrevisie", "detail": {"postgres": rev, "graph": str(graaf_rev)}})
     els, dekking = invoer
-    verwacht = bouw_graaf(laag, els, dekking=dekking)
-    if not isomorphic(verwacht, echt):
-        afw.append({"laag_id": lid, "soort": "inhoud_wijkt_af", "detail": _verschil(verwacht, echt)})
+    verschil = await asyncio.to_thread(lambda: _vergelijk(bouw_graaf(laag, els, dekking=dekking), echt))
+    if verschil is not None:
+        afw.append({"laag_id": lid, "soort": "inhoud_wijkt_af", "detail": verschil})
     if not shacl:
         return None, afw, None
     from .shacl import valideer
-    r = valideer(echt)
+    r = await asyncio.to_thread(valideer, echt)
     bevindingen = [{"laag_id": lid, "niveau": niveau, **b} for niveau in ("rdf", "jas_model") for b in r.get(niveau, [])] \
         if r["beschikbaar"] and not r["conform"] else []
     return None, afw, {"beschikbaar": r["beschikbaar"], "conform": r["conform"], "bevindingen": bevindingen}
@@ -181,12 +196,12 @@ async def _controleer_begrippen(client: httpx.AsyncClient, shacl: bool) -> dict[
             uit["afwijkingen"].append({"werkgebied_id": wid, "soort": "graph_ontbreekt"})
             continue
         echt = await _haal_graph(client, str(bp.graph_iri(wid)))
-        verwacht = bp.bouw_graaf(inv)
-        if not isomorphic(verwacht, echt):
-            uit["afwijkingen"].append({"werkgebied_id": wid, "soort": "inhoud_wijkt_af",
-                                       "detail": _verschil(verwacht, echt)})
+        verschil = await asyncio.to_thread(lambda: _vergelijk(bp.bouw_graaf(inv), echt))
+        if verschil is not None:
+            uit["afwijkingen"].append({"werkgebied_id": wid, "soort": "inhoud_wijkt_af", "detail": verschil})
         if shacl:
-            niet_conform += sum(v["conform"] is False for v in bp.conformiteit(echt)["begrippen"].values())
+            c = await asyncio.to_thread(bp.conformiteit, echt)
+            niet_conform += sum(v["conform"] is False for v in c["begrippen"].values())
     prefix = str(bp.graph_iri(""))
     uit["verweesd"] = sorted({w for w in reg if w not in stand}
                              | {g[len(prefix):] for g in graphs if g[len(prefix):] not in stand})

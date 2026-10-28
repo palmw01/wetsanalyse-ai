@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { Button } from "@/components/ui/Button";
 import { Archief, ChevronOmlaag, Mapje, Meer, Plus } from "@/components/ui/Icoon";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { GesprekActies } from "@/components/werkplek/GesprekActies";
@@ -31,6 +32,9 @@ interface Props {
   onNieuwInWerkgebied?: (werkgebiedId: string) => void;
   /** Eerste fetch loopt nog: toon skeleton-rijen i.p.v. de lege-staat. */
   laden?: boolean;
+  /** De lijst kon niet geladen worden: dan geen "Nog geen gesprekken", maar de reden en opnieuw proberen. */
+  laadFout?: string | null;
+  onOpnieuw?: () => void;
 }
 
 type RijActies = Pick<Props, "onOpen" | "onHernoem" | "onVerwijder" | "onArchiveer" | "onVerplaats">;
@@ -41,7 +45,7 @@ const KOP = "px-2 pb-1 pt-3 text-[0.65rem] font-semibold uppercase tracking-wide
  *  groep met de eigen gesprekken erin, daaronder de losse gesprekken (*Recente gesprekken*) en
  *  ingeklapt het archief. Een klik opent altijd dezelfde werkplek; de groep bepaalt alleen welke
  *  context Lex meekrijgt. */
-export function GesprekLijst({ gesprekken, activeId, onNieuwInWerkgebied, laden, ...acties }: Props) {
+export function GesprekLijst({ gesprekken, activeId, onNieuwInWerkgebied, laden, laadFout, onOpnieuw, ...acties }: Props) {
   const indeling = useMemo(() => deelIn(gesprekken), [gesprekken]);
   const [dicht, setDicht] = useState<Set<string>>(() => new Set());
   const [archiefOpen, setArchiefOpen] = useState(false);
@@ -67,6 +71,18 @@ export function GesprekLijst({ gesprekken, activeId, onNieuwInWerkgebied, laden,
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-9 w-full" />
           ))}
+        </div>
+      );
+    }
+    if (laadFout) {
+      return (
+        <div className="flex flex-col items-start gap-2 px-2 py-3 text-xs text-muted" role="status" data-gesprekken-fout>
+          <p>{laadFout}</p>
+          {onOpnieuw && (
+            <Button size="xs" variant="secondary" onClick={onOpnieuw}>
+              Opnieuw proberen
+            </Button>
+          )}
         </div>
       );
     }

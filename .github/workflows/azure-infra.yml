@@ -102,6 +102,8 @@ jobs:
       # Per straat: acceptatie mag koud starten en een week bewaren, productie niet.
       BACKUP_RETENTION_DAYS: ${{ vars.BACKUP_RETENTION_DAYS || '7' }}
       MIN_REPLICAS_APPS: ${{ vars.MIN_REPLICAS_APPS || '0' }}
+      # Alleen de api warm houden (acceptatie: 1); leeg volgt hij MIN_REPLICAS_APPS.
+      MIN_REPLICAS_API: ${{ vars.MIN_REPLICAS_API || '' }}
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
@@ -323,6 +325,7 @@ jobs:
                 --app-name "$APP_NAME" --what-if
                 --backup-retention-days "${BACKUP_RETENTION_DAYS:-7}"
                 --min-replicas-apps "${MIN_REPLICAS_APPS:-0}")
+          [ -n "${MIN_REPLICAS_API:-}" ] && args+=(--min-replicas-api "$MIN_REPLICAS_API")
           [ -f "$RUNNER_TEMP/graphdb.license" ] && args+=(--license-file "$RUNNER_TEMP/graphdb.license")
           [ -n "${IMG_API:-}" ]        && args+=(--api-image "$IMG_API")
           [ -n "${IMG_FRONTEND:-}" ]   && args+=(--frontend-image "$IMG_FRONTEND")
@@ -355,6 +358,7 @@ jobs:
                 --app-name "$APP_NAME" --run
                 --backup-retention-days "${BACKUP_RETENTION_DAYS:-7}"
                 --min-replicas-apps "${MIN_REPLICAS_APPS:-0}")
+          [ -n "${MIN_REPLICAS_API:-}" ] && args+=(--min-replicas-api "$MIN_REPLICAS_API")
           [ -f "$RUNNER_TEMP/graphdb.license" ] && args+=(--license-file "$RUNNER_TEMP/graphdb.license")
           [ -n "${IMG_API:-}" ]        && args+=(--api-image "$IMG_API")
           [ -n "${IMG_FRONTEND:-}" ]   && args+=(--frontend-image "$IMG_FRONTEND")

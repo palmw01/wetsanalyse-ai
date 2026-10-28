@@ -110,7 +110,9 @@ Wat je daarvoor inlevert, en waar je op moet letten:
   hebben geen default, zodat een niet-ingerichte straat faalt in plaats van stilletjes op de
   verkeerde resource group uit te komen. Optioneel: `LLM_MODEL` (default `claude-sonnet-4-6`),
   `AZURE_LOCATION` (default `northeurope`), `BACKUP_RETENTION_DAYS` (default `7`) en
-  `MIN_REPLICAS_APPS` (default `0`, voor api en graph-qa).
+  `MIN_REPLICAS_APPS` (default `0`, voor api en graph-qa) en `MIN_REPLICAS_API` (leeg = volgt
+  `MIN_REPLICAS_APPS`; alleen de api, die elk scherm van de webapp bedient – acceptatie zet 1, zodat
+  na een stille periode niet elk scherm op een koude start wacht).
 - **secrets** – `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
   `AZURE_CLIENT_SECRET`, `AZURE_AI_KEY`, `GRAPHDB_LICENSE_B64` (de licentie als
   `base64 -w0 graphdb.license`). Een job met een environment **erft de repo-secrets**, dus zolang

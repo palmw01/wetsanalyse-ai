@@ -210,6 +210,10 @@ Hieronder wat je moet weten om de code te wijzigen.
   opgemerkt en opnieuw gevuld, ruimt verweesde projecties op (na een hercontrole onder het
   schrijfslot) en zet de vocabulaire neer als die ontbreekt. Elke tiende ronde logt hij de lichte
   graafcontrole (`annotatie_graaf_afwijking`, voor Grafana).
+- **Rekenwerk met rdflib gaat via `asyncio.to_thread`** – bouwen, serialiseren, parsen, isomorfie, SHACL.
+  Het is pure Python, en de lus deelt de event loop met elk verzoek: synchroon hield één ronde van de
+  lichte graafcontrole ruim een halve minuut de hele api vast (acceptatie, 28 okt 2026: 504's op elk
+  scherm). `test_het_rdflib_werk_draait_niet_op_de_event_loop` bewaakt dat.
 - **`projecteer`** neemt een rij-lock op de laag en een lock per laag in het proces, en schrijft
   `geprojecteerd_revisie` pas na een geslaagde `PUT` plus registerupdate.
 - **Invarianten** (getest, en gecontroleerd door `graafcontrole.py`): geen subject onder `urn:bwb:`,

@@ -74,6 +74,7 @@ def main() -> None:
     # Per straat verschillend: acceptatie mag koud en kort bewaren, productie niet.
     p.add_argument("--backup-retention-days", type=int, default=None)
     p.add_argument("--min-replicas-apps", type=int, default=None)
+    p.add_argument("--min-replicas-api", type=int, default=None)
     # `default=None` en niet de gewone store_true-default (False): de lus hieronder stuurt alleen
     # mee wat niet None is, zodat een weggelaten vlag de bicep-default laat staan. Met False zou de
     # parameter áltijd meegaan en zou de bicep-default nooit gelden.
@@ -162,6 +163,7 @@ def main() -> None:
     for vlag, param in (
         (args.backup_retention_days, "backupRetentionDays"),
         (args.min_replicas_apps, "minReplicasApps"),
+        (args.min_replicas_api, "minReplicasApi"),
         (args.api_extern, "apiExtern"),
         (args.graphdb_proxy_extern, "graphdbProxyExtern"),
         (args.api_image, "apiImage"),
