@@ -6,10 +6,10 @@
  *  in de context die hij krijgt. Een overstap naar een volgende sigma-versie raakt alleen dit bestand.
  *
  *  Lui geladen (`next/dynamic`, zie `Graaf.tsx`): WebGL en sigma komen pas binnen als de graaf opent. */
-import { createNodeBorderProgram } from "@sigma/node-border";
+import { layerBorder } from "@sigma/node-border";
 import Graph from "graphology";
 import Sigma from "sigma";
-import { drawDiscNodeHover, drawDiscNodeLabel, EdgeArrowProgram, EdgeRectangleProgram } from "sigma/rendering";
+import { extremityArrow, layerFill, pathLine, sdfCircle } from "sigma/rendering";
 import type { CameraState, NodeDisplayData } from "sigma/types";
 import { useEffect, useMemo, useRef, type RefObject } from "react";
 import type { Posities } from "@/lib/graaf/layout";
@@ -29,9 +29,22 @@ export interface GraafBediening {
   toon: (ids: Iterable<string>) => void;
 }
 
-type TekenKnoop = KnoopData & { x: number; y: number };
-/** Wat de `nodeReducer` voor de labelkeuze onthoudt, per knoop die een label mag hebben: zo hoeft de
- *  keuze per beeld niet alle knoopdata van sigma te kopiëren, en slaat ze gedimde knopen over. */
+/** Het beeld van een knoop staat in zijn attributen (`schrijfBeeld`): de styles hieronder lezen alleen
+ *  attributen en knoopstatus, zodat sigma bij een hover of een gebaar alleen ververst wat verandert. Een
+ *  reducer behandelt sigma als afhankelijk van de hele graafstatus, en dan rekent hij bij elke hover en
+ *  elk begin of einde van een gebaar alle knopen en lijnen opnieuw door. */
+type TekenKnoop = KnoopData & {
+  x: number; y: number;
+  size?: number; color?: string; zicht?: "visible" | "hidden"; zIndex?: number; aangewezen?: boolean;
+  labelKleur?: string; randDikte?: number; randKleur?: string;
+};
+type TekenLijn = RelatieData & { size?: number; color?: string; zicht?: "visible" | "hidden"; zIndex?: number; head?: "arrow" | "none" };
+/** Eigen knoopstatus: heeft de knoop in dit beeld een label (`kiesLabels`)? */
+type TekenStatus = { label: boolean };
+type TekenGraaf = Graph<TekenKnoop, TekenLijn>;
+type TekenSigma = Sigma<TekenKnoop, TekenLijn, Record<string, unknown>, TekenStatus>;
+/** Wat `schrijfBeeld` voor de labelkeuze onthoudt, per knoop die een label mag hebben: zo hoeft de
+ *  keuze per beeld niet alle knoopdata te lezen, en slaat ze verborgen knopen over. */
 type LabelInfo = {
   soort: KnoopSoort; prioriteit: number; label: string; size: number;
   /** Positie in graafcoördinaten (`graphToViewport`). */
@@ -46,16 +59,79 @@ const LABELGROOTTE = 12;
 /** Een klik: losgelaten binnen zoveel pixels van waar je indrukte. Geen tijdgrens: wie lang drukt
  *  zonder te bewegen, klikt ook. */
 const KLIK_AFSTAND = 5;
-const LABELGEWICHT = "500";
+/** WebGL-labels (SDF) ogen een slag zwaarder dan canvastekst: 400 hier leest als de 500 van sigma 3. */
+const LABELGEWICHT = "400";
+/** Ruimte tussen knoop en label, in pixels: `kiesLabels` rekent met dezelfde. */
+const LABELMARGE = 3;
 
-/** Eén programma voor alle knopen: een cirkel met een rand van variabele dikte (0 = geen rand). Zo
- *  wisselt een knoop van gewoon naar omtrek (rand, dekking) zonder van programma te wisselen. */
-const KnoopProgramma = createNodeBorderProgram<TekenKnoop, RelatieData>({
-  borders: [
-    { size: { attribute: "randDikte", defaultValue: 0 }, color: { attribute: "randKleur" } },
-    { size: { fill: true }, color: { attribute: "color" } },
-  ],
+/** Eén vorm voor alle knopen: een cirkel met een rand van variabele dikte (0 = geen rand). Zo wisselt
+ *  een knoop van gewoon naar omtrek (rand, dekking) zonder van vorm te wisselen. Lijnen zijn recht; een
+ *  verwijzing krijgt een pijlpunt (`head`). */
+const primitives = (font: string) => ({
+  nodes: {
+    shapes: [sdfCircle()],
+    layers: [
+      layerFill(),
+      layerBorder({ borders: [
+        { size: { attribute: "randDikte", default: 0 }, color: { attribute: "randKleur", default: "#ffffff" }, mode: "relative" },
+        { fill: true, size: 0, color: { attribute: "color", default: "#666666" }, mode: "relative" },
+      ] }),
+    ],
+    label: { margin: LABELMARGE, font: { family: font, weight: LABELGEWICHT, size: LABELGROOTTE } },
+  },
+  edges: { paths: [pathLine()], extremities: [extremityArrow()], defaultHead: "none" },
+  depthLayers: ["edges", "topEdges", "nodes", "topNodes"],
 });
+
+/** Welke labels er komen, kiest `kiesLabels` per beeld en zet de tekenaar als knoopstatus `label`:
+ *  sigma's eigen keuze toetst de breedte van een label niet. Daarom is een label standaard verborgen.
+ *  De hover noemt de volledige naam: op de kaart staat "Lid 1", en in de hele kennisgraaf zijn er
+ *  honderden. Wat van buiten is aangewezen, licht op zoals een hover. Het font staat per label: sigma
+ *  zet anders "sans-serif" en negeert het font van de primitives; het gewicht leest hij uit de string. */
+const stijlen = (font: string) => ({
+  nodes: [
+    {
+      x: { attribute: "x" }, y: { attribute: "y" },
+      size: { attribute: "size", defaultValue: 4 }, color: { attribute: "color", defaultValue: "#666666" },
+      visibility: { attribute: "zicht", defaultValue: "visible" }, zIndex: { attribute: "zIndex", defaultValue: 1 }, depth: "nodes",
+      label: { attribute: "kort" }, labelColor: { attribute: "labelKleur", defaultValue: LABELKLEUR }, labelVisibility: "hidden",
+      labelFont: `${LABELGEWICHT} ${font}`, labelSize: LABELGROOTTE,
+      backdropVisibility: "hidden", backdropColor: "#ffffff", backdropShadowColor: "rgba(0, 0, 0, 0.3)", backdropShadowBlur: 8, backdropPadding: 4,
+    },
+    { whenState: "label", then: { labelVisibility: "visible" } },
+    { whenData: { aangewezen: true }, then: { labelVisibility: "visible", backdropVisibility: "visible", depth: "topNodes" } },
+    { whenState: "isHovered", then: { label: { attribute: "naam" }, labelColor: LABELKLEUR, labelVisibility: "visible", backdropVisibility: "visible", depth: "topNodes" } },
+  ],
+  edges: [{
+    size: { attribute: "size", defaultValue: 1 }, color: { attribute: "color", defaultValue: "#cccccc" },
+    visibility: { attribute: "zicht", defaultValue: "visible" }, zIndex: { attribute: "zIndex", defaultValue: 1 },
+    head: { attribute: "head", defaultValue: "none" }, depth: "edges",
+  }],
+} as const);
+
+/** Het beeld van elke knoop en lijn in de attributen van de tekengraaf, in één bijwerking per soort
+ *  (sigma ververst dan één keer). Vult `info` voor de labelkeuze. Uitgezoomd zijn de details kleiner;
+ *  wat nadruk heeft houdt zijn maat. Een gedimde knoop dingt mee om een label – in grijs en met de
+ *  laagste prioriteit – zodat je je bij inzoomen buiten de nadruk ook kunt oriënteren. */
+function schrijfBeeld(g: TekenGraaf, ctx: WeergaveContext, zoom: number, info: Map<string, LabelInfo>) {
+  info.clear();
+  g.updateEachNodeAttributes((id, a) => {
+    const b = knoopBeeld(id, a, ctx);
+    const size = b.grootte * (b.niveau >= 2 ? 1 : detailFactor(a.soort, zoom));
+    if (!b.verborgen) {
+      info.set(id, { soort: a.soort, prioriteit: labelPrioriteit(b.niveau, b.altijdLabel, a.soort), label: a.kort,
+        size, x: a.x, y: a.y, altijd: b.gekozen || b.aangewezen, vast: b.altijdLabel });
+    }
+    return {
+      ...a, size, color: b.kleur, zicht: b.verborgen ? "hidden" : "visible", zIndex: b.niveau, aangewezen: b.aangewezen,
+      labelKleur: b.gedimd ? GEDIMD_LABEL : LABELKLEUR, randDikte: b.omtrek ? 0.32 : 0, randKleur: b.omtrek ?? b.kleur,
+    };
+  }, { attributes: ["size", "color", "zicht", "zIndex", "aangewezen", "labelKleur", "randDikte", "randKleur"] });
+  g.updateEachEdgeAttributes((_e, a, bron, doel) => {
+    const b = lijnBeeld(a, bron, doel, ctx);
+    return { ...a, size: b.dikte, color: b.kleur, zicht: b.verborgen ? "hidden" : "visible", zIndex: b.niveau, head: b.pijl ? "arrow" : "none" };
+  }, { attributes: ["size", "color", "zicht", "zIndex", "head"] });
+}
 
 const beweging = () => (typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 400);
 
@@ -77,258 +153,248 @@ export function GraafTekenaar({ model, posities, context, zichtbaar, inpassen, c
   bedekking?: RefObject<HTMLElement | null>;
   /** Een knoop gekozen, of `null`: klik op de achtergrond. */
   onKies: (id: string | null) => void;
-  /** Geen WebGL, of de context ging verloren: de UI valt terug op zoeken, lagen en de inspector. */
+  /** Geen WebGL (2), of de context ging verloren: de UI valt terug op zoeken, lagen en de inspector. */
   onFout: () => void;
 }) {
   const houder = useRef<HTMLDivElement>(null);
-  const sigma = useRef<Sigma<TekenKnoop, RelatieData> | null>(null);
+  const sigma = useRef<TekenSigma | null>(null);
   const ctx = useRef(context);
   const inpassenRef = useRef(inpassen);
   const ingepast = useRef<string | undefined>(undefined);
   const handlers = useRef({ onKies, onFout });
-  // De labels van het laatste beeld (`kiesLabels`), en de zoom waarop de knoopgroottes berekend zijn.
+  // De labels van het laatste beeld (`kiesLabels`), wat de keuze per knoop nodig heeft, en de zoom
+  // waarop de knoopgroottes berekend zijn.
   const labels = useRef<Set<string>>(new Set());
   const labelInfo = useRef<Map<string, LabelInfo>>(new Map());
   const zoom = useRef(1);
+  // Opnieuw kiezen na een nieuw beeld; gezet zodra sigma er is.
+  const kies = useRef<() => void>(() => {});
   useEffect(() => { handlers.current = { onKies, onFout }; });
 
   // Het model met zijn posities: sigma eist x en y op de knopen. Een eigen graaf, zodat het model data
-  // blijft en de layout er los van staat.
+  // blijft en de layout er los van staat; het beeld schrijft `schrijfBeeld` erbij.
   const teken = useMemo(() => {
-    const g = new Graph<TekenKnoop, RelatieData>({ type: "directed", multi: true, allowSelfLoops: true });
+    const g: TekenGraaf = new Graph<TekenKnoop, TekenLijn>({ type: "directed", multi: true, allowSelfLoops: true });
     model.forEachNode((id, a) => {
       const [x, y] = posities.get(id) ?? [0, 0];
       g.addNode(id, { ...a, x, y });
     });
-    model.forEachEdge((e, a, bron, doel) => g.addDirectedEdgeWithKey(e, bron, doel, a));
+    model.forEachEdge((e, a, bron, doel) => g.addDirectedEdgeWithKey(e, bron, doel, { ...a }));
     return g;
   }, [model, posities]);
+  // De graaf van nu, voor als sigma pas na het font opkomt.
+  const tekenRef = useRef(teken);
+  useEffect(() => { tekenRef.current = teken; }, [teken]);
 
-  // Sigma één keer per montage; daarna wisselt alleen de graaf.
+  // Sigma één keer per montage; daarna wisselt alleen de graaf. Eerst het labelfont: sigma tekent elke
+  // letter één keer in een atlas, en een font dat dan nog laadt blijft voorgoed het reservefont. Hooguit
+  // een seconde wachten; daarna liever een ander font dan geen graaf.
   useEffect(() => {
     const el = houder.current;
     if (!el) return;
     const font = getComputedStyle(el).fontFamily || "sans-serif";
-    let s: Sigma<TekenKnoop, RelatieData>;
-    let teKiezen = true;
-    // Wordt hieronder gezet, ná sigma; sigma's tekenfunctie verwijst ernaar.
-    let kiesDitBeeld: () => void = () => {};
-    try {
-      s = new Sigma<TekenKnoop, RelatieData>(teken, el, {
-        allowInvalidContainer: true,
-        zIndex: true,
-        renderEdgeLabels: false,
-        enableEdgeEvents: false,
-        defaultNodeType: "knoop",
-        nodeProgramClasses: { knoop: KnoopProgramma },
-        defaultEdgeType: "lijn",
-        edgeProgramClasses: { lijn: EdgeRectangleProgram, pijl: EdgeArrowProgram },
-        labelFont: font,
-        labelSize: LABELGROOTTE,
-        labelWeight: LABELGEWICHT,
-        labelColor: { attribute: "labelKleur", color: LABELKLEUR },
-        // Welke labels er komen, kiest `kiesLabels` per beeld (zie `beforeRender`): sigma's eigen raster
-        // toetst de breedte van een label niet. Daarom staat zijn raster op nul en is elk label "forced";
-        // de tekenfunctie laat alleen door wat gekozen is.
-        labelDensity: 0,
-        labelRenderedSizeThreshold: 0,
-        defaultDrawNodeLabel: (context, data, settings) => {
-          // Het eerste label van een beeld: dan pas kiezen. Vóór het tekenen (`beforeRender`) zijn de
-          // knoopdata en de cameramatrix nog die van het vorige beeld.
-          if (teKiezen) { teKiezen = false; kiesDitBeeld(); }
-          if (labels.current.has(data.key)) drawDiscNodeLabel(context, data, settings);
-        },
-        // De hover noemt de volledige naam: op de kaart staat "Lid 1", en in de hele kennisgraaf zijn
-        // er honderden.
-        defaultDrawNodeHover: (context, data, settings) =>
-          drawDiscNodeHover(context, { ...data, label: (data as { naam?: string }).naam ?? data.label }, settings),
-        // Bij de hele kennisgraaf: lijnen even weg tijdens het slepen, zodat pannen vloeiend blijft.
-        hideEdgesOnMove: teken.size > 5000,
-        // Een vaste schermgrootte, zoals op een kaart: inzoomen trekt knopen uit elkaar in plaats van ze
-        // op te blazen (sigma's standaard groeit mee met de wortel van de zoom – en dan wordt een
-        // ingezoomde regeling een kluwen overlappende schijven).
-        zoomToSizeRatioFunction: () => 1,
-        minCameraRatio: 0.01,
-        maxCameraRatio: 3,
-        stagePadding: 24,
-        nodeReducer: (id, a) => {
-          const b = knoopBeeld(id, a, ctx.current);
-          // Uitgezoomd zijn de details kleiner; wat nadruk heeft houdt zijn maat.
-          const factor = b.niveau >= 2 ? 1 : detailFactor(a.soort, zoom.current);
-          const size = b.grootte * factor;
-          // Het label staat er altijd (de hover toont het); of het op de kaart komt, beslist de keuze bij
-          // het tekenen. Ook een gedimde knoop dingt mee – in grijs en met de laagste prioriteit – zodat
-          // je je bij inzoomen buiten de nadruk ook kunt oriënteren.
-          if (!b.verborgen) {
-            labelInfo.current.set(id, { soort: a.soort, prioriteit: labelPrioriteit(b.niveau, b.altijdLabel, a.soort), label: a.kort,
-              size, x: a.x, y: a.y, altijd: b.gekozen || b.aangewezen, vast: b.altijdLabel });
-          } else labelInfo.current.delete(id);
-          // `randDikte`/`randKleur` lezen de randen van `KnoopProgramma`; sigma geeft ze ongewijzigd door.
-          const beeld: Partial<NodeDisplayData> & { randDikte: number; randKleur: string; labelKleur: string; naam: string } = {
-            x: a.x, y: a.y, size, color: b.kleur, label: a.kort, naam: a.naam, hidden: b.verborgen,
-            forceLabel: true, zIndex: b.niveau, highlighted: b.aangewezen,
-            randDikte: b.omtrek ? 0.32 : 0, randKleur: b.omtrek ?? b.kleur,
-            labelKleur: b.gedimd ? GEDIMD_LABEL : LABELKLEUR,
-          };
-          return beeld;
-        },
-        edgeReducer: (e, a) => {
-          const g = sigma.current?.getGraph() ?? teken;
-          const b = lijnBeeld(a, g.source(e), g.target(e), ctx.current);
-          return { color: b.kleur, size: b.dikte, hidden: b.verborgen, type: b.pijl ? "pijl" : "lijn", zIndex: b.niveau };
-        },
-      });
-    } catch {
-      handlers.current.onFout();
-      return;
-    }
-    sigma.current = s;
-    // Een bewaarde stand (vergroten) gaat voor; anders meteen – zonder animatie – op wat in beeld hoort.
-    if (cameraRef.current) {
-      s.getCamera().setState(cameraRef.current);
-      ingepast.current = inpassenRef.current?.sleutel;
-    }
-
-    // De labels van dit beeld: alles wat een label mag hebben en op het scherm staat, in volgorde van
-    // prioriteit, zonder botsingen (`lib/graaf/labels.ts`). Per beeld, dus ook tijdens zoomen en pannen.
-    const meetDoek = document.createElement("canvas").getContext("2d");
-    const breedtes = new Map<string, number>();
-    const breedteVan = (tekst: string) => {
-      let b = breedtes.get(tekst);
-      if (b === undefined) {
-        if (meetDoek) meetDoek.font = `${LABELGEWICHT} ${LABELGROOTTE}px ${font}`;
-        b = meetDoek ? meetDoek.measureText(tekst).width : tekst.length * 7;
-        breedtes.set(tekst, b);
-      }
-      return b;
-    };
-    kiesDitBeeld = () => {
-      const z = effectieveZoom(s.getCamera().getState().ratio, s.getGraph().order);
-      const { width, height } = s.getDimensions();
-      const kandidaten: LabelKandidaat[] = [];
-      for (const [id, d] of labelInfo.current) {
-        if (!d.altijd && !d.vast && !magLabel(d.soort, z)) continue;
-        const p = s.graphToViewport(d);
-        if (p.x < -400 || p.x > width || p.y < -20 || p.y > height + 20) continue;
-        kandidaten.push({
-          id, links: p.x + d.size + 3, boven: p.y - LABELGROOTTE * 0.75, breedte: breedteVan(d.label), hoogte: LABELGROOTTE * 1.2,
-          prioriteit: d.prioriteit, altijd: d.altijd,
+    const start = (): (() => void) | undefined => {
+      const teken = tekenRef.current;
+      zoom.current = effectieveZoom(cameraRef.current?.ratio ?? 1, teken.order);
+      schrijfBeeld(teken, ctx.current, zoom.current, labelInfo.current);
+      let s: TekenSigma;
+      try {
+        s = new Sigma<TekenKnoop, TekenLijn, Record<string, unknown>, TekenStatus>(teken, el, {
+          primitives: primitives(font),
+          styles: { nodes: [...stijlen(font).nodes], edges: [...stijlen(font).edges] },
+          customNodeState: { label: false },
+          settings: {
+            allowInvalidContainer: true,
+            renderEdgeLabels: false,
+            enableEdgeEvents: false,
+            // Een klik of hover op een label telt als op zijn knoop.
+            nodeLabelEvents: "extend",
+            // Sigma's eigen labelraster staat uit: alleen wat `kiesLabels` koos (status `label`) of wat
+            // van buiten aangewezen of onder de muis is, krijgt een label.
+            labelDensity: 0,
+            labelRenderedSizeThreshold: 0,
+            // Bij de hele kennisgraaf: lijnen even weg tijdens het slepen, zodat pannen vloeiend blijft.
+            hideEdgesOnMove: teken.size > 5000,
+            // Een vaste schermgrootte, zoals op een kaart: inzoomen trekt knopen uit elkaar in plaats van ze
+            // op te blazen (anders wordt een ingezoomde regeling een kluwen overlappende schijven). De
+            // groottes zijn schermpixels, zoals `kiesLabels` ze rekent.
+            zoomToSizeRatioFunction: () => 1,
+            itemSizesReference: "screen",
+            minCameraRatio: 0.01,
+            maxCameraRatio: 3,
+            stagePadding: 24,
+          },
         });
+      } catch {
+        handlers.current.onFout();
+        return;
       }
-      const doek = el.getBoundingClientRect();
-      const bezet = [...(bedekking?.current?.querySelectorAll<HTMLElement>(".pointer-events-auto") ?? [])].map((b) => {
-        const r = b.getBoundingClientRect();
-        return { links: r.left - doek.left, boven: r.top - doek.top, breedte: r.width, hoogte: r.height };
-      });
-      labels.current = kiesLabels(kandidaten, { breedte: width, hoogte: height, vorige: labels.current, bezet });
+      sigma.current = s;
+      // Een bewaarde stand (vergroten) gaat voor; anders meteen – zonder animatie – op wat in beeld hoort.
+      if (cameraRef.current) {
+        s.getCamera().setState(cameraRef.current);
+        ingepast.current = inpassenRef.current?.sleutel;
+      }
+
+      // De labels van dit beeld: alles wat een label mag hebben en op het scherm staat, in volgorde van
+      // prioriteit, zonder botsingen (`lib/graaf/labels.ts`). Per camerastand, dus ook tijdens zoomen en
+      // pannen. Alleen wat verandert krijgt een nieuwe status; sigma ververst dan alleen die knopen.
+      const meetDoek = document.createElement("canvas").getContext("2d");
+      const breedtes = new Map<string, number>();
+      const breedteVan = (tekst: string) => {
+        let b = breedtes.get(tekst);
+        if (b === undefined) {
+          if (meetDoek) meetDoek.font = `${LABELGEWICHT} ${LABELGROOTTE}px ${font}`;
+          b = meetDoek ? meetDoek.measureText(tekst).width : tekst.length * 7;
+          breedtes.set(tekst, b);
+        }
+        return b;
+      };
+      kies.current = () => {
+        const g = s.getGraph();
+        const z = effectieveZoom(s.getCamera().getState().ratio, g.order);
+        const { width, height } = s.getDimensions();
+        const kandidaten: LabelKandidaat[] = [];
+        for (const [id, d] of labelInfo.current) {
+          if (!d.altijd && !d.vast && !magLabel(d.soort, z)) continue;
+          const p = s.graphToViewport(d);
+          if (p.x < -400 || p.x > width || p.y < -20 || p.y > height + 20) continue;
+          kandidaten.push({
+            id, links: p.x + d.size + LABELMARGE, boven: p.y - LABELGROOTTE * 0.75, breedte: breedteVan(d.label), hoogte: LABELGROOTTE * 1.2,
+            prioriteit: d.prioriteit, altijd: d.altijd,
+          });
+        }
+        const doek = el.getBoundingClientRect();
+        const bezet = [...(bedekking?.current?.querySelectorAll<HTMLElement>(".pointer-events-auto") ?? [])].map((b) => {
+          const r = b.getBoundingClientRect();
+          return { links: r.left - doek.left, boven: r.top - doek.top, breedte: r.width, hoogte: r.height };
+        });
+        const oud = labels.current;
+        const nieuw = kiesLabels(kandidaten, { breedte: width, hoogte: height, vorige: oud, bezet });
+        labels.current = nieuw;
+        const aan = [...nieuw].filter((id) => !oud.has(id));
+        const uit = [...oud].filter((id) => !nieuw.has(id) && g.hasNode(id));
+        if (aan.length) s.setNodesState(aan, { label: true });
+        if (uit.length) s.setNodesState(uit, { label: false });
+        el.dataset.labels = String(nieuw.size);
+        // Welke soorten een label hebben (voor de browsertest: uitgezoomd geen artikelen, ingezoomd wel).
+        el.dataset.labelSoorten = [...new Set([...nieuw].map((id) => labelInfo.current.get(id)?.soort ?? ""))].sort().join(",");
+      };
+      // De knoopgroottes hangen aan de zoom (`detailFactor`): alleen opnieuw schrijven als een drempel
+      // gepasseerd wordt, niet bij elk beeld.
+      const opCamera = () => {
+        const z = effectieveZoom(s.getCamera().getState().ratio, s.getGraph().order);
+        const oud = zoom.current;
+        zoom.current = z;
+        if (detailFactor("onderdeel", z) !== detailFactor("onderdeel", oud)) schrijfBeeld(s.getGraph(), ctx.current, z, labelInfo.current);
+        kies.current();
+      };
+      s.getCamera().on("updated", opCamera);
+
+      // Een klik zelf herkennen, op afstand. Sigma's `clickNode`/`clickStage` laten een klik
+      // alleen door bij minder dan 3 muisbewegingen tussen indrukken en loslaten – een telling, geen
+      // afstand – en een trackpad of snelle muis geeft die bij een gewone klik al: dan deed klikken
+      // niets. Ingedrukt op het ene en losgelaten op iets anders is geen klik.
+      let neer: { x: number; y: number; knoop: string | null } | null = null;
+      const omlaag = (knoop: string | null, e: { x: number; y: number }) => { neer = { x: e.x, y: e.y, knoop }; };
+      const omhoog = (knoop: string | null, e: { x: number; y: number }) => {
+        const begin = neer;
+        neer = null;
+        if (!begin || begin.knoop !== knoop) return;
+        if (Math.hypot(e.x - begin.x, e.y - begin.y) > KLIK_AFSTAND) return;
+        handlers.current.onKies(knoop);
+      };
+      s.on("downNode", ({ node, event }) => omlaag(node, event));
+      s.on("downStage", ({ event }) => omlaag(null, event));
+      s.on("upNode", ({ node, event }) => omhoog(node, event));
+      s.on("upStage", ({ event }) => omhoog(null, event));
+      s.on("enterNode", ({ node }) => { el.style.cursor = "pointer"; el.dataset.hoverNaam = s.getGraph().getNodeAttribute(node, "naam"); });
+      s.on("leaveNode", () => { el.style.cursor = ""; delete el.dataset.hoverNaam; });
+      const opVerlies = (e: Event) => { e.preventDefault(); handlers.current.onFout(); };
+      const doek = [...el.querySelectorAll("canvas")];
+      for (const c of doek) c.addEventListener("webglcontextlost", opVerlies);
+
+      // Waar een lopende camerabeweging heen gaat. Een remount (vergroten) tijdens zo'n beweging moet het
+      // doel bewaren, niet de tussenstand – anders staat het nieuwe beeld halverwege een vlucht stil.
+      let doelCamera: Partial<CameraState> | null = null;
+      const beweeg = (naar: Partial<CameraState>, duur: number) => {
+        doelCamera = naar;
+        void s.getCamera().animate(naar, { duration: duur }).then(() => { if (doelCamera === naar) doelCamera = null; });
+      };
+      const toon = (ids: Iterable<string>, duur = beweging()) => {
+        const punten = [...ids].map((id) => s.getNodeDisplayData(id)).filter((d) => d && d.visibility !== "hidden") as NodeDisplayData[];
+        if (!punten.length) return beweeg({ x: 0.5, y: 0.5, ratio: 1, angle: 0 }, duur);
+        const xs = punten.map((d) => d.x), ys = punten.map((d) => d.y);
+        const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+        // Camerastand in genormaliseerde coördinaten: ratio 1 is de hele graaf. Wat marge rond de groep; een
+        // kleine groep in de hele kennisgraaf vraagt diep inzoomen, maar één knoop niet tot op de pixel: hoe
+        // kleiner de kaart, hoe minder diep, zodat de buurt (het artikel om een lid) in beeld blijft.
+        const minRatio = Math.min(1, Math.max(0.03, Math.sqrt(40 / Math.max(s.getGraph().order, 1))));
+        const ratio = Math.min(1, Math.max(minRatio, Math.max(x1 - x0, y1 - y0) * 1.4));
+        beweeg({ x: (x0 + x1) / 2, y: (y0 + y1) / 2, ratio }, duur);
+      };
+      bedieningRef.current = {
+        pasIn: () => beweeg({ x: 0.5, y: 0.5, ratio: 1, angle: 0 }, beweging()),
+        toon,
+        zoom: (factor) => {
+          const cam = s.getCamera();
+          const huidig = { ...cam.getState(), ...doelCamera };
+          beweeg({ ratio: cam.getBoundedRatio(huidig.ratio * factor) }, beweging() / 2);
+        },
+        focus: (id) => {
+          const d = s.getNodeDisplayData(id);
+          if (!d) return;
+          const huidig = { ...s.getCamera().getState(), ...doelCamera };
+          // Diep genoeg om de knoop met zijn buurt te zien – in de hele kennisgraaf veel dieper dan in één
+          // artikel, waar je niet hoeft in te zoomen.
+          const diepte = Math.min(1, Math.max(0.03, Math.sqrt(400 / Math.max(s.getGraph().order, 1))));
+          beweeg({ x: d.x, y: d.y, ratio: Math.min(huidig.ratio, diepte) }, beweging());
+        },
+      };
+      if (!cameraRef.current && inpassenRef.current?.ids.length) {
+        toon(inpassenRef.current.ids, 0);
+        ingepast.current = inpassenRef.current.sleutel;
+      }
+      kies.current();
+      // Een nieuwe maat (vergroten, de inspector die in- of uitklapt): opnieuw meten, tekenen en kiezen.
+      const meet = new ResizeObserver(() => { s.resize(true).refresh(); kies.current(); });
+      meet.observe(el);
+      return () => {
+        s.getCamera().removeListener("updated", opCamera);
+        meet.disconnect();
+        for (const c of doek) c.removeEventListener("webglcontextlost", opVerlies);
+        cameraRef.current = { ...s.getCamera().getState(), ...doelCamera };
+        bedieningRef.current = null;
+        sigma.current = null;
+        kies.current = () => {};
+        labels.current = new Set();
+        s.kill();
+      };
     };
-    s.on("beforeRender", () => { teKiezen = true; });
-    // Zonder één label in beeld roept sigma de tekenfunctie niet aan; dan is er ook niets gekozen.
-    s.on("afterRender", () => {
-      if (teKiezen) labels.current = new Set();
-      el.dataset.labels = String(labels.current.size);
-      // Welke soorten een label hebben (voor de browsertest: uitgezoomd geen artikelen, ingezoomd wel).
-      el.dataset.labelSoorten = [...new Set([...labels.current].map((id) => labelInfo.current.get(id)?.soort ?? ""))].sort().join(",");
+    let weg = false;
+    let ruimOp: (() => void) | undefined;
+    const geladen = typeof document.fonts?.load === "function"
+      ? document.fonts.load(`${LABELGEWICHT} ${LABELGROOTTE}px ${font}`).catch(() => [])
+      : Promise.resolve([]);
+    void Promise.race([geladen, new Promise((klaar) => setTimeout(klaar, 1000))]).then(() => {
+      if (!weg) ruimOp = start();
     });
-    // De knoopgroottes hangen aan de zoom (`detailFactor`): alleen opnieuw berekenen als een drempel
-    // gepasseerd wordt, niet bij elk beeld.
-    const opCamera = () => {
-      const z = effectieveZoom(s.getCamera().getState().ratio, s.getGraph().order);
-      const oud = zoom.current;
-      zoom.current = z;
-      if (detailFactor("onderdeel", z) !== detailFactor("onderdeel", oud)) s.refresh();
-    };
-    s.getCamera().on("updated", opCamera);
-    zoom.current = effectieveZoom(s.getCamera().getState().ratio, s.getGraph().order);
-
-    // Een klik zelf herkennen, op afstand. Sigma's `clickNode`/`clickStage` laten een klik
-    // alleen door bij minder dan 3 muisbewegingen tussen indrukken en loslaten – een telling, geen
-    // afstand – en een trackpad of snelle muis geeft die bij een gewone klik al: dan deed klikken
-    // niets. Ingedrukt op het ene en losgelaten op iets anders is geen klik.
-    let neer: { x: number; y: number; knoop: string | null } | null = null;
-    const omlaag = (knoop: string | null, e: { x: number; y: number }) => { neer = { x: e.x, y: e.y, knoop }; };
-    const omhoog = (knoop: string | null, e: { x: number; y: number }) => {
-      const begin = neer;
-      neer = null;
-      if (!begin || begin.knoop !== knoop) return;
-      if (Math.hypot(e.x - begin.x, e.y - begin.y) > KLIK_AFSTAND) return;
-      handlers.current.onKies(knoop);
-    };
-    s.on("downNode", ({ node, event }) => omlaag(node, event));
-    s.on("downStage", ({ event }) => omlaag(null, event));
-    s.on("upNode", ({ node, event }) => omhoog(node, event));
-    s.on("upStage", ({ event }) => omhoog(null, event));
-    s.on("enterNode", ({ node }) => { el.style.cursor = "pointer"; el.dataset.hoverNaam = s.getGraph().getNodeAttribute(node, "naam"); });
-    s.on("leaveNode", () => { el.style.cursor = ""; delete el.dataset.hoverNaam; });
-    const opVerlies = (e: Event) => { e.preventDefault(); handlers.current.onFout(); };
-    const doek = s.getCanvases();
-    for (const c of Object.values(doek)) c.addEventListener("webglcontextlost", opVerlies);
-
-    // Waar een lopende camerabeweging heen gaat. Een remount (vergroten) tijdens zo'n beweging moet het
-    // doel bewaren, niet de tussenstand – anders staat het nieuwe beeld halverwege een vlucht stil.
-    let doelCamera: Partial<CameraState> | null = null;
-    const beweeg = (naar: Partial<CameraState>, duur: number) => {
-      doelCamera = naar;
-      void s.getCamera().animate(naar, { duration: duur }).then(() => { if (doelCamera === naar) doelCamera = null; });
-    };
-    const toon = (ids: Iterable<string>, duur = beweging()) => {
-      const punten = [...ids].map((id) => s.getNodeDisplayData(id)).filter((d) => d && !d.hidden) as NodeDisplayData[];
-      if (!punten.length) return beweeg({ x: 0.5, y: 0.5, ratio: 1, angle: 0 }, duur);
-      const xs = punten.map((d) => d.x), ys = punten.map((d) => d.y);
-      const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-      // Camerastand in genormaliseerde coördinaten: ratio 1 is de hele graaf. Wat marge rond de groep; een
-      // kleine groep in de hele kennisgraaf vraagt diep inzoomen, maar één knoop niet tot op de pixel: hoe
-      // kleiner de kaart, hoe minder diep, zodat de buurt (het artikel om een lid) in beeld blijft.
-      const minRatio = Math.min(1, Math.max(0.03, Math.sqrt(40 / Math.max(s.getGraph().order, 1))));
-      const ratio = Math.min(1, Math.max(minRatio, Math.max(x1 - x0, y1 - y0) * 1.4));
-      beweeg({ x: (x0 + x1) / 2, y: (y0 + y1) / 2, ratio }, duur);
-    };
-    bedieningRef.current = {
-      pasIn: () => beweeg({ x: 0.5, y: 0.5, ratio: 1, angle: 0 }, beweging()),
-      toon,
-      zoom: (factor) => {
-        const cam = s.getCamera();
-        const huidig = { ...cam.getState(), ...doelCamera };
-        beweeg({ ratio: cam.getBoundedRatio(huidig.ratio * factor) }, beweging() / 2);
-      },
-      focus: (id) => {
-        const d = s.getNodeDisplayData(id);
-        if (!d) return;
-        const huidig = { ...s.getCamera().getState(), ...doelCamera };
-        // Diep genoeg om de knoop met zijn buurt te zien – in de hele kennisgraaf veel dieper dan in één
-        // artikel, waar je niet hoeft in te zoomen.
-        const diepte = Math.min(1, Math.max(0.03, Math.sqrt(400 / Math.max(s.getGraph().order, 1))));
-        beweeg({ x: d.x, y: d.y, ratio: Math.min(huidig.ratio, diepte) }, beweging());
-      },
-    };
-    if (!cameraRef.current && inpassenRef.current?.ids.length) {
-      toon(inpassenRef.current.ids, 0);
-      ingepast.current = inpassenRef.current.sleutel;
-    }
-    // Een nieuwe maat (vergroten, de inspector die in- of uitklapt): opnieuw meten én tekenen.
-    const meet = new ResizeObserver(() => s.resize(true).refresh());
-    meet.observe(el);
-    return () => {
-      s.getCamera().removeListener("updated", opCamera);
-      meet.disconnect();
-      for (const c of Object.values(doek)) c.removeEventListener("webglcontextlost", opVerlies);
-      cameraRef.current = { ...s.getCamera().getState(), ...doelCamera };
-      bedieningRef.current = null;
-      sigma.current = null;
-      s.kill();
-    };
+    return () => { weg = true; ruimOp?.(); };
     // Sigma maakt je één keer; een nieuwe graaf gaat via `setGraph` hieronder.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+
   useEffect(() => {
     const s = sigma.current;
     if (s && s.getGraph() !== teken) {
-      // De reducer vult `labelInfo` opnieuw voor de nieuwe graaf; knopen die weg zijn mogen niet blijven.
-      labelInfo.current = new Map();
-      s.setSetting("hideEdgesOnMove", teken.size > 5000);
+      // Een nieuwe graaf begint zonder labels; `schrijfBeeld` vult `labelInfo` opnieuw.
       zoom.current = effectieveZoom(s.getCamera().getState().ratio, teken.order);
+      schrijfBeeld(teken, ctx.current, zoom.current, labelInfo.current);
+      labels.current = new Set();
+      s.setSetting("hideEdgesOnMove", teken.size > 5000);
       s.setGraph(teken);
+      kies.current();
     }
   }, [teken]);
 
@@ -341,13 +407,17 @@ export function GraafTekenaar({ model, posities, context, zichtbaar, inpassen, c
   }, [inpassen, bedieningRef]);
 
   useEffect(() => {
+    if (ctx.current === context) return;
     ctx.current = context;
-    // Volledig: een keuze verandert grootte en tekenvolgorde, en die zitten in de index.
-    sigma.current?.refresh();
+    const s = sigma.current;
+    if (!s) return;
+    // Een keuze verandert grootte en tekenvolgorde: het hele beeld opnieuw, dan de labels.
+    schrijfBeeld(s.getGraph(), context, zoom.current, labelInfo.current);
+    kies.current();
   }, [context]);
 
   useEffect(() => {
-    if (zichtbaar) sigma.current?.resize(true).refresh();
+    if (zichtbaar && sigma.current) { sigma.current.resize(true).refresh(); kies.current(); }
   }, [zichtbaar]);
 
   return <div ref={houder} className="absolute inset-0" data-testid="graaf-tekenaar"

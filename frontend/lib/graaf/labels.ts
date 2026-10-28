@@ -2,8 +2,8 @@
  *
  *  Sigma's eigen keuze (een raster van vaste cellen, per cel de grootste knopen) kijkt niet naar de
  *  breedte van een label – "Artikel 9 · lid 2" is breder dan een cel en loopt over de buren – en zet
- *  alles met `forceLabel` er ongetoetst bovenop. Daarom kiest de tekenaar per beeld zelf, met deze pure
- *  functies: eerst wat ertoe doet, dan alleen wat nog vrij ligt.
+ *  alles met `labelVisibility: "visible"` er ongetoetst bovenop. Daarom kiest de tekenaar per beeld
+ *  zelf, met deze pure functies: eerst wat ertoe doet, dan alleen wat nog vrij ligt.
  *
  *  Twee mechanismen, in deze volgorde:
  *  - **Detailniveau** (`magLabel`): uitgezoomd alleen de opbouw (regelingen, hoofdstukken, klassen),

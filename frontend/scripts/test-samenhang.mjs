@@ -341,6 +341,15 @@ async function wachtGereed(page) {
   await page.mouse.move(doek.x + doek.width / 2, doek.y + doek.height / 2);
   for (let i = 0; i < 20 && !(await page.getByTestId("graaf-tekenaar").getAttribute("data-hover-naam")); i++) await page.waitForTimeout(100);
   assert.equal(await page.getByTestId("graaf-tekenaar").getAttribute("data-hover-naam"), "Artikel 9 · lid 1");
+  // Een klik op het label telt als een klik op de knoop (`nodeLabelEvents: "extend"`): de hover toont
+  // het label rechts van de knoop.
+  await trilKlik(page, doek.x + doek.width / 2 + 40, doek.y + doek.height / 2);
+  for (let i = 0; i < 20 && (await gekozen(page)) !== L1; i++) await page.waitForTimeout(100);
+  assert.equal(await gekozen(page), L1, `een klik op het label kiest de knoop (${await gekozen(page)})`);
+  await page.getByRole("button", { name: "Selectie opheffen" }).click();
+  assert.equal(await gekozen(page), "");
+  await page.mouse.move(doek.x + doek.width / 2, doek.y + doek.height / 2);
+  await page.waitForTimeout(500);
   await trilKlik(page, doek.x + doek.width / 2, doek.y + doek.height / 2);
   for (let i = 0; i < 20 && (await gekozen(page)) !== L1; i++) await page.waitForTimeout(100);
   assert.equal(await gekozen(page), L1, `een klik met wat trilling op de knoop kiest hem (${await gekozen(page)})`);
