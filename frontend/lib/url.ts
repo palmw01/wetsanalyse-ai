@@ -122,7 +122,10 @@ export function bronHref(ref?: string | null): string | undefined {
   if (trimmed.startsWith(GRAAF_BASIS)) return uitGraafIri(trimmed);
   if (/^https?:\/\//i.test(trimmed)) {
     try {
-      return new URL(trimmed).hostname === "wetten.overheid.nl" ? trimmed : undefined;
+      // Ook een TOOI-URI (spoor I6: de organisatie achter een regeling) is een vertrouwde link.
+      const u = new URL(trimmed);
+      if (u.hostname === "identifier.overheid.nl" && u.protocol === "https:" && u.pathname.startsWith("/tooi/")) return trimmed;
+      return u.hostname === "wetten.overheid.nl" ? trimmed : undefined;
     } catch {
       return undefined;
     }

@@ -325,3 +325,51 @@ async def test_de_export_noemt_wie_de_definitie_voorstelde(client):
     r = await client.get(f"/v1/werkgebieden/{wg['id']}/begrippen/export", params={"formaat": "csv"})
     rijen = list(csv.DictReader(io.StringIO(r.content.decode("utf-8-sig"))))
     assert {x["definitie_door"] for x in rijen} == {"lex"}
+
+
+# --- de onderbouwing na het overnemen (spoor M, M4) --------------------------------------------------
+
+async def test_na_overnemen_draagt_het_begrip_de_onderbouwing_van_zijn_definitie(client):
+    duiding = {"soort": "begrip", "bereik": "algemeen", "voorkeursterm": "", "ontbreekt": ""}
+    wg, b, run, [v] = await _met_voorstel(client, [_geformuleerd(duiding=duiding)])
+    vooraf = (await client.get(_pad(wg, b))).json()
+    assert vooraf["definitie_onderbouwing"] is None
+    assert (await _neem_over(client, wg, b, v)).status_code == 200
+    nu = (await client.get(_pad(wg, b))).json()
+    o = nu["definitie_onderbouwing"]
+    assert (o["voorstel_id"], o["herkomst"], o["duiding"]) == (v["id"], "geformuleerd", duiding)
+    assert o["fragmenten"] == [{"bron_iri": ONE, "start": 2, "eind": 6, "tekst": "Alfa", "rol": "ondersteunend"}]
+    assert o["onderzoek_id"].startswith("O")
+    assert "definitie_onderbouwing" not in nu["inhoud"]                 # de inhoud blijft slank
+    # Over werkgebieden heen leest hetzelfde detail.
+    assert (await client.get(f"/v1/begrippen/{b['id']}")).json()["begrip"]["definitie_onderbouwing"] == o
+    # Wijzigt de analist de definitie, dan rust ze niet meer op dat voorstel.
+    r = await client.patch(_pad(wg, b), json={"verwachte_revisie": nu["revisie"],
+                                              "inhoud": {**nu["inhoud"], "definitie": "Iets anders."}})
+    assert r.status_code == 200, r.text
+    assert (await client.get(_pad(wg, b))).json()["definitie_onderbouwing"] is None
+
+
+async def test_de_projectie_noemt_de_onderbouwing_en_houdt_tegenvoorbeelden_buiten_skos_example(client):
+    from rdflib import Literal, URIRef
+    from app import begrip_projectie as bp, db
+    wg, b, run, [v] = await _met_voorstel(client, [_geformuleerd()],
+                                          voorbeelden=[{"tekst": "Wel zo.", "oordeel": "wel"},
+                                                       {"tekst": "Niet zo.", "oordeel": "niet"},
+                                                       {"tekst": "Misschien.", "oordeel": "onzeker"}])
+    assert (await _neem_over(client, wg, b, v)).status_code == 200
+    async with db.get_engine().connect() as conn:
+        inv = await bp.invoer(conn, wg["id"])
+    [rij] = [x for x in inv["begrippen"] if x["id"] == b["id"]]
+    assert rij["onderbouwing"] == [ONE]
+    g = bp.bouw_graaf(inv)
+    c = bp.begrip_iri(b["id"])
+    skos = "http://www.w3.org/2004/02/skos/core#"
+    assert {str(o) for o in g.objects(c, URIRef(skos + "example"))} == {"Wel zo."}
+    assert {str(o) for o in g.objects(c, bp.WA.tegenvoorbeeld)} == {"Niet zo."}
+    assert {str(o) for o in g.objects(c, bp.WA.grensgeval)} == {"Misschien."}
+    docs = [d for d in g.objects(c, bp.DCT.source) if (d, bp.WA.bron, URIRef(ONE)) in g]
+    assert docs and (docs[0], bp.WA.rol, Literal("definitieonderbouwing")) in g
+    uit = bp.conformiteit(g)
+    if uit.get("beschikbaar", True):                                   # met pyshacl: de shapes blijven groen
+        assert uit["begrippen"][str(c)]["conform"] is True, uit["begrippen"][str(c)]

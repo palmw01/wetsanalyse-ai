@@ -88,9 +88,10 @@ def werkgebied_tekst(werkgebied: dict[str, Any], gelukt: list[str], mislukt: lis
         else:
             zin += ", nog zonder bronnen."
         if gekoppeld < n:
-            zin += " Een volgende stap: laat me bepalingen zoeken bij de deelvragen."
+            zin += " Een volgende stap: bepaal met me de bronnen per deelvraag (*Bepaal de bronnen per deelvraag*)."
     elif werkgebied.get("analysevraag"):
-        zin += " Een volgende stap: laat me deelvragen voorstellen bij de analysevraag, of bepalingen zoeken die erbij horen."
+        zin += (" Een volgende stap: laat me deelvragen voorstellen bij de analysevraag, of bepaal met me de bronnen "
+                "(*Bepaal de bronnen per deelvraag*).")
     return zin
 
 

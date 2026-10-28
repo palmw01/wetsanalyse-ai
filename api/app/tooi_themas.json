@@ -1,0 +1,377 @@
+{
+ "bron": "https://repository.officiele-overheidspublicaties.nl/waardelijsten/scw_toplijst/1/json/scw_toplijst_1.json",
+ "waardelijst": "https://identifier.overheid.nl/tooi/set/scw_toplijst/1",
+ "opgehaald": "2026-10-27",
+ "licentie": "CC0 1.0",
+ "toelichting": "Snapshot van de TOOI-thesaurus tooitop (thema-indeling officiële publicaties), voor het thema van een werkgebied.",
+ "themas": {
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_68609e19": {
+   "label": "Europese zaken",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_f47ad6ca"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_d96f9cd3": {
+   "label": "afval",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_afa30a11"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_4e83eca7": {
+   "label": "arbeidsomstandigheden",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_9d1917e9"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_fc530104": {
+   "label": "arbeidsongeschiktheid en werkloosheid",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_d4890526"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_1f37c612": {
+   "label": "arbeidsverhoudingen",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_9d1917e9"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_7b01f260": {
+   "label": "basisonderwijs",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_c232ae4a"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_4348dad1": {
+   "label": "begroting",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_391585db"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_25e30d03": {
+   "label": "belasting",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_391585db"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_b46b92e7": {
+   "label": "beroepsonderwijs",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_c232ae4a"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_beb01b1c": {
+   "label": "bestuursrecht",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_f4679acc"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_e3d35361": {
+   "label": "bezwaar en klachten",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_f4679acc"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_7ce8a10c": {
+   "label": "bodem",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_afa30a11"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_a6a9eddd": {
+   "label": "bouwen en verbouwen",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_124eaf3a"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_fcac43e4": {
+   "label": "criminaliteit",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_d58b78ca"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_2408fb5a": {
+   "label": "cultureel erfgoed",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_0361ffb3"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_f72b706a": {
+   "label": "cultuur",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_0361ffb3"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_0361ffb3": {
+   "label": "cultuur en recreatie",
+   "breder": null
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_daaa67b3": {
+   "label": "defensie",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_f47ad6ca"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_4d1c84a7": {
+   "label": "dienstensector",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_d363776f"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_d363776f": {
+   "label": "economie",
+   "breder": null
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_f4f1867a": {
+   "label": "energie",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_d363776f"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_218c52ee": {
+   "label": "ethiek",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_d0463fb7"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_70e03904": {
+   "label": "evenementen",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_0361ffb3"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_9f410ab6": {
+   "label": "geluid",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_afa30a11"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_6b9627b5": {
+   "label": "geneesmiddelen en medische hulpmiddelen",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_d0463fb7"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_76136c82": {
+   "label": "gezin en kinderen",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_d4890526"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_8b081a63": {
+   "label": "gezondheidsrisico's",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_d0463fb7"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_83db27fc": {
+   "label": "handel",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_d363776f"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_516ec027": {
+   "label": "hoger onderwijs",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_c232ae4a"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_75809540": {
+   "label": "horeca",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_0361ffb3"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_ee06665e": {
+   "label": "informatievoorziening en ICT",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_3eb6243b"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_068da9fb": {
+   "label": "inkoop en beheer",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_3eb6243b"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_f37fd49d": {
+   "label": "inrichting van de overheid",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_3eb6243b"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_a94e1fa4": {
+   "label": "integratie",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_399f194b"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_f47ad6ca": {
+   "label": "internationaal",
+   "breder": null
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_576c2bd7": {
+   "label": "internationale betrekkingen",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_f47ad6ca"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_f6d7f591": {
+   "label": "interne organisatie",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_3eb6243b"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_0fe7c5e7": {
+   "label": "jeugdzorg",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_d0463fb7"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_87d3d66c": {
+   "label": "kenniseconomie",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_d363776f"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_79010191": {
+   "label": "klimaatverandering",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_afa30a11"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_f28344a5": {
+   "label": "koninkrijksrelaties",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_3eb6243b"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_989e37d9": {
+   "label": "landbouw, visserij, voedselkwaliteit",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_d363776f"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_28ddcea5": {
+   "label": "lucht",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_afa30a11"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_2835e395": {
+   "label": "luchtvaart",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_849842ac"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_dc437d00": {
+   "label": "markttoezicht",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_d363776f"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_6b728132": {
+   "label": "media",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_0361ffb3"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_2e9944e7": {
+   "label": "migratie",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_399f194b"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_399f194b": {
+   "label": "migratie en integratie",
+   "breder": null
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_afa30a11": {
+   "label": "natuur en milieu",
+   "breder": null
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_db2fbedb": {
+   "label": "natuur- en landschapsbeheer",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_afa30a11"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_85a72eb3": {
+   "label": "netwerken",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_cfc7d5ab"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_3afc269f": {
+   "label": "ondernemen",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_d363776f"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_c232ae4a": {
+   "label": "onderwijs en wetenschap",
+   "breder": null
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_4eb912c1": {
+   "label": "onderwijsvoorzieningen",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_c232ae4a"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_08d12aef": {
+   "label": "onderzoek en wetenschap",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_c232ae4a"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_8940ed07": {
+   "label": "ontwikkelingssamenwerking",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_f47ad6ca"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_319461d7": {
+   "label": "openbaar vervoer",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_849842ac"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_d58b78ca": {
+   "label": "openbare orde en veiligheid",
+   "breder": null
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_3eb6243b": {
+   "label": "organisatie en bedrijfsvoering",
+   "breder": null
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_1781ce20": {
+   "label": "ouderen",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_d4890526"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_f02ce1b3": {
+   "label": "ouderenzorg",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_d0463fb7"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_391585db": {
+   "label": "overheidsfinanciën",
+   "breder": null
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_f2c9a613": {
+   "label": "overheidspersoneel",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_3eb6243b"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_824ce7ff": {
+   "label": "privaatrecht",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_f4679acc"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_f411e390": {
+   "label": "rail- en wegverkeer",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_849842ac"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_f4679acc": {
+   "label": "recht",
+   "breder": null
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_d2b1338a": {
+   "label": "rechten en vrijheden",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_f4679acc"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_72138db9": {
+   "label": "rechtspraak",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_f4679acc"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_a6c5e5b8": {
+   "label": "recreatie",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_0361ffb3"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_e277e756": {
+   "label": "religie",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_0361ffb3"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_cfc7d5ab": {
+   "label": "ruimte en infrastructuur",
+   "breder": null
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_9af4b880": {
+   "label": "ruimtelijke ordening",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_cfc7d5ab"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_d3b599f8": {
+   "label": "scheepvaart",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_849842ac"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_d4890526": {
+   "label": "sociale zekerheid",
+   "breder": null
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_1f781691": {
+   "label": "speciaal onderwijs",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_c232ae4a"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_1fe409d0": {
+   "label": "staatsrecht",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_f4679acc"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_61d3e636": {
+   "label": "stoffen",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_afa30a11"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_98e03e32": {
+   "label": "strafrecht",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_f4679acc"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_4872b086": {
+   "label": "terrorisme",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_d58b78ca"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_195b5b5e": {
+   "label": "transport",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_d363776f"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_d772bf06": {
+   "label": "veiligheid",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_d58b78ca"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_849842ac": {
+   "label": "verkeer",
+   "breder": null
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_980b8db2": {
+   "label": "voortgezet onderwijs",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_c232ae4a"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_389a72e6": {
+   "label": "water",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_afa30a11"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_a71dc533": {
+   "label": "waterbeheer",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_cfc7d5ab"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_9d1917e9": {
+   "label": "werk",
+   "breder": null
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_124eaf3a": {
+   "label": "wonen",
+   "breder": null
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_17a86a17": {
+   "label": "woningmarkt",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_124eaf3a"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_9a574af9": {
+   "label": "ziekten en behandelingen",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_d0463fb7"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_d0463fb7": {
+   "label": "zorg en gezondheid",
+   "breder": null
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_7a0f87d5": {
+   "label": "zorginstellingen",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_d0463fb7"
+  },
+  "https://identifier.overheid.nl/tooi/def/thes/top/c_341c5bef": {
+   "label": "zorgverzekeringen",
+   "breder": "https://identifier.overheid.nl/tooi/def/thes/top/c_d0463fb7"
+  }
+ }
+}

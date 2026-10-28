@@ -104,7 +104,9 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | F | Activiteit 1 in het gesprek: werkgebied bepalen | F0 en F1 gebouwd (vraagkaarten zoals Claude → werkgebied); vervolg open |
 | G | Lex als projectgerichte werkplek (mock-up v4) | G1–G5 gebouwd (gesprek bij een werkgebied, de projectpagina, eigen pagina's per object, het contextpaneel, de begripskaart in NL-SBB-volgorde) |
 | H | Structuur: begrippen per term, bepalingen als boom | H1–H4 gebouwd (plek van een bepaling, bronvoorstellen met vinkjes en actiebalk, geen sneltoetsen, deelvragen met structuur, begrippenkader per term) |
-| I | Begrippen volgens NL-SBB met uitleg in B1, TOOI, één bedieningsstijl | gepland (I5 → I1 → I2 → I3 → I4 → I6 → I7) |
+| I | Begrippen volgens NL-SBB met uitleg in B1, TOOI, één bedieningsstijl | Af: I5, I1–I4, I6, I7 gemerged (#752–#756, #762, #763), het thema als vraagkaart erna; open: de meting `eval.uitleg_eval` (3 runs, kost geld) |
+| K | Eén bronnenlijst, deelvragen zonder begrip, rustige panelen, één stijl | K1–K5 gemerged (#767–#771) |
+| L | Getypte bepalingen bij het samenstellen, één plek voor de bronnen per deelvraag | L1 (#772) en L2–L3 gebouwd |
 
 ---
 
@@ -1030,6 +1032,14 @@ in Lex** (letters, `[`/`]`, hints) – Tab, Enter, Escape en de pijltjes van een
 
 ### I. Begrippen volgens NL-SBB met uitleg in B1, TOOI, één bedieningsstijl
 
+**Stand** (27 okt 2026): gebouwd in zeven PR's. Afwijkingen van het plan hieronder:
+- de B1-woordenlijst staat naast de code (`begrippen_pipeline/b1_woorden.yaml`), de regels in de skill;
+- het veld *toelichting* heet op de wire `context` (ook als kaartvoorstel);
+- `bwb:eerstverantwoordelijke` blijft tekst; de TOOI-URI staat ernaast op `bwb:eerstverantwoordelijkeOrganisatie`;
+- het thema is een vraagkaart van *Vul het dossier aan* (stap `thema`, alleen bij het aanvullen, na het
+  praktijkvoorbeeld; het voorstel van Lex staat aangevinkt) en staat ook in *Gegevens bewerken*;
+- `IcoonBevestig` ontwapent na 8 s zoals elke `BevestigKnop`, niet na 4 s.
+
 **Aanleiding** (26 okt 2026):
 - *Werk het begrip volledig uit* levert geen uitleg. `agents/begrippen.py:uitwerken` kent geen
   uitlegstap, en de api laat het veld uitleg alleen bij `betekenisverschil` toe.
@@ -1097,6 +1107,118 @@ in Lex** (letters, `[`/`]`, hints) – Tab, Enter, Escape en de pijltjes van een
   - de antwoord-worker beantwoordt vragen over NL-SBB, SKOS, TOOI en B1 uit de methode, met de vermelding
     "geen wettekst";
   - de docs en ADR-003 bijwerken.
+
+---
+
+### J. Bronselectie in het gesprek, per deelvraag
+
+**Aanleiding** (27 okt 2026). De bronselectie is een boom met kandidaten waarin de analist zelf moet kiezen.
+De gebruiker wil een begeleid proces in het gesprek: Lex werkt de deelvragen één voor één af, met voorstellen
+en onderbouwing, en de applicatie onthoudt waar de analist is – ook na herladen, in een ander gesprek of bij
+een collega. Een beoordeling van de opdracht liet zien dat veel er al is (kandidaten met besluiten, één
+selectie gekoppeld aan meer deelvragen, `bepaling_opties` per deelvraag); wat ontbreekt is de voortgang per
+deelvraag, een besluit per deelvraag, een vraagkaart buiten de intake en het soort bewijs.
+
+**Besluiten** (27 okt 2026, door Claude op verzoek van de gebruiker, in de lijn van Lex):
+- **één kaart per deelvraag**, meerkeuze voor *opnemen*; *uitsluiten*, *context* en *bespreken* zijn een
+  vervolgvraag in het gesprek of een besluit op de pagina, niet 32 losse kaartjes;
+- **geen *later*** (besluit gebruiker 27 okt 2026): kiezen is het besluit, wat niet aangevinkt is, is niet gekozen;
+  iets toevoegen = de vragen opnieuw doorlopen, of zelf een bepaling als keuze typen op het kaartje. De losse
+  zoekknop en de beslisknoppen in de bronnenboom zijn weg; de boom is een verkenner;
+- **vier standen**: `niet_gestart`, `in_behandeling`, `voorlopig_afgerond` (de analist sluit af, open punten
+  mogen) en `beoordeeld` – dat laatste alleen **door een poort** (de vragen doorlopen, geen open onderzoekspunt),
+  zoals het accorderen van een begrip;
+- **uitsluiten geldt standaard voor één deelvraag**; *voor het hele werkgebied* is een bewuste keuze. Het
+  bestaande besluit op een kandidaat is het werkgebiedbrede en blijft staan;
+- **de rangschikking is een eigen stap, ná de workflow**, op een nieuwe held-out set (de bezwaarset is een
+  ontwikkelset). Een betere workflow om zwakke voorstellen heen lost de recall van 0,21 niet op;
+- **de volgende deelvraag kiest de code**, niet het model; een afronding staat op de scope waarop ze
+  gedaan is en komt op *opnieuw bekijken* als die verandert; een verbeterde deelvraag erft de voortgang.
+
+**Fasen:**
+- **J1** api – **gebouwd**: `bronselectie_voortgang` en `bron_kandidaat_deelvragen`, `rol` per
+  deelvraagkoppeling, `GET …/bronselectie` (per deelvraag stand, bronnen met rol, kandidaten met hun stand
+  hier en het soort bewijs, de volgende deelvraag, zoekdekking uit de meting, wat bij geen deelvraag hoort),
+  `POST …/bronselectie/{deelvraag}/status` en `…/kandidaten/{id}`.
+- **J2** graph-qa – **gebouwd**: de bronselectie-worker (`agent/bronselectie.py`), die de stand per beurt vers
+  uit de api leest; *Hoe wil je verder?* na een afronding; een tussenvraag gaat naar de antwoord-worker en laat
+  de stand staan; routering zonder model (klik, actie `bronselectie`, de vaste zin).
+- **J3** werkplek – **gebouwd**: de vraagkaart met `modus: "bronselectie"` en `deelvraag_id`, dezelfde
+  `VraagDock` en `VragenKaart`; een bronselectiebeurt blijft een antwoord met kaartje.
+- **J4** – **gebouwd**: `BronselectieOverzicht` in het paneel naast het gesprek en op de pagina Bronselectie,
+  op dezelfde data; de bronboom blijft als bronverkenner (`bronnen/voorstellen`).
+- **J5** – **gebouwd, in J1–J4**: het soort bewijs per voorstel, de zoekdekking, wat bij geen deelvraag hoort,
+  en de controle in drie delen met de afsluitzin "binnen de vastgestelde afbakening en de beschikbare
+  bronnen", nooit "volledig". Architectuur: `docs/architectuur/bronselectie-per-deelvraag.md`.
+- **Daarna**: de rangschikking van `bepaling_opties` (stemming, de kop van het deel), blind gemeten.
+
+**Bekende beperking.** De functie van een verwijzing (definitie, uitzondering, delegatie) wordt nog niet
+afgeleid; tot dan zegt Lex bij een afhankelijkheid alleen welke relatie in de graaf staat.
+
+### K. Eén bronnenlijst, deelvragen zonder begrip, rustige panelen, één stijl
+
+**Aanleiding** (27 okt 2026). Op acceptatie stond dezelfde bronnenlijst op drie plekken: in de afbakening (de
+intake schreef alle gekozen bepalingen erin), bij de deelvragen en op de tab Bronnen – en op de pagina
+Bronselectie nog eens per rol. Elke deelvraag had acht bronnen: het bepalingenkaartje vulde tot het maximum aan
+met bepalingen die alleen een dossierterm raakten. Een deelvraag zei "Nog geen geaccordeerd begrip", terwijl
+begrippen in de methode bij het werkgebied horen. In de panelen naast het gesprek stond nog *Vraag Lex*. En de
+stijl liep uiteen: vier kaartvormen, drie filterchips, handgemaakte knoppen. Vergelijking: de mock-up v4.
+
+**Methode** (handleiding 1f/1g): één tabel met juridische bronnen voor het werkgebied, daarna per deelvraag
+gekoppeld; de afbakening is een tekstuele scope. Begrippen gaan over het hele scenario (M04 H3).
+
+**Besluiten** (gebruiker, 27 okt 2026):
+1. Eén lijst, getoond per deelvraag, met *Zonder deelvraag*; de afbakening is tekst (regelingen, wat erbuiten
+   valt).
+2. Een hoofdknop heeft de vorm van *Nieuw gesprek* (afgeronde rechthoek, zachte schaduw, diepere schaduw bij
+   hover); rijacties, statuslabels en filterchips blijven pillen. Vervangt I4 voor de hoofdknoppen.
+3. Een deelvraag toont de voortgang van haar bronselectie en het aantal bronnen, geen begrip.
+4. Geen *Vraag Lex* in de panelen naast het gesprek; een deelvraag daar is aan te klikken.
+
+**Fasen** (PR-stapel):
+- **K1** (#767): de afbakening zonder bepalingen; `bepaling_opties` eist bij een deelvraag een deelvraagterm.
+- **K2** (#768): de dekking per deelvraag zonder begrip (`met_bron`/`geen_bron`); de werkplek toont de voortgang.
+- **K3** (#769): geen *Vraag Lex* naast het gesprek.
+- **K4** (#770): de tab Bronnen per deelvraag in rijen (`Groep`/`GroepRij`); geen boom om te lezen.
+- **K5** (#771): één stijl – knoppen, kaartfamilie (`KLIK_KAART`), `FilterChip`, tellers en artefactkaarten
+  zoals de mock-up.
+
+**Daarna**: welke van de drie wegen op acceptatie de acht bronnen per deelvraag gaf (de opvulling, een splitsing
+die alle koppelingen erfde, of het oude opneem-endpoint) vraagt de audit van dat werkgebied. Een splitsing erft
+nog alle koppelingen; dat als voorstel laten landen is een eigen wijziging. `NodeAnnotatiePaneel` heeft nog eigen
+sluitknoppen en de reviewkaart eigen knopconstanten.
+
+---
+
+### L. Getypte bepalingen bij het samenstellen, één plek voor de bronnen per deelvraag
+
+**Aanleiding** (27 okt 2026). Op acceptatie typte de analist bij het samenstellen eigen bepalingen per deelvraag;
+bij drie regelingen negeerde Lex ze en maakte het werkgebied "nog zonder bronnen". Daarnaast toonden de tab
+Bronnen, de pagina Bronselectie en de deelvraagpagina bijna hetzelfde, elk met een deel van de handelingen.
+
+**Besluiten** (door Claude op verzoek van de gebruiker, 27 okt 2026):
+1. Een getypte bepaling is een keuze: ontleed (meer artikelen en regelingen in één tekst), in de graaf getoetst, en
+   bij twijfel een vraag op hetzelfde kaartje met de tekst erin – nooit stil weg. Lange velden houden hun alinea's.
+2. Eén inhoud voor de bronnen per deelvraag (`BronnenBijDeelvraag`) op de tab Bronnen, de deelvraagpagina en naast
+   het gesprek; de besluiten, onderzoekspunten en zoekbeperkingen van de Bronselectie-pagina gaan mee. Het artefact
+   Bronselectie is de tab Bronnen. De bronverkenner blijft (alles wat Lex vond, met bewijs).
+
+**Fasen**: L1 (#772) graph-qa; L2 het gedeelde component; L3 de deelvraagpagina als `SplitDetail`.
+
+### M. Betekenisonderzoek: begrippen vanuit hun juridische context
+
+**Aanleiding** (27 okt 2026). Lex stelde definities voor op alleen de geannoteerde bronnode: "herziening" werd
+het toepassingsgeval van art. 30fb lid 4 AWR, en bij "belasting" belandde het rechtsgevolg (grondslag voor
+belastingrente) in de definitie. Het manifest bevat geen andere leden, geen contextdefinities en geen
+verwijzingsdoelen.
+
+**Besluit**: een deterministische *onderzoeksstand* naast het manifest (eigen id), gebouwd door de api en
+gebruikt door voorstellen, meedenken en alle kaartacties; betekenissignalen vóór de definitie; strengere toetsen
+op definities en voorbeelden; bronbewijs dat het overnemen overleeft. Geen nieuwe agent, geen vrije zoeklus.
+Plan, opdrachttoets en voortgang: [`architectuur/plan-betekenisonderzoek.md`](architectuur/plan-betekenisonderzoek.md).
+
+**Fasen**: M1 onderzoeksstand; M2 betekenisanalyse en definities; M3 voorbeelden en runs; M4 bewijs, export,
+werkplek en meting.
 
 ---
 

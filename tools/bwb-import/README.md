@@ -220,7 +220,10 @@ geladen: officiële citeertitels en afkortingen (`bwb:afkorting`,
 `bwb:alternatieveTitel`), eerstverantwoordelijk ministerie, rechtsgebieden en
 overheidsdomeinen als `skos:Concept`en (`dcterms:subject`, hiërarchie via
 `skos:broader`) en grondslag-relaties (`bwb:heeftGrondslag` ⊑ `eli:based_on`).
-Best-effort: een falende WTI-download breekt de import niet.
+Best-effort: een falende WTI-download breekt de import niet. Het eerstverantwoordelijke ministerie staat
+ook als TOOI-URI op `bwb:eerstverantwoordelijkeOrganisatie` (met `rdfs:label`), via de snapshot
+`app/tooi_ministeries.json` (CC0, met bron en datum; ook historische namen). Een onbekende naam blijft
+alleen tekst en wordt gelogd (`app/tooi.py`).
 
 ## Installatie
 

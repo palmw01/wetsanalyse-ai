@@ -91,6 +91,7 @@
       "bronnen": [
         "M11",
         "M12",
+        "M13",
         "P16"
       ]
     }
@@ -106,7 +107,8 @@
     ],
     "definitie": [
       "basis",
-      "definitie"
+      "definitie",
+      "nl-sbb-taalniveau"
     ],
     "duiding": [
       "basis",
@@ -121,7 +123,8 @@
       "synthese"
     ],
     "algemeen": [
-      "basis"
+      "basis",
+      "nl-sbb-taalniveau"
     ],
     "deelvragen": [
       "basis",

@@ -228,7 +228,11 @@ def test_bepalingen_bij_een_deelvraag_op_lid_niveau_en_in_vaste_volgorde():
     uit = _opties()
     # Volgorde: deelvraagtermen, dan dossiertermen, dan kop, dan documentvolgorde. Een andere regeling valt
     # weg; een artikel met een geraakt lid ook; een onderdeel telt voor zijn lid.
-    assert [o["bron_iri"] for o in uit] == [L1, ART10, L9_2, f"{IW}:artikel:2:lid:1", f"{IW}:artikel:8:lid:1", ART12_1]
+    assert [o["bron_iri"] for o in uit] == [L1, ART10, L9_2, f"{IW}:artikel:2:lid:1", ART12_1]
+    # Artikel 8 lid 1 raakt alleen het dossier, niet de deelvraag: bij een deelvraag geen optie, anders vulde
+    # het dossier elk kaartje tot het maximum (spoor K). Bij de analysevraag telt het dossier wel.
+    assert f"{IW}:artikel:8:lid:1" not in [o["bron_iri"] for o in uit]
+    assert f"{IW}:artikel:8:lid:1" in [o["bron_iri"] for o in _opties(deelvraag=None)]
     eerste = uit[0]
     assert eerste["label"] == "Artikel 9, lid 1 – Invorderingswet 1990" and not eerste["buiten"]
     assert eerste["omschrijving"].startswith("Een belastingaanslag is invorderbaar zes weken")

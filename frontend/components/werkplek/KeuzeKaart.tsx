@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import type { AgentKandidaat, AgentKeuze, KandidaatStand } from "@/lib/types";
+import { knopKlasse } from "@/components/ui/Button";
 
 /** De keuze uit de onderdelen van één bepaling (leden, of subbepalingen als 9.1), in de thread.
  *
@@ -125,7 +126,7 @@ export function KeuzeKaart({
         )}
         {meer && (
           <button type="button" disabled={uitgeschakeld || !geselecteerd.length} onClick={() => verstuur(geselecteerd)}
-            className="focus-ring rounded-full bg-lint px-3 py-1 text-xs font-medium text-white hover:bg-lint/90 disabled:opacity-40">
+            className={knopKlasse("primary", "sm")}>
             Annoteer geselecteerde ({geselecteerd.length})
           </button>
         )}

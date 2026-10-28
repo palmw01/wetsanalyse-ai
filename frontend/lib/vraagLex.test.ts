@@ -60,8 +60,10 @@ describe("een object stuurt alleen soort en id's", () => {
   it("het werkgebied zonder id, met de handelingen als suggestie met een actie", () => {
     expect(verzoekVan(werkgebied)).toEqual({ onderwerp: { soort: "werkgebied", werkgebied_id: "wg1", label: "Invordering" } });
     const s = suggestiesVan(werkgebied);
-    expect(s.map((x) => x.actie)).toEqual(["dossier_aanvullen", "deelvragen_voorstellen", "bronnen_zoeken", "dekking", "werkgebied_annoteren", "deelvragen_annoteren",
-      "begrippen_voorstellen", "begrippen_meedenken"]);
+    expect(s.map((x) => x.actie)).toEqual(["dossier_aanvullen", "dossier_aanvullen", "deelvragen_voorstellen", "bronselectie",
+      "deelvragen_annoteren", "werkgebied_annoteren", "begrippen_voorstellen", "begrippen_meedenken", "dekking"]);
+    // Spoor J: geen losse zoekknop meer; zoeken hoort bij de bronselectie.
+    expect(s.some((x) => x.actie === "bronnen_zoeken")).toBe(false);
     expect(actieVerzoek(werkgebied as Extract<Onderwerp, { soort: "werkgebied" }>, "bronnen_zoeken")).toEqual({
       actie: "bronnen_zoeken", onderwerp: { soort: "werkgebied", werkgebied_id: "wg1", label: "Invordering" },
     });
@@ -69,8 +71,8 @@ describe("een object stuurt alleen soort en id's", () => {
 
   it("elke soort heeft suggesties die passen (F3d)", () => {
     const acties = (soort: ObjectSoort) => suggestiesVan({ soort, werkgebied_id: "wg1", id: "x1", label: "" }).map((x) => x.actie);
-    expect(acties("deelvraag")).toEqual(["bronnen_zoeken", "deelvragen_annoteren", "dekking", "deelvraag_herformuleren",
-      "deelvraag_splitsen"]);
+    expect(acties("deelvraag")).toEqual(["deelvraag_herformuleren", "deelvraag_splitsen", "bronselectie", "deelvragen_annoteren",
+      "dekking"]);
     expect(acties("begrip")).toEqual(["begrip_uitwerken", "brondefinitie", "uitleg", "voorbeelden", "relaties", undefined]);
     // Een bron of kandidaat heeft alleen vragen: de antwoord-worker, met het object als context.
     expect(acties("bron").every((x) => x === undefined)).toBe(true);
@@ -93,14 +95,16 @@ describe("een object stuurt alleen soort en id's", () => {
 describe("contract met graph-qa", () => {
   const models = readFileSync(resolve(__dirname, "../../tools/graph-qa/agent/models.py"), "utf8");
 
-  it("de acties zijn die van Actie: de taken uit ACTIE_TAAK en het dossier aanvullen", () => {
+  it("de acties zijn die van Actie: de taken uit ACTIE_TAAK, het dossier aanvullen en de bronselectie", () => {
     const begin = models.indexOf("ACTIE_TAAK: dict[str, tuple[str, str]] = {");
     expect(begin).toBeGreaterThan(-1);
     const blok = models.slice(begin, models.indexOf("\n}", begin));
     const taken = [...blok.matchAll(/^\s+"([a-z_]+)":/gm)].map((m) => m[1]);
     const intake = [...(models.match(/^INTAKE_ACTIES = \((.*?)\)/m)?.[1] ?? "").matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
     expect(intake).toEqual(["dossier_aanvullen"]);
-    expect([...taken, ...intake].sort()).toEqual([...ACTIES].sort());
+    const bronselectie = [...(models.match(/^BRONSELECTIE_ACTIES = \((.*?)\)/m)?.[1] ?? "").matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
+    expect(bronselectie).toEqual(["bronselectie"]);
+    expect([...taken, ...intake, ...bronselectie].sort()).toEqual([...ACTIES].sort());
     const actie = models.match(/^Actie = Literal\[(.*?)\]/ms)?.[1] ?? "";
     expect([...actie.matchAll(/"([a-z_]+)"/g)].map((m) => m[1]).sort()).toEqual([...ACTIES].sort());
   });

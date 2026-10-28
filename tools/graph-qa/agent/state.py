@@ -33,6 +33,7 @@ class State(TypedDict, total=False):
     # Een klik op een suggestie (F3b/F3c): de handeling, en bij een bevestiging het aantal. Per beurt gereset.
     actie: str
     bevestigd: int | None
+    werkvoorraad_id: str
     # Wat de supervisor een agent liet doen (F3c, `nodes/agent_taak.py`): {agent, taak, parameters}, en de
     # uitkomst (`agents.Uitkomst` als dict). Per beurt gereset.
     agent_taak: dict[str, Any]

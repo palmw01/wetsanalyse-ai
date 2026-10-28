@@ -1,0 +1,275 @@
+{
+ "toelichting": "Casus A en B van spoor M (betekenisonderzoek), letterlijk uit de graaf op acceptatie (named graph urn:bwb:graph:BWBR0002320, bwb:tekst per node), vastgelegd op 28-10-2026. bron_hash = sha256 van de tekst (bronmodel.tekst_hash). Wijzig de teksten niet: een nieuwe wettekst is een nieuwe casus.",
+ "vastgelegd_op": "2026-10-28",
+ "nodes": [
+  {
+   "bron_iri": "urn:bwb:BWBR0002320",
+   "parent_iri": "",
+   "type": "Regeling",
+   "label": "Algemene wet inzake rijksbelastingen",
+   "tekst": "",
+   "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "volgorde": 0,
+   "bwb_id": "BWBR0002320"
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0002320:artikel:30fb",
+   "parent_iri": "urn:bwb:BWBR0002320",
+   "type": "Artikel",
+   "label": "Artikel 30fb",
+   "tekst": "",
+   "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "volgorde": 1,
+   "bwb_id": "BWBR0002320"
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0002320:artikel:30fb:lid:1",
+   "parent_iri": "urn:bwb:BWBR0002320:artikel:30fb",
+   "type": "Lid",
+   "label": "Lid 1",
+   "tekst": "Bij herziening van een voorlopige aanslag inkomstenbelasting of vennootschapsbelasting met een positief bedrag tot een voorlopige aanslag met een hoger positief bedrag, wordt met betrekking tot het verschil belastingrente in rekening gebracht over het tijdvak dat aanvangt 6 maanden te rekenen vanaf het tijdvak waarover de belasting wordt geheven en eindigt op de dag voorafgaand aan de dag waarop het verschil invorderbaar is ingevolge artikel 9 van de Invorderingswet 1990. Ingeval de herziening is vastgesteld overeenkomstig een op de door de inspecteur aangegeven wijze ingediend verzoek of overeenkomstig de ingediende aangifte met betrekking tot het tijdvak waarover de belasting wordt geheven, eindigt het tijdvak waarover de belastingrente wordt berekend in afwijking in zoverre van de eerste volzin, uiterlijk 14 weken na de datum van ontvangst van het verzoek, onderscheidenlijk 19 weken na ontvangst van de aangifte.",
+   "bron_hash": "1fb624a1db66581520a312c5e5e44e928cda0113147e638d39b263c7a8d6c00d",
+   "volgorde": 2,
+   "bwb_id": "BWBR0002320"
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0002320:artikel:30fb:lid:2",
+   "parent_iri": "urn:bwb:BWBR0002320:artikel:30fb",
+   "type": "Lid",
+   "label": "Lid 2",
+   "tekst": "Bij herziening van een voorlopige aanslag inkomstenbelasting of vennootschapsbelasting met een positief bedrag tot een voorlopige aanslag met een lager positief bedrag, wordt, zo eerder ter zake van dat positieve bedrag belastingrente in rekening is gebracht, die eerder in rekening gebrachte belastingrente voor zover toerekenbaar aan het verschil, verminderd. Ter zake van het verschil in positieve bedragen wordt belastingrente vergoed ingeval wordt voldaan aan de voorwaarden van artikel 30fa, eerste lid, welke wordt berekend volgens het tweede lid van dat artikel.",
+   "bron_hash": "a7909ada0556b7a11cab9d3c38bfdbf7cc0a323290334823cbc909be683990ab",
+   "volgorde": 3,
+   "bwb_id": "BWBR0002320"
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0002320:artikel:30fb:lid:3",
+   "parent_iri": "urn:bwb:BWBR0002320:artikel:30fb",
+   "type": "Lid",
+   "label": "Lid 3",
+   "tekst": "Bij herziening van een voorlopige aanslag inkomstenbelasting of vennootschapsbelasting met een positief bedrag tot een voorlopige aanslag met een negatief bedrag, wordt, zo eerder ter zake van dat positieve bedrag belastingrente in rekening is gebracht, die eerder in rekening gebrachte belastingrente verminderd. Ter zake van het verschil tussen het positieve bedrag en het negatieve bedrag wordt belastingrente vergoed ingeval wordt voldaan aan de voorwaarden van artikel 30fa, eerste lid, welke wordt berekend volgens het tweede lid van dat artikel.",
+   "bron_hash": "a609668d5150e938c6a28133f9aeadac73b3bbbaf4108290ff7fb1fe0049da75",
+   "volgorde": 4,
+   "bwb_id": "BWBR0002320"
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0002320:artikel:30fb:lid:4",
+   "parent_iri": "urn:bwb:BWBR0002320:artikel:30fb",
+   "type": "Lid",
+   "label": "Lid 4",
+   "tekst": "Bij herziening van een voorlopige aanslag inkomstenbelasting of vennootschapsbelasting met een negatief bedrag tot een voorlopige aanslag met positief bedrag, wordt met betrekking tot het verschil tussen die bedragen belastingrente in rekening gebracht over het tijdvak dat aanvangt 6 maanden te rekenen vanaf het tijdvak waarover de belasting wordt geheven en eindigt op de dag voorafgaand aan de dag waarop het verschil invorderbaar is ingevolge artikel 9 van de Invorderingswet 1990. Ingeval de herziening is vastgesteld overeenkomstig een op de door de inspecteur aangegeven wijze ingediend verzoek of overeenkomstig de ingediende aangifte met betrekking tot het tijdvak waarover de belasting wordt geheven, eindigt het tijdvak waarover de belastingrente wordt berekend in afwijking in zoverre van de eerste volzin uiterlijk 14 weken na de datum van ontvangst van het verzoek, onderscheidenlijk 19 weken na de datum van ontvangst van deze aangifte.",
+   "bron_hash": "b9ea1d5b62f2b05f7fa8c29df4cd8466ee9ef579930243c78816e3813f32b352",
+   "volgorde": 5,
+   "bwb_id": "BWBR0002320"
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0002320:artikel:30fb:lid:5",
+   "parent_iri": "urn:bwb:BWBR0002320:artikel:30fb",
+   "type": "Lid",
+   "label": "Lid 5",
+   "tekst": "Bij herziening van een voorlopige aanslag inkomstenbelasting of vennootschapsbelasting met een negatief bedrag tot een voorlopige aanslag met een kleiner negatief bedrag wordt met betrekking tot het verschil tussen die bedragen belastingrente in rekening gebracht over het tijdvak dat aanvangt 6 maanden te rekenen vanaf het tijdvak waarover de belasting wordt geheven en eindigt op de dag voorafgaand aan de dag waarop het verschil invorderbaar is ingevolge artikel 9 van de Invorderingswet 1990. Ingeval de herziening is vastgesteld overeenkomstig een op de door de inspecteur aangegeven wijze ingediend verzoek of overeenkomstig de ingediende aangifte met betrekking tot het tijdvak waarover de belasting wordt geheven, eindigt het tijdvak waarover de belastingrente wordt berekend in afwijking in zoverre van de eerste volzin, uiterlijk 14 weken na de datum van ontvangst van het verzoek, onderscheidenlijk 19 weken na de datum van ontvangst van de aangifte.",
+   "bron_hash": "4f2382a195c4631ff8d0bd9fc8ddc4a9e5aa50163b1ebf78185a2a883d640df9",
+   "volgorde": 6,
+   "bwb_id": "BWBR0002320"
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0002320:artikel:30fb:lid:6",
+   "parent_iri": "urn:bwb:BWBR0002320:artikel:30fb",
+   "type": "Lid",
+   "label": "Lid 6",
+   "tekst": "Bij herziening van een voorlopige aanslag inkomstenbelasting of vennootschapsbelasting met een negatief bedrag tot een voorlopige aanslag met een groter negatief bedrag wordt, ingeval wordt voldaan aan de voorwaarden van artikel 30fa, eerste lid, belastingrente vergoed, berekend over het tijdvak, bedoeld in het tweede lid van dat artikel, en met als grondslag het verschil tussen de twee negatieve bedragen.",
+   "bron_hash": "4e221987fb5878fe26467f079b3718e2e146a5232346f52a14bf4fc682551055",
+   "volgorde": 7,
+   "bwb_id": "BWBR0002320"
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0002320:artikel:30fb:lid:7",
+   "parent_iri": "urn:bwb:BWBR0002320:artikel:30fb",
+   "type": "Lid",
+   "label": "Lid 7",
+   "tekst": "Bij een herziening van een voorlopige aanslag als bedoeld in het eerste, vierde en vijfde lid, is artikel 30f, vierde lid, van overeenkomstige toepassing.",
+   "bron_hash": "6dcd42baf2a3595055d6b2f089fe2ed0ede37da0f290e84edf08f8ee1aeb0ec7",
+   "volgorde": 8,
+   "bwb_id": "BWBR0002320"
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0002320:artikel:30fb:lid:8",
+   "parent_iri": "urn:bwb:BWBR0002320:artikel:30fb",
+   "type": "Lid",
+   "label": "Lid 8",
+   "tekst": "Indien naar aanleiding van een bezwaarschrift of een daaropvolgende gerechtelijke procedure een voorlopige aanslag wordt herzien overeenkomstig het tweede, derde of zesde lid, wordt geen rente vergoed. In het geval ter zake van de herziene voorlopige aanslag eerder belastingrente in rekening is gebracht, wordt deze rente verminderd overeenkomstig het tweede lid, onderscheidenlijk derde lid.",
+   "bron_hash": "a6c6e99e211d71267598abaea2f26735dc042755e423bc30410d0228f7d35acc",
+   "volgorde": 9,
+   "bwb_id": "BWBR0002320"
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc",
+   "parent_iri": "urn:bwb:BWBR0002320",
+   "type": "Artikel",
+   "label": "Artikel 30fc",
+   "tekst": "",
+   "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "volgorde": 10,
+   "bwb_id": "BWBR0002320"
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:1",
+   "parent_iri": "urn:bwb:BWBR0002320:artikel:30fc",
+   "type": "Lid",
+   "label": "Lid 1",
+   "tekst": "Indien met betrekking tot de inkomstenbelasting of vennootschapsbelasting na het verstrijken van een periode van 6 maanden te rekenen vanaf het einde van het tijdvak waarover de belasting wordt geheven een aanslag of een navorderingsaanslag met een door de belastingplichtige te betalen bedrag aan belasting wordt vastgesteld, wordt met betrekking tot die aanslag, onderscheidenlijk die navorderingsaanslag, aan de belastingplichtige rente – belastingrente – in rekening gebracht.",
+   "bron_hash": "961e58610d68a4962adf91ab38c906a5de558fc9e529d90c342123f07be57fc5",
+   "volgorde": 11,
+   "bwb_id": "BWBR0002320"
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:2",
+   "parent_iri": "urn:bwb:BWBR0002320:artikel:30fc",
+   "type": "Lid",
+   "label": "Lid 2",
+   "tekst": "De belastingrente wordt enkelvoudig berekend over het tijdvak dat aanvangt 6 maanden te rekenen vanaf het einde van het tijdvak waarover de belasting wordt geheven en eindigt op de dag voorafgaand aan de dag waarop de aanslag, onderscheidenlijk de navorderingsaanslag, invorderbaar is ingevolge artikel 9 van de Invorderingswet 1990 en heeft als grondslag het te betalen bedrag aan belasting.",
+   "bron_hash": "c3bc7ab31c329a186cf5621bec734ea1eef27520ef620952f5131e2b5fc50ad7",
+   "volgorde": 12,
+   "bwb_id": "BWBR0002320"
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:3",
+   "parent_iri": "urn:bwb:BWBR0002320:artikel:30fc",
+   "type": "Lid",
+   "label": "Lid 3",
+   "tekst": "Ingeval de aanslag is vastgesteld overeenkomstig de ingediende aangifte, eindigt het tijdvak waarover de belastingrente wordt berekend in afwijking in zoverre van het tweede lid, uiterlijk 19 weken na de datum van ontvangst van de aangifte.",
+   "bron_hash": "610d5dc06c975d0610c10d9fb8ed5bf00d56a31528ce736767fa079483b6edf2",
+   "volgorde": 13,
+   "bwb_id": "BWBR0002320"
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:4",
+   "parent_iri": "urn:bwb:BWBR0002320:artikel:30fc",
+   "type": "Lid",
+   "label": "Lid 4",
+   "tekst": "Geen belastingrente wordt in rekening gebracht ingeval de aanslag inkomstenbelasting of vennootschapsbelasting is vastgesteld overeenkomstig een ingediende aangifte die is ontvangen voor de eerste dag van de vijfde, onderscheidenlijk zesde, maand na afloop van het tijdvak waarover de belasting wordt geheven.",
+   "bron_hash": "ba67442842e98141c16e5d2e783012504557b3a5021197a9c0389f33f7a696dc",
+   "volgorde": 14,
+   "bwb_id": "BWBR0002320"
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:5",
+   "parent_iri": "urn:bwb:BWBR0002320:artikel:30fc",
+   "type": "Lid",
+   "label": "Lid 5",
+   "tekst": "Ingeval de navorderingsaanslag is vastgesteld naar aanleiding van een verzoek, eindigt het tijdvak waarover de belastingrente wordt berekend in afwijking in zoverre van het tweede lid, uiterlijk 12 weken na de datum van ontvangst van het verzoek.",
+   "bron_hash": "83b4308d0583934ba8225eddf170f52297da8958db39fac689761ce3ede7871c",
+   "volgorde": 15,
+   "bwb_id": "BWBR0002320"
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:6",
+   "parent_iri": "urn:bwb:BWBR0002320:artikel:30fc",
+   "type": "Lid",
+   "label": "Lid 6",
+   "tekst": "Dit artikel is niet van toepassing met betrekking tot inkomstenbelasting ter zake van te conserveren inkomen als bedoeld in artikel 2.8, tweede en vierde tot en met zevende lid, van de Wet inkomstenbelasting 2001, uitgezonderd te conserveren inkomen dat is ontstaan door toepassing van artikel 3.58, eerste lid, of artikel 3.64, eerste lid, van die wet.",
+   "bron_hash": "1fd3ab5f20cd6e02623c6a5914bb4aace83bc1da47349f44f9e23113b623c435",
+   "volgorde": 16,
+   "bwb_id": "BWBR0002320"
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:7",
+   "parent_iri": "urn:bwb:BWBR0002320:artikel:30fc",
+   "type": "Lid",
+   "label": "Lid 7",
+   "tekst": "Voor de toepassing van dit artikel geldt als het te betalen bedrag aan belasting: het bedrag na de verrekening ingevolge:",
+   "bron_hash": "dd3c171030a4b469e5bc2f2f81e4e0c82082887ad838fd4467e2aaa7a8a0f188",
+   "volgorde": 17,
+   "bwb_id": "BWBR0002320"
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:7:o:a",
+   "parent_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:7",
+   "type": "Onderdeel",
+   "label": "Onderdeel a",
+   "tekst": "artikel 15;",
+   "bron_hash": "711ef1e337de786aba759cdc07d164057345c77f64ec04f90f7b2bbbf86ba363",
+   "volgorde": 18,
+   "bwb_id": "BWBR0002320"
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:7:o:b",
+   "parent_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:7",
+   "type": "Onderdeel",
+   "label": "Onderdeel b",
+   "tekst": "de artikelen 3 152, zesde lid, en 4.51, zesde lid, van de Wet inkomstenbelasting 2001;",
+   "bron_hash": "b91f146c9b4b37f9cd3484597cf4d516546d14f88ef2f6ce57c0fb80e4163d42",
+   "volgorde": 19,
+   "bwb_id": "BWBR0002320"
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:7:o:c",
+   "parent_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:7",
+   "type": "Onderdeel",
+   "label": "Onderdeel c",
+   "tekst": "artikel 21, derde lid, van de Wet op de vennootschapsbelasting 1969.",
+   "bron_hash": "995f2d035668cbcc116dfba806d9517df644beb0959ded58e9bc321deae6e932",
+   "volgorde": 20,
+   "bwb_id": "BWBR0002320"
+  }
+ ],
+ "casus": {
+  "A": {
+   "omschrijving": "herziening in art. 30fb lid 4 AWR: leden 1–6 delen de opening en verschillen in de bedragovergang",
+   "selecties": [
+    {
+     "bron_iri": "urn:bwb:BWBR0002320:artikel:30fb:lid:4",
+     "rol": "analyseren",
+     "bereik": "node"
+    }
+   ],
+   "formuleringen": [
+    {
+     "bron_iri": "urn:bwb:BWBR0002320:artikel:30fb:lid:4",
+     "start": 4,
+     "eind": 14,
+     "tekst": "herziening",
+     "jas_klasse": "Rechtsobject"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0002320:artikel:30fb:lid:4",
+     "start": 217,
+     "eind": 231,
+     "tekst": "belastingrente",
+     "jas_klasse": "Rechtsgevolg"
+    }
+   ]
+  },
+  "B": {
+   "omschrijving": "belasting in art. 30fc AWR: lid 7 kwalificeert 'het te betalen bedrag aan belasting'",
+   "selecties": [
+    {
+     "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:1",
+     "rol": "analyseren",
+     "bereik": "node"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:2",
+     "rol": "analyseren",
+     "bereik": "node"
+    }
+   ],
+   "formuleringen": [
+    {
+     "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:1",
+     "start": 276,
+     "eind": 307,
+     "tekst": "te betalen bedrag aan belasting",
+     "jas_klasse": "Rechtsobject"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:2",
+     "start": 360,
+     "eind": 391,
+     "tekst": "te betalen bedrag aan belasting",
+     "jas_klasse": "Rechtsobject"
+    }
+   ]
+  }
+ }
+}

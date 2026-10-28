@@ -269,6 +269,13 @@ _DATA_PROPS: dict[str, tuple[str, str, tuple[URIRef, ...], URIRef | None]] = {
         (),
         None,
     ),
+    "eerstverantwoordelijkeOrganisatie": (
+        "eerstverantwoordelijke organisatie",
+        "Het eerstverantwoordelijke ministerie als TOOI-URI (identifier.overheid.nl), uit de WTI-naam "
+        "via het TOOI-register (`app/tooi.py`); de naam zelf staat op bwb:eerstverantwoordelijke.",
+        (),
+        None,
+    ),
     "doelLabel": (
         "doel-label",
         "Leesbare naam voor een verwijsdoel dat (nog) niet is geïmporteerd. Bewust GEEN "

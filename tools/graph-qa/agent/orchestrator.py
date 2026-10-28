@@ -48,6 +48,7 @@ from .nodes.context import Bouw
 from .nodes.annotatie_lezen import zoek_annotaties_node
 from .nodes.begrippen_lezen import zoek_begrippen_node
 from .nodes.overzicht import bouw_overzicht_node, route_na_overzicht
+from .nodes.bronselectie import bronselectie_node
 from .nodes.werkgebied import werkgebied_intake_node
 from .nodes.agent_taak import agent_taak_node
 from .nodes.supervisie import (
@@ -255,10 +256,12 @@ def build_graph(
         _annoteer_entry = annotatieketen()
         entrymap = {"agent": "agent", "annoteer": _annoteer_entry, "decompose": "decompose",
                     "annotaties_zoeken": "annotaties_zoeken", "begrippen_zoeken": "begrippen_zoeken",
-                    "overzicht_bouwen": "overzicht_bouwen", "werkgebied_intake": "werkgebied_intake",
+                    "overzicht_bouwen": "overzicht_bouwen", "werkgebied_intake": "werkgebied_intake", "bronselectie": "bronselectie",
                     "agent_taak": "agent_taak", "afwijzen": "afwijzen"}
         add("werkgebied_intake", functools.partial(werkgebied_intake_node, b))
         g.add_edge("werkgebied_intake", END)
+        add("bronselectie", functools.partial(bronselectie_node, b))
+        g.add_edge("bronselectie", END)
         add("agent_taak", functools.partial(agent_taak_node, b))
         g.add_edge("agent_taak", END)
         add("annotaties_zoeken", functools.partial(zoek_annotaties_node, b))
@@ -306,12 +309,14 @@ def build_graph(
                                 {"verify": "verify", "agent": "agent"})
         add("werkgebied_intake", functools.partial(werkgebied_intake_node, b))
         g.add_edge("werkgebied_intake", END)
+        add("bronselectie", functools.partial(bronselectie_node, b))
+        g.add_edge("bronselectie", END)
         add("agent_taak", functools.partial(agent_taak_node, b))
         g.add_edge("agent_taak", END)
         g.add_conditional_edges("supervisor", functools.partial(_entry_node, b),
                                 {"agent": "agent", "annoteer": _annoteer_entry,
                                  "annotaties_zoeken": "annotaties_zoeken", "begrippen_zoeken": "begrippen_zoeken",
-                                 "overzicht_bouwen": "overzicht_bouwen", "werkgebied_intake": "werkgebied_intake",
+                                 "overzicht_bouwen": "overzicht_bouwen", "werkgebied_intake": "werkgebied_intake", "bronselectie": "bronselectie",
                                  "agent_taak": "agent_taak", "afwijzen": "afwijzen"})
         g.add_edge("afwijzen", END)
         g.add_conditional_edges(
@@ -325,7 +330,7 @@ def build_graph(
         g.add_conditional_edges("advance", functools.partial(route_after_advance, b),
                                 {"agent": "agent", "annoteer": _annoteer_entry,
                                  "annotaties_zoeken": "annotaties_zoeken", "begrippen_zoeken": "begrippen_zoeken",
-                                 "overzicht_bouwen": "overzicht_bouwen", "werkgebied_intake": "werkgebied_intake",
+                                 "overzicht_bouwen": "overzicht_bouwen", "werkgebied_intake": "werkgebied_intake", "bronselectie": "bronselectie",
                                  "agent_taak": "agent_taak", "afwijzen": "afwijzen", "einde": END})
         return g
 

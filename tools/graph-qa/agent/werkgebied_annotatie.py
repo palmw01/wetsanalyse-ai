@@ -97,9 +97,9 @@ def voorstel(naam: str, wv: dict[str, Any], alternatief: dict[str, Any] | None =
     waar = plek(naam, wv)
     zinnen = []
     if not n and _deelvragen(wv) and not wv.get("eenheden"):
-        hier = "hierbij" if wv.get("deelvraag_id") else "bij alle deelvragen"
-        zinnen.append(f"{_hoofd(waar)} staan nog geen analysebronnen. Laat Lex eerst bepalingen zoeken "
-                      f"(*Zoek bepalingen {hier}*), of koppel bronnen aan de deelvraag.")
+        hier = "bij deze deelvraag" if wv.get("deelvraag_id") else "per deelvraag"
+        zinnen.append(f"{_hoofd(waar)} staan nog geen analysebronnen. Bepaal eerst met Lex de bronnen "
+                      f"(*Bepaal de bronnen {hier}*), of koppel bronnen aan de deelvraag.")
     elif not n:
         zinnen.append(f"{_hoofd(waar)} is niets nieuws te annoteren: elke bepaling van de "
                       "analysebronnen heeft al een annotatie.")

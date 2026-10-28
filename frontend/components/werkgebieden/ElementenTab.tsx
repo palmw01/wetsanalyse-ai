@@ -383,7 +383,7 @@ function SelectieBalk({ id, selectie, begrippen, onWis, onKlaar, onBuiten }: {
 
   const aantal = selectie.length === 1 ? "1 element" : `${selectie.length} elementen`;
   return (
-    <section aria-label="Gekozen elementen" className="sticky top-0 z-10 space-y-3 rounded-button border border-lint bg-paper p-3 shadow-kaart">
+    <section aria-label="Gekozen elementen" className="sticky top-0 z-10 space-y-3 rounded-kaart border border-lint bg-paper p-3 shadow-kaart">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-medium text-lint">{aantal} gekozen</p>
         <button type="button" onClick={onWis} className="focus-ring rounded text-xs text-muted underline hover:text-ink">

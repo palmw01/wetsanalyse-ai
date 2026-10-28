@@ -558,7 +558,19 @@ manifest → taal.py → definities.py + signalen.py + patronen.py → kandidate
 - **Patronen** staan in `regels/relaties.yaml` met groepen `van`/`naar` en vier verplichte
   testsoorten (`tests/test_begrippen_patronen.py`); elke code heeft een regel in `verklaringen.yaml`.
 - **Geen graafverkeer in de keten.** Definities buiten het werkgebied horen als contextbron in het
-  manifest.
+  manifest, of in de **onderzoeksstand** (spoor M): `Onderzoek`/`Contextbron` in `model.py`, gebouwd
+  door de api (`api/app/begrip_onderzoek.py`), id `O…` uit de inhoud, getoetst met `past_bij(manifest)`.
+  `keten.analyseer(..., onderzoek=)` laat definities in contextbronnen meetellen
+  (`signalen.uit_contextdefinities`); zonder onderzoek is de uitkomst bitgelijk (`begrippen_eval`).
+- **Het betekenisdossier** (`betekenis.py`, spoor M): per groep of begrip bronfeiten en signalen
+  (`VOORKOMENS`, `PARALLELLE_BEPALINGEN` met de variantwoorden, `DEFINITIE_IN_CONTEXT`,
+  `KWALIFICATIE_SAMENGESTELD`, `BEREKENING_OP_TERM`, `ROL_IN_BEPALING`, `AFLEIDINGSREGEL`,
+  `GEEN_DEFINITIE_GEVONDEN`) plus open vragen. Deterministisch; het gaat naar de prompt (`blok`) en de
+  toetsen (`toetsen.met_dossier`), nooit naar `besluit.py`. De berekeningspatronen staan in
+  `betekenisregels/berekening.yaml` (vier testsoorten, `tests/test_betekenis.py`); `BEREKENING_IN_BEPALING`
+  (onbeslist, zwak) maakt van `ZELFDE_BEPALING` een vraag. De fragmentruimte is manifest + onderzoek
+  (`fragmenten.alle`, `onderzoeksfragmenten`: contextdefinities, eigen bronnen, zelfde artikel,
+  verwijzingen, contextselecties). Meten: `uv run python -m eval.betekenisonderzoek_eval` (offline).
 - Meten: `python -m eval.begrippen_eval --variant lemma|keten|keten_zonder_parse` op
   `docs/wetsanalyse/referentieset-begrippen/` (provisional, en een ontwikkelset – zie het meetlogboek).
 
@@ -584,11 +596,17 @@ JAS-classifier, en draait op `LLM_MODEL` (een oordeel, dus geen eigen modelknop)
   geel; een cirkel wordt verworpen). Voorbeelden horen bij fase E.
 - **Fragmenten** (`fragmenten.knip`): zinsdelen met een id uit bron en offsets. Het model typt nooit
   brontekst over.
-- **Toetsen** (`toetsen.py`): garanties (id bestaat, tekst letterlijk op offsets) halen een definitie
-  weg; signalen (circulair, rekenregel, gemengde klassen, geen begrip) maken haar geel. Signalen gaan
+- **Toetsen** (`toetsen.py`): garanties (id bestaat, tekst letterlijk op offsets, over manifest +
+  onderzoek) halen een definitie weg; signalen (circulair, rekenregel, gemengde klassen, geen begrip, en
+  met het dossier: algemene naam met specifieke definitie, rechtsgevolg of afleiding in de definitie,
+  onderbouwing uit één voorkomen, fragment draagt niet, tegenbewijs, context niet onderzocht) maken haar
+  geel. Het model geeft per voorstel een `Duiding` (soort, bereik, voorkeursterm, ontbreekt): een
+  interpretatie bij het voorstel, geen bewijs; afzien met `ontbreekt` wordt "Onvoldoende bewijs: …". Signalen gaan
   over wat Lex voorstelt, niet over de wet. Elke code heeft een tekst in `TEKST`.
-- **Batches** zijn inhoudelijk (`verdieping.batch_id`: soort, id's, promptversie, model): dezelfde batch
-  draait één keer, dus een herstart is hervatbaar én reproduceerbaar.
+- **Batches** zijn inhoudelijk (`verdieping.batch_id`: soort, id's, promptversie, model en – met een
+  onderzoek – het `onderzoek_id`): dezelfde batch draait één keer, dus een herstart is hervatbaar én
+  reproduceerbaar. De bevestiging draagt een `werkvoorraad_id` (`begrippen_verdieping.werkvoorraad_id`:
+  vragen, kaarten, onderzoek, model, promptversies); een gelijk aantal met een andere inhoud start niet.
 - Meten: `python -m eval.begrippen_eval --model --versie <set>` (drie herhalingen, kost geld).
 
 ### De begrippenrun (`agent/begrippen_run.py`, spoor D levering 3a)
@@ -837,9 +855,19 @@ werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en
   **"Weet ik (nog) niet"** (`ONBEKEND`) staat altijd bij regelingen en bepalingen; bij de regelingen
   gaat het dan meteen naar de samenvatting.
 - **Alleen een gekozen bepaling wordt een bronselectie** (rol *analyseren*, bereik *onderliggend*),
-  gekoppeld aan de deelvragen op wier kaartje ze gekozen werd (één bron voor meer deelvragen), plus
-  artikelen uit eigen tekst als er precies één regeling is (`artikelen_in`). Een regeling zonder
-  gekozen bepaling staat alleen in de afbakeningstekst (`afbakening`).
+  gekoppeld aan de deelvragen op wier kaartje ze gekozen werd (één bron voor meer deelvragen). **Een getypte
+  bepaling is ook een keuze** (spoor L): de node ontleedt de tekst vóór `verwerk` (`_eigen_bepalingen` →
+  `bronselectie.bepalingen_uit_tekst`, dezelfde regels als spoor J: geknipt vóór elk "artikel", per stuk de
+  regeling die het noemt, anders de enige van de tekst of van de intake; Awb-nummers als 4:86) en toetst elke
+  bepaling in de graaf (`bronnen_vinden.bepaling_in_graaf`, één lichte query). Gevonden: `eigen` op het antwoord.
+  Niet te bepalen, niet gevonden ("staat niet in AWR; wel in Awb – bedoel je die?") of een haperende graaf: het
+  kaartje blijft staan met de vraag en de getypte tekst (`concept`) – nooit stil weg. `eigen` komt nooit van de
+  client. Lange velden houden hun alinea's (`_met_alineas`), en een getypte regeling naast aangevinkte is een
+  zoekopdracht die het aangevinkte laat staan. Een regeling zonder
+  gekozen bepaling staat alleen in de afbakeningstekst (`afbakening`). Die tekst noemt de regelingen en wat
+  erbuiten valt, niet de bepalingen: die staan één keer, als bronselectie per deelvraag (spoor K). Bij een
+  deelvraag moet een optie een deelvraagterm raken; dossiertermen rangschikken alleen (anders vulde het dossier
+  elk kaartje tot het maximum).
 - **Aanmaken doet de beurt-driver** (`beurt._maak_werkgebied`), na het `werkgebied_aanmaken`-event:
   `POST /v1/werkgebieden` met het dossier, de deelvragen en de `intake_id` (idempotent bij de api),
   per bron `POST …/bronnen`, en daarna per deelvraag `PUT …/koppelingen` met de bronnen die Lex erbij
@@ -855,6 +883,11 @@ werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en
   - **Ingang**: de supervisor kiest `werkgebied` met `TAAK: aanvullen` (getypt), of de actie
     `dossier_aanvullen` (`models.INTAKE_ACTIES`, geen taak van een agent en dus niet in `ACTIE_TAAK`). Beide
     zetten `State.intake_modus` (per beurt gereset). De prompt zegt ook: past geen taak, kies dan geen agent.
+  - **Het thema** (spoor I7): een stap `thema` die alleen bij het aanvullen bestaat (`KAARTSTAPPEN`; het
+    samenstellen houdt `STAPPEN`), na het praktijkvoorbeeld (`VOLGORDE_AANVULLEN`). De node haalt het voorstel
+    zonder model bij de api (`…/thema-voorstel`, uit de WTI-rechtsgebieden van de bronnen) en vinkt het eerste
+    aan als er nog geen thema is; alleen een thema dat op het kaartje stond telt. De samenvatting toont namen,
+    de wijziging stuurt de TOOI-URI. *Kies een thema* (de suggestie) is `dossier_aanvullen` met die tekst.
   - **Welke velden**: `dossiervelden_in(vraag)` (woorden → stap; *afbakening* en *buiten* → `buiten`), en
     zonder genoemd veld de lege velden (`lege_velden`). Is niets leeg, dan noemt Lex wat er staat, zonder
     kaartje. Alleen `DOSSIERSTAPPEN` (naam, aanleiding, context, doel, analysevraag, praktijkvoorbeeld,
@@ -880,6 +913,46 @@ werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en
     nieuwe stand landt; 404: het werkgebied bestaat niet meer; anders `error` met `foutcode:
     werkgebied_niet_gewijzigd`. De revisie in de historie is van de analist (`X-User-Id`).
 - Tests: `tests/test_werkgebied_intake.py` en `tests/test_werkgebied_context.py`.
+
+### De bronselectie per deelvraag (`agent/bronselectie.py`, `nodes/bronselectie.py`, spoor J)
+
+"Help mij de bronnen bij dit werkgebied te bepalen" laat Lex de deelvragen één voor één afwerken met
+vraagkaarten: kiezen (`bs_kies`), de kernbepalingen (`bs_bepalingen`), wat eraan hangt
+(`bs_afhankelijkheden`), afronden (`bs_afronden`) en *Hoe wil je verder?* (`bs_verder`). Een eigen worker
+onder de supervisor, naast de intake; zie `docs/architectuur/bronselectie-per-deelvraag.md`.
+
+- **De stand staat bij de api, niet in de state** (`GET …/bronselectie`, api §*Bronselectie per deelvraag*):
+  elke beurt leest hem vers. Hervatten (herladen, ander gesprek, collega) is dus `start` op de stand van nu;
+  een tussenvraag raakt hem niet. De node schrijft niets in `State`.
+- **Routering zonder model**: een klik met `intake_id` `bs-<werkgebied>` (de intake heeft een uuid-hex), de
+  actie `bronselectie` (`models.BRONSELECTIE_ACTIES`, geen taak van een agent), of de vaste zin
+  (`is_bronselectievraag`, met werkgebied) – die gaat vóór het startzinpatroon van het samenstellen, en dat
+  patroon sluit hem uit ("werkgebied … bepalen" nam hem anders over). Getypt kiest de supervisor `werkgebied`
+  met `TAAK: bronselectie` – ook voor "zoek bepalingen bij deelvraag 2": de losse zoekknop is weg, en de taak
+  `bronnen_zoeken` van de deelvragen-agent staat niet meer in de prompt (wel nog in `ACTIE_TAAK`, en de
+  bronselectie gebruikt zijn zoekfunctie). Een deelvraag aangewezen in de werkplek (`onderwerp`) of genoemd ("deelvraag 4",
+  `deelvraag_nr_in`) gaat voor.
+- **Een klik wordt een besluit of een stap** (`verwerk`): aangevinkt = opnemen bij deze deelvraag (rol
+  *analyseren* bij een kernbepaling op het kernkaartje, anders *context*), een opgenomen bron die niet meer
+  aangevinkt is wordt losgekoppeld, en de fase schuift door. Wat niet aangevinkt is, is niet gekozen (de api
+  leidt het af); er is geen *later*. **Eigen tekst op een bepalingenkaartje is een bepaling die de analist zelf
+  toevoegt** (`bepalingen_uit_tekst`: artikel en lid uit de tekst, de regeling uit de tekst via
+  `overzicht.regelingen_in_vraag` of – als het werkgebied er één heeft – uit het werkgebied; dan
+  `POST …/bronselectie/{d}/bronnen`). Geen artikel, geen eenduidige regeling of een onbekende bepaling: een zin
+  en hetzelfde kaartje. Eigen tekst op het afrondkaartje is een onderzoekspunt. Iets toevoegen kan later altijd
+  door de vragen opnieuw te doorlopen (*Bepaal de bronnen bij deze deelvraag*, *verder onderzoeken*). Alles is
+  idempotent bij de api, dus een oud kaartje of een dubbele klik wordt verwerkt op de stand van nu. Een 412
+  geeft het kaartje van nu met "Iemand anders werkte intussen …".
+- **Zoeken** is `bronnen_run.bronnen_kern` (zonder model) wanneer er nog niet, of op een andere selectie,
+  gezocht is; na het opnemen dus opnieuw, voor de afhankelijkheden. Een lege fase slaat Lex over met een zin.
+- **Uit code, niet van het model**: `waarom` (rol en soort bewijs onder een optie: een tekstuele overeenkomst
+  heet zo), `beperkingen` (afgekapt, mislukt, verouderd), `controle_tekst` (zoek-, juridische en
+  beoordelingsdekking apart, met `SLOT` alleen als alles beoordeeld is – nooit "volledig"). Hoogstens
+  `MAX_OPTIES` open voorstellen per kaartje; de rest noemt het kaartje ("Nog n in het paneel").
+- **Uit gaan** `token`, `vraagkaart` (`modus: "bronselectie"`, `deelvraag_id`) en het artefact
+  `{soort: "bronselectie", ref: {werkgebied_id, deelvraag_id?}}`. `tests/test_contract_drift.py` toetst de stappen
+  tegen api en werkplek.
+- Tests: `tests/test_bronselectie.py` (de cyclus met vier deelvragen, hervatten, de vaste zin, de beurt).
 
 ### Het werkgebied als context in het gesprek (`agent/werkgebied_context.py`)
 
@@ -956,7 +1029,8 @@ reeks) en `doelen`.
   `meedenken` (`begrippen_verdieping.verdieping_kern`; zonder `bevestigd` het voorstel met bevestiging),
   de vijf kaartacties (`kaart_beurt.kaart_kern`, dezelfde kaart-run als de knop), `uitwerken`
   (brondefinitie → zonder definitie een definitievoorstel → op een overgenomen definitie de uitleg in B1, als
-  die er nog niet is, en voorbeelden; daarna zegt Lex wat er nog open is)
+  die er nog niet is, en voorbeelden; daarna zegt Lex wat er nog open is) – en na elke losse kaartactie noemt Lex het volgende logische stuk
+  (`kaart_beurt.VOLGENDE`: definitie → uitleg → voorbeelden → relaties)
   en `relaties` (`GET …/relaties`, zonder model). Het begrip komt van het onderwerp (`als_rij`) of uit de
   term (`los_op`). Skillrol `begrippen`.
 - **De annotatie-agent** heeft twee taken hier: `werkgebied` en `deelvragen` (alleen de bronnen onder de

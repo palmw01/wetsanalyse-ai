@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  dekkingZin, isDeelvragenDekking, overgenomenZin, splits, vervangtZin, voorstellenVoor, wissel, zelfdeSet,
+  overgenomenZin, splits, vervangtZin, voorstellenVoor, wissel, zelfdeSet,
 } from "./deelvragen";
 import type { Deelvraag } from "./types";
 
@@ -16,18 +16,6 @@ describe("deelvragen", () => {
     expect(actief.map((d) => d.id)).toEqual(["a", "b"]);
     expect(voorgesteld.map((d) => d.id)).toEqual(["x"]);
     expect(splits(undefined)).toEqual({ actief: [], voorgesteld: [] });
-  });
-
-  it("telt wat gedekt is", () => {
-    const telling = { gedekt: 2, geen_begrip: 1, geen_bron: 0 };
-    expect(dekkingZin({ deelvragen: [], telling, totaal: 3 })).toBe("2 van 3 deelvragen gedekt");
-    expect(dekkingZin({ deelvragen: [], telling: { ...telling, gedekt: 0 }, totaal: 1 })).toBe("0 van 1 deelvraag gedekt");
-    expect(dekkingZin(null)).toBe("");
-  });
-
-  it("herkent de vorm van de dekking", () => {
-    expect(isDeelvragenDekking({})).toBe(false);
-    expect(isDeelvragenDekking({ deelvragen: [], totaal: 0, telling: {} })).toBe(true);
   });
 
   it("wisselt een id en vergelijkt sets", () => {

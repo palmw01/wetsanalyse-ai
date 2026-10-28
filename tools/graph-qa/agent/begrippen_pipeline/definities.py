@@ -149,6 +149,12 @@ def _definitie(bron: Bron) -> _Definitie | None:
     return None
 
 
+def definitie_van(bron: Bron) -> tuple[tuple[str, ...], str, Bereik] | None:
+    """(termen, soort, bereik) als deze bron een begripsbepaling is; anders None (spoor M, het dossier)."""
+    d = _definitie(bron)
+    return (d.termen, d.soort, d.bereik) if d else None
+
+
 def soort_van(bron: Bron) -> str | None:
     """`definitie`, `mede`, `niet` – wat voor bepaling dit is –, of None als het er geen is."""
     d = _definitie(bron)

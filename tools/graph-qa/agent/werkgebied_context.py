@@ -29,6 +29,9 @@ def context_tekst(werkgebied: dict[str, Any], *, deelvragen: bool = True, bronne
     for veld, kop in VELDEN:
         if (waarde := (werkgebied.get(veld) or "").strip()):
             regels.append(f"{kop}: {waarde}")
+    # Spoor I6: het TOOI-thema (tooitop) met zijn naam, als het gekozen is.
+    if (thema := (werkgebied.get("thema_label") or "").strip()):
+        regels.append(f"Thema (TOOI): {thema} <{werkgebied.get('thema', '')}>")
     if deelvragen:
         actief = [d["vraag"] for d in werkgebied.get("deelvragen") or []
                   if d.get("status", "actief") == "actief" and d.get("vraag")]

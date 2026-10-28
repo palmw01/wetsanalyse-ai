@@ -31,7 +31,9 @@ from .werkgebied_contracts import (
 )
 from .werkgebied_store import _audit, _gewijzigd
 
-STANDEN = ("geen_bron", "geen_begrip", "gedekt")
+# De dekking van een deelvraag is of er een bron bij hoort (methode 1g). Begrippen horen bij het werkgebied,
+# niet bij een deelvraag (spoor K); de stand van het wérk staat in de bronselectie (`bronselectie.py`).
+STANDEN = ("geen_bron", "met_bron")
 
 
 def normaliseer(vraag: str) -> str:
@@ -172,7 +174,9 @@ async def _vervang(conn, werkgebied_id: str, voorstel, actor: str) -> dict:
         geldig = x.doel_id in selecties if x.soort == "bron" else x.doel_id in begrippen
         if geldig and (x.soort, x.doel_id) not in al:
             await conn.execute(insert(k).values(deelvraag_id=voorstel.id, soort=x.soort, doel_id=x.doel_id,
-                                                gekoppeld_door=actor, gekoppeld=db.utcnow()))
+                                                rol=x.rol or "", gekoppeld_door=actor, gekoppeld=db.utcnow()))
+    from . import bronselectie  # leest deze module zelf; dus hier, niet bovenaan
+    await bronselectie.erf_in(conn, werkgebied_id, oud.id, voorstel.id)
     await _op_de_plek_van(conn, werkgebied_id, oud, voorstel.id)
     return {}
 
@@ -244,11 +248,14 @@ async def verwijder(werkgebied_id: str, deelvraag_id: str, verwacht: int, actor:
 
 async def _zet_koppelingen(conn, deelvraag_id: str, soort: str, ids: list[str], actor: str) -> None:
     k = db.werkgebied_deelvraag_koppelingen
+    # De rol bij deze deelvraag (spoor J) blijft staan voor wat gekoppeld blijft.
+    rollen = {r.doel_id: r.rol or "" for r in (await conn.execute(select(k.c.doel_id, k.c.rol).where(
+        k.c.deelvraag_id == deelvraag_id, k.c.soort == soort))).all()}
     await conn.execute(delete(k).where(k.c.deelvraag_id == deelvraag_id, k.c.soort == soort))
     nu = db.utcnow()
     for doel in dict.fromkeys(ids):
         await conn.execute(insert(k).values(deelvraag_id=deelvraag_id, soort=soort, doel_id=doel,
-                                            gekoppeld_door=actor, gekoppeld=nu))
+                                            rol=rollen.get(doel, ""), gekoppeld_door=actor, gekoppeld=nu))
 
 
 async def koppel(werkgebied_id: str, deelvraag_id: str, w: DeelvraagKoppelingen, actor: str) -> dict:
@@ -268,9 +275,11 @@ async def koppel(werkgebied_id: str, deelvraag_id: str, w: DeelvraagKoppelingen,
     return await _werkgebied(werkgebied_id)
 
 
-async def koppel_bron_in(conn, werkgebied_id: str, selectie_id: str, deelvraag_ids: list[str], actor: str) -> None:
+async def koppel_bron_in(conn, werkgebied_id: str, selectie_id: str, deelvraag_ids: list[str], actor: str,
+                         rol: str = "") -> None:
     """Binnen een lopende transactie (opnemen van een kandidaat): de nieuwe selectie hoort bij de
-    deelvragen waarvoor Lex haar vond. Alleen actieve deelvragen van dit werkgebied."""
+    deelvragen waarvoor Lex haar vond. Alleen actieve deelvragen van dit werkgebied. `rol` is de rol bij
+    die deelvragen (leeg = de rol van de selectie)."""
     if not deelvraag_ids:
         return
     d, k = db.werkgebied_deelvragen, db.werkgebied_deelvraag_koppelingen
@@ -284,7 +293,7 @@ async def koppel_bron_in(conn, werkgebied_id: str, selectie_id: str, deelvraag_i
         bestaat = (await conn.execute(select(k.c.doel_id).where(
             k.c.deelvraag_id == did, k.c.soort == "bron", k.c.doel_id == selectie_id))).first()
         if bestaat is None:
-            await conn.execute(insert(k).values(deelvraag_id=did, soort="bron", doel_id=selectie_id,
+            await conn.execute(insert(k).values(deelvraag_id=did, soort="bron", doel_id=selectie_id, rol=rol,
                                                 gekoppeld_door=actor, gekoppeld=db.utcnow()))
 
 
@@ -326,27 +335,19 @@ async def stel_voor(werkgebied_id: str, v: DeelvraagVoorstellen, actor: str) -> 
 
 
 async def dekking(werkgebied_id: str) -> dict:
-    """Per actieve deelvraag: `geen_bron` (niets gekoppeld), `geen_begrip` (bronnen, maar geen
-    geaccordeerd begrip) of `gedekt`. Een vervangen begrip dekt niets meer; zijn opvolger wel, als die
-    gekoppeld is. Uit Postgres, zonder graaf."""
+    """Per actieve deelvraag: `geen_bron` (niets gekoppeld) of `met_bron`, met de gekoppelde bronnen. Uit
+    Postgres, zonder graaf."""
     async with db.get_engine().connect() as conn:
         t = db.werkgebieden
         row = (await conn.execute(select(t.c.id, t.c.gearchiveerd).where(t.c.id == werkgebied_id))).first()
         if row is None or row.gearchiveerd is not None:
             raise HTTPException(404, "Werkgebied bestaat niet.")
         vragen = [d for d in await lijst_in(conn, werkgebied_id) if d["status"] == DeelvraagStatus.actief.value]
-        _, begrippen = await _actieve_doelen(conn, werkgebied_id)
         s = db.werkgebied_bronselecties
         labels = {r.id: r.label for r in (await conn.execute(select(s.c.id, s.c.label).where(
             s.c.werkgebied_id == werkgebied_id, s.c.verwijderd.is_(None)))).all()}
-    uit = []
-    for d in vragen:
-        bs = [begrippen[b] for b in d["begrippen"]]
-        stand = ("gedekt" if any(b["status"] == "geaccordeerd" for b in bs)
-                 else "geen_begrip" if d["bronnen"] or bs else "geen_bron")
-        uit.append({"id": d["id"], "vraag": d["vraag"], "stand": stand,
-                    "bronnen": [{"id": x, "label": labels.get(x, "")} for x in d["bronnen"]],
-                    "begrippen": bs})
+    uit = [{"id": d["id"], "vraag": d["vraag"], "stand": "met_bron" if d["bronnen"] else "geen_bron",
+            "bronnen": [{"id": x, "label": labels.get(x, "")} for x in d["bronnen"]]} for d in vragen]
     telling = {st: sum(1 for x in uit if x["stand"] == st) for st in STANDEN}
     return {"deelvragen": uit, "telling": telling, "totaal": len(uit)}
 

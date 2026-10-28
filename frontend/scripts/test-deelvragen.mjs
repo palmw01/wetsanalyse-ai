@@ -4,14 +4,15 @@
  * en draai `node scripts/test-deelvragen.mjs`.
  *
  * De mock gedraagt zich als api (`api/app/werkgebied_deelvragen.py`): elke wijziging draagt de revisie en
- * geeft het werkgebied terug, en de dekking volgt de koppelingen (gedekt alleen met een geaccordeerd begrip).
+ * geeft het werkgebied terug. De stand per deelvraag is de voortgang van haar bronselectie (spoor K): de mock
+ * zegt *in behandeling* zodra er een bron bij hoort.
  * Lex stelt deelvragen voor in het gesprek (F3e); hier landen ze als voorstel bij de api.
  *
  * Bewaakt:
  *  - zelf een deelvraag toevoegen, met de revisie in beeld;
  *  - geen Lex-knop op de pagina, wel *Vraag Lex* bij elke deelvraag (een link naar het gesprek);
  *  - de voorstellen van Lex geel; overnemen en afwijzen (met reden);
- *  - bronnen en begrippen koppelen, en de stand per deelvraag (geen bron → geen begrip → gedekt);
+ *  - bronnen koppelen (geen begrippen: die horen bij het werkgebied, spoor K), en de stand per deelvraag;
  *  - weghalen met een tweede klik.
  */
 import assert from "node:assert/strict";
@@ -41,16 +42,16 @@ let teller = 0;
 const dv = (vraag, extra = {}) => ({ id: `d${++teller}`, vraag, volgorde: teller, status: "actief", herkomst: "analist", reden: "",
   aangemaakt_door: "browser-test", aangemaakt: nu, bronnen: [], begrippen: [], ...extra });
 const wijzig = (f) => { f(); wg.revisie += 1; return wg; };
-const dekking = () => {
-  const lijst = wg.deelvragen.filter((d) => d.status === "actief").map((d) => {
-    const bs = begrippen.filter((b) => d.begrippen.includes(b.id)).map((b) => ({ id: b.id, naam: b.inhoud.naam, status: b.status }));
-    const stand = bs.some((b) => b.status === "geaccordeerd") ? "gedekt" : d.bronnen.length || bs.length ? "geen_begrip" : "geen_bron";
-    return { id: d.id, vraag: d.vraag, stand, bronnen: d.bronnen.map((id) => ({ id, label: "Artikel 9" })), begrippen: bs };
-  });
-  const telling = { gedekt: 0, geen_begrip: 0, geen_bron: 0 };
-  for (const x of lijst) telling[x.stand] += 1;
-  return { deelvragen: lijst, telling, totaal: lijst.length };
-};
+const bronselectie = () => ({
+  werkgebied_id: "wg1", naam: wg.naam, revisie: wg.revisie, modus: "deelvragen", actief: null, volgende: null,
+  alle_klaar: false, zonder_deelvraag: [], zoekdekking: { gezocht: false, verouderd: false, volledig: true, onvolledig: [], reden: "" },
+  deelvragen: wg.deelvragen.filter((d) => d.status === "actief").map((d, i) => ({
+    id: d.id, nr: i + 1, vraag: d.vraag, status: d.bronnen.length ? "in_behandeling" : "niet_gestart", fase: "kern",
+    open_punten: [], revisie: 0, opnieuw_bekijken: false, klaar: false, kandidaten: [],
+    bronnen: d.bronnen.map((id) => ({ selectie_id: id, bron_iri: A9, label: "Artikel 9", rol: "analyseren" })),
+    telling: { voorgesteld: 0, niet_gekozen: 0, uitgesloten: 0, opgenomen: d.bronnen.length }, beoordelen: { mag: false, redenen: [] },
+  })),
+});
 
 await page.route("**/api/**", async (route) => {
   const req = route.request(), url = new URL(req.url()), p = url.pathname, m = req.method();
@@ -60,7 +61,7 @@ await page.route("**/api/**", async (route) => {
   const revisie = body?.verwachte_revisie ?? Number(url.searchParams.get("verwachte_revisie") || 0);
   const conflict = () => route.fulfill({ status: 412, json: { detail: { fout: "revisie_conflict", melding: "Iemand anders." } } });
   if (p === "/api/werkgebieden/wg1") return route.fulfill({ json: wg });
-  if (p === "/api/werkgebieden/wg1/deelvragen/dekking") return route.fulfill({ json: dekking() });
+  if (p === "/api/werkgebieden/wg1/bronselectie") return route.fulfill({ json: bronselectie() });
   if (p === "/api/werkgebieden/wg1/deelvragen" && m === "POST") {
     if (revisie !== wg.revisie) return conflict();
     return route.fulfill({ status: 201, json: wijzig(() => wg.deelvragen.push(dv(body.vraag))) });
@@ -99,8 +100,9 @@ try {
   await sectie().getByRole("button", { name: "Toevoegen" }).click();
   await rij("Wanneer is een aanslag invorderbaar?").waitFor();
   assert.equal(requests.find((r) => r.m === "POST" && r.p.endsWith("/deelvragen")).body.verwachte_revisie, 1);
-  await page.waitForFunction(() => document.querySelector("[data-stand]")?.textContent === "Nog geen bron");
-  await sectie().getByText("0 van 1 deelvraag gedekt", { exact: false }).waitFor();
+  await page.waitForFunction(() => document.querySelector("[data-stand]")?.textContent === "Nog niet gestart");
+  await sectie().getByText("0 van 1 deelvraag afgerond", { exact: false }).waitFor();
+  assert.equal(await sectie().getByText(/geaccordeerd begrip/).count(), 0, "begrippen horen bij het werkgebied (spoor K)");
 
   // 2. Lex vraag je in het gesprek: geen knop in de rij, wel *Bespreek met Lex* op de pagina van de
   //    deelvraag – die opent het gesprek met de deelvraag als onderwerp.
@@ -131,34 +133,41 @@ try {
   const besluit = requests.filter((r) => r.m === "PATCH").at(-1).body;
   assert.deepEqual([besluit.status, besluit.reden], ["afgewezen", "Hoort bij een ander werkgebied"]);
 
-  // 3. Koppelen: een bron en een concept-begrip → nog geen geaccordeerd begrip; met het geaccordeerde → gedekt.
+  // 3. Koppelen: alleen bronnen (spoor K); daarna staat de bronselectie van de deelvraag in behandeling.
   const vraag = "Wanneer is een aanslag invorderbaar?";
   // Spoor H3: koppelen staat achter ⋯ en gaat in een venster, met de bronnen als boom per regeling.
   const koppel = async () => {
     await sectie().getByRole("button", { name: `Acties: ${vraag}` }).click();
-    await page.getByRole("button", { name: `Bronnen en begrippen bij: ${vraag}` }).click();
-    const venster = page.getByRole("dialog", { name: `Bronnen en begrippen bij: ${vraag}` });
+    await page.getByRole("button", { name: `Bronnen bij: ${vraag}` }).click();
+    const venster = page.getByRole("dialog", { name: `Bronnen bij: ${vraag}` });
     await venster.locator("[data-bronboom]").waitFor();
     return venster;
   };
-  let venster = await koppel();
+  const venster = await koppel();
+  assert.equal(await venster.getByLabel(/termijn/).count(), 0, "geen begrippen in het koppelvenster");
   await venster.getByLabel("Artikel 9 – Invorderingswet 1990").check();
-  await venster.getByLabel(/termijn/).check();
   await venster.getByRole("button", { name: "Opslaan" }).click();
   await venster.waitFor({ state: "detached" });
   await page.waitForFunction((v) => [...document.querySelectorAll("[data-deelvraag]")]
-    .find((li) => li.textContent.includes(v))?.querySelector("[data-stand]")?.textContent === "Nog geen geaccordeerd begrip", vraag);
+    .find((li) => li.textContent.includes(v))?.querySelector("[data-stand]")?.textContent === "In behandeling", vraag);
+  assert.equal(await stand(vraag).textContent(), "In behandeling");
   // De rij noemt de omvang in plaats van een kommareeks.
-  await rij(vraag).getByText("1 bron · 1 begrip", { exact: false }).waitFor();
-  venster = await koppel();
-  await venster.getByLabel(/invorderbaar \(geaccordeerd\)/).check();
-  await venster.getByRole("button", { name: "Opslaan" }).click();
-  await page.waitForFunction((v) => [...document.querySelectorAll("[data-deelvraag]")]
-    .find((li) => li.textContent.includes(v))?.querySelector("[data-stand]")?.textContent === "Gedekt", vraag);
-  assert.equal(await stand(vraag).textContent(), "Gedekt");
-  await sectie().getByText("1 van 2 deelvragen gedekt", { exact: false }).waitFor();
+  await rij(vraag).getByText("1 bron", { exact: false }).waitFor();
   const koppeling = requests.filter((r) => r.m === "PUT").at(-1).body;
-  assert.deepEqual([koppeling.bronnen, [...koppeling.begrippen].sort()], [["s9"], ["b1", "b2"]]);
+  assert.deepEqual([koppeling.bronnen, koppeling.begrippen], [["s9"], []]);
+
+  // Spoor K: de tab Bronnen toont dezelfde ene lijst per deelvraag – de gekoppelde bron onder deelvraag 1, met
+  // haar status; de lege deelvraag zegt dat er nog niets bij hoort. Geen boom.
+  await page.goto(`${base}/werkgebieden/wg1/bronnen`);
+  const groep1 = page.locator(`[data-bronnen-groep="${d1.id}"]`);
+  await groep1.locator('[data-bron="s9"]').getByText("Geselecteerd").waitFor();
+  await groep1.getByText("In behandeling").waitFor();
+  const groep2 = page.locator(`[data-bronnen-groep="${wg.deelvragen.find((x) => x.vraag === "Wie is de belastingschuldige?").id}"]`);
+  await groep2.getByText("Er hoort nog geen bron bij deze deelvraag", { exact: false }).waitFor();
+  assert.equal(await page.locator('[data-bronnen-groep="zonder"]').count(), 0, "s9 hoort bij een deelvraag");
+  assert.equal(await page.locator("[data-bronboom]").count(), 0);
+  await page.goto(`${base}/werkgebieden/wg1/artefacten/dossier`);
+  await rij(vraag).waitFor();
 
   // 4. Verwijderen (niet "weghalen"): achter ⋯, eerst scherp zetten, dan pas weg.
   await sectie().getByRole("button", { name: "Acties: Wie is de belastingschuldige?" }).click();

@@ -73,3 +73,11 @@ def test_zonder_api_geen_werkgebiedblok():
     from agent.agent import _werkgebied_blok
 
     assert asyncio.run(_werkgebied_blok(make_settings(), "u", "wg-1")) == ""
+
+
+def test_het_tooi_thema_staat_in_de_context():
+    """Spoor I6: een gekozen thema gaat met naam en URI mee; zonder thema geen regel."""
+    from agent.werkgebied_context import context_tekst
+    uri = "https://identifier.overheid.nl/tooi/def/thes/top/c_25e30d03"
+    assert f"Thema (TOOI): belasting <{uri}>" in context_tekst({"naam": "W", "thema": uri, "thema_label": "belasting"})
+    assert "Thema" not in context_tekst({"naam": "W", "thema": "", "thema_label": ""})

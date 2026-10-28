@@ -55,7 +55,6 @@ MAX_PER_METHODE = 60
 MAX_OVERZICHT = 40
 MAX_OPBOUW_PER_KERN = 30
 MAX_GELIJKENIS = 10
-MAX_PER_DEELVRAAG = 15
 
 ROL_VOLGORDE = {"kern": 0, "afhankelijkheid": 1, "aanverwant": 2}
 
@@ -328,7 +327,9 @@ def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str |
     lid ervan geraakt is. Definities van een term in die regelingen komen erbij.
 
     Rangschikking, vast: geraakte deelvraagtermen, geraakte dossiertermen (analysevraag,
-    praktijkvoorbeeld, context), een deelvraagterm in de kop van het omvattende deel, documentvolgorde.
+    praktijkvoorbeeld, context), een deelvraagterm in de kop van het omvattende deel, documentvolgorde. Bij een
+    deelvraag moet een bepaling een deelvraagterm raken; alleen dossiertermen is geen optie, dus een kaartje is
+    zo lang als er echt iets bij de deelvraag gevonden is.
 
     Een bepaling die meer raakt aan wat de analist buiten het werkgebied liet (`buiten`, de stammen uit
     `werkgebied_context.uitsluitstammen`, in tekst en kop) dan aan de deelvraag, valt niet stil weg: ze
@@ -405,7 +406,10 @@ def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str |
         waar = f"{k['kop']} {' '.join(k['teksten'])}".casefold()
         weg = len([s for s in buiten if s in waar]) > len(k["dv"])
         (buiten_ if weg else binnen_).append({**k, "buiten": weg})
-    gekozen = [k for k in binnen_ if k["dv"] or k["dos"]][:limit] + buiten_[:MAX_BUITEN]
+    # Bij een deelvraag moet een bepaling de deelvraag zelf raken; dossiertermen rangschikken alleen. Anders
+    # vulde het dossier elk kaartje tot het maximum, en kreeg elke deelvraag dezelfde bepalingen (spoor K).
+    past = (lambda k: k["dv"]) if deelvraag else (lambda k: k["dv"] or k["dos"])
+    gekozen = [k for k in binnen_ if past(k)][:limit] + buiten_[:MAX_BUITEN]
 
     uit = [{"bron_iri": k["iri"], "bwb_id": k["bwb_id"], "label": "",
             "omschrijving": BUITEN_TEKST if k["buiten"] else _omschrijving(k["eigen"] or k["teksten"][0],
@@ -581,6 +585,27 @@ def plek_uit_iri(iri: str) -> str:
         divisie = re.search(r"divisie([\d.]+[a-z]?)$", laatste, re.I)
         return f"divisie {divisie.group(1)}" if divisie else laatste
     return rest or iri
+
+
+def bepaling_in_graaf(graph: GraphPort, bwb_id: str, artikel: str, lid: str = "") -> dict[str, Any] | None:
+    """Eén bepaling die de analist zelf noemde (artikel en eventueel lid in een regeling), getoetst in de graaf:
+    `{bron_iri, bwb_id, label}` als ze bestaat, anders None. Licht: één query op het patroon van de bepaling
+    (`queries.node_patroon`, ook een Awb-nummer als 4:86 en een Leidraad-divisie), geen hele bronboom."""
+    try:
+        patroon = queries.node_patroon(bwb_id, artikel, lid or None)
+    except ValueError:
+        return None
+    soorten = ", ".join(queries.CONCRETE_TYPES)
+    q = queries.PREFIXES + f"""SELECT ?node WHERE {{
+  {patroon}
+  ?node a ?t . FILTER(?t IN ({soorten}))
+}} LIMIT 1"""
+    rijen = _rijen(graph, q)
+    if not rijen or not rijen[0].get("node"):
+        return None
+    uit = [{"bron_iri": rijen[0]["node"], "bwb_id": bwb_id.upper(), "label": ""}]
+    _benoem(graph, uit)
+    return uit[0]
 
 
 def _benoem(graph: GraphPort, kandidaten: list[dict[str, Any]]) -> None:

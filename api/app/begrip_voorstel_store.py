@@ -30,13 +30,13 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 from sqlalchemy import insert, select, update
 
-from . import begrip_manifest, begrip_store, db, verbruik
+from . import begrip_onderzoek, begrip_store, db, verbruik
 from .begrip_contracts import BegripInhoud
 from .begrip_voorstel_contracts import (
     MODEL_ACTIES, VELDEN, KaartRunStart, KaartUitkomst, VoorstelInvoer, VoorstelOvername,
 )
 from .begrippen_run_store import VERLOPEN, _werkgebied
-from .begrippen_verdieping import definitie_fouten, fragment_fouten
+from .begrippen_verdieping import definitie_fouten, fragment_fouten, fragmentruimte
 from .werkgebied_inventaris import nodes_met_titel
 from .werkgebied_store import _audit as werkgebied_audit
 
@@ -97,6 +97,8 @@ def _invoer_id(invoer: dict) -> str:
     sleutel = {"actie": invoer["actie"], "begrip": [invoer["begrip"]["id"], invoer["begrip"]["revisie"]],
                "ander": [invoer["ander"]["id"], invoer["ander"]["revisie"]] if invoer.get("ander") else None,
                "manifest_id": invoer["manifest_id"]}
+    if invoer.get("onderzoek_id"):          # spoor M; een invoer van daarvoor houdt zijn id
+        sleutel["onderzoek_id"] = invoer["onderzoek_id"]
     return _hash(sleutel)[:32]
 
 
@@ -115,7 +117,7 @@ async def start(werkgebied: dict, begrip_id: str, s: KaartRunStart, actor: str, 
         wat = "Voorbeelden toetsen" if s.actie == "voorbeelden" else "Een uitleg legt"
         raise HTTPException(409, {"fout": "geen_definitie",
                                   "melding": f"{wat} een definitie; geef het begrip eerst een definitie."})
-    m = await begrip_manifest.bouw(werkgebied, resolve)
+    m = await begrip_onderzoek.manifest_en_onderzoek(werkgebied, resolve)
     if not m["volledig"]:
         raise HTTPException(409, {"fout": "inventaris_onvolledig",
                                   "melding": "Niet elke bron van het werkgebied kon worden opgehaald; probeer het zo opnieuw."})
@@ -133,6 +135,7 @@ async def start(werkgebied: dict, begrip_id: str, s: KaartRunStart, actor: str, 
         "selecties": [{"bron_iri": x["bron_iri"], "rol": x["rol"], "bwb_id": x.get("bwb_id", ""),
                        "label": x.get("label", "")} for x in werkgebied["bronnen"]],
         "manifest": m["manifest"], "manifest_id": m["manifest_id"],
+        "onderzoek": m["onderzoek"], "onderzoek_id": m["onderzoek_id"],
     }
     invoer["invoer_id"] = iid = _invoer_id(invoer)
     r, v = db.begrip_kaartruns, db.begrip_voorstellen
@@ -201,7 +204,7 @@ async def _toets(invoer: dict, v: VoorstelInvoer, resolve: Resolver) -> list[str
     """De garanties op één voorstel; een lege lijst = in orde."""
     if v.veld not in VELDEN[invoer["actie"]]:
         return ["VELD_HOORT_NIET_BIJ_ACTIE"]
-    manifest = invoer["manifest"]
+    manifest = fragmentruimte(invoer["manifest"], invoer.get("onderzoek"))
     fouten = fragment_fouten(manifest, v.fragmenten)
     d = v.definitie
     if d is None:
@@ -223,10 +226,15 @@ async def _toets(invoer: dict, v: VoorstelInvoer, resolve: Resolver) -> list[str
 
 def _waarde(v: VoorstelInvoer) -> dict:
     if v.definitie is not None:
-        return v.definitie.model_dump(mode="json")
+        uit = v.definitie.model_dump(mode="json")
+        if v.duiding is not None:                     # spoor M: bij het voorstel, niet in het begrip
+            uit["duiding"] = v.duiding.model_dump(mode="json")
+        return uit
     uit = {"tekst": v.tekst.strip(), "fragmenten": [f.model_dump() for f in v.fragmenten]}
     if v.veld == "voorbeelden":
         uit["oordeel"] = v.oordeel.value
+        uit.update({k: x for k, x in (("soort_voorbeeld", v.soort_voorbeeld), ("toetst", v.toetst),
+                                      ("kenmerk", v.kenmerk)) if x})
     if v.vergelijking:
         uit["vergelijking"] = v.vergelijking
     return uit
@@ -250,6 +258,10 @@ async def zet_uitkomst(werkgebied_id: str, begrip_id: str, run_id: str, u: Kaart
                                   "melding": "Een voorstel noemt tekst die niet zo in de bron staat."})
     basis = {"revisie": row.invoer["begrip"]["revisie"], **_definitie_stand(row.invoer["begrip"]["inhoud"])}
     door = {"bron": "model" if row.actie in MODEL_ACTIES else "graaf", "model": u.model, "promptversie": u.promptversie}
+    if isinstance(u.meting.get("onderzoek"), dict):
+        # Spoor M: wat Lex naast de passages onderzocht (aantal, wat ontbrak, open vragen) – bij elk voorstel.
+        door["onderzoek"] = {k: u.meting["onderzoek"][k] for k in ("onderzocht", "ontbrekend", "vragen")
+                             if k in u.meting["onderzoek"]}
     r, t = db.begrip_kaartruns, db.begrip_voorstellen
     async with db.get_engine().begin() as conn:
         await _werkgebied(conn, werkgebied_id, slot=True)

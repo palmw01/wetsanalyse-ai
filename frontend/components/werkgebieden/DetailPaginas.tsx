@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Regel, Regels, StatusLabel } from "@/components/ui/Lijst";
-import { Kaart, PaginaKop, SplitDetail, Stip, TabLinks, type Kruimel } from "@/components/ui/Pagina";
+import { Kaart, ObjectRij, ObjectRijen, PaginaKop, SplitDetail, Stip, TabLinks, type Kruimel } from "@/components/ui/Pagina";
 import { BegrippenTab } from "@/components/werkgebieden/BegrippenTab";
 import { BronKandidaten } from "@/components/werkgebieden/BronKandidaten";
 import { DeelvraagPaneel } from "@/components/werkgebieden/DeelvraagPaneel";
@@ -21,10 +21,10 @@ import { wijzigWerkgebied } from "@/lib/api";
 import type { BegripWeergave } from "@/lib/begrippen";
 import { splits } from "@/lib/deelvragen";
 import type { Werkgebied } from "@/lib/types";
-import { BEREIK_LABEL, DOSSIER_VELDEN, ROL_LABEL, STATUS_LABEL } from "@/lib/werkgebied";
+import { DOSSIER_VELDEN, ROL_LABEL, STATUS_LABEL } from "@/lib/werkgebied";
 import { metLeesbareBronnen } from "@/lib/bronKandidaten";
 import {
-  ARTEFACT_LABEL, artefactKaarten, artefactPad, begripPad, bronPad, projectPad, voorstellenPad, type ArtefactSoort,
+  ARTEFACT_LABEL, artefactKaarten, artefactPad, begripPad, deelvraagPad, projectPad, type ArtefactSoort,
 } from "@/lib/werkgebiedPaden";
 
 function basisKruimels(wg: Werkgebied): Kruimel[] {
@@ -66,7 +66,6 @@ export function ArtefactPagina({ soort, begrip, weergave, deel }: {
         acties={bespreek(wg)}
       />
       {soort === "dossier" && <Dossier />}
-      {soort === "bronselectie" && <Bronselectie />}
       {soort === "annotaties" && <Annotaties />}
       {soort === "begrippen" && <Begrippenkader begrip={begrip} weergave={weergave} deel={deel} />}
     </div>
@@ -131,54 +130,6 @@ function Dossier() {
   );
 }
 
-function Bronselectie() {
-  const { wg, stand } = useWerkgebied();
-  const open = stand.kandidaten?.filter((k) => k.status === "voorgesteld").length ?? 0;
-  return (
-    <SplitDetail
-      hoofd={<>
-        {wg.afbakening.trim() && (
-          <Kaart titel="Afbakening"><p className="whitespace-pre-line text-sm text-ink">{wg.afbakening}</p></Kaart>
-        )}
-        {(["analyseren", "context"] as const).map((rol) => {
-          const lijst = wg.bronnen.filter((b) => b.rol === rol);
-          return (
-            <Kaart key={rol} titel={rol === "analyseren" ? "Om te analyseren" : "Context"} telling={lijst.length}>
-              {lijst.length === 0 ? <p className="text-sm text-muted">Geen.</p> : (
-                <ul className="divide-y divide-line">
-                  {lijst.map((b) => (
-                    <li key={b.id} className="py-2.5 text-sm">
-                      <Link href={bronPad(b.bron_iri, wg.id)} className="focus-ring rounded font-medium text-lint hover:underline">
-                        {b.label || b.bron_iri}
-                      </Link>
-                      <p className="text-xs text-muted">{BEREIK_LABEL[b.bereik]} · opgenomen door {b.toegevoegd_door}</p>
-                      {b.reden && <p className="mt-1 whitespace-pre-line text-ink">{b.reden}</p>}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Kaart>
-          );
-        })}
-      </>}
-      zij={<>
-        <Kaart titel="Beheren">
-          <p className="text-sm text-muted">Opnemen, de rol wijzigen of verwijderen doe je in het register.</p>
-          <Link href={projectPad(wg.id, "bronnen")} className="focus-ring mt-2 inline-block rounded text-sm font-medium text-lint hover:underline">
-            Naar de bronnen
-          </Link>
-          {open > 0 && (
-            <Link href={voorstellenPad(wg.id)} className="focus-ring mt-1 block rounded text-sm font-medium text-aandacht-geel-tekst hover:underline">
-              {open} {open === 1 ? "voorstel" : "voorstellen"} van Lex
-            </Link>
-          )}
-        </Kaart>
-        <Relaties soort="bronselectie" />
-      </>}
-    />
-  );
-}
-
 function Annotaties() {
   const { wg } = useWerkgebied();
   const router = useRouter();
@@ -230,16 +181,36 @@ export function DeelvraagPagina({ deelvraagId }: { deelvraagId: string }) {
       <PaginaKop
         kruimels={[...basisKruimels(wg), { label: nr >= 0 ? `Deelvraag ${nr + 1}` : "Deelvraag" }]}
         titel={d?.vraag ?? "Deelvraag"}
-        sub="De vraag, haar bronnen en begrippen, en wat Lex erbij vond."
+        sub="De deelvraag, haar bronnen en wat Lex erbij voorstelt."
         acties={d && (
           <VraagLexKnop primair onderwerp={{ soort: "deelvraag", werkgebied_id: wg.id, id: d.id, label: d.vraag }}
             naam={`Bespreek deze deelvraag met Lex`} />
         )}
       />
-      <Kaart>
-        <DeelvraagPaneel key={deelvraagId} werkgebiedId={wg.id} deelvraagId={deelvraagId} onGewijzigd={() => void laad()}
-          onKies={(o) => router.push(`${projectPad(wg.id)}/deelvragen/${encodeURIComponent(o.id)}`)} />
-      </Kaart>
+      {/* Het idioom van de mock-up (spoor L): links de deelvraag met haar bronnen en de voorstellen van Lex, rechts
+          waar ze bij hoort – het werkgebied en de andere deelvragen. */}
+      <SplitDetail
+        hoofd={(
+          <DeelvraagPaneel key={deelvraagId} werkgebiedId={wg.id} deelvraagId={deelvraagId} opPagina
+            onGewijzigd={() => void laad()}
+            onKies={(o) => router.push(`${projectPad(wg.id)}/deelvragen/${encodeURIComponent(o.id)}`)} />
+        )}
+        zij={<>
+          <Kaart titel="Analysevraag" meer={{ href: projectPad(wg.id), label: "Werkgebied" }}>
+            <p className="text-sm text-ink">{wg.analysevraag.trim() || <span className="text-muted">Nog geen analysevraag.</span>}</p>
+          </Kaart>
+          {actief.length > 1 && (
+            <Kaart titel="Andere deelvragen" telling={actief.length - 1}>
+              <ObjectRijen label="Andere deelvragen">
+                {actief.map((x, i) => x.id === deelvraagId ? null : (
+                  <ObjectRij key={x.id} href={deelvraagPad(wg.id, x.id)} voor={`${i + 1}.`} titel={x.vraag}
+                    sub={x.bronnen.length === 1 ? "1 bron" : `${x.bronnen.length} bronnen`} />
+                ))}
+              </ObjectRijen>
+            </Kaart>
+          )}
+        </>}
+      />
     </div>
   );
 }

@@ -29,7 +29,7 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 from sqlalchemy import insert, select, update
 
-from . import begrip_manifest, begrip_store, db
+from . import begrip_onderzoek, begrip_store, db
 from .begrip_contracts import BegripInhoud
 from .begrippen_run_contracts import Aanpassing, Akkoord, GroepKoppeling, Overname, UitkomstInvoer
 from .werkgebied_store import _audit as werkgebied_audit
@@ -42,6 +42,7 @@ VERLOPEN = timedelta(minutes=5)
 
 def _run(row, met_manifest: bool = False) -> dict:
     uit = {"id": row.id, "werkgebied_id": row.werkgebied_id, "manifest_id": row.manifest_id,
+           "onderzoek_id": row.onderzoek_id or "", "onderzoek_samenvatting": onderzoek_samenvatting(row.onderzoek),
            "status": _status(row), "reden": row.reden, "overgeslagen": row.overgeslagen,
            "aantal_formuleringen": len(row.manifest.get("formuleringen", [])),
            "uitkomst": row.uitkomst, "vragen_besluiten": row.vragen_besluiten,
@@ -49,7 +50,23 @@ def _run(row, met_manifest: bool = False) -> dict:
            "gewijzigd": db.aware(row.gewijzigd).isoformat()}
     if met_manifest:
         uit["manifest"] = row.manifest
+        uit["onderzoek"] = row.onderzoek
     return uit
+
+
+def onderzoek_samenvatting(onderzoek: dict | None) -> dict | None:
+    """Wat de werkplek en het gesprek over het onderzoek zeggen: hoeveel bronnen, en wat ontbreekt."""
+    if not onderzoek:
+        return None
+    per_reden: dict[str, int] = {}
+    for b in onderzoek.get("bronnen") or []:
+        per_reden[b["reden"]] = per_reden.get(b["reden"], 0) + 1
+    ontbrekend: dict[str, int] = {}
+    for o in onderzoek.get("ontbrekend") or []:
+        ontbrekend[o["reden"]] = ontbrekend.get(o["reden"], 0) + 1
+    return {"bronnen": len(onderzoek.get("bronnen") or []), "per_reden": per_reden,
+            "begrippen": len(onderzoek.get("begrippen") or []), "ontbrekend": ontbrekend}
+
 
 
 def _status(row) -> str:
@@ -69,8 +86,9 @@ async def _werkgebied(conn, werkgebied_id: str, slot: bool = False):
 
 async def start(werkgebied: dict, actor: str, resolve: Resolver) -> tuple[dict, bool]:
     """Bouwt het manifest en geeft de run erop: de bestaande als die er al is, anders een nieuwe.
-    Geeft (run, nieuw)."""
-    m = await begrip_manifest.bouw(werkgebied, resolve)
+    Geeft (run, nieuw). De sleutel is (werkgebied, manifest, onderzoek): een nieuwe contextbron of een
+    gewijzigde bepaling ernaast is een andere invoer."""
+    m = await begrip_onderzoek.manifest_en_onderzoek(werkgebied, resolve)
     if not m["volledig"]:
         raise HTTPException(409, {"fout": "inventaris_onvolledig",
                                   "melding": "Niet elke bron van het werkgebied kon worden opgehaald. Een voorstel op een "
@@ -82,17 +100,19 @@ async def start(werkgebied: dict, actor: str, resolve: Resolver) -> tuple[dict, 
     async with db.get_engine().begin() as conn:
         await _werkgebied(conn, werkgebied["id"], slot=True)
         bestaand = (await conn.execute(select(r).where(
-            r.c.werkgebied_id == werkgebied["id"], r.c.manifest_id == m["manifest_id"])
+            r.c.werkgebied_id == werkgebied["id"], r.c.manifest_id == m["manifest_id"],
+            r.c.onderzoek_id == m["onderzoek_id"])
             .order_by(r.c.gestart.desc()).limit(1))).first()
         if bestaand is not None and _status(bestaand) in ("wacht", "loopt", "klaar"):
             return _run(bestaand), False
         nu, rid = db.utcnow(), str(uuid.uuid4())
         await conn.execute(insert(r).values(
             id=rid, werkgebied_id=werkgebied["id"], manifest_id=m["manifest_id"], manifest=m["manifest"],
+            onderzoek_id=m["onderzoek_id"], onderzoek=m["onderzoek"],
             overgeslagen=m["overgeslagen"], status="wacht", vragen_besluiten={}, reden="", gestart_door=actor,
             gestart=nu, gewijzigd=nu))
         await werkgebied_audit(conn, werkgebied["id"], actor, "begrippen-run-gestart",
-                               {"run": rid, "manifest_id": m["manifest_id"],
+                               {"run": rid, "manifest_id": m["manifest_id"], "onderzoek_id": m["onderzoek_id"],
                                 "formuleringen": len(m["manifest"]["formuleringen"])})
         row = (await conn.execute(select(r).where(r.c.id == rid))).first()
     return _run(row), True
@@ -109,8 +129,9 @@ async def haal(werkgebied_id: str, run_id: str, met_manifest: bool = False) -> d
 
 
 async def laatste(werkgebied: dict, resolve: Resolver) -> dict | None:
-    """De laatste run, met `verouderd` als het werkgebied intussen een ander manifest geeft (een nieuwe
-    annotatie, een bron erbij). Is de graaf weg, dan is dat onbekend (`None`), geen "actueel"."""
+    """De laatste run, met `verouderd` als het werkgebied intussen een ander manifest of een andere
+    onderzoeksstand geeft (een nieuwe annotatie, een bron erbij, een gewijzigd lid ernaast). Is de graaf
+    weg, dan is dat onbekend (`None`), geen "actueel"."""
     r = db.begrippen_runs
     async with db.get_engine().connect() as conn:
         await _werkgebied(conn, werkgebied["id"])
@@ -119,8 +140,9 @@ async def laatste(werkgebied: dict, resolve: Resolver) -> dict | None:
     if row is None:
         return None
     try:
-        huidig = (await begrip_manifest.bouw(werkgebied, resolve))["manifest_id"]
-        verouderd: bool | None = huidig != row.manifest_id
+        huidig = await begrip_onderzoek.manifest_en_onderzoek(werkgebied, resolve)
+        verouderd: bool | None = (huidig["manifest_id"] != row.manifest_id
+                                  or huidig["onderzoek_id"] != (row.onderzoek_id or ""))
     except HTTPException:
         verouderd = None
     return {**_run(row), "verouderd": verouderd}
@@ -489,7 +511,8 @@ async def _neem_over(werkgebied: dict, o: Overname, actor: str, resolve: Resolve
         _niet_al_besloten(rows)
         _kies_leden(rows, leden, run)
         bid = await begrip_store.maak_in(conn, wid, inhoud, bewijs, "duiding", actor,
-                                         "akkoord" if akkoord else "open")
+                                         "akkoord" if akkoord else "open",
+                                         onderbouwing=None if "definitie" in velden else _onderbouwing(rows, o, inhoud, run))
         p = await begrip_store.accordeer_in(conn, wid, bid, 1, actor) if akkoord else None
         detail = {"geaccordeerd": p["mag"], **({"aangepast": velden} if velden else {})} if akkoord else {}
         await _verwerk(conn, wid, rows, leden, actor, bid, "overgenomen",
@@ -499,6 +522,25 @@ async def _neem_over(werkgebied: dict, o: Overname, actor: str, resolve: Resolve
                 await _vraag_in(conn, wid, run.id, kid, "samen", actor)
     begrip = await begrip_store.haal(wid, bid)
     return {"begrip": begrip, "geaccordeerd": begrip["status"] == "geaccordeerd", "poort": begrip["accorderen"]}
+
+
+def _onderbouwing(rows, o: Overname, inhoud: dict, run) -> dict | None:
+    """Waarop de overgenomen definitie rust, bevroren zoals het bewijs van een koppeling (spoor M): de
+    kaart van de groep die haar leverde (fragmenten, bron, vindplaats, duiding), of de letterlijke
+    definitie van de keten. Een latere verdieping kan de kaart van de groep nog veranderen; dit niet."""
+    definitie = inhoud.get("definitie")
+    if not definitie:
+        return None
+    gekozen = getattr(o, "definitie_van", None)
+    x = next((x for x in rows if (x.id == gekozen if gekozen else (_definitie_uit(x) or ("",))[0] == definitie)), None)
+    if x is None:
+        return None
+    k = x.kaart or {}
+    bron = k if k.get("definitie") == definitie else x.voorstel
+    return {"groep_id": x.id, "run_id": run.id if run else "", "herkomst": inhoud.get("definitie_herkomst", ""),
+            "definitie_bron_iri": bron.get("definitie_bron_iri", ""), "definitie_vindplaats": _definitie_vindplaats(x),
+            "fragmenten": [{f: v[f] for f in ("bron_iri", "start", "eind", "tekst")} for v in bron.get("fragmenten") or []],
+            "duiding": bron.get("duiding"), "onderzoek_id": (run.onderzoek_id or "") if run else ""}
 
 
 def _definitie_uit(x) -> tuple[str, str] | None:

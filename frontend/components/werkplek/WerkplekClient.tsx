@@ -14,7 +14,7 @@ import type { GraafOpties } from "@/components/graaf/useGraafStand";
 import { WerkgebiedArtefactPaneel } from "@/components/werkplek/WerkgebiedArtefactPaneel";
 import { ContextPaneel, ContextPaneelContext, contextSleutel, type ContextDoel } from "@/components/werkplek/ContextPaneel";
 import { WerkgebiedUitOverzicht } from "@/components/werkplek/WerkgebiedUitOverzicht";
-import { annotatieDoelVan, artefactSleutel, werkgebiedLabel, artefactVanBericht, werkgebiedArtefactVan, type Artefact, type WerkgebiedArtefact } from "@/lib/artefact";
+import { annotatieDoelVan, artefactSleutel, bronselectieVanKaart, werkgebiedLabel, artefactVanBericht, werkgebiedArtefactVan, type Artefact, type WerkgebiedArtefact } from "@/lib/artefact";
 import { Melding } from "@/components/ui/Melding";
 import {
   foutTekst,
@@ -303,7 +303,9 @@ export function WerkplekClient({
           // Het artefact van de beurt; een ouder bericht met alleen een bronnode wordt er een.
           const art = b.rol === "user" ? undefined : artefactVanBericht(b);
           const annotatieDoel = annotatieDoelVan(art);
-          if (art && !annotatieDoel) {
+          // De bronselectie (spoor J) draagt naast haar artefact een kaartje: dat blijft een antwoord, anders
+          // is de open vraag na herladen weg. Het paneel opent de werkplek zelf (`toonVastgelegdeBeurt`).
+          if (art && !annotatieDoel && art.soort !== "bronselectie") {
             return [{ id: uid(), type: "artefact" as const, artefact: art, tekst: b.tekst?.trim() || undefined, denk: b.denk }];
           }
           return [b.rol === "user"
@@ -542,7 +544,8 @@ export function WerkplekClient({
         ? { modus: annoteren.modus ?? "werkgebied_annoteren", werkgebied_id: annoteren.werkgebiedId,
             ...(annoteren.bevestigd !== undefined ? { bevestigd: annoteren.bevestigd } : {}),
             ...(annoteren.bereik ? { bereik: annoteren.bereik } : {}),
-            ...(annoteren.deelvraagId ? { deelvraag_id: annoteren.deelvraagId } : {}) }
+            ...(annoteren.deelvraagId ? { deelvraag_id: annoteren.deelvraagId } : {}),
+            ...(annoteren.werkvoorraadId ? { werkvoorraad_id: annoteren.werkvoorraadId } : {}) }
         // Een klik op een vraagkaartje: geen context en geen doel; het werkgebied van het gesprek mag mee.
         : intake ? { intake_actie: intake, ...(werkgebiedId ? { werkgebied_id: werkgebiedId } : {}) }
         // Een suggestie met een actie: een vaste route op het werkgebied van het onderwerp, zonder model.
@@ -880,6 +883,12 @@ export function WerkplekClient({
   ) {
     // Een artefact van een werkgebied (begripsvoorstellen, gevonden bepalingen): de chip, en het paneel open.
     const begrippen = werkgebiedArtefactVan(uitkomst.artefact);
+    if (begrippen?.soort === "bronselectie") {
+      // Het antwoord en het kaartje staan al in beeld; het paneel ernaast toont de stand per deelvraag. Op een
+      // smal scherm niet vanzelf: daar ligt het paneel over de vraag die je moet beantwoorden.
+      if (breed) { setNodeDoel(undefined); setWgArtefact(begrippen); setWgLading((n) => n + 1); }
+      return;
+    }
     if (uitkomst.artefact && begrippen) {
       const artefact = uitkomst.artefact;
       setItems((xs) => xs.map((x) => x.id === antId ? { id: antId, type: "artefact", artefact, tekst: tekst?.trim() || undefined, denk } : x));
@@ -1029,9 +1038,16 @@ export function WerkplekClient({
     .reverse()
     .find((x): x is Extract<Item, { type: "annotatie" | "artefact" }> =>
       (x.type === "annotatie" && !verwijderd[x.slug]) || (x.type === "artefact" && !!werkgebiedArtefactVan(x.artefact)));
-  const laatsteAnnotatieItem = laatsteItem?.type === "annotatie" ? laatsteItem : undefined;
+  // De bronselectie (spoor J) is een antwoord met een kaartje, geen artefact-item: komt ze na het laatste
+  // artefact, dan is zij het laatste werk.
+  const bsIndex = items.length - 1 - [...items].reverse().findIndex((x) => x.type === "antwoord" && x.vraagkaart?.modus === "bronselectie");
+  const bsItem = items[bsIndex];
+  const laatsteBronselectie = bsItem?.type === "antwoord" && bsIndex > (laatsteItem ? items.lastIndexOf(laatsteItem) : -1)
+    ? bronselectieVanKaart(bsItem.vraagkaart) : undefined;
+  const laatsteAnnotatieItem = !laatsteBronselectie && laatsteItem?.type === "annotatie" ? laatsteItem : undefined;
   const laatsteNodeAnnotatie = laatsteAnnotatieItem?.annotatie_doel ? laatsteAnnotatieItem : undefined;
-  const laatsteWgArtefact = laatsteItem?.type === "artefact" ? werkgebiedArtefactVan(laatsteItem.artefact) : undefined;
+  const laatsteWgArtefact = laatsteBronselectie
+    ?? (laatsteItem?.type === "artefact" ? werkgebiedArtefactVan(laatsteItem.artefact) : undefined);
   // Het samenstellen van een werkgebied (activiteit 1): de vragen per reeks als één kaart, de open vraag
   // onderaan in plaats van het invoerveld.
   const { groepen: vraagGroepen, verborgen: verborgenItems } = useStabieleGroepen(items, bezig);
@@ -1111,6 +1127,9 @@ export function WerkplekClient({
   function kiesOnderwerp(o: Onderwerp) {
     setOnderwerp(o);
     setInvoer("");
+    // Een open vraagkaart staat op de plek van het invoerveld: klap hem weg (niets beantwoord), anders zie je
+    // de chip en de suggesties niet. *Een vraag stellen ›* haalt hem terug (spoor J: van deelvraag wisselen).
+    if (open?.openId) setWeggeklikt(open.openId);
     if (!breed) {
       setNodeDoel(undefined);
       setWgArtefact(undefined);

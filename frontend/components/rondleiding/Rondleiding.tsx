@@ -11,6 +11,7 @@ import {
   schrijfStand, SMAL, toetsActie, vakVan, zichtbareStappen, type Stap,
 } from "@/lib/rondleiding";
 import { BREED } from "@/lib/useBreedScherm";
+import { knopKlasse } from "@/components/ui/Button";
 
 /** Waar de rondleiding thuishoort. Buiten dit pad wijst hij niets aan, dus dan pauzeert hij. */
 const THUIS = "/workbench";
@@ -330,7 +331,7 @@ export function Rondleiding({
             <button
               type="button"
               onClick={() => begin(hervatIndex(stappen, hervatBij === null ? undefined : stappen[hervatBij].id))}
-              className="focus-ring min-h-[40px] rounded-full bg-accent px-4 text-sm font-medium text-paper transition-opacity hover:opacity-90 coarse:min-h-[48px]"
+              className={knopKlasse("primary", "md")}
             >
               {hervatBij !== null ? `Verder bij stap ${hervatBij + 1}` : "Start de rondleiding"}
             </button>
@@ -363,7 +364,7 @@ export function Rondleiding({
             <button
               type="button"
               onClick={onKlaar}
-              className="focus-ring min-h-[40px] rounded-full bg-accent px-4 text-sm font-medium text-paper transition-opacity hover:opacity-90 coarse:min-h-[48px]"
+              className={knopKlasse("primary", "md")}
             >
               Aan de slag
             </button>

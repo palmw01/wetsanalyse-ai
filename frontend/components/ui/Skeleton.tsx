@@ -9,7 +9,7 @@ export function Skeleton({ className = "" }: { className?: string }) {
 /** Een platte kaart gevuld met enkele skelet-regels – de standaard laad-placeholder voor een blok. */
 export function SkeletonCard({ regels = 3, className = "" }: { regels?: number; className?: string }) {
   return (
-    <div className={`rounded-button border border-line bg-surface p-6 ${className}`}>
+    <div className={`rounded-kaart border border-line bg-surface p-6 ${className}`}>
       <Skeleton className="h-5 w-1/3" />
       <div className="mt-4 space-y-2.5">
         {Array.from({ length: regels }).map((_, i) => (

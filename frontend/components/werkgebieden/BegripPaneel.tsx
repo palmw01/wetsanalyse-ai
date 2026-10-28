@@ -9,9 +9,9 @@ import { Lijst, LijstRij, Regel, Regels, Sectie, StatusLabel } from "@/component
 import { Melding } from "@/components/ui/Melding";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
+import { DefinitieOnderbouwing } from "@/components/werkgebieden/DefinitieOnderbouwing";
 import { KaartVoorstelKaart } from "@/components/werkgebieden/KaartVoorstel";
 import { VoorbeeldRijen } from "@/components/werkgebieden/Voorbeelden";
-import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import {
   foutTekst, haalBegrip, haalKaartVoorstellen, haalRelaties, neemKaartVoorstelOver, verwijderBegrip, wijsKaartVoorstelAf,
   wijzigBegrip,
@@ -248,19 +248,16 @@ export function BegripPaneel({ werkgebiedId, begripId, onOnbewaard, onNaarBegrip
                   {definitieAard(b).titel}
                 </span>
                 {definitieDoor(b) && <span className="mt-0.5 block text-xs text-muted">{definitieDoor(b)}</span>}
+                {begrip.definitie_onderbouwing && (
+                  <DefinitieOnderbouwing onderbouwing={begrip.definitie_onderbouwing} werkgebiedId={werkgebiedId} />
+                )}
               </>
             ) : <span className="text-muted">Nog geen definitie.</span>}
           </Regel>
           <Regel naam="Uitleg">
             {b.uitleg ? <span className="whitespace-pre-line">{b.uitleg}</span> : (
-              <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="text-muted">Nog geen uitleg.</span>
-                {/* Spoor I2: Lex schrijft de uitleg in B1; dat vraag je in het gesprek. */}
-                {b.definitie && !vervangen && (
-                  <VraagLexKnop alleenInGesprek naam="Vraag Lex: uitleg in B1 schrijven"
-                    onderwerp={{ soort: "begrip", werkgebied_id: werkgebiedId, id: begripId, label: b.naam, veld: "uitleg" }} />
-                )}
-              </span>
+              // Spoor I2: Lex schrijft de uitleg in B1; dat vraag je in het gesprek (geen knop in het paneel, spoor K).
+              <span className="text-muted">Nog geen uitleg.</span>
             )}
           </Regel>
           {b.context && (

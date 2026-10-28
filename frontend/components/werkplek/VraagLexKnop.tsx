@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { createContext, useContext } from "react";
 
+import { KNOP_XS, knopKlasse } from "@/components/ui/Button";
 import { SOORT_LABEL, vraagUrl, type ObjectSoort, type Onderwerp } from "@/lib/vraagLex";
 
 type Object_ = Extract<Onderwerp, { soort: ObjectSoort }>;
@@ -11,19 +12,19 @@ type Object_ = Extract<Onderwerp, { soort: ObjectSoort }>;
  *  provider en wordt de knop een link naar een vers gesprek met het onderwerp klaar (`vraagUrl`). */
 export const VraagLexContext = createContext<((o: Onderwerp) => void) | null>(null);
 
-const KLASSE = "focus-ring inline-flex min-h-[24px] shrink-0 items-center rounded-full border border-line px-2.5 py-0.5 "
-  + "text-xs font-medium text-lint transition-colors hover:border-lint hover:bg-lint/5 coarse:min-h-[44px]";
+const KLASSE = `${KNOP_XS} border-line text-lint hover:border-lint hover:bg-lint/5`;
 
 /** *Vraag Lex* over één object (F3b): één knop voor elke soort, met het object als onderwerp. Een link
  *  buiten de werkplek, zodat de bewaker van niet-bewaarde wijzigingen hem ziet (`useOnbewaardBewaker`). */
 /** De ene knop op een detailpagina (spoor G2, de mock-up): primair, met de tekst *Bespreek met Lex*. */
-const PRIMAIR = "focus-ring inline-flex min-h-[32px] shrink-0 items-center justify-center rounded-full bg-accent px-3 py-1.5 "
-  + "text-sm font-medium text-paper transition-colors hover:bg-accent-soft coarse:min-h-[44px]";
+const PRIMAIR = knopKlasse("primary", "sm");
 
-export function VraagLexKnop({ onderwerp, naam: eigenNaam, primair = false, alleenInGesprek = false, className = "" }: {
+export function VraagLexKnop({ onderwerp, naam: eigenNaam, tekst: eigenTekst, primair = false, alleenInGesprek = false, className = "" }: {
   onderwerp: Object_;
   /** De toegankelijke naam, als de standaard ("Vraag Lex over …") niet zegt waar de knop voor is. */
   naam?: string;
+  /** De zichtbare tekst, als de knop een handeling is en geen vraag (*Ga verder met deelvraag 2*, spoor K). */
+  tekst?: string;
   /** *Bespreek met Lex* in de kop van een detailpagina, in plaats van de kleine *Vraag Lex*. */
   primair?: boolean;
   /** Alleen naast het gesprek, waar de knop het object klaarzet in hetzelfde gesprek. Op een pagina staat
@@ -31,7 +32,7 @@ export function VraagLexKnop({ onderwerp, naam: eigenNaam, primair = false, alle
   alleenInGesprek?: boolean;
   className?: string;
 }) {
-  const tekst = primair ? "Bespreek met Lex" : "Vraag Lex";
+  const tekst = eigenTekst ?? (primair ? "Bespreek met Lex" : "Vraag Lex");
   const klasse = `${primair ? PRIMAIR : KLASSE} ${className}`;
   const kies = useContext(VraagLexContext);
   if (alleenInGesprek && !kies) return null;

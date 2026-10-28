@@ -617,6 +617,8 @@ export interface Bevestiging {
    *  Afwezig = het hele werkgebied. De knop start precies dit bereik. */
   bereik?: "deelvragen";
   deelvraag_id?: string;
+  /** Bij `begrippen_verdiepen`: de inhoud van de werkvoorraad; de knop stuurt hem terug (spoor M). */
+  werkvoorraad_id?: string;
 }
 
 /** Stand van één annotatie-eenheid (een lid, of een artikel zonder leden) in een werkgebied. */
@@ -813,6 +815,9 @@ export interface WerkgebiedSamenvatting {
   context?: string;
   doel?: string;
   praktijkvoorbeeld?: string;
+  /** Spoor I6: het thema als TOOI-URI uit tooitop, met zijn naam; leeg = nog niet gekozen. */
+  thema?: string;
+  thema_label?: string;
   peildatum: string | null;
   status: WerkgebiedStatus;
   revisie: number;
@@ -856,21 +861,6 @@ export interface DeelvraagDetail extends Deelvraag {
   voorstellen: Deelvraag[];
 }
 
-export type DeelvraagStand = "gedekt" | "geen_begrip" | "geen_bron";
-
-/** `GET …/deelvragen/dekking`: per actieve deelvraag of er een bron en een geaccordeerd begrip bij hoort. */
-export interface DeelvragenDekking {
-  deelvragen: {
-    id: string;
-    vraag: string;
-    stand: DeelvraagStand;
-    bronnen: { id: string; label: string }[];
-    begrippen: { id: string; naam: string; status: BegripStatus }[];
-  }[];
-  telling: Record<DeelvraagStand, number>;
-  totaal: number;
-}
-
 export interface WerkgebiedInvoer {
   naam: string;
   analysevraag?: string;
@@ -887,8 +877,15 @@ export interface WerkgebiedWijziging {
   context?: string;
   doel?: string;
   praktijkvoorbeeld?: string;
+  thema?: string;
   peildatum?: string | null;
   status?: WerkgebiedStatus;
+}
+
+/** `GET …/thema-voorstel` (spoor I6): de thema's die passen bij de WTI-rechtsgebieden van de bronnen. */
+export interface ThemaVoorstel {
+  rechtsgebieden: string[];
+  voorstel: { thema: string; label: string }[];
 }
 
 /** Een bepaling opnemen: via de bron-IRI, of via regeling + artikel (+ lid). */
@@ -1174,6 +1171,25 @@ export interface BegripVerwijzing {
 
 export interface Begrip extends BegripBasis {
   koppelingen: Koppeling[];
+  /** Waarop de huidige definitie rust (spoor M), afgeleid door de api uit het voorstel of de groep die
+   *  haar leverde; `null` bij een eigen of aangepaste definitie. Een oudere api laat het weg. */
+  definitie_onderbouwing?: DefinitieOnderbouwing | null;
+}
+
+/** Afgeleid van `api/app/begrip_store.py:definitie_onderbouwing`. */
+export interface DefinitieOnderbouwing {
+  herkomst: string;
+  definitie_bron_iri: string;
+  definitie_vindplaats: string;
+  fragmenten: { bron_iri: string; start: number; eind: number; tekst: string; rol: string }[];
+  duiding: Duiding | null;
+  onderzoek_id: string;
+  /** Een kaartvoorstel van Lex… */
+  voorstel_id?: string;
+  actie?: string;
+  /** …of een betekenisgroep van de keten (overnemen of akkoord). */
+  groep_id?: string;
+  run_id?: string;
 }
 
 export interface BegripSamenvatting extends BegripBasis {
@@ -1428,6 +1444,15 @@ export interface DefinitieWaarde {
   definitie_bron_iri: string;
   definitie_vindplaats: string;
   vindplaats_soort: VindplaatsSoort;
+  /** Hoe Lex het begrip duidt (spoor M): een interpretatie bij het voorstel, geen besluit. */
+  duiding?: Duiding;
+}
+
+export interface Duiding {
+  soort: "begrip" | "berekeningsresultaat" | "afleidingsregel" | "toepassingsgeval";
+  bereik: "algemeen" | "specifiek";
+  voorkeursterm: string;
+  ontbreekt: string;
 }
 
 /** De waarde van een voorstel voor uitleg, toelichting of een voorbeeld. */
@@ -1436,6 +1461,10 @@ export interface TekstWaarde {
   fragmenten: KaartFragment[];
   oordeel?: VoorbeeldOordeel;
   vergelijking?: "zelfde_betekenis" | "verwant" | "verschil" | "onbeslist";
+  /** Bij een voorbeeld (spoor M): wat voor voorbeeld, waarop het toetst en welk kenmerk. */
+  soort_voorbeeld?: "positief" | "tegenvoorbeeld" | "grensgeval" | "afwijkend";
+  toetst?: "begrip" | "scenario" | "voorwaarde" | "rechtsgevolg";
+  kenmerk?: string;
 }
 
 export interface KaartVoorstel {
@@ -1450,7 +1479,9 @@ export interface KaartVoorstel {
   motivatie: string;
   aandacht: "groen" | "geel";
   aandachtspunten: string[];
-  door: { bron: "model" | "graaf"; model: string; promptversie: string };
+  door: { bron: "model" | "graaf"; model: string; promptversie: string;
+    /** Spoor M: wat Lex naast de passages onderzocht. */
+    onderzoek?: { onderzocht: number; ontbrekend: string[]; vragen: number } };
   status: "open" | "overgenomen" | "aangepast" | "afgewezen";
   reden: string;
   besloten_door: string | null;

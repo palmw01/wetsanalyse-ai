@@ -1,26 +1,7 @@
-import type { Deelvraag, DeelvraagStand, DeelvragenDekking } from "./types";
+import type { Deelvraag } from "./types";
 
-/** Deelvragen bij een werkgebied (optioneel; open keuze 4). De rekenkern van `Deelvragen.tsx`. */
-
-export const STAND_LABEL: Record<DeelvraagStand, string> = {
-  gedekt: "Gedekt",
-  geen_begrip: "Nog geen geaccordeerd begrip",
-  geen_bron: "Nog geen bron",
-};
-
-export const STAND_UITLEG: Record<DeelvraagStand, string> = {
-  gedekt: "Er hoort minstens één geaccordeerd begrip bij deze deelvraag.",
-  geen_begrip: "Er horen bronnen of begrippen bij, maar nog geen geaccordeerd begrip.",
-  geen_bron: "Er hoort nog geen bron en geen begrip bij deze deelvraag.",
-};
-
-/** Kleur draagt hier een oordeel: gedekt groen, half geel, niets neutraal – met tekst erbij
- *  (`StatusLabel`). */
-export const STAND_TOON: Record<DeelvraagStand, "groen" | "geel" | "neutraal"> = {
-  gedekt: "groen",
-  geen_begrip: "geel",
-  geen_bron: "neutraal",
-};
+/** Deelvragen bij een werkgebied (optioneel; open keuze 4). De rekenkern van `Deelvragen.tsx`. Hun stand is de
+ *  voortgang van de bronselectie (`deelvraagStand` in `lib/bronselectie.ts`, spoor K). */
 
 /** Actieve deelvragen in hun volgorde, de voorstellen van Lex apart. */
 export function splits(deelvragen: Deelvraag[] | undefined): { actief: Deelvraag[]; voorgesteld: Deelvraag[] } {
@@ -43,18 +24,6 @@ export function vervangtZin(voorstel: Deelvraag, deelvragen: readonly Deelvraag[
 export function overgenomenZin(voorstel: Deelvraag, deelvragen: readonly Deelvraag[] | undefined): string {
   return vervangtZin(voorstel, deelvragen)
     ? "Deelvraag vervangen; haar bronnen en begrippen gingen mee." : "Deelvraag overgenomen.";
-}
-
-/** "2 van 3 deelvragen gedekt"; leeg zonder deelvragen. */
-export function dekkingZin(d: DeelvragenDekking | null): string {
-  if (!d || d.totaal === 0) return "";
-  return `${d.telling.gedekt} van ${d.totaal} ${d.totaal === 1 ? "deelvraag" : "deelvragen"} gedekt`;
-}
-
-/** Klopt de vorm? Een api zonder deelvragen (of een mock) antwoordt anders; dan geen dekking tonen. */
-export function isDeelvragenDekking(v: unknown): v is DeelvragenDekking {
-  const d = v as DeelvragenDekking | null;
-  return !!d && Array.isArray(d.deelvragen) && typeof d.totaal === "number" && !!d.telling;
 }
 
 /** Een id aan of uit een set zetten, in de volgorde waarin hij stond. */
