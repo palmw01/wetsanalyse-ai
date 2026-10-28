@@ -66,6 +66,11 @@ param backupRetentionDays int = 7
 @maxValue(3)
 param minReplicasApps int = 0
 
+@description('Ondergrens voor alleen de api; standaard die van minReplicasApps. De api bedient elk scherm van de webapp, dus een koude start voelt de gebruiker overal; graph-qa alleen bij een vraag aan Lex. Acceptatie zet hier 1 (environment-var MIN_REPLICAS_API) en houdt graph-qa op 0.')
+@minValue(0)
+@maxValue(3)
+param minReplicasApi int = minReplicasApps
+
 @description('Api-ingress publiek bereikbaar? Alleen acceptatie, zodat de admin-MCP (tools/wetsanalyse-admin-mcp) erbij kan; de default false houdt productie dicht.')
 param apiExtern bool = false
 
@@ -880,7 +885,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
         }
       ]
       scale: {
-        minReplicas: minReplicasApps
+        minReplicas: minReplicasApi
         maxReplicas: 3
       }
     }

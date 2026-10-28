@@ -36,6 +36,9 @@ interface Props {
   onNieuwInWerkgebied?: (werkgebiedId: string) => void;
   /** Eerste gesprekken-fetch loopt nog: sidebar toont skeleton-rijen. */
   laden?: boolean;
+  /** De lijst kon niet geladen worden (de reden), met een knop om het opnieuw te proberen. */
+  laadFout?: string | null;
+  onOpnieuw?: () => void;
   /** Alleen mobiel: sluitknop voor de drawer. */
   onSluit?: () => void;
   /** Start de rondleiding opnieuw. Weglaten verbergt het menu-item – op schermen zonder werkplek
@@ -59,6 +62,8 @@ export function GesprekSidebar({
   onVerplaats,
   onNieuwInWerkgebied,
   laden,
+  laadFout = null,
+  onOpnieuw,
   onSluit,
   onRondleiding,
   verbruik = null,
@@ -206,6 +211,8 @@ export function GesprekSidebar({
           onVerplaats={onVerplaats}
           onNieuwInWerkgebied={onNieuwInWerkgebied}
           laden={laden}
+          laadFout={laadFout}
+          onOpnieuw={onOpnieuw}
         />
       </div>
 
