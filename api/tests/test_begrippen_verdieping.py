@@ -153,3 +153,9 @@ async def test_overnemen_vult_het_begrip_uit_de_kaart(client):
     assert inhoud["alternatieve_termen"] == ["beta"] and "begripstype" not in inhoud
     assert inhoud["context"] == "Komt voor in Lid 1."
     assert "onderbouwing" not in inhoud
+    # Het bewijs blijft na overnemen (spoor M), bevroren in de revisie: de fragmenten van de kaart.
+    o = r.json()["definitie_onderbouwing"]
+    assert (o["groep_id"], o["run_id"], o["herkomst"]) == (GM, run["id"], "samengesteld")
+    assert o["onderzoek_id"] == run["onderzoek_id"]
+    assert [(f["bron_iri"], f["start"], f["eind"], f["rol"]) for f in o["fragmenten"]] == \
+        [(ONE, 2, 11, "ondersteunend"), (TWO, 0, 4, "ondersteunend")]

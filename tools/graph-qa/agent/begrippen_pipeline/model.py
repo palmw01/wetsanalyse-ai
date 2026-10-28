@@ -141,7 +141,7 @@ class Manifest(_Vast):
 # De onderzoeksstand (spoor M): de context naast het manifest
 # ---------------------------------------------------------------------------------------------
 
-ONDERZOEK_VERSIE = "1"
+ONDERZOEK_VERSIE = "2"
 
 
 class Rol(str, Enum):
@@ -196,13 +196,16 @@ class Ontbrekend(_Vast):
 
 
 def onderzoek_id(manifest_id: str, bronnen: tuple[Contextbron, ...] | list,
-                 begrippen: tuple[Vergelijkingsbegrip, ...] | list, versie: str) -> str:
-    """Inhoud, geen moment: zelfde manifest, dezelfde contextbronnen op dezelfde stand en dezelfde
-    vergelijkingsbegrippen geven hetzelfde id. Het vergelijkingsmateriaal telt mee omdat het in de
-    prompt komt; een gewijzigde definitie elders maakt een eerder dossier dus verouderd."""
+                 begrippen: tuple[Vergelijkingsbegrip, ...] | list, versie: str,
+                 ontbrekend: tuple[Ontbrekend, ...] | list = ()) -> str:
+    """Inhoud, geen moment: zelfde manifest, dezelfde contextbronnen op dezelfde stand, dezelfde
+    vergelijkingsbegrippen en hetzelfde niet-onderzochte geven hetzelfde id. Alles telt mee wat in de
+    prompt of de toetsen komt: een gewijzigde definitie elders maakt een eerder dossier verouderd, en
+    zo ook een verwijzing die eerst onbereikbaar was (`CONTEXT_NIET_ONDERZOCHT`) en nu niet meer."""
     delen = [manifest_id, versie]
     delen += sorted(f"{b.bron_iri}@{b.bron_hash}" for b in bronnen)
     delen += sorted(f"{x.id}|{x.status}|{_hash(x.naam, x.definitie)[:12]}" for x in begrippen)
+    delen += sorted({f"{o.wat}|{o.reden}" for o in ontbrekend})
     return "O" + _hash(*delen)[:16]
 
 
@@ -228,7 +231,7 @@ class Onderzoek(_Vast):
 
     @property
     def id(self) -> str:
-        return onderzoek_id(self.manifest_id, self.bronnen, self.begrippen, self.versie)
+        return onderzoek_id(self.manifest_id, self.bronnen, self.begrippen, self.versie, self.ontbrekend)
 
     def past_bij(self, manifest: Manifest) -> Onderzoek:
         """Toets het onderzoek tegen zijn manifest; geeft zichzelf terug of faalt."""

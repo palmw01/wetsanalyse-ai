@@ -92,6 +92,9 @@
 - **M4, onderbouwing**: alleen een definitie uit een kaartvoorstel krijgt `definitie_onderbouwing`. Een
   definitie die via het akkoord op een groep (fase D) binnenkwam, heeft er nog geen: de revisie noemt
   dan geen voorstel. De kaart van de verdieping draagt haar fragmenten wel, dus dat is een vervolgstap.
+  *Nazorg (28 okt 2026)*: gedaan; `_neem_over` bevriest de onderbouwing in het revisiedetail. Daarbij
+  ook: `ontbrekend` telt nu mee in `onderzoek_id` (versie 2), want het stuurt `CONTEXT_NIET_ONDERZOCHT`
+  en de prompt; een run van tijdens een storing bleef anders na het herstel staan.
 - **M4, `door.onderzoek`**: de samenvatting van het dossier staat bij elk voorstel (in `door`), niet
   alleen bij de run, zodat de werkplek haar zonder extra verzoek kan tonen.
 - **M4, meedenkaanbod**: `begrippen_beurt.meedenk_aanbod` maakte zijn bevestiging zonder
@@ -425,7 +428,7 @@ Er komt geen nieuwe werkplek. De drift-test op de codes wordt bijgewerkt.
 | 8. Fragmenttoetsen controleren alleen tekst | **Aangevuld**: acht inhoudelijke toetsen op definities, met het dossier. |
 | 9. Voorbeelden worden alleen op tekst ontdubbeld | **Opgelost**: per voorbeeld kenmerk, soort en toets; ontdubbeld op (oordeel, kenmerk, genormaliseerde tekst). |
 | 10–11. Voorstellen zonder model; agenttaken zonder verify | Zo gelaten. De borging zit in de keten: dossier, toetsen en garanties. |
-| 12. Het bewijs gaat verloren na overnemen | **Opgelost** voor kaartvoorstellen: `definitie_onderbouwing` en `dct:source` met de rol `definitieonderbouwing`. Voor het groepsakkoord nog open, zie de afwijkingen. |
+| 12. Het bewijs gaat verloren na overnemen | **Opgelost**: `definitie_onderbouwing` en `dct:source` met de rol `definitieonderbouwing`, voor kaartvoorstellen en (nazorg 28 okt 2026) ook voor overnemen en akkoord op een groep, bevroren in het revisiedetail. De begripskaart in de werkplek toont haar nog niet. |
 | Bevestiging alleen op aantal | **Opgelost**: `werkvoorraad_id`. |
 | `promptversie("uitleg")` | **Opgelost**. |
 | *uitwerken* start scherper naast open brondefinities | **Opgelost**. |

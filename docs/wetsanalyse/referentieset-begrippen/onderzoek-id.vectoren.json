@@ -9,7 +9,7 @@
     "begrippen": [],
     "ontbrekend": []
    },
-   "onderzoek_id": "Ofedce8a18525604f"
+   "onderzoek_id": "O2f93eb25a091ef05"
   },
   {
    "naam": "bronnen",
@@ -51,7 +51,7 @@
      }
     ]
    },
-   "onderzoek_id": "Ob24ee71675ed558b"
+   "onderzoek_id": "O8a95fc414c424b75"
   },
   {
    "naam": "begrippen",
@@ -84,7 +84,53 @@
     ],
     "ontbrekend": []
    },
-   "onderzoek_id": "O8c9b69daa379f769"
+   "onderzoek_id": "O55859d703f99728b"
+  },
+  {
+   "naam": "onbereikbaar",
+   "onderzoek": {
+    "manifest_id": "Mdbc3d345df135d71",
+    "bronnen": [
+     {
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:30fb:lid:5",
+      "tekst": "tekst van urn:bwb:BWBR0002320:artikel:30fb:lid:5",
+      "bron_hash": "h5",
+      "label": "",
+      "aanhef": "",
+      "regeling": "BWBR0002320",
+      "rol": "onderzoek",
+      "reden": "zelfde_artikel",
+      "voor": [
+       "e0"
+      ]
+     },
+     {
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:30fb:lid:1",
+      "tekst": "tekst van urn:bwb:BWBR0002320:artikel:30fb:lid:1",
+      "bron_hash": "h1",
+      "label": "",
+      "aanhef": "",
+      "regeling": "BWBR0002320",
+      "rol": "onderzoek",
+      "reden": "zelfde_artikel",
+      "voor": [
+       "e0"
+      ]
+     }
+    ],
+    "begrippen": [],
+    "ontbrekend": [
+     {
+      "wat": "verwijzingen vanaf de passages",
+      "reden": "onbereikbaar"
+     },
+     {
+      "wat": "x",
+      "reden": "budget"
+     }
+    ]
+   },
+   "onderzoek_id": "O776633039dcdd03f"
   }
  ],
  "velden": {
