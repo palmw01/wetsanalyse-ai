@@ -83,7 +83,8 @@ const run = { id: "r1", werkgebied_id: "wg1", manifest_id: "M1", status: "klaar"
 // Eén open voorstel van Lex op de definitie van termijn; overnemen zet het in het begrip.
 const kaartVoorstellen = [{ id: "v1", begrip_id: "b9", run_id: "kr1", actie: "scherper", veld: "definitie", volgorde: 0,
   basis: { definitie: "Een tijdvak." }, waarde: { definitie: "Het tijdvak waarbinnen betaald moet zijn.", herkomst: "geformuleerd",
-    fragmenten: [] }, aandacht: "geel", aandachtspunten: [], status: "open", reden: "", besloten_door: null,
+    fragmenten: [{ id: "F1", bron_iri: "urn:bwb:BWBR0004770:artikel:9:lid:1", start: 0, eind: 13, tekst: "binnen de termijn" },
+      { id: "F2", bron_iri: "urn:bwb:BWBR0004770:artikel:9:lid:2", start: 4, eind: 20, tekst: "moet worden betaald" }] }, aandacht: "geel", aandachtspunten: [], status: "open", reden: "", besloten_door: null,
   besloten_op: null, verouderd: false }];
 // Het werkgebied met een deelvraag; *Formuleer scherper* laat Lex een verbetering voorstellen (d2 vervangt d1).
 const dv = (id, vraag, status, extra = {}) => ({ id, vraag, volgorde: id === "d1" ? 0 : 1, status, herkomst: status === "voorgesteld" ? "lex" : "analist",
@@ -184,8 +185,13 @@ await page.route("**/api/**", async (route) => {
   if (p === "/api/werkgebieden/wg1/begrippen/b9/voorstellen/v1/overnemen" && m === "POST") {
     assert.equal(req.postDataJSON().verwachte_revisie, termijn.revisie);
     kaartVoorstellen[0].status = "overgenomen";
+    // De api leidt de onderbouwing af uit het overgenomen voorstel (spoor M, `definitie_onderbouwing`).
+    const w = kaartVoorstellen[0].waarde;
     Object.assign(termijn, { revisie: termijn.revisie + 1,
-      inhoud: { ...termijn.inhoud, definitie: kaartVoorstellen[0].waarde.definitie, definitie_herkomst: "geformuleerd", definitie_door: "lex" } });
+      inhoud: { ...termijn.inhoud, definitie: w.definitie, definitie_herkomst: "geformuleerd", definitie_door: "lex" },
+      definitie_onderbouwing: { voorstel_id: "v1", actie: "scherper", herkomst: "geformuleerd", definitie_bron_iri: "",
+        definitie_vindplaats: "", fragmenten: w.fragmenten.map(({ id, ...f }) => ({ ...f, rol: "ondersteunend" })),
+        duiding: { soort: "begrip", bereik: "algemeen", voorkeursterm: "", ontbreekt: "" }, onderzoek_id: "O1" } });
     return route.fulfill({ json: termijn });
   }
   if (p === "/api/werkgebieden/wg1/relaties") return route.fulfill({ json: { relaties: [], voorstellen: [] } });
@@ -285,6 +291,14 @@ try {
   await begripPaneel.getByText("Overgenomen van Lex", { exact: false }).waitFor();
   await begripPaneel.locator("[data-begrip-lees]").getByText("Het tijdvak waarbinnen betaald moet zijn.").waitFor();
   assert.equal(await begripPaneel.locator('[data-voorstel="v1"]').count(), 0, "een overgenomen voorstel is niet meer open");
+  // Spoor M: na het overnemen blijft zichtbaar waarop de definitie rust – de fragmenten, met een link naar de bepaling.
+  const onderbouwing = begripPaneel.locator("[data-begrip-lees] [data-definitie-onderbouwing]");
+  assert.match(await onderbouwing.locator("summary").innerText(), /Rust op 2 fragmenten uit de bron – via een voorstel van Lex/);
+  await onderbouwing.locator("summary").click();
+  await onderbouwing.getByText("“binnen de termijn”", { exact: false }).waitFor();
+  assert.equal(await onderbouwing.getByRole("link").first().getAttribute("href"),
+    "/bronnen?bron_iri=urn%3Abwb%3ABWBR0004770%3Aartikel%3A9%3Alid%3A1&werkgebied=wg1");
+  await onderbouwing.getByText("Lex duidt dit als een begrip (algemeen)").waitFor();
   // Spoor I2: er is nu een definitie maar nog geen uitleg; in het paneel staat daar geen Vraag Lex (spoor K).
   await begripPaneel.getByText("Nog geen uitleg.").waitFor();
   assert.equal(await begripPaneel.locator("[data-vraag-lex]").count(), 0, "geen Vraag Lex naast het gesprek");

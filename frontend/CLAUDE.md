@@ -862,6 +862,9 @@ bestaat los van de gesprekken.
     analyse-uitkomst, geen wettelijke definitie". Het label volgt de tekst meteen, ook vóór het opslaan
     (`herkomstNaAanpassing`: een andere tekst is geformuleerd); de kop van de begripspagina en
     `BegripPaneel` tonen hetzelfde, het paneel met *Van Lex overgenomen* of *Door de analist* eronder.
+    Rust de definitie op een voorstel of groep van Lex, dan staat eronder ingeklapt waarop
+    (`DefinitieOnderbouwing`, uit `definitie_onderbouwing` van de api, spoor M): de fragmenten met hun
+    vindplaats als link naar de bepaling, en de duiding. Op de kaart alleen zolang de tekst de bewaarde is.
   - **Voorbeelden in kleur, en alles zichtbaar** (spoor I3, `components/werkgebieden/Voorbeelden.tsx`): lezen
     gaat als rijen met een `OordeelLabel` (groen *valt eronder*, rood *valt er niet onder*, oker *twijfel*;
     `OORDEEL_TOON` in `lib/begrippen.ts` – kleur draagt het oordeel nooit alleen), in `BegripPaneel` en bij een

@@ -238,6 +238,23 @@ try {
   assert.equal(patch.inhoud.jas_klasse, undefined);
   assert.deepEqual(patch.inhoud.voorbeelden.map((v) => v.oordeel), ["niet"]);
 
+  // Spoor M: rust de bewaarde definitie op fragmenten (een overgenomen voorstel van Lex), dan staan die onder
+  // het veld – maar alleen zolang de tekst in het formulier de bewaarde is.
+  const bid = requests.filter((r) => r.m === "PATCH" && /begrippen\/b\d+$/.test(r.p)).at(-1).p.split("/").at(-1);
+  begrippen.get(bid).definitie_onderbouwing = { voorstel_id: "v1", actie: "scherper", herkomst: "geformuleerd",
+    definitie_bron_iri: "", definitie_vindplaats: "", duiding: null, onderzoek_id: "O1",
+    fragmenten: [{ bron_iri: "urn:bwb:BWBR0004770:artikel:9:lid:1", start: 0, eind: 18, tekst: "de belastingschuldige", rol: "ondersteunend" }] };
+  await page.reload();
+  const blok = kaart().locator("[data-definitie-onderbouwing]");
+  await blok.waitFor();
+  assert.match(await blok.locator("summary").innerText(), /Rust op 1 fragment uit de bron – via een voorstel van Lex/);
+  const definitie = kaart().getByLabel(/^Definitie/);
+  await definitie.fill("Een andere tekst.");
+  assert.equal(await blok.count(), 0, "een andere definitie rust niet op deze fragmenten");
+  await definitie.fill("Degene die de belasting verschuldigd is.");
+  await blok.waitFor();
+  delete begrippen.get(bid).definitie_onderbouwing;
+
   // Een tweede wijziging terwijl iemand anders net opsloeg: 412, de nieuwe stand in beeld, jouw tekst blijft.
   await kaart().getByLabel(/^Uitleg/).fill("Mijn uitleg");
   conflictBijOpslaan = true;

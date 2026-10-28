@@ -11,6 +11,7 @@ import { ChevronOmlaag } from "@/components/ui/Icoon";
 import { IcoonBevestig } from "@/components/ui/IcoonBevestig";
 import { Melding } from "@/components/ui/Melding";
 import type { BegripMutatie } from "@/components/werkgebieden/BegripWerk";
+import { DefinitieOnderbouwing } from "@/components/werkgebieden/DefinitieOnderbouwing";
 import { KaartVoorstelKaart } from "@/components/werkgebieden/KaartVoorstel";
 import { OordeelKeuze } from "@/components/werkgebieden/Voorbeelden";
 import {
@@ -170,6 +171,10 @@ export function BegripKaart({ id, begrip, muteer, onOnbewaard, onVerwijder, lex 
           <Field label="Definitie" hint={door || undefined}>
             <AutoTextarea value={concept.inhoud.definitie} onChange={(e) => zet("definitie", e.target.value)} rows={3} maxLength={8000} />
           </Field>
+          {/* Alleen bij de bewaarde tekst: een andere definitie rust niet meer op deze fragmenten (spoor M). */}
+          {begrip.definitie_onderbouwing && concept.inhoud.definitie === (begrip.inhoud.definitie ?? "") && (
+            <DefinitieOnderbouwing onderbouwing={begrip.definitie_onderbouwing} werkgebiedId={id} />
+          )}
           {vanLex("definitie")}
           <Field label="Uitleg" hint="in eenvoudige taal: wat betekent het begrip">
             <AutoTextarea value={concept.inhoud.uitleg} onChange={(e) => zet("uitleg", e.target.value)} rows={2} maxLength={8000} />

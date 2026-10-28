@@ -9,6 +9,7 @@ import { Lijst, LijstRij, Regel, Regels, Sectie, StatusLabel } from "@/component
 import { Melding } from "@/components/ui/Melding";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
+import { DefinitieOnderbouwing } from "@/components/werkgebieden/DefinitieOnderbouwing";
 import { KaartVoorstelKaart } from "@/components/werkgebieden/KaartVoorstel";
 import { VoorbeeldRijen } from "@/components/werkgebieden/Voorbeelden";
 import {
@@ -247,6 +248,9 @@ export function BegripPaneel({ werkgebiedId, begripId, onOnbewaard, onNaarBegrip
                   {definitieAard(b).titel}
                 </span>
                 {definitieDoor(b) && <span className="mt-0.5 block text-xs text-muted">{definitieDoor(b)}</span>}
+                {begrip.definitie_onderbouwing && (
+                  <DefinitieOnderbouwing onderbouwing={begrip.definitie_onderbouwing} werkgebiedId={werkgebiedId} />
+                )}
               </>
             ) : <span className="text-muted">Nog geen definitie.</span>}
           </Regel>
