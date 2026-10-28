@@ -30,7 +30,7 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 from sqlalchemy import insert, select, update
 
-from . import begrip_manifest, begrip_store, db, verbruik
+from . import begrip_onderzoek, begrip_store, db, verbruik
 from .begrip_contracts import BegripInhoud
 from .begrip_voorstel_contracts import (
     MODEL_ACTIES, VELDEN, KaartRunStart, KaartUitkomst, VoorstelInvoer, VoorstelOvername,
@@ -97,6 +97,8 @@ def _invoer_id(invoer: dict) -> str:
     sleutel = {"actie": invoer["actie"], "begrip": [invoer["begrip"]["id"], invoer["begrip"]["revisie"]],
                "ander": [invoer["ander"]["id"], invoer["ander"]["revisie"]] if invoer.get("ander") else None,
                "manifest_id": invoer["manifest_id"]}
+    if invoer.get("onderzoek_id"):          # spoor M; een invoer van daarvoor houdt zijn id
+        sleutel["onderzoek_id"] = invoer["onderzoek_id"]
     return _hash(sleutel)[:32]
 
 
@@ -115,7 +117,7 @@ async def start(werkgebied: dict, begrip_id: str, s: KaartRunStart, actor: str, 
         wat = "Voorbeelden toetsen" if s.actie == "voorbeelden" else "Een uitleg legt"
         raise HTTPException(409, {"fout": "geen_definitie",
                                   "melding": f"{wat} een definitie; geef het begrip eerst een definitie."})
-    m = await begrip_manifest.bouw(werkgebied, resolve)
+    m = await begrip_onderzoek.manifest_en_onderzoek(werkgebied, resolve)
     if not m["volledig"]:
         raise HTTPException(409, {"fout": "inventaris_onvolledig",
                                   "melding": "Niet elke bron van het werkgebied kon worden opgehaald; probeer het zo opnieuw."})
@@ -133,6 +135,7 @@ async def start(werkgebied: dict, begrip_id: str, s: KaartRunStart, actor: str, 
         "selecties": [{"bron_iri": x["bron_iri"], "rol": x["rol"], "bwb_id": x.get("bwb_id", ""),
                        "label": x.get("label", "")} for x in werkgebied["bronnen"]],
         "manifest": m["manifest"], "manifest_id": m["manifest_id"],
+        "onderzoek": m["onderzoek"], "onderzoek_id": m["onderzoek_id"],
     }
     invoer["invoer_id"] = iid = _invoer_id(invoer)
     r, v = db.begrip_kaartruns, db.begrip_voorstellen

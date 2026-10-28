@@ -1205,6 +1205,21 @@ Bronnen, de pagina Bronselectie en de deelvraagpagina bijna hetzelfde, elk met e
 
 **Fasen**: L1 (#772) graph-qa; L2 het gedeelde component; L3 de deelvraagpagina als `SplitDetail`.
 
+### M. Betekenisonderzoek: begrippen vanuit hun juridische context
+
+**Aanleiding** (27 okt 2026). Lex stelde definities voor op alleen de geannoteerde bronnode: "herziening" werd
+het toepassingsgeval van art. 30fb lid 4 AWR, en bij "belasting" belandde het rechtsgevolg (grondslag voor
+belastingrente) in de definitie. Het manifest bevat geen andere leden, geen contextdefinities en geen
+verwijzingsdoelen.
+
+**Besluit**: een deterministische *onderzoeksstand* naast het manifest (eigen id), gebouwd door de api en
+gebruikt door voorstellen, meedenken en alle kaartacties; betekenissignalen vóór de definitie; strengere toetsen
+op definities en voorbeelden; bronbewijs dat het overnemen overleeft. Geen nieuwe agent, geen vrije zoeklus.
+Plan, opdrachttoets en voortgang: [`architectuur/plan-betekenisonderzoek.md`](architectuur/plan-betekenisonderzoek.md).
+
+**Fasen**: M1 onderzoeksstand; M2 betekenisanalyse en definities; M3 voorbeelden en runs; M4 bewijs, export,
+werkplek en meting.
+
 ---
 
 ## Volgorde en samenhang

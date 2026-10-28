@@ -28,7 +28,7 @@ from typing import Any
 
 from . import definities, fragmenten as fragmenten_mod, toetsen
 from .classificatie import _in_bron
-from .model import Bron, Fragment, Herkomst, Kaart, Manifest
+from .model import Bron, Fragment, Herkomst, Kaart, Manifest, Onderzoek
 
 logger = logging.getLogger("graph_qa.begrippen_pipeline")
 
@@ -149,19 +149,22 @@ def kant_uit(data: dict[str, Any] | None, manifest: Manifest) -> Kant | None:
                 leden=tuple(e for e in data.get("leden") or [] if e in bekend))
 
 
-def fragmenten_voor(manifest: Manifest, kanten: list[Kant], maximum: int = MAX_FRAGMENTEN) -> list[Fragment]:
-    """Waar een voorstel op mag rusten: de bronnen van de passages, en de begripsbepalingen in het
-    manifest van een term van het begrip. Een fragment dat alleen de term zelf is, definieert niets."""
+def fragmenten_voor(manifest: Manifest, kanten: list[Kant], maximum: int = MAX_FRAGMENTEN,
+                    onderzoek: Onderzoek | None = None) -> list[Fragment]:
+    """Waar een voorstel op mag rusten: de bronnen van de passages, de begripsbepalingen in het
+    manifest van een term van het begrip, en – met een onderzoek – de context. Een fragment dat alleen
+    de term zelf is, definieert niets. Zie `fragmenten.onderzoeksfragmenten`."""
     iris: list[str] = []
     kaal: set[str] = set()
+    alle_termen: set[str] = set()
     for k in kanten:
         ts = set(termen(k.inhoud))
+        alle_termen |= ts
         kaal |= ts | {_norm(manifest.formulering(e).tekst) for e in k.leden}
         iris += [manifest.formulering(e).bron_iri for e in k.leden]
         iris += [b.bron_iri for b in manifest.bronnen if ts & set(definities.gedefinieerde_termen(b))]
-    uit = [f for iri in dict.fromkeys(iris) for f in fragmenten_mod.knip(manifest.bron(iri))
-           if _norm(f.tekst) not in kaal]
-    return uit[:maximum]
+    return fragmenten_mod.onderzoeksfragmenten(manifest, onderzoek, list(dict.fromkeys(iris)), alle_termen,
+                                               kaal, maximum)
 
 
 def kantblok(manifest: Manifest, k: Kant, kop: str) -> list[str]:
