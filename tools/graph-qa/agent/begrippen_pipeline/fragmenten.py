@@ -15,7 +15,7 @@ import re
 from . import definities
 from .model import Bron, Fragment, Manifest, Onderzoek, Reden, Taalanalyse, fragment_id
 
-VERSIE = "1"
+VERSIE = "2"
 
 _GRENS = re.compile(r";|:(?=\s)|\.(?=\s+[A-Z])")
 _MIN = 3

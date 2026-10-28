@@ -34,7 +34,7 @@ from .begrippen_beurt import begrippen_artefact
 from .begrippen_pipeline import classificatie, kaart as kaart_mod, verdieping as vd
 from .begrippen_pipeline.keten import analyseer
 from .begrippen_pipeline.model import Aandacht, Kaart, ModelOordeel, Oordeel
-from .begrippen_run import manifest_uit, voorstel
+from .begrippen_run import manifest_uit, onderzoek_uit, voorstel
 from .reeks import _budget_poort
 from .wetsanalyse_api import WetsanalyseApi, WetsanalyseApiFout
 
@@ -127,8 +127,10 @@ async def verdieping_kern(ctx: Context, werkgebied_id: str, bevestigd: int | Non
     # -- rekenen ------------------------------------------------------------------------------
     data = await api.haal_begrippen_run(werkgebied_id, str(api_run["id"]))
     manifest = manifest_uit(data["manifest"])
-    ctx.melding(f"De keten opnieuw op {len(manifest.formuleringen)} passages")
-    uitkomst = await asyncio.to_thread(analyseer, manifest, ctx.provider)
+    onderzoek = onderzoek_uit(data.get("onderzoek"), manifest)
+    ctx.melding(f"De keten opnieuw op {len(manifest.formuleringen)} passages"
+                + (f" en {len(onderzoek.bronnen)} bepalingen als context" if onderzoek else ""))
+    uitkomst = await asyncio.to_thread(analyseer, manifest, ctx.provider, None, onderzoek)
     bewaard = data.get("uitkomst") or {}
     if sorted(g.id for g in uitkomst.groepen) != sorted(bewaard.get("groep_ids", [])) or \
             sorted(v.kandidaat_id for v in uitkomst.vragen) != sorted(v["kandidaat_id"] for v in bewaard.get("vragen", [])):
@@ -192,7 +194,7 @@ async def verdieping_kern(ctx: Context, werkgebied_id: str, bevestigd: int | Non
     her = vd.hergroepeer(manifest, uitkomst, oordelen) if compleet else None
     kaarten: dict[str, Any] = {}
     if her is not None:
-        kaarten, opdrachten = vd.kaartopdrachten(manifest, uitkomst, her.groepen)
+        kaarten, opdrachten = vd.kaartopdrachten(manifest, uitkomst, her.groepen, onderzoek)
         geel = {g.id: g.aandacht is Aandacht.GEEL for g in her.groepen}
         kbatches = kaart_mod.batches(opdrachten)
         for i, b in enumerate(kbatches, 1):

@@ -145,6 +145,16 @@ class KaartFragment(BaseModel):
     tekst: str = Field(min_length=1, max_length=8000)
 
 
+class Duiding(BaseModel):
+    """Hoe Lex het voorgestelde begrip duidt (spoor M): een interpretatie van het model, bewaard bij het
+    voorstel. Ze stuurt geen beslisregel aan en gaat niet mee in het begrip."""
+
+    soort: Literal["begrip", "berekeningsresultaat", "afleidingsregel", "toepassingsgeval"] = "begrip"
+    bereik: Literal["algemeen", "specifiek"] = "algemeen"
+    voorkeursterm: str = Field(default="", max_length=200)
+    ontbreekt: str = Field(default="", max_length=1000)
+
+
 class Kaart(BaseModel):
     groep_id: str = Field(pattern=r"^G[0-9a-f]{6,64}$")
     naam: str = Field(min_length=1, max_length=200)
@@ -158,6 +168,7 @@ class Kaart(BaseModel):
     motivatie: str = Field(default="", max_length=2000)
     aandacht: Literal["groen", "geel"] = "geel"
     aandachtspunten: list[str] = Field(default_factory=list, max_length=20)
+    duiding: Duiding | None = None
 
     @model_validator(mode="after")
     def _vorm(self) -> "Kaart":

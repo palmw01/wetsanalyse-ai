@@ -15,7 +15,7 @@ from typing import Any, Callable
 
 from . import besluit as besluit_mod, definities, groeperen, patronen, signalen, taal as taal_mod
 from .model import (
-    Aandacht, Besluit, Beslissing, Betekenisgroep, Kandidaat, Manifest, Relatie, Taalanalyse, Vraag,
+    Aandacht, Besluit, Beslissing, Betekenisgroep, Kandidaat, Manifest, Onderzoek, Relatie, Taalanalyse, Vraag,
 )
 from ..jas_pipeline.taal.provider import TaalProvider, maak_provider
 
@@ -43,7 +43,9 @@ def _kandidaten(sigs: list[signalen.Signaal]) -> list[Kandidaat]:
 
 
 def analyseer(manifest: Manifest, provider: TaalProvider | None = None,
-              melding: Melding | None = None) -> Uitkomst:
+              melding: Melding | None = None, onderzoek: Onderzoek | None = None) -> Uitkomst:
+    """Met een onderzoek (spoor M) tellen de definities in de contextbronnen mee als signaal; de
+    groepen blijven formuleringen uit het manifest."""
     provider = provider or maak_provider("spacy")
     meld = melding or (lambda fase, samenvatting, ms: None)
     fasen: list[dict[str, Any]] = []
@@ -63,7 +65,8 @@ def analyseer(manifest: Manifest, provider: TaalProvider | None = None,
     sigs = [*signalen.zelfde_term(manifest, taal), *signalen.uit_definities(manifest, taal, wts),
             *signalen.afwijkende_kwalificatie(manifest, taal, wts),
             *signalen.uitsluiting_in_aanhef(manifest, taal, wts), *signalen.uit_verwijzingen(manifest, taal),
-            *patronen.toepassen(manifest, taal, wts), *patronen.kopsignalen(manifest, taal)]
+            *patronen.toepassen(manifest, taal, wts), *patronen.kopsignalen(manifest, taal),
+            *signalen.uit_contextdefinities(manifest, taal, onderzoek)]
     kandidaten = _kandidaten(sigs)
     fase("Signalen", t, f"{len(wts)} wettelijke termen, {len(sigs)} signalen, {len(kandidaten)} kandidaten")
 
@@ -81,6 +84,7 @@ def analyseer(manifest: Manifest, provider: TaalProvider | None = None,
         beslissingen=tuple(beslissingen[k.id] for k in kandidaten),
         taal=tuple(taal[f.element_id] for f in manifest.formuleringen),
         meting={"manifest_id": manifest.id, "pijplijn": "begrippen_v1",
+                **({"onderzoek_id": onderzoek.id} if onderzoek else {}),
                 "versies": {"taal": taal_mod.VERSIE, "definities": definities.VERSIE,
                             "signalen": signalen.VERSIE, "patronen": patronen.VERSIE,
                             "besluit": besluit_mod.VERSIE, "groeperen": groeperen.VERSIE},

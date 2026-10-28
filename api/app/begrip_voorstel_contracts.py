@@ -10,7 +10,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 
 from .begrip_contracts import Oordeel
-from .begrippen_run_contracts import KaartFragment
+from .begrippen_run_contracts import Duiding, KaartFragment
 
 Actie = Literal["brondefinitie", "scherper", "uitleg", "betekenisverschil", "voorbeelden"]
 # `context` is het veld toelichting van NL-SBB (`skos:scopeNote`); in beeld heet het *Toelichting*.
@@ -74,6 +74,8 @@ class VoorstelInvoer(BaseModel):
     motivatie: str = Field(default="", max_length=2000)
     aandacht: Literal["groen", "geel"] = "geel"
     aandachtspunten: list[str] = Field(default_factory=list, max_length=20)
+    # Bij een definitie: hoe Lex het begrip duidt (spoor M) – een interpretatie, geen besluit.
+    duiding: Duiding | None = None
 
     @model_validator(mode="after")
     def _vorm(self) -> "VoorstelInvoer":

@@ -24,7 +24,7 @@ from typing import Any
 from . import besluit as besluit_mod, classificatie, definities, groeperen, kaart as kaart_mod
 from .keten import Uitkomst
 from .model import (
-    Aandacht, Besluit, Beslissing, Betekenisgroep, Hypothese, Kaart, Manifest, ModelOordeel, Oordeel, Relatie,
+    Aandacht, Besluit, Beslissing, Betekenisgroep, Hypothese, Kaart, Manifest, ModelOordeel, Onderzoek, Oordeel, Relatie,
     Vraag, _hash,
 )
 
@@ -72,14 +72,15 @@ def batch_id(soort: str, ids: list[str], promptversie: str, model: str) -> str:
     return "B" + _hash(soort, promptversie, model, *sorted(ids))[:16]
 
 
-def kaartopdrachten(manifest: Manifest, uitkomst: Uitkomst, groepen: tuple[Betekenisgroep, ...]
-                    ) -> tuple[dict[str, Kaart], list[kaart_mod.Opdracht]]:
-    """Per groep de kaart zonder model, en de opdrachten voor wat open is."""
+def kaartopdrachten(manifest: Manifest, uitkomst: Uitkomst, groepen: tuple[Betekenisgroep, ...],
+                    onderzoek: Onderzoek | None = None) -> tuple[dict[str, Kaart], list[kaart_mod.Opdracht]]:
+    """Per groep de kaart zonder model, en de opdrachten voor wat open is (met de context van het
+    onderzoek, als de run er een heeft)."""
     taal = {t.element_id: t for t in uitkomst.taal}
     wts = definities.wettelijke_termen(manifest, taal)
     kaarten, opdrachten = {}, []
     for g in groepen:
-        k, o = kaart_mod.basis(manifest, taal, wts, g.id, g.leden, g.aandacht is Aandacht.GEEL)
+        k, o = kaart_mod.basis(manifest, taal, wts, g.id, g.leden, g.aandacht is Aandacht.GEEL, onderzoek)
         kaarten[g.id] = k
         if o is not None:
             opdrachten.append(o)
@@ -93,14 +94,15 @@ class Verdieping:
     meting: dict[str, Any] = field(default_factory=dict, compare=False)
 
 
-def verdiep(manifest: Manifest, uitkomst: Uitkomst, llm: Any, model: str) -> Verdieping:
+def verdiep(manifest: Manifest, uitkomst: Uitkomst, llm: Any, model: str,
+            onderzoek: Onderzoek | None = None) -> Verdieping:
     """Alles in één keer, zonder bewaren tussendoor – voor de eval. De run in graph-qa doet hetzelfde per
     batch (`batch_id`), zodat hij kan hervatten."""
     meting: dict[str, int] = {}
     oordelen = [o for b in classificatie.batches(te_vergelijken(uitkomst))
                 for o in classificatie.vergelijk(llm, model, manifest, b, meting)]
     her = hergroepeer(manifest, uitkomst, oordelen)
-    kaarten, opdrachten = kaartopdrachten(manifest, uitkomst, her.groepen)
+    kaarten, opdrachten = kaartopdrachten(manifest, uitkomst, her.groepen, onderzoek)
     geel = {g.id: g.aandacht is Aandacht.GEEL for g in her.groepen}
     for b in kaart_mod.batches(opdrachten):
         for k in kaart_mod.vul(llm, model, manifest, b, geel, meting):
