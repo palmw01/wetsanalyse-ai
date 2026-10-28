@@ -391,7 +391,16 @@ bouwt de invoer, toetst en bewaart de uitkomst, en legt de besluiten vast.
   `docs/wetsanalyse/referentieset-begrippen/manifest-id.vectoren.json` legt id's en veldnamen vast,
   en zowel `tests/test_begrippen_runs.py` als graph-qa `tests/test_begrippen_manifest_drift.py`
   toetsen ertegen. Wijzigt het model van de keten, laat de vectoren dan door de keten herberekenen.
-- **Runs zijn idempotent op (werkgebied, manifest)**: een tweede start geeft de bestaande run (200,
+- **De onderzoeksstand** (`begrip_onderzoek.py`, spoor M): naast het manifest de context die de keten
+  moet lezen – leden van hetzelfde artikel, begripsbepalingen en kwalificaties met een
+  formuleringstekst, verwijzingen één stap vanaf de ankers (`samenhang._uitgaand`; een andere regeling
+  via `resolve`), contextselecties – in die prioriteit, binnen `MAX_*`, met `ontbrekend` (`budget`,
+  `niet_in_graaf`, `onbereikbaar`) en vergelijkingsbegrippen. `onderzoek_id` rekent zoals `Onderzoek.id`
+  (`onderzoek-id.vectoren.json`, beide kanten). Kolommen `begrippen_runs.onderzoek(_id)`; kaartruns
+  dragen het in hun `invoer`. De garanties gelden over manifest + onderzoek
+  (`begrippen_verdieping.fragmentruimte`).
+- **Runs zijn idempotent op (werkgebied, manifest, onderzoek)**: een andere onderzoeksstand is een nieuwe
+  run, en `laatste` meldt dan `verouderd`. Een tweede start geeft de bestaande run (200,
   `nieuw: false`). Een run in `wacht`/`loopt` die `VERLOPEN` (5 min) niets van zich liet horen, telt
   als `mislukt` en mag opnieuw; graph-qa meldt `…/loopt` bij de start. Een onvolledige inventaris of
   minder dan twee passages: 409 met melding, geen run.
@@ -477,6 +486,11 @@ uitleg in B1, alleen op een definitie – anders 409 `geen_definitie`, net als `
   `GET …/voorstellen` meldt het vooraf als `verouderd`. Vervangen kan dan alleen bewust: met
   `nu_gezien` = de definitie die de analist naast het voorstel zag (klopt die niet meer: weer 409). Uitleg, toelichting en voorbeelden worden
   toegevoegd, nooit vervangen; wat er al staat, geeft geen revisie (wel het besluit).
+- **Het bewijs blijft na overnemen** (spoor M): `GET` van een begrip draagt `definitie_onderbouwing`,
+  afgeleid uit het voorstel achter de revisie die de huidige definitie zette (fragmenten met rol
+  `ondersteunend`, vindplaats, duiding, `onderzoek_id`); met de hand gewijzigd of aangepast: `null`.
+  Een definitievoorstel bewaart de `duiding`, een voorbeeld `soort_voorbeeld`, `toetst` en `kenmerk`
+  (in `waarde`), en `door.onderzoek` zegt wat Lex onderzocht.
 - **Herkomst gaat mee.** `BegripInhoud.definitie_door` (`lex` | `analist` | leeg) zet de api, nooit de
   client (`begrip_store.met_afgeleid`): een ongewijzigde definitie houdt wie haar voorstelde, een nieuwe of
   andere tekst is van de analist. Overnemen zet `lex` en de herkomst van het voorstel; met `aanpassing`
@@ -571,7 +585,9 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
   `urn:wa:graph:register:begrippen` (`wa:werkgebiedId`, `wa:projectieHash`, `wa:inGraaf`). Kader =
   `skos:ConceptScheme` met `dct:title` en de toelichting "analyse-uitkomst, geen wettelijke definitie";
   begrip = `skos:Concept` (`prefLabel`, `altLabel`, `definition`, `rdfs:comment` = uitleg, `scopeNote` =
-  context, `example` = voorbeelden met oordeel *wel*, `inScheme`, `dct:source` → `foaf:Document` met
+  context, `example` = voorbeelden met oordeel *wel*; *niet* is `wa:tegenvoorbeeld`, *onzeker*
+  `wa:grensgeval`; de bronnen van de overgenomen definitie zijn ook `dct:source`, met `wa:rol
+  "definitieonderbouwing"` – een alleen onderzochte bron niet, `inScheme`, `dct:source` → `foaf:Document` met
   vindplaats). Eigen predicaten onder `urn:wa-ns:`: status, revisie, herkomst en `definitieDoor`,
   JAS-klasse (IRI uit de vocabulaire), geaccordeerd-op, en per koppeling (`urn:wa:koppeling:<id>`) rol,
   beoordeling, element (`urn:jas:element:<id>`), `elementHash` (de bewijsstand, of de laatste bevestiging)

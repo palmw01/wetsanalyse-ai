@@ -35,7 +35,7 @@
 - [x] **M3** (`spoor-m3-voorbeelden-runs`):
   - de voorbeelden (§6);
   - `werkvoorraad_id`, batch-id en de twee bugfixes (§7).
-- [ ] **M4** (`spoor-m4-bewijs-export`):
+- [x] **M4** (`spoor-m4-bewijs-export`; het eindrapport staat onderaan):
   - `definitie_onderbouwing`, projectie en export (§8);
   - frontend (§9) en documentatie plus skill (§10);
   - de live meting en het meetlogboek;
@@ -88,6 +88,15 @@
   (de api geeft hem alleen terug met open voorstellen). `test_uitwerken_volgt_de_methode` legde het
   oude gedrag vast; die test zegt nu het omgekeerde, met een eigen test voor "geen brondefinitie →
   scherper".
+
+- **M4, onderbouwing**: alleen een definitie uit een kaartvoorstel krijgt `definitie_onderbouwing`. Een
+  definitie die via het akkoord op een groep (fase D) binnenkwam, heeft er nog geen: de revisie noemt
+  dan geen voorstel. De kaart van de verdieping draagt haar fragmenten wel, dus dat is een vervolgstap.
+- **M4, `door.onderzoek`**: de samenvatting van het dossier staat bij elk voorstel (in `door`), niet
+  alleen bij de run, zodat de werkplek haar zonder extra verzoek kan tonen.
+- **M4, meedenkaanbod**: `begrippen_beurt.meedenk_aanbod` maakte zijn bevestiging zonder
+  `werkvoorraad_id` (M3 vergat die ingang); hersteld, anders vroeg de knop na het voorstellen altijd
+  opnieuw om bevestiging.
 
 Werkwijze per PR:
 
@@ -402,3 +411,83 @@ Er komt geen nieuwe werkplek. De drift-test op de codes wordt bijgewerkt.
    `lex-vervolggesprekken-traject`, `graphdb-mcp-proxy`); tokens en duur rapporteren.
 5. Een jurist moet nog beoordelen: de juistheid van de voorgestelde definities, of de begrippen in
    casus A en B gelijk of specifiek zijn, en de rol van `dct:publisher`.
+
+
+## Eindrapport (28 okt 2026)
+
+### Opdrachttoets, na de uitvoering
+
+| Aanname of bevinding | Uitkomst |
+|---|---|
+| 1–5. Het manifest en de fragmentruimte kennen alleen geannoteerde bronnodes | **Opgelost**: naast het manifest staat een onderzoeksstand (`Onderzoek`, `O…`). De fragmentruimte is manifest + onderzoek, in api en graph-qa. |
+| 6. Bereiken en getypeerde relaties bestaan al | Hergebruikt: definities in contextbronnen gebruiken `Bereik`, de beslistabel is ongewijzigd. |
+| 7. `ZELFDE_BEPALING` is methodisch te sterk | **Begrensd**: `BEREKENING_IN_BEPALING` maakt er een vraag van als de bepaling de term bewerkt. De regel is nieuw en op de bestaande sets niet getriggerd, dus er is nog geen held-out-bewijs. |
+| 8. Fragmenttoetsen controleren alleen tekst | **Aangevuld**: acht inhoudelijke toetsen op definities, met het dossier. |
+| 9. Voorbeelden worden alleen op tekst ontdubbeld | **Opgelost**: per voorbeeld kenmerk, soort en toets; ontdubbeld op (oordeel, kenmerk, genormaliseerde tekst). |
+| 10–11. Voorstellen zonder model; agenttaken zonder verify | Zo gelaten. De borging zit in de keten: dossier, toetsen en garanties. |
+| 12. Het bewijs gaat verloren na overnemen | **Opgelost** voor kaartvoorstellen: `definitie_onderbouwing` en `dct:source` met de rol `definitieonderbouwing`. Voor het groepsakkoord nog open, zie de afwijkingen. |
+| Bevestiging alleen op aantal | **Opgelost**: `werkvoorraad_id`. |
+| `promptversie("uitleg")` | **Opgelost**. |
+| *uitwerken* start scherper naast open brondefinities | **Opgelost**. |
+| Tegenvoorbeelden in de RDF | **Bewaakt**: *niet* → `wa:tegenvoorbeeld`, *onzeker* → `wa:grensgeval`, `skos:example` alleen *wel*, met een test. |
+| `dct:publisher` = eerstverantwoordelijke organisatie | **Niet gewijzigd**: een beperking, zie hieronder. |
+| Invorderingsrente of belastingrente | **Niet geverifieerd**: de naam van het werkgebied op acceptatie heb ik niet kunnen inzien (geen api-toegang vanuit deze sessie). De casussen gaan over *belastingrente* (AWR 30fb/30fc). |
+
+### Oorzaken (casus A en B)
+
+- **A**: het model zag alleen lid 4 en definieerde dus het toepassingsgeval. Met de leden 1–6 als
+  context en het signaal `PARALLELLE_BEPALINGEN` (de variantwoorden positief/negatief/hoger/lager/
+  groter/kleiner) kiest het in 3 van de 3 runs de algemene definitie.
+- **B**: lid 7 was onzichtbaar, en een kwalificatie "geldt als … :" werd niet als zodanig herkend. Het
+  model zette daarom de samenstelling (en het rechtsgevolg) in de definitie van de kale term. Nu staan
+  `KWALIFICATIE_SAMENGESTELD`, `RECHTSGEVOLG_IN_DEFINITIE` en `TEGENBEWIJS_IN_ONDERZOEK` in het dossier
+  en de toetsen, en ziet Lex af met een reden.
+
+### Bestanden
+
+- **graph-qa**: `begrippen_pipeline/{model,fragmenten,betekenis*,definities,signalen,keten,kaart,
+  kaartacties,toetsen,verdieping}.py`, `betekenisregels/berekening.yaml`*, `verklaringen.yaml`;
+  `agent/{begrippen_run,begrippen_verdieping,begrip_kaart,kaart_beurt,begrippen_beurt,models,agent,state}.py`,
+  `agents/{begrippen,register}.py`, `nodes/supervisie.py`, `api/main.py`;
+  `eval/betekenisonderzoek_eval.py`*, `eval/betekenisonderzoek_casus.json`*;
+  tests `test_begrippen_onderzoek.py`* en `test_betekenis.py`*.
+- **api**: `begrip_onderzoek.py`*, `begrip_manifest.py`, `begrippen_run_store.py`, `begrip_voorstel_store.py`,
+  `begrippen_verdieping.py`, `begrip_store.py`, `begrip_projectie.py`, `db.py`, contracten
+  (`begrippen_run_contracts`, `begrip_voorstel_contracts`, `gesprek_contracts`); test `test_begrip_onderzoek.py`*.
+- **frontend**: `lib/{begripVoorstellen,kaartVoorstel,types,api}.ts`, `components/werkgebieden/KaartVoorstel.tsx`,
+  `components/werkplek/{ThreadRij,WerkplekClient}.tsx`.
+- **docs**: ADR-004 (*Aanvulling: de onderzoeksstand*), beide CLAUDE.md's, de skill `references/begrippen.md`
+  (+ `methodepakket.py`), `referentieset-begrippen/onderzoek-id.vectoren.json`*, en het meetverslag.
+
+\* nieuw
+
+### Metingen
+
+Zie [`metingen/betekenisonderzoek-2026-10-28/`](metingen/betekenisonderzoek-2026-10-28/README.md):
+
+- de keten is bitgelijk aan de nulmeting;
+- offline worden beide foutdefinities gemarkeerd;
+- live hebben 6 van de 6 definities vóór een kernsignaal, en 1 van de 5 erna; A is algemeen, B ziet af met een reden;
+- het verbruik per aanroep is ongeveer 2× zo groot.
+
+### Beperkingen
+
+- **Een ontwikkelset**: twee casussen, en de toetsen zijn erop ontworpen. Voor generalisatie is een
+  held-out-set nodig (bijvoorbeeld bijdrage-inkomen in de Zvw, of een andere parallelle reeks).
+- **`ROL_IN_BEPALING`** kent alleen *voorwaarde* en *grondslag van een berekening*.
+- **Namen in voorbeelden** worden heuristisch herkend.
+- **Verwijzingen**: de api volgt één stap uitgaand. Een doel in een regeling die niet in de graaf
+  staat, wordt `niet_in_graaf`.
+- **Onderzoek op acceptatie** is niet live gemeten via de api. De live meting bouwde het onderzoek zoals
+  de api dat zou doen; `begrip_onderzoek` zelf is met fixtures getest.
+- **`dct:publisher`**: een uitgever is niet hetzelfde als de eerstverantwoordelijke organisatie. Dat staat
+  er nog zo; het is een besluit voor de gebruiker.
+
+### Wat de jurist nog moet beoordelen
+
+- Of de algemene definitie van *herziening* juist is ("wijziging van een voorlopige aanslag IB/Vpb waarbij
+  het bedrag verandert"), en of de varianten van 30fb eigen (specifieke) begrippen moeten worden.
+- Of *belasting* in 30fc een eigen begrip is, en of *het te betalen bedrag aan belasting* (lid 7, na
+  verrekening) een eigen begrip met een afleidingsregel is.
+- De rol van `dct:publisher` in de export.
+- Of het werkgebied van de casus over belastingrente gaat of over invorderingsrente (en dus de naam).

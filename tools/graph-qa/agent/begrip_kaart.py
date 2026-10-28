@@ -215,7 +215,8 @@ async def kaart_stroom(werkgebied_id: str, begrip_id: str, api_run_id: str, run:
         try:
             await api.zet_kaart_uitkomst(werkgebied_id, begrip_id, api_run_id, {
                 "invoer_id": data["invoer_id"], "voorstellen": uitkomst.voorstellen, "melding": uitkomst.melding,
-                "model": model, "promptversie": ka.promptversie(actie), "tokens": tokens, "meting": meting})
+                "model": model, "promptversie": ka.promptversie(actie), "tokens": tokens,
+                "meting": {**meting, **({"onderzoek": uitkomst.onderzoek} if uitkomst.onderzoek else {})}})
         except WetsanalyseApiFout as fout:
             await mislukt(f"Opslaan geweigerd ({fout.status}): {fout.reden}")
             yield {"type": "error", "message": "Lex had een voorstel, maar de api weigerde het op te slaan.",
@@ -227,7 +228,7 @@ async def kaart_stroom(werkgebied_id: str, begrip_id: str, api_run_id: str, run:
         else:
             yield _status(uitkomst.melding or "Geen voorstel")
         yield {"type": "opgeslagen", "kaart_run": api_run_id, "voorstellen": len(uitkomst.voorstellen),
-               "melding": uitkomst.melding}
+               "melding": uitkomst.melding, **({"onderzoek": uitkomst.onderzoek} if uitkomst.onderzoek else {})}
         yield {"type": "done"}
     finally:
         if eigen_api:

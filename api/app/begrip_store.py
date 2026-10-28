@@ -203,6 +203,41 @@ async def _werkgebied_bestaat(conn, werkgebied_id: str, slot: bool = False):
     return row
 
 
+async def definitie_onderbouwing(conn, begrip_id: str, inhoud: dict) -> dict | None:
+    """Waarop de huidige definitie rust (spoor M), afgeleid en alleen gelezen: het voorstel achter de
+    revisie die deze definitie zette (`begrip_revisies.detail.voorstel_id`), met zijn fragmenten, de
+    vindplaats van een brondefinitie, de duiding en het onderzoek van de run. `inhoud` blijft slank;
+    er is geen nieuwe opslag. None als de definitie niet (ongewijzigd) uit een voorstel komt: met de
+    hand geschreven, aangepast bij het overnemen, of uit een groep van de keten."""
+    definitie = (inhoud.get("definitie") or "").strip()
+    if not definitie:
+        return None
+    r, v, k = db.begrip_revisies, db.begrip_voorstellen, db.begrip_kaartruns
+    revisies = (await conn.execute(select(r.c.detail, r.c.inhoud).where(r.c.begrip_id == begrip_id)
+                                   .order_by(r.c.revisie.desc()))).all()
+    for x in revisies:
+        if (x.inhoud or {}).get("definitie", "").strip() != definitie:
+            break                                       # vóór deze revisie was het een andere definitie
+        d = x.detail or {}
+        if d.get("voorstel_id") and d.get("veld") == "definitie":
+            if d.get("aangepast"):
+                return None
+            vrow = (await conn.execute(select(v.c.id, v.c.run_id, v.c.actie, v.c.waarde)
+                                       .where(v.c.id == d["voorstel_id"]))).first()
+            if vrow is None:
+                return None
+            krow = (await conn.execute(select(k.c.invoer).where(k.c.id == vrow.run_id))).first()
+            w = vrow.waarde or {}
+            return {"voorstel_id": vrow.id, "actie": vrow.actie, "herkomst": w.get("herkomst", ""),
+                    "definitie_bron_iri": w.get("definitie_bron_iri", ""),
+                    "definitie_vindplaats": w.get("definitie_vindplaats", ""),
+                    "fragmenten": [{"bron_iri": f["bron_iri"], "start": f["start"], "eind": f["eind"],
+                                    "tekst": f["tekst"], "rol": "ondersteunend"} for f in w.get("fragmenten") or []],
+                    "duiding": w.get("duiding"),
+                    "onderzoek_id": ((krow.invoer if krow else {}) or {}).get("onderzoek_id", "")}
+    return None
+
+
 async def haal(werkgebied_id: str, begrip_id: str) -> dict:
     b = db.begrippen
     async with db.get_engine().connect() as conn:
@@ -211,7 +246,9 @@ async def haal(werkgebied_id: str, begrip_id: str) -> dict:
                                                   b.c.verwijderd.is_(None)))).first()
         if row is None:
             raise await niet_gevonden(werkgebied_id, begrip_id)
-        return _begrip(row, await _koppelingen_van(conn, werkgebied_id, begrip_id), await _opvolging(conn, werkgebied_id))
+        uit = _begrip(row, await _koppelingen_van(conn, werkgebied_id, begrip_id), await _opvolging(conn, werkgebied_id))
+        uit["definitie_onderbouwing"] = await definitie_onderbouwing(conn, begrip_id, row.inhoud)
+        return uit
 
 
 async def lijst(werkgebied_id: str) -> list[dict]:

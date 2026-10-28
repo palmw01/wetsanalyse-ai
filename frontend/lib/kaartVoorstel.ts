@@ -60,6 +60,41 @@ export function isDefinitie(v: KaartVoorstel): v is KaartVoorstel & { waarde: De
   return v.veld === "definitie";
 }
 
+/** "Onderzochte context: 7 bepalingen; ontbreekt: budget: 3; 1 open vraag" (spoor M), of null. */
+export function onderzoekTekst(v: KaartVoorstel): string | null {
+  const o = v.door?.onderzoek;
+  if (!o) return null;
+  const delen = [`Onderzochte context: ${o.onderzocht === 1 ? "1 bepaling" : `${o.onderzocht} bepalingen`}`];
+  if (o.ontbrekend.length) delen.push(`ontbreekt: ${o.ontbrekend.join(", ")}`);
+  if (o.vragen) delen.push(o.vragen === 1 ? "1 open betekenisvraag" : `${o.vragen} open betekenisvragen`);
+  return delen.join("; ");
+}
+
+const SOORT_LABEL = { begrip: "een begrip", berekeningsresultaat: "een berekeningsresultaat",
+  afleidingsregel: "een afleidingsregel", toepassingsgeval: "een toepassingsgeval" } as const;
+
+/** "Lex duidt dit als een toepassingsgeval (specifiek); voorgestelde naam: …", of null zonder duiding. */
+export function duidingTekst(v: KaartVoorstel): string | null {
+  if (!isDefinitie(v) || !v.waarde.duiding) return null;
+  const d = v.waarde.duiding;
+  let t = `Lex duidt dit als ${SOORT_LABEL[d.soort]} (${d.bereik})`;
+  if (d.voorkeursterm) t += `; voorgestelde naam: ${d.voorkeursterm}`;
+  return t;
+}
+
+const VOORBEELD_LABEL = { positief: "Positief voorbeeld", tegenvoorbeeld: "Tegenvoorbeeld", grensgeval: "Grensgeval",
+  afwijkend: "Afwijkend geval" } as const;
+
+/** "Tegenvoorbeeld · toetst het begrip · kenmerk: een voorlopige aanslag", of null. */
+export function voorbeeldTekst(v: KaartVoorstel): string | null {
+  if (isDefinitie(v) || v.veld !== "voorbeelden") return null;
+  const w = v.waarde as TekstWaarde;
+  const delen = [w.soort_voorbeeld ? VOORBEELD_LABEL[w.soort_voorbeeld] : "",
+    w.toetst ? `toetst ${w.toetst === "begrip" ? "het begrip" : `een ${w.toetst}`}` : "",
+    w.kenmerk ? `kenmerk: ${w.kenmerk}` : ""].filter(Boolean);
+  return delen.length ? delen.join(" · ") : null;
+}
+
 /** "Letterlijk uit Artikel 2, lid 1, onderdeel m – Invorderingswet 1990" / "Geformuleerd door Lex". */
 export function herkomstLabel(v: KaartVoorstel): string {
   if (!isDefinitie(v)) return v.veld === "voorbeelden" ? "Bedacht door Lex" : "Voorgesteld door Lex";

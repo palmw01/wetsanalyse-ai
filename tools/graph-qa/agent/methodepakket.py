@@ -3,7 +3,7 @@
 PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd036c0853ccc0d4315653a58c17f',
                    'agentrollen.json': 'fdf5eac91127601d3782015f3dfc1a3a347a787c4d74bfb810f9d0955694bc66',
                    'references/agentrollen.md': 'f46b17b5d7f7054bed32767a063b3212428956ee7c85aa78de68887035291787',
-                   'references/begrippen.md': 'efeb87eee75c3a1ef44706267424efbb4c7afa55ba09cae8df26d0851c1d5084',
+                   'references/begrippen.md': 'fcedbf969b51d046eedb62b75f210fc9ee44c0edb57a314ef4030d67e955a815',
                    'references/bronnen.md': '368cf0634277c59b52f7eaa28f1be574b7caec4d67bef6c459e95256140970bd',
                    'references/deelvragen-en-bronnen.md': 'b97192a707c11df4f5b547accf94ab3f6594270d37df62615be0d0cd88fbb1d8',
                    'references/jas-klassen-referentie.md': '5fe94a8c3718eb3d0f21a04cda9e89d9c35db4260b39f1900ead19a86ee91a95',
@@ -33,7 +33,7 @@ PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd03
                                 'extra tools of bevoegdheden.'},
              'begrippen': {'bestand': 'references/begrippen.md',
                            'bronnen': ['M01', 'M04', 'P15'],
-                           'sha256': '5b3093b19d58f3fbdba721d1e46798eb764db5bf1af1decc6b5646ef66e2a54e',
+                           'sha256': '0398f1ed5d4d9774a5f4eb377a500df5d8bba95fa5fcc51f26a9ed4b54a7a31e',
                            'tekst': 'Een begrip is een analyse-uitkomst, geen wettelijke '
                                     'definitie: het brengt de formuleringen samen die in het '
                                     'werkgebied hetzelfde aanduiden, met de passages waarop het '
@@ -52,11 +52,32 @@ PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd03
                                     'gaat voor samengesteld uit bronfragmenten, en dat gaat voor '
                                     'zelf geformuleerd. Een geformuleerde definitie is altijd een '
                                     'voorstel om te beoordelen, met de fragmenten waarop ze rust.\n'
+                                    'Lees een begrip in zijn context: de andere leden van het '
+                                    'artikel, een definitie of kwalificatie elders, een bepaling '
+                                    'waarnaar verwezen wordt. Beginnen bepalingen gelijk en '
+                                    'verschillen ze daarna (zoals "bij herziening van … met een '
+                                    'positief bedrag tot …"), kies dan een algemene definitie die '
+                                    'voor alle varianten geldt, of een specifiek begrip met een '
+                                    'eigen naam; een toepassingsgeval is niet de definitie van het '
+                                    'algemene begrip. Een definitie geeft de wezenlijke kenmerken '
+                                    'en, waar de tekst het zegt, het doel – geen rechtsgevolg, '
+                                    'geen voorwaarde uit één lid en geen afleiding: wat de wet met '
+                                    'een term berekent of verrekent, is een eigen begrip ("bepalen '
+                                    '…"), en een woord dat in één bepaling door een berekening '
+                                    'verandert, kan daar twee begrippen dragen. Een kwalificatie '
+                                    'van een samenstelling ("geldt als het te betalen bedrag aan '
+                                    'belasting") definieert de kale term niet. Is er onvoldoende '
+                                    'bewijs, zeg dan wat er ontbreekt in plaats van een definitie '
+                                    'te raden, en noem open vragen.\n'
                                     'Voorbeelden toetsen een definitie. Ze komen pas als er een '
                                     'overgenomen definitie is, en een grensgeval of tegenvoorbeeld '
-                                    'hoort erbij. Een betekenisverschil leg je uit met de context '
-                                    'van beide begrippen, niet met het woord alleen; waar de grens '
-                                    'ligt, hoort in de toelichting.\n'
+                                    'hoort erbij. Elk voorbeeld toetst één kenmerk van de '
+                                    'definitie en zegt of het het begrip toetst of iets anders '
+                                    '(een scenario, een voorwaarde, een rechtsgevolg); twee '
+                                    'voorbeelden die alleen in getallen of namen verschillen, '
+                                    'toetsen hetzelfde. Een betekenisverschil leg je uit met de '
+                                    'context van beide begrippen, niet met het woord alleen; waar '
+                                    'de grens ligt, hoort in de toelichting.\n'
                                     'Relaties houden hun type – kwalificatie, inclusie, '
                                     'uitsluiting, soort van, verwant – en hun richting. Een begrip '
                                     'met een andere betekenis wordt een opvolger, het oude wordt '
@@ -215,5 +236,5 @@ PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd03
                                    'interpretatieverschillen zichtbaar; presenteer ze niet als '
                                    'vaststaande conclusies. Voeg zonder beschikbare bronnen geen '
                                    'nieuw juridisch feit toe.'}},
- 'sha256': '8539e3c1cfbcdaaf7362e7eba0f450d1fd1f07f94643ec433120b692917b2e55',
+ 'sha256': 'bdb5e407b9ac084d7eba47cfb69bdcd0ad67988d5047936458d330bb7d19ed3c',
  'versie': '2.1'}

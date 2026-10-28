@@ -1425,6 +1425,15 @@ export interface DefinitieWaarde {
   definitie_bron_iri: string;
   definitie_vindplaats: string;
   vindplaats_soort: VindplaatsSoort;
+  /** Hoe Lex het begrip duidt (spoor M): een interpretatie bij het voorstel, geen besluit. */
+  duiding?: Duiding;
+}
+
+export interface Duiding {
+  soort: "begrip" | "berekeningsresultaat" | "afleidingsregel" | "toepassingsgeval";
+  bereik: "algemeen" | "specifiek";
+  voorkeursterm: string;
+  ontbreekt: string;
 }
 
 /** De waarde van een voorstel voor uitleg, toelichting of een voorbeeld. */
@@ -1433,6 +1442,10 @@ export interface TekstWaarde {
   fragmenten: KaartFragment[];
   oordeel?: VoorbeeldOordeel;
   vergelijking?: "zelfde_betekenis" | "verwant" | "verschil" | "onbeslist";
+  /** Bij een voorbeeld (spoor M): wat voor voorbeeld, waarop het toetst en welk kenmerk. */
+  soort_voorbeeld?: "positief" | "tegenvoorbeeld" | "grensgeval" | "afwijkend";
+  toetst?: "begrip" | "scenario" | "voorwaarde" | "rechtsgevolg";
+  kenmerk?: string;
 }
 
 export interface KaartVoorstel {
@@ -1447,7 +1460,9 @@ export interface KaartVoorstel {
   motivatie: string;
   aandacht: "groen" | "geel";
   aandachtspunten: string[];
-  door: { bron: "model" | "graaf"; model: string; promptversie: string };
+  door: { bron: "model" | "graaf"; model: string; promptversie: string;
+    /** Spoor M: wat Lex naast de passages onderzocht. */
+    onderzoek?: { onderzocht: number; ontbrekend: string[]; vragen: number } };
   status: "open" | "overgenomen" | "aangepast" | "afgewezen";
   reden: string;
   besloten_door: string | null;

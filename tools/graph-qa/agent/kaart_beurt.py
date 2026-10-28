@@ -24,6 +24,7 @@ from typing import Any
 
 from .agents import Context, Uitkomst, geweigerd
 from .begrip_kaart import MODEL_ACTIES, NAAM, kaart_stroom
+from .begrippen_pipeline import betekenis
 from .wetsanalyse_api import WetsanalyseApiFout
 
 logger = logging.getLogger("graph_qa.kaart_beurt")
@@ -221,7 +222,7 @@ async def kaart_kern(ctx: Context, actie: str, b: dict[str, Any], ander: dict[st
         return geweigerd(actie, WEIGERING.get(fout.reden) or (fout.reden if fout.status == 404 else
                                                              "De api weigerde deze actie op dit begrip."))
     artefact = begrip_artefact(wid, b["id"], naam, kr["id"], actie)
-    aantal, melding, al_gedaan, open_ = 0, "", False, False
+    aantal, melding, al_gedaan, open_, onderzoek = 0, "", False, False, {}
     if kr.get("status") == "klaar":
         # De api geeft een klare run alleen terug als er nog open voorstellen op staan: die tellen. Anders
         # leek een brondefinitie die al klaarstond "niets", en startte *uitwerken* het model voor scherper.
@@ -247,10 +248,13 @@ async def kaart_kern(ctx: Context, actie: str, b: dict[str, Any], ander: dict[st
                 ctx.melding(str(ev.get("message", "")).removeprefix("Lex · "))
             elif ev.get("type") == "opgeslagen":
                 aantal, melding = int(ev.get("voorstellen") or 0), str(ev.get("melding") or "")
+                onderzoek = ev.get("onderzoek") or {}
             elif ev.get("type") == "error":
                 return Uitkomst(taak=actie, status="fout", artefact=artefact,
                                 reden=str(ev.get("message") or "De actie op het begrip mislukte; probeer het opnieuw."))
     tekst = samenvatting(actie, naam, wg_naam, aantal, melding, al_gedaan)
+    if onderzoek:                                  # spoor M: wat er naast de passages onderzocht is
+        tekst += " " + betekenis.zin(onderzoek)
     if volgende and aantal and actie in VOLGENDE:
         tekst += f" {VOLGENDE[actie]}"
     return Uitkomst(taak=actie, tekst=tekst,

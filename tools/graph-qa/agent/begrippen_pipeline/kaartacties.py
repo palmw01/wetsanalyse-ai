@@ -226,6 +226,7 @@ class Uitkomst:
 
     voorstellen: list[dict] = field(default_factory=list)
     melding: str = ""
+    onderzoek: dict[str, Any] = field(default_factory=dict)   # spoor M: `betekenis.samenvatting` van het dossier
 
 
 # ---------------------------------------------------------------------------------------------
@@ -317,7 +318,9 @@ def scherper(llm: Any, model: str, manifest: Manifest, k: Kant, meting: dict[str
         return Uitkomst(melding="Er zijn geen bronfragmenten om een definitie op te baseren.")
     dossier = dossier_voor(manifest, onderzoek, k)
     item = _vraag(llm, model, SYSTEEM_SCHERPER, prompt_scherper(manifest, k, frs, dossier), schema_scherper(frs), meting)
-    return valideer_scherper(manifest, k, frs, item, dossier, onderzoek)
+    uit = valideer_scherper(manifest, k, frs, item, dossier, onderzoek)
+    uit.onderzoek = betekenis.samenvatting(dossier)
+    return uit
 
 
 # ---------------------------------------------------------------------------------------------
@@ -526,7 +529,9 @@ def voorbeelden(llm: Any, model: str, manifest: Manifest, k: Kant, meting: dict[
     dossier = dossier_voor(manifest, onderzoek, k) if k.leden else None
     item = _vraag(llm, model, SYSTEEM_VOORBEELDEN, prompt_voorbeelden(manifest, k, km, frs, dossier),
                   schema_voorbeelden(km), meting)
-    return valideer_voorbeelden(k, item, km, frs)
+    uit = valideer_voorbeelden(k, item, km, frs)
+    uit.onderzoek = betekenis.samenvatting(dossier)
+    return uit
 
 
 def promptversie(actie: str) -> str:

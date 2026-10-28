@@ -3,7 +3,10 @@ import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { AANDACHTSPUNT_LEX, aandachtTekst, definitieDoor, herkomstLabel, openPerVeld, verouderdUit } from "./kaartVoorstel";
+import {
+  AANDACHTSPUNT_LEX, aandachtTekst, definitieDoor, duidingTekst, herkomstLabel, onderzoekTekst, openPerVeld, verouderdUit,
+  voorbeeldTekst,
+} from "./kaartVoorstel";
 import { revisieZin } from "./begrippen";
 import type { Begrip, KaartVoorstel } from "./types";
 
@@ -64,4 +67,23 @@ it("verouderdUit leest de 409 met toen, nu en voorstel", () => {
 it("de historie noemt een overgenomen voorstel van Lex", () => {
   expect(revisieZin({ actie: "voorstel-overgenomen", detail: { veld: "definitie", aangepast: false } })).toBe("Overgenomen van Lex: definitie");
   expect(revisieZin({ actie: "voorstel-overgenomen", detail: { veld: "voorbeelden", aangepast: true } })).toBe("Aangepast overgenomen van Lex: voorbeelden");
+});
+
+describe("het betekenisonderzoek bij een voorstel (spoor M)", () => {
+  it("noemt de onderzochte context, wat ontbreekt en de open vragen", () => {
+    const v = voorstel({ door: { bron: "model", model: "m", promptversie: "p",
+      onderzoek: { onderzocht: 7, ontbrekend: ["budget: 3"], vragen: 1 } } });
+    expect(onderzoekTekst(v)).toBe("Onderzochte context: 7 bepalingen; ontbreekt: budget: 3; 1 open betekenisvraag");
+    expect(onderzoekTekst(voorstel())).toBeNull();
+  });
+  it("toont de duiding van een definitie en de soort van een voorbeeld", () => {
+    const d = voorstel({ waarde: { definitie: "d", herkomst: "geformuleerd", fragmenten: [], definitie_bron_iri: "",
+      definitie_vindplaats: "", vindplaats_soort: "",
+      duiding: { soort: "toepassingsgeval", bereik: "specifiek", voorkeursterm: "herziening naar een positief bedrag", ontbreekt: "" } } });
+    expect(duidingTekst(d)).toBe("Lex duidt dit als een toepassingsgeval (specifiek); voorgestelde naam: herziening naar een positief bedrag");
+    const vb = voorstel({ veld: "voorbeelden", actie: "voorbeelden", waarde: { tekst: "t", fragmenten: [], oordeel: "niet",
+      soort_voorbeeld: "tegenvoorbeeld", toetst: "begrip", kenmerk: "een voorlopige aanslag" } });
+    expect(voorbeeldTekst(vb)).toBe("Tegenvoorbeeld · toetst het begrip · kenmerk: een voorlopige aanslag");
+    expect(voorbeeldTekst(d)).toBeNull();
+  });
 });
