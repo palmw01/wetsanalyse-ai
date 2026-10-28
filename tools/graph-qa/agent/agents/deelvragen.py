@@ -5,7 +5,7 @@
 | `voorstellen` | dossier → één strict tool → `valideer` → `POST …/deelvragen/voorstellen` | ja, één stap |
 | `verbeteren` | deelvraag + dossier → één strict tool (herformuleer of splits) → validatie → voorstel | ja, één stap |
 | `bronnen_zoeken` | de bronnenrun (`bronnen_run.bronnen_kern`, met de methode per deelvraag) | nee |
-| `dekking` | per actieve deelvraag: bronnen, rol, open kandidaten, begrippen – uit de api | nee |
+| `dekking` | per actieve deelvraag: bronnen, rol, open kandidaten – uit de api | nee |
 
 De methode – wat een goede deelvraag is, van deelvraag naar bronnen, wat dekking betekent – staat in de
 skill (`references/deelvragen-en-bronnen.md`, rol `deelvragen`); de modelstappen krijgen haar mee en de
@@ -87,7 +87,8 @@ async def deelvraag_op_nummer(ctx: Context, werkgebied_id: str, nr: int) -> tupl
                 if actief else f"Werkgebied *{wg.get('naam', '')}* heeft nog geen actieve deelvragen.")
 
 
-STAND = {"gedekt": "gedekt", "geen_begrip": "nog geen geaccordeerd begrip", "geen_bron": "nog geen bron"}
+# Een deelvraag is gedekt als er een bron bij hoort (methode 1g); begrippen horen bij het werkgebied (spoor K).
+STAND = {"met_bron": "gedekt", "geen_bron": "nog geen bron"}
 
 
 def dekking_regel(nr: int, d: dict[str, Any], rollen: dict[str, str], open_: int) -> str:
@@ -121,13 +122,13 @@ def dekkingstekst(naam: str, dek: dict[str, Any], wg: dict[str, Any], kandidaten
               if not deelvraag_id or d.get("id") == deelvraag_id]
     if deelvraag_id and not regels:
         return "Die deelvraag is niet (meer) actief; dekking meet ik alleen voor actieve deelvragen."
-    gedekt = sum(1 for d in vragen if d.get("stand") == "gedekt")
+    gedekt = sum(1 for d in vragen if d.get("stand") == "met_bron")
     kop = (f"Dekking van werkgebied *{naam}*: {gedekt} van {len(vragen)} "
            f"{'deelvraag' if len(vragen) == 1 else 'deelvragen'} gedekt." if not deelvraag_id
            else f"Dekking in werkgebied *{naam}*:")
     tekst = kop + "\n\n" + "\n".join(regels)
     if any(d.get("stand") == "geen_bron" for d in vragen if not deelvraag_id or d.get("id") == deelvraag_id):
-        tekst += "\n\nBij een deelvraag zonder bron kan ik bepalingen zoeken; neem op wat erbij hoort."
+        tekst += "\n\nBij een deelvraag zonder bron: bepaal met me de bronnen per deelvraag (*Bepaal de bronnen per deelvraag*)."
     return tekst
 
 

@@ -20,6 +20,12 @@ gebeurt, beslist de beslistabel; hier wordt alleen waargenomen.
 | `BEDOELD_IN` | zelfde betekenis | steun, sterk | "Y, bedoeld in onderdeel c" wijst de formulering met dezelfde kern daar aan |
 | `AANWIJZEND` | zelfde betekenis | steun, sterk | "die X" wijst terug naar X (direct, of via "als bedoeld in") |
 | `NIET_AANGEMERKT` | uitsluiting (+ tegen zelfde) | steun, sterk | aanhef "… als X niet wordt aangemerkt:" boven een opsomming |
+| `BEREKENING_IN_BEPALING` | zelfde betekenis | onbeslist, zwak | naast `ZELFDE_BEPALING`: de bepaling bewerkt de term zelf (een homoniem door berekening, Wetsanalyse 3a) |
+
+Met een **onderzoek** (spoor M) tellen ook de definities in de contextbronnen (`uit_contextdefinities`):
+dezelfde term binnen het bereik van één contextdefinitie is `WETTELIJKE_TERM` (de wet legt het verband,
+ook zonder anker in het manifest), en een paar waarvan één passage buiten dat bereik valt
+`BUITEN_BEREIK`. Zonder onderzoek komt er niets bij.
 """
 from __future__ import annotations
 
@@ -27,12 +33,12 @@ import re
 from dataclasses import dataclass
 
 from .definities import (
-    VERSIE as DEF_VERSIE, WettelijkeTerm, bronnen_onder, genus_van_mede, regeling_van,
+    VERSIE as DEF_VERSIE, WettelijkeTerm, bronnen_onder, definitie_van, genus_van_mede, regeling_van,
     verwijzing_na, wettelijke_termen,
 )
-from .model import Bewijs, Hypothese, Manifest, Polariteit, Sterkte, Taalanalyse
+from .model import Bewijs, Hypothese, Manifest, Onderzoek, Polariteit, Sterkte, Taalanalyse
 
-VERSIE = "3"
+VERSIE = "4"
 
 _AFWIJKING = re.compile(r"\bin afwijking\b.*?\b(?:lid|leden|artikel|artikelen)\b", re.IGNORECASE | re.DOTALL)
 _GELDT_ALS = re.compile(r"\bgeldt\b.*?\bals\s+(?P<term>[\w-]+)", re.IGNORECASE | re.DOTALL)
@@ -78,6 +84,50 @@ def zelfde_term(manifest: Manifest, taal: dict[str, Taalanalyse]) -> list[Signaa
                 if bron == manifest.formulering(b).bron_iri:
                     uit.append(_zelfde(a, b, _b("ZELFDE_BEPALING", Polariteit.STEUN, Sterkte.STERK,
                                                 "begrip.term.zelfde_bepaling", term, bron)))
+                    # Bewerkt de bepaling de term zelf, dan is "één betekenis per bepaling" niet vanzelf
+                    # waar: het resultaat van de berekening kan een eigen begrip zijn. Een vraag, geen nee.
+                    if hit := _berekening(manifest.bron(bron).tekst, term):
+                        uit.append(_zelfde(a, b, _b("BEREKENING_IN_BEPALING", Polariteit.ONBESLIST, Sterkte.ZWAK,
+                                                    hit[0], hit[1], bron)))
+    return uit
+
+
+def _berekening(tekst: str, term: str) -> tuple[str, str] | None:
+    from .betekenis import berekening          # betekenis importeert de keten niet, maar wel het model
+    return berekening(tekst, term)
+
+
+def uit_contextdefinities(manifest: Manifest, taal: dict[str, Taalanalyse],
+                          onderzoek: Onderzoek | None) -> list[Signaal]:
+    """Definities in de contextbronnen (spoor M): zonder anker in het manifest, maar met een bereik."""
+    if onderzoek is None:
+        return []
+    uit: list[Signaal] = []
+    for bron in onderzoek.bronnen:
+        d = definitie_van(bron)
+        if d is None or d[1] not in ("definitie", "mede"):
+            continue
+        termen, _soort, bereik = d
+        for term in termen:
+            ids = [f.element_id for f in manifest.formuleringen
+                   if (taal[f.element_id].term == term or " ".join(f.tekst.lower().split()) == term)
+                   and not taal[f.element_id].beperkt and not taal[f.element_id].zin]
+            fragment = f"{term} ({bereik.formule or 'bereik onbekend'})"
+            for i, a in enumerate(sorted(ids)):
+                for b in sorted(ids)[i + 1:]:
+                    binnen = (bereik.omvat(manifest.formulering(a).bron_iri), bereik.omvat(manifest.formulering(b).bron_iri))
+                    if None in binnen:
+                        bw = _b("BEREIK_ONBEKEND", Polariteit.ONBESLIST, Sterkte.ZWAK, "begrip.definitie.context",
+                                fragment, bron.bron_iri)
+                    elif all(binnen):
+                        bw = _b("WETTELIJKE_TERM", Polariteit.STEUN, Sterkte.STERK, "begrip.definitie.context",
+                                fragment, bron.bron_iri)
+                    elif any(binnen):
+                        bw = _b("BUITEN_BEREIK", Polariteit.TEGEN, Sterkte.MIDDEL, "begrip.definitie.context",
+                                fragment, bron.bron_iri)
+                    else:
+                        continue
+                    uit.append(_zelfde(a, b, bw))
     return uit
 
 

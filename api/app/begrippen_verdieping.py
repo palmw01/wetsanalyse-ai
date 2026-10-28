@@ -41,6 +41,14 @@ def fragment_id(bron_iri: str, start: int, eind: int) -> str:
     return "F" + hashlib.sha256("\x1f".join((bron_iri, str(start), str(eind))).encode()).hexdigest()[:10]
 
 
+def fragmentruimte(manifest: dict, onderzoek: dict | None) -> dict:
+    """Waar een fragment uit mag komen: het manifest plus de contextbronnen van het onderzoek (spoor M).
+    Een fragment-id volgt uit bron en offsets, dus de ids van het manifest veranderen niet."""
+    if not onderzoek:
+        return manifest
+    return {**manifest, "bronnen": [*manifest["bronnen"], *onderzoek.get("bronnen", [])]}
+
+
 def fragment_fouten(manifest: dict, fragmenten) -> list[str]:
     """Elk fragment bestaat in het manifest (id uit bron en offsets) en staat letterlijk op zijn plek."""
     bronnen = {b["bron_iri"]: b["tekst"] for b in manifest["bronnen"]}
@@ -180,7 +188,7 @@ async def zet_batch(werkgebied_id: str, run_id: str, batch_id: str, invoer: Batc
         else:
             # Een kaart kan ook bij een groep horen die pas na het hergroeperen bestaat; de leden toetst
             # `zet_verdieping`. Hier: de tekst.
-            _toets_kaarten(row.manifest, invoer.kaarten, {k.groep_id for k in invoer.kaarten})
+            _toets_kaarten(fragmentruimte(row.manifest, row.onderzoek), invoer.kaarten, {k.groep_id for k in invoer.kaarten})
         await conn.execute(insert(b).values(
             run_id=run_id, id=batch_id, werkgebied_id=werkgebied_id, soort=invoer.soort, ids=invoer.ids,
             resultaat=resultaat, model=invoer.model, promptversie=invoer.promptversie, tokens=invoer.tokens,
@@ -216,7 +224,7 @@ async def zet_verdieping(werkgebied_id: str, run_id: str, invoer: VerdiepingInvo
         vragen = {v["kandidaat_id"] for v in row.uitkomst.get("vragen", [])}
         if set(invoer.vragen) - vragen or {o.kandidaat_id for o in invoer.oordelen} - vragen:
             raise HTTPException(422, "De verdieping noemt paren die geen twijfelvraag van deze run zijn.")
-        _toets_kaarten(row.manifest, invoer.kaarten, {x.id for x in invoer.groepen})
+        _toets_kaarten(fragmentruimte(row.manifest, row.onderzoek), invoer.kaarten, {x.id for x in invoer.groepen})
         kaarten = {k.groep_id: k.model_dump() for k in invoer.kaarten}
         bestaande = {x.id for x in (await conn.execute(select(g.c.id).where(g.c.werkgebied_id == werkgebied_id))).all()}
         for groep in invoer.groepen:

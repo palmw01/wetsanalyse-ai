@@ -70,6 +70,13 @@ describe("isPuntSegment", () => {
 });
 
 describe("bronHref", () => {
+  it("laat een TOOI-URI door als link (spoor I6), maar geen andere host van overheid.nl", () => {
+    const tooi = "https://identifier.overheid.nl/tooi/id/ministerie/mnre1090";
+    expect(bronHref(tooi)).toBe(tooi);
+    expect(bronHref("http://identifier.overheid.nl/tooi/id/ministerie/mnre1090")).toBeUndefined();
+    expect(bronHref("https://identifier.overheid.nl/andere/x")).toBeUndefined();
+    expect(bronHref("https://evil.example/tooi/id/x")).toBeUndefined();
+  });
   it("geeft bij een kapotte percent-encoding in een graaf-IRI geen link, en gooit niet", () => {
     expect(() => bronHref("urn:bwb:BWBR0004770:artikel:10%")).not.toThrow();
     expect(bronHref("urn:bwb:BWBR0004770:artikel:10%")).toBeUndefined();

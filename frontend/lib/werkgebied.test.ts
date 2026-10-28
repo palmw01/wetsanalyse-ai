@@ -152,8 +152,6 @@ describe("isWerkgebiedRoute", async () => {
     [["w", "groepen"]], [["w", "groepen", "overnemen"]], [["w", "groepen", "akkoord"]], [["w", "groepen", "G1", "koppelen"]],
     [["w", "groepen", "G1", "afwijzen"]], [["w", "groepen", "G1", "parkeren"]], [["w", "groepen", "G1", "heropenen"]],
     [["w", "bronnen-runs", "laatste"]], [["w", "bronnen-runs", "r"]], [["w", "kandidaten"]],
-    [["w", "kandidaten", "K1", "opnemen"]], [["w", "kandidaten", "K1", "later"]],
-    [["w", "kandidaten", "K1", "uitsluiten"]], [["w", "kandidaten", "K1", "heropenen"]],
     [["w", "annotatie-werkvoorraad"]], [["w", "verdieping"]],
     // Lex naast de kaart (fase E): voorstellen lezen en besluiten.
     [["w", "begrippen", "b", "voorstellen"]], [["w", "begrippen", "b", "voorstellen", "v", "overnemen"]],
@@ -169,6 +167,8 @@ describe("isWerkgebiedRoute", async () => {
     // Deelvragen (optioneel).
     [["w", "deelvragen"]], [["w", "deelvragen", "d"]], [["w", "deelvragen", "dekking"]],
     [["w", "deelvragen", "d", "koppelingen"]],
+    // De bronselectie per deelvraag (spoor J).
+    [["w", "bronselectie"]], [["w", "bronselectie", "d", "status"]], [["w", "bronselectie", "d", "kandidaten", "K1"]],
   ])("laat %j door", (pad) => expect(isWerkgebiedRoute(pad)).toBe(true));
   it.each([
     [[]], [["w", "onbekend"]], [["w", "elementen", "x"]], [["w", "bronnen", "s", "x"]],
@@ -181,6 +181,8 @@ describe("isWerkgebiedRoute", async () => {
     // Ook bij de bronnen: de run is van graph-qa (de deelvragen-agent).
     [["w", "bronnen-runs"]], [["w", "bronnen-runs", "r", "uitkomst"]], [["w", "bronnen-runs", "r", "loopt"]],
     [["w", "bronnen-runs", "r", "mislukt"]], [["w", "kandidaten", "K1"]], [["w", "kandidaten", "K1", "wissen"]],
+    // Spoor J: de bronverkenner beslist niets meer.
+    [["w", "kandidaten", "K1", "opnemen"]], [["w", "kandidaten", "K1", "later"]], [["w", "kandidaten", "K1", "uitsluiten"]],
     [["w", "annotatie-werkvoorraad", "x"]],
     // De verdieping (fase C): lezen mag, de batches en de uitkomst zijn van graph-qa.
     [["w", "verdieping", "x"]], [["w", "begrippen-runs", "r", "batches", "B1"]], [["w", "begrippen-runs", "r", "verdieping"]],
@@ -195,6 +197,8 @@ describe("isWerkgebiedRoute", async () => {
     // Voorstellen van deelvragen zet graph-qa (de deelvragen-agent).
     [["w", "deelvragen", "voorstellen"]], [["w", "deelvragen", "d", "x"]], [["w", "deelvragen", "dekking", "koppelingen"]],
     [["w", "deelvragen", "d", "koppelingen", "x"]],
+    [["w", "bronselectie", "d"]], [["w", "bronselectie", "d", "kandidaten"]], [["w", "bronselectie", "d", "wissen"]],
+    [["w", "bronselectie", "d", "kandidaten", "K1", "x"]],
   ])("weigert %j", (pad) => expect(isWerkgebiedRoute(pad)).toBe(false));
 });
 

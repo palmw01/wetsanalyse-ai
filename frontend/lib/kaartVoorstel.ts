@@ -7,7 +7,9 @@
 // heet, wanneer het verouderd is – zonder DOM, zodat het in vitest te toetsen is.
 
 import { AANDACHTSPUNT } from "@/lib/begripVoorstellen";
-import type { Begrip, DefinitieWaarde, KaartVeld, KaartVoorstel, TekstWaarde, VindplaatsSoort } from "@/lib/types";
+import type {
+  Begrip, DefinitieOnderbouwing, DefinitieWaarde, Duiding, KaartVeld, KaartVoorstel, TekstWaarde, VindplaatsSoort,
+} from "@/lib/types";
 
 /** De codes van graph-qa `kaartacties.TEKST`; `kaartVoorstel.test.ts` leest die bron. */
 export const AANDACHTSPUNT_LEX: Record<string, string> = {
@@ -26,6 +28,8 @@ export const AANDACHTSPUNT_LEX: Record<string, string> = {
   B1_MOEILIJK_WOORD: "De uitleg gebruikt een moeilijk woord waarvoor een gewoner woord bestaat.",
   B1_VAKTERM_ONVERKLAARD: "Een vakterm uit de definitie staat in de uitleg zonder dat die hem uitlegt.",
   B1_HERHAALT_DEFINITIE: "De uitleg herhaalt de definitie; zeg het in eigen, eenvoudige woorden.",
+  TOETST_ANDERE_VRAAG: "Dit voorbeeld toetst niet het begrip maar een scenario, voorwaarde of rechtsgevolg; controleer of het de afbakening van de definitie raakt.",
+  SEMANTISCH_DUBBEL: "Een voorbeeld toetste hetzelfde kenmerk met hetzelfde oordeel als een ander, alleen met andere getallen of namen; het is weggelaten.",
 };
 
 /** De tekst bij een aandachtspunt; een onbekende code verschijnt als zichzelf. */
@@ -56,6 +60,56 @@ export const VELD_LABEL: Record<KaartVeld, string> = {
 
 export function isDefinitie(v: KaartVoorstel): v is KaartVoorstel & { waarde: DefinitieWaarde } {
   return v.veld === "definitie";
+}
+
+/** "Onderzochte context: 7 bepalingen; ontbreekt: budget: 3; 1 open vraag" (spoor M), of null. */
+export function onderzoekTekst(v: KaartVoorstel): string | null {
+  const o = v.door?.onderzoek;
+  if (!o) return null;
+  const delen = [`Onderzochte context: ${o.onderzocht === 1 ? "1 bepaling" : `${o.onderzocht} bepalingen`}`];
+  if (o.ontbrekend.length) delen.push(`ontbreekt: ${o.ontbrekend.join(", ")}`);
+  if (o.vragen) delen.push(o.vragen === 1 ? "1 open betekenisvraag" : `${o.vragen} open betekenisvragen`);
+  return delen.join("; ");
+}
+
+const SOORT_LABEL = { begrip: "een begrip", berekeningsresultaat: "een berekeningsresultaat",
+  afleidingsregel: "een afleidingsregel", toepassingsgeval: "een toepassingsgeval" } as const;
+
+/** "Lex duidt dit als een toepassingsgeval (specifiek); voorgestelde naam: …", of null zonder duiding. */
+export function duidingTekst(v: KaartVoorstel): string | null {
+  if (!isDefinitie(v) || !v.waarde.duiding) return null;
+  return duidingZin(v.waarde.duiding);
+}
+
+/** De duiding in één zin: dezelfde bij het voorstel en, na het overnemen, onder de definitie. */
+export function duidingZin(d: Duiding): string {
+  let t = `Lex duidt dit als ${SOORT_LABEL[d.soort]} (${d.bereik})`;
+  if (d.voorkeursterm) t += `; voorgestelde naam: ${d.voorkeursterm}`;
+  return t;
+}
+
+/** De kop van de onderbouwing onder een overgenomen definitie: "Letterlijk uit Artikel 2, lid 1 – via een
+ *  voorstel van Lex" of "Rust op 2 fragmenten uit de bron – via een betekenisgroep". */
+export function onderbouwingKop(o: DefinitieOnderbouwing): string {
+  const n = o.fragmenten.length;
+  const wat = o.herkomst === "letterlijk" && (o.definitie_vindplaats || o.definitie_bron_iri)
+    ? `Letterlijk uit ${o.definitie_vindplaats || o.definitie_bron_iri}`
+    : `Rust op ${n === 1 ? "1 fragment" : `${n} fragmenten`} uit de bron`;
+  const via = o.voorstel_id ? "via een voorstel van Lex" : o.groep_id ? "via een betekenisgroep" : "";
+  return via ? `${wat} – ${via}` : wat;
+}
+
+const VOORBEELD_LABEL = { positief: "Positief voorbeeld", tegenvoorbeeld: "Tegenvoorbeeld", grensgeval: "Grensgeval",
+  afwijkend: "Afwijkend geval" } as const;
+
+/** "Tegenvoorbeeld · toetst het begrip · kenmerk: een voorlopige aanslag", of null. */
+export function voorbeeldTekst(v: KaartVoorstel): string | null {
+  if (isDefinitie(v) || v.veld !== "voorbeelden") return null;
+  const w = v.waarde as TekstWaarde;
+  const delen = [w.soort_voorbeeld ? VOORBEELD_LABEL[w.soort_voorbeeld] : "",
+    w.toetst ? `toetst ${w.toetst === "begrip" ? "het begrip" : `een ${w.toetst}`}` : "",
+    w.kenmerk ? `kenmerk: ${w.kenmerk}` : ""].filter(Boolean);
+  return delen.length ? delen.join(" · ") : null;
 }
 
 /** "Letterlijk uit Artikel 2, lid 1, onderdeel m – Invorderingswet 1990" / "Geformuleerd door Lex". */

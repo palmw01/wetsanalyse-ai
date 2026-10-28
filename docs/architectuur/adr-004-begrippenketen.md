@@ -132,6 +132,36 @@ deterministisch), LKIF Core (te zwaar voor deze stap), BlackLab (tweede index).
 - `jas_pipeline` verandert niet. De begrippenketen leest de taallaag en het regelformaat, maar
   schrijft er niet in.
 
+## Aanvulling: de onderzoeksstand (spoor M, 28 okt 2026)
+
+Het manifest bevat alleen bronnodes met een geannoteerde formulering. Daardoor zag de keten de
+context niet die Wetsanalyse stap 3a voorschrijft: "herziening" in art. 30fb lid 4 AWR kreeg de
+definitie van één toepassingsgeval (de leden 1–6 delen de opening en verschillen in de bedragovergang),
+en bij "belasting" kwam het rechtsgevolg in de definitie en bleef de kwalificatie in 30fc lid 7 buiten
+beeld. Besluit:
+
+- **Naast het manifest komt een onveranderlijke onderzoeksinvoer** (`Onderzoek`, id `O…`), gebouwd door
+  de api (`api/app/begrip_onderzoek.py`): de andere leden van het artikel, begripsbepalingen en
+  kwalificaties in de regeling, verwijzingen (één stap) en contextselecties, in vaste prioriteit en
+  binnen een vast budget; wat niet onderzocht is, staat in `ontbrekend` met een reden. Het manifest en
+  zijn id veranderen niet; de keten blijft zonder graafverkeer.
+- **Een betekenisdossier per groep of begrip** (`betekenis.py`): bronfeiten en signalen met hun
+  fragmenten, en open vragen in vaste woorden. Het gaat naar de prompt en naar de toetsen, **nooit naar
+  de beslistabel**: een interpretatie (alleen van een model) is geen bewijs.
+- **In de keten** tellen definities in contextbronnen mee (`WETTELIJKE_TERM`/`BUITEN_BEREIK`), en
+  `BEREKENING_IN_BEPALING` (onbeslist, zwak) maakt van `ZELFDE_BEPALING` een vraag als de bepaling de
+  term zelf bewerkt (een homoniem door berekening). Zonder onderzoek is de uitkomst bitgelijk.
+- **Het model duidt, het besluit niet**: soort, bereik, voorkeursterm en wat ontbreekt staan bij het
+  voorstel; afzien met een reden is een uitkomst. Deterministische toetsen markeren een algemene naam
+  met een specifieke definitie, een rechtsgevolg of afleiding in de definitie, een onderbouwing uit één
+  voorkomen en tegenbewijs in het onderzoek.
+- **Het bewijs blijft na overnemen**: `definitie_onderbouwing` (afgeleid, alleen gelezen) en in de
+  projectie `dct:source` met `wa:rol "definitieonderbouwing"`; tegenvoorbeelden en grensgevallen zijn
+  geen `skos:example`.
+
+Plan, opdrachttoets en afwijkingen: `plan-betekenisonderzoek.md`; meting
+`metingen/betekenisonderzoek-2026-10-28/`.
+
 ## Uitvoering
 
 | PR | Inhoud |
@@ -150,3 +180,4 @@ deterministisch), LKIF Core (te zwaar voor deze stap), BlackLab (tweede index).
 | E1 | Kaartvoorstellen in de api: een voorstel per veld als eigen object, overnemen in één transactie met basis-toets (409 `voorstel_verouderd`, bewust vervangen met `nu_gezien`), `definitie_door` |
 | E2 | De vier kaartacties in graph-qa (`kaartacties.py`, `begrip_kaart.py`): brondefinitie zonder model met plaats, scherper / betekenisverschil / voorbeelden met het model, dezelfde toetsen; meting `metingen/kaartacties-2026-10-16` |
 | E3 | De werkplek: strook *Lex naast de kaart* en het voorstel onder zijn veld |
+| M1–M4 | De onderzoeksstand, het betekenisdossier, voorbeelden die kenmerken toetsen, bewijs na overnemen (spoor M, #774–#777) |

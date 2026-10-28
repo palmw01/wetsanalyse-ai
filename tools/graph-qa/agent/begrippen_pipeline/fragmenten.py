@@ -13,9 +13,9 @@ from __future__ import annotations
 import re
 
 from . import definities
-from .model import Bron, Fragment, Manifest, Taalanalyse, fragment_id
+from .model import Bron, Fragment, Manifest, Onderzoek, Reden, Taalanalyse, fragment_id
 
-VERSIE = "1"
+VERSIE = "2"
 
 _GRENS = re.compile(r";|:(?=\s)|\.(?=\s+[A-Z])")
 _MIN = 3
@@ -38,20 +38,60 @@ def knip(bron: Bron) -> list[Fragment]:
     return uit
 
 
-def alle(manifest: Manifest) -> dict[str, Fragment]:
-    """Alle fragmenten van het manifest op id – de vaste ruimte waarbinnen een id geldig is."""
-    return {f.id: f for b in manifest.bronnen for f in knip(b)}
+def alle(manifest: Manifest, onderzoek: Onderzoek | None = None) -> dict[str, Fragment]:
+    """Alle fragmenten van het manifest (en de contextbronnen van het onderzoek) op id – de vaste ruimte
+    waarbinnen een id geldig is. Het id volgt uit bron en offsets, dus een fragment van het manifest
+    houdt zijn id, met of zonder onderzoek."""
+    bronnen = [*manifest.bronnen, *(onderzoek.bronnen if onderzoek else ())]
+    return {f.id: f for b in bronnen for f in knip(b)}
+
+
+def _norm(tekst: str) -> str:
+    return " ".join(tekst.lower().split())
+
+
+# De volgorde waarin contextbronnen meegaan, na de definities in de context en de eigen bronnen.
+_REDENVOLGORDE = (Reden.ZELFDE_ARTIKEL, Reden.VERWIJZING, Reden.CONTEXTSELECTIE)
+
+
+def onderzoeksfragmenten(manifest: Manifest, onderzoek: Onderzoek | None, eigen_iris: list[str],
+                         termen: set[str], kaal: set[str], maximum: int = 40) -> list[Fragment]:
+    """De fragmenten waar een definitie (of een kaartactie) op mag rusten, in een vaste volgorde:
+
+    1. begripsbepalingen in de context die een van de `termen` definiëren;
+    2. de eigen bronnen (`eigen_iris`: de bronnen van de leden en de begripsbepalingen in het manifest);
+    3. de andere leden van hetzelfde artikel;
+    4. de bronnen waarnaar verwezen wordt;
+    5. de contextselecties zonder annotaties.
+
+    Een fragment dat alleen de term zelf is (`kaal`, genormaliseerd), definieert niets en valt weg.
+    Zonder onderzoek is dit precies de oude ruimte: alleen stap 2.
+    """
+    contextdef: list[str] = []
+    rest: list[str] = []
+    if onderzoek is not None:
+        for b in onderzoek.bronnen:
+            if termen & set(definities.gedefinieerde_termen(b)):
+                contextdef.append(b.bron_iri)
+        for reden in _REDENVOLGORDE:
+            rest += [b.bron_iri for b in onderzoek.bronnen if b.reden is reden and b.bron_iri not in contextdef]
+    def bron(iri: str) -> Bron:
+        return onderzoek.bron(iri) if iri not in {b.bron_iri for b in manifest.bronnen} else manifest.bron(iri)
+    iris = list(dict.fromkeys([*contextdef, *eigen_iris, *rest]))
+    uit = [f for iri in iris for f in knip(bron(iri)) if _norm(f.tekst) not in kaal]
+    return uit[:maximum]
 
 
 def voor_groep(manifest: Manifest, taal: dict[str, Taalanalyse], leden: tuple[str, ...],
-               wts: list[definities.WettelijkeTerm], maximum: int = 40) -> list[Fragment]:
-    """De fragmenten waar een definitie van deze groep op mag rusten: de bronnen van de leden, en de
-    begripsbepalingen in het manifest van een term die een lid draagt."""
+               wts: list[definities.WettelijkeTerm], maximum: int = 40,
+               onderzoek: Onderzoek | None = None) -> list[Fragment]:
+    """De fragmenten waar een definitie van deze groep op mag rusten: de bronnen van de leden, de
+    begripsbepalingen in het manifest van een term die een lid draagt, en – met een onderzoek – de
+    context (`onderzoeksfragmenten`)."""
     termen = {taal[e].term for e in leden if e in taal}
     iris = list(dict.fromkeys(
         [manifest.formulering(e).bron_iri for e in leden]
         + [w.bron_iri for w in wts if w.term in termen and w.soort in ("definitie", "mede")]))
     # Een fragment dat alleen de term zelf is ("aanslagbiljet" vóór de dubbele punt) definieert niets.
-    kaal = termen | {" ".join(manifest.formulering(e).tekst.lower().split()) for e in leden}
-    uit = [f for iri in iris for f in knip(manifest.bron(iri)) if " ".join(f.tekst.lower().split()) not in kaal]
-    return uit[:maximum]
+    kaal = termen | {_norm(manifest.formulering(e).tekst) for e in leden}
+    return onderzoeksfragmenten(manifest, onderzoek, iris, termen, kaal, maximum)

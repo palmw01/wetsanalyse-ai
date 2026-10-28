@@ -68,8 +68,9 @@ class IntakeActie(BaseModel):
     intake, dan toont Lex het huidige kaartje opnieuw in plaats van stil iets anders te doen."""
 
     intake_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
-    stap: Literal["naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld", "deelvragen",
-                  "buiten", "regelingen", "bepalingen", "samenvatting"]
+    stap: Literal["naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld", "thema", "deelvragen",
+                  "buiten", "regelingen", "bepalingen", "samenvatting",
+                  "bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder"]
     # Bij de bepalingen: het kaartje van welke deelvraag (0-based); een ander deel is een oud kaartje.
     deel: int = Field(default=0, ge=0, le=19)
     # `aanmaken` sluit het samenstellen af, `opslaan` het aanvullen van een bestaand werkgebied.
@@ -81,6 +82,12 @@ class IntakeActie(BaseModel):
     # Bij `wijzig`: naar welke stap, en bij de bepalingen naar welk deel.
     naar: str = ""
     naar_deel: int = Field(default=0, ge=0, le=19)
+    # De bronselectie (spoor J, `intake_id` `bs-…`): de deelvraag van het kaartje.
+    deelvraag_id: str = Field(default="", pattern=r"^[A-Za-z0-9-]{0,64}$")
+
+    @property
+    def is_bronselectie(self) -> bool:
+        return self.intake_id.startswith("bs-")
 
 
 # Routes op een werkgebied die in werkgebied en gesprek schrijven; alleen via `POST /v1/runs`.
@@ -136,9 +143,13 @@ ACTIE_TAAK: dict[str, tuple[str, str]] = {
 # Een actie die geen taak van een agent is: het dossier van het werkgebied aanvullen loopt via de
 # werkgebied-worker (de vraagkaarten van de intake). Welk veld, leest de worker uit de vraag.
 INTAKE_ACTIES = ("dossier_aanvullen",)
+# De bronselectie per deelvraag (spoor J) beginnen of hervatten: de bronselectie-worker, op de stand die de
+# api bewaart. Ook geen taak van een agent.
+BRONSELECTIE_ACTIES = ("bronselectie",)
 Actie = Literal["werkgebied_annoteren", "deelvragen_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
                 "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie",
-                "scherper", "uitleg", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen"]
+                "scherper", "uitleg", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen",
+                "bronselectie"]
 # Acties die eerst om een bevestiging vragen; alleen daar hoort `bevestigd` bij.
 BEVESTIG_ACTIES = ("werkgebied_annoteren", "deelvragen_annoteren", "begrippen_meedenken")
 
@@ -168,6 +179,9 @@ class ChatRequest(BaseModel):
     # Het aantal bepalingen dat de analist bevestigde (fase B). Wijkt de actuele werkvoorraad af,
     # dan begint de run niet; zonder dit veld noemt Lex alleen wat er te doen is.
     bevestigd: int | None = Field(default=None, ge=0, le=100_000)
+    # Bij het meedenken (spoor M): de inhoud van de werkvoorraad die de analist bevestigde. Wijkt die af
+    # (andere vragen of kaarten, ander onderzoek, model of prompt), dan begint Lex niet.
+    werkvoorraad_id: str = Field(default="", pattern=r"^(W[0-9a-f]{16})?$")
     # Wat er bij `werkgebied_annoteren` meegaat: het hele werkgebied, of alleen de bronnen onder de
     # actieve deelvragen (met `deelvraag_id`: onder die ene). De bevestigingsknop stuurt het terug.
     bereik: Literal["werkgebied", "deelvragen"] = "werkgebied"
@@ -200,6 +214,8 @@ class ChatRequest(BaseModel):
             self.werkgebied_id = self.onderwerp.werkgebied_id
         if not self.werkgebied_id:
             raise ValueError(f"de actie '{self.actie}' vraagt een werkgebied_id of een onderwerp")
+        if self.werkvoorraad_id and self.bevestigd is None:
+            raise ValueError("'werkvoorraad_id' hoort bij 'bevestigd'")
         if self.bevestigd is not None and self.actie not in BEVESTIG_ACTIES:
             raise ValueError("'bevestigd' hoort bij een actie die om bevestiging vraagt")
         if self.actie == "werkgebied_annoteren":

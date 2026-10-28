@@ -248,7 +248,7 @@ function TermBeoordeling({ werkgebiedId, term, data, onHerlaad, onGewijzigd }: {
             </span>
             <textarea value={definitie} rows={3} maxLength={8000} onChange={(e) => setDefinitieTekst(e.target.value)}
               placeholder="Nog geen definitie: vul hem nu in, of later op de begripskaart"
-              className="focus-ring mt-0.5 w-full rounded-button border border-line bg-paper px-2 py-1 text-sm text-ink" />
+              className="focus-ring mt-0.5 w-full rounded-field border border-line bg-paper px-2 py-1 text-sm text-ink" />
           </label>
           {wordt && definitie.trim() && (
             <p className="text-xs text-muted" data-herkomst-wordt={wordt}>Herkomst: {HERKOMST_LABEL[wordt]}</p>

@@ -28,9 +28,11 @@ Wat hier vastligt en wat niet:
   onderaan, gemarkeerd, en is nooit aangevinkt. Een regeling verzinnen kan niet; wie zijn bronnen nog
   niet kent, kiest "Weet ik (nog) niet" (`ONBEKEND`).
 - **Alleen een gekozen bepaling wordt een bronselectie** (rol *analyseren*, bereik *onderliggend*),
-  gekoppeld aan de deelvraag van het kaartje waarop ze gekozen werd. Een regeling zonder gekozen
+  gekoppeld aan de deelvraag van het kaartje waarop ze gekozen werd. Gekozen is aangevinkt, of zelf getypt en
+  door de node in de graaf gevonden (`eigen`, spoor L); wat niet te vinden is, wordt een vraag op het kaartje. Een regeling zonder gekozen
   bepaling staat alleen in de afbakeningstekst: een selectie van duizenden bepalingen waar er twaalf
-  nodig zijn is onbruikbaar.
+  nodig zijn is onbruikbaar. Die tekst noemt de regelingen en wat erbuiten valt, niet de gekozen
+  bepalingen: die staan één keer, als bronselectie (spoor K).
 
 **Aanvullen** (`aanvul_intake`, `modus: "aanvullen"`): dezelfde kaartjes op een bestaand werkgebied, voor
 de velden van het dossier (naam, aanleiding, context, doel, analysevraag, praktijkvoorbeeld, afbakening).
@@ -60,6 +62,9 @@ logger = logging.getLogger("graph_qa.werkgebied_intake")
 
 STAPPEN = ("naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld", "deelvragen",
            "buiten", "regelingen", "bepalingen")
+#: Alle stappen die een kaartje kan hebben: die van het samenstellen, en `thema` dat alleen bij het aanvullen
+#: voorkomt (na het praktijkvoorbeeld). De api (`IntakeStap`) en `IntakeActie.stap` volgen deze lijst.
+KAARTSTAPPEN = (*STAPPEN[:6], "thema", *STAPPEN[6:])
 #: De vaste kaartjes vóór de bepalingen; daarna één kaartje per deelvraag.
 VASTE_STAPPEN = len(STAPPEN) - 1
 ANALYSEVRAAG = "_analysevraag"
@@ -75,11 +80,17 @@ MAX_DEELVRAGEN = 20
 REDEN = "afbakening bij het samenstellen"
 #: De stappen die het dossier van een bestaand werkgebied aanvullen, met hun veld in het werkgebied. Geen
 #: deelvragen, regelingen of bepalingen: die zijn van de deelvragen-agent.
+#: `thema` (spoor I6/I7) is een TOOI-URI uit tooitop; die stap bestaat alleen bij het aanvullen, niet bij het
+#: samenstellen (daar zijn er nog geen bronnen om het thema uit af te leiden).
 DOSSIERVELD = {"naam": "naam", "aanleiding": "aanleiding", "context": "context", "doel": "doel",
-               "analysevraag": "analysevraag", "praktijkvoorbeeld": "praktijkvoorbeeld", "buiten": "afbakening"}
+               "analysevraag": "analysevraag", "praktijkvoorbeeld": "praktijkvoorbeeld", "thema": "thema",
+               "buiten": "afbakening"}
 DOSSIERSTAPPEN = tuple(DOSSIERVELD)
+#: De volgorde van het aanvullen: die van het samenstellen, met het thema na het praktijkvoorbeeld.
+VOLGORDE_AANVULLEN = DOSSIERSTAPPEN
 VELD_LABEL = {"naam": "Naam", "aanleiding": "Aanleiding", "context": "Context", "doel": "Doel",
-              "analysevraag": "Analysevraag", "praktijkvoorbeeld": "Praktijkvoorbeeld", "buiten": "Afbakening"}
+              "analysevraag": "Analysevraag", "praktijkvoorbeeld": "Praktijkvoorbeeld", "thema": "Thema",
+              "buiten": "Afbakening"}
 
 # Startactiviteit a: de vaste aanleidingen en doelen uit de Leidraad (§2.2), in eigen woorden.
 # (sleutel, label, omschrijving)
@@ -144,6 +155,9 @@ def is_werkgebiedvraag(vraag: str) -> bool:
 
     "Annoteer het werkgebied" en "welke bepalingen horen bij het werkgebied" noemen geen handeling
     van samenstellen en blijven hun eigen route."""
+    from .bronselectie import is_bronselectievraag  # de bronnen van een werkgebied bepalen is iets anders (spoor J)
+    if is_bronselectievraag(vraag):
+        return False
     return bool(_WERKGEBIED.search(vraag or "") or is_wetsanalysevraag(vraag))
 
 
@@ -183,6 +197,7 @@ _VELD_WOORDEN = (
     (re.compile(r"\bdoel(?:en|stelling\w*)?\b", re.I), "doel"),
     (re.compile(r"\b(?:analysevra\w*|hoofdvra\w*|hoofdopdracht\w*|hoofdtaak\w*)", re.I), "analysevraag"),
     (re.compile(r"(?:\bpraktijk\w*|voorbeeld\w*)", re.I), "praktijkvoorbeeld"),
+    (re.compile(r"\bthema\w*", re.I), "thema"),
     (re.compile(r"\bafbakening\w*|\b(?:er)?buiten\b", re.I), "buiten"),
 )
 
@@ -203,6 +218,7 @@ def _dossier_van(werkgebied: dict[str, Any]) -> dict[str, Any]:
     """Wat de intake van het werkgebied bewaart: het dossier, de actieve deelvragen en de bronlabels –
     genoeg voor de context van Lex, zonder de rest van het werkgebied in het agent-geheugen."""
     return {**{v: str(werkgebied.get(v) or "") for v in DOSSIERVELD.values()},
+            "thema_label": str(werkgebied.get("thema_label") or ""),
             "deelvragen": [{"vraag": d.get("vraag", ""), "status": d.get("status", "actief")}
                            for d in werkgebied.get("deelvragen") or [] if d.get("vraag")],
             "bronnen": [{"label": b.get("label", ""), "bron_iri": b.get("bron_iri", ""), "rol": b.get("rol", "")}
@@ -216,7 +232,8 @@ def antwoorden_uit(werkgebied: dict[str, Any]) -> dict[str, Any]:
     w = {k: str(werkgebied.get(k) or "") for k in DOSSIERVELD.values()}
     return {"naam": w["naam"], "aanleiding": {"keuze": "", "tekst": w["aanleiding"]}, "context": w["context"],
             "doel": {"keuzes": [], "tekst": w["doel"]}, "analysevraag": w["analysevraag"],
-            "praktijkvoorbeeld": w["praktijkvoorbeeld"], "buiten": w["afbakening"]}
+            "praktijkvoorbeeld": w["praktijkvoorbeeld"], "buiten": w["afbakening"],
+            "thema": {"uri": w["thema"], "label": str(werkgebied.get("thema_label") or "")}}
 
 
 def aanvul_intake(werkgebied: dict[str, Any], velden: list[str], eerste_zin: str) -> dict[str, Any]:
@@ -258,6 +275,13 @@ def wijzigingen(intake: dict[str, Any]) -> list[dict[str, str]]:
     uit = []
     for stap in intake.get("stappen") or []:
         veld = DOSSIERVELD[stap]
+        if stap == "thema":
+            # De api krijgt de URI, de analist ziet de naam.
+            nieuw = (intake.get("antwoorden") or {}).get("thema") or {}
+            if nieuw.get("uri", "") != toen.get("thema", ""):
+                uit.append({"veld": veld, "label": VELD_LABEL[stap], "toen": toen.get("thema_label", ""),
+                            "nu": nieuw.get("label", ""), "waarde": nieuw.get("uri", "")})
+            continue
         if not _gelijk(toen.get(veld, ""), nu.get(veld, "")):
             uit.append({"veld": veld, "label": VELD_LABEL[stap], "toen": toen.get(veld, ""), "nu": nu.get(veld, "")})
     return uit
@@ -267,7 +291,8 @@ def wijzigverzoek(intake: dict[str, Any]) -> dict[str, Any]:
     """Wat de beurt-driver bij de api wijzigt (`werkgebied_wijzigen`-event): alleen de gewijzigde velden."""
     lijst = wijzigingen(intake)
     return {"werkgebied_id": intake["werkgebied_id"], "verwachte_revisie": intake["revisie"],
-            "wijziging": {w["veld"]: w["nu"] for w in lijst}, "wijzigingen": lijst,
+            "wijziging": {w["veld"]: w.get("waarde", w["nu"]) for w in lijst},
+            "wijzigingen": [{k: v for k, v in w.items() if k != "waarde"} for w in lijst],
             # Het samenvattingskaartje: bij een 412 zet de beurt-driver het terug in het gesprek.
             "kaart": kaart({**intake, "stap": "samenvatting"})}
 
@@ -281,6 +306,12 @@ def deel_sleutel(vraag: str | None) -> str:
     """Waaronder de bepalingen van een deelvraag bewaard worden: haar tekst, zodat terugbladeren en
     herordenen de keuze laten staan."""
     return normaliseer(vraag) if vraag else ANALYSEVRAAG
+
+
+def _met_alineas(tekst: str) -> str:
+    """Witruimte binnen een regel samengevoegd, alinea's behouden (hoogstens één lege regel ertussen)."""
+    regels = [" ".join(r.split()) for r in tekst.replace("\r\n", "\n").split("\n")]
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(regels)).strip()
 
 
 def kaartsleutel(intake: dict[str, Any], stap: str | None = None) -> str:
@@ -363,10 +394,18 @@ def verwerk(intake: dict[str, Any], actie: dict[str, Any]) -> tuple[dict[str, An
         # de laatste gevraagde stap die daar niet na komt.
         stappen = intake.get("stappen") or []
         naar = actie.get("naar", "")
-        if naar not in STAPPEN or actie.get("stap") != stap or stap not in (*stappen, "samenvatting"):
+        # De volgorde van het aanvullen kent het thema (na het praktijkvoorbeeld); een stap van het samenstellen
+        # die er niet in staat (de deelvragen), telt als de laatste dossierstap ervóór.
+        orde = list(VOLGORDE_AANVULLEN)
+        if naar not in orde and naar in STAPPEN:
+            # De dossierstap direct vóór de eerste dossierstap die in het samenstellen na `naar` komt:
+            # de deelvragen liggen tussen het praktijkvoorbeeld en de afbakening, dus daar zit het thema.
+            na = next((x for x in STAPPEN[STAPPEN.index(naar) + 1:] if x in orde), None)
+            naar = orde[orde.index(na) - 1] if na and orde.index(na) > 0 else (orde[-1] if na is None else "")
+        if naar not in orde or actie.get("stap") != stap or stap not in (*stappen, "samenvatting"):
             return intake, "verouderd"
         grens = len(stappen) if stap == "samenvatting" else stappen.index(stap)
-        eerder = [s for s in stappen[:grens] if STAPPEN.index(s) <= STAPPEN.index(naar)]
+        eerder = [s for s in stappen[:grens] if orde.index(s) <= orde.index(naar)]
         return ({**intake, "stap": eerder[-1], "deel": 0}, "verder") if eerder else (intake, "verouderd")
     if soort == "wijzig":
         # Terugbladeren (‹): naar een eerdere stap of een eerder deel, vanaf elke stap; vanaf de
@@ -387,6 +426,9 @@ def verwerk(intake: dict[str, Any], actie: dict[str, Any]) -> tuple[dict[str, An
     antwoorden = dict(intake.get("antwoorden") or {})
     keuzes = [str(k) for k in actie.get("keuzes") or [] if str(k).strip()]
     tekst = " ".join(str(actie.get("tekst") or "").split())
+    # Een lang veld houdt zijn alinea's (context, praktijkvoorbeeld, wat erbuiten valt, de toelichting bij aanleiding
+    # en doel): alleen de spaties binnen een regel en lege regels in een reeks worden samengevoegd.
+    alinea = _met_alineas(str(actie.get("tekst") or ""))
     teksten = [str(t) for t in actie.get("teksten") or []] + ([tekst] if tekst else [])
     overslaan = soort == "overslaan"
 
@@ -401,19 +443,24 @@ def verwerk(intake: dict[str, Any], actie: dict[str, Any]) -> tuple[dict[str, An
         antwoorden["naam"] = naam
     elif stap == "aanleiding":
         keuze = "" if overslaan else next((k for k in keuzes if k in AANLEIDING), "")
-        antwoorden["aanleiding"] = {"keuze": keuze, "tekst": "" if overslaan else tekst[:2000]}
+        antwoorden["aanleiding"] = {"keuze": keuze, "tekst": "" if overslaan else alinea[:2000]}
     elif stap == "doel":
         antwoorden["doel"] = {"keuzes": [] if overslaan else [k for k in keuzes if k in DOEL],
-                              "tekst": "" if overslaan else tekst[:2000]}
+                              "tekst": "" if overslaan else alinea[:2000]}
     elif stap in ("context", "praktijkvoorbeeld"):
-        antwoorden[stap] = "" if overslaan else tekst[:4000]
+        antwoorden[stap] = "" if overslaan else alinea[:4000]
     elif stap == "analysevraag":
         antwoorden["analysevraag"] = "" if overslaan else (tekst or (keuzes[0] if keuzes else ""))[:4000]
     elif stap == "deelvragen":
         antwoorden["deelvragen"] = [] if overslaan else _deelvragen_uit(intake, keuzes, teksten)
     elif stap == "regelingen":
-        if not overslaan and tekst and not keuzes:
-            return {**intake, "zoekterm": tekst[:200]}, "zoek"
+        if not overslaan and tekst and ONBEKEND not in keuzes:
+            # Een getypte regeling is een zoekopdracht. Wat er al aangevinkt was, blijft gekozen en staat op het
+            # volgende kaartje aangevinkt: typen naast aanvinken liet de tekst eerst stil vallen (spoor L).
+            if keuzes:
+                antwoorden["regelingen"] = [{"bwb_id": o["waarde"], "label": o["label"]}
+                                            for k in keuzes if (o := _optie(intake, stap, k))]
+            return {**intake, "antwoorden": antwoorden, "zoekterm": tekst[:200]}, "zoek"
         gekozen = [] if overslaan or ONBEKEND in keuzes else [
             {"bwb_id": o["waarde"], "label": o["label"]} for k in keuzes if (o := _optie(intake, stap, k))]
         antwoorden["regelingen"] = gekozen
@@ -427,13 +474,22 @@ def verwerk(intake: dict[str, Any], actie: dict[str, Any]) -> tuple[dict[str, An
             "bronnen": [] if overslaan or onbekend else [
                 {"bron_iri": o["waarde"], "label": o["label"], "bwb_id": (o.get("bron") or {}).get("bwb_id", "")}
                 for k in keuzes if (o := _optie(intake, sleutel, k))][:MAX_BEPALINGEN + 4],
-            "tekst": "" if overslaan or onbekend else tekst[:1000], "onbekend": onbekend}}
+            "tekst": "" if overslaan or onbekend else tekst[:1000], "onbekend": onbekend,
+            # Wat de analist zelf typte, door de node in de graaf getoetst (`nodes/werkgebied._eigen_bepalingen`):
+            # gewone keuzes, net als de aangevinkte voorstellen.
+            "eigen": [] if overslaan or onbekend else [
+                {"bron_iri": e["bron_iri"], "label": e.get("label") or e["bron_iri"], "bwb_id": e.get("bwb_id", "")}
+                for e in actie.get("eigen") or [] if isinstance(e, dict) and e.get("bron_iri")][:MAX_BEPALINGEN + 4]}}
+    elif stap == "thema":
+        # Alleen een thema dat op het kaartje stond (de voorstellen van Lex en het huidige): een URI uit tooitop.
+        o = None if overslaan else next((x for k in keuzes if (x := _optie(intake, "thema", k))), None)
+        antwoorden["thema"] = {"uri": o["waarde"], "label": o["label"]} if o else (antwoorden.get("thema") or {})
     elif stap == "buiten":
         # Bij het aanvullen is dit de hele afbakening (tot 4000 tekens, zoals de api).
-        antwoorden["buiten"] = "" if overslaan else tekst[:4000 if aanvullen else 2000]
+        antwoorden["buiten"] = "" if overslaan else alinea[:4000 if aanvullen else 2000]
 
     volgende, volgend_deel = _volgende(stap, antwoorden, deel, intake.get("stappen") if aanvullen else None)
-    return {**intake, "antwoorden": antwoorden, "stap": volgende, "deel": volgend_deel, "zoekterm": ""}, "verder"
+    return {**intake, "antwoorden": antwoorden, "stap": volgende, "deel": volgend_deel, "zoekterm": "", "concept": {}}, "verder"
 
 
 # --- Het dossier: alles wat er ligt ------------------------------------------------------------------
@@ -457,20 +513,15 @@ def doel_tekst(a: dict[str, Any]) -> str:
 
 
 def afbakening(antwoorden: dict[str, Any]) -> str:
-    """De afbakeningstekst, deterministisch uit de antwoorden."""
+    """De afbakeningstekst, deterministisch uit de antwoorden: de regelingen en wat erbuiten valt. De gekozen
+    bepalingen staan er niet in; die zijn bronselecties, per deelvraag gekoppeld (spoor K: de methode kent één
+    bronnentabel, 1f/1g, en de afbakening is een scope, geen tweede lijst)."""
     regels = []
     regelingen = [r["label"] for r in antwoorden.get("regelingen") or []]
     if regelingen:
         regels.append(f"Regelingen: {_lijst(regelingen)}.")
     elif antwoorden.get("regelingen_onbekend"):
         regels.append("Regelingen: nog te bepalen.")
-    gekozen = _gekozen(antwoorden)
-    labels = list(dict.fromkeys(b["label"] for _, x in gekozen for b in x["bronnen"]))
-    extra = [x["tekst"].strip() for _, x in gekozen if (x.get("tekst") or "").strip()]
-    if labels or extra:
-        regels.append(f"Bepalingen: {_lijst(labels + extra)}.")
-    elif gekozen and all(x.get("onbekend") for _, x in gekozen):
-        regels.append("Bepalingen: nog te bepalen.")
     if (buiten := (antwoorden.get("buiten") or "").strip()):
         regels.append(f"Buiten de afbakening: {buiten.rstrip('.')}.")
     return "\n".join(regels)
@@ -484,12 +535,14 @@ def als_werkgebied(intake: dict[str, Any]) -> dict[str, Any]:
         # Het bestaande werkgebied, met de antwoorden van nu; de afbakening is de tekst van de stap `buiten`.
         return {**(intake.get("werkgebied") or {}), "naam": a.get("naam", ""), "aanleiding": aanleiding_tekst(a),
                 "context": a.get("context", ""), "doel": doel_tekst(a), "analysevraag": a.get("analysevraag", ""),
-                "praktijkvoorbeeld": a.get("praktijkvoorbeeld", ""), "afbakening": a.get("buiten", "")}
+                "praktijkvoorbeeld": a.get("praktijkvoorbeeld", ""), "afbakening": a.get("buiten", ""),
+                "thema": (a.get("thema") or {}).get("uri", ""), "thema_label": (a.get("thema") or {}).get("label", "")}
     return {"naam": a.get("naam", ""), "aanleiding": aanleiding_tekst(a), "context": a.get("context", ""),
             "doel": doel_tekst(a), "analysevraag": a.get("analysevraag", ""),
             "praktijkvoorbeeld": a.get("praktijkvoorbeeld", ""), "afbakening": afbakening(a),
             "deelvragen": [{"vraag": d["vraag"], "status": "actief"} for d in a.get("deelvragen") or []],
-            "bronnen": []}
+            "bronnen": [{"label": b["label"], "bron_iri": b.get("bron_iri", ""), "rol": "analyseren"}
+                        for b in bronnen(a)]}
 
 
 def dossier(intake: dict[str, Any]) -> str:
@@ -510,8 +563,9 @@ def dossier_hash(intake: dict[str, Any], zonder: tuple[str, ...] = ()) -> str:
 
 # --- Wat er aangemaakt wordt -----------------------------------------------------------------------
 
-_ARTIKELEN = re.compile(r"\bart(?:ikel(?:en)?|\.)\s*((?:\d+[a-z]*(?:\.\d+[a-z]*)*(?:\s*(?:,|en|t/m)\s*)?)+)", re.I)
-_NUMMER = re.compile(r"\d+[a-z]*(?:\.\d+[a-z]*)*", re.I)
+# Een nummer met punten (Leidraad 25.1) of dubbele punten (Awb 4:86) is één artikel, geen twee.
+_ARTIKELEN = re.compile(r"\bart(?:ikel(?:en)?|\.)\s*((?:\d+[a-z]*(?:[.:]\d+[a-z]*)*(?:\s*(?:,|en|t/m)\s*)?)+)", re.I)
+_NUMMER = re.compile(r"\d+[a-z]*(?:[.:]\d+[a-z]*)*", re.I)
 
 
 def artikelen_in(tekst: str) -> list[str]:
@@ -529,21 +583,15 @@ def _gekozen(antwoorden: dict[str, Any]) -> list[tuple[str | None, dict[str, Any
 
 
 def bronnen(antwoorden: dict[str, Any]) -> list[dict[str, Any]]:
-    """De bronselecties: elke gekozen bepaling, met de deelvragen op wier kaartje ze gekozen werd (één
-    bron voor meer deelvragen), en de artikelen uit de vrije tekst als er precies één regeling is (de
-    api toetst ze tegen de graaf)."""
-    uit: dict[tuple, dict[str, Any]] = {}
-    regelingen = antwoorden.get("regelingen") or []
+    """De bronselecties: elke gekozen bepaling – aangevinkt, of zelf getypt en in de graaf getoetst (`eigen`) –
+    met de deelvragen op wier kaartje ze gekozen werd (één bron voor meer deelvragen). Een getypte tekst die de
+    node niet kon thuisbrengen, komt hier niet: die liet het kaartje staan met een vraag (nooit stil weg)."""
+    uit: dict[str, dict[str, Any]] = {}
     for vraag, x in _gekozen(antwoorden):
-        items = [((b["bron_iri"],), {"bron_iri": b["bron_iri"], "label": b["label"]}) for b in x["bronnen"]]
-        if len(regelingen) == 1 and x.get("tekst"):
-            bwb, naam = regelingen[0]["bwb_id"], regelingen[0]["label"]
-            items += [((bwb, a), {"bwb_id": bwb, "artikel": a, "label": f"{naam} – art. {a}"})
-                      for a in artikelen_in(x["tekst"])]
-        for sleutel, bron in items:
-            b = uit.setdefault(sleutel, {**bron, "deelvragen": []})
-            if vraag and vraag not in b["deelvragen"]:
-                b["deelvragen"].append(vraag)
+        for b in [*x["bronnen"], *(x.get("eigen") or [])]:
+            bron = uit.setdefault(b["bron_iri"], {"bron_iri": b["bron_iri"], "label": b["label"], "deelvragen": []})
+            if vraag and vraag not in bron["deelvragen"]:
+                bron["deelvragen"].append(vraag)
     return list(uit.values())
 
 
@@ -580,6 +628,9 @@ _VRAGEN = {
     "deelvragen": ("Welke deelvragen horen bij de analysevraag?",
                    "Deelvragen maken de analysevraag concreet en laten zien of alles aan bod komt. Kies uit mijn "
                    "voorstellen en voeg er zelf aan toe."),
+    "thema": ("Welk thema heeft het werkgebied?",
+              "Een thema uit de TOOI-thesaurus tooitop. Ik leid het af uit de rechtsgebieden van de bronnen; een ander "
+              "thema kies je in Gegevens bewerken."),
     "buiten": ("Wat valt er buiten het werkgebied?",
                "Bijvoorbeeld overgangsrecht, of een groep belastingplichtigen die je niet meeneemt. Ik laat het "
                "weg bij het zoeken naar bronnen."),
@@ -615,6 +666,8 @@ def eerder_antwoord(a: dict[str, Any], stap: str, deelvraag: str | None = None) 
     """Wat er bij terugbladeren vooringevuld staat: het eerdere antwoord van deze stap."""
     if stap in ("naam", "context", "analysevraag", "praktijkvoorbeeld", "buiten"):
         return [a[stap]] if a.get(stap) else []
+    if stap == "thema":
+        return [a["thema"]["uri"]] if (a.get("thema") or {}).get("uri") else []
     if stap == "aanleiding":
         x = a.get("aanleiding") or {}
         return [v for v in (x.get("keuze", ""), x.get("tekst", "")) if v]
@@ -704,10 +757,12 @@ def kaart(intake: dict[str, Any]) -> dict[str, Any]:
         opties.append({"label": ONBEKEND_LABEL, "waarde": ONBEKEND, "bron": {}, "omschrijving": ONBEKEND_OMSCHRIJVING})
     if (melding := (intake.get("meldingen") or {}).get(sleutel)):
         toelichting = f"{melding} {toelichting}"
-    return {**basis, "soort": "vraag", "stap": stap, "nr": STAPPEN.index(stap) + 1 + deel, "vraag": vraag,
+    return {**basis, "soort": "vraag", "stap": stap, "nr": (STAPPEN.index(stap) if stap in STAPPEN else 0) + 1 + deel,
+            "vraag": vraag,
             "toelichting": toelichting, "opties": opties, "meerkeuze": stap in _MEERKEUZE,
-            "vrije_tekst": True, "meer_tekst": stap == "deelvragen", "overslaanbaar": stap != "naam",
-            "vooringevuld": eerder or list(intake.get("vooringevuld", {}).get(sleutel, [])), "samenvatting": {},
+            "vrije_tekst": stap != "thema", "meer_tekst": stap == "deelvragen", "overslaanbaar": stap != "naam",
+            "vooringevuld": (intake.get("concept") or {}).get(sleutel) or eerder
+                            or list(intake.get("vooringevuld", {}).get(sleutel, [])), "samenvatting": {},
             "terug": stap != STAPPEN[0], "beantwoord": bool(eerder) or _beantwoord(intake, stap)}
 
 

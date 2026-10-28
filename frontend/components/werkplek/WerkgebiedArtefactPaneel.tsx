@@ -9,13 +9,14 @@ import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
 import { BegripPaneel } from "@/components/werkgebieden/BegripPaneel";
 import { BegripVoorstellen } from "@/components/werkgebieden/BegripVoorstellen";
 import { BronKandidaten } from "@/components/werkgebieden/BronKandidaten";
+import { BronnenBijDeelvraag } from "@/components/werkgebieden/BronnenBijDeelvraag";
 import { DeelvraagPaneel } from "@/components/werkgebieden/DeelvraagPaneel";
 import { OnbewaardMelding } from "@/components/werkgebieden/OnbewaardMelding";
 import { WerkgebiedSamenvatting } from "@/components/werkgebieden/WerkgebiedSamenvatting";
-import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import { Melding } from "@/components/ui/Melding";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
+import { knopKlasse } from "@/components/ui/Button";
 import { foutTekst, haalWerkgebied, verwijderWerkgebied } from "@/lib/api";
 import { metSpoor } from "@/lib/uiSpoor";
 import { verwijderdUit, verwijderdZin, type Verwijderd } from "@/lib/verwijderen";
@@ -34,12 +35,13 @@ function paginaVan(doel: WerkgebiedArtefact): string {
     case "begrip": return doel.begrip_id ? begripPad(id, doel.begrip_id) : artefactPad(id, "begrippen");
     case "bronnen": return voorstellenPad(id);
     case "deelvraag": return doel.deelvraag_id ? deelvraagPad(id, doel.deelvraag_id) : projectPad(id);
+    case "bronselectie": return artefactPad(id, "bronselectie");
     default: return projectPad(id);
   }
 }
 const KOP: Record<WerkgebiedArtefact["soort"], string> = {
   begrippen: "Begripsvoorstellen van Lex", bronnen: "Gevonden bepalingen van Lex", werkgebied: "Samengesteld met Lex",
-  deelvraag: "Deelvraag", begrip: "Begrip",
+  deelvraag: "Deelvraag", begrip: "Begrip", bronselectie: "Bronselectie met Lex",
 };
 
 /** Een artefact van een werkgebied in de werkplek, in dezelfde schil als een annotatie (een kolom naast
@@ -52,11 +54,14 @@ const KOP: Record<WerkgebiedArtefact["soort"], string> = {
  *    van Lex per veld en een kleine bewerking; de begripskaart zelf staat in het werkgebied.
  *  - **deelvraag** (F3d) – één deelvraag (`DeelvraagPaneel`): stand, de voorstellen die haar vervangen,
  *    bronnen en de kandidaten die Lex erbij vond.
+ *  - **bronselectie** (spoor J) – de bronselectie per deelvraag (`BronnenBijDeelvraag`, dezelfde als de tab Bronnen): de voortgang, de
+ *    bronnen met hun rol per deelvraag, de voorstellen en de onderzoekspunten; de deelvraag waar het gesprek
+ *    staat is open, en *Ga verder met deelvraag n* zet een andere klaar in hetzelfde gesprek.
  *  - **werkgebied** – het werkgebied dat Lex met de analist samenstelde (activiteit 1): de
  *    `WerkgebiedSamenvatting` (dezelfde als bovenaan de pagina) en de weg naar die pagina.
  *
- *  Eén schakelaar op de soort; geen Lex-knoppen in de inhoud – wel *Vraag Lex* in de kop, die het object
- *  als onderwerp boven het invoerveld zet.
+ *  Eén schakelaar op de soort; geen Lex-knoppen, ook niet in de kop (spoor K): je zit al in het gesprek, en de
+ *  suggesties boven het invoerveld doen het werk. Een deelvraag in de samenvatting is wel aan te klikken.
  *
  *  Eén inhoud, twee schillen. Net als op de tab vraagt het paneel eerst bevestiging als de kaart
  *  niet-bewaarde wijzigingen draagt: bij sluiten (kruisje, Escape, achtergrond) en bij een link weg. */
@@ -79,11 +84,7 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
   return (
     <Dialog label={`${soort}: ${titel}`} variant={variant} onSluit={sluit}>
       <div data-artefact data-artefact-soort={doel.soort} className="flex min-h-0 flex-1 flex-col">
-        <PaneelKop soort={KOP[doel.soort]} titel={titel} pagina={naarWerkgebied} onSluit={sluit} lex={
-          doel.soort === "werkgebied" ? <VraagLexKnop onderwerp={{ soort: "werkgebied", werkgebied_id: doel.werkgebied_id, id: "", label: doel.titel ?? "" }} />
-            : doel.soort === "deelvraag" && doel.deelvraag_id ? <VraagLexKnop onderwerp={{ soort: "deelvraag", werkgebied_id: doel.werkgebied_id, id: doel.deelvraag_id, label: doel.titel }} />
-            : doel.soort === "begrip" && doel.begrip_id ? <VraagLexKnop onderwerp={{ soort: "begrip", werkgebied_id: doel.werkgebied_id, id: doel.begrip_id, label: doel.titel }} />
-            : undefined} />
+        <PaneelKop soort={KOP[doel.soort]} titel={titel} pagina={naarWerkgebied} onSluit={sluit} />
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           {bewaker.wachtend && (
             <OnbewaardMelding
@@ -108,6 +109,8 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
             <DeelvraagPaneel werkgebiedId={doel.werkgebied_id} deelvraagId={doel.deelvraag_id}
               onKies={onWissel ? (d) => onWissel({ soort: "deelvraag", werkgebied_id: doel.werkgebied_id, run_id: "",
                 deelvraag_id: d.id, titel: d.vraag }) : undefined} />
+          ) : doel.soort === "bronselectie" ? (
+            <BronnenBijDeelvraag werkgebiedId={doel.werkgebied_id} huidig={doel.deelvraag_id} inGesprek />
           ) : doel.soort === "begrippen" ? (
             <BegripVoorstellen id={doel.werkgebied_id} runId={doel.run_id} inklapbaar={false} />
           ) : (
@@ -181,9 +184,9 @@ function WerkgebiedInhoud({ id, naarWerkgebied, onVerwijderd }: {
         <VerwijderKnop soort="werkgebied" onBevestig={verwijder} className="ml-auto" />
       </div>
       {melding && <Melding type="waarschuwing" compact>{melding}</Melding>}
-      <WerkgebiedSamenvatting wg={wg} vraagLex />
+      <WerkgebiedSamenvatting wg={wg} />
       <Link href={naarWerkgebied}
-        className="focus-ring inline-flex w-full items-center justify-center rounded-full bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent/90 sm:w-auto">
+        className={`${knopKlasse("primary", "md")} w-full sm:w-auto`}>
         Open het werkgebied
       </Link>
     </div>

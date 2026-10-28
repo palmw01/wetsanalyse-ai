@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { bladerenVan, bouwBoom, omvangZin, regelingUitLabel, type Plaats } from "./bronPlaats";
+import { bladerenVan, bouwBoom, omvangZin, regelingUitLabel, rijenPerRegeling, type Plaats } from "./bronPlaats";
 
 const IW = "urn:bwb:BWBR0004770";
 const plaats = (iri: string, pad: [string, string][], volgorde: number, bwb = "BWBR0004770", titel = "Invorderingswet 1990"): Plaats => ({
@@ -39,6 +39,9 @@ describe("bouwBoom", () => {
     expect(iw.kinderen[0].label).toBe("Artikel 9");
     expect(iw.kinderen[0].bladeren.map((b) => b.label).sort()).toEqual(["Hele bepaling", "Lid 1"]);
     expect(omvangZin(boom)).toBe("3 bepalingen in 2 regelingen");
+    // Plat per regeling (spoor K): één rij per bepaling, met haar plek, in de volgorde van de wet.
+    const rijen = rijenPerRegeling(boom).find((r) => r.regeling === "Invorderingswet 1990")!.rijen;
+    expect(rijen.map((r) => r.plek)).toEqual(["Artikel 9", "Artikel 9 · Lid 1"]);
   });
 
   it("een divisie van een beleidsregel staat op de plek van het artikel; onbekend valt onder de regeling", () => {

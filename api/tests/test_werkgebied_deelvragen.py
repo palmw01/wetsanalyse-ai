@@ -49,7 +49,7 @@ async def _begrip(wg, naam, status) -> str:
 async def test_zonder_deelvragen_verandert_er_niets(client):
     wg = await _nieuw(client)
     assert wg["deelvragen"] == []
-    assert await _dekking(client, wg) == {"deelvragen": [], "telling": {"geen_bron": 0, "geen_begrip": 0, "gedekt": 0},
+    assert await _dekking(client, wg) == {"deelvragen": [], "telling": {"geen_bron": 0, "met_bron": 0},
                                           "totaal": 0}
 
 
@@ -118,15 +118,16 @@ async def test_dekking_per_deelvraag(client):
                          json={"verwachte_revisie": wg["revisie"], "bronnen": ["vreemd"]})
     assert r.status_code == 422 and r.json()["detail"]["ids"] == ["vreemd"]
     d = await _dekking(client, wg)
-    assert [x["stand"] for x in d["deelvragen"]] == ["gedekt", "geen_begrip", "geen_bron"]
-    assert d["telling"] == {"geen_bron": 1, "geen_begrip": 1, "gedekt": 1}
+    # De dekking is of er een bron bij hoort; een begrip telt niet (spoor K: begrippen horen bij het werkgebied).
+    assert [x["stand"] for x in d["deelvragen"]] == ["met_bron", "met_bron", "geen_bron"]
+    assert d["telling"] == {"geen_bron": 1, "met_bron": 2}
     assert d["deelvragen"][0]["bronnen"][0]["id"] == sel
-    assert d["deelvragen"][0]["begrippen"] == [{"id": geaccordeerd, "naam": "invorderbaar", "status": "geaccordeerd"}]
+    assert "begrippen" not in d["deelvragen"][0]
     # Een weggehaalde selectie telt niet meer mee.
     r = await client.delete(f"/v1/werkgebieden/{wg['id']}/bronnen/{sel}", params={"verwachte_revisie": wg["revisie"]})
     assert r.status_code == 200
     d = await _dekking(client, wg)
-    assert d["deelvragen"][1]["bronnen"] == [] and d["deelvragen"][1]["stand"] == "geen_begrip"
+    assert d["deelvragen"][1]["bronnen"] == [] and d["deelvragen"][1]["stand"] == "geen_bron"
 
 
 async def test_de_bronnenrun_zoekt_ook_per_deelvraag(client):
@@ -193,7 +194,7 @@ async def test_een_overgenomen_herformulering_vervangt_de_deelvraag(client):
     assert [d["id"] for d in wg["deelvragen"]] == [nid, tweede["id"]]
     nieuw = wg["deelvragen"][0]
     assert (nieuw["bronnen"], nieuw["begrippen"]) == ([sel], [begrip])
-    assert (await _dekking(client, wg))["deelvragen"][0]["stand"] == "gedekt"
+    assert (await _dekking(client, wg))["deelvragen"][0]["stand"] == "met_bron"
     detail = (await client.get(f"/v1/werkgebieden/{wg['id']}/deelvragen/{oud['id']}")).json()
     assert detail["status"] == "vervangen" and detail["opvolgers"] == [{"id": nid, "vraag": nieuw["vraag"]}]
     acties = [a["actie"] for a in (await client.get(f"/v1/werkgebieden/{wg['id']}/audit")).json()["audit"]]

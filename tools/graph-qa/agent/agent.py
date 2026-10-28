@@ -179,6 +179,7 @@ async def answer_stream(
     onderwerp: Any = None,
     actie: str = "",
     bevestigd: int | None = None,
+    werkvoorraad_id: str = "",
     agent_api: Any = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """
@@ -249,6 +250,7 @@ async def answer_stream(
         # Een klik op een suggestie, en wat de agent deed (F3c): alleen deze beurt.
         "actie": actie or "",
         "bevestigd": bevestigd,
+        "werkvoorraad_id": werkvoorraad_id or "",
         "agent_taak": {},
         "agent_uitkomst": {},
         "gesprek_id": conversation_id or "",

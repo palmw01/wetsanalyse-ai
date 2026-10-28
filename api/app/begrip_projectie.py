@@ -108,6 +108,14 @@ async def invoer(conn, werkgebied_id: str) -> dict | None:
                                       .order_by(k.c.id))).all()
     relaties = (await conn.execute(select(r).where(r.c.werkgebied_id == werkgebied_id, r.c.verwijderd.is_(None),
                                                    r.c.beoordeling == "akkoord").order_by(r.c.id))).all()
+    from .begrip_store import definitie_onderbouwing      # begrip_store schrijft; de projectie leest alleen
+    onderbouwing = {}
+    for x in begrippen:
+        o = await definitie_onderbouwing(conn, x.id, x.inhoud)
+        iris = sorted({f["bron_iri"] for f in (o or {}).get("fragmenten") or []}
+                      | ({o["definitie_bron_iri"]} if o and o.get("definitie_bron_iri") else set()))
+        if iris:
+            onderbouwing[x.id] = iris
     per_begrip: dict[str, list[dict]] = {}
     for x in koppelingen:
         bewijs = x.bewijs or {}
@@ -120,10 +128,14 @@ async def invoer(conn, werkgebied_id: str) -> dict | None:
                     ([bewijs["eigenaar_iri"]] if bewijs.get("eigenaar_iri") else [])})
     return {
         "schema": SCHEMA_VERSIE,
-        "werkgebied": {"id": wg.id, "naam": wg.naam, "analysevraag": wg.analysevraag or ""},
+        "werkgebied": {"id": wg.id, "naam": wg.naam, "analysevraag": wg.analysevraag or "", "thema": wg.thema or ""},
         "begrippen": [{"id": x.id, "status": x.status, "revisie": x.revisie, "inhoud": x.inhoud,
                        "geaccordeerd_op": _t(x.geaccordeerd_op), "geaccordeerd_revisie": x.geaccordeerd_revisie,
-                       "gewijzigd": _t(x.gewijzigd), "koppelingen": per_begrip.get(x.id, [])} for x in begrippen],
+                       "gewijzigd": _t(x.gewijzigd), "koppelingen": per_begrip.get(x.id, []),
+                       # Spoor M: de bronnen waarop de overgenomen definitie rust (alleen als die er zijn,
+                       # zodat de hash van een werkgebied zonder zulke definitie gelijk blijft).
+                       **({"onderbouwing": onderbouwing[x.id]} if x.id in onderbouwing else {})}
+                      for x in begrippen],
         "relaties": [{"id": x.id, "van": x.van_begrip, "naar": x.naar_begrip, "type": x.type,
                       "herkomst": x.herkomst, "toelichting": x.toelichting or ""} for x in relaties],
     }
@@ -146,9 +158,10 @@ def alleen_geaccordeerd(inv: dict) -> dict:
             "relaties": [r for r in inv["relaties"] if r["van"] in ids and r["naar"] in ids]}
 
 
-def bouw_graaf(inv: dict, paginas: dict[str, str] | None = None) -> Graph:
-    """De named graph van één werkgebied. `paginas` (bron-IRI → URL op wetten.overheid.nl) alleen bij de
-    export: de projectie leunt niet op de brongraaf, zodat ze uit Postgres alleen te herbouwen is."""
+def bouw_graaf(inv: dict, paginas: dict[str, str] | None = None, uitgevers: dict[str, str] | None = None) -> Graph:
+    """De named graph van één werkgebied. `paginas` (bron-IRI → URL op wetten.overheid.nl) en `uitgevers`
+    (bron-IRI → TOOI-organisatie, spoor I6) alleen bij de export: de projectie leunt niet op de brongraaf,
+    zodat ze uit Postgres alleen te herbouwen is."""
     g = Graph()
     for prefix, ns in (("skos", SKOS), ("dct", DCT), ("foaf", FOAF), ("wa", WA), ("isothes", ISOTHES)):
         g.bind(prefix, ns)
@@ -159,11 +172,14 @@ def bouw_graaf(inv: dict, paginas: dict[str, str] | None = None) -> Graph:
     if wg["analysevraag"].strip():
         g.add((kader, DCT.description, _nl(wg["analysevraag"])))
     g.add((kader, RDFS.comment, _nl(TOELICHTING)))
+    # Spoor I6: het thema van het werkgebied, een TOOI-URI uit tooitop.
+    if wg.get("thema"):
+        g.add((kader, DCT.subject, URIRef(wg["thema"])))
     g.add((kader, WA.werkgebiedId, Literal(wg["id"])))
     g.add((kader, WA.schemaVersie, Literal(SCHEMA_VERSIE)))
     g.add((kader, WA.projectieHash, Literal(invoer_hash(inv))))
     for b in inv["begrippen"]:
-        _begrip(g, kader, b, paginas or {})
+        _begrip(g, kader, b, paginas or {}, uitgevers or {})
     aanwezig = {b["id"] for b in inv["begrippen"]}
     for r in inv["relaties"]:
         if r["van"] not in aanwezig or r["naar"] not in aanwezig:
@@ -187,7 +203,7 @@ def bouw_graaf(inv: dict, paginas: dict[str, str] | None = None) -> Graph:
     return g
 
 
-def _begrip(g: Graph, kader: URIRef, b: dict, paginas: dict[str, str]) -> None:
+def _begrip(g: Graph, kader: URIRef, b: dict, paginas: dict[str, str], uitgevers: dict[str, str]) -> None:
     c, i = begrip_iri(b["id"]), b["inhoud"]
     g.add((c, RDF.type, SKOS.Concept))
     g.add((c, SKOS.inScheme, kader))
@@ -200,9 +216,12 @@ def _begrip(g: Graph, kader: URIRef, b: dict, paginas: dict[str, str]) -> None:
         g.add((c, RDFS.comment, _nl(i["uitleg"])))
     if (i.get("context") or "").strip():
         g.add((c, SKOS.scopeNote, _nl(i["context"])))
+    # NL-SBB `skos:example` is een voorbeeld van het begrip: alleen *wel*. Een tegenvoorbeeld en een
+    # grensgeval toetsen de afbakening; ze gaan mee onder een eigen predicaat, niet als voorbeeld.
     for v in i.get("voorbeelden") or []:
-        if v.get("oordeel") == "wel":
-            g.add((c, SKOS.example, _nl(v["tekst"])))
+        p = {"wel": SKOS.example, "niet": WA.tegenvoorbeeld, "onzeker": WA.grensgeval}.get(v.get("oordeel"))
+        if p is not None:
+            g.add((c, p, _nl(v["tekst"])))
     g.add((c, WA.status, Literal(b["status"])))
     g.add((c, WA.revisie, Literal(b["revisie"])))
     for p, k in ((WA.definitieHerkomst, "definitie_herkomst"), (WA.definitieDoor, "definitie_door")):
@@ -226,9 +245,15 @@ def _begrip(g: Graph, kader: URIRef, b: dict, paginas: dict[str, str]) -> None:
             g.add((n, WA.bron, URIRef(bron)))
             if k["rol"] in DRAGEND and k["beoordeling"] != "afgewezen":
                 bronnen.add((bron, k["vindplaats"]))
+    # Spoor M: de bronnen waarop de overgenomen definitie rust, ook een contextbron zonder passage. Een
+    # bron die alleen onderzocht is maar niet gekozen, wordt geen bron.
+    onderbouwing = set(b.get("onderbouwing") or [])
+    bronnen |= {(bron, "") for bron in onderbouwing if not any(x == bron for x, _ in bronnen)}
     # NL-SBB: de bron als `dct:source` → brondocument. Eén per bronnode van een dragende passage.
     for bron, vindplaats in sorted(bronnen):
         doc = URIRef("urn:wa:bron:" + hashlib.sha256(f"{b['id']}\x1f{bron}".encode()).hexdigest()[:16])
+        if bron in onderbouwing:
+            g.add((doc, WA.rol, Literal("definitieonderbouwing")))
         g.add((c, DCT.source, doc))
         g.add((doc, RDF.type, FOAF.Document))
         g.add((doc, WA.bron, URIRef(bron)))
@@ -237,6 +262,8 @@ def _begrip(g: Graph, kader: URIRef, b: dict, paginas: dict[str, str]) -> None:
             g.add((doc, DCT.bibliographicCitation, Literal(vindplaats)))
         if paginas.get(bron):
             g.add((doc, FOAF.page, URIRef(paginas[bron])))
+        if uitgevers.get(bron):
+            g.add((doc, DCT.publisher, URIRef(uitgevers[bron])))
 
 
 # --- conformiteit ------------------------------------------------------------------------------
@@ -318,6 +345,32 @@ async def paginas(bronnen: set[str]) -> dict[str, str]:
     return uit
 
 
+_UITGEVER_QUERY = """PREFIX bwb: <urn:bwb-ns:>
+SELECT ?r ?org WHERE {{ VALUES ?r {{ {waarden} }}
+  GRAPH ?g {{ ?r bwb:eerstverantwoordelijkeOrganisatie ?org }} FILTER(STRSTARTS(STR(?g), "urn:bwb:graph:")) }}"""
+
+
+def _regeling(bron: str) -> str:
+    return ":".join(bron.split(":")[:3])
+
+
+async def uitgevers(bronnen: set[str]) -> dict[str, str]:
+    """Bron-IRI → de TOOI-organisatie van haar regeling (`bwb:eerstverantwoordelijkeOrganisatie`, spoor I6),
+    voor `dct:publisher` op het brondocument. Best-effort, net als `paginas`."""
+    iris = sorted(i for i in bronnen if _BWB_IRI.fullmatch(i))
+    regelingen = sorted({_regeling(i) for i in iris})
+    if not regelingen or not get_settings().graphdb_url:
+        return {}
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            rijen = await _select(client, _UITGEVER_QUERY.format(waarden=" ".join(URIRef(r).n3() for r in regelingen)))
+    except (httpx.HTTPError, ConnectionError, ValueError) as exc:
+        logger.warning("begrippen_export_uitgevers_onbeschikbaar", extra={"fouttype": type(exc).__name__})
+        return {}
+    per = {r["r"]: r["org"] for r in rijen if r.get("org", "").startswith("https://identifier.overheid.nl/tooi/")}
+    return {i: per[_regeling(i)] for i in iris if _regeling(i) in per}
+
+
 async def export_turtle(werkgebied_id: str, alles: bool) -> bytes:
     """De Turtle-export: dezelfde `bouw_graaf` als de projectie (standaard alleen geaccordeerd), met
     `foaf:page` naar de wettekst, de NL-SBB-versie en per begrip `wa:nlSbbConform`."""
@@ -329,23 +382,32 @@ async def export_turtle(werkgebied_id: str, alles: bool) -> bytes:
         if wg is None or wg.gearchiveerd is not None:
             raise HTTPException(404, "Werkgebied bestaat niet.")
         inv = await invoer(conn, werkgebied_id) or {
-            "schema": SCHEMA_VERSIE, "werkgebied": {"id": wg.id, "naam": wg.naam, "analysevraag": wg.analysevraag or ""},
+            "schema": SCHEMA_VERSIE, "werkgebied": {"id": wg.id, "naam": wg.naam, "analysevraag": wg.analysevraag or "",
+                                                    "thema": wg.thema or ""},
             "begrippen": [], "relaties": []}
     if not alles:
         inv = alleen_geaccordeerd(inv)
-    bronnen = {bron for b in inv["begrippen"] for k in b["koppelingen"] for bron in k["bron"]}
-    g = bouw_graaf(inv, await paginas(bronnen))
-    kader = kader_iri(werkgebied_id)
-    g.add((kader, DCT.conformsTo, NL_SBB))
-    g.add((kader, WA.nlSbbVersie, Literal(NL_SBB_VERSIE)))
-    g.add((kader, WA.exportOmvang, Literal("alle" if alles else "geaccordeerd")))
-    g.add((kader, PROV.generatedAtTime, Literal(db.utcnow().isoformat(), datatype=XSD.dateTime)))
-    c = conformiteit(g)
-    for iri, stand in c["begrippen"].items():
-        if stand["conform"] is not None:
-            g.add((URIRef(iri), WA.nlSbbConform, Literal(stand["conform"])))
-    g.bind("prov", PROV)
-    return g.serialize(format="turtle").encode("utf-8")
+    bronnen = {bron for b in inv["begrippen"] for k in b["koppelingen"] for bron in k["bron"]} \
+        | {bron for b in inv["begrippen"] for bron in b.get("onderbouwing") or []}
+    pag, uitg = await paginas(bronnen), await uitgevers(bronnen)
+    nu = db.utcnow().isoformat()
+
+    def bouw() -> bytes:
+        g = bouw_graaf(inv, pag, uitg)
+        kader = kader_iri(werkgebied_id)
+        g.add((kader, DCT.conformsTo, NL_SBB))
+        g.add((kader, WA.nlSbbVersie, Literal(NL_SBB_VERSIE)))
+        g.add((kader, WA.exportOmvang, Literal("alle" if alles else "geaccordeerd")))
+        g.add((kader, PROV.generatedAtTime, Literal(nu, datatype=XSD.dateTime)))
+        c = conformiteit(g)
+        for iri, stand in c["begrippen"].items():
+            if stand["conform"] is not None:
+                g.add((URIRef(iri), WA.nlSbbConform, Literal(stand["conform"])))
+        g.bind("prov", PROV)
+        return g.serialize(format="turtle").encode("utf-8")
+
+    # rdflib en SHACL zijn pure Python: in een thread, zodat de event loop van de api vrij blijft.
+    return await asyncio.to_thread(bouw)
 
 
 async def conformiteit_van(werkgebied_id: str) -> dict[str, Any]:
@@ -354,7 +416,7 @@ async def conformiteit_van(werkgebied_id: str) -> dict[str, Any]:
         inv = await invoer(conn, werkgebied_id)
     if inv is None:
         return {"beschikbaar": True, "nl_sbb_versie": NL_SBB_VERSIE, "begrippen": {}, "kader": []}
-    c = conformiteit(bouw_graaf(inv))
+    c = await asyncio.to_thread(lambda: conformiteit(bouw_graaf(inv)))
     prefix = str(begrip_iri(""))
     return {**c, "begrippen": {iri[len(prefix):]: v for iri, v in c["begrippen"].items()}}
 
@@ -393,7 +455,7 @@ async def projecteer(werkgebied_id: str, zeker: bool = False) -> str:
                 r.raise_for_status()
                 _geschreven[werkgebied_id] = None
                 return "verwijderd"
-            data = bouw_graaf(inv).serialize(format="turtle").encode()
+            data = await asyncio.to_thread(lambda: bouw_graaf(inv).serialize(format="turtle").encode())
             r = await client.put(_repo() + "/rdf-graphs/service", params={"graph": str(graph_iri(werkgebied_id))},
                                  content=data, headers={"Content-Type": "text/turtle"})
             r.raise_for_status()

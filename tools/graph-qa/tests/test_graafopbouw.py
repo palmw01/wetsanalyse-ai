@@ -42,7 +42,7 @@ def test_planning_is_de_standaardvorm():
     assert nodes == {
         "supervisor", "agent", "tools", "verify", "correct", "finalize", "annotaties_zoeken",
         "begrippen_zoeken", "overzicht_bouwen", "annoteer", "emit", "advance", "afwijzen",
-        "werkgebied_intake", "agent_taak",
+        "werkgebied_intake", "bronselectie", "agent_taak",
     }
     assert edges == {
         (START, "supervisor", "", False),
@@ -65,6 +65,10 @@ def test_planning_is_de_standaardvorm():
         # verify/finalize – er wordt niets over wetgeving beweerd (nodes/werkgebied.py).
         ("supervisor", "werkgebied_intake", "", True),
         ("werkgebied_intake", EIND, "", False),
+        # De bronselectie per deelvraag (spoor J): één stap per beurt, de stand staat bij de api
+        # (nodes/bronselectie.py).
+        ("supervisor", "bronselectie", "", True),
+        ("bronselectie", EIND, "", False),
         # Een taak van een agent op het werkgebied (F3c): deelvragen, begrippen, het werkgebied
         # annoteren. Eén taak per beurt, zonder verify/finalize (nodes/agent_taak.py).
         ("supervisor", "agent_taak", "", True),
@@ -84,6 +88,7 @@ def test_planning_is_de_standaardvorm():
         ("advance", "overzicht_bouwen", "", True),
         ("advance", "afwijzen", "", True),
         ("advance", "werkgebied_intake", "", True),
+        ("advance", "bronselectie", "", True),
         ("advance", "agent_taak", "", True),
         ("advance", EIND, "einde", True),
     } | ANNOTATIEKETEN
@@ -144,5 +149,5 @@ def test_stopbewaking_zit_om_elke_node():
     assert nodes == {
         "supervisor", "decompose", "solve", "synthesize", "resynth", "agent", "tools",
         "annoteer", "emit", "advance", "afwijzen", "verify", "finalize", "annotaties_zoeken",
-        "begrippen_zoeken", "overzicht_bouwen", "werkgebied_intake", "agent_taak",
+        "begrippen_zoeken", "overzicht_bouwen", "werkgebied_intake", "bronselectie", "agent_taak",
     }

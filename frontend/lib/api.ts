@@ -1,6 +1,7 @@
 // Client-side fetch-helpers. Praten UITSLUITEND met de eigen Next.js-origin (/api/**);
 // de BFF-laag injecteert het token server-side. Hier dus geen Authorization-header.
 
+import { parseBronselectie, type BronselectieOverzicht } from "./bronselectie";
 import {
   geldig,
   parseBronnen,
@@ -16,6 +17,7 @@ import {
 import { isBegripSamenhang, isConformiteit, type BegripSamenhang, type Conformiteit } from "./begripGraaf";
 import type { BegrippenOverzicht } from "./begrippenOverzicht";
 import type {
+  ThemaVoorstel,
   ApiError,
   ApiTokenCreated,
   ApiTokenOut,
@@ -59,7 +61,6 @@ import type {
   Begrip,
   BegripInhoud,
   BegrippenRun,
-  BronKandidaat,
   BronnenRun,
   BegripRevisie,
   BegrippenLijst,
@@ -84,7 +85,6 @@ import type {
   VoorstelElement,
   Werkgebied,
   DeelvraagDetail,
-  DeelvragenDekking,
   WerkgebiedAuditRegel,
   WerkgebiedInvoer,
   WerkgebiedSamenvatting,
@@ -591,6 +591,8 @@ export async function startRun(
     /** Bij "werkgebied_annoteren": alleen de bronnen onder de deelvragen, met `deelvraag_id` onder die ene. */
     bereik?: "deelvragen";
     deelvraag_id?: string;
+    /** Bij "begrippen_verdiepen" met `bevestigd`: de inhoud van de bevestigde werkvoorraad (spoor M). */
+    werkvoorraad_id?: string;
     context?: AgentContext;
     doel?: AgentDoelInvoer;
     /** "opnieuw" = de jurist vraagt expliciet om een nieuwe ronde op een al geannoteerd artikel.
@@ -627,6 +629,7 @@ export async function startRun(
       ...(typeof extra?.bevestigd === "number" ? { bevestigd: extra.bevestigd } : {}),
       ...(extra?.bereik ? { bereik: extra.bereik } : {}),
       ...(extra?.deelvraag_id ? { deelvraag_id: extra.deelvraag_id } : {}),
+      ...(extra?.werkvoorraad_id ? { werkvoorraad_id: extra.werkvoorraad_id } : {}),
       ...(extra?.intake_actie ? { intake_actie: extra.intake_actie } : {}),
       ...(extra?.onderwerp ? { onderwerp: extra.onderwerp } : {}),
       ...(extra?.actie ? { actie: extra.actie } : {}),
@@ -1142,8 +1145,13 @@ export async function koppelDeelvraag(
     jsonInit("PUT", { ...koppelingen, verwachte_revisie: verwachteRevisie })));
 }
 
-export async function haalDeelvragenDekking(id: string): Promise<DeelvragenDekking> {
-  return json<DeelvragenDekking>(await fetch(wg(id, "deelvragen", "dekking"), { cache: "no-store" }));
+/** Het thema dat Lex voorstelt, zonder model; faalt stil (`null`). */
+export async function haalThemaVoorstel(id: string): Promise<ThemaVoorstel | null> {
+  try {
+    return await json<ThemaVoorstel>(await fetch(wg(id, "thema-voorstel"), { cache: "no-store" }));
+  } catch {
+    return null;
+  }
 }
 
 export async function haalInventaris(id: string): Promise<Inventaris> {
@@ -1424,30 +1432,30 @@ export async function haalWerkvoorraad(id: string): Promise<import("./werkgebied
   return json(await fetch(`/api/werkgebieden/${pathSegment(id)}/annotatie-werkvoorraad`, { cache: "no-store" }));
 }
 
+// De bronselectie per deelvraag (spoor J): het overzicht dat paneel en pagina delen, en een besluit over één
+// kandidaat bij één deelvraag. De stappen (openen, afronden) zet Lex in het gesprek; de pagina beslist alleen.
+export async function haalBronselectie(id: string): Promise<BronselectieOverzicht> {
+  const o = parseBronselectie(await json<unknown>(await fetch(wg(id, "bronselectie"), { cache: "no-store" })));
+  if (!o) throw { status: 502, message: "De bronselectie kwam in een onverwachte vorm terug." };
+  return o;
+}
+
+export type BronselectieBesluit =
+  | { besluit: "opnemen"; verwachte_revisie: number; rol?: "analyseren" | "context" }
+  | { besluit: "loskoppelen"; verwachte_revisie: number }
+  | { besluit: "heropenen"; overal?: boolean }
+  | { besluit: "uitsluiten"; reden: string; overal?: boolean };
+
+export async function besluitBronselectie(id: string, deelvraagId: string, kandidaatId: string,
+  besluit: BronselectieBesluit): Promise<BronselectieOverzicht> {
+  const o = parseBronselectie(await json<unknown>(await fetch(wg(id, "bronselectie", deelvraagId, "kandidaten", kandidaatId),
+    jsonInit("POST", besluit))));
+  if (!o) throw { status: 502, message: "De bronselectie kwam in een onverwachte vorm terug." };
+  return o;
+}
+
 export async function haalKandidaten(id: string): Promise<KandidatenAntwoord> {
   return json<KandidatenAntwoord>(await fetch(wg(id, "kandidaten"), { cache: "no-store" }));
 }
 
-export async function besluitKandidaat(
-  id: string, kandidaatId: string, besluit: "later" | "uitsluiten" | "heropenen", reden = "",
-): Promise<BronKandidaat> {
-  return json<BronKandidaat>(await fetch(wg(id, "kandidaten", kandidaatId, besluit),
-    jsonInit("POST", besluit === "uitsluiten" ? { reden } : {})));
-}
 
-/** Een kandidaat opnemen als bronselectie. Opnemen wijzigt de scope en draagt de revisie; die haalt
- *  deze helper zelf op en probeert bij een 412 één keer opnieuw – net als `neemOpInWerkgebied`: de
- *  bedoeling hangt niet af van de rest van het werkgebied. */
-export async function neemKandidaatOp(
-  id: string, kandidaatId: string, rol?: BronRol,
-): Promise<{ kandidaat: BronKandidaat; selectie: Bronselectie; werkgebied: Werkgebied }> {
-  for (let poging = 0; ; poging++) {
-    const { revisie } = await haalWerkgebied(id);
-    try {
-      return await json(await fetch(wg(id, "kandidaten", kandidaatId, "opnemen"),
-        jsonInit("POST", { verwachte_revisie: revisie, ...(rol ? { rol } : {}) })));
-    } catch (e) {
-      if (poging > 0 || !(isApiError(e) && e.status === 412)) throw e;
-    }
-  }
-}

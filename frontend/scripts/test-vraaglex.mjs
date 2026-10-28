@@ -8,8 +8,8 @@
  *    (`?werkgebied=…&vraag=werkgebied:…`);
  *  - de werkplek leest dat één keer: de chip staat er, de parameters gaan uit de URL, het werkgebied blijft;
  *  - een suggestie met een actie stuurt `actie` + `onderwerp` + `werkgebied_id`, zonder modus, context of doel;
- *  - in de werkplek zet de knop in het werkgebiedpaneel de chip; een getypte vraag gaat als `onderwerp`, de
- *    chip verdwijnt na het versturen, en het bewaarde bericht zegt waar de vraag over ging.
+ *  - in het werkgebiedpaneel naast het gesprek staat geen *Vraag Lex* (spoor K); een klik op een deelvraag zet de
+ *    chip, een getypte vraag gaat als `onderwerp`, en de chip verdwijnt na het versturen.
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -26,7 +26,9 @@ await page.addInitScript(() => localStorage.setItem("wa_rondleiding", JSON.strin
 const nu = "2026-10-20T10:00:00+00:00";
 const wg = { id: "wg1", naam: "Invordering", status: "in_voorbereiding", revisie: 1, peildatum: null, aangemaakt_door: "t",
   aangemaakt: nu, gewijzigd: nu, analysevraag: "Wanneer is een aanslag invorderbaar?", afbakening: "", aanleiding: "",
-  context: "", doel: "", praktijkvoorbeeld: "", bronnen: [], deelvragen: [] };
+  context: "", doel: "", praktijkvoorbeeld: "", bronnen: [],
+  deelvragen: [{ id: "d1", vraag: "Wanneer vervalt de termijn?", volgorde: 0, status: "actief", herkomst: "analist", reden: "",
+    aangemaakt_door: "t", aangemaakt: nu, bronnen: [], begrippen: [] }] };
 const leeg = { denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" };
 const gesprekken = {
   g5: [
@@ -89,30 +91,33 @@ try {
 
   // --- Een suggestie met een actie: vaste route, geen modus, context of doel ---
   const suggesties = page.getByTestId("vraag-suggesties").getByRole("button");
-  assert.equal(await suggesties.count(), 8);
-  await page.getByRole("button", { name: "Zoek bepalingen bij alle deelvragen" }).click();
+  // Spoor I7: ook *Kies een thema*; spoor J: *Bepaal de bronnen per deelvraag* in plaats van de losse zoekknop.
+  assert.equal(await suggesties.count(), 9);
+  assert.equal(await page.getByRole("button", { name: "Zoek bepalingen bij alle deelvragen" }).count(), 0);
+  await page.getByRole("button", { name: "Bepaal de bronnen per deelvraag" }).click();
   await wachtOp(1);
   assert.deepEqual(runs[0], {
-    question: "Zoek bepalingen bij alle deelvragen", conversation_id: "g2", werkgebied_id: "wg1",
-    onderwerp: { soort: "werkgebied", werkgebied_id: "wg1", label: "Invordering" }, actie: "bronnen_zoeken",
+    question: "Bepaal de bronnen per deelvraag", conversation_id: "g2", werkgebied_id: "wg1",
+    onderwerp: { soort: "werkgebied", werkgebied_id: "wg1", label: "Invordering" }, actie: "bronselectie",
   });
   await chip().waitFor({ state: "detached" });
   await wachtOp(1, berichten);
-  assert.equal(berichten[0].tekst, "Bij werkgebied Invordering: Zoek bepalingen bij alle deelvragen");
+  assert.equal(berichten[0].tekst, "Bij werkgebied Invordering: Bepaal de bronnen per deelvraag");
 
-  // --- In de werkplek: de knop in het paneel zet de chip, een getypte vraag gaat als onderwerp ---
+  // --- In de werkplek: geen Vraag Lex in het paneel (spoor K); een klik op een deelvraag zet de chip ---
   await page.goto(`${base}/workbench?gesprek=g5`);
   await page.locator('button[data-artefact-soort="werkgebied"]').click();
-  const knop = page.locator('[data-artefact-soort="werkgebied"][data-artefact] button[data-vraag-lex="werkgebied"]');
-  await knop.click();
-  await chip().getByText("Invordering").waitFor();
+  const paneel = page.locator('[data-artefact-soort="werkgebied"][data-artefact]');
+  await paneel.locator("[data-werkgebied-samenvatting]").waitFor();
+  assert.equal(await paneel.locator("[data-vraag-lex]").count(), 0, "geen Vraag Lex naast het gesprek");
+  assert.equal(await paneel.getByText("Vraag Lex").count(), 0);
+  await paneel.locator('[data-deelvraag-onderwerp="d1"]').click();
+  await chip().getByText("Wanneer vervalt de termijn?").waitFor();
   await invoer().fill("Wat ontbreekt er nog?");
   await invoer().press("Enter");
   await wachtOp(2);
-  assert.deepEqual(runs[1], {
-    question: "Wat ontbreekt er nog?", conversation_id: "g5",
-    onderwerp: { soort: "werkgebied", werkgebied_id: "wg1", label: "Invordering" },
-  });
+  assert.equal(runs[1].question, "Wat ontbreekt er nog?");
+  assert.deepEqual([runs[1].onderwerp.soort, runs[1].onderwerp.id, runs[1].onderwerp.werkgebied_id], ["deelvraag", "d1", "wg1"]);
   await chip().waitFor({ state: "detached" });
 
   // *Samenstellen met Lex* vanuit het overzicht Werkgebieden: de vraag staat klaar, met de focus erin;
@@ -128,7 +133,7 @@ try {
   assert.equal(runs.length, voor, "de werkplek start niets vanuit de URL");
 
   assert.deepEqual(errors, []);
-  console.log("Browser OK: Vraag Lex als link buiten de werkplek, chip uit de URL (één keer), suggestie met actie, knop in het paneel, vraag met onderwerp, de startvraag voor een werkgebied.");
+  console.log("Browser OK: Vraag Lex als link buiten de werkplek, chip uit de URL (één keer), suggestie met actie, geen Vraag Lex in het paneel, een deelvraag als onderwerp, de startvraag voor een werkgebied.");
 } finally {
   await browser.close();
 }

@@ -7,9 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from app import annotatie_v2_store as store, begrip_store, begrippen_run_store
+from app import annotatie_v2_store as store, begrip_projectie, begrip_store, begrippen_run_store, db
 from app.annotatie_v2_contracts import Beslissing
-from test_annotatie_v2 import ART, snapshot
+from test_annotatie_v2 import ART, ONE, snapshot
 from test_begrippen_runs import _annoteer, _groep, _start, _uitkomst, _werkgebied
 from test_werkgebieden import client, database, graaf, snapshot2  # noqa: F401
 
@@ -69,6 +69,34 @@ async def test_akkoord_accordeert_meteen_als_de_poort_het_toelaat(client):
     regels = [x for x in (await client.get(f"/v1/werkgebieden/{wg['id']}/audit")).json()["audit"]
               if x["actie"] == "groep-akkoord"]
     assert len(regels) == 1 and regels[0]["detail"]["geaccordeerd"] is True
+
+
+async def test_de_letterlijke_definitie_van_een_groep_houdt_haar_onderbouwing(client):
+    """Spoor M: ook langs het akkoord op een groep blijft zichtbaar waarop de definitie rust, en de
+    projectie maakt de bron een `dct:source` met de rol definitieonderbouwing."""
+    ids, wg, run = await _voorstel(client, lambda ids: _alfa(ids, definitie="Alfa Alfa", definitie_vindplaats=LID1,
+                                                              definitie_bron_iri=ONE))
+    await _keur_goed(ids["alfa1"], ids["alfa2"])
+    b = (await _akkoord(client, wg, groep_ids=["Gaaa111"])).json()["begrip"]
+    assert b["status"] == "geaccordeerd"                     # accorderen raakt de definitie niet
+    o = b["definitie_onderbouwing"]
+    assert (o["groep_id"], o["run_id"], o["herkomst"]) == ("Gaaa111", run["id"], "letterlijk")
+    assert (o["definitie_bron_iri"], o["definitie_vindplaats"], o["fragmenten"]) == (ONE, LID1, [])
+    async with db.get_engine().connect() as conn:
+        inv = await begrip_projectie.invoer(conn, wg["id"])
+    assert next(x for x in inv["begrippen"] if x["id"] == b["id"])["onderbouwing"] == [ONE]
+
+
+async def test_een_aangepaste_definitie_heeft_geen_onderbouwing_van_lex(client):
+    _, wg, _ = await _voorstel(client, lambda ids: _alfa(ids, definitie="Alfa Alfa", definitie_vindplaats=LID1,
+                                                          definitie_bron_iri=ONE))
+    b = (await _akkoord(client, wg, groep_ids=["Gaaa111"], aanpassing={"definitie": "Een eigen definitie."})).json()
+    assert b["begrip"]["definitie_onderbouwing"] is None
+    # Een andere aanpassing laat de definitie, en dus haar onderbouwing, staan.
+    _, wg, _ = await _voorstel(client, lambda ids: _alfa(ids, definitie="Alfa Alfa", definitie_vindplaats=LID1,
+                                                          definitie_bron_iri=ONE))
+    b = (await _akkoord(client, wg, groep_ids=["Gaaa111"], aanpassing={"context": "Eigen toelichting."})).json()
+    assert b["begrip"]["definitie_onderbouwing"]["definitie_bron_iri"] == ONE
 
 
 async def test_onbeoordeelde_annotaties_laten_een_concept_achter_dat_later_kan(client):

@@ -331,3 +331,18 @@ def test_omvat_volgt_het_pad_en_het_bereik():
     assert omvat(sel, ART) and omvat(sel, ONE)
     assert not omvat(sel, ART + "0")                      # artikel 90 is geen kind van artikel 9
     assert not omvat({"bron_iri": ART, "bereik": "node"}, ONE)
+
+
+def test_thema_voorstel_uit_de_rechtsgebieden_zonder_model():
+    """Spoor I6: een kleine afbeeldingstabel van WTI-rechtsgebied naar tooitop."""
+    from app import tooi
+    v = tooi.thema_voorstel(["Belastingrecht", "Invorderingsrecht", "Sociaal zekerheidsrecht", "Iets onbekends"])
+    assert [tooi.thema_label(u) for u in v] == ["belasting", "sociale zekerheid"]
+    assert tooi.thema_voorstel([]) == []
+
+
+async def test_thema_voorstel_route_faalt_niet_zonder_rechtsgebieden(client):
+    wg = await _nieuw(client)
+    r = await client.get(f"/v1/werkgebieden/{wg['id']}/thema-voorstel")
+    assert r.status_code == 200, r.text
+    assert set(r.json()) == {"rechtsgebieden", "voorstel"}

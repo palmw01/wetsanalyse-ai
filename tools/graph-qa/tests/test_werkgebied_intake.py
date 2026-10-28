@@ -177,8 +177,8 @@ def test_de_volgorde_ligt_vast_en_de_samenvatting_volgt():
         "doel": "Bruikbaar voor de bouw van webservices; Traceerbaar koppelen aan de bestaande uitvoering.",
         "praktijkvoorbeeld": "Een spaarder met een tweede huis.",
         "deelvragen": [{"vraag": DV1, "herkomst": "lex"}, {"vraag": "Telt een tweede huis mee?", "herkomst": "analist"}],
+        # De afbakening is een scope: de regelingen en wat erbuiten valt; de bepalingen zijn de bronnen (spoor K).
         "afbakening": ("Regelingen: Wet inkomstenbelasting 2001.\n"
-                       "Bepalingen: Artikel 2.1, lid 1 – Wet IB 2001 en Artikel 5.2, lid 1 – Wet IB 2001.\n"
                        "Buiten de afbakening: geen overgangsrecht.")}
     # Elke gekozen bepaling is één bron, met de deelvragen op wier kaartje ze gekozen werd.
     assert verzoek["bronnen"] == [
@@ -227,19 +227,100 @@ def test_ook_bij_de_bepalingen_kan_weet_ik_niet():
     assert k["vraag"] == "Welke bepalingen horen bij de analysevraag?" and k["totaal"] == 10
     i, _ = wi.verwerk(i, _klik(i, "bepalingen", keuzes=[wi.ONBEKEND]))
     assert i["stap"] == "samenvatting"
-    assert wi.afbakening(i["antwoorden"]) == "Regelingen: Wet IB 2001.\nBepalingen: nog te bepalen."
+    assert wi.afbakening(i["antwoorden"]) == "Regelingen: Wet IB 2001."
     assert wi.eerder_antwoord(i["antwoorden"], "bepalingen", None) == [wi.ONBEKEND]
 
 
-def test_artikelen_in_eigen_tekst_worden_bronnen_bij_een_regeling():
-    a = {"regelingen": [{"bwb_id": IB, "label": "Wet IB 2001"}], "deelvragen": [{"vraag": DV1, "herkomst": "lex"}],
-         "bepalingen": {wi.deel_sleutel(DV1): {"bronnen": [], "tekst": "artikel 5.2 en 5.3", "onbekend": False}}}
-    assert wi.bronnen(a) == [{"bwb_id": IB, "artikel": "5.2", "label": "Wet IB 2001 – art. 5.2", "deelvragen": [DV1]},
-                             {"bwb_id": IB, "artikel": "5.3", "label": "Wet IB 2001 – art. 5.3", "deelvragen": [DV1]}]
-    # Bij twee regelingen is niet te zeggen waar de artikelen staan: alleen tekst.
-    assert wi.bronnen({**a, "regelingen": a["regelingen"] * 2}) == []
+def test_een_getypte_bepaling_is_een_keuze_als_de_node_haar_vond():
+    """Spoor L: wat de analist typte en de node in de graaf vond (`eigen`), telt als gekozen – ook bij meer
+    regelingen. Een tekst zonder `eigen` (niet thuisgebracht) maakt geen bron: die liet het kaartje staan."""
+    i = {**_tot_bepalingen([DV1]), "voorstellen": {"bepalingen:0": []}}
+    eigen = [{"bron_iri": L52, "label": "Artikel 5.2, lid 1 – Wet IB 2001", "bwb_id": IB}]
+    i, _ = wi.verwerk(i, {**_klik(i, "bepalingen", tekst="artikel 5.2 lid 1 Wet IB 2001"), "deel": 0, "eigen": eigen})
+    a = i["antwoorden"]
+    assert wi.bronnen(a) == [{"bron_iri": L52, "label": "Artikel 5.2, lid 1 – Wet IB 2001", "deelvragen": [DV1]}]
+    assert wi.bronnen({**a, "regelingen": a["regelingen"] * 3}) == wi.bronnen(a), "het aantal regelingen doet er niet toe"
+    # Alleen tekst, zonder wat de node vond: geen bron (de oude regel 'precies één regeling' bestaat niet meer).
+    x = a["bepalingen"][wi.deel_sleutel(DV1)]
+    assert wi.bronnen({**a, "bepalingen": {wi.deel_sleutel(DV1): {**x, "eigen": []}}}) == []
     # Een keuze bij een deelvraag die er niet meer is, telt niet.
     assert wi.bronnen({**a, "deelvragen": [{"vraag": "Iets anders?", "herkomst": "analist"}]}) == []
+
+
+class _B:
+    graph = FakeGraph()
+
+
+def _nep_graaf(monkeypatch, bestaat):
+    """De graaf voor `_eigen_bepalingen`: welke regelingen een tekst noemt, en welke bepalingen bestaan."""
+    from agent import bronnen_vinden, overzicht, regelingnamen
+
+    def noemt(_graph, tekst):
+        t = tekst.lower()
+        return sorted({b for naam, b in (("invorderingswet", IW), ("awb", AWB), ("awr", AWR)) if naam in t})
+    monkeypatch.setattr(overzicht, "regelingen_in_vraag", noemt)
+    monkeypatch.setattr(bronnen_vinden, "bepaling_in_graaf", lambda _g, bwb, art, lid="": (
+        {"bron_iri": f"urn:bwb:{bwb}:artikel:{art}" + (f":lid:{lid}" if lid else ""), "bwb_id": bwb,
+         "label": f"Artikel {art}" + (f", lid {lid}" if lid else "")} if (bwb, art, lid) in bestaat else None))
+    monkeypatch.setattr(regelingnamen, "regelingnamen", lambda _g, ids: {IW: "Invorderingswet 1990", AWB: "Awb",
+                                                                          AWR: "AWR"})
+
+
+IW, AWB, AWR = "BWBR0004770", "BWBR0005537", "BWBR0002320"
+
+
+def test_getypte_bepalingen_over_meer_regelingen_worden_opgehaald(monkeypatch):
+    from agent.nodes.werkgebied import _eigen_bepalingen
+
+    _nep_graaf(monkeypatch, {(IW, "9", "1"), (IW, "9", "5"), (AWB, "4:86", "")})
+    intake = {"antwoorden": {"regelingen": [{"bwb_id": IW}, {"bwb_id": AWB}, {"bwb_id": "BWBR0024096"}]}}
+    eigen, vraag = _eigen_bepalingen(_B(), intake, "artikel 9 lid 1 en 5 Invorderingswet 1990 en artikel 4:86 Awb",
+                                     lambda e: None)
+    assert vraag == "" and [e["label"] for e in eigen] == ["Artikel 9, lid 1", "Artikel 9, lid 5", "Artikel 4:86"]
+
+
+@pytest.mark.parametrize("tekst, verwacht", [
+    ("artikel 9", "Bij welke regeling hoort dat?"),                                   # drie regelingen, geen genoemd
+    ("Artikel 4:86 awr", "Artikel 4:86 staat niet in AWR; wel in Awb – bedoel je die?"),
+    ("de termijnbepaling", "Ik zie geen artikel in je tekst"),
+])
+def test_een_getypte_bepaling_die_niet_te_bepalen_is_wordt_een_vraag(monkeypatch, tekst, verwacht):
+    from agent.nodes.werkgebied import _eigen_bepalingen
+
+    _nep_graaf(monkeypatch, {(AWB, "4:86", "")})
+    intake = {"antwoorden": {"regelingen": [{"bwb_id": IW}, {"bwb_id": AWB}, {"bwb_id": "BWBR0024096"}]}}
+    eigen, vraag = _eigen_bepalingen(_B(), intake, tekst, lambda e: None)
+    assert eigen == [] and verwacht in vraag and "vink een voorstel aan" in vraag
+
+
+def test_een_haperende_graaf_is_een_vraag_om_het_opnieuw_te_proberen(monkeypatch):
+    from agent import overzicht
+    from agent.nodes.werkgebied import _eigen_bepalingen
+
+    def stuk(*_a):
+        raise RuntimeError("graaf weg")
+    monkeypatch.setattr(overzicht, "regelingen_in_vraag", stuk)
+    eigen, vraag = _eigen_bepalingen(_B(), {"antwoorden": {}}, "artikel 9 Invorderingswet 1990", lambda e: None)
+    assert eigen == [] and "probeer het zo opnieuw" in vraag
+
+
+def test_het_kaartje_komt_terug_met_de_getypte_tekst():
+    i = {**_tot_bepalingen([DV1]), "voorstellen": {"bepalingen:0": []}}
+    sleutel = wi.kaartsleutel(i)
+    k = wi.kaart({**i, "concept": {sleutel: ["artikel 9"]}})
+    assert k["stap"] == "bepalingen" and k["vooringevuld"] == ["artikel 9"]
+
+
+def test_alineas_blijven_en_getypt_naast_aangevinkt_bij_de_regelingen_valt_niet_weg():
+    i = wi.nieuwe_intake("x")
+    i, _ = wi.verwerk(i, _klik(i, "naam", tekst="Box 3"))
+    i, _ = wi.verwerk(i, _klik(i, "aanleiding", actie="overslaan"))
+    i, _ = wi.verwerk(i, _klik(i, "context", tekst="Eerste alinea  met  spaties.\n\n\n\nTweede alinea."))
+    assert i["antwoorden"]["context"] == "Eerste alinea met spaties.\n\nTweede alinea."
+    j = {**_tot_bepalingen(), "stap": "regelingen"}
+    j, uitkomst = wi.verwerk(j, _klik(j, "regelingen", keuzes=[IB], tekst="Awb"))
+    assert uitkomst == "zoek" and j["zoekterm"] == "Awb"
+    assert [r["bwb_id"] for r in j["antwoorden"]["regelingen"]] == [IB], "het aangevinkte blijft gekozen"
 
 
 def test_naam_is_verplicht():
@@ -626,7 +707,7 @@ def test_de_afronding_belooft_alleen_wat_er_gekoppeld_is():
                                                                     {"vraag": "Twee?", "status": "actief"}]}
     niets = werkgebied_tekst(wg, [], [], 0)
     assert "als concept, nog zonder bronnen" in niets and "gekoppeld" not in niets and "koos" not in niets
-    assert "Het heeft 2 deelvragen, nog zonder bronnen." in niets and "bepalingen zoeken bij de deelvragen" in niets
+    assert "Het heeft 2 deelvragen, nog zonder bronnen." in niets and "*Bepaal de bronnen per deelvraag*" in niets
     deels = werkgebied_tekst(wg, ["Art. 1"], [], 1)
     assert "1 daarvan heeft de bronnen die je erbij koos, de rest nog geen." in deels
     alles = werkgebied_tekst(wg, ["Art. 1", "Art. 2"], [], 2)
@@ -729,9 +810,10 @@ def test_bladeren_tussen_de_bepalingen_per_deelvraag():
     terug, _ = wi.verwerk(i, {"intake_id": i["id"], "stap": "samenvatting", "actie": "wijzig", "naar": "bepalingen",
                               "naar_deel": 2})
     assert (terug["stap"], terug["deel"]) == ("bepalingen", 2) and wi.kaart(terug)["beantwoord"]
-    # Een overgeslagen deelvraag laat geen regel achter; de artikelen bij één regeling worden een bron.
-    assert wi.afbakening(i["antwoorden"]) == "Regelingen: Wet inkomstenbelasting 2001.\nBepalingen: artikel 3.1."
-    assert wi.bronnen(i["antwoorden"])[0]["deelvragen"] == ["Tweede?"]
+    # Een overgeslagen deelvraag laat geen regel achter. Een getypte tekst wordt pas een bron als de node haar in de
+    # graaf vond (`eigen`, spoor L); hier, zonder node, blijft het tekst.
+    assert wi.afbakening(i["antwoorden"]) == "Regelingen: Wet inkomstenbelasting 2001."
+    assert wi.bronnen(i["antwoorden"]) == []
 
 
 def test_een_nieuwe_stap_is_nog_niet_beantwoord():
@@ -758,6 +840,7 @@ def test_een_intake_op_een_vervallen_stap_loopt_niet_meer():
 
 WG = {"id": "wg1", "revisie": 4, "naam": "Box 3", "aanleiding": "Een wetswijziging raakt de heffing.", "context": "",
       "doel": "", "analysevraag": "Wie betaalt box 3?", "praktijkvoorbeeld": "",
+      "thema": "https://identifier.overheid.nl/tooi/def/thes/top/c_25e30d03", "thema_label": "belasting",
       "afbakening": "Regelingen: Wet IB 2001.\nBuiten de afbakening: overgangsrecht.",
       "deelvragen": [{"id": "d1", "vraag": DV1, "status": "actief"}],
       "bronnen": [{"id": "s1", "label": "Artikel 5.2 – Wet IB 2001", "bron_iri": L52, "rol": "analyseren"}]}
@@ -904,6 +987,9 @@ class AanvulApi:
         self.berichten.append(bericht)
         return {}
 
+    async def haal_thema_voorstel(self, wid):
+        return {"rechtsgebieden": ["Belastingrecht"], "voorstel": [{"thema": BELASTING, "label": "belasting"}]}
+
     async def aclose(self):
         pass
 
@@ -1038,3 +1124,62 @@ def test_dossier_aanvullen_is_een_actie_zonder_agent():
     assert "dossier_aanvullen" not in ACTIE_TAAK
     with pytest.raises(Exception, match="werkgebied_id"):
         ChatRequest(question="x", actie="dossier_aanvullen")
+
+
+# --- spoor I7: het thema als kaartje bij het aanvullen -----------------------------------------------
+
+BELASTING = "https://identifier.overheid.nl/tooi/def/thes/top/c_25e30d03"
+BEGROTING = "https://identifier.overheid.nl/tooi/def/thes/top/c_0000begr"
+
+
+def test_het_thema_is_een_kaartje_van_het_aanvullen_met_de_voorstellen_en_stuurt_de_uri():
+    wg = {**WG, "thema": "", "thema_label": ""}
+    assert "thema" in wi.lege_velden(wg) and wi.dossiervelden_in("kies een thema") == ["thema"]
+    assert "thema" not in wi.STAPPEN, "het samenstellen kent geen thema"
+    i = wi.aanvul_intake(wg, ["thema", "buiten"], "Kies een thema")
+    i = {**i, "voorstellen": {"thema": [{"label": "belasting", "waarde": BELASTING, "bron": {}, "omschrijving": "voorstel"}]},
+         "vooringevuld": {"thema": [BELASTING]}}
+    k = wi.kaart(i)
+    assert (k["stap"], k["nr"], k["totaal"], k["vrije_tekst"]) == ("thema", 1, 2, False)
+    assert k["vooringevuld"] == [BELASTING] and [o["waarde"] for o in k["opties"]] == [BELASTING]
+    # Een keuze die niet op het kaartje stond, telt niet.
+    i2, uit = wi.verwerk(i, {"actie": "antwoord", "stap": "thema", "keuzes": ["https://example.org/x"]})
+    assert uit == "verder" and not (i2["antwoorden"].get("thema") or {}).get("uri")
+    i, uit = wi.verwerk(i, {"actie": "antwoord", "stap": "thema", "keuzes": [BELASTING]})
+    assert (uit, i["stap"], i["antwoorden"]["thema"]) == ("verder", "buiten", {"uri": BELASTING, "label": "belasting"})
+    # ‹ vanaf de afbakening: de werkplek vraagt het thema (de vorige van het aanvullen) of de deelvragen
+    # (de vorige van het samenstellen); allebei landen ze op het thema.
+    for naar in ("thema", "deelvragen"):
+        terug, uit = wi.verwerk(i, {"actie": "wijzig", "stap": "buiten", "naar": naar})
+        assert (uit, terug["stap"]) == ("verder", "thema"), naar
+    i, _ = wi.verwerk(i, {"actie": "overslaan", "stap": "buiten"})
+    assert i["stap"] == "samenvatting"
+    # De samenvatting toont namen, de api krijgt de URI.
+    assert wi.wijzigingen(i) == [{"veld": "thema", "label": "Thema", "toen": "", "nu": "belasting", "waarde": BELASTING}]
+    verzoek = wi.wijzigverzoek(i)
+    assert verzoek["wijziging"] == {"thema": BELASTING}
+    assert verzoek["wijzigingen"] == [{"veld": "thema", "label": "Thema", "toen": "", "nu": "belasting"}]
+
+
+def test_overslaan_laat_het_thema_staan():
+    i = wi.aanvul_intake(WG, ["thema"], "Kies een thema")
+    i, uit = wi.verwerk(i, {"actie": "overslaan", "stap": "thema"})
+    assert (uit, i["stap"], wi.wijzigingen(i)) == ("verder", "samenvatting", [])
+
+
+def test_kies_een_thema_is_een_kaartje_met_het_voorstel_en_opslaan_stuurt_de_uri(tmp_path):
+    """Spoor I7: *Kies een thema* (de suggestie, actie `dossier_aanvullen`) vraagt het thema met een kaartje;
+    het voorstel van de api staat aangevinkt; opslaan wijzigt het werkgebied met de TOOI-URI."""
+    settings = _aanvulsettings(tmp_path)
+    nep = AanvulApi({**WG, "thema": "", "thema_label": ""})
+    e = _aanvulbeurt(settings, FakeLLM([]), nep, "Kies een thema", actie="dossier_aanvullen")
+    k = _kaart(e)
+    assert (k["modus"], k["stap"], k["totaal"], k["vooringevuld"]) == ("aanvullen", "thema", 1, [BELASTING])
+    assert k["opties"][0]["omschrijving"] == "voorstel van Lex, uit Belastingrecht"
+    klik = {"intake_id": k["intake_id"], "stap": "thema", "keuzes": [BELASTING]}
+    k = _kaart(_aanvulbeurt(settings, FakeLLM([]), nep, "belasting", klik))
+    assert k["soort"] == "samenvatting" and k["samenvatting"]["wijzigingen"][0]["nu"] == "belasting"
+    opslaan = {"intake_id": k["intake_id"], "stap": "samenvatting", "actie": "opslaan"}
+    e = _aanvulbeurt(settings, FakeLLM([]), nep, "Sla het op.", opslaan)
+    [ev] = [x for x in e if x["type"] == "werkgebied_wijzigen"]
+    assert ev["wijziging"] == {"thema": BELASTING}

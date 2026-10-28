@@ -89,7 +89,7 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   }
   // `verdieping` (fase C) is alleen lezen; de batches en de uitkomst zet graph-qa, niet de werkplek.
   if (deel === "elementen" || deel === "audit" || deel === "annotatie-werkvoorraad" || deel === "verdieping"
-      || deel === "herbeoordelingen")
+      || deel === "herbeoordelingen" || deel === "thema-voorstel")
     return pad.length === 2;
   // Relaties (fase F2): lezen en vastleggen, één relatie weghalen of bevestigen, een voorstel afwijzen.
   if (deel === "relaties") {
@@ -108,10 +108,15 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   // Bronnen vinden met Lex (fase A): zelfde regel – een run maken, `loopt`, `uitkomst` en `mislukt`
   // zijn van graph-qa (de deelvragen-agent).
   if (deel === "bronnen-runs") return pad.length === 3 && !!a;
-  if (deel === "kandidaten") {
+  // De bronselectie per deelvraag (spoor J): het overzicht lezen, de stand van één deelvraag en een besluit
+  // over één kandidaat bij één deelvraag. Dezelfde routes gebruikt Lex in het gesprek.
+  if (deel === "bronselectie") {
     if (pad.length === 2) return true;
-    return pad.length === 4 && !!a && ["opnemen", "later", "uitsluiten", "heropenen"].includes(b);
+    if (pad.length === 4) return !!a && b === "status";
+    return pad.length === 5 && !!a && b === "kandidaten" && !!c;
   }
+  // De bronverkenner leest alleen (spoor J): kiezen gaat per deelvraag, via `bronselectie`.
+  if (deel === "kandidaten") return pad.length === 2;
   if (deel === "groepen") {
     if (pad.length === 2) return true;
     if (pad.length === 3) return a === "overnemen" || a === "akkoord";

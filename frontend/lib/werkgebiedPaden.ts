@@ -56,6 +56,8 @@ export function artefactPad(id: string, soort: ArtefactSoort,
       if (extra.weergave === "kaart") qs.set("weergave", "kaart");
     }
   }
+  // Spoor L: de bronselectie per deelvraag woont op de tab Bronnen; het artefact is daar één plek mee.
+  if (soort === "bronselectie") return `${basis(id)}/bronnen`;
   const pad = `${basis(id)}/artefacten/${soort}`;
   return qs.size ? `${pad}?${qs}` : pad;
 }

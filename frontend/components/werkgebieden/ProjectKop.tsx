@@ -1,21 +1,22 @@
 "use client";
 
-import { MENU_PANEEL, MENU_RIJ } from "@/components/ui/Menu";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/Button";
+import { Button, knopKlasse } from "@/components/ui/Button";
 import { ButtonRow } from "@/components/ui/ButtonRow";
 import { Dialog } from "@/components/ui/Dialog";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Meer } from "@/components/ui/Icoon";
 import { StatusLabel } from "@/components/ui/Lijst";
+import { MENU_PANEEL, MENU_RIJ } from "@/components/ui/Menu";
 import { PaginaKop, Stip, TabLinks, type Kruimel } from "@/components/ui/Pagina";
 import { Popover } from "@/components/ui/Popover";
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
 import { useWerkgebied } from "@/components/werkgebieden/WerkgebiedProject";
-import { wijzigWerkgebied } from "@/lib/api";
-import type { Werkgebied, WerkgebiedStatus } from "@/lib/types";
+import { haalThemaVoorstel, wijzigWerkgebied } from "@/lib/api";
+import { themaGroepen } from "@/lib/tooiThemas";
+import type { ThemaVoorstel, Werkgebied, WerkgebiedStatus } from "@/lib/types";
 import { DOSSIER_VELDEN, STATUS_LABEL, type DossierVeld } from "@/lib/werkgebied";
 import { ARTEFACT_SOORTEN, PROJECT_TABS, historiePad, projectPad, type ProjectTab } from "@/lib/werkgebiedPaden";
 
@@ -51,7 +52,7 @@ export function ProjectKop({ tab }: { tab: ProjectTab }) {
           <>
             <Button variant="secondary" size="sm" onClick={() => setBewerken(true)}>Gegevens bewerken</Button>
             <Link href={`/workbench?werkgebied=${encodeURIComponent(wg.id)}`}
-              className="focus-ring inline-flex min-h-[32px] items-center justify-center rounded-full bg-accent px-3 py-1.5 text-sm font-medium text-paper hover:bg-accent-soft coarse:min-h-[44px]">
+              className={knopKlasse("primary", "sm")}>
               Nieuw gesprek
             </Link>
             <Popover ariaLabel="Meer voor dit werkgebied" className={`w-56 ${MENU_PANEEL}`}
@@ -100,7 +101,7 @@ const DOSSIER_HINT: Partial<Record<DossierVeld, string>> = {
 /** Naam, dossier, peildatum en status van het werkgebied bewerken, in een venster boven de pagina. */
 export function GegevensDialoog({ wg, onBewaar, onSluit }: {
   wg: Werkgebied;
-  onBewaar: (w: { naam: string; peildatum: string | null; status: WerkgebiedStatus } & Record<DossierVeld, string>) => Promise<void>;
+  onBewaar: (w: { naam: string; peildatum: string | null; status: WerkgebiedStatus; thema: string } & Record<DossierVeld, string>) => Promise<void>;
   onSluit: () => void;
 }) {
   const [naam, setNaam] = useState(wg.naam);
@@ -109,13 +110,22 @@ export function GegevensDialoog({ wg, onBewaar, onSluit }: {
     () => Object.fromEntries(DOSSIER_VELDEN.map(({ veld }) => [veld, wg[veld] ?? ""])) as Record<DossierVeld, string>);
   const [peildatum, setPeildatum] = useState(wg.peildatum ?? "");
   const [status, setStatus] = useState<WerkgebiedStatus>(wg.status);
+  const [thema, setThema] = useState(wg.thema ?? "");
+  const [voorstel, setVoorstel] = useState<ThemaVoorstel | null>(null);
   const [bezig, setBezig] = useState(false);
+  // Spoor I6: Lex stelt een thema voor uit de rechtsgebieden van de bronnen, zonder model; faalt stil.
+  useEffect(() => {
+    let levend = true;
+    void haalThemaVoorstel(wg.id).then((v) => levend && setVoorstel(v));
+    return () => { levend = false; };
+  }, [wg.id]);
+  const voorgesteld = voorstel?.voorstel[0];
 
   async function bewaar(e: React.FormEvent) {
     e.preventDefault();
     if (!naam.trim() || bezig) return;
     setBezig(true);
-    await onBewaar({ naam: naam.trim(), ...dossier, peildatum: peildatum || null, status });
+    await onBewaar({ naam: naam.trim(), ...dossier, peildatum: peildatum || null, status, thema });
     setBezig(false);
   }
 
@@ -132,6 +142,24 @@ export function GegevensDialoog({ wg, onBewaar, onSluit }: {
               onChange={(e) => setDossier((d) => ({ ...d, [veld]: e.target.value }))} />
           </Field>
         ))}
+        <Field label="Thema" hint="TOOI-thema (tooitop): waar de analyse over gaat">
+          <Select value={thema} onChange={(e) => setThema(e.target.value)}>
+            <option value="">Nog geen thema</option>
+            {themaGroepen().map(({ hoofd, subs }) => (
+              <optgroup key={hoofd.uri} label={hoofd.label}>
+                <option value={hoofd.uri}>{hoofd.label}</option>
+                {subs.map((s) => <option key={s.uri} value={s.uri}>{s.label}</option>)}
+              </optgroup>
+            ))}
+          </Select>
+        </Field>
+        {voorgesteld && voorgesteld.thema !== thema && (
+          <p className="-mt-2 flex flex-wrap items-center gap-2 text-xs text-muted" data-thema-voorstel>
+            <span>Voorstel van Lex: <span className="font-medium text-ink">{voorgesteld.label}</span>
+              {voorstel?.rechtsgebieden.length ? ` (uit ${voorstel.rechtsgebieden.join(", ")})` : ""}</span>
+            <Button type="button" size="xs" variant="secondary" onClick={() => setThema(voorgesteld.thema)}>Overnemen</Button>
+          </p>
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Gewenste peildatum" hint="de wettekst zelf komt uit de actuele graaf">
             <Input type="date" value={peildatum} onChange={(e) => setPeildatum(e.target.value)} />

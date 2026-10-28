@@ -12,11 +12,18 @@
 // Hetzelfde kaartje vult ook het dossier van een bestaand werkgebied aan (`modus: "aanvullen"`): alleen de
 // gevraagde velden, vooringevuld, en een samenvatting toen → nu met *Opslaan* (`actie: "opslaan"`).
 //
+// En dezelfde kaartjes dragen de bronselectie per deelvraag (spoor J, `modus: "bronselectie"`, graph-qa
+// `agent/bronselectie.py`): de stand staat bij de api, het kaartje noemt zijn deelvraag (`deelvraag_id`), en
+// "n van N" is de deelvraag van het totaal.
+//
 // Pure functies, zodat ze zonder DOM te testen zijn (lib/vraagkaart.test.ts).
 
 export const STAPPEN = ["naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld", "deelvragen",
   "buiten", "regelingen", "bepalingen"] as const;
-export type IntakeStap = (typeof STAPPEN)[number] | "samenvatting";
+/** De kaartjes van de bronselectie (graph-qa `bronselectie.KAARTSTAPPEN`). */
+export const BRONSELECTIE_STAPPEN = ["bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder"] as const;
+/** `thema` (spoor I7) is een kaartje van het aanvullen alleen: het samenstellen kent het niet (`STAPPEN`). */
+export type IntakeStap = (typeof STAPPEN)[number] | "thema" | "samenvatting" | (typeof BRONSELECTIE_STAPPEN)[number];
 /** De vaste kaartjes vóór de bepalingen; daarna één per deelvraag (graph-qa `VASTE_STAPPEN`). */
 const VASTE_STAPPEN = STAPPEN.length - 1;
 
@@ -40,8 +47,10 @@ export interface VraagOptie {
 
 export interface Vraagkaart {
   intake_id: string;
-  /** Een werkgebied samenstellen, of het dossier van een bestaand werkgebied aanvullen. */
-  modus: "samenstellen" | "aanvullen";
+  /** Een werkgebied samenstellen, het dossier van een bestaand werkgebied aanvullen, of de bronselectie. */
+  modus: "samenstellen" | "aanvullen" | "bronselectie";
+  /** Bij de bronselectie: de deelvraag van het kaartje (`analysevraag` zonder deelvragen; leeg bij de keuze). */
+  deelvraag_id: string;
   soort: "vraag" | "samenvatting";
   stap: IntakeStap;
   nr: number;
@@ -94,6 +103,7 @@ export interface AntwoordOp {
   stap: IntakeStap;
   deel?: number;
   actie: IntakeActie["actie"];
+  deelvraag_id?: string;
 }
 
 /** Een klik op een kaartje, zoals graph-qa hem verwacht (`ChatRequest.intake_actie`). */
@@ -109,11 +119,14 @@ export interface IntakeActie {
   teksten?: string[];
   naar?: string;
   naar_deel?: number;
+  /** Bij de bronselectie: de deelvraag van het kaartje. */
+  deelvraag_id?: string;
 }
 
 const tekst = (v: unknown) => (typeof v === "string" ? v : "");
 const lijst = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
-const STAP_SET = new Set<string>([...STAPPEN, "samenvatting"]);
+const STAP_SET = new Set<string>([...STAPPEN, "thema", "samenvatting", ...BRONSELECTIE_STAPPEN]);
+const DEELVRAAG_ID = /^[A-Za-z0-9-]{0,64}$/;
 
 /** Streng: een kaartje zonder intake, met een onbekende stap of zonder vraag wordt niet getoond. Liever
  *  geen kaartje dan een kaartje dat een klik naar een niet-bestaande stap stuurt. */
@@ -141,7 +154,8 @@ export function parseVraagkaart(ruw: unknown): Vraagkaart | undefined {
   }) : [];
   return {
     intake_id, stap: stap as IntakeStap, vraag, deel,
-    modus: r.modus === "aanvullen" ? "aanvullen" : "samenstellen",
+    modus: r.modus === "aanvullen" ? "aanvullen" : r.modus === "bronselectie" ? "bronselectie" : "samenstellen",
+    deelvraag_id: DEELVRAAG_ID.test(tekst(r.deelvraag_id)) ? tekst(r.deelvraag_id) : "",
     soort: r.soort === "samenvatting" ? "samenvatting" : "vraag",
     nr: getal(r.nr, 1), totaal: getal(r.totaal, STAPPEN.length),
     toelichting: tekst(r.toelichting),
@@ -180,8 +194,11 @@ export function beginstand(k: Vraagkaart): { gekozen: string[]; eigen: string; t
 export function antwoordTekst(k: Vraagkaart, actie: IntakeActie): string {
   if (actie.actie === "aanmaken") return "Maak het werkgebied aan.";
   if (actie.actie === "opslaan") return "Sla de wijziging op.";
-  if (actie.actie === "afbreken") return k.modus === "aanvullen" ? "Stop met aanvullen." : "Stop met samenstellen.";
-  if (actie.actie === "overslaan") return "Sla deze vraag over.";
+  if (actie.actie === "afbreken") {
+    return k.modus === "aanvullen" ? "Stop met aanvullen." : k.modus === "bronselectie" ? "Zet de bronselectie even stil."
+      : "Stop met samenstellen.";
+  }
+  if (actie.actie === "overslaan") return k.modus === "bronselectie" ? "Niets erbij; verder." : "Sla deze vraag over.";
   if (actie.actie === "wijzig") {
     const metDeelvragen = !!k.deel?.deelvraag || !!k.samenvatting?.deelvragen.length;
     if (actie.naar === "bepalingen" && metDeelvragen && typeof actie.naar_deel === "number") {
@@ -202,7 +219,8 @@ export function antwoordActie(k: Vraagkaart, gekozen: string[], eigen: string, t
   const ts = teksten.map((x) => x.trim()).filter(Boolean);
   if (!gekozen.length && !t && !ts.length) return undefined;
   return { intake_id: k.intake_id, stap: k.stap, ...(k.deel ? { deel: k.deel.index } : {}), actie: "antwoord",
-    keuzes: gekozen, ...(t ? { tekst: t } : {}), ...(ts.length ? { teksten: ts } : {}) };
+    keuzes: gekozen, ...(t ? { tekst: t } : {}), ...(ts.length ? { teksten: ts } : {}),
+    ...(k.deelvraag_id ? { deelvraag_id: k.deelvraag_id } : {}) };
 }
 
 /** Hoe de samenvatting een stap noemt, voor *Aanpassen*. */
@@ -213,11 +231,17 @@ export const STAP_NAAM: Record<IntakeStap, string> = {
   doel: "het doel",
   analysevraag: "de analysevraag",
   praktijkvoorbeeld: "het praktijkvoorbeeld",
+  thema: "het thema",
   deelvragen: "de deelvragen",
   regelingen: "de regelingen",
   bepalingen: "de bepalingen",
   buiten: "wat erbuiten valt",
   samenvatting: "de samenvatting",
+  bs_kies: "de keuze van de deelvraag",
+  bs_bepalingen: "de kernbepalingen",
+  bs_afhankelijkheden: "wat eraan hangt",
+  bs_afronden: "het afronden",
+  bs_verder: "hoe we verder gaan",
 };
 
 export function parseAntwoordOp(ruw: unknown): AntwoordOp | undefined {
@@ -227,13 +251,15 @@ export function parseAntwoordOp(ruw: unknown): AntwoordOp | undefined {
   if (!/^[A-Za-z0-9-]{1,64}$/.test(intake_id) || !STAP_SET.has(stap)) return undefined;
   if (!["antwoord", "overslaan", "wijzig", "aanmaken", "opslaan", "afbreken"].includes(actie)) return undefined;
   const deel = typeof r.deel === "number" && Number.isInteger(r.deel) && r.deel >= 0 ? r.deel : undefined;
+  const dv = tekst(r.deelvraag_id);
   return { intake_id, stap: stap as IntakeStap, ...(deel !== undefined ? { deel } : {}),
-    actie: actie as IntakeActie["actie"] };
+    actie: actie as IntakeActie["actie"], ...(dv && DEELVRAAG_ID.test(dv) ? { deelvraag_id: dv } : {}) };
 }
 
 /** De gegevens van een klik, zoals ze op het user-bericht komen (api `IntakeAntwoord`). */
 export function antwoordOp(a: IntakeActie): AntwoordOp {
-  return { intake_id: a.intake_id, stap: a.stap, ...(typeof a.deel === "number" ? { deel: a.deel } : {}), actie: a.actie };
+  return { intake_id: a.intake_id, stap: a.stap, ...(typeof a.deel === "number" ? { deel: a.deel } : {}), actie: a.actie,
+    ...(a.deelvraag_id ? { deelvraag_id: a.deelvraag_id } : {}) };
 }
 
 /** Het kaartje vóór dit (‹): de vorige stap, of bij de bepalingen het vorige deel. Vanaf de
@@ -243,6 +269,9 @@ export function vorige(k: Vraagkaart): { naar: IntakeStap; naar_deel?: number } 
   if (!k.terug) return undefined;
   if (k.stap === "samenvatting") return { naar: "bepalingen", naar_deel: Math.max(0, k.totaal - VASTE_STAPPEN - 1) };
   if (k.stap === "bepalingen" && k.deel && k.deel.index > 0) return { naar: "bepalingen", naar_deel: k.deel.index - 1 };
+  // Het thema staat bij het aanvullen na het praktijkvoorbeeld; vanaf de afbakening vraagt de werkplek de
+  // deelvragen, en graph-qa maakt daar het thema van (`VOLGORDE_AANVULLEN`).
+  if (k.stap === "thema") return { naar: "praktijkvoorbeeld" };
   const i = STAPPEN.indexOf(k.stap as (typeof STAPPEN)[number]);
   return i > 0 ? { naar: STAPPEN[i - 1] } : undefined;
 }
@@ -250,6 +279,8 @@ export function vorige(k: Vraagkaart): { naar: IntakeStap; naar_deel?: number } 
 /** Is dit de laatste vraag vóór de samenvatting? Dan heet de knop *Verzend*. Bij het aanvullen is dat de
  *  laatste gevraagde stap. */
 export function isLaatsteVraag(k: Vraagkaart): boolean {
+  // Bij de bronselectie staat elk kaartje op zichzelf: wat erna komt, hangt af van het antwoord.
+  if (k.modus === "bronselectie") return true;
   if (k.modus === "aanvullen") return k.soort === "vraag" && k.nr >= k.totaal;
   return k.stap === "bepalingen" && (!k.deel || k.deel.index >= k.deel.totaal - 1);
 }
@@ -259,6 +290,8 @@ export interface VraagPaar {
   stap: IntakeStap;
   /** Bij de bepalingen: het deel (een paar per deelvraag). */
   deel?: number;
+  /** Bij de bronselectie: de deelvraag (een paar per deelvraag en stap). */
+  deelvraag_id?: string;
   vraag: string;
   antwoord: string;
   overgeslagen: boolean;
@@ -316,9 +349,13 @@ export function groepeerVragen<T extends GroepItem>(items: T[], bezig: boolean):
       // je een stap opnieuw, dan vervangt dat het eerdere paar en wat erna kwam – de reeks begint daar opnieuw.
       if (k && x.antwoordOp.actie !== "wijzig") {
         // Bij de bepalingen is elk deel een eigen vraag: het antwoord op deelvraag 2 vervangt dat op 1 niet.
-        const eerder = huidig.paren.findIndex((p) => p.stap === k.stap && p.deel === k.deel?.index);
+        // Bij de bronselectie komt dezelfde stap per deelvraag terug, en ook bij dezelfde deelvraag (verder
+        // onderzoeken): dat is een nieuw antwoord in de reeks, geen vervanging van het vorige.
+        const eerder = k.modus === "bronselectie" ? -1
+          : huidig.paren.findIndex((p) => p.stap === k.stap && p.deel === k.deel?.index);
         if (eerder >= 0) huidig.paren.splice(eerder);
-        huidig.paren.push({ stap: k.stap, ...(k.deel ? { deel: k.deel.index } : {}), vraag: k.vraag,
+        huidig.paren.push({ stap: k.stap, ...(k.deel ? { deel: k.deel.index } : {}),
+          ...(k.deelvraag_id ? { deelvraag_id: k.deelvraag_id } : {}), vraag: k.vraag,
           antwoord: x.tekst ?? "", overgeslagen: x.antwoordOp.actie === "overslaan" });
       }
       huidig.open = undefined; huidig.openId = undefined;

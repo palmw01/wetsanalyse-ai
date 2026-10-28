@@ -1,5 +1,7 @@
 "use client";
 
+import { FilterChip } from "./FilterChip";
+
 /** De ene balk boven een overzicht – Annotaties, Werkgebieden, Begrippen: links de filterknoppen met
  *  tellers, in het midden *Door mij bewerkt* (en wat een overzicht extra nodig heeft), rechts het
  *  zoekveld. Gedeeld, zodat de drie overzichten niet uit elkaar lopen. Twee of vier knoppen in plaats
@@ -23,20 +25,10 @@ export function OverzichtBalk<T extends string>({
     <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
       <div role="group" aria-label={filterLabel} className="flex flex-wrap gap-1.5">
         {filters.map((f) => (
-          <button
-            key={f.waarde}
-            type="button"
-            aria-pressed={gekozen === f.waarde}
-            onClick={() => onKies(f.waarde)}
-            className={`focus-ring min-h-[24px] rounded-full border px-2.5 py-0.5 text-[0.7rem] transition coarse:min-h-[44px] ${
-              gekozen === f.waarde
-                ? "border-lint bg-lint text-paper"
-                : "border-line text-muted hover:border-lint hover:text-ink"
-            }`}
-          >
+          <FilterChip key={f.waarde} gekozen={gekozen === f.waarde} onKies={() => onKies(f.waarde)}>
             {f.label}
             {typeof f.aantal === "number" ? ` (${f.aantal})` : ""}
-          </button>
+          </FilterChip>
         ))}
       </div>
 

@@ -24,7 +24,7 @@ import logging
 from typing import Any, AsyncIterator, Awaitable, Callable
 
 from .begrippen_pipeline import kaartacties as ka
-from .begrippen_run import manifest_uit
+from .begrippen_run import manifest_uit, onderzoek_uit
 from .bronnen_vinden import _bwb, _rijen, in_selectie
 from .config import Settings
 from .graph.queries import BEVAT, NS, PREFIXES, _lit
@@ -107,18 +107,19 @@ def zoek_brondefinities(graph: GraphPort, invoer: dict[str, Any]) -> ka.Uitkomst
 
 def reken_met_model(llm: Any, model: str, invoer: dict[str, Any], meting: dict[str, int]) -> ka.Uitkomst:
     manifest = manifest_uit(invoer["manifest"])
+    onderzoek = onderzoek_uit(invoer.get("onderzoek"), manifest)
     kant = ka.kant_uit({**invoer["begrip"], "leden": invoer.get("leden") or []}, manifest)
     actie = invoer["actie"]
     if actie == "scherper":
-        return ka.scherper(llm, model, manifest, kant, meting)
+        return ka.scherper(llm, model, manifest, kant, meting, onderzoek)
     if actie == "voorbeelden":
-        return ka.voorbeelden(llm, model, manifest, kant, meting)
+        return ka.voorbeelden(llm, model, manifest, kant, meting, onderzoek)
     if actie == "uitleg":
         return ka.uitleg(llm, model, manifest, kant, meting)
     ander = ka.kant_uit(invoer.get("ander"), manifest)
     if ander is None:
         return ka.Uitkomst(melding="Er is geen begrip om mee te vergelijken.")
-    return ka.verschil(llm, model, manifest, kant, ander, meting)
+    return ka.verschil(llm, model, manifest, kant, ander, meting, onderzoek)
 
 
 # --- de stroom ------------------------------------------------------------------------------------
@@ -214,7 +215,8 @@ async def kaart_stroom(werkgebied_id: str, begrip_id: str, api_run_id: str, run:
         try:
             await api.zet_kaart_uitkomst(werkgebied_id, begrip_id, api_run_id, {
                 "invoer_id": data["invoer_id"], "voorstellen": uitkomst.voorstellen, "melding": uitkomst.melding,
-                "model": model, "promptversie": ka.promptversie(actie), "tokens": tokens, "meting": meting})
+                "model": model, "promptversie": ka.promptversie(actie), "tokens": tokens,
+                "meting": {**meting, **({"onderzoek": uitkomst.onderzoek} if uitkomst.onderzoek else {})}})
         except WetsanalyseApiFout as fout:
             await mislukt(f"Opslaan geweigerd ({fout.status}): {fout.reden}")
             yield {"type": "error", "message": "Lex had een voorstel, maar de api weigerde het op te slaan.",
@@ -226,7 +228,7 @@ async def kaart_stroom(werkgebied_id: str, begrip_id: str, api_run_id: str, run:
         else:
             yield _status(uitkomst.melding or "Geen voorstel")
         yield {"type": "opgeslagen", "kaart_run": api_run_id, "voorstellen": len(uitkomst.voorstellen),
-               "melding": uitkomst.melding}
+               "melding": uitkomst.melding, **({"onderzoek": uitkomst.onderzoek} if uitkomst.onderzoek else {})}
         yield {"type": "done"}
     finally:
         if eigen_api:

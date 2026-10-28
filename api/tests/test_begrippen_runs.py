@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from sqlalchemy import update
 
-from app import annotatie_v2_store as store, begrip_manifest, db
+from app import annotatie_v2_store as store, begrip_manifest, begrip_onderzoek, db
 from test_annotatie_v2 import ART, LAW, ONE, TWO, element, request, snapshot
 from test_werkgebieden import ART2, _bron, _nieuw, client, database, graaf, snapshot2  # noqa: F401
 
@@ -278,3 +278,55 @@ def test_de_vindplaats_noemt_de_regeling_bij_naam():
     assert snap["nodes"][0]["label"] == "Regeling"                 # de snapshot zelf blijft ongemoeid
     from app.werkgebied_werkvoorraad import _regeling
     assert _regeling(nodes, "urn:bwb:B:artikel:9:lid:5") == "Invorderingswet 1990"
+
+
+# --- de onderzoeksstand (spoor M) ---------------------------------------------------------------
+
+async def test_een_run_draagt_haar_onderzoek(client):
+    await _annoteer()
+    wg = await _werkgebied(client)
+    run = await _start(client, wg, 201)
+    assert run["onderzoek_id"].startswith("O")
+    vol = (await client.get(f"/v1/werkgebieden/{wg['id']}/begrippen-runs/{run['id']}", params={"manifest": True})).json()
+    o = vol["onderzoek"]
+    assert o["manifest_id"] == run["manifest_id"]
+    # Zonder graaf geen verwijzingen: dat staat erbij, het is geen fout.
+    assert {"wat": "verwijzingen vanaf de passages", "reden": "onbereikbaar"} in o["ontbrekend"]
+    assert not {b["bron_iri"] for b in o["bronnen"]} & {b["bron_iri"] for b in vol["manifest"]["bronnen"]}
+    assert vol["onderzoek_samenvatting"]["ontbrekend"] == {"onbereikbaar": 1}
+
+
+async def test_na_een_storing_is_de_run_verouderd_ook_als_er_niets_bijkomt(client, monkeypatch):
+    """Komt de graaf terug zonder dat de verwijzingen een bron opleveren, dan zijn de contextbronnen
+    gelijk, maar is `onbereikbaar` weg: een andere onderzoeksstand, dus een nieuwe run."""
+    await _annoteer()
+    wg = await _werkgebied(client)
+    run = await _start(client, wg, 201)
+
+    async def geen(iris):
+        return []
+
+    monkeypatch.setattr(begrip_onderzoek, "_graaf_verwijzingen", geen)
+    laatste = (await client.get(f"/v1/werkgebieden/{wg['id']}/begrippen-runs/laatste")).json()["run"]
+    assert laatste["verouderd"] is True
+    nieuw = await _start(client, wg, 201)
+    assert nieuw["manifest_id"] == run["manifest_id"] and nieuw["onderzoek_id"] != run["onderzoek_id"]
+
+
+async def test_een_ander_lid_ernaast_maakt_de_run_verouderd_zonder_ander_manifest(client, graaf):
+    snap = snapshot()
+    await store.batch(request(snap, [element(snap, ONE, 2, 6), element(snap, ONE, 7, 11)]), snap, "lex")
+    wg = await _nieuw(client)
+    wg = (await _bron(client, wg, bron_iri=ART, bereik="onderliggend"))["werkgebied"]
+    run = await _start(client, wg, 201)
+    vol = (await client.get(f"/v1/werkgebieden/{wg['id']}/begrippen-runs/{run['id']}", params={"manifest": True})).json()
+    # Lid 2 draagt geen annotatie: het is context, geen manifestbron.
+    assert [b["bron_iri"] for b in vol["onderzoek"]["bronnen"]] == [TWO]
+    assert vol["onderzoek"]["bronnen"][0]["reden"] == "zelfde_artikel"
+    assert vol["onderzoek"]["bronnen"][0]["rol"] == "analyseren"
+
+    graaf.tweede_lid = "Gamma"
+    laatste = (await client.get(f"/v1/werkgebieden/{wg['id']}/begrippen-runs/laatste")).json()["run"]
+    assert laatste["verouderd"] is True
+    nieuw = await _start(client, wg, 201)
+    assert nieuw["manifest_id"] == run["manifest_id"] and nieuw["onderzoek_id"] != run["onderzoek_id"]

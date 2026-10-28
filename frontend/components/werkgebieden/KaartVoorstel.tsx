@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/Field";
 import { OordeelKeuze, OordeelLabel } from "@/components/werkgebieden/Voorbeelden";
 import { Melding } from "@/components/ui/Melding";
 import {
-  VERGELIJKING_LABEL, aandachtTekst, herkomstLabel, isDefinitie, voorstelTekst, type Verouderd,
+  VERGELIJKING_LABEL, aandachtTekst, duidingTekst, herkomstLabel, isDefinitie, onderzoekTekst, voorbeeldTekst,
+  voorstelTekst, type Verouderd,
 } from "@/lib/kaartVoorstel";
 import type { KaartVoorstel, TekstWaarde, VoorbeeldOordeel } from "@/lib/types";
 
@@ -84,6 +85,8 @@ export function KaartVoorstelKaart({ v, verouderd, onbewaard, geaccordeerd, onOv
       {!isDefinitie(v) && (w as TekstWaarde).vergelijking && (
         <p className="text-xs text-muted">Uitkomst: {VERGELIJKING_LABEL[(w as TekstWaarde).vergelijking!]}</p>
       )}
+      {voorbeeldTekst(v) && <p className="text-xs text-muted">{voorbeeldTekst(v)}</p>}
+      {duidingTekst(v) && <p className="text-xs text-muted">{duidingTekst(v)}</p>}
       {v.motivatie && <p className="text-xs text-muted">{v.motivatie}</p>}
       {w.fragmenten && w.fragmenten.length > 0 && (
         <details className="text-xs">
@@ -95,6 +98,7 @@ export function KaartVoorstelKaart({ v, verouderd, onbewaard, geaccordeerd, onOv
           </ul>
         </details>
       )}
+      {onderzoekTekst(v) && <p className="text-xs text-muted">{onderzoekTekst(v)}</p>}
       {v.aandachtspunten.length > 0 && (
         <ul className="space-y-0.5 text-xs text-aandacht-geel-tekst" aria-label="Aandachtspunten">
           {v.aandachtspunten.map((a) => <li key={a}>{aandachtTekst(a)}</li>)}

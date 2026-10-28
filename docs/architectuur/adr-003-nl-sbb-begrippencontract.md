@@ -72,3 +72,16 @@ Er is nog niets van spoor D gebouwd. Dit is het moment om het te beslissen.
 - **Alleen SKOS, zonder NL-SBB-profiel.** Afgewezen: SKOS zegt niets over verplichte velden,
   bronverwijzing of de vorm van een definitie. NL-SBB is het Nederlandse overheidsprofiel daarvoor
   en maakt uitwisseling met andere begrippenkaders mogelijk.
+
+## Aanvulling (spoor I, 27 okt 2026)
+
+- **Het slanke model.** Een begrip draagt alleen wat NL-SBB vraagt: term (naam, alternatieve termen),
+  definitie (`skos:definition`), uitleg (`rdfs:comment`), toelichting (`skos:scopeNote`, het veld `context`)
+  en voorbeelden (`skos:example`). JAS-duiding, begripstype, geldigheid, eigenschappen, onderbouwing en open
+  vragen zijn vervallen; de herkomst van de definitie leidt de api af (alleen een overgenomen brondefinitie
+  is letterlijk). De bron blijft `dct:source` via de dragende passages.
+- **B1.** De uitleg is in eenvoudige taal, op taalniveau B1; Lex toetst haar in code
+  (`begrip_b1`: zinslengte, aantal zinnen, lijdende vorm, moeilijke woorden, onverklaarde vaktermen,
+  herhaalde definitie) en meldt treffers als aandachtspunten.
+- **TOOI.** Het kader krijgt `dct:subject` naar een thema uit tooitop; een brondocument
+  `dct:publisher` naar de TOOI-organisatie van zijn regeling.

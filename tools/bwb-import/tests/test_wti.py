@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from rdflib import RDF, Literal
+from rdflib import RDF, RDFS, Literal, URIRef
 
 from app.graphdb_writer import DCTERMS, SKOS, GraphDbWriter
 from app.parser import ToestandParser
@@ -53,6 +53,10 @@ def test_wti_verrijking_in_graaf() -> None:
     assert (wet_iri, V.ns.afkorting, Literal("IW")) in g
     assert (wet_iri, V.ns.alternatieveTitel, Literal("Invorderingswet", lang="nl")) in g
     assert (wet_iri, V.ns.eerstverantwoordelijke, Literal("Financiën")) in g
+    # Spoor I6: het ministerie als TOOI-URI, met de officiële naam van nu.
+    fin = URIRef("https://identifier.overheid.nl/tooi/id/ministerie/mnre1090")
+    assert (wet_iri, V.ns.eerstverantwoordelijkeOrganisatie, fin) in g
+    assert (fin, RDFS.label, Literal("ministerie van Financiën", lang="nl")) in g
 
     # Rechtsgebieden als skos:Concepten met hiërarchie; wet -> dcterms:subject.
     hoofd = V.begrip("Belastingrecht")
@@ -93,3 +97,14 @@ def test_begrip_iri_slug() -> None:
     assert (
         str(V.begrip("Sociale zekerheid & pensioen")) == "urn:bwb:begrip:sociale-zekerheid-pensioen"
     )
+
+
+def test_tooi_ministerie_ook_bij_een_oude_naam_en_anders_niets() -> None:
+    from app import tooi
+    assert tooi.ministerie("Financiën")[0].endswith("/mnre1090")
+    # Een historische naam wijst naar het ministerie van nu.
+    assert tooi.ministerie("Veiligheid en Justitie") == (
+        "https://identifier.overheid.nl/tooi/id/ministerie/mnre1058", "ministerie van Justitie en Veiligheid")
+    assert tooi.ministerie("  ministerie van  financiën ")[0].endswith("/mnre1090")
+    assert tooi.ministerie("Ministerie van Verzinsels") is None
+    assert tooi.ministerie("") is None

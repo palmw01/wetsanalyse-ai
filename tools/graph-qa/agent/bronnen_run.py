@@ -55,7 +55,7 @@ def samenvatting(naam: str, kandidaten: list[dict[str, Any]], meting: dict[str, 
     onvolledig = [METHODE_NAAM.get(m, m).lower() for m, x in (meting or {}).items() if not x.get("volledig", True)]
     if onvolledig:
         zin += f" Niet volledig: {', '.join(onvolledig)} (plafond geraakt of de graaf haperde)."
-    return zin + " Neem op wat erbij hoort; sluit uit wat er niet bij hoort, met een reden."
+    return zin + " Kies ze per deelvraag met *Bepaal de bronnen per deelvraag*."
 
 
 def _status(bericht: str) -> dict[str, Any]:

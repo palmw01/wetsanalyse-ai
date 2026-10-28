@@ -38,6 +38,14 @@ export const AANDACHTSPUNT: Record<string, string> = {
   MODEL_GEEN_DEFINITIE: "Lex gaf voor deze groep geen bruikbare definitie.",
   CIRCULAIR_VERWORPEN: "Lex formuleerde een definitie met de naam van het begrip zelf; die is niet overgenomen.",
   DOOR_LEX_GEFORMULEERD: "De definitie is door Lex geformuleerd; toets haar aan de passages.",
+  ALGEMENE_NAAM_SPECIFIEKE_DEFINITIE: "De naam is algemeen, maar de definitie beschrijft één variant uit parallelle bepalingen; kies een specifiekere naam of een algemenere definitie.",
+  RECHTSGEVOLG_IN_DEFINITIE: "De definitie noemt een rechtsgevolg (wat er met het begrip gebeurt); dat hoort niet in de omschrijving.",
+  AFLEIDING_IN_DEFINITIE: "De definitie beschrijft een afleiding of verrekening; die is een eigen begrip ('bepalen …').",
+  ONDERBOUWING_EEN_VOORKOMEN: "De onderbouwing komt uit één bepaling, terwijl de term ook elders in de onderzochte context staat.",
+  FRAGMENT_ONDERSTEUNT_NIET: "Een gekozen fragment deelt geen inhoudswoord met de definitie; controleer of het haar draagt.",
+  TEGENBEWIJS_IN_ONDERZOEK: "Het onderzoek vond een andere definitie of kwalificatie die deze term raakt; vergelijk ze.",
+  CONTEXT_NIET_ONDERZOCHT: "Niet alle context is onderzocht; de definitie kan iets missen.",
+  ONVOLDOENDE_BEWIJS: "Lex vond onvoldoende bewijs voor een definitie; de motivatie zegt wat er ontbreekt.",
 };
 
 /** De aandachtspunten om te tonen: "geen definitie" naast "Lex gaf geen definitie" zegt twee keer

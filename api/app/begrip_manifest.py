@@ -44,6 +44,12 @@ def _vindplaats(nodes: dict[str, dict], iri: str) -> str:
 
 async def bouw(werkgebied: dict, resolve: Resolver) -> dict:
     """`{manifest: {bronnen, formuleringen}, manifest_id, overgeslagen, volledig}`."""
+    return (await bouw_met_bronbomen(werkgebied, resolve))[0]
+
+
+async def bouw_met_bronbomen(werkgebied: dict, resolve: Resolver) -> tuple[dict, dict[str, dict]]:
+    """Het manifest, plus de bronboom per regeling – zodat het onderzoek (`begrip_onderzoek`) de graaf
+    niet opnieuw vraagt."""
     inv, per_bwb = await inventaris_met_bronbomen(werkgebied["bronnen"], resolve)
     nodes: dict[str, dict] = {}
     for snap in per_bwb.values():
@@ -83,4 +89,4 @@ async def bouw(werkgebied: dict, resolve: Resolver) -> dict:
     formuleringen.sort(key=lambda f: (f["bron_iri"], f["start"], f["element_id"]))
     return {"manifest": {"bronnen": lijst, "formuleringen": formuleringen},
             "manifest_id": manifest_id(lijst, formuleringen), "overgeslagen": overgeslagen,
-            "volledig": inv["volledig"]}
+            "volledig": inv["volledig"]}, per_bwb

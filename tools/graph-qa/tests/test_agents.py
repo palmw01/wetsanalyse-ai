@@ -27,11 +27,11 @@ WG = {"id": "wg1", "naam": "Invorderbaarheid", "analysevraag": "Wanneer is een a
                      {"id": "d2", "vraag": "Wie is belastingschuldige en wanneer moet hij betalen?", "status": "actief",
                       "bronnen": []},
                      {"id": "d3", "vraag": "Een voorstel?", "status": "voorgesteld", "bronnen": []}]}
-DEKKING = {"deelvragen": [{"id": "d1", "vraag": "Wanneer vervalt de betalingstermijn?", "stand": "geen_begrip",
-                           "bronnen": [{"id": "s1", "label": "art. 9 Iw"}], "begrippen": []},
+DEKKING = {"deelvragen": [{"id": "d1", "vraag": "Wanneer vervalt de betalingstermijn?", "stand": "met_bron",
+                           "bronnen": [{"id": "s1", "label": "art. 9 Iw"}]},
                           {"id": "d2", "vraag": "Wie is belastingschuldige en wanneer moet hij betalen?",
-                           "stand": "geen_bron", "bronnen": [], "begrippen": []}],
-           "telling": {"gedekt": 0, "geen_begrip": 1, "geen_bron": 1}, "totaal": 2}
+                           "stand": "geen_bron", "bronnen": []}],
+           "telling": {"met_bron": 1, "geen_bron": 1}, "totaal": 2}
 KANDIDATEN = {"kandidaten": [{"id": "k1", "label": "art. 10 Iw", "status": "voorgesteld",
                               "bewijs": [{"methode": "deelvraag", "detail": {"deelvraag_id": "d2"}}]}]}
 
@@ -47,6 +47,10 @@ class NepApi:
 
     async def haal_deelvragen_dekking(self, wid):
         return DEKKING
+
+    async def haal_thema_voorstel(self, wid):
+        return {"rechtsgebieden": ["Belastingrecht"],
+                "voorstel": [{"thema": "https://identifier.overheid.nl/tooi/def/thes/top/c_25e30d03", "label": "belasting"}]}
 
     async def haal_kandidaten(self, wid):
         return KANDIDATEN
@@ -113,7 +117,7 @@ def test_een_actie_kiest_agent_en_taak_zonder_model():
     assert any(e.get("message", "").startswith("Supervisor · kiest de deelvragen-agent · taak dekking (suggestie)")
                for e in events)
     token = "".join(e["content"] for e in events if e["type"] == "token")
-    assert "0 van 2 deelvragen gedekt" in token and "alleen context" not in token
+    assert "1 van 2 deelvragen gedekt" in token and "alleen context" not in token
     assert "1 kandidaat van Lex open" in token and "nog geen bron" in token
     [artefact] = [e["artefact"] for e in events if e["type"] == "artefact"]
     assert artefact == {"soort": "werkgebied", "titel": "Invorderbaarheid", "ref": {"werkgebied_id": "wg1"}}
@@ -314,3 +318,4 @@ def test_de_verbetering_past_in_het_api_contract():
     _, vragen, _ = valideer_verbetering({"soort": "splits", "vragen": ["Vraag een?", "Vraag twee?"]},
                                         WG["deelvragen"][1], [])
     DeelvraagVoorstellen(vragen=vragen, model="m", vervangt="d2")
+

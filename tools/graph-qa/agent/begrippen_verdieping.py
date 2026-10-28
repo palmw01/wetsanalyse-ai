@@ -34,7 +34,7 @@ from .begrippen_beurt import begrippen_artefact
 from .begrippen_pipeline import classificatie, kaart as kaart_mod, verdieping as vd
 from .begrippen_pipeline.keten import analyseer
 from .begrippen_pipeline.model import Aandacht, Kaart, ModelOordeel, Oordeel
-from .begrippen_run import manifest_uit, voorstel
+from .begrippen_run import manifest_uit, onderzoek_uit, voorstel
 from .reeks import _budget_poort
 from .wetsanalyse_api import WetsanalyseApi, WetsanalyseApiFout
 
@@ -49,7 +49,18 @@ def _meervoud(n: int, een: str, meer: str) -> str:
     return f"{n} {een if n == 1 else meer}"
 
 
-def voorstel_tekst(naam: str, wv: dict[str, Any]) -> tuple[str, dict[str, Any] | None]:
+def werkvoorraad_id(wv: dict[str, Any], model: str) -> str:
+    """De inhoud van de werkvoorraad die een bevestiging dekt (spoor M): de twijfelvragen en de groepen
+    zonder definitie, de onderzoeksstand, het model en de promptversies. Bevestigt de analist een
+    aantal, dan begint Lex alleen als ook dit gelijk is – anders zou een gelijk aantal een andere
+    werkvoorraad (of een duurder model) kunnen starten."""
+    run = wv.get("run") or {}
+    delen = ["vraag", *sorted(wv.get("vragen") or []), "kaart", *sorted(wv.get("kaarten") or []),
+             str(run.get("onderzoek_id") or ""), model, classificatie.promptversie(), kaart_mod.promptversie()]
+    return "W" + vd._hash(*delen)[:16]
+
+
+def voorstel_tekst(naam: str, wv: dict[str, Any], wid: str = "") -> tuple[str, dict[str, Any] | None]:
     """De tekst vóór de bevestiging, en de bevestiging zelf."""
     vragen, kaarten, n = len(wv.get("vragen") or []), len(wv.get("kaarten") or []), int(wv.get("aantal") or 0)
     delen = [x for x in (_meervoud(vragen, "twijfelpunt", "twijfelpunten") if vragen else "",
@@ -65,7 +76,8 @@ def voorstel_tekst(naam: str, wv: dict[str, Any]) -> tuple[str, dict[str, Any] |
     zinnen.append("Ik beslis niets: bij een twijfelpunt geef ik advies, en een definitie die ik formuleer staat "
                   "geel, met de passages waarop ze rust. Bevestig om te starten.")
     return " ".join(zinnen), {"soort": "begrippen_verdiepen", "werkgebied_id": str(wv.get("werkgebied_id") or ""),
-                              "aantal": n, "schatting": schat["totaal"] if schat else None}
+                              "aantal": n, "schatting": schat["totaal"] if schat else None,
+                              **({"werkvoorraad_id": wid} if wid else {})}
 
 
 def samenvatting(naam: str, her: vd.Hergroepering, kaarten: dict[str, Any]) -> str:
@@ -93,7 +105,8 @@ def _groep_contract(g, manifest, uitkomst, model_links: set[str]) -> dict[str, A
             "door": "model" if set(g.kandidaten) & model_links else "regel"}
 
 
-async def verdieping_kern(ctx: Context, werkgebied_id: str, bevestigd: int | None = None) -> Uitkomst:
+async def verdieping_kern(ctx: Context, werkgebied_id: str, bevestigd: int | None = None,
+                          bevestigd_id: str = "") -> Uitkomst:
     """Meedenken (taak `meedenken` van de begrippen-agent). Zonder `bevestigd` het voorstel met een
     bevestiging; met `bevestigd` gelijk aan de werkvoorraad de batches. Is er niets voor het model, dan
     rekent hij meteen, zonder model."""
@@ -116,19 +129,25 @@ async def verdieping_kern(ctx: Context, werkgebied_id: str, bevestigd: int | Non
         return Uitkomst(taak=taak, artefact=artefact, tekst=f"Over de voorstellen in werkgebied *{naam}* heb ik al "
                                                             "meegedacht; open ze om ze te beoordelen.")
     aantal = int(wv.get("aantal") or 0)
-    met_model = bevestigd is not None and bevestigd == aantal
+    wid = werkvoorraad_id(wv, settings.llm_model)
+    met_model = bevestigd is not None and bevestigd == aantal and bevestigd_id == wid
     if aantal and not met_model:
-        tekst, bevestiging = voorstel_tekst(naam, wv)
-        if bevestigd is not None:
+        tekst, bevestiging = voorstel_tekst(naam, wv, wid)
+        if bevestigd is not None and bevestigd != aantal:
             tekst = f"De werkvoorraad veranderde: nu {aantal} in plaats van {bevestigd}. Ik ben niet begonnen. " + tekst
+        elif bevestigd is not None:
+            tekst = ("De werkvoorraad is even groot, maar niet meer dezelfde (andere voorstellen, onderzoek of model). "
+                     "Ik ben niet begonnen. " + tekst)
         return Uitkomst(taak=taak, status="bevestiging", tekst=tekst, bevestiging=bevestiging,
                         meting={"aantal": aantal, "model": False})
 
     # -- rekenen ------------------------------------------------------------------------------
     data = await api.haal_begrippen_run(werkgebied_id, str(api_run["id"]))
     manifest = manifest_uit(data["manifest"])
-    ctx.melding(f"De keten opnieuw op {len(manifest.formuleringen)} passages")
-    uitkomst = await asyncio.to_thread(analyseer, manifest, ctx.provider)
+    onderzoek = onderzoek_uit(data.get("onderzoek"), manifest)
+    ctx.melding(f"De keten opnieuw op {len(manifest.formuleringen)} passages"
+                + (f" en {len(onderzoek.bronnen)} bepalingen als context" if onderzoek else ""))
+    uitkomst = await asyncio.to_thread(analyseer, manifest, ctx.provider, None, onderzoek)
     bewaard = data.get("uitkomst") or {}
     if sorted(g.id for g in uitkomst.groepen) != sorted(bewaard.get("groep_ids", [])) or \
             sorted(v.kandidaat_id for v in uitkomst.vragen) != sorted(v["kandidaat_id"] for v in bewaard.get("vragen", [])):
@@ -145,7 +164,7 @@ async def verdieping_kern(ctx: Context, werkgebied_id: str, bevestigd: int | Non
     async def batch(soort: str, ids: list[str], versie: str, reken: Callable[[Any], Any],
                     bewaar: Callable[[Any], dict[str, Any]], lees: Callable[[dict], Any]) -> Any | None:
         """Eén batch: uit de api als hij klaar is, anders rekenen, boeken en bewaren. None = niet gedaan."""
-        bid = vd.batch_id(soort, ids, versie, model)
+        bid = vd.batch_id(soort, ids, versie, model, onderzoek.id if onderzoek else "")
         if bid in klaar:
             return lees(klaar[bid]["resultaat"])
         if not met_model or teller["gestopt"]:
@@ -192,7 +211,7 @@ async def verdieping_kern(ctx: Context, werkgebied_id: str, bevestigd: int | Non
     her = vd.hergroepeer(manifest, uitkomst, oordelen) if compleet else None
     kaarten: dict[str, Any] = {}
     if her is not None:
-        kaarten, opdrachten = vd.kaartopdrachten(manifest, uitkomst, her.groepen)
+        kaarten, opdrachten = vd.kaartopdrachten(manifest, uitkomst, her.groepen, onderzoek)
         geel = {g.id: g.aandacht is Aandacht.GEEL for g in her.groepen}
         kbatches = kaart_mod.batches(opdrachten)
         for i, b in enumerate(kbatches, 1):

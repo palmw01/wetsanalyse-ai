@@ -41,6 +41,8 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
    lezen*.
 16. **Deelvragen** (`/v1/werkgebieden/{id}/deelvragen/*`, vervolg op F): optionele deelvragen bij een
    werkgebied, voorstellen van Lex en de dekkingscheck per deelvraag – zie §*Deelvragen*.
+17. **Bronselectie per deelvraag** (`/v1/werkgebieden/{id}/bronselectie/*`, spoor J): de voortgang van de
+   bronselectie per deelvraag en de besluiten per deelvraag – zie §*Bronselectie per deelvraag*.
 
 > **De wettekst komt uit de graaf.** De API leest uit GraphDB de **bronboom** (`bron_resolver.py`):
 > daarmee toetst hij ankers, legt hij snapshots vast en levert hij de segmenten van de weergave.
@@ -72,6 +74,7 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 | `begrippen_runs.py` (router), `begrippen_run_store.py`, `begrippen_run_contracts.py`, `begrip_manifest.py` | Voorstellen van Lex: manifest voor de begrippenketen, runs, betekenisgroepen en besluiten. |
 | `begrip_voorstellen.py` (router), `begrip_voorstel_store.py`, `begrip_voorstel_contracts.py` | Lex naast de kaart: kaartruns en voorstellen per veld, overnemen en afwijzen. |
 | `bronnen_runs.py` (router), `bronnen_run_store.py`, `bronnen_run_contracts.py` | Bronnen vinden met Lex: runs van de ontdekmethoden, kandidaatbepalingen en hun besluiten. |
+| `bronselectie.py`, `bronselectie_contracts.py` (routes in `bronnen_runs.py`) | Bronselectie per deelvraag: voortgang, besluiten per deelvraag, de volgende deelvraag en het overzicht. |
 | `begrip_onderhoud.py` (router), `begrip_onderhoud_store.py`, `begrip_onderhoud_contracts.py` | Onderhoud van begrippen: herbeoordelingen, opvolgers, herkoppelen, bevestigen en dekking. |
 | `begrip_relaties.py` (router), `begrip_relatie_store.py`, `begrip_relatie_contracts.py` | Begripsrelaties (voorstellen uit de keten, vastleggen, afwijzen, doorwerking) en opvolging: nieuwe betekenis, combineren. |
 | `begrip_projectie.py`, `shapes/nl-sbb-1.0.0.ttl`, `shapes/begrippen-wa.ttl` | Begrippen naar de kennisgraaf (NL-SBB), conformiteit per begrip en de Turtle-export. |
@@ -207,6 +210,10 @@ Hieronder wat je moet weten om de code te wijzigen.
   opgemerkt en opnieuw gevuld, ruimt verweesde projecties op (na een hercontrole onder het
   schrijfslot) en zet de vocabulaire neer als die ontbreekt. Elke tiende ronde logt hij de lichte
   graafcontrole (`annotatie_graaf_afwijking`, voor Grafana).
+- **Rekenwerk met rdflib gaat via `asyncio.to_thread`** – bouwen, serialiseren, parsen, isomorfie, SHACL.
+  Het is pure Python, en de lus deelt de event loop met elk verzoek: synchroon hield één ronde van de
+  lichte graafcontrole ruim een halve minuut de hele api vast (acceptatie, 28 okt 2026: 504's op elk
+  scherm). `test_het_rdflib_werk_draait_niet_op_de_event_loop` bewaakt dat.
 - **`projecteer`** neemt een rij-lock op de laag en een lock per laag in het proces, en schrijft
   `geprojecteerd_revisie` pas na een geslaagde `PUT` plus registerupdate.
 - **Invarianten** (getest, en gecontroleerd door `graafcontrole.py`): geen subject onder `urn:bwb:`,
@@ -241,6 +248,10 @@ gebeurt in Python, want de elementen staan als JSON en de tests draaien op SQLit
 `werkgebieden.py`, `werkgebied_store.py`, `werkgebied_inventaris.py`; het ontwerp staat in PLAN
 spoor D (*Werkgebied als node*).
 
+- **Het thema is een TOOI-URI** (spoor I6, `app/tooi.py`): `thema` komt uit de snapshot van tooitop
+  (`tooi_themas.json`, CC0, met bron en datum); een ander thema geeft 422. `GET …/thema-voorstel` stelt
+  zonder model thema's voor uit de WTI-rechtsgebieden van de regelingen van de bronnen (een kleine
+  afbeeldingstabel, `RECHTSGEBIED_THEMA`); zonder graaf een lege lijst.
 - **Gedeeld**, zoals de annotaties: elke actieve gebruiker ziet en wijzigt alle werkgebieden; wie
   wat deed staat in `werkgebied_audit` (alleen inserts).
 - **Eén schrijfpad per mutatie** (`werkgebied_store._gewijzigd`): rij-lock op het werkgebied
@@ -384,7 +395,17 @@ bouwt de invoer, toetst en bewaart de uitkomst, en legt de besluiten vast.
   `docs/wetsanalyse/referentieset-begrippen/manifest-id.vectoren.json` legt id's en veldnamen vast,
   en zowel `tests/test_begrippen_runs.py` als graph-qa `tests/test_begrippen_manifest_drift.py`
   toetsen ertegen. Wijzigt het model van de keten, laat de vectoren dan door de keten herberekenen.
-- **Runs zijn idempotent op (werkgebied, manifest)**: een tweede start geeft de bestaande run (200,
+- **De onderzoeksstand** (`begrip_onderzoek.py`, spoor M): naast het manifest de context die de keten
+  moet lezen – leden van hetzelfde artikel, begripsbepalingen en kwalificaties met een
+  formuleringstekst, verwijzingen één stap vanaf de ankers (`samenhang._uitgaand`; een andere regeling
+  via `resolve`), contextselecties – in die prioriteit, binnen `MAX_*`, met `ontbrekend` (`budget`,
+  `niet_in_graaf`, `onbereikbaar`) en vergelijkingsbegrippen. `onderzoek_id` rekent zoals `Onderzoek.id`, met
+  `ontbrekend` erin (het stuurt `CONTEXT_NIET_ONDERZOCHT` en de prompt: na een storing is de run dus verouderd)
+  (`onderzoek-id.vectoren.json`, beide kanten). Kolommen `begrippen_runs.onderzoek(_id)`; kaartruns
+  dragen het in hun `invoer`. De garanties gelden over manifest + onderzoek
+  (`begrippen_verdieping.fragmentruimte`).
+- **Runs zijn idempotent op (werkgebied, manifest, onderzoek)**: een andere onderzoeksstand is een nieuwe
+  run, en `laatste` meldt dan `verouderd`. Een tweede start geeft de bestaande run (200,
   `nieuw: false`). Een run in `wacht`/`loopt` die `VERLOPEN` (5 min) niets van zich liet horen, telt
   als `mislukt` en mag opnieuw; graph-qa meldt `…/loopt` bij de start. Een onvolledige inventaris of
   minder dan twee passages: 409 met melding, geen run.
@@ -470,6 +491,14 @@ uitleg in B1, alleen op een definitie – anders 409 `geen_definitie`, net als `
   `GET …/voorstellen` meldt het vooraf als `verouderd`. Vervangen kan dan alleen bewust: met
   `nu_gezien` = de definitie die de analist naast het voorstel zag (klopt die niet meer: weer 409). Uitleg, toelichting en voorbeelden worden
   toegevoegd, nooit vervangen; wat er al staat, geeft geen revisie (wel het besluit).
+- **Het bewijs blijft na overnemen** (spoor M): `GET` van een begrip draagt `definitie_onderbouwing`,
+  afgeleid uit het voorstel achter de revisie die de huidige definitie zette (fragmenten met rol
+  `ondersteunend`, vindplaats, duiding, `onderzoek_id`); met de hand gewijzigd of aangepast: `null`.
+  Langs overnemen en akkoord op een groep staat de onderbouwing bevroren in het revisiedetail van het
+  aanmaken (`detail.onderbouwing`: `groep_id`, `run_id`, de kaart of het letterlijke voorstel), zodat een
+  latere verdieping haar niet verandert.
+  Een definitievoorstel bewaart de `duiding`, een voorbeeld `soort_voorbeeld`, `toetst` en `kenmerk`
+  (in `waarde`), en `door.onderzoek` zegt wat Lex onderzocht.
 - **Herkomst gaat mee.** `BegripInhoud.definitie_door` (`lex` | `analist` | leeg) zet de api, nooit de
   client (`begrip_store.met_afgeleid`): een ongewijzigde definitie houdt wie haar voorstelde, een nieuwe of
   andere tekst is van de analist. Overnemen zet `lex` en de herkomst van het voorstel; met `aanpassing`
@@ -557,11 +586,16 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
 
 `begrip_projectie.py`, `shapes/`; PLAN spoor D, fase F3; ADR-003 (NL-SBB is het datacontract).
 
+- **TOOI in de export** (spoor I6): het kader krijgt `dct:subject <thema>`, en in de Turtle-export krijgt elk
+  brondocument `dct:publisher <TOOI-organisatie>` van zijn regeling (`uitgevers`, uit
+  `bwb:eerstverantwoordelijkeOrganisatie`, best-effort zoals `paginas`).
 - **Per werkgebied één named graph** `urn:wa:graph:werkgebied:<id>`, register
   `urn:wa:graph:register:begrippen` (`wa:werkgebiedId`, `wa:projectieHash`, `wa:inGraaf`). Kader =
   `skos:ConceptScheme` met `dct:title` en de toelichting "analyse-uitkomst, geen wettelijke definitie";
   begrip = `skos:Concept` (`prefLabel`, `altLabel`, `definition`, `rdfs:comment` = uitleg, `scopeNote` =
-  context, `example` = voorbeelden met oordeel *wel*, `inScheme`, `dct:source` → `foaf:Document` met
+  context, `example` = voorbeelden met oordeel *wel*; *niet* is `wa:tegenvoorbeeld`, *onzeker*
+  `wa:grensgeval`; de bronnen van de overgenomen definitie zijn ook `dct:source`, met `wa:rol
+  "definitieonderbouwing"` – een alleen onderzochte bron niet, `inScheme`, `dct:source` → `foaf:Document` met
   vindplaats). Eigen predicaten onder `urn:wa-ns:`: status, revisie, herkomst en `definitieDoor`,
   JAS-klasse (IRI uit de vocabulaire), geaccordeerd-op, en per koppeling (`urn:wa:koppeling:<id>`) rol,
   beoordeling, element (`urn:jas:element:<id>`), `elementHash` (de bewijsstand, of de laatste bevestiging)
@@ -645,7 +679,8 @@ invoer vast, toetst en bewaart de kandidaten, en legt de besluiten vast.
   wordt geen kandidaat.
 - **Het besluit hoort bij de kandidaat**: een latere run werkt bewijs, rol en `run_id` bij en laat de
   status staan. **Een uitgesloten kandidaat komt dus niet terug** (de acceptatie van L1). Uitsluiten
-  vraagt een reden (422 zonder). `later`, `uitsluiten` en `heropenen` nemen het slot op het werkgebied
+  vraagt een reden (422 zonder). `later` (sinds spoor J niet meer in de werkplek; de bronselectie leest het als
+  voorstel), `uitsluiten` en `heropenen` nemen het slot op het werkgebied
   maar dragen geen revisie: ze wijzigen de scope niet.
 - **Opnemen** wijzigt de scope en draagt daarom `verwachte_revisie` (412). De api verifieert de bron
   zoals bij zelf opnemen en schrijft selectie én kandidaatstatus in één transactie
@@ -684,15 +719,69 @@ werkgebied zonder deelvragen werkt zoals altijd.
   en Lex stelt haar tekst niet opnieuw voor. `koppel_bron_in` volgt een vervangen deelvraag naar haar
   actieve opvolger(s). `GET …/deelvragen/{id}` geeft één deelvraag in elke stand, met `opvolgers` en de open
   `voorstellen` die haar vervangen (het deelvraagpaneel van de werkplek).
-- **Dekking** (`GET …/deelvragen/dekking`): per actieve deelvraag `gedekt` (een gekoppeld geaccordeerd
-  begrip), `geen_begrip` (wel bronnen of begrippen, geen geaccordeerd) of `geen_bron`; uit Postgres, zonder
-  graaf. Een vervangen begrip dekt niets meer.
+- **Dekking** (`GET …/deelvragen/dekking`): per actieve deelvraag `met_bron` of `geen_bron`, met de gekoppelde
+  bronnen; uit Postgres, zonder graaf. Een begrip telt niet mee: begrippen horen bij het werkgebied, niet bij
+  een deelvraag (spoor K, methode M04 H3). De werkplek toont per deelvraag de voortgang van de bronselectie.
 - **De bronnenrun zoekt per deelvraag**: `bronnen_run_store.invoer_van` neemt de actieve deelvragen op (alleen
   met deelvragen een sleutel, zodat de `invoer_id` van een werkgebied zonder deelvragen gelijk blijft); met
   alleen deelvragen is er ook een vertrekpunt. Op dezelfde manier gaat het dossier mee als sleutel `dossier`
   (alleen de gevulde velden van aanleiding, context, doel, praktijkvoorbeeld en afbakening). Bewijs van de methode `deelvraag` draagt `deelvraag_id`;
   opnemen koppelt de nieuwe selectie in dezelfde transactie aan die deelvragen (`koppel_bron_in`).
 - Tests: `tests/test_werkgebied_deelvragen.py`.
+
+## Bronselectie per deelvraag
+
+`bronselectie.py`, `bronselectie_contracts.py`, routes in `bronnen_runs.py`; PLAN spoor J. Lex begeleidt
+de bronselectie in het gesprek, maar de stand staat hier – niet in de gesprek-checkpointer –, zodat hij er
+na herladen, in een ander gesprek en bij een collega ook is.
+
+- **Voortgang per deelvraag** (`bronselectie_voortgang`, sleutel werkgebied + deelvraag): geen rij =
+  `niet_gestart`, dan `in_behandeling`, `voorlopig_afgerond`, `beoordeeld`; plus `fase` (`kern`,
+  `afhankelijkheden`, `afronden`) en `open_punten`. Dit is de stand van het werk; de deelvraagstatus
+  (`actief`, `vervangen`) en de dekkingscheck (`gedekt`, `geen_bron`) staan los. Een werkgebied zonder
+  actieve deelvragen heeft één eenheid, `analysevraag`; met deelvragen geeft die 409 `heeft_deelvragen`.
+- **`POST …/bronselectie/{deelvraag}/status {actie}`**: `openen` (navigeren: start de deelvraag als dat nog
+  niet gebeurd was, maakt haar de actieve – de laatst geopende in behandeling –, geen revisie), `fase`,
+  `afronden`, `beoordelen`, `heropenen` (elk met `verwachte_revisie` van de rij → 412). Staat de rij al
+  waar de actie heen wil, dan gebeurt er niets, ook geen revisietoets: een dubbele klik of een opnieuw
+  afgespeelde actie is geen conflict. `beoordelen` gaat door een **poort** (409 `poort` met `redenen`): de vragen
+  zijn doorlopen (fase `afronden`, of al afgerond) en er staat geen onderzoekspunt open. Niet gestart: 409
+  `niet_gestart`.
+- **Kiezen is het besluit; er is geen *later*.** Wie het kaartje beantwoordt, kiest: een voorstel dat toen niet
+  aangevinkt werd, heeft bij het lezen de stand `niet_gekozen` – afgeleid uit de fase (kernvoorstellen zodra de
+  deelvraag voorbij `kern` is, de rest bij `afronden`), niet bewaard. De fase terugzetten (de vragen opnieuw
+  doorlopen) maakt er weer een `voorgesteld` van. Een oud besluit *later* op `bron_kandidaten` telt als voorstel.
+- **Een afronding staat op een scope**: `scope_stand` = hash van analysevraag, afbakening en de genormaliseerde
+  deelvraagtekst. Wijkt die bij het lezen af, dan `opnieuw_bekijken: true` en `klaar: false`; er wordt niets
+  gewist. Een verbeterde deelvraag (F3d) erft voortgang en besluiten (`erf_in`, vanuit
+  `werkgebied_deelvragen._vervang`), met de oude stand – dus op *opnieuw bekijken*.
+- **Besluiten per deelvraag** (`POST …/bronselectie/{deelvraag}/kandidaten/{id} {besluit}`):
+  - `opnemen` koppelt de bepaling aan deze deelvraag met een eigen `rol` (`werkgebied_deelvraag_koppelingen.rol`;
+    leeg = de rol van de selectie). Staat ze nog niet in het werkgebied, dan loopt het via
+    `bronnen_run_store.opnemen` met `deelvraag_ids=[deze]`. Eén selectie, meer koppelingen: nooit een duplicaat.
+    Scope, dus `verwachte_revisie` van het werkgebied; dezelfde koppeling nog eens geeft geen revisie;
+  - `loskoppelen` haalt alleen de koppeling weg (revisie);
+  - `uitsluiten` (reden verplicht) schrijft `bron_kandidaat_deelvragen`; met `overal: true` gaat de
+    uitsluiting naar `bron_kandidaten` en geldt ze bij elke deelvraag. `heropenen` wist het besluit hier, met
+    `overal` ook het werkgebiedbrede. Geen revisie, wel het slot en een audit `bronselectie-*`;
+  - een besluit start de deelvraag als dat nog niet gebeurd was.
+- **Zelf een bepaling toevoegen** (`POST …/bronselectie/{deelvraag}/bronnen`, `BronselectieInvoer`: bron-IRI, of
+  regeling + artikel (+ lid), met `rol` en `verwachte_revisie`): geverifieerd in de graaf zoals bij zelf opnemen
+  (422 als ze niet bestaat), opgenomen in het werkgebied als ze er nog niet stond en gekoppeld aan deze deelvraag
+  – in één transactie (`bronselectie.toevoegen`). Staat ze er al met een andere rol, dan wordt die de rol bij
+  deze deelvraag. Uitgesloten voor het hele werkgebied: 409. Lex gebruikt dit voor een eigen tekst op het
+  kaartje ("artikel 25 lid 2 Invorderingswet 1990").
+- **`GET …/bronselectie?na=`**: per eenheid `nr`, stand, `revisie`, `opnieuw_bekijken`, `klaar`, `bronnen` (met
+  rol hier), `kandidaten` met `stand` hier (`voorgesteld`, `niet_gekozen`, `uitgesloten`, `opgenomen`), `overal`,
+  `elders_opgenomen` en `bewijs_soorten` (`verwijzing`, `definitie`, `structuur`, `tekst`, `gelijkenis`:
+  een tekstuele overeenkomst is geen bewijs van noodzaak), `telling` en `beoordelen: {mag, redenen}`. Plus
+  `actief`, `volgende` (deterministisch: de eerste niet-klare na `na`, anders vooraan verder), `alle_klaar`,
+  `zonder_deelvraag` (open voorstellen die bij geen deelvraag horen – niet stil weg) en `zoekdekking` uit de
+  laatste run (`gezocht`, `volledig`, `onvolledig` per methode, `verouderd`, `reden`).
+- **Welke kandidaat hoort bij een deelvraag** is deterministisch: bewijs `deelvraag` met haar id (of dat van
+  een voorganger), een besluit hier, opgenomen hier, of een bewijs `vanuit` een bron die hier opgenomen is
+  (een afhankelijkheid).
+- Tests: `tests/test_bronselectie.py`.
 
 ## Gesprekken
 
