@@ -399,7 +399,8 @@ bouwt de invoer, toetst en bewaart de uitkomst, en legt de besluiten vast.
   moet lezen – leden van hetzelfde artikel, begripsbepalingen en kwalificaties met een
   formuleringstekst, verwijzingen één stap vanaf de ankers (`samenhang._uitgaand`; een andere regeling
   via `resolve`), contextselecties – in die prioriteit, binnen `MAX_*`, met `ontbrekend` (`budget`,
-  `niet_in_graaf`, `onbereikbaar`) en vergelijkingsbegrippen. `onderzoek_id` rekent zoals `Onderzoek.id`
+  `niet_in_graaf`, `onbereikbaar`) en vergelijkingsbegrippen. `onderzoek_id` rekent zoals `Onderzoek.id`, met
+  `ontbrekend` erin (het stuurt `CONTEXT_NIET_ONDERZOCHT` en de prompt: na een storing is de run dus verouderd)
   (`onderzoek-id.vectoren.json`, beide kanten). Kolommen `begrippen_runs.onderzoek(_id)`; kaartruns
   dragen het in hun `invoer`. De garanties gelden over manifest + onderzoek
   (`begrippen_verdieping.fragmentruimte`).
@@ -493,6 +494,9 @@ uitleg in B1, alleen op een definitie – anders 409 `geen_definitie`, net als `
 - **Het bewijs blijft na overnemen** (spoor M): `GET` van een begrip draagt `definitie_onderbouwing`,
   afgeleid uit het voorstel achter de revisie die de huidige definitie zette (fragmenten met rol
   `ondersteunend`, vindplaats, duiding, `onderzoek_id`); met de hand gewijzigd of aangepast: `null`.
+  Langs overnemen en akkoord op een groep staat de onderbouwing bevroren in het revisiedetail van het
+  aanmaken (`detail.onderbouwing`: `groep_id`, `run_id`, de kaart of het letterlijke voorstel), zodat een
+  latere verdieping haar niet verandert.
   Een definitievoorstel bewaart de `duiding`, een voorbeeld `soort_voorbeeld`, `toetst` en `kenmerk`
   (in `waarde`), en `door.onderzoek` zegt wat Lex onderzocht.
 - **Herkomst gaat mee.** `BegripInhoud.definitie_door` (`lex` | `analist` | leeg) zet de api, nooit de

@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 Resolver = Callable[[dict], Awaitable[dict]]
 Verwijzingen = Callable[[list[str]], Awaitable["list[tuple[str, str]] | None"]]
 
-VERSIE = "1"
+VERSIE = "2"
 
 MAX_ZELFDE_ARTIKEL = 12
 """Leden en onderdelen van hetzelfde artikel: een artikel met meer leden is zeldzaam, en wat erbuiten
@@ -79,12 +79,15 @@ def _hash(*delen: str) -> str:
     return hashlib.sha256("\x1f".join(delen).encode()).hexdigest()
 
 
-def onderzoek_id(manifest_id: str, bronnen: list[dict], begrippen: list[dict], versie: str = VERSIE) -> str:
-    """Zelfde rekenwijze als `Onderzoek.id` in de keten: inhoud, geen moment."""
+def onderzoek_id(manifest_id: str, bronnen: list[dict], begrippen: list[dict], ontbrekend: list[dict] = (),
+                 versie: str = VERSIE) -> str:
+    """Zelfde rekenwijze als `Onderzoek.id` in de keten: inhoud, geen moment. Wat niet onderzocht is
+    telt mee, want het komt in de prompt en de toetsen (`CONTEXT_NIET_ONDERZOCHT`)."""
     delen = [manifest_id, versie]
     delen += sorted(f"{b['bron_iri']}@{b['bron_hash']}" for b in bronnen)
     delen += sorted(f"{x['id']}|{x.get('status', '')}|{_hash(x['naam'], x.get('definitie', ''))[:12]}"
                     for x in begrippen)
+    delen += sorted({f"{o['wat']}|{o['reden']}" for o in ontbrekend})
     return "O" + _hash(*delen)[:16]
 
 
@@ -251,7 +254,7 @@ async def bouw(werkgebied: dict, manifest: dict, manifest_id: str, per_bwb: dict
     bronnen = list(gekozen.values())
     onderzoek = {"manifest_id": manifest_id, "bronnen": bronnen, "begrippen": begrippen,
                  "ontbrekend": ontbrekend, "versie": VERSIE}
-    return {"onderzoek": onderzoek, "onderzoek_id": onderzoek_id(manifest_id, bronnen, begrippen)}
+    return {"onderzoek": onderzoek, "onderzoek_id": onderzoek_id(manifest_id, bronnen, begrippen, ontbrekend)}
 
 
 async def manifest_en_onderzoek(werkgebied: dict, resolve: Resolver) -> dict:

@@ -59,7 +59,10 @@ def test_het_id_volgt_uit_de_inhoud_en_niet_uit_de_volgorde():
     twee = _onderzoek(m, f"{A}:lid:5", f"{A}:lid:1")
     assert een.id == twee.id and een.id.startswith("O")
     assert _onderzoek(m, f"{A}:lid:1").id != een.id
-    assert Onderzoek(manifest_id=m.id, bronnen=een.bronnen, versie="2").id != een.id
+    assert Onderzoek(manifest_id=m.id, bronnen=een.bronnen, versie="1").id != een.id
+    # Wat niet onderzocht is, telt mee: het staat in de prompt en zet CONTEXT_NIET_ONDERZOCHT aan.
+    weg = Ontbrekend(wat="verwijzingen vanaf de passages", reden="onbereikbaar")
+    assert Onderzoek(manifest_id=m.id, bronnen=een.bronnen, ontbrekend=(weg,)).id != een.id
 
 
 def test_de_fragmentruimte_groeit_met_het_onderzoek_en_houdt_de_oude_ids():

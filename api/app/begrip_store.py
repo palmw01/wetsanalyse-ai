@@ -206,9 +206,10 @@ async def _werkgebied_bestaat(conn, werkgebied_id: str, slot: bool = False):
 async def definitie_onderbouwing(conn, begrip_id: str, inhoud: dict) -> dict | None:
     """Waarop de huidige definitie rust (spoor M), afgeleid en alleen gelezen: het voorstel achter de
     revisie die deze definitie zette (`begrip_revisies.detail.voorstel_id`), met zijn fragmenten, de
-    vindplaats van een brondefinitie, de duiding en het onderzoek van de run. `inhoud` blijft slank;
-    er is geen nieuwe opslag. None als de definitie niet (ongewijzigd) uit een voorstel komt: met de
-    hand geschreven, aangepast bij het overnemen, of uit een groep van de keten."""
+    vindplaats van een brondefinitie, de duiding en het onderzoek van de run. Komt de definitie uit een
+    groep van de keten (overnemen of akkoord), dan staat de onderbouwing bevroren in het revisiedetail
+    (`onderbouwing`). `inhoud` blijft slank. None als de definitie niet (ongewijzigd) uit een voorstel
+    of groep komt: met de hand geschreven of aangepast bij het overnemen."""
     definitie = (inhoud.get("definitie") or "").strip()
     if not definitie:
         return None
@@ -219,6 +220,9 @@ async def definitie_onderbouwing(conn, begrip_id: str, inhoud: dict) -> dict | N
         if (x.inhoud or {}).get("definitie", "").strip() != definitie:
             break                                       # vóór deze revisie was het een andere definitie
         d = x.detail or {}
+        if d.get("onderbouwing"):
+            o = d["onderbouwing"]
+            return {**o, "fragmenten": [{**f, "rol": "ondersteunend"} for f in o.get("fragmenten") or []]}
         if d.get("voorstel_id") and d.get("veld") == "definitie":
             if d.get("aangepast"):
                 return None
@@ -450,8 +454,9 @@ async def maak(werkgebied: dict, invoer: BegripInvoer, actor: str, resolve: Reso
 
 
 async def maak_in(conn, werkgebied_id: str, inhoud: dict, bewijs: dict[str, dict], rol: str, actor: str,
-                  beoordeling: str = "open") -> str:
-    """Een nieuw begrip (revisie 1, concept) binnen de transactie van de aanroeper; geeft het id."""
+                  beoordeling: str = "open", onderbouwing: dict | None = None) -> str:
+    """Een nieuw begrip (revisie 1, concept) binnen de transactie van de aanroeper; geeft het id.
+    `onderbouwing` (een groep van de keten) gaat in het revisiedetail, waar `definitie_onderbouwing` haar leest."""
     bid, nu = str(uuid.uuid4()), db.utcnow()
     await _werkgebied_bestaat(conn, werkgebied_id, slot=True)
     await conn.execute(insert(db.begrippen).values(
@@ -460,7 +465,9 @@ async def maak_in(conn, werkgebied_id: str, inhoud: dict, bewijs: dict[str, dict
     nieuw = await _koppel(conn, werkgebied_id, bid, bewijs, rol, "", actor, beoordeling)
     detail = {"naam": inhoud["naam"], "element_ids": nieuw, "rol": rol,
               **({"beoordeling": beoordeling} if beoordeling != "open" else {})}
-    await _revisieregel(conn, bid, 1, "begrip-aangemaakt", detail, "concept", inhoud, actor, nu)
+    await _revisieregel(conn, bid, 1, "begrip-aangemaakt",
+                        {**detail, **({"onderbouwing": onderbouwing} if onderbouwing else {})}, "concept", inhoud,
+                        actor, nu)
     await werkgebied_audit(conn, werkgebied_id, actor, "begrip-aangemaakt",
                            {**detail, "begrip_id": bid, "begrip_revisie": 1})
     return bid

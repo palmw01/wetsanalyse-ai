@@ -162,6 +162,19 @@ async def test_het_id_volgt_uit_de_inhoud():
     assert vier["onderzoek_id"] != een["onderzoek_id"]
 
 
+async def test_wat_niet_onderzocht_is_telt_mee_in_het_id():
+    """Een onbereikbare graaf en een graaf zonder verwijzingen geven dezelfde bronnen, maar niet hetzelfde
+    onderzoek: `onbereikbaar` zet `CONTEXT_NIET_ONDERZOCHT` aan en staat in de prompt. Met hetzelfde id
+    bleef de run van tijdens de storing na het herstel staan, en meldde hij zich niet als verouderd."""
+    async def weg(iris):
+        return None
+
+    storing, hersteld = await _bouw("A", verwijzingen=weg), await _bouw("A")
+    assert storing["onderzoek"]["bronnen"] == hersteld["onderzoek"]["bronnen"]
+    assert storing["onderzoek"]["ontbrekend"] != hersteld["onderzoek"]["ontbrekend"]
+    assert storing["onderzoek_id"] != hersteld["onderzoek_id"]
+
+
 @pytest.mark.parametrize("veld", ["bron_iri", "tekst", "bron_hash", "label", "aanhef", "regeling", "rol", "reden", "voor"])
 async def test_een_contextbron_draagt_de_velden_van_het_model(veld):
     uit = await _bouw("A")
@@ -175,7 +188,8 @@ ONDERZOEK = json.loads((Path(__file__).resolve().parents[2] / "docs" / "wetsanal
 @pytest.mark.parametrize("vector", ONDERZOEK["vectoren"], ids=lambda v: v["naam"])
 def test_het_onderzoek_id_rekent_zoals_de_keten(vector):
     o = vector["onderzoek"]
-    assert begrip_onderzoek.onderzoek_id(o["manifest_id"], o["bronnen"], o["begrippen"]) == vector["onderzoek_id"]
+    assert (begrip_onderzoek.onderzoek_id(o["manifest_id"], o["bronnen"], o["begrippen"], o["ontbrekend"])
+            == vector["onderzoek_id"])
 
 
 async def test_de_vorm_van_het_onderzoek_is_die_van_de_keten():
