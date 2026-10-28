@@ -428,7 +428,7 @@ Er komt geen nieuwe werkplek. De drift-test op de codes wordt bijgewerkt.
 | 8. Fragmenttoetsen controleren alleen tekst | **Aangevuld**: acht inhoudelijke toetsen op definities, met het dossier. |
 | 9. Voorbeelden worden alleen op tekst ontdubbeld | **Opgelost**: per voorbeeld kenmerk, soort en toets; ontdubbeld op (oordeel, kenmerk, genormaliseerde tekst). |
 | 10–11. Voorstellen zonder model; agenttaken zonder verify | Zo gelaten. De borging zit in de keten: dossier, toetsen en garanties. |
-| 12. Het bewijs gaat verloren na overnemen | **Opgelost**: `definitie_onderbouwing` en `dct:source` met de rol `definitieonderbouwing`, voor kaartvoorstellen en (nazorg 28 okt 2026) ook voor overnemen en akkoord op een groep, bevroren in het revisiedetail. De begripskaart in de werkplek toont haar nog niet. |
+| 12. Het bewijs gaat verloren na overnemen | **Opgelost**: `definitie_onderbouwing` en `dct:source` met de rol `definitieonderbouwing`, voor kaartvoorstellen en (nazorg 28 okt 2026) ook voor overnemen en akkoord op een groep, bevroren in het revisiedetail. De werkplek toont haar onder de definitie (paneel en begripskaart). |
 | Bevestiging alleen op aantal | **Opgelost**: `werkvoorraad_id`. |
 | `promptversie("uitleg")` | **Opgelost**. |
 | *uitwerken* start scherper naast open brondefinities | **Opgelost**. |

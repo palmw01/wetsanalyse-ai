@@ -1171,6 +1171,25 @@ export interface BegripVerwijzing {
 
 export interface Begrip extends BegripBasis {
   koppelingen: Koppeling[];
+  /** Waarop de huidige definitie rust (spoor M), afgeleid door de api uit het voorstel of de groep die
+   *  haar leverde; `null` bij een eigen of aangepaste definitie. Een oudere api laat het weg. */
+  definitie_onderbouwing?: DefinitieOnderbouwing | null;
+}
+
+/** Afgeleid van `api/app/begrip_store.py:definitie_onderbouwing`. */
+export interface DefinitieOnderbouwing {
+  herkomst: string;
+  definitie_bron_iri: string;
+  definitie_vindplaats: string;
+  fragmenten: { bron_iri: string; start: number; eind: number; tekst: string; rol: string }[];
+  duiding: Duiding | null;
+  onderzoek_id: string;
+  /** Een kaartvoorstel van Lex… */
+  voorstel_id?: string;
+  actie?: string;
+  /** …of een betekenisgroep van de keten (overnemen of akkoord). */
+  groep_id?: string;
+  run_id?: string;
 }
 
 export interface BegripSamenvatting extends BegripBasis {

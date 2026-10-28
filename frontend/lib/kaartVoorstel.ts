@@ -7,7 +7,9 @@
 // heet, wanneer het verouderd is – zonder DOM, zodat het in vitest te toetsen is.
 
 import { AANDACHTSPUNT } from "@/lib/begripVoorstellen";
-import type { Begrip, DefinitieWaarde, KaartVeld, KaartVoorstel, TekstWaarde, VindplaatsSoort } from "@/lib/types";
+import type {
+  Begrip, DefinitieOnderbouwing, DefinitieWaarde, Duiding, KaartVeld, KaartVoorstel, TekstWaarde, VindplaatsSoort,
+} from "@/lib/types";
 
 /** De codes van graph-qa `kaartacties.TEKST`; `kaartVoorstel.test.ts` leest die bron. */
 export const AANDACHTSPUNT_LEX: Record<string, string> = {
@@ -76,10 +78,25 @@ const SOORT_LABEL = { begrip: "een begrip", berekeningsresultaat: "een berekenin
 /** "Lex duidt dit als een toepassingsgeval (specifiek); voorgestelde naam: …", of null zonder duiding. */
 export function duidingTekst(v: KaartVoorstel): string | null {
   if (!isDefinitie(v) || !v.waarde.duiding) return null;
-  const d = v.waarde.duiding;
+  return duidingZin(v.waarde.duiding);
+}
+
+/** De duiding in één zin: dezelfde bij het voorstel en, na het overnemen, onder de definitie. */
+export function duidingZin(d: Duiding): string {
   let t = `Lex duidt dit als ${SOORT_LABEL[d.soort]} (${d.bereik})`;
   if (d.voorkeursterm) t += `; voorgestelde naam: ${d.voorkeursterm}`;
   return t;
+}
+
+/** De kop van de onderbouwing onder een overgenomen definitie: "Letterlijk uit Artikel 2, lid 1 – via een
+ *  voorstel van Lex" of "Rust op 2 fragmenten uit de bron – via een betekenisgroep". */
+export function onderbouwingKop(o: DefinitieOnderbouwing): string {
+  const n = o.fragmenten.length;
+  const wat = o.herkomst === "letterlijk" && (o.definitie_vindplaats || o.definitie_bron_iri)
+    ? `Letterlijk uit ${o.definitie_vindplaats || o.definitie_bron_iri}`
+    : `Rust op ${n === 1 ? "1 fragment" : `${n} fragmenten`} uit de bron`;
+  const via = o.voorstel_id ? "via een voorstel van Lex" : o.groep_id ? "via een betekenisgroep" : "";
+  return via ? `${wat} – ${via}` : wat;
 }
 
 const VOORBEELD_LABEL = { positief: "Positief voorbeeld", tegenvoorbeeld: "Tegenvoorbeeld", grensgeval: "Grensgeval",
