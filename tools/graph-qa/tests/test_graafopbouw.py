@@ -41,7 +41,8 @@ def test_planning_is_de_standaardvorm():
     nodes, edges = structuur(enable_planning=True)
     assert nodes == {
         "supervisor", "agent", "tools", "verify", "correct", "finalize", "annotaties_zoeken",
-        "overzicht_bouwen", "annoteer", "emit", "advance", "afwijzen",
+        "begrippen_zoeken", "overzicht_bouwen", "annoteer", "emit", "advance", "afwijzen",
+        "werkgebied_intake", "bronselectie", "agent_taak",
     }
     assert edges == {
         (START, "supervisor", "", False),
@@ -51,12 +52,27 @@ def test_planning_is_de_standaardvorm():
         # De leesroute zoekt eerst zelf; pas daarna formuleert de agent (zie nodes/annotatie_lezen.py).
         ("supervisor", "annotaties_zoeken", "", True),
         ("annotaties_zoeken", "agent", "", False),
+        # Idem voor vastgelegde begrippen (nodes/begrippen_lezen.py, fase F4).
+        ("supervisor", "begrippen_zoeken", "", True),
+        ("begrippen_zoeken", "agent", "", False),
         # Een overzichtsvraag: het overzicht en zijn tekst komen uit de graaf, zonder model; alleen als
         # het bouwen faalt neemt de agent het over (nodes/overzicht.py).
         ("supervisor", "overzicht_bouwen", "", True),
         ("overzicht_bouwen", "verify", "", True),
         ("overzicht_bouwen", "agent", "", True),
         ("afwijzen", EIND, "", False),
+        # Een werkgebied samenstellen (activiteit 1): één stap van de intake per beurt, zonder
+        # verify/finalize – er wordt niets over wetgeving beweerd (nodes/werkgebied.py).
+        ("supervisor", "werkgebied_intake", "", True),
+        ("werkgebied_intake", EIND, "", False),
+        # De bronselectie per deelvraag (spoor J): één stap per beurt, de stand staat bij de api
+        # (nodes/bronselectie.py).
+        ("supervisor", "bronselectie", "", True),
+        ("bronselectie", EIND, "", False),
+        # Een taak van een agent op het werkgebied (F3c): deelvragen, begrippen, het werkgebied
+        # annoteren. Eén taak per beurt, zonder verify/finalize (nodes/agent_taak.py).
+        ("supervisor", "agent_taak", "", True),
+        ("agent_taak", EIND, "", False),
         ("agent", "tools", "", True),
         ("agent", "verify", "", True),
         ("agent", "annoteer", "", True),
@@ -68,8 +84,12 @@ def test_planning_is_de_standaardvorm():
         ("advance", "agent", "", True),
         ("advance", "annoteer", "", True),
         ("advance", "annotaties_zoeken", "", True),
+        ("advance", "begrippen_zoeken", "", True),
         ("advance", "overzicht_bouwen", "", True),
         ("advance", "afwijzen", "", True),
+        ("advance", "werkgebied_intake", "", True),
+        ("advance", "bronselectie", "", True),
+        ("advance", "agent_taak", "", True),
         ("advance", EIND, "einde", True),
     } | ANNOTATIEKETEN
 
@@ -90,11 +110,16 @@ def test_decompositie_voegt_de_deelvraag_keten_toe():
     assert ("supervisor", "decompose", "", True) in edges
     # Ook met decompositie gaat de leesroute eerst langs de eigen zoekstap, niet langs decompose.
     assert ("annotaties_zoeken", "agent", "", False) in edges
+    assert ("begrippen_zoeken", "agent", "", False) in edges
     # En de overzichtsroute bouwt eerst het overzicht, ook met decompositie.
     assert ("supervisor", "overzicht_bouwen", "", True) in edges
     assert ("overzicht_bouwen", "verify", "", True) in edges
     assert ("overzicht_bouwen", "agent", "", True) in edges
     assert ("advance", "decompose", "", True) in edges
+    assert ("supervisor", "werkgebied_intake", "", True) in edges
+    assert ("werkgebied_intake", EIND, "", False) in edges
+    assert ("supervisor", "agent_taak", "", True) in edges
+    assert ("agent_taak", EIND, "", False) in edges
 
 
 def test_de_kale_tak_heeft_geen_annotatie_en_geen_supervisor():
@@ -124,5 +149,5 @@ def test_stopbewaking_zit_om_elke_node():
     assert nodes == {
         "supervisor", "decompose", "solve", "synthesize", "resynth", "agent", "tools",
         "annoteer", "emit", "advance", "afwijzen", "verify", "finalize", "annotaties_zoeken",
-        "overzicht_bouwen",
+        "begrippen_zoeken", "overzicht_bouwen", "werkgebied_intake", "bronselectie", "agent_taak",
     }

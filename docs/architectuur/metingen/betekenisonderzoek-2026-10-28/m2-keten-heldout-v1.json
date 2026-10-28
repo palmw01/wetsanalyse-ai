@@ -1,0 +1,57 @@
+{
+  "variant": "keten",
+  "referentie_versie": "heldout-v1",
+  "referentie_status": "provisional",
+  "referentie_sha256": "73321cce81921c8900d000644cc126efdd1649a0ac72d75eec59475fd8e07b33",
+  "manifest_id": "M7ef63ab2afc3653d",
+  "formuleringen": 19,
+  "paren": 14,
+  "deterministisch": true,
+  "per_relatie": {
+    "zelfde_betekenis": {
+      "tp": 12,
+      "voorspeld": 12,
+      "goud": 16,
+      "precisie": 1.0,
+      "recall": 0.75
+    },
+    "kwalificatie": {
+      "tp": 0,
+      "voorspeld": 0,
+      "goud": 1,
+      "precisie": null,
+      "recall": 0.0
+    },
+    "inclusie": {
+      "tp": 1,
+      "voorspeld": 1,
+      "goud": 1,
+      "precisie": 1.0,
+      "recall": 1.0
+    },
+    "uitsluiting": {
+      "tp": 2,
+      "voorspeld": 2,
+      "goud": 2,
+      "precisie": 1.0,
+      "recall": 1.0
+    },
+    "hierarchie": {
+      "tp": 0,
+      "voorspeld": 1,
+      "goud": 0,
+      "precisie": 0.0,
+      "recall": null
+    }
+  },
+  "bcubed": {
+    "precisie": 1.0,
+    "recall": 0.9158,
+    "f": 0.956
+  },
+  "samengevoegd_verschillend": [],
+  "aandacht": {
+    "groen": 8,
+    "geel": 1
+  }
+}

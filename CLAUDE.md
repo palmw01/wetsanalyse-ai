@@ -17,10 +17,50 @@ letterlijk, en houd elke markering/annotatie herleidbaar naar artikel + lid + `b
 beoordeelt en corrigeert; interpretatiekeuzes (incl. twijfel en aannames) worden expliciet gemaakt in
 plaats van schijnzekerheid.
 
-> **Scope: activiteit 2.** Het platform levert het markeren + classificeren in JAS-klassen; alle
-> contracten dragen `scope: "act2"`. Begrippen (activiteit 3) en de RegelSpraak-formalisering horen
-> niet tot de huidige functionaliteit – die worden later op agentische basis gebouwd. graph-qa's
-> begrip-definitie-QA (de `definitie`-specialist over de graaf) staat daar los van.
+> **Activiteit 1 in het gesprek (PLAN spoor F).** "Kunnen we een werkgebied samenstellen?" of "ik wil
+> een wetsanalyse uitvoeren" laat Lex het werkgebied bepalen met vraagkaarten in de volgorde van de
+> methode – naam, startactiviteit a (aanleiding, context, doel), analysevraag, praktijkvoorbeeld,
+> deelvragen, wat valt erbuiten, en pas dan regeling(en) en per deelvraag de bepalingen – en een samenvatting met
+> *Aanmaken*; daarna staat het werkgebied bij Werkgebieden en in een eigen paneel naast het gesprek.
+> Alles wat er ligt is de context van Lex: elk voorstel krijgt het hele dossier, en in een gesprek
+> binnen een werkgebied krijgt Lex het dossier ook mee (`agent/werkgebied_context.py`). Een **bestaand**
+> werkgebied vult Lex met dezelfde vraagkaarten aan ("kun je het praktijkvoorbeeld toevoegen?", *Vul het
+> dossier aan*, of *Vraag Lex* bij een leeg veld): alleen de dossiervelden, vooringevuld, een samenvatting
+> toen → nu, en pas na *Opslaan* een wijziging van het werkgebied. Deelvragen en bronnen blijven bij de
+> deelvragen-agent; een praktijkvoorbeeld verzint Lex niet.
+
+> **De bronselectie per deelvraag (PLAN spoor J).** "Help mij de bronnen bij dit werkgebied te bepalen" laat
+> Lex de deelvragen één voor één afwerken met dezelfde vraagkaarten: de kernbepalingen, wat eraan hangt, afronden,
+> en *Hoe wil je verder?*. De stand per deelvraag (niet gestart, in behandeling, voorlopig afgerond, beoordeeld)
+> staat bij de api, niet in het gesprek, dus een tussenvraag, herladen of een ander gesprek breekt niets; de
+> volgende deelvraag kiest de code. Een bron is één selectie met een rol per deelvraag; uitsluiten geldt per
+> deelvraag. Zie `docs/architectuur/bronselectie-per-deelvraag.md`.
+
+> **Scope: activiteit 2, en het begin van activiteit 3.** Het platform levert het markeren +
+> classificeren in JAS-klassen; de annotatiecontracten dragen `scope: "act2"`. Van activiteit 3
+> (PLAN spoor D) staan de **werkgebieden** er: bepalingen samenbrengen rond één analysevraag, met
+> bronselecties (rol *analyseren* of *context*) en een inventaris van de geannoteerde elementen.
+> Lex annoteert op verzoek het hele werkgebied, of alleen de bronnen onder de deelvragen (alle, of
+> één), altijd pas na een bevestiging.
+> Daarop formuleert de analist **begrippen**: een begripskaart, gekoppeld aan de annotatiepassages
+> die het begrip dragen, met beoordeling, historie en export. Lex stelt betekenisgroepen voor
+> (deterministisch, ADR-004), ook vanuit het gesprek: wat een beurt oplevert is een **artefact**
+> (annotatie, begripsvoorstellen, gevonden bepalingen, het werkgebied, één deelvraag of één begrip;
+> afleidingsregels gereserveerd), dat naast het gesprek opent om te beoordelen. Lex denkt mee met een model bij
+> twijfel en stelt definities voor (geel, met de fragmenten waarop ze rusten), en werkt een begrip uit
+> vanuit het gesprek (*Vraag Lex* bij het begrip): brondefinitie zoeken, een scherpere definitie, het
+> betekenisverschil en voorbeelden, elk als voorstel per veld dat de analist overneemt, aanpast of
+> afwijst. **De werkgebiedpagina is raadplegen** (F3e): ze toont wat Lex opleverde en draagt de handmatige
+> besluiten, met *Vraag Lex* bij elke rij, maar start Lex zelf niet. Begrippen worden **onderhouden**:
+> een veranderde dragende passage verschijnt in de herbeoordeling (toen naast nu, opvolger na
+> herannotatie), begrippen krijgen **relaties** met type en richting (kwalificatie, inclusie, uitsluiting,
+> soort van, verwant; Lex stelt ze voor) en een betekeniswijziging of combinatie levert een opvolger op
+> (het oude begrip wordt vervangen). Begrippen gaan als **NL-SBB-begrippenkader** de kennisgraaf in (per
+> werkgebied een named graph, conformiteit diagnostisch, Turtle-export). Lex **leest** de begrippen (zoeken in
+> die projectie, bevestigd door de api); de sidebar
+> heeft een overzicht *Begrippen* over alle werkgebieden heen. De RegelSpraak-formalisering
+> hoort nog niet tot de functionaliteit. graph-qa's begrip-definitie-QA
+> (de `definitie`-specialist over de graaf) staat daar los van.
 
 ### Platform-componenten
 
@@ -37,11 +77,15 @@ overzien.
    het **LLM-modelprofielbeheer** (`/v1/admin/*`; de env-`LLM_*`-waarden seeden alleen het eerste
    default-profiel), het **tokenbudget per gebruiker** (`/v1/verbruik/*`: meten, tonen, begrenzen —
    verbruik is een append-only journaal en de stand een som over het huidige venster, zodat werk
-   weggooien geen tokens teruggeeft en de reset geen cronjob vraagt). Gesprekken zijn **per gebruiker gescopet**; annotatielagen juist **gedeeld** –
-   ze dragen het werk van meerdere juristen, en wie wat deed staat in de audit.
+   weggooien geen tokens teruggeeft en de reset geen cronjob vraagt) en de **werkgebieden**
+   (`/v1/werkgebieden/*`: bronselecties met revisies en audit, de inventaris, en de begrippen met
+   hun koppelingen naar annotatiepassages). Gesprekken zijn
+   **per gebruiker gescopet**; annotatielagen en werkgebieden juist **gedeeld** – ze dragen het werk
+   van meerdere juristen, en wie wat deed staat in de audit.
 2. **`frontend/`** – Next.js-webapp (BFF) bovenop de API. De app **is de werkplek** (`/workbench`, de
    *Lex-pagina*): één chat-achtig gespreksvenster voor **vragen én JAS-annotatie**, live tegen
-   graph-qa (SSE); de home leidt daarheen door. Account, beheer en instellingen openen als
+   graph-qa (SSE); de home leidt daarheen door. Naast de werkplek staan in de sidebar de
+   **annotaties** (`/annotaties`) en de **werkgebieden** (`/werkgebieden`). Account, beheer en instellingen openen als
    **dialoog over de werkplek heen** (`/instellingen/*`, intercepting routes); `/beheer` is alleen
    nog een doorverwijzing daarheen. De beheertab (modelprofielen, gebruikers, aanvragen, API-tokens)
    zit achter een apart admin-token.
@@ -59,7 +103,11 @@ overzien.
    (specialisten `definitie`/`duiding`/`algemeen`: agent ⇄ tools → verify → finalize), de
    **annotatie-worker** (`annoteer → emit`: de hybride keten uit ADR-001 met deterministische
    detectoren, een kleine classifier en een gerichte reviewer op twijfelgevallen, met aandacht-niveau
-   🟢🟡), de **leesroute** voor vragen óver bestaande annotaties (`annotaties_zoeken`: eerst zelf
+   🟢🟡), de **werkgebied-worker** (`werkgebied_intake`: een werkgebied samenstellen met vraagkaarten,
+   activiteit 1 – een vaste stapmachine, het model stelt alleen voor), de **deelvragen-agent** en de
+   **begrippen-agent** (`agent/agents/`, ADR-005: één taak per beurt – deelvragen opstellen en verbeteren,
+   bronnen zoeken, dekking; begrippen voorstellen, uitwerken, vergelijken, meedenken – met een model alleen
+   in een strict stap; een klik op een suggestie (`actie`) kiest agent en taak zonder model), de **leesroute** voor vragen óver bestaande annotaties (`annotaties_zoeken`: eerst zelf
    zoeken met `search_annotaties`, dan pas formuleren – zoeken is een stap in de keten, geen keuze
    van het model) of de **overzichtsroute** voor "welke artikelen gaan over X?" (`overzicht_bouwen`:
    overzicht én tekst komen deterministisch uit de graaf, zonder model, en de werkplek toont het als
@@ -95,6 +143,10 @@ overzien.
    niet opnieuw door het model) en om ze te doorzoeken (`search_annotaties`, met verificatie tegen
    Postgres). Zie `docs/architectuur/annotatie-bronnodes.md` voor het contract en
    `docs/wetsanalyse-workbench/jas-annotatie-ontologie.md` voor het RDF-model.
+
+   Op dezelfde manier projecteert de api de **begrippen** per werkgebied als NL-SBB-begrippenkader
+   (`urn:wa:graph:werkgebied:<id>`, register `urn:wa:graph:register:begrippen`); zie `api/CLAUDE.md`
+   §*Begrippen naar de kennisgraaf*.
 
    **GraphDB draait op Azure zonder eigen security, en de netwerkgrens is de enige beveiliging:**
    `external: false`, alleen bereikbaar binnen de Container Apps Environment. Het `GRAPHDB_TOKEN` dat
@@ -393,7 +445,10 @@ plan mag verouderen.
   (deterministische detectie → kandidaten → kleine classifier → gerichte review); de enige route.
   Lees het vóór je aan de detectoren, de classifier of de eval werkt: het legt vast welke kennis in
   regels en tests hoort in plaats van in prompts. `adr-002-taalprovider.md` legt de taalanalyse
-  (spaCy) vast.
+  (spaCy) vast. `adr-003-nl-sbb-begrippencontract.md` maakt NL-SBB het datacontract voor
+  begrippen (activiteit 3), niet alleen het exportformaat. `adr-004-begrippenketen.md` ontwerpt
+  de keten die betekenisgroepen voorstelt, in de vorm van `hybrid_v1`. `adr-005-vraag-lex-en-agents.md`
+  legt Vraag Lex en de agents onder de supervisor vast (F3).
 - `docs/architectuur/annotatieketen.md` – hoe de annotatieketen **nu** werkt: stappen,
   configuratie (`CLASSIFIER_GRANULARITEIT` e.d.), beslisbeleid, detectoren en bekende beperkingen.
   `docs/architectuur/metingen/README.md` is het meetlogboek: welke meting bij welke code hoort.

@@ -6,8 +6,7 @@
  * server kent, en dan hydrateert de pagina niet – elke stap time-out dan zonder duidelijke fout.
  *
  * Wat hier bewaakt wordt, en waarom het een browser nodig heeft:
- *  - sneltoetsen van het artefact werken alleen met de focus ín het artefact (kolomvariant: de chat
- *    staat ernaast, en een `a` op een chatknop keurde daar ongemerkt iets goed);
+ *  - Lex heeft geen sneltoetsen: een letter beslist niets, in de chat noch in het artefact;
  *  - Escape sluit alleen het bovenste venster, en na sluiten gaat de focus terug naar de trigger;
  *  - een geslaagde beurt waarvan de wettekst niet te laden is, wordt niet eindeloos opnieuw gevolgd;
  *  - een vraag die je verstuurt terwijl het gesprek nog laadt, blijft in beeld;
@@ -34,7 +33,9 @@ const view = (lid) => ({ schema_versie: 2, doel: doel(lid), snapshot_id: "snapsh
 const gesprekken = {
   g1: [1, 2].flatMap((lid) => [
     { rol: "user", tekst: `Annoteer artikel 9 lid ${lid}`, denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" },
-    { rol: "assistant", tekst: "", denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "", annotatie_doel: doel(lid), run_id: `r${lid}` },
+    { rol: "assistant", tekst: "", denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "", annotatie_doel: doel(lid), run_id: `r${lid}`,
+      // De meting die graph-qa met het bericht bewaart: daaruit komt de beurtsamenvatting onder de chip.
+      dekking: { fasen: [{ fase: "Resultaat", samenvatting: `${lid} voorgesteld`, ms: 1500 }], gedegradeerd: [] } },
   ]),
   g2: [
     { rol: "user", tekst: "Oude vraag", denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" },
@@ -44,6 +45,8 @@ const gesprekken = {
 const stromen = {
   // F1: de beurt is vastgelegd, maar de wettekst komt niet binnen.
   f1: [{ type: "status", message: "Resultaat" },
+    { type: "run", run: { model: "m", provider: "p", agent_versie: "v", stop_reden: "", tijd: "2026-10-19T10:00:00Z",
+      instellingen: { meting: { fasen: [{ fase: "Resultaat", samenvatting: "3 voorgesteld", ms: 900 }] } } } },
     { type: "opgeslagen", run_id: "f1", annotatie_slug: "", annotatie_doel: { ...doel(9), label: "Invorderingswet 1990 – art. 9 lid 9" } },
     { type: "done" }],
   f2: [{ type: "token", content: "Nieuw antwoord." }, { type: "done" }],
@@ -101,28 +104,25 @@ const beslissingen = (requests) => requests.filter((r) => r.pad.endsWith("/besli
   const { browser, page, errors, requests } = await nieuwePagina(chromium, { viewport: { width: 1440, height: 1000 } });
   try {
     await page.goto(`${base}/workbench?gesprek=g1`);
+    // Na herladen: de beurtsamenvatting uit het bewaarde bericht.
+    await page.getByTestId("beurtsamenvatting").getByText("Laatste ronde van Lex: 1 voorgesteld · 1,5 s").waitFor();
     await chip(page, 1).click();
     await wettekst(page).getByText("ontvanger", { exact: false }).waitFor();
-    await wettekst(page).click({ position: { x: 4, y: 4 } });
-    await page.keyboard.press("j");
+    // Een kaart kies je met een klik; er zijn geen sneltoetsen (besluit gebruiker 26 okt 2026).
+    await page.locator("[data-review-kaart]").first().click();
     await inBeeld(page).waitFor();
-
-    // Focus in de chat ernaast: de sneltoetsen van het artefact horen niets te doen.
+    // Letters doen niets – niet vanuit de chat, en ook niet met de focus in het artefact.
     await chip(page, 2).focus();
-    for (const toets of ["a", "x", "ArrowDown"]) await page.keyboard.press(toets);
-    await page.waitForTimeout(500);
-    assert.equal(beslissingen(requests).length, 0, "een toets in de chat mag niets in het artefact beslissen");
-    assert.equal(await inBeeld(page).count(), 1, "de selectie in het artefact moet blijven staan");
-
-    // Focus in het artefact: `a` keurt goed.
+    for (const toets of ["a", "x", "j"]) await page.keyboard.press(toets);
     await wettekst(page).click({ position: { x: 4, y: 4 } });
-    await page.keyboard.press("a");
-    for (let i = 0; i < 30 && !beslissingen(requests).length; i++) await page.waitForTimeout(100);
-    assert.equal(beslissingen(requests)[0]?.body?.type, "approve", "`a` in het artefact hoort goed te keuren");
+    for (const toets of ["a", "x", "c", "j", "k"]) await page.keyboard.press(toets);
+    await page.waitForTimeout(500);
+    assert.equal(beslissingen(requests).length, 0, "een letter beslist nooit iets");
+    assert.equal(await inBeeld(page).count(), 1, "de selectie in het artefact blijft staan");
+    assert.equal(await page.getByText("Sneltoetsen", { exact: false }).count(), 0, "geen sneltoetsen-hint");
 
     // Instellingen over het artefact heen: Escape sluit alleen het bovenste venster.
-    await wettekst(page).click({ position: { x: 4, y: 4 } });
-    await page.keyboard.press("j");
+    if (!(await inBeeld(page).count())) await page.locator("[data-review-kaart]").first().click();
     await inBeeld(page).waitFor();
     // Met het toetsenbord: in dev ligt de indicator van Next linksonder precies over deze knop.
     await page.getByRole("button", { name: /· instellingen/ }).focus();
@@ -170,6 +170,8 @@ const beslissingen = (requests) => requests.filter((r) => r.pad.endsWith("/besli
     await page.waitForFunction(() => document.querySelector('[data-testid="werkplek-header"]')?.getAttribute("data-compact") === "ja");
     await page.getByText("De brongraaf is tijdelijk niet beschikbaar", { exact: false }).waitFor();
     await page.getByText("Invorderingswet 1990 – art. 9 lid 9", { exact: false }).first().waitFor();
+    // Live: de beurtsamenvatting uit het run-event.
+    await page.getByTestId("beurtsamenvatting").getByText("Laatste ronde van Lex: 3 voorgesteld · 0,9 s").waitFor();
     // Ruim langer dan de eerste herstelpoging (1,5 s) – die mag er niet komen.
     await page.waitForTimeout(4000);
     assert.equal(requests.filter((r) => r.pad === "/api/annotatie/run/f1/events").length, 1, "de afgeronde run is opnieuw gevolgd");
@@ -222,4 +224,4 @@ const beslissingen = (requests) => requests.filter((r) => r.pad.endsWith("/besli
   } finally { await browser.close(); }
 }
 
-console.log("Browser OK: sneltoetsen alleen in het artefact, Escape voor het bovenste venster, focus terug na sluiten, geen herstellus na een geslaagde beurt, vraag blijft staan tijdens laden, selectie op een aanraakscherm.");
+console.log("Browser OK: geen sneltoetsen (een letter beslist niets), Escape voor het bovenste venster, focus terug na sluiten, geen herstellus na een geslaagde beurt, vraag blijft staan tijdens laden, selectie op een aanraakscherm.");

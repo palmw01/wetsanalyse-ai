@@ -87,6 +87,11 @@ await page.route("**/api/**", async (route) => {
     { type: "opgeslagen", run_id: "live", annotatie_slug: "" }, { type: "done" },
   ].map((event) => `data: ${JSON.stringify(event)}\n\n`).join("") });
   let body = [];
+  // Het overzicht /annotaties: één annotatie (lid 2), weg zodra ze verwijderd is.
+  if (url.pathname.endsWith("/node-lagen")) return route.fulfill({ json: verwijderd.has("urn:lid2") ? [] : [{
+    bron_iri: "urn:lid2", label: "Artikel 9 · Lid 2", snapshot_id: "snapshot", slug: "lid2", bwbId: "BWBR0004770", artikel: "9",
+    lid: "2", citeertitel: "Invorderingswet 1990", werkgebied: "", status: "in_review", aantal_elementen: 1, te_beoordelen: 1,
+    per_aandacht: { geel: 1 }, per_klasse: {}, laatste_model: "", updated: null }] });
   if (url.pathname.endsWith("/weergave")) body = view(url.searchParams.get("bron_iri"));
   else if (url.pathname.endsWith("/verklaringen")) body = verklaringen;
   else if (url.pathname.endsWith("/elementen/e1/graaf")) body = { element_id: "e1", laag_id: "laag1",
@@ -226,9 +231,8 @@ try {
   await page.getByText("Invorderingswet – artikel 9 lid 1", { exact: true }).last().click();
   await wettekst().getByText("ontvanger", { exact: false }).waitFor();
   assert.equal(await wettekst().getByText("UITSLUITEND TWEE", { exact: false }).count(), 0);
-  // Kaart kiezen met het toetsenbord (de focus mag niet in het chatveld staan), dan Vraag Lex.
-  await wettekst().click();
-  await page.keyboard.press("j");
+  // Een kaart kiezen (met een klik; er zijn geen sneltoetsen), dan Vraag Lex.
+  await page.locator("[data-review-kaart]").first().click();
   await page.getByRole("button", { name: "Vraag Lex", exact: true }).click();
   // Drie vragen per klasse als chips, het invoerveld blijft leeg; één klik verstuurt.
   const suggesties = page.getByTestId("vraag-suggesties").getByRole("button");
@@ -253,6 +257,16 @@ try {
   await page.getByText("Graaf geraadpleegd · 1 aanroepen", { exact: true }).first().click();
   await page.getByText("search_annotaties", { exact: true }).first().waitFor();
   assert.equal(await page.getByText("meer resultaten beschikbaar", { exact: false }).count() >= 1, true);
+
+  // In de lijst: dezelfde knop per kaart als in het paneel; eerst de weergave (de revisies), dan
+  // hetzelfde verzoek. De kaart gaat meteen weg.
+  await page.goto(`${base}/annotaties?weergave=alles`);
+  const kaart = page.locator("article", { hasText: "Artikel 9 · Lid 2" });
+  await kaart.getByRole("button", { name: "Annotatie verwijderen", exact: true }).click();
+  await kaart.getByRole("button", { name: "Verwijderen?", exact: true }).click();
+  await kaart.waitFor({ state: "detached" });
+  assert.deepEqual((await verzoek((r) => r.path.endsWith("/weergave/verwijder"), 2)).body,
+    { bron_iri: "urn:lid2", snapshot_id: "snapshot", verwachte_revisies: { "urn:lid2": 1 } });
   assert.deepEqual(errors, []);
-  console.log("Browser OK: vertrouwd paneel op bronnodes, verwijderen met bevestiging, lidselectie, twee doelen, herladen toolspoor, Unicode/multiankers, klasse via palet, Vraag Lex/live SSE, mutatie/exportcontract en samenvatting van Lex na herladen.");
+  console.log("Browser OK: vertrouwd paneel op bronnodes, verwijderen met bevestiging, lidselectie, twee doelen, herladen toolspoor, Unicode/multiankers, klasse via palet, Vraag Lex/live SSE, mutatie/exportcontract, samenvatting van Lex na herladen en verwijderen vanuit de lijst.");
 } finally { await browser.close(); }

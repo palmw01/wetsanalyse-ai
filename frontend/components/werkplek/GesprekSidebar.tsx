@@ -11,6 +11,7 @@ import { BerichtenPanel } from "@/components/BerichtenPanel";
 import { FeedbackDialoog } from "@/components/FeedbackDialoog";
 import { GesprekLijst } from "@/components/werkplek/GesprekLijst";
 import { Meter } from "@/components/ui/Meter";
+import { knopKlasse } from "@/components/ui/Button";
 import { wisDisclaimer } from "@/lib/api";
 import { verbruikSamenvatting } from "@/lib/tokenbudget";
 import type { GesprekSamenvatting, Verbruiksstand } from "@/lib/types";
@@ -30,8 +31,14 @@ interface Props {
   onOpen: (id: string) => void;
   onHernoem: (id: string, titel: string) => void;
   onVerwijder: (id: string) => void;
+  onArchiveer: (id: string, gearchiveerd: boolean) => void;
+  onVerplaats: (id: string, werkgebiedId: string) => void;
+  onNieuwInWerkgebied?: (werkgebiedId: string) => void;
   /** Eerste gesprekken-fetch loopt nog: sidebar toont skeleton-rijen. */
   laden?: boolean;
+  /** De lijst kon niet geladen worden (de reden), met een knop om het opnieuw te proberen. */
+  laadFout?: string | null;
+  onOpnieuw?: () => void;
   /** Alleen mobiel: sluitknop voor de drawer. */
   onSluit?: () => void;
   /** Start de rondleiding opnieuw. Weglaten verbergt het menu-item – op schermen zonder werkplek
@@ -51,7 +58,12 @@ export function GesprekSidebar({
   onOpen,
   onHernoem,
   onVerwijder,
+  onArchiveer,
+  onVerplaats,
+  onNieuwInWerkgebied,
   laden,
+  laadFout = null,
+  onOpnieuw,
   onSluit,
   onRondleiding,
   verbruik = null,
@@ -59,6 +71,8 @@ export function GesprekSidebar({
   const { data: session } = useSession();
   const pad = usePathname();
   const annotatiesActief = pad?.startsWith("/annotaties") ?? false;
+  const werkgebiedenActief = pad?.startsWith("/werkgebieden") ?? false;
+  const begrippenActief = pad?.startsWith("/begrippen") ?? false;
   const [menuOpen, setMenuOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -112,7 +126,7 @@ export function GesprekSidebar({
               type="button"
               onClick={onSluit}
               aria-label="Menu sluiten"
-              className="focus-ring rounded-kaart p-2 text-muted transition-colors hover:bg-surface hover:text-ink lg:hidden"
+              className="focus-ring rounded-full p-2 text-muted transition-colors hover:bg-surface hover:text-ink lg:hidden"
             >
               {/* Hetzelfde kruisje als de dialogen; een tekst-✕ weegt anders en lijnt anders uit. */}
               <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
@@ -127,7 +141,7 @@ export function GesprekSidebar({
         <button
           type="button"
           onClick={onNieuw}
-          className="flex min-h-[44px] w-full items-center gap-2 rounded-kaart border border-line bg-paper px-3 py-2.5 text-sm font-medium text-lint shadow-zacht transition-colors hover:bg-white hover:shadow-kaart focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint"
+          className={`${knopKlasse("secondary", "md")} w-full !justify-start`}
         >
           <Opstellen className="text-base" />
           Nieuw gesprek
@@ -138,11 +152,27 @@ export function GesprekSidebar({
           annotaties leven los van de gesprekken – een annotatie overleeft het gesprek waarin hij
           gemaakt is, en moet dus ook zonder dat gesprek te vinden zijn. */}
       <div className="px-3 pb-1">
+        {/* Een werkgebied brengt bepalingen samen rond één analysevraag; net als de annotaties
+            bestaat het los van de gesprekken. */}
+        <Link
+          href="/werkgebieden"
+          onClick={onSluit}
+          aria-current={werkgebiedenActief ? "page" : undefined}
+          className={`focus-ring flex min-h-[36px] items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors coarse:min-h-[44px] ${
+            werkgebiedenActief ? "bg-lint/10 font-medium text-lint" : "text-ink hover:bg-paper"
+          }`}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <path d="M3 9h18M9 9v11" />
+          </svg>
+          Werkgebieden
+        </Link>
         <Link
           href="/annotaties"
           onClick={onSluit}
           aria-current={annotatiesActief ? "page" : undefined}
-          className={`focus-ring flex min-h-[36px] items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors coarse:min-h-[44px] ${
+          className={`focus-ring mt-0.5 flex min-h-[36px] items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors coarse:min-h-[44px] ${
             annotatiesActief ? "bg-lint/10 font-medium text-lint" : "text-ink hover:bg-paper"
           }`}
         >
@@ -152,20 +182,37 @@ export function GesprekSidebar({
           </svg>
           Annotaties
         </Link>
+        {/* De begrippen over alle werkgebieden heen: een leesingang, het werk gebeurt op de kaart. */}
+        <Link
+          href="/begrippen"
+          onClick={onSluit}
+          aria-current={begrippenActief ? "page" : undefined}
+          className={`focus-ring mt-0.5 flex min-h-[36px] items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors coarse:min-h-[44px] ${
+            begrippenActief ? "bg-lint/10 font-medium text-lint" : "text-ink hover:bg-paper"
+          }`}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M4 6a2 2 0 0 1 2-2h9l5 5v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+            <path d="M8 11h8M8 15h5" />
+          </svg>
+          Begrippen
+        </Link>
       </div>
 
-      {/* Chatgeschiedenis (scrollt) */}
+      {/* De gesprekken, per werkgebied en los (scrolt); de koppen staan in de lijst zelf. */}
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
-        <p className="px-2 pb-1 pt-2 text-[0.65rem] font-semibold uppercase tracking-wide text-faint">
-          Geschiedenis
-        </p>
         <GesprekLijst
           gesprekken={gesprekken}
           activeId={activeId}
           onOpen={onOpen}
           onHernoem={onHernoem}
           onVerwijder={onVerwijder}
+          onArchiveer={onArchiveer}
+          onVerplaats={onVerplaats}
+          onNieuwInWerkgebied={onNieuwInWerkgebied}
           laden={laden}
+          laadFout={laadFout}
+          onOpnieuw={onOpnieuw}
         />
       </div>
 

@@ -56,8 +56,10 @@ async def get_verklaringen(actor: str = Depends(actieve_userid)):
 
 @router.get("/capabilities")
 async def capabilities(actor: str = Depends(actieve_userid)):
-    """Wat deze api kan; de werkplek toont de samenhangsgraaf alleen als `samenhang` waar is."""
-    return {"schema_versie": 2, "samenhang": True}
+    """Wat deze api kan; de werkplek toont de samenhangsgraaf alleen als `samenhang` waar is, en
+    de werkgebieden alleen als `werkgebieden` waar is, de begrippen alleen als `begrippen` waar is."""
+    return {"schema_versie": 2, "samenhang": True, "werkgebieden": True, "begrippen": True,
+            "begrippen_voorstellen": True}
 
 
 @router.get("/weergave")
@@ -118,6 +120,22 @@ async def get_graaf(bwb_id: list[str] = Query(default=[]), actor: str = Depends(
     Zie `graaf.py`. Groot (~2 MB JSON voor alles); de api comprimeert."""
     try:
         return await graaf_mod.graaf(bwb_id)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except (httpx.HTTPError, ConnectionError) as exc:
+        raise HTTPException(503, "De brongraaf is tijdelijk niet beschikbaar.") from exc
+
+
+class PlaatsenVraag(BaseModel):
+    bron_iris: list[str] = Field(default_factory=list, max_length=graaf_mod.MAX_PLAATSEN)
+
+
+@router.post("/plaatsen")
+async def post_plaatsen(req: PlaatsenVraag, actor: str = Depends(actieve_userid)):
+    """De plek van bepalingen in hun regeling (regeling › hoofdstuk › artikel › lid), om ze in de werkplek
+    te groeperen. Zie `graaf.plaatsen`."""
+    try:
+        return {"plaatsen": await graaf_mod.plaatsen(req.bron_iris)}
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     except (httpx.HTTPError, ConnectionError) as exc:

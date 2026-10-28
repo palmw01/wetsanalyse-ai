@@ -9,11 +9,11 @@ import { RevisieHistorie } from "@/components/annotaties/RevisieHistorie";
 import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { ArtefactInhoud, focusBijArtefact } from "@/components/werkplek/ArtefactInhoud";
-import { downloadAntwoord, foutTekst, type ExportFormaat } from "@/lib/api";
+import { ArtefactInhoud } from "@/components/werkplek/ArtefactInhoud";
+import { foutTekst, type ExportFormaat } from "@/lib/api";
 import {
-  haalNodeWeergave, nodeError, nodeLink, nodeRequest, verwachteRevisies,
-  type NodeDoel, type NodeElement, type NodeWeergave,
+  apiOpslag, nodeLink, verwachteRevisies,
+  type NodeDoel, type NodeElement, type NodeOpslag, type NodeWeergave,
 } from "@/lib/annotatieNode";
 import {
   beslissingNaarNode, documentVanNode, nodeAnkersUitSelectie, nodeBronVan, nogOngedekt, ongedektVanNode, tekstVanAnkers,
@@ -40,7 +40,7 @@ export type PaneelTab = "tekst" | "graaf";
  *
  *  Met `onSluit` staat hij in dezelfde `Dialog`-schil als `ArtefactPaneel` (werkplek); zonder is
  *  het de kale inhoud voor een eigen pagina. */
-export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, onWisselDoel, onSluit, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst", reeks }: {
+export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, onWisselDoel, onSluit, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst", reeks, beginElement, opslag = apiOpslag, onBeslist }: {
   doel: NodeDoel; onSluit?: () => void; variant?: DialogVariant;
   /** Andere bepalingen of delen die de graaf meeopent (wat een antwoord noemt). Tekst en annotatie
    *  blijven over `doel`. */
@@ -59,24 +59,32 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
   /** Dit lid hoort bij een reeks: bladeren naar het vorige of volgende lid. Beoordelen, afronden en
    *  verwijderen blijven per lid – het paneel toont nooit meer lagen dan het ene lid. */
   reeks?: ReeksNavigatie & { onGa: (doel: NodeDoel) => void };
+  /** Het element dat bij openen gekozen is (een passage van een begrip terugvinden). */
+  beginElement?: string;
+  /** Waar de weergave vandaan komt; standaard de api. De rondleiding geeft haar voorbeeld mee. */
+  opslag?: NodeOpslag;
+  /** Na elke geslaagde beslissing op een kaart, met het soort beslissing. */
+  onBeslist?: (type: BeslissingInvoer["type"]) => void;
 }) {
   const [view, setView] = useState<NodeWeergave>();
   const [samenhang, setSamenhang] = useState(false);
   const [tab, setTab] = useState<PaneelTab>(beginTab);
   const [graafGeopend, setGraafGeopend] = useState(beginTab === "graaf");
   const [groot, setGroot] = useState(false);
-  useEffect(() => { void samenhangBeschikbaar().then(setSamenhang); }, []);
+  useEffect(() => {
+    if (opslag.levend) void samenhangBeschikbaar().then(setSamenhang);
+  }, [opslag]);
   if (tab === "graaf" && !graafGeopend) setGraafGeopend(true);
   const graafStand = useGraafStand(doel, graafGeopend && samenhang, tab === "graaf", extraDoelen, graaf);
   const [laadFout, setLaadFout] = useState("");
-  const [actiefId, setActiefId] = useState<string>();
+  const [actiefId, setActiefId] = useState<string | undefined>(beginElement);
   const [melding, setMelding] = useState("");
 
   const laad = useCallback(async () => {
     setLaadFout("");
-    try { setView(await haalNodeWeergave(doel)); }
+    try { setView(await opslag.weergave(doel)); }
     catch (e) { setLaadFout(foutTekst(e, "De annotatie is niet geladen.")); }
-  }, [doel]);
+  }, [doel, opslag]);
   useEffect(() => {
     // Een externe API-request initialiseren; dezelfde laadactie dient ook de retryknop.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -94,9 +102,9 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
   /** Elke mutatie: versturen, daarna altijd opnieuw laden – ook na een fout, want een 412 betekent
    *  juist dat de stand in beeld niet meer klopt. De fout gaat dóór naar `ArtefactInhoud`, die hem
    *  bij de kaart toont. */
-  async function muteer(pad: string, body: unknown, method = "POST") {
+  async function muteer<T>(handeling: () => Promise<T>): Promise<T> {
     try {
-      return await nodeRequest<Record<string, unknown>>(pad, body, method);
+      return await handeling();
     } finally {
       await laad();
       // De graaf toont dezelfde markeringen; hij haalt ze opnieuw op zodra hij weer in beeld is.
@@ -107,23 +115,24 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
   async function beslissing(elementId: string, req: BeslissingInvoer) {
     if (!view || !nb || !doc) return;
     const huidig = doc.elementen.find((e) => e.id === elementId);
-    await metSpoor("review_beslissing", () => muteer(`elementen/${encodeURIComponent(elementId)}/beslissing`, {
+    await metSpoor("review_beslissing", () => muteer(() => opslag.beslis(elementId, {
       ...beslissingNaarNode(req, nb, huidig),
       snapshot_id: view.snapshot_id, verwachte_revisies: verwachteRevisies(view),
-    }));
+    })));
     setMelding("Wijziging opgeslagen.");
+    onBeslist?.(req.type);
   }
 
   async function eigenMarkering(invoer: { klasse: string; toelichting: string; anker: Anker }) {
     if (!view || !nb) return;
     const ankers = nodeAnkersUitSelectie(nb, invoer.anker.start, invoer.anker.eind);
     if (!ankers.length) throw new Error("Deze selectie bevat geen wettekst om te markeren.");
-    const uit = await muteer("elementen", {
+    const uit = await muteer(() => opslag.markeer({
       doel: { bron_iri: view.doel.bron_iri }, snapshot_id: view.snapshot_id,
       verwachte_revisies: verwachteRevisies(view),
       element: { klasse: invoer.klasse, toelichting: invoer.toelichting, tekst: tekstVanAnkers(ankers), ankers },
-    });
-    const nieuw = (uit?.element as { id?: string } | undefined)?.id;
+    }));
+    const nieuw = uit?.element?.id;
     if (nieuw) setActiefId(nieuw);
     setMelding(`Gemarkeerd als ${invoer.klasse}.`);
   }
@@ -132,7 +141,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
     if (!view) return;
     const el = view.elementen.find((e) => e.id === elementId);
     const revisie = view.lagen.find((l) => l.bron_iri === el?.eigenaar_iri)?.revisie ?? 0;
-    await muteer(`elementen/${encodeURIComponent(elementId)}?verwachte_revisie=${revisie}`, {}, "DELETE");
+    await muteer(() => opslag.wis(elementId, revisie));
     setActiefId((huidig) => (huidig === elementId ? undefined : huidig));
     setMelding("Markering gewist.");
   }
@@ -143,7 +152,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
     if (!view) return;
     try {
       for (const laag of view.lagen.filter((l) => l.status !== nieuw)) {
-        await nodeRequest(`lagen/${encodeURIComponent(laag.id)}/status`, { status: nieuw, verwachte_revisie: laag.revisie });
+        await opslag.status(laag.id, { status: nieuw, verwachte_revisie: laag.revisie });
       }
     } finally {
       await laad();
@@ -157,9 +166,9 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
    *  intussen iets) laat de actuele stand zien in plaats van blind te verwijderen. */
   async function verwijder() {
     if (!view) return;
-    const uit = await metSpoor("annotatie_verwijderen", () => muteer("weergave/verwijder", {
+    const uit = await metSpoor("annotatie_verwijderen", () => muteer(() => opslag.verwijder({
       bron_iri: view.doel.bron_iri, snapshot_id: view.snapshot_id, verwachte_revisies: verwachteRevisies(view),
-    })) as { graaf?: string } | undefined;
+    })));
     setActiefId(undefined);
     setMelding(uit?.graaf === "volgt"
       ? "Annotatie verwijderd. De kennisgraaf volgt binnen een minuut."
@@ -168,13 +177,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
 
   async function exporteer(formaat: ExportFormaat) {
     if (!view) return;
-    const response = await fetch("/api/annotatie/v2/weergave/export", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bron_iri: view.doel.bron_iri, snapshot_id: view.snapshot_id, formaat }),
-    });
-    if (!response.ok) throw await nodeError(response);
-    // Hetzelfde downloadpatroon als de artikelexport: bestandsnaam van de server, link in het document.
-    await downloadAntwoord(response, `annotatie.${formaat}`);
+    await opslag.exporteer({ bron_iri: view.doel.bron_iri, snapshot_id: view.snapshot_id, formaat });
   }
 
   /** Van graaf naar tekst: dezelfde markering blijft gekozen; bij een bron scrollt de tekst naar het lid. */
@@ -204,14 +207,14 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
       </div>
       <div className="flex-1" />
       {tab === "graaf" && onSluit && (
-        <button type="button" className="focus-ring rounded-lg p-2 text-muted hover:bg-surface" onClick={() => setGroot((v) => !v)}
+        <button type="button" className="focus-ring rounded-full p-2 text-muted hover:bg-surface" onClick={() => setGroot((v) => !v)}
           aria-label={groot ? "Verkleinen" : "Vergroten"} title={groot ? "Terug naar zijpaneel" : "Graaf vergroten"}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d={groot ? "M9 3v6H3m18 6h-6v6M3 9l6-6m6 18 6-6" : "M8 3H3v5m13 13h5v-5M3 3l6 6m6 6 6 6"} /></svg>
         </button>
       )}
       {tab === "graaf" && onSluit && (
         <button type="button" onClick={onSluit} aria-label="Sluiten"
-          className="focus-ring rounded-kaart p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink">
+          className="focus-ring rounded-full p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink">
           <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
             <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
           </svg>
@@ -220,21 +223,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
     </div>
   );
 
-  // `[` en `]` bladeren door de reeks, net als j/k door de reviewlijst – niet vanuit een invoerveld.
-  useEffect(() => {
-    if (!reeks) return;
-    const opToets = (e: KeyboardEvent) => {
-      const doelEl = e.target as HTMLElement | null;
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (doelEl && (doelEl.tagName === "INPUT" || doelEl.tagName === "TEXTAREA" || doelEl.isContentEditable)) return;
-      // Niet vanuit de chat ernaast (kolomvariant): daar horen `[` en `]` bij wat je typt of kiest.
-      if (!focusBijArtefact(doelEl)) return;
-      const naar = e.key === "[" ? reeks.vorige : e.key === "]" ? reeks.volgende : undefined;
-      if (naar) { e.preventDefault(); reeks.onGa(naar); }
-    };
-    document.addEventListener("keydown", opToets);
-    return () => document.removeEventListener("keydown", opToets);
-  }, [reeks]);
+  // Bladeren door de reeks gaat met ‹ › in de balk; Lex heeft geen sneltoetsen (besluit 26 okt 2026).
   const reeksBalk = reeks && <ReeksBalk reeks={reeks} label={view?.doel.label || doel.label || ""} />;
 
   const inhoud = !view || !nb || !doc ? (
@@ -267,8 +256,9 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
         onStatus={view.lagen.length ? status : undefined}
         onVerwijder={view.lagen.length ? verwijder : undefined}
         onSluiten={onSluit}
+        pagina={onSluit && opslag.levend ? nodeLink({ bron_iri: view.doel.bron_iri ?? doel.bron_iri, snapshot_id: doel.snapshot_id }) : undefined}
         onExport={exporteer}
-        extra={<NodeExtra view={view} doel={doel} onKies={setActiefId} />}
+        extra={<NodeExtra view={view} doel={doel} onKies={setActiefId} historie={opslag.levend} />}
         ongedekt={ongedekt}
       />}
     </div>
@@ -288,6 +278,17 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
         else if (groot) setGroot(false);
         else onSluit();
       } : undefined}>
+      {/* Het paneel is om te raadplegen naast het gesprek; verder werken kan op de eigen pagina (spoor G4).
+          Niet in de rondleiding: daar is de annotatie een voorbeeld in het geheugen. */}
+      {/* Op de tab Tekst staat de knop in de kop van de inhoud (`PaneelKop`); hier alleen voor de graaf. */}
+      {opslag.levend && view && tab === "graaf" && (
+        <div className="flex shrink-0 justify-end border-b border-line px-5 py-1.5">
+          <Link href={nodeLink({ bron_iri: view?.doel.bron_iri ?? doel.bron_iri, snapshot_id: doel.snapshot_id })}
+            className="focus-ring rounded text-xs font-medium text-lint underline-offset-2 hover:underline">
+            Open volledige pagina
+          </Link>
+        </div>
+      )}
       {inhoud}
     </Dialog>
   );
@@ -295,29 +296,33 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
 
 /** Bovenin het paneel als het lid bij een reeks hoort: waar je bent, en ‹ › naar het buurlid. */
 function ReeksBalk({ reeks, label }: { reeks: ReeksNavigatie & { onGa: (doel: NodeDoel) => void }; label: string }) {
-  const knop = "focus-ring rounded-lg px-2 py-1 text-xs font-medium text-lint hover:bg-lint/5 disabled:cursor-default disabled:text-faint disabled:hover:bg-transparent";
+  const knop = "focus-ring rounded-full px-2 py-1 text-xs font-medium text-lint hover:bg-lint/5 disabled:cursor-default disabled:text-faint disabled:hover:bg-transparent";
   return (
     <nav aria-label="Reeks" className="flex shrink-0 items-center gap-2 border-b border-line bg-surface/60 px-4 py-1.5">
       <button type="button" className={knop} disabled={!reeks.vorige} onClick={() => reeks.vorige && reeks.onGa(reeks.vorige)}
-        aria-label={reeks.vorige ? `Vorige: ${reeks.vorige.label || "vorig lid"}` : "Vorige"} title="Vorige ( [ )">‹</button>
+        aria-label={reeks.vorige ? `Vorige: ${reeks.vorige.label || "vorig lid"}` : "Vorige"} title="Vorige">‹</button>
       <span className="min-w-0 flex-1 truncate text-center text-xs text-muted">
         {reeks.ouder && <span>{reeks.ouder} · </span>}
         <span className="text-ink">{label.replace(`${reeks.ouder}, `, "")}</span>
         <span> · {reeks.index + 1} van {reeks.totaal}</span>
       </span>
       <button type="button" className={knop} disabled={!reeks.volgende} onClick={() => reeks.volgende && reeks.onGa(reeks.volgende)}
-        aria-label={reeks.volgende ? `Volgende: ${reeks.volgende.label || "volgend lid"}` : "Volgende"} title="Volgende ( ] )">›</button>
+        aria-label={reeks.volgende ? `Volgende: ${reeks.volgende.label || "volgend lid"}` : "Volgende"} title="Volgende">›</button>
     </nav>
   );
 }
 
 /** Wat alleen een bronnode-annotatie kent: een gewijzigde bronstand, markeringen die over deze
  *  bepaling heen lopen, en de voortgang per laag als de bepaling er meer dan één draagt. */
-function NodeExtra({ view, doel, onKies }: { view: NodeWeergave; doel: NodeDoel; onKies: (elementId: string) => void }) {
+function NodeExtra({ view, doel, onKies, historie }: {
+  view: NodeWeergave; doel: NodeDoel; onKies: (elementId: string) => void;
+  /** De revisiehistorie komt van de api; zonder (de rondleiding) valt er niets op te halen. */
+  historie: boolean;
+}) {
   const labelVan = (iri: string) => view.segmenten.find((s) => s.bron_iri === iri)?.label || view.doel.label || iri;
   return (
     <>
-      {view.lagen.length > 0 && <RevisieHistorie lagen={view.lagen} labelVan={labelVan} elementen={view.elementen} onKies={onKies} />}
+      {historie && view.lagen.length > 0 && <RevisieHistorie lagen={view.lagen} labelVan={labelVan} elementen={view.elementen} onKies={onKies} />}
       <DekkingOverzicht dekking={view.dekking} labelVan={labelVan}
         volgorde={[...view.segmenten].sort((a, b) => a.volgorde - b.volgorde).map((x) => x.bron_iri)} />
       {view.verwijderd && (
@@ -376,7 +381,7 @@ function LaadStand({ fout, onOpnieuw, onSluit }: { fout: string; onOpnieuw: () =
         <p className="min-w-0 flex-1 truncate text-[0.65rem] font-semibold uppercase tracking-wide text-faint">Annotatie · JAS</p>
         {onSluit && (
           <button type="button" onClick={onSluit} aria-label="Sluiten"
-            className="focus-ring -mr-1 shrink-0 rounded-kaart p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink">
+            className="focus-ring -mr-1 shrink-0 rounded-full p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink">
             <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
               <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
             </svg>

@@ -1,0 +1,23 @@
+# Leesbare verklaring per code van de begrippenketen (ADR-004). Elke code die de keten in een
+# bewijsstuk of beslissing zet, staat hier; tests/test_begrippen_signalen.py weigert een code
+# zonder verklaring en een verklaring zonder code.
+signalen:
+  ZELFDE_TERM: {naam: "Zelfde term", uitleg: "Beide formuleringen hebben dezelfde term (zonder lidwoord, kern als lemma). Alleen een aanleiding om te vergelijken."}
+  ZELFDE_BEPALING: {naam: "Zelfde term in dezelfde bepaling", uitleg: "Binnen één lid of onderdeel draagt hetzelfde woord in beginsel dezelfde betekenis. Een aanname, geen wet: het voorstel staat geel."}
+  WETTELIJKE_TERM: {naam: "Wettelijke term", uitleg: "De wet legt deze term vast in een definitie of opsomming, en de formulering staat binnen het bereik daarvan."}
+  UITBREIDING_MEDE: {naam: "Uitbreiding van de definitie", uitleg: "'Verstaat mede onder' breidt dezelfde term uit; het blijft één begrip."}
+  ANDERE_DEFINITIE: {naam: "Andere definitie", uitleg: "Dezelfde term heeft elders een eigen definitie: mogelijk een ander begrip."}
+  BUITEN_BEREIK: {naam: "Buiten het bereik", uitleg: "De term wordt gebruikt buiten het bereik waarvoor zijn definitie geldt."}
+  BEREIK_ONBEKEND: {naam: "Bereik onbekend", uitleg: "De definitie noemt geen herkenbaar bereik (bijv. 'dit hoofdstuk'); of zij hier geldt, is niet vastgesteld."}
+  AFWIJKENDE_KWALIFICATIE: {naam: "Afwijkende kwalificatie", uitleg: "'In afwijking van … geldt … als': hier wordt de term anders afgebakend dan in de definitie."}
+  OPSOMMING_IN_DEFINITIE: {naam: "Opsomming in definitie", uitleg: "De definitie somt soorten op; elk onderdeel is een soort van de gedefinieerde term."}
+  BEPERKTE_TERM: {naam: "Beperkte term", uitleg: "De formulering beperkt een wettelijke term met een bijzin of voorzetselgroep: een soort, geen synoniem."}
+  MEDE_VERSTAAN: {naam: "Mede verstaan", uitleg: "Onder de term wordt mede verstaan wat de definitie noemt: het bereik wordt groter."}
+  BEDOELD_IN: {naam: "Bedoeld in", uitleg: "'Bedoeld in …' wijst de formulering met dezelfde kern in de genoemde bepaling aan."}
+  AANWIJZEND: {naam: "Aanwijzend", uitleg: "'Die …' of 'deze …' wijst terug naar een eerdere formulering, direct of via 'als bedoeld in'."}
+  KWALIFICATIE: {naam: "Kwalificatie", uitleg: "'Geldt als', 'wordt aangemerkt als' of 'gelijkgesteld met': het een wordt als het ander behandeld, zonder dat het hetzelfde begrip wordt."}
+  NIET_VERSTAAN: {naam: "Niet verstaan", uitleg: "'Onder X wordt niet verstaan Y': Y valt buiten het begrip X. Tegenbewijs tegen samenvoegen."}
+  HEARST: {naam: "Soortaanduiding", uitleg: "'X, zoals Y' of 'X, waaronder Y': Y wordt genoemd als soort van X."}
+  KOP_VAN_SAMENSTELLING: {naam: "Kop van samenstelling", uitleg: "De samenstelling eindigt op een term die elders zelf voorkomt; mogelijk een soort daarvan. Zwak: de wet kan het anders regelen."}
+  BEREKENING_IN_BEPALING: {naam: "Berekening in de bepaling", uitleg: "De bepaling bewerkt de term zelf (op nihil gesteld, verminderd met …). Dan is 'één betekenis per bepaling' niet vanzelf waar: het resultaat kan een eigen begrip zijn. Een vraag aan de jurist."}
+  NIET_AANGEMERKT: {naam: "Niet aangemerkt", uitleg: "De aanhef zegt dat het opgesomde niet als deze term wordt aangemerkt: een uitsluiting, en tegenbewijs tegen samenvoegen."}

@@ -17,6 +17,29 @@ class State(TypedDict, total=False):
     run_id: str
     user_id: str
     annotaties_lezen: bool
+    # De leesroute voor begrippen (fase F4): de supervisor herkende een vraag naar vastgelegde begrippen.
+    begrippen_lezen: bool
+    # Het werkgebied van waaruit de werkplek het gesprek opende (of leeg). Zijn begrippen staan vooraan
+    # bij `search_begrippen`; het is context, geen filter. Komt elke beurt opnieuw van het verzoek.
+    werkgebied_id: str
+    # Het dossier van dat werkgebied als contextblok (`werkgebied_context.als_blok`), per beurt opgehaald;
+    # `memory_context` zet het naast de focus. Context, geen filter.
+    werkgebied_context: str
+    # Waar de analist *Vraag Lex* op koos (F3b, `models.Onderwerp` als dict) en het blok dat
+    # `agent/onderwerp.py` daarvan maakt; beide per beurt gereset. Het object zelf blijft in de focus
+    # (`focus.bij_onderwerp`) voor vervolgvragen.
+    onderwerp: dict[str, Any]
+    onderwerp_context: str
+    # Een klik op een suggestie (F3b/F3c): de handeling, en bij een bevestiging het aantal. Per beurt gereset.
+    actie: str
+    bevestigd: int | None
+    werkvoorraad_id: str
+    # Wat de supervisor een agent liet doen (F3c, `nodes/agent_taak.py`): {agent, taak, parameters}, en de
+    # uitkomst (`agents.Uitkomst` als dict). Per beurt gereset.
+    agent_taak: dict[str, Any]
+    agent_uitkomst: dict[str, Any]
+    # Het gesprek van deze beurt (= de thread); de agents boeken er hun eigen verbruik onder.
+    gesprek_id: str
     # De overzichtsroute (`agent/overzicht.py`): de supervisor herkende "welke artikelen gaan over X";
     # `overzicht` is het deterministisch gebouwde overzicht. Beide per beurt gereset.
     overzicht_route: bool
@@ -73,6 +96,15 @@ class State(TypedDict, total=False):
     # die route, want een ophaal-agent die de verkeerde bepaling kiest levert werk op dat
     # brongetrouw én verkeerd is.
     opgegeven_doel: dict[str, str]
+    # Het samenstellen van een werkgebied (activiteit 1, `agent/werkgebied_intake.py`): stap,
+    # antwoorden en voorstellen. Bewust NIET in de per-beurt-reset: een tussenvraag laat de intake
+    # staan, zodat het open kaartje daarna nog werkt.
+    intake: dict[str, Any]
+    # De klik op een kaartje van deze beurt; per beurt gereset.
+    intake_actie: dict[str, Any]
+    # "aanvullen" als de supervisor het dossier van het werkgebied liet aanvullen (taak `aanvullen` of de
+    # actie `dossier_aanvullen`): de werkgebied-worker begint dan een aanvul-intake. Per beurt gereset.
+    intake_modus: str
     # De tekst waarop deze annotatiebeurt draait: de niet-lege bronsegmenten van de snapshot,
     # samengevoegd (`bronmodel.CorpusMap`). Eén ophaalactie, en alles daarna leest deze tekst.
     corpus: str

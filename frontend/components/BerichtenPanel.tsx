@@ -129,7 +129,7 @@ export function BerichtenPanel({ positie, containerClassName }: { positie?: stri
             toggle();
             if (!open) void onOpen();
           }}
-          className="relative ml-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-button coarse:h-11 coarse:w-11 text-muted transition-colors hover:text-lint focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint"
+          className="relative ml-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full coarse:h-11 coarse:w-11 text-muted transition-colors hover:text-lint focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint"
         >
           {/* Bell-icoon */}
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { ChevronOmlaag, Kruis, Richten } from "@/components/ui/Icoon";
 import { LIFECYCLE_LABEL } from "@/lib/annotatie";
 import { jasStyle } from "@/lib/jas";
@@ -14,10 +14,11 @@ import { verwijzingTekst, verwijzingVoor, type KnoopInfo } from "@/lib/graaf/kno
 import { KnoopFeiten } from "./KnoopFeiten";
 import { KnoopTekst } from "./KnoopTekst";
 import type { DetailStand } from "./useKnoopDetail";
+import { knopKlasse } from "@/components/ui/Button";
 
-const ICOON = "focus-ring flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-surface hover:text-ink coarse:h-11 coarse:w-11";
+const ICOON = "focus-ring flex h-8 w-8 items-center justify-center rounded-full text-muted hover:bg-surface hover:text-ink coarse:h-11 coarse:w-11";
 const TEKSTKNOP = "focus-ring rounded px-1 py-1 text-xs text-lint underline-offset-2 hover:underline coarse:min-h-11";
-const HOOFD = "focus-ring inline-flex min-h-9 items-center justify-center rounded-button bg-accent px-3.5 text-xs font-medium text-paper transition-colors hover:bg-accent-soft disabled:opacity-50 coarse:min-h-11";
+const HOOFD = knopKlasse("primary", "sm");
 const ZICHTBAAR_PER_GROEP = 5;
 
 /** Wat is dit? Eén kaart per gekozen knoop, meteen helemaal open: naam, de wettekst met de markeringen
@@ -28,7 +29,7 @@ const ZICHTBAAR_PER_GROEP = 5;
  *  Smal (zijpaneel) staat de kaart onder de graaf, met een eigen scroll, en is hij in te klappen. De
  *  aanroeper geeft hem per keuze een `key`: een nieuwe keuze begint open en bovenaan. */
 export function GraafInspector({ model, id, detail, info, element, ongedekt, hoofdactie, laadt, groepen, telling, doelen, smal,
-  onCentreer, onSluit, onHoofdactie, onVraag, onKies }: {
+  onCentreer, onSluit, onHoofdactie, onVraag, onKies, doelenKop = "Dit antwoord", extra }: {
   model: GraafModel;
   id: string | null;
   /** De wettekst van de gekozen bepaling, of voor een markering die van haar anker. */
@@ -47,6 +48,9 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
   smal: boolean;
   onCentreer: () => void; onSluit: () => void; onHoofdactie: () => void; onVraag?: () => void;
   onKies: (id: string) => void;
+  doelenKop?: string;
+  /** Een extra handeling naast de hoofdactie, van de pagina die de graaf toont. */
+  extra?: ReactNode;
 }) {
   const [klapstand, setIngeklapt] = useState(false);
   // Inklappen bestaat alleen smal; vergroot je, dan staan de details altijd open.
@@ -58,7 +62,7 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
     const genoemd = doelen.filter((d) => model.hasNode(d));
     return <div className="min-h-0 overflow-y-auto p-4 text-xs text-muted" data-testid="graaf-detail">
       {genoemd.length > 0 && <>
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-faint">Dit antwoord</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-faint">{doelenKop}</p>
         <ul className="mb-3 mt-1 space-y-0.5">
           {genoemd.map((d) => { const a = model.getNodeAttributes(d); const n = markeringenOp(model, d); return <li key={d}>
             <button type="button" onClick={() => onKies(d)} className="focus-ring flex w-full items-baseline gap-2 rounded px-1 py-0.5 text-left text-xs hover:bg-surface coarse:min-h-11">
@@ -95,10 +99,11 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
       <button type="button" className={ICOON} onClick={onSluit} aria-label="Selectie opheffen" title="Selectie opheffen"><Kruis /></button>
     </div>
 
-    {(hoofdactie || onVraag) && <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pb-3">
+    {(hoofdactie || onVraag || extra) && <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pb-3">
       {hoofdactie === "laden" && <button type="button" className={HOOFD} onClick={onHoofdactie} disabled={laadt}>{laadt ? "Laden…" : "In de graaf laden"}</button>}
       {tekstLabel && <button type="button" className={TEKSTKNOP} onClick={onHoofdactie}>{tekstLabel}</button>}
       {onVraag && <button type="button" className={TEKSTKNOP} onClick={onVraag}>Vraag Lex</button>}
+      {extra}
     </div>}
 
     {!ingeklapt && <div className="min-h-0 space-y-3 overflow-y-auto border-t border-line px-4 py-3">
@@ -112,6 +117,9 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
         {knoop.aandacht === "groen" && <span className="rounded-full border border-aandacht-groen-rand bg-aandacht-groen-bg px-2 py-0.5 text-[11px] text-aandacht-groen-tekst">Bevestigd door review</span>}
       </div>}
       {knoop.soort === "markering" && el && <MarkeringDetail el={el} />}
+      {knoop.soort === "begrip" && <p className="text-[11px] text-muted" data-testid="graaf-begrip">
+        {BEGRIP_STATUS[knoop.status ?? ""] ?? "Begrip"} · een analyse-uitkomst van dit werkgebied, geen wettelijke definitie.
+        {!knoop.tekst && " Er is nog geen definitie."}</p>}
       <Wettekst detail={detail} knoop={knoop} gekozen={knoop.soort === "markering" ? knoop.element_id : undefined}
         kiesbaar={(e) => model.hasNode(`element:${e}`)} onKies={(e) => onKies(`element:${e}`)} />
       {knoop.soort === "markering" && element === "laden" && <p className="text-xs text-faint">Details ophalen…</p>}
@@ -182,6 +190,8 @@ function markeringenOp(g: GraafModel, id: string): number {
   }
   return n;
 }
+
+const BEGRIP_STATUS: Record<string, string> = { geaccordeerd: "Geaccordeerd", concept: "Concept", vervangen: "Vervangen" };
 
 /** De wettekst bij de keuze: met de markeringen erin als die er is, anders wat het model weet. */
 function Wettekst({ detail, knoop, gekozen, kiesbaar, onKies }: {

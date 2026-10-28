@@ -1,0 +1,194 @@
+"use client";
+
+import { PaneelKop } from "@/components/ui/PaneelKop";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+
+import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
+import { BegripPaneel } from "@/components/werkgebieden/BegripPaneel";
+import { BegripVoorstellen } from "@/components/werkgebieden/BegripVoorstellen";
+import { BronKandidaten } from "@/components/werkgebieden/BronKandidaten";
+import { BronnenBijDeelvraag } from "@/components/werkgebieden/BronnenBijDeelvraag";
+import { DeelvraagPaneel } from "@/components/werkgebieden/DeelvraagPaneel";
+import { OnbewaardMelding } from "@/components/werkgebieden/OnbewaardMelding";
+import { WerkgebiedSamenvatting } from "@/components/werkgebieden/WerkgebiedSamenvatting";
+import { Melding } from "@/components/ui/Melding";
+import { SkeletonCard } from "@/components/ui/Skeleton";
+import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
+import { knopKlasse } from "@/components/ui/Button";
+import { foutTekst, haalWerkgebied, verwijderWerkgebied } from "@/lib/api";
+import { metSpoor } from "@/lib/uiSpoor";
+import { verwijderdUit, verwijderdZin, type Verwijderd } from "@/lib/verwijderen";
+import { isRevisieConflict } from "@/lib/werkgebied";
+import { werkgebiedLabel, type WerkgebiedArtefact } from "@/lib/artefact";
+import type { Werkgebied } from "@/lib/types";
+import { STATUS_LABEL } from "@/lib/werkgebied";
+import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
+import { artefactPad, begripPad, deelvraagPad, projectPad, voorstellenPad } from "@/lib/werkgebiedPaden";
+
+/** Waar *Open volledige pagina* heen gaat: de pagina van wat het paneel toont (spoor G2). */
+function paginaVan(doel: WerkgebiedArtefact): string {
+  const id = doel.werkgebied_id;
+  switch (doel.soort) {
+    case "begrippen": return artefactPad(id, "begrippen");
+    case "begrip": return doel.begrip_id ? begripPad(id, doel.begrip_id) : artefactPad(id, "begrippen");
+    case "bronnen": return voorstellenPad(id);
+    case "deelvraag": return doel.deelvraag_id ? deelvraagPad(id, doel.deelvraag_id) : projectPad(id);
+    case "bronselectie": return artefactPad(id, "bronselectie");
+    default: return projectPad(id);
+  }
+}
+const KOP: Record<WerkgebiedArtefact["soort"], string> = {
+  begrippen: "Begripsvoorstellen van Lex", bronnen: "Gevonden bepalingen van Lex", werkgebied: "Samengesteld met Lex",
+  deelvraag: "Deelvraag", begrip: "Begrip", bronselectie: "Bronselectie met Lex",
+};
+
+/** Een artefact van een werkgebied in de werkplek, in dezelfde schil als een annotatie (een kolom naast
+ *  de chat vanaf 1280px, anders een sheet):
+ *
+ *  - **begrippen** – de voorstellen van Lex (`BegripVoorstellen`), dezelfde inhoud als op de tab
+ *    Begrippen. Een overgenomen begrip opent in het werkgebied: daar staan de kaart en de passages.
+ *  - **bronnen** – de bepalingen die Lex vond (`BronKandidaten`), dezelfde inhoud als op de tab Bronnen.
+ *  - **begrip** (F3d) – één begrip om te beoordelen (`BegripPaneel`): een leesweergave, de open voorstellen
+ *    van Lex per veld en een kleine bewerking; de begripskaart zelf staat in het werkgebied.
+ *  - **deelvraag** (F3d) – één deelvraag (`DeelvraagPaneel`): stand, de voorstellen die haar vervangen,
+ *    bronnen en de kandidaten die Lex erbij vond.
+ *  - **bronselectie** (spoor J) – de bronselectie per deelvraag (`BronnenBijDeelvraag`, dezelfde als de tab Bronnen): de voortgang, de
+ *    bronnen met hun rol per deelvraag, de voorstellen en de onderzoekspunten; de deelvraag waar het gesprek
+ *    staat is open, en *Ga verder met deelvraag n* zet een andere klaar in hetzelfde gesprek.
+ *  - **werkgebied** – het werkgebied dat Lex met de analist samenstelde (activiteit 1): de
+ *    `WerkgebiedSamenvatting` (dezelfde als bovenaan de pagina) en de weg naar die pagina.
+ *
+ *  Eén schakelaar op de soort; geen Lex-knoppen, ook niet in de kop (spoor K): je zit al in het gesprek, en de
+ *  suggesties boven het invoerveld doen het werk. Een deelvraag in de samenvatting is wel aan te klikken.
+ *
+ *  Eén inhoud, twee schillen. Net als op de tab vraagt het paneel eerst bevestiging als de kaart
+ *  niet-bewaarde wijzigingen draagt: bij sluiten (kruisje, Escape, achtergrond) en bij een link weg. */
+export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWissel, onVerwijderd }: {
+  doel: WerkgebiedArtefact;
+  variant?: DialogVariant;
+  onSluit: () => void;
+  /** Het werkgebied is vanuit dit paneel verwijderd: de werkplek verlaat het dan, als ze erin stond. */
+  onVerwijderd?: (werkgebiedId: string) => void;
+  /** Een ander artefact in hetzelfde paneel (de opvolger van een vervangen deelvraag of begrip). */
+  onWissel?: (doel: WerkgebiedArtefact) => void;
+}) {
+  const router = useRouter();
+  const [onbewaard, setOnbewaard] = useState(false);
+  const bewaker = useOnbewaardBewaker(onbewaard);
+  const sluit = () => bewaker.bewaak(onSluit, "sluiten");
+  const naarWerkgebied = paginaVan(doel);
+  const soort = werkgebiedLabel(doel);
+  const titel = doel.titel || soort;
+  return (
+    <Dialog label={`${soort}: ${titel}`} variant={variant} onSluit={sluit}>
+      <div data-artefact data-artefact-soort={doel.soort} className="flex min-h-0 flex-1 flex-col">
+        <PaneelKop soort={KOP[doel.soort]} titel={titel} pagina={naarWerkgebied} onSluit={sluit} />
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          {bewaker.wachtend && (
+            <OnbewaardMelding
+              className="mb-4"
+              handeling={bewaker.wachtend.handeling}
+              onBlijf={bewaker.blijf}
+              onToch={() => {
+                setOnbewaard(false);
+                bewaker.toch();
+              }}
+            />
+          )}
+          {doel.soort === "werkgebied" ? (
+            <WerkgebiedInhoud id={doel.werkgebied_id} naarWerkgebied={naarWerkgebied}
+              onVerwijderd={() => onVerwijderd?.(doel.werkgebied_id)} />
+          ) : doel.soort === "begrip" && doel.begrip_id ? (
+            <BegripPaneel werkgebiedId={doel.werkgebied_id} begripId={doel.begrip_id} onOnbewaard={setOnbewaard}
+              onNaarBegrip={(b) => onWissel
+                ? onWissel({ soort: "begrip", werkgebied_id: doel.werkgebied_id, run_id: "", begrip_id: b, titel: "" })
+                : router.push(begripPad(doel.werkgebied_id, b))} />
+          ) : doel.soort === "deelvraag" && doel.deelvraag_id ? (
+            <DeelvraagPaneel werkgebiedId={doel.werkgebied_id} deelvraagId={doel.deelvraag_id}
+              onKies={onWissel ? (d) => onWissel({ soort: "deelvraag", werkgebied_id: doel.werkgebied_id, run_id: "",
+                deelvraag_id: d.id, titel: d.vraag }) : undefined} />
+          ) : doel.soort === "bronselectie" ? (
+            <BronnenBijDeelvraag werkgebiedId={doel.werkgebied_id} huidig={doel.deelvraag_id} inGesprek />
+          ) : doel.soort === "begrippen" ? (
+            <BegripVoorstellen id={doel.werkgebied_id} runId={doel.run_id} inklapbaar={false} />
+          ) : (
+            // Opnemen wijzigt het werkgebied; hier staat geen selectie naast die ververst moet worden.
+            <BronKandidaten id={doel.werkgebied_id} onGewijzigd={() => {}} />
+          )}
+        </div>
+      </div>
+    </Dialog>
+  );
+}
+
+/** Het werkgebied zelf: wat er met Lex is samengesteld, zoals het nu bij de api staat – dezelfde
+ *  samenvatting als bovenaan de werkgebiedpagina. */
+function WerkgebiedInhoud({ id, naarWerkgebied, onVerwijderd }: {
+  id: string;
+  naarWerkgebied: string;
+  onVerwijderd: () => void;
+}) {
+  const [wg, setWg] = useState<Werkgebied | null>(null);
+  const [fout, setFout] = useState<string | null>(null);
+  const [melding, setMelding] = useState<string | null>(null);
+  const [verwijderd, setVerwijderd] = useState<Verwijderd | null>(null);
+  const [poging, setPoging] = useState(0);
+  useEffect(() => {
+    let levend = true;
+    haalWerkgebied(id).then((w) => { if (levend) setWg(w); }).catch((e) => {
+      if (!levend) return;
+      // Een verwijderd werkgebied is een toestand, geen fout – zoals een verwijderde annotatie.
+      const v = verwijderdUit(e);
+      if (v) setVerwijderd(v);
+      else setFout(foutTekst(e));
+    });
+    return () => { levend = false; };
+  }, [id, poging]);
+
+  async function verwijder() {
+    if (!wg) return;
+    setMelding(null);
+    try {
+      await metSpoor("werkgebied_verwijderen", () => verwijderWerkgebied(id, wg.revisie));
+      setWg(null);
+      setPoging((p) => p + 1);              // de api zegt nu wanneer en door wie
+      onVerwijderd();
+    } catch (e) {
+      if (isRevisieConflict(e)) {
+        setPoging((p) => p + 1);
+        setMelding("Iemand anders wijzigde dit werkgebied net. Bekijk de nieuwe stand voordat je het verwijdert.");
+      } else setMelding(foutTekst(e, "Het werkgebied is niet verwijderd."));
+    }
+  }
+
+  if (verwijderd) {
+    return <Melding type="uitleg"><span data-verwijderd>{verwijderdZin(verwijderd)}</span></Melding>;
+  }
+  if (fout) {
+    return (
+      <Melding type="fout" titel="Het werkgebied kon niet worden geladen.">
+        {fout}{" "}
+        <button type="button" className="focus-ring rounded font-medium text-lint underline" onClick={() => { setFout(null); setPoging((p) => p + 1); }}>
+          Opnieuw proberen
+        </button>
+      </Melding>
+    );
+  }
+  if (!wg) return <SkeletonCard regels={4} />;
+  return (
+    <div data-werkgebied-inhoud className="space-y-4 text-sm text-ink">
+      <div className="flex items-center gap-2">
+        <p className="text-xs text-muted">{STATUS_LABEL[wg.status]} · revisie {wg.revisie}</p>
+        <VerwijderKnop soort="werkgebied" onBevestig={verwijder} className="ml-auto" />
+      </div>
+      {melding && <Melding type="waarschuwing" compact>{melding}</Melding>}
+      <WerkgebiedSamenvatting wg={wg} />
+      <Link href={naarWerkgebied}
+        className={`${knopKlasse("primary", "md")} w-full sm:w-auto`}>
+        Open het werkgebied
+      </Link>
+    </div>
+  );
+}

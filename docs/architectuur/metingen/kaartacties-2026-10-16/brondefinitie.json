@@ -1,0 +1,121 @@
+{
+  "cases": [
+    {
+      "case": "iw9-belastingaanslag",
+      "naam": "belastingaanslag",
+      "recall": 1.0,
+      "plaats_goed": 2,
+      "plaats_van": 2,
+      "volgorde": true,
+      "letterlijk": true,
+      "voorstellen": 2,
+      "melding": "",
+      "gevonden": {
+        "urn:bwb:BWBR0004770:artikel:2:lid:1:o:m": "regeling",
+        "urn:bwb:BWBR0002320:artikel:2:lid:3:o:d": "definitieverwijzing"
+      }
+    },
+    {
+      "case": "iw9-aanslagbiljet-alleen-mede",
+      "naam": "aanslagbiljet",
+      "recall": 1.0,
+      "plaats_goed": 0,
+      "plaats_van": 0,
+      "volgorde": true,
+      "letterlijk": true,
+      "voorstellen": 0,
+      "melding": "De wet breidt “aanslagbiljet” alleen uit of sluit iets uit (“mede/niet verstaan onder”) in Artikel 2, lid 2, onderdeel d – Invorderingswet 1990; dat is geen definitie om over te nemen.",
+      "gevonden": {}
+    },
+    {
+      "case": "iw9-belastingschuldige",
+      "naam": "Belastingschuldige",
+      "recall": 1.0,
+      "plaats_goed": 1,
+      "plaats_van": 1,
+      "volgorde": true,
+      "letterlijk": true,
+      "voorstellen": 1,
+      "melding": "",
+      "gevonden": {
+        "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k": "regeling"
+      }
+    },
+    {
+      "case": "iw9-belastingwet",
+      "naam": "belastingwet",
+      "recall": 1.0,
+      "plaats_goed": 1,
+      "plaats_van": 1,
+      "volgorde": true,
+      "letterlijk": true,
+      "voorstellen": 1,
+      "melding": "",
+      "gevonden": {
+        "urn:bwb:BWBR0002320:artikel:2:lid:1:o:a": "definitieverwijzing"
+      }
+    },
+    {
+      "case": "iw9-ontvanger",
+      "naam": "ontvanger",
+      "recall": 1.0,
+      "plaats_goed": 1,
+      "plaats_van": 1,
+      "volgorde": true,
+      "letterlijk": true,
+      "voorstellen": 1,
+      "melding": "",
+      "gevonden": {
+        "urn:bwb:BWBR0018472:artikel:2:lid:1:o:n": "elders"
+      }
+    },
+    {
+      "case": "iw2-belastingaanslag",
+      "naam": "belastingaanslag",
+      "recall": 1.0,
+      "plaats_goed": 2,
+      "plaats_van": 2,
+      "volgorde": true,
+      "letterlijk": true,
+      "voorstellen": 2,
+      "melding": "",
+      "gevonden": {
+        "urn:bwb:BWBR0004770:artikel:2:lid:1:o:m": "werkgebied",
+        "urn:bwb:BWBR0002320:artikel:2:lid:3:o:d": "definitieverwijzing"
+      }
+    },
+    {
+      "case": "iw9-alternatieve-term",
+      "naam": "aanslag",
+      "recall": 1.0,
+      "plaats_goed": 1,
+      "plaats_van": 1,
+      "volgorde": true,
+      "letterlijk": true,
+      "voorstellen": 2,
+      "melding": "",
+      "gevonden": {
+        "urn:bwb:BWBR0004770:artikel:2:lid:1:o:m": "regeling",
+        "urn:bwb:BWBR0002320:artikel:2:lid:3:o:d": "definitieverwijzing"
+      }
+    },
+    {
+      "case": "iw9-geen-definitie",
+      "naam": "dagtekening",
+      "recall": 1.0,
+      "plaats_goed": 0,
+      "plaats_van": 0,
+      "volgorde": true,
+      "letterlijk": true,
+      "voorstellen": 0,
+      "melding": "Geen wettelijke definitie gevonden voor “dagtekening”.",
+      "gevonden": {}
+    }
+  ],
+  "totaal": {
+    "recall": 1.0,
+    "plaats": 1.0,
+    "volgorde": 1.0,
+    "letterlijk": 1.0
+  }
+}

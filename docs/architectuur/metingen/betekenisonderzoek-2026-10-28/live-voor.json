@@ -1,0 +1,659 @@
+{
+ "nieuw": false,
+ "model": "claude-sonnet-4-6",
+ "runs": [
+  {
+   "run": 0,
+   "casus": "A",
+   "kaart": {
+    "definitie": "",
+    "herkomst": null,
+    "fragmenten": [],
+    "motivatie": "De fragmenten beschrijven de renteberekening bij herziening maar definiëren het begrip zelf niet expliciet; uit F3996049708 valt echter op te maken dat een herziening een omzetting van een voorlopige aanslag betreft. F346db1c918 bevat alleen een uitzondering op de tijdvakberekening en draagt niet bij aan de definitie van het begrip zelf.",
+    "aandachtspunten": [
+     "CIRCULAIR_VERWORPEN",
+     "GEEN_DEFINITIE"
+    ],
+    "naam": "herziening",
+    "duiding": null,
+    "tokens": 1635,
+    "s": 17.3
+   },
+   "scherper": {
+    "voorstellen": [
+     {
+      "veld": "definitie",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_GEFORMULEERD"
+      ],
+      "motivatie": "De huidige definitie ontbreekt; de voorgestelde definitie benoemt het soortbegrip (aanpassing van een voorlopige aanslag) en het onderscheidende kenmerk (de richting: van negatief naar positief bedrag), aangevuld met de drie vaststellingsmodaliteiten uit F346db1c918 die de reikwijdte van het begrip in de passage volledig bepalen.",
+      "definitie": {
+       "definitie": "Aanpassing van een voorlopige aanslag inkomstenbelasting of vennootschapsbelasting met een negatief bedrag tot een voorlopige aanslag met een positief bedrag, vastgesteld ambtshalve, overeenkomstig een op de door de inspecteur aangegeven wijze ingediend verzoek, of overeenkomstig de ingediende aangifte met betrekking tot het tijdvak waarover de belasting wordt geheven.",
+       "herkomst": "geformuleerd",
+       "fragmenten": [
+        {
+         "id": "F3996049708",
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:30fb:lid:4",
+         "start": 0,
+         "eind": 485,
+         "tekst": "Bij herziening van een voorlopige aanslag inkomstenbelasting of vennootschapsbelasting met een negatief bedrag tot een voorlopige aanslag met positief bedrag, wordt met betrekking tot het verschil tussen die bedragen belastingrente in rekening gebracht over het tijdvak dat aanvangt 6 maanden te rekenen vanaf het tijdvak waarover de belasting wordt geheven en eindigt op de dag voorafgaand aan de dag waarop het verschil invorderbaar is ingevolge artikel 9 van de Invorderingswet 1990"
+        },
+        {
+         "id": "F346db1c918",
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:30fb:lid:4",
+         "start": 487,
+         "eind": 951,
+         "tekst": "Ingeval de herziening is vastgesteld overeenkomstig een op de door de inspecteur aangegeven wijze ingediend verzoek of overeenkomstig de ingediende aangifte met betrekking tot het tijdvak waarover de belasting wordt geheven, eindigt het tijdvak waarover de belastingrente wordt berekend in afwijking in zoverre van de eerste volzin uiterlijk 14 weken na de datum van ontvangst van het verzoek, onderscheidenlijk 19 weken na de datum van ontvangst van deze aangifte"
+        }
+       ]
+      }
+     }
+    ],
+    "melding": "",
+    "tokens": 2171,
+    "s": 27.8
+   },
+   "voorbeelden": {
+    "voorstellen": [
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een belastingplichtige ontvangt een voorlopige aanslag IB van −€ 800. De inspecteur stelt een nieuwe voorlopige aanslag vast van +€ 1.200. De oorspronkelijke aanslag wordt ingetrokken en vervangen.",
+      "oordeel": "wel",
+      "motivatie": "Een voorlopige aanslag IB met negatief bedrag wordt vervangen door een voorlopige aanslag met positief bedrag: dit is exact het kernscenario van de passage.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een belastingplichtige ontvangt een voorlopige aanslag VPB van +€ 5.000. Na een gewijzigde schatting van de winst stelt de inspecteur een nieuwe voorlopige aanslag vast van +€ 9.000.",
+      "oordeel": "wel",
+      "motivatie": "Beide aanslagen zijn voorlopige aanslagen VPB; de ene wordt in de andere gewijzigd, ongeacht of het bedrag negatief of positief is.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "De inspecteur legt een definitieve aanslag IB op nadat het belastingjaar is afgelopen en de aangifte is beoordeeld.",
+      "oordeel": "niet",
+      "motivatie": "Een definitieve aanslag is geen voorlopige aanslag, zodat er geen sprake is van wijziging van een voorlopige aanslag in een andere voorlopige aanslag.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een belastingplichtige dient een bezwaarschrift in tegen een voorlopige aanslag IB; de inspecteur vermindert het bedrag bij uitspraak op bezwaar.",
+      "oordeel": "onzeker",
+      "motivatie": "De uitkomst is een gewijzigd aanslagbedrag, maar het is onduidelijk of een vermindering via bezwaar kwalificeert als 'wijziging in een andere voorlopige aanslag' dan wel als een afzonderlijke rechtsfiguur.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een belastingplichtige ontvangt een voorlopige aanslag IB van −€ 400. Na een verzoek stelt de inspecteur een nieuwe voorlopige aanslag vast van −€ 150 (nog steeds negatief, maar een lager teruggaafbedrag).",
+      "oordeel": "wel",
+      "motivatie": "Beide aanslagen zijn voorlopige aanslagen IB; de definitie vereist alleen wijziging van de ene voorlopige aanslag in een andere, niet dat het teken verandert.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     }
+    ],
+    "melding": "",
+    "tokens": 1953,
+    "s": 15.6
+   }
+  },
+  {
+   "run": 0,
+   "casus": "B",
+   "kaart": {
+    "definitie": "",
+    "herkomst": null,
+    "fragmenten": [],
+    "motivatie": "De fragmenten omschrijven het begrip niet zelfstandig maar in de context van de renteberekening; een geformuleerde definitie maakt het soortbegrip (verschuldigd bedrag op een aanslag) en het onderscheidend kenmerk (grondslag voor belastingrente) expliciet. Samenstelling zou een te lange en procedureel gekleurde omschrijving opleveren die geen zuivere definitie vormt.",
+    "aandachtspunten": [
+     "CIRCULAIR_VERWORPEN",
+     "GEEN_DEFINITIE"
+    ],
+    "naam": "te betalen bedrag aan belasting",
+    "duiding": null,
+    "tokens": 1701,
+    "s": 18.5
+   },
+   "scherper": {
+    "voorstellen": [
+     {
+      "veld": "definitie",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_GEFORMULEERD"
+      ],
+      "motivatie": "De definitie benoemt het soortbegrip (bedrag) en het onderscheidende kenmerk (verschuldigd door de belastingplichtige krachtens een aanslag of navorderingsaanslag IB of VPB), zoals beide fragmenten consistent aanduiden. Daarmee is de definitie scherper dan een lege of circulaire omschrijving en dekt zij precies de context waarin het begrip in de bepalingen voorkomt.",
+      "definitie": {
+       "definitie": "Bedrag dat de belastingplichtige verschuldigd is op grond van een aanslag of navorderingsaanslag inkomstenbelasting of vennootschapsbelasting.",
+       "herkomst": "geformuleerd",
+       "fragmenten": [
+        {
+         "id": "F4ba4135aac",
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:1",
+         "start": 0,
+         "eind": 479,
+         "tekst": "Indien met betrekking tot de inkomstenbelasting of vennootschapsbelasting na het verstrijken van een periode van 6 maanden te rekenen vanaf het einde van het tijdvak waarover de belasting wordt geheven een aanslag of een navorderingsaanslag met een door de belastingplichtige te betalen bedrag aan belasting wordt vastgesteld, wordt met betrekking tot die aanslag, onderscheidenlijk die navorderingsaanslag, aan de belastingplichtige rente – belastingrente – in rekening gebracht"
+        },
+        {
+         "id": "F23454cb01a",
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:2",
+         "start": 0,
+         "eind": 391,
+         "tekst": "De belastingrente wordt enkelvoudig berekend over het tijdvak dat aanvangt 6 maanden te rekenen vanaf het einde van het tijdvak waarover de belasting wordt geheven en eindigt op de dag voorafgaand aan de dag waarop de aanslag, onderscheidenlijk de navorderingsaanslag, invorderbaar is ingevolge artikel 9 van de Invorderingswet 1990 en heeft als grondslag het te betalen bedrag aan belasting"
+        }
+       ]
+      }
+     }
+    ],
+    "melding": "",
+    "tokens": 2114,
+    "s": 28.3
+   },
+   "voorbeelden": {
+    "voorstellen": [
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een particulier ontvangt een aanslag inkomstenbelasting over het jaar 2022 met een te betalen bedrag van € 3.400.",
+      "oordeel": "wel",
+      "motivatie": "Het betreft inkomstenbelasting geheven bij aanslag, wat exact overeenkomt met de twee genoemde belastingsoorten en de aanslagvereiste.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een bv ontvangt een navorderingsaanslag vennootschapsbelasting over boekjaar 2021 omdat de inspecteur een correctie heeft aangebracht op de winst.",
+      "oordeel": "wel",
+      "motivatie": "Vennootschapsbelasting bij navorderingsaanslag valt uitdrukkelijk onder de definitie; de wet noemt navorderingsaanslagen expliciet naast gewone aanslagen.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een ondernemer voldoet op aangifte € 8.000 omzetbelasting over het derde kwartaal.",
+      "oordeel": "niet",
+      "motivatie": "Omzetbelasting is een andere belastingsoort dan inkomstenbelasting of vennootschapsbelasting en wordt bovendien niet bij aanslag maar op aangifte geheven.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een particulier ontvangt een voorlopige aanslag inkomstenbelasting die resulteert in een te betalen bedrag van € 1.200.",
+      "oordeel": "onzeker",
+      "motivatie": "De definitie spreekt van 'aanslag', maar de wettekst (belastingrente) koppelt het begrip specifiek aan definitieve aanslagen en navorderingsaanslagen, waardoor onduidelijk is of een voorlopige aanslag hieronder valt.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een bv ontvangt een aanslag vennootschapsbelasting, maar het vastgestelde bedrag leidt tot een teruggaaf in plaats van een te betalen bedrag.",
+      "oordeel": "niet",
+      "motivatie": "De definitie vereist uitdrukkelijk een 'te betalen bedrag aan belasting'; een teruggaaf voldoet niet aan dat kenmerk.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     }
+    ],
+    "melding": "",
+    "tokens": 1856,
+    "s": 14.2
+   }
+  },
+  {
+   "run": 1,
+   "casus": "A",
+   "kaart": {
+    "definitie": "",
+    "herkomst": null,
+    "fragmenten": [],
+    "motivatie": "De fragmenten beschrijven de gevolgen van een herziening (renteberekening) maar definiëren het begrip niet expliciet; een geformuleerde definitie put het soortbegrip (wijziging van een voorlopige aanslag) en het onderscheidend kenmerk (verandering van het vastgestelde bedrag) uit de context van beide fragmenten. Een samengestelde definitie is niet mogelijk omdat geen enkel fragment een afgeronde omschrijving van het begrip zelf bevat.",
+    "aandachtspunten": [
+     "CIRCULAIR_VERWORPEN",
+     "GEEN_DEFINITIE"
+    ],
+    "naam": "herziening",
+    "duiding": null,
+    "tokens": 1660,
+    "s": 6.2
+   },
+   "scherper": {
+    "voorstellen": [
+     {
+      "veld": "definitie",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_GEFORMULEERD"
+      ],
+      "motivatie": "De huidige aanduiding \"herziening (Rechtsobject)\" benoemt geen soortbegrip noch onderscheidend kenmerk; de voorgestelde definitie maakt expliciet dat het gaat om een vervangende vaststelling én beperkt het begrip tot de specifieke richting (negatief naar positief), conform F3996049708. De rol van een eventueel verzoek of aangifte (F346db1c918) raakt alleen de rentetermijn, niet de aard van de herziening zelf.",
+      "definitie": {
+       "definitie": "Vaststelling van een voorlopige aanslag inkomstenbelasting of vennootschapsbelasting met een positief bedrag ter vervanging van een eerdere voorlopige aanslag met een negatief bedrag.",
+       "herkomst": "geformuleerd",
+       "fragmenten": [
+        {
+         "id": "F3996049708",
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:30fb:lid:4",
+         "start": 0,
+         "eind": 485,
+         "tekst": "Bij herziening van een voorlopige aanslag inkomstenbelasting of vennootschapsbelasting met een negatief bedrag tot een voorlopige aanslag met positief bedrag, wordt met betrekking tot het verschil tussen die bedragen belastingrente in rekening gebracht over het tijdvak dat aanvangt 6 maanden te rekenen vanaf het tijdvak waarover de belasting wordt geheven en eindigt op de dag voorafgaand aan de dag waarop het verschil invorderbaar is ingevolge artikel 9 van de Invorderingswet 1990"
+        }
+       ]
+      }
+     }
+    ],
+    "melding": "",
+    "tokens": 2177,
+    "s": 13.7
+   },
+   "voorbeelden": {
+    "voorstellen": [
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een belastingplichtige krijgt eerst een voorlopige aanslag IB van –€ 500 (teruggaaf). De inspecteur past deze aan naar +€ 2.000 (te betalen).",
+      "oordeel": "wel",
+      "motivatie": "Dit is precies de situatie die lid 4 beschrijft: een voorlopige aanslag met negatief bedrag wordt gewijzigd in één met positief bedrag, wat het kernscenario van de definitie vormt.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een voorlopige aanslag IB van +€ 1.000 wordt verhoogd naar +€ 3.500 omdat de inspecteur hogere inkomsten verwacht.",
+      "oordeel": "wel",
+      "motivatie": "De wijziging van de ene voorlopige aanslag in een andere valt onder de definitie, ook als beide bedragen positief zijn.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "De definitieve aanslag IB wordt na bezwaar door de inspecteur verlaagd.",
+      "oordeel": "niet",
+      "motivatie": "Het betreft een definitieve aanslag, geen voorlopige aanslag, zodat de definitie niet van toepassing is.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een voorlopige aanslag VPB van –€ 800 wordt herzien naar –€ 200 (nog steeds een teruggaaf, maar lager).",
+      "oordeel": "onzeker",
+      "motivatie": "De definitie spreekt van wijziging in 'een andere voorlopige aanslag', maar lid 4 en de renteberekening zien specifiek op de omslag van negatief naar positief, waardoor onduidelijk is of dit geval dezelfde gevolgen heeft.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een belastingplichtige trekt zijn verzoek om een voorlopige teruggaaf IB in, waarna de inspecteur de aanslag op nihil stelt.",
+      "oordeel": "onzeker",
+      "motivatie": "Het is niet eenduidig of een nihilstelling kwalificeert als een 'andere voorlopige aanslag' in de zin van de definitie, of als intrekking buiten het herzieningsbegrip valt.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     }
+    ],
+    "melding": "",
+    "tokens": 1871,
+    "s": 13.2
+   }
+  },
+  {
+   "run": 1,
+   "casus": "B",
+   "kaart": {
+    "definitie": "",
+    "herkomst": null,
+    "fragmenten": [],
+    "motivatie": "De fragmenten noemen het begrip steeds in functionele zin (als grondslag en als drempel voor belastingrente), maar geven geen afgeronde definitie die letterlijk kan worden overgenomen. Een geformuleerde definitie brengt het soortbegrip (bedrag op aanslag/navorderingsaanslag) en het onderscheidend kenmerk (verschuldigd door belastingplichtige, grondslag voor belastingrente) samen.",
+    "aandachtspunten": [
+     "CIRCULAIR_VERWORPEN",
+     "GEEN_DEFINITIE"
+    ],
+    "naam": "te betalen bedrag aan belasting",
+    "duiding": null,
+    "tokens": 1700,
+    "s": 6.5
+   },
+   "scherper": {
+    "voorstellen": [
+     {
+      "veld": "definitie",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_GEFORMULEERD"
+      ],
+      "motivatie": "De huidige omschrijving \"te betalen bedrag aan belasting\" is circulair en mist het soortbegrip; de voorgestelde definitie maakt expliciet dat het om een bedrag op een aanslag of navorderingsaanslag gaat en begrenst de belastingsoort tot inkomstenbelasting en vennootschapsbelasting, precies zoals de fragmenten aangeven.",
+      "definitie": {
+       "definitie": "Het bedrag dat de belastingplichtige verschuldigd is op een vastgestelde aanslag of navorderingsaanslag inzake inkomstenbelasting of vennootschapsbelasting.",
+       "herkomst": "geformuleerd",
+       "fragmenten": [
+        {
+         "id": "F4ba4135aac",
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:1",
+         "start": 0,
+         "eind": 479,
+         "tekst": "Indien met betrekking tot de inkomstenbelasting of vennootschapsbelasting na het verstrijken van een periode van 6 maanden te rekenen vanaf het einde van het tijdvak waarover de belasting wordt geheven een aanslag of een navorderingsaanslag met een door de belastingplichtige te betalen bedrag aan belasting wordt vastgesteld, wordt met betrekking tot die aanslag, onderscheidenlijk die navorderingsaanslag, aan de belastingplichtige rente – belastingrente – in rekening gebracht"
+        },
+        {
+         "id": "F23454cb01a",
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:2",
+         "start": 0,
+         "eind": 391,
+         "tekst": "De belastingrente wordt enkelvoudig berekend over het tijdvak dat aanvangt 6 maanden te rekenen vanaf het einde van het tijdvak waarover de belasting wordt geheven en eindigt op de dag voorafgaand aan de dag waarop de aanslag, onderscheidenlijk de navorderingsaanslag, invorderbaar is ingevolge artikel 9 van de Invorderingswet 1990 en heeft als grondslag het te betalen bedrag aan belasting"
+        }
+       ]
+      }
+     }
+    ],
+    "melding": "",
+    "tokens": 2050,
+    "s": 9.0
+   },
+   "voorbeelden": {
+    "voorstellen": [
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een BV ontvangt een aanslag vennootschapsbelasting over boekjaar 2022 met een te betalen bedrag van € 50.000.",
+      "oordeel": "wel",
+      "motivatie": "Het betreft vennootschapsbelasting geheven bij wege van aanslag, wat precies de twee belastingsoorten zijn die de definitie noemt.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een particulier krijgt een navorderingsaanslag inkomstenbelasting opgelegd over belastingjaar 2021 met een te betalen bedrag van € 3.200.",
+      "oordeel": "wel",
+      "motivatie": "Inkomstenbelasting geheven bij wege van (navorderings)aanslag valt volledig binnen de definitie.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een ondernemer voldoet maandelijks omzetbelasting op aangifte en betaalt over een tijdvak € 8.000 aan btw.",
+      "oordeel": "niet",
+      "motivatie": "Omzetbelasting is geen inkomstenbelasting of vennootschapsbelasting, en valt daarmee buiten beide belastingsoorten van de definitie.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een werknemer heeft loonbelasting ingehouden door zijn werkgever; deze loonheffing wordt niet gevolgd door een aanslag inkomstenbelasting.",
+      "oordeel": "niet",
+      "motivatie": "Loonbelasting wordt niet bij wege van aanslag geheven en is geen zelfstandige inkomsten- of vennootschapsbelasting in de zin van de definitie.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een ondernemer met een eenmanszaak ontvangt een voorlopige aanslag inkomstenbelasting over het lopende jaar met een te betalen bedrag van € 10.000.",
+      "oordeel": "onzeker",
+      "motivatie": "De definitie spreekt over een aanslag zonder onderscheid te maken tussen een voorlopige en een definitieve aanslag, waardoor onduidelijk is of een voorlopige aanslag hieronder valt.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     }
+    ],
+    "melding": "",
+    "tokens": 1830,
+    "s": 12.4
+   }
+  },
+  {
+   "run": 2,
+   "casus": "A",
+   "kaart": {
+    "definitie": "",
+    "herkomst": null,
+    "fragmenten": [],
+    "motivatie": "De fragmenten beschrijven de gevolgen van een herziening (renteberekening en tijdvakken), maar omschrijven het begrip zelf niet als zodanig. Een geformuleerde definitie is nodig omdat de fragmenten alleen de context en rekenregels bevatten, niet een afgeronde begripsomschrijving.",
+    "aandachtspunten": [
+     "CIRCULAIR_VERWORPEN",
+     "GEEN_DEFINITIE"
+    ],
+    "naam": "herziening",
+    "duiding": null,
+    "tokens": 1640,
+    "s": 5.7
+   },
+   "scherper": {
+    "voorstellen": [
+     {
+      "veld": "definitie",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_GEFORMULEERD"
+      ],
+      "motivatie": "De huidige definitie ontbreekt; de voorgestelde definitie benoemt het soortbegrip (vaststelling waarbij een voorlopige aanslag wordt gewijzigd) en het onderscheidende kenmerk (de richting van negatief naar positief bedrag), zoals beide fragmenten uitsluitend op deze situatie zien. De gevolgen voor belastingrente zijn bewust weggelaten omdat die het gevolg zijn van de herziening, niet de herziening zelf.",
+      "definitie": {
+       "definitie": "Een vaststelling waarbij een voorlopige aanslag inkomstenbelasting of vennootschapsbelasting met een negatief bedrag wordt gewijzigd tot een voorlopige aanslag met een positief bedrag.",
+       "herkomst": "geformuleerd",
+       "fragmenten": [
+        {
+         "id": "F3996049708",
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:30fb:lid:4",
+         "start": 0,
+         "eind": 485,
+         "tekst": "Bij herziening van een voorlopige aanslag inkomstenbelasting of vennootschapsbelasting met een negatief bedrag tot een voorlopige aanslag met positief bedrag, wordt met betrekking tot het verschil tussen die bedragen belastingrente in rekening gebracht over het tijdvak dat aanvangt 6 maanden te rekenen vanaf het tijdvak waarover de belasting wordt geheven en eindigt op de dag voorafgaand aan de dag waarop het verschil invorderbaar is ingevolge artikel 9 van de Invorderingswet 1990"
+        },
+        {
+         "id": "F346db1c918",
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:30fb:lid:4",
+         "start": 487,
+         "eind": 951,
+         "tekst": "Ingeval de herziening is vastgesteld overeenkomstig een op de door de inspecteur aangegeven wijze ingediend verzoek of overeenkomstig de ingediende aangifte met betrekking tot het tijdvak waarover de belasting wordt geheven, eindigt het tijdvak waarover de belastingrente wordt berekend in afwijking in zoverre van de eerste volzin uiterlijk 14 weken na de datum van ontvangst van het verzoek, onderscheidenlijk 19 weken na de datum van ontvangst van deze aangifte"
+        }
+       ]
+      }
+     }
+    ],
+    "melding": "",
+    "tokens": 2104,
+    "s": 10.3
+   },
+   "voorbeelden": {
+    "voorstellen": [
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een voorlopige aanslag IB van −€ 800 wordt gewijzigd naar een voorlopige aanslag IB van +€ 1.200.",
+      "oordeel": "wel",
+      "motivatie": "Er is sprake van een wijziging van een voorlopige aanslag IB in een andere voorlopige aanslag, van negatief naar positief bedrag, wat precies het scenario is dat de definitie en lid 4 beschrijven.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een voorlopige aanslag vennootschapsbelasting van +€ 5.000 wordt gewijzigd naar een voorlopige aanslag vennootschapsbelasting van +€ 9.000.",
+      "oordeel": "wel",
+      "motivatie": "Een wijziging tussen twee voorlopige aanslagen VPB valt onder de definitie, ook als beide bedragen positief zijn.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een definitieve aanslag IB van +€ 3.000 wordt na bezwaar verminderd naar +€ 1.500.",
+      "oordeel": "niet",
+      "motivatie": "Het gaat hier om een definitieve aanslag, niet om een voorlopige aanslag, zodat het object van wijziging buiten de definitie valt.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een voorlopige aanslag IB van −€ 400 wordt gewijzigd naar een voorlopige aanslag IB van −€ 200 (beide negatief, maar het bedrag is lager).",
+      "oordeel": "onzeker",
+      "motivatie": "De definitie eist slechts een wijziging van de ene in de andere voorlopige aanslag, maar lid 4 koppelt belastingrente specifiek aan de omslag van negatief naar positief, waardoor onduidelijk is of deze situatie dezelfde rechtsgevolgen heeft.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een voorlopige aanslag IB wordt ingetrokken zonder dat een nieuwe voorlopige aanslag wordt vastgesteld.",
+      "oordeel": "niet",
+      "motivatie": "Er is geen sprake van een wijziging 'in een andere voorlopige aanslag', omdat het resultaat geen nieuwe voorlopige aanslag is maar het vervallen ervan.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     }
+    ],
+    "melding": "",
+    "tokens": 1863,
+    "s": 11.8
+   }
+  },
+  {
+   "run": 2,
+   "casus": "B",
+   "kaart": {
+    "definitie": "",
+    "herkomst": null,
+    "fragmenten": [],
+    "motivatie": "Geen van de fragmenten bevat een afgeronde definitie; beide fragmenten samen omschrijven het begrip als het op de aanslag vastgestelde, door de belastingplichtige verschuldigde bedrag dat tevens de grondslag vormt voor de belastingrente. Een geformuleerde definitie brengt deze twee elementen samen zonder nieuwe inhoud toe te voegen.",
+    "aandachtspunten": [
+     "CIRCULAIR_VERWORPEN",
+     "GEEN_DEFINITIE"
+    ],
+    "naam": "te betalen bedrag aan belasting",
+    "duiding": null,
+    "tokens": 1683,
+    "s": 6.1
+   },
+   "scherper": {
+    "voorstellen": [
+     {
+      "veld": "definitie",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_GEFORMULEERD"
+      ],
+      "motivatie": "De huidige aanduiding \"te betalen bedrag aan belasting\" mist een soortbegrip en onderscheidend kenmerk; de geformuleerde definitie maakt expliciet dat het gaat om een bedrag op een aanslag of navorderingsaanslag voor specifiek de inkomstenbelasting of vennootschapsbelasting, wat de reikwijdte beperkt tot wat de fragmenten daadwerkelijk aanduiden.",
+      "definitie": {
+       "definitie": "Het bedrag aan inkomstenbelasting of vennootschapsbelasting dat door de belastingplichtige verschuldigd is op grond van een vastgestelde aanslag of navorderingsaanslag.",
+       "herkomst": "geformuleerd",
+       "fragmenten": [
+        {
+         "id": "F4ba4135aac",
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:1",
+         "start": 0,
+         "eind": 479,
+         "tekst": "Indien met betrekking tot de inkomstenbelasting of vennootschapsbelasting na het verstrijken van een periode van 6 maanden te rekenen vanaf het einde van het tijdvak waarover de belasting wordt geheven een aanslag of een navorderingsaanslag met een door de belastingplichtige te betalen bedrag aan belasting wordt vastgesteld, wordt met betrekking tot die aanslag, onderscheidenlijk die navorderingsaanslag, aan de belastingplichtige rente – belastingrente – in rekening gebracht"
+        },
+        {
+         "id": "F23454cb01a",
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:2",
+         "start": 0,
+         "eind": 391,
+         "tekst": "De belastingrente wordt enkelvoudig berekend over het tijdvak dat aanvangt 6 maanden te rekenen vanaf het einde van het tijdvak waarover de belasting wordt geheven en eindigt op de dag voorafgaand aan de dag waarop de aanslag, onderscheidenlijk de navorderingsaanslag, invorderbaar is ingevolge artikel 9 van de Invorderingswet 1990 en heeft als grondslag het te betalen bedrag aan belasting"
+        }
+       ]
+      }
+     }
+    ],
+    "melding": "",
+    "tokens": 2120,
+    "s": 11.1
+   },
+   "voorbeelden": {
+    "voorstellen": [
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een particulier krijgt een aanslag inkomstenbelasting 2023 opgelegd voor een bedrag van € 4.200 dat hij nog moet betalen.",
+      "oordeel": "wel",
+      "motivatie": "Het betreft inkomstenbelasting geheven bij aanslag, wat precies de twee vereiste kenmerken combineert.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een BV ontvangt een navorderingsaanslag vennootschapsbelasting over boekjaar 2021 met een te betalen bedrag van € 18.000.",
+      "oordeel": "wel",
+      "motivatie": "Vennootschapsbelasting geheven bij (navorderings)aanslag valt expliciet onder de definitie.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een ondernemer krijgt een naheffingsaanslag omzetbelasting (btw) van € 3.500 opgelegd.",
+      "oordeel": "niet",
+      "motivatie": "Omzetbelasting is geen inkomstenbelasting of vennootschapsbelasting, en valt daarmee buiten de definitie.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een werknemer betaalt maandelijks loonbelasting via inhouding door zijn werkgever; er wordt geen aanslag opgelegd.",
+      "oordeel": "niet",
+      "motivatie": "Hoewel het om een inkomstengerelateerde heffing gaat, ontbreekt de aanslag als heffingswijze die de definitie vereist.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     },
+     {
+      "veld": "voorbeelden",
+      "tekst": "Een DGA ontvangt een voorlopige aanslag inkomstenbelasting over 2024 met een te betalen bedrag, vastgesteld vóór het einde van het belastingjaar.",
+      "oordeel": "onzeker",
+      "motivatie": "De definitie vereist een aanslag maar sluit voorlopige aanslagen niet uitdrukkelijk uit, terwijl de wettekst rente koppelt aan termijnen ná het tijdvak, wat de toepasselijkheid onduidelijk maakt.",
+      "aandacht": "geel",
+      "aandachtspunten": [
+       "DOOR_LEX_VOORBEELD"
+      ]
+     }
+    ],
+    "melding": "",
+    "tokens": 1817,
+    "s": 13.7
+   }
+  }
+ ]
+}

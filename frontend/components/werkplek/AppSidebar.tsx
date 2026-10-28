@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Dialog } from "@/components/ui/Dialog";
 import { GesprekSidebar } from "@/components/werkplek/GesprekSidebar";
-import { hernoemGesprek, lijstGesprekken, verwijderGesprek } from "@/lib/api";
+import { foutTekst, hernoemGesprek, lijstGesprekken, verwijderGesprek, wijzigGesprek } from "@/lib/api";
 import { metSpoor } from "@/lib/uiSpoor";
 import type { GesprekSamenvatting, Verbruiksstand } from "@/lib/types";
 
@@ -12,7 +12,11 @@ interface Props {
   /** Welk gesprek is actief (highlight). `null` op schermen buiten de chat. */
   activeId: string | null;
   onNieuw: () => void;
+  /** Een nieuw gesprek dat bij dit werkgebied hoort. Weglaten verbergt de knop bij de groep. */
+  onNieuwInWerkgebied?: (werkgebiedId: string) => void;
   onOpen: (id: string) => void;
+  /** Een gesprek kreeg een ander werkgebied (of werd los) – de werkplek past zijn context aan. */
+  onVerplaatst?: (id: string, werkgebiedId: string) => void;
   /** Het actieve gesprek is zojuist verwijderd – de aanroeper beslist wat er dan gebeurt. */
   onVerwijderd?: (id: string) => void;
   /** Hapering bij hernoemen/verwijderen. Wie de sidebar plaatst, bepaalt waar de melding landt. */
@@ -42,23 +46,39 @@ interface Props {
  *  verandert. De handlers verschillen wél per scherm: in de werkplek wisselt een klik van gesprek in
  *  lokale state, op het overzicht navigeert hij terug naar de werkplek. */
 export function AppSidebar({
-  activeId, onNieuw, onOpen, onVerwijderd, onFout, onLijst, verversSignaal = 0,
+  activeId, onNieuw, onNieuwInWerkgebied, onOpen, onVerplaatst, onVerwijderd, onFout, onLijst, verversSignaal = 0,
   drawerOpen = false, onDrawerSluit, onRondleiding, demoGesprekken, verbruik = null,
 }: Props) {
   const [gesprekken, setGesprekken] = useState<GesprekSamenvatting[]>(demoGesprekken ?? []);
   const [laden, setLaden] = useState(!demoGesprekken);
+  // Een mislukte lijst is iets anders dan een lege: anders staat er "Nog geen gesprekken" terwijl de api
+  // alleen even niet antwoordde (acceptatie, 28 okt 2026).
+  const [laadFout, setLaadFout] = useState<string | null>(null);
   const demo = Boolean(demoGesprekken);
+  // Elke ophaalronde krijgt een nummer; alleen het antwoord van de laatste telt. De rondleiding
+  // start bij een eerste bezoek vlak na het openen van de werkplek, terwijl de echte lijst nog
+  // onderweg is. Kwam dat (lege) antwoord daarna binnen, dan overschreef het de voorbeeldlijst, en
+  // wees "Je werk terugvinden" naar "Nog geen gesprekken".
+  const ronde = useRef(0);
+  useEffect(() => {
+    if (demo) ronde.current++;
+  }, [demo]);
 
   const verversLijst = useCallback(() => {
     // In de rondleiding is deze lijst een voorbeeld; ophalen zou hem overschrijven met de (vaak
     // lege) echte lijst.
     if (demo) return;
+    const deze = ++ronde.current;
     lijstGesprekken()
       .then((lijst) => {
+        if (deze !== ronde.current) return;
         setGesprekken(lijst);
+        setLaadFout(null);
         onLijst?.(lijst);
       })
-      .catch(() => {})
+      .catch((e) => {
+        if (deze === ronde.current) setLaadFout(foutTekst(e, "De gesprekken konden niet geladen worden."));
+      })
       .finally(() => setLaden(false));
     // `onLijst` bewust buiten de deps: het is vaak een inline callback en zou de fetch anders bij
     // elke render opnieuw laten lopen.
@@ -116,6 +136,41 @@ export function AppSidebar({
     }
   }
 
+  /** Archiveren en verplaatsen zijn, net als verwijderen, meteen zichtbaar en worden bij een fout
+   *  teruggezet. De werkgebiednaam komt bij het verversen van de api. */
+  async function wijzig(
+    id: string,
+    wijziging: { werkgebied_id?: string; gearchiveerd?: boolean },
+    actie: "gesprek_archiveren" | "gesprek_verplaatsen",
+    melding: string,
+  ) {
+    const lokaal = (g: GesprekSamenvatting): GesprekSamenvatting => ({
+      ...g,
+      ...(wijziging.werkgebied_id !== undefined && { werkgebied_id: wijziging.werkgebied_id }),
+      ...(wijziging.gearchiveerd !== undefined && { gearchiveerd: wijziging.gearchiveerd ? new Date().toISOString() : null }),
+    });
+    if (demo) {
+      setGesprekken((lijst) => lijst.map((g) => (g.id === id ? lokaal(g) : g)));
+      return;
+    }
+    const vorige = gesprekken;
+    setGesprekken((lijst) => lijst.map((g) => (g.id === id ? lokaal(g) : g)));
+    try {
+      await metSpoor(actie, () => wijzigGesprek(id, wijziging));
+      if (wijziging.werkgebied_id !== undefined) onVerplaatst?.(id, wijziging.werkgebied_id);
+      verversLijst();
+    } catch {
+      setGesprekken(vorige);
+      onFout?.(melding);
+    }
+  }
+
+  const archiveer = (id: string, gearchiveerd: boolean) =>
+    wijzig(id, { gearchiveerd }, "gesprek_archiveren",
+      gearchiveerd ? "Het gesprek is niet gearchiveerd." : "Het gesprek is niet hersteld.");
+  const verplaats = (id: string, werkgebiedId: string) =>
+    wijzig(id, { werkgebied_id: werkgebiedId }, "gesprek_verplaatsen", "Het gesprek is niet verplaatst.");
+
   // Wordt het scherm breed genoeg voor de vaste sidebar terwijl de drawer openstaat, dan is die
   // drawer onzichtbaar (`lg:hidden`) maar nog wél modaal – met een focus-trap op knoppen die je niet
   // ziet. Dan sluiten we hem; 1024px is Tailwinds `lg`.
@@ -136,7 +191,15 @@ export function AppSidebar({
       onOpen={onOpen}
       onHernoem={hernoem}
       onVerwijder={verwijder}
+      onArchiveer={archiveer}
+      onVerplaats={verplaats}
+      onNieuwInWerkgebied={onNieuwInWerkgebied}
       laden={laden}
+      laadFout={laadFout}
+      onOpnieuw={() => {
+        setLaden(true);
+        verversLijst();
+      }}
       onSluit={extra?.onSluit}
       onRondleiding={onRondleiding}
       verbruik={verbruik}

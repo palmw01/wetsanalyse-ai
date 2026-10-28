@@ -1,0 +1,270 @@
+{
+  "formuleringen": [
+    {
+      "element_id": "h01",
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:2:lid:1:o:e",
+      "start": 0,
+      "eind": 11,
+      "tekst": "medebewoner",
+      "jas_klasse": "Brondefinitie"
+    },
+    {
+      "element_id": "h02",
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:2:lid:1:o:e:o:1",
+      "start": 0,
+      "eind": 32,
+      "tekst": "de partner van de belanghebbende",
+      "jas_klasse": "Rechtssubject"
+    },
+    {
+      "element_id": "h03",
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:2:lid:1:o:f",
+      "start": 0,
+      "eind": 7,
+      "tekst": "partner",
+      "jas_klasse": "Brondefinitie"
+    },
+    {
+      "element_id": "h04",
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:3:lid:1",
+      "start": 0,
+      "eind": 29,
+      "tekst": "Partner van de belanghebbende",
+      "jas_klasse": "Rechtssubject"
+    },
+    {
+      "element_id": "h05",
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:3:lid:2",
+      "start": 111,
+      "eind": 118,
+      "tekst": "partner",
+      "jas_klasse": "Rechtssubject"
+    },
+    {
+      "element_id": "h06",
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:3:lid:2",
+      "start": 133,
+      "eind": 251,
+      "tekst": "degene die als ingezetene op hetzelfde woonadres is ingeschreven in de basisregistratie personen als de belanghebbende",
+      "jas_klasse": "Rechtssubject"
+    },
+    {
+      "element_id": "h07",
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:3:lid:8",
+      "start": 6,
+      "eind": 13,
+      "tekst": "partner",
+      "jas_klasse": "Rechtssubject"
+    },
+    {
+      "element_id": "h08",
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:3:lid:8",
+      "start": 34,
+      "eind": 124,
+      "tekst": "degene die uitsluitend ingevolge het tweede lid, onderdeel e, als partner wordt aangemerkt",
+      "jas_klasse": "Rechtssubject"
+    },
+    {
+      "element_id": "h11",
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:2:lid:1:o:h",
+      "start": 0,
+      "eind": 14,
+      "tekst": "tegemoetkoming",
+      "jas_klasse": "Brondefinitie"
+    },
+    {
+      "element_id": "h12",
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:2:lid:1:o:b",
+      "start": 0,
+      "eind": 15,
+      "tekst": "berekeningsjaar",
+      "jas_klasse": "Brondefinitie"
+    },
+    {
+      "element_id": "h13",
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:2:lid:1:o:b",
+      "start": 41,
+      "eind": 58,
+      "tekst": "de tegemoetkoming",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "h14",
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:3:lid:3",
+      "start": 64,
+      "eind": 83,
+      "tekst": "het berekeningsjaar",
+      "jas_klasse": "Tijdsaanduiding"
+    },
+    {
+      "element_id": "h15",
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:1:lid:3",
+      "start": 6,
+      "eind": 37,
+      "tekst": "inkomensafhankelijke regelingen",
+      "jas_klasse": "Brondefinitie"
+    },
+    {
+      "element_id": "h16",
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:1:lid:1",
+      "start": 20,
+      "eind": 51,
+      "tekst": "inkomensafhankelijke regelingen",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "h17",
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:2:lid:1:o:h",
+      "start": 66,
+      "eind": 99,
+      "tekst": "een inkomensafhankelijke regeling",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "h20",
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:3:lid:7",
+      "start": 74,
+      "eind": 97,
+      "tekst": "twee ongehuwde personen",
+      "jas_klasse": "Rechtssubject"
+    },
+    {
+      "element_id": "h21",
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:3:lid:7",
+      "start": 259,
+      "eind": 267,
+      "tekst": "gehuwden",
+      "jas_klasse": "Rechtssubject"
+    },
+    {
+      "element_id": "h23",
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:2:lid:2:o:a",
+      "start": 0,
+      "eind": 13,
+      "tekst": "Onze Minister",
+      "jas_klasse": "Brondefinitie"
+    },
+    {
+      "element_id": "h24",
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:2:lid:2:o:a",
+      "start": 15,
+      "eind": 42,
+      "tekst": "Onze Minister van Financiën",
+      "jas_klasse": "Rechtssubject"
+    }
+  ],
+  "paren": [
+    {
+      "id": "H01",
+      "van": "h03",
+      "naar": "h02",
+      "relatie": "zelfde_betekenis",
+      "categorie": "variant_lidwoord",
+      "motivatie": "'Partner' is gedefinieerd voor de hele wet; 'de partner van de belanghebbende' in onderdeel e is hetzelfde begrip."
+    },
+    {
+      "id": "H02",
+      "van": "h03",
+      "naar": "h04",
+      "relatie": "zelfde_betekenis",
+      "categorie": "variant_complement",
+      "motivatie": "Art. 3 lid 1 geeft de inhoud van de partner naar wie de definitie in onderdeel f verwijst ('de persoon bedoeld in artikel 3'). Een partner is altijd die van de belanghebbende."
+    },
+    {
+      "id": "H03",
+      "van": "h03",
+      "naar": "h05",
+      "relatie": "zelfde_betekenis",
+      "categorie": "uitbreiding_mede",
+      "motivatie": "Lid 2 breidt hetzelfde begrip uit ('onder partner mede verstaan')."
+    },
+    {
+      "id": "H04",
+      "van": "h05",
+      "naar": "h06",
+      "relatie": "inclusie",
+      "categorie": "mede_verstaan",
+      "motivatie": "Onder partner wordt mede verstaan degene die op hetzelfde woonadres is ingeschreven (en een van de onderdelen)."
+    },
+    {
+      "id": "H05",
+      "van": "h03",
+      "naar": "h07",
+      "relatie": "zelfde_betekenis",
+      "categorie": "zelfde_term",
+      "motivatie": "Lid 8 beperkt hetzelfde begrip partner."
+    },
+    {
+      "id": "H06",
+      "van": "h07",
+      "naar": "h08",
+      "relatie": "uitsluiting",
+      "categorie": "niet_verstaan",
+      "motivatie": "Onder partner wordt niet verstaan degene die uitsluitend ingevolge lid 2 onderdeel e als partner wordt aangemerkt (en in een opvanginstelling woont)."
+    },
+    {
+      "id": "H07",
+      "van": "h01",
+      "naar": "h02",
+      "relatie": "uitsluiting",
+      "categorie": "niet_aangemerkt",
+      "motivatie": "Als medebewoner wordt niet aangemerkt de partner van de belanghebbende."
+    },
+    {
+      "id": "H08",
+      "van": "h01",
+      "naar": "h02",
+      "relatie": "verschillend",
+      "categorie": "uitsluiting",
+      "motivatie": "Medebewoner en partner zijn uitdrukkelijk gescheiden begrippen."
+    },
+    {
+      "id": "H09",
+      "van": "h11",
+      "naar": "h13",
+      "relatie": "zelfde_betekenis",
+      "categorie": "variant_lidwoord",
+      "motivatie": "Gedefinieerde term 'tegemoetkoming' gebruikt in de definitie van berekeningsjaar."
+    },
+    {
+      "id": "H10",
+      "van": "h12",
+      "naar": "h14",
+      "relatie": "zelfde_betekenis",
+      "categorie": "variant_lidwoord",
+      "motivatie": "Gedefinieerde term 'berekeningsjaar' gebruikt in art. 3 lid 3."
+    },
+    {
+      "id": "H11",
+      "van": "h15",
+      "naar": "h16",
+      "relatie": "zelfde_betekenis",
+      "categorie": "definitie_zonder_dubbelpunt",
+      "motivatie": "Art. 1 lid 3 definieert 'inkomensafhankelijke regelingen' ('Onder … worden verstaan'); art. 1 lid 1 gebruikt dezelfde term."
+    },
+    {
+      "id": "H12",
+      "van": "h15",
+      "naar": "h17",
+      "relatie": "zelfde_betekenis",
+      "categorie": "enkelvoud_meervoud",
+      "motivatie": "'Een inkomensafhankelijke regeling' is het enkelvoud van de gedefinieerde term."
+    },
+    {
+      "id": "H13",
+      "van": "h20",
+      "naar": "h21",
+      "relatie": "kwalificatie",
+      "categorie": "gelijkstelling",
+      "motivatie": "Twee ongehuwde personen die als partners worden aangemerkt, worden voor aanverwantschap gelijkgesteld met gehuwden."
+    },
+    {
+      "id": "H14",
+      "van": "h23",
+      "naar": "h24",
+      "relatie": "zelfde_betekenis",
+      "categorie": "synoniem_ander_woord",
+      "motivatie": "'Onze Minister' betekent in deze wet 'Onze Minister van Financiën': ander woord, zelfde referent."
+    }
+  ]
+}

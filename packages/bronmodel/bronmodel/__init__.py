@@ -89,6 +89,40 @@ def gedeelde_bepaling(nodes: list[dict], iris: list[str]) -> dict:
     return ouder
 
 
+_BEPALING = {"Artikel", "Divisie"}
+
+
+def annotatie_eenheden(nodes: list[dict], bron_iri: str, *, onderliggend: bool = True) -> list[str]:
+    """De bronnodes waarin het werk onder `bron_iri` uiteenvalt, in documentvolgorde.
+
+    Dezelfde regel als de keuzekaart: een artikel (of divisie) met meer dan één kiesbaar onderdeel
+    gaat per lid (of subbepaling), anders is hij zelf de eenheid; een lid of onderdeel blijft zichzelf.
+    Een structuurdeel (regeling, hoofdstuk, afdeling …) levert met `onderliggend` de bepalingen die er
+    direct onder vallen, zonder `onderliggend` alleen zichzelf – en dan alleen als het eigen tekst heeft.
+    """
+    by_id = {n["bron_iri"]: n for n in nodes}
+    if bron_iri not in by_id:
+        raise BronFout("De gevraagde bronnode bestaat niet")
+
+    def uitgesplitst(node: dict) -> list[str]:
+        kinderen = _kiesbare_kinderen(nodes, node)
+        return [k["bron_iri"] for k in kinderen] if len(kinderen) > 1 else [node["bron_iri"]]
+
+    node = by_id[bron_iri]
+    if node["type"] in _BEPALING:
+        return uitgesplitst(node)
+    if node["type"] in {"Lid", "Onderdeel"}:
+        return [bron_iri]
+    if not onderliggend:
+        return [bron_iri] if (node.get("tekst") or "").strip() else []
+    uit: list[str] = []
+    for n in subtree(nodes, bron_iri):
+        ouder = by_id.get(n.get("parent_iri") or "")
+        if n["type"] in _BEPALING and not (ouder and ouder["type"] in _BEPALING):
+            uit.extend(uitgesplitst(n))
+    return uit
+
+
 def onderdelen_om_te_kiezen(snapshot: dict) -> list[dict]:
     """De leden of subbepalingen waartussen de jurist kiest vóór er geannoteerd wordt.
 
@@ -265,6 +299,18 @@ def _kies_lid(nodes: dict[str, dict], ordered: list[dict], children: dict[str, l
     raise BronFout("Het gevraagde lid bestaat niet of is dubbelzinnig")
 
 
+def _kaal(n: dict) -> bool:
+    """De importer schrijft bij een structuurdeel alleen het woord als label ("Hoofdstuk", "Afdeling");
+    het nummer en het opschrift staan apart. Een artikel draagt zijn nummer al ("Artikel 22bis.5")."""
+    return bool(n["nummer"]) and n["label"] == n["type"]
+
+
+def _kop(n: dict) -> str:
+    """Het leesbare label van een node in de detailkop: "Hoofdstuk V" in plaats van "Hoofdstuk". Alleen
+    voor de kop; de nodes zelf (en daarmee de snapshot-id) blijven ongewijzigd."""
+    return f"{n['label']} {n['nummer']}" if _kaal(n) else n["label"]
+
+
 def bouw_snapshot(rows: list[dict], *, bron_iri: str = "", bwb_id: str,
                   artikel: str = "", lid: str = "") -> dict:
     nodes: dict[str, dict] = {}
@@ -346,7 +392,11 @@ def bouw_snapshot(rows: list[dict], *, bron_iri: str = "", bwb_id: str,
     # Detailkop: wet + concrete vindplaats, niet alleen "Lid 1". Bronlabels zelf
     # blijven los van de tekst waar de ankers tegen worden gecontroleerd.
     begin = next((i for i, n in enumerate(path) if n["type"] in {"Artikel", "Divisie"}), 0)
-    label = titel + (" – " + ", ".join(n["label"] for n in path[begin:]) if path else "")
+    label = titel + (" – " + ", ".join(_kop(n) for n in path[begin:]) if path else "")
+    # Een structuurdeel als doel draagt zijn opschrift: "Hoofdstuk V – Invorderingsrente".
+    if path and _kaal(target) and (opschrift := next((r.get("titel") for r in rows
+                                                     if r.get("node") == bron_iri and r.get("titel")), "")):
+        label += f" – {opschrift}"
     return {"schema_versie": 2, "snapshot_id": tekst_hash(canonical),
             "doel": {**target, "artikel": article, "lid": lidnummer, "label": label,
                      "citeertitel": titel, "bronpad": [n["bron_iri"] for n in path]},

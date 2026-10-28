@@ -1,0 +1,57 @@
+{
+  "variant": "keten_zonder_parse",
+  "referentie_versie": "heldout-v1",
+  "referentie_status": "provisional",
+  "referentie_sha256": "73321cce81921c8900d000644cc126efdd1649a0ac72d75eec59475fd8e07b33",
+  "manifest_id": "M7ef63ab2afc3653d",
+  "formuleringen": 19,
+  "paren": 14,
+  "deterministisch": true,
+  "per_relatie": {
+    "zelfde_betekenis": {
+      "tp": 6,
+      "voorspeld": 6,
+      "goud": 16,
+      "precisie": 1.0,
+      "recall": 0.375
+    },
+    "kwalificatie": {
+      "tp": 0,
+      "voorspeld": 0,
+      "goud": 1,
+      "precisie": null,
+      "recall": 0.0
+    },
+    "inclusie": {
+      "tp": 1,
+      "voorspeld": 1,
+      "goud": 1,
+      "precisie": 1.0,
+      "recall": 1.0
+    },
+    "uitsluiting": {
+      "tp": 1,
+      "voorspeld": 1,
+      "goud": 2,
+      "precisie": 1.0,
+      "recall": 0.5
+    },
+    "hierarchie": {
+      "tp": 0,
+      "voorspeld": 0,
+      "goud": 0,
+      "precisie": null,
+      "recall": null
+    }
+  },
+  "bcubed": {
+    "precisie": 1.0,
+    "recall": 0.7298,
+    "f": 0.8438
+  },
+  "samengevoegd_verschillend": [],
+  "aandacht": {
+    "groen": 6,
+    "geel": 1
+  }
+}

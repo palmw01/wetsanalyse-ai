@@ -9,7 +9,7 @@
 // afgeronde annotatie) en dat verhaal lees je alleen als de zinnen bij elkaar staan, niet verspreid
 // over veertien componenten.
 
-export const RONDLEIDING_VERSIE = 2;
+export const RONDLEIDING_VERSIE = 3;
 
 /** Waar in het verhaal een stap hoort. Alleen voor de voortgangsweergave; de volgorde is de lijst. */
 export type Fase = "orientatie" | "opdracht" | "beoordelen" | "afronding";
@@ -27,12 +27,26 @@ export interface Stap {
   fase: Fase;
   /** Moet het annotatie-artefact openstaan voordat deze stap iets kan aanwijzen? */
   artefactOpen?: boolean;
-  /** Deze stap nodigt uit tot een echte handeling en wacht daarop. */
-  interactie?: "akkoord";
+  /** Deze stap nodigt uit tot een echte handeling en laat het aangewezen element bedienen.
+   *  `openen`: de gebruiker opent het artefact zelf, en daarmee gaat de rondleiding verder.
+   *  `akkoord`: de gebruiker beslist over een kaart; de bubbel bevestigt wat hij deed. */
+  interactie?: "akkoord" | "openen";
   alleenBeheerder?: boolean;
 }
 
 export const STAPPEN: Stap[] = [
+  {
+    id: "lex",
+    anker: "header",
+    fase: "orientatie",
+    titel: "Dit is Lex",
+    tekst:
+      "Lex helpt je bij wetsanalyse. Hij zoekt bepalingen op in de kennisgraaf, citeert letterlijk en " +
+      "stelt JAS-markeringen voor. Wat hij voorstelt, beoordeel jij.",
+    waarom:
+      "Lex is een hulpmiddel, geen vervanger. Twijfel maakt hij zichtbaar in plaats van haar weg te " +
+      "poetsen, zodat het oordeel bij jou blijft.",
+  },
   {
     id: "gespreksvenster",
     anker: "thread",
@@ -52,10 +66,13 @@ export const STAPPEN: Stap[] = [
     fase: "orientatie",
     titel: "Je werk terugvinden",
     tekst:
-      "Je gesprekken staan hier. Onder Annotaties vind je alle bepalingen die je hebt laten " +
-      "annoteren, met de onbeoordeelde bovenaan.",
+      "Je gesprekken staan hier. Daarboven vind je je werk terug, in de volgorde waarin je werkt: " +
+      "Werkgebieden (de analyses), Annotaties (alle geannoteerde bepalingen, met wat nog te beoordelen " +
+      "is bovenaan) en Begrippen. Onderin staat hoeveel van je tokenbudget je gebruikt, en de bel " +
+      "bovenin meldt wat er nieuw is.",
     waarom:
-      "Een annotatie blijft bestaan als je het gesprek verwijdert. Opruimen kost je dus geen werk.",
+      "Een annotatie is gedeeld werk en blijft bestaan als je het gesprek verwijdert. Opruimen kost je " +
+      "dus geen werk.",
   },
   {
     id: "invoerveld",
@@ -65,7 +82,8 @@ export const STAPPEN: Stap[] = [
     tekst:
       "Twee soorten opdracht, één veld. Vraag je “Wat betekent 'belastingschuldige'?”, dan krijg je " +
       "een antwoord met bronnen. Vraag je “Annoteer artikel 9 van de Invorderingswet 1990”, dan " +
-      "krijg je een JAS-annotatie om te beoordelen.",
+      "krijg je een JAS-annotatie om te beoordelen. Noem je een onderwerp of een artikel met leden, " +
+      "dan legt Lex je eerst voor waaruit je kunt kiezen.",
     waarom: "Je kiest vooraf niets. Lex leidt uit je zin af wat je bedoelt.",
   },
   {
@@ -74,8 +92,9 @@ export const STAPPEN: Stap[] = [
     fase: "opdracht",
     titel: "Een antwoord met bronnen",
     tekst:
-      "Onder elk antwoord staan de vindplaatsen waarop het steunt. Klap ze uit en klik door naar de " +
-      "wettekst op wetten.overheid.nl.",
+      "Onder elk antwoord staan de vindplaatsen waarop het steunt, per regeling. Noemt Lex een " +
+      "artikel in de tekst, dan kun je het vaak aanklikken: je ziet de wettekst en een link naar " +
+      "wetten.overheid.nl.",
     waarom: "Je moet alles kunnen nazoeken. Daarom noemt Lex altijd waar iets vandaan komt.",
   },
   {
@@ -95,8 +114,9 @@ export const STAPPEN: Stap[] = [
     fase: "opdracht",
     titel: "Een annotatie duurt even",
     tekst:
-      "Reken op 60 tot 90 seconden. Onder “Zo is dit tot stand gekomen” volg je live wat Lex doet: " +
-      "de tekst ophalen, markeren, en het resultaat langs de tegenlezer halen.",
+      "Onder “Zo is dit tot stand gekomen” volg je live elke stap: de bron ophalen, de taalanalyse, " +
+      "de detectie, het besluit op vaste regels, de keuze van het model en de review van de " +
+      "twijfelgevallen. Daarboven zegt Lex in een paar zinnen wat hij vond.",
     waarom:
       "De beurt draait op de server. Je kunt herladen, van gesprek wisselen of even weglopen zonder " +
       "iets te verliezen.",
@@ -104,11 +124,13 @@ export const STAPPEN: Stap[] = [
   {
     id: "artefact-openen",
     anker: "chip",
+    interactie: "openen",
     fase: "beoordelen",
     titel: "De annotatie openen",
     tekst:
-      "De uitkomst is een document dat je kunt beoordelen. Klik de kaart aan. Op een breed scherm " +
-      "komt hij naast je gesprek te staan, zodat je kunt blijven vragen terwijl je leest.",
+      "De uitkomst is een document dat je kunt beoordelen. Klik de kaart aan om hem te openen. Op " +
+      "een breed scherm komt hij naast je gesprek te staan, zodat je kunt blijven vragen terwijl je " +
+      "leest.",
   },
   {
     id: "wettekst",
@@ -118,7 +140,8 @@ export const STAPPEN: Stap[] = [
     titel: "De wettekst",
     tekst:
       "Dit is de letterlijke tekst uit de kennisgraaf. Kies hiernaast een markering en je ziet " +
-      "meteen waar die staat.",
+      "meteen waar die staat. Bij echt werk staat naast Tekst ook Graaf: de bepaling met haar " +
+      "samenhang in de kennisgraaf.",
     waarom:
       "Elke markering wijst een stuk van deze tekst aan. Dat anker blijft kloppen als de wet " +
       "opnieuw wordt ingelezen.",
@@ -142,11 +165,10 @@ export const STAPPEN: Stap[] = [
     fase: "beoordelen",
     titel: "Wat een kaart je vertelt",
     tekst:
-      "Elke kaart is één markering: het letterlijke fragment, de JAS-klasse in zijn eigen kleur, en " +
-      "een oordeel. Dat oordeel luidt Geen bezwaar, Even kijken of Waarschijnlijk fout.",
-    waarom:
-      "Het oordeel komt uit concrete signalen, zoals twijfel tussen twee klassen. Gebruik het om te " +
-      "prioriteren.",
+      "Elke kaart is één markering: het letterlijke fragment en de JAS-klasse in zijn eigen kleur. " +
+      "Zonder badge is het een gewoon voorstel. Keuze voor jou betekent twijfel die de review niet " +
+      "kon beslissen; Bevestigd door review is een twijfelgeval dat de review wel besliste.",
+    waarom: "Begin bij Keuze voor jou: daar heeft Lex jouw oordeel echt nodig.",
   },
   {
     id: "beslissen",
@@ -162,9 +184,9 @@ export const STAPPEN: Stap[] = [
     fase: "beoordelen",
     titel: "Jij beslist",
     tekst:
-      "Probeer het: klik de kaart aan en dan op Akkoord. Je kunt ook op de klassebadge klikken om te " +
-      "corrigeren, of een voorstel verwerpen met × (met reden). Met het toetsenbord gaat het " +
-      "sneller: j en k door de lijst, a voor akkoord, x voor verwerpen, c voor klasse.",
+      "Probeer het: klik de kaart aan. Hij klapt open, met onder Waarom? hoe Lex tot het voorstel " +
+      "kwam. Klik dan op het vinkje en nog eens op Akkoord?, kies via de klassebadge een andere klasse, of verwerp het voorstel " +
+      "met × (met reden).",
     waarom:
       "Elke beslissing komt in het auditspoor. Een voorstel dat je verwerpt blijft zichtbaar, met " +
       "jouw reden erbij.",
@@ -176,8 +198,9 @@ export const STAPPEN: Stap[] = [
     fase: "beoordelen",
     titel: "Zelf markeren",
     tekst:
-      "Miste Lex iets? Selecteer het in de wettekst en kies zelf een klasse. Een bestaande markering " +
-      "korter of langer maken kan ook: klik hem aan en selecteer opnieuw.",
+      "Miste Lex iets? Selecteer zelf tekst en kies een klasse. Leverde een stuk tekst geen enkele " +
+      "treffer op, dan staat het gestippeld onderstreept; één klik erop markeert het. Een markering " +
+      "korter of langer maken: klik hem aan en selecteer opnieuw, of kies op de kaart een andere grens.",
     waarom: "Wat jij vastlegt blijft staan. Een volgende ronde van Lex laat het met rust.",
   },
   {
@@ -187,9 +210,10 @@ export const STAPPEN: Stap[] = [
     fase: "afronding",
     titel: "Afronden en exporteren",
     tekst:
-      "Exporteren kan altijd, ook halverwege: als PDF, CSV of JSON. Het bestand vermeldt hoeveel er " +
-      "nog openstaat en bevat het volledige spoor, inclusief het model waarmee Lex de voorstellen " +
-      "maakte. Afronden zet het document vast; heropenen kan daarna nog steeds.",
+      "Exporteren kan altijd, ook halverwege: als PDF, CSV, JSON of RDF. Het bestand vermeldt hoeveel " +
+      "er nog openstaat en bevat het volledige spoor, inclusief het model waarmee Lex de voorstellen " +
+      "maakte. Afronden zet de annotatie vast; heropenen kan daarna nog steeds. Verwijderen haalt de " +
+      "annotatie van deze bepaling voor iedereen weg.",
     waarom: "Alle kaarten beslissen is iets anders dan klaar zijn. Dat oordeel blijft aan jou.",
   },
 ];
@@ -209,6 +233,41 @@ export function indexVan(stappen: Stap[], id: string | undefined): number {
 export function hervatIndex(stappen: Stap[], gestoptBij: string | undefined): number {
   const i = indexVan(stappen, gestoptBij);
   return i === -1 ? 0 : i;
+}
+
+/** Waar de focus stond toen er een toets werd ingedrukt. */
+export interface ToetsContext {
+  key: string;
+  /** Staat de focus in de bubbel van de rondleiding? */
+  inBubbel: boolean;
+  /** Staat de focus nergens in het bijzonder (`body`)? */
+  nergens: boolean;
+  /** Is het focuselement een knop, link of veld – iets dat Enter zelf afhandelt? */
+  opBediening: boolean;
+  /** Vraagt deze stap om een handeling in de werkplek? */
+  interactief: boolean;
+  /** Heeft iets anders de toets al afgevangen (`defaultPrevented`)? */
+  alAfgevangen: boolean;
+}
+
+/** Wat een toets met de rondleiding doet; `null` = niets, laat hem aan wie de focus heeft.
+ *
+ *  Eerst luisterde de rondleiding op het hele venster. Enter op *Vorige* of *Overslaan* ging dan een
+ *  stap vooruit (de `preventDefault` hield de klik op de knop zelf tegen), en in "Jij beslist" sprong
+ *  Enter op *Akkoord* door naar de volgende stap in plaats van te beslissen. Escape in het
+ *  klassepalet sloot de hele rondleiding. De regel is nu: een knop of veld handelt zijn eigen toetsen
+ *  af, en buiten de bubbel stuurt de rondleiding alleen in een stap waar er verder niets te doen is. */
+export function toetsActie(t: ToetsContext): "volgende" | "vorige" | "sluiten" | null {
+  if (t.alAfgevangen) return null;
+  // Buiten de bubbel alleen als de focus nergens staat, en niet in een stap waar je in de werkplek
+  // bezig bent: daar betekenen de toetsen iets voor wat je aan het doen bent.
+  const magHier = t.inBubbel || (t.nergens && !t.interactief);
+  if (t.key === "Escape") return t.inBubbel || t.nergens ? "sluiten" : null;
+  if (!magHier) return null;
+  if (t.key === "Enter") return t.opBediening ? null : "volgende";
+  if (t.key === "ArrowRight") return "volgende";
+  if (t.key === "ArrowLeft") return "vorige";
+  return null;
 }
 
 /** Moet het artefact openstaan om van `van` naar `naar` te kunnen? */

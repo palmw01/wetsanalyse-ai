@@ -124,7 +124,7 @@ async def test_reeksplek_overleeft_het_heropenen(client):
     berichten = (await client.get(f"{BASIS}/{gid}", headers=A)).json()["berichten"]
     assert [(b["run_id"], b["reeks"]["index"]) for b in berichten] == [("run-1.1", 0), ("run-1.2", 1)]
     fout = await client.post(f"{BASIS}/{gid}/berichten", json={
-        "rol": "assistant", "reeks": {"run_id": "run-1", "index": 0, "totaal": 1}}, headers=A)
+        "rol": "assistant", "reeks": {"run_id": "run-1", "index": 0, "totaal": 0}}, headers=A)
     assert fout.status_code == 422
 
 
@@ -316,3 +316,193 @@ async def test_berichten_zonder_run_id_blijven_naast_elkaar_bestaan(client):
 
     gesprek = await store.laad_gesprek("g-leeg")
     assert len(gesprek.berichten) == 3
+
+
+# --- het artefact (spoor D, fase AF) ---------------------------------------------------------------
+
+ARTEFACTEN = [
+    {"soort": "annotatie", "ref": {"bron_iri": "urn:bwb:BWBR0004770:artikel:9", "label": "Artikel 9"},
+     "titel": "Invorderingswet 1990 – artikel 9"},
+    {"soort": "begrippen", "ref": {"werkgebied_id": "wg1", "run_id": "r1"}, "titel": "Begrippen in Invordering"},
+    {"soort": "werkgebied", "ref": {"werkgebied_id": "wg2"}, "titel": "Box 3"},
+    {"soort": "deelvraag", "ref": {"werkgebied_id": "wg2", "deelvraag_id": "d1"}, "titel": "Wie betaalt?"},
+    {"soort": "begrip", "ref": {"werkgebied_id": "wg2", "begrip_id": "b1", "kaart_run_id": "k1", "actie": "voorbeelden"},
+     "titel": "termijn"},
+]
+
+
+async def test_een_artefact_overleeft_het_heropenen_en_komt_terug_in_de_respons(client):
+    gid = await _maak(client)
+    for i, a in enumerate(ARTEFACTEN):
+        r = await client.post(f"{BASIS}/{gid}/berichten", json={
+            "rol": "assistant", "tekst": "klaar", "run_id": f"run{i}", "artefact": a,
+            "tool_executions": [{"call_id": "c", "tool": "t"}]}, headers=A)
+        assert r.status_code == 201, r.text
+        # De respons draagt het hele bericht, niet een deel.
+        assert r.json()["artefact"] == a and r.json()["tool_executions"] == [{"call_id": "c", "tool": "t"}]
+    doc = (await client.get(f"{BASIS}/{gid}", headers=A)).json()
+    assert [b["artefact"] for b in doc["berichten"]] == ARTEFACTEN
+
+
+@pytest.mark.parametrize("artefact", [
+    {"soort": "annotatie", "ref": {}},
+    {"soort": "begrippen", "ref": {"werkgebied_id": "wg1"}},
+    {"soort": "werkgebied", "ref": {}},
+    {"soort": "deelvraag", "ref": {"werkgebied_id": "wg1"}},
+    {"soort": "begrip", "ref": {"werkgebied_id": "wg1"}},
+    {"soort": "onbekend", "ref": {"x": "y"}},
+])
+async def test_een_artefact_zonder_geldige_verwijzing_wordt_geweigerd(client, artefact):
+    gid = await _maak(client)
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "artefact": artefact}, headers=A)
+    assert r.status_code == 422
+
+
+async def test_een_bevestiging_overleeft_het_heropenen(client):
+    """Fase B: de knop *Laat Lex annoteren* staat na herladen nog bij het bericht."""
+    gid = await _maak(client)
+    b = {"soort": "werkgebied_annoteren", "werkgebied_id": "wg-1", "aantal": 7, "schatting": 21000,
+         "bereik": "werkgebied", "deelvraag_id": ""}
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "tekst": "7 bepalingen",
+                                                            "run_id": "rb", "bevestiging": b}, headers=A)
+    assert r.status_code == 201 and r.json()["bevestiging"] == b
+    doc = (await client.get(f"{BASIS}/{gid}", headers=A)).json()
+    assert doc["berichten"][-1]["bevestiging"] == b
+    # Het bereik reist mee: na herladen annoteert de knop dezelfde deelvraag, niet het hele werkgebied.
+    dv = {**b, "bereik": "deelvragen", "deelvraag_id": "dv-2"}
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "tekst": "3 bepalingen",
+                                                            "run_id": "rc", "bevestiging": dv}, headers=A)
+    assert r.status_code == 201
+    doc = (await client.get(f"{BASIS}/{gid}", headers=A)).json()
+    assert doc["berichten"][-1]["bevestiging"] == dv
+    fout = await client.post(f"{BASIS}/{gid}/berichten", json={
+        "rol": "assistant", "bevestiging": {**b, "bereik": "alles"}}, headers=A)
+    assert fout.status_code == 422
+    fout = await client.post(f"{BASIS}/{gid}/berichten", json={
+        "rol": "assistant", "bevestiging": {**b, "soort": "iets_anders"}}, headers=A)
+    assert fout.status_code == 422
+
+
+async def test_het_antwoord_op_een_bevestiging_blijft_bewaard(client):
+    """Annuleren (of starten) legt de werkplek vast op het user-bericht, zodat de knop na herladen weg is."""
+    gid = await _maak(client)
+    for keuze in ("geannuleerd", "gestart"):
+        r = await client.post(f"{BASIS}/{gid}/berichten", json={
+            "rol": "user", "tekst": "Annuleren", "bevestiging_antwoord": {"keuze": keuze}}, headers=A)
+        assert r.status_code == 201 and r.json()["bevestiging_antwoord"] == {"keuze": keuze}
+    doc = (await client.get(f"{BASIS}/{gid}", headers=A)).json()
+    assert [b["bevestiging_antwoord"] for b in doc["berichten"]] == [{"keuze": "geannuleerd"}, {"keuze": "gestart"}]
+    fout = await client.post(f"{BASIS}/{gid}/berichten", json={
+        "rol": "user", "bevestiging_antwoord": {"keuze": "misschien"}}, headers=A)
+    assert fout.status_code == 422
+
+
+VRAAGKAART = {
+    "intake_id": "ik-1", "modus": "samenstellen", "soort": "vraag", "stap": "regelingen", "nr": 3, "totaal": 5,
+    "vraag": "Welke regeling(en) horen bij het werkgebied?", "toelichting": "",
+    "opties": [{"label": "Wet inkomstenbelasting 2001", "waarde": "BWBR0011353",
+                "bron": {"bwb_id": "BWBR0011353"}, "omschrijving": "wet · 2 hoofdstukken"}],
+    "meerkeuze": True, "vrije_tekst": True, "meer_tekst": False, "overslaanbaar": True, "vooringevuld": ["BWBR0011353"],
+    "samenvatting": {}, "terug": True, "beantwoord": False, "deel": None,
+}
+#: Bij de bepalingen een kaartje per deelvraag (F3f): negen vaste stappen plus twintig deelvragen past.
+BEPALINGENKAART = {**VRAAGKAART, "stap": "bepalingen", "nr": 29, "totaal": 29,
+                   "deel": {"index": 19, "totaal": 20, "deelvraag": "Wie kan bezwaar maken?"}}
+
+
+async def test_een_vraagkaart_overleeft_het_heropenen(client):
+    """Activiteit 1: het kaartje waarmee Lex een werkgebied samenstelt staat na herladen nog."""
+    gid = await _maak(client)
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "tekst": "Welke regeling?",
+                                                            "run_id": "rv", "vraagkaart": VRAAGKAART}, headers=A)
+    assert r.status_code == 201 and r.json()["vraagkaart"] == VRAAGKAART
+    doc = (await client.get(f"{BASIS}/{gid}", headers=A)).json()
+    assert doc["berichten"][-1]["vraagkaart"] == VRAAGKAART
+    # Het deel reist mee: zonder dat veld zou de werkplek na herladen niet weten bij welke deelvraag het hoort.
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "tekst": "Welke bepalingen?",
+                                                            "run_id": "rb", "vraagkaart": BEPALINGENKAART}, headers=A)
+    assert r.status_code == 201 and r.json()["vraagkaart"] == BEPALINGENKAART
+
+
+#: Het dossier van een bestaand werkgebied aanvullen: hetzelfde kaartje, met de wijzigingen in de samenvatting.
+AANVULKAART = {**VRAAGKAART, "modus": "aanvullen", "soort": "samenvatting", "stap": "samenvatting", "nr": 1, "totaal": 1,
+               "opties": [], "vooringevuld": [],
+               "samenvatting": {"wijzigingen": [{"veld": "praktijkvoorbeeld", "label": "Praktijkvoorbeeld",
+                                                 "toen": "", "nu": "Een spaarder met een tweede huis."}]}}
+
+
+async def test_een_aanvulkaart_overleeft_het_heropenen(client):
+    gid = await _maak(client)
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "tekst": "Dit verandert er.",
+                                                            "run_id": "ra", "vraagkaart": AANVULKAART}, headers=A)
+    assert r.status_code == 201 and r.json()["vraagkaart"] == AANVULKAART
+    doc = (await client.get(f"{BASIS}/{gid}", headers=A)).json()
+    assert doc["berichten"][-1]["vraagkaart"]["modus"] == "aanvullen"
+    # Een kaartje zonder modus is er een van het samenstellen.
+    zonder = {k: v for k, v in VRAAGKAART.items() if k != "modus"}
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "run_id": "rs", "vraagkaart": zonder},
+                          headers=A)
+    assert r.json()["vraagkaart"]["modus"] == "samenstellen"
+    # Opslaan staat op het user-bericht van de klik, zoals aanmaken.
+    ia = {"intake_id": "ik-1", "stap": "samenvatting", "deel": None, "actie": "opslaan"}
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "user", "tekst": "Sla het op.", "intake_antwoord": ia},
+                          headers=A)
+    assert r.status_code == 201 and r.json()["intake_antwoord"] == ia
+
+
+@pytest.mark.parametrize("fout", [{"stap": "peildatum"}, {"stap": "onderdelen"}, {"intake_id": "met spatie"}, {"nr": 0},
+                                  {"vraag": ""}, {"nr": 41}, {"deel": {"index": 20, "totaal": 20}},
+                                  {"modus": "wijzigen"}])
+async def test_een_ongeldige_vraagkaart_wordt_geweigerd(client, fout):
+    gid = await _maak(client)
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={
+        "rol": "assistant", "vraagkaart": {**VRAAGKAART, **fout}}, headers=A)
+    assert r.status_code == 422
+
+
+async def test_een_antwoord_op_een_kaartje_draagt_zijn_intake(client):
+    """Zo bundelt de werkplek na herladen de antwoorden in één Vragen-kaart."""
+    gid = await _maak(client)
+    ia = {"intake_id": "ik-1", "stap": "naam", "deel": None, "actie": "antwoord"}
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "user", "tekst": "Box 3", "intake_antwoord": ia}, headers=A)
+    assert r.status_code == 201 and r.json()["intake_antwoord"] == ia
+    doc = (await client.get(f"{BASIS}/{gid}", headers=A)).json()
+    assert doc["berichten"][-1]["intake_antwoord"] == ia
+    bep = {**ia, "stap": "bepalingen", "deel": 2}
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "user", "tekst": "Art. 6:7", "intake_antwoord": bep},
+                          headers=A)
+    assert r.status_code == 201 and r.json()["intake_antwoord"] == bep
+    fout = await client.post(f"{BASIS}/{gid}/berichten", json={
+        "rol": "user", "tekst": "x", "intake_antwoord": {**ia, "stap": "peildatum"}}, headers=A)
+    assert fout.status_code == 422
+
+
+async def test_een_werkgebied_reeks_mag_een_onderdeel_hebben(client):
+    gid = await _maak(client)
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={
+        "rol": "assistant", "run_id": "w.1", "reeks": {"run_id": "w", "index": 0, "totaal": 1, "ouder": "WG"}},
+        headers=A)
+    assert r.status_code == 201, r.text
+
+
+async def test_een_veraald_kaartje_breekt_het_gesprek_niet(client):
+    """Een bewaard kaartje van vóór F3f (stap `onderdelen`, die nu `bepalingen` heet) haalt het contract van
+    nu niet. Alleen dat veld valt weg: het gesprek blijft te openen én te verwijderen (anders een 500)."""
+    from sqlalchemy import insert
+
+    from app import db
+
+    gid = await _maak(client)
+    oud = {**VRAAGKAART, "stap": "onderdelen"}
+    async with db.get_engine().begin() as conn:
+        await conn.execute(insert(db.gesprek_berichten).values(
+            gesprek_id=gid, rol="assistant", inhoud={"tekst": "Welke onderdelen?", "vraagkaart": oud}, run_id="oud",
+            created=db.utcnow()))
+        await conn.execute(insert(db.gesprek_berichten).values(
+            gesprek_id=gid, rol="user", inhoud={"tekst": "Afdeling 5.1", "intake_antwoord": {
+                "intake_id": "ik-1", "stap": "onderdelen", "actie": "antwoord"}}, run_id="", created=db.utcnow()))
+    r = await client.get(f"{BASIS}/{gid}", headers=A)
+    assert r.status_code == 200, r.text
+    assert [(b["tekst"], b["vraagkaart"], b["intake_antwoord"]) for b in r.json()["berichten"]][-2:] == [
+        ("Welke onderdelen?", None, None), ("Afdeling 5.1", None, None)]
+    assert (await client.delete(f"{BASIS}/{gid}", headers=A)).status_code == 204

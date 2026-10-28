@@ -124,6 +124,39 @@ async def delete_conversation(conversation_id: str, *, settings: Settings | None
         await saver.adelete_thread(conversation_id)
 
 
+async def _werkgebied_blok(settings: Settings, user_id: str, werkgebied_id: str) -> str:
+    """Het contextblok van het werkgebied (`werkgebied_context.als_blok`). Zonder api of bij een storing
+    leeg: het dossier is context, geen voorwaarde om te antwoorden."""
+    if not settings.legt_zelf_vast:
+        return ""
+    from .werkgebied_context import als_blok
+    from .wetsanalyse_api import WetsanalyseApi
+
+    api = WetsanalyseApi(settings, user_id)
+    try:
+        return als_blok(await api.haal_werkgebied(werkgebied_id))
+    except Exception:  # noqa: BLE001
+        logger.warning("werkgebiedcontext niet opgehaald", extra={"categorie": "technisch"}, exc_info=True)
+        return ""
+    finally:
+        await api.aclose()
+
+
+async def _onderwerp_blok(settings: Settings, user_id: str, onderwerp: dict[str, Any]) -> str:
+    """Het contextblok van het aangewezen object (`onderwerp.haal`). Zonder api zegt het blok dat de
+    gegevens ontbreken, met het label uit de werkplek."""
+    from .onderwerp import als_blok, haal
+    from .wetsanalyse_api import WetsanalyseApi
+
+    if not settings.legt_zelf_vast:
+        return als_blok(onderwerp.get("soort", ""), None, onderwerp.get("label", ""))
+    api = WetsanalyseApi(settings, user_id)
+    try:
+        return await haal(api, onderwerp)
+    finally:
+        await api.aclose()
+
+
 async def answer_stream(
     question: str,
     conversation_id: str | None = None,
@@ -140,6 +173,14 @@ async def answer_stream(
     user_id: str = "",
     run_id: str = "",
     annotaties=None,
+    begrippen=None,
+    werkgebied_id: str = "",
+    intake_actie: Any = None,
+    onderwerp: Any = None,
+    actie: str = "",
+    bevestigd: int | None = None,
+    werkvoorraad_id: str = "",
+    agent_api: Any = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """
     Async generator die SSE-events yield:
@@ -184,8 +225,10 @@ async def answer_stream(
 
     from .orchestrator import build_graph
 
-    builder = build_graph(settings, llm, graph, stop_check=stop_check, annotaties=annotaties)
+    builder = build_graph(settings, llm, graph, stop_check=stop_check, annotaties=annotaties, begrippen=begrippen,
+                          agent_api=agent_api)
     thread_id = conversation_id or uuid.uuid4().hex
+    onderwerp_dict = onderwerp.model_dump() if hasattr(onderwerp, "model_dump") else dict(onderwerp or {})
     config = {
         "configurable": {"thread_id": thread_id},
         "recursion_limit": _recursielimiet(settings),
@@ -197,6 +240,20 @@ async def answer_stream(
         "user_id": user_id,
         "annotaties_lezen": is_leesvraag(question, modus),
         "specialist": "annotaties_lezen" if is_leesvraag(question, modus) else "",
+        "begrippen_lezen": False,
+        "werkgebied_id": werkgebied_id or "",
+        # Het dossier van dat werkgebied, per beurt vers uit de api: elke bewaarde wijziging telt meteen.
+        "werkgebied_context": await _werkgebied_blok(settings, user_id, werkgebied_id) if werkgebied_id else "",
+        # Waar de analist *Vraag Lex* op koos: alleen deze beurt; het object blijft in de focus.
+        "onderwerp": onderwerp_dict,
+        "onderwerp_context": await _onderwerp_blok(settings, user_id, onderwerp_dict) if onderwerp_dict else "",
+        # Een klik op een suggestie, en wat de agent deed (F3c): alleen deze beurt.
+        "actie": actie or "",
+        "bevestigd": bevestigd,
+        "werkvoorraad_id": werkvoorraad_id or "",
+        "agent_taak": {},
+        "agent_uitkomst": {},
+        "gesprek_id": conversation_id or "",
         "bron_snapshot": {},
         "annotatie_weergave": {},
         "corpus_segmenten": [],
@@ -214,6 +271,10 @@ async def answer_stream(
         # hieronder: bleef het staan, dan annoteert de vólgende vraag in dezelfde thread opnieuw
         # de vorige bepaling zonder dat iemand daarom vroeg.
         "opgegeven_doel": doel.model_dump() if hasattr(doel, "model_dump") else (doel or {}),
+        # Een klik op een vraagkaartje geldt alleen deze beurt; de intake zelf blijft staan.
+        "intake_actie": (intake_actie.model_dump() if hasattr(intake_actie, "model_dump")
+                         else (intake_actie or {})),
+        "intake_modus": "",
         "source_trace": [],
         "turns": 0,
         "corrected": False,

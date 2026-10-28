@@ -26,8 +26,10 @@ export interface Lagen {
   annotaties: boolean;
   /** Een okeromtrek om leden en onderdelen met zinsdelen zonder detectortreffer. */
   dekking: boolean;
+  /** De begrippen van een werkgebied met hun passages en relaties (alleen op de tab Samenhang). */
+  begrippen: boolean;
 }
-export const STANDAARD_LAGEN: Lagen = { leden: true, verwijzingen: true, annotaties: true, dekking: true };
+export const STANDAARD_LAGEN: Lagen = { leden: true, verwijzingen: true, annotaties: true, dekking: true, begrippen: true };
 
 /** Wat het antwoord noemt: de `doelen` zelf (krijgen altijd een label) en hun `bereik` (de doelen met
  *  wat ze bevatten, plus de markeringen daarop). */
@@ -90,6 +92,7 @@ export function verborgenKnopen(g: GraafModel, lagen: Lagen, markering: Markerin
   const weg = new Set<string>();
   g.forEachNode((id, a) => {
     if (!lagen.annotaties && (a.soort === "markering" || a.soort === "klasse")) weg.add(id);
+    else if (!lagen.begrippen && a.soort === "begrip") weg.add(id);
     else if (!lagen.leden && (a.soort === "lid" || a.soort === "onderdeel")) weg.add(id);
     else if (!lagen.verwijzingen && (a.rand || a.soort === "extern")) weg.add(id);
   });
@@ -190,11 +193,13 @@ export function lijnBeeld(a: RelatieData, bron: string, doel: string, ctx: Weerg
   const { stand, nadruk, verborgen } = ctx;
   const sel = stand.selectie;
   const raaktKeuze = !!sel && (bron === sel || doel === sel);
-  const laagUit = (a.groep === "verwijzingen" && !stand.lagen.verwijzingen) || (a.groep === "annotaties" && !stand.lagen.annotaties);
+  const laagUit = (a.groep === "verwijzingen" && !stand.lagen.verwijzingen) || (a.groep === "annotaties" && !stand.lagen.annotaties)
+    || (a.groep === "begrippen" && !stand.lagen.begrippen);
   // Lijnen naar een klasse alleen bij een gekozen markering of klasse: dertien knopen met elk honderden
   // lijnen dekken anders de hele kaart af.
   const klasselijn = a.soort === "heeft_klasse" && !raaktKeuze;
-  const pijl = a.soort === "verwijst_naar";
+  // Een begripsrelatie heeft een richting ("X omvat ook Y"); de zin staat in de inspector.
+  const pijl = a.soort === "verwijst_naar" || a.soort === "begripsrelatie" || a.soort === "begripsvoorstel";
   if (laagUit || klasselijn || verborgen.has(bron) || verborgen.has(doel)) {
     return { verborgen: true, kleur: GEDIMDE_LIJN, dikte: 0, pijl, niveau: 0 };
   }
@@ -215,6 +220,7 @@ export function lagenVoor(g: GraafModel, id: string, lagen: Lagen, markering: Ma
     if (k.soort === "markering" || k.soort === "klasse") nieuw.annotaties = true;
     if (k.soort === "lid" || k.soort === "onderdeel") nieuw.leden = true;
     if (k.rand || k.soort === "extern") nieuw.verwijzingen = true;
+    if (k.soort === "begrip") nieuw.begrippen = true;
   };
   raakt(a);
   if (anker) raakt(g.getNodeAttributes(anker));

@@ -58,12 +58,13 @@ describe("verwerkSseStroom – via volgRun", () => {
     const execution = { type: "tool_execution", run_id: "r", call_id: "c", tool: "search_annotaties",
       phase: "end", status: "ok", aantal: 2, has_more: true, actualiteit: { volledig: true } };
     const doel = { bron_iri: "urn:lid1", snapshot_id: "v1", label: "Artikel 9 lid 1" };
-    const events = [execution, { type: "opgeslagen", run_id: "r", annotatie_doel: doel }, { type: "done" }];
+    const artefact = { soort: "annotatie", ref: doel, titel: "Artikel 9 lid 1" };
+    const events = [execution, { type: "opgeslagen", run_id: "r", annotatie_doel: doel, artefact }, { type: "done" }];
     vi.stubGlobal("fetch", vi.fn(async () => sseResponse(events.map((e) => `data: ${JSON.stringify(e)}\n\n`))));
     const tool = vi.fn(), opgeslagen = vi.fn();
     await volgRun("r", { onToolExecution: tool, onOpgeslagen: opgeslagen });
     expect(tool).toHaveBeenCalledWith(expect.objectContaining({ call_id: "c", phase: "completed", aantal: 2, has_more: true }));
-    expect(opgeslagen).toHaveBeenCalledWith({ annotatie_slug: "", run_id: "r", annotatie_doel: doel });
+    expect(opgeslagen).toHaveBeenCalledWith({ run_id: "r", annotatie_doel: doel, artefact });
   });
 
   it("splitst token/sources/doel/element-frames (incl. \\r\\n) naar de juiste handlers", async () => {
@@ -480,5 +481,12 @@ describe("loginVerify / login2fa – storing vs. afwijzing", () => {
   it("laat de 401 van de 2FA-route een afwijzing (ticket verlopen), geen storing", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => antwoord({ ok: false, code: "invalid" }, 401)));
     await expect(login2fa("jan", "123456", false)).resolves.toMatchObject({ code: "invalid" });
+  });
+});
+
+describe("parseError zonder leesbaar antwoord", () => {
+  it("noemt de status in plaats van niets (HTTP/2 heeft geen statusText)", async () => {
+    const err = await parseError(new Response("Internal Server Error", { status: 500 }));
+    expect(err.detail).toBe("HTTP 500");
   });
 });

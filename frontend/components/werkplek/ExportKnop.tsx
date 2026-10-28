@@ -1,5 +1,6 @@
 "use client";
 
+import { MENU_RIJ } from "@/components/ui/Menu";
 import { useState } from "react";
 
 import { Popover } from "@/components/ui/Popover";
@@ -10,6 +11,8 @@ interface Props {
   /** De download zelf. Zonder (de rondleiding, die geen api heeft) sluit het keuzepaneel zonder
    *  bestand. */
   onDownload?: (formaat: ExportFormaat) => Promise<void>;
+  /** Welke vormen er te kiezen zijn; standaard die van een annotatie. */
+  formaten?: { formaat: ExportFormaat; label: string; uitleg: string }[];
 }
 
 const FORMATEN: { formaat: ExportFormaat; label: string; uitleg: string }[] = [
@@ -24,7 +27,7 @@ const FORMATEN: { formaat: ExportFormaat; label: string; uitleg: string }[] = [
  *
  *  Het paneel sluit na een geslaagde download doordat de Popover met een nieuwe `key` remount;
  *  de Popover geeft zijn eigen sluiter niet aan zijn kinderen door. */
-export function ExportKnop({ onFout, onDownload }: Props) {
+export function ExportKnop({ onFout, onDownload, formaten = FORMATEN }: Props) {
   const [bezig, setBezig] = useState<ExportFormaat | null>(null);
   const [sleutel, setSleutel] = useState(0);
 
@@ -61,13 +64,13 @@ export function ExportKnop({ onFout, onDownload }: Props) {
       )}
     >
       <ul className="space-y-0.5">
-        {FORMATEN.map((f) => (
+        {formaten.map((f) => (
           <li key={f.formaat}>
             <button
               type="button"
               disabled={bezig !== null}
               onClick={() => void download(f.formaat)}
-              className="focus-ring flex w-full flex-col items-start gap-0.5 rounded-md px-2.5 py-1.5 text-left transition-colors hover:bg-surface disabled:opacity-60"
+              className={`${MENU_RIJ} flex-col !items-start !gap-0.5`}
             >
               <span className="text-sm font-medium text-ink">
                 {bezig === f.formaat ? `${f.label} – bezig…` : f.label}

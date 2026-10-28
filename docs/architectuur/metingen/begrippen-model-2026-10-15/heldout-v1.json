@@ -1,0 +1,361 @@
+{
+  "variant": "keten_model",
+  "model": "claude-sonnet-4-6",
+  "referentie_versie": "heldout-v1",
+  "referentie_status": "provisional",
+  "referentie_sha256": "73321cce81921c8900d000644cc126efdd1649a0ac72d75eec59475fd8e07b33",
+  "manifest_id": "M7ef63ab2afc3653d",
+  "formuleringen": 19,
+  "paren": 14,
+  "zonder_model": {
+    "per_relatie": {
+      "zelfde_betekenis": {
+        "tp": 12,
+        "voorspeld": 12,
+        "goud": 16,
+        "precisie": 1.0,
+        "recall": 0.75
+      },
+      "kwalificatie": {
+        "tp": 0,
+        "voorspeld": 0,
+        "goud": 1,
+        "precisie": null,
+        "recall": 0.0
+      },
+      "inclusie": {
+        "tp": 1,
+        "voorspeld": 1,
+        "goud": 1,
+        "precisie": 1.0,
+        "recall": 1.0
+      },
+      "uitsluiting": {
+        "tp": 2,
+        "voorspeld": 2,
+        "goud": 2,
+        "precisie": 1.0,
+        "recall": 1.0
+      },
+      "hierarchie": {
+        "tp": 0,
+        "voorspeld": 1,
+        "goud": 0,
+        "precisie": 0.0,
+        "recall": null
+      }
+    },
+    "bcubed": {
+      "precisie": 1.0,
+      "recall": 0.9158,
+      "f": 0.956
+    },
+    "samengevoegd_verschillend": [],
+    "aandacht": {
+      "groen": 8,
+      "geel": 1
+    }
+  },
+  "runs": [
+    {
+      "per_relatie": {
+        "zelfde_betekenis": {
+          "tp": 12,
+          "voorspeld": 12,
+          "goud": 16,
+          "precisie": 1.0,
+          "recall": 0.75
+        },
+        "kwalificatie": {
+          "tp": 0,
+          "voorspeld": 0,
+          "goud": 1,
+          "precisie": null,
+          "recall": 0.0
+        },
+        "inclusie": {
+          "tp": 1,
+          "voorspeld": 1,
+          "goud": 1,
+          "precisie": 1.0,
+          "recall": 1.0
+        },
+        "uitsluiting": {
+          "tp": 2,
+          "voorspeld": 2,
+          "goud": 2,
+          "precisie": 1.0,
+          "recall": 1.0
+        },
+        "hierarchie": {
+          "tp": 0,
+          "voorspeld": 1,
+          "goud": 0,
+          "precisie": 0.0,
+          "recall": null
+        }
+      },
+      "bcubed": {
+        "precisie": 1.0,
+        "recall": 0.9158,
+        "f": 0.956
+      },
+      "samengevoegd_verschillend": [],
+      "aandacht": {
+        "groen": 8,
+        "geel": 1
+      },
+      "vragen_naar_model": 0,
+      "oordelen": {},
+      "kaarten": 5,
+      "herkomst": {
+        "letterlijk": 5
+      },
+      "aandachtspunten": {},
+      "garantiefouten": 0,
+      "llm_calls": 0,
+      "promptversie": {
+        "vraag": "315b1c53355e",
+        "kaart": "87195b3c92a6"
+      },
+      "kaartvoorbeelden": [
+        {
+          "naam": "berekeningsjaar",
+          "herkomst": "letterlijk",
+          "definitie": "het kalenderjaar waarop de tegemoetkoming betrekking heeft",
+          "begripstype": "",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "inkomensafhankelijke regeling",
+          "herkomst": "letterlijk",
+          "definitie": "bij of krachtens wet vastgestelde regelingen die natuurlijke personen aanspraak geven op een financiële bijdrage van het Rijk in kosten of bijdrageverplichtingen, waarbij de hoogte van de bijdrage in die regelingen afhankelijk is gesteld van draagkracht.",
+          "begripstype": "entiteit",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "onze minister",
+          "herkomst": "letterlijk",
+          "definitie": "Onze Minister van Financiën",
+          "begripstype": "actor",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "partner",
+          "herkomst": "letterlijk",
+          "definitie": "de persoon bedoeld in artikel 3",
+          "begripstype": "actor",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "tegemoetkoming",
+          "herkomst": "letterlijk",
+          "definitie": "een financiële bijdrage van het Rijk op grond van een inkomensafhankelijke regeling",
+          "begripstype": "entiteit",
+          "aandachtspunten": []
+        }
+      ],
+      "oordeelvoorbeelden": []
+    },
+    {
+      "per_relatie": {
+        "zelfde_betekenis": {
+          "tp": 12,
+          "voorspeld": 12,
+          "goud": 16,
+          "precisie": 1.0,
+          "recall": 0.75
+        },
+        "kwalificatie": {
+          "tp": 0,
+          "voorspeld": 0,
+          "goud": 1,
+          "precisie": null,
+          "recall": 0.0
+        },
+        "inclusie": {
+          "tp": 1,
+          "voorspeld": 1,
+          "goud": 1,
+          "precisie": 1.0,
+          "recall": 1.0
+        },
+        "uitsluiting": {
+          "tp": 2,
+          "voorspeld": 2,
+          "goud": 2,
+          "precisie": 1.0,
+          "recall": 1.0
+        },
+        "hierarchie": {
+          "tp": 0,
+          "voorspeld": 1,
+          "goud": 0,
+          "precisie": 0.0,
+          "recall": null
+        }
+      },
+      "bcubed": {
+        "precisie": 1.0,
+        "recall": 0.9158,
+        "f": 0.956
+      },
+      "samengevoegd_verschillend": [],
+      "aandacht": {
+        "groen": 8,
+        "geel": 1
+      },
+      "vragen_naar_model": 0,
+      "oordelen": {},
+      "kaarten": 5,
+      "herkomst": {
+        "letterlijk": 5
+      },
+      "aandachtspunten": {},
+      "garantiefouten": 0,
+      "llm_calls": 0,
+      "promptversie": {
+        "vraag": "315b1c53355e",
+        "kaart": "87195b3c92a6"
+      },
+      "kaartvoorbeelden": [
+        {
+          "naam": "berekeningsjaar",
+          "herkomst": "letterlijk",
+          "definitie": "het kalenderjaar waarop de tegemoetkoming betrekking heeft",
+          "begripstype": "",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "inkomensafhankelijke regeling",
+          "herkomst": "letterlijk",
+          "definitie": "bij of krachtens wet vastgestelde regelingen die natuurlijke personen aanspraak geven op een financiële bijdrage van het Rijk in kosten of bijdrageverplichtingen, waarbij de hoogte van de bijdrage in die regelingen afhankelijk is gesteld van draagkracht.",
+          "begripstype": "entiteit",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "onze minister",
+          "herkomst": "letterlijk",
+          "definitie": "Onze Minister van Financiën",
+          "begripstype": "actor",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "partner",
+          "herkomst": "letterlijk",
+          "definitie": "de persoon bedoeld in artikel 3",
+          "begripstype": "actor",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "tegemoetkoming",
+          "herkomst": "letterlijk",
+          "definitie": "een financiële bijdrage van het Rijk op grond van een inkomensafhankelijke regeling",
+          "begripstype": "entiteit",
+          "aandachtspunten": []
+        }
+      ],
+      "oordeelvoorbeelden": []
+    },
+    {
+      "per_relatie": {
+        "zelfde_betekenis": {
+          "tp": 12,
+          "voorspeld": 12,
+          "goud": 16,
+          "precisie": 1.0,
+          "recall": 0.75
+        },
+        "kwalificatie": {
+          "tp": 0,
+          "voorspeld": 0,
+          "goud": 1,
+          "precisie": null,
+          "recall": 0.0
+        },
+        "inclusie": {
+          "tp": 1,
+          "voorspeld": 1,
+          "goud": 1,
+          "precisie": 1.0,
+          "recall": 1.0
+        },
+        "uitsluiting": {
+          "tp": 2,
+          "voorspeld": 2,
+          "goud": 2,
+          "precisie": 1.0,
+          "recall": 1.0
+        },
+        "hierarchie": {
+          "tp": 0,
+          "voorspeld": 1,
+          "goud": 0,
+          "precisie": 0.0,
+          "recall": null
+        }
+      },
+      "bcubed": {
+        "precisie": 1.0,
+        "recall": 0.9158,
+        "f": 0.956
+      },
+      "samengevoegd_verschillend": [],
+      "aandacht": {
+        "groen": 8,
+        "geel": 1
+      },
+      "vragen_naar_model": 0,
+      "oordelen": {},
+      "kaarten": 5,
+      "herkomst": {
+        "letterlijk": 5
+      },
+      "aandachtspunten": {},
+      "garantiefouten": 0,
+      "llm_calls": 0,
+      "promptversie": {
+        "vraag": "315b1c53355e",
+        "kaart": "87195b3c92a6"
+      },
+      "kaartvoorbeelden": [
+        {
+          "naam": "berekeningsjaar",
+          "herkomst": "letterlijk",
+          "definitie": "het kalenderjaar waarop de tegemoetkoming betrekking heeft",
+          "begripstype": "",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "inkomensafhankelijke regeling",
+          "herkomst": "letterlijk",
+          "definitie": "bij of krachtens wet vastgestelde regelingen die natuurlijke personen aanspraak geven op een financiële bijdrage van het Rijk in kosten of bijdrageverplichtingen, waarbij de hoogte van de bijdrage in die regelingen afhankelijk is gesteld van draagkracht.",
+          "begripstype": "entiteit",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "onze minister",
+          "herkomst": "letterlijk",
+          "definitie": "Onze Minister van Financiën",
+          "begripstype": "actor",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "partner",
+          "herkomst": "letterlijk",
+          "definitie": "de persoon bedoeld in artikel 3",
+          "begripstype": "actor",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "tegemoetkoming",
+          "herkomst": "letterlijk",
+          "definitie": "een financiële bijdrage van het Rijk op grond van een inkomensafhankelijke regeling",
+          "begripstype": "entiteit",
+          "aandachtspunten": []
+        }
+      ],
+      "oordeelvoorbeelden": []
+    }
+  ]
+}

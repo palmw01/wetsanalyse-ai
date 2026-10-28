@@ -134,3 +134,20 @@ def test_ankers_zijn_onderling_onderscheidend():
 def test_velden_hebben_het_verwachte_type(veld: str):
     for c in _cases():
         assert isinstance(c.get(veld, []), list), f"{c['prompt']!r}: {veld} is geen lijst"
+
+
+def test_een_anker_draagt_geen_onderdeelletter():
+    """Het corpus van de keten (`bronmodel.resolve`) zet een onderdeel zonder zijn letter op een eigen
+    regel. Een anker met "\\na. voor de belasting…" kan dan nooit matchen (IW 36a, diagnose 21 okt 2026)."""
+    import re
+    fout = [f"{c['bron']}: {el['tekst'][:60]!r}" for c in _cases() for el in c.get("verwacht") or []
+            if re.search(r"\n\s*(?:[a-z]{1,2}|\d+°?)\.\s", el["tekst"])]
+    assert not fout, "ankers met een onderdeelletter:\n  " + "\n  ".join(fout)
+
+
+def test_een_heel_artikel_krijgt_regeling_en_artikel_mee():
+    """Alleen `geheel` liet de ophaal-agent de bepaling kiezen; voor IW 36a koos hij lid 1."""
+    from eval.run_eval import doel_van_case
+    assert doel_van_case({"bron": "BWBR0004770/36a"}) == {"bwbId": "BWBR0004770", "artikel": "36a", "geheel": True}
+    assert doel_van_case({"bron": "BWBR0004770/9/1"}) == {"geheel": True}
+    assert doel_van_case({}) == {"geheel": True}

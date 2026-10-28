@@ -19,7 +19,7 @@ export function InstellingenDialog({ actief, isBeheerder }: { actief: TabKey; is
           type="button"
           onClick={() => router.back()}
           aria-label="Instellingen sluiten"
-          className="-mr-1 rounded-kaart p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint"
+          className="-mr-1 rounded-full p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint"
         >
           <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
             <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />

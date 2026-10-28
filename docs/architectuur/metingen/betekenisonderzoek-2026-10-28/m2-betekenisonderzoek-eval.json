@@ -1,0 +1,121 @@
+{
+ "vastgelegd_op": "2026-10-28",
+ "casussen": [
+  {
+   "casus": "A",
+   "omschrijving": "herziening in art. 30fb lid 4 AWR: leden 1–6 delen de opening en verschillen in de bedragovergang",
+   "context": {
+    "oud": {
+     "bepalingen": 1,
+     "fragmenten": 2
+    },
+    "nieuw": {
+     "bepalingen": 8,
+     "fragmenten": 14
+    }
+   },
+   "bevindingen": [
+    "VOORKOMENS",
+    "PARALLELLE_BEPALINGEN",
+    "ROL_IN_BEPALING",
+    "GEEN_DEFINITIE_GEVONDEN"
+   ],
+   "vragen": [
+    "Duidt \"herziening\" in Lid 4 hetzelfde aan als in Lid 1; Lid 2; Lid 3; Lid 5; Lid 6, of een specifiek geval daarvan?"
+   ],
+   "markering": {
+    "oud": [
+     "DOOR_LEX_GEFORMULEERD"
+    ],
+    "nieuw": [
+     "DOOR_LEX_GEFORMULEERD",
+     "ALGEMENE_NAAM_SPECIFIEKE_DEFINITIE",
+     "ONDERBOUWING_EEN_VOORKOMEN"
+    ],
+    "verwacht": [
+     "ALGEMENE_NAAM_SPECIFIEKE_DEFINITIE"
+    ],
+    "gevonden": true,
+    "oud_gevonden": false
+   },
+   "prompt_tekens": {
+    "oud": 2139,
+    "nieuw": 7039
+   },
+   "dossier_id": "D6230457ad809"
+  },
+  {
+   "casus": "B",
+   "omschrijving": "belasting in art. 30fc AWR: lid 7 kwalificeert 'het te betalen bedrag aan belasting'",
+   "context": {
+    "oud": {
+     "bepalingen": 2,
+     "fragmenten": 2
+    },
+    "nieuw": {
+     "bepalingen": 10,
+     "fragmenten": 11
+    }
+   },
+   "bevindingen": [
+    "VOORKOMENS",
+    "VOORKOMENS",
+    "KWALIFICATIE_SAMENGESTELD",
+    "DEFINITIE_IN_CONTEXT",
+    "ROL_IN_BEPALING",
+    "ROL_IN_BEPALING"
+   ],
+   "vragen": [
+    "\"te betalen bedrag aan belasting\" krijgt in Lid 7 een eigen kwalificatie. Is dat een ander begrip dan \"belasting\", en hoort het een eigen kaart te krijgen?"
+   ],
+   "markering": {
+    "oud": [
+     "DOOR_LEX_GEFORMULEERD"
+    ],
+    "nieuw": [
+     "DOOR_LEX_GEFORMULEERD",
+     "RECHTSGEVOLG_IN_DEFINITIE",
+     "ONDERBOUWING_EEN_VOORKOMEN",
+     "TEGENBEWIJS_IN_ONDERZOEK"
+    ],
+    "verwacht": [
+     "RECHTSGEVOLG_IN_DEFINITIE",
+     "TEGENBEWIJS_IN_ONDERZOEK"
+    ],
+    "gevonden": true,
+    "oud_gevonden": false
+   },
+   "prompt_tekens": {
+    "oud": 2088,
+    "nieuw": 4832
+   },
+   "dossier_id": "D01e120c52151"
+  }
+ ],
+ "uitval": {
+  "budget": {
+   "ontbrekend": [
+    "budget: 3"
+   ],
+   "signalen": [
+    "DOOR_LEX_GEFORMULEERD",
+    "ALGEMENE_NAAM_SPECIFIEKE_DEFINITIE",
+    "ONDERBOUWING_EEN_VOORKOMEN",
+    "CONTEXT_NIET_ONDERZOCHT"
+   ],
+   "parallel_nog_herkend": true
+  },
+  "onbereikbaar": {
+   "ontbrekend": [
+    "onbereikbaar: 1"
+   ],
+   "signalen": [
+    "DOOR_LEX_GEFORMULEERD",
+    "ALGEMENE_NAAM_SPECIFIEKE_DEFINITIE",
+    "ONDERBOUWING_EEN_VOORKOMEN",
+    "CONTEXT_NIET_ONDERZOCHT"
+   ]
+  }
+ },
+ "deterministisch": true
+}

@@ -82,7 +82,7 @@ export function effectieveZoom(ratio: number, aantalKnopen: number): number {
 /** Vanaf welke effectieve zoom een soort een label krijgt (`Infinity` = altijd). */
 export const LABEL_VANAF: Record<KnoopSoort, number> = {
   regeling: Infinity, deel: Infinity, klasse: Infinity,
-  artikel: 1, lid: 0.5, extern: 0.25, onderdeel: 0.25, markering: 0.25,
+  artikel: 1, lid: 0.5, extern: 0.25, onderdeel: 0.25, markering: 0.25, begrip: Infinity,
 };
 
 /** Mag een knoop van deze soort bij deze zoom een label hebben? */
@@ -96,7 +96,7 @@ export function detailFactor(soort: KnoopSoort, zoom: number): number {
 }
 
 const SOORT_VOLGORDE: Record<KnoopSoort, number> = {
-  regeling: 7, deel: 6, klasse: 5, artikel: 4, lid: 3, onderdeel: 2, extern: 1, markering: 1,
+  regeling: 7, deel: 6, klasse: 5, begrip: 5, artikel: 4, lid: 3, onderdeel: 2, extern: 1, markering: 1,
 };
 
 /** De prioriteit van een label: eerst het niveau uit de weergave (gekozen of aangewezen 3, nadruk 2,

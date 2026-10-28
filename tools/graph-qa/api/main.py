@@ -60,8 +60,12 @@ from agent import observability  # noqa: E402
 from agent.agent import answer_stream, delete_conversation  # noqa: E402
 from agent.beurt import voer_beurt_uit  # noqa: E402
 from agent.reeks import reeks_run  # noqa: E402
+from agent.werkgebied_annotatie import werkgebied_annotatie_beurt, zonder_api  # noqa: E402
 from agent.config import Settings  # noqa: E402
-from agent.models import ChatRequest, RunStart, Verbruiksmeter  # noqa: E402
+from agent.models import (  # noqa: E402
+    WERKGEBIED_MODI, ChatRequest, RunStart,
+    Verbruiksmeter,
+)
 from agent.runstore import Run, RunBestaatAl, RunStore  # noqa: E402
 from agent.runstore.geheugen import GeheugenStore  # noqa: E402
 from agent.wetsanalyse_api import WetsanalyseApi  # noqa: E402
@@ -257,6 +261,10 @@ async def chat(
     Bouw hier geen nieuwe client op zonder die controle in de aanroeper. Wie het toch nodig heeft
     (een script, een eval-run), gebruikt het met een eigen conversation_id.
     """
+    if request.modus in WERKGEBIED_MODI or request.actie is not None:
+        # Deze routes schrijven in het werkgebied en in het gesprek; dat kan alleen een run.
+        raise HTTPException(status_code=422,
+                            detail="Werken op een werkgebied kan alleen via POST /v1/runs.")
     logger.info(
         "chat ontvangen",
         extra={
@@ -270,7 +278,7 @@ async def chat(
         stroom = (reeks_run(request, settings=settings, legt_vast=False) if request.doelen else answer_stream(
             request.question, request.conversation_id,
             modus=request.modus, context=request.context, doel=request.doel,
-            hergebruik=request.hergebruik,
+            hergebruik=request.hergebruik, intake_actie=request.intake_actie, onderwerp=request.onderwerp,
         ))
         async for event in stroom:
             yield {"data": json.dumps(event, ensure_ascii=False)}
@@ -325,31 +333,52 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
     chatbericht). Daarmee hangt een beurt niet af van een browser die blijft kijken. Is er geen api
     geconfigureerd, dan is hij een doorgeefluik."""
     def maak(run: Run) -> AsyncIterator[dict]:
+        def gewone_beurt() -> AsyncIterator[dict]:
+            # Eén meter per beurt, hier gemaakt zodat beide kanten hem kennen: de agent telt erin, de
+            # beurt-driver boekt hem daarna bij de api. Dat werkt ook als de beurt op een fout of een
+            # stopverzoek eindigt – die tokens zijn dan wél verbruikt.
+            meter = Verbruiksmeter()
+            return voer_beurt_uit(
+                answer_stream(
+                    request.question, request.conversation_id,
+                    modus=request.modus, context=request.context, doel=request.doel,
+                    hergebruik=request.hergebruik,
+                    user_id=gebruiker, run_id=run.run_id,
+                    # Stoppen loopt via deze vlag: de graaf betreedt dan geen nieuwe node meer. Bewust
+                    # geen taak-annulering – de nodes zijn synchroon en de MCP-verbinding wordt in een
+                    # `finally` gesloten.
+                    stop_check=lambda: run.stop_gevraagd,
+                    meter=meter,
+                    # Het werkgebied van het gesprek: zijn begrippen staan vooraan (fase F4).
+                    werkgebied_id=request.werkgebied_id or "",
+                    intake_actie=request.intake_actie,
+                    onderwerp=request.onderwerp,
+                    # Een klik op een suggestie: de supervisor kiest er zonder model agent en taak bij (F3c).
+                    actie=request.actie or "",
+                    bevestigd=request.bevestigd,
+                    werkvoorraad_id=request.werkvoorraad_id,
+                ),
+                settings=settings,
+                run=run,
+                gesprek_id=request.conversation_id or "",
+                user_id=gebruiker,
+                meter=meter,
+            )
+
+        if request.intake_actie is not None:
+            # Een klik op een vraagkaartje (activiteit 1): altijd de werkgebied-worker.
+            return gewone_beurt()
+        if request.is_werkgebied_annotatie:
+            # Het werkgebied annoteren, als modus of actie: zonder `bevestigd` het voorstel, met de reeks
+            # over de nieuwe bepalingen – per bepaling een gewone beurt, dus een eigen stroom en geen taak
+            # in een node. Getypt gaat het langs de supervisor (de annotatie-agent, taak `werkgebied`).
+            if not settings.legt_zelf_vast:
+                return zonder_api()
+            return werkgebied_annotatie_beurt(request, run, settings=settings, user_id=gebruiker)
         if request.doelen:
             # Meerdere onderdelen van één artikel: per onderdeel deze zelfde beurt, na elkaar.
             return reeks_run(request, run, settings=settings, user_id=gebruiker)
-        # Eén meter per beurt, hier gemaakt zodat beide kanten hem kennen: de agent telt erin, de
-        # beurt-driver boekt hem daarna bij de api. Dat werkt ook als de beurt op een fout of een
-        # stopverzoek eindigt – die tokens zijn dan wél verbruikt.
-        meter = Verbruiksmeter()
-        return voer_beurt_uit(
-            answer_stream(
-                request.question, request.conversation_id,
-                modus=request.modus, context=request.context, doel=request.doel,
-                hergebruik=request.hergebruik,
-                user_id=gebruiker, run_id=run.run_id,
-                # Stoppen loopt via deze vlag: de graaf betreedt dan geen nieuwe node meer. Bewust
-                # geen taak-annulering – de nodes zijn synchroon en de MCP-verbinding wordt in een
-                # `finally` gesloten.
-                stop_check=lambda: run.stop_gevraagd,
-                meter=meter,
-            ),
-            settings=settings,
-            run=run,
-            gesprek_id=request.conversation_id or "",
-            user_id=gebruiker,
-            meter=meter,
-        )
+        return gewone_beurt()
     return maak
 
 

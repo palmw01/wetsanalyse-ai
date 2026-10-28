@@ -1,0 +1,105 @@
+{
+  "_herkomst": {
+    "bron": "Invorderingswet 1990 (BWBR0004770), kennisgraaf acceptatie (repository inning), opgehaald 2026-10-14 via de GraphDB-MCP-proxy",
+    "let_op": "Letterlijke wettekst (art. 11 Aw: vrij van auteursrecht). Niet overtypen of herformuleren; de bron_hash is sha256 van de tekst en is tegen de graaf gecontroleerd.",
+    "aanhef": "Bij een onderdeel van een begripsbepaling staat de aanhef van het lid (de houder), want die bepaalt het bereik."
+  },
+  "bronnen": [
+    {
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:m",
+      "label": "art. 2 lid 1 onderdeel m IW 1990",
+      "aanhef": "Deze wet verstaat onder:",
+      "regeling": "BWBR0004770",
+      "tekst": "belastingaanslag: de voorlopige aanslag, de aanslag, de uitnodiging tot betaling, de navorderingsaanslag en de naheffingsaanslag, alsmede de voorlopige conserverende aanslag, de conserverende aanslag en de conserverende navorderingsaanslag in de inkomstenbelasting en in de schenk- en erfbelasting;",
+      "bron_hash": "13c2852166663b62ac587af42f8d6c0230e6944f019ce87d61a070cf7baedbd7"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k",
+      "label": "art. 2 lid 1 onderdeel k IW 1990",
+      "aanhef": "Deze wet verstaat onder:",
+      "regeling": "BWBR0004770",
+      "tekst": "belastingschuldige: degene te wiens naam de belastingaanslag is gesteld;",
+      "bron_hash": "a7e2581f97123b3f3d68501fcf666569897b74ac2c1a8bff7256031d0671d20e"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:2:o:c",
+      "label": "art. 2 lid 2 onderdeel c IW 1990",
+      "aanhef": "Deze wet verstaat mede onder:",
+      "regeling": "BWBR0004770",
+      "tekst": "belastingaanslag: een ingevolge de Algemene wet inzake rijksbelastingen dan wel Algemene douanewet of enige andere wettelijke regeling betreffende de heffing van rijksbelastingen vastgestelde beschikking of uitspraak strekkende tot - al dan niet nadere - vaststelling van een ingevolge die regelingen verschuldigd of terug te geven bedrag;",
+      "bron_hash": "666aa69445108d64c167d9f575a1d0518f70b824a56a1cb7364d0f64d8e43406"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:2:o:d",
+      "label": "art. 2 lid 2 onderdeel d IW 1990",
+      "aanhef": "Deze wet verstaat mede onder:",
+      "regeling": "BWBR0004770",
+      "tekst": "aanslagbiljet: de kennisgeving van de beschikking of de uitspraak, bedoeld in onderdeel c;",
+      "bron_hash": "034cef6f8fa90df85c3284dfc14fc42a77bc4d3ccde5ad82f3c20a7383862799"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:3",
+      "label": "art. 2 lid 3 IW 1990",
+      "aanhef": "",
+      "regeling": "BWBR0004770",
+      "tekst": "Voor de toepassing van deze wet geldt, in afwijking in zoverre van het eerste en het tweede lid en behoudens voor zover daarvan moet worden afgeweken ingevolge het elders in deze wet bepaalde, als belastingaanslag:",
+      "bron_hash": "7d6e26cf0168647b3489163608da270859d05f7c3ed6be7aae1e07f0a1752c43"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+      "label": "art. 9 lid 1 IW 1990",
+      "aanhef": "",
+      "regeling": "BWBR0004770",
+      "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+      "bron_hash": "fd044d7e35ad3a1eb2440ee5d485759c70efa621732d21a94714e2b656c0034d"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:2",
+      "label": "art. 9 lid 2 IW 1990",
+      "aanhef": "",
+      "regeling": "BWBR0004770",
+      "tekst": "In afwijking van het eerste lid is een navorderingsaanslag, alsmede een conserverende navorderingsaanslag invorderbaar één maand na de dagtekening van het aanslagbiljet en een naheffingsaanslag invorderbaar veertien dagen na de dagtekening van het aanslagbiljet.",
+      "bron_hash": "db3c089c4f589a1dc1f6a622216d2421dc1815541a7769b2f3212ab0ce938a51"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:3",
+      "label": "art. 9 lid 3 IW 1990",
+      "aanhef": "",
+      "regeling": "BWBR0004770",
+      "tekst": "Een ingevolge artikel 2, tweede lid, onderdeel c, met een belastingaanslag gelijkgestelde beschikking inzake een bestuurlijke boete die gelijktijdig en in verband met de vaststelling van een belastingaanslag als bedoeld in artikel 2, eerste lid, onderdeel m, is opgelegd, is invorderbaar overeenkomstig de bepalingen die gelden voor die belastingaanslag. Een ingevolge artikel 2, tweede lid, onderdeel c, met een belastingaanslag gelijkgestelde beschikking inzake belasting- of revisierente is invorderbaar overeenkomstig de bepalingen die gelden voor de belastingaanslag, bedoeld in artikel 2, eerste lid, onderdeel m, waarop de belasting- of revisierente betrekking heeft.",
+      "bron_hash": "881c3029af39207e18213a1bb40a0400fbf1700be1d3b39b2581cb36d55bdf8c"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "label": "art. 9 lid 5 IW 1990",
+      "aanhef": "",
+      "regeling": "BWBR0004770",
+      "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting of in de vennootschapsbelasting en een voorlopige conserverende aanslag in de inkomstenbelasting, waarvan het aanslagbiljet een dagtekening heeft die ligt in het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven. De eerste termijn vervalt één maand na de dagtekening van het aanslagbiljet en elk van de volgende termijnen telkens een maand later. Indien de toepassing van de eerste volzin niet leidt tot meer dan één termijn, vindt het eerste lid toepassing.",
+      "bron_hash": "11aab4fb73f10380f88b3db884976396773f0fd9b40bcda37fe8140dadf2943d"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:10",
+      "label": "art. 9 lid 10 IW 1990",
+      "aanhef": "",
+      "regeling": "BWBR0004770",
+      "tekst": "De Algemene termijnenwet is niet van toepassing op de in de voorgaande leden gestelde termijnen.",
+      "bron_hash": "4ae87b5d34b932260adc4e2b59a829667d9fa069709c298743ba4ed1eb49c798"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:11",
+      "label": "art. 9 lid 11 IW 1990",
+      "aanhef": "",
+      "regeling": "BWBR0004770",
+      "tekst": "In afwijking van het eerste lid is een belastingaanslag die een uit te betalen bedrag behelst niet invorderbaar:",
+      "bron_hash": "cc80456b2567f0e2aa6074d6bad52504bc6a972052d16a6df731fccb823651a4"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:12",
+      "label": "art. 9 lid 12 IW 1990",
+      "aanhef": "",
+      "regeling": "BWBR0004770",
+      "tekst": "De verplichting tot betaling wordt niet geschorst door de indiening van een bezwaar- of beroepschrift inzake een belastingaanslag.",
+      "bron_hash": "fc2beb6729edcb7360a4398c6469805d1d78f3f12fec13551e51f00049cf8dad"
+    }
+  ]
+}

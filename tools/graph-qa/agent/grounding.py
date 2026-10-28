@@ -24,7 +24,7 @@ from .annotatie import _normaliseer, komt_letterlijk_voor
 from .models import Source
 from .provenance import _BWB_RE, citations_in, first_bwb
 from .resultaat import waarden
-from .tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN
+from .tools.begrip_tools import AFGELEIDE_TOOL_NAMEN
 
 # Citaten in de vormen die een model gebruikt: rechte en typografische dubbele aanhalingstekens.
 # Enkele quotes blijven erbuiten – die staan in Nederlandse lopende tekst te vaak om iets anders
@@ -81,7 +81,7 @@ def herstel_citaten(answer_text: str, source_trace: list[tuple[str, str]]) -> tu
     verbuiging – blijft een afwijking voor `check_grounding`. Het citaat wordt hier dus alleen
     letterlijker, nooit losser. Geeft het herstelde antwoord en de paren (oud, nieuw)."""
     trace_text = _normaliseer(
-        "\n".join(waarden(t) for name, t in source_trace if t and name not in ANNOTATIE_TOOL_NAMEN))
+        "\n".join(waarden(t) for name, t in source_trace if t and name not in AFGELEIDE_TOOL_NAMEN))
     hersteld: list[tuple[str, str]] = []
     for citaat in _citaten(answer_text):
         if "\\" in citaat or komt_letterlijk_voor(trace_text, citaat):
@@ -110,7 +110,7 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
     staat als onderbouwd-noch-opgehaald (`overzicht.vermeldingen_buiten`)."""
     # De waarden van een contractresultaat, niet zijn JSON-tekst: anders staat een newline in de
     # brontekst er als `\n` en valt een letterlijk citaat over die grens af (`resultaat.waarden`).
-    trace_text = "\n".join(waarden(t) for name, t in source_trace if t and name not in ANNOTATIE_TOOL_NAMEN)
+    trace_text = "\n".join(waarden(t) for name, t in source_trace if t and name not in AFGELEIDE_TOOL_NAMEN)
     # Exacte BWB-id's uit de trace (woordgrens via _BWB_RE), zodat een gehallucineerde prefix-id
     # (bv. BWBR0001 t.o.v. het opgehaalde BWBR00012345) niet vals als gegrond geldt.
     trace_bwbs = set(_BWB_RE.findall(trace_text))

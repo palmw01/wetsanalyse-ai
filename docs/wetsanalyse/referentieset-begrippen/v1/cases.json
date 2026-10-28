@@ -1,0 +1,382 @@
+{
+  "formuleringen": [
+    {
+      "element_id": "f01",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:m",
+      "start": 0,
+      "eind": 16,
+      "tekst": "belastingaanslag",
+      "jas_klasse": "Brondefinitie"
+    },
+    {
+      "element_id": "f02",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:m",
+      "start": 18,
+      "eind": 39,
+      "tekst": "de voorlopige aanslag",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "f03",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:m",
+      "start": 41,
+      "eind": 51,
+      "tekst": "de aanslag",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "f04",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:m",
+      "start": 82,
+      "eind": 104,
+      "tekst": "de navorderingsaanslag",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "f05",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:m",
+      "start": 108,
+      "eind": 128,
+      "tekst": "de naheffingsaanslag",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "f06",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k",
+      "start": 0,
+      "eind": 18,
+      "tekst": "belastingschuldige",
+      "jas_klasse": "Brondefinitie"
+    },
+    {
+      "element_id": "f07",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k",
+      "start": 41,
+      "eind": 60,
+      "tekst": "de belastingaanslag",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "f08",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:2:o:c",
+      "start": 0,
+      "eind": 16,
+      "tekst": "belastingaanslag",
+      "jas_klasse": "Brondefinitie"
+    },
+    {
+      "element_id": "f09",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:2:o:c",
+      "start": 192,
+      "eind": 216,
+      "tekst": "beschikking of uitspraak",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "f10",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:2:o:d",
+      "start": 0,
+      "eind": 13,
+      "tekst": "aanslagbiljet",
+      "jas_klasse": "Brondefinitie"
+    },
+    {
+      "element_id": "f11",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:2:o:d",
+      "start": 15,
+      "eind": 65,
+      "tekst": "de kennisgeving van de beschikking of de uitspraak",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "f12",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+      "start": 0,
+      "eind": 20,
+      "tekst": "Een belastingaanslag",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "f13",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+      "start": 69,
+      "eind": 86,
+      "tekst": "het aanslagbiljet",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "f14",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:2",
+      "start": 35,
+      "eind": 58,
+      "tekst": "een navorderingsaanslag",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "f15",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:2",
+      "start": 172,
+      "eind": 193,
+      "tekst": "een naheffingsaanslag",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "f16",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:2",
+      "start": 151,
+      "eind": 168,
+      "tekst": "het aanslagbiljet",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "f17",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "start": 35,
+      "eind": 57,
+      "tekst": "een voorlopige aanslag",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "f18",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "start": 311,
+      "eind": 320,
+      "tekst": "termijnen",
+      "jas_klasse": "Tijdsaanduiding"
+    },
+    {
+      "element_id": "f19",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:10",
+      "start": 86,
+      "eind": 95,
+      "tekst": "termijnen",
+      "jas_klasse": "Tijdsaanduiding"
+    },
+    {
+      "element_id": "f20",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:11",
+      "start": 35,
+      "eind": 93,
+      "tekst": "een belastingaanslag die een uit te betalen bedrag behelst",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "f21",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:3",
+      "start": 50,
+      "eind": 101,
+      "tekst": "met een belastingaanslag gelijkgestelde beschikking",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "f22",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:3",
+      "start": 197,
+      "eind": 213,
+      "tekst": "belastingaanslag",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "f23",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:12",
+      "start": 109,
+      "eind": 129,
+      "tekst": "een belastingaanslag",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "f24",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:3",
+      "start": 333,
+      "eind": 353,
+      "tekst": "die belastingaanslag",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "f25",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:2:o:d",
+      "start": 35,
+      "eind": 89,
+      "tekst": "de beschikking of de uitspraak, bedoeld in onderdeel c",
+      "jas_klasse": "Rechtsobject"
+    }
+  ],
+  "paren": [
+    {
+      "id": "R01",
+      "van": "f01",
+      "naar": "f07",
+      "relatie": "zelfde_betekenis",
+      "categorie": "variant_lidwoord",
+      "motivatie": "Definitie in onderdeel m geldt voor de hele wet; 'de belastingaanslag' in onderdeel k is dezelfde term."
+    },
+    {
+      "id": "R02",
+      "van": "f01",
+      "naar": "f12",
+      "relatie": "zelfde_betekenis",
+      "categorie": "variant_lidwoord",
+      "motivatie": "Art. 9 lid 1 gebruikt de term binnen het bereik van de definitie ('Deze wet verstaat onder')."
+    },
+    {
+      "id": "R03",
+      "van": "f01",
+      "naar": "f23",
+      "relatie": "zelfde_betekenis",
+      "categorie": "variant_lidwoord",
+      "motivatie": "Idem, art. 9 lid 12."
+    },
+    {
+      "id": "R04",
+      "van": "f01",
+      "naar": "f08",
+      "relatie": "zelfde_betekenis",
+      "categorie": "uitbreiding_mede",
+      "motivatie": "Lid 2 ('verstaat mede onder') breidt dezelfde term uit; het blijft één begrip."
+    },
+    {
+      "id": "R05",
+      "van": "f08",
+      "naar": "f09",
+      "relatie": "inclusie",
+      "categorie": "mede_verstaan",
+      "motivatie": "Onder belastingaanslag wordt mede verstaan een beschikking of uitspraak."
+    },
+    {
+      "id": "R06",
+      "van": "f10",
+      "naar": "f11",
+      "relatie": "inclusie",
+      "categorie": "mede_verstaan",
+      "motivatie": "Onder aanslagbiljet wordt mede verstaan de kennisgeving van die beschikking of uitspraak."
+    },
+    {
+      "id": "R07",
+      "van": "f10",
+      "naar": "f13",
+      "relatie": "zelfde_betekenis",
+      "categorie": "variant_lidwoord",
+      "motivatie": "Zelfde term binnen het bereik van de (mede-)definitie."
+    },
+    {
+      "id": "R08",
+      "van": "f13",
+      "naar": "f16",
+      "relatie": "zelfde_betekenis",
+      "categorie": "zelfde_term",
+      "motivatie": "Zelfde term in art. 9 lid 1 en lid 2."
+    },
+    {
+      "id": "R09",
+      "van": "f01",
+      "naar": "f02",
+      "relatie": "hierarchie",
+      "categorie": "opsomming_in_definitie",
+      "motivatie": "De definitie somt de soorten belastingaanslag op."
+    },
+    {
+      "id": "R10",
+      "van": "f01",
+      "naar": "f03",
+      "relatie": "hierarchie",
+      "categorie": "opsomming_in_definitie",
+      "motivatie": "'De aanslag' is één soort belastingaanslag, geen synoniem."
+    },
+    {
+      "id": "R11",
+      "van": "f01",
+      "naar": "f04",
+      "relatie": "hierarchie",
+      "categorie": "opsomming_in_definitie",
+      "motivatie": "Idem, navorderingsaanslag."
+    },
+    {
+      "id": "R12",
+      "van": "f01",
+      "naar": "f05",
+      "relatie": "hierarchie",
+      "categorie": "opsomming_in_definitie",
+      "motivatie": "Idem, naheffingsaanslag."
+    },
+    {
+      "id": "R13",
+      "van": "f02",
+      "naar": "f17",
+      "relatie": "zelfde_betekenis",
+      "categorie": "variant_lidwoord",
+      "motivatie": "Zelfde term: voorlopige aanslag."
+    },
+    {
+      "id": "R14",
+      "van": "f04",
+      "naar": "f14",
+      "relatie": "zelfde_betekenis",
+      "categorie": "variant_lidwoord",
+      "motivatie": "Zelfde term: navorderingsaanslag."
+    },
+    {
+      "id": "R15",
+      "van": "f05",
+      "naar": "f15",
+      "relatie": "zelfde_betekenis",
+      "categorie": "variant_lidwoord",
+      "motivatie": "Zelfde term: naheffingsaanslag."
+    },
+    {
+      "id": "R16",
+      "van": "f01",
+      "naar": "f20",
+      "relatie": "hierarchie",
+      "categorie": "beperking",
+      "motivatie": "Een belastingaanslag die een uit te betalen bedrag behelst is een soort belastingaanslag."
+    },
+    {
+      "id": "R17",
+      "van": "f21",
+      "naar": "f01",
+      "relatie": "kwalificatie",
+      "categorie": "gelijkstelling",
+      "motivatie": "Een beschikking wordt met een belastingaanslag gelijkgesteld; dat maakt haar geen synoniem."
+    },
+    {
+      "id": "R18",
+      "van": "f01",
+      "naar": "f03",
+      "relatie": "verschillend",
+      "categorie": "kop_van_samenstelling",
+      "motivatie": "Gedeelde kop 'aanslag' is geen bewijs van gelijke betekenis."
+    },
+    {
+      "id": "R19",
+      "van": "f18",
+      "naar": "f19",
+      "relatie": "verschillend",
+      "categorie": "homoniem",
+      "motivatie": "'Termijnen' in lid 5 zijn betalingstermijnen, in lid 10 de in de leden gestelde termijnen."
+    },
+    {
+      "id": "R20",
+      "van": "f01",
+      "naar": "f24",
+      "relatie": "zelfde_betekenis",
+      "categorie": "aanwijzend_voornaamwoord",
+      "motivatie": "'Die belastingaanslag' verwijst terug naar de belastingaanslag als bedoeld in art. 2 lid 1 onderdeel m."
+    },
+    {
+      "id": "R21",
+      "van": "f09",
+      "naar": "f25",
+      "relatie": "zelfde_betekenis",
+      "categorie": "verwijzing_bedoeld_in",
+      "motivatie": "'Bedoeld in onderdeel c' wijst de beschikking of uitspraak van onderdeel c aan."
+    },
+    {
+      "id": "R22",
+      "van": "f01",
+      "naar": "f22",
+      "relatie": "verschillend",
+      "categorie": "afwijking",
+      "motivatie": "Lid 3 bepaalt 'in afwijking van' het eerste en tweede lid wat als belastingaanslag geldt."
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 // Client-side fetch-helpers. Praten UITSLUITEND met de eigen Next.js-origin (/api/**);
 // de BFF-laag injecteert het token server-side. Hier dus geen Authorization-header.
 
+import { parseBronselectie, type BronselectieOverzicht } from "./bronselectie";
 import {
   geldig,
   parseBronnen,
@@ -13,7 +14,10 @@ import {
   parseRun,
   parseRunStart,
 } from "./agentEvents";
+import { isBegripSamenhang, isConformiteit, type BegripSamenhang, type Conformiteit } from "./begripGraaf";
+import type { BegrippenOverzicht } from "./begrippenOverzicht";
 import type {
+  ThemaVoorstel,
   ApiError,
   ApiTokenCreated,
   ApiTokenOut,
@@ -34,6 +38,9 @@ import type {
   Verbruiksstand,
 } from "./types";
 import type {
+  KaartVoorstellenAntwoord,
+  VoorbeeldOordeel,
+  Bevestiging,
   AdminBerichtenPaginaOut,
   AdminBerichtOut,
   AgentContext,
@@ -49,18 +56,50 @@ import type {
   BerichtInvoer,
   BerichtOut,
   BerichtPublicatieIn,
+  AkkoordAntwoord,
+  AkkoordInvoer,
+  Begrip,
+  BegripInhoud,
+  BegrippenRun,
+  BronnenRun,
+  BegripRevisie,
+  BegrippenLijst,
   Bron,
+  Bronselectie,
+  BronselectieInvoer,
+  BronRol,
+  Dekking,
   DocumentSamenvatting,
   Gesprek,
   GesprekSamenvatting,
+  GroepenAntwoord,
+  Herbeoordelingen,
+  RelatiesAntwoord,
+  RelatieType,
+  KandidatenAntwoord,
+  Inventaris,
+  KoppelBeoordeling,
+  KoppelRol,
   OngelezenAantalOut,
   RunStart,
   VoorstelElement,
+  Werkgebied,
+  DeelvraagDetail,
+  WerkgebiedAuditRegel,
+  WerkgebiedInvoer,
+  WerkgebiedSamenvatting,
+  WerkgebiedWijziging,
 } from "./types";
+import { parseArtefact } from "./artefact";
+import { isRelatiesAntwoord } from "./begripRelaties";
+import { isDekking, isHerbeoordelingen } from "./herbeoordeling";
 import { pathSegment } from "./url";
+import { parseBevestiging } from "./werkgebiedAnnoteren";
+import { parseVraagkaart } from "./vraagkaart";
 
 export async function parseError(res: Response): Promise<ApiError> {
-  let detail = res.statusText;
+  // Onder HTTP/2 is `statusText` leeg; zonder JSON-body stond er dan niets ("niet geladen ()").
+  let detail = res.statusText || `HTTP ${res.status}`;
   let reden: string | undefined;
   let data: Record<string, unknown> | undefined;
   try {
@@ -419,15 +458,18 @@ export async function lijstLagen(opties: { mijn?: boolean; limit?: number } = {}
 
 // --- Gesprekken (chatgeschiedenis; per-gebruiker via de BFF-X-User-Id) ------
 
-export async function lijstGesprekken(): Promise<GesprekSamenvatting[]> {
-  return json<GesprekSamenvatting[]>(await fetch("/api/gesprekken", { cache: "no-store" }));
+export async function lijstGesprekken(opties: { werkgebiedId?: string; gearchiveerd?: boolean } = {}): Promise<GesprekSamenvatting[]> {
+  const qs = new URLSearchParams();
+  if (opties.werkgebiedId !== undefined) qs.set("werkgebied_id", opties.werkgebiedId);
+  if (opties.gearchiveerd !== undefined) qs.set("gearchiveerd", String(opties.gearchiveerd));
+  return json<GesprekSamenvatting[]>(await fetch(qs.size ? `/api/gesprekken?${qs}` : "/api/gesprekken", { cache: "no-store" }));
 }
 
-export async function maakGesprek(titel = ""): Promise<Gesprek> {
+export async function maakGesprek(titel = "", werkgebiedId = ""): Promise<Gesprek> {
   const res = await fetch("/api/gesprekken", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ titel }),
+    body: JSON.stringify({ titel, werkgebied_id: werkgebiedId }),
   });
   return json<Gesprek>(res);
 }
@@ -446,10 +488,18 @@ export async function voegBerichtToe(id: string, bericht: BerichtInvoer): Promis
 }
 
 export async function hernoemGesprek(id: string, titel: string): Promise<Gesprek> {
+  return wijzigGesprek(id, { titel });
+}
+
+/** Titel, werkgebied (`""` = loskoppelen) of archief; alleen wat meekomt verandert. */
+export async function wijzigGesprek(
+  id: string,
+  wijziging: { titel?: string; werkgebied_id?: string; gearchiveerd?: boolean },
+): Promise<Gesprek> {
   const res = await fetch(`/api/gesprekken/${pathSegment(id)}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ titel }),
+    body: JSON.stringify(wijziging),
   });
   return json<Gesprek>(res);
 }
@@ -485,6 +535,8 @@ export type AgentHandlers = {
   onReeksEvent?: (event: Record<string, unknown>) => void;
   /** Lex hergebruikte (een deel van) de gedeelde laag in plaats van opnieuw te annoteren. */
   onHergebruik?: (h: AgentHergebruik) => void;
+  /** Een vraag van Lex bij het samenstellen van een werkgebied (activiteit 1). */
+  onVraagkaart?: (k: import("./vraagkaart").Vraagkaart) => void;
   /** Het overzicht van een onderwerp, deterministisch uit de graaf; komt vóór de duiding. */
   onOverzicht?: (o: import("./types").Overzicht) => void;
   /** Het volgnummer van het laatst verwerkte event. Daarmee haakt een client na een onderbreking
@@ -499,7 +551,12 @@ export type AgentHandlers = {
   onGat?: (aantal: number) => void;
   /** De agent heeft de uitkomst zelf vastgelegd (bericht + eventueel annotatiedocument). Komt vlak
    *  vóór het einde. Blijft hij uit, dan legt de werkplek het bericht zelf vast. */
-  onOpgeslagen?: (uitkomst: { annotatie_slug: string; run_id: string; annotatie_doel?: import("./annotatieNode").NodeDoel }) => void;
+  /** De agent legde de beurt vast. `artefact`: wat hij opleverde (annotatie, begripsvoorstellen);
+   *  `annotatie_doel` is de oudere vorm van een annotatie-artefact. */
+  onOpgeslagen?: (uitkomst: {
+    run_id: string; artefact?: import("./artefact").Artefact; annotatie_doel?: import("./annotatieNode").NodeDoel;
+    bevestiging?: Bevestiging;
+  }) => void;
   /** De beurt slaagde, maar niet alles is bewaard – bv. een markering die de api niet accepteerde.
    *  Geen fout (het meeste staat er wél), maar de jurist hoort te weten dat er iets ontbreekt. */
   onWaarschuwing?: (bericht: string) => void;
@@ -526,7 +583,16 @@ export async function startRun(
   prompt: string,
   conversationId?: string,
   extra?: {
-    modus?: "auto" | "advies";
+    /** "werkgebied_annoteren": de nieuwe bepalingen van het werkgebied (fase B); "begrippen_verdiepen":
+     *  Lex denkt mee over twijfelpunten en begrippen zonder definitie (fase C). Zonder `bevestigd`
+     *  noemt Lex alleen wat er te doen is; met `bevestigd` (het aantal dat de analist zag) begint hij. */
+    modus?: "auto" | "advies" | "werkgebied_annoteren" | "begrippen_verdiepen";
+    bevestigd?: number;
+    /** Bij "werkgebied_annoteren": alleen de bronnen onder de deelvragen, met `deelvraag_id` onder die ene. */
+    bereik?: "deelvragen";
+    deelvraag_id?: string;
+    /** Bij "begrippen_verdiepen" met `bevestigd`: de inhoud van de bevestigde werkvoorraad (spoor M). */
+    werkvoorraad_id?: string;
     context?: AgentContext;
     doel?: AgentDoelInvoer;
     /** "opnieuw" = de jurist vraagt expliciet om een nieuwe ronde op een al geannoteerd artikel.
@@ -535,6 +601,15 @@ export async function startRun(
     /** Meerdere onderdelen van één bepaling, gekozen op de keuzekaart: één run, elk onderdeel
      *  een eigen laag (graph-qa `agent/reeks.py`). Sluit `doel` uit. */
     doelen?: AgentDoelInvoer[];
+    /** De werkplek staat in de context van een werkgebied: een vraag om begrippen gaat dan de
+     *  begrippenroute in (graph-qa `agent/begrippen_beurt.py`). */
+    werkgebied_id?: string;
+    /** Een klik op een vraagkaartje bij het samenstellen van een werkgebied (activiteit 1). */
+    intake_actie?: import("./vraagkaart").IntakeActie;
+    /** Het object waarop de analist *Vraag Lex* koos (F3b): alleen soort en id's (`lib/vraagLex.ts`). */
+    onderwerp?: Extract<import("./vraagLex").OnderwerpVerzoek, { onderwerp: unknown }>["onderwerp"];
+    /** Een klik op een suggestie: een taak van een agent, zonder model gekozen (graph-qa `models.ACTIE_TAAK`). */
+    actie?: import("./vraagLex").VraagLexActie;
   },
 ): Promise<RunStart> {
   const res = await fetch("/api/annotatie/run", {
@@ -550,6 +625,14 @@ export async function startRun(
       ...(extra?.doel ? { doel: extra.doel } : {}),
       ...(extra?.hergebruik ? { hergebruik: extra.hergebruik } : {}),
       ...(extra?.doelen ? { doelen: extra.doelen } : {}),
+      ...(extra?.werkgebied_id ? { werkgebied_id: extra.werkgebied_id } : {}),
+      ...(typeof extra?.bevestigd === "number" ? { bevestigd: extra.bevestigd } : {}),
+      ...(extra?.bereik ? { bereik: extra.bereik } : {}),
+      ...(extra?.deelvraag_id ? { deelvraag_id: extra.deelvraag_id } : {}),
+      ...(extra?.werkvoorraad_id ? { werkvoorraad_id: extra.werkvoorraad_id } : {}),
+      ...(extra?.intake_actie ? { intake_actie: extra.intake_actie } : {}),
+      ...(extra?.onderwerp ? { onderwerp: extra.onderwerp } : {}),
+      ...(extra?.actie ? { actie: extra.actie } : {}),
     }),
   });
   if (res.status === 409) {
@@ -702,7 +785,8 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
               overzicht?: unknown;
               seq?: number;
               weggevallen?: number;
-              annotatie_slug?: string;
+              artefact?: unknown;
+              bevestiging?: unknown;
               annotatie_doel?: import("./annotatieNode").NodeDoel;
               run_id?: string;
               // grounding: `niveau` is nieuw; een oudere agent stuurt alleen `grounded`.
@@ -763,6 +847,10 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
           const overzicht = geldig(parseOverzicht, ev.overzicht, "overzicht");
           if (overzicht) handlers.onOverzicht?.(overzicht);
         }
+        else if (ev.type === "vraagkaart") {
+          const kaart = geldig(parseVraagkaart, (ev as { vraagkaart?: unknown }).vraagkaart, "vraagkaart");
+          if (kaart) handlers.onVraagkaart?.(kaart);
+        }
         else if (ev.type === "hergebruik" && ev.hergebruik) {
           const hergebruik = geldig(parseHergebruik, ev.hergebruik, "hergebruik");
           if (hergebruik) handlers.onHergebruik?.(hergebruik);
@@ -773,7 +861,9 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
           if (execution) handlers.onToolExecution?.(execution);
         }
         else if (ev.type === "opgeslagen")
-          handlers.onOpgeslagen?.({ annotatie_slug: ev.annotatie_slug ?? "", run_id: ev.run_id ?? "", annotatie_doel: ev.annotatie_doel });
+          handlers.onOpgeslagen?.({ run_id: ev.run_id ?? "", annotatie_doel: ev.annotatie_doel,
+            ...(parseArtefact(ev.artefact) ? { artefact: parseArtefact(ev.artefact) } : {}),
+            ...(parseBevestiging(ev.bevestiging) ? { bevestiging: parseBevestiging(ev.bevestiging) } : {}) });
         else if (ev.type === "waarschuwing") handlers.onWaarschuwing?.(ev.message ?? "");
         // `agentFout` onderscheidt dit van een 502 die zegt "de BFF kon graph-qa niet bereiken":
         // die is tijdelijk en mag opnieuw, deze is een uitkomst van de beurt zelf.
@@ -788,7 +878,9 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
 }
 
 /** Exportformaten van een annotatie. */
-export type ExportFormaat = "pdf" | "csv" | "json" | "trig";
+export type ExportFormaat = "pdf" | "csv" | "json" | "trig"
+  /** Begrippen (fase F3): NL-SBB als Turtle, standaard alleen geaccordeerd; `ttl-alle` met de rest. */
+  | "ttl" | "ttl-alle";
 
 /** Bied een bestandsantwoord aan als download: Blob → `createObjectURL` → `<a download>`.
  *
@@ -955,3 +1047,415 @@ export async function verwijderBericht(id: number): Promise<void> {
   const res = await fetch(`/api/admin/berichten/${id}`, { method: "DELETE" });
   if (!res.ok) throw await parseError(res);
 }
+
+// --- Werkgebieden (gedeeld; de BFF zet de sessie-gebruiker als actor) --------
+
+const wg = (id: string, ...rest: string[]) =>
+  `/api/werkgebieden/${[id, ...rest].map(pathSegment).join("/")}`;
+const jsonInit = (method: string, body: unknown): RequestInit => ({
+  method,
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body),
+});
+
+export async function lijstWerkgebieden(opties: { mijn?: boolean; bronIri?: string } = {}): Promise<WerkgebiedSamenvatting[]> {
+  const qs = new URLSearchParams();
+  if (opties.mijn) qs.set("mijn", "true");
+  // Alleen de werkgebieden met een selectie die deze bepaling omvat (de bronpagina, spoor G3).
+  if (opties.bronIri) qs.set("bron_iri", opties.bronIri);
+  const res = await fetch(qs.size ? `/api/werkgebieden?${qs}` : "/api/werkgebieden", { cache: "no-store" });
+  return (await json<{ werkgebieden: WerkgebiedSamenvatting[] }>(res)).werkgebieden;
+}
+
+export async function maakWerkgebied(invoer: WerkgebiedInvoer): Promise<Werkgebied> {
+  return json<Werkgebied>(await fetch("/api/werkgebieden", jsonInit("POST", invoer)));
+}
+
+export async function haalWerkgebied(id: string): Promise<Werkgebied> {
+  return json<Werkgebied>(await fetch(wg(id), { cache: "no-store" }));
+}
+
+export async function wijzigWerkgebied(id: string, wijziging: WerkgebiedWijziging): Promise<Werkgebied> {
+  return json<Werkgebied>(await fetch(wg(id), jsonInit("PATCH", wijziging)));
+}
+
+/** Echt wissen, net als een annotatie (`lib/verwijderen.ts`): het werkgebied met alles wat eraan hangt;
+ *  de annotaties blijven. Daarna geeft het een 404 met de verwijderd-stand. */
+export async function verwijderWerkgebied(id: string, verwachteRevisie: number): Promise<void> {
+  const qs = new URLSearchParams({ verwachte_revisie: String(verwachteRevisie) });
+  await json<unknown>(await fetch(`${wg(id)}?${qs}`, { method: "DELETE" }));
+}
+
+/** Neemt een bepaling op. `nieuw` is false als dezelfde bron met dezelfde rol en hetzelfde bereik er
+ *  al stond (de api antwoordt dan 200 in plaats van 201, zonder revisiesprong). */
+export async function voegBronToe(
+  id: string,
+  invoer: BronselectieInvoer,
+): Promise<{ selectie: Bronselectie; werkgebied: Werkgebied; nieuw: boolean }> {
+  const res = await fetch(wg(id, "bronnen"), jsonInit("POST", invoer));
+  const body = await json<{ selectie: Bronselectie; werkgebied: Werkgebied }>(res);
+  return { ...body, nieuw: res.status === 201 };
+}
+
+export async function wijzigBron(
+  id: string,
+  selectieId: string,
+  wijziging: { verwachte_revisie: number; rol?: BronRol; reden?: string },
+): Promise<Werkgebied> {
+  return json<Werkgebied>(await fetch(wg(id, "bronnen", selectieId), jsonInit("PATCH", wijziging)));
+}
+
+export async function verwijderBron(id: string, selectieId: string, verwachteRevisie: number): Promise<Werkgebied> {
+  const qs = new URLSearchParams({ verwachte_revisie: String(verwachteRevisie) });
+  return json<Werkgebied>(await fetch(`${wg(id, "bronnen", selectieId)}?${qs}`, { method: "DELETE" }));
+}
+
+// --- Deelvragen (optioneel; open keuze 4) -------------------------------------------------------------
+// Elke wijziging draagt de revisie in beeld en geeft het werkgebied terug, zoals de bronnen; gebruik ze
+// dus via `muteer` in `WerkgebiedClient`.
+
+export async function maakDeelvraag(id: string, vraag: string, verwachteRevisie: number): Promise<Werkgebied> {
+  return json<Werkgebied>(await fetch(wg(id, "deelvragen"), jsonInit("POST", { vraag, verwachte_revisie: verwachteRevisie })));
+}
+
+/** Eén deelvraag, ook als ze vervangen is: met haar opvolgers en de voorstellen die haar vervangen. */
+export async function haalDeelvraag(id: string, deelvraagId: string): Promise<DeelvraagDetail> {
+  return json<DeelvraagDetail>(await fetch(wg(id, "deelvragen", deelvraagId), { cache: "no-store" }));
+}
+
+export async function wijzigDeelvraag(
+  id: string, deelvraagId: string,
+  wijziging: { vraag?: string; volgorde?: number; status?: "actief" | "afgewezen"; reden?: string },
+  verwachteRevisie: number,
+): Promise<Werkgebied> {
+  return json<Werkgebied>(await fetch(wg(id, "deelvragen", deelvraagId),
+    jsonInit("PATCH", { ...wijziging, verwachte_revisie: verwachteRevisie })));
+}
+
+export async function verwijderDeelvraag(id: string, deelvraagId: string, verwachteRevisie: number): Promise<Werkgebied> {
+  const qs = new URLSearchParams({ verwachte_revisie: String(verwachteRevisie) });
+  return json<Werkgebied>(await fetch(`${wg(id, "deelvragen", deelvraagId)}?${qs}`, { method: "DELETE" }));
+}
+
+/** De hele set: welke bronselecties en begrippen bij deze deelvraag horen. */
+export async function koppelDeelvraag(
+  id: string, deelvraagId: string, koppelingen: { bronnen: string[]; begrippen: string[] }, verwachteRevisie: number,
+): Promise<Werkgebied> {
+  return json<Werkgebied>(await fetch(wg(id, "deelvragen", deelvraagId, "koppelingen"),
+    jsonInit("PUT", { ...koppelingen, verwachte_revisie: verwachteRevisie })));
+}
+
+/** Het thema dat Lex voorstelt, zonder model; faalt stil (`null`). */
+export async function haalThemaVoorstel(id: string): Promise<ThemaVoorstel | null> {
+  try {
+    return await json<ThemaVoorstel>(await fetch(wg(id, "thema-voorstel"), { cache: "no-store" }));
+  } catch {
+    return null;
+  }
+}
+
+export async function haalInventaris(id: string): Promise<Inventaris> {
+  return json<Inventaris>(await fetch(wg(id, "elementen"), { cache: "no-store" }));
+}
+
+export async function haalWerkgebiedAudit(id: string, limit = 100): Promise<WerkgebiedAuditRegel[]> {
+  const res = await fetch(`${wg(id, "audit")}?limit=${limit}`, { cache: "no-store" });
+  return (await json<{ audit: WerkgebiedAuditRegel[] }>(res)).audit;
+}
+
+/** Neemt één bepaling op in een werkgebied vanaf een plek waar dat werkgebied niet in beeld is (de
+ *  annotatiepagina). Er is dus geen revisie in beeld: de actuele wordt opgehaald. Bij een 412 – iemand
+ *  wijzigde het werkgebied tussen ophalen en opnemen – één keer opnieuw, want de bedoeling ("deze
+ *  bepaling, met deze rol, erbij") hangt niet af van de rest van het werkgebied, en opnemen is
+ *  idempotent. Een tweede 412 gaat als fout terug. */
+export async function neemOpInWerkgebied(
+  id: string,
+  invoer: { bron_iri: string; rol: BronRol },
+): Promise<{ werkgebied: Werkgebied; nieuw: boolean }> {
+  for (let poging = 0; ; poging++) {
+    const { revisie } = await haalWerkgebied(id);
+    try {
+      return await voegBronToe(id, { ...invoer, verwachte_revisie: revisie });
+    } catch (e) {
+      if (poging > 0 || !(isApiError(e) && e.status === 412)) throw e;
+    }
+  }
+}
+
+// --- Begrippen over werkgebieden heen (fase F4; alleen lezen) -----------------------------------
+
+export async function zoekBegrippen(params: URLSearchParams): Promise<BegrippenOverzicht> {
+  const qs = params.toString();
+  const uit = await json<BegrippenOverzicht>(await fetch(`/api/begrippen${qs ? `?${qs}` : ""}`, { cache: "no-store" }));
+  if (!Array.isArray(uit?.resultaten)) throw new Error("Onverwacht antwoord van de begrippen.");
+  return uit;
+}
+
+// --- Begrippen (per werkgebied; elke mutatie stuurt de revisie van het begrip in beeld mee) -----
+
+export async function lijstBegrippen(id: string): Promise<BegrippenLijst> {
+  return json<BegrippenLijst>(await fetch(wg(id, "begrippen"), { cache: "no-store" }));
+}
+
+export async function maakBegrip(
+  id: string,
+  invoer: { inhoud: Partial<BegripInhoud> & { naam: string }; element_ids?: string[]; rol?: KoppelRol },
+): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen"), jsonInit("POST", invoer)));
+}
+
+export async function haalBegrip(id: string, begripId: string): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId), { cache: "no-store" }));
+}
+
+/** De api vervangt de hele inhoud; een veld weglaten maakt het leeg. */
+export async function wijzigBegrip(id: string, begripId: string, verwachteRevisie: number, inhoud: BegripInhoud): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId),
+    jsonInit("PATCH", { verwachte_revisie: verwachteRevisie, inhoud })));
+}
+
+export async function verwijderBegrip(id: string, begripId: string, verwachteRevisie: number): Promise<void> {
+  const qs = new URLSearchParams({ verwachte_revisie: String(verwachteRevisie) });
+  await json<unknown>(await fetch(`${wg(id, "begrippen", begripId)}?${qs}`, { method: "DELETE" }));
+}
+
+export async function koppelElementen(
+  id: string,
+  begripId: string,
+  invoer: { verwachte_revisie: number; element_ids: string[]; rol?: KoppelRol; motivatie?: string },
+): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "koppelingen"), jsonInit("POST", invoer)));
+}
+
+export async function wijzigKoppeling(
+  id: string,
+  begripId: string,
+  koppelingId: string,
+  wijziging: { verwachte_revisie: number; rol?: KoppelRol; motivatie?: string; beoordeling?: KoppelBeoordeling },
+): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "koppelingen", koppelingId), jsonInit("PATCH", wijziging)));
+}
+
+export async function ontkoppel(id: string, begripId: string, koppelingId: string, verwachteRevisie: number): Promise<Begrip> {
+  const qs = new URLSearchParams({ verwachte_revisie: String(verwachteRevisie) });
+  return json<Begrip>(await fetch(`${wg(id, "begrippen", begripId, "koppelingen", koppelingId)}?${qs}`, { method: "DELETE" }));
+}
+
+// --- Onderhoud van begrippen (fase F1) ---------------------------------------------------------
+
+/** De begrippen met een geraakte dragende passage (annotatie of wettekst veranderd), per koppeling met
+ *  toen, nu, de opvolgers en wat kan. Vraagt de bronboom, dus net zo traag als de inventaris. */
+export async function haalHerbeoordelingen(id: string, begripId?: string): Promise<Herbeoordelingen | null> {
+  const qs = begripId ? `?${new URLSearchParams({ begrip_id: begripId })}` : "";
+  const h = await json<unknown>(await fetch(`${wg(id, "herbeoordelingen")}${qs}`, { cache: "no-store" }));
+  return isHerbeoordelingen(h) ? h : null;
+}
+
+/** De passage vervangen door haar opvolger; de oude koppeling blijft als historie. */
+export async function herkoppel(id: string, begripId: string, koppelingId: string,
+  body: { verwachte_revisie: number; element_id: string; motivatie?: string }): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "koppelingen", koppelingId, "herkoppelen"),
+    jsonInit("POST", body)));
+}
+
+/** De passage veranderde, maar het begrip klopt nog: een nieuwe bewijsstand naast de oude. */
+export async function bevestigKoppeling(id: string, begripId: string, koppelingId: string,
+  body: { verwachte_revisie: number; motivatie?: string }): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "koppelingen", koppelingId, "bevestigen"),
+    jsonInit("POST", body)));
+}
+
+export async function haalDekking(id: string): Promise<Dekking | null> {
+  const d = await json<unknown>(await fetch(wg(id, "dekking"), { cache: "no-store" }));
+  return isDekking(d) ? d : null;
+}
+
+export async function zetBuitenBehandeling(id: string, body: { element_ids: string[]; reden: string }): Promise<{ element_ids: string[] }> {
+  return json(await fetch(wg(id, "dekking", "buiten-behandeling"), jsonInit("POST", body)));
+}
+
+export async function zetTerugInBehandeling(id: string, elementId: string): Promise<{ element_id: string }> {
+  return json(await fetch(wg(id, "dekking", "buiten-behandeling", elementId), { method: "DELETE" }));
+}
+
+// --- Begripsrelaties en opvolging (fase F2) ---------------------------------------------------
+
+export async function haalRelaties(id: string, begripId?: string): Promise<RelatiesAntwoord | null> {
+  const qs = begripId ? `?${new URLSearchParams({ begrip_id: begripId })}` : "";
+  const r = await json<unknown>(await fetch(`${wg(id, "relaties")}${qs}`, { cache: "no-store" }));
+  return isRelatiesAntwoord(r) ? r : null;
+}
+
+/** Een relatie vastleggen: als akkoord op een voorstel van Lex, of zelf. */
+export async function legRelatieVast(id: string, body: { voorstel_id: string } |
+  { van_begrip: string; naar_begrip: string; type: Exclude<RelatieType, "opvolging">; toelichting?: string }): Promise<RelatiesAntwoord> {
+  return json<RelatiesAntwoord>(await fetch(wg(id, "relaties"), jsonInit("POST", body)));
+}
+
+export async function wijsRelatieAf(id: string, voorstelId: string, reden: string): Promise<RelatiesAntwoord> {
+  return json<RelatiesAntwoord>(await fetch(wg(id, "relaties", "voorstellen", voorstelId, "afwijzen"),
+    jsonInit("POST", { reden })));
+}
+
+export async function bevestigRelatie(id: string, relatieId: string): Promise<RelatiesAntwoord> {
+  return json<RelatiesAntwoord>(await fetch(wg(id, "relaties", relatieId, "bevestigen"), { method: "POST" }));
+}
+
+export async function verwijderRelatie(id: string, relatieId: string): Promise<RelatiesAntwoord> {
+  return json<RelatiesAntwoord>(await fetch(wg(id, "relaties", relatieId), { method: "DELETE" }));
+}
+
+/** Het begrip krijgt een opvolger met inhoud en passages; het zelf wordt vervangen. Geeft de opvolger. */
+export async function geefNieuweBetekenis(id: string, begripId: string, body: { verwachte_revisie: number; reden: string }): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "nieuwe-betekenis"), jsonInit("POST", body)));
+}
+
+/** `begripId` blijft; `ander_begrip_id` wordt vervangen. */
+export async function combineerBegrippen(id: string, begripId: string,
+  body: { verwachte_revisie: number; ander_begrip_id: string; ander_revisie: number; reden: string }): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "combineren"), jsonInit("POST", body)));
+}
+
+export async function accordeerBegrip(id: string, begripId: string, verwachteRevisie: number): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "accorderen"),
+    jsonInit("POST", { verwachte_revisie: verwachteRevisie })));
+}
+
+export async function heropenBegrip(id: string, begripId: string, verwachteRevisie: number): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "heropenen"),
+    jsonInit("POST", { verwachte_revisie: verwachteRevisie })));
+}
+
+export async function haalBegripRevisies(id: string, begripId: string): Promise<BegripRevisie[]> {
+  const res = await fetch(wg(id, "begrippen", begripId, "revisies"), { cache: "no-store" });
+  return (await json<{ revisies: BegripRevisie[] }>(res)).revisies;
+}
+
+/** Het begrippenkader van het werkgebied als bestand; de naam komt van de server. */
+/** `ttl` is de NL-SBB-export (fase F3): standaard alleen geaccordeerde begrippen, `ttl-alle` ook de rest. */
+export async function exporteerBegrippen(id: string, formaat: "json" | "csv" | "ttl" | "ttl-alle"): Promise<void> {
+  const qs = formaat === "ttl-alle" ? new URLSearchParams({ formaat: "ttl", inclusief: "alle" })
+    : new URLSearchParams({ formaat });
+  const res = await fetch(`${wg(id, "begrippen", "export")}?${qs}`, { cache: "no-store" });
+  if (!res.ok) throw await parseError(res);
+  await downloadAntwoord(res, `begrippen.${formaat === "ttl-alle" ? "ttl" : formaat}`);
+}
+
+/** De begrippen voor de samenhangsgraaf (fase F3); `null` als het antwoord niet de verwachte vorm heeft. */
+export async function haalBegripSamenhang(id: string): Promise<BegripSamenhang | null> {
+  const s = await json<unknown>(await fetch(wg(id, "begrippen", "samenhang"), { cache: "no-store" }));
+  return isBegripSamenhang(s) ? s : null;
+}
+
+/** NL-SBB-conformiteit per begrip (fase F3, diagnostisch); `null` als het antwoord niet klopt. */
+export async function haalConformiteit(id: string): Promise<Conformiteit | null> {
+  const c = await json<unknown>(await fetch(wg(id, "begrippen", "conformiteit"), { cache: "no-store" }));
+  return isConformiteit(c) ? c : null;
+}
+
+// --- Voorstellen van Lex (spoor D, levering 3a) -----------------------------------------------
+
+export async function haalLaatsteBegrippenRun(id: string): Promise<BegrippenRun | null> {
+  return (await json<{ run: BegrippenRun | null }>(await fetch(wg(id, "begrippen-runs", "laatste"), { cache: "no-store" }))).run;
+}
+
+export async function haalGroepen(id: string): Promise<GroepenAntwoord> {
+  return json<GroepenAntwoord>(await fetch(wg(id, "groepen"), { cache: "no-store" }));
+}
+
+/** Eén begrip uit één of meer groepen: meer groepen is combineren, een deel van de leden splitsen. */
+export async function neemGroepenOver(
+  id: string,
+  overname: { groep_ids: string[]; naam: string; element_ids?: string[]; met_definitie?: boolean },
+): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "groepen", "overnemen"), jsonInit("POST", overname)));
+}
+
+/** Akkoord op een voorstel (fase D): het begrip met beoordeelde koppelingen, geaccordeerd als de poort
+ *  het toelaat – anders een concept, en `poort` noemt wat er openstaat. */
+export async function akkoordGroep(id: string, invoer: AkkoordInvoer): Promise<AkkoordAntwoord> {
+  return json<AkkoordAntwoord>(await fetch(wg(id, "groepen", "akkoord"), jsonInit("POST", invoer)));
+}
+
+/** Passages van een groep aan een bestaand begrip. `akkoord` vanuit de review: de koppelingen zijn dan
+ *  meteen beoordeeld, en een geaccordeerd begrip blijft geaccordeerd als de poort het toelaat. */
+export async function koppelGroep(
+  id: string, groepId: string, begripId: string, elementIds?: string[], akkoord = false,
+): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "groepen", groepId, "koppelen"),
+    jsonInit("POST", { begrip_id: begripId, ...(elementIds ? { element_ids: elementIds } : {}), ...(akkoord ? { akkoord } : {}) })));
+}
+
+export async function besluitGroep(
+  id: string,
+  groepId: string,
+  besluit: "afwijzen" | "parkeren" | "heropenen",
+  reden = "",
+): Promise<GroepenAntwoord> {
+  return json<GroepenAntwoord>(await fetch(wg(id, "groepen", groepId, besluit), jsonInit("POST", { reden })));
+}
+
+export async function beantwoordVraag(id: string, runId: string, kandidaatId: string, antwoord: "samen" | "apart"): Promise<BegrippenRun> {
+  return json<BegrippenRun>(await fetch(wg(id, "begrippen-runs", runId, "vragen", kandidaatId), jsonInit("POST", { antwoord })));
+}
+
+// --- Lex naast de kaart (spoor D, fase E) ---------------------------------------------------------
+
+export async function haalKaartVoorstellen(id: string, begripId: string): Promise<KaartVoorstellenAntwoord> {
+  return json<KaartVoorstellenAntwoord>(await fetch(wg(id, "begrippen", begripId, "voorstellen"), { cache: "no-store" }));
+}
+
+/** Een voorstel in het begrip. Met `aanpassing` is het van de analist; een veranderde definitie geeft
+ *  409 `voorstel_verouderd` met toen, nu en voorstel – er wordt nooit stil overschreven. */
+export async function neemKaartVoorstelOver(
+  id: string, begripId: string, voorstelId: string, revisie: number,
+  extra: { aanpassing?: string; oordeel?: VoorbeeldOordeel; nu_gezien?: string } = {},
+): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "voorstellen", voorstelId, "overnemen"),
+    jsonInit("POST", { verwachte_revisie: revisie, ...extra })));
+}
+
+export async function wijsKaartVoorstelAf(id: string, begripId: string, voorstelId: string, reden = ""): Promise<KaartVoorstellenAntwoord> {
+  return json<KaartVoorstellenAntwoord>(await fetch(wg(id, "begrippen", begripId, "voorstellen", voorstelId, "afwijzen"),
+    jsonInit("POST", { reden })));
+}
+
+// --- Bronnen vinden met Lex (spoor D, fase A) ---------------------------------------------------
+
+export async function haalLaatsteBronnenRun(id: string): Promise<BronnenRun | null> {
+  return (await json<{ run: BronnenRun | null }>(await fetch(wg(id, "bronnen-runs", "laatste"), { cache: "no-store" }))).run;
+}
+
+/** Wat Lex in dit werkgebied nog moet annoteren, en de stand per bronselectie en per bepaling. Vraagt de
+ *  bronboom uit de graaf, dus traag en soms onvolledig (`volledig`). */
+export async function haalWerkvoorraad(id: string): Promise<import("./werkgebiedPaden").Werkvoorraad> {
+  return json(await fetch(`/api/werkgebieden/${pathSegment(id)}/annotatie-werkvoorraad`, { cache: "no-store" }));
+}
+
+// De bronselectie per deelvraag (spoor J): het overzicht dat paneel en pagina delen, en een besluit over één
+// kandidaat bij één deelvraag. De stappen (openen, afronden) zet Lex in het gesprek; de pagina beslist alleen.
+export async function haalBronselectie(id: string): Promise<BronselectieOverzicht> {
+  const o = parseBronselectie(await json<unknown>(await fetch(wg(id, "bronselectie"), { cache: "no-store" })));
+  if (!o) throw { status: 502, message: "De bronselectie kwam in een onverwachte vorm terug." };
+  return o;
+}
+
+export type BronselectieBesluit =
+  | { besluit: "opnemen"; verwachte_revisie: number; rol?: "analyseren" | "context" }
+  | { besluit: "loskoppelen"; verwachte_revisie: number }
+  | { besluit: "heropenen"; overal?: boolean }
+  | { besluit: "uitsluiten"; reden: string; overal?: boolean };
+
+export async function besluitBronselectie(id: string, deelvraagId: string, kandidaatId: string,
+  besluit: BronselectieBesluit): Promise<BronselectieOverzicht> {
+  const o = parseBronselectie(await json<unknown>(await fetch(wg(id, "bronselectie", deelvraagId, "kandidaten", kandidaatId),
+    jsonInit("POST", besluit))));
+  if (!o) throw { status: 502, message: "De bronselectie kwam in een onverwachte vorm terug." };
+  return o;
+}
+
+export async function haalKandidaten(id: string): Promise<KandidatenAntwoord> {
+  return json<KandidatenAntwoord>(await fetch(wg(id, "kandidaten"), { cache: "no-store" }));
+}
+
+

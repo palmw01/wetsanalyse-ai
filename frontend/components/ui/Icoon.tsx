@@ -37,8 +37,8 @@ function svg(pad: React.ReactNode, className = "", extra?: { fill?: boolean }) {
   );
 }
 
-/** Uitklapper of dropdown. Draai hem met een `rotate-*`-klasse: `-rotate-90` wijst naar links
- *  (terug), `-rotate-180` naar boven (ingeklapt). */
+/** Uitklapper of dropdown. Draai hem met een `rotate-*`-klasse: `-rotate-90` wijst naar rechts
+ *  (ingeklapt, verder), `rotate-90` naar links (terug), `-rotate-180` naar boven. */
 export function ChevronOmlaag({ className = "" }: IcoonProps) {
   return svg(<path d="M4 6l4 4 4-4" />, className);
 }
@@ -58,6 +58,17 @@ export function Waarschuwing({ className = "" }: IcoonProps) {
 /** Afgehandeld, aanwezig, gelukt. */
 export function Vinkje({ className = "" }: IcoonProps) {
   return svg(<path d="M3 8.5 6.5 12 13 4.5" />, className);
+}
+
+/** Verwijderen: een prullenbak. */
+export function Prullenbak({ className = "" }: IcoonProps) {
+  return svg(
+    <>
+      <path d="M2.5 4.5h11M6.5 4.5V3a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v1.5" />
+      <path d="M4 4.5l.7 8.6a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9l.7-8.6M6.8 7v4.5M9.2 7v4.5" />
+    </>,
+    className,
+  );
 }
 
 /** Neutraal, onbepaald – er valt niets te melden of niets te controleren. */
@@ -114,6 +125,11 @@ export function Richten({ className = "" }: IcoonProps) {
 }
 
 /** Sluiten of wissen (klein kruis, voor in een regel). */
+/** Verder: een pijl naar rechts (*Volgende →*). */
+export function PijlRechts({ className = "" }: IcoonProps) {
+  return svg(<path d="M3 8h10M9 4l4 4-4 4" />, className);
+}
+
 export function Kruis({ className = "" }: IcoonProps) {
   return svg(<path d="m4 4 8 8M12 4l-8 8" />, className);
 }
@@ -121,4 +137,32 @@ export function Kruis({ className = "" }: IcoonProps) {
 /** Terug naar het begin: een pijl die omkeert. */
 export function Terug({ className = "" }: IcoonProps) {
   return svg(<path d="M5.5 3.5 2.5 6.5l3 3M2.5 6.5H10a3.5 3.5 0 0 1 0 7H7" />, className);
+}
+
+/** Drie puntjes: meer handelingen. */
+export function Meer({ className = "" }: IcoonProps) {
+  return svg(
+    <>
+      <circle cx="3.5" cy="8" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="8" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="12.5" cy="8" r="1.1" fill="currentColor" stroke="none" />
+    </>,
+    className,
+  );
+}
+
+/** Een map: een werkgebied in de navigatie. */
+export function Mapje({ className = "" }: IcoonProps) {
+  return svg(<path d="M2 4.5a1 1 0 0 1 1-1h3.2l1.4 1.5H13a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z" />, className);
+}
+
+/** Een archiefdoos: archiveren en het archief. */
+export function Archief({ className = "" }: IcoonProps) {
+  return svg(
+    <>
+      <rect x="2" y="3" width="12" height="3" rx="0.6" />
+      <path d="M3.2 6v6.5a.5.5 0 0 0 .5.5h8.6a.5.5 0 0 0 .5-.5V6M6.5 9h3" />
+    </>,
+    className,
+  );
 }

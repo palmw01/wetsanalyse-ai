@@ -14,7 +14,7 @@ import type { ReactNode } from "react";
  *  genoeg (40px, 44px op een aanraakscherm) en een zachte achtergrond bij hover laat zien dat het
  *  een knop is. */
 export const TOPBAR_KNOP =
-  "focus-ring inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-button text-lint transition-colors hover:bg-surface coarse:h-11 coarse:w-11";
+  "focus-ring inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lint transition-colors hover:bg-surface coarse:h-11 coarse:w-11";
 
 export function MobieleTopbar({
   titel,

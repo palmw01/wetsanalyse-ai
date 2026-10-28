@@ -5,15 +5,17 @@ import { describe, expect, it } from "vitest";
 
 import {
   artefactActie, BUBBEL_MARGE, domineert, heeftOmvang, hervatIndex, indexVan, klikGat, LEGE_STAND,
-  maskRechthoeken, moetStarten, uitsnede, zichtbaarDeel,
+  maskRechthoeken, moetStarten, toetsActie, uitsnede, zichtbaarDeel, type ToetsContext,
   plaatsBubbel, RONDLEIDING_VERSIE, STAPPEN, vraagtArtefact, zichtbareStappen, type Vak,
 } from "./rondleiding";
 import {
-  DEMO_SLUG, demoBron, maakDemoDocument, maakDemoScene, pasDemoBeslissingToe,
-  voegDemoElementToe, wisDemoElement, zetDemoStatus,
+  DEMO_DOEL, DEMO_LEDEN, DEMO_SAMENVATTING, DEMO_SLUG, maakDemoOpslag, maakDemoScene, maakDemoWeergave,
+  pasDemoBeslissingToe, voegDemoElementToe, wisDemoElement, zetDemoStatus,
 } from "./rondleidingDemo";
 import { vindPositie } from "./selectie";
 import { BESLIST_LIFECYCLES } from "./annotatie";
+import { documentVanNode, nodeBronVan, nogOngedekt, ongedektVanNode } from "./annotatieNodeAdapter";
+import { segmentAnker } from "./annotatieNode";
 
 describe("de stappenlijst", () => {
   it("heeft unieke ids", () => {
@@ -81,55 +83,134 @@ describe("moetStarten", () => {
 });
 
 describe("de voorbeeldscène", () => {
+  /** De weergave zoals het paneel hem ziet: door dezelfde adapter als echt werk. */
+  const alsPaneel = () => {
+    const view = maakDemoWeergave();
+    const nb = nodeBronVan(view);
+    return { view, nb, doc: documentVanNode(view, nb) };
+  };
+
+  it("draagt de letterlijke wettekst per lid", () => {
+    const { view } = alsPaneel();
+    expect(view.segmenten.map((s) => s.tekst)).toEqual(DEMO_LEDEN.map((l) => l.tekst));
+  });
+
   it("markeert uitsluitend fragmenten die letterlijk in de wettekst staan", () => {
-    const doc = maakDemoDocument();
-    const bron = demoBron();
-    const bezet: { start: number; eind: number }[] = [];
+    const { view, nb, doc } = alsPaneel();
+    // Elk anker raakt in zijn eigen lid precies de tekst van het element, in codepoints.
+    for (const el of view.elementen) {
+      expect(el.ankers, `${el.klasse} – "${el.tekst}"`).toHaveLength(1);
+      const [a] = el.ankers;
+      const segment = view.segmenten.find((s) => s.bron_iri === a.bron_iri)!;
+      expect(Array.from(segment.tekst).slice(a.start, a.eind).join("")).toBe(el.tekst);
+    }
+    // En via de adapter staat elke markering in het paneel op haar plek: geen zwevende.
     for (const el of doc.elementen) {
       expect(el.anker, `${el.klasse} – "${el.tekst}"`).not.toBeNull();
-      // Zelfde terugvindweg als het documentpaneel: staat de markering niet, dan zweeft hij.
-      const pos = vindPositie(bron, el.tekst, el.anker, bezet);
-      expect(pos, `${el.klasse} – "${el.tekst}"`).toBeGreaterThanOrEqual(0);
-      bezet.push({ start: pos, eind: pos + el.tekst.length });
+      expect(vindPositie(nb.bron, el.tekst, el.anker, []), `${el.klasse} – "${el.tekst}"`).toBeGreaterThanOrEqual(0);
     }
   });
 
-  it("laat de markeringen niet overlappen", () => {
-    const bereiken = maakDemoDocument()
-      .elementen.map((el) => el.anker!)
-      .sort((a, b) => a.start - b.start);
-    for (let i = 1; i < bereiken.length; i++) {
-      expect(bereiken[i].start).toBeGreaterThanOrEqual(bereiken[i - 1].eind);
-    }
+  it("is de annotatie van artikel 9 lid 1 op acceptatie, met één gele kaart", () => {
+    // Alleen lid 1: een beurt annoteert één lid. De markeringen overlappen zoals bij echt werk – het
+    // Rechtsfeit is de hele zin, de andere drie liggen erbinnen.
+    const view = maakDemoWeergave();
+    expect(view.segmenten.map((s) => s.nummer)).toEqual(["1"]);
+    expect(view.elementen.map((e) => [e.klasse, e.tekst])).toEqual([
+      ["Rechtsfeit", DEMO_LEDEN[0].tekst],
+      ["Rechtsobject", "Een belastingaanslag"],
+      ["Tijdsaanduiding", "zes weken na de dagtekening van het aanslagbiljet"],
+      ["Rechtsobject", "het aanslagbiljet"],
+    ]);
+    expect(view.elementen.filter((e) => e.aandacht === "geel").map((e) => e.klasse)).toEqual(["Rechtsfeit"]);
+    expect(view.elementen.every((e) => (e.alternatieven ?? []).length > 0)).toBe(true);
   });
 
   it("begint met alles nog te beoordelen", () => {
-    const doc = maakDemoDocument();
-    expect(doc.elementen.length).toBeGreaterThan(5);
+    const { doc } = alsPaneel();
+    expect(doc.elementen.length).toBe(4);
     expect(doc.elementen.every((el) => !BESLIST_LIFECYCLES.includes(el.lifecycle))).toBe(true);
+    expect(doc.status).toBe("in_review");
   });
 
-  it("toont alle drie de aandachtniveaus", () => {
-    const niveaus = new Set(maakDemoDocument().elementen.map((el) => el.aandacht));
-    expect(niveaus).toEqual(new Set(["groen", "geel", "rood"]));
+  it("toont de aandacht zoals de keten haar zet: geen badge en geel, nooit rood", () => {
+    const niveaus = new Set(maakDemoWeergave().elementen.map((el) => el.aandacht));
+    expect(niveaus).toEqual(new Set([null, "geel"]));
   });
 
-  it("levert een thread met een annotatie die naar het voorbeelddocument wijst", () => {
+  it("vat de voorstellen samen zoals graph-qa dat doet", () => {
+    // Dezelfde tellingen als `agent/nodes/annotatie_samenvatting.py`, uit de demo zelf.
+    const els = maakDemoWeergave().elementen;
+    const door = (e: (typeof els)[number]) => e.trace?.beslissing?.door;
+    const keuze = els.filter((e) => e.aandacht === "geel" || door(e) === "terugval").length;
+    const vast = els.filter((e) => door(e) === "regel").length;
+    const model = els.filter((e) => door(e) === "model").length;
+    const getal = ["", "één", "twee", "drie", "vier", "vijf", "zes", "zeven", "acht", "negen", "tien", "elf"];
+    expect(DEMO_SAMENVATTING).toContain(`${getal[els.length]} JAS-elementen gevonden`);
+    expect(keuze).toBe(1);
+    expect(DEMO_SAMENVATTING).toContain("Eén voorstel heeft een plausibel alternatief");
+    expect([vast, model]).toEqual([0, els.length]);
+    expect(DEMO_SAMENVATTING).toContain("Alle voorstellen koos het model.");
+    // Hoogstens twee klassen, elk minstens twee keer (zoals graph-qa).
+    const telling = new Map<string, number>();
+    for (const e of els) telling.set(e.klasse, (telling.get(e.klasse) ?? 0) + 1);
+    const top = [...telling.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).filter(([, n]) => n >= 2).map(([k]) => k);
+    expect(DEMO_SAMENVATTING).toContain(`vooral ${top.join(" en ")}.`);
+  });
+
+  it("heeft, zoals op acceptatie, geen ongedekt zinsdeel", () => {
+    const { view, nb, doc } = alsPaneel();
+    expect(nogOngedekt(ongedektVanNode(view, nb), doc.elementen, nb.bron)).toEqual([]);
+  });
+
+  it("biedt bij een termijn een andere grens aan", () => {
+    const { doc } = alsPaneel();
+    const termijn = doc.elementen.find((e) => e.tekst.startsWith("zes weken"))!;
+    expect(termijn.grensopties?.map((o) => o.tekst)).toEqual(["zes weken"]);
+  });
+
+  it("draagt in elk spoor alleen codes die de keten kent", () => {
+    const yaml = readFileSync(
+      new URL("../../tools/graph-qa/agent/jas_pipeline/verklaringen.yaml", import.meta.url).pathname,
+      "utf-8",
+    );
+    for (const el of maakDemoWeergave().elementen) {
+      const t = el.trace!;
+      const codes = [
+        ...(t.kandidaat?.bewijs ?? []).map((b) => b.code),
+        ...(t.twijfel ?? []).map((x) => x.reden),
+        ...(t.resolutie ?? []).map((r) => r.regel),
+        t.beslissing?.door ?? "",
+      ];
+      for (const code of codes) expect(yaml, `${el.tekst}: ${code}`).toMatch(new RegExp(`^  ${code}:`, "m"));
+    }
+  });
+
+  it("levert een thread met een annotatie die het paneel op de voorbeeldweergave opent", () => {
     const scene = maakDemoScene();
     const chip = scene.items.find((i) => i.type === "annotatie");
     expect(chip).toBeDefined();
     expect(chip!.type === "annotatie" && chip!.slug).toBe(DEMO_SLUG);
-    expect(scene.docs[DEMO_SLUG]).toBeDefined();
-    expect(scene.infos[DEMO_SLUG]).toBeDefined();
+    // Met een bronnode: dan opent het echte paneel (`NodeAnnotatiePaneel`), niet het oude slug-pad.
+    expect(chip!.type === "annotatie" && chip!.annotatie_doel).toEqual(DEMO_DOEL);
+    expect(scene.opslag.levend).toBe(false);
   });
 
   it("draagt overal het voorbeeld-label", () => {
     const scene = maakDemoScene();
-    expect(scene.docs[DEMO_SLUG].citeertitel).toContain("VOORBEELD");
+    expect(alsPaneel().doc.citeertitel).toContain("VOORBEELD");
+    expect(DEMO_DOEL.label).toContain("VOORBEELD");
     const chip = scene.items.find((i) => i.type === "annotatie");
     expect(chip!.type === "annotatie" && chip!.titel).toContain("VOORBEELD");
     // Ook de sidebar-lijst: die staat naast de echte gesprekken van de gebruiker.
     for (const g of scene.gesprekken) expect(g.titel).toContain("VOORBEELD");
+  });
+
+  it("wijst een eigen iri aan, nooit een uit de graaf", () => {
+    const view = maakDemoWeergave();
+    for (const iri of [view.doel.bron_iri, ...view.segmenten.map((s) => s.bron_iri)]) {
+      expect(iri.startsWith("demo:")).toBe(true);
+    }
   });
 
   it("levert een gevulde gesprekkenlijst voor de sidebar", () => {
@@ -141,53 +222,74 @@ describe("de voorbeeldscène", () => {
   });
 
   it("bouwt elke keer een schone lei", () => {
-    const eerste = maakDemoDocument();
-    const beslist = pasDemoBeslissingToe(eerste, eerste.elementen[0].id, { type: "approve", comment: "" });
+    const eerste = maakDemoWeergave();
+    const beslist = pasDemoBeslissingToe(eerste, eerste.elementen[0].id, { type: "approve" });
     expect(beslist.elementen[0].lifecycle).toBe("human_approved");
     // Het origineel blijft ongemoeid, en een volgende start begint weer bij nul.
     expect(eerste.elementen[0].lifecycle).toBe("voorgesteld");
-    expect(maakDemoDocument().elementen[0].lifecycle).toBe("voorgesteld");
+    expect(maakDemoWeergave().elementen[0].lifecycle).toBe("voorgesteld");
   });
 });
 
 describe("de demo-mutaties", () => {
   it("verwerpt een voorstel zonder het te wissen", () => {
-    const doc = maakDemoDocument();
-    const na = pasDemoBeslissingToe(doc, doc.elementen[1].id, {
-      type: "reject", comment: "", review_reason: "verkeerde_klasse",
-    });
-    expect(na.elementen).toHaveLength(doc.elementen.length);
+    const view = maakDemoWeergave();
+    const na = pasDemoBeslissingToe(view, view.elementen[1].id, { type: "reject", review_reason: "verkeerde_klasse" });
+    expect(na.elementen).toHaveLength(view.elementen.length);
     expect(na.elementen[1].lifecycle).toBe("rejected");
+    expect(na.elementen[1].beslissingen?.at(-1)?.type).toBe("reject");
   });
 
-  it("neemt een klassewijziging over", () => {
-    const doc = maakDemoDocument();
-    const na = pasDemoBeslissingToe(doc, doc.elementen[0].id, {
-      type: "edit", comment: "", wijziging: { klasse: "Rechtssubject" },
-    });
+  it("neemt een klassewijziging over en verhoogt de revisie van de laag", () => {
+    const view = maakDemoWeergave();
+    const el = view.elementen[0];
+    const na = pasDemoBeslissingToe(view, el.id, { type: "edit", wijziging: { klasse: "Rechtssubject" } });
     expect(na.elementen[0].klasse).toBe("Rechtssubject");
     expect(na.elementen[0].lifecycle).toBe("edited");
     expect(na.elementen[0].gewijzigd_door).toBe("mens");
+    const revisie = (v: typeof view) => v.lagen.find((l) => l.bron_iri === el.eigenaar_iri)!.revisie;
+    expect(revisie(na)).toBe(revisie(view) + 1);
   });
 
   it("zet een eigen markering er meteen goedgekeurd bij en wist hem weer", () => {
-    const doc = maakDemoDocument();
-    const bron = demoBron();
-    const { doc: bij, id } = voegDemoElementToe(doc, {
-      klasse: "Rechtsobject", tekst: "het aanslagbiljet", lid: "1", toelichting: "",
-      anker: { lid: "1", start: 0, eind: 16, voor: "", na: "", bron_hash: "" },
+    const view = maakDemoWeergave();
+    const lid1 = view.segmenten[0];
+    const start = lid1.tekst.indexOf("het aanslagbiljet");
+    const anker = segmentAnker(lid1, start, start + "het aanslagbiljet".length);
+    const { view: bij, id } = voegDemoElementToe(view, {
+      klasse: "Rechtsobject", toelichting: "", tekst: anker.tekst, ankers: [anker],
     });
-    expect(bron.length).toBeGreaterThan(0);
-    expect(bij.elementen).toHaveLength(doc.elementen.length + 1);
+    expect(bij.elementen).toHaveLength(view.elementen.length + 1);
     expect(bij.elementen.at(-1)!.lifecycle).toBe("human_approved");
     expect(bij.elementen.at(-1)!.herkomst).toBe("mens");
-    expect(wisDemoElement(bij, id).elementen).toHaveLength(doc.elementen.length);
+    expect(bij.elementen.at(-1)!.eigenaar_iri).toBe(lid1.bron_iri);
+    expect(wisDemoElement(bij, id).elementen).toHaveLength(view.elementen.length);
   });
 
-  it("rondt af en heropent", () => {
-    const doc = maakDemoDocument();
-    expect(zetDemoStatus(doc, "geaccordeerd").status).toBe("geaccordeerd");
-    expect(zetDemoStatus(zetDemoStatus(doc, "geaccordeerd"), "in_review").status).toBe("in_review");
+  it("rondt een laag af en heropent hem", () => {
+    const view = maakDemoWeergave();
+    const laag = view.lagen[0].id;
+    expect(zetDemoStatus(view, laag, "geaccordeerd").lagen[0].status).toBe("geaccordeerd");
+    expect(zetDemoStatus(zetDemoStatus(view, laag, "geaccordeerd"), laag, "in_review").lagen[0].status).toBe("in_review");
+  });
+
+  it("houdt de stand vast in de opslag en geeft kopieën", async () => {
+    const opslag = maakDemoOpslag();
+    const voor = await opslag.weergave(DEMO_DOEL);
+    await opslag.beslis(voor.elementen[0].id, { type: "approve" });
+    const na = await opslag.weergave(DEMO_DOEL);
+    expect(na.elementen[0].lifecycle).toBe("human_approved");
+    // Wat het paneel kreeg, verandert niet onder zijn handen.
+    expect(voor.elementen[0].lifecycle).toBe("voorgesteld");
+  });
+
+  it("toont na verwijderen een verwijderde annotatie", async () => {
+    const opslag = maakDemoOpslag();
+    await opslag.verwijder({});
+    const na = await opslag.weergave(DEMO_DOEL);
+    expect(na.elementen).toEqual([]);
+    expect(na.lagen).toEqual([]);
+    expect(na.verwijderd?.op).toBeTruthy();
   });
 });
 
@@ -521,5 +623,71 @@ describe("de dimlaag laat het gat echt door", () => {
   it("animeert de dimvlakken niet", () => {
     // Een vlak dat 150 ms lang naar zijn nieuwe plek beweegt, dekt in die tijd nog de oude af.
     expect(bubbel).not.toMatch(/pointer-events-auto absolute bg-ink\/55 transition/);
+  });
+});
+
+describe("de openen-stap", () => {
+  const openen = STAPPEN.find((s) => s.id === "artefact-openen")!;
+
+  it("laat de kaart zelf aanklikken", () => {
+    // Zonder interactie lag er een klikvanger over de kaart, terwijl de tekst om een klik vroeg; een
+    // timer opende het paneel daarna vanzelf. Dat was de rondleiding die "zelf doorliep".
+    expect(openen.interactie).toBe("openen");
+    expect(klikGat(openen, { top: 400, left: 300, breedte: 500, hoogte: 60 }, 14)).not.toBeNull();
+  });
+
+  it("opent het paneel zelf nog niet", () => {
+    expect(openen.artefactOpen).toBeUndefined();
+  });
+
+  it("heeft geen timer meer in de motor", () => {
+    const motor = readFileSync(
+      new URL("../components/rondleiding/Rondleiding.tsx", import.meta.url).pathname,
+      "utf-8",
+    );
+    expect(motor).not.toMatch(/setTimeout\(onOpenArtefact/);
+  });
+});
+
+describe("welke toets de rondleiding stuurt", () => {
+  const basis: ToetsContext = {
+    key: "Enter", inBubbel: false, nergens: true, opBediening: false, interactief: false,
+    alAfgevangen: false,
+  };
+  const t = (extra: Partial<ToetsContext>) => toetsActie({ ...basis, ...extra });
+
+  it("gaat verder met Enter op de kop van de bubbel of zonder focus", () => {
+    expect(t({ inBubbel: true, nergens: false })).toBe("volgende");
+    expect(t({})).toBe("volgende");
+  });
+
+  it("laat Enter op een knop aan die knop", () => {
+    // Enter op *Vorige* ging een stap vooruit, en Enter op *Overslaan* sloeg niets over.
+    expect(t({ inBubbel: true, nergens: false, opBediening: true })).toBeNull();
+  });
+
+  it("bladert met de pijltjes, ook als een knop in de bubbel de focus heeft", () => {
+    expect(t({ key: "ArrowRight", inBubbel: true, nergens: false, opBediening: true })).toBe("volgende");
+    expect(t({ key: "ArrowLeft", inBubbel: true, nergens: false, opBediening: true })).toBe("vorige");
+  });
+
+  it("blijft in een interactieve stap van de werkplek af", () => {
+    // In "Jij beslist" keurde Enter op *Akkoord* niets goed: de rondleiding sprong door.
+    const inWerkplek = { nergens: false, interactief: true, opBediening: true };
+    expect(t({ ...inWerkplek })).toBeNull();
+    expect(t({ ...inWerkplek, key: "ArrowRight" })).toBeNull();
+    expect(t({ ...inWerkplek, key: "Escape" })).toBeNull();
+    // Zonder focus ook niet: daar typ je net j, k of a.
+    expect(t({ interactief: true, key: "ArrowRight" })).toBeNull();
+  });
+
+  it("sluit met Escape vanuit de bubbel, maar niet als iemand anders hem al afving", () => {
+    expect(t({ key: "Escape", inBubbel: true, nergens: false })).toBe("sluiten");
+    // Het klassepalet en een scherpe BevestigKnop vangen Escape in de capture-fase.
+    expect(t({ key: "Escape", inBubbel: true, nergens: false, alAfgevangen: true })).toBeNull();
+  });
+
+  it("negeert andere toetsen", () => {
+    expect(t({ key: "a", inBubbel: true, nergens: false })).toBeNull();
   });
 });

@@ -20,6 +20,7 @@ Een onbereikbare graaf is nooit "alles in orde": dan is `graaf_beschikbaar` Fals
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -63,7 +64,21 @@ async def _haal_graph(client: httpx.AsyncClient, iri: str) -> Graph:
     if r.status_code == 404:
         return Graph()
     r.raise_for_status()
-    return Graph().parse(data=r.text, format="turtle")
+    return await asyncio.to_thread(_parse, r.text)
+
+
+# Rekenwerk met rdflib (parsen, bouwen, isomorfie, SHACL) is pure Python en duurt per laag al snel
+# honderden milliseconden. Het draait daarom in een thread: de lus deelt de event loop met elk verzoek
+# van de api, en synchroon hield één ronde van de controle ruim een halve minuut alles vast (acceptatie,
+# 28 okt 2026: elk scherm wachtte, tot een 504 van de BFF).
+
+def _parse(tekst: str) -> Graph:
+    return Graph().parse(data=tekst, format="turtle")
+
+
+def _vergelijk(verwacht: Graph, echt: Graph) -> dict[str, int] | None:
+    """None als de graphs isomorf zijn, anders `_verschil`."""
+    return None if isomorphic(verwacht, echt) else _verschil(verwacht, echt)
 
 
 async def _postgres() -> tuple[list[dict], dict[str, tuple[list[dict], dict]]]:
@@ -108,13 +123,13 @@ async def _controleer_laag(client: httpx.AsyncClient, laag: dict, invoer: tuple[
     if graaf_rev != Literal(rev):
         afw.append({"laag_id": lid, "soort": "graphrevisie", "detail": {"postgres": rev, "graph": str(graaf_rev)}})
     els, dekking = invoer
-    verwacht = bouw_graaf(laag, els, dekking=dekking)
-    if not isomorphic(verwacht, echt):
-        afw.append({"laag_id": lid, "soort": "inhoud_wijkt_af", "detail": _verschil(verwacht, echt)})
+    verschil = await asyncio.to_thread(lambda: _vergelijk(bouw_graaf(laag, els, dekking=dekking), echt))
+    if verschil is not None:
+        afw.append({"laag_id": lid, "soort": "inhoud_wijkt_af", "detail": verschil})
     if not shacl:
         return None, afw, None
     from .shacl import valideer
-    r = valideer(echt)
+    r = await asyncio.to_thread(valideer, echt)
     bevindingen = [{"laag_id": lid, "niveau": niveau, **b} for niveau in ("rdf", "jas_model") for b in r.get(niveau, [])] \
         if r["beschikbaar"] and not r["conform"] else []
     return None, afw, {"beschikbaar": r["beschikbaar"], "conform": r["conform"], "bevindingen": bevindingen}
@@ -156,11 +171,50 @@ async def controleer_laag(laag_id: str, *, shacl: bool = True) -> dict[str, Any]
     return uit
 
 
+_BEGRIPPEN_SCHOON = '''ASK { GRAPH ?g { ?s ?p ?o }
+  FILTER(STRSTARTS(STR(?g), "urn:wa:graph:") && isIRI(?s) && STRSTARTS(STR(?s), "urn:bwb:")) }'''
+
+
+async def _controleer_begrippen(client: httpx.AsyncClient, shacl: bool) -> dict[str, Any]:
+    """De begrippengraphs (fase F3): register-hash tegen Postgres, isomorfie met `bouw_graaf`, verweesde
+    graphs, de schone-wettekstinvariant, en – met `shacl` – hoeveel begrippen niet NL-SBB-conform zijn.
+    Dat laatste is diagnostisch (een concept zonder definitie is gewoon nog niet af) en telt niet mee
+    voor `in_orde`. Een afwijkende hash heet achterstand: de lus haalt die in."""
+    from . import begrip_projectie as bp
+
+    stand = await bp.postgres_stand()
+    reg = {r["id"]: r for r in await _select(client, bp._REGISTER_QUERY)}
+    graphs = {r["g"] for r in await _select(client, bp._GRAPHS_QUERY)}
+    uit: dict[str, Any] = {"werkgebieden": len(stand), "achterstand": [], "afwijkingen": [], "verweesd": [],
+                           "invariant_schoon": not await _ask(client, _BEGRIPPEN_SCHOON), "nl_sbb_niet_conform": None}
+    niet_conform = 0
+    for wid, inv in sorted(stand.items()):
+        if reg.get(wid, {}).get("hash") != bp.invoer_hash(inv):
+            uit["achterstand"].append({"werkgebied_id": wid})
+            continue
+        if str(bp.graph_iri(wid)) not in graphs:
+            uit["afwijkingen"].append({"werkgebied_id": wid, "soort": "graph_ontbreekt"})
+            continue
+        echt = await _haal_graph(client, str(bp.graph_iri(wid)))
+        verschil = await asyncio.to_thread(lambda: _vergelijk(bp.bouw_graaf(inv), echt))
+        if verschil is not None:
+            uit["afwijkingen"].append({"werkgebied_id": wid, "soort": "inhoud_wijkt_af", "detail": verschil})
+        if shacl:
+            c = await asyncio.to_thread(bp.conformiteit, echt)
+            niet_conform += sum(v["conform"] is False for v in c["begrippen"].values())
+    prefix = str(bp.graph_iri(""))
+    uit["verweesd"] = sorted({w for w in reg if w not in stand}
+                             | {g[len(prefix):] for g in graphs if g[len(prefix):] not in stand})
+    if shacl:
+        uit["nl_sbb_niet_conform"] = niet_conform
+    return uit
+
+
 async def controleer(*, shacl: bool = True) -> dict[str, Any]:
     """Volledige controle. `shacl=False` voor de lichte variant in de reconcile-lus."""
     uit: dict[str, Any] = {"graaf_beschikbaar": False, "in_orde": None, "lagen": 0, "achterstand": [],
                            "afwijkingen": [], "verweesd": [], "invarianten": {}, "vocabulaire": None,
-                           "shacl": None}
+                           "shacl": None, "begrippen": None}
     lagen, elementen = await _postgres()
     uit["lagen"] = len(lagen)
     if not get_settings().graphdb_url:
@@ -195,6 +249,7 @@ async def controleer(*, shacl: bool = True) -> dict[str, Any]:
                 f"ASK {{ GRAPH <{VOCABULAIRE}> {{ <{VOCAB_SCHEMA}> <{JAS.vocabulaireVersie}> {_lit(versie)} }} }}"))}
             if shacl:
                 uit["shacl"] = shacl_uit
+            uit["begrippen"] = await _controleer_begrippen(client, shacl)
     except (httpx.HTTPError, ConnectionError, ValueError) as exc:
         logger.warning("graafcontrole_onbeschikbaar", extra={"fouttype": type(exc).__name__})
         uit["graaf_beschikbaar"] = False
@@ -202,7 +257,9 @@ async def controleer(*, shacl: bool = True) -> dict[str, Any]:
         return uit
     uit["in_orde"] = (not uit["afwijkingen"] and not uit["verweesd"] and all(uit["invarianten"].values())
                       and uit["vocabulaire"]["aanwezig"]
-                      and (not shacl or uit["shacl"]["conform"] is not False))
+                      and (not shacl or uit["shacl"]["conform"] is not False)
+                      and not uit["begrippen"]["afwijkingen"] and not uit["begrippen"]["verweesd"]
+                      and uit["begrippen"]["invariant_schoon"])
     return uit
 
 
@@ -215,7 +272,9 @@ async def log_stand() -> dict[str, Any]:
         return {}
     if uit["graaf_beschikbaar"]:
         aantal = (len(uit["afwijkingen"]) + len(uit["verweesd"]) + sum(not v for v in uit["invarianten"].values())
-                  + (not uit["vocabulaire"]["aanwezig"]))
+                  + (not uit["vocabulaire"]["aanwezig"])
+                  + len(uit["begrippen"]["afwijkingen"]) + len(uit["begrippen"]["verweesd"])
+                  + (not uit["begrippen"]["invariant_schoon"]))
         (logger.warning if aantal else logger.info)("annotatie_graafcontrole", extra={
             "annotatie_graaf_afwijking": aantal, "lagen": uit["lagen"], "achterstand": len(uit["achterstand"])})
     return uit

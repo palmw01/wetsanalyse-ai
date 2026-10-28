@@ -61,11 +61,13 @@ zelf zijn lokaal.
 | Wat moeten we nog doen? | [`PLAN.md`](PLAN.md) | plan |
 | Hoe werkt de annotatieketen nu? | [`architectuur/annotatieketen.md`](architectuur/annotatieketen.md) | specificatie |
 | Hoe werken het annotatiedomein en de graaf? | [`architectuur/annotatie-bronnodes.md`](architectuur/annotatie-bronnodes.md) + [`wetsanalyse-workbench/jas-annotatie-ontologie.md`](wetsanalyse-workbench/jas-annotatie-ontologie.md) | specificatie |
+| Hoe werkt de bronselectie per deelvraag? | [`architectuur/bronselectie-per-deelvraag.md`](architectuur/bronselectie-per-deelvraag.md) | specificatie |
 | Wat is de projectmethode en hoe landt die in de agents? | [`wetsanalyse/methode-onderzoek.md`](wetsanalyse/methode-onderzoek.md) + de skill | specificatie |
 | Wat is er gemeten? | [`architectuur/metingen/README.md`](architectuur/metingen/README.md) | meting |
 | Hoe valideren we juridisch? | [`architectuur/onderzoek-empirische-validatie.md`](architectuur/onderzoek-empirische-validatie.md) + [`wetsanalyse/referentieset/`](wetsanalyse/referentieset/README.md) | onderzoek |
 | Wat biedt INT-terminologie voor activiteit 2 en 3? | [Volledig onderzoek als HTML-pagina](wetsanalyse/onderzoek-int-terminologie-2026-10-08/index.html) · [dossier van 8 oktober 2026](wetsanalyse/onderzoek-int-terminologie-2026-10-08/README.md), met alle hulpmiddelen en relevante concepten | onderzoek |
-| Waarom is het zo ontworpen? | [ADR-001](architectuur/adr-001-hybride-jas-pijplijn.md), [ADR-002](architectuur/adr-002-taalprovider.md) | besluit |
+| Hoe vindt een werkgebied zijn bronnen, en welke taalpatronen helpen bij begrippen? | [`architectuur/onderzoek-werkgebied-en-begrippen-2026-10.md`](architectuur/onderzoek-werkgebied-en-begrippen-2026-10.md) | onderzoek |
+| Waarom is het zo ontworpen? | [ADR-001](architectuur/adr-001-hybride-jas-pijplijn.md), [ADR-002](architectuur/adr-002-taalprovider.md), [ADR-003](architectuur/adr-003-nl-sbb-begrippencontract.md), [ADR-004](architectuur/adr-004-begrippenketen.md), [ADR-005](architectuur/adr-005-vraag-lex-en-agents.md) | besluit |
 | Hoe praat Lex? | [`schrijfrichtlijn-lex.md`](schrijfrichtlijn-lex.md) | specificatie |
 
 Toelichting bij enkele documenten:
@@ -82,7 +84,10 @@ Toelichting bij enkele documenten:
   `urn:jas:graph:v2:<laag-id>`. De api is de waarheid over lifecycle, beslissingen en dekking; de
   graaf is een projectie.
 - **ADR-001** is uitgevoerd: de hybride keten is de enige annotatieroute. **ADR-002** legt de
-  taalprovider vast (spaCy, `nl_core_news_md`).
+  taalprovider vast (spaCy, `nl_core_news_md`). **ADR-003** maakt NL-SBB het datacontract
+  voor begrippen vanaf levering 2 van spoor D; de begrippen staan er sinds levering 2, nog zonder
+  NL-SBB-projectie (levering 4). **ADR-004** ontwerpt de
+  begrippenketen die betekenisgroepen voorstelt; in uitvoering.
 - **`onderzoek-empirische-validatie.md`** bevat de fouttaxonomie v2, de metrics, het
   adjudicatieprotocol en de stopcriteria (§18). V1–V6 zijn uitgevoerd, V7 is open.
 - **`architectuur/metingen/`** is bewijs: meetbestanden worden niet achteraf gewijzigd. Het

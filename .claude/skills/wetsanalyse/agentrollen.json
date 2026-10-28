@@ -69,6 +69,31 @@
         "P09",
         "P12"
       ]
+    },
+    "deelvragen": {
+      "bestand": "references/deelvragen-en-bronnen.md",
+      "bronnen": [
+        "M03",
+        "P13",
+        "P14"
+      ]
+    },
+    "begrippen": {
+      "bestand": "references/begrippen.md",
+      "bronnen": [
+        "M01",
+        "M04",
+        "P15"
+      ]
+    },
+    "nl-sbb-taalniveau": {
+      "bestand": "references/nl-sbb-en-b1.md",
+      "bronnen": [
+        "M11",
+        "M12",
+        "M13",
+        "P16"
+      ]
     }
   },
   "rollen": {
@@ -82,7 +107,8 @@
     ],
     "definitie": [
       "basis",
-      "definitie"
+      "definitie",
+      "nl-sbb-taalniveau"
     ],
     "duiding": [
       "basis",
@@ -97,7 +123,17 @@
       "synthese"
     ],
     "algemeen": [
-      "basis"
+      "basis",
+      "nl-sbb-taalniveau"
+    ],
+    "deelvragen": [
+      "basis",
+      "deelvragen"
+    ],
+    "begrippen": [
+      "basis",
+      "begrippen",
+      "nl-sbb-taalniveau"
     ]
   }
 }

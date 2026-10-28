@@ -12,18 +12,26 @@ import type {
 export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecution[] } & (
   // `nietVerstuurd`: de vraag is bewaard maar niet aangenomen (er liep al een beurt). Hij blijft in
   // beeld omdat hij na herladen tóch terugkomt – wat je ziet moet kloppen met wat er bewaard is.
-  | { id: string; type: "user"; tekst: string; over?: string; nietVerstuurd?: boolean }
+  | { id: string; type: "user"; tekst: string; over?: string; nietVerstuurd?: boolean;
+      // Een klik op een vraagkaartje (activiteit 1): geen bubbel, het antwoord staat in de Vragen-kaart.
+      antwoordOp?: import("./vraagkaart").AntwoordOp;
+      // Het antwoord op een bevestiging erboven (de knop of *Annuleren*): het voorstel is afgehandeld.
+      bevestigingKeuze?: import("./werkgebiedAnnoteren").BevestigingKeuze }
   | { id: string; type: "antwoord"; tekst: string; denk?: string; bronnen?: Bron[];
       // De brongetrouwheidstoets van déze beurt. Live; hij reist niet mee in het berichtcontract,
       // maar de statusregel ervan staat wél in `denk` en blijft dus na herladen terug te vinden.
       grounding?: AgentGrounding;
       // Het overzicht van een onderwerp, uit de graaf (graph-qa `agent/overzicht.py`): de werkplek
       // toont het als blok onder de duiding, en de graafknop opent er de delen van.
-      overzicht?: Overzicht }
+      overzicht?: Overzicht;
+      // Lex stelt voor het werkgebied te annoteren (fase B): de knop eronder start de run.
+      bevestiging?: import("./types").Bevestiging;
+      // Een vraag van Lex bij het samenstellen van een werkgebied (activiteit 1): het kaartje eronder.
+      vraagkaart?: import("./vraagkaart").Vraagkaart }
   // `denk` = de tijdlijn van het samenspel (supervisor → ophaal → annoteer → emit). Die blijft ook
   // bewaard als de beurt een annotatie blijkt; juist bij een annotatie wil je achteraf kunnen zien
   // hoe hij tot stand kwam.
-  // `titel` komt uit het bericht zelf (`annotatie_titel`), niet uit het document: er is geen foreign
+  // `titel` komt uit het bericht zelf (de titel van het artefact), niet uit het document: er is geen foreign
   // key, dus na het verwijderen van het document is dit het enige dat de kaart nog kan benoemen.
   | {
       id: string; type: "annotatie"; slug: string; titel?: string;
@@ -35,7 +43,13 @@ export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecu
       /** De bepaling, zodat "Lex opnieuw laten annoteren" hem kan meegeven. */
       doel?: AgentDoelInvoer;
       annotatie_doel?: import("./annotatieNode").NodeDoel;
+      /** De meting van deze ronde: live uit het `run`-event, na herladen uit `Bericht.dekking`. */
+      meting?: import("./types").BeurtMeting;
     }
+  // Een ander artefact dan een annotatie (begripsvoorstellen, later afleidingsregels): een beurt van
+  // Lex met een chip die het artefactpaneel van die soort opent (`lib/artefact.ts`). Een annotatie
+  // blijft hierboven, met haar eigen hergebruik, opnieuw-knop en meting.
+  | { id: string; type: "artefact"; artefact: import("./artefact").Artefact; tekst?: string; denk?: string }
   // De vraag noemde een onderwerp: de agent vond bepalingen, de jurist kiest er één.
   // `keuze` gezet: de onderdelen van één bepaling (leden, subbepalingen) of een dubbelzinnig nummer.
   | { id: string; type: "kandidaten"; tekst: string; kandidaten: AgentKandidaat[]; keuze?: AgentKeuze }

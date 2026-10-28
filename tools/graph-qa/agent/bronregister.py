@@ -15,7 +15,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
-from .tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN
+from .tools.begrip_tools import AFGELEIDE_TOOL_NAMEN
 
 MAX_ITEMS = 24
 MAX_TEKENS = 60_000
@@ -32,7 +32,7 @@ def bij(register: list[Any] | None, trace: list[Any] | None) -> list[list[str]]:
     gezien = {_sleutel(t) for _, t in uit}
     for naam, tekst in trace or []:
         tekst = str(tekst or "")
-        if (not tekst.strip() or naam in ANNOTATIE_TOOL_NAMEN or tekst.startswith("Fout bij tool")
+        if (not tekst.strip() or naam in AFGELEIDE_TOOL_NAMEN or tekst.startswith("Fout bij tool")
                 or _sleutel(tekst) in gezien):
             continue
         gezien.add(_sleutel(tekst))
