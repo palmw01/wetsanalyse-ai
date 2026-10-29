@@ -24,7 +24,8 @@ import httpx
 from . import annotatie_v2_store as store
 from .bron_resolver import haal_bronrijen, snapshot_uit
 from .graaf_projectie_v2 import _select
-from .samenhang import _PREFIXES, Knoop, Relatie, _label, _verwijsmetadata, bronknoop, markeringen, verwijzingen
+from .samenhang import (_PER_VERWIJZING, _PREFIXES, Knoop, Relatie, _label, _verwijsmetadata, bronknoop, markeringen,
+                        verwijzingen)
 
 logger = logging.getLogger(__name__)
 
@@ -49,12 +50,12 @@ def _toestanden_query(bwbs: list[str]) -> str:
 def _verwijzingen_query(bwb: str) -> str:
     """Alle verwijzingen ván deze regeling, uit haar eigen named graph (zonder LIMIT: de graaf is het
     doel, niet één artikel). Het label van het doel komt uit de hele graaf."""
-    return _PREFIXES + f"""SELECT ?van ?naar ?anker ?label ?stub ?type ?nummer ?tekst ?begrip WHERE {{
-  GRAPH <urn:bwb:graph:{bwb}> {{ ?van bwb:heeftVerwijzing ?v . ?v bwb:naar ?naar . OPTIONAL {{ ?v bwb:ankerTekst ?anker }} }}
-  OPTIONAL {{ ?naar rdfs:label ?label }}
-  OPTIONAL {{ ?naar bwb:doelLabel ?stub }}
+    return _PREFIXES + f"""SELECT ?van ?naar {_PER_VERWIJZING} WHERE {{
+  GRAPH <urn:bwb:graph:{bwb}> {{ ?van bwb:heeftVerwijzing ?v . ?v bwb:naar ?naar . OPTIONAL {{ ?v bwb:ankerTekst ?a }} }}
+  OPTIONAL {{ ?naar rdfs:label ?l }}
+  OPTIONAL {{ ?naar bwb:doelLabel ?s }}
   {_verwijsmetadata('naar')}
-}} ORDER BY ?van ?naar"""
+}} GROUP BY ?van ?naar ORDER BY ?van ?naar"""
 
 
 # De structuur van een regeling (knopen + citeertitel) apart van haar verwijzingen: de plek van een

@@ -61,6 +61,7 @@ zelf zijn lokaal.
 | Wat moeten we nog doen? | [`PLAN.md`](PLAN.md) | plan |
 | Hoe werkt de annotatieketen nu? | [`architectuur/annotatieketen.md`](architectuur/annotatieketen.md) | specificatie |
 | Hoe werken het annotatiedomein en de graaf? | [`architectuur/annotatie-bronnodes.md`](architectuur/annotatie-bronnodes.md) + [`wetsanalyse-workbench/jas-annotatie-ontologie.md`](wetsanalyse-workbench/jas-annotatie-ontologie.md) | specificatie |
+| Hoe heten en verwijzen ongenummerde onderdelen (`–`, `•`)? | [`architectuur/ongenummerde-onderdelen.md`](architectuur/ongenummerde-onderdelen.md) | specificatie |
 | Hoe werkt de bronselectie per deelvraag? | [`architectuur/bronselectie-per-deelvraag.md`](architectuur/bronselectie-per-deelvraag.md) | specificatie |
 | Wat is de projectmethode en hoe landt die in de agents? | [`wetsanalyse/methode-onderzoek.md`](wetsanalyse/methode-onderzoek.md) + de skill | specificatie |
 | Wat is er gemeten? | [`architectuur/metingen/README.md`](architectuur/metingen/README.md) | meting |

@@ -39,10 +39,22 @@ def test_ongenummerde_onderdelen_hebben_presentatie_buiten_bronidentiteit():
     assert before["nodes"] == after["nodes"]
     assert before["segmenten"] == after["segmenten"]
     assert "negatieve voorlopige aanslag" in after["doel"]["label"]
-    assert after["presentatie"][ROOT + ":id:a"] == "Onderdeel — aanslag; negatieve voorlopige aanslag"
+    assert after["presentatie"][ROOT + ":id:a"] == "Onderdeel — negatieve voorlopige aanslag; aanslag"
     assert before["presentatie"][ROOT + ":id:a"] != before["presentatie"][ROOT + ":id:ander"]
     assert bronlabel({"type": "Onderdeel", "nummer": "a.", "label": "Onderdeel a.", "tekst": "Definitie: tekst"}) == "Onderdeel a."
     assert bronlabel({"type": "Onderdeel", "nummer": "•", "label": "Onderdeel •", "tekst": ""}) == "Onderdeel •"
+
+
+def test_bronlabel_zet_het_nummer_achter_elk_kaal_label_en_nooit_dubbel():
+    """Bewuste keuze (ook Lid en Divisie, anders dan het oude `samenhang._label`): wat de detailkop al deed."""
+    from bronmodel import bronlabel
+    assert bronlabel({"type": "Hoofdstuk", "label": "Hoofdstuk", "nummer": "V"}) == "Hoofdstuk V"
+    assert bronlabel({"type": "Lid", "label": "Lid", "nummer": "1"}) == "Lid 1"
+    assert bronlabel({"type": "Divisie", "label": "Divisie", "nummer": "1.1.2"}) == "Divisie 1.1.2"
+    assert bronlabel({"type": "Artikel", "label": "Artikel 9", "nummer": "9"}) == "Artikel 9"
+    assert bronlabel({"type": "Divisie", "label": "1.1.2", "nummer": "1.1.2"}) == "1.1.2"
+    lang = bronlabel({"type": "Onderdeel", "nummer": "–", "label": "Onderdeel –", "tekst": "a " * 200})
+    assert len(lang) == len("Onderdeel — ") + 100 and lang.endswith("…")
 
 
 def test_lid_selection_keeps_xml_identity_and_subtree_without_sibling():

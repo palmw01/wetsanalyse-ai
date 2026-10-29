@@ -180,8 +180,14 @@ Hieronder wat je moet weten om de code te wijzigen.
   cache onder `(bwb_id, bwb:toestandUrl)`: een herimport met een nieuwe toestand ververst vanzelf.
   Markeringen komen altijd vers (`store.actuele_elementen`). `versie` = hash van de toestanden; daarop
   cachet de werkplek de layout. Een BWB-id gaat letterlijk een query in en wordt strikt gevalideerd.
-  Het label van een deel krijgt zijn nummer (`_label`: de bronboom draagt "Hoofdstuk" en "II" apart);
-  bewust hier en niet in `bronmodel`, waar het de snapshot-identiteit van bestaande lagen zou raken.
+  Het label van een knoop is `bronmodel.bronlabel` (via `_label`): een kaal label krijgt zijn nummer (de
+  bronboom draagt "Hoofdstuk" en "II", "Lid" en "1" apart) en een ongenummerd onderdeel (`–`, `•`) heet naar
+  zijn begrippen of het begin van zijn tekst. Die namen staan in `snapshot.presentatie`, **buiten** de
+  gehashte bronnodes, zodat ze de snapshot-identiteit van bestaande lagen niet raken; `_structuur` zet ze
+  als `presentatie_label` alleen in de graafcache. De verwijzingsqueries (`_uitgaand`, `_inkomend`,
+  `graaf._verwijzingen_query`) geven **één rij per verwijzing** (`GROUP BY ?van ?naar`, de begrippen
+  samengevoegd, de tekst ingekort): de LIMIT telt verwijzingen, en een randknoop krijgt zijn soort uit zijn
+  RDF-type (onbekend: `extern`). Zie `docs/architectuur/ongenummerde-onderdelen.md`.
   **`POST /plaatsen`** (`graaf.plaatsen`, hoogstens 500 `bron_iris`) geeft per bepaling de regeling en het pad
   eronder (hoofdstuk/afdeling/divisie › artikel › lid › onderdeel) met `_label` en `volgorde`, om in de
   werkplek te groeperen (spoor H). De structuur per regeling staat in een eigen cache op `(bwb_id,

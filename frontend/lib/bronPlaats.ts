@@ -3,6 +3,7 @@
 // (`POST /v1/annotatie/plaatsen`, uit de bronboom); zonder plek valt de boom terug op wat de IRI zelf zegt
 // (`vindplaatsVan`). Zuiver, zodat vitest het zonder DOM toetst.
 
+import { OPSOMMINGSTEKENS } from "./bronNummer";
 import { vindplaatsVan } from "./samenhang";
 
 export interface PlaatsStap { iri: string; type: string; nummer: string; label: string }
@@ -13,9 +14,12 @@ export interface Plaats {
   volgorde: number | null;
 }
 
-/** Actuele bronnaam uit de graaf, ook voor selecties met een ouder opgeslagen label. */
+/** Actuele bronnaam uit de graaf voor een selectie onder een ongenummerd onderdeel: het opgeslagen label zegt daar
+ *  alleen "Onderdeel –". Elke andere selectie houdt haar eigen label, met het opschrift van een structuurdeel. */
 export function labelVanPlaats(plaats: Plaats | undefined): string | undefined {
-  if (!plaats?.pad.length) return undefined;
+  if (!plaats?.pad.some((p) => p.type === "Onderdeel" && (!p.nummer.trim() || OPSOMMINGSTEKENS.has(p.nummer.trim())))) {
+    return undefined;
+  }
   const begin = plaats.pad.findIndex((p) => p.type === "Artikel" || p.type === "Divisie");
   const pad = plaats.pad.slice(Math.max(0, begin)).map((p) => p.label).filter(Boolean).join(", ");
   if (!pad) return undefined;

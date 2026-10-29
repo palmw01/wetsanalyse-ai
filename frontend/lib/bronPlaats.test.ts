@@ -17,6 +17,13 @@ describe("bouwBoom", () => {
     expect(labelVanPlaats(p)).toBe("Leidraad Invordering 2008 – Artikel 1, 1.1, 1.1.2, Onderdeel — negatieve voorlopige aanslag");
     expect(labelVanPlaats(undefined)).toBeUndefined();
   });
+  it("laat elk ander opgeslagen label staan, ook het opschrift van een structuurdeel", () => {
+    expect(labelVanPlaats(plaats(`${IW}:hoofdstuk:V`, [["Hoofdstuk", "Hoofdstuk V"]], 1))).toBeUndefined();
+    expect(labelVanPlaats(plaats(`${IW}:artikel:9:lid:1`, [["Artikel", "Artikel 9"], ["Lid", "Lid 1"]], 2))).toBeUndefined();
+    const genummerd = plaats(`${IW}:artikel:9:onderdeel:a`, [["Artikel", "Artikel 9"], ["Onderdeel", "Onderdeel a."]], 3);
+    genummerd.pad[1].nummer = "a.";
+    expect(labelVanPlaats(genummerd)).toBeUndefined();
+  });
   it("regeling › hoofdstuk › artikel › lid, in de volgorde van de wet", () => {
     const iris = [`${IW}:artikel:28:lid:2`, `${IW}:artikel:9:lid:1`, `${IW}:artikel:9:lid:2`];
     const plaatsen = new Map([

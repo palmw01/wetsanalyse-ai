@@ -12,6 +12,9 @@ describe("bronnen per deelvraag (spoor K/L)", () => {
       .toEqual({ bepaling: "Hoofdstuk V – Invorderingsrente", regeling: "Invorderingswet 1990" });
     expect(bepalingEnRegeling("Invorderingswet 1990 – artikel 9"))
       .toEqual({ bepaling: "artikel 9", regeling: "Invorderingswet 1990" });
+    // Een onderdeelnaam uit de brontekst kan zelf een gedachtestreepje dragen.
+    expect(bepalingEnRegeling("Leidraad Invordering 2008 – Artikel 1, 1.1, Onderdeel — termijn: de periode – of een deel"))
+      .toEqual({ bepaling: "Artikel 1, 1.1, Onderdeel — termijn: de periode – of een deel", regeling: "Leidraad Invordering 2008" });
     expect(bepalingEnRegeling("urn:bwb:x")).toEqual({ bepaling: "urn:bwb:x", regeling: "" });
     expect(bepalingEnRegeling("Wet A – Wet B")).toEqual({ bepaling: "Wet A – Wet B", regeling: "" });
     expect([ookBijZin([]), ookBijZin([2]), ookBijZin([2, 3, 4])])

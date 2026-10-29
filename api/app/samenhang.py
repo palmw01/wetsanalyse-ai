@@ -107,35 +107,44 @@ def plaats(iri: str) -> dict[str, str]:
 
 def _uitgaand(iris: list[str]) -> str:
     waarden = " ".join(f"<{i}>" for i in iris)
-    return _PREFIXES + f"""SELECT DISTINCT ?van ?naar ?anker ?label ?stub ?type ?nummer ?tekst ?begrip WHERE {{
+    return _PREFIXES + f"""SELECT ?van ?naar {_PER_VERWIJZING} WHERE {{
   VALUES ?van {{ {waarden} }}
   ?van bwb:heeftVerwijzing ?v . ?v bwb:naar ?naar .
-  OPTIONAL {{ ?v bwb:ankerTekst ?anker }}
-  OPTIONAL {{ ?naar rdfs:label ?label }}
-  OPTIONAL {{ ?naar bwb:doelLabel ?stub }}
+  OPTIONAL {{ ?v bwb:ankerTekst ?a }}
+  OPTIONAL {{ ?naar rdfs:label ?l }}
+  OPTIONAL {{ ?naar bwb:doelLabel ?s }}
   {_verwijsmetadata('naar')}
-}} LIMIT {MAX_VERWIJZINGEN + 1}"""
+}} GROUP BY ?van ?naar LIMIT {MAX_VERWIJZINGEN + 1}"""
 
 
 def _inkomend(iris: list[str]) -> str:
     waarden = " ".join(f"<{i}>" for i in iris)
-    return _PREFIXES + f"""SELECT DISTINCT ?van ?naar ?anker ?label ?type ?nummer ?tekst ?begrip WHERE {{
+    return _PREFIXES + f"""SELECT ?van ?naar {_PER_VERWIJZING} WHERE {{
   VALUES ?naar {{ {waarden} }}
   {{ ?van bwb:verwijstNaar ?naar . }}
-  UNION {{ ?v bwb:naar ?naar . ?van bwb:heeftVerwijzing ?v . OPTIONAL {{ ?v bwb:ankerTekst ?anker }} }}
+  UNION {{ ?v bwb:naar ?naar . ?van bwb:heeftVerwijzing ?v . OPTIONAL {{ ?v bwb:ankerTekst ?a }} }}
   FILTER(STRSTARTS(STR(?van), "urn:bwb:"))
-  OPTIONAL {{ ?van rdfs:label ?label }}
+  OPTIONAL {{ ?van rdfs:label ?l }}
   {_verwijsmetadata('van')}
-}} LIMIT {MAX_VERWIJZINGEN + 1}"""
+}} GROUP BY ?van ?naar LIMIT {MAX_VERWIJZINGEN + 1}"""
+
+
+# Eén rij per verwijzing: een doel met meer begrippen telt anders meer keer mee tegen de LIMIT. De tekst is
+# alleen voor de naam van een ongenummerd onderdeel (`bronlabel`) en gaat daarom ingekort mee.
+BEGRIP_SCHEIDING = "|"
+_PER_VERWIJZING = (
+    "(SAMPLE(?a) AS ?anker) (SAMPLE(?l) AS ?label) (SAMPLE(?s) AS ?stub) (SAMPLE(?t) AS ?type) "
+    "(SAMPLE(?n) AS ?nummer) (SAMPLE(SUBSTR(?x, 1, 200)) AS ?tekst) "
+    f'(GROUP_CONCAT(DISTINCT COALESCE(?b, ""); separator="{BEGRIP_SCHEIDING}") AS ?begrip)')
 
 
 def _verwijsmetadata(variabele: str) -> str:
     """Werkelijk brontype en presentatiedata; een XML-IRI zegt niets over het type."""
     types = " ".join("bwb:" + t for t in TYPEN)
-    return f"""OPTIONAL {{ VALUES ?type {{ {types} }} ?{variabele} a ?type }}
-  OPTIONAL {{ ?{variabele} bwb:nummer ?nummer }}
-  OPTIONAL {{ ?{variabele} bwb:tekst ?tekst }}
-  OPTIONAL {{ ?{variabele} bwb:definieertBegrip ?begrip }}"""
+    return f"""OPTIONAL {{ VALUES ?t {{ {types} }} ?{variabele} a ?t }}
+  OPTIONAL {{ ?{variabele} bwb:nummer ?n }}
+  OPTIONAL {{ ?{variabele} bwb:tekst ?x }}
+  OPTIONAL {{ ?{variabele} bwb:definieertBegrip ?b }}"""
 
 
 async def _verwijzingen(iris: list[str]) -> tuple[list[dict], list[dict]] | None:
@@ -203,7 +212,7 @@ def verwijzingen(rijen: list[tuple[str, dict]], knopen: dict[str, Knoop]) -> lis
             kind = next((t for t in reversed(TYPEN) if t in typen), "")
             node = {"type": kind, "nummer": r.get("nummer", ""), "tekst": r.get("tekst", ""),
                     "label": r.get("label") or r.get("stub") or buiten.removeprefix("urn:bwb:")}
-            label = bronlabel(node, [rij["begrip"] for rij in metadata if rij.get("begrip")])
+            label = bronlabel(node, [b for rij in metadata for b in (rij.get("begrip") or "").split(BEGRIP_SCHEIDING)])
             knopen[buiten] = Knoop(id=buiten, soort=_SOORT.get(kind, "deel") if kind else "extern",
                                    label=label, rand=True, **plaats(buiten))
         relaties.append(Relatie(bron=van, doel=naar, soort="verwijst_naar", groep="verwijzingen",

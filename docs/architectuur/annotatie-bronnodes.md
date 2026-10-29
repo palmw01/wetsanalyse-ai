@@ -17,6 +17,8 @@ Een weergave omvat alleen de gekozen subtree. Elementen met ankers die deels bui
 
 Snapshots bevatten de hele canonieke bronboom. De snapshot-ID hangt niet van de geselecteerde node af. Dekking wordt op de structuur en hashes van het betreffende bereik gecontroleerd: een wijziging in een ander lid maakt ongewijzigde dekking niet ongeldig. Een succesvol voltooid leeg resultaat is wel dekking; een afgebroken run niet. Los behandelde kinderen bewijzen niet dat de context van hun ouder beoordeeld is.
 
+Naast de nodes draagt een snapshot `presentatie`: per bron-IRI de leesbare naam (`bronmodel.bronlabel`). Die staat buiten de canonieke JSON waarover de snapshot-ID gaat, dus een betere naam verandert geen bronstand, geen `bron_hash` en geen anker. Een snapshot wordt één keer bewaard; een eerder bewaarde snapshot met dezelfde ID houdt zijn oude namen (of geen), en wie `presentatie` leest, valt daarom terug op `bronlabel`. Zie [`ongenummerde-onderdelen.md`](ongenummerde-onderdelen.md).
+
 ## Opslag en projectie
 
 PostgreSQL is de bron voor lagen, elementen, snapshots, beoordelingen, dekking en audit. Batches zijn idempotent op batch-ID plus payload/actor; gewijzigde herhaling geeft conflict. De verwachte revisies beschermen tegen overschrijven. Elke geslaagde schrijftransactie sluit af met één auditregel `revisie` per laag die ze raakte (kolom `laag_id`, detail `{revisie, acties}`); `GET /v1/annotatie/lagen/{laag_id}/revisies` geeft die historie, nieuwste eerst. Het is een logboek van wie wat wanneer deed, geen terugblik: de inhoud van een laag in een eerdere revisie wordt niet bewaard. Een database-slot serialiseert schrijftransacties over API-processen heen; een batch of eigenaarverplaatsing wordt volledig gecommit of teruggedraaid.

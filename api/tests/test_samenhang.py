@@ -91,6 +91,51 @@ def test_queries_beperken_zich_tot_de_scope():
     parseQuery(samenhang._inkomend([ONE]))
 
 
+def _verwijsgraaf():
+    """Twee verwijzingen vanaf ONE; het eerste doel definieert drie begrippen en draagt een lange tekst."""
+    from rdflib import Dataset, Literal, Namespace, URIRef
+    from rdflib.namespace import RDF
+    bwb = Namespace("urn:bwb-ns:")
+    doel, ander = URIRef(ART + ":onderdeel:x"), URIRef(ANDER)
+    ds = Dataset(default_union=True)  # zoals GraphDB: de default graph is de unie
+    g = ds.graph(URIRef("urn:bwb:graph:BWBR0004770"))
+    for i, naar in enumerate([doel, ander]):
+        v = URIRef(f"urn:bwb:BWBR0004770:verwijzing:{i}")
+        g.add((URIRef(ONE), bwb.heeftVerwijzing, v))
+        g.add((v, bwb.naar, naar))
+        g.add((v, bwb.ankerTekst, Literal(f"anker {i}")))
+    g.add((doel, RDF.type, bwb.Onderdeel))
+    g.add((doel, bwb.nummer, Literal("–")))
+    g.add((doel, bwb.tekst, Literal("negatieve voorlopige aanslag: " + "x" * 500)))
+    for begrip in ("aanslag", "negatieve voorlopige aanslag", "voorlopige aanslag"):
+        g.add((doel, bwb.definieertBegrip, Literal(begrip)))
+    g.add((ander, RDF.type, bwb.Artikel))
+    g.add((ander, URIRef("http://www.w3.org/2000/01/rdf-schema#label"), Literal("Artikel 10")))
+    return ds, str(doel)
+
+
+def _rijen(ds, query: str) -> list[dict]:
+    return [{k: str(v) for k, v in r.asdict().items()} for r in ds.query(query)]
+
+
+def test_een_rij_per_verwijzing_ook_bij_meer_begrippen_op_het_doel():
+    """De LIMIT telt verwijzingen: begrippen worden samengevoegd, niet vermenigvuldigd tot rijen."""
+    from app import graaf
+    ds, doel = _verwijsgraaf()
+    uit = _rijen(ds, samenhang._uitgaand([ONE]))
+    assert sorted(r["naar"] for r in uit) == sorted([doel, ANDER])
+    rij = next(r for r in uit if r["naar"] == doel)
+    assert set(rij["begrip"].split(samenhang.BEGRIP_SCHEIDING)) == {
+        "aanslag", "negatieve voorlopige aanslag", "voorlopige aanslag"}
+    assert len(rij["tekst"]) == 200, "de tekst gaat alleen ingekort mee"
+    assert len(_rijen(ds, samenhang._inkomend([doel]))) == 1
+    assert len(_rijen(ds, graaf._verwijzingen_query("BWBR0004770"))) == 2
+    knopen = {}
+    samenhang.verwijzingen([("uit", r) for r in uit], knopen)
+    assert knopen[doel].soort == "onderdeel"
+    assert knopen[doel].label == "Onderdeel — negatieve voorlopige aanslag; voorlopige aanslag; aanslag"
+
+
 def test_xml_onderdeel_als_randknoop_gebruikt_rdf_type_en_eigen_identiteit():
     iri = "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie1%2FCirculaire.divisie1.1%2FCirculaire.divisie1.1.2%2FTekst%2FOnderdeel._10"
     nodes = {}
