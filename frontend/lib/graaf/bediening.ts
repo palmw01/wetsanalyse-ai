@@ -6,7 +6,7 @@ import { voegToe, type GraafModel, type KnoopData, type KnoopSoort, type Relatie
 
 export const SOORT_LABEL: Record<KnoopSoort, string> = {
   regeling: "Regeling", deel: "Structuur", artikel: "Artikel", lid: "Lid", onderdeel: "Onderdeel",
-  markering: "Markering", klasse: "JAS-klasse", extern: "Niet-geïmporteerde bepaling", begrip: "Begrip",
+  markering: "Markering", klasse: "JAS-klasse", extern: "Bepaling (type onbekend)", begrip: "Begrip",
 };
 
 const normaal = (s: string) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLocaleLowerCase("nl");

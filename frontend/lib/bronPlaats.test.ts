@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { bladerenVan, bouwBoom, omvangZin, regelingUitLabel, rijenPerRegeling, type Plaats } from "./bronPlaats";
+import { bladerenVan, bouwBoom, labelVanPlaats, omvangZin, regelingUitLabel, rijenPerRegeling, type Plaats } from "./bronPlaats";
 
 const IW = "urn:bwb:BWBR0004770";
 const plaats = (iri: string, pad: [string, string][], volgorde: number, bwb = "BWBR0004770", titel = "Invorderingswet 1990"): Plaats => ({
@@ -9,6 +9,14 @@ const plaats = (iri: string, pad: [string, string][], volgorde: number, bwb = "B
 });
 
 describe("bouwBoom", () => {
+  it("ververst een opgeslagen onderdeelnaam uit het volledige graafpad", () => {
+    const p = plaats("urn:bwb:BWBR0024096:id:Onderdeel._10", [
+      ["Divisie", "Artikel 1"], ["Divisie", "1.1"], ["Divisie", "1.1.2"],
+      ["Onderdeel", "Onderdeel — negatieve voorlopige aanslag"],
+    ], 10, "BWBR0024096", "Leidraad Invordering 2008");
+    expect(labelVanPlaats(p)).toBe("Leidraad Invordering 2008 – Artikel 1, 1.1, 1.1.2, Onderdeel — negatieve voorlopige aanslag");
+    expect(labelVanPlaats(undefined)).toBeUndefined();
+  });
   it("regeling › hoofdstuk › artikel › lid, in de volgorde van de wet", () => {
     const iris = [`${IW}:artikel:28:lid:2`, `${IW}:artikel:9:lid:1`, `${IW}:artikel:9:lid:2`];
     const plaatsen = new Map([

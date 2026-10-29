@@ -11,6 +11,19 @@ import { blokkenVan } from "./wetstructuur";
 
 const W = "urn:bwb:BWBR0004770:artikel:9";
 
+it("laat streepjesonderdelen zonder extra punt zien en houdt selecties op de kale nodetekst", () => {
+  const iri = "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie1.1.2%2FTekst%2FOnderdeel._10";
+  const s = seg(iri, "Onderdeel", "–", "negatieve voorlopige aanslag: de aanslag tot een negatief bedrag;", 1);
+  const nb = nodeBronVan(weergave([s]));
+  expect(nb.bron).toBe(`– ${s.tekst}`);
+  const start = nb.bron.indexOf("een negatief bedrag");
+  const [a] = nodeAnkersUitSelectie(nb, start, start + "een negatief bedrag".length);
+  expect(a.bron_iri).toBe(iri);
+  expect(a.tekst).toBe("een negatief bedrag");
+  expect(s.tekst.slice(a.start, a.eind)).toBe(a.tekst);
+  expect(a.bron_hash).toBe(s.bron_hash);
+});
+
 function seg(bron_iri: string, type: string, nummer: string, tekst: string, volgorde: number): NodeSegment {
   return { bron_iri, type, nummer, tekst, volgorde, label: `${type} ${nummer}`, bron_hash: `h-${volgorde}` };
 }

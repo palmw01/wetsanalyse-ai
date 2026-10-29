@@ -19,6 +19,8 @@ import {
   type BronselectieOverzicht, type DeelvraagSelectie, type KandidaatHier,
 } from "@/lib/bronselectie";
 import { bepalingEnRegeling, ookBijZin } from "@/lib/bronnenPerDeelvraag";
+import { labelVanPlaats } from "@/lib/bronPlaats";
+import { usePlaatsen } from "@/lib/usePlaatsen";
 import type { BronRol, Bronselectie, Werkgebied } from "@/lib/types";
 import { ROL_LABEL, isRevisieConflict } from "@/lib/werkgebied";
 import { bronPad, deelvraagPad, historiePad, selectieStand, voorstellenPad, type Werkvoorraad } from "@/lib/werkgebiedPaden";
@@ -54,7 +56,17 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
   filter?: { past: (s: Bronselectie | undefined, label: string, rol: BronRol) => boolean; actief: boolean };
   versie?: number;
 }) {
-  const [o, setO] = useState<BronselectieOverzicht | null>(null);
+  const [ruw, setO] = useState<BronselectieOverzicht | null>(null);
+  const plaatsen = usePlaatsen([
+    ...(beheer?.wg.bronnen ?? []).map((b) => b.bron_iri),
+    ...(ruw?.deelvragen ?? []).flatMap((d) => [...d.bronnen, ...d.kandidaten].map((b) => b.bron_iri)),
+    ...(ruw?.zonder_deelvraag ?? []).map((b) => b.bron_iri),
+  ]);
+  const bronNaam = (iri: string, label: string) => labelVanPlaats(plaatsen?.get(iri)) || label || iri;
+  const o = ruw && { ...ruw, deelvragen: ruw.deelvragen.map((d) => ({ ...d,
+    bronnen: d.bronnen.map((b) => ({ ...b, label: bronNaam(b.bron_iri, b.label) })),
+    kandidaten: d.kandidaten.map((b) => ({ ...b, label: bronNaam(b.bron_iri, b.label) })),
+  })) };
   const [fout, setFout] = useState<string | null>(null);
   const [melding, setMelding] = useState<string | null>(null);
   const [poging, setPoging] = useState(0);
@@ -97,7 +109,7 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
   // Zonder de stand per deelvraag staan op de tab en de deelvraagpagina toch de bronnen van het werkgebied: een
   // storing kost de indeling, niet de lijst.
   if (fout && beheer && !deelvraagId) {
-    const bronnen = beheer.wg.bronnen.filter((s) => !filter?.actief || filter.past(s, s.label, s.rol));
+    const bronnen = beheer.wg.bronnen.filter((s) => !filter?.actief || filter.past(s, bronNaam(s.bron_iri, s.label), s.rol));
     return (
       <div data-bronnen-bij-deelvraag className="space-y-4 text-sm text-ink">
         {beheer.wg.bronnen.length > 0 && (
@@ -112,7 +124,7 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
           leeg={beheer.wg.bronnen.length ? "Geen bronnen gevonden."
             : "Nog geen bronnen. Neem een bepaling op, of bepaal ze per deelvraag met Lex in het gesprek."}>
           {bronnen.map((s) => (
-            <BronRij key={s.id} werkgebiedId={werkgebiedId} bronIri={s.bron_iri} label={s.label || s.bron_iri} rol={s.rol}
+            <BronRij key={s.id} werkgebiedId={werkgebiedId} bronIri={s.bron_iri} label={bronNaam(s.bron_iri, s.label)} rol={s.rol}
               selectie={s} beheer={beheer} ook={[]}
               stand={s.rol === "analyseren" ? selectieStand(perSelectie.get(s.id))?.tekst ?? "" : ""} />
           ))}
@@ -141,7 +153,7 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
   o.deelvragen.forEach((d) => d.bronnen.forEach((b) => bij.set(b.selectie_id, [...(bij.get(b.selectie_id) ?? []), d.nr])));
   const gekoppeld = new Set(bij.keys());
   const zonder = deelvraagId || inGesprek || o.modus === "analysevraag" ? []
-    : (beheer?.wg.bronnen ?? []).filter((s) => !gekoppeld.has(s.id) && (!filter?.actief || filter.past(s, s.label, s.rol)));
+    : (beheer?.wg.bronnen ?? []).filter((s) => !gekoppeld.has(s.id) && (!filter?.actief || filter.past(s, bronNaam(s.bron_iri, s.label), s.rol)));
 
   return (
     <div data-bronnen-bij-deelvraag className="space-y-6 text-sm text-ink">
@@ -211,7 +223,7 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
         <Groep kop="Zonder deelvraag" data-bronnen-groep="zonder" telling={bronnenZin(zonder.length)}
           sub="Bij geen enkele deelvraag gekoppeld, bijvoorbeeld een definitie of context." label="Bronnen zonder deelvraag">
           {zonder.map((s) => (
-            <BronRij key={s.id} werkgebiedId={o.werkgebied_id} bronIri={s.bron_iri} label={s.label || s.bron_iri} rol={s.rol}
+            <BronRij key={s.id} werkgebiedId={o.werkgebied_id} bronIri={s.bron_iri} label={bronNaam(s.bron_iri, s.label)} rol={s.rol}
               selectie={s} beheer={beheer} ook={[]}
               stand={s.rol === "analyseren" ? selectieStand(perSelectie.get(s.id))?.tekst ?? "" : ""} />
           ))}

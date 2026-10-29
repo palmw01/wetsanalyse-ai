@@ -387,6 +387,26 @@ def test_verwijzing_vanaf_onderdeel_blijft_op_onderdeel() -> None:
     assert (artikel2, V.ns.verwijstNaar, awr_art1) not in g
 
 
+def test_verwijzing_vanaf_xml_onderdeel_en_subonderdeel_blijft_op_eigen_node() -> None:
+    wet = ToestandParser().parse(FIXTURES / "sample_circulaire.xml")
+    divisie = wet.divisies[0]
+    onderdeel = divisie.onderdelen[0]
+    onderdeel.id = wet.bwb_id + "/Circulaire.divisie1/Tekst/Onderdeel._10"
+    onderdeel.nummer = "–"
+    sub = replace(onderdeel, id=onderdeel.id + "/Onderdeel._1", nummer="•", subonderdelen=[])
+    onderdeel.subonderdelen = [sub]
+    g, _ = _writer().build_graph(wet)
+    doel = V.by_ref_key("BWBR0002320#artikel=1")
+    eigen = V.by_id(wet.bwb_id, onderdeel.id)
+    sub_iri = V.by_id(wet.bwb_id, sub.id)
+    ouder = V.by_ref_key(f"{wet.bwb_id}#artikel=1")
+    assert (eigen, V.ns.verwijstNaar, doel) in g
+    assert (sub_iri, V.ns.verwijstNaar, doel) in g
+    assert (ouder, V.ns.verwijstNaar, doel) not in g
+    assert (eigen, V.ns.heeftOnderdeel, sub_iri) in g
+    assert (eigen, RDF.type, V.klasse("Onderdeel")) in g
+
+
 def test_doel_pad_en_ankertekst_op_verwijzing() -> None:
     g, _ = _writer().build_graph(_echte_wet())
     bron = V.by_ref_key("BWBR0004770#artikel=2#lid=1#o=g")

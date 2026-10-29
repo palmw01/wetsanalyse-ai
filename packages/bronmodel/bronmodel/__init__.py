@@ -12,6 +12,7 @@ from collections import defaultdict
 from typing import Any, Callable
 
 from .corpus import CorpusMap, CorpusSegment, Span, SpanFout
+from .presentatie import bronlabel
 
 RELATIES = ("heeftHoofdstuk", "heeftTiteldeel", "heeftAfdeling", "heeftParagraaf",
             "heeftArtikel", "heeftLid", "heeftOnderdeel", "heeftDivisie", "heeftBijlage")
@@ -146,7 +147,7 @@ def bron_query(bwb_id: str, *, limit: int | None = None, offset: int = 0) -> str
         raise BronFout("Ongeldig BWB-id")
     types = " ".join("bwb:" + t for t in TYPEN)
     query = f'''PREFIX bwb: <urn:bwb-ns:>
-SELECT DISTINCT ?node ?type ?parent ?nummer ?label ?titel ?tekst ?vorige ?jci ?url ?toestand ?citeertitel WHERE {{
+SELECT DISTINCT ?node ?type ?parent ?nummer ?label ?titel ?tekst ?vorige ?jci ?url ?toestand ?citeertitel ?begrip WHERE {{
  GRAPH <urn:bwb:graph:{bwb_id}> {{
   VALUES ?type {{ {types} }}
   ?node a ?type .
@@ -155,13 +156,14 @@ SELECT DISTINCT ?node ?type ?parent ?nummer ?label ?titel ?tekst ?vorige ?jci ?u
   OPTIONAL {{ ?node bwb:label ?label }}
   OPTIONAL {{ ?node bwb:titel ?titel }}
   OPTIONAL {{ ?node bwb:tekst ?tekst }}
+  OPTIONAL {{ ?node bwb:definieertBegrip ?begrip }}
   OPTIONAL {{ ?node bwb:volgtOp ?vorige }}
   OPTIONAL {{ ?node bwb:jci ?jci }}
   OPTIONAL {{ ?node <http://www.w3.org/2002/07/owl#sameAs> ?url }}
   OPTIONAL {{ <urn:bwb:{bwb_id}> bwb:toestandUrl ?toestand }}
   OPTIONAL {{ <urn:bwb:{bwb_id}> bwb:citeertitel ?citeertitel }}
  }}
-}} ORDER BY ?node'''
+}} ORDER BY ?node ?begrip'''
     if limit is not None:
         if not 1 <= limit <= 100 or offset < 0:
             raise BronFout("Ongeldige bronpagina")
@@ -305,12 +307,6 @@ def _kaal(n: dict) -> bool:
     return bool(n["nummer"]) and n["label"] == n["type"]
 
 
-def _kop(n: dict) -> str:
-    """Het leesbare label van een node in de detailkop: "Hoofdstuk V" in plaats van "Hoofdstuk". Alleen
-    voor de kop; de nodes zelf (en daarmee de snapshot-id) blijven ongewijzigd."""
-    return f"{n['label']} {n['nummer']}" if _kaal(n) else n["label"]
-
-
 def bouw_snapshot(rows: list[dict], *, bron_iri: str = "", bwb_id: str,
                   artikel: str = "", lid: str = "") -> dict:
     nodes: dict[str, dict] = {}
@@ -389,15 +385,21 @@ def bouw_snapshot(rows: list[dict], *, bron_iri: str = "", bwb_id: str,
     canonical = json.dumps({"nodes": ordered, "toestand": sorted(toestanden)}, ensure_ascii=False,
                            sort_keys=True, separators=(",", ":"))
     path = [n for n in [*reversed(parents), target] if n["type"] != "Regeling"]
+    begrippen: dict[str, set[str]] = defaultdict(set)
+    for row in rows:
+        if row.get("begrip"):
+            begrippen[row["node"]].add(row["begrip"])
+    # Presentatie blijft buiten `canonical`: leesbare namen wijzigen geen bronstand.
+    presentatie = {n["bron_iri"]: bronlabel(n, begrippen[n["bron_iri"]]) for n in ordered}
     # Detailkop: wet + concrete vindplaats, niet alleen "Lid 1". Bronlabels zelf
     # blijven los van de tekst waar de ankers tegen worden gecontroleerd.
     begin = next((i for i, n in enumerate(path) if n["type"] in {"Artikel", "Divisie"}), 0)
-    label = titel + (" – " + ", ".join(_kop(n) for n in path[begin:]) if path else "")
+    label = titel + (" – " + ", ".join(presentatie[n["bron_iri"]] for n in path[begin:]) if path else "")
     # Een structuurdeel als doel draagt zijn opschrift: "Hoofdstuk V – Invorderingsrente".
     if path and _kaal(target) and (opschrift := next((r.get("titel") for r in rows
                                                      if r.get("node") == bron_iri and r.get("titel")), "")):
         label += f" – {opschrift}"
-    return {"schema_versie": 2, "snapshot_id": tekst_hash(canonical),
+    return {"schema_versie": 2, "snapshot_id": tekst_hash(canonical), "presentatie": presentatie,
             "doel": {**target, "artikel": article, "lid": lidnummer, "label": label,
                      "citeertitel": titel, "bronpad": [n["bron_iri"] for n in path]},
             "nodes": ordered, "segmenten": [n for n in chosen if n["tekst"].strip()],

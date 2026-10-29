@@ -36,6 +36,29 @@ def request(snap, elements=None, batch_id="test", revisions=None, **extra):
         snapshot_id=snap["snapshot_id"], elementen=elements or [], verwachte_revisies=revisions or {}, **extra))
 
 
+async def test_presentatienaam_verandert_bestaande_annotatie_niet():
+    from bronmodel import bouw_snapshot
+    bwb = "BWBR0024096"
+    root = "urn:bwb:" + bwb
+    divisie = root + ":id:BWBR0024096%2FCirculaire.divisie1%2FCirculaire.divisie1.1%2FCirculaire.divisie1.1.2"
+    iri = divisie + "%2FTekst%2FOnderdeel._10"
+    tekst = "negatieve voorlopige aanslag: de aanslag als bedoeld in artikel 13, eerste lid, AWR tot een negatief bedrag;"
+    rows = [{"node": root, "type": "Regeling"},
+            {"node": divisie, "type": "Divisie", "parent": root, "nummer": "1.1.2"},
+            {"node": iri, "type": "Onderdeel", "parent": divisie, "nummer": "–", "tekst": tekst}]
+    before = bouw_snapshot(rows, bwb_id=bwb, bron_iri=iri)
+    start = tekst.index("de aanslag")
+    await store.batch(request(before, [element(before, iri, start, start + len("de aanslag"))]), before, "lex")
+    after = bouw_snapshot([*rows[:-1], {**rows[-1], "begrip": "negatieve voorlopige aanslag"}], bwb_id=bwb, bron_iri=iri)
+    assert before["snapshot_id"] == after["snapshot_id"]
+    assert before["doel"]["label"] != after["doel"]["label"]
+    view = await store.weergave(after)
+    assert len(view["elementen"]) == 1
+    assert not view["elementen"][0]["verouderd"]
+    assert view["elementen"][0]["ankers"][0]["bron_iri"] == iri
+    assert view["elementen"][0]["tekst"] == "de aanslag"
+
+
 @pytest.fixture(autouse=True)
 async def database():
     db.init_engine("sqlite+aiosqlite://")
