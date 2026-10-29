@@ -12,6 +12,7 @@
 // Alles wat van het ene naar het andere gaat, loopt via `SegmentPlek.begin`.
 
 import { bronVan, regelsVan } from "./annotatie";
+import { bronNummer } from "./bronNummer";
 import { segmentAnker, type NodeAnker, type NodeElement, type NodeSegment, type NodeWeergave } from "./annotatieNode";
 import { maakAnker, snapSelectie, vindPositie } from "./selectie";
 import type {
@@ -41,9 +42,9 @@ export function lidUitIri(iri: string): string {
 /** "a" → "a. ", "1°" → "1°. ", "b." blijft "b. ". Het paneel herkent een onderdeel aan dat nummer
  *  (`lib/wetstructuur.ts`) en zet het dan ingesprongen met een hangend nummer. */
 function nummerVoorvoegsel(nummer: string): string {
-  const n = nummer.trim();
+  const n = bronNummer(nummer);
   if (!n) return "";
-  return `${n.endsWith(".") ? n : `${n}.`} `;
+  return `${n} `;
 }
 
 /** UTF-16-lengte van de eerste `codepoints` tekens. */

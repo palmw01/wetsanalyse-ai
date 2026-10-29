@@ -30,6 +30,16 @@ function samenhang(knopen?: SamenhangKnoop[]): Samenhang {
 const g = bouwModel([samenhang()]);
 
 describe("bediening", () => {
+  it("vindt gelijkgenummerde XML-onderdelen op hun eigen bronnaam en opent hun eigen IRI", () => {
+    const a = "urn:bwb:BWBR0024096:id:Onderdeel._10", b = "urn:bwb:BWBR0024096:id:Onderdeel._11";
+    const model = bouwModel([samenhang([
+      knoop(a, "onderdeel", { label: "Onderdeel — negatieve voorlopige aanslag" }),
+      knoop(b, "onderdeel", { label: "Onderdeel — positieve aanslag" }),
+    ])]);
+    expect(model.order).toBe(2);
+    expect(zoekKnopen(model, "negatieve voorlopige aanslag")).toEqual([a]);
+    expect(paneelDoel(a, model.getNodeAttributes(a))?.bron_iri).toBe(a);
+  });
   it("zoekt over alle knopen, diakritiek-ongevoelig, begin vóór bevat, natuurlijk op nummer", () => {
     const benoemd = bouwModel([samenhang([
       knoop(LAW, "regeling", { label: "Invorderingswet 1990" }), knoop(ART, "artikel", { label: "Artikel 9" }),

@@ -1,6 +1,7 @@
 "use client";
 
 import { jasStyle } from "@/lib/jas";
+import { bronNummer } from "@/lib/bronNummer";
 import type { NodeElement, NodeSegment } from "@/lib/annotatieNode";
 import { spansVan } from "@/lib/graaf/spans";
 
@@ -23,9 +24,9 @@ export function KnoopTekst({ segmenten, elementen, gekozen, kiesbaar, onKies, gr
   if (!metTekst.length) return null;
   return <div className={`space-y-1.5 border-l-2 border-lint/20 pl-3 ${groot ? "text-sm leading-7" : "text-xs leading-relaxed"} text-ink`} data-testid="graaf-knooptekst">
     {metTekst.map((s) => {
-      const nummer = s.nummer?.trim();
+      const nummer = bronNummer(s.nummer);
       return <p key={s.bron_iri} className={s.type === "Onderdeel" ? "pl-3" : ""}>
-        {nummer && <span className="mr-1 text-faint">{nummer.endsWith(".") ? nummer : `${nummer}.`}</span>}
+        {nummer && <><span className="text-faint">{nummer}</span>{" "}</>}
         {spansVan(s, elementen).map((stuk, i) => {
           const el = stuk.element ? perId.get(stuk.element) : undefined;
           if (!el) return <span key={i}>{stuk.tekst}</span>;

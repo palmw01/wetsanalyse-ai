@@ -25,6 +25,26 @@ def snapshot(**kwargs):
     return bouw_snapshot(fixture(), bwb_id=BWB, **kwargs)
 
 
+def test_ongenummerde_onderdelen_hebben_presentatie_buiten_bronidentiteit():
+    from bronmodel import bronlabel
+    rows = fixture()
+    rows[4].update(nummer="–", label="Onderdeel –", tekst="negatieve voorlopige aanslag: de aanslag tot een negatief bedrag;")
+    rows += [{**rows[4], "node": ROOT + ":id:ander", "tekst": "positieve aanslag: een positief bedrag;"}]
+    before = bouw_snapshot(rows, bwb_id=BWB, bron_iri=ROOT + ":id:a")
+    with_terms = [{**r, "begrip": "negatieve voorlopige aanslag"} if r["node"] == ROOT + ":id:a" else r for r in rows]
+    # Meerdere expliciete begrippen op één node mogen geen dubbelzinnige bron opleveren.
+    with_terms.append({**with_terms[4], "begrip": "aanslag"})
+    after = bouw_snapshot(with_terms, bwb_id=BWB, bron_iri=ROOT + ":id:a")
+    assert before["snapshot_id"] == after["snapshot_id"]
+    assert before["nodes"] == after["nodes"]
+    assert before["segmenten"] == after["segmenten"]
+    assert "negatieve voorlopige aanslag" in after["doel"]["label"]
+    assert after["presentatie"][ROOT + ":id:a"] == "Onderdeel — aanslag; negatieve voorlopige aanslag"
+    assert before["presentatie"][ROOT + ":id:a"] != before["presentatie"][ROOT + ":id:ander"]
+    assert bronlabel({"type": "Onderdeel", "nummer": "a.", "label": "Onderdeel a.", "tekst": "Definitie: tekst"}) == "Onderdeel a."
+    assert bronlabel({"type": "Onderdeel", "nummer": "•", "label": "Onderdeel •", "tekst": ""}) == "Onderdeel •"
+
+
 def test_lid_selection_keeps_xml_identity_and_subtree_without_sibling():
     s = snapshot(artikel="9", lid="1")
     assert s["doel"]["bron_iri"] == ROOT + ":id:lid-een"

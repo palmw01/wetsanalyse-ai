@@ -24,6 +24,7 @@ import re
 from typing import Literal
 
 import httpx
+from bronmodel import TYPEN, bronlabel
 from pydantic import BaseModel
 
 from . import annotatie_v2_store as store
@@ -90,14 +91,8 @@ def artikel_van(nodes: dict[str, dict], iri: str) -> str:
 
 
 def _label(node: dict) -> str:
-    """Het label van een bronknoop. De bronboom draagt `bwb:label`, en dat is bij een hoofdstuk of
-    afdeling alleen het woord ("Hoofdstuk"), met het nummer apart: zonder dit zeiden inspector en kop
-    van de graaf "gaan over Hoofdstuk". Hier en niet in `bronmodel`: daar raakt het label de
-    snapshot-identiteit van bestaande lagen."""
-    label, nummer = (node.get("label") or "").strip(), (node.get("nummer") or "").strip()
-    if nummer and label and node.get("type") in _OVERZICHT - {"Artikel", "Divisie"} and nummer not in label:
-        return f"{label} {nummer}"
-    return label
+    """Gedeelde presentatienaam; de oorspronkelijke bronnode blijft ongewijzigd."""
+    return node.get("presentatie_label") or bronlabel(node)
 
 
 def plaats(iri: str) -> dict[str, str]:
@@ -112,24 +107,35 @@ def plaats(iri: str) -> dict[str, str]:
 
 def _uitgaand(iris: list[str]) -> str:
     waarden = " ".join(f"<{i}>" for i in iris)
-    return _PREFIXES + f"""SELECT DISTINCT ?van ?naar ?anker ?label ?stub WHERE {{
+    return _PREFIXES + f"""SELECT DISTINCT ?van ?naar ?anker ?label ?stub ?type ?nummer ?tekst ?begrip WHERE {{
   VALUES ?van {{ {waarden} }}
   ?van bwb:heeftVerwijzing ?v . ?v bwb:naar ?naar .
   OPTIONAL {{ ?v bwb:ankerTekst ?anker }}
   OPTIONAL {{ ?naar rdfs:label ?label }}
   OPTIONAL {{ ?naar bwb:doelLabel ?stub }}
+  {_verwijsmetadata('naar')}
 }} LIMIT {MAX_VERWIJZINGEN + 1}"""
 
 
 def _inkomend(iris: list[str]) -> str:
     waarden = " ".join(f"<{i}>" for i in iris)
-    return _PREFIXES + f"""SELECT DISTINCT ?van ?naar ?anker ?label WHERE {{
+    return _PREFIXES + f"""SELECT DISTINCT ?van ?naar ?anker ?label ?type ?nummer ?tekst ?begrip WHERE {{
   VALUES ?naar {{ {waarden} }}
   {{ ?van bwb:verwijstNaar ?naar . }}
   UNION {{ ?v bwb:naar ?naar . ?van bwb:heeftVerwijzing ?v . OPTIONAL {{ ?v bwb:ankerTekst ?anker }} }}
   FILTER(STRSTARTS(STR(?van), "urn:bwb:"))
   OPTIONAL {{ ?van rdfs:label ?label }}
+  {_verwijsmetadata('van')}
 }} LIMIT {MAX_VERWIJZINGEN + 1}"""
+
+
+def _verwijsmetadata(variabele: str) -> str:
+    """Werkelijk brontype en presentatiedata; een XML-IRI zegt niets over het type."""
+    types = " ".join("bwb:" + t for t in TYPEN)
+    return f"""OPTIONAL {{ VALUES ?type {{ {types} }} ?{variabele} a ?type }}
+  OPTIONAL {{ ?{variabele} bwb:nummer ?nummer }}
+  OPTIONAL {{ ?{variabele} bwb:tekst ?tekst }}
+  OPTIONAL {{ ?{variabele} bwb:definieertBegrip ?begrip }}"""
 
 
 async def _verwijzingen(iris: list[str]) -> tuple[list[dict], list[dict]] | None:
@@ -177,10 +183,14 @@ def markeringen(elementen: list[dict], aanwezig: set[str]) -> tuple[list[Knoop],
 
 def verwijzingen(rijen: list[tuple[str, dict]], knopen: dict[str, Knoop]) -> list[Relatie]:
     """Verwijzingsrelaties uit SPARQL-rijen, als `(richting, rij)` met richting "uit" of "in". Een doel
-    buiten `knopen` wordt een randknoop (geïmporteerd: artikel of lid; anders `extern`) – `knopen` wordt
+    buiten `knopen` wordt een randknoop met zijn RDF-type (onbekend: `extern`) – `knopen` wordt
     daarvoor aangevuld. Elke verwijzing één keer."""
     relaties: list[Relatie] = []
     gezien: set[tuple[str, str]] = set()
+    metadata_per: dict[str, list[dict]] = {}
+    for richting, r in rijen:
+        buiten = r.get("naar", "") if richting == "uit" else r.get("van", "")
+        metadata_per.setdefault(buiten, []).append(r)
     for richting, r in rijen:
         van, naar = r.get("van", ""), r.get("naar", "")
         buiten = naar if richting == "uit" else van
@@ -188,9 +198,13 @@ def verwijzingen(rijen: list[tuple[str, dict]], knopen: dict[str, Knoop]) -> lis
             continue
         gezien.add((van, naar))
         if buiten not in knopen:
-            label = r.get("label") or r.get("stub") or buiten.removeprefix("urn:bwb:")
-            knopen[buiten] = Knoop(id=buiten, soort="extern" if not r.get("label") else
-                                   ("lid" if plaats(buiten)["lid"] else "artikel"),
+            metadata = metadata_per[buiten]
+            typen = {rij.get("type", "").removeprefix("urn:bwb-ns:") for rij in metadata}
+            kind = next((t for t in reversed(TYPEN) if t in typen), "")
+            node = {"type": kind, "nummer": r.get("nummer", ""), "tekst": r.get("tekst", ""),
+                    "label": r.get("label") or r.get("stub") or buiten.removeprefix("urn:bwb:")}
+            label = bronlabel(node, [rij["begrip"] for rij in metadata if rij.get("begrip")])
+            knopen[buiten] = Knoop(id=buiten, soort=_SOORT.get(kind, "deel") if kind else "extern",
                                    label=label, rand=True, **plaats(buiten))
         relaties.append(Relatie(bron=van, doel=naar, soort="verwijst_naar", groep="verwijzingen",
                                 anker_tekst=r.get("anker", "")))
@@ -214,7 +228,7 @@ async def samenhang(snapshot: dict) -> dict:
     # Structuur: de keten van regeling naar artikel, en alles binnen het artikel.
     keten = store.keten(nodes, artikel_iri)
     for iri in [*reversed(keten), *sorted(scope - {artikel_iri}, key=lambda i: nodes[i].get("volgorde", 0))]:
-        knopen[iri] = bronknoop(nodes[iri])
+        knopen[iri] = bronknoop({**nodes[iri], "presentatie_label": snapshot.get("presentatie", {}).get(iri)})
         ouder = nodes[iri].get("parent_iri") or ""
         if ouder in knopen:
             relaties.append(Relatie(bron=ouder, doel=iri, soort="bevat", groep="structuur"))

@@ -9,8 +9,8 @@ Elke node die JuriConnect-adresseerbaar is (wet, structuurdeel, artikel, lid,
 onderdeel, divisie) draagt naast zijn XML-``id`` een ``ref_key``. Die sleutel is
 de stabiele identiteit voor citaties: een ``VERWIJST_NAAR`` naar een nog niet
 geïmporteerde wet gebruikt dezelfde ref_key, zodat de doel-node later
-automatisch samenvalt (dezelfde IRI). Verwijzingen worden toegeschreven aan de
-dichtstbijzijnde voorouder mét ref_key (onderdeel -> lid -> artikel).
+automatisch samenvalt (dezelfde IRI). Onderdelen zonder eigen JuriConnect gebruiken
+hun XML-identiteit ook als vertrekpunt van verwijzingen.
 """
 
 from __future__ import annotations
@@ -199,7 +199,7 @@ class _Collector:
             self._verwijzingen(ref_key, artikel.verwijzingen, artikel.tekst)
             self._illustraties("Artikel", artikel.id, artikel.illustraties)
             self._leden(artikel, ref_key)
-            self._onderdelen(artikel.onderdelen, artikel.id, "Artikel", ref_key)
+            self._onderdelen(artikel.onderdelen, artikel.id, "Artikel")
 
     def _divisies(self, divisies: list[Divisie], ouder_id: str, ouder_ent: str) -> None:
         vorige_divisie: str | None = None
@@ -232,7 +232,7 @@ class _Collector:
 
             self._verwijzingen(ref_key, divisie.verwijzingen, divisie.tekst)
             self._illustraties("Divisie", divisie.id, divisie.illustraties)
-            self._onderdelen(divisie.onderdelen, divisie.id, "Divisie", ref_key)
+            self._onderdelen(divisie.onderdelen, divisie.id, "Divisie")
             self._divisies(divisie.subdivisies, divisie.id, "Divisie")
             # Een divisie kan eigen artikelen bevatten (aparte Artikel-nodes), net als een bijlage.
             self._artikelen(divisie.artikelen, divisie.id, "Divisie")
@@ -268,7 +268,7 @@ class _Collector:
 
             self._verwijzingen(ref_key, bijlage.verwijzingen, bijlage.tekst)
             self._illustraties("Bijlage", bijlage.id, bijlage.illustraties)
-            self._onderdelen(bijlage.onderdelen, bijlage.id, "Bijlage", ref_key)
+            self._onderdelen(bijlage.onderdelen, bijlage.id, "Bijlage")
             # Een bijlage kan eigen artikelen bevatten (aparte Artikel-nodes).
             self._artikelen(bijlage.artikelen, bijlage.id, "Bijlage")
 
@@ -348,17 +348,15 @@ class _Collector:
             bron = lid_ref or artikel_ref_key
             self._verwijzingen(bron, lid.verwijzingen, lid.tekst)
             self._illustraties("Lid", lid.id, lid.illustraties)
-            self._onderdelen(lid.onderdelen, lid.id, "Lid", bron)
+            self._onderdelen(lid.onderdelen, lid.id, "Lid")
 
     def _onderdelen(
         self,
         onderdelen: list[Onderdeel],
         ouder_id: str,
         ouder_ent: str,
-        erf_ref_key: str,
     ) -> None:
-        """``erf_ref_key`` is de ref_key van de dichtstbijzijnde voorouder;
-        onderdelen zonder eigen jci schrijven hun verwijzingen daaraan toe."""
+        """Verwijzingen blijven op het onderdeel, ook zonder eigen JuriConnect."""
         for onderdeel in onderdelen:
             ref_key, soort = jci_doel_ref_key(onderdeel.jci)
             if soort != "onderdeel":
@@ -382,10 +380,11 @@ class _Collector:
             self.batch.rel(ouder_ent, "HEEFT_ONDERDEEL", "Onderdeel", ouder_id, onderdeel.id)
             self.summary.onderdelen += 1
 
-            bron = ref_key or erf_ref_key
+            # De writer gebruikt bij ontbrekende ref_key dezelfde by_id-identiteit.
+            bron = ref_key or f"{self._bwb}#id={onderdeel.id}"
             self._verwijzingen(bron, onderdeel.verwijzingen, onderdeel.tekst)
             self._illustraties("Onderdeel", onderdeel.id, onderdeel.illustraties)
-            self._onderdelen(onderdeel.subonderdelen, onderdeel.id, "Onderdeel", bron)
+            self._onderdelen(onderdeel.subonderdelen, onderdeel.id, "Onderdeel")
 
     def _verwijzingen(self, ref_key: str, refs: list[Verwijzing], tekst: str | None) -> None:
         """Voeg de verwijzingen van één bron-node toe aan de batch.

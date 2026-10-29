@@ -13,6 +13,15 @@ export interface Plaats {
   volgorde: number | null;
 }
 
+/** Actuele bronnaam uit de graaf, ook voor selecties met een ouder opgeslagen label. */
+export function labelVanPlaats(plaats: Plaats | undefined): string | undefined {
+  if (!plaats?.pad.length) return undefined;
+  const begin = plaats.pad.findIndex((p) => p.type === "Artikel" || p.type === "Divisie");
+  const pad = plaats.pad.slice(Math.max(0, begin)).map((p) => p.label).filter(Boolean).join(", ");
+  if (!pad) return undefined;
+  return plaats.regeling.citeertitel ? `${plaats.regeling.citeertitel} – ${pad}` : pad;
+}
+
 export interface Blad<T> {
   sleutel: string;
   bron_iri: string;

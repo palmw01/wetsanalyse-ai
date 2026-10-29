@@ -24,7 +24,7 @@ import httpx
 from . import annotatie_v2_store as store
 from .bron_resolver import haal_bronrijen, snapshot_uit
 from .graaf_projectie_v2 import _select
-from .samenhang import _PREFIXES, Knoop, Relatie, _label, bronknoop, markeringen, verwijzingen
+from .samenhang import _PREFIXES, Knoop, Relatie, _label, _verwijsmetadata, bronknoop, markeringen, verwijzingen
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +49,11 @@ def _toestanden_query(bwbs: list[str]) -> str:
 def _verwijzingen_query(bwb: str) -> str:
     """Alle verwijzingen ván deze regeling, uit haar eigen named graph (zonder LIMIT: de graaf is het
     doel, niet één artikel). Het label van het doel komt uit de hele graaf."""
-    return _PREFIXES + f"""SELECT ?van ?naar ?anker ?label ?stub WHERE {{
+    return _PREFIXES + f"""SELECT ?van ?naar ?anker ?label ?stub ?type ?nummer ?tekst ?begrip WHERE {{
   GRAPH <urn:bwb:graph:{bwb}> {{ ?van bwb:heeftVerwijzing ?v . ?v bwb:naar ?naar . OPTIONAL {{ ?v bwb:ankerTekst ?anker }} }}
   OPTIONAL {{ ?naar rdfs:label ?label }}
   OPTIONAL {{ ?naar bwb:doelLabel ?stub }}
+  {_verwijsmetadata('naar')}
 }} ORDER BY ?van ?naar"""
 
 
@@ -70,7 +71,10 @@ async def _structuur(bwb: str, toestand: str) -> dict:
         if sleutel in _STRUCTUUR:       # een gelijktijdig verzoek haalde hem intussen op
             return _STRUCTUUR[sleutel]
         snapshot = snapshot_uit(await haal_bronrijen(bwb), bwb, {})
-        deel = {"nodes": store.nodes_van(snapshot), "citeertitel": snapshot.get("citeertitel", "")}
+        # Afgeleide labels alleen in de graafcache, nooit in de gehashte bronnodes.
+        nodes = {iri: {**n, "presentatie_label": snapshot.get("presentatie", {}).get(iri)}
+                 for iri, n in store.nodes_van(snapshot).items()}
+        deel = {"nodes": nodes, "citeertitel": snapshot.get("citeertitel", "")}
         for oud in [k for k in _STRUCTUUR if k[0] == bwb]:
             del _STRUCTUUR[oud]         # een vorige toestand van deze regeling is voorbij
         while len(_STRUCTUUR) >= MAX_CACHE:

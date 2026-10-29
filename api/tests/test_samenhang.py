@@ -28,9 +28,9 @@ async def test_lid_toont_hele_artikel_met_structuur_annotaties_en_verwijzingen(m
     await store.batch(request(snap, [element(snap), element(snap, TWO, 0, 4)]), snap, "a")
     monkeypatch.setattr(samenhang, "_verwijzingen", rijen(
         uit=[{"van": TWO, "naar": ONE, "anker": "het eerste lid"},
-             {"van": ONE, "naar": ANDER, "anker": "artikel 10", "label": "Artikel 10"},
+             {"van": ONE, "naar": ANDER, "anker": "artikel 10", "label": "Artikel 10", "type": "urn:bwb-ns:Artikel"},
              {"van": ONE, "naar": STUB, "stub": "Awb, artikel 3"}],
-        inn=[{"van": "urn:bwb:BWBR0004770:artikel:20:lid:1", "naar": ART, "label": "Artikel 20, lid 1"}]))
+        inn=[{"van": "urn:bwb:BWBR0004770:artikel:20:lid:1", "naar": ART, "label": "Artikel 20, lid 1", "type": "urn:bwb-ns:Lid"}]))
     g = await samenhang.samenhang(snapshot(ONE))
     ids = {k["id"]: k for k in g["knopen"]}
     assert g["artikel_iri"] == ART and g["verwijzingen_beschikbaar"]
@@ -86,6 +86,23 @@ def test_queries_beperken_zich_tot_de_scope():
     q = samenhang._uitgaand([ONE, TWO])
     assert f"<{ONE}>" in q and f"<{TWO}>" in q and "VALUES ?van" in q
     assert f"LIMIT {samenhang.MAX_VERWIJZINGEN + 1}" in samenhang._inkomend([ONE])
+    from rdflib.plugins.sparql.parser import parseQuery
+    parseQuery(q)
+    parseQuery(samenhang._inkomend([ONE]))
+
+
+def test_xml_onderdeel_als_randknoop_gebruikt_rdf_type_en_eigen_identiteit():
+    iri = "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie1%2FCirculaire.divisie1.1%2FCirculaire.divisie1.1.2%2FTekst%2FOnderdeel._10"
+    nodes = {}
+    r = {"van": iri, "naar": ART, "type": "urn:bwb-ns:Onderdeel", "label": "Onderdeel –",
+         "nummer": "–", "tekst": "negatieve voorlopige aanslag: de aanslag ...", "begrip": "negatieve voorlopige aanslag"}
+    relaties = samenhang.verwijzingen([("in", r)], nodes)
+    assert nodes[iri].soort == "onderdeel"
+    assert nodes[iri].label == "Onderdeel — negatieve voorlopige aanslag"
+    assert relaties[0].bron == iri
+    onbekend = {}
+    samenhang.verwijzingen([("in", {**r, "type": ""})], onbekend)
+    assert onbekend[iri].soort == "extern", "zonder RDF-type geen artikel gokken"
 
 
 async def test_endpoint_vereist_gebruiker_en_meldt_capability(monkeypatch):

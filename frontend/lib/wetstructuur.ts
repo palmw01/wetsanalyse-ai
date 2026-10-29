@@ -15,6 +15,8 @@
 //
 // De testvectoren staan in `wetstructuur.vectoren.json`.
 
+import { OPSOMMINGSTEKENS } from "./bronNummer";
+
 /** Wat één regel wettekst blijkt te zijn. */
 export interface Onderdeel {
   /** Het nummer zoals het in de wet staat, inclusief punt (`a.`, `1°.`, `–`); leeg als er geen is. */
@@ -30,7 +32,7 @@ export interface Onderdeel {
 /** Opsommingstekens die als onderdeelnummer gelden. Alleen aan het BEGIN van een regel — een
  *  en-dash komt ook midden in een zin voor als gedachtestreepje ("…opheldering niet – of niet…"),
  *  en dat is geen opsomming. */
-const STREEPJES = ["–", "—", "•"];
+const STREEPJES = [...OPSOMMINGSTEKENS];
 
 /** `a.` `b.` `aa.` `1.` `12.` — een letter- of cijfergroep met een punt erachter. */
 const NUMMER = /^([a-z]{1,3}|\d{1,3})\.(?=\s|$)/;
