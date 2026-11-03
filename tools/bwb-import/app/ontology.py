@@ -120,6 +120,13 @@ _OBJECT_PROPS: dict[str, tuple[str, str, tuple[URIRef, ...], str | None]] = {
         "Ondertekenaar",
     ),
     "volgtOp": ("volgt op", "Documentvolgorde binnen dezelfde ouder.", (), None),
+    "inBepaling": (
+        "in bepaling",
+        "De bepaling waarin een onderdeel staat (lid, artikel, divisie of bijlage), uit de echte boom: "
+        "de IRI van een onderdeel van een beleidsregel zegt dat niet.",
+        (),
+        None,
+    ),
     "verwijstNaar": (
         "verwijst naar",
         "Citatie naar een ander citeerbaar tekstdeel (open-world doel).",
@@ -220,6 +227,13 @@ _DATA_PROPS: dict[str, tuple[str, str, tuple[URIRef, ...], URIRef | None]] = {
     "nummer": ("nummer", "Nummer binnen de ouder (artikel-/lid-/onderdeelnummer).", (), None),
     "label": ("label", "Structuurlabel uit de bron-XML.", (), None),
     "titel": ("titel", "Titel van het structuurdeel of de divisie.", (), None),
+    "vindplaats": (
+        "vindplaats",
+        "Leesbare plek van een bepaling binnen haar regeling (\"Artikel 9, lid 1\", \"Artikel 9.2, "
+        "onderdeel d\"), uit de echte boom.",
+        (),
+        XSD.string,
+    ),
     "tekst": ("tekst", "Lopende tekst van het tekstdeel.", (), None),
     "refKey": ("ref-sleutel", "JuriConnect-afgeleide identiteitssleutel.", (), XSD.string),
     "labelId": ("label-id", "WTI-koppelsleutel (label-id uit de bron-XML).", (), XSD.string),
