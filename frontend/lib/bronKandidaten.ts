@@ -68,9 +68,13 @@ export function plekNaam(iri: string, labels: Map<string, string> = new Map()): 
   if (id) {
     let pad = id[1];
     try { pad = decodeURIComponent(pad); } catch { /* laat staan */ }
-    const laatste = pad.split("/").pop() ?? pad;
+    let delen = pad.split("/");
+    // Een onderdeel (`…/Circulaire.divisie9/Tekst/Onderdeel._4`) heet naar zijn divisie: het volgnummer in de
+    // IRI telt niet betrouwbaar en een opsommingsteken heeft geen eigen nummer (de tweeling van `plek_uit_iri`).
+    if (delen.includes("Tekst")) delen = delen.slice(0, delen.indexOf("Tekst"));
+    const laatste = delen[delen.length - 1] ?? pad;
     const divisie = laatste.match(/divisie([\d.]+[a-z]?)$/i);
-    return divisie ? `divisie ${divisie[1]}` : laatste;
+    return divisie ? `divisie ${divisie[1]}` : delen.length > 1 ? laatste : pad;
   }
   return rest || iri;
 }
