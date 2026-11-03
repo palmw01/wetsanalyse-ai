@@ -304,7 +304,8 @@ class Zoekprofiel:
       vouwt een ellips uit, zodat "bezwaar- of beroepschrift" het "bezwaarschrift" van de vraag raakt;
     - `lemma`: het lemma van een vervoegd woord zoekt mee ("ingediend" → "indienen"). Standaard **uit**: op de
       ontwikkelset hielp het niet (recall gelijk, recall nodig lager) en het laadt spaCy in de intake;
-    - `divisies`: ook de divisies van een beleidsregel zijn bepalingen;
+    - `divisies`: ook de divisies van een beleidsregel zijn bepalingen, en een onderdeel telt voor de bepaling
+      waarin het volgens de graaf staat (`bwb:inBepaling`), niet volgens zijn IRI;
     - `kop_overal`: elke kandidaat krijgt de kop van zijn deel, niet alleen de voorlopige top;
     - `fusie`: rangschikken met RRF over de lijsten, in plaats van het aantal geraakte woorden.
     """
@@ -412,10 +413,10 @@ def _lucene(termen: list[str], lemma: dict[str, str] | None = None, profiel: Zoe
 
 
 def _doel_van(iri: str) -> str:
-    """Een onderdeel telt voor zijn lid (of artikel), en bij een beleidsregel voor zijn divisie
-    (`…divisie9.4%2FTekst%2FOnderdeel._1` → `…divisie9.4`): de analist kiest op dat niveau."""
-    iri = iri.split(":o:", 1)[0]
-    return iri.split("%2FTekst%2F", 1)[0] if ":id:" in iri else iri
+    """Een onderdeel van een wet telt voor zijn lid (of artikel): de analist kiest op lid-niveau. Uit de
+    IRI, en dus alleen de terugval: bij een beleidsregel zegt de IRI niet waar een onderdeel staat
+    (`…:artikel:9:o:d` hangt onder divisie 9.2) – daar geldt `bwb:inBepaling` (`plekken`)."""
+    return iri.split(":o:", 1)[0] if ":id:" not in iri else iri
 
 
 def _omschrijving(tekst: str, geraakt: list[str]) -> str:
@@ -454,10 +455,10 @@ def kandidatenpool(graph: GraphPort, *, regelingen: list[str], deelvraag: str | 
     geraakte_artikelen: set[str] = set()
 
     def neem(iri: str, tekst: str, soort: str, bwb: str, citeertitel: str, lijst: str, rang: int,
-             term: str = "") -> None:
+             term: str = "", in_bepaling: str | None = None) -> None:
         if not queries.is_bron_iri(iri):
             return
-        doel = _doel_van(iri)
+        doel = in_bepaling or _doel_van(iri)
         k = gevonden.setdefault(doel, {"iri": doel, "bwb_id": bwb or _bwb(doel), "citeertitel": citeertitel,
                                        "teksten": [], "eigen": "", "rang": {}, "index_termen": []})
         if doel == iri and soort != "Onderdeel":
@@ -470,22 +471,25 @@ def kandidatenpool(graph: GraphPort, *, regelingen: list[str], deelvraag: str | 
         if ":lid:" in doel:
             geraakte_artikelen.add(doel.split(":lid:", 1)[0])
 
-    def lees(lijst: str, query: str, bwb: str | None, term: str = "") -> None:
+    treffers: list[tuple] = []
+
+    def lees(lijst: str, query: str, bwb: str | None, term: str = "", soort_van_query: str = "") -> None:
         rang = 0
         for r in _rijen(graph, query):
             if bwb and r.get("bwbId") != bwb:
                 continue
-            soort = r.get("soort") or ""
+            soort = r.get("soort") or soort_van_query
             if soort and soort not in soorten:
                 continue
             rang += 1
-            neem(r["node"], r.get("tekst", ""), soort, r.get("bwbId", ""), r.get("citeertitel", ""), lijst, rang, term)
+            treffers.append((r["node"], r.get("tekst", ""), soort, r.get("bwbId", ""), r.get("citeertitel", ""),
+                             lijst, rang, term))
 
     try:
         for bwb in bereik:
             for soort in soorten:
                 lees(f"alle:{bwb}:{soort}", queries.fts(_lucene(termen, lemma, profiel), limit=MAX_TREFFERS,
-                                                         bwb_id=bwb, soort=soort), bwb)
+                                                         bwb_id=bwb, soort=soort), bwb, soort_van_query=soort)
             if profiel.per_term:
                 for term in termen:
                     lees(f"term:{bwb}:{term}", queries.fts("tekst:" + _term_lucene(term, lemma.get(term, ""), profiel),
@@ -496,11 +500,21 @@ def kandidatenpool(graph: GraphPort, *, regelingen: list[str], deelvraag: str | 
                 if bereik != [None] and r.get("bwbId") not in bereik:
                     continue
                 rang += 1
-                neem(r["node"], r.get("tekst", ""), "Definitie", r.get("bwbId", ""), r.get("citeertitel", ""),
-                     f"definitie:{term}", rang)
+                treffers.append((r["node"], r.get("tekst", ""), "Definitie", r.get("bwbId", ""),
+                                 r.get("citeertitel", ""), f"definitie:{term}", rang, ""))
     except Exception:  # noqa: BLE001 – een haperende graaf geeft geen opties, geen crash van de intake
         logger.warning("bepalingen zoeken faalde", extra={"categorie": "technisch"}, exc_info=True)
         return None
+
+    # Een onderdeel telt voor de bepaling waarin het staat – uit de graaf (`bwb:inBepaling`), niet uit zijn IRI.
+    bepaling: dict[str, str] = {}
+    if profiel.divisies:
+        from .plekken import plekken
+
+        onderdelen = [t[0] for t in treffers if t[2] in ("Onderdeel", "Definitie")]
+        bepaling = {iri: p["bepaling"] for iri, p in plekken(graph, onderdelen).items() if p.get("bepaling")}
+    for iri, tekst, soort, bwb, citeertitel, lijst, rang, term in treffers:
+        neem(iri, tekst, soort, bwb, citeertitel, lijst, rang, term, bepaling.get(iri))
 
     return {"termen": termen, "dossiertermen": dossiertermen, "bereik": bereik, "gevonden": gevonden,
             "geraakte_artikelen": geraakte_artikelen, "lemma": lemma}
@@ -768,9 +782,13 @@ def plek_uit_iri(iri: str) -> str:
     rest = re.sub(r"^urn:bwb:BWB[A-Z]\d+:?", "", iri)
     m = re.match(r"^id:(.+)$", rest)
     if m:
-        laatste = unquote(m.group(1)).split("/")[-1]
-        divisie = re.search(r"divisie([\d.]+[a-z]?)$", laatste, re.I)
-        return f"divisie {divisie.group(1)}" if divisie else laatste
+        delen = unquote(m.group(1)).split("/")
+        # Een onderdeel (`…/Circulaire.divisie9/Tekst/Onderdeel._4`) heet naar zijn divisie: het volgnummer in
+        # de IRI telt niet betrouwbaar, en een opsommingsteken heeft geen eigen nummer.
+        if "Tekst" in delen:
+            delen = delen[:delen.index("Tekst")]
+        divisie = re.search(r"divisie([\d.]+[a-z]?)$", delen[-1], re.I) if delen else None
+        return f"divisie {divisie.group(1)}" if divisie else (delen[-1] if len(delen) > 1 else rest)
     return rest or iri
 
 
@@ -797,13 +815,21 @@ def bepaling_in_graaf(graph: GraphPort, bwb_id: str, artikel: str, lid: str = ""
 
 def _benoem(graph: GraphPort, kandidaten: list[dict[str, Any]]) -> None:
     """"Artikel 30g, lid 2, onderdeel a – Algemene wet inzake rijksbelastingen" in plaats van het kale
-    "Onderdeel a." uit de graaf. De vindplaats komt uit de IRI (`bronmodel.vindplaats`, dezelfde regels
-    als de bronnenlijst); een divisie van een beleidsregel houdt haar eigen titel. Een naam die niet te
-    halen is, breekt niets."""
+    "Onderdeel a." uit de graaf; bij een divisie van een beleidsregel met haar titel: "Artikel 9.4 –
+    Dagtekening aanslagbiljet – Leidraad Invordering 2008". De plek komt uit de graaf (`bwb:vindplaats`, de
+    echte boom), anders uit de IRI (`bronmodel.vindplaats`, dezelfde regels als de bronnenlijst).
+
+    Elke keer opnieuw uit de bron-IRI, nooit uit een label dat er al stond: `vind` benoemt kandidaten die
+    `bepaling_opties` al benoemde, en dan kwam de regeling er twee keer achter. Een naam die niet te halen
+    is, breekt niets."""
     from .overzicht import definitie_vindplaats
+    from .plekken import plekken
     from .regelingnamen import regelingnamen
 
     namen = regelingnamen(graph, {k["bwb_id"] for k in kandidaten})
+    graaf = plekken(graph, [k["bron_iri"] for k in kandidaten])
     for k in kandidaten:
-        plek = definitie_vindplaats(k["bron_iri"]) or k["label"] or plek_uit_iri(k["bron_iri"])
-        k["label"] = f"{plek} – {namen[k['bwb_id']]}" if k["bwb_id"] in namen else plek
+        p = graaf.get(k["bron_iri"], {})
+        plek = p.get("vindplaats") or definitie_vindplaats(k["bron_iri"]) or plek_uit_iri(k["bron_iri"])
+        delen = [plek, p.get("titel", ""), namen.get(k["bwb_id"], "")]
+        k["label"] = " – ".join(d for d in delen if d)

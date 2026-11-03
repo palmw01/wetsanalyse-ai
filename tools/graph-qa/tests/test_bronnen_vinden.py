@@ -279,11 +279,40 @@ def test_samenstellingen_zoeken_op_hun_delen_en_raken_de_kop():
     assert not bronnen_vinden.kop_raakt("bezwaarschrift", "Hoofdstuk II – Invordering")
 
 
-def test_een_onderdeel_van_een_divisie_telt_voor_de_divisie():
-    divisie = "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4"
-    assert bronnen_vinden._doel_van(divisie + "%2FTekst%2FOnderdeel._1") == divisie
-    assert bronnen_vinden._doel_van(divisie) == divisie
+def test_een_onderdeel_telt_voor_de_bepaling_uit_de_graaf():
+    """De IRI van een Leidraad-onderdeel zegt niet waar het staat (`…:artikel:9:o:d` hangt onder divisie 9.2,
+    `…divisie9%2FTekst%2FOnderdeel._4` onder `…:artikel:9`). Het doel komt daarom uit `bwb:inBepaling`; de
+    IRI-knip is alleen de terugval, en alleen voor een wet."""
+    d92 = "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.2"
+    o_d = "urn:bwb:BWBR0024096:artikel:9:o:d"
     assert bronnen_vinden._doel_van(f"{IW}:artikel:8:lid:1:o:a") == f"{IW}:artikel:8:lid:1"
+    assert bronnen_vinden._doel_van(d92 + "%2FTekst%2FOnderdeel._1") == d92 + "%2FTekst%2FOnderdeel._1"
+
+    class LeidraadGraaf(BepalingGraaf):
+        def _antwoord(self, q: str) -> str:
+            if "bwb:inBepaling" in q:
+                return _tsv(["node", "vindplaats", "titel", "bepaling"],
+                            [[o_d, "Artikel 9.2, onderdeel d", "", d92]] +
+                            ([[d92, "Artikel 9.2", "Afwijking", ""]] if d92 in q else []))
+            if "?node a bwb:Onderdeel ." in q:
+                return _fts((o_d, "de belastingschuldige is invorderbaar …", "BWBR0024096"))
+            if "?node a bwb:" in q or "tekst:(" in q and "?node a" not in q:
+                return _tsv(FTS_KOP, [])
+            return super()._antwoord(q)
+
+    uit = _opties(LeidraadGraaf(), regelingen=["BWBR0024096"], buiten=[])
+    assert [o["bron_iri"] for o in uit] == [d92]
+    assert uit[0]["label"] == "Artikel 9.2 – Afwijking"     # vindplaats en titel uit de graaf, één keer
+
+
+def test_een_naam_komt_er_maar_een_keer_bij():
+    """`vind` benoemt kandidaten die `bepaling_opties` al benoemde; de regeling kwam er dan twee keer achter
+    ("Onderdeel._11 – Leidraad Invordering 2008 – Leidraad Invordering 2008")."""
+    k = [{"bron_iri": L1, "bwb_id": IWB, "label": ""}]
+    bronnen_vinden._benoem(BepalingGraaf(), k)
+    eerst = k[0]["label"]
+    bronnen_vinden._benoem(BepalingGraaf(), k)
+    assert k[0]["label"] == eerst == "Artikel 9, lid 1 – Invorderingswet 1990"
 
 
 def test_wat_buiten_de_afbakening_raakt_valt_niet_stil_weg():
