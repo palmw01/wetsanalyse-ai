@@ -1392,7 +1392,7 @@ export interface AkkoordAntwoord {
 
 export type BronMethode = "overzicht" | "deelvraag" | "verwijzing_uit" | "verwijzing_in" | "definitie" | "opbouw" | "gelijkenis";
 export type KandidaatRol = "kern" | "afhankelijkheid" | "aanverwant";
-export type KandidaatStatus = "voorgesteld" | "opgenomen" | "later" | "uitgesloten";
+export type KandidaatStatus = "voorgesteld" | "opgenomen" | "uitgesloten";
 
 /** Waarom één methode deze bepaling vond. `detail` per methode: verwijzingen `{anker, functie}`,
  *  definitie `{begrip}`, overzicht `{onderwerp}`, opbouw `{deel}`, gelijkenis `{score}`. */
@@ -1413,7 +1413,9 @@ export interface BronKandidaat {
   status: KandidaatStatus;
   reden: string;
   run_id: string;
-  in_laatste_run: boolean;
+  /** Een open voorstel dat de laatste zoekopdracht niet meer vond (het dossier of de selectie veranderde): de
+   *  bronselectie toont het niet meer. Een besluit vervalt nooit. */
+  vervallen: boolean;
   /** Intussen met de hand opgenomen: geen open voorstel meer. */
   in_selectie: boolean;
   besloten_door: string | null;

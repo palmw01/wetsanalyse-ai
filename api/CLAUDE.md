@@ -694,16 +694,19 @@ invoer vast, toetst en bewaart de kandidaten, en legt de besluiten vast.
   wordt geen kandidaat.
 - **Het besluit hoort bij de kandidaat**: een latere run werkt bewijs, rol en `run_id` bij en laat de
   status staan. **Een uitgesloten kandidaat komt dus niet terug** (de acceptatie van L1). Uitsluiten
-  vraagt een reden (422 zonder). `later` (sinds spoor J niet meer in de werkplek; de bronselectie leest het als
-  voorstel), `uitsluiten` en `heropenen` nemen het slot op het werkgebied
-  maar dragen geen revisie: ze wijzigen de scope niet.
+  vraagt een reden (422 zonder). Besluiten lopen alleen via de bronselectie per deelvraag
+  (`POST …/bronselectie/{deelvraag}/kandidaten/{id}`; zonder deelvragen `analysevraag`, dan werkgebiedbreed);
+  de werkgebiedbrede routes `…/kandidaten/{id}/{opnemen,later,uitsluiten,heropenen}` en de status `later` zijn
+  weg (`reconcile_schema` maakt van een oude rij een voorstel). Uitsluiten en heropenen nemen het slot op het
+  werkgebied maar dragen geen revisie: ze wijzigen de scope niet.
 - **Opnemen** wijzigt de scope en draagt daarom `verwachte_revisie` (412). De api verifieert de bron
   zoals bij zelf opnemen en schrijft selectie én kandidaatstatus in één transactie
   (`werkgebied_store.voeg_bron_toe(..., binnen=…)`). Rol: *analyseren* bij een kernkandidaat, anders
   *context*, tenzij de analist kiest. Haalt de analist die selectie weer weg
   (`verwijder_bron`), dan wordt de kandidaat in dezelfde transactie weer `voorgesteld`.
-- `GET …/kandidaten` geeft de laatste run en de kandidaten (sterkste rol eerst), met `in_laatste_run`
-  en `in_selectie` (intussen met de hand opgenomen). `…/uitkomst`, `…/loopt` en `…/mislukt` zijn voor
+- `GET …/kandidaten` geeft de laatste run en de kandidaten (sterkste rol eerst), met `vervallen` (niet
+  gevonden door de laatste klare run) en `in_selectie` (intussen met de hand opgenomen); de werkplek leest
+  het alleen (de bronverkenner). `…/uitkomst`, `…/loopt` en `…/mislukt` zijn voor
   graph-qa.
 - Het artefact van een bronnenbeurt is `{soort: "bronnen", ref: {werkgebied_id, run_id}}`.
 - Tests: `tests/test_bronnen_runs.py` (SQLite) en het slot in `tests/test_werkgebieden_postgres.py`.

@@ -19,8 +19,7 @@ collega.
   één deelvraag (`bron_kandidaat_deelvragen`); het besluit op `bron_kandidaten` blijft het
   werkgebiedbrede besluit en geldt voor elke deelvraag. Bestaande uitsluitingen blijven dus wat ze waren.
 - **Kiezen is het besluit.** Wie het kaartje van een deelvraag beantwoordt, kiest; wat niet aangevinkt is, heet
-  daarna `niet_gekozen` (afgeleid uit de fase, niet bewaard). Er is geen *later*: een oud besluit *later* telt
-  als voorstel. Een bepaling die er niet bij stond, voegt de analist zelf toe (`toevoegen`), en de vragen
+  daarna `niet_gekozen` (afgeleid uit de fase, niet bewaard). Er is geen *later*. Een bepaling die er niet bij stond, voegt de analist zelf toe (`toevoegen`), en de vragen
   opnieuw doorlopen maakt van *niet gekozen* weer een keuze.
 - **De volgende deelvraag kiest de code** (`volgende`): na de gegeven deelvraag de eerste in de volgorde
   die niet klaar is, en anders vooraan verder. Het model kiest hier niets.
@@ -90,22 +89,6 @@ def _toets_deelvraag(werkgebied: dict, deelvraag_id: str) -> dict:
     raise HTTPException(404, "Deelvraag bestaat niet.")
 
 
-async def _voorgangers(conn, werkgebied_id: str) -> dict[str, set[str]]:
-    """Per deelvraag de ids die ze (via een keten van verbeteringen) vervangt: een kandidaat die bij een
-    vervangen deelvraag gevonden was, hoort bij haar opvolger."""
-    d = db.werkgebied_deelvragen
-    rows = (await conn.execute(select(d.c.id, d.c.vervangt).where(d.c.werkgebied_id == werkgebied_id))).all()
-    ouder = {r.id: r.vervangt for r in rows if r.vervangt}
-    uit: dict[str, set[str]] = {}
-    for did in {r.id for r in rows}:
-        keten, x = set(), ouder.get(did)
-        while x and x not in keten:
-            keten.add(x)
-            x = ouder.get(x)
-        uit[did] = keten
-    return uit
-
-
 def _rij(row) -> dict:
     return {"status": row.status, "fase": row.fase, "open_punten": row.open_punten or [], "revisie": row.revisie,
             "scope_stand": row.scope_stand, "gewijzigd_door": row.gewijzigd_door,
@@ -125,7 +108,7 @@ async def _lees(werkgebied: dict) -> dict:
         selecties = {r.id: r for r in (await conn.execute(select(s).where(
             s.c.werkgebied_id == wid, s.c.verwijderd.is_(None)))).all()}
         koppelingen = (await conn.execute(select(kp).where(kp.c.deelvraag_id.in_(ids), kp.c.soort == "bron"))).all()
-        voorgangers = await _voorgangers(conn, wid)
+        voorgangers = await werkgebied_deelvragen.voorgangers_in(conn, wid)
         basis = await bronnen_run_store.basis_run_id(conn, wid)
     return {"vragen": vragen, "rijen": rijen, "besluiten": besluiten, "kandidaten": kandidaten,
             "selecties": selecties, "koppelingen": koppelingen, "voorgangers": voorgangers, "basis": basis}
@@ -185,7 +168,6 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
                 stand, overal = "uitgesloten", True
             elif rij is not None and rij.status == "uitgesloten":
                 stand, overal = "uitgesloten", False
-            # Een oud besluit *later* (van vóór spoor J, of uit de boom) is geen besluit: weer een keuze.
             # Wat de laatste zoekopdracht niet meer vond (het dossier of de selectie veranderde), is geen voorstel meer.
             elif bronnen_run_store.vervallen(kd.status, kd.run_id, lees["basis"]):
                 continue
@@ -268,11 +250,7 @@ async def overzicht(werkgebied_id: str, na: str | None = None) -> dict:
 # --- voortgang -------------------------------------------------------------------------------
 
 async def _slot(conn, werkgebied_id: str) -> None:
-    t = db.werkgebieden
-    row = (await conn.execute(select(t.c.id, t.c.gearchiveerd).where(t.c.id == werkgebied_id)
-                              .with_for_update())).first()
-    if row is None or row.gearchiveerd is not None:
-        raise HTTPException(404, "Werkgebied bestaat niet.")
+    await werkgebied_store.werkgebied_rij(conn, werkgebied_id, slot=True)
 
 
 async def _start_in(conn, werkgebied_id: str, deelvraag_id: str, actor: str):
@@ -294,7 +272,7 @@ async def _start_in(conn, werkgebied_id: str, deelvraag_id: str, actor: str):
 async def zet_status(werkgebied_id: str, deelvraag_id: str, req: StatusActie, actor: str) -> None:
     """De stand van één deelvraag. Geeft niets terug: de router leest het overzicht ná de commit."""
     wg = await werkgebied_store.haal(werkgebied_id)
-    vraag = _toets_deelvraag(wg, deelvraag_id)
+    _toets_deelvraag(wg, deelvraag_id)
     huidig = next(x for x in _per_vraag(wg, await _lees(wg)) if x["id"] == deelvraag_id)
     v = db.bronselectie_voortgang
     async with db.get_engine().begin() as conn:
@@ -393,7 +371,7 @@ async def besluit(werkgebied_id: str, deelvraag_id: str, kandidaat_id: str, req:
             await bronnen_run_store.opnemen(
                 werkgebied_id, kandidaat_id,
                 Opnemen(verwachte_revisie=req.verwachte_revisie, rol=req.rol, reden=req.reden), bron, actor,
-                deelvraag_ids=None if alleen else [deelvraag_id], koppel_rol=req.rol or "", binnen=wis_besluit)
+                deelvraag_ids=[] if alleen else [deelvraag_id], koppel_rol=req.rol or "", binnen=wis_besluit)
         elif not alleen:
             await _koppel(werkgebied_id, deelvraag_id, sid, req.rol or "", req.verwachte_revisie, actor, detail,
                           koppeling, binnen=wis_besluit)
@@ -435,7 +413,7 @@ async def besluit(werkgebied_id: str, deelvraag_id: str, kandidaat_id: str, req:
             if rij is not None:
                 await wis_besluit(conn)
                 await _audit(conn, werkgebied_id, actor, "bronselectie-heropend", detail)
-            if (alleen or req.overal) and kd.status in ("later", "uitgesloten"):
+            if (alleen or req.overal) and kd.status == "uitgesloten":
                 await conn.execute(update(k).where(k.c.werkgebied_id == werkgebied_id, k.c.id == kandidaat_id)
                                    .values(status="voorgesteld", reden="", besloten_door=None, besloten_op=None,
                                            gewijzigd=db.utcnow()))

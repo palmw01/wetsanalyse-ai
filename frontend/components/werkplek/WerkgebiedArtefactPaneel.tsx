@@ -118,8 +118,7 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
           ) : doel.soort === "begrippen" ? (
             <BegripVoorstellen id={doel.werkgebied_id} runId={doel.run_id} inklapbaar={false} />
           ) : (
-            // Opnemen wijzigt het werkgebied; hier staat geen selectie naast die ververst moet worden.
-            <BronKandidaten id={doel.werkgebied_id} onGewijzigd={() => {}} />
+            <BronKandidaten id={doel.werkgebied_id} />
           )}
         </div>
       </div>

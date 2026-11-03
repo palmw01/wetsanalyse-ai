@@ -387,7 +387,7 @@ bronselectie_voortgang = Table("bronselectie_voortgang", metadata,
     Column("gewijzigd_door", String(64), nullable=False),
     Column("gewijzigd", _DT, nullable=False),
     Column("geopend", _DT, nullable=False))
-# Een besluit over een kandidaat bij één deelvraag: `later` of `uitgesloten` (met reden). Opnemen is geen rij
+# Een besluit over een kandidaat bij één deelvraag: `uitgesloten` (met reden). Opnemen is geen rij
 # hier maar een koppeling van de selectie aan de deelvraag. Het besluit op `bron_kandidaten` blijft het
 # werkgebiedbrede besluit; een uitsluiting daar geldt voor elke deelvraag.
 bron_kandidaat_deelvragen = Table("bron_kandidaat_deelvragen", metadata,
@@ -404,7 +404,7 @@ bron_kandidaat_deelvragen = Table("bron_kandidaat_deelvragen", metadata,
 # legt de invoer vast (kern- en contextbronnen, analysevraag), graph-qa zoekt en zet de kandidaten
 # terug. Idempotent op (werkgebied, invoer): dezelfde selectie geeft dezelfde run.
 # Een kandidaat is per (werkgebied, bron_iri) één rij: vinden meer methoden dezelfde bepaling, dan
-# groeit zijn bewijs. Zijn besluit (later, uitgesloten met reden, opgenomen) blijft staan als een
+# groeit zijn bewijs. Zijn besluit (uitgesloten met reden, opgenomen) blijft staan als een
 # latere run hem opnieuw vindt – een uitgesloten kandidaat stelt Lex niet opnieuw voor.
 bronnen_runs = Table("bronnen_runs", metadata,
     Column("id", String(64), primary_key=True),
@@ -789,6 +789,13 @@ async def reconcile_schema() -> None:
         for tabel in metadata.tables.values():
             for index in tabel.indexes:
                 await conn.run_sync(lambda sync_conn, ix=index: ix.create(sync_conn, checkfirst=True))
+        # Het besluit *later* bestaat niet meer (sinds spoor J kies je per deelvraag): een oude rij is een voorstel.
+        # Idempotent; daarna kent de code de waarde niet meer.
+        if await conn.run_sync(lambda c: sa_inspect(c).has_table("bron_kandidaten")):
+            await conn.execute(text("UPDATE bron_kandidaten SET status = 'voorgesteld', besloten_door = NULL, "
+                                    "besloten_op = NULL WHERE status = 'later'"))
+        if await conn.run_sync(lambda c: sa_inspect(c).has_table("bron_kandidaat_deelvragen")):
+            await conn.execute(text("DELETE FROM bron_kandidaat_deelvragen WHERE status = 'later'"))
 
 
 async def _na_kolom(conn, tabel, col) -> None:

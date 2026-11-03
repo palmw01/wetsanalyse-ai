@@ -200,7 +200,7 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     bij die deelvraag) levert `ref: {werkgebied_id, deelvraag_id}`. **`DeelvraagPaneel`** haalt
     `GET …/deelvragen/{id}` (ook een vervangen deelvraag) en toont de vraag met haar stand, de voorstellen
     van Lex die haar vervangen (`DeelvraagVoorstel` uit `Deelvragen.tsx`, met "Vervangt “…”"), de bronnen en
-    begrippen, en `BronKandidaten deelvraagId` (alleen wat Lex bij haar vond, zonder zoekknop). Overnemen
+    begrippen, en `BronnenBijDeelvraag` (de bronselectie van die deelvraag). Overnemen
     vervangt de oude (api): na herladen zegt het paneel "vervangen door …" en opent de opvolger in hetzelfde
     paneel (`onWissel`).
   - **werkgebied** (activiteit 1) – een werkgebied dat Lex met de analist samenstelde: ref

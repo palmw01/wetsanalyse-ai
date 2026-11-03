@@ -210,13 +210,20 @@ async def test_een_besluit_start_de_deelvraag_en_wordt_geaudit(client):
     assert "bronselectie-uitgesloten" in acties and "bronselectie-gestart" in acties
 
 
-async def test_een_oud_besluit_later_telt_als_voorstel(client):
-    """Er is geen *later* meer: een bepaling die in de oude bronnenboom voor later bewaard werd, staat gewoon weer
-    op het kaartje."""
+async def test_een_oud_besluit_later_wordt_bij_het_opstarten_een_voorstel(client):
+    """Er is geen *later* meer: `reconcile_schema` maakt van een oude rij een voorstel, en de code kent de waarde
+    daarna niet meer."""
+    from sqlalchemy import update
     wg, ids = await _vier(client)
     await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=[ids[0]])])
-    kid = (await client.get(f"/v1/werkgebieden/{wg['id']}/kandidaten")).json()["kandidaten"][0]["id"]
-    assert (await client.post(f"/v1/werkgebieden/{wg['id']}/kandidaten/{kid}/later")).status_code == 200
+    async with db.get_engine().begin() as conn:
+        await conn.execute(update(db.bron_kandidaten).where(db.bron_kandidaten.c.werkgebied_id == wg["id"])
+                           .values(status="later", besloten_door="jurist-a"))
+    await db.reconcile_schema()
+    async with db.get_engine().connect() as conn:
+        [status] = (await conn.execute(select(db.bron_kandidaten.c.status).where(
+            db.bron_kandidaten.c.werkgebied_id == wg["id"]))).scalars().all()
+    assert status == "voorgesteld"
     k = _kid(_dq(await _overzicht(client, wg), ids[0]), ART)
     assert (k["stand"], k["overal"]) == ("voorgesteld", False)
 
