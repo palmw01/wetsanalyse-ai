@@ -167,27 +167,33 @@ def _opties_voor(d: dict[str, Any], stap: str) -> tuple[list[dict], list[str], i
 
 def kaart_bepalingen(werkgebied_id: str, ov: dict[str, Any], d: dict[str, Any], stap: str = "bs_bepalingen",
                      melding: str = "") -> dict[str, Any] | None:
+    """Het kaartje van de kernbepalingen of van wat eraan hangt: compact (3 nov 2026, besluit gebruiker). Het
+    gesprek blijft rustig, zoals een artefact bij Claude: het kaartje noemt hoeveel er ligt en verwijst naar het
+    paneel (`weergave: paneel`), waar de jurist de tekst leest en per bepaling opneemt of uitsluit. *Klaar* (`actie:
+    klaar`) raakt geen besluit; wat dan nog onbeslist is, is niet gekozen (de api leidt het af uit de fase).
+    Een eigen tekst blijft een bepaling die de analist zelf toevoegt."""
     opties, aan, rest = _opties_voor(d, stap)
     if not opties:
         return None
+    kern = stap == "bs_bepalingen"
+    past = (lambda k: k["rol"] == "kern") if kern else (lambda k: k["rol"] != "kern")
+    open_ = sum(1 for k in d["kandidaten"] if k["stand"] in ("voorgesteld", "niet_gekozen") and past(k))
+    wie = _naam(d)
+    vraag = (f"De kernbepalingen bij {wie}" if kern else f"Wat hangt aan de bepalingen van {wie}?")
+    if d["id"] != ANALYSEVRAAG and kern:
+        vraag += f": {_kort(d['vraag'], 300)}"
     toelichting = [melding] if melding else []
-    if stap == "bs_bepalingen":
-        vraag = f"Welke bepalingen regelen {_naam(d)} zelf?" if d["id"] == ANALYSEVRAAG else \
-            f"Welke bepalingen regelen deelvraag {d['nr']} zelf? {_kort(d['vraag'], 300)}"
-        toelichting.append("Aangevinkt is wat al is opgenomen. Wat je niet aanvinkt, neem je niet op; je kunt de "
-                           "vragen later opnieuw doorlopen.")
-    else:
-        vraag = f"Wat hangt aan de opgenomen bepalingen van {_naam(d)}?"
-        toelichting.append("Definities, verwijzingen en bepalingen uit hetzelfde deel. Wat je aanvinkt, komt erbij "
-                           "als contextbron.")
-    if rest:
-        toelichting.append(f"Nog {rest} {'voorstel staat' if rest == 1 else 'voorstellen staan'} in het paneel.")
+    toelichting.append(
+        f"Ik vond {open_} {'kandidaatbron' if open_ == 1 else 'kandidaatbronnen'}"
+        + (f" en {len(aan)} {'staat' if len(aan) == 1 else 'staan'} al opgenomen" if aan else "")
+        + ". Beoordeel ze in het paneel: lees de tekst en neem op of sluit uit. "
+        + ("Klaar? Dan zoek ik wat eraan hangt." if kern else "Wat je opneemt, komt erbij als contextbron. "
+           "Klaar? Dan ronden we af."))
     toelichting += beperkingen(ov)
-    toelichting.append("Staat een bepaling er niet bij, typ haar dan zelf, bijvoorbeeld ‘artikel 9 lid 2 "
-                       "Invorderingswet 1990’.")
     return {**_basis(werkgebied_id, stap, d, ov), "vraag": _kort(vraag, 500),
-            "toelichting": _kort(" ".join(toelichting), 1000), "opties": opties, "meerkeuze": True,
-            "vrije_tekst": True, "overslaanbaar": True, "vooringevuld": aan}
+            "toelichting": _kort(" ".join(toelichting), 1000), "weergave": "paneel",
+            "samenvatting": {"kandidaten": open_, "opgenomen": len(aan)},
+            "vrije_tekst": True, "overslaanbaar": False}
 
 
 def afrond_tekst(d: dict[str, Any], ov: dict[str, Any]) -> str:
@@ -532,14 +538,19 @@ async def verwerk(api, actie: dict[str, Any], zoek: Zoek | None,
     zinnen: list[str] = []
     if stap in ("bs_bepalingen", "bs_afhankelijkheden"):
         if actie.get("actie") != "overslaan":
-            ov, gedaan = await _neem_op(api, wid, ov, did, stap, keuzes)
-            if gedaan:
-                zinnen.append("; ".join(gedaan) + ".")
+            # *Klaar* (het compacte kaartje): de besluiten staan al bij de api, via het paneel. Alleen een oud
+            # kaartje met vinkjes draagt nog keuzes. Een getypte bepaling zonder keuzes raakt de besluiten niet:
+            # anders koppelde ze alles los wat in het paneel was opgenomen.
+            if actie.get("actie") != "klaar" and (keuzes or not tekst):
+                ov, gedaan = await _neem_op(api, wid, ov, did, stap, keuzes)
+                if gedaan:
+                    zinnen.append("; ".join(gedaan) + ".")
             if tekst:
                 ov, uit, gelukt = await _zelf(api, wid, ov, did, stap, tekst, vind)
                 zinnen += uit
-                if not gelukt:
-                    # Het kaartje blijft: de analist verbetert zijn tekst, of verzendt zonder.
+                if not gelukt or actie.get("actie") != "klaar":
+                    # Het kaartje blijft: de analist verbetert zijn tekst, of beoordeelt verder in het paneel en
+                    # zegt dan *Klaar*. Een toegevoegde bepaling schuift de fase niet door.
                     k = kaart_bepalingen(wid, ov, _dq(ov, did), stap)
                     if k:
                         return {"kaart": k, "zinnen": zinnen, "deelvraag": did}

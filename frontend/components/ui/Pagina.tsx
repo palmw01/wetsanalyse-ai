@@ -202,25 +202,37 @@ export function Groep({ kop, sub, telling, status, label, children, leeg, ...res
 
 /** Eén rij in een `Groep` (de `itemrow` van de mock-up): titel, subregel, status en een chevron naar de pagina
  *  van het object. `eind` staat buiten de link (een menu ⋯), `onder` eronder (dat menu, uitgeklapt). */
-export function GroepRij({ href, titel, sub, status, eind, onder, ...rest }: {
-  href: string;
+export function GroepRij({ href, uitklap, titel, sub, status, eind, onder, ...rest }: {
+  /** De rij opent een pagina … */
+  href?: string;
+  /** … of klapt uit op haar plek (naast het gesprek: lezen zonder weg te gaan, 3 nov 2026). */
+  uitklap?: { open: boolean; onWissel: () => void; label: string };
   titel: React.ReactNode;
   sub?: React.ReactNode;
   status?: React.ReactNode;
   eind?: React.ReactNode;
   onder?: React.ReactNode;
 } & Omit<React.LiHTMLAttributes<HTMLLIElement>, "title">) {
+  const binnen = (
+    <>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-lint [overflow-wrap:anywhere] group-hover:underline">{titel}</span>
+        {sub && <span className="mt-0.5 block text-xs leading-relaxed text-muted [overflow-wrap:anywhere]">{sub}</span>}
+      </span>
+      {status && <span className="flex shrink-0 flex-wrap justify-end gap-1.5">{status}</span>}
+      <ChevronOmlaag className={`shrink-0 text-faint transition-transform group-hover:text-lint ${
+        uitklap ? (uitklap.open ? "rotate-180" : "") : "-rotate-90"}`} />
+    </>
+  );
+  const klasse = "focus-ring group flex min-h-[48px] min-w-0 flex-1 items-center gap-3 rounded-md py-3 pl-4 text-left";
   return (
     <li {...rest}>
       <div className="flex items-center gap-2 pr-2 transition-colors hover:bg-surface">
-        <Link href={href} className="focus-ring group flex min-h-[48px] min-w-0 flex-1 items-center gap-3 rounded-md py-3 pl-4">
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-lint [overflow-wrap:anywhere] group-hover:underline">{titel}</span>
-            {sub && <span className="mt-0.5 block text-xs leading-relaxed text-muted [overflow-wrap:anywhere]">{sub}</span>}
-          </span>
-          {status && <span className="flex shrink-0 flex-wrap justify-end gap-1.5">{status}</span>}
-          <ChevronOmlaag className="shrink-0 -rotate-90 text-faint group-hover:text-lint" />
-        </Link>
+        {uitklap ? (
+          <button type="button" onClick={uitklap.onWissel} aria-expanded={uitklap.open} aria-label={uitklap.label} className={klasse}>
+            {binnen}
+          </button>
+        ) : <Link href={href ?? "#"} className={klasse}>{binnen}</Link>}
         {eind}
       </div>
       {onder}

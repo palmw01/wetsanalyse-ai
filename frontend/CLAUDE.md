@@ -443,6 +443,14 @@ heeft *Verzend* (`isLaatsteVraag`), want wat erna komt hangt af van het antwoord
   uitsluiten met reden of heropenen (`besluitBronselectie`); de stappen zet Lex. **Geen *later***: wat je op het
   kaartje niet aanvinkt, is *niet gekozen*; iets toevoegen doe je door de vragen opnieuw te doorlopen, of door
   een bepaling in het tekstveld van het kaartje te typen.
+- **Het kaartje van de bepalingen is compact, het paneel beslist** (3 nov 2026, het artefactpatroon van Claude):
+  bij `weergave: "paneel"` toont de werkplek `BronselectieKaart` in plaats van `VraagDock`. Die toont de telling (live,
+  via `paneelTelling` en het venster-event `BRONSELECTIE_GEWIJZIGD`) met *Bronnen beoordelen* (opent het paneel),
+  *+ Bepaling toevoegen* (`BepalingToevoegen` met de deelvraag van het kaartje), *Klaar* (`klaarActie`) en een
+  regel om een bepaling te typen (`typActie`). In het paneel (`inGesprek`) klappen kandidaten en bronnen uit met
+  de wettekst (`GroepRij uitklap`, `Wettekst`), in plaats van naar de bronpagina te gaan. Onder de actieve
+  deelvraag staan *+ Bepaling toevoegen* en *Klaar met deze deelvraag*; die laatste stuurt de actie van het open
+  kaartje (`onKlaar`/`klaarVoor` vanuit `WerkplekClient`). Browserregressie: `scripts/test-bronselectie-paneel.mjs`.
 - **Een bronselectiebeurt blijft een antwoord met kaartje**: het artefact `bronselectie` maakt er geen
   artefact-item van (anders is de open vraag weg), live (`toonVastgelegdeBeurt`) en na herladen. Het paneel
   opent vanzelf alleen vanaf 1280px; daaronder via de balk *laatste artefact* (`bronselectieVanKaart`).

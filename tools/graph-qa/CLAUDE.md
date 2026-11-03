@@ -946,6 +946,11 @@ onder de supervisor, naast de intake; zie `docs/architectuur/bronselectie-per-de
   `bronnen_zoeken` van de deelvragen-agent staat niet meer in de prompt (wel nog in `ACTIE_TAAK`, en de
   bronselectie gebruikt zijn zoekfunctie). Een deelvraag aangewezen in de werkplek (`onderwerp`) of genoemd ("deelvraag 4",
   `deelvraag_nr_in`) gaat voor.
+- **Het kaartje van de bepalingen is compact** (`kaart_bepalingen`, `weergave: paneel`, besluit gebruiker 3 nov 2026):
+  geen vinkjes, wel de telling (`samenvatting: {kandidaten, opgenomen}`). Beslissen gebeurt in het paneel naast het
+  gesprek, dat de api rechtstreeks aanroept. **`actie: klaar`** raakt geen besluit en schuift alleen de fase door;
+  wat dan onbeslist is, is niet gekozen. Een getypte bepaling zonder keuzes raakt de besluiten ook niet, en het kaartje
+  blijft staan tot *Klaar*. Een oud kaartje met vinkjes (keuzes) wordt nog verwerkt zoals hieronder.
 - **Een klik wordt een besluit of een stap** (`verwerk`): aangevinkt = opnemen bij deze deelvraag (rol
   *analyseren* bij een kernbepaling op het kernkaartje, anders *context*), een opgenomen bron die niet meer
   aangevinkt is wordt losgekoppeld, en de fase schuift door. Wat niet aangevinkt is, is niet gekozen (de api

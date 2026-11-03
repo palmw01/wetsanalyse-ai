@@ -65,3 +65,14 @@ bs_kies ──► bs_bepalingen (fase A/B: kern) ──► bs_afhankelijkheden (
   relatie in de graaf.
 - De rangschikking van `bepaling_opties` is ongewijzigd (meting 21 okt 2026: recall 0,21 in de top 8). Een
   betere rangschikking is de volgende stap, gemeten op een nieuwe held-out set.
+
+
+## Compact kaartje, het paneel beslist (3 nov 2026)
+
+Besluit van de gebruiker: het gesprek blijft rustig, zoals een artefact bij Claude. Het kaartje van de kernbepalingen
+en van wat eraan hangt heeft geen vinkjes meer (`weergave: paneel`). Het noemt wat er ligt en verwijst naar het
+paneel. Daar lees je de wettekst (uitklappen) en neem je per bepaling op of sluit je uit; die besluiten gaan
+rechtstreeks naar de api. *Klaar* (`actie: klaar`, op het kaartje of onderaan het paneel) schuift de fase door
+zonder een besluit te raken; wat dan nog onbeslist is, is niet gekozen. *+ Bepaling toevoegen* is hetzelfde onderdeel
+als op de tab Bronnen: een regeling, een vindplaats uit de echte boom en de deelvraag. Een oud kaartje met vinkjes
+wordt nog verwerkt.

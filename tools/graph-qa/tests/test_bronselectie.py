@@ -186,6 +186,12 @@ def _klik(api, kaart, *keuzes, actie="antwoord", tekst=""):
     return uit
 
 
+def _paneel(api, did, kid, rol):
+    """Een besluit in het paneel naast het gesprek: rechtstreeks bij de api, buiten Lex om."""
+    ov = _run(api.haal_bronselectie(WID))
+    _run(api.besluit_bronselectie(WID, did, kid, {"besluit": "opnemen", "rol": rol, "verwachte_revisie": ov["revisie"]}))
+
+
 def _kandidaten():
     return {"k1": {"label": "Artikel 9 lid 1", "rol": "kern", "bij": ["d1"]},
             "k2": {"label": "Artikel 9 lid 3", "rol": "kern", "bij": ["d2"]},
@@ -200,13 +206,19 @@ def test_vier_deelvragen_van_1_naar_2_springen_naar_4_en_hervatten():
     assert kaart["stap"] == "bs_kies" and [o["waarde"] for o in kaart["opties"]] == ["d1", "d2", "d3", "d4"]
     assert kaart["vooringevuld"] == ["d1"] and "4 deelvragen" in " ".join(uit["zinnen"])
 
-    # Deelvraag 1: kernbepalingen, dan wat eraan hangt, dan afronden → Hoe wil je verder? met deelvraag 2.
+    # Deelvraag 1: kernbepalingen, dan wat eraan hangt, dan afronden → Hoe wil je verder? met deelvraag 2. Het
+    # kaartje is compact (3 nov 2026): het noemt wat er ligt, beslissen gebeurt in het paneel, *Klaar* gaat verder.
     uit = _klik(api, kaart, "d1")
-    assert (uit["kaart"]["stap"], [o["waarde"] for o in uit["kaart"]["opties"]]) == ("bs_bepalingen", ["k1"])
-    uit = _klik(api, uit["kaart"], "k1")
+    k = uit["kaart"]
+    assert (k["stap"], k["weergave"], k["opties"], k["samenvatting"]) == \
+        ("bs_bepalingen", "paneel", [], {"kandidaten": 1, "opgenomen": 0})
+    assert "Ik vond 1 kandidaatbron" in k["toelichting"] and "paneel" in k["toelichting"]
+    _paneel(api, "d1", "k1", "analyseren")
+    uit = _klik(api, k, actie="klaar")
     assert api.opgenomen["d1"] == {"k1": "analyseren"}
-    assert uit["kaart"]["stap"] == "bs_afhankelijkheden" and [o["waarde"] for o in uit["kaart"]["opties"]] == ["a1"]
-    uit = _klik(api, uit["kaart"], "a1")
+    assert uit["kaart"]["stap"] == "bs_afhankelijkheden" and uit["kaart"]["samenvatting"]["kandidaten"] == 1
+    _paneel(api, "d1", "a1", "context")
+    uit = _klik(api, uit["kaart"], actie="klaar")
     assert api.opgenomen["d1"]["a1"] == "context" and uit["kaart"]["stap"] == "bs_afronden"
     uit = _klik(api, uit["kaart"], "afronden")
     verder = uit["kaart"]
@@ -215,10 +227,17 @@ def test_vier_deelvragen_van_1_naar_2_springen_naar_4_en_hervatten():
 
     # Deelvraag 2: het voorstel niet aanvinken (niet gekozen) en zelf een bepaling toevoegen als keuze.
     uit = _klik(api, verder, "verder:d2")
-    assert uit["kaart"]["deelvraag_id"] == "d2" and "typ haar dan zelf" in uit["kaart"]["toelichting"]
+    assert uit["kaart"]["deelvraag_id"] == "d2" and uit["kaart"]["weergave"] == "paneel"
+    # Typen blijft kunnen: een eigen bepaling komt erbij, en het kaartje blijft tot *Klaar*.
+    _paneel(api, "d2", "k2", "analyseren")
     uit = _klik(api, uit["kaart"], tekst="artikel 10a lid 2")
+    assert "k2" in api.opgenomen["d2"], "een getypte bepaling koppelt het paneelbesluit niet los"
+    _run(api.besluit_bronselectie(WID, "d2", "k2", {"besluit": "loskoppelen",
+                                                     "verwachte_revisie": _run(api.haal_bronselectie(WID))["revisie"]}))
     assert ("toevoegen", "d2", "BWBR0004770", "10a", "2", "analyseren") in api.aanroepen
-    assert "Zelf toegevoegd: artikel 10a lid 2." in uit["zinnen"]
+    assert "Zelf toegevoegd: artikel 10a lid 2." in uit["zinnen"] and uit["kaart"]["stap"] == "bs_bepalingen"
+    uit = _klik(api, uit["kaart"], actie="klaar")
+    # Wat bij *Klaar* onbeslist was, is niet gekozen.
     assert _run(api.haal_bronselectie(WID))["deelvragen"][1]["kandidaten"][0]["stand"] == "niet_gekozen"
     # Een onderzoekspunt noteer je bij het afronden.
     assert uit["kaart"]["stap"] == "bs_afronden"
@@ -311,12 +330,13 @@ def test_nog_niet_gezocht_zoekt_eerst_en_een_onvolledige_zoekopdracht_staat_op_h
     assert "onvolledig" in k["toelichting"]
 
 
-def test_meer_dan_acht_voorstellen_noemt_de_rest():
+def test_het_kaartje_telt_alle_voorstellen():
     api = NepApi(vragen=VRAGEN[:1], kandidaten={f"k{i}": {"label": f"Artikel {i}", "rol": "kern", "bij": ["d1"]}
                                                 for i in range(11)})
     k = _run(bs.start(api, WID, api.zoek))["kaart"]
     k = _klik(api, k, "d1")["kaart"]
-    assert len(k["opties"]) == bs.MAX_OPTIES and "Nog 3 voorstellen staan in het paneel" in k["toelichting"]
+    # Het compacte kaartje telt alles; de lijst zelf staat in het paneel.
+    assert k["opties"] == [] and k["samenvatting"]["kandidaten"] == 11 and "Ik vond 11 kandidaatbronnen" in k["toelichting"]
 
 
 def test_afbreken_laat_de_stand_staan():

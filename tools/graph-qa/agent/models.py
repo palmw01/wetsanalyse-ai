@@ -74,7 +74,7 @@ class IntakeActie(BaseModel):
     # Bij de bepalingen: het kaartje van welke deelvraag (0-based); een ander deel is een oud kaartje.
     deel: int = Field(default=0, ge=0, le=19)
     # `aanmaken` sluit het samenstellen af, `opslaan` het aanvullen van een bestaand werkgebied.
-    actie: Literal["antwoord", "overslaan", "wijzig", "aanmaken", "opslaan", "afbreken"] = "antwoord"
+    actie: Literal["antwoord", "overslaan", "wijzig", "aanmaken", "opslaan", "afbreken", "klaar"] = "antwoord"
     keuzes: list[str] = Field(default_factory=list, max_length=20)
     tekst: str = Field(default="", max_length=4000)
     # Meer dan één eigen antwoord (de deelvragen, `meer_tekst` op het kaartje).
