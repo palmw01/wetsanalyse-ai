@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -177,21 +178,32 @@ L9_2, ART12_1 = f"{IW}:artikel:9:lid:2", f"{IW}:artikel:12:lid:1"
 FTS_KOP = ["node", "score", "soort", "label", "tekst", "jci", "bwbId", "citeertitel"]
 
 
-def _fts(*rijen):
-    return _tsv(FTS_KOP, [[n, "1.0", "", "", t, "", b, ""] for n, t, b in rijen])
+def _fts(*rijen, soort=""):
+    return _tsv(FTS_KOP, [[n, "1.0", soort, "", t, "", b, ""] for n, t, b in rijen])
 
 
-TREFFERS = {
-    "Lid": _fts((L1, "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.", IWB),
+TREFFER_RIJEN = {
+    "Lid": ((L1, "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.", IWB),
                 (L9_2, "In afwijking van het eerste lid is een navorderingsaanslag invorderbaar één maand na de dagtekening.", IWB),
                 (ART12_1, "De kosten van vervolging zijn invorderbaar.", IWB),
                 ("urn:bwb:BWBR0002320:artikel:30:lid:1", "Een belastingaanslag ...", "BWBR0002320")),
     # Artikel 9 zelf valt weg: er is een lid van geraakt. Artikel 10 heeft geen geraakt lid.
-    "Artikel": _fts((ART9, "Een belastingaanslag is invorderbaar ...", IWB),
-                    (ART10, "In afwijking van artikel 9 is een belastingaanslag terstond invorderbaar.", IWB)),
+    "Artikel": ((ART9, "Een belastingaanslag is invorderbaar ...", IWB),
+                (ART10, "In afwijking van artikel 9 is een belastingaanslag terstond invorderbaar.", IWB)),
     # Een onderdeel telt voor zijn lid.
-    "Onderdeel": _fts((f"{IW}:artikel:8:lid:1:o:a", "de aanslag wordt bekendgemaakt door het aanslagbiljet;", IWB)),
+    "Onderdeel": ((f"{IW}:artikel:8:lid:1:o:a", "de aanslag wordt bekendgemaakt door het aanslagbiljet;", IWB),),
+    "Divisie": (),
 }
+TREFFERS = {soort: _fts(*rijen) for soort, rijen in TREFFER_RIJEN.items()}
+
+
+def _per_term(q: str) -> str:
+    """De query op één term (zonder knooptype): de treffers van alle soorten waarvan de tekst die term draagt,
+    met hun soort – zoals de index ze teruggeeft."""
+    term = re.search(r"tekst:\(+([0-9a-zà-ÿ]+)", q).group(1)
+    stam = bronnen_vinden._stamdeel(term)
+    return _tsv(FTS_KOP, [[n, "1.0", soort, "", t, "", b, ""] for soort, rijen in TREFFER_RIJEN.items()
+                          for n, t, b in rijen if stam in t.casefold()])
 
 
 class BepalingGraaf(FakeGraph):
@@ -209,7 +221,7 @@ class BepalingGraaf(FakeGraph):
             return _tsv(["bepaling", "deel", "soort", "label"], [[L1, H2, "Hoofdstuk", "Hoofdstuk II – Invordering"]])
         if self.faal:
             raise RuntimeError("graaf hapert")
-        return next(t for soort, t in TREFFERS.items() if f"?node a bwb:{soort} ." in q)
+        return next((t for soort, t in TREFFERS.items() if f"?node a bwb:{soort} ." in q), None) or _per_term(q)
 
 
 DOSSIER = {"analysevraag": "Wanneer is een aanslag invorderbaar?",
@@ -226,9 +238,12 @@ def _opties(graaf=None, **kw):
 
 def test_bepalingen_bij_een_deelvraag_op_lid_niveau_en_in_vaste_volgorde():
     uit = _opties()
-    # Volgorde: deelvraagtermen, dan dossiertermen, dan kop, dan documentvolgorde. Een andere regeling valt
-    # weg; een artikel met een geraakt lid ook; een onderdeel telt voor zijn lid.
-    assert [o["bron_iri"] for o in uit] == [L1, ART10, L9_2, f"{IW}:artikel:2:lid:1", ART12_1]
+    # Volgorde: RRF over de lijsten van de index, de kop en het dossier; de definitie van een term is ook een
+    # lijst. Een andere regeling valt weg; een artikel met een geraakt lid ook; een onderdeel telt voor zijn lid.
+    assert [o["bron_iri"] for o in uit] == [L1, ART10, f"{IW}:artikel:2:lid:1", L9_2, ART12_1]
+    # De rangschikking van F3f (21 okt 2026) blijft als profiel bestaan, voor de meting.
+    assert [o["bron_iri"] for o in _opties(profiel=bronnen_vinden.F3F)] == \
+        [L1, ART10, L9_2, f"{IW}:artikel:2:lid:1", ART12_1]
     # Artikel 8 lid 1 raakt alleen het dossier, niet de deelvraag: bij een deelvraag geen optie, anders vulde
     # het dossier elk kaartje tot het maximum (spoor K). Bij de analysevraag telt het dossier wel.
     assert f"{IW}:artikel:8:lid:1" not in [o["bron_iri"] for o in uit]
@@ -239,6 +254,36 @@ def test_bepalingen_bij_een_deelvraag_op_lid_niveau_en_in_vaste_volgorde():
     assert eerste["omschrijving"].endswith("raakt: belastingaanslag, invorderbaar, aanslag, aanslagbiljet, dagtekening")
     # Hetzelfde gesprek, dezelfde opties.
     assert _opties() == uit
+
+
+@pytest.mark.parametrize("tekst, verwacht", [
+    ("Het bezwaar- of beroepschrift wordt ondertekend", True),       # positief: de ellips
+    ("Het bezwaarschrift wordt ondertekend", True),                  # positief: voluit
+    ("Het bezwaar wordt behandeld door de inspecteur", False),       # negatief: alleen het eerste deel
+    ("aan- en verkoop van een bezwaar- of beroepschrift", True),     # rand: twee ellipsen in één zin
+])
+def test_een_ellips_raakt_de_samenstelling_voluit(tekst, verwacht):
+    assert bool(bronnen_vinden._raakt(["bezwaarschrift"], tekst, ellips=True)) is verwacht
+    # Zonder de vlag (F3f) raakt de ellips niet: zo bleef 6:5 Awb buiten beeld.
+    assert not bronnen_vinden._raakt(["bezwaarschrift"], "Het bezwaar- of beroepschrift", ellips=False)
+
+
+def test_samenstellingen_zoeken_op_hun_delen_en_raken_de_kop():
+    assert ("belasting", "aanslag") in bronnen_vinden.splitsingen("belastingaanslag")
+    assert bronnen_vinden.splitsingen("termijn") == []                 # te kort om te knippen
+    lucene = bronnen_vinden._term_lucene("bezwaarschrift", "", bronnen_vinden.STANDAARD_PROFIEL)
+    assert "(bezwaar AND *schrift*)" in lucene
+    assert bronnen_vinden._term_lucene("bezwaarschrift", "", bronnen_vinden.F3F).count("AND") == 0
+    assert bronnen_vinden.kop_raakt("bezwaarschrift", "Algemene bepalingen over bezwaar en beroep")
+    assert bronnen_vinden.kop_raakt("belastingaanslag", "Afdeling 2 – De aanslag")
+    assert not bronnen_vinden.kop_raakt("bezwaarschrift", "Hoofdstuk II – Invordering")
+
+
+def test_een_onderdeel_van_een_divisie_telt_voor_de_divisie():
+    divisie = "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4"
+    assert bronnen_vinden._doel_van(divisie + "%2FTekst%2FOnderdeel._1") == divisie
+    assert bronnen_vinden._doel_van(divisie) == divisie
+    assert bronnen_vinden._doel_van(f"{IW}:artikel:8:lid:1:o:a") == f"{IW}:artikel:8:lid:1"
 
 
 def test_wat_buiten_de_afbakening_raakt_valt_niet_stil_weg():

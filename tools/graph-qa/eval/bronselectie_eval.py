@@ -53,6 +53,7 @@ import argparse
 import hashlib
 import json
 import sys
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -93,6 +94,30 @@ class OpnameGraaf:
 
     def close(self) -> None:
         pass
+
+
+class AanvullendeGraaf(OpnameGraaf):
+    """Speelt de opname af en haalt alleen wat ontbreekt bij de echte graaf, en onthoudt dat erbij. Zo blijft
+    een opname die bij een eerdere meting hoort (bewijs) staan, en komen de queries van nieuwe code erbij."""
+
+    def __init__(self, opname: dict[str, dict[str, str]], echt: Any) -> None:
+        super().__init__(opname)
+        self.echt = echt
+
+    def sparql(self, query: str) -> str:
+        sleutel = _sleutel(query)
+        if sleutel not in self.opname["sparql"]:
+            self.opname["sparql"][sleutel] = self.echt.sparql(query)
+        return self.opname["sparql"][sleutel]
+
+    def semantic_search(self, query: str, limit: int = 10) -> str:
+        sleutel = _sleutel(f"{limit}|{query}")
+        if sleutel not in self.opname["semantisch"]:
+            self.opname["semantisch"][sleutel] = self.echt.semantic_search(query, limit)
+        return self.opname["semantisch"][sleutel]
+
+    def close(self) -> None:
+        self.echt.close()
 
 
 class OpnemendeGraaf:
@@ -245,24 +270,36 @@ def _vorige_deelvraagmethode(graph: Any, s: dict[str, Any], vraag: str) -> list[
     return uit
 
 
-def _bepaling_opties(graph: Any, s: dict[str, Any], vraag: str) -> list[dict[str, Any]]:
-    from agent.werkgebied_context import uitsluitstammen
-
-    return bronnen_vinden.bepaling_opties(
-        graph, regelingen=s["regelingen"], deelvraag=vraag,
-        dossier={k: s.get(k, "") for k in ("naam", "analysevraag", "praktijkvoorbeeld", "context")},
-        buiten=uitsluitstammen(s.get("buiten", "")))
+def _dossier(s: dict[str, Any]) -> dict[str, Any]:
+    return {k: s.get(k, "") for k in ("naam", "analysevraag", "praktijkvoorbeeld", "context")}
 
 
-ROUTES = {"bepaling_opties": _bepaling_opties, "vorige deelvraagmethode": _vorige_deelvraagmethode}
+def _met_profiel(profiel: bronnen_vinden.Zoekprofiel):
+    def route(graph: Any, s: dict[str, Any], vraag: str) -> list[dict[str, Any]]:
+        from agent.werkgebied_context import uitsluitstammen
+
+        return bronnen_vinden.bepaling_opties(graph, regelingen=s["regelingen"], deelvraag=vraag, dossier=_dossier(s),
+                                              buiten=uitsluitstammen(s.get("buiten", "")), profiel=profiel)
+    route.profiel = profiel
+    return route
 
 
-def _pool(graph: Any, s: dict[str, Any], vraag: str) -> list[str]:
+_bepaling_opties = _met_profiel(bronnen_vinden.STANDAARD_PROFIEL)
+
+#: De routes van de meting: de standaard, de rangschikking van F3f (21 okt 2026) als ijkpunt, de standaard met
+#: telkens één ingreep uit of – het lemma, standaard uit – erbij (ablatie), en de deelvraagmethode van vóór F3f.
+ROUTES = {"bepaling_opties": _bepaling_opties, "F3f (21 okt)": _met_profiel(bronnen_vinden.F3F),
+          **{f"zonder {v}": _met_profiel(replace(bronnen_vinden.STANDAARD_PROFIEL, **{v: False}))
+             for v in ("per_term", "samenstelling", "divisies", "kop_overal", "fusie")},
+          "met lemma": _met_profiel(replace(bronnen_vinden.STANDAARD_PROFIEL, lemma=True)),
+          "vorige deelvraagmethode": _vorige_deelvraagmethode}
+
+
+def _pool(graph: Any, s: dict[str, Any], vraag: str, profiel=bronnen_vinden.STANDAARD_PROFIEL) -> list[str]:
     """Wat de index bij de deelvraag vindt, vóór de rangschikking (`bronnen_vinden.kandidatenpool`): zo
     scheidt de meting wat het zoeken mist van wat de rangschikking laat vallen."""
-    pool = bronnen_vinden.kandidatenpool(
-        graph, regelingen=s["regelingen"], deelvraag=vraag,
-        dossier={k: s.get(k, "") for k in ("naam", "analysevraag", "praktijkvoorbeeld", "context")})
+    pool = bronnen_vinden.kandidatenpool(graph, regelingen=s["regelingen"], deelvraag=vraag, dossier=_dossier(s),
+                                         profiel=profiel)
     return list(pool["gevonden"]) if pool else []
 
 
@@ -311,9 +348,9 @@ def meet_intake(graaf: Any, s: dict[str, Any]) -> dict[str, Any]:
         regelingnamen._CACHE.clear()
         overzicht._REGELINGEN_CACHE.clear()
         per = [scoor_deelvraag(s, i, route(graaf, s, vraag)) for i, vraag in enumerate(s["deelvragen"])]
-        if naam == "bepaling_opties":
+        if hasattr(route, "profiel"):
             for i, (p, vraag) in enumerate(zip(per, s["deelvragen"])):
-                p.update(scoor_pool(s, i, _pool(graaf, s, vraag)))
+                p.update(scoor_pool(s, i, _pool(graaf, s, vraag, route.profiel)))
         som = {k: sum(p[k] for p in per) for k in ("verwacht", "nodig", "aantal", "gevonden", "gevonden_nodig", "exact", "raak")}
         rapport[naam] = {"recall": _deel(som["gevonden"], som["verwacht"]),
                          "recall_nodig": _deel(som["gevonden_nodig"], som["nodig"]),
@@ -322,7 +359,7 @@ def meet_intake(graaf: Any, s: dict[str, Any]) -> dict[str, Any]:
                          "uitgesloten": sum(len(p["uitgesloten"]) for p in per),
                          "uitgesloten_gemarkeerd": sum(len(p["uitgesloten_gemarkeerd"]) for p in per),
                          "per_deelvraag": per}
-        if naam == "bepaling_opties":
+        if hasattr(route, "profiel"):
             rapport[naam]["recall_pool"] = _deel(sum(p["in_pool"] for p in per), som["verwacht"])
             rapport[naam]["pool"] = sum(p["pool"] for p in per)
     return rapport
@@ -342,6 +379,8 @@ def tabel_intake(s: dict[str, Any], rapport: dict[str, Any]) -> str:
                       f"{f(r['precisie'])} | {r['uitgesloten']} | {r['uitgesloten_gemarkeerd']} | "
                       f"{r.get('pool', '–')} | {f(r.get('recall_pool'))} |")
     for naam, r in rapport.items():
+        if naam not in ("bepaling_opties", "F3f (21 okt)", "vorige deelvraagmethode"):
+            continue
         regels += ["", f"**{naam}** per deelvraag:"]
         for i, p in enumerate(r["per_deelvraag"]):
             regels.append(f"- {i + 1}. {p['gevonden']}/{p['verwacht']} gevonden (exact {p['exact']}), {p['raak']}/{p['aantal']} raak"
@@ -363,6 +402,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--set", default=None)
     p.add_argument("--intake", action="store_true", help="per deelvraag meten (F3f), op een set met deelvragen")
     p.add_argument("--opnemen", action="store_true", help="live tegen de graaf en de opname vernieuwen")
+    p.add_argument("--aanvullen", action="store_true",
+                   help="de opname afspelen en alleen wat ontbreekt live ophalen en toevoegen (de rest blijft bewijs)")
     p.add_argument("--json", type=Path, help="het rapport ook als JSON wegschrijven")
     a = p.parse_args(argv)
     a.set = a.set or (INTAKE_SET if a.intake else STANDAARD_SET)
@@ -371,7 +412,15 @@ def main(argv: list[str] | None = None) -> int:
         p.error(f"set {a.set} heeft geen deelvragen")
     meting, opmaak = (meet_intake, tabel_intake) if a.intake else (meet, tabel)
     pad = SETS / a.set / "graafantwoorden.json"
-    if a.opnemen:
+    if a.aanvullen:
+        graaf = AanvullendeGraaf(json.loads(pad.read_text()) if pad.exists() else {"sparql": {}, "semantisch": {}},
+                                 _echte_graaf())
+        try:
+            rapport = meting(graaf, s)
+        finally:
+            graaf.close()
+        pad.write_text(json.dumps(graaf.opname, ensure_ascii=False, indent=1, sort_keys=True) + "\n")
+    elif a.opnemen:
         graaf = OpnemendeGraaf(_echte_graaf())
         try:
             rapport = meting(graaf, s)

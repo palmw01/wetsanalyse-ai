@@ -25,6 +25,8 @@ from __future__ import annotations
 import logging
 import re
 import time
+from dataclasses import dataclass
+from functools import cache
 from typing import Any, Callable
 
 from .graph import queries
@@ -265,7 +267,7 @@ def onderwerp_van_deelvraag(vraag: str) -> str:
     return rest if queries.onderwerpwoorden(rest) else ""
 
 
-# --- bepalingen bij één deelvraag (F3f) -----------------------------------------------------------
+# --- bepalingen bij één deelvraag (F3f, zoeken en rangschikken nov 2026) ---------------------------
 
 #: Woorden die in een vraag staan maar niets zoeken: hulpwerkwoorden, vraag- en voegwoorden. Bovenop de
 #: stopwoorden van `queries.onderwerpwoorden`, die voor een overzichtsonderwerp zijn gemaakt.
@@ -276,12 +278,47 @@ _GEEN_TERM = {"binnen", "wanneer", "welk", "wie", "wat", "hoe", "waar", "waarom"
 #: Hoeveel zoektermen van een deelvraag de query krijgt, en hoeveel dossiertermen meewegen.
 MAX_TERMEN = 6
 MAX_DOSSIERTERMEN = 12
-#: Per regeling en knooptype de treffers van de index; daarbinnen kiest de rangschikking.
+#: Per regeling en per lijst de treffers van de index; daarbinnen kiest de rangschikking.
 MAX_TREFFERS = 50
 #: Wat buiten de afbakening lijkt te vallen staat achteraan, hoogstens zoveel extra.
 MAX_BUITEN = 2
 MAX_PER_DEELVRAAG = 8
 BUITEN_TEKST = "valt mogelijk buiten de afbakening"
+#: De knooptypes die een bepaling kunnen zijn. Een divisie is de bepaling van een beleidsregel (de Leidraad).
+SOORTEN = ("Lid", "Artikel", "Onderdeel", "Divisie")
+#: De constante van Reciprocal Rank Fusion (Cormack e.a., 2009): de gangbare waarde, niet op een set afgestemd.
+RRF_K = 60
+#: Hoeveel bepalingen er per query hun plek in de opbouw krijgen.
+PLAATS_PER_QUERY = 100
+
+
+@dataclass(frozen=True)
+class Zoekprofiel:
+    """Wat het zoeken en rangschikken doet (meetlogboek `bronselectie-2026-11-03`). Elke vlag is één ingreep,
+    zodat de meting ze apart kan uitzetten; de standaard is wat op de ontwikkelset hielp.
+
+    - `per_term`: per term een eigen lijst uit de index, naast de lijst op alle termen samen. Op één
+      OR-query vulde een gewoon woord ("termijn") de 50 treffers, en viel een lid dat alleen dat woord
+      draagt (Awb 6:8 lid 1) buiten de pool;
+    - `samenstelling`: een samenstelling zoekt ook op haar delen ("bezwaar" en "*schrift*"), en de telling
+      vouwt een ellips uit, zodat "bezwaar- of beroepschrift" het "bezwaarschrift" van de vraag raakt;
+    - `lemma`: het lemma van een vervoegd woord zoekt mee ("ingediend" → "indienen"). Standaard **uit**: op de
+      ontwikkelset hielp het niet (recall gelijk, recall nodig lager) en het laadt spaCy in de intake;
+    - `divisies`: ook de divisies van een beleidsregel zijn bepalingen;
+    - `kop_overal`: elke kandidaat krijgt de kop van zijn deel, niet alleen de voorlopige top;
+    - `fusie`: rangschikken met RRF over de lijsten, in plaats van het aantal geraakte woorden.
+    """
+    per_term: bool = True
+    samenstelling: bool = True
+    lemma: bool = False
+    divisies: bool = True
+    kop_overal: bool = True
+    fusie: bool = True
+
+
+#: De rangschikking van 21 okt 2026 (F3f), voor de meting.
+F3F = Zoekprofiel(per_term=False, samenstelling=False, lemma=False, divisies=False, kop_overal=False, fusie=False)
+STANDAARD_PROFIEL = Zoekprofiel()
 
 
 def zoektermen(tekst: str) -> list[str]:
@@ -293,20 +330,92 @@ def _stamdeel(term: str) -> str:
     return queries._stam(term)[:8]
 
 
-def _raakt(termen: list[str], tekst: str) -> list[str]:
+#: "bezwaar- of beroepschrift", "aan- en verkoop": het eerste woord deelt zijn staart met het tweede.
+_ELLIPS = re.compile(r"\b([a-zà-ÿ]{3,})- (of|en|dan wel|c\.q\.) ([a-zà-ÿ]{5,})\b")
+
+
+def ellipsen_uitgevouwen(tekst: str) -> str:
+    """De tekst met elke nevenschikkingsellips ook voluit: "bezwaar- of beroepschrift" krijgt
+    "bezwaarschrift" erbij. Welk deel van het tweede woord de gedeelde staart is, zegt de tekst niet, dus
+    elk einde van minstens vier letters gaat mee; een woord dat niet bestaat raakt niets."""
+    t = tekst or ""
+    extra = []
+    for m in _ELLIPS.finditer(t.casefold()):
+        eerste, tweede = m.group(1), m.group(3)
+        extra += [eerste + tweede[i:] for i in range(1, len(tweede) - 3)]
+    return f"{t} {' '.join(extra)}" if extra else t
+
+
+def _raakt(termen: list[str], tekst: str, ellips: bool = False) -> list[str]:
     """De termen die de tekst raakt: het begin van hun stam staat erin ("termijn" raakt "termijnen",
-    "bezwaarschrift" raakt "bezwaarschriften")."""
+    "bezwaarschrift" raakt "bezwaarschriften", en met `ellips` ook "bezwaar- of beroepschrift")."""
     t = (tekst or "").casefold()
+    t = ellipsen_uitgevouwen(t) if ellips else t
     return [w for w in termen if _stamdeel(w) in t]
 
 
-def _lucene(termen: list[str]) -> str:
-    return "tekst:(" + " OR ".join(queries._lucene_term(w) for w in termen) + ")"
+def splitsingen(term: str) -> list[tuple[str, str]]:
+    """De manieren om een samenstelling in twee delen van minstens vijf letters te knippen
+    ("belastingaanslag" → … ("belasting", "aanslag") …). Welke knip de echte is, weet de code niet; een
+    knip die geen woord oplevert, raakt in de index niets."""
+    return [(term[:i], term[i:]) for i in range(5, len(term) - 4)]
+
+
+def kop_raakt(term: str, kop: str) -> bool:
+    """Raakt een deelvraagterm de kop van een deel? Op het begin van de stam, of als deel van een
+    samenstelling: "bezwaarschrift" raakt "Algemene bepalingen over bezwaar en beroep", "belastingaanslag"
+    raakt "De aanslag"."""
+    k = (kop or "").casefold()
+    if _stamdeel(term) in k:
+        return True
+    for w in re.findall(r"[0-9a-zà-ÿ]+", k):
+        if len(w) >= 5 and (term.startswith(queries._stam(w)) or term.endswith(w)):
+            return True
+    return False
+
+
+_WOORD = re.compile(r"[0-9a-zà-ÿ]+")
+
+
+@cache
+def _taal():
+    from .jas_pipeline.taal import maak_provider
+    return maak_provider("spacy")
+
+
+def lemmas(tekst: str, termen: list[str]) -> dict[str, str]:
+    """Per zoekterm het lemma uit de taalanalyse, alleen als dat een ander woord is ("ingediend" →
+    "indienen"). Zonder taalmodel leeg: dan zoekt Lex zonder lemma, zoals voorheen."""
+    try:
+        analyse = _taal().analyseer(tekst)
+    except Exception:  # noqa: BLE001 – geen taalmodel is geen kapotte intake
+        return {}
+    uit = {}
+    for t in analyse.tokens:
+        w, lemma = t.tekst.casefold(), (t.lemma or "").casefold()
+        if w in termen and lemma != w and _WOORD.fullmatch(lemma) and len(lemma) >= 3:
+            uit.setdefault(w, lemma)
+    return uit
+
+
+def _term_lucene(term: str, lemma: str, profiel: Zoekprofiel) -> str:
+    delen = [queries._lucene_term(term)]
+    if profiel.lemma and lemma:
+        delen.append(queries._lucene_term(lemma))
+    if profiel.samenstelling:
+        delen += [f"({x} AND *{y}*)" for x, y in splitsingen(term)]
+    return "(" + " OR ".join(delen) + ")" if len(delen) > 1 else delen[0]
+
+
+def _lucene(termen: list[str], lemma: dict[str, str] | None = None, profiel: Zoekprofiel = F3F) -> str:
+    return "tekst:(" + " OR ".join(_term_lucene(w, (lemma or {}).get(w, ""), profiel) for w in termen) + ")"
 
 
 def _doel_van(iri: str) -> str:
-    """Een onderdeel telt voor zijn lid (of artikel): de analist kiest op lid-niveau."""
-    return iri.split(":o:", 1)[0]
+    """Een onderdeel telt voor zijn lid (of artikel), en bij een beleidsregel voor zijn divisie
+    (`…divisie9.4%2FTekst%2FOnderdeel._1` → `…divisie9.4`): de analist kiest op dat niveau."""
+    iri = iri.split(":o:", 1)[0]
+    return iri.split("%2FTekst%2F", 1)[0] if ":id:" in iri else iri
 
 
 def _omschrijving(tekst: str, geraakt: list[str]) -> str:
@@ -318,68 +427,123 @@ def _omschrijving(tekst: str, geraakt: list[str]) -> str:
 
 
 def kandidatenpool(graph: GraphPort, *, regelingen: list[str], deelvraag: str | None,
-                   dossier: dict[str, Any]) -> dict[str, Any] | None:
-    """Wat de index bij een deelvraag vindt, vóór de rangschikking: per bepaling (lid, of artikel zonder
-    leden) de geraakte teksten, met de termen en het bereik waarmee gezocht is. None als er niets te
-    zoeken valt of de graaf hapert. Apart, zodat de meting kan zien wat de rangschikking laat vallen."""
-    termen = zoektermen(onderwerp_van_deelvraag(deelvraag) if deelvraag else "")[:MAX_TERMEN] \
-        or zoektermen(deelvraag or dossier.get("analysevraag") or dossier.get("naam") or "")[:MAX_TERMEN]
+                   dossier: dict[str, Any], profiel: Zoekprofiel = STANDAARD_PROFIEL) -> dict[str, Any] | None:
+    """Wat de index bij een deelvraag vindt, vóór de rangschikking: per bepaling (lid, artikel zonder
+    leden, of divisie) de geraakte teksten en per lijst haar rang, met de termen en het bereik waarmee
+    gezocht is. None als er niets te zoeken valt of de graaf hapert. Apart, zodat de meting kan zien wat de
+    rangschikking laat vallen.
+
+    De lijsten, per regeling: alle termen samen (per knooptype, zoals sinds F3f) en – met `per_term` – elke
+    term apart over alle knooptypes. Een treffer in een lijst van een term is het bewijs dat de bepaling die
+    term raakt, met de stemmer van de index in plaats van een eigen telling."""
+    vraagtekst = onderwerp_van_deelvraag(deelvraag) if deelvraag else ""
+    termen = zoektermen(vraagtekst)[:MAX_TERMEN]
+    if not termen:
+        vraagtekst = deelvraag or dossier.get("analysevraag") or dossier.get("naam") or ""
+        termen = zoektermen(vraagtekst)[:MAX_TERMEN]
     if not termen:
         return None
     dossiertermen = [w for w in zoektermen(" ".join(str(dossier.get(k) or "") for k in
                                                    ("analysevraag", "praktijkvoorbeeld", "context")))
                      if w not in termen][:MAX_DOSSIERTERMEN]
     bereik = list(dict.fromkeys(r for r in regelingen if r)) or [None]
+    lemma = lemmas(vraagtekst, termen) if profiel.lemma else {}
+    soorten = SOORTEN if profiel.divisies else SOORTEN[:3]
 
     gevonden: dict[str, dict[str, Any]] = {}
     geraakte_artikelen: set[str] = set()
 
-    def neem(iri: str, tekst: str, soort: str, bwb: str, citeertitel: str) -> None:
+    def neem(iri: str, tekst: str, soort: str, bwb: str, citeertitel: str, lijst: str, rang: int,
+             term: str = "") -> None:
         if not queries.is_bron_iri(iri):
             return
         doel = _doel_van(iri)
         k = gevonden.setdefault(doel, {"iri": doel, "bwb_id": bwb or _bwb(doel), "citeertitel": citeertitel,
-                                       "teksten": [], "eigen": ""})
+                                       "teksten": [], "eigen": "", "rang": {}, "index_termen": []})
         if doel == iri and soort != "Onderdeel":
             k["eigen"] = k["eigen"] or tekst
         if tekst and tekst not in k["teksten"]:
             k["teksten"].append(tekst)
+        k["rang"][lijst] = min(rang, k["rang"].get(lijst, rang))
+        if term and term not in k["index_termen"]:
+            k["index_termen"].append(term)
         if ":lid:" in doel:
             geraakte_artikelen.add(doel.split(":lid:", 1)[0])
 
+    def lees(lijst: str, query: str, bwb: str | None, term: str = "") -> None:
+        rang = 0
+        for r in _rijen(graph, query):
+            if bwb and r.get("bwbId") != bwb:
+                continue
+            soort = r.get("soort") or ""
+            if soort and soort not in soorten:
+                continue
+            rang += 1
+            neem(r["node"], r.get("tekst", ""), soort, r.get("bwbId", ""), r.get("citeertitel", ""), lijst, rang, term)
+
     try:
         for bwb in bereik:
-            for soort in ("Lid", "Artikel", "Onderdeel"):
-                for r in _rijen(graph, queries.fts(_lucene(termen), limit=MAX_TREFFERS, bwb_id=bwb, soort=soort)):
-                    if bwb and r.get("bwbId") != bwb:
-                        continue
-                    neem(r["node"], r.get("tekst", ""), soort, r.get("bwbId", ""), r.get("citeertitel", ""))
+            for soort in soorten:
+                lees(f"alle:{bwb}:{soort}", queries.fts(_lucene(termen, lemma, profiel), limit=MAX_TREFFERS,
+                                                         bwb_id=bwb, soort=soort), bwb)
+            if profiel.per_term:
+                for term in termen:
+                    lees(f"term:{bwb}:{term}", queries.fts("tekst:" + _term_lucene(term, lemma.get(term, ""), profiel),
+                                                           limit=MAX_TREFFERS, bwb_id=bwb), bwb, term)
         for term in termen[:4]:
+            rang = 0
             for r in _rijen(graph, queries.definities_van(term)):
                 if bereik != [None] and r.get("bwbId") not in bereik:
                     continue
-                neem(r["node"], r.get("tekst", ""), "Definitie", r.get("bwbId", ""), r.get("citeertitel", ""))
+                rang += 1
+                neem(r["node"], r.get("tekst", ""), "Definitie", r.get("bwbId", ""), r.get("citeertitel", ""),
+                     f"definitie:{term}", rang)
     except Exception:  # noqa: BLE001 – een haperende graaf geeft geen opties, geen crash van de intake
         logger.warning("bepalingen zoeken faalde", extra={"categorie": "technisch"}, exc_info=True)
         return None
 
     return {"termen": termen, "dossiertermen": dossiertermen, "bereik": bereik, "gevonden": gevonden,
-            "geraakte_artikelen": geraakte_artikelen}
+            "geraakte_artikelen": geraakte_artikelen, "lemma": lemma}
+
+
+def _koppen(graph: GraphPort, kandidaten: list[dict[str, Any]], gevonden: dict[str, dict[str, Any]]) -> None:
+    """De koppen van de delen waarin de kandidaten staan, in porties; een haperende graaf kost alleen de kop."""
+    iris = [k["iri"] for k in kandidaten]
+    try:
+        for i in range(0, len(iris), PLAATS_PER_QUERY):
+            for r in _rijen(graph, queries.plaats_in_opbouw(iris[i:i + PLAATS_PER_QUERY])):
+                k = gevonden.get(r["bepaling"])
+                if k is not None and r.get("label") and r["label"] not in k["kop"]:
+                    k["kop"] = f"{k['kop']} {r['label']}".strip()
+    except Exception:  # noqa: BLE001 – zonder kop rangschikt de rest gewoon
+        logger.warning("kop van de opbouw niet op te halen", extra={"categorie": "technisch"}, exc_info=True)
+
+
+def _fusiescore(k: dict[str, Any], dos_rang: dict[int, int]) -> float:
+    """RRF: per lijst 1/(k + rang). De index-lijsten met hun eigen rang; de kop telt als een lijst waarin elke
+    geraakte term op plaats 1 staat, het dossier als een lijst op het aantal geraakte dossiertermen."""
+    score = sum(1 / (RRF_K + r) for r in k["rang"].values())
+    score += len(k["kop_termen"]) / (RRF_K + 1)
+    if k["dos"]:
+        score += 1 / (RRF_K + dos_rang[len(k["dos"])])
+    return score
 
 
 def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str | None, dossier: dict[str, Any],
-                    buiten: list[str], limit: int = MAX_PER_DEELVRAAG) -> list[dict[str, Any]]:
-    """De bepalingen (leden, of artikelen zonder leden) die bij één deelvraag horen, binnen de gekozen
-    regelingen – zonder model, dus dezelfde vraag geeft dezelfde opties.
+                    buiten: list[str], limit: int = MAX_PER_DEELVRAAG,
+                    profiel: Zoekprofiel = STANDAARD_PROFIEL) -> list[dict[str, Any]]:
+    """De bepalingen (leden, artikelen zonder leden, of divisies) die bij één deelvraag horen, binnen de
+    gekozen regelingen – zonder model, dus dezelfde vraag geeft dezelfde opties.
 
-    Zoeken: de index op de termen van de deelvraag (zonder deelvraag: de analysevraag), per regeling
-    voor leden, artikelen en onderdelen; een onderdeel telt voor zijn lid, een artikel vervalt als een
-    lid ervan geraakt is. Definities van een term in die regelingen komen erbij.
+    Zoeken (`kandidatenpool`): de index op de termen van de deelvraag (zonder deelvraag: de analysevraag),
+    per regeling op alle termen samen en per term apart; een onderdeel telt voor zijn lid of divisie, een
+    artikel vervalt als een lid ervan geraakt is. Definities van een term in die regelingen komen erbij.
 
-    Rangschikking, vast: geraakte deelvraagtermen, geraakte dossiertermen (analysevraag,
-    praktijkvoorbeeld, context), een deelvraagterm in de kop van het omvattende deel, documentvolgorde. Bij een
-    deelvraag moet een bepaling een deelvraagterm raken; alleen dossiertermen is geen optie, dus een kaartje is
-    zo lang als er echt iets bij de deelvraag gevonden is.
+    Rangschikking, vast: Reciprocal Rank Fusion over de lijsten van de index, de kop van het omvattende deel en
+    de geraakte dossiertermen (analysevraag, praktijkvoorbeeld, context); bij gelijke score de volgorde van de
+    regelingen en de documentvolgorde. Geen gewichten: er is geen set groot genoeg om ze op af te stemmen. Bij
+    een deelvraag moet een bepaling een deelvraagterm raken; alleen dossiertermen is geen optie, dus een kaartje
+    is zo lang als er echt iets bij de deelvraag gevonden is.
 
     Een bepaling die meer raakt aan wat de analist buiten het werkgebied liet (`buiten`, de stammen uit
     `werkgebied_context.uitsluitstammen`, in tekst en kop) dan aan de deelvraag, valt niet stil weg: ze
@@ -387,7 +551,7 @@ def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str |
     of beroepschrift" raakt "beroep", maar gaat even goed over bezwaar."""
     from .overzicht import padsleutel
 
-    pool = kandidatenpool(graph, regelingen=regelingen, deelvraag=deelvraag, dossier=dossier)
+    pool = kandidatenpool(graph, regelingen=regelingen, deelvraag=deelvraag, dossier=dossier, profiel=profiel)
     if pool is None:
         return []
     termen, dossiertermen, bereik = pool["termen"], pool["dossiertermen"], pool["bereik"]
@@ -397,24 +561,32 @@ def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str |
     kandidaten = [k for iri, k in gevonden.items() if iri not in geraakte_artikelen]
     for k in kandidaten:
         alles = " ".join(k["teksten"])
-        k["dv"] = _raakt(termen, alles)
-        k["dos"] = _raakt(dossiertermen, alles)
+        tekst_termen = _raakt(termen, alles, profiel.samenstelling)
+        k["dv"] = [w for w in termen if w in tekst_termen or w in k["index_termen"]]
+        k["dos"] = _raakt(dossiertermen, alles, profiel.samenstelling)
         k["kop"] = ""
 
-    # De kop van het omvattende deel, voor de beste kandidaten (één query).
-    voorlopig = sorted(kandidaten, key=lambda k: (-len(k["dv"]), -len(k["dos"])))[:limit * 3]
-    if voorlopig:
-        try:
-            for r in _rijen(graph, queries.plaats_in_opbouw([k["iri"] for k in voorlopig])):
-                k = gevonden.get(r["bepaling"])
-                if k is not None and r.get("label"):
-                    k["kop"] = f"{k['kop']} {r['label']}".strip()
-        except Exception:  # noqa: BLE001 – zonder kop rangschikt de rest gewoon
-            logger.warning("kop van de opbouw niet op te halen", extra={"categorie": "technisch"}, exc_info=True)
+    # De kop van het omvattende deel: voor elke kandidaat, of (F3f) alleen voor de voorlopige top.
+    voor_kop = kandidaten if profiel.kop_overal else \
+        sorted(kandidaten, key=lambda k: (-len(k["dv"]), -len(k["dos"])))[:limit * 3]
+    if voor_kop:
+        _koppen(graph, voor_kop, gevonden)
+    for k in kandidaten:
+        k["kop_termen"] = [w for w in termen if kop_raakt(w, k["kop"])] if profiel.kop_overal \
+            else _raakt(termen, k["kop"])
 
-    def volgorde(k: dict[str, Any]) -> tuple:
-        regeling = bereik.index(k["bwb_id"]) if k["bwb_id"] in bereik else len(bereik)
-        return (-len(k["dv"]), -len(k["dos"]), -bool(_raakt(termen, k["kop"])), regeling, padsleutel(k["iri"]))
+    def regeling(k: dict[str, Any]) -> int:
+        return bereik.index(k["bwb_id"]) if k["bwb_id"] in bereik else len(bereik)
+
+    if profiel.fusie:
+        aantallen = sorted({len(k["dos"]) for k in kandidaten if k["dos"]}, reverse=True)
+        dos_rang = {n: i + 1 for i, n in enumerate(aantallen)}
+
+        def volgorde(k: dict[str, Any]) -> tuple:
+            return (-_fusiescore(k, dos_rang), regeling(k), padsleutel(k["iri"]))
+    else:
+        def volgorde(k: dict[str, Any]) -> tuple:
+            return (-len(k["dv"]), -len(k["dos"]), -bool(k["kop_termen"]), regeling(k), padsleutel(k["iri"]))
 
     binnen_, buiten_ = [], []
     for k in sorted(kandidaten, key=volgorde):
