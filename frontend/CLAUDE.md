@@ -707,7 +707,7 @@ bestaat los van de gesprekken.
   kaarten (`useWerkgebiedStand`: eigen gesprekken, begrippen, kandidaten, annotatie-werkvoorraad – elk faalt
   stil, dan geen getal). Pagina's lezen het met `useWerkgebied()`. Een tabwissel is een navigatie (eigen URL,
   Terug werkt) maar laadt niets opnieuw: de layout blijft staan.
-  - **Vier tabs als paden** (`PROJECT_TABS`, `projectPad` in `lib/werkgebiedPaden.ts`): Overzicht
+  - **Vijf tabs als paden** (`PROJECT_TABS`, `projectPad` in `lib/werkgebiedPaden.ts`): Overzicht
     (`OverzichtTab`: tellers, de analyseopdracht met de analysevraag centraal, deelvragen als rijen naar hun
     pagina, de laatste gesprekken, de artefacten), Gesprekken (`GesprekkenTab`: de eigen gesprekken, een klik
     opent de werkplek), Bronnen (`BronnenRegister` om `BronnenBijDeelvraag`, spoor K/L: **één lijst, per deelvraag
@@ -716,8 +716,9 @@ bestaat los van de gesprekken.
     *Context*), de voorstellen van Lex bij die deelvraag (*Ter beoordeling*) met *Opnemen* / *Uitsluiten…* /
     *Heropenen*, de onderzoekspunten, en wat bij geen deelvraag hoort onder *Zonder deelvraag*; erboven de
     afbakening als tekst, zoeken, rolfilter en *Bepaling opnemen* (een venster, `BronOpnemen`); rol en verwijderen
-    achter ⋯) en Artefacten (`ArtefactenTab`: vier kaarten,
-    `artefactKaarten`).
+    achter ⋯), Artefacten (`ArtefactenTab`: vier kaarten,
+    `artefactKaarten`) en Historie (`HistoriePagina` → `HistorieTab`: de audit als zinnen, nieuwste eerst; de vijfde
+    tab sinds 3 nov 2026).
   - **Detailpagina's** (`DetailPaginas.tsx`): `artefacten/[soort]` – `dossier` (de velden, *Bewerken* in
     een venster `GegevensDialoog` – met het TOOI-thema (spoor I6: een keuzelijst per hoofdthema uit
     `lib/tooiThemas.ts`, gelijk aan de api-snapshot, en het voorstel van Lex uit `…/thema-voorstel` met
@@ -735,7 +736,7 @@ bestaat los van de gesprekken.
   - **Een oude link met `?tab=`** gaat server-side naar zijn nieuwe plek (`oudeTabNaar`): bladwijzers en
     berichten van vóór G2 blijven werken. Bouw zelf geen `?tab=` meer; gebruik de padhelpers.
   - **De kop** (`ProjectKop`) draagt *Gegevens bewerken* en *Nieuw gesprek* (een gesprek dat bij het
-    werkgebied hoort); historie en verwijderen staan in het menu ⋯.
+    werkgebied hoort); verwijderen staat in het menu ⋯.
 - **Elk juridisch object heeft een eigen pagina** (spoor G3; paden in `lib/werkgebiedPaden.ts`):
   - **Bepaling** `/bronnen?bron_iri=…[&werkgebied=]` (`components/bronnen/BronPagina`): de letterlijke
     wettekst met álle markeringen in hun JAS-kleur (`KnoopTekst groot`; een klik opent het element), de
@@ -1053,9 +1054,11 @@ bestaat los van de gesprekken.
   *Herbeoordelen* (`herbeoordelen` van de api); een klik gaat naar de kaart (`kaartUrl`). BFF: de statische
   `app/api/begrippen/route.ts` geeft de query ongewijzigd door; `zoekBegrippen` toetst de vorm. Werk aan
   een begrip gebeurt op de kaart, niet hier. Browserregressie: `scripts/test-begrippenoverzicht.mjs`.
-- **Tabs scrollen.** Tabs passen niet altijd naast elkaar op een telefoon; `TabLinks` en `Tabs` scrollen
-  (`overflow-x-auto`, tabs `whitespace-nowrap`). Een afgekapte tab is onbereikbaar, en een toets op
-  horizontale scroll van de pagina ziet dat niet.
+- **Tabs scrollen, alleen horizontaal.** Tabs passen niet altijd naast elkaar op een telefoon; `TabLinks` en `Tabs`
+  scrollen (`TABRIJ` in `components/ui/Pagina`, tabs `whitespace-nowrap`). Een afgekapte tab is onbereikbaar, en een
+  toets op horizontale scroll van de pagina ziet dat niet. `overflow-x: auto` maakt ook `overflow-y` auto: met een
+  tab die met `-mb-px` over de rand stak, schoof de rij op een telefoon op en neer. Daarom `overflow-y-hidden`, de
+  lijn als inset-schaduw en geen negatieve marge; `test-werkgebieden.mjs` toetst het op 390 px.
 - Browserregressie: `scripts/test-werkgebieden.mjs` en `scripts/test-begrippen.mjs` (mocks die revisies,
   de poort en de primaire duiding bijhouden zoals de api; de tweede loopt de acceptatie van levering 2).
 

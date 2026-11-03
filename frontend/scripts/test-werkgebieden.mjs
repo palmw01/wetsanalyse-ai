@@ -281,7 +281,7 @@ try {
   assert.equal(await page.getByText("“de ontvanger”").count(), 0);
   await page.getByText("“de aanslag is invorderbaar”").waitFor();
 
-  // Herladen houdt de pagina; Terug gaat naar waar je was. De historie staat achter ⋯ in de kop.
+  // Herladen houdt de pagina; Terug gaat naar waar je was. De historie is de vijfde tab.
   await page.reload();
   await page.locator("[data-artefact-pagina=annotaties]").waitFor();
   await page.goto(`${base}/werkgebieden/wg1`);
@@ -294,9 +294,10 @@ try {
   await page.locator("[data-gegevens-formulier]").getByRole("button", { name: "Opslaan" }).click();
   await page.locator("[data-gegevens-formulier]").waitFor({ state: "detached" });
   assert.equal(requests.filter((r) => r.m === "PATCH" && r.p === "/api/werkgebieden/wg1").at(-1).body.thema, THEMA);
-  await page.getByRole("button", { name: "Meer voor dit werkgebied" }).click();
-  await page.getByRole("link", { name: "Historie" }).click();
+  await page.getByRole("navigation", { name: "Werkgebied" }).getByRole("link", { name: "Historie" }).click();
   await page.waitForURL("**/werkgebieden/wg1/historie");
+  assert.equal(await page.getByRole("navigation", { name: "Werkgebied" }).getByRole("link", { name: "Historie" })
+    .getAttribute("aria-current"), "page");
   await melding("Invorderingswet 1990 – artikel 9 opgenomen als analyseren");
   await melding("Werkgebied aangemaakt");
   await page.goBack();
@@ -355,6 +356,13 @@ try {
   await page.getByRole("navigation", { name: "Werkgebied" }).getByRole("link", { name: "Bronnen (3)" }).waitFor();
   await foto("werkgebied-mobiel");
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+  // De tabbalk schuift alleen horizontaal: vijf tabs, geen verticale scroll in de rij (3 nov 2026).
+  const rij = page.locator("[data-tabrij]");
+  assert.equal(await rij.getByRole("link").count(), 5);
+  const tabrij = await rij.evaluate((el) => ({ hoog: el.scrollHeight - el.clientHeight, y: getComputedStyle(el).overflowY }));
+  assert.deepEqual(tabrij, { hoog: 0, y: "hidden" });
+  await rij.evaluate((el) => { el.scrollTop = 20; });
+  assert.equal(await rij.evaluate((el) => el.scrollTop), 0);
   await page.setViewportSize({ width: 1280, height: 900 });
 
   // Verwijderen is echt wissen, net als een annotatie: op de pagina (tweede klik bevestigt), met de

@@ -1,4 +1,4 @@
-// De werkgebiedpagina als project (spoor G2): vier tabs als echte paden, de detailpagina's eronder, en
+// De werkgebiedpagina als project (spoor G2): vijf tabs als echte paden, de detailpagina's eronder, en
 // de artefactkaarten. Zuiver, zodat vitest het zonder DOM toetst; de componenten lezen alleen.
 
 import type { BegripSamenvatting, BronKandidaat, Werkgebied } from "./types";
@@ -11,6 +11,8 @@ export const PROJECT_TABS = [
   { key: "gesprekken", label: "Gesprekken" },
   { key: "bronnen", label: "Bronnen" },
   { key: "artefacten", label: "Artefacten" },
+  // De tijdlijn van het werkgebied: wie wat deed, nieuwste eerst (vijfde tab, besluit gebruiker 3 nov 2026).
+  { key: "historie", label: "Historie" },
 ] as const;
 export type ProjectTab = (typeof PROJECT_TABS)[number]["key"];
 

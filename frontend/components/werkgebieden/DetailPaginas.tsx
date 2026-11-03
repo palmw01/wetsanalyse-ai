@@ -13,7 +13,7 @@ import { DeelvraagPaneel } from "@/components/werkgebieden/DeelvraagPaneel";
 import { Deelvragen } from "@/components/werkgebieden/Deelvragen";
 import { ElementenTab } from "@/components/werkgebieden/ElementenTab";
 import { HistorieTab } from "@/components/werkgebieden/HistorieTab";
-import { GegevensDialoog, datum } from "@/components/werkgebieden/ProjectKop";
+import { GegevensDialoog, ProjectKop, datum } from "@/components/werkgebieden/ProjectKop";
 import { SamenhangTab } from "@/components/werkgebieden/SamenhangTab";
 import { useWerkgebied } from "@/components/werkgebieden/WerkgebiedProject";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
@@ -219,9 +219,11 @@ export function HistoriePagina() {
   const { wg } = useWerkgebied();
   return (
     <div data-historie-pagina>
-      <PaginaKop kruimels={[...basisKruimels(wg), { label: "Historie" }]} titel={`Historie van ${wg.naam}`}
-        sub="Wie wat deed in dit werkgebied: bronnen, deelvragen, begrippen en besluiten, nieuwste eerst." />
-      <Kaart><HistorieTab key={wg.revisie} id={wg.id} bronnen={wg.bronnen} /></Kaart>
+      <ProjectKop tab="historie" />
+      <Kaart titel="Historie"
+        toelichting="Wie wat deed in dit werkgebied: bronnen, deelvragen, begrippen en besluiten, nieuwste eerst.">
+        <HistorieTab key={wg.revisie} id={wg.id} bronnen={wg.bronnen} />
+      </Kaart>
     </div>
   );
 }

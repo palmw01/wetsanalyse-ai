@@ -64,6 +64,13 @@ export function Stip() {
   return <span aria-hidden className="text-faint">·</span>;
 }
 
+/** Een tabrij die alleen horizontaal schuift. `overflow-x: auto` maakt `overflow-y` ook `auto`, en een tab die
+ *  met `-mb-px` over de rand stak, liet de rij op een telefoon een pixel op en neer schuiven. Nu snijdt de rij
+ *  verticaal af, de lijn eronder is een inset-schaduw (de onderrand van de gekozen tab dekt hem), en een veeg
+ *  aan het einde van de rij gaat niet door naar de pagina. */
+export const TABRIJ =
+  "flex gap-1 overflow-x-auto overflow-y-hidden overscroll-x-contain shadow-[inset_0_-1px_0_rgb(var(--line))]";
+
 export function TabLinks({ label, tabs, actief }: {
   label: string;
   tabs: { key: string; label: string; href: string; telling?: number }[];
@@ -71,14 +78,14 @@ export function TabLinks({ label, tabs, actief }: {
 }) {
   return (
     // Een rij die op een smal scherm niet past scrolt, in plaats van tabs af te kappen.
-    <nav aria-label={label} className="mb-5 flex gap-1 overflow-x-auto border-b border-line">
+    <nav aria-label={label} className={`mb-5 ${TABRIJ}`} data-tabrij>
       {tabs.map((t) => {
         const gekozen = t.key === actief;
         return (
           <Link key={t.key} href={t.href} aria-current={gekozen ? "page" : undefined} data-tab={t.key}
             // De teller hoort bij de naam, met haakjes: anders leest een schermlezer "Bronnen2".
             aria-label={t.telling !== undefined ? `${t.label} (${t.telling})` : undefined}
-            className={`focus-ring -mb-px inline-flex min-h-[44px] shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
+            className={`focus-ring inline-flex min-h-[44px] shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
               gekozen ? "border-lint text-lint" : "border-transparent text-muted hover:text-lint"
             }`}>
             {t.label}
