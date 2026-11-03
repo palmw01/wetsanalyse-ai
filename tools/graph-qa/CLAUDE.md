@@ -734,8 +734,22 @@ horen; de api bewaart de kandidaten en de besluiten (`api/app/bronnen_run_store.
   opname naast de set) en `--opnemen` (live); `tests/test_bronselectie_eval.py` bewaakt dat de standaard
   alles vindt wat nodig is en niets uitgeslotens voorstelt. Heeft het werkgebied deelvragen (ze staan
   alleen dan in de invoer), dan komt `deelvraag` erbij: de analist vroeg er zelf om. Die methode meet
-  `--intake` per deelvraag (meetlogboek `bronselectie-2026-10-21`: blind beter dan de vorige methode,
-  absoluut zwak – de rangschikking mist stemming en gewicht).
+  `--intake` per deelvraag, met `recall_pool` (wat de index vindt vóór de rangschikking), het profiel
+  `F3F` als ijkpunt en de ablatie per vlag van het `Zoekprofiel`; `--aanvullen` haalt alleen ontbrekende
+  queries live op en laat een bestaande opname (bewijs) staan. Meetlogboek `bronselectie-2026-11-03`.
+- **Zoeken en rangschikken per deelvraag** (`bepaling_opties`, `Zoekprofiel`): per regeling de index op
+  alle termen samen (per knooptype) én per term apart; een samenstelling zoekt ook op haar delen
+  (`splitsingen`, `(bezwaar AND *schrift*)`) en de telling vouwt een ellips uit (`ellipsen_uitgevouwen`:
+  "bezwaar- of beroepschrift"); divisies van een beleidsregel zijn bepalingen; de kop van het deel komt voor
+  de hele pool (`kop_raakt`); rangschikken is RRF (`RRF_K`, geen gewichten – geen set is groot genoeg om
+  ze op af te stemmen). Het lemma bestaat als vlag maar staat uit (hielp niet). Een treffer in de lijst van
+  een term is het bewijs dat de bepaling die term raakt.
+- **Plek en bepaling uit de graaf, niet uit de IRI** (`agent/plekken.py`): de importer schrijft
+  `bwb:vindplaats` en `bwb:inBepaling`. Een onderdeel telt voor zijn `inBepaling` (bij de Leidraad hangt
+  `…:artikel:9:o:d` onder divisie 9.2); de IRI-knip (`_doel_van`) is alleen de terugval voor een wet.
+  `_benoem` rekent de naam telkens opnieuw uit de bron-IRI ("Artikel 9.4 – Dagtekening aanslagbiljet –
+  Leidraad Invordering 2008"), nooit uit een label dat er al stond – anders kwam de regeling er twee keer
+  achter.
 - **De queries gaan op bron-IRI's** (`q_uitgaand`, `q_inkomend`, `q_teksten`, `q_definities`,
   `q_opbouw`), niet op bwb-id + artikel: een selectie kan een lid, onderdeel of Leidraad-divisie zijn.
   Alleen geïmporteerde doelen (`?naar a ?type`): een verwijzing naar een regeling buiten de graaf is

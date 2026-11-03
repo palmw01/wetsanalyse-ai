@@ -115,8 +115,10 @@ def _bwb(iri: str) -> str:
 
 def _binnen(iri: str, ander: str) -> bool:
     """Valt `iri` binnen `ander` (of is het `ander`)? Uit de IRI-vorm (`…:artikel:9:lid:1` hoort bij
-    `…:artikel:9`); bij divisies van een beleidsregel (`id:`-knopen) geldt alleen gelijkheid."""
-    return iri == ander or iri.startswith(ander + ":")
+    `…:artikel:9`). Een `id:`-knoop van een beleidsregel draagt zijn pad gecodeerd
+    (`…divisie25.2%2FCirculaire.divisie25.2.1` hoort bij `…divisie25.2`). Een hoofddivisie heet echter
+    `…:artikel:25`, en dat ze `…id:…divisie25%2F…` bevat zegt geen IRI: dat weet alleen de boom."""
+    return iri == ander or iri.startswith(ander + ":") or (":id:" in ander and iri.startswith(ander + "%2F"))
 
 
 def in_selectie(iri: str, selectie: list[str]) -> bool:

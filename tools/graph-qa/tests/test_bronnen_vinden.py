@@ -305,6 +305,14 @@ def test_een_onderdeel_telt_voor_de_bepaling_uit_de_graaf():
     assert uit[0]["label"] == "Artikel 9.2 – Afwijking"     # vindplaats en titel uit de graaf, één keer
 
 
+def test_een_subdivisie_valt_binnen_haar_divisie():
+    """De eval telde divisie 25.2.1 niet als treffer bij een verwachte 25.2 (meetlogboek 3 nov 2026)."""
+    d = "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2"
+    assert bronnen_vinden.in_selectie(d + "%2FCirculaire.divisie25.2.1", [d])
+    assert not bronnen_vinden.in_selectie(d + "1", [d])                       # 25.21 is geen 25.2
+    assert not bronnen_vinden._binnen(f"{IW}:artikel:9%2Fx", f"{IW}:artikel:9")  # alleen bij een id:-knoop
+
+
 def test_een_naam_komt_er_maar_een_keer_bij():
     """`vind` benoemt kandidaten die `bepaling_opties` al benoemde; de regeling kwam er dan twee keer achter
     ("Onderdeel._11 – Leidraad Invordering 2008 – Leidraad Invordering 2008")."""
