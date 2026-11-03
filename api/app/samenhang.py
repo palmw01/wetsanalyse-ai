@@ -54,6 +54,9 @@ class Knoop(BaseModel):
     artikel: str = ""
     lid: str = ""
     rand: bool = False
+    # De vindplaats zoals de importer haar uit de echte boom schreef (`bwb:vindplaats`): "Artikel 9.2,
+    # onderdeel d". Leeg bij een oudere import of een knoop buiten de bronboom.
+    vindplaats: str = ""
     # Alleen bij een markering: wat de werkplek nodig heeft om op herkomst en review te filteren.
     herkomst: str = ""             # agent | mens
     aandacht: str = ""             # groen | geel, leeg = gewoon voorstel
@@ -110,6 +113,23 @@ def plaats(iri: str) -> dict[str, str]:
     return {"bwb_id": m.group(1), "artikel": waarde.get("artikel", ""), "lid": waarde.get("lid", "")}
 
 
+def plaats_in(nodes: dict[str, dict], iri: str) -> dict[str, str]:
+    """BWB-id, artikel en lid uit de bronboom: het nummer van het dichtstbijzijnde artikel (of divisie) en
+    lid erboven. De IRI liegt bij de Leidraad (`artikel:9:o:d` hangt onder divisie 9.2); de boom niet.
+    Zonder de knoop in de boom: `plaats(iri)`."""
+    if iri not in nodes:
+        return plaats(iri)
+    artikel = lid = ""
+    for kandidaat in store.keten(nodes, iri):
+        node = nodes[kandidaat]
+        if not lid and not artikel and node.get("type") == "Lid":
+            lid = (node.get("nummer") or "").strip()
+        if node.get("type") in {"Artikel", "Divisie"}:
+            artikel = (node.get("nummer") or "").strip()
+            break
+    return {"bwb_id": nodes[iri].get("bwb_id") or plaats(iri)["bwb_id"], "artikel": artikel, "lid": lid}
+
+
 def _uitgaand(iris: list[str]) -> str:
     waarden = " ".join(f"<{i}>" for i in iris)
     return _PREFIXES + f"""SELECT DISTINCT ?van ?naar ?anker ?label ?stub WHERE {{
@@ -142,11 +162,13 @@ async def _verwijzingen(iris: list[str]) -> tuple[list[dict], list[dict]] | None
         return None
 
 
-def bronknoop(node: dict, rand: bool = False) -> Knoop:
-    """Een bronknoop uit een knoop van de bronboom (snapshot)."""
+def bronknoop(node: dict, rand: bool = False, nodes: dict[str, dict] | None = None) -> Knoop:
+    """Een bronknoop uit een knoop van de bronboom (snapshot). Met `nodes` komen artikel en lid uit de
+    boom in plaats van uit de IRI."""
     iri = node["bron_iri"]
     return Knoop(id=iri, soort=_SOORT.get(node.get("type", ""), "deel"), label=_label(node) or iri,
-                 tekst=node.get("tekst", ""), rand=rand, **plaats(iri))
+                 tekst=node.get("tekst", ""), rand=rand, vindplaats=node.get("vindplaats") or "",
+                 **(plaats_in(nodes, iri) if nodes else plaats(iri)))
 
 
 def markeringen(elementen: list[dict], aanwezig: set[str]) -> tuple[list[Knoop], list[Relatie]]:
@@ -214,7 +236,7 @@ async def samenhang(snapshot: dict) -> dict:
     # Structuur: de keten van regeling naar artikel, en alles binnen het artikel.
     keten = store.keten(nodes, artikel_iri)
     for iri in [*reversed(keten), *sorted(scope - {artikel_iri}, key=lambda i: nodes[i].get("volgorde", 0))]:
-        knopen[iri] = bronknoop(nodes[iri])
+        knopen[iri] = bronknoop(nodes[iri], nodes=nodes)
         ouder = nodes[iri].get("parent_iri") or ""
         if ouder in knopen:
             relaties.append(Relatie(bron=ouder, doel=iri, soort="bevat", groep="structuur"))

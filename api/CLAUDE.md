@@ -180,6 +180,9 @@ Hieronder wat je moet weten om de code te wijzigen.
   cache onder `(bwb_id, bwb:toestandUrl)`: een herimport met een nieuwe toestand ververst vanzelf.
   Markeringen komen altijd vers (`store.actuele_elementen`). `versie` = hash van de toestanden; daarop
   cachet de werkplek de layout. Een BWB-id gaat letterlijk een query in en wordt strikt gevalideerd.
+  Een bronknoop draagt `vindplaats` uit de importer (`bwb:vindplaats`, "Artikel 9.2, onderdeel d") en zijn
+  `artikel`/`lid` komen uit de boom (`plaats_in`), niet uit de IRI: die liegt bij de Leidraad. `bron_query` leest
+  `vindplaats` en `inBepaling` op de node, maar `snapshot_id` hasht ze niet (`bronmodel.PLEK`).
   Het label van een deel krijgt zijn nummer (`_label`: de bronboom draagt "Hoofdstuk" en "II" apart);
   bewust hier en niet in `bronmodel`, waar het de snapshot-identiteit van bestaande lagen zou raken.
   **`POST /plaatsen`** (`graaf.plaatsen`, hoogstens 500 `bron_iris`) geeft per bepaling de regeling en het pad
