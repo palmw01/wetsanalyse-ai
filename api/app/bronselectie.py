@@ -8,9 +8,12 @@ collega.
   `voorlopig_afgerond` (de analist sluit af, open punten mogen blijven) → `beoordeeld` (alleen door de
   poort: de vragen zijn doorlopen en er staat geen onderzoekspunt open). Een werkgebied zonder deelvragen heeft één rij onder
   `ANALYSEVRAAG`. Elke rij draagt een eigen revisie (412); `openen` is navigeren en draagt er geen.
-- **Wat is afgerond, staat op een scope.** `scope_stand` is de hash van analysevraag, afbakening en de
-  tekst van de deelvraag bij het afronden. Wijkt die nu af, dan staat de afronding op `opnieuw_bekijken`
-  en telt ze niet meer als klaar; er wordt niets gewist.
+- **Wat is afgerond, staat op een scope.** `scope_stand` is de hash van analysevraag, afbakening, de
+  tekst van de deelvraag en de kandidaten bij die deelvraag, bij het afronden. Wijkt die nu af, dan staat de
+  afronding op `opnieuw_bekijken` en telt ze niet meer als klaar; er wordt niets gewist. Een ander dossier
+  (context, praktijkvoorbeeld) heropent dus pas iets als de nieuwe zoekopdracht er iets anders door vindt.
+- **Wat er ligt, is wat de laatste zoekopdracht vond.** Een open voorstel (voorgesteld, niet gekozen) telt
+  alleen als de laatste klare run het vond (`bronnen_run_store.vervallen`); een besluit blijft staan.
 - **Eén bron, meer deelvragen.** Een bronselectie is één rij per werkgebied; opnemen bij een deelvraag is
   een koppeling (met een eigen rol), geen tweede selectie. Een besluit *uitgesloten* hoort bij
   één deelvraag (`bron_kandidaat_deelvragen`); het besluit op `bron_kandidaten` blijft het
@@ -47,10 +50,12 @@ BEWIJS_SOORT = {"verwijzing_uit": "verwijzing", "verwijzing_in": "verwijzing", "
 BEWIJS_VOLGORDE = {"verwijzing": 0, "definitie": 1, "structuur": 2, "tekst": 3, "gelijkenis": 4}
 
 
-def scope_stand(werkgebied: dict, vraag: str) -> str:
+def scope_stand(werkgebied: dict, vraag: str, kandidaten: list[str]) -> str:
+    """De stand waarop een afronding rust. `kandidaten`: de ids die bij de deelvraag in de lijst staan (besluiten
+    én de voorstellen van de laatste run), zodat een zoekopdracht die er iets anders vindt de afronding heropent."""
     data = {"analysevraag": " ".join((werkgebied.get("analysevraag") or "").split()),
             "afbakening": " ".join((werkgebied.get("afbakening") or "").split()),
-            "vraag": werkgebied_deelvragen.normaliseer(vraag)}
+            "vraag": werkgebied_deelvragen.normaliseer(vraag), "kandidaten": sorted(set(kandidaten))}
     return hashlib.sha256(json.dumps(data, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:16]
 
 
@@ -121,8 +126,9 @@ async def _lees(werkgebied: dict) -> dict:
             s.c.werkgebied_id == wid, s.c.verwijderd.is_(None)))).all()}
         koppelingen = (await conn.execute(select(kp).where(kp.c.deelvraag_id.in_(ids), kp.c.soort == "bron"))).all()
         voorgangers = await _voorgangers(conn, wid)
+        basis = await bronnen_run_store.basis_run_id(conn, wid)
     return {"vragen": vragen, "rijen": rijen, "besluiten": besluiten, "kandidaten": kandidaten,
-            "selecties": selecties, "koppelingen": koppelingen, "voorgangers": voorgangers}
+            "selecties": selecties, "koppelingen": koppelingen, "voorgangers": voorgangers, "basis": basis}
 
 
 def _hoort_bij(kandidaat, did: str, eigen: set[str], kern_iris: set[str]) -> bool:
@@ -158,7 +164,6 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
         iris_hier = {x["bron_iri"] for x in bronnen}
         eigen = {did} | lees["voorgangers"].get(did, set())
         r = lees["rijen"].get(did)
-        stand_nu = scope_stand(werkgebied, vraag["vraag"] if not alleen else "")
         voortgang = _rij(r) if r is not None else {
             "status": Voortgang.niet_gestart.value, "fase": Fase.kern.value, "open_punten": [], "revisie": 0,
             "scope_stand": "", "gewijzigd_door": None, "gewijzigd": None, "geopend": None}
@@ -181,6 +186,9 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
             elif rij is not None and rij.status == "uitgesloten":
                 stand, overal = "uitgesloten", False
             # Een oud besluit *later* (van vóór spoor J, of uit de boom) is geen besluit: weer een keuze.
+            # Wat de laatste zoekopdracht niet meer vond (het dossier of de selectie veranderde), is geen voorstel meer.
+            elif bronnen_run_store.vervallen(kd.status, kd.run_id, lees["basis"]):
+                continue
             elif gehad["kern" if kd.rol == "kern" else "rest"]:
                 stand, overal = "niet_gekozen", False
             else:
@@ -195,6 +203,7 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
             (x["bewijs_soorten"] or ["tekst"])[0], 9), -len(x["bewijs"] or []), x["label"], x["bron_iri"]))
         telling = {st: sum(1 for x in lijst if x["stand"] == st) for st in STANDEN_TELLING}
         telling["opgenomen"] = len(bronnen)
+        stand_nu = scope_stand(werkgebied, vraag["vraag"] if not alleen else "", [x["id"] for x in lijst])
         opnieuw = voortgang["status"] in KLAAR and voortgang["scope_stand"] != stand_nu
         redenen = []
         if not gehad["rest"]:
@@ -203,7 +212,7 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
             redenen.append("Er staan nog onderzoekspunten open.")
         uit.append({"id": did, "nr": nr, "vraag": vraag["vraag"], **voortgang, "opnieuw_bekijken": opnieuw,
                     "klaar": voortgang["status"] in KLAAR and not opnieuw,
-                    "bronnen": bronnen, "kandidaten": lijst, "telling": telling,
+                    "bronnen": bronnen, "kandidaten": lijst, "telling": telling, "_scope_nu": stand_nu,
                     "beoordelen": {"mag": not redenen, "redenen": redenen}})
     return uit
 
@@ -242,10 +251,13 @@ async def overzicht(werkgebied_id: str, na: str | None = None) -> dict:
         zonder_deelvraag = [{"id": kd.id, "bron_iri": kd.bron_iri, "label": kd.label, "rol": kd.rol,
                              "stand": kd.status, "bewijs_soorten": bewijs_soorten(kd.bewijs or [])}
                             for kd in lees["kandidaten"] if kd.id not in bij and kd.status == "voorgesteld"
+                            and not bronnen_run_store.vervallen(kd.status, kd.run_id, lees["basis"])
                             and kd.bron_iri not in {r.bron_iri for r in lees["selecties"].values()}]
     in_behandeling = [v for v in vragen if v["status"] == Voortgang.in_behandeling.value and v["geopend"]]
     actief = max(in_behandeling, key=lambda v: v["geopend"])["id"] if in_behandeling else None
     run = await bronnen_run_store.laatste(wg)
+    for v in vragen:
+        v.pop("_scope_nu", None)                     # intern: de stand voor `zet_status`, geen contract
     return {"werkgebied_id": wg["id"], "naam": wg["naam"], "analysevraag": wg.get("analysevraag", ""),
             "revisie": wg["revisie"], "modus": "analysevraag" if vragen[0]["id"] == ANALYSEVRAAG else "deelvragen",
             "deelvragen": vragen, "actief": actief, "volgende": volgende(vragen, na or actief),
@@ -299,7 +311,7 @@ async def zet_status(werkgebied_id: str, deelvraag_id: str, req: StatusActie, ac
         doel = {"afronden": Voortgang.voorlopig_afgerond.value, "beoordelen": Voortgang.beoordeeld.value,
                 "heropenen": Voortgang.in_behandeling.value, "fase": status}[req.actie]
         punten = [p.model_dump() for p in req.open_punten] if req.open_punten is not None else None
-        stand = scope_stand(wg, vraag["vraag"] if deelvraag_id != ANALYSEVRAAG else "")
+        stand = huidig["_scope_nu"]
         # Al waar de actie heen wil: niets te doen, ook geen revisietoets (een dubbele klik is geen conflict).
         if row is not None and status == doel and (req.actie != "fase" or row.fase == req.fase.value) \
                 and (punten is None or punten == (row.open_punten or [])) \

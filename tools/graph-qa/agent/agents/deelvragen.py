@@ -22,7 +22,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from ..bronnen_run import bronnen_kern
+from ..bronnen_run import bronnen_kern, is_open
 from ..deelvragen import verbeteren_kern, voorstellen_kern
 from ..wetsanalyse_api import WetsanalyseApiFout
 from . import Context, Uitkomst, geweigerd
@@ -114,7 +114,7 @@ def dekkingstekst(naam: str, dek: dict[str, Any], wg: dict[str, Any], kandidaten
     rollen = {b.get("id", ""): b.get("rol", "") for b in wg.get("bronnen") or []}
     open_per: dict[str, int] = {}
     for k in kandidaten:
-        if k.get("status") != "voorgesteld" or k.get("in_selectie"):
+        if not is_open(k):
             continue
         for did in {(b.get("detail") or {}).get("deelvraag_id") for b in k.get("bewijs") or []} - {None, ""}:
             open_per[did] = open_per.get(did, 0) + 1

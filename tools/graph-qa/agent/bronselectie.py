@@ -352,8 +352,14 @@ async def _toon_fase(api, wid: str, ov: dict, did: str, zoek: Zoek | None, zinne
 
 async def start(api, wid: str, zoek: Zoek | None, vraag: str = "", deelvraag_id: str = "") -> dict[str, Any]:
     """Beginnen of hervatten: wat er ligt, en het kaartje waar de analist was. Een genoemde deelvraag
-    ("deelvraag 4", of aangewezen in de werkplek) gaat voor."""
+    ("deelvraag 4", of aangewezen in de werkplek) gaat voor.
+
+    Is het werkgebied veranderd sinds de laatste zoekopdracht (het dossier, de selectie), dan zoekt Lex eerst
+    opnieuw: pas daarna weet de api welke afgeronde deelvraag er door de nieuwe voorstellen weer open staat."""
     ov = await api.haal_bronselectie(wid)
+    melding = ""
+    if (ov.get("zoekdekking") or {}).get("verouderd"):
+        ov, melding = await _gezocht(api, wid, ov, zoek, "")
     vragen = ov["deelvragen"]
     nr = deelvraag_nr_in(vraag)
     if nr and ov["modus"] == "deelvragen" and 1 <= nr <= len(vragen):
@@ -369,6 +375,8 @@ async def start(api, wid: str, zoek: Zoek | None, vraag: str = "", deelvraag_id:
         zinnen.append(f"*{ov['naam']}* heeft geen deelvragen; we zoeken de bronnen bij de analysevraag.")
     zinnen.append("Per deelvraag zoek ik de kernbepalingen, dan wat eraan hangt, en dan rond je af. "
                   "Je kunt tussendoor alles vragen; de stand blijft bewaard.")
+    if melding:
+        zinnen.append(f"Opnieuw zoeken lukte niet: {melding}.")
     if deelvraag_id and _dq(ov, deelvraag_id):
         ov = await _open(api, wid, deelvraag_id)
         d = _dq(ov, deelvraag_id)

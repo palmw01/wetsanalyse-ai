@@ -444,3 +444,14 @@ def test_zelf_toevoegen_zonder_eenduidige_regeling_of_artikel_laat_het_kaartje_s
     # Twee regelingen genoemd en een stuk zonder: Lex weet niet welke, en vraagt het.
     assert "noem de regeling direct na het artikel" in bs.bepalingen_uit_tekst(
         "artikel 9 en artikel 4:86 Invorderingswet en Awb", vind, [])
+
+
+def test_na_een_gewijzigd_werkgebied_zoekt_lex_eerst_opnieuw_ook_als_alles_af_is():
+    api = NepApi(vragen=VRAGEN[:1], kandidaten={"k1": {"label": "Artikel 9", "rol": "kern", "bij": ["d1"]}})
+    api.rijen["d1"] = {"status": "voorlopig_afgerond", "fase": "afronden", "open_punten": [], "revisie": 2, "geopend": 1}
+    _run(bs.start(api, WID, api.zoek))
+    assert api.zoekopdrachten == 0                                   # niets veranderd: niet opnieuw zoeken
+    api.verouderd = True                                             # bv. het praktijkvoorbeeld is aangevuld
+    uit = _run(bs.start(api, WID, api.zoek))
+    assert api.zoekopdrachten == 1 and api.verouderd is False
+    assert "Alle deelvragen zijn afgerond." in uit["zinnen"]

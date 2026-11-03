@@ -41,9 +41,15 @@ def bronnen_artefact(werkgebied_id: str, run_id: str, titel: str) -> dict[str, A
     return {"soort": "bronnen", "titel": titel[:300], "ref": {"werkgebied_id": werkgebied_id, "run_id": run_id}}
 
 
+def is_open(k: dict[str, Any]) -> bool:
+    """Een open voorstel: voorgesteld, niet met de hand opgenomen, en gevonden door de laatste zoekopdracht
+    (`vervallen` zet de api, `bronnen_run_store.vervallen`)."""
+    return k.get("status") == "voorgesteld" and not k.get("in_selectie") and not k.get("vervallen")
+
+
 def samenvatting(naam: str, kandidaten: list[dict[str, Any]], meting: dict[str, Any] | None) -> str:
     """Uit de getallen, geen model. Telt alleen open voorstellen; noemt een onvolledige methode."""
-    open_ = [k for k in kandidaten if k.get("status") == "voorgesteld" and not k.get("in_selectie")]
+    open_ = [k for k in kandidaten if is_open(k)]
     per_rol = {r: sum(1 for k in open_ if k.get("rol") == r) for r in ("kern", "afhankelijkheid", "aanverwant")}
     if not open_:
         zin = f"Ik vond voor werkgebied *{naam}* geen nieuwe bepalingen om voor te stellen."
@@ -186,7 +192,7 @@ async def bronnen_kern(ctx: Context, werkgebied_id: str, deelvraag_id: str = "")
     tekst = samenvatting(naam, kandidaten, (lijst.get("run") or {}).get("meting"))
     if deelvraag_id:
         tekst = bij_deelvraag(wg, kandidaten, deelvraag_id) + " " + tekst
-    open_ = [str(k["id"]) for k in kandidaten if k.get("status") == "voorgesteld" and not k.get("in_selectie")
+    open_ = [str(k["id"]) for k in kandidaten if is_open(k)
              and k.get("id")]
     # Bij één deelvraag het paneel van die deelvraag: daar staan haar kandidaten bij haar stand.
     d = next((x for x in wg.get("deelvragen") or [] if deelvraag_id and x.get("id") == deelvraag_id), None)
@@ -201,7 +207,7 @@ def bij_deelvraag(wg: dict[str, Any], kandidaten: list[dict[str, Any]], deelvraa
     d = next((x for x in wg.get("deelvragen") or [] if x.get("id") == deelvraag_id), None)
     if d is None:
         return "Die deelvraag ken ik niet (meer); hieronder wat ik voor het hele werkgebied vond."
-    bij = [k for k in kandidaten if k.get("status") == "voorgesteld" and not k.get("in_selectie")
+    bij = [k for k in kandidaten if is_open(k)
            and any((b.get("detail") or {}).get("deelvraag_id") == deelvraag_id for b in k.get("bewijs") or [])]
     if not bij:
         return f"Bij de deelvraag “{d.get('vraag', '')}” vond ik geen nieuwe bepalingen."

@@ -47,7 +47,11 @@ bs_kies ──► bs_bepalingen (fase A/B: kern) ──► bs_afhankelijkheden (
 - Los daarvan staan de deelvraagstatus (`actief`, `vervangen`, …) en de dekkingscheck (`met_bron`, `geen_bron`;
   sinds spoor K zonder begrippen: die horen bij het werkgebied). Die worden niet vermengd. De rijen van de
   deelvragen in de werkplek tonen de voortgang hierboven, met het aantal bronnen.
-- **Een afronding staat op een scope** (`scope_stand`: analysevraag, afbakening, deelvraagtekst). Verandert die,
+- **Wat er ligt, is wat de laatste zoekopdracht vond.** Na een wijziging van het dossier of de selectie zoekt Lex
+  eerst opnieuw (ook als alles al af was); een voorstel dat de nieuwe zoekopdracht niet meer vindt, verdwijnt.
+  Besluiten (opgenomen, uitgesloten) blijven staan.
+- **Een afronding staat op een scope** (`scope_stand`: analysevraag, afbakening, deelvraagtekst en de kandidaten
+  bij de deelvraag). Verandert die,
   dan is de deelvraag `opnieuw_bekijken` en niet meer klaar; de besluiten blijven staan. Een verbeterde
   deelvraag erft voortgang en besluiten, en staat daardoor op *opnieuw bekijken*.
 

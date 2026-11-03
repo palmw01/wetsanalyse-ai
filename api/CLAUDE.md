@@ -680,9 +680,14 @@ invoer vast, toetst en bewaart de kandidaten, en legt de besluiten vast.
 
 - **De invoer is de selectie** (`invoer_van`): kern = bronselecties met rol *analyseren*, context = de
   rest, plus naam en analysevraag. Zonder kern én zonder analysevraag: 409 `geen_vertrekpunt`.
-  **Idempotent op (werkgebied, invoer)** (`invoer_id`, een inhoudshash); `laatste` meldt `verouderd`
-  als de selectie of de analysevraag intussen veranderde. Een run die `VERLOPEN` (5 min) stil was,
-  telt als `mislukt` en mag opnieuw.
+  **Idempotent op (werkgebied, invoer)** (`invoer_id`, een inhoudshash, mét het dossier); `laatste` meldt
+  `verouderd` als de selectie, de analysevraag of het dossier intussen veranderde. Een klare run wordt alleen
+  hergebruikt als hij de nieuwste is (na A → B → A zoekt Lex opnieuw), en de uitkomst van een ingehaalde run
+  wordt vastgelegd zonder de kandidaten te raken. Een run die `VERLOPEN` (5 min) stil was, telt als `mislukt`
+  en mag opnieuw.
+- **Wat telt, is de laatste klare run** (`basis_run_id`): een open voorstel dat die run niet vond, is
+  `vervallen` (vlag in `GET …/kandidaten`) en staat niet in de bronselectie; een besluit (opgenomen,
+  uitgesloten) vervalt nooit. Zo blijven na een dossierwijziging geen oude voorstellen hangen.
 - **Eén kandidaat per bepaling**: sleutel (werkgebied, `kandidaat_id(bron_iri)`), over runs heen.
   Vinden meer methoden haar, dan groeit het bewijs (`methode`, `vanuit`, `detail`) en wint de sterkste
   rol (`kern` > `afhankelijkheid` > `aanverwant`). Wat bij `PUT …/uitkomst` al in de selectie staat,
@@ -761,8 +766,9 @@ na herladen, in een ander gesprek en bij een collega ook is.
   aangevinkt werd, heeft bij het lezen de stand `niet_gekozen` – afgeleid uit de fase (kernvoorstellen zodra de
   deelvraag voorbij `kern` is, de rest bij `afronden`), niet bewaard. De fase terugzetten (de vragen opnieuw
   doorlopen) maakt er weer een `voorgesteld` van. Een oud besluit *later* op `bron_kandidaten` telt als voorstel.
-- **Een afronding staat op een scope**: `scope_stand` = hash van analysevraag, afbakening en de genormaliseerde
-  deelvraagtekst. Wijkt die bij het lezen af, dan `opnieuw_bekijken: true` en `klaar: false`; er wordt niets
+- **Een afronding staat op een scope**: `scope_stand` = hash van analysevraag, afbakening, de genormaliseerde
+  deelvraagtekst en de kandidaat-ids in de lijst van die deelvraag. Een ander dossier heropent dus pas iets
+  als de nieuwe zoekopdracht er iets anders door vindt. Wijkt die bij het lezen af, dan `opnieuw_bekijken: true` en `klaar: false`; er wordt niets
   gewist. Een verbeterde deelvraag (F3d) erft voortgang en besluiten (`erf_in`, vanuit
   `werkgebied_deelvragen._vervang`), met de oude stand – dus op *opnieuw bekijken*.
 - **Besluiten per deelvraag** (`POST …/bronselectie/{deelvraag}/kandidaten/{id} {besluit}`):

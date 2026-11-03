@@ -3,8 +3,13 @@
 - **De api legt de invoer vast, graph-qa zoekt.** `start` legt de selectie van het werkgebied vast
   (kern = rol *analyseren*, plus de contextbronnen en de analysevraag); graph-qa haalt de run op, past
   de methoden toe en zet de kandidaten terug (`zet_uitkomst`).
-- **Idempotent op (werkgebied, invoer).** Dezelfde selectie en analysevraag geven dezelfde run. Een
-  run die blijft hangen (`VERLOPEN`) mag opnieuw.
+- **Idempotent op (werkgebied, invoer).** Dezelfde selectie en analysevraag geven dezelfde run, zolang het
+  de nieuwste is: na een tussenstand (A → B → A) zoekt Lex opnieuw, anders klopte `run_id` op de kandidaten
+  niet meer met de run die er nu ligt. Een run die blijft hangen (`VERLOPEN`) mag opnieuw.
+- **Wat telt, is de laatste klare run.** Een open voorstel dat die run niet vond, is *vervallen*: het
+  dossier of de selectie veranderde en de nieuwe zoekopdracht vond het niet meer. De bronselectie laat het
+  weg; een besluit (opgenomen, uitgesloten) blijft staan. De uitkomst van een run die intussen is ingehaald,
+  wordt vastgelegd maar raakt de kandidaten niet.
 - **Eén kandidaat per bepaling.** Vinden meer methoden dezelfde bepaling – in één run of over runs
   heen – dan is dat één rij met meer bewijs, en de sterkste rol wint.
 - **Een besluit hoort bij de kandidaat, niet bij de run.** Een latere run werkt het bewijs bij, maar
@@ -119,7 +124,9 @@ async def start(werkgebied: dict, actor: str) -> tuple[dict, bool]:
         await _werkgebied(conn, werkgebied["id"], slot=True)
         bestaand = (await conn.execute(select(r).where(r.c.werkgebied_id == werkgebied["id"], r.c.invoer_id == iid)
                                        .order_by(r.c.gestart.desc()).limit(1))).first()
-        if bestaand is not None and _status(bestaand) in ("wacht", "loopt", "klaar"):
+        nieuwste = await _laatste_row(conn, werkgebied["id"])
+        if bestaand is not None and (_status(bestaand) in ("wacht", "loopt")
+                                     or (_status(bestaand) == "klaar" and bestaand.id == nieuwste.id)):
             return _run(bestaand), False
         nu, rid = db.utcnow(), str(uuid.uuid4())
         await conn.execute(insert(r).values(id=rid, werkgebied_id=werkgebied["id"], invoer_id=iid, invoer=invoer,
@@ -144,6 +151,19 @@ async def _laatste_row(conn, werkgebied_id: str):
     r = db.bronnen_runs
     return (await conn.execute(select(r).where(r.c.werkgebied_id == werkgebied_id)
                                .order_by(r.c.gestart.desc()).limit(1))).first()
+
+
+async def basis_run_id(conn, werkgebied_id: str) -> str | None:
+    """De laatste klare run: wat die vond, zijn de open voorstellen. Loopt er een nieuwere of mislukte die,
+    dan blijft de vorige staan tot er een nieuwe uitkomst is."""
+    r = db.bronnen_runs
+    return (await conn.execute(select(r.c.id).where(r.c.werkgebied_id == werkgebied_id, r.c.status == "klaar")
+                               .order_by(r.c.gestart.desc()).limit(1))).scalar()
+
+
+def vervallen(status: str, run_id: str | None, basis: str | None) -> bool:
+    """Een open voorstel dat de laatste klare run niet vond. Een besluit vervalt nooit."""
+    return status in ("voorgesteld", "later") and basis is not None and run_id != basis
 
 
 async def laatste(werkgebied: dict) -> dict | None:
@@ -201,7 +221,7 @@ def _uitkomst_hash(invoer: BronnenUitkomst) -> str:
 
 
 async def zet_uitkomst(werkgebied_id: str, run_id: str, invoer: BronnenUitkomst, actor: str) -> dict:
-    r, k, s = db.bronnen_runs, db.bron_kandidaten, db.werkgebied_bronselecties
+    r = db.bronnen_runs
     h = _uitkomst_hash(invoer)
     async with db.get_engine().begin() as conn:
         await _werkgebied(conn, werkgebied_id, slot=True)
@@ -215,29 +235,41 @@ async def zet_uitkomst(werkgebied_id: str, run_id: str, invoer: BronnenUitkomst,
             raise HTTPException(409, "Deze run heeft al een andere uitkomst.")
         if invoer.invoer_id != row.invoer_id:
             raise HTTPException(422, "De uitkomst hoort bij een andere invoer dan deze run.")
-        # Wat nú in de selectie staat, is geen kandidaat (de selectie kan sinds de start veranderd zijn).
-        in_selectie = set((await conn.execute(select(s.c.bron_iri).where(
-            s.c.werkgebied_id == werkgebied_id, s.c.verwijderd.is_(None)))).scalars())
-        nieuw = {iri: v for iri, v in _samengevoegd(invoer.kandidaten).items() if iri not in in_selectie}
-        bestaande = {x.bron_iri: x for x in (await conn.execute(select(k).where(k.c.werkgebied_id == werkgebied_id))).all()}
         nu = db.utcnow()
-        for iri, v in nieuw.items():
-            oud = bestaande.get(iri)
-            if oud is None:
-                await conn.execute(insert(k).values(werkgebied_id=werkgebied_id, id=kandidaat_id(iri), bron_iri=iri,
-                                                    status="voorgesteld", reden="", run_id=run_id,
-                                                    voorgesteld=nu, gewijzigd=nu, **v))
-                continue
-            # Het bewijs wordt bijgewerkt; het besluit blijft staan.
-            await conn.execute(update(k).where(k.c.werkgebied_id == werkgebied_id, k.c.id == oud.id)
-                               .values(run_id=run_id, gewijzigd=nu, **v))
+        # Is intussen een nieuwere run gestart (het dossier of de selectie veranderde), dan hoort deze uitkomst bij
+        # een oude stand: vastgelegd, maar ze overschrijft de voorstellen van nu niet.
+        ingehaald = (await _laatste_row(conn, werkgebied_id)).id != run_id
+        aantal, nieuw = (0, 0) if ingehaald else await _leg_kandidaten_vast(conn, werkgebied_id, run_id, invoer, nu)
         await conn.execute(update(r).where(r.c.id == run_id).values(
             status="klaar", meting={m: x.model_dump() for m, x in invoer.meting.items()}, uitkomst_hash=h,
             gewijzigd=nu))
         await werkgebied_audit(conn, werkgebied_id, actor, "bronnen-voorgesteld",
-                               {"run": run_id, "kandidaten": len(nieuw),
-                                "nieuw": sum(1 for iri in nieuw if iri not in bestaande)})
+                               {"run": run_id, "kandidaten": aantal, "nieuw": nieuw,
+                                **({"ingehaald": True} if ingehaald else {})})
     return await haal(werkgebied_id, run_id)
+
+
+async def _leg_kandidaten_vast(conn, werkgebied_id: str, run_id: str, invoer: BronnenUitkomst, nu) -> tuple[int, int]:
+    """De kandidaten van deze run: nieuw erbij, bestaande met het bewijs van nu. (aantal, nieuw)."""
+    k, s = db.bron_kandidaten, db.werkgebied_bronselecties
+    # Wat nú in de selectie staat, wordt geen nieuwe kandidaat (de selectie kan sinds de start veranderd zijn);
+    # een bestaande kandidaat krijgt wel het bewijs en de run van nu, zodat hij na loskoppelen klopt.
+    in_selectie = set((await conn.execute(select(s.c.bron_iri).where(
+        s.c.werkgebied_id == werkgebied_id, s.c.verwijderd.is_(None)))).scalars())
+    bestaande = {x.bron_iri: x for x in (await conn.execute(select(k).where(k.c.werkgebied_id == werkgebied_id))).all()}
+    gevonden = {iri: v for iri, v in _samengevoegd(invoer.kandidaten).items()
+                if iri not in in_selectie or iri in bestaande}
+    for iri, v in gevonden.items():
+        oud = bestaande.get(iri)
+        if oud is None:
+            await conn.execute(insert(k).values(werkgebied_id=werkgebied_id, id=kandidaat_id(iri), bron_iri=iri,
+                                                status="voorgesteld", reden="", run_id=run_id,
+                                                voorgesteld=nu, gewijzigd=nu, **v))
+            continue
+        # Het bewijs wordt bijgewerkt; het besluit blijft staan.
+        await conn.execute(update(k).where(k.c.werkgebied_id == werkgebied_id, k.c.id == oud.id)
+                           .values(run_id=run_id, gewijzigd=nu, **v))
+    return len(gevonden), sum(1 for iri in gevonden if iri not in bestaande)
 
 
 # --- kandidaten ------------------------------------------------------------------------------
@@ -251,9 +283,10 @@ async def kandidaten(werkgebied_id: str) -> dict:
         rows = (await conn.execute(select(k).where(k.c.werkgebied_id == werkgebied_id))).all()
         in_selectie = set((await conn.execute(select(s.c.bron_iri).where(
             s.c.werkgebied_id == werkgebied_id, s.c.verwijderd.is_(None)))).scalars())
-    laatste_id = run.id if run is not None and _status(run) == "klaar" else None
+        basis = await basis_run_id(conn, werkgebied_id)
     # `in_selectie`: intussen met de hand opgenomen. Dan is het geen open voorstel meer.
-    lijst = sorted(({**_kandidaat(x, laatste_id), "in_selectie": x.bron_iri in in_selectie} for x in rows),
+    lijst = sorted(({**_kandidaat(x, basis), "in_selectie": x.bron_iri in in_selectie,
+                     "vervallen": x.bron_iri not in in_selectie and vervallen(x.status, x.run_id, basis)} for x in rows),
                    key=lambda x: (ROL_VOLGORDE[x["rol"]], -len(x["bewijs"]), x["label"], x["bron_iri"]))
     return {"run": _run(run) if run is not None else None, "kandidaten": lijst}
 
