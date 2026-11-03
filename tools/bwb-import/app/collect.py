@@ -15,6 +15,7 @@ dichtstbijzijnde voorouder mét ref_key (onderdeel -> lid -> artikel).
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 
@@ -62,6 +63,32 @@ _STRUCT_TELLER = {
 
 # Doel-soorten waarvan het "nummer" een artikelnummer is (voor labels).
 _ARTIKEL_SOORTEN = {"artikel", "lid", "onderdeel"}
+
+
+def nummer_van(nummer: str | None) -> str:
+    """Het nummer zoals het in een vindplaats staat: "a." → "a", "1." → "1", "1°" blijft. Een
+    opsommingsteken ("–", "•") is geen nummer: leeg."""
+    n = (nummer or "").strip().rstrip(".").strip()
+    return n if re.search(r"[0-9A-Za-z]", n) else ""
+
+
+def _bepaling_naam(soort: str, nummer: str, *reserves: str | None) -> str:
+    """"Artikel 9", "Bijlage 2"; zonder nummer het label of de titel uit de bron. Een divisie van een
+    beleidsregel heet ook "Artikel 9.4": zo verwijst de Leidraad zelf naar zijn onderdelen."""
+    nr = nummer_van(nummer)
+    if nr:
+        return f"{soort} {nr}"
+    return next((r.strip() for r in reserves if r and r.strip()), soort)
+
+
+@dataclass(frozen=True)
+class _Plek:
+    """Waar een onderdeel staat: de vindplaats van zijn ouder, of die al op een onderdeelnummer
+    eindigt, en de kiesbare bepaling erboven (lid, artikel, divisie of bijlage) als (entiteit, id)."""
+
+    vindplaats: str
+    bepaling: tuple[str, str]
+    in_onderdeel: bool = False
 
 
 @dataclass
@@ -171,12 +198,14 @@ class _Collector:
         vorige_artikel: str | None = None
         for artikel in artikelen:
             ref_key = jci_to_ref_key(artikel.jci) or f"{self._bwb}#id={artikel.id}"
+            vindplaats = _bepaling_naam("Artikel", artikel.nummer, artikel.label)
             self.batch.node(
                 "Artikel",
                 {
                     "id": artikel.id,
                     "nummer": artikel.nummer,
                     "label": artikel.label,
+                    "vindplaats": vindplaats,
                     "tekst": artikel.tekst,
                     "ref_key": ref_key,
                     "jci": artikel.jci,
@@ -198,19 +227,22 @@ class _Collector:
 
             self._verwijzingen(ref_key, artikel.verwijzingen, artikel.tekst)
             self._illustraties("Artikel", artikel.id, artikel.illustraties)
-            self._leden(artikel, ref_key)
-            self._onderdelen(artikel.onderdelen, artikel.id, "Artikel", ref_key)
+            self._leden(artikel, ref_key, vindplaats)
+            self._onderdelen(artikel.onderdelen, artikel.id, "Artikel", ref_key,
+                             _Plek(vindplaats, ("Artikel", artikel.id)))
 
     def _divisies(self, divisies: list[Divisie], ouder_id: str, ouder_ent: str) -> None:
         vorige_divisie: str | None = None
         for divisie in divisies:
             ref_key = jci_to_ref_key(divisie.jci) or f"{self._bwb}#id={divisie.id}"
+            vindplaats = _bepaling_naam("Artikel", divisie.nummer, divisie.label, divisie.titel)
             self.batch.node(
                 "Divisie",
                 {
                     "id": divisie.id,
                     "nummer": divisie.nummer,
                     "label": divisie.label,
+                    "vindplaats": vindplaats,
                     "titel": divisie.titel,
                     "tekst": divisie.tekst,
                     "ref_key": ref_key,
@@ -232,7 +264,8 @@ class _Collector:
 
             self._verwijzingen(ref_key, divisie.verwijzingen, divisie.tekst)
             self._illustraties("Divisie", divisie.id, divisie.illustraties)
-            self._onderdelen(divisie.onderdelen, divisie.id, "Divisie", ref_key)
+            self._onderdelen(divisie.onderdelen, divisie.id, "Divisie", ref_key,
+                             _Plek(vindplaats, ("Divisie", divisie.id)))
             self._divisies(divisie.subdivisies, divisie.id, "Divisie")
             # Een divisie kan eigen artikelen bevatten (aparte Artikel-nodes), net als een bijlage.
             self._artikelen(divisie.artikelen, divisie.id, "Divisie")
@@ -241,12 +274,14 @@ class _Collector:
         vorige_bijlage: str | None = None
         for bijlage in bijlagen:
             ref_key = jci_to_ref_key(bijlage.jci) or f"{self._bwb}#id={bijlage.id}"
+            vindplaats = _bepaling_naam("Bijlage", bijlage.nummer, bijlage.label, bijlage.titel)
             self.batch.node(
                 "Bijlage",
                 {
                     "id": bijlage.id,
                     "nummer": bijlage.nummer,
                     "label": bijlage.label,
+                    "vindplaats": vindplaats,
                     "titel": bijlage.titel,
                     "tekst": bijlage.tekst,
                     "ref_key": ref_key,
@@ -268,7 +303,8 @@ class _Collector:
 
             self._verwijzingen(ref_key, bijlage.verwijzingen, bijlage.tekst)
             self._illustraties("Bijlage", bijlage.id, bijlage.illustraties)
-            self._onderdelen(bijlage.onderdelen, bijlage.id, "Bijlage", ref_key)
+            self._onderdelen(bijlage.onderdelen, bijlage.id, "Bijlage", ref_key,
+                             _Plek(vindplaats, ("Bijlage", bijlage.id)))
             # Een bijlage kan eigen artikelen bevatten (aparte Artikel-nodes).
             self._artikelen(bijlage.artikelen, bijlage.id, "Bijlage")
 
@@ -321,16 +357,19 @@ class _Collector:
             self.batch.rel("Regeling", "ONDERTEKEND_DOOR", "Ondertekenaar", bwb_id, node_id)
             self.summary.ondertekenaars += 1
 
-    def _leden(self, artikel: Artikel, artikel_ref_key: str) -> None:
+    def _leden(self, artikel: Artikel, artikel_ref_key: str, artikel_vindplaats: str) -> None:
         vorige_lid: str | None = None
         for lid in artikel.leden:
             lb, la, ll = jci_doel(lid.jci)
             lid_ref = f"{lb}#artikel={la}#lid={ll}" if lb and la and ll else None
+            nr = nummer_van(lid.nummer)
+            vindplaats = f"{artikel_vindplaats}, lid {nr}" if nr else artikel_vindplaats
             self.batch.node(
                 "Lid",
                 {
                     "id": lid.id,
                     "nummer": lid.nummer,
+                    "vindplaats": vindplaats,
                     "tekst": lid.tekst,
                     "jci": lid.jci,
                     "ref_key": lid_ref,
@@ -348,7 +387,7 @@ class _Collector:
             bron = lid_ref or artikel_ref_key
             self._verwijzingen(bron, lid.verwijzingen, lid.tekst)
             self._illustraties("Lid", lid.id, lid.illustraties)
-            self._onderdelen(lid.onderdelen, lid.id, "Lid", bron)
+            self._onderdelen(lid.onderdelen, lid.id, "Lid", bron, _Plek(vindplaats, ("Lid", lid.id)))
 
     def _onderdelen(
         self,
@@ -356,10 +395,23 @@ class _Collector:
         ouder_id: str,
         ouder_ent: str,
         erf_ref_key: str,
+        plek: _Plek,
     ) -> None:
         """``erf_ref_key`` is de ref_key van de dichtstbijzijnde voorouder;
-        onderdelen zonder eigen jci schrijven hun verwijzingen daaraan toe."""
+        onderdelen zonder eigen jci schrijven hun verwijzingen daaraan toe.
+
+        ``plek`` geeft elk onderdeel zijn vindplaats ("Artikel 2, lid 1, onderdeel a, 1°", zoals
+        `bronmodel.vindplaats`) en zijn bepaling (`bwb:inBepaling`), uit de echte boom: de IRI van een
+        onderdeel van een beleidsregel zegt niet waar het staat (`…:artikel:9:o:d` hangt onder divisie
+        9.2). Een ongenummerd opsommingsteken heeft geen eigen naam: het heet zoals zijn ouder."""
         for onderdeel in onderdelen:
+            nr = nummer_van(onderdeel.nummer)
+            if not nr:
+                vindplaats, genummerd = plek.vindplaats, plek.in_onderdeel
+            elif plek.in_onderdeel:
+                vindplaats, genummerd = f"{plek.vindplaats}, {nr}", True
+            else:
+                vindplaats, genummerd = f"{plek.vindplaats}, onderdeel {nr}", True
             ref_key, soort = jci_doel_ref_key(onderdeel.jci)
             if soort != "onderdeel":
                 # Een onderdeel van een bijlage draagt `&bijlage=1&o=a`: geen artikel, dus de
@@ -375,17 +427,20 @@ class _Collector:
                     "tekst": onderdeel.tekst,
                     "ref_key": ref_key,
                     "jci": onderdeel.jci,
+                    "vindplaats": vindplaats,
                     "voetnoot": onderdeel.voetnoten,
                     "definieert_begrip": onderdeel.definieert_begrippen,
                 },
             )
             self.batch.rel(ouder_ent, "HEEFT_ONDERDEEL", "Onderdeel", ouder_id, onderdeel.id)
+            self.batch.rel("Onderdeel", "IN_BEPALING", plek.bepaling[0], onderdeel.id, plek.bepaling[1])
             self.summary.onderdelen += 1
 
             bron = ref_key or erf_ref_key
             self._verwijzingen(bron, onderdeel.verwijzingen, onderdeel.tekst)
             self._illustraties("Onderdeel", onderdeel.id, onderdeel.illustraties)
-            self._onderdelen(onderdeel.subonderdelen, onderdeel.id, "Onderdeel", bron)
+            self._onderdelen(onderdeel.subonderdelen, onderdeel.id, "Onderdeel", bron,
+                             _Plek(vindplaats, plek.bepaling, genummerd))
 
     def _verwijzingen(self, ref_key: str, refs: list[Verwijzing], tekst: str | None) -> None:
         """Voeg de verwijzingen van één bron-node toe aan de batch.

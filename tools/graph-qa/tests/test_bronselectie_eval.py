@@ -48,7 +48,17 @@ def test_de_meting_per_deelvraag_houdt_de_gemeten_uitkomst():
     graaf = OpnameGraaf(json.loads((SETS / INTAKE_SET / "graafantwoorden.json").read_text()))
     r = meet_intake(graaf, s)
     assert graaf.ontbrekend == 0, "de opname dekt niet elke query: draai --opnemen"
-    nieuw, oud = r["bepaling_opties"], r["vorige deelvraagmethode"]
-    assert (nieuw["recall"], nieuw["recall_exact"], nieuw["uitgesloten"]) == (0.211, 0.211, 1)
-    assert nieuw["recall_exact"] > oud["recall_exact"] and nieuw["uitgesloten"] <= oud["uitgesloten"]
-    assert all(p["aantal"] <= 8 and p["gemarkeerd"] <= 2 for p in nieuw["per_deelvraag"])
+    f3f, oud = r["F3f (21 okt)"], r["vorige deelvraagmethode"]
+    assert (f3f["recall"], f3f["recall_exact"], f3f["uitgesloten"]) == (0.211, 0.211, 1)
+    assert f3f["recall_exact"] > oud["recall_exact"] and f3f["uitgesloten"] <= oud["uitgesloten"]
+    # De pool vóór de rangschikking (3 nov 2026): de index vond met F3f 11 van de 19, de top 8 er 4. De helft
+    # van het verlies zat in de rangschikking, de andere helft in het zoeken zelf.
+    assert (f3f["recall_pool"], f3f["pool"]) == (0.579, 479)
+    # Zoeken per term en op de delen van een samenstelling, de kop voor de hele pool en RRF (meetlogboek
+    # `bronselectie-2026-11-03`). Deze set is daarvoor de ontwikkelset; de held-out set staat ernaast.
+    nieuw = r["bepaling_opties"]
+    assert (nieuw["recall"], nieuw["recall_exact"], nieuw["uitgesloten"], nieuw["recall_pool"]) == \
+        (0.421, 0.421, 0, 0.842)
+    for profiel in (p for p in r.values() if "pool" in p):
+        assert all(p["aantal"] <= 8 and p["gemarkeerd"] <= 2 for p in profiel["per_deelvraag"])
+        assert all(p["in_pool"] >= p["gevonden"] for p in profiel["per_deelvraag"] if "in_pool" in p)
