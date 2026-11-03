@@ -143,7 +143,8 @@ describe("scopeInModel", async () => {
 describe("isWerkgebiedRoute", async () => {
   const { isWerkgebiedRoute } = await import("./werkgebied");
   it.each([
-    [["w"]], [["w", "bronnen"]], [["w", "bronnen", "s"]], [["w", "elementen"]], [["w", "audit"]],
+    [["w"]], [["w", "bronnen"]], [["w", "bronnen", "s"]], [["w", "elementen"]], [["w", "audit"]], [["w", "regelingen"]], [["w", "bepalingen"]],
+    [["w", "bronselectie", "d1", "bronnen"]],
     [["w", "begrippen"]], [["w", "begrippen", "export"]], [["w", "begrippen", "b"]],
     [["w", "begrippen", "b", "koppelingen"]], [["w", "begrippen", "b", "accorderen"]],
     [["w", "begrippen", "b", "heropenen"]], [["w", "begrippen", "b", "revisies"]],
