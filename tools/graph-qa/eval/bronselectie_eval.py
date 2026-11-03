@@ -290,8 +290,9 @@ _bepaling_opties = _met_profiel(bronnen_vinden.STANDAARD_PROFIEL)
 #: telkens één ingreep uit of – het lemma, standaard uit – erbij (ablatie), en de deelvraagmethode van vóór F3f.
 ROUTES = {"bepaling_opties": _bepaling_opties, "F3f (21 okt)": _met_profiel(bronnen_vinden.F3F),
           **{f"zonder {v}": _met_profiel(replace(bronnen_vinden.STANDAARD_PROFIEL, **{v: False}))
-             for v in ("per_term", "samenstelling", "divisies", "kop_overal", "fusie")},
+             for v in ("per_term", "samenstelling", "divisies", "kop_overal", "fusie", "per_regeling")},
           "met lemma": _met_profiel(replace(bronnen_vinden.STANDAARD_PROFIEL, lemma=True)),
+          "met lengte": _met_profiel(replace(bronnen_vinden.STANDAARD_PROFIEL, lengte=True)),
           "vorige deelvraagmethode": _vorige_deelvraagmethode}
 
 

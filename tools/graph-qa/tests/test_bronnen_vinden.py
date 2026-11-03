@@ -563,3 +563,18 @@ def test_een_divisie_zonder_label_krijgt_een_naam_en_nooit_de_iri():
     assert plek_uit_iri(iri) == "divisie 26.3.9"
     assert "urn:bwb" not in plek_uit_iri("urn:bwb:BWBR0024096:id:BWBR0024096%2FTekst%2FOnderdeel._3")
     assert plek_uit_iri("urn:bwb:BWBR0004770") == "urn:bwb:BWBR0004770"
+
+
+def test_om_de_beurt_per_regeling_wet_eerst():
+    """`per_regeling`: de plaatsen gaan om de beurt naar de regelingen, de hoogste soort eerst; een regeling die
+    op is slaat haar beurt over, en binnen een regeling blijft de volgorde staan."""
+    from agent.bronnen_vinden import om_de_beurt
+
+    lr = [{"bwb_id": "BWBR0024096", "iri": f"l{i}"} for i in range(5)]
+    iw = [{"bwb_id": "BWBR0004770", "iri": f"w{i}"} for i in range(2)]
+    uit = om_de_beurt(lr + iw, {"BWBR0004770": 0, "BWBR0024096": 3}, ["BWBR0024096", "BWBR0004770"])
+    assert [k["iri"] for k in uit] == ["w0", "l0", "w1", "l1", "l2", "l3", "l4"]
+    # Eén regeling: niets te verdelen.
+    assert om_de_beurt(lr, {}, ["BWBR0024096"]) == lr
+    # Zonder soort (graaf hapert): de volgorde van het werkgebied.
+    assert [k["iri"] for k in om_de_beurt(lr[:2] + iw[:1], {}, ["BWBR0024096", "BWBR0004770"])] == ["l0", "w0", "l1"]

@@ -309,7 +309,14 @@ class Zoekprofiel:
     - `divisies`: ook de divisies van een beleidsregel zijn bepalingen, en een onderdeel telt voor de bepaling
       waarin het volgens de graaf staat (`bwb:inBepaling`), niet volgens zijn IRI;
     - `kop_overal`: elke kandidaat krijgt de kop van zijn deel, niet alleen de voorlopige top;
-    - `fusie`: rangschikken met RRF over de lijsten, in plaats van het aantal geraakte woorden.
+    - `fusie`: rangschikken met RRF over de lijsten, in plaats van het aantal geraakte woorden;
+    - `per_regeling`: de plaatsen op het kaartje gaan om de beurt naar de regelingen, de hoogste soort eerst
+      (`overzicht.RANG`: wet vóór AMvB vóór ministeriële regeling vóór beleidsregel), en binnen een regeling
+      in de volgorde van de fusie. Een beleidsregel met lange divisies raakt meer lijsten dan een lid van de
+      wet en vulde zo het hele kaartje (meetlogboek `bronselectie-2026-11-03`);
+    - `lengte`: de bijdrage van de indexlijsten wordt gedempt naar de lengte van de bepaling (de wortel van
+      mediaan/lengte, hoogstens 1), zodat een lange divisie niet wint omdat ze veel woorden bevat. Standaard
+      **uit**: op de invorderbaarheidsset kostte het recall (0,33 → 0,22).
     """
     per_term: bool = True
     samenstelling: bool = True
@@ -317,10 +324,13 @@ class Zoekprofiel:
     divisies: bool = True
     kop_overal: bool = True
     fusie: bool = True
+    per_regeling: bool = True
+    lengte: bool = False
 
 
 #: De rangschikking van 21 okt 2026 (F3f), voor de meting.
-F3F = Zoekprofiel(per_term=False, samenstelling=False, lemma=False, divisies=False, kop_overal=False, fusie=False)
+F3F = Zoekprofiel(per_term=False, samenstelling=False, lemma=False, divisies=False, kop_overal=False, fusie=False,
+                  per_regeling=False)
 STANDAARD_PROFIEL = Zoekprofiel()
 
 
@@ -535,14 +545,62 @@ def _koppen(graph: GraphPort, kandidaten: list[dict[str, Any]], gevonden: dict[s
         logger.warning("kop van de opbouw niet op te halen", extra={"categorie": "technisch"}, exc_info=True)
 
 
-def _fusiescore(k: dict[str, Any], dos_rang: dict[int, int]) -> float:
-    """RRF: per lijst 1/(k + rang). De index-lijsten met hun eigen rang; de kop telt als een lijst waarin elke
-    geraakte term op plaats 1 staat, het dossier als een lijst op het aantal geraakte dossiertermen."""
-    score = sum(1 / (RRF_K + r) for r in k["rang"].values())
+def _fusiescore(k: dict[str, Any], dos_rang: dict[int, int], demping: float = 1.0) -> float:
+    """RRF: per lijst 1/(k + rang). De index-lijsten met hun eigen rang (met `demping` voor de lengte); de kop
+    telt als een lijst waarin elke geraakte term op plaats 1 staat, het dossier als een lijst op het aantal
+    geraakte dossiertermen."""
+    score = demping * sum(1 / (RRF_K + r) for r in k["rang"].values())
     score += len(k["kop_termen"]) / (RRF_K + 1)
     if k["dos"]:
         score += 1 / (RRF_K + dos_rang[len(k["dos"])])
     return score
+
+
+def _demping(kandidaten: list[dict[str, Any]]) -> dict[str, float]:
+    """Per kandidaat de demping van de indexlijsten: de wortel van mediaan/lengte, hoogstens 1. De lengte is het
+    aantal woorden van de eigen tekst (anders alles wat geraakt is); een kandidaat zonder tekst wordt niet
+    gedempt."""
+    lengtes = {k["iri"]: len((k["eigen"] or " ".join(k["teksten"])).split()) for k in kandidaten}
+    gemeten = sorted(n for n in lengtes.values() if n)
+    if not gemeten:
+        return {}
+    mediaan = gemeten[len(gemeten) // 2]
+    return {iri: min(1.0, (mediaan / n) ** 0.5) for iri, n in lengtes.items() if n}
+
+
+def _soortrang(graph: GraphPort, bwb_ids: list[str]) -> dict[str, int]:
+    """De rang van elke regeling naar haar soort (`overzicht.RANG`, onbekend = 9). Een haperende graaf kost de
+    rang: dan gelden alle regelingen even zwaar en beslist de volgorde van het werkgebied."""
+    from .overzicht import RANG
+
+    ids = [b for b in dict.fromkeys(bwb_ids) if b]
+    if len(ids) < 2:
+        return {}
+    try:
+        rijen = _rijen(graph, queries.soort_van_regelingen(ids))
+    except Exception:  # noqa: BLE001 – zonder soort alleen de volgorde van het werkgebied
+        logger.warning("soort van de regelingen niet opgehaald", extra={"categorie": "technisch"}, exc_info=True)
+        return {}
+    soort = {(r.get("regeling") or "").removeprefix(queries.NS): (r.get("soort") or "").casefold() for r in rijen}
+    return {b: RANG.get(soort.get(b, ""), 9) for b in ids}
+
+
+def om_de_beurt(kandidaten: list[dict[str, Any]], rang: dict[str, int], bereik: list[str | None]) -> list[dict[str, Any]]:
+    """De kandidaten om de beurt per regeling, de hoogste soort eerst (bij gelijke soort de volgorde van het
+    werkgebied), en binnen een regeling in hun eigen volgorde. Een regeling die op is, slaat haar beurt over."""
+    rijen: dict[str, list[dict[str, Any]]] = {}
+    for k in kandidaten:
+        rijen.setdefault(k["bwb_id"], []).append(k)
+    if len(rijen) < 2:
+        return kandidaten
+    plek = {b: i for i, b in enumerate(bereik) if b}
+    volgorde = sorted(rijen, key=lambda b: (rang.get(b, 9), plek.get(b, len(plek)), b))
+    uit: list[dict[str, Any]] = []
+    while any(rijen[b] for b in volgorde):
+        for b in volgorde:
+            if rijen[b]:
+                uit.append(rijen[b].pop(0))
+    return uit
 
 
 def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str | None, dossier: dict[str, Any],
@@ -597,9 +655,10 @@ def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str |
     if profiel.fusie:
         aantallen = sorted({len(k["dos"]) for k in kandidaten if k["dos"]}, reverse=True)
         dos_rang = {n: i + 1 for i, n in enumerate(aantallen)}
+        demping = _demping(kandidaten) if profiel.lengte else {}
 
         def volgorde(k: dict[str, Any]) -> tuple:
-            return (-_fusiescore(k, dos_rang), regeling(k), padsleutel(k["iri"]))
+            return (-_fusiescore(k, dos_rang, demping.get(k["iri"], 1.0)), regeling(k), padsleutel(k["iri"]))
     else:
         def volgorde(k: dict[str, Any]) -> tuple:
             return (-len(k["dv"]), -len(k["dos"]), -bool(k["kop_termen"]), regeling(k), padsleutel(k["iri"]))
@@ -612,7 +671,10 @@ def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str |
     # Bij een deelvraag moet een bepaling de deelvraag zelf raken; dossiertermen rangschikken alleen. Anders
     # vulde het dossier elk kaartje tot het maximum, en kreeg elke deelvraag dezelfde bepalingen (spoor K).
     past = (lambda k: k["dv"]) if deelvraag else (lambda k: k["dv"] or k["dos"])
-    gekozen = [k for k in binnen_ if past(k)][:limit] + buiten_[:MAX_BUITEN]
+    passend = [k for k in binnen_ if past(k)]
+    if profiel.per_regeling:
+        passend = om_de_beurt(passend, _soortrang(graph, [k["bwb_id"] for k in passend]), bereik)
+    gekozen = passend[:limit] + buiten_[:MAX_BUITEN]
 
     uit = [{"bron_iri": k["iri"], "bwb_id": k["bwb_id"], "label": "",
             "omschrijving": BUITEN_TEKST if k["buiten"] else _omschrijving(k["eigen"] or k["teksten"][0],

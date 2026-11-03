@@ -920,8 +920,12 @@ van de gebruiker op 20 okt 2026).
 - **De rangschikking van `bepaling_opties`** – zoeken en rangschikken gebouwd (#788, 3 nov 2026: per term,
   samenstellingsdelen, divisies, kop voor de hele pool, RRF; meetlogboek `bronselectie-2026-11-03`). Het
   zoeken generaliseert (held-out pool 0,56 → 0,94), de rangschikking maar half (recall nodig 0,36 → 0,27):
-  de Leidraad overstroomt de top 8. **Open**: een rangsignaal voor de soort regeling (wet vóór beleidsregel)
-  of een lengtecorrectie, gemeten op een **nieuwe** set – beide bestaande sets zijn nu ontwikkelsets.
+  de Leidraad overstroomt de top 8. Het rangsignaal is gebouwd (3 nov 2026, `per_regeling`: om de beurt per
+  regeling, wet eerst; meetlogboek `bronselectie-2026-11-03-rangsignaal`): op de ontwikkelsets komt de wet terug
+  (recall nodig 0,47 → 0,53 en 0,27 → 0,36), op de nieuwe held-out set *bestuurdersaansprakelijkheid* verandert
+  het niets (0,22). Daar zit het verlies in de **woordenkloof**: de analist schrijft "melden" en "loonheffing",
+  de wet "mededeling" en "loonbelasting". **Open**: synoniemen of begrippen uit de graaf, of de similarity-index
+  als extra lijst in de fusie – op een nieuwe set, want alle drie sets zijn nu ontwikkelsets.
 - **Minder en betere bronvoorstellen** (de volgende iteratie, volgens de gebruiker): de bronnenrun het
   dossier laten gebruiken – wat erbuiten valt weglaten zoals de intake dat al doet, zoeken met
   aanleiding en praktijkvoorbeeld – met een meting op de referentieset bronselectie ervoor en erna.
