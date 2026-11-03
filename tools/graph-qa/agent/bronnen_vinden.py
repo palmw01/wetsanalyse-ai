@@ -317,30 +317,15 @@ def _omschrijving(tekst: str, geraakt: list[str]) -> str:
     return " · ".join(d for d in (begin, raakt) if d)[:300]
 
 
-def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str | None, dossier: dict[str, Any],
-                    buiten: list[str], limit: int = MAX_PER_DEELVRAAG) -> list[dict[str, Any]]:
-    """De bepalingen (leden, of artikelen zonder leden) die bij één deelvraag horen, binnen de gekozen
-    regelingen – zonder model, dus dezelfde vraag geeft dezelfde opties.
-
-    Zoeken: de index op de termen van de deelvraag (zonder deelvraag: de analysevraag), per regeling
-    voor leden, artikelen en onderdelen; een onderdeel telt voor zijn lid, een artikel vervalt als een
-    lid ervan geraakt is. Definities van een term in die regelingen komen erbij.
-
-    Rangschikking, vast: geraakte deelvraagtermen, geraakte dossiertermen (analysevraag,
-    praktijkvoorbeeld, context), een deelvraagterm in de kop van het omvattende deel, documentvolgorde. Bij een
-    deelvraag moet een bepaling een deelvraagterm raken; alleen dossiertermen is geen optie, dus een kaartje is
-    zo lang als er echt iets bij de deelvraag gevonden is.
-
-    Een bepaling die meer raakt aan wat de analist buiten het werkgebied liet (`buiten`, de stammen uit
-    `werkgebied_context.uitsluitstammen`, in tekst en kop) dan aan de deelvraag, valt niet stil weg: ze
-    staat achteraan, gemarkeerd (`buiten: true`), hoogstens `MAX_BUITEN` extra. Meer, niet ook: "bezwaar-
-    of beroepschrift" raakt "beroep", maar gaat even goed over bezwaar."""
-    from .overzicht import padsleutel
-
+def kandidatenpool(graph: GraphPort, *, regelingen: list[str], deelvraag: str | None,
+                   dossier: dict[str, Any]) -> dict[str, Any] | None:
+    """Wat de index bij een deelvraag vindt, vóór de rangschikking: per bepaling (lid, of artikel zonder
+    leden) de geraakte teksten, met de termen en het bereik waarmee gezocht is. None als er niets te
+    zoeken valt of de graaf hapert. Apart, zodat de meting kan zien wat de rangschikking laat vallen."""
     termen = zoektermen(onderwerp_van_deelvraag(deelvraag) if deelvraag else "")[:MAX_TERMEN] \
         or zoektermen(deelvraag or dossier.get("analysevraag") or dossier.get("naam") or "")[:MAX_TERMEN]
     if not termen:
-        return []
+        return None
     dossiertermen = [w for w in zoektermen(" ".join(str(dossier.get(k) or "") for k in
                                                    ("analysevraag", "praktijkvoorbeeld", "context")))
                      if w not in termen][:MAX_DOSSIERTERMEN]
@@ -376,7 +361,37 @@ def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str |
                 neem(r["node"], r.get("tekst", ""), "Definitie", r.get("bwbId", ""), r.get("citeertitel", ""))
     except Exception:  # noqa: BLE001 – een haperende graaf geeft geen opties, geen crash van de intake
         logger.warning("bepalingen zoeken faalde", extra={"categorie": "technisch"}, exc_info=True)
+        return None
+
+    return {"termen": termen, "dossiertermen": dossiertermen, "bereik": bereik, "gevonden": gevonden,
+            "geraakte_artikelen": geraakte_artikelen}
+
+
+def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str | None, dossier: dict[str, Any],
+                    buiten: list[str], limit: int = MAX_PER_DEELVRAAG) -> list[dict[str, Any]]:
+    """De bepalingen (leden, of artikelen zonder leden) die bij één deelvraag horen, binnen de gekozen
+    regelingen – zonder model, dus dezelfde vraag geeft dezelfde opties.
+
+    Zoeken: de index op de termen van de deelvraag (zonder deelvraag: de analysevraag), per regeling
+    voor leden, artikelen en onderdelen; een onderdeel telt voor zijn lid, een artikel vervalt als een
+    lid ervan geraakt is. Definities van een term in die regelingen komen erbij.
+
+    Rangschikking, vast: geraakte deelvraagtermen, geraakte dossiertermen (analysevraag,
+    praktijkvoorbeeld, context), een deelvraagterm in de kop van het omvattende deel, documentvolgorde. Bij een
+    deelvraag moet een bepaling een deelvraagterm raken; alleen dossiertermen is geen optie, dus een kaartje is
+    zo lang als er echt iets bij de deelvraag gevonden is.
+
+    Een bepaling die meer raakt aan wat de analist buiten het werkgebied liet (`buiten`, de stammen uit
+    `werkgebied_context.uitsluitstammen`, in tekst en kop) dan aan de deelvraag, valt niet stil weg: ze
+    staat achteraan, gemarkeerd (`buiten: true`), hoogstens `MAX_BUITEN` extra. Meer, niet ook: "bezwaar-
+    of beroepschrift" raakt "beroep", maar gaat even goed over bezwaar."""
+    from .overzicht import padsleutel
+
+    pool = kandidatenpool(graph, regelingen=regelingen, deelvraag=deelvraag, dossier=dossier)
+    if pool is None:
         return []
+    termen, dossiertermen, bereik = pool["termen"], pool["dossiertermen"], pool["bereik"]
+    gevonden, geraakte_artikelen = pool["gevonden"], pool["geraakte_artikelen"]
 
     # Een artikel waarvan een lid geraakt is, is als artikel dubbelop: de analist kiest het lid.
     kandidaten = [k for iri, k in gevonden.items() if iri not in geraakte_artikelen]

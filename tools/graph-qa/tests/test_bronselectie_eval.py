@@ -52,3 +52,7 @@ def test_de_meting_per_deelvraag_houdt_de_gemeten_uitkomst():
     assert (nieuw["recall"], nieuw["recall_exact"], nieuw["uitgesloten"]) == (0.211, 0.211, 1)
     assert nieuw["recall_exact"] > oud["recall_exact"] and nieuw["uitgesloten"] <= oud["uitgesloten"]
     assert all(p["aantal"] <= 8 and p["gemarkeerd"] <= 2 for p in nieuw["per_deelvraag"])
+    # De pool vóór de rangschikking (3 nov 2026): de index vindt 11 van de 19, de top 8 er 4. De helft van
+    # het verlies zit in de rangschikking, de andere helft in het zoeken zelf.
+    assert (nieuw["recall_pool"], nieuw["pool"]) == (0.579, 479)
+    assert all(p["in_pool"] >= p["gevonden"] for p in nieuw["per_deelvraag"])

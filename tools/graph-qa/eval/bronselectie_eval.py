@@ -41,6 +41,9 @@ naast de vorige deelvraagmethode (het overzicht per deelvraag, op artikelniveau)
 deelvraag en samen: `recall`, `recall_nodig`, `recall_exact` (het lid zelf, of erbinnen), `precisie`
 (het aandeel opties dat een verwachte bepaling van díé deelvraag raakt), `uitgesloten` (opties die een
 uitgesloten bepaling raken, niet gemarkeerd) en `uitgesloten_gemarkeerd` (wel gemarkeerd, onderaan).
+Voor `bepaling_opties` ook `recall_pool`: het aandeel verwachte bepalingen dat de index vindt vóór de
+rangschikking (`bronnen_vinden.kandidatenpool`). Ligt `recall` daar ver onder, dan laat de
+rangschikking ze vallen; ligt `recall_pool` zelf laag, dan mist het zoeken ze.
 
 `--opnemen` vraagt `GRAPHDB_MCP_URL` en `GRAPHDB_TOKEN` (en voor gelijkenis `SIMILARITY_INDEX`).
 """
@@ -254,6 +257,15 @@ def _bepaling_opties(graph: Any, s: dict[str, Any], vraag: str) -> list[dict[str
 ROUTES = {"bepaling_opties": _bepaling_opties, "vorige deelvraagmethode": _vorige_deelvraagmethode}
 
 
+def _pool(graph: Any, s: dict[str, Any], vraag: str) -> list[str]:
+    """Wat de index bij de deelvraag vindt, vóór de rangschikking (`bronnen_vinden.kandidatenpool`): zo
+    scheidt de meting wat het zoeken mist van wat de rangschikking laat vallen."""
+    pool = bronnen_vinden.kandidatenpool(
+        graph, regelingen=s["regelingen"], deelvraag=vraag,
+        dossier={k: s.get(k, "") for k in ("naam", "analysevraag", "praktijkvoorbeeld", "context")})
+    return list(pool["gevonden"]) if pool else []
+
+
 def scoor_deelvraag(s: dict[str, Any], i: int, opties: list[dict[str, Any]]) -> dict[str, Any]:
     verwacht = [v for v in s["verwacht"] if v["deelvraag"] == i]
     nodig = [v for v in verwacht if v["rol"] in ("kern", "afhankelijkheid")]
@@ -280,6 +292,13 @@ def scoor_deelvraag(s: dict[str, Any], i: int, opties: list[dict[str, Any]]) -> 
             "opties": alles}
 
 
+def scoor_pool(s: dict[str, Any], i: int, pool: list[str]) -> dict[str, Any]:
+    verwacht = [v for v in s["verwacht"] if v["deelvraag"] == i]
+    in_pool = [v for v in verwacht if any(_raakt(c, v["bron_iri"]) for c in pool)]
+    return {"pool": len(pool), "in_pool": len(in_pool),
+            "niet_in_pool": [v["bron_iri"] for v in verwacht if v not in in_pool]}
+
+
 def _deel(a: int, b: int) -> float | None:
     return round(a / b, 3) if b else None
 
@@ -292,6 +311,9 @@ def meet_intake(graaf: Any, s: dict[str, Any]) -> dict[str, Any]:
         regelingnamen._CACHE.clear()
         overzicht._REGELINGEN_CACHE.clear()
         per = [scoor_deelvraag(s, i, route(graaf, s, vraag)) for i, vraag in enumerate(s["deelvragen"])]
+        if naam == "bepaling_opties":
+            for i, (p, vraag) in enumerate(zip(per, s["deelvragen"])):
+                p.update(scoor_pool(s, i, _pool(graaf, s, vraag)))
         som = {k: sum(p[k] for p in per) for k in ("verwacht", "nodig", "aantal", "gevonden", "gevonden_nodig", "exact", "raak")}
         rapport[naam] = {"recall": _deel(som["gevonden"], som["verwacht"]),
                          "recall_nodig": _deel(som["gevonden_nodig"], som["nodig"]),
@@ -300,6 +322,9 @@ def meet_intake(graaf: Any, s: dict[str, Any]) -> dict[str, Any]:
                          "uitgesloten": sum(len(p["uitgesloten"]) for p in per),
                          "uitgesloten_gemarkeerd": sum(len(p["uitgesloten_gemarkeerd"]) for p in per),
                          "per_deelvraag": per}
+        if naam == "bepaling_opties":
+            rapport[naam]["recall_pool"] = _deel(sum(p["in_pool"] for p in per), som["verwacht"])
+            rapport[naam]["pool"] = sum(p["pool"] for p in per)
     return rapport
 
 
@@ -309,17 +334,21 @@ def tabel_intake(s: dict[str, Any], rapport: dict[str, Any]) -> str:
     regels = [f"Set: {s['naam']} – status {s['status']} (trendmeting, geen kwaliteitsoordeel tot vaststelling)",
               f"Analysevraag: {s['analysevraag']}",
               f"Deelvragen: {len(s['deelvragen'])}, verwacht: {len(s['verwacht'])}, uitgesloten: {len(s['uitgesloten'])}",
-              "", "| route | aantal | recall | recall nodig | exact | precisie | uitgesloten | uitgesloten gemarkeerd |",
-              "|---|---|---|---|---|---|---|---|"]
+              "", "| route | aantal | recall | recall nodig | exact | precisie | uitgesloten | uitgesloten gemarkeerd "
+                  "| pool | recall pool |",
+              "|---|---|---|---|---|---|---|---|---|---|"]
     for naam, r in rapport.items():
         regels.append(f"| {naam} | {r['aantal']} | {f(r['recall'])} | {f(r['recall_nodig'])} | {f(r['recall_exact'])} | "
-                      f"{f(r['precisie'])} | {r['uitgesloten']} | {r['uitgesloten_gemarkeerd']} |")
+                      f"{f(r['precisie'])} | {r['uitgesloten']} | {r['uitgesloten_gemarkeerd']} | "
+                      f"{r.get('pool', '–')} | {f(r.get('recall_pool'))} |")
     for naam, r in rapport.items():
         regels += ["", f"**{naam}** per deelvraag:"]
         for i, p in enumerate(r["per_deelvraag"]):
             regels.append(f"- {i + 1}. {p['gevonden']}/{p['verwacht']} gevonden (exact {p['exact']}), {p['raak']}/{p['aantal']} raak"
                           f"{', gemarkeerd ' + str(p['gemarkeerd']) if p['gemarkeerd'] else ''}; gemist: "
-                          f"{', '.join(g.split(':', 2)[2] for g in p['gemist']) or 'niets'}")
+                          f"{', '.join(g.split(':', 2)[2] for g in p['gemist']) or 'niets'}"
+                          + (f"; in de pool {p['in_pool']}/{p['verwacht']} (van {p['pool']}), niet in de pool: "
+                             f"{', '.join(g.split(':', 2)[2] for g in p['niet_in_pool']) or 'niets'}" if "pool" in p else ""))
     return "\n".join(regels)
 
 
