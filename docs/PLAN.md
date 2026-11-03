@@ -917,9 +917,11 @@ van de gebruiker op 20 okt 2026).
   bestaande bronnenrun en deelvragen staan klaar als volgende stap na het aanmaken).
 - De rest van activiteit 1 uit de Leidraad: juridische scenario's met gebeurtenissen (1c) en die
   verbinden met de deelvragen (1e) – de controle die volgens de Handleiding de afbakening scherp maakt.
-- **Een betere rangschikking van `bepaling_opties`** (uit de meting van F3f): de verwachte leden staan
-  hoog in de index, de letterlijke termtelling gooit ze eruit. Stemming en een structuursignaal (de kop
-  van het deel), gemeten op een nieuwe set – de bezwaarset is nu een ontwikkelset.
+- **De rangschikking van `bepaling_opties`** – zoeken en rangschikken gebouwd (#788, 3 nov 2026: per term,
+  samenstellingsdelen, divisies, kop voor de hele pool, RRF; meetlogboek `bronselectie-2026-11-03`). Het
+  zoeken generaliseert (held-out pool 0,56 → 0,94), de rangschikking maar half (recall nodig 0,36 → 0,27):
+  de Leidraad overstroomt de top 8. **Open**: een rangsignaal voor de soort regeling (wet vóór beleidsregel)
+  of een lengtecorrectie, gemeten op een **nieuwe** set – beide bestaande sets zijn nu ontwikkelsets.
 - **Minder en betere bronvoorstellen** (de volgende iteratie, volgens de gebruiker): de bronnenrun het
   dossier laten gebruiken – wat erbuiten valt weglaten zoals de intake dat al doet, zoeken met
   aanleiding en praktijkvoorbeeld – met een meting op de referentieset bronselectie ervoor en erna.
@@ -1150,7 +1152,8 @@ deelvraag, een besluit per deelvraag, een vraagkaart buiten de intake en het soo
 - **J5** – **gebouwd, in J1–J4**: het soort bewijs per voorstel, de zoekdekking, wat bij geen deelvraag hoort,
   en de controle in drie delen met de afsluitzin "binnen de vastgestelde afbakening en de beschikbare
   bronnen", nooit "volledig". Architectuur: `docs/architectuur/bronselectie-per-deelvraag.md`.
-- **Daarna**: de rangschikking van `bepaling_opties` (stemming, de kop van het deel), blind gemeten.
+- **Daarna**: de rangschikking van `bepaling_opties` – gebouwd en blind gemeten (#788, meetlogboek
+  `bronselectie-2026-11-03`); het vervolg staat bij spoor F, *Vervolg*.
 
 **Bekende beperking.** De functie van een verwijzing (definitie, uitzondering, delegatie) wordt nog niet
 afgeleid; tot dan zegt Lex bij een afhankelijkheid alleen welke relatie in de graaf staat.
