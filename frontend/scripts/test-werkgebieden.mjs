@@ -86,6 +86,12 @@ await page.route("**/api/**", async (route) => {
     return route.fulfill({ json: uit() });
   }
   // Spoor I6: het thema dat Lex voorstelt (zonder model) en het opslaan ervan.
+  // De peildatum naast de toestand in de graaf (3 nov 2026): de Iw geldt hier pas ná de peildatum.
+  if (p === "/api/werkgebieden/wg1/toestanden") return route.fulfill({ json: {
+    peildatum: "2026-03-01", peildatum_standaard: false, volledig: true,
+    regelingen: [{ bwb_id: "BWBR0004770", citeertitel: "Invorderingswet 1990", geldig_vanaf: "2026-07-01", geldig_tot: null,
+      na_peildatum: true }],
+  } });
   if (p === "/api/werkgebieden/wg1/thema-voorstel") return route.fulfill({ json: {
     rechtsgebieden: ["Belastingrecht"], voorstel: [{ thema: THEMA, label: "belasting" }] } });
   if (p === "/api/werkgebieden/wg1" && m === "PATCH") {
@@ -239,6 +245,8 @@ try {
   await page.getByRole("button", { name: "Opnemen", exact: true }).click();
   await page.locator("[data-bron]").filter({ hasText: "Algemene wet inzake rijksbelastingen" }).getByRole("link", { name: /^artikel 3/ }).waitFor();
   await tab("Bronnen (2)").waitFor();
+  await page.locator("[data-peildatum='2026-03-01']").getByText("Peildatum 01-03-2026").waitFor();
+  await page.locator("[data-peildatum-melding]").getByText("geldt vanaf 01-07-2026, na de peildatum", { exact: false }).waitFor();
   await foto("werkgebied-bronnen");
 
   // Rol wijzigen staat achter ⋯ (geen knoppen in elke rij). Daarna een conflict: iemand anders was ons

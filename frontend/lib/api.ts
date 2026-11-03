@@ -18,6 +18,7 @@ import { isBegripSamenhang, isConformiteit, type BegripSamenhang, type Conformit
 import type { BegrippenOverzicht } from "./begrippenOverzicht";
 import type {
   ThemaVoorstel,
+  Toestanden,
   ApiError,
   ApiTokenCreated,
   ApiTokenOut,
@@ -1143,6 +1144,17 @@ export async function koppelDeelvraag(
 ): Promise<Werkgebied> {
   return json<Werkgebied>(await fetch(wg(id, "deelvragen", deelvraagId, "koppelingen"),
     jsonInit("PUT", { ...koppelingen, verwachte_revisie: verwachteRevisie })));
+}
+
+/** De peildatum en de toestand van de regelingen in de bronnen; faalt stil (`null`). */
+export async function haalToestanden(id: string): Promise<Toestanden | null> {
+  try {
+    const t = await json<Toestanden>(await fetch(wg(id, "toestanden"), { cache: "no-store" }));
+    // Een antwoord van een andere vorm (een oudere api) is geen peildatum: dan niets tonen.
+    return t && typeof t.peildatum === "string" && Array.isArray(t.regelingen) ? t : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Het thema dat Lex voorstelt, zonder model; faalt stil (`null`). */

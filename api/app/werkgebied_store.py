@@ -17,6 +17,8 @@ from contextlib import asynccontextmanager
 from typing import Any, Awaitable, Callable
 
 from fastapi import HTTPException
+from zoneinfo import ZoneInfo
+
 from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.exc import IntegrityError
 
@@ -26,12 +28,24 @@ from .werkgebied_contracts import (
 )
 
 
+_NL = ZoneInfo("Europe/Amsterdam")
+
+
+def dag_in_nl(moment) -> str:
+    """De kalenderdag van een tijdstip in Nederland (JJJJ-MM-DD): de standaard-peildatum."""
+    return db.aware(moment).astimezone(_NL).date().isoformat()
+
+
 def _werkgebied(row) -> dict:
+    # De peildatum is standaard de dag waarop het werkgebied werd aangemaakt (besluit gebruiker 3 nov 2026);
+    # een oude rij zonder peildatum krijgt die ook. `peildatum_standaard` zegt of hij dat nog is.
+    aanmaakdag = dag_in_nl(row.aangemaakt)
+    peildatum = row.peildatum or aanmaakdag
     return {"id": row.id, "naam": row.naam, "analysevraag": row.analysevraag,
             "afbakening": row.afbakening, "aanleiding": row.aanleiding, "context": row.context,
             "doel": row.doel, "praktijkvoorbeeld": row.praktijkvoorbeeld,
             "thema": row.thema, "thema_label": tooi.thema_label(row.thema),
-            "peildatum": row.peildatum, "status": row.status,
+            "peildatum": peildatum, "peildatum_standaard": peildatum == aanmaakdag, "status": row.status,
             "revisie": row.revisie, "aangemaakt_door": row.aangemaakt_door,
             "aangemaakt": db.aware(row.aangemaakt).isoformat(),
             "gewijzigd": db.aware(row.gewijzigd).isoformat(),
@@ -122,7 +136,7 @@ async def maak(invoer: WerkgebiedInvoer, actor: str) -> dict:
                 id=wid, naam=invoer.naam, analysevraag=invoer.analysevraag, afbakening=invoer.afbakening,
                 aanleiding=invoer.aanleiding, context=invoer.context, doel=invoer.doel,
                 praktijkvoorbeeld=invoer.praktijkvoorbeeld, thema=invoer.thema,
-                peildatum=invoer.peildatum, status="in_voorbereiding", revisie=1, aangemaakt_door=actor,
+                peildatum=invoer.peildatum or dag_in_nl(nu), status="in_voorbereiding", revisie=1, aangemaakt_door=actor,
                 aangemaakt=nu, gewijzigd=nu, intake_id=invoer.intake_id))
             deelvragen = await _deelvragen_bij_aanmaken(conn, wid, invoer, actor, nu)
             await _audit(conn, wid, actor, "aangemaakt", {"naam": invoer.naam, "revisie": 1,

@@ -268,6 +268,11 @@ spoor D (*Werkgebied als node*).
   `deelvragen` (`{vraag, herkomst: analist|lex}`) mee: actief, op volgorde, één keer per genormaliseerde
   vraag, in dezelfde transactie; de auditregel `aangemaakt` telt ze. Lex gebruikt dit dossier als
   context voor elk voorstel (graph-qa).
+- **De peildatum is standaard de aanmaakdag** (in Nederland, `werkgebied_store.dag_in_nl`; besluit gebruiker 3 nov
+  2026): `maak` zet hem als er geen is opgegeven, een oude rij zonder peildatum leest hem ook zo, en
+  `peildatum_standaard` zegt of hij dat nog is. **`GET {id}/toestanden`** zet de peildatum naast de toestand van elke
+  regeling in de bronnen (`bwb:geldigVanaf`/`geldigTot`). De graaf heeft per regeling alleen de nieuwste toestand:
+  `na_peildatum` zegt dat de tekst kan afwijken. Een haperende graaf geeft `volledig: false`.
 - **Een bronselectie wordt geverifieerd** via de bronresolver (`bron_iri`, of `bwb_id` + `artikel`
   (+ `lid`)); de canonieke `bron_iri`, het label, `snapshot_id` en `bron_hash` worden bewaard.
   Dezelfde bron met dezelfde rol en hetzelfde bereik opnieuw toevoegen is idempotent (200, geen

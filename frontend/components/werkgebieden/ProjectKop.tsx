@@ -17,7 +17,7 @@ import { useWerkgebied } from "@/components/werkgebieden/WerkgebiedProject";
 import { haalThemaVoorstel, wijzigWerkgebied } from "@/lib/api";
 import { themaGroepen } from "@/lib/tooiThemas";
 import type { ThemaVoorstel, Werkgebied, WerkgebiedStatus } from "@/lib/types";
-import { DOSSIER_VELDEN, STATUS_LABEL, type DossierVeld } from "@/lib/werkgebied";
+import { DOSSIER_VELDEN, STATUS_LABEL, datumNl, type DossierVeld } from "@/lib/werkgebied";
 import { ARTEFACT_SOORTEN, PROJECT_TABS, historiePad, projectPad, type ProjectTab } from "@/lib/werkgebiedPaden";
 
 /** De kop van een werkgebied boven de vier tabs (mock-up v4, `projectHead` + `tabbar`): de naam, één zin,
@@ -43,7 +43,7 @@ export function ProjectKop({ tab }: { tab: ProjectTab }) {
             <StatusLabel>{STATUS_LABEL[wg.status]}</StatusLabel>
             <Stip />
             <span>Gewijzigd {datum(wg.gewijzigd)}</span>
-            {wg.peildatum && <><Stip /><span>Peildatum {wg.peildatum}</span></>}
+            {wg.peildatum && <><Stip /><span>Peildatum {datumNl(wg.peildatum)}</span></>}
             <Stip />
             <span>Aangemaakt door {wg.aangemaakt_door}</span>
           </>
@@ -161,7 +161,8 @@ export function GegevensDialoog({ wg, onBewaar, onSluit }: {
           </p>
         )}
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Gewenste peildatum" hint="de wettekst zelf komt uit de actuele graaf">
+          <Field label="Gewenste peildatum"
+            hint="standaard de aanmaakdatum; leeg zet hem daarop terug. De wettekst komt uit de actuele graaf: geldt die pas na de peildatum, dan staat dat bij de bronnen">
             <Input type="date" value={peildatum} onChange={(e) => setPeildatum(e.target.value)} />
           </Field>
           <Field label="Status">

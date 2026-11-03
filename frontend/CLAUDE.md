@@ -455,6 +455,10 @@ heeft *Verzend* (`isLaatsteVraag`), want wat erna komt hangt af van het antwoord
   suggesties eronder; *Een vraag stellen ›* haalt hem terug. *Bepaal de bronnen per deelvraag* staat bij de
   werkgebiedsuggesties en gaat ook in een nieuw gesprek verder waar je was.
 - De allowlist laat `bronselectie`, `bronselectie/{d}/status` en `bronselectie/{d}/kandidaten/{k}` door.
+- **De peildatum staat boven de bronnen** (`PeildatumRegel` in `BronnenBijDeelvraag`, dus op de tab, de deelvraagpagina
+  en naast het gesprek): de peildatum (standaard de aanmaakdatum), per regeling sinds wanneer de tekst in de graaf
+  geldt, en geel als die pas ná de peildatum ging gelden (`toestandMeldingen`). `GET …/toestanden`, faalt stil;
+  `haalToestanden` toetst de vorm.
 - **De bronverkenner** (`BronKandidaten` op `bronnen/voorstellen`) blijft: alles wat Lex vond, ook zonder
   deelvraag, met het bewijs per methode; `BronnenBijDeelvraag` linkt ernaar. Kan de stand per deelvraag niet laden,
   dan toont de tab de bronnen van het werkgebied met een melding: een storing kost de indeling, niet de lijst.

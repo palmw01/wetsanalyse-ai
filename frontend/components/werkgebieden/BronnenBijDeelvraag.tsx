@@ -11,6 +11,7 @@ import { StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { Groep, GroepRij } from "@/components/ui/Pagina";
 import { SkeletonCard } from "@/components/ui/Skeleton";
+import { PeildatumRegel } from "@/components/werkgebieden/Peildatum";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import { besluitBronselectie, foutTekst, haalBronselectie, verwijderBron, wijzigBron, type BronselectieBesluit } from "@/lib/api";
@@ -100,6 +101,7 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
     const bronnen = beheer.wg.bronnen.filter((s) => !filter?.actief || filter.past(s, s.label, s.rol));
     return (
       <div data-bronnen-bij-deelvraag className="space-y-4 text-sm text-ink">
+        <PeildatumRegel werkgebiedId={werkgebiedId} revisie={revisie} />
         {beheer.wg.bronnen.length > 0 && (
           <Melding type="uitleg" compact>
             De indeling per deelvraag is nu niet te laden; hieronder de bronnen van het werkgebied.{" "}
@@ -145,6 +147,7 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
 
   return (
     <div data-bronnen-bij-deelvraag className="space-y-6 text-sm text-ink">
+      <PeildatumRegel werkgebiedId={werkgebiedId} revisie={revisie} />
       {!deelvraagId && <p className="text-xs text-muted" data-bronselectie-voortgang>{voortgangZin(o)}</p>}
       {beperkingen.length > 0 && !deelvraagId && (
         <Melding type="waarschuwing" compact titel="Over het zoeken">

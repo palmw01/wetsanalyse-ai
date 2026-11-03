@@ -818,7 +818,9 @@ export interface WerkgebiedSamenvatting {
   /** Spoor I6: het thema als TOOI-URI uit tooitop, met zijn naam; leeg = nog niet gekozen. */
   thema?: string;
   thema_label?: string;
+  /** Standaard de dag van aanmaken (api, 3 nov 2026); `peildatum_standaard` zegt of hij dat nog is. */
   peildatum: string | null;
+  peildatum_standaard?: boolean;
   status: WerkgebiedStatus;
   revisie: number;
   aangemaakt_door: string;
@@ -883,6 +885,15 @@ export interface WerkgebiedWijziging {
 }
 
 /** `GET …/thema-voorstel` (spoor I6): de thema's die passen bij de WTI-rechtsgebieden van de bronnen. */
+/** De peildatum naast de toestand van elke regeling in de bronnen (`GET …/toestanden`). De graaf heeft per
+ *  regeling alleen de nieuwste toestand; `na_peildatum` zegt dat die pas ná de peildatum ging gelden. */
+export interface Toestanden {
+  peildatum: string;
+  peildatum_standaard: boolean;
+  regelingen: { bwb_id: string; citeertitel: string; geldig_vanaf: string | null; geldig_tot: string | null; na_peildatum: boolean }[];
+  volledig: boolean;
+}
+
 export interface ThemaVoorstel {
   rechtsgebieden: string[];
   voorstel: { thema: string; label: string }[];
