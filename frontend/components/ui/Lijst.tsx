@@ -82,8 +82,9 @@ export function LijstRij({ voor, titel, meta, status, acties, actief = false, ch
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
             {/* `overflow-wrap: anywhere` en niet `break-words`: een bron-IRI is één lang woord, en alleen
-                `anywhere` telt mee in de minimale breedte – anders duwt hij de rij uit beeld (Safari). */}
-            <div className="min-w-0 text-sm text-ink [overflow-wrap:anywhere]">{titel}</div>
+                `anywhere` telt mee in de minimale breedte – anders duwt hij de rij uit beeld (Safari). `flex-1`: een
+                titel die ter plekke een invoerveld wordt, neemt de breedte van de rij en niet die van de tekst. */}
+            <div className="min-w-0 flex-1 text-sm text-ink [overflow-wrap:anywhere]">{titel}</div>
             {status && <div className="flex shrink-0 flex-wrap gap-1.5">{status}</div>}
           </div>
           {meta && <div className="mt-0.5 text-xs text-muted [overflow-wrap:anywhere]">{meta}</div>}
