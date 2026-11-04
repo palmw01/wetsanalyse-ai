@@ -322,9 +322,34 @@ try {
   await voorstelThema.getByText("belasting", { exact: true }).waitFor();
   await voorstelThema.getByRole("button", { name: "Overnemen" }).click();
   assert.equal(await page.getByLabel(/^Thema/).inputValue(), THEMA);
+  // De tekstvakken groeien mee: een lang praktijkvoorbeeld staat er helemaal, zonder slepen of eigen scrollbalk.
+  const formulier = page.locator("[data-gegevens-formulier]");
+  const voorbeeld = formulier.getByLabel(/^Praktijkvoorbeeld/);
+  const lang = Array.from({ length: 12 }, (_, i) => `Regel ${i + 1} van het praktijkvoorbeeld, met genoeg tekst om af te breken.`).join("\n");
+  const hoogteVoor = (await voorbeeld.boundingBox()).height;
+  await voorbeeld.fill(lang);
+  const maat = await voorbeeld.evaluate((el) => ({ scroll: el.scrollHeight, client: el.clientHeight, hoogte: el.offsetHeight }));
+  assert.ok(maat.scroll <= maat.client + 1, `tekst valt buiten het vak: ${JSON.stringify(maat)}`);
+  assert.ok(maat.hoogte > hoogteVoor * 3, "het vak groeit mee met de tekst");
+  // De gebeurtenis (zoekvragen a–d) staat in het formulier, op één regel.
+  const gebeurtenis = formulier.getByLabel(/^Gebeurtenis/);
+  assert.equal(await gebeurtenis.evaluate((el) => el.tagName), "INPUT");
+  await gebeurtenis.fill("verrekening");
+  // Peildatum en status staan op één lijn: de uitleg van de peildatum staat eronder, niet op de labelregel.
+  const naastElkaar = formulier.locator("[data-peildatum-status]");
+  const datum = await naastElkaar.locator("input[type=date]").boundingBox();
+  const status = await naastElkaar.locator("select").boundingBox();
+  assert.ok(Math.abs(datum.y - status.y) <= 1 && Math.abs(datum.height - status.height) <= 1,
+    `peildatum ${JSON.stringify(datum)} en status ${JSON.stringify(status)} staan niet op één lijn`);
+  await foto("werkgebied-gegevens-bewerken");
+  await naastElkaar.scrollIntoViewIfNeeded();
+  await foto("werkgebied-gegevens-peildatum-status");
   await page.locator("[data-gegevens-formulier]").getByRole("button", { name: "Opslaan" }).click();
   await page.locator("[data-gegevens-formulier]").waitFor({ state: "detached" });
-  assert.equal(requests.filter((r) => r.m === "PATCH" && r.p === "/api/werkgebieden/wg1").at(-1).body.thema, THEMA);
+  const gegevens = requests.filter((r) => r.m === "PATCH" && r.p === "/api/werkgebieden/wg1").at(-1).body;
+  assert.equal(gegevens.thema, THEMA);
+  assert.equal(gegevens.gebeurtenis, "verrekening");
+  assert.equal(gegevens.praktijkvoorbeeld, lang);
   await page.getByRole("navigation", { name: "Werkgebied" }).getByRole("link", { name: "Historie" }).click();
   await page.waitForURL("**/werkgebieden/wg1/historie");
   assert.equal(await page.getByRole("navigation", { name: "Werkgebied" }).getByRole("link", { name: "Historie" })
