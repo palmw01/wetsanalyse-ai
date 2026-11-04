@@ -128,7 +128,6 @@ ACTIE_TAAK: dict[str, tuple[str, str]] = {
     "deelvragen_voorstellen": ("deelvragen", "voorstellen"),
     "deelvraag_herformuleren": ("deelvragen", "verbeteren"),
     "deelvraag_splitsen": ("deelvragen", "verbeteren"),
-    "bronnen_zoeken": ("deelvragen", "bronnen_zoeken"),
     "dekking": ("deelvragen", "dekking"),
     "begrippen_voorstellen": ("begrippen", "voorstellen"),
     "begrippen_meedenken": ("begrippen", "meedenken"),
@@ -145,7 +144,7 @@ ACTIE_TAAK: dict[str, tuple[str, str]] = {
 INTAKE_ACTIES = ("dossier_aanvullen",)
 # De bronselectie per deelvraag (spoor J) beginnen of hervatten: de bronselectie-worker, op de stand die de
 # api bewaart. Ook geen taak van een agent.
-BRONSELECTIE_ACTIES = ("bronselectie",)
+BRONSELECTIE_ACTIES = ("bronselectie", "bronnen_zoeken")   # zoeken is een stap van de bronselectie
 Actie = Literal["werkgebied_annoteren", "deelvragen_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
                 "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie",
                 "scherper", "uitleg", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen",

@@ -20,7 +20,6 @@ import httpx
 import pytest
 
 from agent import bronnen_run, bronnen_vinden, overzicht
-from agent.bronnen_run import bronnen_artefact, samenvatting
 from agent.bronnen_vinden import vind, verwijzingsfunctie
 from agent.models import ChatRequest
 from agent.runstore import Run
@@ -383,7 +382,6 @@ def test_de_uitkomst_past_in_het_api_contract(geen_overzicht):
     sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "api"))
     try:
         from app.bronnen_run_contracts import BronnenUitkomst
-        from app.gesprek_contracts import Artefact
     except ImportError:
         pytest.skip("api-pakket niet importeerbaar in deze omgeving")
     finally:
@@ -393,7 +391,6 @@ def test_de_uitkomst_past_in_het_api_contract(geen_overzicht):
     # De methode deelvraag kent de api ook.
     BronnenUitkomst(invoer_id="I1", kandidaten=[{"bron_iri": ART8, "rol": "aanverwant", "bewijs": [
         {"methode": "deelvraag", "detail": {"deelvraag_id": "d1"}}]}], meting={"deelvraag": {"aantal": 1}})
-    Artefact(**bronnen_artefact("wg1", "r1", "Invorderbaarheid"))
 
 
 # --- 4. run en route --------------------------------------------------------------------------------
@@ -406,14 +403,6 @@ def test_het_request_model():
         ChatRequest(question="x", modus="bronnen", werkgebied_id="wg1")
     with pytest.raises(ValueError):
         ChatRequest(question="x", actie="bronnen_zoeken")
-
-
-def test_de_samenvatting_telt_open_voorstellen_en_noemt_onvolledig():
-    ks = [{"status": "voorgesteld", "rol": "kern"}, {"status": "voorgesteld", "rol": "afhankelijkheid"},
-          {"status": "uitgesloten", "rol": "kern"}, {"status": "voorgesteld", "rol": "kern", "in_selectie": True}]
-    tekst = samenvatting("Inv", ks, {"opbouw": {"volledig": False}, "definitie": {"volledig": True}})
-    assert "**2** bepalingen" in tekst and "1 kern, 1 afhankelijkheid" in tekst and "opbouw van de wet" in tekst
-    assert "geen nieuwe" in samenvatting("Inv", [], {})
 
 
 class NepApi:
@@ -511,41 +500,35 @@ def test_een_falende_methode_haalt_de_run_niet_onderuit(nep):
     assert all("fout" not in m for m in api.uitkomst["meting"].values())
 
 
-def _kern(deelvraag_id: str = ""):
+def _zoek_run():
     async def draai():
         api = bronnen_run.WetsanalyseApi(_settings(), "jurist")
         try:
             ctx = agent_ctx(api, settings=_settings(), run_id="b1", graph=Graaf())
-            return await bronnen_run.bronnen_kern(ctx, "wg1", deelvraag_id), ctx.meldingen
+            return await bronnen_run.zoek_run(ctx, "wg1"), ctx.meldingen
         finally:
             await api.aclose()
     return asyncio.run(draai())
 
 
-def test_de_taak_geeft_een_bronnenartefact(nep):
-    nep()
-    uit, meldingen = _kern()
-    assert uit.status == "ok" and uit.artefact == {"soort": "bronnen", "titel": "Invorderbaarheid",
-                                                   "ref": {"werkgebied_id": "wg1", "run_id": "r1"}}
-    assert "bepalingen voor in werkgebied" in uit.tekst and uit.meting["model"] is False
+def test_zoek_run_zoekt_en_meldt_per_methode(nep):
+    api = nep()
+    fout, meldingen = _zoek_run()
+    assert fout == "" and api.uitkomst is not None
     assert any("Verwijzingen vanuit de kern" in m for m in meldingen)
 
 
-def test_zonder_vertrekpunt_een_antwoord_zonder_artefact(nep):
+def test_zoek_run_zegt_waarom_er_geen_vertrekpunt_is(nep):
     nep(weiger=(409, {"fout": "geen_vertrekpunt", "melding": "…"}))
-    uit, _ = _kern()
-    assert uit.status == "geweigerd" and "analysevraag" in uit.reden and uit.artefact is None
+    fout, _ = _zoek_run()
+    assert "analysevraag" in fout
 
 
-def test_bij_een_deelvraag_noemt_lex_wat_daarbij_hoort():
-    wg = {"deelvragen": [{"id": "d1", "vraag": "Wanneer is de aanslag invorderbaar?"}]}
-    ks = [{"id": "k1", "label": "art. 8 Iw", "status": "voorgesteld",
-           "bewijs": [{"methode": "deelvraag", "detail": {"deelvraag_id": "d1"}}]},
-          {"id": "k2", "label": "art. 10 Iw", "status": "voorgesteld", "bewijs": [{"methode": "opbouw"}]}]
-    assert bronnen_run.bij_deelvraag(wg, ks, "d1") == ("Bij de deelvraag “Wanneer is de aanslag invorderbaar?” stel "
-                                                        "ik 1 voor: art. 8 Iw.")
-    assert "geen nieuwe" in bronnen_run.bij_deelvraag(wg, ks[1:], "d1")
-    assert "ken ik niet" in bronnen_run.bij_deelvraag(wg, ks, "d9")
+def test_open_telt_vervallen_en_opgenomen_niet_mee():
+    assert bronnen_run.is_open({"status": "voorgesteld"})
+    assert not bronnen_run.is_open({"status": "voorgesteld", "vervallen": True})
+    assert not bronnen_run.is_open({"status": "voorgesteld", "in_selectie": True})
+    assert not bronnen_run.is_open({"status": "uitgesloten"})
 
 
 def test_chat_weigert_een_actie():

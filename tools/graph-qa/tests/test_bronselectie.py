@@ -286,7 +286,8 @@ def test_niet_gekozen_houdt_beoordelen_niet_tegen_een_onderzoekspunt_wel():
     api = NepApi(vragen=VRAGEN[:1], kandidaten={"k1": {"label": "Artikel 9", "rol": "kern", "bij": ["d1"]},
                                                 "k2": {"label": "Artikel 10", "rol": "kern", "bij": ["d1"]}})
     k = _run(bs.start(api, WID, api.zoek, deelvraag_id="d1"))["kaart"]
-    k = _klik(api, k, "k1")["kaart"]
+    _paneel(api, "d1", "k1", "analyseren")
+    k = _klik(api, k, actie="klaar")["kaart"]
     assert k["stap"] == "bs_afronden" and "beoordelen" in [o["waarde"] for o in k["opties"]]
     assert "1 niet gekozen" in k["toelichting"]
     uit = _klik(api, k, tekst="Bijzondere invorderbaarheid nog nagaan.")
@@ -300,16 +301,15 @@ def test_niet_gekozen_houdt_beoordelen_niet_tegen_een_onderzoekspunt_wel():
     assert "nog niet beoordeeld" in tekst and bs.SLOT not in tekst
 
 
-def test_een_vinkje_weghalen_koppelt_los_en_een_dubbele_klik_doet_niets_dubbel():
-    api = NepApi(vragen=VRAGEN[:2], kandidaten={"k1": {"label": "Artikel 9", "rol": "kern", "bij": ["d1", "d2"]}})
+def test_een_oud_kaartje_met_vinkjes_beslist_niets():
+    """Het compacte kaartje beslist niet (3 nov 2026): keuzes op een bepalingenkaartje raken de besluiten niet, en
+    een antwoord zonder vinkjes koppelt niets los wat in het paneel is opgenomen."""
+    api = NepApi(vragen=VRAGEN[:1], kandidaten={"k1": {"label": "Artikel 9", "rol": "kern", "bij": ["d1"]}})
     k = _run(bs.start(api, WID, api.zoek, deelvraag_id="d1"))["kaart"]
-    _klik(api, k, "k1")
-    _klik(api, k, "k1")                                     # oud kaartje, nog eens: al opgenomen
-    assert [a for a in api.aanroepen if a[0] == "besluit"] == [("besluit", "d1", "k1", "opnemen")]
-    # Hetzelfde kaartje bij deelvraag 1, nu zonder vinkje: losgekoppeld, bij 2 niets.
-    api.rijen["d1"]["fase"] = "kern"
-    _klik(api, {**k, "deelvraag_id": "d1"})
-    assert api.opgenomen["d1"] == {} and ("besluit", "d1", "k1", "loskoppelen") in api.aanroepen
+    _paneel(api, "d1", "k1", "analyseren")
+    n = len(api.aanroepen)
+    _klik(api, k)
+    assert not [a for a in api.aanroepen[n:] if a[0] == "besluit"] and api.opgenomen["d1"] == {"k1": "analyseren"}
 
 
 def test_geen_kandidaten_slaat_door_naar_afronden_met_een_zin():
@@ -425,10 +425,10 @@ def test_zelf_toevoegen_zonder_eenduidige_regeling_of_artikel_laat_het_kaartje_s
     uit = _klik(api, k, tekst="artikel 999")
     assert uit["kaart"]["stap"] == "bs_bepalingen" and "niet in de kennisgraaf" in " ".join(uit["zinnen"])
     # Twee regelingen in het werkgebied en geen genoemd: Lex vraagt welke.
-    assert "Bij welke regeling" in bs.bepalingen_uit_tekst("artikel 9", [], ["BWBR0002320", "BWBR0004770"])
-    assert bs.bepalingen_uit_tekst("artikel 9 lid 1 en 2 IW", ["BWBR0004770"], []) == [
+    assert "Bij welke regeling" in bs.bepalingen_uit_tekst("artikel 9", lambda _t: [], ["BWBR0002320", "BWBR0004770"])
+    assert bs.bepalingen_uit_tekst("artikel 9 lid 1 en 2 IW", lambda _t: ["BWBR0004770"], []) == [
         {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"}, {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "2"}]
-    assert bs.bepalingen_uit_tekst("artikel 5.2 en 5.3", ["BWBR0011353"], []) == [
+    assert bs.bepalingen_uit_tekst("artikel 5.2 en 5.3", lambda _t: ["BWBR0011353"], []) == [
         {"bwb_id": "BWBR0011353", "artikel": "5.2"}, {"bwb_id": "BWBR0011353", "artikel": "5.3"}]
     # Spoor L: één tekst mag meer bepalingen in meer regelingen noemen; elk stuk krijgt zijn eigen regeling, en een
     # Awb-nummer met een dubbele punt is één artikel.

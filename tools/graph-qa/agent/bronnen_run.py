@@ -1,11 +1,9 @@
 """De bronnenrun: de ontdekmethoden op de selectie van een werkgebied (spoor D, fase A).
 
-Eén ingang, in het gesprek (`bronnen_kern`, taak `bronnen_zoeken` van de deelvragen-agent, F3c): de run
-maken of hergebruiken, dan `bronnen_stroom` – de invoer bij de api halen, de methoden toepassen
-(`bronnen_vinden.vind`) en de kandidaten terugzetten, het patroon van `begrippen_run.py` – en een
-uitkomst met een **bronnenartefact** (`{soort: "bronnen", ref: {werkgebied_id, run_id}}`). Er is geen
-tekstpatroon: de supervisor kiest de agent, of een klik op een suggestie (`actie`). Het eigen endpoint
-`/v1/bronnen-runs` (de tab Bronnen) is met F3e vervallen.
+Eén ingang: `zoek_run`, de zoekfunctie van de bronselectie (spoor J, `nodes/bronselectie.py`). De run maken of
+hergebruiken, dan `bronnen_stroom` – de invoer bij de api halen, de methoden toepassen (`bronnen_vinden.vind`) en
+de kandidaten terugzetten, het patroon van `begrippen_run.py`. Wat er gevonden is, toont de bronselectie per
+deelvraag; deze module zegt alleen of het zoeken lukte.
 
 Geen model, dus geen tokens. Events: `status` per methode, dan `opgeslagen` en `done`; een fout is een
 `error`, en de api hoort het via `…/mislukt`.
@@ -19,7 +17,7 @@ from typing import Any, AsyncIterator
 from .bronnen_vinden import vind
 from .config import Settings
 from .ports import GraphPort
-from .agents import Context, Uitkomst, geweigerd
+from .agents import Context
 from .wetsanalyse_api import WetsanalyseApi, WetsanalyseApiFout
 
 logger = logging.getLogger(__name__)
@@ -36,32 +34,10 @@ WEIGERING = {"geen_vertrekpunt": "Geef het werkgebied een analysevraag of neem e
                                  "analyseren; daar zoek ik vanuit."}
 
 
-def bronnen_artefact(werkgebied_id: str, run_id: str, titel: str) -> dict[str, Any]:
-    """In de vorm van `api/app/gesprek_contracts.Artefact`."""
-    return {"soort": "bronnen", "titel": titel[:300], "ref": {"werkgebied_id": werkgebied_id, "run_id": run_id}}
-
-
 def is_open(k: dict[str, Any]) -> bool:
     """Een open voorstel: voorgesteld, niet met de hand opgenomen, en gevonden door de laatste zoekopdracht
     (`vervallen` zet de api, `bronnen_run_store.vervallen`)."""
     return k.get("status") == "voorgesteld" and not k.get("in_selectie") and not k.get("vervallen")
-
-
-def samenvatting(naam: str, kandidaten: list[dict[str, Any]], meting: dict[str, Any] | None) -> str:
-    """Uit de getallen, geen model. Telt alleen open voorstellen; noemt een onvolledige methode."""
-    open_ = [k for k in kandidaten if is_open(k)]
-    per_rol = {r: sum(1 for k in open_ if k.get("rol") == r) for r in ("kern", "afhankelijkheid", "aanverwant")}
-    if not open_:
-        zin = f"Ik vond voor werkgebied *{naam}* geen nieuwe bepalingen om voor te stellen."
-    else:
-        delen = [f"{n} {w}" for n, w in ((per_rol["kern"], "kern"), (per_rol["afhankelijkheid"], "afhankelijkheid"),
-                                          (per_rol["aanverwant"], "aanverwant")) if n]
-        zin = (f"Ik stel **{len(open_)}** {'bepaling' if len(open_) == 1 else 'bepalingen'} voor in werkgebied "
-               f"*{naam}*: {', '.join(delen)}.")
-    onvolledig = [METHODE_NAAM.get(m, m).lower() for m, x in (meting or {}).items() if not x.get("volledig", True)]
-    if onvolledig:
-        zin += f" Niet volledig: {', '.join(onvolledig)} (plafond geraakt of de graaf haperde)."
-    return zin + " Kies ze per deelvraag met *Bepaal de bronnen per deelvraag*."
 
 
 def _status(bericht: str) -> dict[str, Any]:
@@ -155,65 +131,34 @@ async def _mislukt(api: WetsanalyseApi, werkgebied_id: str, run_id: str, reden: 
         logger.warning("mislukte bronnenrun niet gemeld", exc_info=True)
 
 
-async def bronnen_kern(ctx: Context, werkgebied_id: str, deelvraag_id: str = "") -> Uitkomst:
-    """Bepalingen zoeken bij een werkgebied, voor de deelvragen-agent (`agents/deelvragen.py`): de run bij
-    de api maken of hergebruiken, de methoden draaien (of wachten op wie al zoekt), en de open kandidaten
-    samenvatten. Met `deelvraag_id` noemt de samenvatting wat Lex bij díe deelvraag vond."""
+async def zoek_run(ctx: Context, werkgebied_id: str) -> str:
+    """Bepalingen zoeken bij een werkgebied, voor de bronselectie (`nodes/bronselectie.py`): de run bij de api maken
+    of hergebruiken, de methoden draaien (of wachten op wie al zoekt). Leeg als het lukte, anders waarom niet; wat
+    er gevonden is, leest de bronselectie daarna per deelvraag bij de api."""
     api = ctx.api
-    taak = "bronnen_zoeken"
     try:
-        wg = await api.haal_werkgebied(werkgebied_id)
-        naam = str(wg.get("naam") or "zonder naam")
         api_run = await api.start_bronnen_run(werkgebied_id)
     except WetsanalyseApiFout as fout:
         if fout.status == 404:
-            return geweigerd(taak, "Dit werkgebied bestaat niet (meer).")
+            return "dit werkgebied bestaat niet (meer)"
         if fout.status == 409:
-            return geweigerd(taak, f"Ik kan nog niet zoeken. {WEIGERING.get(fout.reden, '')}".strip())
+            return f"ik kan nog niet zoeken. {WEIGERING.get(fout.reden, '')}".strip()
         raise
     rid = str(api_run["id"])
-    fout_tekst = ""
     if api_run.get("status") in ("wacht", "mislukt"):
+        fout_tekst = ""
         async for ev in bronnen_stroom(werkgebied_id, rid, ctx.run, settings=ctx.settings, user_id=ctx.user_id,
                                        graph=ctx.graph):
             if ev["type"] == "status":
                 ctx.melding(str(ev.get("message", "")).removeprefix("Lex · "))
             elif ev["type"] == "error":
                 fout_tekst = str(ev.get("message", ""))
-    elif api_run.get("status") == "loopt":
+        return fout_tekst
+    if api_run.get("status") == "loopt":
         ctx.melding("Er loopt al een zoekopdracht op deze selectie; ik wacht op de uitkomst")
-        fout_tekst = await _wacht(api, werkgebied_id, rid, ctx.run)
-    else:
-        ctx.melding("Voor deze selectie had ik al gezocht")
-    if fout_tekst:
-        return Uitkomst(taak=taak, status="fout", reden=f"{fout_tekst} Probeer het opnieuw.")
-    lijst = await api.haal_kandidaten(werkgebied_id)
-    kandidaten = lijst.get("kandidaten", [])
-    tekst = samenvatting(naam, kandidaten, (lijst.get("run") or {}).get("meting"))
-    if deelvraag_id:
-        tekst = bij_deelvraag(wg, kandidaten, deelvraag_id) + " " + tekst
-    open_ = [str(k["id"]) for k in kandidaten if is_open(k)
-             and k.get("id")]
-    # Bij één deelvraag het paneel van die deelvraag: daar staan haar kandidaten bij haar stand.
-    d = next((x for x in wg.get("deelvragen") or [] if deelvraag_id and x.get("id") == deelvraag_id), None)
-    from .beurt import deelvraag_artefact
-    artefact = deelvraag_artefact(werkgebied_id, d) if d else bronnen_artefact(werkgebied_id, rid, naam)
-    return Uitkomst(taak=taak, tekst=tekst, voorstellen=open_, artefact=artefact,
-                    meting={"kandidaten": len(open_), "model": False})
-
-
-def bij_deelvraag(wg: dict[str, Any], kandidaten: list[dict[str, Any]], deelvraag_id: str) -> str:
-    """Wat er bij één deelvraag gevonden is: de open kandidaten waarvan het bewijs die deelvraag noemt."""
-    d = next((x for x in wg.get("deelvragen") or [] if x.get("id") == deelvraag_id), None)
-    if d is None:
-        return "Die deelvraag ken ik niet (meer); hieronder wat ik voor het hele werkgebied vond."
-    bij = [k for k in kandidaten if is_open(k)
-           and any((b.get("detail") or {}).get("deelvraag_id") == deelvraag_id for b in k.get("bewijs") or [])]
-    if not bij:
-        return f"Bij de deelvraag “{d.get('vraag', '')}” vond ik geen nieuwe bepalingen."
-    namen = ", ".join(str(k.get("label") or k.get("bron_iri", "")) for k in bij[:5])
-    meer = f" en {len(bij) - 5} meer" if len(bij) > 5 else ""
-    return f"Bij de deelvraag “{d.get('vraag', '')}” stel ik {len(bij)} voor: {namen}{meer}."
+        return await _wacht(api, werkgebied_id, rid, ctx.run)
+    ctx.melding("Voor deze selectie had ik al gezocht")
+    return ""
 
 
 async def _wacht(api: WetsanalyseApi, werkgebied_id: str, rid: str, run: Any) -> str:
