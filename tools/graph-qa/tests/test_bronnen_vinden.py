@@ -546,3 +546,21 @@ def test_een_divisie_zonder_label_krijgt_een_naam_en_nooit_de_iri():
     assert plek_uit_iri(iri) == "divisie 26.3.9"
     assert "urn:bwb" not in plek_uit_iri("urn:bwb:BWBR0024096:id:BWBR0024096%2FTekst%2FOnderdeel._3")
     assert plek_uit_iri("urn:bwb:BWBR0004770") == "urn:bwb:BWBR0004770"
+
+
+@pytest.mark.parametrize("tekst, buiten", [
+    ("Regelingen: Invorderingswet 1990.\nBuiten de afbakening: kosten van vervolging.", "kosten van vervolging."),
+    ("Alleen de Invorderingswet 1990, niet de Leidraad Invordering", "de Leidraad Invordering"),
+    ("Het gaat om de betalingstermijnen. De kosten van vervolging vallen buiten de afbakening.",
+     "De kosten van vervolging"),
+    ("Het gaat om de betalingstermijnen. Buiten beschouwing blijft de bestuurdersaansprakelijkheid.",
+     "de bestuurdersaansprakelijkheid"),
+    ("Invordering van aanslagen, met uitzondering van de kosten van vervolging; ook de rente.",
+     "de kosten van vervolging"),
+    ("Regelingen: Invorderingswet 1990.", ""),
+    ("Het gaat niet later dan de vervaldag om de aanslag.", ""),
+])
+def test_buiten_komt_ook_uit_een_vrij_bewerkte_afbakening(tekst, buiten):
+    """*Vul het dossier aan* bewaart de afbakening zoals de analist haar typte; ook zonder de vaste regel moet de
+    bronnenrun weglaten wat erbuiten valt – en nooit wat er wél bij hoort."""
+    assert zoektermen.buiten_uit_afbakening(tekst) == buiten

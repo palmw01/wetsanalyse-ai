@@ -117,12 +117,27 @@ def lemmas(tekst: str, termen: list[str]) -> dict[str, str]:
     return uit
 
 
+#: Een uitsluiting in vrije tekst, tot het eind van het zinsdeel: erachter ("buiten beschouwing blijft …",
+#: "behalve …", een zinsdeel dat met "niet" begint: "…, niet de Leidraad") of ervoor ("… valt buiten de afbakening").
+_UITSLUITING_VOOR = re.compile(
+    r"(?:buiten\s+(?:de\s+afbakening|beschouwing)(?:\s+(?:valt|vallen|blijft|blijven))?|(?:valt|vallen)\s+buiten\s*:|"
+    r"uitgezonderd|behalve|met\s+uitzondering\s+van|(?:^|(?<=[,;:]))\s*niet)\s*:?\s+([^.;\n]+)", re.I | re.M)
+_UITSLUITING_NA = re.compile(
+    r"([^.;:\n]+?)\s+(?:valt|vallen|blijft|blijven)\s+buiten(?:\s+(?:de\s+afbakening|beschouwing))?\s*(?=[.;\n]|$)",
+    re.I | re.M)
+
+
 def buiten_uit_afbakening(afbakening: str) -> str:
-    """De regel "Buiten de afbakening: …" uit de afbakeningstekst (`werkgebied_intake.afbakening`)."""
+    """Wat buiten het werkgebied valt, uit de afbakeningstekst. Het samenstellen schrijft de regel "Buiten de
+    afbakening: …" (`werkgebied_intake.afbakening`); die gaat voor. Bij *Vul het dossier aan* bewerkt de analist
+    de hele tekst, en dan kan die regel ontbreken: dan de uitsluitingen die de tekst zelf noemt (`_UITSLUITING_*`).
+    Nooit de hele tekst: een afbakening zegt ook wat er wél bij hoort, en dat mag niet achteraan."""
     for regel in (afbakening or "").splitlines():
         if regel.strip().lower().startswith("buiten de afbakening:"):
             return regel.split(":", 1)[1].strip()
-    return ""
+    tekst = afbakening or ""
+    delen = [m.group(1).strip() for m in (*_UITSLUITING_NA.finditer(tekst), *_UITSLUITING_VOOR.finditer(tekst))]
+    return "; ".join(d for d in delen if d)
 
 
 # --- Wat de analist buiten het werkgebied laat -------------------------------------------------------
