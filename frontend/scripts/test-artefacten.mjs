@@ -346,7 +346,7 @@ try {
   await page.locator('[data-onderwerp="deelvraag"]').waitFor();
   const dvSuggesties = page.locator('[data-testid="vraag-suggesties"][data-suggesties-van="deelvraag"]');
   assert.deepEqual(await dvSuggesties.locator("button").evaluateAll((bs) => bs.map((b) => b.dataset.actie)),
-    ["deelvraag_herformuleren", "deelvraag_splitsen", "bronselectie", "deelvragen_annoteren", "dekking"]);
+    ["deelvraag_herformuleren", "deelvraag_splitsen", "bronselectie", "bepaling_toevoegen", "deelvragen_annoteren", "dekking"]);
   runs.length = 0;
   await dvSuggesties.getByRole("button", { name: "Formuleer scherper" }).click();
   const dvPaneel = page.getByRole("region", { name: "Deelvraag: Wie betaalt?" });

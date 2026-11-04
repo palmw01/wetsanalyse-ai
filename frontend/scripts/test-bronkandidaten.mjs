@@ -152,7 +152,9 @@ try {
   await page.goto(`${base}/werkgebieden/wg1/bronnen`);
   await page.locator("[data-bronnen-register] [data-bron]").nth(wg.bronnen.length - 1).waitFor();
   assert.equal(await page.locator("[data-bronnen-register] [data-bron]").count(), wg.bronnen.length);
-  assert.equal(await page.locator("[data-bronnen-register] [data-vraag-lex]").count(), 0);
+  // Geen Vraag Lex per rij; in de kop staat één *Bespreek met Lex* (het zoeken en toevoegen gaat via het gesprek).
+  assert.equal(await page.locator("[data-bronnen-register] [data-bron] [data-vraag-lex]").count(), 0);
+  assert.equal(await page.locator("[data-bronnen-register] [data-vraag-lex=werkgebied]").count(), 1);
   await page.goBack();
   await kaart(A8).waitFor();
 
