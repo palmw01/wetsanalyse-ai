@@ -98,9 +98,10 @@ async def test_aanmaken_lijst_en_wijzigen_met_revisie(client):
     oud = await client.patch(f"/v1/werkgebieden/{wg['id']}", json={"verwachte_revisie": 1, "naam": "X"})
     assert oud.status_code == 412
     assert {k: oud.json()["detail"][k] for k in ("fout", "revisie")} == {"fout": "revisie_conflict", "revisie": 2}
-    # peildatum leegmaken kan expliciet; een rare datum niet.
+    assert r.json()["peildatum_standaard"] is False
+    # peildatum leegmaken kan expliciet en zet hem terug op de aanmaakdag; een rare datum niet.
     leeg = await client.patch(f"/v1/werkgebieden/{wg['id']}", json={"verwachte_revisie": 2, "peildatum": None})
-    assert leeg.json()["peildatum"] is None
+    assert (leeg.json()["peildatum"], leeg.json()["peildatum_standaard"]) == (wg["peildatum"], True)
     assert (await client.patch(f"/v1/werkgebieden/{wg['id']}",
                                json={"verwachte_revisie": 3, "peildatum": "1-1-2026"})).status_code == 422
 
@@ -346,6 +347,42 @@ async def test_thema_voorstel_route_faalt_niet_zonder_rechtsgebieden(client):
     r = await client.get(f"/v1/werkgebieden/{wg['id']}/thema-voorstel")
     assert r.status_code == 200, r.text
     assert set(r.json()) == {"rechtsgebieden", "voorstel"}
+
+
+async def test_de_peildatum_is_standaard_de_aanmaakdag(client):
+    """Besluit gebruiker 3 nov 2026: zonder opgave is de peildatum de dag van aanmaken (in Nederland)."""
+    from app.werkgebied_store import dag_in_nl
+
+    wg = await _nieuw(client)
+    assert wg["peildatum"] == dag_in_nl(db.utcnow()) and wg["peildatum_standaard"] is True
+    eigen = await client.post("/v1/werkgebieden", json={"naam": "Met datum", "peildatum": "2025-12-31"})
+    assert (eigen.json()["peildatum"], eigen.json()["peildatum_standaard"]) == ("2025-12-31", False)
+
+
+async def test_toestanden_zeggen_of_de_tekst_van_na_de_peildatum_is(client, monkeypatch):
+    from app import graaf_projectie_v2
+
+    wg = await _nieuw(client)
+    await _bron(client, wg, bwb_id="BWBR0004770", artikel="9")
+    wg = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()
+    await client.patch(f"/v1/werkgebieden/{wg['id']}", json={"verwachte_revisie": wg["revisie"], "peildatum": "2026-03-01"})
+    gevraagd = []
+
+    async def select(_client, query):
+        gevraagd.append(query)
+        return [{"r": "urn:bwb:BWBR0004770", "citeertitel": "Invorderingswet 1990", "vanaf": "2026-07-01"}]
+    monkeypatch.setattr(graaf_projectie_v2, "_select", select)
+    r = (await client.get(f"/v1/werkgebieden/{wg['id']}/toestanden")).json()
+    assert r["peildatum"] == "2026-03-01" and r["volledig"] is True
+    assert r["regelingen"] == [{"bwb_id": "BWBR0004770", "citeertitel": "Invorderingswet 1990",
+                                "geldig_vanaf": "2026-07-01", "geldig_tot": None, "na_peildatum": True}]
+    assert "<urn:bwb:BWBR0004770>" in gevraagd[0]
+
+    async def kapot(_client, query):
+        raise ConnectionError("weg")
+    monkeypatch.setattr(graaf_projectie_v2, "_select", kapot)
+    r = (await client.get(f"/v1/werkgebieden/{wg['id']}/toestanden")).json()
+    assert (r["volledig"], r["regelingen"]) == (False, [])
 
 
 async def test_bepaling_zoeken_en_regelingen_voor_bepaling_toevoegen(client, monkeypatch):

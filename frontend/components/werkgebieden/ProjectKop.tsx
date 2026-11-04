@@ -9,7 +9,7 @@ import { Dialog } from "@/components/ui/Dialog";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Meer } from "@/components/ui/Icoon";
 import { StatusLabel } from "@/components/ui/Lijst";
-import { MENU_PANEEL, MENU_RIJ } from "@/components/ui/Menu";
+import { MENU_PANEEL } from "@/components/ui/Menu";
 import { PaginaKop, Stip, TabLinks, type Kruimel } from "@/components/ui/Pagina";
 import { Popover } from "@/components/ui/Popover";
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
@@ -17,12 +17,12 @@ import { useWerkgebied } from "@/components/werkgebieden/WerkgebiedProject";
 import { haalThemaVoorstel, wijzigWerkgebied } from "@/lib/api";
 import { themaGroepen } from "@/lib/tooiThemas";
 import type { ThemaVoorstel, Werkgebied, WerkgebiedStatus } from "@/lib/types";
-import { DOSSIER_VELDEN, STATUS_LABEL, type DossierVeld } from "@/lib/werkgebied";
-import { ARTEFACT_SOORTEN, PROJECT_TABS, historiePad, projectPad, type ProjectTab } from "@/lib/werkgebiedPaden";
+import { DOSSIER_VELDEN, STATUS_LABEL, datumNl, type DossierVeld } from "@/lib/werkgebied";
+import { ARTEFACT_SOORTEN, PROJECT_TABS, projectPad, type ProjectTab } from "@/lib/werkgebiedPaden";
 
-/** De kop van een werkgebied boven de vier tabs (mock-up v4, `projectHead` + `tabbar`): de naam, één zin,
- *  status en wanneer gewijzigd, en twee knoppen – *Gegevens bewerken* en *Nieuw gesprek*. Historie en
- *  verwijderen staan in het menu ernaast. */
+/** De kop van een werkgebied boven de vijf tabs (mock-up v4, `projectHead` + `tabbar`): de naam, één zin,
+ *  status en wanneer gewijzigd, en twee knoppen – *Gegevens bewerken* en *Nieuw gesprek*. Verwijderen staat in
+ *  het menu ernaast; de historie is een eigen tab. */
 export function ProjectKop({ tab }: { tab: ProjectTab }) {
   const { wg, muteer, verwijder, stand } = useWerkgebied();
   const tellers: Partial<Record<ProjectTab, number>> = {
@@ -43,7 +43,7 @@ export function ProjectKop({ tab }: { tab: ProjectTab }) {
             <StatusLabel>{STATUS_LABEL[wg.status]}</StatusLabel>
             <Stip />
             <span>Gewijzigd {datum(wg.gewijzigd)}</span>
-            {wg.peildatum && <><Stip /><span>Peildatum {wg.peildatum}</span></>}
+            {wg.peildatum && <><Stip /><span>Peildatum {datumNl(wg.peildatum)}</span></>}
             <Stip />
             <span>Aangemaakt door {wg.aangemaakt_door}</span>
           </>
@@ -62,9 +62,6 @@ export function ProjectKop({ tab }: { tab: ProjectTab }) {
                   <Meer />
                 </button>
               )}>
-              <Link href={historiePad(wg.id)} className={MENU_RIJ}>
-                Historie
-              </Link>
               <div className="px-2.5 py-1.5">
                 <VerwijderKnop soort="werkgebied" onBevestig={verwijder} />
               </div>
@@ -161,7 +158,8 @@ export function GegevensDialoog({ wg, onBewaar, onSluit }: {
           </p>
         )}
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Gewenste peildatum" hint="de wettekst zelf komt uit de actuele graaf">
+          <Field label="Gewenste peildatum"
+            hint="standaard de aanmaakdatum; leeg zet hem daarop terug. De wettekst komt uit de actuele graaf: geldt die pas na de peildatum, dan staat dat bij de bronnen">
             <Input type="date" value={peildatum} onChange={(e) => setPeildatum(e.target.value)} />
           </Field>
           <Field label="Status">

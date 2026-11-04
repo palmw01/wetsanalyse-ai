@@ -86,6 +86,12 @@ await page.route("**/api/**", async (route) => {
     return route.fulfill({ json: uit() });
   }
   // Spoor I6: het thema dat Lex voorstelt (zonder model) en het opslaan ervan.
+  // De peildatum naast de toestand in de graaf (3 nov 2026): de Iw geldt hier pas ná de peildatum.
+  if (p === "/api/werkgebieden/wg1/toestanden") return route.fulfill({ json: {
+    peildatum: "2026-03-01", peildatum_standaard: false, volledig: true,
+    regelingen: [{ bwb_id: "BWBR0004770", citeertitel: "Invorderingswet 1990", geldig_vanaf: "2026-07-01", geldig_tot: null,
+      na_peildatum: true }],
+  } });
   if (p === "/api/werkgebieden/wg1/thema-voorstel") return route.fulfill({ json: {
     rechtsgebieden: ["Belastingrecht"], voorstel: [{ thema: THEMA, label: "belasting" }] } });
   if (p === "/api/werkgebieden/wg1" && m === "PATCH") {
@@ -262,6 +268,8 @@ try {
   await venster.getByRole("button", { name: "Toevoegen", exact: true }).click();
   await page.locator("[data-bron]").filter({ hasText: "Algemene wet inzake rijksbelastingen" }).getByRole("link", { name: /^artikel 3/ }).waitFor();
   await tab("Bronnen (2)").waitFor();
+  await page.locator("[data-peildatum='2026-03-01']").getByText("Peildatum 01-03-2026").waitFor();
+  await page.locator("[data-peildatum-melding]").getByText("geldt vanaf 01-07-2026, na de peildatum", { exact: false }).waitFor();
   await foto("werkgebied-bronnen");
 
   // Rol wijzigen staat achter ⋯ (geen knoppen in elke rij). Daarna een conflict: iemand anders was ons
@@ -304,7 +312,7 @@ try {
   assert.equal(await page.getByText("“de ontvanger”").count(), 0);
   await page.getByText("“de aanslag is invorderbaar”").waitFor();
 
-  // Herladen houdt de pagina; Terug gaat naar waar je was. De historie staat achter ⋯ in de kop.
+  // Herladen houdt de pagina; Terug gaat naar waar je was. De historie is de vijfde tab.
   await page.reload();
   await page.locator("[data-artefact-pagina=annotaties]").waitFor();
   await page.goto(`${base}/werkgebieden/wg1`);
@@ -317,9 +325,10 @@ try {
   await page.locator("[data-gegevens-formulier]").getByRole("button", { name: "Opslaan" }).click();
   await page.locator("[data-gegevens-formulier]").waitFor({ state: "detached" });
   assert.equal(requests.filter((r) => r.m === "PATCH" && r.p === "/api/werkgebieden/wg1").at(-1).body.thema, THEMA);
-  await page.getByRole("button", { name: "Meer voor dit werkgebied" }).click();
-  await page.getByRole("link", { name: "Historie" }).click();
+  await page.getByRole("navigation", { name: "Werkgebied" }).getByRole("link", { name: "Historie" }).click();
   await page.waitForURL("**/werkgebieden/wg1/historie");
+  assert.equal(await page.getByRole("navigation", { name: "Werkgebied" }).getByRole("link", { name: "Historie" })
+    .getAttribute("aria-current"), "page");
   await melding("Invorderingswet 1990 – artikel 9 opgenomen als analyseren");
   await melding("Werkgebied aangemaakt");
   await page.goBack();
@@ -378,6 +387,13 @@ try {
   await page.getByRole("navigation", { name: "Werkgebied" }).getByRole("link", { name: "Bronnen (3)" }).waitFor();
   await foto("werkgebied-mobiel");
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+  // De tabbalk schuift alleen horizontaal: vijf tabs, geen verticale scroll in de rij (3 nov 2026).
+  const rij = page.locator("[data-tabrij]");
+  assert.equal(await rij.getByRole("link").count(), 5);
+  const tabrij = await rij.evaluate((el) => ({ hoog: el.scrollHeight - el.clientHeight, y: getComputedStyle(el).overflowY }));
+  assert.deepEqual(tabrij, { hoog: 0, y: "hidden" });
+  await rij.evaluate((el) => { el.scrollTop = 20; });
+  assert.equal(await rij.evaluate((el) => el.scrollTop), 0);
   await page.setViewportSize({ width: 1280, height: 900 });
 
   // Verwijderen is echt wissen, net als een annotatie: op de pagina (tweede klik bevestigt), met de

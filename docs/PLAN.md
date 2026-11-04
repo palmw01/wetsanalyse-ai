@@ -926,6 +926,10 @@ van de gebruiker op 20 okt 2026).
   het niets (0,22). Daar zit het verlies in de **woordenkloof**: de analist schrijft "melden" en "loonheffing",
   de wet "mededeling" en "loonbelasting". **Open**: synoniemen of begrippen uit de graaf, of de similarity-index
   als extra lijst in de fusie – op een nieuwe set, want alle drie sets zijn nu ontwikkelsets.
+- **Historische toestanden** (open keuze, 3 nov 2026): de graaf heeft per regeling alleen de nieuwste toestand,
+  dus de wettekst is altijd de actuele. De peildatum is standaard de aanmaakdatum en de werkplek waarschuwt als de
+  tekst pas ná de peildatum ging gelden (`GET …/toestanden`). De toestand van de peildatum zelf importeren raakt de
+  importer (meer toestanden per regeling), het graafmodel en de bronidentiteit (`snapshot_id`): een eigen spoor.
 - **Minder en betere bronvoorstellen** (de volgende iteratie, volgens de gebruiker): de bronnenrun het
   dossier laten gebruiken – wat erbuiten valt weglaten zoals de intake dat al doet, zoeken met
   aanleiding en praktijkvoorbeeld – met een meting op de referentieset bronselectie ervoor en erna.
