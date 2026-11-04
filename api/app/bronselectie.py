@@ -221,12 +221,13 @@ def _zoekdekking(run: dict | None) -> dict:
     (plafond, haperende graaf) of een mislukte run is een open punt, nooit een stil kleinere lijst."""
     if run is None:
         return {"gezocht": False, "run_id": None, "status": None, "verouderd": False, "volledig": False,
-                "onvolledig": [], "reden": "", "methoden": {}}
+                "onvolledig": [], "reden": "", "methoden": {}, "zoekversie": ""}
     meting = run.get("meting") or {}
     onvolledig = sorted(m for m, x in meting.items() if not (x or {}).get("volledig", True))
     return {"gezocht": run["status"] == "klaar", "run_id": run["id"], "status": run["status"],
             "verouderd": bool(run.get("verouderd")), "volledig": run["status"] == "klaar" and not onvolledig,
-            "onvolledig": onvolledig, "reden": run.get("reden", ""), "methoden": meting}
+            "onvolledig": onvolledig, "reden": run.get("reden", ""), "methoden": meting,
+            "zoekversie": run.get("zoekversie", "")}
 
 
 async def overzicht(werkgebied_id: str, na: str | None = None) -> dict:

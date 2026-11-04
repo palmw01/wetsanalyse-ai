@@ -7,6 +7,7 @@ niet door, en de api toetst de uitkomst tegen de eigen invoer."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query, Response
+from pydantic import BaseModel, Field
 
 from . import annotatie_v2_store, bronnen_run_store as store, bronselectie, werkgebied_store
 from .auth import require_client
@@ -20,9 +21,16 @@ router = APIRouter(prefix="/werkgebieden/{werkgebied_id}", tags=["bronnen-runs"]
                    dependencies=[Depends(require_client)])
 
 
+class StartRun(BaseModel):
+    """Optioneel: de versie van de zoekcode van graph-qa. Een andere versie is een andere run."""
+    zoekversie: str = Field(default="", max_length=64, pattern=r"^[A-Za-z0-9._-]*$")
+
+
 @router.post("/bronnen-runs")
-async def post_run(werkgebied_id: str, response: Response, actor: str = Depends(actieve_userid)):
-    run, nieuw = await store.start(await werkgebied_store.haal(werkgebied_id), actor)
+async def post_run(werkgebied_id: str, response: Response, body: StartRun | None = None,
+                   actor: str = Depends(actieve_userid)):
+    run, nieuw = await store.start(await werkgebied_store.haal(werkgebied_id), actor,
+                                   zoekversie=(body.zoekversie if body else ""))
     response.status_code = 201 if nieuw else 200
     return {**run, "nieuw": nieuw}
 

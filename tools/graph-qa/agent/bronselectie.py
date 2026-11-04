@@ -294,10 +294,18 @@ async def _open(api, wid: str, did: str) -> dict[str, Any]:
     return await api.zet_bronselectie_status(wid, did, {"actie": "openen"})
 
 
+def _andere_zoekcode(z: dict[str, Any]) -> bool:
+    """Of de laatste zoekopdracht met andere zoekcode liep dan die van nu (`bronnen_run.ZOEKVERSIE`). Een api die de
+    versie niet meldt, telt niet als anders."""
+    from .bronnen_run import ZOEKVERSIE
+
+    return "zoekversie" in z and z["zoekversie"] != ZOEKVERSIE
+
+
 async def _gezocht(api, wid: str, ov: dict[str, Any], zoek: Zoek | None, did: str, *, opnieuw: bool = False) -> tuple[dict, str]:
-    """Zoek als er nog niet (op deze stand) gezocht is; geeft het verse overzicht en een melding."""
+    """Zoek als er nog niet (op deze stand, met deze zoekcode) gezocht is; geeft het verse overzicht en een melding."""
     z = ov.get("zoekdekking") or {}
-    if zoek is None or (z.get("gezocht") and not z.get("verouderd") and not opnieuw):
+    if zoek is None or (z.get("gezocht") and not z.get("verouderd") and not _andere_zoekcode(z) and not opnieuw):
         return ov, ""
     melding = await zoek(did)
     return await api.haal_bronselectie(wid, na=did), melding
@@ -422,7 +430,8 @@ async def start(api, wid: str, zoek: Zoek | None, vraag: str = "", deelvraag_id:
     if (kaart := await _vraag_gebeurtenis(api, wid, ov, stel_voor, vraag, deelvraag_id)) is not None:
         return {"kaart": kaart, "zinnen": [f"*{ov['naam']}*: voor we de bronnen zoeken, eerst de gebeurtenis."]}
     melding = ""
-    if (ov.get("zoekdekking") or {}).get("verouderd"):
+    z = ov.get("zoekdekking") or {}
+    if z.get("verouderd") or (z.get("gezocht") and _andere_zoekcode(z)):
         ov, melding = await _gezocht(api, wid, ov, zoek, "")
     vragen = ov["deelvragen"]
     nr = deelvraag_nr_in(vraag)
@@ -442,8 +451,9 @@ async def start(api, wid: str, zoek: Zoek | None, vraag: str = "", deelvraag_id:
     from .zoekvragen import termen_van_deelvraag
     from .zoektermen import zoektermen as _woorden
 
-    eigen = _woorden(ov.get("naam") or "") + termen_van_deelvraag(ov.get("analysevraag") or "") + \
-        [w for d in vragen if d["id"] != ANALYSEVRAAG for w in termen_van_deelvraag(d["vraag"])]
+    # De vorm uit de vragen eerst ("rekeningafspraak"), de naam ("Rekeningafspraken") daarna.
+    eigen = [w for d in vragen if d["id"] != ANALYSEVRAAG for w in termen_van_deelvraag(d["vraag"])] + \
+        termen_van_deelvraag(ov.get("analysevraag") or "") + _woorden(ov.get("naam") or "")
     if (kloof := await _kloof(api, wid, ov, eigen)):
         zinnen.append(kloof)
     if melding:

@@ -1028,6 +1028,9 @@ onder de supervisor, naast de intake; zie `docs/architectuur/bronselectie-per-de
     geen regeling staat (`ontbrekende_woorden`) noemt Lex bij de start en bij een deelvraag zonder kernbepalingen,
     met de brugtermen; een voorwerp als gebeurtenis (`is_voorwerp`) laat het gebeurteniskaartje terugkomen, ook na
     het begin.
+  - **De zoekversie** (`bronnen_run.ZOEKVERSIE`): een hash van `bronnen_vinden`, `deelvraag_zoeken`, `zoekvragen` en
+    `zoektermen`, meegestuurd bij `start_bronnen_run`. Meldt de zoekdekking een andere versie, dan zoekt de
+    bronselectie opnieuw bij het hervatten. Zonder dat bleef op acceptatie de uitkomst van de oude code staan.
   - Meten: `uv run python -m eval.bronselectie_eval --zoekvragen --set <set>` (de plek van de gebeurtenis van de set,
     met en zonder naam, en de recall van de grondslag op `zoekvraag: a`). Ontwikkelset kwijtschelding: plek 1 / 3,
     recall 0,67, precisie 0,25. Een brede gebeurtenis ("aansprakelijkheid") vult de grondslag met een heel

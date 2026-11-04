@@ -573,7 +573,7 @@ METHODEWOORDEN = {"voorwaarden", "voorwaarde", "eisen", "eis", "uitzonderingen",
                   "beëindigen", "maken", "doen", "gebeurt", "geldt", "gelden", "welk", "iemand", "haar", "hun"}
 #: Woorden zonder onderwerp die in een deelvraag staan ("omdat", "laten", "telt … mee"): ze raakten in de pool willekeurige
 #: bepalingen. Alleen voor de rangschikking binnen de pool; het zoeken per deelvraag houdt `zoektermen` ongewijzigd.
-LEGE_WOORDEN = {"dus", "tussen", "waarop", "waarin", "waarbij", "waarmee", "daarom", "echter", "bijvoorbeeld",
+LEGE_WOORDEN = {"eventuele", "eventueel", "stand", "komen", "dus", "tussen", "waarop", "waarin", "waarbij", "waarmee", "daarom", "echter", "bijvoorbeeld",
                 "omdat", "laten", "genoeg", "telt", "tellen", "mee", "gaat", "gaan", "vraagt", "vragen", "intussen",
                 "door", "waarom", "tijdens", "alleen", "ook", "nog", "zelf", "andere", "bepaalde", "eerst", "daarna",
                 "hierbij", "daarvan", "erbij", "worden", "wordt", "zijn", "hebben", "heeft", "kunnen", "moet"}
@@ -608,14 +608,17 @@ def brugtermen(dossier: dict[str, Any], woord: str) -> list[str]:
     uit de uitvoering); de context omschrijft het met "bankrekening", "uitbetaald" en "derde", en die staan er wel in.
     Zonder model: wat de analist zelf schreef."""
     stam = _stamdeel(woord)
+    # De zin die het woord omschrijft ("Een rekeningafspraak is … een bankrekening … waarop wordt uitbetaald") gaat
+    # voor op een zin die het alleen noemt (de analysevraag: "… bij het uitvoeren van een rekeningafspraak").
+    omschrijft = re.compile(rf"\b{re.escape(stam)}\w*\s+(?:is|zijn|betekent|houdt\s+in|omvat)\b", re.I)
+    zinnen = [(not omschrijft.search(zin), i, zin) for i, zin in enumerate(
+        z for veld in OMSCHRIJVENDE_VELDEN for z in _ZINSGRENS.split(str(dossier.get(veld) or "")))
+        if _raakt_woord(stam, zin)]
     uit: list[str] = []
-    for veld in OMSCHRIJVENDE_VELDEN:
-        for zin in _ZINSGRENS.split(str(dossier.get(veld) or "")):
-            if not _raakt_woord(stam, zin):
-                continue
-            for w in zoektermen(zin):
-                if _stamdeel(w) != stam and w not in METHODEWOORDEN and w not in LEGE_WOORDEN and w not in uit:
-                    uit.append(w)
+    for *_, zin in sorted(zinnen):
+        for w in zoektermen(zin):
+            if _stamdeel(w) != stam and w not in METHODEWOORDEN and w not in LEGE_WOORDEN and w not in uit:
+                uit.append(w)
     return uit
 
 
@@ -682,8 +685,12 @@ def ontbrekende_woorden(graph: GraphPort, woorden: list[str], regelingen: list[s
     """De specifieke woorden van het werkgebied die in geen van de regelingen staan (zonder regelingen: in de hele
     graaf), met één index-query van één treffer per regeling. "Rekeningafspraak" staat er niet in: een begrip uit de
     uitvoering. Leeg als de graaf hapert – dan zegt Lex niets in plaats van iets onwaars."""
-    kandidaten = [w for w in dict.fromkeys(woorden)
-                  if len(w) >= MIN_KLOOFWOORD and w not in METHODEWOORDEN and w not in LEGE_WOORDEN][:MAX_KLOOFWOORDEN]
+    # Eén woord per stam: "rekeningafspraak" (de deelvraag) en "rekeningafspraken" (de naam) zijn hetzelfde woord.
+    per_stam: dict[str, str] = {}
+    for w in woorden:
+        if len(w) >= MIN_KLOOFWOORD and w not in METHODEWOORDEN and w not in LEGE_WOORDEN:
+            per_stam.setdefault(_stamdeel(w), w)
+    kandidaten = list(per_stam.values())[:MAX_KLOOFWOORDEN]
     bereik = [r for r in dict.fromkeys(regelingen) if r] or [None]
     uit = []
     try:

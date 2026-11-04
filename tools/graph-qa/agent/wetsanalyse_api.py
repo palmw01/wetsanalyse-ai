@@ -191,8 +191,9 @@ class WetsanalyseApi:
     def _bronnen_pad(self, werkgebied_id: str, run_id: str) -> str:
         return f"{self._werkgebied_pad(werkgebied_id)}/bronnen-runs/{quote(run_id, safe='')}"
 
-    async def start_bronnen_run(self, werkgebied_id: str) -> dict[str, Any]:
-        return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronnen-runs", {})
+    async def start_bronnen_run(self, werkgebied_id: str, zoekversie: str = "") -> dict[str, Any]:
+        return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronnen-runs",
+                                {"zoekversie": zoekversie} if zoekversie else {})
 
     async def haal_bronnen_run(self, werkgebied_id: str, run_id: str) -> dict[str, Any]:
         """De run met zijn invoer: de selectie zoals de api hem vastlegde."""
