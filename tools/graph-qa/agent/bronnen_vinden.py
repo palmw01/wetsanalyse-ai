@@ -245,8 +245,9 @@ def _overzicht(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
 
 
 def _deelvraag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tuple[int, bool]:
-    """Per deelvraag de gerichte bepalingen, binnen de regelingen van de selectie. Zonder kern zijn de treffers kern;
-    met een kern aanverwant: de analist beslist wat bij de deelvraag hoort.
+    """Per deelvraag de gerichte bepalingen, binnen het zoekbereik. Een treffer bij een deelvraag is een kernbepaling
+    van díé deelvraag – ook als er elders al bronnen zijn opgenomen (4 nov 2026: voorheen werd hij dan `aanverwant`,
+    viel hij buiten het kernkaartje en zei Lex "geen kernbepalingen"). De analist beslist in het paneel.
 
     Met een gekozen gebeurtenis (zoekvragen a–d, PR 5) komen ze uit de pool vanaf de gebeurtenis
     (`zoekvragen.pool`, één keer per run): wat een inhoudswoord van de deelvraag raakt, met de zoekvraag die de
@@ -256,7 +257,7 @@ def _deelvraag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
     from .deelvraag_zoeken import MAX_PER_DEELVRAAG
     from .zoekvragen import PLAATSEN_WOORDEN, opties_bij_deelvraag, pool
 
-    rol = "aanverwant" if invoer.get("kern") else "kern"
+    rol = "kern"
     regelingen = regelingen_van_invoer(invoer)
     dossier = {"naam": invoer.get("naam", ""), "analysevraag": invoer.get("analysevraag", ""),
                **(invoer.get("dossier") or {})}

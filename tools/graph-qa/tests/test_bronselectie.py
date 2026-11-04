@@ -679,3 +679,15 @@ def test_bepaling_toevoegen_routeert_zonder_model():
     assert r.actie == "bepaling_toevoegen"
     from agent.models import BRONSELECTIE_ACTIES
     assert "bepaling_toevoegen" in BRONSELECTIE_ACTIES
+
+
+def test_het_kernkaartje_telt_de_opgenomen_bronnen_van_de_deelvraag():
+    """4 nov 2026: een deelvraag met een opgenomen bron en zonder open voorstel krijgt gewoon haar kernkaartje (met de
+    telling) – niet "geen kernbepalingen", terwijl het paneel de bron toont."""
+    api = NepApi(vragen=VRAGEN[:1], kandidaten={})
+    api.opgenomen["d1"] = {"9:lid:1": "analyseren"}
+    ov = _run(api.haal_bronselectie(WID))
+    k = bs.kaart_bepalingen(WID, ov, ov["deelvragen"][0], "bs_bepalingen")
+    assert k is not None and k["samenvatting"] == {"kandidaten": 0, "opgenomen": 1}
+    # Wat eraan hangt telt de contextbronnen: die zijn er nog niet.
+    assert bs.kaart_bepalingen(WID, ov, ov["deelvragen"][0], "bs_afhankelijkheden") is None

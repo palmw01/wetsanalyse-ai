@@ -18,7 +18,7 @@ import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import { besluitBronselectie, foutTekst, haalBronselectie, verwijderBron, wijzigBron, type BronselectieBesluit } from "@/lib/api";
 import { haalNodeWeergave, type NodeWeergave } from "@/lib/annotatieNode";
 import {
-  BRONSELECTIE_GEWIJZIGD, BEWIJS_LABEL, STAND_LABEL, meldBronselectieGewijzigd, bronnenZin, deelvraagStand, slotZin, voortgangZin, zoekBeperkingen,
+  BRONSELECTIE_GEWIJZIGD, BEWIJS_LABEL, STAND_LABEL, zoekvraagZin, meldBronselectieGewijzigd, bronnenZin, deelvraagStand, slotZin, voortgangZin, zoekBeperkingen,
   type BronselectieOverzicht, type DeelvraagSelectie, type KandidaatHier,
 } from "@/lib/bronselectie";
 import { bepalingEnRegeling, ookBijZin } from "@/lib/bronnenPerDeelvraag";
@@ -355,7 +355,8 @@ function Voorstel({ o, d, k, beslis, inGesprek = false }: {
   };
   const { bepaling, regeling } = bepalingEnRegeling(k.label || k.bron_iri);
   const sub = [regeling, k.rol === "kern" ? "kernbepaling" : k.rol === "afhankelijkheid" ? "afhankelijkheid" : "mogelijk relevant",
-    ...k.bewijs_soorten.map((s) => BEWIJS_LABEL[s]), k.elders_opgenomen ? "al opgenomen bij een andere deelvraag" : "",
+    // Bij welke zoekvraag (a–d) het hoort: waarom het er staat in de termen van de methode.
+    ...k.zoekvragen.map(zoekvraagZin), ...k.bewijs_soorten.map((s) => BEWIJS_LABEL[s]), k.elders_opgenomen ? "al opgenomen bij een andere deelvraag" : "",
     k.reden ? `reden: ${k.reden}` : "", k.overal ? "geldt voor het hele werkgebied" : ""].filter(Boolean).join(" · ");
   const label = k.stand === "voorgesteld" ? "Ter beoordeling" : STAND_LABEL[k.stand].charAt(0).toUpperCase() + STAND_LABEL[k.stand].slice(1);
   return (

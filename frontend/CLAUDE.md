@@ -438,7 +438,8 @@ heeft *Verzend* (`isLaatsteVraag`), want wat erna komt hangt af van het antwoord
   **`BronnenBijDeelvraag`**. Het artefact Bronselectie ís de tab Bronnen (`artefactPad` en de route sturen erheen).
   Per
   deelvraag de voortgang (`VOORTGANG_LABEL`, groen alleen bij *beoordeeld*, geel bij *opnieuw bekijken*), de
-  bronnen met hun rol bij díé deelvraag, de voorstellen met hun stand en het soort bewijs (`BEWIJS_LABEL`), de
+  bronnen met hun rol bij díé deelvraag, de voorstellen met hun stand, de zoekvraag waar ze bij horen (`zoekvraagZin`,
+  "zoekvraag a · bestaansrecht", uit `bewijs[].detail.zoekvraag`) en het soort bewijs (`BEWIJS_LABEL`), de
   onderzoekspunten, de zoekbeperkingen en de slotzin (`slotZin`: nooit "volledig"). Per voorstel opnemen,
   uitsluiten met reden of heropenen (`besluitBronselectie`); de stappen zet Lex. **Geen *later***: wat je op het
   kaartje niet aanvinkt, is *niet gekozen*; iets toevoegen doe je door de vragen opnieuw te doorlopen, of door
