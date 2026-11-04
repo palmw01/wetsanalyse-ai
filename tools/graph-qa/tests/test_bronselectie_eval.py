@@ -56,9 +56,13 @@ def test_de_meting_per_deelvraag_houdt_de_gemeten_uitkomst():
     assert (f3f["recall_pool"], f3f["pool"]) == (0.579, 479)
     # Zoeken per term en op de delen van een samenstelling, de kop voor de hele pool en RRF (meetlogboek
     # `bronselectie-2026-11-03`). Deze set is daarvoor de ontwikkelset; de held-out set staat ernaast.
-    nieuw = r["bepaling_opties"]
-    assert (nieuw["recall"], nieuw["recall_exact"], nieuw["uitgesloten"], nieuw["recall_pool"]) == \
+    vorige = r["zonder per_regeling"]
+    assert (vorige["recall"], vorige["recall_exact"], vorige["uitgesloten"], vorige["recall_pool"]) == \
         (0.421, 0.421, 0, 0.842)
+    # Om de beurt per regeling, wet eerst (meetlogboek `bronselectie-2026-11-03-rangsignaal`).
+    nieuw = r["bepaling_opties"]
+    assert (nieuw["recall"], nieuw["recall_nodig"], nieuw["uitgesloten"], nieuw["recall_pool"]) == \
+        (0.474, 0.533, 0, 0.842)
     for profiel in (p for p in r.values() if "pool" in p):
         assert all(p["aantal"] <= 8 and p["gemarkeerd"] <= 2 for p in profiel["per_deelvraag"])
         assert all(p["in_pool"] >= p["gevonden"] for p in profiel["per_deelvraag"] if "in_pool" in p)
@@ -75,8 +79,30 @@ def test_de_held_out_meting_houdt_haar_uitkomst():
     graaf = OpnameGraaf(json.loads((SETS / naam / "graafantwoorden.json").read_text()))
     r = meet_intake(graaf, s)
     assert graaf.ontbrekend == 0
-    nieuw, f3f = r["bepaling_opties"], r["F3f (21 okt)"]
-    assert (nieuw["recall"], nieuw["recall_nodig"], nieuw["precisie"], nieuw["recall_pool"]) == \
+    vorige, f3f = r["zonder per_regeling"], r["F3f (21 okt)"]
+    assert (vorige["recall"], vorige["recall_nodig"], vorige["precisie"], vorige["recall_pool"]) == \
         (0.333, 0.273, 0.281, 0.944)
     assert (f3f["recall"], f3f["recall_nodig"], f3f["precisie"], f3f["recall_pool"]) == (0.278, 0.364, 0.156, 0.556)
+    nieuw = r["bepaling_opties"]
+    assert (nieuw["recall"], nieuw["recall_nodig"], nieuw["precisie"]) == (0.389, 0.364, 0.281)
     assert nieuw["uitgesloten"] == f3f["uitgesloten"] == 0
+
+
+def test_de_held_out_meting_van_het_rangsignaal_houdt_haar_uitkomst():
+    """De blinde meting van 3 nov 2026 op de set bestuurdersaansprakelijkheid (meetlogboek
+    `bronselectie-2026-11-03-rangsignaal`), één keer live, daarna offline op haar opname. Om de beurt per
+    regeling verandert hier niets; de fusie verliest het van F3f. Het verlies zit in woorden: de analist
+    schrijft "melden", "loonheffing", "aansprakelijk stellen", de wet "mededeling", "loonbelasting",
+    "aansprakelijkstelling". Deze set is na die ene run een ontwikkelset."""
+    from eval.bronselectie_eval import meet_intake
+
+    naam = "bestuurdersaansprakelijkheid-concept"
+    s = laad_set(naam)
+    graaf = OpnameGraaf(json.loads((SETS / naam / "graafantwoorden.json").read_text()))
+    r = meet_intake(graaf, s)
+    assert graaf.ontbrekend == 0
+    nieuw, f3f, zonder_fusie = r["bepaling_opties"], r["F3f (21 okt)"], r["zonder fusie"]
+    assert (nieuw["recall"], nieuw["recall_nodig"], nieuw["uitgesloten"], nieuw["recall_pool"]) == \
+        (0.227, 0.222, 3, 0.909)
+    assert (f3f["recall"], f3f["recall_nodig"], f3f["recall_pool"]) == (0.318, 0.389, 0.455)
+    assert (zonder_fusie["recall"], zonder_fusie["recall_nodig"]) == (0.364, 0.389)

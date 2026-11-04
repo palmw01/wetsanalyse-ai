@@ -564,3 +564,18 @@ def test_buiten_komt_ook_uit_een_vrij_bewerkte_afbakening(tekst, buiten):
     """*Vul het dossier aan* bewaart de afbakening zoals de analist haar typte; ook zonder de vaste regel moet de
     bronnenrun weglaten wat erbuiten valt – en nooit wat er wél bij hoort."""
     assert zoektermen.buiten_uit_afbakening(tekst) == buiten
+
+
+def test_om_de_beurt_per_regeling_wet_eerst():
+    """`per_regeling`: de plaatsen gaan om de beurt naar de regelingen, de hoogste soort eerst; een regeling die
+    op is slaat haar beurt over, en binnen een regeling blijft de volgorde staan."""
+    from agent.deelvraag_zoeken import om_de_beurt
+
+    lr = [{"bwb_id": "BWBR0024096", "iri": f"l{i}"} for i in range(5)]
+    iw = [{"bwb_id": "BWBR0004770", "iri": f"w{i}"} for i in range(2)]
+    uit = om_de_beurt(lr + iw, {"BWBR0004770": 0, "BWBR0024096": 3}, ["BWBR0024096", "BWBR0004770"])
+    assert [k["iri"] for k in uit] == ["w0", "l0", "w1", "l1", "l2", "l3", "l4"]
+    # Eén regeling: niets te verdelen.
+    assert om_de_beurt(lr, {}, ["BWBR0024096"]) == lr
+    # Zonder soort (graaf hapert): de volgorde van het werkgebied.
+    assert [k["iri"] for k in om_de_beurt(lr[:2] + iw[:1], {}, ["BWBR0024096", "BWBR0004770"])] == ["l0", "w0", "l1"]
