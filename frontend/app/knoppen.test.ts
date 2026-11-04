@@ -52,4 +52,20 @@ describe("één bedieningsstijl", () => {
     const stap = s.slice(s.indexOf("data-gesprek-verwijderen"), s.indexOf("Annuleren"));
     expect(stap).not.toMatch(/sm:flex-row/);
   });
+
+  // Eén manier van bewerken (4 nov 2026, naar het voorbeeld van Claude): ter plekke, met *Bewerken* bij het blok en
+  // daaronder rechts Annuleren · Opslaan (`components/ui/Bewerkbaar`). Geen venster om tekst te bewerken.
+  it("bewerken gebeurt ter plekke met dezelfde voet, nergens in een venster", () => {
+    for (const f of ["werkgebieden/ProjectKop", "werkgebieden/Deelvragen", "werkgebieden/BegripPaneel", "werkgebieden/BegripKaart",
+      "werkgebieden/KaartVoorstel", "werkplek/ReviewQueue", "werkplek/GesprekLijst", "werkplek/ChatKop",
+      "admin/ProfileEditor", "admin/BerichtEditor"]) {
+      expect(bron(`components/${f}.tsx`), f).toContain("BewerkVoet");
+    }
+    expect(bron("components/werkgebieden/ProjectKop.tsx")).not.toMatch(/<Dialog\b/);
+    expect(bron("components/werkgebieden/ProjectKop.tsx")).not.toContain("GegevensDialoog");
+    for (const f of ["werkgebieden/KaartVoorstel", "werkgebieden/BegripKaart"])
+      expect(bron(`components/${f}.tsx`), f).not.toMatch(/>\s*(Terug|Wijzigingen weggooien)\s*</);
+    // *Bewerken* van een deelvraag staat bij de rij, niet meer in het menu ⋯.
+    expect(bron("components/werkgebieden/Deelvragen.tsx")).toContain("<BewerkKnop");
+  });
 });

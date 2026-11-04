@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
+import { BewerkVoet } from "@/components/ui/Bewerkbaar";
 import { Button, KNOP_XS } from "@/components/ui/Button";
-import { ButtonRow } from "@/components/ui/ButtonRow";
 import { AutoTextarea } from "@/components/ui/AutoTextarea";
 import { Field, Input } from "@/components/ui/Field";
 import { ChevronOmlaag } from "@/components/ui/Icoon";
@@ -209,16 +209,9 @@ export function BegripKaart({ id, begrip, muteer, onOnbewaard, onVerwijder, lex 
 
         </Groep>
 
-        <ButtonRow align="start">
-          <Button type="submit" disabled={!onbewaard || bezig || !inhoud.naam.trim()}>
-            {bezig ? "Bezig…" : "Opslaan"}
-          </Button>
-          {onbewaard && (
-            <Button type="button" variant="secondary" onClick={() => { setConcept(uitBegrip(begrip.inhoud)); setConflict(false); }}>
-              Wijzigingen weggooien
-            </Button>
-          )}
-        </ButtonRow>
+        {/* Dezelfde voet als elk bewerkveld (4 nov 2026): Annuleren zet het concept terug op wat bewaard is. */}
+        <BewerkVoet submit bezig={bezig} gewijzigd={onbewaard && !!inhoud.naam.trim()}
+          onAnnuleer={() => { setConcept(uitBegrip(begrip.inhoud)); setConflict(false); }} />
       </form>
 
       <Accorderen id={id} begrip={begrip} onbewaard={onbewaard} muteer={muteer} />

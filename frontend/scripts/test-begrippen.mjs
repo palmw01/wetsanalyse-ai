@@ -282,7 +282,7 @@ try {
   await page.getByRole("button", { name: "Blijf hier" }).click();
   assert.equal(page.url(), voor);
   assert.equal(await kaart().getByLabel(/^Uitleg/).inputValue(), "Nog niet bewaard");
-  await page.getByRole("button", { name: "Wijzigingen weggooien" }).click();
+  await page.locator("[data-bewerk-voet]").getByRole("button", { name: "Annuleren" }).click();
   // Zonder wijzigingen gaat dezelfde link gewoon.
   await page.locator("aside").getByRole("link", { name: /^Werkgebieden/ }).click();
   await page.waitForURL(/\/werkgebieden$/);

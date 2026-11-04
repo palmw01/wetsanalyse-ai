@@ -120,6 +120,13 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     klik rood *Verwijderen?* of groen *Akkoord?* toont, de tweede voert uit (een `BevestigKnop`, dus ontwapenen
     na een paar seconden, bij blur of met Escape). Voor voorbeelden, passages (*Losmaken?*), relaties en het
     akkoord op de reviewkaart. Hoofdacties blijven een knop met tekst (`VerwijderKnop` in een kop);
+  - **bewerken gaat overal ter plekke** (4 nov 2026, naar het voorbeeld van Claude: een bericht aanpassen;
+    `components/ui/Bewerkbaar`): *Bewerken* (`BewerkKnop`, een pil met potloodje) staat bij het blok of de rij zelf,
+    de tekst wordt op dezelfde plek een invoerveld, en daaronder staat rechts *Annuleren* · *Opslaan* (`BewerkVoet`).
+    Escape annuleert, Ctrl/⌘+Enter slaat op, Enter in een veld van één regel ook (`useBewerken`, `lib/bewerken.ts`);
+    wat onbewaard openstaat meldt zich bij de bewaker. Geen venster om tekst te bewerken – *Gegevens bewerken* opent
+    de dossierkaart met het formulier open (`GegevensFormulier`, `?bewerk=1`). Een keuze die meteen geldt (klasse,
+    rol) en een selectie in een boom (*Bronnen koppelen*) vallen erbuiten. `app/knoppen.test.ts` bewaakt het;
   - **menu's** delen één rijstijl (`components/ui/Menu`: `MENU_RIJ`, `MENU_PANEEL`);
   - **`Select`** heeft een eigen chevron (`appearance-none`) en dezelfde maat en focus als `Input`;
   - **elk zijpaneel** heeft dezelfde kop (`components/ui/PaneelKop`: soort, titel, *Open volledige pagina*,

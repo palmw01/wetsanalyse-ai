@@ -273,7 +273,15 @@ try {
   await page.locator("[data-artefact-pagina=annotaties]").waitFor();
   await page.goto(`${base}/werkgebieden/wg1`);
   // Spoor I6: in Gegevens bewerken stelt Lex een TOOI-thema voor; overnemen en opslaan stuurt de URI.
-  await page.getByRole("button", { name: "Gegevens bewerken" }).click();
+  // 4 nov 2026: bewerken gebeurt ter plekke, op de kaart van het dossier – geen venster. *Gegevens bewerken* in de
+  // kop opent die met het formulier open; Escape annuleert.
+  await page.getByRole("link", { name: "Gegevens bewerken" }).click();
+  await page.waitForURL("**/werkgebieden/wg1/artefacten/dossier");
+  await page.locator("[data-gegevens-formulier]").waitFor();
+  assert.equal(await page.getByRole("dialog").count(), 0, "geen venster om te bewerken");
+  await page.locator("[data-gegevens-formulier]").getByLabel(/^Naam/).press("Escape");
+  await page.locator("[data-gegevens-formulier]").waitFor({ state: "detached" });
+  await page.getByRole("button", { name: "Analyseopdracht bewerken" }).click();
   const voorstelThema = page.locator("[data-thema-voorstel]");
   await voorstelThema.getByText("belasting", { exact: true }).waitFor();
   await voorstelThema.getByRole("button", { name: "Overnemen" }).click();
@@ -306,6 +314,8 @@ try {
   assert.equal(gegevens.thema, THEMA);
   assert.equal(gegevens.gebeurtenis, "verrekening");
   assert.equal(gegevens.praktijkvoorbeeld, lang);
+  // Het dossier is een eigen pagina (zonder de tabs): terug naar het werkgebied voor de historie.
+  await page.goto(`${base}/werkgebieden/wg1`);
   await page.getByRole("navigation", { name: "Werkgebied" }).getByRole("link", { name: "Historie" }).click();
   await page.waitForURL("**/werkgebieden/wg1/historie");
   assert.equal(await page.getByRole("navigation", { name: "Werkgebied" }).getByRole("link", { name: "Historie" })

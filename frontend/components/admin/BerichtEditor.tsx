@@ -1,8 +1,7 @@
 "use client";
 
+import { BewerkVoet } from "@/components/ui/Bewerkbaar";
 import { useState } from "react";
-import { Button } from "@/components/ui/Button";
-import { ButtonRow } from "@/components/ui/ButtonRow";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
 import { Tabs } from "@/components/ui/Tabs";
@@ -121,14 +120,8 @@ export function BerichtEditor({ bericht, onCancel, onDone }: Props) {
         />
       </div>
 
-      <ButtonRow>
-        <Button type="submit" disabled={bezig}>
-          {bezig ? "Opslaan…" : bericht ? "Wijzigingen opslaan" : "Concept aanmaken"}
-        </Button>
-        <Button type="button" variant="ghost" onClick={onCancel} disabled={bezig}>
-          Annuleren
-        </Button>
-      </ButtonRow>
+      <BewerkVoet submit onAnnuleer={onCancel} bezig={bezig} gewijzigd
+        opslaanTekst={bericht ? "Wijzigingen opslaan" : "Concept aanmaken"} />
     </form>
   );
 }

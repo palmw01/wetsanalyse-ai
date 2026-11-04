@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-import { Button } from "@/components/ui/Button";
+import { BewerkKnop } from "@/components/ui/Bewerkbaar";
 import { Regel, Regels, StatusLabel } from "@/components/ui/Lijst";
 import { Kaart, ObjectRij, ObjectRijen, PaginaKop, SplitDetail, Stip, TabLinks, type Kruimel } from "@/components/ui/Pagina";
 import { BegrippenTab } from "@/components/werkgebieden/BegrippenTab";
@@ -13,7 +13,7 @@ import { DeelvraagPaneel } from "@/components/werkgebieden/DeelvraagPaneel";
 import { Deelvragen } from "@/components/werkgebieden/Deelvragen";
 import { ElementenTab } from "@/components/werkgebieden/ElementenTab";
 import { HistorieTab } from "@/components/werkgebieden/HistorieTab";
-import { GegevensDialoog, ProjectKop, datum } from "@/components/werkgebieden/ProjectKop";
+import { GegevensFormulier, ProjectKop, datum } from "@/components/werkgebieden/ProjectKop";
 import { SamenhangTab } from "@/components/werkgebieden/SamenhangTab";
 import { useWerkgebied } from "@/components/werkgebieden/WerkgebiedProject";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
@@ -91,12 +91,24 @@ function Relaties({ soort }: { soort: ArtefactSoort }) {
 }
 
 function Dossier() {
-  const { wg, muteer } = useWerkgebied();
-  const [bewerken, setBewerken] = useState(false);
+  const { wg, muteer, zetOnbewaard } = useWerkgebied();
+  // *Gegevens bewerken* in de projectkop komt hier met `?bewerk=1`: het formulier staat dan meteen open.
+  const zoek = useSearchParams();
+  const router = useRouter();
+  const [bewerken, setBewerken] = useState(() => zoek.get("bewerk") === "1");
+  useEffect(() => {
+    if (zoek.get("bewerk") === "1") router.replace(artefactPad(wg.id, "dossier"), { scroll: false });
+  }, [zoek, router, wg.id]);
   return (
     <SplitDetail
       hoofd={<>
-        <Kaart titel="Analyseopdracht" acties={<Button size="sm" variant="secondary" onClick={() => setBewerken(true)}>Bewerken</Button>}>
+        <Kaart titel="Analyseopdracht" acties={!bewerken && <BewerkKnop wat="Analyseopdracht" onClick={() => setBewerken(true)} />}>
+          {bewerken ? (
+            <GegevensFormulier wg={wg} onSluit={() => setBewerken(false)} onOnbewaard={zetOnbewaard}
+              onBewaar={async (w) => {
+                if (await muteer((r) => wijzigWerkgebied(wg.id, { ...w, verwachte_revisie: r }), { gelukt: "Opgeslagen." })) setBewerken(false);
+              }} />
+          ) : (
           <Regels className="text-sm" data-dossier>
             {DOSSIER_VELDEN.map(({ veld, label }) => (
               <Regel key={veld} naam={label} data-dossier-veld={veld}>
@@ -106,15 +118,10 @@ function Dossier() {
               </Regel>
             ))}
           </Regels>
+          )}
         </Kaart>
         {/* `Deelvragen` draagt zijn eigen kop, telling en de voorstellen van Lex. */}
         <Kaart><Deelvragen wg={wg} muteer={muteer} /></Kaart>
-        {bewerken && (
-          <GegevensDialoog wg={wg} onSluit={() => setBewerken(false)}
-            onBewaar={async (w) => {
-              if (await muteer((r) => wijzigWerkgebied(wg.id, { ...w, verwachte_revisie: r }), { gelukt: "Opgeslagen." })) setBewerken(false);
-            }} />
-        )}
       </>}
       zij={<>
         <Kaart titel="Versie">
