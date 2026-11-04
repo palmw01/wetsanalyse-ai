@@ -83,6 +83,9 @@ Besluit van de gebruiker: het gesprek blijft rustig, zoals een artefact bij Clau
 en van wat eraan hangt heeft geen vinkjes meer (`weergave: paneel`). Het noemt wat er ligt en verwijst naar het
 paneel. Daar lees je de wettekst (uitklappen) en neem je per bepaling op of sluit je uit; die besluiten gaan
 rechtstreeks naar de api. *Klaar* (`actie: klaar`, op het kaartje of onderaan het paneel) schuift de fase door
-zonder een besluit te raken; wat dan nog onbeslist is, is niet gekozen. *+ Bepaling toevoegen* is hetzelfde onderdeel
-als op de tab Bronnen: een regeling, een vindplaats uit de echte boom en de deelvraag. Een oud kaartje met vinkjes
+zonder een besluit te raken; wat dan nog onbeslist is, is niet gekozen. Zelf een bepaling toevoegen
+gaat via het gesprek (4 nov 2026): typen op het kaartje, of de suggestie *Voeg een bepaling toe*. Lex vraagt zo nodig
+bij welke deelvraag (`bs_toevoegen`), zoekt de bepaling in de echte boom (`GET …/bepalingen`), toont de treffers met
+het begin van hun tekst (`bs_toevoegen_treffers`, meerkeuze; ‘als context’ in de tekst kiest de rol) en voegt pas na
+het aanvinken toe; daarna komt het kaartje terug waar de analist was. Op het artefact zelf staat geen zoekvenster. Een oud kaartje met vinkjes
 wordt nog verwerkt.

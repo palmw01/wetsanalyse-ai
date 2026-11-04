@@ -35,7 +35,8 @@ from typing import Any, Awaitable, Callable
 
 ANALYSEVRAAG = "analysevraag"
 
-KAARTSTAPPEN = ("bs_gebeurtenis", "bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder")
+KAARTSTAPPEN = ("bs_gebeurtenis", "bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder",
+               "bs_toevoegen", "bs_toevoegen_treffers")
 FASE_STAP = {"kern": "bs_bepalingen", "afhankelijkheden": "bs_afhankelijkheden", "afronden": "bs_afronden"}
 
 STAND_TEKST = {"niet_gestart": "nog niet gestart", "in_behandeling": "in behandeling",
@@ -481,34 +482,197 @@ def regelingen_van(ov: dict[str, Any]) -> list[str]:
     return sorted({i.split(":")[2] for i in iris if i.startswith("urn:bwb:") and i.count(":") >= 2})
 
 
-async def _zelf(api, wid: str, ov: dict, did: str, stap: str, tekst: str,
-                vind: Callable[[str], list[str]] | None) -> tuple[dict, list[str], bool]:
-    """Een eigen tekst op een bepalingenkaartje: de bepaling(en) toevoegen bij deze deelvraag. (overzicht,
-    zinnen, gelukt) – niet gelukt laat het kaartje staan, zodat de analist het kan verbeteren."""
-    from .wetsanalyse_api import WetsanalyseApiFout
+# --- Zelf een bepaling toevoegen (4 nov 2026) ---------------------------------------------------------------
+#
+# Zoeken in de graaf hoort bij het gesprek, niet bij het artefact: zo werkt Claude met artefacten, en zo werkt de
+# werkplek. Een bepaling toevoegen is daarom een vraag van Lex (`bs_toevoegen`): bij welke deelvraag (als die niet
+# vaststaat), welke bepaling – en dan eerst de treffers mét het begin van hun tekst (`bs_toevoegen_treffers`), pas
+# daarna toevoegen. Het getypte veld op het compacte kaartje gaat langs dezelfde treffers. Zonder model: de tekst
+# ontleedt `bepaling_namen.bepalingen_uit_tekst`, de vindplaats zoekt de api in de echte boom.
 
+HEEL = "werkgebied"          # bij geen deelvraag: het hele werkgebied
+MAX_TREFFERS = 8
+_ALS_CONTEXT = re.compile(r"\b(?:als|ter)\s+context(?:bron)?\b", re.I)
+ROLLEN = ("analyseren", "context")
+
+
+def _doel_naam(ov: dict[str, Any], did: str) -> str:
+    if did == HEEL:
+        return "het werkgebied"
+    d = _dq(ov, did)
+    return _naam(d) if d else "de deelvraag"
+
+
+def kaart_toevoegen(werkgebied_id: str, ov: dict[str, Any], did: str = "", melding: str = "",
+                    nr: int = 1) -> dict[str, Any]:
+    """Welke bepaling wil je toevoegen? Staat de deelvraag niet vast, dan eerst bij welke (of het hele werkgebied):
+    een keuze en een eigen tekst op één kaartje gaan in het VraagDock niet samen."""
+    vragen = ov.get("deelvragen") or []
+    if ov.get("modus") == "analysevraag" and not did:
+        did = ANALYSEVRAAG
+    if did != HEEL and not _dq(ov, did):
+        voorkeur = ov.get("actief") or (vragen[0]["id"] if vragen else HEEL)
+        opties = [{"label": _kort(f"{d['nr']}. {d['vraag']}", 300), "waarde": d["id"], "bron": {},
+                   "omschrijving": _kort(stand_tekst(d), 300)} for d in vragen[:19]]
+        opties.append({"label": "Het hele werkgebied", "waarde": HEEL, "bron": {},
+                       "omschrijving": "Bij geen deelvraag, bijvoorbeeld een definitie of een contextbron."})
+        return {**_basis(werkgebied_id, "bs_toevoegen", None, ov), "nr": 1, "totaal": 3, "deelvraag_id": "",
+                "vraag": "Bij welke deelvraag hoort de bepaling?", "toelichting": _kort(melding, 1000),
+                "opties": opties, "vooringevuld": [voorkeur]}
+    toelichting = [melding] if melding else []
+    toelichting.append("Noem het artikel, eventueel met lid, en de regeling, bijvoorbeeld ‘artikel 9 lid 2 "
+                       "Invorderingswet 1990’. Ik zoek het op en laat eerst de tekst zien. Wat je toevoegt, analyseer "
+                       "je; zet ‘als context’ erachter voor een contextbron.")
+    return {**_basis(werkgebied_id, "bs_toevoegen", _dq(ov, did), ov), "nr": nr, "totaal": nr + 1,
+            "deelvraag_id": did, "vraag": f"Welke bepaling wil je toevoegen bij {_doel_naam(ov, did)}?",
+            "toelichting": _kort(" ".join(toelichting), 1000), "vrije_tekst": True}
+
+
+async def bepaling_treffers(api, wid: str, ov: dict[str, Any], tekst: str,
+                            vind: Callable[[str], list[str]] | None) -> tuple[list[dict[str, Any]], list[str]]:
+    """De bepalingen die een getypte tekst noemt, opgezocht in de echte boom: (treffers, zinnen). Per genoemde
+    bepaling de beste treffer (`{bron_iri, vindplaats, titel, fragment, regeling}`); wat niet te vinden is, is een
+    zin – nooit stil een kortere lijst."""
     from .bepaling_namen import bepalingen_uit_tekst
+    from .wetsanalyse_api import WetsanalyseApiFout
 
     verzoeken = bepalingen_uit_tekst(tekst, vind or (lambda _t: []), regelingen_van(ov))
     if isinstance(verzoeken, str):
-        return ov, [verzoeken], False
+        return [], [verzoeken]
     if not verzoeken:
-        return ov, ["Ik zie geen artikel in je tekst. Noem de bepaling, bijvoorbeeld ‘artikel 9 lid 2 Invorderingswet "
-                    "1990’; een onderzoekspunt noteer je bij het afronden."], False
-    rol = "analyseren" if stap == "bs_bepalingen" else "context"
-    zinnen, gelukt = [], False
-    for v in verzoeken:
-        naam = f"artikel {v['artikel']}" + (f" lid {v['lid']}" if v.get("lid") else "")
+        return [], ["Ik zie geen artikel in je tekst. Noem de bepaling, bijvoorbeeld ‘artikel 9 lid 2 "
+                    "Invorderingswet 1990’."]
+    treffers: list[dict[str, Any]] = []
+    zinnen: list[str] = []
+    namen: dict[str, str] = {}
+    for v in verzoeken[:MAX_TREFFERS]:
+        q = v["artikel"] + (f" lid {v['lid']}" if v.get("lid") else "")
         try:
-            ov = await api.voeg_bepaling_toe(wid, did, {**v, "rol": rol, "verwachte_revisie": ov["revisie"]})
-            zinnen.append(f"Zelf toegevoegd: {naam}.")
-            gelukt = True
+            uit = await api.zoek_bepalingen(wid, v["bwb_id"], q)
+        except WetsanalyseApiFout as fout:
+            if fout.status != 404:
+                raise
+            zinnen.append(f"De regeling van artikel {q} staat niet in de kennisgraaf.")
+            continue
+        gevonden = (uit.get("treffers") or [])[:1]
+        if not gevonden:
+            zinnen.append(f"Artikel {q} vind ik niet in de kennisgraaf.")
+            continue
+        if v["bwb_id"] not in namen:
+            regs = await api.zoek_regelingen(wid, v["bwb_id"])
+            namen[v["bwb_id"]] = next((r.get("citeertitel") or "" for r in regs if r.get("bwb_id") == v["bwb_id"]), "")
+        if all(t["bron_iri"] != gevonden[0]["bron_iri"] for t in treffers):
+            treffers.append({**gevonden[0], "bwb_id": v["bwb_id"], "regeling": namen[v["bwb_id"]]})
+    if len(verzoeken) > MAX_TREFFERS:
+        zinnen.append(f"Ik zocht de eerste {MAX_TREFFERS}; noem de rest in een volgende keer.")
+    return treffers, zinnen
+
+
+def kaart_treffers(werkgebied_id: str, ov: dict[str, Any], did: str, treffers: list[dict[str, Any]], rol: str,
+                   zinnen: list[str], nr: int = 2) -> dict[str, Any]:
+    """De treffers met het begin van hun tekst, om aan te vinken; een eigen tekst zoekt opnieuw. Wat er al staat
+    of bij deze deelvraag is uitgesloten, staat er met die reden bij en is niet aangevinkt."""
+    d = _dq(ov, did)
+    al = {b["bron_iri"] for b in (d or {}).get("bronnen") or []}
+    uit = {k["bron_iri"] for k in (d or {}).get("kandidaten") or [] if k.get("stand") == "uitgesloten"}
+    opties, voor = [], []
+    for t in treffers:
+        naam = " – ".join(x for x in (t.get("vindplaats"), t.get("titel"), t.get("regeling")) if x)
+        noot = ("Staat er al. " if t["bron_iri"] in al else
+                "Uitgesloten bij deze deelvraag; aanvinken neemt haar toch op. " if t["bron_iri"] in uit else "")
+        tekst = f"‘{t['fragment']}’" if t.get("fragment") else "Zonder eigen tekst: de tekst staat in de onderdelen."
+        waarde = f"{rol}|{t['bron_iri']}"
+        opties.append({"label": _kort(naam or t["bron_iri"], 300), "waarde": waarde, "bron": {},
+                       "omschrijving": _kort(noot + tekst, 300)})
+        if not noot:
+            voor.append(waarde)
+    wat = "om te analyseren" if rol == "analyseren" else "als contextbron"
+    toelichting = zinnen + [f"Vink aan wat erbij moet ({wat}). Iets anders? Typ een andere bepaling."]
+    return {**_basis(werkgebied_id, "bs_toevoegen_treffers", d, ov), "nr": nr, "totaal": nr,
+            "deelvraag_id": did, "vraag": f"Dit vond ik. Toevoegen bij {_doel_naam(ov, did)}?",
+            "toelichting": _kort(" ".join(toelichting), 1000), "opties": opties, "meerkeuze": True,
+            "vooringevuld": voor, "vrije_tekst": True}
+
+
+def _lopend(werkgebied_id: str, ov: dict[str, Any]) -> dict[str, Any] | None:
+    """Het kaartje van de deelvraag die in behandeling is, om na een tussenstap naar terug te gaan; geen zoekronde."""
+    d = _dq(ov, ov.get("actief") or "")
+    if not d or d["status"] != "in_behandeling":
+        return None
+    if d["fase"] in ("kern", "afhankelijkheden"):
+        return kaart_bepalingen(werkgebied_id, ov, d, FASE_STAP[d["fase"]])
+    return kaart_afronden(werkgebied_id, ov, d) if d["fase"] == "afronden" else None
+
+
+async def vraag_toevoegen(api, wid: str, deelvraag_id: str = "") -> dict[str, Any]:
+    """*Voeg een bepaling toe* (een suggestie bij het werkgebied of een deelvraag): het eerste kaartje."""
+    ov = await api.haal_bronselectie(wid)
+    kaart = kaart_toevoegen(wid, ov, deelvraag_id)
+    return {"kaart": kaart, "zinnen": ["Ik zoek de bepaling op in de kennisgraaf en laat eerst de tekst zien; "
+                                       "pas daarna voeg ik haar toe."], "deelvraag": kaart["deelvraag_id"]}
+
+
+async def _zoek_en_toon(api, wid: str, ov: dict[str, Any], did: str, tekst: str, rol: str,
+                        vind: Callable[[str], list[str]] | None, nr: int) -> dict[str, Any]:
+    if _ALS_CONTEXT.search(tekst):
+        rol, tekst = "context", _ALS_CONTEXT.sub(" ", tekst)
+    treffers, zinnen = await bepaling_treffers(api, wid, ov, tekst, vind)
+    if not treffers:
+        return {"kaart": kaart_toevoegen(wid, ov, did, melding=" ".join(zinnen), nr=max(1, nr - 1)),
+                "zinnen": ["Die bepaling vond ik niet."], "deelvraag": did}
+    return {"kaart": kaart_treffers(wid, ov, did, treffers, rol, zinnen, nr=nr),
+            "zinnen": [f"Ik vond {len(treffers)} {'bepaling' if len(treffers) == 1 else 'bepalingen'}."],
+            "deelvraag": did}
+
+
+async def _voeg_toe(api, wid: str, ov: dict[str, Any], did: str, keuzes: list[str]) -> tuple[dict, list[str]]:
+    """De aangevinkte treffers toevoegen: bij de deelvraag, of bij het hele werkgebied. Een 409/422 is een zin."""
+    from .wetsanalyse_api import WetsanalyseApiFout
+
+    zinnen: list[str] = []
+    for w in keuzes:
+        rol, _, iri = w.partition("|")
+        if rol not in ROLLEN or not iri:
+            continue
+        try:
+            if did == HEEL:
+                uit = await api.voeg_bron_toe(wid, {"bron_iri": iri, "rol": rol, "verwachte_revisie": ov["revisie"]})
+                naam = (uit.get("selectie") or {}).get("label") or iri
+                ov = await api.haal_bronselectie(wid)
+            else:
+                ov = await api.voeg_bepaling_toe(wid, did, {"bron_iri": iri, "rol": rol,
+                                                            "verwachte_revisie": ov["revisie"]})
+                d = _dq(ov, did) or {}
+                naam = next((b.get("label") for b in d.get("bronnen") or [] if b["bron_iri"] == iri), "") or iri
+            zinnen.append(f"Toegevoegd{' als contextbron' if rol == 'context' else ''}: {naam}.")
         except WetsanalyseApiFout as fout:
             if fout.status not in (409, 422):
                 raise
-            zinnen.append(f"{naam.capitalize()} kon ik niet toevoegen" + (
+            zinnen.append("Een bepaling kon ik niet toevoegen" + (
                 ": die staat niet in de kennisgraaf." if fout.status == 422 else f" ({fout.reden or 'conflict'})."))
-    return ov, zinnen, gelukt
+    return ov, zinnen
+
+
+async def _toevoegen(api, wid: str, ov: dict[str, Any], stap: str, did: str, keuzes: list[str], tekst: str,
+                     vind: Callable[[str], list[str]] | None) -> dict[str, Any]:
+    """Een klik op een kaartje van het toevoegen."""
+    if stap == "bs_toevoegen" and not tekst and keuzes and not did:
+        return {"kaart": kaart_toevoegen(wid, ov, keuzes[0], nr=2), "zinnen": [], "deelvraag": keuzes[0]
+                if keuzes[0] != HEEL else ""}
+    if did != HEEL and not _dq(ov, did):
+        return {"kaart": kaart_toevoegen(wid, ov, "", melding="Kies eerst bij welke deelvraag."), "zinnen": []}
+    if tekst:
+        return await _zoek_en_toon(api, wid, ov, did, tekst, "analyseren", vind, nr=3)
+    if stap == "bs_toevoegen" or not keuzes:
+        return {"kaart": kaart_toevoegen(wid, ov, did, melding="Noem de bepaling die je wilt toevoegen."),
+                "zinnen": [], "deelvraag": did}
+    liep = ov.get("actief")
+    ov, zinnen = await _voeg_toe(api, wid, ov, did, keuzes)
+    # Terug naar het kaartje waar de analist was – alleen als er al een deelvraag in behandeling was: een toevoeging
+    # opent er geen.
+    terug = _lopend(wid, ov) if liep and ov.get("actief") == liep else None
+    return {"kaart": terug, "zinnen": zinnen + (["We gaan verder waar we waren."] if terug else []),
+            "deelvraag": did if did != HEEL else ""}
 
 
 async def _kies_gebeurtenis(api, wid: str, ov: dict[str, Any], actie: dict[str, Any], keuzes: list[str], tekst: str,
@@ -548,6 +712,8 @@ async def verwerk(api, actie: dict[str, Any], zoek: Zoek | None,
     ov = await api.haal_bronselectie(wid)
     if stap == "bs_gebeurtenis":
         return await _kies_gebeurtenis(api, wid, ov, actie, keuzes, tekst, zoek, stel_voor)
+    if stap in ("bs_toevoegen", "bs_toevoegen_treffers"):
+        return await _toevoegen(api, wid, ov, stap, did, keuzes, tekst, vind)
     if ov["modus"] == "analysevraag" and stap != "bs_kies":
         did = ANALYSEVRAAG
     if stap == "bs_kies":
@@ -590,11 +756,8 @@ async def verwerk(api, actie: dict[str, Any], zoek: Zoek | None,
         # voegt de analist zelf toe; het kaartje blijft dan staan (hij beoordeelt verder in het paneel en zegt dan
         # *Klaar*), want een toegevoegde bepaling schuift de fase niet door.
         if tekst and actie.get("actie") != "klaar":
-            ov, uit, _ = await _zelf(api, wid, ov, did, stap, tekst, vind)
-            zinnen += uit
-            k = kaart_bepalingen(wid, ov, _dq(ov, did), stap)
-            if k:
-                return {"kaart": k, "zinnen": zinnen, "deelvraag": did}
+            return await _zoek_en_toon(api, wid, ov, did, tekst,
+                                       "analyseren" if stap == "bs_bepalingen" else "context", vind, nr=1)
         volgende_fase = "afhankelijkheden" if stap == "bs_bepalingen" else "afronden"
         ov = await _fase(api, wid, ov, did, volgende_fase)
         # Met nieuwe bronnen in de selectie hoort er een nieuwe zoekopdracht bij: wat eraan hangt.

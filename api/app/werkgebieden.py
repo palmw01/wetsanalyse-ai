@@ -122,7 +122,7 @@ _GRAAF_WEG = "De kennisgraaf is tijdelijk niet bereikbaar."
 @router.get("/{werkgebied_id}/regelingen")
 async def get_regelingen(werkgebied_id: str, q: str = Query("", max_length=200),
                          actor: str = Depends(actieve_userid)):
-    """Regelingen kiezen voor *Bepaling toevoegen*: die van het werkgebied vooraan, dan op citeertitel,
+    """Regelingen voor *Bepaling toevoegen* (graph-qa, de naam bij een treffer): die van het werkgebied vooraan, dan op citeertitel,
     afkorting of BWB-id. Lege `q`: alleen die van het werkgebied."""
     from . import bepaling_zoeken as zoeken
 

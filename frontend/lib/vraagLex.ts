@@ -24,7 +24,9 @@ import type { DossierVeld } from "./werkgebied";
  *    aan"). *Vraag Lex* bij een leeg veld zet dat veld op het werkgebied (`veld`), en de suggestie noemt het.
  *  - **De bronselectie** (`bronselectie`, spoor J) is evenmin een taak van een agent: graph-qa routeert hem naar
  *    de bronselectie-worker (`BRONSELECTIE_ACTIES`), op de stand die de api bewaart. Ook `bronnen_zoeken` gaat
- *    daarheen: zoeken is een stap van de bronselectie. */
+ *    daarheen: zoeken is een stap van de bronselectie, en ook `bepaling_toevoegen` – zelf een bepaling opzoeken en
+ *    toevoegen, met de treffers en hun tekst als kaartje. Zoeken in de graaf hoort bij het gesprek, niet bij een
+ *    artefact: daarop lees, bewerk en besluit je. */
 
 export type OnderwerpSoort = "markering" | "deelvraag" | "bron" | "kandidaat" | "begrip" | "werkgebied";
 export type ObjectSoort = Exclude<OnderwerpSoort, "markering">;
@@ -45,6 +47,7 @@ export const ACTIES = [
   "werkgebied_annoteren", "deelvragen_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
   "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie", "scherper",
   "uitleg", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen", "bronselectie",
+  "bepaling_toevoegen",
 ] as const;
 
 /** Hoe de suggestie bij een leeg dossierveld het veld noemt; graph-qa herkent het woord (`dossiervelden_in`). De
@@ -125,6 +128,8 @@ const SUGGESTIES: Record<ObjectSoort, Suggestie[]> = {
     // De bronselectie per deelvraag (spoor J): beginnen, of verder waar je was – ook in een ander gesprek. Er is
     // geen losse zoekknop meer: de bronselectie zoekt zelf.
     { tekst: "Bepaal de bronnen per deelvraag", actie: "bronselectie" },
+    // Zelf een bepaling toevoegen: Lex zoekt haar op en toont de tekst (geen zoekvenster op het artefact).
+    { tekst: "Voeg een bepaling toe", actie: "bepaling_toevoegen" },
     { tekst: "Annoteer de bepalingen van de deelvragen", actie: "deelvragen_annoteren" },
     { tekst: "Annoteer wat nog niet geannoteerd is", actie: "werkgebied_annoteren" },
     { tekst: "Stel begrippen voor", actie: "begrippen_voorstellen" },
@@ -137,6 +142,7 @@ const SUGGESTIES: Record<ObjectSoort, Suggestie[]> = {
     { tekst: "Formuleer scherper", actie: "deelvraag_herformuleren" },
     { tekst: "Splits deze deelvraag", actie: "deelvraag_splitsen" },
     { tekst: "Bepaal de bronnen bij deze deelvraag", actie: "bronselectie" },
+    { tekst: "Voeg een bepaling toe", actie: "bepaling_toevoegen" },
     { tekst: "Annoteer de bepalingen hierbij", actie: "deelvragen_annoteren" },
     { tekst: "Is deze deelvraag gedekt?", actie: "dekking" },
   ],

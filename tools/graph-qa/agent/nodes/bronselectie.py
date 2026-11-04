@@ -80,6 +80,8 @@ def bronselectie_node(b, state: State) -> dict[str, Any]:
         try:
             if actie:
                 return await bs.verwerk(api, actie, zoek, vind, stel_voor, toets)
+            if state.get("actie") == "bepaling_toevoegen":
+                return await bs.vraag_toevoegen(api, wid, aangewezen)
             return await bs.start(api, wid, zoek, vraag=state.get("question", ""), deelvraag_id=aangewezen,
                                   stel_voor=stel_voor, toets=toets)
         except WetsanalyseApiFout as fout:

@@ -60,7 +60,7 @@ describe("een object stuurt alleen soort en id's", () => {
   it("het werkgebied zonder id, met de handelingen als suggestie met een actie", () => {
     expect(verzoekVan(werkgebied)).toEqual({ onderwerp: { soort: "werkgebied", werkgebied_id: "wg1", label: "Invordering" } });
     const s = suggestiesVan(werkgebied);
-    expect(s.map((x) => x.actie)).toEqual(["dossier_aanvullen", "dossier_aanvullen", "deelvragen_voorstellen", "bronselectie",
+    expect(s.map((x) => x.actie)).toEqual(["dossier_aanvullen", "dossier_aanvullen", "deelvragen_voorstellen", "bronselectie", "bepaling_toevoegen",
       "deelvragen_annoteren", "werkgebied_annoteren", "begrippen_voorstellen", "begrippen_meedenken", "dekking"]);
     // Spoor J: geen losse zoekknop meer; zoeken hoort bij de bronselectie.
     expect(s.some((x) => x.actie === "bronnen_zoeken")).toBe(false);
@@ -71,7 +71,7 @@ describe("een object stuurt alleen soort en id's", () => {
 
   it("elke soort heeft suggesties die passen (F3d)", () => {
     const acties = (soort: ObjectSoort) => suggestiesVan({ soort, werkgebied_id: "wg1", id: "x1", label: "" }).map((x) => x.actie);
-    expect(acties("deelvraag")).toEqual(["deelvraag_herformuleren", "deelvraag_splitsen", "bronselectie", "deelvragen_annoteren",
+    expect(acties("deelvraag")).toEqual(["deelvraag_herformuleren", "deelvraag_splitsen", "bronselectie", "bepaling_toevoegen", "deelvragen_annoteren",
       "dekking"]);
     expect(acties("begrip")).toEqual(["begrip_uitwerken", "brondefinitie", "uitleg", "voorbeelden", "relaties", undefined]);
     // Een bron of kandidaat heeft alleen vragen: de antwoord-worker, met het object als context.
@@ -103,7 +103,7 @@ describe("contract met graph-qa", () => {
     const intake = [...(models.match(/^INTAKE_ACTIES = \((.*?)\)/m)?.[1] ?? "").matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
     expect(intake).toEqual(["dossier_aanvullen"]);
     const bronselectie = [...(models.match(/^BRONSELECTIE_ACTIES = \((.*?)\)/m)?.[1] ?? "").matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
-    expect(bronselectie).toEqual(["bronselectie", "bronnen_zoeken"]);
+    expect(bronselectie).toEqual(["bronselectie", "bronnen_zoeken", "bepaling_toevoegen"]);
     expect([...taken, ...intake, ...bronselectie].sort()).toEqual([...ACTIES].sort());
     const actie = models.match(/^Actie = Literal\[(.*?)\]/ms)?.[1] ?? "";
     expect([...actie.matchAll(/"([a-z_]+)"/g)].map((m) => m[1]).sort()).toEqual([...ACTIES].sort());

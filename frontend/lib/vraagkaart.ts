@@ -21,7 +21,8 @@
 export const STAPPEN = ["naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld", "deelvragen",
   "buiten", "regelingen", "bepalingen"] as const;
 /** De kaartjes van de bronselectie (graph-qa `bronselectie.KAARTSTAPPEN`). */
-export const BRONSELECTIE_STAPPEN = ["bs_gebeurtenis", "bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder"] as const;
+export const BRONSELECTIE_STAPPEN = ["bs_gebeurtenis", "bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder",
+  "bs_toevoegen", "bs_toevoegen_treffers"] as const;
 /** `thema` (spoor I7) is een kaartje van het aanvullen alleen: het samenstellen kent het niet (`STAPPEN`). */
 export type IntakeStap = (typeof STAPPEN)[number] | "thema" | "samenvatting" | (typeof BRONSELECTIE_STAPPEN)[number];
 /** De vaste kaartjes vóór de bepalingen; daarna één per deelvraag (graph-qa `VASTE_STAPPEN`). */
@@ -258,6 +259,8 @@ export const STAP_NAAM: Record<IntakeStap, string> = {
   bs_afhankelijkheden: "wat eraan hangt",
   bs_afronden: "het afronden",
   bs_verder: "hoe we verder gaan",
+  bs_toevoegen: "de bepaling",
+  bs_toevoegen_treffers: "de treffers",
 };
 
 export function parseAntwoordOp(ruw: unknown): AntwoordOp | undefined {

@@ -92,7 +92,7 @@ try {
   // --- Een suggestie met een actie: vaste route, geen modus, context of doel ---
   const suggesties = page.getByTestId("vraag-suggesties").getByRole("button");
   // Spoor I7: ook *Kies een thema*; spoor J: *Bepaal de bronnen per deelvraag* in plaats van de losse zoekknop.
-  assert.equal(await suggesties.count(), 9);
+  assert.equal(await suggesties.count(), 10);
   assert.equal(await page.getByRole("button", { name: "Zoek bepalingen bij alle deelvragen" }).count(), 0);
   await page.getByRole("button", { name: "Bepaal de bronnen per deelvraag" }).click();
   await wachtOp(1);

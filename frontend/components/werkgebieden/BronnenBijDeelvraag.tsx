@@ -12,7 +12,6 @@ import { Melding } from "@/components/ui/Melding";
 import { Groep, GroepRij } from "@/components/ui/Pagina";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { KnoopTekst } from "@/components/graaf/KnoopTekst";
-import { BepalingToevoegen } from "@/components/werkgebieden/BepalingToevoegen";
 import { PeildatumRegel } from "@/components/werkgebieden/Peildatum";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
@@ -64,10 +63,8 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
   const [o, setO] = useState<BronselectieOverzicht | null>(null);
   const [fout, setFout] = useState<string | null>(null);
   const [melding, setMelding] = useState<string | null>(null);
-  const [gelukt, setGelukt] = useState<string | null>(null);
   const [poging, setPoging] = useState(0);
-  const [toevoegen, setToevoegen] = useState<string | null>(null);
-  // Een besluit elders (het kaartje, *Bepaling toevoegen* vanuit het gesprek): opnieuw laden.
+  // Een besluit elders (het kaartje, een bepaling die Lex in het gesprek toevoegde): opnieuw laden.
   useEffect(() => {
     const bij = (e: Event) => { if ((e as CustomEvent).detail === werkgebiedId) setPoging((p) => p + 1); };
     window.addEventListener(BRONSELECTIE_GEWIJZIGD, bij);
@@ -194,7 +191,7 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
                 : undefined}
               label={o.modus === "analysevraag" ? "Bronnen bij de analysevraag" : `Bronnen bij deelvraag ${d.nr}`}
               leeg={kort ? undefined : `Er hoort nog geen bron bij ${o.modus === "analysevraag" ? "de analysevraag" : "deze deelvraag"}. `
-                + "Bepaal de bronnen met Lex in het gesprek, of neem een bepaling op."}>
+                + "Bepaal de bronnen met Lex in het gesprek, of laat Lex er een toevoegen."}>
               {!kort && bronnen.map((b) => {
                 const sel = selecties.get(b.selectie_id);
                 return (
@@ -207,16 +204,13 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
               })}
               {!kort && voorstellen.map((k) => <Voorstel key={k.id} o={o} d={d} k={k} beslis={beslis} inGesprek={inGesprek} />)}
             </Groep>
-            {inGesprek && !kort && d.status !== "voorlopig_afgerond" && d.status !== "beoordeeld" && (
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center" data-paneel-acties={d.id}>
-                <Button size="sm" variant="secondary" onClick={() => setToevoegen(d.id)} className="w-full sm:w-auto">
-                  + Bepaling toevoegen
+            {/* Zelf een bepaling toevoegen gaat via het gesprek (*Voeg een bepaling toe* boven het invoerveld, of
+                typen op het kaartje): zoeken in de graaf hoort niet bij het artefact. */}
+            {inGesprek && !kort && onKlaar && klaarVoor === d.id && d.status !== "voorlopig_afgerond" && d.status !== "beoordeeld" && (
+              <div className="flex sm:justify-end" data-paneel-acties={d.id}>
+                <Button size="sm" onClick={() => onKlaar(d.id)} className="w-full sm:w-auto" data-paneel-klaar>
+                  Klaar met deze deelvraag
                 </Button>
-                {onKlaar && klaarVoor === d.id && (
-                  <Button size="sm" onClick={() => onKlaar(d.id)} className="w-full sm:ml-auto sm:w-auto" data-paneel-klaar>
-                    Klaar met deze deelvraag
-                  </Button>
-                )}
               </div>
             )}
             {kort && (
@@ -251,24 +245,10 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
 
       {!deelvraagId && <p className="text-xs text-muted" data-bronselectie-slot>{slotZin(o)}</p>}
       {links}
-      {toevoegen !== null && (
-        <BepalingToevoegen werkgebiedId={werkgebiedId} deelvraagId={toevoegen === ANALYSEVRAAG_ID && o.modus === "analysevraag" ? "" : toevoegen}
-          onSluit={() => setToevoegen(null)}
-          onKlaar={async (zin) => {
-            setToevoegen(null);
-            setMelding(null);
-            setPoging((p) => p + 1);
-            await beheer?.laad();
-            meldBronselectieGewijzigd(werkgebiedId);
-            setGelukt(zin);
-          }} />
-      )}
-      {gelukt && <p className="sr-only" aria-live="polite">{gelukt}</p>}
     </div>
   );
 }
 
-const ANALYSEVRAAG_ID = "analysevraag";
 
 /** De wettekst van een bepaling, uitgeklapt naast het gesprek: lezen zonder de werkplek te verlaten. De pagina van
  *  de bepaling blijft één klik verder. */
