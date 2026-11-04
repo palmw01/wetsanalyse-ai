@@ -154,6 +154,21 @@ async def test_startactiviteit_a_en_deelvragen_bij_het_aanmaken(client):
     assert (leeg["aanleiding"], leeg["praktijkvoorbeeld"], leeg["deelvragen"]) == ("", "", [])
 
 
+async def test_de_gebeurtenis_staat_op_het_werkgebied(client):
+    """Zoekvragen a–d: de gebeurtenis in de term van de wet is het vertrekpunt van de bronselectie. Leeg tot de
+    analist haar kiest; één regel, ook als er witruimte in stond."""
+    wg = await _nieuw(client)
+    assert wg["gebeurtenis"] == ""
+    r = await client.patch(f"/v1/werkgebieden/{wg['id']}",
+                           json={"verwachte_revisie": 1, "gebeurtenis": "  uitstel   van betaling "})
+    assert (r.json()["gebeurtenis"], r.json()["revisie"]) == ("uitstel van betaling", 2)
+    assert (await client.get(f"/v1/werkgebieden/{wg['id']}/bronselectie")).json()["gebeurtenis"] == "uitstel van betaling"
+    met = (await client.post("/v1/werkgebieden", json={"naam": "Verrekening", "gebeurtenis": "verrekening"})).json()
+    assert met["gebeurtenis"] == "verrekening"
+    assert (await client.patch(f"/v1/werkgebieden/{wg['id']}",
+                               json={"verwachte_revisie": 2, "gebeurtenis": "x" * 201})).status_code == 422
+
+
 async def test_gedeeld_tussen_analisten_en_de_audit_zegt_wie(client):
     wg = await _nieuw(client)
     r = await client.patch(f"/v1/werkgebieden/{wg['id']}", headers={"X-User-Id": "jurist-b"},

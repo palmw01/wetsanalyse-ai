@@ -131,3 +131,17 @@ def test_de_held_out_meting_van_het_meezoekende_dossier_houdt_haar_uitkomst():
     assert (alles["recall_nodig"], alles["recall_pool"]) == (0.048, 0.542) and alles["gedeeld"] > nieuw["gedeeld"]
     for v in ("dossier_velden", "dossier_omgeving", "gelijkenis"):
         assert r[f"met {v}"]["recall_nodig"] == nieuw["recall_nodig"]
+
+
+def test_de_gebeurtenis_en_de_grondslag_op_de_ontwikkelset():
+    """Zoekvragen a–d, PR 3 (4 nov 2026): op de ontwikkelset kwijtschelding stelt Lex de gebeurtenis bovenaan voor als
+    de naam haar noemt, en op plek 3 zonder de naam; de grondslag vindt Iw 26 lid 1 en Uitv.reg. 7 lid 1, niet art. 10
+    (dat draagt geen signaal van bestaansrecht). Een ontwikkelset: de blinde meting is `verrekening-concept`."""
+    from eval.bronselectie_eval import meet_zoekvragen
+
+    s = laad_set("kwijtschelding-concept")
+    graaf = OpnameGraaf(json.loads((SETS / "kwijtschelding-concept" / "graafantwoorden.json").read_text()))
+    r = meet_zoekvragen(graaf, s)
+    assert graaf.ontbrekend == 0
+    assert (r["plek_met_naam"], r["plek_zonder_naam"]) == (1, 3)
+    assert (r["grondslag_recall"], r["grondslag_precisie"], len(r["grondslag"])) == (0.667, 0.25, 8)

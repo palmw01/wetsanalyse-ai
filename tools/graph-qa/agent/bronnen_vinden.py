@@ -15,6 +15,7 @@ Methoden, van sterk naar zwak bewijs (PLAN §D *Bronnen vinden*):
 | `definitie` | waar de wet een term definieert die letterlijk in de kern staat | afhankelijkheid |
 | `opbouw` | de andere artikelen in hetzelfde deel als een kernartikel | aanverwant |
 | `gelijkenis` | `bwb_similarity` op de tekst van de kern – zwakste signaal, geen bewijs | aanverwant |
+| `grondslag` | zoekvraag a: waar de gekozen gebeurtenis haar bestaansrecht krijgt (`zoekvragen.grondslag`); alleen met een gebeurtenis | kern |
 
 **Diepte 1**, volgens de skill (`references/verwijzingen-volgen.md`): blind verder uitbreiden langs de
 graaf maakt een selectie aantoonbaar slechter. Elke methode heeft een plafond; raakt ze dat, of hapert
@@ -36,7 +37,8 @@ from .zoektermen import buiten_uit_afbakening, uitsluitstammen
 
 logger = logging.getLogger(__name__)
 
-METHODEN = ("overzicht", "deelvraag", "verwijzing_uit", "verwijzing_in", "definitie", "opbouw", "gelijkenis")
+METHODEN = ("overzicht", "deelvraag", "verwijzing_uit", "verwijzing_in", "definitie", "opbouw", "gelijkenis",
+            "grondslag")
 #: Wat standaard draait als er een kern is – gekozen op de meting van 15 okt 2026
 #: (`docs/architectuur/metingen/bronselectie-2026-10-15/`): met een kern voegde het overzicht geen
 #: recall toe maar wel 36 onbeoordeelde "kern"-kandidaten, en `verwijzing_in` leverde alle uitgesloten
@@ -49,9 +51,14 @@ ZONDER_KERN = ("overzicht",)
 
 def standaard_voor(invoer: dict[str, Any]) -> tuple[str, ...]:
     """Met deelvragen (optioneel, ze staan alleen in de invoer als het werkgebied ze heeft) zoekt Lex
-    ook per deelvraag: de analist vroeg er zelf om, en de dekkingscheck meet ertegen."""
+    ook per deelvraag: de analist vroeg er zelf om, en de dekkingscheck meet ertegen. Met een gekozen
+    gebeurtenis (`dossier.gebeurtenis`) zoekt hij de grondslag erbij, om dezelfde reden: de analist koos haar."""
     basis = STANDAARD if invoer.get("kern") else ZONDER_KERN
-    return basis + ("deelvraag",) if invoer.get("deelvragen") else basis
+    if invoer.get("deelvragen"):
+        basis += ("deelvraag",)
+    if ((invoer.get("dossier") or {}).get("gebeurtenis") or "").strip():
+        basis += ("grondslag",)
+    return basis
 
 MAX_PER_METHODE = 60
 MAX_OVERZICHT = 40
@@ -259,6 +266,28 @@ def _deelvraag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
     return n_totaal, True
 
 
+def _grondslag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tuple[int, bool]:
+    """Zoekvraag a (`zoekvragen.grondslag`): waar de gebeurtenis die de analist koos haar bestaansrecht krijgt,
+    binnen de regelingen van de selectie. Rol kern: het is het vertrekpunt van de keten a–d. Het bewijs draagt de
+    zoekvraag, de gebeurtenis, het signaal en de kop waaronder de bepaling staat."""
+    from .zoekvragen import MAX_GRONDSLAG, grondslag
+
+    dossier = invoer.get("dossier") or {}
+    gebeurtenis = (dossier.get("gebeurtenis") or "").strip()
+    regelingen = list(dict.fromkeys(b["bwb_id"] for b in invoer.get("kern", []) + invoer.get("context", [])
+                                    if b.get("bwb_id")))
+    if not gebeurtenis or not regelingen:
+        return 0, True
+    buiten = uitsluitstammen(buiten_uit_afbakening(dossier.get("afbakening", "")))
+    gevonden = grondslag(graph, gebeurtenis=gebeurtenis, regelingen=regelingen, buiten=buiten)
+    n = 0
+    for k in gevonden:
+        n += v.voeg(k["bron_iri"], rol="kern", methode="grondslag",
+                    detail={"zoekvraag": "a", "gebeurtenis": gebeurtenis, "signaal": k["signaal"],
+                            "zin": k["zin"], **({"kop": k["onder_kop"]} if k.get("onder_kop") else {})})
+    return n, len(gevonden) < MAX_GRONDSLAG
+
+
 def _verwijzing_uit(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tuple[int, bool]:
     kern = [k["bron_iri"] for k in invoer.get("kern", [])]
     if not kern:
@@ -348,7 +377,7 @@ def _gelijkenis(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tup
 
 UITVOERING: dict[str, Callable[[GraphPort, dict[str, Any], Verzameling], tuple[int, bool]]] = {
     "overzicht": _overzicht, "deelvraag": _deelvraag, "verwijzing_uit": _verwijzing_uit, "verwijzing_in": _verwijzing_in,
-    "definitie": _definitie, "opbouw": _opbouw, "gelijkenis": _gelijkenis,
+    "definitie": _definitie, "opbouw": _opbouw, "gelijkenis": _gelijkenis, "grondslag": _grondslag,
 }
 
 

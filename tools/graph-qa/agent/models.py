@@ -70,7 +70,7 @@ class IntakeActie(BaseModel):
     intake_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
     stap: Literal["naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld", "thema", "deelvragen",
                   "buiten", "regelingen", "bepalingen", "samenvatting",
-                  "bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder"]
+                  "bs_gebeurtenis", "bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder"]
     # Bij de bepalingen: het kaartje van welke deelvraag (0-based); een ander deel is een oud kaartje.
     deel: int = Field(default=0, ge=0, le=19)
     # `aanmaken` sluit het samenstellen af, `opslaan` het aanvullen van een bestaand werkgebied.

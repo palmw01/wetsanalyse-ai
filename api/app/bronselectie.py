@@ -45,8 +45,11 @@ STANDEN_TELLING = ("voorgesteld", "niet_gekozen", "uitgesloten")
 #: Wat voor bewijs een methode levert. Een tekstuele overeenkomst is geen bewijs van juridische noodzaak;
 #: een verwijzing of definitie in de graaf is een aantoonbare relatie.
 BEWIJS_SOORT = {"verwijzing_uit": "verwijzing", "verwijzing_in": "verwijzing", "definitie": "definitie",
-                "opbouw": "structuur", "overzicht": "tekst", "deelvraag": "tekst", "gelijkenis": "gelijkenis"}
-BEWIJS_VOLGORDE = {"verwijzing": 0, "definitie": 1, "structuur": 2, "tekst": 3, "gelijkenis": 4}
+                "opbouw": "structuur", "overzicht": "tekst", "deelvraag": "tekst", "gelijkenis": "gelijkenis",
+                "grondslag": "grondslag"}
+#: De grondslag (zoekvraag a: waar de gekozen gebeurtenis haar bestaansrecht krijgt) staat vooraan: zij is het
+#: vertrekpunt van de andere zoekvragen.
+BEWIJS_VOLGORDE = {"grondslag": -1, "verwijzing": 0, "definitie": 1, "structuur": 2, "tekst": 3, "gelijkenis": 4}
 
 
 def scope_stand(werkgebied: dict, vraag: str, kandidaten: list[str]) -> str:
@@ -241,7 +244,7 @@ async def overzicht(werkgebied_id: str, na: str | None = None) -> dict:
     for v in vragen:
         v.pop("_scope_nu", None)                     # intern: de stand voor `zet_status`, geen contract
     return {"werkgebied_id": wg["id"], "naam": wg["naam"], "analysevraag": wg.get("analysevraag", ""),
-            "revisie": wg["revisie"], "modus": "analysevraag" if vragen[0]["id"] == ANALYSEVRAAG else "deelvragen",
+            "gebeurtenis": wg.get("gebeurtenis", ""), "revisie": wg["revisie"], "modus": "analysevraag" if vragen[0]["id"] == ANALYSEVRAAG else "deelvragen",
             "deelvragen": vragen, "actief": actief, "volgende": volgende(vragen, na or actief),
             "alle_klaar": all(v["klaar"] for v in vragen), "zonder_deelvraag": zonder_deelvraag,
             "zoekdekking": _zoekdekking(run)}

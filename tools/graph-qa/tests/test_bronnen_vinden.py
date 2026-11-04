@@ -662,3 +662,29 @@ def test_gelijkenis_overbrugt_de_woorden_van_de_deelvraag_binnen_de_regelingen()
     assert GelijkenisGraaf.L7 not in [o["bron_iri"] for o in _opties(GelijkenisGraaf())]
     # Een haperende index kost alleen die lijst.
     assert _opties(GelijkenisGraaf(faal_index=True), profiel=p) == _opties(GelijkenisGraaf())
+
+
+# --- zoekvraag a: de grondslag van de gekozen gebeurtenis ---------------------------------------------
+
+def test_met_een_gebeurtenis_zoekt_de_run_de_grondslag():
+    """De analist koos een gebeurtenis: dan draait `grondslag` mee (zoals `deelvraag` met deelvragen), rol kern, met
+    zoekvraag, gebeurtenis, signaal en kop in het bewijs. Zonder gebeurtenis verandert de standaard niet."""
+    from test_zoekvragen import IW, UR, Wereld
+
+    kern = [{"bron_iri": f"urn:bwb:{IW}:artikel:25", "label": "", "bwb_id": IW, "bereik": "onderliggend"}]
+    invoer = {"naam": "N", "analysevraag": "V?", "kern": kern,
+              "context": [{"bron_iri": f"urn:bwb:{UR}:artikel:7", "label": "", "bwb_id": UR, "bereik": "onderliggend"}]}
+    assert "grondslag" not in bronnen_vinden.standaard_voor(invoer)
+    assert "grondslag" not in bronnen_vinden.standaard_voor({**invoer, "dossier": {"gebeurtenis": "  "}})
+    met = {**invoer, "dossier": {"gebeurtenis": "kwijtschelding",
+                                 "afbakening": "Buiten de afbakening: de hersteloperatie toeslagen."}}
+    assert bronnen_vinden.standaard_voor(met)[-1] == "grondslag"
+    uit = vind(Wereld(), met, ("grondslag",))
+    assert uit["meting"]["grondslag"]["volledig"] is True
+    iris = [k["bron_iri"] for k in uit["kandidaten"]]
+    assert f"urn:bwb:{IW}:artikel:26:lid:1" in iris and f"urn:bwb:{IW}:artikel:26a:lid:1" not in iris
+    k = next(k for k in uit["kandidaten"] if k["bron_iri"] == f"urn:bwb:{IW}:artikel:26:lid:1")
+    assert k["rol"] == "kern" and k["bewijs"][0]["methode"] == "grondslag"
+    assert {x: k["bewijs"][0]["detail"][x] for x in ("zoekvraag", "gebeurtenis", "signaal")} == \
+        {"zoekvraag": "a", "gebeurtenis": "kwijtschelding", "signaal": "kan worden"}
+    assert k["bewijs"][0]["detail"]["kop"].startswith("Afdeling 3")

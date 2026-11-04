@@ -21,7 +21,7 @@
 export const STAPPEN = ["naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld", "deelvragen",
   "buiten", "regelingen", "bepalingen"] as const;
 /** De kaartjes van de bronselectie (graph-qa `bronselectie.KAARTSTAPPEN`). */
-export const BRONSELECTIE_STAPPEN = ["bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder"] as const;
+export const BRONSELECTIE_STAPPEN = ["bs_gebeurtenis", "bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder"] as const;
 /** `thema` (spoor I7) is een kaartje van het aanvullen alleen: het samenstellen kent het niet (`STAPPEN`). */
 export type IntakeStap = (typeof STAPPEN)[number] | "thema" | "samenvatting" | (typeof BRONSELECTIE_STAPPEN)[number];
 /** De vaste kaartjes vóór de bepalingen; daarna één per deelvraag (graph-qa `VASTE_STAPPEN`). */
@@ -207,7 +207,10 @@ export function antwoordTekst(k: Vraagkaart, actie: IntakeActie): string {
     return k.modus === "aanvullen" ? "Stop met aanvullen." : k.modus === "bronselectie" ? "Zet de bronselectie even stil."
       : "Stop met samenstellen.";
   }
-  if (actie.actie === "overslaan") return k.modus === "bronselectie" ? "Niets erbij; verder." : "Sla deze vraag over.";
+  if (actie.actie === "overslaan") {
+    if (k.stap === "bs_gebeurtenis") return "Zonder gebeurtenis verder.";
+    return k.modus === "bronselectie" ? "Niets erbij; verder." : "Sla deze vraag over.";
+  }
   if (actie.actie === "klaar") {
     return actie.tekst?.trim() || (k.stap === "bs_afhankelijkheden" ? "Klaar; ronden we af." : "Klaar met de kernbepalingen; verder.");
   }
@@ -249,6 +252,7 @@ export const STAP_NAAM: Record<IntakeStap, string> = {
   bepalingen: "de bepalingen",
   buiten: "wat erbuiten valt",
   samenvatting: "de samenvatting",
+  bs_gebeurtenis: "de gebeurtenis",
   bs_kies: "de keuze van de deelvraag",
   bs_bepalingen: "de kernbepalingen",
   bs_afhankelijkheden: "wat eraan hangt",

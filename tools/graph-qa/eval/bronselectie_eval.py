@@ -45,6 +45,10 @@ Voor `bepaling_opties` ook `recall_pool`: het aandeel verwachte bepalingen dat d
 rangschikking (`deelvraag_zoeken.kandidatenpool`). Ligt `recall` daar ver onder, dan laat de
 rangschikking ze vallen; ligt `recall_pool` zelf laag, dan mist het zoeken ze.
 
+**`--zoekvragen`** meet op een set met een `gebeurtenis` (schema 3) de eerste stap van de zoekvragen a–d
+(`agent/zoekvragen.py`): op welke plek `gebeurtenis_opties` de gebeurtenis van de set voorstelt, met en zonder de
+naam van het werkgebied, en hoeveel van de verwachte bepalingen met `zoekvraag: a` de `grondslag` vindt.
+
 `--opnemen` vraagt `GRAPHDB_MCP_URL` en `GRAPHDB_TOKEN` (en voor gelijkenis `SIMILARITY_INDEX`).
 """
 from __future__ import annotations
@@ -405,6 +409,49 @@ def tabel_intake(s: dict[str, Any], rapport: dict[str, Any]) -> str:
     return "\n".join(regels)
 
 
+# --- zoekvragen a–d: de gebeurtenis en de grondslag ---------------------------------------------------
+
+def meet_zoekvragen(graaf: Any, s: dict[str, Any]) -> dict[str, Any]:
+    """De plek van de gebeurtenis van de set in de voorstellen (1 = bovenaan, None = niet in de lijst), met en
+    zonder de naam, en de recall van de grondslag op de verwachte bepalingen met `zoekvraag: a`."""
+    from agent import zoekvragen
+    from agent.zoektermen import _stamdeel, zoektermen as termen
+
+    doel = termen(s["gebeurtenis"])
+    sleutel = _stamdeel(doel[0]) if doel else ""
+
+    def plek(dossier: dict[str, Any]) -> tuple[int | None, list[str]]:
+        opties = [o["gebeurtenis"] for o in zoekvragen.gebeurtenis_opties(graaf, regelingen=s["regelingen"],
+                                                                          dossier=dossier)]
+        gevonden = [i + 1 for i, o in enumerate(opties) if zoekvragen._sleutel(o) == sleutel]
+        return (gevonden[0] if gevonden else None), opties
+
+    dossier = {k: s.get(k, "") for k in zoekvragen.DOSSIERVELDEN}
+    met, opties_met = plek(dossier)
+    zonder, opties_zonder = plek({**dossier, "naam": ""})
+    buiten = zoektermen.uitsluitstammen(zoektermen.buiten_uit_afbakening("Buiten de afbakening: " + s.get("buiten", "")))
+    gevonden = [k["bron_iri"] for k in zoekvragen.grondslag(graaf, gebeurtenis=s["gebeurtenis"],
+                                                             regelingen=s["regelingen"], buiten=buiten)]
+    verwacht = list(dict.fromkeys(v["bron_iri"] for v in s["verwacht"] if v.get("zoekvraag") == "a"))
+    raak = [v for v in verwacht if any(_raakt(c, v) for c in gevonden)]
+    return {"gebeurtenis": s["gebeurtenis"], "plek_met_naam": met, "plek_zonder_naam": zonder,
+            "opties_met_naam": opties_met, "opties_zonder_naam": opties_zonder,
+            "grondslag": gevonden, "grondslag_verwacht": verwacht, "grondslag_recall": _deel(len(raak), len(verwacht)),
+            "grondslag_precisie": _deel(sum(any(_raakt(c, v["bron_iri"]) for v in s["verwacht"]) for c in gevonden),
+                                       len(gevonden))}
+
+
+def tabel_zoekvragen(s: dict[str, Any], r: dict[str, Any]) -> str:
+    def f(x):
+        return "–" if x is None else f"{x:.2f}" if isinstance(x, float) else str(x)
+    return "\n".join([
+        f"Set: {s['naam']} – gebeurtenis *{r['gebeurtenis']}*", "",
+        f"- plek in de voorstellen met de naam: {f(r['plek_met_naam'])} ({', '.join(r['opties_met_naam'])})",
+        f"- zonder de naam: {f(r['plek_zonder_naam'])} ({', '.join(r['opties_zonder_naam'])})",
+        f"- grondslag (zoekvraag a): recall {f(r['grondslag_recall'])}, precisie {f(r['grondslag_precisie'])}, "
+        f"{len(r['grondslag'])} gevonden: {', '.join(g.split(':', 2)[2] for g in r['grondslag'])}"])
+
+
 def _echte_graaf():
     from agent.adapters.graphdb_graph import make_graph
     from agent.config import Settings
@@ -415,6 +462,8 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument("--set", default=None)
     p.add_argument("--intake", action="store_true", help="per deelvraag meten (F3f), op een set met deelvragen")
+    p.add_argument("--zoekvragen", action="store_true",
+                   help="de gebeurtenis en de grondslag (zoekvragen a–d), op een set met een gebeurtenis")
     p.add_argument("--opnemen", action="store_true", help="live tegen de graaf en de opname vernieuwen")
     p.add_argument("--aanvullen", action="store_true",
                    help="de opname afspelen en alleen wat ontbreekt live ophalen en toevoegen (de rest blijft bewijs)")
@@ -424,7 +473,10 @@ def main(argv: list[str] | None = None) -> int:
     s = laad_set(a.set)
     if a.intake and not s.get("deelvragen"):
         p.error(f"set {a.set} heeft geen deelvragen")
-    meting, opmaak = (meet_intake, tabel_intake) if a.intake else (meet, tabel)
+    if a.zoekvragen and not s.get("gebeurtenis"):
+        p.error(f"set {a.set} heeft geen gebeurtenis")
+    meting, opmaak = (meet_zoekvragen, tabel_zoekvragen) if a.zoekvragen else \
+        (meet_intake, tabel_intake) if a.intake else (meet, tabel)
     pad = SETS / a.set / "graafantwoorden.json"
     if a.aanvullen:
         graaf = AanvullendeGraaf(json.loads(pad.read_text()) if pad.exists() else {"sparql": {}, "semantisch": {}},

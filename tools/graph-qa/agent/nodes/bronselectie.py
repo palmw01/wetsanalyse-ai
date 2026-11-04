@@ -58,10 +58,19 @@ def bronselectie_node(b, state: State) -> dict[str, Any]:
             from ..overzicht import regelingen_in_vraag
             return regelingen_in_vraag(b.graph, tekst) if b.graph is not None else []
 
+        def stel_voor(werkgebied: dict[str, Any], regelingen: list[str]) -> list[dict[str, Any]]:
+            """De gebeurtenissen uit de koppen van de regelingen (zonder model); zonder graaf geen voorstel."""
+            from ..zoekvragen import gebeurtenis_opties
+            if b.graph is None:
+                return []
+            _stap(stuur, "Lex", "zoekt de gebeurtenis in de koppen van de regelingen")
+            return gebeurtenis_opties(b.graph, regelingen=regelingen, dossier=werkgebied)
+
         try:
             if actie:
-                return await bs.verwerk(api, actie, zoek, vind)
-            return await bs.start(api, wid, zoek, vraag=state.get("question", ""), deelvraag_id=aangewezen)
+                return await bs.verwerk(api, actie, zoek, vind, stel_voor)
+            return await bs.start(api, wid, zoek, vraag=state.get("question", ""), deelvraag_id=aangewezen,
+                                  stel_voor=stel_voor)
         except WetsanalyseApiFout as fout:
             if fout.status == 412:
                 uit = await bs.start(api, wid, None)

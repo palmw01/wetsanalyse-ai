@@ -17,7 +17,7 @@ from typing import Any
 # Volgorde = de volgorde van het samenstellen: startactiviteit a, dan activiteit 1.
 VELDEN = (("aanleiding", "Aanleiding"), ("context", "Context"), ("doel", "Doel"),
           ("analysevraag", "Analysevraag"), ("praktijkvoorbeeld", "Praktijkvoorbeeld"),
-          ("afbakening", "Afbakening"))
+          ("afbakening", "Afbakening"), ("gebeurtenis", "Gebeurtenis (de term van de wet)"))
 MAX_TEKENS = 6000
 MAX_BRONNEN = 30
 

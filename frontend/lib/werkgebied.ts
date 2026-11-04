@@ -44,6 +44,7 @@ export const DOSSIER_VELDEN = [
   { veld: "analysevraag", label: "Analysevraag" },
   { veld: "praktijkvoorbeeld", label: "Praktijkvoorbeeld" },
   { veld: "afbakening", label: "Afbakening" },
+  { veld: "gebeurtenis", label: "Gebeurtenis" },
 ] as const;
 
 export type DossierVeld = (typeof DOSSIER_VELDEN)[number]["veld"];

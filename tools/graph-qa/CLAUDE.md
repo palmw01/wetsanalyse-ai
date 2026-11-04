@@ -729,7 +729,8 @@ horen; de api bewaart de kandidaten en de besluiten (`api/app/bronnen_run_store.
   afhankelijkheid bij een bekende functie, anders aanverwant), `verwijzing_in` (aanverwant),
   `definitie` (een `bwb:definieertBegrip` in de regeling van de kern waarvan de term letterlijk in de
   kern staat; afhankelijkheid), `opbouw` (de andere artikelen in hetzelfde deel; aanverwant),
-  `gelijkenis` (`bwb_similarity`) en `deelvraag` (per actieve deelvraag `bepaling_opties`, dezelfde
+  `gelijkenis` (`bwb_similarity`), `grondslag` (zoekvraag a: waar de gekozen gebeurtenis haar bestaansrecht krijgt,
+  `zoekvragen.grondslag`; rol kern, alleen als het dossier een `gebeurtenis` draagt) en `deelvraag` (per actieve deelvraag `bepaling_opties`, dezelfde
   functie als de intake (F3f): binnen de regelingen van de selectie, op lid-niveau, hoogstens
   `MAX_PER_DEELVRAAG`; kern zonder kern, anders aanverwant; het bewijs draagt `deelvraag_id` en wat de
   bepaling raakt, zodat de api een opgenomen bron aan de deelvraag koppelt).
@@ -946,7 +947,7 @@ werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en
 ### De bronselectie per deelvraag (`agent/bronselectie.py`, `nodes/bronselectie.py`, spoor J)
 
 "Help mij de bronnen bij dit werkgebied te bepalen" laat Lex de deelvragen één voor één afwerken met
-vraagkaarten: kiezen (`bs_kies`), de kernbepalingen (`bs_bepalingen`), wat eraan hangt
+vraagkaarten: eerst, als die nog leeg is, de gebeurtenis (`bs_gebeurtenis`, zie hieronder), dan kiezen (`bs_kies`), de kernbepalingen (`bs_bepalingen`), wat eraan hangt
 (`bs_afhankelijkheden`), afronden (`bs_afronden`) en *Hoe wil je verder?* (`bs_verder`). Een eigen worker
 onder de supervisor, naast de intake; zie `docs/architectuur/bronselectie-per-deelvraag.md`.
 
@@ -982,7 +983,30 @@ onder de supervisor, naast de intake; zie `docs/architectuur/bronselectie-per-de
 - **Uit gaan** `token`, `vraagkaart` (`modus: "bronselectie"`, `deelvraag_id`) en het artefact
   `{soort: "bronselectie", ref: {werkgebied_id, deelvraag_id?}}`. `tests/test_contract_drift.py` toetst de stappen
   tegen api en werkplek.
-- Tests: `tests/test_bronselectie.py` (de cyclus met vier deelvragen, hervatten, de vaste zin, de beurt).
+- **De gebeurtenis en de grondslag** (`agent/zoekvragen.py`, zoekvragen a–d, skill
+  `references/zoekvragen-bronselectie.md`, plan `~/.claude/plans/zoekvragen-bronselectie.md` PR 3). Het zoeken op de
+  woorden van de analist mist de wet ("de schuld laten vervallen" tegen "kwijtschelding", meetlogboek
+  `bronselectie-2026-11-04-dossier`); de wet ordent zich naar haar gebeurtenissen.
+  - `gebeurtenis_opties`, zonder model: de dossiertermen (met de naam) in de index, elke treffer naar de koppen erboven
+    (`plaats_in_opbouw`; bij een beleidsregel alleen de hoofddivisie), per kop een idf-gewicht, uit de kop de
+    gebeurtenissen (`kop_gebeurtenissen`: na het nummer, zonder "Algemene bepalingen over", geknipt op komma en "en",
+    hoogstens `MAX_WOORDEN`). Wat het dossier letterlijk noemt (`genoemd_in`: het woord zelf, geen gedeelde stam) gaat
+    voor.
+  - `bs_gebeurtenis` (`kaart_gebeurtenis`): gevraagd als het werkgebied nog geen gebeurtenis heeft en de analist nog
+    niet begon, of als de vraag het woord noemt (*Vraag Lex* bij het lege veld). Kiezen of typen is een `PATCH` van
+    het werkgebied (met de revisie); daarmee verandert de invoer van de bronnenrun en zoekt Lex opnieuw. Overslaan
+    slaat niets op. De node geeft `stel_voor` mee (zonder graaf geen voorstel, en dan geen kaartje).
+  - `grondslag`: één zin noemt de gebeurtenis (woordbegin, `_raakt_woord`: "vallen" raakt "gevallen" niet) én draagt
+    een signaal van bestaansrecht (`BESTAANSRECHT`; een zin die met "Geen" begint beperkt, zoekvraag b). Geen
+    beleidsregel. Weg als de tekst méér raakt aan wat buiten de afbakening valt dan aan de gebeurtenis (zoals
+    `bepaling_opties`; de afbakening noemt de gebeurtenis vaak zelf). Eerst de bepalingen onder een kop met de
+    gebeurtenis, in documentvolgorde, dan de rest; om de beurt per regeling (`om_de_beurt`).
+  - Meten: `uv run python -m eval.bronselectie_eval --zoekvragen --set <set>` (de plek van de gebeurtenis van de set,
+    met en zonder naam, en de recall van de grondslag op `zoekvraag: a`). Ontwikkelset kwijtschelding: plek 1 / 3,
+    recall 0,67, precisie 0,25. Een brede gebeurtenis ("aansprakelijkheid") vult de grondslag met een heel
+    hoofdstuk; de blinde meting (`verrekening-concept`) komt in PR 7.
+- Tests: `tests/test_bronselectie.py` (de cyclus met vier deelvragen, hervatten, de vaste zin, de beurt, de
+  gebeurtenis) en `tests/test_zoekvragen.py` (koppen, signalen, de voorstellen en de grondslag tegen een nepgraaf).
 
 ### Het werkgebied als context in het gesprek (`agent/werkgebied_context.py`)
 

@@ -7,6 +7,10 @@ vers. Zo werkt hervatten na herladen, in een ander gesprek of bij een collega, e
 onderbreking: de stand verandert er niet door. Er draait hier geen model. De volgorde is een vaste cyclus per
 deelvraag, en de volgende deelvraag kiest de api:
 
+- `bs_gebeurtenis` – om welke gebeurtenis het gaat, in de term van de wet ("kwijtschelding"): het vertrekpunt van
+  de zoekvragen a–d (skill `references/zoekvragen-bronselectie.md`). Lex stelt voor uit de koppen van de regelingen
+  (`zoekvragen.gebeurtenis_opties`, zonder model); de keuze staat op het werkgebied (`gebeurtenis`). Gevraagd bij het
+  begin, als ze nog leeg is, of als de analist er zelf om vraagt ("bepaal de gebeurtenis");
 - `bs_kies` – met welke deelvraag gaan we verder (de volgende staat aangevinkt);
 - `bs_bepalingen` – fase A en B: de kernbepalingen bij deze deelvraag. Het kaartje is compact (3 nov 2026): het
   telt wat er ligt, de analist beslist in het paneel, en *Klaar* gaat verder;
@@ -30,7 +34,7 @@ from typing import Any, Awaitable, Callable
 
 ANALYSEVRAAG = "analysevraag"
 
-KAARTSTAPPEN = ("bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder")
+KAARTSTAPPEN = ("bs_gebeurtenis", "bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder")
 FASE_STAP = {"kern": "bs_bepalingen", "afhankelijkheden": "bs_afhankelijkheden", "afronden": "bs_afronden"}
 
 STAND_TEKST = {"niet_gestart": "nog niet gestart", "in_behandeling": "in behandeling",
@@ -39,6 +43,8 @@ SLOT = ("De bronselectie is beoordeeld binnen de vastgestelde afbakening en de b
         "Dat is geen oordeel dat de analyse juridisch volledig is; de vaststelling blijft aan jou.")
 
 Zoek = Callable[[str], Awaitable[str]]
+#: De gebeurtenissen die Lex voorstelt bij een werkgebied en zijn regelingen (`zoekvragen.gebeurtenis_opties`).
+StelVoor = Callable[[dict[str, Any], list[str]], list[dict[str, Any]]]
 
 
 def intake_id(werkgebied_id: str) -> str:
@@ -126,6 +132,23 @@ def kaart_kies(werkgebied_id: str, ov: dict[str, Any]) -> dict[str, Any]:
             "opties": [{"label": _kort(f"{d['nr']}. {d['vraag']}", 300), "waarde": d["id"], "bron": {},
                         "omschrijving": _kort(stand_tekst(d), 300)} for d in ov["deelvragen"][:20]],
             "vooringevuld": [voorkeur] if voorkeur else [], "deelvraag_id": ""}
+
+
+def kaart_gebeurtenis(werkgebied_id: str, ov: dict[str, Any], opties: list[dict[str, Any]],
+                     deelvraag_id: str = "") -> dict[str, Any]:
+    """Om welke gebeurtenis gaat het? De opties uit de koppen van de regelingen, met de koppen als omschrijving;
+    de huidige keuze (of anders de eerste) staat aangevinkt. Een eigen term mag; overslaan ook."""
+    huidig = (ov.get("gebeurtenis") or "").strip()
+    lijst = [{"label": _kort(o["gebeurtenis"], 300), "waarde": _kort(o["gebeurtenis"], 200), "bron": {},
+              "omschrijving": _kort("; ".join(o.get("koppen") or []), 300)} for o in opties[:8]]
+    if huidig and huidig.casefold() not in {o["waarde"].casefold() for o in lijst}:
+        lijst.insert(0, {"label": huidig, "waarde": huidig, "bron": {}, "omschrijving": "nu gekozen"})
+    toelichting = ("Ik zoek de bronnen vanaf de handeling zoals de wet haar noemt: eerst waar ze geregeld is, dan de "
+                   "voorwaarden en de procedure, de gevolgen en de uitleg. De voorstellen komen uit de koppen van de "
+                   "regelingen. Kies er één, of typ de term van de wet.")
+    return {**_basis(werkgebied_id, "bs_gebeurtenis", None, ov), "nr": 1, "totaal": 1, "deelvraag_id": deelvraag_id,
+            "vraag": "Om welke gebeurtenis gaat het?", "toelichting": toelichting, "opties": lijst,
+            "vooringevuld": [huidig or lijst[0]["waarde"]] if lijst else [], "vrije_tekst": True, "overslaanbaar": True}
 
 
 def _past(stap: str) -> Callable[[dict[str, Any]], bool]:
@@ -317,13 +340,42 @@ async def _toon_fase(api, wid: str, ov: dict, did: str, zoek: Zoek | None, zinne
     return {"kaart": kaart_afronden(wid, ov, d), "zinnen": zinnen}
 
 
-async def start(api, wid: str, zoek: Zoek | None, vraag: str = "", deelvraag_id: str = "") -> dict[str, Any]:
+_OM_GEBEURTENIS = re.compile(r"\bgebeurtenis\b", re.I)
+
+
+async def _vraag_gebeurtenis(api, wid: str, ov: dict[str, Any], stel_voor: StelVoor | None, vraag: str,
+                             deelvraag_id: str) -> dict[str, Any] | None:
+    """Het kaartje van de gebeurtenis, als het aan de orde is: ze is nog leeg en de analist begon nog niet aan een
+    deelvraag, of hij vraagt er zelf om. Zonder voorstel (geen regeling, de graaf hapert) en zonder keuze vraagt
+    Lex niets: hij zoekt dan zoals voorheen."""
+    if stel_voor is None:
+        return None
+    gevraagd = bool(_OM_GEBEURTENIS.search(vraag or ""))
+    begonnen = any(d["status"] != "niet_gestart" for d in ov["deelvragen"])
+    if not gevraagd and ((ov.get("gebeurtenis") or "").strip() or begonnen):
+        return None
+    wg = await api.haal_werkgebied(wid)
+    regelingen = list(dict.fromkeys([b["bwb_id"] for b in wg.get("bronnen") or [] if b.get("bwb_id")]
+                                    + regelingen_van(ov)))
+    opties = stel_voor(wg, regelingen)
+    if not opties and not (ov.get("gebeurtenis") or gevraagd):
+        return None
+    return kaart_gebeurtenis(wid, ov, opties, deelvraag_id)
+
+
+async def start(api, wid: str, zoek: Zoek | None, vraag: str = "", deelvraag_id: str = "",
+                stel_voor: StelVoor | None = None) -> dict[str, Any]:
     """Beginnen of hervatten: wat er ligt, en het kaartje waar de analist was. Een genoemde deelvraag
     ("deelvraag 4", of aangewezen in de werkplek) gaat voor.
+
+    Heeft het werkgebied nog geen gebeurtenis en is de analist nog niet begonnen, dan eerst die vraag
+    (`bs_gebeurtenis`); de aangewezen deelvraag reist mee op het kaartje.
 
     Is het werkgebied veranderd sinds de laatste zoekopdracht (het dossier, de selectie), dan zoekt Lex eerst
     opnieuw: pas daarna weet de api welke afgeronde deelvraag er door de nieuwe voorstellen weer open staat."""
     ov = await api.haal_bronselectie(wid)
+    if (kaart := await _vraag_gebeurtenis(api, wid, ov, stel_voor, vraag, deelvraag_id)) is not None:
+        return {"kaart": kaart, "zinnen": [f"*{ov['naam']}*: voor we de bronnen zoeken, eerst de gebeurtenis."]}
     melding = ""
     if (ov.get("zoekdekking") or {}).get("verouderd"):
         ov, melding = await _gezocht(api, wid, ov, zoek, "")
@@ -397,8 +449,28 @@ async def _zelf(api, wid: str, ov: dict, did: str, stap: str, tekst: str,
     return ov, zinnen, gelukt
 
 
+async def _kies_gebeurtenis(api, wid: str, ov: dict[str, Any], actie: dict[str, Any], keuzes: list[str], tekst: str,
+                            zoek: Zoek | None, stel_voor: StelVoor | None) -> dict[str, Any]:
+    """Een klik op het kaartje van de gebeurtenis: opslaan op het werkgebied (een eigen tekst gaat voor de keuze), of
+    overslaan. Daarna gewoon verder, met de deelvraag die op het kaartje meereisde. Opslaan verandert de invoer van
+    de bronnenrun, dus het zoeken begint opnieuw."""
+    did = actie.get("deelvraag_id") or ""
+    if actie.get("actie") == "overslaan":
+        uit = await start(api, wid, zoek, deelvraag_id=did)
+        return {**uit, "zinnen": ["Dan zoek ik zonder gebeurtenis; je kunt haar later nog kiezen.", *uit["zinnen"]]}
+    gebeurtenis = " ".join((tekst or (keuzes[0] if keuzes else "")).split())[:200]
+    if not gebeurtenis:
+        kaart = await _vraag_gebeurtenis(api, wid, ov, stel_voor, "gebeurtenis", did)
+        return {"kaart": kaart, "zinnen": ["Kies een gebeurtenis, typ de term van de wet of sla over."]}
+    if gebeurtenis != (ov.get("gebeurtenis") or ""):
+        await api.wijzig_werkgebied(wid, {"verwachte_revisie": ov["revisie"], "gebeurtenis": gebeurtenis})
+    uit = await start(api, wid, zoek, deelvraag_id=did)
+    return {**uit, "zinnen": [f"De gebeurtenis is *{gebeurtenis}*. Ik zoek de bronnen vanaf haar grondslag.",
+                              *uit["zinnen"]]}
+
+
 async def verwerk(api, actie: dict[str, Any], zoek: Zoek | None,
-                  vind: Callable[[str], list[str]] | None = None) -> dict[str, Any]:
+                  vind: Callable[[str], list[str]] | None = None, stel_voor: StelVoor | None = None) -> dict[str, Any]:
     """Een klik op een kaartje van de bronselectie. Geeft `{kaart?, zinnen, artefact_deelvraag?}`."""
     wid = werkgebied_van(str(actie.get("intake_id", "")))
     stap = actie.get("stap", "")
@@ -409,6 +481,8 @@ async def verwerk(api, actie: dict[str, Any], zoek: Zoek | None,
         return {"zinnen": ["Ik zet de bronselectie even stil; de stand blijft bewaard. Kies *Verder met de "
                            "bronselectie* of vraag het me als je verder wilt."]}
     ov = await api.haal_bronselectie(wid)
+    if stap == "bs_gebeurtenis":
+        return await _kies_gebeurtenis(api, wid, ov, actie, keuzes, tekst, zoek, stel_voor)
     if ov["modus"] == "analysevraag" and stap != "bs_kies":
         did = ANALYSEVRAAG
     if stap == "bs_kies":
