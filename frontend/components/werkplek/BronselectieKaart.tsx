@@ -60,28 +60,33 @@ export function BronselectieKaart({ kaart, uitgeschakeld, onActie, onSluit, onBe
           Lees de tekst en neem op of sluit uit in het paneel. {kern ? "Klaar? Dan zoek ik wat eraan hangt." : "Wat je opneemt, komt erbij als contextbron."}
         </p>
       </div>
-      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-        {onBeoordelen && (
-          <Button variant="secondary" size="sm" onClick={onBeoordelen} className="w-full sm:w-auto">
-            Bronnen beoordelen <PijlRechts className="ml-1" />
-          </Button>
-        )}
-        {onToevoegen && (
-          <Button variant="secondary" size="sm" onClick={onToevoegen} disabled={uitgeschakeld} className="w-full sm:w-auto">
-            + Bepaling toevoegen
-          </Button>
-        )}
-        <Button size="sm" onClick={() => onActie(klaarActie(kaart))} disabled={uitgeschakeld} className="w-full sm:ml-auto sm:w-auto"
-          data-klaar>
-          {kern ? "Klaar met de kernbepalingen" : "Klaar, afronden"}
-        </Button>
-      </div>
+      {/* Opbouw zoals het VraagDock: de nevenacties naast elkaar en even breed, dan de eigen bepaling, en onderaan
+          rechts de hoofdknop. Niet in één rij met flex-wrap: dan viel *Klaar* bij deze breedte los op een eigen regel. */}
+      {(onBeoordelen || onToevoegen) && (
+        <div className={`mt-3 grid gap-2 ${onBeoordelen && onToevoegen ? "sm:grid-cols-2" : ""}`} data-nevenacties>
+          {onBeoordelen && (
+            <Button variant="secondary" size="sm" onClick={onBeoordelen} className="w-full">
+              Bronnen beoordelen <PijlRechts className="ml-1" />
+            </Button>
+          )}
+          {onToevoegen && (
+            <Button variant="secondary" size="sm" onClick={onToevoegen} disabled={uitgeschakeld} className="w-full">
+              + Bepaling toevoegen
+            </Button>
+          )}
+        </div>
+      )}
       <form className="mt-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (typ && !uitgeschakeld) { onActie(typ); setEigen(""); } }}>
         <input value={eigen} onChange={(e) => setEigen(e.target.value)} disabled={uitgeschakeld}
-          aria-label="Een bepaling typen" placeholder="Of typ een bepaling, bijvoorbeeld ‘artikel 9 lid 2 Invorderingswet 1990’"
+          aria-label="Een bepaling typen" placeholder="Of typ een bepaling, bijv. ‘artikel 9 lid 2 Iw 1990’"
           className="focus-ring min-h-[36px] min-w-0 flex-1 rounded-field border border-line bg-paper px-3 text-sm placeholder:text-faint" />
         {typ && <Button type="submit" variant="ghost" size="sm">Voeg toe</Button>}
       </form>
+      <div className="mt-3 flex sm:justify-end">
+        <Button onClick={() => onActie(klaarActie(kaart))} disabled={uitgeschakeld} className="w-full px-5 sm:w-auto" data-klaar>
+          {kern ? "Klaar met de kernbepalingen" : "Klaar, afronden"} <PijlRechts />
+        </Button>
+      </div>
     </section>
   );
 }
