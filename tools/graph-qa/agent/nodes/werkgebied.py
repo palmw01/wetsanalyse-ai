@@ -102,8 +102,8 @@ def _deelvragen(b, intake: dict[str, Any], writer) -> dict[str, Any]:
 def _regelingen(b, intake: dict[str, Any], zoek: str, writer, *, per_deelvraag: bool) -> dict[str, Any]:
     """Regelingen uit de graaf, gezocht met wat er ligt: het onderwerp, de deelvragen, de regelingen die
     het dossier bij naam noemt, en zonder wat buiten het werkgebied valt."""
-    from ..bronnen_vinden import onderwerp_van_deelvraag
-    from ..werkgebied_context import uitsluitstammen
+    from ..zoektermen import onderwerp_van_deelvraag
+    from ..zoektermen import uitsluitstammen
 
     a = intake.get("antwoorden") or {}
     wg = wi.als_werkgebied(intake)
@@ -136,11 +136,11 @@ def _regelingen(b, intake: dict[str, Any], zoek: str, writer, *, per_deelvraag: 
 
 
 def _bepalingen(b, intake: dict[str, Any], writer) -> dict[str, Any]:
-    """De bepalingen bij de deelvraag van dit kaartje (`bronnen_vinden.bepaling_opties`, zonder model),
+    """De bepalingen bij de deelvraag van dit kaartje (`deelvraag_zoeken.bepaling_opties`, zonder model),
     binnen de gekozen regelingen. Wat de analist hier al koos blijft kiesbaar; wat raakt aan wat buiten
     het werkgebied valt, staat onderaan en wordt niet aangevinkt."""
-    from ..bronnen_vinden import bepaling_opties
-    from ..werkgebied_context import uitsluitstammen
+    from ..deelvraag_zoeken import bepaling_opties
+    from ..zoektermen import uitsluitstammen
 
     a = intake.get("antwoorden") or {}
     sleutel = wi.kaartsleutel(intake)
@@ -172,9 +172,9 @@ def _eigen_bepalingen(b, intake: dict[str, Any], tekst: str, writer) -> tuple[li
     """Wat de analist zelf op een bepalingenkaartje typte ("artikel 9 lid 1 en 5 Invorderingswet 1990"): per
     bepaling getoetst in de graaf. (bepalingen, "") als alles gevonden is; anders ([], een vraag) en blijft het
     kaartje staan. De regeling komt uit de tekst (naam of afkorting), anders uit de intake als die er één heeft –
-    dezelfde regels als de bronselectie (`bronselectie.bepalingen_uit_tekst`)."""
-    from ..bronnen_vinden import bepaling_in_graaf
-    from ..bronselectie import bepalingen_uit_tekst
+    dezelfde regels als de bronselectie (`bepaling_namen.bepalingen_uit_tekst`)."""
+    from ..bepaling_namen import bepaling_in_graaf
+    from ..bepaling_namen import bepalingen_uit_tekst
     from ..overzicht import regelingen_in_vraag
     from ..regelingnamen import regelingnamen
 

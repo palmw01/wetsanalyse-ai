@@ -63,7 +63,7 @@ BEPALINGEN = {DV1: [_bep(L21, "Artikel 2.1, lid 1 – Wet IB 2001")],
 def graaf(monkeypatch):
     """De voorstellen uit de graaf zonder graaf: wat `regeling_opties` en `bepaling_opties` krijgen, en
     wat ze teruggeven."""
-    from agent import bronnen_vinden
+    from agent import deelvraag_zoeken
 
     gezocht: list[dict[str, Any]] = []
 
@@ -79,7 +79,7 @@ def graaf(monkeypatch):
         return list(BEPALINGEN.get(deelvraag, []))
 
     monkeypatch.setattr(wi, "regeling_opties", opties)
-    monkeypatch.setattr(bronnen_vinden, "bepaling_opties", bepalingen)
+    monkeypatch.setattr(deelvraag_zoeken, "bepaling_opties", bepalingen)
     return gezocht
 
 
@@ -253,13 +253,13 @@ class _B:
 
 def _nep_graaf(monkeypatch, bestaat):
     """De graaf voor `_eigen_bepalingen`: welke regelingen een tekst noemt, en welke bepalingen bestaan."""
-    from agent import bronnen_vinden, overzicht, regelingnamen
+    from agent import bepaling_namen, overzicht, regelingnamen
 
     def noemt(_graph, tekst):
         t = tekst.lower()
         return sorted({b for naam, b in (("invorderingswet", IW), ("awb", AWB), ("awr", AWR)) if naam in t})
     monkeypatch.setattr(overzicht, "regelingen_in_vraag", noemt)
-    monkeypatch.setattr(bronnen_vinden, "bepaling_in_graaf", lambda _g, bwb, art, lid="": (
+    monkeypatch.setattr(bepaling_namen, "bepaling_in_graaf", lambda _g, bwb, art, lid="": (
         {"bron_iri": f"urn:bwb:{bwb}:artikel:{art}" + (f":lid:{lid}" if lid else ""), "bwb_id": bwb,
          "label": f"Artikel {art}" + (f", lid {lid}" if lid else "")} if (bwb, art, lid) in bestaat else None))
     monkeypatch.setattr(regelingnamen, "regelingnamen", lambda _g, ids: {IW: "Invorderingswet 1990", AWB: "Awb",
@@ -412,7 +412,7 @@ def test_regelingen_komen_uit_het_overzicht_en_genoemde_staan_voorop(monkeypatch
 
 def test_regelingen_ook_per_deelvraag_en_zonder_wat_erbuiten_valt(monkeypatch):
     """F2: per deelvraag zoeken, en wat buiten valt zichtbaar weglaten."""
-    from agent.werkgebied_context import uitsluitstammen
+    from agent.zoektermen import uitsluitstammen
 
     _nep_overzicht(monkeypatch, {
         "box 3": [{"bwb_id": IB, "citeertitel": "Wet IB 2001", "delen": [{"iri": AFD, "kop": "Afdeling 5.1 – Box 3"}]}],

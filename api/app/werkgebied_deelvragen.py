@@ -199,6 +199,22 @@ async def _op_de_plek_van(conn, werkgebied_id: str, oud, nieuw_id: str) -> None:
         await conn.execute(update(d).where(d.c.id == did).values(volgorde=i))
 
 
+async def voorgangers_in(conn, werkgebied_id: str) -> dict[str, set[str]]:
+    """Per deelvraag de ids die ze (via een keten van verbeteringen) vervangt: een kandidaat die bij een
+    vervangen deelvraag gevonden was, hoort bij haar opvolger."""
+    d = db.werkgebied_deelvragen
+    rows = (await conn.execute(select(d.c.id, d.c.vervangt).where(d.c.werkgebied_id == werkgebied_id))).all()
+    ouder = {r.id: r.vervangt for r in rows if r.vervangt}
+    uit: dict[str, set[str]] = {}
+    for did in {r.id for r in rows}:
+        keten, x = set(), ouder.get(did)
+        while x and x not in keten:
+            keten.add(x)
+            x = ouder.get(x)
+        uit[did] = keten
+    return uit
+
+
 async def opvolgers_in(conn, werkgebied_id: str, deelvraag_ids: list[str]) -> dict[str, list[str]]:
     """Per vervangen deelvraag de actieve deelvragen die haar plek innamen."""
     d = db.werkgebied_deelvragen

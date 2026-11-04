@@ -883,6 +883,24 @@ export interface WerkgebiedWijziging {
 }
 
 /** `GET …/thema-voorstel` (spoor I6): de thema's die passen bij de WTI-rechtsgebieden van de bronnen. */
+/** *Bepaling toevoegen* (3 nov 2026): een regeling om in te zoeken, en de bepalingen die bij een getypte
+ *  vindplaats passen (`GET …/regelingen`, `GET …/bepalingen`). */
+export interface RegelingTreffer { bwb_id: string; citeertitel: string; soort?: string; afkortingen?: string[] }
+export interface BepalingTreffer {
+  bron_iri: string;
+  soort: "artikel" | "lid" | "onderdeel" | "deel";
+  /** "Artikel 9.2, onderdeel d" – uit de echte boom. */
+  vindplaats: string;
+  /** De kop van een divisie ("Dagtekening"); leeg bij een artikel van een wet. */
+  titel: string;
+  fragment: string;
+}
+export interface BepalingZoekAntwoord {
+  bwb_id: string;
+  gelezen: { artikel: string; lid: string; onderdeel: string; tekst: string };
+  treffers: BepalingTreffer[];
+}
+
 export interface ThemaVoorstel {
   rechtsgebieden: string[];
   voorstel: { thema: string; label: string }[];
@@ -1374,7 +1392,7 @@ export interface AkkoordAntwoord {
 
 export type BronMethode = "overzicht" | "deelvraag" | "verwijzing_uit" | "verwijzing_in" | "definitie" | "opbouw" | "gelijkenis";
 export type KandidaatRol = "kern" | "afhankelijkheid" | "aanverwant";
-export type KandidaatStatus = "voorgesteld" | "opgenomen" | "later" | "uitgesloten";
+export type KandidaatStatus = "voorgesteld" | "opgenomen" | "uitgesloten";
 
 /** Waarom één methode deze bepaling vond. `detail` per methode: verwijzingen `{anker, functie}`,
  *  definitie `{begrip}`, overzicht `{onderwerp}`, opbouw `{deel}`, gelijkenis `{score}`. */
@@ -1395,7 +1413,9 @@ export interface BronKandidaat {
   status: KandidaatStatus;
   reden: string;
   run_id: string;
-  in_laatste_run: boolean;
+  /** Een open voorstel dat de laatste zoekopdracht niet meer vond (het dossier of de selectie veranderde): de
+   *  bronselectie toont het niet meer. Een besluit vervalt nooit. */
+  vervallen: boolean;
   /** Intussen met de hand opgenomen: geen open voorstel meer. */
   in_selectie: boolean;
   besloten_door: string | null;

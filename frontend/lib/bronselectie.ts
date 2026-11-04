@@ -195,3 +195,20 @@ export function slotZin(o: BronselectieOverzicht): string {
     ? "De bronselectie is beoordeeld binnen de vastgestelde afbakening en de beschikbare bronnen. Dat is geen oordeel dat de analyse juridisch volledig is."
     : "De bronselectie is nog niet beoordeeld binnen de afbakening; hierboven staat wat openstaat.";
 }
+
+/** Een besluit over de bronselectie, waar ook genomen (paneel, *Bepaling toevoegen*): het compacte kaartje in het
+ *  gesprek en het paneel laden dan opnieuw. Eén venster-event, zodat ze elkaar niet hoeven te kennen. */
+export const BRONSELECTIE_GEWIJZIGD = "wa:bronselectie-gewijzigd";
+
+export function meldBronselectieGewijzigd(werkgebiedId: string): void {
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(BRONSELECTIE_GEWIJZIGD, { detail: werkgebiedId }));
+}
+
+/** Wat het compacte kaartje telt (3 nov 2026), zoals graph-qa het kaartje opbouwt: bij de kernbepalingen de
+ *  kandidaten met rol kern, bij wat eraan hangt de rest. Open = nog voorgesteld of eerder niet gekozen. */
+export function paneelTelling(d: Pick<DeelvraagSelectie, "kandidaten">, stap: string): { kandidaten: number; opgenomen: number } {
+  const kern = stap === "bs_bepalingen";
+  const hier = d.kandidaten.filter((k) => (k.rol === "kern") === kern);
+  return { kandidaten: hier.filter((k) => k.stand === "voorgesteld" || k.stand === "niet_gekozen").length,
+    opgenomen: hier.filter((k) => k.stand === "opgenomen").length };
+}

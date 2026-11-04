@@ -200,7 +200,7 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     bij die deelvraag) levert `ref: {werkgebied_id, deelvraag_id}`. **`DeelvraagPaneel`** haalt
     `GET …/deelvragen/{id}` (ook een vervangen deelvraag) en toont de vraag met haar stand, de voorstellen
     van Lex die haar vervangen (`DeelvraagVoorstel` uit `Deelvragen.tsx`, met "Vervangt “…”"), de bronnen en
-    begrippen, en `BronKandidaten deelvraagId` (alleen wat Lex bij haar vond, zonder zoekknop). Overnemen
+    begrippen, en `BronnenBijDeelvraag` (de bronselectie van die deelvraag). Overnemen
     vervangt de oude (api): na herladen zegt het paneel "vervangen door …" en opent de opvolger in hetzelfde
     paneel (`onWissel`).
   - **werkgebied** (activiteit 1) – een werkgebied dat Lex met de analist samenstelde: ref
@@ -443,6 +443,14 @@ heeft *Verzend* (`isLaatsteVraag`), want wat erna komt hangt af van het antwoord
   uitsluiten met reden of heropenen (`besluitBronselectie`); de stappen zet Lex. **Geen *later***: wat je op het
   kaartje niet aanvinkt, is *niet gekozen*; iets toevoegen doe je door de vragen opnieuw te doorlopen, of door
   een bepaling in het tekstveld van het kaartje te typen.
+- **Het kaartje van de bepalingen is compact, het paneel beslist** (3 nov 2026, het artefactpatroon van Claude):
+  bij `weergave: "paneel"` toont de werkplek `BronselectieKaart` in plaats van `VraagDock`. Die toont de telling (live,
+  via `paneelTelling` en het venster-event `BRONSELECTIE_GEWIJZIGD`) met *Bronnen beoordelen* (opent het paneel),
+  *+ Bepaling toevoegen* (`BepalingToevoegen` met de deelvraag van het kaartje), *Klaar* (`klaarActie`) en een
+  regel om een bepaling te typen (`typActie`). In het paneel (`inGesprek`) klappen kandidaten en bronnen uit met
+  de wettekst (`GroepRij uitklap`, `Wettekst`), in plaats van naar de bronpagina te gaan. Onder de actieve
+  deelvraag staan *+ Bepaling toevoegen* en *Klaar met deze deelvraag*; die laatste stuurt de actie van het open
+  kaartje (`onKlaar`/`klaarVoor` vanuit `WerkplekClient`). Browserregressie: `scripts/test-bronselectie-paneel.mjs`.
 - **Een bronselectiebeurt blijft een antwoord met kaartje**: het artefact `bronselectie` maakt er geen
   artefact-item van (anders is de open vraag weg), live (`toonVastgelegdeBeurt`) en na herladen. Het paneel
   opent vanzelf alleen vanaf 1280px; daaronder via de balk *laatste artefact* (`bronselectieVanKaart`).
@@ -715,7 +723,7 @@ bestaat los van de gesprekken.
     (bepaling als titel, regeling · rol · annotatiestand · "ook bij deelvraag n" eronder, *Geselecteerd* of
     *Context*), de voorstellen van Lex bij die deelvraag (*Ter beoordeling*) met *Opnemen* / *Uitsluiten…* /
     *Heropenen*, de onderzoekspunten, en wat bij geen deelvraag hoort onder *Zonder deelvraag*; erboven de
-    afbakening als tekst, zoeken, rolfilter en *Bepaling opnemen* (een venster, `BronOpnemen`); rol en verwijderen
+    afbakening als tekst, zoeken, rolfilter en *Bepaling toevoegen* (een venster, `BepalingToevoegen`); rol en verwijderen
     achter ⋯) en Artefacten (`ArtefactenTab`: vier kaarten,
     `artefactKaarten`).
   - **Detailpagina's** (`DetailPaginas.tsx`): `artefacten/[soort]` – `dossier` (de velden, *Bewerken* in
@@ -764,9 +772,16 @@ bestaat los van de gesprekken.
   het werkgebied wijzigde; de handeling wordt **niet** stil opnieuw uitgevoerd, want op de nieuwe stand
   kan ze iets anders betekenen. Een fout die over de invoer gaat (409 `al_opgenomen`, 422 van de
   graaf) vangt het formulier zelf af via `opFout`.
-- **Bronnen**: opnemen met regeling (BWB-id) + artikel (+ lid) of een graaf-IRI (`bronInvoer` in
-  `lib/werkgebied.ts` leest "artikel 9" als "9"; de api verifieert tegen de graaf). Dezelfde bron met
-  dezelfde rol nog eens is idempotent en wordt zo gemeld. Verwijderen is een `BevestigKnop` en laat de
+- **Bronnen: *Bepaling toevoegen*** (`components/werkgebieden/BepalingToevoegen.tsx`, rekenkern
+  `lib/bepalingToevoegen.ts`, 3 nov 2026) is één onderdeel voor de tab, het paneel naast het gesprek en het kaartje van
+  de bronselectie. Je kiest een regeling (combobox, die van het werkgebied vooraan; `GET …/regelingen`) en typt een
+  vindplaats ("9 lid 2", "21.1", "25.4 onderdeel b"), met live treffers uit de echte boom (`GET …/bepalingen`) en de
+  wettekst van de keuze eronder. Daarna kies je de deelvraag (of geen: alleen het werkgebied), de rol en een optionele
+  reden. *Toevoegen* staat uit tot er een treffer gekozen is, en er gaat altijd een bron-IRI naar de api. Met een
+  deelvraag gaat het via `POST …/bronselectie/{d}/bronnen`, anders via `POST …/bronnen`. Elke fout staat bij het
+  formulier (`toevoegFout`): niet gevonden met wat er gelezen is, de opties van de graaf (422), al opgenomen,
+  uitgesloten, graaf weg. Een 412 haalt de revisie opnieuw en probeert één keer opnieuw. Dezelfde bron met dezelfde
+  rol nog eens is idempotent en wordt zo gemeld. Verwijderen is een `BevestigKnop` en laat de
   bepaling en haar annotaties staan.
 - **Elementen** toont wat de api meldt in plaats van het weg te poetsen: `volledig: false` en
   `onbereikbaar` als open punt, `bron_gewijzigd` als signaal, `deels_buiten` bij het element, en een

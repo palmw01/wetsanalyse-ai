@@ -2,7 +2,7 @@
 
 De logica staat in `agent/bronselectie.py` en draait op de event loop van de beurt (de api-client is async),
 zoals de agents. De stand komt bij elke beurt vers van de api; deze node bewaart niets in de state. Zoeken is
-de bronnenrun van de deelvragen-agent (`bronnen_run.bronnen_kern`, zonder model).
+de bronnenrun (`bronnen_run.zoek_run`, zonder model) over het hele werkgebied.
 
 Uit gaan een `token` (de zin van Lex), een `vraagkaart` (het kaartje, ook na herladen te beantwoorden) en een
 `artefact` `{soort: "bronselectie", ref: {werkgebied_id, deelvraag_id?}}`: het paneel naast het gesprek.
@@ -49,10 +49,9 @@ def bronselectie_node(b, state: State) -> dict[str, Any]:
                       gestopt=lambda: bool(b.stop_check and b.stop_check()))
 
         async def zoek(deelvraag_id: str) -> str:
-            from ..bronnen_run import bronnen_kern
+            from ..bronnen_run import zoek_run
             _stap(stuur, "Lex", "zoekt bepalingen bij het werkgebied en zijn deelvragen")
-            uit = await bronnen_kern(ctx, wid, "" if deelvraag_id == bs.ANALYSEVRAAG else deelvraag_id)
-            return "" if uit.status == "ok" else (uit.reden or "het zoeken lukte niet")
+            return await zoek_run(ctx, wid)
 
         def vind(tekst: str) -> list[str]:
             """De regelingen die een eigen tekst bij naam of afkorting noemt (uit de graaf, zonder model)."""

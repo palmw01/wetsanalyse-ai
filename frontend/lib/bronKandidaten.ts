@@ -42,11 +42,16 @@ export const FILTER_LABEL: Record<KandidaatFilter, string> = {
 };
 
 /** In welk filter een kandidaat valt. Intussen met de hand opgenomen telt als opgenomen: dat is geen
- *  open voorstel meer, ook al staat zijn status nog op voorgesteld. Er is geen *later* meer (spoor J): een oud
- *  besluit *later* telt als voorstel. */
+ *  open voorstel meer, ook al staat zijn status nog op voorgesteld. */
 export function filterVan(k: Pick<BronKandidaat, "status" | "in_selectie">): KandidaatFilter {
   if (k.status === "opgenomen" || k.in_selectie) return "opgenomen";
   return k.status === "uitgesloten" ? "uitgesloten" : "open";
+}
+
+/** Een open voorstel, zoals de api het telt (`bronnen_run_store.vervallen`): voorgesteld, niet opgenomen, en
+ *  gevonden door de laatste zoekopdracht. Eén regel voor de verkenner en de tab Artefacten. */
+export function isOpen(k: Pick<BronKandidaat, "status" | "in_selectie" | "vervallen">): boolean {
+  return filterVan(k) === "open" && !k.vervallen;
 }
 
 export function telPerFilter(lijst: BronKandidaat[]): Record<KandidaatFilter, number> {

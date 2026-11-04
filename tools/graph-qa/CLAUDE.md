@@ -715,6 +715,12 @@ vraag om begrippen is sinds F3c de taak `voorstellen` van de begrippen-agent (su
 
 ### Bronnen vinden met Lex (`agent/bronnen_vinden.py`, `agent/bronnen_run.py`, fase A)
 
+Vier modules, elk één taak (gesplitst 4 nov 2026, gedrag ongewijzigd – de eval was byte-gelijk):
+`bronnen_vinden` (de graafmethoden, `Verzameling`, `vind`), `deelvraag_zoeken` (`kandidatenpool` en de
+rangschikking `bepaling_opties`, gedeeld met de intake), `zoektermen` (termen, stammen, samenstellingen,
+`uitsluitstammen`, `buiten_uit_afbakening`) en `bepaling_namen` (`_benoem`, `plek_uit_iri`,
+`bepaling_in_graaf`, `bepalingen_uit_tekst`).
+
 Vanaf de selectie van een werkgebied (kern = rol *analyseren*) zoekt Lex bepalingen die erbij kunnen
 horen; de api bewaart de kandidaten en de besluiten (`api/app/bronnen_run_store.py`).
 
@@ -765,8 +771,10 @@ horen; de api bewaart de kandidaten en de besluiten (`api/app/bronnen_run_store.
 - **Niets valt stil weg**: elke methode heeft een plafond (`MAX_*`) en meldt `aantal`, `volledig`,
   `ms`. Een falende methode wordt `volledig: false` en laat de rest staan; falen ze **allemaal**, dan
   is de run mislukt (`error` met `soort: "graaf"`), geen lege uitkomst.
-- **Eén ingang, in het gesprek**: de taak `bronnen_zoeken` van de deelvragen-agent (`bronnen_kern`, F3c)
-  – de uitkomst draagt een `bronnen`-artefact. Het eigen endpoint `/v1/bronnen-runs` is met F3e vervallen.
+- **Eén ingang**: `bronnen_run.zoek_run`, de zoekfunctie van de bronselectie (spoor J); ze zegt alleen of het
+  zoeken lukte, wat er gevonden is leest de bronselectie per deelvraag bij de api. De actie `bronnen_zoeken`
+  gaat naar de bronselectie (`BRONSELECTIE_ACTIES`). Een open voorstel telt met één regel (`is_open`: ook niet
+  `vervallen`, de api zet die vlag als de laatste klare run het niet meer vond).
   "Welke artikelen gaan over X?" blijft de overzichtsroute, ook binnen een werkgebied. Een weigering van de api (`geen_vertrekpunt`) is een antwoord.
 - Tests: `tests/test_bronnen_vinden.py` (functiepatronen, methoden tegen een nep-graaf, het
   api-contract uit de bron, run, taak).
@@ -861,7 +869,7 @@ werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en
   werkgebied valt, noemt de toelichting. Eigen tekst bij de regelingen is een nieuwe zoekopdracht.
 - **Daarna per deelvraag één kaartje met bepalingen** (F3f; `intake["deel"]`, `kaartsleutel`
   `"bepalingen:<n>"` voor voorstellen, meldingen en voorbereiding; zonder deelvragen één kaartje bij de
-  analysevraag). De opties komen zonder model uit `bronnen_vinden.bepaling_opties` – dezelfde functie
+  analysevraag). De opties komen zonder model uit `deelvraag_zoeken.bepaling_opties` – dezelfde functie
   als de deelvragen-agent – binnen de gekozen regelingen, op lid-niveau, hoogstens `MAX_BEPALINGEN`.
   Wat meer raakt aan wat erbuiten valt dan aan de deelvraag, valt niet stil weg: onderaan, met "valt
   mogelijk buiten de afbakening", nooit aangevinkt (fix 1). De keuze staat onder de tekst van de
@@ -873,9 +881,9 @@ werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en
 - **Alleen een gekozen bepaling wordt een bronselectie** (rol *analyseren*, bereik *onderliggend*),
   gekoppeld aan de deelvragen op wier kaartje ze gekozen werd (één bron voor meer deelvragen). **Een getypte
   bepaling is ook een keuze** (spoor L): de node ontleedt de tekst vóór `verwerk` (`_eigen_bepalingen` →
-  `bronselectie.bepalingen_uit_tekst`, dezelfde regels als spoor J: geknipt vóór elk "artikel", per stuk de
+  `bepaling_namen.bepalingen_uit_tekst`, dezelfde regels als spoor J: geknipt vóór elk "artikel", per stuk de
   regeling die het noemt, anders de enige van de tekst of van de intake; Awb-nummers als 4:86) en toetst elke
-  bepaling in de graaf (`bronnen_vinden.bepaling_in_graaf`, één lichte query). Gevonden: `eigen` op het antwoord.
+  bepaling in de graaf (`bepaling_namen.bepaling_in_graaf`, één lichte query). Gevonden: `eigen` op het antwoord.
   Niet te bepalen, niet gevonden ("staat niet in AWR; wel in Awb – bedoel je die?") of een haperende graaf: het
   kaartje blijft staan met de vraag en de getypte tekst (`concept`) – nooit stil weg. `eigen` komt nooit van de
   client. Lange velden houden hun alinea's (`_met_alineas`), en een getypte regeling naast aangevinkte is een
@@ -944,27 +952,28 @@ onder de supervisor, naast de intake; zie `docs/architectuur/bronselectie-per-de
   actie `bronselectie` (`models.BRONSELECTIE_ACTIES`, geen taak van een agent), of de vaste zin
   (`is_bronselectievraag`, met werkgebied) – die gaat vóór het startzinpatroon van het samenstellen, en dat
   patroon sluit hem uit ("werkgebied … bepalen" nam hem anders over). Getypt kiest de supervisor `werkgebied`
-  met `TAAK: bronselectie` – ook voor "zoek bepalingen bij deelvraag 2": de losse zoekknop is weg, en de taak
-  `bronnen_zoeken` van de deelvragen-agent staat niet meer in de prompt (wel nog in `ACTIE_TAAK`, en de
-  bronselectie gebruikt zijn zoekfunctie). Een deelvraag aangewezen in de werkplek (`onderwerp`) of genoemd ("deelvraag 4",
+  met `TAAK: bronselectie` – ook voor "zoek bepalingen bij deelvraag 2": de losse zoekknop is weg, en de actie
+  `bronnen_zoeken` gaat naar de bronselectie. Een deelvraag aangewezen in de werkplek (`onderwerp`) of genoemd ("deelvraag 4",
   `deelvraag_nr_in`) gaat voor.
-- **Een klik wordt een besluit of een stap** (`verwerk`): aangevinkt = opnemen bij deze deelvraag (rol
-  *analyseren* bij een kernbepaling op het kernkaartje, anders *context*), een opgenomen bron die niet meer
-  aangevinkt is wordt losgekoppeld, en de fase schuift door. Wat niet aangevinkt is, is niet gekozen (de api
-  leidt het af); er is geen *later*. **Eigen tekst op een bepalingenkaartje is een bepaling die de analist zelf
+- **Het kaartje van de bepalingen is compact** (`kaart_bepalingen`, `weergave: paneel`, besluit gebruiker 3 nov 2026):
+  geen vinkjes, wel de telling (`samenvatting: {kandidaten, opgenomen}`). Beslissen gebeurt in het paneel naast het
+  gesprek, dat de api rechtstreeks aanroept. **`actie: klaar`** raakt geen besluit en schuift alleen de fase door;
+  wat dan onbeslist is, is niet gekozen. Een getypte bepaling raakt de besluiten ook niet, en het kaartje blijft
+  staan tot *Klaar*. Keuzes op een bepalingenkaartje (een oud kaartje met vinkjes) beslissen niets meer.
+- **Een klik wordt een stap** (`verwerk`); er is geen *later*. **Eigen tekst op een bepalingenkaartje is een bepaling die de analist zelf
   toevoegt** (`bepalingen_uit_tekst`: artikel en lid uit de tekst, de regeling uit de tekst via
   `overzicht.regelingen_in_vraag` of – als het werkgebied er één heeft – uit het werkgebied; dan
   `POST …/bronselectie/{d}/bronnen`). Geen artikel, geen eenduidige regeling of een onbekende bepaling: een zin
   en hetzelfde kaartje. Eigen tekst op het afrondkaartje is een onderzoekspunt. Iets toevoegen kan later altijd
   door de vragen opnieuw te doorlopen (*Bepaal de bronnen bij deze deelvraag*, *verder onderzoeken*). Alles is
-  idempotent bij de api, dus een oud kaartje of een dubbele klik wordt verwerkt op de stand van nu. Een 412
+  idempotent bij de api, dus een dubbele klik wordt verwerkt op de stand van nu. Een 412
   geeft het kaartje van nu met "Iemand anders werkte intussen …".
-- **Zoeken** is `bronnen_run.bronnen_kern` (zonder model) wanneer er nog niet, of op een andere selectie,
-  gezocht is; na het opnemen dus opnieuw, voor de afhankelijkheden. Een lege fase slaat Lex over met een zin.
-- **Uit code, niet van het model**: `waarom` (rol en soort bewijs onder een optie: een tekstuele overeenkomst
-  heet zo), `beperkingen` (afgekapt, mislukt, verouderd), `controle_tekst` (zoek-, juridische en
-  beoordelingsdekking apart, met `SLOT` alleen als alles beoordeeld is – nooit "volledig"). Hoogstens
-  `MAX_OPTIES` open voorstellen per kaartje; de rest noemt het kaartje ("Nog n in het paneel").
+- **Zoeken** is `bronnen_run.zoek_run` (zonder model) wanneer er nog niet, of op een andere stand van het
+  werkgebied (selectie, dossier), gezocht is; na het opnemen dus opnieuw, voor de afhankelijkheden. `start` zoekt
+  eerst opnieuw als de stand verouderd is, ook als alle deelvragen al af waren: pas daarna weet de api welke
+  afronding door de nieuwe voorstellen weer open staat. Een lege fase slaat Lex over met een zin.
+- **Uit code, niet van het model**: `beperkingen` (afgekapt, mislukt, verouderd), `controle_tekst` (zoek-,
+  juridische en beoordelingsdekking apart, met `SLOT` alleen als alles beoordeeld is – nooit "volledig").
 - **Uit gaan** `token`, `vraagkaart` (`modus: "bronselectie"`, `deelvraag_id`) en het artefact
   `{soort: "bronselectie", ref: {werkgebied_id, deelvraag_id?}}`. `tests/test_contract_drift.py` toetst de stappen
   tegen api en werkplek.
@@ -976,9 +985,9 @@ Draagt een beurt een `werkgebied_id`, dan haalt `answer_stream` het werkgebied b
 (`_werkgebied_blok`, per beurt vers) en zet `als_blok` het in `State.werkgebied_context`;
 `memory_context` geeft het naast de focus aan de supervisor en elke specialist – ook met
 `ENABLE_MEMORY_CONTEXT` uit. Context, geen filter; zonder api of bij een storing leeg. Dezelfde
-`context_tekst` voedt de intake en de deelvragenrun. De bronnenrun krijgt het dossier al in zijn
-invoer (`invoer.dossier`, api), maar de methoden gebruiken het nog niet: dat verandert een methode en
-vraagt eerst een meting (PLAN spoor F, *Vervolg*).
+`context_tekst` voedt de intake en de deelvragenrun. De bronnenrun krijgt het dossier in zijn
+invoer (`invoer.dossier`, api); alleen de methode `deelvraag` leest het, en dan voor de rangschikking en het
+weglaten van wat buiten de afbakening valt. Meer vraagt eerst een meting (PLAN spoor F, *Vervolg*).
 
 ### Vraag Lex op een object (`agent/onderwerp.py`, F3b)
 
@@ -1032,12 +1041,11 @@ reeks) en `doelen`.
 - **De deelvragen-agent** (`agents/deelvragen.py`): `voorstellen` en `verbeteren` (herformuleren of
   splitsen, `deelvragen.verbeteren_kern`: één strict tool, `valideer_verbetering` – precies één nieuwe
   vraag of 2–4, anders `geen`) landen als voorstel bij de api – een verbetering met `vervangt` (F3d), zodat
-  overnemen de oude deelvraag vervangt; `bronnen_zoeken` is de bronnenrun
-  (`bronnen_run.bronnen_kern`, met wat er bij de aangewezen deelvraag hoort); `dekking` per actieve
+  overnemen de oude deelvraag vervangt; `dekking` per actieve
   deelvraag uit de api (stand, bronnen met rol, open kandidaten).
-- **Het artefact volgt het object** (F3d): een taak op één deelvraag (`verbeteren`, en `bronnen_zoeken` of
-  `dekking` met een deelvraag) levert `{soort: "deelvraag", ref: {werkgebied_id, deelvraag_id}}`
-  (`beurt.deelvraag_artefact`); zonder deelvraag het werkgebied- of bronnenartefact. Een taak op één
+- **Het artefact volgt het object** (F3d): een taak op één deelvraag (`verbeteren`, en `dekking` met een
+  deelvraag) levert `{soort: "deelvraag", ref: {werkgebied_id, deelvraag_id}}`
+  (`beurt.deelvraag_artefact`); zonder deelvraag het werkgebiedartefact. Een taak op één
   begrip levert `{soort: "begrip", ref: {werkgebied_id, begrip_id, kaart_run_id?, actie?}}`
   (`kaart_beurt.begrip_artefact`). De systeemtekst draagt de skillrol
   `deelvragen` (`deelvragen.systeem`), ook in de intake.

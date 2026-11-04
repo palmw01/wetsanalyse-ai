@@ -895,7 +895,7 @@ van de gebruiker op 20 okt 2026).
     `lib/begripLex.ts` (wat nog gebruikt werd, staat in `lib/kaartVoorstel.ts`);
   - **F3f**: de intake met bepalingen per deelvraag en de twee fixes, met een meting op een **nieuwe**
     set – **gebouwd** (21 okt 2026): de stap `onderdelen` is `bepalingen`, één kaartje per deelvraag
-    (`deel` in kaart, klik en antwoord; ‹ per deel), met `bronnen_vinden.bepaling_opties` (zonder model,
+    (`deel` in kaart, klik en antwoord; ‹ per deel), met `deelvraag_zoeken.bepaling_opties` (zonder model,
     lid-niveau, hoogstens acht) – ook voor de deelvragen-agent (besluit gebruiker 21 okt 2026); een keuze
     wordt een bronselectie gekoppeld aan díé deelvraag. Fix 1: wat aan de afbakening raakt staat
     gemarkeerd onderaan. Fix 2: de afrondingstekst volgt de echte koppelingen. Meting blind op de nieuwe
