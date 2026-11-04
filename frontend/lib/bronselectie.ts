@@ -12,6 +12,14 @@ export type Voortgang = "niet_gestart" | "in_behandeling" | "voorlopig_afgerond"
 /** `niet_gekozen`: bij het beantwoorden van het kaartje niet aangevinkt (de api leidt het af uit de fase). Er is
  *  geen *later*: wie de vragen doorloopt, kiest; opnieuw doorlopen maakt er weer een keuze van. */
 export type KandidaatStand = "voorgesteld" | "niet_gekozen" | "uitgesloten" | "opgenomen";
+/** De vier zoekvragen van de bronselectie (skill `zoekvragen-bronselectie.md`). */
+export type Zoekvraag = "a" | "b" | "c" | "d";
+export const ZOEKVRAAG_LABEL: Record<Zoekvraag, string> = {
+  a: "bestaansrecht", b: "rechtsgeldigheid", c: "rechtsgevolgen", d: "nadere invulling",
+};
+/** "zoekvraag a · bestaansrecht" – één label per zoekvraag, in de volgorde a–d. */
+export const zoekvraagZin = (z: Zoekvraag) => `zoekvraag ${z} · ${ZOEKVRAAG_LABEL[z]}`;
+
 export type BewijsSoort = "grondslag" | "genoemd" | "verwijzing" | "definitie" | "structuur" | "tekst" | "gelijkenis";
 
 export interface BronHier {
@@ -28,6 +36,8 @@ export interface KandidaatHier {
   label: string;
   rol: "kern" | "afhankelijkheid" | "aanverwant";
   bewijs_soorten: BewijsSoort[];
+  /** Bij welke zoekvraag (a–d) het voorstel hoort, uit het bewijs (`detail.zoekvraag`); leeg als geen. */
+  zoekvragen: Zoekvraag[];
   stand: KandidaatStand;
   /** De uitsluiting geldt voor het hele werkgebied. */
   overal: boolean;
@@ -126,6 +136,14 @@ const VOORTGANGEN = ["niet_gestart", "in_behandeling", "voorlopig_afgerond", "be
 const STANDEN = ["voorgesteld", "niet_gekozen", "uitgesloten", "opgenomen"] as const;
 const BEWIJZEN = ["grondslag", "genoemd", "verwijzing", "definitie", "structuur", "tekst", "gelijkenis"] as const;
 
+/** De zoekvragen in het bewijs van een voorstel (`detail.zoekvraag`, a–d), elk één keer en op volgorde. */
+function zoekvragenUit(bewijs: unknown): Zoekvraag[] {
+  if (!Array.isArray(bewijs)) return [];
+  const gezien = new Set(bewijs.map((b) => obj(obj(b).detail).zoekvraag).filter((z): z is Zoekvraag =>
+    typeof z === "string" && z in ZOEKVRAAG_LABEL));
+  return (["a", "b", "c", "d"] as const).filter((z) => gezien.has(z));
+}
+
 /** Streng waar het iets uitmaakt (een deelvraag zonder id telt niet), vergevend in de details. */
 export function parseBronselectie(ruw: unknown): BronselectieOverzicht | undefined {
   const r = obj(ruw);
@@ -151,6 +169,7 @@ export function parseBronselectie(ruw: unknown): BronselectieOverzicht | undefin
         return tekst(k.id) ? [{ id: tekst(k.id), bron_iri: tekst(k.bron_iri), label: tekst(k.label),
           rol: een(k.rol, ["kern", "afhankelijkheid", "aanverwant"] as const, "aanverwant"),
           bewijs_soorten: Array.isArray(k.bewijs_soorten) ? k.bewijs_soorten.filter((s): s is BewijsSoort => BEWIJZEN.includes(s as BewijsSoort)) : [],
+          zoekvragen: zoekvragenUit(k.bewijs),
           stand: een(k.stand, STANDEN, "voorgesteld"), overal: k.overal === true, elders_opgenomen: k.elders_opgenomen === true,
           reden: tekst(k.reden) }] : [];
       }) : [],

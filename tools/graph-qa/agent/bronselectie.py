@@ -182,11 +182,13 @@ def _past(stap: str) -> Callable[[dict[str, Any]], bool]:
 
 
 def _telling(d: dict[str, Any], stap: str) -> tuple[int, int]:
-    """(open, opgenomen) bij deze fase: open is voorgesteld of eerder niet gekozen. Een uitgesloten bepaling telt
-    niet: ze komt niet terug."""
+    """(open, opgenomen) bij deze fase: open is voorgesteld of eerder niet gekozen (een uitgesloten bepaling telt niet:
+    ze komt niet terug). Opgenomen telt de bronnen van deze deelvraag met de rol van de fase – ook wat niet als
+    voorstel binnenkwam –, zodat het kaartje nooit "geen kernbepalingen" zegt terwijl het paneel ze toont."""
     past = _past(stap)
     open_ = sum(1 for k in d["kandidaten"] if k["stand"] in ("voorgesteld", "niet_gekozen") and past(k))
-    aan = sum(1 for k in d["kandidaten"] if k["stand"] == "opgenomen" and past(k))
+    rol = "analyseren" if stap == "bs_bepalingen" else "context"
+    aan = sum(1 for b in d.get("bronnen") or [] if (b.get("rol") or "analyseren") == rol)
     return open_, aan
 
 

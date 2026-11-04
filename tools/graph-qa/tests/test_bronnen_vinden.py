@@ -346,8 +346,9 @@ def test_de_deelvragen_agent_zoekt_per_deelvraag_met_dezelfde_functie():
     assert bronnen_vinden.standaard_voor({**invoer, "kern": []}) == ("overzicht", "deelvraag")
     uit = vind(BepalingGraaf(), invoer, methoden=("deelvraag",))
     k = _per_iri(uit)
-    # Met een kern: aanverwant, binnen de regeling van de kern; wat al in de selectie valt, valt weg.
-    assert L1 not in k and L9_2 not in k and k[ART10]["rol"] == "aanverwant"
+    # Met een kern: binnen de regeling van de kern; wat al in de selectie valt, valt weg. Een treffer bij een deelvraag
+    # blijft een kernbepaling van die deelvraag (4 nov 2026; voorheen aanverwant, buiten het kernkaartje).
+    assert L1 not in k and L9_2 not in k and k[ART10]["rol"] == "kern"
     assert k[ART10]["bewijs"][0]["detail"] == {"deelvraag_id": "d1", "vraag": dv[0]["vraag"],
                                                "raakt": ["belastingaanslag", "invorderbaar"]}
     assert k[ART12_1]["bewijs"][0]["detail"]["buiten"] is True

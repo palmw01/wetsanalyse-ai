@@ -954,6 +954,9 @@ vraagkaarten: eerst, als die nog leeg is, de gebeurtenis (`bs_gebeurtenis`, zie 
 (`bs_afhankelijkheden`), afronden (`bs_afronden`) en *Hoe wil je verder?* (`bs_verder`). Een eigen worker
 onder de supervisor, naast de intake; zie `docs/architectuur/bronselectie-per-deelvraag.md`.
 
+- **Een treffer bij een deelvraag is een kernbepaling van die deelvraag** (4 nov 2026), ook als er elders al bronnen
+  zijn opgenomen (`bronnen_vinden._deelvraag`; voorheen `aanverwant`, buiten het kernkaartje). Het kernkaartje telt
+  de bronnen van de deelvraag met de rol van de fase (`_telling`), dus geen "geen kernbepalingen" naast een gevuld paneel.
 - **Zelf bepalingen noemen is een voorstel** (4 nov 2026, één lijn met de voorstellen van Lex): de actie
   `bepaling_toevoegen` (suggestie *Noem een bepaling* bij werkgebied en deelvraag, in `BRONSELECTIE_ACTIES`) en de
   regels op het compacte kaartje komen uit bij `noem`. `bs_toevoegen` vraagt zo nodig bij welke deelvraag, daarna
