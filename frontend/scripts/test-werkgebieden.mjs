@@ -299,21 +299,31 @@ try {
   const gebeurtenis = formulier.getByLabel(/^Gebeurtenis/);
   assert.equal(await gebeurtenis.evaluate((el) => el.tagName), "INPUT");
   await gebeurtenis.fill("verrekening");
-  // Peildatum en status staan op één lijn: de uitleg van de peildatum staat eronder, niet op de labelregel.
-  const naastElkaar = formulier.locator("[data-peildatum-status]");
-  const datum = await naastElkaar.locator("input[type=date]").boundingBox();
-  const status = await naastElkaar.locator("select").boundingBox();
-  assert.ok(Math.abs(datum.y - status.y) <= 1 && Math.abs(datum.height - status.height) <= 1,
-    `peildatum ${JSON.stringify(datum)} en status ${JSON.stringify(status)} staan niet op één lijn`);
   await foto("werkgebied-gegevens-bewerken");
-  await naastElkaar.scrollIntoViewIfNeeded();
-  await foto("werkgebied-gegevens-peildatum-status");
   await page.locator("[data-gegevens-formulier]").getByRole("button", { name: "Opslaan" }).click();
   await page.locator("[data-gegevens-formulier]").waitFor({ state: "detached" });
   const gegevens = requests.filter((r) => r.m === "PATCH" && r.p === "/api/werkgebieden/wg1").at(-1).body;
   assert.equal(gegevens.thema, THEMA);
   assert.equal(gegevens.gebeurtenis, "verrekening");
   assert.equal(gegevens.praktijkvoorbeeld, lang);
+  assert.equal(gegevens.status, undefined, "het dossier stuurt alleen zijn eigen velden");
+  // Wat je bewerkt, zie je ook bij het lezen: naam, thema en regelingen op de kaart *Analyseopdracht*.
+  for (const veld of ["naam", "thema", "regelingen"]) await page.locator(`[data-dossier-veld=${veld}]`).waitFor();
+  // Peildatum en status bewerk je op de kaart *Versie*, waar ze staan; op die smalle kaart onder elkaar, even breed.
+  await page.getByRole("button", { name: "Peildatum en status bewerken" }).click();
+  const versieForm = page.locator("[data-gegevens-formulier]");
+  const naastElkaar = versieForm.locator("[data-peildatum-status]");
+  const datum = await naastElkaar.locator("input[type=date]").boundingBox();
+  const status = await naastElkaar.locator("select").boundingBox();
+  assert.ok(status.y > datum.y + datum.height && Math.abs(datum.width - status.width) <= 1 && Math.abs(datum.x - status.x) <= 1,
+    `peildatum ${JSON.stringify(datum)} en status ${JSON.stringify(status)} staan niet netjes onder elkaar`);
+  assert.equal(await versieForm.getByLabel(/^Naam/).count(), 0, "alleen peildatum en status");
+  await foto("werkgebied-gegevens-peildatum-status");
+  await naastElkaar.locator("select").selectOption("actief");
+  await versieForm.getByRole("button", { name: "Opslaan" }).click();
+  await versieForm.waitFor({ state: "detached" });
+  const versieBody = requests.filter((r) => r.m === "PATCH" && r.p === "/api/werkgebieden/wg1").at(-1).body;
+  assert.deepEqual(Object.keys(versieBody).sort(), ["peildatum", "status", "verwachte_revisie"]);
   // Het dossier is een eigen pagina (zonder de tabs): terug naar het werkgebied voor de historie.
   await page.goto(`${base}/werkgebieden/wg1`);
   await page.getByRole("navigation", { name: "Werkgebied" }).getByRole("link", { name: "Historie" }).click();
