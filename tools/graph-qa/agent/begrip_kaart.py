@@ -25,7 +25,8 @@ from typing import Any, AsyncIterator, Awaitable, Callable
 
 from .begrippen_pipeline import kaartacties as ka
 from .begrippen_run import manifest_uit, onderzoek_uit
-from .bronnen_vinden import _bwb, _rijen, in_selectie
+from .bepaling_namen import bwb_van as _bwb, rijen as _rijen
+from .bronnen_vinden import in_selectie
 from .config import Settings
 from .graph.queries import BEVAT, NS, PREFIXES, _lit
 from .ports import GraphPort

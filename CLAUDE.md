@@ -30,7 +30,8 @@ plaats van schijnzekerheid.
 > deelvragen-agent; een praktijkvoorbeeld verzint Lex niet.
 
 > **De bronselectie per deelvraag (PLAN spoor J).** "Help mij de bronnen bij dit werkgebied te bepalen" laat
-> Lex de deelvragen één voor één afwerken met dezelfde vraagkaarten: de kernbepalingen, wat eraan hangt, afronden,
+> Lex de deelvragen één voor één afwerken: een compact kaartje per fase (de kernbepalingen, wat eraan hangt) dat naar het
+> paneel verwijst, waar je de tekst leest en opneemt of uitsluit (*Klaar* gaat verder), dan afronden,
 > en *Hoe wil je verder?*. De stand per deelvraag (niet gestart, in behandeling, voorlopig afgerond, beoordeeld)
 > staat bij de api, niet in het gesprek, dus een tussenvraag, herladen of een ander gesprek breekt niets; de
 > volgende deelvraag kiest de code. Een bron is één selectie met een rol per deelvraag; uitsluiten geldt per

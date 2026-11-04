@@ -9,6 +9,8 @@ export type RelatieGroep = "structuur" | "verwijzingen" | "annotaties" | "begrip
 export interface SamenhangKnoop {
   id: string; soort: KnoopSoort; label: string; tekst: string; klasse: string; lifecycle: string;
   element_id: string; bwb_id: string; artikel: string; lid: string; rand: boolean;
+  /** De vindplaats uit de echte boom ("Artikel 9.2, onderdeel d"); leeg bij een oudere import. */
+  vindplaats?: string;
   /** Alleen bij een markering (api ≥ PR 10; bij een oudere api ontbreken ze). */
   herkomst?: string; aandacht?: string; subtype?: string; beslist_door?: string; twijfel?: boolean;
   /** Alleen bij een begrip: concept, geaccordeerd of vervangen (de definitie staat in `tekst`). */

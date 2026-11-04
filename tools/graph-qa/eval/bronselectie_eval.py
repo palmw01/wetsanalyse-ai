@@ -42,7 +42,7 @@ deelvraag en samen: `recall`, `recall_nodig`, `recall_exact` (het lid zelf, of e
 (het aandeel opties dat een verwachte bepaling van díé deelvraag raakt), `uitgesloten` (opties die een
 uitgesloten bepaling raken, niet gemarkeerd) en `uitgesloten_gemarkeerd` (wel gemarkeerd, onderaan).
 Voor `bepaling_opties` ook `recall_pool`: het aandeel verwachte bepalingen dat de index vindt vóór de
-rangschikking (`bronnen_vinden.kandidatenpool`). Ligt `recall` daar ver onder, dan laat de
+rangschikking (`deelvraag_zoeken.kandidatenpool`). Ligt `recall` daar ver onder, dan laat de
 rangschikking ze vallen; ligt `recall_pool` zelf laag, dan mist het zoeken ze.
 
 `--opnemen` vraagt `GRAPHDB_MCP_URL` en `GRAPHDB_TOKEN` (en voor gelijkenis `SIMILARITY_INDEX`).
@@ -57,7 +57,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from agent import bronnen_vinden
+from agent import deelvraag_zoeken, zoektermen
 from agent.bronnen_vinden import METHODEN, STANDAARD, in_selectie, vind
 
 SETS = Path(__file__).resolve().parents[3] / "docs" / "wetsanalyse" / "referentieset-bronselectie"
@@ -255,7 +255,7 @@ def _vorige_deelvraagmethode(graph: Any, s: dict[str, Any], vraag: str) -> list[
     overzicht per deelvraag, op artikelniveau, hoogstens 15 – letterlijk overgenomen."""
     from agent.overzicht import bouw_overzicht
 
-    onderwerp = bronnen_vinden.onderwerp_van_deelvraag(vraag)
+    onderwerp = zoektermen.onderwerp_van_deelvraag(vraag)
     if not onderwerp:
         return []
     try:
@@ -274,31 +274,31 @@ def _dossier(s: dict[str, Any]) -> dict[str, Any]:
     return {k: s.get(k, "") for k in ("naam", "analysevraag", "praktijkvoorbeeld", "context")}
 
 
-def _met_profiel(profiel: bronnen_vinden.Zoekprofiel):
+def _met_profiel(profiel: deelvraag_zoeken.Zoekprofiel):
     def route(graph: Any, s: dict[str, Any], vraag: str) -> list[dict[str, Any]]:
-        from agent.werkgebied_context import uitsluitstammen
+        from agent.zoektermen import uitsluitstammen
 
-        return bronnen_vinden.bepaling_opties(graph, regelingen=s["regelingen"], deelvraag=vraag, dossier=_dossier(s),
+        return deelvraag_zoeken.bepaling_opties(graph, regelingen=s["regelingen"], deelvraag=vraag, dossier=_dossier(s),
                                               buiten=uitsluitstammen(s.get("buiten", "")), profiel=profiel)
     route.profiel = profiel
     return route
 
 
-_bepaling_opties = _met_profiel(bronnen_vinden.STANDAARD_PROFIEL)
+_bepaling_opties = _met_profiel(deelvraag_zoeken.STANDAARD_PROFIEL)
 
 #: De routes van de meting: de standaard, de rangschikking van F3f (21 okt 2026) als ijkpunt, de standaard met
 #: telkens één ingreep uit of – het lemma, standaard uit – erbij (ablatie), en de deelvraagmethode van vóór F3f.
-ROUTES = {"bepaling_opties": _bepaling_opties, "F3f (21 okt)": _met_profiel(bronnen_vinden.F3F),
-          **{f"zonder {v}": _met_profiel(replace(bronnen_vinden.STANDAARD_PROFIEL, **{v: False}))
+ROUTES = {"bepaling_opties": _bepaling_opties, "F3f (21 okt)": _met_profiel(deelvraag_zoeken.F3F),
+          **{f"zonder {v}": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL, **{v: False}))
              for v in ("per_term", "samenstelling", "divisies", "kop_overal", "fusie")},
-          "met lemma": _met_profiel(replace(bronnen_vinden.STANDAARD_PROFIEL, lemma=True)),
+          "met lemma": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL, lemma=True)),
           "vorige deelvraagmethode": _vorige_deelvraagmethode}
 
 
-def _pool(graph: Any, s: dict[str, Any], vraag: str, profiel=bronnen_vinden.STANDAARD_PROFIEL) -> list[str]:
-    """Wat de index bij de deelvraag vindt, vóór de rangschikking (`bronnen_vinden.kandidatenpool`): zo
+def _pool(graph: Any, s: dict[str, Any], vraag: str, profiel=deelvraag_zoeken.STANDAARD_PROFIEL) -> list[str]:
+    """Wat de index bij de deelvraag vindt, vóór de rangschikking (`deelvraag_zoeken.kandidatenpool`): zo
     scheidt de meting wat het zoeken mist van wat de rangschikking laat vallen."""
-    pool = bronnen_vinden.kandidatenpool(graph, regelingen=s["regelingen"], deelvraag=vraag, dossier=_dossier(s),
+    pool = deelvraag_zoeken.kandidatenpool(graph, regelingen=s["regelingen"], deelvraag=vraag, dossier=_dossier(s),
                                          profiel=profiel)
     return list(pool["gevonden"]) if pool else []
 

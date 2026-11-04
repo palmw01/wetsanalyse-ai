@@ -23,7 +23,8 @@ import type { DossierVeld } from "./werkgebied";
  *    intake (graph-qa `INTAKE_ACTIES`); welk veld leest graph-qa uit de tekst ("Vul het praktijkvoorbeeld
  *    aan"). *Vraag Lex* bij een leeg veld zet dat veld op het werkgebied (`veld`), en de suggestie noemt het.
  *  - **De bronselectie** (`bronselectie`, spoor J) is evenmin een taak van een agent: graph-qa routeert hem naar
- *    de bronselectie-worker (`BRONSELECTIE_ACTIES`), op de stand die de api bewaart. */
+ *    de bronselectie-worker (`BRONSELECTIE_ACTIES`), op de stand die de api bewaart. Ook `bronnen_zoeken` gaat
+ *    daarheen: zoeken is een stap van de bronselectie. */
 
 export type OnderwerpSoort = "markering" | "deelvraag" | "bron" | "kandidaat" | "begrip" | "werkgebied";
 export type ObjectSoort = Exclude<OnderwerpSoort, "markering">;

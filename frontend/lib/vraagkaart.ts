@@ -73,6 +73,10 @@ export interface Vraagkaart {
   terug: boolean;
   /** ›: deze stap had al een antwoord (na terugbladeren). */
   beantwoord: boolean;
+  /** `paneel` (bronselectie, 3 nov 2026): een compact kaartje dat naar het paneel verwijst; beslissen gebeurt
+   *  daar, *Klaar* (`actie: klaar`) gaat verder. `telling` komt dan uit `samenvatting`. */
+  weergave: "kaart" | "paneel";
+  telling: { kandidaten: number; opgenomen: number } | null;
 }
 
 export interface Samenvatting {
@@ -112,7 +116,7 @@ export interface IntakeActie {
   stap: IntakeStap;
   /** Bij de bepalingen: het deel van het kaartje; een ander deel is een oud kaartje. */
   deel?: number;
-  actie: "antwoord" | "overslaan" | "wijzig" | "aanmaken" | "opslaan" | "afbreken";
+  actie: "antwoord" | "overslaan" | "wijzig" | "aanmaken" | "opslaan" | "afbreken" | "klaar";
   keuzes?: string[];
   tekst?: string;
   /** Meer dan één eigen antwoord (`meer_tekst`). */
@@ -167,6 +171,11 @@ export function parseVraagkaart(ruw: unknown): Vraagkaart | undefined {
     vooringevuld: Array.isArray(r.vooringevuld) ? r.vooringevuld.filter((v): v is string => typeof v === "string") : [],
     terug: r.terug === true,
     beantwoord: r.beantwoord === true,
+    weergave: r.weergave === "paneel" ? "paneel" : "kaart",
+    telling: r.weergave === "paneel" && s ? {
+      kandidaten: typeof s.kandidaten === "number" ? s.kandidaten : 0,
+      opgenomen: typeof s.opgenomen === "number" ? s.opgenomen : 0,
+    } : null,
     samenvatting: s && r.soort === "samenvatting" ? {
       naam: tekst(s.naam), aanleiding: tekst(s.aanleiding), context: tekst(s.context), doel: tekst(s.doel),
       analysevraag: tekst(s.analysevraag), praktijkvoorbeeld: tekst(s.praktijkvoorbeeld),
@@ -199,6 +208,9 @@ export function antwoordTekst(k: Vraagkaart, actie: IntakeActie): string {
       : "Stop met samenstellen.";
   }
   if (actie.actie === "overslaan") return k.modus === "bronselectie" ? "Niets erbij; verder." : "Sla deze vraag over.";
+  if (actie.actie === "klaar") {
+    return actie.tekst?.trim() || (k.stap === "bs_afhankelijkheden" ? "Klaar; ronden we af." : "Klaar met de kernbepalingen; verder.");
+  }
   if (actie.actie === "wijzig") {
     const metDeelvragen = !!k.deel?.deelvraag || !!k.samenvatting?.deelvragen.length;
     if (actie.naar === "bepalingen" && metDeelvragen && typeof actie.naar_deel === "number") {
@@ -249,7 +261,7 @@ export function parseAntwoordOp(ruw: unknown): AntwoordOp | undefined {
   const r = ruw as Record<string, unknown>;
   const intake_id = tekst(r.intake_id), stap = tekst(r.stap), actie = tekst(r.actie) || "antwoord";
   if (!/^[A-Za-z0-9-]{1,64}$/.test(intake_id) || !STAP_SET.has(stap)) return undefined;
-  if (!["antwoord", "overslaan", "wijzig", "aanmaken", "opslaan", "afbreken"].includes(actie)) return undefined;
+  if (!["antwoord", "overslaan", "wijzig", "aanmaken", "opslaan", "afbreken", "klaar"].includes(actie)) return undefined;
   const deel = typeof r.deel === "number" && Number.isInteger(r.deel) && r.deel >= 0 ? r.deel : undefined;
   const dv = tekst(r.deelvraag_id);
   return { intake_id, stap: stap as IntakeStap, ...(deel !== undefined ? { deel } : {}),
@@ -376,4 +388,17 @@ export function groepeerVragen<T extends GroepItem>(items: T[], bezig: boolean):
 export function openVraag(groepen: Map<string, VragenGroep>): VragenGroep | undefined {
   const laatste = [...groepen.values()].at(-1);
   return laatste?.open ? laatste : undefined;
+}
+
+
+/** *Klaar* op het compacte kaartje van de bronselectie (`weergave: paneel`): de besluiten staan al bij de api. */
+export function klaarActie(k: Vraagkaart): IntakeActie {
+  return { intake_id: k.intake_id, stap: k.stap, actie: "klaar", ...(k.deelvraag_id ? { deelvraag_id: k.deelvraag_id } : {}) };
+}
+
+/** Een eigen bepaling getypt op het compacte kaartje: Lex voegt haar toe, het kaartje blijft tot *Klaar*. */
+export function typActie(k: Vraagkaart, tekst: string): IntakeActie | undefined {
+  const t = tekst.trim();
+  return t ? { intake_id: k.intake_id, stap: k.stap, actie: "antwoord", tekst: t,
+    ...(k.deelvraag_id ? { deelvraag_id: k.deelvraag_id } : {}) } : undefined;
 }

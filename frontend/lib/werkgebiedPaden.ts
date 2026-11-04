@@ -2,6 +2,7 @@
 // de artefactkaarten. Zuiver, zodat vitest het zonder DOM toetst; de componenten lezen alleen.
 
 import type { BegripSamenvatting, BronKandidaat, Werkgebied } from "./types";
+import { isOpen } from "./bronKandidaten";
 
 /** Dezelfde tonen als `StatusLabel` (`components/ui/Lijst`); `lib/` importeert geen componenten. */
 type StatusToon = "groen" | "geel" | "neutraal";
@@ -150,7 +151,7 @@ export function artefactKaarten(wg: Werkgebied, extra: {
   const gevuld = velden.filter((v) => (wg[v] ?? "").trim()).length;
   const deelvragen = (wg.deelvragen ?? []).filter((d) => d.status === "actief").length;
   const analyse = wg.bronnen.filter((b) => b.rol === "analyseren").length;
-  const open = extra.kandidaten?.filter((k) => k.status === "voorgesteld").length;
+  const open = extra.kandidaten?.filter(isOpen).length;
 
   const wv = extra.werkvoorraad;
   const eenheden = wv?.eenheden.length ?? 0;

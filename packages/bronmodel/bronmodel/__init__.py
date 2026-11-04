@@ -146,7 +146,7 @@ def bron_query(bwb_id: str, *, limit: int | None = None, offset: int = 0) -> str
         raise BronFout("Ongeldig BWB-id")
     types = " ".join("bwb:" + t for t in TYPEN)
     query = f'''PREFIX bwb: <urn:bwb-ns:>
-SELECT DISTINCT ?node ?type ?parent ?nummer ?label ?titel ?tekst ?vorige ?jci ?url ?toestand ?citeertitel WHERE {{
+SELECT DISTINCT ?node ?type ?parent ?nummer ?label ?titel ?tekst ?vorige ?jci ?url ?toestand ?citeertitel ?vindplaats ?bepaling WHERE {{
  GRAPH <urn:bwb:graph:{bwb_id}> {{
   VALUES ?type {{ {types} }}
   ?node a ?type .
@@ -158,6 +158,8 @@ SELECT DISTINCT ?node ?type ?parent ?nummer ?label ?titel ?tekst ?vorige ?jci ?u
   OPTIONAL {{ ?node bwb:volgtOp ?vorige }}
   OPTIONAL {{ ?node bwb:jci ?jci }}
   OPTIONAL {{ ?node <http://www.w3.org/2002/07/owl#sameAs> ?url }}
+  OPTIONAL {{ ?node bwb:vindplaats ?vindplaats }}
+  OPTIONAL {{ ?node bwb:inBepaling ?bepaling }}
   OPTIONAL {{ <urn:bwb:{bwb_id}> bwb:toestandUrl ?toestand }}
   OPTIONAL {{ <urn:bwb:{bwb_id}> bwb:citeertitel ?citeertitel }}
  }}
@@ -311,6 +313,15 @@ def _kop(n: dict) -> str:
     return f"{n['label']} {n['nummer']}" if _kaal(n) else n["label"]
 
 
+# Velden die de importer als naam bij een node schrijft (`bwb:vindplaats`, `bwb:inBepaling`). Ze staan op
+# de node, maar tellen niet mee in de snapshot-id.
+PLEK = ("vindplaats", "bepaling")
+
+
+def _vast(n: dict) -> dict:
+    return {k: v for k, v in n.items() if k not in PLEK}
+
+
 def bouw_snapshot(rows: list[dict], *, bron_iri: str = "", bwb_id: str,
                   artikel: str = "", lid: str = "") -> dict:
     nodes: dict[str, dict] = {}
@@ -325,9 +336,12 @@ def bouw_snapshot(rows: list[dict], *, bron_iri: str = "", bwb_id: str,
                 "bwb_id": bwb_id, "vorige": row.get("vorige", ""), "url": row.get("url", ""),
                 "jci": row.get("jci", "")}
         item["bron_hash"] = tekst_hash(item["tekst"])
-        if iri in nodes and nodes[iri] != item:
-            raise BronFout(f"Dubbelzinnige bronnode: {iri}")
-        nodes[iri] = item
+        plek = {k: row.get(k, "") for k in PLEK}
+        if iri in nodes:
+            if _vast(nodes[iri]) != item:
+                raise BronFout(f"Dubbelzinnige bronnode: {iri}")
+            continue
+        nodes[iri] = {**item, **plek}
         if row.get("toestand"):
             toestanden.add(row["toestand"])
     if not nodes or f"urn:bwb:{bwb_id}" not in nodes:
@@ -386,7 +400,9 @@ def bouw_snapshot(rows: list[dict], *, bron_iri: str = "", bwb_id: str,
         parent = nodes[parent]["parent_iri"]
     article = next((n["nummer"] for n in [target, *parents] if n["type"] in {"Artikel", "Divisie"}), "")
     lidnummer = next((n["nummer"] for n in [target, *parents] if n["type"] == "Lid"), "")
-    canonical = json.dumps({"nodes": ordered, "toestand": sorted(toestanden)}, ensure_ascii=False,
+    # De plek (vindplaats, inBepaling) is leesbare naam, geen bronidentiteit: buiten de hash, zodat een
+    # herimport die alleen namen toevoegt de snapshot van bestaande lagen niet verandert.
+    canonical = json.dumps({"nodes": [_vast(n) for n in ordered], "toestand": sorted(toestanden)}, ensure_ascii=False,
                            sort_keys=True, separators=(",", ":"))
     path = [n for n in [*reversed(parents), target] if n["type"] != "Regeling"]
     # Detailkop: wet + concrete vindplaats, niet alleen "Lid 1". Bronlabels zelf

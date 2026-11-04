@@ -151,12 +151,12 @@ async def test_de_bronnenrun_zoekt_ook_per_deelvraag(client):
     assert r.status_code == 200, r.text
     kid = (await client.get(f"/v1/werkgebieden/{wg['id']}/kandidaten")).json()["kandidaten"][0]["id"]
     wg = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()
-    r = await client.post(f"/v1/werkgebieden/{wg['id']}/kandidaten/{kid}/opnemen",
-                          json={"verwachte_revisie": wg["revisie"]})
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/bronselectie/{d['id']}/kandidaten/{kid}",
+                          json={"besluit": "opnemen", "verwachte_revisie": wg["revisie"]})
     assert r.status_code == 200, r.text
     wg = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()
     actief = next(x for x in wg["deelvragen"] if x["status"] == "actief")
-    assert actief["bronnen"] == [r.json()["selectie"]["id"]]
+    assert actief["bronnen"] == [next(b["id"] for b in wg["bronnen"] if b["bron_iri"] == ART)]
 
 
 async def test_zonder_kern_of_analysevraag_maar_met_deelvragen_mag_een_run(client):
@@ -246,8 +246,10 @@ async def test_een_kandidaat_van_een_vervangen_deelvraag_landt_bij_de_opvolger(c
     wg = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()
     wg = await _patch(client, wg, nid, status="actief")
     kid = (await client.get(f"/v1/werkgebieden/{wg['id']}/kandidaten")).json()["kandidaten"][0]["id"]
-    r = await client.post(f"/v1/werkgebieden/{wg['id']}/kandidaten/{kid}/opnemen",
-                          json={"verwachte_revisie": wg["revisie"]})
+    # De kandidaat van de oude deelvraag hoort bij haar opvolger: opnemen daar koppelt aan de opvolger.
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/bronselectie/{nid}/kandidaten/{kid}",
+                          json={"besluit": "opnemen", "verwachte_revisie": wg["revisie"]})
     assert r.status_code == 200, r.text
     wg = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()
-    assert wg["deelvragen"][0]["id"] == nid and wg["deelvragen"][0]["bronnen"] == [r.json()["selectie"]["id"]]
+    sel = next(b["id"] for b in wg["bronnen"] if b["bron_iri"] == ART)
+    assert wg["deelvragen"][0]["id"] == nid and wg["deelvragen"][0]["bronnen"] == [sel]

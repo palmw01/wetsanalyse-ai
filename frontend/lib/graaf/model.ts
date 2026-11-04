@@ -45,11 +45,16 @@ const KORT_MAX = 27;
 const inkorten = (tekst: string) => (tekst.length > KORT_MAX ? tekst.slice(0, KORT_MAX - 2) + "…" : tekst);
 
 /** Naam en kaartlabel. De api geeft een deel al met zijn nummer ("Hoofdstuk II") en een regeling met
- *  haar citeertitel; alleen een lid krijgt hier zijn artikel erbij, want "Lid 2" zegt los niets. */
+ *  haar citeertitel. Een lid of onderdeel zegt los niets ("Lid 2", "Onderdeel d."): de naam is dan de
+ *  vindplaats uit de boom ("Artikel 9.2, onderdeel d"), en bij een oudere import het artikel erbij. Het
+ *  kaartlabel binnen het eigen artikel blijft kort. */
 export function namen(k: SamenhangKnoop): Pick<KnoopData, "naam" | "kort"> {
   const isLid = k.soort === "lid" && k.lid && k.artikel;
-  const naam = isLid ? `Artikel ${k.artikel} · lid ${k.lid}` : k.label;
-  return { naam, kort: inkorten(isLid && !k.rand ? `Lid ${k.lid}` : naam) };
+  const binnen = (k.soort === "lid" || k.soort === "onderdeel") && !k.rand;
+  const vindplaats = k.soort === "lid" || k.soort === "onderdeel" ? k.vindplaats : "";
+  const naam = vindplaats || (isLid ? `Artikel ${k.artikel} · lid ${k.lid}` : k.label);
+  const kort = binnen ? (isLid ? `Lid ${k.lid}` : k.label) : naam;
+  return { naam, kort: inkorten(kort) };
 }
 
 /** Bouwt één model uit een of meer antwoorden. Een knoop die in het ene antwoord rand is (een
