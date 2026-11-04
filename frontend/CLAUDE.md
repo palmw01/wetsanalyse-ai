@@ -123,8 +123,10 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   - **menu's** delen één rijstijl (`components/ui/Menu`: `MENU_RIJ`, `MENU_PANEEL`);
   - **`Select`** heeft een eigen chevron (`appearance-none`) en dezelfde maat en focus als `Input`;
   - **elk zijpaneel** heeft dezelfde kop (`components/ui/PaneelKop`: soort, titel, *Open volledige pagina*,
-    `SluitKnop` rechtsboven, eventuele acties op een eigen regel). Het `lex`-slot gebruikt alleen nog het
-    annotatiepaneel; de werkgebiedpanelen hebben geen *Vraag Lex* (spoor K).
+    `SluitKnop` rechtsboven, eventuele acties op een eigen regel; de slots `onder` voor één regel – de reeks, de
+    versie – en `balk` voor tabs en *Vergroten*). Eén schil voor elk artefact (4 nov 2026): ook de annotatie heeft
+    die kop op de tab Tekst, op de graaf en tijdens het laden; geen paneel bouwt een eigen kop of sluitknop. Het
+    `lex`-slot gebruikt alleen nog het annotatiepaneel; de werkgebiedpanelen hebben geen *Vraag Lex* (spoor K).
 - **Symbolen zijn iconen, geen tekens.** `components/ui/Icoon.tsx` levert chevron, waarschuwing,
   vinkje, ruit en cirkel als inline SVG (`1em`, `currentColor`). Het font laadt alleen de
   latin-subset van Fira Sans (`app/fonts.ts`), dus tekens als `▾ ◇ ▸ ⚠ ✓ ← ○` vallen terug op het
@@ -178,14 +180,15 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
   gesprek wisselen, niet wanneer een verse chat bij de eerste beurt zijn id krijgt – anders breekt de
   stream. De graph-qa `conversation_id` (thread_id) is het `gesprekId`.
 - **Wat Lex oplevert is een artefact** (`Bericht.artefact`, `lib/artefact.ts`): `{soort, ref, titel}`
-  met soort `annotatie`, `begrippen`, `bronnen`, `werkgebied`, `deelvraag`, `begrip` of `regels`. Elke soort heeft een chip in de thread en een paneel
+  met soort `annotatie`, `begrippen`, `werkgebied`, `deelvraag`, `begrip`, `bronselectie` of `regels`. Elke soort heeft een chip in de thread en een paneel
   in dezelfde schil (kolom vanaf 1280px, anders een sheet); er staat er hoogstens één open.
   - **annotatie** – het `annotatie`-item met `AnnotatieChip`, dat **`NodeAnnotatiePaneel`** opent
     (een bericht zonder bronnode wijst naar een verwijderde annotatie: een tombstone). `DocumentPaneel` toont de wettekst met de **letterlijke** fragmenten
     (`segmenteer` + `lib/jas.ts:jasStyle`), `ReviewQueue` de beslissingskaarten.
-  - **begrippen** en **bronnen** – het `artefact`-item met `ArtefactChip`, dat
-    **`WerkgebiedArtefactPaneel`** opent: dezelfde `BegripVoorstellen` (`inklapbaar={false}`) of
-    `BronKandidaten` als op de tab Begrippen of Bronnen, met een link naar het werkgebied. Eén inhoud,
+  - **begrippen** – het `artefact`-item met `ArtefactChip`, dat
+    **`WerkgebiedArtefactPaneel`** opent: dezelfde `BegripVoorstellen` (`inklapbaar={false}`) als op de tab
+    Begrippen, met een link naar het werkgebied. Het oude artefact *Gevonden bepalingen* (`bronnen`) bestaat niet
+    meer: `parseArtefact` maakt er de bronselectie van dat werkgebied van (4 nov 2026); de bronverkenner is een pagina. Eén inhoud,
     twee schillen (`werkgebiedArtefactVan` in `lib/artefact.ts`). De voorstellen zijn altijd die van de
     laatste ronde; wijst de chip naar een eerdere (`ref.run_id`), dan zegt het paneel dat.
   - **begrip** (F3d) – een taak van de begrippen-agent op één begrip ("geef voorbeelden van termijn",

@@ -8,7 +8,6 @@ import { useEffect, useState } from "react";
 import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
 import { BegripPaneel } from "@/components/werkgebieden/BegripPaneel";
 import { BegripVoorstellen } from "@/components/werkgebieden/BegripVoorstellen";
-import { BronKandidaten } from "@/components/werkgebieden/BronKandidaten";
 import { BronnenBijDeelvraag } from "@/components/werkgebieden/BronnenBijDeelvraag";
 import { DeelvraagPaneel } from "@/components/werkgebieden/DeelvraagPaneel";
 import { OnbewaardMelding } from "@/components/werkgebieden/OnbewaardMelding";
@@ -25,7 +24,7 @@ import { werkgebiedLabel, type WerkgebiedArtefact } from "@/lib/artefact";
 import type { Werkgebied } from "@/lib/types";
 import { STATUS_LABEL } from "@/lib/werkgebied";
 import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
-import { artefactPad, begripPad, deelvraagPad, projectPad, voorstellenPad } from "@/lib/werkgebiedPaden";
+import { artefactPad, begripPad, deelvraagPad, projectPad } from "@/lib/werkgebiedPaden";
 
 /** Waar *Open volledige pagina* heen gaat: de pagina van wat het paneel toont (spoor G2). */
 function paginaVan(doel: WerkgebiedArtefact): string {
@@ -33,14 +32,13 @@ function paginaVan(doel: WerkgebiedArtefact): string {
   switch (doel.soort) {
     case "begrippen": return artefactPad(id, "begrippen");
     case "begrip": return doel.begrip_id ? begripPad(id, doel.begrip_id) : artefactPad(id, "begrippen");
-    case "bronnen": return voorstellenPad(id);
     case "deelvraag": return doel.deelvraag_id ? deelvraagPad(id, doel.deelvraag_id) : projectPad(id);
     case "bronselectie": return artefactPad(id, "bronselectie");
     default: return projectPad(id);
   }
 }
 const KOP: Record<WerkgebiedArtefact["soort"], string> = {
-  begrippen: "Begripsvoorstellen van Lex", bronnen: "Gevonden bepalingen van Lex", werkgebied: "Samengesteld met Lex",
+  begrippen: "Begripsvoorstellen van Lex", werkgebied: "Samengesteld met Lex",
   deelvraag: "Deelvraag", begrip: "Begrip", bronselectie: "Bronselectie met Lex",
 };
 
@@ -49,7 +47,6 @@ const KOP: Record<WerkgebiedArtefact["soort"], string> = {
  *
  *  - **begrippen** – de voorstellen van Lex (`BegripVoorstellen`), dezelfde inhoud als op de tab
  *    Begrippen. Een overgenomen begrip opent in het werkgebied: daar staan de kaart en de passages.
- *  - **bronnen** – de bepalingen die Lex vond (`BronKandidaten`), dezelfde inhoud als op de tab Bronnen.
  *  - **begrip** (F3d) – één begrip om te beoordelen (`BegripPaneel`): een leesweergave, de open voorstellen
  *    van Lex per veld en een kleine bewerking; de begripskaart zelf staat in het werkgebied.
  *  - **deelvraag** (F3d) – één deelvraag (`DeelvraagPaneel`): stand, de voorstellen die haar vervangen,
@@ -115,10 +112,8 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
           ) : doel.soort === "bronselectie" ? (
             <BronnenBijDeelvraag werkgebiedId={doel.werkgebied_id} huidig={doel.deelvraag_id} inGesprek
               onKlaar={onKlaar} klaarVoor={klaarVoor} />
-          ) : doel.soort === "begrippen" ? (
-            <BegripVoorstellen id={doel.werkgebied_id} runId={doel.run_id} inklapbaar={false} />
           ) : (
-            <BronKandidaten id={doel.werkgebied_id} />
+            <BegripVoorstellen id={doel.werkgebied_id} runId={doel.run_id} inklapbaar={false} />
           )}
         </div>
       </div>
