@@ -54,7 +54,7 @@ plaats van schijnzekerheid.
 > afwijst. **De werkgebiedpagina is raadplegen** (F3e): ze toont wat Lex opleverde en draagt de handmatige
 > besluiten, met *Vraag Lex* bij elke rij, maar start Lex zelf niet. Dat is het artefactmodel van Claude: op een artefact
 > lees, bewerk en besluit je; zoeken in de graaf en iets laten maken gaat via het gesprek, en het resultaat opent
-> naast het gesprek (dus geen zoekvenster op een artefact: *Voeg een bepaling toe* is een suggestie bij Lex). Begrippen worden **onderhouden**:
+> naast het gesprek (dus geen zoekvenster op een artefact: *Noem een bepaling* is een suggestie bij Lex). Begrippen worden **onderhouden**:
 > een veranderde dragende passage verschijnt in de herbeoordeling (toen naast nu, opvolger na
 > herannotatie), begrippen krijgen **relaties** met type en richting (kwalificatie, inclusie, uitsluiting,
 > soort van, verwant; Lex stelt ze voor) en een betekeniswijziging of combinatie levert een opvolger op

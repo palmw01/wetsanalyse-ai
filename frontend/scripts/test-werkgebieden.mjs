@@ -202,7 +202,7 @@ try {
   await page.getByText("Nog geen bronnen. Neem een bepaling op", { exact: false }).waitFor();
 
   // Een bepaling zoeken en toevoegen gebeurt niet op het artefact maar in het gesprek (4 nov 2026): geen knop en geen
-  // venster; *Bespreek met Lex* opent de werkplek in dit werkgebied, waar *Voeg een bepaling toe* bij de suggesties staat.
+  // venster; *Bespreek met Lex* opent de werkplek in dit werkgebied, waar *Noem een bepaling* bij de suggesties staat.
   assert.equal(await page.getByRole("button", { name: /Bepaling toevoegen/ }).count(), 0, "geen zoekknop op het artefact");
   assert.equal(await page.locator("[data-bepaling-toevoegen]").count(), 0);
   const bespreek = page.locator("[data-bronnen-register] [data-vraag-lex=werkgebied]");

@@ -394,9 +394,10 @@ erbuiten, regeling(en), per deelvraag een kaartje met de bepalingen (F3f), en ee
   laatste regel: met tekst erin krijgt hij het vinkje en vervangt hij bij één keuze een gekozen optie.
   "Weet ik (nog) niet" sluit de andere keuzes uit. Knoppen zijn pillen (`Button pil`). Context en
   praktijkvoorbeeld krijgen een hoger veld (Shift+Enter voor een nieuwe regel).
-- **De deelvragen** (`meer_tekst`): naast de voorstellen van Lex is elke eigen deelvraag een regel;
-  Enter in een gevulde regel of *+ Nog een deelvraag* opent de volgende, Ctrl/⌘+Enter of *Volgende*
-  stuurt in. Ze gaan als `teksten` mee (`antwoordActie`), lege regels niet. Na terugbladeren staat elke
+- **Meer dan één eigen antwoord** (`meer_tekst`, `MeerRegels`): één regel is één ding – wat, zegt het kaartje
+  (`Vraagkaart.regel`: deelvraag, bepaling; `regelNamen`). Enter in een gevulde regel of *+ Nog een …* opent de
+  volgende, Ctrl/⌘+Enter of *Volgende* stuurt in. Hetzelfde onderdeel staat op het compacte kaartje van de
+  bronselectie; bouw geen tweede invoer voor meer dingen. Ze gaan als `teksten` mee (`antwoordActie`), lege regels niet. Na terugbladeren staat elke
   eigen deelvraag weer op een eigen regel (`beginstand`).
 - **De bepalingen** (F3f): één kaartje per deelvraag (`Vraagkaart.deel: {index, totaal, deelvraag}`, de
   deelvraag staat onder de vraag), zonder deelvragen één over de analysevraag. Elke klik en het
@@ -446,8 +447,8 @@ heeft *Verzend* (`isLaatsteVraag`), want wat erna komt hangt af van het antwoord
 - **Het kaartje van de bepalingen is compact, het paneel beslist** (3 nov 2026, het artefactpatroon van Claude):
   bij `weergave: "paneel"` toont de werkplek `BronselectieKaart` in plaats van `VraagDock`. Die toont de telling (live,
   via `paneelTelling` en het venster-event `BRONSELECTIE_GEWIJZIGD`) met *Bronnen beoordelen* (opent het paneel),
-  *Klaar* (`klaarActie`) en een regel om een bepaling te typen (`typActie`; Lex toont eerst de treffers met hun
-  tekst, `bs_toevoegen_treffers`). In het paneel (`inGesprek`) klappen kandidaten en bronnen uit met
+  *Klaar* (`klaarActie`) en regels om zelf bepalingen te noemen (`MeerRegels`, `typActie` met `teksten`; ze worden
+  voorstellen in het paneel). In het paneel (`inGesprek`) klappen kandidaten en bronnen uit met
   de wettekst (`GroepRij uitklap`, `Wettekst`), in plaats van naar de bronpagina te gaan. Onder de actieve
   deelvraag staat *Klaar met deze deelvraag*; die stuurt de actie van het open
   kaartje (`onKlaar`/`klaarVoor` vanuit `WerkplekClient`). Browserregressie: `scripts/test-bronselectie-paneel.mjs`.
@@ -779,9 +780,9 @@ bestaat los van de gesprekken.
   graaf) vangt het formulier zelf af via `opFout`.
 - **Op een artefact lees, bewerk en besluit je; zoeken en maken gaat via het gesprek** (4 nov 2026, het
   artefactmodel van Claude). Een bepaling zoeken en toevoegen staat daarom niet op de tab Bronnen of in het paneel,
-  maar is een suggestie (*Voeg een bepaling toe*, actie `bepaling_toevoegen`, bij het werkgebied en een deelvraag):
-  Lex vraagt welke bepaling, toont de treffers met het begin van hun tekst (een gewoon `VraagDock`-kaartje,
-  meerkeuze) en voegt toe wat je aanvinkt; het paneel opent daarna op de deelvraag. Op de tab staat *Bespreek met
+  maar is een suggestie (*Noem een bepaling*, actie `bepaling_toevoegen`, bij het werkgebied en een deelvraag) of
+  een regel op het compacte kaartje: één bepaling per regel (`MeerRegels`), Lex zet ze als voorstel (*zelf genoemd*) in
+  het paneel, en daar lees en besluit je, net als bij de voorstellen van Lex. Op de tab staat *Bespreek met
   Lex*. Bouw geen eigen zoekvenster op een artefact. Verwijderen is een `BevestigKnop` en laat de
   bepaling en haar annotaties staan.
 - **Elementen** toont wat de api meldt in plaats van het weg te poetsen: `volledig: false` en

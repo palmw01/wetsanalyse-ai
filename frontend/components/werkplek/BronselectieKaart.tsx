@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/Button";
 import { Kruis, PijlRechts } from "@/components/ui/Icoon";
 import { haalBronselectie } from "@/lib/api";
 import { BRONSELECTIE_GEWIJZIGD, paneelTelling } from "@/lib/bronselectie";
+import { MeerRegels } from "@/components/werkplek/MeerRegels";
 import { klaarActie, stilActie, typActie, type IntakeActie, type Vraagkaart } from "@/lib/vraagkaart";
 
 /** Het compacte kaartje van de bronselectie (`weergave: paneel`, 3 nov 2026): het gesprek blijft rustig, zoals een
  *  artefact bij Claude. Het noemt hoeveel er ligt – live, want je beslist in het paneel – en verwijst ernaar:
- *  *Bronnen beoordelen* opent het paneel, *+ Bepaling toevoegen* het venster, *Klaar* gaat verder. Een bepaling
- *  typen blijft kunnen ("artikel 25 lid 2 Invorderingswet 1990"): Lex zoekt haar op, toont de treffers met hun tekst,
- *  en voegt toe wat de analist aanvinkt; daarna komt dit kaartje terug. */
+ *  *Bronnen beoordelen* opent het paneel, *Klaar* gaat verder. Zelf bepalingen noemen gaat per regel (`MeerRegels`):
+ *  Lex zoekt ze op en zet ze als voorstel (*zelf genoemd*) in het paneel, waar je de tekst leest en beslist. */
 export function BronselectieKaart({ kaart, uitgeschakeld, onActie, onSluit, onBeoordelen }: {
   kaart: Vraagkaart;
   uitgeschakeld: boolean;
@@ -22,7 +22,7 @@ export function BronselectieKaart({ kaart, uitgeschakeld, onActie, onSluit, onBe
 }) {
   const werkgebiedId = kaart.intake_id.slice(3);
   const [telling, setTelling] = useState(kaart.telling ?? { kandidaten: 0, opgenomen: 0 });
-  const [eigen, setEigen] = useState("");
+  const [eigen, setEigen] = useState<string[]>([""]);
   useEffect(() => {
     let levend = true;
     const laad = () => haalBronselectie(werkgebiedId)
@@ -68,12 +68,21 @@ export function BronselectieKaart({ kaart, uitgeschakeld, onActie, onSluit, onBe
           </Button>
         </div>
       )}
-      <form className="mt-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (typ && !uitgeschakeld) { onActie(typ); setEigen(""); } }}>
-        <input value={eigen} onChange={(e) => setEigen(e.target.value)} disabled={uitgeschakeld}
-          aria-label="Een bepaling typen" placeholder="Of typ een bepaling, bijv. ‘artikel 9 lid 2 Iw 1990’"
-          className="focus-ring min-h-[36px] min-w-0 flex-1 rounded-field border border-line bg-paper px-3 text-sm placeholder:text-faint" />
-        {typ && <Button type="submit" variant="ghost" size="sm">Voeg toe</Button>}
-      </form>
+      {/* Zelf bepalingen noemen: één per regel, zoals overal bij Lex (`MeerRegels`). Lex zet ze als voorstel in het
+          paneel, waar je de tekst leest en beslist. */}
+      <div className="mt-3 rounded-kaart border border-line px-3 py-1.5" data-eigen-bepalingen>
+        <MeerRegels teksten={eigen} onTeksten={setEigen} uitgeschakeld={uitgeschakeld}
+          regel={{ enkel: "bepaling", voorbeeld: "artikel 9 lid 2 Invorderingswet 1990" }}
+          onInsturen={() => { if (typ) { onActie(typ); setEigen([""]); } }} />
+        {typ && (
+          <div className="flex justify-end pb-1">
+            <Button type="button" variant="secondary" size="sm" disabled={uitgeschakeld} data-noem
+              onClick={() => { onActie(typ); setEigen([""]); }}>
+              Zet in het paneel
+            </Button>
+          </div>
+        )}
+      </div>
       {/* Onderaan zoals het VraagDock: links de bronselectie stilzetten (het kruisje verbergt het kaartje alleen; na
           een volgende beurt komt het terug), rechts de hoofdknop. */}
       <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:items-center">

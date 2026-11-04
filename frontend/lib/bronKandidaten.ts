@@ -26,6 +26,7 @@ export const METHODE_LABEL: Record<BronMethode, string> = {
   opbouw: "opbouw van de wet",
   gelijkenis: "tekstuele gelijkenis",
   grondslag: "grondslag van de gebeurtenis",
+  genoemd: "zelf genoemd",
 };
 
 export const FUNCTIE_LABEL: Record<string, string> = {
@@ -104,6 +105,8 @@ export function bewijsZin(b: KandidaatBewijs, labels: Map<string, string> = new 
       return `staat in hetzelfde deel als ${vanuit || "de kern"}`;
     case "gelijkenis":
       return `lijkt qua tekst op ${vanuit || "de kern"} (zwak signaal)`;
+    case "genoemd":
+      return `zelf genoemd${d.tekst ? ` (“${d.tekst}”)` : ""}`;
     case "grondslag":
       return `grondslag van “${d.gebeurtenis ?? "de gebeurtenis"}”${d.kop ? ` in ${d.kop}` : ""}${d.signaal ? ` (${d.signaal})` : ""}`;
     default:

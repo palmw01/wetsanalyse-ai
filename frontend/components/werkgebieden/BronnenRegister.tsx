@@ -17,7 +17,7 @@ type RolFilter = "alle" | BronRol;
  *  met de voorstellen van Lex en hun besluiten, en wat bij geen deelvraag hoort onder *Zonder deelvraag*
  *  (`BronnenBijDeelvraag`, ook op de deelvraagpagina en naast het gesprek). Het artefact Bronselectie is deze tab.
  *  Erboven de afbakening als tekst, zoeken en de rol. Een bepaling zoeken en toevoegen doe je niet hier maar in het
- *  gesprek (*Bespreek met Lex* → *Voeg een bepaling toe*): op het artefact lees, bewerk en besluit je; zoeken in de
+ *  gesprek (*Bespreek met Lex* → *Noem een bepaling*): op het artefact lees, bewerk en besluit je; zoeken in de
  *  graaf en iets laten maken gaat via Lex, en het resultaat opent naast het gesprek. */
 export function BronnenRegister() {
   const { wg, stand, muteer, laad } = useWerkgebied();

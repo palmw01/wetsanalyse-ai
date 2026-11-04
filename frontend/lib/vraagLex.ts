@@ -129,7 +129,7 @@ const SUGGESTIES: Record<ObjectSoort, Suggestie[]> = {
     // geen losse zoekknop meer: de bronselectie zoekt zelf.
     { tekst: "Bepaal de bronnen per deelvraag", actie: "bronselectie" },
     // Zelf een bepaling toevoegen: Lex zoekt haar op en toont de tekst (geen zoekvenster op het artefact).
-    { tekst: "Voeg een bepaling toe", actie: "bepaling_toevoegen" },
+    { tekst: "Noem een bepaling", actie: "bepaling_toevoegen" },
     { tekst: "Annoteer de bepalingen van de deelvragen", actie: "deelvragen_annoteren" },
     { tekst: "Annoteer wat nog niet geannoteerd is", actie: "werkgebied_annoteren" },
     { tekst: "Stel begrippen voor", actie: "begrippen_voorstellen" },
@@ -142,7 +142,7 @@ const SUGGESTIES: Record<ObjectSoort, Suggestie[]> = {
     { tekst: "Formuleer scherper", actie: "deelvraag_herformuleren" },
     { tekst: "Splits deze deelvraag", actie: "deelvraag_splitsen" },
     { tekst: "Bepaal de bronnen bij deze deelvraag", actie: "bronselectie" },
-    { tekst: "Voeg een bepaling toe", actie: "bepaling_toevoegen" },
+    { tekst: "Noem een bepaling", actie: "bepaling_toevoegen" },
     { tekst: "Annoteer de bepalingen hierbij", actie: "deelvragen_annoteren" },
     { tekst: "Is deze deelvraag gedekt?", actie: "dekking" },
   ],
