@@ -127,6 +127,11 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     wat onbewaard openstaat meldt zich bij de bewaker. Geen venster om tekst te bewerken – *Gegevens bewerken* opent
     de dossierkaart met het formulier open (`GegevensFormulier`, `?bewerk=1`). Een keuze die meteen geldt (klasse,
     rol) en een selectie in een boom (*Bronnen koppelen*) vallen erbuiten. `app/knoppen.test.ts` bewaakt het;
+  - **kopiëren en exporteren** is één knop in de kop van elk paneel (`ExportKnop`, 4 nov 2026): bovenaan *Kopieer als
+    Markdown* en *Download als Markdown* (`lib/artefactMarkdown.ts`: dossier, deelvraag, bronselectie, begrip,
+    begrippen, annotatie – kopjes en lijsten, geen tabellen), daaronder de formaten van de soort (annotatie
+    PDF/CSV/JSON/TriG, begrippen CSV/JSON/Turtle). De inhoud wordt bij de klik opgehaald; `downloadTekst` in
+    `lib/api.ts` maakt het bestand;
   - **menu's** delen één rijstijl (`components/ui/Menu`: `MENU_RIJ`, `MENU_PANEEL`);
   - **`Select`** heeft een eigen chevron (`appearance-none`) en dezelfde maat en focus als `Input`;
   - **elk zijpaneel** heeft dezelfde kop (`components/ui/PaneelKop`: soort, titel, *Open volledige pagina*,
