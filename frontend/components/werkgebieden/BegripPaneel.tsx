@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { Button } from "@/components/ui/Button";
 import { AutoTextarea } from "@/components/ui/AutoTextarea";
+import { BewerkKnop, BewerkVoet } from "@/components/ui/Bewerkbaar";
+import { bewerkToets } from "@/lib/bewerken";
 import { Field } from "@/components/ui/Field";
 import { Lijst, LijstRij, Regel, Regels, Sectie, StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
@@ -56,6 +57,7 @@ export function BegripPaneel({ werkgebiedId, begripId, onOnbewaard, onNaarBegrip
   const [fout, setFout] = useState<string | null>(null);
   const [melding, setMelding] = useState<{ type: "bevestiging" | "waarschuwing"; tekst: string } | null>(null);
   const [bewerk, setBewerk] = useState<{ definitie: string; uitleg: string } | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const [bezig, setBezig] = useState(false);
   const [verwijderd, setVerwijderd] = useState<Verwijderd | null>(null);
 
@@ -218,8 +220,19 @@ export function BegripPaneel({ werkgebiedId, begripId, onOnbewaard, onNaarBegrip
         </Sectie>
       )}
 
+      {/* Eén manier van bewerken (4 nov 2026): *Bewerken* bij het blok, ter plekke, met Annuleren · Opslaan. */}
+      {!bewerk && !vervangen && (
+        <div className="flex justify-end">
+          <BewerkKnop wat="Definitie en uitleg" onClick={() => setBewerk({ definitie: b.definitie, uitleg: b.uitleg })} />
+        </div>
+      )}
       {bewerk ? (
-        <form onSubmit={bewaar} className="space-y-3" aria-label="Definitie en uitleg bewerken">
+        <form ref={formRef} onSubmit={bewaar} className="space-y-3" aria-label="Definitie en uitleg bewerken" onKeyDown={(e) => {
+          const wat = bewerkToets({ key: e.key, ctrlKey: e.ctrlKey, metaKey: e.metaKey, isComposing: e.nativeEvent.isComposing }, false);
+          if (!wat) return;
+          e.preventDefault(); e.stopPropagation();
+          if (wat === "annuleren") setBewerk(null); else formRef.current?.requestSubmit();
+        }}>
           <Field label="Definitie" hint="een gewijzigde definitie heet geformuleerd">
             <AutoTextarea value={bewerk.definitie} rows={3} maxLength={8000} autoFocus
               onChange={(e) => setBewerk({ ...bewerk, definitie: e.target.value })} />
@@ -228,14 +241,7 @@ export function BegripPaneel({ werkgebiedId, begripId, onOnbewaard, onNaarBegrip
             <AutoTextarea value={bewerk.uitleg} rows={2} maxLength={8000}
               onChange={(e) => setBewerk({ ...bewerk, uitleg: e.target.value })} />
           </Field>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Button type="submit" size="sm" className="w-full sm:w-auto" disabled={!onbewaard || bezig}>
-              {bezig ? "Bezig…" : "Opslaan"}
-            </Button>
-            <Button type="button" size="sm" variant="ghost" className="w-full sm:w-auto" onClick={() => setBewerk(null)}>
-              Annuleren
-            </Button>
-          </div>
+          <BewerkVoet submit onAnnuleer={() => setBewerk(null)} bezig={bezig} gewijzigd={onbewaard} />
         </form>
       ) : (
         <Regels data-begrip-lees>
@@ -268,12 +274,6 @@ export function BegripPaneel({ werkgebiedId, begripId, onOnbewaard, onNaarBegrip
               : <span className="text-muted">Nog geen voorbeelden.</span>}
           </Regel>
         </Regels>
-      )}
-      {!bewerk && !vervangen && (
-        <Button size="sm" variant="secondary" className="w-full sm:w-auto"
-          onClick={() => setBewerk({ definitie: b.definitie, uitleg: b.uitleg })}>
-          Definitie en uitleg bewerken
-        </Button>
       )}
 
       {(vast.length > 0 || voorgesteld.length > 0) && (

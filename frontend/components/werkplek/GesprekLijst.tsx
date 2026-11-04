@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Archief, ChevronOmlaag, Mapje, Meer, Plus } from "@/components/ui/Icoon";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { BewerkVoet, useBewerken } from "@/components/ui/Bewerkbaar";
 import { GesprekActies } from "@/components/werkplek/GesprekActies";
 import { bewaarDicht, deelIn, leesDicht } from "@/lib/gesprekGroepen";
 import type { GesprekSamenvatting } from "@/lib/types";
@@ -162,39 +163,24 @@ export function GesprekLijst({ gesprekken, activeId, onNieuwInWerkgebied, laden,
 }
 
 function Rij({ gesprek, actief, acties }: { gesprek: GesprekSamenvatting; actief: boolean; acties: RijActies }) {
-  const [bewerk, setBewerk] = useState(false);
   const [menu, setMenu] = useState(false);
-  const [titel, setTitel] = useState(gesprek.titel);
   const label = gesprek.titel || "Nieuw gesprek";
-  // `Enter` sluit de bewerk-modus (unmount van de input) → `onBlur` vuurt daarná óók: guard tegen 2× PATCH.
-  const bewaardRef = useRef(false);
+  // Eén manier van bewerken (4 nov 2026): ter plekke, met Annuleren · Opslaan; Enter slaat op, Escape annuleert.
+  const bw = useBewerken({ begin: gesprek.titel, opslaan: (t: string) => { if (t.trim()) acties.onHernoem(gesprek.id, t.trim()); } });
 
-  function bewaar() {
-    if (bewaardRef.current) return;
-    bewaardRef.current = true;
-    const schoon = titel.trim();
-    if (schoon && schoon !== gesprek.titel) acties.onHernoem(gesprek.id, schoon);
-    setBewerk(false);
-  }
-
-  if (bewerk) {
+  if (bw.open) {
     return (
-      <li className="px-1 py-0.5">
+      <li className="px-1 py-0.5" data-bewerken>
         <input
           autoFocus
-          value={titel}
-          onChange={(e) => setTitel(e.target.value)}
-          onBlur={bewaar}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") bewaar();
-            if (e.key === "Escape") {
-              setTitel(gesprek.titel);
-              setBewerk(false);
-            }
-          }}
+          aria-label="Naam van het gesprek"
+          value={bw.concept}
+          onChange={(e) => bw.zet(e.target.value)}
+          onKeyDown={bw.toetsen(true)}
           className="w-full rounded-field border border-lint bg-paper px-2 py-1.5 text-sm text-ink focus:outline-none"
         />
-      </li>
+        <BewerkVoet onAnnuleer={bw.annuleer} onOpslaan={() => void bw.slaOp()} bezig={bw.bezig}
+          gewijzigd={bw.gewijzigd && !!bw.concept.trim()} />      </li>
     );
   }
 
@@ -237,11 +223,7 @@ function Rij({ gesprek, actief, acties }: { gesprek: GesprekSamenvatting; actief
           <GesprekActies
             werkgebiedId={gesprek.werkgebied_id}
             gearchiveerd={Boolean(gesprek.gearchiveerd)}
-            onHernoem={() => {
-              setTitel(gesprek.titel);
-              bewaardRef.current = false;
-              setBewerk(true);
-            }}
+            onHernoem={bw.start}
             onArchiveer={(a) => acties.onArchiveer(gesprek.id, a)}
             onVerplaats={(w) => acties.onVerplaats(gesprek.id, w)}
             onVerwijder={() => acties.onVerwijder(gesprek.id)}

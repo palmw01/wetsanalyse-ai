@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AutoTextarea } from "@/components/ui/AutoTextarea";
 import { Button, knopKlasse } from "@/components/ui/Button";
-import { ButtonRow } from "@/components/ui/ButtonRow";
-import { Dialog } from "@/components/ui/Dialog";
+import { BewerkVoet } from "@/components/ui/Bewerkbaar";
 import { Field, Input, Select } from "@/components/ui/Field";
 import { Meer } from "@/components/ui/Icoon";
 import { StatusLabel } from "@/components/ui/Lijst";
@@ -15,21 +14,21 @@ import { PaginaKop, Stip, TabLinks, type Kruimel } from "@/components/ui/Pagina"
 import { Popover } from "@/components/ui/Popover";
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
 import { useWerkgebied } from "@/components/werkgebieden/WerkgebiedProject";
-import { haalThemaVoorstel, wijzigWerkgebied } from "@/lib/api";
+import { haalThemaVoorstel } from "@/lib/api";
+import { bewerkToets, isGewijzigd } from "@/lib/bewerken";
 import { themaGroepen } from "@/lib/tooiThemas";
 import type { ThemaVoorstel, Werkgebied, WerkgebiedStatus } from "@/lib/types";
 import { DOSSIER_VELDEN, STATUS_LABEL, datumNl, type DossierVeld } from "@/lib/werkgebied";
-import { ARTEFACT_SOORTEN, PROJECT_TABS, projectPad, type ProjectTab } from "@/lib/werkgebiedPaden";
+import { ARTEFACT_SOORTEN, PROJECT_TABS, artefactPad, projectPad, type ProjectTab } from "@/lib/werkgebiedPaden";
 
 /** De kop van een werkgebied boven de vijf tabs (mock-up v4, `projectHead` + `tabbar`): de naam, één zin,
  *  status en wanneer gewijzigd, en twee knoppen – *Gegevens bewerken* en *Nieuw gesprek*. Verwijderen staat in
  *  het menu ernaast; de historie is een eigen tab. */
 export function ProjectKop({ tab }: { tab: ProjectTab }) {
-  const { wg, muteer, verwijder, stand } = useWerkgebied();
+  const { wg, verwijder, stand } = useWerkgebied();
   const tellers: Partial<Record<ProjectTab, number>> = {
     gesprekken: stand.gesprekken?.length, bronnen: wg.bronnen.length, artefacten: ARTEFACT_SOORTEN.length,
   };
-  const [bewerken, setBewerken] = useState(false);
   const kruimels: Kruimel[] = [{ label: "Werkgebieden", href: "/werkgebieden" }, { label: wg.naam, href: projectPad(wg.id) }];
   if (tab !== "overzicht") kruimels.push({ label: PROJECT_TABS.find((t) => t.key === tab)!.label });
 
@@ -51,7 +50,8 @@ export function ProjectKop({ tab }: { tab: ProjectTab }) {
         }
         acties={
           <>
-            <Button variant="secondary" size="sm" onClick={() => setBewerken(true)}>Gegevens bewerken</Button>
+            {/* Bewerken gebeurt ter plekke op de kaart van het dossier (4 nov 2026), niet in een venster. */}
+            <Link href={`${artefactPad(wg.id, "dossier")}?bewerk=1`} className={knopKlasse("secondary", "sm")}>Gegevens bewerken</Link>
             <Link href={`/workbench?werkgebied=${encodeURIComponent(wg.id)}`}
               className={knopKlasse("primary", "sm")}>
               Nieuw gesprek
@@ -72,12 +72,6 @@ export function ProjectKop({ tab }: { tab: ProjectTab }) {
       />
       <TabLinks label="Werkgebied" actief={tab}
         tabs={PROJECT_TABS.map((t) => ({ key: t.key, label: t.label, href: projectPad(wg.id, t.key), telling: tellers[t.key] }))} />
-      {bewerken && (
-        <GegevensDialoog wg={wg} onSluit={() => setBewerken(false)}
-          onBewaar={async (w) => {
-            if (await muteer((r) => wijzigWerkgebied(wg.id, { ...w, verwachte_revisie: r }), { gelukt: "Opgeslagen." })) setBewerken(false);
-          }} />
-      )}
     </>
   );
 }
@@ -97,11 +91,14 @@ const DOSSIER_HINT: Partial<Record<DossierVeld, string>> = {
   gebeurtenis: "de handeling in de term van de wet, zoals kwijtschelding of verrekening",
 };
 
-/** Naam, dossier, peildatum en status van het werkgebied bewerken, in een venster boven de pagina. */
-export function GegevensDialoog({ wg, onBewaar, onSluit }: {
+/** Naam, dossier, thema, peildatum en status van het werkgebied bewerken – ter plekke, op de kaart van het dossier
+ *  (4 nov 2026: één manier van bewerken, geen venster; `components/ui/Bewerkbaar`). Escape annuleert, Ctrl/⌘+Enter
+ *  slaat op; wat er onbewaard openstaat, meldt het formulier aan de bewaker van het werkgebied (`onOnbewaard`). */
+export function GegevensFormulier({ wg, onBewaar, onSluit, onOnbewaard }: {
   wg: Werkgebied;
   onBewaar: (w: { naam: string; peildatum: string | null; status: WerkgebiedStatus; thema: string } & Record<DossierVeld, string>) => Promise<void>;
   onSluit: () => void;
+  onOnbewaard?: (onbewaard: boolean) => void;
 }) {
   const [naam, setNaam] = useState(wg.naam);
   // Het dossier in één toestand: dezelfde velden en volgorde als de samenvatting (`DOSSIER_VELDEN`).
@@ -119,6 +116,12 @@ export function GegevensDialoog({ wg, onBewaar, onSluit }: {
     return () => { levend = false; };
   }, [wg.id]);
   const voorgesteld = voorstel?.voorstel[0];
+  const begin = useMemo(() => ({ naam: wg.naam, peildatum: wg.peildatum ?? "", status: wg.status, thema: wg.thema ?? "",
+    ...Object.fromEntries(DOSSIER_VELDEN.map(({ veld }) => [veld, wg[veld] ?? ""])) }), [wg]);
+  const gewijzigd = isGewijzigd(begin, { naam, peildatum, status, thema, ...dossier });
+  useEffect(() => { onOnbewaard?.(gewijzigd); }, [gewijzigd, onOnbewaard]);
+  useEffect(() => () => onOnbewaard?.(false), [onOnbewaard]);
+  const formRef = useRef<HTMLFormElement>(null);
 
   async function bewaar(e: React.FormEvent) {
     e.preventDefault();
@@ -129,9 +132,13 @@ export function GegevensDialoog({ wg, onBewaar, onSluit }: {
   }
 
   return (
-    <Dialog label="Gegevens van het werkgebied" variant="compact" onSluit={onSluit}>
-      <form onSubmit={bewaar} className="space-y-4 overflow-y-auto p-5" data-gegevens-formulier>
-        <h2 className="font-display text-base font-semibold text-lint">Gegevens bewerken</h2>
+      <form ref={formRef} onSubmit={bewaar} className="space-y-4" data-gegevens-formulier aria-label="Gegevens van het werkgebied bewerken"
+        onKeyDown={(e) => {
+          const wat = bewerkToets({ key: e.key, ctrlKey: e.ctrlKey, metaKey: e.metaKey, isComposing: e.nativeEvent.isComposing }, false);
+          if (!wat) return;
+          e.preventDefault(); e.stopPropagation();
+          if (wat === "annuleren") onSluit(); else formRef.current?.requestSubmit();
+        }}>
         <Field label="Naam" required>
           <Input value={naam} onChange={(e) => setNaam(e.target.value)} maxLength={200} required autoFocus />
         </Field>
@@ -182,11 +189,7 @@ export function GegevensDialoog({ wg, onBewaar, onSluit }: {
           De peildatum is standaard de aanmaakdatum; leeg zet hem daarop terug. De wettekst komt uit de actuele graaf:
           geldt die pas na de peildatum, dan staat dat bij de bronnen.
         </p>
-        <ButtonRow>
-          <Button type="submit" disabled={!naam.trim() || bezig}>{bezig ? "Bezig…" : "Opslaan"}</Button>
-          <Button type="button" variant="secondary" onClick={onSluit}>Annuleren</Button>
-        </ButtonRow>
+        <BewerkVoet submit onAnnuleer={onSluit} bezig={bezig} gewijzigd={gewijzigd && !!naam.trim()} />
       </form>
-    </Dialog>
   );
 }

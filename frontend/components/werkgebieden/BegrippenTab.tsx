@@ -104,7 +104,7 @@ export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard, weer
     <div className="space-y-4">
       {fout && <Melding type="fout">{fout}</Melding>}
       {wachtendeKeuze && (
-        <OnbewaardMelding
+        <OnbewaardMelding waar="Op de begripskaart"
           onBlijf={() => setWachtendeKeuze(null)}
           onToch={() => {
             const doel = wachtendeKeuze;
@@ -315,7 +315,7 @@ function GekozenBegrip({ id, begripId, lijst, weergave, onWeergave, onGewijzigd,
         </Button>
       </div>
       {wachtend && (
-        <OnbewaardMelding
+        <OnbewaardMelding waar="Op de begripskaart"
           onBlijf={() => setWachtend(false)}
           onToch={() => {
             setWachtend(false);
