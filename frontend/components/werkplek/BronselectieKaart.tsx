@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Kruis, PijlRechts } from "@/components/ui/Icoon";
 import { haalBronselectie } from "@/lib/api";
 import { BRONSELECTIE_GEWIJZIGD, paneelTelling } from "@/lib/bronselectie";
-import { klaarActie, typActie, type IntakeActie, type Vraagkaart } from "@/lib/vraagkaart";
+import { klaarActie, stilActie, typActie, type IntakeActie, type Vraagkaart } from "@/lib/vraagkaart";
 
 /** Het compacte kaartje van de bronselectie (`weergave: paneel`, 3 nov 2026): het gesprek blijft rustig, zoals een
  *  artefact bij Claude. Het noemt hoeveel er ligt – live, want je beslist in het paneel – en verwijst ernaar:
@@ -82,7 +82,13 @@ export function BronselectieKaart({ kaart, uitgeschakeld, onActie, onSluit, onBe
           className="focus-ring min-h-[36px] min-w-0 flex-1 rounded-field border border-line bg-paper px-3 text-sm placeholder:text-faint" />
         {typ && <Button type="submit" variant="ghost" size="sm">Voeg toe</Button>}
       </form>
-      <div className="mt-3 flex sm:justify-end">
+      {/* Onderaan zoals het VraagDock: links de bronselectie stilzetten (het kruisje verbergt het kaartje alleen; na
+          een volgende beurt komt het terug), rechts de hoofdknop. */}
+      <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+        <button type="button" disabled={uitgeschakeld} onClick={() => onActie(stilActie(kaart))} data-stil
+          className="focus-ring self-center rounded text-xs text-muted underline-offset-2 hover:underline disabled:opacity-50 sm:mr-auto sm:self-auto">
+          Zet de bronselectie stil
+        </button>
         <Button onClick={() => onActie(klaarActie(kaart))} disabled={uitgeschakeld} className="w-full px-5 sm:w-auto" data-klaar>
           {kern ? "Klaar met de kernbepalingen" : "Klaar, afronden"} <PijlRechts />
         </Button>

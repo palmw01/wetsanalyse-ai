@@ -128,6 +128,8 @@ try {
   await kaart().locator("[data-telling]").getByText("Kernbepalingen · 2 kandidaatbronnen").waitFor();
   assert.equal(await kaart().getByRole("option").count(), 0, "geen vinkjes in het gesprek");
   await kaart().getByRole("button", { name: /Bronnen beoordelen/ }).waitFor();
+  // Annuleren kan: de bronselectie stilzetten, zoals op het gewone kaartje.
+  assert.equal(await kaart().locator("[data-stil]").textContent(), "Zet de bronselectie stil");
   // De opbouw van het kaartje: de nevenknoppen naast elkaar en even breed, Klaar daaronder rechts, uitgelijnd met
   // de rechterkant van de nevenknoppen (en niet los op een eigen regel na een flex-wrap).
   const beoordelen = await kaart().getByRole("button", { name: /Bronnen beoordelen/ }).boundingBox();
