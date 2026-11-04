@@ -5,7 +5,9 @@ naar bronnen komt en wat dekking betekent. Dit is de agentrol `deelvragen` (`../
 de deelvragen-agent in graph-qa en de intake bij het samenstellen van een werkgebied gebruiken
 dezelfde tekst. In eigen woorden, op basis van de Handleiding (deelactiviteiten 1d–1g) en de
 Leidraad (activiteit 1); het BRM-materiaal zelf hoort niet in deze publieke repo.
-Broncodes verwijzen naar [bronnen en beslisregister](bronnen.md).
+Broncodes verwijzen naar [bronnen en beslisregister](bronnen.md). Waarom een bron juridisch bij het
+werkgebied hoort – grondslag, rechtsgeldigheid, rechtsgevolg of nadere invulling – staat in
+[zoekvragen bij de bronselectie](zoekvragen-bronselectie.md).
 
 ## Deelvragen
 

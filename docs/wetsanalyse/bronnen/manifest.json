@@ -123,6 +123,18 @@
     "toelichting": "lokaal onderzoeksarchief"
   },
   {
+    "id": "M14",
+    "titel": "Soorten zoekvragen bij de bronselectie (bestaansrecht, rechtsgeldigheid, rechtsgevolgen, nadere invulling)",
+    "auteur": "Expertisecentrum BRM Belastingdienst",
+    "versie": "tabel, aangeleverd door de gebruiker op 2026-11-04",
+    "pad": "docs/kennisbank/zoekvragen-bronselectie.brm.png",
+    "url": null,
+    "registratiedatum": "2026-11-04",
+    "status": "lokaal_bewaard",
+    "sha256": "d19dcae5990d49caf51bbfb26e82bee70057274820750665682a290606f17aca",
+    "toelichting": "intern BRM-materiaal; niet herpubliceren, alleen in eigen woorden in de skill"
+  },
+  {
     "id": "L01",
     "titel": "Omgevingswet oorspronkelijke publicatie",
     "auteur": "Staatsblad",
