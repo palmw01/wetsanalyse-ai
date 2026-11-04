@@ -922,6 +922,10 @@ van de gebruiker op 20 okt 2026).
   zoeken generaliseert (held-out pool 0,56 → 0,94), de rangschikking maar half (recall nodig 0,36 → 0,27):
   de Leidraad overstroomt de top 8. **Open**: een rangsignaal voor de soort regeling (wet vóór beleidsregel)
   of een lengtecorrectie, gemeten op een **nieuwe** set – beide bestaande sets zijn nu ontwikkelsets.
+- **Historische toestanden** (open keuze, 3 nov 2026): de graaf heeft per regeling alleen de nieuwste toestand,
+  dus de wettekst is altijd de actuele. De peildatum is standaard de aanmaakdatum en de werkplek waarschuwt als de
+  tekst pas ná de peildatum ging gelden (`GET …/toestanden`). De toestand van de peildatum zelf importeren raakt de
+  importer (meer toestanden per regeling), het graafmodel en de bronidentiteit (`snapshot_id`): een eigen spoor.
 - **Minder en betere bronvoorstellen** (de volgende iteratie, volgens de gebruiker): de bronnenrun het
   dossier laten gebruiken – wat erbuiten valt weglaten zoals de intake dat al doet, zoeken met
   aanleiding en praktijkvoorbeeld – met een meting op de referentieset bronselectie ervoor en erna.

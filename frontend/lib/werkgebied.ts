@@ -9,6 +9,7 @@ import { jasVolgorde, klasseLabel } from "./jas";
 import type {
   BronBereik,
   BronRol,
+  Toestanden,
   InventarisElement,
   InventarisSelectie,
   RelatieType,
@@ -88,7 +89,7 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   }
   // `verdieping` (fase C) is alleen lezen; de batches en de uitkomst zet graph-qa, niet de werkplek.
   if (deel === "elementen" || deel === "audit" || deel === "annotatie-werkvoorraad" || deel === "verdieping"
-      || deel === "herbeoordelingen" || deel === "thema-voorstel" || deel === "regelingen" || deel === "bepalingen")
+      || deel === "herbeoordelingen" || deel === "thema-voorstel" || deel === "toestanden" || deel === "regelingen" || deel === "bepalingen")
     return pad.length === 2;
   // Relaties (fase F2): lezen en vastleggen, één relatie weghalen of bevestigen, een voorstel afwijzen.
   if (deel === "relaties") {
@@ -329,3 +330,27 @@ export function scopeInModel(g: GraafModel, selecties: { bron_iri: string; berei
   return scope;
 }
 
+
+
+/** Een datum als de jurist hem leest: "2026-11-03" → "03-11-2026". Iets anders blijft zoals het is. */
+export function datumNl(iso: string | null | undefined): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso ?? "");
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : (iso ?? "");
+}
+
+/** De regel boven de bronnen: de peildatum, en of dat de standaard (de aanmaakdatum) is. */
+export function peildatumZin(peildatum: string | null | undefined, standaard: boolean | undefined): string {
+  if (!peildatum) return "Geen peildatum";
+  return `Peildatum ${datumNl(peildatum)}${standaard ? " (standaard: de aanmaakdatum van het werkgebied)" : ""}`;
+}
+
+/** Wat de jurist moet weten over de tekst naast de peildatum: per regeling waarvan de toestand in de graaf pas
+ *  ná de peildatum ging gelden één zin; leeg als alles klopt. Onvolledig zegt het ook. */
+export function toestandMeldingen(t: Toestanden | null): string[] {
+  if (!t) return [];
+  const zinnen = t.regelingen.filter((r) => r.na_peildatum).map((r) =>
+    `${r.citeertitel}: de tekst in de kennisgraaf geldt vanaf ${datumNl(r.geldig_vanaf)}, na de peildatum. ` +
+    "Hij kan afwijken van wat op de peildatum gold.");
+  if (!t.volledig) zinnen.push("De geldigheid van de regelingen is nu niet op te halen.");
+  return zinnen;
+}
