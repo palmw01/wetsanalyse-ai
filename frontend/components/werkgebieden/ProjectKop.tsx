@@ -94,9 +94,12 @@ const DOSSIER_HINT: Partial<Record<DossierVeld, string>> = {
 /** Naam, dossier, thema, peildatum en status van het werkgebied bewerken – ter plekke, op de kaart van het dossier
  *  (4 nov 2026: één manier van bewerken, geen venster; `components/ui/Bewerkbaar`). Escape annuleert, Ctrl/⌘+Enter
  *  slaat op; wat er onbewaard openstaat, meldt het formulier aan de bewaker van het werkgebied (`onOnbewaard`). */
-export function GegevensFormulier({ wg, onBewaar, onSluit, onOnbewaard }: {
+export function GegevensFormulier({ wg, deel = "dossier", onBewaar, onSluit, onOnbewaard }: {
   wg: Werkgebied;
-  onBewaar: (w: { naam: string; peildatum: string | null; status: WerkgebiedStatus; thema: string } & Record<DossierVeld, string>) => Promise<void>;
+  /** Welk blok: `dossier` (de kaart *Analyseopdracht*: naam, dossiervelden, thema) of `versie` (de kaart *Versie*:
+   *  peildatum en status). Je bewerkt een gegeven op de plek waar het staat; het formulier stuurt alleen dat blok. */
+  deel?: "dossier" | "versie";
+  onBewaar: (w: Partial<{ naam: string; peildatum: string | null; status: WerkgebiedStatus; thema: string } & Record<DossierVeld, string>>) => Promise<void>;
   onSluit: () => void;
   onOnbewaard?: (onbewaard: boolean) => void;
 }) {
@@ -116,18 +119,20 @@ export function GegevensFormulier({ wg, onBewaar, onSluit, onOnbewaard }: {
     return () => { levend = false; };
   }, [wg.id]);
   const voorgesteld = voorstel?.voorstel[0];
-  const begin = useMemo(() => ({ naam: wg.naam, peildatum: wg.peildatum ?? "", status: wg.status, thema: wg.thema ?? "",
-    ...Object.fromEntries(DOSSIER_VELDEN.map(({ veld }) => [veld, wg[veld] ?? ""])) }), [wg]);
-  const gewijzigd = isGewijzigd(begin, { naam, peildatum, status, thema, ...dossier });
+  const versie = deel === "versie";
+  const begin = useMemo(() => versie ? { peildatum: wg.peildatum ?? "", status: wg.status }
+    : { naam: wg.naam, thema: wg.thema ?? "", ...Object.fromEntries(DOSSIER_VELDEN.map(({ veld }) => [veld, wg[veld] ?? ""])) },
+  [wg, versie]);
+  const gewijzigd = isGewijzigd(begin, versie ? { peildatum, status } : { naam, thema, ...dossier });
   useEffect(() => { onOnbewaard?.(gewijzigd); }, [gewijzigd, onOnbewaard]);
   useEffect(() => () => onOnbewaard?.(false), [onOnbewaard]);
   const formRef = useRef<HTMLFormElement>(null);
 
   async function bewaar(e: React.FormEvent) {
     e.preventDefault();
-    if (!naam.trim() || bezig) return;
+    if ((!versie && !naam.trim()) || bezig) return;
     setBezig(true);
-    await onBewaar({ naam: naam.trim(), ...dossier, peildatum: peildatum || null, status, thema });
+    await onBewaar(versie ? { peildatum: peildatum || null, status } : { naam: naam.trim(), ...dossier, thema });
     setBezig(false);
   }
 
@@ -139,6 +144,7 @@ export function GegevensFormulier({ wg, onBewaar, onSluit, onOnbewaard }: {
           e.preventDefault(); e.stopPropagation();
           if (wat === "annuleren") onSluit(); else formRef.current?.requestSubmit();
         }}>
+        {!versie && <>
         <Field label="Naam" required>
           <Input value={naam} onChange={(e) => setNaam(e.target.value)} maxLength={200} required autoFocus />
         </Field>
@@ -171,10 +177,11 @@ export function GegevensFormulier({ wg, onBewaar, onSluit, onOnbewaard }: {
             <Button type="button" size="xs" variant="secondary" onClick={() => setThema(voorgesteld.thema)}>Overnemen</Button>
           </p>
         )}
-        {/* Peildatum en status naast elkaar: de uitleg staat eronder, niet op de labelregel, anders duwt hij het
-            datumveld omlaag en staan de twee velden niet op één lijn. */}
-        <div className="grid gap-4 sm:grid-cols-2" data-peildatum-status>
-          <Field label="Gewenste peildatum">
+        </>}
+        {versie && <>
+        {/* Peildatum en status onder elkaar: ze staan op de smalle kaart *Versie*; de uitleg van de peildatum staat eronder. */}
+        <div className="space-y-4" data-peildatum-status>
+          <Field label="Peildatum">
             <Input type="date" value={peildatum} onChange={(e) => setPeildatum(e.target.value)} />
           </Field>
           <Field label="Status">
@@ -189,7 +196,8 @@ export function GegevensFormulier({ wg, onBewaar, onSluit, onOnbewaard }: {
           De peildatum is standaard de aanmaakdatum; leeg zet hem daarop terug. De wettekst komt uit de actuele graaf:
           geldt die pas na de peildatum, dan staat dat bij de bronnen.
         </p>
-        <BewerkVoet submit onAnnuleer={onSluit} bezig={bezig} gewijzigd={gewijzigd && !!naam.trim()} />
+        </>}
+        <BewerkVoet submit onAnnuleer={onSluit} bezig={bezig} gewijzigd={gewijzigd && (versie || !!naam.trim())} />
       </form>
   );
 }
