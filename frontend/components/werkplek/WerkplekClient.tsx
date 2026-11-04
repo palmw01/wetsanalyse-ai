@@ -63,7 +63,7 @@ import { WerkplekHeader } from "./WerkplekHeader";
 import { parseHergebruik, parseOverzicht } from "@/lib/agentEvents";
 import { DEMO_DOEL, DEMO_SLUG, type DemoScene } from "@/lib/rondleidingDemo";
 import {
-  SOORT_LABEL, actieVerzoek, chipTekst, overVan, suggestiesVan, verzoekVan, werkgebiedSuggesties, type Onderwerp,
+  SOORT_LABEL, VERVOLG_TEKST, actieVerzoek, chipTekst, overVan, suggestiesVan, verzoekVan, werkgebiedSuggesties, type Onderwerp, type Vervolg,
   type VraagLexActie,
 } from "@/lib/vraagLex";
 
@@ -223,6 +223,10 @@ export function WerkplekClient({
   // Wat er zojuist is opgeslagen, voor schermlezers. Zonder dit gebeurt elke annotatie-wijziging
   // volledig stil: de kaart verandert visueel, maar er wordt niets aangekondigd.
   const [melding, setMelding] = useState("");
+  // Een vervolgstap die Lex zelf aankondigde (`opgeslagen.vervolg`): verstuurd zodra de beurt klaar is en de werkplek
+  // in dat werkgebied staat, als een klik op de suggestie met die actie.
+  const [vervolg, setVervolg] = useState<(Vervolg & { id: string }) | null>(null);
+  const vervolgGedaan = useRef("");
   // De run die nu loopt. Die leeft bij de agent, niet in dit venster: dit id is waarmee we
   // aanhaken en waarmee de stopknop hem beëindigt.
   const [runId, setRunId] = useState<string | null>(null);
@@ -643,7 +647,8 @@ export function WerkplekClient({
     // Heeft de agent de beurt zelf vastgelegd? Dan schrijft de werkplek niets meer weg – anders
     // staat alles er twee keer. Blijft dit leeg, dan legt de client het bericht zelf vast; zo werkt
     // een graph-qa zonder api-koppeling gewoon door.
-    let opgeslagen: { run_id: string; artefact?: Artefact; annotatie_doel?: NodeDoel; bevestiging?: Bevestiging } | null = null;
+    let opgeslagen: { run_id: string; artefact?: Artefact; annotatie_doel?: NodeDoel; bevestiging?: Bevestiging;
+      vervolg?: Vervolg } | null = null;
     let toolExecutions: ToolExecution[] = [];
     // De verbinding viel weg terwijl de run doorliep. Buiten de `try` gezet omdat het opnieuw
     // aanhaken ná de `finally` moet gebeuren: die reset `bezig`/`afbrekenRef`, en een nieuwe lus
@@ -783,6 +788,10 @@ export function WerkplekClient({
         await toonVastgelegdeBeurt(opgeslagen, {
           antId, tekst, denk, hergebruik, doel: doelInvoerVan(doelRef.d), tool_executions: toolExecutions, meting,
         });
+        // Lex gaat zelf verder (na *Werkgebied aanmaken*: de bronselectie). Alleen live, nooit na herladen: dan
+        // start er niets vanzelf.
+        const verder = (opgeslagen as { vervolg?: Vervolg } | null)?.vervolg;
+        if (verder) setVervolg({ ...verder, id: uid() });
         onGewijzigd();
         return;
       }
@@ -869,6 +878,14 @@ export function WerkplekClient({
   function vergeetLopendeRun(gid: string) {
     schrijfLopendeRuns(vergeetRun(leesLopendeRuns(), gid));
   }
+
+  useEffect(() => {
+    if (!vervolg || vervolgGedaan.current === vervolg.id || bezig || werkgebiedId !== vervolg.werkgebied_id) return;
+    vervolgGedaan.current = vervolg.id;
+    void verstuur(VERVOLG_TEKST[vervolg.actie], undefined, undefined, undefined, undefined, undefined, vervolg.actie);
+    // `verstuur` is elke render nieuw; het effect hoort alleen bij de vervolgstap en de stand van de beurt.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vervolg, bezig, werkgebiedId]);
 
   /** De agent heeft de beurt al weggeschreven; haal op wat er staat en toon het.
    *

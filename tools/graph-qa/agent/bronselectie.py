@@ -141,18 +141,30 @@ def kaart_kies(werkgebied_id: str, ov: dict[str, Any]) -> dict[str, Any]:
             "vooringevuld": [voorkeur] if voorkeur else [], "deelvraag_id": ""}
 
 
-def kaart_gebeurtenis(werkgebied_id: str, ov: dict[str, Any], opties: list[dict[str, Any]],
-                     deelvraag_id: str = "", voorwerp: bool = False) -> dict[str, Any]:
-    """Om welke gebeurtenis gaat het? De opties uit de koppen van de regelingen, met de koppen als omschrijving;
-    de huidige keuze (of anders de eerste) staat aangevinkt. Een eigen term mag; overslaan ook."""
-    huidig = (ov.get("gebeurtenis") or "").strip()
+GEBEURTENIS_UITLEG = ("Ik zoek de bronnen vanaf de handeling zoals de wet haar noemt: eerst waar ze geregeld is, dan de "
+                      "voorwaarden en de procedure, de gevolgen en de uitleg. De voorstellen komen uit de koppen van de "
+                      "regelingen. Kies er één, of typ de term van de wet.")
+
+
+def gebeurtenis_opties(opties: list[dict[str, Any]], huidig: str = "") -> tuple[list[dict[str, Any]], list[str]]:
+    """De opties van het gebeurtenis-kaartje en wat aangevinkt staat – één opbouw voor het samenstellen van een
+    werkgebied (stap `gebeurtenis`) en de bronselectie (`bs_gebeurtenis`): de voorstellen uit de koppen van de
+    regelingen (`zoekvragen.gebeurtenis_opties`) met de koppen als omschrijving, de huidige keuze erbij."""
+    huidig = (huidig or "").strip()
     lijst = [{"label": _kort(o["gebeurtenis"], 300), "waarde": _kort(o["gebeurtenis"], 200), "bron": {},
               "omschrijving": _kort("; ".join(o.get("koppen") or []), 300)} for o in opties[:8]]
     if huidig and huidig.casefold() not in {o["waarde"].casefold() for o in lijst}:
         lijst.insert(0, {"label": huidig, "waarde": huidig, "bron": {}, "omschrijving": "nu gekozen"})
-    toelichting = ("Ik zoek de bronnen vanaf de handeling zoals de wet haar noemt: eerst waar ze geregeld is, dan de "
-                   "voorwaarden en de procedure, de gevolgen en de uitleg. De voorstellen komen uit de koppen van de "
-                   "regelingen. Kies er één, of typ de term van de wet.")
+    return lijst, ([huidig or lijst[0]["waarde"]] if lijst else [])
+
+
+def kaart_gebeurtenis(werkgebied_id: str, ov: dict[str, Any], opties: list[dict[str, Any]],
+                     deelvraag_id: str = "", voorwerp: bool = False) -> dict[str, Any]:
+    """Om welke gebeurtenis gaat het? Het vangnet van de bronselectie voor een werkgebied zonder gebeurtenis (die
+    wordt sinds 4 nov 2026 bij het samenstellen gevraagd). Een eigen term mag; overslaan ook."""
+    huidig = (ov.get("gebeurtenis") or "").strip()
+    lijst, voor = gebeurtenis_opties(opties, huidig)
+    toelichting = GEBEURTENIS_UITLEG
     if voorwerp and huidig:
         onder = [o["gebeurtenis"] for o in opties if o.get("onder_voorwerp")][:3]
         toelichting = (f"‘{huidig}’ staat in geen kop van de regelingen: het is vermoedelijk een voorwerp, geen "
@@ -161,7 +173,7 @@ def kaart_gebeurtenis(werkgebied_id: str, ov: dict[str, Any], opties: list[dict[
                        + " Kies de handeling, of typ de term van de wet.")
     return {**_basis(werkgebied_id, "bs_gebeurtenis", None, ov), "nr": 1, "totaal": 1, "deelvraag_id": deelvraag_id,
             "vraag": "Om welke gebeurtenis gaat het?", "toelichting": toelichting, "opties": lijst,
-            "vooringevuld": [huidig or lijst[0]["waarde"]] if lijst else [], "vrije_tekst": True, "overslaanbaar": True}
+            "vooringevuld": voor, "vrije_tekst": True, "overslaanbaar": True}
 
 
 def _past(stap: str) -> Callable[[dict[str, Any]], bool]:
@@ -394,7 +406,9 @@ async def _vraag_gebeurtenis(api, wid: str, ov: dict[str, Any], stel_voor: StelV
 
 
 def _regelingen(wg: dict[str, Any], ov: dict[str, Any]) -> list[str]:
-    return list(dict.fromkeys([b["bwb_id"] for b in wg.get("bronnen") or [] if b.get("bwb_id")] + regelingen_van(ov)))
+    """Het zoekbereik dat de analist koos, dan de regelingen van de bronnen en de voorstellen."""
+    return list(dict.fromkeys([r["bwb_id"] for r in wg.get("regelingen") or [] if r.get("bwb_id")]
+                              + [b["bwb_id"] for b in wg.get("bronnen") or [] if b.get("bwb_id")] + regelingen_van(ov)))
 
 
 async def _kloof(api, wid: str, ov: dict[str, Any], woorden: list[str]) -> str:
@@ -521,14 +535,16 @@ def kaart_toevoegen(werkgebied_id: str, ov: dict[str, Any], did: str = "", meldi
 
 
 async def bepaling_treffers(api, wid: str, ov: dict[str, Any], tekst: str,
-                            vind: Callable[[str], list[str]] | None) -> tuple[list[dict[str, Any]], list[str]]:
+                            vind: Callable[[str], list[str]] | None, regelingen: list[str] | None = None
+                            ) -> tuple[list[dict[str, Any]], list[str]]:
     """De bepalingen die een getypte regel noemt, opgezocht in de echte boom: (treffers, zinnen). Per genoemde
     bepaling de beste treffer (`{bron_iri, vindplaats, bwb_id}`); wat niet te vinden is, is een zin – nooit stil een
     kortere lijst. Een regel met meer bepalingen begrijpt Lex ook."""
     from .bepaling_namen import bepalingen_uit_tekst
     from .wetsanalyse_api import WetsanalyseApiFout
 
-    verzoeken = bepalingen_uit_tekst(tekst, vind or (lambda _t: []), regelingen_van(ov))
+    verzoeken = bepalingen_uit_tekst(tekst, vind or (lambda _t: []),
+                                     regelingen if regelingen is not None else regelingen_van(ov))
     if isinstance(verzoeken, str):
         return [], [verzoeken]
     if not verzoeken:
@@ -582,12 +598,14 @@ async def noem(api, wid: str, ov: dict[str, Any], did: str, regels: list[str],
 
     d = _dq(ov, did)
     standaard = "afhankelijkheid" if d and d.get("fase") == "afhankelijkheden" else "kern"
+    # Zonder regeling in de regel: de enige regeling van het werkgebied (het zoekbereik, de bronnen).
+    regelingen = _regelingen(await api.haal_werkgebied(wid), ov)
     zinnen: list[str] = []
     gelukt, mislukt = 0, []
     for regel in regels[:MAX_REGELS]:
         rol, zoekregel = (("afhankelijkheid", _ALS_CONTEXT.sub(" ", regel)) if _ALS_CONTEXT.search(regel)
                           else (standaard, regel))
-        treffers, z = await bepaling_treffers(api, wid, ov, zoekregel, vind)
+        treffers, z = await bepaling_treffers(api, wid, ov, zoekregel, vind, regelingen)
         zinnen += z
         if not treffers:
             mislukt.append(regel)

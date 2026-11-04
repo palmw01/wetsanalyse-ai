@@ -132,7 +132,9 @@ class VraagOptie(BaseModel):
 # De stappen van het samenstellen, in de volgorde van graph-qa (`agent/werkgebied_intake.STAPPEN`):
 # startactiviteit a, dan activiteit 1 – de bronnen pas als vraag en deelvragen er zijn (Handleiding 1f).
 IntakeStap = Literal["naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld", "thema",
-                     "deelvragen", "buiten", "regelingen", "bepalingen", "samenvatting",
+                     "deelvragen", "buiten", "regelingen", "gebeurtenis", "samenvatting",
+                     # Een bewaard kaartje van vóór 4 nov 2026 (de bepalingen per deelvraag) blijft leesbaar.
+                     "bepalingen",
                      # De bronselectie per deelvraag (spoor J): dezelfde kaartjes, de stand staat bij de api.
                      "bs_gebeurtenis", "bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder",
                      "bs_toevoegen"]

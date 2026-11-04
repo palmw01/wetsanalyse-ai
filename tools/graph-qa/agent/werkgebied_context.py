@@ -31,6 +31,10 @@ def context_tekst(werkgebied: dict[str, Any], *, deelvragen: bool = True, bronne
     # Spoor I6: het TOOI-thema (tooitop) met zijn naam, als het gekozen is.
     if (thema := (werkgebied.get("thema_label") or "").strip()):
         regels.append(f"Thema (TOOI): {thema} <{werkgebied.get('thema', '')}>")
+    # Het zoekbereik (4 nov 2026): de regelingen waarin het werkgebied zoekt, vóór de bronnen.
+    if (regelingen := [r.get("label") or r.get("bwb_id") for r in werkgebied.get("regelingen") or []
+                       if isinstance(r, dict) and (r.get("label") or r.get("bwb_id"))]):
+        regels.append(f"Regelingen (zoekbereik): {'; '.join(regelingen)}")
     if deelvragen:
         actief = [d["vraag"] for d in werkgebied.get("deelvragen") or []
                   if d.get("status", "actief") == "actief" and d.get("vraag")]

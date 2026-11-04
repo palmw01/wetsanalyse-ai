@@ -20,8 +20,10 @@ plaats van schijnzekerheid.
 > **Activiteit 1 in het gesprek (PLAN spoor F).** "Kunnen we een werkgebied samenstellen?" of "ik wil
 > een wetsanalyse uitvoeren" laat Lex het werkgebied bepalen met vraagkaarten in de volgorde van de
 > methode – naam, startactiviteit a (aanleiding, context, doel), analysevraag, praktijkvoorbeeld,
-> deelvragen, wat valt erbuiten, en pas dan regeling(en) en per deelvraag de bepalingen – en een samenvatting met
-> *Aanmaken*; daarna staat het werkgebied bij Werkgebieden en in een eigen paneel naast het gesprek.
+> deelvragen, wat valt erbuiten, de regeling(en) waarin we zoeken (het zoekbereik, een eigen veld) en de gebeurtenis –
+> en een samenvatting met *Aanmaken*; daarna staat het werkgebied bij Werkgebieden en in een eigen paneel naast het
+> gesprek, en gaat Lex meteen door met de bronselectie per deelvraag (4 nov 2026: het werkgebied legt vast wát je
+> onderzoekt, de bronselectie welke bronnen – je kiest ze één keer, als voorstel in het paneel).
 > Alles wat er ligt is de context van Lex: elk voorstel krijgt het hele dossier, en in een gesprek
 > binnen een werkgebied krijgt Lex het dossier ook mee (`agent/werkgebied_context.py`). Een **bestaand**
 > werkgebied vult Lex met dezelfde vraagkaarten aan ("kun je het praktijkvoorbeeld toevoegen?", *Vul het

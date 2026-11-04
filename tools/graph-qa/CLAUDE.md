@@ -834,7 +834,10 @@ het voorstel met de bevestiging (`werkgebied_voorstel`, F3c).
 start een **intake** (en met dezelfde kaartjes vult Lex het dossier van een bestaand werkgebied aan, zie
 *Aanvullen* onderaan): één vraag per kaartje in de volgorde van de methode (spoor F, F2) – naam, dan
 startactiviteit a (aanleiding, context, doel), analysevraag, praktijkvoorbeeld, deelvragen, wat valt
-erbuiten, en pas dan regeling(en) en per deelvraag de bepalingen – en een samenvatting met *Aanmaken*. De
+erbuiten, de regeling(en) (het zoekbereik, `werkgebied.regelingen`) en de gebeurtenis (dezelfde kaart als de
+bronselectie, `bronselectie.gebeurtenis_opties`) – en een samenvatting met *Aanmaken*. Bepalingen kiest het
+samenstellen niet meer (4 nov 2026): na het aanmaken stuurt de beurt-driver `opgeslagen.vervolg` (de bronselectie),
+en de werkplek start die als volgende beurt. De
 werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en ketent met niets.
 
 - **Routering.** Een klik op een kaartje (`ChatRequest.intake_actie`) en een startzin gaan zonder
