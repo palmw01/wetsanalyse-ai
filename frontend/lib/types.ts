@@ -836,6 +836,8 @@ export interface WerkgebiedSamenvatting {
 
 export interface Werkgebied extends WerkgebiedSamenvatting {
   bronnen: Bronselectie[];
+  /** Het zoekbereik (4 nov 2026): de regelingen waarin de bronselectie zoekt; aanvullen gaat via Lex. */
+  regelingen?: { bwb_id: string; label: string }[];
   /** Optioneel (open keuze 4): actieve deelvragen en open voorstellen van Lex. Een oudere api stuurt
    *  het veld niet; lees het daarom als `wg.deelvragen ?? []`. */
   deelvragen?: Deelvraag[];

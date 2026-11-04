@@ -51,13 +51,13 @@ export const ACTIES = [
 ] as const;
 
 /** Hoe de suggestie bij een leeg dossierveld het veld noemt; graph-qa herkent het woord (`dossiervelden_in`). De
- *  gebeurtenis kiest de analist in de bronselectie (het eerste kaartje), niet bij het aanvullen van het dossier. */
+ *  gebeurtenis hoort sinds 4 nov 2026 bij het dossier (samenstellen en aanvullen), net als de regelingen. */
 const VELD_ZIN: Record<DossierVeld, string> = {
   aanleiding: "Vul de aanleiding aan", context: "Vul de context aan", doel: "Vul het doel aan",
   analysevraag: "Vul de analysevraag aan", praktijkvoorbeeld: "Vul het praktijkvoorbeeld aan",
-  afbakening: "Vul de afbakening aan", gebeurtenis: "Bepaal de gebeurtenis en de bronnen",
+  afbakening: "Vul de afbakening aan", gebeurtenis: "Vul de gebeurtenis aan",
 };
-const VELD_ACTIE: Partial<Record<DossierVeld, VraagLexActie>> = { gebeurtenis: "bronselectie" };
+const VELD_ACTIE: Partial<Record<DossierVeld, VraagLexActie>> = {};
 export type VraagLexActie = (typeof ACTIES)[number];
 
 export interface Suggestie {
@@ -229,3 +229,20 @@ export function onderwerpUitUrl(zoek: { get(naam: string): string | null }): Obj
   };
 }
 
+
+// --- Lex gaat zelf verder ---------------------------------------------------------------------------
+
+/** Een vervolgstap die Lex na een beurt zelf aankondigt (`opgeslagen.vervolg`, graph-qa `beurt.py`): na *Werkgebied
+ *  aanmaken* de bronselectie per deelvraag. De werkplek stuurt hem als een klik op de suggestie met die actie, één
+ *  keer en alleen live; na herladen start er niets vanzelf. */
+export interface Vervolg { actie: "bronselectie"; werkgebied_id: string }
+
+export const VERVOLG_TEKST: Record<Vervolg["actie"], string> = {
+  bronselectie: "Bepaal de bronnen per deelvraag",
+};
+
+export function parseVervolg(ruw: unknown): Vervolg | undefined {
+  const r = (ruw ?? {}) as Record<string, unknown>;
+  return r.actie === "bronselectie" && typeof r.werkgebied_id === "string" && /^[A-Za-z0-9-]{1,64}$/.test(r.werkgebied_id)
+    ? { actie: "bronselectie", werkgebied_id: r.werkgebied_id } : undefined;
+}

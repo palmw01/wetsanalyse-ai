@@ -1,7 +1,8 @@
 // Lex stelt met de analist een werkgebied samen (startactiviteit a en activiteit 1, graph-qa
 // `agent/werkgebied_intake.py`): naam, aanleiding, context, doel, analysevraag, praktijkvoorbeeld,
-// deelvragen, wat erbuiten valt, en dan pas de bronnen: de regelingen, en per deelvraag een kaartje met
-// de bepalingen die erbij horen (`deel`).
+// deelvragen, wat erbuiten valt, de regelingen (het zoekbereik) en de gebeurtenis. De bronnen per deelvraag komen
+// daarna uit de bronselectie (4 nov 2026: één lijn, je kiest ze één keer). Een oud kaartje van de stap `bepalingen`
+// (met `deel`) is nog te lezen.
 //
 // Elke vraag komt als kaartje: een `vraagkaart`-event, en hetzelfde kaartje op het bewaarde bericht
 // (`Bericht.vraagkaart`, api `gesprek_contracts.Vraagkaart`), zodat het na herladen nog te
@@ -19,14 +20,13 @@
 // Pure functies, zodat ze zonder DOM te testen zijn (lib/vraagkaart.test.ts).
 
 export const STAPPEN = ["naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld", "deelvragen",
-  "buiten", "regelingen", "bepalingen"] as const;
+  "buiten", "regelingen", "gebeurtenis"] as const;
 /** De kaartjes van de bronselectie (graph-qa `bronselectie.KAARTSTAPPEN`). */
 export const BRONSELECTIE_STAPPEN = ["bs_gebeurtenis", "bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder",
   "bs_toevoegen"] as const;
 /** `thema` (spoor I7) is een kaartje van het aanvullen alleen: het samenstellen kent het niet (`STAPPEN`). */
-export type IntakeStap = (typeof STAPPEN)[number] | "thema" | "samenvatting" | (typeof BRONSELECTIE_STAPPEN)[number];
-/** De vaste kaartjes vóór de bepalingen; daarna één per deelvraag (graph-qa `VASTE_STAPPEN`). */
-const VASTE_STAPPEN = STAPPEN.length - 1;
+/** `bepalingen`: een kaartje van vóór 4 nov 2026, alleen nog om te lezen. */
+export type IntakeStap = (typeof STAPPEN)[number] | "thema" | "samenvatting" | "bepalingen" | (typeof BRONSELECTIE_STAPPEN)[number];
 
 /** Bij de bepalingen: het kaartje van welke deelvraag (zonder deelvragen: de analysevraag). */
 export interface IntakeDeel {
@@ -106,6 +106,9 @@ export interface Samenvatting {
   praktijkvoorbeeld: string;
   deelvragen: string[];
   afbakening: string;
+  /** Het zoekbereik (de namen van de regelingen) en de gebeurtenis; een oud kaartje droeg `bronnen`. */
+  regelingen: string[];
+  gebeurtenis: string;
   bronnen: string[];
   /** Bij het aanvullen: alleen wat verandert. Leeg = er verandert niets, en er is niets op te slaan. */
   wijzigingen: Wijziging[];
@@ -147,7 +150,8 @@ export interface IntakeActie {
 
 const tekst = (v: unknown) => (typeof v === "string" ? v : "");
 const lijst = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
-const STAP_SET = new Set<string>([...STAPPEN, "thema", "samenvatting", ...BRONSELECTIE_STAPPEN]);
+// `bepalingen`: een bewaard kaartje van vóór 4 nov 2026 blijft leesbaar in de thread.
+const STAP_SET = new Set<string>([...STAPPEN, "thema", "samenvatting", "bepalingen", ...BRONSELECTIE_STAPPEN]);
 const DEELVRAAG_ID = /^[A-Za-z0-9-]{0,64}$/;
 
 /** Streng: een kaartje zonder intake, met een onbekende stap of zonder vraag wordt niet getoond. Liever
@@ -201,7 +205,8 @@ export function parseVraagkaart(ruw: unknown): Vraagkaart | undefined {
     samenvatting: s && r.soort === "samenvatting" ? {
       naam: tekst(s.naam), aanleiding: tekst(s.aanleiding), context: tekst(s.context), doel: tekst(s.doel),
       analysevraag: tekst(s.analysevraag), praktijkvoorbeeld: tekst(s.praktijkvoorbeeld),
-      deelvragen: lijst(s.deelvragen), afbakening: tekst(s.afbakening), bronnen: lijst(s.bronnen), wijzigingen,
+      deelvragen: lijst(s.deelvragen), afbakening: tekst(s.afbakening), regelingen: lijst(s.regelingen),
+      gebeurtenis: tekst(s.gebeurtenis), bronnen: lijst(s.bronnen), wijzigingen,
     } : null,
   };
 }
@@ -272,6 +277,7 @@ export const STAP_NAAM: Record<IntakeStap, string> = {
   deelvragen: "de deelvragen",
   regelingen: "de regelingen",
   bepalingen: "de bepalingen",
+  gebeurtenis: "de gebeurtenis",
   buiten: "wat erbuiten valt",
   samenvatting: "de samenvatting",
   bs_gebeurtenis: "de gebeurtenis",
@@ -301,13 +307,11 @@ export function antwoordOp(a: IntakeActie): AntwoordOp {
     ...(a.deelvraag_id ? { deelvraag_id: a.deelvraag_id } : {}) };
 }
 
-/** Het kaartje vóór dit (‹): de vorige stap, of bij de bepalingen het vorige deel. Vanaf de
- *  samenvatting is dat het laatste bepalingen-kaartje. Bij het aanvullen kent de werkplek de gevraagde
- *  stappen niet: graph-qa neemt dan de laatste gevraagde stap die niet na deze komt. */
+/** Het kaartje vóór dit (‹): de vorige stap; vanaf de samenvatting de laatste (de gebeurtenis). Bij het aanvullen
+ *  kent de werkplek de gevraagde stappen niet: graph-qa neemt dan de laatste gevraagde stap die niet na deze komt. */
 export function vorige(k: Vraagkaart): { naar: IntakeStap; naar_deel?: number } | undefined {
   if (!k.terug) return undefined;
-  if (k.stap === "samenvatting") return { naar: "bepalingen", naar_deel: Math.max(0, k.totaal - VASTE_STAPPEN - 1) };
-  if (k.stap === "bepalingen" && k.deel && k.deel.index > 0) return { naar: "bepalingen", naar_deel: k.deel.index - 1 };
+  if (k.stap === "samenvatting") return { naar: STAPPEN[STAPPEN.length - 1] };
   // Het thema staat bij het aanvullen na het praktijkvoorbeeld; vanaf de afbakening vraagt de werkplek de
   // deelvragen, en graph-qa maakt daar het thema van (`VOLGORDE_AANVULLEN`).
   if (k.stap === "thema") return { naar: "praktijkvoorbeeld" };
@@ -321,7 +325,7 @@ export function isLaatsteVraag(k: Vraagkaart): boolean {
   // Bij de bronselectie staat elk kaartje op zichzelf: wat erna komt, hangt af van het antwoord.
   if (k.modus === "bronselectie") return true;
   if (k.modus === "aanvullen") return k.soort === "vraag" && k.nr >= k.totaal;
-  return k.stap === "bepalingen" && (!k.deel || k.deel.index >= k.deel.totaal - 1);
+  return k.stap === STAPPEN[STAPPEN.length - 1];
 }
 
 /** Eén vraag met het antwoord erop, voor de Vragen-kaart in de thread. */

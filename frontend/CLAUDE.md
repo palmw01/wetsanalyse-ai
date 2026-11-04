@@ -378,8 +378,10 @@ agent ná je vraag voorlegt uit wat hij vond (kandidaten, `KeuzeKaart`) is een a
 "Kunnen we een werkgebied samenstellen?" of "ik wil een wetsanalyse uitvoeren" laat Lex één vraag per
 kaartje stellen (graph-qa `agent/werkgebied_intake.py`), in de volgorde van de methode (F2): naam,
 aanleiding, context, doel (startactiviteit a), analysevraag, praktijkvoorbeeld, deelvragen, wat valt
-erbuiten, regeling(en), per deelvraag een kaartje met de bepalingen (F3f), en een samenvatting met
-*Werkgebied aanmaken*. Het kaartje komt als
+erbuiten, regeling(en) (het zoekbereik), de gebeurtenis, en een samenvatting met *Werkgebied aanmaken*. Daarna gaat
+Lex zelf door met de bronselectie per deelvraag: `opgeslagen.vervolg` (`parseVervolg`, `VERVOLG_TEKST`) stuurt
+`WerkplekClient` één keer, alleen live, als een klik op *Bepaal de bronnen per deelvraag* zodra de werkplek in het
+werkgebied staat. Het kaartje komt als
 `vraagkaart`-event (`parseVraagkaart` in `lib/vraagkaart.ts`) en staat op het bewaarde bericht
 (`Bericht.vraagkaart`). De vorm volgt hoe Claude een vraag stelt (F1):
 
@@ -399,14 +401,11 @@ erbuiten, regeling(en), per deelvraag een kaartje met de bepalingen (F3f), en ee
   volgende, Ctrl/⌘+Enter of *Volgende* stuurt in. Hetzelfde onderdeel staat op het compacte kaartje van de
   bronselectie; bouw geen tweede invoer voor meer dingen. Ze gaan als `teksten` mee (`antwoordActie`), lege regels niet. Na terugbladeren staat elke
   eigen deelvraag weer op een eigen regel (`beginstand`).
-- **De bepalingen** (F3f): één kaartje per deelvraag (`Vraagkaart.deel: {index, totaal, deelvraag}`, de
-  deelvraag staat onder de vraag), zonder deelvragen één over de analysevraag. Elke klik en het
-  user-bericht (`intake_antwoord`, `antwoordOp`) dragen `deel`; een paar in de Vragen-kaart is er één per
-  deel (`groepeerVragen` sleutelt op stap + deel – anders wist deelvraag 2 het antwoord op 1). *Verzend*
-  staat op het laatste deel (`isLaatsteVraag`). Wat aan de afbakening raakt, staat onderaan met "valt
-  mogelijk buiten de afbakening" en is nooit aangevinkt.
-- **De samenvatting** toont het hele dossier: aanleiding, context, doel, analysevraag,
-  praktijkvoorbeeld, de deelvragen, afbakening en bronnen (met hun deelvragen).
+- **De gebeurtenis** is de laatste vraag (*Verzend*, `isLaatsteVraag`), dezelfde kaart als in de bronselectie. Een
+  oud kaartje van de stap `bepalingen` (met `deel`, van vóór 4 nov 2026) blijft leesbaar in de thread.
+- **De samenvatting** toont het hele dossier: aanleiding, context, doel, analysevraag, praktijkvoorbeeld, de
+  deelvragen, afbakening, de regelingen en de gebeurtenis – geen bronnen: die kies je per deelvraag in de
+  bronselectie.
 - **In de thread één Vragen-kaart per reeks** (`groepeerVragen`, `VragenKaart`): per vraag de vraag
   (grijs) en je antwoord, "Vraag" bij één en "Vragen" bij meer, daaronder "● Een vraag stellen ›" (opent
   de dock weer) of "Nadenken…" terwijl Lex de volgende voorbereidt. De antwoordbubbels en de zinnen van

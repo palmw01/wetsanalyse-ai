@@ -257,8 +257,7 @@ def _deelvraag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
     from .zoekvragen import PLAATSEN_WOORDEN, opties_bij_deelvraag, pool
 
     rol = "aanverwant" if invoer.get("kern") else "kern"
-    regelingen = list(dict.fromkeys(b["bwb_id"] for b in invoer.get("kern", []) + invoer.get("context", [])
-                                    if b.get("bwb_id")))
+    regelingen = regelingen_van_invoer(invoer)
     dossier = {"naam": invoer.get("naam", ""), "analysevraag": invoer.get("analysevraag", ""),
                **(invoer.get("dossier") or {})}
     buiten = uitsluitstammen(buiten_uit_afbakening(dossier.get("afbakening", "")))
@@ -308,8 +307,7 @@ def _grondslag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
     if not gebeurtenis:
         return 0, True
     # Zonder gekozen regelingen: de regelingen waarvan een kop de gebeurtenis draagt, niet de hele graaf.
-    regelingen = list(dict.fromkeys(b["bwb_id"] for b in invoer.get("kern", []) + invoer.get("context", [])
-                                    if b.get("bwb_id"))) or regelingen_van_gebeurtenis(graph, gebeurtenis)
+    regelingen = regelingen_van_invoer(invoer) or regelingen_van_gebeurtenis(graph, gebeurtenis)
     if not regelingen:
         return 0, True
     buiten = uitsluitstammen(buiten_uit_afbakening(dossier.get("afbakening", "")))
@@ -351,6 +349,14 @@ def _verwijzing_in(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> 
 
 def _term_in(term: str, tekst: str) -> bool:
     return bool(term) and re.search(rf"(?<!\w){re.escape(term)}(?!\w)", tekst, re.I) is not None
+
+
+def regelingen_van_invoer(invoer: dict[str, Any]) -> list[str]:
+    """Het zoekbereik van een run: de regelingen die de analist koos (`werkgebied.regelingen`, 4 nov 2026), dan die
+    van de selectie. Leeg = geen bereik gekozen; de methode kiest dan zelf (de gebeurtenis, of de hele graaf)."""
+    return list(dict.fromkeys([*(invoer.get("regelingen") or []),
+                               *(b["bwb_id"] for b in invoer.get("kern", []) + invoer.get("context", [])
+                                 if b.get("bwb_id"))]))
 
 
 def definities_in(graph: GraphPort, teksten: list[dict[str, Any]], bwb_ids: list[str],

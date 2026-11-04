@@ -149,11 +149,21 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
                 ? <span className="whitespace-pre-line">{kaart.samenvatting.afbakening}</span>
                 : <span className="text-muted">geen</span>}
             </Regel>
-            <Regel naam="Bronnen">
-              {kaart.samenvatting.bronnen.length
-                ? <ul className="space-y-0.5">{kaart.samenvatting.bronnen.map((b) => <li key={b}>{b}</li>)}</ul>
-                : <span className="text-muted">nog geen – die voeg je later toe</span>}
+            {/* Wat het werkgebied onderzoekt: het zoekbereik en de gebeurtenis. De bronnen per deelvraag volgen in de
+                bronselectie, direct na het aanmaken (een oud kaartje toont nog zijn bronnen). */}
+            <Regel naam="Regelingen">
+              {kaart.samenvatting.regelingen.length
+                ? <ul className="space-y-0.5">{kaart.samenvatting.regelingen.map((r) => <li key={r}>{r}</li>)}</ul>
+                : <span className="text-muted">nog te bepalen</span>}
             </Regel>
+            <Regel naam="Gebeurtenis">
+              {kaart.samenvatting.gebeurtenis || <span className="text-muted">nog te bepalen</span>}
+            </Regel>
+            {kaart.samenvatting.bronnen.length > 0 && (
+              <Regel naam="Bronnen">
+                <ul className="space-y-0.5">{kaart.samenvatting.bronnen.map((b) => <li key={b}>{b}</li>)}</ul>
+              </Regel>
+            )}
           </Regels>
         ) : (
           <ul
