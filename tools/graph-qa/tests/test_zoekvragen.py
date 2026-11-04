@@ -202,8 +202,10 @@ class Omgeving(Wereld):
             rijen = {UR: [[f"urn:bwb:{UR}:hoofdstuk:II", "Hoofdstuk II – Kwijtschelding in andere gevallen"]],
                      LR: [[f"urn:bwb:{LR}:artikel:26", "Kwijtschelding"]],
                      IW: [[f"urn:bwb:{IW}:hoofdstuk:IV", "Hoofdstuk IV – Bijzondere bepalingen"]]}
-            bwb = next(b for b in SOORT if f"{b}:" in q or f"{b}\"" in q)
-            return _tsv(["node", "score", "soort", "label"], [[n, "1.0", "Hoofdstuk", l] for n, l in rijen.get(bwb, [])])
+            # Per regeling (`bwb_id`), of over de hele graaf als de query er geen noemt.
+            bwbs = [b for b in rijen if f"{b}:" in q or f"{b}\"" in q] or list(rijen)
+            return _tsv(["node", "score", "soort", "label", "bwbId"],
+                        [[n, "1.0", "Hoofdstuk", l, b] for b in bwbs for n, l in rijen[b]])
         if "VALUES ?deel" in q:
             return _tsv(["deel", "bepaling", "nummer"], [[f"urn:bwb:{UR}:hoofdstuk:II", a, a.rsplit(":", 1)[1]]
                                                         for a in OMGEVING])
@@ -239,3 +241,58 @@ def test_de_pool_vanuit_de_grondslag_met_een_zoekvraag_per_kandidaat():
     assert p["volledig"] is True and f"urn:bwb:{UR}:hoofdstuk:II" in p["omgeving"]
     # Een haperende graaf: geen crash, wel onvolledig.
     assert zv.pool(Omgeving(faal=True), gebeurtenis="kwijtschelding", regelingen=[IW, UR])["volledig"] is False
+
+
+@pytest.mark.parametrize("vraag, zoekvraag", [
+    ("Onder welke voorwaarden kan een belastingschuldige een betaling aan een derde laten overmaken?", "b"),
+    ("Binnen welke termijn moet een bezwaarschrift worden ingediend?", "b"),
+    ("Wat kan iemand doen als het verzoek wordt afgewezen?", "c"),
+    ("Welke rechten heeft de belastingschuldige bij het beëindigen van een rekeningafspraak?", "c"),
+    ("Wat is een rekeningafspraak?", "d"),
+    ("Wie kan bezwaar maken tegen een belastingaanslag?", "a"),
+    ("Telt een auto mee bij de beoordeling?", ""),                       # rand: geen herkende vorm
+])
+def test_de_vraagvorm_wijst_de_zoekvraag_aan(vraag, zoekvraag):
+    assert zv.zoekvraag_van_deelvraag(vraag) == zoekvraag
+
+
+def test_de_woorden_van_de_vraagvorm_en_lege_woorden_zoeken_niet_mee():
+    """"Voorwaarden", "rechten" en "verplichtingen" staan in elke regeling: ze haalden "katvanger" en "bodemzaken" bij
+    Rekeningafspraken. Ze wijzen de zoekvraag aan; het onderwerp blijft."""
+    assert zv.termen_van_deelvraag("Welke rechten heeft de belastingschuldige bij het beëindigen van een "
+                                   "rekeningafspraak?") == ["belastingschuldige", "rekeningafspraak"]
+    assert zv.termen_van_deelvraag("Telt een auto of spaargeld mee omdat het verzoek is gedaan?") == \
+        ["auto", "spaargeld", "verzoek", "gedaan"]
+
+
+def _k(iri, zoekvraag, tekst):
+    return {"bron_iri": f"urn:bwb:{UR}:artikel:{iri}", "bwb_id": UR, "zoekvraag": zoekvraag, "signaal": "", "zin": "",
+            "tekst": tekst, "via": "omgeving"}
+
+
+def test_in_de_pool_weegt_een_zeldzaam_woord_en_telt_de_zoekvraag_als_het_sterkste():
+    """Een woord dat in bijna elke kandidaat staat ("verzoek") zegt niets; de zoekvraag die bij de vraagvorm past (c) telt
+    als het sterkste woord, zodat het beroep bij "wat kan iemand doen als het verzoek wordt afgewezen?" komt, ook zonder
+    de woorden van de vraag. Bij gelijke stand gaat wie de gebeurtenis noemt voor; zonder woord en zonder passende
+    zoekvraag geen optie."""
+    pool = [_k("1", "b", "Het verzoek wordt schriftelijk gedaan."),
+            _k("2", "b", "Het verzoek bevat de gegevens."),
+            _k("3", "a", "De ontvanger verleent op verzoek uitstel."),
+            _k("24", "c", "Tegen de beschikking kan een beroepschrift worden gericht."),
+            _k("25", "c", "De directeur stelt het bedrag van de kwijtschelding vast."),
+            _k("26", "d", "Een afgewezen verzoek om kwijtschelding wordt gemotiveerd."),
+            _k("27", "d", "Onder vermogen wordt verstaan de waarde.")]
+    uit = zv.opties_bij_deelvraag(pool, "Wat kan iemand doen als het verzoek wordt afgewezen?", gebeurtenis="kwijtschelding")
+    iris = [k["bron_iri"].rsplit(":", 1)[1] for k in uit]
+    assert iris[0] == "26"                                   # het zeldzame woord "afgewezen"
+    assert iris[1:3] == ["25", "24"]                         # c past; 25 noemt de kwijtschelding
+    assert "27" not in iris                                  # geen woord, zoekvraag past niet
+    assert uit[1]["past"] and uit[0]["geraakt"] == ["verzoek", "afgewezen"]
+
+
+def test_zonder_gekozen_regelingen_de_regelingen_van_de_gebeurtenis():
+    """Werkgebied Rekeningafspraken had geen bronselectie en geen afbakening: het zoeken liep over de hele graaf. Nu zijn
+    de regelingen waarvan een kop de gebeurtenis draagt het bereik."""
+    assert zv.regelingen_van_gebeurtenis(Omgeving(), "kwijtschelding") == [UR, LR]
+    assert zv.regelingen_van_gebeurtenis(Omgeving(faal=True), "kwijtschelding") == []
+    assert zv.pool(Omgeving(), gebeurtenis="kwijtschelding", regelingen=[])["regelingen"] == [UR, LR]

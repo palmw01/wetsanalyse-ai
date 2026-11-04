@@ -289,6 +289,41 @@ def _met_profiel(profiel: deelvraag_zoeken.Zoekprofiel):
 
 
 _bepaling_opties = _met_profiel(deelvraag_zoeken.STANDAARD_PROFIEL)
+def _zoekvragen_route():
+    """Zoekvragen a–d, PR 5: per deelvraag de opties uit de pool vanaf de gebeurtenis van de set
+    (`zoekvragen.opties_bij_deelvraag`), met `PLAATSEN_WOORDEN` plaatsen voor `bepaling_opties` – zoals
+    `bronnen_vinden._deelvraag`. Een set zonder gebeurtenis: de standaard."""
+    from agent import zoekvragen
+
+    cache: dict[tuple, dict[str, Any]] = {}
+
+    def route(graph: Any, s: dict[str, Any], vraag: str) -> list[dict[str, Any]]:
+        if not s.get("gebeurtenis"):
+            return _bepaling_opties(graph, s, vraag)
+        sleutel = (id(graph), s["naam"])
+        if sleutel not in cache:
+            buiten = zoektermen.uitsluitstammen(zoektermen.buiten_uit_afbakening("Buiten de afbakening: " + s.get("buiten", "")))
+            cache[sleutel] = zoekvragen.pool(graph, gebeurtenis=s["gebeurtenis"], regelingen=s["regelingen"], buiten=buiten)
+        woorden = _bepaling_opties(graph, s, vraag)
+        plaatsen = deelvraag_zoeken.MAX_PER_DEELVRAAG - min(zoekvragen.PLAATSEN_WOORDEN,
+                                                            len([o for o in woorden if not o["buiten"]]))
+        uit = [{"bron_iri": k["bron_iri"], "buiten": False}
+               for k in zoekvragen.opties_bij_deelvraag(cache[sleutel]["kandidaten"], vraag, gebeurtenis=s["gebeurtenis"],
+                                                        limit=plaatsen)]
+        al = {o["bron_iri"] for o in uit}
+        ruimte = deelvraag_zoeken.MAX_PER_DEELVRAAG - len(uit)
+        for o in woorden:
+            if o["bron_iri"] in al:
+                continue
+            if not o["buiten"]:
+                if ruimte <= 0:
+                    continue
+                ruimte -= 1
+            uit.append(o)
+        return uit
+    return route
+
+
 #: De ingrepen waarmee het dossier meezoekt (meetlogboek `bronselectie-2026-11-04-dossier`).
 DOSSIERVLAGGEN = ("dossier_velden", "dossier_lijsten", "dossier_omgeving", "gelijkenis")
 
@@ -303,6 +338,7 @@ ROUTES = {"bepaling_opties": _bepaling_opties, "F3f (21 okt)": _met_profiel(deel
              for v in DOSSIERVLAGGEN},
           "met dossier (alles)": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL,
                                                       **{v: True for v in DOSSIERVLAGGEN})),
+          "zoekvragen (PR 5)": _zoekvragen_route(),
           "vorige deelvraagmethode": _vorige_deelvraagmethode}
 
 

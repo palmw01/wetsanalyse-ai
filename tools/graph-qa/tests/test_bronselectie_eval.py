@@ -150,16 +150,17 @@ def test_de_gebeurtenis_en_de_grondslag_op_de_ontwikkelset():
 
 
 @pytest.mark.parametrize("naam, pool, recall_nodig, juist, per_zoekvraag", [
-    ("kwijtschelding-concept", 111, 0.75, 0.824, {"a": (2, 2), "b": (3, 3), "c": (4, 5), "d": (8, 13)}),
+    ("kwijtschelding-concept", 226, 1.0, 0.87, {"a": (2, 2), "b": (3, 3), "c": (5, 5), "d": (13, 13)}),
     ("bestuurdersaansprakelijkheid-concept", 218, 0.889, 0.95, {"a": (1, 1), "b": (3, 4), "c": (3, 3), "d": (13, 14)}),
-    ("bezwaar-ontvankelijkheid-concept", 74, 0.538, 0.125, {"a": (1, 5), "b": (7, 10), "c": (0, 1), "d": (0, 1)}),
+    ("bezwaar-ontvankelijkheid-concept", 104, 0.615, 0.111, {"a": (2, 5), "b": (7, 10), "c": (0, 1), "d": (0, 1)}),
     ("invorderbaarheid-deelvragen-concept", 116, 0.818, 0.636, {"a": (0, 0), "b": (10, 12), "c": (1, 1), "d": (0, 5)}),
 ])
 def test_de_pool_van_de_zoekvragen_op_de_ontwikkelsets(naam, pool, recall_nodig, juist, per_zoekvraag):
-    """Zoekvragen a–d, PR 4 (4 nov 2026): de pool vanuit de grondslag, zonder model. Op kwijtschelding vond het zoeken
-    per deelvraag 0,33 van de verwachte bepalingen (blind); de pool 0,75. Bezwaar blijft zwak: de grondslag van het
-    bezwaar (Awb 7:1, AWR 26a) heeft geen signaal van bestaansrecht, en de omgeving vindt Awb hoofdstuk 6 niet.
-    Ontwikkelsets; de blinde meting (`verrekening-concept`) komt in PR 7."""
+    """Zoekvragen a–d (PR 4, bijgesteld in PR 5): de pool vanuit de grondslag, zonder model. Op kwijtschelding vond het
+    zoeken per deelvraag 0,33 van de verwachte bepalingen (blind); de pool alles wat nodig is, sinds een uitsluitstam
+    die in de helft van de omgeving staat niet meer telt ("belastin" uit "gemeentelijke belastingen"). Bezwaar blijft
+    zwak: de grondslag van het bezwaar (Awb 7:1, AWR 26a) heeft geen signaal van bestaansrecht. Ontwikkelsets; de
+    blinde meting (`verrekening-concept`) komt later."""
     from eval.bronselectie_eval import meet_zoekvragen
 
     graaf = OpnameGraaf(json.loads((SETS / naam / "graafantwoorden.json").read_text()))
@@ -167,3 +168,24 @@ def test_de_pool_van_de_zoekvragen_op_de_ontwikkelsets(naam, pool, recall_nodig,
     assert graaf.ontbrekend == 0
     assert (r["pool"], r["pool_recall_nodig"], r["zoekvraag_juist"]) == (pool, recall_nodig, juist)
     assert {z: (x["gevonden"], x["verwacht"]) for z, x in r["per_zoekvraag"].items()} == per_zoekvraag
+
+
+@pytest.mark.parametrize("naam, oud, nieuw", [
+    ("kwijtschelding-concept", 0.095, (0.25, 0.286, 0.188, 0)),
+    ("bestuurdersaansprakelijkheid-concept", 0.222, (0.409, 0.444, 0.219, 0)),
+    ("bezwaar-ontvankelijkheid-concept", 0.533, (0.368, 0.4, 0.188, 0)),
+    ("invorderbaarheid-deelvragen-concept", 0.364, (0.333, 0.455, 0.188, 0)),
+])
+def test_de_deelvraag_kiest_in_de_pool(naam, oud, nieuw):
+    """Zoekvragen a–d, PR 5 (4 nov 2026): per deelvraag de opties uit de pool, met de zoekvraag van de vraagvorm als
+    voorkeur en de woorden gewogen naar hun zeldzaamheid in de pool. Recall nodig tegen het zoeken op de woorden van de
+    deelvraag: kwijtschelding 0,10 → 0,29, bestuurdersaansprakelijkheid 0,22 → 0,44, invorderbaarheid 0,36 → 0,46;
+    bezwaar 0,53 → 0,40 (een zwakke pool). Geen uitgesloten bepaling. Ontwikkelsets."""
+    from eval.bronselectie_eval import meet_intake
+
+    graaf = OpnameGraaf(json.loads((SETS / naam / "graafantwoorden.json").read_text()))
+    r = meet_intake(graaf, laad_set(naam))
+    assert graaf.ontbrekend == 0
+    assert r["bepaling_opties"]["recall_nodig"] == oud
+    z = r["zoekvragen (PR 5)"]
+    assert (z["recall"], z["recall_nodig"], z["precisie"], z["uitgesloten"]) == nieuw
