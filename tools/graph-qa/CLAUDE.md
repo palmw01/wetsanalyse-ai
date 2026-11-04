@@ -751,7 +751,12 @@ horen; de api bewaart de kandidaten en de besluiten (`api/app/bronnen_run_store.
   ze op af te stemmen). Het lemma bestaat als vlag maar staat uit (hielp niet). Daarna gaan de plaatsen om de beurt
   naar de regelingen, wet eerst (`per_regeling`, `om_de_beurt`, soort uit `bwb:soort` via `overzicht.RANG`), zodat
   een beleidsregel met lange divisies het kaartje niet vult; `lengte` (demping) bestaat als vlag en staat uit. Een treffer in de lijst van
-  een term is het bewijs dat de bepaling die term raakt.
+  een term is het bewijs dat de bepaling die term raakt. Het dossier zoekt mee als vlag, en die vlaggen staan
+  allemaal uit (meetlogboek `bronselectie-2026-11-04-dossier`): `dossier_velden` (aanleiding en doel),
+  `dossier_lijsten` (een indexlijst per dossierterm; die verdringt de deelvraag), `dossier_omgeving` (artikel of
+  eerste divisie, idf-gewogen; `omgeving_van`) en `gelijkenis` (`bwb_similarity` op deelvraag en
+  praktijkvoorbeeld; vindt binnen de regelingen bijna niets). Een nieuwe dossieringreep krijgt een eigen vlag, en
+  de eval-route `met <vlag>` gaat vanzelf mee via `DOSSIERVLAGGEN`.
 - **Plek en bepaling uit de graaf, niet uit de IRI** (`agent/plekken.py`): de importer schrijft
   `bwb:vindplaats` en `bwb:inBepaling`. Een onderdeel telt voor zijn `inBepaling` (bij de Leidraad hangt
   `…:artikel:9:o:d` onder divisie 9.2); de IRI-knip (`_doel_van`) is alleen de terugval voor een wet.

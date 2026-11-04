@@ -579,3 +579,86 @@ def test_om_de_beurt_per_regeling_wet_eerst():
     assert om_de_beurt(lr, {}, ["BWBR0024096"]) == lr
     # Zonder soort (graaf hapert): de volgorde van het werkgebied.
     assert [k["iri"] for k in om_de_beurt(lr[:2] + iw[:1], {}, ["BWBR0024096", "BWBR0004770"])] == ["l0", "w0", "l1"]
+
+
+# --- het dossier zoekt mee (meetlogboek `bronselectie-2026-11-04-dossier`): vier vlaggen, standaard uit ---
+
+def _profiel(**vlaggen):
+    from dataclasses import replace
+
+    return replace(deelvraag_zoeken.STANDAARD_PROFIEL, **vlaggen)
+
+
+def test_aanleiding_en_doel_leveren_alleen_met_de_vlag_dossiertermen():
+    dossier = {**DOSSIER, "aanleiding": "Veel verzuimboetes", "doel": "Een werkinstructie"}
+    args = {"regelingen": [IWB], "deelvraag": "Wanneer is een belastingaanslag invorderbaar?", "dossier": dossier}
+    zonder = deelvraag_zoeken.kandidatenpool(BepalingGraaf(), **args)["dossiertermen"]
+    met = deelvraag_zoeken.kandidatenpool(BepalingGraaf(), **args, profiel=_profiel(dossier_velden=True))
+    assert "verzuimboetes" not in zonder and "werkinstructie" not in zonder
+    assert {"verzuimboetes", "werkinstructie"} <= set(met["dossiertermen"])
+
+
+def test_dossierlijsten_zoeken_mee_maar_een_optie_raakt_de_deelvraag():
+    """Met `dossier_lijsten` is elke dossierterm een eigen lijst uit de index: artikel 8 lid 1 komt via
+    "aanslagbiljet" uit het praktijkvoorbeeld in de pool. Een optie bij de deelvraag wordt het niet: het raakt
+    geen deelvraagterm, en anders vulde het dossier elk kaartje (spoor K)."""
+    p = _profiel(dossier_lijsten=True)
+    args = {"regelingen": [IWB], "deelvraag": "Wanneer is een belastingaanslag invorderbaar?", "dossier": DOSSIER}
+    pool = deelvraag_zoeken.kandidatenpool(BepalingGraaf(), **args, profiel=p)
+    l8 = pool["gevonden"][f"{IW}:artikel:8:lid:1"]
+    assert any(lijst.startswith("dossier:") for lijst in l8["rang"]) and "aanslagbiljet" in l8["dossier_index"]
+    assert l8["index_termen"] == []                        # een dossierterm is geen deelvraagterm
+    assert f"{IW}:artikel:8:lid:1" not in [o["bron_iri"] for o in _opties(profiel=p)]
+
+
+@pytest.mark.parametrize("iri, omgeving", [
+    (f"{IW}:artikel:36:lid:2", f"{IW}:artikel:36"),
+    (f"{IW}:artikel:36:lid:5:o:a", f"{IW}:artikel:36"),
+    (f"{IW}:artikel:10", f"{IW}:artikel:10"),
+    ("urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie36%2FCirculaire.divisie36.5%2FCirculaire.divisie36.5.1",
+     "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie36"),
+])
+def test_de_omgeving_is_het_artikel_of_de_eerste_divisie(iri, omgeving):
+    assert deelvraag_zoeken.omgeving_van(iri) == omgeving
+
+
+def test_de_omgeving_weegt_een_dossierterm_naar_zijn_zeldzaamheid():
+    """"ontvanger" staat in elke omgeving en zegt niets; "bestuurder" alleen in artikel 36, dat dus vooraan
+    staat. Een omgeving die alleen gewone woorden raakt, krijgt geen rang."""
+    def k(iri, tekst):
+        return {"iri": iri, "teksten": [tekst], "kop": ""}
+
+    kandidaten = [k(f"{IW}:artikel:36:lid:1", "De bestuurder is aansprakelijk; de ontvanger stelt aansprakelijk."),
+                  k(f"{IW}:artikel:36:lid:2", "Het lichaam doet mededeling aan de ontvanger."),
+                  k(f"{IW}:artikel:2:lid:1", "De ontvanger is de ambtenaar."),
+                  k(f"{IW}:artikel:25:lid:1", "De ontvanger kan uitstel verlenen.")]
+    rang = deelvraag_zoeken._omgeving_rang(kandidaten, ["ontvanger", "bestuurder"], True)
+    assert rang == {f"{IW}:artikel:36:lid:1": 1, f"{IW}:artikel:36:lid:2": 1}
+
+
+class GelijkenisGraaf(BepalingGraaf):
+    """De similarity-index vindt een lid zonder de woorden van de deelvraag, en een lid buiten de regelingen."""
+    L7 = f"{IW}:artikel:7:lid:1"
+
+    def __init__(self, faal_index: bool = False) -> None:
+        super().__init__()
+        self.faal_index = faal_index
+
+    def semantic_search(self, query: str, limit: int = 10) -> str:
+        self.semantic_queries.append(query)
+        if self.faal_index:
+            raise RuntimeError("index hapert")
+        return (f'<{self.L7}> a bwb:Lid;\n  bwb:tekst "De ontvanger maakt het bedrag bekend."@nl .\n\n'
+                '<urn:bwb:BWBR0002320:artikel:30:lid:2> a bwb:Lid;\n  bwb:tekst "Iets anders."@nl .\n')
+
+
+def test_gelijkenis_overbrugt_de_woorden_van_de_deelvraag_binnen_de_regelingen():
+    p = _profiel(gelijkenis=True)
+    g = GelijkenisGraaf()
+    uit = [o["bron_iri"] for o in _opties(g, profiel=p)]
+    # De deelvraag en het praktijkvoorbeeld zoeken samen; een treffer telt als raak, ook zonder de woorden.
+    assert g.semantic_queries == ["Wanneer is een belastingaanslag invorderbaar? Een aanslagbiljet met dagtekening 1 maart."]
+    assert GelijkenisGraaf.L7 in uit and "urn:bwb:BWBR0002320:artikel:30:lid:2" not in uit
+    assert GelijkenisGraaf.L7 not in [o["bron_iri"] for o in _opties(GelijkenisGraaf())]
+    # Een haperende index kost alleen die lijst.
+    assert _opties(GelijkenisGraaf(faal_index=True), profiel=p) == _opties(GelijkenisGraaf())

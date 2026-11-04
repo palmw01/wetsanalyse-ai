@@ -1,0 +1,2312 @@
+{
+ "set": "invorderbaarheid-deelvragen-concept",
+ "status": "concept",
+ "rapport": {
+  "bepaling_opties": {
+   "recall": 0.389,
+   "recall_nodig": 0.364,
+   "recall_exact": 0.333,
+   "precisie": 0.281,
+   "aantal": 32,
+   "uitgesloten": 0,
+   "uitgesloten_gemarkeerd": 0,
+   "gedeeld": 0.425,
+   "per_deelvraag": [
+    {
+     "verwacht": 7,
+     "nodig": 4,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 1,
+     "exact": 2,
+     "raak": 2,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:4",
+      "urn:bwb:BWBR0004770:artikel:9:lid:10",
+      "urn:bwb:BWBR0004770:artikel:8:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
+      "urn:bwb:BWBR0004770:artikel:9:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie28%2FCirculaire.divisie28.2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie8%2FCirculaire.divisie8.1",
+      "urn:bwb:BWBR0004770:artikel:11",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.1%2FCirculaire.divisie26.1.7",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie80%2FCirculaire.divisie80.1"
+     ],
+     "pool": 253,
+     "in_pool": 7,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 4,
+     "nodig": 3,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 1,
+     "gevonden_nodig": 0,
+     "exact": 1,
+     "raak": 1,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:1",
+      "urn:bwb:BWBR0004770:artikel:10:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:8"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:23a",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.4%2FCirculaire.divisie25.4.6",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.7",
+      "urn:bwb:BWBR0004770:artikel:25:lid:19",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:11",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.1",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0004770:artikel:11"
+     ],
+     "pool": 349,
+     "in_pool": 3,
+     "niet_in_pool": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:2"
+     ]
+    },
+    {
+     "verwacht": 4,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 2,
+     "exact": 2,
+     "raak": 2,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:6",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie79%2FCirculaire.divisie79.6",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.3a%2FCirculaire.divisie25.3a.1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:7",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.3",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie80%2FCirculaire.divisie80.1",
+      "urn:bwb:BWBR0004770:artikel:28:lid:1"
+     ],
+     "pool": 215,
+     "in_pool": 4,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 3,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 1,
+     "exact": 1,
+     "raak": 4,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:25:lid:1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:12",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.1",
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2.a",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.6%2FCirculaire.divisie25.6.2d",
+      "urn:bwb:BWBR0004770:artikel:63",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.1%2FCirculaire.divisie25.1.8"
+     ],
+     "pool": 278,
+     "in_pool": 3,
+     "niet_in_pool": []
+    }
+   ],
+   "recall_pool": 0.944,
+   "pool": 1095
+  },
+  "F3f (21 okt)": {
+   "recall": 0.278,
+   "recall_nodig": 0.364,
+   "recall_exact": 0.278,
+   "precisie": 0.156,
+   "aantal": 32,
+   "uitgesloten": 0,
+   "uitgesloten_gemarkeerd": 0,
+   "gedeeld": 0.395,
+   "per_deelvraag": [
+    {
+     "verwacht": 7,
+     "nodig": 4,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 1,
+     "exact": 2,
+     "raak": 2,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:10",
+      "urn:bwb:BWBR0004770:artikel:8:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:24:lid:1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0004770:artikel:9:lid:6",
+      "urn:bwb:BWBR0004770:artikel:9:lid:7",
+      "urn:bwb:BWBR0004770:artikel:9:lid:1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:4",
+      "urn:bwb:BWBR0004770:artikel:25a:lid:3",
+      "urn:bwb:BWBR0004770:artikel:25b:lid:1",
+      "urn:bwb:BWBR0004770:artikel:51:lid:3",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie67%2FCirculaire.divisie67.3%2FTekst%2FOnderdeel._2"
+     ],
+     "pool": 123,
+     "in_pool": 5,
+     "niet_in_pool": [
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+     ]
+    },
+    {
+     "verwacht": 4,
+     "nodig": 3,
+     "aantal": 8,
+     "gemarkeerd": 0,
+     "gevonden": 0,
+     "gevonden_nodig": 0,
+     "exact": 0,
+     "raak": 0,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:1",
+      "urn:bwb:BWBR0004770:artikel:10:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:8",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:19:lid:4",
+      "urn:bwb:BWBR0024096:artikel:25",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0004770:artikel:23a",
+      "urn:bwb:BWBR0004770:artikel:25:lid:19",
+      "urn:bwb:BWBR0004770:artikel:62bis:lid:1",
+      "urn:bwb:BWBR0004770:artikel:24:lid:5",
+      "urn:bwb:BWBR0004770:artikel:28b:lid:1"
+     ],
+     "pool": 128,
+     "in_pool": 1,
+     "niet_in_pool": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:8",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.1"
+     ]
+    },
+    {
+     "verwacht": 4,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 2,
+     "exact": 2,
+     "raak": 2,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:6",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0004770:artikel:24:lid:1",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:7",
+      "urn:bwb:BWBR0004770:artikel:10:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.3a%2FCirculaire.divisie25.3a.1%2FTekst%2FOnderdeel._1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FTekst%2FOnderdeel._1",
+      "urn:bwb:BWBR0004770:artikel:11",
+      "urn:bwb:BWBR0004770:artikel:28:lid:1"
+     ],
+     "pool": 119,
+     "in_pool": 3,
+     "niet_in_pool": [
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+     ]
+    },
+    {
+     "verwacht": 3,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 1,
+     "gevonden_nodig": 1,
+     "exact": 1,
+     "raak": 1,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:25:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:24:lid:1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:12",
+      "urn:bwb:BWBR0004770:artikel:19:lid:1",
+      "urn:bwb:BWBR0004770:artikel:19:lid:3",
+      "urn:bwb:BWBR0004770:artikel:19:lid:4",
+      "urn:bwb:BWBR0004770:artikel:22bis:lid:12",
+      "urn:bwb:BWBR0004770:artikel:25a:lid:1",
+      "urn:bwb:BWBR0004770:artikel:23",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0004770:artikel:28:lid:1"
+     ],
+     "pool": 137,
+     "in_pool": 1,
+     "niet_in_pool": [
+      "urn:bwb:BWBR0004770:artikel:25:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2"
+     ]
+    }
+   ],
+   "recall_pool": 0.556,
+   "pool": 507
+  },
+  "zonder per_term": {
+   "recall": 0.056,
+   "recall_nodig": 0.0,
+   "recall_exact": 0.0,
+   "precisie": 0.094,
+   "aantal": 32,
+   "uitgesloten": 0,
+   "uitgesloten_gemarkeerd": 0,
+   "gedeeld": 0.475,
+   "per_deelvraag": [
+    {
+     "verwacht": 7,
+     "nodig": 4,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 0,
+     "gevonden_nodig": 0,
+     "exact": 0,
+     "raak": 0,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:4",
+      "urn:bwb:BWBR0004770:artikel:9:lid:10",
+      "urn:bwb:BWBR0004770:artikel:8:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie8%2FCirculaire.divisie8.1",
+      "urn:bwb:BWBR0004770:artikel:11",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie8%2FCirculaire.divisie8.3",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie28%2FCirculaire.divisie28.2",
+      "urn:bwb:BWBR0004770:artikel:25:lid:19",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie8%2FCirculaire.divisie8.4",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie80%2FCirculaire.divisie80.1"
+     ],
+     "pool": 152,
+     "in_pool": 7,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 4,
+     "nodig": 3,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 0,
+     "gevonden_nodig": 0,
+     "exact": 0,
+     "raak": 0,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:1",
+      "urn:bwb:BWBR0004770:artikel:10:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:8",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:23a",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.1",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.8",
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie23a%2FCirculaire.divisie23a.2",
+      "urn:bwb:BWBR0004770:artikel:27ter",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.4%2FCirculaire.divisie25.4.5",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0004770:artikel:11"
+     ],
+     "pool": 167,
+     "in_pool": 3,
+     "niet_in_pool": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:2"
+     ]
+    },
+    {
+     "verwacht": 4,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 0,
+     "gevonden_nodig": 0,
+     "exact": 0,
+     "raak": 0,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0004770:artikel:9:lid:7",
+      "urn:bwb:BWBR0004770:artikel:9:lid:6",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.2",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.3",
+      "urn:bwb:BWBR0004770:artikel:70b:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie80%2FCirculaire.divisie80.2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie80%2FCirculaire.divisie80.1",
+      "urn:bwb:BWBR0004770:artikel:11"
+     ],
+     "pool": 150,
+     "in_pool": 4,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 3,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 1,
+     "gevonden_nodig": 0,
+     "exact": 0,
+     "raak": 3,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:12",
+      "urn:bwb:BWBR0004770:artikel:25:lid:1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.1",
+      "urn:bwb:BWBR0004770:artikel:63a",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2.a",
+      "urn:bwb:BWBR0004770:artikel:63",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2",
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.6%2FCirculaire.divisie25.6.2d",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0004770:artikel:30:lid:1"
+     ],
+     "pool": 166,
+     "in_pool": 2,
+     "niet_in_pool": [
+      "urn:bwb:BWBR0004770:artikel:25:lid:1"
+     ]
+    }
+   ],
+   "recall_pool": 0.889,
+   "pool": 635
+  },
+  "zonder samenstelling": {
+   "recall": 0.333,
+   "recall_nodig": 0.273,
+   "recall_exact": 0.278,
+   "precisie": 0.25,
+   "aantal": 32,
+   "uitgesloten": 0,
+   "uitgesloten_gemarkeerd": 0,
+   "gedeeld": 0.35,
+   "per_deelvraag": [
+    {
+     "verwacht": 7,
+     "nodig": 4,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 1,
+     "exact": 2,
+     "raak": 2,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:4",
+      "urn:bwb:BWBR0004770:artikel:9:lid:10",
+      "urn:bwb:BWBR0004770:artikel:8:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
+      "urn:bwb:BWBR0004770:artikel:9:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie8%2FCirculaire.divisie8.1",
+      "urn:bwb:BWBR0004770:artikel:11",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.1%2FCirculaire.divisie26.1.7",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie28%2FCirculaire.divisie28.2",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie80%2FCirculaire.divisie80.1"
+     ],
+     "pool": 251,
+     "in_pool": 7,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 4,
+     "nodig": 3,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 1,
+     "gevonden_nodig": 0,
+     "exact": 1,
+     "raak": 1,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:1",
+      "urn:bwb:BWBR0004770:artikel:10:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:8"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:23a",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.7",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.4%2FCirculaire.divisie25.4.6",
+      "urn:bwb:BWBR0004770:artikel:9:lid:11",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.1",
+      "urn:bwb:BWBR0004770:artikel:25:lid:19",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.1%2FCirculaire.divisie25.1.3",
+      "urn:bwb:BWBR0004770:artikel:11",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+     ],
+     "pool": 320,
+     "in_pool": 3,
+     "niet_in_pool": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:2"
+     ]
+    },
+    {
+     "verwacht": 4,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 2,
+     "exact": 2,
+     "raak": 2,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:6",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie79%2FCirculaire.divisie79.6",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.3a%2FCirculaire.divisie25.3a.1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:7",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.3",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie80%2FCirculaire.divisie80.1",
+      "urn:bwb:BWBR0004770:artikel:28:lid:1"
+     ],
+     "pool": 210,
+     "in_pool": 4,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 3,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 1,
+     "gevonden_nodig": 0,
+     "exact": 0,
+     "raak": 3,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:12",
+      "urn:bwb:BWBR0004770:artikel:25:lid:1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2.a",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.1",
+      "urn:bwb:BWBR0004770:artikel:63",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2",
+      "urn:bwb:BWBR0004770:artikel:63a",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.6%2FCirculaire.divisie25.6.2d",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.1%2FCirculaire.divisie25.1.8"
+     ],
+     "pool": 275,
+     "in_pool": 3,
+     "niet_in_pool": []
+    }
+   ],
+   "recall_pool": 0.944,
+   "pool": 1056
+  },
+  "zonder divisies": {
+   "recall": 0.222,
+   "recall_nodig": 0.364,
+   "recall_exact": 0.222,
+   "precisie": 0.125,
+   "aantal": 32,
+   "uitgesloten": 0,
+   "uitgesloten_gemarkeerd": 0,
+   "gedeeld": 0.45,
+   "per_deelvraag": [
+    {
+     "verwacht": 7,
+     "nodig": 4,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 1,
+     "gevonden_nodig": 1,
+     "exact": 1,
+     "raak": 1,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:4",
+      "urn:bwb:BWBR0004770:artikel:9:lid:10",
+      "urn:bwb:BWBR0004770:artikel:8:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FTekst%2FOnderdeel._4",
+      "urn:bwb:BWBR0004770:artikel:9:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie8%2FTekst%2FOnderdeel._3",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie75%2FCirculaire.divisie75.6%2FTekst%2FOnderdeel._4",
+      "urn:bwb:BWBR0004770:artikel:11",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie28%2FCirculaire.divisie28.2%2FTekst%2FOnderdeel.%2FOnderdeel._2",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie67%2FCirculaire.divisie67.3%2FTekst%2FOnderdeel._2"
+     ],
+     "pool": 181,
+     "in_pool": 5,
+     "niet_in_pool": [
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+     ]
+    },
+    {
+     "verwacht": 4,
+     "nodig": 3,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 0,
+     "gevonden_nodig": 0,
+     "exact": 0,
+     "raak": 0,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:1",
+      "urn:bwb:BWBR0004770:artikel:10:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:8",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:23a",
+      "urn:bwb:BWBR0024096:artikel:25",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.4%2FCirculaire.divisie25.4.6%2FTekst%2FOnderdeel2",
+      "urn:bwb:BWBR0004770:artikel:25:lid:19",
+      "urn:bwb:BWBR0024096:artikel:9",
+      "urn:bwb:BWBR0004770:artikel:9:lid:11",
+      "urn:bwb:BWBR0024096:artikel:73",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0004770:artikel:11"
+     ],
+     "pool": 209,
+     "in_pool": 2,
+     "niet_in_pool": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.1"
+     ]
+    },
+    {
+     "verwacht": 4,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 2,
+     "exact": 2,
+     "raak": 2,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:6",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.3a%2FCirculaire.divisie25.3a.1%2FTekst%2FOnderdeel._1",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:artikel:25",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie79%2FCirculaire.divisie79.6%2FTekst%2FOnderdeel._2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:7",
+      "urn:bwb:BWBR0024096:artikel:77",
+      "urn:bwb:BWBR0004770:artikel:28:lid:1",
+      "urn:bwb:BWBR0004770:artikel:11"
+     ],
+     "pool": 159,
+     "in_pool": 3,
+     "niet_in_pool": [
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+     ]
+    },
+    {
+     "verwacht": 3,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 1,
+     "gevonden_nodig": 1,
+     "exact": 1,
+     "raak": 1,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:25:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:12",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie63b%2FTekst%2FOnderdeel._2",
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.6%2FCirculaire.divisie25.6.2d%2FTekst%2FOnderdeeld",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:artikel:25",
+      "urn:bwb:BWBR0004770:artikel:63",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie1%2FCirculaire.divisie1.1%2FCirculaire.divisie1.1.5%2FTekst%2FOnderdeel._5",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5"
+     ],
+     "pool": 219,
+     "in_pool": 2,
+     "niet_in_pool": [
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2"
+     ]
+    }
+   ],
+   "recall_pool": 0.667,
+   "pool": 768
+  },
+  "zonder kop_overal": {
+   "recall": 0.389,
+   "recall_nodig": 0.364,
+   "recall_exact": 0.333,
+   "precisie": 0.219,
+   "aantal": 32,
+   "uitgesloten": 0,
+   "uitgesloten_gemarkeerd": 0,
+   "gedeeld": 0.375,
+   "per_deelvraag": [
+    {
+     "verwacht": 7,
+     "nodig": 4,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 1,
+     "exact": 2,
+     "raak": 2,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:4",
+      "urn:bwb:BWBR0004770:artikel:9:lid:10",
+      "urn:bwb:BWBR0004770:artikel:8:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.1%2FCirculaire.divisie26.1.7",
+      "urn:bwb:BWBR0004770:artikel:9:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie75%2FCirculaire.divisie75.6",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
+      "urn:bwb:BWBR0004770:artikel:24:lid:1",
+      "urn:bwb:BWBR0024096:artikel:9",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie67%2FCirculaire.divisie67.3",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie79%2FCirculaire.divisie79.4"
+     ],
+     "pool": 253,
+     "in_pool": 7,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 4,
+     "nodig": 3,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 1,
+     "gevonden_nodig": 0,
+     "exact": 1,
+     "raak": 1,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:1",
+      "urn:bwb:BWBR0004770:artikel:10:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:8"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:23a",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.7",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.1",
+      "urn:bwb:BWBR0004770:artikel:25:lid:19",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.1%2FCirculaire.divisie25.1.3",
+      "urn:bwb:BWBR0004770:artikel:9:lid:11",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie79%2FCirculaire.divisie79.5",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:7"
+     ],
+     "pool": 349,
+     "in_pool": 3,
+     "niet_in_pool": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:2"
+     ]
+    },
+    {
+     "verwacht": 4,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 2,
+     "exact": 2,
+     "raak": 2,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:6",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie79%2FCirculaire.divisie79.6",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.3a%2FCirculaire.divisie25.3a.1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:7",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie73%2FCirculaire.divisie73.4%2FCirculaire.divisie73.4.1",
+      "urn:bwb:BWBR0004770:artikel:28:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie79%2FCirculaire.divisie79.4"
+     ],
+     "pool": 215,
+     "in_pool": 4,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 3,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 1,
+     "exact": 1,
+     "raak": 2,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:25:lid:1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.6%2FCirculaire.divisie25.6.2d",
+      "urn:bwb:BWBR0004770:artikel:9:lid:12",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.1",
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.5%2FCirculaire.divisie25.5.3",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie77%2FCirculaire.divisie77.1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0004770:artikel:9:lid:7"
+     ],
+     "pool": 278,
+     "in_pool": 3,
+     "niet_in_pool": []
+    }
+   ],
+   "recall_pool": 0.944,
+   "pool": 1095
+  },
+  "zonder fusie": {
+   "recall": 0.167,
+   "recall_nodig": 0.182,
+   "recall_exact": 0.167,
+   "precisie": 0.094,
+   "aantal": 32,
+   "uitgesloten": 0,
+   "uitgesloten_gemarkeerd": 0,
+   "gedeeld": 0.6,
+   "per_deelvraag": [
+    {
+     "verwacht": 7,
+     "nodig": 4,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 0,
+     "gevonden_nodig": 0,
+     "exact": 0,
+     "raak": 0,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:4",
+      "urn:bwb:BWBR0004770:artikel:9:lid:10",
+      "urn:bwb:BWBR0004770:artikel:8:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:24:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.1%2FCirculaire.divisie26.1.7",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.1%2FCirculaire.divisie25.1.9",
+      "urn:bwb:BWBR0004770:artikel:9:lid:6",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie73%2FCirculaire.divisie73.5%2FCirculaire.divisie73.5.1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:7",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie24%2FCirculaire.divisie24.3",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie79%2FCirculaire.divisie79.4",
+      "urn:bwb:BWBR0004770:artikel:16"
+     ],
+     "pool": 253,
+     "in_pool": 7,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 4,
+     "nodig": 3,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 1,
+     "gevonden_nodig": 0,
+     "exact": 1,
+     "raak": 1,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:1",
+      "urn:bwb:BWBR0004770:artikel:10:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:8"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:19:lid:4",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie24%2FCirculaire.divisie24.3",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.1",
+      "urn:bwb:BWBR0004770:artikel:24:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie73%2FCirculaire.divisie73.5%2FCirculaire.divisie73.5.1",
+      "urn:bwb:BWBR0004770:artikel:23a",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.7%2FCirculaire.divisie25.7.5",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0004770:artikel:11"
+     ],
+     "pool": 349,
+     "in_pool": 3,
+     "niet_in_pool": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:2"
+     ]
+    },
+    {
+     "verwacht": 4,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 1,
+     "gevonden_nodig": 1,
+     "exact": 1,
+     "raak": 1,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:7",
+      "urn:bwb:BWBR0004770:artikel:9:lid:6",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie24%2FCirculaire.divisie24.3",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie79%2FCirculaire.divisie79.5",
+      "urn:bwb:BWBR0004770:artikel:24:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie16%2FCirculaire.divisie16.1",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.1",
+      "urn:bwb:BWBR0004770:artikel:11"
+     ],
+     "pool": 215,
+     "in_pool": 4,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 3,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 1,
+     "gevonden_nodig": 1,
+     "exact": 1,
+     "raak": 1,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:25:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:12",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.6%2FCirculaire.divisie25.6.2d",
+      "urn:bwb:BWBR0004770:artikel:24:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.1%2FCirculaire.divisie26.1.9",
+      "urn:bwb:BWBR0004770:artikel:70g:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie73%2FCirculaire.divisie73.5%2FCirculaire.divisie73.5.7",
+      "urn:bwb:BWBR0004770:artikel:70h:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.1%2FCirculaire.divisie25.1.9",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie73%2FCirculaire.divisie73.5%2FCirculaire.divisie73.5.1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie24%2FCirculaire.divisie24.3"
+     ],
+     "pool": 278,
+     "in_pool": 3,
+     "niet_in_pool": []
+    }
+   ],
+   "recall_pool": 0.944,
+   "pool": 1095
+  },
+  "zonder per_regeling": {
+   "recall": 0.333,
+   "recall_nodig": 0.273,
+   "recall_exact": 0.278,
+   "precisie": 0.281,
+   "aantal": 32,
+   "uitgesloten": 0,
+   "uitgesloten_gemarkeerd": 0,
+   "gedeeld": 0.3,
+   "per_deelvraag": [
+    {
+     "verwacht": 7,
+     "nodig": 4,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 1,
+     "exact": 2,
+     "raak": 2,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:4",
+      "urn:bwb:BWBR0004770:artikel:9:lid:10",
+      "urn:bwb:BWBR0004770:artikel:8:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie28%2FCirculaire.divisie28.2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie8%2FCirculaire.divisie8.1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.1%2FCirculaire.divisie26.1.7",
+      "urn:bwb:BWBR0004770:artikel:9:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie75%2FCirculaire.divisie75.6",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie80%2FCirculaire.divisie80.1"
+     ],
+     "pool": 253,
+     "in_pool": 7,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 4,
+     "nodig": 3,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 1,
+     "gevonden_nodig": 0,
+     "exact": 1,
+     "raak": 1,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:1",
+      "urn:bwb:BWBR0004770:artikel:10:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:8"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:23a",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0004770:artikel:25:lid:19",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.4%2FCirculaire.divisie25.4.6",
+      "urn:bwb:BWBR0004770:artikel:9:lid:11",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.7",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.1",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0004770:artikel:11"
+     ],
+     "pool": 349,
+     "in_pool": 3,
+     "niet_in_pool": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:2"
+     ]
+    },
+    {
+     "verwacht": 4,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 2,
+     "exact": 2,
+     "raak": 2,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:6",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie79%2FCirculaire.divisie79.6",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:7",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.3a%2FCirculaire.divisie25.3a.1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.3",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie80%2FCirculaire.divisie80.1",
+      "urn:bwb:BWBR0004770:artikel:28:lid:1"
+     ],
+     "pool": 215,
+     "in_pool": 4,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 3,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 1,
+     "gevonden_nodig": 0,
+     "exact": 0,
+     "raak": 4,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:12",
+      "urn:bwb:BWBR0004770:artikel:25:lid:1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2.a",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.6%2FCirculaire.divisie25.6.2d",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.5%2FCirculaire.divisie25.5.3",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie77%2FCirculaire.divisie77.1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie80%2FCirculaire.divisie80.2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.8",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.1%2FCirculaire.divisie25.1.8"
+     ],
+     "pool": 278,
+     "in_pool": 3,
+     "niet_in_pool": []
+    }
+   ],
+   "recall_pool": 0.944,
+   "pool": 1095
+  },
+  "met lemma": {
+   "recall": 0.389,
+   "recall_nodig": 0.364,
+   "recall_exact": 0.333,
+   "precisie": 0.281,
+   "aantal": 32,
+   "uitgesloten": 0,
+   "uitgesloten_gemarkeerd": 0,
+   "gedeeld": 0.425,
+   "per_deelvraag": [
+    {
+     "verwacht": 7,
+     "nodig": 4,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 1,
+     "exact": 2,
+     "raak": 2,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:4",
+      "urn:bwb:BWBR0004770:artikel:9:lid:10",
+      "urn:bwb:BWBR0004770:artikel:8:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
+      "urn:bwb:BWBR0004770:artikel:9:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie28%2FCirculaire.divisie28.2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie8%2FCirculaire.divisie8.1",
+      "urn:bwb:BWBR0004770:artikel:11",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.1%2FCirculaire.divisie26.1.7",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie80%2FCirculaire.divisie80.1"
+     ],
+     "pool": 253,
+     "in_pool": 7,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 4,
+     "nodig": 3,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 1,
+     "gevonden_nodig": 0,
+     "exact": 1,
+     "raak": 1,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:1",
+      "urn:bwb:BWBR0004770:artikel:10:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:8"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:23a",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.4%2FCirculaire.divisie25.4.6",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.7",
+      "urn:bwb:BWBR0004770:artikel:25:lid:19",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:11",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.1",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0004770:artikel:11"
+     ],
+     "pool": 349,
+     "in_pool": 3,
+     "niet_in_pool": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:2"
+     ]
+    },
+    {
+     "verwacht": 4,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 2,
+     "exact": 2,
+     "raak": 2,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:6",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie79%2FCirculaire.divisie79.6",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.3a%2FCirculaire.divisie25.3a.1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:7",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.3",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie80%2FCirculaire.divisie80.1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2.b"
+     ],
+     "pool": 218,
+     "in_pool": 4,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 3,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 1,
+     "exact": 1,
+     "raak": 4,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:25:lid:1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:12",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.1",
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2.a",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.6%2FCirculaire.divisie25.6.2d",
+      "urn:bwb:BWBR0004770:artikel:63",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.1%2FCirculaire.divisie25.1.8"
+     ],
+     "pool": 278,
+     "in_pool": 3,
+     "niet_in_pool": []
+    }
+   ],
+   "recall_pool": 0.944,
+   "pool": 1098
+  },
+  "met lengte": {
+   "recall": 0.222,
+   "recall_nodig": 0.273,
+   "recall_exact": 0.167,
+   "precisie": 0.188,
+   "aantal": 32,
+   "uitgesloten": 0,
+   "uitgesloten_gemarkeerd": 0,
+   "gedeeld": 0.375,
+   "per_deelvraag": [
+    {
+     "verwacht": 7,
+     "nodig": 4,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 1,
+     "gevonden_nodig": 1,
+     "exact": 1,
+     "raak": 1,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:4",
+      "urn:bwb:BWBR0004770:artikel:9:lid:10",
+      "urn:bwb:BWBR0004770:artikel:8:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie28%2FCirculaire.divisie28.2",
+      "urn:bwb:BWBR0004770:artikel:11",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie8%2FCirculaire.divisie8.1",
+      "urn:bwb:BWBR0004770:artikel:70g:lid:3",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie8%2FCirculaire.divisie8.3",
+      "urn:bwb:BWBR0004770:artikel:70h:lid:3",
+      "urn:bwb:BWBR0024096:artikel:9",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie80%2FCirculaire.divisie80.1"
+     ],
+     "pool": 253,
+     "in_pool": 7,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 4,
+     "nodig": 3,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 0,
+     "gevonden_nodig": 0,
+     "exact": 0,
+     "raak": 0,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:1",
+      "urn:bwb:BWBR0004770:artikel:10:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:8",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:23a",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.1%2FCirculaire.divisie25.1.3",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.7",
+      "urn:bwb:BWBR0004770:artikel:9:lid:11",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.2%2FCirculaire.divisie26.2.14",
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie79%2FCirculaire.divisie79.5",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0004770:artikel:11"
+     ],
+     "pool": 349,
+     "in_pool": 3,
+     "niet_in_pool": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:2"
+     ]
+    },
+    {
+     "verwacht": 4,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 1,
+     "gevonden_nodig": 1,
+     "exact": 1,
+     "raak": 1,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0004770:artikel:9:lid:6",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie79%2FCirculaire.divisie79.6",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.3a%2FCirculaire.divisie25.3a.1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:7",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie73%2FCirculaire.divisie73.4%2FCirculaire.divisie73.4.1",
+      "urn:bwb:BWBR0004770:artikel:10:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.3",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie80%2FCirculaire.divisie80.1",
+      "urn:bwb:BWBR0004770:artikel:28:lid:1"
+     ],
+     "pool": 215,
+     "in_pool": 4,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 3,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 1,
+     "exact": 1,
+     "raak": 4,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:25:lid:1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:12",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2.a",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.6%2FCirculaire.divisie25.6.2d",
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2",
+      "urn:bwb:BWBR0004770:artikel:63a",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.1",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0004770:artikel:9:lid:7"
+     ],
+     "pool": 278,
+     "in_pool": 3,
+     "niet_in_pool": []
+    }
+   ],
+   "recall_pool": 0.944,
+   "pool": 1095
+  },
+  "met dossier_velden": {
+   "recall": 0.389,
+   "recall_nodig": 0.364,
+   "recall_exact": 0.333,
+   "precisie": 0.281,
+   "aantal": 32,
+   "uitgesloten": 0,
+   "uitgesloten_gemarkeerd": 0,
+   "gedeeld": 0.425,
+   "per_deelvraag": [
+    {
+     "verwacht": 7,
+     "nodig": 4,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 1,
+     "exact": 2,
+     "raak": 2,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:4",
+      "urn:bwb:BWBR0004770:artikel:9:lid:10",
+      "urn:bwb:BWBR0004770:artikel:8:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
+      "urn:bwb:BWBR0004770:artikel:9:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie28%2FCirculaire.divisie28.2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie8%2FCirculaire.divisie8.1",
+      "urn:bwb:BWBR0004770:artikel:11",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.1%2FCirculaire.divisie26.1.7",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie80%2FCirculaire.divisie80.1"
+     ],
+     "pool": 253,
+     "in_pool": 7,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 4,
+     "nodig": 3,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 1,
+     "gevonden_nodig": 0,
+     "exact": 1,
+     "raak": 1,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:1",
+      "urn:bwb:BWBR0004770:artikel:10:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:8"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:23a",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.4%2FCirculaire.divisie25.4.6",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.7",
+      "urn:bwb:BWBR0004770:artikel:25:lid:19",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:11",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.1",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0004770:artikel:11"
+     ],
+     "pool": 349,
+     "in_pool": 3,
+     "niet_in_pool": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:2"
+     ]
+    },
+    {
+     "verwacht": 4,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 2,
+     "exact": 2,
+     "raak": 2,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:6",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie79%2FCirculaire.divisie79.6",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.3a%2FCirculaire.divisie25.3a.1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:7",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.3",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie80%2FCirculaire.divisie80.1",
+      "urn:bwb:BWBR0004770:artikel:28:lid:1"
+     ],
+     "pool": 215,
+     "in_pool": 4,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 3,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 1,
+     "exact": 1,
+     "raak": 4,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:25:lid:1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:12",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.1",
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2.a",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.6%2FCirculaire.divisie25.6.2d",
+      "urn:bwb:BWBR0004770:artikel:63",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.1%2FCirculaire.divisie25.1.8"
+     ],
+     "pool": 278,
+     "in_pool": 3,
+     "niet_in_pool": []
+    }
+   ],
+   "recall_pool": 0.944,
+   "pool": 1095
+  },
+  "met dossier_lijsten": {
+   "recall": 0.333,
+   "recall_nodig": 0.364,
+   "recall_exact": 0.278,
+   "precisie": 0.219,
+   "aantal": 32,
+   "uitgesloten": 0,
+   "uitgesloten_gemarkeerd": 0,
+   "gedeeld": 0.65,
+   "per_deelvraag": [
+    {
+     "verwacht": 7,
+     "nodig": 4,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 1,
+     "gevonden_nodig": 0,
+     "exact": 1,
+     "raak": 1,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:4",
+      "urn:bwb:BWBR0004770:artikel:9:lid:10",
+      "urn:bwb:BWBR0004770:artikel:8:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0024096:artikel:9",
+      "urn:bwb:BWBR0004770:artikel:24:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.6%2FCirculaire.divisie25.6.2d",
+      "urn:bwb:BWBR0004770:artikel:9:lid:7",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie28%2FCirculaire.divisie28.2",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.1%2FCirculaire.divisie26.1.9"
+     ],
+     "pool": 552,
+     "in_pool": 7,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 4,
+     "nodig": 3,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 1,
+     "gevonden_nodig": 1,
+     "exact": 1,
+     "raak": 1,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:8",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.1%2FCirculaire.divisie26.1.9",
+      "urn:bwb:BWBR0004770:artikel:23a",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.1%2FCirculaire.divisie25.1.3",
+      "urn:bwb:BWBR0004770:artikel:10:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.1",
+      "urn:bwb:BWBR0004770:artikel:24:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie1%2FCirculaire.divisie1.1%2FCirculaire.divisie1.1.2",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie79%2FCirculaire.divisie79.6"
+     ],
+     "pool": 619,
+     "in_pool": 4,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 4,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 2,
+     "exact": 2,
+     "raak": 2,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:6",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.6%2FCirculaire.divisie25.6.2d",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie77%2FCirculaire.divisie77.1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.1%2FCirculaire.divisie26.1.9",
+      "urn:bwb:BWBR0004770:artikel:9:lid:7",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie79%2FCirculaire.divisie79.6",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie1%2FCirculaire.divisie1.1%2FCirculaire.divisie1.1.5",
+      "urn:bwb:BWBR0004770:artikel:28:lid:1"
+     ],
+     "pool": 540,
+     "in_pool": 4,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 3,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 1,
+     "exact": 1,
+     "raak": 3,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:25:lid:1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.6%2FCirculaire.divisie25.6.2d",
+      "urn:bwb:BWBR0004770:artikel:24:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:12",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.5%2FCirculaire.divisie25.5.3",
+      "urn:bwb:BWBR0004770:artikel:33a:lid:3",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2.a",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5"
+     ],
+     "pool": 579,
+     "in_pool": 3,
+     "niet_in_pool": []
+    }
+   ],
+   "recall_pool": 1.0,
+   "pool": 2290
+  },
+  "met dossier_omgeving": {
+   "recall": 0.333,
+   "recall_nodig": 0.364,
+   "recall_exact": 0.278,
+   "precisie": 0.25,
+   "aantal": 32,
+   "uitgesloten": 0,
+   "uitgesloten_gemarkeerd": 0,
+   "gedeeld": 0.375,
+   "per_deelvraag": [
+    {
+     "verwacht": 7,
+     "nodig": 4,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 1,
+     "exact": 2,
+     "raak": 2,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:4",
+      "urn:bwb:BWBR0004770:artikel:9:lid:10",
+      "urn:bwb:BWBR0004770:artikel:8:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
+      "urn:bwb:BWBR0004770:artikel:9:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.1%2FCirculaire.divisie26.1.7",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie28%2FCirculaire.divisie28.2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:6",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie8%2FCirculaire.divisie8.1",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie80%2FCirculaire.divisie80.1"
+     ],
+     "pool": 253,
+     "in_pool": 7,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 4,
+     "nodig": 3,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 0,
+     "gevonden_nodig": 0,
+     "exact": 0,
+     "raak": 0,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:1",
+      "urn:bwb:BWBR0004770:artikel:10:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:8",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:23a",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.4%2FCirculaire.divisie25.4.6",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.7",
+      "urn:bwb:BWBR0004770:artikel:25:lid:19",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:11",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.1%2FCirculaire.divisie25.1.3",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0004770:artikel:11"
+     ],
+     "pool": 349,
+     "in_pool": 3,
+     "niet_in_pool": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:2"
+     ]
+    },
+    {
+     "verwacht": 4,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 2,
+     "exact": 2,
+     "raak": 2,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:6",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie79%2FCirculaire.divisie79.6",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.3a%2FCirculaire.divisie25.3a.1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:7",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.3",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie80%2FCirculaire.divisie80.1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2.b"
+     ],
+     "pool": 215,
+     "in_pool": 4,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 3,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 1,
+     "exact": 1,
+     "raak": 4,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:25:lid:1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:12",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.1",
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2.a",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.6%2FCirculaire.divisie25.6.2d",
+      "urn:bwb:BWBR0004770:artikel:24:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.1%2FCirculaire.divisie25.1.8"
+     ],
+     "pool": 278,
+     "in_pool": 3,
+     "niet_in_pool": []
+    }
+   ],
+   "recall_pool": 0.944,
+   "pool": 1095
+  },
+  "met gelijkenis": {
+   "recall": 0.389,
+   "recall_nodig": 0.364,
+   "recall_exact": 0.333,
+   "precisie": 0.281,
+   "aantal": 32,
+   "uitgesloten": 0,
+   "uitgesloten_gemarkeerd": 0,
+   "gedeeld": 0.425,
+   "per_deelvraag": [
+    {
+     "verwacht": 7,
+     "nodig": 4,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 1,
+     "exact": 2,
+     "raak": 2,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:4",
+      "urn:bwb:BWBR0004770:artikel:9:lid:10",
+      "urn:bwb:BWBR0004770:artikel:8:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
+      "urn:bwb:BWBR0004770:artikel:9:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie28%2FCirculaire.divisie28.2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie8%2FCirculaire.divisie8.1",
+      "urn:bwb:BWBR0004770:artikel:11",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.1%2FCirculaire.divisie26.1.7",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie80%2FCirculaire.divisie80.1"
+     ],
+     "pool": 253,
+     "in_pool": 7,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 4,
+     "nodig": 3,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 1,
+     "gevonden_nodig": 0,
+     "exact": 1,
+     "raak": 1,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:1",
+      "urn:bwb:BWBR0004770:artikel:10:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:8"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:23a",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.4%2FCirculaire.divisie25.4.6",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.7",
+      "urn:bwb:BWBR0004770:artikel:25:lid:19",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:11",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.1",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0004770:artikel:11"
+     ],
+     "pool": 349,
+     "in_pool": 3,
+     "niet_in_pool": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:2"
+     ]
+    },
+    {
+     "verwacht": 4,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 2,
+     "exact": 2,
+     "raak": 2,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:6",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie79%2FCirculaire.divisie79.6",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie24%2FCirculaire.divisie24.3",
+      "urn:bwb:BWBR0004770:artikel:9:lid:7",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.3a%2FCirculaire.divisie25.3a.1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie80%2FCirculaire.divisie80.1",
+      "urn:bwb:BWBR0004770:artikel:28:lid:1"
+     ],
+     "pool": 215,
+     "in_pool": 4,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 3,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 1,
+     "exact": 1,
+     "raak": 4,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:25:lid:1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:12",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.1",
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2.a",
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.6%2FCirculaire.divisie25.6.2d",
+      "urn:bwb:BWBR0004770:artikel:63",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.1%2FCirculaire.divisie25.1.8"
+     ],
+     "pool": 278,
+     "in_pool": 3,
+     "niet_in_pool": []
+    }
+   ],
+   "recall_pool": 0.944,
+   "pool": 1095
+  },
+  "met dossier (alles)": {
+   "recall": 0.333,
+   "recall_nodig": 0.364,
+   "recall_exact": 0.278,
+   "precisie": 0.219,
+   "aantal": 32,
+   "uitgesloten": 0,
+   "uitgesloten_gemarkeerd": 0,
+   "gedeeld": 0.675,
+   "per_deelvraag": [
+    {
+     "verwacht": 7,
+     "nodig": 4,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 1,
+     "gevonden_nodig": 0,
+     "exact": 1,
+     "raak": 1,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:4",
+      "urn:bwb:BWBR0004770:artikel:9:lid:10",
+      "urn:bwb:BWBR0004770:artikel:8:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0024096:artikel:9",
+      "urn:bwb:BWBR0004770:artikel:24:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.6%2FCirculaire.divisie25.6.2d",
+      "urn:bwb:BWBR0004770:artikel:9:lid:7",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.1%2FCirculaire.divisie26.1.7",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.1%2FCirculaire.divisie26.1.9"
+     ],
+     "pool": 552,
+     "in_pool": 7,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 4,
+     "nodig": 3,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 1,
+     "gevonden_nodig": 1,
+     "exact": 1,
+     "raak": 1,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:8",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.1%2FCirculaire.divisie26.1.9",
+      "urn:bwb:BWBR0004770:artikel:23a",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.1%2FCirculaire.divisie25.1.3",
+      "urn:bwb:BWBR0004770:artikel:10:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.1",
+      "urn:bwb:BWBR0004770:artikel:24:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.6%2FCirculaire.divisie25.6.2d",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie79%2FCirculaire.divisie79.6"
+     ],
+     "pool": 619,
+     "in_pool": 4,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 4,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 2,
+     "exact": 2,
+     "raak": 2,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:6",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.6%2FCirculaire.divisie25.6.2d",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.1%2FCirculaire.divisie26.1.9",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie77%2FCirculaire.divisie77.1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:7",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie79%2FCirculaire.divisie79.6",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie1%2FCirculaire.divisie1.1%2FCirculaire.divisie1.1.5",
+      "urn:bwb:BWBR0004770:artikel:28:lid:1"
+     ],
+     "pool": 540,
+     "in_pool": 4,
+     "niet_in_pool": []
+    },
+    {
+     "verwacht": 3,
+     "nodig": 2,
+     "aantal": 8,
+     "gemarkeerd": 2,
+     "gevonden": 2,
+     "gevonden_nodig": 1,
+     "exact": 1,
+     "raak": 3,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:25:lid:1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0004770:artikel:2:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.6%2FCirculaire.divisie25.6.2d",
+      "urn:bwb:BWBR0004770:artikel:24:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:12",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.5%2FCirculaire.divisie25.5.3",
+      "urn:bwb:BWBR0004770:artikel:2:lid:2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2.a",
+      "urn:bwb:BWBR0004770:artikel:16",
+      "urn:bwb:BWBR0004770:artikel:9:lid:5"
+     ],
+     "pool": 579,
+     "in_pool": 3,
+     "niet_in_pool": []
+    }
+   ],
+   "recall_pool": 1.0,
+   "pool": 2290
+  },
+  "vorige deelvraagmethode": {
+   "recall": 0.0,
+   "recall_nodig": 0.0,
+   "recall_exact": 0.0,
+   "precisie": 0.0,
+   "aantal": 31,
+   "uitgesloten": 0,
+   "uitgesloten_gemarkeerd": 0,
+   "gedeeld": 0.0,
+   "per_deelvraag": [
+    {
+     "verwacht": 7,
+     "nodig": 4,
+     "aantal": 2,
+     "gemarkeerd": 0,
+     "gevonden": 0,
+     "gevonden_nodig": 0,
+     "exact": 0,
+     "raak": 0,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:1",
+      "urn:bwb:BWBR0004770:artikel:9:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:4",
+      "urn:bwb:BWBR0004770:artikel:9:lid:10",
+      "urn:bwb:BWBR0004770:artikel:8:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie35%2FCirculaire.divisie35.11%2FCirculaire.divisie35.11.1",
+      "urn:bwb:BWBR0024096:artikel:26"
+     ]
+    },
+    {
+     "verwacht": 4,
+     "nodig": 3,
+     "aantal": 14,
+     "gemarkeerd": 0,
+     "gevonden": 0,
+     "gevonden_nodig": 0,
+     "exact": 0,
+     "raak": 0,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:10:lid:1",
+      "urn:bwb:BWBR0004770:artikel:10:lid:2",
+      "urn:bwb:BWBR0004770:artikel:9:lid:8",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.1"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2.a",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.2.b",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.3",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.4",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.5",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.6",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.7",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.7a",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.8",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.9",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2%2FCirculaire.divisie25.2.10",
+      "urn:bwb:BWBR0024096:artikel:24"
+     ]
+    },
+    {
+     "verwacht": 4,
+     "nodig": 2,
+     "aantal": 0,
+     "gemarkeerd": 0,
+     "gevonden": 0,
+     "gevonden_nodig": 0,
+     "exact": 0,
+     "raak": 0,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:5",
+      "urn:bwb:BWBR0004770:artikel:9:lid:7",
+      "urn:bwb:BWBR0004770:artikel:9:lid:6",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1"
+     ],
+     "opties": []
+    },
+    {
+     "verwacht": 3,
+     "nodig": 2,
+     "aantal": 15,
+     "gemarkeerd": 0,
+     "gevonden": 0,
+     "gevonden_nodig": 0,
+     "exact": 0,
+     "raak": 0,
+     "uitgesloten": [],
+     "uitgesloten_gemarkeerd": [],
+     "gemist": [
+      "urn:bwb:BWBR0004770:artikel:9:lid:12",
+      "urn:bwb:BWBR0004770:artikel:25:lid:1",
+      "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2"
+     ],
+     "opties": [
+      "urn:bwb:BWBR0005537:artikel:4%3A15",
+      "urn:bwb:BWBR0005537:artikel:4%3A17",
+      "urn:bwb:BWBR0005537:artikel:4%3A56",
+      "urn:bwb:BWBR0005537:artikel:4%3A96",
+      "urn:bwb:BWBR0005537:artikel:5%3A29",
+      "urn:bwb:BWBR0005537:artikel:5%3A34",
+      "urn:bwb:BWBR0005537:artikel:5%3A45",
+      "urn:bwb:BWBR0005537:artikel:5%3A51",
+      "urn:bwb:BWBR0005537:artikel:7%3A10",
+      "urn:bwb:BWBR0005537:artikel:7%3A24",
+      "urn:bwb:BWBR0005537:artikel:8%3A55",
+      "urn:bwb:BWBR0005537:artikel:8%3A82",
+      "urn:bwb:BWBR0005537:artikel:8%3A106",
+      "urn:bwb:BWBR0002320:artikel:25c",
+      "urn:bwb:BWBR0002320:artikel:27h"
+     ]
+    }
+   ]
+  }
+ }
+}
