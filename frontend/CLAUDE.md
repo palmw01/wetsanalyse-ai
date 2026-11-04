@@ -120,6 +120,11 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     klik rood *Verwijderen?* of groen *Akkoord?* toont, de tweede voert uit (een `BevestigKnop`, dus ontwapenen
     na een paar seconden, bij blur of met Escape). Voor voorbeelden, passages (*Losmaken?*), relaties en het
     akkoord op de reviewkaart. Hoofdacties blijven een knop met tekst (`VerwijderKnop` in een kop);
+  - **kopiëren en exporteren** is één knop in de kop van elk paneel (`ExportKnop`, 4 nov 2026): bovenaan *Kopieer als
+    Markdown* en *Download als Markdown* (`lib/artefactMarkdown.ts`: dossier, deelvraag, bronselectie, begrip,
+    begrippen, annotatie – kopjes en lijsten, geen tabellen), daaronder de formaten van de soort (annotatie
+    PDF/CSV/JSON/TriG, begrippen CSV/JSON/Turtle). De inhoud wordt bij de klik opgehaald; `downloadTekst` in
+    `lib/api.ts` maakt het bestand;
   - **menu's** delen één rijstijl (`components/ui/Menu`: `MENU_RIJ`, `MENU_PANEEL`);
   - **`Select`** heeft een eigen chevron (`appearance-none`) en dezelfde maat en focus als `Input`;
   - **elk zijpaneel** heeft dezelfde kop (`components/ui/PaneelKop`: soort, titel, *Open volledige pagina*,

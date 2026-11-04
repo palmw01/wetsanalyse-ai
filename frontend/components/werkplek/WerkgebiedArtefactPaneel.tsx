@@ -1,5 +1,9 @@
 "use client";
 
+import { ExportKnop } from "@/components/werkplek/ExportKnop";
+import { EXPORT_FORMATEN } from "@/components/werkgebieden/BegrippenTab";
+import { exporteerBegrippen, haalBegrip, haalBronselectie, haalWerkgebied, lijstBegrippen } from "@/lib/api";
+import { begripAlsMarkdown, begrippenAlsMarkdown, bronselectieAlsMarkdown, deelvraagAlsMarkdown, dossierAlsMarkdown } from "@/lib/artefactMarkdown";
 import { PaneelKop } from "@/components/ui/PaneelKop";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -16,7 +20,7 @@ import { Melding } from "@/components/ui/Melding";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
 import { knopKlasse } from "@/components/ui/Button";
-import { foutTekst, haalWerkgebied, verwijderWerkgebied } from "@/lib/api";
+import { foutTekst, verwijderWerkgebied } from "@/lib/api";
 import { metSpoor } from "@/lib/uiSpoor";
 import { verwijderdUit, verwijderdZin, type Verwijderd } from "@/lib/verwijderen";
 import { isRevisieConflict } from "@/lib/werkgebied";
@@ -25,6 +29,31 @@ import type { Werkgebied } from "@/lib/types";
 import { STATUS_LABEL } from "@/lib/werkgebied";
 import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
 import { artefactPad, begripPad, deelvraagPad, projectPad } from "@/lib/werkgebiedPaden";
+
+/** Kopiëren en exporteren per soort (4 nov 2026): altijd Markdown, en bij de begrippen de bestaande exports van het
+ *  begrippenkader. De inhoud wordt bij de klik opgehaald – de kop kent de gegevens van de inhoud niet. */
+function exportVan(doel: WerkgebiedArtefact): Pick<React.ComponentProps<typeof ExportKnop>, "markdown" | "formaten" | "onDownload"> {
+  const id = doel.werkgebied_id;
+  switch (doel.soort) {
+    case "werkgebied":
+      return { formaten: [], markdown: async () => dossierAlsMarkdown(await haalWerkgebied(id), await haalBronselectie(id).catch(() => undefined)) };
+    case "bronselectie":
+      return { formaten: [], markdown: async () => bronselectieAlsMarkdown(await haalBronselectie(id)) };
+    case "deelvraag":
+      return { formaten: [], markdown: async () => {
+        const d = (await haalBronselectie(id)).deelvragen.find((x) => x.id === doel.deelvraag_id);
+        return d ? deelvraagAlsMarkdown(d) : `# ${doel.titel}\n`;
+      } };
+    case "begrip":
+      return { formaten: [], markdown: async () => begripAlsMarkdown(await haalBegrip(id, doel.begrip_id ?? "")) };
+    default:
+      return { formaten: EXPORT_FORMATEN, onDownload: (f) => exporteerBegrippen(id, f as "json" | "csv" | "ttl" | "ttl-alle"),
+        markdown: async () => {
+          const [wg, lijst] = await Promise.all([haalWerkgebied(id), lijstBegrippen(id)]);
+          return begrippenAlsMarkdown(wg.naam, lijst.begrippen);
+        } };
+  }
+}
 
 /** Waar *Open volledige pagina* heen gaat: de pagina van wat het paneel toont (spoor G2). */
 function paginaVan(doel: WerkgebiedArtefact): string {
@@ -76,6 +105,7 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
 }) {
   const router = useRouter();
   const [onbewaard, setOnbewaard] = useState(false);
+  const [exportFout, setExportFout] = useState<string | null>(null);
   const bewaker = useOnbewaardBewaker(onbewaard);
   const sluit = () => bewaker.bewaak(onSluit, "sluiten");
   const naarWerkgebied = paginaVan(doel);
@@ -84,8 +114,10 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
   return (
     <Dialog label={`${soort}: ${titel}`} variant={variant} onSluit={sluit}>
       <div data-artefact data-artefact-soort={doel.soort} className="flex min-h-0 flex-1 flex-col">
-        <PaneelKop soort={KOP[doel.soort]} titel={titel} pagina={naarWerkgebied} onSluit={sluit} />
+        <PaneelKop soort={KOP[doel.soort]} titel={titel} pagina={naarWerkgebied} onSluit={sluit}
+          acties={<ExportKnop onFout={setExportFout} titel={titel} {...exportVan(doel)} />} />
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          {exportFout && <Melding type="waarschuwing" className="mb-4">{exportFout}</Melding>}
           {bewaker.wachtend && (
             <OnbewaardMelding
               className="mb-4"
