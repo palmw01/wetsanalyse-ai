@@ -748,7 +748,9 @@ horen; de api bewaart de kandidaten en de besluiten (`api/app/bronnen_run_store.
   (`splitsingen`, `(bezwaar AND *schrift*)`) en de telling vouwt een ellips uit (`ellipsen_uitgevouwen`:
   "bezwaar- of beroepschrift"); divisies van een beleidsregel zijn bepalingen; de kop van het deel komt voor
   de hele pool (`kop_raakt`); rangschikken is RRF (`RRF_K`, geen gewichten – geen set is groot genoeg om
-  ze op af te stemmen). Het lemma bestaat als vlag maar staat uit (hielp niet). Een treffer in de lijst van
+  ze op af te stemmen). Het lemma bestaat als vlag maar staat uit (hielp niet). Daarna gaan de plaatsen om de beurt
+  naar de regelingen, wet eerst (`per_regeling`, `om_de_beurt`, soort uit `bwb:soort` via `overzicht.RANG`), zodat
+  een beleidsregel met lange divisies het kaartje niet vult; `lengte` (demping) bestaat als vlag en staat uit. Een treffer in de lijst van
   een term is het bewijs dat de bepaling die term raakt.
 - **Plek en bepaling uit de graaf, niet uit de IRI** (`agent/plekken.py`): de importer schrijft
   `bwb:vindplaats` en `bwb:inBepaling`. Een onderdeel telt voor zijn `inBepaling` (bij de Leidraad hangt
