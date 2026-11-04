@@ -937,6 +937,15 @@ van de gebruiker op 20 okt 2026).
   - **Open**: de naam en de begrippen van het werkgebied (NL-SBB, `bwb:definieertBegrip`) als termen van de wet die
     meezoeken als deelvraagterm, en de RRF-telling (het aantal lijsten weegt zwaarder dan wat een bepaling
     raakt). Dat moet op een nieuwe set, want alle vier sets zijn nu ontwikkelsets.
+- **Bronselectie langs de vier zoekvragen** (plan 4 nov 2026, `~/.claude/plans/zoekvragen-bronselectie.md`; methode in
+  de skill, `references/zoekvragen-bronselectie.md`, uit intern BRM-materiaal): vanaf de **gebeurtenis** in de term
+  van de wet zoeken langs a bestaansrecht (de grondslag), b rechtsgeldigheid, c rechtsgevolgen en d nadere invulling.
+  - Gedaan: PR 1 de skill (#805), PR 2 de blinde set `verrekening-concept` met `zoekvraag` per bepaling (#806), PR 3
+    de gebeurtenis op het werkgebied (`gebeurtenis`), de vraagkaart `bs_gebeurtenis` met voorstellen uit de koppen
+    van de regelingen (zonder model) en de bronmethode `grondslag` (zoekvraag a, alleen met een gekozen gebeurtenis).
+    Ontwikkelset kwijtschelding: de gebeurtenis op plek 1 (met de naam) of 3 (zonder), de grondslag recall 0,67.
+  - **Open**: PR 4 b, c en d vanuit de grondslag; PR 5 de deelvragen rangschikken binnen die pool; PR 6 het label
+    per zoekvraag in het paneel; PR 7 de blinde meting op `verrekening-concept`.
 - **Historische toestanden** (open keuze, 3 nov 2026): de graaf heeft per regeling alleen de nieuwste toestand,
   dus de wettekst is altijd de actuele. De peildatum is standaard de aanmaakdatum en de werkplek waarschuwt als de
   tekst pas ná de peildatum ging gelden (`GET …/toestanden`). De toestand van de peildatum zelf importeren raakt de

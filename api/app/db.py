@@ -243,6 +243,10 @@ werkgebieden = Table("werkgebieden", metadata,
     Column("context", Text, nullable=False, server_default="", default=""),
     Column("doel", Text, nullable=False, server_default="", default=""),
     Column("praktijkvoorbeeld", Text, nullable=False, server_default="", default=""),
+    # De gebeurtenis in de term van de wet ("kwijtschelding", "verrekening"): het vertrekpunt van de bronselectie
+    # langs de vier zoekvragen (skill `references/zoekvragen-bronselectie.md`). De analist kiest haar; leeg = nog
+    # niet gekozen.
+    Column("gebeurtenis", String(200), nullable=False, server_default="", default=""),
     # Spoor I6: het thema als TOOI-URI uit tooitop (`app/tooi.py`); leeg = nog niet gekozen.
     Column("thema", String(200), nullable=False, server_default="", default=""),
     Column("peildatum", String(10), nullable=True),

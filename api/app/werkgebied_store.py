@@ -43,7 +43,7 @@ def _werkgebied(row) -> dict:
     peildatum = row.peildatum or aanmaakdag
     return {"id": row.id, "naam": row.naam, "analysevraag": row.analysevraag,
             "afbakening": row.afbakening, "aanleiding": row.aanleiding, "context": row.context,
-            "doel": row.doel, "praktijkvoorbeeld": row.praktijkvoorbeeld,
+            "doel": row.doel, "praktijkvoorbeeld": row.praktijkvoorbeeld, "gebeurtenis": row.gebeurtenis,
             "thema": row.thema, "thema_label": tooi.thema_label(row.thema),
             "peildatum": peildatum, "peildatum_standaard": peildatum == aanmaakdag, "status": row.status,
             "revisie": row.revisie, "aangemaakt_door": row.aangemaakt_door,
@@ -153,7 +153,7 @@ async def maak(invoer: WerkgebiedInvoer, actor: str) -> dict:
             await conn.execute(insert(db.werkgebieden).values(
                 id=wid, naam=invoer.naam, analysevraag=invoer.analysevraag, afbakening=invoer.afbakening,
                 aanleiding=invoer.aanleiding, context=invoer.context, doel=invoer.doel,
-                praktijkvoorbeeld=invoer.praktijkvoorbeeld, thema=invoer.thema,
+                praktijkvoorbeeld=invoer.praktijkvoorbeeld, gebeurtenis=invoer.gebeurtenis, thema=invoer.thema,
                 peildatum=invoer.peildatum or dag_in_nl(nu), status="in_voorbereiding", revisie=1, aangemaakt_door=actor,
                 aangemaakt=nu, gewijzigd=nu, intake_id=invoer.intake_id))
             deelvragen = await _deelvragen_bij_aanmaken(conn, wid, invoer, actor, nu)

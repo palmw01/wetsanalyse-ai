@@ -93,6 +93,7 @@ const DOSSIER_HINT: Partial<Record<DossierVeld, string>> = {
   context: "de situatie eromheen",
   doel: "wat de analyse moet opleveren",
   praktijkvoorbeeld: "hoe een burger of bedrijf het doorloopt",
+  gebeurtenis: "de handeling in de term van de wet, zoals kwijtschelding of verrekening",
 };
 
 /** Naam, dossier, peildatum en status van het werkgebied bewerken, in een venster boven de pagina. */

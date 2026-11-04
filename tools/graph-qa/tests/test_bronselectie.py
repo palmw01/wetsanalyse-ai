@@ -150,6 +150,10 @@ class NepApi:
         self.rijen.setdefault(did, {"status": "in_behandeling", "fase": "kern", "open_punten": [], "revisie": 1, "geopend": 0})
         return await self.haal_bronselectie(werkgebied_id, na=did)
 
+    async def haal_werkgebied(self, werkgebied_id):
+        """Voor het kaartje van de gebeurtenis (`bs._vraag_gebeurtenis`): zonder regeling stelt Lex niets voor."""
+        return {"id": WID, "naam": "Betalingstermijnen", "bronnen": []}
+
     async def zoek(self, did):
         self.zoekopdrachten += 1
         self.verouderd = False
@@ -455,3 +459,97 @@ def test_na_een_gewijzigd_werkgebied_zoekt_lex_eerst_opnieuw_ook_als_alles_af_is
     uit = _run(bs.start(api, WID, api.zoek))
     assert api.zoekopdrachten == 1 and api.verouderd is False
     assert "Alle deelvragen zijn afgerond." in uit["zinnen"]
+
+
+# --- de gebeurtenis vóór de bronnen (zoekvragen a–d) -------------------------------------------------
+
+class GebeurtenisApi(NepApi):
+    """De nep-api met een werkgebied dat een gebeurtenis draagt (`PATCH` zoals de api, met de revisietoets)."""
+
+    def __init__(self, gebeurtenis="", **kw):
+        super().__init__(**kw)
+        self.gebeurtenis = gebeurtenis
+        self.wijzigingen: list[dict] = []
+
+    async def haal_bronselectie(self, werkgebied_id, na=""):
+        return {**await super().haal_bronselectie(werkgebied_id, na), "gebeurtenis": self.gebeurtenis}
+
+    async def haal_werkgebied(self, werkgebied_id):
+        return {"id": WID, "naam": "Betalingstermijnen", "analysevraag": "Wanneer moet ik betalen?",
+                "bronnen": [{"bwb_id": "BWBR0004770"}], "gebeurtenis": self.gebeurtenis}
+
+    async def wijzig_werkgebied(self, werkgebied_id, wijziging):
+        from agent.wetsanalyse_api import WetsanalyseApiFout
+        if wijziging["verwachte_revisie"] != self.revisie:
+            raise WetsanalyseApiFout("412", 412)
+        self.wijzigingen.append(wijziging)
+        self.gebeurtenis, self.revisie, self.verouderd = wijziging["gebeurtenis"], self.revisie + 1, True
+        return await self.haal_werkgebied(werkgebied_id)
+
+
+def _stel_voor(gevraagd):
+    def stel_voor(werkgebied, regelingen):
+        gevraagd.append(regelingen)
+        return [{"gebeurtenis": "invordering", "koppen": ["Hoofdstuk II – Invordering (Invorderingswet 1990)"]},
+                {"gebeurtenis": "uitstel van betaling", "koppen": ["Uitstel van betaling (Leidraad Invordering 2008)"]}]
+    return stel_voor
+
+
+def _klik_g(api, kaart, *keuzes, actie="antwoord", tekst="", stel_voor=None):
+    uit = _run(bs.verwerk(api, {"intake_id": kaart["intake_id"], "stap": kaart["stap"], "deelvraag_id": kaart["deelvraag_id"],
+                                "actie": actie, "keuzes": list(keuzes), "tekst": tekst}, api.zoek, None, stel_voor))
+    if uit.get("kaart"):
+        _geldig(uit["kaart"])
+    return uit
+
+
+def test_eerst_de_gebeurtenis_dan_de_deelvragen():
+    """Zonder gebeurtenis en nog niet begonnen: eerst het kaartje met de voorstellen uit de koppen, de eerste
+    aangevinkt; de aangewezen deelvraag reist mee. Kiezen slaat haar op (met de revisie) en gaat dan verder."""
+    api, gevraagd = GebeurtenisApi(kandidaten=_kandidaten()), []
+    uit = _run(bs.start(api, WID, api.zoek, deelvraag_id="d2", stel_voor=_stel_voor(gevraagd)))
+    kaart = _geldig(uit["kaart"])
+    assert (kaart["stap"], kaart["vraag"], kaart["deelvraag_id"]) == ("bs_gebeurtenis", "Om welke gebeurtenis gaat het?", "d2")
+    assert [o["waarde"] for o in kaart["opties"]] == ["invordering", "uitstel van betaling"]
+    assert kaart["vooringevuld"] == ["invordering"] and kaart["vrije_tekst"] and kaart["overslaanbaar"]
+    assert "Invorderingswet 1990" in kaart["opties"][0]["omschrijving"] and gevraagd == [["BWBR0004770"]]
+    uit = _klik_g(api, kaart, "uitstel van betaling", stel_voor=_stel_voor(gevraagd))
+    assert api.wijzigingen == [{"verwachte_revisie": 1, "gebeurtenis": "uitstel van betaling"}]
+    assert "*uitstel van betaling*" in uit["zinnen"][0]
+    # Daarna gewoon verder bij de aangewezen deelvraag; het werkgebied veranderde, dus eerst opnieuw zoeken.
+    assert uit["kaart"]["stap"] == "bs_bepalingen" and uit["kaart"]["deelvraag_id"] == "d2" and api.zoekopdrachten == 1
+    # Een volgende start vraagt het niet nog eens.
+    assert _run(bs.start(api, WID, api.zoek, stel_voor=_stel_voor(gevraagd)))["kaart"]["stap"] != "bs_gebeurtenis"
+
+
+def test_een_eigen_term_gaat_voor_en_overslaan_slaat_niets_op():
+    api, gevraagd = GebeurtenisApi(kandidaten=_kandidaten()), []
+    kaart = _run(bs.start(api, WID, api.zoek, stel_voor=_stel_voor(gevraagd)))["kaart"]
+    _klik_g(api, kaart, "invordering", tekst="  verrekening ", stel_voor=_stel_voor(gevraagd))
+    assert api.gebeurtenis == "verrekening"
+
+    api = GebeurtenisApi(kandidaten=_kandidaten())
+    kaart = _run(bs.start(api, WID, api.zoek, stel_voor=_stel_voor(gevraagd)))["kaart"]
+    uit = _klik_g(api, kaart, actie="overslaan", stel_voor=_stel_voor(gevraagd))
+    assert api.wijzigingen == [] and uit["kaart"]["stap"] == "bs_kies"
+    assert uit["zinnen"][0].startswith("Dan zoek ik zonder gebeurtenis")
+
+
+def test_de_gebeurtenis_wordt_niet_steeds_gevraagd_wel_als_de_analist_erom_vraagt():
+    """Begonnen zonder gebeurtenis: geen kaartje meer, tenzij de vraag het woord noemt (*Vraag Lex* bij het lege
+    veld: "Bepaal de gebeurtenis en de bronnen"). Dan staat de huidige keuze bovenaan als ze geen voorstel is.
+    Zonder voorstel én zonder vraag ook niets (de graaf hapert, geen regeling)."""
+    api, gevraagd = GebeurtenisApi(kandidaten=_kandidaten()), []
+    _run(api.zet_bronselectie_status(WID, "d1", {"actie": "openen"}))
+    assert _run(bs.start(api, WID, api.zoek, stel_voor=_stel_voor(gevraagd)))["kaart"]["stap"] == "bs_bepalingen"
+    kaart = _run(bs.start(api, WID, api.zoek, vraag="Bepaal de gebeurtenis en de bronnen",
+                          stel_voor=_stel_voor(gevraagd)))["kaart"]
+    assert kaart["stap"] == "bs_gebeurtenis"
+
+    api = GebeurtenisApi(gebeurtenis="kwijtschelding", kandidaten=_kandidaten())
+    kaart = _run(bs.start(api, WID, api.zoek, vraag="welke gebeurtenis?", stel_voor=_stel_voor(gevraagd)))["kaart"]
+    assert kaart["opties"][0] == {"label": "kwijtschelding", "waarde": "kwijtschelding", "bron": {},
+                                  "omschrijving": "nu gekozen"} and kaart["vooringevuld"] == ["kwijtschelding"]
+
+    api = GebeurtenisApi(kandidaten=_kandidaten())
+    assert _run(bs.start(api, WID, api.zoek, stel_voor=lambda wg, r: []))["kaart"]["stap"] == "bs_kies"

@@ -47,12 +47,14 @@ export const ACTIES = [
   "uitleg", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen", "bronselectie",
 ] as const;
 
-/** Hoe de suggestie bij een leeg dossierveld het veld noemt; graph-qa herkent het woord (`dossiervelden_in`). */
+/** Hoe de suggestie bij een leeg dossierveld het veld noemt; graph-qa herkent het woord (`dossiervelden_in`). De
+ *  gebeurtenis kiest de analist in de bronselectie (het eerste kaartje), niet bij het aanvullen van het dossier. */
 const VELD_ZIN: Record<DossierVeld, string> = {
   aanleiding: "Vul de aanleiding aan", context: "Vul de context aan", doel: "Vul het doel aan",
   analysevraag: "Vul de analysevraag aan", praktijkvoorbeeld: "Vul het praktijkvoorbeeld aan",
-  afbakening: "Vul de afbakening aan",
+  afbakening: "Vul de afbakening aan", gebeurtenis: "Bepaal de gebeurtenis en de bronnen",
 };
+const VELD_ACTIE: Partial<Record<DossierVeld, VraagLexActie>> = { gebeurtenis: "bronselectie" };
 export type VraagLexActie = (typeof ACTIES)[number];
 
 export interface Suggestie {
@@ -168,7 +170,8 @@ export const MODULES: { markering: Module<Markering> } & Record<ObjectSoort, Mod
     ? [...SUGGESTIES.begrip.filter((s) => s.actie === "uitleg"), ...SUGGESTIES.begrip.filter((s) => s.actie !== "uitleg")]
     : SUGGESTIES.begrip),
   werkgebied: objectModule((o) => o.veld && o.veld in VELD_ZIN
-    ? [{ tekst: VELD_ZIN[o.veld as DossierVeld], actie: "dossier_aanvullen" }, ...SUGGESTIES.werkgebied]
+    ? [{ tekst: VELD_ZIN[o.veld as DossierVeld], actie: VELD_ACTIE[o.veld as DossierVeld] ?? "dossier_aanvullen" },
+      ...SUGGESTIES.werkgebied]
     : SUGGESTIES.werkgebied),
 };
 

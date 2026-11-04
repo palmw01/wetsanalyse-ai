@@ -63,6 +63,8 @@ def test_het_dossier_gaat_alleen_mee_als_er_iets_staat():
     assert "dossier" not in invoer_van({**basis, "context": "  ", "afbakening": ""})
     assert invoer_van({**basis, "doel": " Specificaties ", "afbakening": "Geen overgangsrecht."})["dossier"] == {
         "doel": "Specificaties", "afbakening": "Geen overgangsrecht."}
+    # De gekozen gebeurtenis zoekt mee (zoekvragen a–d): een andere keuze is een andere invoer, dus opnieuw zoeken.
+    assert invoer_van({**basis, "gebeurtenis": "verrekening"})["dossier"] == {"gebeurtenis": "verrekening"}
 
 
 async def test_zonder_vertrekpunt_geen_run(client):

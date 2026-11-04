@@ -9,7 +9,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-Methode = Literal["overzicht", "deelvraag", "verwijzing_uit", "verwijzing_in", "definitie", "opbouw", "gelijkenis"]
+Methode = Literal["overzicht", "deelvraag", "verwijzing_uit", "verwijzing_in", "definitie", "opbouw", "gelijkenis", "grondslag"]
 KandidaatRol = Literal["kern", "afhankelijkheid", "aanverwant"]
 
 #: Sterk naar zwak: bij samenvoegen wint de sterkste rol.

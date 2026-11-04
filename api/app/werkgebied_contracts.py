@@ -59,6 +59,8 @@ class WerkgebiedInvoer(BaseModel):
     context: str = Field(default="", max_length=4000)
     doel: str = Field(default="", max_length=4000)
     praktijkvoorbeeld: str = Field(default="", max_length=4000)
+    # De gebeurtenis in de term van de wet (zoekvragen a–d); leeg = nog niet gekozen.
+    gebeurtenis: str = Field(default="", max_length=200)
     # Spoor I6: een TOOI-thema uit tooitop (`tooi.themas`), of leeg.
     thema: str = Field(default="", max_length=200)
     peildatum: str | None = None
@@ -71,6 +73,11 @@ class WerkgebiedInvoer(BaseModel):
     def _p(cls, v: str | None) -> str | None:
         return _peildatum(v)
 
+    @field_validator("gebeurtenis")
+    @classmethod
+    def _g(cls, v: str) -> str:
+        return _gebeurtenis(v)
+
     @field_validator("naam")
     @classmethod
     def _naam(cls, v: str) -> str:
@@ -82,6 +89,11 @@ class WerkgebiedInvoer(BaseModel):
     @classmethod
     def _t(cls, v: str) -> str:
         return _thema(v)
+
+
+def _gebeurtenis(v: str | None) -> str | None:
+    """Eén term of korte woordgroep, op één regel ("kwijtschelding", "uitstel van betaling")."""
+    return " ".join(v.split()) if v is not None else None
 
 
 def _thema(v: str) -> str:
@@ -100,6 +112,7 @@ class WerkgebiedWijziging(BaseModel):
     context: str | None = Field(default=None, max_length=4000)
     doel: str | None = Field(default=None, max_length=4000)
     praktijkvoorbeeld: str | None = Field(default=None, max_length=4000)
+    gebeurtenis: str | None = Field(default=None, max_length=200)
     thema: str | None = Field(default=None, max_length=200)
     peildatum: str | None = None
     status: Status | None = None
@@ -108,6 +121,11 @@ class WerkgebiedWijziging(BaseModel):
     @classmethod
     def _t(cls, v: str | None) -> str | None:
         return _thema(v) if v is not None else None
+
+    @field_validator("gebeurtenis")
+    @classmethod
+    def _g(cls, v: str | None) -> str | None:
+        return _gebeurtenis(v)
 
     @field_validator("peildatum")
     @classmethod

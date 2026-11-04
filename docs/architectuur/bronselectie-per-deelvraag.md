@@ -26,6 +26,11 @@ bs_kies ──► bs_bepalingen (fase A/B: kern) ──► bs_afhankelijkheden (
    └────────────────┴──────────── "Naar het overzicht" ◄─────────┴────────────────────────────────┘◄───────────┘
 ```
 
+- **Eerst de gebeurtenis** (`bs_gebeurtenis`, zoekvragen a–d, skill `references/zoekvragen-bronselectie.md`):
+  heeft het werkgebied nog geen gebeurtenis en is de analist nog niet begonnen, of vraagt hij er zelf om ("bepaal
+  de gebeurtenis"), dan vraagt Lex om welke gebeurtenis het gaat, in de term van de wet. De voorstellen komen
+  zonder model uit de koppen van de regelingen (`zoekvragen.gebeurtenis_opties`); de keuze staat op het werkgebied
+  (`gebeurtenis`) en laat de bronnenrun ook de grondslag zoeken (methode `grondslag`, zoekvraag a). Overslaan mag.
 - **Een kaartje per stap**, in het vraagkaartcontract van de intake (`modus: "bronselectie"`, `intake_id`
   `bs-<werkgebied>`, `deelvraag_id`). Eén kaart per deelvraag met meerkeuze voor *opnemen*. **Kiezen is het
   besluit**: wat niet aangevinkt is, is *niet gekozen* (afgeleid uit de fase, niet bewaard). Er is geen *later*.

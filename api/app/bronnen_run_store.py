@@ -45,7 +45,7 @@ def kandidaat_id(bron_iri: str) -> str:
     return "K" + hashlib.sha256(bron_iri.encode()).hexdigest()[:16]
 
 
-DOSSIER = ("aanleiding", "context", "doel", "praktijkvoorbeeld", "afbakening")
+DOSSIER = ("aanleiding", "context", "doel", "praktijkvoorbeeld", "afbakening", "gebeurtenis")
 
 
 def invoer_van(werkgebied: dict) -> dict:

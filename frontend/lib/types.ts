@@ -815,6 +815,9 @@ export interface WerkgebiedSamenvatting {
   context?: string;
   doel?: string;
   praktijkvoorbeeld?: string;
+  /** De gebeurtenis in de term van de wet ("kwijtschelding"): het vertrekpunt van de bronselectie langs de vier
+   *  zoekvragen. Leeg = nog niet gekozen; een oudere api stuurt het niet. */
+  gebeurtenis?: string;
   /** Spoor I6: het thema als TOOI-URI uit tooitop, met zijn naam; leeg = nog niet gekozen. */
   thema?: string;
   thema_label?: string;
@@ -879,6 +882,7 @@ export interface WerkgebiedWijziging {
   context?: string;
   doel?: string;
   praktijkvoorbeeld?: string;
+  gebeurtenis?: string;
   thema?: string;
   peildatum?: string | null;
   status?: WerkgebiedStatus;
@@ -1400,17 +1404,19 @@ export interface AkkoordAntwoord {
 
 // --- Bronnen vinden met Lex (spoor D, fase A) – afgeleid van api/app/bronnen_run_contracts.py ---
 
-export type BronMethode = "overzicht" | "deelvraag" | "verwijzing_uit" | "verwijzing_in" | "definitie" | "opbouw" | "gelijkenis";
+export type BronMethode = "overzicht" | "deelvraag" | "verwijzing_uit" | "verwijzing_in" | "definitie" | "opbouw" | "gelijkenis" | "grondslag";
 export type KandidaatRol = "kern" | "afhankelijkheid" | "aanverwant";
 export type KandidaatStatus = "voorgesteld" | "opgenomen" | "uitgesloten";
 
 /** Waarom één methode deze bepaling vond. `detail` per methode: verwijzingen `{anker, functie}`,
- *  definitie `{begrip}`, overzicht `{onderwerp}`, opbouw `{deel}`, gelijkenis `{score}`. */
+ *  definitie `{begrip}`, overzicht `{onderwerp}`, opbouw `{deel}`, gelijkenis `{score}`, grondslag
+ *  `{zoekvraag, gebeurtenis, signaal, zin, kop?}`. */
 export interface KandidaatBewijs {
   methode: BronMethode;
   vanuit: string;
   detail: { anker?: string; functie?: string; begrip?: string; onderwerp?: string; deel?: string; score?: string;
-    deelvraag_id?: string; vraag?: string };
+    deelvraag_id?: string; vraag?: string; zoekvraag?: string; gebeurtenis?: string; signaal?: string; zin?: string;
+    kop?: string };
 }
 
 export interface BronKandidaat {
