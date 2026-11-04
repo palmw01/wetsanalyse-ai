@@ -650,6 +650,20 @@ gesprekken = Table(
 # De berichten binnen een gesprek. `inhoud` (JSON) draagt de heterogene payload van één beurt – de
 # velden van `gesprek_contracts.BerichtInvoer` die niet leeg zijn (tekst, denk, bronnen, artefact,
 # annotatie_doel, reeks, …; zie `gesprek_store._inhoud`). De tijdlijn = ORDER BY id.
+# Momentopnamen van artefacten (4 nov 2026): de stand van een artefact direct na de beurt van Lex die het opleverde,
+# voor de versiekiezer (‹ versie n van m ›) zoals bij Claude. Eén rij per (run, artefact); het bericht verwijst ernaar
+# met `artefact.ref.versie`. `werkgebied_id` is leeg bij een annotatie; `wis` van een werkgebied neemt de rest mee.
+artefact_versies = Table("artefact_versies", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("soort", String(32), nullable=False),
+    Column("sleutel", String(600), nullable=False, index=True),
+    Column("werkgebied_id", String(64), nullable=False, server_default="", default=""),
+    Column("gesprek_id", String(64), nullable=False, server_default="", default=""),
+    Column("run_id", String(64), nullable=False),
+    Column("inhoud", _JSON, nullable=False),
+    Column("gemaakt", _DT, nullable=False),
+    Index("ux_artefact_versies_run_sleutel", "run_id", "sleutel", unique=True))
+
 gesprek_berichten = Table(
     "gesprek_berichten",
     metadata,

@@ -16,6 +16,7 @@ DELETE /v1/gesprekken/{id}                  – verwijder eigen gesprek
 """
 from __future__ import annotations
 
+import logging
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -23,11 +24,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from ..auth import require_client
 from ..deps import get_gesprek_store
 from ..gesprek_contracts import (
-    Bericht, BerichtInvoer, Gesprek, GesprekCreate, GesprekPatch, GesprekSamenvatting,
+    Bericht, BerichtInvoer, Gesprek, GesprekCreate, GesprekPatch, GesprekSamenvatting, Rol,
 )
 from ..gesprek_store import GesprekStore
-from .. import werkgebied_store
+from .. import artefact_versies, werkgebied_store
 from .auth import actieve_userid
+
+logger = logging.getLogger("wetsanalyse.gesprekken")
 
 router = APIRouter(prefix="/gesprekken", tags=["gesprekken"], dependencies=[Depends(require_client)])
 
@@ -88,6 +91,15 @@ async def voeg_bericht_toe(
     store: GesprekStore = Depends(get_gesprek_store),
 ):
     await _gesprek_or_404(store, gesprek_id, user_id)
+    if req.rol == Rol.assistant and req.artefact and req.run_id:
+        # De versie van het artefact bij deze beurt (`artefact_versies`): een gemak, nooit een voorwaarde.
+        try:
+            versie = await artefact_versies.leg_vast(gesprek_id, req.run_id, req.artefact.model_dump())
+        except Exception:  # noqa: BLE001
+            logger.warning("artefact: geen momentopname", extra={"categorie": "technisch"}, exc_info=True)
+            versie = None
+        if versie:
+            req.artefact.ref = {**req.artefact.ref, "versie": versie}
     return await store.voeg_bericht_toe(gesprek_id, req)
 
 
