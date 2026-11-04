@@ -18,7 +18,7 @@ import type { BegripWeergave } from "@/lib/begrippen";
 import { geraakteBegrippen, herbeoordelingZin, strookKop } from "@/lib/herbeoordeling";
 import type { BegripSamenvatting, BegrippenLijst, Herbeoordelingen } from "@/lib/types";
 
-const EXPORT_FORMATEN = [
+export const EXPORT_FORMATEN = [
   { formaat: "csv" as const, label: "CSV", uitleg: "één rij per passage, met vindplaats en bron" },
   { formaat: "json" as const, label: "JSON", uitleg: "alle begrippen met hun koppelingen en bewijsstand" },
   { formaat: "ttl" as const, label: "Turtle (NL-SBB)", uitleg: "de geaccordeerde begrippen als begrippenkader, met conformiteit per begrip" },

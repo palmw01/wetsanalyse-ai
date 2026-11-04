@@ -404,6 +404,13 @@ try {
   await page.locator('button[data-artefact-soort="werkgebied"]').click();
   const wp = page.getByRole("region", { name: "Werkgebied: Invordering" });
   await wp.locator("[data-werkgebied-inhoud]").waitFor();
+  // Eén knop voor kopiëren en exporteren in elke paneelkop (4 nov 2026): het dossier als Markdown, als bestand.
+  await wp.getByRole("button", { name: /Exporteren/ }).click();
+  const [md] = await Promise.all([page.waitForEvent("download"), page.locator("[data-markdown=md]").click()]);
+  assert.match(md.suggestedFilename(), /^invordering.*\.md$/);
+  const mdTekst = await (await import("node:fs/promises")).readFile(await md.path(), "utf8");
+  assert.match(mdTekst, /^# Invordering/);
+  await page.locator("[data-markdown=kopie]").count().then((n) => assert.equal(n, 0, "het menu sluit na de download"));
   await wp.getByRole("button", { name: "Werkgebied verwijderen" }).click();
   await wp.getByRole("button", { name: "Verwijderen?", exact: true }).click();
   await wp.locator("[data-verwijderd]").getByText("Dit werkgebied is verwijderd op 15 okt 2026 door t.").waitFor();
@@ -415,7 +422,7 @@ try {
   assert.equal(await wp.getByText("kon niet worden geladen", { exact: false }).count(), 0);
 
   assert.deepEqual(errors, []);
-  console.log("Browser OK: begrippenartefact na herladen en live, één artefact tegelijk, laatste-artefactbalk, regels gereserveerd, begrip- en deelvraagpaneel, suggesties, werkgebiedcontext in de werkplek, verwijderen in het begrip- en werkgebiedpaneel.");
+  console.log("Browser OK: begrippenartefact na herladen en live, één artefact tegelijk, laatste-artefactbalk, regels gereserveerd, begrip- en deelvraagpaneel, suggesties, werkgebiedcontext in de werkplek, verwijderen in het begrip- en werkgebiedpaneel, Markdown uit de paneelkop.");
 } finally {
   await browser.close();
 }
