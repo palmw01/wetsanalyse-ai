@@ -106,3 +106,28 @@ def test_de_held_out_meting_van_het_rangsignaal_houdt_haar_uitkomst():
         (0.227, 0.222, 3, 0.909)
     assert (f3f["recall"], f3f["recall_nodig"], f3f["recall_pool"]) == (0.318, 0.389, 0.455)
     assert (zonder_fusie["recall"], zonder_fusie["recall_nodig"]) == (0.364, 0.389)
+
+
+def test_de_held_out_meting_van_het_meezoekende_dossier_houdt_haar_uitkomst():
+    """De blinde meting van 4 nov 2026 op de set kwijtschelding (meetlogboek `bronselectie-2026-11-04-dossier`),
+    één keer live, daarna offline op haar opname. Geen van de vier dossiervlaggen won op de ontwikkelsets, en hier
+    evenmin: de woordenkloof zit al in het zoeken (pool 0,33). De deelvragen en de analysevraag zeggen nergens
+    "kwijtschelding"; alleen de naam van het werkgebied doet dat, en die leest het zoeken niet. Deze set is na die
+    ene run een ontwikkelset."""
+    from eval.bronselectie_eval import meet_intake
+
+    naam = "kwijtschelding-concept"
+    s = laad_set(naam)
+    assert s["aanleiding"] and s["doel"] and s["praktijkvoorbeeld"]
+    assert {v["deelvraag"] for v in s["verwacht"]} == set(range(len(s["deelvragen"])))
+    assert all(is_bron_iri(v["bron_iri"]) for v in s["verwacht"] + s["uitgesloten"])
+    graaf = OpnameGraaf(json.loads((SETS / naam / "graafantwoorden.json").read_text()))
+    r = meet_intake(graaf, s)
+    assert graaf.ontbrekend == 0
+    nieuw, alles = r["bepaling_opties"], r["met dossier (alles)"]
+    assert (nieuw["recall"], nieuw["recall_nodig"], nieuw["uitgesloten"], nieuw["recall_pool"]) == \
+        (0.083, 0.095, 0, 0.333)
+    # Per dossierterm een lijst vergroot de pool, maar verdringt de opties van de deelvraag en deelt ze meer.
+    assert (alles["recall_nodig"], alles["recall_pool"]) == (0.048, 0.542) and alles["gedeeld"] > nieuw["gedeeld"]
+    for v in ("dossier_velden", "dossier_omgeving", "gelijkenis"):
+        assert r[f"met {v}"]["recall_nodig"] == nieuw["recall_nodig"]

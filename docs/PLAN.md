@@ -924,15 +924,27 @@ van de gebruiker op 20 okt 2026).
   regeling, wet eerst; meetlogboek `bronselectie-2026-11-03-rangsignaal`): op de ontwikkelsets komt de wet terug
   (recall nodig 0,47 → 0,53 en 0,27 → 0,36), op de nieuwe held-out set *bestuurdersaansprakelijkheid* verandert
   het niets (0,22). Daar zit het verlies in de **woordenkloof**: de analist schrijft "melden" en "loonheffing",
-  de wet "mededeling" en "loonbelasting". **Open**: synoniemen of begrippen uit de graaf, of de similarity-index
-  als extra lijst in de fusie – op een nieuwe set, want alle drie sets zijn nu ontwikkelsets.
+  de wet "mededeling" en "loonbelasting".
+- **Het dossier zoekt mee** (gemeten 4 nov 2026, meetlogboek `bronselectie-2026-11-04-dossier`). Er kwamen vier
+  vlaggen op `Zoekprofiel`: aanleiding en doel lezen, per dossierterm een indexlijst, de omgeving die het dossier
+  aanwijst (idf), en de similarity-index.
+  - Ze zijn gemeten op drie ontwikkelsets en één keer blind op de nieuwe set *kwijtschelding*. Geen van de vier
+    won, dus alle vier staan uit.
+  - Dossierlijsten vergroten de pool (blind 0,33 → 0,54), maar verdringen de opties van de deelvraag en maken de
+    kaartjes gelijker. `bwb_similarity` vindt binnen de regelingen bijna niets bruikbaars.
+  - Blind zit het verlies in het zoeken. Alleen de **naam** van het werkgebied draagt het woord van de wet
+    ("kwijtschelding"), en die leest het zoeken niet.
+  - **Open**: de naam en de begrippen van het werkgebied (NL-SBB, `bwb:definieertBegrip`) als termen van de wet die
+    meezoeken als deelvraagterm, en de RRF-telling (het aantal lijsten weegt zwaarder dan wat een bepaling
+    raakt). Dat moet op een nieuwe set, want alle vier sets zijn nu ontwikkelsets.
 - **Historische toestanden** (open keuze, 3 nov 2026): de graaf heeft per regeling alleen de nieuwste toestand,
   dus de wettekst is altijd de actuele. De peildatum is standaard de aanmaakdatum en de werkplek waarschuwt als de
   tekst pas ná de peildatum ging gelden (`GET …/toestanden`). De toestand van de peildatum zelf importeren raakt de
   importer (meer toestanden per regeling), het graafmodel en de bronidentiteit (`snapshot_id`): een eigen spoor.
-- **Minder en betere bronvoorstellen** (de volgende iteratie, volgens de gebruiker): de bronnenrun het
-  dossier laten gebruiken – wat erbuiten valt weglaten zoals de intake dat al doet, zoeken met
-  aanleiding en praktijkvoorbeeld – met een meting op de referentieset bronselectie ervoor en erna.
+- **Minder en betere bronvoorstellen**: de bronnenrun gebruikt het dossier.
+  - Wat erbuiten valt, staat onderaan en is gemarkeerd (#802).
+  - Zoeken met aanleiding, praktijkvoorbeeld en de omgeving is gemeten en helpt niet (4 nov 2026, zie hierboven).
+  - Wat open blijft, is de naam en de begrippen van het werkgebied als zoektermen.
 - Startactiviteit b (projecttypologie), c (hoofd- en deelactiviteiten) en d (het team): bewust nog niet
   (besloten 20 okt 2026); ze sturen vooral keuzes die het platform nog niet maakt.
 - De doorstap naar activiteit 2 (annoteren) en 3 (begrippen) vanuit hetzelfde gesprek.

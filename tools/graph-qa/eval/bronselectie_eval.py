@@ -271,7 +271,7 @@ def _vorige_deelvraagmethode(graph: Any, s: dict[str, Any], vraag: str) -> list[
 
 
 def _dossier(s: dict[str, Any]) -> dict[str, Any]:
-    return {k: s.get(k, "") for k in ("naam", "analysevraag", "praktijkvoorbeeld", "context")}
+    return {k: s.get(k, "") for k in ("naam", "analysevraag", "praktijkvoorbeeld", "context", "aanleiding", "doel")}
 
 
 def _met_profiel(profiel: deelvraag_zoeken.Zoekprofiel):
@@ -285,6 +285,8 @@ def _met_profiel(profiel: deelvraag_zoeken.Zoekprofiel):
 
 
 _bepaling_opties = _met_profiel(deelvraag_zoeken.STANDAARD_PROFIEL)
+#: De ingrepen waarmee het dossier meezoekt (meetlogboek `bronselectie-2026-11-04-dossier`).
+DOSSIERVLAGGEN = ("dossier_velden", "dossier_lijsten", "dossier_omgeving", "gelijkenis")
 
 #: De routes van de meting: de standaard, de rangschikking van F3f (21 okt 2026) als ijkpunt, de standaard met
 #: telkens één ingreep uit of – het lemma, standaard uit – erbij (ablatie), en de deelvraagmethode van vóór F3f.
@@ -293,6 +295,10 @@ ROUTES = {"bepaling_opties": _bepaling_opties, "F3f (21 okt)": _met_profiel(deel
              for v in ("per_term", "samenstelling", "divisies", "kop_overal", "fusie", "per_regeling")},
           "met lemma": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL, lemma=True)),
           "met lengte": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL, lengte=True)),
+          **{f"met {v}": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL, **{v: True}))
+             for v in DOSSIERVLAGGEN},
+          "met dossier (alles)": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL,
+                                                      **{v: True for v in DOSSIERVLAGGEN})),
           "vorige deelvraagmethode": _vorige_deelvraagmethode}
 
 
@@ -352,6 +358,12 @@ def meet_intake(graaf: Any, s: dict[str, Any]) -> dict[str, Any]:
         if hasattr(route, "profiel"):
             for i, (p, vraag) in enumerate(zip(per, s["deelvragen"])):
                 p.update(scoor_pool(s, i, _pool(graaf, s, vraag, route.profiel)))
+        # Hoeveel opties bij meer dan één deelvraag staan: als het dossier elk kaartje vult, stijgt dit (spoor K).
+        tel: dict[str, int] = {}
+        for p in per:
+            for c in set(p["opties"]):
+                tel[c] = tel.get(c, 0) + 1
+        alle_opties = [c for p in per for c in p["opties"]]
         som = {k: sum(p[k] for p in per) for k in ("verwacht", "nodig", "aantal", "gevonden", "gevonden_nodig", "exact", "raak")}
         rapport[naam] = {"recall": _deel(som["gevonden"], som["verwacht"]),
                          "recall_nodig": _deel(som["gevonden_nodig"], som["nodig"]),
@@ -359,6 +371,7 @@ def meet_intake(graaf: Any, s: dict[str, Any]) -> dict[str, Any]:
                          "precisie": _deel(som["raak"], som["aantal"]), "aantal": som["aantal"],
                          "uitgesloten": sum(len(p["uitgesloten"]) for p in per),
                          "uitgesloten_gemarkeerd": sum(len(p["uitgesloten_gemarkeerd"]) for p in per),
+                         "gedeeld": _deel(sum(1 for c in alle_opties if tel[c] > 1), len(alle_opties)),
                          "per_deelvraag": per}
         if hasattr(route, "profiel"):
             rapport[naam]["recall_pool"] = _deel(sum(p["in_pool"] for p in per), som["verwacht"])
@@ -373,11 +386,11 @@ def tabel_intake(s: dict[str, Any], rapport: dict[str, Any]) -> str:
               f"Analysevraag: {s['analysevraag']}",
               f"Deelvragen: {len(s['deelvragen'])}, verwacht: {len(s['verwacht'])}, uitgesloten: {len(s['uitgesloten'])}",
               "", "| route | aantal | recall | recall nodig | exact | precisie | uitgesloten | uitgesloten gemarkeerd "
-                  "| pool | recall pool |",
-              "|---|---|---|---|---|---|---|---|---|---|"]
+                  "| gedeeld | pool | recall pool |",
+              "|---|---|---|---|---|---|---|---|---|---|---|"]
     for naam, r in rapport.items():
         regels.append(f"| {naam} | {r['aantal']} | {f(r['recall'])} | {f(r['recall_nodig'])} | {f(r['recall_exact'])} | "
-                      f"{f(r['precisie'])} | {r['uitgesloten']} | {r['uitgesloten_gemarkeerd']} | "
+                      f"{f(r['precisie'])} | {r['uitgesloten']} | {r['uitgesloten_gemarkeerd']} | {f(r['gedeeld'])} | "
                       f"{r.get('pool', '–')} | {f(r.get('recall_pool'))} |")
     for naam, r in rapport.items():
         if naam not in ("bepaling_opties", "F3f (21 okt)", "vorige deelvraagmethode"):

@@ -30,6 +30,11 @@ SOORTEN = ("Lid", "Artikel", "Onderdeel", "Divisie")
 RRF_K = 60
 #: Hoeveel bepalingen er per query hun plek in de opbouw krijgen.
 PLAATS_PER_QUERY = 100
+#: De dossiervelden waaruit de dossiertermen komen; met `dossier_velden` ook aanleiding en doel.
+DOSSIERVELDEN = ("analysevraag", "praktijkvoorbeeld", "context")
+DOSSIERVELDEN_ALLE = (*DOSSIERVELDEN, "aanleiding", "doel")
+#: Hoeveel treffers de similarity-index per deelvraag geeft, vóór het filter op de regelingen.
+MAX_GELIJKENIS = 40
 
 
 @dataclass(frozen=True)
@@ -55,6 +60,26 @@ class Zoekprofiel:
     - `lengte`: de bijdrage van de indexlijsten wordt gedempt naar de lengte van de bepaling (de wortel van
       mediaan/lengte, hoogstens 1), zodat een lange divisie niet wint omdat ze veel woorden bevat. Standaard
       **uit**: op de invorderbaarheidsset kostte het recall (0,33 → 0,22).
+
+    Het dossier zoekt mee (meetlogboek `bronselectie-2026-11-04-dossier`). Zonder deze vlaggen weegt het alleen als
+    één lijst op het aantal geraakte dossiertermen, uit analysevraag, praktijkvoorbeeld en context. Alle vier zijn
+    gemeten op drie ontwikkelsets en één blinde set, en alle vier staan **uit**, want geen ervan won:
+
+    - `dossier_velden`: de dossiertermen komen ook uit de aanleiding en het doel. Dit veranderde niets, ook niet op
+      de blinde set, de enige met aanleiding en doel;
+    - `dossier_lijsten`: elke dossierterm is een eigen lijst uit de index, per regeling, in de pool en in de fusie
+      (in plaats van de ene lijst op aantal). Het filter blijft: een optie raakt een deelvraagterm (spoor K).
+      De pool groeide (blind 0,33 → 0,54), maar de dossierlijsten verdrongen de opties van de deelvraag
+      (recall nodig 0,10 → 0,05) en de kaartjes gingen meer op elkaar lijken;
+    - `dossier_omgeving`: het dossier wijst de omgeving aan (het artikel, of de eerste divisie van een
+      beleidsregel), de deelvraag de bepaling daarin. De omgevingen staan in een lijst op de dossiertermen die
+      ze raken, gewogen naar hun zeldzaamheid in de pool (idf), en een kandidaat krijgt de rang van zijn
+      omgeving. Het effect wisselde per set: bestuurdersaansprakelijkheid 0,22 → 0,28, bezwaar 0,53 → 0,40,
+      blind gelijk;
+    - `gelijkenis`: de similarity-index (`bwb_similarity`) op de deelvraag met het praktijkvoorbeeld is een
+      extra lijst, binnen de regelingen van het werkgebied. Een treffer daarvan telt als raak aan de deelvraag,
+      ook zonder haar woorden. Een haperende index kost alleen die lijst. Van de 40 treffers vallen er bijna
+      geen binnen de regelingen, en die gaan over iets anders. Als brug over de woordenkloof is de index te zwak.
     """
     per_term: bool = True
     samenstelling: bool = True
@@ -64,6 +89,10 @@ class Zoekprofiel:
     fusie: bool = True
     per_regeling: bool = True
     lengte: bool = False
+    dossier_velden: bool = False
+    dossier_lijsten: bool = False
+    dossier_omgeving: bool = False
+    gelijkenis: bool = False
 
 
 #: De rangschikking van 21 okt 2026 (F3f), voor de meting.
@@ -117,8 +146,9 @@ def kandidatenpool(graph: GraphPort, *, regelingen: list[str], deelvraag: str | 
         termen = zoektermen(vraagtekst)[:MAX_TERMEN]
     if not termen:
         return None
-    dossiertermen = [w for w in zoektermen(" ".join(str(dossier.get(k) or "") for k in
-                                                   ("analysevraag", "praktijkvoorbeeld", "context")))
+    velden = DOSSIERVELDEN_ALLE if profiel.dossier_velden else DOSSIERVELDEN
+    alle_dossiertermen = zoektermen(" ".join(str(dossier.get(k) or "") for k in velden))[:MAX_DOSSIERTERMEN]
+    dossiertermen = [w for w in zoektermen(" ".join(str(dossier.get(k) or "") for k in velden))
                      if w not in termen][:MAX_DOSSIERTERMEN]
     bereik = list(dict.fromkeys(r for r in regelingen if r)) or [None]
     lemma = lemmas(vraagtekst, termen) if profiel.lemma else {}
@@ -133,13 +163,17 @@ def kandidatenpool(graph: GraphPort, *, regelingen: list[str], deelvraag: str | 
             return
         doel = in_bepaling or _doel_van(iri)
         k = gevonden.setdefault(doel, {"iri": doel, "bwb_id": bwb or _bwb(doel), "citeertitel": citeertitel,
-                                       "teksten": [], "eigen": "", "rang": {}, "index_termen": []})
+                                       "teksten": [], "eigen": "", "rang": {}, "index_termen": [],
+                                       "dossier_index": []})
         if doel == iri and soort != "Onderdeel":
             k["eigen"] = k["eigen"] or tekst
         if tekst and tekst not in k["teksten"]:
             k["teksten"].append(tekst)
         k["rang"][lijst] = min(rang, k["rang"].get(lijst, rang))
-        if term and term not in k["index_termen"]:
+        if term and lijst.startswith("dossier:"):
+            if term not in k["dossier_index"]:
+                k["dossier_index"].append(term)
+        elif term and term not in k["index_termen"]:
             k["index_termen"].append(term)
         if ":lid:" in doel:
             geraakte_artikelen.add(doel.split(":lid:", 1)[0])
@@ -167,6 +201,10 @@ def kandidatenpool(graph: GraphPort, *, regelingen: list[str], deelvraag: str | 
                 for term in termen:
                     lees(f"term:{bwb}:{term}", queries.fts("tekst:" + _term_lucene(term, lemma.get(term, ""), profiel),
                                                            limit=MAX_TREFFERS, bwb_id=bwb), bwb, term)
+            if profiel.dossier_lijsten:
+                for term in dossiertermen:
+                    lees(f"dossier:{bwb}:{term}", queries.fts("tekst:" + _term_lucene(term, "", profiel),
+                                                              limit=MAX_TREFFERS, bwb_id=bwb), bwb, term)
         for term in termen[:4]:
             rang = 0
             for r in _rijen(graph, queries.definities_van(term)):
@@ -178,6 +216,9 @@ def kandidatenpool(graph: GraphPort, *, regelingen: list[str], deelvraag: str | 
     except Exception:  # noqa: BLE001 – een haperende graaf geeft geen opties, geen crash van de intake
         logger.warning("bepalingen zoeken faalde", extra={"categorie": "technisch"}, exc_info=True)
         return None
+    if profiel.gelijkenis and deelvraag:
+        treffers += _gelijkenis(graph, f"{deelvraag} {dossier.get('praktijkvoorbeeld') or ''}".strip(), bereik,
+                                soorten)
 
     # Een onderdeel telt voor de bepaling waarin het staat – uit de graaf (`bwb:inBepaling`), niet uit zijn IRI.
     bepaling: dict[str, str] = {}
@@ -189,8 +230,60 @@ def kandidatenpool(graph: GraphPort, *, regelingen: list[str], deelvraag: str | 
     for iri, tekst, soort, bwb, citeertitel, lijst, rang, term in treffers:
         neem(iri, tekst, soort, bwb, citeertitel, lijst, rang, term, bepaling.get(iri))
 
-    return {"termen": termen, "dossiertermen": dossiertermen, "bereik": bereik, "gevonden": gevonden,
-            "geraakte_artikelen": geraakte_artikelen, "lemma": lemma}
+    return {"termen": termen, "dossiertermen": dossiertermen, "alle_dossiertermen": alle_dossiertermen,
+            "bereik": bereik, "gevonden": gevonden, "geraakte_artikelen": geraakte_artikelen, "lemma": lemma}
+
+
+def _gelijkenis(graph: GraphPort, tekst: str, bereik: list[str | None], soorten: tuple[str, ...]) -> list[tuple]:
+    """De treffers van de similarity-index als één lijst, in de vorm van de treffers van de index, binnen de
+    regelingen van het werkgebied. Een haperende of niet ingestelde index kost alleen deze lijst."""
+    from .tools import _semantische_treffers
+
+    try:
+        rijen = _semantische_treffers(graph.semantic_search(tekst[:2000], MAX_GELIJKENIS))
+    except Exception:  # noqa: BLE001 – zonder gelijkenis zoekt de rest gewoon
+        logger.warning("gelijkenis bij de deelvraag faalde", extra={"categorie": "technisch"}, exc_info=True)
+        return []
+    uit, rang = [], 0
+    for r in rijen:
+        bwb = _bwb(r["node"])
+        if bereik != [None] and bwb not in bereik:
+            continue
+        if r.get("soort") and r["soort"] not in soorten:
+            continue
+        rang += 1
+        uit.append((r["node"], r.get("tekst", ""), r.get("soort", ""), bwb, "", "gelijkenis", rang, ""))
+    return uit
+
+
+def omgeving_van(iri: str) -> str:
+    """De omgeving van een bepaling: het artikel van een lid of onderdeel, of de eerste divisie van een
+    beleidsregel (`…:id:BWBR…%2FCirculaire.divisie36`), waaronder alle subdivisies vallen."""
+    if ":id:" in iri:
+        kop, pad = iri.split(":id:", 1)
+        return f"{kop}:id:" + "%2F".join(pad.split("%2F")[:2])
+    return iri.split(":o:", 1)[0].split(":lid:", 1)[0]
+
+
+def _omgeving_rang(kandidaten: list[dict[str, Any]], termen: list[str], samenstelling: bool) -> dict[str, int]:
+    """Per kandidaat de rang van zijn omgeving: de omgevingen geordend op het gewicht van de dossiertermen die
+    hun teksten en koppen samen raken (1 = het zwaarst). Een term weegt naar hoe zeldzaam hij is onder de
+    omgevingen van de pool (idf, log(N/df)): "ontvanger" en "betalen" staan overal en zeggen niets over het
+    werkgebied, "bestuurder" en "aansprakelijk" wel. Zo wint een grote divisie niet omdat ze veel gewone
+    woorden bevat. Een omgeving zonder dossierterm krijgt geen rang."""
+    import math
+
+    tekst: dict[str, list[str]] = {}
+    for k in kandidaten:
+        tekst.setdefault(omgeving_van(k["iri"]), []).extend([k.get("kop", ""), *k["teksten"]])
+    geraakt = {o: set(_raakt(termen, " ".join(t), samenstelling)) for o, t in tekst.items()}
+    df = {w: sum(w in g for g in geraakt.values()) for w in termen}
+    n = len(geraakt)
+    gewicht = {o: round(sum(math.log(n / df[w]) for w in g), 9) for o, g in geraakt.items()}
+    waarden = sorted({v for v in gewicht.values() if v > 0}, reverse=True)
+    rang = {v: i + 1 for i, v in enumerate(waarden)}
+    return {k["iri"]: rang[gewicht[omgeving_van(k["iri"])]] for k in kandidaten
+            if gewicht[omgeving_van(k["iri"])] > 0}
 
 
 def _koppen(graph: GraphPort, kandidaten: list[dict[str, Any]], gevonden: dict[str, dict[str, Any]]) -> None:
@@ -206,14 +299,18 @@ def _koppen(graph: GraphPort, kandidaten: list[dict[str, Any]], gevonden: dict[s
         logger.warning("kop van de opbouw niet op te halen", extra={"categorie": "technisch"}, exc_info=True)
 
 
-def _fusiescore(k: dict[str, Any], dos_rang: dict[int, int], demping: float = 1.0) -> float:
-    """RRF: per lijst 1/(k + rang). De index-lijsten met hun eigen rang (met `demping` voor de lengte); de kop
-    telt als een lijst waarin elke geraakte term op plaats 1 staat, het dossier als een lijst op het aantal
-    geraakte dossiertermen."""
+def _fusiescore(k: dict[str, Any], dos_rang: dict[int, int], demping: float = 1.0,
+                omgeving: int | None = None) -> float:
+    """RRF: per lijst 1/(k + rang). De index-lijsten met hun eigen rang (met `demping` voor de lengte; met
+    `dossier_lijsten` ook die van de dossiertermen); de kop telt als een lijst waarin elke geraakte term op
+    plaats 1 staat, het dossier als een lijst op het aantal geraakte dossiertermen (`dos_rang`, leeg met
+    `dossier_lijsten`), de omgeving als een lijst op haar rang."""
     score = demping * sum(1 / (RRF_K + r) for r in k["rang"].values())
     score += len(k["kop_termen"]) / (RRF_K + 1)
-    if k["dos"]:
+    if k["dos"] and dos_rang:
         score += 1 / (RRF_K + dos_rang[len(k["dos"])])
+    if omgeving:
+        score += 1 / (RRF_K + omgeving)
     return score
 
 
@@ -299,6 +396,7 @@ def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str |
         tekst_termen = _raakt(termen, alles, profiel.samenstelling)
         k["dv"] = [w for w in termen if w in tekst_termen or w in k["index_termen"]]
         k["dos"] = _raakt(dossiertermen, alles, profiel.samenstelling)
+        k["dos"] += [w for w in k["dossier_index"] if w not in k["dos"]]
         k["kop"] = ""
 
     # De kop van het omvattende deel: voor elke kandidaat, of (F3f) alleen voor de voorlopige top.
@@ -315,11 +413,15 @@ def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str |
 
     if profiel.fusie:
         aantallen = sorted({len(k["dos"]) for k in kandidaten if k["dos"]}, reverse=True)
-        dos_rang = {n: i + 1 for i, n in enumerate(aantallen)}
+        # Met eigen lijsten per dossierterm telt het dossier daar, niet nog eens als lijst op aantal.
+        dos_rang = {} if profiel.dossier_lijsten else {n: i + 1 for i, n in enumerate(aantallen)}
         demping = _demping(kandidaten) if profiel.lengte else {}
+        omgeving = _omgeving_rang(kandidaten, pool["alle_dossiertermen"], profiel.samenstelling) \
+            if profiel.dossier_omgeving else {}
 
         def volgorde(k: dict[str, Any]) -> tuple:
-            return (-_fusiescore(k, dos_rang, demping.get(k["iri"], 1.0)), regeling(k), padsleutel(k["iri"]))
+            return (-_fusiescore(k, dos_rang, demping.get(k["iri"], 1.0), omgeving.get(k["iri"])), regeling(k),
+                    padsleutel(k["iri"]))
     else:
         def volgorde(k: dict[str, Any]) -> tuple:
             return (-len(k["dv"]), -len(k["dos"]), -bool(k["kop_termen"]), regeling(k), padsleutel(k["iri"]))
@@ -331,7 +433,9 @@ def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str |
         (buiten_ if weg else binnen_).append({**k, "buiten": weg})
     # Bij een deelvraag moet een bepaling de deelvraag zelf raken; dossiertermen rangschikken alleen. Anders
     # vulde het dossier elk kaartje tot het maximum, en kreeg elke deelvraag dezelfde bepalingen (spoor K).
-    past = (lambda k: k["dv"]) if deelvraag else (lambda k: k["dv"] or k["dos"])
+    # Een treffer van de similarity-index is op de deelvraag zelf gevonden, ook zonder haar woorden: dat is
+    # precies de woordenkloof ("melden" tegen "mededeling") die de gelijkenis moet overbruggen.
+    past = (lambda k: k["dv"] or "gelijkenis" in k["rang"]) if deelvraag else (lambda k: k["dv"] or k["dos"])
     passend = [k for k in binnen_ if past(k)]
     if profiel.per_regeling:
         passend = om_de_beurt(passend, _soortrang(graph, [k["bwb_id"] for k in passend]), bereik)
