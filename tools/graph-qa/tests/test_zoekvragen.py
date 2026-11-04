@@ -106,7 +106,7 @@ def test_de_gebeurtenissen_in_een_kop(label, gebeurtenissen):
     ("… gehele of gedeeltelijke kwijtschelding kan worden verleend.", "kan worden"),
     ("De ontvanger verleent de belastingschuldige kwijtschelding.", "verleent"),
     ("Bij ministeriële regeling worden regels gesteld krachtens welke …", "regels gesteld"),
-    ("Hoofdelijk aansprakelijk is de bestuurder voor de loonbelasting.", ""),               # rand: inversie zonder "is … aansprakelijk"
+    ("Hoofdelijk aansprakelijk is de bestuurder voor de loonbelasting.", "aansprakelijk"),  # rand: de inversie (Iw 36 lid 1)
     ("Een bestuurder is hoofdelijk aansprakelijk voor de belasting.", "aansprakelijk"),
     ("Geen kwijtschelding wordt verleend indien de aangifte ontbreekt.", ""),               # negatief: een beperking (b)
     ("Deze afdeling heeft betrekking op kwijtschelding van inkomstenbelasting.", ""),       # negatief: geen signaal
@@ -115,9 +115,15 @@ def test_het_signaal_van_bestaansrecht(zin, signaal):
     assert zv.bestaansrecht_signaal(zin) == signaal
 
 
-def test_genoemd_is_het_woord_zelf_niet_een_gedeelde_stam():
+def test_genoemd_is_het_woord_of_een_vervoeging_niet_een_gedeelde_korte_stam():
+    """De vervoeging telt bij een specifieke stam: "waarop wordt uitbetaald" noemt de uitbetaling (werkgebied
+    Rekeningafspraken, 4 nov 2026: de wet zegt uitbetaling, de analist bankrekening). Een korte stam ("betal") en het
+    begin van een samenstelling ("belasti" in belastingrente en belastingschuldige) tellen niet."""
     assert zv.genoemd_in("kwijtschelding", "Kwijtschelding voor particulieren")
+    assert zv.genoemd_in("uitbetaling", "een bankrekening waarop wordt uitbetaald")
+    assert zv.genoemd_in("verrekening", "de teruggaaf is verrekend")
     assert not zv.genoemd_in("betaling", "Ze kan de aanslag niet betalen.")
+    assert not zv.genoemd_in("belastingrente", "de belastingschuldige")
     assert zv._raakt_woord("vallen", "Wat vallen buiten") and not zv._raakt_woord("vallen", "in andere gevallen")
 
 
@@ -153,3 +159,83 @@ def test_de_grondslag_onder_de_kop_de_wet_en_de_lagere_regeling_om_de_beurt():
     assert uit[1]["zin"].startswith("De ontvanger verleent") and uit[2]["onder_kop"] == ""
     assert zv.grondslag(Wereld(faal=True), gebeurtenis="kwijtschelding", regelingen=[IW]) == []
     assert zv.grondslag(Wereld(), gebeurtenis="", regelingen=[IW]) == []
+
+
+@pytest.mark.parametrize("tekst, zoekvraag, signaal", [
+    ("De directeur beslist op het beroep bij uitspraak.", "c", "beroep"),
+    ("Indien de directeur tegemoetkomt, stelt hij bij die uitspraak het bedrag van de kwijtschelding vast.", "c", "uitspraak"),
+    ("Onder vermogen wordt verstaan de waarde in het economische verkeer van de bezittingen.", "d", "verstaan"),
+    ("Geen kwijtschelding wordt verleend voor een voorlopige aanslag.", "b", "geen … wordt"),
+    ("Het verzoek wordt ingediend op een formulier.", "b", "procedure"),
+    ("Kwijtschelding wordt verleend indien geen vermogen aanwezig is.", "b", "jas.voorwaarde.voorwaardelijke_bijzin"),
+    ("Deze afdeling heeft betrekking op kwijtschelding van inkomstenbelasting.", "a", "reikwijdte"),
+    # overlap: een gevolg en een voorwaarde in één bepaling – het gevolg wint (de sterkste zoekvraag)
+    ("Indien de belanghebbende niet tijdig betaalt, vervalt de regeling.", "c", "vervalt"),
+    ("De ontvanger is de ambtenaar die belast is met de invordering.", "", ""),     # negatief: geen signaal
+])
+def test_de_zoekvraag_van_een_bepaling_uit_haar_tekst(tekst, zoekvraag, signaal):
+    z, s, _ = zv.zoekvraag_van(tekst)
+    assert (z, s) == (zoekvraag, signaal)
+
+
+#: De omgeving van kwijtschelding in de lagere regeling (Uitv.reg. hoofdstuk II) en de beleidsregel (Leidraad 26).
+OMGEVING = {
+    f"urn:bwb:{UR}:artikel:7": [(f"urn:bwb:{UR}:artikel:7:lid:1", TEKSTEN[f"urn:bwb:{UR}:artikel:7:lid:1"][2])],
+    f"urn:bwb:{UR}:artikel:8": [(f"urn:bwb:{UR}:artikel:8:lid:1", TEKSTEN[f"urn:bwb:{UR}:artikel:8:lid:1"][2])],
+    f"urn:bwb:{UR}:artikel:12": [(f"urn:bwb:{UR}:artikel:12:lid:1", "Onder vermogen wordt verstaan de waarde van de "
+                                  "bezittingen van de belastingschuldige.")],
+    f"urn:bwb:{UR}:artikel:24": [(f"urn:bwb:{UR}:artikel:24", "Indien de belastingschuldige zich niet kan verenigen "
+                                  "met de beschikking, kan hij een beroepschrift richten tot de directeur.")],
+    f"urn:bwb:{UR}:artikel:25": [(f"urn:bwb:{UR}:artikel:25:lid:1", "De directeur beslist op het beroep bij uitspraak."),
+                                 (f"urn:bwb:{UR}:artikel:25:lid:1:o:a", "een onderdeel van het eerste lid;")],
+    f"urn:bwb:{UR}:artikel:26": [(f"urn:bwb:{UR}:artikel:26", "De Staatssecretaris is bevoegd tot vaststelling van "
+                                  "modellen voor ondernemers.")],
+}
+SUB = f"urn:bwb:{LR}:id:{LR}%2FCirculaire.divisie26%2FCirculaire.divisie26.2%2FCirculaire.divisie26.2.3"
+
+
+class Omgeving(Wereld):
+    def _antwoord(self, q: str) -> str:
+        if self.faal:
+            raise RuntimeError("graaf hapert")
+        if "?aantal" in q:                       # zoek_opbouw: de koppen met de gebeurtenis
+            rijen = {UR: [[f"urn:bwb:{UR}:hoofdstuk:II", "Hoofdstuk II – Kwijtschelding in andere gevallen"]],
+                     LR: [[f"urn:bwb:{LR}:artikel:26", "Kwijtschelding"]],
+                     IW: [[f"urn:bwb:{IW}:hoofdstuk:IV", "Hoofdstuk IV – Bijzondere bepalingen"]]}
+            bwb = next(b for b in SOORT if f"{b}:" in q or f"{b}\"" in q)
+            return _tsv(["node", "score", "soort", "label"], [[n, "1.0", "Hoofdstuk", l] for n, l in rijen.get(bwb, [])])
+        if "VALUES ?deel" in q:
+            return _tsv(["deel", "bepaling", "nummer"], [[f"urn:bwb:{UR}:hoofdstuk:II", a, a.rsplit(":", 1)[1]]
+                                                        for a in OMGEVING])
+        if "?kern ?deel ?tekst" in q:
+            return _tsv(["kern", "deel", "tekst"], [[a, d, t] for a, delen in OMGEVING.items() if f"<{a}>" in q
+                                                   for d, t in delen])
+        if "?kern ?doel ?bron" in q:
+            return _tsv(["kern", "doel", "bron"], [[f"urn:bwb:{IW}:artikel:26", f"urn:bwb:{IW}:artikel:26",
+                                                    f"urn:bwb:{LR}:artikel:26"]])
+        if "?hoofd ?sub ?tekst" in q:
+            return _tsv(["hoofd", "sub", "tekst"], [[f"urn:bwb:{LR}:artikel:26", SUB, TEKSTEN[SUB][2]]])
+        if "definieertBegrip ?begrip" in q:
+            return _tsv(["node", "begrip", "label"], [[f"urn:bwb:{UR}:artikel:1:o:b", "belastingschuldige", ""]])
+        return super()._antwoord(q)
+
+
+def test_de_pool_vanuit_de_grondslag_met_een_zoekvraag_per_kandidaat():
+    """a de grondslag; in de omgeving (Uitv.reg. hoofdstuk II) per lid de zoekvraag uit de tekst – een beperking (b),
+    een begrip (d), het beroep en de uitspraak (c) – en geen kandidaat zonder signaal (art. 26: een bevoegdheid buiten
+    de gebeurtenis); een onderdeel telt voor zijn lid. d ook buiten de wet: de Leidraad die naar Iw 26 verwijst en
+    de definitie van een term uit a–c. Volgorde a, b, c, d."""
+    p = zv.pool(Omgeving(), gebeurtenis="kwijtschelding", regelingen=[IW, UR, LR])
+    zoekvraag = {k["bron_iri"].split(":", 2)[2]: (k["zoekvraag"], k["via"]) for k in p["kandidaten"]}
+    assert zoekvraag[f"{IW}:artikel:26:lid:1"] == ("a", "grondslag")
+    assert zoekvraag[f"{UR}:artikel:7:lid:1"] == ("a", "grondslag")
+    assert zoekvraag[f"{UR}:artikel:8:lid:1"] == ("b", "omgeving")
+    assert zoekvraag[f"{UR}:artikel:12:lid:1"] == ("d", "omgeving")
+    assert zoekvraag[f"{UR}:artikel:24"] == ("c", "omgeving") and zoekvraag[f"{UR}:artikel:25:lid:1"] == ("c", "omgeving")
+    assert zoekvraag[SUB.split(":", 2)[2]] == ("d", "beleidsregel")
+    assert zoekvraag[f"{UR}:artikel:1:o:b"] == ("d", "definitie")
+    assert f"{UR}:artikel:26" not in zoekvraag and f"{UR}:artikel:25:lid:1:o:a" not in zoekvraag
+    assert [k["zoekvraag"] for k in p["kandidaten"]] == sorted(k["zoekvraag"] for k in p["kandidaten"])
+    assert p["volledig"] is True and f"urn:bwb:{UR}:hoofdstuk:II" in p["omgeving"]
+    # Een haperende graaf: geen crash, wel onvolledig.
+    assert zv.pool(Omgeving(faal=True), gebeurtenis="kwijtschelding", regelingen=[IW, UR])["volledig"] is False

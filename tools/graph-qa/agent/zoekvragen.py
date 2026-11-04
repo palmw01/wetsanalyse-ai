@@ -61,7 +61,8 @@ BESTAANSRECHT = (
     ("verleent", re.compile(r"\b(?:verleent|verlenen|wordt[^.;]{0,80}verleend)\b", re.I)),
     ("regels gesteld", re.compile(r"\b(?:worden|wordt)\s+(?:bij\s+[^.;]{0,60})?regels\s+gesteld\b", re.I)),
     ("verplicht", re.compile(r"\bis\b[^.;]{0,60}\bverplicht\b", re.I)),
-    ("aansprakelijk", re.compile(r"\b(?:is|zijn)\b[^.;]{0,60}\b(?:hoofdelijk\s+)?aansprakelijk\b", re.I)),
+    ("aansprakelijk", re.compile(r"\b(?:is|zijn)\b[^.;]{0,60}\b(?:hoofdelijk\s+)?aansprakelijk\b"
+                                 r"|\baansprakelijk\s+(?:is|zijn)\b", re.I)),
 )
 _ZIN = re.compile(r"(?<=[.;:])\s+")
 
@@ -164,11 +165,27 @@ def gebeurtenis_opties(graph: GraphPort, *, regelingen: list[str], dossier: dict
              "termen": sorted(o["termen"])} for o in volgorde if o["score"] > 0 or o["genoemd"]][:limit]
 
 
+#: Een stam die zo specifiek is dat een vervoeging de gebeurtenis noemt ("uitbetaald" → uitbetaling). Een korte
+#: stam ("betal") staat in te veel woorden: "betalen" noemt "betaling" niet.
+MIN_STAM_GENOEMD = 7
+
+
 def genoemd_in(gebeurtenis: str, tekst: str) -> bool:
-    """Of het dossier de gebeurtenis zelf noemt: haar eerste inhoudswoord, als woord of begin van een woord
-    ("Kwijtschelding voor particulieren"). Een gedeelde stam is niet genoeg: "betalen" noemt "betaling" niet."""
+    """Of het dossier de gebeurtenis zelf noemt: haar eerste inhoudswoord als woord of begin van een woord
+    ("Kwijtschelding voor particulieren"), of een vervoeging met dezelfde specifieke stam ("waarop wordt
+    uitbetaald" noemt de uitbetaling)."""
     woorden = zoektermen(gebeurtenis)
-    return bool(woorden) and re.search(rf"\b{re.escape(woorden[0])}", tekst, re.I) is not None
+    if not woorden:
+        return False
+    if re.search(rf"\b{re.escape(woorden[0])}", tekst, re.I):
+        return True
+    # De eerste letters van een lange stam: de spelling wisselt tussen open en gesloten lettergreep ("uitbetal-ing",
+    # "uitbetaa-ld"), dus de hele stam vergelijken mist de vervoeging.
+    # Het begin groeit mee met de stam (op twee letters na): bij een samenstelling ("belastingrente") is een kort
+    # begin ("belasti") ook het begin van een ander woord ("belastingschuldige").
+    stam = queries._stam(woorden[0])
+    begin = stam[:max(MIN_STAM_GENOEMD, len(stam) - 2)]
+    return len(stam) >= MIN_STAM_GENOEMD and re.search(rf"\b{re.escape(begin)}", tekst, re.I) is not None
 
 
 def _regelingnamen(graph: GraphPort, bwbs: list[str]) -> dict[str, str]:
@@ -273,3 +290,203 @@ def _onder_kop(graph: GraphPort, iris: list[str], stammen: list[str]) -> dict[st
     except Exception:  # noqa: BLE001
         logger.warning("kop bij de grondslag niet opgehaald", extra={"categorie": "technisch"}, exc_info=True)
     return uit
+
+
+# --- de pool: vanuit de grondslag naar b, c en d (PR 4) -------------------------------------------------
+
+#: Zoekvraag c, rechtsgevolgen: wat door de gebeurtenis ontstaat, verandert of vervalt, en de rechtsbescherming.
+RECHTSGEVOLG = (
+    ("beschikking", re.compile(r"\bbij\s+(?:voor\s+(?:bezwaar|beroep|administratief\s+beroep)\s+vatbare\s+)?"
+                               r"beschikking\b|\bde\s+beschikking\b", re.I)),
+    ("beroep", re.compile(r"\bberoepschrift\b|\bberoep\s+instellen\b|\bop\s+het\s+beroep\b|\bhoger\s+beroep\b", re.I)),
+    ("uitspraak", re.compile(r"\buitspraak\b", re.I)),
+    ("vervalt", re.compile(r"\bvervalt\b|\bkomt\s+te\s+vervallen\b", re.I)),
+    ("vastgesteld", re.compile(r"\bstelt\b[^.;]{0,80}\bvast\b|\bwordt\b[^.;]{0,60}\bvastgesteld\b", re.I)),
+    ("uitbetaling", re.compile(r"\bbetaalt\b[^.;]{0,60}\buit\b", re.I)),
+    ("bekendmaking", re.compile(r"\bkennisgeving\b|\bmaakt\b[^.;]{0,60}\bbekend\b", re.I)),
+    ("niet-ontvankelijk", re.compile(r"\bniet-ontvankelijk", re.I)),
+)
+#: Zoekvraag d binnen de regeling: een bepaling die een term of de reikwijdte invult.
+INVULLING = (
+    ("verstaan", re.compile(r"\bwordt\b[^.;]{0,100}\bverstaan\b|\bverstaat\b", re.I)),
+    ("begrepen", re.compile(r"\b(?:wordt|worden)\b[^.;]{0,60}\bbegrepen\b", re.I)),
+    ("gelijkgesteld", re.compile(r"\bgelijkgesteld\b", re.I)),
+)
+#: Zoekvraag a in de omgeving: het bereik van een afdeling of hoofdstuk, een uitbreiding of beperking van het recht.
+REIKWIJDTE = re.compile(r"\b(?:deze|dit)\s+(?:afdeling|hoofdstuk|paragraaf|titel|artikel)\s+(?:heeft|is)\s+"
+                        r"(?:betrekking|van\s+toepassing)\s+op\b", re.I)
+#: Zoekvraag b, rechtsgeldigheid: een beperking en de procedure. Voorwaarde en tijd komen uit de JAS-regels.
+RECHTSGELDIGHEID = (
+    ("geen … wordt", re.compile(r"^\s*geen\b[^.;]{0,100}\b(?:wordt|worden)\b", re.I)),
+    ("procedure", re.compile(r"\b(?:verzoek|aanvraag|indienen|ingediend|indiening|formulier|gegevens\s+verstrekt|"
+                             r"verstrekt\s+de\s+gegevens|ondertekend)\b", re.I)),
+)
+MAX_OMGEVING = 60
+#: De subdivisies van de beleidsregel bij de gebeurtenis (Leidraad art. 26 heeft er tientallen): een ruim plafond,
+#: want de deelvragen kiezen er later uit (PR 5).
+MAX_BELEID = 200
+MAX_DELEN = 25
+VOLGORDE = {"a": 0, "b": 1, "c": 2, "d": 3}
+
+
+def _jas_regels() -> list:
+    """De regels voor voorwaarde en tijdsaanduiding uit de annotatiedetectoren (ADR-001): dezelfde kennis, nu als
+    signaal van zoekvraag b. Alleen het patroon, niet de keten."""
+    from .jas_pipeline.detectoren.regels import alle_regels
+
+    return [r for r in alle_regels() if {"Voorwaarde", "Tijdsaanduiding"} & set(r.klassen)]
+
+
+def zoekvraag_van(tekst: str) -> tuple[str, str, str]:
+    """De zoekvraag van een bepaling buiten de grondslag uit haar tekst: (zoekvraag, signaal, zin), of leeg. De
+    sterkste wint, zoals de skill zegt: een gevolg (c) vóór een invulling (d) vóór een voorwaarde of procedure (b);
+    het bereik van een afdeling ("Deze afdeling heeft betrekking op …") is een begrenzing van het recht (a)."""
+    zinnen = _ZIN.split(tekst or "")
+    for zin in zinnen:
+        if REIKWIJDTE.search(zin):
+            return "a", "reikwijdte", zin
+    for zoekvraag, patronen in (("c", RECHTSGEVOLG), ("d", INVULLING), ("b", RECHTSGELDIGHEID)):
+        for zin in zinnen:
+            for naam, patroon in patronen:
+                if patroon.search(zin):
+                    return zoekvraag, naam, zin
+    for zin in zinnen:
+        for regel in _jas_regels():
+            if regel.vind(zin):
+                return "b", regel.id, zin
+    return "", "", ""
+
+
+def q_subdivisies(hoofddivisies: list[str], limit: int) -> str:
+    """De subdivisies met tekst onder deze hoofddivisies van een beleidsregel, op elke diepte."""
+    from .graph.queries import PREFIXES
+
+    waarden = " ".join(f"<{queries._iri_veilig(h)}>" for h in sorted(set(hoofddivisies)))
+    return PREFIXES + f"""SELECT DISTINCT ?hoofd ?sub ?tekst WHERE {{
+  VALUES ?hoofd {{ {waarden} }}
+  ?hoofd bwb:heeftDivisie+ ?sub .
+  ?sub bwb:tekst ?tekst .
+}} ORDER BY ?hoofd ?sub LIMIT {limit + 1}"""
+
+
+_HOOFDDIVISIE = re.compile(r"Circulaire\.divisie([0-9A-Za-z]+)")
+
+
+def _hoofddivisie(iri: str) -> str:
+    """De hoofddivisie (`…:artikel:26`) van een divisie van een beleidsregel, ook van een subdivisie
+    (`…:id:…Circulaire.divisie26%2F…`)."""
+    if ":artikel:" in iri:
+        return iri.split(":artikel:", 1)[0] + ":artikel:" + iri.split(":artikel:", 1)[1].split(":", 1)[0]
+    m = _HOOFDDIVISIE.search(iri)
+    return f"urn:bwb:{bwb_van(iri)}:artikel:{m.group(1)}" if m else ""
+
+
+def pool(graph: GraphPort, *, gebeurtenis: str, regelingen: list[str], buiten: list[str] | None = None
+         ) -> dict[str, Any]:
+    """Zoekvragen a–d vanaf de gebeurtenis, zonder model: per kandidaat `{bron_iri, bwb_id, zoekvraag, signaal,
+    zin, via}`. Bewust nog niet in de bronnenrun: de deelvragen rangschikken erbinnen (PR 5).
+
+    - **a** de grondslag (`grondslag`), en in de omgeving het bereik van een afdeling;
+    - de **omgeving**: de delen van een wet of lagere regeling waarvan de kop de gebeurtenis draagt
+      (`queries.zoek_opbouw`), met hun artikelen (`bepalingen_in_delen`) en per lid de zoekvraag uit de tekst
+      (`zoekvraag_van`: c vóór d vóór b); zonder signaal geen kandidaat;
+    - **d** buiten de wet: de begripsbepalingen van termen in a–c (`bronnen_vinden.definities_in`), en de
+      subdivisies van de hoofddivisies van een beleidsregel die de gebeurtenis in hun kop dragen of naar de
+      grondslag verwijzen (`q_inkomend`).
+
+    De afbakening werkt zoals bij `grondslag`. Een plafond of een haperende graaf maakt `volledig` false; wat er
+    al was, blijft."""
+    from .bronnen_vinden import definities_in, q_inkomend, q_teksten
+    from .deelvraag_zoeken import _soortrang, om_de_beurt
+    from .overzicht import RANG, padsleutel
+
+    woorden = zoektermen(gebeurtenis)
+    bereik = [r for r in dict.fromkeys(regelingen) if r]
+    leeg = {"grondslag": [], "kandidaten": [], "omgeving": [], "volledig": True}
+    if not woorden or not bereik:
+        return leeg
+    stammen = [_stamdeel(w) for w in woorden]
+    buiten = [b for b in buiten or [] if not any(b.startswith(st) or st.startswith(b) for st in stammen)]
+    rang = _soortrang(graph, bereik)
+
+    def beleid(bwb: str) -> bool:
+        return rang.get(bwb, 0) >= RANG["beleidsregel"]
+
+    def valt_buiten(tekst: str) -> bool:
+        return sum(_raakt_woord(b, tekst) for b in buiten) > sum(_raakt_woord(st, tekst) for st in stammen)
+
+    def kop_draagt(label: str) -> bool:
+        return any(st in g.casefold() for g in kop_gebeurtenissen(label) for st in stammen)
+
+    gs = grondslag(graph, gebeurtenis=gebeurtenis, regelingen=bereik, buiten=buiten)
+    kandidaten: dict[str, dict[str, Any]] = {
+        k["bron_iri"]: {"bron_iri": k["bron_iri"], "bwb_id": k["bwb_id"], "zoekvraag": "a", "signaal": k["signaal"],
+                        "zin": k["zin"], "via": "grondslag"} for k in gs}
+    volledig, delen, hoofddivisies, teksten = True, [], set(), []
+    try:
+        for bwb in bereik:
+            for r in _rijen(graph, queries.zoek_opbouw(gebeurtenis, bwb_id=bwb, limit=MAX_DELEN)):
+                if not kop_draagt(r.get("label") or ""):
+                    continue
+                if beleid(bwb):
+                    if (hd := _hoofddivisie(r["node"])):
+                        hoofddivisies.add(hd)
+                else:
+                    delen.append(r["node"])
+        artikelen: list[str] = []
+        if delen:
+            for r in _rijen(graph, queries.bepalingen_in_delen(delen)):
+                if r["bepaling"] not in artikelen:
+                    artikelen.append(r["bepaling"])
+        artikelen.sort(key=padsleutel)
+        if len(artikelen) > MAX_OMGEVING:
+            volledig, artikelen = False, artikelen[:MAX_OMGEVING]
+        per_eenheid: dict[str, list[str]] = {}
+        for i in range(0, len(artikelen), PER_QUERY):
+            for r in _rijen(graph, q_teksten(artikelen[i:i + PER_QUERY])):
+                eenheid = r["deel"].split(":o:", 1)[0]
+                per_eenheid.setdefault(eenheid, []).append(r.get("tekst", ""))
+        # Een artikel met leden telt per lid; het artikel zelf alleen als het geen leden heeft.
+        met_leden = {e.split(":lid:", 1)[0] for e in per_eenheid if ":lid:" in e}
+        for eenheid, delen_tekst in per_eenheid.items():
+            if eenheid in met_leden or eenheid in kandidaten:
+                continue
+            tekst = " ".join(delen_tekst)
+            teksten.append({"deel": eenheid, "tekst": tekst})
+            if valt_buiten(tekst):
+                continue
+            zoekvraag, signaal, zin = zoekvraag_van(tekst)
+            if zoekvraag:
+                kandidaten[eenheid] = {"bron_iri": eenheid, "bwb_id": bwb_van(eenheid), "zoekvraag": zoekvraag,
+                                       "signaal": signaal, "zin": " ".join(zin.split())[:300], "via": "omgeving"}
+        # De beleidsregel die naar de grondslag verwijst (Leidraad art. 26 → Iw art. 26).
+        gs_artikelen = sorted({k["bron_iri"].split(":lid:", 1)[0] for k in gs})
+        if gs_artikelen:
+            for r in _rijen(graph, q_inkomend(gs_artikelen, MAX_BELEID)):
+                if beleid(bwb_van(r["bron"])) and (hd := _hoofddivisie(r["bron"])):
+                    hoofddivisies.add(hd)
+        if hoofddivisies:
+            rijen = _rijen(graph, q_subdivisies(sorted(hoofddivisies), MAX_BELEID))
+            if len(rijen) > MAX_BELEID:
+                volledig, rijen = False, rijen[:MAX_BELEID]
+            for r in rijen:
+                if r["sub"] in kandidaten or valt_buiten(r.get("tekst", "")):
+                    continue
+                kandidaten[r["sub"]] = {"bron_iri": r["sub"], "bwb_id": bwb_van(r["sub"]), "zoekvraag": "d",
+                                        "signaal": "beleidsregel", "zin": " ".join((r.get("tekst") or "").split())[:300],
+                                        "via": "beleidsregel"}
+        # Definities van termen in a–c.
+        abc = [t for t in teksten if kandidaten.get(t["deel"], {}).get("zoekvraag") in ("a", "b", "c")] + \
+              [{"deel": k["bron_iri"], "tekst": k["zin"]} for k in gs]
+        defs, ok = definities_in(graph, abc, [b for b in bereik if not beleid(b)])
+        volledig &= ok
+        for d in defs:
+            if d["node"] not in kandidaten:
+                kandidaten[d["node"]] = {"bron_iri": d["node"], "bwb_id": bwb_van(d["node"]), "zoekvraag": "d",
+                                         "signaal": f"definitie van “{d['begrip']}”", "zin": "", "via": "definitie"}
+    except Exception:  # noqa: BLE001 – wat er al is blijft; de meting zegt dat het onvolledig is
+        logger.warning("zoekvragen-pool onvolledig", extra={"categorie": "technisch"}, exc_info=True)
+        volledig = False
+    per = sorted(kandidaten.values(), key=lambda k: (VOLGORDE[k["zoekvraag"]], padsleutel(k["bron_iri"])))
+    uit = [k for z in "abcd" for k in om_de_beurt([k for k in per if k["zoekvraag"] == z], rang, bereik)]
+    return {"grondslag": gs, "kandidaten": uit, "omgeving": delen + sorted(hoofddivisies), "volledig": volledig}
