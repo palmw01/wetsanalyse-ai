@@ -715,6 +715,12 @@ vraag om begrippen is sinds F3c de taak `voorstellen` van de begrippen-agent (su
 
 ### Bronnen vinden met Lex (`agent/bronnen_vinden.py`, `agent/bronnen_run.py`, fase A)
 
+Vier modules, elk één taak (gesplitst 4 nov 2026, gedrag ongewijzigd – de eval was byte-gelijk):
+`bronnen_vinden` (de graafmethoden, `Verzameling`, `vind`), `deelvraag_zoeken` (`kandidatenpool` en de
+rangschikking `bepaling_opties`, gedeeld met de intake), `zoektermen` (termen, stammen, samenstellingen,
+`uitsluitstammen`, `buiten_uit_afbakening`) en `bepaling_namen` (`_benoem`, `plek_uit_iri`,
+`bepaling_in_graaf`, `bepalingen_uit_tekst`).
+
 Vanaf de selectie van een werkgebied (kern = rol *analyseren*) zoekt Lex bepalingen die erbij kunnen
 horen; de api bewaart de kandidaten en de besluiten (`api/app/bronnen_run_store.py`).
 
@@ -861,7 +867,7 @@ werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en
   werkgebied valt, noemt de toelichting. Eigen tekst bij de regelingen is een nieuwe zoekopdracht.
 - **Daarna per deelvraag één kaartje met bepalingen** (F3f; `intake["deel"]`, `kaartsleutel`
   `"bepalingen:<n>"` voor voorstellen, meldingen en voorbereiding; zonder deelvragen één kaartje bij de
-  analysevraag). De opties komen zonder model uit `bronnen_vinden.bepaling_opties` – dezelfde functie
+  analysevraag). De opties komen zonder model uit `deelvraag_zoeken.bepaling_opties` – dezelfde functie
   als de deelvragen-agent – binnen de gekozen regelingen, op lid-niveau, hoogstens `MAX_BEPALINGEN`.
   Wat meer raakt aan wat erbuiten valt dan aan de deelvraag, valt niet stil weg: onderaan, met "valt
   mogelijk buiten de afbakening", nooit aangevinkt (fix 1). De keuze staat onder de tekst van de
@@ -873,9 +879,9 @@ werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en
 - **Alleen een gekozen bepaling wordt een bronselectie** (rol *analyseren*, bereik *onderliggend*),
   gekoppeld aan de deelvragen op wier kaartje ze gekozen werd (één bron voor meer deelvragen). **Een getypte
   bepaling is ook een keuze** (spoor L): de node ontleedt de tekst vóór `verwerk` (`_eigen_bepalingen` →
-  `bronselectie.bepalingen_uit_tekst`, dezelfde regels als spoor J: geknipt vóór elk "artikel", per stuk de
+  `bepaling_namen.bepalingen_uit_tekst`, dezelfde regels als spoor J: geknipt vóór elk "artikel", per stuk de
   regeling die het noemt, anders de enige van de tekst of van de intake; Awb-nummers als 4:86) en toetst elke
-  bepaling in de graaf (`bronnen_vinden.bepaling_in_graaf`, één lichte query). Gevonden: `eigen` op het antwoord.
+  bepaling in de graaf (`bepaling_namen.bepaling_in_graaf`, één lichte query). Gevonden: `eigen` op het antwoord.
   Niet te bepalen, niet gevonden ("staat niet in AWR; wel in Awb – bedoel je die?") of een haperende graaf: het
   kaartje blijft staan met de vraag en de getypte tekst (`concept`) – nooit stil weg. `eigen` komt nooit van de
   client. Lange velden houden hun alinea's (`_met_alineas`), en een getypte regeling naast aangevinkte is een
