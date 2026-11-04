@@ -891,12 +891,20 @@ export type ExportFormaat = "pdf" | "csv" | "json" | "trig"
  *  bestandsnaam overal van de server komt (`Content-Disposition`) en de link overal in het document
  *  hangt voor de klik (oudere Firefox- en Safari-versies negeren een klik op een losse `<a>`). */
 export async function downloadAntwoord(res: Response, terugvalNaam: string): Promise<void> {
-  const blob = await res.blob();
+  downloadBlob(await res.blob(), bestandsnaamUit(res.headers.get("content-disposition")) ?? terugvalNaam);
+}
+
+/** Tekst die de browser zelf maakt (een artefact als Markdown) als bestand: hetzelfde downloadpatroon. */
+export function downloadTekst(tekst: string, naam: string, type = "text/plain"): void {
+  downloadBlob(new Blob([tekst], { type: `${type};charset=utf-8` }), naam);
+}
+
+function downloadBlob(blob: Blob, naam: string): void {
   const url = URL.createObjectURL(blob);
   try {
     const a = document.createElement("a");
     a.href = url;
-    a.download = bestandsnaamUit(res.headers.get("content-disposition")) ?? terugvalNaam;
+    a.download = naam;
     document.body.appendChild(a);
     a.click();
     a.remove();

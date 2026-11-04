@@ -4,15 +4,21 @@ import { MENU_RIJ } from "@/components/ui/Menu";
 import { useState } from "react";
 
 import { Popover } from "@/components/ui/Popover";
-import { foutTekst, type ExportFormaat } from "@/lib/api";
+import { downloadTekst, foutTekst, type ExportFormaat } from "@/lib/api";
+import { bestandsnaam } from "@/lib/artefactMarkdown";
 
 interface Props {
   onFout: (melding: string) => void;
   /** De download zelf. Zonder (de rondleiding, die geen api heeft) sluit het keuzepaneel zonder
    *  bestand. */
   onDownload?: (formaat: ExportFormaat) => Promise<void>;
-  /** Welke vormen er te kiezen zijn; standaard die van een annotatie. */
+  /** Welke vormen er te kiezen zijn; standaard die van een annotatie. Leeg = alleen Markdown. */
   formaten?: { formaat: ExportFormaat; label: string; uitleg: string }[];
+  /** Het artefact als Markdown (`lib/artefactMarkdown.ts`): bovenaan *Kopieer als Markdown* en *Download als
+   *  Markdown* – één knop voor kopiëren en exporteren bij elke soort (4 nov 2026). Mag ophalen (async). */
+  markdown?: () => Promise<string> | string;
+  /** De titel van het artefact: de naam van het Markdown-bestand. */
+  titel?: string;
 }
 
 const FORMATEN: { formaat: ExportFormaat; label: string; uitleg: string }[] = [
@@ -27,9 +33,30 @@ const FORMATEN: { formaat: ExportFormaat; label: string; uitleg: string }[] = [
  *
  *  Het paneel sluit na een geslaagde download doordat de Popover met een nieuwe `key` remount;
  *  de Popover geeft zijn eigen sluiter niet aan zijn kinderen door. */
-export function ExportKnop({ onFout, onDownload, formaten = FORMATEN }: Props) {
-  const [bezig, setBezig] = useState<ExportFormaat | null>(null);
+export function ExportKnop({ onFout, onDownload, formaten = FORMATEN, markdown, titel = "artefact" }: Props) {
+  const [bezig, setBezig] = useState<ExportFormaat | "kopie" | "md" | null>(null);
   const [sleutel, setSleutel] = useState(0);
+  const [gekopieerd, setGekopieerd] = useState(false);
+
+  async function alsMarkdown(hoe: "kopie" | "md") {
+    if (!markdown) return;
+    setBezig(hoe);
+    try {
+      const tekst = await markdown();
+      if (hoe === "kopie") {
+        await navigator.clipboard.writeText(tekst);
+        setGekopieerd(true);
+        window.setTimeout(() => setGekopieerd(false), 1500);
+      } else {
+        downloadTekst(tekst, bestandsnaam(titel), "text/markdown");
+      }
+      setSleutel((k) => k + 1);
+    } catch (e) {
+      onFout(hoe === "kopie" ? "Kopiëren lukte niet (het klembord is hier niet beschikbaar)." : foutTekst(e, "Exporteren is niet gelukt."));
+    } finally {
+      setBezig(null);
+    }
+  }
 
   async function download(formaat: ExportFormaat) {
     setBezig(formaat);
@@ -59,12 +86,22 @@ export function ExportKnop({ onFout, onDownload, formaten = FORMATEN }: Props) {
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M12 3v12M7 11l5 5 5-5M4 21h16" />
           </svg>
-          {bezig ? "Bezig…" : "Exporteren"}
+          {gekopieerd ? "Gekopieerd" : bezig ? "Bezig…" : "Exporteren"}
         </button>
       )}
     >
       <ul className="space-y-0.5">
-        {formaten.map((f) => (
+        {markdown && ([["kopie", "Kopieer als Markdown", "om in een eigen document te plakken"],
+          ["md", "Download als Markdown", "hetzelfde, als bestand"]] as const).map(([hoe, label, uitleg]) => (
+          <li key={hoe}>
+            <button type="button" disabled={bezig !== null} onClick={() => void alsMarkdown(hoe)} data-markdown={hoe}
+              className={`${MENU_RIJ} flex-col !items-start !gap-0.5`}>
+              <span className="text-sm font-medium text-ink">{bezig === hoe ? `${label} – bezig…` : label}</span>
+              <span className="text-xs text-muted">{uitleg}</span>
+            </button>
+          </li>
+        ))}
+        {onDownload && formaten.map((f) => (
           <li key={f.formaat}>
             <button
               type="button"
