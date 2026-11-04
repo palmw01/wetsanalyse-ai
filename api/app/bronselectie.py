@@ -195,6 +195,10 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
             redenen.append("De vragen bij deze deelvraag zijn nog niet doorlopen.")
         if voortgang["open_punten"]:
             redenen.append("Er staan nog onderzoekspunten open.")
+        # Dekking (skill, deelvragen en bronnen): een deelvraag zonder bron om te analyseren is nog open. Voorlopig
+        # afronden kan; als beoordeeld vastleggen niet, anders zegt de status meer dan er ligt.
+        if not bronnen:
+            redenen.append("Er is nog geen bron opgenomen bij deze deelvraag.")
         uit.append({"id": did, "nr": nr, "vraag": vraag["vraag"], **voortgang, "opnieuw_bekijken": opnieuw,
                     "klaar": voortgang["status"] in KLAAR and not opnieuw,
                     "bronnen": bronnen, "kandidaten": lijst, "telling": telling, "_scope_nu": stand_nu,

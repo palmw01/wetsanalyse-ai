@@ -296,3 +296,30 @@ def test_zonder_gekozen_regelingen_de_regelingen_van_de_gebeurtenis():
     assert zv.regelingen_van_gebeurtenis(Omgeving(), "kwijtschelding") == [UR, LR]
     assert zv.regelingen_van_gebeurtenis(Omgeving(faal=True), "kwijtschelding") == []
     assert zv.pool(Omgeving(), gebeurtenis="kwijtschelding", regelingen=[])["regelingen"] == [UR, LR]
+
+
+def test_brugtermen_uit_de_zin_die_het_woord_omschrijft():
+    dossier = {"context": "Wij werken aan de inning. Een rekeningafspraak is dus het vastleggen van een bankrekening "
+                          "waarop wordt uitbetaald aan een derde.",
+               "praktijkvoorbeeld": "Een burger met kinderopvangtoeslag."}
+    assert zv.brugtermen(dossier, "rekeningafspraak") == ["vastleggen", "bankrekening", "uitbetaald", "derde"]
+    assert zv.brugtermen(dossier, "kwijtschelding") == []                     # het dossier omschrijft het niet
+
+
+def test_de_woordenkloof_en_het_voorwerp_in_de_graaf():
+    """Een eigen woord dat in geen regeling staat, en een gekozen gebeurtenis die in geen kop staat. Een kort of
+    algemeen woord toetst Lex niet; een haperende graaf zegt niets (geen onwaarheid)."""
+    assert zv.ontbrekende_woorden(Omgeving(), ["rekeningafspraak", "kwijtschelding", "auto"], [UR]) == ["rekeningafspraak"]
+    assert zv.ontbrekende_woorden(Omgeving(faal=True), ["rekeningafspraak"], [UR]) == []
+    assert zv.is_voorwerp(Omgeving(), "bankrekening", [UR]) is True
+    assert zv.is_voorwerp(Omgeving(), "kwijtschelding", [UR]) is False
+    assert zv.is_voorwerp(Omgeving(faal=True), "bankrekening", [UR]) is False
+
+
+def test_bij_een_voorwerp_gaan_de_handelingen_erboven_voor():
+    """De gekozen gebeurtenis "belastingschuldige" (een voorwerp, geen handeling) staat in geen kop; de bepalingen
+    waarin het woord staat, vallen onder koppen met "kwijtschelding": die handeling komt eerst, met het voorwerp erbij."""
+    opties = zv.gebeurtenis_opties(Wereld(), regelingen=[IW, UR], dossier={"naam": "Schuldenaar",
+                                                                          "gebeurtenis": "belastingschuldige"})
+    assert opties and opties[0]["gebeurtenis"] == "kwijtschelding"
+    assert opties[0]["voorwerp"] == "belastingschuldige" and opties[0]["onder_voorwerp"] >= 2

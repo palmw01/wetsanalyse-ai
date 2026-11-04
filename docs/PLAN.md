@@ -951,8 +951,11 @@ van de gebruiker op 20 okt 2026).
     zonder gekozen regelingen de regelingen van de gebeurtenis. Recall nodig per deelvraag op de ontwikkelsets
     0,10/0,22/0,53/0,36 → 0,29/0,44/0,40/0,46. Aanleiding: werkgebied Rekeningafspraken (acceptatie), dat in de hele
     graaf zocht op woorden als "voorwaarden" en "rechten".
-  - **Open**: PR 6 de woordenkloof benoemen en overbruggen (een voorwerp als gebeurtenis, een begrip uit de
-    uitvoering), PR 7 meer gebeurtenissen per werkgebied en het label in het paneel, PR 8 deelvragen langs a–d, PR 9
+  - PR 6: de woordenkloof benoemd en overbrugd. Een eigen woord dat in geen regeling staat noemt Lex, met de
+    brugtermen uit de zin van het dossier die het omschrijft; die zoeken in de pool in zijn plaats (kwijtschelding
+    0,29 → 0,33). Een voorwerp als gebeurtenis ("bankrekening") laat het kaartje terugkomen, met de handelingen
+    erboven (*Uitbetaling*). Een deelvraag zonder bron kan niet meer als beoordeeld worden vastgelegd.
+  - **Open**: PR 7 meer gebeurtenissen per werkgebied en het label in het paneel, PR 8 deelvragen langs a–d, PR 9
     de blinde meting op `verrekening-concept`.
 - **Historische toestanden** (open keuze, 3 nov 2026): de graaf heeft per regeling alleen de nieuwste toestand,
   dus de wettekst is altijd de actuele. De peildatum is standaard de aanmaakdatum en de werkplek waarschuwt als de

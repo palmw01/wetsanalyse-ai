@@ -31,8 +31,12 @@ from .zoektermen import _stamdeel, zoektermen
 
 logger = logging.getLogger(__name__)
 
-#: De dossiervelden die de gebeurtenis kunnen aanwijzen, de naam voorop: die draagt haar vaak letterlijk.
-DOSSIERVELDEN = ("naam", "analysevraag", "aanleiding", "doel", "context", "praktijkvoorbeeld")
+#: De dossiervelden die de gebeurtenis kunnen aanwijzen, met hun gewicht: de gebeurtenis die de analist al koos (ook
+#: als het een voorwerp is, "bankrekening") het zwaarst, dan naam en analysevraag, het praktijkvoorbeeld het lichtst –
+#: de woorden van een voorbeeld ("kinderopvang", "CJIB", "bewindvoerder") zeggen weinig over welke regel het is.
+VELDGEWICHT = {"gebeurtenis": 3.0, "naam": 2.0, "analysevraag": 2.0, "aanleiding": 1.0, "doel": 1.0, "context": 1.0,
+               "praktijkvoorbeeld": 0.5}
+DOSSIERVELDEN = tuple(VELDGEWICHT)
 MAX_TERMEN = 16
 MAX_TREFFERS = 50
 MAX_OPTIES = 5
@@ -117,7 +121,13 @@ def gebeurtenis_opties(graph: GraphPort, *, regelingen: list[str], dossier: dict
     dan op het gewicht van de dossiertermen onder hun koppen. Elke optie draagt haar koppen als bewijs. Leeg als
     er geen regeling of geen dossiertekst is, of als de graaf hapert (dan typt de analist haar zelf)."""
     tekst = _dossiertekst(dossier)
-    termen = zoektermen(tekst)[:MAX_TERMEN]
+    # Elk woord met het gewicht van het zwaarste veld waarin het staat; de zwaarste woorden eerst, tot `MAX_TERMEN`.
+    weging: dict[str, float] = {}
+    for veld, g in VELDGEWICHT.items():
+        for w in zoektermen(str(dossier.get(veld) or "")):
+            if w not in METHODEWOORDEN and w not in LEGE_WOORDEN:
+                weging[w] = max(weging.get(w, 0.0), g)
+    termen = sorted(weging, key=lambda w: -weging[w])[:MAX_TERMEN]
     bereik = [r for r in dict.fromkeys(regelingen) if r]
     if not termen or not bereik:
         return []
@@ -132,6 +142,7 @@ def gebeurtenis_opties(graph: GraphPort, *, regelingen: list[str], dossier: dict
                     if (b := _bepaling_van(r["node"], r.get("soort", ""))) and queries.is_bron_iri(b):
                         treffers.setdefault(b, set()).add(term)
         koppen: dict[str, tuple[str, set[str]]] = {}  # deel → (label, de termen eronder)
+        eronder: dict[str, set[str]] = {}             # deel → de bepalingen met een treffer eronder
         bepalingen = sorted(treffers)
         for i in range(0, len(bepalingen), PER_QUERY):
             for r in _rijen(graph, queries.plaats_in_opbouw(bepalingen[i:i + PER_QUERY])):
@@ -139,6 +150,7 @@ def gebeurtenis_opties(graph: GraphPort, *, regelingen: list[str], dossier: dict
                     continue
                 label, onder = koppen.setdefault(r["deel"], (r["label"], set()))
                 onder |= treffers.get(r["bepaling"], set())
+                eronder.setdefault(r["deel"], set()).add(r["bepaling"])
     except Exception:  # noqa: BLE001 – zonder voorstel typt de analist de gebeurtenis zelf
         logger.warning("gebeurtenissen voorstellen faalde", extra={"categorie": "technisch"}, exc_info=True)
         return []
@@ -149,7 +161,7 @@ def gebeurtenis_opties(graph: GraphPort, *, regelingen: list[str], dossier: dict
     namen = _regelingnamen(graph, [bwb_van(d) for d in koppen])
     opties: dict[str, dict[str, Any]] = {}
     for deel, (label, onder) in koppen.items():
-        gewicht = sum(math.log(n / df[t]) for t in onder if df[t])
+        gewicht = sum(math.log((n + 1) / df[t]) * weging[t] for t in onder if df[t])
         for g in kop_gebeurtenissen(label):
             o = opties.setdefault(_sleutel(g), {"gebeurtenis": g, "score": 0.0, "koppen": [], "termen": set()})
             if len(g) < len(o["gebeurtenis"]):
@@ -159,10 +171,25 @@ def gebeurtenis_opties(graph: GraphPort, *, regelingen: list[str], dossier: dict
             o["koppen"].append((gewicht, f"{label} ({namen.get(bwb_van(deel), bwb_van(deel))})"))
     for o in opties.values():
         o["genoemd"] = genoemd_in(o["gebeurtenis"], tekst)
-    volgorde = sorted(opties.values(), key=lambda o: (not o["genoemd"], -o["score"], o["gebeurtenis"]))
+    # Een voorwerp als gebeurtenis ("bankrekening"): staat het woord in geen kop, dan gaan de handelingen voor waaronder
+    # de bepalingen met dat woord vallen, op hoeveel van die bepalingen eronder staan ("Uitbetaling aan
+    # belastingschuldige"). De wet ordent zich naar handelingen, niet naar voorwerpen.
+    gekozen = " ".join(str(dossier.get("gebeurtenis") or "").split())
+    rond: dict[str, int] = {}
+    if gekozen and _sleutel(gekozen) not in opties and (gw := zoektermen(gekozen)):
+        for deel, (label, onder) in koppen.items():
+            if gw[0] in onder:
+                n_voorwerp = sum(1 for b in eronder.get(deel, ()) if gw[0] in treffers.get(b, ()))
+                for g in kop_gebeurtenissen(label):
+                    rond[_sleutel(g)] = rond.get(_sleutel(g), 0) + n_voorwerp
+    for sleutel, o in opties.items():
+        o["rond_voorwerp"] = rond.get(sleutel, 0)
+    volgorde = sorted(opties.values(), key=lambda o: (not o["genoemd"], -o["rond_voorwerp"], -o["score"], o["gebeurtenis"]))
     return [{"gebeurtenis": o["gebeurtenis"], "genoemd": o["genoemd"], "score": round(o["score"], 3),
              "koppen": [k for _, k in sorted(o["koppen"], key=lambda x: -x[0])][:3],
+             **({"voorwerp": gekozen, "onder_voorwerp": o["rond_voorwerp"]} if o["rond_voorwerp"] else {}),
              "termen": sorted(o["termen"])} for o in volgorde if o["score"] > 0 or o["genoemd"]][:limit]
+
 
 
 #: Een stam die zo specifiek is dat een vervoeging de gebeurtenis noemt ("uitbetaald" → uitbetaling). Een korte
@@ -171,19 +198,20 @@ MIN_STAM_GENOEMD = 7
 
 
 def genoemd_in(gebeurtenis: str, tekst: str) -> bool:
-    """Of het dossier de gebeurtenis zelf noemt: haar eerste inhoudswoord als woord of begin van een woord
-    ("Kwijtschelding voor particulieren"), of een vervoeging met dezelfde specifieke stam ("waarop wordt
-    uitbetaald" noemt de uitbetaling)."""
-    woorden = zoektermen(gebeurtenis)
-    if not woorden:
-        return False
-    if re.search(rf"\b{re.escape(woorden[0])}", tekst, re.I):
+    """Of het dossier de gebeurtenis zelf noemt: elk van haar inhoudswoorden (hoogstens twee) als woord of begin van
+    een woord ("Kwijtschelding voor particulieren"), of als vervoeging met dezelfde specifieke stam ("waarop wordt
+    uitbetaald" noemt de uitbetaling). Bij een woordgroep moeten ze er allemaal staan: "uitvoeren" noemt
+    "uitvoering overheidsvordering" niet."""
+    woorden = zoektermen(gebeurtenis)[:2]
+    return bool(woorden) and all(_woord_genoemd(w, tekst) for w in woorden)
+
+
+def _woord_genoemd(woord: str, tekst: str) -> bool:
+    if re.search(rf"\b{re.escape(woord)}", tekst, re.I):
         return True
     # De eerste letters van een lange stam: de spelling wisselt tussen open en gesloten lettergreep ("uitbetal-ing",
-    # "uitbetaa-ld"), dus de hele stam vergelijken mist de vervoeging.
-    # Het begin groeit mee met de stam (op twee letters na): bij een samenstelling ("belastingrente") is een kort
-    # begin ("belasti") ook het begin van een ander woord ("belastingschuldige").
-    stam = queries._stam(woorden[0])
+    # "uitbetaa-ld"), en het begin groeit mee met de stam, zodat "belasti" de belastingrente niet noemt.
+    stam = queries._stam(woord)
     begin = stam[:max(MIN_STAM_GENOEMD, len(stam) - 2)]
     return len(stam) >= MIN_STAM_GENOEMD and re.search(rf"\b{re.escape(begin)}", tekst, re.I) is not None
 
@@ -545,7 +573,8 @@ METHODEWOORDEN = {"voorwaarden", "voorwaarde", "eisen", "eis", "uitzonderingen",
                   "beëindigen", "maken", "doen", "gebeurt", "geldt", "gelden", "welk", "iemand", "haar", "hun"}
 #: Woorden zonder onderwerp die in een deelvraag staan ("omdat", "laten", "telt … mee"): ze raakten in de pool willekeurige
 #: bepalingen. Alleen voor de rangschikking binnen de pool; het zoeken per deelvraag houdt `zoektermen` ongewijzigd.
-LEGE_WOORDEN = {"omdat", "laten", "genoeg", "telt", "tellen", "mee", "gaat", "gaan", "vraagt", "vragen", "intussen",
+LEGE_WOORDEN = {"dus", "tussen", "waarop", "waarin", "waarbij", "waarmee", "daarom", "echter", "bijvoorbeeld",
+                "omdat", "laten", "genoeg", "telt", "tellen", "mee", "gaat", "gaan", "vraagt", "vragen", "intussen",
                 "door", "waarom", "tijdens", "alleen", "ook", "nog", "zelf", "andere", "bepaalde", "eerst", "daarna",
                 "hierbij", "daarvan", "erbij", "worden", "wordt", "zijn", "hebben", "heeft", "kunnen", "moet"}
 #: Vaste plaatsen voor het zoeken op de woorden van de deelvraag (`bepaling_opties`) naast de pool. Gemeten op de vier
@@ -567,18 +596,43 @@ def termen_van_deelvraag(vraag: str) -> list[str]:
             if w not in METHODEWOORDEN and w not in LEGE_WOORDEN]
 
 
+#: De dossiervelden waarin het dossier een eigen woord kan omschrijven ("Een rekeningafspraak is … een bankrekening …
+#: waarop wordt uitbetaald").
+OMSCHRIJVENDE_VELDEN = ("analysevraag", "context", "aanleiding", "doel", "praktijkvoorbeeld")
+_ZINSGRENS = re.compile(r"(?<=[.!?;])\s+|\n+")
+
+
+def brugtermen(dossier: dict[str, Any], woord: str) -> list[str]:
+    """De woorden die het dossier naast een eigen woord zet: de inhoudswoorden van de zinnen die het woord noemen,
+    zonder het woord zelf en zonder de woorden van een vraagvorm. "Rekeningafspraak" staat in geen regeling (een begrip
+    uit de uitvoering); de context omschrijft het met "bankrekening", "uitbetaald" en "derde", en die staan er wel in.
+    Zonder model: wat de analist zelf schreef."""
+    stam = _stamdeel(woord)
+    uit: list[str] = []
+    for veld in OMSCHRIJVENDE_VELDEN:
+        for zin in _ZINSGRENS.split(str(dossier.get(veld) or "")):
+            if not _raakt_woord(stam, zin):
+                continue
+            for w in zoektermen(zin):
+                if _stamdeel(w) != stam and w not in METHODEWOORDEN and w not in LEGE_WOORDEN and w not in uit:
+                    uit.append(w)
+    return uit
+
+
 def opties_bij_deelvraag(kandidaten: list[dict[str, Any]], vraag: str, *, limit: int = 8,
-                         gebeurtenis: str = "") -> list[dict[str, Any]]:
+                         gebeurtenis: str = "", dossier: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     """De kandidaten uit de pool die bij een deelvraag horen, zonder graafverkeer.
 
     Een inhoudswoord weegt naar hoe zeldzaam het is in de pool (idf, log((N+1)/(df+1))): "verzoek" en
     "belastingschuld" staan in bijna elke kandidaat en zeggen niets, "spaargeld" en "afgewezen" wel. Past de zoekvraag
     van een kandidaat bij de vraagvorm, dan telt dat als het sterkste woord van de deelvraag: zo komt het beroep (c)
     bij "wat kan iemand doen als het verzoek wordt afgewezen?", ook zonder de woorden van de vraag. Een kandidaat
-    zonder woord en zonder passende zoekvraag doet niet mee. Bij gelijke stand de volgorde van de pool (a, b, c, d en
-    daarbinnen de documentvolgorde), en daarvóór: noemt de kandidaat de gebeurtenis zelf ("het bedrag van de
-    kwijtschelding"), dan gaat hij voor op een die dat niet doet (in een kop die meer gebeurtenissen bundelt, zoals
-    "Uitstel van betaling, kwijtschelding en verjaring"). Elke optie draagt `geraakt` en `past`."""
+    zonder woord en zonder passende zoekvraag doet niet mee. Bij gelijke stand gaat wie de gebeurtenis zelf noemt voor
+    ("het bedrag van de kwijtschelding", in een kop die meer gebeurtenissen bundelt), dan de volgorde van de pool.
+
+    Staat een woord van de deelvraag in geen enkele kandidaat ("Wat is een rekeningafspraak?"), dan zoeken de woorden
+    die het dossier ernaast zet (`brugtermen`) in zijn plaats, samen zo zwaar als één woord. Elke optie draagt
+    `geraakt`, `past` en, als die er zijn, `brug` (brugterm → het woord waarvoor hij staat)."""
     import math
 
     from .zoektermen import _raakt
@@ -586,17 +640,79 @@ def opties_bij_deelvraag(kandidaten: list[dict[str, Any]], vraag: str, *, limit:
     termen = termen_van_deelvraag(vraag)
     zoekvraag = zoekvraag_van_deelvraag(vraag)
     stammen = [_stamdeel(w) for w in zoektermen(gebeurtenis)]
-    geraakt = [_raakt(termen, f"{k.get('tekst') or ''} {k.get('zin') or ''}", True) for k in kandidaten]
+    teksten = [f"{k.get('tekst') or ''} {k.get('zin') or ''}" for k in kandidaten]
+
+    def df_van(woorden: list[str]) -> dict[str, int]:
+        return {t: sum(bool(_raakt([t], tekst, True)) for tekst in teksten) for t in woorden}
+
+    df = df_van(termen)
+    brug: dict[str, str] = {}
+    for t in [t for t in termen if not df[t]]:
+        for b in brugtermen(dossier or {}, t):
+            if b not in termen and b not in brug:
+                brug[b] = t
+    df.update(df_van(list(brug)))
+    termen = termen + [b for b in brug if df[b]]
     n = len(kandidaten)
-    df = {t: sum(t in g for g in geraakt) for t in termen}
-    gewicht = {t: math.log((n + 1) / (df[t] + 1)) for t in termen if df[t]}
+    per_woord = {t: sum(1 for b in brug if brug[b] == t and df[b]) for t in set(brug.values())}
+    gewicht = {t: math.log((n + 1) / (df[t] + 1)) / (per_woord[brug[t]] if t in brug else 1) for t in termen if df[t]}
     bonus = max(gewicht.values(), default=1.0) or 1.0
     gescoord = []
-    for i, (k, g) in enumerate(zip(kandidaten, geraakt)):
+    for i, (k, tekst) in enumerate(zip(kandidaten, teksten)):
+        g = _raakt(termen, tekst, True)
         past = bool(zoekvraag) and k["zoekvraag"] == zoekvraag
+        if not (g or past):
+            continue
         score = sum(gewicht.get(t, 0.0) for t in g) + (bonus if past else 0.0)
-        if g or past:
-            noemt = bool(stammen) and all(_raakt_woord(st, f"{k.get('tekst') or ''} {k.get('zin') or ''}")
-                                          for st in stammen)
-            gescoord.append((round(score, 9), not noemt, i, {**k, "geraakt": g, "past": past}))
+        noemt = bool(stammen) and all(_raakt_woord(st, tekst) for st in stammen)
+        extra = {"brug": {b: brug[b] for b in g if b in brug}} if any(b in brug for b in g) else {}
+        gescoord.append((round(score, 9), not noemt, i, {**k, "geraakt": g, "past": past, **extra}))
     return [k for *_, k in sorted(gescoord, key=lambda x: (-x[0], x[1], x[2]))][:limit]
+
+
+# --- de woordenkloof benoemen (PR 6) ----------------------------------------------------------------------
+
+#: Hoeveel eigen woorden van het werkgebied Lex toetst, en hoe lang een woord minstens is: een kort woord is te
+#: algemeen om iets over de wet te zeggen.
+MAX_KLOOFWOORDEN = 4
+MIN_KLOOFWOORD = 8
+
+
+def ontbrekende_woorden(graph: GraphPort, woorden: list[str], regelingen: list[str]) -> list[str]:
+    """De specifieke woorden van het werkgebied die in geen van de regelingen staan (zonder regelingen: in de hele
+    graaf), met één index-query van één treffer per regeling. "Rekeningafspraak" staat er niet in: een begrip uit de
+    uitvoering. Leeg als de graaf hapert – dan zegt Lex niets in plaats van iets onwaars."""
+    kandidaten = [w for w in dict.fromkeys(woorden)
+                  if len(w) >= MIN_KLOOFWOORD and w not in METHODEWOORDEN and w not in LEGE_WOORDEN][:MAX_KLOOFWOORDEN]
+    bereik = [r for r in dict.fromkeys(regelingen) if r] or [None]
+    uit = []
+    try:
+        for w in kandidaten:
+            lucene = "tekst:" + queries._lucene_term(w)
+            if not any(_rijen(graph, queries.fts(lucene, limit=1, bwb_id=b)) for b in bereik):
+                uit.append(w)
+    except Exception:  # noqa: BLE001
+        logger.warning("woordenkloof niet getoetst", extra={"categorie": "technisch"}, exc_info=True)
+        return []
+    return uit
+
+
+def is_voorwerp(graph: GraphPort, gebeurtenis: str, regelingen: list[str]) -> bool:
+    """Of de gekozen gebeurtenis in geen kop van de regelingen staat ("bankrekening"): dan is het vermoedelijk een
+    voorwerp, geen handeling, en vindt de keten a–d niets. Bij een haperende graaf: nee (niet opnieuw vragen)."""
+    woorden = zoektermen(gebeurtenis)
+    if not woorden:
+        return False
+    stammen = [_stamdeel(w) for w in woorden]
+    bereik = [r for r in dict.fromkeys(regelingen) if r]
+    try:
+        if not bereik:
+            return not regelingen_van_gebeurtenis(graph, gebeurtenis)
+        for bwb in bereik:
+            for r in _rijen(graph, queries.zoek_opbouw(gebeurtenis, bwb_id=bwb, limit=MAX_DELEN)):
+                if any(st in g.casefold() for g in kop_gebeurtenissen(r.get("label") or "") for st in stammen):
+                    return False
+    except Exception:  # noqa: BLE001
+        logger.warning("voorwerp niet getoetst", extra={"categorie": "technisch"}, exc_info=True)
+        return False
+    return True

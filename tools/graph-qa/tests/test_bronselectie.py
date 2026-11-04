@@ -495,9 +495,9 @@ def _stel_voor(gevraagd):
     return stel_voor
 
 
-def _klik_g(api, kaart, *keuzes, actie="antwoord", tekst="", stel_voor=None):
+def _klik_g(api, kaart, *keuzes, actie="antwoord", tekst="", stel_voor=None, toets=None):
     uit = _run(bs.verwerk(api, {"intake_id": kaart["intake_id"], "stap": kaart["stap"], "deelvraag_id": kaart["deelvraag_id"],
-                                "actie": actie, "keuzes": list(keuzes), "tekst": tekst}, api.zoek, None, stel_voor))
+                                "actie": actie, "keuzes": list(keuzes), "tekst": tekst}, api.zoek, None, stel_voor, toets))
     if uit.get("kaart"):
         _geldig(uit["kaart"])
     return uit
@@ -553,3 +553,54 @@ def test_de_gebeurtenis_wordt_niet_steeds_gevraagd_wel_als_de_analist_erom_vraag
 
     api = GebeurtenisApi(kandidaten=_kandidaten())
     assert _run(bs.start(api, WID, api.zoek, stel_voor=lambda wg, r: []))["kaart"]["stap"] == "bs_kies"
+
+
+# --- de woordenkloof benoemen (PR 6) -------------------------------------------------------------------
+
+def _toets(voorwerp=False, ontbrekend=(), brug=None):
+    gezien = []
+
+    def toets(werkgebied, regelingen, woorden, met_voorwerp):
+        gezien.append((tuple(woorden), met_voorwerp))
+        return {"voorwerp": voorwerp and met_voorwerp, "ontbrekend": [w for w in ontbrekend if w in woorden],
+                "brug": brug or {}}
+    toets.gezien = gezien
+    return toets
+
+
+def test_een_voorwerp_als_gebeurtenis_vraagt_om_de_handeling_ook_na_het_begin():
+    """"Bankrekening" staat in geen kop: de keten a–d vindt vanaf een voorwerp niets. Het kaartje komt terug, ook als de
+    analist al begon, met de handelingen waaronder de bepalingen met het woord vallen (Rekeningafspraken, 4 nov 2026)."""
+    api = GebeurtenisApi(gebeurtenis="bankrekening", kandidaten=_kandidaten())
+    _run(api.zet_bronselectie_status(WID, "d1", {"actie": "openen"}))
+
+    def stel_voor(wg, regelingen):
+        return [{"gebeurtenis": "uitbetaling", "koppen": ["Hoofdstuk IVA – Uitbetaling aan belastingschuldige"],
+                 "voorwerp": "bankrekening", "onder_voorwerp": 6}]
+    uit = _run(bs.start(api, WID, api.zoek, stel_voor=stel_voor, toets=_toets(voorwerp=True)))
+    kaart = _geldig(uit["kaart"])
+    assert kaart["stap"] == "bs_gebeurtenis"
+    assert kaart["toelichting"].startswith("‘bankrekening’ staat in geen kop van de regelingen")
+    assert "vallen onder: uitbetaling" in kaart["toelichting"]
+    assert kaart["opties"][0]["omschrijving"] == "nu gekozen"            # de huidige keuze blijft zichtbaar
+    # Geen voorwerp: geen kaartje, gewoon verder.
+    api = GebeurtenisApi(gebeurtenis="uitbetaling", kandidaten=_kandidaten())
+    _run(api.zet_bronselectie_status(WID, "d1", {"actie": "openen"}))
+    assert _run(bs.start(api, WID, api.zoek, stel_voor=stel_voor, toets=_toets()))["kaart"]["stap"] == "bs_bepalingen"
+
+
+def test_een_eigen_woord_dat_niet_in_de_wet_staat_benoemt_lex():
+    """"Rekeningafspraak" is een begrip uit de uitvoering: Lex zegt het bij de start, met de woorden die het dossier
+    ernaast zet, en bij een deelvraag zonder kernbepalingen nog eens – in plaats van alleen "0 bronnen"."""
+    vragen = ["Wat is een rekeningafspraak?", "Onder welke voorwaarden kan iemand een betaling aan een derde laten doen?"]
+    toets = _toets(ontbrekend=["rekeningafspraak"], brug={"rekeningafspraak": ["bankrekening", "uitbetaald", "derde"]})
+    api = GebeurtenisApi(gebeurtenis="uitbetaling", vragen=vragen, kandidaten={})
+    uit = _run(bs.start(api, WID, api.zoek, stel_voor=lambda wg, r: [], toets=toets))
+    tekst = " ".join(uit["zinnen"])
+    assert "‘rekeningafspraak’ staat niet in de regelingen van dit werkgebied" in tekst
+    assert "In je dossier staat het naast bankrekening, uitbetaald, derde; daarmee zoek ik." in tekst
+    assert "rekeningafspraak" in toets.gezien[-1][0] and "voorwaarden" not in toets.gezien[-1][0]
+    # Deelvraag 1 zonder kernbepalingen: de zin komt terug bij die deelvraag.
+    uit = _klik_g(api, uit["kaart"], "d1", stel_voor=lambda wg, r: [], toets=toets)
+    assert "Bij deelvraag 1 vond ik geen kernbepalingen" in " ".join(uit["zinnen"])
+    assert "‘rekeningafspraak’ staat niet in de regelingen" in " ".join(uit["zinnen"])

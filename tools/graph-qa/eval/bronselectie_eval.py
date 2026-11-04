@@ -309,7 +309,7 @@ def _zoekvragen_route():
                                                             len([o for o in woorden if not o["buiten"]]))
         uit = [{"bron_iri": k["bron_iri"], "buiten": False}
                for k in zoekvragen.opties_bij_deelvraag(cache[sleutel]["kandidaten"], vraag, gebeurtenis=s["gebeurtenis"],
-                                                        limit=plaatsen)]
+                                                        limit=plaatsen, dossier=_dossier(s))]
         al = {o["bron_iri"] for o in uit}
         ruimte = deelvraag_zoeken.MAX_PER_DEELVRAAG - len(uit)
         for o in woorden:
@@ -462,7 +462,8 @@ def meet_zoekvragen(graaf: Any, s: dict[str, Any]) -> dict[str, Any]:
         gevonden = [i + 1 for i, o in enumerate(opties) if zoekvragen._sleutel(o) == sleutel]
         return (gevonden[0] if gevonden else None), opties
 
-    dossier = {k: s.get(k, "") for k in zoekvragen.DOSSIERVELDEN}
+    # De gebeurtenis van de set is het antwoord: niet in het dossier waarop Lex haar voorstelt.
+    dossier = {k: s.get(k, "") for k in zoekvragen.DOSSIERVELDEN if k != "gebeurtenis"}
     met, opties_met = plek(dossier)
     zonder, opties_zonder = plek({**dossier, "naam": ""})
     buiten = zoektermen.uitsluitstammen(zoektermen.buiten_uit_afbakening("Buiten de afbakening: " + s.get("buiten", "")))
