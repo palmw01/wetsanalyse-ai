@@ -12,7 +12,7 @@ export type Voortgang = "niet_gestart" | "in_behandeling" | "voorlopig_afgerond"
 /** `niet_gekozen`: bij het beantwoorden van het kaartje niet aangevinkt (de api leidt het af uit de fase). Er is
  *  geen *later*: wie de vragen doorloopt, kiest; opnieuw doorlopen maakt er weer een keuze van. */
 export type KandidaatStand = "voorgesteld" | "niet_gekozen" | "uitgesloten" | "opgenomen";
-export type BewijsSoort = "grondslag" | "verwijzing" | "definitie" | "structuur" | "tekst" | "gelijkenis";
+export type BewijsSoort = "grondslag" | "genoemd" | "verwijzing" | "definitie" | "structuur" | "tekst" | "gelijkenis";
 
 export interface BronHier {
   selectie_id: string;
@@ -109,6 +109,7 @@ export const STAND_LABEL: Record<KandidaatStand, string> = {
  *  een relatie. Zo noemt de werkplek het, ook als Lex het al op het kaartje zei. */
 export const BEWIJS_LABEL: Record<BewijsSoort, string> = {
   grondslag: "grondslag van de gebeurtenis",
+  genoemd: "zelf genoemd",
   verwijzing: "verwijzing in de wet",
   definitie: "definitie van een term",
   structuur: "zelfde deel van de regeling",
@@ -123,7 +124,7 @@ const een = <T extends string>(v: unknown, mag: readonly T[], anders: T): T => (
 
 const VOORTGANGEN = ["niet_gestart", "in_behandeling", "voorlopig_afgerond", "beoordeeld"] as const;
 const STANDEN = ["voorgesteld", "niet_gekozen", "uitgesloten", "opgenomen"] as const;
-const BEWIJZEN = ["grondslag", "verwijzing", "definitie", "structuur", "tekst", "gelijkenis"] as const;
+const BEWIJZEN = ["grondslag", "genoemd", "verwijzing", "definitie", "structuur", "tekst", "gelijkenis"] as const;
 
 /** Streng waar het iets uitmaakt (een deelvraag zonder id telt niet), vergevend in de details. */
 export function parseBronselectie(ruw: unknown): BronselectieOverzicht | undefined {

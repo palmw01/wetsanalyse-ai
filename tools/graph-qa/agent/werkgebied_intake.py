@@ -761,7 +761,7 @@ def kaart(intake: dict[str, Any]) -> dict[str, Any]:
     return {**basis, "soort": "vraag", "stap": stap, "nr": (STAPPEN.index(stap) if stap in STAPPEN else 0) + 1 + deel,
             "vraag": vraag,
             "toelichting": toelichting, "opties": opties, "meerkeuze": stap in _MEERKEUZE,
-            "vrije_tekst": stap != "thema", "meer_tekst": stap == "deelvragen", "overslaanbaar": stap != "naam",
+            "vrije_tekst": stap != "thema", "meer_tekst": stap == "deelvragen", **({"regel": {"enkel": "deelvraag", "voorbeeld": ""}} if stap == "deelvragen" else {}), "overslaanbaar": stap != "naam",
             "vooringevuld": (intake.get("concept") or {}).get(sleutel) or eerder
                             or list(intake.get("vooringevuld", {}).get(sleutel, [])), "samenvatting": {},
             "terug": stap != STAPPEN[0], "beantwoord": bool(eerder) or _beantwoord(intake, stap)}

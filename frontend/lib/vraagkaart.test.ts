@@ -2,8 +2,28 @@ import { describe, expect, it } from "vitest";
 
 import {
   ONBEKEND, antwoordActie, antwoordTekst, beginstand, groepeerVragen, isLaatsteVraag, openVraag, parseAntwoordOp,
-  parseVraagkaart, stilActie, vorige, type Vraagkaart,
+  parseVraagkaart, regelNamen, stilActie, typActie, vorige, type Vraagkaart,
 } from "./vraagkaart";
+
+describe("regels: één regel is één ding (4 nov 2026)", () => {
+  it("noemt de regels naar wat het kaartje zegt, en zonder regel de deelvragen", () => {
+    expect(regelNamen(null)).toMatchObject({ enkel: "deelvraag", label: "Eigen deelvraag", eerste: "Typ een eigen deelvraag…" });
+    const b = regelNamen({ enkel: "bepaling", voorbeeld: "artikel 9 lid 2 Invorderingswet 1990" });
+    expect(b).toMatchObject({ enkel: "bepaling", label: "Eigen bepaling", lijst: "Je eigen bepalingen",
+      eerste: "Bijv. ‘artikel 9 lid 2 Invorderingswet 1990’", volgende: "Nog een bepaling…" });
+  });
+
+  it("leest `regel` van het kaartje en stuurt eigen bepalingen als regels", () => {
+    const k = parseVraagkaart({ intake_id: "bs-wg1", stap: "bs_bepalingen", vraag: "De kernbepalingen", modus: "bronselectie",
+      deelvraag_id: "d1", weergave: "paneel", regel: { enkel: "bepaling", voorbeeld: "artikel 9" } })!;
+    expect(k.regel).toEqual({ enkel: "bepaling", voorbeeld: "artikel 9" });
+    expect(parseVraagkaart({ intake_id: "x", stap: "naam", vraag: "?" })!.regel).toBeNull();
+    expect(typActie(k, [" artikel 10 IW ", "", "artikel 3 IW"])).toEqual({ intake_id: "bs-wg1", stap: "bs_bepalingen",
+      actie: "antwoord", teksten: ["artikel 10 IW", "artikel 3 IW"], deelvraag_id: "d1" });
+    expect(typActie(k, ["", "  "])).toBeUndefined();
+    expect(parseVraagkaart({ intake_id: "x", stap: "bs_toevoegen_treffers", vraag: "?" })).toBeUndefined();
+  });
+});
 
 const RUW = {
   intake_id: "ik1", soort: "vraag", stap: "regelingen", nr: 3, totaal: 5,

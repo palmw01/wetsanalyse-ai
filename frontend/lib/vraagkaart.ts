@@ -22,7 +22,7 @@ export const STAPPEN = ["naam", "aanleiding", "context", "doel", "analysevraag",
   "buiten", "regelingen", "bepalingen"] as const;
 /** De kaartjes van de bronselectie (graph-qa `bronselectie.KAARTSTAPPEN`). */
 export const BRONSELECTIE_STAPPEN = ["bs_gebeurtenis", "bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder",
-  "bs_toevoegen", "bs_toevoegen_treffers"] as const;
+  "bs_toevoegen"] as const;
 /** `thema` (spoor I7) is een kaartje van het aanvullen alleen: het samenstellen kent het niet (`STAPPEN`). */
 export type IntakeStap = (typeof STAPPEN)[number] | "thema" | "samenvatting" | (typeof BRONSELECTIE_STAPPEN)[number];
 /** De vaste kaartjes vóór de bepalingen; daarna één per deelvraag (graph-qa `VASTE_STAPPEN`). */
@@ -46,6 +46,21 @@ export interface VraagOptie {
   omschrijving: string;
 }
 
+/** Wat één invoerregel op een kaartje is (`Vraagkaart.regel`, 4 nov 2026): "deelvraag", "bepaling". */
+export interface Regel { enkel: string; voorbeeld: string }
+
+/** De teksten van de invoerregels (`MeerRegels`): zonder `regel` de deelvragen, zoals het altijd was. */
+export function regelNamen(r: Regel | null) {
+  const enkel = r?.enkel || "deelvraag";
+  return {
+    enkel,
+    label: `Eigen ${enkel}`,
+    lijst: `Je eigen ${enkel}en`,
+    eerste: r?.voorbeeld ? `Bijv. ‘${r.voorbeeld}’` : `Typ een eigen ${enkel}…`,
+    volgende: `Nog een ${enkel}…`,
+  };
+}
+
 export interface Vraagkaart {
   intake_id: string;
   /** Een werkgebied samenstellen, het dossier van een bestaand werkgebied aanvullen, of de bronselectie. */
@@ -63,8 +78,10 @@ export interface Vraagkaart {
   opties: VraagOptie[];
   meerkeuze: boolean;
   vrije_tekst: boolean;
-  /** Meer dan één eigen antwoord (de deelvragen): de dock biedt "+ Nog een" en stuurt `teksten`. */
+  /** Meer dan één eigen antwoord: één regel is één ding, de dock biedt "+ Nog een …" en stuurt `teksten`. */
   meer_tekst: boolean;
+  /** Wat één regel is; leeg = de deelvragen. */
+  regel: Regel | null;
   overslaanbaar: boolean;
   /** Wat Lex uit je eerste zin haalde: voorgeselecteerd, nooit stil aangenomen. */
   vooringevuld: string[];
@@ -168,6 +185,10 @@ export function parseVraagkaart(ruw: unknown): Vraagkaart | undefined {
     meerkeuze: r.meerkeuze === true,
     vrije_tekst: r.vrije_tekst !== false,
     meer_tekst: r.meer_tekst === true,
+    regel: (() => {
+      const g = r.regel && typeof r.regel === "object" ? r.regel as Record<string, unknown> : null;
+      return g && tekst(g.enkel) ? { enkel: tekst(g.enkel).slice(0, 40), voorbeeld: tekst(g.voorbeeld).slice(0, 200) } : null;
+    })(),
     overslaanbaar: r.overslaanbaar === true,
     vooringevuld: Array.isArray(r.vooringevuld) ? r.vooringevuld.filter((v): v is string => typeof v === "string") : [],
     terug: r.terug === true,
@@ -260,7 +281,6 @@ export const STAP_NAAM: Record<IntakeStap, string> = {
   bs_afronden: "het afronden",
   bs_verder: "hoe we verder gaan",
   bs_toevoegen: "de bepaling",
-  bs_toevoegen_treffers: "de treffers",
 };
 
 export function parseAntwoordOp(ruw: unknown): AntwoordOp | undefined {
@@ -409,9 +429,9 @@ export function stilActie(k: Vraagkaart): IntakeActie {
   return { intake_id: k.intake_id, stap: k.stap, actie: "afbreken", ...(k.deelvraag_id ? { deelvraag_id: k.deelvraag_id } : {}) };
 }
 
-/** Een eigen bepaling getypt op het compacte kaartje: Lex voegt haar toe, het kaartje blijft tot *Klaar*. */
-export function typActie(k: Vraagkaart, tekst: string): IntakeActie | undefined {
-  const t = tekst.trim();
-  return t ? { intake_id: k.intake_id, stap: k.stap, actie: "antwoord", tekst: t,
+/** Eigen bepalingen op het compacte kaartje, één per regel (`MeerRegels`): Lex zet ze als voorstel in het paneel. */
+export function typActie(k: Vraagkaart, regels: string[]): IntakeActie | undefined {
+  const ts = regels.map((x) => x.trim()).filter(Boolean);
+  return ts.length ? { intake_id: k.intake_id, stap: k.stap, actie: "antwoord", teksten: ts,
     ...(k.deelvraag_id ? { deelvraag_id: k.deelvraag_id } : {}) } : undefined;
 }

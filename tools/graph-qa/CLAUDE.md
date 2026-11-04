@@ -951,13 +951,15 @@ vraagkaarten: eerst, als die nog leeg is, de gebeurtenis (`bs_gebeurtenis`, zie 
 (`bs_afhankelijkheden`), afronden (`bs_afronden`) en *Hoe wil je verder?* (`bs_verder`). Een eigen worker
 onder de supervisor, naast de intake; zie `docs/architectuur/bronselectie-per-deelvraag.md`.
 
-- **Zelf een bepaling toevoegen gaat via het gesprek** (4 nov 2026): de actie `bepaling_toevoegen` (een suggestie
-  bij werkgebied en deelvraag, ook in `BRONSELECTIE_ACTIES`) en de getypte tekst op het compacte kaartje komen bij
-  dezelfde kaarten uit. `bs_toevoegen` vraagt zo nodig bij welke deelvraag (of `HEEL`, het werkgebied) en welke
-  bepaling; `bepaling_treffers` ontleedt de tekst (`bepalingen_uit_tekst`) en zoekt elke bepaling via de api in de
-  echte boom (`zoek_bepalingen`); `bs_toevoegen_treffers` toont ze met het begin van hun tekst (meerkeuze, waarde
-  `rol|bron_iri`; ‘als context’ in de tekst kiest de rol). Pas na het aanvinken voegt Lex toe, en liep er een
-  deelvraag, dan komt haar kaartje terug (`_lopend`, zonder zoekronde). Op het artefact staat geen zoekvenster.
+- **Zelf bepalingen noemen is een voorstel** (4 nov 2026, één lijn met de voorstellen van Lex): de actie
+  `bepaling_toevoegen` (suggestie *Noem een bepaling* bij werkgebied en deelvraag, in `BRONSELECTIE_ACTIES`) en de
+  regels op het compacte kaartje komen uit bij `noem`. `bs_toevoegen` vraagt zo nodig bij welke deelvraag, daarna
+  één bepaling per regel (`meer_tekst`, `regel: REGEL_BEPALING`). `bepaling_treffers` ontleedt elke regel
+  (`bepalingen_uit_tekst`) en zoekt haar via de api in de echte boom (`zoek_bepalingen`); elke treffer gaat als
+  voorstel bij de deelvraag (`api.noem_voorstel` → api `POST …/voorstellen`, bewijs `genoemd`; rol `kern`, of
+  `afhankelijkheid` bij ‘als context’ of in die fase). Daarna het compacte kaartje van de deelvraag (`_kaart_hier`,
+  zonder zoekronde): de analist leest en besluit in het paneel. Lukte niets, dan staat het noemkaartje er weer met
+  de regels en de reden. Geen treffer-kaartje en geen zoekvenster op het artefact.
 
 - **De stand staat bij de api, niet in de state** (`GET …/bronselectie`, api §*Bronselectie per deelvraag*):
   elke beurt leest hem vers. Hervatten (herladen, ander gesprek, collega) is dus `start` op de stand van nu;

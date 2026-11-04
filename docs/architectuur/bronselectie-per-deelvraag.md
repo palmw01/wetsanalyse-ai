@@ -83,9 +83,11 @@ Besluit van de gebruiker: het gesprek blijft rustig, zoals een artefact bij Clau
 en van wat eraan hangt heeft geen vinkjes meer (`weergave: paneel`). Het noemt wat er ligt en verwijst naar het
 paneel. Daar lees je de wettekst (uitklappen) en neem je per bepaling op of sluit je uit; die besluiten gaan
 rechtstreeks naar de api. *Klaar* (`actie: klaar`, op het kaartje of onderaan het paneel) schuift de fase door
-zonder een besluit te raken; wat dan nog onbeslist is, is niet gekozen. Zelf een bepaling toevoegen
-gaat via het gesprek (4 nov 2026): typen op het kaartje, of de suggestie *Voeg een bepaling toe*. Lex vraagt zo nodig
-bij welke deelvraag (`bs_toevoegen`), zoekt de bepaling in de echte boom (`GET …/bepalingen`), toont de treffers met
-het begin van hun tekst (`bs_toevoegen_treffers`, meerkeuze; ‘als context’ in de tekst kiest de rol) en voegt pas na
-het aanvinken toe; daarna komt het kaartje terug waar de analist was. Op het artefact zelf staat geen zoekvenster. Een oud kaartje met vinkjes
+zonder een besluit te raken; wat dan nog onbeslist is, is niet gekozen. Zelf bepalingen noemen
+gaat via het gesprek (4 nov 2026): één per regel op het kaartje (*+ Nog een bepaling*), of de suggestie *Noem een
+bepaling*. Lex vraagt zo nodig bij welke deelvraag (`bs_toevoegen`), zoekt elke regel in de echte boom
+(`GET …/bepalingen`) en zet wat hij vindt als **voorstel** bij de deelvraag (`POST …/voorstellen`, bewijs `genoemd`;
+‘als context’ op een regel maakt een contextbron). Het paneel toont het naast de voorstellen van Lex, met de
+wettekst, en daar besluit de analist; in het gesprek staat het compacte kaartje van de deelvraag. Wat niet gevonden
+is, staat terug op het kaartje met de reden. Op het artefact zelf staat geen zoekvenster. Een oud kaartje met vinkjes
 wordt nog verwerkt.

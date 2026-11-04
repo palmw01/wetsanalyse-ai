@@ -259,6 +259,12 @@ class WetsanalyseApi:
         404: de regeling staat niet in de graaf; 503: de graaf is weg."""
         return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/bepalingen", bwb_id=bwb_id, q=q)
 
+    async def noem_voorstel(self, werkgebied_id: str, deelvraag_id: str, voorstel: dict[str, Any]) -> dict[str, Any]:
+        """Een bepaling die de analist noemt als voorstel bij één deelvraag (`{bron_iri, rol: kern|afhankelijkheid,
+        tekst}`, bewijs `genoemd`); 409 als ze er al staat of werkgebiedbreed is uitgesloten. Geeft het overzicht."""
+        return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronselectie/"
+                                f"{quote(deelvraag_id, safe='')}/voorstellen", voorstel)
+
     async def zoek_regelingen(self, werkgebied_id: str, q: str) -> list[dict[str, Any]]:
         """Regelingen op citeertitel, afkorting of BWB-id, die van het werkgebied vooraan."""
         uit = await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/regelingen", q=q)

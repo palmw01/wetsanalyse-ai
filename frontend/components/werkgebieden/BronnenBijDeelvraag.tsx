@@ -204,7 +204,7 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
               })}
               {!kort && voorstellen.map((k) => <Voorstel key={k.id} o={o} d={d} k={k} beslis={beslis} inGesprek={inGesprek} />)}
             </Groep>
-            {/* Zelf een bepaling toevoegen gaat via het gesprek (*Voeg een bepaling toe* boven het invoerveld, of
+            {/* Zelf een bepaling toevoegen gaat via het gesprek (*Noem een bepaling* boven het invoerveld, of
                 typen op het kaartje): zoeken in de graaf hoort niet bij het artefact. */}
             {inGesprek && !kort && onKlaar && klaarVoor === d.id && d.status !== "voorlopig_afgerond" && d.status !== "beoordeeld" && (
               <div className="flex sm:justify-end" data-paneel-acties={d.id}>
