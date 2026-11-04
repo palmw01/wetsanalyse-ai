@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 from . import annotatie_v2_store, bronnen_run_store as store, bronselectie, werkgebied_store
 from .auth import require_client
 from .bronnen_run_contracts import BronnenMislukt, BronnenUitkomst
-from .bronselectie_contracts import KandidaatBesluit, StatusActie
+from .bronselectie_contracts import GenoemdVoorstel, KandidaatBesluit, StatusActie
 from .werkgebied_contracts import BronselectieInvoer
 from .routers.auth import actieve_userid
 from .werkgebieden import resolve_bron
@@ -114,6 +114,17 @@ async def post_bronselectie_besluit(werkgebied_id: str, deelvraag_id: str, kandi
         if iri and iri not in {b["bron_iri"] for b in wg["bronnen"]}:
             bron = await _geverifieerd({"bron_iri": iri})
     await bronselectie.besluit(werkgebied_id, deelvraag_id, kandidaat_id, req, bron, actor)
+    return await bronselectie.overzicht(werkgebied_id, na=deelvraag_id)
+
+
+@router.post("/bronselectie/{deelvraag_id}/voorstellen")
+async def post_bronselectie_voorstel(werkgebied_id: str, deelvraag_id: str, req: GenoemdVoorstel,
+                                     actor: str = Depends(actieve_userid)):
+    """Een bepaling die de analist zelf noemt, als voorstel bij één deelvraag: daarna staat ze in het paneel met de
+    voorstellen van Lex, en daar besluit de analist. De api verifieert haar in de graaf."""
+    await werkgebied_store.haal(werkgebied_id)                 # 404 vóór de graaf wordt gevraagd
+    bron = await _geverifieerd({"bron_iri": req.bron_iri})
+    await bronselectie.noem(werkgebied_id, deelvraag_id, req, bron, actor)
     return await bronselectie.overzicht(werkgebied_id, na=deelvraag_id)
 
 

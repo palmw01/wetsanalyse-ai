@@ -763,6 +763,17 @@ werkgebied zonder deelvragen werkt zoals altijd.
 de bronselectie in het gesprek, maar de stand staat hier – niet in de gesprek-checkpointer –, zodat hij er
 na herladen, in een ander gesprek en bij een collega ook is.
 
+- **Zelf genoemd is een voorstel** (4 nov 2026): `POST …/bronselectie/{deelvraag}/voorstellen {bron_iri, rol: kern|
+  afhankelijkheid, tekst}` (`bronselectie.noem`) zet een bepaling die de analist noemt als kandidaat bij die
+  deelvraag, met bewijs `methode: genoemd` (`detail.deelvraag_id`, `tekst`, `door`), zodat ze in het paneel staat
+  zoals de voorstellen van Lex en daar beslist wordt. Zo'n voorstel vervalt niet (`bronnen_run_store.vervallen` slaat
+  het over), een volgende run voegt zijn bewijs toe zonder het genoemde te wissen (`_leg_kandidaten_vast`), en het
+  blijft *voorgesteld* tot er een besluit is (ook na het fase-wisselen). Al opgenomen bij deze deelvraag of
+  werkgebiedbreed uitgesloten: 409. `_hoort_bij` koppelt elk bewijs met `detail.deelvraag_id` aan die deelvraag.
+- **Het zoekbereik staat op het werkgebied** (`regelingen: [{bwb_id, label}]`, 4 nov 2026): gekozen bij het
+  samenstellen of aanvullen, in de invoer van de bronnenrun (`invoer_van`, alleen als het er is).
+  `werkgebied_store.regelingen_van` is de ene plek die "de regelingen van het werkgebied" afleidt: eerst dit veld, dan
+  de regelingen van de bronnen (peildatum/toestanden, thema-voorstel, `GET …/regelingen`).
 - **Voortgang per deelvraag** (`bronselectie_voortgang`, sleutel werkgebied + deelvraag): geen rij =
   `niet_gestart`, dan `in_behandeling`, `voorlopig_afgerond`, `beoordeeld`; plus `fase` (`kern`,
   `afhankelijkheden`, `afronden`) en `open_punten`. Dit is de stand van het werk; de deelvraagstatus

@@ -112,6 +112,9 @@ def _zonder_lege_deelvraag(self, handler):
     # Zo ook de standaardweergave (`kaart`): alleen het compacte kaartje van de bronselectie draagt `weergave`.
     if isinstance(data, dict) and data.get("weergave") == "kaart":
         data.pop("weergave", None)
+    # En een kaartje zonder eigen regelnaam (`regel`) blijft zoals het was.
+    if isinstance(data, dict) and data.get("regel") is None:
+        data.pop("regel", None)
     return data
 
 
@@ -144,6 +147,13 @@ class IntakeDeel(BaseModel):
     deelvraag: str | None = Field(default=None, max_length=1000)
 
 
+class Regel(BaseModel):
+    """Wat één invoerregel op een kaartje is: de naam ("deelvraag", "bepaling") en een voorbeeld als placeholder."""
+
+    enkel: str = Field(min_length=1, max_length=40)
+    voorbeeld: str = Field(default="", max_length=200)
+
+
 class Vraagkaart(BaseModel):
     """Een vraag van Lex bij het samenstellen van een werkgebied (activiteit 1): één stap, met
     voorstellen en een eigen antwoord. De werkplek toont hem als kaartje, ook na herladen; een klik
@@ -173,8 +183,11 @@ class Vraagkaart(BaseModel):
     opties: list[VraagOptie] = Field(default_factory=list, max_length=20)
     meerkeuze: bool = False
     vrije_tekst: bool = True
-    # Meer dan één eigen antwoord (de deelvragen): de werkplek biedt dan "+ nog een" en stuurt `teksten`.
+    # Meer dan één eigen antwoord: één regel is één ding, en de werkplek biedt "+ Nog een …" en stuurt `teksten`.
     meer_tekst: bool = False
+    # Wat één regel is (`{enkel: "bepaling", voorbeeld: "artikel 9 lid 2 Invorderingswet 1990"}`): de werkplek noemt
+    # de regels daarnaar. Leeg = de deelvragen (zo oud als het veld).
+    regel: Regel | None = None
     overslaanbaar: bool = True
     vooringevuld: list[str] = Field(default_factory=list, max_length=20)
     samenvatting: dict = {}

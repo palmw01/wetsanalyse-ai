@@ -46,10 +46,10 @@ STANDEN_TELLING = ("voorgesteld", "niet_gekozen", "uitgesloten")
 #: een verwijzing of definitie in de graaf is een aantoonbare relatie.
 BEWIJS_SOORT = {"verwijzing_uit": "verwijzing", "verwijzing_in": "verwijzing", "definitie": "definitie",
                 "opbouw": "structuur", "overzicht": "tekst", "deelvraag": "tekst", "gelijkenis": "gelijkenis",
-                "grondslag": "grondslag"}
+                "grondslag": "grondslag", "genoemd": "genoemd"}
 #: De grondslag (zoekvraag a: waar de gekozen gebeurtenis haar bestaansrecht krijgt) staat vooraan: zij is het
 #: vertrekpunt van de andere zoekvragen.
-BEWIJS_VOLGORDE = {"grondslag": -1, "verwijzing": 0, "definitie": 1, "structuur": 2, "tekst": 3, "gelijkenis": 4}
+BEWIJS_VOLGORDE = {"grondslag": -1, "genoemd": -0.5, "verwijzing": 0, "definitie": 1, "structuur": 2, "tekst": 3, "gelijkenis": 4}
 
 
 def scope_stand(werkgebied: dict, vraag: str, kandidaten: list[str]) -> str:
@@ -121,7 +121,8 @@ def _hoort_bij(kandidaat, did: str, eigen: set[str], kern_iris: set[str]) -> boo
     """Deterministisch: gevonden bij deze deelvraag (of een voorganger), of een afhankelijkheid van een
     bron die al bij deze deelvraag hoort."""
     for x in kandidaat.bewijs or []:
-        if x.get("methode") == "deelvraag" and str((x.get("detail") or {}).get("deelvraag_id", "")) in eigen:
+        # Elk bewijs dat bij een deelvraag hoort (gevonden bij haar, of door de analist bij haar genoemd).
+        if str((x.get("detail") or {}).get("deelvraag_id", "")) in eigen:
             return True
         if x.get("vanuit") and x.get("vanuit") in kern_iris:
             return True
@@ -172,9 +173,10 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
             elif rij is not None and rij.status == "uitgesloten":
                 stand, overal = "uitgesloten", False
             # Wat de laatste zoekopdracht niet meer vond (het dossier of de selectie veranderde), is geen voorstel meer.
-            elif bronnen_run_store.vervallen(kd.status, kd.run_id, lees["basis"]):
+            elif bronnen_run_store.vervallen(kd.status, kd.run_id, lees["basis"], kd.bewijs):
                 continue
-            elif gehad["kern" if kd.rol == "kern" else "rest"]:
+            # Een zelf genoemd voorstel blijft open tot er een besluit is: de analist vroeg er zelf om.
+            elif gehad["kern" if kd.rol == "kern" else "rest"] and not bronnen_run_store.genoemd(kd.bewijs):
                 stand, overal = "niet_gekozen", False
             else:
                 stand, overal = "voorgesteld", False
@@ -241,7 +243,7 @@ async def overzicht(werkgebied_id: str, na: str | None = None) -> dict:
         zonder_deelvraag = [{"id": kd.id, "bron_iri": kd.bron_iri, "label": kd.label, "rol": kd.rol,
                              "stand": kd.status, "bewijs_soorten": bewijs_soorten(kd.bewijs or [])}
                             for kd in lees["kandidaten"] if kd.id not in bij and kd.status == "voorgesteld"
-                            and not bronnen_run_store.vervallen(kd.status, kd.run_id, lees["basis"])
+                            and not bronnen_run_store.vervallen(kd.status, kd.run_id, lees["basis"], kd.bewijs)
                             and kd.bron_iri not in {r.bron_iri for r in lees["selecties"].values()}]
     in_behandeling = [v for v in vragen if v["status"] == Voortgang.in_behandeling.value and v["geopend"]]
     actief = max(in_behandeling, key=lambda v: v["geopend"])["id"] if in_behandeling else None
@@ -488,6 +490,51 @@ async def toevoegen(werkgebied_id: str, deelvraag_id: str, invoer, bron: dict, a
                       invoer.verwachte_revisie, actor, detail, koppeling, binnen=wis_besluit)
     async with db.get_engine().begin() as conn:
         await _slot(conn, werkgebied_id)
+        await _start_in(conn, werkgebied_id, deelvraag_id, actor)
+
+
+async def noem(werkgebied_id: str, deelvraag_id: str, req, bron: dict, actor: str) -> None:
+    """Een bepaling die de analist zelf noemt, als **voorstel** bij één deelvraag: in het paneel naast de voorstellen
+    van Lex, met de wettekst en *Opnemen* / *Uitsluiten* (4 nov 2026: het paneel beslist, ook hierover). Het bewijs is
+    `genoemd`, met de deelvraag en de tekst zoals de analist hem typte; zo'n voorstel vervalt niet bij een nieuwe
+    zoekopdracht. Idempotent: dezelfde bepaling bij dezelfde deelvraag nog eens verandert niets. Een uitsluiting bij
+    deze deelvraag vervalt (de analist vraagt er opnieuw om); al opgenomen of werkgebiedbreed uitgesloten: 409.
+    De deelvraag is daarna in behandeling. `bron` komt uit de resolver."""
+    wg = await werkgebied_store.haal(werkgebied_id)
+    _toets_deelvraag(wg, deelvraag_id)
+    k, b = db.bron_kandidaten, db.bron_kandidaat_deelvragen
+    iri, kid = bron["bron_iri"], bronnen_run_store.kandidaat_id(bron["bron_iri"])
+    bewijs = {"methode": "genoemd", "vanuit": "", "detail": {"deelvraag_id": deelvraag_id, "tekst": req.tekst.strip(),
+                                                             "door": actor}}
+    async with db.get_engine().begin() as conn:
+        await _slot(conn, werkgebied_id)
+        s, kp = db.werkgebied_bronselecties, db.werkgebied_deelvraag_koppelingen
+        sid = (await conn.execute(select(s.c.id).where(s.c.werkgebied_id == werkgebied_id, s.c.bron_iri == iri,
+                                                       s.c.verwijderd.is_(None)))).scalar()
+        hier = sid is not None and (deelvraag_id == ANALYSEVRAAG or (await conn.execute(select(kp.c.doel_id).where(
+            kp.c.deelvraag_id == deelvraag_id, kp.c.soort == "bron", kp.c.doel_id == sid))).first() is not None)
+        if hier:
+            raise HTTPException(409, {"fout": "status", "status": "opgenomen",
+                                      "melding": "Deze bepaling is bij deze deelvraag al opgenomen."})
+        oud = (await conn.execute(select(k).where(k.c.werkgebied_id == werkgebied_id, k.c.id == kid))).first()
+        if oud is not None and oud.status == "uitgesloten":
+            raise HTTPException(409, {"fout": "status", "status": "uitgesloten",
+                                      "melding": "Deze bepaling is voor het hele werkgebied uitgesloten; heropen haar eerst."})
+        nu = db.utcnow()
+        if oud is None:
+            await conn.execute(insert(k).values(werkgebied_id=werkgebied_id, id=kid, bron_iri=iri, label=bron.get("label") or "",
+                                                bwb_id=bron.get("bwb_id") or "", rol=req.rol, bewijs=[bewijs], run_id="",
+                                                status="voorgesteld", reden="", voorgesteld=nu, gewijzigd=nu))
+        else:
+            eerder = [x for x in oud.bewijs or [] if not (x.get("methode") == "genoemd" and
+                                                          (x.get("detail") or {}).get("deelvraag_id") == deelvraag_id)]
+            rol = req.rol if ROL_VOLGORDE.get(req.rol, 9) < ROL_VOLGORDE.get(oud.rol, 9) else oud.rol
+            await conn.execute(update(k).where(k.c.werkgebied_id == werkgebied_id, k.c.id == kid)
+                               .values(bewijs=[*eerder, bewijs], rol=rol, gewijzigd=nu))
+        await conn.execute(delete(b).where(b.c.werkgebied_id == werkgebied_id, b.c.kandidaat_id == kid,
+                                           b.c.deelvraag_id == deelvraag_id))
+        await _audit(conn, werkgebied_id, actor, "kandidaat-genoemd", {"deelvraag": deelvraag_id, "bron_iri": iri,
+                                                                       "rol": req.rol})
         await _start_in(conn, werkgebied_id, deelvraag_id, actor)
 
 

@@ -169,6 +169,27 @@ async def test_de_gebeurtenis_staat_op_het_werkgebied(client):
                                json={"verwachte_revisie": 2, "gebeurtenis": "x" * 201})).status_code == 422
 
 
+async def test_de_regelingen_zijn_het_zoekbereik_van_het_werkgebied(client):
+    """De regelingen die de analist kiest (samenstellen, aanvullen) staan op het werkgebied, elk één keer; ze gaan
+    vóór de regelingen van de bronnen (`regelingen_van`) en in de invoer van de bronnenrun."""
+    from app import bronnen_run_store, werkgebied_store
+
+    met = (await client.post("/v1/werkgebieden", json={
+        "naam": "Verrekening", "analysevraag": "Wanneer?", "regelingen": [
+            {"bwb_id": "BWBR0004770", "label": "Invorderingswet 1990"},
+            {"bwb_id": "BWBR0004770", "label": "dubbel"}, {"bwb_id": "BWBR0002320", "label": "AWR"}]})).json()
+    assert [r["bwb_id"] for r in met["regelingen"]] == ["BWBR0004770", "BWBR0002320"]
+    assert werkgebied_store.regelingen_van(met) == ["BWBR0004770", "BWBR0002320"]
+    assert bronnen_run_store.invoer_van(met)["regelingen"] == ["BWBR0004770", "BWBR0002320"]
+    wg = await _nieuw(client)
+    assert wg["regelingen"] == [] and "regelingen" not in bronnen_run_store.invoer_van(wg)
+    r = await client.patch(f"/v1/werkgebieden/{wg['id']}", json={
+        "verwachte_revisie": 1, "regelingen": [{"bwb_id": "BWBR0002320", "label": "AWR"}]})
+    assert (r.json()["regelingen"], r.json()["revisie"]) == ([{"bwb_id": "BWBR0002320", "label": "AWR"}], 2)
+    assert (await client.patch(f"/v1/werkgebieden/{wg['id']}", json={
+        "verwachte_revisie": 2, "regelingen": [{"bwb_id": "geen-bwb"}]})).status_code == 422
+
+
 async def test_gedeeld_tussen_analisten_en_de_audit_zegt_wie(client):
     wg = await _nieuw(client)
     r = await client.patch(f"/v1/werkgebieden/{wg['id']}", headers={"X-User-Id": "jurist-b"},

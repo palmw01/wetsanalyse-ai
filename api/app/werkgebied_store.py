@@ -36,6 +36,13 @@ def dag_in_nl(moment) -> str:
     return db.aware(moment).astimezone(_NL).date().isoformat()
 
 
+def regelingen_van(wg: dict) -> list[str]:
+    """De regelingen van een werkgebied (BWB-id's): eerst het zoekbereik dat de analist koos, dan die van de bronnen.
+    Eén plek, zodat de peildatum, het thema-voorstel en het zoeken dezelfde regelingen bedoelen."""
+    return list(dict.fromkeys([r["bwb_id"] for r in wg.get("regelingen") or [] if r.get("bwb_id")]
+                              + [b["bwb_id"] for b in wg.get("bronnen") or [] if b.get("bwb_id")]))
+
+
 def _werkgebied(row) -> dict:
     # De peildatum is standaard de dag waarop het werkgebied werd aangemaakt (besluit gebruiker 3 nov 2026);
     # een oude rij zonder peildatum krijgt die ook. `peildatum_standaard` zegt of hij dat nog is.
@@ -44,6 +51,7 @@ def _werkgebied(row) -> dict:
     return {"id": row.id, "naam": row.naam, "analysevraag": row.analysevraag,
             "afbakening": row.afbakening, "aanleiding": row.aanleiding, "context": row.context,
             "doel": row.doel, "praktijkvoorbeeld": row.praktijkvoorbeeld, "gebeurtenis": row.gebeurtenis,
+            "regelingen": list(row.regelingen or []),
             "thema": row.thema, "thema_label": tooi.thema_label(row.thema),
             "peildatum": peildatum, "peildatum_standaard": peildatum == aanmaakdag, "status": row.status,
             "revisie": row.revisie, "aangemaakt_door": row.aangemaakt_door,
@@ -154,6 +162,7 @@ async def maak(invoer: WerkgebiedInvoer, actor: str) -> dict:
                 id=wid, naam=invoer.naam, analysevraag=invoer.analysevraag, afbakening=invoer.afbakening,
                 aanleiding=invoer.aanleiding, context=invoer.context, doel=invoer.doel,
                 praktijkvoorbeeld=invoer.praktijkvoorbeeld, gebeurtenis=invoer.gebeurtenis, thema=invoer.thema,
+                regelingen=[r.model_dump() for r in invoer.regelingen],
                 peildatum=invoer.peildatum or dag_in_nl(nu), status="in_voorbereiding", revisie=1, aangemaakt_door=actor,
                 aangemaakt=nu, gewijzigd=nu, intake_id=invoer.intake_id))
             deelvragen = await _deelvragen_bij_aanmaken(conn, wid, invoer, actor, nu)
