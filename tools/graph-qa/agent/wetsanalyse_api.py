@@ -253,6 +253,17 @@ class WetsanalyseApi:
         return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronselectie/"
                                 f"{quote(deelvraag_id, safe='')}/status", actie)
 
+    async def zoek_bepalingen(self, werkgebied_id: str, bwb_id: str, q: str) -> dict[str, Any]:
+        """De bepalingen in één regeling bij een vindplaats ("9 lid 2", "25.4 onderdeel b"), uit de echte boom en
+        met het begin van hun tekst: `{bwb_id, gelezen, treffers: [{bron_iri, soort, vindplaats, titel, fragment}]}`.
+        404: de regeling staat niet in de graaf; 503: de graaf is weg."""
+        return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/bepalingen", bwb_id=bwb_id, q=q)
+
+    async def zoek_regelingen(self, werkgebied_id: str, q: str) -> list[dict[str, Any]]:
+        """Regelingen op citeertitel, afkorting of BWB-id, die van het werkgebied vooraan."""
+        uit = await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/regelingen", q=q)
+        return list(uit.get("regelingen") or [])
+
     async def voeg_bepaling_toe(self, werkgebied_id: str, deelvraag_id: str, bron: dict[str, Any]) -> dict[str, Any]:
         """Zelf een bepaling als keuze bij één deelvraag (`BronselectieInvoer`); de api toetst haar in de graaf (422
         als ze niet bestaat). Geeft het overzicht."""

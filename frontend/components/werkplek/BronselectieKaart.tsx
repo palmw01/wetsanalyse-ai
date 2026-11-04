@@ -11,14 +11,14 @@ import { klaarActie, stilActie, typActie, type IntakeActie, type Vraagkaart } fr
 /** Het compacte kaartje van de bronselectie (`weergave: paneel`, 3 nov 2026): het gesprek blijft rustig, zoals een
  *  artefact bij Claude. Het noemt hoeveel er ligt – live, want je beslist in het paneel – en verwijst ernaar:
  *  *Bronnen beoordelen* opent het paneel, *+ Bepaling toevoegen* het venster, *Klaar* gaat verder. Een bepaling
- *  typen blijft kunnen ("artikel 25 lid 2 Invorderingswet 1990"): Lex voegt haar toe en het kaartje blijft. */
-export function BronselectieKaart({ kaart, uitgeschakeld, onActie, onSluit, onBeoordelen, onToevoegen }: {
+ *  typen blijft kunnen ("artikel 25 lid 2 Invorderingswet 1990"): Lex zoekt haar op, toont de treffers met hun tekst,
+ *  en voegt toe wat de analist aanvinkt; daarna komt dit kaartje terug. */
+export function BronselectieKaart({ kaart, uitgeschakeld, onActie, onSluit, onBeoordelen }: {
   kaart: Vraagkaart;
   uitgeschakeld: boolean;
   onActie: (actie: IntakeActie) => void;
   onSluit: () => void;
   onBeoordelen?: () => void;
-  onToevoegen?: () => void;
 }) {
   const werkgebiedId = kaart.intake_id.slice(3);
   const [telling, setTelling] = useState(kaart.telling ?? { kandidaten: 0, opgenomen: 0 });
@@ -60,20 +60,12 @@ export function BronselectieKaart({ kaart, uitgeschakeld, onActie, onSluit, onBe
           Lees de tekst en neem op of sluit uit in het paneel. {kern ? "Klaar? Dan zoek ik wat eraan hangt." : "Wat je opneemt, komt erbij als contextbron."}
         </p>
       </div>
-      {/* Opbouw zoals het VraagDock: de nevenacties naast elkaar en even breed, dan de eigen bepaling, en onderaan
-          rechts de hoofdknop. Niet in één rij met flex-wrap: dan viel *Klaar* bij deze breedte los op een eigen regel. */}
-      {(onBeoordelen || onToevoegen) && (
-        <div className={`mt-3 grid gap-2 ${onBeoordelen && onToevoegen ? "sm:grid-cols-2" : ""}`} data-nevenacties>
-          {onBeoordelen && (
-            <Button variant="secondary" size="sm" onClick={onBeoordelen} className="w-full">
-              Bronnen beoordelen <PijlRechts className="ml-1" />
-            </Button>
-          )}
-          {onToevoegen && (
-            <Button variant="secondary" size="sm" onClick={onToevoegen} disabled={uitgeschakeld} className="w-full">
-              + Bepaling toevoegen
-            </Button>
-          )}
+      {/* Opbouw zoals het VraagDock: de nevenactie, dan de eigen bepaling, en onderaan rechts de hoofdknop. */}
+      {onBeoordelen && (
+        <div className="mt-3" data-nevenacties>
+          <Button variant="secondary" size="sm" onClick={onBeoordelen} className="w-full">
+            Bronnen beoordelen <PijlRechts className="ml-1" />
+          </Button>
         </div>
       )}
       <form className="mt-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (typ && !uitgeschakeld) { onActie(typ); setEigen(""); } }}>

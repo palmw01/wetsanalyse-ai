@@ -136,16 +136,33 @@ class NepApi:
         self.rijen.setdefault(did, {"status": "in_behandeling", "fase": "kern", "open_punten": [], "revisie": 1, "geopend": 0})
         return await self.haal_bronselectie(werkgebied_id, na=did)
 
+    async def zoek_bepalingen(self, werkgebied_id, bwb_id, q):
+        """Zoals `GET …/bepalingen`: de vindplaats in de echte boom, met het begin van de tekst; 999 bestaat niet."""
+        self.aanroepen.append(("zoek", bwb_id, q))
+        artikel, _, lid = q.partition(" lid ")
+        if artikel == "999":
+            return {"bwb_id": bwb_id, "treffers": []}
+        iri = f"urn:bwb:{bwb_id}:artikel:{artikel}" + (f":lid:{lid}" if lid else "")
+        return {"bwb_id": bwb_id, "treffers": [{"bron_iri": iri, "soort": "lid" if lid else "artikel",
+                                                "vindplaats": f"Artikel {artikel}" + (f", lid {lid}" if lid else ""),
+                                                "titel": "", "fragment": f"Tekst van {q}."}]}
+
+    async def zoek_regelingen(self, werkgebied_id, q):
+        return [{"bwb_id": "BWBR0004770", "citeertitel": "Invorderingswet 1990"}]
+
+    async def voeg_bron_toe(self, werkgebied_id, bron):
+        self.aanroepen.append(("werkgebied", bron["bron_iri"], bron["rol"]))
+        assert bron["verwachte_revisie"] == self.revisie
+        self.revisie += 1
+        return {"selectie": {"label": bron["bron_iri"].rsplit(":artikel:", 1)[-1]}, "werkgebied": {"revisie": self.revisie}}
+
     async def voeg_bepaling_toe(self, werkgebied_id, did, bron):
-        """Zoals `POST …/bronselectie/{d}/bronnen`: 422 voor een artikel dat niet in de graaf staat."""
-        from agent.wetsanalyse_api import WetsanalyseApiFout
-        self.aanroepen.append(("toevoegen", did, bron.get("bwb_id"), bron.get("artikel"), bron.get("lid", ""), bron["rol"]))
-        if bron.get("artikel") == "999":
-            raise WetsanalyseApiFout("422", 422)
+        """Zoals `POST …/bronselectie/{d}/bronnen`, met de bron-IRI van een treffer."""
+        self.aanroepen.append(("toevoegen", did, bron["bron_iri"], bron["rol"]))
         assert bron["verwachte_revisie"] == self.revisie
         self.revisie += 1
         self.verouderd = True
-        sleutel = f"{bron['artikel']}" + (f":lid:{bron['lid']}" if bron.get("lid") else "")
+        sleutel = bron["bron_iri"].rsplit(":artikel:", 1)[-1]
         self.opgenomen.setdefault(did, {})[sleutel] = bron["rol"]
         self.rijen.setdefault(did, {"status": "in_behandeling", "fase": "kern", "open_punten": [], "revisie": 1, "geopend": 0})
         return await self.haal_bronselectie(werkgebied_id, na=did)
@@ -234,12 +251,17 @@ def test_vier_deelvragen_van_1_naar_2_springen_naar_4_en_hervatten():
     assert uit["kaart"]["deelvraag_id"] == "d2" and uit["kaart"]["weergave"] == "paneel"
     # Typen blijft kunnen: een eigen bepaling komt erbij, en het kaartje blijft tot *Klaar*.
     _paneel(api, "d2", "k2", "analyseren")
+    # Eerst de treffer met haar tekst, pas na het aanvinken toegevoegd; daarna het compacte kaartje weer.
     uit = _klik(api, uit["kaart"], tekst="artikel 10a lid 2")
+    treffers = uit["kaart"]
+    assert treffers["stap"] == "bs_toevoegen_treffers" and treffers["deelvraag_id"] == "d2"
+    assert treffers["opties"][0]["omschrijving"] == "‘Tekst van 10a lid 2.’" and not any(a[0] == "toevoegen" for a in api.aanroepen)
+    uit = _klik(api, treffers, *treffers["vooringevuld"])
     assert "k2" in api.opgenomen["d2"], "een getypte bepaling koppelt het paneelbesluit niet los"
     _run(api.besluit_bronselectie(WID, "d2", "k2", {"besluit": "loskoppelen",
                                                      "verwachte_revisie": _run(api.haal_bronselectie(WID))["revisie"]}))
-    assert ("toevoegen", "d2", "BWBR0004770", "10a", "2", "analyseren") in api.aanroepen
-    assert "Zelf toegevoegd: artikel 10a lid 2." in uit["zinnen"] and uit["kaart"]["stap"] == "bs_bepalingen"
+    assert ("toevoegen", "d2", "urn:bwb:BWBR0004770:artikel:10a:lid:2", "analyseren") in api.aanroepen
+    assert "Toegevoegd: 10a:lid:2." in uit["zinnen"] and uit["kaart"]["stap"] == "bs_bepalingen"
     uit = _klik(api, uit["kaart"], actie="klaar")
     # Wat bij *Klaar* onbeslist was, is niet gekozen.
     assert _run(api.haal_bronselectie(WID))["deelvragen"][1]["kandidaten"][0]["stand"] == "niet_gekozen"
@@ -424,10 +446,11 @@ def test_zelf_toevoegen_zonder_eenduidige_regeling_of_artikel_laat_het_kaartje_s
     k = _run(bs.start(api, WID, api.zoek, deelvraag_id="d1"))["kaart"]
     # Geen artikel in de tekst: het kaartje blijft, met een aanwijzing.
     uit = _klik(api, k, tekst="de bijzondere invorderbaarheid")
-    assert uit["kaart"]["stap"] == "bs_bepalingen" and "geen artikel" in " ".join(uit["zinnen"])
-    # Een artikel dat niet in de graaf staat: gemeld, het kaartje blijft.
+    assert uit["kaart"]["stap"] == "bs_toevoegen" and "geen artikel" in uit["kaart"]["toelichting"]
+    # Een artikel dat niet in de graaf staat: gemeld, en opnieuw de vraag.
     uit = _klik(api, k, tekst="artikel 999")
-    assert uit["kaart"]["stap"] == "bs_bepalingen" and "niet in de kennisgraaf" in " ".join(uit["zinnen"])
+    assert uit["kaart"]["stap"] == "bs_toevoegen" and "niet in de kennisgraaf" in uit["kaart"]["toelichting"]
+    assert not any(a[0] == "toevoegen" for a in api.aanroepen)
     # Twee regelingen in het werkgebied en geen genoemd: Lex vraagt welke.
     assert "Bij welke regeling" in bn.bepalingen_uit_tekst("artikel 9", lambda _t: [], ["BWBR0002320", "BWBR0004770"])
     assert bn.bepalingen_uit_tekst("artikel 9 lid 1 en 2 IW", lambda _t: ["BWBR0004770"], []) == [
@@ -629,3 +652,48 @@ def test_andere_zoekcode_zoekt_opnieuw_bij_het_hervatten():
     assert api.zoekopdrachten == 1
     _run(bs.start(api, WID, api.zoek))                       # nu dezelfde versie: niet nog eens
     assert api.zoekopdrachten == 1
+
+
+def test_voeg_een_bepaling_toe_vanuit_het_gesprek():
+    """*Voeg een bepaling toe* (4 nov 2026): het zoeken hoort bij het gesprek, niet bij het artefact. Zonder
+    deelvraag eerst bij welke, dan de bepaling, dan de treffers met tekst, en pas na het aanvinken toevoegen."""
+    api = NepApi(vragen=VRAGEN[:2], kandidaten=_kandidaten())
+    uit = _run(bs.vraag_toevoegen(api, WID))
+    k = _geldig(uit["kaart"])
+    assert k["stap"] == "bs_toevoegen" and [o["waarde"] for o in k["opties"]] == ["d1", "d2", bs.HEEL]
+    k = _klik(api, k, "d2")["kaart"]
+    assert k["stap"] == "bs_toevoegen" and k["deelvraag_id"] == "d2" and k["vrije_tekst"] and not k["opties"]
+    # "als context" kiest de rol; twee bepalingen in één tekst geven twee treffers.
+    k = _klik(api, k, tekst="artikel 9 lid 1 en 3 Invorderingswet als context")["kaart"]
+    assert k["stap"] == "bs_toevoegen_treffers" and k["meerkeuze"]
+    assert [o["label"] for o in k["opties"]] == ["Artikel 9, lid 1 – Invorderingswet 1990",
+                                                 "Artikel 9, lid 3 – Invorderingswet 1990"]
+    assert all(w.startswith("context|") for w in k["vooringevuld"])
+    uit = _klik(api, k, k["vooringevuld"][0])
+    assert api.opgenomen["d2"] == {"9:lid:1": "context"}
+    assert uit["zinnen"][0] == "Toegevoegd als contextbron: 9:lid:1." and uit["deelvraag"] == "d2"
+    # Er liep geen bronselectie, dus geen kaartje terug: het paneel opent op de deelvraag.
+    assert uit.get("kaart") is None
+    # Wat er al staat, is niet aangevinkt.
+    k = _klik(api, _run(bs.vraag_toevoegen(api, WID, "d2"))["kaart"], tekst="artikel 9 lid 1 IW")["kaart"]
+    assert k["vooringevuld"] == [] and k["opties"][0]["omschrijving"].startswith("Staat er al.")
+
+
+def test_een_bepaling_bij_het_hele_werkgebied_en_terug_naar_de_lopende_deelvraag():
+    api = NepApi(vragen=VRAGEN[:2], kandidaten=_kandidaten())
+    lopend = _run(bs.start(api, WID, api.zoek, deelvraag_id="d1"))["kaart"]
+    assert lopend["stap"] == "bs_bepalingen"
+    k = _run(bs.vraag_toevoegen(api, WID))["kaart"]
+    assert k["vooringevuld"] == ["d1"], "de deelvraag in behandeling staat voorop"
+    k = _klik(api, _klik(api, k, bs.HEEL)["kaart"], tekst="artikel 3 IW")["kaart"]
+    uit = _klik(api, k, *k["vooringevuld"])
+    assert ("werkgebied", "urn:bwb:BWBR0004770:artikel:3", "analyseren") in api.aanroepen
+    assert uit["kaart"]["stap"] == "bs_bepalingen" and uit["kaart"]["deelvraag_id"] == "d1"
+    assert "We gaan verder waar we waren." in uit["zinnen"]
+
+
+def test_bepaling_toevoegen_routeert_zonder_model():
+    r = ChatRequest(question="Voeg een bepaling toe", actie="bepaling_toevoegen", werkgebied_id="wg1")
+    assert r.actie == "bepaling_toevoegen"
+    from agent.models import BRONSELECTIE_ACTIES
+    assert "bepaling_toevoegen" in BRONSELECTIE_ACTIES

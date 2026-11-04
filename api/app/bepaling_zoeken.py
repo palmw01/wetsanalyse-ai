@@ -1,6 +1,6 @@
 """Een bepaling vinden zoals de jurist haar typt, binnen één regeling, uit de echte bronboom.
 
-Voor *Bepaling toevoegen* (één onderdeel in het gesprek en op de tab Bronnen): eerst een regeling kiezen, dan
+Voor *Bepaling toevoegen* (in het gesprek: graph-qa roept het aan voor het kaartje met de treffers): een regeling, dan
 een vindplaats typen – "9 lid 2", "art. 9, tweede lid", "21.1", "25.4 onderdeel b", "36 lid 5 sub a" – en live de
 bepalingen zien die er echt zijn, met het begin van hun tekst. Geen model en geen fulltext-index: de boom van de
 regeling (`bron_resolver.haal_bronrijen`, één query, gecachet per regeling) en een vaste lezing van de invoer.

@@ -131,7 +131,8 @@ class VraagOptie(BaseModel):
 IntakeStap = Literal["naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld", "thema",
                      "deelvragen", "buiten", "regelingen", "bepalingen", "samenvatting",
                      # De bronselectie per deelvraag (spoor J): dezelfde kaartjes, de stand staat bij de api.
-                     "bs_gebeurtenis", "bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder"]
+                     "bs_gebeurtenis", "bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder",
+                     "bs_toevoegen", "bs_toevoegen_treffers"]
 
 
 class IntakeDeel(BaseModel):

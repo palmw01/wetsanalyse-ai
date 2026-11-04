@@ -951,6 +951,14 @@ vraagkaarten: eerst, als die nog leeg is, de gebeurtenis (`bs_gebeurtenis`, zie 
 (`bs_afhankelijkheden`), afronden (`bs_afronden`) en *Hoe wil je verder?* (`bs_verder`). Een eigen worker
 onder de supervisor, naast de intake; zie `docs/architectuur/bronselectie-per-deelvraag.md`.
 
+- **Zelf een bepaling toevoegen gaat via het gesprek** (4 nov 2026): de actie `bepaling_toevoegen` (een suggestie
+  bij werkgebied en deelvraag, ook in `BRONSELECTIE_ACTIES`) en de getypte tekst op het compacte kaartje komen bij
+  dezelfde kaarten uit. `bs_toevoegen` vraagt zo nodig bij welke deelvraag (of `HEEL`, het werkgebied) en welke
+  bepaling; `bepaling_treffers` ontleedt de tekst (`bepalingen_uit_tekst`) en zoekt elke bepaling via de api in de
+  echte boom (`zoek_bepalingen`); `bs_toevoegen_treffers` toont ze met het begin van hun tekst (meerkeuze, waarde
+  `rol|bron_iri`; ‘als context’ in de tekst kiest de rol). Pas na het aanvinken voegt Lex toe, en liep er een
+  deelvraag, dan komt haar kaartje terug (`_lopend`, zonder zoekronde). Op het artefact staat geen zoekvenster.
+
 - **De stand staat bij de api, niet in de state** (`GET …/bronselectie`, api §*Bronselectie per deelvraag*):
   elke beurt leest hem vers. Hervatten (herladen, ander gesprek, collega) is dus `start` op de stand van nu;
   een tussenvraag raakt hem niet. De node schrijft niets in `State`.

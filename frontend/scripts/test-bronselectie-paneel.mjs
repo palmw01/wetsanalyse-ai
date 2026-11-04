@@ -8,7 +8,7 @@
  *  - in het paneel klap je een kandidaat open en lees je de wettekst, zonder de werkplek te verlaten;
  *  - *Opnemen* in het paneel verandert de telling op het kaartje (live);
  *  - *Klaar met deze deelvraag* in het paneel stuurt `actie: klaar` – zonder keuzes;
- *  - *+ Bepaling toevoegen* op het kaartje opent het venster met de deelvraag van het kaartje;
+ *  - geen eigen zoekvenster: een bepaling toevoegen gaat via het gesprek (typen op het kaartje, of de suggestie);
  *  - op een telefoon opent *Bronnen beoordelen* het paneel als sheet.
  */
 import assert from "node:assert/strict";
@@ -56,11 +56,18 @@ const kaartje = (stap, over = {}) => ({ intake_id: "bs-wg1", modus: "bronselecti
   beantwoord: false, weergave: "paneel", ...over });
 const AFRONDEN = kaartje("bs_afronden", { vraag: "Hoe rond je deelvraag 1 af?", weergave: undefined, samenvatting: {},
   opties: [{ label: "Voorlopig afronden", waarde: "afronden", bron: {}, omschrijving: "" }], vooringevuld: ["afronden"] });
+const TREFFERS = kaartje("bs_toevoegen_treffers", { vraag: "Dit vond ik. Toevoegen bij deelvraag 1?", weergave: undefined,
+  samenvatting: {}, meerkeuze: true, vrije_tekst: true, totaal: 1,
+  opties: [{ label: "Artikel 10 – Invorderingswet 1990", waarde: `analyseren|${A10}`, bron: {}, omschrijving: "‘In afwijking van artikel 9 …’" }],
+  vooringevuld: [`analyseren|${A10}`] });
 const artefact = { soort: "bronselectie", titel: "Bronselectie", ref: { werkgebied_id: "wg1", deelvraag_id: "d1" } };
 
 function beurt(body) {
   const a = body.intake_actie;
   if (!a) return { tekst: "We waren bij deelvraag 1.", k: kaartje("bs_bepalingen") };
+  // Een getypte bepaling: Lex toont eerst de treffer met haar tekst; na het aanvinken komt het kaartje terug.
+  if (a.stap === "bs_bepalingen" && a.actie === "antwoord" && a.tekst) return { tekst: "Ik vond 1 bepaling.", k: TREFFERS };
+  if (a.stap === "bs_toevoegen_treffers") return { tekst: "Toegevoegd: Artikel 10.", k: kaartje("bs_bepalingen") };
   if (a.stap === "bs_bepalingen" && a.actie === "klaar") {
     stand.fase = "afronden";
     return { tekst: "", k: AFRONDEN };
@@ -130,15 +137,13 @@ try {
   await kaart().getByRole("button", { name: /Bronnen beoordelen/ }).waitFor();
   // Annuleren kan: de bronselectie stilzetten, zoals op het gewone kaartje.
   assert.equal(await kaart().locator("[data-stil]").textContent(), "Zet de bronselectie stil");
-  // De opbouw van het kaartje: de nevenknoppen naast elkaar en even breed, Klaar daaronder rechts, uitgelijnd met
-  // de rechterkant van de nevenknoppen (en niet los op een eigen regel na een flex-wrap).
+  // De opbouw van het kaartje: de nevenknop over de volle breedte, Klaar daaronder rechts, uitgelijnd met de
+  // rechterkant van de nevenknop. Een losse knop *+ Bepaling toevoegen* is er niet meer (4 nov 2026).
   const beoordelen = await kaart().getByRole("button", { name: /Bronnen beoordelen/ }).boundingBox();
-  const toevoegen = await kaart().getByRole("button", { name: "+ Bepaling toevoegen" }).boundingBox();
   const klaar = await kaart().locator("[data-klaar]").boundingBox();
-  assert.ok(Math.abs(beoordelen.y - toevoegen.y) <= 1 && Math.abs(beoordelen.width - toevoegen.width) <= 1,
-    `nevenknoppen ${JSON.stringify([beoordelen, toevoegen])}`);
-  assert.ok(klaar.y > toevoegen.y + toevoegen.height, "Klaar staat onder de nevenknoppen");
-  assert.ok(Math.abs(klaar.x + klaar.width - (toevoegen.x + toevoegen.width)) <= 1, "Klaar sluit rechts aan");
+  assert.equal(await page.getByRole("button", { name: /Bepaling toevoegen/ }).count(), 0, "geen zoekknop naast het gesprek");
+  assert.ok(klaar.y > beoordelen.y + beoordelen.height, "Klaar staat onder de nevenknop");
+  assert.ok(Math.abs(klaar.x + klaar.width - (beoordelen.x + beoordelen.width)) <= 1, "Klaar sluit rechts aan");
 
   // Het paneel (vanaf 1280px open het vanzelf): de kandidaat openklappen en de tekst lezen, zonder weg te gaan.
   await paneel().waitFor();
@@ -153,17 +158,26 @@ try {
   await kaart().locator("[data-telling]").getByText("1 kandidaatbron", { exact: false }).waitFor();
   assert.deepEqual(besluiten.map((b) => [b.kid, b.besluit, b.rol]), [["K9", "opnemen", "analyseren"]]);
 
-  // + Bepaling toevoegen opent het venster met de deelvraag van het kaartje.
-  await kaart().getByRole("button", { name: "+ Bepaling toevoegen" }).click();
-  const venster = page.locator("[data-bepaling-toevoegen]");
-  await venster.waitFor();
-  await venster.getByRole("button", { name: "Annuleren" }).click();
-  await venster.waitFor({ state: "detached" });
+  // Een getypte bepaling gaat als antwoord op het kaartje naar Lex, die eerst de treffer met haar tekst toont; pas na
+  // het aanvinken voegt hij toe, en dan komt het kaartje terug. Er is geen venster.
+  await kaart().getByRole("textbox", { name: "Een bepaling typen" }).fill("artikel 10 Iw 1990");
+  await kaart().getByRole("button", { name: "Voeg toe" }).click();
+  await wacht(2);
+  assert.deepEqual([starts[1].intake_actie.stap, starts[1].intake_actie.actie, starts[1].intake_actie.tekst],
+    ["bs_bepalingen", "antwoord", "artikel 10 Iw 1990"]);
+  const dock = page.locator("[data-vraagdock=bs_toevoegen_treffers]");
+  await dock.getByText("In afwijking van artikel 9", { exact: false }).waitFor();
+  assert.equal(await page.locator("[data-bepaling-toevoegen]").count(), 0, "geen venster");
+  await foto("bepaling-via-gesprek");
+  await dock.getByRole("button", { name: /Verzend|Volgende/ }).last().click();
+  await wacht(3);
+  assert.deepEqual(starts[2].intake_actie.keuzes, [`analyseren|${A10}`]);
+  await kaart().waitFor();
 
   // Klaar in het paneel: actie klaar, zonder keuzes.
   await paneel().locator("[data-paneel-klaar]").click();
-  await wacht(2);
-  assert.deepEqual(starts[1].intake_actie, { intake_id: "bs-wg1", stap: "bs_bepalingen", actie: "klaar", deelvraag_id: "d1" });
+  await wacht(4);
+  assert.deepEqual(starts[3].intake_actie, { intake_id: "bs-wg1", stap: "bs_bepalingen", actie: "klaar", deelvraag_id: "d1" });
   await page.locator("[data-vraagdock=bs_afronden]").getByText("Hoe rond je deelvraag 1 af?").waitFor();
 
   // Een telefoon: Bronnen beoordelen opent het paneel als sheet.
@@ -172,14 +186,14 @@ try {
   await page.reload();
   await page.getByPlaceholder("Stel een vraag of geef een opdracht aan Lex…").fill("Verder met de bronselectie.");
   await page.getByRole("button", { name: "Versturen" }).click();
-  await wacht(3);
+  await wacht(5);
   await kaart().getByRole("button", { name: /Bronnen beoordelen/ }).click();
   await paneel().waitFor();
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
   await foto("bronselectie-paneel-mobiel");
 
   assert.deepEqual(errors, []);
-  console.log("Browser OK: compact kaartje zonder vinkjes, paneel met uitklapbare wettekst, opnemen werkt de telling live bij, Bepaling toevoegen vanaf het kaartje, Klaar in het paneel (actie klaar), het paneel als sheet op een telefoon.");
+  console.log("Browser OK: compact kaartje zonder vinkjes, paneel met uitklapbare wettekst, opnemen werkt de telling live bij, een getypte bepaling via Lex (geen venster), Klaar in het paneel (actie klaar), het paneel als sheet op een telefoon.");
 } finally {
   await browser.close();
 }

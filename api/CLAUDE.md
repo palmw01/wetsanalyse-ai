@@ -280,7 +280,8 @@ spoor D (*Werkgebied als node*).
   (+ `lid`)); de canonieke `bron_iri`, het label, `snapshot_id` en `bron_hash` worden bewaard.
   Dezelfde bron met dezelfde rol en hetzelfde bereik opnieuw toevoegen is idempotent (200, geen
   revisiesprong); met een andere rol of ander bereik 409.
-- **Bepaling toevoegen zoekt in de echte boom** (`bepaling_zoeken.py`, 3 nov 2026): `GET {id}/regelingen?q=` (die van
+- **Bepaling toevoegen zoekt in de echte boom** (`bepaling_zoeken.py`, 3 nov 2026; sinds 4 nov aangeroepen door
+  graph-qa, het kaartje `bs_toevoegen_treffers`): `GET {id}/regelingen?q=` (die van
   het werkgebied vooraan, dan citeertitel, afkorting of BWB-id; gecachet) en `GET {id}/bepalingen?bwb_id=&q=` leest
   een getypte vindplaats ("9 lid 2", "art. 9, tweede lid", "21.1", "25.4 onderdeel b", "36 lid 5 sub a"; `lees`) en
   zoekt hem in de bronboom van die regeling (`zoek`: precies, dan wat eronder hangt, dan artikelen die met het
