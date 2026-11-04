@@ -66,11 +66,22 @@ def bronselectie_node(b, state: State) -> dict[str, Any]:
             _stap(stuur, "Lex", "zoekt de gebeurtenis in de koppen van de regelingen")
             return gebeurtenis_opties(b.graph, regelingen=regelingen, dossier=werkgebied)
 
+        def toets(werkgebied: dict[str, Any], regelingen: list[str], woorden: list[str], voorwerp: bool) -> dict[str, Any]:
+            """De woordenkloof en het voorwerp (zonder model); zonder graaf niets."""
+            from ..zoekvragen import brugtermen, is_voorwerp, ontbrekende_woorden, regelingen_van_gebeurtenis
+            if b.graph is None:
+                return {}
+            gekozen = (werkgebied.get("gebeurtenis") or "").strip()
+            bereik = regelingen or (regelingen_van_gebeurtenis(b.graph, gekozen) if gekozen else [])
+            ontbrekend = ontbrekende_woorden(b.graph, woorden, bereik) if woorden else []
+            return {"voorwerp": bool(voorwerp and gekozen and is_voorwerp(b.graph, gekozen, regelingen)),
+                    "ontbrekend": ontbrekend, "brug": {w: brugtermen(werkgebied, w)[:5] for w in ontbrekend}}
+
         try:
             if actie:
-                return await bs.verwerk(api, actie, zoek, vind, stel_voor)
+                return await bs.verwerk(api, actie, zoek, vind, stel_voor, toets)
             return await bs.start(api, wid, zoek, vraag=state.get("question", ""), deelvraag_id=aangewezen,
-                                  stel_voor=stel_voor)
+                                  stel_voor=stel_voor, toets=toets)
         except WetsanalyseApiFout as fout:
             if fout.status == 412:
                 uit = await bs.start(api, wid, None)

@@ -30,6 +30,7 @@ en toont het kaartje dat daarbij hoort.
 from __future__ import annotations
 
 import re
+from contextvars import ContextVar
 from typing import Any, Awaitable, Callable
 
 ANALYSEVRAAG = "analysevraag"
@@ -45,6 +46,11 @@ SLOT = ("De bronselectie is beoordeeld binnen de vastgestelde afbakening en de b
 Zoek = Callable[[str], Awaitable[str]]
 #: De gebeurtenissen die Lex voorstelt bij een werkgebied en zijn regelingen (`zoekvragen.gebeurtenis_opties`).
 StelVoor = Callable[[dict[str, Any], list[str]], list[dict[str, Any]]]
+#: De woordenkloof en het voorwerp toetsen (`zoekvragen.ontbrekende_woorden`, `is_voorwerp`, `brugtermen`): het
+#: werkgebied, zijn regelingen, de woorden en of het voorwerp getoetst moet worden → `{voorwerp, ontbrekend, brug}`.
+Toets = Callable[[dict[str, Any], list[str], list[str], bool], dict[str, Any]]
+#: De toets van deze beurt: gezet door `start` en `verwerk`, gelezen waar Lex zegt dat hij niets vond.
+_TOETS: ContextVar[Toets | None] = ContextVar("bronselectie_toets", default=None)
 
 
 def intake_id(werkgebied_id: str) -> str:
@@ -135,7 +141,7 @@ def kaart_kies(werkgebied_id: str, ov: dict[str, Any]) -> dict[str, Any]:
 
 
 def kaart_gebeurtenis(werkgebied_id: str, ov: dict[str, Any], opties: list[dict[str, Any]],
-                     deelvraag_id: str = "") -> dict[str, Any]:
+                     deelvraag_id: str = "", voorwerp: bool = False) -> dict[str, Any]:
     """Om welke gebeurtenis gaat het? De opties uit de koppen van de regelingen, met de koppen als omschrijving;
     de huidige keuze (of anders de eerste) staat aangevinkt. Een eigen term mag; overslaan ook."""
     huidig = (ov.get("gebeurtenis") or "").strip()
@@ -146,6 +152,12 @@ def kaart_gebeurtenis(werkgebied_id: str, ov: dict[str, Any], opties: list[dict[
     toelichting = ("Ik zoek de bronnen vanaf de handeling zoals de wet haar noemt: eerst waar ze geregeld is, dan de "
                    "voorwaarden en de procedure, de gevolgen en de uitleg. De voorstellen komen uit de koppen van de "
                    "regelingen. Kies er één, of typ de term van de wet.")
+    if voorwerp and huidig:
+        onder = [o["gebeurtenis"] for o in opties if o.get("onder_voorwerp")][:3]
+        toelichting = (f"‘{huidig}’ staat in geen kop van de regelingen: het is vermoedelijk een voorwerp, geen "
+                       "handeling, en daarvan uit vind ik de bepalingen niet."
+                       + (f" De bepalingen waarin het staat, vallen onder: {', '.join(onder)}." if onder else "")
+                       + " Kies de handeling, of typ de term van de wet.")
     return {**_basis(werkgebied_id, "bs_gebeurtenis", None, ov), "nr": 1, "totaal": 1, "deelvraag_id": deelvraag_id,
             "vraag": "Om welke gebeurtenis gaat het?", "toelichting": toelichting, "opties": lijst,
             "vooringevuld": [huidig or lijst[0]["waarde"]] if lijst else [], "vrije_tekst": True, "overslaanbaar": True}
@@ -327,6 +339,9 @@ async def _toon_fase(api, wid: str, ov: dict, did: str, zoek: Zoek | None, zinne
             return {"kaart": k, "zinnen": zinnen}
         zinnen.append(f"Bij {_naam(d)} vond ik geen kernbepalingen" + (f" ({melding})" if melding else "") +
                       ". Je kunt er zelf een noemen; ik noteer het als onderzoekspunt.")
+        from .zoekvragen import termen_van_deelvraag
+        if d["id"] != ANALYSEVRAAG and (kloof := await _kloof(api, wid, ov, termen_van_deelvraag(d["vraag"]))):
+            zinnen.append(kloof)
         ov = await _fase(api, wid, ov, did, "afhankelijkheden")
         d = _dq(ov, did) or d
     if d["fase"] == "afhankelijkheden":
@@ -352,19 +367,47 @@ async def _vraag_gebeurtenis(api, wid: str, ov: dict[str, Any], stel_voor: StelV
         return None
     gevraagd = bool(_OM_GEBEURTENIS.search(vraag or ""))
     begonnen = any(d["status"] != "niet_gestart" for d in ov["deelvragen"])
-    if not gevraagd and ((ov.get("gebeurtenis") or "").strip() or begonnen):
+    gekozen = (ov.get("gebeurtenis") or "").strip()
+    toets = _TOETS.get()
+    if not gevraagd and (begonnen or gekozen) and not (gekozen and toets):
         return None
     wg = await api.haal_werkgebied(wid)
-    regelingen = list(dict.fromkeys([b["bwb_id"] for b in wg.get("bronnen") or [] if b.get("bwb_id")]
-                                    + regelingen_van(ov)))
-    opties = stel_voor(wg, regelingen)
-    if not opties and not (ov.get("gebeurtenis") or gevraagd):
+    regelingen = _regelingen(wg, ov)
+    # Een gekozen gebeurtenis die in geen kop staat ("bankrekening"): het kaartje opnieuw, ook als de analist al
+    # begon – de keten a–d vindt vanaf een voorwerp niets.
+    voorwerp = bool(gekozen and toets and toets(wg, regelingen, [], True).get("voorwerp"))
+    if not gevraagd and (begonnen or gekozen) and not voorwerp:
         return None
-    return kaart_gebeurtenis(wid, ov, opties, deelvraag_id)
+    opties = stel_voor(wg, regelingen)
+    if not opties and not (gekozen or gevraagd):
+        return None
+    return kaart_gebeurtenis(wid, ov, opties, deelvraag_id, voorwerp=voorwerp)
+
+
+def _regelingen(wg: dict[str, Any], ov: dict[str, Any]) -> list[str]:
+    return list(dict.fromkeys([b["bwb_id"] for b in wg.get("bronnen") or [] if b.get("bwb_id")] + regelingen_van(ov)))
+
+
+async def _kloof(api, wid: str, ov: dict[str, Any], woorden: list[str]) -> str:
+    """De zin over eigen woorden die in de regelingen niet voorkomen, met wat het dossier ernaast zet; leeg zonder
+    toets of zonder zulke woorden. "Rekeningafspraak" is een begrip uit de uitvoering: zeg dat, in plaats van alleen
+    "geen kernbepalingen"."""
+    toets = _TOETS.get()
+    if toets is None or not woorden:
+        return ""
+    wg = await api.haal_werkgebied(wid)
+    t = toets(wg, _regelingen(wg, ov), woorden, False)
+    zinnen = []
+    for w in t.get("ontbrekend") or []:
+        brug = (t.get("brug") or {}).get(w) or []
+        zinnen.append(f"‘{w}’ staat niet in de regelingen van dit werkgebied: vermoedelijk een begrip uit de uitvoering."
+                      + (f" In je dossier staat het naast {', '.join(brug)}; daarmee zoek ik." if brug else
+                         " Noem in het dossier welke woorden van de wet erbij horen."))
+    return " ".join(zinnen)
 
 
 async def start(api, wid: str, zoek: Zoek | None, vraag: str = "", deelvraag_id: str = "",
-                stel_voor: StelVoor | None = None) -> dict[str, Any]:
+                stel_voor: StelVoor | None = None, toets: Toets | None = None) -> dict[str, Any]:
     """Beginnen of hervatten: wat er ligt, en het kaartje waar de analist was. Een genoemde deelvraag
     ("deelvraag 4", of aangewezen in de werkplek) gaat voor.
 
@@ -373,6 +416,8 @@ async def start(api, wid: str, zoek: Zoek | None, vraag: str = "", deelvraag_id:
 
     Is het werkgebied veranderd sinds de laatste zoekopdracht (het dossier, de selectie), dan zoekt Lex eerst
     opnieuw: pas daarna weet de api welke afgeronde deelvraag er door de nieuwe voorstellen weer open staat."""
+    if toets is not None:
+        _TOETS.set(toets)
     ov = await api.haal_bronselectie(wid)
     if (kaart := await _vraag_gebeurtenis(api, wid, ov, stel_voor, vraag, deelvraag_id)) is not None:
         return {"kaart": kaart, "zinnen": [f"*{ov['naam']}*: voor we de bronnen zoeken, eerst de gebeurtenis."]}
@@ -394,6 +439,13 @@ async def start(api, wid: str, zoek: Zoek | None, vraag: str = "", deelvraag_id:
         zinnen.append(f"*{ov['naam']}* heeft geen deelvragen; we zoeken de bronnen bij de analysevraag.")
     zinnen.append("Per deelvraag zoek ik de kernbepalingen, dan wat eraan hangt, en dan rond je af. "
                   "Je kunt tussendoor alles vragen; de stand blijft bewaard.")
+    from .zoekvragen import termen_van_deelvraag
+    from .zoektermen import zoektermen as _woorden
+
+    eigen = _woorden(ov.get("naam") or "") + termen_van_deelvraag(ov.get("analysevraag") or "") + \
+        [w for d in vragen if d["id"] != ANALYSEVRAAG for w in termen_van_deelvraag(d["vraag"])]
+    if (kloof := await _kloof(api, wid, ov, eigen)):
+        zinnen.append(kloof)
     if melding:
         zinnen.append(f"Opnieuw zoeken lukte niet: {melding}.")
     if deelvraag_id and _dq(ov, deelvraag_id):
@@ -470,8 +522,11 @@ async def _kies_gebeurtenis(api, wid: str, ov: dict[str, Any], actie: dict[str, 
 
 
 async def verwerk(api, actie: dict[str, Any], zoek: Zoek | None,
-                  vind: Callable[[str], list[str]] | None = None, stel_voor: StelVoor | None = None) -> dict[str, Any]:
+                  vind: Callable[[str], list[str]] | None = None, stel_voor: StelVoor | None = None,
+                  toets: Toets | None = None) -> dict[str, Any]:
     """Een klik op een kaartje van de bronselectie. Geeft `{kaart?, zinnen, artefact_deelvraag?}`."""
+    if toets is not None:
+        _TOETS.set(toets)
     wid = werkgebied_van(str(actie.get("intake_id", "")))
     stap = actie.get("stap", "")
     keuzes = [str(x) for x in actie.get("keuzes") or []]

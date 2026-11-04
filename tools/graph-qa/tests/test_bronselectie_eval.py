@@ -171,7 +171,7 @@ def test_de_pool_van_de_zoekvragen_op_de_ontwikkelsets(naam, pool, recall_nodig,
 
 
 @pytest.mark.parametrize("naam, oud, nieuw", [
-    ("kwijtschelding-concept", 0.095, (0.25, 0.286, 0.188, 0)),
+    ("kwijtschelding-concept", 0.095, (0.292, 0.333, 0.219, 0)),     # PR 6: de brugtermen (0,29 → 0,33)
     ("bestuurdersaansprakelijkheid-concept", 0.222, (0.409, 0.444, 0.219, 0)),
     ("bezwaar-ontvankelijkheid-concept", 0.533, (0.368, 0.4, 0.188, 0)),
     ("invorderbaarheid-deelvragen-concept", 0.364, (0.333, 0.455, 0.188, 0)),

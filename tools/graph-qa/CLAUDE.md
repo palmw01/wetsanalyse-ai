@@ -1018,6 +1018,16 @@ onder de supervisor, naast de intake; zie `docs/architectuur/bronselectie-per-de
     (`regelingen_van_gebeurtenis`), niet de hele graaf. Een uitsluitstam die in de helft van de omgeving staat, telt
     niet ("belastin"). Recall nodig per deelvraag (eval-route `zoekvragen (PR 5)`): 0,10 → 0,29, 0,22 → 0,44,
     0,36 → 0,46, bezwaar 0,53 → 0,40.
+  - **De woordenkloof** (PR 6): staat een woord van de deelvraag in geen kandidaat ("rekeningafspraak"), dan zoeken
+    de woorden die het dossier er in dezelfde zin naast zet in zijn plaats (`brugtermen`, samen zo zwaar als één
+    woord). `gebeurtenis_opties` weegt de dossiervelden (`VELDGEWICHT`: de gekozen gebeurtenis 3, naam en
+    analysevraag 2, het praktijkvoorbeeld 0,5); staat de gekozen gebeurtenis in geen kop (een voorwerp,
+    "bankrekening"), dan gaan de handelingen voor waaronder de bepalingen met het woord vallen (`onder_voorwerp`).
+    `genoemd_in` eist bij een woordgroep elk inhoudswoord ("uitvoeren" noemt "uitvoering overheidsvordering" niet).
+    In het gesprek (`bronselectie`, via de `toets` van de node en de `ContextVar` `_TOETS`): een eigen woord dat in
+    geen regeling staat (`ontbrekende_woorden`) noemt Lex bij de start en bij een deelvraag zonder kernbepalingen,
+    met de brugtermen; een voorwerp als gebeurtenis (`is_voorwerp`) laat het gebeurteniskaartje terugkomen, ook na
+    het begin.
   - Meten: `uv run python -m eval.bronselectie_eval --zoekvragen --set <set>` (de plek van de gebeurtenis van de set,
     met en zonder naam, en de recall van de grondslag op `zoekvraag: a`). Ontwikkelset kwijtschelding: plek 1 / 3,
     recall 0,67, precisie 0,25. Een brede gebeurtenis ("aansprakelijkheid") vult de grondslag met een heel

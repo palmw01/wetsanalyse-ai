@@ -264,7 +264,7 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
         <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
           <button type="button" disabled={uitgeschakeld} onClick={() => stuur({ ...basis, actie: "afbreken" })}
             className="focus-ring self-center rounded text-xs text-muted underline-offset-2 hover:underline disabled:opacity-50 sm:mr-auto sm:self-auto">
-            {aanvullen ? "Stop met aanvullen" : "Stop met samenstellen"}
+            {aanvullen ? "Stop met aanvullen" : kaart.modus === "bronselectie" ? "Zet de bronselectie stil" : "Stop met samenstellen"}
           </button>
           <div className="flex gap-2 sm:justify-end">
             {kaart.overslaanbaar && (

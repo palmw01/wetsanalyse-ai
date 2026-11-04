@@ -47,8 +47,9 @@ bs_kies ──► bs_bepalingen (fase A/B: kern) ──► bs_afhankelijkheden (
 ## Statussen
 
 - `niet_gestart` (geen rij) → `in_behandeling` (openen, of het eerste besluit) → `voorlopig_afgerond` (de
-  analist sluit af; open punten mogen) → `beoordeeld` (alleen door een poort: de vragen zijn doorlopen en er
-  staat geen onderzoekspunt open). `heropenen` gaat terug naar `in_behandeling`.
+  analist sluit af; open punten mogen) → `beoordeeld` (alleen door een poort: de vragen zijn doorlopen, er
+  staat geen onderzoekspunt open en er is een bron opgenomen – een deelvraag zonder bron is nog open, volgens de
+  dekkingsregel van de skill; sinds 4 nov 2026). `heropenen` gaat terug naar `in_behandeling`.
 - Los daarvan staan de deelvraagstatus (`actief`, `vervangen`, …) en de dekkingscheck (`met_bron`, `geen_bron`;
   sinds spoor K zonder begrippen: die horen bij het werkgebied). Die worden niet vermengd. De rijen van de
   deelvragen in de werkplek tonen de voortgang hierboven, met het aantal bronnen.

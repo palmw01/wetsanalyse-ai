@@ -177,16 +177,20 @@ async def test_beoordeeld_alleen_door_de_poort_en_een_dubbele_klik_is_geen_confl
     rev = _dq(ov, ids[0])["revisie"]
     await _status(client, wg, ids[0], "afronden", verwacht=422)                 # zonder revisie
     r = await _status(client, wg, ids[0], "beoordelen", verwacht=409, verwachte_revisie=rev)
-    assert r["detail"]["fout"] == "poort" and r["detail"]["redenen"] == ["De vragen bij deze deelvraag zijn nog niet doorlopen."]
+    assert r["detail"]["fout"] == "poort" and r["detail"]["redenen"] == [
+        "De vragen bij deze deelvraag zijn nog niet doorlopen.", "Er is nog geen bron opgenomen bij deze deelvraag."]
+    # Zonder bron om te analyseren is een deelvraag nog open (dekking): eerst opnemen.
+    ov = await _overzicht(client, wg)
+    ov = await _besluit(client, wg, ids[0], _kid(_dq(ov, ids[0]), ART)["id"], "opnemen", verwachte_revisie=ov["revisie"])
+    rev = _dq(ov, ids[0])["revisie"]
     # Voorlopig afronden mag met open punten; een tweede klik met de oude revisie is geen 412.
     punten = [{"tekst": "Bijzondere invorderbaarheid nog niet onderzocht."}]
     ov = await _status(client, wg, ids[0], "afronden", verwachte_revisie=rev, open_punten=punten)
     assert _dq(ov, ids[0])["status"] == "voorlopig_afgerond" and _dq(ov, ids[0])["open_punten"] == punten
     ov = await _status(client, wg, ids[0], "afronden", verwachte_revisie=rev, open_punten=punten)
     rev = _dq(ov, ids[0])["revisie"]
-    assert rev == 2
-    # Een voorstel dat niet gekozen is, houdt het beoordelen niet tegen; een onderzoekspunt wel.
-    assert _kid(_dq(ov, ids[0]), ART)["stand"] == "niet_gekozen"
+    # Een opgenomen bron en geen onderzoekspunt: dan pas beoordeeld.
+    assert _kid(_dq(ov, ids[0]), ART)["stand"] == "opgenomen"
     await _besluit(client, wg, ids[0], _kid(_dq(ov, ids[0]), ART)["id"], "later", verwacht=422)    # bestaat niet meer
     r = await _status(client, wg, ids[0], "beoordelen", verwacht=409, verwachte_revisie=rev)
     assert r["detail"]["redenen"] == ["Er staan nog onderzoekspunten open."]
