@@ -128,6 +128,15 @@ try {
   await kaart().locator("[data-telling]").getByText("Kernbepalingen · 2 kandidaatbronnen").waitFor();
   assert.equal(await kaart().getByRole("option").count(), 0, "geen vinkjes in het gesprek");
   await kaart().getByRole("button", { name: /Bronnen beoordelen/ }).waitFor();
+  // De opbouw van het kaartje: de nevenknoppen naast elkaar en even breed, Klaar daaronder rechts, uitgelijnd met
+  // de rechterkant van de nevenknoppen (en niet los op een eigen regel na een flex-wrap).
+  const beoordelen = await kaart().getByRole("button", { name: /Bronnen beoordelen/ }).boundingBox();
+  const toevoegen = await kaart().getByRole("button", { name: "+ Bepaling toevoegen" }).boundingBox();
+  const klaar = await kaart().locator("[data-klaar]").boundingBox();
+  assert.ok(Math.abs(beoordelen.y - toevoegen.y) <= 1 && Math.abs(beoordelen.width - toevoegen.width) <= 1,
+    `nevenknoppen ${JSON.stringify([beoordelen, toevoegen])}`);
+  assert.ok(klaar.y > toevoegen.y + toevoegen.height, "Klaar staat onder de nevenknoppen");
+  assert.ok(Math.abs(klaar.x + klaar.width - (toevoegen.x + toevoegen.width)) <= 1, "Klaar sluit rechts aan");
 
   // Het paneel (vanaf 1280px open het vanzelf): de kandidaat openklappen en de tekst lezen, zonder weg te gaan.
   await paneel().waitFor();
