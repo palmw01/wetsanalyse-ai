@@ -103,7 +103,7 @@ describe("contract met graph-qa", () => {
     const intake = [...(models.match(/^INTAKE_ACTIES = \((.*?)\)/m)?.[1] ?? "").matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
     expect(intake).toEqual(["dossier_aanvullen"]);
     const bronselectie = [...(models.match(/^BRONSELECTIE_ACTIES = \((.*?)\)/m)?.[1] ?? "").matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
-    expect(bronselectie).toEqual(["bronselectie"]);
+    expect(bronselectie).toEqual(["bronselectie", "bronnen_zoeken"]);
     expect([...taken, ...intake, ...bronselectie].sort()).toEqual([...ACTIES].sort());
     const actie = models.match(/^Actie = Literal\[(.*?)\]/ms)?.[1] ?? "";
     expect([...actie.matchAll(/"([a-z_]+)"/g)].map((m) => m[1]).sort()).toEqual([...ACTIES].sort());

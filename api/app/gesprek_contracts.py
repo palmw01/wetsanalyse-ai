@@ -109,6 +109,9 @@ def _zonder_lege_deelvraag(self, handler):
     data = handler(self)
     if isinstance(data, dict) and not data.get("deelvraag_id"):
         data.pop("deelvraag_id", None)
+    # Zo ook de standaardweergave (`kaart`): alleen het compacte kaartje van de bronselectie draagt `weergave`.
+    if isinstance(data, dict) and data.get("weergave") == "kaart":
+        data.pop("weergave", None)
     return data
 
 
@@ -174,6 +177,9 @@ class Vraagkaart(BaseModel):
     overslaanbaar: bool = True
     vooringevuld: list[str] = Field(default_factory=list, max_length=20)
     samenvatting: dict = {}
+    # `paneel` (bronselectie, 3 nov 2026): een compact kaartje dat naar het paneel verwijst; beslissen gebeurt
+    # daar, en *Klaar* (`actie: klaar`) gaat verder. `samenvatting` draagt dan `{kandidaten, opgenomen}`.
+    weergave: Literal["kaart", "paneel"] = "kaart"
     # Bladeren zoals bij Claude (‹ n van 5 ›): `terug` = er is een eerdere stap, `beantwoord` = deze stap
     # had al een antwoord (na terugbladeren), dus › mag.
     terug: bool = False
@@ -196,7 +202,7 @@ class IntakeAntwoord(BaseModel):
     intake_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
     stap: IntakeStap
     deel: int | None = Field(default=None, ge=0, le=19)
-    actie: Literal["antwoord", "overslaan", "wijzig", "aanmaken", "opslaan", "afbreken"] = "antwoord"
+    actie: Literal["antwoord", "overslaan", "wijzig", "aanmaken", "opslaan", "afbreken", "klaar"] = "antwoord"
     deelvraag_id: str = Field(default="", pattern=r"^[A-Za-z0-9-]{0,64}$")
 
     _serialiseer = model_serializer(mode="wrap")(_zonder_lege_deelvraag)

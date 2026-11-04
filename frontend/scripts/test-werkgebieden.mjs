@@ -148,6 +148,24 @@ await page.route("**/api/**", async (route) => {
     ] } });
   if (p === "/api/werkgebieden/wg1/audit") return route.fulfill({ json: { audit } });
   if (p === "/api/werkgebieden/wg1/begrippen") return route.fulfill({ json: { kader_iri: "urn:wa:kader:wg1", begrippen: [], primair: {} } });
+  // Bepaling toevoegen (3 nov 2026): regelingen en vindplaatsen uit de boom. De wettekst van de keuze is hier niet
+  // gemockt: het voorbeeld valt dan terug op het begin van de tekst uit de treffer.
+  if (p === "/api/werkgebieden/wg1/regelingen") {
+    const q = (url.searchParams.get("q") ?? "").toLowerCase();
+    const alle = [{ bwb_id: "BWBR0004770", citeertitel: "Invorderingswet 1990", soort: "wet" },
+      { bwb_id: "BWBR0002320", citeertitel: "Algemene wet inzake rijksbelastingen", soort: "wet" }];
+    return route.fulfill({ json: { regelingen: q ? alle.filter((r) => r.citeertitel.toLowerCase().includes(q)) : [] } });
+  }
+  if (p === "/api/werkgebieden/wg1/bepalingen") {
+    const bwb = url.searchParams.get("bwb_id"), q = url.searchParams.get("q") ?? "";
+    const boom = { BWBR0004770: [{ bron_iri: IRI9, soort: "artikel", vindplaats: "Artikel 9", titel: "", fragment: "Een belastingaanslag is invorderbaar …" },
+      { bron_iri: IRI10, soort: "artikel", vindplaats: "Artikel 10", titel: "", fragment: "In afwijking van artikel 9 …" }],
+      BWBR0002320: [{ bron_iri: IRI3, soort: "artikel", vindplaats: "Artikel 3", titel: "", fragment: "Dit artikel …" }] }[bwb] ?? [];
+    const nr = q.replace(/\D+/g, " ").trim().split(" ")[0];
+    const lid = /lid\s+(\d+)/.exec(q)?.[1] ?? "";
+    return route.fulfill({ json: { bwb_id: bwb, gelezen: { artikel: nr, lid, onderdeel: "", tekst: nr ? "" : q },
+      treffers: lid ? [] : boom.filter((t) => t.vindplaats === `Artikel ${nr}`) } });
+  }
   if (p === "/api/annotatie/v2/samenhang") return route.fulfill({ json: samenhang(url.searchParams.get("bron_iri")) });
   if (p === "/api/annotatie/v2/samenhang/meer")
     return route.fulfill({ json: { resultaten: url.searchParams.getAll("bron_iri").map(samenhang), fouten: [] } });
@@ -201,48 +219,53 @@ try {
   await page.waitForURL("**/werkgebieden/wg1/bronnen");
   await page.getByText("Nog geen bronnen. Neem een bepaling op", { exact: false }).waitFor();
 
-  // Opnemen gaat in een venster. Een ongeldige regeling komt niet bij de api; een geldige wel, met de
-  // revisie in beeld.
-  const opnemen = async () => {
-    if (!(await page.getByLabel("Regeling of bron-IRI").isVisible().catch(() => false)))
-      await page.getByRole("button", { name: "Bepaling opnemen" }).click();
+  // Bepaling toevoegen gaat in een venster (3 nov 2026): eerst een regeling, dan een vindplaats met treffers uit de
+  // boom; *Toevoegen* staat uit tot er een treffer gekozen is, dus vrije tekst komt nooit bij de api.
+  const venster = page.locator("[data-bepaling-toevoegen]");
+  const kiesBepaling = async (regeling, vindplaats, treffer) => {
+    if (!(await venster.isVisible().catch(() => false))) await page.getByRole("button", { name: "Bepaling toevoegen" }).click();
+    await venster.getByRole("combobox", { name: "Regeling" }).fill(regeling);
+    await venster.getByRole("option").filter({ hasText: regeling }).first().click();
+    await venster.getByRole("combobox", { name: "Vindplaats" }).fill(vindplaats);
+    if (treffer) await venster.getByRole("option", { name: treffer }).click();
   };
-  await opnemen();
-  await page.getByLabel("Regeling of bron-IRI").fill("Invorderingswet");
-  await page.getByLabel("Artikel", { exact: true }).fill("9");
-  await page.getByRole("button", { name: "Opnemen", exact: true }).click();
-  await melding("Regeling: geef een BWB-id");
-  assert.equal(requests.filter((r) => r.p.endsWith("/bronnen")).length, 0);
-  await page.getByLabel("Regeling of bron-IRI").fill("bwbr0004770");
-  await page.getByLabel("Artikel", { exact: true }).fill("artikel 9");
-  await page.getByRole("button", { name: "Opnemen", exact: true }).click();
+  await kiesBepaling("Invorderingswet", "9 lid 7");
+  await venster.locator("[data-vindplaats-leeg]").getByText("Artikel 9, lid 7 staat niet in Invorderingswet 1990", { exact: false }).waitFor();
+  assert.equal(await venster.getByRole("button", { name: "Toevoegen", exact: true }).isDisabled(), true);
+  assert.equal(requests.filter((r) => r.p.endsWith("/bronnen") && r.m === "POST").length, 0);
+  // Met het toetsenbord: pijltje omlaag en Enter kiezen de treffer; de wettekst staat eronder.
+  await venster.getByRole("combobox", { name: "Vindplaats" }).fill("artikel 9");
+  await venster.getByRole("option", { name: /Artikel 9/ }).waitFor();
+  await venster.getByRole("combobox", { name: "Vindplaats" }).press("ArrowDown");
+  await venster.getByRole("combobox", { name: "Vindplaats" }).press("Enter");
+  await venster.locator(`[data-bepaling-voorbeeld="${IRI9}"]`).getByText("Een belastingaanslag is invorderbaar", { exact: false }).waitFor();
+  await foto("bepaling-toevoegen");
+  await venster.getByRole("button", { name: "Toevoegen", exact: true }).click();
+  await melding("Artikel 9 is opgenomen in het werkgebied.");
   // Spoor K: de rij noemt de bepaling als titel en de regeling eronder (de mock-up), per deelvraag gegroepeerd.
   const rij9 = page.locator("[data-bron]").filter({ hasText: "Invorderingswet 1990" }).getByRole("link", { name: /^artikel 9/ });
   await rij9.waitFor();
   const eerste = requests.find((r) => r.p.endsWith("/bronnen") && r.m === "POST").body;
-  assert.deepEqual([eerste.bwb_id, eerste.artikel, eerste.verwachte_revisie, eerste.rol, eerste.bereik],
-    ["BWBR0004770", "9", 1, "analyseren", "onderliggend"]);
+  assert.deepEqual([eerste.bron_iri, eerste.verwachte_revisie, eerste.rol, eerste.bereik],
+    [IRI9, 1, "analyseren", "onderliggend"]);
   // De rij gaat naar de pagina van de bepaling (spoor G3), met het werkgebied als context; geen IRI in beeld.
   assert.equal(await rij9.getAttribute("href"), `/bronnen?bron_iri=${encodeURIComponent(IRI9)}&werkgebied=wg1`);
   assert.equal(await page.locator("[data-bronnen-register]").getByText(IRI9).count(), 0, "geen IRI in de rij");
 
   // Dezelfde bron nog eens: idempotent, en dat staat er.
-  await opnemen();
-  await page.getByLabel("Regeling of bron-IRI").fill("BWBR0004770");
-  await page.getByLabel("Artikel", { exact: true }).fill("9");
-  await page.getByRole("button", { name: "Opnemen", exact: true }).click();
+  await kiesBepaling("Invorderingswet", "9", /Artikel 9/);
+  await venster.getByRole("button", { name: "Toevoegen", exact: true }).click();
   await melding("stond er al in");
-  // Een bepaling die de graaf niet kent: de reden van de api staat bij het formulier.
-  await opnemen();
-  await page.getByLabel("Regeling of bron-IRI").fill("BWBR0000001");
-  await page.getByLabel("Artikel", { exact: true }).fill("1");
-  await page.getByRole("button", { name: "Opnemen", exact: true }).click();
-  await melding("Bepaling niet gevonden in de graaf.");
-  // Een contextbron.
-  await page.getByLabel("Regeling of bron-IRI").fill("BWBR0002320");
-  await page.getByLabel("Artikel", { exact: true }).fill("3");
-  await page.getByLabel("Contextbron", { exact: false }).check();
-  await page.getByRole("button", { name: "Opnemen", exact: true }).click();
+  // Dezelfde bron met een andere rol: de api weigert (409), en dat staat bij het formulier.
+  await kiesBepaling("Invorderingswet", "9", /Artikel 9/);
+  await venster.getByLabel("Context", { exact: false }).check();
+  await venster.getByRole("button", { name: "Toevoegen", exact: true }).click();
+  await venster.locator("[data-toevoeg-fout=al_opgenomen]").waitFor();
+  await venster.getByRole("button", { name: "Annuleren" }).click();
+  // Een contextbron in een andere regeling.
+  await kiesBepaling("Algemene wet", "3", /Artikel 3/);
+  await venster.getByLabel("Context", { exact: false }).check();
+  await venster.getByRole("button", { name: "Toevoegen", exact: true }).click();
   await page.locator("[data-bron]").filter({ hasText: "Algemene wet inzake rijksbelastingen" }).getByRole("link", { name: /^artikel 3/ }).waitFor();
   await tab("Bronnen (2)").waitFor();
   await page.locator("[data-peildatum='2026-03-01']").getByText("Peildatum 01-03-2026").waitFor();

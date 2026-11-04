@@ -98,6 +98,24 @@ async def niet_gevonden(werkgebied_id: str, begrip_id: str | None = None) -> HTT
     return HTTPException(404, "Begrip bestaat niet." if begrip_id else "Werkgebied bestaat niet.")
 
 
+async def werkgebied_rij(conn, werkgebied_id: str, *, slot: bool = False):
+    """De rij van een bestaand werkgebied (404 als het er niet is), met `slot` onder het rij-slot: het slot dat de
+    schrijfpaden zonder revisie delen (bronnenruns, besluiten over kandidaten, de voortgang per deelvraag)."""
+    t = db.werkgebieden
+    q = select(t).where(t.c.id == werkgebied_id)
+    row = (await conn.execute(q.with_for_update() if slot else q)).first()
+    if row is None or row.gearchiveerd is not None:
+        raise HTTPException(404, "Werkgebied bestaat niet.")
+    return row
+
+
+async def actieve_bron_iris(conn, werkgebied_id: str) -> set[str]:
+    """De bepalingen die nu in de selectie staan (niet verwijderd)."""
+    s = db.werkgebied_bronselecties
+    return set((await conn.execute(select(s.c.bron_iri).where(
+        s.c.werkgebied_id == werkgebied_id, s.c.verwijderd.is_(None)))).scalars())
+
+
 @asynccontextmanager
 async def _gewijzigd(werkgebied_id: str, verwacht: int, actor: str, actie: str, detail: dict):
     """Rij-lock, revisietoets, revisie +1 en een auditregel: het gemeenschappelijke schrijfpad."""

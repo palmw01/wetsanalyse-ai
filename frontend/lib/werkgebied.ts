@@ -9,7 +9,6 @@ import { jasVolgorde, klasseLabel } from "./jas";
 import type {
   BronBereik,
   BronRol,
-  BronselectieInvoer,
   Toestanden,
   InventarisElement,
   InventarisSelectie,
@@ -90,7 +89,7 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   }
   // `verdieping` (fase C) is alleen lezen; de batches en de uitkomst zet graph-qa, niet de werkplek.
   if (deel === "elementen" || deel === "audit" || deel === "annotatie-werkvoorraad" || deel === "verdieping"
-      || deel === "herbeoordelingen" || deel === "thema-voorstel" || deel === "toestanden")
+      || deel === "herbeoordelingen" || deel === "thema-voorstel" || deel === "toestanden" || deel === "regelingen" || deel === "bepalingen")
     return pad.length === 2;
   // Relaties (fase F2): lezen en vastleggen, één relatie weghalen of bevestigen, een voorstel afwijzen.
   if (deel === "relaties") {
@@ -113,7 +112,8 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   // over één kandidaat bij één deelvraag. Dezelfde routes gebruikt Lex in het gesprek.
   if (deel === "bronselectie") {
     if (pad.length === 2) return true;
-    if (pad.length === 4) return !!a && b === "status";
+    // Een bepaling zelf toevoegen bij één deelvraag (*Bepaling toevoegen*, 3 nov 2026).
+    if (pad.length === 4) return !!a && (b === "status" || b === "bronnen");
     return pad.length === 5 && !!a && b === "kandidaten" && !!c;
   }
   // De bronverkenner leest alleen (spoor J): kiezen gaat per deelvraag, via `bronselectie`.
@@ -137,32 +137,6 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   if (pad.length === 4)
     return ["koppelingen", "accorderen", "heropenen", "revisies", "nieuwe-betekenis", "combineren"].includes(b);
   return b === "koppelingen" && !!c;                                  // één koppeling
-}
-
-const BWB_ID = /^BWB[RV]\d{7}$/;
-
-/** Wat de analist intypt om een bepaling op te nemen, als api-invoer – of een leesbare fout.
- *
- *  Twee wegen: een graaf-IRI (`urn:bwb:…`, zoals de inspector van de graaf hem toont), of regeling +
- *  artikel (+ lid). "artikel 9" en "art. 9" worden "9", "lid 2" wordt "2"; de api verifieert de
- *  bepaling daarna tegen de graaf, dus hier alleen wat zonder graaf te zeggen is. */
-export function bronInvoer(velden: {
-  regeling: string;
-  artikel: string;
-  lid: string;
-}): { invoer: Omit<BronselectieInvoer, "verwachte_revisie"> } | { fout: string } {
-  const regeling = velden.regeling.trim();
-  if (regeling.toLowerCase().startsWith("urn:bwb:")) {
-    if (velden.artikel.trim() || velden.lid.trim())
-      return { fout: "Geef een bron-IRI óf regeling met artikel, niet allebei." };
-    return { invoer: { bron_iri: regeling } };
-  }
-  const bwbId = regeling.toUpperCase();
-  if (!BWB_ID.test(bwbId)) return { fout: "Regeling: geef een BWB-id (bijvoorbeeld BWBR0004770) of een bron-IRI." };
-  const artikel = velden.artikel.trim().replace(/^(artikel|art\.?)\s*/i, "");
-  if (!artikel) return { fout: "Geef het artikelnummer." };
-  const lid = velden.lid.trim().replace(/^lid\s*/i, "");
-  return { invoer: { bwb_id: bwbId, artikel, ...(lid ? { lid } : {}) } };
 }
 
 export interface SelectieGroep {

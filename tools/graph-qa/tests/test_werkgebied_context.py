@@ -5,7 +5,8 @@ from __future__ import annotations
 import asyncio
 
 from agent import deelvragen
-from agent.werkgebied_context import als_blok, context_tekst, uitsluitstammen, valt_buiten
+from agent.werkgebied_context import als_blok, context_tekst
+from agent.zoektermen import uitsluitstammen, valt_buiten
 from fakes import FakeGraph, FakeLLM, make_settings, response, text_block
 
 WG = {"naam": "Box 3", "aanleiding": "Een wetswijziging raakt een bestaand proces.", "context": "",

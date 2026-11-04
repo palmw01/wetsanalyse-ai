@@ -119,7 +119,7 @@ async def graaf(bwbs: list[str] | None = None) -> dict:
         nodes = deel["nodes"]
         alle_nodes.update(nodes)
         for node in sorted(nodes.values(), key=lambda n: n.get("volgorde", 0)):
-            knoop = bronknoop(node).model_copy(update={"tekst": ""})
+            knoop = bronknoop(node, nodes=nodes).model_copy(update={"tekst": ""})
             if node.get("type") == "Regeling":
                 knoop = knoop.model_copy(update={"label": r.get("citeertitel") or deel["citeertitel"] or knoop.label})
             knopen[node["bron_iri"]] = knoop

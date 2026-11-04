@@ -226,18 +226,18 @@ export function HistoriePagina() {
   );
 }
 
-/** De bepalingen die Lex voorstelde (fase A), om te beoordelen: opnemen, later of uitsluiten. */
+/** De bepalingen die Lex vond (fase A), om rond te kijken; kiezen gaat per deelvraag, in de bronselectie. */
 export function BronVoorstellenPagina() {
-  const { wg, laad } = useWerkgebied();
+  const { wg } = useWerkgebied();
   const labels = useMemo(() => new Map(wg.bronnen.map((b) => [b.bron_iri, b.label || b.bron_iri])), [wg.bronnen]);
   return (
     <div data-bronvoorstellen-pagina>
       <PaginaKop
         kruimels={[...basisKruimels(wg), { label: "Bronnen", href: projectPad(wg.id, "bronnen") }, { label: "Voorstellen van Lex" }]}
         titel="Bepalingen voorgesteld door Lex"
-        sub="Wat Lex vond toen je hem in het gesprek liet zoeken. Opnemen maakt een bronselectie met de rol die je kiest."
+        sub="Wat Lex vond bij de laatste zoekopdracht, met het bewijs. Kiezen doe je per deelvraag, in de bronselectie."
         acties={bespreek(wg)} />
-      <Kaart><BronKandidaten id={wg.id} labels={labels} onGewijzigd={() => void laad()} /></Kaart>
+      <Kaart><BronKandidaten id={wg.id} labels={labels} /></Kaart>
       <p className="mt-3 text-xs text-muted">
         {ROL_LABEL.analyseren}: telt mee in de werkvoorraad · {ROL_LABEL.context}: ondersteunt de analyse.
       </p>

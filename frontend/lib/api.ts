@@ -19,6 +19,8 @@ import type { BegrippenOverzicht } from "./begrippenOverzicht";
 import type {
   ThemaVoorstel,
   Toestanden,
+  RegelingTreffer,
+  BepalingZoekAntwoord,
   ApiError,
   ApiTokenCreated,
   ApiTokenOut,
@@ -1464,6 +1466,31 @@ export async function besluitBronselectie(id: string, deelvraagId: string, kandi
     jsonInit("POST", besluit))));
   if (!o) throw { status: 502, message: "De bronselectie kwam in een onverwachte vorm terug." };
   return o;
+}
+
+/** Een bepaling zelf toevoegen bij één deelvraag (of `analysevraag`): opgenomen in het werkgebied als ze er nog
+ *  niet stond, en gekoppeld aan deze deelvraag – in één transactie (api `bronselectie.toevoegen`). */
+export async function voegBepalingToeBijDeelvraag(id: string, deelvraagId: string,
+  invoer: BronselectieInvoer): Promise<BronselectieOverzicht> {
+  const o = parseBronselectie(await json<unknown>(await fetch(wg(id, "bronselectie", deelvraagId, "bronnen"),
+    jsonInit("POST", invoer))));
+  if (!o) throw { status: 502, message: "De bronselectie kwam in een onverwachte vorm terug." };
+  return o;
+}
+
+/** Regelingen voor *Bepaling toevoegen*: die van het werkgebied vooraan; lege `q` = alleen die. */
+export async function zoekRegelingen(id: string, q: string, signal?: AbortSignal): Promise<RegelingTreffer[]> {
+  const qs = new URLSearchParams({ q });
+  const r = await json<{ regelingen: RegelingTreffer[] }>(await fetch(`${wg(id, "regelingen")}?${qs}`, { signal, cache: "no-store" }));
+  return Array.isArray(r?.regelingen) ? r.regelingen : [];
+}
+
+/** De bepalingen in één regeling die bij een getypte vindplaats passen, uit de echte boom. */
+export async function zoekBepalingen(id: string, bwbId: string, q: string, signal?: AbortSignal): Promise<BepalingZoekAntwoord> {
+  const qs = new URLSearchParams({ bwb_id: bwbId, q });
+  const r = await json<BepalingZoekAntwoord>(await fetch(`${wg(id, "bepalingen")}?${qs}`, { signal, cache: "no-store" }));
+  return { bwb_id: r?.bwb_id ?? bwbId, gelezen: r?.gelezen ?? { artikel: "", lid: "", onderdeel: "", tekst: "" },
+    treffers: Array.isArray(r?.treffers) ? r.treffers : [] };
 }
 
 export async function haalKandidaten(id: string): Promise<KandidatenAntwoord> {

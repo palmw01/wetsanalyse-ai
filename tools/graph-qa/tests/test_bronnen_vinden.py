@@ -19,8 +19,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from agent import bronnen_run, bronnen_vinden, overzicht
-from agent.bronnen_run import bronnen_artefact, samenvatting
+from agent import bepaling_namen, bronnen_run, bronnen_vinden, deelvraag_zoeken, overzicht, zoektermen
 from agent.bronnen_vinden import vind, verwijzingsfunctie
 from agent.models import ChatRequest
 from agent.runstore import Run
@@ -168,7 +167,7 @@ def test_het_overzicht_levert_kernbepalingen(monkeypatch):
     ("Wat?", ""),
 ])
 def test_het_onderwerp_van_een_deelvraag(vraag, onderwerp):
-    assert bronnen_vinden.onderwerp_van_deelvraag(vraag) == onderwerp
+    assert zoektermen.onderwerp_van_deelvraag(vraag) == onderwerp
 
 
 # --- bepalingen bij één deelvraag (F3f): de intake en de deelvragen-agent delen `bepaling_opties` ---
@@ -201,7 +200,7 @@ def _per_term(q: str) -> str:
     """De query op één term (zonder knooptype): de treffers van alle soorten waarvan de tekst die term draagt,
     met hun soort – zoals de index ze teruggeeft."""
     term = re.search(r"tekst:\(+([0-9a-zà-ÿ]+)", q).group(1)
-    stam = bronnen_vinden._stamdeel(term)
+    stam = zoektermen._stamdeel(term)
     return _tsv(FTS_KOP, [[n, "1.0", soort, "", t, "", b, ""] for soort, rijen in TREFFER_RIJEN.items()
                           for n, t, b in rijen if stam in t.casefold()])
 
@@ -229,11 +228,11 @@ DOSSIER = {"analysevraag": "Wanneer is een aanslag invorderbaar?",
 
 
 def _opties(graaf=None, **kw):
-    from agent.werkgebied_context import uitsluitstammen
+    from agent.zoektermen import uitsluitstammen
 
     args = {"regelingen": [IWB], "deelvraag": "Wanneer is een belastingaanslag invorderbaar?", "dossier": DOSSIER,
             "buiten": uitsluitstammen("de kosten van vervolging")} | kw
-    return bronnen_vinden.bepaling_opties(graaf or BepalingGraaf(), **args)
+    return deelvraag_zoeken.bepaling_opties(graaf or BepalingGraaf(), **args)
 
 
 def test_bepalingen_bij_een_deelvraag_op_lid_niveau_en_in_vaste_volgorde():
@@ -242,7 +241,7 @@ def test_bepalingen_bij_een_deelvraag_op_lid_niveau_en_in_vaste_volgorde():
     # lijst. Een andere regeling valt weg; een artikel met een geraakt lid ook; een onderdeel telt voor zijn lid.
     assert [o["bron_iri"] for o in uit] == [L1, ART10, f"{IW}:artikel:2:lid:1", L9_2, ART12_1]
     # De rangschikking van F3f (21 okt 2026) blijft als profiel bestaan, voor de meting.
-    assert [o["bron_iri"] for o in _opties(profiel=bronnen_vinden.F3F)] == \
+    assert [o["bron_iri"] for o in _opties(profiel=deelvraag_zoeken.F3F)] == \
         [L1, ART10, L9_2, f"{IW}:artikel:2:lid:1", ART12_1]
     # Artikel 8 lid 1 raakt alleen het dossier, niet de deelvraag: bij een deelvraag geen optie, anders vulde
     # het dossier elk kaartje tot het maximum (spoor K). Bij de analysevraag telt het dossier wel.
@@ -263,20 +262,20 @@ def test_bepalingen_bij_een_deelvraag_op_lid_niveau_en_in_vaste_volgorde():
     ("aan- en verkoop van een bezwaar- of beroepschrift", True),     # rand: twee ellipsen in één zin
 ])
 def test_een_ellips_raakt_de_samenstelling_voluit(tekst, verwacht):
-    assert bool(bronnen_vinden._raakt(["bezwaarschrift"], tekst, ellips=True)) is verwacht
+    assert bool(zoektermen._raakt(["bezwaarschrift"], tekst, ellips=True)) is verwacht
     # Zonder de vlag (F3f) raakt de ellips niet: zo bleef 6:5 Awb buiten beeld.
-    assert not bronnen_vinden._raakt(["bezwaarschrift"], "Het bezwaar- of beroepschrift", ellips=False)
+    assert not zoektermen._raakt(["bezwaarschrift"], "Het bezwaar- of beroepschrift", ellips=False)
 
 
 def test_samenstellingen_zoeken_op_hun_delen_en_raken_de_kop():
-    assert ("belasting", "aanslag") in bronnen_vinden.splitsingen("belastingaanslag")
-    assert bronnen_vinden.splitsingen("termijn") == []                 # te kort om te knippen
-    lucene = bronnen_vinden._term_lucene("bezwaarschrift", "", bronnen_vinden.STANDAARD_PROFIEL)
+    assert ("belasting", "aanslag") in zoektermen.splitsingen("belastingaanslag")
+    assert zoektermen.splitsingen("termijn") == []                 # te kort om te knippen
+    lucene = deelvraag_zoeken._term_lucene("bezwaarschrift", "", deelvraag_zoeken.STANDAARD_PROFIEL)
     assert "(bezwaar AND *schrift*)" in lucene
-    assert bronnen_vinden._term_lucene("bezwaarschrift", "", bronnen_vinden.F3F).count("AND") == 0
-    assert bronnen_vinden.kop_raakt("bezwaarschrift", "Algemene bepalingen over bezwaar en beroep")
-    assert bronnen_vinden.kop_raakt("belastingaanslag", "Afdeling 2 – De aanslag")
-    assert not bronnen_vinden.kop_raakt("bezwaarschrift", "Hoofdstuk II – Invordering")
+    assert deelvraag_zoeken._term_lucene("bezwaarschrift", "", deelvraag_zoeken.F3F).count("AND") == 0
+    assert zoektermen.kop_raakt("bezwaarschrift", "Algemene bepalingen over bezwaar en beroep")
+    assert zoektermen.kop_raakt("belastingaanslag", "Afdeling 2 – De aanslag")
+    assert not zoektermen.kop_raakt("bezwaarschrift", "Hoofdstuk II – Invordering")
 
 
 def test_een_onderdeel_telt_voor_de_bepaling_uit_de_graaf():
@@ -285,8 +284,8 @@ def test_een_onderdeel_telt_voor_de_bepaling_uit_de_graaf():
     IRI-knip is alleen de terugval, en alleen voor een wet."""
     d92 = "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.2"
     o_d = "urn:bwb:BWBR0024096:artikel:9:o:d"
-    assert bronnen_vinden._doel_van(f"{IW}:artikel:8:lid:1:o:a") == f"{IW}:artikel:8:lid:1"
-    assert bronnen_vinden._doel_van(d92 + "%2FTekst%2FOnderdeel._1") == d92 + "%2FTekst%2FOnderdeel._1"
+    assert deelvraag_zoeken._doel_van(f"{IW}:artikel:8:lid:1:o:a") == f"{IW}:artikel:8:lid:1"
+    assert deelvraag_zoeken._doel_van(d92 + "%2FTekst%2FOnderdeel._1") == d92 + "%2FTekst%2FOnderdeel._1"
 
     class LeidraadGraaf(BepalingGraaf):
         def _antwoord(self, q: str) -> str:
@@ -317,9 +316,9 @@ def test_een_naam_komt_er_maar_een_keer_bij():
     """`vind` benoemt kandidaten die `bepaling_opties` al benoemde; de regeling kwam er dan twee keer achter
     ("Onderdeel._11 – Leidraad Invordering 2008 – Leidraad Invordering 2008")."""
     k = [{"bron_iri": L1, "bwb_id": IWB, "label": ""}]
-    bronnen_vinden._benoem(BepalingGraaf(), k)
+    bepaling_namen._benoem(BepalingGraaf(), k)
     eerst = k[0]["label"]
-    bronnen_vinden._benoem(BepalingGraaf(), k)
+    bepaling_namen._benoem(BepalingGraaf(), k)
     assert k[0]["label"] == eerst == "Artikel 9, lid 1 – Invorderingswet 1990"
 
 
@@ -328,7 +327,7 @@ def test_wat_buiten_de_afbakening_raakt_valt_niet_stil_weg():
     over de deelvraag staat onderaan, gemarkeerd, en telt niet mee voor het maximum."""
     uit = _opties(limit=2)
     assert [o["bron_iri"] for o in uit] == [L1, ART10, ART12_1]
-    assert uit[-1]["buiten"] and uit[-1]["omschrijving"] == bronnen_vinden.BUITEN_TEKST
+    assert uit[-1]["buiten"] and uit[-1]["omschrijving"] == deelvraag_zoeken.BUITEN_TEKST
     # Zonder uitsluiting is hetzelfde lid gewoon een optie.
     assert not [o for o in _opties(buiten=[]) if o["buiten"]]
 
@@ -356,7 +355,7 @@ def test_de_deelvragen_agent_zoekt_per_deelvraag_met_dezelfde_functie():
     # Zonder kern: kern.
     uit = vind(BepalingGraaf(), {**invoer, "kern": []}, methoden=("deelvraag",))
     assert {x["rol"] for x in uit["kandidaten"]} == {"kern"}
-    assert bronnen_vinden.buiten_uit_afbakening(invoer["dossier"]["afbakening"]) == "kosten van vervolging."
+    assert zoektermen.buiten_uit_afbakening(invoer["dossier"]["afbakening"]) == "kosten van vervolging."
 
 
 def test_een_geraakt_plafond_is_onvolledig(geen_overzicht, monkeypatch):
@@ -383,7 +382,6 @@ def test_de_uitkomst_past_in_het_api_contract(geen_overzicht):
     sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "api"))
     try:
         from app.bronnen_run_contracts import BronnenUitkomst
-        from app.gesprek_contracts import Artefact
     except ImportError:
         pytest.skip("api-pakket niet importeerbaar in deze omgeving")
     finally:
@@ -393,7 +391,6 @@ def test_de_uitkomst_past_in_het_api_contract(geen_overzicht):
     # De methode deelvraag kent de api ook.
     BronnenUitkomst(invoer_id="I1", kandidaten=[{"bron_iri": ART8, "rol": "aanverwant", "bewijs": [
         {"methode": "deelvraag", "detail": {"deelvraag_id": "d1"}}]}], meting={"deelvraag": {"aantal": 1}})
-    Artefact(**bronnen_artefact("wg1", "r1", "Invorderbaarheid"))
 
 
 # --- 4. run en route --------------------------------------------------------------------------------
@@ -406,14 +403,6 @@ def test_het_request_model():
         ChatRequest(question="x", modus="bronnen", werkgebied_id="wg1")
     with pytest.raises(ValueError):
         ChatRequest(question="x", actie="bronnen_zoeken")
-
-
-def test_de_samenvatting_telt_open_voorstellen_en_noemt_onvolledig():
-    ks = [{"status": "voorgesteld", "rol": "kern"}, {"status": "voorgesteld", "rol": "afhankelijkheid"},
-          {"status": "uitgesloten", "rol": "kern"}, {"status": "voorgesteld", "rol": "kern", "in_selectie": True}]
-    tekst = samenvatting("Inv", ks, {"opbouw": {"volledig": False}, "definitie": {"volledig": True}})
-    assert "**2** bepalingen" in tekst and "1 kern, 1 afhankelijkheid" in tekst and "opbouw van de wet" in tekst
-    assert "geen nieuwe" in samenvatting("Inv", [], {})
 
 
 class NepApi:
@@ -511,41 +500,35 @@ def test_een_falende_methode_haalt_de_run_niet_onderuit(nep):
     assert all("fout" not in m for m in api.uitkomst["meting"].values())
 
 
-def _kern(deelvraag_id: str = ""):
+def _zoek_run():
     async def draai():
         api = bronnen_run.WetsanalyseApi(_settings(), "jurist")
         try:
             ctx = agent_ctx(api, settings=_settings(), run_id="b1", graph=Graaf())
-            return await bronnen_run.bronnen_kern(ctx, "wg1", deelvraag_id), ctx.meldingen
+            return await bronnen_run.zoek_run(ctx, "wg1"), ctx.meldingen
         finally:
             await api.aclose()
     return asyncio.run(draai())
 
 
-def test_de_taak_geeft_een_bronnenartefact(nep):
-    nep()
-    uit, meldingen = _kern()
-    assert uit.status == "ok" and uit.artefact == {"soort": "bronnen", "titel": "Invorderbaarheid",
-                                                   "ref": {"werkgebied_id": "wg1", "run_id": "r1"}}
-    assert "bepalingen voor in werkgebied" in uit.tekst and uit.meting["model"] is False
+def test_zoek_run_zoekt_en_meldt_per_methode(nep):
+    api = nep()
+    fout, meldingen = _zoek_run()
+    assert fout == "" and api.uitkomst is not None
     assert any("Verwijzingen vanuit de kern" in m for m in meldingen)
 
 
-def test_zonder_vertrekpunt_een_antwoord_zonder_artefact(nep):
+def test_zoek_run_zegt_waarom_er_geen_vertrekpunt_is(nep):
     nep(weiger=(409, {"fout": "geen_vertrekpunt", "melding": "…"}))
-    uit, _ = _kern()
-    assert uit.status == "geweigerd" and "analysevraag" in uit.reden and uit.artefact is None
+    fout, _ = _zoek_run()
+    assert "analysevraag" in fout
 
 
-def test_bij_een_deelvraag_noemt_lex_wat_daarbij_hoort():
-    wg = {"deelvragen": [{"id": "d1", "vraag": "Wanneer is de aanslag invorderbaar?"}]}
-    ks = [{"id": "k1", "label": "art. 8 Iw", "status": "voorgesteld",
-           "bewijs": [{"methode": "deelvraag", "detail": {"deelvraag_id": "d1"}}]},
-          {"id": "k2", "label": "art. 10 Iw", "status": "voorgesteld", "bewijs": [{"methode": "opbouw"}]}]
-    assert bronnen_run.bij_deelvraag(wg, ks, "d1") == ("Bij de deelvraag “Wanneer is de aanslag invorderbaar?” stel "
-                                                        "ik 1 voor: art. 8 Iw.")
-    assert "geen nieuwe" in bronnen_run.bij_deelvraag(wg, ks[1:], "d1")
-    assert "ken ik niet" in bronnen_run.bij_deelvraag(wg, ks, "d9")
+def test_open_telt_vervallen_en_opgenomen_niet_mee():
+    assert bronnen_run.is_open({"status": "voorgesteld"})
+    assert not bronnen_run.is_open({"status": "voorgesteld", "vervallen": True})
+    assert not bronnen_run.is_open({"status": "voorgesteld", "in_selectie": True})
+    assert not bronnen_run.is_open({"status": "uitgesloten"})
 
 
 def test_chat_weigert_een_actie():
@@ -558,7 +541,7 @@ def test_chat_weigert_een_actie():
 
 def test_een_divisie_zonder_label_krijgt_een_naam_en_nooit_de_iri():
     """Spoor H: anders kwam de IRI in het label van de kandidaat en in de afbakening van het dossier."""
-    from agent.bronnen_vinden import plek_uit_iri
+    from agent.bepaling_namen import plek_uit_iri
     iri = "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.3%2FCirculaire.divisie26.3.9"
     assert plek_uit_iri(iri) == "divisie 26.3.9"
     assert "urn:bwb" not in plek_uit_iri("urn:bwb:BWBR0024096:id:BWBR0024096%2FTekst%2FOnderdeel._3")

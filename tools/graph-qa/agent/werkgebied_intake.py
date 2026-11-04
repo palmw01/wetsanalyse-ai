@@ -23,7 +23,7 @@ Wat hier vastligt en wat niet:
   (de Leidraad is BRM-materiaal en hoort niet letterlijk in deze publieke repo), of in eigen tekst.
 - **Regelingen en bepalingen komen uit de graaf.** De regelingen (`regeling_opties`) gezocht op het
   onderwerp en per deelvraag; daarna **per deelvraag één kaartje** met de leden die erbij horen
-  (`bronnen_vinden.bepaling_opties`, zonder model, hoogstens acht; zonder deelvragen één kaartje bij de
+  (`deelvraag_zoeken.bepaling_opties`, zonder model, hoogstens acht; zonder deelvragen één kaartje bij de
   analysevraag). Wat raakt aan wat de analist buiten het werkgebied liet, valt niet stil weg: het staat
   onderaan, gemarkeerd, en is nooit aangevinkt. Een regeling verzinnen kan niet; wie zijn bronnen nog
   niet kent, kiest "Weet ik (nog) niet" (`ONBEKEND`).
@@ -56,7 +56,8 @@ from typing import Any
 
 from .graph import queries
 from .ports import GraphPort
-from .werkgebied_context import context_tekst, valt_buiten
+from .werkgebied_context import context_tekst
+from .zoektermen import valt_buiten
 
 logger = logging.getLogger("graph_qa.werkgebied_intake")
 
@@ -785,7 +786,7 @@ def regeling_opties(graph: GraphPort, zoek: str, *, genoemd_in: str = "",
     hele dossier), dan wat het overzicht van het onderwerp oplevert, en daarna wat het overzicht per
     deelvraag (`deelvragen`: (vraag, onderwerp)) toevoegt – in de vaste volgorde van het overzicht (wet
     vóór beleidsregel). De omschrijving telt de delen over het onderwerp; een deel waarvan de kop raakt
-    aan wat buiten het werkgebied valt (`buiten`: stammen, `werkgebied_context.uitsluitstammen`) telt
+    aan wat buiten het werkgebied valt (`buiten`: stammen, `zoektermen.uitsluitstammen`) telt
     niet mee en staat in `weggelaten`. Welke bepalingen erbij horen, vraagt het kaartje per deelvraag."""
     from . import overzicht as ov
 
