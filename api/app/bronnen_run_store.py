@@ -83,7 +83,7 @@ def _status(row) -> str:
 def _run(row, met_invoer: bool = False) -> dict:
     uit = {"id": row.id, "werkgebied_id": row.werkgebied_id, "invoer_id": row.invoer_id,
            "status": _status(row), "reden": row.reden, "meting": row.meting,
-           "aantal_kern": len(row.invoer.get("kern", [])),
+           "aantal_kern": len(row.invoer.get("kern", [])), "zoekversie": row.invoer.get("zoekversie", ""),
            "gestart_door": row.gestart_door, "gestart": db.aware(row.gestart).isoformat(),
            "gewijzigd": db.aware(row.gewijzigd).isoformat()}
     if met_invoer:
@@ -105,9 +105,15 @@ async def _werkgebied(conn, werkgebied_id: str, slot: bool = False):
 
 # --- runs ------------------------------------------------------------------------------------
 
-async def start(werkgebied: dict, actor: str) -> tuple[dict, bool]:
-    """De run op de huidige selectie: de bestaande als die er al is, anders een nieuwe. (run, nieuw)."""
+async def start(werkgebied: dict, actor: str, zoekversie: str = "") -> tuple[dict, bool]:
+    """De run op de huidige selectie: de bestaande als die er al is, anders een nieuwe. (run, nieuw).
+
+    `zoekversie` is de versie van de zoekcode van graph-qa (een hash van haar modules). Ze hoort bij de invoer en dus
+    bij de identiteit van de run: met nieuwe zoekcode zoekt Lex opnieuw, ook als het werkgebied niet veranderde.
+    Zonder bleef bij Rekeningafspraken (4 nov 2026) de uitkomst van de oude code staan, ook na *Verder onderzoeken*."""
     invoer = invoer_van(werkgebied)
+    if zoekversie:
+        invoer = {**invoer, "zoekversie": zoekversie}
     if not invoer["kern"] and not invoer["analysevraag"].strip() and not invoer.get("deelvragen"):
         raise HTTPException(409, {"fout": "geen_vertrekpunt",
                                   "melding": "Geef het werkgebied een analysevraag of neem minstens één bepaling op "
@@ -167,7 +173,11 @@ async def laatste(werkgebied: dict) -> dict | None:
         row = await _laatste_row(conn, werkgebied["id"])
     if row is None:
         return None
-    return {**_run(row), "verouderd": row.invoer_id != invoer_id(invoer_van(werkgebied))}
+    # Verouderd zegt dat het werkgebied veranderde, niet de zoekcode: de versie van de run telt mee als gelijk.
+    nu = invoer_van(werkgebied)
+    if row.invoer.get("zoekversie"):
+        nu = {**nu, "zoekversie": row.invoer["zoekversie"]}
+    return {**_run(row), "verouderd": row.invoer_id != invoer_id(nu)}
 
 
 async def _zet(run_id: str, **waarden) -> None:

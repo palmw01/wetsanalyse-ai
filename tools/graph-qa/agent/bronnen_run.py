@@ -131,13 +131,32 @@ async def _mislukt(api: WetsanalyseApi, werkgebied_id: str, run_id: str, reden: 
         logger.warning("mislukte bronnenrun niet gemeld", exc_info=True)
 
 
+def _zoekversie() -> str:
+    """De versie van de zoekcode: een hash van de modules die bepalen wat er gevonden wordt. Gaat mee naar de api
+    (`start_bronnen_run`), zodat nieuwe zoekcode tot een nieuwe zoekopdracht leidt, ook als het werkgebied gelijk
+    bleef – anders bleef de uitkomst van de oude code staan, ook na *Verder onderzoeken* (Rekeningafspraken, 4 nov
+    2026)."""
+    import hashlib
+    from pathlib import Path
+
+    from . import bronnen_vinden, deelvraag_zoeken, zoekvragen, zoektermen
+
+    h = hashlib.sha256()
+    for module in (bronnen_vinden, deelvraag_zoeken, zoekvragen, zoektermen):
+        h.update(Path(module.__file__).read_bytes())
+    return "z" + h.hexdigest()[:12]
+
+
+ZOEKVERSIE = _zoekversie()
+
+
 async def zoek_run(ctx: Context, werkgebied_id: str) -> str:
     """Bepalingen zoeken bij een werkgebied, voor de bronselectie (`nodes/bronselectie.py`): de run bij de api maken
     of hergebruiken, de methoden draaien (of wachten op wie al zoekt). Leeg als het lukte, anders waarom niet; wat
     er gevonden is, leest de bronselectie daarna per deelvraag bij de api."""
     api = ctx.api
     try:
-        api_run = await api.start_bronnen_run(werkgebied_id)
+        api_run = await api.start_bronnen_run(werkgebied_id, ZOEKVERSIE)
     except WetsanalyseApiFout as fout:
         if fout.status == 404:
             return "dit werkgebied bestaat niet (meer)"

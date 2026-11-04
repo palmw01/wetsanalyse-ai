@@ -604,3 +604,28 @@ def test_een_eigen_woord_dat_niet_in_de_wet_staat_benoemt_lex():
     uit = _klik_g(api, uit["kaart"], "d1", stel_voor=lambda wg, r: [], toets=toets)
     assert "Bij deelvraag 1 vond ik geen kernbepalingen" in " ".join(uit["zinnen"])
     assert "‘rekeningafspraak’ staat niet in de regelingen" in " ".join(uit["zinnen"])
+
+
+def test_andere_zoekcode_zoekt_opnieuw_bij_het_hervatten():
+    """De laatste zoekopdracht liep met andere zoekcode (`zoekversie`): bij het hervatten zoekt Lex opnieuw, ook als het
+    werkgebied gelijk bleef. Meldt de api geen versie (een oudere api), dan niet."""
+    from agent.bronnen_run import ZOEKVERSIE
+
+    class VersieApi(NepApi):
+        versie = "zoud"
+
+        async def haal_bronselectie(self, werkgebied_id, na=""):
+            ov = await super().haal_bronselectie(werkgebied_id, na)
+            ov["zoekdekking"]["zoekversie"] = self.versie
+            return ov
+
+        async def zoek(self, did):
+            VersieApi.versie = ZOEKVERSIE
+            return await super().zoek(did)
+
+    api = VersieApi(kandidaten=_kandidaten())
+    _run(api.zet_bronselectie_status(WID, "d1", {"actie": "openen"}))
+    _run(bs.start(api, WID, api.zoek))
+    assert api.zoekopdrachten == 1
+    _run(bs.start(api, WID, api.zoek))                       # nu dezelfde versie: niet nog eens
+    assert api.zoekopdrachten == 1

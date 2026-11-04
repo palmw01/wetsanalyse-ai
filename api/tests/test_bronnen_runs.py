@@ -92,6 +92,24 @@ async def test_dezelfde_selectie_dezelfde_run_een_andere_selectie_een_nieuwe(cli
     assert (await _start(client, wg, 201))["nieuw"] is True
 
 
+async def test_andere_zoekcode_is_een_nieuwe_run_maar_geen_veranderd_werkgebied(client):
+    """Nieuwe zoekcode van graph-qa (`zoekversie`) zoekt opnieuw, ook als het werkgebied gelijk bleef: anders bleef de
+    uitkomst van de oude code staan, ook na *Verder onderzoeken* (Rekeningafspraken, 4 nov 2026). Verouderd zegt alleen
+    dat het werkgebied veranderde."""
+    wg = await _nieuw(client)
+    wg = (await _bron(client, wg, bron_iri=ART))["werkgebied"]
+    pad = f"/v1/werkgebieden/{wg['id']}/bronnen-runs"
+    a = (await client.post(pad, json={"zoekversie": "z1"})).json()
+    b = (await client.post(pad, json={"zoekversie": "z1"})).json()
+    c = (await client.post(pad, json={"zoekversie": "z2"})).json()
+    assert (a["nieuw"], b["nieuw"], b["id"] == a["id"], c["nieuw"], c["zoekversie"]) == (True, False, True, True, "z2")
+    laatste = (await client.get(f"{pad}/laatste")).json()["run"]
+    assert (laatste["id"], laatste["verouderd"], laatste["zoekversie"]) == (c["id"], False, "z2")
+    assert (await client.post(pad, json={"zoekversie": "geen spaties"})).status_code == 422
+    # Zonder versie (een oudere graph-qa): zoals voorheen.
+    assert (await client.post(pad)).json()["zoekversie"] == ""
+
+
 # --- de uitkomst ------------------------------------------------------------------------------------
 
 async def test_meer_methoden_een_kandidaat_met_de_sterkste_rol(client):

@@ -686,7 +686,11 @@ invoer vast, toetst en bewaart de kandidaten, en legt de besluiten vast.
 - **De invoer is de selectie** (`invoer_van`): kern = bronselecties met rol *analyseren*, context = de
   rest, plus naam en analysevraag. Zonder kern én zonder analysevraag: 409 `geen_vertrekpunt`.
   **Idempotent op (werkgebied, invoer)** (`invoer_id`, een inhoudshash, mét het dossier); `laatste` meldt
-  `verouderd` als de selectie, de analysevraag of het dossier intussen veranderde. Een klare run wordt alleen
+  `verouderd` als de selectie, de analysevraag of het dossier intussen veranderde. graph-qa stuurt bij het
+  starten de **`zoekversie`** mee (een hash van zijn zoekcode, `bronnen_run.ZOEKVERSIE`): die gaat in de invoer en
+  dus in de identiteit van de run, zodat nieuwe zoekcode opnieuw zoekt, ook bij een gelijk werkgebied (anders bleef
+  de uitkomst van de oude code staan, ook na *Verder onderzoeken*). `verouderd` telt de versie niet: het zegt alleen
+  dat het werkgebied veranderde. De zoekdekking van de bronselectie meldt de versie van de laatste run. Een klare run wordt alleen
   hergebruikt als hij de nieuwste is (na A → B → A zoekt Lex opnieuw), en de uitkomst van een ingehaalde run
   wordt vastgelegd zonder de kandidaten te raken. Een run die `VERLOPEN` (5 min) stil was, telt als `mislukt`
   en mag opnieuw.
