@@ -1,0 +1,211 @@
+{
+ "schema_versie": 3,
+ "status": "concept",
+ "toelichting": "Concept, niet geadjudiceerd: opgesteld door de agent uit de letterlijke tekst in de graaf, vóór de code van 'bronselectie langs de vier zoekvragen' (november 2026) en zonder bepaling_opties, de bronnenrun of de eval erop te draaien (blind). Held-out set voor de zoekvragen a–d; elke verwachte bepaling draagt haar zoekvraag. Geen claim op juridische volledigheid.",
+ "datum": "2026-11-04",
+ "graaftoestand": "acceptatie, 4 nov 2026",
+ "naam": "Teruggave inhouden voor een belastingschuld",
+ "aanleiding": "Er komen klachten binnen van mensen die hun teruggave niet krijgen, omdat de Belastingdienst die zonder overleg heeft weggestreept tegen een andere schuld, soms een schuld waartegen ze bezwaar hadden gemaakt.",
+ "doel": "Vastleggen wanneer de ontvanger een uit te betalen bedrag mag inhouden voor een openstaande schuld en hoe de burger dat hoort, als basis voor een klantbrief en een werkinstructie.",
+ "analysevraag": "Wanneer mag de ontvanger een teruggave inhouden en wegstrepen tegen een openstaande belastingschuld?",
+ "praktijkvoorbeeld": "Een zzp'er krijgt € 2.300 terug van de inkomstenbelasting. De ontvanger houdt dat geld in voor een aanslag omzetbelasting, waartegen de zzp'er bezwaar heeft gemaakt en waarvoor hij uitstel kreeg. De zzp'er had zijn teruggave al aan de bank verpand voor een lening.",
+ "context": "",
+ "buiten": "De fiscale eenheid voor de vennootschapsbelasting, faillissement en surseance, en inhouden door andere overheden (toeslagen, gemeenten) vallen erbuiten.",
+ "gebeurtenis": "verrekening",
+ "regelingen": [
+  "BWBR0004770",
+  "BWBR0005537",
+  "BWBR0024096"
+ ],
+ "deelvragen": [
+  "Mag de Belastingdienst een teruggave inhouden om daarmee een openstaande aanslag af te lossen?",
+  "Mag dat ook als de aanslag nog niet betaald hoeft te worden of als er uitstel is gegeven?",
+  "Wat als de teruggave al aan een bank is overgedragen of verpand?",
+  "Hoe hoort iemand dat zijn teruggave is ingehouden, en wat kan hij daartegen doen?"
+ ],
+ "verwacht": [
+  {
+   "deelvraag": 0,
+   "bron_iri": "urn:bwb:BWBR0004770:artikel:24:lid:1",
+   "rol": "kern",
+   "zoekvraag": "a",
+   "motivering": "\"De ontvanger is ten aanzien van de belastingschuldige bevoegd: … aan de belastingschuldige uit te betalen en van de belastingschuldige te innen bedragen ter zake van rijksbelastingen … met elkaar te verrekenen; …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 0,
+   "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A93:lid:1",
+   "rol": "afhankelijkheid",
+   "zoekvraag": "a",
+   "motivering": "\"Verrekening van een geldschuld met een bestaande vordering geschiedt slechts voor zover in de bevoegdheid daartoe bij wettelijk voorschrift is voorzien.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 0,
+   "bron_iri": "urn:bwb:BWBR0004770:artikel:24:lid:8",
+   "rol": "afhankelijkheid",
+   "zoekvraag": "a",
+   "motivering": "\"In afwijking van artikel 4:93, vierde lid, van de Algemene wet bestuursrecht is verrekening ook mogelijk van een voorlopige aanslag tot een negatief bedrag als bedoeld in artikel 13, tweede lid, van de Algemene wet inzake rijksbelastingen.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 0,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie24%2FCirculaire.divisie24.1",
+   "rol": "kern",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 24.1 \"Wanneer verrekening\": \"De verrekening vindt niet van rechtswege plaats. De ontvanger bepaalt of al dan niet tot verrekening wordt overgegaan. …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 0,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie24%2FCirculaire.divisie24.1%2FCirculaire.divisie24.1.1",
+   "rol": "aanverwant",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 24.1.1 \"Verrekening voorlopige teruggaaf inkomstenbelasting en beslagvrije voet\": \"De ontvanger is bevoegd een van de belastingschuldige te innen bedrag te verrekenen met een voorlopige teruggaaf inkomstenbelasting … Daarbij houdt hij rekening met de … beslagvrije voet.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 1,
+   "bron_iri": "urn:bwb:BWBR0004770:artikel:24:lid:2",
+   "rol": "kern",
+   "zoekvraag": "b",
+   "motivering": "\"De verrekening is ook mogelijk ingeval de termijn, bedoeld in artikel 9, nog niet is verstreken, …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 1,
+   "bron_iri": "urn:bwb:BWBR0004770:artikel:24:lid:6",
+   "rol": "kern",
+   "zoekvraag": "b",
+   "motivering": "\"Met betrekking tot het bedrag waarvoor krachtens artikel 25 … uitstel van betaling is verleend, is gedurende het uitstel verrekening niet mogelijk, tenzij de belastingschuldige dit verzoekt.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 1,
+   "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A93:lid:5",
+   "rol": "afhankelijkheid",
+   "zoekvraag": "b",
+   "motivering": "\"Uitstel van betaling staat aan verrekening niet in de weg.\" – de algemene regel waarvan Iw 24 lid 6 afwijkt.",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 1,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie24%2FCirculaire.divisie24.2",
+   "rol": "kern",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 24.2 \"Betwiste schuld en verrekening\": \"In het algemeen gaat de ontvanger niet tot verrekening over met een te betalen bedrag dat de belastingschuldige betwist en waarvoor de ontvanger uitstel van betaling heeft verleend …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 1,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie24%2FCirculaire.divisie24.3",
+   "rol": "kern",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 24.3 \"Reikwijdte van de verrekening\": \"… worden uit te betalen bedragen niet automatisch verrekend met aanslagen die (nog) niet invorderbaar zijn.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 2,
+   "bron_iri": "urn:bwb:BWBR0004770:artikel:24:lid:3",
+   "rol": "kern",
+   "zoekvraag": "b",
+   "motivering": "\"Verrekening is niet mogelijk met betrekking tot een door de ontvanger uit te betalen bedrag indien deze vordering door de gerechtigde onder bijzondere titel is overgedragen, mits de ontvanger met de overdracht heeft ingestemd. … pandrecht …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 2,
+   "bron_iri": "urn:bwb:BWBR0004770:artikel:24:lid:4",
+   "rol": "afhankelijkheid",
+   "zoekvraag": "b",
+   "motivering": "\"In afwijking in zoverre van het derde lid is ook na de instemming … verrekening mogelijk van belastingaanslagen … die op dezelfde belasting en hetzelfde tijdvak betrekking hebben.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 2,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie24%2FCirculaire.divisie24.6%2FCirculaire.divisie24.6.1",
+   "rol": "kern",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 24.6.1 \"Geen verrekening bij instemming cessie of verpanding\": \"In artikel 24, derde lid, van de wet is een instemmingsregeling opgenomen die verrekening uitsluit als de ontvanger instemt met cessie … of stille verpanding …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 2,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie24%2FCirculaire.divisie24.6%2FCirculaire.divisie24.6.3",
+   "rol": "afhankelijkheid",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 24.6.3 \"Instemming of weigering met een cessie of verpanding\": \"De weigering van een instemming met de cessie of verpanding heeft betrekking op de gehele cessie of verpanding.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 2,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie24%2FCirculaire.divisie24.6%2FCirculaire.divisie24.6.2",
+   "rol": "aanverwant",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 24.6.2 \"Mogelijkheid van cessie of verpanding uit te betalen bedragen\": \"Cessie of stille verpanding van een uit te betalen bedrag is mogelijk mits dit bedrag voldoende bepaald is omschreven.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 3,
+   "bron_iri": "urn:bwb:BWBR0004770:artikel:24:lid:7",
+   "rol": "kern",
+   "zoekvraag": "c",
+   "motivering": "\"De ontvanger maakt de verrekening onverwijld bekend.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 3,
+   "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A93:lid:2",
+   "rol": "kern",
+   "zoekvraag": "c",
+   "motivering": "\"Verrekening geschiedt onder vermelding van de vordering waarmee de geldschuld is verrekend alsmede de hoogte van het bedrag van de verrekening.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 3,
+   "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A93:lid:3",
+   "rol": "afhankelijkheid",
+   "zoekvraag": "c",
+   "motivering": "\"De verrekening werkt terug overeenkomstig artikel 129, eerste en tweede lid, van Boek 6 van het Burgerlijk Wetboek.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 3,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie24%2FCirculaire.divisie24.4",
+   "rol": "kern",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 24.4 \"Bekendmaking verrekening\": \"Verrekening van een uit te betalen bedrag door de ontvanger gebeurt bij beschikking. De beschikking wordt aan de belastingschuldige bekendgemaakt door toezending of uitreiking van een kennisgeving.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 3,
+   "bron_iri": "urn:bwb:BWBR0004770:artikel:24:lid:5",
+   "rol": "afhankelijkheid",
+   "zoekvraag": "c",
+   "motivering": "\"De belastingschuldige kan binnen een week na de dagtekening van de in het derde lid bedoelde kennisgeving … beroep instellen bij de directeur. … Indien op het beroepschrift afwijzend wordt beslist, vindt verrekening niet eerder plaats dan nadat … acht dagen zijn verstreken.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 3,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie24%2FCirculaire.divisie24.6%2FCirculaire.divisie24.6.4",
+   "rol": "aanverwant",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 24.6.4 \"Beroepsprocedure weigeren instemming cessie of verpanding en Awb\": \"… dat de ontvanger de indiener verzoekt het beroepschrift binnen een redelijke termijn (nader) te motiveren.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  }
+ ],
+ "buiten_graaf": [],
+ "uitgesloten": [
+  {
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie24%2FCirculaire.divisie24.5",
+   "motivering": "Verrekening binnen een fiscale eenheid vennootschapsbelasting: uitdrukkelijk buiten de afbakening."
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie24%2FCirculaire.divisie24.5a",
+   "motivering": "Verrekeningsbevoegdheid bij een fiscale eenheid tijdens faillissement: buiten de afbakening."
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie24%2FCirculaire.divisie24.3a",
+   "motivering": "Verrekening van een omzetbelastingteruggaaf met een schuld van vóór het faillissement: buiten de afbakening."
+  }
+ ]
+}
