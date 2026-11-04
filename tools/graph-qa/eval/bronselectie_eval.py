@@ -434,7 +434,29 @@ def meet_zoekvragen(graaf: Any, s: dict[str, Any]) -> dict[str, Any]:
                                                              regelingen=s["regelingen"], buiten=buiten)]
     verwacht = list(dict.fromkeys(v["bron_iri"] for v in s["verwacht"] if v.get("zoekvraag") == "a"))
     raak = [v for v in verwacht if any(_raakt(c, v) for c in gevonden)]
-    return {"gebeurtenis": s["gebeurtenis"], "plek_met_naam": met, "plek_zonder_naam": zonder,
+    # De pool van de zoekvragen a–d (PR 4): wat erin zit, per zoekvraag van de set.
+    p = zoekvragen.pool(graaf, gebeurtenis=s["gebeurtenis"], regelingen=s["regelingen"], buiten=buiten)
+    pool = p["kandidaten"]
+    unieke = list({v["bron_iri"]: v for v in s["verwacht"]}.values())
+
+    def treffer(v: dict[str, Any]) -> dict[str, Any] | None:
+        return next((k for k in pool if _raakt(k["bron_iri"], v["bron_iri"])), None)
+
+    per_zoekvraag = {}
+    for z in "abcd":
+        groep = [v for v in unieke if v.get("zoekvraag") == z]
+        per_zoekvraag[z] = {"verwacht": len(groep), "gevonden": sum(treffer(v) is not None for v in groep)}
+    nodig = [v for v in unieke if v["rol"] in ("kern", "afhankelijkheid")]
+    gevonden_v = [(v, t) for v in unieke if (t := treffer(v)) is not None]
+    pool_meting = {
+        "pool": len(pool), "pool_volledig": p["volledig"], "per_zoekvraag": per_zoekvraag,
+        "pool_recall": _deel(len(gevonden_v), len(unieke)),
+        "pool_recall_nodig": _deel(sum(treffer(v) is not None for v in nodig), len(nodig)),
+        "zoekvraag_juist": _deel(sum(t["zoekvraag"] == v.get("zoekvraag") for v, t in gevonden_v), len(gevonden_v)),
+        "pool_uitgesloten": [k["bron_iri"] for k in pool if any(_raakt(k["bron_iri"], u["bron_iri"]) for u in s["uitgesloten"])],
+        "pool_gemist": [v["bron_iri"] for v in unieke if treffer(v) is None],
+    }
+    return {**pool_meting, "gebeurtenis": s["gebeurtenis"], "plek_met_naam": met, "plek_zonder_naam": zonder,
             "opties_met_naam": opties_met, "opties_zonder_naam": opties_zonder,
             "grondslag": gevonden, "grondslag_verwacht": verwacht, "grondslag_recall": _deel(len(raak), len(verwacht)),
             "grondslag_precisie": _deel(sum(any(_raakt(c, v["bron_iri"]) for v in s["verwacht"]) for c in gevonden),
@@ -449,7 +471,12 @@ def tabel_zoekvragen(s: dict[str, Any], r: dict[str, Any]) -> str:
         f"- plek in de voorstellen met de naam: {f(r['plek_met_naam'])} ({', '.join(r['opties_met_naam'])})",
         f"- zonder de naam: {f(r['plek_zonder_naam'])} ({', '.join(r['opties_zonder_naam'])})",
         f"- grondslag (zoekvraag a): recall {f(r['grondslag_recall'])}, precisie {f(r['grondslag_precisie'])}, "
-        f"{len(r['grondslag'])} gevonden: {', '.join(g.split(':', 2)[2] for g in r['grondslag'])}"])
+        f"{len(r['grondslag'])} gevonden: {', '.join(g.split(':', 2)[2] for g in r['grondslag'])}",
+        f"- pool a–d: {r['pool']} kandidaten{'' if r['pool_volledig'] else ' (onvolledig)'}, recall {f(r['pool_recall'])}, "
+        f"recall nodig {f(r['pool_recall_nodig'])}, zoekvraag juist {f(r['zoekvraag_juist'])}, "
+        f"uitgesloten {len(r['pool_uitgesloten'])}",
+        "  per zoekvraag: " + ", ".join(f"{z} {x['gevonden']}/{x['verwacht']}" for z, x in r["per_zoekvraag"].items()),
+        f"  gemist: {', '.join(g.split(':', 2)[2][-40:] for g in r['pool_gemist']) or 'niets'}"])
 
 
 def _echte_graaf():

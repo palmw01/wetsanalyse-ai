@@ -1001,6 +1001,13 @@ onder de supervisor, naast de intake; zie `docs/architectuur/bronselectie-per-de
     beleidsregel. Weg als de tekst méér raakt aan wat buiten de afbakening valt dan aan de gebeurtenis (zoals
     `bepaling_opties`; de afbakening noemt de gebeurtenis vaak zelf). Eerst de bepalingen onder een kop met de
     gebeurtenis, in documentvolgorde, dan de rest; om de beurt per regeling (`om_de_beurt`).
+  - `pool` (PR 4, nog niet in de bronnenrun – de deelvragen rangschikken erbinnen in PR 5): vanaf de grondslag de
+    **omgeving** (de delen van een wet of lagere regeling waarvan de kop de gebeurtenis draagt, `zoek_opbouw`) met per
+    lid de zoekvraag uit de tekst (`zoekvraag_van`: c gevolg vóór d invulling vóór b voorwaarde/procedure/tijd – de
+    laatste uit de JAS-regels voor voorwaarde en tijd), en d buiten de wet (de subdivisies van de beleidsregel bij de
+    gebeurtenis of die naar de grondslag verwijst, `q_subdivisies`; de definities van termen in a–c,
+    `bronnen_vinden.definities_in`). `genoemd_in` telt ook een vervoeging met een lange stam ("uitbetaald" →
+    uitbetaling; het begin groeit mee met de stam, zodat "belasti" de belastingrente niet noemt).
   - Meten: `uv run python -m eval.bronselectie_eval --zoekvragen --set <set>` (de plek van de gebeurtenis van de set,
     met en zonder naam, en de recall van de grondslag op `zoekvraag: a`). Ontwikkelset kwijtschelding: plek 1 / 3,
     recall 0,67, precisie 0,25. Een brede gebeurtenis ("aansprakelijkheid") vult de grondslag met een heel

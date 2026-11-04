@@ -319,24 +319,38 @@ def _term_in(term: str, tekst: str) -> bool:
     return bool(term) and re.search(rf"(?<!\w){re.escape(term)}(?!\w)", tekst, re.I) is not None
 
 
+def definities_in(graph: GraphPort, teksten: list[dict[str, Any]], bwb_ids: list[str],
+                  limit: int = MAX_PER_METHODE) -> tuple[list[dict[str, Any]], bool]:
+    """De begripsbepalingen (`bwb:definieertBegrip`) in deze regelingen waarvan de term letterlijk in een van de
+    teksten staat (`{deel, tekst}`): per definitie de node, de term, het label en het deel waarin de term staat.
+    Gedeeld door de methode `definitie` (de teksten van de kern) en de zoekvragen (zoekvraag d: de teksten van a–c).
+    (lijst, volledig)."""
+    if not bwb_ids or not teksten:
+        return [], True
+    defs = _rijen(graph, q_definities(sorted(set(bwb_ids)), 500))
+    uit: list[dict[str, Any]] = []
+    for d in defs[:500]:
+        term = d.get("begrip", "").strip()
+        waar = next((t for t in teksten if _term_in(term, t.get("tekst", ""))), None)
+        if waar is None or len(uit) >= limit:
+            continue
+        uit.append({"node": d["node"], "begrip": term, "label": d.get("label", ""), "deel": waar.get("deel", "")})
+    return uit, len(defs) <= 500 and len(uit) < limit
+
+
 def _definitie(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tuple[int, bool]:
     kern = [k["bron_iri"] for k in invoer.get("kern", [])]
     if not kern:
         return 0, True
-    teksten = _rijen(graph, q_teksten(kern))
     bwb_ids = sorted({_bwb(k) for k in kern if _bwb(k)})
     if not bwb_ids:
         return 0, True
-    defs = _rijen(graph, q_definities(bwb_ids, 500))
+    gevonden, volledig = definities_in(graph, _rijen(graph, q_teksten(kern)), bwb_ids)
     n = 0
-    for d in defs[:500]:
-        term = d.get("begrip", "").strip()
-        waar = next((t for t in teksten if _term_in(term, t.get("tekst", ""))), None)
-        if waar is None or n >= MAX_PER_METHODE:
-            continue
-        n += v.voeg(d["node"], rol="afhankelijkheid", methode="definitie", vanuit=waar.get("deel", ""),
-                    label=d.get("label", ""), detail={"begrip": term})
-    return n, len(defs) <= 500 and n < MAX_PER_METHODE
+    for d in gevonden:
+        n += v.voeg(d["node"], rol="afhankelijkheid", methode="definitie", vanuit=d["deel"],
+                    label=d["label"], detail={"begrip": d["begrip"]})
+    return n, volledig and n < MAX_PER_METHODE
 
 
 def _opbouw(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tuple[int, bool]:

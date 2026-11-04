@@ -1,5 +1,5 @@
 {
- "schema_versie": 2,
+ "schema_versie": 3,
  "status": "concept",
  "toelichting": "Concept, niet geadjudiceerd: opgesteld door de agent uit de letterlijke tekst in de graaf, vóór de nieuwe zoek- en rangschikkingscode bestond en zonder bepaling_opties erop te draaien (blind), ter vaststelling door een jurist. Held-out set voor de rangschikking van 3 nov 2026. Geen claim op juridische juistheid tot die vaststelling.",
  "datum": "2026-11-03",
@@ -9,6 +9,7 @@
  "praktijkvoorbeeld": "Een ondernemer krijgt in maart een voorlopige aanslag inkomstenbelasting, maakt er bezwaar tegen en de ontvanger vermoedt dat hij naar het buitenland vertrekt.",
  "context": "",
  "buiten": "Invorderingsrente, verrekening en de dwanginvordering na het verstrijken van de termijn vallen erbuiten.",
+ "gebeurtenis": "invordering",
  "regelingen": [
   "BWBR0004770",
   "BWBR0024096"
@@ -24,6 +25,7 @@
    "deelvraag": 0,
    "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
    "rol": "kern",
+   "zoekvraag": "b",
    "motivering": "\"Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.\"",
    "herkomst": "graaf, letterlijke tekst"
   },
@@ -31,6 +33,7 @@
    "deelvraag": 0,
    "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:2",
    "rol": "kern",
+   "zoekvraag": "b",
    "motivering": "Afwijkende termijn voor navorderings- en naheffingsaanslagen (één maand, veertien dagen).",
    "herkomst": "graaf, letterlijke tekst"
   },
@@ -38,6 +41,7 @@
    "deelvraag": 0,
    "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:4",
    "rol": "aanverwant",
+   "zoekvraag": "b",
    "motivering": "Uitnodiging tot betaling en gelijkgestelde beschikkingen: tien dagen na de dagtekening.",
    "herkomst": "graaf, letterlijke tekst"
   },
@@ -45,6 +49,7 @@
    "deelvraag": 0,
    "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:10",
    "rol": "afhankelijkheid",
+   "zoekvraag": "b",
    "motivering": "De Algemene termijnenwet is niet van toepassing op deze termijnen.",
    "herkomst": "graaf, letterlijke tekst"
   },
@@ -52,6 +57,7 @@
    "deelvraag": 0,
    "bron_iri": "urn:bwb:BWBR0004770:artikel:8:lid:1",
    "rol": "afhankelijkheid",
+   "zoekvraag": "b",
    "motivering": "Bekendmaking door verzending of uitreiking van het aanslagbiljet.",
    "herkomst": "graaf, letterlijke tekst"
   },
@@ -59,6 +65,7 @@
    "deelvraag": 0,
    "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
    "rol": "aanverwant",
+   "zoekvraag": "d",
    "motivering": "Leidraad: dagtekening van het aanslagbiljet. Beleid, geen wet.",
    "herkomst": "graaf, letterlijke tekst"
   },
@@ -66,6 +73,7 @@
    "deelvraag": 0,
    "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
    "rol": "aanverwant",
+   "zoekvraag": "d",
    "motivering": "Leidraad: hoe zes weken en één maand na de dagtekening worden gerekend.",
    "herkomst": "graaf, letterlijke tekst"
   },
@@ -73,6 +81,7 @@
    "deelvraag": 1,
    "bron_iri": "urn:bwb:BWBR0004770:artikel:10:lid:1",
    "rol": "kern",
+   "zoekvraag": "b",
    "motivering": "\"In afwijking van artikel 9 ... terstond en tot het volle bedrag invorderbaar indien:\"",
    "herkomst": "graaf, letterlijke tekst"
   },
@@ -80,6 +89,7 @@
    "deelvraag": 1,
    "bron_iri": "urn:bwb:BWBR0004770:artikel:10:lid:2",
    "rol": "kern",
+   "zoekvraag": "b",
    "motivering": "Beperking van lid 1 voor voorlopige aanslagen IB/Vpb in het jaar zelf.",
    "herkomst": "graaf, letterlijke tekst"
   },
@@ -87,6 +97,7 @@
    "deelvraag": 1,
    "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:8",
    "rol": "kern",
+   "zoekvraag": "b",
    "motivering": "Naheffingsaanslag BPM aan een ander dan een vergunninghouder is terstond invorderbaar.",
    "herkomst": "graaf, letterlijke tekst"
   },
@@ -94,6 +105,7 @@
    "deelvraag": 1,
    "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie10%2FCirculaire.divisie10.1",
    "rol": "aanverwant",
+   "zoekvraag": "d",
    "motivering": "Leidraad: reikwijdte van de versnelde invordering.",
    "herkomst": "graaf, letterlijke tekst"
   },
@@ -101,6 +113,7 @@
    "deelvraag": 2,
    "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:5",
    "rol": "kern",
+   "zoekvraag": "b",
    "motivering": "Voorlopige aanslag IB/Vpb gedagtekend in het jaar zelf: in gelijke termijnen.",
    "herkomst": "graaf, letterlijke tekst"
   },
@@ -108,6 +121,7 @@
    "deelvraag": 2,
    "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:7",
    "rol": "kern",
+   "zoekvraag": "b",
    "motivering": "Voorlopige aanslag gedagtekend vóór het jaar: in zoveel termijnen als het jaar maanden heeft.",
    "herkomst": "graaf, letterlijke tekst"
   },
@@ -115,6 +129,7 @@
    "deelvraag": 2,
    "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:6",
    "rol": "aanverwant",
+   "zoekvraag": "b",
    "motivering": "Uit te betalen bedrag (voorlopige teruggaaf) in termijnen.",
    "herkomst": "graaf, letterlijke tekst"
   },
@@ -122,6 +137,7 @@
    "deelvraag": 2,
    "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1",
    "rol": "aanverwant",
+   "zoekvraag": "d",
    "motivering": "Leidraad: afwijking van de betalingstermijnen bij voorlopige aanslagen.",
    "herkomst": "graaf, letterlijke tekst"
   },
@@ -129,6 +145,7 @@
    "deelvraag": 3,
    "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:12",
    "rol": "kern",
+   "zoekvraag": "c",
    "motivering": "\"De verplichting tot betaling wordt niet geschorst door de indiening van een bezwaar- of beroepschrift inzake een belastingaanslag.\"",
    "herkomst": "graaf, letterlijke tekst"
   },
@@ -136,6 +153,7 @@
    "deelvraag": 3,
    "bron_iri": "urn:bwb:BWBR0004770:artikel:25:lid:1",
    "rol": "afhankelijkheid",
+   "zoekvraag": "b",
    "motivering": "Uitstel van betaling door de ontvanger: de weg om bij bezwaar niet te hoeven betalen.",
    "herkomst": "graaf, letterlijke tekst"
   },
@@ -143,6 +161,7 @@
    "deelvraag": 3,
    "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie25%2FCirculaire.divisie25.2",
    "rol": "aanverwant",
+   "zoekvraag": "d",
    "motivering": "Leidraad: uitstel in verband met bezwaar tegen een belastingaanslag.",
    "herkomst": "graaf, letterlijke tekst"
   }

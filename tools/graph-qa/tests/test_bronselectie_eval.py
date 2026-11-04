@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from agent.bronnen_vinden import STANDAARD
 from agent.graph.queries import is_bron_iri
 from eval.bronselectie_eval import SETS, STANDAARD_SET, OpnameGraaf, laad_set, meet
@@ -145,3 +147,23 @@ def test_de_gebeurtenis_en_de_grondslag_op_de_ontwikkelset():
     assert graaf.ontbrekend == 0
     assert (r["plek_met_naam"], r["plek_zonder_naam"]) == (1, 3)
     assert (r["grondslag_recall"], r["grondslag_precisie"], len(r["grondslag"])) == (0.667, 0.25, 8)
+
+
+@pytest.mark.parametrize("naam, pool, recall_nodig, juist, per_zoekvraag", [
+    ("kwijtschelding-concept", 111, 0.75, 0.824, {"a": (2, 2), "b": (3, 3), "c": (4, 5), "d": (8, 13)}),
+    ("bestuurdersaansprakelijkheid-concept", 218, 0.889, 0.95, {"a": (1, 1), "b": (3, 4), "c": (3, 3), "d": (13, 14)}),
+    ("bezwaar-ontvankelijkheid-concept", 74, 0.538, 0.125, {"a": (1, 5), "b": (7, 10), "c": (0, 1), "d": (0, 1)}),
+    ("invorderbaarheid-deelvragen-concept", 116, 0.818, 0.636, {"a": (0, 0), "b": (10, 12), "c": (1, 1), "d": (0, 5)}),
+])
+def test_de_pool_van_de_zoekvragen_op_de_ontwikkelsets(naam, pool, recall_nodig, juist, per_zoekvraag):
+    """Zoekvragen a–d, PR 4 (4 nov 2026): de pool vanuit de grondslag, zonder model. Op kwijtschelding vond het zoeken
+    per deelvraag 0,33 van de verwachte bepalingen (blind); de pool 0,75. Bezwaar blijft zwak: de grondslag van het
+    bezwaar (Awb 7:1, AWR 26a) heeft geen signaal van bestaansrecht, en de omgeving vindt Awb hoofdstuk 6 niet.
+    Ontwikkelsets; de blinde meting (`verrekening-concept`) komt in PR 7."""
+    from eval.bronselectie_eval import meet_zoekvragen
+
+    graaf = OpnameGraaf(json.loads((SETS / naam / "graafantwoorden.json").read_text()))
+    r = meet_zoekvragen(graaf, laad_set(naam))
+    assert graaf.ontbrekend == 0
+    assert (r["pool"], r["pool_recall_nodig"], r["zoekvraag_juist"]) == (pool, recall_nodig, juist)
+    assert {z: (x["gevonden"], x["verwacht"]) for z, x in r["per_zoekvraag"].items()} == per_zoekvraag

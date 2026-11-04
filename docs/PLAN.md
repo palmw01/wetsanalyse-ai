@@ -944,7 +944,10 @@ van de gebruiker op 20 okt 2026).
     de gebeurtenis op het werkgebied (`gebeurtenis`), de vraagkaart `bs_gebeurtenis` met voorstellen uit de koppen
     van de regelingen (zonder model) en de bronmethode `grondslag` (zoekvraag a, alleen met een gekozen gebeurtenis).
     Ontwikkelset kwijtschelding: de gebeurtenis op plek 1 (met de naam) of 3 (zonder), de grondslag recall 0,67.
-  - **Open**: PR 4 b, c en d vanuit de grondslag; PR 5 de deelvragen rangschikken binnen die pool; PR 6 het label
+  - PR 4: de pool a–d vanuit de grondslag (`zoekvragen.pool`), gemeten op vier ontwikkelsets (die kregen
+    `zoekvraag` en `gebeurtenis`): recall nodig 0,75 (kwijtschelding; zoeken per deelvraag blind 0,33), 0,89, 0,82 en
+    0,54 (bezwaar: de grondslag van het bezwaar mist een signaal).
+  - **Open**: PR 5 de deelvragen rangschikken binnen die pool; PR 6 het label
     per zoekvraag in het paneel; PR 7 de blinde meting op `verrekening-concept`.
 - **Historische toestanden** (open keuze, 3 nov 2026): de graaf heeft per regeling alleen de nieuwste toestand,
   dus de wettekst is altijd de actuele. De peildatum is standaard de aanmaakdatum en de werkplek waarschuwt als de
