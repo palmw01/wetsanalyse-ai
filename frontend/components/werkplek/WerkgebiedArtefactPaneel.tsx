@@ -65,8 +65,11 @@ const KOP: Record<WerkgebiedArtefact["soort"], string> = {
  *
  *  Eén inhoud, twee schillen. Net als op de tab vraagt het paneel eerst bevestiging als de kaart
  *  niet-bewaarde wijzigingen draagt: bij sluiten (kruisje, Escape, achtergrond) en bij een link weg. */
-export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWissel, onVerwijderd }: {
+export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWissel, onVerwijderd, onKlaar, klaarVoor }: {
   doel: WerkgebiedArtefact;
+  /** De bronselectie: *Klaar met deze deelvraag* stuurt de actie van het open kaartje in het gesprek. */
+  onKlaar?: (deelvraagId: string) => void;
+  klaarVoor?: string;
   variant?: DialogVariant;
   onSluit: () => void;
   /** Het werkgebied is vanuit dit paneel verwijderd: de werkplek verlaat het dan, als ze erin stond. */
@@ -110,12 +113,12 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
               onKies={onWissel ? (d) => onWissel({ soort: "deelvraag", werkgebied_id: doel.werkgebied_id, run_id: "",
                 deelvraag_id: d.id, titel: d.vraag }) : undefined} />
           ) : doel.soort === "bronselectie" ? (
-            <BronnenBijDeelvraag werkgebiedId={doel.werkgebied_id} huidig={doel.deelvraag_id} inGesprek />
+            <BronnenBijDeelvraag werkgebiedId={doel.werkgebied_id} huidig={doel.deelvraag_id} inGesprek
+              onKlaar={onKlaar} klaarVoor={klaarVoor} />
           ) : doel.soort === "begrippen" ? (
             <BegripVoorstellen id={doel.werkgebied_id} runId={doel.run_id} inklapbaar={false} />
           ) : (
-            // Opnemen wijzigt het werkgebied; hier staat geen selectie naast die ververst moet worden.
-            <BronKandidaten id={doel.werkgebied_id} onGewijzigd={() => {}} />
+            <BronKandidaten id={doel.werkgebied_id} />
           )}
         </div>
       </div>

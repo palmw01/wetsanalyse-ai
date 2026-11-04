@@ -74,7 +74,7 @@ class IntakeActie(BaseModel):
     # Bij de bepalingen: het kaartje van welke deelvraag (0-based); een ander deel is een oud kaartje.
     deel: int = Field(default=0, ge=0, le=19)
     # `aanmaken` sluit het samenstellen af, `opslaan` het aanvullen van een bestaand werkgebied.
-    actie: Literal["antwoord", "overslaan", "wijzig", "aanmaken", "opslaan", "afbreken"] = "antwoord"
+    actie: Literal["antwoord", "overslaan", "wijzig", "aanmaken", "opslaan", "afbreken", "klaar"] = "antwoord"
     keuzes: list[str] = Field(default_factory=list, max_length=20)
     tekst: str = Field(default="", max_length=4000)
     # Meer dan één eigen antwoord (de deelvragen, `meer_tekst` op het kaartje).
@@ -128,7 +128,6 @@ ACTIE_TAAK: dict[str, tuple[str, str]] = {
     "deelvragen_voorstellen": ("deelvragen", "voorstellen"),
     "deelvraag_herformuleren": ("deelvragen", "verbeteren"),
     "deelvraag_splitsen": ("deelvragen", "verbeteren"),
-    "bronnen_zoeken": ("deelvragen", "bronnen_zoeken"),
     "dekking": ("deelvragen", "dekking"),
     "begrippen_voorstellen": ("begrippen", "voorstellen"),
     "begrippen_meedenken": ("begrippen", "meedenken"),
@@ -145,7 +144,7 @@ ACTIE_TAAK: dict[str, tuple[str, str]] = {
 INTAKE_ACTIES = ("dossier_aanvullen",)
 # De bronselectie per deelvraag (spoor J) beginnen of hervatten: de bronselectie-worker, op de stand die de
 # api bewaart. Ook geen taak van een agent.
-BRONSELECTIE_ACTIES = ("bronselectie",)
+BRONSELECTIE_ACTIES = ("bronselectie", "bronnen_zoeken")   # zoeken is een stap van de bronselectie
 Actie = Literal["werkgebied_annoteren", "deelvragen_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
                 "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie",
                 "scherper", "uitleg", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen",

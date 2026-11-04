@@ -346,3 +346,48 @@ async def test_thema_voorstel_route_faalt_niet_zonder_rechtsgebieden(client):
     r = await client.get(f"/v1/werkgebieden/{wg['id']}/thema-voorstel")
     assert r.status_code == 200, r.text
     assert set(r.json()) == {"rechtsgebieden", "voorstel"}
+
+
+async def test_bepaling_zoeken_en_regelingen_voor_bepaling_toevoegen(client, monkeypatch):
+    from app import bepaling_zoeken as zoeken
+    from test_bepaling_zoeken import IW, iw
+
+    zoeken._CACHE.clear()
+    wg = await _nieuw(client)
+
+    async def rijen(bwb):
+        raise AssertionError("de boom komt uit de cache")
+    zoeken._CACHE[IW] = (10**12, iw())
+    monkeypatch.setattr(zoeken, "haal_bronrijen", rijen)
+    r = await client.get(f"/v1/werkgebieden/{wg['id']}/bepalingen", params={"bwb_id": IW, "q": "9 lid 2"})
+    assert r.status_code == 200, r.text
+    assert r.json()["treffers"][0]["vindplaats"] == "Artikel 9, lid 2"
+    assert r.json()["gelezen"] == {"artikel": "9", "lid": "2", "onderdeel": "", "tekst": ""}
+    assert (await client.get(f"/v1/werkgebieden/{wg['id']}/bepalingen",
+                             params={"bwb_id": "iets; DROP", "q": "9"})).status_code == 422
+
+    zoeken._CACHE.clear()
+
+    async def weg(bwb):
+        raise ConnectionError("graaf weg")
+    monkeypatch.setattr(zoeken, "haal_bronrijen", weg)
+    r = await client.get(f"/v1/werkgebieden/{wg['id']}/bepalingen", params={"bwb_id": IW, "q": "9"})
+    assert r.status_code == 503 and "niet bereikbaar" in r.json()["detail"]
+
+    async def alle():
+        return [{"bwb_id": IW, "citeertitel": "Invorderingswet 1990", "soort": "wet", "afkortingen": []}]
+    monkeypatch.setattr(zoeken, "alle_regelingen", alle)
+    r = await client.get(f"/v1/werkgebieden/{wg['id']}/regelingen", params={"q": "invordering"})
+    assert [x["bwb_id"] for x in r.json()["regelingen"]] == [IW]
+
+
+async def test_een_dubbelzinnige_bepaling_geeft_de_opties_mee(monkeypatch):
+    from bronmodel import BronKeuze
+
+    async def keuze(doel):
+        raise BronKeuze("Het gevraagde lid 7 bestaat niet", [{"bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1"}])
+    monkeypatch.setattr(werkgebieden, "_resolve_bron", keuze)
+    with pytest.raises(HTTPException) as e:
+        await werkgebieden.resolve_bron({"bwb_id": "BWBR0004770", "artikel": "9", "lid": "7"})
+    assert e.value.status_code == 422
+    assert e.value.detail["opties"][0]["bron_iri"].endswith(":lid:1") and "lid 7" in e.value.detail["melding"]

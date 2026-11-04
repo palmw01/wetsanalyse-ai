@@ -47,7 +47,11 @@ bs_kies ──► bs_bepalingen (fase A/B: kern) ──► bs_afhankelijkheden (
 - Los daarvan staan de deelvraagstatus (`actief`, `vervangen`, …) en de dekkingscheck (`met_bron`, `geen_bron`;
   sinds spoor K zonder begrippen: die horen bij het werkgebied). Die worden niet vermengd. De rijen van de
   deelvragen in de werkplek tonen de voortgang hierboven, met het aantal bronnen.
-- **Een afronding staat op een scope** (`scope_stand`: analysevraag, afbakening, deelvraagtekst). Verandert die,
+- **Wat er ligt, is wat de laatste zoekopdracht vond.** Na een wijziging van het dossier of de selectie zoekt Lex
+  eerst opnieuw (ook als alles al af was); een voorstel dat de nieuwe zoekopdracht niet meer vindt, verdwijnt.
+  Besluiten (opgenomen, uitgesloten) blijven staan.
+- **Een afronding staat op een scope** (`scope_stand`: analysevraag, afbakening, deelvraagtekst en de kandidaten
+  bij de deelvraag). Verandert die,
   dan is de deelvraag `opnieuw_bekijken` en niet meer klaar; de besluiten blijven staan. Een verbeterde
   deelvraag erft voortgang en besluiten, en staat daardoor op *opnieuw bekijken*.
 
@@ -65,3 +69,14 @@ bs_kies ──► bs_bepalingen (fase A/B: kern) ──► bs_afhankelijkheden (
   relatie in de graaf.
 - De rangschikking van `bepaling_opties` is ongewijzigd (meting 21 okt 2026: recall 0,21 in de top 8). Een
   betere rangschikking is de volgende stap, gemeten op een nieuwe held-out set.
+
+
+## Compact kaartje, het paneel beslist (3 nov 2026)
+
+Besluit van de gebruiker: het gesprek blijft rustig, zoals een artefact bij Claude. Het kaartje van de kernbepalingen
+en van wat eraan hangt heeft geen vinkjes meer (`weergave: paneel`). Het noemt wat er ligt en verwijst naar het
+paneel. Daar lees je de wettekst (uitklappen) en neem je per bepaling op of sluit je uit; die besluiten gaan
+rechtstreeks naar de api. *Klaar* (`actie: klaar`, op het kaartje of onderaan het paneel) schuift de fase door
+zonder een besluit te raken; wat dan nog onbeslist is, is niet gekozen. *+ Bepaling toevoegen* is hetzelfde onderdeel
+als op de tab Bronnen: een regeling, een vindplaats uit de echte boom en de deelvraag. Een oud kaartje met vinkjes
+wordt nog verwerkt.

@@ -45,9 +45,12 @@ import type {
 import { metingUitDekking } from "@/lib/agentEvents";
 import { ANNULEER_TEKST, afgehandeld, parseBevestiging, parseBevestigingKeuze } from "@/lib/werkgebiedAnnoteren";
 import {
-  antwoordOp, antwoordTekst, groepeerVragen, openVraag, parseAntwoordOp, parseVraagkaart, type IntakeActie, type Vraagkaart,
+  antwoordOp, antwoordTekst, groepeerVragen, klaarActie, openVraag, parseAntwoordOp, parseVraagkaart, type IntakeActie, type Vraagkaart,
 } from "@/lib/vraagkaart";
 import { VraagDock } from "@/components/werkplek/VraagDock";
+import { BronselectieKaart } from "@/components/werkplek/BronselectieKaart";
+import { BepalingToevoegen } from "@/components/werkgebieden/BepalingToevoegen";
+import { meldBronselectieGewijzigd } from "@/lib/bronselectie";
 import {
   doelInvoerVan, isVerwijderd, kandidatenAlsTekst, mergeVoorstellen,
 } from "@/lib/annotatie";
@@ -170,6 +173,8 @@ export function WerkplekClient({
   /** Het open artefact van een werkgebied (begripsvoorstellen of gevonden bepalingen). Er staat
    *  hoogstens één artefact open: wie een annotatie opent, sluit dit, en andersom. */
   const [wgArtefact, setWgArtefact] = useState<WerkgebiedArtefact>();
+  // *Bepaling toevoegen* vanaf het compacte kaartje van de bronselectie (3 nov 2026).
+  const [toevoegen, setToevoegen] = useState<{ werkgebiedId: string; deelvraagId: string } | null>(null);
   // Een context naast het gesprek die geen artefact van een beurt is (spoor G4): een bepaling, een
   // element, de bronnen van het werkgebied. Ook hier hoogstens één paneel tegelijk: opent er een
   // annotatie of artefact, dan gaat de context dicht; opent de context, dan gaan die dicht.
@@ -1054,6 +1059,8 @@ export function WerkplekClient({
   // Welke voorstellen van Lex al beantwoord zijn (gestart of geannuleerd): daar staan geen knoppen meer.
   const keuzes = useMemo(() => afgehandeld(items), [items]);
   const open = openVraag(vraagGroepen);
+  // Het open compacte kaartje van de bronselectie: *Klaar* mag dan ook vanuit het paneel.
+  const paneelKaart = open?.open?.weergave === "paneel" ? open.open : undefined;
   const toonDock = !!open?.open && !bezig && !demo && weggeklikt !== open.openId;
   const suggesties = onderwerp ? suggestiesVan(onderwerp)
     : werkgebiedId && !demo && !invoer.trim() ? werkgebiedSuggesties() : [];
@@ -1101,6 +1108,14 @@ export function WerkplekClient({
     <WerkgebiedArtefactPaneel
       key={`${artefactSleutel(wgArtefact)}:${wgLading}`}
       doel={wgArtefact}
+      onKlaar={paneelKaart && wgArtefact.soort === "bronselectie" && !bezig
+        && wgArtefact.werkgebied_id === paneelKaart.intake_id.slice(3)
+        ? (deelvraagId: string) => {
+          if (deelvraagId !== paneelKaart.deelvraag_id) return;
+          const a = klaarActie(paneelKaart);
+          void verstuur(antwoordTekst(paneelKaart, a), undefined, undefined, undefined, undefined, a);
+        } : undefined}
+      klaarVoor={paneelKaart?.deelvraag_id}
       variant={breed ? "kolom" : "side"}
       onSluit={() => setWgArtefact(undefined)}
       onWissel={setWgArtefact}
@@ -1350,10 +1365,21 @@ export function WerkplekClient({
         </button>
       )}
 
+      {toevoegen && (
+        <BepalingToevoegen werkgebiedId={toevoegen.werkgebiedId} deelvraagId={toevoegen.deelvraagId}
+          onSluit={() => setToevoegen(null)}
+          onKlaar={(zin) => { const wid = toevoegen.werkgebiedId; setToevoegen(null); setMelding(zin); meldBronselectieGewijzigd(wid); }} />
+      )}
       {/* Invoerbalk – gepind onderaan, gecentreerd, auto-groeiend */}
       <div className="shrink-0 bg-paper">
         <div className="mx-auto max-w-3xl px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
-          {toonDock && open?.open ? (
+          {toonDock && open?.open && open.open.weergave === "paneel" ? (
+            <BronselectieKaart key={open.openId} kaart={open.open} uitgeschakeld={geblokkeerd}
+              onSluit={() => setWeggeklikt(open.openId ?? null)}
+              onActie={(a) => void verstuur(antwoordTekst(open.open!, a), undefined, undefined, undefined, undefined, a)}
+              onBeoordelen={() => { const doel = bronselectieVanKaart(open.open); if (doel) { setNodeDoel(undefined); setWgArtefact(doel); } }}
+              onToevoegen={() => setToevoegen({ werkgebiedId: open.open!.intake_id.slice(3), deelvraagId: open.open!.deelvraag_id })} />
+          ) : toonDock && open?.open ? (
             <VraagDock key={open.openId} kaart={open.open} uitgeschakeld={geblokkeerd}
               onSluit={() => setWeggeklikt(open.openId ?? null)}
               onActie={(a) => void verstuur(antwoordTekst(open.open!, a), undefined, undefined, undefined, undefined, a)} />

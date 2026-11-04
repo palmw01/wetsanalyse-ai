@@ -3,7 +3,7 @@ gebruiker, die als actor in de audit komt."""
 from __future__ import annotations
 
 import httpx
-from bronmodel import BronFout
+from bronmodel import BronFout, BronKeuze
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from . import annotatie_v2_store, werkgebied_deelvragen as deelvragen, werkgebied_store as store
@@ -25,6 +25,10 @@ async def resolve_bron(doel: dict) -> dict:
     """Zelfde foutvertaling als de annotatie-API: ongeldige bron 422, graaf weg 503."""
     try:
         return await _resolve_bron(doel)
+    except BronKeuze as exc:
+        # Een dubbelzinnig nummer of een lid dat niet bestaat: de graaf kent wel de opties. Die gaan mee,
+        # zodat de werkplek kan laten kiezen in plaats van alleen "niet gevonden" te zeggen.
+        raise HTTPException(422, {"melding": str(exc), "opties": exc.opties}) from exc
     except BronFout as exc:
         raise HTTPException(422, str(exc)) from exc
     except (httpx.HTTPError, ConnectionError) as exc:
@@ -70,6 +74,45 @@ SELECT ?r ?l WHERE {{ VALUES ?r {{ {waarden} }} ?r dct:subject ?b . ?b skos:pref
     voorstel = tooi.thema_voorstel(gebieden)
     return {"rechtsgebieden": sorted(set(gebieden)),
             "voorstel": [{"thema": u, "label": tooi.thema_label(u)} for u in voorstel]}
+
+
+_GRAAF_WEG = "De kennisgraaf is tijdelijk niet bereikbaar."
+
+
+@router.get("/{werkgebied_id}/regelingen")
+async def get_regelingen(werkgebied_id: str, q: str = Query("", max_length=200),
+                         actor: str = Depends(actieve_userid)):
+    """Regelingen kiezen voor *Bepaling toevoegen*: die van het werkgebied vooraan, dan op citeertitel,
+    afkorting of BWB-id. Lege `q`: alleen die van het werkgebied."""
+    from . import bepaling_zoeken as zoeken
+
+    wg = await store.haal(werkgebied_id)
+    eerst = list(dict.fromkeys(b["bwb_id"] for b in wg.get("bronnen") or [] if b.get("bwb_id")))
+    try:
+        alle = await zoeken.alle_regelingen()
+    except (httpx.HTTPError, ConnectionError, ValueError) as exc:
+        raise HTTPException(503, _GRAAF_WEG) from exc
+    return {"regelingen": zoeken.regelingen(alle, q, eerst)}
+
+
+@router.get("/{werkgebied_id}/bepalingen")
+async def get_bepalingen(werkgebied_id: str, bwb_id: str = Query(..., pattern=r"^BWB[RV]\d+$"),
+                         q: str = Query("", max_length=200), actor: str = Depends(actieve_userid)):
+    """De bepalingen in één regeling die bij een getypte vindplaats passen ("9 lid 2", "21.1", "25.4 onderdeel
+    b"), uit de echte bronboom, met het begin van hun tekst. Leeg = niets gevonden, met `gelezen`: hoe de
+    invoer gelezen is, zodat de werkplek kan zeggen wat er niet bestaat."""
+    from dataclasses import asdict
+
+    from . import bepaling_zoeken as zoeken
+
+    await store.haal(werkgebied_id)
+    try:
+        nodes = await zoeken.boom(bwb_id)
+    except BronFout as exc:
+        raise HTTPException(404, "Deze regeling staat niet in de kennisgraaf.") from exc
+    except (httpx.HTTPError, ConnectionError, ValueError) as exc:
+        raise HTTPException(503, _GRAAF_WEG) from exc
+    return {"bwb_id": bwb_id, "gelezen": asdict(zoeken.lees(q)), "treffers": zoeken.zoek(nodes, q)}
 
 
 @router.patch("/{werkgebied_id}")

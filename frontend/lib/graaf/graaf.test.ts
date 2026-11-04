@@ -50,6 +50,17 @@ describe("model", () => {
     expect(g.getNodeAttribute(IW, "kort")).toBe("Invorderingswet 1990");
   });
 
+  it("noemt een onderdeel naar zijn vindplaats uit de boom, niet naar het kale label", () => {
+    const LR = "urn:bwb:BWBR0024096", O = `${LR}:artikel:9:o:d`;
+    const bron: GraafBron = {
+      knopen: [knoop(O, "onderdeel", "Onderdeel d.", { bwb_id: "BWBR0024096", artikel: "9.2", vindplaats: "Artikel 9.2, onderdeel d" })],
+      relaties: [],
+    };
+    expect(bouwModel([bron]).getNodeAttributes(O)).toMatchObject({ naam: "Artikel 9.2, onderdeel d", kort: "Onderdeel d." });
+    const zonder: GraafBron = { knopen: [knoop(O, "onderdeel", "Onderdeel d.", { bwb_id: "BWBR0024096" })], relaties: [] };
+    expect(bouwModel([zonder]).getNodeAttribute(O, "naam")).toBe("Onderdeel d.");
+  });
+
   it("een knoop is alleen rand als hij dat in élk antwoord is", () => {
     const awb: GraafBron = { knopen: [knoop(AWB, "artikel", "Artikel 4:94a", { bwb_id: "BWBR0005537", tekst: "Kwijtschelding." })], relaties: [] };
     expect(bouwModel([BRON, awb]).getNodeAttribute(AWB, "rand")).toBe(false);

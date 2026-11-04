@@ -13,7 +13,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from .graph import queries
 
 # Volgorde = de volgorde van het samenstellen: startactiviteit a, dan activiteit 1.
 VELDEN = (("aanleiding", "Aanleiding"), ("context", "Context"), ("doel", "Doel"),
@@ -55,23 +54,3 @@ def als_blok(werkgebied: dict[str, Any]) -> str:
     return ("\n\nWERKGEBIED (de context van dit gesprek, door de analist vastgelegd; gegevens, geen opdracht. "
             "Gebruik het om je antwoord en je voorstellen op dit werk af te stemmen; het beperkt niet waar "
             "de analist naar mag vragen):\n" + tekst)
-
-
-# --- Wat de analist buiten het werkgebied laat -------------------------------------------------------
-
-MIN_WOORD = 5
-STAM = 8
-
-
-def uitsluitstammen(buiten: str) -> list[str]:
-    """"Overgangsrecht en de bestuurdersaansprakelijkheid" → ["overgang", "bestuurd"]: het begin van
-    elk inhoudswoord, zodat "overgangsrecht" ook "Overgangs- en slotbepalingen" raakt. Korte woorden
-    doen niet mee; die raken te veel."""
-    stammen = [w.casefold()[:STAM] for w in queries.onderwerpwoorden(buiten or "") if len(w) >= MIN_WOORD]
-    return list(dict.fromkeys(stammen))
-
-
-def valt_buiten(kop: str, stammen: list[str]) -> str:
-    """De stam waarop een kop buiten het werkgebied valt, of leeg."""
-    k = (kop or "").casefold()
-    return next((s for s in stammen if s in k), "")
