@@ -688,3 +688,24 @@ def test_met_een_gebeurtenis_zoekt_de_run_de_grondslag():
     assert {x: k["bewijs"][0]["detail"][x] for x in ("zoekvraag", "gebeurtenis", "signaal")} == \
         {"zoekvraag": "a", "gebeurtenis": "kwijtschelding", "signaal": "kan worden"}
     assert k["bewijs"][0]["detail"]["kop"].startswith("Afdeling 3")
+
+
+def test_met_een_gebeurtenis_kiest_de_deelvraag_in_de_pool():
+    """Zoekvragen a–d, PR 5: de methode `deelvraag` neemt met een gekozen gebeurtenis de opties uit de pool, met de
+    zoekvraag, het signaal en de route in het bewijs. Zonder bronselectie zijn de regelingen van de gebeurtenis het
+    bereik (Rekeningafspraken zocht anders in de hele graaf)."""
+    from test_zoekvragen import Omgeving, UR
+
+    invoer = {"naam": "Kwijtschelding", "analysevraag": "Wanneer?", "kern": [], "context": [],
+              "deelvragen": [{"id": "d1", "vraag": "Wat kan iemand doen als het verzoek wordt afgewezen?"},
+                             {"id": "d2", "vraag": "Wat wordt verstaan onder vermogen?"}],
+              "dossier": {"gebeurtenis": "kwijtschelding"}}
+    uit = vind(Omgeving(), invoer, ("deelvraag",))
+    per = {}
+    for k in uit["kandidaten"]:
+        for b in k["bewijs"]:
+            per.setdefault(b["detail"]["deelvraag_id"], []).append((k["bron_iri"].split(":", 2)[2], b["detail"]))
+    d1 = dict(per["d1"])
+    assert d1[f"{UR}:artikel:25:lid:1"]["zoekvraag"] == "c" and d1[f"{UR}:artikel:25:lid:1"]["route"] == "zoekvragen"
+    assert f"{UR}:artikel:12:lid:1" in dict(per["d2"])
+    assert all(iri.split(":")[0] in (UR, "BWBR0024096", "BWBR0004770") for iri, _ in per["d1"] + per["d2"])

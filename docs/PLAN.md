@@ -947,8 +947,13 @@ van de gebruiker op 20 okt 2026).
   - PR 4: de pool a–d vanuit de grondslag (`zoekvragen.pool`), gemeten op vier ontwikkelsets (die kregen
     `zoekvraag` en `gebeurtenis`): recall nodig 0,75 (kwijtschelding; zoeken per deelvraag blind 0,33), 0,89, 0,82 en
     0,54 (bezwaar: de grondslag van het bezwaar mist een signaal).
-  - **Open**: PR 5 de deelvragen rangschikken binnen die pool; PR 6 het label
-    per zoekvraag in het paneel; PR 7 de blinde meting op `verrekening-concept`.
+  - PR 5: met een gebeurtenis kiest de deelvraag in de pool (vraagvorm → zoekvraag, woorden naar zeldzaamheid);
+    zonder gekozen regelingen de regelingen van de gebeurtenis. Recall nodig per deelvraag op de ontwikkelsets
+    0,10/0,22/0,53/0,36 → 0,29/0,44/0,40/0,46. Aanleiding: werkgebied Rekeningafspraken (acceptatie), dat in de hele
+    graaf zocht op woorden als "voorwaarden" en "rechten".
+  - **Open**: PR 6 de woordenkloof benoemen en overbruggen (een voorwerp als gebeurtenis, een begrip uit de
+    uitvoering), PR 7 meer gebeurtenissen per werkgebied en het label in het paneel, PR 8 deelvragen langs a–d, PR 9
+    de blinde meting op `verrekening-concept`.
 - **Historische toestanden** (open keuze, 3 nov 2026): de graaf heeft per regeling alleen de nieuwste toestand,
   dus de wettekst is altijd de actuele. De peildatum is standaard de aanmaakdatum en de werkplek waarschuwt als de
   tekst pas ná de peildatum ging gelden (`GET …/toestanden`). De toestand van de peildatum zelf importeren raakt de

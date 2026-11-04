@@ -245,9 +245,16 @@ def _overzicht(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
 
 
 def _deelvraag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tuple[int, bool]:
-    """Per deelvraag de gerichte bepalingen (`bepaling_opties`, dezelfde functie als de intake), binnen
-    de regelingen van de selectie. Zonder kern zijn de treffers kern; met een kern aanverwant: de
-    analist beslist wat bij de deelvraag hoort."""
+    """Per deelvraag de gerichte bepalingen, binnen de regelingen van de selectie. Zonder kern zijn de treffers kern;
+    met een kern aanverwant: de analist beslist wat bij de deelvraag hoort.
+
+    Met een gekozen gebeurtenis (zoekvragen a–d, PR 5) komen ze uit de pool vanaf de gebeurtenis
+    (`zoekvragen.pool`, één keer per run): wat een inhoudswoord van de deelvraag raakt, met de zoekvraag die de
+    vraagvorm aanwijst als voorkeur (`zoekvragen.opties_bij_deelvraag`). Levert de pool te weinig, dan vult het
+    zoeken op de woorden van de deelvraag (`bepaling_opties`) aan. Zonder gebeurtenis alleen dat laatste, zoals
+    voorheen. Zonder gekozen regelingen zijn de regelingen van de gebeurtenis het bereik, niet de hele graaf."""
+    from .deelvraag_zoeken import MAX_PER_DEELVRAAG
+    from .zoekvragen import PLAATSEN_WOORDEN, opties_bij_deelvraag, pool
 
     rol = "aanverwant" if invoer.get("kern") else "kern"
     regelingen = list(dict.fromkeys(b["bwb_id"] for b in invoer.get("kern", []) + invoer.get("context", [])
@@ -255,28 +262,55 @@ def _deelvraag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
     dossier = {"naam": invoer.get("naam", ""), "analysevraag": invoer.get("analysevraag", ""),
                **(invoer.get("dossier") or {})}
     buiten = uitsluitstammen(buiten_uit_afbakening(dossier.get("afbakening", "")))
-    n_totaal = 0
+    gebeurtenis = (dossier.get("gebeurtenis") or "").strip()
+    p = pool(graph, gebeurtenis=gebeurtenis, regelingen=regelingen, buiten=buiten) if gebeurtenis else None
+    if p is not None and not regelingen:
+        regelingen = p["regelingen"]
+    n_totaal, volledig = 0, p is None or p["volledig"]
     for d in invoer.get("deelvragen") or []:
-        for b in bepaling_opties(graph, regelingen=regelingen, deelvraag=d.get("vraag", ""), dossier=dossier,
-                                 buiten=buiten):
-            if v.voeg(b["bron_iri"], rol=rol, methode="deelvraag", label=b["label"],
-                      detail={"deelvraag_id": d.get("id", ""), "vraag": d.get("vraag", ""),
-                              "raakt": b["geraakt"], **({"buiten": True} if b["buiten"] else {})}):
+        basis = {"deelvraag_id": d.get("id", ""), "vraag": d.get("vraag", "")}
+        woorden = bepaling_opties(graph, regelingen=regelingen, deelvraag=d.get("vraag", ""), dossier=dossier,
+                                  buiten=buiten)
+        uit_pool: list[dict[str, Any]] = []
+        if p is not None:
+            plaatsen = MAX_PER_DEELVRAAG - min(PLAATSEN_WOORDEN, len([b for b in woorden if not b["buiten"]]))
+            uit_pool = opties_bij_deelvraag(p["kandidaten"], d.get("vraag", ""), gebeurtenis=gebeurtenis,
+                                            limit=plaatsen)
+        for k in uit_pool:
+            if v.voeg(k["bron_iri"], rol=rol, methode="deelvraag",
+                      detail={**basis, "raakt": k["geraakt"], "zoekvraag": k["zoekvraag"], "signaal": k["signaal"],
+                              "route": "zoekvragen"}):
                 n_totaal += 1
-    return n_totaal, True
+        al = {k["bron_iri"] for k in uit_pool}
+        ruimte = MAX_PER_DEELVRAAG - len(uit_pool)
+        for b in woorden:
+            if b["bron_iri"] in al:
+                continue
+            if not b["buiten"]:
+                if ruimte <= 0:
+                    continue
+                ruimte -= 1
+            if v.voeg(b["bron_iri"], rol=rol, methode="deelvraag", label=b["label"],
+                      detail={**basis, "raakt": b["geraakt"], **({"buiten": True} if b["buiten"] else {}),
+                              **({"route": "woorden"} if p else {})}):
+                n_totaal += 1
+    return n_totaal, volledig
 
 
 def _grondslag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tuple[int, bool]:
     """Zoekvraag a (`zoekvragen.grondslag`): waar de gebeurtenis die de analist koos haar bestaansrecht krijgt,
     binnen de regelingen van de selectie. Rol kern: het is het vertrekpunt van de keten a–d. Het bewijs draagt de
     zoekvraag, de gebeurtenis, het signaal en de kop waaronder de bepaling staat."""
-    from .zoekvragen import MAX_GRONDSLAG, grondslag
+    from .zoekvragen import MAX_GRONDSLAG, grondslag, regelingen_van_gebeurtenis
 
     dossier = invoer.get("dossier") or {}
     gebeurtenis = (dossier.get("gebeurtenis") or "").strip()
+    if not gebeurtenis:
+        return 0, True
+    # Zonder gekozen regelingen: de regelingen waarvan een kop de gebeurtenis draagt, niet de hele graaf.
     regelingen = list(dict.fromkeys(b["bwb_id"] for b in invoer.get("kern", []) + invoer.get("context", [])
-                                    if b.get("bwb_id")))
-    if not gebeurtenis or not regelingen:
+                                    if b.get("bwb_id"))) or regelingen_van_gebeurtenis(graph, gebeurtenis)
+    if not regelingen:
         return 0, True
     buiten = uitsluitstammen(buiten_uit_afbakening(dossier.get("afbakening", "")))
     gevonden = grondslag(graph, gebeurtenis=gebeurtenis, regelingen=regelingen, buiten=buiten)

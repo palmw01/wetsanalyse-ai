@@ -1008,6 +1008,16 @@ onder de supervisor, naast de intake; zie `docs/architectuur/bronselectie-per-de
     gebeurtenis of die naar de grondslag verwijst, `q_subdivisies`; de definities van termen in a–c,
     `bronnen_vinden.definities_in`). `genoemd_in` telt ook een vervoeging met een lange stam ("uitbetaald" →
     uitbetaling; het begin groeit mee met de stam, zodat "belasti" de belastingrente niet noemt).
+  - **De deelvraag kiest in de pool** (PR 5, `opties_bij_deelvraag`, in `bronnen_vinden._deelvraag` zodra er een
+    gebeurtenis is): de vraagvorm wijst de zoekvraag aan (`VRAAGVORM`: "onder welke voorwaarden" b, "wat kan iemand
+    doen als" c, "wat is een" d, "wie kan" a); de woorden van die vorm (`METHODEWOORDEN`) en lege woorden
+    (`LEGE_WOORDEN`) zoeken niet mee. Een woord weegt naar zijn zeldzaamheid in de pool (idf), de passende zoekvraag
+    telt als het sterkste woord, en bij gelijke stand gaat wie de gebeurtenis noemt voor. Het zoeken op de woorden
+    (`bepaling_opties`) vult alleen aan als de pool te weinig geeft (`PLAATSEN_WOORDEN = 0`: vaste plaatsen hielpen
+    niet). Zonder gekozen regelingen zijn de regelingen waarvan een kop de gebeurtenis draagt het bereik
+    (`regelingen_van_gebeurtenis`), niet de hele graaf. Een uitsluitstam die in de helft van de omgeving staat, telt
+    niet ("belastin"). Recall nodig per deelvraag (eval-route `zoekvragen (PR 5)`): 0,10 → 0,29, 0,22 → 0,44,
+    0,36 → 0,46, bezwaar 0,53 → 0,40.
   - Meten: `uv run python -m eval.bronselectie_eval --zoekvragen --set <set>` (de plek van de gebeurtenis van de set,
     met en zonder naam, en de recall van de grondslag op `zoekvraag: a`). Ontwikkelset kwijtschelding: plek 1 / 3,
     recall 0,67, precisie 0,25. Een brede gebeurtenis ("aansprakelijkheid") vult de grondslag met een heel

@@ -244,7 +244,7 @@ def grondslag(graph: GraphPort, *, gebeurtenis: str, regelingen: list[str], buit
                 for zin in _ZIN.split(tekst):
                     if all(_raakt_woord(st, zin) for st in stammen) and (signaal := bestaansrecht_signaal(zin)):
                         k = gevonden.setdefault(doel, {"bron_iri": doel, "bwb_id": bwb, "signaal": signaal,
-                                                       "zin": " ".join(zin.split())[:300],
+                                                       "zin": " ".join(zin.split())[:300], "tekst": tekst[:2000],
                                                        "_volgorde": (rang.get(bwb, 0), n)})
                         k["_volgorde"] = min(k["_volgorde"], (rang.get(bwb, 0), n))
                         break
@@ -321,7 +321,7 @@ RECHTSGELDIGHEID = (
     ("procedure", re.compile(r"\b(?:verzoek|aanvraag|indienen|ingediend|indiening|formulier|gegevens\s+verstrekt|"
                              r"verstrekt\s+de\s+gegevens|ondertekend)\b", re.I)),
 )
-MAX_OMGEVING = 60
+MAX_OMGEVING = 150
 #: De subdivisies van de beleidsregel bij de gebeurtenis (Leidraad art. 26 heeft er tientallen): een ruim plafond,
 #: want de deelvragen kiezen er later uit (PR 5).
 MAX_BELEID = 200
@@ -381,6 +381,30 @@ def _hoofddivisie(iri: str) -> str:
     return f"urn:bwb:{bwb_van(iri)}:artikel:{m.group(1)}" if m else ""
 
 
+#: Zonder gekozen regelingen: hoogstens zoveel regelingen waarvan een kop de gebeurtenis draagt.
+MAX_REGELINGEN_GEBEURTENIS = 6
+
+
+def regelingen_van_gebeurtenis(graph: GraphPort, gebeurtenis: str) -> list[str]:
+    """De regelingen waarvan een kop de gebeurtenis draagt, in de volgorde van de index: het bereik van een werkgebied
+    zonder gekozen regelingen. Zonder dat zocht Lex in de hele graaf (werkgebied Rekeningafspraken, 4 nov 2026: Awb
+    8:75 en de "katvanger" bij een vraag over uitbetaling). Leeg als de graaf hapert."""
+    woorden = zoektermen(gebeurtenis)
+    if not woorden:
+        return []
+    stammen = [_stamdeel(w) for w in woorden]
+    uit: list[str] = []
+    try:
+        for r in _rijen(graph, queries.zoek_opbouw(gebeurtenis, limit=50)):
+            bwb = r.get("bwbId") or bwb_van(r["node"])
+            if bwb and bwb not in uit and any(st in g.casefold() for g in kop_gebeurtenissen(r.get("label") or "")
+                                              for st in stammen):
+                uit.append(bwb)
+    except Exception:  # noqa: BLE001
+        logger.warning("regelingen van de gebeurtenis niet opgehaald", extra={"categorie": "technisch"}, exc_info=True)
+    return uit[:MAX_REGELINGEN_GEBEURTENIS]
+
+
 def pool(graph: GraphPort, *, gebeurtenis: str, regelingen: list[str], buiten: list[str] | None = None
          ) -> dict[str, Any]:
     """Zoekvragen a–d vanaf de gebeurtenis, zonder model: per kandidaat `{bron_iri, bwb_id, zoekvraag, signaal,
@@ -401,8 +425,8 @@ def pool(graph: GraphPort, *, gebeurtenis: str, regelingen: list[str], buiten: l
     from .overzicht import RANG, padsleutel
 
     woorden = zoektermen(gebeurtenis)
-    bereik = [r for r in dict.fromkeys(regelingen) if r]
-    leeg = {"grondslag": [], "kandidaten": [], "omgeving": [], "volledig": True}
+    bereik = [r for r in dict.fromkeys(regelingen) if r] or regelingen_van_gebeurtenis(graph, gebeurtenis)
+    leeg = {"grondslag": [], "kandidaten": [], "omgeving": [], "volledig": True, "regelingen": bereik}
     if not woorden or not bereik:
         return leeg
     stammen = [_stamdeel(w) for w in woorden]
@@ -421,7 +445,7 @@ def pool(graph: GraphPort, *, gebeurtenis: str, regelingen: list[str], buiten: l
     gs = grondslag(graph, gebeurtenis=gebeurtenis, regelingen=bereik, buiten=buiten)
     kandidaten: dict[str, dict[str, Any]] = {
         k["bron_iri"]: {"bron_iri": k["bron_iri"], "bwb_id": k["bwb_id"], "zoekvraag": "a", "signaal": k["signaal"],
-                        "zin": k["zin"], "via": "grondslag"} for k in gs}
+                        "zin": k["zin"], "tekst": k.get("tekst", ""), "via": "grondslag"} for k in gs}
     volledig, delen, hoofddivisies, teksten = True, [], set(), []
     try:
         for bwb in bereik:
@@ -446,6 +470,10 @@ def pool(graph: GraphPort, *, gebeurtenis: str, regelingen: list[str], buiten: l
             for r in _rijen(graph, q_teksten(artikelen[i:i + PER_QUERY])):
                 eenheid = r["deel"].split(":o:", 1)[0]
                 per_eenheid.setdefault(eenheid, []).append(r.get("tekst", ""))
+        # Een uitsluitstam die in de helft of meer van de omgeving staat, onderscheidt niets: "belastin" (uit
+        # "gemeentelijke belastingen valt erbuiten") stond in bijna elk lid en haalde Uitv.reg. 12 (vermogen) weg.
+        alles = [" ".join(t) for t in per_eenheid.values()]
+        buiten[:] = [b for b in buiten if 2 * sum(_raakt_woord(b, t) for t in alles) < max(1, len(alles))]
         # Een artikel met leden telt per lid; het artikel zelf alleen als het geen leden heeft.
         met_leden = {e.split(":lid:", 1)[0] for e in per_eenheid if ":lid:" in e}
         for eenheid, delen_tekst in per_eenheid.items():
@@ -458,7 +486,8 @@ def pool(graph: GraphPort, *, gebeurtenis: str, regelingen: list[str], buiten: l
             zoekvraag, signaal, zin = zoekvraag_van(tekst)
             if zoekvraag:
                 kandidaten[eenheid] = {"bron_iri": eenheid, "bwb_id": bwb_van(eenheid), "zoekvraag": zoekvraag,
-                                       "signaal": signaal, "zin": " ".join(zin.split())[:300], "via": "omgeving"}
+                                       "signaal": signaal, "zin": " ".join(zin.split())[:300], "tekst": tekst[:2000],
+                                       "via": "omgeving"}
         # De beleidsregel die naar de grondslag verwijst (Leidraad art. 26 → Iw art. 26).
         gs_artikelen = sorted({k["bron_iri"].split(":lid:", 1)[0] for k in gs})
         if gs_artikelen:
@@ -474,7 +503,7 @@ def pool(graph: GraphPort, *, gebeurtenis: str, regelingen: list[str], buiten: l
                     continue
                 kandidaten[r["sub"]] = {"bron_iri": r["sub"], "bwb_id": bwb_van(r["sub"]), "zoekvraag": "d",
                                         "signaal": "beleidsregel", "zin": " ".join((r.get("tekst") or "").split())[:300],
-                                        "via": "beleidsregel"}
+                                        "tekst": (r.get("tekst") or "")[:2000], "via": "beleidsregel"}
         # Definities van termen in a–c.
         abc = [t for t in teksten if kandidaten.get(t["deel"], {}).get("zoekvraag") in ("a", "b", "c")] + \
               [{"deel": k["bron_iri"], "tekst": k["zin"]} for k in gs]
@@ -483,10 +512,91 @@ def pool(graph: GraphPort, *, gebeurtenis: str, regelingen: list[str], buiten: l
         for d in defs:
             if d["node"] not in kandidaten:
                 kandidaten[d["node"]] = {"bron_iri": d["node"], "bwb_id": bwb_van(d["node"]), "zoekvraag": "d",
-                                         "signaal": f"definitie van “{d['begrip']}”", "zin": "", "via": "definitie"}
+                                         "signaal": f"definitie van “{d['begrip']}”", "zin": "", "tekst": d["begrip"],
+                                         "via": "definitie"}
     except Exception:  # noqa: BLE001 – wat er al is blijft; de meting zegt dat het onvolledig is
         logger.warning("zoekvragen-pool onvolledig", extra={"categorie": "technisch"}, exc_info=True)
         volledig = False
     per = sorted(kandidaten.values(), key=lambda k: (VOLGORDE[k["zoekvraag"]], padsleutel(k["bron_iri"])))
     uit = [k for z in "abcd" for k in om_de_beurt([k for k in per if k["zoekvraag"] == z], rang, bereik)]
-    return {"grondslag": gs, "kandidaten": uit, "omgeving": delen + sorted(hoofddivisies), "volledig": volledig}
+    return {"grondslag": gs, "kandidaten": uit, "omgeving": delen + sorted(hoofddivisies), "volledig": volledig,
+            "regelingen": bereik}
+
+
+# --- de deelvraag in de pool (PR 5) -------------------------------------------------------------------
+
+#: De vraagvorm van een deelvraag wijst de zoekvraag aan (skill `references/zoekvragen-bronselectie.md`): "onder welke
+#: voorwaarden" vraagt om rechtsgeldigheid (b), "wat kan iemand doen als" om rechtsgevolgen (c). Een aanwijzing voor
+#: het soort bron, geen filter: bijna elke deelvraag vraagt ook om definities en beleid. Volgorde: de eerste die past.
+VRAAGVORM = (
+    ("d", re.compile(r"^\s*(?:wat\s+(?:is|zijn|betekent)\b|wat\s+wordt\s+(?:verstaan|bedoeld))", re.I)),
+    ("a", re.compile(r"\b(?:wie\s+(?:mag|kan|is\s+bevoegd)|op\s+grond\s+waarvan|welke\s+(?:bevoegdheid|grondslag))\b", re.I)),
+    ("c", re.compile(r"\b(?:welke\s+(?:gevolgen|rechten|plichten|verplichtingen)|wat\s+(?:kan|moet)\b[^?]{0,60}\bdoen|"
+                     r"wat\s+gebeurt|hoe\s+[^?]{0,40}\bbezwaar|(?:hoe|wanneer)\s+[^?]{0,40}\baansprakelijk\s+stel)", re.I)),
+    ("b", re.compile(r"\b(?:onder\s+welke\s+voorwaarden|aan\s+welke\s+(?:eisen|voorwaarden)|welke\s+(?:eisen|voorwaarden|"
+                     r"uitzonderingen|beperkingen)|binnen\s+welke\s+termijn|in\s+welke\s+gevallen|wanneer\b|"
+                     r"hoe\s+(?:vraag|dien|meld|wordt|moet))", re.I)),
+)
+#: Woorden die de vorm van de vraag dragen en niet haar onderwerp: ze staan in elke regeling, en zoeken erop haalde
+#: "katvanger" en "bodemzaken" bij een vraag over rekeningafspraken (4 nov 2026). Ze wijzen de zoekvraag aan.
+METHODEWOORDEN = {"voorwaarden", "voorwaarde", "eisen", "eis", "uitzonderingen", "uitzondering", "beperkingen",
+                  "beperking", "rechten", "recht", "plichten", "plicht", "verplichtingen", "verplichting", "gevolgen",
+                  "gevolg", "gevallen", "geval", "regels", "bepalingen", "mogelijkheden", "uitvoering", "wijzigen",
+                  "beëindigen", "maken", "doen", "gebeurt", "geldt", "gelden", "welk", "iemand", "haar", "hun"}
+#: Woorden zonder onderwerp die in een deelvraag staan ("omdat", "laten", "telt … mee"): ze raakten in de pool willekeurige
+#: bepalingen. Alleen voor de rangschikking binnen de pool; het zoeken per deelvraag houdt `zoektermen` ongewijzigd.
+LEGE_WOORDEN = {"omdat", "laten", "genoeg", "telt", "tellen", "mee", "gaat", "gaan", "vraagt", "vragen", "intussen",
+                "door", "waarom", "tijdens", "alleen", "ook", "nog", "zelf", "andere", "bepaalde", "eerst", "daarna",
+                "hierbij", "daarvan", "erbij", "worden", "wordt", "zijn", "hebben", "heeft", "kunnen", "moet"}
+#: Vaste plaatsen voor het zoeken op de woorden van de deelvraag (`bepaling_opties`) naast de pool. Gemeten op de vier
+#: ontwikkelsets (PR 5): 3 vaste plaatsen gaven 0,19/0,39/0,40/0,46 recall nodig, geen 0,29/0,44/0,40/0,46. Het zoeken
+#: op woorden vult dus alleen aan als de pool minder opties geeft dan er plaatsen zijn.
+PLAATSEN_WOORDEN = 0
+
+
+def zoekvraag_van_deelvraag(vraag: str) -> str:
+    """De zoekvraag die de vorm van de deelvraag aanwijst, of leeg."""
+    return next((z for z, patroon in VRAAGVORM if patroon.search(vraag or "")), "")
+
+
+def termen_van_deelvraag(vraag: str) -> list[str]:
+    """De inhoudswoorden van een deelvraag: haar onderwerp zonder de woorden van de vraagvorm."""
+    from .zoektermen import onderwerp_van_deelvraag
+
+    return [w for w in zoektermen(onderwerp_van_deelvraag(vraag) or vraag or "")
+            if w not in METHODEWOORDEN and w not in LEGE_WOORDEN]
+
+
+def opties_bij_deelvraag(kandidaten: list[dict[str, Any]], vraag: str, *, limit: int = 8,
+                         gebeurtenis: str = "") -> list[dict[str, Any]]:
+    """De kandidaten uit de pool die bij een deelvraag horen, zonder graafverkeer.
+
+    Een inhoudswoord weegt naar hoe zeldzaam het is in de pool (idf, log((N+1)/(df+1))): "verzoek" en
+    "belastingschuld" staan in bijna elke kandidaat en zeggen niets, "spaargeld" en "afgewezen" wel. Past de zoekvraag
+    van een kandidaat bij de vraagvorm, dan telt dat als het sterkste woord van de deelvraag: zo komt het beroep (c)
+    bij "wat kan iemand doen als het verzoek wordt afgewezen?", ook zonder de woorden van de vraag. Een kandidaat
+    zonder woord en zonder passende zoekvraag doet niet mee. Bij gelijke stand de volgorde van de pool (a, b, c, d en
+    daarbinnen de documentvolgorde), en daarvóór: noemt de kandidaat de gebeurtenis zelf ("het bedrag van de
+    kwijtschelding"), dan gaat hij voor op een die dat niet doet (in een kop die meer gebeurtenissen bundelt, zoals
+    "Uitstel van betaling, kwijtschelding en verjaring"). Elke optie draagt `geraakt` en `past`."""
+    import math
+
+    from .zoektermen import _raakt
+
+    termen = termen_van_deelvraag(vraag)
+    zoekvraag = zoekvraag_van_deelvraag(vraag)
+    stammen = [_stamdeel(w) for w in zoektermen(gebeurtenis)]
+    geraakt = [_raakt(termen, f"{k.get('tekst') or ''} {k.get('zin') or ''}", True) for k in kandidaten]
+    n = len(kandidaten)
+    df = {t: sum(t in g for g in geraakt) for t in termen}
+    gewicht = {t: math.log((n + 1) / (df[t] + 1)) for t in termen if df[t]}
+    bonus = max(gewicht.values(), default=1.0) or 1.0
+    gescoord = []
+    for i, (k, g) in enumerate(zip(kandidaten, geraakt)):
+        past = bool(zoekvraag) and k["zoekvraag"] == zoekvraag
+        score = sum(gewicht.get(t, 0.0) for t in g) + (bonus if past else 0.0)
+        if g or past:
+            noemt = bool(stammen) and all(_raakt_woord(st, f"{k.get('tekst') or ''} {k.get('zin') or ''}")
+                                          for st in stammen)
+            gescoord.append((round(score, 9), not noemt, i, {**k, "geraakt": g, "past": past}))
+    return [k for *_, k in sorted(gescoord, key=lambda x: (-x[0], x[1], x[2]))][:limit]
