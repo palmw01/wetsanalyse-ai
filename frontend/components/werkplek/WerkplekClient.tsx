@@ -171,7 +171,6 @@ export function WerkplekClient({
   /** Het open artefact van een werkgebied (begripsvoorstellen of gevonden bepalingen). Er staat
    *  hoogstens één artefact open: wie een annotatie opent, sluit dit, en andersom. */
   const [wgArtefact, setWgArtefact] = useState<WerkgebiedArtefact>();
-  // *Bepaling toevoegen* vanaf het compacte kaartje van de bronselectie (3 nov 2026).
   // Een context naast het gesprek die geen artefact van een beurt is (spoor G4): een bepaling, een
   // element, de bronnen van het werkgebied. Ook hier hoogstens één paneel tegelijk: opent er een
   // annotatie of artefact, dan gaat de context dicht; opent de context, dan gaan die dicht.
@@ -310,8 +309,9 @@ export function WerkplekClient({
           const art = b.rol === "user" ? undefined : artefactVanBericht(b);
           const annotatieDoel = annotatieDoelVan(art);
           // De bronselectie (spoor J) draagt naast haar artefact een kaartje: dat blijft een antwoord, anders
-          // is de open vraag na herladen weg. Het paneel opent de werkplek zelf (`toonVastgelegdeBeurt`).
-          if (art && !annotatieDoel && art.soort !== "bronselectie") {
+          // is de open vraag na herladen weg. Het paneel opent de werkplek zelf (`toonVastgelegdeBeurt`). Zonder
+          // kaartje (een oud bericht *Gevonden bepalingen*, nu een bronselectie) blijft het gewoon een chip.
+          if (art && !annotatieDoel && (art.soort !== "bronselectie" || !b.vraagkaart)) {
             return [{ id: uid(), type: "artefact" as const, artefact: art, tekst: b.tekst?.trim() || undefined, denk: b.denk }];
           }
           return [b.rol === "user"

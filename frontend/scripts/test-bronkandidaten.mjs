@@ -180,14 +180,15 @@ try {
     "Welke bepalingen gaan over invorderbaarheid?");
   assert.ok(new URL(page.url()).searchParams.get("werkgebied") === "wg2", "de context staat in de URL");
 
-  await page.locator('button[data-artefact-soort="bronnen"]').click();
-  const paneel = page.getByRole("region", { name: "Gevonden bepalingen: Invorderbaarheid" });
-  await paneel.locator("[data-bronkandidaten]").waitFor();
+  // Een oud bericht *Gevonden bepalingen* (vóór 4 nov 2026) is een chip van de bronselectie en opent die (één soort).
+  await page.locator('button[data-artefact-soort="bronselectie"]').click();
+  const paneel = page.locator("[data-artefact-soort=bronselectie][data-artefact]");
   await paneel.getByRole("link", { name: "Open volledige pagina" }).waitFor();
-  assert.equal(await paneel.getByRole("link", { name: "Open volledige pagina" }).getAttribute("href"), "/werkgebieden/wg1/bronnen/voorstellen");
+  assert.equal(await paneel.getByRole("link", { name: "Open volledige pagina" }).getAttribute("href"), "/werkgebieden/wg1/bronnen");
+  assert.equal(await paneel.locator("[data-bronkandidaten]").count(), 0, "de bronverkenner is een pagina, geen artefact");
 
   assert.deepEqual(errors, []);
-  console.log("Browser OK: gevonden bepalingen met meting, geen zoekknop, bewijs in gewone woorden, de voorstellen op een eigen pagina, geen Vraag Lex per rij, de boom per regeling als verkenner zonder besluiten en zonder later, geen sneltoetsen, werkgebied uit een overzicht, bronnenartefact.");
+  console.log("Browser OK: gevonden bepalingen met meting, geen zoekknop, bewijs in gewone woorden, de voorstellen op een eigen pagina, geen Vraag Lex per rij, de boom per regeling als verkenner zonder besluiten en zonder later, geen sneltoetsen, werkgebied uit een overzicht, een oud bronnenartefact opent de bronselectie.");
 } finally {
   await browser.close();
 }

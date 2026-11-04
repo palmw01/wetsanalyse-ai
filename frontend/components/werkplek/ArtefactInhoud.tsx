@@ -24,6 +24,9 @@ import type {
 } from "@/lib/types";
 
 export interface ArtefactInhoudProps {
+  /** De slots van de paneelkop (`PaneelKop.onder`/`balk`): de schil geeft de reeks of versie en de tabs mee. */
+  kopOnder?: React.ReactNode;
+  kopBalk?: React.ReactNode;
   doc: AnnotatieDocument;
   info: GraafArtikel;
   actiefId?: string;
@@ -66,7 +69,7 @@ export interface ArtefactInhoudProps {
  *  schillen – anders gaan de twee weergaven uit elkaar lopen. */
 export function ArtefactInhoud({
   doc, info, actiefId, onKies, onBeslissing, onEigenMarkering,
-  onWisEigenMarkering, onVraag, onStatus, onVerwijder, onSluiten, pagina, onExport, extra, ongedekt,
+  onWisEigenMarkering, onVraag, onStatus, onVerwijder, onSluiten, pagina, onExport, extra, ongedekt, kopOnder, kopBalk,
 }: ArtefactInhoudProps) {
   // Eén bron voor de bewoording: `vindplaatsLabel` weet uit het graaf-`soort` of dit een artikel
   // met leden is of een bepaling van een beleidsregel. Hier raden op puntjes in het nummer zou bij
@@ -311,7 +314,7 @@ export function ArtefactInhoud({
 
             De acties krijgen hun eigen regel en lijnen rechts uit, onder het kruisje. Dat kost op een
             breed scherm een regel hoogte, en dat is de prijs voor een sluitknop die niet wandelt. */}
-        <PaneelKop soort="Annotatie · JAS" titel={opschrift} pagina={pagina} onSluit={onSluiten} acties={<>
+        <PaneelKop soort="Annotatie · JAS" titel={opschrift} pagina={pagina} onSluit={onSluiten} onder={kopOnder} balk={kopBalk} acties={<>
           <span className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${DOCUMENT_STATUS_STYLE[doc.status]}`}>
             {DOCUMENT_STATUS_LABEL[doc.status]}
           </span>
