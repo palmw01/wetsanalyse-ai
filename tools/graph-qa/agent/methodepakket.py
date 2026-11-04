@@ -1,11 +1,11 @@
 # Gegenereerd uit de wetsanalyse-skill; niet handmatig bewerken.
 # Draai scripts/genereer_jas_klassen.py.
-PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd036c0853ccc0d4315653a58c17f',
+PAKKET = {'bronbestanden': {'SKILL.md': '01383aed797309c754de389d69335800fa46cc57cade60e2ab0cc7e3d9813126',
                    'agentrollen.json': 'fdf5eac91127601d3782015f3dfc1a3a347a787c4d74bfb810f9d0955694bc66',
                    'references/agentrollen.md': 'f46b17b5d7f7054bed32767a063b3212428956ee7c85aa78de68887035291787',
                    'references/begrippen.md': 'fcedbf969b51d046eedb62b75f210fc9ee44c0edb57a314ef4030d67e955a815',
-                   'references/bronnen.md': '368cf0634277c59b52f7eaa28f1be574b7caec4d67bef6c459e95256140970bd',
-                   'references/deelvragen-en-bronnen.md': 'b97192a707c11df4f5b547accf94ab3f6594270d37df62615be0d0cd88fbb1d8',
+                   'references/bronnen.md': 'ab8e9d2016dd6a0509214268675692a132184a5201c0dad8d5a1d0c19c7962fb',
+                   'references/deelvragen-en-bronnen.md': '480d3ff17a613799e4f1cc380488e2c47d60bd1babe9256f85ba75c205c17490',
                    'references/jas-klassen-referentie.md': '5fe94a8c3718eb3d0f21a04cda9e89d9c35db4260b39f1900ead19a86ee91a95',
                    'references/nl-sbb-en-b1.md': 'ceeb1110d57ed267ef04fe4289ae701562290689525b14c9783908dcb3575411'},
  'rollen': {'algemeen': ['basis', 'nl-sbb-taalniveau'],
@@ -236,5 +236,5 @@ PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd03
                                    'interpretatieverschillen zichtbaar; presenteer ze niet als '
                                    'vaststaande conclusies. Voeg zonder beschikbare bronnen geen '
                                    'nieuw juridisch feit toe.'}},
- 'sha256': 'bdb5e407b9ac084d7eba47cfb69bdcd0ad67988d5047936458d330bb7d19ed3c',
+ 'sha256': '849bc2a9c2074e1b66f765f0926954217e70cfe31d79b25172cfac07e048aa7f',
  'versie': '2.1'}

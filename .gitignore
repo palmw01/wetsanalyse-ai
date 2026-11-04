@@ -42,6 +42,9 @@ skills-lock.json
 docs/**/*.pdf
 docs/**/wetsanalyse-boek.md
 docs/**/*.pages.md
+# Ander intern BRM-materiaal (een tabel, een dia) krijgt de vorm `<naam>.brm.<ext>`: zo valt een PNG
+# niet onder de regel voor `docs/wetsanalyse/wa-table.png`, die wél in de repo hoort.
+docs/**/*.brm.*
 
 # Lokaal-only: Regelspraak-werkmateriaal (niet in de repo; valt ook al onder docs/**/*.pdf)
 docs/regelspraak/
