@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -67,5 +67,29 @@ describe("één bedieningsstijl", () => {
       expect(bron(`components/${f}.tsx`), f).not.toMatch(/>\s*(Terug|Wijzigingen weggooien)\s*</);
     // *Bewerken* van een deelvraag staat bij de rij, niet meer in het menu ⋯.
     expect(bron("components/werkgebieden/Deelvragen.tsx")).toContain("<BewerkKnop");
+  });
+});
+
+// Het ene ⋯-menu (5 nov 2026, besluit gebruiker): bij een werkgebied, een deelvraag, een bron en een gesprek dezelfde
+// knop (`MeerKnop`), hetzelfde paneel en dezelfde regels; verwijderen onderaan in het rood (`MenuVerwijder`).
+describe("één menu ⋯", () => {
+  const bestanden = (map: string): string[] => readdirSync(join(ROOT, map)).flatMap((n) => {
+    const pad = `${map}/${n}`;
+    return statSync(join(ROOT, pad)).isDirectory() ? bestanden(pad) : pad.endsWith(".tsx") ? [pad] : [];
+  });
+
+  it("het icoon ⋯ staat alleen in MeerKnop", () => {
+    const met = bestanden("components").filter((f) => /<Meer\s*\/>/.test(bron(f)));
+    expect(met).toEqual(["components/ui/MeerMenu.tsx"]);
+  });
+
+  it("geen losse verwijderknop of eigen menuregels in een menu ⋯", () => {
+    for (const f of ["werkgebieden/ProjectKop", "werkgebieden/Deelvragen", "werkgebieden/BronnenBijDeelvraag"]) {
+      const s = bron(`components/${f}.tsx`);
+      expect(s, f).toContain("<MeerMenu");
+      expect(s, f).not.toMatch(/<VerwijderKnop|<Popover\b/);
+    }
+    for (const f of ["werkplek/ChatKop", "werkplek/GesprekLijst"]) expect(bron(`components/${f}.tsx`), f).toContain("<MeerKnop");
+    expect(bron("components/werkplek/GesprekActies.tsx")).toContain("<MenuKnop");
   });
 });

@@ -5,12 +5,10 @@ import { useMemo, useState } from "react";
 
 import { AutoTextarea } from "@/components/ui/AutoTextarea";
 import { BewerkKnop, BewerkVoet, useBewerken } from "@/components/ui/Bewerkbaar";
-import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { BronBoom } from "@/components/ui/BronBoom";
 import { Dialog } from "@/components/ui/Dialog";
-import { Meer } from "@/components/ui/Icoon";
-import { MENU_RIJ } from "@/components/ui/Menu";
-import { Popover } from "@/components/ui/Popover";
+import { Koppelen } from "@/components/ui/Icoon";
+import { MeerMenu, MenuKnop, MenuVerwijder } from "@/components/ui/MeerMenu";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
 import { Lijst, LijstRij, Sectie, StatusLabel, Voorstel as VoorstelRij } from "@/components/ui/Lijst";
@@ -163,26 +161,15 @@ function DeelvraagRij({ nummer, wg, deelvraag: d, selectie, muteer }: {
         <span className="flex items-center gap-1.5">
           {st && <StatusLabel toon={st.toon} data-stand={selectie?.status}>{st.label}</StatusLabel>}
           <BewerkKnop wat={`Deelvraag ${nummer}`} onClick={bw.start} />
-          <Popover ariaLabel={`Acties voor deelvraag ${nummer}`} className="w-56 rounded-kaart border border-line bg-paper p-1 shadow-kaart"
-            trigger={(open, toggle) => (
-              <button type="button" onClick={toggle} aria-expanded={open} aria-label={`Acties: ${d.vraag}`}
-                className="focus-ring inline-flex min-h-[28px] min-w-[28px] items-center justify-center rounded text-muted hover:bg-surface hover:text-lint coarse:min-h-[44px] coarse:min-w-[44px]">
-                <Meer />
-              </button>
-            )}>
-            {(sluit) => (
-              <div className="flex flex-col">
-                <button type="button" className={MENU} aria-label={`Bronnen bij: ${d.vraag}`}
-                  onClick={() => { sluit(); setKoppelen(true); }}>Bronnen koppelen</button>
-                <BevestigKnop bevestigTekst="Verwijderen?" ariaLabel={`Verwijderen: ${d.vraag}`}
-                  titel="Verwijdert de deelvraag; de bronnen blijven in het werkgebied."
-                  onBevestig={async () => { await muteer((r) => verwijderDeelvraag(wg.id, d.id, r), { gelukt: "Deelvraag verwijderd." }); }}
-                  className={`${MENU} text-fout`} bevestigClassName="font-medium">
-                  Verwijderen
-                </BevestigKnop>
-              </div>
-            )}
-          </Popover>
+          <MeerMenu label={`Acties: ${d.vraag}`}>
+            {(sluit) => (<>
+              <MenuKnop icoon={<Koppelen />} ariaLabel={`Bronnen bij: ${d.vraag}`} onClick={() => { sluit(); setKoppelen(true); }}>
+                Bronnen koppelen
+              </MenuKnop>
+              <MenuVerwijder ariaLabel={`Verwijderen: ${d.vraag}`} titel="Verwijdert de deelvraag; de bronnen blijven in het werkgebied."
+                onBevestig={async () => { await muteer((r) => verwijderDeelvraag(wg.id, d.id, r), { gelukt: "Deelvraag verwijderd." }); }} />
+            </>)}
+          </MeerMenu>
         </span>
       )}>
       {koppelen && <KoppelDialoog wg={wg} deelvraag={d} muteer={muteer} onKlaar={() => setKoppelen(false)} />}
@@ -190,7 +177,6 @@ function DeelvraagRij({ nummer, wg, deelvraag: d, selectie, muteer }: {
   );
 }
 
-const MENU = MENU_RIJ;
 
 /** Welke bronselecties deze deelvraag beantwoorden (spoor H3, methode 1g): in een venster, als boom per
  *  regeling › hoofdstuk › artikel › lid – een heel artikel of hoofdstuk in één vinkje. Eén keer opslaan, de hele

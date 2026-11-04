@@ -138,7 +138,7 @@ try {
   // Spoor H3: koppelen staat achter ⋯ en gaat in een venster, met de bronnen als boom per regeling.
   const koppel = async () => {
     await sectie().getByRole("button", { name: `Acties: ${vraag}` }).click();
-    await page.getByRole("button", { name: `Bronnen bij: ${vraag}` }).click();
+    await page.getByRole("menuitem", { name: `Bronnen bij: ${vraag}` }).click();
     const venster = page.getByRole("dialog", { name: `Bronnen bij: ${vraag}` });
     await venster.locator("[data-bronboom]").waitFor();
     return venster;
@@ -171,9 +171,9 @@ try {
 
   // 4. Verwijderen (niet "weghalen"): achter ⋯, eerst scherp zetten, dan pas weg.
   await sectie().getByRole("button", { name: "Acties: Wie is de belastingschuldige?" }).click();
-  await page.getByRole("button", { name: "Verwijderen: Wie is de belastingschuldige?" }).click();
+  await page.getByRole("menuitem", { name: "Verwijderen: Wie is de belastingschuldige?" }).click();
   assert.equal(await rij("Wie is de belastingschuldige?").count(), 1, "één klik haalt nog niets weg");
-  await page.getByRole("button", { name: "Verwijderen?" }).click();
+  await page.getByRole("menuitem", { name: "Verwijderen?" }).click();
   await rij("Wie is de belastingschuldige?").waitFor({ state: "detached" });
 
   assert.deepEqual(errors, []);

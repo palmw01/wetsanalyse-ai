@@ -7,17 +7,15 @@ import { AutoTextarea } from "@/components/ui/AutoTextarea";
 import { Button, knopKlasse } from "@/components/ui/Button";
 import { BewerkVoet } from "@/components/ui/Bewerkbaar";
 import { Field, Input, Select } from "@/components/ui/Field";
-import { Meer } from "@/components/ui/Icoon";
 import { StatusLabel } from "@/components/ui/Lijst";
-import { MENU_PANEEL } from "@/components/ui/Menu";
+import { MeerMenu, MenuVerwijder } from "@/components/ui/MeerMenu";
 import { PaginaKop, Stip, TabLinks, type Kruimel } from "@/components/ui/Pagina";
-import { Popover } from "@/components/ui/Popover";
-import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
 import { useWerkgebied } from "@/components/werkgebieden/WerkgebiedProject";
 import { haalThemaVoorstel } from "@/lib/api";
 import { bewerkToets, isGewijzigd } from "@/lib/bewerken";
 import { themaGroepen } from "@/lib/tooiThemas";
 import type { ThemaVoorstel, Werkgebied, WerkgebiedStatus } from "@/lib/types";
+import { VERWIJDER_UITLEG, verwijderLabel } from "@/lib/verwijderen";
 import { DOSSIER_VELDEN, STATUS_LABEL, datumNl, type DossierVeld } from "@/lib/werkgebied";
 import { ARTEFACT_SOORTEN, PROJECT_TABS, artefactPad, projectPad, type ProjectTab } from "@/lib/werkgebiedPaden";
 
@@ -56,17 +54,9 @@ export function ProjectKop({ tab }: { tab: ProjectTab }) {
               className={knopKlasse("primary", "sm")}>
               Nieuw gesprek
             </Link>
-            <Popover ariaLabel="Meer voor dit werkgebied" className={`w-56 ${MENU_PANEEL}`}
-              trigger={(open, toggle) => (
-                <button type="button" onClick={toggle} aria-expanded={open} aria-label="Meer voor dit werkgebied"
-                  className="focus-ring inline-flex min-h-[32px] min-w-[32px] items-center justify-center self-start rounded-full border border-line text-muted hover:bg-surface hover:text-lint coarse:min-h-[44px] coarse:min-w-[44px] sm:self-auto">
-                  <Meer />
-                </button>
-              )}>
-              <div className="px-2.5 py-1.5">
-                <VerwijderKnop soort="werkgebied" onBevestig={verwijder} />
-              </div>
-            </Popover>
+            <MeerMenu label="Meer voor dit werkgebied" maat="sm">
+              {() => <MenuVerwijder ariaLabel={verwijderLabel("werkgebied")} titel={VERWIJDER_UITLEG.werkgebied} onBevestig={verwijder} />}
+            </MeerMenu>
           </>
         }
       />

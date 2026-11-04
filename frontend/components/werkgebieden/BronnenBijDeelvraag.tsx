@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import { BevestigKnop } from "@/components/ui/BevestigKnop";
-import { Button, KNOP_XS } from "@/components/ui/Button";
-import { Input, Select } from "@/components/ui/Field";
-import { Meer } from "@/components/ui/Icoon";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Field";
+import { MeerMenu, MenuKeuze, MenuVerwijder } from "@/components/ui/MeerMenu";
 import { StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { Groep, GroepRij } from "@/components/ui/Pagina";
@@ -287,7 +286,6 @@ function BronRij({ werkgebiedId, bronIri, label, rol, selectie, beheer, ook, sta
   ook: number[];
   stand: string;
 }) {
-  const [open, setOpen] = useState(false);
   const [tekst, setTekst] = useState(false);
   const { bepaling, regeling } = bepalingEnRegeling(label);
   const sub = [regeling, ROL_LABEL[rol].toLowerCase(), stand.toLowerCase(), ookBijZin(ook)].filter(Boolean).join(" · ");
@@ -298,40 +296,32 @@ function BronRij({ werkgebiedId, bronIri, label, rol, selectie, beheer, ook, sta
         : { href: bronPad(bronIri, werkgebiedId) })}
       status={rol === "context" ? <StatusLabel>Context</StatusLabel> : <StatusLabel toon="groen">Geselecteerd</StatusLabel>}
       eind={beheer && s && (
-        <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-label={`Rol en verwijderen: ${label}`}
-          className="focus-ring shrink-0 rounded p-1.5 text-muted hover:bg-paper hover:text-lint">
-          <Meer />
-        </button>
-      )}
-      onder={(tekst || (open && beheer && s)) && (<>
-        {tekst && <Wettekst bronIri={bronIri} werkgebiedId={werkgebiedId} />}
-        {open && beheer && s && (
-        <div className="mx-2 mb-2 flex flex-col gap-2 rounded-md border border-line bg-surface p-3 sm:flex-row sm:items-center" data-bron-acties>
-          <label className="text-xs text-muted" htmlFor={`rol-${s.id}`}>Rol</label>
-          <Select id={`rol-${s.id}`} value={s.rol} className="sm:w-48"
-            onChange={(e) => {
-              const nieuw = e.target.value as BronRol;
+        <MeerMenu label={`Rol en verwijderen: ${label}`}>
+          {(sluit) => {
+            const zetRol = (nieuw: BronRol) => {
+              sluit();
+              if (nieuw === s.rol) return;
               void beheer.muteer((r) => wijzigBron(beheer.wg.id, s.id, { verwachte_revisie: r, rol: nieuw }), {
                 gelukt: `Rol gewijzigd naar ${ROL_LABEL[nieuw].toLowerCase()}.`,
               });
-            }}>
-            {(["analyseren", "context"] as const).map((r) => <option key={r} value={r}>{ROL_LABEL[r]}</option>)}
-          </Select>
-          <BevestigKnop
-            bevestigTekst="Verwijderen?"
-            titel="Haalt de bepaling uit dit werkgebied; de bepaling en haar annotaties blijven bestaan."
-            onBevestig={async () => {
-              await beheer.muteer((r) => verwijderBron(beheer.wg.id, s.id, r), {
-                gelukt: "Uit het werkgebied verwijderd. De bepaling en haar annotaties blijven bestaan.",
-              });
-            }}
-            className={`${KNOP_XS} border-line bg-paper text-muted hover:text-ink sm:ml-auto`}
-            bevestigClassName="border-fout/40 text-fout">
-            Verwijderen uit werkgebied
-          </BevestigKnop>
-        </div>
-        )}
-      </>)} />
+            };
+            return (<>
+              {(["analyseren", "context"] as const).map((r) => (
+                <MenuKeuze key={r} gekozen={s.rol === r} onClick={() => zetRol(r)}>{ROL_LABEL[r]}</MenuKeuze>
+              ))}
+              <MenuVerwijder titel="Haalt de bepaling uit dit werkgebied; de bepaling en haar annotaties blijven bestaan."
+                onBevestig={async () => {
+                  await beheer.muteer((r) => verwijderBron(beheer.wg.id, s.id, r), {
+                    gelukt: "Uit het werkgebied verwijderd. De bepaling en haar annotaties blijven bestaan.",
+                  });
+                }}>
+                Verwijderen uit werkgebied
+              </MenuVerwijder>
+            </>);
+          }}
+        </MeerMenu>
+      )}
+      onder={tekst && <Wettekst bronIri={bronIri} werkgebiedId={werkgebiedId} />} />
   );
 }
 
