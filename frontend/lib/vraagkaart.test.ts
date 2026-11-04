@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   ONBEKEND, antwoordActie, antwoordTekst, beginstand, groepeerVragen, isLaatsteVraag, openVraag, parseAntwoordOp,
-  parseVraagkaart, vorige, type Vraagkaart,
+  parseVraagkaart, stilActie, vorige, type Vraagkaart,
 } from "./vraagkaart";
 
 const RUW = {
@@ -269,5 +269,13 @@ describe("de bronselectie per deelvraag (spoor J)", () => {
     const { groepen } = groepeerVragen(items, false);
     const [g] = [...groepen.values()];
     expect(g.paren.map((p) => [p.deelvraag_id, p.antwoord])).toEqual([["d1", "Artikel 9"], ["d2", "Artikel 10"]]);
+  });
+});
+
+describe("de bronselectie stilzetten vanaf het compacte kaartje", () => {
+  it("is de actie afbreken op de stap en deelvraag van het kaartje", () => {
+    const k = { intake_id: "bs-wg1", stap: "bs_bepalingen", deelvraag_id: "d1" } as unknown as Vraagkaart;
+    expect(stilActie(k)).toEqual({ intake_id: "bs-wg1", stap: "bs_bepalingen", actie: "afbreken", deelvraag_id: "d1" });
+    expect(antwoordTekst({ ...k, modus: "bronselectie" } as Vraagkaart, stilActie(k))).toBe("Zet de bronselectie even stil.");
   });
 });

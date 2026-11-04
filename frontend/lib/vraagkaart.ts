@@ -400,6 +400,12 @@ export function klaarActie(k: Vraagkaart): IntakeActie {
   return { intake_id: k.intake_id, stap: k.stap, actie: "klaar", ...(k.deelvraag_id ? { deelvraag_id: k.deelvraag_id } : {}) };
 }
 
+/** De bronselectie stilzetten vanaf het compacte kaartje: dezelfde actie als *Zet de bronselectie stil* op het
+ *  gewone kaartje. De stand blijft bij de api bewaard; Lex zegt hoe je verder gaat. */
+export function stilActie(k: Vraagkaart): IntakeActie {
+  return { intake_id: k.intake_id, stap: k.stap, actie: "afbreken", ...(k.deelvraag_id ? { deelvraag_id: k.deelvraag_id } : {}) };
+}
+
 /** Een eigen bepaling getypt op het compacte kaartje: Lex voegt haar toe, het kaartje blijft tot *Klaar*. */
 export function typActie(k: Vraagkaart, tekst: string): IntakeActie | undefined {
   const t = tekst.trim();
