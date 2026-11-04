@@ -61,8 +61,7 @@ async def get_thema_voorstel(werkgebied_id: str, actor: str = Depends(actieve_us
     from .graaf_projectie_v2 import _select
 
     wg = await store.haal(werkgebied_id)
-    regelingen = sorted({":".join(b["bron_iri"].split(":")[:3]) for b in wg.get("bronnen") or []
-                         if (b.get("bron_iri") or "").startswith("urn:bwb:BWB")})
+    regelingen = sorted(f"urn:bwb:{b}" for b in store.regelingen_van(wg))
     gebieden: list[str] = []
     if regelingen:
         waarden = " ".join(f"<{r}>" for r in regelingen)
@@ -90,13 +89,13 @@ SELECT ?r ?citeertitel ?vanaf ?tot WHERE {{ VALUES ?r {{ {waarden} }}
 
 @router.get("/{werkgebied_id}/toestanden")
 async def get_toestanden(werkgebied_id: str, actor: str = Depends(actieve_userid)):
-    """De peildatum naast de toestand van elke regeling in de bronnen. De graaf bevat per regeling alleen de
+    """De peildatum naast de toestand van elke regeling van het werkgebied (`regelingen_van`). De graaf bevat per regeling alleen de
     nieuwste toestand: ging die pas ná de peildatum gelden, dan kan de tekst afwijken van wat op de peildatum
     gold (`na_peildatum`). Best-effort: een haperende graaf geeft `volledig: false`, nooit een stille leegte."""
     from .graaf_projectie_v2 import _select
 
     wg = await store.haal(werkgebied_id)
-    bwbs = sorted({b["bwb_id"] for b in wg.get("bronnen") or [] if b.get("bwb_id")})
+    bwbs = store.regelingen_van(wg)
     uit = {"peildatum": wg["peildatum"], "peildatum_standaard": wg["peildatum_standaard"], "regelingen": [],
            "volledig": True}
     if not bwbs:
@@ -127,7 +126,7 @@ async def get_regelingen(werkgebied_id: str, q: str = Query("", max_length=200),
     from . import bepaling_zoeken as zoeken
 
     wg = await store.haal(werkgebied_id)
-    eerst = list(dict.fromkeys(b["bwb_id"] for b in wg.get("bronnen") or [] if b.get("bwb_id")))
+    eerst = store.regelingen_van(wg)
     try:
         alle = await zoeken.alle_regelingen()
     except (httpx.HTTPError, ConnectionError, ValueError) as exc:

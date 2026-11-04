@@ -247,6 +247,9 @@ werkgebieden = Table("werkgebieden", metadata,
     # langs de vier zoekvragen (skill `references/zoekvragen-bronselectie.md`). De analist kiest haar; leeg = nog
     # niet gekozen.
     Column("gebeurtenis", String(200), nullable=False, server_default="", default=""),
+    # De regelingen waarin het werkgebied zoekt (`[{bwb_id, label}]`): het zoekbereik van de bronselectie, gekozen
+    # bij het samenstellen of aanvullen. De bronnen per deelvraag komen daarbinnen via de bronselectie.
+    Column("regelingen", _JSON, nullable=False, server_default="[]", default=list),
     # Spoor I6: het thema als TOOI-URI uit tooitop (`app/tooi.py`); leeg = nog niet gekozen.
     Column("thema", String(200), nullable=False, server_default="", default=""),
     Column("peildatum", String(10), nullable=True),

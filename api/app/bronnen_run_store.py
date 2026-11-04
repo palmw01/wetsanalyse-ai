@@ -67,6 +67,10 @@ def invoer_van(werkgebied: dict) -> dict:
     dossier = {k: werkgebied[k].strip() for k in DOSSIER if (werkgebied.get(k) or "").strip()}
     if dossier:
         invoer["dossier"] = dossier
+    # Het zoekbereik dat de analist koos; alleen als het er is (dezelfde reden).
+    regelingen = [r["bwb_id"] for r in werkgebied.get("regelingen") or [] if r.get("bwb_id")]
+    if regelingen:
+        invoer["regelingen"] = regelingen
     return invoer
 
 
@@ -161,9 +165,15 @@ async def basis_run_id(conn, werkgebied_id: str) -> str | None:
                                .order_by(r.c.gestart.desc()).limit(1))).scalar()
 
 
-def vervallen(status: str, run_id: str | None, basis: str | None) -> bool:
-    """Een open voorstel dat de laatste klare run niet vond. Een besluit vervalt nooit."""
-    return status == "voorgesteld" and basis is not None and run_id != basis
+def genoemd(bewijs: list[dict] | None) -> bool:
+    """Door de analist zelf genoemd (`bronselectie.noem`): een voorstel dat geen run nodig heeft om te blijven staan."""
+    return any(b.get("methode") == "genoemd" for b in bewijs or [])
+
+
+def vervallen(status: str, run_id: str | None, basis: str | None, bewijs: list[dict] | None = None) -> bool:
+    """Een open voorstel dat de laatste klare run niet vond. Een besluit vervalt nooit, en een zelf genoemd voorstel
+    ook niet: dat hangt niet van een zoekopdracht af."""
+    return status == "voorgesteld" and basis is not None and run_id != basis and not genoemd(bewijs)
 
 
 async def laatste(werkgebied: dict) -> dict | None:
@@ -269,9 +279,10 @@ async def _leg_kandidaten_vast(conn, werkgebied_id: str, run_id: str, invoer: Br
                                                 status="voorgesteld", reden="", run_id=run_id,
                                                 voorgesteld=nu, gewijzigd=nu, **v))
             continue
-        # Het bewijs wordt bijgewerkt; het besluit blijft staan.
+        # Het bewijs wordt bijgewerkt; het besluit blijft staan, en wat de analist zelf noemde ook.
+        zelf = [b for b in oud.bewijs or [] if b.get("methode") == "genoemd" and b not in v["bewijs"]]
         await conn.execute(update(k).where(k.c.werkgebied_id == werkgebied_id, k.c.id == oud.id)
-                           .values(run_id=run_id, gewijzigd=nu, **v))
+                           .values(run_id=run_id, gewijzigd=nu, **{**v, "bewijs": v["bewijs"] + zelf}))
     return len(gevonden), sum(1 for iri in gevonden if iri not in bestaande)
 
 
@@ -288,7 +299,7 @@ async def kandidaten(werkgebied_id: str) -> dict:
         basis = await basis_run_id(conn, werkgebied_id)
     # `in_selectie`: intussen met de hand opgenomen. Dan is het geen open voorstel meer.
     lijst = sorted(({**_kandidaat(x), "in_selectie": x.bron_iri in in_selectie,
-                     "vervallen": x.bron_iri not in in_selectie and vervallen(x.status, x.run_id, basis)} for x in rows),
+                     "vervallen": x.bron_iri not in in_selectie and vervallen(x.status, x.run_id, basis, x.bewijs)} for x in rows),
                    key=lambda x: (ROL_VOLGORDE[x["rol"]], -len(x["bewijs"]), x["label"], x["bron_iri"]))
     return {"run": _run(run) if run is not None else None, "kandidaten": lijst}
 
