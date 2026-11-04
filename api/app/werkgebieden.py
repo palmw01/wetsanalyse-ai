@@ -2,6 +2,8 @@
 gebruiker, die als actor in de audit komt."""
 from __future__ import annotations
 
+import re
+
 import httpx
 from bronmodel import BronFout, BronKeuze
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
@@ -74,6 +76,44 @@ SELECT ?r ?l WHERE {{ VALUES ?r {{ {waarden} }} ?r dct:subject ?b . ?b skos:pref
     voorstel = tooi.thema_voorstel(gebieden)
     return {"rechtsgebieden": sorted(set(gebieden)),
             "voorstel": [{"thema": u, "label": tooi.thema_label(u)} for u in voorstel]}
+
+
+def toestanden_query(bwb_ids: list[str]) -> str:
+    """Per regeling de toestand in de graaf: wanneer de tekst ging gelden (`bwb:geldigVanaf`) en tot wanneer.
+    De BWB-id's komen uit Postgres, maar gaan alleen in de vorm `BWBR…`/`BWBV…` de query in."""
+    waarden = " ".join(f"<urn:bwb:{b}>" for b in bwb_ids if re.fullmatch(r"BWB[RV]\d+", b))
+    return f"""PREFIX bwb: <urn:bwb-ns:>
+SELECT ?r ?citeertitel ?vanaf ?tot WHERE {{ VALUES ?r {{ {waarden} }}
+  OPTIONAL {{ ?r bwb:citeertitel ?citeertitel }} OPTIONAL {{ ?r bwb:geldigVanaf ?vanaf }} OPTIONAL {{ ?r bwb:geldigTot ?tot }}
+}}"""
+
+
+@router.get("/{werkgebied_id}/toestanden")
+async def get_toestanden(werkgebied_id: str, actor: str = Depends(actieve_userid)):
+    """De peildatum naast de toestand van elke regeling in de bronnen. De graaf bevat per regeling alleen de
+    nieuwste toestand: ging die pas ná de peildatum gelden, dan kan de tekst afwijken van wat op de peildatum
+    gold (`na_peildatum`). Best-effort: een haperende graaf geeft `volledig: false`, nooit een stille leegte."""
+    from .graaf_projectie_v2 import _select
+
+    wg = await store.haal(werkgebied_id)
+    bwbs = sorted({b["bwb_id"] for b in wg.get("bronnen") or [] if b.get("bwb_id")})
+    uit = {"peildatum": wg["peildatum"], "peildatum_standaard": wg["peildatum_standaard"], "regelingen": [],
+           "volledig": True}
+    if not bwbs:
+        return uit
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            rijen = await _select(client, toestanden_query(bwbs))
+    except (httpx.HTTPError, ConnectionError, ValueError):
+        return {**uit, "volledig": False}
+    per = {(r.get("r") or "").removeprefix("urn:bwb:"): r for r in rijen}
+    for b in bwbs:
+        r = per.get(b, {})
+        vanaf = (r.get("vanaf") or "")[:10]
+        uit["regelingen"].append({"bwb_id": b, "citeertitel": r.get("citeertitel") or b, "geldig_vanaf": vanaf or None,
+                                  "geldig_tot": (r.get("tot") or "")[:10] or None,
+                                  "na_peildatum": bool(vanaf) and vanaf > wg["peildatum"]})
+    return uit
 
 
 _GRAAF_WEG = "De kennisgraaf is tijdelijk niet bereikbaar."
