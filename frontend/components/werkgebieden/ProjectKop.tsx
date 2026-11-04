@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { AutoTextarea } from "@/components/ui/AutoTextarea";
 import { Button, knopKlasse } from "@/components/ui/Button";
 import { ButtonRow } from "@/components/ui/ButtonRow";
 import { Dialog } from "@/components/ui/Dialog";
-import { Field, Input, Select, Textarea } from "@/components/ui/Field";
+import { Field, Input, Select } from "@/components/ui/Field";
 import { Meer } from "@/components/ui/Icoon";
 import { StatusLabel } from "@/components/ui/Lijst";
 import { MENU_PANEEL } from "@/components/ui/Menu";
@@ -134,10 +135,15 @@ export function GegevensDialoog({ wg, onBewaar, onSluit }: {
         <Field label="Naam" required>
           <Input value={naam} onChange={(e) => setNaam(e.target.value)} maxLength={200} required autoFocus />
         </Field>
+        {/* De tekstvakken groeien mee met hun inhoud: alles wat er staat is te zien, zonder te slepen. De gebeurtenis
+            is één term ("kwijtschelding") en krijgt één regel. */}
         {DOSSIER_VELDEN.map(({ veld, label }) => (
           <Field key={veld} label={label} hint={DOSSIER_HINT[veld]}>
-            <Textarea value={dossier[veld]} rows={2} maxLength={4000}
-              onChange={(e) => setDossier((d) => ({ ...d, [veld]: e.target.value }))} />
+            {veld === "gebeurtenis"
+              ? <Input value={dossier[veld]} maxLength={200}
+                  onChange={(e) => setDossier((d) => ({ ...d, [veld]: e.target.value }))} />
+              : <AutoTextarea value={dossier[veld]} rows={2} maxLength={4000}
+                  onChange={(e) => setDossier((d) => ({ ...d, [veld]: e.target.value }))} />}
           </Field>
         ))}
         <Field label="Thema" hint="TOOI-thema (tooitop): waar de analyse over gaat">
@@ -158,9 +164,10 @@ export function GegevensDialoog({ wg, onBewaar, onSluit }: {
             <Button type="button" size="xs" variant="secondary" onClick={() => setThema(voorgesteld.thema)}>Overnemen</Button>
           </p>
         )}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Gewenste peildatum"
-            hint="standaard de aanmaakdatum; leeg zet hem daarop terug. De wettekst komt uit de actuele graaf: geldt die pas na de peildatum, dan staat dat bij de bronnen">
+        {/* Peildatum en status naast elkaar: de uitleg staat eronder, niet op de labelregel, anders duwt hij het
+            datumveld omlaag en staan de twee velden niet op één lijn. */}
+        <div className="grid gap-4 sm:grid-cols-2" data-peildatum-status>
+          <Field label="Gewenste peildatum">
             <Input type="date" value={peildatum} onChange={(e) => setPeildatum(e.target.value)} />
           </Field>
           <Field label="Status">
@@ -171,6 +178,10 @@ export function GegevensDialoog({ wg, onBewaar, onSluit }: {
             </Select>
           </Field>
         </div>
+        <p className="-mt-2 text-xs text-faint">
+          De peildatum is standaard de aanmaakdatum; leeg zet hem daarop terug. De wettekst komt uit de actuele graaf:
+          geldt die pas na de peildatum, dan staat dat bij de bronnen.
+        </p>
         <ButtonRow>
           <Button type="submit" disabled={!naam.trim() || bezig}>{bezig ? "Bezig…" : "Opslaan"}</Button>
           <Button type="button" variant="secondary" onClick={onSluit}>Annuleren</Button>
