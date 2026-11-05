@@ -3,29 +3,48 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { KNOP_XS, knopKlasse } from "@/components/ui/Button";
+import { KNOP_XS, icoonKnopKlasse, knopKlasse } from "@/components/ui/Button";
 
 const ROOT = join(__dirname, "..");
 const bron = (pad: string) => readFileSync(join(ROOT, pad), "utf8");
 
-// Spoor K (besluit gebruiker 27 okt 2026, vervangt I4 voor de hoofdknoppen): een hoofdknop heeft de vorm van
-// *Nieuw gesprek* – een afgeronde rechthoek met een zachte schaduw die bij hover dieper wordt; een rijactie (xs)
-// blijft een kleine pil.
+// Besluit gebruiker 5 nov 2026 (het stijlblad, vervangt spoor K/I4 voor de rijactie): **een pil is een label, een
+// afgeronde rechthoek is een knop.** Elke maat knop heeft de vorm van *Nieuw gesprek*; een rijactie (xs) is een
+// kleine rechthoek, geen pil meer.
 describe("één bedieningsstijl", () => {
-  it("een hoofdknop is een afgeronde rechthoek, een rijactie een pil", () => {
+  it("een knop is in elke maat een afgeronde rechthoek, nooit een pil", () => {
     for (const v of ["primary", "secondary", "ghost", "danger"] as const) {
-      for (const [m, hoek] of [["sm", "rounded-knop"], ["md", "rounded-kaart"]] as const) {
+      for (const [m, hoek] of [["xs", "rounded-knop-xs"], ["sm", "rounded-knop"], ["md", "rounded-kaart"]] as const) {
         const k = knopKlasse(v, m).split(" ");
         expect(k, `${v}/${m}`).toContain(hoek);
         expect(k, `${v}/${m}`).not.toContain("rounded-full");
       }
-      expect(knopKlasse(v, "xs").split(" ")).toContain("rounded-full");
     }
-    expect(KNOP_XS.split(" ")).toContain("rounded-full");
+    expect(KNOP_XS.split(" ")).toContain("rounded-knop-xs");
+    expect(KNOP_XS).not.toMatch(/rounded-full/);
+    for (const m of ["xs", "sm"] as const) expect(icoonKnopKlasse(m)).not.toMatch(/rounded-full/);
     // Een vlak (primair, tweede keuze) heeft de schaduw van Nieuw gesprek, ook bij hover.
     for (const v of ["primary", "secondary"] as const)
       expect(knopKlasse(v, "md").split(" ")).toEqual(expect.arrayContaining(["shadow-zacht", "hover:shadow-kaart"]));
     expect(bron("components/ui/Button.tsx")).not.toMatch(/rounded-button/);
+  });
+
+  it("een label is de pil van StatusLabel, en een span", () => {
+    const lijst = bron("components/ui/Lijst.tsx");
+    const label = lijst.slice(lijst.indexOf("export function StatusLabel"));
+    expect(label).toMatch(/<span[^>]*\n?[^>]*rounded-full/);
+    expect(label.slice(0, label.indexOf("\n}\n"))).not.toMatch(/<button|<Link/);
+  });
+
+  it("de bouwstenen van een knop zijn nooit een pil", () => {
+    // Deze bestanden zijn de knoppen van Lex; in PR C van het plan gaat de regel voor de hele app gelden.
+    for (const f of ["ui/Button", "ui/FilterChip", "ui/Suggestie", "ui/MeerMenu", "ui/Bewerkbaar", "admin/StijlPanel"])
+      expect(bron(`components/${f}.tsx`), f).not.toMatch(/rounded-full/);
+  });
+
+  it("de stijlgids staat in de instellingen, alleen voor beheerders", () => {
+    expect(bron("lib/instellingen.ts")).toMatch(/key: "stijl", pad: "beheer\/stijl"[^}]*admin: true/);
+    expect(bron("components/instellingen/InstellingenInhoud.tsx")).toContain("<StijlPanel />");
   });
 
   it("Nieuw gesprek in de sidebar is de tweede keuze van Button, geen eigen stijl meer", () => {

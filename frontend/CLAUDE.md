@@ -105,14 +105,27 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   vanaf `sm:` naast elkaar). Staat een knop buiten een `ButtonRow`, geef hem dan
   `className="w-full sm:w-auto"` en laat de container op mobiel stapelen (`flex flex-col …
   sm:flex-row`). Geen vaste of `flex-wrap`-knoprijen die op een smal scherm overlopen.
-- **Eén bedieningsstijl** (spoor I4, voor de hoofdknoppen herzien in spoor K, besluit gebruiker 27 okt 2026;
+- **Eén bedieningsstijl** (spoor I4, voor de hoofdknoppen herzien in spoor K, besluit gebruiker 27 okt 2026, en voor labels en knoppen op 5 nov 2026;
   `app/knoppen.test.ts` legt het vast):
   - **een hoofdknop heeft de vorm van *Nieuw gesprek*** (`Button`/`LinkButton`/`knopKlasse` in maat `sm`/`md`):
     een afgeronde rechthoek (`rounded-knop` op 32px, `rounded-kaart` op 40px), en als hij een vlak heeft
     (primair, tweede keuze) een zachte schaduw die bij hover dieper wordt. *Nieuw gesprek* zelf is
     `knopKlasse("secondary", "md")`. Geen handgemaakte primaire knop naast `knopKlasse`;
-  - **een rijactie blijft een kleine pil** (maat `xs` of `KNOP_XS`), net als statuslabels en filterchips
-    (`components/ui/FilterChip`, één vorm in de overzichten, de tab Bronnen, de artefacten en de bronverkenner);
+  - **een pil is een label, een afgeronde rechthoek is een knop** (besluit gebruiker 5 nov 2026, na een stijlblad; dit
+    vervangt "een rijactie blijft een kleine pil"). De levende stijlgids is *Instellingen › Stijl* (`StijlPanel`, alleen
+    voor beheerders): de echte componenten in elke stand. Toets een nieuwe knop of een nieuw label daaraan.
+    - **Label**: `StatusLabel`, een pil met een getint vlak. De toon draagt het oordeel (groen, geel, rood); grijs is
+      neutraal en lintblauw zegt waar iets over gaat. Een label heeft geen hover en is nooit een `button` of `Link`.
+      Maak geen eigen label-pil.
+    - **Knop**: elke maat heeft de rechthoek van *Nieuw gesprek*: `rounded-kaart` (md), `rounded-knop` (sm) en
+      `rounded-knop-xs` (xs, 6px, de rijactie, ook `KNOP_XS`). Bij hover wordt de rand lintblauw en de schaduw dieper.
+    - **Icoonknop**: `IcoonKnop`/`icoonKnopKlasse`, een vierkant in dezelfde vorm (⋯, ✕). De enige ronde knop is de
+      verstuurknop van het invoerveld.
+    - **Kiezen**: `FilterChip`, een kleine rechthoek. Gekozen is lintblauw gevuld.
+    - **Suggestie**: `Suggestie`, de vorm van de voorbeeldvragen in de lege werkplek; `klein` boven het invoerveld.
+    - **Uitzondering**: de JAS-klasse op de reviewkaart is klikbaar maar houdt kleur en vorm, met een ▾.
+    - `app/knoppen.test.ts` bewaakt het. De zelfgemaakte pillen in de rest van de app gaan in twee stappen over: eerst
+      de labels, dan de knoppen;
   - **kaarten zijn één familie**: `rounded-kaart`, een lichte rand en `shadow-zacht`; klikbaar met `KLIK_KAART`
     (`components/ui/Pagina`: een lichte lift, een lintblauwe rand en `shadow-kaart` bij hover, zoals het
     artefactkaartje in het gesprek) – de tellers, de artefactkaarten en de drie overzichtskaarten;

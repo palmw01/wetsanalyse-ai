@@ -58,6 +58,8 @@ const config: Config = {
         field: "3px",
         // Een compacte knop (sm, 32px): dezelfde vorm als Nieuw gesprek, op zijn hoogte – 14px zou daar een pil worden.
         knop: "10px",
+        // Een rijactie (xs, 24px): dezelfde rechthoek, kleiner (5 nov 2026: een pil is een label, een rechthoek een knop).
+        "knop-xs": "6px",
         // Modern jasje: rondere kaarten/bubbels (Claude-achtig) náást de RH-knopradius.
         kaart: "14px",
         bubbel: "16px",

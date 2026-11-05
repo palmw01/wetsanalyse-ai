@@ -16,6 +16,8 @@ export const INSTELLINGEN_TABS = [
   { key: "api-tokens", pad: "beheer/api-tokens", label: "API-tokens", admin: true },
   { key: "berichtenbeheer", pad: "beheer/berichten", label: "Berichten beheren", admin: true },
   { key: "feedback", pad: "beheer/feedback", label: "Feedback", admin: true },
+  // De levende stijlgids (5 nov 2026): labels en knoppen in elke stand, uit de echte componenten.
+  { key: "stijl", pad: "beheer/stijl", label: "Stijl", admin: true },
 ] as const;
 
 export type TabKey = (typeof INSTELLINGEN_TABS)[number]["key"];
