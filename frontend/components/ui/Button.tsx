@@ -35,6 +35,10 @@ const metSchaduw = (variant: Variant, size: Size) =>
 const base =
   "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap border font-medium transition disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint";
 
+/** Verwijderen en intrekken in een rij: een `BevestigKnop` in de vorm van elke andere knop ernaast, volrood als hij
+ *  scherp staat. */
+export const KNOP_GEVAAR_SCHERP = "border-fout bg-fout text-paper hover:bg-fout hover:text-paper";
+
 /** De klassen van een knop, voor een element dat geen `Button` kan zijn (een `BevestigKnop`, een link). */
 export function knopKlasse(variant: Variant = "primary", size: Size = "md"): string {
   return `${base} ${vorm[size]} ${sizes[size]} ${variants[variant]}${metSchaduw(variant, size)}`;
@@ -42,6 +46,7 @@ export function knopKlasse(variant: Variant = "primary", size: Size = "md"): str
 
 /** Een rijactie in een lijst (`size="xs"`), rustig: lijn en lintblauwe tekst. Wat de losse `KNOP`-constanten
  *  in de werkgebiedcomponenten waren; de kleur zet de aanroeper erbij als die iets betekent. */
+export const KNOP_GEVAAR = knopKlasse("danger", "sm");
 export const KNOP_XS = `${base} ${vorm.xs} ${sizes.xs} bg-paper hover:shadow-zacht`;
 
 /** Een knop met alleen een icoon (⋯, ✕, ‹ ›): een vierkant met de vorm, rand en hover van een knop. `xs` in een rij,

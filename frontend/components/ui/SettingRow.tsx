@@ -41,22 +41,30 @@ export function SettingGroup({
   titel,
   omschrijving,
   count,
+  acties,
   children,
 }: {
   titel: string;
   omschrijving?: string;
   /** Aantal items, voor lijstgroepen (gebruikers, tokens, profielen). */
   count?: number;
+  /** De hoofdknop van de groep (*Nieuw profiel*), rechts in de kop. */
+  acties?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <section className="mb-6 last:mb-0">
-      <h3 className="flex items-baseline gap-2 font-display text-base font-semibold text-lint">
-        {titel}
-        {count !== undefined && <span className="font-mono text-xs font-normal text-faint">{count}</span>}
-      </h3>
-      {omschrijving && <p className="mt-1 text-[0.8125rem] leading-snug text-muted">{omschrijving}</p>}
-      <div className="mt-2">{children}</div>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h3 className="flex items-baseline gap-2 font-display text-base font-semibold text-lint">
+            {titel}
+            {count !== undefined && <span className="font-mono text-xs font-normal text-faint">{count}</span>}
+          </h3>
+          {omschrijving && <p className="mt-1 text-[0.8125rem] leading-snug text-muted">{omschrijving}</p>}
+        </div>
+        {acties && <div className="flex shrink-0 items-center gap-2">{acties}</div>}
+      </div>
+      <div className="mt-4">{children}</div>
     </section>
   );
 }

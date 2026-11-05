@@ -2,11 +2,15 @@
 
 import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { useCallback, useEffect, useState } from "react";
-import { Card, Section } from "@/components/ui/Card";
+import { knopKlasse, KNOP_GEVAAR_SCHERP } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { Melding } from "@/components/ui/Melding";
+import { SettingGroup } from "@/components/ui/SettingRow";
+import { SkeletonCard } from "@/components/ui/Skeleton";
 import { Pagination } from "@/components/Pagination";
 import { getFeedback, isApiError, markeerFeedbackGezien, verwijderFeedback } from "@/lib/api";
 import type { FeedbackPaginaOut } from "@/lib/api";
+import { datumTijd } from "@/lib/datum";
 import { StatusLabel } from "@/components/ui/Lijst";
 
 const CATEGORIE_LABELS: Record<string, string> = {
@@ -69,10 +73,10 @@ export function FeedbackLijstClient() {
   }
 
   return (
-    <Section title="Ingezonden feedback" count={data?.totaal}>
+    <SettingGroup titel="Feedback" count={data?.totaal} omschrijving="Wat analisten via de feedbackknop instuurden.">
       {fout && <Melding type="fout" className="mb-3">{fout}</Melding>}
       {data === null ? (
-        <p className="text-sm text-muted">Laden…</p>
+        <SkeletonCard regels={2} />
       ) : data.items.length === 0 ? (
         <p className="text-sm text-muted">Nog geen feedback ingezonden.</p>
       ) : (
@@ -84,19 +88,14 @@ export function FeedbackLijstClient() {
                 <StatusLabel toon="lint">{CATEGORIE_LABELS[item.categorie] ?? item.categorie}</StatusLabel>
                 <span className="text-xs text-muted">{item.userid}</span>
                 <span className="text-xs text-faint">client: {item.client_id}</span>
-                <span className="ml-auto text-xs text-faint">
-                  {new Date(item.created).toLocaleString("nl-NL", {
-                    dateStyle: "short",
-                    timeStyle: "short",
-                  })}
-                </span>
+                <span className="ml-auto text-xs text-faint">{datumTijd(item.created)}</span>
                 <BevestigKnop
                   onBevestig={() => void onVerwijder(item.id)}
                   disabled={bezig === item.id}
                   ariaLabel={`Feedbackbericht #${item.id} verwijderen`}
                   bevestigTekst="Verwijderen?"
-                  className="focus-ring -mr-2 inline-flex min-h-[32px] items-center rounded-knop px-2 text-xs text-fout opacity-60 transition-opacity hover:opacity-100 disabled:cursor-not-allowed coarse:min-h-[44px]"
-                  bevestigClassName="font-medium opacity-100"
+                  className={knopKlasse("danger", "xs")}
+                  bevestigClassName={KNOP_GEVAAR_SCHERP}
                 >
                   {bezig === item.id ? "…" : "Verwijderen"}
                 </BevestigKnop>
@@ -121,6 +120,6 @@ export function FeedbackLijstClient() {
           onPage={onPage}
         />
       )}
-    </Section>
+    </SettingGroup>
   );
 }

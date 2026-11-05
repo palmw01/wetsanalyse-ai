@@ -2,9 +2,9 @@
 
 import { BewerkVoet } from "@/components/ui/Bewerkbaar";
 import { useState } from "react";
-import { Card } from "@/components/ui/Card";
-import { Field, Input } from "@/components/ui/Field";
+import { Field, Input, Select } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
+import { SettingGroup } from "@/components/ui/SettingRow";
 import { isApiError, saveProfile } from "@/lib/api";
 import type { LlmProfileIn, LlmProfileOut } from "@/lib/types";
 
@@ -57,26 +57,18 @@ export function ProfileEditor({ profile, onDone, onCancel }: Props) {
   }
 
   return (
-    <Card className="p-6">
+    <SettingGroup titel={nieuw ? "Nieuw profiel" : `Profiel bewerken – ${profile?.name}`}>
       <form onSubmit={onSubmit} className="space-y-5">
-        <h3 className="font-display text-lg font-semibold text-lint">
-          {nieuw ? "Nieuw profiel" : `Profiel bewerken – ${profile?.name}`}
-        </h3>
-
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <Field label="Naam" required hint={nieuw ? "uniek, bv. azure-sonnet" : "vast"}>
             <Input value={naam} onChange={(e) => setNaam(e.target.value)} disabled={!nieuw} placeholder="azure-sonnet" autoComplete="off" />
           </Field>
           <Field label="Provider" required>
-            <select
-              value={provider}
-              onChange={(e) => setProvider(e.target.value)}
-              className="w-full rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-            >
+            <Select value={provider} onChange={(e) => setProvider(e.target.value)}>
               {PROVIDERS.map((p) => (
                 <option key={p} value={p}>{p}</option>
               ))}
-            </select>
+            </Select>
           </Field>
           <Field label="Model" required hint="bv. claude-sonnet-4-6">
             <Input value={model} onChange={(e) => setModel(e.target.value)} placeholder="claude-sonnet-4-6" autoComplete="off" />
@@ -91,14 +83,10 @@ export function ProfileEditor({ profile, onDone, onCancel }: Props) {
             <Input type="number" step="0.1" min="0" max="2" value={temperature} onChange={(e) => setTemperature(e.target.value)} />
           </Field>
           <Field label="Output-strategie">
-            <select
-              value={outputStrategy}
-              onChange={(e) => setOutputStrategy(e.target.value)}
-              className="w-full rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-            >
+            <Select value={outputStrategy} onChange={(e) => setOutputStrategy(e.target.value)}>
               <option value="prompt_and_parse">prompt_and_parse</option>
               <option value="json_object">json_object</option>
-            </select>
+            </Select>
           </Field>
           <Field
             label="API-key"
@@ -113,6 +101,6 @@ export function ProfileEditor({ profile, onDone, onCancel }: Props) {
         {/* Dezelfde voet als elk bewerkveld in Lex (4 nov 2026): rechts Annuleren · Opslaan. */}
         <BewerkVoet submit onAnnuleer={onCancel} bezig={bezig} gewijzigd />
       </form>
-    </Card>
+    </SettingGroup>
   );
 }

@@ -1,16 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Vinkje } from "@/components/ui/Icoon";
+import { BewerkVoet } from "@/components/ui/Bewerkbaar";
 import { Button } from "@/components/ui/Button";
 import { ButtonRow } from "@/components/ui/ButtonRow";
 import { Card } from "@/components/ui/Card";
 import { SettingGroup } from "@/components/ui/SettingRow";
 import { Field, Input, Select } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
-import { BevestigKnop } from "@/components/ui/BevestigKnop";
-import { Tag } from "@/components/ui/Badge";
+import { MeerMenu, MenuKnop, MenuVerwijder } from "@/components/ui/MeerMenu";
+import { SkeletonCard } from "@/components/ui/Skeleton";
 import { BudgetBeleidBlok } from "@/components/admin/BudgetBeleidBlok";
+import { KopieerVeld } from "@/components/admin/KopieerVeld";
 import { Meter } from "@/components/ui/Meter";
 import {
   createUser,
@@ -29,6 +30,7 @@ export function UsersPanel() {
   const [users, setUsers] = useState<UserOut[] | null>(null);
   const [fout, setFout] = useState<string | null>(null);
   const [bezig, setBezig] = useState(false);
+  const [toevoegen, setToevoegen] = useState(false);
   const [nieuwUserid, setNieuwUserid] = useState("");
   const [nieuwEmail, setNieuwEmail] = useState("");
   const [nieuwRol, setNieuwRol] = useState<Role>("analist");
@@ -77,6 +79,7 @@ export function UsersPanel() {
       setNieuwUserid("");
       setNieuwEmail("");
       setNieuwRol("analist");
+      setToevoegen(false);
       await laad();
     } catch (e) {
       melden(e);
@@ -136,7 +139,8 @@ export function UsersPanel() {
   }
 
   return (
-    <SettingGroup titel="Gebruikers" count={users?.length} omschrijving="Wie toegang heeft tot de webapp.">
+    <SettingGroup titel="Gebruikers" count={users?.length} omschrijving="Wie toegang heeft tot de webapp."
+      acties={!toevoegen && <Button size="sm" onClick={() => setToevoegen(true)}>Nieuwe gebruiker</Button>}>
       {fout && (
         <Melding type="fout" className="mb-3">
           {fout}
@@ -145,81 +149,100 @@ export function UsersPanel() {
 
       {tijdelijk && (
         <Melding type="waarschuwing" titel="Tijdelijk wachtwoord – noteer dit nu" className="mb-3">
-          <p className="text-sm">
-            Voor <span className="font-medium">{tijdelijk.userid}</span>:{" "}
-            <code className="rounded bg-paper px-1.5 py-0.5 font-mono text-sm">{tijdelijk.wachtwoord}</code>
+          <p className="mb-2 text-sm">
+            Voor <span className="font-medium">{tijdelijk.userid}</span>. Dit wachtwoord wordt niet opnieuw getoond. Deel het
+            veilig; de gebruiker logt er meteen mee in.
           </p>
-          <p className="mt-1 text-xs text-muted">
-            Dit wachtwoord wordt niet opnieuw getoond. Deel het veilig; de gebruiker logt er meteen mee in.
-          </p>
+          <KopieerVeld waarde={tijdelijk.wachtwoord} label="Tijdelijk wachtwoord" />
           <ButtonRow align="start" className="mt-2">
-            <Button size="sm" variant="secondary" onClick={() => setTijdelijk(null)}>
+            <Button size="sm" variant="ghost" onClick={() => setTijdelijk(null)}>
               Sluiten
             </Button>
           </ButtonRow>
         </Melding>
       )}
 
+      {toevoegen && (
+        <Card className="mb-4 p-3" data-gebruiker-nieuw>
+          <form onSubmit={onAanmaken}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+              <Field label="Gebruikersnaam">
+                <Input
+                  type="text"
+                  required
+                  autoFocus
+                  autoCapitalize="none"
+                  placeholder="jdoe"
+                  value={nieuwUserid}
+                  onChange={(e) => setNieuwUserid(e.target.value)}
+                />
+              </Field>
+              <div className="min-w-[14rem] flex-1">
+                <Field label="E-mailadres">
+                  <Input
+                    type="email"
+                    required
+                    placeholder="naam@belastingdienst.nl"
+                    value={nieuwEmail}
+                    onChange={(e) => setNieuwEmail(e.target.value)}
+                  />
+                </Field>
+              </div>
+              <Field label="Rol">
+                <Select value={nieuwRol} onChange={(e) => setNieuwRol(e.target.value as Role)}>
+                  <option value="analist">analist</option>
+                  <option value="beheerder">beheerder</option>
+                </Select>
+              </Field>
+            </div>
+            <BewerkVoet submit bezig={bezig} gewijzigd opslaanTekst="Gebruiker toevoegen" onAnnuleer={() => setToevoegen(false)} />
+          </form>
+        </Card>
+      )}
+
       <BudgetBeleidBlok onGewijzigd={() => void laad()} />
 
-      <form onSubmit={onAanmaken} className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-        <Field label="Gebruikersnaam">
-          <Input
-            type="text"
-            required
-            autoCapitalize="none"
-            placeholder="jdoe"
-            value={nieuwUserid}
-            onChange={(e) => setNieuwUserid(e.target.value)}
-          />
-        </Field>
-        <div className="min-w-[14rem] flex-1">
-          <Field label="E-mailadres">
-            <Input
-              type="email"
-              required
-              placeholder="naam@belastingdienst.nl"
-              value={nieuwEmail}
-              onChange={(e) => setNieuwEmail(e.target.value)}
-            />
-          </Field>
-        </div>
-        <Field label="Rol">
-          <Select value={nieuwRol} onChange={(e) => setNieuwRol(e.target.value as Role)}>
-            <option value="analist">analist</option>
-            <option value="beheerder">beheerder</option>
-          </Select>
-        </Field>
-        <Button type="submit" size="sm" disabled={bezig} className="w-full sm:w-auto">
-          {bezig ? "Toevoegen…" : "Gebruiker toevoegen"}
-        </Button>
-      </form>
-
       {users === null ? (
-        <p className="text-sm text-muted">Laden…</p>
+        <SkeletonCard regels={2} />
       ) : users.length === 0 ? (
         <p className="text-sm text-muted">Nog geen gebruikers.</p>
       ) : (
         <div className="space-y-3">
           {users.map((u) => (
-            <Card key={u.userid} className="p-3">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="break-words font-display font-semibold text-ink">{u.userid}</span>
-                <span className="min-w-0 break-words text-sm text-muted">{u.email}</span>
-                <Tag>{u.role}</Tag>
-                {u.totp_enabled && <Tag><span className="inline-flex items-center gap-1">2FA <Vinkje /></span></Tag>}
-                {!u.active && (
-                  <StatusLabel toon="rood">gedeactiveerd</StatusLabel>
-                )}
-                {verbruik[u.userid]?.geblokkeerd && (
-                  <StatusLabel toon="rood">budget op</StatusLabel>
-                )}
+            <Card key={u.userid} className="p-3" data-gebruiker={u.userid}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                  <span className="break-words font-display font-semibold text-ink">{u.userid}</span>
+                  <span className="min-w-0 break-words text-sm text-muted">{u.email}</span>
+                  <StatusLabel toon={u.role === "beheerder" ? "lint" : "neutraal"}>{u.role}</StatusLabel>
+                  {u.totp_enabled && <StatusLabel toon="groen">2FA aan</StatusLabel>}
+                  {!u.active && (
+                    <StatusLabel toon="rood">gedeactiveerd</StatusLabel>
+                  )}
+                  {verbruik[u.userid]?.geblokkeerd && (
+                    <StatusLabel toon="rood">budget op</StatusLabel>
+                  )}
+                </div>
+                <MeerMenu label={`Acties voor ${u.userid}`}>
+                  {(sluit) => (
+                    <>
+                      <MenuKnop onClick={() => { sluit(); void onRol(u, u.role === "beheerder" ? "analist" : "beheerder"); }}>
+                        {u.role === "beheerder" ? "Maak analist" : "Maak beheerder"}
+                      </MenuKnop>
+                      <MenuKnop onClick={() => { sluit(); void onActief(u); }}>
+                        {u.active ? "Deactiveren" : "Activeren"}
+                      </MenuKnop>
+                      <MenuKnop onClick={() => { sluit(); void onReset(u); }}>Wachtwoord resetten</MenuKnop>
+                      <MenuVerwijder vraag={`"${u.userid}" verwijderen?`} onBevestig={() => onVerwijder(u)} />
+                    </>
+                  )}
+                </MeerMenu>
               </div>
 
               {/* Verbruik + een afwijkend budget. Leeg laten = volg het systeembeleid; het veld
                   slaat op bij verlaten, zoals de andere acties hier direct doorwerken. */}
               {verbruik[u.userid] && (
-                <div className="mt-3 flex flex-wrap items-end gap-3">
+                <div className="mt-3 flex flex-wrap items-end gap-x-6 gap-y-3">
                   <div className="min-w-[12rem] flex-1">
                     <div className="flex items-baseline justify-between gap-2 text-xs text-muted">
                       <span>
@@ -235,11 +258,14 @@ export function UsersPanel() {
                       className="mt-1"
                     />
                   </div>
-                  <Field label="Eigen budget" hint="leeg = standaard">
+                  <label className="flex items-center gap-2 text-xs text-muted">
+                    Eigen budget
                     <Input
                       type="number"
                       min={0}
                       step={1000}
+                      placeholder="standaard"
+                      className="w-32"
                       defaultValue={u.token_budget ?? ""}
                       onBlur={(e) => {
                         const nieuw = e.target.value.trim();
@@ -247,33 +273,9 @@ export function UsersPanel() {
                         if (nieuw !== huidig) void onBudget(u, nieuw);
                       }}
                     />
-                  </Field>
+                  </label>
                 </div>
               )}
-
-              <ButtonRow align="start" className="mt-3">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => onRol(u, u.role === "beheerder" ? "analist" : "beheerder")}
-                >
-                  {u.role === "beheerder" ? "Maak analist" : "Maak beheerder"}
-                </Button>
-                <Button size="sm" variant="secondary" onClick={() => onActief(u)}>
-                  {u.active ? "Deactiveren" : "Activeren"}
-                </Button>
-                <Button size="sm" variant="secondary" onClick={() => onReset(u)}>
-                  Wachtwoord resetten
-                </Button>
-                <BevestigKnop
-                  onBevestig={() => onVerwijder(u)}
-                  bevestigTekst={`"${u.userid}" verwijderen?`}
-                  className="focus-ring inline-flex min-h-[40px] shrink-0 items-center justify-center rounded-field border border-fout px-3 text-sm font-medium text-fout transition coarse:min-h-[48px]"
-                  bevestigClassName="bg-fout text-paper"
-                >
-                  Verwijderen
-                </BevestigKnop>
-              </ButtonRow>
             </Card>
           ))}
         </div>

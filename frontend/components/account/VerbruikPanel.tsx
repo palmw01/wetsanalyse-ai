@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Melding } from "@/components/ui/Melding";
 import { Meter } from "@/components/ui/Meter";
 import { SettingGroup } from "@/components/ui/SettingRow";
+import { SkeletonCard } from "@/components/ui/Skeleton";
 import { getVerbruik, isApiError } from "@/lib/api";
 import { resetdatum, tokens } from "@/lib/tokenbudget";
 import type { Verbruiksstand } from "@/lib/types";
@@ -45,7 +46,7 @@ export function VerbruikPanel() {
       )}
 
       {stand === null ? (
-        <p className="text-sm text-muted">Laden…</p>
+        <SkeletonCard regels={2} />
       ) : !stand.actief ? (
         <>
           <Melding type="uitleg" className="mb-3">
