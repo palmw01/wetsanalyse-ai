@@ -11,8 +11,9 @@ import { IcoonBevestig } from "@/components/ui/IcoonBevestig";
 import { Lijst, LijstRij, Regel, Regels, Sectie, StatusLabel } from "@/components/ui/Lijst";
 import { MeerMenu, MenuVerwijder } from "@/components/ui/MeerMenu";
 import { Melding } from "@/components/ui/Melding";
-import { Kaart, SplitDetail } from "@/components/ui/Pagina";
+import { SplitDetail } from "@/components/ui/Pagina";
 import { SkeletonCard } from "@/components/ui/Skeleton";
+import { BegripBlok, type BegripWeergaveVorm } from "@/components/werkgebieden/BegripBlok";
 import { BegripPassages } from "@/components/werkgebieden/BegripPassages";
 import { BegripRelaties } from "@/components/werkgebieden/BegripRelaties";
 import { DefinitieOnderbouwing } from "@/components/werkgebieden/DefinitieOnderbouwing";
@@ -31,8 +32,6 @@ import { useBegrip, type BegripContext, type BegripOpname, type BegripStand } fr
 import { VERWIJDER_UITLEG, verwijderLabel, verwijderdZin } from "@/lib/verwijderen";
 
 export const BEGRIP_STATUS_TOON = { geaccordeerd: "groen", concept: "neutraal", vervangen: "neutraal" } as const;
-
-export type BegripWeergaveVorm = "pagina" | "paneel";
 
 const tijd = (iso: string) =>
   new Date(iso).toLocaleString("nl-NL", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -85,11 +84,10 @@ export function BegripInhoud({ stand, weergave, onOnbewaard, onNaarBegrip, onGew
     );
   }
 
-  const passagesInhoud = (
-    <BegripPassages id={stand.id} begrip={begrip} primair={stand.lijst?.primair ?? {}} muteer={stand.muteer}
+  const passages = (
+    <BegripPassages id={stand.id} begrip={begrip} primair={stand.lijst?.primair ?? {}} muteer={stand.muteer} weergave={weergave}
       geraakt={geraaktPerKoppeling(stand.herbeoordeling, stand.begripId)} />
   );
-  const passages = weergave === "pagina" ? <Kaart>{passagesInhoud}</Kaart> : passagesInhoud;
   const beoordeling = <BeoordelingBlok stand={stand} begrip={begrip} weergave={weergave} onbewaard={onbewaard} />;
   const relaties = (
     <BegripRelaties id={stand.id} begrip={begrip} andere={stand.lijst?.begrippen ?? []}
@@ -168,20 +166,6 @@ export function BegripCompact({ context, begripId, opname, onOnbewaard, onNaarBe
   );
 }
 
-/** Een blok: op de pagina een kaart, naast het gesprek een sectie zonder rand (daar staat al een paneel omheen). */
-function Blok({ weergave, titel, telling, toelichting, acties, children, ...rest }: {
-  weergave: BegripWeergaveVorm;
-  titel: string;
-  telling?: number;
-  toelichting?: React.ReactNode;
-  acties?: React.ReactNode;
-  children: React.ReactNode;
-} & Omit<React.HTMLAttributes<HTMLElement>, "title">) {
-  return weergave === "pagina"
-    ? <Kaart titel={titel} telling={telling} toelichting={toelichting} acties={acties} {...rest}>{children}</Kaart>
-    : <Sectie titel={titel} telling={telling} toelichting={toelichting} acties={acties} niveau={3} {...rest}>{children}</Sectie>;
-}
-
 /** Een groep velden in de bewerkstand, met de NL-SBB-eigenschappen waar ze in de export op landen. */
 function Groep({ titel, nlsbb, children }: { titel: string; nlsbb: string; children: React.ReactNode }) {
   return (
@@ -237,7 +221,7 @@ function BetekenisBlok({ stand, begrip, weergave, onbewaard, onOnbewaard }: Blok
   const termen = i.alternatieve_termen.filter((t) => t.trim());
 
   return (
-    <Blok weergave={weergave} titel="Betekenis" data-blok="betekenis"
+    <BegripBlok weergave={weergave} titel="Betekenis" data-blok="betekenis"
       acties={magBewerken(stand, begrip) && !b.open && <BewerkKnop wat="Betekenis" onClick={b.start} />}>
       {b.open ? (
         <div className="space-y-5" role="group" aria-label="Betekenis bewerken" onKeyDown={b.toetsen(false)}>
@@ -300,7 +284,7 @@ function BetekenisBlok({ stand, begrip, weergave, onbewaard, onOnbewaard }: Blok
           </Regel>
         </Regels>
       )}
-    </Blok>
+    </BegripBlok>
   );
 }
 
@@ -327,7 +311,7 @@ function VoorbeeldenBlok({ stand, begrip, weergave, onbewaard, onOnbewaard }: Bl
   const zet = (i: number, v: Partial<Voorbeeld>) => b.zet(b.concept.map((x, j) => (j === i ? { ...x, ...v } : x)));
 
   return (
-    <Blok weergave={weergave} titel="Voorbeelden" telling={lijst.length} data-blok="voorbeelden"
+    <BegripBlok weergave={weergave} titel="Voorbeelden" telling={lijst.length} data-blok="voorbeelden"
       toelichting="Ook grensgevallen en tegenvoorbeelden: ze toetsen de afbakening."
       acties={magBewerken(stand, begrip) && !b.open && <BewerkKnop wat="Voorbeelden" onClick={b.start} />}>
       {b.open ? (
@@ -360,7 +344,7 @@ function VoorbeeldenBlok({ stand, begrip, weergave, onbewaard, onOnbewaard }: Bl
           <VanLex stand={stand} begrip={begrip} veld="voorbeelden" onbewaard={onbewaard} />
         </>
       )}
-    </Blok>
+    </BegripBlok>
   );
 }
 
@@ -374,7 +358,7 @@ function BeoordelingBlok({ stand, begrip, weergave, onbewaard }: Omit<BlokProps,
   }
   const { mag, redenen } = begrip.accorderen;
   return (
-    <Blok weergave={weergave} titel="Beoordeling" data-blok="beoordeling"
+    <BegripBlok weergave={weergave} titel="Beoordeling" data-blok="beoordeling"
       acties={<StatusLabel toon={BEGRIP_STATUS_TOON[begrip.status]}>{BEGRIP_STATUS_LABEL[begrip.status]}</StatusLabel>}>
       <div className="space-y-2 text-sm">
         {begrip.status === "vervangen" ? (
@@ -414,7 +398,7 @@ function BeoordelingBlok({ stand, begrip, weergave, onbewaard }: Omit<BlokProps,
           </>
         )}
       </div>
-    </Blok>
+    </BegripBlok>
   );
 }
 

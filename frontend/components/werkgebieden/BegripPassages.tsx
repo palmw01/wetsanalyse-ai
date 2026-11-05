@@ -1,64 +1,65 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
+import { BronBoom } from "@/components/ui/BronBoom";
+import { Button } from "@/components/ui/Button";
+import { Dialog } from "@/components/ui/Dialog";
+import { Input, Select } from "@/components/ui/Field";
 import { IcoonBevestig } from "@/components/ui/IcoonBevestig";
-import { Button, KNOP_XS } from "@/components/ui/Button";
-import { Select } from "@/components/ui/Field";
+import { KlasseLabel, Lijst, LijstRij, StatusLabel } from "@/components/ui/Lijst";
+import { MeerMenu, MenuKeuze, MenuKnop, MenuLink, MenuVerwijder } from "@/components/ui/MeerMenu";
 import { Melding } from "@/components/ui/Melding";
-import type { BegripMutatie } from "@/lib/useBegrip";
+import { BegripBlok, type BegripWeergaveVorm } from "@/components/werkgebieden/BegripBlok";
 import { Herbeoordeling } from "@/components/werkgebieden/Herbeoordeling";
 import { foutTekst, haalInventaris, koppelElementen, ontkoppel, wijzigKoppeling } from "@/lib/api";
 import { ACTUALITEIT_LABEL, BEOORDELING_LABEL, KOPPELROL_LABEL, sorteerKoppelingen } from "@/lib/begrippen";
+import { bouwBoom, regelingUitLabel } from "@/lib/bronPlaats";
 import { klasseLabel } from "@/lib/jas";
 import type { Begrip, GeraakteKoppeling, InventarisElement, KoppelBeoordeling, KoppelRol, Koppeling } from "@/lib/types";
+import type { BegripMutatie } from "@/lib/useBegrip";
+import { usePlaatsen } from "@/lib/usePlaatsen";
 import { annotatieHref, filterElementen } from "@/lib/werkgebied";
 import { elementPad } from "@/lib/werkgebiedPaden";
-import { KlasseLabel } from "@/components/ui/Lijst";
 
-const KNOP = KNOP_XS;
 const ROLLEN = Object.keys(KOPPELROL_LABEL) as KoppelRol[];
+const BEOORDELING_TOON = { akkoord: "groen", afgewezen: "rood", open: "neutraal" } as const;
 
-/** De bronpassages van het begrip, elk apart: de letterlijke tekst zoals die gekoppeld werd, waar
- *  hij staat, en hoe het er nu mee staat. Een samenvatting vervangt de passages nooit. */
-export function BegripPassages({ id, begrip, primair, muteer, geraakt }: {
+/** De bronpassages van het begrip, elk een eigen rij: de letterlijke tekst zoals die gekoppeld werd, waar hij staat,
+ *  en hoe het er nu mee staat. Een samenvatting vervangt de passages nooit. Akkoord is een vinkje in de rij; de rol,
+ *  afwijzen, losmaken en de weg naar het element staan achter ⋯. */
+export function BegripPassages({ id, begrip, primair, muteer, geraakt, weergave }: {
   id: string;
   begrip: Begrip;
   primair: Record<string, { begrip_id: string; naam: string }>;
   muteer: BegripMutatie;
   /** Herbeoordelen (fase F1): de passages die veranderden, op koppeling-id. */
   geraakt?: Map<string, GeraakteKoppeling>;
+  weergave: BegripWeergaveVorm;
 }) {
   const [kiezerOpen, setKiezerOpen] = useState(false);
   const passages = sorteerKoppelingen(begrip.koppelingen);
-
   return (
-    <section className="space-y-3" aria-label="Bronpassages">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="font-display text-sm font-semibold text-lint">
-          Bronpassages ({passages.length})
-        </h3>
-        <Button size="sm" variant="secondary" onClick={() => setKiezerOpen((v) => !v)} aria-expanded={kiezerOpen}>
-          {kiezerOpen ? "Sluiten" : "Passages toevoegen"}
-        </Button>
-      </div>
-      {kiezerOpen && (
-        <ElementKiezer id={id} begrip={begrip} primair={primair} muteer={muteer} onKlaar={() => setKiezerOpen(false)} />
-      )}
+    <BegripBlok weergave={weergave} titel="Passages" telling={passages.length} data-blok="passages"
+      acties={begrip.status !== "vervangen" && (
+        <Button size="xs" variant="secondary" onClick={() => setKiezerOpen(true)}>Passages toevoegen</Button>
+      )}>
       {passages.length === 0 ? (
         <p className="text-sm text-muted">
           Nog geen passages. Een begrip krijgt zijn onderbouwing uit de annotaties: voeg de passages toe die
           het aanduiden of de definitie dragen.
         </p>
       ) : (
-        <ul className="space-y-2" aria-label="Passages van dit begrip">
+        <Lijst label="Passages van dit begrip">
           {passages.map((k) => (
             <Passage key={k.id} id={id} begrip={begrip} koppeling={k} muteer={muteer} geraakt={geraakt?.get(k.id)} />
           ))}
-        </ul>
+        </Lijst>
       )}
-    </section>
+      {kiezerOpen && (
+        <PassagesDialoog id={id} begrip={begrip} primair={primair} muteer={muteer} onKlaar={() => setKiezerOpen(false)} />
+      )}
+    </BegripBlok>
   );
 }
 
@@ -69,17 +70,50 @@ function Passage({ id, begrip, koppeling: k, muteer, geraakt }: {
   muteer: BegripMutatie;
   geraakt?: GeraakteKoppeling;
 }) {
-  const beoordeel = (b: KoppelBeoordeling) =>
-    muteer((r) => wijzigKoppeling(id, begrip.id, k.id, { verwachte_revisie: r, beoordeling: b }));
+  const wijzig = (w: { beoordeling?: KoppelBeoordeling; rol?: KoppelRol }) =>
+    muteer((r) => wijzigKoppeling(id, begrip.id, k.id, { verwachte_revisie: r, ...w }));
   // Elke passage heeft dezelfde knoppen; voor een schermlezer zegt de naam bij welke passage ze horen.
   const bij = `“${k.bewijs.tekst}”`;
+  const vervangen = begrip.status === "vervangen";
+  const open = k.beoordeling === "open";
   return (
-    <li className={`rounded-kaart border bg-paper px-3 py-2 ${k.beoordeling === "afgewezen" ? "border-line opacity-70" : "border-line"}`}>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <KlasseLabel klasse={k.bewijs.klasse} />
-        <span className="text-xs text-muted">{k.bewijs.vindplaats}</span>
-      </div>
-      <blockquote className="mt-1 text-sm text-ink">“{k.bewijs.tekst}”</blockquote>
+    <LijstRij data-passage={k.element_id} className={k.beoordeling === "afgewezen" ? "opacity-70" : ""}
+      titel={<blockquote>{bij}</blockquote>}
+      meta={
+        <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+          <KlasseLabel klasse={k.bewijs.klasse} klein />
+          <span>{k.bewijs.vindplaats} · {KOPPELROL_LABEL[k.rol]}</span>
+        </span>
+      }
+      status={<>
+        {!open && (
+          <StatusLabel toon={BEOORDELING_TOON[k.beoordeling]} uitleg={k.beoordeeld_door ? `Door ${k.beoordeeld_door}` : undefined}>
+            {BEOORDELING_LABEL[k.beoordeling]}
+          </StatusLabel>
+        )}
+        {open && !vervangen && (
+          <IcoonBevestig soort="akkoord" label={`Akkoord met ${bij}`} onBevestig={async () => { await wijzig({ beoordeling: "akkoord" }); }} />
+        )}
+        <MeerMenu label={`Acties: ${bij}`}>
+          {(sluit) => <>
+            {!vervangen && ROLLEN.map((r) => (
+              <MenuKeuze key={r} gekozen={k.rol === r} onClick={() => { sluit(); void wijzig({ rol: r }); }}>{KOPPELROL_LABEL[r]}</MenuKeuze>
+            ))}
+            {!vervangen && (open ? (
+              <MenuKnop ariaLabel={`Wijs ${bij} af`} onClick={() => { sluit(); void wijzig({ beoordeling: "afgewezen" }); }}>Afwijzen</MenuKnop>
+            ) : (
+              <MenuKnop ariaLabel={`Beoordeling van ${bij} terugzetten`} onClick={() => { sluit(); void wijzig({ beoordeling: "open" }); }}>Beoordeling terugzetten</MenuKnop>
+            ))}
+            <MenuLink href={elementPad(k.element_id)} ariaLabel={`Open het element ${bij}`}>Element</MenuLink>
+            <MenuLink href={annotatieHref(k.bewijs.eigenaar_iri, k.element_id)} ariaLabel={`Bekijk ${bij} in de annotatie`}>Bekijk in de annotatie</MenuLink>
+            {!vervangen && (
+              <MenuVerwijder vraag="Losmaken?" ariaLabel={`Maak ${bij} los van dit begrip`}
+                titel="Maakt de passage los van dit begrip; de annotatie blijft staan."
+                onBevestig={async () => { await muteer((r) => ontkoppel(id, begrip.id, k.id, r)); }}>Losmaken</MenuVerwijder>
+            )}
+          </>}
+        </MeerMenu>
+      </>}>
       {k.vervangt && (
         <details className="mt-1 text-xs text-muted">
           <summary className="focus-ring cursor-pointer rounded">Vervangt een eerdere passage</summary>
@@ -101,54 +135,13 @@ function Passage({ id, begrip, koppeling: k, muteer, geraakt }: {
             .filter(Boolean).join(" · ")}
         </p>
       )}
-      <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-        <Select
-          value={k.rol}
-          aria-label={`Rol van “${k.bewijs.tekst}”`}
-          className="sm:w-56"
-          onChange={(e) => void muteer((r) => wijzigKoppeling(id, begrip.id, k.id, { verwachte_revisie: r, rol: e.target.value as KoppelRol }))}
-        >
-          {ROLLEN.map((r) => (
-            <option key={r} value={r}>{KOPPELROL_LABEL[r]}</option>
-          ))}
-        </Select>
-        {k.beoordeling === "open" ? (
-          <div className="flex gap-1.5">
-            <button type="button" aria-label={`Akkoord met ${bij}`} className={`${KNOP} border-lint text-lint hover:bg-surface`} onClick={() => void beoordeel("akkoord")}>
-              Akkoord
-            </button>
-            <button type="button" aria-label={`Wijs ${bij} af`} className={`${KNOP} border-line text-muted hover:bg-surface hover:text-ink`} onClick={() => void beoordeel("afgewezen")}>
-              Afwijzen
-            </button>
-          </div>
-        ) : (
-          <span className="text-xs text-muted">
-            {BEOORDELING_LABEL[k.beoordeling]}
-            {k.beoordeeld_door && ` · ${k.beoordeeld_door}`}{" "}
-            <button type="button" aria-label={`Beoordeling van ${bij} terugzetten`} className="focus-ring rounded underline hover:text-ink" onClick={() => void beoordeel("open")}>
-              terugzetten
-            </button>
-          </span>
-        )}
-        <span className="flex gap-1.5 sm:ml-auto">
-          <Link href={elementPad(k.element_id)} aria-label={`Open het element ${bij}`} className={`${KNOP} border-line text-lint hover:bg-surface`}>
-            Element
-          </Link>
-          <Link href={annotatieHref(k.bewijs.eigenaar_iri, k.element_id)} aria-label={`Bekijk ${bij} in de annotatie`} className={`${KNOP} border-line text-lint hover:bg-surface`}>
-            Bekijk in de annotatie
-          </Link>
-          <IcoonBevestig soort="verwijderen" vraag="Losmaken?" label={`Maak ${bij} los van dit begrip`}
-            titel="Maakt de passage los van dit begrip; de annotatie blijft staan."
-            onBevestig={async () => { await muteer((r) => ontkoppel(id, begrip.id, k.id, r)); }} />
-        </span>
-      </div>
-    </li>
+    </LijstRij>
   );
 }
 
-/** Passages toevoegen uit de inventaris van het werkgebied. Wat al bij dit begrip hoort staat er
- *  niet meer in; wat een ander begrip aanduidt, zegt dat erbij. */
-function ElementKiezer({ id, begrip, primair, muteer, onKlaar }: {
+/** Passages toevoegen uit de inventaris van het werkgebied, als boom met vinkjes, zoals *Bronnen koppelen*. Wat al bij
+ *  dit begrip hoort staat er niet in; wat een ander begrip aanduidt, zegt dat erbij. */
+function PassagesDialoog({ id, begrip, primair, muteer, onKlaar }: {
   id: string;
   begrip: Begrip;
   primair: Record<string, { begrip_id: string; naam: string }>;
@@ -156,24 +149,34 @@ function ElementKiezer({ id, begrip, primair, muteer, onKlaar }: {
   onKlaar: () => void;
 }) {
   const [elementen, setElementen] = useState<InventarisElement[] | null>(null);
+  const [labels, setLabels] = useState<Map<string, string>>(new Map());
   const [fout, setFout] = useState<string | null>(null);
   const [term, setTerm] = useState("");
-  const [gekozen, setGekozen] = useState<Set<string>>(new Set());
+  const [gekozen, setGekozen] = useState<ReadonlySet<string>>(new Set());
   const [rol, setRol] = useState<KoppelRol>("duiding");
   const [bezig, setBezig] = useState(false);
 
   useEffect(() => {
     let levend = true;
     haalInventaris(id)
-      .then((inv) => levend && setElementen(inv.elementen))
+      .then((inv) => {
+        if (!levend) return;
+        setElementen(inv.elementen);
+        setLabels(new Map(inv.selecties.map((s) => [s.id, s.label])));
+      })
       .catch((e) => levend && setFout(foutTekst(e, "De inventaris kon niet worden geladen.")));
     return () => { levend = false; };
   }, [id]);
 
-  const al = new Set(begrip.koppelingen.map((k) => k.element_id));
-  const getoond = elementen
-    ? filterElementen(elementen.filter((e) => !al.has(e.id)), { rol: "alle", klasse: "alle", term })
-    : [];
+  const getoond = useMemo(() => {
+    const al = new Set(begrip.koppelingen.map((k) => k.element_id));
+    return elementen ? filterElementen(elementen.filter((e) => !al.has(e.id)), { rol: "alle", klasse: "alle", term }) : [];
+  }, [elementen, begrip.koppelingen, term]);
+  const plaatsen = usePlaatsen(getoond.map((e) => e.eigenaar_iri));
+  const boom = useMemo(() => bouwBoom(getoond, {
+    iri: (e) => e.eigenaar_iri, sleutel: (e) => e.id, naam: (e) => e.eigenaar_iri, plaatsen,
+    regelingNaam: (e) => regelingUitLabel(labels.get(e.selecties[0]) ?? ""),
+  }), [getoond, plaatsen, labels]);
 
   async function koppel() {
     setBezig(true);
@@ -189,59 +192,52 @@ function ElementKiezer({ id, begrip, primair, muteer, onKlaar }: {
   }
 
   return (
-    <div className="space-y-2 rounded-kaart border border-lint bg-paper p-3">
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <input
-          type="search"
-          value={term}
-          onChange={(e) => setTerm(e.target.value)}
-          aria-label="Zoeken in de inventaris"
-          placeholder="Zoek in de passages van het werkgebied"
-          className="w-full rounded-field border border-line bg-paper px-3 py-2 text-sm text-ink outline-none placeholder:text-faint focus:border-lint focus:ring-2 focus:ring-lint/20 coarse:min-h-[48px]"
-        />
-        <Select value={rol} onChange={(e) => setRol(e.target.value as KoppelRol)} aria-label="Rol van de nieuwe passages" className="sm:w-56">
-          {ROLLEN.map((r) => (
-            <option key={r} value={r}>{KOPPELROL_LABEL[r]}</option>
-          ))}
-        </Select>
-      </div>
-      {fout && <Melding type="fout" compact>{fout}</Melding>}
-      {elementen === null && !fout ? (
-        <p className="text-xs text-muted">De inventaris wordt opgehaald…</p>
-      ) : getoond.length === 0 ? (
-        <p className="text-xs text-muted">Geen passage die hierop past.</p>
-      ) : (
-        <ul className="max-h-72 space-y-1 overflow-y-auto" aria-label="Passages om toe te voegen">
-          {getoond.map((e) => {
-            const elders = primair[e.id] && primair[e.id].begrip_id !== begrip.id ? primair[e.id] : undefined;
-            return (
-              <li key={e.id}>
-                <label className="flex cursor-pointer items-start gap-2 rounded px-1 py-1 hover:bg-surface coarse:min-h-[44px]">
-                  <input
-                    type="checkbox"
-                    checked={gekozen.has(e.id)}
-                    onChange={() => setGekozen((oud) => {
-                      const n = new Set(oud);
-                      if (n.has(e.id)) n.delete(e.id);
-                      else n.add(e.id);
-                      return n;
-                    })}
-                    className="focus-ring mt-1 accent-lint"
-                  />
+    <Dialog label={`Passages bij ${begrip.inhoud.naam}`} variant="compact" onSluit={onKlaar}>
+      <div className="flex min-h-0 flex-1 flex-col" data-passages-dialoog={begrip.id}>
+        <div className="shrink-0 border-b border-line px-5 py-3.5">
+          <p className="text-xs text-muted">Passages toevoegen</p>
+          <h2 className="font-display text-base font-semibold text-lint">{begrip.inhoud.naam}</h2>
+        </div>
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input type="search" value={term} onChange={(e) => setTerm(e.target.value)} aria-label="Zoeken in de inventaris"
+              placeholder="Zoek in de passages van het werkgebied" />
+            <Select value={rol} onChange={(e) => setRol(e.target.value as KoppelRol)} aria-label="Rol van de nieuwe passages" className="shrink-0 sm:w-56">
+              {ROLLEN.map((r) => <option key={r} value={r}>{KOPPELROL_LABEL[r]}</option>)}
+            </Select>
+          </div>
+          {fout && <Melding type="fout" compact>{fout}</Melding>}
+          {elementen === null && !fout ? (
+            <p className="text-xs text-muted">De inventaris wordt opgehaald…</p>
+          ) : getoond.length === 0 ? (
+            <p className="text-xs text-muted">Geen passage die hierop past.</p>
+          ) : (
+            <BronBoom boom={boom} label="Passages om toe te voegen"
+              vinkjes={{ gekozen, naam: (b) => `Kies “${b.data.tekst}”`, onZet: (ids, aan) => setGekozen((s) => {
+                const n = new Set(s);
+                for (const k of ids) { if (aan) n.add(k); else n.delete(k); }
+                return n;
+              }) }}
+              renderBlad={(b) => {
+                const elders = primair[b.data.id] && primair[b.data.id].begrip_id !== begrip.id ? primair[b.data.id] : undefined;
+                return (
                   <span className="min-w-0 text-sm">
-                    <KlasseLabel klasse={e.klasse} klein className="mr-1.5" />
-                    <span className="text-ink">“{e.tekst}”</span>
+                    <span className="mr-1 text-xs text-muted">{b.label}</span>
+                    <KlasseLabel klasse={b.data.klasse} klein className="mr-1.5" />
+                    <span className="text-ink">“{b.data.tekst}”</span>
                     {elders && <span className="block text-xs text-muted">duidt al “{elders.naam}” aan</span>}
                   </span>
-                </label>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-      <Button size="sm" disabled={bezig || gekozen.size === 0} onClick={() => void koppel()}>
-        {bezig ? "Bezig…" : gekozen.size ? `Toevoegen (${gekozen.size})` : "Toevoegen"}
-      </Button>
-    </div>
+                );
+              }} />
+          )}
+        </div>
+        <div className="flex shrink-0 flex-col gap-2 border-t border-line px-5 py-3 sm:flex-row">
+          <Button size="sm" className="w-full sm:w-auto" disabled={bezig || gekozen.size === 0} onClick={() => void koppel()}>
+            {bezig ? "Bezig…" : gekozen.size ? `Toevoegen (${gekozen.size})` : "Toevoegen"}
+          </Button>
+          <Button size="sm" variant="ghost" className="w-full sm:w-auto" onClick={onKlaar}>Annuleren</Button>
+        </div>
+      </div>
+    </Dialog>
   );
 }

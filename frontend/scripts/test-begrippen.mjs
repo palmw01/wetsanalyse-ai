@@ -197,8 +197,15 @@ try {
   await bespreek.first().waitFor();
   assert.equal(await bespreek.count(), 1);
   const passages = page.getByRole("list", { name: "Passages van dit begrip" }).getByRole("listitem");
-  await page.getByRole("heading", { name: "Bronpassages (3)" }).waitFor();
+  await page.getByRole("heading", { name: "Passages 3" }).waitFor();
   assert.equal(await passages.count(), 3);
+  // Spoor N: passages toevoegen gaat in een venster, als boom; wat een ander begrip aanduidt zegt dat, en een rol kies je
+  // achter het menu van de rij.
+  await page.getByRole("button", { name: "Passages toevoegen" }).click();
+  const dialoog = page.locator("[data-passages-dialoog]");
+  await dialoog.getByRole("checkbox", { name: "Kies “de ontvanger”" }).waitFor();
+  await dialoog.getByText("duidt al “Ontvanger” aan").waitFor();
+  await dialoog.getByRole("button", { name: "Annuleren" }).click();
 
   // 2. De poort zegt wat er nog nodig is; accorderen kan nog niet.
   const nodig = page.getByRole("list", { name: "Nog nodig om te accorderen" });
@@ -306,8 +313,9 @@ try {
   for (let i = 0; i < 3; i++) {
     if (i === 2) elementen.e2.lifecycle = "human_approved";
     await page.getByRole("button", { name: /^Akkoord met “/ }).first().click();
-    await page.waitForFunction((n) => document.querySelectorAll("button").length && [...document.querySelectorAll("button")]
-      .filter((b) => b.textContent === "Akkoord").length === n, 2 - i);
+    await page.getByRole("button", { name: "Akkoord?" }).click();
+    await page.waitForFunction((n) => [...document.querySelectorAll("button")]
+      .filter((b) => b.getAttribute("aria-label")?.startsWith("Akkoord met ")).length === n, 2 - i);
   }
   await zie("Alles is er");
   await page.getByRole("button", { name: "Accorderen" }).click();
@@ -315,7 +323,9 @@ try {
   await foto("begrip-geaccordeerd");
 
   // 4. Elke passage terugvinden: de link naar de annotatie wijst het element aan, en de export draagt ze alle drie.
-  const href = await passages.first().getByRole("link", { name: /^Bekijk “.*” in de annotatie$/ }).getAttribute("href");
+  await passages.first().getByRole("button", { name: /^Acties: / }).click();
+  const href = await page.getByRole("menuitem", { name: /^Bekijk “.*” in de annotatie$/ }).getAttribute("href");
+  await page.keyboard.press("Escape");
   assert.match(href, /^\/annotaties\/node\?bron_iri=.+&element=e\d$/);
   // Exporteren hoort bij het begrippenkader, niet bij één begrip.
   await page.goto(`${base}/werkgebieden/wg1/artefacten/begrippen`);
@@ -336,7 +346,7 @@ try {
 
   // Smal scherm: alles onder elkaar, zonder horizontale scroll.
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("heading", { name: "Bronpassages (3)" }).waitFor();
+  await page.getByRole("heading", { name: "Passages 3" }).waitFor();
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
   // Het kruimelpad blijft bereikbaar.
   assert.ok(await page.getByRole("navigation", { name: "Kruimelpad" }).isVisible());
