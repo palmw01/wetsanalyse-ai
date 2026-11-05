@@ -23,10 +23,10 @@ from bronmodel import BronFout, annotatie_eenheden, subtree
 from sqlalchemy import select
 
 from . import annotatie_v2_store as store, db, verbruik
+from .annotatie_v2_contracts import AFGEHANDELD
 from .werkgebied_inventaris import Resolver, bronbomen, bwb_van, nodes_met_titel
 
 SCHATTING_BASIS = 20                    # de laatste n annotatiebeurten
-_BEOORDEELD = {"human_approved", "edited"}
 
 
 def _label(nodes: dict[str, dict], iri: str) -> str:
@@ -69,7 +69,7 @@ def _gedekt(dekking: list[dict], snapshots: dict[str, dict], nodes: dict[str, di
 
 def _stand(bereik: set[str], lagen: dict[str, dict], elementen: list[dict], gedekt: set[str]) -> dict:
     eigen = [e for e in elementen if e.get("eigenaar_iri") in bereik]
-    te_beoordelen = sum(1 for e in eigen if e.get("lifecycle") not in _BEOORDEELD | {"rejected"})
+    te_beoordelen = sum(1 for e in eigen if e.get("lifecycle") not in AFGEHANDELD)
     eigen_lagen = [lagen[i] for i in bereik if i in lagen]
     if eigen_lagen and all(laag["status"] == "geaccordeerd" for laag in eigen_lagen):
         status = "afgerond"

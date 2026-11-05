@@ -108,7 +108,7 @@ jasv:AlternatiefShape a sh:NodeShape ;
 # Een beoordeling draagt nooit een persoon: de graaf heeft geen authenticatie.
 jasv:BeoordelingShape a sh:NodeShape ;
   sh:property [ sh:path jas:soort ; sh:minCount 1 ; sh:maxCount 1 ;
-                sh:in ( "approve" "reject" "heropen" "comment" "edit" "grens" ) ; sh:group jasv:JasModel ] ;
+                sh:in ( "markering" "approve" "reject" "heropen" "comment" "edit" "grens" ) ; sh:group jasv:JasModel ] ;
   sh:property [ sh:path jas:actor ; sh:maxCount 0 ; sh:group jasv:JasModel ;
                 sh:message "Een beoordeling in de graaf draagt geen persoon." ] ;
   sh:property [ sh:path jas:commentaar ; sh:maxCount 0 ; sh:group jasv:JasModel ] .

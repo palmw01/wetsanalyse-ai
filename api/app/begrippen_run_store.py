@@ -30,6 +30,7 @@ from pydantic import ValidationError
 from sqlalchemy import insert, or_, select, update
 
 from . import begrip_onderzoek, begrip_store, db
+from .annotatie_v2_contracts import BEOORDEELD
 from .begrip_contracts import BegripInhoud
 from .begrippen_run_contracts import Aanpassing, Akkoord, GroepKoppeling, Overname, UitkomstInvoer
 from .werkgebied_store import _audit as werkgebied_audit
@@ -312,7 +313,7 @@ def _passage(f: dict, labels: dict[str, str], huidig: dict | None = None) -> dic
         # De stand van de annotatie nú (het manifest is de stand bij de run): een jurist kan haar
         # intussen hebben beoordeeld, en de poort vraagt dat (fase D: "Annotatie akkoord" ter plekke).
         uit.update(lifecycle=huidig.get("lifecycle", ""),
-                   annotatie_beoordeeld=huidig.get("lifecycle") in begrip_store.BEOORDEELD)
+                   annotatie_beoordeeld=huidig.get("lifecycle") in BEOORDEELD)
     return uit
 
 

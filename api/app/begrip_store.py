@@ -33,6 +33,7 @@ from fastapi import HTTPException
 from sqlalchemy import delete, func, insert, or_, select, update
 
 from . import annotatie_v2_store as annotaties, db
+from .annotatie_v2_contracts import BEOORDEELD
 from .begrip_contracts import (
     BegripInhoud, BegripInvoer, BegripWijziging, KoppelInvoer, KoppelWijziging,
 )
@@ -41,7 +42,6 @@ from .werkgebied_store import _audit as werkgebied_audit, niet_gevonden
 
 Resolver = Callable[[dict], Awaitable[dict]]
 
-BEOORDEELD = {"human_approved", "edited", "published"}
 DRAGEND = {"duiding", "definitie"}
 
 

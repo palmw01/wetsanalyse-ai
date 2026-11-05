@@ -27,6 +27,7 @@ const BUBBEL_ATTRIBUUT = "data-rondleiding-bubbel";
  *  doorspringt. Losse export zodat de werkplek hem kan aanroepen zonder de
  *  motor te kennen. */
 const INTERACTIE_BEVESTIGING: Record<BeslissingType, string> = {
+  markering: "je markering is vastgelegd",
   approve: "Beoordeeld. De volgende die aandacht vraagt staat al klaar.",
   edit: "Aangepast. Wat jij wijzigt komt zo in het auditspoor terecht.",
   reject: "Verworpen. Het voorstel blijft zichtbaar, met jouw reden erbij.",

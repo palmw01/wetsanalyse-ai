@@ -5,6 +5,7 @@ import { segmentAnker, type NodeElement, type NodeSegment, type NodeWeergave } f
 import {
   beslissingNaarNode, documentVanNode, elementVanNode, lidUitIri, nodeAnkersUitSelectie, nodeBronVan,
   grensOpties, nogOngedekt, ongedektVanNode, tekstVanAnkers,
+  runSleutel,
 } from "./annotatieNodeAdapter";
 import { vindPositie } from "./selectie";
 import { blokkenVan } from "./wetstructuur";
@@ -254,5 +255,18 @@ describe("grensOpties", () => {
     const elders = element([{ bron_iri: LID1.bron_iri, start: 3, eind: 12, tekst: "ontvanger", bron_hash: LID1.bron_hash }],
       { trace: { kandidaat: { span: { bron_iri: "urn:elders" }, spanopties: [{ soort: "np", start: 0, eind: 2 }] } } as never });
     expect(grensOpties(elders, nb)).toEqual([]);
+  });
+});
+
+describe("de meting van een ronde staat één keer in de weergave", () => {
+  it("koppelt een element aan zijn ronde", () => {
+    const kaal = { ronde: 1, tijd: "t", model: "m" };
+    const run = { ...kaal, instellingen: { meting: { fasen: [] } } };
+    expect(runSleutel(kaal)).toBe("1|t|m");
+    const nb = { bron: "", leden: [], info: {} } as unknown as Parameters<typeof elementVanNode>[1];
+    const el = { id: "e", klasse: "", tekst: "", toelichting: "", ankers: [], lifecycle: "voorgesteld", herkomst: "agent",
+      eigenaar_iri: "urn:x", laag_id: "l", verouderd: true, geproduceerd_door: kaal } as unknown as Parameters<typeof elementVanNode>[0];
+    expect(elementVanNode(el, nb, { "1|t|m": run } as never).geproduceerd_door).toBe(run);
+    expect(elementVanNode(el, nb).geproduceerd_door).toBe(kaal);
   });
 });

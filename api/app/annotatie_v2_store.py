@@ -16,7 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from bronmodel import BronFout, valideer_ankers
 
 from . import db
-from .annotatie_v2_contracts import Batch, Beslissing, Element
+from .annotatie_v2_contracts import AFGEHANDELD, VERGRENDELD, Batch, Beslissing, Element, Laagbesluiten
 from .validation import GELDIGE_JAS_KLASSEN
 
 
@@ -46,6 +46,46 @@ def bereik_van(snapshot: dict, iri: str | None = None) -> set[str]:
     if iri not in nodes:
         raise HTTPException(404, "Bronnode bestaat niet in deze bronstand.")
     return {key for key in nodes if iri in keten(nodes, key)}
+
+
+#: Wat een eigen markering vastlegt: wie markeerde is een feit voor de audit, maar geen oordeel over een voorstel.
+MARKERING = "markering"
+#: Het zware deel van een element. Een antwoord op een besluit herhaalt het niet: het staat al bij de lezer.
+ZWAAR = frozenset({"trace", "geproduceerd_door"})
+
+
+def heeft_oordeel(element: dict) -> bool:
+    """Draagt dit element een oordeel? De regel van de eigen markering zelf telt niet: die mag de maker nog
+    bijwerken en wissen, tot iemand er iets over besloot."""
+    return any(b.get("type") != MARKERING for b in element.get("beslissingen") or [])
+
+
+def compact_element(element: dict) -> dict:
+    return {k: v for k, v in element.items() if k not in ZWAAR}
+
+
+def run_sleutel(run: dict) -> str:
+    """De identiteit van een agent-ronde; de werkplek rekent dezelfde sleutel (`runSleutel`)."""
+    return f"{run.get('ronde', '')}|{run.get('tijd', '')}|{run.get('model', '')}"
+
+
+def zonder_meting(run: dict) -> dict:
+    instellingen = {k: v for k, v in (run.get("instellingen") or {}).items() if k != "meting"}
+    return {**{k: v for k, v in run.items() if k != "instellingen"}, **({"instellingen": instellingen} if instellingen else {})}
+
+
+def compacte_weergave(view: dict) -> dict:
+    """De weergave met de meting van elke ronde één keer (`runs`), in plaats van op elk element: anders groeit een
+    artikel met het aantal elementen maal de meting. De export leest de volledige `weergave`."""
+    runs: dict[str, dict] = {}
+    elementen = []
+    for e in view["elementen"]:
+        run = e.get("geproduceerd_door") or {}
+        if run:
+            runs.setdefault(run_sleutel(run), run)
+            e = {**e, "geproduceerd_door": zonder_meting(run)}
+        elementen.append(e)
+    return {**view, "elementen": elementen, "runs": runs}
 
 
 def is_terugval(element: dict | Element) -> bool:
@@ -281,7 +321,10 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
                 raise HTTPException(409, "Element-ID bestaat al; gebruik de correctieroute.")
             value.update(id=element_id, laag_id=touched[value["eigenaar_iri"]]["id"],
                          lifecycle="human_approved" if mens else "voorgesteld", herkomst="mens" if mens else "agent",
-                         aangemaakt_door=actor, beslissingen=[], verouderd=False, geproduceerd_door=req.run)
+                         aangemaakt_door=actor, verouderd=False, geproduceerd_door=req.run,
+                         # Ook een eigen markering staat in de beslissingen: de audit van een element is compleet.
+                         beslissingen=[{"type": MARKERING, "actor": actor, "tijd": db.utcnow().isoformat(), "comment": "",
+                                        "review_reason": None, "wijziging": {"klasse": value["klasse"]}}] if mens else [])
             await conn.execute(insert(db.annotatie_v2_elementen).values(
                 id=element_id, laag_id=value["laag_id"], inhoud=value))
             await _audit(conn, actor, "element-gemaakt", {"batch_id": req.batch_id}, element_id, value["laag_id"])
@@ -441,59 +484,112 @@ def _grens_wijziging(element: dict, wijziging: dict, nodes: dict) -> dict:
                         "bron_hash": node["bron_hash"]}], "tekst": tekst}
 
 
+def _herzien_toelichting(oud: dict, wijziging: dict) -> dict:
+    """Een klassewissel zonder nieuwe toelichting: de oude ging over de vorige klasse ("Een rechtsobject is…" bij een
+    Rechtsfeit). Ze wijkt voor een zin die zegt wat er gebeurde; de beslissing bewaart haar in `voor`."""
+    klasse, vorige = wijziging.get("klasse"), oud.get("klasse", "")
+    eigen = wijziging.get("toelichting", oud.get("toelichting", "")) != oud.get("toelichting", "")
+    if not klasse or klasse == vorige or eigen or not oud.get("toelichting"):
+        return {}
+    was = f"Klasse gewijzigd van {vorige} naar {klasse}" if vorige else f"Klasse {klasse} gekozen"
+    return {"toelichting": f"{was} door de jurist; de eerdere toelichting ging niet over deze klasse."}
+
+
+async def _beslis_in(conn, element_id: str, req, verwacht: dict[str, int], snapshot: dict, actor: str,
+                     layers: dict, touched: dict) -> dict:
+    """Eén beslissing in de transactie van de aanroeper; die raakt daarna de lagen in `touched`, één keer per laag."""
+    row = (await conn.execute(select(db.annotatie_v2_elementen).where(
+        db.annotatie_v2_elementen.c.id == element_id))).mappings().first()
+    if row is None:
+        raise HTTPException(404, "Element niet gevonden.")
+    old = row["inhoud"]
+    nodes = nodes_van(snapshot)
+    if old.get("verouderd") or any(a["bron_iri"] not in nodes or
+        nodes[a["bron_iri"]]["bron_hash"] != a["bron_hash"] for a in old["ankers"]):
+        raise HTTPException(409, "Verouderd element is alleen-lezen.")
+    snapshot_id = snapshot["snapshot_id"]
+    touched.setdefault(old["eigenaar_iri"], await _laag(conn, layers, old["eigenaar_iri"], snapshot_id, verwacht))
+    frozen = old["lifecycle"] in VERGRENDELD and (old.get("herkomst") != "mens" or heeft_oordeel(old))
+    if frozen and req.type not in {"heropen", "comment"}:
+        raise HTTPException(409, "Heropen het element voordat je het wijzigt.")
+    value = dict(old)
+    wijziging = req.wijziging
+    if req.type in {"edit", "grens"}:
+        if req.type == "grens":
+            wijziging = _grens_wijziging(old, req.wijziging, nodes)
+        elif set(req.wijziging) - {"klasse", "tekst", "toelichting", "ankers"}:
+            raise HTTPException(422, "Niet-toegestane correctievelden.")
+        wijziging = {**wijziging, **_herzien_toelichting(old, wijziging)}
+        candidate = Element.model_validate({**old, **wijziging})
+        value.update(valideer(candidate, snapshot, set(nodes)))
+        owner = value["eigenaar_iri"]
+        if owner not in touched:
+            touched[owner] = await _laag(conn, layers, owner, snapshot_id, verwacht)
+        value.update(laag_id=touched[owner]["id"], lifecycle="edited", gewijzigd_door="mens")
+    elif req.type != "comment":
+        if req.type == "approve" and not old.get("klasse"):
+            raise HTTPException(422, "Kies eerst een klasse: dit voorstel heeft er nog geen.")
+        value["lifecycle"] = {"approve": "human_approved", "reject": "rejected", "heropen": "voorgesteld"}[req.type]
+    # `voor` legt de oude waarden van een correctie vast; zonder die kant is niet te zien wat de
+    # jurist anders zag dan de agent (`annotatie_statistiek`).
+    decision = {"type": req.type, "actor": actor, "tijd": db.utcnow().isoformat(),
+                "comment": req.comment, "review_reason": req.review_reason, "wijziging": wijziging if req.type == "edit" else req.wijziging,
+                **({"voor": {k: old.get(k) for k in wijziging}} if req.type == "edit" else {}),
+                **({"voor": {"ankers": old.get("ankers"), "tekst": old.get("tekst")},
+                    "nieuw": {"ankers": wijziging["ankers"], "tekst": wijziging["tekst"]}} if req.type == "grens" else {})}
+    value["beslissingen"] = [*old.get("beslissingen", []), decision]
+    await conn.execute(update(db.annotatie_v2_elementen).where(
+        db.annotatie_v2_elementen.c.id == element_id).values(laag_id=value["laag_id"], inhoud=value))
+    await _audit(conn, actor, req.type, {**decision, "oude_eigenaar": old["eigenaar_iri"],
+                                       "nieuwe_eigenaar": value["eigenaar_iri"]}, element_id, value["laag_id"])
+    return value
+
+
 async def beslis(element_id: str, req: Beslissing, snapshot: dict, actor: str) -> dict:
     if req.snapshot_id != snapshot["snapshot_id"]:
         raise HTTPException(409, "Bronstand gewijzigd.")
     async with schrijftransactie() as conn:
-        row = (await conn.execute(select(db.annotatie_v2_elementen).where(
-            db.annotatie_v2_elementen.c.id == element_id))).mappings().first()
-        if row is None:
-            raise HTTPException(404, "Element niet gevonden.")
-        old = row["inhoud"]
-        nodes = nodes_van(snapshot)
-        if old.get("verouderd") or any(a["bron_iri"] not in nodes or
-            nodes[a["bron_iri"]]["bron_hash"] != a["bron_hash"] for a in old["ankers"]):
-            raise HTTPException(409, "Verouderd element is alleen-lezen.")
         layers = await _lagen(conn)
-        old_layer = await _laag(conn, layers, old["eigenaar_iri"], req.snapshot_id, req.verwachte_revisies)
-        frozen = old["lifecycle"] in {"human_approved", "rejected", "published"} and (
-            old.get("herkomst") != "mens" or bool(old.get("beslissingen")))
-        if frozen and req.type not in {"heropen", "comment"}:
-            raise HTTPException(409, "Heropen het element voordat je het wijzigt.")
-        value = dict(old)
-        touched = {old["eigenaar_iri"]: old_layer}
-        wijziging = req.wijziging
-        if req.type in {"edit", "grens"}:
-            if req.type == "grens":
-                wijziging = _grens_wijziging(old, req.wijziging, nodes)
-            elif set(req.wijziging) - {"klasse", "tekst", "toelichting", "ankers"}:
-                raise HTTPException(422, "Niet-toegestane correctievelden.")
-            candidate = Element.model_validate({**old, **wijziging})
-            value.update(valideer(candidate, snapshot, set(nodes)))
-            owner = value["eigenaar_iri"]
-            if owner not in touched:
-                touched[owner] = await _laag(conn, layers, owner, req.snapshot_id, req.verwachte_revisies)
-            value.update(laag_id=touched[owner]["id"], lifecycle="edited", gewijzigd_door="mens")
-        elif req.type != "comment":
-            if req.type == "approve" and not old.get("klasse"):
-                raise HTTPException(422, "Kies eerst een klasse: dit voorstel heeft er nog geen.")
-            value["lifecycle"] = {"approve": "human_approved", "reject": "rejected", "heropen": "voorgesteld"}[req.type]
-        # `voor` legt de oude waarden van een correctie vast; zonder die kant is niet te zien wat de
-        # jurist anders zag dan de agent (`annotatie_statistiek`).
-        decision = {"type": req.type, "actor": actor, "tijd": db.utcnow().isoformat(),
-                    "comment": req.comment, "review_reason": req.review_reason, "wijziging": req.wijziging,
-                    **({"voor": {k: old.get(k) for k in req.wijziging}} if req.type == "edit" else {}),
-                    **({"voor": {"ankers": old.get("ankers"), "tekst": old.get("tekst")},
-                        "nieuw": {"ankers": wijziging["ankers"], "tekst": wijziging["tekst"]}} if req.type == "grens" else {})}
-        value["beslissingen"] = [*old.get("beslissingen", []), decision]
+        touched: dict = {}
+        value = await _beslis_in(conn, element_id, req, req.verwachte_revisies, snapshot, actor, layers, touched)
         await _bewaar_snapshot(conn, snapshot)
-        await conn.execute(update(db.annotatie_v2_elementen).where(
-            db.annotatie_v2_elementen.c.id == element_id).values(laag_id=value["laag_id"], inhoud=value))
         for layer in touched.values():
             await _raak(conn, layer, req.snapshot_id)
-        await _audit(conn, actor, req.type, {**decision, "oude_eigenaar": old["eigenaar_iri"],
-                                           "nieuwe_eigenaar": value["eigenaar_iri"]}, element_id, value["laag_id"])
-        return {"element": value, "lagen": [publiek_laag(l) for l in touched.values()]}
+        return {"element": compact_element(value), "lagen": [publiek_laag(l) for l in touched.values()]}
+
+
+async def beslis_laag(laag_id: str, req: Laagbesluiten, snapshot: dict, actor: str) -> dict:
+    """Besluiten op één laag in één transactie en één revisie. Weigert er één, dan gebeurt er niets."""
+    if req.snapshot_id != snapshot["snapshot_id"]:
+        raise HTTPException(409, "Bronstand gewijzigd.")
+    async with schrijftransactie() as conn:
+        layers = await _lagen(conn)
+        layer = next((l for l in layers.values() if l["id"] == laag_id), None)
+        if layer is None:
+            raise HTTPException(404, "Laag niet gevonden.")
+        e = db.annotatie_v2_elementen
+        ids = [b.element_id for b in req.besluiten]
+        hier = set((await conn.execute(select(e.c.id).where(e.c.laag_id == laag_id, e.c.id.in_(ids)))).scalars().all())
+        if vreemd := [i for i in ids if i not in hier]:
+            raise HTTPException(422, {"fout": "element_buiten_laag", "element_ids": vreemd,
+                                      "melding": f"{len(vreemd)} element(en) horen niet bij deze laag."})
+        touched: dict = {}
+        uit = []
+        for besluit in req.besluiten:
+            try:
+                value = await _beslis_in(conn, besluit.element_id, besluit, {layer["bron_iri"]: req.verwachte_revisie},
+                                         snapshot, actor, layers, touched)
+            except HTTPException as exc:
+                if exc.status_code == 409 and isinstance(exc.detail, str):
+                    raise HTTPException(409, {"fout": "besluit_geweigerd", "element_id": besluit.element_id,
+                                              "melding": f"Er is niets vastgelegd. {exc.detail}"}) from exc
+                raise
+            uit.append({"id": value["id"], "klasse": value["klasse"], "lifecycle": value["lifecycle"]})
+        await _bewaar_snapshot(conn, snapshot)
+        await _raak(conn, layer, req.snapshot_id)
+        rest = (await conn.execute(select(e.c.inhoud).where(e.c.laag_id == laag_id))).scalars().all()
+        return {"laag": publiek_laag(layer), "elementen": uit,
+                "open": sum(not x.get("verouderd") and x["lifecycle"] not in AFGEHANDELD for x in rest)}
 
 
 async def revisies(laag_id: str, limit: int = 100) -> list[dict]:
@@ -533,8 +629,8 @@ async def zet_status(laag_id: str, status: str, expected: int, actor: str, snaps
             if any(not e.get("verouderd") and any(a["bron_iri"] not in nodes or
                 nodes[a["bron_iri"]]["bron_hash"] != a["bron_hash"] for a in e["ankers"]) for e in elements):
                 raise HTTPException(409, "Brontekst gewijzigd; annoteer de actuele bron vóór afronden.")
-        if status == "geaccordeerd" and any(not e.get("verouderd") and e["lifecycle"] not in
-            {"human_approved", "rejected", "published"} for e in elements):
+        if status == "geaccordeerd" and any(not e.get("verouderd") and e["lifecycle"] not in AFGEHANDELD
+            for e in elements):
             raise HTTPException(409, "Beoordeel eerst alle actuele elementen van deze laag.")
         layer["status"] = status
         await _raak(conn, layer, layer["snapshot_id"])
@@ -549,7 +645,7 @@ async def verwijder(element_id: str, expected: int, actor: str) -> dict:
         if row is None:
             raise HTTPException(404, "Element niet gevonden.")
         value = row["inhoud"]
-        if value["herkomst"] != "mens" or value.get("aangemaakt_door") != actor or value.get("beslissingen"):
+        if value["herkomst"] != "mens" or value.get("aangemaakt_door") != actor or heeft_oordeel(value):
             raise HTTPException(409, "Alleen een eigen, nog niet beoordeelde markering kan worden verwijderd.")
         layers = await _lagen(conn)
         layer = await _laag(conn, layers, value["eigenaar_iri"], value["snapshot_id"],
@@ -654,7 +750,7 @@ async def overzicht(actor: str | None, bwb_id: str, limit: int, offset: int) -> 
                 "artikel": article, "lid": lid, "label": node.get("label", ""), "soort": node["type"],
                 "citeertitel": node.get("citeertitel") or snapshot["doel"].get("citeertitel") or law,
                 "werkgebied": "", "aantal_elementen": len(current), "te_beoordelen": sum(
-                    e["lifecycle"] not in {"human_approved", "rejected", "published"} for e in current),
+                    e["lifecycle"] not in AFGEHANDELD for e in current),
                 "per_klasse": dict(Counter(e["klasse"] for e in current)),
                 "per_aandacht": dict(Counter(e.get("aandacht") for e in current if e.get("aandacht"))),
                 "laatste_model": "", "laag_sleutel": layer["bron_iri"], "verouderd": len(local) - len(current),

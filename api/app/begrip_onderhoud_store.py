@@ -29,6 +29,7 @@ from fastapi import HTTPException
 from sqlalchemy import insert, select, update
 
 from . import begrip_relatie_store, begrip_store, begrippen_run_store, db
+from .annotatie_v2_contracts import BEOORDEELD
 from .begrip_manifest import _vindplaats
 from .begrip_onderhoud_contracts import Bevestiging, BuitenBehandeling, Herkoppeling
 from .werkgebied_inventaris import Resolver, inventaris, inventaris_met_bronbomen, nodes_met_titel
@@ -141,7 +142,7 @@ def opvolgers(ref: dict, oud_element_id: str, kandidaten: list[dict], primair: d
         eerste = min(ankers, key=lambda a: a.get("start", 0)) if ankers else {}
         uit.append({"element_id": e["id"], "tekst": e.get("tekst", ""), "klasse": e.get("klasse", ""),
                     "lifecycle": e.get("lifecycle", ""),
-                    "annotatie_beoordeeld": e.get("lifecycle") in begrip_store.BEOORDEELD,
+                    "annotatie_beoordeeld": e.get("lifecycle") in BEOORDEELD,
                     "signalen": signalen, "_sleutel": (not overlap, not zelfde_tekst, eerste.get("start", 0), e["id"])})
     uit.sort(key=lambda x: x.pop("_sleutel"))
     return uit[:MAX_OPVOLGERS]

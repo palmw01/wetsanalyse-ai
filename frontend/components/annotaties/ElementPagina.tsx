@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { KnoopTekst } from "@/components/graaf/KnoopTekst";
 import { WaaromUitklap } from "@/components/annotaties/WaaromUitklap";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
-import { LIFECYCLE_LABEL } from "@/lib/annotatie";
+import { isBeslist, LIFECYCLE_LABEL } from "@/lib/annotatie";
 import { beslisElement, haalElementDetail, nodeLink, type ElementDetail } from "@/lib/annotatieNode";
 import { foutTekst } from "@/lib/api";
 import { jasStyle, klasseLabel } from "@/lib/jas";
@@ -34,7 +34,7 @@ const AANDACHT: Record<string, { label: string; toon: "groen" | "geel" }> = {
 };
 
 const BESLISSING: Record<string, string> = {
-  approve: "akkoord", reject: "verworpen", heropen: "heropend", edit: "aangepast", comment: "opmerking", grens: "andere grens",
+  markering: "gemarkeerd", approve: "akkoord", reject: "verworpen", heropen: "heropend", edit: "aangepast", comment: "opmerking", grens: "andere grens",
 };
 
 function kort(tekst: string, max = 60): string {
@@ -87,7 +87,7 @@ export function ElementPagina({ id }: { id: string }) {
   const bepalingNaam = bepaling?.label || "Bepaling";
   const naarAnnotatie = el ? `${nodeLink({ bron_iri: el.eigenaar_iri })}&element=${encodeURIComponent(el.id)}` : "/annotaties";
   const afgerond = d?.laag.status === "geaccordeerd";
-  const beoordeeld = !!el && ["human_approved", "rejected", "published"].includes(el.lifecycle);
+  const beoordeeld = !!el && isBeslist(el);
   const aandacht = el?.aandacht ? AANDACHT[el.aandacht] : undefined;
 
   return (

@@ -50,6 +50,7 @@ zijn gedeeld tussen gebruikers; wie wat deed staat in de audit. Specificatie:
 | `POST` | `/v1/annotatie/elementen` | Eigen markering van de jurist toevoegen |
 | `GET` `DELETE` | `/v1/annotatie/elementen/{id}` | Markering ophalen / een eigen, nog niet beoordeelde markering wissen |
 | `POST` | `/v1/annotatie/elementen/{id}/beslissing` | Beslissing: `approve`/`edit`/`reject`/`comment`/`heropen` |
+| `POST` | `/v1/annotatie/lagen/{id}/beslissingen` | Bulk op één laag: `approve`/`reject`/`heropen`/`comment`/`edit` (klasse, toelichting), één transactie en één revisie |
 | `POST` | `/v1/annotatie/lagen/{id}/status` | Afronden (`geaccordeerd`) of heropenen (`in_review`) |
 | `POST` | `/v1/annotatie/zoeken` | Zoeken in opgeslagen annotaties; kandidaten uit de graaf, geverifieerd tegen PostgreSQL |
 | `GET` | `/v1/annotatie/node-lagen` | Overzicht van de lagen (werkvoorraad; `?mijn=`, `?bwbId=`, gepagineerd) |

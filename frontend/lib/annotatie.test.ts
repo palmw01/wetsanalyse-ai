@@ -1,6 +1,7 @@
 import { JAS_KLASSEN } from "./jas";
 import { describe, expect, it } from "vitest";
 import {
+  groeneVoorstellen, heeftOordeel,
   bronVan,
   documentStatusLabel,
   regelsVan,
@@ -483,3 +484,28 @@ describe("vraagSuggesties", () => {
   });
 });
 
+
+describe("beoordeeld en oordeel (B18, B19)", () => {
+  it("een aangepast element is beslist, een voorstel niet", () => {
+    expect(isBeslist({ lifecycle: "edited" })).toBe(true);
+    expect(isBeslist({ lifecycle: "published" })).toBe(true);
+    expect(isBeslist({ lifecycle: "voorgesteld" })).toBe(false);
+  });
+
+  it("de regel van een eigen markering is geen oordeel", () => {
+    expect(heeftOordeel({ beslissingen: [{ type: "markering" }] })).toBe(false);
+    expect(heeftOordeel({ beslissingen: [{ type: "markering" }, { type: "comment" }] })).toBe(true);
+    expect(heeftOordeel({})).toBe(false);
+  });
+});
+
+describe("groeneVoorstellen", () => {
+  const el = (x: Partial<Parameters<typeof groeneVoorstellen>[0][number]>) =>
+    ({ lifecycle: "voorgesteld", klasse: "Rechtsfeit", herkomst: "agent", aandacht: null, ...x });
+
+  it("laat geel, rood, zonder klasse, beslist, verouderd en eigen werk staan", () => {
+    const groen = el({ aandacht: "groen" }), kaal = el({});
+    expect(groeneVoorstellen([groen, kaal, el({ aandacht: "geel" }), el({ aandacht: "rood" }), el({ klasse: "" }),
+      el({ lifecycle: "human_approved" }), el({ verouderd: true }), el({ herkomst: "mens" })])).toEqual([groen, kaal]);
+  });
+});

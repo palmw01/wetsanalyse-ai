@@ -196,7 +196,7 @@ export interface ApiError {
 
 export type Lifecycle =
   | "voorgesteld" | "human_approved" | "edited" | "rejected" | "published" | "reused";
-export type BeslissingType = "approve" | "edit" | "reject" | "comment" | "heropen" | "grens";
+export type BeslissingType = "markering" | "approve" | "edit" | "reject" | "comment" | "heropen" | "grens";
 export type ReviewReason =
   | "verkeerde_klasse" | "bron_gemist" | "tekst" | "interpretatie" | "onvoldoende_context" | "anders";
 export type Aandacht = "groen" | "geel" | "rood";
