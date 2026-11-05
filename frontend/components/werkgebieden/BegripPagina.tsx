@@ -67,7 +67,7 @@ export function BegripPagina({ werkgebiedId, begripId }: { werkgebiedId: string;
             <ExportKnop onFout={setFout} titel={naam} formaten={[]} markdown={() => begripAlsMarkdown(begrip)} />
             <VraagLexKnop primair onderwerp={{ soort: "begrip", werkgebied_id: werkgebiedId, id: begripId, label: naam }}
               naam={`Bespreek ${naam} met Lex`} />
-            <BegripMenu stand={stand} />
+            <BegripMenu stand={stand} onNaarBegrip={(b) => router.push(begripPad(werkgebiedId, b))} />
           </>}
         />
         {fout && <Melding type="fout" className="mb-4">{fout}</Melding>}

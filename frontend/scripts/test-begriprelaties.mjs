@@ -130,7 +130,11 @@ await page.route("**/api/**", async (route) => {
   return route.fulfill({ status: 404, json: { detail: "Niet in deze test." } });
 });
 
-const sectie = () => page.getByRole("region", { name: "Relaties en opvolging" });
+const sectie = () => page.getByRole("region", { name: "Relaties" });
+const menu = async (regel) => {
+  await page.getByRole("button", { name: "Meer voor dit begrip" }).first().click();
+  await page.getByRole("menuitem", { name: regel }).click();
+};
 const zie = (tekst) => sectie().getByText(tekst, { exact: false }).first().waitFor();
 try {
   await page.goto(`${base}/werkgebieden/wg1?tab=begrippen&begrip=b1&weergave=kaart`);
@@ -155,6 +159,7 @@ try {
   await sectie().getByText("Afgewezen voorstellen (1)").waitFor();
 
   // 3. Zelf: "is een soort" zet het andere begrip links (van); verwant alleen met toelichting.
+  await sectie().getByRole("button", { name: "Relatie toevoegen" }).click();
   const form = sectie().getByRole("form", { name: "Relatie toevoegen" });
   await form.getByLabel("Soort relatie").selectOption("verwant");
   await form.getByLabel("Ander begrip").selectOption("b3");
@@ -168,9 +173,9 @@ try {
   assert.equal((await vast.getByRole("listitem").nth(1).textContent()).startsWith("belastingaanslag is een soort aanslag"), true);
 
   // 4. Nieuwe betekenis: de opvolger opent, het oude is vervangen en alleen-lezen.
-  await sectie().getByRole("button", { name: "Nieuwe betekenis" }).click();
-  await sectie().getByLabel("Reden voor de nieuwe betekenis").fill("Ruimer na de wetswijziging.");
-  await sectie().getByRole("button", { name: "Maak opvolger" }).click();
+  await menu("Nieuwe betekenis");
+  await page.getByLabel("Reden voor de nieuwe betekenis").fill("Ruimer na de wetswijziging.");
+  await page.getByRole("button", { name: "Maak opvolger" }).click();
   await page.waitForURL(/(begrip=|\/begrippen\/wg1\/)b4/);
   await zie("Vervangt");
   await sectie().getByRole("button", { name: "belastingaanslag" }).waitFor();
@@ -181,14 +186,15 @@ try {
   await page.waitForURL(/begrip=b1/);
   await page.getByRole("link", { name: "Open de pagina" }).click();
   await page.waitForURL(/\/begrippen\/wg1\/b1$/);
-  await zie("Dit begrip is alleen nog te lezen.");
+  await page.getByText("Dit begrip is alleen nog te lezen.").first().waitFor();
   assert.equal(await page.locator("[data-begrip-lex]").count(), 0);
-  assert.equal(await sectie().getByRole("button", { name: "Nieuwe betekenis" }).count(), 0);
+  assert.equal(await page.getByRole("button", { name: "Meer voor dit begrip" }).count(), 0, "een vervangen begrip heeft geen menu");
 
   // 5. Combineren met een vergelijking vooraf; "aanslag blijft" combineert op b3.
   await page.goto(`${base}/werkgebieden/wg1?tab=begrippen&begrip=b2&weergave=kaart`);
-  await sectie().getByRole("button", { name: "Combineren met…" }).click();
-  const comb = sectie().getByRole("form", { name: "Combineren" });
+  await page.getByRole("heading", { name: /^Passages/ }).waitFor();
+  await menu("Combineren met…");
+  const comb = page.getByRole("form", { name: "Combineren" });
   await comb.getByLabel("Combineren met").selectOption("b3");
   await comb.getByText("een beschikking over verschuldigde belasting").waitFor();
   await comb.getByText("een aanslag achteraf").waitFor();

@@ -9,11 +9,12 @@ import { Field, Input } from "@/components/ui/Field";
 import { ChevronOmlaag } from "@/components/ui/Icoon";
 import { IcoonBevestig } from "@/components/ui/IcoonBevestig";
 import { Lijst, LijstRij, Regel, Regels, Sectie, StatusLabel } from "@/components/ui/Lijst";
-import { MeerMenu, MenuVerwijder } from "@/components/ui/MeerMenu";
+import { MeerMenu, MenuKnop, MenuVerwijder } from "@/components/ui/MeerMenu";
 import { Melding } from "@/components/ui/Melding";
 import { SplitDetail } from "@/components/ui/Pagina";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { BegripBlok, type BegripWeergaveVorm } from "@/components/werkgebieden/BegripBlok";
+import { BegripOpvolging } from "@/components/werkgebieden/BegripOpvolging";
 import { BegripPassages } from "@/components/werkgebieden/BegripPassages";
 import { BegripRelaties } from "@/components/werkgebieden/BegripRelaties";
 import { DefinitieOnderbouwing } from "@/components/werkgebieden/DefinitieOnderbouwing";
@@ -88,10 +89,10 @@ export function BegripInhoud({ stand, weergave, onOnbewaard, onNaarBegrip, onGew
     <BegripPassages id={stand.id} begrip={begrip} primair={stand.lijst?.primair ?? {}} muteer={stand.muteer} weergave={weergave}
       geraakt={geraaktPerKoppeling(stand.herbeoordeling, stand.begripId)} />
   );
-  const beoordeling = <BeoordelingBlok stand={stand} begrip={begrip} weergave={weergave} onbewaard={onbewaard} />;
+  const beoordeling = <BeoordelingBlok stand={stand} begrip={begrip} weergave={weergave} onbewaard={onbewaard} onNaarBegrip={onNaarBegrip} />;
   const relaties = (
     <BegripRelaties id={stand.id} begrip={begrip} andere={stand.lijst?.begrippen ?? []}
-      onGewijzigd={() => { void stand.laad(); onGewijzigd?.(); }} onNaarBegrip={onNaarBegrip} />
+      onGewijzigd={() => { void stand.laad(); onGewijzigd?.(); }} onNaarBegrip={onNaarBegrip} weergave={weergave} />
   );
   const historie = <Historie id={stand.id} begrip={begrip} />;
 
@@ -130,13 +131,31 @@ function BegripLaadStand({ stand }: { stand: BegripStand }) {
   );
 }
 
-/** Het menu ⋯ van een begrip. Een vervangen begrip heeft het niet: verwijder dan de opvolger. */
-export function BegripMenu({ stand, maat = "sm" }: { stand: BegripStand; maat?: "xs" | "sm" }) {
-  if (!stand.begrip || stand.begrip.status === "vervangen" || stand.alleenLezen) return null;
+/** Het menu ⋯ van een begrip: de zware, zeldzame handelingen. Een vervangen begrip heeft het niet: verwijder dan de
+ *  opvolger. Nieuwe betekenis en combineren openen een venster, want ze vragen een reden. */
+export function BegripMenu({ stand, maat = "sm", onNaarBegrip }: {
+  stand: BegripStand;
+  maat?: "xs" | "sm";
+  onNaarBegrip?: (begripId: string) => void;
+}) {
+  const [opvolging, setOpvolging] = useState<"nieuw" | "combineren" | null>(null);
+  const b = stand.begrip;
+  if (!b || b.status === "vervangen" || stand.alleenLezen) return null;
+  const kandidaten = (stand.lijst?.begrippen ?? []).filter((x) => x.id !== b.id && x.status !== "vervangen");
   return (
-    <MeerMenu label="Meer voor dit begrip" maat={maat}>
-      {() => <MenuVerwijder ariaLabel={verwijderLabel("begrip")} titel={VERWIJDER_UITLEG.begrip} onBevestig={stand.verwijder} />}
-    </MeerMenu>
+    <>
+      <MeerMenu label="Meer voor dit begrip" maat={maat}>
+        {(sluit) => <>
+          <MenuKnop onClick={() => { sluit(); setOpvolging("nieuw"); }}>Nieuwe betekenis</MenuKnop>
+          {kandidaten.length > 0 && <MenuKnop onClick={() => { sluit(); setOpvolging("combineren"); }}>Combineren met…</MenuKnop>}
+          <MenuVerwijder ariaLabel={verwijderLabel("begrip")} titel={VERWIJDER_UITLEG.begrip} onBevestig={stand.verwijder} />
+        </>}
+      </MeerMenu>
+      {opvolging && (
+        <BegripOpvolging soort={opvolging} id={stand.id} begrip={b} kandidaten={kandidaten} onSluit={() => setOpvolging(null)}
+          onKlaar={(naar) => { setOpvolging(null); void stand.laad(); onNaarBegrip?.(naar); }} />
+      )}
+    </>
   );
 }
 
@@ -158,7 +177,7 @@ export function BegripCompact({ context, begripId, opname, onOnbewaard, onNaarBe
         <div className="flex flex-wrap items-center gap-2">
           <StatusLabel toon={BEGRIP_STATUS_TOON[b.status]}>{BEGRIP_STATUS_LABEL[b.status]}</StatusLabel>
           <span className="text-xs text-muted">revisie {b.revisie}</span>
-          <span className="ml-auto"><BegripMenu stand={stand} maat="xs" /></span>
+          <span className="ml-auto"><BegripMenu stand={stand} maat="xs" onNaarBegrip={onNaarBegrip} /></span>
         </div>
       )}
       <BegripInhoud stand={stand} weergave="paneel" onOnbewaard={onOnbewaard} onNaarBegrip={onNaarBegrip} onGewijzigd={onGewijzigd} />
@@ -349,7 +368,9 @@ function VoorbeeldenBlok({ stand, begrip, weergave, onbewaard, onOnbewaard }: Bl
 }
 
 /** Accorderen en heropenen. De poort rekent de server; hier staan zijn redenen letterlijk. */
-function BeoordelingBlok({ stand, begrip, weergave, onbewaard }: Omit<BlokProps, "onOnbewaard">) {
+function BeoordelingBlok({ stand, begrip, weergave, onbewaard, onNaarBegrip }: Omit<BlokProps, "onOnbewaard"> & {
+  onNaarBegrip?: (begripId: string) => void;
+}) {
   const [bezig, setBezig] = useState(false);
   async function doe(actie: (r: number) => Promise<Begrip>, gelukt: string) {
     setBezig(true);
@@ -362,7 +383,15 @@ function BeoordelingBlok({ stand, begrip, weergave, onbewaard }: Omit<BlokProps,
       acties={<StatusLabel toon={BEGRIP_STATUS_TOON[begrip.status]}>{BEGRIP_STATUS_LABEL[begrip.status]}</StatusLabel>}>
       <div className="space-y-2 text-sm">
         {begrip.status === "vervangen" ? (
-          <p className="text-xs text-muted">Dit begrip is vervangen en alleen nog te lezen.</p>
+          <p className="text-xs text-muted">
+            {begrip.vervangen_door && <>
+              Vervangen door{" "}
+              <button type="button" className="focus-ring rounded font-medium text-lint underline"
+                onClick={() => onNaarBegrip?.(begrip.vervangen_door!.begrip_id)}>{begrip.vervangen_door.naam}</button>
+              {begrip.vervangen_door.reden && <> – {begrip.vervangen_door.reden}</>}.{" "}
+            </>}
+            Dit begrip is alleen nog te lezen.
+          </p>
         ) : begrip.status === "geaccordeerd" ? (
           <>
             <p className="text-ink">
