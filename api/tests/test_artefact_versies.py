@@ -2,7 +2,7 @@
 artefact legt de api de stand van dat moment vast, en het bericht verwijst ernaar met `artefact.ref.versie`."""
 from __future__ import annotations
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 
 from app import annotatie_v2, artefact_versies, db
 from app import annotatie_v2_store as store
@@ -23,6 +23,39 @@ async def _beurt(client, gid: str, run_id: str, soort: str, ref: dict, rol: str 
         "rol": rol, "tekst": "Klaar.", "run_id": run_id, "artefact": {"soort": soort, "ref": ref, "titel": "x"}})
     assert r.status_code == 201, r.text
     return r.json()
+
+
+async def _wijzig_tijdens_lezen(monkeypatch, wid: str, keer: int) -> list[int]:
+    """`_inhoud` die de eerste `keer` keer het werkgebied ziet wijzigen terwijl hij leest."""
+    echt, gelezen = artefact_versies._inhoud, []
+
+    async def inhoud(soort, ref):
+        uit = await echt(soort, ref)
+        gelezen.append(uit["werkgebied"]["revisie"])
+        if len(gelezen) <= keer:
+            async with db.get_engine().begin() as conn:
+                await conn.execute(update(db.werkgebieden).where(db.werkgebieden.c.id == wid).values(
+                    revisie=db.werkgebieden.c.revisie + 1))
+        return uit
+
+    monkeypatch.setattr(artefact_versies, "_inhoud", inhoud)
+    return gelezen
+
+
+async def test_een_wijziging_tijdens_het_lezen_leest_opnieuw(client, monkeypatch):
+    wg = await _nieuw(client)
+    gelezen = await _wijzig_tijdens_lezen(monkeypatch, wg["id"], 1)
+    uit = await artefact_versies._een_stand("werkgebied", {"werkgebied_id": wg["id"]})
+    assert len(gelezen) == 2 and uit["werkgebied"]["revisie"] == wg["revisie"] + 1 and "consistent" not in uit
+
+
+async def test_blijft_het_wijzigen_dan_telt_de_opname_toch(client, monkeypatch):
+    wg, gid = await _nieuw(client), await _gesprek(client)
+    gelezen = await _wijzig_tijdens_lezen(monkeypatch, wg["id"], 99)
+    bericht = await _beurt(client, gid, "r-druk", "werkgebied", {"werkgebied_id": wg["id"]})
+    assert len(gelezen) == artefact_versies.POGINGEN
+    versie = await artefact_versies.haal(bericht["artefact"]["ref"]["versie"])
+    assert versie["inhoud"]["consistent"] is False
 
 
 async def _aantal() -> int:
