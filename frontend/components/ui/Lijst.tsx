@@ -128,7 +128,7 @@ export const TOON: Record<StatusToon, string> = {
 
 /** Het ene label van Lex: een pil met een getint vlak. **Een pil is een label, een afgeronde rechthoek is een knop**
  *  (besluit 5 nov 2026): een label zegt iets en doet niets – geen hover, nooit een `button` of `Link`. Maak geen eigen
- *  label-pil; gebruik dit, met de toon die het oordeel draagt. De stijlgids staat in *Instellingen › Stijl*. */
+ *  label-pil; gebruik dit, met de toon die het oordeel draagt. De regel staat in `frontend/CLAUDE.md`, §Eén bedieningsstijl. */
 export function StatusLabel({ toon = "neutraal", uitleg, klein = false, rekbaar = false, children, className = "", ...rest }: {
   toon?: StatusToon;
   /** Wat de stand betekent, als tooltip. */

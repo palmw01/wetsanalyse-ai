@@ -112,8 +112,8 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     (primair, tweede keuze) een zachte schaduw die bij hover dieper wordt. *Nieuw gesprek* zelf is
     `knopKlasse("secondary", "md")`. Geen handgemaakte primaire knop naast `knopKlasse`;
   - **een pil is een label, een afgeronde rechthoek is een knop** (besluit gebruiker 5 nov 2026, na een stijlblad; dit
-    vervangt "een rijactie blijft een kleine pil"). De levende stijlgids is *Instellingen › Stijl* (`StijlPanel`, alleen
-    voor beheerders): de echte componenten in elke stand. Toets een nieuwe knop of een nieuw label daaraan.
+    vervangt "een rijactie blijft een kleine pil"). Toets een nieuwe knop of een nieuw label aan deze regels en aan
+    `app/knoppen.test.ts`. Een stijlgids is voor de ontwikkeling en hoort niet in de applicatie (besluit gebruiker 5 nov 2026).
     - **Label**: `StatusLabel`, een pil met een getint vlak. De toon draagt het oordeel (groen, geel, rood); grijs is
       neutraal en lintblauw zegt waar iets over gaat. Een label heeft geen hover en is nooit een `button` of `Link`.
       Varianten:
