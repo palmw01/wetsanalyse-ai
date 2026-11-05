@@ -1545,3 +1545,19 @@ export interface VoorstelVerouderd {
   voorstel: { definitie: string; definitie_herkomst: DefinitieHerkomst };
   melding: string;
 }
+
+/** Eén versie van een artefact (api `artefact_versies`): de stand direct na een beurt van Lex, met haar plek tussen
+ *  de andere versies van hetzelfde object. `inhoud` is wat de leesfuncties van de api toen gaven, per soort:
+ *  werkgebied `{werkgebied, bronselectie}`, deelvraag `{werkgebied, deelvraag, bronselectie}`, bronselectie
+ *  `{bronselectie}`, begrip `{begrip, relaties}`, begrippen `{groepen}`, annotatie `{weergave}`. */
+export interface ArtefactVersie {
+  id: string;
+  soort: string;
+  sleutel: string;
+  inhoud: Record<string, unknown>;
+  gemaakt: string;
+  nr: number;
+  totaal: number;
+  vorige: string | null;
+  volgende: string | null;
+}

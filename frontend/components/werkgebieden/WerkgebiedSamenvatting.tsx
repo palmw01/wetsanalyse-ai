@@ -11,6 +11,7 @@ import { bronnenZin, deelvraagStand, voortgangZin } from "@/lib/bronselectie";
 import { splits } from "@/lib/deelvragen";
 import type { Werkgebied } from "@/lib/types";
 import { useBronselectieStand } from "@/lib/useBronselectieStand";
+import type { BronselectieOverzicht } from "@/lib/bronselectie";
 import { DOSSIER_VELDEN } from "@/lib/werkgebied";
 import { deelvraagPad, projectPad } from "@/lib/werkgebiedPaden";
 import { metLeesbareBronnen } from "@/lib/bronKandidaten";
@@ -23,13 +24,16 @@ import { metLeesbareBronnen } from "@/lib/bronKandidaten";
  *  Een leeg veld staat er ook, zodat zichtbaar is wat er nog ontbreekt; aanvullen vraag je in het gesprek (de
  *  suggestie *Vul het dossier aan*). Geen *Vraag Lex* in het paneel (spoor K): naast het gesprek zet een klik op
  *  een deelvraag haar als onderwerp, daarbuiten opent hij haar pagina. */
-export function WerkgebiedSamenvatting({ wg, className = "" }: {
+export function WerkgebiedSamenvatting({ wg, bronselectie, className = "" }: {
   wg: Werkgebied;
+  /** Een oude versie (de versiekiezer): de stand van de bronselectie uit de opname, zonder iets op te halen. */
+  bronselectie?: BronselectieOverzicht | null;
   className?: string;
 }) {
   const kies = useContext(VraagLexContext);
   const deelvragen = splits(wg.deelvragen).actief;
-  const selectie = useBronselectieStand(wg.id, wg.revisie, deelvragen.length);
+  const opgehaald = useBronselectieStand(wg.id, wg.revisie, bronselectie === undefined ? deelvragen.length : 0);
+  const selectie = bronselectie === undefined ? opgehaald : bronselectie;
   const analyse = wg.bronnen.filter((b) => b.rol === "analyseren");
   const regelingen = new Set(wg.bronnen.map((b) => b.bwb_id || b.bron_iri.split(":")[2])).size;
   const stand = new Map((selectie?.deelvragen ?? []).map((d) => [d.id, d]));

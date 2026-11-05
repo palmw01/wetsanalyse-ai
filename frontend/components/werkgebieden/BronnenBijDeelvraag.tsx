@@ -44,7 +44,7 @@ export interface BronBeheer {
  *    met deelvraag n*;
  *  - `filter` (de tab Bronnen: zoeken, rol) laat alleen de passende bronnen zien. */
 export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, inGesprek = false, huidig: huidigId,
-  beheer, filter, versie = 0, onKlaar, klaarVoor }: {
+  beheer, filter, versie = 0, onKlaar, klaarVoor, opname }: {
   werkgebiedId: string;
   /** Laadt opnieuw bij een nieuwe revisie van het werkgebied. */
   revisie?: number;
@@ -58,8 +58,12 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
   /** Naast het gesprek: *Klaar met deze deelvraag* stuurt de actie van het open kaartje (alleen bij `klaarVoor`). */
   onKlaar?: (deelvraagId: string) => void;
   klaarVoor?: string;
+  /** Een oude versie (de versiekiezer): de bronselectie zoals ze toen was, alleen lezen – niets ophalen, geen besluiten,
+   *  geen *Klaar*. */
+  opname?: BronselectieOverzicht;
 }) {
-  const [o, setO] = useState<BronselectieOverzicht | null>(null);
+  const [geladen, setO] = useState<BronselectieOverzicht | null>(null);
+  const o = opname ?? geladen;
   const [fout, setFout] = useState<string | null>(null);
   const [melding, setMelding] = useState<string | null>(null);
   const [poging, setPoging] = useState(0);
@@ -70,11 +74,12 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
     return () => window.removeEventListener(BRONSELECTIE_GEWIJZIGD, bij);
   }, [werkgebiedId]);
   useEffect(() => {
+    if (opname) return;
     let levend = true;
     haalBronselectie(werkgebiedId).then((x) => { if (levend) { setO(x); setFout(null); } })
       .catch((e) => { if (levend) setFout(foutTekst(e)); });
     return () => { levend = false; };
-  }, [werkgebiedId, revisie, poging, versie]);
+  }, [werkgebiedId, revisie, poging, versie, opname]);
 
   const perSelectie = useMemo(() => new Map((beheer?.werkvoorraad?.selecties ?? []).map((s) => [s.id, s])), [beheer?.werkvoorraad]);
   const selecties = useMemo(() => new Map((beheer?.wg.bronnen ?? []).map((s) => [s.id, s])), [beheer?.wg.bronnen]);
@@ -157,8 +162,8 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
     : (beheer?.wg.bronnen ?? []).filter((s) => !gekoppeld.has(s.id) && (!filter?.actief || filter.past(s, s.label, s.rol)));
 
   return (
-    <div data-bronnen-bij-deelvraag className="space-y-6 text-sm text-ink">
-      <PeildatumRegel werkgebiedId={werkgebiedId} revisie={revisie} />
+    <div data-bronnen-bij-deelvraag data-alleen-lezen={opname ? "" : undefined} className="space-y-6 text-sm text-ink">
+      {!opname && <PeildatumRegel werkgebiedId={werkgebiedId} revisie={revisie} />}
       {!deelvraagId && <p className="text-xs text-muted" data-bronselectie-voortgang>{voortgangZin(o)}</p>}
       {beperkingen.length > 0 && !deelvraagId && (
         <Melding type="waarschuwing" compact titel="Over het zoeken">
@@ -201,18 +206,18 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
                     inGesprek={inGesprek} />
                 );
               })}
-              {!kort && voorstellen.map((k) => <Voorstel key={k.id} o={o} d={d} k={k} beslis={beslis} inGesprek={inGesprek} />)}
+              {!kort && voorstellen.map((k) => <Voorstel key={k.id} o={o} d={d} k={k} beslis={beslis} inGesprek={inGesprek} alleenLezen={!!opname} />)}
             </Groep>
             {/* Zelf een bepaling toevoegen gaat via het gesprek (*Noem een bepaling* boven het invoerveld, of
                 typen op het kaartje): zoeken in de graaf hoort niet bij het artefact. */}
-            {inGesprek && !kort && onKlaar && klaarVoor === d.id && d.status !== "voorlopig_afgerond" && d.status !== "beoordeeld" && (
+            {!opname && inGesprek && !kort && onKlaar && klaarVoor === d.id && d.status !== "voorlopig_afgerond" && d.status !== "beoordeeld" && (
               <div className="flex sm:justify-end" data-paneel-acties={d.id}>
                 <Button size="sm" onClick={() => onKlaar(d.id)} className="w-full sm:w-auto" data-paneel-klaar>
                   Klaar met deze deelvraag
                 </Button>
               </div>
             )}
-            {kort && (
+            {kort && !opname && (
               <VraagLexKnop alleenInGesprek naam={`Ga verder met deelvraag ${d.nr}`} tekst={`Ga verder met deelvraag ${d.nr}`}
                 onderwerp={{ soort: "deelvraag", werkgebied_id: o.werkgebied_id, id: d.id, label: d.vraag }} />
             )}
@@ -328,8 +333,10 @@ function BronRij({ werkgebiedId, bronIri, label, rol, selectie, beheer, ook, sta
 /** Eén voorstel van Lex bij één deelvraag: het soort bewijs in gewone woorden en de besluiten. Uitsluiten vraagt een
  *  reden en geldt voor deze deelvraag; een besluit voor het hele werkgebied (`overal`) heropen je met dezelfde
  *  reikwijdte. */
-function Voorstel({ o, d, k, beslis, inGesprek = false }: {
+function Voorstel({ o, d, k, beslis, inGesprek = false, alleenLezen = false }: {
   inGesprek?: boolean;
+  /** Een oude versie: geen besluiten. */
+  alleenLezen?: boolean;
   o: BronselectieOverzicht;
   d: DeelvraagSelectie;
   k: KandidaatHier;
@@ -356,7 +363,7 @@ function Voorstel({ o, d, k, beslis, inGesprek = false }: {
       status={<StatusLabel toon={k.stand === "voorgesteld" ? "geel" : "neutraal"}>{label}</StatusLabel>}
       onder={(<>
         {tekst && <Wettekst bronIri={k.bron_iri} werkgebiedId={o.werkgebied_id} />}
-        <div className="flex flex-col gap-2 px-4 pb-3 sm:flex-row sm:items-center">
+        {!alleenLezen && <div className="flex flex-col gap-2 px-4 pb-3 sm:flex-row sm:items-center">
           {uitsluiten ? (
             <form className="flex w-full flex-col gap-2 sm:flex-row" onSubmit={(e) => {
               e.preventDefault();
@@ -382,7 +389,7 @@ function Voorstel({ o, d, k, beslis, inGesprek = false }: {
               Heropenen
             </Button>
           )}
-        </div>
+        </div>}
       </>)} />
   );
 }

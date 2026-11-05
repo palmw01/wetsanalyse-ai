@@ -45,7 +45,7 @@ class NepApi:
         if self.faalt:
             raise WetsanalyseApiFout("POST /v1/gesprekken/… → 503")
         self.berichten.append((gesprek_id, bericht))
-        return {}
+        return self.antwoord(bericht) if hasattr(self, "antwoord") else {}
 
     async def aclose(self) -> None:
         self.gesloten = True
@@ -150,6 +150,21 @@ async def test_annotatiebeurt_schrijft_naar_de_gedeelde_laag(api):
 
     opgeslagen = [e for e in uit if e["type"] == "opgeslagen"][0]
     assert opgeslagen["artefact"] == bericht["artefact"] and "annotatie_slug" not in opgeslagen
+
+
+@asyncio_test
+async def test_opgeslagen_draagt_de_versie_die_de_api_vastlegde(api):
+    """De api zet bij het bewaren `artefact.ref.versie` (`artefact_versies`); het `opgeslagen`-event geeft het
+    bewaarde artefact door, zodat de chip zijn versie ook live kent – niet pas na herladen."""
+    api.antwoord = lambda b: {**b, "artefact": {**b["artefact"], "ref": {**b["artefact"]["ref"], "versie": "v1"}}}
+    uit = await _draai([
+        {"type": "doel", "doel": _doel()},
+        {"type": "element", "element": {"id": "e1", "klasse": "Rechtssubject", "tekst": "de ontvanger"}},
+        {"type": "token", "content": "Klaar."},
+        {"type": "done"},
+    ])
+    opgeslagen = [e for e in uit if e["type"] == "opgeslagen"][0]
+    assert opgeslagen["artefact"]["ref"]["versie"] == "v1"
 
 
 @asyncio_test
