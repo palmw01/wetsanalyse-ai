@@ -10,6 +10,9 @@ enige publieke weg naar graph-qa. De rendering test dit niet: dat doet Playwrigh
 `src/client.ts` kent geen MCP, zodat scenario's die later ook los kunnen gebruiken; `src/index.ts` is de
 dunne laag met de tools.
 
+De agent-jurist (`.claude/agents/agent-jurist.md`) gebruikt deze MCP om op acceptatie een wetsanalyse helemaal
+zelf uit te voeren, inclusief echte beslissingen; het scenario staat in `docs/acceptatie/wetsanalyse-e2e.md`.
+
 ## Tools
 
 | tool | wat |

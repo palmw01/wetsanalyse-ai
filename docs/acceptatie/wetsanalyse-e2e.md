@@ -1,7 +1,7 @@
 # Scenario: een wetsanalyse van begin tot eind
 
-Doorloopt met `tools/wetsanalyse-acceptatie-mcp` een echte wetsanalyse op acceptatie, en beoordeelt wat eruit
-komt. Het dossier komt uit `docs/acceptatie/lokaal/` (gitignored): zulke dossiers noemen interne teams en
+De agent-jurist (`.claude/agents/agent-jurist.md`) doorloopt met `tools/wetsanalyse-acceptatie-mcp` een echte
+wetsanalyse op acceptatie, neemt alle beslissingen zelf en beoordeelt daarna wat eruit komt. Het dossier komt uit `docs/acceptatie/lokaal/` (gitignored): zulke dossiers noemen interne teams en
 systemen, en deze repo is publiek. Staat het bestand er niet, vraag het dan aan de gebruiker.
 
 Echte beurten kosten echte tokens. Annoteer daarom onder één deelvraag, tenzij de opdracht anders zegt.
@@ -38,12 +38,18 @@ Bewijs: de elementen staan in de inventaris, en `annotatie_lezen` toont ze ook i
 
 Bewijs: `begrip_lezen` toont de kaart met koppelingen naar passages, en de revisies.
 
-**5. Uitlezen en beoordelen.** Zie hieronder.
+**5. Beslissen.** Beoordeel de annotaties en begrippen zoals een jurist: goedkeuren, aanpassen, afwijzen of zelf
+markeren, en accordeer de begrippen die af zijn. Dit zijn echte beslissingen, met een reden.
 
-**6. Bewijzen in de logs.** `logs_zoek` op een `trace_id` en een `run_id` uit de stappen. Telemetrie loopt
+Bewijs: de beslissing staat in de audit en komt terug in de laag en de graaf.
+
+**6. Uitlezen en beoordelen.** Zie hieronder.
+
+**7. Bewijzen in de logs.** `logs_zoek` op een `trace_id` en een `run_id` uit de stappen. Telemetrie loopt
 enkele minuten achter. Controleer ook of de foutenlijst niets nieuws toont.
 
-**7. Opruimen.** Verwijder het werkgebied en het gesprek, tenzij de gebruiker ze wil bekijken.
+**8. Laten staan.** Het werkgebied blijft staan: het is bewijs, en de volgende iteratie vergelijkt ermee. Een
+nieuwe iteratie krijgt een eigen werkgebied met een eigen datum.
 
 ## Beoordelen
 
@@ -58,11 +64,27 @@ enkele minuten achter. Controleer ook of de foutenlijst niets nieuws toont.
 
 **Inhoudelijk oordeel.** Beoordeel een steekproef tegen de `wetsanalyse`-skill: klasse en fragmentgrenzen, en
 of een definitie op haar passages rust. Geef per bevinding het artikel, het citaat, het argument en je
-zekerheid. Dit is een tweede lezing en geen juridisch oordeel: accordeer niets namens een jurist. Eén
-beslissing en één accordering op het testaccount testen alleen die route, en die staan apart in het rapport.
+zekerheid. Beoordeel niet alleen de uitkomst maar ook de weg: waar moest je omlopen, wat ontbrak, wat kostte
+onnodig veel beurten of tokens, en wat zou een jurist niet begrijpen.
 
 Toets op eigenschappen en niet op exacte tekst: annotatieruns verschillen sterk. Dit is ook geen blinde meting
 van de zoekkwaliteit als het onderwerp al in de ontwikkelsets zit.
+
+## Verbeteren
+
+Elke bevinding krijgt een soort en een zwaarte:
+
+- **Inhoud van deze analyse:** direct herstellen met een beslissing op acceptatie.
+- **Fout in Lex of de werkplek:** de oorzaak repareren in de repo, als eigen PR met een test. Volg de regel van
+  ADR-001: kennis hoort in regels en tests, niet in prompts.
+- **Vraag aan de gebruiker:** een inhoudelijke of productkeuze die niet aan de agent-jurist is.
+
+Daarna draait de volgende iteratie op de nieuwe versie, met hetzelfde dossier en dezelfde deelvragen, en
+vergelijkt met de vorige. Spreiding tussen runs is groot: een verbetering van de annotatieketen geldt pas na
+minstens drie runs voor en drie na de wijziging. Stop bij het afgesproken aantal iteraties, of als een iteratie
+geen nieuwe zware bevinding meer oplevert.
+
+Productie valt buiten deze lus: geen tag, geen promote.
 
 ## Rapport
 
@@ -70,6 +92,8 @@ Publiceer per run een privé-artifact, niet in de repo:
 
 - per stap het bewijs, met `trace_id` en `run_id`;
 - wat er zelf is aangevuld;
-- de bevindingen, gesplitst in vastliggende controles en inhoudelijk oordeel;
+- de beslissingen die zijn genomen, met reden;
+- de bevindingen, gesplitst in vastliggende controles en inhoudelijk oordeel, elk met soort en zwaarte;
+- wat er is verbeterd sinds de vorige iteratie, en wat niet;
 - het tokenverbruik;
 - wat niet getest is, in elk geval de rendering.
