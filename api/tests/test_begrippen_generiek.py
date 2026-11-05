@@ -1,6 +1,9 @@
 """Generieke begrippen (ADR-006): één begrip boven de werkgebieden, gebruikt zonder kopie, met passages per werkgebied."""
 from __future__ import annotations
 
+from rdflib import DCTERMS as DCT, SKOS, URIRef
+
+from app import begrip_projectie, db
 from test_annotatie_v2 import ART
 from test_begrippen import DEFINITIE, _annoteer, _begrip, _keur_alles_goed, _url, _werkgebied
 from test_begrippen import client, database, graaf, snapshot2  # noqa: F401
@@ -217,3 +220,51 @@ async def test_een_lokaal_begrip_krijgt_een_relatie_met_het_generieke(client):
     assert r.status_code == 201, r.text
     rel = (await client.get(f"/v1/begrippen/{g['id']}")).json()["relaties"]
     assert [(x["van_naam"], x["naar_naam"]) for x in rel] == [("Belastingschuldige bij aanslag", "Belastingschuldige")]
+
+
+# --- de graaf (G3) --------------------------------------------------------------------------------------------
+
+async def test_het_generieke_kader_is_een_eigen_graph_en_een_werkgebied_noemt_het_gebruik(client):
+    ids, wg, g = await generiek(client)
+    ander, b = await tweede(client, g)
+    await client.post(_url(ander, b, "koppelingen"), json={"verwachte_revisie": b["revisie"],
+                                                           "element_ids": [ids["lid2"]], "rol": "duiding"})
+    async with db.get_engine().connect() as conn:
+        inv = await begrip_projectie.invoer(conn, "generiek")
+        van_wg = await begrip_projectie.invoer(conn, ander["id"])
+    assert inv is not None and [x["id"] for x in inv["begrippen"]] == [g["id"]]
+    assert len(inv["begrippen"][0]["koppelingen"]) == 2, "de passages uit alle werkgebieden"
+    assert van_wg["begrippen"] == [] and van_wg["gebruikt"] == [g["id"]]
+    graaf_g = begrip_projectie.bouw_graaf(inv)
+    concept = begrip_projectie.begrip_iri(g["id"])
+    assert (concept, SKOS.inScheme, URIRef("urn:wa:kader:generiek")) in graaf_g
+    assert len(list(graaf_g.objects(concept, DCT.source))) >= 1
+    graaf_w = begrip_projectie.bouw_graaf(van_wg)
+    assert (begrip_projectie.kader_iri(ander["id"]), begrip_projectie.WA.gebruiktBegrip, concept) in graaf_w
+    assert (concept, SKOS.inScheme, None) not in graaf_w, "een begrip staat in precies één kader"
+    assert sorted(await _stand()) == sorted(["generiek", wg["id"], ander["id"]])
+
+
+async def _stand() -> list[str]:
+    return list(await begrip_projectie.postgres_stand())
+
+
+async def test_een_relatie_met_het_generieke_begrip_staat_in_de_graph_van_het_werkgebied(client):
+    ids, _, g = await generiek(client)
+    ander, _ = await tweede(client, g)
+    lokaal = await _begrip(client, ander, [ids["lid2"]], naam="Bij aanslag")
+    r = await client.post(f"/v1/werkgebieden/{ander['id']}/relaties", json={
+        "van_begrip": lokaal["id"], "naar_begrip": g["id"], "type": "hierarchie"})
+    assert r.status_code == 201, r.text
+    async with db.get_engine().connect() as conn:
+        graaf_w = begrip_projectie.bouw_graaf(await begrip_projectie.invoer(conn, ander["id"]))
+    assert (begrip_projectie.begrip_iri(g["id"]), begrip_projectie.ISOTHES.broaderGeneric,
+            begrip_projectie.begrip_iri(lokaal["id"])) in graaf_w
+
+
+async def test_het_generieke_kader_exporteert_als_turtle_met_conformiteit(client):
+    _, _, g = await generiek(client)
+    r = await client.get("/v1/begrippen/export")
+    assert r.status_code == 200 and "urn:wa:kader:generiek" in r.text and g["id"] in r.text
+    c = await client.get("/v1/begrippen/conformiteit")
+    assert c.status_code == 200 and g["id"] in c.json()["begrippen"]

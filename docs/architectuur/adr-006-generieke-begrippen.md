@@ -50,9 +50,11 @@ blijven naar de wettekst.
 
 ## Graaf en NL-SBB
 
-- Named graph `urn:wa:graph:kader:generiek`, geregistreerd in `urn:wa:graph:register:begrippen`.
+- Named graph `urn:wa:graph:werkgebied:generiek`, geregistreerd in `urn:wa:graph:register:begrippen`. De id `generiek`
+  laat register, reconcile, graafcontrole en de zoekopdrachten van Lex ongewijzigd werken.
 - Een begrip staat in precies één `skos:inScheme`, ook als veel werkgebieden het gebruiken.
-- De graph van een werkgebied draagt zijn koppelingen en `wa:gebruiktBegrip` naar het generieke begrip.
+- De generieke graph draagt het begrip met de passages uit alle werkgebieden: één plek per triple, en de bronnen die
+  NL-SBB vraagt. De graph van een werkgebied noemt met `wa:gebruiktBegrip` wat het gebruikt.
 - Relaties tussen kaders houden hun predicaten uit ADR-003. Conformiteit en Turtle-export gelden ook voor het
   generieke kader.
 

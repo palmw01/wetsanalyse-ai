@@ -23,7 +23,7 @@ import unicodedata
 
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import func, or_, select
 
 from . import begrip_projectie, begrip_relatie_store, begrip_store, db
@@ -175,10 +175,26 @@ async def post_verifieer(req: BegripVerificatie, actor: str = Depends(actieve_us
     async with db.get_engine().connect() as conn:
         rijen = {x["id"]: x for x in await _rijen(conn, ids=list(dict.fromkeys(req.ids)))}
         werkgebieden = {}
-        for wid in sorted({x["werkgebied_id"] for x in rijen.values() if x["werkgebied_id"]} | set(req.werkgebieden)):
+        # Een generiek begrip staat in zijn eigen graph: ook daarvan de hash van nu.
+        for wid in sorted({x["werkgebied_id"] or begrip_projectie.GENERIEK for x in rijen.values()} | set(req.werkgebieden)):
             inv = await begrip_projectie.invoer(conn, wid)
             werkgebieden[wid] = {"projectie_hash": begrip_projectie.invoer_hash(inv) if inv is not None else None}
     return {"begrippen": {i: rijen.get(i) for i in req.ids}, "werkgebieden": werkgebieden}
+
+
+# Vóór `/{begrip_id}`, anders leest de router "export" als een begrip-id.
+@router.get("/export")
+async def get_export(inclusief: Literal["geaccordeerd", "alle"] = "geaccordeerd", actor: str = Depends(actieve_userid)):
+    """Het generieke begrippenkader als Turtle (NL-SBB)."""
+    body = await begrip_projectie.export_turtle(begrip_projectie.GENERIEK, alles=inclusief == "alle")
+    return Response(body, media_type="text/turtle; charset=utf-8",
+                    headers={"Content-Disposition": 'attachment; filename="generieke-begrippen.ttl"'})
+
+
+@router.get("/conformiteit")
+async def get_conformiteit(actor: str = Depends(actieve_userid)):
+    """Per generiek begrip: NL-SBB-conform ja/nee met de meldingen (diagnostisch)."""
+    return await begrip_projectie.conformiteit_van(begrip_projectie.GENERIEK)
 
 
 @router.get("/{begrip_id}")
