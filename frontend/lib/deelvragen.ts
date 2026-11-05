@@ -67,6 +67,15 @@ export function deelvraagStappen(oud: readonly Pick<Deelvraag, "id" | "vraag">[]
   return [...verwijder, ...wijzig, ...nieuw];
 }
 
+/** De stappen als één aanroep: de api legt ze samen vast, alles-of-niets en in één revisie. */
+export function deelvragenSamen(stappen: readonly DeelvraagStap[]) {
+  return {
+    verwijderen: stappen.flatMap((s) => s.soort === "verwijder" ? [s.id] : []),
+    wijzigen: stappen.flatMap((s) => s.soort === "wijzig" ? [{ id: s.id, vraag: s.vraag }] : []),
+    nieuw: stappen.flatMap((s) => s.soort === "nieuw" ? [s.vraag] : []),
+  };
+}
+
 /** Waarom *Opslaan* (nog) niet kan: een bestaande deelvraag leeggemaakt. Verwijderen doe je met de prullenbak, zodat
  *  een leeg veld nooit stil een deelvraag met haar bronselectie weghaalt. */
 export function conceptFout(concept: readonly DeelvraagConcept[]): string | null {
