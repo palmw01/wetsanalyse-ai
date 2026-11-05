@@ -1127,8 +1127,13 @@ export async function verwijderBron(id: string, selectieId: string, verwachteRev
 // Elke wijziging draagt de revisie in beeld en geeft het werkgebied terug, zoals de bronnen; gebruik ze
 // dus via `muteer` in `WerkgebiedClient`.
 
-export async function maakDeelvraag(id: string, vraag: string, verwachteRevisie: number): Promise<Werkgebied> {
-  return json<Werkgebied>(await fetch(wg(id, "deelvragen"), jsonInit("POST", { vraag, verwachte_revisie: verwachteRevisie })));
+/** De bewerkstand van de deelvragen: alles-of-niets, in één revisie. */
+export async function slaDeelvragenOp(
+  id: string, wijzigingen: { verwijderen: string[]; wijzigen: { id: string; vraag: string }[]; nieuw: string[] },
+  verwachteRevisie: number,
+): Promise<Werkgebied> {
+  return json<Werkgebied>(await fetch(wg(id, "deelvragen", "samen"),
+    jsonInit("POST", { ...wijzigingen, verwachte_revisie: verwachteRevisie })));
 }
 
 /** Eén deelvraag, ook als ze vervangen is: met haar opvolgers en de voorstellen die haar vervangen. */
@@ -1143,11 +1148,6 @@ export async function wijzigDeelvraag(
 ): Promise<Werkgebied> {
   return json<Werkgebied>(await fetch(wg(id, "deelvragen", deelvraagId),
     jsonInit("PATCH", { ...wijziging, verwachte_revisie: verwachteRevisie })));
-}
-
-export async function verwijderDeelvraag(id: string, deelvraagId: string, verwachteRevisie: number): Promise<Werkgebied> {
-  const qs = new URLSearchParams({ verwachte_revisie: String(verwachteRevisie) });
-  return json<Werkgebied>(await fetch(`${wg(id, "deelvragen", deelvraagId)}?${qs}`, { method: "DELETE" }));
 }
 
 /** De hele set: welke bronselecties en begrippen bij deze deelvraag horen. */

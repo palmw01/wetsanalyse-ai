@@ -12,11 +12,11 @@ import { MeerMenu, MenuKnop } from "@/components/ui/MeerMenu";
 import { Button, IcoonKnop } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
 import { Lijst, LijstRij, Sectie, StatusLabel, Voorstel as VoorstelRij } from "@/components/ui/Lijst";
-import { useWerkgebied, type Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
-import { koppelDeelvraag, maakDeelvraag, verwijderDeelvraag, wijzigDeelvraag } from "@/lib/api";
+import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
+import { koppelDeelvraag, slaDeelvragenOp, wijzigDeelvraag } from "@/lib/api";
 import { bronnenZin, deelvraagStand, voortgangZin, type DeelvraagSelectie } from "@/lib/bronselectie";
 import {
-  conceptFout, conceptVan, deelvraagStappen, overgenomenZin, splits, vervangtZin, zelfdeSet, type DeelvraagConcept,
+  conceptFout, conceptVan, deelvraagStappen, deelvragenSamen, overgenomenZin, splits, vervangtZin, zelfdeSet, type DeelvraagConcept,
 } from "@/lib/deelvragen";
 import type { Deelvraag, Werkgebied } from "@/lib/types";
 import { useBronselectieStand } from "@/lib/useBronselectieStand";
@@ -40,7 +40,6 @@ export function Deelvragen({ wg, muteer, onOnbewaard }: {
 }) {
   const { actief, voorgesteld } = splits(wg.deelvragen);
   const stand = useBronselectieStand(wg.id, wg.revisie, actief.length);
-  const { laad } = useWerkgebied();
   // Eén *Bewerken* voor het hele blok, zoals de analyseopdracht erboven (besluit gebruiker 5 nov 2026): in rust staan
   // de deelvragen met hun stand, in de bewerkstand is elke deelvraag een veld, met *+ Nog een deelvraag* en een
   // prullenbak per regel. Pas *Opslaan* legt alles vast, in één handeling met de revisie in beeld.
@@ -53,21 +52,8 @@ export function Deelvragen({ wg, muteer, onOnbewaard }: {
       if (fout) throw new Error(fout);
       const stappen = deelvraagStappen(actief, concept);
       if (!stappen.length) return;
-      return (await muteer(async (r) => {
-        let revisie = r;
-        let uit: Werkgebied = wg;
-        for (const stap of stappen) {
-          uit = stap.soort === "verwijder" ? await verwijderDeelvraag(wg.id, stap.id, revisie)
-            : stap.soort === "wijzig" ? await wijzigDeelvraag(wg.id, stap.id, { vraag: stap.vraag }, revisie)
-            : await maakDeelvraag(wg.id, stap.vraag, revisie);
-          revisie = uit.revisie;
-        }
-        return uit;
-      }, {
-        gelukt: "Deelvragen opgeslagen.",
-        // Ging een stap mis nadat er al iets was opgeslagen: laad de stand van nu, anders klopt de revisie niet meer.
-        opFout: () => { void laad(); return false; },
-      })) || false;
+      return (await muteer((r) => slaDeelvragenOp(wg.id, deelvragenSamen(stappen), r),
+        { gelukt: "Deelvragen opgeslagen." })) || false;
     },
   });
 

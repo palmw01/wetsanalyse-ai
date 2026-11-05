@@ -32,12 +32,16 @@ const wg = { id: "wg1", naam: "Betalingstermijnen", status: "in_voorbereiding", 
   deelvragen: [{ id: "d1", vraag: "Welke algemene betalingstermijn geldt?", volgorde: 0, status: "actief", herkomst: "analist",
     reden: "", aangemaakt_door: "t", aangemaakt: nu, bronnen: [], begrippen: [] }] };
 const KAND = [["K9", A9, "Artikel 9, lid 1 – Invorderingswet 1990"], ["K10", A10, "Artikel 10 – Invorderingswet 1990"]];
+// Eerder niet gekozen: staat ingeklapt, en telt niet mee bij de bronnen van deze stap.
+const NIET_GEKOZEN = { id: "K11", bron_iri: `${A10}:lid:1`, label: "Artikel 11 – Invorderingswet 1990", rol: "afhankelijkheid", bewijs_soorten: ["tekst"],
+  stand: "niet_gekozen", overal: false, elders_opgenomen: false, reden: "" };
 const stand = { opgenomen: [], fase: "kern", status: "in_behandeling", revisie: 1 };
 const besluiten = [];
 
 function overzicht() {
   const kandidaten = KAND.map(([id, bron_iri, label]) => ({ id, bron_iri, label, rol: "kern", bewijs_soorten: ["tekst"],
     stand: stand.opgenomen.includes(id) ? "opgenomen" : "voorgesteld", overal: false, elders_opgenomen: false, reden: "" }));
+  kandidaten.unshift(NIET_GEKOZEN);
   const open = kandidaten.filter((k) => k.stand === "voorgesteld").length;
   return { werkgebied_id: "wg1", naam: wg.naam, revisie: wg.revisie, modus: "deelvragen", actief: "d1", volgende: null,
     alle_klaar: false, zonder_deelvraag: [], zoekdekking: { gezocht: true, verouderd: false, volledig: true, onvolledig: [], reden: "" },
@@ -187,6 +191,14 @@ try {
   await foto("bronselectie-paneel-mobiel");
 
   assert.deepEqual(errors, []);
+  // Wat je eerder niet koos, staat ingeklapt onder de bronnen van nu; alsnog opnemen blijft mogelijk.
+  await page.goto(`${base}/werkgebieden/wg1/bronnen`);
+  const nietGekozen = page.locator("[data-niet-gekozen]");
+  await nietGekozen.waitFor();
+  assert.equal(await page.locator('[data-kandidaat-hier="K11"]').count(), 0, "ingeklapt");
+  await nietGekozen.getByRole("button", { name: "Niet gekozen (1)" }).click();
+  await page.locator('[data-kandidaat-hier="K11"]').getByRole("button", { name: /^Opnemen/ }).waitFor();
+
   console.log("Browser OK: compact kaartje zonder vinkjes, paneel met uitklapbare wettekst, opnemen werkt de telling live bij, zelf bepalingen noemen per regel (geen venster), Klaar in het paneel (actie klaar), het paneel als sheet op een telefoon.");
 } finally {
   await browser.close();

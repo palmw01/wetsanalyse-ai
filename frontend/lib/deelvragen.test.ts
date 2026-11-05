@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  conceptFout, conceptVan, deelvraagStappen, overgenomenZin, splits, vervangtZin, voorstellenVoor, wissel, zelfdeSet,
+  conceptFout, conceptVan, deelvraagStappen, deelvragenSamen, overgenomenZin, splits, vervangtZin, voorstellenVoor, wissel, zelfdeSet,
 } from "./deelvragen";
 import type { Deelvraag } from "./types";
 
@@ -35,6 +35,13 @@ describe("deelvragen", () => {
     expect(vervangtZin(los, lijst)).toBe("");
     expect(overgenomenZin(beter, lijst)).toMatch(/vervangen/);
     expect(overgenomenZin(los, lijst)).toBe("Deelvraag overgenomen.");
+  });
+});
+
+describe("deelvragenSamen", () => {
+  it("zet de stappen om in één aanroep", () => {
+    expect(deelvragenSamen([{ soort: "verwijder", id: "a" }, { soort: "wijzig", id: "b", vraag: "B?" }, { soort: "nieuw", vraag: "C?" }]))
+      .toEqual({ verwijderen: ["a"], wijzigen: [{ id: "b", vraag: "B?" }], nieuw: ["C?"] });
   });
 });
 
