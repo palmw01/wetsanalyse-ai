@@ -10,8 +10,8 @@ enige publieke weg naar graph-qa. De rendering test dit niet: dat doet Playwrigh
 `src/client.ts` kent geen MCP, zodat scenario's die later ook los kunnen gebruiken; `src/index.ts` is de
 dunne laag met de tools.
 
-De agent-jurist (`.claude/agents/agent-jurist.md`) gebruikt deze MCP om op acceptatie een wetsanalyse helemaal
-zelf uit te voeren, inclusief echte beslissingen; het scenario staat in `docs/acceptatie/wetsanalyse-e2e.md`.
+De agent-jurist en de agent-gegevensspecialist (`.claude/agents/`) gebruiken deze MCP om op acceptatie samen een
+wetsanalyse uit te voeren, inclusief echte beslissingen; het scenario staat in `docs/acceptatie/wetsanalyse-e2e.md`.
 
 ## Tools
 
@@ -22,7 +22,7 @@ zelf uit te voeren, inclusief echte beslissingen; het scenario staat in `docs/ac
 | `lex_start`, `lex_wacht`, `lex_stop` | een beurt van Lex starten, volgen en stoppen; een klik is `intake_actie` of `actie` |
 | `werkgebied_lezen` | dossier, dekking, elementen en audit van een werkgebied |
 | `annotatie_lezen` | één element met klasse, ankers, bron en graaf |
-| `begrip_lezen` | een begrip met revisies, of alle begrippen van een werkgebied |
+| `begrip_lezen` | een begrip met revisies, of alle begrippen van een werkgebied met conformiteit en samenhang |
 | `logs_zoek` | de keten op `trace_id`, de logregels op `run_id`, of de fouten; alleen vaste queries |
 
 Elke tool behalve `logs_zoek` neemt optioneel `als: "beheerder"`. `lex_wacht` wacht hooguit 110 seconden; bij `klaar: false`
