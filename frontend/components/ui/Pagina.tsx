@@ -117,7 +117,7 @@ export function Kaart({ titel, telling, toelichting, meer, acties, children, cla
             {titel && (
               <h2 className="font-display text-sm font-semibold text-ink">
                 {titel}
-                {telling !== undefined && <span className="ml-1.5 font-normal tabular-nums text-muted">{telling}</span>}
+                {telling !== undefined && <> <span className="font-normal tabular-nums text-muted">{telling}</span></>}
               </h2>
             )}
             {toelichting && <p className="mt-0.5 text-xs text-muted">{toelichting}</p>}

@@ -196,7 +196,7 @@ try {
   await page.reload();
   await termen().waitFor();
   await zie("1 passage niet meegenomen");
-  await zie("3 termen te beoordelen");
+  await page.getByRole("heading", { name: "Te doen" }).waitFor();
   assert.deepEqual(await page.locator("[data-term]").evaluateAll((els) => els.map((e) => e.dataset.term)),
     ["aanslag", "belastingschuldige", "termijn"]);
   await termen().locator('[data-term="aanslag"]').getByText("2 voorstellen · IW 1990 · 4 passages · 1 vraag naar een andere term").waitFor();
@@ -226,7 +226,7 @@ try {
   await foto("term-aanslag");
   // Eén begrip, met de vraag binnen de term in hetzelfde akkoord; daarna de begripspagina.
   await balk().getByRole("button", { name: "Eén begrip maken (4)" }).click();
-  await page.waitForURL(/\/begrippen\/wg1\/b1$/);
+  await page.waitForURL(/\/werkgebieden\/wg1\/begrippen\/b1$/);
   const een = laatsteBody("/groepen/akkoord");
   assert.deepEqual([een.groep_ids, een.naam, een.element_ids, een.kandidaat_ids, een.aanpassing],
     [["G2", "G3"], "aanslag", undefined, ["P1"], undefined]);
@@ -245,7 +245,7 @@ try {
   await page.getByRole("checkbox", { name: "Neem “belastingschuldige” mee (Artikel 2 · Lid 1 – IW 1990)" }).uncheck();
   await balk().getByText("1 passage gekozen").waitFor();
   await balk().getByRole("button", { name: "Eén begrip maken (1)" }).click();
-  await page.waitForURL(/\/begrippen\/wg1\/b2$/);
+  await page.waitForURL(/\/werkgebieden\/wg1\/begrippen\/b2$/);
   const split = laatsteBody("/groepen/akkoord");
   assert.deepEqual([split.groep_ids, split.element_ids, split.kandidaat_ids], [["G1"], ["e2"], undefined]);
   assert.equal(begrippen.get("b2").status, "geaccordeerd");

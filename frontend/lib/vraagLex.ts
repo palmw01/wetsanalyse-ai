@@ -134,6 +134,8 @@ const SUGGESTIES: Record<ObjectSoort, Suggestie[]> = {
     { tekst: "Annoteer wat nog niet geannoteerd is", actie: "werkgebied_annoteren" },
     { tekst: "Stel begrippen voor", actie: "begrippen_voorstellen" },
     { tekst: "Denk mee over de begrippen", actie: "begrippen_meedenken" },
+    // Generieke begrippen (ADR-006): een vraag, geen actie; Lex zoekt ze zelf en koppelen doe je op het artefact.
+    { tekst: "Welke generieke begrippen passen bij dit werkgebied?" },
     // De dekking als controle achteraf: hebben de deelvragen een bron en een geaccordeerd begrip?
     { tekst: "Hoe staat de dekking ervoor?", actie: "dekking" },
   ],

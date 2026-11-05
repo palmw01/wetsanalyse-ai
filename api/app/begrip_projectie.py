@@ -20,6 +20,9 @@ de koppelingen met hun bewijsstand en de begripsrelaties met hun juridische type
 - **Geen personen** in de graaf (geen authenticatie op GraphDB); wie iets deed staat in Postgres.
 - **De wettekst blijft schoon**: geen subject onder `urn:bwb:`. Een bronnode is alleen object
   (`wa:bron`).
+- **Het generieke kader** (ADR-006) is één extra graph onder de id `generiek`: register, reconcile en graafcontrole
+  behandelen hem als een werkgebied. Hij draagt de generieke begrippen met al hun passages; een begrip staat in precies
+  één `skos:inScheme`, en de graph van een werkgebied noemt met `wa:gebruiktBegrip` wat het gebruikt.
 - **Relaties houden hun type** (ADR-003): `wa:kwalificeert`, `wa:omvat`, `wa:omvatNiet`, `wa:heeftSoort`,
   `wa:verwantMet`, plus een `wa:Begripsrelatie` met herkomst en toelichting. Alleen een hiërarchie heeft
   daarnaast een SKOS-tegenhanger (`isothes:broaderGeneric`, precies genus–soort); opvolging is
@@ -75,6 +78,9 @@ _locks: dict[str, asyncio.Lock] = {}
 _geschreven: dict[str, str | None] = {}     # wat dit proces het laatst schreef (hash of weg)
 
 
+GENERIEK = "generiek"
+
+
 def graph_iri(werkgebied_id: str) -> URIRef:
     return URIRef("urn:wa:graph:werkgebied:" + werkgebied_id)
 
@@ -93,21 +99,46 @@ def _t(waarde) -> str | None:
     return db.aware(waarde).isoformat() if waarde else None
 
 
+def _kader_van(wg) -> dict:
+    """Wat het kader zegt: het werkgebied, of zonder werkgebied het generieke kader."""
+    if wg is None:
+        return {"id": GENERIEK, "naam": "Generieke begrippen", "analysevraag": "", "thema": ""}
+    return {"id": wg.id, "naam": wg.naam, "analysevraag": wg.analysevraag or "", "thema": wg.thema or ""}
+
+
 async def invoer(conn, werkgebied_id: str) -> dict | None:
     """Alles wat de graph van dit werkgebied draagt, als JSON-vorm. None = geen graph: het werkgebied
     bestaat niet, is gearchiveerd of heeft geen begrippen."""
-    w, b, k, r = db.werkgebieden, db.begrippen, db.begrip_koppelingen, db.begrip_relaties
-    wg = (await conn.execute(select(w).where(w.c.id == werkgebied_id))).first()
-    if wg is None or wg.gearchiveerd is not None:
-        return None
-    begrippen = (await conn.execute(select(b).where(b.c.werkgebied_id == werkgebied_id, b.c.verwijderd.is_(None))
-                                    .order_by(b.c.id))).all()
-    if not begrippen:
-        return None
-    koppelingen = (await conn.execute(select(k).where(k.c.werkgebied_id == werkgebied_id, k.c.verwijderd.is_(None))
-                                      .order_by(k.c.id))).all()
-    relaties = (await conn.execute(select(r).where(r.c.werkgebied_id == werkgebied_id, r.c.verwijderd.is_(None),
-                                                   r.c.beoordeling == "akkoord").order_by(r.c.id))).all()
+    w, b, k, r, g = db.werkgebieden, db.begrippen, db.begrip_koppelingen, db.begrip_relaties, db.werkgebied_begrippen
+    generiek = werkgebied_id == GENERIEK
+    gebruikt: list[str] = []
+    if generiek:
+        wg = None
+        begrippen = (await conn.execute(select(b).where(b.c.werkgebied_id.is_(None), b.c.verwijderd.is_(None))
+                                        .order_by(b.c.id))).all()
+        if not begrippen:
+            return None
+        ids = [x.id for x in begrippen]
+        # De passages van een generiek begrip staan bij hem, uit alle werkgebieden: één plek per triple.
+        koppelingen = (await conn.execute(select(k).where(k.c.begrip_id.in_(ids), k.c.verwijderd.is_(None))
+                                          .order_by(k.c.id))).all()
+        relaties = (await conn.execute(select(r).where(r.c.werkgebied_id.is_(None), r.c.verwijderd.is_(None),
+                                                       r.c.beoordeling == "akkoord").order_by(r.c.id))).all()
+    else:
+        wg = (await conn.execute(select(w).where(w.c.id == werkgebied_id))).first()
+        if wg is None or wg.gearchiveerd is not None:
+            return None
+        begrippen = (await conn.execute(select(b).where(b.c.werkgebied_id == werkgebied_id, b.c.verwijderd.is_(None))
+                                        .order_by(b.c.id))).all()
+        gebruikt = list((await conn.execute(select(g.c.begrip_id).where(
+            g.c.werkgebied_id == werkgebied_id, g.c.verwijderd.is_(None)).order_by(g.c.begrip_id))).scalars().all())
+        if not begrippen and not gebruikt:
+            return None
+        eigen = [x.id for x in begrippen]
+        koppelingen = (await conn.execute(select(k).where(k.c.begrip_id.in_(eigen), k.c.verwijderd.is_(None))
+                                          .order_by(k.c.id))).all() if eigen else []
+        relaties = (await conn.execute(select(r).where(r.c.werkgebied_id == werkgebied_id, r.c.verwijderd.is_(None),
+                                                       r.c.beoordeling == "akkoord").order_by(r.c.id))).all()
     from .begrip_store import definitie_onderbouwing      # begrip_store schrijft; de projectie leest alleen
     onderbouwing = {}
     for x in begrippen:
@@ -128,7 +159,9 @@ async def invoer(conn, werkgebied_id: str) -> dict | None:
                     ([bewijs["eigenaar_iri"]] if bewijs.get("eigenaar_iri") else [])})
     return {
         "schema": SCHEMA_VERSIE,
-        "werkgebied": {"id": wg.id, "naam": wg.naam, "analysevraag": wg.analysevraag or "", "thema": wg.thema or ""},
+        "werkgebied": _kader_van(wg),
+        # Alleen als er iets gebruikt wordt, zodat de hash van een werkgebied zonder generieke begrippen gelijk blijft.
+        **({"gebruikt": gebruikt} if gebruikt else {}),
         "begrippen": [{"id": x.id, "status": x.status, "revisie": x.revisie, "inhoud": x.inhoud,
                        "geaccordeerd_op": _t(x.geaccordeerd_op), "geaccordeerd_revisie": x.geaccordeerd_revisie,
                        "gewijzigd": _t(x.gewijzigd), "koppelingen": per_begrip.get(x.id, []),
@@ -153,7 +186,7 @@ def _nl(tekst: str) -> Literal:
 
 def alleen_geaccordeerd(inv: dict) -> dict:
     """De exportstand: alleen geaccordeerde begrippen, en relaties waarvan beide kanten meegaan."""
-    ids = {b["id"] for b in inv["begrippen"] if b["status"] == "geaccordeerd"}
+    ids = {b["id"] for b in inv["begrippen"] if b["status"] == "geaccordeerd"} | set(inv.get("gebruikt") or [])
     return {**inv, "begrippen": [b for b in inv["begrippen"] if b["id"] in ids],
             "relaties": [r for r in inv["relaties"] if r["van"] in ids and r["naar"] in ids]}
 
@@ -180,7 +213,9 @@ def bouw_graaf(inv: dict, paginas: dict[str, str] | None = None, uitgevers: dict
     g.add((kader, WA.projectieHash, Literal(invoer_hash(inv))))
     for b in inv["begrippen"]:
         _begrip(g, kader, b, paginas or {}, uitgevers or {})
-    aanwezig = {b["id"] for b in inv["begrippen"]}
+    for bid in inv.get("gebruikt") or []:
+        g.add((kader, WA.gebruiktBegrip, begrip_iri(bid)))
+    aanwezig = {b["id"] for b in inv["begrippen"]} | set(inv.get("gebruikt") or [])
     for r in inv["relaties"]:
         if r["van"] not in aanwezig or r["naar"] not in aanwezig:
             continue
@@ -378,13 +413,13 @@ async def export_turtle(werkgebied_id: str, alles: bool) -> bytes:
 
     async with db.get_engine().connect() as conn:
         w = db.werkgebieden
-        wg = (await conn.execute(select(w).where(w.c.id == werkgebied_id))).first()
-        if wg is None or wg.gearchiveerd is not None:
-            raise HTTPException(404, "Werkgebied bestaat niet.")
+        wg = None
+        if werkgebied_id != GENERIEK:
+            wg = (await conn.execute(select(w).where(w.c.id == werkgebied_id))).first()
+            if wg is None or wg.gearchiveerd is not None:
+                raise HTTPException(404, "Werkgebied bestaat niet.")
         inv = await invoer(conn, werkgebied_id) or {
-            "schema": SCHEMA_VERSIE, "werkgebied": {"id": wg.id, "naam": wg.naam, "analysevraag": wg.analysevraag or "",
-                                                    "thema": wg.thema or ""},
-            "begrippen": [], "relaties": []}
+            "schema": SCHEMA_VERSIE, "werkgebied": _kader_van(wg), "begrippen": [], "relaties": []}
     if not alles:
         inv = alleen_geaccordeerd(inv)
     bronnen = {bron for b in inv["begrippen"] for k in b["koppelingen"] for bron in k["bron"]} \
@@ -481,8 +516,10 @@ async def register() -> dict[str, dict]:
 async def postgres_stand() -> dict[str, dict]:
     """Per werkgebied met iets te projecteren: de invoer."""
     async with db.get_engine().connect() as conn:
-        ids = sorted(set((await conn.execute(select(db.begrippen.c.werkgebied_id).where(
-            db.begrippen.c.verwijderd.is_(None)))).scalars()))
+        ids = sorted({wid or GENERIEK for wid in (await conn.execute(select(db.begrippen.c.werkgebied_id).where(
+            db.begrippen.c.verwijderd.is_(None)))).scalars()} | set((await conn.execute(
+                select(db.werkgebied_begrippen.c.werkgebied_id).where(
+                    db.werkgebied_begrippen.c.verwijderd.is_(None)))).scalars()))
         uit = {}
         for wid in ids:
             inv = await invoer(conn, wid)
@@ -541,7 +578,8 @@ def na_mutatie(werkgebied_ids) -> None:
         lus = asyncio.get_running_loop()
     except RuntimeError:
         return
-    for wid in sorted(set(werkgebied_ids)):
+    # Een passage in een werkgebied kan bij een generiek begrip horen; zonder wijziging slaat `projecteer` hem over.
+    for wid in sorted({*werkgebied_ids, GENERIEK}):
         taak = lus.create_task(_doe(wid))
         _taken.add(taak)
         taak.add_done_callback(_taken.discard)

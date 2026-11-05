@@ -250,7 +250,7 @@ function DekkingBalk({ dekking: d }: { dekking: Dekking }) {
       {d.nieuw_sinds_run > 0 && (
         <p className="mt-1 text-xs text-aandacht-geel-tekst">
           {d.nieuw_sinds_run === 1 ? "1 element zag" : `${d.nieuw_sinds_run} elementen zagen`} de laatste
-          begrippenronde van Lex nog niet; laat Lex op de tab Begrippen opnieuw voorstellen.
+          begrippenronde van Lex nog niet; vraag Lex in het gesprek opnieuw om voorstellen.
         </p>
       )}
       <p className="mt-1 text-[11px] text-faint">Dit zegt hoeveel er verwerkt is, niet of de analyse juridisch volledig is.</p>
@@ -331,7 +331,7 @@ function ElementRij({ element: e, gekozen, onWissel, primair, onNaarBegrip, dekk
 }
 
 /** Wat er met de gekozen elementen kan: een nieuw begrip ervan maken, of ze aan een bestaand begrip
- *  koppelen. Daarna opent de tab Begrippen op dat begrip. */
+ *  koppelen. Daarna opent de pagina van dat begrip. */
 function SelectieBalk({ id, selectie, begrippen, onWis, onKlaar, onBuiten }: {
   id: string;
   selectie: string[];

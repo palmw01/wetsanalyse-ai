@@ -45,6 +45,8 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
    bronselectie per deelvraag en de besluiten per deelvraag – zie §*Bronselectie per deelvraag*.
 18. **Versies van artefacten** (`/v1/artefact-versies/*`, 4 nov 2026): de stand van een artefact na elke beurt van
    Lex, voor de versiekiezer – zie §*Versies van artefacten*.
+19. **Generieke begrippen** (`/v1/begrippen/{id}`, `…/begrippen/gebruik/*`, `…/generiek-maken`, ADR-006): begrippen boven
+   de werkgebieden, gebruikt zonder kopie – zie §*Generieke begrippen*.
 
 > **De wettekst komt uit de graaf.** De API leest uit GraphDB de **bronboom** (`bron_resolver.py`):
 > daarmee toetst hij ankers, legt hij snapshots vast en levert hij de segmenten van de weergave.
@@ -348,8 +350,8 @@ spoor D (*Werkgebied als node*).
   `definitie_door` – een ongewijzigde definitie houdt ze, een nieuwe of andere tekst is `geformuleerd`
   door de `analist`, geen definitie heeft geen herkomst. Letterlijk wordt een definitie alleen door een
   overgenomen brondefinitie (kaartvoorstel of het akkoord op een groep).
-- **Eén kader per werkgebied, impliciet.** Een begrip hangt aan een werkgebied; het kader heeft geen
-  tabel, alleen een afgeleide IRI (`urn:wa:kader:<werkgebied>`). Begrippen zijn analyse-uitkomsten,
+- **Eén kader per werkgebied, impliciet.** Een begrip hangt aan een werkgebied, of is generiek (§*Generieke begrippen*);
+  het kader heeft geen tabel, alleen een afgeleide IRI (`urn:wa:kader:<werkgebied>`). Begrippen zijn analyse-uitkomsten,
   nooit wettelijke definities; de export zegt dat ook.
 - **Tabellen**: `begrippen` (inhoud als JSON, status `concept`/`geaccordeerd`, revisie),
   `begrip_revisies` (per revisie een **volledige kopie** van de inhoud, plus actie en detail – anders
@@ -655,6 +657,34 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
 - **Een nieuwe NL-SBB-versie** is een bewuste overstap: nieuw shapesbestand, nieuwe hash in de test,
   `NL_SBB_VERSIE` en `NL_SBB` mee.
 - Tests: `tests/test_begrip_projectie.py` en het slot in `tests/test_begrippen_postgres.py`.
+
+## Generieke begrippen
+
+`begrip_store.py`, `begrip_relatie_store.py`, `begrippen_overzicht.py`, `begrip_projectie.py`; besluit in ADR-006.
+
+- **Eén begrip, overal gebruikt.** `begrippen.werkgebied_id` leeg = generiek, in `urn:wa:kader:generiek`, met `ontstaan_in`.
+  `werkgebied_begrippen` is het gebruik (`gezien_revisie`, soft delete). `in_werkgebied` is de ene plek die zegt welke
+  begrippen een werkgebied in beeld heeft. Passages blijven per werkgebied; `lijst`, `haal` en `primair` gelden per
+  werkgebied, `haal_generiek` geeft ze allemaal met `gebruik`.
+- **Generiek maken** (`POST …/begrippen/{b}/generiek-maken`): alleen geaccordeerd (409 `niet_geaccordeerd`), dezelfde
+  voorkeursterm één keer (409 `al_generiek`). Id en IRI blijven; het werkgebied gaat het gebruiken.
+- **De inhoud wijzig je alleen op `/v1/begrippen/{id}`** (`PATCH`, `accorderen`, `heropenen`, `nieuwe-betekenis`, `DELETE`).
+  Vanuit een werkgebied: 409 `generiek`. `_gewijzigd_in` met `werkgebied_id=None` neemt geen werkgebiedslot en schrijft de
+  audit bij elk gebruikend werkgebied. `passage=True` (koppelen, wijzigen, ontkoppelen, herkoppelen, bevestigen) mag wel
+  vanuit een werkgebied en laat de status staan: één analyse zet het begrip niet voor iedereen terug.
+- **Gebruik**: `POST …/begrippen/gebruik {begrip_id}` (idempotent), `DELETE …/gebruik/{b}` (de passages hier gaan los).
+  Een werkgebied wissen laat het begrip staan. Verwijderen kan niet zolang het gebruikt wordt (409 `in_gebruik`).
+- **Doorwerking**: `GET …/herbeoordelingen` draagt `generiek`: wat veranderde sinds `gezien_revisie`, met toen en nu uit
+  `begrip_revisies` (`generiek_veranderd`). Een nieuwe revisie door een passage elders telt niet. `POST …/gebruik/{b}/bevestigen`.
+- **Opvolging**: `POST /v1/begrippen/{id}/nieuwe-betekenis` geeft een concept zonder passages (relatie zonder werkgebied);
+  elk werkgebied neemt hem zelf over met `POST …/gebruik/{b}/opvolger`, met zijn passages opnieuw open.
+- **Combineren**: `POST …/begrippen/{b}/combineren-generiek {verwachte_revisie, generiek_id, reden}`: het lokale begrip wordt
+  vervangen, de passages gaan mee, de inhoud van het generieke begrip verandert niet.
+- **De graaf**: de id `generiek` is één extra graph (`urn:wa:graph:werkgebied:generiek`) met de passages uit alle
+  werkgebieden; een werkgebied noemt `wa:gebruiktBegrip`. `GET /v1/begrippen/export` en `/conformiteit`.
+- **Lex**: `lijkt_op` kijkt ook naar generieke begrippen die dit werkgebied nog niet gebruikt (`generieke_buiten`), en
+  koppelen aan zo'n begrip is het gaan gebruiken. Lex maakt niets generiek.
+- Tests: `tests/test_begrippen_generiek.py`.
 
 ## Begrippen lezen
 

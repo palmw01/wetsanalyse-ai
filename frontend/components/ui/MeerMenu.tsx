@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { icoonKnopKlasse } from "@/components/ui/Button";
 import { Meer, Prullenbak, Vinkje } from "@/components/ui/Icoon";
@@ -74,6 +76,22 @@ export function MenuKnop({ icoon, onClick, children, ariaLabel, gevaar = false }
   );
 }
 
+/** Een regel die naar een pagina gaat: een echte link, zodat de bewaker van niet-bewaarde wijzigingen hem ziet. */
+export function MenuLink({ icoon, href, children, ariaLabel }: {
+  icoon?: React.ReactNode;
+  href: string;
+  children: React.ReactNode;
+  ariaLabel?: string;
+}) {
+  return (
+    <li role="none">
+      <Link role="menuitem" href={href} className={MENU_RIJ} aria-label={ariaLabel}>
+        <Icoonplek>{icoon}</Icoonplek>{children}
+      </Link>
+    </li>
+  );
+}
+
 const ONDERAAN = "mt-1 border-t border-line pt-1";
 
 /** Een keuze die meteen geldt, met een vinkje bij wat nu geldt (een rol). */
@@ -88,15 +106,17 @@ export function MenuKeuze({ gekozen, onClick, children }: { gekozen: boolean; on
 }
 
 /** Verwijderen: onderaan, rood, tweede klik bevestigt. `titel` zegt wat er weggaat en wat blijft. */
-export function MenuVerwijder({ onBevestig, ariaLabel, titel, children = "Verwijderen" }: {
+export function MenuVerwijder({ onBevestig, ariaLabel, titel, vraag = "Verwijderen?", children = "Verwijderen" }: {
   onBevestig: () => void | Promise<void>;
   ariaLabel?: string;
   titel?: string;
+  /** De vraag bij de eerste klik, als het niet *Verwijderen?* is (bv. *Losmaken?*). */
+  vraag?: string;
   children?: React.ReactNode;
 }) {
   return (
     <li role="none" className={ONDERAAN}>
-      <BevestigKnop role="menuitem" bevestigTekst="Verwijderen?" ariaLabel={ariaLabel} titel={titel} onBevestig={onBevestig}
+      <BevestigKnop role="menuitem" bevestigTekst={vraag} ariaLabel={ariaLabel} titel={titel} onBevestig={onBevestig}
         className={`${MENU_RIJ} text-fout`} bevestigClassName="bg-fout/10 font-medium">
         <Icoonplek kleur="text-fout"><Prullenbak /></Icoonplek>{children}
       </BevestigKnop>

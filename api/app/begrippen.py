@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Query, Response
 
 from . import begrip_projectie, begrip_relatie_store, begrip_store as store, werkgebied_store
 from .auth import require_client
-from .begrip_contracts import BegripInvoer, BegripWijziging, KoppelInvoer, KoppelWijziging, Revisie
+from .begrip_contracts import BegripInvoer, BegripWijziging, GebruikInvoer, KoppelInvoer, KoppelWijziging, Revisie
 from .routers.auth import actieve_userid
 from .werkgebieden import resolve_bron
 
@@ -29,6 +29,23 @@ async def get_lijst(werkgebied_id: str, actor: str = Depends(actieve_userid)):
 @router.post("", status_code=201)
 async def post_begrip(werkgebied_id: str, req: BegripInvoer, actor: str = Depends(actieve_userid)):
     return await store.maak(await werkgebied_store.haal(werkgebied_id), req, actor, resolve_bron)
+
+
+@router.post("/gebruik")
+async def post_gebruik(werkgebied_id: str, req: GebruikInvoer, actor: str = Depends(actieve_userid)):
+    """Een generiek begrip gebruiken in dit werkgebied (ADR-006); idempotent."""
+    return await store.gebruik(werkgebied_id, req.begrip_id, actor)
+
+
+@router.delete("/gebruik/{begrip_id}")
+async def delete_gebruik(werkgebied_id: str, begrip_id: str, actor: str = Depends(actieve_userid)):
+    return await store.stop_gebruik(werkgebied_id, begrip_id, actor)
+
+
+@router.post("/gebruik/{begrip_id}/bevestigen")
+async def post_gebruik_bevestigen(werkgebied_id: str, begrip_id: str, actor: str = Depends(actieve_userid)):
+    """De wijziging van een generiek begrip is gezien: het klopt nog voor dit werkgebied."""
+    return await store.bevestig_gebruik(werkgebied_id, begrip_id, actor)
 
 
 # Vóór `/{begrip_id}`, anders leest de router "export" als een begrip-id.
@@ -108,6 +125,12 @@ async def post_accorderen(werkgebied_id: str, begrip_id: str, req: Revisie, acto
 @router.post("/{begrip_id}/heropenen")
 async def post_heropenen(werkgebied_id: str, begrip_id: str, req: Revisie, actor: str = Depends(actieve_userid)):
     return await store.heropen(werkgebied_id, begrip_id, req.verwachte_revisie, actor)
+
+
+@router.post("/{begrip_id}/generiek-maken")
+async def post_generiek_maken(werkgebied_id: str, begrip_id: str, req: Revisie, actor: str = Depends(actieve_userid)):
+    """Het begrip naar het generieke kader (ADR-006). Alleen geaccordeerd; dezelfde term geeft 409 `al_generiek`."""
+    return await store.generiek_maken(werkgebied_id, begrip_id, req.verwachte_revisie, actor)
 
 
 @router.get("/{begrip_id}/revisies")

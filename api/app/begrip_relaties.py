@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query
 
 from . import begrip_relatie_store as store
 from .auth import require_client
-from .begrip_relatie_contracts import Combineren, NieuweBetekenis, Reden, RelatieInvoer
+from .begrip_relatie_contracts import Combineren, CombinerenGeneriek, NieuweBetekenis, Reden, RelatieInvoer
 from .routers.auth import actieve_userid
 
 router = APIRouter(prefix="/werkgebieden/{werkgebied_id}", tags=["begrippen"],
@@ -43,6 +43,19 @@ async def delete_relatie(werkgebied_id: str, relatie_id: str, actor: str = Depen
 async def post_nieuwe_betekenis(werkgebied_id: str, begrip_id: str, req: NieuweBetekenis,
                                 actor: str = Depends(actieve_userid)):
     return await store.nieuwe_betekenis(werkgebied_id, begrip_id, req, actor)
+
+
+@router.post("/begrippen/{begrip_id}/combineren-generiek")
+async def post_combineren_generiek(werkgebied_id: str, begrip_id: str, req: CombinerenGeneriek,
+                                   actor: str = Depends(actieve_userid)):
+    """Een lokaal begrip gaat op in een generiek begrip (ADR-006)."""
+    return await store.combineer_met_generiek(werkgebied_id, begrip_id, req, actor)
+
+
+@router.post("/begrippen/gebruik/{begrip_id}/opvolger")
+async def post_opvolger_overnemen(werkgebied_id: str, begrip_id: str, actor: str = Depends(actieve_userid)):
+    """Dit werkgebied gaat over op de opvolger van een vervangen generiek begrip."""
+    return await store.opvolger_overnemen(werkgebied_id, begrip_id, actor)
 
 
 @router.post("/begrippen/{begrip_id}/combineren")

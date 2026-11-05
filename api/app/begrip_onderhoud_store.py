@@ -163,7 +163,7 @@ async def herbeoordelingen(werkgebied: dict, resolve: Resolver, begrip_id: str |
     b = db.begrippen
     async with db.get_engine().connect() as conn:
         await begrip_store._werkgebied_bestaat(conn, werkgebied["id"])
-        q = select(b).where(b.c.werkgebied_id == werkgebied["id"], b.c.verwijderd.is_(None))
+        q = select(b).where(begrip_store.in_werkgebied(werkgebied["id"]), b.c.verwijderd.is_(None))
         if begrip_id:
             q = q.where(b.c.id == begrip_id)
         rows = (await conn.execute(q.order_by(b.c.aangemaakt, b.c.id))).all()
@@ -174,6 +174,8 @@ async def herbeoordelingen(werkgebied: dict, resolve: Resolver, begrip_id: str |
         # Doorwerking (fase F2): vastgelegde relaties waarvan de andere kant veranderde.
         relaties = begrip_relatie_store.doorwerking(await begrip_relatie_store._rijen(conn, werkgebied["id"]),
                                                     await begrip_relatie_store._begrippen(conn, werkgebied["id"]))
+        # Generieke begrippen die dit werkgebied gebruikt en die veranderden (ADR-006).
+        generiek = await begrip_store.generiek_veranderd(conn, werkgebied["id"], begrip_id)
     primair = await begrip_store.primaire_duidingen(werkgebied["id"])
     uit = []
     for row in rows:
@@ -211,7 +213,7 @@ async def herbeoordelingen(werkgebied: dict, resolve: Resolver, begrip_id: str |
         if geraakt or relaties.get(row.id):
             uit.append({"begrip_id": row.id, "naam": row.inhoud.get("naam", ""), "status": row.status,
                         "revisie": row.revisie, "koppelingen": geraakt, "relaties": relaties.get(row.id, [])})
-    return {"werkgebied_id": werkgebied["id"], "begrippen": uit, "volledig": inv["volledig"],
+    return {"werkgebied_id": werkgebied["id"], "begrippen": uit, "generiek": generiek, "volledig": inv["volledig"],
             "open_punten": [{"bron_iri": s["bron_iri"], "label": s["label"], "melding": s["onbereikbaar"]}
                             for s in inv["selecties"] if s["onbereikbaar"]]}
 
@@ -232,7 +234,7 @@ async def herkoppel(werkgebied: dict, begrip_id: str, koppeling_id: str, h: Herk
     k = db.begrip_koppelingen
     detail: dict = {"koppeling": koppeling_id, "element_id": h.element_id}
     async with begrip_store._gewijzigd(werkgebied["id"], begrip_id, h.verwachte_revisie, actor,
-                                       "koppeling-herkoppeld", detail) as (conn, row, stand):
+                                       "koppeling-herkoppeld", detail, passage=True) as (conn, row, stand):
         oud = await _koppeling_rij(conn, begrip_id, koppeling_id)
         if oud.element_id == h.element_id:
             raise HTTPException(422, {"fout": "zelfde_passage",
@@ -268,7 +270,7 @@ async def bevestig(werkgebied: dict, begrip_id: str, koppeling_id: str, bv: Beve
         nodes.update(nodes_met_titel(snap))
     detail: dict = {"koppeling": koppeling_id}
     async with begrip_store._gewijzigd(werkgebied["id"], begrip_id, bv.verwachte_revisie, actor,
-                                       "koppeling-bevestigd", detail) as (conn, row, stand):
+                                       "koppeling-bevestigd", detail, passage=True) as (conn, row, stand):
         oud = await _koppeling_rij(conn, begrip_id, koppeling_id)
         h = (await begrip_store._huidige_elementen(conn, {oud.element_id})).get(oud.element_id)
         if h is None or h.get("lifecycle") == "rejected" or h.get("verouderd"):

@@ -1,6 +1,8 @@
 """Begrippen: opslag, koppelingen, actualiteit, de accorderingspoort en de export (spoor D, levering 2).
 
-Een begrip hoort bij één werkgebied; het begrippenkader is impliciet (`urn:wa:kader:<werkgebied>`).
+Een begrip hoort bij één werkgebied, met een impliciet begrippenkader (`urn:wa:kader:<werkgebied>`), of is generiek
+(ADR-006): `werkgebied_id` is dan leeg, het staat in `urn:wa:kader:generiek` en werkgebieden gebruiken het zonder kopie
+(`werkgebied_begrippen`). De inhoud staat op één plek; de passages horen bij het werkgebied dat ze koppelde.
 
 - **Eén schrijfpad** (`_gewijzigd`): eerst een rij-lock op het werkgebied, dan op het begrip – altijd
   in die volgorde, zodat er geen deadlock kan ontstaan. Het werkgebiedslot dekt ook de regel "één
@@ -14,6 +16,9 @@ Een begrip hoort bij één werkgebied; het begrippenkader is impliciet (`urn:wa:
   uit Postgres, zonder graaf: `actueel`, `gewijzigd` (tekst, klasse of ankers anders, of het element
   verouderd), `verworpen` of `verdwenen`.
 - **De poort** (`poort`) rekent de server; de werkplek toont dezelfde zinnen.
+- **Een generiek begrip** wijzig je alleen met `werkgebied_id=None` (`/v1/begrippen/{id}`), niet vanuit een werkgebied
+  (409 `generiek`), zodat niemand ongemerkt andere analyses wijzigt. Een passage in een werkgebied heropent het niet:
+  anders zet één analyse het begrip voor iedereen terug.
 """
 from __future__ import annotations
 
@@ -25,7 +30,7 @@ from contextlib import asynccontextmanager
 from typing import Awaitable, Callable
 
 from fastapi import HTTPException
-from sqlalchemy import delete, insert, select, update
+from sqlalchemy import delete, func, insert, or_, select, update
 
 from . import annotatie_v2_store as annotaties, db
 from .begrip_contracts import (
@@ -40,8 +45,18 @@ BEOORDEELD = {"human_approved", "edited", "published"}
 DRAGEND = {"duiding", "definitie"}
 
 
-def kader_iri(werkgebied_id: str) -> str:
-    return f"urn:wa:kader:{werkgebied_id}"
+GENERIEK = "generiek"
+
+
+def kader_iri(werkgebied_id: str | None) -> str:
+    return f"urn:wa:kader:{werkgebied_id or GENERIEK}"
+
+
+def in_werkgebied(werkgebied_id: str):
+    """De begrippen in beeld bij een werkgebied: zijn eigen, en de generieke die het gebruikt."""
+    b, g = db.begrippen, db.werkgebied_begrippen
+    return or_(b.c.werkgebied_id == werkgebied_id,
+               b.c.id.in_(select(g.c.begrip_id).where(g.c.werkgebied_id == werkgebied_id, g.c.verwijderd.is_(None))))
 
 
 def begrip_iri(begrip_id: str) -> str:
@@ -59,8 +74,8 @@ def element_hash(el: dict) -> str:
 # --- lezen ------------------------------------------------------------------------------------
 
 def _koppeling(row) -> dict:
-    return {"id": row.id, "begrip_id": row.begrip_id, "element_id": row.element_id, "rol": row.rol,
-            "motivatie": row.motivatie, "bewijs": row.bewijs, "beoordeling": row.beoordeling,
+    return {"id": row.id, "begrip_id": row.begrip_id, "werkgebied_id": row.werkgebied_id, "element_id": row.element_id,
+            "rol": row.rol, "motivatie": row.motivatie, "bewijs": row.bewijs, "beoordeling": row.beoordeling,
             "beoordeeld_door": row.beoordeeld_door,
             "beoordeeld_op": db.aware(row.beoordeeld_op).isoformat() if row.beoordeeld_op else None,
             "toegevoegd_door": row.toegevoegd_door, "toegevoegd": db.aware(row.toegevoegd).isoformat(),
@@ -126,9 +141,12 @@ async def _huidige_elementen(conn, ids: set[str]) -> dict[str, dict]:
     return {v["id"]: v for v in rows}
 
 
-async def _koppelingen_van(conn, werkgebied_id: str, begrip_id: str | None = None) -> list[dict]:
+async def _koppelingen_van(conn, werkgebied_id: str | None, begrip_id: str | None = None) -> list[dict]:
+    """De koppelingen van een werkgebied; met `None` die van alle werkgebieden (een generiek begrip)."""
     k = db.begrip_koppelingen
-    q = select(k).where(k.c.werkgebied_id == werkgebied_id, k.c.verwijderd.is_(None))
+    q = select(k).where(k.c.verwijderd.is_(None))
+    if werkgebied_id is not None:
+        q = q.where(k.c.werkgebied_id == werkgebied_id)
     if begrip_id:
         q = q.where(k.c.begrip_id == begrip_id)
     rows = [_koppeling(r) for r in (await conn.execute(q.order_by(k.c.toegevoegd, k.c.id))).all()]
@@ -163,6 +181,7 @@ def _begrip(row, koppelingen: list[dict], opvolging: dict | None = None) -> dict
     p = poort(row.inhoud, koppelingen)
     o = (opvolging or {}).get(row.id, {})
     return {"id": row.id, "iri": begrip_iri(row.id), "werkgebied_id": row.werkgebied_id,
+            "kader": GENERIEK if row.werkgebied_id is None else "werkgebied", "ontstaan_in": row.ontstaan_in,
             "kader_iri": kader_iri(row.werkgebied_id), "status": row.status, "revisie": row.revisie,
             "inhoud": slank(row.inhoud), "aangemaakt_door": row.aangemaakt_door,
             "aangemaakt": db.aware(row.aangemaakt).isoformat(), "gewijzigd": db.aware(row.gewijzigd).isoformat(),
@@ -175,11 +194,13 @@ def _begrip(row, koppelingen: list[dict], opvolging: dict | None = None) -> dict
             "vervangen_door": o.get("vervangen_door"), "vervangt": o.get("vervangt", [])}
 
 
-async def _opvolging(conn, werkgebied_id: str) -> dict[str, dict]:
-    """Per begrip `vervangen_door` en `vervangt` ({begrip_id, naam, reden}) uit de opvolgingsrelaties."""
+async def _opvolging(conn, werkgebied_id: str | None) -> dict[str, dict]:
+    """Per begrip `vervangen_door` en `vervangt` ({begrip_id, naam, reden}) uit de opvolgingsrelaties. De opvolging van
+    een generiek begrip heeft geen werkgebied en geldt overal."""
     r, b = db.begrip_relaties, db.begrippen
-    rows = (await conn.execute(select(r).where(r.c.werkgebied_id == werkgebied_id, r.c.type == "opvolging",
-                                               r.c.verwijderd.is_(None)))).all()
+    plek = r.c.werkgebied_id.is_(None) if werkgebied_id is None else or_(r.c.werkgebied_id == werkgebied_id,
+                                                                          r.c.werkgebied_id.is_(None))
+    rows = (await conn.execute(select(r).where(plek, r.c.type == "opvolging", r.c.verwijderd.is_(None)))).all()
     if not rows:
         return {}
     namen = {x.id: x.inhoud.get("naam", "") for x in (await conn.execute(select(b.c.id, b.c.inhoud).where(
@@ -242,11 +263,15 @@ async def definitie_onderbouwing(conn, begrip_id: str, inhoud: dict) -> dict | N
     return None
 
 
-async def haal(werkgebied_id: str, begrip_id: str) -> dict:
+async def haal(werkgebied_id: str | None, begrip_id: str) -> dict:
+    """Eén begrip zoals een werkgebied het ziet: met zijn eigen passages. Met `None` een generiek begrip met de passages
+    van alle werkgebieden en waar het gebruikt wordt."""
+    if werkgebied_id is None:
+        return await haal_generiek(begrip_id)
     b = db.begrippen
     async with db.get_engine().connect() as conn:
         await _werkgebied_bestaat(conn, werkgebied_id)
-        row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id == werkgebied_id,
+        row = (await conn.execute(select(b).where(b.c.id == begrip_id, in_werkgebied(werkgebied_id),
                                                   b.c.verwijderd.is_(None)))).first()
         if row is None:
             raise await niet_gevonden(werkgebied_id, begrip_id)
@@ -255,12 +280,50 @@ async def haal(werkgebied_id: str, begrip_id: str) -> dict:
         return uit
 
 
+async def haal_generiek(begrip_id: str) -> dict:
+    b = db.begrippen
+    async with db.get_engine().connect() as conn:
+        row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id.is_(None),
+                                                  b.c.verwijderd.is_(None)))).first()
+        if row is None:
+            raise HTTPException(404, "Begrip bestaat niet.")
+        uit = _begrip(row, await _koppelingen_van(conn, None, begrip_id), await _opvolging(conn, None))
+        uit["definitie_onderbouwing"] = await definitie_onderbouwing(conn, begrip_id, row.inhoud)
+        uit["gebruik"] = await gebruik_van(conn, begrip_id)
+        return uit
+
+
+async def maak_generiek_in(conn, inhoud: dict, ontstaan_in: str | None, actor: str) -> str:
+    """De opvolger van een generiek begrip: een nieuw concept in het generieke kader, zonder passages. Elk werkgebied
+    neemt hem zelf over."""
+    bid, nu = str(uuid.uuid4()), db.utcnow()
+    await conn.execute(insert(db.begrippen).values(
+        id=bid, werkgebied_id=None, ontstaan_in=ontstaan_in, status="concept", revisie=1, inhoud=inhoud,
+        aangemaakt_door=actor, aangemaakt=nu, gewijzigd=nu))
+    await _revisieregel(conn, bid, 1, "begrip-aangemaakt", {"naam": inhoud["naam"], "element_ids": [], "rol": "duiding"},
+                        "concept", inhoud, actor, nu)
+    return bid
+
+
+async def gebruik_van(conn, begrip_id: str) -> list[dict]:
+    """Welke werkgebieden dit generieke begrip gebruiken, met hun aantal passages."""
+    g, w, k = db.werkgebied_begrippen, db.werkgebieden, db.begrip_koppelingen
+    rows = (await conn.execute(select(g.c.werkgebied_id, g.c.gezien_revisie, w.c.naam)
+                               .join_from(g, w, g.c.werkgebied_id == w.c.id)
+                               .where(g.c.begrip_id == begrip_id, g.c.verwijderd.is_(None), w.c.gearchiveerd.is_(None))
+                               .order_by(w.c.naam, g.c.werkgebied_id))).all()
+    tellingen = dict((await conn.execute(select(k.c.werkgebied_id, func.count()).where(
+        k.c.begrip_id == begrip_id, k.c.verwijderd.is_(None)).group_by(k.c.werkgebied_id))).all())
+    return [{"werkgebied_id": x.werkgebied_id, "naam": x.naam, "gezien_revisie": x.gezien_revisie,
+             "passages": tellingen.get(x.werkgebied_id, 0)} for x in rows]
+
+
 async def lijst(werkgebied_id: str) -> list[dict]:
-    """De begrippen van het werkgebied, zonder de koppelingen zelf (wel tellingen en aandacht)."""
+    """De begrippen in beeld bij het werkgebied, zonder de koppelingen zelf (wel tellingen en aandacht)."""
     b = db.begrippen
     async with db.get_engine().connect() as conn:
         await _werkgebied_bestaat(conn, werkgebied_id)
-        rows = (await conn.execute(select(b).where(b.c.werkgebied_id == werkgebied_id, b.c.verwijderd.is_(None))
+        rows = (await conn.execute(select(b).where(in_werkgebied(werkgebied_id), b.c.verwijderd.is_(None))
                                    .order_by(b.c.aangemaakt, b.c.id))).all()
         alle = await _koppelingen_van(conn, werkgebied_id)
         opvolging = await _opvolging(conn, werkgebied_id)
@@ -274,12 +337,23 @@ async def lijst(werkgebied_id: str) -> list[dict]:
     return uit
 
 
+async def generieke_buiten(werkgebied_id: str) -> list[dict]:
+    """De generieke begrippen die dit werkgebied (nog) niet gebruikt, in de vorm die `lijkt_op` leest."""
+    b, g = db.begrippen, db.werkgebied_begrippen
+    gebruikt = select(g.c.begrip_id).where(g.c.werkgebied_id == werkgebied_id, g.c.verwijderd.is_(None))
+    async with db.get_engine().connect() as conn:
+        rows = (await conn.execute(select(b).where(b.c.werkgebied_id.is_(None), b.c.verwijderd.is_(None),
+                                                   b.c.status != "vervangen", b.c.id.not_in(gebruikt))
+                                   .order_by(b.c.aangemaakt, b.c.id))).all()
+    return [{"id": r.id, "kader": GENERIEK, "status": r.status, "inhoud": slank(r.inhoud), "element_ids": []} for r in rows]
+
+
 async def samenhang(werkgebied_id: str) -> dict:
     """Begrippen en hun koppelingen, zonder bewijs: wat de samenhangsgraaf tekent (fase F3)."""
     b = db.begrippen
     async with db.get_engine().connect() as conn:
         await _werkgebied_bestaat(conn, werkgebied_id)
-        rows = (await conn.execute(select(b).where(b.c.werkgebied_id == werkgebied_id, b.c.verwijderd.is_(None))
+        rows = (await conn.execute(select(b).where(in_werkgebied(werkgebied_id), b.c.verwijderd.is_(None))
                                    .order_by(b.c.aangemaakt, b.c.id))).all()
         koppelingen = await _koppelingen_van(conn, werkgebied_id)
     return {"begrippen": [{"id": r.id, "iri": begrip_iri(r.id), "naam": r.inhoud.get("naam", ""), "status": r.status,
@@ -301,6 +375,10 @@ async def primaire_duidingen(werkgebied_id: str) -> dict[str, dict]:
 
 async def revisies(werkgebied_id: str, begrip_id: str, limit: int = 100) -> list[dict]:
     await haal(werkgebied_id, begrip_id)
+    return await revisies_van(begrip_id, limit)
+
+
+async def revisies_van(begrip_id: str, limit: int = 100) -> list[dict]:
     r = db.begrip_revisies
     async with db.get_engine().connect() as conn:
         rows = (await conn.execute(select(r).where(r.c.begrip_id == begrip_id)
@@ -345,8 +423,8 @@ async def bewijzen(werkgebied: dict, element_ids: list[str], resolve: Resolver) 
 # --- schrijven ---------------------------------------------------------------------------------
 
 @asynccontextmanager
-async def _gewijzigd(werkgebied_id: str, begrip_id: str, verwacht: int, actor: str, actie: str, detail: dict,
-                     mag_vervangen: bool = False):
+async def _gewijzigd(werkgebied_id: str | None, begrip_id: str, verwacht: int, actor: str, actie: str, detail: dict,
+                     mag_vervangen: bool = False, passage: bool = False):
     """Werkgebiedslot, begripslot, revisietoets; daarna revisie +1, revisiekopie en audit.
 
     De aanroeper muteert via `stand`: `inhoud` en `status` en extra kolommen in `waarden`. Zet hij
@@ -354,21 +432,33 @@ async def _gewijzigd(werkgebied_id: str, begrip_id: str, verwacht: int, actor: s
     de aanroeper mag het daarin nog aanvullen."""
     async with db.get_engine().begin() as conn:
         async with _gewijzigd_in(conn, werkgebied_id, begrip_id, verwacht, actor, actie, detail,
-                                 mag_vervangen) as uit:
+                                 mag_vervangen, passage) as uit:
             yield uit
 
 
 @asynccontextmanager
-async def _gewijzigd_in(conn, werkgebied_id: str, begrip_id: str, verwacht: int, actor: str, actie: str,
-                        detail: dict, mag_vervangen: bool = False):
+async def _gewijzigd_in(conn, werkgebied_id: str | None, begrip_id: str, verwacht: int, actor: str, actie: str,
+                        detail: dict, mag_vervangen: bool = False, passage: bool = False):
     """`_gewijzigd` binnen een transactie van de aanroeper: zo kan een besluit over een voorstel (fase D)
-    begrip, koppelingen, accorderen en groepsbesluit samen vastleggen of samen laten mislukken."""
+    begrip, koppelingen, accorderen en groepsbesluit samen vastleggen of samen laten mislukken.
+
+    `werkgebied_id=None` is een generiek begrip op zijn eigen route: geen werkgebiedslot, en de auditregel gaat naar elk
+    werkgebied dat het gebruikt. `passage`: de mutatie gaat over een koppeling in dit werkgebied. Alleen die mag vanuit
+    een werkgebied op een generiek begrip, en ze laat de status staan."""
     b = db.begrippen
-    await _werkgebied_bestaat(conn, werkgebied_id, slot=True)
-    row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id == werkgebied_id,
-                                              b.c.verwijderd.is_(None)).with_for_update())).first()
+    if werkgebied_id is None:
+        waar = b.c.werkgebied_id.is_(None)
+    else:
+        await _werkgebied_bestaat(conn, werkgebied_id, slot=True)
+        waar = in_werkgebied(werkgebied_id)
+    row = (await conn.execute(select(b).where(b.c.id == begrip_id, waar, b.c.verwijderd.is_(None))
+                              .with_for_update())).first()
     if row is None:
         raise HTTPException(404, "Begrip bestaat niet.")
+    generiek = row.werkgebied_id is None
+    if generiek and werkgebied_id is not None and not passage:
+        raise HTTPException(409, {"fout": "generiek", "melding": "Dit is een generiek begrip: het geldt voor meer "
+                                  "werkgebieden. Je wijzigt het op zijn eigen pagina."})
     if row.status == "vervangen" and not mag_vervangen:
         raise HTTPException(409, {"fout": "vervangen", "melding": "Dit begrip is vervangen door een opvolger en "
                                   "is alleen nog te lezen. Verwijder de opvolger om het terug te zetten."})
@@ -379,13 +469,21 @@ async def _gewijzigd_in(conn, werkgebied_id: str, begrip_id: str, verwacht: int,
     yield conn, row, stand
     if stand["geen_wijziging"]:
         return
-    status = stand["status"] or ("concept" if row.status == "geaccordeerd" else row.status)
+    status = stand["status"] or (row.status if generiek and passage
+                                 else "concept" if row.status == "geaccordeerd" else row.status)
     nieuw, nu = row.revisie + 1, db.utcnow()
     await conn.execute(update(b).where(b.c.id == begrip_id).values(
         revisie=nieuw, gewijzigd=nu, status=status, inhoud=stand["inhoud"], **stand["waarden"]))
     await _revisieregel(conn, begrip_id, nieuw, actie, detail, status, stand["inhoud"], actor, nu)
-    await werkgebied_audit(conn, werkgebied_id, actor, actie,
-                           {**detail, "begrip_id": begrip_id, "begrip_revisie": nieuw})
+    audit = {**detail, "begrip_id": begrip_id, "begrip_revisie": nieuw}
+    for wid in ([werkgebied_id] if werkgebied_id is not None else await _gebruikers(conn, begrip_id)):
+        await werkgebied_audit(conn, wid, actor, actie, audit)
+
+
+async def _gebruikers(conn, begrip_id: str) -> list[str]:
+    g = db.werkgebied_begrippen
+    return list((await conn.execute(select(g.c.werkgebied_id).where(
+        g.c.begrip_id == begrip_id, g.c.verwijderd.is_(None)).order_by(g.c.werkgebied_id))).scalars().all())
 
 
 async def _revisieregel(conn, begrip_id, revisie, actie, detail, status, inhoud, actor, tijdstip):
@@ -473,7 +571,7 @@ async def maak_in(conn, werkgebied_id: str, inhoud: dict, bewijs: dict[str, dict
     return bid
 
 
-async def wijzig(werkgebied_id: str, begrip_id: str, w: BegripWijziging, actor: str) -> dict:
+async def wijzig(werkgebied_id: str | None, begrip_id: str, w: BegripWijziging, actor: str) -> dict:
     nieuw = w.inhoud.model_dump(mode="json")
     # `_gewijzigd` leest `detail` pas na het blok: de velden zijn pas onder het slot bekend.
     detail: dict = {}
@@ -519,7 +617,8 @@ async def verwijder(werkgebied_id: str, begrip_id: str, verwacht: int, actor: st
 #: Elke tabel met een `begrip_id`: wat `wis_begrippen` opruimt (de relaties via `van_begrip`/`naar_begrip`,
 #: de groepen houden hun uitkomst en verliezen alleen de verwijzing). `tests/test_werkgebied_verwijderen.py`
 #: bewaakt dat een nieuwe tabel met die kolom hier staat.
-BEGRIP_TABELLEN = ("begrip_revisies", "begrip_koppelingen", "begrip_voorstellen", "begrip_kaartruns", "betekenisgroepen")
+BEGRIP_TABELLEN = ("begrip_revisies", "begrip_koppelingen", "begrip_voorstellen", "begrip_kaartruns", "betekenisgroepen",
+                   "werkgebied_begrippen")
 
 
 async def wis_begrippen(conn, ids: list[str]) -> None:
@@ -535,13 +634,15 @@ async def wis_begrippen(conn, ids: list[str]) -> None:
     await conn.execute(delete(db.begrippen).where(db.begrippen.c.id.in_(ids)))
 
 
-async def _herstel_voorgangers(conn, werkgebied_id: str, begrip_id: str, actor: str, nu) -> list[str]:
+async def _herstel_voorgangers(conn, werkgebied_id: str | None, begrip_id: str, actor: str, nu) -> list[str]:
     """Een verwijderd begrip neemt zijn relaties mee; was het de opvolger van een vervangen begrip (fase
-    F2), dan krijgt dat zijn vorige status terug – met een eigen revisie, zodat de historie het zegt."""
+    F2), dan krijgt dat zijn vorige status terug – met een eigen revisie, zodat de historie het zegt. Met `None` een
+    generiek begrip: zijn relaties staan in meer werkgebieden."""
     r, b = db.begrip_relaties, db.begrippen
-    rels = (await conn.execute(select(r).where(
-        r.c.werkgebied_id == werkgebied_id, r.c.verwijderd.is_(None),
-        (r.c.van_begrip == begrip_id) | (r.c.naar_begrip == begrip_id)))).all()
+    q = select(r).where(r.c.verwijderd.is_(None), (r.c.van_begrip == begrip_id) | (r.c.naar_begrip == begrip_id))
+    if werkgebied_id is not None:
+        q = q.where(r.c.werkgebied_id == werkgebied_id)
+    rels = (await conn.execute(q)).all()
     hersteld = []
     for x in rels:
         await conn.execute(update(r).where(r.c.id == x.id).values(verwijderd=nu))
@@ -555,8 +656,10 @@ async def _herstel_voorgangers(conn, werkgebied_id: str, begrip_id: str, actor: 
         await conn.execute(update(b).where(b.c.id == oud.id).values(status=status, revisie=oud.revisie + 1, gewijzigd=nu))
         await _revisieregel(conn, oud.id, oud.revisie + 1, "begrip-hersteld", {"opvolger": begrip_id}, status,
                             oud.inhoud, actor, nu)
-        await werkgebied_audit(conn, werkgebied_id, actor, "begrip-hersteld",
-                               {"begrip_id": oud.id, "begrip_revisie": oud.revisie + 1, "opvolger": begrip_id})
+        for wid in ([werkgebied_id] if werkgebied_id is not None else [x.werkgebied_id] if x.werkgebied_id
+                    else await _gebruikers(conn, oud.id)):
+            await werkgebied_audit(conn, wid, actor, "begrip-hersteld",
+                                   {"begrip_id": oud.id, "begrip_revisie": oud.revisie + 1, "opvolger": begrip_id})
         hersteld.append(oud.id)
     return hersteld
 
@@ -573,7 +676,7 @@ async def koppel_in(conn, werkgebied_id: str, begrip_id: str, verwacht: int, bew
                     motivatie: str, actor: str, beoordeling: str = "open") -> list[str]:
     detail = {"rol": rol, **({"beoordeling": beoordeling} if beoordeling != "open" else {})}
     async with _gewijzigd_in(conn, werkgebied_id, begrip_id, verwacht, actor, "begrip-gekoppeld",
-                             detail) as (_, __, stand):
+                             detail, passage=True) as (_, __, stand):
         nieuw = await _koppel(conn, werkgebied_id, begrip_id, bewijs, rol, motivatie, actor, beoordeling)
         detail["element_ids"] = nieuw
         stand["geen_wijziging"] = not nieuw
@@ -588,7 +691,7 @@ async def wijzig_koppeling(werkgebied_id: str, begrip_id: str, koppeling_id: str
     # `_gewijzigd` leest `detail` pas na het blok: wat er echt verandert is pas onder het slot bekend.
     detail: dict = {"koppeling": koppeling_id}
     async with _gewijzigd(werkgebied_id, begrip_id, w.verwachte_revisie, actor, "koppeling-gewijzigd",
-                          detail) as (conn, _, stand):
+                          detail, passage=True) as (conn, _, stand):
         row = (await conn.execute(select(k).where(k.c.id == koppeling_id, k.c.begrip_id == begrip_id,
                                                   k.c.verwijderd.is_(None)))).first()
         if row is None:
@@ -636,7 +739,7 @@ async def _toets_primair(conn, werkgebied_id: str, begrip_id: str, element_ids: 
 async def ontkoppel(werkgebied_id: str, begrip_id: str, koppeling_id: str, verwacht: int, actor: str) -> dict:
     k = db.begrip_koppelingen
     async with _gewijzigd(werkgebied_id, begrip_id, verwacht, actor, "koppeling-verwijderd",
-                          {"koppeling": koppeling_id}) as (conn, _, __):
+                          {"koppeling": koppeling_id}, passage=True) as (conn, _, __):
         row = (await conn.execute(select(k.c.id).where(k.c.id == koppeling_id, k.c.begrip_id == begrip_id,
                                                        k.c.verwijderd.is_(None)))).first()
         if row is None:
@@ -645,7 +748,7 @@ async def ontkoppel(werkgebied_id: str, begrip_id: str, koppeling_id: str, verwa
     return await haal(werkgebied_id, begrip_id)
 
 
-async def accordeer(werkgebied_id: str, begrip_id: str, verwacht: int, actor: str) -> dict:
+async def accordeer(werkgebied_id: str | None, begrip_id: str, verwacht: int, actor: str) -> dict:
     async with db.get_engine().begin() as conn:
         p = await accordeer_in(conn, werkgebied_id, begrip_id, verwacht, actor)
     if not p["mag"]:
@@ -654,7 +757,7 @@ async def accordeer(werkgebied_id: str, begrip_id: str, verwacht: int, actor: st
     return await haal(werkgebied_id, begrip_id)
 
 
-async def accordeer_in(conn, werkgebied_id: str, begrip_id: str, verwacht: int, actor: str) -> dict:
+async def accordeer_in(conn, werkgebied_id: str | None, begrip_id: str, verwacht: int, actor: str) -> dict:
     """Accorderen als de poort het toelaat, binnen de transactie van de aanroeper. Mag het niet, dan
     verandert er niets en komen de redenen terug: de aanroeper beslist of dat een fout is."""
     async with _gewijzigd_in(conn, werkgebied_id, begrip_id, verwacht, actor, "begrip-geaccordeerd",
@@ -669,11 +772,180 @@ async def accordeer_in(conn, werkgebied_id: str, begrip_id: str, verwacht: int, 
     return p
 
 
-async def heropen(werkgebied_id: str, begrip_id: str, verwacht: int, actor: str) -> dict:
+async def heropen(werkgebied_id: str | None, begrip_id: str, verwacht: int, actor: str) -> dict:
     async with _gewijzigd(werkgebied_id, begrip_id, verwacht, actor, "begrip-heropend", {}) as (_, row, stand):
         if row.status != "geaccordeerd":
             raise HTTPException(409, "Het begrip is niet geaccordeerd.")
         stand["status"] = "concept"
+    return await haal(werkgebied_id, begrip_id)
+
+
+# --- generieke begrippen (ADR-006) ---------------------------------------------------------------
+
+def _term(naam: str) -> str:
+    return " ".join((naam or "").casefold().split())
+
+
+async def _toets_term(conn, naam: str, behalve: str) -> None:
+    """Dezelfde voorkeursterm staat één keer in het generieke kader; dan is het combineren, of een andere naam."""
+    b = db.begrippen
+    rows = (await conn.execute(select(b.c.id, b.c.inhoud).where(
+        b.c.werkgebied_id.is_(None), b.c.verwijderd.is_(None), b.c.status != "vervangen", b.c.id != behalve))).all()
+    for x in rows:
+        andere = x.inhoud.get("naam", "")
+        if _term(andere) == _term(naam):
+            raise HTTPException(409, {"fout": "al_generiek", "begrip_id": x.id, "begrip_naam": andere,
+                                      "melding": f"Er is al een generiek begrip \"{andere}\". Combineer dit begrip "
+                                                 "daarmee, of geef het een onderscheidende naam."})
+
+
+async def generiek_maken(werkgebied_id: str, begrip_id: str, verwacht: int, actor: str) -> dict:
+    """Een geaccordeerd begrip gaat naar het generieke kader. Het id, de IRI en de passages blijven; dit werkgebied
+    gebruikt het voortaan. Alleen een geaccordeerd begrip: een concept delen met andere analyses is te vroeg."""
+    b, g = db.begrippen, db.werkgebied_begrippen
+    async with db.get_engine().begin() as conn:
+        await _werkgebied_bestaat(conn, werkgebied_id, slot=True)
+        row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id == werkgebied_id,
+                                                  b.c.verwijderd.is_(None)).with_for_update())).first()
+        if row is None:
+            raise await niet_gevonden(werkgebied_id, begrip_id)
+        if row.revisie != verwacht:
+            raise HTTPException(412, {"fout": "revisie_conflict", "revisie": row.revisie,
+                                      "melding": "Iemand anders wijzigde dit begrip intussen; laad het opnieuw."})
+        if row.status != "geaccordeerd":
+            raise HTTPException(409, {"fout": "niet_geaccordeerd",
+                                      "melding": "Alleen een geaccordeerd begrip kan generiek worden."})
+        await _toets_term(conn, row.inhoud.get("naam", ""), begrip_id)
+        nieuw, nu = row.revisie + 1, db.utcnow()
+        await conn.execute(update(b).where(b.c.id == begrip_id).values(
+            werkgebied_id=None, ontstaan_in=werkgebied_id, revisie=nieuw, gewijzigd=nu))
+        await conn.execute(insert(g).values(id=str(uuid.uuid4()), werkgebied_id=werkgebied_id, begrip_id=begrip_id,
+                                            gezien_revisie=nieuw, door=actor, op=nu))
+        detail = {"werkgebied": werkgebied_id}
+        await _revisieregel(conn, begrip_id, nieuw, "begrip-generiek", detail, row.status, row.inhoud, actor, nu)
+        await werkgebied_audit(conn, werkgebied_id, actor, "begrip-generiek",
+                               {**detail, "begrip_id": begrip_id, "begrip_revisie": nieuw})
+    return await haal_generiek(begrip_id)
+
+
+async def gebruik(werkgebied_id: str, begrip_id: str, actor: str) -> dict:
+    """Een generiek begrip gebruiken in dit werkgebied. Idempotent; de passages koppel je daarna hier."""
+    async with db.get_engine().begin() as conn:
+        await _werkgebied_bestaat(conn, werkgebied_id, slot=True)
+        await gebruik_in(conn, werkgebied_id, begrip_id, actor)
+    return await haal(werkgebied_id, begrip_id)
+
+
+async def gebruik_in(conn, werkgebied_id: str, begrip_id: str, actor: str) -> None:
+    """`gebruik` onder het werkgebiedslot van de aanroeper."""
+    b, g = db.begrippen, db.werkgebied_begrippen
+    row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id.is_(None),
+                                              b.c.verwijderd.is_(None)))).first()
+    if row is None:
+        raise HTTPException(404, "Generiek begrip bestaat niet.")
+    if row.status == "vervangen":
+        raise HTTPException(409, {"fout": "vervangen", "melding": "Dit begrip is vervangen door een opvolger."})
+    bestaand = (await conn.execute(select(g.c.id).where(g.c.werkgebied_id == werkgebied_id, g.c.begrip_id == begrip_id,
+                                                        g.c.verwijderd.is_(None)))).first()
+    if bestaand is not None:
+        return
+    await conn.execute(insert(g).values(id=str(uuid.uuid4()), werkgebied_id=werkgebied_id, begrip_id=begrip_id,
+                                        gezien_revisie=row.revisie, door=actor, op=db.utcnow()))
+    await werkgebied_audit(conn, werkgebied_id, actor, "begrip-gebruikt",
+                           {"begrip_id": begrip_id, "naam": row.inhoud.get("naam", "")})
+
+
+async def stop_gebruik(werkgebied_id: str, begrip_id: str, actor: str) -> dict:
+    """Dit werkgebied gebruikt het generieke begrip niet meer. De passages van dit werkgebied gaan los; het begrip en
+    de annotaties blijven."""
+    g, k = db.werkgebied_begrippen, db.begrip_koppelingen
+    async with db.get_engine().begin() as conn:
+        await _werkgebied_bestaat(conn, werkgebied_id, slot=True)
+        rij = (await conn.execute(select(g.c.id).where(g.c.werkgebied_id == werkgebied_id, g.c.begrip_id == begrip_id,
+                                                       g.c.verwijderd.is_(None)))).first()
+        if rij is None:
+            raise HTTPException(404, "Dit werkgebied gebruikt dit begrip niet.")
+        nu = db.utcnow()
+        await conn.execute(update(g).where(g.c.id == rij.id).values(verwijderd=nu))
+        await conn.execute(update(k).where(k.c.begrip_id == begrip_id, k.c.werkgebied_id == werkgebied_id,
+                                           k.c.verwijderd.is_(None)).values(verwijderd=nu))
+        await werkgebied_audit(conn, werkgebied_id, actor, "begrip-niet-meer-gebruikt", {"begrip_id": begrip_id})
+    return {"gestopt": begrip_id}
+
+
+async def verwijder_generiek(begrip_id: str, verwacht: int, actor: str) -> dict:
+    """Echt wissen, maar niet zolang een werkgebied het begrip gebruikt: dat raakt die analyses (409 `in_gebruik`)."""
+    b = db.begrippen
+    async with db.get_engine().begin() as conn:
+        row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id.is_(None),
+                                                  b.c.verwijderd.is_(None)).with_for_update())).first()
+        if row is None:
+            raise HTTPException(404, "Begrip bestaat niet.")
+        if row.status == "vervangen":
+            raise HTTPException(409, {"fout": "vervangen", "melding": "Dit begrip is vervangen door een opvolger."})
+        if row.revisie != verwacht:
+            raise HTTPException(412, {"fout": "revisie_conflict", "revisie": row.revisie,
+                                      "melding": "Iemand anders wijzigde dit begrip intussen; laad het opnieuw."})
+        if gebruikers := await _gebruikers(conn, begrip_id):
+            plek = "1 werkgebied" if len(gebruikers) == 1 else f"{len(gebruikers)} werkgebieden"
+            raise HTTPException(409, {"fout": "in_gebruik", "werkgebieden": gebruikers,
+                                      "melding": f"Dit begrip wordt nog in {plek} gebruikt."})
+        hersteld = await _herstel_voorgangers(conn, None, begrip_id, actor, db.utcnow())
+        await wis_begrippen(conn, [begrip_id])
+        if row.ontstaan_in:
+            await werkgebied_audit(conn, row.ontstaan_in, actor, "begrip-verwijderd",
+                                   {"begrip_id": begrip_id, "naam": (row.inhoud or {}).get("naam", ""),
+                                    "begrip_revisie": row.revisie, "hersteld": hersteld})
+    return {"verwijderd": begrip_id, "hersteld": hersteld}
+
+
+#: Wat een werkgebied van een generiek begrip overneemt; een andere status of passage elders is geen wijziging voor hem.
+INHOUD_VELDEN = ("naam", "alternatieve_termen", "definitie", "uitleg", "context", "voorbeelden")
+
+
+async def generiek_veranderd(conn, werkgebied_id: str, begrip_id: str | None = None) -> list[dict]:
+    """De generieke begrippen die dit werkgebied gebruikt en die veranderden sinds het ze zag, met toen en nu: de
+    inhoud uit `begrip_revisies`, of de opvolger als het begrip vervangen is. Een nieuwe revisie door een passage in een
+    ander werkgebied telt niet: de inhoud bleef gelijk."""
+    g, b, r, rel = db.werkgebied_begrippen, db.begrippen, db.begrip_revisies, db.begrip_relaties
+    q = (select(g.c.gezien_revisie, b).join_from(g, b, g.c.begrip_id == b.c.id)
+         .where(g.c.werkgebied_id == werkgebied_id, g.c.verwijderd.is_(None), b.c.verwijderd.is_(None),
+                b.c.werkgebied_id.is_(None)).order_by(b.c.aangemaakt, b.c.id))
+    if begrip_id:
+        q = q.where(b.c.id == begrip_id)
+    uit = []
+    for x in (await conn.execute(q)).all():
+        toen = (await conn.execute(select(r.c.inhoud).where(r.c.begrip_id == x.id, r.c.revisie == x.gezien_revisie))).scalar()
+        toen, nu = slank(toen or {}), slank(x.inhoud)
+        velden = [v for v in INHOUD_VELDEN if (toen.get(v) or None) != (nu.get(v) or None)]
+        opvolger = None
+        if x.status == "vervangen":
+            o = (await conn.execute(select(rel.c.naar_begrip, rel.c.toelichting).where(
+                rel.c.van_begrip == x.id, rel.c.type == "opvolging", rel.c.verwijderd.is_(None),
+                rel.c.werkgebied_id.is_(None)))).first()
+            if o is not None:
+                naam = (await conn.execute(select(b.c.inhoud).where(b.c.id == o.naar_begrip))).scalar() or {}
+                opvolger = {"begrip_id": o.naar_begrip, "naam": naam.get("naam", ""), "reden": o.toelichting}
+        if velden or opvolger:
+            uit.append({"begrip_id": x.id, "naam": nu.get("naam", ""), "revisie": x.revisie, "status": x.status,
+                        "gezien_revisie": x.gezien_revisie, "velden": velden, "opvolger": opvolger,
+                        "toen": {v: toen.get(v) for v in velden}, "nu": {v: nu.get(v) for v in velden}})
+    return uit
+
+
+async def bevestig_gebruik(werkgebied_id: str, begrip_id: str, actor: str) -> dict:
+    """Het begrip klopt nog voor dit werkgebied: de stand van nu is wat het zag."""
+    g, b = db.werkgebied_begrippen, db.begrippen
+    async with db.get_engine().begin() as conn:
+        await _werkgebied_bestaat(conn, werkgebied_id, slot=True)
+        rij = (await conn.execute(select(g.c.id).where(g.c.werkgebied_id == werkgebied_id, g.c.begrip_id == begrip_id,
+                                                       g.c.verwijderd.is_(None)))).first()
+        if rij is None:
+            raise HTTPException(404, "Dit werkgebied gebruikt dit begrip niet.")
+        revisie = (await conn.execute(select(b.c.revisie).where(b.c.id == begrip_id))).scalar()
+        await conn.execute(update(g).where(g.c.id == rij.id).values(gezien_revisie=revisie))
+        await werkgebied_audit(conn, werkgebied_id, actor, "begrip-generiek-bevestigd",
+                               {"begrip_id": begrip_id, "begrip_revisie": revisie})
     return await haal(werkgebied_id, begrip_id)
 
 

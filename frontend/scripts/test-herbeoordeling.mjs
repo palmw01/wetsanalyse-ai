@@ -148,7 +148,7 @@ await page.route("**/api/**", async (route) => {
 });
 
 const zie = (tekst) => page.getByText(tekst, { exact: false }).first().waitFor();
-const strook = () => page.getByRole("region", { name: "Herbeoordelen" });
+const strook = () => page.locator("[data-begripvoorstellen]");
 const passages = () => page.getByRole("list", { name: "Passages van dit begrip" });
 const blok = (tekst) => passages().getByRole("listitem").filter({ hasText: tekst }).getByRole("group", { name: "Herbeoordelen" });
 try {
@@ -156,9 +156,9 @@ try {
   await page.goto(`${base}/werkgebieden/wg1?tab=begrippen`);
   await strook().getByText("1 begrip herbeoordelen · 2 passages veranderden").waitFor();
   await page.getByRole("list", { name: "Begrippen in dit werkgebied" }).getByText("Herbeoordelen: 2 passages veranderden").waitFor();
-  await strook().getByRole("button", { name: /belastingschuldige/ }).click();
+  await strook().locator("[data-herbeoordelen] a").filter({ hasText: "belastingschuldige" }).click();
   await passages().waitFor();
-  await page.waitForURL(/(begrip=|\/begrippen\/wg1\/)b1/);
+  await page.waitForURL(/(begrip=|\/werkgebieden\/wg1\/begrippen\/)b1/);
 
   // 2. Bij de passage: wat er veranderde, toen naast nu, de wettekst van nu, de opvolger met signalen.
   const k1 = blok("Beta");

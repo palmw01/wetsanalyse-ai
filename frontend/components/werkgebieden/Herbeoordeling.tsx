@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { Input } from "@/components/ui/Field";
-import type { BegripMutatie } from "@/components/werkgebieden/BegripWerk";
+import type { BegripMutatie } from "@/lib/useBegrip";
 import { bevestigKoppeling, herkoppel } from "@/lib/api";
 import { ACTIE_LABEL, RICHTING_LABEL, RICHTING_TEKEN, markeer } from "@/lib/herbeoordeling";
 import type { Begrip, BronSignaal, GeraakteKoppeling, Opvolger } from "@/lib/types";

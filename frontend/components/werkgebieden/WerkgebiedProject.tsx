@@ -34,7 +34,7 @@ interface Project {
   meld: (type: "bevestiging" | "waarschuwing", tekst: string) => void;
   /** Ruimer dan de leesbreedte (de begrippen, de graaf); de pagina die het nodig heeft, zet het. */
   zetBreed: (breed: boolean) => void;
-  /** Draagt een pagina niet-bewaarde wijzigingen (de begripskaart)? Dan vraagt elke navigatie weg
+  /** Draagt een pagina niet-bewaarde wijzigingen (een begrip)? Dan vraagt elke navigatie weg
    *  eerst bevestiging: een link (de tabs, de sidebar, het kruimelpad) en een knop die zelf navigeert. */
   zetOnbewaard: (onbewaard: boolean) => void;
   onbewaard: boolean;

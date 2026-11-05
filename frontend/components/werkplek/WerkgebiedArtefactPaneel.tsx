@@ -1,7 +1,7 @@
 "use client";
 
 import { ExportKnop } from "@/components/werkplek/ExportKnop";
-import { EXPORT_FORMATEN } from "@/components/werkgebieden/BegrippenTab";
+import { EXPORT_FORMATEN } from "@/lib/begrippen";
 import { exporteerBegrippen, haalBegrip, haalBronselectie, haalWerkgebied, lijstBegrippen } from "@/lib/api";
 import { begripAlsMarkdown, begrippenAlsMarkdown, bronselectieAlsMarkdown, deelvraagAlsMarkdown, dossierAlsMarkdown, voorstellenAlsMarkdown } from "@/lib/artefactMarkdown";
 import { termenVan } from "@/lib/begripTermen";
@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
-import { BegripPaneel } from "@/components/werkgebieden/BegripPaneel";
+import { BegripCompact } from "@/components/werkgebieden/BegripInhoud";
 import { BegripVoorstellen } from "@/components/werkgebieden/BegripVoorstellen";
 import { BronnenBijDeelvraag } from "@/components/werkgebieden/BronnenBijDeelvraag";
 import { DeelvraagPaneel } from "@/components/werkgebieden/DeelvraagPaneel";
@@ -100,8 +100,8 @@ const KOP: Record<WerkgebiedArtefact["soort"], string> = {
  *
  *  - **begrippen** – de voorstellen van Lex (`BegripVoorstellen`), dezelfde inhoud als op de tab
  *    Begrippen. Een overgenomen begrip opent in het werkgebied: daar staan de kaart en de passages.
- *  - **begrip** (F3d) – één begrip om te beoordelen (`BegripPaneel`): een leesweergave, de open voorstellen
- *    van Lex per veld en een kleine bewerking; de begripskaart zelf staat in het werkgebied.
+ *  - **begrip** (F3d, spoor N) – één begrip (`BegripCompact`): dezelfde inhoud als zijn pagina, onder elkaar. Je leest,
+ *    bewerkt, beoordeelt en accordeert hier.
  *  - **deelvraag** (F3d) – één deelvraag (`DeelvraagPaneel`): stand, de voorstellen die haar vervangen,
  *    bronnen en de kandidaten die Lex erbij vond.
  *  - **bronselectie** (spoor J) – de bronselectie per deelvraag (`BronnenBijDeelvraag`, dezelfde als de tab Bronnen): de voortgang, de
@@ -164,7 +164,8 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
             <WerkgebiedInhoud id={doel.werkgebied_id} naarWerkgebied={naarWerkgebied} opname={opname?.inhoud}
               onVerwijderd={() => onVerwijderd?.(doel.werkgebied_id)} />
           ) : doel.soort === "begrip" && doel.begrip_id ? (
-            <BegripPaneel key={opname?.id ?? "nu"} werkgebiedId={doel.werkgebied_id} begripId={doel.begrip_id} onOnbewaard={setOnbewaard}
+            <BegripCompact key={opname?.id ?? "nu"} context={{ soort: "werkgebied", werkgebiedId: doel.werkgebied_id }}
+              begripId={doel.begrip_id} onOnbewaard={setOnbewaard}
               opname={opname?.inhoud.begrip ? { begrip: opname.inhoud.begrip, relaties: opname.inhoud.relaties } : undefined}
               onNaarBegrip={(b) => onWissel
                 ? onWissel({ soort: "begrip", werkgebied_id: doel.werkgebied_id, run_id: "", begrip_id: b, titel: "" })
@@ -177,7 +178,7 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
             <BronnenBijDeelvraag werkgebiedId={doel.werkgebied_id} huidig={doel.deelvraag_id} inGesprek
               opname={opname?.inhoud.bronselectie} onKlaar={onKlaar} klaarVoor={klaarVoor} />
           ) : (
-            <BegripVoorstellen key={opname?.id ?? "nu"} id={doel.werkgebied_id} runId={doel.run_id} inklapbaar={false}
+            <BegripVoorstellen key={opname?.id ?? "nu"} id={doel.werkgebied_id} runId={doel.run_id}
               opname={opname?.inhoud.groepen} />
           )}
         </div>

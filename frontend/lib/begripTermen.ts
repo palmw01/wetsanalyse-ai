@@ -29,7 +29,7 @@ export interface Term {
   /** Twijfelvragen naar een passage van een andere term (of buiten elke groep). */
   vragenBuiten: TwijfelVraag[];
   /** Bestaande begrippen waar de open groepen op lijken (`lijkt_op` van de api), zonder dubbelen. */
-  lijktOp: { begrip_id: string; naam: string }[];
+  lijktOp: { begrip_id: string; naam: string; generiek?: boolean }[];
   passages: number;
   regelingen: string[];
 }
@@ -70,7 +70,7 @@ export function termenVan(data: GroepenAntwoord | null): Term[] {
       sleutel,
       naam: groepNaam(open[0] ?? gs[0]),
       open, besloten, vragenBinnen: binnen, vragenBuiten: buiten,
-      lijktOp: [...new Map(open.flatMap((g) => g.lijkt_op).map((b) => [b.begrip_id, { begrip_id: b.begrip_id, naam: b.naam }])).values()],
+      lijktOp: [...new Map(open.flatMap((g) => g.lijkt_op).map((b) => [b.begrip_id, { begrip_id: b.begrip_id, naam: b.naam, generiek: b.generiek }])).values()],
       passages: leden.length,
       regelingen: [...new Set(leden.map(regelingVan).filter(Boolean))].sort((a, b) => a.localeCompare(b, "nl")),
     });

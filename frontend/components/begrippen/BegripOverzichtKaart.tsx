@@ -2,16 +2,17 @@
 
 import Link from "next/link";
 
+import { knopKlasse } from "@/components/ui/Button";
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
 import { BEGRIP_STATUS_LABEL, kaartUrl, kort, type BegripOverzichtRij } from "@/lib/begrippenOverzicht";
 import type { BegripStatus } from "@/lib/types";
 import { StatusLabel } from "@/components/ui/Lijst";
 
-// Geaccordeerd is het enige oordeel; zoals elders groen (de status van een begrip in `BegripPaneel`).
+// Geaccordeerd is het enige oordeel; zoals elders groen (de status van een begrip in `BegripInhoud`).
 const TOON: Record<BegripStatus, "groen" | "neutraal"> = { geaccordeerd: "groen", concept: "neutraal", vervangen: "neutraal" };
 
 /** Eén begrip in het overzicht, in de vorm van `AnnotatieKaart` en `WerkgebiedKaart`: de naam is de link
- *  naar de kaart in zijn werkgebied, onderaan *Openen* en *Verwijderen* (niet bij een vervangen begrip:
+ *  naar het begrip in zijn werkgebied, onderaan *Openen* en *Verwijderen* (niet bij een vervangen begrip:
  *  verwijder dan de opvolger). */
 export function BegripOverzichtKaart({ b, onVerwijder }: { b: BegripOverzichtRij; onVerwijder: () => Promise<void> }) {
   const href = kaartUrl(b.werkgebied_id, b.id);
@@ -27,7 +28,9 @@ export function BegripOverzichtKaart({ b, onVerwijder }: { b: BegripOverzichtRij
         </StatusLabel>
       </div>
       <p className="text-xs text-muted">
-        {b.werkgebied_naam}
+        {b.kader === "generiek"
+          ? `Generiek · gebruikt in ${b.gebruikt_in === 1 ? "1 werkgebied" : `${b.gebruikt_in ?? 0} werkgebieden`}`
+          : b.werkgebied_naam}
         {b.alternatieve_termen.length > 0 && ` · ook: ${b.alternatieve_termen.join(", ")}`}
       </p>
       {b.definitie ? (
@@ -42,10 +45,7 @@ export function BegripOverzichtKaart({ b, onVerwijder }: { b: BegripOverzichtRij
         </p>
       )}
       <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
-        <Link href={href}
-          className="focus-ring inline-flex min-h-[24px] items-center rounded-knop-xs border border-line px-2.5 py-0.5 text-[11px] font-medium text-lint transition-colors hover:bg-surface coarse:min-h-[44px]">
-          Openen
-        </Link>
+        <Link href={href} className={`focus-ring ${knopKlasse("secondary", "xs")}`}>Openen</Link>
         {b.status !== "vervangen" && <VerwijderKnop soort="begrip" onBevestig={onVerwijder} className="ml-auto" />}
       </div>
     </article>

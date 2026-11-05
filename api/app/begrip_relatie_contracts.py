@@ -45,6 +45,13 @@ class NieuweBetekenis(Reden):
     verwachte_revisie: int = Field(ge=1)
 
 
+class CombinerenGeneriek(Reden):
+    """Het lokale begrip in de url gaat op in `generiek_id` (ADR-006)."""
+
+    verwachte_revisie: int = Field(ge=1)
+    generiek_id: str = Field(min_length=1, max_length=64)
+
+
 class Combineren(Reden):
     """Het begrip in de url blijft; `ander_begrip_id` wordt vervangen."""
 

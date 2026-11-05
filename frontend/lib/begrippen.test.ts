@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  LEGE_INHOUD, begripUitParam, gewijzigdeVelden, handmatigeInhoud, inhoudGewijzigd, isAlPrimair, isPoortFout, revisieZin,
-  sorteerKoppelingen, volledigeInhoud, weergaveUitParam,
+  LEGE_INHOUD, begripUitParam, filterBegrippen, gewijzigdeVelden, inhoudGewijzigd, isAlPrimair, isPoortFout, revisieZin,
+  sorteerKoppelingen, volledigeInhoud,
 } from "./begrippen";
 import type { Koppeling } from "./types";
 
@@ -49,12 +49,6 @@ it("begripUitParam laat alleen een id door", () => {
   expect(begripUitParam(undefined)).toBeUndefined();
 });
 
-it("weergaveUitParam: alleen `kaart` opent de kaart, al het andere is lezen", () => {
-  expect(weergaveUitParam("kaart")).toBe("kaart");
-  expect(weergaveUitParam("lezen")).toBe("lezen");
-  expect(weergaveUitParam("iets")).toBe("lezen");
-  expect(weergaveUitParam(undefined)).toBe("lezen");
-});
 
 describe("revisieZin", () => {
   it("noemt de gewijzigde velden in gewone woorden", () => {
@@ -69,13 +63,6 @@ describe("revisieZin", () => {
   });
 });
 
-it("een met de hand gewijzigde definitie is geformuleerd; ongewijzigd houdt ze haar herkomst", () => {
-  const oud = { ...LEGE_INHOUD, naam: "termijn", definitie: "de tijd", definitie_herkomst: "letterlijk" as const };
-  expect(handmatigeInhoud(oud, { definitie: " de tijd ", uitleg: "x" })).toMatchObject({ definitie_herkomst: "letterlijk", uitleg: "x" });
-  expect(handmatigeInhoud(oud, { definitie: "de periode", uitleg: "" }).definitie_herkomst).toBe("geformuleerd");
-  expect(handmatigeInhoud(oud, { definitie: "", uitleg: "" }).definitie_herkomst).toBeNull();
-});
-
 describe("definitieAard", () => {
   it("alleen een letterlijke definitie is een brondefinitie; de rest is een analysebegrip", async () => {
     const { definitieAard } = await import("./begrippen");
@@ -85,5 +72,16 @@ describe("definitieAard", () => {
       soort: "analysebegrip", uitleg: expect.stringContaining("geen wettelijke definitie") });
     expect(definitieAard({ definitie: "x", definitie_herkomst: "geformuleerd" }).soort).toBe("analysebegrip");
     expect(definitieAard({ definitie: "x" }).soort).toBe("analysebegrip");
+  });
+});
+
+describe("filterBegrippen", () => {
+  const b = (naam: string, status: "concept" | "geaccordeerd" | "vervangen", definitie = "", alternatieve_termen: string[] = []) =>
+    ({ status, inhoud: { ...LEGE_INHOUD, naam, definitie, alternatieve_termen } });
+  const lijst = [b("Aanslag", "concept", "Een beschikking"), b("Schuld", "geaccordeerd", "", ["last"]), b("Oud", "vervangen")];
+  it("filtert op status en zoekt in naam, termen en definitie", () => {
+    expect(filterBegrippen(lijst, { term: "", status: "vervangen" }).map((x) => x.inhoud.naam)).toEqual(["Oud"]);
+    expect(filterBegrippen(lijst, { term: "BESCHIK", status: "alle" }).map((x) => x.inhoud.naam)).toEqual(["Aanslag"]);
+    expect(filterBegrippen(lijst, { term: "last", status: "alle" }).map((x) => x.inhoud.naam)).toEqual(["Schuld"]);
   });
 });

@@ -1,5 +1,5 @@
 // De voorstellen van Lex per veld van een begrip (spoor D, fase E): de rekenkern achter
-// `KaartVoorstelKaart`, op de begripskaart en in `BegripPaneel`.
+// `KaartVoorstelKaart`, in `BegripInhoud`.
 //
 // Een voorstel van Lex is een eigen object bij de api (`api/app/begrip_voorstel_store.py`), geen
 // wijziging: pas *Overnemen* raakt het begrip. Lex vraag je in het gesprek (de begrippen-agent, F3c);

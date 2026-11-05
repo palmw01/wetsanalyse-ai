@@ -54,7 +54,7 @@ BEGRIP_TOOLS = [
            {"zoekterm": _d(S, "Woord of woorden uit naam, alternatieve term of definitie; leeg = alles."),
             "status": {"type": "array", "items": {"type": "string", "enum": list(STATUSSEN)}, "maxItems": 3,
                        "description": "Alleen deze statussen (meerdere = of)."},
-            "werkgebied_id": _d(S, "Alleen begrippen uit dit werkgebied."),
+            "werkgebied_id": _d(S, "Alleen begrippen uit dit werkgebied, plus de generieke begrippen."),
             "limit": {"type": "integer", "minimum": 1, "maximum": MAX_KANDIDATEN}}),
     schema("get_begrip", "Lees één begrip: inhoud (definitie met herkomst, context, uitleg, voorbeelden), status, "
            "werkgebied, de passages waarop het rust (rol, beoordeling, of de passage nog actueel is, vindplaats) "
@@ -90,6 +90,9 @@ def _woorden(zoekterm: str) -> list[str]:
     return [w for w in (zoekterm or "").casefold().split() if w][:8]
 
 
+GENERIEK = "generiek"
+
+
 def q_begrippen(zoekterm: str, statussen: list[str], werkgebied_id: str, limit: int) -> str:
     """Kandidaten uit de projectie. Alleen id's en werkgebied: wat telt, zegt de api daarna."""
     tekst = ""
@@ -101,7 +104,8 @@ def q_begrippen(zoekterm: str, statussen: list[str], werkgebied_id: str, limit: 
     if statussen:
         filters.append(f"?status IN ({', '.join(_lit(s) for s in statussen)})")
     if werkgebied_id:
-        filters.append(f"?wid = {_lit(werkgebied_id)}")
+        # Generieke begrippen staan boven de werkgebieden (ADR-006) en horen er altijd bij.
+        filters.append(f"?wid IN ({_lit(werkgebied_id)}, {_lit(GENERIEK)})")
     return _PREFIX + f"""SELECT DISTINCT ?c ?wid WHERE {{
   GRAPH ?g {{
     ?c a skos:Concept ; skos:inScheme ?k ; <{WA}status> ?status .
@@ -140,7 +144,10 @@ def _kort(tekst: str, n: int = 400) -> str:
 
 def _rij(r: dict[str, Any]) -> dict[str, Any]:
     uit = {"id": r["id"], "naam": r.get("naam", ""), "status": r.get("status", ""),
-           "werkgebied": r.get("werkgebied_naam", ""), "werkgebied_id": r.get("werkgebied_id", "")}
+           "werkgebied": r.get("werkgebied_naam", ""), "werkgebied_id": r.get("werkgebied_id") or ""}
+    if r.get("kader") == GENERIEK:
+        uit["generiek"] = True
+        uit["gebruikt_in"] = r.get("gebruikt_in", 0)
     if r.get("definitie"):
         uit["definitie"] = _kort(r["definitie"])
         uit["definitie_herkomst"] = r.get("definitie_herkomst") or ""
@@ -172,7 +179,7 @@ def zoek(args: dict[str, Any], graph, port) -> dict[str, Any]:
         return {k: bevestigd[k] for k in ("status", "volledig", "reden", "detail") if k in bevestigd}
     # De api is de waarheid: wat er niet meer is valt af, en status en werkgebied gelden zoals ze nu zijn.
     rijen = [r for r in (bevestigd.get("begrippen") or {}).values() if isinstance(r, dict)
-             and (not statussen or r.get("status") in statussen) and (not wg or r.get("werkgebied_id") == wg)]
+             and (not statussen or r.get("status") in statussen) and (not wg or r.get("werkgebied_id") in (wg, None))]
     rijen.sort(key=lambda r: (treffer(zoekterm, r), bool(eerst) and r.get("werkgebied_id") != eerst,
                               STATUS_VOLGORDE.get(r.get("status", ""), 9), normaal(r.get("naam", "")), r["id"]))
     achter = sorted(wid for wid, v in (bevestigd.get("werkgebieden") or {}).items()
@@ -206,6 +213,8 @@ def compact_begrip(result: dict[str, Any]) -> dict[str, Any]:
     velden = ("naam", "alternatieve_termen", "definitie", "definitie_herkomst", "definitie_door", "context", "uitleg")
     uit: dict[str, Any] = {"status": "ok", "volledig": True, "id": b.get("id", ""), "begrip_status": b.get("status", ""),
                            "revisie": b.get("revisie"), "werkgebied": wg.get("naam", ""), "werkgebied_id": wg.get("id", ""),
+                           **({"generiek": True, "gebruikt_in": [g.get("naam", "") for g in b.get("gebruik") or []]}
+                              if b.get("kader") == GENERIEK else {}),
                            **{k: i[k] for k in velden if i.get(k)}}
     if i.get("voorbeelden"):
         uit["voorbeelden"] = [{"tekst": _kort(v.get("tekst", ""), 300), "oordeel": v.get("oordeel", "")}

@@ -209,6 +209,24 @@ async def test_koppelen_aan_een_bestaand_begrip_dat_erop_lijkt(client):
     assert r.status_code == 200 and len(r.json()["koppelingen"]) == 2
 
 
+async def test_lijkt_op_noemt_een_generiek_begrip_en_koppelen_is_het_gaan_gebruiken(client):
+    """ADR-006: het werkgebied gebruikt het begrip nog niet; Lex noemt het, en koppelen voegt het gebruik toe."""
+    ids = await _annoteer()
+    wg = await _werkgebied(client)
+    b = (await client.post(f"/v1/werkgebieden/{wg['id']}/begrippen", json={"inhoud": {"naam": "De Alfa"}})).json()
+    async with db.get_engine().begin() as conn:
+        await conn.execute(update(db.begrippen).where(db.begrippen.c.id == b["id"]).values(
+            werkgebied_id=None, status="geaccordeerd"))
+    run = await _start(client, wg)
+    await _uitkomst(client, wg, run, [_groep("Gaaa111", [ids["alfa1"], ids["alfa2"]])])
+    groep = (await client.get(f"/v1/werkgebieden/{wg['id']}/groepen")).json()["groepen"][0]
+    assert [(x["begrip_id"], x["generiek"]) for x in groep["lijkt_op"]] == [(b["id"], True)]
+    assert (await client.get(f"/v1/werkgebieden/{wg['id']}/begrippen/{b['id']}")).status_code == 404
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/groepen/Gaaa111/koppelen", json={"begrip_id": b["id"], "akkoord": True})
+    assert r.status_code == 200, r.text
+    assert len(r.json()["koppelingen"]) == 2 and r.json()["status"] == "geaccordeerd"
+
+
 async def test_een_afwijzing_blijft_staan_als_de_groep_terugkomt(client):
     ids = await _annoteer()
     wg = await _werkgebied(client)

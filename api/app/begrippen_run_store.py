@@ -27,7 +27,7 @@ from typing import Awaitable, Callable
 
 from fastapi import HTTPException
 from pydantic import ValidationError
-from sqlalchemy import insert, select, update
+from sqlalchemy import insert, or_, select, update
 
 from . import begrip_onderzoek, begrip_store, db
 from .begrip_contracts import BegripInhoud
@@ -264,7 +264,9 @@ async def groepen(werkgebied_id: str) -> dict:
             conn, {e for x in rows.values() for e in x.leden} | genoemd)
     passages = {f["element_id"]: f for f in run.manifest["formuleringen"]}
     labels = {b["bron_iri"]: b["label"] for b in run.manifest["bronnen"]}
+    # Ook de generieke begrippen die dit werkgebied nog niet gebruikt: "lijkt op" is hoe Lex ze voorstelt (ADR-006).
     begrippen = await begrip_store.lijst(werkgebied_id)
+    begrippen += await begrip_store.generieke_buiten(werkgebied_id)
     uit = []
     for gid in ids:
         x = rows.get(gid)
@@ -273,7 +275,7 @@ async def groepen(werkgebied_id: str) -> dict:
         rest = [e for e in _rest(x) if e in passages]
         leden = set(rest)
         termen = {_norm(x.voorstel["naam"]), *(_norm(t) for t in (x.kaart or {}).get("alternatieve_termen", []))}
-        lijkt = [{"begrip_id": b["id"], "naam": b["inhoud"]["naam"],
+        lijkt = [{"begrip_id": b["id"], "naam": b["inhoud"]["naam"], "generiek": b.get("kader") == "generiek",
                   "gedeeld": sorted(leden & set(b["element_ids"]))}
                  for b in begrippen if b["status"] != "vervangen"
                  if leden & set(b["element_ids"]) or termen &
@@ -569,13 +571,17 @@ async def koppelen(werkgebied: dict, groep_id: str, k: GroepKoppeling, actor: st
         [row] = await _groepen_rij(conn, wid, [groep_id], slot=True)
         _niet_al_besloten([row])
         _kies_leden([row], leden, None)
-        q = select(b.c.revisie, b.c.status).where(b.c.id == k.begrip_id, b.c.werkgebied_id == wid, b.c.verwijderd.is_(None))
+        q = select(b.c.revisie, b.c.status, b.c.werkgebied_id).where(
+            b.c.id == k.begrip_id, or_(b.c.werkgebied_id == wid, b.c.werkgebied_id.is_(None)), b.c.verwijderd.is_(None))
         voor = (await conn.execute(q)).first()
         if voor is None:
             raise HTTPException(404, "Begrip bestaat niet.")
+        generiek = voor.werkgebied_id is None
+        if generiek:                    # koppelen aan een generiek begrip is het gaan gebruiken (ADR-006)
+            await begrip_store.gebruik_in(conn, wid, k.begrip_id, actor)
         await begrip_store.koppel_in(conn, wid, k.begrip_id, voor.revisie, bewijs, "duiding", "", actor,
                                      "akkoord" if k.akkoord else "open")
-        if k.akkoord and voor.status == "geaccordeerd":
+        if k.akkoord and voor.status == "geaccordeerd" and not generiek:
             await begrip_store.accordeer_in(conn, wid, k.begrip_id, (await conn.execute(q)).first().revisie, actor)
         await _verwerk(conn, wid, [row], leden, actor, k.begrip_id, "gekoppeld", "groep-gekoppeld",
                        {"akkoord": True} if k.akkoord else {})

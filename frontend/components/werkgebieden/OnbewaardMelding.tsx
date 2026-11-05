@@ -9,7 +9,7 @@ const WERKWOORD = { wisselen: "Wisselen", verlaten: "Verlaten", sluiten: "Sluite
  *  zelf, geen systeemvenster (zie `BevestigKnop` voor waarom). */
 export function OnbewaardMelding({ onBlijf, onToch, handeling = "wisselen", waar = "Hier", className = "" }: {
   onBlijf: () => void;
-  /** Waar de wijzigingen openstaan ("Op de begripskaart"); standaard algemeen, want elk bewerkveld meldt zich (4 nov 2026). */
+  /** Waar de wijzigingen openstaan ("Op de begrippagina"); standaard algemeen, want elk bewerkveld meldt zich (4 nov 2026). */
   waar?: string;
   /** Wat er wacht: een wissel binnen de pagina, de pagina verlaten of het paneel sluiten. */
   handeling?: keyof typeof WERKWOORD;

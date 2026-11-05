@@ -60,7 +60,8 @@ plaats van schijnzekerheid.
 > een veranderde dragende passage verschijnt in de herbeoordeling (toen naast nu, opvolger na
 > herannotatie), begrippen krijgen **relaties** met type en richting (kwalificatie, inclusie, uitsluiting,
 > soort van, verwant; Lex stelt ze voor) en een betekeniswijziging of combinatie levert een opvolger op
-> (het oude begrip wordt vervangen). Begrippen gaan als **NL-SBB-begrippenkader** de kennisgraaf in (per
+> (het oude begrip wordt vervangen). Een begrip kan **generiek** worden (ADR-006): één definitie boven de werkgebieden,
+> gebruikt zonder kopie, met de passages per werkgebied. Begrippen gaan als **NL-SBB-begrippenkader** de kennisgraaf in (per
 > werkgebied een named graph, conformiteit diagnostisch, Turtle-export). Lex **leest** de begrippen (zoeken in
 > die projectie, bevestigd door de api); de sidebar
 > heeft een overzicht *Begrippen* over alle werkgebieden heen. De RegelSpraak-formalisering
@@ -453,7 +454,8 @@ plan mag verouderen.
   (spaCy) vast. `adr-003-nl-sbb-begrippencontract.md` maakt NL-SBB het datacontract voor
   begrippen (activiteit 3), niet alleen het exportformaat. `adr-004-begrippenketen.md` ontwerpt
   de keten die betekenisgroepen voorstelt, in de vorm van `hybrid_v1`. `adr-005-vraag-lex-en-agents.md`
-  legt Vraag Lex en de agents onder de supervisor vast (F3).
+  legt Vraag Lex en de agents onder de supervisor vast (F3). `adr-006-generieke-begrippen.md` legt
+  het generieke begrippenkader boven de werkgebieden vast (spoor N).
 - `docs/architectuur/annotatieketen.md` – hoe de annotatieketen **nu** werkt: stappen,
   configuratie (`CLASSIFIER_GRANULARITEIT` e.d.), beslisbeleid, detectoren en bekende beperkingen.
   `docs/architectuur/metingen/README.md` is het meetlogboek: welke meting bij welke code hoort.

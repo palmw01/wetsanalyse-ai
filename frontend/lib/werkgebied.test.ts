@@ -233,3 +233,27 @@ describe("peildatum (3 nov 2026)", () => {
     expect(toestandMeldingen(null)).toEqual([]);
   });
 });
+
+describe("isGeneriekRoute", async () => {
+  const { isGeneriekRoute, isWerkgebiedRoute } = await import("./werkgebied");
+  it("laat het generieke kader en één begrip door, niet wat van graph-qa is", () => {
+    expect(isGeneriekRoute(["export"])).toBe(true);
+    expect(isGeneriekRoute(["conformiteit"])).toBe(true);
+    expect(isGeneriekRoute(["g1"])).toBe(true);
+    expect(isGeneriekRoute(["g1", "accorderen"])).toBe(true);
+    expect(isGeneriekRoute(["g1", "nieuwe-betekenis"])).toBe(true);
+    expect(isGeneriekRoute(["verifieer"])).toBe(false);
+    expect(isGeneriekRoute(["g1", "iets"])).toBe(false);
+    expect(isGeneriekRoute(["g1", "a", "b"])).toBe(false);
+    expect(isGeneriekRoute([])).toBe(false);
+  });
+  it("de werkgebiedroutes voor het gebruik", () => {
+    expect(isWerkgebiedRoute(["wg", "begrippen", "gebruik"])).toBe(true);
+    expect(isWerkgebiedRoute(["wg", "begrippen", "gebruik", "g1"])).toBe(true);
+    expect(isWerkgebiedRoute(["wg", "begrippen", "gebruik", "g1", "bevestigen"])).toBe(true);
+    expect(isWerkgebiedRoute(["wg", "begrippen", "gebruik", "g1", "opvolger"])).toBe(true);
+    expect(isWerkgebiedRoute(["wg", "begrippen", "gebruik", "g1", "iets"])).toBe(false);
+    expect(isWerkgebiedRoute(["wg", "begrippen", "b1", "generiek-maken"])).toBe(true);
+    expect(isWerkgebiedRoute(["wg", "begrippen", "b1", "combineren-generiek"])).toBe(true);
+  });
+});

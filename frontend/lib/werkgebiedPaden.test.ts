@@ -14,24 +14,21 @@ describe("paden", () => {
     expect(projectPad("wg1")).toBe("/werkgebieden/wg1");
     expect(projectPad("wg1", "bronnen")).toBe("/werkgebieden/wg1/bronnen");
     expect(deelvraagPad("wg1", "d 1")).toBe("/werkgebieden/wg1/deelvragen/d%201");
-    expect(artefactPad("wg1", "begrippen", { begrip: "b9", weergave: "kaart" }))
-      .toBe("/werkgebieden/wg1/artefacten/begrippen?begrip=b9&weergave=kaart");
-    expect(artefactPad("wg1", "begrippen", { deel: "samenhang", begrip: "b9" }))
+    expect(artefactPad("wg1", "begrippen", { deel: "samenhang" }))
       .toBe("/werkgebieden/wg1/artefacten/begrippen?deel=samenhang");
-    expect(artefactPad("wg1", "dossier", { begrip: "b9" })).toBe("/werkgebieden/wg1/artefacten/dossier");
   });
 
   it("elk juridisch object heeft een eigen pad", () => {
     expect(bronPad("urn:bwb:BWBR0004770:artikel:9")).toBe("/bronnen?bron_iri=urn%3Abwb%3ABWBR0004770%3Aartikel%3A9");
     expect(bronPad("urn:bwb:X", "wg1")).toBe("/bronnen?bron_iri=urn%3Abwb%3AX&werkgebied=wg1");
     expect(elementPad("e 1")).toBe("/annotaties/element/e%201");
-    expect(begripPad("wg1", "b9")).toBe("/begrippen/wg1/b9");
+    expect(begripPad("wg1", "b9")).toBe("/werkgebieden/wg1/begrippen/b9");
   });
 
   it("een oude ?tab= gaat naar zijn nieuwe plek", () => {
     expect(oudeTabNaar("wg1", { tab: "bronnen" })).toBe("/werkgebieden/wg1/bronnen");
     expect(oudeTabNaar("wg1", { tab: "elementen" })).toBe("/werkgebieden/wg1/artefacten/annotaties");
-    expect(oudeTabNaar("wg1", { tab: "begrippen", begrip: "b9" })).toBe("/werkgebieden/wg1/artefacten/begrippen?begrip=b9");
+    expect(oudeTabNaar("wg1", { tab: "begrippen", begrip: "b9" })).toBe(begripPad("wg1", "b9"));
     expect(oudeTabNaar("wg1", { tab: "samenhang" })).toBe("/werkgebieden/wg1/artefacten/begrippen?deel=samenhang");
     expect(oudeTabNaar("wg1", { tab: "historie" })).toBe("/werkgebieden/wg1/historie");
     expect(oudeTabNaar("wg1", {})).toBeNull();

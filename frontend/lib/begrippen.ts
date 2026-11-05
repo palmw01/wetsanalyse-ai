@@ -6,6 +6,7 @@ import type {
   Actualiteit,
   BegripInhoud,
   BegripRevisie,
+  BegripSamenvatting,
   DefinitieHerkomst,
   KoppelBeoordeling,
   KoppelRol,
@@ -140,14 +141,6 @@ export function begripUitParam(p: string | undefined): string | undefined {
   return p && /^[A-Za-z0-9-]{1,64}$/.test(p) ? p : undefined;
 }
 
-/** Hoe het gekozen begrip openstaat (F3e): lezen (`BegripPaneel`) of de kaart (`BegripWerk`). In de URL
- *  als `&weergave=kaart`; al het andere is lezen. */
-export type BegripWeergave = "lezen" | "kaart";
-
-export function weergaveUitParam(p: string | undefined): BegripWeergave {
-  return p === "kaart" ? "kaart" : "lezen";
-}
-
 /** Het element duidt al een ander begrip aan (409 `al_primair`). */
 export function isAlPrimair(e: unknown): boolean {
   return isApiError(e) && e.status === 409 && e.data?.fout === "al_primair";
@@ -213,13 +206,19 @@ export function revisieZin(r: Pick<BegripRevisie, "actie" | "detail">): string {
 export const regels = (xs: readonly string[]) => xs.join("\n");
 export const uitRegels = (tekst: string) => tekst.split("\n");
 
-/** De kleine bewerking in het begrippaneel (F3d): alleen definitie en uitleg. Een met de hand gewijzigde
- *  definitie is geformuleerd – ze staat niet meer letterlijk in de bron; leeg heeft geen herkomst. */
-export function handmatigeInhoud(inhoud: BegripInhoud, nieuw: { definitie: string; uitleg: string }): BegripInhoud {
-  const definitie = nieuw.definitie.trim();
-  const zelfde = definitie === inhoud.definitie.trim();
-  return {
-    ...inhoud, definitie, uitleg: nieuw.uitleg.trim(),
-    definitie_herkomst: zelfde ? inhoud.definitie_herkomst : definitie ? "geformuleerd" : null,
-  };
+export const EXPORT_FORMATEN = [
+  { formaat: "csv" as const, label: "CSV", uitleg: "één rij per passage, met vindplaats en bron" },
+  { formaat: "json" as const, label: "JSON", uitleg: "alle begrippen met hun koppelingen en bewijsstand" },
+  { formaat: "ttl" as const, label: "Turtle (NL-SBB)", uitleg: "de geaccordeerde begrippen als begrippenkader, met conformiteit per begrip" },
+  { formaat: "ttl-alle" as const, label: "Turtle, alle begrippen", uitleg: "ook concepten en vervangen begrippen, met hun status" },
+];
+
+export type BegripStatusFilter = "alle" | BegripSamenvatting["status"];
+
+/** De begrippen van het kader bij een zoekterm en status. De zoekterm kijkt naar naam, alternatieve termen en definitie. */
+export function filterBegrippen<T extends Pick<BegripSamenvatting, "status" | "inhoud">>(
+  begrippen: readonly T[], { term, status }: { term: string; status: BegripStatusFilter }): T[] {
+  const t = term.trim().toLowerCase();
+  return begrippen.filter((b) => (status === "alle" || b.status === status) && (!t
+    || [b.inhoud.naam, ...(b.inhoud.alternatieve_termen ?? []), b.inhoud.definitie ?? ""].some((x) => x.toLowerCase().includes(t))));
 }

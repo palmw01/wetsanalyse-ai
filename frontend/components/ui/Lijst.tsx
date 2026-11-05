@@ -33,7 +33,7 @@ export function Sectie({ titel, telling, toelichting, acties, niveau = 2, childr
         <div className="min-w-0">
           <Kop id={id} className="font-display text-sm font-semibold text-ink">
             {titel}
-            {telling !== undefined && <span className="ml-1.5 font-normal tabular-nums text-muted">{telling}</span>}
+            {telling !== undefined && <> <span className="font-normal tabular-nums text-muted">{telling}</span></>}
           </Kop>
           {toelichting && <p className="mt-0.5 text-xs text-muted">{toelichting}</p>}
         </div>

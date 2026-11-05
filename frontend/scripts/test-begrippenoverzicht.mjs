@@ -97,7 +97,7 @@ try {
   await page.getByText("Geen begrippen bij deze filters.").waitFor();
   await page.getByRole("searchbox", { name: "Zoeken in begrippen" }).fill("");
   await page.waitForFunction(() => !location.search.includes("q="));
-  await page.getByLabel("Werkgebied").selectOption("wg1");
+  await page.getByLabel("Kader").selectOption("wg1");
   await page.waitForURL(/werkgebied=wg1/);
   await lijst.waitFor();
   assert.match(queries.at(-1), /status=concept/);
@@ -108,7 +108,7 @@ try {
   await page.reload();
   await lijst.waitFor();
   assert.equal(await page.getByRole("button", { name: /^Concept/ }).getAttribute("aria-pressed"), "true");
-  assert.equal(await page.getByLabel("Werkgebied").inputValue(), "wg1");
+  assert.equal(await page.getByLabel("Kader").inputValue(), "wg1");
 
   // Verwijderen per rij, zoals in het paneel en op de kaart: de rij gaat meteen weg. Een vervangen begrip
   // heeft geen knop (verwijder de opvolger).
@@ -132,7 +132,7 @@ try {
 
   // Doorklikken opent de kaart in zijn werkgebied.
   await lijst.getByRole("link", { name: /Uitstel van betaling/ }).click();
-  await page.waitForURL(/\/begrippen\/wg1\/b2$/);
+  await page.waitForURL(/\/werkgebieden\/wg1\/begrippen\/b2$/);
 
   assert.deepEqual(errors, []);
   console.log("OK test-begrippenoverzicht");
