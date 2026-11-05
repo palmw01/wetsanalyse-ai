@@ -1,0 +1,68 @@
+{
+  "id": "UBT04",
+  "familie": "UBT",
+  "split": "ontwikkeling",
+  "bron_id": "urn:bwb:BWBR0004770:artikel:7a:lid:4",
+  "vindplaats": "BWBR0004770/7a/4",
+  "versie": "2026-10-01",
+  "tekst": "In bij ministeriële regeling aan te wijzen gevallen kan worden afgeweken van het eerste lid. Daarbij worden regels gesteld met betrekking tot de bestemming van een andere bankrekening voor de uitbetaling van inkomstenbelasting.",
+  "tekst_sha256": "0730804e3e31292123f7e5fdea29d689a7741d943ad847aba3cda78861f5847a",
+  "source_status": null,
+  "tekstsoort": "wet",
+  "constructies": [],
+  "referentie_status": "provisional",
+  "negatief": [],
+  "reviewvraag": "Beoordeel klasse en grenzen. Gold bevat alleen de elementen die de kandidaatruimte toetsen, niet elk naamwoord; dit is geen volledige annotatie.",
+  "gold": [
+    {
+      "gid": "E01",
+      "start": 0,
+      "eind": 51,
+      "tekst": "In bij ministeriële regeling aan te wijzen gevallen",
+      "klasse": "Delegatiebevoegdheid en delegatie-invulling",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Delegatiebevoegdheid.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    },
+    {
+      "gid": "E02",
+      "start": 52,
+      "eind": 91,
+      "tekst": "kan worden afgeweken van het eerste lid",
+      "klasse": "Rechtsbetrekking",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Bevoegdheid om af te wijken.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    },
+    {
+      "gid": "E03",
+      "start": 93,
+      "eind": 226,
+      "tekst": "Daarbij worden regels gesteld met betrekking tot de bestemming van een andere bankrekening voor de uitbetaling van inkomstenbelasting",
+      "klasse": "Delegatiebevoegdheid en delegatie-invulling",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Verplichte delegatie, anaforisch.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    }
+  ],
+  "concept": {
+    "bron": "Eigen lezing van de wettekst, 6 nov 2026",
+    "door": "AI-concept, niet beoordeeld",
+    "bron_iri": "urn:bwb:BWBR0004770:artikel:7a:lid:4"
+  }
+}

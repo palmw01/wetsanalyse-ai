@@ -1,0 +1,69 @@
+{
+  "id": "UBT08",
+  "familie": "UBT",
+  "split": "ontwikkeling",
+  "bron_id": "urn:bwb:BWBR0019237:artikel:6:lid:1:o:b",
+  "vindplaats": "BWBR0019237/6/1/b",
+  "versie": "2026-07-01",
+  "tekst": "van huurtoeslag op de bankrekening van een toegelaten instelling, als bedoeld in artikel 19 van de Woningwet;",
+  "tekst_sha256": "c054a3561ef7bcd7a59a24100bd773bbe560c82345773caf8ac7d552ff48228d",
+  "source_status": null,
+  "tekstsoort": "ministeriele_regeling",
+  "constructies": [],
+  "referentie_status": "provisional",
+  "negatief": [],
+  "reviewvraag": "Beoordeel klasse en grenzen. Gold bevat alleen de elementen die de kandidaatruimte toetsen, niet elk naamwoord; dit is geen volledige annotatie.",
+  "gold": [
+    {
+      "gid": "E01",
+      "start": 4,
+      "eind": 15,
+      "tekst": "huurtoeslag",
+      "klasse": "Rechtsobject",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Voorwerp.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    },
+    {
+      "gid": "E02",
+      "start": 19,
+      "eind": 64,
+      "tekst": "de bankrekening van een toegelaten instelling",
+      "klasse": "Rechtsobject",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Voorwerp.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    },
+    {
+      "gid": "E03",
+      "start": 39,
+      "eind": 64,
+      "tekst": "een toegelaten instelling",
+      "klasse": "Rechtssubject",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Partij; de norm staat in de aanhef.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    }
+  ],
+  "concept": {
+    "bron": "Eigen lezing van de wettekst, 6 nov 2026",
+    "door": "AI-concept, niet beoordeeld",
+    "bron_iri": "urn:bwb:BWBR0019237:artikel:6:lid:1:o:b"
+  },
+  "aanhef": "Als gevallen als bedoeld in artikel 25, derde lid, van de wet worden aangewezen uitbetalingen door de Dienst Toeslagen:"
+}

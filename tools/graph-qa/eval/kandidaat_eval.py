@@ -55,7 +55,7 @@ def meet(taal: str = "spacy:nl_core_news_md", casussen: str = casusbron.STANDAAR
     for c in casussen:
         tekst = c["tekst"]
         analyse = provider.analyseer(tekst) if provider else None
-        f = fuseer(detecteer_alles(BronTekst.van_tekst(c["id"], tekst, analyse=analyse)))
+        f = fuseer(detecteer_alles(BronTekst.van_tekst(c["id"], tekst, analyse=analyse, context=c.get("aanhef", ""))))
         gemengde_unies[c["id"]] = len(gemengd(f.bijdragen))
         for k in f.kandidaten:
             # Een kandidaat die de specificiteitsregels afwezen, reikte de span wél aan, maar
@@ -108,9 +108,10 @@ def markdown(m: dict) -> str:
     regels = [f"Referentie: {m['referenties']} spans, status **{m['referentie_status']}** (ankerdekking, geen recall).",
               f"Kandidaten: {m['kandidaten']} · candidate precision {pct(m['candidate_precision'])} · "
               f"kandidaten per referentie {m['kandidaten_per_referentie']:.2f}", "",
-              "| klasse | n | candidate recall | met klasse |", "|---|---:|---:|---:|"]
+              "| klasse | n | candidate recall | met klasse | hypothesen | precisie |", "|---|---:|---:|---:|---:|---:|"]
     for k, v in m["per_klasse"].items():
-        regels.append(f"| {k} | {v['n']} | {pct(v['candidate_recall'])} | {pct(v['met_klasse'])} |")
+        regels.append(f"| {k} | {v['n']} | {pct(v['candidate_recall'])} | {pct(v['met_klasse'])} | "
+                      f"{v['hypothesen']} | {pct(v['precisie'])} |")
     regels += [f"| **totaal** | {m['referenties']} | {pct(m['candidate_recall'])} "
                f"(incl. opties {pct(m['candidate_recall_incl_opties'])}) | {pct(m['candidate_recall_met_klasse'])} |",
                "", f"Afgewezen door JAS-specificiteitsregels: {m['afgewezen_door_specificiteit']}.",

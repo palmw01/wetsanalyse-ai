@@ -1,0 +1,3518 @@
+{
+  "referentie_status": "provisional",
+  "referenties": 58,
+  "kandidaten": 172,
+  "candidate_recall": 0.4827586206896552,
+  "candidate_recall_met_klasse": 0.3448275862068966,
+  "candidate_recall_incl_opties": 0.4827586206896552,
+  "candidate_precision": 0.16279069767441862,
+  "kandidaten_per_referentie": 2.9655172413793105,
+  "per_klasse": {
+    "Rechtssubject": {
+      "n": 15,
+      "candidate_recall": 1.0,
+      "met_klasse": 0.5333333333333333,
+      "hypothesen": 69,
+      "precisie": 0.11594202898550725
+    },
+    "Rechtsobject": {
+      "n": 5,
+      "candidate_recall": 1.0,
+      "met_klasse": 1.0,
+      "hypothesen": 155,
+      "precisie": 0.03225806451612903
+    },
+    "Rechtsbetrekking": {
+      "n": 10,
+      "candidate_recall": 0.1,
+      "met_klasse": 0.1,
+      "hypothesen": 5,
+      "precisie": 0.2
+    },
+    "Rechtsfeit": {
+      "n": 7,
+      "candidate_recall": 0.42857142857142855,
+      "met_klasse": 0.2857142857142857,
+      "hypothesen": 12,
+      "precisie": 0.16666666666666666
+    },
+    "Voorwaarde": {
+      "n": 7,
+      "candidate_recall": 0.14285714285714285,
+      "met_klasse": 0.14285714285714285,
+      "hypothesen": 24,
+      "precisie": 0.041666666666666664
+    },
+    "Afleidingsregel": {
+      "n": 3,
+      "candidate_recall": 0.0,
+      "met_klasse": 0.0,
+      "hypothesen": 0,
+      "precisie": null
+    },
+    "Variabele en variabelewaarde": {
+      "n": 0,
+      "candidate_recall": null,
+      "met_klasse": null,
+      "hypothesen": 109,
+      "precisie": 0.0
+    },
+    "Parameter en parameterwaarde": {
+      "n": 1,
+      "candidate_recall": 0.0,
+      "met_klasse": 0.0,
+      "hypothesen": 0,
+      "precisie": null
+    },
+    "Operator": {
+      "n": 2,
+      "candidate_recall": 0.5,
+      "met_klasse": 0.5,
+      "hypothesen": 4,
+      "precisie": 0.25
+    },
+    "Tijdsaanduiding": {
+      "n": 2,
+      "candidate_recall": 1.0,
+      "met_klasse": 1.0,
+      "hypothesen": 4,
+      "precisie": 0.5
+    },
+    "Plaatsaanduiding": {
+      "n": 0,
+      "candidate_recall": null,
+      "met_klasse": null,
+      "hypothesen": 0,
+      "precisie": null
+    },
+    "Delegatiebevoegdheid en delegatie-invulling": {
+      "n": 6,
+      "candidate_recall": 0.0,
+      "met_klasse": 0.0,
+      "hypothesen": 0,
+      "precisie": null
+    },
+    "Brondefinitie": {
+      "n": 0,
+      "candidate_recall": null,
+      "met_klasse": null,
+      "hypothesen": 0,
+      "precisie": null
+    }
+  },
+  "unieke_bijdrage_per_detector": {
+    "logisch": 1,
+    "naamwoordgroep": 14,
+    "nominalisatie": 3,
+    "norm": 1,
+    "tijd": 2,
+    "voorwaarde": 1
+  },
+  "afgewezen_door_specificiteit": 0,
+  "gemengde_unies": 2,
+  "gemengde_unies_per_casus": {
+    "UBT01": 0,
+    "UBT02": 0,
+    "UBT03": 0,
+    "UBT04": 0,
+    "UBT05": 0,
+    "UBT06": 0,
+    "UBT07": 0,
+    "UBT08": 0,
+    "UBT09": 0,
+    "UBT10": 0,
+    "UBT11": 0,
+    "UBT12": 0,
+    "UBT13": 2,
+    "UBT14": 0
+  },
+  "manifest": {
+    "schema_versie": 1,
+    "git_sha": "6d1d24e25d1e1950544acf87d90fc9ea6541c02b",
+    "werkkopie_schoon": false,
+    "python": "3.14.3",
+    "spacy": "3.8.16",
+    "casussen": "concept:UBT01,UBT02,UBT03,UBT04,UBT05,UBT06,UBT07,UBT08,UBT09,UBT10,UBT11,UBT12,UBT13,UBT14",
+    "diagnostisch": true,
+    "referentie": {
+      "docs/wetsanalyse/referentieset/concept/UBT01.json": "4d080844b518b98cf24ace84b55a45c311faba8c07415cadfaa0ceab776887d0",
+      "docs/wetsanalyse/referentieset/concept/UBT02.json": "665e1fc79580d0bbb163998b5fd58b789a2fd7c0be47b780ff5c6f40bfa1b1f7",
+      "docs/wetsanalyse/referentieset/concept/UBT03.json": "ecb732a89fd4df87457775245640ebc412150302978b8601815b5503ac472c89",
+      "docs/wetsanalyse/referentieset/concept/UBT04.json": "50ac6f42a1ebd699dabfefafd8ee6fdf7348711e21c93a40233da3fb0b2af8ca",
+      "docs/wetsanalyse/referentieset/concept/UBT05.json": "5810405e0fc5f3b6ff1388c63637f5e21938787788de0cc4599a8942f424db21",
+      "docs/wetsanalyse/referentieset/concept/UBT06.json": "49a20420a777600bac358b0fed3760ce5b565da443588f3957d95a743dd3ffb4",
+      "docs/wetsanalyse/referentieset/concept/UBT07.json": "686bf35027af11ad3ddff2f8b68812bc8a3c9de11fbe8abaddbcbbef05a10d4f",
+      "docs/wetsanalyse/referentieset/concept/UBT08.json": "b734ee7447b3829e5f94f0689fb90636083b4b177ceca205554048c26c842d8b",
+      "docs/wetsanalyse/referentieset/concept/UBT09.json": "ede6970c0bf383b9b3dce33426b1376c3c4a7bb841d900519d3ccb7b3aeb348e",
+      "docs/wetsanalyse/referentieset/concept/UBT10.json": "a1a2ad97dff9c6ddc1cdfc8101af772a5a3c573dcf66a97ebe46f99fe33153e0",
+      "docs/wetsanalyse/referentieset/concept/UBT11.json": "247483551ee029dbe82dedc8fa072501802dac0e7265475c7ac1127cefe527ea",
+      "docs/wetsanalyse/referentieset/concept/UBT12.json": "187afd2996c46ab2ecfced86b504a3895ad85097a48cb18a4717bde2a7729c3a",
+      "docs/wetsanalyse/referentieset/concept/UBT13.json": "af1dd0eaf18a640bdcf2c0c2bc8e893a76c03391811610b0ba003ad8b5c31f26",
+      "docs/wetsanalyse/referentieset/concept/UBT14.json": "6959248cdee4d4668c7bcccdc0f4c232f81b63be71c5edf9ee4dc7a4213fdde1"
+    },
+    "detectoren": {
+      "afleiding": "2.2.2+grenzen.1",
+      "delegatie": "1",
+      "numeriek": "1.2.1+verwijzing.2",
+      "operator": "1.1.1+verwijzing.2",
+      "plaats": "1.1+verwijzing.2",
+      "subject": "1+verwijzing.2",
+      "tijd": "2.3.3.2.2.1.1.1.2+verwijzing.2",
+      "voorwaarde": "1.1.1.1+verwijzing.2",
+      "definitie": "2",
+      "betekenis": "2",
+      "norm": "3",
+      "gevolg": "1",
+      "naamwoordgroep": "3+verwijzing.2",
+      "bijzin": "3+verwijzing.2",
+      "nominalisatie": "5+verwijzing.2",
+      "logisch": "2",
+      "functie": "3+grenzen.1+verwijzing.2",
+      "fusie": "3"
+    },
+    "code": {
+      "tools/graph-qa/agent/jas_pipeline/__init__.py": "818b7b65a045330d4305de598f96ed9bef285ba20455f4027e2b3e95fe516b49",
+      "tools/graph-qa/agent/jas_pipeline/beslisregister.py": "96178c07ad8d09d983179f57a35fff4c30447e8aee9f42e1ff2cafe4ce578528",
+      "tools/graph-qa/agent/jas_pipeline/besluit.py": "075699da249bf84b6fd4fcec8e4f8c0e12ab3df692b01f159cd957160e897ff9",
+      "tools/graph-qa/agent/jas_pipeline/bewijssterkte.py": "ab7d3ad76c77817895918e754c5d73ea49f94a47fc96380b0a0565b6421e7b8b",
+      "tools/graph-qa/agent/jas_pipeline/broncontext.py": "4ac8d10f0968fb86844b6e2b9f0ca1f0c720d56e9cf6cdf7e6edf5d4d8375a37",
+      "tools/graph-qa/agent/jas_pipeline/classificatie.py": "6c7b362b7e895470b0b3dfbcd0d53f52b9648eabeff76212456ae10194e418e4",
+      "tools/graph-qa/agent/jas_pipeline/dekking.py": "522891b34263f620c7caa8f2f72e478b16076eb26aa654ce8fc21f1690b9cfeb",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/__init__.py": "17b11978d2d246d4e06c8546873e529d50f2cbc4dd25745f27ef9fe9c1c44765",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/functies.py": "920e5a2b2a95a504c7692435ff84637bad132c31d43eb1b0b0a63d48917154e4",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/ontleding.py": "3f7d030f9eddefee85bb92d1d507846c3b300dcd20ffbcbf26d7e06b19880367",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/_maskers.yaml": "793b626333191de55649d90c78495bfe8e1fca99a780784f0bd0a3661692f467",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/_woordenlijsten.yaml": "eee598df07d55f35d64463bdd57c4f32fdf14b06383704f0e20a9973dc7efd0d",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/afleiding.yaml": "830089aeb05b21c5c249fb93b75e680b68557aebd97a3f0e97bff77985a52fa6",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/delegatie.yaml": "dd66f48198587b55525814cf45a377f5921ad46535b0676b2a9f33f96c3a5c73",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/numeriek.yaml": "77db2203d57933c57467f44aea628bfd4dd7495ac6aba1ee76173a45e8bb0648",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/operator.yaml": "4acae9e6b888f0973e499754fab765d6a057b1cb553af4dcb9136b6de073b43f",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/plaats.yaml": "a4dfe3b1a2b8c8322679134225b01f5f4be87fe161d2677fa6a0ae5fa1039d1d",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/subject.yaml": "86aa1532a7371df7301827f6ae2a878fbfcec42f7a282a87c08de345cc542773",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/tijd.yaml": "893c41beea948eafc464bf11270572d2f2499205fc66d581c1ed2598df995569",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/voorwaarde.yaml": "1e5c91d749db5c052ac196138e59d72fe03c1add8dac88d060360bbd5c930139",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels.py": "82ee923dcf21b42ee1e2e1a12b35cb4960737cdbf87e8c6afad53133230af061",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/structuur.py": "1ce578501b22665eb46e68c3fed2c58ce41af10395ded0b6cc3d256d55057821",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/syntactisch.py": "6c337c5b367c765745dd91b77993c00b0dfaf04a55e4de69f047c296cd2e86f6",
+      "tools/graph-qa/agent/jas_pipeline/fusie.py": "ab805cf7077351a5bc89b230a5186e0228d4309b94cef102fc754cad00864717",
+      "tools/graph-qa/agent/jas_pipeline/kandidaten.py": "cd7031025b0e6873b526d52c673700c13455bbd30a031e928561015d95be1445",
+      "tools/graph-qa/agent/jas_pipeline/keten.py": "7db25b56225f2b3d56b8ee3ee0d0566e09aa1fe790708b01fe404a1447df975c",
+      "tools/graph-qa/agent/jas_pipeline/onzekerheid.py": "a9ab0c6c1276cb2017bcec002d181f33466dc4d04a7d2bdca4e5698cc96deb16",
+      "tools/graph-qa/agent/jas_pipeline/profielen/01_rechtssubject.yaml": "6fee809b747197f8c99169c0a9dd0d2c7b9475a77e014ef034865a7f1f3354c2",
+      "tools/graph-qa/agent/jas_pipeline/profielen/02_rechtsobject.yaml": "b39ace08b3e54a399a942ae20bc0334d25a50fc2f5ea764b30213884d564fb95",
+      "tools/graph-qa/agent/jas_pipeline/profielen/03_rechtsbetrekking.yaml": "75272a5803033fa9bb41948ced38acc012d1f6bcd2005688bed6d28e626cece3",
+      "tools/graph-qa/agent/jas_pipeline/profielen/04_rechtsfeit.yaml": "f815c5bcb135c06a995f62ff8d9ba992d3d0386d845cacc5ce4df7cd065bb572",
+      "tools/graph-qa/agent/jas_pipeline/profielen/05_voorwaarde.yaml": "5cdc3dfbd4f2129646dad412720d834f5adf065b1ac2b8b7a8dcb87ee0158a15",
+      "tools/graph-qa/agent/jas_pipeline/profielen/06_afleidingsregel.yaml": "7de9e6df0fb2b6e07d83f8f6159bde1913399035948ee496f452c89b174ee091",
+      "tools/graph-qa/agent/jas_pipeline/profielen/07_variabele.yaml": "08c709a12d8fa8d1dd81e39cba6b3ca298597806ae996e28025e1c5e8e6b3748",
+      "tools/graph-qa/agent/jas_pipeline/profielen/08_parameter.yaml": "bf226186c2b26217a4c8e065934b0b0e3f600debdea7cb3520a0d8971dad9552",
+      "tools/graph-qa/agent/jas_pipeline/profielen/09_operator.yaml": "950cf67f01eb84e74d8d2fa5b212714bcc7eb10bd0ebd0a7bbbdc36a3550ba6f",
+      "tools/graph-qa/agent/jas_pipeline/profielen/10_tijdsaanduiding.yaml": "197f283d8a49b706c637c9bbbc7e0ef1e5965a70507a1e19ad277be2ccb30e37",
+      "tools/graph-qa/agent/jas_pipeline/profielen/11_plaatsaanduiding.yaml": "b9edd04ae81cbc32a1250b656fc565e5e5ca434028073b9493ad1a9b799b5189",
+      "tools/graph-qa/agent/jas_pipeline/profielen/12_delegatie.yaml": "703296d23142027efb17e6cfdd0c2be78e7ed31229041b000fa62d29cbdb5654",
+      "tools/graph-qa/agent/jas_pipeline/profielen/13_brondefinitie.yaml": "bcfd7b350c273f7c698743a074a1764832d65e32146aa7f6aa419f894c85874d",
+      "tools/graph-qa/agent/jas_pipeline/profielen/__init__.py": "f2ac727989dd7d00abf223b679db229b1e23b121107297e570e7d0206876404f",
+      "tools/graph-qa/agent/jas_pipeline/resolver.py": "61f6e5367f6ff7ae762014f7388f49b41ab01a9b52d36d9a556801ce2b834d5d",
+      "tools/graph-qa/agent/jas_pipeline/review.py": "7c7057ae50627e0d6d53736ebcf20a7ce446ada7c0bff549ca9f552431149603",
+      "tools/graph-qa/agent/jas_pipeline/reviewload.py": "b1591ecfcf6fbaa740dc4a0e65f372fda307549c3aed6ea061f7f2540d18e460",
+      "tools/graph-qa/agent/jas_pipeline/specificiteit.py": "aa1533eea6ef8f0da177aa2718a3f7cd65cf91a3d7972a466e805de460bf0e61",
+      "tools/graph-qa/agent/jas_pipeline/subtype.py": "c15e294e00e9d66d1a9c43475877b6ac21081923c13ef34aae338ff0773fc996",
+      "tools/graph-qa/agent/jas_pipeline/taal/__init__.py": "be2f1de2e10f1d464a9c153d31acfc34664b68e21221359ff62a89feed5bd011",
+      "tools/graph-qa/agent/jas_pipeline/taal/afgeleid.py": "dd4e98459376b43c9d6dd18f810888c8356d9ef779f7b2d71845f08ec44c03f9",
+      "tools/graph-qa/agent/jas_pipeline/taal/grenzen.py": "519f1c6624c932be63a1780ac53252937ea567f2b18df9b9627c243ca3d8b15e",
+      "tools/graph-qa/agent/jas_pipeline/taal/model.py": "3371b6fa9fad67d66538b12083c6a699ea54cc31635203072e21f21564aac0f3",
+      "tools/graph-qa/agent/jas_pipeline/taal/provider.py": "5367901794a35dbe4b3ae2a9c9bac057fd6227dfd65565d04fc2303904f808aa",
+      "tools/graph-qa/agent/jas_pipeline/taal/structuur.py": "fe8b698abd9ae4be5917d99f240dfbbc51b178ac3d03a07a6c9c9dff315eb33c",
+      "tools/graph-qa/agent/jas_pipeline/taal/telwoorden.py": "55e47c63bcb6fc37c57c6512a1f3cc5f9f0c8f6f47adf12c00e02d313286aea2",
+      "tools/graph-qa/agent/jas_pipeline/taal/verwijzingen.py": "2f12865513651b57bb48290817bcad950fa1973a40d12e4faf1d3b8a8f902690",
+      "tools/graph-qa/agent/jas_pipeline/uitleg.py": "7db9e8103d794618252344b6ca87566556fb9d25ef66c8ff0fc4f0467e710125",
+      "tools/graph-qa/agent/jas_pipeline/validatie.py": "291021f7a95e0dd78e300c3e98c0fb7cabd33ad0064e5f88f08930bdac9c992c",
+      "tools/graph-qa/agent/jas_pipeline/verklaringen.py": "cc7f1dc8dac0d9239d0ce3dc95146fed908b5707b1d7048000ef8a03f1d7495d",
+      "tools/graph-qa/agent/jas_pipeline/verklaringen.yaml": "71bb46d9ada877a781f2e6a4d507f1aab4d63984b251f6658c2d73271c4d60db",
+      "tools/graph-qa/uv.lock": "c3b9de6bc154f2c3cc2287cdaae0e297e406fd75fbff692b60aaa910b154e89a"
+    }
+  },
+  "elementen": {
+    "UBT01/E01": {
+      "klasse": "Rechtsbetrekking",
+      "start": 77,
+      "eind": 300,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT01/E02": {
+      "klasse": "Rechtssubject",
+      "start": 99,
+      "eind": 116,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Rechtsobject",
+        "Rechtssubject"
+      ]
+    },
+    "UBT01/E03": {
+      "klasse": "Rechtsobject",
+      "start": 121,
+      "eind": 134,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ]
+    },
+    "UBT01/E04": {
+      "klasse": "Rechtsobject",
+      "start": 138,
+      "eind": 156,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ]
+    },
+    "UBT01/E05": {
+      "klasse": "Rechtssubject",
+      "start": 162,
+      "eind": 181,
+      "core": true,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ]
+    },
+    "UBT01/E06": {
+      "klasse": "Rechtsobject",
+      "start": 204,
+      "eind": 260,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ]
+    },
+    "UBT01/E07": {
+      "klasse": "Voorwaarde",
+      "start": 261,
+      "eind": 300,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT01/E08": {
+      "klasse": "Rechtsbetrekking",
+      "start": 302,
+      "eind": 470,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Rechtsbetrekking"
+      ]
+    },
+    "UBT01/E09": {
+      "klasse": "Rechtssubject",
+      "start": 302,
+      "eind": 319,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Rechtsobject",
+        "Rechtssubject"
+      ]
+    },
+    "UBT01/E10": {
+      "klasse": "Operator",
+      "start": 324,
+      "eind": 337,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT01/E11": {
+      "klasse": "Parameter en parameterwaarde",
+      "start": 338,
+      "eind": 341,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT01/E12": {
+      "klasse": "Rechtsfeit",
+      "start": 370,
+      "eind": 424,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT01/E13": {
+      "klasse": "Rechtsfeit",
+      "start": 433,
+      "eind": 470,
+      "core": true,
+      "optie": true,
+      "met_klasse": true,
+      "klassen": [
+        "Rechtsfeit",
+        "Rechtsobject",
+        "Voorwaarde"
+      ]
+    },
+    "UBT02/E01": {
+      "klasse": "Delegatiebevoegdheid en delegatie-invulling",
+      "start": 0,
+      "eind": 142,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT02/E02": {
+      "klasse": "Rechtsbetrekking",
+      "start": 143,
+      "eind": 192,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT02/E03": {
+      "klasse": "Rechtssubject",
+      "start": 8,
+      "eind": 21,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Rechtsobject",
+        "Rechtssubject"
+      ]
+    },
+    "UBT02/E04": {
+      "klasse": "Delegatiebevoegdheid en delegatie-invulling",
+      "start": 194,
+      "eind": 344,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT02/E05": {
+      "klasse": "Rechtsfeit",
+      "start": 243,
+      "eind": 284,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT02/E06": {
+      "klasse": "Rechtsfeit",
+      "start": 290,
+      "eind": 322,
+      "core": true,
+      "optie": true,
+      "met_klasse": true,
+      "klassen": [
+        "Rechtsfeit",
+        "Rechtsobject",
+        "Voorwaarde"
+      ]
+    },
+    "UBT03/E01": {
+      "klasse": "Voorwaarde",
+      "start": 0,
+      "eind": 201,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT03/E02": {
+      "klasse": "Rechtsbetrekking",
+      "start": 202,
+      "eind": 286,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT03/E03": {
+      "klasse": "Rechtssubject",
+      "start": 210,
+      "eind": 222,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Rechtsobject",
+        "Rechtssubject"
+      ]
+    },
+    "UBT03/E04": {
+      "klasse": "Rechtssubject",
+      "start": 8,
+      "eind": 29,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Rechtsobject",
+        "Rechtssubject"
+      ]
+    },
+    "UBT04/E01": {
+      "klasse": "Delegatiebevoegdheid en delegatie-invulling",
+      "start": 0,
+      "eind": 51,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT04/E02": {
+      "klasse": "Rechtsbetrekking",
+      "start": 52,
+      "eind": 91,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT04/E03": {
+      "klasse": "Delegatiebevoegdheid en delegatie-invulling",
+      "start": 93,
+      "eind": 226,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT05/E01": {
+      "klasse": "Delegatiebevoegdheid en delegatie-invulling",
+      "start": 0,
+      "eind": 118,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT05/E02": {
+      "klasse": "Afleidingsregel",
+      "start": 0,
+      "eind": 118,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT05/E03": {
+      "klasse": "Rechtsfeit",
+      "start": 80,
+      "eind": 93,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT05/E04": {
+      "klasse": "Rechtssubject",
+      "start": 99,
+      "eind": 118,
+      "core": true,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ]
+    },
+    "UBT06/E01": {
+      "klasse": "Rechtssubject",
+      "start": 4,
+      "eind": 15,
+      "core": true,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ]
+    },
+    "UBT07/E01": {
+      "klasse": "Rechtssubject",
+      "start": 4,
+      "eind": 21,
+      "core": true,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ]
+    },
+    "UBT08/E01": {
+      "klasse": "Rechtsobject",
+      "start": 4,
+      "eind": 15,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ]
+    },
+    "UBT08/E02": {
+      "klasse": "Rechtsobject",
+      "start": 19,
+      "eind": 64,
+      "core": true,
+      "optie": true,
+      "met_klasse": true,
+      "klassen": [
+        "Rechtsfeit",
+        "Rechtsobject",
+        "Voorwaarde"
+      ]
+    },
+    "UBT08/E03": {
+      "klasse": "Rechtssubject",
+      "start": 39,
+      "eind": 64,
+      "core": true,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ]
+    },
+    "UBT09/E01": {
+      "klasse": "Rechtssubject",
+      "start": 4,
+      "eind": 13,
+      "core": true,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ]
+    },
+    "UBT09/E02": {
+      "klasse": "Voorwaarde",
+      "start": 15,
+      "eind": 55,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT09/E03": {
+      "klasse": "Voorwaarde",
+      "start": 57,
+      "eind": 141,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Voorwaarde"
+      ]
+    },
+    "UBT09/E04": {
+      "klasse": "Voorwaarde",
+      "start": 143,
+      "eind": 287,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT09/E05": {
+      "klasse": "Rechtsfeit",
+      "start": 292,
+      "eind": 325,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT09/E06": {
+      "klasse": "Operator",
+      "start": 83,
+      "eind": 87,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Operator"
+      ]
+    },
+    "UBT10/E01": {
+      "klasse": "Voorwaarde",
+      "start": 0,
+      "eind": 194,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT10/E02": {
+      "klasse": "Rechtsbetrekking",
+      "start": 196,
+      "eind": 379,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT10/E03": {
+      "klasse": "Rechtssubject",
+      "start": 263,
+      "eind": 282,
+      "core": true,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ]
+    },
+    "UBT10/E04": {
+      "klasse": "Rechtssubject",
+      "start": 286,
+      "eind": 304,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Rechtsobject",
+        "Rechtssubject",
+        "Variabele en variabelewaarde"
+      ]
+    },
+    "UBT11/E01": {
+      "klasse": "Rechtsbetrekking",
+      "start": 62,
+      "eind": 191,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT11/E02": {
+      "klasse": "Rechtsbetrekking",
+      "start": 257,
+      "eind": 379,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT12/E01": {
+      "klasse": "Delegatiebevoegdheid en delegatie-invulling",
+      "start": 0,
+      "eind": 155,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT12/E02": {
+      "klasse": "Afleidingsregel",
+      "start": 0,
+      "eind": 155,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT12/E03": {
+      "klasse": "Rechtsfeit",
+      "start": 81,
+      "eind": 94,
+      "core": true,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ]
+    },
+    "UBT12/E04": {
+      "klasse": "Rechtssubject",
+      "start": 123,
+      "eind": 135,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Rechtsobject",
+        "Rechtssubject"
+      ]
+    },
+    "UBT13/E01": {
+      "klasse": "Rechtsbetrekking",
+      "start": 109,
+      "eind": 136,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT13/E02": {
+      "klasse": "Rechtssubject",
+      "start": 0,
+      "eind": 9,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Rechtsobject",
+        "Rechtssubject",
+        "Variabele en variabelewaarde"
+      ]
+    },
+    "UBT13/E03": {
+      "klasse": "Afleidingsregel",
+      "start": 467,
+      "eind": 915,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT13/E04": {
+      "klasse": "Tijdsaanduiding",
+      "start": 767,
+      "eind": 791,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Tijdsaanduiding"
+      ]
+    },
+    "UBT13/E05": {
+      "klasse": "Tijdsaanduiding",
+      "start": 866,
+      "eind": 890,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Tijdsaanduiding"
+      ]
+    },
+    "UBT14/E01": {
+      "klasse": "Rechtsbetrekking",
+      "start": 42,
+      "eind": 51,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "UBT14/E02": {
+      "klasse": "Voorwaarde",
+      "start": 11,
+      "eind": 41,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    }
+  },
+  "kandidatenlijst": [
+    {
+      "bron": "UBT01",
+      "start": 3,
+      "eind": 12,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "afwijking"
+    },
+    {
+      "bron": "UBT01",
+      "start": 47,
+      "eind": 62,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de Algemene wet"
+    },
+    {
+      "bron": "UBT01",
+      "start": 63,
+      "eind": 76,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "bestuursrecht"
+    },
+    {
+      "bron": "UBT01",
+      "start": 83,
+      "eind": 94,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          83,
+          181
+        ]
+      ],
+      "tekst": "uitbetaling"
+    },
+    {
+      "bron": "UBT01",
+      "start": 99,
+      "eind": 116,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "naamwoordgroep",
+        "subject"
+      ],
+      "opties": [
+        [
+          99,
+          134
+        ]
+      ],
+      "tekst": "de belanghebbende"
+    },
+    {
+      "bron": "UBT01",
+      "start": 121,
+      "eind": 134,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "een voorschot"
+    },
+    {
+      "bron": "UBT01",
+      "start": 138,
+      "eind": 181,
+      "possible_classes": [
+        "Rechtsfeit",
+        "Voorwaarde",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "nominalisatie"
+      ],
+      "opties": [],
+      "tekst": "een tegemoetkoming door de Dienst Toeslagen"
+    },
+    {
+      "bron": "UBT01",
+      "start": 138,
+      "eind": 156,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          138,
+          181
+        ]
+      ],
+      "tekst": "een tegemoetkoming"
+    },
+    {
+      "bron": "UBT01",
+      "start": 162,
+      "eind": 181,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de Dienst Toeslagen"
+    },
+    {
+      "bron": "UBT01",
+      "start": 194,
+      "eind": 200,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "plaats"
+    },
+    {
+      "bron": "UBT01",
+      "start": 204,
+      "eind": 300,
+      "possible_classes": [
+        "Voorwaarde",
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "bijzin"
+      ],
+      "opties": [],
+      "tekst": "een daartoe door de belanghebbende bestemde bankrekening die op naam staat van de belanghebbende"
+    },
+    {
+      "bron": "UBT01",
+      "start": 204,
+      "eind": 260,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          204,
+          300
+        ]
+      ],
+      "tekst": "een daartoe door de belanghebbende bestemde bankrekening"
+    },
+    {
+      "bron": "UBT01",
+      "start": 221,
+      "eind": 238,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "subject"
+      ],
+      "opties": [],
+      "tekst": "de belanghebbende"
+    },
+    {
+      "bron": "UBT01",
+      "start": 273,
+      "eind": 300,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "subject"
+      ],
+      "opties": [
+        [
+          273,
+          278
+        ]
+      ],
+      "tekst": "staat van de belanghebbende"
+    },
+    {
+      "bron": "UBT01",
+      "start": 283,
+      "eind": 300,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "naamwoordgroep",
+        "subject"
+      ],
+      "opties": [],
+      "tekst": "de belanghebbende"
+    },
+    {
+      "bron": "UBT01",
+      "start": 302,
+      "eind": 470,
+      "possible_classes": [
+        "Rechtsbetrekking"
+      ],
+      "detectors": [
+        "norm"
+      ],
+      "opties": [],
+      "tekst": "De belanghebbende kan niet meer dan één bankrekening bestemmen voor de uitbetaling van een voorschot of een tegemoetkoming en voor de uitbetaling van inkomstenbelasting."
+    },
+    {
+      "bron": "UBT01",
+      "start": 302,
+      "eind": 319,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "naamwoordgroep",
+        "subject"
+      ],
+      "opties": [],
+      "tekst": "De belanghebbende"
+    },
+    {
+      "bron": "UBT01",
+      "start": 324,
+      "eind": 354,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "niet meer dan één bankrekening"
+    },
+    {
+      "bron": "UBT01",
+      "start": 329,
+      "eind": 337,
+      "possible_classes": [
+        "Operator"
+      ],
+      "detectors": [
+        "operator"
+      ],
+      "opties": [],
+      "tekst": "meer dan"
+    },
+    {
+      "bron": "UBT01",
+      "start": 370,
+      "eind": 470,
+      "possible_classes": [
+        "Rechtsfeit",
+        "Voorwaarde",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "nominalisatie"
+      ],
+      "opties": [],
+      "tekst": "de uitbetaling van een voorschot of een tegemoetkoming en voor de uitbetaling van inkomstenbelasting"
+    },
+    {
+      "bron": "UBT01",
+      "start": 370,
+      "eind": 384,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          370,
+          470
+        ]
+      ],
+      "tekst": "de uitbetaling"
+    },
+    {
+      "bron": "UBT01",
+      "start": 389,
+      "eind": 402,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "een voorschot"
+    },
+    {
+      "bron": "UBT01",
+      "start": 406,
+      "eind": 424,
+      "possible_classes": [
+        "Rechtsobject",
+        "Rechtssubject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "een tegemoetkoming"
+    },
+    {
+      "bron": "UBT01",
+      "start": 433,
+      "eind": 470,
+      "possible_classes": [
+        "Rechtsfeit",
+        "Voorwaarde",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "nominalisatie"
+      ],
+      "opties": [],
+      "tekst": "de uitbetaling van inkomstenbelasting"
+    },
+    {
+      "bron": "UBT01",
+      "start": 433,
+      "eind": 447,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          433,
+          470
+        ]
+      ],
+      "tekst": "de uitbetaling"
+    },
+    {
+      "bron": "UBT01",
+      "start": 452,
+      "eind": 470,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "inkomstenbelasting"
+    },
+    {
+      "bron": "UBT02",
+      "start": 0,
+      "eind": 192,
+      "possible_classes": [
+        "Rechtsbetrekking"
+      ],
+      "detectors": [
+        "norm"
+      ],
+      "opties": [],
+      "tekst": "In door Onze Minister in overeenstemming met Onze Ministers die het mede aangaat bij of krachtens ministeriële regeling aan te wijzen gevallen kan worden afgeweken van het eerste en tweede lid."
+    },
+    {
+      "bron": "UBT02",
+      "start": 8,
+      "eind": 21,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "naamwoordgroep",
+        "subject"
+      ],
+      "opties": [
+        [
+          8,
+          80
+        ]
+      ],
+      "tekst": "Onze Minister"
+    },
+    {
+      "bron": "UBT02",
+      "start": 25,
+      "eind": 40,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "overeenstemming"
+    },
+    {
+      "bron": "UBT02",
+      "start": 45,
+      "eind": 80,
+      "possible_classes": [
+        "Voorwaarde",
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "bijzin"
+      ],
+      "opties": [],
+      "tekst": "Onze Ministers die het mede aangaat"
+    },
+    {
+      "bron": "UBT02",
+      "start": 45,
+      "eind": 59,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "naamwoordgroep",
+        "subject"
+      ],
+      "opties": [
+        [
+          45,
+          80
+        ]
+      ],
+      "tekst": "Onze Ministers"
+    },
+    {
+      "bron": "UBT02",
+      "start": 98,
+      "eind": 119,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "ministeriële regeling"
+    },
+    {
+      "bron": "UBT02",
+      "start": 168,
+      "eind": 192,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "het eerste en tweede lid"
+    },
+    {
+      "bron": "UBT02",
+      "start": 209,
+      "eind": 215,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "regels"
+    },
+    {
+      "bron": "UBT02",
+      "start": 228,
+      "eind": 344,
+      "possible_classes": [
+        "Rechtsfeit",
+        "Voorwaarde",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "nominalisatie"
+      ],
+      "opties": [],
+      "tekst": "betrekking tot de bestemming van een andere bankrekening voor de uitbetaling van een voorschot of een tegemoetkoming"
+    },
+    {
+      "bron": "UBT02",
+      "start": 243,
+      "eind": 256,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          228,
+          344
+        ]
+      ],
+      "tekst": "de bestemming"
+    },
+    {
+      "bron": "UBT02",
+      "start": 261,
+      "eind": 284,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          261,
+          322
+        ]
+      ],
+      "tekst": "een andere bankrekening"
+    },
+    {
+      "bron": "UBT02",
+      "start": 290,
+      "eind": 322,
+      "possible_classes": [
+        "Rechtsfeit",
+        "Voorwaarde",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "nominalisatie"
+      ],
+      "opties": [],
+      "tekst": "de uitbetaling van een voorschot"
+    },
+    {
+      "bron": "UBT02",
+      "start": 290,
+      "eind": 304,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          290,
+          322
+        ]
+      ],
+      "tekst": "de uitbetaling"
+    },
+    {
+      "bron": "UBT02",
+      "start": 309,
+      "eind": 322,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "een voorschot"
+    },
+    {
+      "bron": "UBT02",
+      "start": 326,
+      "eind": 344,
+      "possible_classes": [
+        "Rechtsobject",
+        "Rechtssubject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "een tegemoetkoming"
+    },
+    {
+      "bron": "UBT03",
+      "start": 0,
+      "eind": 286,
+      "possible_classes": [
+        "Voorwaarde"
+      ],
+      "detectors": [
+        "voorwaarde"
+      ],
+      "opties": [],
+      "tekst": "Ingeval de belastingschuldige geen bankrekening heeft bestemd voor betaling van rijksbelastingen dan wel andere belastingen of heffingen voor zover de invordering daarvan is opgedragen aan de ontvanger betaalt de ontvanger op een bankrekening die op naam staat van de belastingschuldige"
+    },
+    {
+      "bron": "UBT03",
+      "start": 0,
+      "eind": 7,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "Ingeval"
+    },
+    {
+      "bron": "UBT03",
+      "start": 8,
+      "eind": 29,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "naamwoordgroep",
+        "subject"
+      ],
+      "opties": [],
+      "tekst": "de belastingschuldige"
+    },
+    {
+      "bron": "UBT03",
+      "start": 30,
+      "eind": 47,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "geen bankrekening"
+    },
+    {
+      "bron": "UBT03",
+      "start": 67,
+      "eind": 96,
+      "possible_classes": [
+        "Rechtsfeit",
+        "Voorwaarde",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "nominalisatie"
+      ],
+      "opties": [],
+      "tekst": "betaling van rijksbelastingen"
+    },
+    {
+      "bron": "UBT03",
+      "start": 67,
+      "eind": 75,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          67,
+          96
+        ]
+      ],
+      "tekst": "betaling"
+    },
+    {
+      "bron": "UBT03",
+      "start": 80,
+      "eind": 96,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "rijksbelastingen"
+    },
+    {
+      "bron": "UBT03",
+      "start": 97,
+      "eind": 104,
+      "possible_classes": [
+        "Operator"
+      ],
+      "detectors": [
+        "operator"
+      ],
+      "opties": [],
+      "tekst": "dan wel"
+    },
+    {
+      "bron": "UBT03",
+      "start": 127,
+      "eind": 136,
+      "possible_classes": [
+        "Rechtsobject",
+        "Rechtssubject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "heffingen"
+    },
+    {
+      "bron": "UBT03",
+      "start": 148,
+      "eind": 170,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de invordering daarvan"
+    },
+    {
+      "bron": "UBT03",
+      "start": 189,
+      "eind": 201,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "naamwoordgroep",
+        "subject"
+      ],
+      "opties": [],
+      "tekst": "de ontvanger"
+    },
+    {
+      "bron": "UBT03",
+      "start": 210,
+      "eind": 222,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "naamwoordgroep",
+        "subject"
+      ],
+      "opties": [],
+      "tekst": "de ontvanger"
+    },
+    {
+      "bron": "UBT03",
+      "start": 226,
+      "eind": 286,
+      "possible_classes": [
+        "Voorwaarde",
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "bijzin"
+      ],
+      "opties": [],
+      "tekst": "een bankrekening die op naam staat van de belastingschuldige"
+    },
+    {
+      "bron": "UBT03",
+      "start": 226,
+      "eind": 242,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          226,
+          286
+        ]
+      ],
+      "tekst": "een bankrekening"
+    },
+    {
+      "bron": "UBT03",
+      "start": 255,
+      "eind": 286,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "subject"
+      ],
+      "opties": [
+        [
+          255,
+          260
+        ]
+      ],
+      "tekst": "staat van de belastingschuldige"
+    },
+    {
+      "bron": "UBT03",
+      "start": 265,
+      "eind": 286,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "naamwoordgroep",
+        "subject"
+      ],
+      "opties": [],
+      "tekst": "de belastingschuldige"
+    },
+    {
+      "bron": "UBT04",
+      "start": 0,
+      "eind": 91,
+      "possible_classes": [
+        "Rechtsbetrekking"
+      ],
+      "detectors": [
+        "norm"
+      ],
+      "opties": [],
+      "tekst": "In bij ministeriële regeling aan te wijzen gevallen kan worden afgeweken van het eerste lid."
+    },
+    {
+      "bron": "UBT04",
+      "start": 7,
+      "eind": 28,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "ministeriële regeling"
+    },
+    {
+      "bron": "UBT04",
+      "start": 108,
+      "eind": 114,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "regels"
+    },
+    {
+      "bron": "UBT04",
+      "start": 127,
+      "eind": 226,
+      "possible_classes": [
+        "Rechtsfeit",
+        "Voorwaarde",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "nominalisatie"
+      ],
+      "opties": [],
+      "tekst": "betrekking tot de bestemming van een andere bankrekening voor de uitbetaling van inkomstenbelasting"
+    },
+    {
+      "bron": "UBT04",
+      "start": 142,
+      "eind": 155,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          127,
+          226
+        ]
+      ],
+      "tekst": "de bestemming"
+    },
+    {
+      "bron": "UBT04",
+      "start": 160,
+      "eind": 183,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          160,
+          226
+        ]
+      ],
+      "tekst": "een andere bankrekening"
+    },
+    {
+      "bron": "UBT04",
+      "start": 189,
+      "eind": 226,
+      "possible_classes": [
+        "Rechtsfeit",
+        "Voorwaarde",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "nominalisatie"
+      ],
+      "opties": [],
+      "tekst": "de uitbetaling van inkomstenbelasting"
+    },
+    {
+      "bron": "UBT04",
+      "start": 189,
+      "eind": 203,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          189,
+          226
+        ]
+      ],
+      "tekst": "de uitbetaling"
+    },
+    {
+      "bron": "UBT04",
+      "start": 208,
+      "eind": 226,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "inkomstenbelasting"
+    },
+    {
+      "bron": "UBT05",
+      "start": 4,
+      "eind": 12,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "gevallen"
+    },
+    {
+      "bron": "UBT05",
+      "start": 55,
+      "eind": 61,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de wet"
+    },
+    {
+      "bron": "UBT05",
+      "start": 99,
+      "eind": 118,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de Dienst Toeslagen"
+    },
+    {
+      "bron": "UBT06",
+      "start": 4,
+      "eind": 15,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          4,
+          36
+        ]
+      ],
+      "tekst": "een curator"
+    },
+    {
+      "bron": "UBT06",
+      "start": 19,
+      "eind": 36,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "een faillissement"
+    },
+    {
+      "bron": "UBT07",
+      "start": 4,
+      "eind": 21,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          4,
+          73
+        ]
+      ],
+      "tekst": "een bewindvoerder"
+    },
+    {
+      "bron": "UBT07",
+      "start": 25,
+      "eind": 52,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "een schuldsaneringsregeling"
+    },
+    {
+      "bron": "UBT07",
+      "start": 53,
+      "eind": 73,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "natuurlijke personen"
+    },
+    {
+      "bron": "UBT08",
+      "start": 4,
+      "eind": 15,
+      "possible_classes": [
+        "Variabele en variabelewaarde",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          4,
+          64
+        ]
+      ],
+      "tekst": "huurtoeslag"
+    },
+    {
+      "bron": "UBT08",
+      "start": 19,
+      "eind": 64,
+      "possible_classes": [
+        "Rechtsfeit",
+        "Voorwaarde",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "nominalisatie"
+      ],
+      "opties": [],
+      "tekst": "de bankrekening van een toegelaten instelling"
+    },
+    {
+      "bron": "UBT08",
+      "start": 19,
+      "eind": 34,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          19,
+          64
+        ]
+      ],
+      "tekst": "de bankrekening"
+    },
+    {
+      "bron": "UBT08",
+      "start": 39,
+      "eind": 64,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "een toegelaten instelling"
+    },
+    {
+      "bron": "UBT08",
+      "start": 96,
+      "eind": 108,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de Woningwet"
+    },
+    {
+      "bron": "UBT09",
+      "start": 4,
+      "eind": 13,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "een derde"
+    },
+    {
+      "bron": "UBT09",
+      "start": 57,
+      "eind": 141,
+      "possible_classes": [
+        "Voorwaarde"
+      ],
+      "detectors": [
+        "voorwaarde"
+      ],
+      "opties": [],
+      "tekst": "indien een belanghebbende niet beschikt over een bankrekening die op zijn naam staat"
+    },
+    {
+      "bron": "UBT09",
+      "start": 64,
+      "eind": 82,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "naamwoordgroep",
+        "subject"
+      ],
+      "opties": [],
+      "tekst": "een belanghebbende"
+    },
+    {
+      "bron": "UBT09",
+      "start": 83,
+      "eind": 87,
+      "possible_classes": [
+        "Operator"
+      ],
+      "detectors": [
+        "logisch"
+      ],
+      "opties": [],
+      "tekst": "niet"
+    },
+    {
+      "bron": "UBT09",
+      "start": 102,
+      "eind": 141,
+      "possible_classes": [
+        "Voorwaarde",
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "bijzin"
+      ],
+      "opties": [],
+      "tekst": "een bankrekening die op zijn naam staat"
+    },
+    {
+      "bron": "UBT09",
+      "start": 102,
+      "eind": 118,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          102,
+          141
+        ]
+      ],
+      "tekst": "een bankrekening"
+    },
+    {
+      "bron": "UBT09",
+      "start": 126,
+      "eind": 135,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "zijn naam"
+    },
+    {
+      "bron": "UBT09",
+      "start": 136,
+      "eind": 141,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "subject"
+      ],
+      "opties": [],
+      "tekst": "staat"
+    },
+    {
+      "bron": "UBT09",
+      "start": 148,
+      "eind": 159,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          148,
+          183
+        ]
+      ],
+      "tekst": "het oordeel"
+    },
+    {
+      "bron": "UBT09",
+      "start": 164,
+      "eind": 183,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de Dienst Toeslagen"
+    },
+    {
+      "bron": "UBT09",
+      "start": 192,
+      "eind": 197,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "subject"
+      ],
+      "opties": [],
+      "tekst": "staat"
+    },
+    {
+      "bron": "UBT09",
+      "start": 201,
+      "eind": 217,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          201,
+          230
+        ]
+      ],
+      "tekst": "een bankrekening"
+    },
+    {
+      "bron": "UBT09",
+      "start": 221,
+      "eind": 230,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "zijn naam"
+    },
+    {
+      "bron": "UBT09",
+      "start": 246,
+      "eind": 287,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "zijn lichamelijke of geestelijke toestand"
+    },
+    {
+      "bron": "UBT09",
+      "start": 289,
+      "eind": 291,
+      "possible_classes": [
+        "Operator"
+      ],
+      "detectors": [
+        "logisch"
+      ],
+      "opties": [],
+      "tekst": "en"
+    },
+    {
+      "bron": "UBT09",
+      "start": 292,
+      "eind": 309,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "naamwoordgroep",
+        "subject"
+      ],
+      "opties": [],
+      "tekst": "de belanghebbende"
+    },
+    {
+      "bron": "UBT10",
+      "start": 0,
+      "eind": 30,
+      "possible_classes": [
+        "Voorwaarde"
+      ],
+      "detectors": [
+        "voorwaarde"
+      ],
+      "opties": [],
+      "tekst": "Indien op grond van artikel 25"
+    },
+    {
+      "bron": "UBT10",
+      "start": 47,
+      "eind": 53,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de wet"
+    },
+    {
+      "bron": "UBT10",
+      "start": 54,
+      "eind": 108,
+      "possible_classes": [
+        "Rechtsfeit",
+        "Voorwaarde",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "nominalisatie"
+      ],
+      "opties": [],
+      "tekst": "de uitbetaling van een voorschot of een tegemoetkoming"
+    },
+    {
+      "bron": "UBT10",
+      "start": 54,
+      "eind": 68,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          54,
+          86
+        ]
+      ],
+      "tekst": "de uitbetaling"
+    },
+    {
+      "bron": "UBT10",
+      "start": 73,
+      "eind": 86,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "een voorschot"
+    },
+    {
+      "bron": "UBT10",
+      "start": 90,
+      "eind": 108,
+      "possible_classes": [
+        "Rechtsobject",
+        "Rechtssubject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "een tegemoetkoming"
+    },
+    {
+      "bron": "UBT10",
+      "start": 124,
+      "eind": 194,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "een andere bankrekening dan die van de belanghebbende of diens partner"
+    },
+    {
+      "bron": "UBT10",
+      "start": 160,
+      "eind": 177,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "subject"
+      ],
+      "opties": [],
+      "tekst": "de belanghebbende"
+    },
+    {
+      "bron": "UBT10",
+      "start": 187,
+      "eind": 194,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "subject"
+      ],
+      "opties": [],
+      "tekst": "partner"
+    },
+    {
+      "bron": "UBT10",
+      "start": 202,
+      "eind": 221,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          202,
+          304
+        ]
+      ],
+      "tekst": "het gegevensverkeer"
+    },
+    {
+      "bron": "UBT10",
+      "start": 241,
+      "eind": 255,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          226,
+          282
+        ]
+      ],
+      "tekst": "de uitbetaling"
+    },
+    {
+      "bron": "UBT10",
+      "start": 263,
+      "eind": 282,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de Dienst Toeslagen"
+    },
+    {
+      "bron": "UBT10",
+      "start": 286,
+      "eind": 304,
+      "possible_classes": [
+        "Rechtsobject",
+        "Rechtssubject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "die rekeninghouder"
+    },
+    {
+      "bron": "UBT10",
+      "start": 305,
+      "eind": 311,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          305,
+          379
+        ]
+      ],
+      "tekst": "plaats"
+    },
+    {
+      "bron": "UBT10",
+      "start": 334,
+      "eind": 357,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          316,
+          379
+        ]
+      ],
+      "tekst": "het burgerservicenummer"
+    },
+    {
+      "bron": "UBT10",
+      "start": 362,
+      "eind": 379,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "naamwoordgroep",
+        "subject"
+      ],
+      "opties": [],
+      "tekst": "de belanghebbende"
+    },
+    {
+      "bron": "UBT11",
+      "start": 4,
+      "eind": 14,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "toepassing"
+    },
+    {
+      "bron": "UBT11",
+      "start": 35,
+      "eind": 45,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "onderdelen"
+    },
+    {
+      "bron": "UBT11",
+      "start": 88,
+      "eind": 91,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "lid"
+    },
+    {
+      "bron": "UBT11",
+      "start": 93,
+      "eind": 120,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de aldaar bedoelde gemeente"
+    },
+    {
+      "bron": "UBT11",
+      "start": 112,
+      "eind": 120,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "subject"
+      ],
+      "opties": [],
+      "tekst": "gemeente"
+    },
+    {
+      "bron": "UBT11",
+      "start": 124,
+      "eind": 148,
+      "possible_classes": [
+        "Rechtsobject",
+        "Rechtssubject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de aldaar bedoelde derde"
+    },
+    {
+      "bron": "UBT11",
+      "start": 156,
+      "eind": 174,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "welke bankrekening"
+    },
+    {
+      "bron": "UBT11",
+      "start": 209,
+      "eind": 229,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          197,
+          229
+        ]
+      ],
+      "tekst": "welke belanghebbende"
+    },
+    {
+      "bron": "UBT11",
+      "start": 215,
+      "eind": 229,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "subject"
+      ],
+      "opties": [],
+      "tekst": "belanghebbende"
+    },
+    {
+      "bron": "UBT11",
+      "start": 238,
+      "eind": 255,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "welke uitbetaling"
+    },
+    {
+      "bron": "UBT11",
+      "start": 270,
+      "eind": 277,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "melding"
+    },
+    {
+      "bron": "UBT11",
+      "start": 290,
+      "eind": 304,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de beëindiging"
+    },
+    {
+      "bron": "UBT11",
+      "start": 331,
+      "eind": 341,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "onderdelen"
+    },
+    {
+      "bron": "UBT12",
+      "start": 4,
+      "eind": 12,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "gevallen"
+    },
+    {
+      "bron": "UBT12",
+      "start": 56,
+      "eind": 62,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de wet"
+    },
+    {
+      "bron": "UBT12",
+      "start": 81,
+      "eind": 94,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          81,
+          155
+        ]
+      ],
+      "tekst": "uitbetalingen"
+    },
+    {
+      "bron": "UBT12",
+      "start": 99,
+      "eind": 117,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "inkomstenbelasting"
+    },
+    {
+      "bron": "UBT12",
+      "start": 123,
+      "eind": 135,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "naamwoordgroep",
+        "subject"
+      ],
+      "opties": [],
+      "tekst": "de ontvanger"
+    },
+    {
+      "bron": "UBT12",
+      "start": 139,
+      "eind": 155,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "een bankrekening"
+    },
+    {
+      "bron": "UBT13",
+      "start": 0,
+      "eind": 389,
+      "possible_classes": [
+        "Rechtsbetrekking",
+        "Rechtsfeit"
+      ],
+      "detectors": [
+        "norm"
+      ],
+      "opties": [],
+      "tekst": "Een derde die kan beschikken over een bankrekening waarop een voorschot of een tegemoetkoming is uitbetaald, is hoofdelijk aansprakelijk voor een door de belanghebbende verschuldigd bedrag aan terugvordering zonder rekening te houden met de toepassing van artikel 26, tweede lid, voor zover het terug te vorderen bedrag overeenkomstig artikel 26, eerste lid, is betaald op die bankrekening."
+    },
+    {
+      "bron": "UBT13",
+      "start": 0,
+      "eind": 9,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "Een derde"
+    },
+    {
+      "bron": "UBT13",
+      "start": 34,
+      "eind": 107,
+      "possible_classes": [
+        "Voorwaarde",
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "bijzin"
+      ],
+      "opties": [],
+      "tekst": "een bankrekening waarop een voorschot of een tegemoetkoming is uitbetaald"
+    },
+    {
+      "bron": "UBT13",
+      "start": 34,
+      "eind": 50,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          34,
+          107
+        ]
+      ],
+      "tekst": "een bankrekening"
+    },
+    {
+      "bron": "UBT13",
+      "start": 58,
+      "eind": 71,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "een voorschot"
+    },
+    {
+      "bron": "UBT13",
+      "start": 75,
+      "eind": 93,
+      "possible_classes": [
+        "Rechtsobject",
+        "Rechtssubject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "een tegemoetkoming"
+    },
+    {
+      "bron": "UBT13",
+      "start": 142,
+      "eind": 207,
+      "possible_classes": [
+        "Variabele en variabelewaarde",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "een door de belanghebbende verschuldigd bedrag aan terugvordering"
+    },
+    {
+      "bron": "UBT13",
+      "start": 151,
+      "eind": 168,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "subject"
+      ],
+      "opties": [],
+      "tekst": "de belanghebbende"
+    },
+    {
+      "bron": "UBT13",
+      "start": 193,
+      "eind": 207,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "terugvordering"
+    },
+    {
+      "bron": "UBT13",
+      "start": 215,
+      "eind": 223,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "rekening"
+    },
+    {
+      "bron": "UBT13",
+      "start": 238,
+      "eind": 251,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de toepassing"
+    },
+    {
+      "bron": "UBT13",
+      "start": 280,
+      "eind": 345,
+      "possible_classes": [
+        "Voorwaarde"
+      ],
+      "detectors": [
+        "voorwaarde"
+      ],
+      "opties": [],
+      "tekst": "voor zover het terug te vorderen bedrag overeenkomstig artikel 26"
+    },
+    {
+      "bron": "UBT13",
+      "start": 313,
+      "eind": 319,
+      "possible_classes": [
+        "Variabele en variabelewaarde",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "bedrag"
+    },
+    {
+      "bron": "UBT13",
+      "start": 373,
+      "eind": 389,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "die bankrekening"
+    },
+    {
+      "bron": "UBT13",
+      "start": 391,
+      "eind": 915,
+      "possible_classes": [
+        "Rechtsbetrekking"
+      ],
+      "detectors": [
+        "norm"
+      ],
+      "opties": [],
+      "tekst": "Voor zover een terugvordering voortvloeit uit de toepassing van artikel 24, wordt het bedrag waarvoor de derde aansprakelijk is, bepaald op het gedeelte van de terugvordering overeenkomstig artikel 26, eerste lid, dat in dezelfde verhouding staat tot het bedrag van de terugvordering zonder rekening te houden met de toepassing van artikel 26, tweede lid, als de aan de derde over het berekeningsjaar uitbetaalde voorschotten in verhouding staan tot het totale bedrag van de over het berekeningsjaar uitbetaalde voorschotten."
+    },
+    {
+      "bron": "UBT13",
+      "start": 391,
+      "eind": 465,
+      "possible_classes": [
+        "Voorwaarde"
+      ],
+      "detectors": [
+        "voorwaarde"
+      ],
+      "opties": [],
+      "tekst": "Voor zover een terugvordering voortvloeit uit de toepassing van artikel 24"
+    },
+    {
+      "bron": "UBT13",
+      "start": 402,
+      "eind": 420,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          391,
+          420
+        ]
+      ],
+      "tekst": "een terugvordering"
+    },
+    {
+      "bron": "UBT13",
+      "start": 437,
+      "eind": 465,
+      "possible_classes": [
+        "Rechtsfeit",
+        "Voorwaarde",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "nominalisatie"
+      ],
+      "opties": [],
+      "tekst": "de toepassing van artikel 24"
+    },
+    {
+      "bron": "UBT13",
+      "start": 437,
+      "eind": 450,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          437,
+          465
+        ]
+      ],
+      "tekst": "de toepassing"
+    },
+    {
+      "bron": "UBT13",
+      "start": 473,
+      "eind": 518,
+      "possible_classes": [
+        "Voorwaarde",
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "bijzin"
+      ],
+      "opties": [],
+      "tekst": "het bedrag waarvoor de derde aansprakelijk is"
+    },
+    {
+      "bron": "UBT13",
+      "start": 473,
+      "eind": 483,
+      "possible_classes": [
+        "Variabele en variabelewaarde",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          473,
+          518
+        ]
+      ],
+      "tekst": "het bedrag"
+    },
+    {
+      "bron": "UBT13",
+      "start": 484,
+      "eind": 515,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          484,
+          518
+        ]
+      ],
+      "tekst": "waarvoor de derde aansprakelijk"
+    },
+    {
+      "bron": "UBT13",
+      "start": 531,
+      "eind": 543,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "het gedeelte"
+    },
+    {
+      "bron": "UBT13",
+      "start": 548,
+      "eind": 565,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de terugvordering"
+    },
+    {
+      "bron": "UBT13",
+      "start": 612,
+      "eind": 631,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "dezelfde verhouding"
+    },
+    {
+      "bron": "UBT13",
+      "start": 632,
+      "eind": 637,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "subject"
+      ],
+      "opties": [],
+      "tekst": "staat"
+    },
+    {
+      "bron": "UBT13",
+      "start": 642,
+      "eind": 652,
+      "possible_classes": [
+        "Variabele en variabelewaarde",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          642,
+          674
+        ]
+      ],
+      "tekst": "het bedrag"
+    },
+    {
+      "bron": "UBT13",
+      "start": 657,
+      "eind": 674,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de terugvordering"
+    },
+    {
+      "bron": "UBT13",
+      "start": 682,
+      "eind": 690,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "rekening"
+    },
+    {
+      "bron": "UBT13",
+      "start": 705,
+      "eind": 718,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de toepassing"
+    },
+    {
+      "bron": "UBT13",
+      "start": 747,
+      "eind": 915,
+      "possible_classes": [
+        "Voorwaarde"
+      ],
+      "detectors": [
+        "bijzin"
+      ],
+      "opties": [],
+      "tekst": "als de aan de derde over het berekeningsjaar uitbetaalde voorschotten in verhouding staan tot het totale bedrag van de over het berekeningsjaar uitbetaalde voorschotten"
+    },
+    {
+      "bron": "UBT13",
+      "start": 751,
+      "eind": 816,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de aan de derde over het berekeningsjaar uitbetaalde voorschotten"
+    },
+    {
+      "bron": "UBT13",
+      "start": 758,
+      "eind": 766,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de derde"
+    },
+    {
+      "bron": "UBT13",
+      "start": 767,
+      "eind": 791,
+      "possible_classes": [
+        "Tijdsaanduiding"
+      ],
+      "detectors": [
+        "tijd"
+      ],
+      "opties": [
+        [
+          772,
+          791
+        ]
+      ],
+      "tekst": "over het berekeningsjaar"
+    },
+    {
+      "bron": "UBT13",
+      "start": 772,
+      "eind": 791,
+      "possible_classes": [
+        "Rechtsobject",
+        "Rechtssubject",
+        "Tijdsaanduiding"
+      ],
+      "detectors": [
+        "fusie",
+        "naamwoordgroep",
+        "specificiteit"
+      ],
+      "opties": [],
+      "tekst": "het berekeningsjaar"
+    },
+    {
+      "bron": "UBT13",
+      "start": 820,
+      "eind": 830,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "verhouding"
+    },
+    {
+      "bron": "UBT13",
+      "start": 841,
+      "eind": 858,
+      "possible_classes": [
+        "Variabele en variabelewaarde",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          841,
+          915
+        ]
+      ],
+      "tekst": "het totale bedrag"
+    },
+    {
+      "bron": "UBT13",
+      "start": 863,
+      "eind": 915,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de over het berekeningsjaar uitbetaalde voorschotten"
+    },
+    {
+      "bron": "UBT13",
+      "start": 866,
+      "eind": 890,
+      "possible_classes": [
+        "Tijdsaanduiding"
+      ],
+      "detectors": [
+        "tijd"
+      ],
+      "opties": [
+        [
+          871,
+          890
+        ]
+      ],
+      "tekst": "over het berekeningsjaar"
+    },
+    {
+      "bron": "UBT13",
+      "start": 871,
+      "eind": 890,
+      "possible_classes": [
+        "Rechtsobject",
+        "Rechtssubject",
+        "Tijdsaanduiding"
+      ],
+      "detectors": [
+        "fusie",
+        "naamwoordgroep",
+        "specificiteit"
+      ],
+      "opties": [],
+      "tekst": "het berekeningsjaar"
+    },
+    {
+      "bron": "UBT14",
+      "start": 0,
+      "eind": 41,
+      "possible_classes": [
+        "Voorwaarde",
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "bijzin"
+      ],
+      "opties": [],
+      "tekst": "Elk beding dat strijdt met het eerste lid"
+    },
+    {
+      "bron": "UBT14",
+      "start": 0,
+      "eind": 10,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          0,
+          41
+        ]
+      ],
+      "tekst": "Elk beding"
+    }
+  ]
+}

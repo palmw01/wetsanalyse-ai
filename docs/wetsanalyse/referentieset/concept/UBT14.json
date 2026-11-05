@@ -1,0 +1,53 @@
+{
+  "id": "UBT14",
+  "familie": "UBT",
+  "split": "ontwikkeling",
+  "bron_id": "urn:bwb:BWBR0018472:artikel:45:lid:3",
+  "vindplaats": "BWBR0018472/45/3",
+  "versie": "2026-10-01",
+  "tekst": "Elk beding dat strijdt met het eerste lid is nietig.",
+  "tekst_sha256": "a53f29ec43e4fbf3bd5e02b32b6710b2c2e61541b1f70e3397f7b1e1a82c54c5",
+  "source_status": null,
+  "tekstsoort": "wet",
+  "constructies": [],
+  "referentie_status": "provisional",
+  "negatief": [],
+  "reviewvraag": "Beoordeel klasse en grenzen. Gold bevat alleen de elementen die de kandidaatruimte toetsen, niet elk naamwoord; dit is geen volledige annotatie.",
+  "gold": [
+    {
+      "gid": "E01",
+      "start": 42,
+      "eind": 51,
+      "tekst": "is nietig",
+      "klasse": "Rechtsbetrekking",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Rechtsgevolg.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    },
+    {
+      "gid": "E02",
+      "start": 11,
+      "eind": 41,
+      "tekst": "dat strijdt met het eerste lid",
+      "klasse": "Voorwaarde",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Eis aan het beding.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    }
+  ],
+  "concept": {
+    "bron": "Eigen lezing van de wettekst, 6 nov 2026",
+    "door": "AI-concept, niet beoordeeld",
+    "bron_iri": "urn:bwb:BWBR0018472:artikel:45:lid:3"
+  }
+}

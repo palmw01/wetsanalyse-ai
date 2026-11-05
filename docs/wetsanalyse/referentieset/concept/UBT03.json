@@ -1,0 +1,83 @@
+{
+  "id": "UBT03",
+  "familie": "UBT",
+  "split": "ontwikkeling",
+  "bron_id": "urn:bwb:BWBR0004770:artikel:7a:lid:2",
+  "vindplaats": "BWBR0004770/7a/2",
+  "versie": "2026-10-01",
+  "tekst": "Ingeval de belastingschuldige geen bankrekening heeft bestemd voor betaling van rijksbelastingen dan wel andere belastingen of heffingen voor zover de invordering daarvan is opgedragen aan de ontvanger betaalt de ontvanger op een bankrekening die op naam staat van de belastingschuldige.",
+  "tekst_sha256": "0989e3c535cbeaae9e36c85e2313902875b33646cd61592aaa9aa202395ace26",
+  "source_status": null,
+  "tekstsoort": "wet",
+  "constructies": [],
+  "referentie_status": "provisional",
+  "negatief": [],
+  "reviewvraag": "Beoordeel klasse en grenzen. Gold bevat alleen de elementen die de kandidaatruimte toetsen, niet elk naamwoord; dit is geen volledige annotatie.",
+  "gold": [
+    {
+      "gid": "E01",
+      "start": 0,
+      "eind": 201,
+      "tekst": "Ingeval de belastingschuldige geen bankrekening heeft bestemd voor betaling van rijksbelastingen dan wel andere belastingen of heffingen voor zover de invordering daarvan is opgedragen aan de ontvanger",
+      "klasse": "Voorwaarde",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Voorwaarde.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    },
+    {
+      "gid": "E02",
+      "start": 202,
+      "eind": 286,
+      "tekst": "betaalt de ontvanger op een bankrekening die op naam staat van de belastingschuldige",
+      "klasse": "Rechtsbetrekking",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Norm in de tegenwoordige tijd.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    },
+    {
+      "gid": "E03",
+      "start": 210,
+      "eind": 222,
+      "tekst": "de ontvanger",
+      "klasse": "Rechtssubject",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Betaler.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    },
+    {
+      "gid": "E04",
+      "start": 8,
+      "eind": 29,
+      "tekst": "de belastingschuldige",
+      "klasse": "Rechtssubject",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Partij.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    }
+  ],
+  "concept": {
+    "bron": "Eigen lezing van de wettekst, 6 nov 2026",
+    "door": "AI-concept, niet beoordeeld",
+    "bron_iri": "urn:bwb:BWBR0004770:artikel:7a:lid:2"
+  }
+}

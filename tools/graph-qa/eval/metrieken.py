@@ -20,6 +20,8 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass
 from typing import Any, Iterable
 
+from agent.jas_klassen import JAS_KLASSEN_VOLGORDE
+
 # Oplopend in zeggingskracht. De laagste status in een set bepaalt hoe het rapport mag heten.
 STATUSSEN = ("fixture", "synthetic", "silver", "provisional", "review_pending", "adjudicated", "gold")
 GEVALIDEERD = {"adjudicated", "gold"}
@@ -108,9 +110,7 @@ def kandidaat_metrieken(kandidaten: list[dict[str, Any]], referentie: list[Ref],
         "candidate_recall_incl_opties": _deel(incl_opties, len(referentie)),
         "candidate_precision": _deel(raak_kandidaten, len(op_plek)),
         "kandidaten_per_referentie": _deel(len(op_plek), len(referentie)),
-        "per_klasse": {k: {"n": len(v), "candidate_recall": _deel(sum(g for g, _ in v), len(v)),
-                           "met_klasse": _deel(sum(x for _, x in v), len(v))}
-                       for k, v in sorted(per_klasse.items())},
+        "per_klasse": {k: _klasserij(per_klasse.get(k, []), k, op_plek, referentie) for k in JAS_KLASSEN_VOLGORDE},
         "unieke_bijdrage_per_detector": dict(sorted(bijdrage.items())),
     }
 
@@ -178,6 +178,17 @@ def _partieel(voorspeld: list[Ref], referentie: list[Ref]) -> float | None:
     raak = sum(1 for r in rest if any(v.bron == r.bron and v.klasse == r.klasse and v.start < r.eind
                                       and r.start < v.eind for v in voorspeld))
     return _deel(raak, len(rest))
+
+
+def _klasserij(rijen: list[tuple[bool, bool]], klasse: str, op_plek: dict, referentie: list[Ref]) -> dict[str, Any]:
+    """Eén klasse. Alle dertien staan er, ook zonder referentie of zonder hypothese: een klasse die nooit opkomt
+    valt anders nergens op, en een klasse met alleen onjuiste hypothesen ook niet. `precisie` is hoeveel plekken met
+    deze hypothese op een referentie van deze klasse liggen."""
+    goed = {(r.bron, r.start, r.eind) for r in referentie if r.klasse == klasse}
+    plekken = [p for p, hier in op_plek.items() if any(klasse in k["possible_classes"] for k in hier)]
+    return {"n": len(rijen), "candidate_recall": _deel(sum(g for g, _ in rijen), len(rijen)),
+            "met_klasse": _deel(sum(x for _, x in rijen), len(rijen)), "hypothesen": len(plekken),
+            "precisie": _deel(sum(p in goed for p in plekken), len(plekken))}
 
 
 def _deel(teller: int, noemer: int) -> float | None:

@@ -11,6 +11,7 @@ het concept niet zien aan wie blind annoteert: het is bedoeld voor de conceptbes
 | Casus | Bepaling | Aanleiding |
 |---|---|---|
 | [`IW05.json`](IW05.json) | art. 9 lid 5 Invorderingswet 1990 | Externe review van de TriG-export (5 okt 2026): NP-first-classificatie, ontbrekende normatieve predicaten ("vervalt", "vindt … toepassing"), ALS→DAN en de afleiding "zoveel … als". |
+| `UBT01`–`UBT14` | bepalingen over uitbetaling op een bankrekening (Awir, IW 1990 en hun uitvoeringsregelingen) | Acceptatietest van november 2026: toetst de kandidaatruimte per klasse, vooral delegatie, normen zonder modaal werkwoord, partijen in opsommingen en afleidingsregels. De gold is bewust niet volledig. |
 
 Per casus naast de gewone velden (zie `v1/cases.json`):
 
@@ -18,7 +19,8 @@ Per casus naast de gewone velden (zie `v1/cases.json`):
 - `verwijderd_uit_export`: exportelementen die in dit concept geen eigen markering zijn, met reden;
 - `relaties`: voorgestelde verbanden (`uitkomst_van`, `invoer_van`, `vervalmoment_van`,
   `voorwaarde_voor`) – een kandidaat-uitbreiding na V7, nog geen onderdeel van het schema;
-- `concept`: herkomst van het voorstel.
+- `concept`: herkomst van het voorstel;
+- `aanhef`: de aanhef van de ouder bij een onderdeel, zoals de keten die als context meegeeft.
 
 Brongetrouwheid: `tools/graph-qa/tests/test_referentieset_concept.py` eist dat elk element letterlijk
 in de tekst staat, op woordgrenzen ligt, een geldige JAS-klasse heeft en dat `tekst_sha256` klopt.

@@ -201,7 +201,7 @@ def valideer_casus(c: dict[str, Any]) -> str:
 # Conceptcasussen (referentieset/concept/) dragen naast het schema hun herkomst en de vergelijking met
 # de export, en relaties in een voorgestelde vorm (kandidaat na V7). Die velden worden apart getoetst;
 # de rest moet het gewone casusschema volgen, zodat een concept zonder omzetting naar v<N+1> kan.
-CONCEPT_CASUSVELDEN = ("concept", "verwijderd_uit_export", "diagnostisch")
+CONCEPT_CASUSVELDEN = ("concept", "verwijderd_uit_export", "diagnostisch", "aanhef")
 CONCEPT_ELEMENTVELDEN = ("export_vergelijking",)
 CONCEPT_RELATIESOORTEN = ("uitkomst_van", "invoer_van", "vervalmoment_van", "voorwaarde_voor")
 

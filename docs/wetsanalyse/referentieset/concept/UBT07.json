@@ -1,0 +1,39 @@
+{
+  "id": "UBT07",
+  "familie": "UBT",
+  "split": "ontwikkeling",
+  "bron_id": "urn:bwb:BWBR0019237:artikel:6:lid:2:o:e",
+  "vindplaats": "BWBR0019237/6/2/e",
+  "versie": "2026-07-01",
+  "tekst": "van een bewindvoerder in een schuldsaneringsregeling natuurlijke personen;",
+  "tekst_sha256": "22fa3a2db6c86a95daf399d6ea728cf573368dbc2301c95a24707d1cae8a6f26",
+  "source_status": null,
+  "tekstsoort": "ministeriele_regeling",
+  "constructies": [],
+  "referentie_status": "provisional",
+  "negatief": [],
+  "reviewvraag": "Beoordeel klasse en grenzen. Gold bevat alleen de elementen die de kandidaatruimte toetsen, niet elk naamwoord; dit is geen volledige annotatie.",
+  "gold": [
+    {
+      "gid": "E01",
+      "start": 4,
+      "eind": 21,
+      "tekst": "een bewindvoerder",
+      "klasse": "Rechtssubject",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Partij; de norm staat in de aanhef.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    }
+  ],
+  "concept": {
+    "bron": "Eigen lezing van de wettekst, 6 nov 2026",
+    "door": "AI-concept, niet beoordeeld",
+    "bron_iri": "urn:bwb:BWBR0019237:artikel:6:lid:2:o:e"
+  },
+  "aanhef": "Als gevallen als bedoeld in artikel 25, derde lid, van de wet worden voorts aangewezen uitbetalingen door de Dienst Toeslagen op de bankrekening:"
+}
