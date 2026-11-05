@@ -183,7 +183,7 @@ try {
   await page.getByRole("checkbox", { name: 'Kies "de ontvanger"' }).uncheck();
   await page.getByRole("button", { name: "Nieuw begrip uit selectie" }).click();
   // Spoor N: een nieuw begrip opent op zijn eigen pagina. In het kader is het een rij; geen *Vraag Lex* in een rij.
-  await page.waitForURL(/\/begrippen\/wg1\/b\d+$/);
+  await page.waitForURL(/\/werkgebieden\/wg1\/begrippen\/b\d+$/);
   await page.locator("[data-begrip-pagina]").waitFor();
   // De knop staat er zodra het begrip geladen is; eerst wachten, dan tellen.
   const bespreek = page.locator("[data-paginakop]").getByRole("link", { name: /^Bespreek .* met Lex$/ });
@@ -336,7 +336,7 @@ try {
   await page.getByRole("button", { name: "Nieuw begrip" }).click();
   await page.getByRole("textbox", { name: "Naam van het nieuwe begrip" }).fill("Termijn");
   await page.getByRole("button", { name: "Aanmaken" }).click();
-  await page.waitForURL(/\/begrippen\/wg1\/b\d+$/);
+  await page.waitForURL(/\/werkgebieden\/wg1\/begrippen\/b\d+$/);
   await page.getByRole("heading", { name: "Termijn", level: 1 }).waitFor();
   await page.goto(`${base}/werkgebieden/wg1/artefacten/begrippen`);
   await page.locator("[data-begrip-rij]").first().waitFor();
@@ -347,6 +347,9 @@ try {
   for (const v of ["Invorderingswet 1990 – artikel 9 · Lid 1", "Invorderingswet 1990 – artikel 9 · Lid 2", "AWR – artikel 2"])
     assert.ok(csv.includes(`Belastingschuldige,geaccordeerd,`) && csv.includes(v), v);
 
+  // Een oude link naar een begrip gaat door naar zijn plek in het werkgebied.
+  await page.goto(kaartUrl.replace("/werkgebieden/wg1/begrippen/", "/begrippen/wg1/"));
+  await page.waitForURL(kaartUrl);
   // Herladen houdt de pagina en het begrip; de historie leest als zinnen.
   await page.goto(kaartUrl);
   await page.reload();

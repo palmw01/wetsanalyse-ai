@@ -158,7 +158,7 @@ try {
   await page.getByRole("list", { name: "Begrippen in dit werkgebied" }).getByText("Herbeoordelen: 2 passages veranderden").waitFor();
   await strook().locator("[data-herbeoordelen] a").filter({ hasText: "belastingschuldige" }).click();
   await passages().waitFor();
-  await page.waitForURL(/(begrip=|\/begrippen\/wg1\/)b1/);
+  await page.waitForURL(/(begrip=|\/werkgebieden\/wg1\/begrippen\/)b1/);
 
   // 2. Bij de passage: wat er veranderde, toen naast nu, de wettekst van nu, de opvolger met signalen.
   const k1 = blok("Beta");

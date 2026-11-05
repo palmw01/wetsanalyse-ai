@@ -132,7 +132,7 @@ try {
 
   // Doorklikken opent de kaart in zijn werkgebied.
   await lijst.getByRole("link", { name: /Uitstel van betaling/ }).click();
-  await page.waitForURL(/\/begrippen\/wg1\/b2$/);
+  await page.waitForURL(/\/werkgebieden\/wg1\/begrippen\/b2$/);
 
   assert.deepEqual(errors, []);
   console.log("OK test-begrippenoverzicht");

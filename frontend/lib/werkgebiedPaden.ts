@@ -75,7 +75,7 @@ export function elementPad(elementId: string): string {
 }
 
 export function begripPad(werkgebiedId: string, begripId: string): string {
-  return `/begrippen/${encodeURIComponent(werkgebiedId)}/${encodeURIComponent(begripId)}`;
+  return `${basis(werkgebiedId)}/begrippen/${encodeURIComponent(begripId)}`;
 }
 
 /** Waar een oude link met `?tab=` heen gaat: bladwijzers en berichten van vóór G2 blijven werken. */

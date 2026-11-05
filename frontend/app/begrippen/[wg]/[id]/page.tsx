@@ -1,8 +1,9 @@
-import { BegripPagina } from "@/components/werkgebieden/BegripPagina";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Begrip · Wetsanalyse" };
+import { begripPad } from "@/lib/werkgebiedPaden";
 
+/** Een begrip woonde hier tot spoor N; bewaarde berichten en bladwijzers wijzen nog naar dit pad. */
 export default async function Pagina({ params }: { params: Promise<{ wg: string; id: string }> }) {
   const { wg, id } = await params;
-  return <BegripPagina key={`${wg}/${id}`} werkgebiedId={wg} begripId={id} />;
+  redirect(begripPad(wg, id));
 }

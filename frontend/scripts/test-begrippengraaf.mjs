@@ -134,13 +134,13 @@ try {
 
   // Naar de begripskaart: NL-SBB-conform staat erbij, met de meldingen; accorderen volgt de poort.
   await zijbalk().getByRole("button", { name: "Open de begripskaart" }).click();
-  await page.waitForURL(/\/begrippen\/wg1\/b2$/);
+  await page.waitForURL(/\/werkgebieden\/wg1\/begrippen\/b2$/);
   const stand = page.getByTestId("nl-sbb-stand");
   await stand.getByText("Niet NL-SBB-conform (profiel 1.0.0): definitie ontbreekt of klopt niet").waitFor();
   await stand.getByText("Meldingen (1)").click();
   await stand.getByText("NL-SBB · fout · definitie", { exact: false }).waitFor();
   // Een ander begrip: zijn eigen pagina.
-  await page.goto(`${base}/begrippen/wg1/b1`);
+  await page.goto(`${base}/werkgebieden/wg1/begrippen/b1`);
   await page.getByTestId("nl-sbb-stand").getByText("NL-SBB-conform (profiel 1.0.0)").waitFor();
 
   // De export: Turtle (geaccordeerd) en Turtle met alles.
