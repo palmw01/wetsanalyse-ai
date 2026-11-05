@@ -209,7 +209,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
       </div>
       <div className="flex-1" />
       {tab === "graaf" && onSluit && (
-        <button type="button" className="focus-ring rounded-full p-2 text-muted hover:bg-surface" onClick={() => setGroot((v) => !v)}
+        <button type="button" className="focus-ring rounded-knop p-2 text-muted hover:bg-surface" onClick={() => setGroot((v) => !v)}
           aria-label={groot ? "Verkleinen" : "Vergroten"} title={groot ? "Terug naar zijpaneel" : "Graaf vergroten"}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d={groot ? "M9 3v6H3m18 6h-6v6M3 9l6-6m6 18 6-6" : "M8 3H3v5m13 13h5v-5M3 3l6 6m6 6 6 6"} /></svg>
         </button>
@@ -289,7 +289,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
 
 /** Bovenin het paneel als het lid bij een reeks hoort: waar je bent, en ‹ › naar het buurlid. */
 function ReeksBalk({ reeks, label }: { reeks: ReeksNavigatie & { onGa: (doel: NodeDoel) => void }; label: string }) {
-  const knop = "focus-ring rounded-full px-2 py-1 text-xs font-medium text-lint hover:bg-lint/5 disabled:cursor-default disabled:text-faint disabled:hover:bg-transparent";
+  const knop = "focus-ring rounded-knop-xs px-2 py-1 text-xs font-medium text-lint hover:bg-lint/5 disabled:cursor-default disabled:text-faint disabled:hover:bg-transparent";
   return (
     <nav aria-label="Reeks" className="flex shrink-0 items-center gap-2 border-b border-line bg-surface/60 px-4 py-1.5">
       <button type="button" className={knop} disabled={!reeks.vorige} onClick={() => reeks.vorige && reeks.onGa(reeks.vorige)}

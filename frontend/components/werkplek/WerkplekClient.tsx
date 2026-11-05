@@ -16,6 +16,7 @@ import { ContextPaneel, ContextPaneelContext, contextSleutel, type ContextDoel }
 import { WerkgebiedUitOverzicht } from "@/components/werkplek/WerkgebiedUitOverzicht";
 import { annotatieDoelVan, artefactSleutel, bronselectieVanKaart, werkgebiedLabel, artefactVanBericht, werkgebiedArtefactVan, type Artefact, type WerkgebiedArtefact } from "@/lib/artefact";
 import { StatusLabel } from "@/components/ui/Lijst";
+import { Suggestie } from "@/components/ui/Suggestie";
 import { Melding } from "@/components/ui/Melding";
 import {
   foutTekst,
@@ -1319,7 +1320,7 @@ export function WerkplekClient({
                   <button
                     type="button"
                     onClick={onRondleiding}
-                    className="focus-ring rounded-full border border-lint/30 bg-lint/5 px-4 py-2 text-sm font-medium text-lint transition-colors hover:bg-lint/10"
+                    className="focus-ring rounded-knop border border-lint/30 bg-lint/5 px-4 py-2 text-sm font-medium text-lint transition-colors hover:bg-lint/10"
                   >
                     Laat me de werkplek zien
                   </button>
@@ -1327,16 +1328,10 @@ export function WerkplekClient({
               )}
               <div className="mt-6 flex flex-wrap justify-center gap-2">
                 {VOORBEELDEN.map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    disabled={geblokkeerd}
-                    title={geblokkeerd ? "Je tokenbudget is op" : undefined}
-                    onClick={() => void verstuur(v)}
-                    className="rounded-bubbel border border-line bg-paper px-4 py-2.5 text-left text-sm text-lint shadow-zacht transition-all hover:-translate-y-0.5 hover:border-lint/40 hover:shadow-kaart disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:border-line disabled:hover:shadow-zacht focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint"
-                  >
+                  <Suggestie key={v} disabled={geblokkeerd} title={geblokkeerd ? "Je tokenbudget is op" : undefined}
+                    onClick={() => void verstuur(v)}>
                     {v}
-                  </button>
+                  </Suggestie>
                 ))}
               </div>
             </div>
@@ -1372,7 +1367,7 @@ export function WerkplekClient({
           type="button"
           onClick={naarBeneden}
           aria-label="Naar nieuwste bericht"
-          className="absolute bottom-24 left-1/2 z-10 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full border border-line bg-paper text-lint shadow-kaart transition-colors hover:border-lint/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint"
+          className="absolute bottom-24 left-1/2 z-10 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-knop border border-line bg-paper text-lint shadow-kaart transition-colors hover:border-lint/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M12 5v14M19 12l-7 7-7-7" />
@@ -1430,9 +1425,9 @@ export function WerkplekClient({
             <div className="mb-1.5 flex flex-wrap gap-1.5" data-testid="vraag-suggesties"
               data-suggesties-van={onderwerp?.soort ?? "werkgebied"}>
               {suggesties.map((s) => (
-                <button
+                <Suggestie
                   key={s.tekst}
-                  type="button"
+                  klein
                   disabled={geblokkeerd}
                   data-actie={s.actie}
                   data-invullen={s.invullen ? "" : undefined}
@@ -1447,10 +1442,9 @@ export function WerkplekClient({
                     }
                     void verstuur(s.tekst, undefined, undefined, undefined, undefined, undefined, s.actie);
                   }}
-                  className="focus-ring inline-flex min-h-[24px] items-center rounded-full border border-line bg-paper px-2.5 py-1 text-xs text-muted transition hover:border-lint hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted coarse:min-h-[44px]"
                 >
                   {s.tekst}
-                </button>
+                </Suggestie>
               ))}
             </div>
           )}

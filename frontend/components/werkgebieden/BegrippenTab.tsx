@@ -131,7 +131,7 @@ export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard, weer
                   type="button"
                   onClick={() => kies(b.begrip_id, "kaart")}
                   aria-current={b.begrip_id === gekozen ? "true" : undefined}
-                  className="focus-ring inline-flex min-h-[24px] items-center rounded-full border border-aandacht-geel-rand bg-paper px-2.5 py-0.5 text-[11px] font-medium text-ink hover:bg-surface coarse:min-h-[44px]"
+                  className="focus-ring inline-flex min-h-[24px] items-center rounded-knop-xs border border-aandacht-geel-rand bg-paper px-2.5 py-0.5 text-[11px] font-medium text-ink hover:bg-surface coarse:min-h-[44px]"
                 >
                   {b.naam} · {herbeoordelingZin(b.koppelingen.length, b.relaties?.length ?? 0)}
                 </button>

@@ -257,7 +257,7 @@ export function TourBubbel({
             type="button"
             onClick={onSluit}
             aria-label="Rondleiding afsluiten"
-            className="focus-ring -mr-1 -mt-1 shrink-0 rounded-full p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink"
+            className="focus-ring -mr-1 -mt-1 shrink-0 rounded-knop p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink"
           >
             <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
               <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
@@ -303,7 +303,7 @@ export function TourBubbel({
             type="button"
             onClick={onVorige}
             disabled={!onVorige}
-            className="focus-ring min-h-[28px] rounded-full border border-line px-2.5 text-[0.75rem] text-ink transition-colors hover:bg-surface disabled:opacity-40 coarse:min-h-[44px]"
+            className="focus-ring min-h-[28px] rounded-knop-xs border border-line px-2.5 text-[0.75rem] text-ink transition-colors hover:bg-surface disabled:opacity-40 coarse:min-h-[44px]"
           >
             Vorige
           </button>

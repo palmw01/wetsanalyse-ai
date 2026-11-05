@@ -108,7 +108,7 @@ export function GraafLagen({ lagen, onWissel, open, onOpen, dekking, begrippen =
       </div>
     </div>}
     <button type="button" aria-expanded={open} aria-controls={paneelId} onClick={() => onOpen(!open)}
-      className={`focus-ring inline-flex min-h-9 items-center gap-2 rounded-full border px-3 text-xs shadow-kaart coarse:min-h-11 ${open ? "border-lint/50 bg-paper text-lint" : "border-line bg-paper/95 text-ink hover:border-lint/40"}`}>
+      className={`focus-ring inline-flex min-h-9 items-center gap-2 rounded-knop border px-3 text-xs shadow-kaart coarse:min-h-11 ${open ? "border-lint/50 bg-paper text-lint" : "border-line bg-paper/95 text-ink hover:border-lint/40"}`}>
       <LagenIcoon /> Lagen
       <span className="flex gap-0.5" aria-hidden="true">
         {LAGEN.map((l) => <span key={l.laag} className={`h-1.5 w-1.5 rounded-full ${lagen[l.laag] ? "" : "opacity-25"}`} style={{ backgroundColor: l.kleur }} />)}

@@ -283,19 +283,19 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
           <div className="flex flex-col items-start gap-2">
           <div className="flex w-full items-start justify-between gap-2">
             <GraafZoek model={model} verborgen={context.verborgen} gekozen={gekozen} onKies={(id) => kies(id)} />
-            <div role="group" aria-label="Wat de graaf toont" className="pointer-events-auto flex shrink-0 rounded-full border border-line bg-paper/95 p-0.5 shadow-kaart">
+            <div role="group" aria-label="Wat de graaf toont" className="pointer-events-auto flex shrink-0 rounded-knop border border-line bg-paper/95 p-0.5 shadow-kaart">
               {/* Mobiel kort, zodat het zoekveld ernaast leesbaar blijft; de volle naam staat in het label. */}
               {(["antwoord", "kennisgraaf"] as const).map((b) => <button key={b} type="button" aria-pressed={bereik === b}
                 aria-label={b === "antwoord" ? benaming.naam : "Hele kennisgraaf"}
                 onClick={() => wisselBereik(b)}
-                className={`focus-ring min-h-8 rounded-full px-3 text-xs coarse:min-h-11 ${bereik === b ? "bg-lint text-paper" : "text-muted hover:text-lint"}`}>
+                className={`focus-ring min-h-8 rounded-knop-xs px-3 text-xs coarse:min-h-11 ${bereik === b ? "bg-lint text-paper" : "text-muted hover:text-lint"}`}>
                 <span className="sm:hidden">{b === "antwoord" ? benaming.kort : "Alles"}</span>
                 <span className="hidden sm:inline">{b === "antwoord" ? benaming.naam : "Hele kennisgraaf"}</span></button>)}
             </div>
           </div>
           {/* Zolang er een keuze is: de weg terug naar het begin, onder het zoekveld. */}
           {gekozen && focus && <button type="button" onClick={naarAntwoord} data-testid="graaf-terug"
-            className="focus-ring pointer-events-auto flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-line bg-paper/95 px-3 text-xs text-lint shadow-kaart hover:bg-surface coarse:min-h-11">
+            className="focus-ring pointer-events-auto flex min-h-8 shrink-0 items-center gap-1.5 rounded-knop border border-line bg-paper/95 px-3 text-xs text-lint shadow-kaart hover:bg-surface coarse:min-h-11">
             <Terug />Terug naar {benaming.terug}</button>}
           </div>
           <div className="flex items-end justify-between gap-2">
@@ -316,7 +316,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
         {/* Breed: de zijbalk is in te klappen tot een strook, met een greep op zijn linkerrand. */}
         {groot && <button type="button" onClick={wisselZijbalk} aria-expanded={!zijbalkIn}
           aria-label={zijbalkIn ? "Zijbalk uitklappen" : "Zijbalk inklappen"} title={zijbalkIn ? "Zijbalk uitklappen" : "Zijbalk inklappen"}
-          className="focus-ring absolute -left-3 top-1/2 z-10 hidden h-12 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-paper text-muted shadow-kaart hover:text-lint md:flex">
+          className="focus-ring absolute -left-3 top-1/2 z-10 hidden h-12 w-6 -translate-y-1/2 items-center justify-center rounded-knop border border-line bg-paper text-muted shadow-kaart hover:text-lint md:flex">
           <ChevronOmlaag className={zijbalkIn ? "rotate-90" : "-rotate-90"} /></button>}
         {groot && zijbalkIn && gekozenData && <div className="hidden flex-col items-center pt-4 md:flex">
           <span className="h-3 w-3 rounded-full border border-black/10" style={{ background: eigenKleur(gekozenData) }}

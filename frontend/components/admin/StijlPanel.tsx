@@ -115,7 +115,7 @@ export function StijlPanel() {
         </div>
       </Sectie>
 
-      <Sectie titel="De uitzondering" toelichting="De JAS-klasse op de reviewkaart is klikbaar (hij opent het palet) maar houdt zijn kleur en vorm, met een pijltje. Waar de klasse alleen informeert, is hij een label." />
+      <Sectie titel="Rond" toelichting="Alleen de verstuurknop van het invoerveld is rond: de hoofdactie van het gesprek. Een JAS-klasse die je kunt wijzigen (de reviewkaart) is een rechthoek in haar kleur met ▾; een klasse die alleen informeert is een label (KlasseLabel)." />
     </div>
   );
 }

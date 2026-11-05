@@ -88,7 +88,7 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
         <div className="sticky top-0 z-10 -mx-5 flex items-center gap-1 bg-white/95 px-3 pt-3 pb-1 backdrop-blur">
           <button type="button" aria-label="Vorige vraag" disabled={!vorige || uitgeschakeld}
             onClick={() => vorige && stuur({ ...basis, actie: "wijzig", ...vorige })}
-            className="focus-ring inline-flex h-9 w-9 items-center justify-center rounded-full text-ink hover:bg-surface disabled:opacity-30 coarse:h-11 coarse:w-11">
+            className="focus-ring inline-flex h-9 w-9 items-center justify-center rounded-knop text-ink hover:bg-surface disabled:opacity-30 coarse:h-11 coarse:w-11">
             <ChevronOmlaag className="rotate-90 text-lg" />
           </button>
           <span className="text-sm tabular-nums text-muted">
@@ -96,11 +96,11 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
           </span>
           <button type="button" aria-label="Volgende vraag" disabled={!kaart.beantwoord || !actie || uitgeschakeld}
             onClick={() => stuur(actie)}
-            className="focus-ring inline-flex h-9 w-9 items-center justify-center rounded-full text-ink hover:bg-surface disabled:opacity-30 coarse:h-11 coarse:w-11">
+            className="focus-ring inline-flex h-9 w-9 items-center justify-center rounded-knop text-ink hover:bg-surface disabled:opacity-30 coarse:h-11 coarse:w-11">
             <ChevronOmlaag className="-rotate-90 text-lg" />
           </button>
           <button type="button" aria-label="Vraag sluiten" onClick={onSluit}
-            className="focus-ring ml-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-line bg-white text-ink shadow-zacht hover:bg-surface coarse:h-11 coarse:w-11">
+            className="focus-ring ml-auto inline-flex h-10 w-10 items-center justify-center rounded-knop border border-line bg-white text-ink shadow-zacht hover:bg-surface coarse:h-11 coarse:w-11">
             <Kruis className="text-base" />
           </button>
         </div>

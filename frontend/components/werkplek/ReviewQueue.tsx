@@ -55,10 +55,10 @@ const KNOP_TWEEDE = "border border-lint bg-paper text-lint hover:bg-surface";
 // Klikdoelen halen minimaal 24x24 CSS-px (WCAG 2.2 AA, 2.5.8) en groeien op aanraakschermen naar
 // 44px – het AAA-niveau (2.5.5) dat NL Design System voor overheidsdiensten aanhoudt.
 const KNOP_BASIS =
-  "focus-ring inline-flex min-h-[24px] items-center rounded-full px-2.5 py-1.5 text-xs font-medium " +
+  "focus-ring inline-flex min-h-[24px] items-center rounded-knop-xs px-2.5 py-1.5 text-xs font-medium " +
   "transition coarse:min-h-[44px] disabled:opacity-50";
 const CHIP =
-  "focus-ring inline-flex min-h-[24px] items-center rounded-full border border-line px-2.5 py-0.5 " +
+  "focus-ring inline-flex min-h-[24px] items-center rounded-knop-xs border border-line px-2.5 py-0.5 " +
   "text-[0.7rem] text-ink transition hover:border-lint hover:bg-surface coarse:min-h-[44px] disabled:opacity-50";
 
 /** Wie dit element maakte en wat ermee gebeurde, in mensentaal.
@@ -378,7 +378,7 @@ function DecisionCard({
               onClick={() => openRij(verwerpOpen ? "geen" : "verwerp")}
               aria-label={eigen ? "Markering wissen" : "Voorstel verwerpen"}
               title={eigen ? "Wissen" : "Verwerpen"}
-              className="focus-ring inline-flex min-h-[24px] min-w-[24px] items-center justify-center rounded-full p-1.5 text-muted transition hover:bg-surface hover:text-fout coarse:min-h-[44px] coarse:min-w-[44px]"
+              className="focus-ring inline-flex min-h-[24px] min-w-[24px] items-center justify-center rounded-knop-xs p-1.5 text-muted transition hover:bg-surface hover:text-fout coarse:min-h-[44px] coarse:min-w-[44px]"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
                 <path d="M18 6 6 18M6 6l12 12" />
@@ -396,7 +396,7 @@ function DecisionCard({
               type="button"
               disabled={bezig}
               onClick={() => void wijzig({ klasse: k })}
-              className={`focus-ring inline-flex min-h-[28px] items-center rounded-full border px-2 py-0.5 text-xs transition coarse:min-h-[44px] disabled:opacity-50 ${jasStyle(k)}`}
+              className={`focus-ring inline-flex min-h-[28px] items-center rounded-knop-xs border px-2 py-0.5 text-xs transition coarse:min-h-[44px] disabled:opacity-50 ${jasStyle(k)}`}
             >
               {k}
             </button>
@@ -524,7 +524,7 @@ function DecisionCard({
             e.stopPropagation();
             onVraag();
           }}
-          className="focus-ring mt-2 inline-flex min-h-[24px] items-center gap-1.5 rounded-full border border-line px-2 py-1 text-xs text-lint transition hover:border-lint hover:bg-surface coarse:min-h-[44px]"
+          className="focus-ring mt-2 inline-flex min-h-[24px] items-center gap-1.5 rounded-knop-xs border border-line px-2 py-1 text-xs text-lint transition hover:border-lint hover:bg-surface coarse:min-h-[44px]"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -660,7 +660,7 @@ export function ReviewQueue({
                 type="button"
                 aria-pressed={filter === f.waarde}
                 onClick={() => onFilter(f.waarde)}
-                className={`focus-ring min-h-[24px] rounded-full border px-2.5 py-0.5 text-[0.7rem] transition coarse:min-h-[44px] ${
+                className={`focus-ring min-h-[24px] rounded-knop-xs border px-2.5 py-0.5 text-[0.7rem] transition coarse:min-h-[44px] ${
                   filter === f.waarde
                     ? "border-lint bg-lint text-paper"
                     : "border-line text-muted hover:border-lint hover:text-ink"

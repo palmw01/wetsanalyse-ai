@@ -121,7 +121,7 @@ export function KeuzeKaart({
       <div className="flex flex-wrap items-center gap-2 border-t border-line px-3 py-2">
         {meer && keuze.alles && (
           <button type="button" disabled={uitgeschakeld} onClick={() => setSelectie(new Set(kandidaten.map((_, i) => i)))}
-            className="focus-ring rounded-full border border-line px-3 py-1 text-xs font-medium text-lint hover:bg-lint/5 disabled:opacity-50">
+            className="focus-ring rounded-knop-xs border border-line px-3 py-1 text-xs font-medium text-lint hover:bg-lint/5 disabled:opacity-50">
             Alle {soortNaam}
           </button>
         )}

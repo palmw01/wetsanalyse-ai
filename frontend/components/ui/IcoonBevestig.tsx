@@ -35,7 +35,7 @@ export function IcoonBevestig({ soort, label, vraag, onBevestig, disabled, titel
       ariaLabel={label}
       titel={titel ?? label}
       disabled={disabled}
-      className={`focus-ring inline-flex min-h-[24px] min-w-[24px] shrink-0 items-center justify-center rounded-full border border-transparent px-1.5 text-xs font-medium text-muted transition-colors disabled:opacity-50 coarse:min-h-[44px] coarse:min-w-[44px] ${s.rust} ${className}`}
+      className={`focus-ring inline-flex min-h-[24px] min-w-[24px] shrink-0 items-center justify-center rounded-knop-xs border border-transparent px-1.5 text-xs font-medium text-muted transition-colors disabled:opacity-50 coarse:min-h-[44px] coarse:min-w-[44px] ${s.rust} ${className}`}
       bevestigClassName={`px-2.5 ${s.scherp}`}
     >
       <Icoon className="text-sm" />

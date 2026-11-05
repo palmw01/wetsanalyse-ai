@@ -33,7 +33,7 @@ export function ReeksBlok({
         </span>
         {loopt && !reeks.afgerond && onStop && (
           <button type="button" onClick={onStop}
-            className="focus-ring rounded-full border border-line px-3 py-1 text-xs font-medium text-muted hover:text-ink">
+            className="focus-ring rounded-knop-xs border border-line px-3 py-1 text-xs font-medium text-muted hover:text-ink">
             Stop
           </button>
         )}
@@ -70,7 +70,7 @@ function OnderdeelRegel({
         </button>
         {o.annotatie_doel && (
           <button type="button" onClick={onOpen}
-            className="focus-ring shrink-0 rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-lint hover:bg-lint/5">
+            className="focus-ring shrink-0 rounded-knop-xs border border-line px-2.5 py-0.5 text-[11px] font-medium text-lint hover:bg-lint/5">
             Open ›
           </button>
         )}
