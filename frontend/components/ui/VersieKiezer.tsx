@@ -14,9 +14,13 @@ import type { ArtefactVersie } from "@/lib/types";
  *  `onKies` krijgt de versie die het paneel moet tonen, of `null` voor *Nu* (de live stand, met alle knoppen). Het
  *  paneel toont niets zolang de kiezer nog niet heeft gekozen: anders staan er even knoppen op iets wat een oude
  *  versie blijkt. Kan de versie niet worden gelezen (verwijderd, storing), dan zegt hij dat en kiest hij *Nu*. */
-export function VersieKiezer({ versie, onKies }: {
+export function VersieKiezer({ versie, gekozen, onKies }: {
   /** De versie van de chip (`artefact.ref.versie`). */
   versie: string;
+  /** Wat het paneel al koos (een id, of `null` voor *Nu*); de kiezer begint daar en meldt niets. Nodig waar hij opnieuw
+   *  gemonteerd wordt binnen hetzelfde paneel (de tab Tekst en de tab Graaf hebben elk een kop); anders sprong hij
+   *  terug naar de versie van de chip. */
+  gekozen?: string | null;
   onKies: (v: ArtefactVersie | null) => void;
 }) {
   const [ids, setIds] = useState<string[] | null>(null);
@@ -27,6 +31,7 @@ export function VersieKiezer({ versie, onKies }: {
   // De handler van de laatste render, zonder het laden opnieuw te starten als het paneel een nieuwe functie meegeeft.
   const kies = useRef(onKies);
   useEffect(() => { kies.current = onKies; }, [onKies]);
+  const start = useRef(gekozen);
 
   useEffect(() => {
     let levend = true;
@@ -36,6 +41,16 @@ export function VersieKiezer({ versie, onKies }: {
         cache.current.set(v.id, v);
         const lijst = (await haalArtefactVersies(v.sleutel)).map((x) => x.id);
         const alle = lijst.includes(v.id) ? lijst : [...lijst, v.id];
+        if (start.current !== undefined) {
+          // Al gekozen: alleen de plek en de regel terugzetten.
+          const i = start.current === null ? alle.length : alle.indexOf(start.current);
+          const p = i === -1 ? alle.length : i;
+          const nu = isNu(p, alle.length);
+          const getoonde = nu ? null : await haalArtefactVersie(alle[p]);
+          if (!levend) return;
+          setIds(alle); setPlek(p); setGetoond(getoonde);
+          return;
+        }
         if (!levend) return;
         const p = beginPlek(alle, v.id);
         setIds(alle);

@@ -94,3 +94,12 @@ export function bestandsnaam(titel: string, extensie = "md"): string {
     .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "artefact";
   return `${stam}.${extensie}`;
 }
+
+/** De voorstellen van Lex per term, voor een oude versie van het artefact: wat er toen lag, zonder de passages. */
+export function voorstellenAlsMarkdown(titel: string, termen: readonly { naam: string; passages: number; open: readonly unknown[] }[]): string {
+  const regels = [`# ${titel}`, ""];
+  if (!termen.length) regels.push("Geen voorstellen.");
+  for (const t of termen)
+    regels.push(`- ${t.naam} (${t.passages === 1 ? "1 passage" : `${t.passages} passages`}${t.open.length ? ", te beoordelen" : ", beoordeeld"})`);
+  return `${regels.join("\n")}\n`;
+}

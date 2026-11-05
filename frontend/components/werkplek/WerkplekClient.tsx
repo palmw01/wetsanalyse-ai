@@ -1088,7 +1088,7 @@ export function WerkplekClient({
     const nav = item && reeksNavigatie(item.reeks, nodeDoel.bron_iri);
     return nav ? { ...nav, onGa: (d: NodeDoel) => { setNodeGraaf(zonderKennisgraaf); setNodeDoel(d); } } : undefined;
   })();
-  const artefact = nodeDoel ? <NodeAnnotatiePaneel key={`${nodeDoel.bron_iri}:${nodeDoel.snapshot_id ?? ""}:${nodeTab}:${nodeGraaf.bereik ?? ""}:${nodeExtra.map((d) => d.bron_iri).join("|")}`} doel={nodeDoel}
+  const artefact = nodeDoel ? <NodeAnnotatiePaneel key={`${nodeDoel.bron_iri}:${nodeDoel.snapshot_id ?? ""}:${nodeDoel.versie ?? ""}:${nodeTab}:${nodeGraaf.bereik ?? ""}:${nodeExtra.map((d) => d.bron_iri).join("|")}`} doel={nodeDoel}
     extraDoelen={nodeExtra} graaf={nodeGraaf} koppelingRef={graafKoppelingRef}
     // Een knoop uit een ander artikel (meegeopend, of uit de hele kennisgraaf): het paneel op dát
     // artikel; de rest van de kaart, het bereik en de nadruk blijven mee.

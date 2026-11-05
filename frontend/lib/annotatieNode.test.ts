@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { codepointOffset, segmentAnker, mergeToolExecution, parseToolExecution, elementVergrendeld,
+import { codepointOffset, momentopnameOpslag, segmentAnker, mergeToolExecution, parseToolExecution, elementVergrendeld,
   nodeLink, nodeError, toolSpoorUit, heeftInhoud, toolDoelLabel, duurTekst, type NodeWeergave, type NodeElement, type ToolExecution } from "./annotatieNode";
 
 describe("canonieke bronnode-annotaties", () => {
@@ -94,5 +94,17 @@ describe("toolDoelLabel en duurTekst", () => {
     expect(duurTekst(40)).toBe("40 ms");
     expect(duurTekst(0)).toBe("0 ms");
     expect(duurTekst(4700)).toBe("4,7 s");
+  });
+});
+
+describe("momentopnameOpslag", () => {
+  const weergave = { doel: { bron_iri: "urn:x" } } as unknown as NodeWeergave;
+
+  it("geeft de opname terug en weigert elke wijziging", async () => {
+    const o = momentopnameOpslag(weergave);
+    expect(await o.weergave({ bron_iri: "urn:x" })).toBe(weergave);
+    expect(o.levend).toBe(false);
+    await expect(o.beslis("e1", {})).rejects.toThrow(/alleen te lezen/);
+    await expect(o.verwijder({})).rejects.toThrow(/alleen te lezen/);
   });
 });

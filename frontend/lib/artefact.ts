@@ -98,6 +98,7 @@ export function annotatieDoelVan(a: Artefact | undefined): NodeDoel | undefined 
     ...(tekst(r.label) || a.titel ? { label: tekst(r.label) || a.titel } : {}),
     ...(tekst(r.snapshot_id) ? { snapshot_id: tekst(r.snapshot_id) } : {}),
     ...(tekst(r.bwb_id) ? { bwb_id: tekst(r.bwb_id) } : {}),
+    ...(tekst(r.versie) ? { versie: tekst(r.versie) } : {}),
   };
 }
 

@@ -268,8 +268,12 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
       exporteren gaan over wat je ziet;
     - het paneel toont niets zolang de kiezer nog niet koos, zodat er nooit even knoppen op een oude versie staan;
     - zonder `ref.versie` (een ouder bericht, een mislukte opname) is er geen kiezer;
-    - een paneel krijgt de opname als prop `opname`: het haalt dan niets op en verbergt alles wat iets wijzigt. Nu bij
-      werkgebied, deelvraag en bronselectie; begrip, begrippen en annotatie volgen;
+    - een paneel krijgt de opname als prop `opname`: het haalt dan niets op en verbergt alles wat iets wijzigt.
+      Bij elke soort: werkgebied, deelvraag, bronselectie, begrip en begrippen. De exports van het begrippenkader gaan
+      over de stand van nu en staan op een oude versie uit;
+    - de annotatie krijgt de opname via haar `opslag`-haak (`momentopnameOpslag`, zoals de rondleiding): ze is
+      vergrendeld, zonder graaf en zonder afronden of verwijderen. Het paneel heeft twee koppen (Tekst en Graaf), dus
+      de kiezer krijgt `gekozen` mee en begint na een tabwissel waar je was. `NodeDoel.versie` draagt de versie;
     - browserregressie: `scripts/test-artefacten.mjs`.
   - **Het werkgebied hoort bij het gesprek** (spoor G1). Een geopend gesprek neemt zijn `werkgebied_id`
     mee (uit de lijst of, via `onGesprekGeladen`, uit het geladen gesprek); een nieuw gesprek krijgt het van
