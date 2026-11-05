@@ -30,7 +30,7 @@ const datum = (iso: string) =>
  *  ronde, de voorstellen **per term** (spoor H4: de keten maakt één groep per term per bepaling, dus
  *  "tijdvak" stond er zeven keer) en de relaties. Beoordelen gebeurt op de pagina van een term
  *  (`BegripTermPagina`). Een voorstel is geen begrip, en geen besluit wijzigt een annotatie. */
-export function BegripVoorstellen({ id, runId, inklapbaar = true }: {
+export function BegripVoorstellen({ id, runId, inklapbaar = true, opname }: {
   id: string;
   /** De ronde waar een artefact in het gesprek naar wijst. De voorstellen zijn altijd die van de
    *  laatste ronde – daar wordt verder beoordeeld –, maar is dat een andere, dan zegt de strook dat. */
@@ -38,10 +38,13 @@ export function BegripVoorstellen({ id, runId, inklapbaar = true }: {
   /** Op de tab Begrippen een strook die je kunt inklappen; in het artefactpaneel is hij de hele
    *  inhoud en staat hij altijd open. */
   inklapbaar?: boolean;
+  /** Een oude versie (de versiekiezer): de voorstellen zoals ze toen waren. Alleen lezen: niets ophalen en geen besluiten;
+   *  de rijen naar de termpagina tonen de stand van nu, en dat staat erbij. De aanroeper remount per versie (`key`). */
+  opname?: GroepenAntwoord;
 }) {
   const [ingeklaptBewaard, setIngeklapt] = useState(false);
   const ingeklapt = inklapbaar && ingeklaptBewaard;
-  const [data, setData] = useState<GroepenAntwoord | null>(null);
+  const [data, setData] = useState<GroepenAntwoord | null>(opname ?? null);
   const [laatste, setLaatste] = useState<BegrippenRun | null>(null);
   const [fout, setFout] = useState<string | null>(null);
   const [bezig, setBezig] = useState(false);
@@ -63,9 +66,10 @@ export function BegripVoorstellen({ id, runId, inklapbaar = true }: {
   }, [id]);
 
   useEffect(() => {
+    if (opname) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void laad();
-  }, [laad]);
+  }, [laad, opname]);
 
   function wisselIngeklapt() {
     setIngeklapt((v) => {
@@ -110,6 +114,9 @@ export function BegripVoorstellen({ id, runId, inklapbaar = true }: {
       {!ingeklapt && (
         <div className="space-y-4 border-t border-line px-4 py-3">
           {fout && <Melding type="fout" compact>{fout}</Melding>}
+          {opname && (
+            <p className="text-xs text-muted" data-alleen-lezen>Een term openen toont de stand van nu; daar beoordeel je verder.</p>
+          )}
           {runId && laatste && laatste.id !== runId && (
             <Melding type="uitleg" compact>
               Dit gesprek wijst naar een eerdere ronde van Lex. Hieronder staan de voorstellen van de laatste
@@ -172,7 +179,7 @@ export function BegripVoorstellen({ id, runId, inklapbaar = true }: {
           {data?.run && open.length === 0 && termen.length > 0 && (
             <p className="text-sm text-muted">Alle voorstellen van deze ronde zijn beoordeeld.</p>
           )}
-          {data?.run && los.length > 0 && (
+          {data?.run && los.length > 0 && !opname && (
             <details className="text-sm">
               <summary className="focus-ring cursor-pointer rounded text-sm font-semibold text-lint">Losse twijfelvragen ({los.length})</summary>
               <ul className="divide-y divide-line" aria-label="Losse twijfelvragen">

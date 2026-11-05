@@ -33,7 +33,7 @@ deelvraag, begrip, bronselectie en regels (gereserveerd).
 |---|---|---|
 | 1. chip in de thread | Elke soort heeft een chip met soort en titel (`ArtefactChip`, `AnnotatieChip`); een verwijderde annotatie wordt een tombstone. | **Er.** |
 | 2. één tegelijk naast het gesprek | Kolom vanaf 1280px, daaronder een sheet. `nodeDoel`, `wgArtefact` en `ctx` sluiten elkaar uit. | **Er.** |
-| 3. versies via het gesprek | Een artefact is een levend object bij de api (werkgebied, begrip, annotatielaag). Een beurt van Lex wijzigt het, en de chip toont altijd de stand van **nu**. De historie bestaat: de audit van het werkgebied, `RevisieHistorie` bij een annotatie, de historie van een begrip. Er is geen versiekiezer, en geen "zo zag het eruit na deze beurt". | **Gat.** De grootste afwijking van Claude. |
+| 3. versies via het gesprek | Een artefact is een levend object bij de api (werkgebied, begrip, annotatielaag). Een beurt van Lex wijzigt het. Sinds 5 nov 2026 legt de api bij elke beurt de stand vast (`artefact_versies`), en de chip opent zijn eigen versie met ‹ versie n van m › en *Nu* (`VersieKiezer`). | **Opgelost.** Stond als grootste afwijking van Claude. |
 | 4. kleine bewerkingen erop | Dossier (*Gegevens bewerken*), definitie en uitleg van een begrip, besluiten in het paneel en in de reviewlijst. | **Er.** |
 | 5. kopiëren / exporteren | De annotatie heeft PDF, CSV, JSON en TriG (`ExportKnop`); begrippen hebben CSV, JSON en Turtle (NL-SBB). Werkgebied (dossier), bronselectie en deelvraag hebben geen export en geen *Kopieer*. | **Deels.** |
 | 6. volledige pagina | Elk paneel heeft *Open volledige pagina* (`paginaVan`). | **Er.** |
@@ -70,7 +70,9 @@ Verdere bevindingen:
 ## Besluiten (gebruiker, 4 nov 2026)
 
 1. **Versies: een versiekiezer zoals Claude.** De chip opent de stand zoals Lex hem bij die beurt opleverde, met
-   ‹ versie n van m › naar later en naar nu. Dat gebeurt via de revisies en de audit die er al zijn.
+   ‹ versie n van m › naar later en naar nu. Uitgevoerd met eigen momentopnamen (`artefact_versies`, api), omdat alleen
+   een begrip oude inhoud bewaart. De nieuwste versie opent als *Nu*; een oudere is alleen te lezen. Klaar op alle
+   soorten: werkgebied, deelvraag, bronselectie, begrip, begrippen en annotatie.
 2. **Export: één knop voor elke soort**, in de kop van elk paneel: *Kopieer als Markdown* plus de exportvormen die bij
    de soort passen.
 3. **Het artefact `bronnen` gaat op in `bronselectie`.** Een oude chip opent de bronselectie van dat werkgebied; de

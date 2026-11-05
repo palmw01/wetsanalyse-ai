@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { annotatieAlsMarkdown, begripAlsMarkdown, bestandsnaam, bronselectieAlsMarkdown, dossierAlsMarkdown } from "./artefactMarkdown";
+import { annotatieAlsMarkdown, begripAlsMarkdown, bestandsnaam, bronselectieAlsMarkdown, dossierAlsMarkdown, voorstellenAlsMarkdown } from "./artefactMarkdown";
 import { parseBronselectie } from "./bronselectie";
 import type { AnnotatieDocument, Begrip, Werkgebied } from "./types";
 
@@ -57,5 +57,13 @@ describe("artefacten als Markdown", () => {
     expect(bestandsnaam("Artikel 9 – Invorderingswet 1990")).toBe("artikel-9-invorderingswet-1990.md");
     expect(bestandsnaam("Ö")).toBe("o.md");
     expect(bestandsnaam("")).toBe("artefact.md");
+  });
+});
+
+describe("voorstellenAlsMarkdown", () => {
+  it("noemt de termen van de oude versie, met hun stand", () => {
+    expect(voorstellenAlsMarkdown("Invordering", [{ naam: "termijn", passages: 2, open: [{}] }, { naam: "aanslag", passages: 1, open: [] }]))
+      .toBe("# Invordering\n\n- termijn (2 passages, te beoordelen)\n- aanslag (1 passage, beoordeeld)\n");
+    expect(voorstellenAlsMarkdown("Leeg", [])).toContain("Geen voorstellen.");
   });
 });

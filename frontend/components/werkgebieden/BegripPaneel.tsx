@@ -39,7 +39,7 @@ const STATUS_TOON = { geaccordeerd: "groen", concept: "neutraal", vervangen: "ne
  *
  *  Geen Lex-knoppen: wat Lex moet doen vraag je in het gesprek. Overnemen en bewerken dragen de revisie;
  *  een 412 laadt de nieuwe stand en zegt dat. */
-export function BegripPaneel({ werkgebiedId, begripId, onOnbewaard, onNaarBegrip, onVerwijderd }: {
+export function BegripPaneel({ werkgebiedId, begripId, onOnbewaard, onNaarBegrip, onVerwijderd, opname }: {
   werkgebiedId: string;
   begripId: string;
   /** De bewerking heeft niet-bewaarde wijzigingen: het paneel vraagt dan bevestiging bij sluiten. */
@@ -49,10 +49,14 @@ export function BegripPaneel({ werkgebiedId, begripId, onOnbewaard, onNaarBegrip
   /** Het begrip is verwijderd (de Begrippen-tab laadt dan de lijst opnieuw); zonder blijft het paneel
    *  staan met de verwijderd-stand. */
   onVerwijderd?: () => void;
+  /** Een oude versie (de versiekiezer): het begrip en zijn relaties zoals ze toen waren. Alleen lezen: niets ophalen,
+   *  geen voorstellen, geen bewerken, geen verwijderen. De aanroeper remount per versie (`key`). */
+  opname?: { begrip: Begrip; relaties?: RelatiesAntwoord | null };
 }) {
-  const [begrip, setBegrip] = useState<Begrip | null>(null);
+  const [begrip, setBegrip] = useState<Begrip | null>(opname?.begrip ?? null);
   const [lex, setLex] = useState<KaartVoorstellenAntwoord | null>(null);
-  const [relaties, setRelaties] = useState<RelatiesAntwoord | null>(null);
+  const [relaties, setRelaties] = useState<RelatiesAntwoord | null>(opname?.relaties ?? null);
+  const alleenLezen = !!opname;
   const [verouderd, setVerouderd] = useState<Verouderd | null>(null);
   const [fout, setFout] = useState<string | null>(null);
   const [melding, setMelding] = useState<{ type: "bevestiging" | "waarschuwing"; tekst: string } | null>(null);
@@ -97,16 +101,18 @@ export function BegripPaneel({ werkgebiedId, begripId, onOnbewaard, onNaarBegrip
   // Beide falen stil – de leesweergave staat er dan gewoon.
   const revisie = begrip?.revisie;
   useEffect(() => {
+    if (alleenLezen) return;
     let levend = true;
     haalKaartVoorstellen(werkgebiedId, begripId).then((l) => levend && setLex(l)).catch(() => {});
     haalRelaties(werkgebiedId, begripId).then((r) => levend && setRelaties(r)).catch(() => {});
     return () => { levend = false; };
-  }, [werkgebiedId, begripId, revisie]);
+  }, [werkgebiedId, begripId, revisie, alleenLezen]);
 
   useEffect(() => {
+    if (alleenLezen) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void laad();
-  }, [laad]);
+  }, [laad, alleenLezen]);
 
   const onbewaard = !!bewerk && !!begrip
     && (bewerk.definitie.trim() !== begrip.inhoud.definitie.trim() || bewerk.uitleg.trim() !== begrip.inhoud.uitleg.trim());
@@ -183,12 +189,12 @@ export function BegripPaneel({ werkgebiedId, begripId, onOnbewaard, onNaarBegrip
   const voorgesteld = relaties?.voorstellen ?? [];
 
   return (
-    <div data-begrip-paneel={begrip.id} data-status={begrip.status} className="space-y-5 text-sm text-ink">
+    <div data-begrip-paneel={begrip.id} data-status={begrip.status} data-alleen-lezen={alleenLezen ? "" : undefined} className="space-y-5 text-sm text-ink">
       <div className="space-y-1.5">
         <div className="flex flex-wrap items-center gap-2">
           <p className="font-display text-base font-semibold text-lint">{b.naam || "Naamloos begrip"}</p>
           <StatusLabel toon={STATUS_TOON[begrip.status]}>{BEGRIP_STATUS_LABEL[begrip.status]}</StatusLabel>
-          {!vervangen && <VerwijderKnop soort="begrip" onBevestig={verwijder} className="ml-auto" />}
+          {!vervangen && !alleenLezen && <VerwijderKnop soort="begrip" onBevestig={verwijder} className="ml-auto" />}
         </div>
         {b.alternatieve_termen.length > 0 && <p className="text-xs text-muted">Ook: {b.alternatieve_termen.join(", ")}</p>}
         {vervangen && begrip.vervangen_door && (
@@ -221,7 +227,7 @@ export function BegripPaneel({ werkgebiedId, begripId, onOnbewaard, onNaarBegrip
       )}
 
       {/* Eén manier van bewerken (4 nov 2026): *Bewerken* bij het blok, ter plekke, met Annuleren · Opslaan. */}
-      {!bewerk && !vervangen && (
+      {!bewerk && !vervangen && !alleenLezen && (
         <div className="flex justify-end">
           <BewerkKnop wat="Definitie en uitleg" onClick={() => setBewerk({ definitie: b.definitie, uitleg: b.uitleg })} />
         </div>

@@ -5,6 +5,9 @@ import { pathSegment } from "./url";
 export interface NodeDoel {
   bron_iri: string; type?: string; label?: string; bwb_id?: string;
   artikel?: string; lid?: string; snapshot_id?: string; citeertitel?: string;
+  /** De versie van de chip (`artefact.ref.versie`): de stand van de annotatie direct na die beurt van Lex. Geen
+   *  onderdeel van de bronnode; alleen de versiekiezer leest hem. */
+  versie?: string;
 }
 export interface NodeSegment {
   bron_iri: string; parent_iri?: string; type: string; label: string; nummer?: string;
@@ -224,6 +227,14 @@ export interface NodeOpslag {
   /** Hoort er een kennisgraaf en een revisiehistorie achter? Zonder (de rondleiding) toont het
    *  paneel geen Graaf-tab en geen Historie: daar is niets op te halen. */
   levend: boolean;
+}
+
+/** Een oude versie van een annotatie (de versiekiezer): de weergave uit de opname, en elke wijziging geweigerd. Zoals de
+ *  opslag van de rondleiding `levend: false`: er hoort geen kennisgraaf en geen historie bij. */
+export function momentopnameOpslag(weergave: NodeWeergave): NodeOpslag {
+  const weiger = async (): Promise<never> => { throw new Error("Een oude versie is alleen te lezen."); };
+  return { weergave: async () => weergave, beslis: weiger, markeer: weiger, wis: weiger, status: weiger, verwijder: weiger,
+    exporteer: weiger, levend: false };
 }
 
 /** De annotatie van één bepaling verwijderen vanuit een lijst (`lib/verwijderen.ts`): eerst de weergave,

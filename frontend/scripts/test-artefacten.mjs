@@ -28,6 +28,8 @@ const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 const errors = [], runs = [], requests = [];
+// De samenhangsgraaf staat in dit script uit; alleen het wisselen van tab bij de versiekiezer heeft hem nodig.
+let metGraaf = false;
 page.on("pageerror", (e) => errors.push(e.message));
 await page.context().addCookies(await sessieCookies(base));
 await page.addInitScript(() => localStorage.setItem("wa_rondleiding", JSON.stringify({ versie: 999, gezien: true })));
@@ -66,6 +68,13 @@ const gesprekken = {
       artefact: { soort: "werkgebied", titel: "Invordering", ref: { werkgebied_id: "wg1", versie: "v1" } } },
     { rol: "assistant", tekst: "Dossier aangevuld.", ...leeg, run_id: "w6b",
       artefact: { soort: "werkgebied", titel: "Invordering", ref: { werkgebied_id: "wg1", versie: "v2" } } },
+  ],
+  // De versiekiezer voor een annotatie en een begrip: de chips wijzen naar een oude versie.
+  g7: [
+    { rol: "assistant", tekst: "", ...leeg, run_id: "a7",
+      artefact: { soort: "annotatie", ref: { ...doel, versie: "a1" }, titel: "Invorderingswet – artikel 9 lid 1" } },
+    { rol: "assistant", tekst: "Begrip uitgewerkt.", ...leeg, run_id: "b7",
+      artefact: { soort: "begrip", titel: "Termijn", ref: { werkgebied_id: "wg1", begrip_id: "b9", versie: "b1" } } },
   ],
   // Een kaartactie vanuit het gesprek (fase F4): het artefact wijst naar één begrip.
   g3: [
@@ -145,6 +154,19 @@ await page.route("**/api/**", async (route) => {
   if (p === "/api/artefact-versies" && url.searchParams.get("sleutel") === "werkgebied:wg1")
     return route.fulfill({ json: { sleutel: "werkgebied:wg1", versies: [{ id: "v1", nr: 1, gemaakt: "2026-11-04T09:00:00Z" },
       { id: "v2", nr: 2, gemaakt: "2026-11-05T09:42:00Z" }] } });
+  // Een oude en een nieuwere versie van een annotatie en een begrip.
+  const oud = { a1: { soort: "annotatie", sleutel: "annotatie:urn:lid1", inhoud: { weergave: { ...view,
+      segmenten: [{ ...view.segmenten[0], tekst: "De oude tekst van de opname." }] } } },
+    b1: { soort: "begrip", sleutel: "begrip:wg1:b9", inhoud: { relaties: { relaties: [], voorstellen: [] },
+      begrip: { ...termijn, inhoud: { ...termijn.inhoud, definitie: "De oude definitie." } } } } };
+  if (p === "/api/artefact-versies" && (url.searchParams.get("sleutel") ?? "") in { "annotatie:urn:lid1": 1, "begrip:wg1:b9": 1 }) {
+    const a = url.searchParams.get("sleutel").startsWith("annotatie");
+    return route.fulfill({ json: { versies: [{ id: a ? "a1" : "b1", nr: 1, gemaakt: "2026-11-04T09:00:00Z" },
+      { id: a ? "a2" : "b2", nr: 2, gemaakt: "2026-11-05T09:42:00Z" }] } });
+  }
+  const oudeVersie = p.match(/^\/api\/artefact-versies\/([ab]1)$/);
+  if (oudeVersie) return route.fulfill({ json: { id: oudeVersie[1], ...oud[oudeVersie[1]], nr: 1, totaal: 2, gemaakt: "2026-11-04T09:00:00Z",
+    vorige: null, volgende: `${oudeVersie[1][0]}2` } });
   const versie = p.match(/^\/api\/artefact-versies\/(v[12])$/);
   if (versie) {
     const een = versie[1] === "v1";
@@ -234,7 +256,9 @@ await page.route("**/api/**", async (route) => {
   }
   if (p === "/api/gesprekken") return route.fulfill({ json: [{ id: "g1", titel: "Test", aantal_berichten: 5 }] });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
-  if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: false } });
+  if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: metGraaf } });
+  if (p.endsWith("/annotatie/v2/samenhang")) return route.fulfill({ json: { doel: "urn:lid1", knopen: [{ id: "urn:lid1", soort: "lid", label: "Lid 1",
+    tekst: "", klasse: "", lifecycle: "", element_id: "", bwb_id: "BWBR0004770", artikel: "9", lid: "1", rand: false }], relaties: [] } });
   return route.fulfill({ json: p.endsWith("/berichten") && m === "POST" ? { id: 1 } : [] });
 });
 
@@ -411,6 +435,36 @@ try {
   assert.equal(runs[0]?.werkgebied_id, undefined, "een los gesprek draagt geen werkgebied meer");
 
   // --- Verwijderen in het paneel, zoals een annotatie: begrip en werkgebied, daarna de verwijderd-stand ---
+  // De versiekiezer bij een annotatie: de oude tekst, vergrendeld, zonder graaf en zonder afronden of verwijderen; Nu geeft
+  // de bediening terug. Bij een begrip de oude definitie, zonder bewerken.
+  metGraaf = true;
+  await page.goto(`${base}/workbench?gesprek=g7`);
+  await page.locator("button", { hasText: "Invorderingswet – artikel 9 lid 1" }).first().click();
+  const ap = page.locator("[data-artefact-schil]");
+  await ap.locator("[data-versiekiezer]").getByText("Versie 1 van 2").waitFor();
+  await ap.getByText("De oude tekst van de opname.").waitFor();
+  assert.equal(await ap.getByRole("button", { name: "Annotatie verwijderen" }).count(), 0, "een oude annotatie is niet te verwijderen");
+  assert.equal(await ap.getByRole("button", { name: "Graaf", exact: true }).count(), 0, "een oude annotatie heeft geen graaf");
+  assert.equal(await ap.getByText("op slot", { exact: false }).count(), 0, "geen uitleg over heropenen");
+  await ap.locator("[data-oude-versie]").getByRole("button", { name: "Ga naar de huidige versie" }).click();
+  await ap.locator('[data-versiekiezer][data-versie-plek="nu"]').waitFor();
+  await ap.getByRole("button", { name: "Annotatie verwijderen" }).waitFor();
+  await ap.getByText("De ontvanger stelt de belastingschuldige in kennis.").waitFor();
+  // Op Nu naar de graaf en terug: de kiezer blijft op Nu (hij wordt daar opnieuw gemonteerd).
+  await ap.getByRole("button", { name: "Graaf", exact: true }).click();
+  await ap.locator('[data-versiekiezer][data-versie-plek="nu"]').waitFor();
+  await ap.getByRole("button", { name: "Tekst", exact: true }).click();
+  await ap.locator('[data-versiekiezer][data-versie-plek="nu"]').waitFor();
+  metGraaf = false;
+  await page.locator('button[data-artefact-soort="begrip"]', { hasText: "Termijn" }).click();
+  const bv = page.getByRole("region", { name: "Begrip: Termijn" });
+  await bv.locator("[data-versiekiezer]").getByText("Versie 1 van 2").waitFor();
+  await bv.locator("[data-begrip-paneel][data-alleen-lezen]").getByText("De oude definitie.").waitFor();
+  assert.equal(await bv.getByRole("button", { name: "Definitie en uitleg bewerken" }).count(), 0, "een oude versie is niet te bewerken");
+  assert.equal(await bv.getByRole("button", { name: "Begrip verwijderen" }).count(), 0);
+  await bv.locator("[data-oude-versie]").getByRole("button", { name: "Ga naar de huidige versie" }).click();
+  await bv.getByRole("button", { name: "Definitie en uitleg bewerken" }).waitFor();
+
   await page.goto(`${base}/workbench?gesprek=g3`);
   await page.locator('button[data-artefact-soort="begrip"]', { hasText: "Termijn" }).click();
   const bp = page.getByRole("region", { name: "Begrip: Termijn" });

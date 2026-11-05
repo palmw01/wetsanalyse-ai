@@ -9,11 +9,12 @@ import { RevisieHistorie } from "@/components/annotaties/RevisieHistorie";
 import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
 import { Melding } from "@/components/ui/Melding";
 import { PaneelKop } from "@/components/ui/PaneelKop";
+import { VersieKiezer } from "@/components/ui/VersieKiezer";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ArtefactInhoud } from "@/components/werkplek/ArtefactInhoud";
 import { foutTekst, type ExportFormaat } from "@/lib/api";
 import {
-  apiOpslag, nodeLink, verwachteRevisies,
+  apiOpslag, momentopnameOpslag, nodeLink, verwachteRevisies,
   type NodeDoel, type NodeElement, type NodeOpslag, type NodeWeergave,
 } from "@/lib/annotatieNode";
 import {
@@ -23,7 +24,7 @@ import type { ReeksNavigatie } from "@/lib/reeks";
 import { metSpoor } from "@/lib/uiSpoor";
 import { samenhangBeschikbaar } from "@/lib/samenhang";
 import type { KnoopData } from "@/lib/graaf/model";
-import type { Anker, BeslissingInvoer } from "@/lib/types";
+import type { Anker, ArtefactVersie, BeslissingInvoer } from "@/lib/types";
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
 import { Graaf } from "@/components/graaf/Graaf";
 import { useGraafStand, type GraafOpties } from "@/components/graaf/useGraafStand";
@@ -41,7 +42,7 @@ export type PaneelTab = "tekst" | "graaf";
  *
  *  Met `onSluit` staat hij in dezelfde `Dialog`-schil als `ArtefactPaneel` (werkplek); zonder is
  *  het de kale inhoud voor een eigen pagina. */
-export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, onWisselDoel, onSluit, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst", reeks, beginElement, opslag = apiOpslag, onBeslist }: {
+export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, onWisselDoel, onSluit, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst", reeks, beginElement, opslag: basisOpslag = apiOpslag, onBeslist }: {
   doel: NodeDoel; onSluit?: () => void; variant?: DialogVariant;
   /** Andere bepalingen of delen die de graaf meeopent (wat een antwoord noemt). Tekst en annotatie
    *  blijven over `doel`. */
@@ -67,14 +68,19 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
   /** Na elke geslaagde beslissing op een kaart, met het soort beslissing. */
   onBeslist?: (type: BeslissingInvoer["type"]) => void;
 }) {
+  // De versiekiezer: `undefined` zolang hij nog kiest, `null` voor *Nu*, anders de versie die het paneel alleen-lezend
+  // toont. De opname komt binnen via dezelfde opslag-haak als de rondleiding (`momentopnameOpslag`).
+  const [opname, setOpname] = useState<ArtefactVersie | null | undefined>(doel.versie ? undefined : null);
+  const opslag = useMemo(() => (opname ? momentopnameOpslag(opname.inhoud.weergave as NodeWeergave) : basisOpslag),
+    [opname, basisOpslag]);
   const [view, setView] = useState<NodeWeergave>();
   const [samenhang, setSamenhang] = useState(false);
   const [tab, setTab] = useState<PaneelTab>(beginTab);
   const [graafGeopend, setGraafGeopend] = useState(beginTab === "graaf");
   const [groot, setGroot] = useState(false);
   useEffect(() => {
-    if (opslag.levend) void samenhangBeschikbaar().then(setSamenhang);
-  }, [opslag]);
+    if (basisOpslag.levend) void samenhangBeschikbaar().then(setSamenhang);
+  }, [basisOpslag]);
   if (tab === "graaf" && !graafGeopend) setGraafGeopend(true);
   const graafStand = useGraafStand(doel, graafGeopend && samenhang, tab === "graaf", extraDoelen, graaf);
   const [laadFout, setLaadFout] = useState("");
@@ -82,10 +88,11 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
   const [melding, setMelding] = useState("");
 
   const laad = useCallback(async () => {
+    if (opname === undefined) return;       // de kiezer kiest nog: geen knoppen op wat een oude versie blijkt
     setLaadFout("");
     try { setView(await opslag.weergave(doel)); }
     catch (e) { setLaadFout(foutTekst(e, "De annotatie is niet geladen.")); }
-  }, [doel, opslag]);
+  }, [doel, opslag, opname]);
   useEffect(() => {
     // Een externe API-request initialiseren; dezelfde laadactie dient ook de retryknop.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -195,7 +202,8 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
     if (el && view && onVraag) onVraag(el, view);
     else onVraagOverBron?.(knoop);
   }
-  const toonTabs = samenhang && !!view;
+  // Een oude versie heeft geen graaf: de kaart toont de stand van nu.
+  const toonTabs = samenhang && !!view && !opname;
   // De tabs en *Vergroten* staan in de balk van de ene paneelkop (`PaneelKop.balk`), op beide tabs.
   const tabs = toonTabs && (
     <div className="flex shrink-0 items-center gap-2 border-b border-line px-4 py-2" data-paneel-balk>
@@ -218,10 +226,14 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
   );
 
   // Bladeren door de reeks gaat met ‹ › in de balk; Lex heeft geen sneltoetsen (besluit 26 okt 2026).
-  const reeksBalk = reeks && <ReeksBalk reeks={reeks} label={view?.doel.label || doel.label || ""} />;
+  const reeksBalk = (reeks || doel.versie) && <>
+    {reeks && <ReeksBalk reeks={reeks} label={view?.doel.label || doel.label || ""} />}
+    {doel.versie && <VersieKiezer versie={doel.versie} gekozen={opname === undefined ? undefined : opname?.id ?? null}
+      onKies={(v) => { setActiefId(undefined); setOpname(v); }} />}
+  </>;
 
   const titel = view?.doel.label || doel.label || "Annotatie";
-  const pagina = onSluit && opslag.levend && view
+  const pagina = onSluit && basisOpslag.levend && view
     ? nodeLink({ bron_iri: view.doel.bron_iri ?? doel.bron_iri, snapshot_id: doel.snapshot_id }) : undefined;
   const inhoud = !view || !nb || !doc ? (
     <div data-artefact-schil className="flex min-h-0 flex-1 flex-col">
@@ -255,13 +267,14 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
           const node = view.elementen.find((e) => e.id === el.id);
           if (node) onVraag(node, view);
         } : undefined}
-        onStatus={view.lagen.length ? status : undefined}
-        onVerwijder={view.lagen.length ? verwijder : undefined}
+        onStatus={view.lagen.length && !opname ? status : undefined}
+        onVerwijder={view.lagen.length && !opname ? verwijder : undefined}
+        alleenLezen={!!opname}
         onSluiten={onSluit}
         pagina={pagina}
         kopOnder={reeksBalk}
         kopBalk={tabs || undefined}
-        onExport={exporteer}
+        onExport={opname ? undefined : exporteer}
         extra={<NodeExtra view={view} doel={doel} onKies={setActiefId} historie={opslag.levend} />}
         ongedekt={ongedekt}
       />}

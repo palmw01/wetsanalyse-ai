@@ -3,7 +3,8 @@
 import { ExportKnop } from "@/components/werkplek/ExportKnop";
 import { EXPORT_FORMATEN } from "@/components/werkgebieden/BegrippenTab";
 import { exporteerBegrippen, haalBegrip, haalBronselectie, haalWerkgebied, lijstBegrippen } from "@/lib/api";
-import { begripAlsMarkdown, begrippenAlsMarkdown, bronselectieAlsMarkdown, deelvraagAlsMarkdown, dossierAlsMarkdown } from "@/lib/artefactMarkdown";
+import { begripAlsMarkdown, begrippenAlsMarkdown, bronselectieAlsMarkdown, deelvraagAlsMarkdown, dossierAlsMarkdown, voorstellenAlsMarkdown } from "@/lib/artefactMarkdown";
+import { termenVan } from "@/lib/begripTermen";
 import { PaneelKop } from "@/components/ui/PaneelKop";
 import { VersieKiezer } from "@/components/ui/VersieKiezer";
 import Link from "next/link";
@@ -26,7 +27,7 @@ import { metSpoor } from "@/lib/uiSpoor";
 import { verwijderdUit, verwijderdZin, type Verwijderd } from "@/lib/verwijderen";
 import { isRevisieConflict } from "@/lib/werkgebied";
 import { werkgebiedLabel, type WerkgebiedArtefact } from "@/lib/artefact";
-import type { ArtefactVersie, Deelvraag, Werkgebied } from "@/lib/types";
+import type { ArtefactVersie, Begrip, Deelvraag, GroepenAntwoord, RelatiesAntwoord, Werkgebied } from "@/lib/types";
 import type { BronselectieOverzicht } from "@/lib/bronselectie";
 import { STATUS_LABEL } from "@/lib/werkgebied";
 import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
@@ -46,7 +47,9 @@ function exportVan(doel: WerkgebiedArtefact, opname?: Opname | null): Pick<React
         const d = o.bronselectie?.deelvragen.find((x) => x.id === doel.deelvraag_id);
         return d ? deelvraagAlsMarkdown(d) : `# ${o.deelvraag?.vraag ?? doel.titel}\n`;
       } };
-      default: break;
+      case "begrip": return { formaten: [], markdown: () => begripAlsMarkdown(o.begrip!) };
+      // De exports van het begrippenkader (JSON, CSV, Turtle) gaan over de stand van nu: niet bij een oude versie.
+      default: return { formaten: [], markdown: () => voorstellenAlsMarkdown(doel.titel, termenVan(o.groepen ?? null)) };
     }
   }
   switch (doel.soort) {
@@ -72,11 +75,9 @@ function exportVan(doel: WerkgebiedArtefact, opname?: Opname | null): Pick<React
 
 /** Een versie van het artefact (api `artefact_versies`), met de inhoud die de panelen van deze soort kennen. */
 type Opname = Omit<ArtefactVersie, "inhoud"> & {
-  inhoud: { werkgebied?: Werkgebied; deelvraag?: Deelvraag | null; bronselectie?: BronselectieOverzicht };
+  inhoud: { werkgebied?: Werkgebied; deelvraag?: Deelvraag | null; bronselectie?: BronselectieOverzicht;
+    begrip?: Begrip; relaties?: RelatiesAntwoord | null; groepen?: GroepenAntwoord };
 };
-
-/** De soorten met een versiekiezer in dit paneel; begrip en begrippen volgen (PR D2). */
-const MET_VERSIES = new Set<WerkgebiedArtefact["soort"]>(["werkgebied", "deelvraag", "bronselectie"]);
 
 /** Waar *Open volledige pagina* heen gaat: de pagina van wat het paneel toont (spoor G2). */
 function paginaVan(doel: WerkgebiedArtefact): string {
@@ -136,7 +137,7 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
   const titel = doel.titel || soort;
   // De versiekiezer (deel 2 van de artefacten): `undefined` zolang hij nog kiest, `null` voor *Nu*, anders de versie die
   // het paneel alleen-lezend toont. Zonder versie op de chip is het gewoon *Nu*.
-  const metVersie = doel.versie && MET_VERSIES.has(doel.soort) ? doel.versie : undefined;
+  const metVersie = doel.versie;
   const [opname, setOpname] = useState<Opname | null | undefined>(metVersie ? undefined : null);
   return (
     <Dialog label={`${soort}: ${titel}`} variant={variant} onSluit={sluit}>
@@ -163,7 +164,8 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
             <WerkgebiedInhoud id={doel.werkgebied_id} naarWerkgebied={naarWerkgebied} opname={opname?.inhoud}
               onVerwijderd={() => onVerwijderd?.(doel.werkgebied_id)} />
           ) : doel.soort === "begrip" && doel.begrip_id ? (
-            <BegripPaneel werkgebiedId={doel.werkgebied_id} begripId={doel.begrip_id} onOnbewaard={setOnbewaard}
+            <BegripPaneel key={opname?.id ?? "nu"} werkgebiedId={doel.werkgebied_id} begripId={doel.begrip_id} onOnbewaard={setOnbewaard}
+              opname={opname?.inhoud.begrip ? { begrip: opname.inhoud.begrip, relaties: opname.inhoud.relaties } : undefined}
               onNaarBegrip={(b) => onWissel
                 ? onWissel({ soort: "begrip", werkgebied_id: doel.werkgebied_id, run_id: "", begrip_id: b, titel: "" })
                 : router.push(begripPad(doel.werkgebied_id, b))} />
@@ -175,7 +177,8 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
             <BronnenBijDeelvraag werkgebiedId={doel.werkgebied_id} huidig={doel.deelvraag_id} inGesprek
               opname={opname?.inhoud.bronselectie} onKlaar={onKlaar} klaarVoor={klaarVoor} />
           ) : (
-            <BegripVoorstellen id={doel.werkgebied_id} runId={doel.run_id} inklapbaar={false} />
+            <BegripVoorstellen key={opname?.id ?? "nu"} id={doel.werkgebied_id} runId={doel.run_id} inklapbaar={false}
+              opname={opname?.inhoud.groepen} />
           )}
         </div>
       </div>

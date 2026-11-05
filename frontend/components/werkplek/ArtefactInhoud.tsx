@@ -29,6 +29,8 @@ export interface ArtefactInhoudProps {
   /** De slots van de paneelkop (`PaneelKop.onder`/`balk`): de schil geeft de reeks of versie en de tabs mee. */
   kopOnder?: React.ReactNode;
   kopBalk?: React.ReactNode;
+  /** Een oude versie (de versiekiezer): vergrendeld zoals een afgeronde annotatie, zonder de uitleg over heropenen. */
+  alleenLezen?: boolean;
   doc: AnnotatieDocument;
   info: GraafArtikel;
   actiefId?: string;
@@ -71,7 +73,7 @@ export interface ArtefactInhoudProps {
  *  schillen – anders gaan de twee weergaven uit elkaar lopen. */
 export function ArtefactInhoud({
   doc, info, actiefId, onKies, onBeslissing, onEigenMarkering,
-  onWisEigenMarkering, onVraag, onStatus, onVerwijder, onSluiten, pagina, onExport, extra, ongedekt, kopOnder, kopBalk,
+  onWisEigenMarkering, onVraag, onStatus, onVerwijder, onSluiten, pagina, onExport, extra, ongedekt, kopOnder, kopBalk, alleenLezen = false,
 }: ArtefactInhoudProps) {
   // Eén bron voor de bewoording: `vindplaatsLabel` weet uit het graaf-`soort` of dit een artikel
   // met leden is of een bepaling van een beleidsregel. Hier raden op puntjes in het nummer zou bij
@@ -166,7 +168,7 @@ export function ArtefactInhoud({
   /** Een afgerond document is bevroren. De api weigert elke mutatie met een 409; hier leggen we de
    *  bediening stil zodat de jurist die fout nooit tegenkomt – een knop die alleen nog een
    *  foutmelding oplevert is erger dan geen knop. Heropenen staat in de kop en is één klik. */
-  const vergrendeld = isDocumentVergrendeld(doc);
+  const vergrendeld = alleenLezen || isDocumentVergrendeld(doc);
 
   /** Afronden of heropenen. De fout landt in dezelfde melding als de beslissingen – de jurist hoeft
    *  niet op twee plekken te kijken. */
@@ -362,7 +364,7 @@ export function ArtefactInhoud({
 
           {/* Zonder deze regel lijkt een afgeronde annotatie kapot: de knoppen zijn weg en er staat
               niets over waarom. Neutraal van toon – afgerond zijn is de bedoeling, geen fout. */}
-          {vergrendeld && (
+          {vergrendeld && !alleenLezen && (
             <div className="py-2">
               <Melding type="uitleg" compact>
                 Deze annotatie is afgerond en staat daarom op slot. Kies <em>Heropenen</em> hierboven
