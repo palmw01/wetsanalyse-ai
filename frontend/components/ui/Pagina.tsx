@@ -199,7 +199,7 @@ export function Groep({ kop, sub, telling, status, label, children, leeg, ...res
         {sub && <p className="w-full text-xs text-muted">{sub}</p>}
       </div>
       {kinderen.length ? (
-        <ul aria-label={label} className="divide-y divide-line overflow-hidden rounded-kaart border border-line bg-paper shadow-zacht">
+        <ul aria-label={label} className="divide-y divide-line rounded-kaart border border-line bg-paper shadow-zacht [&>li:first-child]:rounded-t-kaart [&>li:last-child]:rounded-b-kaart [&>li>*:first-child]:rounded-[inherit]">
           {kinderen}
         </ul>
       ) : leeg ? <p className="text-sm text-muted">{leeg}</p> : null}
@@ -208,7 +208,8 @@ export function Groep({ kop, sub, telling, status, label, children, leeg, ...res
 }
 
 /** Eén rij in een `Groep` (de `itemrow` van de mock-up): titel, subregel, status en een chevron naar de pagina
- *  van het object. `eind` staat buiten de link (een menu ⋯), `onder` eronder (dat menu, uitgeklapt). */
+ *  van het object. `eind` staat buiten de link (een menu ⋯, `MeerMenu`), `onder` eronder (de wettekst, uitgeklapt). Geen
+ *  `overflow-hidden` op de lijst: dat knipt het menu van de onderste rij af; de hoeken rondt de rij zelf af. */
 export function GroepRij({ href, uitklap, titel, sub, status, eind, onder, ...rest }: {
   /** De rij opent een pagina … */
   href?: string;

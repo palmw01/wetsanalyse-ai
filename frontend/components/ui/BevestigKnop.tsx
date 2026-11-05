@@ -35,6 +35,7 @@ export function BevestigKnop({
   bevestigClassName = "",
   disabled,
   wachtMs = 8000,
+  role,
 }: {
   /** Wat er in rust staat: tekst of een icoon. */
   children: React.ReactNode;
@@ -43,6 +44,8 @@ export function BevestigKnop({
   onBevestig: () => void | Promise<void>;
   ariaLabel?: string;
   titel?: string;
+  /** `menuitem` in een ⋯-menu (`MeerMenu`). */
+  role?: string;
   className?: string;
   /** Extra klassen voor de scherpe stand, zodat die er anders uitziet dan de rust-stand. */
   bevestigClassName?: string;
@@ -86,6 +89,7 @@ export function BevestigKnop({
     <button
       ref={knopRef}
       type="button"
+      role={role}
       disabled={disabled || bezig}
       aria-busy={bezig || undefined}
       aria-label={bezig ? "Bezig" : scherp ? bevestigTekst : ariaLabel}
