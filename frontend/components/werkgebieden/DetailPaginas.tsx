@@ -21,7 +21,8 @@ import { wijzigWerkgebied } from "@/lib/api";
 import type { BegripWeergave } from "@/lib/begrippen";
 import { splits } from "@/lib/deelvragen";
 import type { Werkgebied } from "@/lib/types";
-import { DOSSIER_VELDEN, ROL_LABEL, STATUS_LABEL } from "@/lib/werkgebied";
+import { DOSSIER_VELDEN, ROL_LABEL, STATUS_LABEL, datumNl } from "@/lib/werkgebied";
+import { themaLabel } from "@/lib/tooiThemas";
 import { metLeesbareBronnen } from "@/lib/bronKandidaten";
 import {
   ARTEFACT_LABEL, artefactKaarten, artefactPad, begripPad, deelvraagPad, projectPad, type ArtefactSoort,
@@ -96,20 +97,26 @@ function Dossier() {
   const zoek = useSearchParams();
   const router = useRouter();
   const [bewerken, setBewerken] = useState(() => zoek.get("bewerk") === "1");
+  // Elk gegeven bewerk je op de plek waar het staat: het dossier op de kaart *Analyseopdracht*, peildatum en status
+  // op de kaart *Versie*. Eén tegelijk.
+  const [versieBewerken, setVersieBewerken] = useState(false);
+  const bewaar = (sluit: () => void) => async (w: Parameters<React.ComponentProps<typeof GegevensFormulier>["onBewaar"]>[0]) => {
+    if (await muteer((r) => wijzigWerkgebied(wg.id, { ...w, verwachte_revisie: r }), { gelukt: "Opgeslagen." })) sluit();
+  };
   useEffect(() => {
     if (zoek.get("bewerk") === "1") router.replace(artefactPad(wg.id, "dossier"), { scroll: false });
   }, [zoek, router, wg.id]);
   return (
     <SplitDetail
       hoofd={<>
-        <Kaart titel="Analyseopdracht" acties={!bewerken && <BewerkKnop wat="Analyseopdracht" onClick={() => setBewerken(true)} />}>
+        <Kaart titel="Analyseopdracht" acties={!bewerken && !versieBewerken
+          && <BewerkKnop wat="Analyseopdracht" onClick={() => setBewerken(true)} />}>
           {bewerken ? (
             <GegevensFormulier wg={wg} onSluit={() => setBewerken(false)} onOnbewaard={zetOnbewaard}
-              onBewaar={async (w) => {
-                if (await muteer((r) => wijzigWerkgebied(wg.id, { ...w, verwachte_revisie: r }), { gelukt: "Opgeslagen." })) setBewerken(false);
-              }} />
+              onBewaar={bewaar(() => setBewerken(false))} />
           ) : (
           <Regels className="text-sm" data-dossier>
+            <Regel naam="Naam" data-dossier-veld="naam">{wg.naam}</Regel>
             {DOSSIER_VELDEN.map(({ veld, label }) => (
               <Regel key={veld} naam={label} data-dossier-veld={veld}>
                 {(wg[veld] ?? "").trim()
@@ -117,6 +124,15 @@ function Dossier() {
                   : <span className="text-muted">{`Nog geen ${label.toLowerCase()}. Lex vult het aan in het gesprek.`}</span>}
               </Regel>
             ))}
+            <Regel naam="Thema" data-dossier-veld="thema">
+              {wg.thema ? (wg.thema_label || themaLabel(wg.thema) || wg.thema) : <span className="text-muted">Nog geen thema.</span>}
+            </Regel>
+            {/* Het zoekbereik pas je aan via Lex (*Vul de regelingen aan*): zoeken in de graaf hoort bij het gesprek. */}
+            <Regel naam="Regelingen" data-dossier-veld="regelingen">
+              {(wg.regelingen ?? []).length
+                ? (wg.regelingen ?? []).map((r) => r.label || r.bwb_id).join("; ")
+                : <span className="text-muted">Nog geen regelingen. Lex vult ze aan in het gesprek.</span>}
+            </Regel>
           </Regels>
           )}
         </Kaart>
@@ -124,12 +140,19 @@ function Dossier() {
         <Kaart><Deelvragen wg={wg} muteer={muteer} /></Kaart>
       </>}
       zij={<>
-        <Kaart titel="Versie">
-          <Regels className="text-sm">
+        <Kaart titel="Versie" acties={!versieBewerken && !bewerken
+          && <BewerkKnop wat="Peildatum en status" onClick={() => setVersieBewerken(true)} />}>
+          {versieBewerken ? (
+            <GegevensFormulier wg={wg} deel="versie" onSluit={() => setVersieBewerken(false)} onOnbewaard={zetOnbewaard}
+              onBewaar={bewaar(() => setVersieBewerken(false))} />
+          ) : (
+          <Regels className="text-sm" data-versie>
             <Regel naam="Revisie">{wg.revisie}</Regel>
             <Regel naam="Status">{STATUS_LABEL[wg.status]}</Regel>
+            <Regel naam="Peildatum">{wg.peildatum ? datumNl(wg.peildatum) : <span className="text-muted">de aanmaakdatum</span>}</Regel>
             <Regel naam="Gewijzigd">{datum(wg.gewijzigd)}</Regel>
           </Regels>
+          )}
         </Kaart>
         <Relaties soort="dossier" />
       </>}

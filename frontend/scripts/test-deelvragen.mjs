@@ -169,6 +169,16 @@ try {
   await page.goto(`${base}/werkgebieden/wg1/artefacten/dossier`);
   await rij(vraag).waitFor();
 
+  // Bewerken ter plekke: het veld neemt de breedte van de rij, niet die van de tekst (5 nov 2026: een korte vraag
+  // gaf een smal vak en een lange een hoge kolom). Escape annuleert.
+  await rij(vraag).getByRole("button", { name: /^Deelvraag \d+ bewerken$/ }).click();
+  const veld = sectie().locator(`[data-bewerken] textarea`);
+  await veld.waitFor();
+  const [bv, br] = [await veld.boundingBox(), await sectie().locator("[data-bewerken]").locator("xpath=ancestor::li[1]").boundingBox()];
+  assert.ok(bv.width > br.width * 0.8, `bewerkveld ${bv.width}px in een rij van ${br.width}px`);
+  await veld.press("Escape");
+  await veld.waitFor({ state: "detached" });
+
   // 4. Verwijderen (niet "weghalen"): achter ⋯, eerst scherp zetten, dan pas weg.
   await sectie().getByRole("button", { name: "Acties: Wie is de belastingschuldige?" }).click();
   await page.getByRole("menuitem", { name: "Verwijderen: Wie is de belastingschuldige?" }).click();
