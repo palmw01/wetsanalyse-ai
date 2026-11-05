@@ -227,6 +227,14 @@ export function meldBronselectieGewijzigd(werkgebiedId: string): void {
 
 /** Wat het compacte kaartje telt (3 nov 2026), zoals graph-qa het kaartje opbouwt: bij de kernbepalingen de
  *  kandidaten met rol kern, bij wat eraan hangt de rest. Open = nog voorgesteld of eerder niet gekozen. */
+/** De voorstellen in de volgorde van het werk: eerst wat nu op een besluit wacht, dan wat uitgesloten is. Wat je in een
+ *  eerdere stap niet koos, staat apart: het telt niet mee op het kaartje van deze stap, en kan alsnog opgenomen worden. */
+export function ordenVoorstellen<T extends Pick<KandidaatHier, "stand">>(kandidaten: readonly T[]): { open: T[]; nietGekozen: T[] } {
+  const open = kandidaten.filter((k) => k.stand !== "niet_gekozen");
+  return { open: [...open.filter((k) => k.stand === "voorgesteld"), ...open.filter((k) => k.stand !== "voorgesteld")],
+    nietGekozen: kandidaten.filter((k) => k.stand === "niet_gekozen") };
+}
+
 export function paneelTelling(d: Pick<DeelvraagSelectie, "kandidaten">, stap: string): { kandidaten: number; opgenomen: number } {
   const kern = stap === "bs_bepalingen";
   const hier = d.kandidaten.filter((k) => (k.rol === "kern") === kern);

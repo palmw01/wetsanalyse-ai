@@ -499,7 +499,9 @@ heeft *Verzend* (`isLaatsteVraag`), want wat erna komt hangt af van het antwoord
   deelvraag de voortgang (`VOORTGANG_LABEL`, groen alleen bij *beoordeeld*, geel bij *opnieuw bekijken*), de
   bronnen met hun rol bij díé deelvraag, de voorstellen met hun stand, de zoekvraag waar ze bij horen (`zoekvraagZin`,
   "zoekvraag a · bestaansrecht", uit `bewijs[].detail.zoekvraag`) en het soort bewijs (`BEWIJS_LABEL`), de
-  onderzoekspunten, de zoekbeperkingen en de slotzin (`slotZin`: nooit "volledig"). Per voorstel opnemen,
+  onderzoekspunten, de zoekbeperkingen en de slotzin (`slotZin`: nooit "volledig"). De volgorde is die van het werk (`ordenVoorstellen`): eerst wat op een besluit wacht, dan
+  wat uitgesloten is; wat je in een eerdere stap niet koos staat ingeklapt onder *Niet gekozen (n)*, zodat de rijen die om een
+  besluit vragen dezelfde zijn als die op het kaartje. Per voorstel opnemen,
   uitsluiten met reden of heropenen (`besluitBronselectie`); de stappen zet Lex. **Geen *later***: wat je op het
   kaartje niet aanvinkt, is *niet gekozen*; iets toevoegen doe je door de vragen opnieuw te doorlopen, of door
   een bepaling in het tekstveld van het kaartje te typen.
