@@ -14,6 +14,7 @@ export type Role = "beheerder" | "analist";
 // "Ingelogd blijven op dit apparaat" (token.rememberMe).
 export const SESSIE_LANG = 30 * 24 * 60 * 60; // 30 dagen (onthouden)
 export const SESSIE_KORT = 12 * 60 * 60; // 12 uur (niet onthouden)
+export const SESSIE_TOKEN = 60 * 60; // 1 uur (ingewisseld accounttoken; de client logt zelf opnieuw in)
 
 // Paden die zonder sessie bereikbaar moeten zijn (login, eenmalige registratie, zelfregistratie
 // + hun BFF-routes,
@@ -35,6 +36,16 @@ function isPublic(path: string): boolean {
     // eerst in te loggen. Zonder deze vrijstelling zou `!user` (verderop) zo'n bezoek naar /login
     // sturen. De strip in layout.tsx toont zichzelf overigens alleen ná inloggen.
     path === "/disclaimer"
+  );
+}
+
+// Wat een sessie uit een accounttoken niet mag, ook niet met de beheerderrol: het token zelf
+// vermenigvuldigen of de inlog van het account overnemen. Een uitgelekt token blijft zo intrekbaar.
+function buitenTokenSessie(path: string): boolean {
+  return (
+    path.startsWith("/api/admin/api-tokens") ||
+    path.startsWith("/api/account/password") ||
+    path.startsWith("/api/account/2fa")
   );
 }
 
@@ -113,6 +124,9 @@ export const authConfig = {
         }
         return false; // → redirect naar de signIn-pagina (/login)
       }
+      if ((user as { viaToken?: string }).viaToken && buitenTokenSessie(path)) {
+        return Response.json({ detail: "Niet met een accounttoken." }, { status: 403 });
+      }
       // PoC-disclaimer: ingelogd maar deze sessie nog niet gezien → eerst het disclaimer-scherm.
       // De oorspronkelijke bestemming reist mee als callbackUrl, zodat een deeplink na akkoord
       // alsnog landt. `/api/**` blijft vrijgesteld (zie vereistAkkoord): een redirect naar HTML
@@ -150,6 +164,7 @@ export const authConfig = {
         token.role = (user as { role?: Role }).role;
         token.email = user.email;
         token.rememberMe = (user as { rememberMe?: boolean }).rememberMe === true;
+        token.viaToken = (user as { viaToken?: string }).viaToken;
       }
       return token;
     },
@@ -158,6 +173,7 @@ export const authConfig = {
       if (session.user) {
         (session.user as { userid?: string }).userid = token.userid as string | undefined;
         (session.user as { role?: Role }).role = token.role as Role | undefined;
+        (session.user as { viaToken?: string }).viaToken = token.viaToken as string | undefined;
       }
       return session;
     },

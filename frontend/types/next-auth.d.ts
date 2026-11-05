@@ -4,13 +4,15 @@ import type { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
   interface Session {
-    user: { userid?: string; role?: Role } & DefaultSession["user"];
+    user: { userid?: string; role?: Role; viaToken?: string } & DefaultSession["user"];
   }
   interface User {
     userid?: string;
     role?: Role;
     /** "Ingelogd blijven op dit apparaat": bepaalt de sessieduur (30 d vs 12 u). */
     rememberMe?: boolean;
+    /** Id van het accounttoken waarmee is ingelogd (leeg bij een gewone login). */
+    viaToken?: string;
   }
 }
 
@@ -23,5 +25,7 @@ declare module "next-auth/jwt" {
     verifiedAt?: number;
     /** Inlogmoment (ms): sessie-revocatie verwerpt tokens ouder dan de account-epoch. */
     loginAt?: number;
+    /** Id van het accounttoken: zo'n sessie is kort en vervalt met het token. */
+    viaToken?: string;
   }
 }

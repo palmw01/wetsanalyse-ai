@@ -338,11 +338,12 @@ export async function listApiTokens(): Promise<ApiTokenOut[]> {
   return json<ApiTokenOut[]>(res);
 }
 
-export async function createApiToken(label: string): Promise<ApiTokenCreated> {
+/** Zonder `userid` een admin-token, met `userid` een accounttoken dat als dat account inlogt. */
+export async function createApiToken(label: string, userid?: string): Promise<ApiTokenCreated> {
   const res = await fetch("/api/admin/api-tokens", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ label }),
+    body: JSON.stringify(userid ? { label, userid } : { label }),
   });
   return json<ApiTokenCreated>(res);
 }

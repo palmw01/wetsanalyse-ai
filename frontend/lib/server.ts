@@ -10,6 +10,7 @@ import "server-only";
 import { apiBaseUrl, authHeader } from "./config";
 import { logger } from "./logger";
 import { metTrace } from "./trace";
+import { pathSegment } from "./url";
 
 /** Wachttijd voor de gewone server-fetches. Node's `fetch` kent geen standaardtimeout: een API die
  *  de verbinding wél accepteert maar niet antwoordt, laat de aanroep onbeperkt hangen – en daarmee de
@@ -120,6 +121,44 @@ export type AccountStatus =
   | { status: "actief"; role: "beheerder" | "analist"; email: string; sessionsValidFrom?: number }
   | { status: "ingetrokken" } // 401: account inactief of verwijderd → sessie invalideren
   | { status: "onbekend" }; // API tijdelijk onbereikbaar → sessie laten staan (maxAge begrenst)
+
+/** Geldt een accounttoken nog? Dezelfde drie uitkomsten als de accountstatus. */
+export type TokenStatus = { status: "actief" } | { status: "ingetrokken" } | { status: "onbekend" };
+
+export async function getTokenStatus(tokenId: string): Promise<TokenStatus> {
+  try {
+    const res = await fetch(`${apiBaseUrl()}/v1/auth/api-token/${pathSegment(tokenId)}/status`, {
+      headers: metTrace(authHeader()),
+      cache: "no-store",
+      signal: AbortSignal.timeout(SERVER_TIMEOUT_MS),
+    });
+    if (res.status === 401) return { status: "ingetrokken" };
+    return { status: res.ok ? "actief" : "onbekend" };
+  } catch {
+    return { status: "onbekend" };
+  }
+}
+
+/** Wissel een accounttoken in voor de identiteit van het account. Null = geweigerd of storing: in
+ *  beide gevallen ontstaat er geen sessie, en de api logt de afwijzing. */
+export async function verifyApiToken(
+  token: string,
+): Promise<{ token_id: string; userid: string; email: string; role: string } | null> {
+  try {
+    const res = await fetch(`${apiBaseUrl()}/v1/auth/api-token/verify`, {
+      method: "POST",
+      headers: metTrace({ ...authHeader(), "Content-Type": "application/json" }),
+      body: JSON.stringify({ token }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(SERVER_TIMEOUT_MS),
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { ok: boolean; token_id: string; userid: string; email: string; role: string };
+    return body.ok ? body : null;
+  } catch {
+    return null;
+  }
+}
 
 /** Raadpleeg `/v1/auth/me` (identiteit via de vertrouwde X-User-Id, zoals de account-routes). */
 export async function getAccountStatus(userid: string): Promise<AccountStatus> {
