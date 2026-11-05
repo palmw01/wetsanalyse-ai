@@ -1,7 +1,7 @@
 "use client";
 
 import { ExportKnop } from "@/components/werkplek/ExportKnop";
-import { EXPORT_FORMATEN } from "@/components/werkgebieden/BegrippenTab";
+import { EXPORT_FORMATEN } from "@/lib/begrippen";
 import { exporteerBegrippen, haalBegrip, haalBronselectie, haalWerkgebied, lijstBegrippen } from "@/lib/api";
 import { begripAlsMarkdown, begrippenAlsMarkdown, bronselectieAlsMarkdown, deelvraagAlsMarkdown, dossierAlsMarkdown, voorstellenAlsMarkdown } from "@/lib/artefactMarkdown";
 import { termenVan } from "@/lib/begripTermen";
@@ -178,7 +178,7 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
             <BronnenBijDeelvraag werkgebiedId={doel.werkgebied_id} huidig={doel.deelvraag_id} inGesprek
               opname={opname?.inhoud.bronselectie} onKlaar={onKlaar} klaarVoor={klaarVoor} />
           ) : (
-            <BegripVoorstellen key={opname?.id ?? "nu"} id={doel.werkgebied_id} runId={doel.run_id} inklapbaar={false}
+            <BegripVoorstellen key={opname?.id ?? "nu"} id={doel.werkgebied_id} runId={doel.run_id}
               opname={opname?.inhoud.groepen} />
           )}
         </div>

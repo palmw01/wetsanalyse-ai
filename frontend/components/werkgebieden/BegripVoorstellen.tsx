@@ -3,9 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-import { ChevronOmlaag } from "@/components/ui/Icoon";
 import { Melding } from "@/components/ui/Melding";
-import { ObjectRij, ObjectRijen } from "@/components/ui/Pagina";
+import { Groep, GroepRij, ObjectRij, ObjectRijen } from "@/components/ui/Pagina";
 import { VraagRegel } from "@/components/werkgebieden/BegripTerm";
 import { StatusLabel } from "@/components/ui/Lijst";
 import { akkoordGroep, beantwoordVraag, foutTekst, haalGroepen, haalLaatsteBegrippenRun } from "@/lib/api";
@@ -15,45 +14,38 @@ import { AANDACHT_LABEL, BESLUIT_LABEL, openVragen, passageTekst, samenAkkoord }
 import type { BegrippenRun, GroepenAntwoord } from "@/lib/types";
 import { begripPad, termPad } from "@/lib/werkgebiedPaden";
 
-const INGEKLAPT = "wa_voorstellen_ingeklapt";
-
 const telling = (n: number, een: string, meer: string) => `${n} ${n === 1 ? een : meer}`;
 
 const datum = (iso: string) =>
   new Date(iso).toLocaleString("nl-NL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
-/** De strook "Voorstellen van Lex" op de tab Begrippen (spoor D, levering 3a) en in het artefactpaneel.
+/** De voorstellen van Lex (spoor D, levering 3a), op de pagina van het kader en in het artefactpaneel.
  *
  *  Lex draait de deterministische begrippenketen (ADR-004) op de passages van het werkgebied en stelt
  *  groepen voor: formuleringen die mogelijk één begrip aanduiden. Starten en meedenken vraag je Lex in
- *  het gesprek (*Stel begrippen voor*, *Denk mee over de begrippen*; F3e): de strook toont de laatste
+ *  het gesprek (*Stel begrippen voor*, *Denk mee over de begrippen*; F3e): dit toont de laatste
  *  ronde, de voorstellen **per term** (spoor H4: de keten maakt één groep per term per bepaling, dus
  *  "tijdvak" stond er zeven keer) en de relaties. Beoordelen gebeurt op de pagina van een term
  *  (`BegripTermPagina`). Een voorstel is geen begrip, en geen besluit wijzigt een annotatie. */
-export function BegripVoorstellen({ id, runId, inklapbaar = true, opname }: {
+export function BegripVoorstellen({ id, runId, kop = "Voorstellen van Lex", sub, boven, opname }: {
   id: string;
   /** De ronde waar een artefact in het gesprek naar wijst. De voorstellen zijn altijd die van de
    *  laatste ronde – daar wordt verder beoordeeld –, maar is dat een andere, dan zegt de strook dat. */
   runId?: string;
-  /** Op de tab Begrippen een strook die je kunt inklappen; in het artefactpaneel is hij de hele
-   *  inhoud en staat hij altijd open. */
-  inklapbaar?: boolean;
+  /** De kop van de rijen; op de pagina van het kader staan ze onder *Te doen*. */
+  kop?: string;
+  sub?: React.ReactNode;
+  /** Rijen boven de termen: wat er verder te doen is (de begrippen om te herbeoordelen). */
+  boven?: React.ReactNode[];
   /** Een oude versie (de versiekiezer): de voorstellen zoals ze toen waren. Alleen lezen: niets ophalen en geen besluiten;
    *  de rijen naar de termpagina tonen de stand van nu, en dat staat erbij. De aanroeper remount per versie (`key`). */
   opname?: GroepenAntwoord;
 }) {
-  const [ingeklaptBewaard, setIngeklapt] = useState(false);
-  const ingeklapt = inklapbaar && ingeklaptBewaard;
   const [data, setData] = useState<GroepenAntwoord | null>(opname ?? null);
   const [laatste, setLaatste] = useState<BegrippenRun | null>(null);
   const [fout, setFout] = useState<string | null>(null);
   const [bezig, setBezig] = useState(false);
   const router = useRouter();
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    try { setIngeklapt(localStorage.getItem(INGEKLAPT) === "1"); } catch { /* geen opslag */ }
-  }, []);
 
   const laad = useCallback(async () => {
     try {
@@ -71,13 +63,6 @@ export function BegripVoorstellen({ id, runId, inklapbaar = true, opname }: {
     void laad();
   }, [laad, opname]);
 
-  function wisselIngeklapt() {
-    setIngeklapt((v) => {
-      try { localStorage.setItem(INGEKLAPT, v ? "0" : "1"); } catch { /* alleen deze sessie */ }
-      return !v;
-    });
-  }
-
   const termen = termenVan(data);
   const open = termen.filter((t) => t.open.length > 0);
   const besloten = termen.filter((t) => t.open.length === 0);
@@ -88,31 +73,12 @@ export function BegripVoorstellen({ id, runId, inklapbaar = true, opname }: {
     setFout(null);
     try { await actie(); await laad(); } catch (e) { setFout(foutTekst(e)); } finally { setBezig(false); }
   }
-  const teGaan = open.length;
   const run = laatste ?? data?.run ?? null;
   const vragen = openVragen(data);
   const relaties = data?.run?.uitkomst?.relaties ?? [];
 
   return (
-    <section data-begripvoorstellen className="rounded-kaart border border-line bg-paper shadow-zacht" aria-labelledby="voorstellen-kop">
-      <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        {inklapbaar ? (
-          <button type="button" onClick={wisselIngeklapt} aria-expanded={!ingeklapt}
-            className="focus-ring flex items-center gap-1.5 rounded text-left">
-            <ChevronOmlaag className={`transition-transform ${ingeklapt ? "-rotate-90" : ""}`} />
-            <span id="voorstellen-kop" className="font-display text-sm font-semibold text-lint">Voorstellen van Lex</span>
-            {teGaan > 0 && <span className="text-xs text-muted">· {telling(teGaan, "term", "termen")} te beoordelen</span>}
-          </button>
-        ) : (
-          <p className="flex items-center gap-1.5">
-            <span id="voorstellen-kop" className="font-display text-sm font-semibold text-lint">Voorstellen van Lex</span>
-            {teGaan > 0 && <span className="text-xs text-muted">· {telling(teGaan, "term", "termen")} te beoordelen</span>}
-          </p>
-        )}
-      </div>
-
-      {!ingeklapt && (
-        <div className="space-y-4 border-t border-line px-4 py-3">
+    <section data-begripvoorstellen aria-label={kop} className="space-y-3">
           {fout && <Melding type="fout" compact>{fout}</Melding>}
           {opname && (
             <p className="text-xs text-muted" data-alleen-lezen>Een term openen toont de stand van nu; daar beoordeel je verder.</p>
@@ -161,21 +127,23 @@ export function BegripVoorstellen({ id, runId, inklapbaar = true, opname }: {
             </p>
           )}
 
-          {data?.run && open.length > 0 && (
-            <ObjectRijen label="Voorstellen van Lex per term">
+          {(boven?.length || open.length > 0) ? (
+            <Groep kop={kop} telling={(boven?.length ?? 0) + open.length} sub={sub} label="Voorstellen van Lex per term">
+              {boven}
               {open.map((t) => (
-                <ObjectRij key={t.sleutel} href={termPad(id, t.sleutel)} data-term={t.sleutel} titel={t.naam}
+                <GroepRij key={t.sleutel} href={termPad(id, t.sleutel)} data-term={t.sleutel} titel={t.naam}
                   sub={<>
                     {termOmvang(t)} · {telling(t.passages, "passage", "passages")}
                     {t.vragenBuiten.length > 0 && ` · ${telling(t.vragenBuiten.length, "vraag", "vragen")} naar een andere term`}
                   </>}
                   status={<>
+                    <StatusLabel toon="lint">Voorstel van Lex</StatusLabel>
                     {t.lijktOp.length > 0 && <StatusLabel>lijkt op {t.lijktOp[0].naam}</StatusLabel>}
                     {t.open.some((g) => g.aandacht === "geel") && <StatusLabel toon="geel">{AANDACHT_LABEL.geel}</StatusLabel>}
                   </>} />
               ))}
-            </ObjectRijen>
-          )}
+            </Groep>
+          ) : null}
           {data?.run && open.length === 0 && termen.length > 0 && (
             <p className="text-sm text-muted">Alle voorstellen van deze ronde zijn beoordeeld.</p>
           )}
@@ -222,8 +190,6 @@ export function BegripVoorstellen({ id, runId, inklapbaar = true, opname }: {
               </ul>
             </details>
           )}
-        </div>
-      )}
     </section>
   );
 }

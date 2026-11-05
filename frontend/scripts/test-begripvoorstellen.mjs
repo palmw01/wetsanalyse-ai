@@ -196,7 +196,7 @@ try {
   await page.reload();
   await termen().waitFor();
   await zie("1 passage niet meegenomen");
-  await zie("3 termen te beoordelen");
+  await page.getByRole("heading", { name: "Te doen" }).waitFor();
   assert.deepEqual(await page.locator("[data-term]").evaluateAll((els) => els.map((e) => e.dataset.term)),
     ["aanslag", "belastingschuldige", "termijn"]);
   await termen().locator('[data-term="aanslag"]').getByText("2 voorstellen · IW 1990 · 4 passages · 1 vraag naar een andere term").waitFor();

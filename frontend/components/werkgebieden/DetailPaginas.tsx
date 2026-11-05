@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BewerkKnop } from "@/components/ui/Bewerkbaar";
 import { Regel, Regels, StatusLabel } from "@/components/ui/Lijst";
 import { Kaart, ObjectRij, ObjectRijen, PaginaKop, SplitDetail, Stip, TabLinks, type Kruimel } from "@/components/ui/Pagina";
-import { BegrippenTab } from "@/components/werkgebieden/BegrippenTab";
+import { BegrippenKader } from "@/components/werkgebieden/BegrippenKader";
 import { BronKandidaten } from "@/components/werkgebieden/BronKandidaten";
 import { DeelvraagPaneel } from "@/components/werkgebieden/DeelvraagPaneel";
 import { Deelvragen } from "@/components/werkgebieden/Deelvragen";
@@ -18,7 +18,6 @@ import { SamenhangTab } from "@/components/werkgebieden/SamenhangTab";
 import { useWerkgebied } from "@/components/werkgebieden/WerkgebiedProject";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import { wijzigWerkgebied } from "@/lib/api";
-import type { BegripWeergave } from "@/lib/begrippen";
 import { splits } from "@/lib/deelvragen";
 import type { Werkgebied } from "@/lib/types";
 import { DOSSIER_VELDEN, ROL_LABEL, STATUS_LABEL, datumNl } from "@/lib/werkgebied";
@@ -39,10 +38,8 @@ const bespreek = (wg: Werkgebied) => (
 
 /** Eén artefact op een eigen pagina (mock-up v4, `artifactPage`): het product, met rechts waar het op
  *  rust en hoe ver het is. De inhoud is het bestaande zelfstandige object – geen kopie. */
-export function ArtefactPagina({ soort, begrip, weergave, deel }: {
+export function ArtefactPagina({ soort, deel }: {
   soort: ArtefactSoort;
-  begrip?: string;
-  weergave: BegripWeergave;
   deel: "lijst" | "samenhang";
 }) {
   const { wg, stand, zetBreed } = useWerkgebied();
@@ -68,7 +65,7 @@ export function ArtefactPagina({ soort, begrip, weergave, deel }: {
       />
       {soort === "dossier" && <Dossier />}
       {soort === "annotaties" && <Annotaties />}
-      {soort === "begrippen" && <Begrippenkader begrip={begrip} weergave={weergave} deel={deel} />}
+      {soort === "begrippen" && <Begrippenkader deel={deel} />}
     </div>
   );
 }
@@ -167,29 +164,23 @@ function Annotaties() {
     // Opnieuw ophalen bij elke nieuwe revisie: een andere selectie is een andere inventaris.
     <Kaart>
       <ElementenTab key={wg.revisie} id={wg.id}
-        onNaarBegrip={(b) => router.push(artefactPad(wg.id, "begrippen", { begrip: b }))} />
+        onNaarBegrip={(b) => router.push(begripPad(wg.id, b))} />
     </Kaart>
   );
 }
 
-function Begrippenkader({ begrip, weergave, deel }: { begrip?: string; weergave: BegripWeergave; deel: "lijst" | "samenhang" }) {
-  const { wg, muteer, onbewaard, zetOnbewaard } = useWerkgebied();
+function Begrippenkader({ deel }: { deel: "lijst" | "samenhang" }) {
+  const { wg, muteer } = useWerkgebied();
   const router = useRouter();
-  // Begrip en weergave staan in de URL; `replace`, want een begripwissel is geen stap in de geschiedenis.
-  const naar = (b: string | undefined, w: BegripWeergave = weergave) =>
-    router.replace(artefactPad(wg.id, "begrippen", { begrip: b, weergave: w }), { scroll: false });
   return (
     <>
       <TabLinks label="Begrippenkader" actief={deel} tabs={[
         { key: "lijst", label: "Begrippen", href: artefactPad(wg.id, "begrippen") },
         { key: "samenhang", label: "Samenhang", href: artefactPad(wg.id, "begrippen", { deel: "samenhang" }) },
       ]} />
-      {deel === "samenhang" ? (
-        <SamenhangTab wg={wg} muteer={muteer} onKiesBegrip={(b) => router.push(begripPad(wg.id, b))} />
-      ) : (
-        <BegrippenTab id={wg.id} gekozen={begrip} onbewaard={onbewaard} onOnbewaard={zetOnbewaard}
-          onKies={(b, w) => (b && w === "kaart" ? router.push(begripPad(wg.id, b)) : naar(b, "lezen"))} />
-      )}
+      {deel === "samenhang"
+        ? <SamenhangTab wg={wg} muteer={muteer} onKiesBegrip={(b) => router.push(begripPad(wg.id, b))} />
+        : <BegrippenKader id={wg.id} />}
     </>
   );
 }

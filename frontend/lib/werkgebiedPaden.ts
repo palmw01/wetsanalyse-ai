@@ -47,18 +47,10 @@ export function deelvraagPad(id: string, deelvraagId: string): string {
   return `${basis(id)}/deelvragen/${encodeURIComponent(deelvraagId)}`;
 }
 
-/** Het artefact Begrippen draagt zijn eigen stand in de URL: het gekozen begrip, of het als kaart openstaat,
- *  en de deelweergave *Samenhang*. */
-export function artefactPad(id: string, soort: ArtefactSoort,
-  extra: { begrip?: string; weergave?: "lezen" | "kaart"; deel?: "lijst" | "samenhang" } = {}): string {
+/** Het artefact Begrippen draagt de deelweergave *Samenhang* in de URL. */
+export function artefactPad(id: string, soort: ArtefactSoort, extra: { deel?: "lijst" | "samenhang" } = {}): string {
   const qs = new URLSearchParams();
-  if (soort === "begrippen") {
-    if (extra.deel === "samenhang") qs.set("deel", "samenhang");
-    else if (extra.begrip) {
-      qs.set("begrip", extra.begrip);
-      if (extra.weergave === "kaart") qs.set("weergave", "kaart");
-    }
-  }
+  if (soort === "begrippen" && extra.deel === "samenhang") qs.set("deel", "samenhang");
   // Spoor L: de bronselectie per deelvraag woont op de tab Bronnen; het artefact is daar één plek mee.
   if (soort === "bronselectie") return `${basis(id)}/bronnen`;
   const pad = `${basis(id)}/artefacten/${soort}`;
@@ -87,14 +79,11 @@ export function begripPad(werkgebiedId: string, begripId: string): string {
 }
 
 /** Waar een oude link met `?tab=` heen gaat: bladwijzers en berichten van vóór G2 blijven werken. */
-export function oudeTabNaar(id: string, p: { tab?: string; begrip?: string; weergave?: string }): string | null {
-  const weergave = p.weergave === "kaart" ? "kaart" : "lezen";
+export function oudeTabNaar(id: string, p: { tab?: string; begrip?: string }): string | null {
   switch (p.tab) {
     case "bronnen": return projectPad(id, "bronnen");
     case "elementen": return artefactPad(id, "annotaties");
-    // Een begrip als kaart heeft nu een eigen pagina; lezen blijft in het begrippenkader.
-    case "begrippen": return p.begrip && weergave === "kaart" ? begripPad(id, p.begrip)
-      : artefactPad(id, "begrippen", { begrip: p.begrip });
+    case "begrippen": return p.begrip ? begripPad(id, p.begrip) : artefactPad(id, "begrippen");
     case "samenhang": return artefactPad(id, "begrippen", { deel: "samenhang" });
     case "historie": return historiePad(id);
     default: return null;

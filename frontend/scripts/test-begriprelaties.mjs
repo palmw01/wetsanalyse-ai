@@ -179,12 +179,10 @@ try {
   await page.waitForURL(/(begrip=|\/begrippen\/wg1\/)b4/);
   await zie("Vervangt");
   await sectie().getByRole("button", { name: "belastingaanslag" }).waitFor();
-  // Het vervangen begrip staat in het begrippenkader, ingeklapt; zijn kaart is zijn eigen pagina.
+  // Het vervangen begrip vind je met de status in het kader; het opent op zijn eigen pagina.
   await page.goto(`${base}/werkgebieden/wg1/artefacten/begrippen`);
-  await page.getByText("Vervangen (1)").click();
-  await page.getByRole("list", { name: "Vervangen begrippen" }).getByRole("button").click();
-  await page.waitForURL(/begrip=b1/);
-  await page.getByRole("link", { name: "Open de pagina" }).click();
+  await page.getByRole("group", { name: "Status" }).getByRole("button", { name: "Vervangen" }).click();
+  await page.locator("[data-begrip-rij=b1] a").click();
   await page.waitForURL(/\/begrippen\/wg1\/b1$/);
   await page.getByText("Dit begrip is alleen nog te lezen.").first().waitFor();
   assert.equal(await page.locator("[data-begrip-lex]").count(), 0);

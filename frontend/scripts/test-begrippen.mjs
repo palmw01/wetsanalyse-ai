@@ -182,14 +182,7 @@ try {
   await zie('duidt al het begrip "Ontvanger" aan');
   await page.getByRole("checkbox", { name: 'Kies "de ontvanger"' }).uncheck();
   await page.getByRole("button", { name: "Nieuw begrip uit selectie" }).click();
-  await page.waitForURL(/\/artefacten\/begrippen\?begrip=b\d+/);
-  // Spoor N: in het kader staat dezelfde inhoud als op de pagina. Spoor G2: geen *Vraag Lex* in elke rij, wel één
-  // *Bespreek met Lex* in de kop van de pagina.
-  await page.locator("[data-begrip-paneel]").waitFor();
-  assert.ok(await page.locator("[data-begrip-rij]").count() > 0);
-  assert.equal(await page.locator("[data-begrip-rij] [data-vraag-lex]").count(), 0);
-  assert.equal(await page.locator("[data-paginakop]").getByRole("link", { name: /^Bespreek .* met Lex$/ }).count(), 1);
-  await page.getByRole("link", { name: "Open de pagina" }).click();
+  // Spoor N: een nieuw begrip opent op zijn eigen pagina. In het kader is het een rij; geen *Vraag Lex* in een rij.
   await page.waitForURL(/\/begrippen\/wg1\/b\d+$/);
   await page.locator("[data-begrip-pagina]").waitFor();
   // De knop staat er zodra het begrip geladen is; eerst wachten, dan tellen.
@@ -329,6 +322,24 @@ try {
   assert.match(href, /^\/annotaties\/node\?bron_iri=.+&element=e\d$/);
   // Exporteren hoort bij het begrippenkader, niet bij één begrip.
   await page.goto(`${base}/werkgebieden/wg1/artefacten/begrippen`);
+  assert.equal(await page.locator("[data-begrip-rij] [data-vraag-lex]").count(), 0);
+  await page.locator("[data-begrip-rij]").first().waitFor();
+  assert.equal(await page.locator("[data-paginakop]").getByRole("link", { name: /^Bespreek .* met Lex$/ }).count(), 1);
+  // Zoeken en de status werken op de rijen.
+  await page.getByRole("searchbox", { name: "Begrippen doorzoeken" }).fill("ontvanger");
+  await page.waitForFunction(() => document.querySelectorAll("[data-begrip-rij]").length === 1);
+  await page.getByRole("searchbox", { name: "Begrippen doorzoeken" }).fill("");
+  await page.getByRole("group", { name: "Status" }).getByRole("button", { name: "Geaccordeerd" }).click();
+  await page.waitForFunction(() => document.querySelectorAll("[data-begrip-rij]").length === 1);
+  await page.getByRole("group", { name: "Status" }).getByRole("button", { name: "Alle" }).click();
+  // *Nieuw begrip*: de naam ter plekke, daarna de pagina.
+  await page.getByRole("button", { name: "Nieuw begrip" }).click();
+  await page.getByRole("textbox", { name: "Naam van het nieuwe begrip" }).fill("Termijn");
+  await page.getByRole("button", { name: "Aanmaken" }).click();
+  await page.waitForURL(/\/begrippen\/wg1\/b\d+$/);
+  await page.getByRole("heading", { name: "Termijn", level: 1 }).waitFor();
+  await page.goto(`${base}/werkgebieden/wg1/artefacten/begrippen`);
+  await page.locator("[data-begrip-rij]").first().waitFor();
   await page.getByRole("button", { name: "Exporteren" }).click();
   const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: /^CSV/ }).click()]);
   assert.equal(download.suggestedFilename(), "begrippen.csv");

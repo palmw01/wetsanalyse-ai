@@ -159,17 +159,15 @@ export function BegripMenu({ stand, maat = "sm", onNaarBegrip }: {
   );
 }
 
-/** Een begrip waar geen pagina omheen staat (naast het gesprek, in het kader): de stand en de kop horen erbij. */
-export function BegripCompact({ context, begripId, opname, onOnbewaard, onNaarBegrip, onVerwijderd, onGewijzigd }: {
+/** Een begrip naast het gesprek: daar staat geen pagina omheen, dus de stand en de kop horen erbij. */
+export function BegripCompact({ context, begripId, opname, onOnbewaard, onNaarBegrip }: {
   context: BegripContext;
   begripId: string;
   opname?: BegripOpname;
   onOnbewaard: (onbewaard: boolean) => void;
   onNaarBegrip?: (begripId: string) => void;
-  onVerwijderd?: () => void | Promise<void>;
-  onGewijzigd?: () => void;
 }) {
-  const stand = useBegrip({ context, begripId, opname, onVerwijderd, onGewijzigd });
+  const stand = useBegrip({ context, begripId, opname });
   const b = stand.begrip;
   return (
     <div className="space-y-3">
@@ -180,7 +178,7 @@ export function BegripCompact({ context, begripId, opname, onOnbewaard, onNaarBe
           <span className="ml-auto"><BegripMenu stand={stand} maat="xs" onNaarBegrip={onNaarBegrip} /></span>
         </div>
       )}
-      <BegripInhoud stand={stand} weergave="paneel" onOnbewaard={onOnbewaard} onNaarBegrip={onNaarBegrip} onGewijzigd={onGewijzigd} />
+      <BegripInhoud stand={stand} weergave="paneel" onOnbewaard={onOnbewaard} onNaarBegrip={onNaarBegrip} />
     </div>
   );
 }
