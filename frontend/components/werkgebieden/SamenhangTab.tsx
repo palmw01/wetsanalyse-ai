@@ -26,7 +26,7 @@ const KNOP = `${KNOP_XS} border-line text-lint hover:bg-surface`;
  *  nemen. Wat er verder bij kan horen, zoekt Lex op de tab Bronnen (fase A). */
 export function SamenhangTab({ wg, muteer, onKiesBegrip }: {
   wg: Werkgebied; muteer: Mutatie;
-  /** Naar de tab Begrippen op dit begrip. */
+  /** Naar de pagina van dit begrip. */
   onKiesBegrip?: (begripId: string) => void;
 }) {
   if (wg.bronnen.length === 0)
@@ -74,7 +74,7 @@ function SamenhangGraaf({ wg, muteer, onKiesBegrip }: {
   function opneemActie(k: KnoopData & { id: string }) {
     const begripId = begripIdVan(k.id);
     if (begripId) return onKiesBegrip
-      ? <button type="button" className={KNOP} onClick={() => onKiesBegrip(begripId)}>Open de begripskaart</button> : null;
+      ? <button type="button" className={KNOP} onClick={() => onKiesBegrip(begripId)}>Open het begrip</button> : null;
     if (!isBron(k) || k.soort === "regeling") return null;
     if (doelen.includes(k.id)) return <span className="text-[11px] text-muted">Staat in dit werkgebied</span>;
     if (scope.has(k.id)) return <span className="text-[11px] text-muted">Valt binnen dit werkgebied</span>;

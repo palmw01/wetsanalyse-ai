@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { AutoTextarea } from "@/components/ui/AutoTextarea";
 import { BronBoom } from "@/components/ui/BronBoom";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Field";
+import { Field, Input } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
 import { Kaart, PaginaKop, Stip } from "@/components/ui/Pagina";
 import { useWerkgebied } from "@/components/werkgebieden/WerkgebiedProject";
@@ -218,10 +219,9 @@ function TermBeoordeling({ werkgebiedId, term, data, onHerlaad, onGewijzigd }: {
 
       <Kaart titel="Het begrip">
         <div className="space-y-3 text-sm" data-term-begrip>
-          <label className="block">
-            <span className="text-xs text-muted">Naam</span>
+          <Field label="Naam">
             <Input value={naam} maxLength={200} onChange={(e) => setNaam(e.target.value)} />
-          </label>
+          </Field>
           {metDefinitie.length > 1 && (
             <fieldset className="space-y-1">
               <legend className="text-xs text-muted">Definitie uit</legend>
@@ -246,9 +246,8 @@ function TermBeoordeling({ werkgebiedId, term, data, onHerlaad, onGewijzigd }: {
             <span className="text-xs text-muted">
               Definitie{def ? ` – ${def.herkomst === "letterlijk" ? "brondefinitie" : HERKOMST_LABEL[def.herkomst]}${def.vindplaats ? ` (${def.vindplaats})` : ""}` : ""}
             </span>
-            <textarea value={definitie} rows={3} maxLength={8000} onChange={(e) => setDefinitieTekst(e.target.value)}
-              placeholder="Nog geen definitie: vul hem nu in, of later op de begripskaart"
-              className="focus-ring mt-0.5 w-full rounded-field border border-line bg-paper px-2 py-1 text-sm text-ink" />
+            <AutoTextarea value={definitie} rows={3} maxLength={8000} onChange={(e) => setDefinitieTekst(e.target.value)}
+              placeholder="Nog geen definitie: vul hem nu in, of later op de pagina van het begrip" />
           </label>
           {wordt && definitie.trim() && (
             <p className="text-xs text-muted" data-herkomst-wordt={wordt}>Herkomst: {HERKOMST_LABEL[wordt]}</p>
@@ -271,7 +270,7 @@ function TermBeoordeling({ werkgebiedId, term, data, onHerlaad, onGewijzigd }: {
             <div className="rounded-kaart border border-aandacht-geel-rand bg-aandacht-geel-bg/40 px-2 py-1.5 text-xs text-ink">
               Het begrip blijft eerst een concept:
               <ul className="mt-0.5 list-disc pl-4">{redenen.map((r) => <li key={r}>{r}</li>)}</ul>
-              Op de begripskaart los je dat op en accordeer je.
+              Op de pagina van het begrip los je dat op en accordeer je.
             </div>
           )}
         </div>

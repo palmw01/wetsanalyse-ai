@@ -70,7 +70,7 @@ export function paramsVan(f: OverzichtFilters, voor: "pagina" | "api"): URLSearc
   return p;
 }
 
-/** Waar een klik op een begrip heen gaat: zijn eigen pagina, de volledige begripskaart (spoor G3). */
+/** Waar een klik op een begrip heen gaat: zijn eigen pagina (spoor G3). */
 export function kaartUrl(werkgebiedId: string, begripId: string): string {
   return begripPad(werkgebiedId, begripId);
 }

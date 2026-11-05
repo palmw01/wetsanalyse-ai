@@ -3,6 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+import { Select } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
 import { BegripOverzichtKaart } from "@/components/begrippen/BegripOverzichtKaart";
 import { OverzichtBalk } from "@/components/ui/OverzichtBalk";
@@ -19,7 +20,7 @@ import type { BegripStatus, WerkgebiedSamenvatting } from "@/lib/types";
 
 /** Het overzicht van de begrippen over alle werkgebieden heen (spoor D, fase F4). Een leesingang:
  *  zoeken op naam, alternatieve term of definitie, filteren op status en werkgebied, en doorklikken
- *  naar de kaart in zijn werkgebied – daar gebeurt het werk. De filters staan in de URL, zodat
+ *  naar het begrip in zijn werkgebied – daar gebeurt het werk. De filters staan in de URL, zodat
  *  terugbladeren en delen werken. */
 export function BegrippenOverzichtClient() {
   const router = useRouter();
@@ -88,7 +89,7 @@ export function BegrippenOverzichtClient() {
         <h1 className="font-display text-lg font-semibold text-lint">Begrippen</h1>
         <p className="mt-1 max-w-2xl text-sm text-muted">
           De begrippen uit alle werkgebieden. Een begrip is een analyse-uitkomst, geen wettelijke
-          definitie; je werkt eraan op de kaart in zijn werkgebied.
+          definitie; je werkt eraan op zijn pagina in het werkgebied.
         </p>
       </header>
 
@@ -101,17 +102,11 @@ export function BegrippenOverzichtClient() {
         onMijn={(mijn) => zet({ ...filters, mijn })}
         extra={
           // Compact, zonder zichtbaar label: met label paste de balk niet meer op één regel naast het zoekveld.
-          <select
-            aria-label="Werkgebied"
-            value={filters.werkgebied}
-            onChange={(e) => zet({ ...filters, werkgebied: e.target.value })}
-            className="focus-ring w-full rounded-field border border-line bg-paper px-2 py-1.5 text-xs text-ink coarse:min-h-[44px] sm:w-auto sm:max-w-[10rem]"
-          >
+          <Select aria-label="Werkgebied" value={filters.werkgebied} className="w-full sm:w-auto sm:max-w-[12rem]"
+            onChange={(e) => zet({ ...filters, werkgebied: e.target.value })}>
             <option value="">Alle werkgebieden</option>
-            {werkgebieden.map((w) => (
-              <option key={w.id} value={w.id}>{w.naam}</option>
-            ))}
-          </select>
+            {werkgebieden.map((w) => <option key={w.id} value={w.id}>{w.naam}</option>)}
+          </Select>
         }
         zoekterm={term}
         onZoek={setTerm}
@@ -138,7 +133,7 @@ export function BegrippenOverzichtClient() {
         <p className="rounded-kaart border border-dashed border-line px-3 py-6 text-center text-sm text-muted">
           {filters.q || filters.status || filters.werkgebied || filters.mijn
             ? "Geen begrippen bij deze filters."
-            : "Nog geen begrippen. Begrippen ontstaan in een werkgebied, op de tab Begrippen."}
+            : "Nog geen begrippen. Begrippen ontstaan in een werkgebied."}
         </p>
       ) : (
         <>

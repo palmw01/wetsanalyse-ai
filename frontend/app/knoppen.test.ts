@@ -92,6 +92,20 @@ describe("één bedieningsstijl", () => {
     }
   });
 
+  // Spoor N: een begrip volgt de bediening van de rest; passages en relaties zijn rijen, geen stapel boxen.
+  it("een begrip gebruikt de bouwstenen", () => {
+    const inhoud = bron("components/werkgebieden/BegripInhoud.tsx");
+    expect(inhoud).toContain("<SplitDetail");
+    expect(inhoud.match(/<BewerkKnop/g)).toHaveLength(2);
+    for (const f of ["BegripPassages", "BegripRelaties", "BegrippenKader", "BegripOpvolging"]) {
+      const s = bron(`components/werkgebieden/${f}.tsx`);
+      expect(s, f).not.toContain("KNOP_XS");
+      expect(s, f).not.toMatch(/rounded-kaart border/);
+    }
+    expect(bron("components/werkgebieden/BegripPassages.tsx")).toContain("<MeerMenu");
+    expect(bron("components/werkgebieden/BegrippenKader.tsx")).toContain("<GroepRij");
+  });
+
   it("de verwijderstap in de gesprekkenlijst staat altijd onder elkaar", () => {
     const s = bron("components/werkplek/GesprekActies.tsx");
     const stap = s.slice(s.indexOf("data-gesprek-verwijderen"), s.indexOf("Annuleren"));

@@ -73,7 +73,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   - `annotaties/` – het overzicht en de losse annotatiepagina (`AnnotatiesClient`, `AnnotatieKaart`,
     `NodeAnnotatiePaneel`, `AnnotatiePaginaSchil`).
   - `werkgebieden/` – overzicht en pagina van een werkgebied (`WerkgebiedenClient`,
-    `WerkgebiedClient`, de tabs `BronnenTab`/`ElementenTab`/`BegrippenTab`/`SamenhangTab`/`HistorieTab`,
+    `WerkgebiedClient`, de tabs `BronnenTab`/`ElementenTab`/`SamenhangTab`/`HistorieTab`, het kader `BegrippenKader`,
     het begrip als `BegripInhoud` met `useBegrip` (dezelfde inhoud op de pagina en naast het gesprek),
     `WerkgebiedSchil`, en
     `OpnemenInWerkgebied` voor de annotatiepagina).
@@ -795,8 +795,8 @@ bestaat los van de gesprekken.
     een venster `GegevensDialoog` – met het TOOI-thema (spoor I6: een keuzelijst per hoofdthema uit
     `lib/tooiThemas.ts`, gelijk aan de api-snapshot, en het voorstel van Lex uit `…/thema-voorstel` met
     *Overnemen*) –, het beheer van de deelvragen), `bronselectie`, `annotaties` (de
-    inventaris, `ElementenTab`) en `begrippen` (`BegrippenTab` en, met `?deel=samenhang`, `SamenhangTab`;
-    `?begrip=` en `&weergave=kaart` in de URL) –, `deelvragen/[did]` (`DeelvraagPaneel` op een pagina, `SplitDetail`: links de
+    inventaris, `ElementenTab`) en `begrippen` (`BegrippenKader` en, met `?deel=samenhang`, `SamenhangTab`; een oude link met `?begrip=` gaat
+    naar de pagina van het begrip) –, `deelvragen/[did]` (`DeelvraagPaneel` op een pagina, `SplitDetail`: links de
     deelvraag met haar bronnen, rechts de analysevraag en de andere deelvragen),
     `historie` en `bronnen/voorstellen` (`BronKandidaten`).
   - **Een artefact is een bestaand object** (besluit 26 okt 2026): geen eigen opslag, de kaart leest wat
@@ -820,10 +820,9 @@ bestaat los van de gesprekken.
     (`beslisElement`, tegen de laagrevisie en bronstand van het element). Klasse en grens aanpassen blijft in
     de annotatie van de bepaling, waar de buren ernaast staan. De reviewkaart (*Open als pagina*) en de
     passages van een begrip (*Element*) linken hierheen.
-  - **Begrip** `/begrippen/[wg]/[id]` (`BegripPagina` → `BegripInhoud`): het begrip, zonder lijst.
-    *Begripskaart* in het begrippenkader, het begrippenoverzicht (`kaartUrl`), de samenhangsgraaf en het
-    paneel naast het gesprek openen hem; lezen naast de lijst blijft in het begrippenkader. Een oude link met
-    `&weergave=kaart` gaat hierheen.
+  - **Begrip** `/werkgebieden/[id]/begrippen/[begrip]` (`BegripPagina` → `BegripInhoud`, onder `WerkgebiedProject`); het
+    oude pad `/begrippen/[wg]/[id]` is een doorverwijzing.
+    Een rij in het kader, het begrippenoverzicht (`kaartUrl`), de samenhangsgraaf en het paneel naast het gesprek openen hem.
 - **Het overzicht** (`WerkgebiedenClient`): statusfilter met tellers (`lib/werkgebiedOverzicht.ts`; de
   status in de URL, `?status=`), *Door mij bewerkt* (`lijstWerkgebieden({mijn})`) en zoeken op naam,
   analysevraag, afbakening en context, client-side. **Aanmaken gaat via Lex**: er is geen formulier
@@ -926,8 +925,10 @@ bestaat los van de gesprekken.
   (`OpnemenInWerkgebied`). Daar is geen revisie in beeld; `neemOpInWerkgebied` haalt hem op en
   probeert bij een 412 één keer opnieuw – de bedoeling hangt niet af van de rest van het werkgebied,
   en opnemen is idempotent.
-- **Begrippen** (levering 2; api in `../api/CLAUDE.md` §*Begrippen*). `BegrippenTab` is de lijst met het gekozen begrip
-  ernaast; dat staat in de URL (`?begrip=<id>`). **Eén begrip is één inhoud** (spoor N, ADR-006): `useBegrip`
+- **Begrippen** (levering 2; api in `../api/CLAUDE.md` §*Begrippen*). `BegrippenKader` is de pagina van het kader, in de
+  vorm van de tab Bronnen: *Te doen* (de termen die Lex voorstelt en de begrippen om te herbeoordelen), dan zoeken, de
+  status, export, *Nieuw begrip* (de naam ter plekke) en de begrippen als `GroepRij`. Een rij opent de pagina van het
+  begrip. **Eén begrip is één inhoud** (spoor N, ADR-006): `useBegrip`
   (`lib/useBegrip.ts`) laadt het en draagt `muteer` – dezelfde vorm als bij het werkgebied: revisie in beeld, 412 laadt
   opnieuw en zegt het, een fout met een `melding` van de api (`al_primair`, `poort`, `element_buiten_werkgebied`)
   verschijnt zoals de api hem formuleert. `BegripInhoud` toont de blokken: op de pagina via `SplitDetail` (links
@@ -968,15 +969,15 @@ bestaat los van de gesprekken.
   - **Elementselectie** in `ElementenTab`: selectievakjes en een balk met *Nieuw begrip uit selectie*
     en *Koppelen*; een element dat al een begrip aanduidt, noemt dat begrip (`primair` uit de lijst).
 - **Voorstellen van Lex** (levering 3a; api §*Voorstellen van Lex*, graph-qa §*De begrippenrun*):
-  de strook `BegripVoorstellen` bovenaan de tab Begrippen (en als artefact naast het gesprek), naast zelf
+  `BegripVoorstellen` bovenaan het kader (en als artefact naast het gesprek), naast zelf
   een begrip maken. Voorstellen vraag je Lex in het gesprek (*Stel begrippen voor*, de begrippen-agent);
-  de strook toont de laatste ronde (`begrippen-runs/laatste`): wanneer, hoeveel passages en groepen, wat
+  het toont de laatste ronde (`begrippen-runs/laatste`): wanneer, hoeveel passages en groepen, wat
   niet meeging, of ze verouderd of mislukt is – en de reviewlijst. Geen knoppen die Lex starten.
   - **De allowlist** (`isWerkgebiedRoute`) laat `groepen/*`, `begrippen-runs/laatste|{run}` en
     `…/vragen/{kid}` door, maar nooit `…/uitkomst`, `…/loopt`, `…/mislukt` of een kale POST op
     `begrippen-runs`: een run maakt graph-qa.
   - **Per term** (spoor H4; api §*Voorstellen van Lex* – akkoord). De keten maakt één groep per term per
-    bepaling, dus de strook toont geen groepen maar **termen** (`termenVan` in `lib/begripTermen.ts`: dezelfde
+    bepaling, dus er staan geen groepen maar **termen** (`termenVan` in `lib/begripTermen.ts`: dezelfde
     normalisatie als de api, kleine letters zonder lidwoord): één `ObjectRij` per term met omvang, "lijkt op …"
     en *Keuze voor jou*, naar de **termpagina** `artefacten/begrippen/term/<term>` (`termPad`,
     `BegripTermPagina`). Beoordeelde termen staan ingeklapt; een twijfelvraag die bij geen term meer hoort
@@ -1055,9 +1056,8 @@ bestaat los van de gesprekken.
   - Browserregressie: het overnemen in het paneel in `scripts/test-artefacten.mjs`.
 - **Herbeoordelen en dekking** (fase F1; api §*Onderhoud van begrippen*). Acceptatie: een gewijzigde
   dragende passage verschijnt bij de geraakte begrippen; de oude bewijsstand blijft.
-  - **Tab Begrippen**: de strook *Herbeoordelen* (`strookKop` in `lib/herbeoordeling.ts`) noemt de
-    begrippen met een geraakte passage, de lijst links ook; een klik in de strook opent het begrip op de
-    kaart. Het antwoord komt van `GET …/herbeoordelingen` en vraagt de bronboom: het laadt los van de lijst
+  - **Het kader**: *Te doen* noemt de begrippen met een geraakte passage (`strookKop` in `lib/herbeoordeling.ts`), de
+    rij in de lijst ook; een klik opent de pagina van het begrip. Het antwoord komt van `GET …/herbeoordelingen` en vraagt de bronboom: het laadt los van de lijst
     en faalt stil
     (`isHerbeoordelingen`; zonder antwoord staan de begrippen er gewoon).
   - **Bij de passage** (`Herbeoordeling` in `BegripPassages`, uit `useBegrip` dat per revisie
@@ -1074,8 +1074,8 @@ bestaat los van de gesprekken.
   - De allowlist laat `herbeoordelingen`, `dekking`, `dekking/buiten-behandeling[/{element}]` en
     `…/koppelingen/{k}/herkoppelen|bevestigen` door; herbeoordelingen en dekking krijgen 90 s.
   - Browserregressie: `scripts/test-herbeoordeling.mjs`.
-- **Relaties en opvolging** (fase F2; api §*Begripsrelaties en opvolging*). Onder de begripskaart staat
-  `BegripRelaties` (buiten het formulier van de kaart).
+- **Relaties en opvolging** (fase F2; api §*Begripsrelaties en opvolging*). `BegripRelaties` is een blok in de zijkolom;
+  *Nieuwe betekenis* en *Combineren* staan in het menu ⋯ (`BegripOpvolging`, een venster met de verplichte reden).
   - **Een relatie is een zin met richting** (`relatieZin` in `lib/begripRelaties.ts`): "belastingaanslag
     omvat ook navorderingsaanslag", nooit alleen een lijn of "verwant". Bij `hierarchie` wijst de keten van
     de bredere term naar de soort, dus draait de zin om ("Y is een soort X"); ook de relaties "ter
@@ -1107,7 +1107,7 @@ bestaat los van de gesprekken.
     alleen in het lagenpaneel als er begrippen op de kaart zijn (`GraafLagen begrippen`).
   - **Inspector**: status en definitie ("een analyse-uitkomst … geen wettelijke definitie"), de groepen
     *Dragende passages*, *Relaties met begrippen* en *Voorgestelde relaties*; geen *Vraag Lex*, geen
-    hoofdactie. `bijKnoop` geeft *Open de begripskaart* (`kiesBegrip` uit `WerkgebiedClient`).
+    hoofdactie. `bijKnoop` geeft *Open het begrip*.
   - **Kaart**: `NlSbbStand` in het blok Accorderen/Status (`GET …/begrippen/conformiteit`, opnieuw per
     revisie, faalt stil): "NL-SBB-conform (profiel 1.0.0)" of "Niet NL-SBB-conform: definitie ontbreekt …"
     (`conformZin`), met de meldingen uitklapbaar. Diagnostisch: accorderen volgt alleen de poort.

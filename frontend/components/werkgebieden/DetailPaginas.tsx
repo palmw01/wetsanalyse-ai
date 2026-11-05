@@ -58,8 +58,10 @@ export function ArtefactPagina({ soort, deel }: {
         sub={kaart.omschrijving}
         meta={<>
           {kaart.status && <StatusLabel toon={kaart.status.toon}>{kaart.status.tekst}</StatusLabel>}
-          {kaart.versie && <><Stip /><span>{kaart.versie}</span></>}
-          <Stip /><span>Zelfstandig analyseproduct</span>
+          {kaart.status && kaart.versie && <Stip />}
+          {kaart.versie && <span>{kaart.versie}</span>}
+          {(kaart.status || kaart.versie) && <Stip />}
+          <span>Zelfstandig analyseproduct</span>
         </>}
         acties={bespreek(wg)}
       />
