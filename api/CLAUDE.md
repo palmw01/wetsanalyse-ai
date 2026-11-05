@@ -43,6 +43,8 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
    werkgebied, voorstellen van Lex en de dekkingscheck per deelvraag – zie §*Deelvragen*.
 17. **Bronselectie per deelvraag** (`/v1/werkgebieden/{id}/bronselectie/*`, spoor J): de voortgang van de
    bronselectie per deelvraag en de besluiten per deelvraag – zie §*Bronselectie per deelvraag*.
+18. **Versies van artefacten** (`/v1/artefact-versies/*`, 4 nov 2026): de stand van een artefact na elke beurt van
+   Lex, voor de versiekiezer – zie §*Versies van artefacten*.
 
 > **De wettekst komt uit de graaf.** De API leest uit GraphDB de **bronboom** (`bron_resolver.py`):
 > daarmee toetst hij ankers, legt hij snapshots vast en levert hij de segmenten van de weergave.
@@ -79,6 +81,7 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 | `begrip_relaties.py` (router), `begrip_relatie_store.py`, `begrip_relatie_contracts.py` | Begripsrelaties (voorstellen uit de keten, vastleggen, afwijzen, doorwerking) en opvolging: nieuwe betekenis, combineren. |
 | `begrip_projectie.py`, `shapes/nl-sbb-1.0.0.ttl`, `shapes/begrippen-wa.ttl` | Begrippen naar de kennisgraaf (NL-SBB), conformiteit per begrip en de Turtle-export. |
 | `begrippen_overzicht.py` (router) | Begrippen over werkgebieden heen: zoeken, verifiëren voor Lex, één begrip. |
+| `artefact_versies.py` | Versies van artefacten: de momentopname bij een beurt van Lex, en de routes om ze te lezen. |
 | `annotatie_statistiek.py`, `scripts/statistiek.py` | Reviewstatistiek over de elementen: uitkomst per klasse en per model, klasse-verschuivingen, aandacht tegenover correctie. |
 | `jas_klassen.py`, `validation.py` | De dertien JAS-klassen, volgorde en kleuren (canoniek); `GELDIGE_JAS_KLASSEN`, `JAS_KLASSE_KLEUREN`, `jas_sorteersleutel`. |
 | `ratelimit.py` | In-process rate limit per client. |
@@ -823,6 +826,42 @@ na herladen, in een ander gesprek en bij een collega ook is.
   (een afhankelijkheid).
 - Tests: `tests/test_bronselectie.py`.
 
+## Versies van artefacten
+
+`artefact_versies.py`, tabel `artefact_versies`; het ontwerp staat in `docs/architectuur/artefacten-langs-claude.md`
+(de versiekiezer zoals bij Claude). Een artefact van Lex is een levend object: de chip opent de stand van nu. Wil je
+de stand van die beurt zien, dan heb je een momentopname nodig. Alleen een begrip bewaarde oude inhoud
+(`begrip_revisies`); werkgebied, deelvraag, bronselectie, annotatie en de groepen niet.
+
+- **Eén schrijfpad.** `POST /v1/gesprekken/{id}/berichten` met `rol: assistant`, een `run_id` en een `artefact` legt
+  de stand van nu vast (`leg_vast`), met dezelfde leesfuncties als de routes van het paneel:
+  - `werkgebied`: het werkgebied en het bronselectie-overzicht;
+  - `deelvraag`: de deelvraag, het werkgebied en het overzicht;
+  - `bronselectie`: het overzicht;
+  - `begrip`: het begrip met zijn relaties;
+  - `begrippen`: de groepen;
+  - `annotatie`: de v2-weergave van de bronnode.
+
+  Het id komt in `artefact.ref.versie` van het bericht. `regels` en een user-bericht krijgen er geen. Een
+  bericht is daarna onveranderlijk, dus de versie hoort voorgoed bij die beurt.
+- **Een versie is de stand direct na een beurt van Lex** (besluit gebruiker). Een handmatige wijziging ertussen is
+  geen eigen versie; die zie je in *Nu*.
+- **Per object tellen, over gesprekken heen.** Daarvoor dient de `sleutel`: `werkgebied:<wid>`,
+  `deelvraag:<wid>:<did>`, `bronselectie:<wid>`, `begrip:<wid>:<bid>`, `begrippen:<wid>` of
+  `annotatie:<bron_iri>`. De objecten zijn gedeeld, dus hun versies ook.
+- **Idempotent op (`run_id`, `sleutel`)** (unieke index `ux_artefact_versies_run_sleutel`): dezelfde beurt nog eens
+  geeft dezelfde versie.
+- **Een mislukte opname laat het bericht landen**, zonder `versie`. Denk aan een object dat niet meer bestaat, een
+  haperende graaf of een fout in de database. De versie is een gemak, geen voorwaarde. Het wordt gelogd.
+- **Lezen.** Toegang heeft elke actieve gebruiker.
+  - `GET /v1/artefact-versies/{id}` geeft `{id, soort, sleutel, inhoud, gemaakt, nr, totaal, vorige, volgende}`;
+  - een onbekend id geeft 404;
+  - `GET /v1/artefact-versies?sleutel=` geeft de lijst, van oud naar nieuw.
+- **Echt wissen, zoals het object.** De tabel staat in `werkgebied_store.WERKGEBIED_TABELLEN`. Een verwijderde
+  annotatie wist de versies van de bepaling in beeld en van haar bronnodes (`annotatie_v2_store.verwijder_weergave`).
+  De berichten blijven staan, en hun `versie` geeft dan 404.
+- Tests: `tests/test_artefact_versies.py`.
+
 ## Gesprekken
 
 `gesprek_contracts.py`, `gesprek_store.py`, `routers/gesprekken.py`. Per gebruiker gescopet via
@@ -845,7 +884,8 @@ na herladen, in een ander gesprek en bij een collega ook is.
   `{werkgebied_id, deelvraag_id}`: één deelvraag, F3d), `bronnen` (ref `{werkgebied_id, run_id}`, fase A),
   `werkgebied` (ref `{werkgebied_id}`: een werkgebied dat Lex in het gesprek samenstelde, activiteit 1)
   of `regels` (gereserveerd, nog niet in gebruik). `Artefact` toetst de
-  verplichte ref-sleutels per soort (422). Oudere berichten verwijzen via `annotatie_doel`; graph-qa
+  verplichte ref-sleutels per soort (422). Bij een beurt van Lex zet de api zelf `ref.versie` (§*Versies van
+  artefacten*). Oudere berichten verwijzen via `annotatie_doel`; graph-qa
   schrijft beide voor een annotatie. Het bericht draagt ook het uitvoeringsspoor van de beurt
   (`tool_executions`). Een antwoord op een overzichtsvraag draagt het
   `overzicht` dat graph-qa uit de graaf bouwde, zodat het blok na herladen hetzelfde is.
