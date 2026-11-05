@@ -96,7 +96,8 @@ Productie valt buiten deze lus: geen tag, geen promote.
 
 ## Rapport
 
-Publiceer per run een privé-artifact, niet in de repo:
+Schrijf per run een rapport naar `docs/acceptatie/lokaal/` (gitignored), dus niet in de repo en niet online. De
+sessie die het team startte schrijft het; de agents leveren de inhoud.
 
 - per stap het bewijs, met `trace_id` en `run_id`;
 - wat er zelf is aangevuld;
