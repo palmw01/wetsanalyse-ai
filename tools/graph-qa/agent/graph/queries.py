@@ -526,8 +526,10 @@ def get_artikel(bwb_id: str, artikel: str) -> str:
     FILTER(STRSTARTS(STR(?o), "{NS}"))
     OPTIONAL {{ ?o bwb:nummer ?onderdeel }}
     OPTIONAL {{ ?o bwb:tekst ?onderdeeltekst }}
+    # Documentvolgorde: tekst ná een opsomming heeft geen nummer, en de IRI zegt niets over zijn plek.
+    OPTIONAL {{ ?o bwb:volgnummer ?ovolg }}
   }}
-}} ORDER BY ?lidsort ?lid ?o"""
+}} ORDER BY ?lidsort ?lid ?ovolg ?o"""
 
 
 def get_lid(bwb_id: str, artikel: str, lid: str) -> str:
@@ -565,8 +567,10 @@ def get_lid(bwb_id: str, artikel: str, lid: str) -> str:
     # De jci van het onderdeel zélf: anders citeert de agent "onderdeel k" met de vindplaats van
     # het hele definitielid.
     OPTIONAL {{ ?o bwb:jci ?ojci }}
+    # Documentvolgorde: 'aa.' staat ná 'z.', en tekst ná een opsomming heeft geen nummer.
+    OPTIONAL {{ ?o bwb:volgnummer ?ovolg }}
   }}
-}} ORDER BY ?o"""
+}} ORDER BY ?ovolg ?o"""
 
 
 def get_bepaling(bwb_id: str, nummer: str) -> str:

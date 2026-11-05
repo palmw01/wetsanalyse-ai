@@ -103,6 +103,16 @@ waarde niet als segmentgrens leest.
   Blijkt een dip legitiem — een regeling die nu eenmaal lager meet — verlaag dan `minDekking` in
   `deploy/azure/main.bicep`; 0 zet de controle helemaal uit. Dat is een bewuste, zichtbare keuze in
   plaats van een stille.
+- **Tekst ná een opsomming is een eigen node.** De bron zet een `<al>` achter een `<lijst>` in
+  hetzelfde element (art. 6 lid 2 c Uitvoeringsregeling Awir, art. 24 lid 1 IW 1990, en bij de
+  Leidraad vaak). Zo'n reeks alinea's wordt een ongenummerde `bwb:Onderdeel` met
+  `bwb:label "Slottekst"`, tussen de onderdelen van zijn houder (`Onderdeel.slottekst`,
+  `_parse_onderdelen` in `app/parser.py`); lijst en tekst mogen afwisselen. `bwb:tekst` van de houder
+  is alleen wat vóór de eerste lijst staat. Een `<al>` heeft geen jci, dus de IRI is wet-lokaal
+  (`…:id:…%2FSlottekst1`) en de node is niet citeerbaar; zijn `bwb:vindplaats` is die van zijn ouder.
+  De volgorde staat in `bwb:volgtOp` (alleen tussen onderdelen van een houder met een slottekst, zodat
+  de rest van de regeling haar snapshot-id houdt) en `bwb:volgnummer` (alle onderdelen, om op te
+  sorteren).
 - **Predicaten**: `bwb:heeftHoofdstuk/…/heeftArtikel/heeftLid/heeftOnderdeel/
   heeftDivisie/heeftBijlage`, `bwb:bevatIllustratie`, `bwb:ondertekendDoor`,
   `bwb:volgtOp`, `bwb:verwijstNaar`; properties als

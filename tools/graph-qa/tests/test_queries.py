@@ -56,6 +56,13 @@ def test_get_lid_levert_de_onderdelen_mee():
     assert "bwb:jci ?ojci" in sparql, "elk onderdeel krijgt zijn eigen vindplaats"
 
 
+def test_onderdelen_komen_in_documentvolgorde():
+    """Tekst ná een opsomming heeft geen nummer en 'aa.' staat ná 'z.': de IRI zegt niets over de plek."""
+    assert "ORDER BY ?ovolg ?o" in q.get_lid("BWBR0004770", "25", "14")
+    assert "?ovolg ?o" in q.get_artikel("BWBR0019237", "9a")
+    assert "bwb:volgnummer ?ovolg" in q.get_lid("BWBR0004770", "25", "14")
+
+
 def test_get_artikel_levert_directe_onderdelen_mee():
     """Artikelen zonder leden hebben hun opsomming direct onder het artikel (heeftOnderdeel)."""
     sparql = q.get_artikel("BWBR0019237", "9a")
