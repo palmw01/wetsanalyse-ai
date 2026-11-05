@@ -1,6 +1,6 @@
 # Plan — wetsanalyse-ai
 
-Soort: *plan* (zie [`README.md`](README.md)) · Bijgewerkt: 21 oktober 2026
+Soort: *plan* (zie [`README.md`](README.md)) · Bijgewerkt: 5 november 2026
 
 Dit is het **enige plan** van het project. Het vervangt de losse plannen voor de workbench, het
 herkomstspoor, werkgebieden en begrippen en de kennisbank. Hier staat wat er openstaat, niet wat er
@@ -107,6 +107,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | I | Begrippen volgens NL-SBB met uitleg in B1, TOOI, één bedieningsstijl | Af: I5, I1–I4, I6, I7 gemerged (#752–#756, #762, #763), het thema als vraagkaart erna; open: de meting `eval.uitleg_eval` (3 runs, kost geld) |
 | K | Eén bronnenlijst, deelvragen zonder begrip, rustige panelen, één stijl | K1–K5 gemerged (#767–#771) |
 | L | Getypte bepalingen bij het samenstellen, één plek voor de bronnen per deelvraag | L1 (#772) en L2–L3 gebouwd |
+| N | Begrippen: nieuwe bediening en generieke begrippen | Besloten (ADR-006), niets gebouwd |
 
 ---
 
@@ -1264,6 +1265,32 @@ Plan, opdrachttoets en voortgang: [`architectuur/plan-betekenisonderzoek.md`](ar
 werkplek en meting.
 
 ---
+
+### N. Begrippen: nieuwe bediening en generieke begrippen
+
+**Aanleiding** (5 nov 2026). De begrippenschermen volgen de bediening van werkgebieden en annotaties niet: één begrip
+heeft twee weergaven, de kaart is een altijd open formulier, en naast het gesprek kun je niet over passages besluiten.
+Daarnaast wil je een begrip als *belastingschuldige* één keer definiëren, terwijl een begrip nu aan één werkgebied hangt.
+
+**Besluit.** Eén begripinhoud op pagina en paneel, en een generiek kader boven de werkgebieden:
+[ADR-006](architectuur/adr-006-generieke-begrippen.md).
+
+**Fase 1: de nieuwe bediening** (alleen frontend):
+
+1. U1: de ene begripinhoud (`useBegrip`, `BegripInhoud`, bewerken per blok);
+2. U2: passages als rijen, toevoegen in een venster met `BronBoom`;
+3. U3: relaties als zijblok, opvolging in het menu ⋯;
+4. U4: het kader als rijen, met *Te doen*, zoeken en filter;
+5. U5: de begrippagina verhuist naar het werkgebied;
+6. U6: afronden, met een vormtest.
+
+**Fase 2: generieke begrippen:**
+
+1. G1: model en gebruik in de api;
+2. G2: doorwerking en combineren tussen kaders;
+3. G3: de graaf, conformiteit en export;
+4. G4: de frontend, met `/begrippen/[id]` en de keuze Kader;
+5. G5: Lex leest generieke begrippen en stelt koppelingen voor.
 
 ## Volgorde en samenhang
 

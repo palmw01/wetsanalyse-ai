@@ -453,7 +453,8 @@ plan mag verouderen.
   (spaCy) vast. `adr-003-nl-sbb-begrippencontract.md` maakt NL-SBB het datacontract voor
   begrippen (activiteit 3), niet alleen het exportformaat. `adr-004-begrippenketen.md` ontwerpt
   de keten die betekenisgroepen voorstelt, in de vorm van `hybrid_v1`. `adr-005-vraag-lex-en-agents.md`
-  legt Vraag Lex en de agents onder de supervisor vast (F3).
+  legt Vraag Lex en de agents onder de supervisor vast (F3). `adr-006-generieke-begrippen.md` legt
+  het generieke begrippenkader boven de werkgebieden vast (spoor N).
 - `docs/architectuur/annotatieketen.md` – hoe de annotatieketen **nu** werkt: stappen,
   configuratie (`CLASSIFIER_GRANULARITEIT` e.d.), beslisbeleid, detectoren en bekende beperkingen.
   `docs/architectuur/metingen/README.md` is het meetlogboek: welke meting bij welke code hoort.

@@ -85,3 +85,8 @@ Er is nog niets van spoor D gebouwd. Dit is het moment om het te beslissen.
   herhaalde definitie) en meldt treffers als aandachtspunten.
 - **TOOI.** Het kader krijgt `dct:subject` naar een thema uit tooitop; een brondocument
   `dct:publisher` naar de TOOI-organisatie van zijn regeling.
+
+## Aanvulling (spoor N, 5 nov 2026)
+
+- **Generiek kader.** Naast het kader per werkgebied komt één generiek kader; een begrip staat in precies één
+  `skos:inScheme`. Zie [ADR-006](adr-006-generieke-begrippen.md).
