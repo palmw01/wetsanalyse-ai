@@ -1,0 +1,56 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<toestand xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" bwb-ng-vast-deel="http://wetten.overheid.nl/id/BWBR0019237/2026-07-01/0" xsi:noNamespaceSchemaLocation="https://repository.officiele-overheidspublicaties.nl/Schema/BWB-toestand/2016-1/xsd/toestand_2016-1.xsd" bwb-id="BWBR0019237" inwerkingtreding="2026-07-01"><wetgeving dtdversie="2.0" soort="ministeriele-regeling" stam-id="7708303" versie-id="31250782" id="C44689761" label-id="7696084" inwerkingtredingsdatum="2025-12-24">
+  <intitule bwb-ng-variabel-deel="/Intitule" stam-id="7708333" versie-id="12603612" id="C16950201" label-id="7695934" inwerking="2006-01-01" bron="Stcrt.2005-251" effect="nieuwe-regeling" ondertekening_bron="2005-12-12" publicatie_bron="2005-12-27" publicatie_iwt="2005-12-27" status="goed">Uitvoeringsregeling Algemene wet inkomensafhankelijke regelingen<meta-data/></intitule>
+  <citeertitel bwb-ng-variabel-deel="/Citeertitel" status="officieel" stam-id="7708343" versie-id="12603622" id="C16950211" label-id="7695944" inwerking="2006-01-01" bron="Stcrt.2005-251" effect="nieuwe-regeling" ondertekening_bron="2005-12-12" publicatie_bron="2005-12-27" publicatie_iwt="2005-12-27">Uitvoeringsregeling Algemene wet inkomensafhankelijke regelingen <meta-data/></citeertitel>
+  <regeling>
+    <regeling-tekst>
+      <artikel bwb-ng-variabel-deel="/Artikel3" stam-id="7708383" versie-id="21073992" id="C30918351" label-id="7695984" inwerking="2014-01-06" label="Artikel 3" bron="Stcrt.2013-36216" effect="wijziging" ondertekening_bron="2013-12-30" publicatie_bron="2013-12-30" publicatie_iwt="2013-12-09" status="goed">
+  <kop>
+    <label>Artikel</label>
+    <nr status="officieel">3</nr>
+    <titel status="officieel">Gelijkstelling met basisregistratie personen</titel>
+  </kop>
+  <lid bwb-ng-variabel-deel="/Artikel3/Lid1" label-id="7695984L1">
+    <lidnr status="officieel">1</lidnr>
+    <al>Iemand die niet in Nederland woont, wordt geacht op zijn woonadres te zijn ingeschreven in een naar aard en strekking met de basisregistratie personen overeenkomende registratie buiten Nederland, indien:</al>
+    <lijst level="single" nr-sluiting="." start="1" type="expliciet">
+      <li bwb-ng-variabel-deel="/Artikel3/Lid1/Onderdeela">
+        <li.nr>a.</li.nr>
+        <al>hij vanwege zijn functie of vanwege de functie van een van de tot zijn huishouden behorende personen niet kan of niet hoeft te worden ingeschreven in een naar aard en strekking met de basisregistratie personen overeenkomende registratie buiten Nederland;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=3&amp;lid=1&amp;o=a&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="o=a"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/Artikel3/Lid1/Onderdeelb">
+        <li.nr>b.</li.nr>
+        <al>blijkt dat hij niet woont op het adres waarop hij is ingeschreven in de bevolkingsregistratie in zijn woonland;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=3&amp;lid=1&amp;o=b&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="o=b"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/Artikel3/Lid1/Onderdeelc">
+        <li.nr>c.</li.nr>
+        <al>zijn woonland geen of geen naar aard en strekking met de basisregistratie personen overeenkomende registratie voert.</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=3&amp;lid=1&amp;o=c&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="o=c"/></jcis></meta-data></li>
+    </lijst>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=3&amp;lid=1&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="lid=1"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/Artikel3/Lid2" label-id="7695984L2">
+    <lidnr status="officieel">2</lidnr>
+    <al>Iemand die in de basisregistratie personen niet op zijn woonadres is ingeschreven, wordt geacht daarin wel op dat adres te zijn ingeschreven, indien:</al>
+    <lijst level="single" nr-sluiting="." start="1" type="expliciet">
+      <li bwb-ng-variabel-deel="/Artikel3/Lid2/Onderdeela">
+        <li.nr>a.</li.nr>
+        <al>hij een vreemdeling is als bedoeld in <extref doc="jci1.3:c:BWBR0018472&amp;artikel=9" label-id="7122444" verwijzing-id="2610389" bwb-id="BWBR0018472">artikel 9, tweede lid, van de wet</extref>;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=3&amp;lid=2&amp;o=a&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="o=a"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/Artikel3/Lid2/Onderdeelb">
+        <li.nr>b.</li.nr>
+        <al>hij of een tot zijn huishouden behorende persoon op grond van <extref doc="jci1.3:c:BWBR0034306&amp;artikel=21" label-id="12425094" verwijzing-id="2610390" bwb-id="BWBR0034306">artikel 21, eerste lid, van het Besluit basisregistratie personen</extref> in verband met zijn bijzondere verblijfsrechtelijke status niet in aanmerking komt voor inschrijving, met dien verstande dat voor degenen die zijn opgenomen in de door het Ministerie van Buitenlandse Zaken gevoerde Protocollaire Basisadministratie, het in deze administratie opgenomen woonadres geldt;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=3&amp;lid=2&amp;o=b&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="o=b"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/Artikel3/Lid2/Onderdeelc">
+        <li.nr>c.</li.nr>
+        <al>blijkt dat sprake is van een onjuiste inschrijving in de basisregistratie personen voor de periode tot aan de datum van adreswijziging, bedoeld in <extref doc="jci1.3:c:BWBR0033715&amp;artikel=2.20" label-id="12295374" verwijzing-id="2610391" bwb-id="BWBR0033715">artikel 2.20, derde lid, van de Wet basisregistratie personen</extref>;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=3&amp;lid=2&amp;o=c&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="o=c"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/Artikel3/Lid2/Onderdeeld">
+        <li.nr>d.</li.nr>
+        <al>hij zich binnen 5 dagen na de aanvang van zijn verblijf op zijn woonadres heeft laten inschrijven in de basisregistratie personen.</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=3&amp;lid=2&amp;o=d&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="o=d"/></jcis></meta-data></li>
+    </lijst>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=3&amp;lid=2&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="lid=2"/></jcis></meta-data></lid>
+<meta-data><jcis><jci versie="1.0" verwijzing="1.0:c:BWBR0019237&amp;artikel=3&amp;g=2026-07-01" onderdeel="artikel=3" korte-verwijzing="1.0:c:BWBR0019237&amp;artikel=3"/><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=3&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="artikel=3" korte-verwijzing="jci1.3:c:BWBR0019237&amp;artikel=3"/></jcis></meta-data></artikel>
+      </regeling-tekst>
+    </regeling>
+</wetgeving></toestand>

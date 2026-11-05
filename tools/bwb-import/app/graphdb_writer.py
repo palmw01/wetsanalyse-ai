@@ -22,6 +22,8 @@ from app.collect import (
     Batch,
     collect,
     koppel_structuurverwijzingen,
+    bepalingsindex as bepalingsindex_van,
+    koppel_deelverwijzingen,
     structuurindex as structuurindex_van,
 )
 from app.models import ImportSummary, Wet
@@ -303,6 +305,7 @@ class GraphDbWriter:
         *,
         verzameld: tuple[Batch, ImportSummary] | None = None,
         structuurindex: dict[str, str] | None = None,
+        bepalingsindex: set[str] | None = None,
     ) -> tuple[Graph, ImportSummary]:
         """Bouw de RDF-graaf voor één wet uit de gedeelde ``Batch`` (geen HTTP).
 
@@ -312,12 +315,16 @@ class GraphDbWriter:
         alsnog op de juiste node uitkomt. Zonder die volgorde is dat onmogelijk, want tijdens de
         import van de citerende wet is de doelwet nog niet gezien.
 
-        Zonder `verzameld` verzamelt hij zelf (één wet, losse aanroep).
+        Zonder `verzameld` verzamelt hij zelf (één wet, losse aanroep). `bepalingsindex` doet
+        hetzelfde voor leden en onderdelen: zie `koppel_deelverwijzingen`.
         """
         batch, summary = verzameld if verzameld is not None else collect(
             wet, tekstuele_refs=self._tekstuele_refs
         )
         koppel_structuurverwijzingen(batch, structuurindex or structuurindex_van([batch]))
+        koppel_deelverwijzingen(
+            batch, bepalingsindex if bepalingsindex is not None else bepalingsindex_van([batch])
+        )
         v = self._vocab
         g = Graph()
         g.bind("bwb", v.ns)
@@ -708,10 +715,15 @@ class GraphDbWriter:
         *,
         verzameld: tuple[Batch, ImportSummary] | None = None,
         structuurindex: dict[str, str] | None = None,
+        bepalingsindex: set[str] | None = None,
     ) -> ImportSummary:
         """Bouw de graaf en vervang de named graph van deze wet in GraphDB."""
         graph, summary = self.build_graph(
-            wet, wti=wti, verzameld=verzameld, structuurindex=structuurindex
+            wet,
+            wti=wti,
+            verzameld=verzameld,
+            structuurindex=structuurindex,
+            bepalingsindex=bepalingsindex,
         )
         # Gratis meting: de graaf staat hier toch al in het geheugen. Zie `app/dekking.py`.
         summary.graaf_tekens = sum(len(str(o)) for o in graph.objects(None, self._vocab.ns.tekst))

@@ -56,6 +56,11 @@ def test_get_lid_levert_de_onderdelen_mee():
     assert "bwb:jci ?ojci" in sparql, "elk onderdeel krijgt zijn eigen vindplaats"
 
 
+def test_inkomend_op_een_artikel_telt_verwijzingen_naar_zijn_leden_mee():
+    """Sinds de importer de hele verwijzing volgt, wijst "artikel 25, derde lid" naar het lid."""
+    assert "?node (bwb:heeftLid|bwb:heeftOnderdeel)* ?doel" in q.verwijst_naar_deze("BWBR0018472", "25")
+
+
 def test_get_artikel_levert_directe_onderdelen_mee():
     """Artikelen zonder leden hebben hun opsomming direct onder het artikel (heeftOnderdeel)."""
     sparql = q.get_artikel("BWBR0019237", "9a")

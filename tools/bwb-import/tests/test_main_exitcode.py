@@ -53,7 +53,7 @@ def nep_import(monkeypatch: pytest.MonkeyPatch):
             )
 
         monkeypatch.setattr(main_module, "_verzamel", _verzamel)
-        monkeypatch.setattr(main_module, "_schrijf", lambda item, writer, index: item.summary)
+        monkeypatch.setattr(main_module, "_schrijf", lambda item, writer, *_indexen: item.summary)
 
     return stel_in
 

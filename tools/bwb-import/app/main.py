@@ -13,7 +13,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from app.collect import Batch, collect, structuurindex
+from app.collect import Batch, bepalingsindex, collect, structuurindex
 from app.config import Settings
 from app.dekking import Dekking, bron_tekens
 from app.downloader import BwbDownloader
@@ -64,7 +64,7 @@ def run_import(
         prepare(writer)
 
     item = _verzamel(bwb_id, settings)
-    return _schrijf(item, writer, structuurindex([item.batch]))
+    return _schrijf(item, writer, structuurindex([item.batch]), bepalingsindex([item.batch]))
 
 
 def _haal_en_parse(bwb_id: str, settings: Settings) -> tuple[Wet, WtiInfo | None, Path]:
@@ -137,6 +137,7 @@ def run_imports(bwb_ids: list[str], settings: Settings) -> list[ImportResult]:
             mislukt[bwb_id] = str(exc)
 
     index = structuurindex(v.batch for v in verzameld)
+    bepalingen = bepalingsindex(v.batch for v in verzameld)
     logger.info(
         "Structuurindex: %d ondubbelzinnige padloze sleutels over %d wetten",
         len(index), len(verzameld),
@@ -146,7 +147,7 @@ def run_imports(bwb_ids: list[str], settings: Settings) -> list[ImportResult]:
     geschreven: dict[str, ImportSummary] = {}
     for item in verzameld:
         try:
-            geschreven[item.wet.bwb_id] = _schrijf(item, writer, index)
+            geschreven[item.wet.bwb_id] = _schrijf(item, writer, index, bepalingen)
         except Exception as exc:  # noqa: BLE001 - batch loopt door, fout per wet
             logger.error("Schrijven mislukt voor %s: %s", item.wet.bwb_id, exc)
             mislukt[item.wet.bwb_id] = str(exc)
@@ -189,13 +190,16 @@ def _verzamel(bwb_id: str, settings: Settings) -> _Verzameld:
     return _Verzameld(wet=wet, wti=wti, batch=batch, summary=summary, xml_path=xml_path)
 
 
-def _schrijf(item: _Verzameld, writer: GraphDbWriter, index: dict[str, str]) -> ImportSummary:
-    """Schrijf één verzamelde wet weg, met de structuurindex van de hele batch."""
+def _schrijf(
+    item: _Verzameld, writer: GraphDbWriter, index: dict[str, str], bepalingen: set[str]
+) -> ImportSummary:
+    """Schrijf één verzamelde wet weg, met de indexen van de hele batch."""
     summary = writer.write_wet(
         item.wet,
         wti=item.wti,
         verzameld=(item.batch, item.summary),
         structuurindex=index,
+        bepalingsindex=bepalingen,
     )
     _meet_dekking(summary, item.xml_path, item.wet.bwb_id)
     logger.info("Import voltooid voor %s", item.wet.bwb_id)
