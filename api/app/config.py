@@ -43,6 +43,9 @@ class Settings:
             self.client_tokens[token.strip()] = client_id.strip()
         # Fail-closed: leeg betekent "auth verplicht maar geen tokens" → alles 401.
         self.auth_required = os.environ.get("WETSANALYSE_AUTH_REQUIRED", "1") != "0"
+        # Inloggen met een API-token per account (de acceptatie-MCP). Default uit: alleen de
+        # acceptatiestraat zet hem aan, en een guard in `poort` bewaakt dat.
+        self.api_token_login = os.environ.get("API_TOKEN_LOGIN", "").lower() in {"1", "true"}
 
         # --- Admin-auth: aparte tokens voor /v1/admin/* (LLM-beheer) ---
         raw_admin = _read_secret("WETSANALYSE_ADMIN_TOKENS") or ""

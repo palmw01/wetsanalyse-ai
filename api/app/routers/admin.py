@@ -41,6 +41,7 @@ from .. import (
     verbruik as verbruik_svc,
 )
 from ..auth import require_admin
+from ..config import get_settings
 from ..llm.litellm_client import build_llm_client
 from ..llm_profile import LlmProfile
 from ..ratelimit import rate_limited_admin_test
@@ -525,10 +526,14 @@ class ApiTokenOut(BaseModel):
     created_by: str = ""
     created: str = ""
     last_used: str | None = None
+    userid: str | None = None
+    verloopt: str | None = None
 
 
 class ApiTokenCreateIn(BaseModel):
     label: str = Field(default="", max_length=128)
+    # Met een account wordt het een accounttoken (inloggen als dat account), anders een admin-token.
+    userid: str | None = Field(default=None, min_length=1, max_length=64)
 
 
 class ApiTokenCreated(ApiTokenOut):
@@ -542,6 +547,8 @@ def _token_to_out(t: dict) -> ApiTokenOut:
         active=t["active"], created_by=t["created_by"],
         created=t["created"].isoformat(),
         last_used=t["last_used"].isoformat() if t["last_used"] is not None else None,
+        userid=t["userid"],
+        verloopt=t["verloopt"].isoformat() if t["verloopt"] is not None else None,
     )
 
 
@@ -553,9 +560,20 @@ async def lijst_api_tokens():
 
 @router.post("/api-tokens", response_model=ApiTokenCreated, status_code=status.HTTP_201_CREATED)
 async def maak_api_token(body: ApiTokenCreateIn, admin_id: str = Depends(require_admin)):
-    record, plaintext = await api_tokens.create(body.label, created_by=admin_id)
+    if body.userid is None:
+        record, plaintext = await api_tokens.create(body.label, created_by=admin_id)
+    else:
+        # Een token dat op deze straat niets opent zou alleen suggereren dat het werkt.
+        if not get_settings().api_token_login:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                                detail="Inloggen met een accounttoken staat op deze omgeving uit.")
+        try:
+            record, plaintext = await api_tokens.create_gebruiker(body.label, body.userid, created_by=admin_id)
+        except api_tokens.ApiTokenError as e:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
     logger.info("API-token aangemaakt", extra={
         "categorie": "security", "token_id": record["id"], "label": record["label"], "door": admin_id,
+        "voor": record["userid"],
     })
     return ApiTokenCreated(**_token_to_out(record).model_dump(), token=plaintext)
 
