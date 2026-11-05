@@ -1292,6 +1292,20 @@ Daarnaast wil je een begrip als *belastingschuldige* één keer definiëren, ter
 4. G4: de frontend, met `/begrippen/[id]` en de keuze Kader;
 5. G5: Lex leest generieke begrippen en stelt koppelingen voor.
 
+### O. Acceptatietesten via MCP
+
+Een MCP-client doet op acceptatie wat een gebruiker op de schermen doet en bewijst de uitkomst per laag: het
+antwoord van de BFF, de opslag via de api, de graaf en de logs. De autorisatie loopt via een accounttoken dat
+wordt ingewisseld voor een gewone sessie, dus dezelfde controles gelden als voor een gebruiker. De vlag
+`API_TOKEN_LOGIN` staat alleen op acceptatie aan. Het eerste scenario is `docs/acceptatie/wetsanalyse-e2e.md`.
+
+De agent-jurist (`.claude/agents/agent-jurist.md`) voert dat scenario uit en neemt echte beslissingen; op
+acceptatie is dat geen vervuiling, maar de bedoeling. Uit zijn beoordeling volgen verbeteringen, die de volgende
+iteratie meet. Die lus stopt bij acceptatie: productie krijgt alleen wat een mens tagt.
+
+Open: de events van een echte run bewaren als fixtures voor de Playwright-mocks, zodat die niet stil van de
+werkelijkheid afdrijven. De MCP ziet zelf geen rendering; de schermen blijven bij Playwright.
+
 ## Volgorde en samenhang
 
 - **A** loopt los van de rest en is vooral werk voor beoordelaars. Het blokkeert alleen semantisch

@@ -146,6 +146,9 @@ export interface ApiTokenOut {
   created_by: string;
   created: string;
   last_used: string | null;
+  /** Bij een accounttoken: het account waarvoor het inlogt, en tot wanneer. */
+  userid: string | null;
+  verloopt: string | null;
 }
 
 /** Antwoord bij genereren: het volledige token wordt eenmalig getoond en nergens bewaard. */

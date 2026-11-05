@@ -196,6 +196,9 @@ api_tokens = Table(
     Column("created_by", String(128), nullable=False, default=""),
     Column("created", _DT, nullable=False),
     Column("last_used", _DT, nullable=True),
+    # Alleen bij scope `gebruiker`: het account waarvoor het token inlogt, en tot wanneer.
+    Column("userid", String(64), nullable=True),
+    Column("verloopt", _DT, nullable=True),
 )
 
 # --- Annotatie-domein: één laag per bronnode -----------------------------------

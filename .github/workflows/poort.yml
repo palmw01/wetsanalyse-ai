@@ -195,6 +195,33 @@ jobs:
           print("ok - apiExtern staat default op false en wordt alleen op acceptatie gezet")
           PYEOF
 
+      - name: Inloggen met een accounttoken – alleen op acceptatie
+        run: |
+          python3 - <<'PYEOF'
+          import pathlib, re, sys
+
+          bicep = pathlib.Path("deploy/azure/main.bicep").read_text(encoding="utf-8")
+          flow = pathlib.Path(".github/workflows/azure-infra.yml").read_text(encoding="utf-8")
+          fout = []
+
+          # De frontend is op elke straat publiek, dus deze vlag is het enige dat de inlogweg op
+          # productie dichthoudt: de default is de veilige waarde, en de env-waarde komt uit de parameter.
+          m = re.search(r"^param apiTokenLogin bool = (\w+)$", bicep, re.M)
+          if not m or m.group(1) != "false":
+              fout.append("main.bicep: `param apiTokenLogin bool = false` niet gevonden")
+          for regel in re.findall(r".*name: 'API_TOKEN_LOGIN'.*", bicep):
+              if "value: apiTokenLogin ?" not in regel:
+                  fout.append(f"main.bicep: API_TOKEN_LOGIN zonder de parameter: {regel.strip()}")
+          for regel in flow.splitlines():
+              if "--api-token-login" in regel and not regel.strip().startswith("#") and "acceptatie" not in regel:
+                  fout.append(f"azure-infra.yml: `--api-token-login` zonder acceptatie-conditie: {regel.strip()}")
+
+          if fout:
+              print("\n".join(f"  {f}" for f in fout))
+              sys.exit(1)
+          print("ok - inloggen met een accounttoken staat default uit en alleen op acceptatie aan")
+          PYEOF
+
       - name: GraphDB blijft intern – de proxy alleen op acceptatie
         run: |
           python3 - <<'PYEOF'

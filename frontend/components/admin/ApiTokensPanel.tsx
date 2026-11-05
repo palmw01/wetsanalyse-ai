@@ -5,18 +5,20 @@ import { Button } from "@/components/ui/Button";
 import { ButtonRow } from "@/components/ui/ButtonRow";
 import { Card } from "@/components/ui/Card";
 import { SettingGroup } from "@/components/ui/SettingRow";
-import { Field, Input } from "@/components/ui/Field";
+import { Field, Input, Select } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
 import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { Tag } from "@/components/ui/Badge";
-import { createApiToken, isApiError, listApiTokens, revokeApiToken } from "@/lib/api";
-import type { ApiTokenOut } from "@/lib/types";
+import { createApiToken, isApiError, listApiTokens, listUsers, revokeApiToken } from "@/lib/api";
+import type { ApiTokenOut, UserOut } from "@/lib/types";
 import { StatusLabel } from "@/components/ui/Lijst";
 
 export function ApiTokensPanel() {
   const [tokens, setTokens] = useState<ApiTokenOut[] | null>(null);
   const [fout, setFout] = useState<string | null>(null);
   const [label, setLabel] = useState("");
+  const [gebruikers, setGebruikers] = useState<UserOut[]>([]);
+  const [account, setAccount] = useState(""); // leeg = admin-token
   const [gekopieerd, setGekopieerd] = useState(false);
   const [bezig, setBezig] = useState(false);
 
@@ -43,6 +45,8 @@ export function ApiTokensPanel() {
       setFout(isApiError(e) ? `${e.detail} (${e.status})` : (e as Error).message);
       setTokens([]);
     }
+    // Zonder de accounts blijft het admin-token mogelijk: geen reden om daarvoor het paneel te blokkeren.
+    setGebruikers(await listUsers().catch(() => []));
   }, []);
 
   useEffect(() => {
@@ -63,10 +67,11 @@ export function ApiTokensPanel() {
     setBezig(true);
     setFout(null);
     try {
-      const res = await createApiToken(label.trim());
+      const res = await createApiToken(label.trim(), account || undefined);
       setNieuw({ label: res.label, token: res.token });
       setGekopieerd(false); // een vers token is nog niet gekopieerd
       setLabel("");
+      setAccount("");
       await laad();
     } catch (e) {
       melden(e);
@@ -95,7 +100,7 @@ export function ApiTokensPanel() {
     <SettingGroup
       titel="API-tokens"
       count={tokens?.length}
-      omschrijving="Programmatische admin-toegang, bijvoorbeeld voor de admin-MCP."
+      omschrijving="Programmatische toegang: als beheerder voor de admin-MCP, of als een account voor de acceptatie-MCP."
     >
       {fout && (
         <Melding type="fout" className="mb-3">
@@ -145,6 +150,20 @@ export function ApiTokensPanel() {
             />
           </Field>
         </div>
+        <div className="min-w-[14rem] flex-1">
+          <Field label="Inloggen als">
+            <Select value={account} onChange={(e) => setAccount(e.target.value)}>
+              <option value="">Geen account (admin-token)</option>
+              {gebruikers
+                .filter((u) => u.active)
+                .map((u) => (
+                  <option key={u.userid} value={u.userid}>
+                    {u.userid} ({u.role})
+                  </option>
+                ))}
+            </Select>
+          </Field>
+        </div>
         <Button size="sm" type="submit" disabled={bezig} className="w-full sm:w-auto">
           {bezig ? "Genereren…" : "Token genereren"}
         </Button>
@@ -162,10 +181,13 @@ export function ApiTokensPanel() {
                 <span className="min-w-0 break-words font-display font-semibold text-ink">{t.label || "(geen label)"}</span>
                 <code className="rounded bg-paper px-1.5 py-0.5 font-mono text-xs text-muted">{t.token_prefix}…</code>
                 <Tag>{t.scope}</Tag>
+                {t.userid && <Tag>{t.userid}</Tag>}
                 {!t.active && (
                   <StatusLabel toon="rood">ingetrokken</StatusLabel>
                 )}
-                <span className="ml-auto text-xs text-faint">laatst gebruikt: {datum(t.last_used)}</span>
+                <span className="ml-auto text-xs text-faint">
+                  {t.verloopt && <>verloopt: {datum(t.verloopt)} · </>}laatst gebruikt: {datum(t.last_used)}
+                </span>
               </div>
               {t.active && (
                 <ButtonRow align="start" className="mt-3">

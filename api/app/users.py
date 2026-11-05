@@ -516,6 +516,10 @@ async def delete_user(userid: str) -> None:
     if user.role == "beheerder" and user.active and await _aantal_actieve_beheerders() <= 1:
         raise UserError("Kan de laatste actieve beheerder niet verwijderen.")
     async with db.get_engine().begin() as conn:
+        # Een nieuw account met dezelfde userid mag de accounttokens van het oude niet erven.
+        await conn.execute(
+            update(db.api_tokens).where(db.api_tokens.c.userid == user.userid).values(active=False)
+        )
         await conn.execute(delete(db.users).where(db.users.c.userid == user.userid))
 
 

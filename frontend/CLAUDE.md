@@ -38,6 +38,10 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   **Uitzondering: SSE.** `app/api/annotatie/run/[id]/events/route.ts` gebruikt geen `proxy()` maar
   geeft `upstream.body` rauw door met `X-Accel-Buffering: no` en `Cache-Control: no-transform`.
 - **`app/api/_lib/session.ts`** – `sessionUserId()` voor de vertrouwde `X-User-Id`-header.
+- **Inloggen met een accounttoken** (`auth.ts`, provider `api-token`, alleen met `API_TOKEN_LOGIN`): een
+  MCP-client wisselt zijn `wa_pat_`-token in voor een gewone sessie, dus de BFF-routes weten niets van tokens.
+  Zo'n sessie draagt `viaToken`, duurt een uur, vervalt met het token en mag nooit bij
+  `/api/admin/api-tokens`, `/api/account/password` en `/api/account/2fa` (`auth.config.ts`).
 - **`lib/server.ts`** – server-side helpers voor Server Components en auth
   (`verifyCredentials`/`getAccountStatus`/`getSetupStatus`), rechtstreeks server→server.
 - **`lib/api.ts`** – alle client-side fetch-helpers naar `/api/**`, met één foutcontract

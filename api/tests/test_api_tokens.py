@@ -135,3 +135,140 @@ async def test_ongeldig_token_blijft_401(admin_client):
     assert (await admin_client.get(
         "/v1/admin/api-tokens", headers={"Authorization": "Bearer wa_admin_fout"}
     )).status_code == 401
+
+
+# --- accounttokens -------------------------------------------------------------
+
+@pytest.fixture
+async def analist(db):
+    from app import users
+
+    user, _ = await users.create_user("analist1", "analist1@example.org")
+    return user
+
+
+async def test_accounttoken_geeft_het_account(analist):
+    from app import api_tokens
+
+    record, plaintext = await api_tokens.create_gebruiker("mcp", "analist1", created_by="adm")
+    assert plaintext.startswith("wa_pat_")
+    assert record["scope"] == "gebruiker" and record["userid"] == "analist1"
+    assert record["verloopt"] > record["created"]
+    gevonden = await api_tokens.verify_gebruiker(plaintext)
+    assert gevonden == {"token_id": record["id"], "userid": "analist1",
+                        "email": "analist1@example.org", "role": "analist"}
+    assert (await api_tokens.list_tokens())[0]["last_used"] is not None
+
+
+async def test_accounttoken_en_admin_token_kruisen_niet(analist):
+    """Het prefix alleen is niet genoeg: ook een accounttoken met het admin-prefix opent `verify` niet."""
+    from app import api_tokens
+
+    _, acc = await api_tokens.create_gebruiker("mcp", "analist1")
+    _, adm = await api_tokens.create("adm")
+    assert await api_tokens.verify(acc) is None
+    assert await api_tokens.verify_gebruiker(adm) is None
+
+    vermomd = "wa_admin_vermomd"
+    record, _ = await api_tokens.create_gebruiker("x", "analist1")
+    async with api_tokens.db.get_engine().begin() as conn:
+        await conn.execute(api_tokens.db.api_tokens.update().where(
+            api_tokens.db.api_tokens.c.id == record["id"]).values(token_hash=hashlib.sha256(vermomd.encode()).hexdigest()))
+    assert await api_tokens.verify(vermomd) is None
+
+
+async def test_accounttoken_voor_onbekend_of_inactief_account(analist):
+    from app import api_tokens, users
+
+    with pytest.raises(api_tokens.ApiTokenError):
+        await api_tokens.create_gebruiker("x", "bestaat-niet")
+    await users.set_active("analist1", False)
+    with pytest.raises(api_tokens.ApiTokenError):
+        await api_tokens.create_gebruiker("x", "analist1")
+
+
+async def test_ingetrokken_verlopen_en_gedeactiveerd_gelden_niet(analist):
+    from datetime import timedelta
+
+    from app import api_tokens, users
+    from app.user import _utcnow
+
+    ingetrokken, a = await api_tokens.create_gebruiker("a", "analist1")
+    verlopen, b = await api_tokens.create_gebruiker("b", "analist1")
+    actief, c = await api_tokens.create_gebruiker("c", "analist1")
+
+    await api_tokens.revoke(ingetrokken["id"])
+    async with api_tokens.db.get_engine().begin() as conn:
+        await conn.execute(api_tokens.db.api_tokens.update().where(
+            api_tokens.db.api_tokens.c.id == verlopen["id"]).values(verloopt=_utcnow() - timedelta(seconds=1)))
+
+    assert await api_tokens.verify_gebruiker(a) is None
+    assert await api_tokens.verify_gebruiker(b) is None
+    assert not await api_tokens.gebruiker_geldig(ingetrokken["id"])
+    assert not await api_tokens.gebruiker_geldig(verlopen["id"])
+    assert await api_tokens.gebruiker_geldig(actief["id"])
+
+    await users.set_active("analist1", False)
+    assert await api_tokens.verify_gebruiker(c) is None
+    assert not await api_tokens.gebruiker_geldig(actief["id"])
+    assert not await api_tokens.gebruiker_geldig("onbekend")
+
+
+async def test_nieuw_account_erft_geen_tokens_van_het_oude(analist):
+    from app import api_tokens, users
+
+    _, plaintext = await api_tokens.create_gebruiker("x", "analist1")
+    await users.delete_user("analist1")
+    await users.create_user("analist1", "ander@example.org")
+    assert await api_tokens.verify_gebruiker(plaintext) is None
+
+
+@pytest.fixture
+async def token_client(monkeypatch, admin_client):
+    from app import users
+    from app.config import get_settings
+
+    monkeypatch.setenv("API_TOKEN_LOGIN", "true")
+    get_settings.cache_clear()
+    await users.create_user("analist1", "analist1@example.org")
+    yield admin_client
+    get_settings.cache_clear()
+
+
+async def test_inwisselen_en_hercontrole(token_client):
+    gemaakt = await token_client.post("/v1/admin/api-tokens", headers=_ENV, json={"label": "mcp", "userid": "analist1"})
+    assert gemaakt.status_code == 201
+    body = gemaakt.json()
+    assert body["scope"] == "gebruiker" and body["userid"] == "analist1" and body["verloopt"]
+
+    res = await token_client.post("/v1/auth/api-token/verify", json={"token": body["token"]})
+    assert res.json() == {"ok": True, "token_id": body["id"], "userid": "analist1",
+                          "email": "analist1@example.org", "role": "analist"}
+    assert (await token_client.get(f"/v1/auth/api-token/{body['id']}/status")).status_code == 204
+
+    await token_client.delete(f"/v1/admin/api-tokens/{body['id']}", headers=_ENV)
+    res = await token_client.post("/v1/auth/api-token/verify", json={"token": body["token"]})
+    assert res.status_code == 200 and res.json()["ok"] is False
+    assert (await token_client.get(f"/v1/auth/api-token/{body['id']}/status")).status_code == 401
+
+
+async def test_accounttoken_opent_de_admin_api_niet(token_client):
+    token = (await token_client.post("/v1/admin/api-tokens", headers=_ENV,
+                                     json={"userid": "analist1"})).json()["token"]
+    res = await token_client.get("/v1/admin/api-tokens", headers={"Authorization": f"Bearer {token}"})
+    assert res.status_code == 401
+
+
+async def test_onbekend_account_is_422(token_client):
+    res = await token_client.post("/v1/admin/api-tokens", headers=_ENV, json={"userid": "bestaat-niet"})
+    assert res.status_code == 422
+
+
+async def test_zonder_de_vlag_bestaat_inloggen_met_token_niet(admin_client):
+    from app import users
+
+    await users.create_user("analist1", "analist1@example.org")
+    res = await admin_client.post("/v1/admin/api-tokens", headers=_ENV, json={"userid": "analist1"})
+    assert res.status_code == 409
+    assert (await admin_client.post("/v1/auth/api-token/verify", json={"token": "wa_pat_x"})).status_code == 404
+    assert (await admin_client.get("/v1/auth/api-token/abc/status")).status_code == 404
