@@ -23,6 +23,12 @@
 # De componenten, hun images en hun paden worden UIT DE PUBLISH-WORKFLOWS ZELF gelezen. Er is dus
 # geen tweede lijst die kan verouderen: een vijfde component met een `*-docker-publish.yml` wordt
 # vanzelf bewaakt.
+#
+# EEN GEBOUWD IMAGE IS NOG GEEN UITROL. Mislukt alleen de `deploy`-job (bijvoorbeeld `ServerTimeout`
+# van Azure), dan klopt `:latest` en draait acceptatie toch de vorige versie, terwijl de health groen
+# is. Daarom kijkt de wacht ook naar de laatste run van een image dat bij master hoort: is daarvan
+# alleen `deploy` mislukt, dan draait hij die job opnieuw, op hetzelfde image, tot `MAX_POGINGEN`.
+# Daarna faalt de wacht zelf, want dan is het geen hapering meer maar iets voor een mens.
 
 name: bouwwacht
 
@@ -43,7 +49,7 @@ jobs:
     permissions:
       contents: read
       packages: read
-      actions: write        # publish-workflows lezen én dispatchen
+      actions: write        # publish-workflows lezen, dispatchen en een deploy-job herstarten
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -65,6 +71,7 @@ jobs:
           import json, os, pathlib, re, subprocess, sys, yaml
 
           OWNER = os.environ["OWNER"]
+          MAX_POGINGEN = 3  # de run zelf en hoogstens twee herstarts van de deploy-job
           HEAD = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True,
                                 check=True).stdout.strip()
 
@@ -94,11 +101,35 @@ jobs:
 
           def laatste_run(workflow):
               r = draai(["gh", "run", "list", "--workflow", workflow, "--branch", "master",
-                         "--limit", "1", "--json", "headSha,status,conclusion"])
+                         "--limit", "1", "--json", "databaseId,attempt,headSha,status,conclusion"])
               rijen = json.loads(r.stdout or "[]") if r.returncode == 0 else []
               return rijen[0] if rijen else None
 
-          achter, gestart = [], []
+          def alleen_deploy_mislukt(run):
+              r = draai(["gh", "run", "view", str(run["databaseId"]), "--json", "jobs"])
+              jobs = json.loads(r.stdout or "{}").get("jobs", []) if r.returncode == 0 else []
+              return [j["name"] for j in jobs if j["conclusion"] == "failure"] == ["deploy"]
+
+          def herstel_deploy(workflow, rev):
+              """Is `:latest` wel gebouwd maar niet uitgerold? Dan de deploy-job opnieuw, tot `MAX_POGINGEN`.
+              Geeft False als dat op is of niet lukt."""
+              run = laatste_run(workflow)
+              if not run or run["headSha"] != rev or run["status"] != "completed" \
+                      or run["conclusion"] != "failure" or not alleen_deploy_mislukt(run):
+                  return True
+              if run["attempt"] >= MAX_POGINGEN:
+                  print(f"::error::{workflow}: de uitrol van {rev[:8]} mislukte {run['attempt']} keer — "
+                        f"acceptatie loopt achter, kijk naar run {run['databaseId']}")
+                  return False
+              d = draai(["gh", "run", "rerun", str(run["databaseId"]), "--failed"])
+              if d.returncode != 0:
+                  print(f"::error::{workflow}: deploy-job niet herstart: {d.stderr.strip()}")
+                  return False
+              print(f"::notice::{workflow}: de uitrol van {rev[:8]} was mislukt → deploy-job opnieuw gestart "
+                    f"(poging {run['attempt'] + 1})")
+              return True
+
+          achter, gestart, niet_uitgerold = [], [], []
           for pad in sorted(pathlib.Path(".github/workflows").glob("*-docker-publish.yml")):
               spec = yaml.safe_load(pad.read_text(encoding="utf-8")) or {}
               trigger = spec.get(True, spec.get("on")) or {}          # PyYAML leest `on:` als True
@@ -125,6 +156,8 @@ jobs:
                   nieuw = draai(["git", "log", "--oneline", f"{rev}..HEAD", "--", *pathspecs(paden)]).stdout.strip()
                   if not nieuw:
                       print(f"  {pad.name}: bij ({rev[:8]})")
+                      if not herstel_deploy(pad.name, rev):
+                          niet_uitgerold.append(pad.name)
                       continue
                   reden = f"sinds {rev[:8]} raakten deze commits de component:\n" + "\n".join(
                       "      " + r for r in nieuw.splitlines())
@@ -155,4 +188,5 @@ jobs:
               print("ok - elk image hoort bij master")
           elif gestart:
               print(f"\n{len(gestart)} build(s) gestart: {', '.join(gestart)}")
+          sys.exit(1 if niet_uitgerold else 0)
           PYEOF

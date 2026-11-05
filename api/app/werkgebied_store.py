@@ -125,8 +125,9 @@ async def actieve_bron_iris(conn, werkgebied_id: str) -> set[str]:
 
 
 @asynccontextmanager
-async def _gewijzigd(werkgebied_id: str, verwacht: int, actor: str, actie: str, detail: dict):
-    """Rij-lock, revisietoets, revisie +1 en een auditregel: het gemeenschappelijke schrijfpad."""
+async def _gewijzigd(werkgebied_id: str, verwacht: int, actor: str, actie: str | None, detail: dict):
+    """Rij-lock, revisietoets, revisie +1 en een auditregel: het gemeenschappelijke schrijfpad.
+    Zonder `actie` schrijft de aanroeper zelf de auditregels (`werkgebied_deelvragen.samen`)."""
     t = db.werkgebieden
     async with db.get_engine().begin() as conn:
         row = (await conn.execute(select(t).where(t.c.id == werkgebied_id).with_for_update())).first()
@@ -138,7 +139,8 @@ async def _gewijzigd(werkgebied_id: str, verwacht: int, actor: str, actie: str, 
         yield conn, row
         await conn.execute(update(t).where(t.c.id == werkgebied_id).values(
             revisie=row.revisie + 1, gewijzigd=db.utcnow()))
-        await _audit(conn, werkgebied_id, actor, actie, {**detail, "revisie": row.revisie + 1})
+        if actie:
+            await _audit(conn, werkgebied_id, actor, actie, {**detail, "revisie": row.revisie + 1})
 
 
 async def _van_intake(intake_id: str) -> str | None:

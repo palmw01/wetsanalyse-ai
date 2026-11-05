@@ -9,7 +9,8 @@ import type { ArtefactVersie } from "@/lib/types";
 /** De versiekiezer van een artefact, in het slot `onder` van `PaneelKop` (deel 2 van de artefacten, naar het voorbeeld
  *  van Claude): ‹ *Versie n van m* › en daarachter *Nu*. Een versie is de stand direct na een beurt van Lex (api
  *  `artefact_versies`); een oudere is alleen te lezen, met eronder "Je bekijkt de versie van … · *Ga naar de huidige
- *  versie*". De chip opent zijn eigen versie; de nieuwste opent als *Nu* (`beginPlek`).
+ *  versie*". De chip opent zijn eigen versie; de nieuwste opent als *Nu* (`beginPlek`), met erbij wanneer Lex die maakte:
+ *  ‹ is de weg erheen.
  *
  *  `onKies` krijgt de versie die het paneel moet tonen, of `null` voor *Nu* (de live stand, met alle knoppen). Het
  *  paneel toont niets zolang de kiezer nog niet heeft gekozen: anders staan er even knoppen op iets wat een oude
@@ -27,6 +28,8 @@ export function VersieKiezer({ versie, gekozen, onKies }: {
   const [plek, setPlek] = useState(0);
   const [getoond, setGetoond] = useState<ArtefactVersie | null>(null);
   const [fout, setFout] = useState<string | null>(null);
+  // Wanneer Lex de nieuwste versie maakte: bij *Nu* de wijzer naar wat de laatste beurt opleverde.
+  const [laatste, setLaatste] = useState("");
   const cache = useRef(new Map<string, ArtefactVersie>());
   // De handler van de laatste render, zonder het laden opnieuw te starten als het paneel een nieuwe functie meegeeft.
   const kies = useRef(onKies);
@@ -39,8 +42,10 @@ export function VersieKiezer({ versie, gekozen, onKies }: {
       try {
         const v = await haalArtefactVersie(versie);
         cache.current.set(v.id, v);
-        const lijst = (await haalArtefactVersies(v.sleutel)).map((x) => x.id);
+        const versies = await haalArtefactVersies(v.sleutel);
+        const lijst = versies.map((x) => x.id);
         const alle = lijst.includes(v.id) ? lijst : [...lijst, v.id];
+        setLaatste(versieTijd(versies.at(-1)?.gemaakt ?? v.gemaakt));
         if (start.current !== undefined) {
           // Al gekozen: alleen de plek en de regel terugzetten.
           const i = start.current === null ? alle.length : alle.indexOf(start.current);
@@ -93,7 +98,7 @@ export function VersieKiezer({ versie, gekozen, onKies }: {
           aria-label="Vorige versie" title="Vorige versie">‹</button>
         <span className="min-w-0 flex-1 truncate text-center text-xs text-muted" aria-live="polite">
           <span className="text-ink">{plekLabel(plek, ids.length)}</span>
-          {nu && ids.length > 0 && <span> · {ids.length === 1 ? "1 versie" : `${ids.length} versies`}</span>}
+          {nu && laatste && <span data-laatste-versie> · laatste versie van Lex: {laatste}</span>}
         </span>
         <button type="button" className={knop} disabled={nu} onClick={() => void ga(plek + 1)}
           aria-label={plek === ids.length - 1 ? "Naar de huidige versie" : "Volgende versie"} title="Volgende versie">›</button>

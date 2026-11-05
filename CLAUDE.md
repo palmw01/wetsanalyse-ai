@@ -326,7 +326,7 @@ Details, inrichting en runbooks: **`deploy/azure/README.md`**.
 | `rollback.yml` | handmatig | toont de revisies van `api`, `frontend` of `graph-qa` in een straat; met `revisie` ingevuld zet hij het image van die revisie terug (een image-swap, geen `revision activate`) en wacht tot hij draait. Achter dezelfde environment-poort als een uitrol. |
 | `azure-infra.yml` | handmatig | de enige die resources aanmaakt, wijzigt of verwijdert (bicep) – zie hieronder. |
 | `poort.yml` | pull request naar `master` | de verplichte check `poort` – zie hieronder. |
-| `bouwwacht.yml` | elk kwartier | vergelijkt `:latest` per component met master en dispatcht bij achterstand de publish-workflow. |
+| `bouwwacht.yml` | elk kwartier | vergelijkt `:latest` per component met master en dispatcht bij achterstand de publish-workflow; mislukte alleen de `deploy`-job, dan draait hij die opnieuw. |
 | `ghcr-cleanup.yml` | na elke geslaagde publish, of handmatig (default dry-run) | bewaart per image de vijf nieuwste getagde builds; `latest`, `prd` en `prd-vorige` zijn uitgesloten. |
 | `geen-omgevingsgegevens.yml` | PR en push naar `master` | faalt op hostnamen, interne IP's en machinenamen in de repo. |
 | `dependabot-auto-merge.yml` | Dependabot-PR | zet auto-merge aan voor patch/minor en de groep `patch-and-minor`; majors wachten op een mens. |
@@ -361,7 +361,9 @@ die de paden van die component raken — en alleen bij achterstand een `workflow
 de componenten, images en paden uit de publish-workflows zelf, dus een vijfde component wordt
 vanzelf bewaakt, en hij herstart niets waarvan de laatste build op dezelfde commit al mislukte. Het
 is ook het vangnet voor elke andere gemiste trigger (een te nauw `paths:`-filter, een run die nooit
-startte).
+startte). Een geslaagde build is nog geen uitrol: valt alleen de `deploy`-job uit (`ServerTimeout` van
+Azure), dan klopt `:latest` en draait acceptatie toch de vorige versie. Daarom herstart de wacht die job
+hoogstens twee keer, op hetzelfde image, en faalt hij daarna zelf.
 
 **Eén build per image tegelijk.** De publish-workflows hebben `concurrency` met
 `cancel-in-progress: false`: twee builds van hetzelfde image pushen allebei `latest`, de tweede ontagt
