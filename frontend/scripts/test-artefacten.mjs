@@ -59,6 +59,14 @@ const gesprekken = {
     { rol: "assistant", tekst: "Werkgebied *Invordering* is aangemaakt.", ...leeg, run_id: "w1",
       artefact: { soort: "werkgebied", titel: "Invordering", ref: { werkgebied_id: "wg1" } } },
   ],
+  // De versiekiezer (deel 2 van de artefacten): twee beurten van Lex op hetzelfde werkgebied, elk met de versie die
+  // de api bij het bewaren vastlegde.
+  g6: [
+    { rol: "assistant", tekst: "Werkgebied aangemaakt.", ...leeg, run_id: "w6a",
+      artefact: { soort: "werkgebied", titel: "Invordering", ref: { werkgebied_id: "wg1", versie: "v1" } } },
+    { rol: "assistant", tekst: "Dossier aangevuld.", ...leeg, run_id: "w6b",
+      artefact: { soort: "werkgebied", titel: "Invordering", ref: { werkgebied_id: "wg1", versie: "v2" } } },
+  ],
   // Een kaartactie vanuit het gesprek (fase F4): het artefact wijst naar één begrip.
   g3: [
     { rol: "user", tekst: "Geef voorbeelden van termijn", ...leeg },
@@ -134,6 +142,17 @@ await page.route("**/api/**", async (route) => {
   // Verwijderd: een 404 met wanneer en door wie, zoals de api (`werkgebied_store.niet_gevonden`).
   const weg = (soort) => route.fulfill({ status: 404, json: { detail: { fout: "verwijderd", soort, op: nu, door: "t",
     melding: "Is verwijderd." } } });
+  if (p === "/api/artefact-versies" && url.searchParams.get("sleutel") === "werkgebied:wg1")
+    return route.fulfill({ json: { sleutel: "werkgebied:wg1", versies: [{ id: "v1", nr: 1, gemaakt: "2026-11-04T09:00:00Z" },
+      { id: "v2", nr: 2, gemaakt: "2026-11-05T09:42:00Z" }] } });
+  const versie = p.match(/^\/api\/artefact-versies\/(v[12])$/);
+  if (versie) {
+    const een = versie[1] === "v1";
+    return route.fulfill({ json: { id: versie[1], soort: "werkgebied", sleutel: "werkgebied:wg1", nr: een ? 1 : 2, totaal: 2,
+      gemaakt: een ? "2026-11-04T09:00:00Z" : "2026-11-05T09:42:00Z", vorige: een ? null : "v1", volgende: een ? "v2" : null,
+      inhoud: { werkgebied: { ...wg1, aanleiding: een ? "De oude aanleiding." : "De nieuwe aanleiding.", revisie: een ? 1 : 2 },
+        bronselectie: { deelvragen: [] } } } });
+  }
   if (p === "/api/werkgebieden/wg1" && m === "DELETE") {
     assert.equal(url.searchParams.get("verwachte_revisie"), String(wg1.revisie));
     wg1.verwijderd = true;
@@ -398,12 +417,41 @@ try {
   await bp.getByRole("button", { name: "Begrip verwijderen" }).click();
   await bp.getByRole("button", { name: "Verwijderen?", exact: true }).click();
   await bp.locator("[data-verwijderd]").getByText("Dit begrip is verwijderd op 15 okt 2026 door t.").waitFor();
+  // De versiekiezer: de chip van beurt 1 opent versie 1 van 2, alleen lezen; › en ‹ bladeren, Ga naar de huidige versie
+  // toont Nu met de knoppen; de chip van de laatste beurt opent meteen Nu.
+  await page.goto(`${base}/workbench?gesprek=g6`);
+  const chips6 = page.locator('button[data-artefact-soort="werkgebied"]');
+  await chips6.first().click();
+  const vp = page.getByRole("region", { name: "Werkgebied: Invordering" });
+  const kiezer = vp.locator("[data-versiekiezer]");
+  await kiezer.getByText("Versie 1 van 2").waitFor();
+  await vp.locator("[data-oude-versie]").getByText("alleen lezen", { exact: false }).waitFor();
+  await vp.locator("[data-werkgebied-inhoud][data-alleen-lezen]").getByText("De oude aanleiding.").waitFor();
+  assert.equal(await vp.getByRole("button", { name: "Werkgebied verwijderen" }).count(), 0, "een oude versie heeft geen knoppen");
+  await kiezer.getByRole("button", { name: "Naar de huidige versie", exact: true }).count().then((n) => assert.equal(n, 0));
+  await kiezer.getByRole("button", { name: "Volgende versie" }).click();
+  await kiezer.getByText("Versie 2 van 2").waitFor();
+  await vp.getByText("De nieuwe aanleiding.").waitFor();
+  await kiezer.getByRole("button", { name: "Naar de huidige versie", exact: true }).click();
+  await kiezer.getByText("Nu", { exact: true }).waitFor();
+  await vp.getByRole("button", { name: "Werkgebied verwijderen" }).waitFor();
+  assert.equal(await vp.locator("[data-oude-versie]").count(), 0);
+  await kiezer.getByRole("button", { name: "Vorige versie" }).click();
+  await kiezer.getByText("Versie 2 van 2").waitFor();
+  await vp.locator("[data-oude-versie]").getByRole("button", { name: "Ga naar de huidige versie" }).click();
+  await vp.locator('[data-versiekiezer][data-versie-plek="nu"]').waitFor();
+  // De chip van de laatste beurt is het werk van nu.
+  await chips6.nth(1).click();
+  await vp.locator('[data-versiekiezer][data-versie-plek="nu"]').getByText("2 versies", { exact: false }).waitFor();
+  await vp.getByRole("button", { name: "Werkgebied verwijderen" }).waitFor();
+
   // Werkgebied: g5 hoort bij wg1, dus de werkplek staat erin; na verwijderen wordt het gesprek los.
   await page.goto(`${base}/workbench?gesprek=g5`);
   await balk2.waitFor();
   await page.locator('button[data-artefact-soort="werkgebied"]').click();
   const wp = page.getByRole("region", { name: "Werkgebied: Invordering" });
   await wp.locator("[data-werkgebied-inhoud]").waitFor();
+  assert.equal(await wp.locator("[data-versiekiezer]").count(), 0, "een bericht zonder versie heeft geen kiezer");
   // Eén knop voor kopiëren en exporteren in elke paneelkop (4 nov 2026): het dossier als Markdown, als bestand.
   await wp.getByRole("button", { name: /Exporteren/ }).click();
   const [md] = await Promise.all([page.waitForEvent("download"), page.locator("[data-markdown=md]").click()]);
@@ -422,7 +470,7 @@ try {
   assert.equal(await wp.getByText("kon niet worden geladen", { exact: false }).count(), 0);
 
   assert.deepEqual(errors, []);
-  console.log("Browser OK: begrippenartefact na herladen en live, één artefact tegelijk, laatste-artefactbalk, regels gereserveerd, begrip- en deelvraagpaneel, suggesties, werkgebiedcontext in de werkplek, verwijderen in het begrip- en werkgebiedpaneel, Markdown uit de paneelkop.");
+  console.log("Browser OK: begrippenartefact na herladen en live, één artefact tegelijk, laatste-artefactbalk, regels gereserveerd, begrip- en deelvraagpaneel, suggesties, werkgebiedcontext in de werkplek, verwijderen in het begrip- en werkgebiedpaneel, Markdown uit de paneelkop, de versiekiezer.");
 } finally {
   await browser.close();
 }

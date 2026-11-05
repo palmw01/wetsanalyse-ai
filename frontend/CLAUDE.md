@@ -260,6 +260,17 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     bronnen met rol *analyseren*. Komt het binnen via `opgeslagen`, dan opent het
     paneel én gaat de werkplek verder in dat werkgebied (`onKiesWerkgebied`; het gesprek wordt eraan gekoppeld, de chatkop noemt het).
   - **regels** – gereserveerd voor de afleidingsregels: de kaart staat er, maar is geen knop.
+  - **De versiekiezer** (deel 2 van de artefacten, `components/ui/VersieKiezer`, rekenkern `lib/artefactVersie.ts`):
+    - een versie is de stand direct na een beurt van Lex (`artefact.ref.versie`, api §*Versies van artefacten*);
+    - in het slot `onder` van `PaneelKop` staat ‹ *Versie n van m* › en daarachter *Nu*;
+    - een chip opent zijn eigen versie; de nieuwste opent als *Nu*, live en bewerkbaar (`beginPlek`);
+    - een oudere versie is alleen te lezen, met "Je bekijkt de versie van … · *Ga naar de huidige versie*". Kopiëren en
+      exporteren gaan over wat je ziet;
+    - het paneel toont niets zolang de kiezer nog niet koos, zodat er nooit even knoppen op een oude versie staan;
+    - zonder `ref.versie` (een ouder bericht, een mislukte opname) is er geen kiezer;
+    - een paneel krijgt de opname als prop `opname`: het haalt dan niets op en verbergt alles wat iets wijzigt. Nu bij
+      werkgebied, deelvraag en bronselectie; begrip, begrippen en annotatie volgen;
+    - browserregressie: `scripts/test-artefacten.mjs`.
   - **Het werkgebied hoort bij het gesprek** (spoor G1). Een geopend gesprek neemt zijn `werkgebied_id`
     mee (uit de lijst of, via `onGesprekGeladen`, uit het geladen gesprek); een nieuw gesprek krijgt het van
     `/workbench?werkgebied=<id>` (*Vraag Lex* op de werkgebiedpagina, de *+* bij een groep) en `maakGesprek`

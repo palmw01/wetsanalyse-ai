@@ -11,7 +11,8 @@ import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
 import { foutTekst, haalDeelvraag, haalWerkgebied } from "@/lib/api";
 import { deelvraagStand } from "@/lib/bronselectie";
 import { splits } from "@/lib/deelvragen";
-import type { DeelvraagDetail, Werkgebied } from "@/lib/types";
+import type { Deelvraag, DeelvraagDetail, Werkgebied } from "@/lib/types";
+import type { BronselectieOverzicht } from "@/lib/bronselectie";
 import { useBronselectieStand } from "@/lib/useBronselectieStand";
 import { isRevisieConflict } from "@/lib/werkgebied";
 import { Button } from "@/components/ui/Button";
@@ -26,7 +27,46 @@ import { Button } from "@/components/ui/Button";
  *
  *  Geen Lex-knoppen: wat Lex moet doen vraag je in het gesprek. Elke wijziging draagt de revisie in beeld;
  *  wijzigde iemand anders het werkgebied intussen, dan komt de nieuwe stand in beeld en zegt het paneel dat. */
-export function DeelvraagPaneel({ werkgebiedId, deelvraagId, onKies, onGewijzigd, opPagina = false }: {
+export function DeelvraagPaneel(props: React.ComponentProps<typeof DeelvraagLive> & {
+  /** Een oude versie (de versiekiezer): de deelvraag, het werkgebied en de bronselectie zoals ze toen waren. */
+  opname?: { werkgebied?: Werkgebied; deelvraag?: Deelvraag | null; bronselectie?: BronselectieOverzicht };
+}) {
+  const { opname, ...rest } = props;
+  return opname ? <DeelvraagOpname opname={opname} deelvraagId={props.deelvraagId} opPagina={props.opPagina} />
+    : <DeelvraagLive {...rest} />;
+}
+
+/** Een oude versie van een deelvraag: alleen lezen. De vraag, haar stand en haar bronnen zoals ze na die beurt van Lex
+ *  waren; geen voorstellen en geen handelingen (die horen bij de stand van nu). */
+function DeelvraagOpname({ opname, deelvraagId, opPagina = false }: {
+  opname: NonNullable<React.ComponentProps<typeof DeelvraagPaneel>["opname"]>;
+  deelvraagId: string;
+  opPagina?: boolean;
+}) {
+  const actief = splits(opname.werkgebied?.deelvragen).actief;
+  const d = opname.deelvraag ?? opname.werkgebied?.deelvragen?.find((x) => x.id === deelvraagId);
+  const hier = opname.bronselectie?.deelvragen.find((x) => x.id === deelvraagId);
+  const stand = deelvraagStand(hier);
+  const nummer = actief.findIndex((x) => x.id === deelvraagId) + 1;
+  if (!d) return <Melding type="uitleg" compact>Deze deelvraag bestond in deze versie nog niet.</Melding>;
+  return (
+    <div data-deelvraag-paneel={deelvraagId} data-alleen-lezen className="space-y-5 text-sm text-ink">
+      <div className="space-y-1.5">
+        <p className="text-xs text-muted">
+          {nummer ? `Deelvraag ${nummer} van ${actief.length}` : "Deelvraag"}
+          {" · "}{d.herkomst === "lex" ? "voorgesteld door Lex" : `door ${d.aangemaakt_door}`}
+        </p>
+        {!opPagina && <p className="font-medium" data-deelvraag-vraag>{d.vraag}</p>}
+        {stand && <StatusLabel toon={stand.toon} data-stand={hier?.status}>{stand.label}</StatusLabel>}
+      </div>
+      {opname.bronselectie && opname.werkgebied && (
+        <BronnenBijDeelvraag werkgebiedId={opname.werkgebied.id} deelvraagId={deelvraagId} inGesprek opname={opname.bronselectie} />
+      )}
+    </div>
+  );
+}
+
+function DeelvraagLive({ werkgebiedId, deelvraagId, onKies, onGewijzigd, opPagina = false }: {
   werkgebiedId: string;
   deelvraagId: string;
   /** Op de deelvraagpagina staat de vraag al als titel in de kop; dan niet nog eens hier. */

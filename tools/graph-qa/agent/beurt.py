@@ -458,7 +458,11 @@ async def _leg_vast(
                 **({"bevestiging": schrijver.bevestiging} if schrijver.bevestiging else {}),
             }
 
-        await api.voeg_bericht_toe(gesprek_id, bericht)
+        bewaard = await api.voeg_bericht_toe(gesprek_id, bericht)
+        # De api legt bij een artefact de stand van dat moment vast en zet het id in `artefact.ref.versie`
+        # (`artefact_versies`). Stuur dat artefact live mee, anders kent de chip zijn versie pas na herladen.
+        if isinstance(bewaard, dict) and isinstance(bewaard.get("artefact"), dict) and bericht.get("artefact"):
+            bericht["artefact"] = bewaard["artefact"]
         logger.info(
             "beurt vastgelegd",
             extra={"categorie": "functioneel", "run_id": run.run_id,

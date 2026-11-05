@@ -5,6 +5,7 @@ import { EXPORT_FORMATEN } from "@/components/werkgebieden/BegrippenTab";
 import { exporteerBegrippen, haalBegrip, haalBronselectie, haalWerkgebied, lijstBegrippen } from "@/lib/api";
 import { begripAlsMarkdown, begrippenAlsMarkdown, bronselectieAlsMarkdown, deelvraagAlsMarkdown, dossierAlsMarkdown } from "@/lib/artefactMarkdown";
 import { PaneelKop } from "@/components/ui/PaneelKop";
+import { VersieKiezer } from "@/components/ui/VersieKiezer";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -25,15 +26,29 @@ import { metSpoor } from "@/lib/uiSpoor";
 import { verwijderdUit, verwijderdZin, type Verwijderd } from "@/lib/verwijderen";
 import { isRevisieConflict } from "@/lib/werkgebied";
 import { werkgebiedLabel, type WerkgebiedArtefact } from "@/lib/artefact";
-import type { Werkgebied } from "@/lib/types";
+import type { ArtefactVersie, Deelvraag, Werkgebied } from "@/lib/types";
+import type { BronselectieOverzicht } from "@/lib/bronselectie";
 import { STATUS_LABEL } from "@/lib/werkgebied";
 import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
 import { artefactPad, begripPad, deelvraagPad, projectPad } from "@/lib/werkgebiedPaden";
 
 /** Kopiëren en exporteren per soort (4 nov 2026): altijd Markdown, en bij de begrippen de bestaande exports van het
  *  begrippenkader. De inhoud wordt bij de klik opgehaald – de kop kent de gegevens van de inhoud niet. */
-function exportVan(doel: WerkgebiedArtefact): Pick<React.ComponentProps<typeof ExportKnop>, "markdown" | "formaten" | "onDownload"> {
+function exportVan(doel: WerkgebiedArtefact, opname?: Opname | null): Pick<React.ComponentProps<typeof ExportKnop>, "markdown" | "formaten" | "onDownload"> {
   const id = doel.werkgebied_id;
+  // Een oude versie: kopiëren en exporteren gaan over wat je ziet (besluit gebruiker), dus uit de opname.
+  if (opname) {
+    const o = opname.inhoud;
+    switch (doel.soort) {
+      case "werkgebied": return { formaten: [], markdown: () => dossierAlsMarkdown(o.werkgebied!, o.bronselectie ?? undefined) };
+      case "bronselectie": return { formaten: [], markdown: () => bronselectieAlsMarkdown(o.bronselectie!) };
+      case "deelvraag": return { formaten: [], markdown: () => {
+        const d = o.bronselectie?.deelvragen.find((x) => x.id === doel.deelvraag_id);
+        return d ? deelvraagAlsMarkdown(d) : `# ${o.deelvraag?.vraag ?? doel.titel}\n`;
+      } };
+      default: break;
+    }
+  }
   switch (doel.soort) {
     case "werkgebied":
       return { formaten: [], markdown: async () => dossierAlsMarkdown(await haalWerkgebied(id), await haalBronselectie(id).catch(() => undefined)) };
@@ -54,6 +69,14 @@ function exportVan(doel: WerkgebiedArtefact): Pick<React.ComponentProps<typeof E
         } };
   }
 }
+
+/** Een versie van het artefact (api `artefact_versies`), met de inhoud die de panelen van deze soort kennen. */
+type Opname = Omit<ArtefactVersie, "inhoud"> & {
+  inhoud: { werkgebied?: Werkgebied; deelvraag?: Deelvraag | null; bronselectie?: BronselectieOverzicht };
+};
+
+/** De soorten met een versiekiezer in dit paneel; begrip en begrippen volgen (PR D2). */
+const MET_VERSIES = new Set<WerkgebiedArtefact["soort"]>(["werkgebied", "deelvraag", "bronselectie"]);
 
 /** Waar *Open volledige pagina* heen gaat: de pagina van wat het paneel toont (spoor G2). */
 function paginaVan(doel: WerkgebiedArtefact): string {
@@ -111,11 +134,16 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
   const naarWerkgebied = paginaVan(doel);
   const soort = werkgebiedLabel(doel);
   const titel = doel.titel || soort;
+  // De versiekiezer (deel 2 van de artefacten): `undefined` zolang hij nog kiest, `null` voor *Nu*, anders de versie die
+  // het paneel alleen-lezend toont. Zonder versie op de chip is het gewoon *Nu*.
+  const metVersie = doel.versie && MET_VERSIES.has(doel.soort) ? doel.versie : undefined;
+  const [opname, setOpname] = useState<Opname | null | undefined>(metVersie ? undefined : null);
   return (
     <Dialog label={`${soort}: ${titel}`} variant={variant} onSluit={sluit}>
       <div data-artefact data-artefact-soort={doel.soort} className="flex min-h-0 flex-1 flex-col">
         <PaneelKop soort={KOP[doel.soort]} titel={titel} pagina={naarWerkgebied} onSluit={sluit}
-          acties={<ExportKnop onFout={setExportFout} titel={titel} {...exportVan(doel)} />} />
+          acties={<ExportKnop onFout={setExportFout} titel={titel} {...exportVan(doel, opname)} />}
+          onder={metVersie && <VersieKiezer versie={metVersie} onKies={(v) => setOpname(v as Opname | null)} />} />
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           {exportFout && <Melding type="waarschuwing" className="mb-4">{exportFout}</Melding>}
           {bewaker.wachtend && (
@@ -129,8 +157,10 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
               }}
             />
           )}
-          {doel.soort === "werkgebied" ? (
-            <WerkgebiedInhoud id={doel.werkgebied_id} naarWerkgebied={naarWerkgebied}
+          {opname === undefined ? (
+            <SkeletonCard regels={4} />
+          ) : doel.soort === "werkgebied" ? (
+            <WerkgebiedInhoud id={doel.werkgebied_id} naarWerkgebied={naarWerkgebied} opname={opname?.inhoud}
               onVerwijderd={() => onVerwijderd?.(doel.werkgebied_id)} />
           ) : doel.soort === "begrip" && doel.begrip_id ? (
             <BegripPaneel werkgebiedId={doel.werkgebied_id} begripId={doel.begrip_id} onOnbewaard={setOnbewaard}
@@ -138,12 +168,12 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
                 ? onWissel({ soort: "begrip", werkgebied_id: doel.werkgebied_id, run_id: "", begrip_id: b, titel: "" })
                 : router.push(begripPad(doel.werkgebied_id, b))} />
           ) : doel.soort === "deelvraag" && doel.deelvraag_id ? (
-            <DeelvraagPaneel werkgebiedId={doel.werkgebied_id} deelvraagId={doel.deelvraag_id}
+            <DeelvraagPaneel werkgebiedId={doel.werkgebied_id} deelvraagId={doel.deelvraag_id} opname={opname?.inhoud}
               onKies={onWissel ? (d) => onWissel({ soort: "deelvraag", werkgebied_id: doel.werkgebied_id, run_id: "",
                 deelvraag_id: d.id, titel: d.vraag }) : undefined} />
           ) : doel.soort === "bronselectie" ? (
             <BronnenBijDeelvraag werkgebiedId={doel.werkgebied_id} huidig={doel.deelvraag_id} inGesprek
-              onKlaar={onKlaar} klaarVoor={klaarVoor} />
+              opname={opname?.inhoud.bronselectie} onKlaar={onKlaar} klaarVoor={klaarVoor} />
           ) : (
             <BegripVoorstellen id={doel.werkgebied_id} runId={doel.run_id} inklapbaar={false} />
           )}
@@ -155,7 +185,27 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
 
 /** Het werkgebied zelf: wat er met Lex is samengesteld, zoals het nu bij de api staat – dezelfde
  *  samenvatting als bovenaan de werkgebiedpagina. */
-function WerkgebiedInhoud({ id, naarWerkgebied, onVerwijderd }: {
+function WerkgebiedInhoud({ id, naarWerkgebied, onVerwijderd, opname }: {
+  id: string;
+  naarWerkgebied: string;
+  onVerwijderd: () => void;
+  /** Een oude versie: alleen lezen, uit de opname, zonder verwijderen. */
+  opname?: Opname["inhoud"];
+}) {
+  if (opname?.werkgebied) {
+    const w = opname.werkgebied;
+    return (
+      <div data-werkgebied-inhoud data-alleen-lezen className="space-y-4 text-sm text-ink">
+        <p className="text-xs text-muted">{STATUS_LABEL[w.status]} · revisie {w.revisie}</p>
+        <WerkgebiedSamenvatting wg={w} bronselectie={opname.bronselectie ?? null} />
+        <Link href={naarWerkgebied} className={`${knopKlasse("secondary", "md")} w-full sm:w-auto`}>Open het werkgebied</Link>
+      </div>
+    );
+  }
+  return <WerkgebiedLive id={id} naarWerkgebied={naarWerkgebied} onVerwijderd={onVerwijderd} />;
+}
+
+function WerkgebiedLive({ id, naarWerkgebied, onVerwijderd }: {
   id: string;
   naarWerkgebied: string;
   onVerwijderd: () => void;

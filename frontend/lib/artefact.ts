@@ -32,6 +32,9 @@ export interface WerkgebiedArtefact {
   begrip_id?: string;
   deelvraag_id?: string;
   titel: string;
+  /** De stand van het artefact direct na de beurt die deze chip maakte (`artefact.ref.versie`, api
+   *  `artefact_versies`); leeg bij een bericht van vóór 5 nov 2026 of als de opname mislukte. */
+  versie?: string;
 }
 
 /** Hoe de chip de soort noemt. */
@@ -110,6 +113,7 @@ export function werkgebiedArtefactVan(a: Artefact | undefined): WerkgebiedArtefa
     ...(p.soort === "deelvraag" || (p.soort === "bronselectie" && tekst(r.deelvraag_id))
       ? { deelvraag_id: tekst(r.deelvraag_id) } : {}),
     titel: p.titel,
+    ...(tekst(r.versie) ? { versie: tekst(r.versie) } : {}),
   };
 }
 
@@ -125,7 +129,7 @@ export function werkgebiedLabel(a: WerkgebiedArtefact): string {
 
 /** Een sleutel die per artefact verschilt (React `key`). */
 export function artefactSleutel(a: WerkgebiedArtefact): string {
-  return `${a.soort}:${a.werkgebied_id}:${a.run_id}:${a.begrip_id ?? ""}:${a.deelvraag_id ?? ""}`;
+  return `${a.soort}:${a.werkgebied_id}:${a.run_id}:${a.begrip_id ?? ""}:${a.deelvraag_id ?? ""}:${a.versie ?? ""}`;
 }
 
 /** Kan de werkplek dit artefact openen? Afleidingsregels zijn gereserveerd, nog niet gebouwd. */

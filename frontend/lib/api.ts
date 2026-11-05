@@ -39,6 +39,7 @@ import type {
   Verbruiksstand,
 } from "./types";
 import type {
+  ArtefactVersie,
   KaartVoorstellenAntwoord,
   VoorbeeldOordeel,
   Bevestiging,
@@ -1165,6 +1166,23 @@ export async function haalToestanden(id: string): Promise<Toestanden | null> {
   } catch {
     return null;
   }
+}
+
+/** Eén versie van een artefact, met n van m en de buren. Een 404 (de versie of het object is verwijderd) gooit, zodat de
+ *  kiezer het kan zeggen; een antwoord van een andere vorm is geen versie. */
+export async function haalArtefactVersie(id: string): Promise<ArtefactVersie> {
+  const v = await json<ArtefactVersie>(await fetch(`/api/artefact-versies/${pathSegment(id)}`, { cache: "no-store" }));
+  if (!v || typeof v.id !== "string" || typeof v.nr !== "number" || typeof v.totaal !== "number" || !v.inhoud)
+    throw new Error("Deze versie kon niet worden gelezen.");
+  return v;
+}
+
+/** De versies van één object, oud → nieuw (alleen id, nummer en tijd): om in één stap naar een versie of naar *Nu* te
+ *  gaan. */
+export async function haalArtefactVersies(sleutel: string): Promise<{ id: string; nr: number; gemaakt: string }[]> {
+  const r = await json<{ versies?: { id: string; nr: number; gemaakt: string }[] }>(
+    await fetch(`/api/artefact-versies?${new URLSearchParams({ sleutel })}`, { cache: "no-store" }));
+  return Array.isArray(r?.versies) ? r.versies : [];
 }
 
 /** Het thema dat Lex voorstelt, zonder model; faalt stil (`null`). */
