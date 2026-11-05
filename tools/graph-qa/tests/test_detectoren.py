@@ -1,6 +1,9 @@
 """Deterministische detectoren (ADR-001): elke regel met positief, negatief, rand en overlap."""
 from __future__ import annotations
 
+import re
+from pathlib import Path
+
 import pytest
 
 from agent.jas_pipeline.detectoren import BronTekst, detecteer_alles, kandidaten_van
@@ -129,3 +132,14 @@ def test_kandidaat_eval_meet_alleen_ontwikkelcasussen_en_noemt_het_geen_recall()
     assert m["referentie_status"] == "provisional"
     assert m["per_klasse"]["Tijdsaanduiding"]["candidate_recall"] == 1.0
     assert m["per_klasse"]["Brondefinitie"]["candidate_recall"] == 1.0
+
+
+def test_regels_kennen_geen_onderwerp_van_een_casus():
+    """Regels en woordenlijsten zijn generiek: wat een acceptatiecasus aan het licht bracht, wordt opgelost met een
+    regel die voor elke wet geldt, niet door het onderwerp van die casus op te nemen. Zo'n woord hoort in een test."""
+    onderwerp = re.compile(r"kinderopvang|bankrekening|rekeningafspraak|convenant|uitbetaling|bewindvoerder|curator",
+                           re.IGNORECASE)
+    map_ = Path(__file__).resolve().parents[1] / "agent" / "jas_pipeline" / "detectoren" / "regels"
+    for pad in map_.glob("*.yaml"):
+        regels = [r for r in pad.read_text(encoding="utf-8").splitlines() if not re.match(r"\s*(tests:|positief:|negatief:|rand:|overlap:|#)", r)]
+        assert not [r for r in regels if onderwerp.search(r)], pad.name

@@ -1,0 +1,83 @@
+{
+  "id": "UBT05",
+  "familie": "UBT",
+  "split": "ontwikkeling",
+  "bron_id": "urn:bwb:BWBR0019237:artikel:6:lid:1",
+  "vindplaats": "BWBR0019237/6/1",
+  "versie": "2026-07-01",
+  "tekst": "Als gevallen als bedoeld in artikel 25, derde lid, van de wet worden aangewezen uitbetalingen door de Dienst Toeslagen:",
+  "tekst_sha256": "33981caa2c91216b56d55ea27cabda143a0ea0d7fac114744a3eea5179004a11",
+  "source_status": null,
+  "tekstsoort": "ministeriele_regeling",
+  "constructies": [],
+  "referentie_status": "provisional",
+  "negatief": [],
+  "reviewvraag": "Beoordeel klasse en grenzen. Gold bevat alleen de elementen die de kandidaatruimte toetsen, niet elk naamwoord; dit is geen volledige annotatie.",
+  "gold": [
+    {
+      "gid": "E01",
+      "start": 0,
+      "eind": 118,
+      "tekst": "Als gevallen als bedoeld in artikel 25, derde lid, van de wet worden aangewezen uitbetalingen door de Dienst Toeslagen",
+      "klasse": "Delegatiebevoegdheid en delegatie-invulling",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Delegatie-invulling: alleen via de grondslag te herkennen (H2:127).",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    },
+    {
+      "gid": "E02",
+      "start": 0,
+      "eind": 118,
+      "tekst": "Als gevallen als bedoeld in artikel 25, derde lid, van de wet worden aangewezen uitbetalingen door de Dienst Toeslagen",
+      "klasse": "Afleidingsregel",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Beslisregel of specialisatie (H2:71): bepaalt welke uitbetaling een aangewezen geval is. Interpretatie, zekerheid middel.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    },
+    {
+      "gid": "E03",
+      "start": 80,
+      "eind": 93,
+      "tekst": "uitbetalingen",
+      "klasse": "Rechtsfeit",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Gebeurtenis.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    },
+    {
+      "gid": "E04",
+      "start": 99,
+      "eind": 118,
+      "tekst": "de Dienst Toeslagen",
+      "klasse": "Rechtssubject",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Uitbetaler.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    }
+  ],
+  "concept": {
+    "bron": "Eigen lezing van de wettekst, 6 nov 2026",
+    "door": "AI-concept, niet beoordeeld",
+    "bron_iri": "urn:bwb:BWBR0019237:artikel:6:lid:1"
+  }
+}

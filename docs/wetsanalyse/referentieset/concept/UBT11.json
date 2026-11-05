@@ -1,0 +1,53 @@
+{
+  "id": "UBT11",
+  "familie": "UBT",
+  "split": "ontwikkeling",
+  "bron_id": "urn:bwb:BWBR0019237:artikel:6:lid:5",
+  "vindplaats": "BWBR0019237/6/5",
+  "versie": "2026-07-01",
+  "tekst": "Bij toepassing van het tweede lid, onderdelen a tot en met c, wijst het aldaar bedoelde lid, de aldaar bedoelde gemeente of de aldaar bedoelde derde aan op welke bankrekening wordt uitbetaald, ten behoeve van welke belanghebbende en voor welke uitbetaling. Voorts wordt melding gemaakt van de beëindiging van de in het tweede lid, onderdelen a tot en met c, bedoelde overeenkomst.",
+  "tekst_sha256": "56d45d39ba6d7d3a5052b6ddd394a0eec04311465b6ae718b1a76008159ca46d",
+  "source_status": null,
+  "tekstsoort": "ministeriele_regeling",
+  "constructies": [],
+  "referentie_status": "provisional",
+  "negatief": [],
+  "reviewvraag": "Beoordeel klasse en grenzen. Gold bevat alleen de elementen die de kandidaatruimte toetsen, niet elk naamwoord; dit is geen volledige annotatie.",
+  "gold": [
+    {
+      "gid": "E01",
+      "start": 62,
+      "eind": 191,
+      "tekst": "wijst het aldaar bedoelde lid, de aldaar bedoelde gemeente of de aldaar bedoelde derde aan op welke bankrekening wordt uitbetaald",
+      "klasse": "Rechtsbetrekking",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Norm in de tegenwoordige tijd.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    },
+    {
+      "gid": "E02",
+      "start": 257,
+      "eind": 379,
+      "tekst": "Voorts wordt melding gemaakt van de beëindiging van de in het tweede lid, onderdelen a tot en met c, bedoelde overeenkomst",
+      "klasse": "Rechtsbetrekking",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Passieve norm.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    }
+  ],
+  "concept": {
+    "bron": "Eigen lezing van de wettekst, 6 nov 2026",
+    "door": "AI-concept, niet beoordeeld",
+    "bron_iri": "urn:bwb:BWBR0019237:artikel:6:lid:5"
+  }
+}

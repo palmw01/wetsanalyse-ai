@@ -1,0 +1,83 @@
+{
+  "id": "UBT12",
+  "familie": "UBT",
+  "split": "ontwikkeling",
+  "bron_id": "urn:bwb:BWBR0004766:artikel:40ca:lid:1",
+  "vindplaats": "BWBR0004766/40ca/1",
+  "versie": "2026-01-01",
+  "tekst": "Als gevallen als bedoeld in artikel 7a, vierde lid, van de wet worden aangewezen uitbetalingen van inkomstenbelasting door de ontvanger op een bankrekening:",
+  "tekst_sha256": "911440bf70e91aaab5a15ca97e1e6a3eae09d7001b28c1e411a6a248273a2e1f",
+  "source_status": null,
+  "tekstsoort": "ministeriele_regeling",
+  "constructies": [],
+  "referentie_status": "provisional",
+  "negatief": [],
+  "reviewvraag": "Beoordeel klasse en grenzen. Gold bevat alleen de elementen die de kandidaatruimte toetsen, niet elk naamwoord; dit is geen volledige annotatie.",
+  "gold": [
+    {
+      "gid": "E01",
+      "start": 0,
+      "eind": 155,
+      "tekst": "Als gevallen als bedoeld in artikel 7a, vierde lid, van de wet worden aangewezen uitbetalingen van inkomstenbelasting door de ontvanger op een bankrekening",
+      "klasse": "Delegatiebevoegdheid en delegatie-invulling",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Delegatie-invulling.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    },
+    {
+      "gid": "E02",
+      "start": 0,
+      "eind": 155,
+      "tekst": "Als gevallen als bedoeld in artikel 7a, vierde lid, van de wet worden aangewezen uitbetalingen van inkomstenbelasting door de ontvanger op een bankrekening",
+      "klasse": "Afleidingsregel",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Beslisregel of specialisatie (H2:71). Interpretatie, zekerheid middel.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    },
+    {
+      "gid": "E03",
+      "start": 81,
+      "eind": 94,
+      "tekst": "uitbetalingen",
+      "klasse": "Rechtsfeit",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Gebeurtenis.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    },
+    {
+      "gid": "E04",
+      "start": 123,
+      "eind": 135,
+      "tekst": "de ontvanger",
+      "klasse": "Rechtssubject",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Uitbetaler.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    }
+  ],
+  "concept": {
+    "bron": "Eigen lezing van de wettekst, 6 nov 2026",
+    "door": "AI-concept, niet beoordeeld",
+    "bron_iri": "urn:bwb:BWBR0004766:artikel:40ca:lid:1"
+  }
+}

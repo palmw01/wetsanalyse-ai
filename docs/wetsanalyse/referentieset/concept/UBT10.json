@@ -1,0 +1,83 @@
+{
+  "id": "UBT10",
+  "familie": "UBT",
+  "split": "ontwikkeling",
+  "bron_id": "urn:bwb:BWBR0019237:artikel:6:lid:4",
+  "vindplaats": "BWBR0019237/6/4",
+  "versie": "2026-07-01",
+  "tekst": "Indien op grond van artikel 25, derde lid, van de wet de uitbetaling van een voorschot of een tegemoetkoming plaatsvindt op een andere bankrekening dan die van de belanghebbende of diens partner, vindt het gegevensverkeer met betrekking tot de uitbetaling tussen de Dienst Toeslagen en die rekeninghouder plaats met gebruikmaking van het burgerservicenummer van de belanghebbende.",
+  "tekst_sha256": "7f467b1edd7eb829d28361613345d94ea86724adbbdc0c3f3830c9a6a7b055ce",
+  "source_status": null,
+  "tekstsoort": "ministeriele_regeling",
+  "constructies": [],
+  "referentie_status": "provisional",
+  "negatief": [],
+  "reviewvraag": "Beoordeel klasse en grenzen. Gold bevat alleen de elementen die de kandidaatruimte toetsen, niet elk naamwoord; dit is geen volledige annotatie.",
+  "gold": [
+    {
+      "gid": "E01",
+      "start": 0,
+      "eind": 194,
+      "tekst": "Indien op grond van artikel 25, derde lid, van de wet de uitbetaling van een voorschot of een tegemoetkoming plaatsvindt op een andere bankrekening dan die van de belanghebbende of diens partner",
+      "klasse": "Voorwaarde",
+      "subtype": null,
+      "context": null,
+      "motivatie": "De komma in de verwijzing knipt de bijzin niet.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    },
+    {
+      "gid": "E02",
+      "start": 196,
+      "eind": 379,
+      "tekst": "vindt het gegevensverkeer met betrekking tot de uitbetaling tussen de Dienst Toeslagen en die rekeninghouder plaats met gebruikmaking van het burgerservicenummer van de belanghebbende",
+      "klasse": "Rechtsbetrekking",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Norm zonder modaal werkwoord.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    },
+    {
+      "gid": "E03",
+      "start": 263,
+      "eind": 282,
+      "tekst": "de Dienst Toeslagen",
+      "klasse": "Rechtssubject",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Partij.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    },
+    {
+      "gid": "E04",
+      "start": 286,
+      "eind": 304,
+      "tekst": "die rekeninghouder",
+      "klasse": "Rechtssubject",
+      "subtype": null,
+      "context": null,
+      "motivatie": "Partij.",
+      "herkenningsvraag": null,
+      "h2_ref": null,
+      "annotation_status": null,
+      "relaties": [],
+      "adjudicatie": null
+    }
+  ],
+  "concept": {
+    "bron": "Eigen lezing van de wettekst, 6 nov 2026",
+    "door": "AI-concept, niet beoordeeld",
+    "bron_iri": "urn:bwb:BWBR0019237:artikel:6:lid:4"
+  }
+}
