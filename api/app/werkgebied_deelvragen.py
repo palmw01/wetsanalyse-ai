@@ -6,6 +6,8 @@ deelvragen meet de dekkingscheck per vraag of er een bron en een geaccordeerd be
 - **Een actieve deelvraag hoort bij de scope**, dus elke mutatie loopt door
   `werkgebied_store._gewijzigd` (rij-slot, revisie, audit). De bronnenrun neemt de actieve deelvragen
   mee in zijn invoer (`bronnen_run_store.invoer_van`).
+- **De bewerkstand gaat in één keer** (`samen`): één slot, één revisie, alles-of-niets, met per wijziging de
+  auditregel die de losse route ook schrijft.
 - **Een voorstel van Lex** (`stel_voor`, graph-qa) draagt geen revisie: het raakt de scope pas als de
   analist het overneemt. Lex stelt niets opnieuw voor wat er al staat, wat is afgewezen of wat de
   analist weghaalde – vergeleken op de genormaliseerde tekst.
@@ -27,7 +29,8 @@ from sqlalchemy import delete, func, insert, select, update
 
 from . import db
 from .werkgebied_contracts import (
-    DeelvraagInvoer, DeelvraagKoppelingen, DeelvraagStatus, DeelvraagVoorstellen, DeelvraagWijziging,
+    DeelvraagInvoer, DeelvraagKoppelingen, DeelvragenSamen, DeelvraagStatus, DeelvraagVoorstellen,
+    DeelvraagWijziging,
 )
 from .werkgebied_store import _audit, _gewijzigd
 
@@ -111,19 +114,47 @@ async def _volgende_plek(conn, werkgebied_id: str) -> int:
     return 0 if hoogste is None else hoogste + 1
 
 
+async def _maak_in(conn, werkgebied_id: str, deelvraag_id: str, vraag: str, actor: str) -> None:
+    d = db.werkgebied_deelvragen
+    # Niet via `_bestaande`: daar overschrijft een verwijderde rij met dezelfde tekst de levende.
+    levend = (await conn.execute(select(d.c.vraag).where(
+        d.c.werkgebied_id == werkgebied_id, d.c.verwijderd.is_(None),
+        d.c.status.in_((DeelvraagStatus.actief.value, DeelvraagStatus.voorgesteld.value))))).scalars()
+    if normaliseer(vraag) in {normaliseer(v) for v in levend}:
+        raise HTTPException(409, {"fout": "al_gesteld", "melding": f"Deze deelvraag staat er al: {vraag}"})
+    nu = db.utcnow()
+    await conn.execute(insert(d).values(
+        id=deelvraag_id, werkgebied_id=werkgebied_id, vraag=vraag, volgorde=await _volgende_plek(conn, werkgebied_id),
+        status=DeelvraagStatus.actief.value, herkomst="analist", reden="", aangemaakt_door=actor,
+        aangemaakt=nu, gewijzigd=nu))
+
+
 async def maak(werkgebied_id: str, invoer: DeelvraagInvoer, actor: str) -> dict:
     did = str(uuid.uuid4())
     async with _gewijzigd(werkgebied_id, invoer.verwachte_revisie, actor, "deelvraag-toegevoegd",
                           {"deelvraag": did, "vraag": invoer.vraag}) as (conn, _):
-        actief = {n for n, s in (await _bestaande(conn, werkgebied_id)).items()
-                  if s in (DeelvraagStatus.actief.value, DeelvraagStatus.voorgesteld.value)}
-        if normaliseer(invoer.vraag) in actief:
-            raise HTTPException(409, {"fout": "al_gesteld", "melding": "Deze deelvraag staat er al."})
-        nu = db.utcnow()
-        await conn.execute(insert(db.werkgebied_deelvragen).values(
-            id=did, werkgebied_id=werkgebied_id, vraag=invoer.vraag, volgorde=await _volgende_plek(conn, werkgebied_id),
-            status=DeelvraagStatus.actief.value, herkomst="analist", reden="", aangemaakt_door=actor,
-            aangemaakt=nu, gewijzigd=nu))
+        await _maak_in(conn, werkgebied_id, did, invoer.vraag, actor)
+    return await _werkgebied(werkgebied_id)
+
+
+async def samen(werkgebied_id: str, s: DeelvragenSamen, actor: str) -> dict:
+    """De bewerkstand: verwijderen, wijzigen en toevoegen in die volgorde, zodat een nieuwe vraag niet botst met
+    een die weggaat. Eén mislukte stap rolt alles terug. De auditregels zijn dezelfde als bij de losse routes."""
+    async with _gewijzigd(werkgebied_id, s.verwachte_revisie, actor, None, {}) as (conn, row):
+        async def audit(actie: str, detail: dict) -> None:
+            await _audit(conn, werkgebied_id, actor, actie, {**detail, "revisie": row.revisie + 1})
+
+        for did in s.verwijderen:
+            await _verwijder_in(conn, werkgebied_id, did)
+            await audit("deelvraag-verwijderd", {"deelvraag": did})
+        for t in s.wijzigen:
+            await _wijzig_in(conn, werkgebied_id, t.id, DeelvraagWijziging(verwachte_revisie=s.verwachte_revisie, vraag=t.vraag),
+                             {"vraag": t.vraag}, actor)
+            await audit("deelvraag-gewijzigd", {"deelvraag": t.id, "velden": ["vraag"]})
+        for vraag in s.nieuw:
+            did = str(uuid.uuid4())
+            await _maak_in(conn, werkgebied_id, did, vraag, actor)
+            await audit("deelvraag-toegevoegd", {"deelvraag": did, "vraag": vraag})
     return await _werkgebied(werkgebied_id)
 
 
@@ -140,18 +171,22 @@ async def wijzig(werkgebied_id: str, deelvraag_id: str, w: DeelvraagWijziging, a
         velden.get("status", ""), "deelvraag-gewijzigd")
     async with _gewijzigd(werkgebied_id, w.verwachte_revisie, actor, actie,
                           {"deelvraag": deelvraag_id, "velden": sorted(velden)}) as (conn, _):
-        row = await _onder_slot(conn, werkgebied_id, deelvraag_id)
-        if w.status == DeelvraagStatus.voorgesteld and row.status != DeelvraagStatus.voorgesteld.value:
-            raise HTTPException(422, "Een deelvraag wordt alleen door Lex voorgesteld.")
-        if row.status == DeelvraagStatus.vervangen.value:
-            raise HTTPException(409, {"fout": "vervangen", "melding": "Deze deelvraag is vervangen."})
-        if (w.status == DeelvraagStatus.actief and row.status == DeelvraagStatus.voorgesteld.value
-                and row.vervangt):
-            velden.update(await _vervang(conn, werkgebied_id, row, actor))
-        if velden:
-            await conn.execute(update(db.werkgebied_deelvragen).where(db.werkgebied_deelvragen.c.id == deelvraag_id)
-                               .values(**velden, gewijzigd=db.utcnow()))
+        await _wijzig_in(conn, werkgebied_id, deelvraag_id, w, velden, actor)
     return await _werkgebied(werkgebied_id)
+
+
+async def _wijzig_in(conn, werkgebied_id: str, deelvraag_id: str, w: DeelvraagWijziging, velden: dict, actor: str) -> None:
+    row = await _onder_slot(conn, werkgebied_id, deelvraag_id)
+    if w.status == DeelvraagStatus.voorgesteld and row.status != DeelvraagStatus.voorgesteld.value:
+        raise HTTPException(422, "Een deelvraag wordt alleen door Lex voorgesteld.")
+    if row.status == DeelvraagStatus.vervangen.value:
+        raise HTTPException(409, {"fout": "vervangen", "melding": "Deze deelvraag is vervangen."})
+    if (w.status == DeelvraagStatus.actief and row.status == DeelvraagStatus.voorgesteld.value
+            and row.vervangt):
+        velden.update(await _vervang(conn, werkgebied_id, row, actor))
+    if velden:
+        await conn.execute(update(db.werkgebied_deelvragen).where(db.werkgebied_deelvragen.c.id == deelvraag_id)
+                           .values(**velden, gewijzigd=db.utcnow()))
 
 
 async def _vervang(conn, werkgebied_id: str, voorstel, actor: str) -> dict:
@@ -256,10 +291,14 @@ async def haal(werkgebied_id: str, deelvraag_id: str) -> dict:
 async def verwijder(werkgebied_id: str, deelvraag_id: str, verwacht: int, actor: str) -> dict:
     async with _gewijzigd(werkgebied_id, verwacht, actor, "deelvraag-verwijderd",
                           {"deelvraag": deelvraag_id}) as (conn, _):
-        await _onder_slot(conn, werkgebied_id, deelvraag_id)
-        await conn.execute(update(db.werkgebied_deelvragen).where(db.werkgebied_deelvragen.c.id == deelvraag_id)
-                           .values(verwijderd=db.utcnow()))
+        await _verwijder_in(conn, werkgebied_id, deelvraag_id)
     return await _werkgebied(werkgebied_id)
+
+
+async def _verwijder_in(conn, werkgebied_id: str, deelvraag_id: str) -> None:
+    await _onder_slot(conn, werkgebied_id, deelvraag_id)
+    await conn.execute(update(db.werkgebied_deelvragen).where(db.werkgebied_deelvragen.c.id == deelvraag_id)
+                       .values(verwijderd=db.utcnow()))
 
 
 async def _zet_koppelingen(conn, deelvraag_id: str, soort: str, ids: list[str], actor: str) -> None:

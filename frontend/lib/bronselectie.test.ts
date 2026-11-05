@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { bronselectieVanKaart } from "./artefact";
 import {
+  ordenVoorstellen,
   bronnenZin, deelvraagStand, parseBronselectie, zoekvraagZin, slotZin, voortgangToon, voortgangZin, zoekBeperkingen,
 } from "./bronselectie";
 import { parseVraagkaart } from "./vraagkaart";
@@ -66,6 +67,15 @@ describe("bronselectie", () => {
       vraag: "Hoe rond je deelvraag 2 af?" });
     expect(bronselectieVanKaart(k)).toEqual({ soort: "bronselectie", werkgebied_id: "wg1", run_id: "", deelvraag_id: "d2", titel: "Bronselectie" });
     expect(bronselectieVanKaart(parseVraagkaart({ intake_id: "ik1", stap: "naam", vraag: "Naam?" }))).toBeUndefined();
+  });
+});
+
+describe("ordenVoorstellen", () => {
+  it("zet wat op een besluit wacht voorop en houdt wat niet gekozen is apart", () => {
+    const k = (id: string, stand: "voorgesteld" | "niet_gekozen" | "uitgesloten") => ({ id, stand });
+    const { open, nietGekozen } = ordenVoorstellen([k("a", "niet_gekozen"), k("b", "uitgesloten"), k("c", "voorgesteld"), k("d", "niet_gekozen")]);
+    expect(open.map((x) => x.id)).toEqual(["c", "b"]);
+    expect(nietGekozen.map((x) => x.id)).toEqual(["a", "d"]);
   });
 });
 

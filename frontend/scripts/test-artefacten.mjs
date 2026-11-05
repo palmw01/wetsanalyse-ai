@@ -165,6 +165,7 @@ await page.route("**/api/**", async (route) => {
       { id: a ? "a2" : "b2", nr: 2, gemaakt: "2026-11-05T09:42:00Z" }] } });
   }
   const oudeVersie = p.match(/^\/api\/artefact-versies\/([ab]1)$/);
+  if (oudeVersie?.[1] === "b1") await new Promise((klaar) => setTimeout(klaar, 700));
   if (oudeVersie) return route.fulfill({ json: { id: oudeVersie[1], ...oud[oudeVersie[1]], nr: 1, totaal: 2, gemaakt: "2026-11-04T09:00:00Z",
     vorige: null, volgende: `${oudeVersie[1][0]}2` } });
   const versie = p.match(/^\/api\/artefact-versies\/(v[12])$/);
@@ -458,7 +459,11 @@ try {
   metGraaf = false;
   await page.locator('button[data-artefact-soort="begrip"]', { hasText: "Termijn" }).click();
   const bv = page.getByRole("region", { name: "Begrip: Termijn" });
+  // Zolang de kiezer de versie laadt (de mock wacht even) is er niets te exporteren: het zou de stand van nu zijn.
+  await bv.locator("[data-artefact]").waitFor();
+  assert.equal(await bv.getByRole("button", { name: "Exporteren" }).count(), 0, "geen export voordat de versie vaststaat");
   await bv.locator("[data-versiekiezer]").getByText("Versie 1 van 2").waitFor();
+  await bv.getByRole("button", { name: "Exporteren" }).waitFor();
   await bv.locator("[data-begrip-paneel][data-alleen-lezen]").getByText("De oude definitie.").waitFor();
   assert.equal(await bv.getByRole("button", { name: "Betekenis bewerken" }).count(), 0, "een oude versie is niet te bewerken");
   assert.equal(await bv.getByRole("button", { name: "Begrip verwijderen" }).count(), 0);

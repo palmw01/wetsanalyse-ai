@@ -146,7 +146,7 @@ describe("isWerkgebiedRoute", async () => {
     [["w", "relaties", "voorstellen", "R1", "afwijzen"]], [["w", "begrippen", "b", "nieuwe-betekenis"]],
     [["w", "begrippen", "b", "combineren"]],
     // Deelvragen (optioneel).
-    [["w", "deelvragen"]], [["w", "deelvragen", "d"]], [["w", "deelvragen", "dekking"]],
+    [["w", "deelvragen"]], [["w", "deelvragen", "d"]], [["w", "deelvragen", "dekking"]], [["w", "deelvragen", "samen"]],
     [["w", "deelvragen", "d", "koppelingen"]],
     // De bronselectie per deelvraag (spoor J).
     [["w", "bronselectie"]], [["w", "bronselectie", "d", "status"]], [["w", "bronselectie", "d", "kandidaten", "K1"]],

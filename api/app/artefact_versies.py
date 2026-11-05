@@ -28,6 +28,7 @@ from .auth import require_client
 from .routers.auth import actieve_userid
 
 logger = logging.getLogger("wetsanalyse.artefact_versies")
+POGINGEN = 3  # de eerste lezing en hoogstens twee keer opnieuw
 
 #: De soorten met een momentopname; `regels` is gereserveerd, `bronnen` bestaat niet meer (een bronselectie).
 SOORTEN = ("werkgebied", "deelvraag", "bronselectie", "begrip", "begrippen", "annotatie")
@@ -71,6 +72,31 @@ async def _inhoud(soort: str, ref: dict[str, Any]) -> dict[str, Any]:
     raise ValueError(soort)
 
 
+async def _revisie(soort: str, ref: dict[str, Any]) -> int | None:
+    """De revisie die de soorten dragen die hun stand uit meer dan één leesactie opbouwen; de rest leest één keer.
+    De stand van een bronselectie heeft een eigen revisie en valt hierbuiten."""
+    if soort in ("werkgebied", "deelvraag"):
+        t, sleutel = db.werkgebieden, ref.get("werkgebied_id")
+    elif soort == "begrip":
+        t, sleutel = db.begrippen, ref.get("begrip_id")
+    else:
+        return None
+    async with db.get_engine().connect() as conn:
+        return (await conn.execute(select(t.c.revisie).where(t.c.id == str(sleutel or "")))).scalar()
+
+
+async def _een_stand(soort: str, ref: dict[str, Any]) -> dict[str, Any]:
+    """`_inhoud` met de revisie ervoor en erna gelijk: wijzigde iemand het object tijdens het lezen, dan opnieuw,
+    hoogstens twee keer. Daarna telt de opname toch, met `consistent: false`: het bericht mag er niet op wachten."""
+    for _ in range(POGINGEN):
+        voor = await _revisie(soort, ref)
+        inhoud = await _inhoud(soort, ref)
+        if voor == await _revisie(soort, ref):
+            return inhoud
+    logger.warning("artefact: momentopname over een wijziging heen", extra={"categorie": "technisch", "soort": soort})
+    return {**inhoud, "consistent": False}
+
+
 async def leg_vast(gesprek_id: str, run_id: str, artefact: dict[str, Any]) -> str | None:
     """Leg de stand van het artefact van deze beurt vast; geeft het versie-id, of None (geen soort met versies, geen
     run, of het lukte niet – dat logt en blokkeert niets)."""
@@ -83,7 +109,7 @@ async def leg_vast(gesprek_id: str, run_id: str, artefact: dict[str, Any]) -> st
     if al:
         return al
     try:
-        inhoud = await _inhoud(soort, ref)
+        inhoud = await _een_stand(soort, ref)
     except Exception:  # noqa: BLE001 – een versie is een gemak; het bericht moet landen
         logger.warning("artefact: geen momentopname", extra={"categorie": "technisch", "soort": soort}, exc_info=True)
         return None
