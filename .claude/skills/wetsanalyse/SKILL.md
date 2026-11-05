@@ -96,6 +96,8 @@ Voor conceptvoorbeelden en de gezamenlijke beoordelingsprocedure:
 `agentrollen.json` koppelt rollen aan stabiele sectie-ID’s en M/P-bronnen: supervisor,
 ophaalagent, specialisten, decompositie en synthese, en de deelvragen- en begrippen-agent
 ([deelvragen en bronnen](references/deelvragen-en-bronnen.md), [begrippen](references/begrippen.md)).
+De bronnenrun zoekt vanaf de gebeurtenis langs vier zoekvragen
+([zoekvragen bij de bronselectie](references/zoekvragen-bronselectie.md)).
 De annotatie gebruikt geen methodeprompt meer.
 Die werkt met detectieprofielen en regels in `tools/graph-qa/agent/jas_pipeline/`, die naar
 dezelfde klassenreferentie (`H2:NN`) verwijzen (ADR-001).

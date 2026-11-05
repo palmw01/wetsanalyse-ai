@@ -17,6 +17,8 @@ from contextlib import asynccontextmanager
 from typing import Any, Awaitable, Callable
 
 from fastapi import HTTPException
+from zoneinfo import ZoneInfo
+
 from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.exc import IntegrityError
 
@@ -26,12 +28,32 @@ from .werkgebied_contracts import (
 )
 
 
+_NL = ZoneInfo("Europe/Amsterdam")
+
+
+def dag_in_nl(moment) -> str:
+    """De kalenderdag van een tijdstip in Nederland (JJJJ-MM-DD): de standaard-peildatum."""
+    return db.aware(moment).astimezone(_NL).date().isoformat()
+
+
+def regelingen_van(wg: dict) -> list[str]:
+    """De regelingen van een werkgebied (BWB-id's): eerst het zoekbereik dat de analist koos, dan die van de bronnen.
+    Eén plek, zodat de peildatum, het thema-voorstel en het zoeken dezelfde regelingen bedoelen."""
+    return list(dict.fromkeys([r["bwb_id"] for r in wg.get("regelingen") or [] if r.get("bwb_id")]
+                              + [b["bwb_id"] for b in wg.get("bronnen") or [] if b.get("bwb_id")]))
+
+
 def _werkgebied(row) -> dict:
+    # De peildatum is standaard de dag waarop het werkgebied werd aangemaakt (besluit gebruiker 3 nov 2026);
+    # een oude rij zonder peildatum krijgt die ook. `peildatum_standaard` zegt of hij dat nog is.
+    aanmaakdag = dag_in_nl(row.aangemaakt)
+    peildatum = row.peildatum or aanmaakdag
     return {"id": row.id, "naam": row.naam, "analysevraag": row.analysevraag,
             "afbakening": row.afbakening, "aanleiding": row.aanleiding, "context": row.context,
-            "doel": row.doel, "praktijkvoorbeeld": row.praktijkvoorbeeld,
+            "doel": row.doel, "praktijkvoorbeeld": row.praktijkvoorbeeld, "gebeurtenis": row.gebeurtenis,
+            "regelingen": list(row.regelingen or []),
             "thema": row.thema, "thema_label": tooi.thema_label(row.thema),
-            "peildatum": row.peildatum, "status": row.status,
+            "peildatum": peildatum, "peildatum_standaard": peildatum == aanmaakdag, "status": row.status,
             "revisie": row.revisie, "aangemaakt_door": row.aangemaakt_door,
             "aangemaakt": db.aware(row.aangemaakt).isoformat(),
             "gewijzigd": db.aware(row.gewijzigd).isoformat(),
@@ -84,6 +106,24 @@ async def niet_gevonden(werkgebied_id: str, begrip_id: str | None = None) -> HTT
     return HTTPException(404, "Begrip bestaat niet." if begrip_id else "Werkgebied bestaat niet.")
 
 
+async def werkgebied_rij(conn, werkgebied_id: str, *, slot: bool = False):
+    """De rij van een bestaand werkgebied (404 als het er niet is), met `slot` onder het rij-slot: het slot dat de
+    schrijfpaden zonder revisie delen (bronnenruns, besluiten over kandidaten, de voortgang per deelvraag)."""
+    t = db.werkgebieden
+    q = select(t).where(t.c.id == werkgebied_id)
+    row = (await conn.execute(q.with_for_update() if slot else q)).first()
+    if row is None or row.gearchiveerd is not None:
+        raise HTTPException(404, "Werkgebied bestaat niet.")
+    return row
+
+
+async def actieve_bron_iris(conn, werkgebied_id: str) -> set[str]:
+    """De bepalingen die nu in de selectie staan (niet verwijderd)."""
+    s = db.werkgebied_bronselecties
+    return set((await conn.execute(select(s.c.bron_iri).where(
+        s.c.werkgebied_id == werkgebied_id, s.c.verwijderd.is_(None)))).scalars())
+
+
 @asynccontextmanager
 async def _gewijzigd(werkgebied_id: str, verwacht: int, actor: str, actie: str, detail: dict):
     """Rij-lock, revisietoets, revisie +1 en een auditregel: het gemeenschappelijke schrijfpad."""
@@ -121,8 +161,9 @@ async def maak(invoer: WerkgebiedInvoer, actor: str) -> dict:
             await conn.execute(insert(db.werkgebieden).values(
                 id=wid, naam=invoer.naam, analysevraag=invoer.analysevraag, afbakening=invoer.afbakening,
                 aanleiding=invoer.aanleiding, context=invoer.context, doel=invoer.doel,
-                praktijkvoorbeeld=invoer.praktijkvoorbeeld, thema=invoer.thema,
-                peildatum=invoer.peildatum, status="in_voorbereiding", revisie=1, aangemaakt_door=actor,
+                praktijkvoorbeeld=invoer.praktijkvoorbeeld, gebeurtenis=invoer.gebeurtenis, thema=invoer.thema,
+                regelingen=[r.model_dump() for r in invoer.regelingen],
+                peildatum=invoer.peildatum or dag_in_nl(nu), status="in_voorbereiding", revisie=1, aangemaakt_door=actor,
                 aangemaakt=nu, gewijzigd=nu, intake_id=invoer.intake_id))
             deelvragen = await _deelvragen_bij_aanmaken(conn, wid, invoer, actor, nu)
             await _audit(conn, wid, actor, "aangemaakt", {"naam": invoer.naam, "revisie": 1,

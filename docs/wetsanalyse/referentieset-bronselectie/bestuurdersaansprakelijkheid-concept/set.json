@@ -1,0 +1,216 @@
+{
+ "schema_versie": 3,
+ "status": "concept",
+ "toelichting": "Concept, niet geadjudiceerd: opgesteld door de agent uit de letterlijke tekst in de graaf, vóór de rangschikkingscode van november 2026 en zonder bepaling_opties erop te draaien (blind). Held-out set voor het rangsignaal soort regeling / lengtecorrectie. Geen claim op juridische volledigheid.",
+ "datum": "2026-11-03",
+ "graaftoestand": "acceptatie, 3 nov 2026",
+ "naam": "Bestuurdersaansprakelijkheid",
+ "analysevraag": "Wanneer kan de ontvanger een bestuurder aansprakelijk stellen voor belastingschulden van de vennootschap?",
+ "praktijkvoorbeeld": "Een bv kan de loonheffing over het vierde kwartaal niet betalen en meldt dat pas na drie maanden. De directeur-grootaandeelhouder is intussen afgetreden; zijn opvolger had al het beleid bepaald voordat hij bestuurder werd.",
+ "context": "",
+ "buiten": "Ketenaansprakelijkheid en inlenersaansprakelijkheid, de aansprakelijkheid voor bronbelasting en vennootschapsbelasting, en de civielrechtelijke aansprakelijkheid in faillissement vallen erbuiten.",
+ "gebeurtenis": "aansprakelijkheid",
+ "regelingen": [
+  "BWBR0004770",
+  "BWBR0024096"
+ ],
+ "deelvragen": [
+  "Wanneer is een bestuurder aansprakelijk voor de loonheffing die de bv niet betaalt?",
+  "Hoe en wanneer moet de bv melden dat ze haar belastingen niet kan betalen?",
+  "Kan een oud-bestuurder of iemand die feitelijk het beleid bepaalde ook aansprakelijk worden gesteld?",
+  "Hoe stelt de ontvanger een bestuurder aansprakelijk en hoe kan die bezwaar maken?"
+ ],
+ "verwacht": [
+  {
+   "deelvraag": 0,
+   "bron_iri": "urn:bwb:BWBR0004770:artikel:36:lid:1",
+   "rol": "kern",
+   "zoekvraag": "a",
+   "motivering": "\"Hoofdelijk aansprakelijk is voor de loonbelasting, de omzetbelasting, … verschuldigd door een rechtspersoonlijkheid bezittend lichaam …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 0,
+   "bron_iri": "urn:bwb:BWBR0004770:artikel:36:lid:3",
+   "rol": "kern",
+   "zoekvraag": "b",
+   "motivering": "\"… is een bestuurder aansprakelijk indien aannemelijk is, dat het niet betalen van de belastingschuld het gevolg is van aan hem te wijten kennelijk onbehoorlijk bestuur in de periode van drie jaren …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 0,
+   "bron_iri": "urn:bwb:BWBR0004770:artikel:36:lid:4",
+   "rol": "kern",
+   "zoekvraag": "b",
+   "motivering": "\"Indien het lichaam niet of niet op juiste wijze aan zijn in het tweede lid bedoelde verplichting heeft voldaan, is een bestuurder … aansprakelijk, met dien verstande dat wordt vermoed dat de niet betaling aan hem is te wijten …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 0,
+   "bron_iri": "urn:bwb:BWBR0004770:artikel:36:lid:7",
+   "rol": "afhankelijkheid",
+   "zoekvraag": "d",
+   "motivering": "\"Voor de toepassing van dit artikel wordt onder belasting uitsluitend verstaan de belasting die het lichaam als inhoudingsplichtige of als ondernemer is verschuldigd.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 0,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie36%2FCirculaire.divisie36.4%2FCirculaire.divisie36.4.1",
+   "rol": "kern",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 36.4.1 \"Wanneer kennelijk onbehoorlijk bestuur\": \"De vraag of in een bepaalde situatie sprake is van kennelijk onbehoorlijk bestuur zal naar redelijkheid en billijkheid … moeten worden beantwoord.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 0,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie36%2FCirculaire.divisie36.6%2FCirculaire.divisie36.6.1",
+   "rol": "afhankelijkheid",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 36.6.1 \"Bewijslastverdeling en bestuurdersaansprakelijkheid\": \"Een bestuurder is slechts aansprakelijk als aannemelijk is dat de niet-betaling door het lichaam aan de bestuurder is te wijten …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 1,
+   "bron_iri": "urn:bwb:BWBR0004770:artikel:36:lid:2",
+   "rol": "kern",
+   "zoekvraag": "b",
+   "motivering": "\"Het lichaam als bedoeld in het eerste lid is verplicht om onverwijld nadat gebleken is dat het niet tot betaling van loonbelasting, omzetbelasting, … in staat is, daarvan schriftelijk mede[deling te doen] …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 1,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie36%2FCirculaire.divisie36.5%2FCirculaire.divisie36.5.1",
+   "rol": "kern",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 36.5.1 \"Betalingsonmacht en de wijze van melding daarvan\": \"In deze omstandigheden moet de belastingschuldige de betalingsonmacht melden aan de ontvanger.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 1,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie36%2FCirculaire.divisie36.5%2FCirculaire.divisie36.5.4",
+   "rol": "kern",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 36.5.4 \"Termijn melding betalingsonmacht\": \"Hoofdstuk III van het besluit regelt binnen welke termijn de belastingschuldige de betalingsonmacht aan de ontvanger moet melden.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 1,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie36%2FCirculaire.divisie36.5%2FCirculaire.divisie36.5.2",
+   "rol": "aanverwant",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 36.5.2: een schriftelijk verzoek om uitstel of brief waaruit betalingsproblemen blijken, merkt de ontvanger in beginsel aan als melding.",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 1,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie36%2FCirculaire.divisie36.5%2FCirculaire.divisie36.5.8",
+   "rol": "aanverwant",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 36.5.8 \"Melding betalingsonmacht – twee fasen\".",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 2,
+   "bron_iri": "urn:bwb:BWBR0004770:artikel:36:lid:5",
+   "rol": "kern",
+   "zoekvraag": "d",
+   "motivering": "\"Voor de toepassing van dit artikel wordt onder bestuurder mede verstaan:\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 2,
+   "bron_iri": "urn:bwb:BWBR0004770:artikel:36:lid:5:o:a",
+   "rol": "kern",
+   "zoekvraag": "d",
+   "motivering": "\"de gewezen bestuurder tijdens wiens bestuur de belastingschuld is ontstaan;\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 2,
+   "bron_iri": "urn:bwb:BWBR0004770:artikel:36:lid:5:o:b",
+   "rol": "kern",
+   "zoekvraag": "d",
+   "motivering": "\"degene ten aanzien van wie aannemelijk is dat hij het beleid van het lichaam heeft bepaald of mede heeft bepaald als ware hij bestuurder …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 2,
+   "bron_iri": "urn:bwb:BWBR0004770:artikel:36:lid:6",
+   "rol": "kern",
+   "zoekvraag": "b",
+   "motivering": "\"De tweede volzin van het vierde lid is niet van toepassing op de gewezen bestuurder.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 2,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie36%2FCirculaire.divisie36.6%2FCirculaire.divisie36.6.2",
+   "rol": "kern",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 36.6.2 \"Disculpatiemogelijkheid gewezen bestuurder\": \"… wordt hij direct toegelaten tot de weerlegging van het wettelijk vermoeden van artikel 36, vierde [lid] …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 2,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie36%2FCirculaire.divisie36.3",
+   "rol": "aanverwant",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 36.3 \"Curator is niet aansprakelijk op grond van artikel 36\".",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 3,
+   "bron_iri": "urn:bwb:BWBR0004770:artikel:49:lid:1",
+   "rol": "kern",
+   "zoekvraag": "c",
+   "motivering": "\"Aansprakelijkstelling geschiedt bij voor bezwaar vatbare beschikking door de ontvanger en vindt niet plaats vóór het tijdstip waarop de belastingschuldige in gebreke is …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 3,
+   "bron_iri": "urn:bwb:BWBR0004770:artikel:49:lid:3",
+   "rol": "kern",
+   "zoekvraag": "c",
+   "motivering": "\"De ontvanger maakt de beschikking bekend door toezending als aangetekend stuk.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 3,
+   "bron_iri": "urn:bwb:BWBR0004770:artikel:49:lid:4",
+   "rol": "kern",
+   "zoekvraag": "c",
+   "motivering": "\"Op het bezwaar, beroep, hoger beroep en beroep in cassatie inzake de in het eerste lid bedoelde beschikking is hoofdstuk V van de Algemene wet inzake rijksbelastingen van overeenkomstige toepassing.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 3,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie49%2FCirculaire.divisie49.3%2FCirculaire.divisie49.3.1",
+   "rol": "afhankelijkheid",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 49.3.1 \"Wanneer in gebreke\": \"De belastingschuldige is in gebreke als de betaling van zijn belastingschuld niet heeft plaatsgevonden binnen de betalingstermijn …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 3,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie49%2FCirculaire.divisie49.8%2FCirculaire.divisie49.8.1",
+   "rol": "aanverwant",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 49.8.1 \"Uitstel in verband met bezwaar tegen een beschikking aansprakelijkstelling\".",
+   "herkomst": "graaf, letterlijke tekst"
+  }
+ ],
+ "buiten_graaf": [],
+ "uitgesloten": [
+  {
+   "bron_iri": "urn:bwb:BWBR0004770:artikel:36a:lid:1",
+   "motivering": "Aansprakelijkheid voor bronbelasting: uitdrukkelijk buiten de afbakening."
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie36%2FCirculaire.divisie36.1",
+   "motivering": "Samenloop met de civielrechtelijke bestuurdersaansprakelijkheid in faillissement: buiten de afbakening."
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie49%2FCirculaire.divisie49.4",
+   "motivering": "Informatie bij keten- en inlenersaansprakelijkheid: buiten de afbakening."
+  }
+ ]
+}

@@ -2,7 +2,7 @@
 
 De logica staat in `agent/bronselectie.py` en draait op de event loop van de beurt (de api-client is async),
 zoals de agents. De stand komt bij elke beurt vers van de api; deze node bewaart niets in de state. Zoeken is
-de bronnenrun van de deelvragen-agent (`bronnen_run.bronnen_kern`, zonder model).
+de bronnenrun (`bronnen_run.zoek_run`, zonder model) over het hele werkgebied.
 
 Uit gaan een `token` (de zin van Lex), een `vraagkaart` (het kaartje, ook na herladen te beantwoorden) en een
 `artefact` `{soort: "bronselectie", ref: {werkgebied_id, deelvraag_id?}}`: het paneel naast het gesprek.
@@ -49,20 +49,41 @@ def bronselectie_node(b, state: State) -> dict[str, Any]:
                       gestopt=lambda: bool(b.stop_check and b.stop_check()))
 
         async def zoek(deelvraag_id: str) -> str:
-            from ..bronnen_run import bronnen_kern
+            from ..bronnen_run import zoek_run
             _stap(stuur, "Lex", "zoekt bepalingen bij het werkgebied en zijn deelvragen")
-            uit = await bronnen_kern(ctx, wid, "" if deelvraag_id == bs.ANALYSEVRAAG else deelvraag_id)
-            return "" if uit.status == "ok" else (uit.reden or "het zoeken lukte niet")
+            return await zoek_run(ctx, wid)
 
         def vind(tekst: str) -> list[str]:
             """De regelingen die een eigen tekst bij naam of afkorting noemt (uit de graaf, zonder model)."""
             from ..overzicht import regelingen_in_vraag
             return regelingen_in_vraag(b.graph, tekst) if b.graph is not None else []
 
+        def stel_voor(werkgebied: dict[str, Any], regelingen: list[str]) -> list[dict[str, Any]]:
+            """De gebeurtenissen uit de koppen van de regelingen (zonder model); zonder graaf geen voorstel."""
+            from ..zoekvragen import gebeurtenis_opties
+            if b.graph is None:
+                return []
+            _stap(stuur, "Lex", "zoekt de gebeurtenis in de koppen van de regelingen")
+            return gebeurtenis_opties(b.graph, regelingen=regelingen, dossier=werkgebied)
+
+        def toets(werkgebied: dict[str, Any], regelingen: list[str], woorden: list[str], voorwerp: bool) -> dict[str, Any]:
+            """De woordenkloof en het voorwerp (zonder model); zonder graaf niets."""
+            from ..zoekvragen import brugtermen, is_voorwerp, ontbrekende_woorden, regelingen_van_gebeurtenis
+            if b.graph is None:
+                return {}
+            gekozen = (werkgebied.get("gebeurtenis") or "").strip()
+            bereik = regelingen or (regelingen_van_gebeurtenis(b.graph, gekozen) if gekozen else [])
+            ontbrekend = ontbrekende_woorden(b.graph, woorden, bereik) if woorden else []
+            return {"voorwerp": bool(voorwerp and gekozen and is_voorwerp(b.graph, gekozen, regelingen)),
+                    "ontbrekend": ontbrekend, "brug": {w: brugtermen(werkgebied, w)[:5] for w in ontbrekend}}
+
         try:
             if actie:
-                return await bs.verwerk(api, actie, zoek, vind)
-            return await bs.start(api, wid, zoek, vraag=state.get("question", ""), deelvraag_id=aangewezen)
+                return await bs.verwerk(api, actie, zoek, vind, stel_voor, toets)
+            if state.get("actie") == "bepaling_toevoegen":
+                return await bs.vraag_toevoegen(api, wid, aangewezen)
+            return await bs.start(api, wid, zoek, vraag=state.get("question", ""), deelvraag_id=aangewezen,
+                                  stel_voor=stel_voor, toets=toets)
         except WetsanalyseApiFout as fout:
             if fout.status == 412:
                 uit = await bs.start(api, wid, None)

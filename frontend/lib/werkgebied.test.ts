@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import type { InventarisElement, InventarisSelectie, WerkgebiedAuditRegel } from "./types";
 import {
+  datumNl, peildatumZin, toestandMeldingen,
   annotatieHref,
   auditZin,
-  bronInvoer,
   filterElementen,
   groepeerPerSelectie,
   isAlOpgenomen,
@@ -20,26 +20,6 @@ const sel = (id: string, rol: "analyseren" | "context" = "analyseren"): Inventar
 const el = (id: string, selecties: string[], over: Partial<InventarisElement> = {}): InventarisElement => ({
   id, klasse: "Rechtssubject", tekst: id, lifecycle: "voorgesteld", eigenaar_iri: "urn:x", laag_id: "l",
   ankers: [], rol: "analyseren", selecties, deels_buiten: false, ...over,
-});
-
-describe("bronInvoer", () => {
-  it("leest regeling + artikel + lid, ook met de woorden ervoor", () => {
-    expect(bronInvoer({ regeling: " bwbr0004770 ", artikel: "Artikel 9", lid: "lid 2" }))
-      .toEqual({ invoer: { bwb_id: "BWBR0004770", artikel: "9", lid: "2" } });
-    expect(bronInvoer({ regeling: "BWBR0004770", artikel: "art. 3:1", lid: "" }))
-      .toEqual({ invoer: { bwb_id: "BWBR0004770", artikel: "3:1" } });
-  });
-
-  it("neemt een graaf-IRI als bron-IRI, maar niet samen met een artikel", () => {
-    expect(bronInvoer({ regeling: "urn:bwb:BWBR0004770:art9", artikel: "", lid: "" }))
-      .toEqual({ invoer: { bron_iri: "urn:bwb:BWBR0004770:art9" } });
-    expect(bronInvoer({ regeling: "urn:bwb:BWBR0004770:art9", artikel: "9", lid: "" })).toHaveProperty("fout");
-  });
-
-  it("weigert wat zonder graaf al fout is", () => {
-    expect(bronInvoer({ regeling: "Invorderingswet", artikel: "9", lid: "" })).toHaveProperty("fout");
-    expect(bronInvoer({ regeling: "BWBR0004770", artikel: "  ", lid: "" })).toHaveProperty("fout");
-  });
 });
 
 describe("groepeerPerSelectie", () => {
@@ -143,7 +123,8 @@ describe("scopeInModel", async () => {
 describe("isWerkgebiedRoute", async () => {
   const { isWerkgebiedRoute } = await import("./werkgebied");
   it.each([
-    [["w"]], [["w", "bronnen"]], [["w", "bronnen", "s"]], [["w", "elementen"]], [["w", "audit"]],
+    [["w"]], [["w", "bronnen"]], [["w", "bronnen", "s"]], [["w", "elementen"]], [["w", "audit"]], [["w", "toestanden"]], [["w", "regelingen"]], [["w", "bepalingen"]],
+    [["w", "bronselectie", "d1", "bronnen"]],
     [["w", "begrippen"]], [["w", "begrippen", "export"]], [["w", "begrippen", "b"]],
     [["w", "begrippen", "b", "koppelingen"]], [["w", "begrippen", "b", "accorderen"]],
     [["w", "begrippen", "b", "heropenen"]], [["w", "begrippen", "b", "revisies"]],
@@ -229,3 +210,26 @@ it("annotatieHref neemt het element mee", async () => {
   expect(annotatieHref("urn:x", "e1")).toBe("/annotaties/node?bron_iri=urn%3Ax&element=e1");
 });
 
+
+describe("peildatum (3 nov 2026)", () => {
+  it("leest een datum als dd-mm-jjjj en noemt de standaard", () => {
+    expect(datumNl("2026-11-03")).toBe("03-11-2026");
+    expect(peildatumZin("2026-11-03", true)).toBe("Peildatum 03-11-2026 (standaard: de aanmaakdatum van het werkgebied)");
+    expect(peildatumZin("2026-01-01", false)).toBe("Peildatum 01-01-2026");
+  });
+
+  it("waarschuwt alleen bij een toestand van na de peildatum, en bij een onvolledig antwoord", () => {
+    const t = {
+      peildatum: "2026-03-01", peildatum_standaard: false, volledig: true,
+      regelingen: [
+        { bwb_id: "BWBR0004770", citeertitel: "Invorderingswet 1990", geldig_vanaf: "2026-07-01", geldig_tot: null, na_peildatum: true },
+        { bwb_id: "BWBR0024096", citeertitel: "Leidraad Invordering 2008", geldig_vanaf: "2026-01-01", geldig_tot: null, na_peildatum: false },
+      ],
+    };
+    expect(toestandMeldingen(t)).toEqual([
+      "Invorderingswet 1990: de tekst in de kennisgraaf geldt vanaf 01-07-2026, na de peildatum. Hij kan afwijken van wat op de peildatum gold.",
+    ]);
+    expect(toestandMeldingen({ ...t, regelingen: [], volledig: false })).toEqual(["De geldigheid van de regelingen is nu niet op te halen."]);
+    expect(toestandMeldingen(null)).toEqual([]);
+  });
+});

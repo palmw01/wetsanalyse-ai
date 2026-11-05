@@ -64,6 +64,13 @@ export function Stip() {
   return <span aria-hidden className="text-faint">·</span>;
 }
 
+/** Een tabrij die alleen horizontaal schuift. `overflow-x: auto` maakt `overflow-y` ook `auto`, en een tab die
+ *  met `-mb-px` over de rand stak, liet de rij op een telefoon een pixel op en neer schuiven. Nu snijdt de rij
+ *  verticaal af, de lijn eronder is een inset-schaduw (de onderrand van de gekozen tab dekt hem), en een veeg
+ *  aan het einde van de rij gaat niet door naar de pagina. */
+export const TABRIJ =
+  "flex gap-1 overflow-x-auto overflow-y-hidden overscroll-x-contain shadow-[inset_0_-1px_0_rgb(var(--line))]";
+
 export function TabLinks({ label, tabs, actief }: {
   label: string;
   tabs: { key: string; label: string; href: string; telling?: number }[];
@@ -71,14 +78,14 @@ export function TabLinks({ label, tabs, actief }: {
 }) {
   return (
     // Een rij die op een smal scherm niet past scrolt, in plaats van tabs af te kappen.
-    <nav aria-label={label} className="mb-5 flex gap-1 overflow-x-auto border-b border-line">
+    <nav aria-label={label} className={`mb-5 ${TABRIJ}`} data-tabrij>
       {tabs.map((t) => {
         const gekozen = t.key === actief;
         return (
           <Link key={t.key} href={t.href} aria-current={gekozen ? "page" : undefined} data-tab={t.key}
             // De teller hoort bij de naam, met haakjes: anders leest een schermlezer "Bronnen2".
             aria-label={t.telling !== undefined ? `${t.label} (${t.telling})` : undefined}
-            className={`focus-ring -mb-px inline-flex min-h-[44px] shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
+            className={`focus-ring inline-flex min-h-[44px] shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
               gekozen ? "border-lint text-lint" : "border-transparent text-muted hover:text-lint"
             }`}>
             {t.label}
@@ -192,7 +199,7 @@ export function Groep({ kop, sub, telling, status, label, children, leeg, ...res
         {sub && <p className="w-full text-xs text-muted">{sub}</p>}
       </div>
       {kinderen.length ? (
-        <ul aria-label={label} className="divide-y divide-line overflow-hidden rounded-kaart border border-line bg-paper shadow-zacht">
+        <ul aria-label={label} className="divide-y divide-line rounded-kaart border border-line bg-paper shadow-zacht [&>li:first-child]:rounded-t-kaart [&>li:last-child]:rounded-b-kaart [&>li>*:first-child]:rounded-[inherit]">
           {kinderen}
         </ul>
       ) : leeg ? <p className="text-sm text-muted">{leeg}</p> : null}
@@ -201,26 +208,39 @@ export function Groep({ kop, sub, telling, status, label, children, leeg, ...res
 }
 
 /** Eén rij in een `Groep` (de `itemrow` van de mock-up): titel, subregel, status en een chevron naar de pagina
- *  van het object. `eind` staat buiten de link (een menu ⋯), `onder` eronder (dat menu, uitgeklapt). */
-export function GroepRij({ href, titel, sub, status, eind, onder, ...rest }: {
-  href: string;
+ *  van het object. `eind` staat buiten de link (een menu ⋯, `MeerMenu`), `onder` eronder (de wettekst, uitgeklapt). Geen
+ *  `overflow-hidden` op de lijst: dat knipt het menu van de onderste rij af; de hoeken rondt de rij zelf af. */
+export function GroepRij({ href, uitklap, titel, sub, status, eind, onder, ...rest }: {
+  /** De rij opent een pagina … */
+  href?: string;
+  /** … of klapt uit op haar plek (naast het gesprek: lezen zonder weg te gaan, 3 nov 2026). */
+  uitklap?: { open: boolean; onWissel: () => void; label: string };
   titel: React.ReactNode;
   sub?: React.ReactNode;
   status?: React.ReactNode;
   eind?: React.ReactNode;
   onder?: React.ReactNode;
 } & Omit<React.LiHTMLAttributes<HTMLLIElement>, "title">) {
+  const binnen = (
+    <>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-lint [overflow-wrap:anywhere] group-hover:underline">{titel}</span>
+        {sub && <span className="mt-0.5 block text-xs leading-relaxed text-muted [overflow-wrap:anywhere]">{sub}</span>}
+      </span>
+      {status && <span className="flex shrink-0 flex-wrap justify-end gap-1.5">{status}</span>}
+      <ChevronOmlaag className={`shrink-0 text-faint transition-transform group-hover:text-lint ${
+        uitklap ? (uitklap.open ? "rotate-180" : "") : "-rotate-90"}`} />
+    </>
+  );
+  const klasse = "focus-ring group flex min-h-[48px] min-w-0 flex-1 items-center gap-3 rounded-md py-3 pl-4 text-left";
   return (
     <li {...rest}>
       <div className="flex items-center gap-2 pr-2 transition-colors hover:bg-surface">
-        <Link href={href} className="focus-ring group flex min-h-[48px] min-w-0 flex-1 items-center gap-3 rounded-md py-3 pl-4">
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-lint [overflow-wrap:anywhere] group-hover:underline">{titel}</span>
-            {sub && <span className="mt-0.5 block text-xs leading-relaxed text-muted [overflow-wrap:anywhere]">{sub}</span>}
-          </span>
-          {status && <span className="flex shrink-0 flex-wrap justify-end gap-1.5">{status}</span>}
-          <ChevronOmlaag className="shrink-0 -rotate-90 text-faint group-hover:text-lint" />
-        </Link>
+        {uitklap ? (
+          <button type="button" onClick={uitklap.onWissel} aria-expanded={uitklap.open} aria-label={uitklap.label} className={klasse}>
+            {binnen}
+          </button>
+        ) : <Link href={href ?? "#"} className={klasse}>{binnen}</Link>}
         {eind}
       </div>
       {onder}

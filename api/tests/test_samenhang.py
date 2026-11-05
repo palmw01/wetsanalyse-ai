@@ -214,3 +214,23 @@ async def test_meer_doelen_in_een_regeling_halen_de_bronboom_een_keer_op(monkeyp
     assert [f["bron_iri"] for f in data["fouten"]] == [onbekend]
     assert {k["id"]: k["label"] for k in data["resultaten"][0]["knopen"]}[h5] == "Hoofdstuk V"
     get_settings.cache_clear()
+
+
+def test_een_leidraadonderdeel_heet_naar_zijn_vindplaats_en_hoort_bij_zijn_divisie():
+    """`artikel:9:o:d` hangt in de Leidraad onder divisie 9.2: de IRI liegt, de boom niet."""
+    lr = "urn:bwb:BWBR0024096"
+    nodes = {
+        lr: {"bron_iri": lr, "type": "Regeling", "parent_iri": "", "nummer": "", "label": "Leidraad", "bwb_id": "BWBR0024096"},
+        f"{lr}:artikel:9": {"bron_iri": f"{lr}:artikel:9", "type": "Divisie", "parent_iri": lr, "nummer": "9",
+                            "label": "Artikel 9", "bwb_id": "BWBR0024096"},
+        f"{lr}:artikel:9.2": {"bron_iri": f"{lr}:artikel:9.2", "type": "Divisie", "parent_iri": f"{lr}:artikel:9",
+                              "nummer": "9.2", "label": "Artikel 9.2", "bwb_id": "BWBR0024096"},
+        f"{lr}:artikel:9:o:d": {"bron_iri": f"{lr}:artikel:9:o:d", "type": "Onderdeel",
+                                "parent_iri": f"{lr}:artikel:9.2", "nummer": "d.", "label": "Onderdeel d.",
+                                "bwb_id": "BWBR0024096", "vindplaats": "Artikel 9.2, onderdeel d"},
+    }
+    k = samenhang.bronknoop(nodes[f"{lr}:artikel:9:o:d"], nodes=nodes)
+    assert k.vindplaats == "Artikel 9.2, onderdeel d"
+    assert (k.artikel, k.lid, k.bwb_id) == ("9.2", "", "BWBR0024096")
+    # Zonder boom blijft de oude afleiding uit de IRI.
+    assert samenhang.bronknoop(nodes[f"{lr}:artikel:9:o:d"]).artikel == "9"

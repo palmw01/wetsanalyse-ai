@@ -1,0 +1,235 @@
+{
+ "schema_versie": 3,
+ "status": "concept",
+ "toelichting": "Concept, niet geadjudiceerd: opgesteld door de agent uit de letterlijke tekst in de graaf, vóór de code van 'het dossier zoekt mee' (november 2026) en zonder bepaling_opties of de eval erop te draaien (blind). Held-out set voor het meezoeken van het dossier; de eerste set met aanleiding en doel. Geen claim op juridische volledigheid.",
+ "datum": "2026-11-04",
+ "graaftoestand": "acceptatie, 4 nov 2026",
+ "naam": "Kwijtschelding voor particulieren",
+ "aanleiding": "Bij de ontvanger komen steeds meer verzoeken binnen van mensen met een laag inkomen die hun aanslag inkomstenbelasting of motorrijtuigenbelasting niet kunnen betalen. Medewerkers beoordelen die verzoeken verschillend, vooral als er een auto of wat spaargeld is.",
+ "doel": "Een overzicht van de regels waarmee de ontvanger een verzoek van een particulier toetst, van het indienen tot het beroep na een afwijzing, als basis voor een werkinstructie.",
+ "analysevraag": "Wanneer laat de ontvanger een belastingschuld van een particulier vallen omdat die hem niet kan betalen?",
+ "praktijkvoorbeeld": "Een alleenstaande moeder met een bijstandsuitkering kan haar aanslag motorrijtuigenbelasting van € 400 niet betalen. Ze heeft een auto van € 4.000, die ze nodig heeft om haar zieke kind naar het ziekenhuis te brengen, en € 900 op haar spaarrekening. Ze vraagt de Belastingdienst de schuld te laten vallen; dat wordt afgewezen en ze wil daartegen opkomen.",
+ "context": "",
+ "buiten": "Kwijtschelding voor ondernemers en saneringsakkoorden, de schuldsaneringsregeling (WSNP), de hersteloperatie toeslagen en kwijtschelding van gemeentelijke belastingen vallen erbuiten.",
+ "gebeurtenis": "kwijtschelding",
+ "regelingen": [
+  "BWBR0004770",
+  "BWBR0004766",
+  "BWBR0024096"
+ ],
+ "deelvragen": [
+  "Wanneer kan een particulier zijn belastingschuld laten vervallen omdat hij niet genoeg inkomen heeft om te betalen?",
+  "Telt een auto of spaargeld mee bij de beoordeling van het verzoek?",
+  "Hoe vraagt iemand dat aan, en gaat de inning intussen door?",
+  "Wat kan iemand doen als het verzoek wordt afgewezen?"
+ ],
+ "verwacht": [
+  {
+   "deelvraag": 0,
+   "bron_iri": "urn:bwb:BWBR0004770:artikel:26:lid:1",
+   "rol": "kern",
+   "zoekvraag": "a",
+   "motivering": "\"Bij ministeriële regeling worden regels gesteld krachtens welke aan de belastingschuldige die niet in staat is anders dan met buitengewoon bezwaar een belastingaanslag geheel of gedeeltelijk te betalen, gehele of gedeeltelijke kwijtschelding kan worden verleend.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 0,
+   "bron_iri": "urn:bwb:BWBR0004766:artikel:7:lid:1",
+   "rol": "kern",
+   "zoekvraag": "a",
+   "motivering": "\"De ontvanger verleent de belastingschuldige op diens schriftelijk verzoek bij voor administratief beroep vatbare beschikking kwijtschelding van de door hem verschuldigde rijksbelastingen …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 0,
+   "bron_iri": "urn:bwb:BWBR0004766:artikel:11",
+   "rol": "kern",
+   "zoekvraag": "b",
+   "motivering": "\"Kwijtschelding wordt verleend voor: het gehele op de belastingaanslag openstaande bedrag indien geen vermogen en geen betalingscapaciteit aanwezig is; …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 0,
+   "bron_iri": "urn:bwb:BWBR0004766:artikel:10",
+   "rol": "afhankelijkheid",
+   "zoekvraag": "a",
+   "motivering": "\"Deze afdeling heeft betrekking op kwijtschelding van inkomstenbelasting verschuldigd door natuurlijke personen die geen bedrijf of niet zelfstandig een beroep uitoefenen, … alsmede van motorrijtuigenbelasting …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 0,
+   "bron_iri": "urn:bwb:BWBR0004766:artikel:13:lid:1",
+   "rol": "afhankelijkheid",
+   "zoekvraag": "d",
+   "motivering": "\"Onder betalingscapaciteit, bedoeld in artikel 11, wordt verstaan het positieve verschil … van het gemiddeld per maand te verwachten netto-besteedbare inkomen van de belastingschuldige in die periode en de gemiddeld per maand te verwachten kosten van bestaan …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 0,
+   "bron_iri": "urn:bwb:BWBR0004766:artikel:18",
+   "rol": "afhankelijkheid",
+   "zoekvraag": "b",
+   "motivering": "\"Geen kwijtschelding wordt verleend ten belope van het bedrag van de te betalen belasting … waarvan aannemelijk is dat dit bedrag kan worden voldaan omdat: … binnen een jaar na het verzoek een verbetering in de financiële omstandigheden is te verwachten …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 0,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.2%2FCirculaire.divisie26.2.10",
+   "rol": "kern",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 26.2.10 \"Betalingscapaciteit en kwijtschelding voor particulieren\": \"Als is vastgesteld dat geen of onvoldoende vermogensbestanddelen aanwezig zijn om de openstaande belastingaanslag te voldoen, moet worden beoordeeld in hoeverre de aanwezige betalingscapaciteit voldoende is …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 1,
+   "bron_iri": "urn:bwb:BWBR0004766:artikel:12:lid:1",
+   "rol": "kern",
+   "zoekvraag": "d",
+   "motivering": "\"Onder vermogen als bedoeld in artikel 11 wordt verstaan de waarde in het economische verkeer van de bezittingen van de belastingschuldige en van zijn echtgenoot … verminderd met de schulden …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 1,
+   "bron_iri": "urn:bwb:BWBR0004766:artikel:12:lid:2",
+   "rol": "kern",
+   "zoekvraag": "d",
+   "motivering": "\"Onder bezittingen wordt niet begrepen: … een auto die op het moment van het verzoek een waarde heeft van € 3.350 of minder; … het totale bedrag aan financiële middelen … voor zover dat bedrag de … kosten van bestaan … niet te boven gaat …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 1,
+   "bron_iri": "urn:bwb:BWBR0004766:artikel:12:lid:3",
+   "rol": "afhankelijkheid",
+   "zoekvraag": "d",
+   "motivering": "\"Onder waarde, bedoeld in het tweede lid, onderdeel c, wordt verstaan de prijs die de autohandel bereid is te betalen bij inkoop zonder gelijktijdige verkoop van een andere auto.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 1,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.2%2FCirculaire.divisie26.2.1",
+   "rol": "afhankelijkheid",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 26.2.1 \"Vermogen en kwijtschelding particulieren\": \"Onder vermogen wordt verstaan de waarde in het economische verkeer van de bezittingen van de belastingschuldige en zijn echtgenoot …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 1,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.2%2FCirculaire.divisie26.2.3",
+   "rol": "kern",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 26.2.3 \"De auto en kwijtschelding particulieren\": \"Een auto wordt niet als een vermogensbestanddeel in aanmerking genomen als de belastingschuldige … aannemelijk kan maken dat die auto absoluut onmisbaar is … in verband met invaliditeit of ziekte van de belastingschuldige of zijn gezinsleden.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 1,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.2%2FCirculaire.divisie26.2.4",
+   "rol": "kern",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 26.2.4 \"Saldo op bankrekening en kwijtschelding voor particulieren\": \"Incidentele ontvangsten op een bankrekening (zoals vakantiegeld) worden voor de bepaling van een aanwezig vermogensbestanddeel ook in aanmerking genomen …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 2,
+   "bron_iri": "urn:bwb:BWBR0004766:artikel:7:lid:1",
+   "rol": "kern",
+   "zoekvraag": "b",
+   "motivering": "\"De ontvanger verleent de belastingschuldige op diens schriftelijk verzoek … kwijtschelding …\" – het verzoek is schriftelijk.",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 2,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.1%2FCirculaire.divisie26.1.2",
+   "rol": "kern",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 26.1.2 \"Het indienen van een verzoek om kwijtschelding\": \"Het verzoek om kwijtschelding moet worden ingediend bij de ontvanger waaronder de belastingschuldige ressorteert op een daartoe ingesteld verzoekformulier. … In afwachting hiervan wordt de invordering in beginsel opgeschort.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 2,
+   "bron_iri": "urn:bwb:BWBR0004766:artikel:9:lid:1",
+   "rol": "kern",
+   "zoekvraag": "c",
+   "motivering": "\"Gedurende de behandeling van het verzoek om kwijtschelding worden … geen conservatoire maatregelen genomen of voortgezet. Eveneens wordt gedurende die tijd voor die belastingaanslag de dwanginvordering niet aangevangen of voortgezet.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 2,
+   "bron_iri": "urn:bwb:BWBR0004766:artikel:9:lid:2",
+   "rol": "afhankelijkheid",
+   "zoekvraag": "c",
+   "motivering": "\"Indien de ontvanger aannemelijk maakt dat gegronde vrees bestaat dat … goederen … zullen worden verduisterd, kan hij ondanks het verzoek om kwijtschelding conservatoire e[n executiemaatregelen nemen] …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 2,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.1%2FCirculaire.divisie26.1.3",
+   "rol": "aanverwant",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 26.1.3 \"Niet ingevuld of onjuist ingevuld verzoekformulier om kwijtschelding\": \"Als de ontvanger een uitgereikt of toegezonden verzoekformulier onvolledig ingevuld terugontvangt, stelt hij de belastingschuldige in de gelegenheid de ontbrekende gegevens alsnog binnen twee weken te …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 3,
+   "bron_iri": "urn:bwb:BWBR0004766:artikel:24",
+   "rol": "kern",
+   "zoekvraag": "c",
+   "motivering": "\"Indien de belastingschuldige zich niet kan verenigen met de beschikking, bedoeld in artikel 7, eerste lid, kan hij binnen tien dagen na dagtekening van de kennisgeving … een beroepschrift richten tot de directeur onder vermelding van de gronden van het beroep.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 3,
+   "bron_iri": "urn:bwb:BWBR0004766:artikel:25:lid:1",
+   "rol": "kern",
+   "zoekvraag": "c",
+   "motivering": "\"De directeur beslist op het beroep bij uitspraak.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 3,
+   "bron_iri": "urn:bwb:BWBR0004766:artikel:25:lid:2",
+   "rol": "afhankelijkheid",
+   "zoekvraag": "c",
+   "motivering": "\"Indien de directeur geheel of gedeeltelijk aan het beroep van de belastingschuldige tegemoetkomt, stelt hij bij die uitspraak het bedrag van de kwijtschelding vast.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 3,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.4%2FCirculaire.divisie26.4.1",
+   "rol": "kern",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 26.4.1 \"Administratief beroep tegen de afwijzing van een verzoek om kwijtschelding\": \"Als de belastingschuldige zich niet kan verenigen met de beschikking van de ontvanger op het verzoek om kwijtschelding, kan hij een gemotiveerd beroepschrift richten tot de directeur. Het beroepschrift wordt ingediend bij de ontvanger.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 3,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.1%2FCirculaire.divisie26.1.6",
+   "rol": "aanverwant",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 26.1.6 \"Motivering afwijzing van het verzoek om kwijtschelding\": \"Als de ontvanger het verzoek om kwijtschelding afwijst, moet hij motiveren waarom hij tot afwijzing van het verzoek heeft besloten.\"",
+   "herkomst": "graaf, letterlijke tekst"
+  },
+  {
+   "deelvraag": 3,
+   "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.1%2FCirculaire.divisie26.1.7",
+   "rol": "aanverwant",
+   "zoekvraag": "d",
+   "motivering": "Leidraad 26.1.7 \"Na afwijzen kwijtschelding veertien dagen wachttijd bij voortzetting invordering\": \"Als de ontvanger afwijzend heeft beslist op een verzoek om kwijtschelding … of de directeur afwijzend heeft beslist op een ingediend beroepschrift …\"",
+   "herkomst": "graaf, letterlijke tekst"
+  }
+ ],
+ "buiten_graaf": [],
+ "uitgesloten": [
+  {
+   "bron_iri": "urn:bwb:BWBR0004770:artikel:26a:lid:1",
+   "motivering": "Ambtshalve kwijtschelding in de hersteloperatie toeslagen: uitdrukkelijk buiten de afbakening."
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0004766:artikel:21",
+   "motivering": "Kwijtschelding voor ondernemers in het kader van een akkoord: buiten de afbakening."
+  },
+  {
+   "bron_iri": "urn:bwb:BWBR0004766:artikel:19a:lid:1",
+   "motivering": "Kwijtschelding bij een akkoord in de schuldsaneringsregeling natuurlijke personen: buiten de afbakening."
+  }
+ ]
+}

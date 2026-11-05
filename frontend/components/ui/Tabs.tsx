@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useRef, type ReactNode } from "react";
+import { TABRIJ } from "./Pagina";
 
 export interface TabDef {
   /** Stabiele sleutel; ook gebruikt voor de aria-id's. */
@@ -57,9 +58,9 @@ export function Tabs({
         className={
           verticaal
             ? // Mobiel: horizontaal scrollbare rij bovenin; vanaf sm een kolom links.
-              "flex shrink-0 gap-1 overflow-x-auto border-b border-line px-2 py-2 sm:w-56 sm:flex-col sm:overflow-x-visible sm:overflow-y-auto sm:border-b-0 sm:border-r sm:px-2 sm:py-3"
+              "flex shrink-0 gap-1 overflow-x-auto overflow-y-hidden overscroll-x-contain border-b border-line px-2 py-2 sm:w-56 sm:flex-col sm:overflow-x-visible sm:overflow-y-auto sm:border-b-0 sm:border-r sm:px-2 sm:py-3"
             : // Een rij die op een smal scherm niet past scrolt, in plaats van tabs af te kappen.
-              "flex gap-1 overflow-x-auto border-b border-line print:hidden"
+              `${TABRIJ} print:hidden`
         }
       >
         {tabs.map((t, i) => {
@@ -84,7 +85,7 @@ export function Tabs({
                   ? `${basis} shrink-0 whitespace-nowrap rounded-kaart px-3 py-2 text-left sm:w-full ${
                       selected ? "bg-surface text-lint" : "text-muted hover:bg-surface hover:text-lint"
                     }`
-                  : `${basis} -mb-px shrink-0 whitespace-nowrap border-b-2 px-4 py-2 ${
+                  : `${basis} shrink-0 whitespace-nowrap border-b-2 px-4 py-2 ${
                       selected ? "border-lint text-lint" : "border-transparent text-muted hover:text-lint"
                     }`
               }

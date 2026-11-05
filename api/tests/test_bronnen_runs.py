@@ -63,6 +63,8 @@ def test_het_dossier_gaat_alleen_mee_als_er_iets_staat():
     assert "dossier" not in invoer_van({**basis, "context": "  ", "afbakening": ""})
     assert invoer_van({**basis, "doel": " Specificaties ", "afbakening": "Geen overgangsrecht."})["dossier"] == {
         "doel": "Specificaties", "afbakening": "Geen overgangsrecht."}
+    # De gekozen gebeurtenis zoekt mee (zoekvragen a–d): een andere keuze is een andere invoer, dus opnieuw zoeken.
+    assert invoer_van({**basis, "gebeurtenis": "verrekening"})["dossier"] == {"gebeurtenis": "verrekening"}
 
 
 async def test_zonder_vertrekpunt_geen_run(client):
@@ -90,6 +92,24 @@ async def test_dezelfde_selectie_dezelfde_run_een_andere_selectie_een_nieuwe(cli
     assert (await _start(client, wg, 201))["nieuw"] is True
 
 
+async def test_andere_zoekcode_is_een_nieuwe_run_maar_geen_veranderd_werkgebied(client):
+    """Nieuwe zoekcode van graph-qa (`zoekversie`) zoekt opnieuw, ook als het werkgebied gelijk bleef: anders bleef de
+    uitkomst van de oude code staan, ook na *Verder onderzoeken* (Rekeningafspraken, 4 nov 2026). Verouderd zegt alleen
+    dat het werkgebied veranderde."""
+    wg = await _nieuw(client)
+    wg = (await _bron(client, wg, bron_iri=ART))["werkgebied"]
+    pad = f"/v1/werkgebieden/{wg['id']}/bronnen-runs"
+    a = (await client.post(pad, json={"zoekversie": "z1"})).json()
+    b = (await client.post(pad, json={"zoekversie": "z1"})).json()
+    c = (await client.post(pad, json={"zoekversie": "z2"})).json()
+    assert (a["nieuw"], b["nieuw"], b["id"] == a["id"], c["nieuw"], c["zoekversie"]) == (True, False, True, True, "z2")
+    laatste = (await client.get(f"{pad}/laatste")).json()["run"]
+    assert (laatste["id"], laatste["verouderd"], laatste["zoekversie"]) == (c["id"], False, "z2")
+    assert (await client.post(pad, json={"zoekversie": "geen spaties"})).status_code == 422
+    # Zonder versie (een oudere graph-qa): zoals voorheen.
+    assert (await client.post(pad)).json()["zoekversie"] == ""
+
+
 # --- de uitkomst ------------------------------------------------------------------------------------
 
 async def test_meer_methoden_een_kandidaat_met_de_sterkste_rol(client):
@@ -106,7 +126,7 @@ async def test_meer_methoden_een_kandidaat_met_de_sterkste_rol(client):
     lijst = await _lijst(client, wg)
     assert set(lijst) == {ART2}
     k = lijst[ART2]
-    assert k["rol"] == "afhankelijkheid" and k["status"] == "voorgesteld" and k["in_laatste_run"]
+    assert k["rol"] == "afhankelijkheid" and k["status"] == "voorgesteld" and not k["vervallen"]
     assert [b["methode"] for b in k["bewijs"]] == ["opbouw", "verwijzing_uit"]
     assert k["id"] == bronnen_run_store.kandidaat_id(ART2)
 
@@ -136,55 +156,59 @@ async def _met_kandidaten(client):
     return wg, await _lijst(client, wg)
 
 
+async def _besluit(client, wg, kid, besluit, verwacht=200, **velden):
+    """Een besluit in een werkgebied zonder deelvragen: de bronselectie bij de analysevraag."""
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/bronselectie/analysevraag/kandidaten/{kid}",
+                          json={"besluit": besluit, **velden})
+    assert r.status_code == verwacht, r.text
+    return r.json()
+
+
 async def test_een_uitgesloten_kandidaat_komt_niet_terug(client):
     wg, lijst = await _met_kandidaten(client)
-    pad = f"/v1/werkgebieden/{wg['id']}/kandidaten/{lijst[ART2]['id']}"
-    assert (await client.post(f"{pad}/uitsluiten", json={"reden": ""})).status_code == 422
-    r = await client.post(f"{pad}/uitsluiten", json={"reden": "Buiten de analysevraag"})
-    assert r.status_code == 200 and r.json()["status"] == "uitgesloten" and r.json()["besloten_door"] == "jurist-a"
+    kid = lijst[ART2]["id"]
+    await _besluit(client, wg, kid, "uitsluiten", 422, reden="")
+    await _besluit(client, wg, kid, "uitsluiten", reden="Buiten de analysevraag")
+    k = (await _lijst(client, wg))[ART2]
+    assert k["status"] == "uitgesloten" and k["besloten_door"] == "jurist-a"
     # Een nieuwe run (andere analysevraag) vindt hem opnieuw, met nieuw bewijs: het besluit blijft staan.
     await client.patch(f"/v1/werkgebieden/{wg['id']}", json={"verwachte_revisie": wg["revisie"], "analysevraag": "Hoe?"})
     run = await _start(client, await _haal(client, wg), 201)
     await _uitkomst(client, wg, run, [_k(ART2, "kern", ("overzicht", ""), ("verwijzing_in", ONE))])
     k = (await _lijst(client, wg))[ART2]
     assert k["status"] == "uitgesloten" and k["reden"] == "Buiten de analysevraag"
-    assert k["in_laatste_run"] and k["rol"] == "kern" and len(k["bewijs"]) == 2
+    assert k["run_id"] == run["id"] and k["rol"] == "kern" and len(k["bewijs"]) == 2 and not k["vervallen"]
     # Heropenen kan; dan is hij weer een voorstel.
-    assert (await client.post(f"{pad}/heropenen")).json()["status"] == "voorgesteld"
+    await _besluit(client, wg, kid, "heropenen")
+    assert (await _lijst(client, wg))[ART2]["status"] == "voorgesteld"
 
 
-async def test_later_en_heropenen(client):
+async def test_de_werkgebiedbrede_besluitroutes_bestaan_niet_meer(client):
+    """Besluiten neem je per deelvraag (spoor J); later, uitsluiten en opnemen op het werkgebied zijn weg."""
     wg, lijst = await _met_kandidaten(client)
-    pad = f"/v1/werkgebieden/{wg['id']}/kandidaten/{lijst[LID3]['id']}"
-    assert (await client.post(f"{pad}/later")).json()["status"] == "later"
-    assert (await client.post(f"{pad}/later")).status_code == 409
-    assert (await client.post(f"{pad}/heropenen")).json()["status"] == "voorgesteld"
-    assert (await client.post(f"{pad}/heropenen")).status_code == 409
-    assert (await client.post(f"/v1/werkgebieden/{wg['id']}/kandidaten/Konbekend/later")).status_code == 404
+    for actie in ("later", "uitsluiten", "heropenen", "opnemen"):
+        r = await client.post(f"/v1/werkgebieden/{wg['id']}/kandidaten/{lijst[LID3]['id']}/{actie}", json={})
+        assert r.status_code in (404, 405), actie
 
 
 async def test_opnemen_maakt_een_bronselectie_met_de_rol_van_de_kandidaat(client):
     wg, lijst = await _met_kandidaten(client)
     wg = await _haal(client, wg)
-    pad = f"/v1/werkgebieden/{wg['id']}/kandidaten"
     # Een verouderde revisie: 412, en er gebeurt niets.
-    r = await client.post(f"{pad}/{lijst[ART2]['id']}/opnemen", json={"verwachte_revisie": wg["revisie"] + 5})
-    assert r.status_code == 412
+    await _besluit(client, wg, lijst[ART2]["id"], "opnemen", 412, verwachte_revisie=wg["revisie"] + 5)
     assert (await _lijst(client, wg))[ART2]["status"] == "voorgesteld"
     # Afhankelijkheid → context.
-    r = await client.post(f"{pad}/{lijst[ART2]['id']}/opnemen", json={"verwachte_revisie": wg["revisie"]})
-    assert r.status_code == 200, r.text
-    uit = r.json()
-    assert uit["kandidaat"]["status"] == "opgenomen" and uit["selectie"]["rol"] == "context"
-    assert uit["selectie"]["reden"] == "Voorgesteld door Lex (afhankelijkheid)."
-    assert [b["bron_iri"] for b in uit["werkgebied"]["bronnen"]] == [ART2]
+    await _besluit(client, wg, lijst[ART2]["id"], "opnemen", verwachte_revisie=wg["revisie"])
+    wg = await _haal(client, wg)
+    assert (await _lijst(client, wg))[ART2]["status"] == "opgenomen"
+    [sel] = wg["bronnen"]
+    assert (sel["bron_iri"], sel["rol"], sel["reden"]) == (ART2, "context", "Voorgesteld door Lex (afhankelijkheid).")
     # Kern → analyseren; de analist mag de rol overschrijven.
-    r = await client.post(f"{pad}/{lijst[ART]['id']}/opnemen",
-                          json={"verwachte_revisie": uit["werkgebied"]["revisie"], "rol": "context"})
-    assert r.json()["selectie"]["rol"] == "context"
-    # Opgenomen is geen open voorstel: niet heropenen, niet uitsluiten.
-    assert (await client.post(f"{pad}/{lijst[ART2]['id']}/heropenen")).status_code == 409
-    assert (await client.post(f"{pad}/{lijst[ART2]['id']}/uitsluiten", json={"reden": "x"})).status_code == 409
+    await _besluit(client, wg, lijst[ART]["id"], "opnemen", verwachte_revisie=wg["revisie"], rol="context")
+    wg = await _haal(client, wg)
+    assert {b["bron_iri"]: b["rol"] for b in wg["bronnen"]}[ART] == "context"
+    # Opgenomen is geen open voorstel: niet uitsluiten.
+    await _besluit(client, wg, lijst[ART2]["id"], "uitsluiten", 409, reden="x")
     acties = [a["actie"] for a in (await client.get(f"/v1/werkgebieden/{wg['id']}/audit")).json()["audit"]]
     assert acties.count("kandidaat-opgenomen") == 2 and "bronnen-voorgesteld" in acties
 
@@ -192,15 +216,16 @@ async def test_opnemen_maakt_een_bronselectie_met_de_rol_van_de_kandidaat(client
 async def test_uit_de_selectie_gehaald_wordt_weer_een_voorstel(client):
     wg, lijst = await _met_kandidaten(client)
     wg = await _haal(client, wg)
-    uit = (await client.post(f"/v1/werkgebieden/{wg['id']}/kandidaten/{lijst[ART2]['id']}/opnemen",
-                             json={"verwachte_revisie": wg["revisie"]})).json()
+    await _besluit(client, wg, lijst[ART2]["id"], "opnemen", verwachte_revisie=wg["revisie"])
+    wg = await _haal(client, wg)
+    sid = next(b["id"] for b in wg["bronnen"] if b["bron_iri"] == ART2)
     # Zolang hij in de selectie staat, laat een nieuwe run hem opgenomen.
-    run = await _start(client, uit["werkgebied"], 201)
+    run = await _start(client, wg, 201)
     await _uitkomst(client, wg, run, [_k(ART2, "afhankelijkheid", ("definitie", ""))])
     assert (await _lijst(client, wg))[ART2]["status"] == "opgenomen"
     # Weggehaald: meteen weer een voorstel, met zijn bewijs – zonder nieuwe run.
     wg = await _haal(client, wg)
-    r = await client.delete(f"/v1/werkgebieden/{wg['id']}/bronnen/{uit['selectie']['id']}",
+    r = await client.delete(f"/v1/werkgebieden/{wg['id']}/bronnen/{sid}",
                             params={"verwachte_revisie": wg["revisie"]})
     assert r.status_code == 200
     k = (await _lijst(client, wg))[ART2]

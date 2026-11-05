@@ -2,8 +2,28 @@ import { describe, expect, it } from "vitest";
 
 import {
   ONBEKEND, antwoordActie, antwoordTekst, beginstand, groepeerVragen, isLaatsteVraag, openVraag, parseAntwoordOp,
-  parseVraagkaart, vorige, type Vraagkaart,
+  parseVraagkaart, regelNamen, stilActie, typActie, vorige, type Vraagkaart,
 } from "./vraagkaart";
+
+describe("regels: één regel is één ding (4 nov 2026)", () => {
+  it("noemt de regels naar wat het kaartje zegt, en zonder regel de deelvragen", () => {
+    expect(regelNamen(null)).toMatchObject({ enkel: "deelvraag", label: "Eigen deelvraag", eerste: "Typ een eigen deelvraag…" });
+    const b = regelNamen({ enkel: "bepaling", voorbeeld: "artikel 9 lid 2 Invorderingswet 1990" });
+    expect(b).toMatchObject({ enkel: "bepaling", label: "Eigen bepaling", lijst: "Je eigen bepalingen",
+      eerste: "Bijv. ‘artikel 9 lid 2 Invorderingswet 1990’", volgende: "Nog een bepaling…" });
+  });
+
+  it("leest `regel` van het kaartje en stuurt eigen bepalingen als regels", () => {
+    const k = parseVraagkaart({ intake_id: "bs-wg1", stap: "bs_bepalingen", vraag: "De kernbepalingen", modus: "bronselectie",
+      deelvraag_id: "d1", weergave: "paneel", regel: { enkel: "bepaling", voorbeeld: "artikel 9" } })!;
+    expect(k.regel).toEqual({ enkel: "bepaling", voorbeeld: "artikel 9" });
+    expect(parseVraagkaart({ intake_id: "x", stap: "naam", vraag: "?" })!.regel).toBeNull();
+    expect(typActie(k, [" artikel 10 IW ", "", "artikel 3 IW"])).toEqual({ intake_id: "bs-wg1", stap: "bs_bepalingen",
+      actie: "antwoord", teksten: ["artikel 10 IW", "artikel 3 IW"], deelvraag_id: "d1" });
+    expect(typActie(k, ["", "  "])).toBeUndefined();
+    expect(parseVraagkaart({ intake_id: "x", stap: "bs_toevoegen_treffers", vraag: "?" })).toBeUndefined();
+  });
+});
 
 const RUW = {
   intake_id: "ik1", soort: "vraag", stap: "regelingen", nr: 3, totaal: 5,
@@ -39,7 +59,11 @@ describe("parseVraagkaart", () => {
         deelvragen: ["Wat telt mee?", 7], afbakening: "Regelingen: nog te bepalen.", bronnen: ["Afd. 5.1", 3] } });
     expect(s.samenvatting).toEqual({ naam: "Box 3", aanleiding: "Wetswijziging.", context: "", doel: "Webservices.",
       analysevraag: "Wie?", praktijkvoorbeeld: "", deelvragen: ["Wat telt mee?"],
-      afbakening: "Regelingen: nog te bepalen.", bronnen: ["Afd. 5.1"], wijzigingen: [] });
+      afbakening: "Regelingen: nog te bepalen.", regelingen: [], gebeurtenis: "", bronnen: ["Afd. 5.1"], wijzigingen: [] });
+    // Sinds 4 nov 2026: het zoekbereik en de gebeurtenis in plaats van de bronnen.
+    const n = kaart({ soort: "samenvatting", stap: "samenvatting",
+      samenvatting: { naam: "Box 3", regelingen: ["Wet IB 2001", 4], gebeurtenis: "heffing" } }).samenvatting!;
+    expect([n.regelingen, n.gebeurtenis, n.bronnen]).toEqual([["Wet IB 2001"], "heffing", []]);
     expect(s.modus).toBe("samenstellen");
   });
 
@@ -134,7 +158,7 @@ describe("bladeren", () => {
   const bep = (index: number, totaal = 3) => kaart({ stap: "bepalingen", terug: true, nr: 10 + index, totaal: 9 + totaal,
     deel: { index, totaal, deelvraag: `Deelvraag ${index + 1}?` } });
 
-  it("‹ gaat naar de vorige stap, vanaf de samenvatting naar het laatste bepalingen-kaartje", () => {
+  it("‹ gaat naar de vorige stap, vanaf de samenvatting naar de gebeurtenis", () => {
     // De bronnen komen pas na de deelvragen en wat erbuiten valt (Handleiding 1f).
     expect(vorige(kaart({ terug: true }))).toEqual({ naar: "buiten" });
     expect(vorige(kaart({ stap: "analysevraag", terug: true }))).toEqual({ naar: "doel" });
@@ -142,26 +166,17 @@ describe("bladeren", () => {
     expect(kaart({ stap: "thema", modus: "aanvullen", terug: true }).stap).toBe("thema");
     expect(vorige(kaart({ stap: "thema", modus: "aanvullen", terug: true }))).toEqual({ naar: "praktijkvoorbeeld" });
     expect(vorige(kaart({ terug: false }))).toBeUndefined();
-    // Negen vaste stappen en drie deelvragen: de samenvatting is 12 van 12, terug is deel 3 (index 2).
-    expect(vorige(kaart({ stap: "samenvatting", soort: "samenvatting", terug: true, nr: 12, totaal: 12 })))
-      .toEqual({ naar: "bepalingen", naar_deel: 2 });
+    // De laatste stap is de gebeurtenis (4 nov 2026); de bronnen per deelvraag volgen in de bronselectie.
+    expect(vorige(kaart({ stap: "samenvatting", soort: "samenvatting", terug: true, nr: 11, totaal: 11 })))
+      .toEqual({ naar: "gebeurtenis" });
   });
 
-  it("de bepalingen hebben een kaartje per deelvraag: ‹ bladert per deel, Verzend op het laatste", () => {
-    expect(bep(0).deel).toEqual({ index: 0, totaal: 3, deelvraag: "Deelvraag 1?" });
-    expect(vorige(bep(0))).toEqual({ naar: "regelingen" });
-    expect(vorige(bep(2))).toEqual({ naar: "bepalingen", naar_deel: 1 });
-    expect(isLaatsteVraag(bep(1))).toBe(false);
-    expect(isLaatsteVraag(bep(2))).toBe(true);
-    expect(isLaatsteVraag(kaart())).toBe(false);
-    // Zonder deelvragen één kaartje over de analysevraag.
-    expect(isLaatsteVraag(kaart({ stap: "bepalingen", deel: { index: 0, totaal: 1, deelvraag: null } }))).toBe(true);
-    // Een keuze en terugbladeren dragen het deel.
-    expect(antwoordActie(bep(1), ["urn:bwb:x"], "")).toMatchObject({ stap: "bepalingen", deel: 1 });
-    expect(antwoordTekst(bep(2), { intake_id: "ik1", stap: "bepalingen", deel: 2, actie: "wijzig", naar: "bepalingen", naar_deel: 1 }))
-      .toBe("Terug naar de bepalingen bij deelvraag 2.");
-    // `deel` alleen bij de bepalingen.
-    expect(kaart({ deel: { index: 0, totaal: 1, deelvraag: null } }).deel).toBeNull();
+  it("na de regelingen de gebeurtenis, met Verzend; een oud bepalingen-kaartje blijft leesbaar", () => {
+    const g = kaart({ stap: "gebeurtenis", terug: true });
+    expect(vorige(g)).toEqual({ naar: "regelingen" });
+    expect(isLaatsteVraag(g)).toBe(true);
+    expect(isLaatsteVraag(kaart({ stap: "regelingen" }))).toBe(false);
+    expect(bep(1).deel).toEqual({ index: 1, totaal: 3, deelvraag: "Deelvraag 2?" });
     expect(parseAntwoordOp({ intake_id: "ik1", stap: "bepalingen", deel: 1 })).toEqual(
       { intake_id: "ik1", stap: "bepalingen", deel: 1, actie: "antwoord" });
   });
@@ -269,5 +284,13 @@ describe("de bronselectie per deelvraag (spoor J)", () => {
     const { groepen } = groepeerVragen(items, false);
     const [g] = [...groepen.values()];
     expect(g.paren.map((p) => [p.deelvraag_id, p.antwoord])).toEqual([["d1", "Artikel 9"], ["d2", "Artikel 10"]]);
+  });
+});
+
+describe("de bronselectie stilzetten vanaf het compacte kaartje", () => {
+  it("is de actie afbreken op de stap en deelvraag van het kaartje", () => {
+    const k = { intake_id: "bs-wg1", stap: "bs_bepalingen", deelvraag_id: "d1" } as unknown as Vraagkaart;
+    expect(stilActie(k)).toEqual({ intake_id: "bs-wg1", stap: "bs_bepalingen", actie: "afbreken", deelvraag_id: "d1" });
+    expect(antwoordTekst({ ...k, modus: "bronselectie" } as Vraagkaart, stilActie(k))).toBe("Zet de bronselectie even stil.");
   });
 });

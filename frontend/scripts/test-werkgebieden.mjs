@@ -86,6 +86,12 @@ await page.route("**/api/**", async (route) => {
     return route.fulfill({ json: uit() });
   }
   // Spoor I6: het thema dat Lex voorstelt (zonder model) en het opslaan ervan.
+  // De peildatum naast de toestand in de graaf (3 nov 2026): de Iw geldt hier pas ná de peildatum.
+  if (p === "/api/werkgebieden/wg1/toestanden") return route.fulfill({ json: {
+    peildatum: "2026-03-01", peildatum_standaard: false, volledig: true,
+    regelingen: [{ bwb_id: "BWBR0004770", citeertitel: "Invorderingswet 1990", geldig_vanaf: "2026-07-01", geldig_tot: null,
+      na_peildatum: true }],
+  } });
   if (p === "/api/werkgebieden/wg1/thema-voorstel") return route.fulfill({ json: {
     rechtsgebieden: ["Belastingrecht"], voorstel: [{ thema: THEMA, label: "belasting" }] } });
   if (p === "/api/werkgebieden/wg1" && m === "PATCH") {
@@ -195,64 +201,50 @@ try {
   await page.waitForURL("**/werkgebieden/wg1/bronnen");
   await page.getByText("Nog geen bronnen. Neem een bepaling op", { exact: false }).waitFor();
 
-  // Opnemen gaat in een venster. Een ongeldige regeling komt niet bij de api; een geldige wel, met de
-  // revisie in beeld.
-  const opnemen = async () => {
-    if (!(await page.getByLabel("Regeling of bron-IRI").isVisible().catch(() => false)))
-      await page.getByRole("button", { name: "Bepaling opnemen" }).click();
-  };
-  await opnemen();
-  await page.getByLabel("Regeling of bron-IRI").fill("Invorderingswet");
-  await page.getByLabel("Artikel", { exact: true }).fill("9");
-  await page.getByRole("button", { name: "Opnemen", exact: true }).click();
-  await melding("Regeling: geef een BWB-id");
-  assert.equal(requests.filter((r) => r.p.endsWith("/bronnen")).length, 0);
-  await page.getByLabel("Regeling of bron-IRI").fill("bwbr0004770");
-  await page.getByLabel("Artikel", { exact: true }).fill("artikel 9");
-  await page.getByRole("button", { name: "Opnemen", exact: true }).click();
+  // Een bepaling zoeken en toevoegen gebeurt niet op het artefact maar in het gesprek (4 nov 2026): geen knop en geen
+  // venster; *Bespreek met Lex* opent de werkplek in dit werkgebied, waar *Noem een bepaling* bij de suggesties staat.
+  assert.equal(await page.getByRole("button", { name: /Bepaling toevoegen/ }).count(), 0, "geen zoekknop op het artefact");
+  assert.equal(await page.locator("[data-bepaling-toevoegen]").count(), 0);
+  const bespreek = page.locator("[data-bronnen-register] [data-vraag-lex=werkgebied]");
+  assert.match(await bespreek.getAttribute("href"), /^\/workbench\?.*werkgebied=wg1/);
+  // Wat Lex toevoegt, komt via de api binnen; de pagina toont het na het laden.
+  const voegToe = (body) => page.evaluate(async (b) => (await fetch("/api/werkgebieden/wg1/bronnen", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) })).status, body);
+  assert.equal(await voegToe({ bron_iri: IRI9, verwachte_revisie: 1, rol: "analyseren", bereik: "onderliggend" }) < 300, true);
+  await page.reload();
   // Spoor K: de rij noemt de bepaling als titel en de regeling eronder (de mock-up), per deelvraag gegroepeerd.
   const rij9 = page.locator("[data-bron]").filter({ hasText: "Invorderingswet 1990" }).getByRole("link", { name: /^artikel 9/ });
   await rij9.waitFor();
-  const eerste = requests.find((r) => r.p.endsWith("/bronnen") && r.m === "POST").body;
-  assert.deepEqual([eerste.bwb_id, eerste.artikel, eerste.verwachte_revisie, eerste.rol, eerste.bereik],
-    ["BWBR0004770", "9", 1, "analyseren", "onderliggend"]);
   // De rij gaat naar de pagina van de bepaling (spoor G3), met het werkgebied als context; geen IRI in beeld.
   assert.equal(await rij9.getAttribute("href"), `/bronnen?bron_iri=${encodeURIComponent(IRI9)}&werkgebied=wg1`);
   assert.equal(await page.locator("[data-bronnen-register]").getByText(IRI9).count(), 0, "geen IRI in de rij");
 
-  // Dezelfde bron nog eens: idempotent, en dat staat er.
-  await opnemen();
-  await page.getByLabel("Regeling of bron-IRI").fill("BWBR0004770");
-  await page.getByLabel("Artikel", { exact: true }).fill("9");
-  await page.getByRole("button", { name: "Opnemen", exact: true }).click();
-  await melding("stond er al in");
-  // Een bepaling die de graaf niet kent: de reden van de api staat bij het formulier.
-  await opnemen();
-  await page.getByLabel("Regeling of bron-IRI").fill("BWBR0000001");
-  await page.getByLabel("Artikel", { exact: true }).fill("1");
-  await page.getByRole("button", { name: "Opnemen", exact: true }).click();
-  await melding("Bepaling niet gevonden in de graaf.");
-  // Een contextbron.
-  await page.getByLabel("Regeling of bron-IRI").fill("BWBR0002320");
-  await page.getByLabel("Artikel", { exact: true }).fill("3");
-  await page.getByLabel("Contextbron", { exact: false }).check();
-  await page.getByRole("button", { name: "Opnemen", exact: true }).click();
+  // Een contextbron in een andere regeling.
+  assert.equal(await voegToe({ bron_iri: IRI3, verwachte_revisie: 2, rol: "context", bereik: "onderliggend" }) < 300, true);
+  await page.reload();
   await page.locator("[data-bron]").filter({ hasText: "Algemene wet inzake rijksbelastingen" }).getByRole("link", { name: /^artikel 3/ }).waitFor();
   await tab("Bronnen (2)").waitFor();
+  await page.locator("[data-peildatum='2026-03-01']").getByText("Peildatum 01-03-2026").waitFor();
+  await page.locator("[data-peildatum-melding]").getByText("geldt vanaf 01-07-2026, na de peildatum", { exact: false }).waitFor();
   await foto("werkgebied-bronnen");
 
   // Rol wijzigen staat achter ⋯ (geen knoppen in elke rij). Daarna een conflict: iemand anders was ons
   // voor – de pagina laadt opnieuw en zegt het.
-  await page.getByRole("button", { name: "Rol en verwijderen: Invorderingswet 1990 – artikel 9" }).click();
-  const rol9 = page.locator(`[data-bron] select`).first();
-  await rol9.selectOption("context");
+  // De rol is een keuze in het menu ⋯ (`MeerMenu`), met een vinkje bij wat nu geldt.
+  const rolMenu = async () => {
+    await page.getByRole("button", { name: "Rol en verwijderen: Invorderingswet 1990 – artikel 9" }).click();
+    return page.getByRole("menu");
+  };
+  await (await rolMenu()).getByRole("menuitemradio", { name: "Contextbron" }).click();
   await melding("Rol gewijzigd naar contextbron.");
   const patch = requests.filter((r) => r.m === "PATCH").at(-1).body;
   assert.deepEqual([patch.rol, patch.verwachte_revisie], ["context", 3]);
   volgendeConflict = true;
-  await rol9.selectOption("analyseren");
+  await (await rolMenu()).getByRole("menuitemradio", { name: "Analyseren" }).click();
   await melding("Iemand anders wijzigde dit werkgebied net.");
-  assert.equal(await rol9.inputValue(), "context");
+  const menu9 = await rolMenu();
+  assert.equal(await menu9.getByRole("menuitemradio", { name: "Contextbron" }).getAttribute("aria-checked"), "true");
+  await page.keyboard.press("Escape");
 
   // Artefacten: vier zelfstandige producten, elk met een eigen pagina; de filter laat er één zien.
   await tab("Artefacten (4)").click();
@@ -281,22 +273,68 @@ try {
   assert.equal(await page.getByText("“de ontvanger”").count(), 0);
   await page.getByText("“de aanslag is invorderbaar”").waitFor();
 
-  // Herladen houdt de pagina; Terug gaat naar waar je was. De historie staat achter ⋯ in de kop.
+  // Herladen houdt de pagina; Terug gaat naar waar je was. De historie is de vijfde tab.
   await page.reload();
   await page.locator("[data-artefact-pagina=annotaties]").waitFor();
   await page.goto(`${base}/werkgebieden/wg1`);
   // Spoor I6: in Gegevens bewerken stelt Lex een TOOI-thema voor; overnemen en opslaan stuurt de URI.
-  await page.getByRole("button", { name: "Gegevens bewerken" }).click();
+  // 4 nov 2026: bewerken gebeurt ter plekke, op de kaart van het dossier – geen venster. *Gegevens bewerken* in de
+  // kop opent die met het formulier open; Escape annuleert.
+  await page.getByRole("link", { name: "Gegevens bewerken" }).click();
+  await page.waitForURL("**/werkgebieden/wg1/artefacten/dossier");
+  await page.locator("[data-gegevens-formulier]").waitFor();
+  assert.equal(await page.getByRole("dialog").count(), 0, "geen venster om te bewerken");
+  await page.locator("[data-gegevens-formulier]").getByLabel(/^Naam/).press("Escape");
+  await page.locator("[data-gegevens-formulier]").waitFor({ state: "detached" });
+  await page.getByRole("button", { name: "Analyseopdracht bewerken" }).click();
   const voorstelThema = page.locator("[data-thema-voorstel]");
   await voorstelThema.getByText("belasting", { exact: true }).waitFor();
   await voorstelThema.getByRole("button", { name: "Overnemen" }).click();
   assert.equal(await page.getByLabel(/^Thema/).inputValue(), THEMA);
+  // De tekstvakken groeien mee: een lang praktijkvoorbeeld staat er helemaal, zonder slepen of eigen scrollbalk.
+  const formulier = page.locator("[data-gegevens-formulier]");
+  const voorbeeld = formulier.getByLabel(/^Praktijkvoorbeeld/);
+  const lang = Array.from({ length: 12 }, (_, i) => `Regel ${i + 1} van het praktijkvoorbeeld, met genoeg tekst om af te breken.`).join("\n");
+  const hoogteVoor = (await voorbeeld.boundingBox()).height;
+  await voorbeeld.fill(lang);
+  const maat = await voorbeeld.evaluate((el) => ({ scroll: el.scrollHeight, client: el.clientHeight, hoogte: el.offsetHeight }));
+  assert.ok(maat.scroll <= maat.client + 1, `tekst valt buiten het vak: ${JSON.stringify(maat)}`);
+  assert.ok(maat.hoogte > hoogteVoor * 3, "het vak groeit mee met de tekst");
+  // De gebeurtenis (zoekvragen a–d) staat in het formulier, op één regel.
+  const gebeurtenis = formulier.getByLabel(/^Gebeurtenis/);
+  assert.equal(await gebeurtenis.evaluate((el) => el.tagName), "INPUT");
+  await gebeurtenis.fill("verrekening");
+  await foto("werkgebied-gegevens-bewerken");
   await page.locator("[data-gegevens-formulier]").getByRole("button", { name: "Opslaan" }).click();
   await page.locator("[data-gegevens-formulier]").waitFor({ state: "detached" });
-  assert.equal(requests.filter((r) => r.m === "PATCH" && r.p === "/api/werkgebieden/wg1").at(-1).body.thema, THEMA);
-  await page.getByRole("button", { name: "Meer voor dit werkgebied" }).click();
-  await page.getByRole("link", { name: "Historie" }).click();
+  const gegevens = requests.filter((r) => r.m === "PATCH" && r.p === "/api/werkgebieden/wg1").at(-1).body;
+  assert.equal(gegevens.thema, THEMA);
+  assert.equal(gegevens.gebeurtenis, "verrekening");
+  assert.equal(gegevens.praktijkvoorbeeld, lang);
+  assert.equal(gegevens.status, undefined, "het dossier stuurt alleen zijn eigen velden");
+  // Wat je bewerkt, zie je ook bij het lezen: naam, thema en regelingen op de kaart *Analyseopdracht*.
+  for (const veld of ["naam", "thema", "regelingen"]) await page.locator(`[data-dossier-veld=${veld}]`).waitFor();
+  // Peildatum en status bewerk je op de kaart *Versie*, waar ze staan; op die smalle kaart onder elkaar, even breed.
+  await page.getByRole("button", { name: "Peildatum en status bewerken" }).click();
+  const versieForm = page.locator("[data-gegevens-formulier]");
+  const naastElkaar = versieForm.locator("[data-peildatum-status]");
+  const datum = await naastElkaar.locator("input[type=date]").boundingBox();
+  const status = await naastElkaar.locator("select").boundingBox();
+  assert.ok(status.y > datum.y + datum.height && Math.abs(datum.width - status.width) <= 1 && Math.abs(datum.x - status.x) <= 1,
+    `peildatum ${JSON.stringify(datum)} en status ${JSON.stringify(status)} staan niet netjes onder elkaar`);
+  assert.equal(await versieForm.getByLabel(/^Naam/).count(), 0, "alleen peildatum en status");
+  await foto("werkgebied-gegevens-peildatum-status");
+  await naastElkaar.locator("select").selectOption("actief");
+  await versieForm.getByRole("button", { name: "Opslaan" }).click();
+  await versieForm.waitFor({ state: "detached" });
+  const versieBody = requests.filter((r) => r.m === "PATCH" && r.p === "/api/werkgebieden/wg1").at(-1).body;
+  assert.deepEqual(Object.keys(versieBody).sort(), ["peildatum", "status", "verwachte_revisie"]);
+  // Het dossier is een eigen pagina (zonder de tabs): terug naar het werkgebied voor de historie.
+  await page.goto(`${base}/werkgebieden/wg1`);
+  await page.getByRole("navigation", { name: "Werkgebied" }).getByRole("link", { name: "Historie" }).click();
   await page.waitForURL("**/werkgebieden/wg1/historie");
+  assert.equal(await page.getByRole("navigation", { name: "Werkgebied" }).getByRole("link", { name: "Historie" })
+    .getAttribute("aria-current"), "page");
   await melding("Invorderingswet 1990 – artikel 9 opgenomen als analyseren");
   await melding("Werkgebied aangemaakt");
   await page.goBack();
@@ -324,8 +362,8 @@ try {
   await page.goto(`${base}/werkgebieden/wg1/bronnen`);
   await tab("Bronnen (3)").waitFor();
   await page.getByRole("button", { name: /^Rol en verwijderen:/ }).first().click();
-  await page.getByRole("button", { name: "Verwijderen uit werkgebied", exact: true }).first().click();
-  await page.getByRole("button", { name: "Verwijderen?" }).click();
+  await page.getByRole("menuitem", { name: "Verwijderen uit werkgebied", exact: true }).first().click();
+  await page.getByRole("menuitem", { name: "Verwijderen?" }).click();
   await melding("De bepaling en haar annotaties blijven bestaan.");
   await tab("Bronnen (2)").waitFor();
   const del = requests.filter((r) => r.m === "DELETE").at(-1);
@@ -355,17 +393,27 @@ try {
   await page.getByRole("navigation", { name: "Werkgebied" }).getByRole("link", { name: "Bronnen (3)" }).waitFor();
   await foto("werkgebied-mobiel");
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+  // De tabbalk schuift alleen horizontaal: vijf tabs, geen verticale scroll in de rij (3 nov 2026).
+  const rij = page.locator("[data-tabrij]");
+  assert.equal(await rij.getByRole("link").count(), 5);
+  const tabrij = await rij.evaluate((el) => ({ hoog: el.scrollHeight - el.clientHeight, y: getComputedStyle(el).overflowY }));
+  assert.deepEqual(tabrij, { hoog: 0, y: "hidden" });
+  await rij.evaluate((el) => { el.scrollTop = 20; });
+  assert.equal(await rij.evaluate((el) => el.scrollTop), 0);
   await page.setViewportSize({ width: 1280, height: 900 });
 
   // Verwijderen is echt wissen, net als een annotatie: op de pagina (tweede klik bevestigt), met de
   // revisie in beeld; een 412 laadt de nieuwe stand en zegt het.
-  const verwijderKnop = () => page.getByRole("button", { name: "Werkgebied verwijderen" });
+  // In de lijst een knop per kaart, op de pagina een regel in het menu ⋯ (`MeerMenu`).
+  const verwijderKnop = () => page.getByRole("button", { name: "Werkgebied verwijderen" })
+    .or(page.getByRole("menuitem", { name: "Werkgebied verwijderen" }));
   const verwijderTweeKeer = async () => {
     // Op de pagina staat verwijderen in het menu ⋯ van de kop; in de lijst per kaart.
     if (!(await verwijderKnop().isVisible().catch(() => false)))
       await page.getByRole("button", { name: "Meer voor dit werkgebied" }).click();
     await verwijderKnop().click();
-    await page.getByRole("button", { name: "Verwijderen?", exact: true }).click();
+    await page.getByRole("button", { name: "Verwijderen?", exact: true })
+      .or(page.getByRole("menuitem", { name: "Verwijderen?", exact: true })).click();
   };
   await page.goto(`${base}/werkgebieden/wg1`);
   await page.getByRole("navigation", { name: "Werkgebied" }).getByRole("link", { name: "Bronnen (3)" }).waitFor();

@@ -3,19 +3,21 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import { BevestigKnop } from "@/components/ui/BevestigKnop";
-import { Button, KNOP_XS } from "@/components/ui/Button";
-import { Input, Select } from "@/components/ui/Field";
-import { Meer } from "@/components/ui/Icoon";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Field";
+import { MeerMenu, MenuKeuze, MenuVerwijder } from "@/components/ui/MeerMenu";
 import { StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { Groep, GroepRij } from "@/components/ui/Pagina";
 import { SkeletonCard } from "@/components/ui/Skeleton";
+import { KnoopTekst } from "@/components/graaf/KnoopTekst";
+import { PeildatumRegel } from "@/components/werkgebieden/Peildatum";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import { besluitBronselectie, foutTekst, haalBronselectie, verwijderBron, wijzigBron, type BronselectieBesluit } from "@/lib/api";
+import { haalNodeWeergave, type NodeWeergave } from "@/lib/annotatieNode";
 import {
-  BEWIJS_LABEL, STAND_LABEL, bronnenZin, deelvraagStand, slotZin, voortgangZin, zoekBeperkingen,
+  BRONSELECTIE_GEWIJZIGD, BEWIJS_LABEL, STAND_LABEL, zoekvraagZin, meldBronselectieGewijzigd, bronnenZin, deelvraagStand, slotZin, voortgangZin, zoekBeperkingen,
   type BronselectieOverzicht, type DeelvraagSelectie, type KandidaatHier,
 } from "@/lib/bronselectie";
 import { bepalingEnRegeling, ookBijZin } from "@/lib/bronnenPerDeelvraag";
@@ -42,7 +44,7 @@ export interface BronBeheer {
  *    met deelvraag n*;
  *  - `filter` (de tab Bronnen: zoeken, rol) laat alleen de passende bronnen zien. */
 export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, inGesprek = false, huidig: huidigId,
-  beheer, filter, versie = 0 }: {
+  beheer, filter, versie = 0, onKlaar, klaarVoor }: {
   werkgebiedId: string;
   /** Laadt opnieuw bij een nieuwe revisie van het werkgebied. */
   revisie?: number;
@@ -53,11 +55,20 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
   beheer?: BronBeheer;
   filter?: { past: (s: Bronselectie | undefined, label: string, rol: BronRol) => boolean; actief: boolean };
   versie?: number;
+  /** Naast het gesprek: *Klaar met deze deelvraag* stuurt de actie van het open kaartje (alleen bij `klaarVoor`). */
+  onKlaar?: (deelvraagId: string) => void;
+  klaarVoor?: string;
 }) {
   const [o, setO] = useState<BronselectieOverzicht | null>(null);
   const [fout, setFout] = useState<string | null>(null);
   const [melding, setMelding] = useState<string | null>(null);
   const [poging, setPoging] = useState(0);
+  // Een besluit elders (het kaartje, een bepaling die Lex in het gesprek toevoegde): opnieuw laden.
+  useEffect(() => {
+    const bij = (e: Event) => { if ((e as CustomEvent).detail === werkgebiedId) setPoging((p) => p + 1); };
+    window.addEventListener(BRONSELECTIE_GEWIJZIGD, bij);
+    return () => window.removeEventListener(BRONSELECTIE_GEWIJZIGD, bij);
+  }, [werkgebiedId]);
   useEffect(() => {
     let levend = true;
     haalBronselectie(werkgebiedId).then((x) => { if (levend) { setO(x); setFout(null); } })
@@ -72,6 +83,7 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
     setMelding(null);
     try {
       setO(await besluitBronselectie(werkgebiedId, d.id, k.id, besluit));
+      meldBronselectieGewijzigd(werkgebiedId);
       // Opnemen maakt een bronselectie: het werkgebied zelf veranderde ook.
       if (besluit.besluit === "opnemen") await beheer?.laad();
     } catch (e) {
@@ -100,6 +112,7 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
     const bronnen = beheer.wg.bronnen.filter((s) => !filter?.actief || filter.past(s, s.label, s.rol));
     return (
       <div data-bronnen-bij-deelvraag className="space-y-4 text-sm text-ink">
+        <PeildatumRegel werkgebiedId={werkgebiedId} revisie={revisie} />
         {beheer.wg.bronnen.length > 0 && (
           <Melding type="uitleg" compact>
             De indeling per deelvraag is nu niet te laden; hieronder de bronnen van het werkgebied.{" "}
@@ -145,6 +158,7 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
 
   return (
     <div data-bronnen-bij-deelvraag className="space-y-6 text-sm text-ink">
+      <PeildatumRegel werkgebiedId={werkgebiedId} revisie={revisie} />
       {!deelvraagId && <p className="text-xs text-muted" data-bronselectie-voortgang>{voortgangZin(o)}</p>}
       {beperkingen.length > 0 && !deelvraagId && (
         <Melding type="waarschuwing" compact titel="Over het zoeken">
@@ -176,18 +190,28 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
                 : undefined}
               label={o.modus === "analysevraag" ? "Bronnen bij de analysevraag" : `Bronnen bij deelvraag ${d.nr}`}
               leeg={kort ? undefined : `Er hoort nog geen bron bij ${o.modus === "analysevraag" ? "de analysevraag" : "deze deelvraag"}. `
-                + "Bepaal de bronnen met Lex in het gesprek, of neem een bepaling op."}>
+                + "Bepaal de bronnen met Lex in het gesprek, of laat Lex er een toevoegen."}>
               {!kort && bronnen.map((b) => {
                 const sel = selecties.get(b.selectie_id);
                 return (
                   <BronRij key={b.selectie_id} werkgebiedId={o.werkgebied_id} bronIri={b.bron_iri} label={b.label || b.bron_iri}
                     rol={b.rol} selectie={sel} beheer={beheer}
                     ook={(bij.get(b.selectie_id) ?? []).filter((n) => n !== d.nr)}
-                    stand={b.rol === "analyseren" && sel ? selectieStand(perSelectie.get(sel.id))?.tekst ?? "" : ""} />
+                    stand={b.rol === "analyseren" && sel ? selectieStand(perSelectie.get(sel.id))?.tekst ?? "" : ""}
+                    inGesprek={inGesprek} />
                 );
               })}
-              {!kort && voorstellen.map((k) => <Voorstel key={k.id} o={o} d={d} k={k} beslis={beslis} />)}
+              {!kort && voorstellen.map((k) => <Voorstel key={k.id} o={o} d={d} k={k} beslis={beslis} inGesprek={inGesprek} />)}
             </Groep>
+            {/* Zelf een bepaling toevoegen gaat via het gesprek (*Noem een bepaling* boven het invoerveld, of
+                typen op het kaartje): zoeken in de graaf hoort niet bij het artefact. */}
+            {inGesprek && !kort && onKlaar && klaarVoor === d.id && d.status !== "voorlopig_afgerond" && d.status !== "beoordeeld" && (
+              <div className="flex sm:justify-end" data-paneel-acties={d.id}>
+                <Button size="sm" onClick={() => onKlaar(d.id)} className="w-full sm:w-auto" data-paneel-klaar>
+                  Klaar met deze deelvraag
+                </Button>
+              </div>
+            )}
             {kort && (
               <VraagLexKnop alleenInGesprek naam={`Ga verder met deelvraag ${d.nr}`} tekst={`Ga verder met deelvraag ${d.nr}`}
                 onderwerp={{ soort: "deelvraag", werkgebied_id: o.werkgebied_id, id: d.id, label: d.vraag }} />
@@ -224,9 +248,35 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
   );
 }
 
+
+/** De wettekst van een bepaling, uitgeklapt naast het gesprek: lezen zonder de werkplek te verlaten. De pagina van
+ *  de bepaling blijft één klik verder. */
+function Wettekst({ bronIri, werkgebiedId }: { bronIri: string; werkgebiedId: string }) {
+  const [view, setView] = useState<NodeWeergave | null>(null);
+  const [fout, setFout] = useState<string | null>(null);
+  useEffect(() => {
+    let levend = true;
+    haalNodeWeergave({ bron_iri: bronIri }).then((v) => { if (levend) setView(v); })
+      .catch((e) => { if (levend) setFout(foutTekst(e, "De tekst kon niet worden geladen.")); });
+    return () => { levend = false; };
+  }, [bronIri]);
+  const actueel = (view?.elementen ?? []).filter((e) => !e.verouderd && e.lifecycle !== "rejected");
+  return (
+    <div className="mx-4 mb-2 rounded-kaart border border-line bg-surface/60 px-3 py-2.5" data-wettekst={bronIri}>
+      {fout ? <p className="text-sm text-muted">{fout}</p>
+        : view ? <KnoopTekst segmenten={view.segmenten} elementen={actueel} kiesbaar={() => false} onKies={() => {}} />
+          : <p className="text-sm text-muted">Tekst laden…</p>}
+      <Link href={bronPad(bronIri, werkgebiedId)} className="focus-ring mt-2 inline-block rounded text-xs font-medium text-lint hover:underline">
+        Open de bepaling
+      </Link>
+    </div>
+  );
+}
+
 /** Eén bron als rij (de `itemrow` van de mock-up): de bepaling als titel, de regeling en wat ze hier doet eronder,
  *  de status rechts; de rij opent de pagina van de bepaling. Met beheer staan rol en verwijderen achter ⋯. */
-function BronRij({ werkgebiedId, bronIri, label, rol, selectie, beheer, ook, stand }: {
+function BronRij({ werkgebiedId, bronIri, label, rol, selectie, beheer, ook, stand, inGesprek = false }: {
+  inGesprek?: boolean;
   werkgebiedId: string;
   bronIri: string;
   label: string;
@@ -236,58 +286,57 @@ function BronRij({ werkgebiedId, bronIri, label, rol, selectie, beheer, ook, sta
   ook: number[];
   stand: string;
 }) {
-  const [open, setOpen] = useState(false);
+  const [tekst, setTekst] = useState(false);
   const { bepaling, regeling } = bepalingEnRegeling(label);
   const sub = [regeling, ROL_LABEL[rol].toLowerCase(), stand.toLowerCase(), ookBijZin(ook)].filter(Boolean).join(" · ");
   const s = selectie;
   return (
-    <GroepRij data-bron={s?.id} data-bron-hier={bronIri} href={bronPad(bronIri, werkgebiedId)} titel={bepaling} sub={sub}
+    <GroepRij data-bron={s?.id} data-bron-hier={bronIri} titel={bepaling} sub={sub}
+      {...(inGesprek ? { uitklap: { open: tekst, onWissel: () => setTekst((t) => !t), label: `Tekst van ${label}` } }
+        : { href: bronPad(bronIri, werkgebiedId) })}
       status={rol === "context" ? <StatusLabel>Context</StatusLabel> : <StatusLabel toon="groen">Geselecteerd</StatusLabel>}
       eind={beheer && s && (
-        <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-label={`Rol en verwijderen: ${label}`}
-          className="focus-ring shrink-0 rounded p-1.5 text-muted hover:bg-paper hover:text-lint">
-          <Meer />
-        </button>
-      )}
-      onder={open && beheer && s && (
-        <div className="mx-2 mb-2 flex flex-col gap-2 rounded-md border border-line bg-surface p-3 sm:flex-row sm:items-center" data-bron-acties>
-          <label className="text-xs text-muted" htmlFor={`rol-${s.id}`}>Rol</label>
-          <Select id={`rol-${s.id}`} value={s.rol} className="sm:w-48"
-            onChange={(e) => {
-              const nieuw = e.target.value as BronRol;
+        <MeerMenu label={`Rol en verwijderen: ${label}`}>
+          {(sluit) => {
+            const zetRol = (nieuw: BronRol) => {
+              sluit();
+              if (nieuw === s.rol) return;
               void beheer.muteer((r) => wijzigBron(beheer.wg.id, s.id, { verwachte_revisie: r, rol: nieuw }), {
                 gelukt: `Rol gewijzigd naar ${ROL_LABEL[nieuw].toLowerCase()}.`,
               });
-            }}>
-            {(["analyseren", "context"] as const).map((r) => <option key={r} value={r}>{ROL_LABEL[r]}</option>)}
-          </Select>
-          <BevestigKnop
-            bevestigTekst="Verwijderen?"
-            titel="Haalt de bepaling uit dit werkgebied; de bepaling en haar annotaties blijven bestaan."
-            onBevestig={async () => {
-              await beheer.muteer((r) => verwijderBron(beheer.wg.id, s.id, r), {
-                gelukt: "Uit het werkgebied verwijderd. De bepaling en haar annotaties blijven bestaan.",
-              });
-            }}
-            className={`${KNOP_XS} border-line bg-paper text-muted hover:text-ink sm:ml-auto`}
-            bevestigClassName="border-fout/40 text-fout">
-            Verwijderen uit werkgebied
-          </BevestigKnop>
-        </div>
-      )} />
+            };
+            return (<>
+              {(["analyseren", "context"] as const).map((r) => (
+                <MenuKeuze key={r} gekozen={s.rol === r} onClick={() => zetRol(r)}>{ROL_LABEL[r]}</MenuKeuze>
+              ))}
+              <MenuVerwijder titel="Haalt de bepaling uit dit werkgebied; de bepaling en haar annotaties blijven bestaan."
+                onBevestig={async () => {
+                  await beheer.muteer((r) => verwijderBron(beheer.wg.id, s.id, r), {
+                    gelukt: "Uit het werkgebied verwijderd. De bepaling en haar annotaties blijven bestaan.",
+                  });
+                }}>
+                Verwijderen uit werkgebied
+              </MenuVerwijder>
+            </>);
+          }}
+        </MeerMenu>
+      )}
+      onder={tekst && <Wettekst bronIri={bronIri} werkgebiedId={werkgebiedId} />} />
   );
 }
 
 /** Eén voorstel van Lex bij één deelvraag: het soort bewijs in gewone woorden en de besluiten. Uitsluiten vraagt een
  *  reden en geldt voor deze deelvraag; een besluit voor het hele werkgebied (`overal`) heropen je met dezelfde
  *  reikwijdte. */
-function Voorstel({ o, d, k, beslis }: {
+function Voorstel({ o, d, k, beslis, inGesprek = false }: {
+  inGesprek?: boolean;
   o: BronselectieOverzicht;
   d: DeelvraagSelectie;
   k: KandidaatHier;
   beslis: (d: DeelvraagSelectie, k: KandidaatHier, b: BronselectieBesluit) => Promise<void>;
 }) {
   const [uitsluiten, setUitsluiten] = useState(false);
+  const [tekst, setTekst] = useState(false);
   const [reden, setReden] = useState("");
   const [bezig, setBezig] = useState(false);
   const doe = async (b: BronselectieBesluit) => {
@@ -296,13 +345,17 @@ function Voorstel({ o, d, k, beslis }: {
   };
   const { bepaling, regeling } = bepalingEnRegeling(k.label || k.bron_iri);
   const sub = [regeling, k.rol === "kern" ? "kernbepaling" : k.rol === "afhankelijkheid" ? "afhankelijkheid" : "mogelijk relevant",
-    ...k.bewijs_soorten.map((s) => BEWIJS_LABEL[s]), k.elders_opgenomen ? "al opgenomen bij een andere deelvraag" : "",
+    // Bij welke zoekvraag (a–d) het hoort: waarom het er staat in de termen van de methode.
+    ...k.zoekvragen.map(zoekvraagZin), ...k.bewijs_soorten.map((s) => BEWIJS_LABEL[s]), k.elders_opgenomen ? "al opgenomen bij een andere deelvraag" : "",
     k.reden ? `reden: ${k.reden}` : "", k.overal ? "geldt voor het hele werkgebied" : ""].filter(Boolean).join(" · ");
   const label = k.stand === "voorgesteld" ? "Ter beoordeling" : STAND_LABEL[k.stand].charAt(0).toUpperCase() + STAND_LABEL[k.stand].slice(1);
   return (
-    <GroepRij data-kandidaat-hier={k.id} data-stand={k.stand} href={bronPad(k.bron_iri, o.werkgebied_id)} titel={bepaling} sub={sub}
+    <GroepRij data-kandidaat-hier={k.id} data-stand={k.stand} titel={bepaling} sub={sub}
+      {...(inGesprek ? { uitklap: { open: tekst, onWissel: () => setTekst((t) => !t), label: `Tekst van ${k.label || bepaling}` } }
+        : { href: bronPad(k.bron_iri, o.werkgebied_id) })}
       status={<StatusLabel toon={k.stand === "voorgesteld" ? "geel" : "neutraal"}>{label}</StatusLabel>}
-      onder={(
+      onder={(<>
+        {tekst && <Wettekst bronIri={k.bron_iri} werkgebiedId={o.werkgebied_id} />}
         <div className="flex flex-col gap-2 px-4 pb-3 sm:flex-row sm:items-center">
           {uitsluiten ? (
             <form className="flex w-full flex-col gap-2 sm:flex-row" onSubmit={(e) => {
@@ -330,6 +383,6 @@ function Voorstel({ o, d, k, beslis }: {
             </Button>
           )}
         </div>
-      )} />
+      </>)} />
   );
 }

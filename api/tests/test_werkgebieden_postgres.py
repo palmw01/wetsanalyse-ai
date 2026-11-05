@@ -74,8 +74,8 @@ async def test_twee_kandidaten_gelijktijdig_opnemen_op_dezelfde_revisie_precies_
                                                                  kandidaten=[k(ART), k(ART2)]), "lex")
     bron = lambda iri: {"bron_iri": iri, "label": iri, "bwb_id": "", "snapshot_id": "s", "bron_hash": "h"}  # noqa: E731
     results = await asyncio.gather(
-        runs.opnemen(wg["id"], runs.kandidaat_id(ART), Opnemen(verwachte_revisie=1), bron(ART), "a"),
-        runs.opnemen(wg["id"], runs.kandidaat_id(ART2), Opnemen(verwachte_revisie=1), bron(ART2), "b"),
+        runs.opnemen(wg["id"], runs.kandidaat_id(ART), Opnemen(verwachte_revisie=1), bron(ART), "a", deelvraag_ids=[]),
+        runs.opnemen(wg["id"], runs.kandidaat_id(ART2), Opnemen(verwachte_revisie=1), bron(ART2), "b", deelvraag_ids=[]),
         return_exceptions=True)
     fouten = [r for r in results if isinstance(r, HTTPException)]
     assert len(fouten) == 1 and fouten[0].status_code == 412

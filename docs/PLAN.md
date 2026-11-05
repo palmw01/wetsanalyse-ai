@@ -895,7 +895,7 @@ van de gebruiker op 20 okt 2026).
     `lib/begripLex.ts` (wat nog gebruikt werd, staat in `lib/kaartVoorstel.ts`);
   - **F3f**: de intake met bepalingen per deelvraag en de twee fixes, met een meting op een **nieuwe**
     set – **gebouwd** (21 okt 2026): de stap `onderdelen` is `bepalingen`, één kaartje per deelvraag
-    (`deel` in kaart, klik en antwoord; ‹ per deel), met `bronnen_vinden.bepaling_opties` (zonder model,
+    (`deel` in kaart, klik en antwoord; ‹ per deel), met `deelvraag_zoeken.bepaling_opties` (zonder model,
     lid-niveau, hoogstens acht) – ook voor de deelvragen-agent (besluit gebruiker 21 okt 2026); een keuze
     wordt een bronselectie gekoppeld aan díé deelvraag. Fix 1: wat aan de afbakening raakt staat
     gemarkeerd onderaan. Fix 2: de afrondingstekst volgt de echte koppelingen. Meting blind op de nieuwe
@@ -917,12 +917,54 @@ van de gebruiker op 20 okt 2026).
   bestaande bronnenrun en deelvragen staan klaar als volgende stap na het aanmaken).
 - De rest van activiteit 1 uit de Leidraad: juridische scenario's met gebeurtenissen (1c) en die
   verbinden met de deelvragen (1e) – de controle die volgens de Handleiding de afbakening scherp maakt.
-- **Een betere rangschikking van `bepaling_opties`** (uit de meting van F3f): de verwachte leden staan
-  hoog in de index, de letterlijke termtelling gooit ze eruit. Stemming en een structuursignaal (de kop
-  van het deel), gemeten op een nieuwe set – de bezwaarset is nu een ontwikkelset.
-- **Minder en betere bronvoorstellen** (de volgende iteratie, volgens de gebruiker): de bronnenrun het
-  dossier laten gebruiken – wat erbuiten valt weglaten zoals de intake dat al doet, zoeken met
-  aanleiding en praktijkvoorbeeld – met een meting op de referentieset bronselectie ervoor en erna.
+- **De rangschikking van `bepaling_opties`** – zoeken en rangschikken gebouwd (#788, 3 nov 2026: per term,
+  samenstellingsdelen, divisies, kop voor de hele pool, RRF; meetlogboek `bronselectie-2026-11-03`). Het
+  zoeken generaliseert (held-out pool 0,56 → 0,94), de rangschikking maar half (recall nodig 0,36 → 0,27):
+  de Leidraad overstroomt de top 8. Het rangsignaal is gebouwd (3 nov 2026, `per_regeling`: om de beurt per
+  regeling, wet eerst; meetlogboek `bronselectie-2026-11-03-rangsignaal`): op de ontwikkelsets komt de wet terug
+  (recall nodig 0,47 → 0,53 en 0,27 → 0,36), op de nieuwe held-out set *bestuurdersaansprakelijkheid* verandert
+  het niets (0,22). Daar zit het verlies in de **woordenkloof**: de analist schrijft "melden" en "loonheffing",
+  de wet "mededeling" en "loonbelasting".
+- **Het dossier zoekt mee** (gemeten 4 nov 2026, meetlogboek `bronselectie-2026-11-04-dossier`). Er kwamen vier
+  vlaggen op `Zoekprofiel`: aanleiding en doel lezen, per dossierterm een indexlijst, de omgeving die het dossier
+  aanwijst (idf), en de similarity-index.
+  - Ze zijn gemeten op drie ontwikkelsets en één keer blind op de nieuwe set *kwijtschelding*. Geen van de vier
+    won, dus alle vier staan uit.
+  - Dossierlijsten vergroten de pool (blind 0,33 → 0,54), maar verdringen de opties van de deelvraag en maken de
+    kaartjes gelijker. `bwb_similarity` vindt binnen de regelingen bijna niets bruikbaars.
+  - Blind zit het verlies in het zoeken. Alleen de **naam** van het werkgebied draagt het woord van de wet
+    ("kwijtschelding"), en die leest het zoeken niet.
+  - **Open**: de naam en de begrippen van het werkgebied (NL-SBB, `bwb:definieertBegrip`) als termen van de wet die
+    meezoeken als deelvraagterm, en de RRF-telling (het aantal lijsten weegt zwaarder dan wat een bepaling
+    raakt). Dat moet op een nieuwe set, want alle vier sets zijn nu ontwikkelsets.
+- **Bronselectie langs de vier zoekvragen** (plan 4 nov 2026, `~/.claude/plans/zoekvragen-bronselectie.md`; methode in
+  de skill, `references/zoekvragen-bronselectie.md`, uit intern BRM-materiaal): vanaf de **gebeurtenis** in de term
+  van de wet zoeken langs a bestaansrecht (de grondslag), b rechtsgeldigheid, c rechtsgevolgen en d nadere invulling.
+  - Gedaan: PR 1 de skill (#805), PR 2 de blinde set `verrekening-concept` met `zoekvraag` per bepaling (#806), PR 3
+    de gebeurtenis op het werkgebied (`gebeurtenis`), de vraagkaart `bs_gebeurtenis` met voorstellen uit de koppen
+    van de regelingen (zonder model) en de bronmethode `grondslag` (zoekvraag a, alleen met een gekozen gebeurtenis).
+    Ontwikkelset kwijtschelding: de gebeurtenis op plek 1 (met de naam) of 3 (zonder), de grondslag recall 0,67.
+  - PR 4: de pool a–d vanuit de grondslag (`zoekvragen.pool`), gemeten op vier ontwikkelsets (die kregen
+    `zoekvraag` en `gebeurtenis`): recall nodig 0,75 (kwijtschelding; zoeken per deelvraag blind 0,33), 0,89, 0,82 en
+    0,54 (bezwaar: de grondslag van het bezwaar mist een signaal).
+  - PR 5: met een gebeurtenis kiest de deelvraag in de pool (vraagvorm → zoekvraag, woorden naar zeldzaamheid);
+    zonder gekozen regelingen de regelingen van de gebeurtenis. Recall nodig per deelvraag op de ontwikkelsets
+    0,10/0,22/0,53/0,36 → 0,29/0,44/0,40/0,46. Aanleiding: werkgebied Rekeningafspraken (acceptatie), dat in de hele
+    graaf zocht op woorden als "voorwaarden" en "rechten".
+  - PR 6: de woordenkloof benoemd en overbrugd. Een eigen woord dat in geen regeling staat noemt Lex, met de
+    brugtermen uit de zin van het dossier die het omschrijft; die zoeken in de pool in zijn plaats (kwijtschelding
+    0,29 → 0,33). Een voorwerp als gebeurtenis ("bankrekening") laat het kaartje terugkomen, met de handelingen
+    erboven (*Uitbetaling*). Een deelvraag zonder bron kan niet meer als beoordeeld worden vastgelegd.
+  - **Open**: PR 7 meer gebeurtenissen per werkgebied en het label in het paneel, PR 8 deelvragen langs a–d, PR 9
+    de blinde meting op `verrekening-concept`.
+- **Historische toestanden** (open keuze, 3 nov 2026): de graaf heeft per regeling alleen de nieuwste toestand,
+  dus de wettekst is altijd de actuele. De peildatum is standaard de aanmaakdatum en de werkplek waarschuwt als de
+  tekst pas ná de peildatum ging gelden (`GET …/toestanden`). De toestand van de peildatum zelf importeren raakt de
+  importer (meer toestanden per regeling), het graafmodel en de bronidentiteit (`snapshot_id`): een eigen spoor.
+- **Minder en betere bronvoorstellen**: de bronnenrun gebruikt het dossier.
+  - Wat erbuiten valt, staat onderaan en is gemarkeerd (#802).
+  - Zoeken met aanleiding, praktijkvoorbeeld en de omgeving is gemeten en helpt niet (4 nov 2026, zie hierboven).
+  - Wat open blijft, is de naam en de begrippen van het werkgebied als zoektermen.
 - Startactiviteit b (projecttypologie), c (hoofd- en deelactiviteiten) en d (het team): bewust nog niet
   (besloten 20 okt 2026); ze sturen vooral keuzes die het platform nog niet maakt.
 - De doorstap naar activiteit 2 (annoteren) en 3 (begrippen) vanuit hetzelfde gesprek.
@@ -1150,7 +1192,8 @@ deelvraag, een besluit per deelvraag, een vraagkaart buiten de intake en het soo
 - **J5** – **gebouwd, in J1–J4**: het soort bewijs per voorstel, de zoekdekking, wat bij geen deelvraag hoort,
   en de controle in drie delen met de afsluitzin "binnen de vastgestelde afbakening en de beschikbare
   bronnen", nooit "volledig". Architectuur: `docs/architectuur/bronselectie-per-deelvraag.md`.
-- **Daarna**: de rangschikking van `bepaling_opties` (stemming, de kop van het deel), blind gemeten.
+- **Daarna**: de rangschikking van `bepaling_opties` – gebouwd en blind gemeten (#788, meetlogboek
+  `bronselectie-2026-11-03`); het vervolg staat bij spoor F, *Vervolg*.
 
 **Bekende beperking.** De functie van een verwijzing (definitie, uitzondering, delegatie) wordt nog niet
 afgeleid; tot dan zegt Lex bij een afhankelijkheid alleen welke relatie in de graaf staat.

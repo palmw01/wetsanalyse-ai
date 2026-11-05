@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import { BevestigKnop } from "@/components/ui/BevestigKnop";
+import { AutoTextarea } from "@/components/ui/AutoTextarea";
+import { BewerkKnop, BewerkVoet, useBewerken } from "@/components/ui/Bewerkbaar";
 import { BronBoom } from "@/components/ui/BronBoom";
 import { Dialog } from "@/components/ui/Dialog";
-import { Meer } from "@/components/ui/Icoon";
-import { MENU_RIJ } from "@/components/ui/Menu";
-import { Popover } from "@/components/ui/Popover";
+import { Koppelen } from "@/components/ui/Icoon";
+import { MeerMenu, MenuKnop, MenuVerwijder } from "@/components/ui/MeerMenu";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
 import { Lijst, LijstRij, Sectie, StatusLabel, Voorstel as VoorstelRij } from "@/components/ui/Lijst";
@@ -127,7 +127,8 @@ export function DeelvraagVoorstel({ wgId, deelvraag: d, alle, muteer }: {
 }
 
 /** Eén deelvraag als rij (spoor H3): de vraag als link naar haar pagina, waar de bronnen als boom staan;
- *  hier alleen wie haar stelde en hoeveel er bij hoort. Bewerken, koppelen en verwijderen staan achter ⋯. */
+ *  hier alleen wie haar stelde en hoeveel er bij hoort. *Bewerken* staat bij de rij zelf en werkt ter plekke
+ *  (`components/ui/Bewerkbaar`, 4 nov 2026); koppelen en verwijderen staan achter ⋯. */
 function DeelvraagRij({ nummer, wg, deelvraag: d, selectie, muteer }: {
   nummer: number;
   wg: Werkgebied;
@@ -135,8 +136,9 @@ function DeelvraagRij({ nummer, wg, deelvraag: d, selectie, muteer }: {
   selectie?: DeelvraagSelectie;
   muteer: Mutatie;
 }) {
-  const [bewerken, setBewerken] = useState(false);
-  const [tekst, setTekst] = useState(d.vraag);
+  const bw = useBewerken({ begin: d.vraag, opslaan: async (vraag) =>
+    (await muteer((r) => wijzigDeelvraag(wg.id, d.id, { vraag: vraag.trim() }, r), { gelukt: "Deelvraag gewijzigd." })) || false });
+  const bewerken = bw.open;
   const [koppelen, setKoppelen] = useState(false);
   const bronnen = wg.bronnen.filter((b) => d.bronnen.includes(b.id));
   const regelingen = new Set(bronnen.map((b) => b.bwb_id || b.bron_iri.split(":")[2])).size;
@@ -145,16 +147,11 @@ function DeelvraagRij({ nummer, wg, deelvraag: d, selectie, muteer }: {
   return (
     <LijstRij data-deelvraag={d.id} voor={`${nummer}.`}
       titel={bewerken ? (
-        <form className="flex flex-col gap-2 sm:flex-row" onSubmit={async (e) => {
-          e.preventDefault();
-          if (!tekst.trim() || tekst.trim() === d.vraag) return setBewerken(false);
-          if (await muteer((r) => wijzigDeelvraag(wg.id, d.id, { vraag: tekst.trim() }, r), { gelukt: "Deelvraag gewijzigd." }))
-            setBewerken(false);
-        }}>
+        <form data-bewerken={d.id} onSubmit={(e) => { e.preventDefault(); if (bw.concept.trim()) void bw.slaOp(); }}>
           <label className="sr-only" htmlFor={`vraag-${d.id}`}>Deelvraag</label>
-          <Input id={`vraag-${d.id}`} value={tekst} onChange={(e) => setTekst(e.target.value)} autoFocus maxLength={1000} />
-          <Button type="submit" size="sm" className="w-full sm:w-auto">Opslaan</Button>
-          <Button type="button" size="sm" variant="ghost" className="w-full sm:w-auto" onClick={() => setBewerken(false)}>Annuleren</Button>
+          <AutoTextarea id={`vraag-${d.id}`} value={bw.concept} onChange={(e) => bw.zet(e.target.value)} autoFocus maxLength={1000}
+            onKeyDown={bw.toetsen(true)} />
+          <BewerkVoet submit onAnnuleer={bw.annuleer} bezig={bw.bezig} gewijzigd={bw.gewijzigd && !!bw.concept.trim()} fout={bw.fout} />
         </form>
       ) : (
         <Link href={deelvraagPad(wg.id, d.id)} className="focus-ring rounded font-medium text-ink hover:text-lint hover:underline">{d.vraag}</Link>
@@ -163,28 +160,16 @@ function DeelvraagRij({ nummer, wg, deelvraag: d, selectie, muteer }: {
       status={!bewerken && (
         <span className="flex items-center gap-1.5">
           {st && <StatusLabel toon={st.toon} data-stand={selectie?.status}>{st.label}</StatusLabel>}
-          <Popover ariaLabel={`Acties voor deelvraag ${nummer}`} className="w-56 rounded-kaart border border-line bg-paper p-1 shadow-kaart"
-            trigger={(open, toggle) => (
-              <button type="button" onClick={toggle} aria-expanded={open} aria-label={`Acties: ${d.vraag}`}
-                className="focus-ring inline-flex min-h-[28px] min-w-[28px] items-center justify-center rounded text-muted hover:bg-surface hover:text-lint coarse:min-h-[44px] coarse:min-w-[44px]">
-                <Meer />
-              </button>
-            )}>
-            {(sluit) => (
-              <div className="flex flex-col">
-                <button type="button" className={MENU} aria-label={`Bronnen bij: ${d.vraag}`}
-                  onClick={() => { sluit(); setKoppelen(true); }}>Bronnen koppelen</button>
-                <button type="button" className={MENU} aria-label={`Bewerken: ${d.vraag}`}
-                  onClick={() => { sluit(); setTekst(d.vraag); setBewerken(true); }}>Bewerken</button>
-                <BevestigKnop bevestigTekst="Verwijderen?" ariaLabel={`Verwijderen: ${d.vraag}`}
-                  titel="Verwijdert de deelvraag; de bronnen blijven in het werkgebied."
-                  onBevestig={async () => { await muteer((r) => verwijderDeelvraag(wg.id, d.id, r), { gelukt: "Deelvraag verwijderd." }); }}
-                  className={`${MENU} text-fout`} bevestigClassName="font-medium">
-                  Verwijderen
-                </BevestigKnop>
-              </div>
-            )}
-          </Popover>
+          <BewerkKnop wat={`Deelvraag ${nummer}`} onClick={bw.start} />
+          <MeerMenu label={`Acties: ${d.vraag}`}>
+            {(sluit) => (<>
+              <MenuKnop icoon={<Koppelen />} ariaLabel={`Bronnen bij: ${d.vraag}`} onClick={() => { sluit(); setKoppelen(true); }}>
+                Bronnen koppelen
+              </MenuKnop>
+              <MenuVerwijder ariaLabel={`Verwijderen: ${d.vraag}`} titel="Verwijdert de deelvraag; de bronnen blijven in het werkgebied."
+                onBevestig={async () => { await muteer((r) => verwijderDeelvraag(wg.id, d.id, r), { gelukt: "Deelvraag verwijderd." }); }} />
+            </>)}
+          </MeerMenu>
         </span>
       )}>
       {koppelen && <KoppelDialoog wg={wg} deelvraag={d} muteer={muteer} onKlaar={() => setKoppelen(false)} />}
@@ -192,7 +177,6 @@ function DeelvraagRij({ nummer, wg, deelvraag: d, selectie, muteer }: {
   );
 }
 
-const MENU = MENU_RIJ;
 
 /** Welke bronselecties deze deelvraag beantwoorden (spoor H3, methode 1g): in een venster, als boom per
  *  regeling › hoofdstuk › artikel › lid – een heel artikel of hoofdstuk in één vinkje. Eén keer opslaan, de hele

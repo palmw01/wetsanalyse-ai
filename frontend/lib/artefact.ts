@@ -11,7 +11,9 @@ import type { NodeDoel } from "./annotatieNode";
 import type { Bericht } from "./types";
 import type { Vraagkaart } from "./vraagkaart";
 
-export type ArtefactSoort = "annotatie" | "begrippen" | "bronnen" | "werkgebied" | "deelvraag" | "begrip" | "bronselectie"
+/** Sinds 4 nov 2026 geen `bronnen` (gevonden bepalingen) meer: een oud bericht met die soort opent de bronselectie
+ *  van het werkgebied (`parseArtefact`); de bronverkenner blijft als pagina. */
+export type ArtefactSoort = "annotatie" | "begrippen" | "werkgebied" | "deelvraag" | "begrip" | "bronselectie"
   | "regels";
 
 export interface Artefact {
@@ -24,7 +26,7 @@ export interface Artefact {
  *  één run (`run_id`); het werkgebied zelf, dat Lex in het gesprek samenstelde (activiteit 1); één
  *  deelvraag (`deelvraag_id`, F3d) of één begrip (`begrip_id`, F3d). */
 export interface WerkgebiedArtefact {
-  soort: "begrippen" | "bronnen" | "werkgebied" | "deelvraag" | "begrip" | "bronselectie";
+  soort: "begrippen" | "werkgebied" | "deelvraag" | "begrip" | "bronselectie";
   werkgebied_id: string;
   run_id: string;
   begrip_id?: string;
@@ -36,7 +38,6 @@ export interface WerkgebiedArtefact {
 export const ARTEFACT_SOORT_LABEL: Record<ArtefactSoort, string> = {
   annotatie: "JAS-annotatie",
   begrippen: "Begripsvoorstellen",
-  bronnen: "Gevonden bepalingen",
   werkgebied: "Werkgebied",
   deelvraag: "Deelvraag",
   begrip: "Begrip",
@@ -47,7 +48,6 @@ export const ARTEFACT_SOORT_LABEL: Record<ArtefactSoort, string> = {
 const VERPLICHT: Record<ArtefactSoort, string[]> = {
   annotatie: ["bron_iri"],
   begrippen: ["werkgebied_id", "run_id"],
-  bronnen: ["werkgebied_id", "run_id"],
   werkgebied: ["werkgebied_id"],
   deelvraag: ["werkgebied_id", "deelvraag_id"],
   begrip: ["werkgebied_id", "begrip_id"],
@@ -62,14 +62,16 @@ const tekst = (v: unknown) => (typeof v === "string" ? v : "");
 
 /** Streng: een onbekende soort of een ref zonder de verplichte sleutels is géén artefact. Liever geen
  *  chip dan een chip die een leeg paneel opent. Een bericht van vóór F3d noemde één begrip `begrippen`
- *  met `begrip_id`; dat wordt hier `begrip`. */
+ *  met `begrip_id`; dat wordt hier `begrip`. Een bericht *Gevonden bepalingen* (`bronnen`, vóór 4 nov 2026) wordt
+ *  de bronselectie van dat werkgebied. */
 export function parseArtefact(ruw: unknown): Artefact | undefined {
   if (!ruw || typeof ruw !== "object") return undefined;
   const r = ruw as Record<string, unknown>;
-  if (!SOORTEN.includes(r.soort as ArtefactSoort)) return undefined;
+  if (!SOORTEN.includes(r.soort as ArtefactSoort) && r.soort !== "bronnen") return undefined;
   const ref = r.ref && typeof r.ref === "object" && !Array.isArray(r.ref) ? (r.ref as Record<string, unknown>) : undefined;
   if (!ref) return undefined;
-  const soort = r.soort === "begrippen" && tekst(ref.begrip_id) ? "begrip" : (r.soort as ArtefactSoort);
+  const soort = r.soort === "begrippen" && tekst(ref.begrip_id) ? "begrip"
+    : r.soort === "bronnen" ? "bronselectie" : (r.soort as ArtefactSoort);
   if (VERPLICHT[soort].some((k) => !tekst(ref[k]))) return undefined;
   return { soort, ref, titel: tekst(r.titel) };
 }

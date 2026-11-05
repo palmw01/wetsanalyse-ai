@@ -98,9 +98,10 @@ async def test_aanmaken_lijst_en_wijzigen_met_revisie(client):
     oud = await client.patch(f"/v1/werkgebieden/{wg['id']}", json={"verwachte_revisie": 1, "naam": "X"})
     assert oud.status_code == 412
     assert {k: oud.json()["detail"][k] for k in ("fout", "revisie")} == {"fout": "revisie_conflict", "revisie": 2}
-    # peildatum leegmaken kan expliciet; een rare datum niet.
+    assert r.json()["peildatum_standaard"] is False
+    # peildatum leegmaken kan expliciet en zet hem terug op de aanmaakdag; een rare datum niet.
     leeg = await client.patch(f"/v1/werkgebieden/{wg['id']}", json={"verwachte_revisie": 2, "peildatum": None})
-    assert leeg.json()["peildatum"] is None
+    assert (leeg.json()["peildatum"], leeg.json()["peildatum_standaard"]) == (wg["peildatum"], True)
     assert (await client.patch(f"/v1/werkgebieden/{wg['id']}",
                                json={"verwachte_revisie": 3, "peildatum": "1-1-2026"})).status_code == 422
 
@@ -151,6 +152,42 @@ async def test_startactiviteit_a_en_deelvragen_bij_het_aanmaken(client):
     # Zonder de nieuwe velden blijft alles leeg, zoals altijd.
     leeg = await _nieuw(client)
     assert (leeg["aanleiding"], leeg["praktijkvoorbeeld"], leeg["deelvragen"]) == ("", "", [])
+
+
+async def test_de_gebeurtenis_staat_op_het_werkgebied(client):
+    """Zoekvragen a–d: de gebeurtenis in de term van de wet is het vertrekpunt van de bronselectie. Leeg tot de
+    analist haar kiest; één regel, ook als er witruimte in stond."""
+    wg = await _nieuw(client)
+    assert wg["gebeurtenis"] == ""
+    r = await client.patch(f"/v1/werkgebieden/{wg['id']}",
+                           json={"verwachte_revisie": 1, "gebeurtenis": "  uitstel   van betaling "})
+    assert (r.json()["gebeurtenis"], r.json()["revisie"]) == ("uitstel van betaling", 2)
+    assert (await client.get(f"/v1/werkgebieden/{wg['id']}/bronselectie")).json()["gebeurtenis"] == "uitstel van betaling"
+    met = (await client.post("/v1/werkgebieden", json={"naam": "Verrekening", "gebeurtenis": "verrekening"})).json()
+    assert met["gebeurtenis"] == "verrekening"
+    assert (await client.patch(f"/v1/werkgebieden/{wg['id']}",
+                               json={"verwachte_revisie": 2, "gebeurtenis": "x" * 201})).status_code == 422
+
+
+async def test_de_regelingen_zijn_het_zoekbereik_van_het_werkgebied(client):
+    """De regelingen die de analist kiest (samenstellen, aanvullen) staan op het werkgebied, elk één keer; ze gaan
+    vóór de regelingen van de bronnen (`regelingen_van`) en in de invoer van de bronnenrun."""
+    from app import bronnen_run_store, werkgebied_store
+
+    met = (await client.post("/v1/werkgebieden", json={
+        "naam": "Verrekening", "analysevraag": "Wanneer?", "regelingen": [
+            {"bwb_id": "BWBR0004770", "label": "Invorderingswet 1990"},
+            {"bwb_id": "BWBR0004770", "label": "dubbel"}, {"bwb_id": "BWBR0002320", "label": "AWR"}]})).json()
+    assert [r["bwb_id"] for r in met["regelingen"]] == ["BWBR0004770", "BWBR0002320"]
+    assert werkgebied_store.regelingen_van(met) == ["BWBR0004770", "BWBR0002320"]
+    assert bronnen_run_store.invoer_van(met)["regelingen"] == ["BWBR0004770", "BWBR0002320"]
+    wg = await _nieuw(client)
+    assert wg["regelingen"] == [] and "regelingen" not in bronnen_run_store.invoer_van(wg)
+    r = await client.patch(f"/v1/werkgebieden/{wg['id']}", json={
+        "verwachte_revisie": 1, "regelingen": [{"bwb_id": "BWBR0002320", "label": "AWR"}]})
+    assert (r.json()["regelingen"], r.json()["revisie"]) == ([{"bwb_id": "BWBR0002320", "label": "AWR"}], 2)
+    assert (await client.patch(f"/v1/werkgebieden/{wg['id']}", json={
+        "verwachte_revisie": 2, "regelingen": [{"bwb_id": "geen-bwb"}]})).status_code == 422
 
 
 async def test_gedeeld_tussen_analisten_en_de_audit_zegt_wie(client):
@@ -346,3 +383,84 @@ async def test_thema_voorstel_route_faalt_niet_zonder_rechtsgebieden(client):
     r = await client.get(f"/v1/werkgebieden/{wg['id']}/thema-voorstel")
     assert r.status_code == 200, r.text
     assert set(r.json()) == {"rechtsgebieden", "voorstel"}
+
+
+async def test_de_peildatum_is_standaard_de_aanmaakdag(client):
+    """Besluit gebruiker 3 nov 2026: zonder opgave is de peildatum de dag van aanmaken (in Nederland)."""
+    from app.werkgebied_store import dag_in_nl
+
+    wg = await _nieuw(client)
+    assert wg["peildatum"] == dag_in_nl(db.utcnow()) and wg["peildatum_standaard"] is True
+    eigen = await client.post("/v1/werkgebieden", json={"naam": "Met datum", "peildatum": "2025-12-31"})
+    assert (eigen.json()["peildatum"], eigen.json()["peildatum_standaard"]) == ("2025-12-31", False)
+
+
+async def test_toestanden_zeggen_of_de_tekst_van_na_de_peildatum_is(client, monkeypatch):
+    from app import graaf_projectie_v2
+
+    wg = await _nieuw(client)
+    await _bron(client, wg, bwb_id="BWBR0004770", artikel="9")
+    wg = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()
+    await client.patch(f"/v1/werkgebieden/{wg['id']}", json={"verwachte_revisie": wg["revisie"], "peildatum": "2026-03-01"})
+    gevraagd = []
+
+    async def select(_client, query):
+        gevraagd.append(query)
+        return [{"r": "urn:bwb:BWBR0004770", "citeertitel": "Invorderingswet 1990", "vanaf": "2026-07-01"}]
+    monkeypatch.setattr(graaf_projectie_v2, "_select", select)
+    r = (await client.get(f"/v1/werkgebieden/{wg['id']}/toestanden")).json()
+    assert r["peildatum"] == "2026-03-01" and r["volledig"] is True
+    assert r["regelingen"] == [{"bwb_id": "BWBR0004770", "citeertitel": "Invorderingswet 1990",
+                                "geldig_vanaf": "2026-07-01", "geldig_tot": None, "na_peildatum": True}]
+    assert "<urn:bwb:BWBR0004770>" in gevraagd[0]
+
+    async def kapot(_client, query):
+        raise ConnectionError("weg")
+    monkeypatch.setattr(graaf_projectie_v2, "_select", kapot)
+    r = (await client.get(f"/v1/werkgebieden/{wg['id']}/toestanden")).json()
+    assert (r["volledig"], r["regelingen"]) == (False, [])
+
+
+async def test_bepaling_zoeken_en_regelingen_voor_bepaling_toevoegen(client, monkeypatch):
+    from app import bepaling_zoeken as zoeken
+    from test_bepaling_zoeken import IW, iw
+
+    zoeken._CACHE.clear()
+    wg = await _nieuw(client)
+
+    async def rijen(bwb):
+        raise AssertionError("de boom komt uit de cache")
+    zoeken._CACHE[IW] = (10**12, iw())
+    monkeypatch.setattr(zoeken, "haal_bronrijen", rijen)
+    r = await client.get(f"/v1/werkgebieden/{wg['id']}/bepalingen", params={"bwb_id": IW, "q": "9 lid 2"})
+    assert r.status_code == 200, r.text
+    assert r.json()["treffers"][0]["vindplaats"] == "Artikel 9, lid 2"
+    assert r.json()["gelezen"] == {"artikel": "9", "lid": "2", "onderdeel": "", "tekst": ""}
+    assert (await client.get(f"/v1/werkgebieden/{wg['id']}/bepalingen",
+                             params={"bwb_id": "iets; DROP", "q": "9"})).status_code == 422
+
+    zoeken._CACHE.clear()
+
+    async def weg(bwb):
+        raise ConnectionError("graaf weg")
+    monkeypatch.setattr(zoeken, "haal_bronrijen", weg)
+    r = await client.get(f"/v1/werkgebieden/{wg['id']}/bepalingen", params={"bwb_id": IW, "q": "9"})
+    assert r.status_code == 503 and "niet bereikbaar" in r.json()["detail"]
+
+    async def alle():
+        return [{"bwb_id": IW, "citeertitel": "Invorderingswet 1990", "soort": "wet", "afkortingen": []}]
+    monkeypatch.setattr(zoeken, "alle_regelingen", alle)
+    r = await client.get(f"/v1/werkgebieden/{wg['id']}/regelingen", params={"q": "invordering"})
+    assert [x["bwb_id"] for x in r.json()["regelingen"]] == [IW]
+
+
+async def test_een_dubbelzinnige_bepaling_geeft_de_opties_mee(monkeypatch):
+    from bronmodel import BronKeuze
+
+    async def keuze(doel):
+        raise BronKeuze("Het gevraagde lid 7 bestaat niet", [{"bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1"}])
+    monkeypatch.setattr(werkgebieden, "_resolve_bron", keuze)
+    with pytest.raises(HTTPException) as e:
+        await werkgebieden.resolve_bron({"bwb_id": "BWBR0004770", "artikel": "9", "lid": "7"})
+    assert e.value.status_code == 422
+    assert e.value.detail["opties"][0]["bron_iri"].endswith(":lid:1") and "lid 7" in e.value.detail["melding"]

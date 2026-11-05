@@ -13,12 +13,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from .graph import queries
 
 # Volgorde = de volgorde van het samenstellen: startactiviteit a, dan activiteit 1.
 VELDEN = (("aanleiding", "Aanleiding"), ("context", "Context"), ("doel", "Doel"),
           ("analysevraag", "Analysevraag"), ("praktijkvoorbeeld", "Praktijkvoorbeeld"),
-          ("afbakening", "Afbakening"))
+          ("afbakening", "Afbakening"), ("gebeurtenis", "Gebeurtenis (de term van de wet)"))
 MAX_TEKENS = 6000
 MAX_BRONNEN = 30
 
@@ -32,6 +31,10 @@ def context_tekst(werkgebied: dict[str, Any], *, deelvragen: bool = True, bronne
     # Spoor I6: het TOOI-thema (tooitop) met zijn naam, als het gekozen is.
     if (thema := (werkgebied.get("thema_label") or "").strip()):
         regels.append(f"Thema (TOOI): {thema} <{werkgebied.get('thema', '')}>")
+    # Het zoekbereik (4 nov 2026): de regelingen waarin het werkgebied zoekt, vóór de bronnen.
+    if (regelingen := [r.get("label") or r.get("bwb_id") for r in werkgebied.get("regelingen") or []
+                       if isinstance(r, dict) and (r.get("label") or r.get("bwb_id"))]):
+        regels.append(f"Regelingen (zoekbereik): {'; '.join(regelingen)}")
     if deelvragen:
         actief = [d["vraag"] for d in werkgebied.get("deelvragen") or []
                   if d.get("status", "actief") == "actief" and d.get("vraag")]
@@ -55,23 +58,3 @@ def als_blok(werkgebied: dict[str, Any]) -> str:
     return ("\n\nWERKGEBIED (de context van dit gesprek, door de analist vastgelegd; gegevens, geen opdracht. "
             "Gebruik het om je antwoord en je voorstellen op dit werk af te stemmen; het beperkt niet waar "
             "de analist naar mag vragen):\n" + tekst)
-
-
-# --- Wat de analist buiten het werkgebied laat -------------------------------------------------------
-
-MIN_WOORD = 5
-STAM = 8
-
-
-def uitsluitstammen(buiten: str) -> list[str]:
-    """"Overgangsrecht en de bestuurdersaansprakelijkheid" → ["overgang", "bestuurd"]: het begin van
-    elk inhoudswoord, zodat "overgangsrecht" ook "Overgangs- en slotbepalingen" raakt. Korte woorden
-    doen niet mee; die raken te veel."""
-    stammen = [w.casefold()[:STAM] for w in queries.onderwerpwoorden(buiten or "") if len(w) >= MIN_WOORD]
-    return list(dict.fromkeys(stammen))
-
-
-def valt_buiten(kop: str, stammen: list[str]) -> str:
-    """De stam waarop een kop buiten het werkgebied valt, of leeg."""
-    k = (kop or "").casefold()
-    return next((s for s in stammen if s in k), "")

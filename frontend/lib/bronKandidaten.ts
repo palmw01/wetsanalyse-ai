@@ -25,6 +25,8 @@ export const METHODE_LABEL: Record<BronMethode, string> = {
   definitie: "definities van termen",
   opbouw: "opbouw van de wet",
   gelijkenis: "tekstuele gelijkenis",
+  grondslag: "grondslag van de gebeurtenis",
+  genoemd: "zelf genoemd",
 };
 
 export const FUNCTIE_LABEL: Record<string, string> = {
@@ -42,11 +44,16 @@ export const FILTER_LABEL: Record<KandidaatFilter, string> = {
 };
 
 /** In welk filter een kandidaat valt. Intussen met de hand opgenomen telt als opgenomen: dat is geen
- *  open voorstel meer, ook al staat zijn status nog op voorgesteld. Er is geen *later* meer (spoor J): een oud
- *  besluit *later* telt als voorstel. */
+ *  open voorstel meer, ook al staat zijn status nog op voorgesteld. */
 export function filterVan(k: Pick<BronKandidaat, "status" | "in_selectie">): KandidaatFilter {
   if (k.status === "opgenomen" || k.in_selectie) return "opgenomen";
   return k.status === "uitgesloten" ? "uitgesloten" : "open";
+}
+
+/** Een open voorstel, zoals de api het telt (`bronnen_run_store.vervallen`): voorgesteld, niet opgenomen, en
+ *  gevonden door de laatste zoekopdracht. Eén regel voor de verkenner en de tab Artefacten. */
+export function isOpen(k: Pick<BronKandidaat, "status" | "in_selectie" | "vervallen">): boolean {
+  return filterVan(k) === "open" && !k.vervallen;
 }
 
 export function telPerFilter(lijst: BronKandidaat[]): Record<KandidaatFilter, number> {
@@ -68,9 +75,13 @@ export function plekNaam(iri: string, labels: Map<string, string> = new Map()): 
   if (id) {
     let pad = id[1];
     try { pad = decodeURIComponent(pad); } catch { /* laat staan */ }
-    const laatste = pad.split("/").pop() ?? pad;
+    let delen = pad.split("/");
+    // Een onderdeel (`…/Circulaire.divisie9/Tekst/Onderdeel._4`) heet naar zijn divisie: het volgnummer in de
+    // IRI telt niet betrouwbaar en een opsommingsteken heeft geen eigen nummer (de tweeling van `plek_uit_iri`).
+    if (delen.includes("Tekst")) delen = delen.slice(0, delen.indexOf("Tekst"));
+    const laatste = delen[delen.length - 1] ?? pad;
     const divisie = laatste.match(/divisie([\d.]+[a-z]?)$/i);
-    return divisie ? `divisie ${divisie[1]}` : laatste;
+    return divisie ? `divisie ${divisie[1]}` : delen.length > 1 ? laatste : pad;
   }
   return rest || iri;
 }
@@ -94,6 +105,10 @@ export function bewijsZin(b: KandidaatBewijs, labels: Map<string, string> = new 
       return `staat in hetzelfde deel als ${vanuit || "de kern"}`;
     case "gelijkenis":
       return `lijkt qua tekst op ${vanuit || "de kern"} (zwak signaal)`;
+    case "genoemd":
+      return `zelf genoemd${d.tekst ? ` (“${d.tekst}”)` : ""}`;
+    case "grondslag":
+      return `grondslag van “${d.gebeurtenis ?? "de gebeurtenis"}”${d.kop ? ` in ${d.kop}` : ""}${d.signaal ? ` (${d.signaal})` : ""}`;
     default:
       return b.methode;
   }

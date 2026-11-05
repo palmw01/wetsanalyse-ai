@@ -2,8 +2,10 @@
 gebruiker, die als actor in de audit komt."""
 from __future__ import annotations
 
+import re
+
 import httpx
-from bronmodel import BronFout
+from bronmodel import BronFout, BronKeuze
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from . import annotatie_v2_store, werkgebied_deelvragen as deelvragen, werkgebied_store as store
@@ -25,6 +27,10 @@ async def resolve_bron(doel: dict) -> dict:
     """Zelfde foutvertaling als de annotatie-API: ongeldige bron 422, graaf weg 503."""
     try:
         return await _resolve_bron(doel)
+    except BronKeuze as exc:
+        # Een dubbelzinnig nummer of een lid dat niet bestaat: de graaf kent wel de opties. Die gaan mee,
+        # zodat de werkplek kan laten kiezen in plaats van alleen "niet gevonden" te zeggen.
+        raise HTTPException(422, {"melding": str(exc), "opties": exc.opties}) from exc
     except BronFout as exc:
         raise HTTPException(422, str(exc)) from exc
     except (httpx.HTTPError, ConnectionError) as exc:
@@ -55,8 +61,7 @@ async def get_thema_voorstel(werkgebied_id: str, actor: str = Depends(actieve_us
     from .graaf_projectie_v2 import _select
 
     wg = await store.haal(werkgebied_id)
-    regelingen = sorted({":".join(b["bron_iri"].split(":")[:3]) for b in wg.get("bronnen") or []
-                         if (b.get("bron_iri") or "").startswith("urn:bwb:BWB")})
+    regelingen = sorted(f"urn:bwb:{b}" for b in store.regelingen_van(wg))
     gebieden: list[str] = []
     if regelingen:
         waarden = " ".join(f"<{r}>" for r in regelingen)
@@ -70,6 +75,83 @@ SELECT ?r ?l WHERE {{ VALUES ?r {{ {waarden} }} ?r dct:subject ?b . ?b skos:pref
     voorstel = tooi.thema_voorstel(gebieden)
     return {"rechtsgebieden": sorted(set(gebieden)),
             "voorstel": [{"thema": u, "label": tooi.thema_label(u)} for u in voorstel]}
+
+
+def toestanden_query(bwb_ids: list[str]) -> str:
+    """Per regeling de toestand in de graaf: wanneer de tekst ging gelden (`bwb:geldigVanaf`) en tot wanneer.
+    De BWB-id's komen uit Postgres, maar gaan alleen in de vorm `BWBR…`/`BWBV…` de query in."""
+    waarden = " ".join(f"<urn:bwb:{b}>" for b in bwb_ids if re.fullmatch(r"BWB[RV]\d+", b))
+    return f"""PREFIX bwb: <urn:bwb-ns:>
+SELECT ?r ?citeertitel ?vanaf ?tot WHERE {{ VALUES ?r {{ {waarden} }}
+  OPTIONAL {{ ?r bwb:citeertitel ?citeertitel }} OPTIONAL {{ ?r bwb:geldigVanaf ?vanaf }} OPTIONAL {{ ?r bwb:geldigTot ?tot }}
+}}"""
+
+
+@router.get("/{werkgebied_id}/toestanden")
+async def get_toestanden(werkgebied_id: str, actor: str = Depends(actieve_userid)):
+    """De peildatum naast de toestand van elke regeling van het werkgebied (`regelingen_van`). De graaf bevat per regeling alleen de
+    nieuwste toestand: ging die pas ná de peildatum gelden, dan kan de tekst afwijken van wat op de peildatum
+    gold (`na_peildatum`). Best-effort: een haperende graaf geeft `volledig: false`, nooit een stille leegte."""
+    from .graaf_projectie_v2 import _select
+
+    wg = await store.haal(werkgebied_id)
+    bwbs = store.regelingen_van(wg)
+    uit = {"peildatum": wg["peildatum"], "peildatum_standaard": wg["peildatum_standaard"], "regelingen": [],
+           "volledig": True}
+    if not bwbs:
+        return uit
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            rijen = await _select(client, toestanden_query(bwbs))
+    except (httpx.HTTPError, ConnectionError, ValueError):
+        return {**uit, "volledig": False}
+    per = {(r.get("r") or "").removeprefix("urn:bwb:"): r for r in rijen}
+    for b in bwbs:
+        r = per.get(b, {})
+        vanaf = (r.get("vanaf") or "")[:10]
+        uit["regelingen"].append({"bwb_id": b, "citeertitel": r.get("citeertitel") or b, "geldig_vanaf": vanaf or None,
+                                  "geldig_tot": (r.get("tot") or "")[:10] or None,
+                                  "na_peildatum": bool(vanaf) and vanaf > wg["peildatum"]})
+    return uit
+
+
+_GRAAF_WEG = "De kennisgraaf is tijdelijk niet bereikbaar."
+
+
+@router.get("/{werkgebied_id}/regelingen")
+async def get_regelingen(werkgebied_id: str, q: str = Query("", max_length=200),
+                         actor: str = Depends(actieve_userid)):
+    """Regelingen voor *Bepaling toevoegen* (graph-qa, de naam bij een treffer): die van het werkgebied vooraan, dan op citeertitel,
+    afkorting of BWB-id. Lege `q`: alleen die van het werkgebied."""
+    from . import bepaling_zoeken as zoeken
+
+    wg = await store.haal(werkgebied_id)
+    eerst = store.regelingen_van(wg)
+    try:
+        alle = await zoeken.alle_regelingen()
+    except (httpx.HTTPError, ConnectionError, ValueError) as exc:
+        raise HTTPException(503, _GRAAF_WEG) from exc
+    return {"regelingen": zoeken.regelingen(alle, q, eerst)}
+
+
+@router.get("/{werkgebied_id}/bepalingen")
+async def get_bepalingen(werkgebied_id: str, bwb_id: str = Query(..., pattern=r"^BWB[RV]\d+$"),
+                         q: str = Query("", max_length=200), actor: str = Depends(actieve_userid)):
+    """De bepalingen in één regeling die bij een getypte vindplaats passen ("9 lid 2", "21.1", "25.4 onderdeel
+    b"), uit de echte bronboom, met het begin van hun tekst. Leeg = niets gevonden, met `gelezen`: hoe de
+    invoer gelezen is, zodat de werkplek kan zeggen wat er niet bestaat."""
+    from dataclasses import asdict
+
+    from . import bepaling_zoeken as zoeken
+
+    await store.haal(werkgebied_id)
+    try:
+        nodes = await zoeken.boom(bwb_id)
+    except BronFout as exc:
+        raise HTTPException(404, "Deze regeling staat niet in de kennisgraaf.") from exc
+    except (httpx.HTTPError, ConnectionError, ValueError) as exc:
+        raise HTTPException(503, _GRAAF_WEG) from exc
+    return {"bwb_id": bwb_id, "gelezen": asdict(zoeken.lees(q)), "treffers": zoeken.zoek(nodes, q)}
 
 
 @router.patch("/{werkgebied_id}")

@@ -114,6 +114,11 @@ export function Opstellen({ className = "" }: IcoonProps) {
   );
 }
 
+/** Bewerken (4 nov 2026): alleen de pen, zonder vel – iets wat er al staat ter plekke aanpassen. */
+export function Potlood({ className = "" }: IcoonProps) {
+  return svg(<path d="M11.1 2.4a1.4 1.4 0 0 1 2 2L5.6 11.9l-2.8.8.8-2.8z" />, className);
+}
+
 /** Uitzoomen. */
 export function Min({ className = "" }: IcoonProps) {
   return svg(<path d="M3 8h10" />, className);
@@ -165,4 +170,9 @@ export function Archief({ className = "" }: IcoonProps) {
     </>,
     className,
   );
+}
+
+/** Twee schakels: iets aan iets anders koppelen (bronnen aan een deelvraag). */
+export function Koppelen({ className = "" }: IcoonProps) {
+  return svg(<path d="M6.8 9.2a2.6 2.6 0 0 0 3.7 0l2.2-2.2a2.6 2.6 0 0 0-3.7-3.7l-.9.9M9.2 6.8a2.6 2.6 0 0 0-3.7 0L3.3 9a2.6 2.6 0 0 0 3.7 3.7l.9-.9" />, className);
 }

@@ -49,6 +49,20 @@ class DeelvraagBijAanmaken(BaseModel):
         return _vraag(v)
 
 
+class RegelingKeuze(BaseModel):
+    """Eén regeling van het zoekbereik van een werkgebied."""
+    bwb_id: str = Field(pattern=r"^BWB[RV]\d+$")
+    label: str = Field(default="", max_length=300)
+
+
+def _regelingen(v: list[RegelingKeuze] | None) -> list[RegelingKeuze] | None:
+    """Elke regeling één keer, in de volgorde van de keuze."""
+    if v is None:
+        return None
+    gezien: set[str] = set()
+    return [r for r in v if not (r.bwb_id in gezien or gezien.add(r.bwb_id))]
+
+
 class WerkgebiedInvoer(BaseModel):
     naam: str = Field(min_length=1, max_length=200)
     analysevraag: str = Field(default="", max_length=4000)
@@ -59,6 +73,10 @@ class WerkgebiedInvoer(BaseModel):
     context: str = Field(default="", max_length=4000)
     doel: str = Field(default="", max_length=4000)
     praktijkvoorbeeld: str = Field(default="", max_length=4000)
+    # De gebeurtenis in de term van de wet (zoekvragen a–d); leeg = nog niet gekozen.
+    gebeurtenis: str = Field(default="", max_length=200)
+    # Het zoekbereik: de regelingen waarin de bronselectie zoekt.
+    regelingen: list[RegelingKeuze] = Field(default_factory=list, max_length=20)
     # Spoor I6: een TOOI-thema uit tooitop (`tooi.themas`), of leeg.
     thema: str = Field(default="", max_length=200)
     peildatum: str | None = None
@@ -71,6 +89,16 @@ class WerkgebiedInvoer(BaseModel):
     def _p(cls, v: str | None) -> str | None:
         return _peildatum(v)
 
+    @field_validator("gebeurtenis")
+    @classmethod
+    def _g(cls, v: str) -> str:
+        return _gebeurtenis(v)
+
+    @field_validator("regelingen")
+    @classmethod
+    def _r(cls, v: list[RegelingKeuze]) -> list[RegelingKeuze]:
+        return _regelingen(v)
+
     @field_validator("naam")
     @classmethod
     def _naam(cls, v: str) -> str:
@@ -82,6 +110,11 @@ class WerkgebiedInvoer(BaseModel):
     @classmethod
     def _t(cls, v: str) -> str:
         return _thema(v)
+
+
+def _gebeurtenis(v: str | None) -> str | None:
+    """Eén term of korte woordgroep, op één regel ("kwijtschelding", "uitstel van betaling")."""
+    return " ".join(v.split()) if v is not None else None
 
 
 def _thema(v: str) -> str:
@@ -100,14 +133,26 @@ class WerkgebiedWijziging(BaseModel):
     context: str | None = Field(default=None, max_length=4000)
     doel: str | None = Field(default=None, max_length=4000)
     praktijkvoorbeeld: str | None = Field(default=None, max_length=4000)
+    gebeurtenis: str | None = Field(default=None, max_length=200)
+    regelingen: list[RegelingKeuze] | None = Field(default=None, max_length=20)
     thema: str | None = Field(default=None, max_length=200)
     peildatum: str | None = None
     status: Status | None = None
+
+    @field_validator("regelingen")
+    @classmethod
+    def _r(cls, v: list[RegelingKeuze] | None) -> list[RegelingKeuze] | None:
+        return _regelingen(v)
 
     @field_validator("thema")
     @classmethod
     def _t(cls, v: str | None) -> str | None:
         return _thema(v) if v is not None else None
+
+    @field_validator("gebeurtenis")
+    @classmethod
+    def _g(cls, v: str | None) -> str | None:
+        return _gebeurtenis(v)
 
     @field_validator("peildatum")
     @classmethod

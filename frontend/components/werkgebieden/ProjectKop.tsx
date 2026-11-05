@@ -1,34 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
+import { AutoTextarea } from "@/components/ui/AutoTextarea";
 import { Button, knopKlasse } from "@/components/ui/Button";
-import { ButtonRow } from "@/components/ui/ButtonRow";
-import { Dialog } from "@/components/ui/Dialog";
-import { Field, Input, Select, Textarea } from "@/components/ui/Field";
-import { Meer } from "@/components/ui/Icoon";
+import { BewerkVoet } from "@/components/ui/Bewerkbaar";
+import { Field, Input, Select } from "@/components/ui/Field";
 import { StatusLabel } from "@/components/ui/Lijst";
-import { MENU_PANEEL, MENU_RIJ } from "@/components/ui/Menu";
+import { MeerMenu, MenuVerwijder } from "@/components/ui/MeerMenu";
 import { PaginaKop, Stip, TabLinks, type Kruimel } from "@/components/ui/Pagina";
-import { Popover } from "@/components/ui/Popover";
-import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
 import { useWerkgebied } from "@/components/werkgebieden/WerkgebiedProject";
-import { haalThemaVoorstel, wijzigWerkgebied } from "@/lib/api";
+import { haalThemaVoorstel } from "@/lib/api";
+import { bewerkToets, isGewijzigd } from "@/lib/bewerken";
 import { themaGroepen } from "@/lib/tooiThemas";
 import type { ThemaVoorstel, Werkgebied, WerkgebiedStatus } from "@/lib/types";
-import { DOSSIER_VELDEN, STATUS_LABEL, type DossierVeld } from "@/lib/werkgebied";
-import { ARTEFACT_SOORTEN, PROJECT_TABS, historiePad, projectPad, type ProjectTab } from "@/lib/werkgebiedPaden";
+import { VERWIJDER_UITLEG, verwijderLabel } from "@/lib/verwijderen";
+import { DOSSIER_VELDEN, STATUS_LABEL, datumNl, type DossierVeld } from "@/lib/werkgebied";
+import { ARTEFACT_SOORTEN, PROJECT_TABS, artefactPad, projectPad, type ProjectTab } from "@/lib/werkgebiedPaden";
 
-/** De kop van een werkgebied boven de vier tabs (mock-up v4, `projectHead` + `tabbar`): de naam, één zin,
- *  status en wanneer gewijzigd, en twee knoppen – *Gegevens bewerken* en *Nieuw gesprek*. Historie en
- *  verwijderen staan in het menu ernaast. */
+/** De kop van een werkgebied boven de vijf tabs (mock-up v4, `projectHead` + `tabbar`): de naam, één zin,
+ *  status en wanneer gewijzigd, en twee knoppen – *Gegevens bewerken* en *Nieuw gesprek*. Verwijderen staat in
+ *  het menu ernaast; de historie is een eigen tab. */
 export function ProjectKop({ tab }: { tab: ProjectTab }) {
-  const { wg, muteer, verwijder, stand } = useWerkgebied();
+  const { wg, verwijder, stand } = useWerkgebied();
   const tellers: Partial<Record<ProjectTab, number>> = {
     gesprekken: stand.gesprekken?.length, bronnen: wg.bronnen.length, artefacten: ARTEFACT_SOORTEN.length,
   };
-  const [bewerken, setBewerken] = useState(false);
   const kruimels: Kruimel[] = [{ label: "Werkgebieden", href: "/werkgebieden" }, { label: wg.naam, href: projectPad(wg.id) }];
   if (tab !== "overzicht") kruimels.push({ label: PROJECT_TABS.find((t) => t.key === tab)!.label });
 
@@ -43,43 +41,27 @@ export function ProjectKop({ tab }: { tab: ProjectTab }) {
             <StatusLabel>{STATUS_LABEL[wg.status]}</StatusLabel>
             <Stip />
             <span>Gewijzigd {datum(wg.gewijzigd)}</span>
-            {wg.peildatum && <><Stip /><span>Peildatum {wg.peildatum}</span></>}
+            {wg.peildatum && <><Stip /><span>Peildatum {datumNl(wg.peildatum)}</span></>}
             <Stip />
             <span>Aangemaakt door {wg.aangemaakt_door}</span>
           </>
         }
         acties={
           <>
-            <Button variant="secondary" size="sm" onClick={() => setBewerken(true)}>Gegevens bewerken</Button>
+            {/* Bewerken gebeurt ter plekke op de kaart van het dossier (4 nov 2026), niet in een venster. */}
+            <Link href={`${artefactPad(wg.id, "dossier")}?bewerk=1`} className={knopKlasse("secondary", "sm")}>Gegevens bewerken</Link>
             <Link href={`/workbench?werkgebied=${encodeURIComponent(wg.id)}`}
               className={knopKlasse("primary", "sm")}>
               Nieuw gesprek
             </Link>
-            <Popover ariaLabel="Meer voor dit werkgebied" className={`w-56 ${MENU_PANEEL}`}
-              trigger={(open, toggle) => (
-                <button type="button" onClick={toggle} aria-expanded={open} aria-label="Meer voor dit werkgebied"
-                  className="focus-ring inline-flex min-h-[32px] min-w-[32px] items-center justify-center self-start rounded-full border border-line text-muted hover:bg-surface hover:text-lint coarse:min-h-[44px] coarse:min-w-[44px] sm:self-auto">
-                  <Meer />
-                </button>
-              )}>
-              <Link href={historiePad(wg.id)} className={MENU_RIJ}>
-                Historie
-              </Link>
-              <div className="px-2.5 py-1.5">
-                <VerwijderKnop soort="werkgebied" onBevestig={verwijder} />
-              </div>
-            </Popover>
+            <MeerMenu label="Meer voor dit werkgebied" maat="sm">
+              {() => <MenuVerwijder ariaLabel={verwijderLabel("werkgebied")} titel={VERWIJDER_UITLEG.werkgebied} onBevestig={verwijder} />}
+            </MeerMenu>
           </>
         }
       />
       <TabLinks label="Werkgebied" actief={tab}
         tabs={PROJECT_TABS.map((t) => ({ key: t.key, label: t.label, href: projectPad(wg.id, t.key), telling: tellers[t.key] }))} />
-      {bewerken && (
-        <GegevensDialoog wg={wg} onSluit={() => setBewerken(false)}
-          onBewaar={async (w) => {
-            if (await muteer((r) => wijzigWerkgebied(wg.id, { ...w, verwachte_revisie: r }), { gelukt: "Opgeslagen." })) setBewerken(false);
-          }} />
-      )}
     </>
   );
 }
@@ -96,13 +78,20 @@ const DOSSIER_HINT: Partial<Record<DossierVeld, string>> = {
   context: "de situatie eromheen",
   doel: "wat de analyse moet opleveren",
   praktijkvoorbeeld: "hoe een burger of bedrijf het doorloopt",
+  gebeurtenis: "de handeling in de term van de wet, zoals kwijtschelding of verrekening",
 };
 
-/** Naam, dossier, peildatum en status van het werkgebied bewerken, in een venster boven de pagina. */
-export function GegevensDialoog({ wg, onBewaar, onSluit }: {
+/** Naam, dossier, thema, peildatum en status van het werkgebied bewerken – ter plekke, op de kaart van het dossier
+ *  (4 nov 2026: één manier van bewerken, geen venster; `components/ui/Bewerkbaar`). Escape annuleert, Ctrl/⌘+Enter
+ *  slaat op; wat er onbewaard openstaat, meldt het formulier aan de bewaker van het werkgebied (`onOnbewaard`). */
+export function GegevensFormulier({ wg, deel = "dossier", onBewaar, onSluit, onOnbewaard }: {
   wg: Werkgebied;
-  onBewaar: (w: { naam: string; peildatum: string | null; status: WerkgebiedStatus; thema: string } & Record<DossierVeld, string>) => Promise<void>;
+  /** Welk blok: `dossier` (de kaart *Analyseopdracht*: naam, dossiervelden, thema) of `versie` (de kaart *Versie*:
+   *  peildatum en status). Je bewerkt een gegeven op de plek waar het staat; het formulier stuurt alleen dat blok. */
+  deel?: "dossier" | "versie";
+  onBewaar: (w: Partial<{ naam: string; peildatum: string | null; status: WerkgebiedStatus; thema: string } & Record<DossierVeld, string>>) => Promise<void>;
   onSluit: () => void;
+  onOnbewaard?: (onbewaard: boolean) => void;
 }) {
   const [naam, setNaam] = useState(wg.naam);
   // Het dossier in één toestand: dezelfde velden en volgorde als de samenvatting (`DOSSIER_VELDEN`).
@@ -120,26 +109,44 @@ export function GegevensDialoog({ wg, onBewaar, onSluit }: {
     return () => { levend = false; };
   }, [wg.id]);
   const voorgesteld = voorstel?.voorstel[0];
+  const versie = deel === "versie";
+  const begin = useMemo(() => versie ? { peildatum: wg.peildatum ?? "", status: wg.status }
+    : { naam: wg.naam, thema: wg.thema ?? "", ...Object.fromEntries(DOSSIER_VELDEN.map(({ veld }) => [veld, wg[veld] ?? ""])) },
+  [wg, versie]);
+  const gewijzigd = isGewijzigd(begin, versie ? { peildatum, status } : { naam, thema, ...dossier });
+  useEffect(() => { onOnbewaard?.(gewijzigd); }, [gewijzigd, onOnbewaard]);
+  useEffect(() => () => onOnbewaard?.(false), [onOnbewaard]);
+  const formRef = useRef<HTMLFormElement>(null);
 
   async function bewaar(e: React.FormEvent) {
     e.preventDefault();
-    if (!naam.trim() || bezig) return;
+    if ((!versie && !naam.trim()) || bezig) return;
     setBezig(true);
-    await onBewaar({ naam: naam.trim(), ...dossier, peildatum: peildatum || null, status, thema });
+    await onBewaar(versie ? { peildatum: peildatum || null, status } : { naam: naam.trim(), ...dossier, thema });
     setBezig(false);
   }
 
   return (
-    <Dialog label="Gegevens van het werkgebied" variant="compact" onSluit={onSluit}>
-      <form onSubmit={bewaar} className="space-y-4 overflow-y-auto p-5" data-gegevens-formulier>
-        <h2 className="font-display text-base font-semibold text-lint">Gegevens bewerken</h2>
+      <form ref={formRef} onSubmit={bewaar} className="space-y-4" data-gegevens-formulier aria-label="Gegevens van het werkgebied bewerken"
+        onKeyDown={(e) => {
+          const wat = bewerkToets({ key: e.key, ctrlKey: e.ctrlKey, metaKey: e.metaKey, isComposing: e.nativeEvent.isComposing }, false);
+          if (!wat) return;
+          e.preventDefault(); e.stopPropagation();
+          if (wat === "annuleren") onSluit(); else formRef.current?.requestSubmit();
+        }}>
+        {!versie && <>
         <Field label="Naam" required>
           <Input value={naam} onChange={(e) => setNaam(e.target.value)} maxLength={200} required autoFocus />
         </Field>
+        {/* De tekstvakken groeien mee met hun inhoud: alles wat er staat is te zien, zonder te slepen. De gebeurtenis
+            is één term ("kwijtschelding") en krijgt één regel. */}
         {DOSSIER_VELDEN.map(({ veld, label }) => (
           <Field key={veld} label={label} hint={DOSSIER_HINT[veld]}>
-            <Textarea value={dossier[veld]} rows={2} maxLength={4000}
-              onChange={(e) => setDossier((d) => ({ ...d, [veld]: e.target.value }))} />
+            {veld === "gebeurtenis"
+              ? <Input value={dossier[veld]} maxLength={200}
+                  onChange={(e) => setDossier((d) => ({ ...d, [veld]: e.target.value }))} />
+              : <AutoTextarea value={dossier[veld]} rows={2} maxLength={4000}
+                  onChange={(e) => setDossier((d) => ({ ...d, [veld]: e.target.value }))} />}
           </Field>
         ))}
         <Field label="Thema" hint="TOOI-thema (tooitop): waar de analyse over gaat">
@@ -160,8 +167,11 @@ export function GegevensDialoog({ wg, onBewaar, onSluit }: {
             <Button type="button" size="xs" variant="secondary" onClick={() => setThema(voorgesteld.thema)}>Overnemen</Button>
           </p>
         )}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Gewenste peildatum" hint="de wettekst zelf komt uit de actuele graaf">
+        </>}
+        {versie && <>
+        {/* Peildatum en status onder elkaar: ze staan op de smalle kaart *Versie*; de uitleg van de peildatum staat eronder. */}
+        <div className="space-y-4" data-peildatum-status>
+          <Field label="Peildatum">
             <Input type="date" value={peildatum} onChange={(e) => setPeildatum(e.target.value)} />
           </Field>
           <Field label="Status">
@@ -172,11 +182,12 @@ export function GegevensDialoog({ wg, onBewaar, onSluit }: {
             </Select>
           </Field>
         </div>
-        <ButtonRow>
-          <Button type="submit" disabled={!naam.trim() || bezig}>{bezig ? "Bezig…" : "Opslaan"}</Button>
-          <Button type="button" variant="secondary" onClick={onSluit}>Annuleren</Button>
-        </ButtonRow>
+        <p className="-mt-2 text-xs text-faint">
+          De peildatum is standaard de aanmaakdatum; leeg zet hem daarop terug. De wettekst komt uit de actuele graaf:
+          geldt die pas na de peildatum, dan staat dat bij de bronnen.
+        </p>
+        </>}
+        <BewerkVoet submit onAnnuleer={onSluit} bezig={bezig} gewijzigd={gewijzigd && (versie || !!naam.trim())} />
       </form>
-    </Dialog>
   );
 }

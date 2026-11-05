@@ -930,3 +930,58 @@ def test_falende_similarity_index_maakt_de_import_niet_rood() -> None:
     """De wettekst staat dan al in de graaf; alleen semantic_search degradeert."""
     session = _SimilarityStub(bestaand=[], post_fout=requests.HTTPError("500"))
     _graaf_writer(session).ensure_similarity_index()  # werpt niet
+
+
+# --- vindplaats en inBepaling: de naam en de bepaling uit de echte boom ---------------------------
+
+
+def _vindplaats(g, iri) -> str:
+    return str(g.value(iri, V.ns.vindplaats))
+
+
+def test_een_wet_krijgt_dezelfde_vindplaats_als_bronmodel() -> None:
+    """Voor een wet zegt de IRI genoeg; `bronmodel.vindplaats` en de importer moeten dan hetzelfde
+    zeggen, anders noemen werkplek en graaf dezelfde bepaling anders."""
+    wet = _kleine_wet()
+    lid1 = wet.structuurdelen[0].artikelen[0].leden[0]
+    lid1.onderdelen.append(Onderdeel(id="W#a1#l1#o-a", nummer="a.", tekst="x", jci="jci1.3:c:BWBR0000001&artikel=1&lid=1&o=a",
+                                     subonderdelen=[Onderdeel(id="W#a1#l1#o-a-1", nummer="1°", tekst="y",
+                                                              jci="jci1.3:c:BWBR0000001&artikel=1&lid=1&o=a&o=1°")]))
+    g, _ = _writer().build_graph(wet)
+    art1, art2 = V.by_ref_key("BWBR0000001#artikel=1"), V.by_ref_key("BWBR0000001#artikel=2")
+    assert _vindplaats(g, art1) == "Artikel 1"
+    vindplaatsen = {_vindplaats(g, s) for s in g.subjects(RDF.type, V.klasse("Onderdeel"))}
+    assert vindplaatsen == {"Artikel 2, onderdeel a", "Artikel 1, lid 1, onderdeel a",
+                            "Artikel 1, lid 1, onderdeel a, 1°"}
+    # Elk onderdeel kent zijn bepaling: het lid of het artikel, ook een genest onderdeel.
+    for onderdeel in g.subjects(RDF.type, V.klasse("Onderdeel")):
+        bepaling = g.value(onderdeel, V.ns.inBepaling)
+        assert (bepaling, RDF.type, V.klasse("Lid")) in g or bepaling == art2
+
+
+def test_een_onderdeel_van_een_divisie_heet_naar_zijn_echte_plek() -> None:
+    """De Leidraad: een onderdeel in divisie 1.1 draagt een jci op `artikel=1`, dus de IRI zegt
+    "artikel 1". De vindplaats en de bepaling komen uit de boom: divisie 1.1. Een ongenummerd
+    opsommingsteken ("–") heeft geen eigen naam: het heet zoals de divisie, en telt voor haar."""
+    wet = _kleine_circulaire()
+    sub = wet.divisies[0].subdivisies[0]
+    sub.onderdelen += [
+        Onderdeel(id="C#d1.1#o-d", nummer="d.", tekst="genummerd", jci="jci1.3:c:BWBR0099999&artikel=1&o=d"),
+        Onderdeel(id="C#d1.1#o-streep", nummer="–", tekst="opsommingsteken"),
+    ]
+    g, _ = _writer().build_graph(wet)
+    top, subdivisie = V.by_ref_key("BWBR0099999#artikel=1"), V.by_ref_key("BWBR0099999#artikel=1.1")
+    assert (_vindplaats(g, top), _vindplaats(g, subdivisie)) == ("Artikel 1", "Artikel 1.1")
+    genummerd = V.by_ref_key("BWBR0099999#artikel=1#o=d")
+    assert _vindplaats(g, genummerd) == "Artikel 1.1, onderdeel d"
+    assert g.value(genummerd, V.ns.inBepaling) == subdivisie
+    streep = V.by_id("BWBR0099999", "C#d1.1#o-streep")
+    assert _vindplaats(g, streep) == "Artikel 1.1"
+    assert g.value(streep, V.ns.inBepaling) == subdivisie
+
+
+@pytest.mark.parametrize("nummer, verwacht", [("a.", "a"), ("1.", "1"), ("1°", "1°"), ("–", ""), ("", ""), (" • ", "")])
+def test_nummer_van(nummer, verwacht) -> None:
+    from app.collect import nummer_van
+
+    assert nummer_van(nummer) == verwacht
