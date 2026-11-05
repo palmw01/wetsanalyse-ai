@@ -40,6 +40,8 @@ skills-lock.json
 # er ooit een PDF wél mee, voeg dan een expliciete `!`-uitzondering toe en verantwoord die.
 # Wijzig je hier iets, controleer dan met `git check-ignore -v <pad>`.
 docs/**/*.pdf
+# Testdossiers van acceptatiescenario's: die noemen interne teams en systemen.
+docs/acceptatie/lokaal/
 docs/**/wetsanalyse-boek.md
 docs/**/*.pages.md
 # Ander intern BRM-materiaal (een tabel, een dia) krijgt de vorm `<naam>.brm.<ext>`: zo valt een PNG

@@ -80,6 +80,9 @@ def main() -> None:
     # parameter áltijd meegaan en zou de bicep-default nooit gelden.
     p.add_argument("--api-extern", action="store_true", default=None,
                    help="Api-ingress publiek maken (alleen acceptatie; zie main.bicep:apiExtern).")
+    p.add_argument("--api-token-login", action="store_true", default=None,
+                   help="Inloggen met een accounttoken toestaan (alleen acceptatie; zie "
+                        "main.bicep:apiTokenLogin).")
     p.add_argument("--graphdb-proxy-extern", action="store_true", default=None,
                    help="De externe GraphDB-MCP-proxy uitrollen (alleen acceptatie; zie "
                         "main.bicep:graphdbProxyExtern). Vereist WA_GRAPHDB_PROXY_TOKEN.")
@@ -165,6 +168,7 @@ def main() -> None:
         (args.min_replicas_apps, "minReplicasApps"),
         (args.min_replicas_api, "minReplicasApi"),
         (args.api_extern, "apiExtern"),
+        (args.api_token_login, "apiTokenLogin"),
         (args.graphdb_proxy_extern, "graphdbProxyExtern"),
         (args.api_image, "apiImage"),
         (args.frontend_image, "frontendImage"),

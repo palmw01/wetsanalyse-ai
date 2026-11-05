@@ -181,6 +181,9 @@ overzien.
   is `dispatch()`. Daarmee krijgt een externe agent exact de tools die Lex heeft in plaats van kale
   SPARQL — en dus ook de opgeloste valkuilen (dubbele punt in een artikelnummer, bepalingen zonder
   eigen tekst). Registreren hoort machine-lokaal; de URL en het token horen niet in deze repo.
+- **`tools/wetsanalyse-acceptatie-mcp/`** – stdio-MCP die de webapp op acceptatie bedient zoals een gebruiker:
+  via de BFF, met een sessie uit een accounttoken (`wa_pat_…`). Daarmee doet een MCP-client een acceptatietest
+  van begin tot eind en leest hij annotaties, begrippen en logs uit. De scenario's staan in `docs/acceptatie/`.
 - **`tools/nl-sbb-begrip/`** – side project: agent-workflow die voor één wettelijk begrip een
   NL-SBB-definitie opstelt (Markdown + SKOS-Turtle) op basis van de graaf, via die MCP-server.
   Draait niet mee in de dienst en heeft geen eigen CI.
@@ -383,6 +386,7 @@ alleen lokaal bestaan. Daarvóór staan structurele guards:
   Dockerfiles;
 - alle Trivy-poorten hebben één beleid en falen minstens op HIGH;
 - `apiExtern` staat default op `false` en wordt alleen op acceptatie gezet;
+- inloggen met een accounttoken (`apiTokenLogin`) staat default uit en alleen op acceptatie aan;
 - GraphDB blijft `external: false`; de proxy staat default uit, alleen op acceptatie, alleen mét
   token, en met een `revisionSuffix` uit de config-hash (secrets zijn niet revisie-scoped, dus een
   configwijziging rolt anders niet uit).

@@ -10,6 +10,8 @@ GET  /v1/auth/setup-status        – is er nog geen account? (dan staat de regi
 POST /v1/auth/setup               – maak de allereerste beheerder (alleen bij lege tabel → anders 409)
 POST /v1/auth/registratie         – vraag toegang aan (zelfregistratie; wacht op goedkeuring)
 POST /v1/auth/verify              – valideer userid + wachtwoord (+ optionele TOTP)
+POST /v1/auth/api-token/verify    – wissel een accounttoken in voor de identiteit van het account
+GET  /v1/auth/api-token/{id}/status – geldt het accounttoken nog? (de hercontrole van de BFF)
 GET  /v1/auth/me                  – eigen account (rol + of 2FA aanstaat) – X-User-Id
 POST /v1/auth/change-password     – eigen wachtwoord wijzigen (huidig → nieuw) – X-User-Id
 POST /v1/auth/2fa/begin           – start 2FA-koppeling, geeft de otpauth-URI – X-User-Id
@@ -26,7 +28,7 @@ from time import monotonic
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel, Field
 
-from .. import ratelimit, registraties, users
+from .. import api_tokens, ratelimit, registraties, users
 from ..auth import require_client
 from ..config import get_settings
 from ..secrets_crypto import SecretsCryptoError, crypto_beschikbaar
@@ -89,6 +91,19 @@ class VerifyResult(BaseModel):
     # (de code geldt geen tweede keer, en de BFF verifieert daarna nog eens voor de sessie)
     ticket: str | None = None
     trusted_token: str | None = None   # bij ok + remember: 30-daags "dit apparaat onthouden"-token
+
+
+class ApiTokenVerifyIn(BaseModel):
+    token: str = Field(max_length=256)
+
+
+class ApiTokenVerifyResult(BaseModel):
+    """Afgewezen is een 200 met `ok: false`, net als `/verify`: elke andere status is een storing."""
+    ok: bool
+    token_id: str = ""
+    userid: str = ""
+    email: str = ""
+    role: str = ""
 
 
 class MeOut(BaseModel):
@@ -268,6 +283,34 @@ async def verify(body: VerifyIn):
         ok=True, code="ok", userid=user.userid, email=user.email, role=user.role,
         ticket=tweede_factor, trusted_token=trusted,
     )
+
+
+def token_login_aan() -> None:
+    """Inloggen met een accounttoken bestaat alleen waar de vlag aanstaat: 404, dus ook geen orakel."""
+    if not get_settings().api_token_login:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Niet gevonden.")
+
+
+# Geen rate-limit zoals op `/verify`: een accounttoken heeft 256 bits entropie, dus raden is geen
+# aanval, en een limiet per token kan hier niet (een onbekend token heeft geen sleutel).
+@router.post("/api-token/verify", response_model=ApiTokenVerifyResult, dependencies=[Depends(token_login_aan)])
+async def verify_api_token(body: ApiTokenVerifyIn):
+    gevonden = await api_tokens.verify_gebruiker(body.token)
+    if gevonden is None:
+        logger.warning("accounttoken afgewezen", extra={"categorie": "security", "actie": "token_afgewezen"})
+        return ApiTokenVerifyResult(ok=False)
+    logger.info("ingelogd met accounttoken", extra={
+        "categorie": "security", "actie": "token_login", "token_id": gevonden["token_id"], "userid": gevonden["userid"],
+    })
+    return ApiTokenVerifyResult(ok=True, **gevonden)
+
+
+@router.get("/api-token/{token_id}/status", status_code=status.HTTP_204_NO_CONTENT,
+            dependencies=[Depends(token_login_aan)])
+async def api_token_status(token_id: str):
+    """204 als het token nog geldt, anders 401: dezelfde betekenis als `/me` voor de BFF."""
+    if not await api_tokens.gebruiker_geldig(token_id):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token geldt niet meer.")
 
 
 # --- self-service account + 2FA ------------------------------------------------

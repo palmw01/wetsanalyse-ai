@@ -305,3 +305,37 @@ describe("rol-gate op /api/admin", () => {
     expect(res).toBe(true);
   });
 });
+
+describe("sessie uit een accounttoken", () => {
+  const sessie = (role: string, viaToken?: string) => ({ user: { userid: "acc", role, viaToken } });
+
+  it.each(["/api/admin/api-tokens", "/api/admin/api-tokens/abc", "/api/account/password", "/api/account/2fa/begin"])(
+    "mag %s niet, ook niet als beheerder",
+    async (pad) => {
+      const res = authorized({
+        auth: sessie("beheerder", "token-1"),
+        request: fakeRequest("POST", `http://app.test${pad}`),
+      }) as Response;
+      expect(res.status).toBe(403);
+    },
+  );
+
+  it("mag de rest van de BFF, binnen zijn rol", () => {
+    const beheerder = sessie("beheerder", "token-1");
+    expect(authorized({ auth: beheerder, request: fakeRequest("GET", "http://app.test/api/admin/users") })).toBe(true);
+    expect(authorized({ auth: beheerder, request: fakeRequest("POST", "http://app.test/api/werkgebieden") })).toBe(true);
+    const analist = authorized({
+      auth: sessie("analist", "token-1"),
+      request: fakeRequest("GET", "http://app.test/api/admin/users"),
+    }) as Response;
+    expect(analist.status).toBe(403);
+  });
+
+  it("raakt een gewone sessie niet", () => {
+    const res = authorized({
+      auth: sessie("beheerder"),
+      request: fakeRequest("GET", "http://app.test/api/admin/api-tokens"),
+    });
+    expect(res).toBe(true);
+  });
+});

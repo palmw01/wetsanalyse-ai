@@ -99,7 +99,7 @@ zijn gedeeld tussen gebruikers; wie wat deed staat in de audit. Specificatie:
 | `GET` `POST` | `/v1/admin/users` | Lijst accounts / account maken (geeft eenmalig een tijdelijk wachtwoord) |
 | `PATCH` `DELETE` | `/v1/admin/users/{userid}` | Rol/actief wijzigen (laatste actieve beheerder beschermd) / verwijderen |
 | `POST` | `/v1/admin/users/{userid}/reset-password` | Nieuw tijdelijk wachtwoord |
-| `GET` `POST` | `/v1/admin/api-tokens` | Lijst / nieuw token (eenmalig getoond) |
+| `GET` `POST` | `/v1/admin/api-tokens` | Lijst / nieuw token (eenmalig getoond); met `userid` een accounttoken |
 | `DELETE` | `/v1/admin/api-tokens/{id}` | Token intrekken |
 | `GET` | `/v1/admin/registraties` | Zelfregistratie-aanvragen (optioneel `?status=aangevraagd`) |
 | `POST` | `/v1/admin/registraties/{id}/goedkeuren` | Account aanmaken (userid corrigeerbaar, rol kiesbaar) |

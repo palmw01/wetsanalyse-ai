@@ -74,6 +74,9 @@ param minReplicasApi int = minReplicasApps
 @description('Api-ingress publiek bereikbaar? Alleen acceptatie, zodat de admin-MCP (tools/wetsanalyse-admin-mcp) erbij kan; de default false houdt productie dicht.')
 param apiExtern bool = false
 
+@description('Mag een accounttoken inloggen (de acceptatie-MCP, tools/wetsanalyse-acceptatie-mcp)? Alleen acceptatie; de frontend is op elke straat publiek, dus de default false houdt die inlogweg op productie weg.')
+param apiTokenLogin bool = false
+
 @description('Rolt de externe MCP-proxy vóór GraphDB uit, zodat een MCP-client van buiten de graaf kan bevragen. Alleen acceptatie; default false. GraphDB zelf blijft altijd intern – deze parameter raakt die ingress niet.')
 param graphdbProxyExtern bool = false
 
@@ -852,6 +855,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'LLM_MODEL', value: llmModel }
             { name: 'LLM_API_BASE', value: llmApiBase }
             { name: 'WETSANALYSE_AUTH_REQUIRED', value: '1' }
+            { name: 'API_TOKEN_LOGIN', value: apiTokenLogin ? 'true' : 'false' }
             { name: 'HOME', value: '/tmp' }
             { name: 'LLM_API_KEY_FILE', value: '/run/secrets/llm_api_key' }
             { name: 'LLM_CONFIG_SECRET_FILE', value: '/run/secrets/llm_config_secret' }
@@ -1229,6 +1233,7 @@ resource frontendApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'OTEL_RESOURCE_ATTRIBUTES', value: 'deployment.environment=${appName}' }
             { name: 'NODE_ENV', value: 'production' }
             { name: 'API_BASE_URL', value: apiInternalUrl }
+            { name: 'API_TOKEN_LOGIN', value: apiTokenLogin ? 'true' : 'false' }
             { name: 'GRAPH_QA_URL', value: graphQaInternalUrl }
             { name: 'AUTH_URL', value: frontendPublicUrl }
             { name: 'AUTH_TRUST_HOST', value: 'true' }

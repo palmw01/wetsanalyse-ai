@@ -981,6 +981,13 @@ de stand van die beurt zien, dan heb je een momentopname nodig. Alleen een begri
   het bootstrap-pad) en DB-tokens uit `api_tokens.py`. Die staan alleen als sha256-hash in
   `api_tokens`, worden één keer getoond en zijn intrekbaar; ze voeden o.a. de admin-MCP
   (`tools/wetsanalyse-admin-mcp/`).
+- **Accounttokens** (scope `gebruiker`, prefix `wa_pat_`): een token dat bij één account hoort en na 90
+  dagen verloopt. Ze staan in dezelfde tabel, maar de twee soorten kruisen niet: `verify()` kijkt alleen
+  naar scope `admin`, dus een accounttoken opent `/v1/admin` nooit. De BFF wisselt zo'n token in voor een
+  gewone sessie (`POST /v1/auth/api-token/verify`) en controleert het periodiek
+  (`GET /v1/auth/api-token/{id}/status`); wat de sessie mag volgt uit het account. Alles hangt achter
+  `API_TOKEN_LOGIN`, default uit (404). Een geweigerd account krijgt geen token, en verwijderen trekt de
+  tokens in: anders erft een nieuw account met dezelfde userid ze.
 
 ## Tokenbudget
 

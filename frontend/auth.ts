@@ -6,8 +6,15 @@
 import NextAuth from "next-auth";
 import { encode } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
-import { authConfig, SESSIE_KORT, SESSIE_LANG, type Role } from "./auth.config";
-import { getAccountStatus, verifyCredentials, type AccountStatus } from "@/lib/server";
+import { authConfig, SESSIE_KORT, SESSIE_LANG, SESSIE_TOKEN, type Role } from "./auth.config";
+import {
+  getAccountStatus,
+  getTokenStatus,
+  verifyApiToken,
+  verifyCredentials,
+  type AccountStatus,
+  type TokenStatus,
+} from "@/lib/server";
 import { sessieGerevoceerd } from "@/lib/sessie";
 import { maakStatusCache } from "@/lib/statusCache";
 import { clearLoginTicketCookie, getLoginTicketCookie, getTrustedDeviceCookie } from "@/lib/authCookies";
@@ -32,6 +39,33 @@ const accountStatus = maakStatusCache<AccountStatus>(getAccountStatus, {
   onbekendMs: ONBEKEND_MS,
 });
 
+const tokenStatus = maakStatusCache<TokenStatus>(getTokenStatus, {
+  geldigMs: HERVERIFICATIE_MS,
+  onbekendMs: ONBEKEND_MS,
+});
+
+// Inloggen met een accounttoken: alleen op de straat die hem aanzet (default uit, zie `poort`). Het
+// token wordt ingewisseld voor een gewone sessie, zodat de route-gate, de rolcontrole en
+// `sessionUserId()` niets van tokens hoeven te weten.
+const apiTokenProvider = Credentials({
+  id: "api-token",
+  name: "API-token",
+  credentials: { token: { label: "API-token", type: "password" } },
+  async authorize(credentials) {
+    const gevonden = await verifyApiToken(String(credentials?.token ?? ""));
+    if (!gevonden) return null;
+    return {
+      id: gevonden.userid,
+      userid: gevonden.userid,
+      name: gevonden.userid,
+      email: gevonden.email,
+      role: gevonden.role as Role,
+      viaToken: gevonden.token_id,
+    };
+  },
+});
+const tokenLoginAan = ["1", "true"].includes((process.env.API_TOKEN_LOGIN ?? "").toLowerCase());
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   // De effectieve sessieduur per login: 30 dagen als "Ingelogd blijven op dit apparaat" is gekozen
@@ -40,7 +74,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   jwt: {
     maxAge: SESSIE_LANG,
     encode: (params) =>
-      encode({ ...params, maxAge: params.token?.rememberMe === true ? SESSIE_LANG : SESSIE_KORT }),
+      encode({
+        ...params,
+        maxAge: params.token?.viaToken
+          ? SESSIE_TOKEN
+          : params.token?.rememberMe === true
+            ? SESSIE_LANG
+            : SESSIE_KORT,
+      }),
   },
   callbacks: {
     ...authConfig.callbacks,
@@ -54,12 +95,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.role = (user as { role?: Role }).role;
         token.email = user.email;
         token.rememberMe = (user as { rememberMe?: boolean }).rememberMe === true;
+        token.viaToken = (user as { viaToken?: string }).viaToken;
         token.verifiedAt = Date.now();
         token.loginAt = Date.now(); // inlogmoment: voor sessie-revocatie bij wachtwoordwijziging
         return token;
       }
       const verifiedAt = typeof token.verifiedAt === "number" ? token.verifiedAt : 0;
       if (!token.userid || Date.now() - verifiedAt < HERVERIFICATIE_MS) return token;
+      // Een sessie uit een accounttoken vervalt met het token, niet pas als hij afloopt.
+      if (token.viaToken && (await tokenStatus(token.viaToken)).status === "ingetrokken") return null;
       const status = await accountStatus(String(token.userid));
       if (status.status === "ingetrokken") return null; // sessie invalideren
       if (status.status === "actief") {
@@ -107,5 +151,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return { id: res.userid, userid: res.userid, name: res.userid, email: res.email, role: res.role as Role, rememberMe: remember };
       },
     }),
+    ...(tokenLoginAan ? [apiTokenProvider] : []),
   ],
 });
