@@ -99,7 +99,8 @@ try {
   await rij("g1").waitFor({ state: "detached" });
   await page.reload();
   await groep("wg1").waitFor();
-  assert.equal(await rij("g1").count(), 0, "de ingeklapte groep blijft ingeklapt");
+  // De ingeklapte stand komt pas na het hydrateren uit de opslag: wachten, niet meteen tellen.
+  await rij("g1").waitFor({ state: "detached" });
   await groep("wg1").getByRole("button", { name: "Invorderingsrente", exact: true }).click();
 
   // --- Een gesprek openen neemt zijn werkgebied mee ---

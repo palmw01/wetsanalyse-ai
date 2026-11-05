@@ -195,6 +195,16 @@ jobs:
           print("ok - apiExtern staat default op false en wordt alleen op acceptatie gezet")
           PYEOF
 
+      - name: Testdossiers blijven lokaal
+        run: |
+          # Ze noemen interne teams en systemen, en deze repo is publiek. `.gitignore` alleen is niet genoeg:
+          # een branch van vóór die regel neemt het bestand met `git add -A` gewoon mee.
+          if [ -n "$(git ls-files docs/acceptatie/lokaal)" ]; then
+            git ls-files docs/acceptatie/lokaal
+            echo "Testdossiers horen niet in de repo."
+            exit 1
+          fi
+
       - name: Inloggen met een accounttoken – alleen op acceptatie
         run: |
           python3 - <<'PYEOF'
