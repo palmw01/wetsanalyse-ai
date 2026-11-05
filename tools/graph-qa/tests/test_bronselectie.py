@@ -674,6 +674,20 @@ def test_bepalingen_noemen_vanuit_het_gesprek():
     assert uit["kaart"]["stap"] == "bs_toevoegen" and "staat er al" in uit["kaart"]["toelichting"]
 
 
+def test_de_bevestiging_noemt_de_regeling_die_het_werd():
+    """Een verkeerde regeling viel niet op: "1 bepaling staat als voorstel", terwijl artikel 6 van de Awir was gepakt
+    in plaats van dat van de uitvoeringsregeling. Nu staat er welke het werd, en zonder naam blijft de zin kloppen."""
+    api = NepApi(vragen=VRAGEN[:1], kandidaten={"k1": {"label": "Artikel 9", "rol": "kern", "bij": ["d1"]}})
+    ov = _run(api.haal_bronselectie(WID))
+    vind = lambda _t: ["BWBR0019237"]
+    uit = _run(bs.noem(api, WID, ov, "d1", ["artikel 6 lid 1 Uitvoeringsregeling Awir"], vind,
+                       lambda _ids: {"BWBR0019237": "Uitvoeringsregeling Algemene wet inkomensafhankelijke regelingen"}))
+    assert ("Artikel 6, lid 1 – Uitvoeringsregeling Algemene wet inkomensafhankelijke regelingen. Lees de tekst"
+            in uit["zinnen"][0])
+    uit = _run(bs.noem(api, WID, ov, "d1", ["artikel 7 Uitvoeringsregeling Awir"], vind))
+    assert uit["zinnen"][0].endswith("met *zelf genoemd*: lees de tekst en neem op of sluit uit.")
+
+
 def test_bepaling_toevoegen_routeert_zonder_model():
     r = ChatRequest(question="Voeg een bepaling toe", actie="bepaling_toevoegen", werkgebied_id="wg1")
     assert r.actie == "bepaling_toevoegen"

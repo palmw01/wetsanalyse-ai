@@ -58,6 +58,11 @@ def bronselectie_node(b, state: State) -> dict[str, Any]:
             from ..overzicht import regelingen_in_vraag
             return regelingen_in_vraag(b.graph, tekst) if b.graph is not None else []
 
+        def namen(bwb_ids: set[str]) -> dict[str, str]:
+            """De citeertitels voor de bevestiging; zonder graaf geen namen."""
+            from ..regelingnamen import regelingnamen
+            return regelingnamen(b.graph, bwb_ids) if b.graph is not None else {}
+
         def stel_voor(werkgebied: dict[str, Any], regelingen: list[str]) -> list[dict[str, Any]]:
             """De gebeurtenissen uit de koppen van de regelingen (zonder model); zonder graaf geen voorstel."""
             from ..zoekvragen import gebeurtenis_opties
@@ -79,7 +84,7 @@ def bronselectie_node(b, state: State) -> dict[str, Any]:
 
         try:
             if actie:
-                return await bs.verwerk(api, actie, zoek, vind, stel_voor, toets)
+                return await bs.verwerk(api, actie, zoek, vind, stel_voor, toets, namen)
             if state.get("actie") == "bepaling_toevoegen":
                 return await bs.vraag_toevoegen(api, wid, aangewezen)
             return await bs.start(api, wid, zoek, vraag=state.get("question", ""), deelvraag_id=aangewezen,
