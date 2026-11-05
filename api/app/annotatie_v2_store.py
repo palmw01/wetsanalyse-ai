@@ -605,6 +605,10 @@ async def verwijder_weergave(snapshot: dict, verwachte_revisies: dict[str, int],
                 "bron_iri": iri, "laag_id": layer["id"], "revisie": layer["revisie"], "status": layer["status"],
                 "weergave": snapshot["doel"]["bron_iri"], "elementen": sorted(per_laag.get(layer["id"], []))},
                 laag_id=layer["id"])
+        # De versies van de annotatie (artefact_versies) gaan mee: echt wissen, zoals bij een werkgebied.
+        from .artefact_versies import wis_sleutel
+        for iri in {snapshot["doel"]["bron_iri"], *doelen}:
+            await wis_sleutel(conn, f"annotatie:{iri}")
         await conn.execute(update(db.annotatie_v2_state).where(db.annotatie_v2_state.c.id == 1).values(
             revisie=db.annotatie_v2_state.c.revisie + 1))
     from .graaf_projectie_v2 import verwijder_projecties
