@@ -1,8 +1,7 @@
 "use client";
 
+import { BewerkVoet } from "@/components/ui/Bewerkbaar";
 import { useState } from "react";
-import { Button } from "@/components/ui/Button";
-import { ButtonRow } from "@/components/ui/ButtonRow";
 import { Card } from "@/components/ui/Card";
 import { Field, Input } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
@@ -111,14 +110,8 @@ export function ProfileEditor({ profile, onDone, onCancel }: Props) {
 
         {fout && <Melding type="fout">{fout}</Melding>}
 
-        <ButtonRow className="pt-2">
-          <Button size="sm" type="button" variant="ghost" onClick={onCancel} disabled={bezig}>
-            Annuleren
-          </Button>
-          <Button size="sm" type="submit" disabled={bezig}>
-            {bezig ? "Bezig met opslaan…" : "Opslaan"}
-          </Button>
-        </ButtonRow>
+        {/* Dezelfde voet als elk bewerkveld in Lex (4 nov 2026): rechts Annuleren · Opslaan. */}
+        <BewerkVoet submit onAnnuleer={onCancel} bezig={bezig} gewijzigd />
       </form>
     </Card>
   );

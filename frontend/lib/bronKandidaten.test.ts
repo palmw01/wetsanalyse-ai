@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  bewijsZin, bijDeelvraag, filterVan, plekNaam, sorteerKandidaten, telPerFilter,
+  bewijsZin, bijDeelvraag, filterVan, isOpen, plekNaam, sorteerKandidaten, telPerFilter,
 } from "./bronKandidaten";
 import type { BronKandidaat } from "./types";
 
@@ -10,7 +10,7 @@ const L1 = "urn:bwb:BWBR0004770:artikel:9:lid:1";
 const k = (over: Partial<BronKandidaat>): BronKandidaat => ({
   id: "K", bron_iri: "urn:bwb:BWBR0004770:artikel:8", label: "Artikel 8", bwb_id: "BWBR0004770", rol: "aanverwant",
   bewijs: [{ methode: "opbouw", vanuit: L1, detail: {} }], status: "voorgesteld", reden: "", run_id: "r",
-  in_laatste_run: true, in_selectie: false, besloten_door: null, besloten_op: null, ...over,
+  vervallen: false, in_selectie: false, besloten_door: null, besloten_op: null, ...over,
 });
 
 describe("bewijsZin", () => {
@@ -42,10 +42,12 @@ describe("filters", () => {
     expect(filterVan(k({}))).toBe("open");
     expect(filterVan(k({ in_selectie: true }))).toBe("opgenomen");
     expect(filterVan(k({ status: "uitgesloten" }))).toBe("uitgesloten");
-    // Een oud besluit *later* is geen besluit meer (spoor J): het telt als voorstel.
-    expect(filterVan(k({ status: "later" }))).toBe("open");
-    expect(telPerFilter([k({}), k({ status: "later" }), k({ status: "opgenomen" })]))
-      .toEqual({ open: 2, uitgesloten: 0, opgenomen: 1 });
+    // Wat de laatste zoekopdracht niet meer vond, is geen open voorstel.
+    expect(isOpen(k({}))).toBe(true);
+    expect(isOpen(k({ vervallen: true }))).toBe(false);
+    expect(isOpen(k({ in_selectie: true }))).toBe(false);
+    expect(telPerFilter([k({}), k({ status: "uitgesloten" }), k({ status: "opgenomen" })]))
+      .toEqual({ open: 1, uitgesloten: 1, opgenomen: 1 });
   });
 });
 
@@ -60,6 +62,8 @@ it("plekNaam valt terug op het pad na de regeling", () => {
   expect(plekNaam("urn:bwb:BWBR0024096:id:abc")).toBe("abc");
   expect(plekNaam("urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1")).toBe("divisie 9.1");
   expect(plekNaam("")).toBe("");
+  // Een onderdeel van een divisie heet naar die divisie, nooit "Onderdeel._11".
+  expect(plekNaam("urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FTekst%2FOnderdeel._11")).toBe("divisie 9");
 });
 
 it("een kandidaat hoort bij de deelvraag die zijn bewijs noemt", () => {

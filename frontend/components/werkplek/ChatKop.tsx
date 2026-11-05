@@ -3,8 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { Mapje, Meer } from "@/components/ui/Icoon";
+import { Mapje } from "@/components/ui/Icoon";
+import { MeerKnop } from "@/components/ui/MeerMenu";
+import { MENU_PANEEL } from "@/components/ui/Menu";
 import { Popover } from "@/components/ui/Popover";
+import { BewerkVoet, useBewerken } from "@/components/ui/Bewerkbaar";
 import { GesprekActies } from "@/components/werkplek/GesprekActies";
 import { haalWerkgebied } from "@/lib/api";
 
@@ -16,7 +19,7 @@ import { haalWerkgebied } from "@/lib/api";
  *  gesprekken* en maakt het gesprek ook echt los, zodat het niet bij het volgende openen weer in
  *  het werkgebied staat. De naam laden mag mislukken: dan staat er het id. */
 export function ChatKop({
-  titel, gesprekId, werkgebiedId, gearchiveerd = false, onArchiveer, onVerplaats, onVerwijder, onBronnen,
+  titel, gesprekId, werkgebiedId, gearchiveerd = false, onArchiveer, onVerplaats, onVerwijder, onBronnen, onHernoem,
 }: {
   titel: string;
   /** `null` = een nieuw gesprek dat nog geen beurt had: er valt nog niets te archiveren. */
@@ -28,7 +31,10 @@ export function ChatKop({
   onVerwijder: () => void;
   /** De bronnen van het werkgebied naast het gesprek openen (spoor G4). */
   onBronnen?: () => void;
+  /** Hernoemen ter plekke (4 nov 2026), zoals in de lijst van gesprekken. */
+  onHernoem?: (titel: string) => Promise<unknown> | void;
 }) {
+  const bw = useBewerken({ begin: titel, opslaan: async (t: string) => { if (t.trim()) await onHernoem?.(t.trim()); } });
   // De naam hoort bij het id waarvoor hij geladen is: na een verplaatsing staat er tot het laden "…",
   // niet de naam van het vorige werkgebied.
   const [geladen, setGeladen] = useState<{ id: string; naam: string } | null>(null);
@@ -49,8 +55,18 @@ export function ChatKop({
       className="flex shrink-0 items-center gap-3 border-b border-line px-4 py-2"
     >
       <div className="min-w-0 flex-1">
-        {/* Op een smal scherm staat de titel al in de mobiele topbar. */}
-        <h1 className="hidden truncate text-sm font-semibold text-ink lg:block">{titel}</h1>
+        {/* Op een smal scherm staat de titel al in de mobiele topbar; hernoemen gebeurt ter plekke. */}
+        {bw.open ? (
+          <div data-bewerken className="py-1">
+            <input autoFocus aria-label="Naam van het gesprek" value={bw.concept} onChange={(e) => bw.zet(e.target.value)}
+              onKeyDown={bw.toetsen(true)}
+              className="w-full rounded-field border border-lint bg-paper px-2 py-1 text-sm text-ink focus:outline-none" />
+            <BewerkVoet onAnnuleer={bw.annuleer} onOpslaan={() => void bw.slaOp()} bezig={bw.bezig}
+              gewijzigd={bw.gewijzigd && !!bw.concept.trim()} fout={bw.fout} />
+          </div>
+        ) : (
+          <h1 className="hidden truncate text-sm font-semibold text-ink lg:block">{titel}</h1>
+        )}
         <p className="truncate text-xs text-muted">
           {werkgebiedId ? (
             <>
@@ -86,18 +102,8 @@ export function ChatKop({
       {gesprekId && (
         <Popover
           ariaLabel="Gesprek"
-          className="w-64 rounded-kaart border border-line bg-paper shadow-kaart"
-          trigger={(open, toggle) => (
-            <button
-              type="button"
-              onClick={toggle}
-              aria-expanded={open}
-              aria-label="Acties voor dit gesprek"
-              className="focus-ring inline-flex min-h-[32px] min-w-[32px] items-center justify-center rounded-full border border-line text-muted hover:bg-surface hover:text-lint coarse:min-h-[44px] coarse:min-w-[44px]"
-            >
-              <Meer />
-            </button>
-          )}
+          className={`w-64 ${MENU_PANEEL}`}
+          trigger={(open, toggle) => <MeerKnop label="Acties voor dit gesprek" open={open} onClick={toggle} maat="sm" />}
         >
           {(sluit) => (
             <GesprekActies
@@ -106,6 +112,7 @@ export function ChatKop({
               onArchiveer={onArchiveer}
               onVerplaats={onVerplaats}
               onVerwijder={onVerwijder}
+              {...(onHernoem ? { onHernoem: bw.start } : {})}
               onKlaar={sluit}
             />
           )}

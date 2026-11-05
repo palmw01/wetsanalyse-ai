@@ -18,6 +18,7 @@ import { isBegripSamenhang, isConformiteit, type BegripSamenhang, type Conformit
 import type { BegrippenOverzicht } from "./begrippenOverzicht";
 import type {
   ThemaVoorstel,
+  Toestanden,
   ApiError,
   ApiTokenCreated,
   ApiTokenOut,
@@ -95,6 +96,7 @@ import { isRelatiesAntwoord } from "./begripRelaties";
 import { isDekking, isHerbeoordelingen } from "./herbeoordeling";
 import { pathSegment } from "./url";
 import { parseBevestiging } from "./werkgebiedAnnoteren";
+import { parseVervolg } from "./vraagLex";
 import { parseVraagkaart } from "./vraagkaart";
 
 export async function parseError(res: Response): Promise<ApiError> {
@@ -555,7 +557,7 @@ export type AgentHandlers = {
    *  `annotatie_doel` is de oudere vorm van een annotatie-artefact. */
   onOpgeslagen?: (uitkomst: {
     run_id: string; artefact?: import("./artefact").Artefact; annotatie_doel?: import("./annotatieNode").NodeDoel;
-    bevestiging?: Bevestiging;
+    bevestiging?: Bevestiging; vervolg?: import("./vraagLex").Vervolg;
   }) => void;
   /** De beurt slaagde, maar niet alles is bewaard – bv. een markering die de api niet accepteerde.
    *  Geen fout (het meeste staat er wél), maar de jurist hoort te weten dat er iets ontbreekt. */
@@ -786,7 +788,7 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
               seq?: number;
               weggevallen?: number;
               artefact?: unknown;
-              bevestiging?: unknown;
+              bevestiging?: unknown; vervolg?: unknown;
               annotatie_doel?: import("./annotatieNode").NodeDoel;
               run_id?: string;
               // grounding: `niveau` is nieuw; een oudere agent stuurt alleen `grounded`.
@@ -863,7 +865,8 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
         else if (ev.type === "opgeslagen")
           handlers.onOpgeslagen?.({ run_id: ev.run_id ?? "", annotatie_doel: ev.annotatie_doel,
             ...(parseArtefact(ev.artefact) ? { artefact: parseArtefact(ev.artefact) } : {}),
-            ...(parseBevestiging(ev.bevestiging) ? { bevestiging: parseBevestiging(ev.bevestiging) } : {}) });
+            ...(parseBevestiging(ev.bevestiging) ? { bevestiging: parseBevestiging(ev.bevestiging) } : {}),
+            ...(parseVervolg(ev.vervolg) ? { vervolg: parseVervolg(ev.vervolg) } : {}) });
         else if (ev.type === "waarschuwing") handlers.onWaarschuwing?.(ev.message ?? "");
         // `agentFout` onderscheidt dit van een 502 die zegt "de BFF kon graph-qa niet bereiken":
         // die is tijdelijk en mag opnieuw, deze is een uitkomst van de beurt zelf.
@@ -888,12 +891,20 @@ export type ExportFormaat = "pdf" | "csv" | "json" | "trig"
  *  bestandsnaam overal van de server komt (`Content-Disposition`) en de link overal in het document
  *  hangt voor de klik (oudere Firefox- en Safari-versies negeren een klik op een losse `<a>`). */
 export async function downloadAntwoord(res: Response, terugvalNaam: string): Promise<void> {
-  const blob = await res.blob();
+  downloadBlob(await res.blob(), bestandsnaamUit(res.headers.get("content-disposition")) ?? terugvalNaam);
+}
+
+/** Tekst die de browser zelf maakt (een artefact als Markdown) als bestand: hetzelfde downloadpatroon. */
+export function downloadTekst(tekst: string, naam: string, type = "text/plain"): void {
+  downloadBlob(new Blob([tekst], { type: `${type};charset=utf-8` }), naam);
+}
+
+function downloadBlob(blob: Blob, naam: string): void {
   const url = URL.createObjectURL(blob);
   try {
     const a = document.createElement("a");
     a.href = url;
-    a.download = bestandsnaamUit(res.headers.get("content-disposition")) ?? terugvalNaam;
+    a.download = naam;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -1143,6 +1154,17 @@ export async function koppelDeelvraag(
 ): Promise<Werkgebied> {
   return json<Werkgebied>(await fetch(wg(id, "deelvragen", deelvraagId, "koppelingen"),
     jsonInit("PUT", { ...koppelingen, verwachte_revisie: verwachteRevisie })));
+}
+
+/** De peildatum en de toestand van de regelingen in de bronnen; faalt stil (`null`). */
+export async function haalToestanden(id: string): Promise<Toestanden | null> {
+  try {
+    const t = await json<Toestanden>(await fetch(wg(id, "toestanden"), { cache: "no-store" }));
+    // Een antwoord van een andere vorm (een oudere api) is geen peildatum: dan niets tonen.
+    return t && typeof t.peildatum === "string" && Array.isArray(t.regelingen) ? t : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Het thema dat Lex voorstelt, zonder model; faalt stil (`null`). */

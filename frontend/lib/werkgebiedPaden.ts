@@ -1,7 +1,8 @@
-// De werkgebiedpagina als project (spoor G2): vier tabs als echte paden, de detailpagina's eronder, en
+// De werkgebiedpagina als project (spoor G2): vijf tabs als echte paden, de detailpagina's eronder, en
 // de artefactkaarten. Zuiver, zodat vitest het zonder DOM toetst; de componenten lezen alleen.
 
 import type { BegripSamenvatting, BronKandidaat, Werkgebied } from "./types";
+import { isOpen } from "./bronKandidaten";
 
 /** Dezelfde tonen als `StatusLabel` (`components/ui/Lijst`); `lib/` importeert geen componenten. */
 type StatusToon = "groen" | "geel" | "neutraal";
@@ -11,6 +12,8 @@ export const PROJECT_TABS = [
   { key: "gesprekken", label: "Gesprekken" },
   { key: "bronnen", label: "Bronnen" },
   { key: "artefacten", label: "Artefacten" },
+  // De tijdlijn van het werkgebied: wie wat deed, nieuwste eerst (vijfde tab, besluit gebruiker 3 nov 2026).
+  { key: "historie", label: "Historie" },
 ] as const;
 export type ProjectTab = (typeof PROJECT_TABS)[number]["key"];
 
@@ -148,7 +151,7 @@ export function artefactKaarten(wg: Werkgebied, extra: {
   const gevuld = velden.filter((v) => (wg[v] ?? "").trim()).length;
   const deelvragen = (wg.deelvragen ?? []).filter((d) => d.status === "actief").length;
   const analyse = wg.bronnen.filter((b) => b.rol === "analyseren").length;
-  const open = extra.kandidaten?.filter((k) => k.status === "voorgesteld").length;
+  const open = extra.kandidaten?.filter(isOpen).length;
 
   const wv = extra.werkvoorraad;
   const eenheden = wv?.eenheden.length ?? 0;

@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from agent.bronnen_vinden import STANDAARD
 from agent.graph.queries import is_bron_iri
 from eval.bronselectie_eval import SETS, STANDAARD_SET, OpnameGraaf, laad_set, meet
@@ -48,7 +50,142 @@ def test_de_meting_per_deelvraag_houdt_de_gemeten_uitkomst():
     graaf = OpnameGraaf(json.loads((SETS / INTAKE_SET / "graafantwoorden.json").read_text()))
     r = meet_intake(graaf, s)
     assert graaf.ontbrekend == 0, "de opname dekt niet elke query: draai --opnemen"
-    nieuw, oud = r["bepaling_opties"], r["vorige deelvraagmethode"]
-    assert (nieuw["recall"], nieuw["recall_exact"], nieuw["uitgesloten"]) == (0.211, 0.211, 1)
-    assert nieuw["recall_exact"] > oud["recall_exact"] and nieuw["uitgesloten"] <= oud["uitgesloten"]
-    assert all(p["aantal"] <= 8 and p["gemarkeerd"] <= 2 for p in nieuw["per_deelvraag"])
+    f3f, oud = r["F3f (21 okt)"], r["vorige deelvraagmethode"]
+    assert (f3f["recall"], f3f["recall_exact"], f3f["uitgesloten"]) == (0.211, 0.211, 1)
+    assert f3f["recall_exact"] > oud["recall_exact"] and f3f["uitgesloten"] <= oud["uitgesloten"]
+    # De pool vóór de rangschikking (3 nov 2026): de index vond met F3f 11 van de 19, de top 8 er 4. De helft
+    # van het verlies zat in de rangschikking, de andere helft in het zoeken zelf.
+    assert (f3f["recall_pool"], f3f["pool"]) == (0.579, 479)
+    # Zoeken per term en op de delen van een samenstelling, de kop voor de hele pool en RRF (meetlogboek
+    # `bronselectie-2026-11-03`). Deze set is daarvoor de ontwikkelset; de held-out set staat ernaast.
+    vorige = r["zonder per_regeling"]
+    assert (vorige["recall"], vorige["recall_exact"], vorige["uitgesloten"], vorige["recall_pool"]) == \
+        (0.421, 0.421, 0, 0.842)
+    # Om de beurt per regeling, wet eerst (meetlogboek `bronselectie-2026-11-03-rangsignaal`).
+    nieuw = r["bepaling_opties"]
+    assert (nieuw["recall"], nieuw["recall_nodig"], nieuw["uitgesloten"], nieuw["recall_pool"]) == \
+        (0.474, 0.533, 0, 0.842)
+    for profiel in (p for p in r.values() if "pool" in p):
+        assert all(p["aantal"] <= 8 and p["gemarkeerd"] <= 2 for p in profiel["per_deelvraag"])
+        assert all(p["in_pool"] >= p["gevonden"] for p in profiel["per_deelvraag"] if "in_pool" in p)
+
+
+def test_de_held_out_meting_houdt_haar_uitkomst():
+    """De blinde meting van 3 nov 2026 (meetlogboek `bronselectie-2026-11-03`), offline op haar opname, met
+    de gecorrigeerde telling. Het zoeken generaliseerde (pool 0,56 → 0,94), de rangschikking maar half
+    (recall nodig 0,36 → 0,27). Deze set is na die ene run ook een ontwikkelset."""
+    from eval.bronselectie_eval import meet_intake
+
+    naam = "invorderbaarheid-deelvragen-concept"
+    s = laad_set(naam)
+    graaf = OpnameGraaf(json.loads((SETS / naam / "graafantwoorden.json").read_text()))
+    r = meet_intake(graaf, s)
+    assert graaf.ontbrekend == 0
+    vorige, f3f = r["zonder per_regeling"], r["F3f (21 okt)"]
+    assert (vorige["recall"], vorige["recall_nodig"], vorige["precisie"], vorige["recall_pool"]) == \
+        (0.333, 0.273, 0.281, 0.944)
+    assert (f3f["recall"], f3f["recall_nodig"], f3f["precisie"], f3f["recall_pool"]) == (0.278, 0.364, 0.156, 0.556)
+    nieuw = r["bepaling_opties"]
+    assert (nieuw["recall"], nieuw["recall_nodig"], nieuw["precisie"]) == (0.389, 0.364, 0.281)
+    assert nieuw["uitgesloten"] == f3f["uitgesloten"] == 0
+
+
+def test_de_held_out_meting_van_het_rangsignaal_houdt_haar_uitkomst():
+    """De blinde meting van 3 nov 2026 op de set bestuurdersaansprakelijkheid (meetlogboek
+    `bronselectie-2026-11-03-rangsignaal`), één keer live, daarna offline op haar opname. Om de beurt per
+    regeling verandert hier niets; de fusie verliest het van F3f. Het verlies zit in woorden: de analist
+    schrijft "melden", "loonheffing", "aansprakelijk stellen", de wet "mededeling", "loonbelasting",
+    "aansprakelijkstelling". Deze set is na die ene run een ontwikkelset."""
+    from eval.bronselectie_eval import meet_intake
+
+    naam = "bestuurdersaansprakelijkheid-concept"
+    s = laad_set(naam)
+    graaf = OpnameGraaf(json.loads((SETS / naam / "graafantwoorden.json").read_text()))
+    r = meet_intake(graaf, s)
+    assert graaf.ontbrekend == 0
+    nieuw, f3f, zonder_fusie = r["bepaling_opties"], r["F3f (21 okt)"], r["zonder fusie"]
+    assert (nieuw["recall"], nieuw["recall_nodig"], nieuw["uitgesloten"], nieuw["recall_pool"]) == \
+        (0.227, 0.222, 3, 0.909)
+    assert (f3f["recall"], f3f["recall_nodig"], f3f["recall_pool"]) == (0.318, 0.389, 0.455)
+    assert (zonder_fusie["recall"], zonder_fusie["recall_nodig"]) == (0.364, 0.389)
+
+
+def test_de_held_out_meting_van_het_meezoekende_dossier_houdt_haar_uitkomst():
+    """De blinde meting van 4 nov 2026 op de set kwijtschelding (meetlogboek `bronselectie-2026-11-04-dossier`),
+    één keer live, daarna offline op haar opname. Geen van de vier dossiervlaggen won op de ontwikkelsets, en hier
+    evenmin: de woordenkloof zit al in het zoeken (pool 0,33). De deelvragen en de analysevraag zeggen nergens
+    "kwijtschelding"; alleen de naam van het werkgebied doet dat, en die leest het zoeken niet. Deze set is na die
+    ene run een ontwikkelset."""
+    from eval.bronselectie_eval import meet_intake
+
+    naam = "kwijtschelding-concept"
+    s = laad_set(naam)
+    assert s["aanleiding"] and s["doel"] and s["praktijkvoorbeeld"]
+    assert {v["deelvraag"] for v in s["verwacht"]} == set(range(len(s["deelvragen"])))
+    assert all(is_bron_iri(v["bron_iri"]) for v in s["verwacht"] + s["uitgesloten"])
+    graaf = OpnameGraaf(json.loads((SETS / naam / "graafantwoorden.json").read_text()))
+    r = meet_intake(graaf, s)
+    assert graaf.ontbrekend == 0
+    nieuw, alles = r["bepaling_opties"], r["met dossier (alles)"]
+    assert (nieuw["recall"], nieuw["recall_nodig"], nieuw["uitgesloten"], nieuw["recall_pool"]) == \
+        (0.083, 0.095, 0, 0.333)
+    # Per dossierterm een lijst vergroot de pool, maar verdringt de opties van de deelvraag en deelt ze meer.
+    assert (alles["recall_nodig"], alles["recall_pool"]) == (0.048, 0.542) and alles["gedeeld"] > nieuw["gedeeld"]
+    for v in ("dossier_velden", "dossier_omgeving", "gelijkenis"):
+        assert r[f"met {v}"]["recall_nodig"] == nieuw["recall_nodig"]
+
+
+def test_de_gebeurtenis_en_de_grondslag_op_de_ontwikkelset():
+    """Zoekvragen a–d, PR 3 (4 nov 2026): op de ontwikkelset kwijtschelding stelt Lex de gebeurtenis bovenaan voor als
+    de naam haar noemt, en op plek 3 zonder de naam; de grondslag vindt Iw 26 lid 1 en Uitv.reg. 7 lid 1, niet art. 10
+    (dat draagt geen signaal van bestaansrecht). Een ontwikkelset: de blinde meting is `verrekening-concept`."""
+    from eval.bronselectie_eval import meet_zoekvragen
+
+    s = laad_set("kwijtschelding-concept")
+    graaf = OpnameGraaf(json.loads((SETS / "kwijtschelding-concept" / "graafantwoorden.json").read_text()))
+    r = meet_zoekvragen(graaf, s)
+    assert graaf.ontbrekend == 0
+    assert (r["plek_met_naam"], r["plek_zonder_naam"]) == (1, 3)
+    assert (r["grondslag_recall"], r["grondslag_precisie"], len(r["grondslag"])) == (0.667, 0.25, 8)
+
+
+@pytest.mark.parametrize("naam, pool, recall_nodig, juist, per_zoekvraag", [
+    ("kwijtschelding-concept", 226, 1.0, 0.87, {"a": (2, 2), "b": (3, 3), "c": (5, 5), "d": (13, 13)}),
+    ("bestuurdersaansprakelijkheid-concept", 218, 0.889, 0.95, {"a": (1, 1), "b": (3, 4), "c": (3, 3), "d": (13, 14)}),
+    ("bezwaar-ontvankelijkheid-concept", 104, 0.615, 0.111, {"a": (2, 5), "b": (7, 10), "c": (0, 1), "d": (0, 1)}),
+    ("invorderbaarheid-deelvragen-concept", 116, 0.818, 0.636, {"a": (0, 0), "b": (10, 12), "c": (1, 1), "d": (0, 5)}),
+])
+def test_de_pool_van_de_zoekvragen_op_de_ontwikkelsets(naam, pool, recall_nodig, juist, per_zoekvraag):
+    """Zoekvragen a–d (PR 4, bijgesteld in PR 5): de pool vanuit de grondslag, zonder model. Op kwijtschelding vond het
+    zoeken per deelvraag 0,33 van de verwachte bepalingen (blind); de pool alles wat nodig is, sinds een uitsluitstam
+    die in de helft van de omgeving staat niet meer telt ("belastin" uit "gemeentelijke belastingen"). Bezwaar blijft
+    zwak: de grondslag van het bezwaar (Awb 7:1, AWR 26a) heeft geen signaal van bestaansrecht. Ontwikkelsets; de
+    blinde meting (`verrekening-concept`) komt later."""
+    from eval.bronselectie_eval import meet_zoekvragen
+
+    graaf = OpnameGraaf(json.loads((SETS / naam / "graafantwoorden.json").read_text()))
+    r = meet_zoekvragen(graaf, laad_set(naam))
+    assert graaf.ontbrekend == 0
+    assert (r["pool"], r["pool_recall_nodig"], r["zoekvraag_juist"]) == (pool, recall_nodig, juist)
+    assert {z: (x["gevonden"], x["verwacht"]) for z, x in r["per_zoekvraag"].items()} == per_zoekvraag
+
+
+@pytest.mark.parametrize("naam, oud, nieuw", [
+    ("kwijtschelding-concept", 0.095, (0.292, 0.333, 0.219, 0)),     # PR 6: de brugtermen (0,29 → 0,33)
+    ("bestuurdersaansprakelijkheid-concept", 0.222, (0.409, 0.444, 0.219, 0)),
+    ("bezwaar-ontvankelijkheid-concept", 0.533, (0.368, 0.4, 0.188, 0)),
+    ("invorderbaarheid-deelvragen-concept", 0.364, (0.333, 0.455, 0.188, 0)),
+])
+def test_de_deelvraag_kiest_in_de_pool(naam, oud, nieuw):
+    """Zoekvragen a–d, PR 5 (4 nov 2026): per deelvraag de opties uit de pool, met de zoekvraag van de vraagvorm als
+    voorkeur en de woorden gewogen naar hun zeldzaamheid in de pool. Recall nodig tegen het zoeken op de woorden van de
+    deelvraag: kwijtschelding 0,10 → 0,29, bestuurdersaansprakelijkheid 0,22 → 0,44, invorderbaarheid 0,36 → 0,46;
+    bezwaar 0,53 → 0,40 (een zwakke pool). Geen uitgesloten bepaling. Ontwikkelsets."""
+    from eval.bronselectie_eval import meet_intake
+
+    graaf = OpnameGraaf(json.loads((SETS / naam / "graafantwoorden.json").read_text()))
+    r = meet_intake(graaf, laad_set(naam))
+    assert graaf.ontbrekend == 0
+    assert r["bepaling_opties"]["recall_nodig"] == oud
+    z = r["zoekvragen (PR 5)"]
+    assert (z["recall"], z["recall_nodig"], z["precisie"], z["uitgesloten"]) == nieuw

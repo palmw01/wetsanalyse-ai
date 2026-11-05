@@ -28,9 +28,10 @@ describe("artefactVanBericht", () => {
   it("leest het artefactveld", () => {
     const a = artefactVanBericht({ artefact: { soort: "begrippen", ref: { werkgebied_id: "w", run_id: "r" }, titel: "Invordering" } });
     expect(werkgebiedArtefactVan(a)).toEqual({ soort: "begrippen", werkgebied_id: "w", run_id: "r", titel: "Invordering" });
-    const b = artefactVanBericht({ artefact: { soort: "bronnen", ref: { werkgebied_id: "w", run_id: "r2" }, titel: "Inv" } });
-    expect(werkgebiedArtefactVan(b)?.soort).toBe("bronnen");
-    expect(parseArtefact({ soort: "bronnen", ref: { werkgebied_id: "w" } })).toBeUndefined();
+    const b = parseArtefact({ soort: "bronnen", ref: { werkgebied_id: "w", run_id: "r2" }, titel: "Inv" });
+    // Een oud bericht *Gevonden bepalingen* (vóór 4 nov 2026) opent de bronselectie van dat werkgebied.
+    expect(werkgebiedArtefactVan(b)).toEqual({ soort: "bronselectie", werkgebied_id: "w", run_id: "r2", titel: "Inv" });
+    expect(parseArtefact({ soort: "bronnen", ref: { werkgebied_id: "w" } })?.soort).toBe("bronselectie");
   });
 
   it("maakt van een ouder bericht met alleen een bronnode een annotatie-artefact", () => {
@@ -71,7 +72,7 @@ describe("een artefact dat naar één begrip wijst (F3d; F4 als begrippen met be
     expect(a.soort).toBe("begrip");
     expect(parseArtefact({ soort: "begrip", ref: { begrip_id: "b1" } })).toBeUndefined();
     expect(parseArtefact({ soort: "begrip", ref: { werkgebied_id: "w" } })).toBeUndefined();
-    expect(parseArtefact({ soort: "bronnen", ref: { werkgebied_id: "w", begrip_id: "b1" } })).toBeUndefined();
+    expect(parseArtefact({ soort: "bronnen", ref: { begrip_id: "b1" } })).toBeUndefined();
   });
 
   it("een bewaard bericht van vóór F3d (begrippen met begrip_id) wordt een begrip", () => {

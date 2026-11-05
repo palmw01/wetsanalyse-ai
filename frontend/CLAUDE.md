@@ -120,11 +120,37 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     klik rood *Verwijderen?* of groen *Akkoord?* toont, de tweede voert uit (een `BevestigKnop`, dus ontwapenen
     na een paar seconden, bij blur of met Escape). Voor voorbeelden, passages (*Losmaken?*), relaties en het
     akkoord op de reviewkaart. Hoofdacties blijven een knop met tekst (`VerwijderKnop` in een kop);
+  - **bewerken gaat overal ter plekke** (4 nov 2026, naar het voorbeeld van Claude: een bericht aanpassen;
+    `components/ui/Bewerkbaar`): *Bewerken* (`BewerkKnop`, een pil met potloodje) staat bij het blok of de rij zelf,
+    de tekst wordt op dezelfde plek een invoerveld, en daaronder staat rechts *Annuleren* · *Opslaan* (`BewerkVoet`).
+    Escape annuleert, Ctrl/⌘+Enter slaat op, Enter in een veld van één regel ook (`useBewerken`, `lib/bewerken.ts`);
+    wat onbewaard openstaat meldt zich bij de bewaker. Geen venster om tekst te bewerken – *Gegevens bewerken* opent
+    de dossierkaart met het formulier open (`GegevensFormulier`, `?bewerk=1`). Een keuze die meteen geldt (klasse,
+    rol) en een selectie in een boom (*Bronnen koppelen*) vallen erbuiten. `app/knoppen.test.ts` bewaakt het;
+  - **kopiëren en exporteren** is één knop in de kop van elk paneel (`ExportKnop`, 4 nov 2026): bovenaan *Kopieer als
+    Markdown* en *Download als Markdown* (`lib/artefactMarkdown.ts`: dossier, deelvraag, bronselectie, begrip,
+    begrippen, annotatie – kopjes en lijsten, geen tabellen), daaronder de formaten van de soort (annotatie
+    PDF/CSV/JSON/TriG, begrippen CSV/JSON/Turtle). De inhoud wordt bij de klik opgehaald; `downloadTekst` in
+    `lib/api.ts` maakt het bestand;
   - **menu's** delen één rijstijl (`components/ui/Menu`: `MENU_RIJ`, `MENU_PANEEL`);
+  - **het menu ⋯ is overal hetzelfde** (5 nov 2026, `components/ui/MeerMenu`):
+    - plekken: werkgebied (kop), deelvraag, bron, gesprek (kop en zijbalk);
+    - de knop is `MeerKnop`, een rondje met een lijn, in twee maten: `xs` in een rij (even hoog als *Bewerken*) en
+      `sm` in een kop;
+    - het paneel is `MENU_PANEEL`;
+    - een gewone regel is `MenuKnop`, met een icoon ervoor;
+    - een keuze die meteen geldt (de rol van een bron) is `MenuKeuze`, met een vinkje;
+    - *Verwijderen* staat onderaan, rood, met een prullenbak (`MenuVerwijder`), en een tweede klik bevestigt. Een
+      gesprek gebruikt daar `MenuKnop gevaar`, omdat het eerst archiveren aanbiedt;
+    - geen losse knop in een menu, en *Bewerken* staat niet in het menu maar bij het blok;
+    - `app/knoppen.test.ts` bewaakt dat het icoon ⋯ alleen in `MeerKnop` staat;
+    - een `Groep` heeft geen `overflow-hidden`, want dat knipt het menu van de onderste rij af;
   - **`Select`** heeft een eigen chevron (`appearance-none`) en dezelfde maat en focus als `Input`;
   - **elk zijpaneel** heeft dezelfde kop (`components/ui/PaneelKop`: soort, titel, *Open volledige pagina*,
-    `SluitKnop` rechtsboven, eventuele acties op een eigen regel). Het `lex`-slot gebruikt alleen nog het
-    annotatiepaneel; de werkgebiedpanelen hebben geen *Vraag Lex* (spoor K).
+    `SluitKnop` rechtsboven, eventuele acties op een eigen regel; de slots `onder` voor één regel – de reeks, de
+    versie – en `balk` voor tabs en *Vergroten*). Eén schil voor elk artefact (4 nov 2026): ook de annotatie heeft
+    die kop op de tab Tekst, op de graaf en tijdens het laden; geen paneel bouwt een eigen kop of sluitknop. Het
+    `lex`-slot gebruikt alleen nog het annotatiepaneel; de werkgebiedpanelen hebben geen *Vraag Lex* (spoor K).
 - **Symbolen zijn iconen, geen tekens.** `components/ui/Icoon.tsx` levert chevron, waarschuwing,
   vinkje, ruit en cirkel als inline SVG (`1em`, `currentColor`). Het font laadt alleen de
   latin-subset van Fira Sans (`app/fonts.ts`), dus tekens als `▾ ◇ ▸ ⚠ ✓ ← ○` vallen terug op het
@@ -178,14 +204,15 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
   gesprek wisselen, niet wanneer een verse chat bij de eerste beurt zijn id krijgt – anders breekt de
   stream. De graph-qa `conversation_id` (thread_id) is het `gesprekId`.
 - **Wat Lex oplevert is een artefact** (`Bericht.artefact`, `lib/artefact.ts`): `{soort, ref, titel}`
-  met soort `annotatie`, `begrippen`, `bronnen`, `werkgebied`, `deelvraag`, `begrip` of `regels`. Elke soort heeft een chip in de thread en een paneel
+  met soort `annotatie`, `begrippen`, `werkgebied`, `deelvraag`, `begrip`, `bronselectie` of `regels`. Elke soort heeft een chip in de thread en een paneel
   in dezelfde schil (kolom vanaf 1280px, anders een sheet); er staat er hoogstens één open.
   - **annotatie** – het `annotatie`-item met `AnnotatieChip`, dat **`NodeAnnotatiePaneel`** opent
     (een bericht zonder bronnode wijst naar een verwijderde annotatie: een tombstone). `DocumentPaneel` toont de wettekst met de **letterlijke** fragmenten
     (`segmenteer` + `lib/jas.ts:jasStyle`), `ReviewQueue` de beslissingskaarten.
-  - **begrippen** en **bronnen** – het `artefact`-item met `ArtefactChip`, dat
-    **`WerkgebiedArtefactPaneel`** opent: dezelfde `BegripVoorstellen` (`inklapbaar={false}`) of
-    `BronKandidaten` als op de tab Begrippen of Bronnen, met een link naar het werkgebied. Eén inhoud,
+  - **begrippen** – het `artefact`-item met `ArtefactChip`, dat
+    **`WerkgebiedArtefactPaneel`** opent: dezelfde `BegripVoorstellen` (`inklapbaar={false}`) als op de tab
+    Begrippen, met een link naar het werkgebied. Het oude artefact *Gevonden bepalingen* (`bronnen`) bestaat niet
+    meer: `parseArtefact` maakt er de bronselectie van dat werkgebied van (4 nov 2026); de bronverkenner is een pagina. Eén inhoud,
     twee schillen (`werkgebiedArtefactVan` in `lib/artefact.ts`). De voorstellen zijn altijd die van de
     laatste ronde; wijst de chip naar een eerdere (`ref.run_id`), dan zegt het paneel dat.
   - **begrip** (F3d) – een taak van de begrippen-agent op één begrip ("geef voorbeelden van termijn",
@@ -200,7 +227,7 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     bij die deelvraag) levert `ref: {werkgebied_id, deelvraag_id}`. **`DeelvraagPaneel`** haalt
     `GET …/deelvragen/{id}` (ook een vervangen deelvraag) en toont de vraag met haar stand, de voorstellen
     van Lex die haar vervangen (`DeelvraagVoorstel` uit `Deelvragen.tsx`, met "Vervangt “…”"), de bronnen en
-    begrippen, en `BronKandidaten deelvraagId` (alleen wat Lex bij haar vond, zonder zoekknop). Overnemen
+    begrippen, en `BronnenBijDeelvraag` (de bronselectie van die deelvraag). Overnemen
     vervangt de oude (api): na herladen zegt het paneel "vervangen door …" en opent de opvolger in hetzelfde
     paneel (`onWissel`).
   - **werkgebied** (activiteit 1) – een werkgebied dat Lex met de analist samenstelde: ref
@@ -378,8 +405,10 @@ agent ná je vraag voorlegt uit wat hij vond (kandidaten, `KeuzeKaart`) is een a
 "Kunnen we een werkgebied samenstellen?" of "ik wil een wetsanalyse uitvoeren" laat Lex één vraag per
 kaartje stellen (graph-qa `agent/werkgebied_intake.py`), in de volgorde van de methode (F2): naam,
 aanleiding, context, doel (startactiviteit a), analysevraag, praktijkvoorbeeld, deelvragen, wat valt
-erbuiten, regeling(en), per deelvraag een kaartje met de bepalingen (F3f), en een samenvatting met
-*Werkgebied aanmaken*. Het kaartje komt als
+erbuiten, regeling(en) (het zoekbereik), de gebeurtenis, en een samenvatting met *Werkgebied aanmaken*. Daarna gaat
+Lex zelf door met de bronselectie per deelvraag: `opgeslagen.vervolg` (`parseVervolg`, `VERVOLG_TEKST`) stuurt
+`WerkplekClient` één keer, alleen live, als een klik op *Bepaal de bronnen per deelvraag* zodra de werkplek in het
+werkgebied staat. Het kaartje komt als
 `vraagkaart`-event (`parseVraagkaart` in `lib/vraagkaart.ts`) en staat op het bewaarde bericht
 (`Bericht.vraagkaart`). De vorm volgt hoe Claude een vraag stelt (F1):
 
@@ -394,18 +423,16 @@ erbuiten, regeling(en), per deelvraag een kaartje met de bepalingen (F3f), en ee
   laatste regel: met tekst erin krijgt hij het vinkje en vervangt hij bij één keuze een gekozen optie.
   "Weet ik (nog) niet" sluit de andere keuzes uit. Knoppen zijn pillen (`Button pil`). Context en
   praktijkvoorbeeld krijgen een hoger veld (Shift+Enter voor een nieuwe regel).
-- **De deelvragen** (`meer_tekst`): naast de voorstellen van Lex is elke eigen deelvraag een regel;
-  Enter in een gevulde regel of *+ Nog een deelvraag* opent de volgende, Ctrl/⌘+Enter of *Volgende*
-  stuurt in. Ze gaan als `teksten` mee (`antwoordActie`), lege regels niet. Na terugbladeren staat elke
+- **Meer dan één eigen antwoord** (`meer_tekst`, `MeerRegels`): één regel is één ding – wat, zegt het kaartje
+  (`Vraagkaart.regel`: deelvraag, bepaling; `regelNamen`). Enter in een gevulde regel of *+ Nog een …* opent de
+  volgende, Ctrl/⌘+Enter of *Volgende* stuurt in. Hetzelfde onderdeel staat op het compacte kaartje van de
+  bronselectie; bouw geen tweede invoer voor meer dingen. Ze gaan als `teksten` mee (`antwoordActie`), lege regels niet. Na terugbladeren staat elke
   eigen deelvraag weer op een eigen regel (`beginstand`).
-- **De bepalingen** (F3f): één kaartje per deelvraag (`Vraagkaart.deel: {index, totaal, deelvraag}`, de
-  deelvraag staat onder de vraag), zonder deelvragen één over de analysevraag. Elke klik en het
-  user-bericht (`intake_antwoord`, `antwoordOp`) dragen `deel`; een paar in de Vragen-kaart is er één per
-  deel (`groepeerVragen` sleutelt op stap + deel – anders wist deelvraag 2 het antwoord op 1). *Verzend*
-  staat op het laatste deel (`isLaatsteVraag`). Wat aan de afbakening raakt, staat onderaan met "valt
-  mogelijk buiten de afbakening" en is nooit aangevinkt.
-- **De samenvatting** toont het hele dossier: aanleiding, context, doel, analysevraag,
-  praktijkvoorbeeld, de deelvragen, afbakening en bronnen (met hun deelvragen).
+- **De gebeurtenis** is de laatste vraag (*Verzend*, `isLaatsteVraag`), dezelfde kaart als in de bronselectie. Een
+  oud kaartje van de stap `bepalingen` (met `deel`, van vóór 4 nov 2026) blijft leesbaar in de thread.
+- **De samenvatting** toont het hele dossier: aanleiding, context, doel, analysevraag, praktijkvoorbeeld, de
+  deelvragen, afbakening, de regelingen en de gebeurtenis – geen bronnen: die kies je per deelvraag in de
+  bronselectie.
 - **In de thread één Vragen-kaart per reeks** (`groepeerVragen`, `VragenKaart`): per vraag de vraag
   (grijs) en je antwoord, "Vraag" bij één en "Vragen" bij meer, daaronder "● Een vraag stellen ›" (opent
   de dock weer) of "Nadenken…" terwijl Lex de volgende voorbereidt. De antwoordbubbels en de zinnen van
@@ -438,11 +465,20 @@ heeft *Verzend* (`isLaatsteVraag`), want wat erna komt hangt af van het antwoord
   **`BronnenBijDeelvraag`**. Het artefact Bronselectie ís de tab Bronnen (`artefactPad` en de route sturen erheen).
   Per
   deelvraag de voortgang (`VOORTGANG_LABEL`, groen alleen bij *beoordeeld*, geel bij *opnieuw bekijken*), de
-  bronnen met hun rol bij díé deelvraag, de voorstellen met hun stand en het soort bewijs (`BEWIJS_LABEL`), de
+  bronnen met hun rol bij díé deelvraag, de voorstellen met hun stand, de zoekvraag waar ze bij horen (`zoekvraagZin`,
+  "zoekvraag a · bestaansrecht", uit `bewijs[].detail.zoekvraag`) en het soort bewijs (`BEWIJS_LABEL`), de
   onderzoekspunten, de zoekbeperkingen en de slotzin (`slotZin`: nooit "volledig"). Per voorstel opnemen,
   uitsluiten met reden of heropenen (`besluitBronselectie`); de stappen zet Lex. **Geen *later***: wat je op het
   kaartje niet aanvinkt, is *niet gekozen*; iets toevoegen doe je door de vragen opnieuw te doorlopen, of door
   een bepaling in het tekstveld van het kaartje te typen.
+- **Het kaartje van de bepalingen is compact, het paneel beslist** (3 nov 2026, het artefactpatroon van Claude):
+  bij `weergave: "paneel"` toont de werkplek `BronselectieKaart` in plaats van `VraagDock`. Die toont de telling (live,
+  via `paneelTelling` en het venster-event `BRONSELECTIE_GEWIJZIGD`) met *Bronnen beoordelen* (opent het paneel),
+  *Klaar* (`klaarActie`) en regels om zelf bepalingen te noemen (`MeerRegels`, `typActie` met `teksten`; ze worden
+  voorstellen in het paneel). In het paneel (`inGesprek`) klappen kandidaten en bronnen uit met
+  de wettekst (`GroepRij uitklap`, `Wettekst`), in plaats van naar de bronpagina te gaan. Onder de actieve
+  deelvraag staat *Klaar met deze deelvraag*; die stuurt de actie van het open
+  kaartje (`onKlaar`/`klaarVoor` vanuit `WerkplekClient`). Browserregressie: `scripts/test-bronselectie-paneel.mjs`.
 - **Een bronselectiebeurt blijft een antwoord met kaartje**: het artefact `bronselectie` maakt er geen
   artefact-item van (anders is de open vraag weg), live (`toonVastgelegdeBeurt`) en na herladen. Het paneel
   opent vanzelf alleen vanaf 1280px; daaronder via de balk *laatste artefact* (`bronselectieVanKaart`).
@@ -455,6 +491,10 @@ heeft *Verzend* (`isLaatsteVraag`), want wat erna komt hangt af van het antwoord
   suggesties eronder; *Een vraag stellen ›* haalt hem terug. *Bepaal de bronnen per deelvraag* staat bij de
   werkgebiedsuggesties en gaat ook in een nieuw gesprek verder waar je was.
 - De allowlist laat `bronselectie`, `bronselectie/{d}/status` en `bronselectie/{d}/kandidaten/{k}` door.
+- **De peildatum staat boven de bronnen** (`PeildatumRegel` in `BronnenBijDeelvraag`, dus op de tab, de deelvraagpagina
+  en naast het gesprek): de peildatum (standaard de aanmaakdatum), per regeling sinds wanneer de tekst in de graaf
+  geldt, en geel als die pas ná de peildatum ging gelden (`toestandMeldingen`). `GET …/toestanden`, faalt stil;
+  `haalToestanden` toetst de vorm.
 - **De bronverkenner** (`BronKandidaten` op `bronnen/voorstellen`) blijft: alles wat Lex vond, ook zonder
   deelvraag, met het bewijs per methode; `BronnenBijDeelvraag` linkt ernaar. Kan de stand per deelvraag niet laden,
   dan toont de tab de bronnen van het werkgebied met een melding: een storing kost de indeling, niet de lijst.
@@ -707,7 +747,7 @@ bestaat los van de gesprekken.
   kaarten (`useWerkgebiedStand`: eigen gesprekken, begrippen, kandidaten, annotatie-werkvoorraad – elk faalt
   stil, dan geen getal). Pagina's lezen het met `useWerkgebied()`. Een tabwissel is een navigatie (eigen URL,
   Terug werkt) maar laadt niets opnieuw: de layout blijft staan.
-  - **Vier tabs als paden** (`PROJECT_TABS`, `projectPad` in `lib/werkgebiedPaden.ts`): Overzicht
+  - **Vijf tabs als paden** (`PROJECT_TABS`, `projectPad` in `lib/werkgebiedPaden.ts`): Overzicht
     (`OverzichtTab`: tellers, de analyseopdracht met de analysevraag centraal, deelvragen als rijen naar hun
     pagina, de laatste gesprekken, de artefacten), Gesprekken (`GesprekkenTab`: de eigen gesprekken, een klik
     opent de werkplek), Bronnen (`BronnenRegister` om `BronnenBijDeelvraag`, spoor K/L: **één lijst, per deelvraag
@@ -715,9 +755,10 @@ bestaat los van de gesprekken.
     (bepaling als titel, regeling · rol · annotatiestand · "ook bij deelvraag n" eronder, *Geselecteerd* of
     *Context*), de voorstellen van Lex bij die deelvraag (*Ter beoordeling*) met *Opnemen* / *Uitsluiten…* /
     *Heropenen*, de onderzoekspunten, en wat bij geen deelvraag hoort onder *Zonder deelvraag*; erboven de
-    afbakening als tekst, zoeken, rolfilter en *Bepaling opnemen* (een venster, `BronOpnemen`); rol en verwijderen
-    achter ⋯) en Artefacten (`ArtefactenTab`: vier kaarten,
-    `artefactKaarten`).
+    afbakening als tekst, zoeken, rolfilter en *Bespreek met Lex*; rol en verwijderen
+    achter ⋯), Artefacten (`ArtefactenTab`: vier kaarten,
+    `artefactKaarten`) en Historie (`HistoriePagina` → `HistorieTab`: de audit als zinnen, nieuwste eerst; de vijfde
+    tab sinds 3 nov 2026).
   - **Detailpagina's** (`DetailPaginas.tsx`): `artefacten/[soort]` – `dossier` (de velden, *Bewerken* in
     een venster `GegevensDialoog` – met het TOOI-thema (spoor I6: een keuzelijst per hoofdthema uit
     `lib/tooiThemas.ts`, gelijk aan de api-snapshot, en het voorstel van Lex uit `…/thema-voorstel` met
@@ -735,7 +776,7 @@ bestaat los van de gesprekken.
   - **Een oude link met `?tab=`** gaat server-side naar zijn nieuwe plek (`oudeTabNaar`): bladwijzers en
     berichten van vóór G2 blijven werken. Bouw zelf geen `?tab=` meer; gebruik de padhelpers.
   - **De kop** (`ProjectKop`) draagt *Gegevens bewerken* en *Nieuw gesprek* (een gesprek dat bij het
-    werkgebied hoort); historie en verwijderen staan in het menu ⋯.
+    werkgebied hoort); verwijderen staat in het menu ⋯.
 - **Elk juridisch object heeft een eigen pagina** (spoor G3; paden in `lib/werkgebiedPaden.ts`):
   - **Bepaling** `/bronnen?bron_iri=…[&werkgebied=]` (`components/bronnen/BronPagina`): de letterlijke
     wettekst met álle markeringen in hun JAS-kleur (`KnoopTekst groot`; een klik opent het element), de
@@ -764,9 +805,12 @@ bestaat los van de gesprekken.
   het werkgebied wijzigde; de handeling wordt **niet** stil opnieuw uitgevoerd, want op de nieuwe stand
   kan ze iets anders betekenen. Een fout die over de invoer gaat (409 `al_opgenomen`, 422 van de
   graaf) vangt het formulier zelf af via `opFout`.
-- **Bronnen**: opnemen met regeling (BWB-id) + artikel (+ lid) of een graaf-IRI (`bronInvoer` in
-  `lib/werkgebied.ts` leest "artikel 9" als "9"; de api verifieert tegen de graaf). Dezelfde bron met
-  dezelfde rol nog eens is idempotent en wordt zo gemeld. Verwijderen is een `BevestigKnop` en laat de
+- **Op een artefact lees, bewerk en besluit je; zoeken en maken gaat via het gesprek** (4 nov 2026, het
+  artefactmodel van Claude). Een bepaling zoeken en toevoegen staat daarom niet op de tab Bronnen of in het paneel,
+  maar is een suggestie (*Noem een bepaling*, actie `bepaling_toevoegen`, bij het werkgebied en een deelvraag) of
+  een regel op het compacte kaartje: één bepaling per regel (`MeerRegels`), Lex zet ze als voorstel (*zelf genoemd*) in
+  het paneel, en daar lees en besluit je, net als bij de voorstellen van Lex. Op de tab staat *Bespreek met
+  Lex*. Bouw geen eigen zoekvenster op een artefact. Verwijderen is een `BevestigKnop` en laat de
   bepaling en haar annotaties staan.
 - **Elementen** toont wat de api meldt in plaats van het weg te poetsen: `volledig: false` en
   `onbereikbaar` als open punt, `bron_gewijzigd` als signaal, `deels_buiten` bij het element, en een
@@ -1053,9 +1097,11 @@ bestaat los van de gesprekken.
   *Herbeoordelen* (`herbeoordelen` van de api); een klik gaat naar de kaart (`kaartUrl`). BFF: de statische
   `app/api/begrippen/route.ts` geeft de query ongewijzigd door; `zoekBegrippen` toetst de vorm. Werk aan
   een begrip gebeurt op de kaart, niet hier. Browserregressie: `scripts/test-begrippenoverzicht.mjs`.
-- **Tabs scrollen.** Tabs passen niet altijd naast elkaar op een telefoon; `TabLinks` en `Tabs` scrollen
-  (`overflow-x-auto`, tabs `whitespace-nowrap`). Een afgekapte tab is onbereikbaar, en een toets op
-  horizontale scroll van de pagina ziet dat niet.
+- **Tabs scrollen, alleen horizontaal.** Tabs passen niet altijd naast elkaar op een telefoon; `TabLinks` en `Tabs`
+  scrollen (`TABRIJ` in `components/ui/Pagina`, tabs `whitespace-nowrap`). Een afgekapte tab is onbereikbaar, en een
+  toets op horizontale scroll van de pagina ziet dat niet. `overflow-x: auto` maakt ook `overflow-y` auto: met een
+  tab die met `-mb-px` over de rand stak, schoof de rij op een telefoon op en neer. Daarom `overflow-y-hidden`, de
+  lijn als inset-schaduw en geen negatieve marge; `test-werkgebieden.mjs` toetst het op 390 px.
 - Browserregressie: `scripts/test-werkgebieden.mjs` en `scripts/test-begrippen.mjs` (mocks die revisies,
   de poort en de primaire duiding bijhouden zoals de api; de tweede loopt de acceptatie van levering 2).
 

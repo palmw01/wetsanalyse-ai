@@ -180,6 +180,9 @@ Hieronder wat je moet weten om de code te wijzigen.
   cache onder `(bwb_id, bwb:toestandUrl)`: een herimport met een nieuwe toestand ververst vanzelf.
   Markeringen komen altijd vers (`store.actuele_elementen`). `versie` = hash van de toestanden; daarop
   cachet de werkplek de layout. Een BWB-id gaat letterlijk een query in en wordt strikt gevalideerd.
+  Een bronknoop draagt `vindplaats` uit de importer (`bwb:vindplaats`, "Artikel 9.2, onderdeel d") en zijn
+  `artikel`/`lid` komen uit de boom (`plaats_in`), niet uit de IRI: die liegt bij de Leidraad. `bron_query` leest
+  `vindplaats` en `inBepaling` op de node, maar `snapshot_id` hasht ze niet (`bronmodel.PLEK`).
   Het label van een deel krijgt zijn nummer (`_label`: de bronboom draagt "Hoofdstuk" en "II" apart);
   bewust hier en niet in `bronmodel`, waar het de snapshot-identiteit van bestaande lagen zou raken.
   **`POST /plaatsen`** (`graaf.plaatsen`, hoogstens 500 `bron_iris`) geeft per bepaling de regeling en het pad
@@ -268,10 +271,23 @@ spoor D (*Werkgebied als node*).
   `deelvragen` (`{vraag, herkomst: analist|lex}`) mee: actief, op volgorde, één keer per genormaliseerde
   vraag, in dezelfde transactie; de auditregel `aangemaakt` telt ze. Lex gebruikt dit dossier als
   context voor elk voorstel (graph-qa).
+- **De peildatum is standaard de aanmaakdag** (in Nederland, `werkgebied_store.dag_in_nl`; besluit gebruiker 3 nov
+  2026): `maak` zet hem als er geen is opgegeven, een oude rij zonder peildatum leest hem ook zo, en
+  `peildatum_standaard` zegt of hij dat nog is. **`GET {id}/toestanden`** zet de peildatum naast de toestand van elke
+  regeling in de bronnen (`bwb:geldigVanaf`/`geldigTot`). De graaf heeft per regeling alleen de nieuwste toestand:
+  `na_peildatum` zegt dat de tekst kan afwijken. Een haperende graaf geeft `volledig: false`.
 - **Een bronselectie wordt geverifieerd** via de bronresolver (`bron_iri`, of `bwb_id` + `artikel`
   (+ `lid`)); de canonieke `bron_iri`, het label, `snapshot_id` en `bron_hash` worden bewaard.
   Dezelfde bron met dezelfde rol en hetzelfde bereik opnieuw toevoegen is idempotent (200, geen
   revisiesprong); met een andere rol of ander bereik 409.
+- **Bepaling toevoegen zoekt in de echte boom** (`bepaling_zoeken.py`, 3 nov 2026; sinds 4 nov aangeroepen door
+  graph-qa, het kaartje `bs_toevoegen_treffers`): `GET {id}/regelingen?q=` (die van
+  het werkgebied vooraan, dan citeertitel, afkorting of BWB-id; gecachet) en `GET {id}/bepalingen?bwb_id=&q=` leest
+  een getypte vindplaats ("9 lid 2", "art. 9, tweede lid", "21.1", "25.4 onderdeel b", "36 lid 5 sub a"; `lees`) en
+  zoekt hem in de bronboom van die regeling (`zoek`: precies, dan wat eronder hangt, dan artikelen die met het
+  nummer beginnen; zonder nummer op de kop), met vindplaats, titel en het begin van de tekst. Artikel en lid komen
+  uit de boom, niet uit de IRI, en "9 lid 2" bij een beleidsregel is divisie 9.2. Een `BronKeuze` bij opnemen geeft
+  422 `{melding, opties}`, zodat de werkplek kan laten kiezen.
 - **De lijst** (`GET /v1/werkgebieden`) met `mijn=true` geeft alleen werkgebieden met een auditregel
   van deze gebruiker (*Door mij bewerkt* in de webapp, zoals bij de annotaties). Met `bron_iri` alleen de
   werkgebieden met een actieve selectie die die bepaling omvat (`werkgebied_store.omvat`: de bepaling zelf,
@@ -670,25 +686,37 @@ invoer vast, toetst en bewaart de kandidaten, en legt de besluiten vast.
 
 - **De invoer is de selectie** (`invoer_van`): kern = bronselecties met rol *analyseren*, context = de
   rest, plus naam en analysevraag. Zonder kern én zonder analysevraag: 409 `geen_vertrekpunt`.
-  **Idempotent op (werkgebied, invoer)** (`invoer_id`, een inhoudshash); `laatste` meldt `verouderd`
-  als de selectie of de analysevraag intussen veranderde. Een run die `VERLOPEN` (5 min) stil was,
-  telt als `mislukt` en mag opnieuw.
+  **Idempotent op (werkgebied, invoer)** (`invoer_id`, een inhoudshash, mét het dossier); `laatste` meldt
+  `verouderd` als de selectie, de analysevraag of het dossier intussen veranderde. graph-qa stuurt bij het
+  starten de **`zoekversie`** mee (een hash van zijn zoekcode, `bronnen_run.ZOEKVERSIE`): die gaat in de invoer en
+  dus in de identiteit van de run, zodat nieuwe zoekcode opnieuw zoekt, ook bij een gelijk werkgebied (anders bleef
+  de uitkomst van de oude code staan, ook na *Verder onderzoeken*). `verouderd` telt de versie niet: het zegt alleen
+  dat het werkgebied veranderde. De zoekdekking van de bronselectie meldt de versie van de laatste run. Een klare run wordt alleen
+  hergebruikt als hij de nieuwste is (na A → B → A zoekt Lex opnieuw), en de uitkomst van een ingehaalde run
+  wordt vastgelegd zonder de kandidaten te raken. Een run die `VERLOPEN` (5 min) stil was, telt als `mislukt`
+  en mag opnieuw.
+- **Wat telt, is de laatste klare run** (`basis_run_id`): een open voorstel dat die run niet vond, is
+  `vervallen` (vlag in `GET …/kandidaten`) en staat niet in de bronselectie; een besluit (opgenomen,
+  uitgesloten) vervalt nooit. Zo blijven na een dossierwijziging geen oude voorstellen hangen.
 - **Eén kandidaat per bepaling**: sleutel (werkgebied, `kandidaat_id(bron_iri)`), over runs heen.
   Vinden meer methoden haar, dan groeit het bewijs (`methode`, `vanuit`, `detail`) en wint de sterkste
   rol (`kern` > `afhankelijkheid` > `aanverwant`). Wat bij `PUT …/uitkomst` al in de selectie staat,
   wordt geen kandidaat.
 - **Het besluit hoort bij de kandidaat**: een latere run werkt bewijs, rol en `run_id` bij en laat de
   status staan. **Een uitgesloten kandidaat komt dus niet terug** (de acceptatie van L1). Uitsluiten
-  vraagt een reden (422 zonder). `later` (sinds spoor J niet meer in de werkplek; de bronselectie leest het als
-  voorstel), `uitsluiten` en `heropenen` nemen het slot op het werkgebied
-  maar dragen geen revisie: ze wijzigen de scope niet.
+  vraagt een reden (422 zonder). Besluiten lopen alleen via de bronselectie per deelvraag
+  (`POST …/bronselectie/{deelvraag}/kandidaten/{id}`; zonder deelvragen `analysevraag`, dan werkgebiedbreed);
+  de werkgebiedbrede routes `…/kandidaten/{id}/{opnemen,later,uitsluiten,heropenen}` en de status `later` zijn
+  weg (`reconcile_schema` maakt van een oude rij een voorstel). Uitsluiten en heropenen nemen het slot op het
+  werkgebied maar dragen geen revisie: ze wijzigen de scope niet.
 - **Opnemen** wijzigt de scope en draagt daarom `verwachte_revisie` (412). De api verifieert de bron
   zoals bij zelf opnemen en schrijft selectie én kandidaatstatus in één transactie
   (`werkgebied_store.voeg_bron_toe(..., binnen=…)`). Rol: *analyseren* bij een kernkandidaat, anders
   *context*, tenzij de analist kiest. Haalt de analist die selectie weer weg
   (`verwijder_bron`), dan wordt de kandidaat in dezelfde transactie weer `voorgesteld`.
-- `GET …/kandidaten` geeft de laatste run en de kandidaten (sterkste rol eerst), met `in_laatste_run`
-  en `in_selectie` (intussen met de hand opgenomen). `…/uitkomst`, `…/loopt` en `…/mislukt` zijn voor
+- `GET …/kandidaten` geeft de laatste run en de kandidaten (sterkste rol eerst), met `vervallen` (niet
+  gevonden door de laatste klare run) en `in_selectie` (intussen met de hand opgenomen); de werkplek leest
+  het alleen (de bronverkenner). `…/uitkomst`, `…/loopt` en `…/mislukt` zijn voor
   graph-qa.
 - Het artefact van een bronnenbeurt is `{soort: "bronnen", ref: {werkgebied_id, run_id}}`.
 - Tests: `tests/test_bronnen_runs.py` (SQLite) en het slot in `tests/test_werkgebieden_postgres.py`.
@@ -735,6 +763,17 @@ werkgebied zonder deelvragen werkt zoals altijd.
 de bronselectie in het gesprek, maar de stand staat hier – niet in de gesprek-checkpointer –, zodat hij er
 na herladen, in een ander gesprek en bij een collega ook is.
 
+- **Zelf genoemd is een voorstel** (4 nov 2026): `POST …/bronselectie/{deelvraag}/voorstellen {bron_iri, rol: kern|
+  afhankelijkheid, tekst}` (`bronselectie.noem`) zet een bepaling die de analist noemt als kandidaat bij die
+  deelvraag, met bewijs `methode: genoemd` (`detail.deelvraag_id`, `tekst`, `door`), zodat ze in het paneel staat
+  zoals de voorstellen van Lex en daar beslist wordt. Zo'n voorstel vervalt niet (`bronnen_run_store.vervallen` slaat
+  het over), een volgende run voegt zijn bewijs toe zonder het genoemde te wissen (`_leg_kandidaten_vast`), en het
+  blijft *voorgesteld* tot er een besluit is (ook na het fase-wisselen). Al opgenomen bij deze deelvraag of
+  werkgebiedbreed uitgesloten: 409. `_hoort_bij` koppelt elk bewijs met `detail.deelvraag_id` aan die deelvraag.
+- **Het zoekbereik staat op het werkgebied** (`regelingen: [{bwb_id, label}]`, 4 nov 2026): gekozen bij het
+  samenstellen of aanvullen, in de invoer van de bronnenrun (`invoer_van`, alleen als het er is).
+  `werkgebied_store.regelingen_van` is de ene plek die "de regelingen van het werkgebied" afleidt: eerst dit veld, dan
+  de regelingen van de bronnen (peildatum/toestanden, thema-voorstel, `GET …/regelingen`).
 - **Voortgang per deelvraag** (`bronselectie_voortgang`, sleutel werkgebied + deelvraag): geen rij =
   `niet_gestart`, dan `in_behandeling`, `voorlopig_afgerond`, `beoordeeld`; plus `fase` (`kern`,
   `afhankelijkheden`, `afronden`) en `open_punten`. Dit is de stand van het werk; de deelvraagstatus
@@ -751,8 +790,9 @@ na herladen, in een ander gesprek en bij een collega ook is.
   aangevinkt werd, heeft bij het lezen de stand `niet_gekozen` – afgeleid uit de fase (kernvoorstellen zodra de
   deelvraag voorbij `kern` is, de rest bij `afronden`), niet bewaard. De fase terugzetten (de vragen opnieuw
   doorlopen) maakt er weer een `voorgesteld` van. Een oud besluit *later* op `bron_kandidaten` telt als voorstel.
-- **Een afronding staat op een scope**: `scope_stand` = hash van analysevraag, afbakening en de genormaliseerde
-  deelvraagtekst. Wijkt die bij het lezen af, dan `opnieuw_bekijken: true` en `klaar: false`; er wordt niets
+- **Een afronding staat op een scope**: `scope_stand` = hash van analysevraag, afbakening, de genormaliseerde
+  deelvraagtekst en de kandidaat-ids in de lijst van die deelvraag. Een ander dossier heropent dus pas iets
+  als de nieuwe zoekopdracht er iets anders door vindt. Wijkt die bij het lezen af, dan `opnieuw_bekijken: true` en `klaar: false`; er wordt niets
   gewist. Een verbeterde deelvraag (F3d) erft voortgang en besluiten (`erf_in`, vanuit
   `werkgebied_deelvragen._vervang`), met de oude stand – dus op *opnieuw bekijken*.
 - **Besluiten per deelvraag** (`POST …/bronselectie/{deelvraag}/kandidaten/{id} {besluit}`):

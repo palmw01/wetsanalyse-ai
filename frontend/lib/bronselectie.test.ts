@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { bronselectieVanKaart } from "./artefact";
 import {
-  bronnenZin, deelvraagStand, parseBronselectie, slotZin, voortgangToon, voortgangZin, zoekBeperkingen,
+  bronnenZin, deelvraagStand, parseBronselectie, zoekvraagZin, slotZin, voortgangToon, voortgangZin, zoekBeperkingen,
 } from "./bronselectie";
 import { parseVraagkaart } from "./vraagkaart";
 
@@ -19,7 +19,11 @@ const RUW = {
       bronnen: [{ selectie_id: "s1", bron_iri: "urn:bwb:BWBR0004770:artikel:9", label: "Artikel 9", rol: "context" }] }),
     deelvraag("d2", { status: "in_behandeling", open_punten: [{ tekst: "Bijzondere invorderbaarheid" }],
       kandidaten: [{ id: "K1", bron_iri: "urn:bwb:BWBR0004770:artikel:10", label: "Artikel 10", rol: "kern",
-        bewijs_soorten: ["verwijzing", "onzin"], stand: "niet_gekozen", overal: false }] }),
+        bewijs_soorten: ["verwijzing", "onzin"], stand: "niet_gekozen", overal: false },
+      { id: "K2", bron_iri: "urn:bwb:BWBR0004770:artikel:3", label: "Artikel 3", rol: "kern",
+        bewijs_soorten: ["genoemd"], stand: "voorgesteld", overal: false,
+        bewijs: [{ methode: "deelvraag", detail: { zoekvraag: "c" } }, { methode: "grondslag", detail: { zoekvraag: "a" } },
+          { methode: "deelvraag", detail: { zoekvraag: "x" } }] }] }),
     deelvraag("d3"), { geen: "id" },
   ],
   zoekdekking: { gezocht: true, verouderd: false, volledig: false, onvolledig: ["deelvraag"], reden: "" },
@@ -31,6 +35,12 @@ describe("bronselectie", () => {
     expect(o.deelvragen.map((d) => d.id)).toEqual(["d1", "d2", "d3"]);
     expect(o.deelvragen[0].bronnen[0].rol).toBe("context");
     expect(o.deelvragen[1].kandidaten[0]).toMatchObject({ stand: "niet_gekozen", bewijs_soorten: ["verwijzing"] });
+    // Zelf genoemd (4 nov 2026) is een eigen soort bewijs, naast die van Lex.
+    expect(o.deelvragen[1].kandidaten[1].bewijs_soorten).toEqual(["genoemd"]);
+    // De zoekvraag (a–d) uit het bewijs, op volgorde; een onbekende telt niet.
+    expect(o.deelvragen[1].kandidaten[1].zoekvragen).toEqual(["a", "c"]);
+    expect(o.deelvragen[1].kandidaten[0].zoekvragen).toEqual([]);
+    expect(zoekvraagZin("a")).toBe("zoekvraag a · bestaansrecht");
     expect(parseBronselectie({ deelvragen: [] })).toBeUndefined();
     expect(voortgangZin(o)).toBe("1 van 3 deelvragen afgerond");
   });

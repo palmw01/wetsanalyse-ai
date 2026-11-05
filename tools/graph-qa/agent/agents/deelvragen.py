@@ -1,10 +1,9 @@
-"""De deelvragen-agent (F3c): deelvragen opstellen en verbeteren, bronnen zoeken, de dekking.
+"""De deelvragen-agent (F3c): deelvragen opstellen en verbeteren, de dekking.
 
 | Taak | Keten | Model |
 |---|---|---|
 | `voorstellen` | dossier → één strict tool → `valideer` → `POST …/deelvragen/voorstellen` | ja, één stap |
 | `verbeteren` | deelvraag + dossier → één strict tool (herformuleer of splits) → validatie → voorstel | ja, één stap |
-| `bronnen_zoeken` | de bronnenrun (`bronnen_run.bronnen_kern`, met de methode per deelvraag) | nee |
 | `dekking` | per actieve deelvraag: bronnen, rol, open kandidaten – uit de api | nee |
 
 De methode – wat een goede deelvraag is, van deelvraag naar bronnen, wat dekking betekent – staat in de
@@ -12,8 +11,8 @@ skill (`references/deelvragen-en-bronnen.md`, rol `deelvragen`); de modelstappen
 validatie in code volgt dezelfde tekst. Een *uitleg*-vraag over een deelvraag ("waarom hoort art. 9 bij
 deelvraag 2?") is geen taak van deze agent: die gaat naar de antwoord-worker, met het onderwerp als context.
 
-Bronnen per deelvraag op lidniveau komen met de intake (F3f); tot dan zoekt `bronnen_zoeken` met de
-bestaande methoden en noemt het wat er bij de aangewezen deelvraag hoort.
+Bronnen zoeken en kiezen is de bronselectie per deelvraag (spoor J, `agent/bronselectie.py`); de actie
+`bronnen_zoeken` gaat daarheen (`models.BRONSELECTIE_ACTIES`).
 """
 from __future__ import annotations
 
@@ -22,7 +21,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from ..bronnen_run import bronnen_kern
+from ..bronnen_run import is_open
 from ..deelvragen import verbeteren_kern, voorstellen_kern
 from ..wetsanalyse_api import WetsanalyseApiFout
 from . import Context, Uitkomst, geweigerd
@@ -31,7 +30,6 @@ from . import Context, Uitkomst, geweigerd
 class Taak(StrEnum):
     VOORSTELLEN = "voorstellen"
     VERBETEREN = "verbeteren"
-    BRONNEN_ZOEKEN = "bronnen_zoeken"
     DEKKING = "dekking"
 
 
@@ -67,8 +65,6 @@ async def voer_uit(invoer: Invoer, ctx: Context) -> Uitkomst:
         return await voorstellen_kern(ctx, invoer.werkgebied_id)
     if taak is Taak.VERBETEREN:
         return await verbeteren_kern(ctx, invoer.werkgebied_id, invoer.deelvraag_id, invoer.soort)
-    if taak is Taak.BRONNEN_ZOEKEN:
-        return await bronnen_kern(ctx, invoer.werkgebied_id, invoer.deelvraag_id)
     return await dekking(ctx, invoer.werkgebied_id, invoer.deelvraag_id)
 
 
@@ -114,7 +110,7 @@ def dekkingstekst(naam: str, dek: dict[str, Any], wg: dict[str, Any], kandidaten
     rollen = {b.get("id", ""): b.get("rol", "") for b in wg.get("bronnen") or []}
     open_per: dict[str, int] = {}
     for k in kandidaten:
-        if k.get("status") != "voorgesteld" or k.get("in_selectie"):
+        if not is_open(k):
             continue
         for did in {(b.get("detail") or {}).get("deelvraag_id") for b in k.get("bewijs") or []} - {None, ""}:
             open_per[did] = open_per.get(did, 0) + 1

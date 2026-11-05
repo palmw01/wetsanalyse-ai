@@ -80,7 +80,7 @@ export function BegripPagina({ werkgebiedId, begripId }: { werkgebiedId: string;
         {fout && <Melding type="fout" className="mb-4">{fout}</Melding>}
         {bewaker.wachtend && (
           <div ref={vraagRef}>
-            <OnbewaardMelding className="mb-4" handeling="verlaten" onBlijf={bewaker.blijf}
+            <OnbewaardMelding waar="Op de begripskaart" className="mb-4" handeling="verlaten" onBlijf={bewaker.blijf}
               onToch={() => { setOnbewaard(false); bewaker.toch(); }} />
           </div>
         )}

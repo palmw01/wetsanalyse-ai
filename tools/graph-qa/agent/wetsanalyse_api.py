@@ -191,8 +191,9 @@ class WetsanalyseApi:
     def _bronnen_pad(self, werkgebied_id: str, run_id: str) -> str:
         return f"{self._werkgebied_pad(werkgebied_id)}/bronnen-runs/{quote(run_id, safe='')}"
 
-    async def start_bronnen_run(self, werkgebied_id: str) -> dict[str, Any]:
-        return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronnen-runs", {})
+    async def start_bronnen_run(self, werkgebied_id: str, zoekversie: str = "") -> dict[str, Any]:
+        return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronnen-runs",
+                                {"zoekversie": zoekversie} if zoekversie else {})
 
     async def haal_bronnen_run(self, werkgebied_id: str, run_id: str) -> dict[str, Any]:
         """De run met zijn invoer: de selectie zoals de api hem vastlegde."""
@@ -251,6 +252,23 @@ class WetsanalyseApi:
         """`{actie: openen|fase|afronden|beoordelen|heropenen, verwachte_revisie?, …}`; geeft het overzicht."""
         return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronselectie/"
                                 f"{quote(deelvraag_id, safe='')}/status", actie)
+
+    async def zoek_bepalingen(self, werkgebied_id: str, bwb_id: str, q: str) -> dict[str, Any]:
+        """De bepalingen in één regeling bij een vindplaats ("9 lid 2", "25.4 onderdeel b"), uit de echte boom en
+        met het begin van hun tekst: `{bwb_id, gelezen, treffers: [{bron_iri, soort, vindplaats, titel, fragment}]}`.
+        404: de regeling staat niet in de graaf; 503: de graaf is weg."""
+        return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/bepalingen", bwb_id=bwb_id, q=q)
+
+    async def noem_voorstel(self, werkgebied_id: str, deelvraag_id: str, voorstel: dict[str, Any]) -> dict[str, Any]:
+        """Een bepaling die de analist noemt als voorstel bij één deelvraag (`{bron_iri, rol: kern|afhankelijkheid,
+        tekst}`, bewijs `genoemd`); 409 als ze er al staat of werkgebiedbreed is uitgesloten. Geeft het overzicht."""
+        return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronselectie/"
+                                f"{quote(deelvraag_id, safe='')}/voorstellen", voorstel)
+
+    async def zoek_regelingen(self, werkgebied_id: str, q: str) -> list[dict[str, Any]]:
+        """Regelingen op citeertitel, afkorting of BWB-id, die van het werkgebied vooraan."""
+        uit = await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/regelingen", q=q)
+        return list(uit.get("regelingen") or [])
 
     async def voeg_bepaling_toe(self, werkgebied_id: str, deelvraag_id: str, bron: dict[str, Any]) -> dict[str, Any]:
         """Zelf een bepaling als keuze bij één deelvraag (`BronselectieInvoer`); de api toetst haar in de graaf (422

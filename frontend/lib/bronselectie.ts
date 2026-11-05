@@ -12,7 +12,15 @@ export type Voortgang = "niet_gestart" | "in_behandeling" | "voorlopig_afgerond"
 /** `niet_gekozen`: bij het beantwoorden van het kaartje niet aangevinkt (de api leidt het af uit de fase). Er is
  *  geen *later*: wie de vragen doorloopt, kiest; opnieuw doorlopen maakt er weer een keuze van. */
 export type KandidaatStand = "voorgesteld" | "niet_gekozen" | "uitgesloten" | "opgenomen";
-export type BewijsSoort = "verwijzing" | "definitie" | "structuur" | "tekst" | "gelijkenis";
+/** De vier zoekvragen van de bronselectie (skill `zoekvragen-bronselectie.md`). */
+export type Zoekvraag = "a" | "b" | "c" | "d";
+export const ZOEKVRAAG_LABEL: Record<Zoekvraag, string> = {
+  a: "bestaansrecht", b: "rechtsgeldigheid", c: "rechtsgevolgen", d: "nadere invulling",
+};
+/** "zoekvraag a · bestaansrecht" – één label per zoekvraag, in de volgorde a–d. */
+export const zoekvraagZin = (z: Zoekvraag) => `zoekvraag ${z} · ${ZOEKVRAAG_LABEL[z]}`;
+
+export type BewijsSoort = "grondslag" | "genoemd" | "verwijzing" | "definitie" | "structuur" | "tekst" | "gelijkenis";
 
 export interface BronHier {
   selectie_id: string;
@@ -28,6 +36,8 @@ export interface KandidaatHier {
   label: string;
   rol: "kern" | "afhankelijkheid" | "aanverwant";
   bewijs_soorten: BewijsSoort[];
+  /** Bij welke zoekvraag (a–d) het voorstel hoort, uit het bewijs (`detail.zoekvraag`); leeg als geen. */
+  zoekvragen: Zoekvraag[];
   stand: KandidaatStand;
   /** De uitsluiting geldt voor het hele werkgebied. */
   overal: boolean;
@@ -108,6 +118,8 @@ export const STAND_LABEL: Record<KandidaatStand, string> = {
 /** Een tekstuele overeenkomst is geen bewijs van noodzaak; een verwijzing of definitie in de graaf wel van
  *  een relatie. Zo noemt de werkplek het, ook als Lex het al op het kaartje zei. */
 export const BEWIJS_LABEL: Record<BewijsSoort, string> = {
+  grondslag: "grondslag van de gebeurtenis",
+  genoemd: "zelf genoemd",
   verwijzing: "verwijzing in de wet",
   definitie: "definitie van een term",
   structuur: "zelfde deel van de regeling",
@@ -122,7 +134,15 @@ const een = <T extends string>(v: unknown, mag: readonly T[], anders: T): T => (
 
 const VOORTGANGEN = ["niet_gestart", "in_behandeling", "voorlopig_afgerond", "beoordeeld"] as const;
 const STANDEN = ["voorgesteld", "niet_gekozen", "uitgesloten", "opgenomen"] as const;
-const BEWIJZEN = ["verwijzing", "definitie", "structuur", "tekst", "gelijkenis"] as const;
+const BEWIJZEN = ["grondslag", "genoemd", "verwijzing", "definitie", "structuur", "tekst", "gelijkenis"] as const;
+
+/** De zoekvragen in het bewijs van een voorstel (`detail.zoekvraag`, a–d), elk één keer en op volgorde. */
+function zoekvragenUit(bewijs: unknown): Zoekvraag[] {
+  if (!Array.isArray(bewijs)) return [];
+  const gezien = new Set(bewijs.map((b) => obj(obj(b).detail).zoekvraag).filter((z): z is Zoekvraag =>
+    typeof z === "string" && z in ZOEKVRAAG_LABEL));
+  return (["a", "b", "c", "d"] as const).filter((z) => gezien.has(z));
+}
 
 /** Streng waar het iets uitmaakt (een deelvraag zonder id telt niet), vergevend in de details. */
 export function parseBronselectie(ruw: unknown): BronselectieOverzicht | undefined {
@@ -149,6 +169,7 @@ export function parseBronselectie(ruw: unknown): BronselectieOverzicht | undefin
         return tekst(k.id) ? [{ id: tekst(k.id), bron_iri: tekst(k.bron_iri), label: tekst(k.label),
           rol: een(k.rol, ["kern", "afhankelijkheid", "aanverwant"] as const, "aanverwant"),
           bewijs_soorten: Array.isArray(k.bewijs_soorten) ? k.bewijs_soorten.filter((s): s is BewijsSoort => BEWIJZEN.includes(s as BewijsSoort)) : [],
+          zoekvragen: zoekvragenUit(k.bewijs),
           stand: een(k.stand, STANDEN, "voorgesteld"), overal: k.overal === true, elders_opgenomen: k.elders_opgenomen === true,
           reden: tekst(k.reden) }] : [];
       }) : [],
@@ -194,4 +215,21 @@ export function slotZin(o: BronselectieOverzicht): string {
   return alles && !zoekBeperkingen(o.zoekdekking).length
     ? "De bronselectie is beoordeeld binnen de vastgestelde afbakening en de beschikbare bronnen. Dat is geen oordeel dat de analyse juridisch volledig is."
     : "De bronselectie is nog niet beoordeeld binnen de afbakening; hierboven staat wat openstaat.";
+}
+
+/** Een besluit over de bronselectie, waar ook genomen (paneel, *Bepaling toevoegen*): het compacte kaartje in het
+ *  gesprek en het paneel laden dan opnieuw. Eén venster-event, zodat ze elkaar niet hoeven te kennen. */
+export const BRONSELECTIE_GEWIJZIGD = "wa:bronselectie-gewijzigd";
+
+export function meldBronselectieGewijzigd(werkgebiedId: string): void {
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(BRONSELECTIE_GEWIJZIGD, { detail: werkgebiedId }));
+}
+
+/** Wat het compacte kaartje telt (3 nov 2026), zoals graph-qa het kaartje opbouwt: bij de kernbepalingen de
+ *  kandidaten met rol kern, bij wat eraan hangt de rest. Open = nog voorgesteld of eerder niet gekozen. */
+export function paneelTelling(d: Pick<DeelvraagSelectie, "kandidaten">, stap: string): { kandidaten: number; opgenomen: number } {
+  const kern = stap === "bs_bepalingen";
+  const hier = d.kandidaten.filter((k) => (k.rol === "kern") === kern);
+  return { kandidaten: hier.filter((k) => k.stand === "voorgesteld" || k.stand === "niet_gekozen").length,
+    opgenomen: hier.filter((k) => k.stand === "opgenomen").length };
 }

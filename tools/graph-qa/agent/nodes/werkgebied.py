@@ -35,8 +35,8 @@ _ZIN = {
     "praktijkvoorbeeld": "Een voorbeeld uit de praktijk helpt om scherp te krijgen wat erbij hoort.",
     "deelvragen": "Nu maken we de analysevraag concreet.",
     "buiten": "Is er iets dat je bewust buiten het werkgebied laat?",
-    "regelingen": "Nu de bronnen: om welke wet- en regelgeving gaat het?",
-    "bepalingen": "Nu per deelvraag de bepalingen die erbij horen.",
+    "regelingen": "Dan het zoekbereik: in welke wet- en regelgeving zoeken we?",
+    "gebeurtenis": "En de gebeurtenis zoals de wet haar noemt: daarvandaan zoeken we de bronnen.",
     "samenvatting": "Dit is het werkgebied zoals we het hebben samengesteld.",
 }
 
@@ -45,6 +45,8 @@ _ZIN = {
 _ZIN_AANVULLEN = {
     "naam": "Eerst de naam.",
     "thema": "Dan het thema. Ik leid het af uit de rechtsgebieden van de bronnen.",
+    "regelingen": "Dan het zoekbereik: in welke wet- en regelgeving zoeken we?",
+    "gebeurtenis": "Dan de gebeurtenis zoals de wet haar noemt.",
     "samenvatting": "Dit verandert er in het dossier.",
 }
 
@@ -52,11 +54,6 @@ _ZIN_AANVULLEN = {
 def _zin(intake: dict[str, Any]) -> str:
     if wi.is_aanvullen(intake):
         return _ZIN_AANVULLEN.get(intake["stap"]) or _ZIN[intake["stap"]]
-    deel = int(intake.get("deel") or 0)
-    if intake["stap"] == "bepalingen" and deel:
-        return f"Dan deelvraag {deel + 1}."
-    if intake["stap"] == "bepalingen" and wi.deelvraagteksten(intake.get("antwoorden") or {}) == [None]:
-        return "Nu de bepalingen die bij de analysevraag horen."
     return _ZIN[intake["stap"]]
 
 
@@ -102,8 +99,8 @@ def _deelvragen(b, intake: dict[str, Any], writer) -> dict[str, Any]:
 def _regelingen(b, intake: dict[str, Any], zoek: str, writer, *, per_deelvraag: bool) -> dict[str, Any]:
     """Regelingen uit de graaf, gezocht met wat er ligt: het onderwerp, de deelvragen, de regelingen die
     het dossier bij naam noemt, en zonder wat buiten het werkgebied valt."""
-    from ..bronnen_vinden import onderwerp_van_deelvraag
-    from ..werkgebied_context import uitsluitstammen
+    from ..zoektermen import onderwerp_van_deelvraag
+    from ..zoektermen import uitsluitstammen
 
     a = intake.get("antwoorden") or {}
     wg = wi.als_werkgebied(intake)
@@ -135,76 +132,26 @@ def _regelingen(b, intake: dict[str, Any], zoek: str, writer, *, per_deelvraag: 
     return _met(_met(intake, "voorstellen", "regelingen", opties), "vooringevuld", "regelingen", voorop)
 
 
-def _bepalingen(b, intake: dict[str, Any], writer) -> dict[str, Any]:
-    """De bepalingen bij de deelvraag van dit kaartje (`bronnen_vinden.bepaling_opties`, zonder model),
-    binnen de gekozen regelingen. Wat de analist hier al koos blijft kiesbaar; wat raakt aan wat buiten
-    het werkgebied valt, staat onderaan en wordt niet aangevinkt."""
-    from ..bronnen_vinden import bepaling_opties
-    from ..werkgebied_context import uitsluitstammen
+def _gebeurtenis(b, intake: dict[str, Any], writer) -> dict[str, Any]:
+    """Het kaartje van de gebeurtenis: dezelfde opbouw als de bronselectie (`bronselectie.gebeurtenis_opties`), met de
+    voorstellen uit de koppen van de gekozen regelingen (`zoekvragen.gebeurtenis_opties`, zonder model)."""
+    from ..bronselectie import gebeurtenis_opties as kaartopties
+    from ..zoekvragen import gebeurtenis_opties
 
     a = intake.get("antwoorden") or {}
-    sleutel = wi.kaartsleutel(intake)
-    deel = int(intake.get("deel") or 0)
-    vraag = wi.deelvraagteksten(a)[deel] if deel < len(wi.deelvraagteksten(a)) else None
-    _stap(writer, "Lex", f"zoekt bepalingen bij deelvraag {deel + 1}" if vraag else "zoekt bepalingen bij de analysevraag")
-    gevonden = bepaling_opties(b.graph, regelingen=[r["bwb_id"] for r in a.get("regelingen") or []],
-                               deelvraag=vraag, dossier=wi.als_werkgebied(intake),
-                               buiten=uitsluitstammen(a.get("buiten", "")), limit=wi.MAX_BEPALINGEN)
-    opties = [{"label": o["label"], "waarde": o["bron_iri"], "bron": {"bwb_id": o["bwb_id"], "iri": o["bron_iri"]},
-               "omschrijving": o["omschrijving"]} for o in gevonden]
-    al = {o["waarde"] for o in opties}
-    x = (a.get("bepalingen") or {}).get(wi.deel_sleutel(vraag)) or {}
-    eerder = [{"label": o["label"], "waarde": o["bron_iri"], "bron": {"bwb_id": o.get("bwb_id", ""), "iri": o["bron_iri"]},
-               "omschrijving": "eerder gekozen"} for o in x.get("bronnen") or [] if o["bron_iri"] not in al]
-    buiten = sum(1 for o in gevonden if o["buiten"])
-    if not gevonden:
-        melding = ("Ik vond hierbij geen bepalingen in de gekozen regeling(en); noem ze zelf of kies "
-                   "‘Weet ik (nog) niet’.")
-    elif buiten:
-        melding = (f"Onderaan {'staat 1 bepaling die raakt' if buiten == 1 else f'staan {buiten} bepalingen die raken'} "
-                   "aan wat buiten het werkgebied valt; ik heb ze niet aangevinkt.")
-    else:
-        melding = ""
-    return _met(_met(intake, "meldingen", sleutel, melding), "voorstellen", sleutel, eerder + opties)
-
-
-def _eigen_bepalingen(b, intake: dict[str, Any], tekst: str, writer) -> tuple[list[dict[str, Any]], str]:
-    """Wat de analist zelf op een bepalingenkaartje typte ("artikel 9 lid 1 en 5 Invorderingswet 1990"): per
-    bepaling getoetst in de graaf. (bepalingen, "") als alles gevonden is; anders ([], een vraag) en blijft het
-    kaartje staan. De regeling komt uit de tekst (naam of afkorting), anders uit de intake als die er één heeft –
-    dezelfde regels als de bronselectie (`bronselectie.bepalingen_uit_tekst`)."""
-    from ..bronnen_vinden import bepaling_in_graaf
-    from ..bronselectie import bepalingen_uit_tekst
-    from ..overzicht import regelingen_in_vraag
-    from ..regelingnamen import regelingnamen
-
-    gekozen = [r["bwb_id"] for r in (intake.get("antwoorden") or {}).get("regelingen") or []]
-    _stap(writer, "Lex", "zoekt de bepaling die je noemde")
-    try:
-        verzoeken = bepalingen_uit_tekst(tekst, lambda t: regelingen_in_vraag(b.graph, t), gekozen)
-        if isinstance(verzoeken, str):
-            return [], f"{verzoeken} Of vink een voorstel aan."
-        if not verzoeken:
-            return [], ("Ik zie geen artikel in je tekst. Noem de bepaling, bijvoorbeeld ‘artikel 9 lid 2 "
-                        "Invorderingswet 1990’, of vink een voorstel aan.")
-        gevonden, mis = [], []
-        for v in verzoeken:
-            x = bepaling_in_graaf(b.graph, v["bwb_id"], v["artikel"], v.get("lid", ""))
-            (gevonden if x else mis).append(x or v)
-        if not mis:
-            return gevonden, ""
-        namen = regelingnamen(b.graph, {v["bwb_id"] for v in mis} | set(gekozen))
-        zinnen = []
-        for v in mis:
-            wat = f"Artikel {v['artikel']}" + (f", lid {v['lid']}" if v.get("lid") else "")
-            elders = [namen.get(r, r) for r in gekozen if r != v["bwb_id"]
-                      and bepaling_in_graaf(b.graph, r, v["artikel"], v.get("lid", ""))]
-            zinnen.append(f"{wat} staat niet in {namen.get(v['bwb_id'], v['bwb_id'])}"
-                          + (f"; wel in {' en '.join(elders)} – bedoel je die?" if elders else "."))
-        return [], " ".join(zinnen) + " Pas je tekst aan, of vink een voorstel aan."
-    except Exception:  # noqa: BLE001 – een haperende graaf: niets aannemen, de analist kan het opnieuw proberen
-        logger.warning("intake: getypte bepaling niet te toetsen", exc_info=True)
-        return [], "Ik kon de bepaling die je noemde nu niet opzoeken; probeer het zo opnieuw, of vink een voorstel aan."
+    regelingen = [r["bwb_id"] for r in a.get("regelingen") or [] if r.get("bwb_id")]
+    opties: list[dict[str, Any]] = []
+    if regelingen and b.graph is not None:
+        _stap(writer, "Lex", "zoekt de gebeurtenis in de koppen van de regelingen")
+        try:
+            opties = gebeurtenis_opties(b.graph, regelingen=regelingen, dossier=wi.als_werkgebied(intake))
+        except Exception:  # noqa: BLE001 – zonder voorstel kan de analist de term zelf typen
+            logger.warning("intake: geen gebeurtenis voorgesteld", exc_info=True)
+    lijst, voor = kaartopties(opties, a.get("gebeurtenis", ""))
+    melding = "" if lijst else ("Zonder regeling kan ik geen gebeurtenis voorstellen; typ de term van de wet, of sla over."
+                                if not regelingen else "Ik vond geen gebeurtenis in de koppen; typ de term van de wet, of sla over.")
+    return _met(_met(_met(intake, "voorstellen", "gebeurtenis", lijst), "vooringevuld", "gebeurtenis", voor),
+                "meldingen", "gebeurtenis", melding)
 
 
 def _thema(b, intake: dict[str, Any], writer, user_id: str) -> dict[str, Any]:
@@ -245,8 +192,7 @@ def _bereid_voor(b, intake: dict[str, Any], writer, user_id: str = "") -> dict[s
     """Wat het kaartje van de huidige stap nodig heeft – opnieuw zodra het dossier veranderde, anders
     niet (terugbladeren zonder iets te wijzigen kost geen aanroep)."""
     stap, sleutel = intake["stap"], wi.kaartsleutel(intake)
-    # De keuzes op de bepalingen-kaartjes veranderen de zoekopdracht van een ander kaartje niet.
-    h = wi.dossier_hash(intake, zonder=("bepalingen",) if stap == "bepalingen" else ())
+    h = wi.dossier_hash(intake)
     if stap not in (*wi.STAPPEN, "thema") or (intake.get("voorbereid") or {}).get(sleutel) == h:
         return intake
     intake = _met(_met(intake, "voorbereid", sleutel, h), "meldingen", sleutel, "")
@@ -267,8 +213,8 @@ def _bereid_voor(b, intake: dict[str, Any], writer, user_id: str = "") -> dict[s
     elif stap == "regelingen":
         intake = _model(b, intake, writer)
         intake = _regelingen(b, intake, intake["model"].get("onderwerp") or a.get("naam", ""), writer, per_deelvraag=True)
-    elif stap == "bepalingen":
-        intake = _bepalingen(b, intake, writer)
+    elif stap == "gebeurtenis":
+        intake = _gebeurtenis(b, intake, writer)
     elif stap == "thema" and wi.is_aanvullen(intake):
         intake = _thema(b, intake, writer, user_id)
     return intake
@@ -386,19 +332,6 @@ def werkgebied_intake_node(b, state: State) -> dict[str, Any]:
                      "werkgebied samen te stellen om te beginnen.")
             writer({"type": "token", "content": tekst})
             return {"answer": tekst, "messages": [{"role": "assistant", "content": tekst}]}
-        # Een getypte bepaling op een bepalingenkaartje wordt hier een keuze, in de graaf getoetst; lukt dat niet,
-        # dan blijft het kaartje staan met een vraag – nooit stil weg (spoor L). `eigen` komt nooit van de client.
-        actie = {k: v for k, v in actie.items() if k != "eigen"}
-        if (intake.get("stap") == "bepalingen" and actie.get("actie") == "antwoord" and actie.get("stap") == "bepalingen"
-                and int(actie.get("deel") or 0) == int(intake.get("deel") or 0)
-                and (tekst := " ".join(str(actie.get("tekst") or "").split()))
-                and wi.ONBEKEND not in (actie.get("keuzes") or [])):
-            eigen, vraag_terug = _eigen_bepalingen(b, intake, tekst, writer)
-            if vraag_terug:
-                # Het kaartje komt terug met wat de analist koos én typte (`concept`), om te verbeteren.
-                concept = [*(str(k) for k in actie.get("keuzes") or []), tekst]
-                return _toon(writer, {**intake, "concept": {wi.kaartsleutel(intake): concept}}, vraag_terug)
-            actie = {**actie, "eigen": eigen}
         intake, uitkomst = wi.verwerk(intake, actie)
 
     aanvullen = wi.is_aanvullen(intake)

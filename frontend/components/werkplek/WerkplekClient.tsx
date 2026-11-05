@@ -45,9 +45,10 @@ import type {
 import { metingUitDekking } from "@/lib/agentEvents";
 import { ANNULEER_TEKST, afgehandeld, parseBevestiging, parseBevestigingKeuze } from "@/lib/werkgebiedAnnoteren";
 import {
-  antwoordOp, antwoordTekst, groepeerVragen, openVraag, parseAntwoordOp, parseVraagkaart, type IntakeActie, type Vraagkaart,
+  antwoordOp, antwoordTekst, groepeerVragen, klaarActie, openVraag, parseAntwoordOp, parseVraagkaart, type IntakeActie, type Vraagkaart,
 } from "@/lib/vraagkaart";
 import { VraagDock } from "@/components/werkplek/VraagDock";
+import { BronselectieKaart } from "@/components/werkplek/BronselectieKaart";
 import {
   doelInvoerVan, isVerwijderd, kandidatenAlsTekst, mergeVoorstellen,
 } from "@/lib/annotatie";
@@ -62,7 +63,7 @@ import { WerkplekHeader } from "./WerkplekHeader";
 import { parseHergebruik, parseOverzicht } from "@/lib/agentEvents";
 import { DEMO_DOEL, DEMO_SLUG, type DemoScene } from "@/lib/rondleidingDemo";
 import {
-  SOORT_LABEL, actieVerzoek, chipTekst, overVan, suggestiesVan, verzoekVan, werkgebiedSuggesties, type Onderwerp,
+  SOORT_LABEL, VERVOLG_TEKST, actieVerzoek, chipTekst, overVan, suggestiesVan, verzoekVan, werkgebiedSuggesties, type Onderwerp, type Vervolg,
   type VraagLexActie,
 } from "@/lib/vraagLex";
 
@@ -221,6 +222,10 @@ export function WerkplekClient({
   // Wat er zojuist is opgeslagen, voor schermlezers. Zonder dit gebeurt elke annotatie-wijziging
   // volledig stil: de kaart verandert visueel, maar er wordt niets aangekondigd.
   const [melding, setMelding] = useState("");
+  // Een vervolgstap die Lex zelf aankondigde (`opgeslagen.vervolg`): verstuurd zodra de beurt klaar is en de werkplek
+  // in dat werkgebied staat, als een klik op de suggestie met die actie.
+  const [vervolg, setVervolg] = useState<(Vervolg & { id: string }) | null>(null);
+  const vervolgGedaan = useRef("");
   // De run die nu loopt. Die leeft bij de agent, niet in dit venster: dit id is waarmee we
   // aanhaken en waarmee de stopknop hem beëindigt.
   const [runId, setRunId] = useState<string | null>(null);
@@ -304,8 +309,9 @@ export function WerkplekClient({
           const art = b.rol === "user" ? undefined : artefactVanBericht(b);
           const annotatieDoel = annotatieDoelVan(art);
           // De bronselectie (spoor J) draagt naast haar artefact een kaartje: dat blijft een antwoord, anders
-          // is de open vraag na herladen weg. Het paneel opent de werkplek zelf (`toonVastgelegdeBeurt`).
-          if (art && !annotatieDoel && art.soort !== "bronselectie") {
+          // is de open vraag na herladen weg. Het paneel opent de werkplek zelf (`toonVastgelegdeBeurt`). Zonder
+          // kaartje (een oud bericht *Gevonden bepalingen*, nu een bronselectie) blijft het gewoon een chip.
+          if (art && !annotatieDoel && (art.soort !== "bronselectie" || !b.vraagkaart)) {
             return [{ id: uid(), type: "artefact" as const, artefact: art, tekst: b.tekst?.trim() || undefined, denk: b.denk }];
           }
           return [b.rol === "user"
@@ -641,7 +647,8 @@ export function WerkplekClient({
     // Heeft de agent de beurt zelf vastgelegd? Dan schrijft de werkplek niets meer weg – anders
     // staat alles er twee keer. Blijft dit leeg, dan legt de client het bericht zelf vast; zo werkt
     // een graph-qa zonder api-koppeling gewoon door.
-    let opgeslagen: { run_id: string; artefact?: Artefact; annotatie_doel?: NodeDoel; bevestiging?: Bevestiging } | null = null;
+    let opgeslagen: { run_id: string; artefact?: Artefact; annotatie_doel?: NodeDoel; bevestiging?: Bevestiging;
+      vervolg?: Vervolg } | null = null;
     let toolExecutions: ToolExecution[] = [];
     // De verbinding viel weg terwijl de run doorliep. Buiten de `try` gezet omdat het opnieuw
     // aanhaken ná de `finally` moet gebeuren: die reset `bezig`/`afbrekenRef`, en een nieuwe lus
@@ -781,6 +788,10 @@ export function WerkplekClient({
         await toonVastgelegdeBeurt(opgeslagen, {
           antId, tekst, denk, hergebruik, doel: doelInvoerVan(doelRef.d), tool_executions: toolExecutions, meting,
         });
+        // Lex gaat zelf verder (na *Werkgebied aanmaken*: de bronselectie). Alleen live, nooit na herladen: dan
+        // start er niets vanzelf.
+        const verder = (opgeslagen as { vervolg?: Vervolg } | null)?.vervolg;
+        if (verder) setVervolg({ ...verder, id: uid() });
         onGewijzigd();
         return;
       }
@@ -867,6 +878,14 @@ export function WerkplekClient({
   function vergeetLopendeRun(gid: string) {
     schrijfLopendeRuns(vergeetRun(leesLopendeRuns(), gid));
   }
+
+  useEffect(() => {
+    if (!vervolg || vervolgGedaan.current === vervolg.id || bezig || werkgebiedId !== vervolg.werkgebied_id) return;
+    vervolgGedaan.current = vervolg.id;
+    void verstuur(VERVOLG_TEKST[vervolg.actie], undefined, undefined, undefined, undefined, undefined, vervolg.actie);
+    // `verstuur` is elke render nieuw; het effect hoort alleen bij de vervolgstap en de stand van de beurt.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vervolg, bezig, werkgebiedId]);
 
   /** De agent heeft de beurt al weggeschreven; haal op wat er staat en toon het.
    *
@@ -1054,6 +1073,8 @@ export function WerkplekClient({
   // Welke voorstellen van Lex al beantwoord zijn (gestart of geannuleerd): daar staan geen knoppen meer.
   const keuzes = useMemo(() => afgehandeld(items), [items]);
   const open = openVraag(vraagGroepen);
+  // Het open compacte kaartje van de bronselectie: *Klaar* mag dan ook vanuit het paneel.
+  const paneelKaart = open?.open?.weergave === "paneel" ? open.open : undefined;
   const toonDock = !!open?.open && !bezig && !demo && weggeklikt !== open.openId;
   const suggesties = onderwerp ? suggestiesVan(onderwerp)
     : werkgebiedId && !demo && !invoer.trim() ? werkgebiedSuggesties() : [];
@@ -1101,6 +1122,14 @@ export function WerkplekClient({
     <WerkgebiedArtefactPaneel
       key={`${artefactSleutel(wgArtefact)}:${wgLading}`}
       doel={wgArtefact}
+      onKlaar={paneelKaart && wgArtefact.soort === "bronselectie" && !bezig
+        && wgArtefact.werkgebied_id === paneelKaart.intake_id.slice(3)
+        ? (deelvraagId: string) => {
+          if (deelvraagId !== paneelKaart.deelvraag_id) return;
+          const a = klaarActie(paneelKaart);
+          void verstuur(antwoordTekst(paneelKaart, a), undefined, undefined, undefined, undefined, a);
+        } : undefined}
+      klaarVoor={paneelKaart?.deelvraag_id}
       variant={breed ? "kolom" : "side"}
       onSluit={() => setWgArtefact(undefined)}
       onWissel={setWgArtefact}
@@ -1353,7 +1382,12 @@ export function WerkplekClient({
       {/* Invoerbalk – gepind onderaan, gecentreerd, auto-groeiend */}
       <div className="shrink-0 bg-paper">
         <div className="mx-auto max-w-3xl px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
-          {toonDock && open?.open ? (
+          {toonDock && open?.open && open.open.weergave === "paneel" ? (
+            <BronselectieKaart key={open.openId} kaart={open.open} uitgeschakeld={geblokkeerd}
+              onSluit={() => setWeggeklikt(open.openId ?? null)}
+              onActie={(a) => void verstuur(antwoordTekst(open.open!, a), undefined, undefined, undefined, undefined, a)}
+              onBeoordelen={() => { const doel = bronselectieVanKaart(open.open); if (doel) { setNodeDoel(undefined); setWgArtefact(doel); } }} />
+          ) : toonDock && open?.open ? (
             <VraagDock key={open.openId} kaart={open.open} uitgeschakeld={geblokkeerd}
               onSluit={() => setWeggeklikt(open.openId ?? null)}
               onActie={(a) => void verstuur(antwoordTekst(open.open!, a), undefined, undefined, undefined, undefined, a)} />

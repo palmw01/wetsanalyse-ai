@@ -23,7 +23,10 @@ import type { DossierVeld } from "./werkgebied";
  *    intake (graph-qa `INTAKE_ACTIES`); welk veld leest graph-qa uit de tekst ("Vul het praktijkvoorbeeld
  *    aan"). *Vraag Lex* bij een leeg veld zet dat veld op het werkgebied (`veld`), en de suggestie noemt het.
  *  - **De bronselectie** (`bronselectie`, spoor J) is evenmin een taak van een agent: graph-qa routeert hem naar
- *    de bronselectie-worker (`BRONSELECTIE_ACTIES`), op de stand die de api bewaart. */
+ *    de bronselectie-worker (`BRONSELECTIE_ACTIES`), op de stand die de api bewaart. Ook `bronnen_zoeken` gaat
+ *    daarheen: zoeken is een stap van de bronselectie, en ook `bepaling_toevoegen` – zelf een bepaling opzoeken en
+ *    toevoegen, met de treffers en hun tekst als kaartje. Zoeken in de graaf hoort bij het gesprek, niet bij een
+ *    artefact: daarop lees, bewerk en besluit je. */
 
 export type OnderwerpSoort = "markering" | "deelvraag" | "bron" | "kandidaat" | "begrip" | "werkgebied";
 export type ObjectSoort = Exclude<OnderwerpSoort, "markering">;
@@ -44,14 +47,17 @@ export const ACTIES = [
   "werkgebied_annoteren", "deelvragen_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
   "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie", "scherper",
   "uitleg", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen", "bronselectie",
+  "bepaling_toevoegen",
 ] as const;
 
-/** Hoe de suggestie bij een leeg dossierveld het veld noemt; graph-qa herkent het woord (`dossiervelden_in`). */
+/** Hoe de suggestie bij een leeg dossierveld het veld noemt; graph-qa herkent het woord (`dossiervelden_in`). De
+ *  gebeurtenis hoort sinds 4 nov 2026 bij het dossier (samenstellen en aanvullen), net als de regelingen. */
 const VELD_ZIN: Record<DossierVeld, string> = {
   aanleiding: "Vul de aanleiding aan", context: "Vul de context aan", doel: "Vul het doel aan",
   analysevraag: "Vul de analysevraag aan", praktijkvoorbeeld: "Vul het praktijkvoorbeeld aan",
-  afbakening: "Vul de afbakening aan",
+  afbakening: "Vul de afbakening aan", gebeurtenis: "Vul de gebeurtenis aan",
 };
+const VELD_ACTIE: Partial<Record<DossierVeld, VraagLexActie>> = {};
 export type VraagLexActie = (typeof ACTIES)[number];
 
 export interface Suggestie {
@@ -122,6 +128,8 @@ const SUGGESTIES: Record<ObjectSoort, Suggestie[]> = {
     // De bronselectie per deelvraag (spoor J): beginnen, of verder waar je was – ook in een ander gesprek. Er is
     // geen losse zoekknop meer: de bronselectie zoekt zelf.
     { tekst: "Bepaal de bronnen per deelvraag", actie: "bronselectie" },
+    // Zelf een bepaling toevoegen: Lex zoekt haar op en toont de tekst (geen zoekvenster op het artefact).
+    { tekst: "Noem een bepaling", actie: "bepaling_toevoegen" },
     { tekst: "Annoteer de bepalingen van de deelvragen", actie: "deelvragen_annoteren" },
     { tekst: "Annoteer wat nog niet geannoteerd is", actie: "werkgebied_annoteren" },
     { tekst: "Stel begrippen voor", actie: "begrippen_voorstellen" },
@@ -134,6 +142,7 @@ const SUGGESTIES: Record<ObjectSoort, Suggestie[]> = {
     { tekst: "Formuleer scherper", actie: "deelvraag_herformuleren" },
     { tekst: "Splits deze deelvraag", actie: "deelvraag_splitsen" },
     { tekst: "Bepaal de bronnen bij deze deelvraag", actie: "bronselectie" },
+    { tekst: "Noem een bepaling", actie: "bepaling_toevoegen" },
     { tekst: "Annoteer de bepalingen hierbij", actie: "deelvragen_annoteren" },
     { tekst: "Is deze deelvraag gedekt?", actie: "dekking" },
   ],
@@ -167,7 +176,8 @@ export const MODULES: { markering: Module<Markering> } & Record<ObjectSoort, Mod
     ? [...SUGGESTIES.begrip.filter((s) => s.actie === "uitleg"), ...SUGGESTIES.begrip.filter((s) => s.actie !== "uitleg")]
     : SUGGESTIES.begrip),
   werkgebied: objectModule((o) => o.veld && o.veld in VELD_ZIN
-    ? [{ tekst: VELD_ZIN[o.veld as DossierVeld], actie: "dossier_aanvullen" }, ...SUGGESTIES.werkgebied]
+    ? [{ tekst: VELD_ZIN[o.veld as DossierVeld], actie: VELD_ACTIE[o.veld as DossierVeld] ?? "dossier_aanvullen" },
+      ...SUGGESTIES.werkgebied]
     : SUGGESTIES.werkgebied),
 };
 
@@ -219,3 +229,20 @@ export function onderwerpUitUrl(zoek: { get(naam: string): string | null }): Obj
   };
 }
 
+
+// --- Lex gaat zelf verder ---------------------------------------------------------------------------
+
+/** Een vervolgstap die Lex na een beurt zelf aankondigt (`opgeslagen.vervolg`, graph-qa `beurt.py`): na *Werkgebied
+ *  aanmaken* de bronselectie per deelvraag. De werkplek stuurt hem als een klik op de suggestie met die actie, één
+ *  keer en alleen live; na herladen start er niets vanzelf. */
+export interface Vervolg { actie: "bronselectie"; werkgebied_id: string }
+
+export const VERVOLG_TEKST: Record<Vervolg["actie"], string> = {
+  bronselectie: "Bepaal de bronnen per deelvraag",
+};
+
+export function parseVervolg(ruw: unknown): Vervolg | undefined {
+  const r = (ruw ?? {}) as Record<string, unknown>;
+  return r.actie === "bronselectie" && typeof r.werkgebied_id === "string" && /^[A-Za-z0-9-]{1,64}$/.test(r.werkgebied_id)
+    ? { actie: "bronselectie", werkgebied_id: r.werkgebied_id } : undefined;
+}
