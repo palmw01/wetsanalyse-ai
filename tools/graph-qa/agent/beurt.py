@@ -66,82 +66,32 @@ def deelvraag_artefact(werkgebied_id: str, deelvraag: dict[str, Any]) -> dict[st
             "ref": {"werkgebied_id": werkgebied_id, "deelvraag_id": str(deelvraag["id"])}}
 
 
-def werkgebied_tekst(werkgebied: dict[str, Any], gelukt: list[str], mislukt: list[str], gekoppeld: int = 0) -> str:
-    """Wat Lex zegt na het aanmaken; uit de getallen, geen model. Beloof niets wat er niet is: de zin
-    over koppelingen volgt wat de api werkelijk koppelde (`gekoppeld`, het aantal deelvragen met een
-    nieuwe koppeling)."""
+def werkgebied_tekst(werkgebied: dict[str, Any]) -> str:
+    """Wat Lex zegt na het aanmaken; uit het werkgebied, geen model. Het werkgebied legt vast wat je onderzoekt; de
+    bronnen per deelvraag komen daarna uit de bronselectie, en daar gaat Lex meteen mee verder (`vervolg`)."""
     naam = werkgebied.get("naam", "")
-    if gelukt:
-        zin = (f"Werkgebied *{naam}* is aangemaakt met {len(gelukt)} "
-               f"{'bron' if len(gelukt) == 1 else 'bronnen'}; je vindt het bij Werkgebieden.")
-    else:
-        zin = f"Werkgebied *{naam}* is aangemaakt als concept, nog zonder bronnen; je vindt het bij Werkgebieden."
-    if mislukt:
-        zin += f" Niet toegevoegd, omdat ik ze niet in de wet- en regelgeving kon terugvinden: {', '.join(mislukt)}."
+    zin = f"Werkgebied *{naam}* is aangemaakt; je vindt het bij Werkgebieden."
     n = len([d for d in werkgebied.get("deelvragen") or [] if d.get("status", "actief") == "actief"])
     if n:
-        zin += f" Het heeft {n} {'deelvraag' if n == 1 else 'deelvragen'}"
-        if gekoppeld == n:
-            zin += f"; {'die heeft' if n == 1 else 'elk heeft'} de bronnen die je erbij koos."
-        elif gekoppeld:
-            zin += f"; {gekoppeld} daarvan {'heeft' if gekoppeld == 1 else 'hebben'} de bronnen die je erbij koos, de rest nog geen."
-        else:
-            zin += ", nog zonder bronnen."
-        if gekoppeld < n:
-            zin += " Een volgende stap: bepaal met me de bronnen per deelvraag (*Bepaal de bronnen per deelvraag*)."
+        zin += f" Het heeft {n} {'deelvraag' if n == 1 else 'deelvragen'}. We gaan meteen verder met de bronnen per deelvraag."
     elif werkgebied.get("analysevraag"):
-        zin += (" Een volgende stap: laat me deelvragen voorstellen bij de analysevraag, of bepaal met me de bronnen "
-                "(*Bepaal de bronnen per deelvraag*).")
+        zin += " We gaan meteen verder met de bronnen bij de analysevraag."
     return zin
 
 
-async def _maak_werkgebied(api: WetsanalyseApi, verzoek: dict[str, Any]
-                           ) -> tuple[dict[str, Any], list[str], list[str], int]:
-    """Werkgebied en bronselecties bij de api. Het werkgebied is idempotent op de intake-id, een bron op
-    bron + rol + bereik: een herhaling na een storing maakt niets dubbel."""
-    from .werkgebied_intake import REDEN
+def vervolg_na_aanmaken(werkgebied: dict[str, Any]) -> dict[str, Any] | None:
+    """Lex gaat zelf door met de bronselectie (besluit 4 nov 2026): de werkplek stuurt dit als een klik op *Bepaal de
+    bronnen per deelvraag*, één keer en alleen live. Zonder deelvragen en analysevraag is er geen vertrekpunt."""
+    actief = any(d.get("status", "actief") == "actief" for d in werkgebied.get("deelvragen") or [])
+    if not (actief or (werkgebied.get("analysevraag") or "").strip()):
+        return None
+    return {"actie": "bronselectie", "werkgebied_id": werkgebied["id"]}
 
-    from .werkgebied_intake import normaliseer
 
-    werkgebied = await api.maak_werkgebied(verzoek["werkgebied"])
-    gelukt, mislukt = [], []
-    per_deelvraag: dict[str, list[str]] = {}
-    for bron in verzoek.get("bronnen") or []:
-        label = bron.get("label", "")
-        invoer = {k: v for k, v in bron.items() if k in ("bron_iri", "bwb_id", "artikel", "lid")}
-        try:
-            uit = await api.voeg_bron_toe(werkgebied["id"], {**invoer, "verwachte_revisie": werkgebied["revisie"],
-                                                              "rol": "analyseren", "bereik": "onderliggend",
-                                                              "reden": REDEN})
-            werkgebied = uit.get("werkgebied") or werkgebied
-            gelukt.append(label)
-            if (sid := (uit.get("selectie") or {}).get("id")):
-                for vraag in bron.get("deelvragen") or []:
-                    per_deelvraag.setdefault(normaliseer(vraag), []).append(sid)
-        except WetsanalyseApiFout as fout:
-            logger.warning("intake: bron niet toegevoegd",
-                           extra={"categorie": "functioneel", "http_status": fout.status})
-            mislukt.append(label)
-    # Een bron die Lex bij een deelvraag vond, hoort bij die deelvraag (Handleiding 1g): de dekkingscheck
-    # ziet het dan meteen. Een set, dus een herhaling na een storing koppelt niets dubbel. `gekoppeld` telt
-    # de deelvragen die hun bronnen hebben, ook als ze er na een herhaling al stonden.
-    gekoppeld = 0
-    for d in list(werkgebied.get("deelvragen") or []):
-        nieuw = per_deelvraag.get(normaliseer(d["vraag"]))
-        if not nieuw or d.get("status") != "actief":
-            continue
-        if set(nieuw) <= set(d.get("bronnen") or []):
-            gekoppeld += 1
-            continue
-        try:
-            werkgebied = await api.koppel_deelvraag(werkgebied["id"], d["id"], {
-                "verwachte_revisie": werkgebied["revisie"], "bronnen": list(dict.fromkeys([*d.get("bronnen", []), *nieuw])),
-                "begrippen": list(d.get("begrippen") or [])}) or werkgebied
-            gekoppeld += 1
-        except WetsanalyseApiFout as fout:
-            logger.warning("intake: deelvraag niet gekoppeld",
-                           extra={"categorie": "functioneel", "http_status": fout.status})
-    return werkgebied, gelukt, mislukt, gekoppeld
+async def _maak_werkgebied(api: WetsanalyseApi, verzoek: dict[str, Any]) -> dict[str, Any]:
+    """Het werkgebied bij de api, idempotent op de intake-id: een herhaling na een storing maakt niets dubbel. Het
+    draagt het dossier, de deelvragen, het zoekbereik en de gebeurtenis; bronnen kiest de bronselectie."""
+    return await api.maak_werkgebied(verzoek["werkgebied"])
 
 
 def wijzig_tekst(werkgebied: dict[str, Any], wijzigingen: list[dict[str, Any]]) -> str:
@@ -398,6 +348,7 @@ async def _leg_vast(
     """Schrijf de markeringen naar de gedeelde laag en het chatbericht weg; meld de uitkomst."""
     api = WetsanalyseApi(settings, user_id)
     try:
+        vervolg: dict[str, Any] | None = None
         bericht: dict[str, Any] = {"rol": "assistant", "run_id": run.run_id,
                                  "tool_executions": schrijver.tool_executions,
                                  **({"reeks": reeks} if reeks else {})}
@@ -448,7 +399,7 @@ async def _leg_vast(
             # Activiteit 1: het werkgebied dat Lex met de analist samenstelde. Mislukt het aanmaken, dan
             # blijft het samenvattingskaartje werken: opnieuw klikken maakt niets dubbel.
             try:
-                werkgebied, gelukt, mislukt, gekoppeld = await _maak_werkgebied(api, schrijver.aanmaken)
+                werkgebied = await _maak_werkgebied(api, schrijver.aanmaken)
             except WetsanalyseApiFout:
                 logger.exception("intake: werkgebied niet aangemaakt",
                                  extra={"categorie": "technisch", "run_id": run.run_id})
@@ -456,9 +407,10 @@ async def _leg_vast(
                        "message": "Het werkgebied kon niet worden aangemaakt. Klik opnieuw op Aanmaken; "
                                   "er ontstaat dan geen dubbel werkgebied."}
                 return
-            tekst = werkgebied_tekst(werkgebied, gelukt, mislukt, gekoppeld)
+            tekst = werkgebied_tekst(werkgebied)
             yield {"type": "token", "content": tekst}
             bericht |= {"tekst": tekst, "denk": schrijver.denk, "artefact": werkgebied_artefact(werkgebied)}
+            vervolg = vervolg_na_aanmaken(werkgebied)
         elif schrijver.wijzigen:
             # Het dossier aanvullen: pas na *Opslaan*, tegen de revisie waarop de analist begon. Een 412 of
             # 404 is een antwoord (niets opgeslagen, en waarom); een andere fout een zichtbare `error`.
@@ -514,7 +466,9 @@ async def _leg_vast(
         )
         # De client hoeft de inhoud niet mee te krijgen: hij haalt hem bij de api op. Zo blijft er
         # één bron van waarheid en groeit het SSE-contract niet mee met het datamodel.
+        # `vervolg` reist alleen live mee, niet in het bericht: na herladen start er niets vanzelf.
         yield {"type": "opgeslagen", "run_id": run.run_id,
+               **({"vervolg": vervolg} if vervolg else {}),
                **({"annotatie_doel": bericht["annotatie_doel"]} if bericht.get("annotatie_doel") else {}),
                **({"artefact": bericht["artefact"]} if bericht.get("artefact") else {}),
                **({"bevestiging": bericht["bevestiging"]} if bericht.get("bevestiging") else {})}

@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react"
 import { Button } from "@/components/ui/Button";
 import { ChevronOmlaag, Kruis, PijlRechts, Vinkje } from "@/components/ui/Icoon";
 import { Regel, Regels } from "@/components/ui/Lijst";
+import { MeerRegels } from "@/components/werkplek/MeerRegels";
 import {
   ONBEKEND, antwoordActie, beginstand, isLaatsteVraag, vorige as vorigeKaart, type IntakeActie, type Vraagkaart,
 } from "@/lib/vraagkaart";
@@ -19,9 +20,9 @@ import {
  *  - **Opties** zijn regels met een titel en een omschrijving; een klik selecteert alleen, pas
  *    *Volgende* (of Enter) stuurt in. "Weet ik (nog) niet" sluit de andere keuzes uit, en andersom.
  *  - **"Typ je antwoord…"** is de laatste regel: met tekst erin krijgt hij het vinkje. Bij één keuze
- *    vervangt hij een gekozen optie; bij de regelingen is hij een zoekopdracht. Bij de deelvragen
- *    (`meer_tekst`) is elke eigen deelvraag een regel: Enter of *+ Nog een deelvraag* opent de
- *    volgende, *Volgende* stuurt alles in.
+ *    vervangt hij een gekozen optie; bij de regelingen is hij een zoekopdracht. Met `meer_tekst` is elk
+ *    eigen antwoord een regel (`MeerRegels`, ook op het compacte kaartje): Enter of *+ Nog een …* (wat één
+ *    regel is, zegt `kaart.regel`) opent de volgende, *Volgende* stuurt alles in.
  *  - **Aanvullen** (`modus: "aanvullen"`): hetzelfde kaartje op een bestaand werkgebied. De samenvatting
  *    toont per veld toen → nu en de knop heet *Opslaan*; verandert er niets, dan is er geen knop.
  *  - **Toetsenbord op mobiel**: de hoogte volgt `visualViewport`, zodat de sheet boven het toetsenbord
@@ -37,8 +38,6 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
   const [gekozen, setGekozen] = useState<string[]>(begin.gekozen);
   const [eigen, setEigen] = useState(begin.eigen);
   const [teksten, setTeksten] = useState<string[]>(begin.teksten);
-  // Welke eigen regel de focus krijgt nadat er een bij kwam.
-  const [nieuweRegel, setNieuweRegel] = useState<number | null>(null);
   const [cursor, setCursor] = useState(0);
   const lijstId = useId();
   const lijst = useRef<HTMLUListElement>(null);
@@ -67,10 +66,6 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
 
   const basis = { intake_id: kaart.intake_id, stap: kaart.stap, ...(kaart.deel ? { deel: kaart.deel.index } : {}) };
   const actie = antwoordActie(kaart, gekozen, eigen, teksten);
-  const regelErbij = (na: number) => {
-    setTeksten((t) => [...t.slice(0, na + 1), "", ...t.slice(na + 1)]);
-    setNieuweRegel(na + 1);
-  };
   const stuur = (a: IntakeActie | undefined) => { if (!uitgeschakeld && a) onActie(a); };
   const vorige = vorigeKaart(kaart);
   const zoekt = kaart.stap === "regelingen" && !!eigen.trim() && !gekozen.length;
@@ -154,11 +149,21 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
                 ? <span className="whitespace-pre-line">{kaart.samenvatting.afbakening}</span>
                 : <span className="text-muted">geen</span>}
             </Regel>
-            <Regel naam="Bronnen">
-              {kaart.samenvatting.bronnen.length
-                ? <ul className="space-y-0.5">{kaart.samenvatting.bronnen.map((b) => <li key={b}>{b}</li>)}</ul>
-                : <span className="text-muted">nog geen – die voeg je later toe</span>}
+            {/* Wat het werkgebied onderzoekt: het zoekbereik en de gebeurtenis. De bronnen per deelvraag volgen in de
+                bronselectie, direct na het aanmaken (een oud kaartje toont nog zijn bronnen). */}
+            <Regel naam="Regelingen">
+              {kaart.samenvatting.regelingen.length
+                ? <ul className="space-y-0.5">{kaart.samenvatting.regelingen.map((r) => <li key={r}>{r}</li>)}</ul>
+                : <span className="text-muted">nog te bepalen</span>}
             </Regel>
+            <Regel naam="Gebeurtenis">
+              {kaart.samenvatting.gebeurtenis || <span className="text-muted">nog te bepalen</span>}
+            </Regel>
+            {kaart.samenvatting.bronnen.length > 0 && (
+              <Regel naam="Bronnen">
+                <ul className="space-y-0.5">{kaart.samenvatting.bronnen.map((b) => <li key={b}>{b}</li>)}</ul>
+              </Regel>
+            )}
           </Regels>
         ) : (
           <ul
@@ -200,37 +205,8 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
             })}
             {kaart.vrije_tekst && kaart.meer_tekst && (
               <li className="py-2" role="presentation">
-                <ul className="space-y-1" aria-label="Je eigen deelvragen">
-                  {teksten.map((t, i) => (
-                    <li key={i} className="flex items-center gap-3 py-1.5">
-                      <label className="min-w-0 flex-1">
-                        <span className="sr-only">{`Eigen deelvraag ${i + 1}`}</span>
-                        <textarea
-                          rows={1}
-                          value={t}
-                          disabled={uitgeschakeld}
-                          maxLength={1000}
-                          autoFocus={nieuweRegel === i}
-                          placeholder={i === 0 ? "Typ een eigen deelvraag…" : "Nog een deelvraag…"}
-                          onChange={(e) => setTeksten((ts) => ts.map((x, j) => (j === i ? e.target.value : x)))}
-                          onKeyDown={(e) => {
-                            if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
-                            e.preventDefault();
-                            // Ctrl/⌘+Enter stuurt in; Enter in een gevulde regel opent de volgende.
-                            if (e.ctrlKey || e.metaKey) stuur(actie);
-                            else if (t.trim()) regelErbij(i);
-                          }}
-                          className="block w-full resize-none border-0 bg-transparent p-0 text-[15px] text-ink placeholder:text-faint focus:outline-none focus:ring-0 disabled:opacity-50"
-                        />
-                      </label>
-                      {t.trim() && <Vinkje className="text-lg text-lint" />}
-                    </li>
-                  ))}
-                </ul>
-                <button type="button" disabled={uitgeschakeld} onClick={() => regelErbij(teksten.length - 1)}
-                  className="focus-ring mt-1 rounded text-sm font-medium text-lint hover:underline disabled:opacity-50">
-                  + Nog een deelvraag
-                </button>
+                <MeerRegels teksten={teksten} onTeksten={setTeksten} regel={kaart.regel} uitgeschakeld={uitgeschakeld}
+                  onInsturen={() => stuur(actie)} />
               </li>
             )}
             {kaart.vrije_tekst && !kaart.meer_tekst && (
@@ -264,7 +240,7 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
         <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
           <button type="button" disabled={uitgeschakeld} onClick={() => stuur({ ...basis, actie: "afbreken" })}
             className="focus-ring self-center rounded text-xs text-muted underline-offset-2 hover:underline disabled:opacity-50 sm:mr-auto sm:self-auto">
-            {aanvullen ? "Stop met aanvullen" : "Stop met samenstellen"}
+            {aanvullen ? "Stop met aanvullen" : kaart.modus === "bronselectie" ? "Zet de bronselectie stil" : "Stop met samenstellen"}
           </button>
           <div className="flex gap-2 sm:justify-end">
             {kaart.overslaanbaar && (

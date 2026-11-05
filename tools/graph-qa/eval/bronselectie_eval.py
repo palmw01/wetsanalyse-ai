@@ -41,6 +41,13 @@ naast de vorige deelvraagmethode (het overzicht per deelvraag, op artikelniveau)
 deelvraag en samen: `recall`, `recall_nodig`, `recall_exact` (het lid zelf, of erbinnen), `precisie`
 (het aandeel opties dat een verwachte bepaling van díé deelvraag raakt), `uitgesloten` (opties die een
 uitgesloten bepaling raken, niet gemarkeerd) en `uitgesloten_gemarkeerd` (wel gemarkeerd, onderaan).
+Voor `bepaling_opties` ook `recall_pool`: het aandeel verwachte bepalingen dat de index vindt vóór de
+rangschikking (`deelvraag_zoeken.kandidatenpool`). Ligt `recall` daar ver onder, dan laat de
+rangschikking ze vallen; ligt `recall_pool` zelf laag, dan mist het zoeken ze.
+
+**`--zoekvragen`** meet op een set met een `gebeurtenis` (schema 3) de eerste stap van de zoekvragen a–d
+(`agent/zoekvragen.py`): op welke plek `gebeurtenis_opties` de gebeurtenis van de set voorstelt, met en zonder de
+naam van het werkgebied, en hoeveel van de verwachte bepalingen met `zoekvraag: a` de `grondslag` vindt.
 
 `--opnemen` vraagt `GRAPHDB_MCP_URL` en `GRAPHDB_TOKEN` (en voor gelijkenis `SIMILARITY_INDEX`).
 """
@@ -50,10 +57,11 @@ import argparse
 import hashlib
 import json
 import sys
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from agent import bronnen_vinden
+from agent import deelvraag_zoeken, zoektermen
 from agent.bronnen_vinden import METHODEN, STANDAARD, in_selectie, vind
 
 SETS = Path(__file__).resolve().parents[3] / "docs" / "wetsanalyse" / "referentieset-bronselectie"
@@ -90,6 +98,30 @@ class OpnameGraaf:
 
     def close(self) -> None:
         pass
+
+
+class AanvullendeGraaf(OpnameGraaf):
+    """Speelt de opname af en haalt alleen wat ontbreekt bij de echte graaf, en onthoudt dat erbij. Zo blijft
+    een opname die bij een eerdere meting hoort (bewijs) staan, en komen de queries van nieuwe code erbij."""
+
+    def __init__(self, opname: dict[str, dict[str, str]], echt: Any) -> None:
+        super().__init__(opname)
+        self.echt = echt
+
+    def sparql(self, query: str) -> str:
+        sleutel = _sleutel(query)
+        if sleutel not in self.opname["sparql"]:
+            self.opname["sparql"][sleutel] = self.echt.sparql(query)
+        return self.opname["sparql"][sleutel]
+
+    def semantic_search(self, query: str, limit: int = 10) -> str:
+        sleutel = _sleutel(f"{limit}|{query}")
+        if sleutel not in self.opname["semantisch"]:
+            self.opname["semantisch"][sleutel] = self.echt.semantic_search(query, limit)
+        return self.opname["semantisch"][sleutel]
+
+    def close(self) -> None:
+        self.echt.close()
 
 
 class OpnemendeGraaf:
@@ -227,7 +259,7 @@ def _vorige_deelvraagmethode(graph: Any, s: dict[str, Any], vraag: str) -> list[
     overzicht per deelvraag, op artikelniveau, hoogstens 15 – letterlijk overgenomen."""
     from agent.overzicht import bouw_overzicht
 
-    onderwerp = bronnen_vinden.onderwerp_van_deelvraag(vraag)
+    onderwerp = zoektermen.onderwerp_van_deelvraag(vraag)
     if not onderwerp:
         return []
     try:
@@ -242,16 +274,80 @@ def _vorige_deelvraagmethode(graph: Any, s: dict[str, Any], vraag: str) -> list[
     return uit
 
 
-def _bepaling_opties(graph: Any, s: dict[str, Any], vraag: str) -> list[dict[str, Any]]:
-    from agent.werkgebied_context import uitsluitstammen
-
-    return bronnen_vinden.bepaling_opties(
-        graph, regelingen=s["regelingen"], deelvraag=vraag,
-        dossier={k: s.get(k, "") for k in ("naam", "analysevraag", "praktijkvoorbeeld", "context")},
-        buiten=uitsluitstammen(s.get("buiten", "")))
+def _dossier(s: dict[str, Any]) -> dict[str, Any]:
+    return {k: s.get(k, "") for k in ("naam", "analysevraag", "praktijkvoorbeeld", "context", "aanleiding", "doel")}
 
 
-ROUTES = {"bepaling_opties": _bepaling_opties, "vorige deelvraagmethode": _vorige_deelvraagmethode}
+def _met_profiel(profiel: deelvraag_zoeken.Zoekprofiel):
+    def route(graph: Any, s: dict[str, Any], vraag: str) -> list[dict[str, Any]]:
+        from agent.zoektermen import uitsluitstammen
+
+        return deelvraag_zoeken.bepaling_opties(graph, regelingen=s["regelingen"], deelvraag=vraag, dossier=_dossier(s),
+                                              buiten=uitsluitstammen(s.get("buiten", "")), profiel=profiel)
+    route.profiel = profiel
+    return route
+
+
+_bepaling_opties = _met_profiel(deelvraag_zoeken.STANDAARD_PROFIEL)
+def _zoekvragen_route():
+    """Zoekvragen a–d, PR 5: per deelvraag de opties uit de pool vanaf de gebeurtenis van de set
+    (`zoekvragen.opties_bij_deelvraag`), met `PLAATSEN_WOORDEN` plaatsen voor `bepaling_opties` – zoals
+    `bronnen_vinden._deelvraag`. Een set zonder gebeurtenis: de standaard."""
+    from agent import zoekvragen
+
+    cache: dict[tuple, dict[str, Any]] = {}
+
+    def route(graph: Any, s: dict[str, Any], vraag: str) -> list[dict[str, Any]]:
+        if not s.get("gebeurtenis"):
+            return _bepaling_opties(graph, s, vraag)
+        sleutel = (id(graph), s["naam"])
+        if sleutel not in cache:
+            buiten = zoektermen.uitsluitstammen(zoektermen.buiten_uit_afbakening("Buiten de afbakening: " + s.get("buiten", "")))
+            cache[sleutel] = zoekvragen.pool(graph, gebeurtenis=s["gebeurtenis"], regelingen=s["regelingen"], buiten=buiten)
+        woorden = _bepaling_opties(graph, s, vraag)
+        plaatsen = deelvraag_zoeken.MAX_PER_DEELVRAAG - min(zoekvragen.PLAATSEN_WOORDEN,
+                                                            len([o for o in woorden if not o["buiten"]]))
+        uit = [{"bron_iri": k["bron_iri"], "buiten": False}
+               for k in zoekvragen.opties_bij_deelvraag(cache[sleutel]["kandidaten"], vraag, gebeurtenis=s["gebeurtenis"],
+                                                        limit=plaatsen, dossier=_dossier(s))]
+        al = {o["bron_iri"] for o in uit}
+        ruimte = deelvraag_zoeken.MAX_PER_DEELVRAAG - len(uit)
+        for o in woorden:
+            if o["bron_iri"] in al:
+                continue
+            if not o["buiten"]:
+                if ruimte <= 0:
+                    continue
+                ruimte -= 1
+            uit.append(o)
+        return uit
+    return route
+
+
+#: De ingrepen waarmee het dossier meezoekt (meetlogboek `bronselectie-2026-11-04-dossier`).
+DOSSIERVLAGGEN = ("dossier_velden", "dossier_lijsten", "dossier_omgeving", "gelijkenis")
+
+#: De routes van de meting: de standaard, de rangschikking van F3f (21 okt 2026) als ijkpunt, de standaard met
+#: telkens één ingreep uit of – het lemma, standaard uit – erbij (ablatie), en de deelvraagmethode van vóór F3f.
+ROUTES = {"bepaling_opties": _bepaling_opties, "F3f (21 okt)": _met_profiel(deelvraag_zoeken.F3F),
+          **{f"zonder {v}": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL, **{v: False}))
+             for v in ("per_term", "samenstelling", "divisies", "kop_overal", "fusie", "per_regeling")},
+          "met lemma": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL, lemma=True)),
+          "met lengte": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL, lengte=True)),
+          **{f"met {v}": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL, **{v: True}))
+             for v in DOSSIERVLAGGEN},
+          "met dossier (alles)": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL,
+                                                      **{v: True for v in DOSSIERVLAGGEN})),
+          "zoekvragen (PR 5)": _zoekvragen_route(),
+          "vorige deelvraagmethode": _vorige_deelvraagmethode}
+
+
+def _pool(graph: Any, s: dict[str, Any], vraag: str, profiel=deelvraag_zoeken.STANDAARD_PROFIEL) -> list[str]:
+    """Wat de index bij de deelvraag vindt, vóór de rangschikking (`deelvraag_zoeken.kandidatenpool`): zo
+    scheidt de meting wat het zoeken mist van wat de rangschikking laat vallen."""
+    pool = deelvraag_zoeken.kandidatenpool(graph, regelingen=s["regelingen"], deelvraag=vraag, dossier=_dossier(s),
+                                         profiel=profiel)
+    return list(pool["gevonden"]) if pool else []
 
 
 def scoor_deelvraag(s: dict[str, Any], i: int, opties: list[dict[str, Any]]) -> dict[str, Any]:
@@ -280,6 +376,13 @@ def scoor_deelvraag(s: dict[str, Any], i: int, opties: list[dict[str, Any]]) -> 
             "opties": alles}
 
 
+def scoor_pool(s: dict[str, Any], i: int, pool: list[str]) -> dict[str, Any]:
+    verwacht = [v for v in s["verwacht"] if v["deelvraag"] == i]
+    in_pool = [v for v in verwacht if any(_raakt(c, v["bron_iri"]) for c in pool)]
+    return {"pool": len(pool), "in_pool": len(in_pool),
+            "niet_in_pool": [v["bron_iri"] for v in verwacht if v not in in_pool]}
+
+
 def _deel(a: int, b: int) -> float | None:
     return round(a / b, 3) if b else None
 
@@ -292,6 +395,15 @@ def meet_intake(graaf: Any, s: dict[str, Any]) -> dict[str, Any]:
         regelingnamen._CACHE.clear()
         overzicht._REGELINGEN_CACHE.clear()
         per = [scoor_deelvraag(s, i, route(graaf, s, vraag)) for i, vraag in enumerate(s["deelvragen"])]
+        if hasattr(route, "profiel"):
+            for i, (p, vraag) in enumerate(zip(per, s["deelvragen"])):
+                p.update(scoor_pool(s, i, _pool(graaf, s, vraag, route.profiel)))
+        # Hoeveel opties bij meer dan één deelvraag staan: als het dossier elk kaartje vult, stijgt dit (spoor K).
+        tel: dict[str, int] = {}
+        for p in per:
+            for c in set(p["opties"]):
+                tel[c] = tel.get(c, 0) + 1
+        alle_opties = [c for p in per for c in p["opties"]]
         som = {k: sum(p[k] for p in per) for k in ("verwacht", "nodig", "aantal", "gevonden", "gevonden_nodig", "exact", "raak")}
         rapport[naam] = {"recall": _deel(som["gevonden"], som["verwacht"]),
                          "recall_nodig": _deel(som["gevonden_nodig"], som["nodig"]),
@@ -299,7 +411,11 @@ def meet_intake(graaf: Any, s: dict[str, Any]) -> dict[str, Any]:
                          "precisie": _deel(som["raak"], som["aantal"]), "aantal": som["aantal"],
                          "uitgesloten": sum(len(p["uitgesloten"]) for p in per),
                          "uitgesloten_gemarkeerd": sum(len(p["uitgesloten_gemarkeerd"]) for p in per),
+                         "gedeeld": _deel(sum(1 for c in alle_opties if tel[c] > 1), len(alle_opties)),
                          "per_deelvraag": per}
+        if hasattr(route, "profiel"):
+            rapport[naam]["recall_pool"] = _deel(sum(p["in_pool"] for p in per), som["verwacht"])
+            rapport[naam]["pool"] = sum(p["pool"] for p in per)
     return rapport
 
 
@@ -309,18 +425,95 @@ def tabel_intake(s: dict[str, Any], rapport: dict[str, Any]) -> str:
     regels = [f"Set: {s['naam']} – status {s['status']} (trendmeting, geen kwaliteitsoordeel tot vaststelling)",
               f"Analysevraag: {s['analysevraag']}",
               f"Deelvragen: {len(s['deelvragen'])}, verwacht: {len(s['verwacht'])}, uitgesloten: {len(s['uitgesloten'])}",
-              "", "| route | aantal | recall | recall nodig | exact | precisie | uitgesloten | uitgesloten gemarkeerd |",
-              "|---|---|---|---|---|---|---|---|"]
+              "", "| route | aantal | recall | recall nodig | exact | precisie | uitgesloten | uitgesloten gemarkeerd "
+                  "| gedeeld | pool | recall pool |",
+              "|---|---|---|---|---|---|---|---|---|---|---|"]
     for naam, r in rapport.items():
         regels.append(f"| {naam} | {r['aantal']} | {f(r['recall'])} | {f(r['recall_nodig'])} | {f(r['recall_exact'])} | "
-                      f"{f(r['precisie'])} | {r['uitgesloten']} | {r['uitgesloten_gemarkeerd']} |")
+                      f"{f(r['precisie'])} | {r['uitgesloten']} | {r['uitgesloten_gemarkeerd']} | {f(r['gedeeld'])} | "
+                      f"{r.get('pool', '–')} | {f(r.get('recall_pool'))} |")
     for naam, r in rapport.items():
+        if naam not in ("bepaling_opties", "F3f (21 okt)", "vorige deelvraagmethode"):
+            continue
         regels += ["", f"**{naam}** per deelvraag:"]
         for i, p in enumerate(r["per_deelvraag"]):
             regels.append(f"- {i + 1}. {p['gevonden']}/{p['verwacht']} gevonden (exact {p['exact']}), {p['raak']}/{p['aantal']} raak"
                           f"{', gemarkeerd ' + str(p['gemarkeerd']) if p['gemarkeerd'] else ''}; gemist: "
-                          f"{', '.join(g.split(':', 2)[2] for g in p['gemist']) or 'niets'}")
+                          f"{', '.join(g.split(':', 2)[2] for g in p['gemist']) or 'niets'}"
+                          + (f"; in de pool {p['in_pool']}/{p['verwacht']} (van {p['pool']}), niet in de pool: "
+                             f"{', '.join(g.split(':', 2)[2] for g in p['niet_in_pool']) or 'niets'}" if "pool" in p else ""))
     return "\n".join(regels)
+
+
+# --- zoekvragen a–d: de gebeurtenis en de grondslag ---------------------------------------------------
+
+def meet_zoekvragen(graaf: Any, s: dict[str, Any]) -> dict[str, Any]:
+    """De plek van de gebeurtenis van de set in de voorstellen (1 = bovenaan, None = niet in de lijst), met en
+    zonder de naam, en de recall van de grondslag op de verwachte bepalingen met `zoekvraag: a`."""
+    from agent import zoekvragen
+    from agent.zoektermen import _stamdeel, zoektermen as termen
+
+    doel = termen(s["gebeurtenis"])
+    sleutel = _stamdeel(doel[0]) if doel else ""
+
+    def plek(dossier: dict[str, Any]) -> tuple[int | None, list[str]]:
+        opties = [o["gebeurtenis"] for o in zoekvragen.gebeurtenis_opties(graaf, regelingen=s["regelingen"],
+                                                                          dossier=dossier)]
+        gevonden = [i + 1 for i, o in enumerate(opties) if zoekvragen._sleutel(o) == sleutel]
+        return (gevonden[0] if gevonden else None), opties
+
+    # De gebeurtenis van de set is het antwoord: niet in het dossier waarop Lex haar voorstelt.
+    dossier = {k: s.get(k, "") for k in zoekvragen.DOSSIERVELDEN if k != "gebeurtenis"}
+    met, opties_met = plek(dossier)
+    zonder, opties_zonder = plek({**dossier, "naam": ""})
+    buiten = zoektermen.uitsluitstammen(zoektermen.buiten_uit_afbakening("Buiten de afbakening: " + s.get("buiten", "")))
+    gevonden = [k["bron_iri"] for k in zoekvragen.grondslag(graaf, gebeurtenis=s["gebeurtenis"],
+                                                             regelingen=s["regelingen"], buiten=buiten)]
+    verwacht = list(dict.fromkeys(v["bron_iri"] for v in s["verwacht"] if v.get("zoekvraag") == "a"))
+    raak = [v for v in verwacht if any(_raakt(c, v) for c in gevonden)]
+    # De pool van de zoekvragen a–d (PR 4): wat erin zit, per zoekvraag van de set.
+    p = zoekvragen.pool(graaf, gebeurtenis=s["gebeurtenis"], regelingen=s["regelingen"], buiten=buiten)
+    pool = p["kandidaten"]
+    unieke = list({v["bron_iri"]: v for v in s["verwacht"]}.values())
+
+    def treffer(v: dict[str, Any]) -> dict[str, Any] | None:
+        return next((k for k in pool if _raakt(k["bron_iri"], v["bron_iri"])), None)
+
+    per_zoekvraag = {}
+    for z in "abcd":
+        groep = [v for v in unieke if v.get("zoekvraag") == z]
+        per_zoekvraag[z] = {"verwacht": len(groep), "gevonden": sum(treffer(v) is not None for v in groep)}
+    nodig = [v for v in unieke if v["rol"] in ("kern", "afhankelijkheid")]
+    gevonden_v = [(v, t) for v in unieke if (t := treffer(v)) is not None]
+    pool_meting = {
+        "pool": len(pool), "pool_volledig": p["volledig"], "per_zoekvraag": per_zoekvraag,
+        "pool_recall": _deel(len(gevonden_v), len(unieke)),
+        "pool_recall_nodig": _deel(sum(treffer(v) is not None for v in nodig), len(nodig)),
+        "zoekvraag_juist": _deel(sum(t["zoekvraag"] == v.get("zoekvraag") for v, t in gevonden_v), len(gevonden_v)),
+        "pool_uitgesloten": [k["bron_iri"] for k in pool if any(_raakt(k["bron_iri"], u["bron_iri"]) for u in s["uitgesloten"])],
+        "pool_gemist": [v["bron_iri"] for v in unieke if treffer(v) is None],
+    }
+    return {**pool_meting, "gebeurtenis": s["gebeurtenis"], "plek_met_naam": met, "plek_zonder_naam": zonder,
+            "opties_met_naam": opties_met, "opties_zonder_naam": opties_zonder,
+            "grondslag": gevonden, "grondslag_verwacht": verwacht, "grondslag_recall": _deel(len(raak), len(verwacht)),
+            "grondslag_precisie": _deel(sum(any(_raakt(c, v["bron_iri"]) for v in s["verwacht"]) for c in gevonden),
+                                       len(gevonden))}
+
+
+def tabel_zoekvragen(s: dict[str, Any], r: dict[str, Any]) -> str:
+    def f(x):
+        return "–" if x is None else f"{x:.2f}" if isinstance(x, float) else str(x)
+    return "\n".join([
+        f"Set: {s['naam']} – gebeurtenis *{r['gebeurtenis']}*", "",
+        f"- plek in de voorstellen met de naam: {f(r['plek_met_naam'])} ({', '.join(r['opties_met_naam'])})",
+        f"- zonder de naam: {f(r['plek_zonder_naam'])} ({', '.join(r['opties_zonder_naam'])})",
+        f"- grondslag (zoekvraag a): recall {f(r['grondslag_recall'])}, precisie {f(r['grondslag_precisie'])}, "
+        f"{len(r['grondslag'])} gevonden: {', '.join(g.split(':', 2)[2] for g in r['grondslag'])}",
+        f"- pool a–d: {r['pool']} kandidaten{'' if r['pool_volledig'] else ' (onvolledig)'}, recall {f(r['pool_recall'])}, "
+        f"recall nodig {f(r['pool_recall_nodig'])}, zoekvraag juist {f(r['zoekvraag_juist'])}, "
+        f"uitgesloten {len(r['pool_uitgesloten'])}",
+        "  per zoekvraag: " + ", ".join(f"{z} {x['gevonden']}/{x['verwacht']}" for z, x in r["per_zoekvraag"].items()),
+        f"  gemist: {', '.join(g.split(':', 2)[2][-40:] for g in r['pool_gemist']) or 'niets'}"])
 
 
 def _echte_graaf():
@@ -333,16 +526,31 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument("--set", default=None)
     p.add_argument("--intake", action="store_true", help="per deelvraag meten (F3f), op een set met deelvragen")
+    p.add_argument("--zoekvragen", action="store_true",
+                   help="de gebeurtenis en de grondslag (zoekvragen a–d), op een set met een gebeurtenis")
     p.add_argument("--opnemen", action="store_true", help="live tegen de graaf en de opname vernieuwen")
+    p.add_argument("--aanvullen", action="store_true",
+                   help="de opname afspelen en alleen wat ontbreekt live ophalen en toevoegen (de rest blijft bewijs)")
     p.add_argument("--json", type=Path, help="het rapport ook als JSON wegschrijven")
     a = p.parse_args(argv)
     a.set = a.set or (INTAKE_SET if a.intake else STANDAARD_SET)
     s = laad_set(a.set)
     if a.intake and not s.get("deelvragen"):
         p.error(f"set {a.set} heeft geen deelvragen")
-    meting, opmaak = (meet_intake, tabel_intake) if a.intake else (meet, tabel)
+    if a.zoekvragen and not s.get("gebeurtenis"):
+        p.error(f"set {a.set} heeft geen gebeurtenis")
+    meting, opmaak = (meet_zoekvragen, tabel_zoekvragen) if a.zoekvragen else \
+        (meet_intake, tabel_intake) if a.intake else (meet, tabel)
     pad = SETS / a.set / "graafantwoorden.json"
-    if a.opnemen:
+    if a.aanvullen:
+        graaf = AanvullendeGraaf(json.loads(pad.read_text()) if pad.exists() else {"sparql": {}, "semantisch": {}},
+                                 _echte_graaf())
+        try:
+            rapport = meting(graaf, s)
+        finally:
+            graaf.close()
+        pad.write_text(json.dumps(graaf.opname, ensure_ascii=False, indent=1, sort_keys=True) + "\n")
+    elif a.opnemen:
         graaf = OpnemendeGraaf(_echte_graaf())
         try:
             rapport = meting(graaf, s)

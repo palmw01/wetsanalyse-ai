@@ -109,6 +109,12 @@ def _zonder_lege_deelvraag(self, handler):
     data = handler(self)
     if isinstance(data, dict) and not data.get("deelvraag_id"):
         data.pop("deelvraag_id", None)
+    # Zo ook de standaardweergave (`kaart`): alleen het compacte kaartje van de bronselectie draagt `weergave`.
+    if isinstance(data, dict) and data.get("weergave") == "kaart":
+        data.pop("weergave", None)
+    # En een kaartje zonder eigen regelnaam (`regel`) blijft zoals het was.
+    if isinstance(data, dict) and data.get("regel") is None:
+        data.pop("regel", None)
     return data
 
 
@@ -126,9 +132,12 @@ class VraagOptie(BaseModel):
 # De stappen van het samenstellen, in de volgorde van graph-qa (`agent/werkgebied_intake.STAPPEN`):
 # startactiviteit a, dan activiteit 1 – de bronnen pas als vraag en deelvragen er zijn (Handleiding 1f).
 IntakeStap = Literal["naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld", "thema",
-                     "deelvragen", "buiten", "regelingen", "bepalingen", "samenvatting",
+                     "deelvragen", "buiten", "regelingen", "gebeurtenis", "samenvatting",
+                     # Een bewaard kaartje van vóór 4 nov 2026 (de bepalingen per deelvraag) blijft leesbaar.
+                     "bepalingen",
                      # De bronselectie per deelvraag (spoor J): dezelfde kaartjes, de stand staat bij de api.
-                     "bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder"]
+                     "bs_gebeurtenis", "bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder",
+                     "bs_toevoegen"]
 
 
 class IntakeDeel(BaseModel):
@@ -138,6 +147,13 @@ class IntakeDeel(BaseModel):
     index: int = Field(ge=0, le=19)
     totaal: int = Field(ge=1, le=20)
     deelvraag: str | None = Field(default=None, max_length=1000)
+
+
+class Regel(BaseModel):
+    """Wat één invoerregel op een kaartje is: de naam ("deelvraag", "bepaling") en een voorbeeld als placeholder."""
+
+    enkel: str = Field(min_length=1, max_length=40)
+    voorbeeld: str = Field(default="", max_length=200)
 
 
 class Vraagkaart(BaseModel):
@@ -169,11 +185,17 @@ class Vraagkaart(BaseModel):
     opties: list[VraagOptie] = Field(default_factory=list, max_length=20)
     meerkeuze: bool = False
     vrije_tekst: bool = True
-    # Meer dan één eigen antwoord (de deelvragen): de werkplek biedt dan "+ nog een" en stuurt `teksten`.
+    # Meer dan één eigen antwoord: één regel is één ding, en de werkplek biedt "+ Nog een …" en stuurt `teksten`.
     meer_tekst: bool = False
+    # Wat één regel is (`{enkel: "bepaling", voorbeeld: "artikel 9 lid 2 Invorderingswet 1990"}`): de werkplek noemt
+    # de regels daarnaar. Leeg = de deelvragen (zo oud als het veld).
+    regel: Regel | None = None
     overslaanbaar: bool = True
     vooringevuld: list[str] = Field(default_factory=list, max_length=20)
     samenvatting: dict = {}
+    # `paneel` (bronselectie, 3 nov 2026): een compact kaartje dat naar het paneel verwijst; beslissen gebeurt
+    # daar, en *Klaar* (`actie: klaar`) gaat verder. `samenvatting` draagt dan `{kandidaten, opgenomen}`.
+    weergave: Literal["kaart", "paneel"] = "kaart"
     # Bladeren zoals bij Claude (‹ n van 5 ›): `terug` = er is een eerdere stap, `beantwoord` = deze stap
     # had al een antwoord (na terugbladeren), dus › mag.
     terug: bool = False
@@ -196,7 +218,7 @@ class IntakeAntwoord(BaseModel):
     intake_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
     stap: IntakeStap
     deel: int | None = Field(default=None, ge=0, le=19)
-    actie: Literal["antwoord", "overslaan", "wijzig", "aanmaken", "opslaan", "afbreken"] = "antwoord"
+    actie: Literal["antwoord", "overslaan", "wijzig", "aanmaken", "opslaan", "afbreken", "klaar"] = "antwoord"
     deelvraag_id: str = Field(default="", pattern=r"^[A-Za-z0-9-]{0,64}$")
 
     _serialiseer = model_serializer(mode="wrap")(_zonder_lege_deelvraag)

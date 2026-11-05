@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -51,5 +51,45 @@ describe("één bedieningsstijl", () => {
     const s = bron("components/werkplek/GesprekActies.tsx");
     const stap = s.slice(s.indexOf("data-gesprek-verwijderen"), s.indexOf("Annuleren"));
     expect(stap).not.toMatch(/sm:flex-row/);
+  });
+
+  // Eén manier van bewerken (4 nov 2026, naar het voorbeeld van Claude): ter plekke, met *Bewerken* bij het blok en
+  // daaronder rechts Annuleren · Opslaan (`components/ui/Bewerkbaar`). Geen venster om tekst te bewerken.
+  it("bewerken gebeurt ter plekke met dezelfde voet, nergens in een venster", () => {
+    for (const f of ["werkgebieden/ProjectKop", "werkgebieden/Deelvragen", "werkgebieden/BegripPaneel", "werkgebieden/BegripKaart",
+      "werkgebieden/KaartVoorstel", "werkplek/ReviewQueue", "werkplek/GesprekLijst", "werkplek/ChatKop",
+      "admin/ProfileEditor", "admin/BerichtEditor"]) {
+      expect(bron(`components/${f}.tsx`), f).toContain("BewerkVoet");
+    }
+    expect(bron("components/werkgebieden/ProjectKop.tsx")).not.toMatch(/<Dialog\b/);
+    expect(bron("components/werkgebieden/ProjectKop.tsx")).not.toContain("GegevensDialoog");
+    for (const f of ["werkgebieden/KaartVoorstel", "werkgebieden/BegripKaart"])
+      expect(bron(`components/${f}.tsx`), f).not.toMatch(/>\s*(Terug|Wijzigingen weggooien)\s*</);
+    // *Bewerken* van een deelvraag staat bij de rij, niet meer in het menu ⋯.
+    expect(bron("components/werkgebieden/Deelvragen.tsx")).toContain("<BewerkKnop");
+  });
+});
+
+// Het ene ⋯-menu (5 nov 2026, besluit gebruiker): bij een werkgebied, een deelvraag, een bron en een gesprek dezelfde
+// knop (`MeerKnop`), hetzelfde paneel en dezelfde regels; verwijderen onderaan in het rood (`MenuVerwijder`).
+describe("één menu ⋯", () => {
+  const bestanden = (map: string): string[] => readdirSync(join(ROOT, map)).flatMap((n) => {
+    const pad = `${map}/${n}`;
+    return statSync(join(ROOT, pad)).isDirectory() ? bestanden(pad) : pad.endsWith(".tsx") ? [pad] : [];
+  });
+
+  it("het icoon ⋯ staat alleen in MeerKnop", () => {
+    const met = bestanden("components").filter((f) => /<Meer\s*\/>/.test(bron(f)));
+    expect(met).toEqual(["components/ui/MeerMenu.tsx"]);
+  });
+
+  it("geen losse verwijderknop of eigen menuregels in een menu ⋯", () => {
+    for (const f of ["werkgebieden/ProjectKop", "werkgebieden/Deelvragen", "werkgebieden/BronnenBijDeelvraag"]) {
+      const s = bron(`components/${f}.tsx`);
+      expect(s, f).toContain("<MeerMenu");
+      expect(s, f).not.toMatch(/<VerwijderKnop|<Popover\b/);
+    }
+    for (const f of ["werkplek/ChatKop", "werkplek/GesprekLijst"]) expect(bron(`components/${f}.tsx`), f).toContain("<MeerKnop");
+    expect(bron("components/werkplek/GesprekActies.tsx")).toContain("<MenuKnop");
   });
 });

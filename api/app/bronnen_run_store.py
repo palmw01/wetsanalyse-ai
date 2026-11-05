@@ -3,17 +3,23 @@
 - **De api legt de invoer vast, graph-qa zoekt.** `start` legt de selectie van het werkgebied vast
   (kern = rol *analyseren*, plus de contextbronnen en de analysevraag); graph-qa haalt de run op, past
   de methoden toe en zet de kandidaten terug (`zet_uitkomst`).
-- **Idempotent op (werkgebied, invoer).** Dezelfde selectie en analysevraag geven dezelfde run. Een
-  run die blijft hangen (`VERLOPEN`) mag opnieuw.
+- **Idempotent op (werkgebied, invoer).** Dezelfde selectie en analysevraag geven dezelfde run, zolang het
+  de nieuwste is: na een tussenstand (A → B → A) zoekt Lex opnieuw, anders klopte `run_id` op de kandidaten
+  niet meer met de run die er nu ligt. Een run die blijft hangen (`VERLOPEN`) mag opnieuw.
+- **Wat telt, is de laatste klare run.** Een open voorstel dat die run niet vond, is *vervallen*: het
+  dossier of de selectie veranderde en de nieuwe zoekopdracht vond het niet meer. De bronselectie laat het
+  weg; een besluit (opgenomen, uitgesloten) blijft staan. De uitkomst van een run die intussen is ingehaald,
+  wordt vastgelegd maar raakt de kandidaten niet.
 - **Eén kandidaat per bepaling.** Vinden meer methoden dezelfde bepaling – in één run of over runs
   heen – dan is dat één rij met meer bewijs, en de sterkste rol wint.
 - **Een besluit hoort bij de kandidaat, niet bij de run.** Een latere run werkt het bewijs bij, maar
-  laat *later* en *uitgesloten* staan: een uitgesloten kandidaat stelt Lex niet opnieuw voor.
+  laat *uitgesloten* staan: een uitgesloten kandidaat stelt Lex niet opnieuw voor. Besluiten neemt de
+  analist per deelvraag (`bronselectie.besluit`); de werkgebiedbrede stand is `voorgesteld`, `opgenomen`
+  of `uitgesloten`.
   *Opgenomen* blijft staan zolang de bron in de selectie zit; haalt de analist hem eruit, dan maakt
   `werkgebied_store.verwijder_bron` er in dezelfde transactie weer een voorstel van.
 - **Opnemen** maakt in dezelfde transactie een bronselectie (`werkgebied_store.voeg_bron_toe`) en
-  draagt daarom de revisie van het werkgebied. De andere besluiten wijzigen de scope niet en dragen
-  geen revisie, zoals de besluiten over betekenisgroepen.
+  draagt daarom de revisie van het werkgebied.
 """
 from __future__ import annotations
 
@@ -32,7 +38,6 @@ from .werkgebied_store import _audit as werkgebied_audit
 
 #: Na zoveel stilte telt een run die niet klaar is als vastgelopen; dan mag hij opnieuw.
 VERLOPEN = timedelta(minutes=5)
-STATUSSEN = ("voorgesteld", "opgenomen", "later", "uitgesloten")
 
 
 def kandidaat_id(bron_iri: str) -> str:
@@ -40,7 +45,7 @@ def kandidaat_id(bron_iri: str) -> str:
     return "K" + hashlib.sha256(bron_iri.encode()).hexdigest()[:16]
 
 
-DOSSIER = ("aanleiding", "context", "doel", "praktijkvoorbeeld", "afbakening")
+DOSSIER = ("aanleiding", "context", "doel", "praktijkvoorbeeld", "afbakening", "gebeurtenis")
 
 
 def invoer_van(werkgebied: dict) -> dict:
@@ -62,6 +67,10 @@ def invoer_van(werkgebied: dict) -> dict:
     dossier = {k: werkgebied[k].strip() for k in DOSSIER if (werkgebied.get(k) or "").strip()}
     if dossier:
         invoer["dossier"] = dossier
+    # Het zoekbereik dat de analist koos; alleen als het er is (dezelfde reden).
+    regelingen = [r["bwb_id"] for r in werkgebied.get("regelingen") or [] if r.get("bwb_id")]
+    if regelingen:
+        invoer["regelingen"] = regelingen
     return invoer
 
 
@@ -78,7 +87,7 @@ def _status(row) -> str:
 def _run(row, met_invoer: bool = False) -> dict:
     uit = {"id": row.id, "werkgebied_id": row.werkgebied_id, "invoer_id": row.invoer_id,
            "status": _status(row), "reden": row.reden, "meting": row.meting,
-           "aantal_kern": len(row.invoer.get("kern", [])),
+           "aantal_kern": len(row.invoer.get("kern", [])), "zoekversie": row.invoer.get("zoekversie", ""),
            "gestart_door": row.gestart_door, "gestart": db.aware(row.gestart).isoformat(),
            "gewijzigd": db.aware(row.gewijzigd).isoformat()}
     if met_invoer:
@@ -86,29 +95,29 @@ def _run(row, met_invoer: bool = False) -> dict:
     return uit
 
 
-def _kandidaat(row, laatste_run: str | None = None) -> dict:
+def _kandidaat(row) -> dict:
     return {"id": row.id, "bron_iri": row.bron_iri, "label": row.label, "bwb_id": row.bwb_id, "rol": row.rol,
             "bewijs": row.bewijs, "status": row.status, "reden": row.reden, "run_id": row.run_id,
-            "in_laatste_run": laatste_run is not None and row.run_id == laatste_run,
             "besloten_door": row.besloten_door,
             "besloten_op": db.aware(row.besloten_op).isoformat() if row.besloten_op else None,
             "voorgesteld": db.aware(row.voorgesteld).isoformat(), "gewijzigd": db.aware(row.gewijzigd).isoformat()}
 
 
 async def _werkgebied(conn, werkgebied_id: str, slot: bool = False):
-    t = db.werkgebieden
-    q = select(t).where(t.c.id == werkgebied_id)
-    row = (await conn.execute(q.with_for_update() if slot else q)).first()
-    if row is None or row.gearchiveerd is not None:
-        raise HTTPException(404, "Werkgebied bestaat niet.")
-    return row
+    return await werkgebied_store.werkgebied_rij(conn, werkgebied_id, slot=slot)
 
 
 # --- runs ------------------------------------------------------------------------------------
 
-async def start(werkgebied: dict, actor: str) -> tuple[dict, bool]:
-    """De run op de huidige selectie: de bestaande als die er al is, anders een nieuwe. (run, nieuw)."""
+async def start(werkgebied: dict, actor: str, zoekversie: str = "") -> tuple[dict, bool]:
+    """De run op de huidige selectie: de bestaande als die er al is, anders een nieuwe. (run, nieuw).
+
+    `zoekversie` is de versie van de zoekcode van graph-qa (een hash van haar modules). Ze hoort bij de invoer en dus
+    bij de identiteit van de run: met nieuwe zoekcode zoekt Lex opnieuw, ook als het werkgebied niet veranderde.
+    Zonder bleef bij Rekeningafspraken (4 nov 2026) de uitkomst van de oude code staan, ook na *Verder onderzoeken*."""
     invoer = invoer_van(werkgebied)
+    if zoekversie:
+        invoer = {**invoer, "zoekversie": zoekversie}
     if not invoer["kern"] and not invoer["analysevraag"].strip() and not invoer.get("deelvragen"):
         raise HTTPException(409, {"fout": "geen_vertrekpunt",
                                   "melding": "Geef het werkgebied een analysevraag of neem minstens één bepaling op "
@@ -119,7 +128,9 @@ async def start(werkgebied: dict, actor: str) -> tuple[dict, bool]:
         await _werkgebied(conn, werkgebied["id"], slot=True)
         bestaand = (await conn.execute(select(r).where(r.c.werkgebied_id == werkgebied["id"], r.c.invoer_id == iid)
                                        .order_by(r.c.gestart.desc()).limit(1))).first()
-        if bestaand is not None and _status(bestaand) in ("wacht", "loopt", "klaar"):
+        nieuwste = await _laatste_row(conn, werkgebied["id"])
+        if bestaand is not None and (_status(bestaand) in ("wacht", "loopt")
+                                     or (_status(bestaand) == "klaar" and bestaand.id == nieuwste.id)):
             return _run(bestaand), False
         nu, rid = db.utcnow(), str(uuid.uuid4())
         await conn.execute(insert(r).values(id=rid, werkgebied_id=werkgebied["id"], invoer_id=iid, invoer=invoer,
@@ -146,6 +157,25 @@ async def _laatste_row(conn, werkgebied_id: str):
                                .order_by(r.c.gestart.desc()).limit(1))).first()
 
 
+async def basis_run_id(conn, werkgebied_id: str) -> str | None:
+    """De laatste klare run: wat die vond, zijn de open voorstellen. Loopt er een nieuwere of mislukte die,
+    dan blijft de vorige staan tot er een nieuwe uitkomst is."""
+    r = db.bronnen_runs
+    return (await conn.execute(select(r.c.id).where(r.c.werkgebied_id == werkgebied_id, r.c.status == "klaar")
+                               .order_by(r.c.gestart.desc()).limit(1))).scalar()
+
+
+def genoemd(bewijs: list[dict] | None) -> bool:
+    """Door de analist zelf genoemd (`bronselectie.noem`): een voorstel dat geen run nodig heeft om te blijven staan."""
+    return any(b.get("methode") == "genoemd" for b in bewijs or [])
+
+
+def vervallen(status: str, run_id: str | None, basis: str | None, bewijs: list[dict] | None = None) -> bool:
+    """Een open voorstel dat de laatste klare run niet vond. Een besluit vervalt nooit, en een zelf genoemd voorstel
+    ook niet: dat hangt niet van een zoekopdracht af."""
+    return status == "voorgesteld" and basis is not None and run_id != basis and not genoemd(bewijs)
+
+
 async def laatste(werkgebied: dict) -> dict | None:
     """De laatste run, met `verouderd` als de selectie of de analysevraag intussen veranderde."""
     async with db.get_engine().connect() as conn:
@@ -153,7 +183,11 @@ async def laatste(werkgebied: dict) -> dict | None:
         row = await _laatste_row(conn, werkgebied["id"])
     if row is None:
         return None
-    return {**_run(row), "verouderd": row.invoer_id != invoer_id(invoer_van(werkgebied))}
+    # Verouderd zegt dat het werkgebied veranderde, niet de zoekcode: de versie van de run telt mee als gelijk.
+    nu = invoer_van(werkgebied)
+    if row.invoer.get("zoekversie"):
+        nu = {**nu, "zoekversie": row.invoer["zoekversie"]}
+    return {**_run(row), "verouderd": row.invoer_id != invoer_id(nu)}
 
 
 async def _zet(run_id: str, **waarden) -> None:
@@ -201,7 +235,7 @@ def _uitkomst_hash(invoer: BronnenUitkomst) -> str:
 
 
 async def zet_uitkomst(werkgebied_id: str, run_id: str, invoer: BronnenUitkomst, actor: str) -> dict:
-    r, k, s = db.bronnen_runs, db.bron_kandidaten, db.werkgebied_bronselecties
+    r = db.bronnen_runs
     h = _uitkomst_hash(invoer)
     async with db.get_engine().begin() as conn:
         await _werkgebied(conn, werkgebied_id, slot=True)
@@ -215,47 +249,66 @@ async def zet_uitkomst(werkgebied_id: str, run_id: str, invoer: BronnenUitkomst,
             raise HTTPException(409, "Deze run heeft al een andere uitkomst.")
         if invoer.invoer_id != row.invoer_id:
             raise HTTPException(422, "De uitkomst hoort bij een andere invoer dan deze run.")
-        # Wat nú in de selectie staat, is geen kandidaat (de selectie kan sinds de start veranderd zijn).
-        in_selectie = set((await conn.execute(select(s.c.bron_iri).where(
-            s.c.werkgebied_id == werkgebied_id, s.c.verwijderd.is_(None)))).scalars())
-        nieuw = {iri: v for iri, v in _samengevoegd(invoer.kandidaten).items() if iri not in in_selectie}
-        bestaande = {x.bron_iri: x for x in (await conn.execute(select(k).where(k.c.werkgebied_id == werkgebied_id))).all()}
         nu = db.utcnow()
-        for iri, v in nieuw.items():
-            oud = bestaande.get(iri)
-            if oud is None:
-                await conn.execute(insert(k).values(werkgebied_id=werkgebied_id, id=kandidaat_id(iri), bron_iri=iri,
-                                                    status="voorgesteld", reden="", run_id=run_id,
-                                                    voorgesteld=nu, gewijzigd=nu, **v))
-                continue
-            # Het bewijs wordt bijgewerkt; het besluit blijft staan.
-            await conn.execute(update(k).where(k.c.werkgebied_id == werkgebied_id, k.c.id == oud.id)
-                               .values(run_id=run_id, gewijzigd=nu, **v))
+        # Is intussen een nieuwere run gestart (het dossier of de selectie veranderde), dan hoort deze uitkomst bij
+        # een oude stand: vastgelegd, maar ze overschrijft de voorstellen van nu niet.
+        ingehaald = (await _laatste_row(conn, werkgebied_id)).id != run_id
+        aantal, nieuw = (0, 0) if ingehaald else await _leg_kandidaten_vast(conn, werkgebied_id, run_id, invoer, nu)
         await conn.execute(update(r).where(r.c.id == run_id).values(
             status="klaar", meting={m: x.model_dump() for m, x in invoer.meting.items()}, uitkomst_hash=h,
             gewijzigd=nu))
         await werkgebied_audit(conn, werkgebied_id, actor, "bronnen-voorgesteld",
-                               {"run": run_id, "kandidaten": len(nieuw),
-                                "nieuw": sum(1 for iri in nieuw if iri not in bestaande)})
+                               {"run": run_id, "kandidaten": aantal, "nieuw": nieuw,
+                                **({"ingehaald": True} if ingehaald else {})})
     return await haal(werkgebied_id, run_id)
+
+
+async def _leg_kandidaten_vast(conn, werkgebied_id: str, run_id: str, invoer: BronnenUitkomst, nu) -> tuple[int, int]:
+    """De kandidaten van deze run: nieuw erbij, bestaande met het bewijs van nu. (aantal, nieuw)."""
+    k = db.bron_kandidaten
+    # Wat nú in de selectie staat, wordt geen nieuwe kandidaat (de selectie kan sinds de start veranderd zijn);
+    # een bestaande kandidaat krijgt wel het bewijs en de run van nu, zodat hij na loskoppelen klopt.
+    in_selectie = await werkgebied_store.actieve_bron_iris(conn, werkgebied_id)
+    bestaande = {x.bron_iri: x for x in (await conn.execute(select(k).where(k.c.werkgebied_id == werkgebied_id))).all()}
+    gevonden = {iri: v for iri, v in _samengevoegd(invoer.kandidaten).items()
+                if iri not in in_selectie or iri in bestaande}
+    for iri, v in gevonden.items():
+        oud = bestaande.get(iri)
+        if oud is None:
+            await conn.execute(insert(k).values(werkgebied_id=werkgebied_id, id=kandidaat_id(iri), bron_iri=iri,
+                                                status="voorgesteld", reden="", run_id=run_id,
+                                                voorgesteld=nu, gewijzigd=nu, **v))
+            continue
+        # Het bewijs wordt bijgewerkt; het besluit blijft staan, en wat de analist zelf noemde ook.
+        zelf = [b for b in oud.bewijs or [] if b.get("methode") == "genoemd" and b not in v["bewijs"]]
+        await conn.execute(update(k).where(k.c.werkgebied_id == werkgebied_id, k.c.id == oud.id)
+                           .values(run_id=run_id, gewijzigd=nu, **{**v, "bewijs": v["bewijs"] + zelf}))
+    return len(gevonden), sum(1 for iri in gevonden if iri not in bestaande)
 
 
 # --- kandidaten ------------------------------------------------------------------------------
 
 async def kandidaten(werkgebied_id: str) -> dict:
     """Alle kandidaten, sterkste rol eerst; met de laatste run, zodat de werkplek weet wat er nu speelt."""
-    k, s = db.bron_kandidaten, db.werkgebied_bronselecties
+    k = db.bron_kandidaten
     async with db.get_engine().connect() as conn:
         await _werkgebied(conn, werkgebied_id)
         run = await _laatste_row(conn, werkgebied_id)
         rows = (await conn.execute(select(k).where(k.c.werkgebied_id == werkgebied_id))).all()
-        in_selectie = set((await conn.execute(select(s.c.bron_iri).where(
-            s.c.werkgebied_id == werkgebied_id, s.c.verwijderd.is_(None)))).scalars())
-    laatste_id = run.id if run is not None and _status(run) == "klaar" else None
+        in_selectie = await werkgebied_store.actieve_bron_iris(conn, werkgebied_id)
+        basis = await basis_run_id(conn, werkgebied_id)
     # `in_selectie`: intussen met de hand opgenomen. Dan is het geen open voorstel meer.
-    lijst = sorted(({**_kandidaat(x, laatste_id), "in_selectie": x.bron_iri in in_selectie} for x in rows),
+    lijst = sorted(({**_kandidaat(x), "in_selectie": x.bron_iri in in_selectie,
+                     "vervallen": x.bron_iri not in in_selectie and vervallen(x.status, x.run_id, basis, x.bewijs)} for x in rows),
                    key=lambda x: (ROL_VOLGORDE[x["rol"]], -len(x["bewijs"]), x["label"], x["bron_iri"]))
     return {"run": _run(run) if run is not None else None, "kandidaten": lijst}
+
+
+async def bron_iri_van(werkgebied_id: str, kid: str) -> str:
+    """De bepaling van één kandidaat; leeg als hij er niet is."""
+    k = db.bron_kandidaten
+    async with db.get_engine().connect() as conn:
+        return (await conn.execute(select(k.c.bron_iri).where(k.c.werkgebied_id == werkgebied_id, k.c.id == kid))).scalar() or ""
 
 
 async def _haal_kandidaat(conn, werkgebied_id: str, kid: str, slot: bool = False):
@@ -267,63 +320,22 @@ async def _haal_kandidaat(conn, werkgebied_id: str, kid: str, slot: bool = False
     return row
 
 
-async def _besluit(werkgebied_id: str, kid: str, actor: str, *, van: tuple[str, ...], naar: str,
-                   reden: str = "") -> dict:
-    """Later, uitsluiten of heropenen: het slot op het werkgebied (geen revisie), dan de kandidaat."""
-    k = db.bron_kandidaten
-    async with db.get_engine().begin() as conn:
-        await _werkgebied(conn, werkgebied_id, slot=True)
-        row = await _haal_kandidaat(conn, werkgebied_id, kid, slot=True)
-        if row.status not in van:
-            meldingen = {"opgenomen": "Deze bepaling is al opgenomen; haal haar op de tab Bronnen uit de selectie."}
-            raise HTTPException(409, {"fout": "status", "status": row.status,
-                                      "melding": meldingen.get(row.status, "Dit besluit past niet bij de stand van deze kandidaat.")})
-        nu = db.utcnow()
-        await conn.execute(update(k).where(k.c.werkgebied_id == werkgebied_id, k.c.id == kid).values(
-            status=naar, reden=reden, besloten_door=None if naar == "voorgesteld" else actor,
-            besloten_op=None if naar == "voorgesteld" else nu, gewijzigd=nu))
-        await werkgebied_audit(conn, werkgebied_id, actor, f"kandidaat-{naar}",
-                               {"kandidaat": kid, "bron_iri": row.bron_iri, **({"reden": reden} if reden else {})})
-        row = await _haal_kandidaat(conn, werkgebied_id, kid)
-    return _kandidaat(row)
-
-
-async def later(werkgebied_id: str, kid: str, actor: str) -> dict:
-    return await _besluit(werkgebied_id, kid, actor, van=("voorgesteld",), naar="later")
-
-
-async def uitsluiten(werkgebied_id: str, kid: str, reden: str, actor: str) -> dict:
-    return await _besluit(werkgebied_id, kid, actor, van=("voorgesteld", "later"), naar="uitgesloten",
-                          reden=reden.strip())
-
-
-async def heropenen(werkgebied_id: str, kid: str, actor: str) -> dict:
-    return await _besluit(werkgebied_id, kid, actor, van=("later", "uitgesloten"), naar="voorgesteld")
-
-
 async def opnemen(werkgebied_id: str, kid: str, req: Opnemen, bron: dict, actor: str, *,
-                  deelvraag_ids: list[str] | None = None, koppel_rol: str = "", binnen=None) -> dict:
-    """De kandidaat wordt een bronselectie; beide in één transactie. `bron` komt uit de resolver,
-    net als bij zelf opnemen. Geeft {kandidaat, selectie}.
-
-    Zonder `deelvraag_ids` hoort de selectie bij de deelvragen waarvoor Lex haar vond; de bronselectie per
-    deelvraag (spoor J) geeft er precies één mee, met `koppel_rol` als de rol bij die deelvraag, en `binnen`
-    om in dezelfde transactie het besluit bij die deelvraag op te ruimen."""
+                  deelvraag_ids: list[str], koppel_rol: str = "", binnen=None) -> dict:
+    """De kandidaat wordt een bronselectie; beide in één transactie. `bron` komt uit de resolver, net als bij
+    zelf opnemen. De bronselectie per deelvraag (`bronselectie.besluit`) geeft de deelvraag mee (leeg zonder
+    deelvragen), met `koppel_rol` als de rol bij die deelvraag, en `binnen` om in dezelfde transactie het besluit
+    bij die deelvraag op te ruimen. Geeft {kandidaat, selectie}."""
     k = db.bron_kandidaten
     async with db.get_engine().connect() as conn:
         row = await _haal_kandidaat(conn, werkgebied_id, kid)
-    if row.status not in ("voorgesteld", "later"):
+    if row.status != "voorgesteld":
         raise HTTPException(409, {"fout": "status", "status": row.status,
-                                  "melding": "Alleen een open voorstel (of een voor later) kun je opnemen."})
+                                  "melding": "Alleen een open voorstel kun je opnemen."})
     rol = req.rol or ("analyseren" if row.rol == "kern" else "context")
     invoer = BronselectieInvoer(verwachte_revisie=req.verwachte_revisie, bron_iri=row.bron_iri,
                                 bereik=Bereik.onderliggend, rol=Rol(rol),
                                 reden=req.reden or f"Voorgesteld door Lex ({row.rol}).")
-
-    # Vond Lex de bepaling bij een deelvraag, dan hoort de nieuwe selectie bij die deelvraag.
-    if deelvraag_ids is None:
-        deelvraag_ids = sorted({str((b.get("detail") or {}).get("deelvraag_id", "")) for b in row.bewijs
-                                if b.get("methode") == "deelvraag"} - {""})
 
     async def markeer(conn) -> None:
         nu = db.utcnow()

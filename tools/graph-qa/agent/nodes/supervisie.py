@@ -141,6 +141,8 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         if str((state.get("intake_actie") or {}).get("intake_id", "")).startswith("bs-"):
             return _bronselectie(writer, "verwerkt je keuze in de bronselectie")
         return _werkgebied(writer, "verwerkt het antwoord op het kaartje")
+    if state.get("actie") == "bepaling_toevoegen":
+        return _bronselectie(writer, "zoekt met je een bepaling op")
     if state.get("actie") in BRONSELECTIE_ACTIES:
         return _bronselectie(writer, "pakt de bronselectie op waar die was")
     if state.get("actie") in INTAKE_ACTIES:

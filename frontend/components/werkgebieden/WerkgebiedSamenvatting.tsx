@@ -44,6 +44,13 @@ export function WerkgebiedSamenvatting({ wg, className = "" }: {
             )}
         </Regel>
       ))}
+      {/* Het zoekbereik (4 nov 2026): de regelingen waarin de bronselectie zoekt. Aanvullen gaat via Lex (*Vul de
+          regelingen aan*): zoeken in de graaf hoort bij het gesprek. */}
+      <Regel naam="Regelingen" data-dossier-veld="regelingen">
+        {(wg.regelingen ?? []).length
+          ? <ul className="space-y-0.5">{(wg.regelingen ?? []).map((r) => <li key={r.bwb_id}>{r.label || r.bwb_id}</li>)}</ul>
+          : <span className="text-muted">Nog geen regelingen.</span>}
+      </Regel>
       {/* Spoor I6: het TOOI-thema, als het gekozen is; kiezen gaat in *Gegevens bewerken*. */}
       {wg.thema && (
         <Regel naam="Thema" data-dossier-veld="thema">

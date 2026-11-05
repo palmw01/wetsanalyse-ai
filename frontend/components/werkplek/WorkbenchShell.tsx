@@ -174,6 +174,16 @@ export function WorkbenchShell({
     }
   }
 
+  async function hernoemActief(titel: string) {
+    if (!activeId) return;
+    try {
+      await metSpoor("gesprek_hernoemen", () => wijzigGesprek(activeId, { titel }));
+      setVerversSignaal((n) => n + 1);
+    } catch (e) {
+      setFout(`De nieuwe naam is niet opgeslagen. ${foutTekst(e)}`);
+    }
+  }
+
   async function verplaatsActief(w: string) {
     if (!activeId) return;
     try {
@@ -368,6 +378,7 @@ export function WorkbenchShell({
             onArchiveer={(a) => void archiveerActief(a)}
             onVerplaats={(w) => void verplaatsActief(w)}
             onVerwijder={() => void verwijderActief()}
+            onHernoem={hernoemActief}
             onBronnen={() => setBronnenSignaal((n) => n + 1)}
           />
         )}

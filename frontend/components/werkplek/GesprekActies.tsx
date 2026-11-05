@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Archief, Mapje, Opstellen, Prullenbak } from "@/components/ui/Icoon";
 import { MENU_RIJ } from "@/components/ui/Menu";
+import { MenuKnop, MenuLijst } from "@/components/ui/MeerMenu";
 import { lijstWerkgebieden } from "@/lib/api";
 import type { WerkgebiedSamenvatting } from "@/lib/types";
 
@@ -73,37 +74,17 @@ export function GesprekActies({
   }
 
   return (
-    <ul className="flex flex-col p-1" role="menu">
-      {onHernoem && (
-        <li role="none">
-          <button type="button" role="menuitem" className={RIJ} onClick={klaar(onHernoem)}>
-            <Opstellen className="text-muted" /> Hernoemen
-          </button>
-        </li>
-      )}
-      <li role="none">
-        <button type="button" role="menuitem" className={RIJ} onClick={() => setStap("verplaats")}>
-          <Mapje className="text-muted" /> {werkgebiedId ? "Naar ander werkgebied…" : "Toevoegen aan werkgebied…"}
-        </button>
-      </li>
-      {werkgebiedId && (
-        <li role="none">
-          <button type="button" role="menuitem" className={RIJ} onClick={klaar(() => onVerplaats(""))}>
-            <Mapje className="text-muted" /> Naar recente gesprekken
-          </button>
-        </li>
-      )}
-      <li role="none">
-        <button type="button" role="menuitem" className={RIJ} onClick={klaar(() => onArchiveer(!gearchiveerd))}>
-          <Archief className="text-muted" /> {gearchiveerd ? "Herstellen uit archief" : "Archiveren"}
-        </button>
-      </li>
-      <li role="none">
-        <button type="button" role="menuitem" className={`${RIJ} text-fout`} onClick={() => setStap("verwijder")}>
-          <Prullenbak /> Verwijderen…
-        </button>
-      </li>
-    </ul>
+    <MenuLijst>
+      {onHernoem && <MenuKnop icoon={<Opstellen />} onClick={klaar(onHernoem)}>Hernoemen</MenuKnop>}
+      <MenuKnop icoon={<Mapje />} onClick={() => setStap("verplaats")}>
+        {werkgebiedId ? "Naar ander werkgebied…" : "Toevoegen aan werkgebied…"}
+      </MenuKnop>
+      {werkgebiedId && <MenuKnop icoon={<Mapje />} onClick={klaar(() => onVerplaats(""))}>Naar recente gesprekken</MenuKnop>}
+      <MenuKnop icoon={<Archief />} onClick={klaar(() => onArchiveer(!gearchiveerd))}>
+        {gearchiveerd ? "Herstellen uit archief" : "Archiveren"}
+      </MenuKnop>
+      <MenuKnop gevaar icoon={<Prullenbak />} onClick={() => setStap("verwijder")}>Verwijderen…</MenuKnop>
+    </MenuLijst>
   );
 }
 

@@ -75,3 +75,12 @@ class KandidaatBesluit(BaseModel):
         if self.besluit == "uitsluiten" and not self.reden.strip():
             raise ValueError("uitsluiten vraagt een reden")
         return self
+
+
+class GenoemdVoorstel(BaseModel):
+    """Een bepaling die de analist zelf noemt, als voorstel bij één deelvraag (`bronselectie.noem`). `rol`: een
+    kernbepaling, of iets wat eraan hangt (een contextbron). `tekst`: hoe de analist haar noemde."""
+
+    bron_iri: str = Field(pattern=r"^urn:bwb:BWB[A-Z]\d{7}(:.+)?$", max_length=500)
+    rol: Literal["kern", "afhankelijkheid"] = "kern"
+    tekst: str = Field(default="", max_length=300)

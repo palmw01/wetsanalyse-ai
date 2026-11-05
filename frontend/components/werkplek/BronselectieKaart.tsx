@@ -1,0 +1,99 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+import { Button } from "@/components/ui/Button";
+import { Kruis, PijlRechts } from "@/components/ui/Icoon";
+import { haalBronselectie } from "@/lib/api";
+import { BRONSELECTIE_GEWIJZIGD, paneelTelling } from "@/lib/bronselectie";
+import { MeerRegels } from "@/components/werkplek/MeerRegels";
+import { klaarActie, stilActie, typActie, type IntakeActie, type Vraagkaart } from "@/lib/vraagkaart";
+
+/** Het compacte kaartje van de bronselectie (`weergave: paneel`, 3 nov 2026): het gesprek blijft rustig, zoals een
+ *  artefact bij Claude. Het noemt hoeveel er ligt – live, want je beslist in het paneel – en verwijst ernaar:
+ *  *Bronnen beoordelen* opent het paneel, *Klaar* gaat verder. Zelf bepalingen noemen gaat per regel (`MeerRegels`):
+ *  Lex zoekt ze op en zet ze als voorstel (*zelf genoemd*) in het paneel, waar je de tekst leest en beslist. */
+export function BronselectieKaart({ kaart, uitgeschakeld, onActie, onSluit, onBeoordelen }: {
+  kaart: Vraagkaart;
+  uitgeschakeld: boolean;
+  onActie: (actie: IntakeActie) => void;
+  onSluit: () => void;
+  onBeoordelen?: () => void;
+}) {
+  const werkgebiedId = kaart.intake_id.slice(3);
+  const [telling, setTelling] = useState(kaart.telling ?? { kandidaten: 0, opgenomen: 0 });
+  const [eigen, setEigen] = useState<string[]>([""]);
+  useEffect(() => {
+    let levend = true;
+    const laad = () => haalBronselectie(werkgebiedId)
+      .then((o) => {
+        const d = o.deelvragen.find((x) => x.id === kaart.deelvraag_id);
+        if (levend && d) setTelling(paneelTelling(d, kaart.stap));
+      }).catch(() => {});
+    void laad();
+    const bij = (e: Event) => { if ((e as CustomEvent).detail === werkgebiedId) void laad(); };
+    window.addEventListener(BRONSELECTIE_GEWIJZIGD, bij);
+    return () => { levend = false; window.removeEventListener(BRONSELECTIE_GEWIJZIGD, bij); };
+  }, [werkgebiedId, kaart.deelvraag_id, kaart.stap]);
+
+  const kern = kaart.stap === "bs_bepalingen";
+  const typ = typActie(kaart, eigen);
+  return (
+    <section aria-label="Bronselectie van Lex" data-vraagdock={kaart.stap} data-bronselectie-kaart={kaart.deelvraag_id}
+      className="relative w-full rounded-[24px] border border-line bg-white px-5 pb-4 pt-3 shadow-kaart">
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm tabular-nums text-muted">{kaart.nr} van {kaart.totaal}</p>
+          <h2 className="mt-0.5 font-display text-lg font-semibold leading-snug text-ink">{kaart.vraag}</h2>
+        </div>
+        <button type="button" aria-label="Vraag sluiten" onClick={onSluit}
+          className="focus-ring inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-white text-ink shadow-zacht hover:bg-surface coarse:h-11 coarse:w-11">
+          <Kruis className="text-base" />
+        </button>
+      </div>
+      <div className="mt-3 rounded-kaart border border-line bg-surface/60 px-4 py-3" data-telling>
+        <p className="text-sm font-medium text-ink">
+          {kern ? "Kernbepalingen" : "Wat eraan hangt"} · {telling.kandidaten} {telling.kandidaten === 1 ? "kandidaatbron" : "kandidaatbronnen"}
+          {telling.opgenomen > 0 && <span className="font-normal text-muted"> · {telling.opgenomen} opgenomen</span>}
+        </p>
+        <p className="mt-0.5 text-xs text-muted">
+          Lees de tekst en neem op of sluit uit in het paneel. {kern ? "Klaar? Dan zoek ik wat eraan hangt." : "Wat je opneemt, komt erbij als contextbron."}
+        </p>
+      </div>
+      {/* Opbouw zoals het VraagDock: de nevenactie, dan de eigen bepaling, en onderaan rechts de hoofdknop. */}
+      {onBeoordelen && (
+        <div className="mt-3" data-nevenacties>
+          <Button variant="secondary" size="sm" onClick={onBeoordelen} className="w-full">
+            Bronnen beoordelen <PijlRechts className="ml-1" />
+          </Button>
+        </div>
+      )}
+      {/* Zelf bepalingen noemen: één per regel, zoals overal bij Lex (`MeerRegels`). Lex zet ze als voorstel in het
+          paneel, waar je de tekst leest en beslist. */}
+      <div className="mt-3 rounded-kaart border border-line px-3 py-1.5" data-eigen-bepalingen>
+        <MeerRegels teksten={eigen} onTeksten={setEigen} uitgeschakeld={uitgeschakeld}
+          regel={{ enkel: "bepaling", voorbeeld: "artikel 9 lid 2 Invorderingswet 1990" }}
+          onInsturen={() => { if (typ) { onActie(typ); setEigen([""]); } }} />
+        {typ && (
+          <div className="flex justify-end pb-1">
+            <Button type="button" variant="secondary" size="sm" disabled={uitgeschakeld} data-noem
+              onClick={() => { onActie(typ); setEigen([""]); }}>
+              Zet in het paneel
+            </Button>
+          </div>
+        )}
+      </div>
+      {/* Onderaan zoals het VraagDock: links de bronselectie stilzetten (het kruisje verbergt het kaartje alleen; na
+          een volgende beurt komt het terug), rechts de hoofdknop. */}
+      <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+        <button type="button" disabled={uitgeschakeld} onClick={() => onActie(stilActie(kaart))} data-stil
+          className="focus-ring self-center rounded text-xs text-muted underline-offset-2 hover:underline disabled:opacity-50 sm:mr-auto sm:self-auto">
+          Zet de bronselectie stil
+        </button>
+        <Button onClick={() => onActie(klaarActie(kaart))} disabled={uitgeschakeld} className="w-full px-5 sm:w-auto" data-klaar>
+          {kern ? "Klaar met de kernbepalingen" : "Klaar, afronden"} <PijlRechts />
+        </Button>
+      </div>
+    </section>
+  );
+}

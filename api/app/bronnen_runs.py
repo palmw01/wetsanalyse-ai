@@ -7,11 +7,12 @@ niet door, en de api toetst de uitkomst tegen de eigen invoer."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query, Response
+from pydantic import BaseModel, Field
 
 from . import annotatie_v2_store, bronnen_run_store as store, bronselectie, werkgebied_store
 from .auth import require_client
-from .bronnen_run_contracts import BronnenMislukt, BronnenUitkomst, Opnemen, Uitsluiten
-from .bronselectie_contracts import KandidaatBesluit, StatusActie
+from .bronnen_run_contracts import BronnenMislukt, BronnenUitkomst
+from .bronselectie_contracts import GenoemdVoorstel, KandidaatBesluit, StatusActie
 from .werkgebied_contracts import BronselectieInvoer
 from .routers.auth import actieve_userid
 from .werkgebieden import resolve_bron
@@ -20,9 +21,16 @@ router = APIRouter(prefix="/werkgebieden/{werkgebied_id}", tags=["bronnen-runs"]
                    dependencies=[Depends(require_client)])
 
 
+class StartRun(BaseModel):
+    """Optioneel: de versie van de zoekcode van graph-qa. Een andere versie is een andere run."""
+    zoekversie: str = Field(default="", max_length=64, pattern=r"^[A-Za-z0-9._-]*$")
+
+
 @router.post("/bronnen-runs")
-async def post_run(werkgebied_id: str, response: Response, actor: str = Depends(actieve_userid)):
-    run, nieuw = await store.start(await werkgebied_store.haal(werkgebied_id), actor)
+async def post_run(werkgebied_id: str, response: Response, body: StartRun | None = None,
+                   actor: str = Depends(actieve_userid)):
+    run, nieuw = await store.start(await werkgebied_store.haal(werkgebied_id), actor,
+                                   zoekversie=(body.zoekversie if body else ""))
     response.status_code = 201 if nieuw else 200
     return {**run, "nieuw": nieuw}
 
@@ -58,19 +66,10 @@ async def get_kandidaten(werkgebied_id: str, actor: str = Depends(actieve_userid
     return await store.kandidaten(werkgebied_id)
 
 
-@router.post("/kandidaten/{kandidaat_id}/opnemen")
-async def post_opnemen(werkgebied_id: str, kandidaat_id: str, req: Opnemen, actor: str = Depends(actieve_userid)):
-    await werkgebied_store.haal(werkgebied_id)
-    bron = await _bron_van(werkgebied_id, kandidaat_id)
-    uit = await store.opnemen(werkgebied_id, kandidaat_id, req, bron, actor)
-    return {**uit, "werkgebied": await werkgebied_store.haal(werkgebied_id)}
-
-
 async def _bron_van(werkgebied_id: str, kandidaat_id: str) -> dict:
     """De bron van een kandidaat, geverifieerd zoals bij zelf opnemen; een onbekende kandidaat geeft
     daarna in de store 404."""
-    lijst = await store.kandidaten(werkgebied_id)
-    bron_iri = next((k["bron_iri"] for k in lijst["kandidaten"] if k["id"] == kandidaat_id), "")
+    bron_iri = await store.bron_iri_van(werkgebied_id, kandidaat_id)
     if not bron_iri:
         return {"bron_iri": ""}
     return await _geverifieerd({"bron_iri": bron_iri})
@@ -84,22 +83,6 @@ async def _geverifieerd(doel_in: dict) -> dict:
     return {"bron_iri": doel["bron_iri"], "label": doel.get("label") or node.get("label", ""),
             "bwb_id": doel.get("bwb_id") or node.get("bwb_id", ""),
             "snapshot_id": snapshot.get("snapshot_id", ""), "bron_hash": node.get("bron_hash", "")}
-
-
-@router.post("/kandidaten/{kandidaat_id}/later")
-async def post_later(werkgebied_id: str, kandidaat_id: str, actor: str = Depends(actieve_userid)):
-    return await store.later(werkgebied_id, kandidaat_id, actor)
-
-
-@router.post("/kandidaten/{kandidaat_id}/uitsluiten")
-async def post_uitsluiten(werkgebied_id: str, kandidaat_id: str, req: Uitsluiten,
-                          actor: str = Depends(actieve_userid)):
-    return await store.uitsluiten(werkgebied_id, kandidaat_id, req.reden, actor)
-
-
-@router.post("/kandidaten/{kandidaat_id}/heropenen")
-async def post_heropenen(werkgebied_id: str, kandidaat_id: str, actor: str = Depends(actieve_userid)):
-    return await store.heropenen(werkgebied_id, kandidaat_id, actor)
 
 
 # --- Bronselectie per deelvraag (spoor J) ------------------------------------------------------
@@ -127,11 +110,21 @@ async def post_bronselectie_besluit(werkgebied_id: str, deelvraag_id: str, kandi
     bron = {"bron_iri": ""}
     if req.besluit == "opnemen":
         wg = await werkgebied_store.haal(werkgebied_id)
-        lijst = await store.kandidaten(werkgebied_id)
-        iri = next((k["bron_iri"] for k in lijst["kandidaten"] if k["id"] == kandidaat_id), "")
+        iri = await store.bron_iri_van(werkgebied_id, kandidaat_id)
         if iri and iri not in {b["bron_iri"] for b in wg["bronnen"]}:
-            bron = await _bron_van(werkgebied_id, kandidaat_id)
+            bron = await _geverifieerd({"bron_iri": iri})
     await bronselectie.besluit(werkgebied_id, deelvraag_id, kandidaat_id, req, bron, actor)
+    return await bronselectie.overzicht(werkgebied_id, na=deelvraag_id)
+
+
+@router.post("/bronselectie/{deelvraag_id}/voorstellen")
+async def post_bronselectie_voorstel(werkgebied_id: str, deelvraag_id: str, req: GenoemdVoorstel,
+                                     actor: str = Depends(actieve_userid)):
+    """Een bepaling die de analist zelf noemt, als voorstel bij één deelvraag: daarna staat ze in het paneel met de
+    voorstellen van Lex, en daar besluit de analist. De api verifieert haar in de graaf."""
+    await werkgebied_store.haal(werkgebied_id)                 # 404 vóór de graaf wordt gevraagd
+    bron = await _geverifieerd({"bron_iri": req.bron_iri})
+    await bronselectie.noem(werkgebied_id, deelvraag_id, req, bron, actor)
     return await bronselectie.overzicht(werkgebied_id, na=deelvraag_id)
 
 

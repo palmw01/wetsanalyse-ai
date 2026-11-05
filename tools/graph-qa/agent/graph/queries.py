@@ -487,6 +487,19 @@ def list_regelingen(limit: int = 100, offset: int = 0, meer: bool = False) -> st
 }} GROUP BY ?regeling ?citeertitel ?soort ORDER BY ?citeertitel ?regeling {_pagina(max(1, min(int(limit), 200)), offset, meer)}"""
 
 
+def soort_van_regelingen(bwb_ids: list[str]) -> str:
+    """De soort (`bwb:soort`: wet, amvb, beleidsregel, …) van de gegeven regelingen; de BWB-id's gaan
+    alleen in de vorm `BWBR…`/`BWBV…` de query in."""
+    ids = [b for b in dict.fromkeys(bwb_ids) if re.fullmatch(r"BWB[RV]\d+", b or "")]
+    if not ids:
+        raise ValueError("geen geldige BWB-id's")
+    waarden = " ".join(f"<{NS}{b}>" for b in ids)
+    return PREFIXES + f"""SELECT ?regeling ?soort WHERE {{
+  VALUES ?regeling {{ {waarden} }}
+  OPTIONAL {{ ?regeling bwb:soort ?soort }}
+}} LIMIT {len(ids) * 4}"""
+
+
 def get_artikel(bwb_id: str, artikel: str) -> str:
     """Artikel met zijn leden, plus de onderdelen die rechtstreeks onder het artikel hangen.
 

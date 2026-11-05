@@ -30,15 +30,13 @@ const FILTERS: KandidaatFilter[] = ["open", "uitgesloten", "opgenomen"];
  *  pagina Bronselectie). Per regeling een groep rijen in de volgorde van de wet (`rijenPerRegeling`, de plek uit
  *  `usePlaatsen`; spoor K: rijen in plaats van een boom), elk met de rol en één zin bewijs (`bewijsSamenvatting`);
  *  een klik op een regel toont het hele bewijs.
- *  Een oud besluit *later* telt als voorstel. Met `deelvraagId` (het deelvraagpaneel) alleen wat Lex bij die
+ *  Een voorstel dat de laatste zoekopdracht niet meer vond, staat er niet meer bij. Met `deelvraagId` (het deelvraagpaneel) alleen wat Lex bij die
  *  deelvraag vond. */
 export function BronKandidaten({ id, deelvraagId, labels }: {
   id: string;
   deelvraagId?: string;
   /** bron-IRI → naam, voor het bewijs ("verwezen vanuit …"); de selecties van het werkgebied. */
   labels?: Map<string, string>;
-  /** Niet meer gebruikt: de verkenner wijzigt niets. Blijft staan voor aanroepers van vóór spoor J. */
-  onGewijzigd?: () => void;
 }) {
   const [data, setData] = useState<KandidatenAntwoord | null>(null);
   const [laatste, setLaatste] = useState<BronnenRun | null>(null);
@@ -62,8 +60,9 @@ export function BronKandidaten({ id, deelvraagId, labels }: {
     void laad();
   }, [laad]);
 
+  // Wat de laatste zoekopdracht niet meer vond, hoort niet meer bij wat Lex voorstelt (een besluit blijft staan).
   const alle = useMemo(() => sorteerKandidaten((data?.kandidaten ?? [])
-    .filter((k) => !deelvraagId || bijDeelvraag(k, deelvraagId))), [data, deelvraagId]);
+    .filter((k) => !k.vervallen && (!deelvraagId || bijDeelvraag(k, deelvraagId)))), [data, deelvraagId]);
   const plaatsen = usePlaatsen(alle.map((k) => k.bron_iri));
   const telling = useMemo(() => telPerFilter(alle), [alle]);
   const getoond = useMemo(() => alle.filter((k) => filterVan(k) === filter), [alle, filter]);
@@ -143,9 +142,6 @@ function KandidaatRegel({ werkgebiedId, k, plek, labels, open, onWissel }: {
           className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${ROL_STIJL[k.rol]}`}>
           {KANDIDAAT_ROL_LABEL[k.rol]}
         </span>
-        {!k.in_laatste_run && filterVan(k) === "open" && (
-          <span className="text-xs text-aandacht-geel-tekst">niet meer gevonden bij de laatste zoekopdracht</span>
-        )}
       </div>
       <button type="button" onClick={onWissel} aria-expanded={open} aria-label={`Bewijs voor ${naam}`}
         className="focus-ring mt-0.5 block w-full rounded text-left text-xs text-muted hover:text-ink">

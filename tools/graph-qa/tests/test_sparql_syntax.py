@@ -38,6 +38,7 @@ GEVALLEN: list[tuple[str, str]] = [
     ("definities_van", q.definities_van("invordering")),
     ("trefwoord_regelingen", q.trefwoord_regelingen("invordering")),
     ("list_regelingen", q.list_regelingen()),
+    ("soort_van_regelingen", q.soort_van_regelingen(["BWBR0004770", "BWBR0024096"])),
     ("get_artikel", q.get_artikel(IW, "36")),
     ("get_lid", q.get_lid(IW, "2", "1")),
     ("get_bepaling", q.get_bepaling(LEIDRAAD, "25.1")),

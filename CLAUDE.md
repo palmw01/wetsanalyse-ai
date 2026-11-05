@@ -20,8 +20,10 @@ plaats van schijnzekerheid.
 > **Activiteit 1 in het gesprek (PLAN spoor F).** "Kunnen we een werkgebied samenstellen?" of "ik wil
 > een wetsanalyse uitvoeren" laat Lex het werkgebied bepalen met vraagkaarten in de volgorde van de
 > methode – naam, startactiviteit a (aanleiding, context, doel), analysevraag, praktijkvoorbeeld,
-> deelvragen, wat valt erbuiten, en pas dan regeling(en) en per deelvraag de bepalingen – en een samenvatting met
-> *Aanmaken*; daarna staat het werkgebied bij Werkgebieden en in een eigen paneel naast het gesprek.
+> deelvragen, wat valt erbuiten, de regeling(en) waarin we zoeken (het zoekbereik, een eigen veld) en de gebeurtenis –
+> en een samenvatting met *Aanmaken*; daarna staat het werkgebied bij Werkgebieden en in een eigen paneel naast het
+> gesprek, en gaat Lex meteen door met de bronselectie per deelvraag (4 nov 2026: het werkgebied legt vast wát je
+> onderzoekt, de bronselectie welke bronnen – je kiest ze één keer, als voorstel in het paneel).
 > Alles wat er ligt is de context van Lex: elk voorstel krijgt het hele dossier, en in een gesprek
 > binnen een werkgebied krijgt Lex het dossier ook mee (`agent/werkgebied_context.py`). Een **bestaand**
 > werkgebied vult Lex met dezelfde vraagkaarten aan ("kun je het praktijkvoorbeeld toevoegen?", *Vul het
@@ -30,7 +32,8 @@ plaats van schijnzekerheid.
 > deelvragen-agent; een praktijkvoorbeeld verzint Lex niet.
 
 > **De bronselectie per deelvraag (PLAN spoor J).** "Help mij de bronnen bij dit werkgebied te bepalen" laat
-> Lex de deelvragen één voor één afwerken met dezelfde vraagkaarten: de kernbepalingen, wat eraan hangt, afronden,
+> Lex de deelvragen één voor één afwerken: een compact kaartje per fase (de kernbepalingen, wat eraan hangt) dat naar het
+> paneel verwijst, waar je de tekst leest en opneemt of uitsluit (*Klaar* gaat verder), dan afronden,
 > en *Hoe wil je verder?*. De stand per deelvraag (niet gestart, in behandeling, voorlopig afgerond, beoordeeld)
 > staat bij de api, niet in het gesprek, dus een tussenvraag, herladen of een ander gesprek breekt niets; de
 > volgende deelvraag kiest de code. Een bron is één selectie met een rol per deelvraag; uitsluiten geldt per
@@ -51,7 +54,9 @@ plaats van schijnzekerheid.
 > vanuit het gesprek (*Vraag Lex* bij het begrip): brondefinitie zoeken, een scherpere definitie, het
 > betekenisverschil en voorbeelden, elk als voorstel per veld dat de analist overneemt, aanpast of
 > afwijst. **De werkgebiedpagina is raadplegen** (F3e): ze toont wat Lex opleverde en draagt de handmatige
-> besluiten, met *Vraag Lex* bij elke rij, maar start Lex zelf niet. Begrippen worden **onderhouden**:
+> besluiten, met *Vraag Lex* bij elke rij, maar start Lex zelf niet. Dat is het artefactmodel van Claude: op een artefact
+> lees, bewerk en besluit je; zoeken in de graaf en iets laten maken gaat via het gesprek, en het resultaat opent
+> naast het gesprek (dus geen zoekvenster op een artefact: *Noem een bepaling* is een suggestie bij Lex). Begrippen worden **onderhouden**:
 > een veranderde dragende passage verschijnt in de herbeoordeling (toen naast nu, opvolger na
 > herannotatie), begrippen krijgen **relaties** met type en richting (kwalificatie, inclusie, uitsluiting,
 > soort van, verwant; Lex stelt ze voor) en een betekeniswijziging of combinatie levert een opvolger op

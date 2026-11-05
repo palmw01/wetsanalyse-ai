@@ -198,3 +198,20 @@ def test_annotatie_eenheden_volgen_de_keuzekaart():
     assert annotatie_eenheden(leidraad, ROOT) == [ROOT + ":d:9.1", ROOT + ":d:9.2"]
     with pytest.raises(BronFout):
         annotatie_eenheden(nodes, ROOT + ":bestaat:niet")
+
+
+def test_vindplaats_staat_op_de_node_maar_buiten_de_snapshot_id():
+    """De importer schrijft `bwb:vindplaats` en `bwb:inBepaling`; die naam verandert de bronidentiteit niet."""
+    met = [{**r, "vindplaats": "Artikel 9, lid 1, onderdeel a", "bepaling": ROOT + ":id:lid-een"}
+           if r["node"].endswith(":id:a") else r for r in fixture()]
+    s = bouw_snapshot(met, bwb_id=BWB, artikel="9")
+    assert s["snapshot_id"] == snapshot(artikel="9")["snapshot_id"]
+    a = next(n for n in s["nodes"] if n["bron_iri"].endswith(":id:a"))
+    assert a["vindplaats"] == "Artikel 9, lid 1, onderdeel a"
+    assert a["bepaling"] == ROOT + ":id:lid-een"
+
+
+def test_bron_query_leest_vindplaats_en_inbepaling():
+    q = bron_query(BWB)
+    assert "bwb:vindplaats ?vindplaats" in q and "bwb:inBepaling ?bepaling" in q
+    parseQuery(q)

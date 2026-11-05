@@ -177,16 +177,20 @@ async def test_beoordeeld_alleen_door_de_poort_en_een_dubbele_klik_is_geen_confl
     rev = _dq(ov, ids[0])["revisie"]
     await _status(client, wg, ids[0], "afronden", verwacht=422)                 # zonder revisie
     r = await _status(client, wg, ids[0], "beoordelen", verwacht=409, verwachte_revisie=rev)
-    assert r["detail"]["fout"] == "poort" and r["detail"]["redenen"] == ["De vragen bij deze deelvraag zijn nog niet doorlopen."]
+    assert r["detail"]["fout"] == "poort" and r["detail"]["redenen"] == [
+        "De vragen bij deze deelvraag zijn nog niet doorlopen.", "Er is nog geen bron opgenomen bij deze deelvraag."]
+    # Zonder bron om te analyseren is een deelvraag nog open (dekking): eerst opnemen.
+    ov = await _overzicht(client, wg)
+    ov = await _besluit(client, wg, ids[0], _kid(_dq(ov, ids[0]), ART)["id"], "opnemen", verwachte_revisie=ov["revisie"])
+    rev = _dq(ov, ids[0])["revisie"]
     # Voorlopig afronden mag met open punten; een tweede klik met de oude revisie is geen 412.
     punten = [{"tekst": "Bijzondere invorderbaarheid nog niet onderzocht."}]
     ov = await _status(client, wg, ids[0], "afronden", verwachte_revisie=rev, open_punten=punten)
     assert _dq(ov, ids[0])["status"] == "voorlopig_afgerond" and _dq(ov, ids[0])["open_punten"] == punten
     ov = await _status(client, wg, ids[0], "afronden", verwachte_revisie=rev, open_punten=punten)
     rev = _dq(ov, ids[0])["revisie"]
-    assert rev == 2
-    # Een voorstel dat niet gekozen is, houdt het beoordelen niet tegen; een onderzoekspunt wel.
-    assert _kid(_dq(ov, ids[0]), ART)["stand"] == "niet_gekozen"
+    # Een opgenomen bron en geen onderzoekspunt: dan pas beoordeeld.
+    assert _kid(_dq(ov, ids[0]), ART)["stand"] == "opgenomen"
     await _besluit(client, wg, ids[0], _kid(_dq(ov, ids[0]), ART)["id"], "later", verwacht=422)    # bestaat niet meer
     r = await _status(client, wg, ids[0], "beoordelen", verwacht=409, verwachte_revisie=rev)
     assert r["detail"]["redenen"] == ["Er staan nog onderzoekspunten open."]
@@ -210,13 +214,20 @@ async def test_een_besluit_start_de_deelvraag_en_wordt_geaudit(client):
     assert "bronselectie-uitgesloten" in acties and "bronselectie-gestart" in acties
 
 
-async def test_een_oud_besluit_later_telt_als_voorstel(client):
-    """Er is geen *later* meer: een bepaling die in de oude bronnenboom voor later bewaard werd, staat gewoon weer
-    op het kaartje."""
+async def test_een_oud_besluit_later_wordt_bij_het_opstarten_een_voorstel(client):
+    """Er is geen *later* meer: `reconcile_schema` maakt van een oude rij een voorstel, en de code kent de waarde
+    daarna niet meer."""
+    from sqlalchemy import update
     wg, ids = await _vier(client)
     await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=[ids[0]])])
-    kid = (await client.get(f"/v1/werkgebieden/{wg['id']}/kandidaten")).json()["kandidaten"][0]["id"]
-    assert (await client.post(f"/v1/werkgebieden/{wg['id']}/kandidaten/{kid}/later")).status_code == 200
+    async with db.get_engine().begin() as conn:
+        await conn.execute(update(db.bron_kandidaten).where(db.bron_kandidaten.c.werkgebied_id == wg["id"])
+                           .values(status="later", besloten_door="jurist-a"))
+    await db.reconcile_schema()
+    async with db.get_engine().connect() as conn:
+        [status] = (await conn.execute(select(db.bron_kandidaten.c.status).where(
+            db.bron_kandidaten.c.werkgebied_id == wg["id"]))).scalars().all()
+    assert status == "voorgesteld"
     k = _kid(_dq(await _overzicht(client, wg), ids[0]), ART)
     assert (k["stand"], k["overal"]) == ("voorgesteld", False)
 
@@ -325,3 +336,123 @@ def test_een_kaartje_van_de_bronselectie_houdt_zijn_deelvraag_en_de_intake_veran
     assert IntakeAntwoord(intake_id="bs-wg1", stap="bs_kies", deelvraag_id="d1").model_dump()["deelvraag_id"] == "d1"
     assert "deelvraag_id" not in IntakeAntwoord(intake_id="i1", stap="naam").model_dump()
     assert Artefact(soort="bronselectie", ref={"werkgebied_id": "wg1"}).soort == "bronselectie"
+
+
+async def _praktijk(client, wg, tekst: str) -> dict:
+    wg = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()
+    r = await client.patch(f"/v1/werkgebieden/{wg['id']}", json={"verwachte_revisie": wg["revisie"],
+                                                                 "praktijkvoorbeeld": tekst})
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+async def test_na_een_dossierwijziging_telt_alleen_wat_de_nieuwe_zoekopdracht_vond(client):
+    """Een voorstel dat de nieuwe zoekopdracht niet meer vindt, verdwijnt; een besluit (uitgesloten) blijft."""
+    wg, ids = await _vier(client)
+    await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=[ids[0]]), _kd(ONE, "kern", deelvragen=[ids[0]]),
+                                       _kd(ART2, "kern", deelvragen=[ids[0]])])
+    ov = await _overzicht(client, wg)
+    weg = _kid(_dq(ov, ids[0]), ART2)["id"]
+    await _besluit(client, wg, ids[0], weg, "uitsluiten", reden="Buiten de afbakening.")
+    wg = await _praktijk(client, wg, "Een ondernemer betaalt zijn aanslag te laat.")
+    assert (await _overzicht(client, wg))["zoekdekking"]["verouderd"] is True
+    await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=[ids[0]]), _kd(LID3, "kern", deelvragen=[ids[0]])])
+    ov = await _overzicht(client, wg)
+    assert ov["zoekdekking"]["verouderd"] is False
+    standen = {k["bron_iri"]: k["stand"] for k in _dq(ov, ids[0])["kandidaten"]}
+    assert standen == {ART: "voorgesteld", LID3: "voorgesteld", ART2: "uitgesloten"}
+    assert _dq(ov, ids[0])["telling"]["voorgesteld"] == 2
+    lijst = {k["bron_iri"]: k for k in (await client.get(f"/v1/werkgebieden/{wg['id']}/kandidaten")).json()["kandidaten"]}
+    assert lijst[ONE]["vervallen"] is True and lijst[ART]["vervallen"] is False
+
+
+async def test_heen_en_terug_wijzigen_is_niet_verouderd(client):
+    wg, ids = await _vier(client)
+    await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=[ids[0]])])
+    wg = await _praktijk(client, wg, "Een ondernemer betaalt te laat.")
+    await _met_kandidaten(client, wg, [_kd(ONE, "kern", deelvragen=[ids[0]])])
+    wg = await _praktijk(client, wg, "")
+    # Dezelfde invoer als de eerste run, maar die is niet meer de nieuwste: Lex zoekt opnieuw.
+    run = await _start(client, wg, 201)
+    r = await _uitkomst(client, wg, run, [_kd(ART, "kern", deelvragen=[ids[0]])])
+    assert r.status_code == 200, r.text
+    ov = await _overzicht(client, wg)
+    assert ov["zoekdekking"]["verouderd"] is False and ov["zoekdekking"]["run_id"] == run["id"]
+    assert {k["bron_iri"] for k in _dq(ov, ids[0])["kandidaten"]} == {ART}
+
+
+async def test_een_afronding_gaat_alleen_open_als_de_voorstellen_veranderen(client):
+    wg, ids = await _vier(client)
+    await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=[ids[0]])])
+    ov = await _status(client, wg, ids[0], "openen")
+    ov = await _status(client, wg, ids[0], "afronden", verwachte_revisie=_dq(ov, ids[0])["revisie"])
+    assert _dq(ov, ids[0])["klaar"]
+    wg = await _praktijk(client, wg, "Een tikfout in het voorbeeld.")
+    await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=[ids[0]])])      # hetzelfde gevonden
+    assert _dq(await _overzicht(client, wg), ids[0])["klaar"]
+    wg = await _praktijk(client, wg, "Een ondernemer met een naheffingsaanslag.")
+    await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=[ids[0]]), _kd(ONE, "kern", deelvragen=[ids[0]])])
+    dq = _dq(await _overzicht(client, wg), ids[0])
+    assert (dq["status"], dq["opnieuw_bekijken"], dq["klaar"]) == ("voorlopig_afgerond", True, False)
+
+
+async def test_de_uitkomst_van_een_ingehaalde_zoekopdracht_overschrijft_niets(client):
+    wg, ids = await _vier(client)
+    oud = await _start(client, wg, 201)
+    wg = await _praktijk(client, wg, "Een ondernemer betaalt te laat.")
+    await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=[ids[0]])])
+    r = await _uitkomst(client, wg, oud, [_kd(ONE, "kern", deelvragen=[ids[0]])])  # komt te laat binnen
+    assert r.status_code == 200 and r.json()["status"] == "klaar"
+    ov = await _overzicht(client, wg)
+    assert {k["bron_iri"] for k in _dq(ov, ids[0])["kandidaten"]} == {ART}
+    assert ov["zoekdekking"]["verouderd"] is False
+
+
+async def _noem(client, wg, did, iri, verwacht=200, **velden) -> dict:
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/bronselectie/{did}/voorstellen",
+                          json={"bron_iri": iri, **velden})
+    assert r.status_code == verwacht, r.text
+    return r.json()
+
+
+async def test_een_zelf_genoemde_bepaling_is_een_voorstel_in_het_paneel(client):
+    """4 nov 2026: wat de analist zelf noemt, staat als voorstel bij de deelvraag – naast die van Lex, en daar
+    besluit hij. Het bewijs is `genoemd`; de deelvraag gaat in behandeling; nog eens noemen verandert niets."""
+    wg, ids = await _vier(client)
+    ov = await _noem(client, wg, ids[1], ONE, tekst="artikel 9 lid 1 Iw 1990")
+    d = _dq(ov, ids[1])
+    k = _kid(d, ONE)
+    assert (k["stand"], k["rol"], k["bewijs_soorten"]) == ("voorgesteld", "kern", ["genoemd"])
+    assert k["bewijs"][0]["detail"]["tekst"] == "artikel 9 lid 1 Iw 1990" and d["status"] == "in_behandeling"
+    assert [x["bron_iri"] for x in _dq(ov, ids[0])["kandidaten"]] == [], "alleen bij de deelvraag waar het genoemd is"
+    ov = await _noem(client, wg, ids[1], ONE)
+    assert len(_dq(ov, ids[1])["kandidaten"]) == 1
+    # Opnemen in het paneel, zoals elk voorstel; daarna nog eens noemen is 409 (staat er al).
+    ov = await _besluit(client, wg, ids[1], k["id"], "opnemen", verwachte_revisie=ov["revisie"])
+    assert _kid(_dq(ov, ids[1]), ONE)["stand"] == "opgenomen"
+    await _noem(client, wg, ids[1], ONE, 409)
+    audit = (await client.get(f"/v1/werkgebieden/{wg['id']}/audit")).json()["audit"]
+    assert any(a["actie"] == "kandidaat-genoemd" for a in audit)
+
+
+async def test_een_genoemd_voorstel_vervalt_niet_en_overleeft_een_nieuwe_zoekopdracht(client):
+    """Een zoekopdracht die de bepaling niet vindt, laat het genoemde voorstel staan; een die haar wel vindt, voegt
+    haar bewijs toe zonder het genoemde te wissen. Na het fase-wisselen blijft het open (geen *niet gekozen*)."""
+    wg, ids = await _vier(client)
+    await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=[ids[0]])])
+    await _noem(client, wg, ids[0], ONE, rol="afhankelijkheid")
+    wg = await _praktijk(client, wg, "Een ondernemer betaalt te laat.")
+    await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=[ids[0]])])
+    ov = await _overzicht(client, wg)
+    assert {k["bron_iri"]: k["stand"] for k in _dq(ov, ids[0])["kandidaten"]} == {ART: "voorgesteld", ONE: "voorgesteld"}
+    wg = await _praktijk(client, wg, "Een ondernemer betaalt veel te laat.")
+    await _met_kandidaten(client, wg, [_kd(ONE, "kern", deelvragen=[ids[2]])])
+    ov = await _overzicht(client, wg)
+    k = _kid(_dq(ov, ids[0]), ONE)
+    assert sorted(b["methode"] for b in k["bewijs"]) == ["deelvraag", "genoemd"]
+    assert k["rol"] == "kern" and ONE in [x["bron_iri"] for x in _dq(ov, ids[2])["kandidaten"]]
+    ov = await _status(client, wg, ids[0], "fase", fase="afronden", verwachte_revisie=_dq(ov, ids[0])["revisie"])
+    assert _kid(_dq(ov, ids[0]), ONE)["stand"] == "voorgesteld"
+    # Werkgebiedbreed uitgesloten: noemen is 409.
+    ov = await _besluit(client, wg, ids[0], k["id"], "uitsluiten", reden="Valt erbuiten.", overal=True)
+    await _noem(client, wg, ids[1], ONE, 409)

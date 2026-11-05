@@ -815,10 +815,15 @@ export interface WerkgebiedSamenvatting {
   context?: string;
   doel?: string;
   praktijkvoorbeeld?: string;
+  /** De gebeurtenis in de term van de wet ("kwijtschelding"): het vertrekpunt van de bronselectie langs de vier
+   *  zoekvragen. Leeg = nog niet gekozen; een oudere api stuurt het niet. */
+  gebeurtenis?: string;
   /** Spoor I6: het thema als TOOI-URI uit tooitop, met zijn naam; leeg = nog niet gekozen. */
   thema?: string;
   thema_label?: string;
+  /** Standaard de dag van aanmaken (api, 3 nov 2026); `peildatum_standaard` zegt of hij dat nog is. */
   peildatum: string | null;
+  peildatum_standaard?: boolean;
   status: WerkgebiedStatus;
   revisie: number;
   aangemaakt_door: string;
@@ -831,6 +836,8 @@ export interface WerkgebiedSamenvatting {
 
 export interface Werkgebied extends WerkgebiedSamenvatting {
   bronnen: Bronselectie[];
+  /** Het zoekbereik (4 nov 2026): de regelingen waarin de bronselectie zoekt; aanvullen gaat via Lex. */
+  regelingen?: { bwb_id: string; label: string }[];
   /** Optioneel (open keuze 4): actieve deelvragen en open voorstellen van Lex. Een oudere api stuurt
    *  het veld niet; lees het daarom als `wg.deelvragen ?? []`. */
   deelvragen?: Deelvraag[];
@@ -877,11 +884,20 @@ export interface WerkgebiedWijziging {
   context?: string;
   doel?: string;
   praktijkvoorbeeld?: string;
+  gebeurtenis?: string;
   thema?: string;
   peildatum?: string | null;
   status?: WerkgebiedStatus;
 }
 
+/** De peildatum naast de toestand van elke regeling in de bronnen (`GET …/toestanden`). De graaf heeft per
+ *  regeling alleen de nieuwste toestand; `na_peildatum` zegt dat die pas ná de peildatum ging gelden. */
+export interface Toestanden {
+  peildatum: string;
+  peildatum_standaard: boolean;
+  regelingen: { bwb_id: string; citeertitel: string; geldig_vanaf: string | null; geldig_tot: string | null; na_peildatum: boolean }[];
+  volledig: boolean;
+}
 /** `GET …/thema-voorstel` (spoor I6): de thema's die passen bij de WTI-rechtsgebieden van de bronnen. */
 export interface ThemaVoorstel {
   rechtsgebieden: string[];
@@ -1372,17 +1388,21 @@ export interface AkkoordAntwoord {
 
 // --- Bronnen vinden met Lex (spoor D, fase A) – afgeleid van api/app/bronnen_run_contracts.py ---
 
-export type BronMethode = "overzicht" | "deelvraag" | "verwijzing_uit" | "verwijzing_in" | "definitie" | "opbouw" | "gelijkenis";
+export type BronMethode = "overzicht" | "deelvraag" | "verwijzing_uit" | "verwijzing_in" | "definitie" | "opbouw" | "gelijkenis" | "grondslag"
+  /** Zelf genoemd door de analist bij één deelvraag (4 nov 2026). */
+  | "genoemd";
 export type KandidaatRol = "kern" | "afhankelijkheid" | "aanverwant";
-export type KandidaatStatus = "voorgesteld" | "opgenomen" | "later" | "uitgesloten";
+export type KandidaatStatus = "voorgesteld" | "opgenomen" | "uitgesloten";
 
 /** Waarom één methode deze bepaling vond. `detail` per methode: verwijzingen `{anker, functie}`,
- *  definitie `{begrip}`, overzicht `{onderwerp}`, opbouw `{deel}`, gelijkenis `{score}`. */
+ *  definitie `{begrip}`, overzicht `{onderwerp}`, opbouw `{deel}`, gelijkenis `{score}`, grondslag
+ *  `{zoekvraag, gebeurtenis, signaal, zin, kop?}`, genoemd `{deelvraag_id, tekst, door}`. */
 export interface KandidaatBewijs {
   methode: BronMethode;
   vanuit: string;
   detail: { anker?: string; functie?: string; begrip?: string; onderwerp?: string; deel?: string; score?: string;
-    deelvraag_id?: string; vraag?: string };
+    deelvraag_id?: string; vraag?: string; zoekvraag?: string; gebeurtenis?: string; signaal?: string; zin?: string;
+    kop?: string; tekst?: string; door?: string };
 }
 
 export interface BronKandidaat {
@@ -1395,7 +1415,9 @@ export interface BronKandidaat {
   status: KandidaatStatus;
   reden: string;
   run_id: string;
-  in_laatste_run: boolean;
+  /** Een open voorstel dat de laatste zoekopdracht niet meer vond (het dossier of de selectie veranderde): de
+   *  bronselectie toont het niet meer. Een besluit vervalt nooit. */
+  vervallen: boolean;
   /** Intussen met de hand opgenomen: geen open voorstel meer. */
   in_selectie: boolean;
   besloten_door: string | null;

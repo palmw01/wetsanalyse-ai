@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { BewerkVoet } from "@/components/ui/Bewerkbaar";
+import { bewerkToets } from "@/lib/bewerken";
 import { Button } from "@/components/ui/Button";
 import { AutoTextarea } from "@/components/ui/AutoTextarea";
 import { Input } from "@/components/ui/Field";
@@ -107,11 +109,16 @@ export function KaartVoorstelKaart({ v, verouderd, onbewaard, geaccordeerd, onOv
 
       {stand === "aanpassen" && (
         <div className="space-y-2">
-          {isDefinitie(v) ? (
-            <AutoTextarea value={tekst} onChange={(e) => setTekst(e.target.value)} rows={3} aria-label="Aangepaste definitie" />
-          ) : (
-            <AutoTextarea value={tekst} onChange={(e) => setTekst(e.target.value)} rows={2} aria-label="Aangepaste tekst" />
-          )}
+          {/* Eén manier van bewerken (4 nov 2026): Escape annuleert, Ctrl/⌘+Enter neemt aangepast over. */}
+          <AutoTextarea value={tekst} onChange={(e) => setTekst(e.target.value)} rows={isDefinitie(v) ? 3 : 2} autoFocus
+            aria-label={isDefinitie(v) ? "Aangepaste definitie" : "Aangepaste tekst"}
+            onKeyDown={(e) => {
+              const wat = bewerkToets({ key: e.key, ctrlKey: e.ctrlKey, metaKey: e.metaKey, isComposing: e.nativeEvent.isComposing }, false);
+              if (!wat) return;
+              e.preventDefault(); e.stopPropagation();
+              if (wat === "annuleren") setStand("rust");
+              else if (!uit && tekst.trim()) void doe(() => onOvernemen({ ...bewust, aanpassing: tekst.trim(), ...(oordeel ? { oordeel } : {}) }));
+            }} />
           {v.veld === "voorbeelden" && (
             <OordeelKeuze waarde={oordeel ?? "wel"} onKies={setOordeel} label="Verwacht oordeel" naam={`oordeel-voorstel-${v.id}`} />
           )}
@@ -150,20 +157,17 @@ export function KaartVoorstelKaart({ v, verouderd, onbewaard, geaccordeerd, onOv
           </>
         )}
         {stand === "aanpassen" && (
-          <>
-            <Button type="button" size="sm" className="w-full sm:w-auto" disabled={uit || !tekst.trim()}
-              onClick={() => void doe(() => onOvernemen({ ...bewust, aanpassing: tekst.trim(), ...(oordeel ? { oordeel } : {}) }))}>
-              Aangepast overnemen
-            </Button>
-            <Button type="button" size="sm" variant="ghost" className="w-full sm:w-auto" onClick={() => setStand("rust")}>Terug</Button>
-          </>
+          <div className="w-full">
+            <BewerkVoet onAnnuleer={() => setStand("rust")} bezig={bezig} gewijzigd={!uit && !!tekst.trim()} opslaanTekst="Aangepast overnemen"
+              onOpslaan={() => void doe(() => onOvernemen({ ...bewust, aanpassing: tekst.trim(), ...(oordeel ? { oordeel } : {}) }))} />
+          </div>
         )}
         {stand === "afwijzen" && (
           <>
             <Button type="button" size="sm" variant="secondary" className="w-full sm:w-auto" disabled={bezig} onClick={() => void doe(() => onAfwijzen(reden))}>
               Afwijzen
             </Button>
-            <Button type="button" size="sm" variant="ghost" className="w-full sm:w-auto" onClick={() => setStand("rust")}>Terug</Button>
+            <Button type="button" size="sm" variant="ghost" className="w-full sm:w-auto" onClick={() => setStand("rust")}>Annuleren</Button>
           </>
         )}
       </div>

@@ -2,13 +2,11 @@
 
 import { useState } from "react";
 
-import { Button } from "@/components/ui/Button";
-import { Dialog } from "@/components/ui/Dialog";
 import { FilterChip } from "@/components/ui/FilterChip";
 import { BronnenBijDeelvraag } from "@/components/werkgebieden/BronnenBijDeelvraag";
-import { BronOpnemen } from "@/components/werkgebieden/BronOpnemen";
 import { ProjectKop } from "@/components/werkgebieden/ProjectKop";
 import { useWerkgebied } from "@/components/werkgebieden/WerkgebiedProject";
+import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import type { BronRol } from "@/lib/types";
 import { ROL_LABEL } from "@/lib/werkgebied";
 
@@ -18,12 +16,13 @@ type RolFilter = "alle" | BronRol;
  *  (spoor K en L, methode 1f/1g). Eén lijst voor het werkgebied, getoond onder de deelvragen waar ze bij hoort,
  *  met de voorstellen van Lex en hun besluiten, en wat bij geen deelvraag hoort onder *Zonder deelvraag*
  *  (`BronnenBijDeelvraag`, ook op de deelvraagpagina en naast het gesprek). Het artefact Bronselectie is deze tab.
- *  Erboven de afbakening als tekst, zoeken, de rol en *Bepaling opnemen* (in een venster). */
+ *  Erboven de afbakening als tekst, zoeken en de rol. Een bepaling zoeken en toevoegen doe je niet hier maar in het
+ *  gesprek (*Bespreek met Lex* → *Noem een bepaling*): op het artefact lees, bewerk en besluit je; zoeken in de
+ *  graaf en iets laten maken gaat via Lex, en het resultaat opent naast het gesprek. */
 export function BronnenRegister() {
   const { wg, stand, muteer, laad } = useWerkgebied();
   const [zoek, setZoek] = useState("");
   const [rol, setRol] = useState<RolFilter>("alle");
-  const [opnemen, setOpnemen] = useState(false);
 
   const term = zoek.trim().toLowerCase();
   const actief = rol !== "alle" || !!term;
@@ -39,7 +38,8 @@ export function BronnenRegister() {
           <h2 className="font-display text-base font-semibold text-lint">Bronnen per deelvraag</h2>
           <p className="mt-0.5 text-xs text-muted">
             {wg.bronnen.length} {wg.bronnen.length === 1 ? "bronselectie" : "bronselecties"}. Kiezen per deelvraag doe je
-            hier of met Lex in het gesprek (<em>Bepaal de bronnen per deelvraag</em>). Verwijderen uit het werkgebied laat de
+            hier of met Lex in het gesprek (<em>Bepaal de bronnen per deelvraag</em>); een bepaling toevoegen ook (<em>Voeg een
+            bepaling toe</em>). Verwijderen uit het werkgebied laat de
             bepaling en haar annotaties staan.
           </p>
           {wg.afbakening.trim() && (
@@ -48,7 +48,8 @@ export function BronnenRegister() {
             </p>
           )}
         </div>
-        <Button size="sm" onClick={() => setOpnemen(true)}>Bepaling opnemen</Button>
+        <VraagLexKnop primair onderwerp={{ soort: "werkgebied", werkgebied_id: wg.id, id: "", label: wg.naam }}
+          naam={`Bespreek ${wg.naam} met Lex`} />
       </div>
       <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center">
         <input type="search" value={zoek} onChange={(e) => setZoek(e.target.value)} placeholder="Zoek op regeling of bepaling"
@@ -65,13 +66,6 @@ export function BronnenRegister() {
       </div>
       <BronnenBijDeelvraag werkgebiedId={wg.id} revisie={wg.revisie}
         beheer={{ wg, muteer, laad, werkvoorraad: stand.werkvoorraad }} filter={{ past, actief }} />
-      {opnemen && (
-        <Dialog label="Bepaling opnemen" variant="compact" onSluit={() => setOpnemen(false)}>
-          <div className="overflow-y-auto p-5">
-            <BronOpnemen wg={wg} muteer={muteer} onKlaar={() => setOpnemen(false)} />
-          </div>
-        </Dialog>
-      )}
     </div>
   );
 }

@@ -14,7 +14,7 @@ from typing import Any
 import pytest
 
 from agent.agent import answer_stream
-from agent.agents import Uitkomst, deelvragen as dva, register
+from agent.agents import deelvragen as dva, register
 from agent.beurt import BeurtSchrijver
 from agent.deelvragen import TOOL_VERBETER, valideer_verbetering
 from agent.models import ACTIE_TAAK
@@ -243,9 +243,6 @@ def _taak(taak: str, llm=None, api=None, **params):
 
 @pytest.mark.parametrize("taak", sorted(set(register.taken("deelvragen")) - {t.value for t in dva.MODEL_TAKEN}))
 def test_een_taak_zonder_model_roept_geen_model_aan(taak, monkeypatch):
-    async def bronnen(ctx, wid, did=""):
-        return Uitkomst(taak="bronnen_zoeken", tekst="gezocht")
-    monkeypatch.setattr(dva, "bronnen_kern", bronnen)
     llm = FakeLLM([])
     uit, _ = _taak(taak, llm)
     assert llm.calls == [] and uit.status == "ok" and uit.meting.get("model") is not True

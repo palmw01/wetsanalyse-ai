@@ -8,6 +8,7 @@ import { ongedektPerBron } from "@/lib/dekking";
 import { RevisieHistorie } from "@/components/annotaties/RevisieHistorie";
 import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
 import { Melding } from "@/components/ui/Melding";
+import { PaneelKop } from "@/components/ui/PaneelKop";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ArtefactInhoud } from "@/components/werkplek/ArtefactInhoud";
 import { foutTekst, type ExportFormaat } from "@/lib/api";
@@ -195,8 +196,9 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
     else onVraagOverBron?.(knoop);
   }
   const toonTabs = samenhang && !!view;
+  // De tabs en *Vergroten* staan in de balk van de ene paneelkop (`PaneelKop.balk`), op beide tabs.
   const tabs = toonTabs && (
-    <div className="flex shrink-0 items-center gap-2 border-b border-line px-4 py-2">
+    <div className="flex shrink-0 items-center gap-2 border-b border-line px-4 py-2" data-paneel-balk>
       <div className="flex rounded-lg bg-surface p-1" role="group" aria-label="Weergave kiezen">
         {(["tekst", "graaf"] as const).map((waarde) => (
           <button key={waarde} type="button" aria-pressed={tab === waarde} onClick={() => { setTab(waarde); if (waarde === "tekst") setGroot(false); }}
@@ -212,27 +214,27 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d={groot ? "M9 3v6H3m18 6h-6v6M3 9l6-6m6 18 6-6" : "M8 3H3v5m13 13h5v-5M3 3l6 6m6 6 6 6"} /></svg>
         </button>
       )}
-      {tab === "graaf" && onSluit && (
-        <button type="button" onClick={onSluit} aria-label="Sluiten"
-          className="focus-ring rounded-full p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink">
-          <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-            <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
-          </svg>
-        </button>
-      )}
     </div>
   );
 
   // Bladeren door de reeks gaat met ‹ › in de balk; Lex heeft geen sneltoetsen (besluit 26 okt 2026).
   const reeksBalk = reeks && <ReeksBalk reeks={reeks} label={view?.doel.label || doel.label || ""} />;
 
+  const titel = view?.doel.label || doel.label || "Annotatie";
+  const pagina = onSluit && opslag.levend && view
+    ? nodeLink({ bron_iri: view.doel.bron_iri ?? doel.bron_iri, snapshot_id: doel.snapshot_id }) : undefined;
   const inhoud = !view || !nb || !doc ? (
-    <div data-artefact-schil className="flex min-h-0 flex-1 flex-col">{reeksBalk}<LaadStand fout={laadFout} onOpnieuw={() => void laad()} onSluit={onSluit} /></div>
+    <div data-artefact-schil className="flex min-h-0 flex-1 flex-col">
+      <PaneelKop soort="Annotatie · JAS" titel={view?.doel.label || doel.label || "Laden…"} onSluit={onSluit} onder={reeksBalk} />
+      <LaadStand fout={laadFout} onOpnieuw={() => void laad()} />
+    </div>
   ) : (
     <div data-artefact-schil className="flex min-h-0 flex-1 flex-col">
-      {reeksBalk}
       <p className="sr-only" aria-live="polite">{melding}</p>
-      {tabs}
+      {/* Eén kop voor beide tabs: op de tab Tekst draagt de inhoud hem (met de acties), op de graaf het paneel. */}
+      {toonTabs && tab === "graaf" && (
+        <PaneelKop soort="Annotatie · JAS" titel={titel} pagina={pagina} onSluit={onSluit} onder={reeksBalk} balk={tabs} />
+      )}
       {toonTabs && graafGeopend && (
         <div className={tab === "graaf" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
           <Graaf stand={graafStand} zichtbaar={tab === "graaf"} groot={groot || !onSluit} actiefElementId={actiefId}
@@ -256,7 +258,9 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
         onStatus={view.lagen.length ? status : undefined}
         onVerwijder={view.lagen.length ? verwijder : undefined}
         onSluiten={onSluit}
-        pagina={onSluit && opslag.levend ? nodeLink({ bron_iri: view.doel.bron_iri ?? doel.bron_iri, snapshot_id: doel.snapshot_id }) : undefined}
+        pagina={pagina}
+        kopOnder={reeksBalk}
+        kopBalk={tabs || undefined}
         onExport={exporteer}
         extra={<NodeExtra view={view} doel={doel} onKies={setActiefId} historie={opslag.levend} />}
         ongedekt={ongedekt}
@@ -278,17 +282,6 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
         else if (groot) setGroot(false);
         else onSluit();
       } : undefined}>
-      {/* Het paneel is om te raadplegen naast het gesprek; verder werken kan op de eigen pagina (spoor G4).
-          Niet in de rondleiding: daar is de annotatie een voorbeeld in het geheugen. */}
-      {/* Op de tab Tekst staat de knop in de kop van de inhoud (`PaneelKop`); hier alleen voor de graaf. */}
-      {opslag.levend && view && tab === "graaf" && (
-        <div className="flex shrink-0 justify-end border-b border-line px-5 py-1.5">
-          <Link href={nodeLink({ bron_iri: view?.doel.bron_iri ?? doel.bron_iri, snapshot_id: doel.snapshot_id })}
-            className="focus-ring rounded text-xs font-medium text-lint underline-offset-2 hover:underline">
-            Open volledige pagina
-          </Link>
-        </div>
-      )}
       {inhoud}
     </Dialog>
   );
@@ -372,22 +365,11 @@ function NodeExtra({ view, doel, onKies, historie }: {
   );
 }
 
-/** Laden of niet geladen – met het kruisje op dezelfde plek als in het geladen paneel, anders zit je
+/** Laden of niet geladen; de kop (met het kruisje op dezelfde plek) staat erboven in de paneelschil, anders zit je
  *  op een smal scherm vast achter een paneel dat niet opent. */
-function LaadStand({ fout, onOpnieuw, onSluit }: { fout: string; onOpnieuw: () => void; onSluit?: () => void }) {
+function LaadStand({ fout, onOpnieuw }: { fout: string; onOpnieuw: () => void }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex shrink-0 items-start gap-3 border-b border-line px-5 py-3.5 pt-[max(0.875rem,env(safe-area-inset-top))]">
-        <p className="min-w-0 flex-1 truncate text-[0.65rem] font-semibold uppercase tracking-wide text-faint">Annotatie · JAS</p>
-        {onSluit && (
-          <button type="button" onClick={onSluit} aria-label="Sluiten"
-            className="focus-ring -mr-1 shrink-0 rounded-full p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink">
-            <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-              <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
-            </svg>
-          </button>
-        )}
-      </div>
       <div className="space-y-3 p-5">
         {fout ? (
           <Melding type="fout" titel="Niet geladen">

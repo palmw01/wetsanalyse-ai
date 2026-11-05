@@ -1,5 +1,6 @@
 "use client";
 
+import { BewerkVoet, useBewerken } from "@/components/ui/Bewerkbaar";
 import { IcoonBevestig } from "@/components/ui/IcoonBevestig";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -81,7 +82,8 @@ function tijdstip(el: AnnotatieElement): string {
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" });
 }
 
-/** Tekstveld dat zichzelf opslaat: Enter/blur bewaart, Escape annuleert.
+/** Een toelichting of opmerking ter plekke bewerken (`components/ui/Bewerkbaar`): Enter of *Opslaan* bewaart,
+ *  Escape of *Annuleren* annuleert.
  *
  *  Leegmaken van een gevulde waarde is óók een wijziging, maar wél een die je met één misklik maakt.
  *  Die vraagt daarom een bevestiging – de enige rem die er is, want er is geen undo. */
@@ -94,31 +96,17 @@ function InlineVeld({
   placeholder: string;
   onBewaar: (nieuw: string) => Promise<void> | void;
 }) {
-  const [bewerkt, setBewerkt] = useState(false);
-  const [concept, setConcept] = useState(waarde);
+  // Eén manier van bewerken (4 nov 2026): ter plekke, met Annuleren · Opslaan; Escape annuleert, Enter slaat op.
+  // Niet meer opslaan bij wegklikken – dat deed niets wat je zag, en een misklik werd een revisie.
   const [wisBevestiging, setWisBevestiging] = useState(false);
-  const ref = useRef<HTMLInputElement>(null);
-  // Enter en Escape laten de input verdwijnen, en dan vuurt `onBlur` daarná óók – met dezelfde
-  // closure. Zonder deze vlag ging een toelichting of opmerking twee keer de audit in, en sloeg
-  // Escape ("annuleren") het concept alsnog op. Zelfde guard als in `GesprekLijst`.
-  const afgehandeld = useRef(false);
-
-  useEffect(() => {
-    if (bewerkt) ref.current?.focus();
-  }, [bewerkt]);
-
-  async function bewaar() {
-    if (afgehandeld.current) return;
-    afgehandeld.current = true;
-    const nieuw = concept.trim();
-    setBewerkt(false);
-    if (nieuw === waarde) return;
-    if (!nieuw && waarde) {
-      setWisBevestiging(true);
-      return;
-    }
-    await onBewaar(nieuw);
-  }
+  const bw = useBewerken({
+    begin: waarde,
+    opslaan: async (nieuw: string) => {
+      const t = nieuw.trim();
+      if (!t && waarde) { setWisBevestiging(true); return; }
+      await onBewaar(t);
+    },
+  });
 
   if (wisBevestiging) {
     return (
@@ -129,10 +117,7 @@ function InlineVeld({
           setWisBevestiging(false);
           await onBewaar("");
         }}
-        onBlur={() => {
-          setWisBevestiging(false);
-          setConcept(waarde);
-        }}
+        onBlur={() => setWisBevestiging(false)}
         className={`${CHIP} border-fout text-fout`}
       >
         Toelichting wissen?
@@ -140,15 +125,11 @@ function InlineVeld({
     );
   }
 
-  if (!bewerkt) {
+  if (!bw.open) {
     return (
       <button
         type="button"
-        onClick={() => {
-          setConcept(waarde);
-          afgehandeld.current = false;
-          setBewerkt(true);
-        }}
+        onClick={bw.start}
         className={`focus-ring min-h-[24px] w-full rounded px-1 py-0.5 text-left transition hover:bg-surface coarse:min-h-[44px] ${waarde ? "" : "text-faint"}`}
       >
         {waarde || placeholder}
@@ -157,22 +138,17 @@ function InlineVeld({
   }
 
   return (
-    <input
-      ref={ref}
-      value={concept}
-      onChange={(e) => setConcept(e.target.value)}
-      onBlur={() => void bewaar()}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") void bewaar();
-        if (e.key === "Escape") {
-          afgehandeld.current = true;
-          setConcept(waarde);
-          setBewerkt(false);
-        }
-      }}
-      placeholder={placeholder}
-      className="min-h-[24px] w-full rounded-field border border-lint bg-paper px-2 py-1 text-xs text-ink focus:outline-none coarse:min-h-[44px]"
-    />
+    <div data-bewerken>
+      <input
+        autoFocus
+        value={bw.concept}
+        onChange={(e) => bw.zet(e.target.value)}
+        onKeyDown={bw.toetsen(true)}
+        placeholder={placeholder}
+        className="min-h-[24px] w-full rounded-field border border-lint bg-paper px-2 py-1 text-xs text-ink focus:outline-none coarse:min-h-[44px]"
+      />
+      <BewerkVoet onAnnuleer={bw.annuleer} onOpslaan={() => void bw.slaOp()} bezig={bw.bezig} gewijzigd={bw.gewijzigd} fout={bw.fout} />
+    </div>
   );
 }
 
