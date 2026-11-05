@@ -315,7 +315,7 @@ export function Rondleiding({
             <button
               type="button"
               onClick={() => sluit(false)}
-              className="focus-ring min-h-[40px] rounded-full border border-line px-4 text-sm text-ink transition-colors hover:bg-surface coarse:min-h-[48px]"
+              className="focus-ring min-h-[40px] rounded-knop border border-line px-4 text-sm text-ink transition-colors hover:bg-surface coarse:min-h-[48px]"
             >
               Nu even niet
             </button>
@@ -323,7 +323,7 @@ export function Rondleiding({
               <button
                 type="button"
                 onClick={() => begin(0)}
-                className="focus-ring min-h-[40px] rounded-full border border-line px-4 text-sm text-ink transition-colors hover:bg-surface coarse:min-h-[48px]"
+                className="focus-ring min-h-[40px] rounded-knop border border-line px-4 text-sm text-ink transition-colors hover:bg-surface coarse:min-h-[48px]"
               >
                 Opnieuw beginnen
               </button>

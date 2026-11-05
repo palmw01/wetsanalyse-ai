@@ -160,7 +160,7 @@ export function ElementPagina({ id }: { id: string }) {
                     <div className="flex flex-wrap gap-1.5">
                       {REDENEN.map((r) => (
                         <button key={r.waarde} type="button" disabled={bezig} onClick={() => void beslis("reject", r.waarde)}
-                          className="focus-ring min-h-[32px] rounded-full border border-line px-3 text-xs font-medium text-ink hover:border-fout hover:text-fout">
+                          className="focus-ring min-h-[32px] rounded-knop border border-line px-3 text-xs font-medium text-ink hover:border-fout hover:text-fout">
                           {r.label}
                         </button>
                       ))}

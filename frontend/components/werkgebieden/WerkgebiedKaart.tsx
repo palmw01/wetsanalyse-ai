@@ -30,7 +30,7 @@ export function WerkgebiedKaart({ wg, onVerwijder }: { wg: WerkgebiedSamenvattin
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <Link href={href}
-          className="focus-ring inline-flex min-h-[24px] items-center rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-lint transition-colors hover:bg-surface coarse:min-h-[44px]">
+          className="focus-ring inline-flex min-h-[24px] items-center rounded-knop-xs border border-line px-2.5 py-0.5 text-[11px] font-medium text-lint transition-colors hover:bg-surface coarse:min-h-[44px]">
           Openen
         </Link>
         <VerwijderKnop soort="werkgebied" onBevestig={onVerwijder} className="ml-auto" />

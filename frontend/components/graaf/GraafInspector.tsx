@@ -17,7 +17,7 @@ import type { DetailStand } from "./useKnoopDetail";
 import { knopKlasse } from "@/components/ui/Button";
 import { StatusLabel } from "@/components/ui/Lijst";
 
-const ICOON = "focus-ring flex h-8 w-8 items-center justify-center rounded-full text-muted hover:bg-surface hover:text-ink coarse:h-11 coarse:w-11";
+const ICOON = "focus-ring flex h-8 w-8 items-center justify-center rounded-knop text-muted hover:bg-surface hover:text-ink coarse:h-11 coarse:w-11";
 const TEKSTKNOP = "focus-ring rounded px-1 py-1 text-xs text-lint underline-offset-2 hover:underline coarse:min-h-11";
 const HOOFD = knopKlasse("primary", "sm");
 const ZICHTBAAR_PER_GROEP = 5;

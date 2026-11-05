@@ -51,10 +51,21 @@ describe("één bedieningsstijl", () => {
     expect(zelfgemaakt).toEqual([]);
   });
 
-  it("de bouwstenen van een knop zijn nooit een pil", () => {
-    // Deze bestanden zijn de knoppen van Lex; in PR C van het plan gaat de regel voor de hele app gelden.
-    for (const f of ["ui/Button", "ui/FilterChip", "ui/Suggestie", "ui/MeerMenu", "ui/Bewerkbaar", "admin/StijlPanel"])
-      expect(bron(`components/${f}.tsx`), f).not.toMatch(/rounded-full/);
+  it("een knop is nergens in de app een pil; alleen de verstuurknop is rond", () => {
+    // Een klikbaar element herken je aan `focus-ring` (elke knop en link heeft hem). Rond mag alleen de verstuurknop
+    // van het invoerveld: de hoofdactie van het gesprek, zoals bij Claude. Een teller, voortgangsbalk of avatar heeft
+    // geen focus-ring en valt erbuiten.
+    const alle = (map: string): string[] => readdirSync(join(ROOT, map)).flatMap((n) => {
+      const pad = `${map}/${n}`;
+      return statSync(join(ROOT, pad)).isDirectory() ? alle(pad) : pad.endsWith(".tsx") ? [pad] : [];
+    });
+    const rond = [...alle("components"), ...alle("app")].flatMap((f) =>
+      bron(f).split("\n").map((regel, i) => ({ f, i: i + 1, regel }))
+        .filter(({ regel }) => /focus-ring/.test(regel) && /rounded-full/.test(regel)))
+      .map(({ f, i }) => `${f}:${i}`);
+    expect(rond).toHaveLength(1);
+    expect(rond[0]).toMatch(/^components\/werkplek\/WerkplekClient\.tsx:/);
+    expect(bron("components/werkplek/WerkplekClient.tsx")).toMatch(/aria-label=\{bezig \? \(stopt[^\n]*"Versturen"/);
   });
 
   it("de stijlgids staat in de instellingen, alleen voor beheerders", () => {

@@ -192,7 +192,7 @@ export function BegripWerk({ id, begripId, primair, andere = [], onGewijzigd, on
             type="button"
             aria-pressed={kant === k}
             onClick={() => setKant(k)}
-            className={`focus-ring min-h-[24px] rounded-full border px-2.5 py-0.5 text-[0.7rem] transition coarse:min-h-[44px] ${
+            className={`focus-ring min-h-[24px] rounded-knop-xs border px-2.5 py-0.5 text-[0.7rem] transition coarse:min-h-[44px] ${
               kant === k ? "border-lint bg-lint text-paper" : "border-line text-muted hover:border-lint hover:text-ink"
             }`}
           >

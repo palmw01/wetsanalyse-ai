@@ -445,7 +445,7 @@ function StatusKnop({
       type="button"
       disabled={bezig}
       onClick={() => onZet(afgerond ? "in_review" : "geaccordeerd")}
-      className="focus-ring inline-flex min-h-[24px] shrink-0 items-center gap-1 rounded-full border border-line px-2 py-0.5 text-[11px] font-medium text-muted transition-colors hover:bg-surface hover:text-ink disabled:opacity-60 coarse:min-h-[44px] coarse:px-3"
+      className="focus-ring inline-flex min-h-[24px] shrink-0 items-center gap-1 rounded-knop-xs border border-line px-2 py-0.5 text-[11px] font-medium text-muted transition-colors hover:bg-surface hover:text-ink disabled:opacity-60 coarse:min-h-[44px] coarse:px-3"
     >
       {bezig ? "Bezig…" : afgerond ? "Heropenen" : "Annotatie afronden"}
     </button>

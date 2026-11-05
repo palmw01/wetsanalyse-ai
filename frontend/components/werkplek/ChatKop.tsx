@@ -87,14 +87,14 @@ export function ChatKop({
       </div>
       {werkgebiedId && onBronnen && (
         <button type="button" onClick={onBronnen} data-chatkop-bronnen
-          className="focus-ring inline-flex min-h-[32px] items-center gap-1.5 rounded-full border border-line px-3 text-xs font-medium text-lint hover:bg-surface coarse:min-h-[44px]">
+          className="focus-ring inline-flex min-h-[32px] items-center gap-1.5 rounded-knop border border-line px-3 text-xs font-medium text-lint hover:bg-surface coarse:min-h-[44px]">
           Bronnen
         </button>
       )}
       {werkgebiedId && (
         <Link
           href={`/werkgebieden/${encodeURIComponent(werkgebiedId)}`}
-          className="focus-ring hidden min-h-[32px] items-center gap-1.5 rounded-full border border-line px-3 text-xs font-medium text-lint hover:bg-surface sm:inline-flex"
+          className="focus-ring hidden min-h-[32px] items-center gap-1.5 rounded-knop border border-line px-3 text-xs font-medium text-lint hover:bg-surface sm:inline-flex"
         >
           <Mapje /> Werkgebied
         </Link>

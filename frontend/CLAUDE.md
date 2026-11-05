@@ -128,9 +128,11 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
       verstuurknop van het invoerveld.
     - **Kiezen**: `FilterChip`, een kleine rechthoek. Gekozen is lintblauw gevuld.
     - **Suggestie**: `Suggestie`, de vorm van de voorbeeldvragen in de lege werkplek; `klein` boven het invoerveld.
-    - **Uitzondering**: de JAS-klasse op de reviewkaart is klikbaar maar houdt kleur en vorm, met een ▾.
-    - `app/knoppen.test.ts` bewaakt het. De labels zijn over (5 nov 2026). De zelfgemaakte knop-pillen in de rest van
-      de app volgen;
+    - De JAS-klasse op de reviewkaart is een knop in de kleur van de klasse: een rechthoek met ▾ en een hover-rand.
+    - `app/knoppen.test.ts` bewaakt het voor de hele app: een element met `focus-ring` (elke knop en link) is nooit
+      `rounded-full`. Alleen de verstuurknop van het invoerveld is rond, als hoofdactie van het gesprek zoals bij Claude.
+      Ook een sluitknop (✕) of icoonknop is een afgerond vierkant (`rounded-knop`). Een teller, voortgangsbalk of
+      avatar mag rond blijven: die is niet klikbaar;
   - **kaarten zijn één familie**: `rounded-kaart`, een lichte rand en `shadow-zacht`; klikbaar met `KLIK_KAART`
     (`components/ui/Pagina`: een lichte lift, een lintblauwe rand en `shadow-kaart` bij hover, zoals het
     artefactkaartje in het gesprek) – de tellers, de artefactkaarten en de drie overzichtskaarten;

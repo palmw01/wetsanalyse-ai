@@ -40,7 +40,7 @@ export function OordeelKeuze({ waarde, onKies, label, naam }: {
         const gekozen = waarde === o;
         return (
           <label key={o}
-            className={`relative inline-flex min-h-[24px] cursor-pointer items-center rounded-full border px-2.5 py-0.5 text-xs font-medium coarse:min-h-[44px] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-lint/40 ${
+            className={`relative inline-flex min-h-[24px] cursor-pointer items-center rounded-knop-xs border px-2.5 py-0.5 text-xs font-medium coarse:min-h-[44px] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-lint/40 ${
               gekozen ? TOON[OORDEEL_TOON[o]] : "border-line bg-paper text-muted hover:bg-surface"}`}>
             <input type="radio" name={naam} value={o} checked={gekozen} onChange={() => onKies(o)}
               className="sr-only" />

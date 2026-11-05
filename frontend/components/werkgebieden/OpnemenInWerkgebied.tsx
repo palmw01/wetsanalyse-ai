@@ -9,7 +9,7 @@ import type { BronRol, WerkgebiedSamenvatting } from "@/lib/types";
 import { ROL_LABEL, isAlOpgenomen } from "@/lib/werkgebied";
 
 const CHIP =
-  "focus-ring inline-flex min-h-[24px] shrink-0 items-center rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-lint transition-colors hover:bg-surface coarse:min-h-[44px]";
+  "focus-ring inline-flex min-h-[24px] shrink-0 items-center rounded-knop-xs border border-line px-2.5 py-0.5 text-[11px] font-medium text-lint transition-colors hover:bg-surface coarse:min-h-[44px]";
 
 /** *Opnemen in werkgebied* bij een annotatie: kies een werkgebied en een rol, en de bepaling staat
  *  erin. De annotatie zelf verandert niet – een werkgebied verwijst ernaar. */

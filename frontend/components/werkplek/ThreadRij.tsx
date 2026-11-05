@@ -402,7 +402,7 @@ function AnnotatieChip({
         </span>
         <Link
           href="/annotaties"
-          className="focus-ring inline-flex min-h-[24px] shrink-0 items-center rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-lint transition-colors hover:bg-surface-2 coarse:min-h-[44px]"
+          className="focus-ring inline-flex min-h-[24px] shrink-0 items-center rounded-knop-xs border border-line px-2.5 py-0.5 text-[11px] font-medium text-lint transition-colors hover:bg-surface-2 coarse:min-h-[44px]"
         >
           Alle annotaties
         </Link>
@@ -581,7 +581,7 @@ function DenkProces({
       <button
         type="button"
         onClick={() => setKeuze(!open)}
-        className="inline-flex items-center gap-1.5 rounded-full px-1 text-xs text-muted transition-colors hover:text-ink"
+        className="inline-flex items-center gap-1.5 rounded-knop-xs px-1 text-xs text-muted transition-colors hover:text-ink"
         aria-expanded={open}
       >
         {actief && <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-accent-soft" aria-hidden />}

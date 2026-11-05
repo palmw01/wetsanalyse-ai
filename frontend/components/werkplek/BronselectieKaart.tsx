@@ -47,7 +47,7 @@ export function BronselectieKaart({ kaart, uitgeschakeld, onActie, onSluit, onBe
           <h2 className="mt-0.5 font-display text-lg font-semibold leading-snug text-ink">{kaart.vraag}</h2>
         </div>
         <button type="button" aria-label="Vraag sluiten" onClick={onSluit}
-          className="focus-ring inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-white text-ink shadow-zacht hover:bg-surface coarse:h-11 coarse:w-11">
+          className="focus-ring inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-knop border border-line bg-white text-ink shadow-zacht hover:bg-surface coarse:h-11 coarse:w-11">
           <Kruis className="text-base" />
         </button>
       </div>

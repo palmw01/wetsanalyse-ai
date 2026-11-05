@@ -142,7 +142,7 @@ export function SelectiePopover({
             type="button"
             disabled={bezig}
             onClick={() => void kies(k)}
-            className={`min-h-[28px] rounded-full border px-2 py-0.5 text-xs transition-opacity coarse:min-h-[36px] disabled:opacity-50 ${jasStyle(k)}`}
+            className={`min-h-[28px] rounded-knop-xs border px-2 py-0.5 text-xs transition-opacity coarse:min-h-[36px] disabled:opacity-50 ${jasStyle(k)}`}
           >
             {k}
           </button>

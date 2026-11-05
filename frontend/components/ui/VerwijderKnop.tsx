@@ -19,7 +19,7 @@ export function VerwijderKnop({ soort, onBevestig, disabled, className = "" }: {
       ariaLabel={verwijderLabel(soort)}
       titel={VERWIJDER_UITLEG[soort]}
       disabled={disabled}
-      className={`focus-ring inline-flex min-h-[24px] shrink-0 items-center rounded-full border border-line px-2 py-0.5 text-[11px] font-medium text-muted transition-colors hover:border-fout/40 hover:text-fout disabled:opacity-60 coarse:min-h-[44px] coarse:px-3 ${className}`}
+      className={`focus-ring inline-flex min-h-[24px] shrink-0 items-center rounded-knop-xs border border-line px-2 py-0.5 text-[11px] font-medium text-muted transition-colors hover:border-fout/40 hover:text-fout disabled:opacity-60 coarse:min-h-[44px] coarse:px-3 ${className}`}
       bevestigClassName="border-fout bg-fout text-paper hover:text-paper"
     >
       Verwijderen

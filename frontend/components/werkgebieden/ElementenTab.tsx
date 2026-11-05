@@ -151,7 +151,7 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
               type="button"
               aria-pressed={filter.rol === k.waarde}
               onClick={() => setFilter({ ...filter, rol: k.waarde })}
-              className={`focus-ring min-h-[24px] rounded-full border px-2.5 py-0.5 text-[0.7rem] transition coarse:min-h-[44px] ${
+              className={`focus-ring min-h-[24px] rounded-knop-xs border px-2.5 py-0.5 text-[0.7rem] transition coarse:min-h-[44px] ${
                 filter.rol === k.waarde ? "border-lint bg-lint text-paper" : "border-line text-muted hover:border-lint hover:text-ink"
               }`}
             >
@@ -321,7 +321,7 @@ function ElementRij({ element: e, gekozen, onWissel, primair, onNaarBegrip, dekk
         </div>
         <Link
           href={annotatieHref(e.eigenaar_iri, e.id)}
-          className="focus-ring inline-flex min-h-[24px] shrink-0 items-center self-start rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-lint transition-colors hover:bg-surface coarse:min-h-[44px]"
+          className="focus-ring inline-flex min-h-[24px] shrink-0 items-center self-start rounded-knop-xs border border-line px-2.5 py-0.5 text-[11px] font-medium text-lint transition-colors hover:bg-surface coarse:min-h-[44px]"
         >
           Annotatie openen
         </Link>

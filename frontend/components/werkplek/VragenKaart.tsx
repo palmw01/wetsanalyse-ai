@@ -36,7 +36,7 @@ export function VragenKaart({ groep, onOpen }: { groep: VragenGroep; onOpen: () 
         </p>
       ) : groep.open ? (
         <button type="button" onClick={onOpen} data-vraag-open
-          className="focus-ring mt-3 inline-flex items-center gap-2 rounded-full py-1 pr-2 text-sm text-muted hover:text-ink">
+          className="focus-ring mt-3 inline-flex items-center gap-2 rounded-knop py-1 pr-2 text-sm text-muted hover:text-ink">
           <span className="relative inline-flex h-3.5 w-3.5 items-center justify-center" aria-hidden>
             <span className="absolute h-3.5 w-3.5 rounded-full bg-accent-soft/30" />
             <span className="h-2 w-2 rounded-full bg-accent-soft" />
