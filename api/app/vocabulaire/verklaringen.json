@@ -172,6 +172,10 @@
       "naam": "Parameterwoord",
       "uitleg": "'Tarief', 'drempel', 'vrijstelling': een woord dat een vaste waarde benoemt."
     },
+    "PARTY_NP": {
+      "naam": "Mogelijke partij",
+      "uitleg": "Een naamwoordgroep die een partij kan aanduiden: een woord voor een organisatie of persoon, een eigennaam of het handelend voorwerp."
+    },
     "PERCENTAGE": {
       "naam": "Percentage",
       "uitleg": "Een percentage, in cijfers of woorden."
@@ -793,5 +797,5 @@
       "uitleg": "Waarschuwing: hetzelfde fragment kreeg twee klassen."
     }
   },
-  "vocabulaire_versie": "7009cebc1b79"
+  "vocabulaire_versie": "60309a8a8acd"
 }

@@ -154,11 +154,20 @@ def _nominaal(a: LinguisticAnalysis, t: Token) -> bool:
     return False
 
 
-PERSOON, ZAAK, HANDELING, ONBEKEND = "persoon", "zaak", "handeling", "onbekend"
+PERSOON, PARTIJ, ZAAK, HANDELING, ONBEKEND = "persoon", "partij", "zaak", "handeling", "onbekend"
+_REGELINGSNAAM = ("wet", "wetboek", "besluit", "regeling")
 
 
 def _is_zaak(t: Token) -> bool:
     return (t.lemma or t.tekst).lower().endswith(tuple(woordenlijsten()["ZAAK"].split("|")))
+
+
+def _is_partij(t: Token) -> bool:
+    """Kan dit een partij zijn zonder in de rollenlijst te staan? Een woord voor een partij, een eigennaam die geen
+    regeling noemt, of het handelend voorwerp ('door de ontvanger'). Alleen een hypothese: het model kiest."""
+    lemma = (t.lemma or t.tekst).lower()
+    return (lemma.endswith(tuple(woordenlijsten()["PARTIJ"].split("|"))) or t.deprel == "obl:agent"
+            or (t.upos == "PROPN" and not lemma.endswith(_REGELINGSNAAM)))
 
 
 def referent(a: LinguisticAnalysis, t: Token, uitgesloten: list[tuple[int, int]]) -> str:
@@ -174,6 +183,8 @@ def referent(a: LinguisticAnalysis, t: Token, uitgesloten: list[tuple[int, int]]
         return PERSOON
     if _is_zaak(t):
         return ZAAK
+    if _is_partij(t):
+        return PARTIJ
     if _nominalisatie(a, t, uitgesloten):
         return HANDELING
     return ONBEKEND
@@ -182,17 +193,18 @@ def referent(a: LinguisticAnalysis, t: Token, uitgesloten: list[tuple[int, int]]
 class NaamwoordgroepDetector:
     REGELS: tuple[str, ...] = (
         "jas.parameter.beschrijving", "jas.variabele.uitvoer_van_afleiding", "jas.variabele.eigenschap_np",
-        "jas.subject.voornaamwoord", "jas.subject.rollexicon", "jas.object.zaak_als_kern",
+        "jas.subject.voornaamwoord", "jas.subject.rollexicon", "jas.subject.partij", "jas.object.zaak_als_kern",
         "jas.object.handeling_als_kern", "jas.subject.np_bij_normatief_predicaat",
         "jas.subject.np", "jas.object.opsommingsonderdeel", "jas.object.np_bij_normatief_predicaat", "jas.object.np")
     naam = "naamwoordgroep"
     # Grammaticale rol zonder juridische functie: blokkeert sterk patroonbewijs niet (audit D05). Een
     # getypeerde zaak of handeling is net zo generiek: het zegt wat de groep níét is, geen functie.
     BEWIJS = {"SUBJECT_NP": ("generiek", ""), "OBJECT_NP": ("generiek", ""), "ENUMERATED_NP": ("generiek", ""),
-              "THING_NP": ("generiek", ""), "ACTION_NP": ("generiek", "")}
+              "THING_NP": ("generiek", ""), "ACTION_NP": ("generiek", ""), "PARTY_NP": ("generiek", "")}
     # 3: een zaak of handeling als kop krijgt geen Rechtssubject (art. 9 lid 5 IW 1990)
     # 4: een onderdeel onder een aanhef heeft normcontext
-    versie = f"4+verwijzing.{VERWIJZING_VERSIE}"
+    # 5: een partij buiten de rollenlijst krijgt Rechtssubject als hypothese
+    versie = f"5+verwijzing.{VERWIJZING_VERSIE}"
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
@@ -249,6 +261,9 @@ class NaamwoordgroepDetector:
                              relatie=rel, detail=t.tekst)], [SUBJ]
         if _lijst("ROL").match(lemma) or _lijst("ROL").match(t.tekst):
             return [Evidence(detector=self.naam, code="ROLE_NOUN", regel="jas.subject.rollexicon",
+                             relatie=rel, detail=t.tekst)], [SUBJ, OBJ]
+        if soort == PARTIJ:
+            return [Evidence(detector=self.naam, code="PARTY_NP", regel="jas.subject.partij",
                              relatie=rel, detail=t.tekst)], [SUBJ, OBJ]
         if soort == ZAAK:
             return [Evidence(detector=self.naam, code="THING_NP", regel="jas.object.zaak_als_kern",
