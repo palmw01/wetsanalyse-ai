@@ -137,7 +137,7 @@ function Dossier() {
           )}
         </Kaart>
         {/* `Deelvragen` draagt zijn eigen kop, telling en de voorstellen van Lex. */}
-        <Kaart><Deelvragen wg={wg} muteer={muteer} /></Kaart>
+        <Kaart><Deelvragen wg={wg} muteer={muteer} onOnbewaard={zetOnbewaard} /></Kaart>
       </>}
       zij={<>
         <Kaart titel="Versie" acties={!versieBewerken && !bewerken

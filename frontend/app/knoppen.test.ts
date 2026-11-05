@@ -84,8 +84,12 @@ describe("één bedieningsstijl", () => {
     expect(bron("components/werkgebieden/ProjectKop.tsx")).not.toContain("GegevensDialoog");
     for (const f of ["werkgebieden/KaartVoorstel", "werkgebieden/BegripKaart"])
       expect(bron(`components/${f}.tsx`), f).not.toMatch(/>\s*(Terug|Wijzigingen weggooien)\s*</);
-    // *Bewerken* van een deelvraag staat bij de rij, niet meer in het menu ⋯.
-    expect(bron("components/werkgebieden/Deelvragen.tsx")).toContain("<BewerkKnop");
+    // De deelvragen hebben één *Bewerken* voor het hele blok, net als de analyseopdracht (5 nov 2026); geen invoerveld
+    // in rust en geen bewerkknop per rij.
+    const dv = bron("components/werkgebieden/Deelvragen.tsx");
+    expect(dv.match(/<BewerkKnop/g)).toHaveLength(1);
+    expect(dv).toContain('wat="Deelvragen"');
+    expect(dv).not.toMatch(/id="nieuwe-deelvraag"/);
   });
 });
 

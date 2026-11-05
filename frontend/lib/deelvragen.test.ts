@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  overgenomenZin, splits, vervangtZin, voorstellenVoor, wissel, zelfdeSet,
+  conceptFout, conceptVan, deelvraagStappen, overgenomenZin, splits, vervangtZin, voorstellenVoor, wissel, zelfdeSet,
 } from "./deelvragen";
 import type { Deelvraag } from "./types";
 
@@ -35,5 +35,34 @@ describe("deelvragen", () => {
     expect(vervangtZin(los, lijst)).toBe("");
     expect(overgenomenZin(beter, lijst)).toMatch(/vervangen/);
     expect(overgenomenZin(los, lijst)).toBe("Deelvraag overgenomen.");
+  });
+});
+
+describe("het blok Deelvragen bewerken", () => {
+  const oud = [{ id: "a", vraag: "Wat is een rekeningafspraak?" }, { id: "b", vraag: "Welke voorwaarden gelden?" }];
+
+  it("eerst verwijderen, dan wijzigen, dan toevoegen; ongewijzigd en leeg nieuw tellen niet", () => {
+    expect(deelvraagStappen(oud, [
+      { id: "a", vraag: "Wat is een rekeningafspraak? " },
+      { id: "b", vraag: "Welke voorwaarden gelden?", weg: true },
+      { vraag: "Welke voorwaarden gelden?" },
+      { vraag: "  " },
+    ])).toEqual([{ soort: "verwijder", id: "b" }, { soort: "nieuw", vraag: "Welke voorwaarden gelden?" }]);
+    expect(deelvraagStappen(oud, [{ id: "a", vraag: "Wat is een rekeningafspraak precies?" }, { id: "b", vraag: oud[1].vraag }]))
+      .toEqual([{ soort: "wijzig", id: "a", vraag: "Wat is een rekeningafspraak precies?" }]);
+    expect(deelvraagStappen(oud, conceptVan(oud))).toEqual([]);
+  });
+
+  it("een deelvraag die intussen weg is, komt niet terug", () => {
+    expect(deelvraagStappen(oud, [{ id: "c", vraag: "Door een collega verwijderd" }])).toEqual([]);
+  });
+
+  it("een nieuwe regel die weer weg is, doet niets", () => {
+    expect(deelvraagStappen(oud, [...conceptVan(oud), { vraag: "Nieuw", weg: true }])).toEqual([]);
+  });
+
+  it("een leeggemaakte bestaande deelvraag blokkeert opslaan; een verwijderde niet", () => {
+    expect(conceptFout([{ id: "a", vraag: " " }])).toMatch(/leeg/);
+    expect(conceptFout([{ id: "a", vraag: "", weg: true }, { vraag: "" }])).toBeNull();
   });
 });
