@@ -96,8 +96,12 @@ try {
   await sectie().getByRole("heading", { name: "Deelvragen" }).waitFor();
 
   // 1. Zelf een deelvraag toevoegen; de revisie gaat mee.
-  await sectie().getByLabel("Nieuwe deelvraag").fill("Wanneer is een aanslag invorderbaar?");
-  await sectie().getByRole("button", { name: "Toevoegen" }).click();
+  // Eén *Bewerken* voor het hele blok (5 nov 2026): geen invoerveld meer in rust, toevoegen gaat in de bewerkstand.
+  assert.equal(await sectie().getByRole("textbox").count(), 0, "in rust geen invoerveld");
+  await sectie().locator("[data-geen-deelvragen]").waitFor();
+  await sectie().getByRole("button", { name: "Deelvragen bewerken" }).click();
+  await sectie().getByLabel("Deelvraag 1", { exact: true }).fill("Wanneer is een aanslag invorderbaar?");
+  await sectie().getByRole("button", { name: "Opslaan" }).click();
   await rij("Wanneer is een aanslag invorderbaar?").waitFor();
   assert.equal(requests.find((r) => r.m === "POST" && r.p.endsWith("/deelvragen")).body.verwachte_revisie, 1);
   await page.waitForFunction(() => document.querySelector("[data-stand]")?.textContent === "Nog niet gestart");
@@ -169,22 +173,44 @@ try {
   await page.goto(`${base}/werkgebieden/wg1/artefacten/dossier`);
   await rij(vraag).waitFor();
 
-  // Bewerken ter plekke: het veld neemt de breedte van de rij, niet die van de tekst (5 nov 2026: een korte vraag
-  // gaf een smal vak en een lange een hoge kolom). Escape annuleert.
-  await rij(vraag).getByRole("button", { name: /^Deelvraag \d+ bewerken$/ }).click();
-  const veld = sectie().locator(`[data-bewerken] textarea`);
+  // 4. Het blok bewerken: elk veld neemt de breedte van het blok (5 nov 2026: een korte vraag gaf een smal vak),
+  //    in rust staat er geen bewerkknop per rij, en Escape annuleert zonder iets op te slaan.
+  assert.equal(await sectie().getByRole("button", { name: /^Deelvraag \d+ bewerken$/ }).count(), 0, "geen bewerkknop per rij");
+  await sectie().getByRole("button", { name: "Deelvragen bewerken" }).click();
+  const veld = sectie().getByLabel("Deelvraag 1", { exact: true });
   await veld.waitFor();
-  const [bv, br] = [await veld.boundingBox(), await sectie().locator("[data-bewerken]").locator("xpath=ancestor::li[1]").boundingBox()];
-  assert.ok(bv.width > br.width * 0.8, `bewerkveld ${bv.width}px in een rij van ${br.width}px`);
+  const [bv, bb] = [await veld.boundingBox(), await sectie().locator("[data-deelvragen-bewerken]").boundingBox()];
+  assert.ok(bv.width > bb.width * 0.8, `bewerkveld ${bv.width}px in een blok van ${bb.width}px`);
+  const voorEscape = requests.length;
+  await veld.fill("Iets anders");
   await veld.press("Escape");
-  await veld.waitFor({ state: "detached" });
+  await sectie().locator("[data-deelvragen-bewerken]").waitFor({ state: "detached" });
+  assert.equal(requests.filter((r, i) => i >= voorEscape && r.m !== "GET").length, 0, "Escape slaat niets op");
+  await rij(vraag).waitFor();
 
-  // 4. Verwijderen (niet "weghalen"): achter ⋯, eerst scherp zetten, dan pas weg.
-  await sectie().getByRole("button", { name: "Acties: Wie is de belastingschuldige?" }).click();
-  await page.getByRole("menuitem", { name: "Verwijderen: Wie is de belastingschuldige?" }).click();
-  assert.equal(await rij("Wie is de belastingschuldige?").count(), 1, "één klik haalt nog niets weg");
-  await page.getByRole("menuitem", { name: "Verwijderen?" }).click();
-  await rij("Wie is de belastingschuldige?").waitFor({ state: "detached" });
+  // 5. In één keer: de ene wijzigen, de andere verwijderen (doorgestreept tot Opslaan, terug te zetten), een nieuwe
+  //    erbij – met Enter in een gevulde regel – en Ctrl+Enter slaat op. Elke stap draagt de revisie van de vorige.
+  await sectie().getByRole("button", { name: "Deelvragen bewerken" }).click();
+  await sectie().getByLabel("Deelvraag 1", { exact: true }).fill("Wanneer is een aanslag precies invorderbaar?");
+  await sectie().getByRole("button", { name: "Deelvraag 2 verwijderen" }).click();
+  const weg = sectie().locator("[data-weg]");
+  await weg.getByText("wordt verwijderd").waitFor();
+  await weg.getByRole("button", { name: "Terugzetten" }).click();
+  await sectie().getByRole("button", { name: "Deelvraag 2 verwijderen" }).click();
+  assert.equal(await rij("Wie is de belastingschuldige?").count(), 0, "in de bewerkstand staan geen rijen");
+  await sectie().getByLabel("Deelvraag 1", { exact: true }).press("End");
+  await sectie().getByLabel("Deelvraag 1", { exact: true }).press("Enter");
+  await sectie().getByLabel("Deelvraag 2", { exact: true }).fill("Wie betaalt de kosten?");
+  const voor = requests.length;
+  await sectie().getByLabel("Deelvraag 2", { exact: true }).press("Control+Enter");
+  await sectie().locator("[data-deelvragen-bewerken]").waitFor({ state: "detached" });
+  const stappen = requests.slice(voor).filter((r) => r.m !== "GET");
+  assert.deepEqual(stappen.map((r) => r.m), ["DELETE", "PATCH", "POST"], "verwijderen, wijzigen, toevoegen");
+  const revs = stappen.map((r) => r.body?.verwachte_revisie ?? Number(new URLSearchParams(r.q).get("verwachte_revisie")));
+  assert.ok(revs[1] === revs[0] + 1 && revs[2] === revs[1] + 1, `revisies volgen elkaar op: ${revs}`);
+  await rij("Wanneer is een aanslag precies invorderbaar?").waitFor();
+  await rij("Wie betaalt de kosten?").waitFor();
+  assert.equal(await rij("Wie is de belastingschuldige?").count(), 0);
 
   assert.deepEqual(errors, []);
   console.log("OK test-deelvragen");

@@ -869,8 +869,19 @@ bestaat los van de gesprekken.
   - Browserregressie: `scripts/test-bronkandidaten.mjs`.
 - **Deelvragen** (optioneel, open keuze 4; api §*Deelvragen*, graph-qa §*Lex stelt deelvragen voor*):
   `Deelvragen` bovenaan de tab Bronnen. Zonder deelvragen verandert er niets.
-  - Een deelvraag hoort bij de scope: toevoegen, bewerken, verwijderen (`BevestigKnop`) en *Bronnen en
-    begrippen* (vinkjes, één keer opslaan, de hele set) lopen via `muteer` met de revisie in beeld.
+  - Een deelvraag hoort bij de scope: toevoegen, bewerken, verwijderen en *Bronnen koppelen* (vinkjes, één keer
+    opslaan, de hele set) lopen via `muteer` met de revisie in beeld.
+  - **Eén *Bewerken* voor het hele blok** (besluit gebruiker 5 nov 2026), net als de analyseopdracht erboven:
+    - in rust staan de deelvragen met hun stand, zonder invoerveld;
+    - in de bewerkstand is elke deelvraag een veld, met een prullenbak per regel en *+ Nog een deelvraag*. Enter in een
+      gevulde regel opent een nieuwe, Ctrl/⌘+Enter slaat op, Escape annuleert;
+    - verwijderen gaat met de prullenbak: de deelvraag staat dan doorgestreept met *Terugzetten*, en gaat pas bij
+      *Opslaan* echt weg. Een leeggemaakte deelvraag blokkeert *Opslaan*, zodat een leeg veld nooit stil een
+      bronselectie weghaalt;
+    - *Opslaan* is één `muteer`: eerst verwijderen, dan wijzigen, dan toevoegen (`deelvraagStappen` in
+      `lib/deelvragen.ts`). Elke stap krijgt de revisie van de vorige. Gaat een stap mis, dan laadt het werkgebied
+      opnieuw;
+    - de voorstellen van Lex staan erboven en blijven los beslisbaar.
   - Voorstellen en verbeteren doet de deelvragen-agent in het gesprek (*Stel deelvragen voor*, of
     *Formuleer scherper* / *Splits* via *Bespreek met Lex* op de deelvraagpagina). Een voorstel staat hier geel met
     *Overnemen* of *Afwijzen…* (reden verplicht; Lex stelt het niet opnieuw voor).
@@ -886,7 +897,7 @@ bestaat los van de gesprekken.
   - Browserregressie: `scripts/test-deelvragen.mjs`.
 - **Deelvragen met structuur** (spoor H3): in het dossier is een deelvraag een rij – de vraag als link naar
   haar pagina, herkomst en omvang ("7 bronnen in 3 regelingen"), de voortgang van haar bronselectie – met
-  *Bronnen koppelen*, *Bewerken* en **Verwijderen** achter ⋯. Koppelen gaat in een venster
+  *Bronnen koppelen* achter ⋯; bewerken en verwijderen gaan via *Bewerken* van het blok. Koppelen gaat in een venster
   (`KoppelDialoog`): de bronnen als `BronBoom` met vinkjes (een heel artikel, hoofdstuk of regeling in één
   klik); begrippen koppel je niet aan een deelvraag (spoor K). Op de deelvraagpagina staan haar bronnen als
   rijen (`Groep`/`GroepRij`), met *Koppelen*. Een bronselectie
