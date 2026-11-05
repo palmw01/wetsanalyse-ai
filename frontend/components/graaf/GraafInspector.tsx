@@ -15,6 +15,7 @@ import { KnoopFeiten } from "./KnoopFeiten";
 import { KnoopTekst } from "./KnoopTekst";
 import type { DetailStand } from "./useKnoopDetail";
 import { knopKlasse } from "@/components/ui/Button";
+import { StatusLabel } from "@/components/ui/Lijst";
 
 const ICOON = "focus-ring flex h-8 w-8 items-center justify-center rounded-full text-muted hover:bg-surface hover:text-ink coarse:h-11 coarse:w-11";
 const TEKSTKNOP = "focus-ring rounded px-1 py-1 text-xs text-lint underline-offset-2 hover:underline coarse:min-h-11";
@@ -111,10 +112,10 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
         <span className={`inline-block rounded border px-2 py-0.5 text-[11px] ${jasStyle(knoop.klasse)}`}>{knoop.klasse}</span>
         {knoop.lifecycle && <span className="text-[11px] text-muted">{LIFECYCLE_LABEL[knoop.lifecycle as Lifecycle] || knoop.lifecycle}</span>}
         {/* Een onbeoordeeld voorstel zegt zijn herkomst al ("voorstel van Lex"). */}
-        {knoop.herkomst && !(knoop.herkomst !== "mens" && knoop.lifecycle === "voorgesteld") && <span className="rounded-full border border-line px-2 py-0.5 text-[11px] text-muted">
-          {knoop.herkomst === "mens" ? "door een jurist" : "voorstel van Lex"}</span>}
-        {knoop.aandacht === "geel" && <span className="rounded-full border border-aandacht-geel-rand bg-aandacht-geel-bg px-2 py-0.5 text-[11px] text-aandacht-geel-tekst">Keuze voor jou</span>}
-        {knoop.aandacht === "groen" && <span className="rounded-full border border-aandacht-groen-rand bg-aandacht-groen-bg px-2 py-0.5 text-[11px] text-aandacht-groen-tekst">Bevestigd door review</span>}
+        {knoop.herkomst && !(knoop.herkomst !== "mens" && knoop.lifecycle === "voorgesteld") && <StatusLabel>
+          {knoop.herkomst === "mens" ? "door een jurist" : "voorstel van Lex"}</StatusLabel>}
+        {knoop.aandacht === "geel" && <StatusLabel toon="geel">Keuze voor jou</StatusLabel>}
+        {knoop.aandacht === "groen" && <StatusLabel toon="groen">Bevestigd door review</StatusLabel>}
       </div>}
       {knoop.soort === "markering" && el && <MarkeringDetail el={el} />}
       {knoop.soort === "begrip" && <p className="text-[11px] text-muted" data-testid="graaf-begrip">
@@ -164,7 +165,7 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
                     if (!v) return null;
                     return <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-faint" data-testid="graaf-verwijzing">
                       {verwijzingTekst(v)}
-                      {v.betrouwbaarheid === "laag" && <span className="rounded-full border border-aandacht-geel-rand bg-aandacht-geel-bg px-1.5 text-aandacht-geel-tekst">lage betrouwbaarheid</span>}
+                      {v.betrouwbaarheid === "laag" && <StatusLabel toon="geel" klein className="ml-1">lage betrouwbaarheid</StatusLabel>}
                     </span>;
                   })()}
                 </span>

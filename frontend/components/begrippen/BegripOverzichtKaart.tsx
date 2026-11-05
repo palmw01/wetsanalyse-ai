@@ -5,12 +5,10 @@ import Link from "next/link";
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
 import { BEGRIP_STATUS_LABEL, kaartUrl, kort, type BegripOverzichtRij } from "@/lib/begrippenOverzicht";
 import type { BegripStatus } from "@/lib/types";
+import { StatusLabel } from "@/components/ui/Lijst";
 
-const PIL: Record<BegripStatus, string> = {
-  geaccordeerd: "border-lint/40 bg-lint/10 text-lint",
-  concept: "border-line text-muted",
-  vervangen: "border-line text-faint line-through",
-};
+// Geaccordeerd is het enige oordeel; zoals elders groen (de status van een begrip in `BegripPaneel`).
+const TOON: Record<BegripStatus, "groen" | "neutraal"> = { geaccordeerd: "groen", concept: "neutraal", vervangen: "neutraal" };
 
 /** Eén begrip in het overzicht, in de vorm van `AnnotatieKaart` en `WerkgebiedKaart`: de naam is de link
  *  naar de kaart in zijn werkgebied, onderaan *Openen* en *Verwijderen* (niet bij een vervangen begrip:
@@ -24,9 +22,9 @@ export function BegripOverzichtKaart({ b, onVerwijder }: { b: BegripOverzichtRij
         <h3 className="min-w-0 font-display text-sm font-semibold text-lint">
           <Link href={href} className="focus-ring rounded hover:underline">{b.naam}</Link>
         </h3>
-        <span className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${PIL[b.status]}`}>
+        <StatusLabel toon={TOON[b.status]} className={b.status === "vervangen" ? "line-through" : ""}>
           {BEGRIP_STATUS_LABEL[b.status]}
-        </span>
+        </StatusLabel>
       </div>
       <p className="text-xs text-muted">
         {b.werkgebied_naam}

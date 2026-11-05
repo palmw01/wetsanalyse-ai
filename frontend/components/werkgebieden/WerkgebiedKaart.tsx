@@ -5,6 +5,7 @@ import Link from "next/link";
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
 import type { WerkgebiedSamenvatting } from "@/lib/types";
 import { STATUS_LABEL } from "@/lib/werkgebied";
+import { StatusLabel } from "@/components/ui/Lijst";
 
 const datum = (iso: string) =>
   new Date(iso).toLocaleDateString("nl-NL", { day: "numeric", month: "short", year: "numeric" });
@@ -21,9 +22,7 @@ export function WerkgebiedKaart({ wg, onVerwijder }: { wg: WerkgebiedSamenvattin
         <h3 className="min-w-0 truncate font-display text-sm font-semibold text-lint">
           <Link href={href} className="focus-ring rounded hover:underline">{wg.naam}</Link>
         </h3>
-        <span className="inline-flex shrink-0 items-center rounded-full border border-line px-2 py-0.5 text-[11px] font-medium text-muted">
-          {STATUS_LABEL[wg.status]}
-        </span>
+        <StatusLabel>{STATUS_LABEL[wg.status]}</StatusLabel>
       </div>
       {wg.analysevraag && <p className="line-clamp-2 text-xs text-ink">{wg.analysevraag}</p>}
       <p className="text-xs text-muted">

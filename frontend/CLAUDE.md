@@ -116,7 +116,12 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     voor beheerders): de echte componenten in elke stand. Toets een nieuwe knop of een nieuw label daaraan.
     - **Label**: `StatusLabel`, een pil met een getint vlak. De toon draagt het oordeel (groen, geel, rood); grijs is
       neutraal en lintblauw zegt waar iets over gaat. Een label heeft geen hover en is nooit een `button` of `Link`.
-      Maak geen eigen label-pil.
+      Varianten:
+      - `klein`: midden in een regel tekst;
+      - `rekbaar`: een lange inhoud die afkapt, zoals het onderwerp boven het invoerveld;
+      - `KlasseLabel`: een JAS-klasse die alleen informeert;
+      - `Tag`: een technische waarde, in monospace.
+      Een eigen label-pil faalt in `app/knoppen.test.ts`. Kleurtabellen zijn tonen (`DOCUMENT_STATUS_TOON`).
     - **Knop**: elke maat heeft de rechthoek van *Nieuw gesprek*: `rounded-kaart` (md), `rounded-knop` (sm) en
       `rounded-knop-xs` (xs, 6px, de rijactie, ook `KNOP_XS`). Bij hover wordt de rand lintblauw en de schaduw dieper.
     - **Icoonknop**: `IcoonKnop`/`icoonKnopKlasse`, een vierkant in dezelfde vorm (⋯, ✕). De enige ronde knop is de
@@ -124,8 +129,8 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     - **Kiezen**: `FilterChip`, een kleine rechthoek. Gekozen is lintblauw gevuld.
     - **Suggestie**: `Suggestie`, de vorm van de voorbeeldvragen in de lege werkplek; `klein` boven het invoerveld.
     - **Uitzondering**: de JAS-klasse op de reviewkaart is klikbaar maar houdt kleur en vorm, met een ▾.
-    - `app/knoppen.test.ts` bewaakt het. De zelfgemaakte pillen in de rest van de app gaan in twee stappen over: eerst
-      de labels, dan de knoppen;
+    - `app/knoppen.test.ts` bewaakt het. De labels zijn over (5 nov 2026). De zelfgemaakte knop-pillen in de rest van
+      de app volgen;
   - **kaarten zijn één familie**: `rounded-kaart`, een lichte rand en `shadow-zacht`; klikbaar met `KLIK_KAART`
     (`components/ui/Pagina`: een lichte lift, een lintblauwe rand en `shadow-kaart` bij hover, zoals het
     artefactkaartje in het gesprek) – de tellers, de artefactkaarten en de drie overzichtskaarten;

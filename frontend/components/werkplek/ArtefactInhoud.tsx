@@ -14,7 +14,7 @@ import { ExportKnop } from "@/components/werkplek/ExportKnop";
 import { ReviewQueue, type OpenRij } from "@/components/werkplek/ReviewQueue";
 import { SelectiePopover, type SelectieDoel } from "@/components/werkplek/SelectiePopover";
 import {
-  DOCUMENT_STATUS_LABEL, DOCUMENT_STATUS_STYLE, LIFECYCLE_LABEL, bronVan, isDocumentVergrendeld,
+  DOCUMENT_STATUS_LABEL, DOCUMENT_STATUS_TOON, LIFECYCLE_LABEL, bronVan, isDocumentVergrendeld,
   overlaptSelectie, pastInFilter, regelsVan, sorteerReview, splitsVerouderd,
   volgendeElement, type ReviewFilter,
 } from "@/lib/annotatie";
@@ -23,6 +23,7 @@ import { maakAnker, vindPositie } from "@/lib/selectie";
 import type {
   AnnotatieDocument, AnnotatieElement, BeslissingInvoer, DocumentStatus, GraafArtikel,
 } from "@/lib/types";
+import { StatusLabel } from "@/components/ui/Lijst";
 
 export interface ArtefactInhoudProps {
   /** De slots van de paneelkop (`PaneelKop.onder`/`balk`): de schil geeft de reeks of versie en de tabs mee. */
@@ -316,9 +317,7 @@ export function ArtefactInhoud({
             De acties krijgen hun eigen regel en lijnen rechts uit, onder het kruisje. Dat kost op een
             breed scherm een regel hoogte, en dat is de prijs voor een sluitknop die niet wandelt. */}
         <PaneelKop soort="Annotatie · JAS" titel={opschrift} pagina={pagina} onSluit={onSluiten} onder={kopOnder} balk={kopBalk} acties={<>
-          <span className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${DOCUMENT_STATUS_STYLE[doc.status]}`}>
-            {DOCUMENT_STATUS_LABEL[doc.status]}
-          </span>
+          <StatusLabel toon={DOCUMENT_STATUS_TOON[doc.status]}>{DOCUMENT_STATUS_LABEL[doc.status]}</StatusLabel>
           <ExportKnop onFout={setFout} onDownload={onExport} titel={opschrift} markdown={() => annotatieAlsMarkdown(doc, opschrift)} />
           {onStatus && <StatusKnop status={doc.status} bezig={statusBezig} onZet={zetStatus} />}
           {/* Elke gebruiker mag dit, ook op een afgeronde annotatie; de audit legt vast wie het deed.

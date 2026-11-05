@@ -15,6 +15,7 @@ import { WerkgebiedArtefactPaneel } from "@/components/werkplek/WerkgebiedArtefa
 import { ContextPaneel, ContextPaneelContext, contextSleutel, type ContextDoel } from "@/components/werkplek/ContextPaneel";
 import { WerkgebiedUitOverzicht } from "@/components/werkplek/WerkgebiedUitOverzicht";
 import { annotatieDoelVan, artefactSleutel, bronselectieVanKaart, werkgebiedLabel, artefactVanBericht, werkgebiedArtefactVan, type Artefact, type WerkgebiedArtefact } from "@/lib/artefact";
+import { StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import {
   foutTekst,
@@ -1400,7 +1401,7 @@ export function WerkplekClient({
               eerste toch afgewezen krijgen (er loopt al een run op dit gesprek). */}
           {onderwerp && (
             <div className="mb-1.5 flex items-center gap-1.5" data-onderwerp={onderwerp.soort}>
-              <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full border border-lint/30 bg-lint/5 px-2.5 py-1 text-xs text-lint">
+              <StatusLabel toon="lint" rekbaar className="gap-1.5 py-1 font-normal">
                 {onderwerp.soort === "markering" ? (
                   <span className={`shrink-0 rounded px-1 text-[0.7rem] ${jasStyle(onderwerp.element.klasse)}`}>
                     {klasseLabel(onderwerp.element.klasse)}
@@ -1414,13 +1415,13 @@ export function WerkplekClient({
                   onClick={() => setOnderwerp(undefined)}
                   aria-label={onderwerp.soort === "markering" ? "Vraag niet aan deze markering koppelen"
                     : `Vraag niet aan deze ${SOORT_LABEL[onderwerp.soort].toLowerCase()} koppelen`}
-                  className="focus-ring inline-flex min-h-[24px] min-w-[24px] shrink-0 items-center justify-center rounded-full p-0.5 hover:bg-lint/10 coarse:min-h-[44px] coarse:min-w-[44px]"
+                  className="focus-ring inline-flex min-h-[24px] min-w-[24px] shrink-0 items-center justify-center rounded-knop-xs p-0.5 hover:bg-lint/10 coarse:min-h-[44px] coarse:min-w-[44px]"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
                     <path d="M18 6 6 18M6 6l12 12" />
                   </svg>
                 </button>
-              </span>
+              </StatusLabel>
             </div>
           )}
           {/* Wat Lex met het onderwerp kan; zonder onderwerp, in een werkgebied, wat hij met het werkgebied kan

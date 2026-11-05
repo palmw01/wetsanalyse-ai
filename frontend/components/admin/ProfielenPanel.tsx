@@ -12,6 +12,7 @@ import { Tag } from "@/components/ui/Badge";
 import { deleteProfile, isApiError, listProfiles, setDefaultProfile, testProfile } from "@/lib/api";
 import type { LlmProfileOut, TestResult } from "@/lib/types";
 import { ProfileEditor } from "./ProfileEditor";
+import { StatusLabel } from "@/components/ui/Lijst";
 
 type EditState = { open: false } | { open: true; profile: LlmProfileOut | null };
 
@@ -100,9 +101,7 @@ export function ProfielenPanel() {
                   <div className="flex flex-wrap items-center gap-3">
                     <span className="font-display font-semibold text-ink">{p.name}</span>
                     {p.is_default && (
-                      <span className="inline-flex items-center rounded-full border border-accent/40 bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent">
-                        default
-                      </span>
+                      <StatusLabel toon="lint">default</StatusLabel>
                     )}
                     <Tag>{p.provider}</Tag>
                     <Tag>{p.model || "geen model"}</Tag>
