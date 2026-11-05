@@ -17,7 +17,7 @@ import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import { besluitBronselectie, foutTekst, haalBronselectie, verwijderBron, wijzigBron, type BronselectieBesluit } from "@/lib/api";
 import { haalNodeWeergave, type NodeWeergave } from "@/lib/annotatieNode";
 import {
-  BRONSELECTIE_GEWIJZIGD, BEWIJS_LABEL, STAND_LABEL, zoekvraagZin, meldBronselectieGewijzigd, bronnenZin, deelvraagStand, slotZin, voortgangZin, zoekBeperkingen,
+  BRONSELECTIE_GEWIJZIGD, BEWIJS_LABEL, STAND_LABEL, ordenVoorstellen, zoekvraagZin, meldBronselectieGewijzigd, bronnenZin, deelvraagStand, slotZin, voortgangZin, zoekBeperkingen,
   type BronselectieOverzicht, type DeelvraagSelectie, type KandidaatHier,
 } from "@/lib/bronselectie";
 import { bepalingEnRegeling, ookBijZin } from "@/lib/bronnenPerDeelvraag";
@@ -177,7 +177,7 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
         const bronnen = d.bronnen.filter((b) => !filter?.actief || filter.past(selecties.get(b.selectie_id), b.label, b.rol));
         if (filter?.actief && bronnen.length === 0) return null;
         // Bij een filter (zoeken, rol) gaat het om de bronnen; de voorstellen staan er dan niet bij.
-        const voorstellen = filter?.actief ? [] : d.kandidaten.filter((k) => k.stand !== "opgenomen");
+        const { open: voorstellen, nietGekozen } = ordenVoorstellen(filter?.actief ? [] : d.kandidaten.filter((k) => k.stand !== "opgenomen"));
         const v = deelvraagStand(d);
         const titel = o.modus === "analysevraag" ? "De analysevraag" : deelvraagId ? "Bronnen" : `${d.nr}. ${d.vraag}`;
         const telling = [bronnenZin(d.bronnen.length), d.telling.voorgesteld ? `${d.telling.voorgesteld} ter beoordeling` : ""]
@@ -207,6 +207,11 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
                 );
               })}
               {!kort && voorstellen.map((k) => <Voorstel key={k.id} o={o} d={d} k={k} beslis={beslis} inGesprek={inGesprek} alleenLezen={!!opname} />)}
+              {!kort && nietGekozen.length > 0 && (
+                <NietGekozen key="niet-gekozen" aantal={nietGekozen.length}>
+                  {nietGekozen.map((k) => <Voorstel key={k.id} o={o} d={d} k={k} beslis={beslis} inGesprek={inGesprek} alleenLezen={!!opname} />)}
+                </NietGekozen>
+              )}
             </Groep>
             {/* Zelf een bepaling toevoegen gaat via het gesprek (*Noem een bepaling* boven het invoerveld, of
                 typen op het kaartje): zoeken in de graaf hoort niet bij het artefact. */}
@@ -333,6 +338,19 @@ function BronRij({ werkgebiedId, bronIri, label, rol, selectie, beheer, ook, sta
 /** Eén voorstel van Lex bij één deelvraag: het soort bewijs in gewone woorden en de besluiten. Uitsluiten vraagt een
  *  reden en geldt voor deze deelvraag; een besluit voor het hele werkgebied (`overal`) heropen je met dezelfde
  *  reikwijdte. */
+/** Wat je in een eerdere stap niet koos: ingeklapt onder de bronnen van nu, zodat de rijen die om een besluit vragen
+ *  dezelfde zijn als die op het kaartje. Alsnog opnemen blijft mogelijk. */
+function NietGekozen({ aantal, children }: { aantal: number; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <GroepRij data-niet-gekozen uitklap={{ open, onWissel: () => setOpen((o) => !o), label: `Niet gekozen (${aantal})` }}
+        titel={`Niet gekozen (${aantal})`} sub="In een eerdere stap niet gekozen; je kunt ze alsnog opnemen." />
+      {open && children}
+    </>
+  );
+}
+
 function Voorstel({ o, d, k, beslis, inGesprek = false, alleenLezen = false }: {
   inGesprek?: boolean;
   /** Een oude versie: geen besluiten. */
