@@ -35,8 +35,9 @@ uit een accounttoken ook.
 
 Op de straat moet `API_TOKEN_LOGIN` aanstaan; `azure-infra` zet die alleen op acceptatie aan.
 
-1. Maak in de webapp een account `acc-analist` en eventueel `acc-beheerder`.
-2. Genereer per account een token: instellingen → **Beheer** → **API-tokens** → kies bij *Inloggen als*
+1. Kies een testaccount. Eén account voor beide agents kan; `WETSANALYSE_ACC_TOKEN_BEHEERDER` is alleen nodig om
+   beheerrechten of het verschil tussen rollen te testen.
+2. Genereer een token: instellingen → **Beheer** → **API-tokens** → kies bij *Inloggen als*
    het account. Het token is 90 dagen geldig en wordt één keer getoond.
 3. Zet machine-lokaal, in `.claude/settings.local.json` (gitignored):
 
