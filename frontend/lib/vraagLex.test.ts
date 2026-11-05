@@ -61,7 +61,7 @@ describe("een object stuurt alleen soort en id's", () => {
     expect(verzoekVan(werkgebied)).toEqual({ onderwerp: { soort: "werkgebied", werkgebied_id: "wg1", label: "Invordering" } });
     const s = suggestiesVan(werkgebied);
     expect(s.map((x) => x.actie)).toEqual(["dossier_aanvullen", "dossier_aanvullen", "deelvragen_voorstellen", "bronselectie", "bepaling_toevoegen",
-      "deelvragen_annoteren", "werkgebied_annoteren", "begrippen_voorstellen", "begrippen_meedenken", "dekking"]);
+      "deelvragen_annoteren", "werkgebied_annoteren", "begrippen_voorstellen", "begrippen_meedenken", undefined, "dekking"]);
     // Spoor J: geen losse zoekknop meer; zoeken hoort bij de bronselectie.
     expect(s.some((x) => x.actie === "bronnen_zoeken")).toBe(false);
     expect(actieVerzoek(werkgebied as Extract<Onderwerp, { soort: "werkgebied" }>, "bronnen_zoeken")).toEqual({

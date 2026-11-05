@@ -583,7 +583,7 @@ function GeneriekVeranderdBlok({ stand, begrip, onNaarBegrip }: {
       {v.velden.length > 0 && (
         <Regels>
           {v.velden.map((veld) => (
-            <Regel key={veld} naam={veld}>
+            <Regel key={veld} naam={`${veld[0].toUpperCase()}${veld.slice(1).replaceAll("_", " ")}`}>
               <span className="block text-xs text-muted">Toen: {tekstVan(v.toen[veld])}</span>
               <span className="block text-xs">Nu: {tekstVan(v.nu[veld])}</span>
             </Regel>

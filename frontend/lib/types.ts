@@ -1384,7 +1384,7 @@ export interface Betekenisgroep {
   leden: Passage[];
   /** Hoeveel leden al een begrip werden (splitsen, fase D). */
   afgehandeld?: number;
-  lijkt_op: { begrip_id: string; naam: string; gedeeld: string[] }[];
+  lijkt_op: { begrip_id: string; naam: string; gedeeld: string[]; generiek?: boolean }[];
   /** Wat de poort na een akkoord nog zou tegenhouden (alleen bij een open of geparkeerde groep). */
   poort_vooraf?: Poort | null;
 }

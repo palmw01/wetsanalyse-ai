@@ -70,7 +70,7 @@ export function BegripTermPagina({ sleutel }: { sleutel: string }) {
         sub="Waar Lex deze term vond, per regeling en artikel. Vink aan wat één begrip draagt, en beslis in één keer."
         meta={term && <>
           <span>{termOmvang(term)}</span><Stip /><span>{telling(term.passages, "passage", "passages")}</span>
-          {term.lijktOp.length > 0 && <><Stip /><span>lijkt op {term.lijktOp.map((b) => b.naam).join(", ")}</span></>}
+          {term.lijktOp.length > 0 && <><Stip /><span>lijkt op {term.lijktOp.map((b) => (b.generiek ? `${b.naam} (generiek)` : b.naam)).join(", ")}</span></>}
         </>}
         acties={<VraagLexKnop primair onderwerp={{ soort: "werkgebied", werkgebied_id: wg.id, id: "", label: wg.naam }}
           naam={`Bespreek ${wg.naam} met Lex`} />}
@@ -396,7 +396,7 @@ function ActieBalk({ aantal, bezig, lijktOp, later, geparkeerd, geenBegrip, onGe
         <Button size="sm" disabled={uit} onClick={onMaak}>Eén begrip maken {n}</Button>
         {lijktOp.map((b) => (
           <Button key={b.begrip_id} size="sm" variant="secondary" disabled={uit} onClick={() => onKoppel(b.begrip_id)}>
-            Koppelen aan {b.naam} {n}
+            Koppelen aan {b.naam}{b.generiek ? " (generiek)" : ""} {n}
           </Button>
         ))}
         {later && <Button size="sm" variant="ghost" disabled={uit} onClick={onLater}>Later</Button>}

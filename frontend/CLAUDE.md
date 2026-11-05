@@ -1115,6 +1115,19 @@ bestaat los van de gesprekken.
     begrippen* (`inclusief=alle`); `exporteerBegrippen` vertaalt `ttl-alle`. De allowlist laat
     `begrippen/samenhang` en `begrippen/conformiteit` al door (pad van lengte 3).
   - Browserregressie: `scripts/test-begrippengraaf.mjs`.
+- **Generieke begrippen** (ADR-006; api §*Generieke begrippen*). Een begrip kan boven de werkgebieden staan (`kader:
+  "generiek"`). `useBegrip` kent twee contexten: in een werkgebied of generiek; de handelingen staan in `stand.api`, zodat
+  `BegripInhoud` niet hoeft te weten welke route het is.
+  - **In een werkgebied** lees je het begrip en beheer je je eigen passages; *Bewerk generiek begrip* gaat naar zijn pagina.
+    `GeneriekVeranderdBlok` zet toen naast nu, met *Klopt nog voor dit werkgebied* of *Opvolger overnemen*. Voorstellen van
+    Lex per veld horen er niet.
+  - **De eigen pagina** `/begrippen/[id]` (`BegripGeneriekPagina`, `generiekPad`): bewerken en accorderen, passages per
+    werkgebied, *Gebruikt in*, relaties. Het segment heet `[wg]` omdat `app/begrippen/[wg]/[id]` (de doorverwijzing) er nog staat.
+  - **Het kader**: label *Generiek* op de rij, een wijziging bij *Te doen*, *Generiek begrip gebruiken* (`GeneriekGebruiken`).
+  - **Het menu ⋯**: *Generiek maken*, *Combineren met generiek begrip…* (`BegripOpvolging`), *Niet meer gebruiken*.
+  - **Het overzicht**: de keuze Kader (`generiek` in `OverzichtFilters`, `kader=generiek` in de URL).
+  - De BFF `app/api/begrippen/[...pad]` laat alleen `isGeneriekRoute` door, nooit `verifieer`.
+  - Browserregressie: `scripts/test-generieke-begrippen.mjs`.
 - **Begrippen over werkgebieden heen** (fase F4; api §*Begrippen lezen*): het sidebar-item *Begrippen*
   opent `/begrippen` (`BegrippenOverzichtClient` in `WerkgebiedSchil`, binnen een `Suspense` omdat de
   filters via `useSearchParams` in de URL staan). Een leesingang in de vorm van de andere overzichten

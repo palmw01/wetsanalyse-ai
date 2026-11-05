@@ -107,7 +107,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | I | Begrippen volgens NL-SBB met uitleg in B1, TOOI, één bedieningsstijl | Af: I5, I1–I4, I6, I7 gemerged (#752–#756, #762, #763), het thema als vraagkaart erna; open: de meting `eval.uitleg_eval` (3 runs, kost geld) |
 | K | Eén bronnenlijst, deelvragen zonder begrip, rustige panelen, één stijl | K1–K5 gemerged (#767–#771) |
 | L | Getypte bepalingen bij het samenstellen, één plek voor de bronnen per deelvraag | L1 (#772) en L2–L3 gebouwd |
-| N | Begrippen: nieuwe bediening en generieke begrippen | Besloten (ADR-006), niets gebouwd |
+| N | Begrippen: nieuwe bediening en generieke begrippen | Gebouwd als PR-stapel #836–#847; nog te mergen en op acceptatie te toetsen |
 
 ---
 

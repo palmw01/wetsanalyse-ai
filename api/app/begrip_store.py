@@ -337,6 +337,17 @@ async def lijst(werkgebied_id: str) -> list[dict]:
     return uit
 
 
+async def generieke_buiten(werkgebied_id: str) -> list[dict]:
+    """De generieke begrippen die dit werkgebied (nog) niet gebruikt, in de vorm die `lijkt_op` leest."""
+    b, g = db.begrippen, db.werkgebied_begrippen
+    gebruikt = select(g.c.begrip_id).where(g.c.werkgebied_id == werkgebied_id, g.c.verwijderd.is_(None))
+    async with db.get_engine().connect() as conn:
+        rows = (await conn.execute(select(b).where(b.c.werkgebied_id.is_(None), b.c.verwijderd.is_(None),
+                                                   b.c.status != "vervangen", b.c.id.not_in(gebruikt))
+                                   .order_by(b.c.aangemaakt, b.c.id))).all()
+    return [{"id": r.id, "kader": GENERIEK, "status": r.status, "inhoud": slank(r.inhoud), "element_ids": []} for r in rows]
+
+
 async def samenhang(werkgebied_id: str) -> dict:
     """Begrippen en hun koppelingen, zonder bewijs: wat de samenhangsgraaf tekent (fase F3)."""
     b = db.begrippen

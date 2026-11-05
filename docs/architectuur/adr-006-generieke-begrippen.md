@@ -1,6 +1,6 @@
 # ADR-006 — Generieke begrippen boven de werkgebieden
 
-Status: **aangenomen, nog niet gebouwd** · Datum: 2026-11-05 · Hoort bij: [PLAN spoor N](../PLAN.md#n-begrippen-nieuwe-bediening-en-generieke-begrippen), [ADR-003](adr-003-nl-sbb-begrippencontract.md)
+Status: **aangenomen, gebouwd (nog niet op acceptatie getoetst)** · Datum: 2026-11-05 · Hoort bij: [PLAN spoor N](../PLAN.md#n-begrippen-nieuwe-bediening-en-generieke-begrippen), [ADR-003](adr-003-nl-sbb-begrippencontract.md)
 
 ## Context
 

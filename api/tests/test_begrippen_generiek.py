@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from rdflib import DCTERMS as DCT, SKOS, URIRef
 
-from app import begrip_projectie, db
+from app import begrip_projectie, begrip_store, db
 from test_annotatie_v2 import ART
 from test_begrippen import DEFINITIE, _annoteer, _begrip, _keur_alles_goed, _url, _werkgebied
 from test_begrippen import client, database, graaf, snapshot2  # noqa: F401
@@ -268,3 +268,18 @@ async def test_het_generieke_kader_exporteert_als_turtle_met_conformiteit(client
     assert r.status_code == 200 and "urn:wa:kader:generiek" in r.text and g["id"] in r.text
     c = await client.get("/v1/begrippen/conformiteit")
     assert c.status_code == 200 and g["id"] in c.json()["begrippen"]
+
+
+# --- Lex (G5) ---------------------------------------------------------------------------------------------------
+
+async def test_generieke_begrippen_buiten_dit_werkgebied(client):
+    _, _, g = await generiek(client)
+    ander = await _nieuw(client, "Ander")
+    ander = (await _bron(client, ander, bron_iri=ART))["werkgebied"]
+    assert [x["id"] for x in await begrip_store.generieke_buiten(ander["id"])] == [g["id"]]
+    assert (await client.get(_url(ander, g))).status_code == 404
+    async with db.get_engine().begin() as conn:
+        await begrip_store._werkgebied_bestaat(conn, ander["id"], slot=True)
+        await begrip_store.gebruik_in(conn, ander["id"], g["id"], "lex-test")
+    assert await begrip_store.generieke_buiten(ander["id"]) == []
+    assert (await client.get(_url(ander, g))).status_code == 200
