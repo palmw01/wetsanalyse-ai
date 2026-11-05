@@ -11,6 +11,11 @@ Schema van een regel (zie `regels/*.yaml`):
     links:      optioneel; regex die direct vóór de kern moet eindigen ('$' wordt toegevoegd)
     rechts:     optioneel; regex die direct na de kern moet beginnen
     niet_binnen: maskers waarbinnen de regel niet vuurt (default: [verwijzing])
+    niet_woordsoort: optioneel; woordsoorten (UD, eventueel `VERB:Fin`, of `NOUN:zinsdeel` voor een naamwoord dat
+                niet de kern van de zin is: de parser ziet een gezegde soms als naamwoord) die de treffer afkeuren
+                als er een parse is. Kijkt naar de groep `(?P<doel>…)` in het patroon, anders naar de hele treffer: 'staat' als
+                persoonsvorm is geen rol, 'bedragen' als zelfstandig naamwoord geen berekening. Een voltooid
+                deelwoord blijft een rol ('de verzekerde'). Zonder parse vuurt de regel gewoon.
     tests:      positief / negatief / rand / overlap – verplicht, zie tests/test_detectoren.py
 
 Een uitbreiding naar links of rechts maakt de kandidaatspan niet vanzelf langer: de kern en elke
@@ -78,6 +83,7 @@ class Regel:
     bereik: str = "bron"
     controle: str = ""
     bewijs: str = "zwak"
+    niet_woordsoort: tuple[str, ...] = ()
 
     @classmethod
     def van(cls, detector: str, d: dict[str, Any]) -> Regel:
@@ -99,20 +105,34 @@ class Regel:
         return cls(d["id"], detector, tuple(d["klassen"]), d["code"], d["bron"], int(d["versie"]),
                    comp(d["patroon"]), comp(d.get("links"), "$"), comp(d.get("rechts")),
                    tuple(d.get("niet_binnen", ["verwijzing"])), d.get("tests", {}),
-                   d.get("bereik", "bron"), d.get("controle", ""), d["bewijs"])
+                   d.get("bereik", "bron"), d.get("controle", ""), d["bewijs"], tuple(d.get("niet_woordsoort", ())))
 
-    def vind(self, tekst: str) -> list[list[tuple[int, int]]]:
+    def vind(self, tekst: str, analyse: Any = None) -> list[list[tuple[int, int]]]:
         """Per treffer de mogelijke grenzen: kern, links+kern, kern+rechts, links+kern+rechts."""
         if self.bereik == "segment":
             return [[(g.start + s, g.start + e) for s, e in grenzen]
                     for g in analyseer_grenzen(tekst).segmenten(tekst)
-                    for grenzen in self._vind(tekst[g.start:g.eind])]
-        return self._vind(tekst)
+                    for grenzen in self._vind(tekst[g.start:g.eind], analyse, g.start)]
+        return self._vind(tekst, analyse)
 
-    def _vind(self, tekst: str) -> list[list[tuple[int, int]]]:
+    def _afgekeurd(self, m: re.Match, analyse: Any, verschuiving: int) -> bool:
+        """Is het woord van deze treffer in de parse een woordsoort die de regel uitsluit?"""
+        if not self.niet_woordsoort or analyse is None:
+            return False
+        s, e = m.span("doel") if "doel" in self.kern.groupindex else m.span()
+        s, e = s + verschuiving, e + verschuiving
+        tokens = [t for t in analyse.tokens if t.start < e and s < t.eind]
+        return bool(tokens) and all(t.upos in self.niet_woordsoort
+                                    or f"{t.upos}:{t.feat('VerbForm')}" in self.niet_woordsoort
+                                    or (t.deprel != "root" and f"{t.upos}:zinsdeel" in self.niet_woordsoort)
+                                    for t in tokens)
+
+    def _vind(self, tekst: str, analyse: Any = None, verschuiving: int = 0) -> list[list[tuple[int, int]]]:
         uit = []
         for m in self.kern.finditer(tekst):
             if self.controle == "kalenderdatum" and not _kalenderdatum(m.group()):
+                continue
+            if self._afgekeurd(m, analyse, verschuiving):
                 continue
             s, e = _trim(tekst, *m.span())
             if s >= e:
@@ -197,7 +217,7 @@ class RegelDetector:
         bijdragen = []
         for regel in self.regels:
             weg = [b for naam in regel.niet_binnen for b in masker.get(naam, [])]
-            for grenzen in regel.vind(bron.tekst):
+            for grenzen in regel.vind(bron.tekst, bron.analyse):
                 if _binnen(grenzen[0], weg):
                     continue
                 langste = grenzen[-1]

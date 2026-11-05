@@ -264,3 +264,40 @@ def test_geen_fusiekandidaat_met_een_zaak_als_kop_krijgt_rechtssubject(parser):
 def test_nominalisatiecontext(parser, tekst, np, klassen, regel):
     k = next(k for k in NominalisatieDetector().detecteer(_bron(tekst, parser)).kandidaten if k.span.tekst.startswith(np))
     assert k.possible_classes == klassen and k.evidence[0].regel == regel
+
+
+# --- woordsoort en aanhef (acceptatietest nov 2026) ------------------------------------------------
+
+@pytest.mark.parametrize("tekst", ["een bankrekening die op zijn naam staat", "De woning staat op naam van de koper."])
+def test_de_persoonsvorm_staat_is_geen_rol(parser, tekst):
+    assert not [e for k in kandidaten_van(detecteer_alles(_bron(tekst, parser))) for e in k.evidence
+                if e.code == "ROLE_NOUN" and e.detail.lower().endswith("staat")]
+
+
+def test_een_rol_die_op_een_deelwoord_lijkt_en_de_staat_blijven_rol(parser):
+    for tekst, woord in (("de verzekerde betaalt de premie", "de verzekerde"), ("De Staat is aansprakelijk.", "De Staat")):
+        assert woord in {e.detail for k in kandidaten_van(detecteer_alles(_bron(tekst, parser))) for e in k.evidence
+                         if e.code == "ROLE_NOUN"}
+
+
+def test_bedragen_als_zelfstandig_naamwoord_is_geen_berekening_en_als_werkwoord_wel(parser):
+    def codes(tekst):
+        return {e.code for k in kandidaten_van(detecteer_alles(_bron(tekst, parser))) for e in k.evidence}
+    assert "CALCULATION_COPULA" not in codes("De ontvanger is bevoegd de aan hem uit te betalen bedragen te verrekenen.")
+    assert "CALCULATION_COPULA" in codes("De kosten bedragen vijftig euro per dag.")
+
+
+@pytest.mark.parametrize("tekst", ["op de bankrekening van een onderneming", "de bankrekening van de vereniging"])
+def test_een_zaak_op_ing_is_geen_handeling(parser, tekst):
+    assert not NominalisatieDetector().detecteer(_bron(tekst, parser)).kandidaten
+
+
+def test_onder_een_aanhef_blijft_rechtssubject_mogelijk_in_elke_wetsfamilie(parser):
+    """De norm staat in de aanhef van de ouder, dus een partij in een onderdeel is niet 'zonder normcontext'."""
+    def klassen(tekst, woord, context=""):
+        return {c for k in NaamwoordgroepDetector().detecteer(_bron(tekst, parser, context=context)).kandidaten
+                if k.span.tekst == woord for c in k.possible_classes}
+    for aanhef, onderdeel, woord in (("Worden aangewezen betalingen op de rekening:", "van een curator;", "een curator"),
+                                     ("Onder huurder wordt verstaan degene die:", "van een stichting;", "een stichting")):
+        assert "Rechtssubject" in klassen(onderdeel, woord, aanhef)
+        assert "Rechtssubject" not in klassen(onderdeel, woord)

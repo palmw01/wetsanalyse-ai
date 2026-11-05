@@ -106,6 +106,7 @@ ROL:
 # dagtekening"). Matcht op het einde van het lemma ("belastingaanslag", "navorderingsaanslag").
 # Disjunct met ROL: een rol gaat altijd voor (tests/test_syntactische_detectoren.py).
 ZAAK:
+  - rekening
   - aanslagbiljet
   - aanslag
   - beschikking

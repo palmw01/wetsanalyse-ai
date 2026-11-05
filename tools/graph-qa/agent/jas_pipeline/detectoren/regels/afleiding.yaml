@@ -5,10 +5,11 @@
   code: CALCULATION_COPULA
   bewijs: zwak
   bron: "H2:73"
-  versie: 2
+  versie: 3
   bereik: segment
   niet_binnen: []
-  patroon: '[\s\S]*?(?<!minder )(?<!meer )\b(?:bedraagt|bedragen)\b(?!\s+(?:\w+\s+)?dan\b)[\s\S]*'
+  niet_woordsoort: ['NOUN:zinsdeel']
+  patroon: '[\s\S]*?(?<!minder )(?<!meer )\b(?P<doel>bedraagt|bedragen)\b(?!\s+(?:\w+\s+)?dan\b)[\s\S]*'
   tests:
     positief: [{tekst: "De dwangsom bedraagt € 23 per dag.", span: "De dwangsom bedraagt € 23 per dag."}]
     negatief: [{tekst: "Indien de premie minder bedraagt dan de standaardpremie", span: "minder bedraagt dan"}]

@@ -157,6 +157,10 @@ def _nominaal(a: LinguisticAnalysis, t: Token) -> bool:
 PERSOON, ZAAK, HANDELING, ONBEKEND = "persoon", "zaak", "handeling", "onbekend"
 
 
+def _is_zaak(t: Token) -> bool:
+    return (t.lemma or t.tekst).lower().endswith(tuple(woordenlijsten()["ZAAK"].split("|")))
+
+
 def referent(a: LinguisticAnalysis, t: Token, uitgesloten: list[tuple[int, int]]) -> str:
     """Wat de kop van een naamwoordgroep aanduidt: een persoon, een zaak, een handeling of onbekend.
 
@@ -168,7 +172,7 @@ def referent(a: LinguisticAnalysis, t: Token, uitgesloten: list[tuple[int, int]]
     lemma = (t.lemma or t.tekst).lower()
     if t.upos == "PRON" or _lijst("ROL").match(lemma) or _lijst("ROL").match(t.tekst):
         return PERSOON
-    if any(lemma.endswith(w) for w in woordenlijsten()["ZAAK"].split("|")):
+    if _is_zaak(t):
         return ZAAK
     if _nominalisatie(a, t, uitgesloten):
         return HANDELING
@@ -187,7 +191,8 @@ class NaamwoordgroepDetector:
     BEWIJS = {"SUBJECT_NP": ("generiek", ""), "OBJECT_NP": ("generiek", ""), "ENUMERATED_NP": ("generiek", ""),
               "THING_NP": ("generiek", ""), "ACTION_NP": ("generiek", "")}
     # 3: een zaak of handeling als kop krijgt geen Rechtssubject (art. 9 lid 5 IW 1990)
-    versie = f"3+verwijzing.{VERWIJZING_VERSIE}"
+    # 4: een onderdeel onder een aanhef heeft normcontext
+    versie = f"4+verwijzing.{VERWIJZING_VERSIE}"
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
@@ -195,6 +200,8 @@ class NaamwoordgroepDetector:
             return resultaat(self, bron, overgeslagen=True, reden=reden)
         kandidaten = []
         normen = _normsegmenten(bron.tekst)
+        # Een onderdeel van een opsomming draagt zijn norm in de aanhef van de ouder, niet in de eigen tekst.
+        onder_aanhef = bron.context.rstrip().endswith(":")
         uitgesloten = _vaste_uitdrukkingen(bron.tekst)
         for t in a.tokens:
             if not _nominaal(a, t) or t.deprel in {"fixed", "flat", "flat:name", "compound", "nmod:poss"}:
@@ -213,7 +220,7 @@ class NaamwoordgroepDetector:
             if not grenzen or _in_verwijzing(bron, *grenzen[0][0]):
                 continue
             lemma = (t.lemma or t.tekst).lower()
-            norm = any(s <= t.start < e for s, e in normen)
+            norm = onder_aanhef or any(s <= t.start < e for s, e in normen)
             bewijs, klassen = self._classificeer_signaal(a, t, lemma, norm, referent(a, t, uitgesloten))
             kandidaten.append(_kandidaat(bron, grenzen, klassen, bewijs))
         return resultaat(self, bron, kandidaten)
@@ -333,7 +340,7 @@ def _nominalisatie(a: LinguisticAnalysis, t: Token, uitgesloten: list[tuple[int,
 
     infinitief = t.upos == "VERB" and t.feat("VerbForm") == "Inf" and any(
         a.tokens[k].deprel == "det" and a.tokens[k].tekst.lower() == "het" for k in kinderen)
-    handeling = (t.upos == "NOUN" and t.tekst.lower().endswith("ing")
+    handeling = (t.upos == "NOUN" and t.tekst.lower().endswith("ing") and not _is_zaak(t)
                  and any(bepaling(k) for k in (
                      *kinderen, *(j for c in kinderen if a.tokens[c].deprel == "conj"
                                   and a.tokens[c].tekst.lower().endswith("ing") for j in a.kinderen(c))))
@@ -365,7 +372,8 @@ class NominalisatieDetector:
                                "jas.feit.nominalisatie_in_voorwaarde")
     naam = "nominalisatie"
     # 5: de context bepaalt of Voorwaarde een hypothese is (art. 9 lid 5 IW 1990)
-    versie = f"5+verwijzing.{VERWIJZING_VERSIE}"
+    # 6: een zaak op -ing is geen handeling
+    versie = f"6+verwijzing.{VERWIJZING_VERSIE}"
     _AAN_DE_RAND = {"case", "cc", "advmod", "mark", "punct"}
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
