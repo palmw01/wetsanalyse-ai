@@ -497,7 +497,7 @@ try {
   await vp.locator('[data-versiekiezer][data-versie-plek="nu"]').waitFor();
   // De chip van de laatste beurt is het werk van nu.
   await chips6.nth(1).click();
-  await vp.locator('[data-versiekiezer][data-versie-plek="nu"]').getByText("2 versies", { exact: false }).waitFor();
+  await vp.locator('[data-versiekiezer][data-versie-plek="nu"]').locator("[data-laatste-versie]", { hasText: "laatste versie van Lex: 5 nov" }).waitFor();
   await vp.getByRole("button", { name: "Werkgebied verwijderen" }).waitFor();
 
   // Werkgebied: g5 hoort bij wg1, dus de werkplek staat erin; na verwijderen wordt het gesprek los.
