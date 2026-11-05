@@ -34,7 +34,7 @@ from sqlalchemy import delete, func, insert, or_, select, update
 
 from . import annotatie_v2_store as annotaties, db
 from .begrip_contracts import (
-    BegripInhoud, BegripInvoer, BegripWijziging, KoppelInvoer, KoppelWijziging,
+    BegripInhoud, BegripInvoer, BegripWijziging, KoppelBeoordelingen, KoppelInvoer, KoppelWijziging,
 )
 from .werkgebied_inventaris import inventaris
 from .werkgebied_store import _audit as werkgebied_audit, niet_gevonden
@@ -192,6 +192,20 @@ def _begrip(row, koppelingen: list[dict], opvolging: dict | None = None) -> dict
             "aandachtspunten": [] if row.status == "vervangen" else _aandacht(row.status, p, koppelingen),
             # Opvolging (fase F2): door welk begrip dit vervangen is, en welke dit vervangt.
             "vervangen_door": o.get("vervangen_door"), "vervangt": o.get("vervangt", [])}
+
+
+#: Wat een besluit over een koppeling kan veranderen. De kaart en het bewijs blijven staan.
+_KOPPELSTAND = ("id", "element_id", "rol", "motivatie", "beoordeling", "beoordeeld_door", "beoordeeld_op", "actualiteit",
+                "lifecycle_nu", "annotatie_beoordeeld")
+_BEGRIPSTAND = ("id", "status", "revisie", "gewijzigd", "geaccordeerd_door", "geaccordeerd_op", "geaccordeerd_revisie",
+                "accorderen", "aandachtspunten")
+
+
+def koppelstand(begrip: dict) -> dict:
+    """Het antwoord op een besluit over koppelingen. Niet de hele kaart: die groeit met het aantal passages, en de
+    jurist neemt ze één voor één door, dus een reeks besluiten werd kwadratisch. De werkplek legt dit over wat ze heeft."""
+    return {**{k: begrip[k] for k in _BEGRIPSTAND}, "koppelingen": [
+        {k: x[k] for k in _KOPPELSTAND} | {"bevestigingen": len(x.get("bevestigingen") or [])} for x in begrip["koppelingen"]]}
 
 
 async def _opvolging(conn, werkgebied_id: str | None) -> dict[str, dict]:
@@ -669,7 +683,7 @@ async def koppel(werkgebied: dict, begrip_id: str, invoer: KoppelInvoer, actor: 
     async with db.get_engine().begin() as conn:
         await koppel_in(conn, werkgebied["id"], begrip_id, invoer.verwachte_revisie, bewijs, invoer.rol.value,
                         invoer.motivatie, actor)
-    return await haal(werkgebied["id"], begrip_id)
+    return koppelstand(await haal(werkgebied["id"], begrip_id))
 
 
 async def koppel_in(conn, werkgebied_id: str, begrip_id: str, verwacht: int, bewijs: dict[str, dict], rol: str,
@@ -717,7 +731,28 @@ async def wijzig_koppeling(werkgebied_id: str, begrip_id: str, koppeling_id: str
             if "beoordeling" in velden:
                 velden.update(beoordeeld_door=actor, beoordeeld_op=db.utcnow())
             await conn.execute(update(k).where(k.c.id == koppeling_id).values(**velden))
-    return await haal(werkgebied_id, begrip_id)
+    return koppelstand(await haal(werkgebied_id, begrip_id))
+
+
+async def beoordeel_koppelingen(werkgebied_id: str, begrip_id: str, w: KoppelBeoordelingen, actor: str) -> dict:
+    """Dezelfde beoordeling op meer koppelingen, in één revisie. Wat er al zo staat, telt niet mee."""
+    k = db.begrip_koppelingen
+    beoordeling = w.beoordeling.value
+    detail: dict = {"velden": ["beoordeling"], "beoordeling": beoordeling}
+    async with _gewijzigd(werkgebied_id, begrip_id, w.verwachte_revisie, actor, "koppeling-gewijzigd",
+                          detail, passage=True) as (conn, _, stand):
+        rijen = {r.id: r for r in (await conn.execute(select(k).where(
+            k.c.id.in_(w.koppeling_ids), k.c.begrip_id == begrip_id, k.c.verwijderd.is_(None)))).all()}
+        if onbekend := [i for i in w.koppeling_ids if i not in rijen]:
+            raise HTTPException(404, {"fout": "onbekende_koppeling", "koppeling_ids": onbekend,
+                                      "melding": f"{len(onbekend)} koppeling(en) bestaan niet (meer) bij dit begrip."})
+        anders = [i for i in w.koppeling_ids if rijen[i].beoordeling != beoordeling]
+        detail["koppelingen"] = anders
+        stand["geen_wijziging"] = not anders
+        if anders:
+            await conn.execute(update(k).where(k.c.id.in_(anders)).values(
+                beoordeling=beoordeling, beoordeeld_door=actor, beoordeeld_op=db.utcnow()))
+    return koppelstand(await haal(werkgebied_id, begrip_id))
 
 
 async def _toets_primair(conn, werkgebied_id: str, begrip_id: str, element_ids: list[str]) -> None:
@@ -745,24 +780,29 @@ async def ontkoppel(werkgebied_id: str, begrip_id: str, koppeling_id: str, verwa
         if row is None:
             raise HTTPException(404, "Koppeling bestaat niet.")
         await conn.execute(update(k).where(k.c.id == koppeling_id).values(verwijderd=db.utcnow()))
-    return await haal(werkgebied_id, begrip_id)
+    return koppelstand(await haal(werkgebied_id, begrip_id))
 
 
-async def accordeer(werkgebied_id: str | None, begrip_id: str, verwacht: int, actor: str) -> dict:
+async def accordeer(werkgebied_id: str | None, begrip_id: str, verwacht: int, reden: str, actor: str) -> dict:
     async with db.get_engine().begin() as conn:
-        p = await accordeer_in(conn, werkgebied_id, begrip_id, verwacht, actor)
+        p = await accordeer_in(conn, werkgebied_id, begrip_id, verwacht, reden, actor)
     if not p["mag"]:
         raise HTTPException(409, {"fout": "poort", "redenen": p["redenen"],
                                   "melding": "Nog niet te accorderen: " + " ".join(p["redenen"])})
     return await haal(werkgebied_id, begrip_id)
 
 
-async def accordeer_in(conn, werkgebied_id: str | None, begrip_id: str, verwacht: int, actor: str) -> dict:
+async def accordeer_in(conn, werkgebied_id: str | None, begrip_id: str, verwacht: int, reden: str, actor: str) -> dict:
     """Accorderen als de poort het toelaat, binnen de transactie van de aanroeper. Mag het niet, dan
-    verandert er niets en komen de redenen terug: de aanroeper beslist of dat een fout is."""
+    verandert er niets en komen de redenen terug: de aanroeper beslist of dat een fout is. Een akkoord op
+    een voorstel zonder reden blijft dus een concept: accorderen zonder reden bestaat niet."""
+    reden = reden.strip()
+    detail = {"reden": reden}
     async with _gewijzigd_in(conn, werkgebied_id, begrip_id, verwacht, actor, "begrip-geaccordeerd",
-                             {}) as (_, row, stand):
+                             detail) as (_, row, stand):
         p = poort(row.inhoud, await _koppelingen_van(conn, werkgebied_id, begrip_id))
+        if not reden:
+            p = {"mag": False, "redenen": [*p["redenen"], "De reden van het accorderen ontbreekt."]}
         if not p["mag"]:
             stand["geen_wijziging"] = True
         else:

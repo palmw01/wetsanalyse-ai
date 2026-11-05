@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  LEGE_INHOUD, begripUitParam, filterBegrippen, gewijzigdeVelden, inhoudGewijzigd, isAlPrimair, isPoortFout, revisieZin,
+  LEGE_INHOUD, begripUitParam, metKoppelstand, filterBegrippen, gewijzigdeVelden, inhoudGewijzigd, isAlPrimair, isPoortFout, revisieZin,
   sorteerKoppelingen, volledigeInhoud,
 } from "./begrippen";
-import type { Koppeling } from "./types";
+import type { Begrip, KoppelStand, Koppeling } from "./types";
 
 const inhoud = (over = {}) => ({ ...LEGE_INHOUD, naam: "Belastingschuldige", ...over });
 
@@ -83,5 +83,37 @@ describe("filterBegrippen", () => {
     expect(filterBegrippen(lijst, { term: "", status: "vervangen" }).map((x) => x.inhoud.naam)).toEqual(["Oud"]);
     expect(filterBegrippen(lijst, { term: "BESCHIK", status: "alle" }).map((x) => x.inhoud.naam)).toEqual(["Aanslag"]);
     expect(filterBegrippen(lijst, { term: "last", status: "alle" }).map((x) => x.inhoud.naam)).toEqual(["Schuld"]);
+  });
+});
+
+describe("metKoppelstand", () => {
+  const k = (id: string, x = {}) => ({ id, element_id: id, rol: "duiding", motivatie: "", bewijs: { tekst: id }, beoordeling: "open",
+    beoordeeld_door: null, beoordeeld_op: null, actualiteit: "actueel", lifecycle_nu: "human_approved", annotatie_beoordeeld: true, ...x });
+  const begrip = { id: "b", revisie: 2, status: "concept", inhoud: { naam: "Alfa" }, koppelingen: [k("a"), k("b")] } as unknown as Begrip;
+  const stand = (kop: object[]) => ({ id: "b", revisie: 3, status: "concept", koppelingen: kop }) as unknown as KoppelStand;
+  const s = (id: string, x = {}) => { const { bewijs: _, ...r } = k(id, x); return { ...r, bevestigingen: 0 }; };
+
+  it("legt de stand over de kaart en houdt het bewijs", () => {
+    const uit = metKoppelstand(begrip, stand([s("a", { beoordeling: "akkoord" }), s("b")]))!;
+    expect(uit.revisie).toBe(3);
+    expect(uit.inhoud.naam).toBe("Alfa");
+    expect(uit.koppelingen[0]).toMatchObject({ beoordeling: "akkoord", bewijs: { tekst: "a" } });
+  });
+
+  it("laat een losgemaakte passage weg", () => {
+    expect(metKoppelstand(begrip, stand([s("b")]))!.koppelingen.map((x) => x.id)).toEqual(["b"]);
+  });
+
+  it("vraagt de kaart opnieuw bij een nieuwe passage of bewijsstand", () => {
+    expect(metKoppelstand(begrip, stand([s("a"), s("b"), s("c")]))).toBeNull();
+    expect(metKoppelstand(begrip, stand([{ ...s("a"), bevestigingen: 1 }, s("b")]))).toBeNull();
+  });
+});
+
+describe("revisieZin bij bulk en accorderen", () => {
+  it("noemt de reden en het aantal", () => {
+    expect(revisieZin({ actie: "begrip-geaccordeerd", detail: { reden: "Getoetst." } })).toBe("Geaccordeerd: Getoetst.");
+    expect(revisieZin({ actie: "koppeling-gewijzigd", detail: { beoordeling: "akkoord", koppelingen: ["a", "b"] } })).toBe("2 passages beoordeeld: akkoord");
+    expect(revisieZin({ actie: "koppeling-bevestigd", detail: { koppelingen: ["a", "b"] } })).toBe("2 veranderde passages bevestigd");
   });
 });

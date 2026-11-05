@@ -118,6 +118,7 @@ function TermBeoordeling({ werkgebiedId, term, data, onHerlaad, onGewijzigd }: {
     regelingNaam: (i) => regelingVan(i.p) || undefined,
   }), [items, plaatsen]);
 
+  const [reden, setReden] = useState("");
   const vragen = useMemo(() => [...term.vragenBinnen, ...term.vragenBuiten], [term]);
   const akkoord = termAkkoord(term, gekozen, vragen);
   const n = items.filter((i) => gekozen.has(i.p.element_id)).length;
@@ -167,6 +168,7 @@ function TermBeoordeling({ werkgebiedId, term, data, onHerlaad, onGewijzigd }: {
     );
     const invoer = {
       ...akkoordVoor(akkoord.groepen, gekozen, naam, { aanpassing, definitieVan: van || undefined }),
+      ...(reden.trim() ? { reden: reden.trim() } : {}),
       ...(akkoord.kandidaat_ids.length ? { kandidaat_ids: akkoord.kandidaat_ids } : {}),
     };
     void voer(() => akkoordGroep(werkgebiedId, invoer), (uit) => router.push(begripPad(werkgebiedId, uit.begrip.id)));
@@ -272,6 +274,11 @@ function TermBeoordeling({ werkgebiedId, term, data, onHerlaad, onGewijzigd }: {
               <ul className="mt-0.5 list-disc pl-4">{redenen.map((r) => <li key={r}>{r}</li>)}</ul>
               Op de pagina van het begrip los je dat op en accordeer je.
             </div>
+          )}
+          {redenen.length === 0 && (
+            <Field label="Reden van accorderen" hint="zonder reden wordt het begrip eerst een concept">
+              <AutoTextarea value={reden} onChange={(e) => setReden(e.target.value)} rows={2} maxLength={2000} />
+            </Field>
           )}
         </div>
       </Kaart>

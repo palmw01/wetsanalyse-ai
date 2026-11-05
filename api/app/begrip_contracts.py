@@ -109,6 +109,37 @@ class Revisie(BaseModel):
     verwachte_revisie: int = Field(ge=1)
 
 
+class Accordering(Revisie):
+    """Accorderen zonder reden bestaat niet: de reden staat in de revisie en de audit, naast wie accordeerde."""
+
+    reden: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("reden")
+    @classmethod
+    def _reden(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("reden is verplicht")
+        return v.strip()
+
+
+class KoppelSelectie(BaseModel):
+    """Meer koppelingen van één begrip in één transactie en één revisie: alles of niets."""
+
+    verwachte_revisie: int = Field(ge=1)
+    koppeling_ids: list[str] = Field(min_length=1, max_length=500)
+
+    @field_validator("koppeling_ids")
+    @classmethod
+    def _uniek(cls, v: list[str]) -> list[str]:
+        if len(v) != len(set(v)):
+            raise ValueError("elke koppeling hoogstens één keer")
+        return v
+
+
+class KoppelBeoordelingen(KoppelSelectie):
+    beoordeling: Beoordeling
+
+
 class GebruikInvoer(BaseModel):
     """Een generiek begrip gebruiken in dit werkgebied (ADR-006)."""
 

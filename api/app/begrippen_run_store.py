@@ -515,7 +515,7 @@ async def _neem_over(werkgebied: dict, o: Overname, actor: str, resolve: Resolve
         bid = await begrip_store.maak_in(conn, wid, inhoud, bewijs, "duiding", actor,
                                          "akkoord" if akkoord else "open",
                                          onderbouwing=None if "definitie" in velden else _onderbouwing(rows, o, inhoud, run))
-        p = await begrip_store.accordeer_in(conn, wid, bid, 1, actor) if akkoord else None
+        p = await begrip_store.accordeer_in(conn, wid, bid, 1, o.reden, actor) if akkoord else None
         detail = {"geaccordeerd": p["mag"], **({"aangepast": velden} if velden else {})} if akkoord else {}
         await _verwerk(conn, wid, rows, leden, actor, bid, "overgenomen",
                        "groep-akkoord" if akkoord else "groep-overgenomen", detail)
@@ -523,7 +523,8 @@ async def _neem_over(werkgebied: dict, o: Overname, actor: str, resolve: Resolve
             for kid in dict.fromkeys([*([o.kandidaat_id] if o.kandidaat_id else []), *o.kandidaat_ids]):
                 await _vraag_in(conn, wid, run.id, kid, "samen", actor)
     begrip = await begrip_store.haal(wid, bid)
-    return {"begrip": begrip, "geaccordeerd": begrip["status"] == "geaccordeerd", "poort": begrip["accorderen"]}
+    # Wat een begrip nodig heeft, plus wat alleen bij dit akkoord ontbrak (de reden).
+    return {"begrip": begrip, "geaccordeerd": begrip["status"] == "geaccordeerd", "poort": p or begrip["accorderen"]}
 
 
 def _onderbouwing(rows, o: Overname, inhoud: dict, run) -> dict | None:
@@ -582,7 +583,8 @@ async def koppelen(werkgebied: dict, groep_id: str, k: GroepKoppeling, actor: st
         await begrip_store.koppel_in(conn, wid, k.begrip_id, voor.revisie, bewijs, "duiding", "", actor,
                                      "akkoord" if k.akkoord else "open")
         if k.akkoord and voor.status == "geaccordeerd" and not generiek:
-            await begrip_store.accordeer_in(conn, wid, k.begrip_id, (await conn.execute(q)).first().revisie, actor)
+            await begrip_store.accordeer_in(conn, wid, k.begrip_id, (await conn.execute(q)).first().revisie,
+                                            "Opnieuw geaccordeerd: passages uit een voorstel gekoppeld.", actor)
         await _verwerk(conn, wid, [row], leden, actor, k.begrip_id, "gekoppeld", "groep-gekoppeld",
                        {"akkoord": True} if k.akkoord else {})
     return await begrip_store.haal(wid, k.begrip_id)

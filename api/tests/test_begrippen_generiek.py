@@ -20,7 +20,7 @@ async def geaccordeerd(client, wg, ids, naam="Belastingschuldige") -> dict:
                            json={"verwachte_revisie": b["revisie"], "beoordeling": "akkoord"})
     assert r.status_code == 200, r.text
     b = r.json()
-    r = await client.post(_url(wg, b, "accorderen"), json={"verwachte_revisie": b["revisie"]})
+    r = await client.post(_url(wg, b, "accorderen"), json={"reden": "Getoetst", "verwachte_revisie": b["revisie"]})
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -103,7 +103,7 @@ async def test_de_inhoud_wijzig_je_niet_vanuit_een_werkgebied(client):
     r = await client.patch(f"/v1/begrippen/{g['id']}", json={"verwachte_revisie": g["revisie"], "inhoud": inhoud})
     assert r.status_code == 200, r.text
     assert r.json()["inhoud"]["uitleg"] == "Wie betaalt." and r.json()["status"] == "concept"
-    r2 = await client.post(f"/v1/begrippen/{g['id']}/accorderen", json={"verwachte_revisie": r.json()["revisie"]})
+    r2 = await client.post(f"/v1/begrippen/{g['id']}/accorderen", json={"reden": "Getoetst", "verwachte_revisie": r.json()["revisie"]})
     assert r2.status_code == 200 and r2.json()["status"] == "geaccordeerd"
     # De audit van het werkgebied dat het gebruikt noemt de wijziging.
     audit = (await client.get(f"/v1/werkgebieden/{wg['id']}/audit")).json()["audit"]

@@ -235,6 +235,7 @@ export function auditZin(regel: WerkgebiedAuditRegel, labels: Map<string, string
     const naam = typeof d.naam === "string" ? d.naam
       : typeof d.begrip_id === "string" ? begrippen.get(d.begrip_id) : undefined;
     const wie = naam ? `Begrip "${naam}"` : "Een begrip";
+    if (regel.actie === "begrip-geaccordeerd" && typeof d.reden === "string" && d.reden) return `${wie}: geaccordeerd (${d.reden})`;
     return `${wie}: ${revisieZin(regel).toLowerCase()}`;
   }
   const bron = typeof d.bron_iri === "string" ? (labels.get(d.bron_iri) ?? d.bron_iri) : "een bron";

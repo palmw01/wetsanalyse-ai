@@ -7,9 +7,10 @@ import {
   haalGeneriekConformiteit, haalGeneriekRevisies, haalHerbeoordelingen, haalKaartVoorstellen, heropenBegrip, heropenGeneriek,
   lijstBegrippen, neemKaartVoorstelOver, verwijderBegrip, verwijderGeneriek, wijsKaartVoorstelAf, wijzigBegrip, wijzigGeneriek,
 } from "@/lib/api";
+import { metKoppelstand } from "@/lib/begrippen";
 import { verouderdUit, type Verouderd } from "@/lib/kaartVoorstel";
 import type {
-  Begrip, BegripInhoud, BegripRelatie, BegrippenLijst, Herbeoordelingen, KaartVoorstel, KaartVoorstellenAntwoord, RelatiesAntwoord,
+  Begrip, BegripInhoud, BegripRelatie, BegrippenLijst, Herbeoordelingen, KaartVoorstel, KaartVoorstellenAntwoord, KoppelStand, RelatiesAntwoord,
 } from "@/lib/types";
 import { metSpoor } from "@/lib/uiSpoor";
 import { verwijderdUit, type Verwijderd } from "@/lib/verwijderen";
@@ -20,7 +21,7 @@ export interface BegripMutatieOpties {
   /** Een fout die bij een formulier hoort: `true` als die hem al toont. */
   opFout?: (e: unknown) => boolean;
 }
-export type BegripMutatie = (actie: (revisie: number) => Promise<Begrip>, opties?: BegripMutatieOpties) => Promise<boolean>;
+export type BegripMutatie = (actie: (revisie: number) => Promise<Begrip | KoppelStand>, opties?: BegripMutatieOpties) => Promise<boolean>;
 
 /** Vanuit waar je naar een begrip kijkt (ADR-006): in een werkgebied, of op de eigen pagina van een generiek begrip. */
 export type BegripContext = { soort: "werkgebied"; werkgebiedId: string } | { soort: "generiek" };
@@ -47,13 +48,13 @@ export function useBegrip({ context, begripId, opname, onGewijzigd, onVerwijderd
   // Dezelfde handelingen, op de route die bij de plek hoort.
   const api = useMemo(() => generiek ? {
     wijzig: (r: number, inhoud: BegripInhoud) => wijzigGeneriek(begripId, r, inhoud),
-    accordeer: (r: number) => accordeerGeneriek(begripId, r),
+    accordeer: (r: number, reden: string) => accordeerGeneriek(begripId, r, reden),
     heropen: (r: number) => heropenGeneriek(begripId, r),
     revisies: () => haalGeneriekRevisies(begripId),
     conformiteit: () => haalGeneriekConformiteit(),
   } : {
     wijzig: (r: number, inhoud: BegripInhoud) => wijzigBegrip(id, begripId, r, inhoud),
-    accordeer: (r: number) => accordeerBegrip(id, begripId, r),
+    accordeer: (r: number, reden: string) => accordeerBegrip(id, begripId, r, reden),
     heropen: (r: number) => heropenBegrip(id, begripId, r),
     revisies: () => haalBegripRevisies(id, begripId),
     conformiteit: () => haalConformiteit(id),
@@ -124,7 +125,11 @@ export function useBegrip({ context, begripId, opname, onGewijzigd, onVerwijderd
     if (!begrip) return false;
     setMelding(null);
     try {
-      setBegrip(await actie(begrip.revisie));
+      const uit = await actie(begrip.revisie);
+      // Een besluit over passages geeft alleen de stand; de kaart die er ligt blijft staan.
+      const nieuw = "inhoud" in uit ? uit : metKoppelstand(begrip, uit);
+      if (nieuw) setBegrip(nieuw);
+      else await laad();
       if (gelukt) setMelding({ type: "bevestiging", tekst: gelukt });
       void laadLijst();
       onGewijzigd?.();

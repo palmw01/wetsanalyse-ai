@@ -83,6 +83,7 @@ import type {
   Inventaris,
   KoppelBeoordeling,
   KoppelRol,
+  KoppelStand,
   OngelezenAantalOut,
   RunStart,
   VoorstelElement,
@@ -1265,8 +1266,8 @@ export async function koppelElementen(
   id: string,
   begripId: string,
   invoer: { verwachte_revisie: number; element_ids: string[]; rol?: KoppelRol; motivatie?: string },
-): Promise<Begrip> {
-  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "koppelingen"), jsonInit("POST", invoer)));
+): Promise<KoppelStand> {
+  return json<KoppelStand>(await fetch(wg(id, "begrippen", begripId, "koppelingen"), jsonInit("POST", invoer)));
 }
 
 export async function wijzigKoppeling(
@@ -1274,13 +1275,25 @@ export async function wijzigKoppeling(
   begripId: string,
   koppelingId: string,
   wijziging: { verwachte_revisie: number; rol?: KoppelRol; motivatie?: string; beoordeling?: KoppelBeoordeling },
-): Promise<Begrip> {
-  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "koppelingen", koppelingId), jsonInit("PATCH", wijziging)));
+): Promise<KoppelStand> {
+  return json<KoppelStand>(await fetch(wg(id, "begrippen", begripId, "koppelingen", koppelingId), jsonInit("PATCH", wijziging)));
 }
 
-export async function ontkoppel(id: string, begripId: string, koppelingId: string, verwachteRevisie: number): Promise<Begrip> {
+/** Dezelfde beoordeling op meer passages, in één revisie: alles of niets. */
+export async function beoordeelKoppelingen(id: string, begripId: string,
+  invoer: { verwachte_revisie: number; koppeling_ids: string[]; beoordeling: KoppelBeoordeling }): Promise<KoppelStand> {
+  return json<KoppelStand>(await fetch(wg(id, "begrippen", begripId, "koppelingen", "beoordelen"), jsonInit("POST", invoer)));
+}
+
+/** Meer veranderde passages bevestigen, in één revisie: alles of niets. */
+export async function bevestigKoppelingen(id: string, begripId: string,
+  invoer: { verwachte_revisie: number; koppeling_ids: string[]; motivatie?: string }): Promise<KoppelStand> {
+  return json<KoppelStand>(await fetch(wg(id, "begrippen", begripId, "koppelingen", "bevestigen"), jsonInit("POST", invoer)));
+}
+
+export async function ontkoppel(id: string, begripId: string, koppelingId: string, verwachteRevisie: number): Promise<KoppelStand> {
   const qs = new URLSearchParams({ verwachte_revisie: String(verwachteRevisie) });
-  return json<Begrip>(await fetch(`${wg(id, "begrippen", begripId, "koppelingen", koppelingId)}?${qs}`, { method: "DELETE" }));
+  return json<KoppelStand>(await fetch(`${wg(id, "begrippen", begripId, "koppelingen", koppelingId)}?${qs}`, { method: "DELETE" }));
 }
 
 // --- Onderhoud van begrippen (fase F1) ---------------------------------------------------------
@@ -1295,15 +1308,15 @@ export async function haalHerbeoordelingen(id: string, begripId?: string): Promi
 
 /** De passage vervangen door haar opvolger; de oude koppeling blijft als historie. */
 export async function herkoppel(id: string, begripId: string, koppelingId: string,
-  body: { verwachte_revisie: number; element_id: string; motivatie?: string }): Promise<Begrip> {
-  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "koppelingen", koppelingId, "herkoppelen"),
+  body: { verwachte_revisie: number; element_id: string; motivatie?: string }): Promise<KoppelStand> {
+  return json<KoppelStand>(await fetch(wg(id, "begrippen", begripId, "koppelingen", koppelingId, "herkoppelen"),
     jsonInit("POST", body)));
 }
 
 /** De passage veranderde, maar het begrip klopt nog: een nieuwe bewijsstand naast de oude. */
 export async function bevestigKoppeling(id: string, begripId: string, koppelingId: string,
-  body: { verwachte_revisie: number; motivatie?: string }): Promise<Begrip> {
-  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "koppelingen", koppelingId, "bevestigen"),
+  body: { verwachte_revisie: number; motivatie?: string }): Promise<KoppelStand> {
+  return json<KoppelStand>(await fetch(wg(id, "begrippen", begripId, "koppelingen", koppelingId, "bevestigen"),
     jsonInit("POST", body)));
 }
 
@@ -1358,9 +1371,9 @@ export async function combineerBegrippen(id: string, begripId: string,
   return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "combineren"), jsonInit("POST", body)));
 }
 
-export async function accordeerBegrip(id: string, begripId: string, verwachteRevisie: number): Promise<Begrip> {
+export async function accordeerBegrip(id: string, begripId: string, verwachteRevisie: number, reden: string): Promise<Begrip> {
   return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "accorderen"),
-    jsonInit("POST", { verwachte_revisie: verwachteRevisie })));
+    jsonInit("POST", { verwachte_revisie: verwachteRevisie, reden })));
 }
 
 export async function heropenBegrip(id: string, begripId: string, verwachteRevisie: number): Promise<Begrip> {
@@ -1409,8 +1422,8 @@ export async function wijzigGeneriek(begripId: string, verwachteRevisie: number,
   return json<Begrip>(await fetch(generiek(begripId), jsonInit("PATCH", { verwachte_revisie: verwachteRevisie, inhoud })));
 }
 
-export async function accordeerGeneriek(begripId: string, verwachteRevisie: number): Promise<Begrip> {
-  return json<Begrip>(await fetch(generiek(begripId, "accorderen"), jsonInit("POST", { verwachte_revisie: verwachteRevisie })));
+export async function accordeerGeneriek(begripId: string, verwachteRevisie: number, reden: string): Promise<Begrip> {
+  return json<Begrip>(await fetch(generiek(begripId, "accorderen"), jsonInit("POST", { verwachte_revisie: verwachteRevisie, reden })));
 }
 
 export async function heropenGeneriek(begripId: string, verwachteRevisie: number): Promise<Begrip> {

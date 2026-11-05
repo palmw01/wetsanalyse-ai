@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field, field_validator
 
+from .begrip_contracts import KoppelSelectie
+
 
 class Herkoppeling(BaseModel):
     """De passage van een koppeling vervangen door haar opvolger. De oude koppeling blijft als historie."""
@@ -16,6 +18,12 @@ class Bevestiging(BaseModel):
     """De passage veranderde, maar het begrip klopt nog: een nieuwe bewijsstand naast de oude."""
 
     verwachte_revisie: int = Field(ge=1)
+    motivatie: str = Field(default="", max_length=4000)
+
+
+class Bevestigingen(KoppelSelectie):
+    """Meer veranderde passages van één begrip bevestigen, in één revisie."""
+
     motivatie: str = Field(default="", max_length=4000)
 
 

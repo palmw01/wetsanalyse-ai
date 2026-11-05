@@ -92,6 +92,8 @@ class Akkoord(Overname):
     gaan zoals bij `Overname`."""
 
     aanpassing: Aanpassing | None = None
+    # Waarom de analist accordeert. Zonder reden wordt het begrip een concept met beoordeelde passages.
+    reden: str = Field(default="", max_length=2000)
     # Bij combineren: de groep waarvan de definitie (en de kaart) meegaat. Zonder keuze gaat er
     # alleen een definitie mee als de groepen er samen precies één hebben.
     definitie_van: str | None = None

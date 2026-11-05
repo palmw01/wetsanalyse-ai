@@ -29,7 +29,7 @@ from sqlalchemy import func, or_, select
 from . import begrip_projectie, begrip_relatie_store, begrip_store, db
 from .begrip_relatie_contracts import NieuweBetekenis
 from .auth import require_client
-from .begrip_contracts import BegripStatus, BegripVerificatie, BegripWijziging, BegripZoekvraag, Revisie
+from .begrip_contracts import Accordering, BegripStatus, BegripVerificatie, BegripWijziging, BegripZoekvraag, Revisie
 from .routers.auth import actieve_userid
 
 router = APIRouter(prefix="/begrippen", tags=["begrippen"], dependencies=[Depends(require_client)])
@@ -226,8 +226,8 @@ async def delete_generiek(begrip_id: str, verwachte_revisie: int = Query(ge=1), 
 
 
 @router.post("/{begrip_id}/accorderen")
-async def post_accorderen(begrip_id: str, req: Revisie, actor: str = Depends(actieve_userid)):
-    return await begrip_store.accordeer(None, begrip_id, req.verwachte_revisie, actor)
+async def post_accorderen(begrip_id: str, req: Accordering, actor: str = Depends(actieve_userid)):
+    return await begrip_store.accordeer(None, begrip_id, req.verwachte_revisie, req.reden, actor)
 
 
 @router.post("/{begrip_id}/heropenen")
