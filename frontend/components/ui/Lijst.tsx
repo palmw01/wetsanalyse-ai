@@ -114,15 +114,20 @@ export function Voorstel({ titel, acties, children, className = "", ...rest }: {
   );
 }
 
-export type StatusToon = "groen" | "geel" | "rood" | "neutraal";
+export type StatusToon = "groen" | "geel" | "rood" | "neutraal" | "lint";
 
 export const TOON: Record<StatusToon, string> = {
   groen: "border-aandacht-groen-rand bg-aandacht-groen-bg text-aandacht-groen-tekst",
   geel: "border-aandacht-geel-rand bg-aandacht-geel-bg text-aandacht-geel-tekst",
   rood: "border-aandacht-rood-rand bg-aandacht-rood-bg text-aandacht-rood-tekst",
   neutraal: "border-line bg-surface text-muted",
+  // Waar iets over gaat (het onderwerp van een vraag, een soort): lintblauw, zonder oordeel.
+  lint: "border-lint/25 bg-lint/[0.06] text-lint",
 };
 
+/** Het ene label van Lex: een pil met een getint vlak. **Een pil is een label, een afgeronde rechthoek is een knop**
+ *  (besluit 5 nov 2026): een label zegt iets en doet niets – geen hover, nooit een `button` of `Link`. Maak geen eigen
+ *  label-pil; gebruik dit, met de toon die het oordeel draagt. De stijlgids staat in *Instellingen › Stijl*. */
 export function StatusLabel({ toon = "neutraal", uitleg, children, className = "", ...rest }: {
   toon?: StatusToon;
   /** Wat de stand betekent, als tooltip. */

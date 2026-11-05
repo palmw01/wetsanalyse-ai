@@ -1,6 +1,7 @@
 "use client";
 
 import { BevestigKnop } from "@/components/ui/BevestigKnop";
+import { icoonKnopKlasse } from "@/components/ui/Button";
 import { Meer, Prullenbak, Vinkje } from "@/components/ui/Icoon";
 import { MENU_PANEEL, MENU_RIJ } from "@/components/ui/Menu";
 import { Popover } from "@/components/ui/Popover";
@@ -8,31 +9,27 @@ import { Popover } from "@/components/ui/Popover";
 /** Het ene ⋯-menu van Lex (5 nov 2026, besluit gebruiker: overal gelijk). Bij een werkgebied, een deelvraag, een bron,
  *  een gesprek in de kop en in de zijbalk: dezelfde knop, hetzelfde paneel, dezelfde regels.
  *
- *  - **De knop** (`MeerKnop`) is een rondje met een lijn, zoals de pil *Bewerken* ernaast: `xs` in een rij, `sm` in een
- *    kop naast knoppen van 32px; `xs` is even hoog als de pil *Bewerken* (24px).
+ *  - **De knop** (`MeerKnop`) is een icoonknop (`icoonKnopKlasse`): een vierkantje met de vorm van *Bewerken* ernaast,
+ *    `xs` in een rij (24px), `sm` in een kop naast knoppen van 32px.
  *  - **Het paneel** is `MENU_PANEEL`, de regels zijn `MENU_RIJ` met een icoon ervoor (`MenuKnop`); een keuze die meteen
  *    geldt (een rol) is een `MenuKeuze` met een vinkje bij wat nu geldt.
  *  - **Verwijderen staat onderaan, rood, met een prullenbak** (`MenuVerwijder`), en vraagt een tweede klik op dezelfde
  *    plek (*Verwijderen?*). Geen losse knop in het menu: dan ziet hetzelfde menu er per plek anders uit.
  *  - Wat niet in het ⋯-menu hoort: *Bewerken* (bij het blok zelf, `BewerkKnop`) en de hoofdknoppen van een kop. */
 
-const KNOP = "focus-ring inline-flex shrink-0 items-center justify-center rounded-full border border-line bg-paper text-muted transition-colors hover:border-lint hover:bg-lint/5 hover:text-lint aria-expanded:border-lint aria-expanded:text-lint";
-const MAAT = {
-  xs: "h-6 w-6 coarse:h-11 coarse:w-11",
-  sm: "h-8 w-8 coarse:h-11 coarse:w-11",
-} as const;
+type Maat = "xs" | "sm";
 
 export function MeerKnop({ label, open, onClick, maat = "xs", className = "" }: {
   /** De toegankelijke naam: waarvan dit het menu is ("Acties: Wie is belastingschuldige?"). */
   label: string;
   open: boolean;
   onClick: () => void;
-  maat?: keyof typeof MAAT;
+  maat?: Maat;
   className?: string;
 }) {
   return (
     <button type="button" onClick={onClick} aria-expanded={open} aria-haspopup="menu" aria-label={label} title="Meer"
-      data-meer-knop className={`${KNOP} ${MAAT[maat]} ${className}`}>
+      data-meer-knop className={`${icoonKnopKlasse(maat)} ${className}`}>
       <Meer />
     </button>
   );
@@ -41,7 +38,7 @@ export function MeerKnop({ label, open, onClick, maat = "xs", className = "" }: 
 /** Knop plus paneel. `children` krijgt `sluit`, zodat een regel het menu dichtdoet. */
 export function MeerMenu({ label, maat = "xs", breedte = "w-56", children }: {
   label: string;
-  maat?: keyof typeof MAAT;
+  maat?: Maat;
   breedte?: string;
   children: (sluit: () => void) => React.ReactNode;
 }) {
