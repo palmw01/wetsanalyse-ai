@@ -187,11 +187,8 @@ function Begrippenkader({ begrip, weergave, deel }: { begrip?: string; weergave:
       {deel === "samenhang" ? (
         <SamenhangTab wg={wg} muteer={muteer} onKiesBegrip={(b) => router.push(begripPad(wg.id, b))} />
       ) : (
-        // Lezen gebeurt hier, naast de lijst; de kaart (passages, relaties, accorderen) is de pagina van het
-        // begrip (spoor G3).
-        <BegrippenTab id={wg.id} gekozen={begrip} onbewaard={onbewaard} onOnbewaard={zetOnbewaard} weergave="lezen"
-          onKies={(b, w) => (b && w === "kaart" ? router.push(begripPad(wg.id, b)) : naar(b, "lezen"))}
-          onWeergave={(w) => (begrip && w === "kaart" ? router.push(begripPad(wg.id, begrip)) : naar(begrip, "lezen"))} />
+        <BegrippenTab id={wg.id} gekozen={begrip} onbewaard={onbewaard} onOnbewaard={zetOnbewaard}
+          onKies={(b, w) => (b && w === "kaart" ? router.push(begripPad(wg.id, b)) : naar(b, "lezen"))} />
       )}
     </>
   );

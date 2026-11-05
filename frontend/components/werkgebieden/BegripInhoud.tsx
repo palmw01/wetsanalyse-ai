@@ -1,0 +1,522 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+
+import { AutoTextarea } from "@/components/ui/AutoTextarea";
+import { BewerkKnop, BewerkVoet, useBewerken } from "@/components/ui/Bewerkbaar";
+import { Button } from "@/components/ui/Button";
+import { Field, Input } from "@/components/ui/Field";
+import { ChevronOmlaag } from "@/components/ui/Icoon";
+import { IcoonBevestig } from "@/components/ui/IcoonBevestig";
+import { Lijst, LijstRij, Regel, Regels, Sectie, StatusLabel } from "@/components/ui/Lijst";
+import { MeerMenu, MenuVerwijder } from "@/components/ui/MeerMenu";
+import { Melding } from "@/components/ui/Melding";
+import { Kaart, SplitDetail } from "@/components/ui/Pagina";
+import { SkeletonCard } from "@/components/ui/Skeleton";
+import { BegripPassages } from "@/components/werkgebieden/BegripPassages";
+import { BegripRelaties } from "@/components/werkgebieden/BegripRelaties";
+import { DefinitieOnderbouwing } from "@/components/werkgebieden/DefinitieOnderbouwing";
+import { KaartVoorstelKaart } from "@/components/werkgebieden/KaartVoorstel";
+import { OordeelKeuze, VoorbeeldRijen } from "@/components/werkgebieden/Voorbeelden";
+import { accordeerBegrip, foutTekst, haalBegripRevisies, haalConformiteit, heropenBegrip, wijzigBegrip } from "@/lib/api";
+import { conformZin, veldVanPad, type Conformiteit } from "@/lib/begripGraaf";
+import { relatieZin } from "@/lib/begripRelaties";
+import { definitieAard, regels, revisieZin, sorteerKoppelingen, uitRegels, volledigeInhoud } from "@/lib/begrippen";
+import { BEGRIP_STATUS_LABEL } from "@/lib/begrippenOverzicht";
+import { herkomstNaAanpassing } from "@/lib/begripVoorstellen";
+import { geraaktPerKoppeling } from "@/lib/herbeoordeling";
+import { definitieDoor, openPerVeld } from "@/lib/kaartVoorstel";
+import type { Begrip, BegripInhoud as Inhoud, BegripRevisie, KaartVeld, Voorbeeld } from "@/lib/types";
+import { useBegrip, type BegripContext, type BegripOpname, type BegripStand } from "@/lib/useBegrip";
+import { VERWIJDER_UITLEG, verwijderLabel, verwijderdZin } from "@/lib/verwijderen";
+
+export const BEGRIP_STATUS_TOON = { geaccordeerd: "groen", concept: "neutraal", vervangen: "neutraal" } as const;
+
+export type BegripWeergaveVorm = "pagina" | "paneel";
+
+const tijd = (iso: string) =>
+  new Date(iso).toLocaleString("nl-NL", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+/** Eén begrip, overal dezelfde inhoud (spoor N, naar `BronnenBijDeelvraag`): op de pagina naast elkaar (`SplitDetail`),
+ *  naast het gesprek onder elkaar. Links wat het begrip betekent en waarop het rust, rechts het oordeel en de samenhang.
+ *  Je leest, en *Bewerken* bij een blok maakt van dat blok ter plekke een formulier; elke bewaring is een revisie. Een
+ *  begrip is een analyse-uitkomst, geen wettelijke definitie: de betekenis zegt waar de definitie vandaan komt.
+ *
+ *  `stand` komt van `useBegrip`, zodat de kop eromheen dezelfde gegevens leest. Met een `opname` is alles alleen te
+ *  lezen: geen knoppen, en geen oordeel of historie, want die horen bij de stand van nu. */
+export function BegripInhoud({ stand, weergave, onOnbewaard, onNaarBegrip, onGewijzigd }: {
+  stand: BegripStand;
+  weergave: BegripWeergaveVorm;
+  onOnbewaard: (onbewaard: boolean) => void;
+  /** Naar een ander begrip: de opvolger van een vervangen begrip, of het begrip dat na combineren overblijft. */
+  onNaarBegrip?: (begripId: string) => void;
+  onGewijzigd?: () => void;
+}) {
+  const [open, setOpen] = useState({ betekenis: false, voorbeelden: false });
+  const meldBetekenis = useCallback((o: boolean) => setOpen((s) => ({ ...s, betekenis: o })), []);
+  const meldVoorbeelden = useCallback((o: boolean) => setOpen((s) => ({ ...s, voorbeelden: o })), []);
+  const onbewaard = open.betekenis || open.voorbeelden;
+
+  useEffect(() => { onOnbewaard(onbewaard); }, [onbewaard, onOnbewaard]);
+  useEffect(() => () => onOnbewaard(false), [onOnbewaard]);
+  // Herladen of het venster sluiten: dat kan de pagina niet zelf tegenhouden, de browser wel.
+  useEffect(() => {
+    if (!onbewaard) return;
+    const waarschuw = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", waarschuw);
+    return () => window.removeEventListener("beforeunload", waarschuw);
+  }, [onbewaard]);
+
+  const { begrip, alleenLezen } = stand;
+  if (!begrip) return <BegripLaadStand stand={stand} />;
+
+  const betekenis = <BetekenisBlok stand={stand} begrip={begrip} weergave={weergave} onbewaard={onbewaard} onOnbewaard={meldBetekenis} />;
+  const voorbeelden = <VoorbeeldenBlok stand={stand} begrip={begrip} weergave={weergave} onbewaard={onbewaard} onOnbewaard={meldVoorbeelden} />;
+  const melding = stand.melding && <Melding type={stand.melding.type} compact>{stand.melding.tekst}</Melding>;
+
+  if (alleenLezen) {
+    return (
+      <div data-begrip-paneel={begrip.id} data-status={begrip.status} data-alleen-lezen className="space-y-5 text-sm text-ink">
+        {betekenis}
+        {voorbeelden}
+        <PassagesLezen begrip={begrip} />
+        <RelatiesLezen stand={stand} />
+      </div>
+    );
+  }
+
+  const passagesInhoud = (
+    <BegripPassages id={stand.id} begrip={begrip} primair={stand.lijst?.primair ?? {}} muteer={stand.muteer}
+      geraakt={geraaktPerKoppeling(stand.herbeoordeling, stand.begripId)} />
+  );
+  const passages = weergave === "pagina" ? <Kaart>{passagesInhoud}</Kaart> : passagesInhoud;
+  const beoordeling = <BeoordelingBlok stand={stand} begrip={begrip} weergave={weergave} onbewaard={onbewaard} />;
+  const relaties = (
+    <BegripRelaties id={stand.id} begrip={begrip} andere={stand.lijst?.begrippen ?? []}
+      onGewijzigd={() => { void stand.laad(); onGewijzigd?.(); }} onNaarBegrip={onNaarBegrip} />
+  );
+  const historie = <Historie id={stand.id} begrip={begrip} />;
+
+  if (weergave === "pagina") {
+    return (
+      <div data-begrip-paneel={begrip.id} data-status={begrip.status} data-weergave="pagina" className="space-y-4">
+        {melding}
+        <SplitDetail hoofd={<>{betekenis}{voorbeelden}{passages}</>} zij={<>{beoordeling}{relaties}{historie}</>} />
+      </div>
+    );
+  }
+  return (
+    <div data-begrip-paneel={begrip.id} data-status={begrip.status} data-weergave="paneel" className="space-y-5 text-sm text-ink">
+      {melding}
+      {betekenis}
+      {voorbeelden}
+      {beoordeling}
+      {passages}
+      {relaties}
+      {historie}
+    </div>
+  );
+}
+
+/** Laden, een fout met *Opnieuw proberen*, of de stand van een verwijderd begrip. */
+function BegripLaadStand({ stand }: { stand: BegripStand }) {
+  if (stand.verwijderd) return <Melding type="uitleg"><span data-verwijderd>{verwijderdZin(stand.verwijderd)}</span></Melding>;
+  if (!stand.fout) return <SkeletonCard regels={4} />;
+  return (
+    <Melding type="fout" titel="Het begrip kon niet worden geladen.">
+      {stand.fout}{" "}
+      <button type="button" className="focus-ring rounded font-medium text-lint underline" onClick={() => void stand.laad()}>
+        Opnieuw proberen
+      </button>
+    </Melding>
+  );
+}
+
+/** Het menu ⋯ van een begrip. Een vervangen begrip heeft het niet: verwijder dan de opvolger. */
+export function BegripMenu({ stand, maat = "sm" }: { stand: BegripStand; maat?: "xs" | "sm" }) {
+  if (!stand.begrip || stand.begrip.status === "vervangen" || stand.alleenLezen) return null;
+  return (
+    <MeerMenu label="Meer voor dit begrip" maat={maat}>
+      {() => <MenuVerwijder ariaLabel={verwijderLabel("begrip")} titel={VERWIJDER_UITLEG.begrip} onBevestig={stand.verwijder} />}
+    </MeerMenu>
+  );
+}
+
+/** Een begrip waar geen pagina omheen staat (naast het gesprek, in het kader): de stand en de kop horen erbij. */
+export function BegripCompact({ context, begripId, opname, onOnbewaard, onNaarBegrip, onVerwijderd, onGewijzigd }: {
+  context: BegripContext;
+  begripId: string;
+  opname?: BegripOpname;
+  onOnbewaard: (onbewaard: boolean) => void;
+  onNaarBegrip?: (begripId: string) => void;
+  onVerwijderd?: () => void | Promise<void>;
+  onGewijzigd?: () => void;
+}) {
+  const stand = useBegrip({ context, begripId, opname, onVerwijderd, onGewijzigd });
+  const b = stand.begrip;
+  return (
+    <div className="space-y-3">
+      {b && (
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusLabel toon={BEGRIP_STATUS_TOON[b.status]}>{BEGRIP_STATUS_LABEL[b.status]}</StatusLabel>
+          <span className="text-xs text-muted">revisie {b.revisie}</span>
+          <span className="ml-auto"><BegripMenu stand={stand} maat="xs" /></span>
+        </div>
+      )}
+      <BegripInhoud stand={stand} weergave="paneel" onOnbewaard={onOnbewaard} onNaarBegrip={onNaarBegrip} onGewijzigd={onGewijzigd} />
+    </div>
+  );
+}
+
+/** Een blok: op de pagina een kaart, naast het gesprek een sectie zonder rand (daar staat al een paneel omheen). */
+function Blok({ weergave, titel, telling, toelichting, acties, children, ...rest }: {
+  weergave: BegripWeergaveVorm;
+  titel: string;
+  telling?: number;
+  toelichting?: React.ReactNode;
+  acties?: React.ReactNode;
+  children: React.ReactNode;
+} & Omit<React.HTMLAttributes<HTMLElement>, "title">) {
+  return weergave === "pagina"
+    ? <Kaart titel={titel} telling={telling} toelichting={toelichting} acties={acties} {...rest}>{children}</Kaart>
+    : <Sectie titel={titel} telling={telling} toelichting={toelichting} acties={acties} niveau={3} {...rest}>{children}</Sectie>;
+}
+
+/** Een groep velden in de bewerkstand, met de NL-SBB-eigenschappen waar ze in de export op landen. */
+function Groep({ titel, nlsbb, children }: { titel: string; nlsbb: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-4" data-kaart-groep={titel}>
+      <p className="flex flex-wrap items-baseline gap-x-2 text-xs font-medium text-muted">
+        {titel}<span className="font-mono text-[0.65rem] font-normal text-faint">{nlsbb}</span>
+      </p>
+      {children}
+    </div>
+  );
+}
+
+/** De voorstellen van Lex bij één veld, met *Overnemen · Aanpassen · Afwijzen*. Overnemen staat uit zolang er iets
+ *  onbewaard openstaat: er wordt niets stil overschreven. */
+function VanLex({ stand, begrip, veld, onbewaard }: { stand: BegripStand; begrip: Begrip; veld: KaartVeld; onbewaard: boolean }) {
+  if (stand.alleenLezen || begrip.status === "vervangen") return null;
+  const open = openPerVeld(stand.voorstellen)[veld];
+  if (!open.length) return null;
+  return (
+    <div className="mt-2 space-y-2" aria-label={`Voorstellen van Lex bij ${veld}`}>
+      {open.map((v) => (
+        <KaartVoorstelKaart key={v.id} v={v} onbewaard={onbewaard} geaccordeerd={begrip.status === "geaccordeerd"}
+          verouderd={stand.verouderd?.voorstelId === v.id ? stand.verouderd : null}
+          onOvernemen={(extra) => stand.overnemen(v, extra)} onAfwijzen={(reden) => stand.afwijzen(v, reden)} />
+      ))}
+    </div>
+  );
+}
+
+interface BlokProps {
+  stand: BegripStand;
+  begrip: Begrip;
+  weergave: BegripWeergaveVorm;
+  onbewaard: boolean;
+  onOnbewaard: (onbewaard: boolean) => void;
+}
+
+const magBewerken = (stand: BegripStand, begrip: Begrip) => !stand.alleenLezen && begrip.status !== "vervangen";
+
+/** Term en betekenis. De herkomst van de definitie kiest niemand: de api leidt haar af, en het label volgt wat er staat. */
+function BetekenisBlok({ stand, begrip, weergave, onbewaard, onOnbewaard }: BlokProps) {
+  const i = volledigeInhoud(begrip.inhoud);
+  const begin = { naam: i.naam, termen: regels(i.alternatieve_termen), definitie: i.definitie, uitleg: i.uitleg, context: i.context };
+  const b = useBewerken({
+    begin, onOnbewaard,
+    opslaan: ({ termen, ...rest }) => stand.muteer((r) =>
+      wijzigBegrip(stand.id, begrip.id, r, { ...begrip.inhoud, ...rest, alternatieve_termen: uitRegels(termen).map((t) => t.trim()).filter(Boolean) } as Inhoud), { gelukt: "Opgeslagen." }),
+  });
+  const c = b.concept;
+  const zet = (v: Partial<typeof begin>) => b.zet({ ...c, ...v });
+  const vanLex = (veld: KaartVeld) => <VanLex stand={stand} begrip={begrip} veld={veld} onbewaard={onbewaard} />;
+  const door = definitieDoor(begrip.inhoud);
+  const termen = i.alternatieve_termen.filter((t) => t.trim());
+
+  return (
+    <Blok weergave={weergave} titel="Betekenis" data-blok="betekenis"
+      acties={magBewerken(stand, begrip) && !b.open && <BewerkKnop wat="Betekenis" onClick={b.start} />}>
+      {b.open ? (
+        <div className="space-y-5" role="group" aria-label="Betekenis bewerken" onKeyDown={b.toetsen(false)}>
+          <Groep titel="Term" nlsbb="skos:prefLabel · skos:altLabel">
+            <Field label="Voorkeursterm" hint="de naam van het begrip" required>
+              <Input value={c.naam} onChange={(e) => zet({ naam: e.target.value })} maxLength={200} required autoFocus onKeyDown={b.toetsen(true)} />
+            </Field>
+            <Field label="Alternatieve termen" hint="één per regel">
+              <AutoTextarea value={c.termen} onChange={(e) => zet({ termen: e.target.value })} rows={2} />
+            </Field>
+          </Groep>
+          <Groep titel="Definitie, uitleg en toelichting" nlsbb="skos:definition · rdfs:comment · skos:scopeNote">
+            <DefinitieAard inhoud={{
+              definitie: c.definitie,
+              definitie_herkomst: herkomstNaAanpassing(
+                { tekst: i.definitie, herkomst: i.definitie_herkomst ?? null }, c.definitie),
+            }} />
+            <Field label="Definitie" hint="een gewijzigde definitie heet geformuleerd">
+              <AutoTextarea value={c.definitie} onChange={(e) => zet({ definitie: e.target.value })} rows={3} maxLength={8000} />
+            </Field>
+            {/* Alleen bij de bewaarde tekst: een andere definitie rust niet meer op deze fragmenten (spoor M). */}
+            {begrip.definitie_onderbouwing && c.definitie === i.definitie && (
+              <DefinitieOnderbouwing onderbouwing={begrip.definitie_onderbouwing} werkgebiedId={stand.id} />
+            )}
+            {vanLex("definitie")}
+            <Field label="Uitleg" hint="in eenvoudige taal: wat betekent het begrip">
+              <AutoTextarea value={c.uitleg} onChange={(e) => zet({ uitleg: e.target.value })} rows={2} maxLength={8000} />
+            </Field>
+            {vanLex("uitleg")}
+            <Field label="Toelichting" hint="de grenzen of het gebruik van het begrip">
+              <AutoTextarea value={c.context} onChange={(e) => zet({ context: e.target.value })} rows={2} maxLength={4000} />
+            </Field>
+            {vanLex("context")}
+          </Groep>
+          <BewerkVoet onAnnuleer={b.annuleer} onOpslaan={() => void b.slaOp()} bezig={b.bezig} gewijzigd={b.gewijzigd && !!c.naam.trim()} fout={b.fout} />
+        </div>
+      ) : (
+        <Regels data-begrip-lees>
+          {termen.length > 0 && <Regel naam="Ook">{termen.join(", ")}</Regel>}
+          <Regel naam="Definitie">
+            {i.definitie ? (
+              <div className="space-y-2">
+                <p className="whitespace-pre-line">{i.definitie}</p>
+                <DefinitieAard inhoud={i} />
+                {door && <p className="text-xs text-muted">{door}</p>}
+                {begrip.definitie_onderbouwing && (
+                  <DefinitieOnderbouwing onderbouwing={begrip.definitie_onderbouwing} werkgebiedId={stand.id} />
+                )}
+              </div>
+            ) : <span className="text-muted">Nog geen definitie.</span>}
+            {vanLex("definitie")}
+          </Regel>
+          <Regel naam="Uitleg">
+            {i.uitleg ? <span className="whitespace-pre-line">{i.uitleg}</span> : <span className="text-muted">Nog geen uitleg.</span>}
+            {vanLex("uitleg")}
+          </Regel>
+          <Regel naam="Toelichting">
+            {i.context ? <span className="whitespace-pre-line">{i.context}</span> : <span className="text-muted">Nog geen toelichting.</span>}
+            {vanLex("context")}
+          </Regel>
+        </Regels>
+      )}
+    </Blok>
+  );
+}
+
+/** Brondefinitie of analysebegrip, zichtbaar bij de definitie: een geformuleerd analysebegrip is niet automatisch een
+ *  wettelijke definitie (`definitieAard`). In de bewerkstand volgt hij wat er in het veld staat. */
+export function DefinitieAard({ inhoud }: { inhoud: Parameters<typeof definitieAard>[0] }) {
+  const aard = definitieAard(inhoud);
+  const stijl = aard.soort === "brondefinitie" ? "border-aandacht-groen-rand bg-aandacht-groen-bg/50"
+    : aard.soort === "analysebegrip" ? "border-lint/40 bg-lint/5" : "border-line bg-surface";
+  return (
+    <p data-definitie-aard={aard.soort} className={`rounded-md border-l-4 px-3 py-2 text-sm ${stijl}`}>
+      <span className="font-medium text-ink">{aard.titel}.</span> <span className="text-muted">{aard.uitleg}</span>
+    </p>
+  );
+}
+
+/** De voorbeelden, met hun oordeel. Ook grensgevallen en tegenvoorbeelden: ze toetsen de afbakening. */
+function VoorbeeldenBlok({ stand, begrip, weergave, onbewaard, onOnbewaard }: BlokProps) {
+  const lijst = volledigeInhoud(begrip.inhoud).voorbeelden;
+  const b = useBewerken<Voorbeeld[]>({
+    begin: lijst, onOnbewaard,
+    opslaan: (voorbeelden) => stand.muteer((r) => wijzigBegrip(stand.id, begrip.id, r, { ...begrip.inhoud, voorbeelden: voorbeelden.filter((v) => v.tekst.trim()) }), { gelukt: "Opgeslagen." }),
+  });
+  const zet = (i: number, v: Partial<Voorbeeld>) => b.zet(b.concept.map((x, j) => (j === i ? { ...x, ...v } : x)));
+
+  return (
+    <Blok weergave={weergave} titel="Voorbeelden" telling={lijst.length} data-blok="voorbeelden"
+      toelichting="Ook grensgevallen en tegenvoorbeelden: ze toetsen de afbakening."
+      acties={magBewerken(stand, begrip) && !b.open && <BewerkKnop wat="Voorbeelden" onClick={b.start} />}>
+      {b.open ? (
+        <div className="space-y-3" role="group" aria-label="Voorbeelden bewerken" onKeyDown={b.toetsen(false)}>
+          <Groep titel="Voorbeelden" nlsbb="skos:example">
+            <fieldset className="space-y-3">
+              <legend className="sr-only">Voorbeelden</legend>
+              {b.concept.map((v, i) => (
+                <div key={i} className="space-y-2 border-b border-line pb-3 last:border-b-0">
+                  <AutoTextarea value={v.tekst} onChange={(e) => zet(i, { tekst: e.target.value })} rows={2} aria-label={`Voorbeeld ${i + 1}`} />
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <OordeelKeuze waarde={v.oordeel} onKies={(o) => zet(i, { oordeel: o })}
+                      label={`Oordeel bij voorbeeld ${i + 1}`} naam={`oordeel-${begrip.id}-${i}`} />
+                    <IcoonBevestig soort="verwijderen" label={`Verwijder voorbeeld ${i + 1}`}
+                      onBevestig={() => b.zet(b.concept.filter((_, j) => j !== i))} />
+                  </div>
+                </div>
+              ))}
+              <Button type="button" size="xs" variant="secondary" onClick={() => b.zet([...b.concept, { tekst: "", oordeel: "wel" }])}>
+                Voorbeeld toevoegen
+              </Button>
+            </fieldset>
+          </Groep>
+          <VanLex stand={stand} begrip={begrip} veld="voorbeelden" onbewaard={onbewaard} />
+          <BewerkVoet onAnnuleer={b.annuleer} onOpslaan={() => void b.slaOp()} bezig={b.bezig} gewijzigd={b.gewijzigd} fout={b.fout} />
+        </div>
+      ) : (
+        <>
+          {lijst.length ? <VoorbeeldRijen voorbeelden={lijst} /> : <p className="text-sm text-muted">Nog geen voorbeelden.</p>}
+          <VanLex stand={stand} begrip={begrip} veld="voorbeelden" onbewaard={onbewaard} />
+        </>
+      )}
+    </Blok>
+  );
+}
+
+/** Accorderen en heropenen. De poort rekent de server; hier staan zijn redenen letterlijk. */
+function BeoordelingBlok({ stand, begrip, weergave, onbewaard }: Omit<BlokProps, "onOnbewaard">) {
+  const [bezig, setBezig] = useState(false);
+  async function doe(actie: (r: number) => Promise<Begrip>, gelukt: string) {
+    setBezig(true);
+    await stand.muteer(actie, { gelukt });
+    setBezig(false);
+  }
+  const { mag, redenen } = begrip.accorderen;
+  return (
+    <Blok weergave={weergave} titel="Beoordeling" data-blok="beoordeling"
+      acties={<StatusLabel toon={BEGRIP_STATUS_TOON[begrip.status]}>{BEGRIP_STATUS_LABEL[begrip.status]}</StatusLabel>}>
+      <div className="space-y-2 text-sm">
+        {begrip.status === "vervangen" ? (
+          <p className="text-xs text-muted">Dit begrip is vervangen en alleen nog te lezen.</p>
+        ) : begrip.status === "geaccordeerd" ? (
+          <>
+            <p className="text-ink">
+              Geaccordeerd door {begrip.geaccordeerd_door}
+              {begrip.geaccordeerd_op && ` op ${tijd(begrip.geaccordeerd_op)}`}.
+            </p>
+            {begrip.aandachtspunten.map((a) => <p key={a} className="text-xs text-aandacht-geel-tekst">{a}</p>)}
+            <NlSbbStand id={stand.id} begrip={begrip} />
+            <Button size="sm" variant="secondary" className="w-full sm:w-auto" disabled={bezig}
+              onClick={() => void doe((r) => heropenBegrip(stand.id, begrip.id, r), "Heropend.")}>
+              Heropenen
+            </Button>
+          </>
+        ) : (
+          <>
+            {onbewaard ? (
+              <p className="text-xs text-muted">Sla eerst je wijzigingen op; de poort kijkt naar wat bewaard is.</p>
+            ) : !mag ? (
+              <div>
+                <p className="text-xs font-medium text-ink">Nog nodig om te accorderen:</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-5 text-xs text-ink" aria-label="Nog nodig om te accorderen">
+                  {redenen.map((r) => <li key={r}>{r}</li>)}
+                </ul>
+              </div>
+            ) : (
+              <p className="text-xs text-ink">Alles is er: naam, definitie, toelichting en beoordeelde, actuele passages.</p>
+            )}
+            <NlSbbStand id={stand.id} begrip={begrip} />
+            <Button size="sm" className="w-full sm:w-auto" disabled={!mag || onbewaard || bezig}
+              onClick={() => void doe((r) => accordeerBegrip(stand.id, begrip.id, r), "Geaccordeerd.")}>
+              Accorderen
+            </Button>
+          </>
+        )}
+      </div>
+    </Blok>
+  );
+}
+
+/** Is het begrip NL-SBB-conform (fase F3)? Diagnostisch: het houdt accorderen niet tegen, en een conforme kaart is
+ *  daarmee nog niet juridisch juist. Opnieuw gevraagd bij elke revisie; faalt stil. */
+function NlSbbStand({ id, begrip }: { id: string; begrip: Begrip }) {
+  const [c, setC] = useState<Conformiteit | null>(null);
+  useEffect(() => {
+    let levend = true;
+    haalConformiteit(id).then((x) => levend && setC(x)).catch(() => levend && setC(null));
+    return () => { levend = false; };
+  }, [id, begrip.id, begrip.revisie]);
+  const stand = c?.begrippen[begrip.id];
+  const zin = c ? conformZin(stand, c.nl_sbb_versie) : null;
+  if (!zin || !stand) return null;
+  const meldingen = stand.meldingen;
+  return (
+    <div className="text-xs" data-testid="nl-sbb-stand">
+      <p className={stand.conform ? "text-muted" : "text-aandacht-geel-tekst"}>{zin}</p>
+      {meldingen.length > 0 && (
+        <details className="mt-1">
+          <summary className="focus-ring cursor-pointer text-[11px] text-muted">Meldingen ({meldingen.length})</summary>
+          <ul className="mt-1 space-y-0.5 pl-4 text-[11px] text-muted">
+            {meldingen.map((m, i) => (
+              <li key={i}>
+                {m.laag === "nl_sbb" ? "NL-SBB" : "Platform"} · {m.ernst} · {veldVanPad(m.pad) || "begrip"}{m.melding ? `: ${m.melding}` : ""}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1 text-[10px] text-faint">Een diagnose, geen blokkade: conform zegt iets over de vorm, niet over de juridische juistheid.</p>
+        </details>
+      )}
+    </div>
+  );
+}
+
+/** Per revisie wie wat deed, met de oude inhoud bewaard in de api. Pas geladen bij openklappen, en opnieuw bij een
+ *  nieuwe revisie. Zelfde vorm als de historie van een annotatie (`RevisieHistorie`). */
+function Historie({ id, begrip }: { id: string; begrip: Begrip }) {
+  const [open, setOpen] = useState(false);
+  const [revisies, setRevisies] = useState<BegripRevisie[] | null>(null);
+  const [fout, setFout] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    let levend = true;
+    haalBegripRevisies(id, begrip.id)
+      .then((r) => levend && setRevisies(r))
+      .catch((e) => levend && setFout(foutTekst(e, "De historie kon niet worden geladen.")));
+    return () => { levend = false; };
+  }, [open, id, begrip.id, begrip.revisie]);
+
+  return (
+    <details className="group rounded-kaart border border-line bg-surface/60 px-3 py-2 text-sm"
+      onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}>
+      <summary className="focus-ring flex cursor-pointer list-none items-center gap-1.5 rounded text-xs font-medium text-muted">
+        <ChevronOmlaag className="-rotate-90 transition-transform group-open:rotate-0" />
+        Historie <span className="font-normal text-faint">({begrip.revisie} {begrip.revisie === 1 ? "revisie" : "revisies"})</span>
+      </summary>
+      {fout ? (
+        <p className="mt-2 text-xs text-aandacht-rood-tekst">{fout}</p>
+      ) : !revisies ? (
+        <p className="mt-2 text-xs text-muted">Laden…</p>
+      ) : (
+        <ol className="mt-2 space-y-1.5" aria-label="Historie van het begrip">
+          {revisies.map((r) => (
+            <li key={r.revisie} className="flex flex-col gap-0.5 border-b border-line pb-1.5 last:border-b-0">
+              <span className="text-xs text-muted">{tijd(r.tijdstip)}</span>
+              <span className="text-ink">
+                {revisieZin(r)} <span className="text-xs text-muted">· {r.actor} · revisie {r.revisie}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </details>
+  );
+}
+
+/** De passages van een oude versie: alleen te lezen. */
+function PassagesLezen({ begrip }: { begrip: Begrip }) {
+  const passages = sorteerKoppelingen(begrip.koppelingen ?? []);
+  if (!passages.length) return null;
+  return (
+    <Sectie titel="Passages" telling={passages.length} niveau={3}>
+      <Lijst label="Passages">
+        {passages.map((k) => <LijstRij key={k.id} titel={`“${k.bewijs.tekst}”`} meta={k.bewijs.vindplaats} />)}
+      </Lijst>
+    </Sectie>
+  );
+}
+
+/** De relaties van een oude versie: alleen te lezen. */
+function RelatiesLezen({ stand }: { stand: BegripStand }) {
+  const r = stand.relatiesOpname;
+  const vast = (r?.relaties ?? []).filter((x) => x.beoordeling === "akkoord");
+  if (!vast.length) return null;
+  return (
+    <Sectie titel="Relaties" telling={vast.length} niveau={3}>
+      <Lijst label="Relaties">
+        {vast.map((x) => <LijstRij key={x.id} titel={relatieZin(x.type, x.van_naam, x.naar_naam).join(" ")} />)}
+      </Lijst>
+    </Sectie>
+  );
+}

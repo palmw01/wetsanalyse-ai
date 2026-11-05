@@ -86,7 +86,7 @@ describe("één bedieningsstijl", () => {
   });
 
   it("de werkgebiedcomponenten hebben geen eigen knopstijl meer naast KNOP_XS", () => {
-    for (const f of ["BegripKaart", "BegripPassages", "BegripRelaties", "BronKandidaten", "Herbeoordeling", "SamenhangTab"]) {
+    for (const f of ["BegripInhoud", "BegripPassages", "BegripRelaties", "BronKandidaten", "Herbeoordeling", "SamenhangTab"]) {
       const s = bron(`components/werkgebieden/${f}.tsx`);
       expect(s, f).not.toMatch(/const KNOP\w* =\s*\n?\s*"/);
     }
@@ -101,14 +101,14 @@ describe("één bedieningsstijl", () => {
   // Eén manier van bewerken (4 nov 2026, naar het voorbeeld van Claude): ter plekke, met *Bewerken* bij het blok en
   // daaronder rechts Annuleren · Opslaan (`components/ui/Bewerkbaar`). Geen venster om tekst te bewerken.
   it("bewerken gebeurt ter plekke met dezelfde voet, nergens in een venster", () => {
-    for (const f of ["werkgebieden/ProjectKop", "werkgebieden/Deelvragen", "werkgebieden/BegripPaneel", "werkgebieden/BegripKaart",
+    for (const f of ["werkgebieden/ProjectKop", "werkgebieden/Deelvragen", "werkgebieden/BegripInhoud",
       "werkgebieden/KaartVoorstel", "werkplek/ReviewQueue", "werkplek/GesprekLijst", "werkplek/ChatKop",
       "admin/ProfileEditor", "admin/BerichtEditor"]) {
       expect(bron(`components/${f}.tsx`), f).toContain("BewerkVoet");
     }
     expect(bron("components/werkgebieden/ProjectKop.tsx")).not.toMatch(/<Dialog\b/);
     expect(bron("components/werkgebieden/ProjectKop.tsx")).not.toContain("GegevensDialoog");
-    for (const f of ["werkgebieden/KaartVoorstel", "werkgebieden/BegripKaart"])
+    for (const f of ["werkgebieden/KaartVoorstel", "werkgebieden/BegripInhoud"])
       expect(bron(`components/${f}.tsx`), f).not.toMatch(/>\s*(Terug|Wijzigingen weggooien)\s*</);
     // De deelvragen hebben één *Bewerken* voor het hele blok, net als de analyseopdracht (5 nov 2026); geen invoerveld
     // in rust en geen bewerkknop per rij.

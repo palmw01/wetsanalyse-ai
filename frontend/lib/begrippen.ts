@@ -140,8 +140,7 @@ export function begripUitParam(p: string | undefined): string | undefined {
   return p && /^[A-Za-z0-9-]{1,64}$/.test(p) ? p : undefined;
 }
 
-/** Hoe het gekozen begrip openstaat (F3e): lezen (`BegripPaneel`) of de kaart (`BegripWerk`). In de URL
- *  als `&weergave=kaart`; al het andere is lezen. */
+/** Een oude link draagt `&weergave=kaart`: die gaat naar de pagina van het begrip; al het andere blijft in het kader. */
 export type BegripWeergave = "lezen" | "kaart";
 
 export function weergaveUitParam(p: string | undefined): BegripWeergave {
@@ -212,14 +211,3 @@ export function revisieZin(r: Pick<BegripRevisie, "actie" | "detail">): string {
 /** Een lijst als tekst met één item per regel, en terug. */
 export const regels = (xs: readonly string[]) => xs.join("\n");
 export const uitRegels = (tekst: string) => tekst.split("\n");
-
-/** De kleine bewerking in het begrippaneel (F3d): alleen definitie en uitleg. Een met de hand gewijzigde
- *  definitie is geformuleerd – ze staat niet meer letterlijk in de bron; leeg heeft geen herkomst. */
-export function handmatigeInhoud(inhoud: BegripInhoud, nieuw: { definitie: string; uitleg: string }): BegripInhoud {
-  const definitie = nieuw.definitie.trim();
-  const zelfde = definitie === inhoud.definitie.trim();
-  return {
-    ...inhoud, definitie, uitleg: nieuw.uitleg.trim(),
-    definitie_herkomst: zelfde ? inhoud.definitie_herkomst : definitie ? "geformuleerd" : null,
-  };
-}

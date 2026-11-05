@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  LEGE_INHOUD, begripUitParam, gewijzigdeVelden, handmatigeInhoud, inhoudGewijzigd, isAlPrimair, isPoortFout, revisieZin,
+  LEGE_INHOUD, begripUitParam, gewijzigdeVelden, inhoudGewijzigd, isAlPrimair, isPoortFout, revisieZin,
   sorteerKoppelingen, volledigeInhoud, weergaveUitParam,
 } from "./begrippen";
 import type { Koppeling } from "./types";
@@ -67,13 +67,6 @@ describe("revisieZin", () => {
     expect(revisieZin({ actie: "koppeling-gewijzigd", detail: { beoordeling: "akkoord" } })).toBe("Passage beoordeeld: akkoord");
     expect(revisieZin({ actie: "iets-nieuws", detail: {} })).toBe("iets-nieuws");
   });
-});
-
-it("een met de hand gewijzigde definitie is geformuleerd; ongewijzigd houdt ze haar herkomst", () => {
-  const oud = { ...LEGE_INHOUD, naam: "termijn", definitie: "de tijd", definitie_herkomst: "letterlijk" as const };
-  expect(handmatigeInhoud(oud, { definitie: " de tijd ", uitleg: "x" })).toMatchObject({ definitie_herkomst: "letterlijk", uitleg: "x" });
-  expect(handmatigeInhoud(oud, { definitie: "de periode", uitleg: "" }).definitie_herkomst).toBe("geformuleerd");
-  expect(handmatigeInhoud(oud, { definitie: "", uitleg: "" }).definitie_herkomst).toBeNull();
 });
 
 describe("definitieAard", () => {

@@ -169,7 +169,7 @@ await page.route("**/api/**", async (route) => {
 const foto = (naam) => process.env.SCREENSHOT_DIR
   ? page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/${naam}.png`, fullPage: true }) : null;
 const zie = (tekst) => page.getByText(tekst, { exact: false }).first().waitFor();
-const kaart = () => page.getByRole("article", { name: /^Begrip / });
+const kaart = () => page.locator("[data-begrip-paneel]");
 try {
   // 1. Uit de inventaris: passages uit twee regelingen kiezen. Met e4 erbij weigert de api (al_primair).
   await page.goto(`${base}/werkgebieden/wg1?tab=elementen`);
@@ -183,14 +183,13 @@ try {
   await page.getByRole("checkbox", { name: 'Kies "de ontvanger"' }).uncheck();
   await page.getByRole("button", { name: "Nieuw begrip uit selectie" }).click();
   await page.waitForURL(/\/artefacten\/begrippen\?begrip=b\d+/);
-  // F3e: een begrip opent om te lezen; *Begripskaart* opent de kaart met passages en accorderen. Spoor G2:
-  // geen *Vraag Lex* in elke rij, wel één *Bespreek met Lex* in de kop van de pagina.
+  // Spoor N: in het kader staat dezelfde inhoud als op de pagina. Spoor G2: geen *Vraag Lex* in elke rij, wel één
+  // *Bespreek met Lex* in de kop van de pagina.
   await page.locator("[data-begrip-paneel]").waitFor();
   assert.ok(await page.locator("[data-begrip-rij]").count() > 0);
   assert.equal(await page.locator("[data-begrip-rij] [data-vraag-lex]").count(), 0);
   assert.equal(await page.locator("[data-paginakop]").getByRole("link", { name: /^Bespreek .* met Lex$/ }).count(), 1);
-  // De kaart is de eigen pagina van het begrip (spoor G3).
-  await page.getByRole("button", { name: "Begripskaart" }).click();
+  await page.getByRole("link", { name: "Open de pagina" }).click();
   await page.waitForURL(/\/begrippen\/wg1\/b\d+$/);
   await page.locator("[data-begrip-pagina]").waitFor();
   // De knop staat er zodra het begrip geladen is; eerst wachten, dan tellen.
@@ -208,17 +207,30 @@ try {
   assert.equal(await page.getByRole("button", { name: "Accorderen" }).isDisabled(), true);
   await foto("begrip-nieuw");
 
-  await kaart().getByLabel("Definitie", { exact: true }).fill("Degene die de belasting verschuldigd is.");
-  // Spoor I1: de kaart volgt NL-SBB (term, betekenis, voorbeelden) en niemand kiest de herkomst – een eigen
-  // definitie is een analysebegrip, en dat label volgt meteen, ook vóór het opslaan.
+  // Spoor N: in rust staat alles te lezen; *Bewerken* maakt van het blok ter plekke een formulier. De NL-SBB-eigenschappen
+  // staan alleen in de bewerkstand, en niemand kiest de herkomst.
+  const betekenis = () => kaart().locator("[data-blok=betekenis]");
+  assert.equal(await betekenis().getByRole("textbox").count(), 0, "in rust staat er geen invoerveld");
+  assert.equal(await kaart().locator("[data-kaart-groep]").count(), 0);
+  await betekenis().getByRole("button", { name: "Betekenis bewerken" }).click();
+  await kaart().getByLabel(/^Definitie/).fill("Degene die de belasting verschuldigd is.");
   assert.deepEqual(await kaart().locator("[data-kaart-groep]").evaluateAll((g) => g.map((x) => x.dataset.kaartGroep)),
-    ["Term", "Betekenis", "Voorbeelden"]);
-  assert.equal(await kaart().getByRole("radio").count(), 0);
+    ["Term", "Definitie, uitleg en toelichting"]);
+  assert.equal(await betekenis().getByRole("radio").count(), 0);
   for (const weg of ["JAS-duiding", "Begripstype", "Onderbouwing", "Open vragen", "Eigenschappen"])
     assert.equal(await kaart().getByText(weg, { exact: true }).count(), 0, weg);
-  await kaart().locator("[data-definitie-aard=analysebegrip]").getByText("geen wettelijke definitie", { exact: false }).waitFor();
-  await kaart().getByLabel(/^Toelichting/).fill("Invordering van rijksbelastingen.");
-  // Spoor I3: een voorbeeld met het oordeel als gekleurde keuzepil, in een tekstvak dat alles toont.
+  await betekenis().locator("[data-definitie-aard=analysebegrip]").getByText("geen wettelijke definitie", { exact: false }).waitFor();
+  await betekenis().getByLabel(/^Toelichting/).fill("Invordering van rijksbelastingen.");
+  await zie("Sla eerst je wijzigingen op");
+  await betekenis().getByRole("button", { name: "Opslaan" }).click();
+  await zie("Opgeslagen.");
+  const laatstePatch = () => requests.filter((r) => r.m === "PATCH" && /begrippen\/b\d+$/.test(r.p)).at(-1);
+  assert.equal(laatstePatch().body.verwachte_revisie, 1);
+  assert.equal(laatstePatch().body.inhoud.jas_klasse, undefined);
+  await kaart().locator("[data-begrip-lees]").getByText("Degene die de belasting verschuldigd is.").waitFor();
+
+  // Spoor I3: een voorbeeld met het oordeel als gekleurde keuzepil, in een tekstvak dat alles toont; een eigen blok.
+  await kaart().getByRole("button", { name: "Voorbeelden bewerken" }).click();
   await kaart().getByRole("button", { name: "Voorbeeld toevoegen" }).click();
   const vb = kaart().getByLabel("Voorbeeld 1", { exact: true });
   await vb.fill("Iemand die een aanslag inkomstenbelasting krijgt maar in het buitenland woont en daar ook zijn "
@@ -230,17 +242,15 @@ try {
   await oordeel.getByText("valt er niet onder").click();
   assert.equal(await oordeel.getByRole("radio", { name: "valt er niet onder" }).isChecked(), true);
   await foto("begrip-voorbeelden");
-  await zie("Sla eerst je wijzigingen op");
-  await page.getByRole("button", { name: "Opslaan" }).click();
-  await zie("Opgeslagen.");
-  const patch = requests.filter((r) => r.m === "PATCH" && /begrippen\/b\d+$/.test(r.p)).at(-1).body;
-  assert.equal(patch.verwachte_revisie, 1);
-  assert.equal(patch.inhoud.jas_klasse, undefined);
-  assert.deepEqual(patch.inhoud.voorbeelden.map((v) => v.oordeel), ["niet"]);
+  await kaart().locator("[data-blok=voorbeelden]").getByRole("button", { name: "Opslaan" }).click();
+  await kaart().getByRole("list", { name: "Voorbeelden" }).waitFor();
+  assert.equal(laatstePatch().body.verwachte_revisie, 2);
+  assert.deepEqual(laatstePatch().body.inhoud.voorbeelden.map((v) => v.oordeel), ["niet"]);
+  assert.equal(laatstePatch().body.inhoud.context, "Invordering van rijksbelastingen.", "een blok laat de andere velden staan");
 
-  // Spoor M: rust de bewaarde definitie op fragmenten (een overgenomen voorstel van Lex), dan staan die onder
-  // het veld – maar alleen zolang de tekst in het formulier de bewaarde is.
-  const bid = requests.filter((r) => r.m === "PATCH" && /begrippen\/b\d+$/.test(r.p)).at(-1).p.split("/").at(-1);
+  // Spoor M: rust de bewaarde definitie op fragmenten (een overgenomen voorstel van Lex), dan staan die eronder – bij
+  // het bewerken alleen zolang de tekst de bewaarde is.
+  const bid = laatstePatch().p.split("/").at(-1);
   begrippen.get(bid).definitie_onderbouwing = { voorstel_id: "v1", actie: "scherper", herkomst: "geformuleerd",
     definitie_bron_iri: "", definitie_vindplaats: "", duiding: null, onderzoek_id: "O1",
     fragmenten: [{ bron_iri: "urn:bwb:BWBR0004770:artikel:9:lid:1", start: 0, eind: 18, tekst: "de belastingschuldige", rol: "ondersteunend" }] };
@@ -248,25 +258,28 @@ try {
   const blok = kaart().locator("[data-definitie-onderbouwing]");
   await blok.waitFor();
   assert.match(await blok.locator("summary").innerText(), /Rust op 1 fragment uit de bron – via een voorstel van Lex/);
+  await kaart().getByRole("button", { name: "Betekenis bewerken" }).click();
   const definitie = kaart().getByLabel(/^Definitie/);
   await definitie.fill("Een andere tekst.");
   assert.equal(await blok.count(), 0, "een andere definitie rust niet op deze fragmenten");
   await definitie.fill("Degene die de belasting verschuldigd is.");
   await blok.waitFor();
+  await kaart().locator("[data-bewerk-voet]").getByRole("button", { name: "Annuleren" }).click();
   delete begrippen.get(bid).definitie_onderbouwing;
 
-  // Een tweede wijziging terwijl iemand anders net opsloeg: 412, de nieuwe stand in beeld, jouw tekst blijft.
+  // Een tweede wijziging terwijl iemand anders net opsloeg: 412, de nieuwe stand erachter, jouw tekst blijft staan.
+  await kaart().getByRole("button", { name: "Betekenis bewerken" }).click();
   await kaart().getByLabel(/^Uitleg/).fill("Mijn uitleg");
   conflictBijOpslaan = true;
-  await page.getByRole("button", { name: "Opslaan" }).click();
+  await kaart().locator("[data-bewerk-voet]").getByRole("button", { name: "Opslaan" }).click();
   await zie("Iemand anders wijzigde dit begrip net.");
-  await zie("Iemand anders sloeg intussen een nieuwe versie van dit begrip op.");
   assert.equal(await kaart().getByLabel(/^Uitleg/).inputValue(), "Mijn uitleg");
-  await page.getByRole("button", { name: "Nieuwe versie overnemen" }).click();
-  assert.equal(await kaart().getByLabel(/^Toelichting/).inputValue(), "Van een ander");
-  assert.equal(await kaart().getByLabel(/^Uitleg/).inputValue(), "");
+  await kaart().locator("[data-bewerk-voet]").getByRole("button", { name: "Annuleren" }).click();
+  await kaart().locator("[data-begrip-lees]").getByText("Van een ander").waitFor();
+  await kaart().getByText("Nog geen uitleg.").waitFor();
 
   // Terug naar het begrippenkader met onbewaarde wijzigingen vraagt eerst bevestiging (het is een link).
+  await kaart().getByRole("button", { name: "Betekenis bewerken" }).click();
   await kaart().getByLabel(/^Uitleg/).fill("Nog niet bewaard");
   const kaartUrl = page.url();
   await page.getByRole("navigation", { name: "Kruimelpad" }).getByRole("link").nth(1).click();
@@ -287,7 +300,7 @@ try {
   await page.locator("aside").getByRole("link", { name: /^Werkgebieden/ }).click();
   await page.waitForURL(/\/werkgebieden$/);
   await page.goBack();
-  await kaart().getByLabel(/^Uitleg/).waitFor();
+  await kaart().waitFor();
 
   // 3. De passages beoordelen; de jurist keurt intussen de laatste annotatie goed.
   for (let i = 0; i < 3; i++) {
@@ -321,9 +334,8 @@ try {
   await kaart().getByText("Historie").click();
   await page.getByRole("list", { name: "Historie van het begrip" }).getByText("Geaccordeerd").waitFor();
 
-  // Smal scherm: wisselen tussen begrip en bronnen, zonder horizontale scroll.
+  // Smal scherm: alles onder elkaar, zonder horizontale scroll.
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("button", { name: "Bronnen (3)" }).click();
   await page.getByRole("heading", { name: "Bronpassages (3)" }).waitFor();
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
   // Het kruimelpad blijft bereikbaar.

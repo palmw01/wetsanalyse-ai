@@ -7,7 +7,7 @@ import { IcoonBevestig } from "@/components/ui/IcoonBevestig";
 import { Button, KNOP_XS } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
-import type { BegripMutatie } from "@/components/werkgebieden/BegripWerk";
+import type { BegripMutatie } from "@/lib/useBegrip";
 import { Herbeoordeling } from "@/components/werkgebieden/Herbeoordeling";
 import { foutTekst, haalInventaris, koppelElementen, ontkoppel, wijzigKoppeling } from "@/lib/api";
 import { ACTUALITEIT_LABEL, BEOORDELING_LABEL, KOPPELROL_LABEL, sorteerKoppelingen } from "@/lib/begrippen";

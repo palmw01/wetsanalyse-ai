@@ -7,7 +7,7 @@ import { verlaatPagina } from "@/lib/onbewaard";
 
 /** Bewaakt niet-bewaarde wijzigingen buiten de eigen knoppen om: een link elders op de pagina (de
  *  sidebar, "Alle werkgebieden", "Open het werkgebied") of een knop die zelf navigeert. Herladen en
- *  sluiten vangt `BegripKaart` al met `beforeunload`.
+ *  sluiten vangt `BegripInhoud` al met `beforeunload`.
  *
  *  Een link vangen we in de capture-fase op `document`, vóór React hem ziet; de navigatie wacht dan op
  *  `toch`. Knoppen die zelf navigeren (een gesprek openen in de sidebar) halen hun handeling door

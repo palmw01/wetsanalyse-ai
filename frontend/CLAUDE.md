@@ -74,7 +74,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     `NodeAnnotatiePaneel`, `AnnotatiePaginaSchil`).
   - `werkgebieden/` – overzicht en pagina van een werkgebied (`WerkgebiedenClient`,
     `WerkgebiedClient`, de tabs `BronnenTab`/`ElementenTab`/`BegrippenTab`/`SamenhangTab`/`HistorieTab`,
-    het begrip als leesweergave `BegripPaneel` of als kaart `BegripWerk`/`BegripKaart`/`BegripPassages`,
+    het begrip als `BegripInhoud` met `useBegrip` (dezelfde inhoud op de pagina en naast het gesprek),
     `WerkgebiedSchil`, en
     `OpnemenInWerkgebied` voor de annotatiepagina).
   - `graaf/` – de samenhangsgraaf (sigma); de rekenkern staat in `lib/graaf/`.
@@ -238,11 +238,8 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
   - **begrip** (F3d) – een taak van de begrippen-agent op één begrip ("geef voorbeelden van termijn",
     *Werk het begrip volledig uit*) levert `ref: {werkgebied_id, begrip_id, kaart_run_id?, actie?}`. Een
     bericht van vóór F3d droeg dat als `begrippen` mét `begrip_id`; `parseArtefact` maakt er `begrip` van.
-    Het paneel is **`BegripPaneel`**: een leesweergave (naam, status, termen, definitie met herkomst,
-    uitleg, voorbeelden, relaties ingeklapt), de open voorstellen van Lex per veld (`KaartVoorstelKaart`:
-    overnemen, aanpassen, afwijzen) en een kleine bewerking van definitie en uitleg (`handmatigeInhoud`: een
-    gewijzigde definitie heet *geformuleerd*), met de onbewaard-bewaker. **Geen Lex-knoppen** – dat vraag
-    je in het gesprek. *Open het werkgebied* gaat naar `?tab=begrippen&begrip=<id>`.
+    Het paneel is **`BegripCompact`**, om `BegripInhoud`: dezelfde blokken als op de pagina, onder elkaar (spoor N). Je
+    leest, bewerkt per blok, beoordeelt passages en accordeert hier. **Geen Lex-knoppen** – dat vraag je in het gesprek.
   - **deelvraag** (F3d) – een taak op één deelvraag (*Formuleer scherper*, *Splits*, en zoeken of dekking
     bij die deelvraag) levert `ref: {werkgebied_id, deelvraag_id}`. **`DeelvraagPaneel`** haalt
     `GET …/deelvragen/{id}` (ook een vervangen deelvraag) en toont de vraag met haar stand, de voorstellen
@@ -700,7 +697,7 @@ sidebar blijft staan.
   |---|---|---|---|
   | annotatie | `ArtefactInhoud` | nodepagina (dezelfde inhoud) | `AnnotatieKaart` in `/annotaties` (`verwijderAnnotatie`: eerst de weergave) |
   | werkgebied | `WerkgebiedInhoud` in `WerkgebiedArtefactPaneel` | kop van `WerkgebiedClient` | kaart in `WerkgebiedenClient` |
-  | begrip | kop van `BegripPaneel` | `BegripPaneel` in de Begrippen-tab, en onderaan `BegripKaart` | rij in `BegrippenOverzichtClient` |
+  | begrip | menu ⋯ van `BegripCompact` | menu ⋯ in de kop van `BegripPagina` | rij in `BegrippenOverzichtClient` |
 
   Een verwijderd werkgebied of begrip geeft een 404 met `{fout: "verwijderd", op, door}`; `verwijderdUit`
   leest die en het paneel of de pagina zegt "Dit werkgebied is verwijderd op … door …" (`data-verwijderd`).
@@ -823,7 +820,7 @@ bestaat los van de gesprekken.
     (`beslisElement`, tegen de laagrevisie en bronstand van het element). Klasse en grens aanpassen blijft in
     de annotatie van de bepaling, waar de buren ernaast staan. De reviewkaart (*Open als pagina*) en de
     passages van een begrip (*Element*) linken hierheen.
-  - **Begrip** `/begrippen/[wg]/[id]` (`BegripPagina` → `BegripWerk`): de volledige kaart, zonder lijst.
+  - **Begrip** `/begrippen/[wg]/[id]` (`BegripPagina` → `BegripInhoud`): het begrip, zonder lijst.
     *Begripskaart* in het begrippenkader, het begrippenoverzicht (`kaartUrl`), de samenhangsgraaf en het
     paneel naast het gesprek openen hem; lezen naast de lijst blijft in het begrippenkader. Een oude link met
     `&weergave=kaart` gaat hierheen.
@@ -929,50 +926,37 @@ bestaat los van de gesprekken.
   (`OpnemenInWerkgebied`). Daar is geen revisie in beeld; `neemOpInWerkgebied` haalt hem op en
   probeert bij een 412 één keer opnieuw – de bedoeling hangt niet af van de rest van het werkgebied,
   en opnemen is idempotent.
-- **Begrippen** (levering 2; api in `../api/CLAUDE.md` §*Begrippen*). De tab staat tussen Elementen en
-  Samenhang; het gekozen begrip staat in de URL (`?tab=begrippen&begrip=<id>`, via `kiesBegrip` in
-  `WerkgebiedClient`, ook vanuit de tab Elementen). `BegrippenTab` is de lijst (`Lijst`/`LijstRij`, met
-  export en *Nieuw begrip*). Het gekozen begrip opent om te **lezen**
-  (`BegripPaneel`, hetzelfde paneel als naast het gesprek: de leesweergave, de open voorstellen van Lex per
-  veld, een kleine bewerking); *Begripskaart* wisselt naar de **kaart** (`BegripWerk`). Er staat er steeds
-  één. De weergave staat in de URL (`&weergave=kaart`, `weergaveUitParam` in `lib/begrippen.ts`) en blijft
-  staan bij een wissel van begrip; een klik in de strook *Herbeoordelen* en *Open de begripskaart* in de
-  samenhangsgraaf openen de kaart. Een wissel met onbewaarde wijzigingen vraagt eerst bevestiging, net als
-  een wissel van begrip. `BegripWerk` laadt één begrip en draagt `muteer` – dezelfde vorm als bij het werkgebied:
-  revisie in beeld, 412 laadt opnieuw en zegt het, een fout met een `melding` van de api (`al_primair`,
-  `poort`, `element_buiten_werkgebied`) verschijnt zoals de api hem formuleert. Kaart en passages staan
-  vanaf `xl` naast elkaar, daaronder wissel je; de schil is op deze tab breed (`max-w-7xl`).
-  - **De kaart is het slanke begrip van NL-SBB** (spoor G5, ADR-003; slank sinds spoor I1): groepen *Term*
-    (voorkeursterm, alternatieve termen), *Betekenis* (definitie, uitleg in eenvoudige taal, *Toelichting* =
-    het veld `context`, `skos:scopeNote`) en *Voorbeelden* (tekst en oordeel). Er is geen indeling, geen
-    onderbouwing en geen open vragen meer, en **geen herkomstkeuze**: de api leidt de herkomst af. Bij elke
-    kop staat klein de NL-SBB-eigenschap waarop de export landt (`data-kaart-groep`). **Brondefinitie of
+- **Begrippen** (levering 2; api in `../api/CLAUDE.md` §*Begrippen*). `BegrippenTab` is de lijst met het gekozen begrip
+  ernaast; dat staat in de URL (`?begrip=<id>`). **Eén begrip is één inhoud** (spoor N, ADR-006): `useBegrip`
+  (`lib/useBegrip.ts`) laadt het en draagt `muteer` – dezelfde vorm als bij het werkgebied: revisie in beeld, 412 laadt
+  opnieuw en zegt het, een fout met een `melding` van de api (`al_primair`, `poort`, `element_buiten_werkgebied`)
+  verschijnt zoals de api hem formuleert. `BegripInhoud` toont de blokken: op de pagina via `SplitDetail` (links
+  Betekenis, Voorbeelden en passages, rechts Beoordeling, Relaties en Historie), naast het gesprek onder elkaar.
+  *Bewerken* staat per blok (`useBewerken`); elke bewaring is een revisie, de andere velden blijven staan, en een 412
+  laat je tekst in het open blok staan. Verwijderen staat in het menu ⋯ (`BegripMenu`). De prop `context` staat er voor
+  het generieke kader (ADR-006).
+  - **Het begrip is het slanke begrip van NL-SBB** (spoor G5, ADR-003; slank sinds spoor I1): term (voorkeursterm,
+    alternatieve termen), betekenis (definitie, uitleg in eenvoudige taal, *Toelichting* = het veld `context`,
+    `skos:scopeNote`) en voorbeelden (tekst en oordeel). Er is **geen herkomstkeuze**: de api leidt de herkomst af. De
+    NL-SBB-eigenschap waarop de export landt, staat alleen tijdens het bewerken klein bij de kop (`data-kaart-groep`). **Brondefinitie of
     analysebegrip** staat bij de definitie (`DefinitieAard`, `definitieAard` in `lib/begrippen.ts`): alleen
     een letterlijk overgenomen definitie is een brondefinitie; samengesteld of geformuleerd is "een
     analyse-uitkomst, geen wettelijke definitie". Het label volgt de tekst meteen, ook vóór het opslaan
     (`herkomstNaAanpassing`: een andere tekst is geformuleerd); de kop van de begripspagina en
-    `BegripPaneel` tonen hetzelfde, het paneel met *Van Lex overgenomen* of *Door de analist* eronder.
+    `BegripInhoud` tonen hetzelfde, met *Van Lex overgenomen* of *Door de analist* eronder.
     Rust de definitie op een voorstel of groep van Lex, dan staat eronder ingeklapt waarop
     (`DefinitieOnderbouwing`, uit `definitie_onderbouwing` van de api, spoor M): de fragmenten met hun
     vindplaats als link naar de bepaling, en de duiding. Op de kaart alleen zolang de tekst de bewaarde is.
   - **Voorbeelden in kleur, en alles zichtbaar** (spoor I3, `components/werkgebieden/Voorbeelden.tsx`): lezen
     gaat als rijen met een `OordeelLabel` (groen *valt eronder*, rood *valt er niet onder*, oker *twijfel*;
-    `OORDEEL_TOON` in `lib/begrippen.ts` – kleur draagt het oordeel nooit alleen), in `BegripPaneel` en bij een
+    `OORDEEL_TOON` in `lib/begrippen.ts` – kleur draagt het oordeel nooit alleen), in `BegripInhoud` en bij een
     voorbeeld van Lex in `KaartVoorstelKaart`. Bewerken kiest het oordeel met `OordeelKeuze`: drie pillen over
     echte keuzerondjes (`role="radiogroup"`), geen uitklaplijst. Tekstvakken op de kaart en in het paneel zijn
     `components/ui/AutoTextarea`: ze groeien mee met de inhoud, zonder uitrekgreep.
-  - **`BegripKaart` is één formulier met *Opslaan*, geen autosave**: elke bewaring is een revisie. De
-    kaart werkt op een concept naast de serverstand (`basis`). Verandert de inhoud op de server terwijl
-    er niets onbewaard is, dan neemt hij die over; mét onbewaarde wijzigingen zegt hij dat en blijft
-    jouw tekst staan (*Nieuwe versie overnemen* of opslaan). Of er iets onbewaard is, bepaalt
-    `inhoudGewijzigd` (`lib/begrippen.ts`: genormaliseerd, sleutelvolgorde telt niet). Met onbewaarde
-    wijzigingen vraagt een wissel van begrip **én van tab** eerst bevestiging (`OnbewaardMelding`, geen
-    systeemvenster): de tabs renderen lazy, dus een tabwissel gooide het concept anders stil weg. Het
-    signaal staat daarom in `WerkgebiedClient`. Herladen of sluiten vangt `beforeunload`; een link
-    elders (sidebar, *Alle werkgebieden*) en een knop die zelf navigeert (een gesprek openen) vangt
-    `useOnbewaardBewaker` (`lib/useOnbewaardBewaker.ts`: links in de capture-fase op `document`, knoppen
-    via `bewaak`; `/instellingen/*` opent over de pagina en telt niet). Het artefactpaneel van één begrip
-    in de werkplek gebruikt dezelfde bewaker, ook voor sluiten.
+  - **Onbewaard werk meldt zich.** Elk open blok met een wijziging meldt zich via `onOnbewaard`; een wissel van begrip of
+    tab vraagt dan eerst bevestiging (`OnbewaardMelding`), en herladen of sluiten vangt `beforeunload`. Een link elders
+    (sidebar) en een knop die zelf navigeert vangt `useOnbewaardBewaker` (`lib/useOnbewaardBewaker.ts`: links in de
+    capture-fase op `document`, knoppen via `bewaak`; `/instellingen/*` opent over de pagina en telt niet).
   - **De poort rekent de server.** *Accorderen* staat uit zolang `accorderen.mag` onwaar is, met de
     redenen letterlijk eronder; met onbewaarde wijzigingen ook (de poort kijkt naar wat bewaard is).
   - **Elke knop per passage noemt zijn passage** (`aria-label`, "Akkoord met “…”"): dezelfde knoppen
@@ -1054,13 +1038,12 @@ bestaat los van de gesprekken.
   brondefinitie*, *Geef voorbeelden*, *Wat is het betekenisverschil met …*, *Werk het begrip volledig
   uit*). Er staan geen Lex-knoppen boven de kaart. De rekenkern van een voorstel staat in
   `lib/kaartVoorstel.ts`.
-  - **Een voorstel staat onder zijn veld** (`KaartVoorstelKaart` in `BegripKaart`, via `lex` uit
-    `BegripWerk`, en per veld in `BegripPaneel`): de tekst, de herkomst (`herkomstLabel`), de fragmenten, de aandachtspunten
+  - **Een voorstel staat onder zijn veld** (`KaartVoorstelKaart` in `BegripInhoud`): de tekst, de herkomst (`herkomstLabel`), de fragmenten, de aandachtspunten
     (`AANDACHTSPUNT_LEX`, gelijk aan graph-qa `kaartacties.TEKST` – de test leest die bron), en
     *Overnemen · Aanpassen · Afwijzen*. Alle knoppen zijn `type="button"` en Enter in het redenveld doet
     `preventDefault`: de kaart staat ín het formulier van het begrip.
   - **Niets stil overschreven.** Overnemen staat uit zolang de kaart onbewaarde wijzigingen heeft.
-    `BegripWerk` laadt de voorstellen opnieuw bij elke revisie, zodat een eigen wijziging een open
+    `useBegrip` laadt de voorstellen opnieuw bij elke revisie, zodat een eigen wijziging een open
     definitievoorstel meteen `verouderd` maakt: dan staan toen, nu en voorstel naast elkaar, en *Toch
     overnemen* stuurt `nu_gezien` mee (de api weigert anders met 409 `voorstel_verouderd`; `verouderdUit`
     leest die). Overnemen loopt via `muteer`, dus een 412 laadt opnieuw zoals elke mutatie.
@@ -1077,7 +1060,7 @@ bestaat los van de gesprekken.
     kaart. Het antwoord komt van `GET …/herbeoordelingen` en vraagt de bronboom: het laadt los van de lijst
     en faalt stil
     (`isHerbeoordelingen`; zonder antwoord staan de begrippen er gewoon).
-  - **Bij de passage** (`Herbeoordeling` in `BegripPassages`, uit `BegripWerk` dat per revisie
+  - **Bij de passage** (`Herbeoordeling` in `BegripPassages`, uit `useBegrip` dat per revisie
     `?begrip_id=` opnieuw vraagt): de redenen van de api, *toen* (het bewijs) naast *nu*, de wettekst van
     nu met het fragment aangewezen (`markeer`) of de zin dat het er niet meer staat, de opvolgers met hun
     signalen (teken + `sr-only`-richting, nooit een score). *Herkoppelen* en *Begrip klopt nog*

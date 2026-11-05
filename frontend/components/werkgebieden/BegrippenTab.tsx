@@ -1,22 +1,23 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/Button";
+import { Button, knopKlasse } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
 import { ChevronOmlaag } from "@/components/ui/Icoon";
 import { Lijst, LijstRij } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { BegripPaneel } from "@/components/werkgebieden/BegripPaneel";
+import { BegripCompact } from "@/components/werkgebieden/BegripInhoud";
 import { BegripVoorstellen } from "@/components/werkgebieden/BegripVoorstellen";
-import { BegripWerk } from "@/components/werkgebieden/BegripWerk";
 import { OnbewaardMelding } from "@/components/werkgebieden/OnbewaardMelding";
 import { ExportKnop } from "@/components/werkplek/ExportKnop";
 import { exporteerBegrippen, foutTekst, haalHerbeoordelingen, lijstBegrippen, maakBegrip } from "@/lib/api";
 import type { BegripWeergave } from "@/lib/begrippen";
 import { geraakteBegrippen, herbeoordelingZin, strookKop } from "@/lib/herbeoordeling";
 import type { BegripSamenvatting, BegrippenLijst, Herbeoordelingen } from "@/lib/types";
+import { begripPad } from "@/lib/werkgebiedPaden";
 
 export const EXPORT_FORMATEN = [
   { formaat: "csv" as const, label: "CSV", uitleg: "één rij per passage, met vindplaats en bron" },
@@ -25,17 +26,13 @@ export const EXPORT_FORMATEN = [
   { formaat: "ttl-alle" as const, label: "Turtle, alle begrippen", uitleg: "ook concepten en vervangen begrippen, met hun status" },
 ];
 
-/** De begrippen van het werkgebied: links de lijst, daarnaast het gekozen begrip. Begrippen zijn
- *  analyse-uitkomsten, geen wettelijke definities.
- *
- *  Het gekozen begrip opent om te lezen (`BegripPaneel`, F3e: de leesweergave met de voorstellen van Lex
- *  per veld); *Begripskaart* wisselt naar de kaart met passages, relaties en accorderen (`BegripWerk`).
- *  Er staat er steeds één, en de keuze blijft staan bij een wissel van begrip: wie op de kaart werkt en
- *  een opvolger maakt, landt op diens kaart. Lex vraag je in het gesprek (*Bespreek met Lex* op de begripspagina).
+/** De begrippen van het werkgebied: links de lijst, daarnaast het gekozen begrip (`BegripCompact`, dezelfde inhoud
+ *  als zijn pagina). Begrippen zijn analyse-uitkomsten, geen wettelijke definities. Lex vraag je in het gesprek
+ *  (*Bespreek met Lex* op de begrippagina).
  *
  *  Het gekozen begrip staat in de URL (via `onKies`). Wie wisselt terwijl de kaart wijzigingen draagt
  *  die nog niet bewaard zijn, krijgt eerst de vraag of dat de bedoeling is – zonder systeemvenster. */
-export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard, weergave, onWeergave }: {
+export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard }: {
   id: string;
   gekozen?: string;
   onKies: (begripId: string | undefined, weergave?: BegripWeergave) => void;
@@ -43,9 +40,6 @@ export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard, weer
    *  ermee bewaakt. */
   onbewaard: boolean;
   onOnbewaard: (onbewaard: boolean) => void;
-  /** Lezen of de kaart; staat in `WerkgebiedClient` (en in de URL), zodat hij een wissel van begrip overleeft. */
-  weergave: BegripWeergave;
-  onWeergave: (w: BegripWeergave) => void;
 }) {
   const [lijst, setLijst] = useState<BegrippenLijst | null>(null);
   // Herbeoordelen (fase F1): begrippen waarvan een dragende passage veranderde. Vraagt de bronboom en
@@ -72,7 +66,7 @@ export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard, weer
   }, [laadLijst]);
 
   function kies(begripId: string | undefined, w?: BegripWeergave) {
-    if (begripId === gekozen && (!w || w === weergave)) return;
+    if (begripId === gekozen && !w) return;
     if (onbewaard) {
       setWachtendeKeuze({ id: begripId, weergave: w });
       return;
@@ -222,20 +216,20 @@ export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard, weer
               >
                 <ChevronOmlaag className="rotate-90" /> Alle begrippen
               </button>
-              <GekozenBegrip
+              <div className="mb-3 flex justify-end">
+                <Link href={begripPad(id, gekozen!)} className={knopKlasse("secondary", "xs")}>Open de pagina</Link>
+              </div>
+              <BegripCompact
                 key={gekozen}
-                id={id}
+                context={{ soort: "werkgebied", werkgebiedId: id }}
                 begripId={gekozen!}
-                lijst={lijst!}
-                weergave={weergave}
-                onWeergave={onWeergave}
                 onGewijzigd={laadLijst}
                 onOnbewaard={onOnbewaard}
                 onNaarBegrip={(b) => {
                   onOnbewaard(false);
                   void laadLijst().then(() => onKies(b));
                 }}
-                onWeg={async () => {
+                onVerwijderd={async () => {
                   onOnbewaard(false);
                   await laadLijst();
                   onKies(undefined);
@@ -277,68 +271,5 @@ function BegripRij({ begrip: b, gekozen, aandacht, onKies }: {
         {aandacht && <span className="mt-0.5 block text-aandacht-geel-tekst">{aandacht}</span>}
       </>}
     />
-  );
-}
-
-/** Het gekozen begrip: lezen (`BegripPaneel`) of de kaart (`BegripWerk`). Een wissel met niet-bewaarde
- *  wijzigingen vraagt eerst bevestiging, net als een wissel van begrip. */
-function GekozenBegrip({ id, begripId, lijst, weergave, onWeergave, onGewijzigd, onOnbewaard, onNaarBegrip, onWeg }: {
-  id: string;
-  begripId: string;
-  lijst: BegrippenLijst;
-  weergave: BegripWeergave;
-  onWeergave: (w: BegripWeergave) => void;
-  onGewijzigd: () => void;
-  onOnbewaard: (onbewaard: boolean) => void;
-  onNaarBegrip: (begripId: string) => void;
-  onWeg: () => Promise<void>;
-}) {
-  const [onbewaard, setOnbewaard] = useState(false);
-  const [wachtend, setWachtend] = useState(false);
-  const meld = useCallback((o: boolean) => {
-    setOnbewaard(o);
-    onOnbewaard(o);
-  }, [onOnbewaard]);
-
-  function wissel() {
-    const naar = weergave === "lezen" ? "kaart" : "lezen";
-    if (onbewaard) return setWachtend(true);
-    onWeergave(naar);
-    if (naar === "lezen") onGewijzigd();
-  }
-
-  return (
-    <div className="space-y-3" data-begrip-weergave={weergave}>
-      <div className="flex justify-end">
-        <Button size="sm" variant="secondary" className="w-full sm:w-auto" onClick={wissel}>
-          {weergave === "lezen" ? "Begripskaart" : "Terug naar het begrip"}
-        </Button>
-      </div>
-      {wachtend && (
-        <OnbewaardMelding waar="Op de begripskaart"
-          onBlijf={() => setWachtend(false)}
-          onToch={() => {
-            setWachtend(false);
-            meld(false);
-            onWeergave(weergave === "lezen" ? "kaart" : "lezen");
-          }}
-        />
-      )}
-      {weergave === "lezen" ? (
-        <BegripPaneel werkgebiedId={id} begripId={begripId} onOnbewaard={meld} onNaarBegrip={onNaarBegrip}
-          onVerwijderd={() => void onWeg()} />
-      ) : (
-        <BegripWerk
-          id={id}
-          begripId={begripId}
-          primair={lijst.primair ?? {}}
-          andere={lijst.begrippen}
-          onGewijzigd={onGewijzigd}
-          onOnbewaard={meld}
-          onNaarBegrip={onNaarBegrip}
-          onWeg={onWeg}
-        />
-      )}
-    </div>
   );
 }

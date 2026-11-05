@@ -179,7 +179,7 @@ try {
   await page.getByText("Vervangen (1)").click();
   await page.getByRole("list", { name: "Vervangen begrippen" }).getByRole("button").click();
   await page.waitForURL(/begrip=b1/);
-  await page.getByRole("button", { name: "Begripskaart" }).click();
+  await page.getByRole("link", { name: "Open de pagina" }).click();
   await page.waitForURL(/\/begrippen\/wg1\/b1$/);
   await zie("Dit begrip is alleen nog te lezen.");
   assert.equal(await page.locator("[data-begrip-lex]").count(), 0);

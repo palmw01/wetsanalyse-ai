@@ -7,7 +7,7 @@ import { BEGRIP_STATUS_LABEL, kaartUrl, kort, type BegripOverzichtRij } from "@/
 import type { BegripStatus } from "@/lib/types";
 import { StatusLabel } from "@/components/ui/Lijst";
 
-// Geaccordeerd is het enige oordeel; zoals elders groen (de status van een begrip in `BegripPaneel`).
+// Geaccordeerd is het enige oordeel; zoals elders groen (de status van een begrip in `BegripInhoud`).
 const TOON: Record<BegripStatus, "groen" | "neutraal"> = { geaccordeerd: "groen", concept: "neutraal", vervangen: "neutraal" };
 
 /** Eén begrip in het overzicht, in de vorm van `AnnotatieKaart` en `WerkgebiedKaart`: de naam is de link

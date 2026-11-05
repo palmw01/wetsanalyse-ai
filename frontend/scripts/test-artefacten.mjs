@@ -346,7 +346,7 @@ try {
   await begripPaneel.getByText("Nog geen uitleg.").waitFor();
   assert.equal(await begripPaneel.locator("[data-vraag-lex]").count(), 0, "geen Vraag Lex naast het gesprek");
   // Een eigen bewerking: sluiten vraagt eerst, net als een tabwissel in het werkgebied.
-  await begripPaneel.getByRole("button", { name: "Definitie en uitleg bewerken" }).click();
+  await begripPaneel.getByRole("button", { name: "Betekenis bewerken" }).click();
   await begripPaneel.getByLabel(/^Uitleg/).fill("Nog niet bewaard");
   await begripPaneel.getByRole("button", { name: "Sluiten" }).first().click();
   await begripPaneel.getByRole("button", { name: "Blijf hier" }).click();
@@ -460,16 +460,17 @@ try {
   const bv = page.getByRole("region", { name: "Begrip: Termijn" });
   await bv.locator("[data-versiekiezer]").getByText("Versie 1 van 2").waitFor();
   await bv.locator("[data-begrip-paneel][data-alleen-lezen]").getByText("De oude definitie.").waitFor();
-  assert.equal(await bv.getByRole("button", { name: "Definitie en uitleg bewerken" }).count(), 0, "een oude versie is niet te bewerken");
+  assert.equal(await bv.getByRole("button", { name: "Betekenis bewerken" }).count(), 0, "een oude versie is niet te bewerken");
   assert.equal(await bv.getByRole("button", { name: "Begrip verwijderen" }).count(), 0);
   await bv.locator("[data-oude-versie]").getByRole("button", { name: "Ga naar de huidige versie" }).click();
-  await bv.getByRole("button", { name: "Definitie en uitleg bewerken" }).waitFor();
+  await bv.getByRole("button", { name: "Betekenis bewerken" }).waitFor();
 
   await page.goto(`${base}/workbench?gesprek=g3`);
   await page.locator('button[data-artefact-soort="begrip"]', { hasText: "Termijn" }).click();
   const bp = page.getByRole("region", { name: "Begrip: Termijn" });
-  await bp.getByRole("button", { name: "Begrip verwijderen" }).click();
-  await bp.getByRole("button", { name: "Verwijderen?", exact: true }).click();
+  await bp.getByRole("button", { name: "Meer voor dit begrip" }).click();
+  await bp.getByRole("menuitem", { name: "Begrip verwijderen" }).click();
+  await bp.getByRole("menuitem", { name: /verwijderen/i }).click();
   await bp.locator("[data-verwijderd]").getByText("Dit begrip is verwijderd op 15 okt 2026 door t.").waitFor();
   // De versiekiezer: de chip van beurt 1 opent versie 1 van 2, alleen lezen; › en ‹ bladeren, Ga naar de huidige versie
   // toont Nu met de knoppen; de chip van de laatste beurt opent meteen Nu.
