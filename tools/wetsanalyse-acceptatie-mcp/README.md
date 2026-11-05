@@ -20,8 +20,9 @@ dunne laag met de tools.
 | `werkgebied_lezen` | dossier, dekking, elementen en audit van een werkgebied |
 | `annotatie_lezen` | één element met klasse, ankers, bron en graaf |
 | `begrip_lezen` | een begrip met revisies, of alle begrippen van een werkgebied |
+| `logs_zoek` | de keten op `trace_id`, de logregels op `run_id`, of de fouten; alleen vaste queries |
 
-Elke tool neemt optioneel `als: "beheerder"`. `lex_wacht` wacht hooguit 110 seconden; bij `klaar: false`
+Elke tool behalve `logs_zoek` neemt optioneel `als: "beheerder"`. `lex_wacht` wacht hooguit 110 seconden; bij `klaar: false`
 loopt de run door en vraag je opnieuw met de teruggegeven `vanaf`.
 
 Inloggen, tokens maken en wachtwoord of 2FA wijzigen kan hier niet: dat weigert de server voor een sessie
@@ -49,6 +50,10 @@ Op de straat moet `API_TOKEN_LOGIN` aanstaan; `azure-infra` zet die alleen op ac
    ```bash
    claude mcp add wetsanalyse-acceptatie -- node tools/wetsanalyse-acceptatie-mcp/dist/index.js
    ```
+
+Voor `logs_zoek` komen daar `WETSANALYSE_ACC_GRAFANA_URL` en `WETSANALYSE_ACC_GRAFANA_WACHTWOORD` bij: de
+Grafana van `azure-infra` → `grafana`, met het wachtwoord uit `WA_GRAFANA_ADMIN_PASSWORD`. Die tool leest via
+de datasource van acceptatie, zodat er geen Azure-secret op je machine hoeft te staan.
 
 Zonder URL en analist-token weigert de server te starten, en een URL van de productiestraat ook.
 

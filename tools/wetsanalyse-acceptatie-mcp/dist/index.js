@@ -10,6 +10,8 @@
  *   WETSANALYSE_ACC_URL              – basis-URL van de webapp op acceptatie
  *   WETSANALYSE_ACC_TOKEN            – accounttoken van een analist
  *   WETSANALYSE_ACC_TOKEN_BEHEERDER  – optioneel, accounttoken van een beheerder
+ *   WETSANALYSE_ACC_GRAFANA_URL      – optioneel, voor logs_zoek
+ *   WETSANALYSE_ACC_GRAFANA_WACHTWOORD – optioneel, het admin-wachtwoord van die Grafana
  *
  * Fail-closed: zonder URL en token weigert de server te starten, en een productie-URL ook. Logs (JSON)
  * gaan naar stderr; tokens worden nooit gelogd. stdout is exclusief voor het MCP-protocol.
@@ -19,9 +21,12 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { AcceptatieClient, controleerUrl } from "./client.js";
+import { zoekLogs } from "./logs.js";
 const URL_ACC = process.env.WETSANALYSE_ACC_URL ?? "";
 const TOKEN_ANALIST = (process.env.WETSANALYSE_ACC_TOKEN ?? "").trim();
 const TOKEN_BEHEERDER = (process.env.WETSANALYSE_ACC_TOKEN_BEHEERDER ?? "").trim();
+const GRAFANA_URL = (process.env.WETSANALYSE_ACC_GRAFANA_URL ?? "").replace(/\/+$/, "");
+const GRAFANA_WACHTWOORD = process.env.WETSANALYSE_ACC_GRAFANA_WACHTWOORD ?? "";
 function log(niveau, bericht, velden = {}) {
     process.stderr.write(JSON.stringify({ ts: new Date().toISOString(), niveau, bericht, ...velden }) + "\n");
 }
@@ -147,6 +152,27 @@ const TOOLS = [
             return samen(client(a.als), {
                 begrip: `${pad}/${seg(a.begrip_id)}`,
                 revisies: `${pad}/${seg(a.begrip_id)}/revisies`,
+            });
+        },
+    },
+    {
+        name: "logs_zoek",
+        description: "Logs van acceptatie: met `trace_id` de hele keten van één aanroep (traces), met `run_id` de logregels " +
+            "van een run, zonder beide de fouten en waarschuwingen. Alleen vaste queries. Telemetrie komt met enkele " +
+            "minuten vertraging binnen, dus een lege uitslag direct na een actie zegt nog niets.",
+        input: S({
+            trace_id: z.string().optional(),
+            run_id: z.string().optional(),
+            minuten: z.number().int().min(1).max(1440).optional(),
+        }),
+        run: (a) => {
+            if (!GRAFANA_URL || !GRAFANA_WACHTWOORD) {
+                throw new Error("Zet WETSANALYSE_ACC_GRAFANA_URL en WETSANALYSE_ACC_GRAFANA_WACHTWOORD.");
+            }
+            return zoekLogs(GRAFANA_URL, GRAFANA_WACHTWOORD, {
+                trace_id: a.trace_id,
+                run_id: a.run_id,
+                minuten: a.minuten ?? 60,
             });
         },
     },
