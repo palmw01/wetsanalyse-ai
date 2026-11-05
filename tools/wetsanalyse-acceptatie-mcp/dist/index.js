@@ -143,12 +143,14 @@ const TOOLS = [
     },
     {
         name: "begrip_lezen",
-        description: "Eén begrip: kaart met definitie en status, gekoppelde passages en revisies. Zonder begrip_id alle begrippen van het werkgebied.",
+        description: "Eén begrip: kaart met definitie en status, gekoppelde passages en revisies. Zonder begrip_id alle begrippen " +
+            "van het werkgebied, met de NL-SBB-conformiteit en de samenhang (koppelingen, relaties en voorstellen).",
         input: S({ werkgebied_id: z.string(), begrip_id: z.string().optional(), als: Als }),
         run: (a) => {
             const pad = `/api/werkgebieden/${seg(a.werkgebied_id)}/begrippen`;
-            if (!a.begrip_id)
-                return client(a.als).bff("GET", pad);
+            if (!a.begrip_id) {
+                return samen(client(a.als), { begrippen: pad, conformiteit: `${pad}/conformiteit`, samenhang: `${pad}/samenhang` });
+            }
             return samen(client(a.als), {
                 begrip: `${pad}/${seg(a.begrip_id)}`,
                 revisies: `${pad}/${seg(a.begrip_id)}/revisies`,
