@@ -28,7 +28,9 @@ export function BegripOverzichtKaart({ b, onVerwijder }: { b: BegripOverzichtRij
         </StatusLabel>
       </div>
       <p className="text-xs text-muted">
-        {b.werkgebied_naam}
+        {b.kader === "generiek"
+          ? `Generiek · gebruikt in ${b.gebruikt_in === 1 ? "1 werkgebied" : `${b.gebruikt_in ?? 0} werkgebieden`}`
+          : b.werkgebied_naam}
         {b.alternatieve_termen.length > 0 && ` · ook: ${b.alternatieve_termen.join(", ")}`}
       </p>
       {b.definitie ? (

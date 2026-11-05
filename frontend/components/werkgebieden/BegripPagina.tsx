@@ -48,7 +48,7 @@ export function BegripPagina({ begripId }: { begripId: string }) {
         sub="Betekenis, voorbeelden, passages, relaties en beoordeling."
         meta={begrip && <>
           <StatusLabel toon={BEGRIP_STATUS_TOON[begrip.status]}>{BEGRIP_STATUS_LABEL[begrip.status]}</StatusLabel>
-          <Stip /><span>Begrippenkader {wg.naam}</span>
+          <Stip /><span>{begrip.kader === "generiek" ? "Generiek begrip, gebruikt in" : "Begrippenkader"} {wg.naam}</span>
           {(() => {
             // Brondefinitie of analysebegrip: een geformuleerd begrip is geen wettelijke definitie (spoor G5).
             const aard = definitieAard(begrip.inhoud);
@@ -60,7 +60,7 @@ export function BegripPagina({ begripId }: { begripId: string }) {
           <ExportKnop onFout={setFout} titel={naam} formaten={[]} markdown={() => begripAlsMarkdown(begrip)} />
           <VraagLexKnop primair onderwerp={{ soort: "begrip", werkgebied_id: wg.id, id: begripId, label: naam }}
             naam={`Bespreek ${naam} met Lex`} />
-          <BegripMenu stand={stand} onNaarBegrip={naarBegrip} />
+          <BegripMenu stand={stand} onNaarBegrip={naarBegrip} onGestopt={() => { zetOnbewaard(false); router.push(kader); }} />
         </>}
       />
       {fout && <Melding type="fout" className="mb-4">{fout}</Melding>}

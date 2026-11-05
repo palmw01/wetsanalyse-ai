@@ -1,17 +1,18 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { AutoTextarea } from "@/components/ui/AutoTextarea";
 import { BewerkKnop, BewerkVoet, useBewerken } from "@/components/ui/Bewerkbaar";
-import { Button } from "@/components/ui/Button";
+import { Button, knopKlasse } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
 import { ChevronOmlaag } from "@/components/ui/Icoon";
 import { IcoonBevestig } from "@/components/ui/IcoonBevestig";
 import { Lijst, LijstRij, Regel, Regels, Sectie, StatusLabel } from "@/components/ui/Lijst";
 import { MeerMenu, MenuKnop, MenuVerwijder } from "@/components/ui/MeerMenu";
 import { Melding } from "@/components/ui/Melding";
-import { SplitDetail } from "@/components/ui/Pagina";
+import { ObjectRij, ObjectRijen, SplitDetail } from "@/components/ui/Pagina";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { BegripBlok, type BegripWeergaveVorm } from "@/components/werkgebieden/BegripBlok";
 import { BegripOpvolging } from "@/components/werkgebieden/BegripOpvolging";
@@ -20,7 +21,7 @@ import { BegripRelaties } from "@/components/werkgebieden/BegripRelaties";
 import { DefinitieOnderbouwing } from "@/components/werkgebieden/DefinitieOnderbouwing";
 import { KaartVoorstelKaart } from "@/components/werkgebieden/KaartVoorstel";
 import { OordeelKeuze, VoorbeeldRijen } from "@/components/werkgebieden/Voorbeelden";
-import { accordeerBegrip, foutTekst, haalBegripRevisies, haalConformiteit, heropenBegrip, wijzigBegrip } from "@/lib/api";
+import { bevestigGebruik, foutTekst, maakGeneriek, neemOpvolgerOver, stopGebruik } from "@/lib/api";
 import { conformZin, veldVanPad, type Conformiteit } from "@/lib/begripGraaf";
 import { relatieZin } from "@/lib/begripRelaties";
 import { definitieAard, regels, revisieZin, sorteerKoppelingen, uitRegels, volledigeInhoud } from "@/lib/begrippen";
@@ -31,6 +32,7 @@ import { definitieDoor, openPerVeld } from "@/lib/kaartVoorstel";
 import type { Begrip, BegripInhoud as Inhoud, BegripRevisie, KaartVeld, Voorbeeld } from "@/lib/types";
 import { useBegrip, type BegripContext, type BegripOpname, type BegripStand } from "@/lib/useBegrip";
 import { VERWIJDER_UITLEG, verwijderLabel, verwijderdZin } from "@/lib/verwijderen";
+import { generiekPad, projectPad } from "@/lib/werkgebiedPaden";
 
 export const BEGRIP_STATUS_TOON = { geaccordeerd: "groen", concept: "neutraal", vervangen: "neutraal" } as const;
 
@@ -74,6 +76,22 @@ export function BegripInhoud({ stand, weergave, onOnbewaard, onNaarBegrip, onGew
   const voorbeelden = <VoorbeeldenBlok stand={stand} begrip={begrip} weergave={weergave} onbewaard={onbewaard} onOnbewaard={meldVoorbeelden} />;
   const melding = stand.melding && <Melding type={stand.melding.type} compact>{stand.melding.tekst}</Melding>;
 
+  // De eigen pagina van een generiek begrip: de passages per werkgebied, en waar het gebruikt wordt.
+  if (stand.generiek && !alleenLezen) {
+    return (
+      <div data-begrip-paneel={begrip.id} data-status={begrip.status} data-weergave="generiek" className="space-y-4">
+        {melding}
+        <SplitDetail hoofd={<>{betekenis}{voorbeelden}<PassagesPerWerkgebied begrip={begrip} /></>}
+          zij={<>
+            <BeoordelingBlok stand={stand} begrip={begrip} weergave={weergave} onbewaard={onbewaard} onNaarBegrip={onNaarBegrip} />
+            <GebruiktIn begrip={begrip} />
+            <RelatiesGeneriek stand={stand} />
+            <Historie stand={stand} begrip={begrip} />
+          </>} />
+      </div>
+    );
+  }
+
   if (alleenLezen) {
     return (
       <div data-begrip-paneel={begrip.id} data-status={begrip.status} data-alleen-lezen className="space-y-5 text-sm text-ink">
@@ -94,19 +112,21 @@ export function BegripInhoud({ stand, weergave, onOnbewaard, onNaarBegrip, onGew
     <BegripRelaties id={stand.id} begrip={begrip} andere={stand.lijst?.begrippen ?? []}
       onGewijzigd={() => { void stand.laad(); onGewijzigd?.(); }} onNaarBegrip={onNaarBegrip} weergave={weergave} />
   );
-  const historie = <Historie id={stand.id} begrip={begrip} />;
+  const historie = <Historie stand={stand} begrip={begrip} />;
+  const veranderd = <GeneriekVeranderdBlok stand={stand} begrip={begrip} onNaarBegrip={onNaarBegrip} />;
 
   if (weergave === "pagina") {
     return (
       <div data-begrip-paneel={begrip.id} data-status={begrip.status} data-weergave="pagina" className="space-y-4">
         {melding}
-        <SplitDetail hoofd={<>{betekenis}{voorbeelden}{passages}</>} zij={<>{beoordeling}{relaties}{historie}</>} />
+        <SplitDetail hoofd={<>{veranderd}{betekenis}{voorbeelden}{passages}</>} zij={<>{beoordeling}{relaties}{historie}</>} />
       </div>
     );
   }
   return (
     <div data-begrip-paneel={begrip.id} data-status={begrip.status} data-weergave="paneel" className="space-y-5 text-sm text-ink">
       {melding}
+      {veranderd}
       {betekenis}
       {voorbeelden}
       {beoordeling}
@@ -133,21 +153,42 @@ function BegripLaadStand({ stand }: { stand: BegripStand }) {
 
 /** Het menu ⋯ van een begrip: de zware, zeldzame handelingen. Een vervangen begrip heeft het niet: verwijder dan de
  *  opvolger. Nieuwe betekenis en combineren openen een venster, want ze vragen een reden. */
-export function BegripMenu({ stand, maat = "sm", onNaarBegrip }: {
+export function BegripMenu({ stand, maat = "sm", onNaarBegrip, onGestopt }: {
   stand: BegripStand;
   maat?: "xs" | "sm";
   onNaarBegrip?: (begripId: string) => void;
+  /** Dit werkgebied gebruikt het generieke begrip niet meer. */
+  onGestopt?: () => void | Promise<void>;
 }) {
-  const [opvolging, setOpvolging] = useState<"nieuw" | "combineren" | null>(null);
+  const [opvolging, setOpvolging] = useState<"nieuw" | "combineren" | "generiek" | null>(null);
   const b = stand.begrip;
   if (!b || b.status === "vervangen" || stand.alleenLezen) return null;
-  const kandidaten = (stand.lijst?.begrippen ?? []).filter((x) => x.id !== b.id && x.status !== "vervangen");
+  const kandidaten = (stand.lijst?.begrippen ?? []).filter((x) => x.id !== b.id && x.status !== "vervangen" && x.kader !== "generiek");
+  // Een generiek begrip in een werkgebied: dit werkgebied beslist alleen of het het gebruikt.
+  if (b.kader === "generiek" && !stand.generiek) {
+    return (
+      <MeerMenu label="Meer voor dit begrip" maat={maat}>
+        {() => (
+          <MenuVerwijder vraag="Stoppen?" ariaLabel="Dit begrip niet meer gebruiken"
+            titel="Dit werkgebied gebruikt het begrip niet meer. Zijn passages hier gaan los; het begrip en de annotaties blijven."
+            onBevestig={async () => { await stopGebruik(stand.id, b.id); await onGestopt?.(); }}>
+            Niet meer gebruiken
+          </MenuVerwijder>
+        )}
+      </MeerMenu>
+    );
+  }
   return (
     <>
       <MeerMenu label="Meer voor dit begrip" maat={maat}>
         {(sluit) => <>
+          {!stand.generiek && b.status === "geaccordeerd" && (
+            <MenuKnop onClick={() => { sluit(); void stand.muteer((r) => maakGeneriek(stand.id, b.id, r),
+              { gelukt: "Dit begrip is nu generiek." }); }}>Generiek maken</MenuKnop>
+          )}
           <MenuKnop onClick={() => { sluit(); setOpvolging("nieuw"); }}>Nieuwe betekenis</MenuKnop>
-          {kandidaten.length > 0 && <MenuKnop onClick={() => { sluit(); setOpvolging("combineren"); }}>Combineren met…</MenuKnop>}
+          {!stand.generiek && kandidaten.length > 0 && <MenuKnop onClick={() => { sluit(); setOpvolging("combineren"); }}>Combineren met…</MenuKnop>}
+          {!stand.generiek && <MenuKnop onClick={() => { sluit(); setOpvolging("generiek"); }}>Combineren met generiek begrip…</MenuKnop>}
           <MenuVerwijder ariaLabel={verwijderLabel("begrip")} titel={VERWIJDER_UITLEG.begrip} onBevestig={stand.verwijder} />
         </>}
       </MeerMenu>
@@ -198,7 +239,7 @@ function Groep({ titel, nlsbb, children }: { titel: string; nlsbb: string; child
 /** De voorstellen van Lex bij één veld, met *Overnemen · Aanpassen · Afwijzen*. Overnemen staat uit zolang er iets
  *  onbewaard openstaat: er wordt niets stil overschreven. */
 function VanLex({ stand, begrip, veld, onbewaard }: { stand: BegripStand; begrip: Begrip; veld: KaartVeld; onbewaard: boolean }) {
-  if (stand.alleenLezen || begrip.status === "vervangen") return null;
+  if (stand.alleenLezen || begrip.status === "vervangen" || begrip.kader === "generiek") return null;
   const open = openPerVeld(stand.voorstellen)[veld];
   if (!open.length) return null;
   return (
@@ -220,7 +261,16 @@ interface BlokProps {
   onOnbewaard: (onbewaard: boolean) => void;
 }
 
-const magBewerken = (stand: BegripStand, begrip: Begrip) => !stand.alleenLezen && begrip.status !== "vervangen";
+/** Een generiek begrip bewerk je op zijn eigen pagina: vanuit een werkgebied zou je ongemerkt andere analyses wijzigen. */
+const generiekHier = (stand: BegripStand, begrip: Begrip) => begrip.kader === "generiek" && !stand.generiek;
+
+const magBewerken = (stand: BegripStand, begrip: Begrip) =>
+  !stand.alleenLezen && begrip.status !== "vervangen" && !generiekHier(stand, begrip);
+
+/** De weg naar de pagina van een generiek begrip. */
+function NaarGeneriek({ begrip }: { begrip: Begrip }) {
+  return <Link href={generiekPad(begrip.id)} className={`focus-ring ${knopKlasse("secondary", "xs")}`}>Bewerk generiek begrip</Link>;
+}
 
 /** Term en betekenis. De herkomst van de definitie kiest niemand: de api leidt haar af, en het label volgt wat er staat. */
 function BetekenisBlok({ stand, begrip, weergave, onbewaard, onOnbewaard }: BlokProps) {
@@ -229,7 +279,7 @@ function BetekenisBlok({ stand, begrip, weergave, onbewaard, onOnbewaard }: Blok
   const b = useBewerken({
     begin, onOnbewaard,
     opslaan: ({ termen, ...rest }) => stand.muteer((r) =>
-      wijzigBegrip(stand.id, begrip.id, r, { ...begrip.inhoud, ...rest, alternatieve_termen: uitRegels(termen).map((t) => t.trim()).filter(Boolean) } as Inhoud), { gelukt: "Opgeslagen." }),
+      stand.api.wijzig(r, { ...begrip.inhoud, ...rest, alternatieve_termen: uitRegels(termen).map((t) => t.trim()).filter(Boolean) } as Inhoud), { gelukt: "Opgeslagen." }),
   });
   const c = b.concept;
   const zet = (v: Partial<typeof begin>) => b.zet({ ...c, ...v });
@@ -239,7 +289,8 @@ function BetekenisBlok({ stand, begrip, weergave, onbewaard, onOnbewaard }: Blok
 
   return (
     <BegripBlok weergave={weergave} titel="Betekenis" data-blok="betekenis"
-      acties={magBewerken(stand, begrip) && !b.open && <BewerkKnop wat="Betekenis" onClick={b.start} />}>
+      acties={generiekHier(stand, begrip) ? <NaarGeneriek begrip={begrip} />
+        : magBewerken(stand, begrip) && !b.open && <BewerkKnop wat="Betekenis" onClick={b.start} />}>
       {b.open ? (
         <div className="space-y-5" role="group" aria-label="Betekenis bewerken" onKeyDown={b.toetsen(false)}>
           <Groep titel="Term" nlsbb="skos:prefLabel · skos:altLabel">
@@ -323,7 +374,7 @@ function VoorbeeldenBlok({ stand, begrip, weergave, onbewaard, onOnbewaard }: Bl
   const lijst = volledigeInhoud(begrip.inhoud).voorbeelden;
   const b = useBewerken<Voorbeeld[]>({
     begin: lijst, onOnbewaard,
-    opslaan: (voorbeelden) => stand.muteer((r) => wijzigBegrip(stand.id, begrip.id, r, { ...begrip.inhoud, voorbeelden: voorbeelden.filter((v) => v.tekst.trim()) }), { gelukt: "Opgeslagen." }),
+    opslaan: (voorbeelden) => stand.muteer((r) => stand.api.wijzig(r, { ...begrip.inhoud, voorbeelden: voorbeelden.filter((v) => v.tekst.trim()) }), { gelukt: "Opgeslagen." }),
   });
   const zet = (i: number, v: Partial<Voorbeeld>) => b.zet(b.concept.map((x, j) => (j === i ? { ...x, ...v } : x)));
 
@@ -380,7 +431,9 @@ function BeoordelingBlok({ stand, begrip, weergave, onbewaard, onNaarBegrip }: O
     <BegripBlok weergave={weergave} titel="Beoordeling" data-blok="beoordeling"
       acties={<StatusLabel toon={BEGRIP_STATUS_TOON[begrip.status]}>{BEGRIP_STATUS_LABEL[begrip.status]}</StatusLabel>}>
       <div className="space-y-2 text-sm">
-        {begrip.status === "vervangen" ? (
+        {generiekHier(stand, begrip) && begrip.status !== "vervangen" ? (
+          <p className="text-xs text-muted">Een generiek begrip beoordeel je op zijn eigen pagina; de passages hier beoordeel je in dit werkgebied.</p>
+        ) : begrip.status === "vervangen" ? (
           <p className="text-xs text-muted">
             {begrip.vervangen_door && <>
               Vervangen door{" "}
@@ -397,9 +450,9 @@ function BeoordelingBlok({ stand, begrip, weergave, onbewaard, onNaarBegrip }: O
               {begrip.geaccordeerd_op && ` op ${tijd(begrip.geaccordeerd_op)}`}.
             </p>
             {begrip.aandachtspunten.map((a) => <p key={a} className="text-xs text-aandacht-geel-tekst">{a}</p>)}
-            <NlSbbStand id={stand.id} begrip={begrip} />
+            <NlSbbStand stand={stand} begrip={begrip} />
             <Button size="sm" variant="secondary" className="w-full sm:w-auto" disabled={bezig}
-              onClick={() => void doe((r) => heropenBegrip(stand.id, begrip.id, r), "Heropend.")}>
+              onClick={() => void doe((r) => stand.api.heropen(r), "Heropend.")}>
               Heropenen
             </Button>
           </>
@@ -417,9 +470,9 @@ function BeoordelingBlok({ stand, begrip, weergave, onbewaard, onNaarBegrip }: O
             ) : (
               <p className="text-xs text-ink">Alles is er: naam, definitie, toelichting en beoordeelde, actuele passages.</p>
             )}
-            <NlSbbStand id={stand.id} begrip={begrip} />
+            <NlSbbStand stand={stand} begrip={begrip} />
             <Button size="sm" className="w-full sm:w-auto" disabled={!mag || onbewaard || bezig}
-              onClick={() => void doe((r) => accordeerBegrip(stand.id, begrip.id, r), "Geaccordeerd.")}>
+              onClick={() => void doe((r) => stand.api.accordeer(r), "Geaccordeerd.")}>
               Accorderen
             </Button>
           </>
@@ -431,13 +484,13 @@ function BeoordelingBlok({ stand, begrip, weergave, onbewaard, onNaarBegrip }: O
 
 /** Is het begrip NL-SBB-conform (fase F3)? Diagnostisch: het houdt accorderen niet tegen, en een conforme kaart is
  *  daarmee nog niet juridisch juist. Opnieuw gevraagd bij elke revisie; faalt stil. */
-function NlSbbStand({ id, begrip }: { id: string; begrip: Begrip }) {
+function NlSbbStand({ stand: { api }, begrip }: { stand: BegripStand; begrip: Begrip }) {
   const [c, setC] = useState<Conformiteit | null>(null);
   useEffect(() => {
     let levend = true;
-    haalConformiteit(id).then((x) => levend && setC(x)).catch(() => levend && setC(null));
+    api.conformiteit().then((x) => levend && setC(x)).catch(() => levend && setC(null));
     return () => { levend = false; };
-  }, [id, begrip.id, begrip.revisie]);
+  }, [api, begrip.id, begrip.revisie]);
   const stand = c?.begrippen[begrip.id];
   const zin = c ? conformZin(stand, c.nl_sbb_versie) : null;
   if (!zin || !stand) return null;
@@ -464,7 +517,7 @@ function NlSbbStand({ id, begrip }: { id: string; begrip: Begrip }) {
 
 /** Per revisie wie wat deed, met de oude inhoud bewaard in de api. Pas geladen bij openklappen, en opnieuw bij een
  *  nieuwe revisie. Zelfde vorm als de historie van een annotatie (`RevisieHistorie`). */
-function Historie({ id, begrip }: { id: string; begrip: Begrip }) {
+function Historie({ stand: { api }, begrip }: { stand: BegripStand; begrip: Begrip }) {
   const [open, setOpen] = useState(false);
   const [revisies, setRevisies] = useState<BegripRevisie[] | null>(null);
   const [fout, setFout] = useState<string | null>(null);
@@ -472,11 +525,11 @@ function Historie({ id, begrip }: { id: string; begrip: Begrip }) {
   useEffect(() => {
     if (!open) return;
     let levend = true;
-    haalBegripRevisies(id, begrip.id)
+    api.revisies()
       .then((r) => levend && setRevisies(r))
       .catch((e) => levend && setFout(foutTekst(e, "De historie kon niet worden geladen.")));
     return () => { levend = false; };
-  }, [open, id, begrip.id, begrip.revisie]);
+  }, [open, api, begrip.id, begrip.revisie]);
 
   return (
     <details className="group rounded-kaart border border-line bg-surface/60 px-3 py-2 text-sm"
@@ -502,6 +555,99 @@ function Historie({ id, begrip }: { id: string; begrip: Begrip }) {
         </ol>
       )}
     </details>
+  );
+}
+
+/** Een generiek begrip veranderde sinds dit werkgebied het zag: toen naast nu, en wat je ermee doet. De oude stand blijft
+ *  gelden tot je hem bevestigt of de opvolger overneemt. */
+function GeneriekVeranderdBlok({ stand, begrip, onNaarBegrip }: {
+  stand: BegripStand;
+  begrip: Begrip;
+  onNaarBegrip?: (begripId: string) => void;
+}) {
+  const [bezig, setBezig] = useState(false);
+  const [fout, setFout] = useState<string | null>(null);
+  const v = stand.herbeoordeling?.generiek?.find((x) => x.begrip_id === begrip.id);
+  if (!v) return null;
+  async function doe(actie: () => Promise<Begrip>, na: (b: Begrip) => void) {
+    setBezig(true);
+    setFout(null);
+    try { na(await actie()); } catch (e) { setFout(foutTekst(e)); } finally { setBezig(false); }
+  }
+  return (
+    <section aria-label="Generiek begrip veranderd" data-generiek-veranderd className="space-y-2 rounded-kaart border border-aandacht-geel-rand bg-aandacht-geel-bg/40 p-4 text-sm">
+      <p className="font-medium text-aandacht-geel-tekst">
+        {v.opvolger ? `Dit generieke begrip is vervangen door ${v.opvolger.naam}` : "Dit generieke begrip veranderde sinds dit werkgebied het zag"}
+      </p>
+      {v.opvolger?.reden && <p className="text-xs text-ink">{v.opvolger.reden}</p>}
+      {v.velden.length > 0 && (
+        <Regels>
+          {v.velden.map((veld) => (
+            <Regel key={veld} naam={veld}>
+              <span className="block text-xs text-muted">Toen: {tekstVan(v.toen[veld])}</span>
+              <span className="block text-xs">Nu: {tekstVan(v.nu[veld])}</span>
+            </Regel>
+          ))}
+        </Regels>
+      )}
+      {fout && <Melding type="fout" compact>{fout}</Melding>}
+      {v.opvolger ? (
+        <Button size="sm" disabled={bezig} className="w-full sm:w-auto"
+          onClick={() => void doe(() => neemOpvolgerOver(stand.id, begrip.id), (b) => onNaarBegrip?.(b.id))}>Opvolger overnemen</Button>
+      ) : (
+        <Button size="sm" variant="secondary" disabled={bezig} className="w-full sm:w-auto"
+          onClick={() => void doe(() => bevestigGebruik(stand.id, begrip.id), () => stand.herbeoordeel())}>Klopt nog voor dit werkgebied</Button>
+      )}
+    </section>
+  );
+}
+
+const tekstVan = (x: unknown) => (typeof x === "string" ? x : Array.isArray(x) ? `${x.length} regels` : "") || "(leeg)";
+
+/** De passages van een generiek begrip, per werkgebied. Alleen te lezen: passages beheert elk werkgebied zelf. */
+function PassagesPerWerkgebied({ begrip }: { begrip: Begrip }) {
+  const passages = sorteerKoppelingen(begrip.koppelingen);
+  const namen = new Map((begrip.gebruik ?? []).map((g) => [g.werkgebied_id, g.naam]));
+  const per = [...new Set(passages.map((k) => k.werkgebied_id ?? ""))];
+  return (
+    <BegripBlok weergave="pagina" titel="Passages" telling={passages.length} data-blok="passages"
+      toelichting="Per werkgebied; elk werkgebied beheert zijn eigen passages.">
+      {passages.length === 0 ? <p className="text-sm text-muted">Nog geen passages.</p> : per.map((wid) => (
+        <div key={wid} data-passages-werkgebied={wid}>
+          <h3 className="text-xs font-medium text-muted">{namen.get(wid) ?? "Werkgebied"}</h3>
+          <Lijst label={`Passages in ${namen.get(wid) ?? "dit werkgebied"}`}>
+            {passages.filter((k) => (k.werkgebied_id ?? "") === wid).map((k) => (
+              <LijstRij key={k.id} titel={`“${k.bewijs.tekst}”`} meta={k.bewijs.vindplaats} />
+            ))}
+          </Lijst>
+        </div>
+      ))}
+    </BegripBlok>
+  );
+}
+
+function GebruiktIn({ begrip }: { begrip: Begrip }) {
+  const gebruik = begrip.gebruik ?? [];
+  return (
+    <BegripBlok weergave="pagina" titel="Gebruikt in" telling={gebruik.length} data-blok="gebruik">
+      <ObjectRijen label="Werkgebieden die dit begrip gebruiken" leeg="Nog in geen enkel werkgebied.">
+        {gebruik.map((g) => <ObjectRij key={g.werkgebied_id} href={projectPad(g.werkgebied_id)} titel={g.naam}
+          sub={g.passages === 1 ? "1 passage" : `${g.passages} passages`} />)}
+      </ObjectRijen>
+    </BegripBlok>
+  );
+}
+
+function RelatiesGeneriek({ stand }: { stand: BegripStand }) {
+  const r = stand.relatiesGeneriek;
+  return (
+    <BegripBlok weergave="pagina" titel="Relaties" telling={r.length} data-blok="relaties">
+      {r.length ? (
+        <Lijst label="Relaties">
+          {r.map((x) => <LijstRij key={x.id} titel={relatieZin(x.type, x.van_naam, x.naar_naam).join(" ")} />)}
+        </Lijst>
+      ) : <p className="text-sm text-muted">Nog geen relaties met andere begrippen.</p>}
+    </BegripBlok>
   );
 }
 

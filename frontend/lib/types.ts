@@ -1012,6 +1012,8 @@ export interface Bewijs {
 export interface Koppeling {
   id: string;
   begrip_id: string;
+  /** Waar deze passage gekoppeld werd: bij een generiek begrip kan dat overal zijn (ADR-006). */
+  werkgebied_id?: string;
   element_id: string;
   rol: KoppelRol;
   motivatie: string;
@@ -1081,8 +1083,23 @@ export interface GeraakteKoppeling {
   acties: HerbeoordelingsActie[];
 }
 
+/** Een generiek begrip dat veranderde sinds dit werkgebied het zag (ADR-006). */
+export interface GeneriekVeranderd {
+  begrip_id: string;
+  naam: string;
+  revisie: number;
+  status: BegripStatus;
+  gezien_revisie: number;
+  velden: string[];
+  opvolger: { begrip_id: string; naam: string; reden: string } | null;
+  toen: Record<string, unknown>;
+  nu: Record<string, unknown>;
+}
+
 export interface Herbeoordelingen {
   werkgebied_id: string;
+  /** Een oudere api stuurt het niet. */
+  generiek?: GeneriekVeranderd[];
   begrippen: {
     begrip_id: string; naam: string; status: BegripStatus; revisie: number; koppelingen: GeraakteKoppeling[];
     /** Doorwerking (fase F2): vastgelegde relaties waarvan de andere kant veranderde. */
@@ -1159,6 +1176,9 @@ export interface Poort {
 }
 
 interface BegripBasis {
+  /** `generiek` staat boven de werkgebieden (ADR-006); `werkgebied_id` is dan leeg. Een oudere api stuurt het niet. */
+  kader?: "generiek" | "werkgebied";
+  ontstaan_in?: string | null;
   id: string;
   iri: string;
   werkgebied_id: string;
@@ -1185,8 +1205,17 @@ export interface BegripVerwijzing {
   reden: string;
 }
 
+export interface BegripGebruik {
+  werkgebied_id: string;
+  naam: string;
+  gezien_revisie: number;
+  passages: number;
+}
+
 export interface Begrip extends BegripBasis {
   koppelingen: Koppeling[];
+  /** Waar een generiek begrip gebruikt wordt; alleen op zijn eigen route. */
+  gebruik?: BegripGebruik[];
   /** Waarop de huidige definitie rust (spoor M), afgeleid door de api uit het voorstel of de groep die
    *  haar leverde; `null` bij een eigen of aangepaste definitie. Een oudere api laat het weg. */
   definitie_onderbouwing?: DefinitieOnderbouwing | null;

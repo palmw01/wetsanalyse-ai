@@ -2,13 +2,16 @@
 // filteren en doorklikken naar de kaart in zijn werkgebied. Wat er gezocht wordt, doet de api
 // (`GET /v1/begrippen`); hier staan de URL-stand van de filters en de labels.
 import type { BegripStatus } from "./types";
-import { begripPad } from "./werkgebiedPaden";
+import { begripPad, generiekPad } from "./werkgebiedPaden";
 
 export interface BegripOverzichtRij {
   id: string;
   iri: string;
-  werkgebied_id: string;
+  /** Leeg bij een generiek begrip (ADR-006). */
+  werkgebied_id: string | null;
   werkgebied_naam: string;
+  kader?: "generiek" | "werkgebied";
+  gebruikt_in?: number;
   naam: string;
   alternatieve_termen: string[];
   status: BegripStatus;
@@ -45,6 +48,8 @@ export interface OverzichtFilters {
   q: string;
   status: BegripStatus | "";
   werkgebied: string;
+  /** Alleen de generieke begrippen (ADR-006). */
+  generiek: boolean;
   /** *Door mij bewerkt*: alleen begrippen met een revisie van jou (de api, `mijn`). */
   mijn: boolean;
 }
@@ -57,7 +62,7 @@ export function filtersUitParams(p: URLSearchParams): OverzichtFilters {
   const status = p.getAll("status").find((s): s is BegripStatus => (BEGRIP_STATUSSEN as string[]).includes(s)) ?? "";
   const werkgebied = p.get("werkgebied") ?? "";
   return { q: (p.get("q") ?? "").slice(0, 200), status, werkgebied: ID.test(werkgebied) ? werkgebied : "",
-    mijn: p.get("mijn") === "1" };
+    generiek: p.get("kader") === "generiek", mijn: p.get("mijn") === "1" };
 }
 
 /** De querystring voor de pagina-URL én de api – dezelfde namen, behalve het werkgebied en `mijn`. */
@@ -66,13 +71,14 @@ export function paramsVan(f: OverzichtFilters, voor: "pagina" | "api"): URLSearc
   if (f.q.trim()) p.set("q", f.q.trim());
   if (f.status) p.set("status", f.status);
   if (f.werkgebied) p.set(voor === "api" ? "werkgebied_id" : "werkgebied", f.werkgebied);
+  if (f.generiek) p.set("kader", "generiek");
   if (f.mijn) p.set("mijn", voor === "api" ? "true" : "1");
   return p;
 }
 
 /** Waar een klik op een begrip heen gaat: zijn eigen pagina (spoor G3). */
-export function kaartUrl(werkgebiedId: string, begripId: string): string {
-  return begripPad(werkgebiedId, begripId);
+export function kaartUrl(werkgebiedId: string | null, begripId: string): string {
+  return werkgebiedId ? begripPad(werkgebiedId, begripId) : generiekPad(begripId);
 }
 
 export function kort(tekst: string, n = 220): string {

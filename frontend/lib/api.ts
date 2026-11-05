@@ -64,6 +64,7 @@ import type {
   BegripInhoud,
   BegrippenRun,
   BronnenRun,
+  BegripRelatie,
   BegripRevisie,
   BegrippenLijst,
   Bron,
@@ -1391,6 +1392,73 @@ export async function haalBegripSamenhang(id: string): Promise<BegripSamenhang |
 export async function haalConformiteit(id: string): Promise<Conformiteit | null> {
   const c = await json<unknown>(await fetch(wg(id, "begrippen", "conformiteit"), { cache: "no-store" }));
   return isConformiteit(c) ? c : null;
+}
+
+// --- Generieke begrippen (ADR-006): boven de werkgebieden, op hun eigen route -------------------
+
+const generiek = (...delen: string[]) => `/api/begrippen/${delen.map(pathSegment).join("/")}`;
+
+export interface GeneriekAntwoord { begrip: Begrip; relaties: BegripRelatie[] }
+
+export async function haalGeneriekBegrip(begripId: string): Promise<GeneriekAntwoord> {
+  return json<GeneriekAntwoord>(await fetch(generiek(begripId), { cache: "no-store" }));
+}
+
+export async function wijzigGeneriek(begripId: string, verwachteRevisie: number, inhoud: BegripInhoud): Promise<Begrip> {
+  return json<Begrip>(await fetch(generiek(begripId), jsonInit("PATCH", { verwachte_revisie: verwachteRevisie, inhoud })));
+}
+
+export async function accordeerGeneriek(begripId: string, verwachteRevisie: number): Promise<Begrip> {
+  return json<Begrip>(await fetch(generiek(begripId, "accorderen"), jsonInit("POST", { verwachte_revisie: verwachteRevisie })));
+}
+
+export async function heropenGeneriek(begripId: string, verwachteRevisie: number): Promise<Begrip> {
+  return json<Begrip>(await fetch(generiek(begripId, "heropenen"), jsonInit("POST", { verwachte_revisie: verwachteRevisie })));
+}
+
+export async function verwijderGeneriek(begripId: string, verwachteRevisie: number): Promise<void> {
+  const qs = new URLSearchParams({ verwachte_revisie: String(verwachteRevisie) });
+  await json<unknown>(await fetch(`${generiek(begripId)}?${qs}`, { method: "DELETE" }));
+}
+
+export async function haalGeneriekRevisies(begripId: string): Promise<BegripRevisie[]> {
+  const res = await fetch(generiek(begripId, "revisies"), { cache: "no-store" });
+  return (await json<{ revisies: BegripRevisie[] }>(res)).revisies;
+}
+
+export async function haalGeneriekConformiteit(): Promise<Conformiteit | null> {
+  const c = await json<unknown>(await fetch(generiek("conformiteit"), { cache: "no-store" }));
+  return isConformiteit(c) ? c : null;
+}
+
+export async function geefGeneriekNieuweBetekenis(begripId: string, body: { verwachte_revisie: number; reden: string }): Promise<Begrip> {
+  return json<Begrip>(await fetch(generiek(begripId, "nieuwe-betekenis"), jsonInit("POST", body)));
+}
+
+export async function maakGeneriek(id: string, begripId: string, verwachteRevisie: number): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "generiek-maken"),
+    jsonInit("POST", { verwachte_revisie: verwachteRevisie })));
+}
+
+export async function gebruikGeneriek(id: string, begripId: string): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", "gebruik"), jsonInit("POST", { begrip_id: begripId })));
+}
+
+export async function stopGebruik(id: string, begripId: string): Promise<void> {
+  await json<unknown>(await fetch(wg(id, "begrippen", "gebruik", begripId), { method: "DELETE" }));
+}
+
+export async function bevestigGebruik(id: string, begripId: string): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", "gebruik", begripId, "bevestigen"), jsonInit("POST", {})));
+}
+
+export async function neemOpvolgerOver(id: string, begripId: string): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", "gebruik", begripId, "opvolger"), jsonInit("POST", {})));
+}
+
+export async function combineerMetGeneriek(id: string, begripId: string,
+  body: { verwachte_revisie: number; generiek_id: string; reden: string }): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "combineren-generiek"), jsonInit("POST", body)));
 }
 
 // --- Voorstellen van Lex (spoor D, levering 3a) -----------------------------------------------

@@ -9,7 +9,7 @@ import { BegripOverzichtKaart } from "@/components/begrippen/BegripOverzichtKaar
 import { OverzichtBalk } from "@/components/ui/OverzichtBalk";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
-import { foutTekst, lijstWerkgebieden, verwijderBegrip, zoekBegrippen } from "@/lib/api";
+import { foutTekst, lijstWerkgebieden, verwijderBegrip, verwijderGeneriek, zoekBegrippen } from "@/lib/api";
 import {
   BEGRIP_STATUSSEN, BEGRIP_STATUS_LABEL, filtersUitParams, paramsVan,
   type BegripOverzichtRij, type BegrippenOverzicht, type OverzichtFilters,
@@ -17,6 +17,8 @@ import {
 import { metSpoor } from "@/lib/uiSpoor";
 import type { BegripStatus, WerkgebiedSamenvatting } from "@/lib/types";
 
+
+const GENERIEK = "__generiek";
 
 /** Het overzicht van de begrippen over alle werkgebieden heen (spoor D, fase F4). Een leesingang:
  *  zoeken op naam, alternatieve term of definitie, filteren op status en werkgebied, en doorklikken
@@ -71,7 +73,8 @@ export function BegrippenOverzichtClient() {
     setData((d) => d && { ...d, resultaten: d.resultaten.filter((x) => x.id !== b.id), totaal: d.totaal - 1 });
     setFout(null);
     try {
-      await metSpoor("begrip_verwijderen", () => verwijderBegrip(b.werkgebied_id, b.id, b.revisie));
+      await metSpoor("begrip_verwijderen", () => b.werkgebied_id ? verwijderBegrip(b.werkgebied_id, b.id, b.revisie)
+        : verwijderGeneriek(b.id, b.revisie));
     } catch (e) {
       setData(voor);
       setFout(foutTekst(e, "Het begrip is niet verwijderd."));
@@ -88,8 +91,8 @@ export function BegrippenOverzichtClient() {
       <header className="mb-5">
         <h1 className="font-display text-lg font-semibold text-lint">Begrippen</h1>
         <p className="mt-1 max-w-2xl text-sm text-muted">
-          De begrippen uit alle werkgebieden. Een begrip is een analyse-uitkomst, geen wettelijke
-          definitie; je werkt eraan op zijn pagina in het werkgebied.
+          De generieke begrippen en die uit alle werkgebieden. Een begrip is een analyse-uitkomst, geen wettelijke
+          definitie; je werkt eraan op zijn pagina.
         </p>
       </header>
 
@@ -102,9 +105,11 @@ export function BegrippenOverzichtClient() {
         onMijn={(mijn) => zet({ ...filters, mijn })}
         extra={
           // Compact, zonder zichtbaar label: met label paste de balk niet meer op één regel naast het zoekveld.
-          <Select aria-label="Werkgebied" value={filters.werkgebied} className="w-full sm:w-auto sm:max-w-[12rem]"
-            onChange={(e) => zet({ ...filters, werkgebied: e.target.value })}>
-            <option value="">Alle werkgebieden</option>
+          <Select aria-label="Kader" value={filters.generiek ? GENERIEK : filters.werkgebied} className="w-full sm:w-auto sm:max-w-[12rem]"
+            onChange={(e) => zet({ ...filters, generiek: e.target.value === GENERIEK,
+              werkgebied: e.target.value === GENERIEK ? "" : e.target.value })}>
+            <option value="">Alle kaders</option>
+            <option value={GENERIEK}>Generiek</option>
             {werkgebieden.map((w) => <option key={w.id} value={w.id}>{w.naam}</option>)}
           </Select>
         }
@@ -131,7 +136,7 @@ export function BegrippenOverzichtClient() {
         </div>
       ) : data.resultaten.length === 0 ? (
         <p className="rounded-kaart border border-dashed border-line px-3 py-6 text-center text-sm text-muted">
-          {filters.q || filters.status || filters.werkgebied || filters.mijn
+          {filters.q || filters.status || filters.werkgebied || filters.generiek || filters.mijn
             ? "Geen begrippen bij deze filters."
             : "Nog geen begrippen. Begrippen ontstaan in een werkgebied."}
         </p>

@@ -1,13 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
-  foutTekst, haalBegrip, haalHerbeoordelingen, haalKaartVoorstellen, lijstBegrippen, neemKaartVoorstelOver, verwijderBegrip,
-  wijsKaartVoorstelAf,
+  accordeerBegrip, accordeerGeneriek, foutTekst, haalBegrip, haalBegripRevisies, haalConformiteit, haalGeneriekBegrip,
+  haalGeneriekConformiteit, haalGeneriekRevisies, haalHerbeoordelingen, haalKaartVoorstellen, heropenBegrip, heropenGeneriek,
+  lijstBegrippen, neemKaartVoorstelOver, verwijderBegrip, verwijderGeneriek, wijsKaartVoorstelAf, wijzigBegrip, wijzigGeneriek,
 } from "@/lib/api";
 import { verouderdUit, type Verouderd } from "@/lib/kaartVoorstel";
-import type { Begrip, BegrippenLijst, Herbeoordelingen, KaartVoorstel, KaartVoorstellenAntwoord, RelatiesAntwoord } from "@/lib/types";
+import type {
+  Begrip, BegripInhoud, BegripRelatie, BegrippenLijst, Herbeoordelingen, KaartVoorstel, KaartVoorstellenAntwoord, RelatiesAntwoord,
+} from "@/lib/types";
 import { metSpoor } from "@/lib/uiSpoor";
 import { verwijderdUit, type Verwijderd } from "@/lib/verwijderen";
 import { isRevisieConflict } from "@/lib/werkgebied";
@@ -19,8 +22,8 @@ export interface BegripMutatieOpties {
 }
 export type BegripMutatie = (actie: (revisie: number) => Promise<Begrip>, opties?: BegripMutatieOpties) => Promise<boolean>;
 
-/** Vanuit waar je naar een begrip kijkt (ADR-006). Nu altijd een werkgebied; een generiek begrip krijgt een eigen soort. */
-export interface BegripContext { soort: "werkgebied"; werkgebiedId: string }
+/** Vanuit waar je naar een begrip kijkt (ADR-006): in een werkgebied, of op de eigen pagina van een generiek begrip. */
+export type BegripContext = { soort: "werkgebied"; werkgebiedId: string } | { soort: "generiek" };
 
 /** Een oude versie (de versiekiezer): het begrip en zijn relaties zoals ze toen waren. */
 export interface BegripOpname { begrip: Begrip; relaties?: RelatiesAntwoord | null }
@@ -38,8 +41,24 @@ export function useBegrip({ context, begripId, opname, onGewijzigd, onVerwijderd
   /** Het begrip is verwijderd; zonder blijft de verwijderd-stand in beeld. */
   onVerwijderd?: () => void | Promise<void>;
 }) {
-  const id = context.werkgebiedId;
+  const id = context.soort === "werkgebied" ? context.werkgebiedId : "";
+  const generiek = context.soort === "generiek";
   const alleenLezen = !!opname;
+  // Dezelfde handelingen, op de route die bij de plek hoort.
+  const api = useMemo(() => generiek ? {
+    wijzig: (r: number, inhoud: BegripInhoud) => wijzigGeneriek(begripId, r, inhoud),
+    accordeer: (r: number) => accordeerGeneriek(begripId, r),
+    heropen: (r: number) => heropenGeneriek(begripId, r),
+    revisies: () => haalGeneriekRevisies(begripId),
+    conformiteit: () => haalGeneriekConformiteit(),
+  } : {
+    wijzig: (r: number, inhoud: BegripInhoud) => wijzigBegrip(id, begripId, r, inhoud),
+    accordeer: (r: number) => accordeerBegrip(id, begripId, r),
+    heropen: (r: number) => heropenBegrip(id, begripId, r),
+    revisies: () => haalBegripRevisies(id, begripId),
+    conformiteit: () => haalConformiteit(id),
+  }, [generiek, id, begripId]);
+  const [relatiesGeneriek, setRelatiesGeneriek] = useState<BegripRelatie[]>([]);
   const [begrip, setBegrip] = useState<Begrip | null>(opname?.begrip ?? null);
   const [lijst, setLijst] = useState<BegrippenLijst | null>(null);
   const [fout, setFout] = useState<string | null>(null);
@@ -51,7 +70,11 @@ export function useBegrip({ context, begripId, opname, onGewijzigd, onVerwijderd
 
   const laad = useCallback(async () => {
     try {
-      setBegrip(await haalBegrip(id, begripId));
+      if (generiek) {
+        const g = await haalGeneriekBegrip(begripId);
+        setBegrip(g.begrip);
+        setRelatiesGeneriek(g.relaties);
+      } else setBegrip(await haalBegrip(id, begripId));
       setFout(null);
     } catch (e) {
       // Een verwijderd begrip is een toestand, geen fout – zoals een verwijderde annotatie.
@@ -61,12 +84,13 @@ export function useBegrip({ context, begripId, opname, onGewijzigd, onVerwijderd
         setBegrip(null);
       } else setFout(foutTekst(e, "Het begrip kon niet worden geladen."));
     }
-  }, [id, begripId]);
+  }, [generiek, id, begripId]);
 
   // De lijst draagt de primaire duidingen en de andere begrippen; faalt stil, het begrip staat er dan gewoon.
   const laadLijst = useCallback(async () => {
+    if (generiek) return;
     try { setLijst(await lijstBegrippen(id)); } catch { setLijst(null); }
-  }, [id]);
+  }, [generiek, id]);
 
   useEffect(() => {
     if (alleenLezen) return;
@@ -79,10 +103,14 @@ export function useBegrip({ context, begripId, opname, onGewijzigd, onVerwijderd
   // passage uit de herbeoordeling te gaan. Beide vragen meer dan het begrip en falen stil.
   const revisie = begrip?.revisie;
   const laadLex = useCallback(async () => {
+    if (generiek) return;
     try { setLex(await haalKaartVoorstellen(id, begripId)); } catch { /* zonder voorstellen werkt de rest gewoon */ }
-  }, [id, begripId]);
+  }, [generiek, id, begripId]);
+  const [gezien, setGezien] = useState(0);
+  /** Na *Klopt nog*: de melding hoort weg te gaan, ook al blijft de revisie gelijk. */
+  const herbeoordeel = useCallback(() => setGezien((n) => n + 1), []);
   useEffect(() => {
-    if (alleenLezen) return;
+    if (alleenLezen || generiek) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void laadLex();
     let levend = true;
@@ -90,7 +118,7 @@ export function useBegrip({ context, begripId, opname, onGewijzigd, onVerwijderd
       .then((h) => levend && setHerbeoordeling(h))
       .catch(() => levend && setHerbeoordeling(null));
     return () => { levend = false; };
-  }, [id, begripId, revisie, alleenLezen, laadLex]);
+  }, [generiek, id, begripId, revisie, gezien, alleenLezen, laadLex]);
 
   const muteer: BegripMutatie = useCallback(async (actie, { gelukt, opFout } = {}) => {
     if (!begrip) return false;
@@ -118,7 +146,8 @@ export function useBegrip({ context, begripId, opname, onGewijzigd, onVerwijderd
     if (!begrip) return;
     setMelding(null);
     try {
-      await metSpoor("begrip_verwijderen", () => verwijderBegrip(id, begripId, begrip.revisie));
+      await metSpoor("begrip_verwijderen", () => generiek ? verwijderGeneriek(begripId, begrip.revisie)
+        : verwijderBegrip(id, begripId, begrip.revisie));
       await laad();                          // de api zegt nu wanneer en door wie
       await onVerwijderd?.();
     } catch (e) {
@@ -153,8 +182,9 @@ export function useBegrip({ context, begripId, opname, onGewijzigd, onVerwijderd
     }
   }
 
-  return { context, id, begripId, begrip, lijst, fout, melding, verwijderd, verouderd, herbeoordeling, alleenLezen,
-    relatiesOpname: opname?.relaties ?? null, voorstellen: lex?.voorstellen ?? [], laad, muteer, verwijder, overnemen, afwijzen };
+  return { context, id, generiek, begripId, begrip, lijst, fout, melding, verwijderd, verouderd, herbeoordeling, alleenLezen,
+    relatiesOpname: opname?.relaties ?? null, relatiesGeneriek, voorstellen: lex?.voorstellen ?? [], api, laad, herbeoordeel,
+    muteer, verwijder, overnemen, afwijzen };
 }
 
 export type BegripStand = ReturnType<typeof useBegrip>;

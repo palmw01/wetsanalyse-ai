@@ -76,6 +76,15 @@ export function isAlOpgenomen(e: unknown): boolean {
 
 /** De vormen die de BFF onder `/v1/werkgebieden/` doorlaat – geen generieke proxy. `pad` begint met
  *  het werkgebied-id: `[id, ...rest]`. */
+/** Wat de werkplek mag op `/v1/begrippen/...`: het generieke kader en één generiek begrip (ADR-006). `verifieer` is van
+ *  graph-qa. */
+export function isGeneriekRoute(pad: readonly string[]): boolean {
+  const [a, b] = pad;
+  if (!a || a === "verifieer" || pad.length > 2) return false;
+  if (a === "export" || a === "conformiteit") return pad.length === 1;
+  return pad.length === 1 || ["accorderen", "heropenen", "revisies", "nieuwe-betekenis"].includes(b);
+}
+
 export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   const [id, deel, a, b, c] = pad;
   if (!id || pad.length > 6) return false;
@@ -127,6 +136,8 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   if (deel !== "begrippen") return false;
   if (pad.length <= 3) return true;                                   // lijst, export, één begrip
   if (a === "export") return false;
+  // Een generiek begrip gebruiken (ADR-006): stoppen, de wijziging zien, de opvolger overnemen.
+  if (a === "gebruik") return pad.length === 4 || (pad.length === 5 && (c === "bevestigen" || c === "opvolger"));
   // Lex naast de kaart (fase E): voorstellen lezen en besluiten. Een kaartrun maken, de run zelf (met
   // invoer), `loopt`, `uitkomst` en `mislukt` zijn van graph-qa (de begrippen-agent).
   if (b === "voorstellen") {
@@ -136,7 +147,8 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   // Herbeoordelen (fase F1): een koppeling herkoppelen aan haar opvolger, of bevestigen.
   if (pad.length === 6) return b === "koppelingen" && !!c && (pad[5] === "herkoppelen" || pad[5] === "bevestigen");
   if (pad.length === 4)
-    return ["koppelingen", "accorderen", "heropenen", "revisies", "nieuwe-betekenis", "combineren"].includes(b);
+    return ["koppelingen", "accorderen", "heropenen", "revisies", "nieuwe-betekenis", "combineren", "generiek-maken",
+      "combineren-generiek"].includes(b);
   return b === "koppelingen" && !!c;                                  // één koppeling
 }
 

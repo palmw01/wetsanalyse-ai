@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { BewerkVoet } from "@/components/ui/Bewerkbaar";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
-import { combineerBegrippen, foutTekst, geefNieuweBetekenis } from "@/lib/api";
+import {
+  combineerBegrippen, combineerMetGeneriek, foutTekst, geefGeneriekNieuweBetekenis, geefNieuweBetekenis, zoekBegrippen,
+} from "@/lib/api";
+import type { BegripOverzichtRij } from "@/lib/begrippenOverzicht";
 import type { Begrip, BegripSamenvatting } from "@/lib/types";
 import { isRevisieConflict } from "@/lib/werkgebied";
 
@@ -14,7 +17,7 @@ import { isRevisieConflict } from "@/lib/werkgebied";
  *  het ene `vervangen`: alleen te lezen, vindbaar, en terug te halen door de opvolger te verwijderen. De vergelijking
  *  staat vooraf in beeld, zodat de analist ziet welke definitie blijft; de reden is verplicht. */
 export function BegripOpvolging({ soort, id, begrip, kandidaten, onSluit, onKlaar }: {
-  soort: "nieuw" | "combineren";
+  soort: "nieuw" | "combineren" | "generiek";
   id: string;
   begrip: Begrip;
   kandidaten: readonly BegripSamenvatting[];
@@ -27,6 +30,18 @@ export function BegripOpvolging({ soort, id, begrip, kandidaten, onSluit, onKlaa
   const [blijft, setBlijft] = useState<"dit" | "ander">("dit");
   const [bezig, setBezig] = useState(false);
   const a = kandidaten.find((b) => b.id === ander);
+  // Combineren met een generiek begrip (ADR-006): dat blijft altijd, en zijn inhoud verandert niet.
+  const [generiek, setGeneriek] = useState<BegripOverzichtRij[]>([]);
+  useEffect(() => {
+    if (soort !== "generiek") return;
+    let levend = true;
+    zoekBegrippen(new URLSearchParams({ kader: "generiek", status: "geaccordeerd" }))
+      .then((u) => levend && setGeneriek(u.resultaten))
+      .catch((e) => levend && setFout(foutTekst(e, "De generieke begrippen konden niet worden geladen.")));
+    return () => { levend = false; };
+  }, [soort]);
+  const g = generiek.find((b) => b.id === ander);
+  const titel = soort === "nieuw" ? "Nieuwe betekenis" : soort === "generiek" ? "Combineren met generiek begrip" : "Combineren";
 
   async function voer(actie: () => Promise<Begrip>) {
     setBezig(true);
@@ -42,10 +57,10 @@ export function BegripOpvolging({ soort, id, begrip, kandidaten, onSluit, onKlaa
   }
 
   return (
-    <Dialog label={soort === "nieuw" ? "Nieuwe betekenis" : "Combineren"} variant="compact" onSluit={onSluit}>
+    <Dialog label={titel} variant="compact" onSluit={onSluit}>
       <div className="flex min-h-0 flex-1 flex-col" data-opvolging={soort}>
         <div className="shrink-0 border-b border-line px-5 py-3.5">
-          <p className="text-xs text-muted">{soort === "nieuw" ? "Nieuwe betekenis" : "Combineren"}</p>
+          <p className="text-xs text-muted">{titel}</p>
           <h2 className="font-display text-base font-semibold text-lint">{begrip.inhoud.naam}</h2>
         </div>
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
@@ -53,7 +68,8 @@ export function BegripOpvolging({ soort, id, begrip, kandidaten, onSluit, onKlaa
           {soort === "nieuw" ? (
             <form aria-label="Nieuwe betekenis" className="space-y-2" onSubmit={(e) => {
               e.preventDefault();
-              if (reden.trim()) void voer(() => geefNieuweBetekenis(id, begrip.id, { verwachte_revisie: begrip.revisie, reden: reden.trim() }));
+              const body = { verwachte_revisie: begrip.revisie, reden: reden.trim() };
+              if (reden.trim()) void voer(() => id ? geefNieuweBetekenis(id, begrip.id, body) : geefGeneriekNieuweBetekenis(begrip.id, body));
             }}>
               <p className="text-xs text-muted">
                 Een andere betekenis is een nieuw begrip. De opvolger krijgt deze inhoud en de passages (opnieuw ter
@@ -62,6 +78,32 @@ export function BegripOpvolging({ soort, id, begrip, kandidaten, onSluit, onKlaa
               <Input autoFocus value={reden} onChange={(e) => setReden(e.target.value)} placeholder="Waarom de betekenis verandert"
                 aria-label="Reden voor de nieuwe betekenis" maxLength={2000} />
               <BewerkVoet submit onAnnuleer={onSluit} bezig={bezig} gewijzigd={!!reden.trim()} opslaanTekst="Maak opvolger" />
+            </form>
+          ) : soort === "generiek" ? (
+            <form aria-label="Combineren met generiek begrip" className="space-y-2" onSubmit={(e) => {
+              e.preventDefault();
+              if (!g || !reden.trim()) return;
+              void voer(() => combineerMetGeneriek(id, begrip.id, { verwachte_revisie: begrip.revisie, generiek_id: g.id, reden: reden.trim() }));
+            }}>
+              <Select value={ander} onChange={(e) => setAnder(e.target.value)} aria-label="Generiek begrip">
+                <option value="">Kies een generiek begrip…</option>
+                {generiek.map((b) => <option key={b.id} value={b.id}>{b.naam}</option>)}
+              </Select>
+              {g && (
+                <div className="grid gap-2 text-xs sm:grid-cols-2">
+                  <p className="rounded-knop border border-line p-2"><span className="font-medium text-ink">{begrip.inhoud.naam}</span>
+                    <span className="mt-1 block text-muted">{begrip.inhoud.definitie || "Nog geen definitie."}</span></p>
+                  <p className="rounded-knop border border-lint p-2"><span className="font-medium text-ink">{g.naam}</span> blijft
+                    <span className="mt-1 block text-muted">{g.definitie || "Nog geen definitie."}</span></p>
+                </div>
+              )}
+              <p className="text-xs text-muted">
+                Dit begrip wordt vervangen en blijft vindbaar. Zijn passages gaan mee (opnieuw ter beoordeling); de inhoud van het
+                generieke begrip verandert niet.
+              </p>
+              <Input value={reden} onChange={(e) => setReden(e.target.value)} placeholder="Waarom dit hetzelfde begrip is"
+                aria-label="Reden om te combineren" maxLength={2000} />
+              <BewerkVoet submit onAnnuleer={onSluit} bezig={bezig} gewijzigd={!!g && !!reden.trim()} opslaanTekst="Combineren" />
             </form>
           ) : (
             <form aria-label="Combineren" className="space-y-2" onSubmit={(e) => {

@@ -13,6 +13,7 @@ import { Groep, GroepRij } from "@/components/ui/Pagina";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { BEGRIP_STATUS_TOON } from "@/components/werkgebieden/BegripInhoud";
 import { BegripVoorstellen } from "@/components/werkgebieden/BegripVoorstellen";
+import { GeneriekGebruiken } from "@/components/werkgebieden/GeneriekGebruiken";
 import { ExportKnop } from "@/components/werkplek/ExportKnop";
 import { exporteerBegrippen, foutTekst, haalHerbeoordelingen, lijstBegrippen, maakBegrip } from "@/lib/api";
 import { EXPORT_FORMATEN, filterBegrippen, type BegripStatusFilter } from "@/lib/begrippen";
@@ -32,6 +33,7 @@ export function BegrippenKader({ id }: { id: string }) {
   const [fout, setFout] = useState<string | null>(null);
   const [zoek, setZoek] = useState("");
   const [status, setStatus] = useState<BegripStatusFilter>("alle");
+  const [gebruiken, setGebruiken] = useState(false);
 
   const laad = useCallback(async () => {
     void haalHerbeoordelingen(id).then(setHerbeoordeling, () => setHerbeoordeling(null));
@@ -57,11 +59,15 @@ export function BegrippenKader({ id }: { id: string }) {
   const geraakt = geraakteBegrippen(herbeoordeling);
   const begrippen = useMemo(() => lijst?.begrippen ?? [], [lijst]);
   const getoond = useMemo(() => filterBegrippen(begrippen, { term: zoek, status }), [begrippen, zoek, status]);
-  const teDoen = (herbeoordeling?.begrippen ?? []).map((b) => (
+  const teDoen = [...(herbeoordeling?.begrippen ?? []).map((b) => (
     <GroepRij key={b.begrip_id} href={begripPad(id, b.begrip_id)} data-herbeoordelen={b.begrip_id} titel={b.naam}
       sub={herbeoordelingZin(b.koppelingen.length, b.relaties?.length ?? 0)}
       status={<StatusLabel toon="geel">Herbeoordelen</StatusLabel>} />
-  ));
+  )), ...(herbeoordeling?.generiek ?? []).map((g) => (
+    <GroepRij key={`generiek-${g.begrip_id}`} href={begripPad(id, g.begrip_id)} data-herbeoordelen={g.begrip_id} titel={g.naam}
+      sub={g.opvolger ? `Vervangen door ${g.opvolger.naam}` : "Het generieke begrip veranderde"}
+      status={<StatusLabel toon="geel">Herbeoordelen</StatusLabel>} />
+  ))];
 
   return (
     <div className="space-y-5" data-begrippen-kader>
@@ -89,6 +95,7 @@ export function BegrippenKader({ id }: { id: string }) {
             <ExportKnop formaten={EXPORT_FORMATEN} onFout={setFout}
               onDownload={(f) => exporteerBegrippen(id, f as (typeof EXPORT_FORMATEN)[number]["formaat"])} />
           )}
+          <Button size="sm" variant="ghost" className="w-full sm:w-auto" onClick={() => setGebruiken(true)}>Generiek begrip gebruiken</Button>
           {!nieuw.open && <Button size="sm" variant="secondary" className="w-full sm:w-auto" onClick={nieuw.start}>Nieuw begrip</Button>}
         </div>
       </div>
@@ -115,6 +122,7 @@ export function BegrippenKader({ id }: { id: string }) {
               : b.aandachtspunten[0]} />)}
         </Groep>
       )}
+      {gebruiken && <GeneriekGebruiken id={id} gebruikt={begrippen} onSluit={() => setGebruiken(false)} />}
     </div>
   );
 }
@@ -123,7 +131,10 @@ function BegripRij({ id, begrip: b, aandacht }: { id: string; begrip: BegripSame
   return (
     <GroepRij href={begripPad(id, b.id)} data-begrip-rij={b.id}
       titel={<span className={b.status === "vervangen" ? "line-through" : ""}>{b.inhoud.naam}</span>}
-      status={<StatusLabel toon={BEGRIP_STATUS_TOON[b.status]}>{BEGRIP_STATUS_LABEL[b.status]}</StatusLabel>}
+      status={<>
+        {b.kader === "generiek" && <StatusLabel toon="lint">Generiek</StatusLabel>}
+        <StatusLabel toon={BEGRIP_STATUS_TOON[b.status]}>{BEGRIP_STATUS_LABEL[b.status]}</StatusLabel>
+      </>}
       sub={<>
         {b.aantal_koppelingen === 1 ? "1 passage" : `${b.aantal_koppelingen} passages`}
         {b.inhoud.definitie && ` · ${kort(b.inhoud.definitie)}`}

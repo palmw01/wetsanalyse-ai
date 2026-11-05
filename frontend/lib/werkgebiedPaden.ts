@@ -78,6 +78,11 @@ export function begripPad(werkgebiedId: string, begripId: string): string {
   return `${basis(werkgebiedId)}/begrippen/${encodeURIComponent(begripId)}`;
 }
 
+/** De eigen pagina van een generiek begrip (ADR-006): zonder werkgebied, met zijn passages per werkgebied. */
+export function generiekPad(begripId: string): string {
+  return `/begrippen/${encodeURIComponent(begripId)}`;
+}
+
 /** Waar een oude link met `?tab=` heen gaat: bladwijzers en berichten van vóór G2 blijven werken. */
 export function oudeTabNaar(id: string, p: { tab?: string; begrip?: string }): string | null {
   switch (p.tab) {
