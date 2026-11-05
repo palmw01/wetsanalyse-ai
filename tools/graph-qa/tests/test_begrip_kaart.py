@@ -116,7 +116,7 @@ def test_alleen_een_uitbreiding_is_geen_definitie_en_dat_zegt_lex():
 
 def test_de_zoekterm_volgt_naam_en_alternatieve_termen():
     q = bk.q_brondefinities(ka.termen({"naam": "Belasting Aanslag", "alternatieve_termen": ["aanslag", "aanslag"]}))
-    assert 'IN ("belasting aanslag", "aanslag")' in q
+    assert 'CONTAINS(LCASE(STR(?begrip)), "belasting aanslag")' in q and 'CONTAINS(LCASE(STR(?begrip)), "aanslag")' in q
 
 
 # --- scherper -------------------------------------------------------------------------------------

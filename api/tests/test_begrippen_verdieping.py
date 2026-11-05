@@ -71,7 +71,8 @@ async def test_een_batch_is_idempotent_en_telt_af(client):
     wv = (await client.get(f"/v1/werkgebieden/{wg['id']}/verdieping")).json()
     assert (wv["vragen"], wv["aantal"]) == ([], 1)
     assert [b["id"] for b in wv["batches"]] == ["B1"]
-    assert wv["schatting"] == {"per_item": 900, "basis": 1, "totaal": 900}
+    assert wv["schatting"] == {"per_item": 900, "per_soort": {"vraag": 900}, "hoog_per_item": 900, "basis": 1,
+                               "totaal": 900, "hoog": 900}
 
 
 async def test_een_batch_noemt_alleen_eigen_twijfelvragen(client):
@@ -159,3 +160,12 @@ async def test_overnemen_vult_het_begrip_uit_de_kaart(client):
     assert o["onderzoek_id"] == run["onderzoek_id"]
     assert [(f["bron_iri"], f["start"], f["eind"], f["rol"]) for f in o["fragmenten"]] == \
         [(ONE, 2, 11, "ondersteunend"), (TWO, 0, 4, "ondersteunend")]
+
+
+def test_de_schatting_volgt_het_gemeten_verbruik_per_soort():
+    """De som van de rekening, per soort, en de bovenkant apart (S2)."""
+    from app.begrippen_verdieping import _totaal
+
+    schat = {"per_item": 1000, "per_soort": {"vraag": 500, "kaart": 3000}}
+    assert _totaal(schat, 10, 2) == 11000
+    assert _totaal({"per_item": 1000, "per_soort": {"vraag": 500}}, 1, 1) == 1500

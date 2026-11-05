@@ -12,11 +12,14 @@ van graph-qa bewaakt dat.
 
 Prioriteit (binnen elke stap op documentvolgorde):
 
-1. **zelfde artikel**: de leden en onderdelen van het artikel van elk anker;
-2. **definities in de geselecteerde regelingen**: een begripsbepaling of kwalificatie ("verstaan
+1. **de definitie van een term**: een begripsbepaling die een formuleringstekst als term definieert, ook in een
+   regeling waar alleen een verwijzing heen leidt. De keten neemt die letterlijk over, en dan is er voor dat begrip geen
+   model nodig (e2e 5 nov 2026: deze definities vielen buiten het budget, en het model zocht ze voor niets);
+2. **zelfde artikel**: de leden en onderdelen van het artikel van elk anker;
+3. **definities in de geselecteerde regelingen**: een begripsbepaling of kwalificatie ("verstaan
    onder", "geldt als", "wordt aangemerkt als") die een formuleringstekst bevat;
-3. **verwijzingen**, één stap uitgaand vanaf de ankers; een doel buiten de graaf is `niet_in_graaf`;
-4. **contextselecties** zonder annotaties.
+4. **verwijzingen**, één stap uitgaand vanaf de ankers; een doel buiten de graaf is `niet_in_graaf`;
+5. **contextselecties** zonder annotaties.
 
 Daarnaast **vergelijkingsbegrippen**: de begrippen van dit werkgebied en, met een exact gelijke naam
 of alternatieve term, die van andere werkgebieden. Nooit een bron, nooit bewijs.
@@ -46,13 +49,13 @@ VERSIE = "2"
 MAX_ZELFDE_ARTIKEL = 12
 """Leden en onderdelen van hetzelfde artikel: een artikel met meer leden is zeldzaam, en wat erbuiten
 valt staat als `budget` in `ontbrekend`."""
-MAX_DEFINITIES = 6
+MAX_DEFINITIES = 12
 """Begripsbepalingen en kwalificaties met een formuleringstekst erin."""
 MAX_VERWIJZINGEN = 6
 """Bronnodes waarnaar de ankers verwijzen (één stap)."""
 MAX_CONTEXTSELECTIE = 6
 """Nodes uit contextselecties zonder annotaties."""
-MAX_BRONNEN = 24
+MAX_BRONNEN = 30
 """Alle contextbronnen samen; daarboven groeit de prompt zonder dat het oordeel beter wordt."""
 MAX_TEKENS = 40_000
 """Alle contexttekst samen."""
@@ -65,7 +68,11 @@ _PER_REDEN = {"zelfde_artikel": MAX_ZELFDE_ARTIKEL, "definitie_in_regeling": MAX
 # Een begripsbepaling of kwalificatie in de bepaling zelf, of een aanhef die de definities eronder
 # inleidt ("In deze wet wordt verstaan onder:").
 _DEFINITIE = re.compile(r"\bverstaan\s+onder\b|\bverstaat\b[^.]{0,60}\bonder\b|\bgeldt\s+als\b|\bgelden\s+als\b"
-                        r"|\b(?:wordt|worden)\s+(?:mede\s+)?aangemerkt\s+als\b", re.IGNORECASE)
+                        r"|\bonder\b[^.:]{1,60}\bverstaan\b|\b(?:wordt|worden)\s+(?:mede\s+)?aangemerkt\s+als\b",
+                        re.IGNORECASE)
+_ONDER = re.compile(r"\bonder\s+([^:,;.]{1,60}?)\s+(?:wordt|worden)\s+verstaan\b", re.IGNORECASE)
+_TERM = re.compile(r"^([^:]{1,80}?):\s")
+_LIDWOORD = re.compile(r"^(?:de|het|een)\s+")
 _AANHEF = re.compile(r"\b(?:verstaat|wordt|worden)\s+(?:(?:mede|niet)\s+)?(?:verstaan\s+)?onder\s*:?\s*$",
                      re.IGNORECASE)
 _ARTIKEL = {"Artikel", "Divisie"}
@@ -89,6 +96,20 @@ def onderzoek_id(manifest_id: str, bronnen: list[dict], begrippen: list[dict], o
                     for x in begrippen)
     delen += sorted({f"{o['wat']}|{o['reden']}" for o in ontbrekend})
     return "O" + _hash(*delen)[:16]
+
+
+def gedefinieerd(tekst: str, aanhef: str) -> set[str]:
+    """De termen die deze bepaling definieert (kaal, kleine letters), niet wat ze toevallig noemt."""
+    ruw = ""
+    if _AANHEF.search(aanhef or "") and (m := _TERM.match(tekst or "")):
+        ruw = m.group(1)
+    elif m := _ONDER.search(tekst or ""):
+        ruw = m.group(1)
+    return {_kaal(d) for d in re.split(r",\s*|\s+(?:of|en)\s+", ruw) if d.strip()}
+
+
+def _kaal(term: str) -> str:
+    return _LIDWOORD.sub("", _norm(term))
 
 
 def _bevat(tekst: str, term: str) -> bool:
@@ -179,15 +200,39 @@ async def bouw(werkgebied: dict, manifest: dict, manifest_id: str, per_bwb: dict
     kandidaten: list[tuple[str, str, list[str]]] = []   # (reden, iri, voor), in prioriteitsvolgorde
     ontbrekend: list[dict] = []
 
-    # 1. Zelfde artikel.
+    # Eerst de verwijzingen: een regeling die alleen zo in beeld komt, hoort mee bij het zoeken naar definities.
+    rijen = await verwijzingen(ankers) if ankers else []
+    if rijen is None:
+        ontbrekend.append({"wat": "verwijzingen vanaf de passages", "reden": "onbereikbaar"})
+        rijen = []
+    for _van, naar in rijen:
+        if naar not in nodes and naar.startswith("urn:bwb:BWB"):
+            try:
+                nodes.update(nodes_met_titel(await resolve({"bron_iri": naar})))
+            except (HTTPException, ConnectionError, ValueError, httpx.HTTPError):
+                pass
+
+    op_regeling = sorted(nodes, key=lambda i: (bwb_van({"bwb_id": nodes[i].get("bwb_id", ""), "bron_iri": i}),
+                                               nodes[i].get("volgorde", 1 << 30), i))
+
+    # 1. De definitie van een term.
+    kaal = {e: _kaal(t) for e, t in termen.items()}
+    for iri in op_regeling:
+        n = nodes[iri]
+        aanhef = nodes.get(n.get("parent_iri") or "", {}).get("tekst") or ""
+        eigen = gedefinieerd(n.get("tekst") or "", aanhef)
+        voor = sorted(e for e, t in kaal.items() if t in eigen)
+        if voor:
+            kandidaten.append(("definitie_in_regeling", iri, voor))
+
+    # 2. Zelfde artikel.
     for anker in ankers:
         artikel = next((i for i in _keten(nodes, anker) if nodes[i].get("type") in _ARTIKEL), "")
         for iri in _onder(nodes, artikel) if artikel else []:
             kandidaten.append(("zelfde_artikel", iri, per_anker.get(anker, [])))
 
-    # 2. Definities en kwalificaties in de geladen regelingen die een formuleringstekst dragen.
-    for iri in sorted(nodes, key=lambda i: (bwb_van({"bwb_id": nodes[i].get("bwb_id", ""), "bron_iri": i}),
-                                             nodes[i].get("volgorde", 1 << 30), i)):
+    # 3. Definities en kwalificaties in de geladen regelingen die een formuleringstekst dragen.
+    for iri in op_regeling:
         n = nodes[iri]
         tekst = n.get("tekst") or ""
         aanhef = (nodes.get(n.get("parent_iri") or "", {}).get("tekst") or "")
@@ -197,24 +242,15 @@ async def bouw(werkgebied: dict, manifest: dict, manifest_id: str, per_bwb: dict
         if voor:
             kandidaten.append(("definitie_in_regeling", iri, voor))
 
-    # 3. Verwijzingen, één stap vanaf de ankers.
-    rijen = await verwijzingen(ankers) if ankers else []
-    if rijen is None:
-        ontbrekend.append({"wat": "verwijzingen vanaf de passages", "reden": "onbereikbaar"})
-        rijen = []
+    # 4. Verwijzingen, één stap vanaf de ankers.
     for van, naar in rijen:
-        if naar not in nodes and naar.startswith("urn:bwb:BWB"):
-            try:
-                nodes.update(nodes_met_titel(await resolve({"bron_iri": naar})))
-            except (HTTPException, ConnectionError, ValueError, httpx.HTTPError):
-                pass
         if naar not in nodes:
             ontbrekend.append({"wat": naar, "reden": "niet_in_graaf"})
             continue
         for iri in _onder(nodes, naar):
             kandidaten.append(("verwijzing", iri, per_anker.get(van, [van])))
 
-    # 4. Contextselecties.
+    # 5. Contextselecties.
     for sel in werkgebied.get("bronnen") or []:
         if sel.get("rol") != "context" or sel["bron_iri"] not in nodes:
             continue

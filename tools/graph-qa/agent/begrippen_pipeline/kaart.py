@@ -37,8 +37,11 @@ TOOL = "stel_kaart_voor"
 BATCH = 5
 
 def naam_en_letterlijk(manifest: Manifest, taal: dict[str, Taalanalyse],
-                       wts: list[definities.WettelijkeTerm], leden: tuple[str, ...]) -> dict[str, str]:
-    """Naam (de term die de leden het vaakst dragen) en, als die er is, de letterlijke definitie."""
+                       wts: list[definities.WettelijkeTerm], leden: tuple[str, ...],
+                       onderzoek: Onderzoek | None = None) -> dict[str, str]:
+    """Naam (de term die de leden het vaakst dragen) en, als die er is, de letterlijke definitie: uit het manifest,
+    anders uit een contextbron waarvan het bereik een van de leden omvat. Zo staat de definitie er al vóór de
+    verdieping en hoeft het model haar niet te zoeken (S2). Een definitie die alleen doorverwijst telt niet (S4)."""
     termen = [taal[e].term for e in leden if e in taal and taal[e].term]
     # Meest gedragen term; bij gelijke stand de eerste in de volgorde van de leden.
     naam = Counter(termen).most_common(1)[0][0] if termen else manifest.formulering(leden[0]).tekst.lower()
@@ -46,9 +49,20 @@ def naam_en_letterlijk(manifest: Manifest, taal: dict[str, Taalanalyse],
     for wt in wts:
         if wt.soort == "definitie" and wt.anker in leden:
             bron = manifest.bron(wt.bron_iri)
-            if tekst := definities.definiens(bron):
+            tekst = definities.definiens(bron)
+            if tekst and not definities.verwijst_door(tekst, definities.gedefinieerde_termen(bron)):
                 uit.update(definitie=tekst, definitie_bron_iri=bron.bron_iri, definitie_vindplaats=bron.label)
                 break
+    if "definitie" in uit or onderzoek is None:
+        return uit
+    plekken = [manifest.formulering(e).bron_iri for e in leden]
+    for bron in onderzoek.bronnen:
+        d = definities.definitie_van(bron)
+        tekst = definities.definiens(bron)
+        if d and d[1] == "definitie" and naam in d[0] and tekst and not definities.verwijst_door(tekst, d[0]) \
+                and any(d[2].omvat(p) for p in plekken):
+            uit.update(definitie=tekst, definitie_bron_iri=bron.bron_iri, definitie_vindplaats=bron.label)
+            break
     return uit
 
 
@@ -96,7 +110,7 @@ def basis(manifest: Manifest, taal: dict[str, Taalanalyse], wts: list[definities
           onderzoek: Onderzoek | None = None) -> tuple[Kaart, Opdracht | None]:
     """De kaart zonder model, en de opdracht voor het model als er iets open is. Zonder onderzoek is de
     kaart van de keten dezelfde als vóór spoor M; het dossier gaat alleen naar het model."""
-    v = naam_en_letterlijk(manifest, taal, wts, leden)
+    v = naam_en_letterlijk(manifest, taal, wts, leden, onderzoek)
     klassen = [manifest.formulering(e).jas_klasse for e in leden]
     termen = [taal[e].term for e in leden if e in taal and taal[e].term]
     alternatief = tuple(t for t in dict.fromkeys(termen) if t != v["naam"])

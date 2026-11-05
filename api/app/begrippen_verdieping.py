@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-from statistics import median
 
 from fastapi import HTTPException
 from sqlalchemy import insert, select, update
@@ -122,14 +121,29 @@ def _batch(row) -> dict:
 
 
 async def schatting(userid: str) -> dict | None:
-    """Mediaan van het verbruik per item (paar of kaart) over de laatste batches van deze gebruiker."""
+    """Gemeten verbruik per item over de laatste batches van deze gebruiker, per soort: een twijfelpunt en een kaart
+    kosten iets anders, en de werkvoorraad verschilt per werkgebied. Het gemiddelde en geen mediaan: de rekening is de
+    som, en de e2e-test kostte 43% meer dan de mediaan voorspelde (107.510 geschat, 153.504 gemeten). `hoog_per_item` is de
+    op een na duurste batch per item, de bovenkant die de analist bij de bevestiging ziet."""
     b = db.begrippen_batches.c
     async with db.get_engine().connect() as conn:
-        rijen = (await conn.execute(select(b.tokens, b.ids).where(
+        rijen = (await conn.execute(select(b.tokens, b.ids, b.soort).where(
             b.gemaakt_door == (userid or "").strip().lower(), b.tokens > 0)
             .order_by(b.gemaakt.desc()).limit(SCHATTING_BASIS))).all()
-    per_item = [t / max(1, len(ids)) for t, ids in rijen]
-    return {"per_item": int(median(per_item)), "basis": len(per_item)} if per_item else None
+    if not rijen:
+        return None
+    per_item = sorted(t / max(1, len(ids)) for t, ids, _ in rijen)
+    per_soort = {}
+    for soort in {s for _, _, s in rijen}:
+        deel = [(t, len(ids)) for t, ids, s in rijen if s == soort]
+        per_soort[soort] = int(sum(t for t, _ in deel) / max(1, sum(n for _, n in deel)))
+    return {"per_item": int(sum(t for t, _, _ in rijen) / max(1, sum(len(i) for _, i, _ in rijen))), "per_soort": per_soort,
+            "hoog_per_item": int(per_item[-2 if len(per_item) > 1 else -1]), "basis": len(rijen)}
+
+
+def _totaal(schat: dict, vragen: int, kaarten: int) -> int:
+    p = schat["per_soort"]
+    return p.get("vraag", schat["per_item"]) * vragen + p.get("kaart", schat["per_item"]) * kaarten
 
 
 async def werkvoorraad(werkgebied_id: str, userid: str) -> dict:
@@ -157,9 +171,10 @@ async def werkvoorraad(werkgebied_id: str, userid: str) -> dict:
     return {
         "run": _run(row), "verdiept": verdiept, "aantal": aantal, "vragen": vragen, "kaarten": kaarten,
         "batches": [_batch(x) for x in batches],
-        "schatting": {**schat, "totaal": schat["per_item"] * aantal} if schat else None,
-        "schatting_toelichting": (f"Mediaan per twijfelpunt of kaart over je laatste {schat['basis']} batches, "
-                                  "keer het aantal." if schat else
+        "schatting": {**schat, "totaal": _totaal(schat, len(vragen), len(kaarten)),
+                      "hoog": schat["hoog_per_item"] * aantal} if schat else None,
+        "schatting_toelichting": (f"Gemeten verbruik per twijfelpunt en per kaart over je laatste {schat['basis']} "
+                                  "batches, keer het aantal." if schat else
                                   "Nog geen verdieping van jou om een schatting op te baseren."),
         "budget": {"resterend": stand.resterend, "budget": stand.budget, "actief": stand.actief,
                    "geblokkeerd": stand.geblokkeerd},
