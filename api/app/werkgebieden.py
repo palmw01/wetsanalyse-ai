@@ -13,8 +13,8 @@ from .auth import require_client
 from .bron_resolver import resolve_bron as _resolve_bron
 from .routers.auth import actieve_userid
 from .werkgebied_contracts import (
-    BronselectieInvoer, BronselectieWijziging, DeelvraagInvoer, DeelvraagKoppelingen, DeelvraagVoorstellen,
-    DeelvraagWijziging, WerkgebiedInvoer, WerkgebiedWijziging,
+    BronselectieInvoer, BronselectieWijziging, DeelvraagInvoer, DeelvraagKoppelingen, DeelvragenSamen,
+    DeelvraagVoorstellen, DeelvraagWijziging, WerkgebiedInvoer, WerkgebiedWijziging,
 )
 from .werkgebied_inventaris import inventaris
 from .werkgebied_werkvoorraad import selecties_in_bereik, werkvoorraad
@@ -201,6 +201,11 @@ async def delete_bron(werkgebied_id: str, selectie_id: str, verwachte_revisie: i
 @router.post("/{werkgebied_id}/deelvragen", status_code=201)
 async def post_deelvraag(werkgebied_id: str, req: DeelvraagInvoer, actor: str = Depends(actieve_userid)):
     return await deelvragen.maak(werkgebied_id, req, actor)
+
+
+@router.post("/{werkgebied_id}/deelvragen/samen")
+async def post_deelvragen_samen(werkgebied_id: str, req: DeelvragenSamen, actor: str = Depends(actieve_userid)):
+    return await deelvragen.samen(werkgebied_id, req, actor)
 
 
 # Vóór `/deelvragen/{deelvraag_id}`, anders leest de router "dekking" en "voorstellen" als een id.

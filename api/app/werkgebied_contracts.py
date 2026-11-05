@@ -211,6 +211,39 @@ class DeelvraagInvoer(BaseModel):
         return _vraag(v)
 
 
+class DeelvraagTekst(BaseModel):
+    id: str = Field(min_length=1, max_length=64)
+    vraag: str = Field(min_length=1, max_length=1000)
+
+    @field_validator("vraag")
+    @classmethod
+    def _v(cls, v: str) -> str:
+        return _vraag(v)
+
+
+class DeelvragenSamen(BaseModel):
+    """De bewerkstand opslaan: alles-of-niets, in één revisie. De volgorde ligt vast: verwijderen, wijzigen, nieuw."""
+
+    verwachte_revisie: int = Field(ge=1)
+    verwijderen: list[str] = Field(default_factory=list, max_length=100)
+    wijzigen: list[DeelvraagTekst] = Field(default_factory=list, max_length=100)
+    nieuw: list[str] = Field(default_factory=list, max_length=100)
+
+    @field_validator("nieuw")
+    @classmethod
+    def _n(cls, v: list[str]) -> list[str]:
+        v = [_vraag(x) for x in v]
+        if any(len(x) > 1000 for x in v):
+            raise ValueError("vraag is te lang")
+        return v
+
+    @model_validator(mode="after")
+    def _iets(self) -> DeelvragenSamen:
+        if not (self.verwijderen or self.wijzigen or self.nieuw):
+            raise ValueError("er is niets om op te slaan")
+        return self
+
+
 class DeelvraagWijziging(BaseModel):
     """Tekst of volgorde aanpassen, een voorstel overnemen (`status: actief`) of afwijzen (met reden)."""
 

@@ -76,6 +76,50 @@ async def test_toevoegen_wijzigen_en_weghalen_dragen_de_revisie(client):
     assert acties[:3] == ["deelvraag-verwijderd", "deelvraag-gewijzigd", "deelvraag-toegevoegd"]
 
 
+async def _samen(client, wg, status=200, **velden):
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/deelvragen/samen",
+                          json={"verwachte_revisie": wg["revisie"], **velden})
+    assert r.status_code == status, r.text
+    return r.json()
+
+
+async def test_samen_opslaan_is_een_revisie_met_de_gewone_auditregels(client):
+    wg = await _dv(client, await _dv(client, await _nieuw(client), "Eerste vraag?"), "Tweede vraag?")
+    a, b = wg["deelvragen"]
+    # Dezelfde tekst als wat weggaat mag: verwijderen loopt vóór toevoegen.
+    uit = await _samen(client, wg, verwijderen=[a["id"]], wijzigen=[{"id": b["id"], "vraag": "Tweede vraag, scherper?"}],
+                       nieuw=["Eerste vraag?", "Derde vraag?"])
+    assert uit["revisie"] == wg["revisie"] + 1
+    assert [d["vraag"] for d in uit["deelvragen"]] == ["Tweede vraag, scherper?", "Eerste vraag?", "Derde vraag?"]
+    audit = (await client.get(f"/v1/werkgebieden/{wg['id']}/audit")).json()["audit"]
+    assert sorted(x["actie"] for x in audit[:4]) == [
+        "deelvraag-gewijzigd", "deelvraag-toegevoegd", "deelvraag-toegevoegd", "deelvraag-verwijderd"]
+    assert {x["detail"]["revisie"] for x in audit[:4]} == {uit["revisie"]}
+
+
+async def test_samen_opslaan_is_alles_of_niets(client):
+    wg = await _dv(client, await _dv(client, await _nieuw(client), "Eerste vraag?"), "Tweede vraag?")
+    a, b = wg["deelvragen"]
+    # De laatste stap botst: ook het verwijderen en wijzigen ervoor mogen niet blijven staan.
+    r = await _samen(client, wg, status=409, verwijderen=[a["id"]], wijzigen=[{"id": b["id"], "vraag": "Anders?"}],
+                     nieuw=["Derde vraag?", "derde vraag"])
+    assert r["detail"]["fout"] == "al_gesteld" and "derde vraag" in r["detail"]["melding"]
+    nu = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()
+    assert nu["revisie"] == wg["revisie"]
+    assert [d["vraag"] for d in nu["deelvragen"]] == ["Eerste vraag?", "Tweede vraag?"]
+    audit = (await client.get(f"/v1/werkgebieden/{wg['id']}/audit")).json()["audit"]
+    assert len(audit) == 3  # aanmaken en de twee deelvragen
+    await _samen(client, wg, status=404, verwijderen=["bestaat-niet"], nieuw=["Derde vraag?"])
+    await _samen(client, {**wg, "revisie": 1}, status=412, nieuw=["Derde vraag?"])
+    await _samen(client, wg, status=422)
+
+
+async def test_een_verwijderde_vraag_verbergt_de_levende_niet(client):
+    wg = await _dv(client, await _nieuw(client), "Eerste vraag?")
+    wg = await _samen(client, wg, verwijderen=[wg["deelvragen"][0]["id"]], nieuw=["Eerste vraag?"])
+    await _samen(client, wg, status=409, nieuw=["Eerste vraag?"])
+
+
 async def test_voorstellen_van_lex_overnemen_en_afwijzen(client):
     wg = await _nieuw(client)
     wg = await _dv(client, wg, "Wie is de belastingschuldige?")
