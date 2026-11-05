@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/Field";
 import type { BegripMutatie } from "@/components/werkgebieden/BegripWerk";
 import { bevestigKoppeling, herkoppel } from "@/lib/api";
 import { ACTIE_LABEL, RICHTING_LABEL, RICHTING_TEKEN, markeer } from "@/lib/herbeoordeling";
-import { jasStyle, klasseLabel } from "@/lib/jas";
 import type { Begrip, BronSignaal, GeraakteKoppeling, Opvolger } from "@/lib/types";
 import { annotatieHref } from "@/lib/werkgebied";
+import { KlasseLabel } from "@/components/ui/Lijst";
 
 const KNOP = KNOP_XS;
 
@@ -144,9 +144,7 @@ export function Herbeoordeling({ id, begrip, geraakt: g, muteer }: {
 function Stand({ tekst, klasse, extra }: { tekst: string; klasse: string; extra?: string }) {
   return (
     <div className="mt-0.5 space-y-0.5">
-      <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${jasStyle(klasse)}`}>
-        {klasseLabel(klasse)}
-      </span>
+      <KlasseLabel klasse={klasse} />
       <blockquote className="text-sm text-ink">“{tekst}”</blockquote>
       {extra && <p className="text-[11px] text-aandacht-geel-tekst">{extra}</p>}
     </div>
@@ -184,7 +182,7 @@ function OpvolgerRij({ opvolger: o, bezig, kanHerkoppelen, onHerkoppel }: {
     <li className="rounded border border-line bg-paper px-2.5 py-2">
       <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <span className={`mr-1.5 inline-flex rounded-full border px-1.5 text-[10px] ${jasStyle(o.klasse)}`}>{klasseLabel(o.klasse)}</span>
+          <KlasseLabel klasse={o.klasse} klein className="mr-1.5" />
           <span className="text-sm text-ink">“{o.tekst}”</span>
           {!o.annotatie_beoordeeld && (
             <span className="block text-[11px] text-aandacht-geel-tekst">annotatie nog niet door een jurist beoordeeld</span>

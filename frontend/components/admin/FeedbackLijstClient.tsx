@@ -7,6 +7,7 @@ import { Melding } from "@/components/ui/Melding";
 import { Pagination } from "@/components/Pagination";
 import { getFeedback, isApiError, markeerFeedbackGezien, verwijderFeedback } from "@/lib/api";
 import type { FeedbackPaginaOut } from "@/lib/api";
+import { StatusLabel } from "@/components/ui/Lijst";
 
 const CATEGORIE_LABELS: Record<string, string> = {
   verbeteridee: "Verbeteridee",
@@ -80,9 +81,7 @@ export function FeedbackLijstClient() {
             <Card key={item.id} className="p-4">
               <div className="flex flex-wrap items-center gap-3">
                 <span className="font-mono text-xs text-faint">#{item.id}</span>
-                <span className="rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
-                  {CATEGORIE_LABELS[item.categorie] ?? item.categorie}
-                </span>
+                <StatusLabel toon="lint">{CATEGORIE_LABELS[item.categorie] ?? item.categorie}</StatusLabel>
                 <span className="text-xs text-muted">{item.userid}</span>
                 <span className="text-xs text-faint">client: {item.client_id}</span>
                 <span className="ml-auto text-xs text-faint">

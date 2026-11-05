@@ -16,12 +16,9 @@ import type { BronKandidaat, BronMethode, BronnenRun, KandidatenAntwoord } from 
 import { bouwBoom, regelingUitLabel, rijenPerRegeling } from "@/lib/bronPlaats";
 import { usePlaatsen } from "@/lib/usePlaatsen";
 import { bronPad } from "@/lib/werkgebiedPaden";
+import { StatusLabel } from "@/components/ui/Lijst";
 
-const ROL_STIJL: Record<BronKandidaat["rol"], string> = {
-  kern: "border-lint/40 bg-lint/10 text-lint",
-  afhankelijkheid: "border-line bg-surface text-ink",
-  aanverwant: "border-line bg-paper text-muted",
-};
+const ROL_TOON: Record<BronKandidaat["rol"], "lint" | "neutraal"> = { kern: "lint", afhankelijkheid: "neutraal", aanverwant: "neutraal" };
 const FILTERS: KandidaatFilter[] = ["open", "uitgesloten", "opgenomen"];
 
 /** De bronverkenner: alle bepalingen die Lex voor een werkgebied vond (spoor D, fase A), om rond te kijken.
@@ -138,10 +135,7 @@ function KandidaatRegel({ werkgebiedId, k, plek, labels, open, onWissel }: {
       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
         <Link href={bronPad(k.bron_iri, werkgebiedId)} title={naam}
           className="focus-ring rounded text-sm font-medium text-lint hover:underline">{plek}</Link>
-        <span title={KANDIDAAT_ROL_UITLEG[k.rol]}
-          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${ROL_STIJL[k.rol]}`}>
-          {KANDIDAAT_ROL_LABEL[k.rol]}
-        </span>
+        <StatusLabel toon={ROL_TOON[k.rol]} uitleg={KANDIDAAT_ROL_UITLEG[k.rol]}>{KANDIDAAT_ROL_LABEL[k.rol]}</StatusLabel>
       </div>
       <button type="button" onClick={onWissel} aria-expanded={open} aria-label={`Bewijs voor ${naam}`}
         className="focus-ring mt-0.5 block w-full rounded text-left text-xs text-muted hover:text-ink">

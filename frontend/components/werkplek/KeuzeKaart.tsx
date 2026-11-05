@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { AgentKandidaat, AgentKeuze, KandidaatStand } from "@/lib/types";
 import { knopKlasse } from "@/components/ui/Button";
+import { StatusLabel } from "@/components/ui/Lijst";
 
 /** De keuze uit de onderdelen van één bepaling (leden, of subbepalingen als 9.1), in de thread.
  *
@@ -147,10 +148,9 @@ const STAND_TEKST: Record<KandidaatStand["status"], (s: KandidaatStand) => strin
 };
 
 function StandBadge({ stand }: { stand: KandidaatStand }) {
-  const kleur = stand.status === "afgerond" ? "border-line text-faint"
-    : stand.status === "te_beoordelen" ? "border-accent-soft/60 text-ink"
-      : stand.status === "beoordeeld" ? "border-lint/30 text-lint" : "border-line text-muted";
-  return <span className={`rounded-full border px-2 py-px text-[10px] ${kleur}`}>{STAND_TEKST[stand.status](stand)}</span>;
+  // Zoals de documentstatus: te beoordelen geel, beoordeeld en afgerond groen, nieuw neutraal.
+  const toon = stand.status === "te_beoordelen" ? "geel" : stand.status === "beoordeeld" || stand.status === "afgerond" ? "groen" : "neutraal";
+  return <StatusLabel toon={toon} klein>{STAND_TEKST[stand.status](stand)}</StatusLabel>;
 }
 
 /** "3 gekozen · 2 nieuw · 1 al geannoteerd" – vóór het versturen, want elk onderdeel kost budget. */

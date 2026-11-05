@@ -36,6 +36,21 @@ describe("één bedieningsstijl", () => {
     expect(label.slice(0, label.indexOf("\n}\n"))).not.toMatch(/<button|<Link/);
   });
 
+  it("geen zelfgemaakt label: een pil met rand en tekst is altijd StatusLabel of KlasseLabel", () => {
+    // Een kleurstip (`h-2 w-2 rounded-full`) heeft geen padding en valt erbuiten.
+    const alle = (map: string): string[] => readdirSync(join(ROOT, map)).flatMap((n) => {
+      const pad = `${map}/${n}`;
+      return statSync(join(ROOT, pad)).isDirectory() ? alle(pad) : pad.endsWith(".tsx") ? [pad] : [];
+    });
+    const zelfgemaakt = [...alle("components"), ...alle("app")]
+      .filter((f) => f !== "components/ui/Lijst.tsx")
+      .flatMap((f) => [...bron(f).matchAll(/<span\b[^>]*className=[^>]*>/g)]
+        .map((m) => m[0])
+        .filter((tag) => /rounded-full/.test(tag) && /\bborder\b/.test(tag) && /\bpx-/.test(tag))
+        .map((tag) => `${f}: ${tag.slice(0, 80)}`));
+    expect(zelfgemaakt).toEqual([]);
+  });
+
   it("de bouwstenen van een knop zijn nooit een pil", () => {
     // Deze bestanden zijn de knoppen van Lex; in PR C van het plan gaat de regel voor de hele app gelden.
     for (const f of ["ui/Button", "ui/FilterChip", "ui/Suggestie", "ui/MeerMenu", "ui/Bewerkbaar", "admin/StijlPanel"])

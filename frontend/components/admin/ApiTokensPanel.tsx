@@ -11,6 +11,7 @@ import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { Tag } from "@/components/ui/Badge";
 import { createApiToken, isApiError, listApiTokens, revokeApiToken } from "@/lib/api";
 import type { ApiTokenOut } from "@/lib/types";
+import { StatusLabel } from "@/components/ui/Lijst";
 
 export function ApiTokensPanel() {
   const [tokens, setTokens] = useState<ApiTokenOut[] | null>(null);
@@ -162,9 +163,7 @@ export function ApiTokensPanel() {
                 <code className="rounded bg-paper px-1.5 py-0.5 font-mono text-xs text-muted">{t.token_prefix}…</code>
                 <Tag>{t.scope}</Tag>
                 {!t.active && (
-                  <span className="inline-flex items-center rounded-full border border-fout/40 bg-fout/10 px-2.5 py-0.5 text-xs font-medium text-fout">
-                    ingetrokken
-                  </span>
+                  <StatusLabel toon="rood">ingetrokken</StatusLabel>
                 )}
                 <span className="ml-auto text-xs text-faint">laatst gebruikt: {datum(t.last_used)}</span>
               </div>

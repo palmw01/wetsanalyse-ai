@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { jasStyle, klasseLabel } from "@/lib/jas";
 
 /** De lijststijl van de werkgebieden (F3a): rijen met een scheidingslijn, zoals de vraagkaart van Lex,
  *  in plaats van een omrande box per deelvraag, bron of kandidaat. Een box per rij maakt van elke lijst
@@ -128,18 +129,40 @@ export const TOON: Record<StatusToon, string> = {
 /** Het ene label van Lex: een pil met een getint vlak. **Een pil is een label, een afgeronde rechthoek is een knop**
  *  (besluit 5 nov 2026): een label zegt iets en doet niets – geen hover, nooit een `button` of `Link`. Maak geen eigen
  *  label-pil; gebruik dit, met de toon die het oordeel draagt. De stijlgids staat in *Instellingen › Stijl*. */
-export function StatusLabel({ toon = "neutraal", uitleg, children, className = "", ...rest }: {
+export function StatusLabel({ toon = "neutraal", uitleg, klein = false, rekbaar = false, children, className = "", ...rest }: {
   toon?: StatusToon;
   /** Wat de stand betekent, als tooltip. */
   uitleg?: string;
+  /** Midden in een regel tekst (een klasse vóór een fragment): dezelfde pil, kleiner. */
+  klein?: boolean;
+  /** Een lange inhoud die mag afkappen (het onderwerp boven het invoerveld): het label krimpt mee. */
+  rekbaar?: boolean;
   children: React.ReactNode;
   className?: string;
 } & Attrs) {
   return (
     <span title={uitleg}
-      className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium ${TOON[toon]} ${className}`}
+      className={`inline-flex items-center rounded-full border ${rekbaar ? "min-w-0" : "shrink-0 whitespace-nowrap"} ${LABEL_MAAT[klein ? "klein" : "gewoon"]} ${TOON[toon]} ${className}`}
       {...rest}>
       {children}
+    </span>
+  );
+}
+
+const LABEL_MAAT = { gewoon: "px-2 py-0.5 text-xs font-medium", klein: "px-1.5 text-[10px]" } as const;
+
+/** Een JAS-klasse die alleen informeert (in de passages, de inventaris, de graaf): de pil van `StatusLabel` in de kleur
+ *  van de klasse (`jasStyle`). Klikbaar is hij alleen op de reviewkaart, en daar is hij een knop met ▾. */
+export function KlasseLabel({ klasse, klein = false, children, className = "", ...rest }: {
+  klasse: string;
+  klein?: boolean;
+  children?: React.ReactNode;
+  className?: string;
+} & Attrs) {
+  return (
+    <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full border ${LABEL_MAAT[klein ? "klein" : "gewoon"]} ${jasStyle(klasse)} ${className}`}
+      {...rest}>
+      {children ?? klasseLabel(klasse)}
     </span>
   );
 }

@@ -14,7 +14,6 @@ import {
 } from "@/lib/api";
 import { KOPPELROL_LABEL } from "@/lib/begrippen";
 import { DEKKING_LABEL, DEKKING_VOLGORDE } from "@/lib/herbeoordeling";
-import { jasStyle, klasseLabel } from "@/lib/jas";
 import type {
   BegripSamenvatting, BegrippenLijst, BronRol, Dekking, DekkingElement, Inventaris, InventarisElement, KoppelRol,
 } from "@/lib/types";
@@ -22,6 +21,7 @@ import {
   ROL_LABEL, annotatieHref, filterElementen, groepeerPerSelectie, isBeoordeeld, isRevisieConflict, klasseTelling,
   voortgang, type ElementFilter,
 } from "@/lib/werkgebied";
+import { KlasseLabel, StatusLabel } from "@/components/ui/Lijst";
 
 const ROL_KNOPPEN: { waarde: BronRol | "alle"; label: string }[] = [
   { waarde: "alle", label: "Alles" },
@@ -195,9 +195,7 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
               <h3 className="font-display text-sm font-semibold text-lint">{s.label || s.bron_iri}</h3>
               <span className="text-xs text-muted">{ROL_LABEL[s.rol]}</span>
               {s.bron_gewijzigd && (
-                <span className="inline-flex items-center rounded-full border border-aandacht-geel-rand bg-aandacht-geel-bg px-2 py-0.5 text-[11px] font-medium text-aandacht-geel-tekst">
-                  Brontekst gewijzigd sinds opname
-                </span>
+                <StatusLabel toon="geel">Brontekst gewijzigd sinds opname</StatusLabel>
               )}
             </div>
             {s.onbereikbaar ? (
@@ -284,13 +282,9 @@ function ElementRij({ element: e, gekozen, onWissel, primair, onNaarBegrip, dekk
           />
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${jasStyle(e.klasse)}`}>
-                {klasseLabel(e.klasse)}
-              </span>
+              <KlasseLabel klasse={e.klasse} />
               {e.rol === "context" && (
-                <span className="inline-flex items-center rounded-full border border-line px-2 py-0.5 text-[11px] text-muted">
-                  context
-                </span>
+                <StatusLabel>context</StatusLabel>
               )}
               <span className={`text-[11px] ${beoordeeld ? "text-muted" : "text-aandacht-geel-tekst"}`}>
                 {beoordeeld ? LIFECYCLE_LABEL[e.lifecycle] : `${LIFECYCLE_LABEL[e.lifecycle]} · nog niet beoordeeld`}

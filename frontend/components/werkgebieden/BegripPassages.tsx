@@ -11,10 +11,11 @@ import type { BegripMutatie } from "@/components/werkgebieden/BegripWerk";
 import { Herbeoordeling } from "@/components/werkgebieden/Herbeoordeling";
 import { foutTekst, haalInventaris, koppelElementen, ontkoppel, wijzigKoppeling } from "@/lib/api";
 import { ACTUALITEIT_LABEL, BEOORDELING_LABEL, KOPPELROL_LABEL, sorteerKoppelingen } from "@/lib/begrippen";
-import { jasStyle, klasseLabel } from "@/lib/jas";
+import { klasseLabel } from "@/lib/jas";
 import type { Begrip, GeraakteKoppeling, InventarisElement, KoppelBeoordeling, KoppelRol, Koppeling } from "@/lib/types";
 import { annotatieHref, filterElementen } from "@/lib/werkgebied";
 import { elementPad } from "@/lib/werkgebiedPaden";
+import { KlasseLabel } from "@/components/ui/Lijst";
 
 const KNOP = KNOP_XS;
 const ROLLEN = Object.keys(KOPPELROL_LABEL) as KoppelRol[];
@@ -75,9 +76,7 @@ function Passage({ id, begrip, koppeling: k, muteer, geraakt }: {
   return (
     <li className={`rounded-kaart border bg-paper px-3 py-2 ${k.beoordeling === "afgewezen" ? "border-line opacity-70" : "border-line"}`}>
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${jasStyle(k.bewijs.klasse)}`}>
-          {klasseLabel(k.bewijs.klasse)}
-        </span>
+        <KlasseLabel klasse={k.bewijs.klasse} />
         <span className="text-xs text-muted">{k.bewijs.vindplaats}</span>
       </div>
       <blockquote className="mt-1 text-sm text-ink">“{k.bewijs.tekst}”</blockquote>
@@ -230,7 +229,7 @@ function ElementKiezer({ id, begrip, primair, muteer, onKlaar }: {
                     className="focus-ring mt-1 accent-lint"
                   />
                   <span className="min-w-0 text-sm">
-                    <span className={`mr-1.5 inline-flex rounded-full border px-1.5 text-[10px] ${jasStyle(e.klasse)}`}>{klasseLabel(e.klasse)}</span>
+                    <KlasseLabel klasse={e.klasse} klein className="mr-1.5" />
                     <span className="text-ink">“{e.tekst}”</span>
                     {elders && <span className="block text-xs text-muted">duidt al “{elders.naam}” aan</span>}
                   </span>

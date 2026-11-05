@@ -13,6 +13,7 @@ import { redenVoorAlternatief } from "@/lib/waarom";
 import { useVerklaringen, WaaromUitklap } from "@/components/annotaties/WaaromUitklap";
 import type { AnnotatieElement, BeslissingInvoer, ReviewReason, Wijziging } from "@/lib/types";
 import { elementPad } from "@/lib/werkgebiedPaden";
+import { StatusLabel } from "@/components/ui/Lijst";
 
 const REDENEN: { waarde: ReviewReason; label: string }[] = [
   { waarde: "verkeerde_klasse", label: "verkeerde klasse" },
@@ -33,10 +34,10 @@ const REDENEN: { waarde: ReviewReason; label: string }[] = [
 //
 // De achtergrond staat op volle sterkte terwijl de kaart eronder dezelfde tint op 40% draagt – dat
 // verschil plus de rand maakt de badge zichtbaar binnen zijn eigen kleurfamilie.
-const AANDACHT: Record<string, { pill: string; label: string; rand: string; tint: string }> = {
-  groen: { pill: "border-aandacht-groen-rand bg-aandacht-groen-bg text-aandacht-groen-tekst", label: "Bevestigd door review", rand: "border-l-aandacht-groen-rand", tint: "bg-aandacht-groen-bg/40" },
-  geel: { pill: "border-aandacht-geel-rand bg-aandacht-geel-bg text-aandacht-geel-tekst", label: "Keuze voor jou", rand: "border-l-aandacht-geel-rand", tint: "bg-aandacht-geel-bg/40" },
-  rood: { pill: "border-aandacht-rood-rand bg-aandacht-rood-bg text-aandacht-rood-tekst", label: "Waarschijnlijk fout", rand: "border-l-aandacht-rood-rand", tint: "bg-aandacht-rood-bg/40" },
+const AANDACHT: Record<string, { toon: "groen" | "geel" | "rood"; label: string; rand: string; tint: string }> = {
+  groen: { toon: "groen", label: "Bevestigd door review", rand: "border-l-aandacht-groen-rand", tint: "bg-aandacht-groen-bg/40" },
+  geel: { toon: "geel", label: "Keuze voor jou", rand: "border-l-aandacht-geel-rand", tint: "bg-aandacht-geel-bg/40" },
+  rood: { toon: "rood", label: "Waarschijnlijk fout", rand: "border-l-aandacht-rood-rand", tint: "bg-aandacht-rood-bg/40" },
 };
 
 // Geen badge betekent: een gewoon voorstel van Lex. De annotatieketen (ADR-001) zet alleen
@@ -44,10 +45,7 @@ const AANDACHT: Record<string, { pill: string; label: string; rand: string; tint
 // reviewer niet besliste), groen een twijfelgeval dat de gerichte review bevestigde. Een badge
 // "Niet beoordeeld" voor elementen zonder oordeel zou op elk onbetwist voorstel staan.
 
-// Zelfde vorm als de documentstatus-badge in `ArtefactInhoud`; alleen de kleuren verschillen per
-// niveau. Verander je die daar, verander hem dan hier mee – het is bewust één vormtaal.
-const AANDACHT_PILL =
-  "inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium";
+// De aandacht is een label (`StatusLabel`), net als de documentstatus in `ArtefactInhoud`: één vormtaal.
 
 // De hoofdactie is lintblauw, net als elke andere primaire knop in de app (`ui/Button.tsx`), en de
 // tweede keuze een outline. Dit was volvlak groen en volvlak hemelblauw: statuskleuren, die naast de
@@ -290,15 +288,11 @@ function DecisionCard({
         {/* `min-w-0`: zonder dit rekt een brede klassenaam deze kant alsnog op. */}
         <span className="order-1 flex min-w-0 flex-wrap items-center gap-1.5">
           {aandacht && (
-            <span className={`${AANDACHT_PILL} ${aandacht.pill}`} title={el.review_uitleg || undefined}>
-              {aandacht.label}
-            </span>
+            <StatusLabel toon={aandacht.toon} uitleg={el.review_uitleg || undefined}>{aandacht.label}</StatusLabel>
           )}
           {/* Zonder zinsontleding zag de keten minder; dat weegt mee in hoe je het voorstel leest. */}
           {gedegradeerd && (
-            <span className={`${AANDACHT_PILL} border-line bg-surface text-muted`} title="Beoordeeld zonder zinsontleding: alleen de woordpatronen spraken mee">
-              gedegradeerd
-            </span>
+            <StatusLabel uitleg="Beoordeeld zonder zinsontleding: alleen de woordpatronen spraken mee">gedegradeerd</StatusLabel>
           )}
           {/* Twijfel is geen bezwaar: de annoteerder zag twee plausibele klassen. Maak je zoiets
               automatisch geel, dan valt een écht aandachtspunt niet meer op tussen de

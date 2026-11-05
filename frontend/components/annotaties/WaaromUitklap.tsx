@@ -6,6 +6,7 @@ import { foutTekst } from "@/lib/api";
 import { haalElementGraaf, type ElementGraaf } from "@/lib/annotatieNode";
 import { haalVerklaringen, type Verklaringen } from "@/lib/verklaringen";
 import { graafStatusTekst, waaromVan, type WaaromBron, type WaaromRegel } from "@/lib/waarom";
+import { StatusLabel } from "@/components/ui/Lijst";
 
 /** De verklaringen, één keer per pagina; tot ze er zijn staan de codes zelf in beeld. */
 export function useVerklaringen(): Verklaringen | undefined {
@@ -112,11 +113,7 @@ function WaaromInhoud({ el }: { el: WaaromBron }) {
   </div>;
 }
 
-const PIL = {
-  goed: "border-line bg-surface text-ink",
-  neutraal: "border-line bg-surface text-muted",
-  aandacht: "border-aandacht-geel-rand bg-aandacht-geel-bg text-aandacht-geel-tekst",
-} as const;
+const TOON = { goed: "neutraal", neutraal: "neutraal", aandacht: "geel" } as const;
 
 /** De RDF van deze markering en de graafcontrole van haar laag. Eén keer opgehaald per element. */
 function GraafDetail({ id }: { id: string }) {
@@ -133,7 +130,7 @@ function GraafDetail({ id }: { id: string }) {
   const status = graafStatusTekst(data.graafcontrole);
   return <div data-testid="graaf-technisch">
     <p className={`${KOP} mt-1`}>Graafcontrole van deze laag</p>
-    <p className={`mt-0.5 inline-flex rounded-full border px-2 py-0.5 text-[11px] ${PIL[status.ernst]}`}>{status.tekst}</p>
+    <p className="mt-0.5"><StatusLabel toon={TOON[status.ernst]}>{status.tekst}</StatusLabel></p>
     <p className={`${KOP} mt-1 flex items-center gap-2`}>
       RDF (Turtle)
       <button type="button" className="focus-ring rounded text-[11px] font-normal text-lint underline underline-offset-2 hover:no-underline"

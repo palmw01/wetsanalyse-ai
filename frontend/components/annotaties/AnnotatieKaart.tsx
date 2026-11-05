@@ -4,10 +4,11 @@ import Link from "next/link";
 
 import { KleurStrip } from "@/components/annotaties/KleurStrip";
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
-import { DOCUMENT_STATUS_LABEL, DOCUMENT_STATUS_STYLE } from "@/lib/annotatie";
+import { DOCUMENT_STATUS_LABEL, DOCUMENT_STATUS_TOON } from "@/lib/annotatie";
 import { naamVan, vindplaatsLabel } from "@/lib/annotatieOverzicht";
 import type { DocumentSamenvatting } from "@/lib/types";
 import { nodeLink } from "@/lib/annotatieNode";
+import { StatusLabel } from "@/components/ui/Lijst";
 
 /** "3 dagen geleden" – genoeg om te zien wat blijft liggen, zonder valse precisie. */
 function geleden(iso?: string | null): string {
@@ -21,10 +22,6 @@ function geleden(iso?: string | null): string {
   return "zojuist";
 }
 
-const AANDACHT_STIJL: Record<string, string> = {
-  rood: "bg-aandacht-rood-bg text-aandacht-rood-tekst border-aandacht-rood-rand",
-  geel: "bg-aandacht-geel-bg text-aandacht-geel-tekst border-aandacht-geel-rand",
-};
 
 export function AnnotatieKaart({ doc, onVerwijder }: {
   doc: DocumentSamenvatting;
@@ -48,11 +45,7 @@ export function AnnotatieKaart({ doc, onVerwijder }: {
             {doc.label || vindplaatsLabel(doc)} · {doc.bwbId}
           </p>
         </div>
-        <span
-          className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${DOCUMENT_STATUS_STYLE[doc.status]}`}
-        >
-          {DOCUMENT_STATUS_LABEL[doc.status]}
-        </span>
+        <StatusLabel toon={DOCUMENT_STATUS_TOON[doc.status]}>{DOCUMENT_STATUS_LABEL[doc.status]}</StatusLabel>
       </div>
 
       <KleurStrip perKlasse={doc.per_klasse} />
@@ -65,12 +58,7 @@ export function AnnotatieKaart({ doc, onVerwijder }: {
         </span>
         {(["rood", "geel"] as const).map((niveau) =>
           (doc.per_aandacht?.[niveau] ?? 0) > 0 ? (
-            <span
-              key={niveau}
-              className={`inline-flex items-center rounded-full border px-1.5 py-0.5 ${AANDACHT_STIJL[niveau]}`}
-            >
-              {doc.per_aandacht[niveau]} {niveau}
-            </span>
+            <StatusLabel key={niveau} toon={niveau}>{doc.per_aandacht[niveau]} {niveau}</StatusLabel>
           ) : null,
         )}
         {(doc.verouderd ?? 0) > 0 && (

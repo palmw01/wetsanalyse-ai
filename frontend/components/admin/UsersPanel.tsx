@@ -23,6 +23,7 @@ import {
 } from "@/lib/api";
 import { tokensKort } from "@/lib/tokenbudget";
 import type { Role, UserOut, VerbruikRegel } from "@/lib/types";
+import { StatusLabel } from "@/components/ui/Lijst";
 
 export function UsersPanel() {
   const [users, setUsers] = useState<UserOut[] | null>(null);
@@ -208,14 +209,10 @@ export function UsersPanel() {
                 <Tag>{u.role}</Tag>
                 {u.totp_enabled && <Tag><span className="inline-flex items-center gap-1">2FA <Vinkje /></span></Tag>}
                 {!u.active && (
-                  <span className="inline-flex items-center rounded-full border border-fout/40 bg-fout/10 px-2.5 py-0.5 text-xs font-medium text-fout">
-                    gedeactiveerd
-                  </span>
+                  <StatusLabel toon="rood">gedeactiveerd</StatusLabel>
                 )}
                 {verbruik[u.userid]?.geblokkeerd && (
-                  <span className="inline-flex items-center rounded-full border border-fout/40 bg-fout/10 px-2.5 py-0.5 text-xs font-medium text-fout">
-                    budget op
-                  </span>
+                  <StatusLabel toon="rood">budget op</StatusLabel>
                 )}
               </div>
 

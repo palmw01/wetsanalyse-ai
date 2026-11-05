@@ -22,10 +22,10 @@ import {
   groepDefinitie, herkomstNaAanpassing, passageTekst, samenAkkoord,
 } from "@/lib/begripVoorstellen";
 import { bouwBoom } from "@/lib/bronPlaats";
-import { jasStyle, klasseLabel } from "@/lib/jas";
 import type { Betekenisgroep, GroepenAntwoord, Passage, TwijfelVraag } from "@/lib/types";
 import { usePlaatsen } from "@/lib/usePlaatsen";
 import { artefactPad, begripPad, elementPad, projectPad } from "@/lib/werkgebiedPaden";
+import { KlasseLabel } from "@/components/ui/Lijst";
 
 const telling = (n: number, een: string, meer: string) => `${n} ${n === 1 ? een : meer}`;
 
@@ -322,7 +322,7 @@ function PassageBlad({ item: { p, g }, label }: { item: Item; label: string }) {
   return (
     <div className="text-sm">
       <span className="mr-1 text-xs text-muted">{label}</span>
-      <span className={`mr-1 inline-flex rounded-full border px-1.5 text-[10px] ${jasStyle(p.jas_klasse)}`}>{klasseLabel(p.jas_klasse)}</span>
+      <KlasseLabel klasse={p.jas_klasse} klein className="mr-1" />
       <span className="text-ink">“{p.tekst}”</span>
       <span className="text-xs text-muted">
         {g.besluit === "geparkeerd" && " · voor later bewaard"}
