@@ -9,7 +9,7 @@
  * Lex stelt deelvragen voor in het gesprek (F3e); hier landen ze als voorstel bij de api.
  *
  * Bewaakt:
- *  - zelf een deelvraag toevoegen, met de revisie in beeld;
+ *  - zelf een deelvraag toevoegen, met de revisie in beeld, en de bewerkstand als één verzoek;
  *  - geen Lex-knop op de pagina, wel *Vraag Lex* bij elke deelvraag (een link naar het gesprek);
  *  - de voorstellen van Lex geel; overnemen en afwijzen (met reden);
  *  - bronnen koppelen (geen begrippen: die horen bij het werkgebied, spoor K), en de stand per deelvraag;
@@ -66,6 +66,14 @@ await page.route("**/api/**", async (route) => {
     if (revisie !== wg.revisie) return conflict();
     return route.fulfill({ status: 201, json: wijzig(() => wg.deelvragen.push(dv(body.vraag))) });
   }
+  if (p === "/api/werkgebieden/wg1/deelvragen/samen" && m === "POST") {
+    if (revisie !== wg.revisie) return conflict();
+    return route.fulfill({ json: wijzig(() => {
+      wg.deelvragen = wg.deelvragen.filter((x) => !body.verwijderen.includes(x.id));
+      for (const t of body.wijzigen) wg.deelvragen.find((x) => x.id === t.id).vraag = t.vraag;
+      for (const vraag of body.nieuw) wg.deelvragen.push(dv(vraag));
+    }) });
+  }
   const een = p.match(/^\/api\/werkgebieden\/wg1\/deelvragen\/(d\d+)(\/koppelingen)?$/);
   if (een) {
     if (revisie !== wg.revisie) return conflict();
@@ -103,7 +111,7 @@ try {
   await sectie().getByLabel("Deelvraag 1", { exact: true }).fill("Wanneer is een aanslag invorderbaar?");
   await sectie().getByRole("button", { name: "Opslaan" }).click();
   await rij("Wanneer is een aanslag invorderbaar?").waitFor();
-  assert.equal(requests.find((r) => r.m === "POST" && r.p.endsWith("/deelvragen")).body.verwachte_revisie, 1);
+  assert.equal(requests.find((r) => r.m === "POST" && r.p.endsWith("/deelvragen/samen")).body.verwachte_revisie, 1);
   await page.waitForFunction(() => document.querySelector("[data-stand]")?.textContent === "Nog niet gestart");
   await sectie().getByText("0 van 1 deelvraag afgerond", { exact: false }).waitFor();
   assert.equal(await sectie().getByText(/geaccordeerd begrip/).count(), 0, "begrippen horen bij het werkgebied (spoor K)");
@@ -189,7 +197,7 @@ try {
   await rij(vraag).waitFor();
 
   // 5. In één keer: de ene wijzigen, de andere verwijderen (doorgestreept tot Opslaan, terug te zetten), een nieuwe
-  //    erbij – met Enter in een gevulde regel – en Ctrl+Enter slaat op. Elke stap draagt de revisie van de vorige.
+  //    erbij – met Enter in een gevulde regel – en Ctrl+Enter slaat op: één verzoek, alles-of-niets.
   await sectie().getByRole("button", { name: "Deelvragen bewerken" }).click();
   await sectie().getByLabel("Deelvraag 1", { exact: true }).fill("Wanneer is een aanslag precies invorderbaar?");
   await sectie().getByRole("button", { name: "Deelvraag 2 verwijderen" }).click();
@@ -205,9 +213,10 @@ try {
   await sectie().getByLabel("Deelvraag 2", { exact: true }).press("Control+Enter");
   await sectie().locator("[data-deelvragen-bewerken]").waitFor({ state: "detached" });
   const stappen = requests.slice(voor).filter((r) => r.m !== "GET");
-  assert.deepEqual(stappen.map((r) => r.m), ["DELETE", "PATCH", "POST"], "verwijderen, wijzigen, toevoegen");
-  const revs = stappen.map((r) => r.body?.verwachte_revisie ?? Number(new URLSearchParams(r.q).get("verwachte_revisie")));
-  assert.ok(revs[1] === revs[0] + 1 && revs[2] === revs[1] + 1, `revisies volgen elkaar op: ${revs}`);
+  assert.deepEqual(stappen.map((r) => `${r.m} ${r.p.split("/").pop()}`), ["POST samen"], "één verzoek");
+  assert.equal(stappen[0].body.verwijderen.length, 1);
+  assert.equal(stappen[0].body.wijzigen[0].vraag, "Wanneer is een aanslag precies invorderbaar?");
+  assert.deepEqual(stappen[0].body.nieuw, ["Wie betaalt de kosten?"]);
   await rij("Wanneer is een aanslag precies invorderbaar?").waitFor();
   await rij("Wie betaalt de kosten?").waitFor();
   assert.equal(await rij("Wie is de belastingschuldige?").count(), 0);

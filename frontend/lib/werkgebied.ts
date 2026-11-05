@@ -90,7 +90,7 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   if (!id || pad.length > 6) return false;
   if (pad.length === 1) return true;
   if (deel === "bronnen") return pad.length <= 3;
-  // Deelvragen (optioneel): toevoegen, wijzigen, weghalen, koppelen en de dekking. `voorstellen` zet
+  // Deelvragen (optioneel): toevoegen, wijzigen, weghalen, samen opslaan, koppelen en de dekking. `voorstellen` zet
   // graph-qa (de deelvragen-agent, die je in het gesprek vraagt).
   if (deel === "deelvragen") {
     if (pad.length === 2) return true;
