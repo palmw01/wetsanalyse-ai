@@ -7,8 +7,10 @@ begrippenartefact dat naar dát begrip wijst (`ref: {werkgebied_id, begrip_id, k
 
 - **Welk begrip.** Het begrip dat de analist met *Vraag Lex* aanwees (`als_rij`), anders de term(en) uit de
   vraag (`termen_uit`) opgelost via de api (`los_op`: `GET /v1/begrippen`, het werkgebied van het gesprek
-  eerst; alleen een exacte naam of alternatieve term telt). Meer kandidaten → Lex noemt ze en vraagt
-  welke. Alleen een vervangen begrip → Lex noemt de opvolger en start niet.
+  eerst). Een exacte naam of alternatieve term wint; anders de begrippen die de woorden van de term dragen
+  (`naaste`). Meer kandidaten → een keuzekaart (`keuzekaart`, stap `begrip_kiezen`), nooit stil de eerste; meer
+  begrippen met dezelfde naam in verschillende werkgebieden → Lex noemt ze. Alleen een vervangen begrip → Lex
+  noemt de opvolger en start niet.
 - **Welke actie** kiest de supervisor (de taak), of een klik op een suggestie – geen tekstpatroon meer.
   `kaartactie_uit` blijft voor de metingen en de tests van de term.
 - **Starten gaat direct**, net als een klik op de knop (besloten 19 okt 2026); de budgetpoort van de
@@ -20,6 +22,7 @@ import asyncio
 import logging
 import re
 import unicodedata
+from dataclasses import dataclass, field
 from typing import Any
 
 from .agents import Context, Uitkomst, geweigerd
@@ -30,6 +33,9 @@ from .wetsanalyse_api import WetsanalyseApiFout
 logger = logging.getLogger("graph_qa.kaart_beurt")
 
 WACHT_OP_ANDERE_RUN_S = 180.0
+#: `intake_id` van de keuzekaart: de klik gaat naar de begrippen-agent, niet naar de intake.
+KAARTPREFIX = "bk-"
+MAX_OPTIES = 8
 PEIL_S = 2.0
 
 _ACTIES = (
@@ -120,6 +126,35 @@ def exacte(term: str, rijen: list[dict[str, Any]]) -> list[dict[str, Any]]:
             or t in {_normaal(x) for x in r.get("alternatieve_termen") or []}]
 
 
+_HAAKJE = re.compile(r"\s*\([^)]*\)\s*$")
+_LEEG = {"de", "het", "een", "uit", "van", "in", "op", "bij", "voor", "met", "en", "of"}
+
+
+def _woorden(tekst: str) -> set[str]:
+    return {w for w in re.findall(r"\w+", _normaal(tekst)) if w not in _LEEG}
+
+
+def naaste(term: str, rijen: list[dict[str, Any]], eerst: str = "") -> list[dict[str, Any]]:
+    """Geen exacte naam: de begrippen waarvan de kern van de naam (zonder het haakje) in de term staat, of
+    andersom; de meeste gedeelde woorden eerst, en wat even goed past blijft samen staan. "schuldregelings-
+    overeenkomst uit de uitvoeringsregeling x" past beter bij "… (Uitvoeringsregeling x)" dan bij "… (… y)", en
+    "overeenkomst" past bij beide. Een vervangen begrip telt niet. Meer dan één: de analist kiest."""
+    doel = _woorden(term)
+    if not doel:
+        return []
+    passend: list[tuple[int, dict[str, Any]]] = []
+    for r in rijen:
+        if r.get("status") == "vervangen":
+            continue
+        kernen = [_woorden(_HAAKJE.sub("", n)) for n in [r.get("naam", ""), *(r.get("alternatieve_termen") or [])]]
+        if any(k and (k <= doel or doel <= k) for k in kernen):
+            passend.append((len(doel & _woorden(r.get("naam", ""))), r))
+    if eerst and any(r.get("werkgebied_id") == eerst for _, r in passend):
+        passend = [(n, r) for n, r in passend if r.get("werkgebied_id") == eerst]
+    beste = max((n for n, _ in passend), default=0)
+    return [r for n, r in passend if n == beste]
+
+
 def kies(term: str, rijen: list[dict[str, Any]], eerst: str) -> tuple[dict[str, Any] | None, str]:
     """Het begrip voor deze term, of None met de zin die Lex dan zegt ("" = niets gevonden)."""
     gevonden = exacte(term, rijen)
@@ -149,10 +184,13 @@ VOLGENDE = {
 }
 
 
-def samenvatting(actie: str, naam: str, werkgebied: str, aantal: int, melding: str, al_gedaan: bool) -> str:
+def samenvatting(actie: str, naam: str, werkgebied: str, aantal: int, melding: str, al_gedaan: bool,
+                 ander: str = "") -> str:
     plek = {"brondefinitie": "onder de definitie", "scherper": "onder de definitie", "uitleg": "bij de uitleg",
             "betekenisverschil": "bij de uitleg", "voorbeelden": "bij de voorbeelden"}.get(actie, "op de kaart")
-    kop = f"{NAAM.get(actie, actie)} voor *{naam}* (werkgebied {werkgebied})"
+    # Bij een vergelijking staan altijd beide begrippen in de zin: de analist moet zien wat Lex vergeleek.
+    kop = (f"{NAAM.get(actie, actie)} tussen *{naam}* en *{ander}* (werkgebied {werkgebied})" if ander
+           else f"{NAAM.get(actie, actie)} voor *{naam}* (werkgebied {werkgebied})")
     if al_gedaan:
         return f"{kop}: dit had ik voor deze stand van het begrip al gedaan; de voorstellen staan nog open {plek} op de begripskaart."
     if aantal:
@@ -177,22 +215,69 @@ async def als_rij(ctx: Context, werkgebied_id: str, begrip_id: str) -> dict[str,
     inhoud = b.get("inhoud") or {}
     return {"id": begrip_id, "naam": inhoud.get("naam") or "naamloos", "werkgebied_id": werkgebied_id,
             "werkgebied_naam": wg_naam, "status": b.get("status", ""), "definitie": inhoud.get("definitie") or "",
-            "uitleg": inhoud.get("uitleg") or "",
+            "uitleg": inhoud.get("uitleg") or "", "alternatieve_termen": inhoud.get("alternatieve_termen") or [],
             "vervangen_door": b.get("vervangen_door") or {}}
 
 
-async def los_op(ctx: Context, termen: list[str], eerst: str) -> tuple[list[dict[str, Any]], str]:
-    """De begrippen bij deze termen (exacte naam of alternatieve term, het werkgebied `eerst` voorop). Lukt
-    het niet, dan een lege lijst met de zin die Lex dan zegt."""
-    gekozen: list[dict[str, Any]] = []
-    for term in termen:
-        rijen = (await ctx.api.zoek_begrippen(term, eerst)).get("resultaten") or []
-        begrip, zin = kies(term, rijen, eerst)
-        if begrip is None:
-            return [], zin or (f"Ik vond geen vastgelegd begrip “{term}”. Begrippen staan per werkgebied op de "
-                               "tab Begrippen; open het gesprek vanuit het begrip of noem het precies.")
-        gekozen.append(begrip)
-    return gekozen, ""
+@dataclass
+class Oplossing:
+    """Wat een term opleverde: één begrip, meer kandidaten (de analist kiest), of de zin die Lex zegt."""
+    begrip: dict[str, Any] | None = None
+    opties: list[dict[str, Any]] = field(default_factory=list)
+    zin: str = ""
+
+
+async def los_op(ctx: Context, term: str, eerst: str, zonder: frozenset[str] = frozenset()) -> Oplossing:
+    """Het begrip bij deze term, het werkgebied `eerst` voorop. `zonder`: begrippen die het niet kunnen zijn (het
+    begrip waarmee vergeleken wordt). De zoekvraag van de api eist alle woorden; een term met woorden eromheen
+    ("… uit de regeling") vindt dan niets, en dan zoekt het langste woord."""
+    rijen = (await ctx.api.zoek_begrippen(term, eerst)).get("resultaten") or []
+    if not rijen and len(_woorden(term)) > 1:
+        rijen = (await ctx.api.zoek_begrippen(max(_woorden(term), key=len), eerst)).get("resultaten") or []
+    rijen = [r for r in rijen if r["id"] not in zonder]
+    begrip, zin = kies(term, rijen, eerst)
+    if begrip is not None or zin:
+        return Oplossing(begrip=begrip, zin=zin)
+    gevonden = naaste(term, rijen, eerst)
+    if len(gevonden) == 1:
+        return Oplossing(begrip=gevonden[0])
+    if gevonden:
+        return Oplossing(opties=gevonden[:MAX_OPTIES])
+    return Oplossing(zin=f"Ik vond geen vastgelegd begrip “{term}”. Begrippen staan per werkgebied op de tab "
+                         "Begrippen; open het gesprek vanuit het begrip of noem het precies.")
+
+
+def intake_id(werkgebied_id: str) -> str:
+    return f"{KAARTPREFIX}{werkgebied_id}"[:64]
+
+
+def keuze_waarde(taak: str, begrip_id: str, ander_id: str) -> str:
+    return f"{taak}:{begrip_id}:{ander_id}"
+
+
+def uit_keuze(waarde: str) -> dict[str, str]:
+    """De parameters van een klik op de keuzekaart. De `Invoer` van de agent toetst ze; de api het begrip."""
+    taak, _, rest = (waarde or "").partition(":")
+    begrip_id, _, ander_id = rest.partition(":")
+    return {"taak": taak, "begrip_id": begrip_id, "ander_id": ander_id}
+
+
+def keuzekaart(taak: str, werkgebied_id: str, term: str, opties: list[dict[str, Any]],
+               begrip: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Twijfel over welk begrip de analist bedoelt: een kaartje, geen gok (`Vraagkaart`, stap `begrip_kiezen`).
+    `begrip`: het begrip dat al vaststaat; dan gaat de keuze over het begrip om mee te vergelijken."""
+    vraag = (f"Met welk begrip wil je *{begrip['naam']}* vergelijken?" if begrip else f"Welk begrip bedoel je met “{term}”?")
+    return {"intake_id": intake_id(werkgebied_id), "modus": "begrip", "soort": "vraag", "stap": "begrip_kiezen",
+            "nr": 1, "totaal": 1, "vraag": vraag[:500], "vrije_tekst": False,
+            "toelichting": f"Er zijn {len(opties)} begrippen die bij “{term}” passen; ik kies er niet zelf een."[:1000],
+            "opties": [{"label": r["naam"][:300], "bron": {}, "omschrijving": _kort(r.get("definitie") or r.get("status", "")),
+                        "waarde": (keuze_waarde(taak, begrip["id"], r["id"]) if begrip
+                                   else keuze_waarde(taak, r["id"], ""))} for r in opties]}
+
+
+def _kort(tekst: str, n: int = 300) -> str:
+    tekst = " ".join(tekst.split())
+    return tekst if len(tekst) <= n else tekst[:n - 1] + "…"
 
 
 async def kaart_kern(ctx: Context, actie: str, b: dict[str, Any], ander: dict[str, Any] | None = None,
@@ -213,7 +298,8 @@ async def kaart_kern(ctx: Context, actie: str, b: dict[str, Any], ander: dict[st
             return geweigerd(actie, f"*{b['naam']}* en *{ander['naam']}* staan in verschillende werkgebieden; ik "
                                     "vergelijk alleen begrippen binnen één werkgebied.")
     wid, naam, wg_naam = b["werkgebied_id"], b["naam"], b.get("werkgebied_naam", "")
-    ctx.melding(f"{NAAM.get(actie, actie)} voor “{naam}” (werkgebied {wg_naam})")
+    ctx.melding(f"{NAAM.get(actie, actie)} " + (f"tussen “{naam}” en “{ander['naam']}”" if ander else f"voor “{naam}”")
+                + f" (werkgebied {wg_naam})")
     try:
         kr = await ctx.api.start_kaart_run(wid, b["id"], actie, ander["id"] if ander else None)
     except WetsanalyseApiFout as fout:
@@ -252,7 +338,7 @@ async def kaart_kern(ctx: Context, actie: str, b: dict[str, Any], ander: dict[st
             elif ev.get("type") == "error":
                 return Uitkomst(taak=actie, status="fout", artefact=artefact,
                                 reden=str(ev.get("message") or "De actie op het begrip mislukte; probeer het opnieuw."))
-    tekst = samenvatting(actie, naam, wg_naam, aantal, melding, al_gedaan)
+    tekst = samenvatting(actie, naam, wg_naam, aantal, melding, al_gedaan, ander["naam"] if ander else "")
     if onderzoek:                                  # spoor M: wat er naast de passages onderzocht is
         tekst += " " + betekenis.zin(onderzoek)
     if volgende and aantal and actie in VOLGENDE:

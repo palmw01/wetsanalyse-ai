@@ -17,6 +17,7 @@ from ..doel import _heeft_opgegeven_doel
 from ..bronselectie import is_bronselectievraag
 from ..models import ACTIE_TAAK, BRONSELECTIE_ACTIES, INTAKE_ACTIES
 from ..focus import bij_advies, bij_onderwerp
+from ..kaart_beurt import KAARTPREFIX, uit_keuze
 from ..narratie import _stap
 from ..state import State
 from ..methode import instructies
@@ -89,7 +90,8 @@ def _agent(writer, state: State, agent: str, taak: str, vraag: str, *, actie: st
     """Eén taak van een agent (F3c): de node `agent_taak` voert hem uit. De parameters komen uit wat er
     ligt – werkgebied, het aangewezen object (of dat in de focus), en wat code uit de vraag kan lezen."""
     onderwerp = state.get("onderwerp") or (state.get("focus") or {}).get("onderwerp") or {}
-    parameters = register.parameters(agent, taak, vraag=vraag or state.get("question", ""), onderwerp=onderwerp,
+    parameters = register.parameters(agent, taak, vraag=state.get("question", "") or vraag, herschreven=vraag,
+                                     onderwerp=onderwerp,
                                      werkgebied_id=state.get("werkgebied_id", ""), actie=actie,
                                      bevestigd=state.get("bevestigd"),
                                      werkvoorraad_id=state.get("werkvoorraad_id", ""))
@@ -98,6 +100,18 @@ def _agent(writer, state: State, agent: str, taak: str, vraag: str, *, actie: st
     return {"specialist": "agent_taak", "worker_plan": ["agent_taak"], "worker_idx": 0,
             "plan": f"{agent}: {taak}", "afwijzen": False, "annotaties_lezen": False,
             "agent_taak": {"agent": agent, "taak": taak, "parameters": parameters}}
+
+
+def _begrip_keuze(writer, state: State) -> dict[str, Any]:
+    """Een klik op de keuzekaart van de begrippen-agent: de taak zoals de kaart hem noemt, zonder model."""
+    actie = state.get("intake_actie") or {}
+    keuze = uit_keuze((actie.get("keuzes") or [""])[0] if actie.get("actie") == "antwoord" else "")
+    parameters = {"werkgebied_id": str(actie.get("intake_id", "")).removeprefix(KAARTPREFIX),
+                  "begrip_id": keuze["begrip_id"], "ander_id": keuze["ander_id"]}
+    _stap(writer, "Supervisor", f"verwerkt je keuze · taak {keuze['taak'] or '?'}")
+    return {"specialist": "agent_taak", "worker_plan": ["agent_taak"], "worker_idx": 0, "plan": f"begrippen: {keuze['taak']}",
+            "afwijzen": False, "annotaties_lezen": False,
+            "agent_taak": {"agent": "begrippen", "taak": keuze["taak"], "parameters": parameters}}
 
 
 def _open_kaartje(state: State) -> str:
@@ -140,6 +154,8 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
     if state.get("intake_actie"):
         if str((state.get("intake_actie") or {}).get("intake_id", "")).startswith("bs-"):
             return _bronselectie(writer, "verwerkt je keuze in de bronselectie")
+        if str((state.get("intake_actie") or {}).get("intake_id", "")).startswith(KAARTPREFIX):
+            return _begrip_keuze(writer, state)
         return _werkgebied(writer, "verwerkt het antwoord op het kaartje")
     if state.get("actie") == "bepaling_toevoegen":
         return _bronselectie(writer, "zoekt met je een bepaling op")

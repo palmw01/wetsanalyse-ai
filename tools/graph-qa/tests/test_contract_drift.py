@@ -220,7 +220,7 @@ def test_de_stappen_van_de_intake_zijn_overal_dezelfde():
     root = Path(__file__).resolve().parents[3]
     # Het thema is een kaartje van het aanvullen alleen (spoor I7): in de contracten wel, in het samenstellen niet.
     # Daarna de kaartjes van de bronselectie (spoor J).
-    stappen = [*wi.KAARTSTAPPEN, "samenvatting", *wi.OUDE_STAPPEN, *bs.KAARTSTAPPEN]
+    stappen = [*wi.KAARTSTAPPEN, "samenvatting", *wi.OUDE_STAPPEN, *bs.KAARTSTAPPEN, "begrip_kiezen"]
     assert list(typing.get_args(am.IntakeActie.model_fields["stap"].annotation)) == stappen
     api = re.search(r"^IntakeStap = Literal\[(.*?)\]", (root / "api" / "app" / "gesprek_contracts.py").read_text(),
                     re.S | re.M)

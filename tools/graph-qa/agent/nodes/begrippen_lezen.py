@@ -31,6 +31,8 @@ _AANHALING = re.compile(r"[\"“”'‘’]([^\"“”'‘’]{2,80})[\"“”'�
 _HET_BEGRIP = re.compile(r"\bhet begrip\s+([\w\-]+(?:\s+[\w\-]+){0,2}?)(?=\s+(?:in|uit|van|als|met|dat|die|al|nog|wel|"
                          r"ook|staat|is|bestaat|vastgelegd|geaccordeerd)\b|\s*[?.!,;:]|\s*$)")
 _ALS_BEGRIP = re.compile(r"\b([\w\-]+(?:\s+[\w\-]+){0,2}?)\s+als begrip\b")
+# "welke begrippen gaan over een bankrekening?": het onderwerp na "over".
+_OVER = re.compile(r"\bbegrippen?\b.*?\bover\s+(?:de\s+|het\s+|een\s+)?(.+?)\s*[?.!]*$")
 _STOP = {"er", "het", "de", "een", "dit", "dat", "staat", "is", "we", "wij", "ons"}
 
 
@@ -42,7 +44,7 @@ def zoekterm_uit(vraag: str) -> str:
     if m := _AANHALING.search(vraag):
         return m.group(1).strip()
     q = vraag.casefold()
-    for patroon in (_HET_BEGRIP, _ALS_BEGRIP):
+    for patroon in (_HET_BEGRIP, _ALS_BEGRIP, _OVER):
         if m := patroon.search(q):
             woorden = [w for w in m.group(1).split() if w not in _STOP]
             if woorden:
