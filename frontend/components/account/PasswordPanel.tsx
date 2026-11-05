@@ -1,12 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
+import { StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { SettingGroup, SettingList, SettingRow } from "@/components/ui/SettingRow";
-import { changePassword, isApiError } from "@/lib/api";
+import { SkeletonCard } from "@/components/ui/Skeleton";
+import { changePassword, getAccount, isApiError } from "@/lib/api";
+import type { MeAccount } from "@/lib/types";
+
+function AccountGegevens() {
+  const [account, setAccount] = useState<MeAccount | null>(null);
+  useEffect(() => {
+    // Stil falend: het wachtwoord wijzigen hangt hier niet van af.
+    getAccount().then(setAccount).catch(() => {});
+  }, []);
+  return (
+    <SettingGroup titel="Account">
+      {account ? (
+        <SettingList>
+          <SettingRow label="Gebruikersnaam"><span className="text-sm text-ink">{account.userid}</span></SettingRow>
+          <SettingRow label="E-mailadres"><span className="text-sm text-ink">{account.email}</span></SettingRow>
+          <SettingRow label="Rol"><StatusLabel>{account.role}</StatusLabel></SettingRow>
+        </SettingList>
+      ) : <SkeletonCard regels={2} />}
+    </SettingGroup>
+  );
+}
 
 export function PasswordPanel() {
   const [huidig, setHuidig] = useState("");
@@ -46,6 +68,8 @@ export function PasswordPanel() {
   }
 
   return (
+    <>
+    <AccountGegevens />
     <SettingGroup
       titel="Wachtwoord"
       omschrijving="Na het wijzigen word je opnieuw ingelogd; ook andere apparaten verliezen hun sessie."
@@ -103,5 +127,6 @@ export function PasswordPanel() {
         </div>
       </form>
     </SettingGroup>
+    </>
   );
 }

@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { Button, KNOP_GEVAAR, KNOP_GEVAAR_SCHERP } from "@/components/ui/Button";
 import { ButtonRow } from "@/components/ui/ButtonRow";
 import { Card } from "@/components/ui/Card";
 import { SettingGroup } from "@/components/ui/SettingRow";
 import { Field, Input, Select } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
+import { SkeletonCard } from "@/components/ui/Skeleton";
 import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { Tag } from "@/components/ui/Badge";
 import {
@@ -151,7 +152,7 @@ export function RegistratiesPanel() {
     <SettingGroup
       titel="Aanvragen"
       count={open.length}
-      omschrijving="Wie toegang heeft aangevraagd via het registratieformulier. Goedkeuren maakt het account aan; de aanvrager logt in met het wachtwoord dat hij zelf koos. Afwijzen verwijdert de aanvraag, zodat het e-mailadres weer vrij is."
+      omschrijving="Wie toegang heeft aangevraagd via het registratieformulier. Goedkeuren maakt het account aan; de aanvrager logt in met het zelfgekozen wachtwoord. Afwijzen verwijdert de aanvraag, zodat het e-mailadres weer vrij is."
     >
       {fout && (
         <Melding type="fout" className="mb-3">
@@ -174,19 +175,15 @@ export function RegistratiesPanel() {
           />
           Ook goedgekeurde aanvragen tonen
         </label>
-        <Button
-          size="sm"
-          onClick={onBulk}
-          disabled={bezig || geselecteerd.size === 0}
-        >
-          {geselecteerd.size > 0
-            ? `${geselecteerd.size} goedkeuren als analist`
-            : "Geselecteerde goedkeuren"}
-        </Button>
+        {geselecteerd.size > 0 && (
+          <Button size="sm" onClick={onBulk} disabled={bezig}>
+            {geselecteerd.size} goedkeuren als analist
+          </Button>
+        )}
       </ButtonRow>
 
       {aanvragen === null ? (
-        <p className="text-sm text-muted">Laden…</p>
+        <SkeletonCard regels={2} />
       ) : aanvragen.length === 0 ? (
         <p className="text-sm text-muted">
           {toonGoedgekeurd ? "Nog geen aanvragen." : "Geen openstaande aanvragen."}
@@ -257,8 +254,8 @@ export function RegistratiesPanel() {
                     <BevestigKnop
                       onBevestig={() => onVerwijderen(r)}
                       bevestigTekst={`Uit de lijst halen? (het account blijft bestaan)`}
-                      className="focus-ring inline-flex min-h-[40px] shrink-0 items-center justify-center rounded-field border border-fout px-3 text-sm font-medium text-fout transition coarse:min-h-[48px]"
-                      bevestigClassName="bg-fout text-paper"
+                      className={KNOP_GEVAAR}
+                      bevestigClassName={KNOP_GEVAAR_SCHERP}
                     >
                       Uit de lijst halen
                     </BevestigKnop>

@@ -5,7 +5,9 @@ import { isApiError, listBerichtenPagina, markeerAllesGelezen } from "@/lib/api"
 import type { BerichtenPaginaOut, BerichtType } from "@/lib/types";
 import { BerichtBadge } from "@/components/ui/BerichtBadge";
 import { Tag } from "@/components/ui/Badge";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Melding } from "@/components/ui/Melding";
+import { SettingGroup } from "@/components/ui/SettingRow";
+import { SkeletonCard } from "@/components/ui/Skeleton";
 import { Markdown } from "@/components/werkplek/Markdown";
 import { Pagination } from "@/components/Pagination";
 
@@ -17,13 +19,13 @@ function BerichtArchiefItem({ bericht }: { bericht: BerichtenPaginaOut["items"][
   });
 
   return (
-    <article className="rounded-kaart border border-line bg-paper shadow-zacht p-5">
+    <article className="rounded-kaart border border-line bg-surface p-4">
       <div className="flex flex-wrap items-center gap-1.5">
         <BerichtBadge type={bericht.type as BerichtType} />
         {bericht.versie && <Tag>{bericht.versie}</Tag>}
         <span className="text-xs text-faint">{datum}</span>
       </div>
-      <h2 className="mt-2 text-base font-semibold text-ink">{bericht.titel}</h2>
+      <h4 className="mt-2 text-sm font-semibold text-ink">{bericht.titel}</h4>
       <div className="mt-2 text-sm">
         <Markdown tekst={bericht.inhoud} />
       </div>
@@ -59,45 +61,35 @@ export function BerichtenArchiefClient() {
     return () => { stale = true; };
   }, [pagina]);
 
-  if (laden) {
-    return (
-      <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="rounded-kaart border border-line bg-paper shadow-zacht p-5 space-y-3">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-5 w-2/3" />
-            <Skeleton className="h-3 w-full" />
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (fout) {
-    return <p className="text-sm text-fout">{fout}</p>;
-  }
-
-  if (!data || data.items.length === 0) {
-    return <p className="text-sm text-muted">Nog geen berichten.</p>;
-  }
-
-  const totalPages = Math.ceil(data.totaal / data.per_pagina);
+  const inhoud = laden ? (
+    <div className="space-y-3"><SkeletonCard regels={2} /><SkeletonCard regels={2} /></div>
+  ) : fout ? (
+    <Melding type="fout">{fout}</Melding>
+  ) : !data || data.items.length === 0 ? (
+    <p className="text-sm text-muted">Nog geen berichten.</p>
+  ) : null;
 
   return (
-    <div className="space-y-4">
-      {data.items.map((b) => (
-        <BerichtArchiefItem key={b.id} bericht={b} />
-      ))}
-      <Pagination
-        page={pagina}
-        totalPages={totalPages}
-        total={data.totaal}
-        pageSize={data.per_pagina}
-        onPage={(p) => {
-          setPagina(p);
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        }}
-      />
-    </div>
+    <SettingGroup titel="Berichten" count={data?.totaal} omschrijving="Wat er nieuw is in Lex.">
+      {inhoud ?? (
+        <div className="space-y-3">
+          {data?.items.map((b) => (
+            <BerichtArchiefItem key={b.id} bericht={b} />
+          ))}
+          {data && (
+            <Pagination
+              page={pagina}
+              totalPages={Math.ceil(data.totaal / data.per_pagina)}
+              total={data.totaal}
+              pageSize={data.per_pagina}
+              onPage={(p) => {
+                setPagina(p);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            />
+          )}
+        </div>
+      )}
+    </SettingGroup>
   );
 }

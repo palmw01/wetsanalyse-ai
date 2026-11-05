@@ -68,9 +68,22 @@ describe("één bedieningsstijl", () => {
     expect(bron("components/werkplek/WerkplekClient.tsx")).toMatch(/aria-label=\{bezig \? \(stopt[^\n]*"Versturen"/);
   });
 
-  it("de stijlgids staat in de instellingen, alleen voor beheerders", () => {
-    expect(bron("lib/instellingen.ts")).toMatch(/key: "stijl", pad: "beheer\/stijl"[^}]*admin: true/);
-    expect(bron("components/instellingen/InstellingenInhoud.tsx")).toContain("<StijlPanel />");
+  it("de panelen van de instellingen delen hun kop en hun verwijderknop", () => {
+    const panelen = ["admin/ProfielenPanel", "admin/UsersPanel", "admin/RegistratiesPanel", "admin/BerichtenBeheerPanel",
+      "admin/FeedbackLijstClient", "berichten/BerichtenArchiefClient", "account/VerbruikPanel"];
+    for (const f of panelen) {
+      const s = bron(`components/${f}.tsx`);
+      expect(s, f).toContain("<SettingGroup");
+      expect(s, f).not.toContain("<Section");
+      expect(s, f).not.toContain("Laden…");
+      expect(s, f).not.toContain("border-fout px-3");
+    }
+    expect(bron("components/admin/ProfileEditor.tsx")).not.toContain("<select");
+  });
+
+  it("een stijlgids is voor de ontwikkeling en hoort niet in de applicatie", () => {
+    expect(bron("lib/instellingen.ts")).not.toMatch(/key: "stijl"/);
+    expect(bron("components/instellingen/InstellingenInhoud.tsx")).not.toContain("StijlPanel");
   });
 
   it("Nieuw gesprek in de sidebar is de tweede keuze van Button, geen eigen stijl meer", () => {
