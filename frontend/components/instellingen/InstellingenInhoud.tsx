@@ -11,7 +11,6 @@ import { FeedbackLijstClient } from "@/components/admin/FeedbackLijstClient";
 import { BerichtenArchiefClient } from "@/components/berichten/BerichtenArchiefClient";
 import { ProfielenPanel } from "@/components/admin/ProfielenPanel";
 import { RegistratiesPanel } from "@/components/admin/RegistratiesPanel";
-import { StijlPanel } from "@/components/admin/StijlPanel";
 import { UsersPanel } from "@/components/admin/UsersPanel";
 import { Tabs, type TabDef } from "@/components/ui/Tabs";
 import { getOngelezenFeedbackAantal, listRegistraties } from "@/lib/api";
@@ -28,7 +27,6 @@ const PANEEL: Record<TabKey, React.ReactNode> = {
   berichten: <BerichtenArchiefClient />,
   berichtenbeheer: <BerichtenBeheerPanel />,
   feedback: <FeedbackLijstClient />,
-  stijl: <StijlPanel />,
 };
 
 interface Props {
