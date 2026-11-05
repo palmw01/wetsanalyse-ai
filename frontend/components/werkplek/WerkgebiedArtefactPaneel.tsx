@@ -143,7 +143,8 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
     <Dialog label={`${soort}: ${titel}`} variant={variant} onSluit={sluit}>
       <div data-artefact data-artefact-soort={doel.soort} className="flex min-h-0 flex-1 flex-col">
         <PaneelKop soort={KOP[doel.soort]} titel={titel} pagina={naarWerkgebied} onSluit={sluit}
-          acties={<ExportKnop onFout={setExportFout} titel={titel} {...exportVan(doel, opname)} />}
+          // Pas als de versie vaststaat: anders gaat de export over de stand van nu in plaats van over wat je zo ziet.
+          acties={opname !== undefined && <ExportKnop onFout={setExportFout} titel={titel} {...exportVan(doel, opname)} />}
           onder={metVersie && <VersieKiezer versie={metVersie} onKies={(v) => setOpname(v as Opname | null)} />} />
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           {exportFout && <Melding type="waarschuwing" className="mb-4">{exportFout}</Melding>}
