@@ -34,7 +34,7 @@ Lees dit, in deze volgorde.
 
 **Bestaande gegevensmodellen**
 
-8. Staat er een uittreksel van het CGM, BMG of een ander model in `docs/acceptatie/lokaal/`, lees dat dan. Staat
+8. Staat er een uittreksel van een bestaand gegevensmodel in `docs/acceptatie/lokaal/`, lees dat dan. Staat
    het er niet, verzin dan niets: je mapping wordt een lijst met vragen voor wie die modellen wel kent.
 
 ## Wat je moet kennen

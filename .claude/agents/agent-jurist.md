@@ -61,9 +61,8 @@ een bevinding. Het hoort niet weg te vallen.
 
 Een goede analist kijkt verder dan de tekst van één bepaling. Gebruik wat bij het onderwerp hoort:
 
-- **Het materiële recht** van het onderwerp, en wat eraan hangt. Bij inning en betalingsverkeer gaat het
-  bijvoorbeeld om de Invorderingswet 1990, de Leidraad Invordering, de Awir en de toeslagenwetten, de Awb, en
-  burgerlijk recht zoals betaling, cessie, volmacht, beslag en verrekening, plus bewind en de Wsnp.
+- **Het materiële recht** van het onderwerp, en wat eraan hangt: de wet zelf, de uitvoeringsregelingen en
+  beleidsregels, het algemene bestuursrecht en het burgerlijk recht waar dat raakt.
 - **Wetstechniek:** de Aanwijzingen voor de regelgeving (`docs/wetsanalyse/bronnen/`), delegatie, de rangorde
   tussen wet, amvb, regeling en beleid, en overgangsrecht en terugwerkende kracht.
 - **Interpretatie:** grammaticaal, systematisch, wetshistorisch en doelgericht uitleggen. Benoem welke je gebruikte.
