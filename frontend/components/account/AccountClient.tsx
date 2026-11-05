@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Vinkje } from "@/components/ui/Icoon";
 import { Button } from "@/components/ui/Button";
 import { SettingGroup, SettingList, SettingRow } from "@/components/ui/SettingRow";
 import { Field, Input } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
-import { Tag } from "@/components/ui/Badge";
+import { StatusLabel } from "@/components/ui/Lijst";
+import { SkeletonCard } from "@/components/ui/Skeleton";
 import { activate2fa, begin2fa, disable2fa, getAccount, isApiError } from "@/lib/api";
 import type { MeAccount } from "@/lib/types";
 
@@ -26,6 +26,7 @@ export function AccountClient() {
   const [koppeling, setKoppeling] = useState<{ uri: string; qr: string } | null>(null);
   const [code, setCode] = useState("");
   // Bevestigingsformulier bij het uitschakelen van 2FA.
+  const [uitschakelen, setUitschakelen] = useState(false);
   const [uitschakelCode, setUitschakelCode] = useState("");
   const [bezig, setBezig] = useState(false);
 
@@ -89,6 +90,7 @@ export function AccountClient() {
     try {
       await disable2fa(uitschakelCode.trim());
       setUitschakelCode("");
+      setUitschakelen(false);
       await laad();
     } catch (e) {
       melden(e);
@@ -108,22 +110,22 @@ export function AccountClient() {
         </Melding>
       )}
 
+      {!account && !fout && <SkeletonCard regels={2} />}
       {account && (
         <div>
           <SettingList>
-            <SettingRow label="Account" omschrijving={account.email}>
-              <span className="text-sm text-ink">{account.userid}</span>
-              <Tag>{account.role}</Tag>
-            </SettingRow>
-            <SettingRow
-              label="Tweestapsverificatie"
-              omschrijving={account.totp_enabled ? "Ingeschakeld." : "Uitgeschakeld."}
-            >
-              {account.totp_enabled ? <Tag><span className="inline-flex items-center gap-1">2FA <Vinkje /></span></Tag> : <Tag>2FA uit</Tag>}
+            <SettingRow label="Tweestapsverificatie">
+              <StatusLabel toon={account.totp_enabled ? "groen" : "neutraal"}>{account.totp_enabled ? "Aan" : "Uit"}</StatusLabel>
+              {account.totp_enabled && !uitschakelen && (
+                <Button size="sm" variant="secondary" onClick={() => setUitschakelen(true)}>Uitschakelen</Button>
+              )}
+              {!account.totp_enabled && !koppeling && (
+                <Button size="sm" onClick={onStart} disabled={bezig}>2FA inschakelen</Button>
+              )}
             </SettingRow>
           </SettingList>
 
-          {account.totp_enabled ? (
+          {account.totp_enabled ? uitschakelen && (
             <form onSubmit={onUitschakelen} className="mt-4 space-y-3">
               <p className="text-sm text-muted">
                 Voer een geldige code uit je authenticator-app in om tweestapsverificatie uit te schakelen.
@@ -145,7 +147,7 @@ export function AccountClient() {
                   type="button"
                   size="sm"
                   variant="ghost"
-                  onClick={() => setUitschakelCode("")}
+                  onClick={() => { setUitschakelCode(""); setUitschakelen(false); }}
                   disabled={bezig}
                   className="w-full sm:w-auto"
                 >
@@ -160,7 +162,7 @@ export function AccountClient() {
                 bevestig met de getoonde 6-cijferige code.
               </p>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={koppeling.qr} alt="QR-code voor 2FA" width={200} height={200} className="rounded border border-line" />
+              <img src={koppeling.qr} alt="QR-code voor 2FA" width={200} height={200} className="rounded-field border border-line" />
               <p className="text-xs text-muted">
                 Handmatige sleutel:{" "}
                 <code className="rounded bg-surface px-1.5 py-0.5 font-mono text-xs">{secretUit(koppeling.uri)}</code>
@@ -190,13 +192,7 @@ export function AccountClient() {
                 </Button>
               </form>
             </div>
-          ) : (
-            <div className="mt-4 flex sm:justify-end">
-              <Button size="sm" onClick={onStart} disabled={bezig} className="w-full sm:w-auto">
-                2FA inschakelen
-              </Button>
-            </div>
-          )}
+          ) : null}
         </div>
       )}
     </SettingGroup>

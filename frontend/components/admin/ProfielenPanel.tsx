@@ -1,13 +1,13 @@
 "use client";
 
-import { Vinkje } from "@/components/ui/Icoon";
 import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { useCallback, useEffect, useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { Button, KNOP_GEVAAR, KNOP_GEVAAR_SCHERP } from "@/components/ui/Button";
 import { ButtonRow } from "@/components/ui/ButtonRow";
 import { Card } from "@/components/ui/Card";
 import { SettingGroup } from "@/components/ui/SettingRow";
 import { Melding } from "@/components/ui/Melding";
+import { SkeletonCard } from "@/components/ui/Skeleton";
 import { Tag } from "@/components/ui/Badge";
 import { deleteProfile, isApiError, listProfiles, setDefaultProfile, testProfile } from "@/lib/api";
 import type { LlmProfileOut, TestResult } from "@/lib/types";
@@ -82,14 +82,12 @@ export function ProfielenPanel() {
 
   return (
     <div>
-      <SettingGroup titel="Modelprofielen" count={profielen?.length} omschrijving="LLM-configuratie. De API-key wordt versleuteld bewaard en nooit getoond.">
+      <SettingGroup titel="Modelprofielen" count={profielen?.length} omschrijving="LLM-configuratie. De API-key wordt versleuteld bewaard en nooit getoond."
+        acties={<Button size="sm" onClick={() => setEdit({ open: true, profile: null })}>Nieuw profiel</Button>}>
         {fout && <Melding type="fout" className="mb-3">{fout}</Melding>}
-        <ButtonRow className="mb-4">
-          <Button size="sm" onClick={() => setEdit({ open: true, profile: null })}>Nieuw profiel</Button>
-        </ButtonRow>
 
         {profielen === null ? (
-          <p className="text-sm text-muted">Laden…</p>
+          <SkeletonCard regels={2} />
         ) : profielen.length === 0 ? (
           <p className="text-sm text-muted">Nog geen profielen.</p>
         ) : (
@@ -101,11 +99,11 @@ export function ProfielenPanel() {
                   <div className="flex flex-wrap items-center gap-3">
                     <span className="font-display font-semibold text-ink">{p.name}</span>
                     {p.is_default && (
-                      <StatusLabel toon="lint">default</StatusLabel>
+                      <StatusLabel toon="lint">standaard</StatusLabel>
                     )}
                     <Tag>{p.provider}</Tag>
                     <Tag>{p.model || "geen model"}</Tag>
-                    {p.api_key_set && <Tag><span className="inline-flex items-center gap-1">key <Vinkje /></span></Tag>}
+                    <StatusLabel toon={p.api_key_set ? "groen" : "geel"}>{p.api_key_set ? "API-key ingesteld" : "Geen API-key"}</StatusLabel>
                   </div>
 
                   {test && test !== "bezig" && (
@@ -129,15 +127,15 @@ export function ProfielenPanel() {
                     </Button>
                     {!p.is_default && (
                       <Button size="sm" variant="ghost" onClick={() => onDefault(p.name)}>
-                        Als default
+                        Als standaard
                       </Button>
                     )}
                     {!p.is_default && (
                       <BevestigKnop
                         onBevestig={() => onDelete(p.name)}
                         bevestigTekst={`"${p.name}" verwijderen?`}
-                        className="focus-ring inline-flex min-h-[40px] shrink-0 items-center justify-center rounded-field border border-fout px-3 text-sm font-medium text-fout transition coarse:min-h-[48px]"
-                        bevestigClassName="bg-fout text-paper"
+                        className={KNOP_GEVAAR}
+                        bevestigClassName={KNOP_GEVAAR_SCHERP}
                       >
                         Verwijderen
                       </BevestigKnop>

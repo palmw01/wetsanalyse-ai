@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, type ReactNode } from "react";
+import { Fragment, useEffect, useId, useRef, type ReactNode } from "react";
 import { TABRIJ } from "./Pagina";
 
 export interface TabDef {
@@ -11,6 +11,8 @@ export interface TabDef {
   /** Aantal openstaande items; > 0 toont een telbadge achter het label. De tab blijft toegankelijk
    *  benoemd via `label` – de badge zelf is `aria-hidden` en dus geen ruis voor schermlezers. */
   badge?: number;
+  /** In de tabkolom: de kop van de groep die bij deze tab begint (*Beheer*). */
+  groep?: string;
 }
 
 // Toegankelijke tablist in Rijkshuisstijl: lintblauw onderlijn-indicator op de actieve tab.
@@ -38,6 +40,11 @@ export function Tabs({
   const base = useId();
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const verticaal = orientation === "vertical";
+
+  // Op een smal scherm is de tabkolom een rij die scrolt: de actieve tab hoort in beeld te staan.
+  useEffect(() => {
+    if (verticaal) tabRefs.current[active]?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+  }, [active, verticaal]);
 
   function onKeyDown(e: React.KeyboardEvent, index: number) {
     const [vorige, volgende] = verticaal ? ["ArrowUp", "ArrowDown"] : ["ArrowLeft", "ArrowRight"];
@@ -68,8 +75,13 @@ export function Tabs({
           const basis =
             "min-h-[44px] text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint";
           return (
+            <Fragment key={t.key}>
+            {verticaal && t.groep && (
+              <span role="presentation" className="hidden px-3 pb-1 pt-3 text-xs font-medium text-faint first:pt-1 sm:block">
+                {t.groep}
+              </span>
+            )}
             <button
-              key={t.key}
               ref={(el) => {
                 tabRefs.current[t.key] = el;
               }}
@@ -100,6 +112,7 @@ export function Tabs({
                 </span>
               )}
             </button>
+            </Fragment>
           );
         })}
       </div>

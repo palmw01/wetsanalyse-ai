@@ -1,12 +1,10 @@
 export function Card({
   children,
   className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+  ...rest
+}: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={`rounded-kaart border border-line bg-surface ${className}`}>{children}</div>
+    <div className={`rounded-kaart border border-line bg-surface ${className}`} {...rest}>{children}</div>
   );
 }
 
