@@ -230,16 +230,21 @@ try {
 
   // Rol wijzigen staat achter ⋯ (geen knoppen in elke rij). Daarna een conflict: iemand anders was ons
   // voor – de pagina laadt opnieuw en zegt het.
-  await page.getByRole("button", { name: "Rol en verwijderen: Invorderingswet 1990 – artikel 9" }).click();
-  const rol9 = page.locator(`[data-bron] select`).first();
-  await rol9.selectOption("context");
+  // De rol is een keuze in het menu ⋯ (`MeerMenu`), met een vinkje bij wat nu geldt.
+  const rolMenu = async () => {
+    await page.getByRole("button", { name: "Rol en verwijderen: Invorderingswet 1990 – artikel 9" }).click();
+    return page.getByRole("menu");
+  };
+  await (await rolMenu()).getByRole("menuitemradio", { name: "Contextbron" }).click();
   await melding("Rol gewijzigd naar contextbron.");
   const patch = requests.filter((r) => r.m === "PATCH").at(-1).body;
   assert.deepEqual([patch.rol, patch.verwachte_revisie], ["context", 3]);
   volgendeConflict = true;
-  await rol9.selectOption("analyseren");
+  await (await rolMenu()).getByRole("menuitemradio", { name: "Analyseren" }).click();
   await melding("Iemand anders wijzigde dit werkgebied net.");
-  assert.equal(await rol9.inputValue(), "context");
+  const menu9 = await rolMenu();
+  assert.equal(await menu9.getByRole("menuitemradio", { name: "Contextbron" }).getAttribute("aria-checked"), "true");
+  await page.keyboard.press("Escape");
 
   // Artefacten: vier zelfstandige producten, elk met een eigen pagina; de filter laat er één zien.
   await tab("Artefacten (4)").click();
@@ -357,8 +362,8 @@ try {
   await page.goto(`${base}/werkgebieden/wg1/bronnen`);
   await tab("Bronnen (3)").waitFor();
   await page.getByRole("button", { name: /^Rol en verwijderen:/ }).first().click();
-  await page.getByRole("button", { name: "Verwijderen uit werkgebied", exact: true }).first().click();
-  await page.getByRole("button", { name: "Verwijderen?" }).click();
+  await page.getByRole("menuitem", { name: "Verwijderen uit werkgebied", exact: true }).first().click();
+  await page.getByRole("menuitem", { name: "Verwijderen?" }).click();
   await melding("De bepaling en haar annotaties blijven bestaan.");
   await tab("Bronnen (2)").waitFor();
   const del = requests.filter((r) => r.m === "DELETE").at(-1);
@@ -399,13 +404,16 @@ try {
 
   // Verwijderen is echt wissen, net als een annotatie: op de pagina (tweede klik bevestigt), met de
   // revisie in beeld; een 412 laadt de nieuwe stand en zegt het.
-  const verwijderKnop = () => page.getByRole("button", { name: "Werkgebied verwijderen" });
+  // In de lijst een knop per kaart, op de pagina een regel in het menu ⋯ (`MeerMenu`).
+  const verwijderKnop = () => page.getByRole("button", { name: "Werkgebied verwijderen" })
+    .or(page.getByRole("menuitem", { name: "Werkgebied verwijderen" }));
   const verwijderTweeKeer = async () => {
     // Op de pagina staat verwijderen in het menu ⋯ van de kop; in de lijst per kaart.
     if (!(await verwijderKnop().isVisible().catch(() => false)))
       await page.getByRole("button", { name: "Meer voor dit werkgebied" }).click();
     await verwijderKnop().click();
-    await page.getByRole("button", { name: "Verwijderen?", exact: true }).click();
+    await page.getByRole("button", { name: "Verwijderen?", exact: true })
+      .or(page.getByRole("menuitem", { name: "Verwijderen?", exact: true })).click();
   };
   await page.goto(`${base}/werkgebieden/wg1`);
   await page.getByRole("navigation", { name: "Werkgebied" }).getByRole("link", { name: "Bronnen (3)" }).waitFor();

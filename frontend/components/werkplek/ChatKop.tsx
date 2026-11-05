@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { Mapje, Meer } from "@/components/ui/Icoon";
+import { Mapje } from "@/components/ui/Icoon";
+import { MeerKnop } from "@/components/ui/MeerMenu";
+import { MENU_PANEEL } from "@/components/ui/Menu";
 import { Popover } from "@/components/ui/Popover";
 import { BewerkVoet, useBewerken } from "@/components/ui/Bewerkbaar";
 import { GesprekActies } from "@/components/werkplek/GesprekActies";
@@ -100,18 +102,8 @@ export function ChatKop({
       {gesprekId && (
         <Popover
           ariaLabel="Gesprek"
-          className="w-64 rounded-kaart border border-line bg-paper shadow-kaart"
-          trigger={(open, toggle) => (
-            <button
-              type="button"
-              onClick={toggle}
-              aria-expanded={open}
-              aria-label="Acties voor dit gesprek"
-              className="focus-ring inline-flex min-h-[32px] min-w-[32px] items-center justify-center rounded-full border border-line text-muted hover:bg-surface hover:text-lint coarse:min-h-[44px] coarse:min-w-[44px]"
-            >
-              <Meer />
-            </button>
-          )}
+          className={`w-64 ${MENU_PANEEL}`}
+          trigger={(open, toggle) => <MeerKnop label="Acties voor dit gesprek" open={open} onClick={toggle} maat="sm" />}
         >
           {(sluit) => (
             <GesprekActies

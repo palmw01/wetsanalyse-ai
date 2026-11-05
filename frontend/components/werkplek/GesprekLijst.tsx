@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
-import { Archief, ChevronOmlaag, Mapje, Meer, Plus } from "@/components/ui/Icoon";
+import { Archief, ChevronOmlaag, Mapje, Plus } from "@/components/ui/Icoon";
+import { MeerKnop } from "@/components/ui/MeerMenu";
+import { MENU_PANEEL } from "@/components/ui/Menu";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { BewerkVoet, useBewerken } from "@/components/ui/Bewerkbaar";
 import { GesprekActies } from "@/components/werkplek/GesprekActies";
@@ -205,21 +207,11 @@ function Rij({ gesprek, actief, acties }: { gesprek: GesprekSamenvatting; actief
           </span>
         </button>
         {/* Alleen op fijne pointers verborgen tot hover; op touch altijd zichtbaar. */}
-        <button
-          type="button"
-          onClick={() => setMenu((v) => !v)}
-          aria-expanded={menu}
-          aria-label={`Acties voor ${label}`}
-          title="Meer"
-          className={`focus-ring mr-1.5 shrink-0 rounded p-1 text-muted transition-opacity hover:text-lint ${
-            menu ? "opacity-100" : "opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:focus:opacity-100"
-          }`}
-        >
-          <Meer />
-        </button>
+        <MeerKnop label={`Acties voor ${label}`} open={menu} onClick={() => setMenu((v) => !v)}
+          className={`mr-1.5 transition-opacity ${menu ? "opacity-100" : "opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:focus:opacity-100"}`} />
       </div>
       {menu && (
-        <div className="mx-1 mb-1 rounded-lg border border-line bg-paper shadow-zacht">
+        <div className={`mx-1 mb-1 ${MENU_PANEEL}`}>
           <GesprekActies
             werkgebiedId={gesprek.werkgebied_id}
             gearchiveerd={Boolean(gesprek.gearchiveerd)}
