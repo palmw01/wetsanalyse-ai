@@ -42,6 +42,12 @@ async def delete_gebruik(werkgebied_id: str, begrip_id: str, actor: str = Depend
     return await store.stop_gebruik(werkgebied_id, begrip_id, actor)
 
 
+@router.post("/gebruik/{begrip_id}/bevestigen")
+async def post_gebruik_bevestigen(werkgebied_id: str, begrip_id: str, actor: str = Depends(actieve_userid)):
+    """De wijziging van een generiek begrip is gezien: het klopt nog voor dit werkgebied."""
+    return await store.bevestig_gebruik(werkgebied_id, begrip_id, actor)
+
+
 # Vóór `/{begrip_id}`, anders leest de router "export" als een begrip-id.
 @router.get("/export")
 async def get_export(werkgebied_id: str, formaat: Literal["json", "csv", "ttl"] = "json",

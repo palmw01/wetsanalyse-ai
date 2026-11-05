@@ -27,6 +27,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_, select
 
 from . import begrip_projectie, begrip_relatie_store, begrip_store, db
+from .begrip_relatie_contracts import NieuweBetekenis
 from .auth import require_client
 from .begrip_contracts import BegripStatus, BegripVerificatie, BegripWijziging, BegripZoekvraag, Revisie
 from .routers.auth import actieve_userid
@@ -216,6 +217,11 @@ async def post_accorderen(begrip_id: str, req: Revisie, actor: str = Depends(act
 @router.post("/{begrip_id}/heropenen")
 async def post_heropenen(begrip_id: str, req: Revisie, actor: str = Depends(actieve_userid)):
     return await begrip_store.heropen(None, begrip_id, req.verwachte_revisie, actor)
+
+
+@router.post("/{begrip_id}/nieuwe-betekenis", status_code=201)
+async def post_nieuwe_betekenis(begrip_id: str, req: NieuweBetekenis, actor: str = Depends(actieve_userid)):
+    return await begrip_relatie_store.nieuwe_betekenis_generiek(begrip_id, req, actor)
 
 
 @router.get("/{begrip_id}/revisies")

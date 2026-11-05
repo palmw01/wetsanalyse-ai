@@ -142,3 +142,78 @@ async def test_een_gewist_werkgebied_laat_het_generieke_begrip_staan(client):
     assert r.status_code == 200, r.text
     uit = (await client.get(f"/v1/begrippen/{g['id']}")).json()["begrip"]
     assert uit["gebruik"] == [] and uit["koppelingen"] == []
+
+
+# --- doorwerking en combineren (G2) ----------------------------------------------------------------------------
+
+async def test_een_wijziging_staat_bij_herbeoordelen_en_een_passage_elders_niet(client):
+    ids, wg, g = await generiek(client)
+    ander, b = await tweede(client, g)
+    h = (await client.get(f"/v1/werkgebieden/{wg['id']}/herbeoordelingen")).json()
+    assert h["generiek"] == []
+    # Een passage in het tweede werkgebied verandert de inhoud niet.
+    r = await client.post(_url(ander, b, "koppelingen"), json={"verwachte_revisie": b["revisie"],
+                                                               "element_ids": [ids["lid2"]], "rol": "duiding"})
+    assert r.status_code == 200, r.text
+    assert (await client.get(f"/v1/werkgebieden/{wg['id']}/herbeoordelingen")).json()["generiek"] == []
+    nu = (await client.get(f"/v1/begrippen/{g['id']}")).json()["begrip"]
+    inhoud = {**nu["inhoud"], "definitie": "Een andere definitie."}
+    r = await client.patch(f"/v1/begrippen/{g['id']}", json={"verwachte_revisie": nu["revisie"], "inhoud": inhoud})
+    assert r.status_code == 200, r.text
+    h = (await client.get(f"/v1/werkgebieden/{wg['id']}/herbeoordelingen")).json()["generiek"]
+    assert [x["begrip_id"] for x in h] == [g["id"]] and h[0]["velden"] == ["definitie"]
+    assert h[0]["toen"]["definitie"] == DEFINITIE["definitie"] and h[0]["nu"]["definitie"] == "Een andere definitie."
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/begrippen/gebruik/{g['id']}/bevestigen")
+    assert r.status_code == 200, r.text
+    assert (await client.get(f"/v1/werkgebieden/{wg['id']}/herbeoordelingen")).json()["generiek"] == []
+    h = (await client.get(f"/v1/werkgebieden/{ander['id']}/herbeoordelingen")).json()["generiek"]
+    assert len(h) == 1, "het andere werkgebied moet het zelf nog zien"
+
+
+async def test_een_nieuwe_betekenis_neemt_elk_werkgebied_zelf_over(client):
+    _, wg, g = await generiek(client)
+    r = await client.post(f"/v1/begrippen/{g['id']}/nieuwe-betekenis",
+                          json={"verwachte_revisie": g["revisie"], "reden": "Ruimer na de wetswijziging."})
+    assert r.status_code == 201, r.text
+    opv = r.json()
+    assert opv["kader"] == "generiek" and opv["status"] == "concept" and opv["koppelingen"] == []
+    h = (await client.get(f"/v1/werkgebieden/{wg['id']}/herbeoordelingen")).json()["generiek"]
+    assert h[0]["opvolger"]["begrip_id"] == opv["id"]
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/begrippen/gebruik/{g['id']}/opvolger")
+    assert r.status_code == 200, r.text
+    assert r.json()["id"] == opv["id"] and [k["beoordeling"] for k in r.json()["koppelingen"]] == ["open"]
+    assert (await client.get(_url(wg, g))).status_code == 404
+    assert (await client.get(f"/v1/werkgebieden/{wg['id']}/herbeoordelingen")).json()["generiek"] == []
+    # Verwijder je de opvolger (eerst het gebruik stoppen), dan krijgt het oude begrip zijn status terug.
+    assert (await client.delete(f"/v1/werkgebieden/{wg['id']}/begrippen/gebruik/{opv['id']}")).status_code == 200
+    opv = (await client.get(f"/v1/begrippen/{opv['id']}")).json()["begrip"]
+    r = await client.delete(f"/v1/begrippen/{opv['id']}", params={"verwachte_revisie": opv["revisie"]})
+    assert r.status_code == 200 and r.json()["hersteld"] == [g["id"]]
+    assert (await client.get(f"/v1/begrippen/{g['id']}")).json()["begrip"]["status"] == "geaccordeerd"
+
+
+async def test_combineren_vervangt_het_lokale_begrip_en_laat_het_generieke_staan(client):
+    ids, _, g = await generiek(client)
+    ander = await _nieuw(client, "Ander")
+    ander = (await _bron(client, ander, bron_iri=ART))["werkgebied"]
+    lokaal = await _begrip(client, ander, [ids["lid2"]], naam="Schuldenaar")
+    r = await client.post(_url(ander, lokaal, "combineren-generiek"), json={
+        "verwachte_revisie": lokaal["revisie"], "generiek_id": g["id"], "reden": "Zelfde begrip."})
+    assert r.status_code == 200, r.text
+    uit = r.json()
+    assert uit["id"] == g["id"] and uit["inhoud"] == g["inhoud"] and uit["status"] == "geaccordeerd"
+    assert [k["element_id"] for k in uit["koppelingen"]] == [ids["lid2"]]
+    assert uit["koppelingen"][0]["beoordeling"] == "open"
+    oud = (await client.get(_url(ander, lokaal))).json()
+    assert oud["status"] == "vervangen" and oud["vervangen_door"]["begrip_id"] == g["id"]
+
+
+async def test_een_lokaal_begrip_krijgt_een_relatie_met_het_generieke(client):
+    ids, _, g = await generiek(client)
+    ander, _ = await tweede(client, g)
+    lokaal = await _begrip(client, ander, [ids["lid2"]], naam="Belastingschuldige bij aanslag")
+    r = await client.post(f"/v1/werkgebieden/{ander['id']}/relaties", json={
+        "van_begrip": lokaal["id"], "naar_begrip": g["id"], "type": "hierarchie"})
+    assert r.status_code == 201, r.text
+    rel = (await client.get(f"/v1/begrippen/{g['id']}")).json()["relaties"]
+    assert [(x["van_naam"], x["naar_naam"]) for x in rel] == [("Belastingschuldige bij aanslag", "Belastingschuldige")]

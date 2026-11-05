@@ -25,7 +25,7 @@ from fastapi import HTTPException
 from sqlalchemy import insert, select, update
 
 from . import begrip_store, begrippen_run_store, db
-from .begrip_relatie_contracts import Combineren, NieuweBetekenis, RelatieInvoer
+from .begrip_relatie_contracts import CombinerenGeneriek,  Combineren, NieuweBetekenis, RelatieInvoer
 from .werkgebied_store import _audit as werkgebied_audit
 
 
@@ -238,8 +238,8 @@ async def _kopieer_koppelingen(conn, werkgebied_id: str, van: str, naar: str, ac
     """De niet-afgewezen koppelingen van `van` bij `naar`, met hun bewaarde bewijsstand en opnieuw open
     ter beoordeling. Wat `naar` al met dezelfde rol heeft, slaat hij over."""
     k = db.begrip_koppelingen
-    bron = (await conn.execute(select(k).where(k.c.begrip_id == van, k.c.verwijderd.is_(None),
-                                               k.c.beoordeling != "afgewezen"))).all()
+    bron = (await conn.execute(select(k).where(k.c.begrip_id == van, k.c.werkgebied_id == werkgebied_id,
+                                               k.c.verwijderd.is_(None), k.c.beoordeling != "afgewezen"))).all()
     al = {(x.element_id, x.rol) for x in (await conn.execute(select(k).where(
         k.c.begrip_id == naar, k.c.verwijderd.is_(None)))).all()}
     nu, nieuw = db.utcnow(), []
@@ -254,11 +254,65 @@ async def _kopieer_koppelingen(conn, werkgebied_id: str, van: str, naar: str, ac
     return nieuw
 
 
-async def _opvolging(conn, werkgebied_id: str, oud, nieuw_id: str, reden: str, soort: str, actor: str) -> None:
+async def _opvolging(conn, werkgebied_id: str | None, oud, nieuw_id: str, reden: str, soort: str, actor: str) -> None:
     await conn.execute(insert(db.begrip_relaties).values(
         id=str(uuid.uuid4()), werkgebied_id=werkgebied_id, van_begrip=oud.id, naar_begrip=nieuw_id, type="opvolging",
         herkomst="systeem", bewijs={"soort": soort, "vorige_status": oud.status}, toelichting=reden,
         beoordeling="akkoord", door=actor, op=db.utcnow()))
+
+
+async def nieuwe_betekenis_generiek(begrip_id: str, nb: NieuweBetekenis, actor: str) -> dict:
+    """Een generiek begrip krijgt een nieuwe betekenis: de opvolger is een concept zonder passages, en elk werkgebied
+    beslist zelf of het hem overneemt (ADR-006). Tot die tijd staat het oude begrip bij zijn herbeoordeling."""
+    async with db.get_engine().begin() as conn:
+        async with begrip_store._gewijzigd_in(conn, None, begrip_id, nb.verwachte_revisie, actor, "begrip-vervangen",
+                                              {"reden": nb.reden}) as (_, oud, stand_):
+            stand_["status"] = "vervangen"
+        nieuw_id = await begrip_store.maak_generiek_in(conn, dict(oud.inhoud), oud.ontstaan_in, actor)
+        await _opvolging(conn, None, oud, nieuw_id, nb.reden, "nieuwe_betekenis", actor)
+    return await begrip_store.haal_generiek(nieuw_id)
+
+
+async def opvolger_overnemen(werkgebied_id: str, begrip_id: str, actor: str) -> dict:
+    """Dit werkgebied gaat over op de opvolger: het gebruik en de passages (opnieuw ter beoordeling) gaan mee."""
+    r, g, k = db.begrip_relaties, db.werkgebied_begrippen, db.begrip_koppelingen
+    async with db.get_engine().begin() as conn:
+        await begrip_store._werkgebied_bestaat(conn, werkgebied_id, slot=True)
+        rij = (await conn.execute(select(g.c.id).where(g.c.werkgebied_id == werkgebied_id, g.c.begrip_id == begrip_id,
+                                                       g.c.verwijderd.is_(None)))).first()
+        opv = (await conn.execute(select(r.c.naar_begrip).where(
+            r.c.van_begrip == begrip_id, r.c.type == "opvolging", r.c.verwijderd.is_(None),
+            r.c.werkgebied_id.is_(None)))).scalar()
+        if rij is None or opv is None:
+            raise HTTPException(409, {"fout": "geen_opvolger", "melding": "Dit begrip heeft geen opvolger om over te nemen."})
+        await begrip_store.gebruik_in(conn, werkgebied_id, opv, actor)
+        gekopieerd = await _kopieer_koppelingen(conn, werkgebied_id, begrip_id, opv, actor)
+        nu = db.utcnow()
+        await conn.execute(update(g).where(g.c.id == rij.id).values(verwijderd=nu))
+        await conn.execute(update(k).where(k.c.begrip_id == begrip_id, k.c.werkgebied_id == werkgebied_id,
+                                           k.c.verwijderd.is_(None)).values(verwijderd=nu))
+        await werkgebied_audit(conn, werkgebied_id, actor, "begrip-opvolger-overgenomen",
+                               {"begrip_id": opv, "vervangt": begrip_id, "element_ids": gekopieerd})
+    return await begrip_store.haal(werkgebied_id, opv)
+
+
+async def combineer_met_generiek(werkgebied_id: str, begrip_id: str, c: CombinerenGeneriek, actor: str) -> dict:
+    """Een lokaal begrip gaat op in een generiek begrip (ADR-006): het lokale wordt vervangen en blijft vindbaar, zijn
+    passages gaan mee (opnieuw ter beoordeling), en het werkgebied gebruikt voortaan het generieke. De inhoud van het
+    generieke begrip verandert niet: dat raakt andere werkgebieden."""
+    detail: dict = {"reden": c.reden, "opvolger": c.generiek_id}
+    async with db.get_engine().begin() as conn:
+        async with begrip_store._gewijzigd_in(conn, werkgebied_id, begrip_id, c.verwachte_revisie, actor,
+                                              "begrip-vervangen", detail) as (_, oud, stand_):
+            if oud.werkgebied_id is None:
+                raise HTTPException(409, {"fout": "generiek", "melding": "Dit begrip is al generiek."})
+            stand_["status"] = "vervangen"
+        await begrip_store.gebruik_in(conn, werkgebied_id, c.generiek_id, actor)
+        gekopieerd = await _kopieer_koppelingen(conn, werkgebied_id, begrip_id, c.generiek_id, actor)
+        await _opvolging(conn, werkgebied_id, oud, c.generiek_id, c.reden, "combineren_generiek", actor)
+        await werkgebied_audit(conn, werkgebied_id, actor, "begrip-gecombineerd",
+                               {"begrip_id": c.generiek_id, "vervangt": begrip_id, "element_ids": gekopieerd})
+    return await begrip_store.haal(werkgebied_id, c.generiek_id)
 
 
 async def nieuwe_betekenis(werkgebied_id: str, begrip_id: str, nb: NieuweBetekenis, actor: str) -> dict:
