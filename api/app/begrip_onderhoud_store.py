@@ -232,7 +232,7 @@ async def herkoppel(werkgebied: dict, begrip_id: str, koppeling_id: str, h: Herk
     k = db.begrip_koppelingen
     detail: dict = {"koppeling": koppeling_id, "element_id": h.element_id}
     async with begrip_store._gewijzigd(werkgebied["id"], begrip_id, h.verwachte_revisie, actor,
-                                       "koppeling-herkoppeld", detail) as (conn, row, stand):
+                                       "koppeling-herkoppeld", detail, passage=True) as (conn, row, stand):
         oud = await _koppeling_rij(conn, begrip_id, koppeling_id)
         if oud.element_id == h.element_id:
             raise HTTPException(422, {"fout": "zelfde_passage",
@@ -268,7 +268,7 @@ async def bevestig(werkgebied: dict, begrip_id: str, koppeling_id: str, bv: Beve
         nodes.update(nodes_met_titel(snap))
     detail: dict = {"koppeling": koppeling_id}
     async with begrip_store._gewijzigd(werkgebied["id"], begrip_id, bv.verwachte_revisie, actor,
-                                       "koppeling-bevestigd", detail) as (conn, row, stand):
+                                       "koppeling-bevestigd", detail, passage=True) as (conn, row, stand):
         oud = await _koppeling_rij(conn, begrip_id, koppeling_id)
         h = (await begrip_store._huidige_elementen(conn, {oud.element_id})).get(oud.element_id)
         if h is None or h.get("lifecycle") == "rejected" or h.get("verouderd"):

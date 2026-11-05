@@ -292,9 +292,11 @@ werkgebied_audit = Table("werkgebied_audit", metadata,
 # eis. Een koppeling verwijst naar een annotatie-element ZONDER foreign key en draagt haar eigen
 # bewijsstand: elementen worden hard verwijderd, en een begrip mag zijn onderbouwing daar niet mee
 # verliezen. Weghalen is soft (tijdstip).
+# `werkgebied_id` leeg is een generiek begrip (ADR-006): het staat boven de werkgebieden, en `ontstaan_in` zegt waar
+# het begon. `reconcile_schema` haalt de NOT NULL van een bestaande tabel.
 begrippen = Table("begrippen", metadata,
     Column("id", String(64), primary_key=True),
-    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("werkgebied_id", String(64), nullable=True, index=True),
     Column("status", String(16), nullable=False, default="concept"),
     Column("revisie", Integer, nullable=False, default=1),
     Column("inhoud", _JSON, nullable=False),
@@ -304,6 +306,17 @@ begrippen = Table("begrippen", metadata,
     Column("geaccordeerd_door", String(64), nullable=True),
     Column("geaccordeerd_op", _DT, nullable=True),
     Column("geaccordeerd_revisie", Integer, nullable=True),
+    Column("verwijderd", _DT, nullable=True),
+    Column("ontstaan_in", String(64), nullable=True))
+# Een werkgebied gebruikt een generiek begrip zonder kopie (ADR-006). `gezien_revisie`: de revisie die dit werkgebied
+# zag; een latere wijziging van de inhoud staat bij het herbeoordelen. Stoppen is soft, zoals een koppeling.
+werkgebied_begrippen = Table("werkgebied_begrippen", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("begrip_id", String(64), nullable=False, index=True),
+    Column("gezien_revisie", Integer, nullable=False),
+    Column("door", String(64), nullable=False),
+    Column("op", _DT, nullable=False),
     Column("verwijderd", _DT, nullable=True))
 begrip_revisies = Table("begrip_revisies", metadata,
     Column("begrip_id", String(64), primary_key=True),
@@ -536,7 +549,7 @@ begrip_kaartruns = Table("begrip_kaartruns", metadata,
 # van het vervangen begrip, zodat het verwijderen van de opvolger hem terugzet.
 begrip_relaties = Table("begrip_relaties", metadata,
     Column("id", String(64), primary_key=True),
-    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("werkgebied_id", String(64), nullable=True, index=True),      # leeg: de opvolging van een generiek begrip
     Column("van_begrip", String(64), nullable=False, index=True),
     Column("naar_begrip", String(64), nullable=False, index=True),
     Column("type", String(16), nullable=False),
@@ -810,6 +823,11 @@ async def reconcile_schema() -> None:
         for tabel in metadata.tables.values():
             for index in tabel.indexes:
                 await conn.run_sync(lambda sync_conn, ix=index: ix.create(sync_conn, checkfirst=True))
+        # Een generiek begrip heeft geen werkgebied (ADR-006). Geen kolom erbij maar de enige uitzondering op "alleen
+        # toevoegen": er gaat niets verloren, en SQLite maakt de tabel in de tests vers aan.
+        if engine.dialect.name == "postgresql":
+            for naam in ("begrippen", "begrip_relaties"):
+                await conn.execute(text(f"ALTER TABLE {naam} ALTER COLUMN werkgebied_id DROP NOT NULL"))
         # Het besluit *later* bestaat niet meer (sinds spoor J kies je per deelvraag): een oude rij is een voorstel.
         # Idempotent; daarna kent de code de waarde niet meer.
         if await conn.run_sync(lambda c: sa_inspect(c).has_table("bron_kandidaten")):

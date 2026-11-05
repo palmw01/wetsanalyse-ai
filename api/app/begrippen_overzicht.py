@@ -13,17 +13,22 @@ Drie ingangen, alle drie alleen lezend en uit Postgres:
 
 Een begrip in een gearchiveerd werkgebied, of een verwijderd begrip, bestaat hier niet: doorklikken
 naar de kaart zou anders een 404 geven. Begrippen zijn analyse-uitkomsten, geen wettelijke definities.
+
+Een generiek begrip (ADR-006) heeft geen werkgebied: het staat hier één keer, met waar het gebruikt wordt, en zijn inhoud
+wijzig je hier (`PATCH`, `accorderen`, `heropenen`, `DELETE`).
 """
 from __future__ import annotations
 
 import unicodedata
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 
 from . import begrip_projectie, begrip_relatie_store, begrip_store, db
 from .auth import require_client
-from .begrip_contracts import BegripStatus, BegripVerificatie, BegripZoekvraag
+from .begrip_contracts import BegripStatus, BegripVerificatie, BegripWijziging, BegripZoekvraag, Revisie
 from .routers.auth import actieve_userid
 
 router = APIRouter(prefix="/begrippen", tags=["begrippen"], dependencies=[Depends(require_client)])
@@ -61,15 +66,16 @@ def treffer(q: str, naam: str, termen: list[str], definitie: str) -> int | None:
 
 async def _rijen(conn, ids: list[str] | None = None, werkgebied_id: str | None = None,
                  door: str | None = None) -> list[dict]:
-    """De begrippen van alle actieve werkgebieden (of de gevraagde), als lichte rij. Met `door` alleen
-    de begrippen waarvan deze gebruiker een revisie maakte (*Door mij bewerkt*)."""
-    b, w, k, r = db.begrippen, db.werkgebieden, db.begrip_koppelingen, db.begrip_relaties
-    q = (select(b, w.c.naam.label("wg_naam")).join_from(b, w, b.c.werkgebied_id == w.c.id)
-         .where(b.c.verwijderd.is_(None), w.c.gearchiveerd.is_(None)))
+    """De begrippen van alle actieve werkgebieden en de generieke (of de gevraagde), als lichte rij. Met `werkgebied_id`
+    ook de generieke die dat werkgebied gebruikt. Met `door` alleen de begrippen waarvan deze gebruiker een revisie
+    maakte (*Door mij bewerkt*)."""
+    b, w, k, r, g = db.begrippen, db.werkgebieden, db.begrip_koppelingen, db.begrip_relaties, db.werkgebied_begrippen
+    q = (select(b, w.c.naam.label("wg_naam")).join_from(b, w, b.c.werkgebied_id == w.c.id, isouter=True)
+         .where(b.c.verwijderd.is_(None), or_(b.c.werkgebied_id.is_(None), w.c.gearchiveerd.is_(None))))
     if ids is not None:
         q = q.where(b.c.id.in_(ids))
     if werkgebied_id:
-        q = q.where(b.c.werkgebied_id == werkgebied_id)
+        q = q.where(begrip_store.in_werkgebied(werkgebied_id))
     if door:
         rev = db.begrip_revisies
         q = q.where(b.c.id.in_(select(rev.c.begrip_id).where(rev.c.actor == door)))
@@ -91,13 +97,25 @@ async def _rijen(conn, ids: list[str] | None = None, werkgebied_id: str | None =
     # uit Postgres): Lex en het overzicht noemen het. Een nieuwe wettekst zonder herannotatie ziet alleen
     # `GET …/herbeoordelingen` (die vraagt de bronboom); dit is de lichte stand.
     herbeoordelen: dict[str, int] = {}
-    for wid in sorted({x.werkgebied_id for x in rows if x.status == "geaccordeerd"}):
+    for wid in sorted({x.werkgebied_id for x in rows if x.status == "geaccordeerd" and x.werkgebied_id}):
         for kp in await begrip_store._koppelingen_van(conn, wid):
             if (kp["begrip_id"] in bids and kp["rol"] in begrip_store.DRAGEND and kp["beoordeling"] != "afgewezen"
                     and kp["actualiteit"] != "actueel"):
                 herbeoordelen[kp["begrip_id"]] = herbeoordelen.get(kp["begrip_id"], 0) + 1
+    # Een generiek begrip: de werkgebieden die het gebruiken (voor het overzicht), en zijn passages uit alle werkgebieden.
+    generiek = [x.id for x in rows if x.werkgebied_id is None]
+    gebruikt_in = dict((await conn.execute(select(g.c.begrip_id, func.count()).where(
+        g.c.begrip_id.in_(generiek), g.c.verwijderd.is_(None)).group_by(g.c.begrip_id))).all()) if generiek else {}
+    for x in rows:
+        if x.werkgebied_id is None and x.status == "geaccordeerd":
+            for kp in await begrip_store._koppelingen_van(conn, None, x.id):
+                if (kp["rol"] in begrip_store.DRAGEND and kp["beoordeling"] != "afgewezen"
+                        and kp["actualiteit"] != "actueel"):
+                    herbeoordelen[x.id] = herbeoordelen.get(x.id, 0) + 1
     return [{"id": x.id, "iri": begrip_store.begrip_iri(x.id), "werkgebied_id": x.werkgebied_id,
-             "werkgebied_naam": x.wg_naam, "naam": x.inhoud.get("naam", ""),
+             "kader": begrip_store.GENERIEK if x.werkgebied_id is None else "werkgebied",
+             "gebruikt_in": gebruikt_in.get(x.id, 0),
+             "werkgebied_naam": x.wg_naam or "", "naam": x.inhoud.get("naam", ""),
              "alternatieve_termen": x.inhoud.get("alternatieve_termen") or [], "status": x.status,
              "revisie": x.revisie, "definitie": x.inhoud.get("definitie", ""),
              "definitie_herkomst": x.inhoud.get("definitie_herkomst"),
@@ -115,7 +133,10 @@ def zoek(rijen: list[dict], vraag: BegripZoekvraag) -> list[dict]:
     for x in rijen:
         if status and x["status"] not in status:
             continue
-        if vraag.werkgebied_id and x["werkgebied_id"] != vraag.werkgebied_id:
+        # Een generiek begrip staat al alleen in de rijen als dit werkgebied het gebruikt.
+        if vraag.werkgebied_id and x["werkgebied_id"] not in (vraag.werkgebied_id, None):
+            continue
+        if vraag.kader and x["kader"] != vraag.kader:
             continue
         t = treffer(vraag.q, x["naam"], x["alternatieve_termen"], x["definitie"])
         if t is not None:
@@ -128,9 +149,10 @@ def zoek(rijen: list[dict], vraag: BegripZoekvraag) -> list[dict]:
 async def get_begrippen(q: str = Query("", max_length=200), status: list[BegripStatus] = Query(default=[]),
                         werkgebied_id: str | None = Query(None, max_length=64),
                         eerst: str | None = Query(None, max_length=64),
+                        kader: Literal["generiek", "werkgebied"] | None = None,
                         limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0),
                         mijn: bool = False, actor: str = Depends(actieve_userid)):
-    vraag = BegripZoekvraag(q=q, status=status, werkgebied_id=werkgebied_id, eerst=eerst)
+    vraag = BegripZoekvraag(q=q, status=status, werkgebied_id=werkgebied_id, eerst=eerst, kader=kader)
     async with db.get_engine().connect() as conn:
         rijen = await _rijen(conn, werkgebied_id=werkgebied_id, door=actor if mijn else None)
     gevonden = zoek(rijen, vraag)
@@ -152,7 +174,7 @@ async def post_verifieer(req: BegripVerificatie, actor: str = Depends(actieve_us
     async with db.get_engine().connect() as conn:
         rijen = {x["id"]: x for x in await _rijen(conn, ids=list(dict.fromkeys(req.ids)))}
         werkgebieden = {}
-        for wid in sorted({x["werkgebied_id"] for x in rijen.values()} | set(req.werkgebieden)):
+        for wid in sorted({x["werkgebied_id"] for x in rijen.values() if x["werkgebied_id"]} | set(req.werkgebieden)):
             inv = await begrip_projectie.invoer(conn, wid)
             werkgebieden[wid] = {"projectie_hash": begrip_projectie.invoer_hash(inv) if inv is not None else None}
     return {"begrippen": {i: rijen.get(i) for i in req.ids}, "werkgebieden": werkgebieden}
@@ -165,7 +187,38 @@ async def get_begrip(begrip_id: str, actor: str = Depends(actieve_userid)):
     if not rij:
         raise HTTPException(404, "Begrip bestaat niet.")
     wid = rij[0]["werkgebied_id"]
+    if wid is None:
+        return {"werkgebied": None, "begrip": await begrip_store.haal_generiek(begrip_id),
+                "relaties": await begrip_relatie_store.van_begrip(begrip_id)}
     rel = await begrip_relatie_store.lijst(wid, begrip_id)
     return {"werkgebied": {"id": wid, "naam": rij[0]["werkgebied_naam"]},
             "begrip": await begrip_store.haal(wid, begrip_id),
             "relaties": [x for x in rel["relaties"] if x["beoordeling"] == "akkoord"]}
+
+
+# --- de inhoud van een generiek begrip (ADR-006): alleen hier, niet vanuit een werkgebied --------------------
+
+@router.patch("/{begrip_id}")
+async def patch_generiek(begrip_id: str, req: BegripWijziging, actor: str = Depends(actieve_userid)):
+    return await begrip_store.wijzig(None, begrip_id, req, actor)
+
+
+@router.delete("/{begrip_id}")
+async def delete_generiek(begrip_id: str, verwachte_revisie: int = Query(ge=1), actor: str = Depends(actieve_userid)):
+    return await begrip_store.verwijder_generiek(begrip_id, verwachte_revisie, actor)
+
+
+@router.post("/{begrip_id}/accorderen")
+async def post_accorderen(begrip_id: str, req: Revisie, actor: str = Depends(actieve_userid)):
+    return await begrip_store.accordeer(None, begrip_id, req.verwachte_revisie, actor)
+
+
+@router.post("/{begrip_id}/heropenen")
+async def post_heropenen(begrip_id: str, req: Revisie, actor: str = Depends(actieve_userid)):
+    return await begrip_store.heropen(None, begrip_id, req.verwachte_revisie, actor)
+
+
+@router.get("/{begrip_id}/revisies")
+async def get_revisies(begrip_id: str, limit: int = Query(100, ge=1, le=500), actor: str = Depends(actieve_userid)):
+    await begrip_store.haal_generiek(begrip_id)
+    return {"revisies": await begrip_store.revisies_van(begrip_id, limit)}

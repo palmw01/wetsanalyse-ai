@@ -109,6 +109,12 @@ class Revisie(BaseModel):
     verwachte_revisie: int = Field(ge=1)
 
 
+class GebruikInvoer(BaseModel):
+    """Een generiek begrip gebruiken in dit werkgebied (ADR-006)."""
+
+    begrip_id: str = Field(min_length=1, max_length=64)
+
+
 # --- Lezen over werkgebieden heen (fase F4) -----------------------------------------------------
 
 class BegripStatus(str, Enum):
@@ -126,6 +132,8 @@ class BegripZoekvraag(BaseModel):
     werkgebied_id: str | None = Field(default=None, max_length=64)
     # Het werkgebied van de vrager: zijn begrippen staan bij een gelijke treffer vooraan.
     eerst: str | None = Field(default=None, max_length=64)
+    # Alleen de generieke begrippen (ADR-006), of alleen die van een werkgebied.
+    kader: Literal["generiek", "werkgebied"] | None = None
 
 
 class BegripVerificatie(BaseModel):

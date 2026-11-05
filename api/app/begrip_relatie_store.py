@@ -47,7 +47,7 @@ def _relatie(row, namen: dict[str, str]) -> dict:
 
 async def _begrippen(conn, werkgebied_id: str) -> dict[str, object]:
     b = db.begrippen
-    return {r.id: r for r in (await conn.execute(select(b).where(b.c.werkgebied_id == werkgebied_id,
+    return {r.id: r for r in (await conn.execute(select(b).where(begrip_store.in_werkgebied(werkgebied_id),
                                                                  b.c.verwijderd.is_(None)))).all()}
 
 
@@ -117,6 +117,18 @@ async def lijst(werkgebied_id: str, begrip_id: str | None = None) -> dict:
     veranderd = {d["relatie_id"] for ds in door.values() for d in ds}
     relaties = [{**_relatie(x, namen), "veranderd": x.id in veranderd} for x in rijen]
     return {"relaties": [x for x in relaties if raakt(x)], "voorstellen": [x for x in voorstellen if raakt(x)]}
+
+
+async def van_begrip(begrip_id: str) -> list[dict]:
+    """De vastgelegde relaties van één begrip, in welk werkgebied ook: wat een generiek begrip overal draagt."""
+    r, b = db.begrip_relaties, db.begrippen
+    async with db.get_engine().connect() as conn:
+        rijen = (await conn.execute(select(r).where(r.c.verwijderd.is_(None), r.c.beoordeling == "akkoord",
+                                                    (r.c.van_begrip == begrip_id) | (r.c.naar_begrip == begrip_id))
+                                    .order_by(r.c.op, r.c.id))).all()
+        namen = {x.id: x.inhoud.get("naam", "") for x in (await conn.execute(select(b.c.id, b.c.inhoud).where(
+            b.c.id.in_({x.van_begrip for x in rijen} | {x.naar_begrip for x in rijen})))).all()} if rijen else {}
+    return [_relatie(x, namen) for x in rijen]
 
 
 def _niet_vervangen(begrippen: dict, *ids: str) -> None:
