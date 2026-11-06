@@ -162,6 +162,10 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     PDF/CSV/JSON/TriG, begrippen CSV/JSON/Turtle). De inhoud wordt bij de klik opgehaald; `downloadTekst` in
     `lib/api.ts` maakt het bestand;
   - **menu's** delen één rijstijl (`components/ui/Menu`: `MENU_RIJ`, `MENU_PANEEL`);
+  - **Exporteren en ⋯ delen op mobiel één rij** (besluit gebruiker 6 nov 2026, `KleineActies` in
+    `components/ui/Pagina`): in de kop van een pagina staan ze samen boven de hoofdknoppen, Exporteren links en ⋯
+    rechts. De hoofdknoppen blijven op mobiel onder elkaar op volle breedte. Vanaf `sm:` staat alles in één rij, met ⋯
+    als laatste. Een klein gereedschap krijgt geen eigen regel. `app/knoppen.test.ts` bewaakt het;
   - **het menu ⋯ is overal hetzelfde** (5 nov 2026, `components/ui/MeerMenu`):
     - plekken: werkgebied (kop), deelvraag, bron, gesprek (kop en zijbalk);
     - de knop is `MeerKnop`, een rondje met een lijn, in twee maten: `xs` in een rij (even hoog als *Bewerken*) en

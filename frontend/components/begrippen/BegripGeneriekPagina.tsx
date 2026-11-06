@@ -5,7 +5,7 @@ import { useState } from "react";
 
 import { StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
-import { PaginaKop, Stip } from "@/components/ui/Pagina";
+import { KleineActies, PaginaKop, Stip } from "@/components/ui/Pagina";
 import { BEGRIP_STATUS_TOON, BegripInhoud, BegripMenu } from "@/components/werkgebieden/BegripInhoud";
 import { OnbewaardMelding } from "@/components/werkgebieden/OnbewaardMelding";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
@@ -48,8 +48,8 @@ export function BegripGeneriekPagina({ begripId }: { begripId: string }) {
             <Stip /><span>revisie {begrip.revisie}</span>
           </>}
           acties={begrip && <>
-            <ExportKnop onFout={setFout} titel={naam} formaten={[]} markdown={() => begripAlsMarkdown(begrip)} />
-            <BegripMenu stand={stand} onNaarBegrip={naarBegrip} />
+            <KleineActies links={<ExportKnop onFout={setFout} titel={naam} formaten={[]} markdown={() => begripAlsMarkdown(begrip)} />}
+              rechts={<BegripMenu stand={stand} onNaarBegrip={naarBegrip} />} />
           </>}
         />
         {fout && <Melding type="fout" className="mb-4">{fout}</Melding>}
