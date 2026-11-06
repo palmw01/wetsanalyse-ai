@@ -238,6 +238,14 @@ describe("een stroom die breekt of stilvalt", () => {
     expect(definitieveStroomfout(fout)).toBe(true);
   });
 
+  it("geeft de uitkomst van done door", async () => {
+    const frames = [`data: ${JSON.stringify({ type: "done", uitkomst: "gestopt" })}\r\n\r\n`];
+    vi.stubGlobal("fetch", vi.fn(async () => sseResponse(frames)));
+    let uitkomst = "";
+    await volgRun("run-1", { onDone: (u) => (uitkomst = u) });
+    expect(uitkomst).toBe("gestopt");
+  });
+
   it("meldt een levensteken bij het eerste event", async () => {
     // Hierop haalt de werkplek de "verbinding weg"-melding weg. Zonder dit zou een geslaagd
     // heraanhaken pas aan het eind van de beurt zichtbaar zijn.

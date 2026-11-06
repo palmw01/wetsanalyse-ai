@@ -75,6 +75,45 @@ def test_eindtekst_streamt_verbatim():
     assert text == "Regel een.\n\nRegel twee."
 
 
+def _grounding(events):
+    return next(e for e in events if e["type"] == "grounding")
+
+
+def test_een_afgekapt_antwoord_krijgt_een_zichtbare_vlag_en_de_tekst_blijft():
+    settings = make_settings(enable_planning=False)
+    llm = FakeLLM([response([text_block("Een lang antwoord dat halverwege")], "max_tokens")])
+    events = _run(answer_stream("vraag", settings=settings, llm=llm, graph=FakeGraph(result=ART_IRI)))
+    assert "".join(e["content"] for e in events if e["type"] == "token") == "Een lang antwoord dat halverwege"
+    assert _grounding(events)["afgekapt"] is True
+
+
+def test_een_half_tool_blok_wordt_geen_aanroep():
+    """De SDK parseert een afgekapt blok met halve argumenten; die mogen niet naar de graaf."""
+    settings = make_settings(enable_planning=False)
+    graph = FakeGraph(result=ART_IRI)
+    llm = FakeLLM([response([tool_block("t1", "list_regelingen", {})], "max_tokens")])
+    events = _run(answer_stream("vraag", settings=settings, llm=llm, graph=graph))
+    assert not [e for e in events if e["type"] == "tool_execution"] and llm.index == 1
+    assert "niet afronden" in "".join(e["content"] for e in events if e["type"] == "token")
+    assert _grounding(events)["afgekapt"] is True
+
+
+def test_een_weigering_krijgt_een_eigen_melding():
+    settings = make_settings(enable_planning=False)
+    llm = FakeLLM([response([], "refusal")])
+    events = _run(answer_stream("vraag", settings=settings, llm=llm, graph=FakeGraph(result=ART_IRI)))
+    assert "weigerde" in "".join(e["content"] for e in events if e["type"] == "token")
+    assert "afgekapt" not in _grounding(events)
+
+
+def test_een_gewoon_antwoord_is_niet_afgekapt_en_de_limiet_is_ruim():
+    settings = make_settings(enable_planning=False)
+    llm = FakeLLM([response([text_block("Klaar.")], "end_turn")])
+    events = _run(answer_stream("vraag", settings=settings, llm=llm, graph=FakeGraph(result=ART_IRI)))
+    assert "afgekapt" not in _grounding(events)
+    assert llm.calls[-1]["max_tokens"] == 16000
+
+
 def test_agentfout_lekt_geen_interne_details():
     """Een mislukte beurt levert een gesaniteerde melding, geen ruwe exception.
 

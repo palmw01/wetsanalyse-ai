@@ -130,6 +130,8 @@ class BeurtSchrijver:
         # Wat een agent-taak opleverde (F3c, `nodes/agent_taak.py`): het paneel en de knop.
         self.artefact: dict[str, Any] = {}
         self.bevestiging: dict[str, Any] = {}
+        # Het oordeel van de brongetrouwheidstoets: zonder dit veld bestond het alleen live.
+        self.grounding: dict[str, Any] = {}
         # De fout waarop de beurt strandde: de melding komt letterlijk op het bericht (live = na herladen).
         self.fout = ""
 
@@ -170,6 +172,8 @@ class BeurtSchrijver:
             self.bevestiging = event.get("bevestiging") or {}
         elif soort == "tool_execution":
             self._voeg_tool_toe({k: v for k, v in event.items() if k != "type"})
+        elif soort == "grounding":
+            self.grounding = {k: v for k, v in event.items() if k not in ("type", "seq")}
         elif soort == "error":
             self.fout = str(event.get("message") or "") or self.fout or "Er ging iets mis."
 
@@ -497,6 +501,7 @@ async def _leg_vast(
                 "tekst": tekst or ("" if schrijver.fout else "(geen antwoord)"),
                 "denk": schrijver.denk,
                 "bronnen": schrijver.bronnen,
+                **({"grounding": schrijver.grounding} if schrijver.grounding else {}),
                 # Het overzicht uit de graaf (`agent/overzicht.py`): zonder dit veld toonde de werkplek
                 # na herladen alleen de duiding, en het blok en de 3D-doelen waren weg.
                 **({"overzicht": schrijver.overzicht} if schrijver.overzicht else {}),

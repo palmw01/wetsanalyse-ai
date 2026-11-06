@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseKandidaten, parseKeuze } from "./agentEvents";
 import { doelVanKandidaat } from "./annotatie";
 import {
-  actiefOnderdeel, doelenVanKandidaten, reeksNavigatie, reeksPrompt, reeksSamenvatting, reeksUitBerichten, verwerkReeksEvent, type Reeks,
+  actiefOnderdeel, doelenVanKandidaten, reeksNavigatie, reeksDegradatie, reeksPrompt, reeksSamenvatting, reeksUitBerichten, verwerkReeksEvent, type Reeks,
 } from "./reeks";
 import type { Bericht } from "./types";
 
@@ -112,6 +112,16 @@ describe("reeksUitBerichten", () => {
     expect(r.onderdelen[0]).toMatchObject({ status: "fout", fout: "De laag is afgerond." });
     expect(r.onderdelen[1].status).toBe("gestopt");
     expect(r.onderdelen[1].fout).toBeUndefined();
+  });
+
+  it("zonder zinsontleding: live en na herladen dezelfde melding, uit dezelfde dekking", () => {
+    const leeg: Reeks = { runId: "r", ouder: { bron_iri: "", label: "" }, afgerond: false, onderdelen: [
+      { bron_iri: L1, label: "Lid 1", status: "bezig", voorstellen: 0, denk: "", tool_executions: [] }] };
+    expect(reeksDegradatie(leeg)).toBe("");
+    const live = verwerkReeksEvent(leeg, { type: "dekking", onderdeel: L1, dekking: { gedegradeerd: ["a", "b"] } })!;
+    const herladen = reeksUitBerichten([bericht(0, { dekking: { gedegradeerd: ["a", "b"] } })])!;
+    expect(reeksDegradatie(live)).toContain("2 bronnodes");
+    expect(reeksDegradatie(herladen)).toBe(reeksDegradatie(live));
   });
 
   it("zonder reeks geen blok", () => {

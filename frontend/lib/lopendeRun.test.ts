@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  aankondiging,
   definitieveStroomfout, herstelWachttijd, naEenGebrokenStream, onthoudRun, standVanVorigeRun,
   vergeetRun,
 } from "./lopendeRun";
@@ -102,5 +103,13 @@ describe("herstelWachttijd", () => {
   it("heeft een plafond, zodat herstel vlot blijft", () => {
     expect(herstelWachttijd(4)).toBe(15_000);
     expect(herstelWachttijd(50)).toBe(15_000);
+  });
+});
+
+describe("aankondiging", () => {
+  it("zegt elke afloop, ook een gewone beurt zonder melding", () => {
+    expect(aankondiging("klaar")).toContain("klaar");
+    expect(aankondiging("gestopt")).toContain("gestopt");
+    expect(aankondiging("mislukt")).toContain("mislukt");
   });
 });

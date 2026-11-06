@@ -81,6 +81,7 @@ class State(TypedDict, total=False):
     unsupported: list[str]
     niet_letterlijk: list[str]   # als citaat gepresenteerd, maar niet letterlijk in de trace
     grounding_niveau: str        # gegrond | onbepaald | ongegrond
+    afgekapt: bool               # het antwoord stuitte op de limiet van het model en is niet af
     sources: list[dict[str, Any]]
     pending_tools: list[dict[str, Any]]
     turns: int

@@ -7,6 +7,7 @@
  *  - een mislukte beurt toont live dezelfde melding als na herladen, zonder "(geen antwoord)";
  *  - een stroom die sluit zonder `done` is geen afgeronde beurt: de werkplek haakt opnieuw aan en krijgt de uitkomst;
  *  - stoppen zegt live wat er na herladen staat;
+ *  - het oordeel van de controle en de melding bij een afgekapt antwoord blijven na herladen staan (C4);
  *  - de werkplek schrijft nooit zelf een assistent-bericht: de server is de enige schrijver.
  */
 import assert from "node:assert/strict";
@@ -37,6 +38,8 @@ const berichten = {
   gestopt: [{ rol: "user", tekst: "gestopt", ...leeg },
     { rol: "assistant", tekst: "Half\n\n_(gestopt)_", ...leeg, run_id: "gestopt", uitkomst: { status: "gestopt" } }],
 };
+berichten.oordeel = [{ rol: "user", tekst: "oordeel", ...leeg }, { rol: "assistant", tekst: "Er staat “verzonnen tekst” in de wet.", ...leeg,
+  run_id: "oordeel", grounding: { niveau: "ongegrond", grounded: false, cited: 0, unsupported: [], niet_letterlijk: ["verzonnen tekst"], afgekapt: true } }];
 let gid = "mislukt";
 const pogingen = {};
 
@@ -91,6 +94,11 @@ assert.ok(pogingen.verbroken >= 2, "opnieuw aangehaakt");
 // Stoppen: live wat er na herladen staat.
 await vraag("gestopt");
 await page.getByText("(gestopt)").waitFor();
+
+// Het oordeel na herladen: het blok, de aanwijzing in de tekst en de afkapping.
+await page.goto(`${base}/workbench?gesprek=oordeel`);
+await page.locator("[data-afgekapt]").waitFor();
+await page.locator("mark", { hasText: "verzonnen tekst" }).waitFor();
 
 assert.deepEqual(geschreven.filter((b) => b.rol === "assistant"), [], "de werkplek schrijft geen beurt weg");
 assert.deepEqual(errors, []);

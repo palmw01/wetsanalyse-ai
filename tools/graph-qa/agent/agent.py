@@ -307,6 +307,7 @@ async def answer_stream(
         "source_trace": [],
         "turns": 0,
         "corrected": False,
+        "afgekapt": False,
         "answer": "",
         "sub_questions": [],
         "sub_findings": [],

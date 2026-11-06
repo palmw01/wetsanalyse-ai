@@ -36,6 +36,15 @@ from .context import Bouw
 logger = logging.getLogger("graph_qa.orchestrator")
 
 
+#: De antwoordlus streamt, dus een ruime limiet kost alleen wat er echt geschreven wordt. 4096 kapte lange duidingen af.
+MAX_TOKENS_ANTWOORD = 16000
+#: De ophaal-agent schrijft geen tekst voor de jurist, alleen tool-aanroepen.
+MAX_TOKENS_OPHALEN = 4096
+
+GEWEIGERD = "Op deze vraag kan ik geen antwoord geven: het model weigerde hem te beantwoorden. Stel de vraag eventueel anders."
+AFGEKAPT_ZONDER_TEKST = "Ik kon deze vraag niet afronden: het antwoord paste niet in één beurt. Stel de vraag gerichter."
+
+
 def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
     # Alleen bij de eerste beurt: daarna is elke ronde al herkenbaar aan de graafbevragingen, en
@@ -67,7 +76,7 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         # en ophalen) en de QA-specialisten (die het antwoord zelf schrijven). Alleen de eerste
         # heeft een eigen modelknop.
         model=b.model_ophaal if spec_naam == "retrieval" else b.model,
-        max_tokens=4096,
+        max_tokens=MAX_TOKENS_OPHALEN if spec_naam == "retrieval" else MAX_TOKENS_ANTWOORD,
         system=[stabiel, variabel],
         tools=anthropic_schemas(only=spec.tools),
         # Historie begrenzen (tegen onbegrensde promptgroei in een lange sessie); state blijft heel.
@@ -79,6 +88,20 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         final = stream.final_message()
 
     tool_uses, text_parts = _parse_final(final)
+
+    stopreden = getattr(final, "stop_reason", "") or ""
+    afgekapt = stopreden == "max_tokens"
+    if stopreden == "refusal":
+        logger.warning("model weigerde te antwoorden", extra={"categorie": "functioneel", "run_id": state.get("run_id", "")})
+        tool_uses, text_parts = [], [GEWEIGERD]
+    elif afgekapt:
+        # Het laatste blok is halverwege afgebroken: een tool-aanroep daarin heeft halve argumenten, en een aanroep
+        # zonder resultaat breekt de volgende beurt. Wat er aan tekst staat blijft, met een zichtbare melding.
+        logger.warning("antwoord afgekapt op max_tokens", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""),
+                                                                 "tool_aanroepen": len(tool_uses)})
+        tool_uses = []
+        if not any(p and p.strip() for p in text_parts):
+            text_parts = [AFGEKAPT_ZONDER_TEKST]
 
     # max_turns-vangnet: op de laatste toegestane beurt geen openstaande tool_use persisteren.
     # Anders belandt er een assistant(tool_use) zónder tool_result in de checkpointer (orphan →
@@ -104,6 +127,7 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         "messages": [{"role": "assistant", "content": assistant_content}],  # delta (append-reducer)
         "pending_tools": tool_uses,
         "turns": state.get("turns", 0) + 1,
+        "afgekapt": afgekapt,
     }
     if not tool_uses:
         # De tool-loze beurt is het eindantwoord. Het gaat de state in en pas in `finalize_node` naar
@@ -371,6 +395,7 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
         "unsupported": state.get("unsupported", []),
         "niet_letterlijk": state.get("niet_letterlijk", []),
         "niveau": state.get("grounding_niveau", "gegrond"),
+        **({"afgekapt": True} if state.get("afgekapt") else {}),
     })
     # entiteit-tier: alleen nieuwe IRI's toevoegen (append-reducer + dedup).
     existing = set(state.get("entities_seen") or [])
