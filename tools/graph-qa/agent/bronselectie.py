@@ -47,6 +47,8 @@ SLOT = ("De bronselectie is beoordeeld binnen de vastgestelde afbakening en de b
 Zoek = Callable[[str], Awaitable[str]]
 #: De gebeurtenissen die Lex voorstelt bij een werkgebied en zijn regelingen (`zoekvragen.gebeurtenis_opties`).
 StelVoor = Callable[[dict[str, Any], list[str]], list[dict[str, Any]]]
+# De citeertitels van regelingen, voor de bevestiging na het noemen (uit de graaf, zonder model).
+Namen = Callable[[set[str]], dict[str, str]]
 #: De woordenkloof en het voorwerp toetsen (`zoekvragen.ontbrekende_woorden`, `is_voorwerp`, `brugtermen`): het
 #: werkgebied, zijn regelingen, de woorden en of het voorwerp getoetst moet worden → `{voorwerp, ontbrekend, brug}`.
 Toets = Callable[[dict[str, Any], list[str], list[str], bool], dict[str, Any]]
@@ -592,10 +594,11 @@ async def vraag_toevoegen(api, wid: str, deelvraag_id: str = "") -> dict[str, An
 
 
 async def noem(api, wid: str, ov: dict[str, Any], did: str, regels: list[str],
-               vind: Callable[[str], list[str]] | None) -> dict[str, Any]:
+               vind: Callable[[str], list[str]] | None, namen: Namen | None = None) -> dict[str, Any]:
     """Elke regel opzoeken en als voorstel bij de deelvraag zetten (`api.noem_voorstel`). ‘als context’ op een regel,
     of de deelvraag staat bij wat eraan hangt: een contextbron (`afhankelijkheid`), anders een kernbepaling. Daarna
-    het compacte kaartje van de deelvraag; lukte er niets, dan het noemkaartje terug met de regels en de reden."""
+    het compacte kaartje van de deelvraag; lukte er niets, dan het noemkaartje terug met de regels en de reden.
+    De bevestiging zegt welke bepaling van welke regeling het werd (`namen`), zodat een verkeerde regeling opvalt."""
     from .wetsanalyse_api import WetsanalyseApiFout
 
     d = _dq(ov, did)
@@ -603,7 +606,8 @@ async def noem(api, wid: str, ov: dict[str, Any], did: str, regels: list[str],
     # Zonder regeling in de regel: de enige regeling van het werkgebied (het zoekbereik, de bronnen).
     regelingen = _regelingen(await api.haal_werkgebied(wid), ov)
     zinnen: list[str] = []
-    gelukt, mislukt = 0, []
+    gelukt: list[dict[str, Any]] = []
+    mislukt: list[str] = []
     for regel in regels[:MAX_REGELS]:
         rol, zoekregel = (("afhankelijkheid", _ALS_CONTEXT.sub(" ", regel)) if _ALS_CONTEXT.search(regel)
                           else (standaard, regel))
@@ -616,7 +620,7 @@ async def noem(api, wid: str, ov: dict[str, Any], did: str, regels: list[str],
             try:
                 ov = await api.noem_voorstel(wid, did, {"bron_iri": t["bron_iri"], "rol": rol,
                                                         "tekst": _kort(regel, 300)})
-                gelukt += 1
+                gelukt.append(t)
             except WetsanalyseApiFout as fout:
                 if fout.status not in (409, 422):
                     raise
@@ -628,13 +632,16 @@ async def noem(api, wid: str, ov: dict[str, Any], did: str, regels: list[str],
     if not gelukt:
         return {"kaart": kaart_toevoegen(wid, ov, did, melding=" ".join(zinnen), regels=mislukt or regels),
                 "zinnen": ["Daar vond ik geen bepaling bij om voor te stellen."], "deelvraag": did}
-    kop = (f"{gelukt} {'bepaling staat' if gelukt == 1 else 'bepalingen staan'} als voorstel in het paneel, met "
-           "*zelf genoemd*: lees de tekst en neem op of sluit uit.")
+    titels = namen({t["bwb_id"] for t in gelukt}) if namen else {}
+    waar = "; ".join(f"{t.get('vindplaats') or 'Bepaling'} – {titels[t['bwb_id']]}" for t in gelukt
+                     if titels.get(t["bwb_id"]))
+    kop = (f"{len(gelukt)} {'bepaling staat' if len(gelukt) == 1 else 'bepalingen staan'} als voorstel in het paneel, "
+           f"met *zelf genoemd*{f': {waar}. L' if waar else ': l'}ees de tekst en neem op of sluit uit.")
     return {"kaart": _kaart_hier(wid, ov, did), "zinnen": [kop, *zinnen], "deelvraag": did}
 
 
 async def _toevoegen(api, wid: str, ov: dict[str, Any], did: str, keuzes: list[str], regels: list[str],
-                     vind: Callable[[str], list[str]] | None) -> dict[str, Any]:
+                     vind: Callable[[str], list[str]] | None, namen: Namen | None = None) -> dict[str, Any]:
     """Een klik op het noemkaartje: eerst de deelvraag (een keuze), dan de regels."""
     if ov.get("modus") == "analysevraag":
         did = ANALYSEVRAAG
@@ -645,7 +652,7 @@ async def _toevoegen(api, wid: str, ov: dict[str, Any], did: str, keuzes: list[s
     if not regels:
         return {"kaart": kaart_toevoegen(wid, ov, did, melding="Noem minstens één bepaling."), "zinnen": [],
                 "deelvraag": did}
-    return await noem(api, wid, ov, did, regels, vind)
+    return await noem(api, wid, ov, did, regels, vind, namen)
 
 
 async def _kies_gebeurtenis(api, wid: str, ov: dict[str, Any], actie: dict[str, Any], keuzes: list[str], tekst: str,
@@ -670,7 +677,7 @@ async def _kies_gebeurtenis(api, wid: str, ov: dict[str, Any], actie: dict[str, 
 
 async def verwerk(api, actie: dict[str, Any], zoek: Zoek | None,
                   vind: Callable[[str], list[str]] | None = None, stel_voor: StelVoor | None = None,
-                  toets: Toets | None = None) -> dict[str, Any]:
+                  toets: Toets | None = None, namen: Namen | None = None) -> dict[str, Any]:
     """Een klik op een kaartje van de bronselectie. Geeft `{kaart?, zinnen, artefact_deelvraag?}`."""
     if toets is not None:
         _TOETS.set(toets)
@@ -688,7 +695,7 @@ async def verwerk(api, actie: dict[str, Any], zoek: Zoek | None,
     if stap == "bs_gebeurtenis":
         return await _kies_gebeurtenis(api, wid, ov, actie, keuzes, tekst, zoek, stel_voor)
     if stap == "bs_toevoegen":
-        return await _toevoegen(api, wid, ov, did, keuzes, regels, vind)
+        return await _toevoegen(api, wid, ov, did, keuzes, regels, vind, namen)
     if ov["modus"] == "analysevraag" and stap != "bs_kies":
         did = ANALYSEVRAAG
     if stap == "bs_kies":
@@ -731,7 +738,7 @@ async def verwerk(api, actie: dict[str, Any], zoek: Zoek | None,
         # die de analist noemt: Lex zet ze als voorstel in het paneel, en het kaartje blijft (een voorstel schuift de
         # fase niet door).
         if regels and actie.get("actie") != "klaar":
-            return await noem(api, wid, ov, did, regels, vind)
+            return await noem(api, wid, ov, did, regels, vind, namen)
         volgende_fase = "afhankelijkheden" if stap == "bs_bepalingen" else "afronden"
         ov = await _fase(api, wid, ov, did, volgende_fase)
         # Met nieuwe bronnen in de selectie hoort er een nieuwe zoekopdracht bij: wat eraan hangt.

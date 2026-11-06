@@ -383,3 +383,40 @@ def test_de_telling_spreekt_de_taal_van_de_bron():
     assert soortwoord("Hoofdstuk", "Hoofdstuk") == "hoofdstuk"
     assert _bepalingen_geteld([deel("hoofdstuk", "art. 8", "art. 9")]) == "2 artikelen"
     assert _bepalingen_geteld([deel("artikel", "28.1", "art. 28.3a")]) == "2 bepalingen", "de Leidraad wisselt"
+
+
+# --- Regeling in de vraag: een naam die een andere naam bevat -----------------------------------------
+
+class _Namen:
+    """De namen zoals de graaf ze echt geeft (5 nov 2026): de uitvoeringsregeling kent "Awir" niet als eigen naam."""
+
+    def sparql(self, query: str) -> str:
+        return ("?regeling\t?citeertitel\t?soort\t?afkortingen\n"
+                "<urn:bwb:BWBR0018472>\tAlgemene wet inkomensafhankelijke regelingen\twet\tAwir\n"
+                "<urn:bwb:BWBR0019237>\tUitvoeringsregeling Algemene wet inkomensafhankelijke regelingen\t"
+                "ministeriele-regeling\tUitv reg Awir\n"
+                "<urn:bwb:BWBR0004770>\tInvorderingswet 1990\twet\tIW | Iw 1990\n"
+                "<urn:bwb:BWBR0004766>\tUitvoeringsregeling Invorderingswet 1990\tministeriele-regeling\t"
+                "Uitv.reg.IW\n"
+                "<urn:bwb:BWBR0005537>\tAlgemene wet bestuursrecht\twet\tAwb\n")
+
+
+@pytest.mark.parametrize(("vraag", "verwacht"), [
+    ("artikel 6 Uitvoeringsregeling Algemene wet inkomensafhankelijke regelingen", ["BWBR0019237"]),
+    ("artikel 6 lid 1 Uitvoeringsregeling Awir", ["BWBR0019237"]),
+    ("artikel 6 lid 1 UR Awir", ["BWBR0019237"]),
+    ("artikel 6 Uitv reg Awir", ["BWBR0019237"]),
+    ("artikel 40ca Uitvoeringsregeling Invorderingswet", ["BWBR0004766"]),
+    ("artikel 40ca UR IW 1990", ["BWBR0004766"]),
+    ("artikel 25 Awir", ["BWBR0018472"]),
+    ("artikel 25 Algemene wet inkomensafhankelijke regelingen", ["BWBR0018472"]),
+    # Beide genoemd, op eigen plekken: dan zijn het er ook twee.
+    ("artikel 25 Awir en artikel 6 Uitvoeringsregeling Awir", ["BWBR0018472", "BWBR0019237"]),
+])
+def test_de_langste_naam_wint_van_de_naam_die_erin_zit(vraag, verwacht):
+    assert overzicht.regelingen_in_vraag(_Namen(), vraag) == verwacht
+
+
+def test_een_uitvoeringsregeling_die_niet_bestaat_is_niet_stil_de_moederwet():
+    assert overzicht.regelingen_in_vraag(_Namen(), "artikel 3 Uitvoeringsregeling Awb") == []
+    assert overzicht.regelingen_in_vraag(_Namen(), "artikel 3 UR Awb") == []
