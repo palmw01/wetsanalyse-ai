@@ -180,18 +180,19 @@ async def test_na_een_herindeling_vindt_herannotatie_de_opvolger_op_de_slottekst
     oud = uit["elementen"][0]["id"]
     await _beslis(oud, "approve", heel)
 
-    async def _nu(doel):
-        return heel
-    monkeypatch.setattr(werkgebieden, "_resolve_bron", _nu)
+    def _bronstand(snap):
+        async def _lees(doel):
+            return snap
+        monkeypatch.setattr(werkgebieden, "_resolve_bron", _lees)
+        monkeypatch.setattr(werkgebieden, "_lees_bron", _lees)
+
+    _bronstand(heel)
     wg = await _werkgebied(client)
     b = await _begrip(client, wg, [oud])
     assert (await _herbeoordelingen(client, wg))["begrippen"] == []
 
     gesplitst = _gesplitst()
-
-    async def _na(doel):
-        return gesplitst
-    monkeypatch.setattr(werkgebieden, "_resolve_bron", _na)
+    _bronstand(gesplitst)
     [h] = (await _herbeoordelingen(client, wg))["begrippen"]
     [k] = h["koppelingen"]
     assert any("veranderde niet" in r for r in k["redenen"]), k["redenen"]
