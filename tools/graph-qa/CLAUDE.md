@@ -1296,20 +1296,25 @@ SPARQL was deterministisch; de keten eromheen niet. Nu is wat feitelijk is code 
    één plek: `kop` per deel ("28 – Invorderingsrente"), `naam` per bepaling **zoals de bron haar noemt**
    (`bwb:label`: "Artikel 79.5a" → "art. 79.5a", "79.5" → "79.5" – de Leidraad wisselt zelf, en dat
    verschil wordt niet weggepoetst), `vindplaats` per definitie (`bronmodel.vindplaats`).
-5. **Uitgangen:** een `overzicht`-event (de werkplek toont het als blok en bewaart het in
+5. **Uitgangen:** een `overzicht`-event (de werkplek toont het als kaartje met paneel en bewaart het in
    `Bericht.overzicht`); de samenvatting als `answer` (`finalize_node` stuurt de `token`) en assistent-bericht na het
    `tool_use`/`tool_result`-paar (`voor_model`, voor vervolgvragen); in de `source_trace` de
    vindplaatsen (`bronrijen`). Route `overzicht_bouwen → verify → finalize`; `route_after_verify` gaat
    met een overzicht nooit naar een correctieronde (die zou het model alsnog laten schrijven).
 6. **Bronnen en controle uit het overzicht:** `finalize_node` neemt de bronnen uit het overzicht;
    `check_grounding(..., overzicht=)` toetst elk genoemd artikel én deel ("Hoofdstuk II", "Titel 5.4")
-   tegen het overzicht, inclusief de bovenliggende delen (`opbouw`) – ook als het model de tool vrij
-   gebruikt.
+   tegen het overzicht, inclusief de bovenliggende delen (`opbouw`).
+7. **Geen sjabloon (ADR-008):** de route heeft niets wat een sjabloon oplost. Er typt geen model feiten
+   over, en `state["overzicht"]` blijft nodig voor de controle en de route. Een `Antwoord` zou alleen
+   een tweede drager van dezelfde gegevens zijn.
 
-De tool `overzicht_onderwerp` levert hetzelfde overzicht buiten de route (MCP, vrije vragen) en
-pagineert per deel binnen de begroting. Bouwt het overzicht niet (graaf weg), dan krijgt het model een
-foutresultaat en zegt het dat; de werkplek toont dan geen blok. `tests/test_overzicht.py` legt
-herkenning, samenstelling, volgorde, de route en de eval-scorer vast.
+De tool `overzicht_onderwerp` (`_h_overzicht`) bouwt met dezelfde code een overzicht buiten de route (MCP,
+vrije vragen) en pagineert per deel binnen de begroting. Onderwerp en afbakening kiest dan de aanroeper.
+Punt 5 en 6 gelden daar **niet**: de tool levert alleen `voor_model`, dus geen `overzicht`-event en geen
+kaartje, en `state["overzicht"]` blijft leeg. De controle en de bronnen zijn dan die van een gewoon
+antwoord. Bouwt het overzicht niet (graaf weg), dan krijgt het model een foutresultaat en zegt het dat;
+de werkplek toont dan geen kaartje. `tests/test_overzicht.py` legt herkenning, samenstelling, volgorde,
+de route en de eval-scorer vast.
 
 ## De leesroute: vragen óver bestaande annotaties
 

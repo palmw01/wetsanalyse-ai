@@ -218,7 +218,8 @@ def test_voor_model_is_een_contract_binnen_de_begroting_zonder_nummerlijsten():
     tekst = overzicht.voor_model(ov)
     data = is_contract(tekst)
     assert data and len(tekst) <= BUDGET
-    assert "27quinquies" not in tekst, "de nummers toont de werkplek; het model typt ze niet over"
+    assert "27quinquies" not in tekst, "het model krijgt geen nummerlijst om over te typen"
+    assert "werkplek" not in tekst, "bij een vrije aanroep toont de werkplek niets van dit overzicht"
     assert data["volledig"] and data["resultaten"][0] == {
         "regeling": "Invorderingswet 1990", "bwb_id": "BWBR0004770",
         "deel": "Hoofdstuk II – Invordering in eerste aanleg", "iri": H2, "bepalingen": 3}

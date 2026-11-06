@@ -118,7 +118,7 @@ overzien.
    zoeken met `search_annotaties`, dan pas formuleren – zoeken is een stap in de keten, geen keuze
    van het model) of de **overzichtsroute** voor "welke artikelen gaan over X?" (`overzicht_bouwen`:
    overzicht én tekst komen deterministisch uit de graaf, zonder model, en de werkplek toont het als
-   blok – dezelfde vraag geeft hetzelfde overzicht, dezelfde tekst, dezelfde bronnen en dezelfde
+   kaartje met paneel – dezelfde vraag geeft hetzelfde overzicht, dezelfde tekst, dezelfde bronnen en dezelfde
    graaf).
    Endpoints: `POST /v1/runs` (+ `/events`, `/cancel`; de weg van de werkplek – de beurt draait bij de
    agent, de browser kijkt mee), `POST /v1/chat` (SSE, aan de verbinding gekoppeld en **zonder

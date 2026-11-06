@@ -391,7 +391,7 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
 
     if state.get("overzicht"):
         # De overzichtsroute: de bronnen zijn de vindplaatsen van het overzicht, en hangen dus niet af
-        # van hoe de duiding geformuleerd is – geen cureren op de proza, geen bronnen van eerder.
+        # van de tekst – geen cureren op de proza, geen bronnen van eerder.
         sources = collect_sources([(OVERZICHT_TOOL, overzicht_bronrijen(state["overzicht"]))])
     elif state.get("antwoord"):
         # Een sjabloon draagt zijn vindplaatsen zelf; cureren op de proza heeft dan geen zin. Zonder doelen (een
