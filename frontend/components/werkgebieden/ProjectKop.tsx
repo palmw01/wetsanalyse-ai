@@ -10,7 +10,7 @@ import { Field, Input, Select } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
 import { StatusLabel } from "@/components/ui/Lijst";
 import { MeerMenu, MenuVerwijder } from "@/components/ui/MeerMenu";
-import { PaginaKop, Stip, TabLinks, type Kruimel } from "@/components/ui/Pagina";
+import { KleineActies, PaginaKop, Stip, TabLinks, type Kruimel } from "@/components/ui/Pagina";
 import { useWerkgebied } from "@/components/werkgebieden/WerkgebiedProject";
 import { ExportKnop } from "@/components/werkplek/ExportKnop";
 import { exporteerWerkgebied, haalBronselectie, haalThemaVoorstel } from "@/lib/api";
@@ -52,18 +52,19 @@ export function ProjectKop({ tab }: { tab: ProjectTab }) {
         }
         acties={
           <>
-            <ExportKnop onFout={setFout} titel={wg.naam} formaten={WERKGEBIED_EXPORT_FORMATEN}
-              onDownload={() => exporteerWerkgebied(wg.id)}
-              markdown={async () => dossierAlsMarkdown(wg, await haalBronselectie(wg.id).catch(() => undefined))} />
+            <KleineActies
+              links={<ExportKnop onFout={setFout} titel={wg.naam} formaten={WERKGEBIED_EXPORT_FORMATEN}
+                onDownload={() => exporteerWerkgebied(wg.id)}
+                markdown={async () => dossierAlsMarkdown(wg, await haalBronselectie(wg.id).catch(() => undefined))} />}
+              rechts={<MeerMenu label="Meer voor dit werkgebied" maat="sm">
+                {() => <MenuVerwijder ariaLabel={verwijderLabel("werkgebied")} titel={VERWIJDER_UITLEG.werkgebied} onBevestig={verwijder} />}
+              </MeerMenu>} />
             {/* Bewerken gebeurt ter plekke op de kaart van het dossier (4 nov 2026), niet in een venster. */}
             <Link href={`${artefactPad(wg.id, "dossier")}?bewerk=1`} className={knopKlasse("secondary", "sm")}>Gegevens bewerken</Link>
             <Link href={`/workbench?werkgebied=${encodeURIComponent(wg.id)}`}
               className={knopKlasse("primary", "sm")}>
               Nieuw gesprek
             </Link>
-            <MeerMenu label="Meer voor dit werkgebied" maat="sm">
-              {() => <MenuVerwijder ariaLabel={verwijderLabel("werkgebied")} titel={VERWIJDER_UITLEG.werkgebied} onBevestig={verwijder} />}
-            </MeerMenu>
           </>
         }
       />

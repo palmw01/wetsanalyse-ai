@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 
 import { StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
-import { PaginaKop, Stip } from "@/components/ui/Pagina";
+import { KleineActies, PaginaKop, Stip } from "@/components/ui/Pagina";
 import { BEGRIP_STATUS_TOON, BegripInhoud, BegripMenu } from "@/components/werkgebieden/BegripInhoud";
 import { useWerkgebied } from "@/components/werkgebieden/WerkgebiedProject";
 import { ExportKnop } from "@/components/werkplek/ExportKnop";
@@ -57,10 +57,10 @@ export function BegripPagina({ begripId }: { begripId: string }) {
           <Stip /><span>revisie {begrip.revisie}</span>
         </>}
         acties={begrip && <>
-          <ExportKnop onFout={setFout} titel={naam} formaten={[]} markdown={() => begripAlsMarkdown(begrip)} />
+          <KleineActies links={<ExportKnop onFout={setFout} titel={naam} formaten={[]} markdown={() => begripAlsMarkdown(begrip)} />}
+            rechts={<BegripMenu stand={stand} onNaarBegrip={naarBegrip} onGestopt={() => { zetOnbewaard(false); router.push(kader); }} />} />
           <VraagLexKnop primair onderwerp={{ soort: "begrip", werkgebied_id: wg.id, id: begripId, label: naam }}
             naam={`Bespreek ${naam} met Lex`} />
-          <BegripMenu stand={stand} onNaarBegrip={naarBegrip} onGestopt={() => { zetOnbewaard(false); router.push(kader); }} />
         </>}
       />
       {fout && <Melding type="fout" className="mb-4">{fout}</Melding>}

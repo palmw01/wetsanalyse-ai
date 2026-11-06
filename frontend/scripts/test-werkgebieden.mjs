@@ -401,6 +401,14 @@ try {
   await page.getByRole("navigation", { name: "Werkgebied" }).getByRole("link", { name: "Bronnen (3)" }).waitFor();
   await foto("werkgebied-mobiel");
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+  // Exporteren en ⋯ delen één rij boven de hoofdknoppen, die op volle breedte blijven (6 nov 2026).
+  const kop = page.locator("[data-paginakop]");
+  const expKnop = await kop.getByRole("button", { name: "Exporteren" }).boundingBox();
+  const meerKnop = await kop.getByRole("button", { name: "Meer voor dit werkgebied" }).boundingBox();
+  const hoofdKnop = await kop.getByRole("link", { name: "Nieuw gesprek" }).boundingBox();
+  assert.ok(Math.abs((expKnop.y + expKnop.height / 2) - (meerKnop.y + meerKnop.height / 2)) <= 1, "Exporteren en ⋯ op één rij");
+  assert.ok(meerKnop.x > expKnop.x + expKnop.width, "⋯ staat rechts");
+  assert.ok(hoofdKnop.width > 300, "de hoofdknop blijft op volle breedte");
   // De tabbalk schuift alleen horizontaal: vijf tabs, geen verticale scroll in de rij (3 nov 2026).
   const rij = page.locator("[data-tabrij]");
   assert.equal(await rij.getByRole("link").count(), 5);
@@ -409,6 +417,12 @@ try {
   await rij.evaluate((el) => { el.scrollTop = 20; });
   assert.equal(await rij.evaluate((el) => el.scrollTop), 0);
   await page.setViewportSize({ width: 1280, height: 900 });
+  await page.waitForTimeout(100);
+  const opBreed = await page.locator("[data-paginakop]").evaluate((el) => {
+    const y = (n) => { const r = el.querySelector(n)?.getBoundingClientRect(); return r ? Math.round(r.top + r.height / 2) : -1; };
+    return Math.abs(y("[data-meer-knop]") - y('a[href^="/workbench"]')) <= 2;
+  });
+  assert.equal(opBreed, true, "vanaf sm staat alles op één rij");
 
   // Verwijderen is echt wissen, net als een annotatie: op de pagina (tweede klik bevestigt), met de
   // revisie in beeld; een 412 laadt de nieuwe stand en zegt het.
