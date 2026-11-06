@@ -139,13 +139,17 @@ export function bronHref(ref?: string | null): string | undefined {
 // andere host (bv. een intern 0.0.0.0:3000 dat door een verkeerd geconfigureerde proxy ontstaat).
 // `origin` is een parameter i.p.v. een greep naar `window.location.origin`, zodat de functie ook
 // buiten de browser te testen is. Gebruikt na het inloggen én na het accepteren van de disclaimer.
+//
+// De toets staat op het resultaat, niet op de invoer: `/.//evil.example` hoort bij het eigen origin,
+// maar normaliseert tot `//evil.example`, en dat is als href een sprong naar die host.
 export function veiligPad(cb: string | null, origin: string): string {
   if (!cb) return "/";
   try {
     const u = new URL(cb, origin);
-    return u.origin === origin ? u.pathname + u.search : "/";
+    if (u.origin !== origin) return "/";
+    const pad = u.pathname + u.search;
+    return new URL(pad, origin).origin === origin ? pad : "/";
   } catch {
-    // Alleen een echt intern pad; sluit protocol-relatieve paden (`//evil.com`) expliciet uit.
-    return cb.startsWith("/") && !cb.startsWith("//") ? cb : "/";
+    return "/";
   }
 }

@@ -1670,8 +1670,8 @@ knop. Zie `docs/observability.md`.
     geen e-mail: wie inlogt terwijl zijn aanvraag loopt, krijgt de `code` `aanvraag_open` uit
     `/verify` (afgehandeld in `LoginClient` naast `totp_required`) – alleen bij het **juiste
     wachtwoord**, anders is het een middel om te ontdekken wie een aanvraag heeft.
-  - **2FA (TOTP)** is optioneel en self-service in de accounttab. De account/2FA-routes zetten
-    `X-User-Id` uit de sessie, nooit uit browser-input.
+  - **2FA (TOTP)** is optioneel en self-service in de accounttab; inschakelen vraagt het huidige
+    wachtwoord. De account/2FA-routes zetten `X-User-Id` uit de sessie, nooit uit browser-input.
   - Auth.js' eigen routes leven onder `/api/auth/*`; zet daar geen eigen BFF-route bij (daarom
     `/api/setup`, `/api/registreren`, `/api/login-verify`, `/api/login-2fa`). Publieke paden staan in
     `isPublic()` in `auth.config.ts`; vergeet je er een, dan stuurt de gate een bezoeker zonder account

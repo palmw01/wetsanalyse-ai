@@ -9,7 +9,7 @@ Verantwoordelijkheden:
     de tabel leeg is; daarna sluit die route.
   - Admin-CRUD voor gebruikersbeheer in /beheer, met de beleidsgaranties (laatste actieve
     beheerder mag niet verdwijnen).
-  - Optionele 2FA (TOTP): koppelen (`begin_2fa`), bevestigen (`activate_2fa`) en losmaken
+  - Optionele 2FA (TOTP): koppelen (`begin_2fa`, met het wachtwoord), bevestigen (`activate_2fa`) en losmaken
     (`disable_2fa`). Het secret staat versleuteld (Fernet, zie secrets_crypto).
 
 Het wachtwoord-hash en het versleutelde TOTP-secret blijven binnen deze laag; de routers geven ze
@@ -46,6 +46,10 @@ _USERID_RE = re.compile(r"^[a-z0-9._-]{3,64}$")
 
 class UserError(ValueError):
     """Ongeldige gebruiker-operatie (onbekend, dubbel, laatste beheerder, ongeldige rol, e.d.)."""
+
+
+class TotpActiefError(UserError):
+    """Een nieuwe 2FA-koppeling terwijl 2FA aanstaat: eerst uitzetten, met een code."""
 
 
 def _norm_userid(userid: str) -> str:
@@ -531,15 +535,29 @@ async def _update(userid: str, **waarden) -> None:
 
 # --- 2FA (TOTP) ----------------------------------------------------------------
 
-async def begin_2fa(userid: str) -> str:
+async def begin_2fa(userid: str, password: str) -> str:
     """Genereer een (nog niet actief) TOTP-secret en geef de otpauth://-URI voor de QR-code.
 
     Het secret wordt versleuteld opgeslagen maar `totp_enabled` blijft False tot `activate_2fa`
     één geldige code bevestigt. Opnieuw aanroepen vervangt een nog niet bevestigd secret.
+
+    Koppelen vraagt het wachtwoord: een sessie alleen is geen bewijs, want wie er één kaapt zou de
+    eigenaar anders met een eigen authenticator buitensluiten. Actieve 2FA blijft onaangeroerd
+    (`TotpActiefError`); uitzetten kan alleen met een code (`disable_2fa`). Die weigering zit in de
+    UPDATE zelf, zodat een gelijktijdige `activate_2fa` er niet tussendoor valt.
     """
     user = await _require_user(userid)
+    if not user.active or not verify_password(password, user.password_hash):
+        raise UserError("Huidig wachtwoord onjuist.")
     secret = pyotp.random_base32()
-    await _update(user.userid, totp_secret_enc=encrypt(secret), totp_enabled=False)
+    async with db.get_engine().begin() as conn:
+        res = await conn.execute(
+            update(db.users)
+            .where(db.users.c.userid == user.userid, db.users.c.totp_enabled.is_(False))
+            .values(totp_secret_enc=encrypt(secret), updated=_utcnow())
+        )
+    if res.rowcount != 1:
+        raise TotpActiefError("2FA staat al aan. Schakel het eerst uit om een nieuwe app te koppelen.")
     # In de authenticator toont het account de userid; issuer = Wetsanalyse.
     return pyotp.TOTP(secret).provisioning_uri(name=user.userid, issuer_name=_TOTP_ISSUER)
 

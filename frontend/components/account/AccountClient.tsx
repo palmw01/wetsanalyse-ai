@@ -22,6 +22,9 @@ function secretUit(uri: string): string {
 export function AccountClient() {
   const [account, setAccount] = useState<MeAccount | null>(null);
   const [fout, setFout] = useState<string | null>(null);
+  // Bevestigingsformulier bij het inschakelen: koppelen vraagt het huidige wachtwoord.
+  const [inschakelen, setInschakelen] = useState(false);
+  const [wachtwoord, setWachtwoord] = useState("");
   // Lopende 2FA-koppeling: de QR/secret + het in te voeren code-veld.
   const [koppeling, setKoppeling] = useState<{ uri: string; qr: string } | null>(null);
   const [code, setCode] = useState("");
@@ -49,17 +52,20 @@ export function AccountClient() {
     setFout(isApiError(e) ? `${e.detail} (${e.status})` : (e as Error).message);
   }
 
-  async function onStart() {
+  async function onStart(e: React.FormEvent) {
+    e.preventDefault();
     setFout(null);
     setBezig(true);
     try {
-      const { otpauth_uri } = await begin2fa();
+      const { otpauth_uri } = await begin2fa(wachtwoord);
       // qrcode wordt alleen hier gebruikt, bij het activeren van 2FA. Statisch importeren zette
       // de hele encoder in de bundel van iedereen die zijn account opent.
       const { default: QRCode } = await import("qrcode");
       const qr = await QRCode.toDataURL(otpauth_uri, { margin: 1, width: 200 });
       setKoppeling({ uri: otpauth_uri, qr });
       setCode("");
+      setWachtwoord("");
+      setInschakelen(false);
     } catch (e) {
       melden(e);
     } finally {
@@ -119,8 +125,8 @@ export function AccountClient() {
               {account.totp_enabled && !uitschakelen && (
                 <Button size="sm" variant="secondary" onClick={() => setUitschakelen(true)}>Uitschakelen</Button>
               )}
-              {!account.totp_enabled && !koppeling && (
-                <Button size="sm" onClick={onStart} disabled={bezig}>2FA inschakelen</Button>
+              {!account.totp_enabled && !koppeling && !inschakelen && (
+                <Button size="sm" onClick={() => setInschakelen(true)}>2FA inschakelen</Button>
               )}
             </SettingRow>
           </SettingList>
@@ -148,6 +154,36 @@ export function AccountClient() {
                   size="sm"
                   variant="ghost"
                   onClick={() => { setUitschakelCode(""); setUitschakelen(false); }}
+                  disabled={bezig}
+                  className="w-full sm:w-auto"
+                >
+                  Annuleren
+                </Button>
+              </div>
+            </form>
+          ) : inschakelen ? (
+            <form onSubmit={onStart} className="mt-4 space-y-3">
+              <p className="text-sm text-muted">
+                Voer je huidige wachtwoord in om een authenticator-app aan dit account te koppelen.
+              </p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+                <Field label="Huidig wachtwoord">
+                  <Input
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    value={wachtwoord}
+                    onChange={(e) => setWachtwoord(e.target.value)}
+                  />
+                </Field>
+                <Button type="submit" size="sm" disabled={bezig} className="w-full sm:w-auto">
+                  Doorgaan
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => { setWachtwoord(""); setInschakelen(false); }}
                   disabled={bezig}
                   className="w-full sm:w-auto"
                 >

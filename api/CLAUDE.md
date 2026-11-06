@@ -1027,6 +1027,10 @@ de stand van die beurt zien, dan heb je een momentopname nodig. Alleen een begri
   (`maak_2fa_ticket`, 5 min, Fernet); `verify_credentials` meldt dat als `"ok_totp"`. De 2FA-secret
   is versleuteld met dezelfde Fernet-key als de LLM-keys. Tests zetten de klok stil via
   `users._nu`; `_totp_now` in `tests/test_users_auth.py` schuift per code een stap op.
+- **Een 2FA-koppeling starten vraagt het wachtwoord** (`users.begin_2fa`), en actieve 2FA blijft
+  staan: een sessie alleen mag de tweede factor niet vervangen. Die weigering (409, security-log
+  `2fa_begin_geweigerd`) zit in de voorwaardelijke `UPDATE`, niet in een eerdere lezing. Uitzetten kan
+  alleen met een code; een herstelpad bij een verloren authenticator is er nog niet.
 - **Zelfregistratie** (`registraties.py`): een aanvraag is **geen account** – tot de goedkeuring
   bestaat er geen rij in `users`. De userid wordt afgeleid uit de naam (vier letters achternaam +
   eerste letter voornaam + volgnummer) en is bij goedkeuren corrigeerbaar; de bcrypt-hash gaat
