@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 #: contract van nu – een kaartje met een stap die intussen anders heet, een artefact van een vervallen
 #: soort –, dan valt alleen dat veld weg. Anders weigerde de api het hele gesprek (500), en daarmee ook
 #: laden én verwijderen: een gesprek is een verslag en moet altijd te openen en weg te halen zijn.
-_OPTIONEEL = ("hergebruik", "dekking", "overzicht", "annotatie_doel", "tool_executions", "reeks", "artefact",
+_OPTIONEEL = ("hergebruik", "dekking", "overzicht", "antwoord", "annotatie_doel", "tool_executions", "reeks", "artefact",
               "bevestiging", "bevestiging_antwoord", "vraagkaart", "intake_antwoord", "uitkomst")
 
 
@@ -43,6 +43,7 @@ def _bericht_uit_row(row) -> Bericht:
         hergebruik=inhoud.get("hergebruik", {}) or {},
         dekking=inhoud.get("dekking", {}) or {},
         overzicht=inhoud.get("overzicht", {}) or {},
+        antwoord=inhoud.get("antwoord") or None,
         annotatie_doel=inhoud.get("annotatie_doel") or None,
         tool_executions=inhoud.get("tool_executions", []) or [],
         reeks=inhoud.get("reeks") or None,
@@ -84,6 +85,8 @@ def _inhoud(inv: BerichtInvoer | Bericht) -> dict:
         inhoud["dekking"] = inv.dekking
     if inv.overzicht:
         inhoud["overzicht"] = inv.overzicht
+    if inv.antwoord:
+        inhoud["antwoord"] = inv.antwoord.model_dump()
     if inv.annotatie_doel:
         inhoud["annotatie_doel"] = inv.annotatie_doel.model_dump()
     if inv.tool_executions:

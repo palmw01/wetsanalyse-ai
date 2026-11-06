@@ -594,6 +594,8 @@ export interface Bericht {
   hergebruik?: unknown;
   /** Het overzicht van een onderwerp; zelfde vorm als het `overzicht`-event (zie `parseOverzicht`). */
   overzicht?: unknown;
+  /** Het antwoord als sjabloon (ADR-008); zie `parseAntwoord`. */
+  antwoord?: unknown;
   /** Wat de annotatieketen kon bekijken, met de fasen en hun duur; de werkplek leest er alleen de
    *  meting uit (`metingUitDekking`). */
   dekking?: unknown;

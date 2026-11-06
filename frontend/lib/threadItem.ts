@@ -23,6 +23,8 @@ export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecu
       // Het overzicht van een onderwerp, uit de graaf (graph-qa `agent/overzicht.py`): de werkplek
       // toont het als blok onder de duiding, en de graafknop opent er de delen van.
       overzicht?: Overzicht;
+      // Het antwoord als sjabloon (ADR-008): vaste blokken; `tekst` blijft het hele antwoord.
+      antwoord?: import("./antwoord").Antwoord;
       // Lex stelt voor het werkgebied te annoteren (fase B): de knop eronder start de run.
       bevestiging?: import("./types").Bevestiging;
       // Een vraag van Lex bij het samenstellen van een werkgebied (activiteit 1): het kaartje eronder.

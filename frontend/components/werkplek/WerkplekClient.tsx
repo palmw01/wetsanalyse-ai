@@ -59,6 +59,7 @@ import { useBreedScherm } from "@/lib/useBreedScherm";
 import { jasStyle, klasseLabel } from "@/lib/jas";
 import type { ThreadItem } from "@/lib/threadItem";
 import { LEX_KORT, WerkplekHeader } from "./WerkplekHeader";
+import { parseAntwoord } from "@/lib/antwoord";
 import { parseGrounding, parseHergebruik, parseOverzicht, parseUitkomst } from "@/lib/agentEvents";
 import { DEMO_DOEL, DEMO_SLUG, type DemoScene } from "@/lib/rondleidingDemo";
 import {
@@ -323,6 +324,7 @@ export function WerkplekClient({
               : { id: uid(), type: "antwoord" as const, tekst: b.tekst, denk: b.denk, bronnen: b.bronnen, tool_executions: toolSpoorUit(b.tool_executions),
                   // Het overzicht zoals graph-qa het opbouwde: na herladen hetzelfde blok en dezelfde graafdoelen.
                   overzicht: b.overzicht ? parseOverzicht(b.overzicht) : undefined,
+                  antwoord: parseAntwoord(b.antwoord),
                   bevestiging: parseBevestiging(b.bevestiging),
                   // Het kaartje van het samenstellen: na herladen nog te beantwoorden als het het laatste is.
                   vraagkaart: parseVraagkaart(b.vraagkaart),
@@ -688,6 +690,7 @@ export function WerkplekClient({
           },
           onSources: (b) => updateItem(antId, { bronnen: b }),
           onGrounding: (g) => updateItem(antId, { grounding: g }),
+          onAntwoord: (a) => updateItem(antId, { antwoord: a }),
           onOverzicht: (o) => {
             updateItem(antId, { overzicht: o });
             // Op een breed scherm staat het meteen naast het antwoord, zoals de bronselectie. Op een smal

@@ -468,7 +468,8 @@ plan mag verouderen.
   de keten die betekenisgroepen voorstelt, in de vorm van `hybrid_v1`. `adr-005-vraag-lex-en-agents.md`
   legt Vraag Lex en de agents onder de supervisor vast (F3). `adr-006-generieke-begrippen.md` legt
   het generieke begrippenkader boven de werkgebieden vast (spoor N). `adr-007-llm-pad-en-verwerker.md` is
-  een concept: wat vastligt over het LLM-pad en wat de eigenaar nog moet besluiten.
+  een concept: wat vastligt over het LLM-pad en wat de eigenaar nog moet besluiten. `adr-008-antwoordsjablonen.md`
+  legt het antwoord als toolaanroep vast: vaste blokken per vraagtype, de feiten uit de code.
 - `docs/architectuur/annotatieketen.md` – hoe de annotatieketen **nu** werkt: stappen,
   configuratie (`CLASSIFIER_GRANULARITEIT` e.d.), beslisbeleid, detectoren en bekende beperkingen.
   `docs/architectuur/metingen/README.md` is het meetlogboek: welke meting bij welke code hoort.
