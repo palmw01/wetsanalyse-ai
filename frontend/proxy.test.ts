@@ -4,9 +4,10 @@ import { describe, expect, it } from "vitest";
 
 /** Het matcher-patroon uit `proxy.ts`, uit de bron gelezen in plaats van geïmporteerd.
  *
- *  Importeren kan niet: `proxy.ts` roept `NextAuth()` aan bij het laden en dat trekt `next/server`
- *  mee, dat in de node-omgeving van vitest niet resolvet. Overtypen wil ik nog minder – dan bewaakt
- *  deze test een kopie die naast de echte kan gaan lopen. Dus lezen we de echte regel.
+ *  Next compileert de matcher zelf bij het bouwen, dus de export zegt hier niets over wat er in de
+ *  build terechtkomt. Overtypen wil ik nog minder – dan bewaakt deze test een kopie die naast de
+ *  echte kan gaan lopen. Dus lezen we de echte regel. Het gedrag van de gate zelf staat in
+ *  `proxy.gate.test.ts`.
  *
  *  De matcher moet in `proxy.ts` een letterlijke string blijven: Next analyseert hem statisch bij het
  *  bouwen, en een geïmporteerde constante zou daar stilzwijgend kunnen sneuvelen – met de routegate
