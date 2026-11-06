@@ -6,7 +6,9 @@ blijft.*
 - **Herbeoordelingen** (`herbeoordelingen`) leggen per dragende koppeling de bewaarde stand naast de
   stand van nu. Twee bronnen van verandering: de annotatie (Postgres: `begrip_store.actualiteit`) en de
   wettekst onder het anker (de bronboom uit de graaf). Een nieuwe bronstand alleen is een signaal: is
-  het gemarkeerde fragment er nog letterlijk, dan zegt de lijst dat ook (PLAN §D *Wijzigingen*).
+  het gemarkeerde fragment er nog letterlijk, dan zegt de lijst dat ook (PLAN §D *Wijzigingen*). Een
+  andere bron_hash is niet altijd een andere wet: splitste de importer de tekst van een node (tekst na
+  een opsomming werd een slottekst, #869), dan rekent `_herindeling` dat na en zegt de lijst dat.
 - **Opvolgers** (`opvolgers`, zuiver): na herannotatie is er een nieuw element met een nieuw id. De
   kandidaten zijn de actuele elementen op dezelfde bronnode, met signalen met richting (klasse, tekst,
   plek, al elders primair) – geen score, en nooit een automatische herkoppeling.
@@ -26,6 +28,7 @@ import re
 import uuid
 
 from fastapi import HTTPException
+from bronmodel import tekst_hash
 from sqlalchemy import insert, select, update
 
 from . import begrip_relatie_store, begrip_store, begrippen_run_store, db
@@ -36,6 +39,7 @@ from .werkgebied_inventaris import Resolver, inventaris, inventaris_met_bronbome
 from .werkgebied_store import _audit as werkgebied_audit
 
 MAX_OPVOLGERS = 5
+SLOTTEKST = "Slottekst"                      # `bwb:label` van tekst na een opsomming (tools/bwb-import)
 
 
 def _norm(s: str) -> str:
@@ -53,11 +57,34 @@ def referentie_ankers(k: dict) -> list[dict]:
     return (bev[-1].get("ankers") if bev else None) or k["bewijs"].get("ankers", [])
 
 
+def _herindeling(anker: dict, nodes: dict[str, dict]) -> dict | None:
+    """Het anker in de actuele indeling als alleen de indeling veranderde, anders `None`.
+
+    Bewijs, geen zoektocht: de node plus zijn slotteksten, samengevoegd zoals vóór de splitsing, moeten
+    de oude `bron_hash` geven. Dan is de wettekst letter voor letter gelijk en is de plek exact te
+    rekenen, ook als het woord vaker voorkomt. `{}`: het fragment loopt nu over meer dan één node."""
+    node = nodes[anker["bron_iri"]]
+    slot = sorted((n for n in nodes.values() if n.get("parent_iri") == node["bron_iri"]
+                   and n.get("label") == SLOTTEKST), key=lambda n: n.get("volgorde", 0))
+    delen = [n for n in (node, *slot) if n.get("tekst")]
+    if not slot or tekst_hash(" ".join(n["tekst"] for n in delen)) != anker.get("bron_hash"):
+        return None
+    begin = 0
+    for n in delen:
+        if begin <= anker.get("start", 0) and anker.get("eind", 0) <= begin + len(n["tekst"]):
+            return {**anker, "bron_iri": n["bron_iri"], "bron_hash": n["bron_hash"],
+                    "start": anker["start"] - begin, "eind": anker["eind"] - begin}
+        begin += len(n["tekst"]) + 1
+    return {}
+
+
 def bron_signalen(ankers: list[dict], nodes: dict[str, dict], opgehaald: set[str]) -> list[dict]:
     """Per anker: is de wettekst eronder veranderd, en staat het fragment er nog letterlijk?
 
     `stand`: `ongewijzigd`, `gewijzigd`, `weg` (de bronnode bestaat niet meer in de actuele stand) of
-    `onbekend` (de regeling was niet op te halen – een open punt, geen conclusie)."""
+    `onbekend` (de regeling was niet op te halen – een open punt, geen conclusie). Bij `gewijzigd` zegt
+    `herindeeld` dat de wet gelijk bleef en alleen de indeling in de graaf veranderde; `naar` is dan het
+    anker op de node waar het fragment nu staat."""
     uit = []
     for a in ankers:
         iri = a.get("bron_iri", "")
@@ -71,6 +98,11 @@ def bron_signalen(ankers: list[dict], nodes: dict[str, dict], opgehaald: set[str
             tekst = n.get("tekst", "")
             regel.update(stand="gewijzigd", tekst_nu=tekst,
                          fragment_gelijk=tekst[a.get("start", 0):a.get("eind", 0)] == a.get("tekst", ""))
+            doel = _herindeling(a, nodes)
+            if doel is not None:
+                regel["herindeeld"] = True
+                if doel and doel["bron_iri"] != iri:
+                    regel.update(naar=doel, tekst_nu=nodes[doel["bron_iri"]]["tekst"])
         uit.append(regel)
     return uit
 
@@ -91,6 +123,11 @@ def _redenen(k: dict, huidig: dict | None, bron: list[dict]) -> list[str]:
             uit.append(f"{plek} staat niet meer in de actuele wettekst.")
         elif b["stand"] == "onbekend":
             uit.append(f"De wettekst van {plek} was niet op te halen; of hij veranderde is onbekend.")
+        elif b.get("herindeeld"):
+            uit.append(f"De wettekst van {plek} veranderde niet, alleen de indeling in de graaf; het gemarkeerde "
+                       + ("fragment staat nog op zijn plek." if b["fragment_gelijk"] else
+                          "fragment staat letterlijk in de tekst na de opsomming." if b.get("naar") else
+                          "fragment loopt nu over meer dan één deel."))
         elif b["stand"] == "gewijzigd":
             uit.append(f"De wettekst van {plek} veranderde; het gemarkeerde fragment staat er nog letterlijk."
                        if b["fragment_gelijk"] else
@@ -190,7 +227,9 @@ async def herbeoordelingen(werkgebied: dict, resolve: Resolver, begrip_id: str |
             bron = bron_signalen(referentie_ankers(k), nodes, opgehaald)
             if k["actualiteit"] == "actueel" and all(x["stand"] == "ongewijzigd" for x in bron):
                 continue
-            ref = {**k["bewijs"], "ankers": referentie_ankers(k)}
+            # Een herindeling verplaatst het fragment: de opvolger staat op de plek waar het nu staat.
+            naar = [x["naar"] for x in bron if x.get("naar")]
+            ref = {**k["bewijs"], "ankers": [*referentie_ankers(k), *naar]}
             kan_opvolgen = k["actualiteit"] != "actueel" or (h or {}).get("verouderd")
             # Bevestigen: de annotatie bestaat nog, is niet verworpen of door herannotatie vervangen, en
             # elk fragment staat letterlijk op zijn plek – anders hoort de bepaling opnieuw geannoteerd.

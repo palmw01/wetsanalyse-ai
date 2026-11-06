@@ -4,10 +4,12 @@ Acceptatie: een gewijzigde dragende passage verschijnt bij de geraakte begrippen
 blijft."""
 from __future__ import annotations
 
+import hashlib
+
 from sqlalchemy import delete
 
-from app import annotatie_v2_store as store, db
-from app.begrip_onderhoud_store import opvolgers
+from app import annotatie_v2_store as store, db, werkgebieden
+from app.begrip_onderhoud_store import _redenen, bron_signalen, opvolgers
 from test_annotatie_v2 import ONE, TWO, element, request, snapshot
 from test_begrippen import DEFINITIE, _annoteer, _begrip, _beslis, _url, _werkgebied
 from test_begrippen_runs import _groep, _start, _uitkomst
@@ -90,6 +92,99 @@ async def test_een_gewijzigde_dragende_passage_verschijnt_en_de_oude_bewijsstand
     assert (await _herbeoordelingen(client, wg))["begrippen"] == []
     acties = [x["actie"] for x in (await client.get(_url(wg, b, "revisies"))).json()["revisies"]]
     assert acties[0] == "koppeling-herkoppeld"
+
+
+# --- herindeling: de importer splitst een node, de wet blijft gelijk -------------------------------
+
+SLOT = "urn:bwb:BWBR0004770:id:BWBR0004770%2FArtikel9%2FLid2%2FSlottekst1"
+
+
+def _hash(tekst: str) -> str:
+    return hashlib.sha256(tekst.encode()).hexdigest()
+
+
+def _gesplitst(target=TWO, kop="Alfa", slot="Beta Gamma") -> dict:
+    """Lid 2 zoals na de splitsing: de kop op de node zelf, de rest in een slottekst eronder."""
+    snap = snapshot(target, second=kop)
+    nodes = [*snap["nodes"], dict(bron_iri=SLOT, parent_iri=TWO, type="Onderdeel", label="Slottekst", tekst=slot,
+                                  bron_hash=_hash(slot), volgorde=len(snap["nodes"]), bwb_id="BWBR0004770")]
+    return {**snap, "snapshot_id": store.digest(nodes), "nodes": nodes}
+
+
+def _anker(start: int, eind: int, heel="Alfa Beta Gamma") -> dict:
+    return dict(bron_iri=TWO, start=start, eind=eind, tekst=heel[start:eind], bron_hash=_hash(heel))
+
+
+def test_een_gesplitste_node_is_geen_gewijzigde_wet_en_het_anker_verhuist_exact():
+    nodes = store.nodes_van(_gesplitst())
+    [s] = bron_signalen([_anker(10, 15)], nodes, set())
+    assert (s["stand"], s["herindeeld"], s["fragment_gelijk"], s["tekst_nu"]) == ("gewijzigd", True, False, "Beta Gamma")
+    assert s["naar"] == dict(bron_iri=SLOT, start=5, eind=10, tekst="Gamma", bron_hash=_hash("Beta Gamma"))
+    assert s["naar"]["tekst"] == nodes[SLOT]["tekst"][s["naar"]["start"]:s["naar"]["eind"]]
+    [reden] = _redenen({"actualiteit": "actueel"}, None, [{**s, "vindplaats": "Lid 2"}])
+    assert "veranderde niet" in reden and "ook op de gemarkeerde plek" not in reden
+
+
+def test_een_fragment_in_de_kop_blijft_staan_en_blijft_te_bevestigen():
+    [s] = bron_signalen([_anker(0, 4)], store.nodes_van(_gesplitst()), set())
+    assert (s["herindeeld"], s["fragment_gelijk"]) == (True, True) and "naar" not in s
+
+
+def test_een_fragment_over_de_splitsing_heen_krijgt_geen_verzonnen_plek():
+    [s] = bron_signalen([_anker(2, 7)], store.nodes_van(_gesplitst()), set())
+    assert (s["herindeeld"], s["fragment_gelijk"]) == (True, False) and "naar" not in s
+    assert "meer dan één deel" in _redenen({"actualiteit": "actueel"}, None, [{**s, "vindplaats": "Lid 2"}])[0]
+
+
+def test_meer_slotteksten_volgen_de_documentvolgorde():
+    snap = _gesplitst(kop="Alfa", slot="Beta")
+    tweede = {**store.nodes_van(snap)[SLOT], "bron_iri": SLOT + "2", "tekst": "Gamma", "bron_hash": _hash("Gamma"),
+              "volgorde": 99}
+    nodes = {**store.nodes_van(snap), tweede["bron_iri"]: tweede}
+    [s] = bron_signalen([_anker(10, 15)], nodes, set())
+    assert (s["naar"]["bron_iri"], s["naar"]["start"]) == (SLOT + "2", 0)
+
+
+def test_een_echte_wijziging_naast_een_slottekst_blijft_een_wijziging():
+    [s] = bron_signalen([_anker(10, 15, heel="Alfa Beta Delta")], store.nodes_van(_gesplitst()), set())
+    assert "herindeeld" not in s and s["fragment_gelijk"] is False
+
+
+async def test_na_een_herindeling_vindt_herannotatie_de_opvolger_op_de_slottekst(client, monkeypatch):
+    heel = snapshot(TWO, second="Alfa Beta Gamma")
+    uit = await store.batch(request(heel, [element(heel, TWO, 10, 15)], batch_id="eerste"), heel, "lex")
+    oud = uit["elementen"][0]["id"]
+    await _beslis(oud, "approve", heel)
+
+    async def _nu(doel):
+        return heel
+    monkeypatch.setattr(werkgebieden, "_resolve_bron", _nu)
+    wg = await _werkgebied(client)
+    b = await _begrip(client, wg, [oud])
+    assert (await _herbeoordelingen(client, wg))["begrippen"] == []
+
+    gesplitst = _gesplitst()
+
+    async def _na(doel):
+        return gesplitst
+    monkeypatch.setattr(werkgebieden, "_resolve_bron", _na)
+    [h] = (await _herbeoordelingen(client, wg))["begrippen"]
+    [k] = h["koppelingen"]
+    assert any("veranderde niet" in r for r in k["redenen"]), k["redenen"]
+    assert k["bron"][0]["tekst_nu"] == "Beta Gamma" and k["opnieuw_annoteren"] == [TWO]
+    assert k["acties"] == ["loskoppelen"]                       # het oude anker past niet: niet te bevestigen
+
+    # De route die de lijst wijst: de bepaling opnieuw annoteren, met de slottekst eronder.
+    revs = {l["bron_iri"]: l["revisie"] for l in (await store.weergave(gesplitst))["lagen"]}
+    nieuw = (await store.batch(request(gesplitst, [element(gesplitst, SLOT, 5, 10)], batch_id="herannotatie",
+                                       revisions=revs), gesplitst, "lex"))["elementen"][0]["id"]
+    [h] = (await _herbeoordelingen(client, wg))["begrippen"]
+    [k] = h["koppelingen"]
+    [o] = k["opvolgers"]
+    assert o["element_id"] == nieuw
+    assert ("steun", "Op dezelfde plek in de bepaling.") in {(s["richting"], s["uitleg"]) for s in o["signalen"]}
+    assert "herkoppelen" in k["acties"]
+    assert b["id"] == h["begrip_id"]
 
 
 async def test_fragment_nog_letterlijk_dan_bevestigen_met_een_tweede_bewijsstand(client, graaf):
