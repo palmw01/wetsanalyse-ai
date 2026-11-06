@@ -29,7 +29,7 @@ from .review import Oordeel
 # CHANGE (klasse wordt het voorstel van de reviewer, oude klasse alternatief, groen),
 # HUMAN (geel, alternatieven erbij), MERGE (ZELFDE_SPAN: één klasse blijft, de ander wordt alternatief).
 TABEL: dict[tuple[str, str], tuple[str, str]] = {
-    ("CENTRALE_NORM_AFGEWEZEN", "KEEP"): ("R-CENTRAAL-KEEP", "REJECT"),
+    ("CENTRALE_NORM_AFGEWEZEN", "KEEP"): ("R-CENTRAAL-KEEP", "HUMAN"),  # de enige norm vervalt niet zonder jurist
     ("CENTRALE_NORM_AFGEWEZEN", "CHANGE"): ("R-CENTRAAL-CHANGE", "CHANGE"),
     ("CENTRALE_NORM_AFGEWEZEN", "HUMAN_REVIEW"): ("R-CENTRAAL-HUMAN", "HUMAN"),
     ("DETECTOR_CONFLICT", "KEEP"): ("R-CONFLICT-KEEP", "HUMAN"),     # conflict met de detectie blijft
@@ -152,7 +152,8 @@ def los_op(voorstellen: list[dict[str, Any]], beslissingen: list[Beslissing], tw
                 # keuze. De mogelijke klassen staan allemaal als alternatief; de jurist kiest.
                 nb = b.model_copy(update={"status": CandidateStatus.HUMAN_REVIEW, "klasse": "", "reden": regel,
                                           "door": "terugval"})
-                nv = {**maak_voorstel(k, nb), "_label": t.label, "aandacht": "geel", "review_uitleg": _uitleg(t, regel)}
+                nv = {**maak_voorstel(k, nb), "_label": t.label, "aandacht": "geel",
+                      "review_uitleg": _uitleg(t, regel, o.motivering if o else "")}
                 _alt(nv, k.possible_classes, "ook mogelijk; kies in de review")
                 uit.append(nv)
                 per_label_b[t.label] = nb
@@ -168,9 +169,11 @@ def los_op(voorstellen: list[dict[str, Any]], beslissingen: list[Beslissing], tw
     return uit, [per_label_b[b.label] for b in beslissingen], transities
 
 
-def _uitleg(t: Twijfel, regel: str = "") -> str:
+def _uitleg(t: Twijfel, regel: str = "", motivering: str = "") -> str:
     """De tekst op de gele kaart. Een technische storing heet ook zo (V5): anders leest de jurist
     een contractfout van het model als juridische twijfel."""
+    if regel == "R-CENTRAAL-KEEP":
+        return f"De reviewer ziet hier geen norm: {motivering} Dit is de enige normkandidaat, dus jij beslist."
     if t.reden == "CLASSIFIER_ABSTAIN" and t.categorie == "CLASSIFIER_CONTRACT_ERROR":
         gekozen = t.detail.split(":", 1)[1] if ":" in t.detail else ""
         tekst = ("Technische storing, geen juridische twijfel: het model koos een klasse die hier niet was "

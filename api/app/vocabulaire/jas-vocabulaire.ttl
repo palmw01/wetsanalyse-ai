@@ -557,8 +557,8 @@
     jas:codeWaarde "R-CENTRAAL-HUMAN" .
 
 <urn:jas-ns:resolutie:R-CENTRAAL-KEEP> a jas:Resolutieregel ;
-    skos:definition "De reviewer bevestigt gemotiveerd dat de centrale kandidaat geen annotatie oplevert."@nl ;
-    skos:prefLabel "Afwijzing bevestigd"@nl ;
+    skos:definition "De reviewer ziet hier geen norm. Het is de enige normkandidaat, dus die vervalt niet zonder oordeel van de jurist."@nl ;
+    skos:prefLabel "Afwijzing door de reviewer – jij beslist"@nl ;
     jas:codeWaarde "R-CENTRAAL-KEEP" .
 
 <urn:jas-ns:resolutie:R-CONFLICT-CHANGE> a jas:Resolutieregel ;
@@ -989,5 +989,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "6526912d0f78" .
+    jas:vocabulaireVersie "9d3cafa5167d" .
 

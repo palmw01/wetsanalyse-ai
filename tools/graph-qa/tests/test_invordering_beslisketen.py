@@ -52,7 +52,7 @@ def run(casus, actie="KEEP", context=None, kort=False, norm=GEEN_ANNOTATIE, moti
 
 
 @pytest.mark.parametrize("actie,status,voorstel", [
-    ("KEEP", "REJECTED", False), ("CHANGE", "ACCEPTED", True), ("HUMAN_REVIEW", "HUMAN_REVIEW", True),
+    ("KEEP", "HUMAN_REVIEW", True), ("CHANGE", "ACCEPTED", True), ("HUMAN_REVIEW", "HUMAN_REVIEW", True),
     ("ongeldige actie", "HUMAN_REVIEW", True),
 ])
 def test_centrale_herbeoordeling_met_volledige_herkomst(casus, actie, status, voorstel):
