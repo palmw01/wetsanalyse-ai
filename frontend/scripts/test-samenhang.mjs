@@ -11,6 +11,8 @@ import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
 
 const base = process.env.TEST_URL || "http://localhost:3109";
+const DEF = "urn:bwb:BWBR0004770:artikel:2:lid:1:o:m";
+let echteKetting = false;
 const shots = process.env.MOCK_SCREENSHOTS || "/tmp/wetsanalyse-samenhang";
 mkdirSync(shots, { recursive: true });
 const LAW = "urn:bwb:BWBR0004770", ART = `${LAW}:artikel:9`, L1 = `${ART}:lid:1`, L2 = `${ART}:lid:2`;
@@ -54,6 +56,32 @@ function samenhang(iri) {
 // Na een mutatie (afronden, markeren, …) levert de api een extra markering op lid 2: zo is te zien
 // of de graaf zonder herladen meeloopt.
 let bijgewerkt = false;
+/** De ketting (`GET samenhang/antwoord`): keten en doel, de markeringen op het doel, één wettelijk begrip. */
+function ketenVan(iris) {
+  const eerste = samenhangNu(iris[0]);
+  const delen = iris.map(samenhangNu);
+  const ketting = new Set();
+  const ouder = new Map(delen.flatMap((d) => d.relaties.filter((r) => r.soort === "bevat").map((r) => [r.doel, r.bron])));
+  for (const iri of iris) for (let i = iri; i; i = ouder.get(i)) ketting.add(i);
+  const knopen = new Map();
+  for (const d of delen) for (const k of d.knopen) if (ketting.has(k.id)) knopen.set(k.id, k);
+  const relaties = delen.flatMap((d) => d.relaties).filter((r) => r.soort === "bevat" && ketting.has(r.bron) && ketting.has(r.doel));
+  for (const d of delen) for (const r of d.relaties) {
+    if (r.soort !== "markeert" || !ketting.has(r.doel)) continue;
+    knopen.set(r.bron, d.knopen.find((k) => k.id === r.bron));
+    relaties.push(r);
+  }
+  const begrip = { id: "term:BWBR0004770:aanslag", soort: "begrip", label: "aanslag", tekst: "aanslag: de aanslag;", klasse: "", lifecycle: "", element_id: "",
+    bwb_id: "BWBR0004770", artikel: "", lid: "", rand: false, begrip_bron: "wet", definities: [
+      { bron_iri: DEF, vindplaats: "Artikel 2, lid 1, onderdeel m", aanhef: "In deze wet wordt verstaan onder:", tekst: "aanslag: de aanslag;", bereik: "regeling", formule: "deze wet" }] };
+  knopen.set(begrip.id, begrip);
+  knopen.set(DEF, { ...begrip, id: DEF, soort: "onderdeel", label: "Onderdeel m.", begrip_bron: "", definities: [], rand: true, vindplaats: "Artikel 2, lid 1, onderdeel m" });
+  relaties.push({ bron: DEF, doel: begrip.id, soort: "definieert", groep: "begrippen", anker_tekst: "" },
+    { bron: begrip.id, doel: iris[0], soort: "komt_voor_in", groep: "begrippen", anker_tekst: "aanslag" });
+  return { ...eerste, keten: true, doelen: iris, knopen: [...knopen.values()], relaties, begrippen_beschikbaar: true,
+    ingekort: { kinderen: {}, markeringen: {}, begrippen: 0, onzekere_verwijzingen: 0 }, fouten: [] };
+}
+
 function samenhangNu(iri) {
   const s = samenhang(iri);
   if (!bijgewerkt || iri.startsWith(A10)) return s;
@@ -194,7 +222,7 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PAT
 
 async function nieuwePagina({ width = 1440, height = 1000, webgl = true } = {}) {
   const page = await browser.newPage({ viewport: { width, height } });
-  const log = { errors: [], console: [], samenhang: [], samenhangMeer: [], mutaties: [], graaf: [] };
+  const log = { errors: [], console: [], samenhang: [], samenhangMeer: [], keten: [], mutaties: [], graaf: [] };
   page.on("pageerror", (e) => log.errors.push(e.message));
   // React meldt in dev dat de CSP geen eval toestaat; in productie gebruikt React geen eval.
   page.on("console", (m) => { if (m.type() === "error" && !/React will never use eval\(\) in production/.test(m.text())) log.console.push(m.text()); });
@@ -212,6 +240,16 @@ async function nieuwePagina({ width = 1440, height = 1000, webgl = true } = {}) 
     if (req.method() !== "GET") { log.mutaties.push(`${req.method()} ${url.pathname}`); bijgewerkt = true; }
     if (url.pathname.endsWith("/v2/capabilities")) return route.fulfill({ json: { schema_versie: 2, bronnodes_actief: true, samenhang: true } });
     if (url.pathname.endsWith("/v2/samenhang")) { log.samenhang.push(url.searchParams.get("bron_iri")); return route.fulfill({ json: samenhangNu(url.searchParams.get("bron_iri")) }); }
+    if (url.pathname.endsWith("/v2/samenhang/antwoord")) {
+      const iris = url.searchParams.getAll("bron_iri");
+      log.keten.push(iris);
+      if (echteKetting) return route.fulfill({ json: ketenVan(iris) });
+      // De bediening hieronder (zoeken, kiezen, bijladen) is dezelfde als op een hele samenhang. Die route
+      // geeft het hele artikel terug, zodat die scenario's dezelfde kaart houden; de ketting zelf staat in 0.
+      (iris.length > 1 ? log.samenhangMeer.push(iris) : log.samenhang.push(iris[0]));
+      const delen = iris.map(samenhangNu);
+      return route.fulfill({ json: { ...delen[0], knopen: [...new Map(delen.flatMap((d) => d.knopen).map((k) => [k.id, k])).values()], relaties: delen.flatMap((d) => d.relaties) } });
+    }
     if (url.pathname.endsWith("/v2/samenhang/meer")) {
       const iris = url.searchParams.getAll("bron_iri");
       log.samenhangMeer.push(iris);
@@ -277,6 +315,41 @@ async function trilKlik(page, x, y) {
 async function wachtGereed(page) {
   await page.locator('[data-testid="samenhang-graaf"][data-gereed="true"]').waitFor({ timeout: 30000 });
   await page.getByTestId("graaf-tekenaar").waitFor();
+}
+
+// 0. De ketting bij een antwoord: geen broers, wel de weg vanaf de regeling, het begrip uit de wet met zijn definitie.
+{
+  bijgewerkt = false;
+  echteKetting = true;
+  const { page, log } = await nieuwePagina();
+  await page.goto(`${base}/workbench?gesprek=g1`);
+  await page.getByRole("button", { name: /^Bekijk samenhang van .* in de graaf$/ }).first().click();
+  await graaf(page).waitFor();
+  await wachtGereed(page);
+  assert.deepEqual(log.keten, [[L2]], "de knop vraagt de ketting van de diepste bepaling");
+  assert.deepEqual(log.samenhang, [], "niet het hele artikel");
+  const aantal = Number(await page.getByTestId("graaf-tekenaar").getAttribute("data-knopen"));
+  assert.ok(aantal < 8, `de ketting toont minder dan het hele artikel (${aantal})`);
+  assert.equal((await zoekStand(page, "lid 1", L1)).er, false, "geen broer van het doel");
+  assert.match(await page.getByTestId("graaf-keten-zin").innerText(), /Je ziet de weg van Invorderingswet 1990 naar Artikel 9, lid 2, met 0 markeringen, 1 begrip en 0 verwijzingen\. De rest van de regeling staat er niet bij\./);
+  await page.screenshot({ path: `${shots}/0a-ketting.png` });
+  await zoekEnKies(page, "aanslag", "term:BWBR0004770:aanslag");
+  const wet = page.getByTestId("graaf-wetbegrip");
+  assert.match(await wet.innerText(), /Wettelijk begrip[\s\S]*In deze wet wordt verstaan onder:[\s\S]*aanslag: de aanslag;[\s\S]*Artikel 2, lid 1, onderdeel m[\s\S]*geldt voor de regeling/);
+  await page.screenshot({ path: `${shots}/0b-begrip.png` });
+  await wet.getByRole("button", { name: "Artikel 2, lid 1, onderdeel m" }).click();
+  assert.equal(await gekozen(page), DEF, "de vindplaats kiest de definitiebepaling");
+  await page.getByRole("button", { name: "Selectie opheffen" }).click();
+  // Los daarvan: het hele artikel erbij. De ketting blijft licht, de rest staat gedimd.
+  await page.getByTestId("graaf-heel-artikel").click();
+  for (let i = 0; i < 40 && !(await zoekStand(page, "lid 1", L1)).er; i++) await page.waitForTimeout(150);
+  assert.ok((await zoekStand(page, "lid 1", L1)).er, "het hele artikel staat erbij");
+  assert.deepEqual(log.samenhang, [ART], "het hele artikel komt uit /samenhang");
+  await page.getByTestId("graaf-heel-artikel").waitFor({ state: "detached" });
+  await page.screenshot({ path: `${shots}/0c-heel-artikel.png` });
+  assert.deepEqual(log.errors, [], "geen fouten");
+  await page.close();
+  echteKetting = false;
 }
 
 // 1. Breed scherm: chatknop opent het paneel op de graaf; sigma tekent, de hint staat er.
@@ -546,14 +619,15 @@ async function wachtGereed(page) {
 // het tweede artikel opent dát in het paneel.
 {
   bijgewerkt = false;
+  echteKetting = true;
   const { page, log } = await nieuwePagina();
   await page.goto(`${base}/workbench?gesprek=g2`);
   await page.getByRole("button", { name: /^Bronnen \(3\)/ }).click();
   assert.match(await page.locator('[data-tour="bronnen"]').innerText(), /Invorderingswet 1990 – Artikel 9, lid 2, Artikel 10/);
-  await page.getByRole("button", { name: "Bekijk samenhang van de 2 genoemde artikelen in de graaf" }).click();
+  await page.getByRole("button", { name: "Bekijk samenhang van de 2 genoemde bepalingen in de graaf" }).click();
   await graaf(page).waitFor();
-  await page.getByText("Samenhang van 2 artikelen").waitFor();
-  assert.deepEqual(log.samenhangMeer.at(-1), [L2, A10], "beide genoemde artikelen in één verzoek");
+  await page.getByText("Samenhang van 2 bepalingen").waitFor();
+  assert.deepEqual(log.keten.at(-1), [L2, A10], "beide genoemde bepalingen in één verzoek");
   await wachtGereed(page);
   await zoekEnKies(page, "Artikel 10", A10);
   await page.getByRole("button", { name: "Open in het paneel" }).waitFor();
@@ -561,6 +635,7 @@ async function wachtGereed(page) {
   assert.deepEqual(log.errors, []);
   assert.deepEqual(log.console, [], "geen consolefouten");
   await page.close();
+  echteKetting = false;
 }
 
 // 14. Een overzichtsantwoord: het blok toont het overzicht uit het bericht; "Dit antwoord" laadt de delen

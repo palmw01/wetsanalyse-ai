@@ -258,7 +258,7 @@ await page.route("**/api/**", async (route) => {
   if (p === "/api/gesprekken") return route.fulfill({ json: [{ id: "g1", titel: "Test", aantal_berichten: 5 }] });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: metGraaf } });
-  if (p.endsWith("/annotatie/v2/samenhang")) return route.fulfill({ json: { doel: "urn:lid1", knopen: [{ id: "urn:lid1", soort: "lid", label: "Lid 1",
+  if ((p.endsWith("/annotatie/v2/samenhang") || p.endsWith("/annotatie/v2/samenhang/antwoord"))) return route.fulfill({ json: { doel: "urn:lid1", knopen: [{ id: "urn:lid1", soort: "lid", label: "Lid 1",
     tekst: "", klasse: "", lifecycle: "", element_id: "", bwb_id: "BWBR0004770", artikel: "9", lid: "1", rand: false }], relaties: [] } });
   return route.fulfill({ json: p.endsWith("/berichten") && m === "POST" ? { id: 1 } : [] });
 });

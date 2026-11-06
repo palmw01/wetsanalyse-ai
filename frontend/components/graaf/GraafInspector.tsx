@@ -29,6 +29,11 @@ const ZICHTBAAR_PER_GROEP = 5;
  *
  *  Smal (zijpaneel) staat de kaart onder de graaf, met een eigen scroll, en is hij in te klappen. De
  *  aanroeper geeft hem per keuze een `key`: een nieuwe keuze begint open en bovenaan. */
+const GELDT: Record<string, string> = {
+  regeling: "geldt voor de regeling", artikel: "geldt voor dat artikel", artikel_n: "geldt voor dat artikel", lid: "geldt voor dat lid",
+  structuur: "geldt voor dat deel",
+};
+
 export function GraafInspector({ model, id, detail, info, element, ongedekt, hoofdactie, laadt, groepen, telling, doelen, smal,
   onCentreer, onSluit, onHoofdactie, onVraag, onKies, doelenKop = "Dit antwoord", extra }: {
   model: GraafModel;
@@ -118,11 +123,22 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
         {knoop.aandacht === "groen" && <StatusLabel toon="groen">Bevestigd door review</StatusLabel>}
       </div>}
       {knoop.soort === "markering" && el && <MarkeringDetail el={el} />}
-      {knoop.soort === "begrip" && <p className="text-[11px] text-muted" data-testid="graaf-begrip">
+      {knoop.soort === "begrip" && knoop.begrip_bron === "wet" && <div className="space-y-2" data-testid="graaf-wetbegrip">
+        <p className="text-[11px] text-muted">Wettelijk begrip · de wet zelf legt de betekenis vast.</p>
+        {knoop.definities?.map((d) => <div key={d.bron_iri} className="text-xs">
+          {d.aanhef && <p className="text-muted">{d.aanhef}</p>}
+          <blockquote className="mt-0.5 border-l-2 border-line pl-2 text-ink">{d.tekst}</blockquote>
+          <p className="mt-0.5 text-[11px] text-faint">
+            <button type="button" onClick={() => onKies(d.bron_iri)} className="focus-ring rounded text-lint underline">{d.vindplaats || d.bron_iri}</button>
+            {" · "}{GELDT[d.bereik] ?? "geldt voor de regeling"}{d.formule ? ` (“${d.formule}”)` : ""}
+          </p>
+        </div>)}
+      </div>}
+      {knoop.soort === "begrip" && knoop.begrip_bron !== "wet" && <p className="text-[11px] text-muted" data-testid="graaf-begrip">
         {BEGRIP_STATUS[knoop.status ?? ""] ?? "Begrip"} · een analyse-uitkomst van dit werkgebied, geen wettelijke definitie.
         {!knoop.tekst && " Er is nog geen definitie."}</p>}
-      <Wettekst detail={detail} knoop={knoop} gekozen={knoop.soort === "markering" ? knoop.element_id : undefined}
-        kiesbaar={(e) => model.hasNode(`element:${e}`)} onKies={(e) => onKies(`element:${e}`)} />
+      {knoop.begrip_bron !== "wet" && <Wettekst detail={detail} knoop={knoop} gekozen={knoop.soort === "markering" ? knoop.element_id : undefined}
+        kiesbaar={(e) => model.hasNode(`element:${e}`)} onKies={(e) => onKies(`element:${e}`)} />}
       {knoop.soort === "markering" && element === "laden" && <p className="text-xs text-faint">Details ophalen…</p>}
       {knoop.soort === "markering" && element === "fout" && <p className="text-xs text-faint">De details van deze markering konden niet worden opgehaald.</p>}
       {knoop.soort === "markering" && el && <WaaromUitklap key={knoop.id} el={el} beginOpen />}

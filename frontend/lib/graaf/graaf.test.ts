@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
-import type { SamenhangKnoop, SamenhangRelatie } from "@/lib/samenhang";
+import type { Samenhang, SamenhangKnoop, SamenhangRelatie } from "@/lib/samenhang";
 import { layoutSleutel, leesLayout, naarReeksen, uitReeksen } from "./cache";
-import { berekenLayout, plaatsAnnotaties, startposities, structuurVan, type Posities } from "./layout";
+import { berekenLayout, layoutKeten, plaatsAnnotaties, startposities, structuurVan, type Posities } from "./layout";
 import { bouwModel, type GraafBron } from "./model";
 import { proefgraaf } from "./proefgraaf";
 import { layoutVoor } from "./rekenaar";
-import { GEDIMD, NADRUK_LIJN } from "./stijl";
-import { focusVan, knoopBeeld, lagenVoor, lijnBeeld, STANDAARD_LAGEN, verborgenKnopen, weergaveContext, type WeergaveStand } from "./weergave";
+import { ketenZin } from "./ketenZin";
+import { BEGRIPKLEUR, eigenKleur, GEDIMD, NADRUK_LIJN, WETBEGRIPKLEUR } from "./stijl";
+import { focusVan, ketenFocus, knoopBeeld, lagenVoor, lijnBeeld, STANDAARD_LAGEN, verborgenKnopen, weergaveContext, type WeergaveStand } from "./weergave";
 
 const IW = "urn:bwb:BWBR0004770";
 const H = `${IW}:hoofdstuk:II`, A9 = `${IW}:artikel:9`, L1 = `${A9}:lid:1`, L2 = `${A9}:lid:2`, A10 = `${IW}:artikel:10`;
@@ -304,5 +305,68 @@ describe("begrippen (fase F3)", () => {
     // Een begrip op een verborgen markering blijft staan, zijn lijn ernaar niet.
     expect(lijn("begrip:a|duidt|element:1", stand({ lagen: { ...STANDAARD_LAGEN, annotaties: false } })).verborgen).toBe(true);
     expect(lagenVoor(g, "begrip:a", uit, "alle").lagen).toEqual(STANDAARD_LAGEN);
+  });
+});
+
+describe("de ketting", () => {
+  const knoop = (id: string, soort: SamenhangKnoop["soort"], extra: Partial<SamenhangKnoop> = {}): SamenhangKnoop => ({
+    id, soort, label: id, tekst: "", klasse: "", lifecycle: "", element_id: "", bwb_id: "", artikel: "", lid: "", rand: false, ...extra });
+  const rel = (bron: string, soort: SamenhangRelatie["soort"], doel: string): SamenhangRelatie => ({ bron, soort, doel, groep: "structuur", anker_tekst: "" });
+  const bron = (): Samenhang => ({ schema_versie: 1, doel: { bron_iri: "lid" } as Samenhang["doel"], snapshot_id: "s", artikel_iri: "art", keten: true, doelen: ["lid"],
+    verwijzingen_beschikbaar: true, afgekapt: false, begrippen_beschikbaar: true, ingekort: { kinderen: {}, markeringen: {}, begrippen: 0, onzekere_verwijzingen: 0 },
+    knopen: [knoop("wet", "regeling", { label: "Invorderingswet 1990" }), knoop("art", "artikel"), knoop("lid", "lid", { vindplaats: "Artikel 9, lid 1" }),
+      knoop("m", "markering"), knoop("b", "begrip", { begrip_bron: "wet" }), knoop("def", "onderdeel", { rand: true }), knoop("x", "extern", { rand: true })],
+    relaties: [rel("wet", "bevat", "art"), rel("art", "bevat", "lid"), rel("m", "markeert", "lid"), rel("b", "komt_voor_in", "m"), rel("def", "definieert", "b"), rel("lid", "verwijst_naar", "x")] });
+
+  it("zet elke knoop op een eigen regel, ingesprongen naar zijn diepte", () => {
+    const pos = layoutKeten(bouwModel([bron()]));
+    expect([...pos.keys()]).toEqual(["wet", "art", "lid", "m", "b", "def", "x"]);
+    expect(new Set([...pos.values()].map((p) => p[1])).size).toBe(7);
+    expect(pos.get("art")![0]).toBeGreaterThan(pos.get("wet")![0]);
+    expect(pos.get("def")![0]).toBeGreaterThan(pos.get("b")![0]);
+  });
+
+  it("is deterministisch", () => {
+    expect([...layoutKeten(bouwModel([bron()]))]).toEqual([...layoutKeten(bouwModel([bron()]))]);
+  });
+
+  it("plaatst ook wat nergens aan hangt", () => {
+    const b = bron();
+    b.knopen.push(knoop("los", "begrip"));
+    expect(layoutKeten(bouwModel([b])).has("los")).toBe(true);
+  });
+
+  it("licht de ketting op in een groter model", () => {
+    const k = bron();
+    const g = bouwModel([k, { knopen: [knoop("ander", "artikel")], relaties: [] }]);
+    const f = ketenFocus(g, ["lid", "weg"], k.knopen);
+    expect([...f.doelen]).toEqual(["lid"]);
+    expect(f.bereik.has("ander")).toBe(false);
+    expect(f.bereik.has("b")).toBe(true);
+  });
+
+  it("zegt wat je ziet", () => {
+    expect(ketenZin(bron())).toBe("Je ziet de weg van Invorderingswet 1990 naar Artikel 9, lid 1, met 1 markering, 1 begrip en 1 verwijzing. De rest van de regeling staat er niet bij.");
+  });
+
+  it("zegt het eerlijk als er niets is, of iets niet is opgehaald", () => {
+    const geen = { ...bron(), knopen: bron().knopen.filter((k) => k.soort !== "begrip") };
+    expect(ketenZin(geen)).toContain("Geen wettelijke definitie in de graaf");
+    expect(ketenZin({ ...geen, begrippen_beschikbaar: false })).toContain("De begrippen zijn nu niet opgehaald.");
+    expect(ketenZin({ ...geen, begrippen_beschikbaar: false })).not.toContain("Geen wettelijke definitie");
+    expect(ketenZin(bron(), true)).toContain("Lex noemt geen bepaling");
+  });
+
+  it("noemt wat er niet bij staat", () => {
+    const b = { ...bron(), ingekort: { kinderen: {}, markeringen: { lid: 40 }, begrippen: 2, onzekere_verwijzingen: 1 } };
+    const zin = ketenZin(b);
+    expect(zin).toContain("40 markeringen staan er niet bij");
+    expect(zin).toContain("2 begrippen staan er niet bij");
+    expect(zin).toContain("1 verwijzing met een onzeker doel staat er niet bij");
+  });
+
+  it("een wettelijk begrip heeft een eigen kleur", () => {
+    expect(eigenKleur({ soort: "begrip", klasse: "", label: "", rand: false, begrip_bron: "wet" })).toBe(WETBEGRIPKLEUR);
+    expect(eigenKleur({ soort: "begrip", klasse: "", label: "", rand: false, status: "concept" })).toBe(BEGRIPKLEUR.concept);
   });
 });

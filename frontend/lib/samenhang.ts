@@ -15,6 +15,15 @@ export interface SamenhangKnoop {
   herkomst?: string; aandacht?: string; subtype?: string; beslist_door?: string; twijfel?: boolean;
   /** Alleen bij een begrip: concept, geaccordeerd of vervangen (de definitie staat in `tekst`). */
   status?: string;
+  /** Alleen in de ketting: waar het begrip vandaan komt, en bij de wet zijn definities met hun bereik. */
+  begrip_bron?: "" | "wet" | "werkgebied" | "generiek";
+  werkgebied_id?: string;
+  definities?: BegripDefinitie[];
+}
+/** Eén wettelijke definitie van een begrip, zoals de bron haar geeft. */
+export interface BegripDefinitie {
+  bron_iri: string; vindplaats: string; aanhef: string; tekst: string;
+  bereik: "regeling" | "artikel" | "artikel_n" | "lid" | "structuur"; formule: string;
 }
 
 /** Welke markeringen in beeld blijven. Een kijkfilter: hij verbergt markeringen (en klassen die
@@ -40,16 +49,34 @@ export interface SamenhangRelatie {
   bron: string; doel: string;
   /** `duidt`: een begrip en een passage die het draagt; `begripsrelatie` en `begripsvoorstel`: een
    *  vastgelegde en een voorgestelde relatie tussen twee begrippen (fase F3), de zin in `anker_tekst`. */
-  soort: "bevat" | "verwijst_naar" | "markeert" | "heeft_klasse" | "duidt" | "begripsrelatie" | "begripsvoorstel";
+  soort: "bevat" | "verwijst_naar" | "markeert" | "heeft_klasse" | "duidt" | "begripsrelatie" | "begripsvoorstel"
+    /** Alleen in de ketting: een bepaling definieert een begrip; een begrip staat letterlijk in een tekst
+     *  (het fragment in `anker_tekst`). Dat laatste zegt niets over de juridische relatie. */
+    | "definieert" | "komt_voor_in";
   groep: RelatieGroep; anker_tekst: string;
 }
 export interface Samenhang {
   schema_versie: 1; doel: NodeDoel; snapshot_id: string; artikel_iri: string;
   knopen: SamenhangKnoop[]; relaties: SamenhangRelatie[]; verwijzingen_beschikbaar: boolean; afgekapt: boolean;
+  /** Alleen de ketting bij een antwoord (`GET samenhang/antwoord`). */
+  keten?: true; doelen?: string[]; begrippen_beschikbaar?: boolean; ingekort?: Ingekort;
+  fouten?: { bron_iri: string; reden: string }[];
+}
+/** Wat de ketting niet toont, geteld: een willekeurig deel tonen is erger dan het zeggen. */
+export interface Ingekort {
+  kinderen: Record<string, number>; markeringen: Record<string, number>; begrippen: number; onzekere_verwijzingen: number;
 }
 
 export async function haalSamenhang(doel: Pick<NodeDoel, "bron_iri">): Promise<Samenhang> {
   return nodeRequest(`samenhang?${new URLSearchParams({ bron_iri: doel.bron_iri })}`);
+}
+
+/** De ketting bij een antwoord: per doel de keten erboven, het doel, één niveau eronder, de markeringen,
+ *  de begrippen die daar gelden en de uitgaande verwijzingen. Eén antwoord, ontdubbeld over de doelen. */
+export async function haalKeten(doelen: Pick<NodeDoel, "bron_iri">[], werkgebiedId?: string): Promise<Samenhang> {
+  const params = new URLSearchParams(uniekeDoelen(doelen).slice(0, MAX_SAMENHANG_MEER).map((d) => ["bron_iri", d.bron_iri]));
+  if (werkgebiedId) params.set("werkgebied_id", werkgebiedId);
+  return nodeRequest(`samenhang/antwoord?${params}`);
 }
 
 /** De samenhang van meerdere doelen in één verzoek – de delen van een overzicht. De api haalt per
