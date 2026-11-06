@@ -44,6 +44,30 @@ async def _herannoteer(tekst: str) -> str:
     return uit["elementen"][0]["id"]
 
 
+async def test_lezen_mag_uit_de_cache_koppelen_toetst_tegen_de_bron_van_nu(client, graaf, monkeypatch):
+    ids = await _annoteer()
+    wg = await _werkgebied(client)
+    gebruikt: list[str] = []
+
+    async def lees(doel):
+        gebruikt.append("cache")
+        return await graaf.resolve(doel)
+
+    async def vers(doel):
+        gebruikt.append("vers")
+        return await graaf.resolve(doel)
+    monkeypatch.setattr(werkgebieden, "_lees_bron", lees)
+    monkeypatch.setattr(werkgebieden, "_resolve_bron", vers)
+
+    for pad in ("herbeoordelingen", "dekking", "elementen", "annotatie-werkvoorraad"):
+        assert (await client.get(f"/v1/werkgebieden/{wg['id']}/{pad}")).status_code == 200, pad
+    assert set(gebruikt) == {"cache"}
+
+    gebruikt.clear()
+    await _begrip(client, wg, [ids["lid2"]])
+    assert set(gebruikt) == {"vers"}, "wat iets vastlegt, leest geen bewaarde bron"
+
+
 # --- de acceptatie --------------------------------------------------------------------------------
 
 async def test_een_gewijzigde_dragende_passage_verschijnt_en_de_oude_bewijsstand_blijft(client, graaf):

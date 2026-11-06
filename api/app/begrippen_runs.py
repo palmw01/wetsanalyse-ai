@@ -15,7 +15,7 @@ from .begrippen_run_contracts import (
     Akkoord, BatchInvoer, GroepBesluit, GroepKoppeling, MisluktInvoer, Overname, UitkomstInvoer, VerdiepingInvoer, VraagBesluit,
 )
 from .routers.auth import actieve_userid
-from .werkgebieden import resolve_bron
+from .werkgebieden import lees_bron, resolve_bron
 
 router = APIRouter(prefix="/werkgebieden/{werkgebied_id}", tags=["begrippen-runs"],
                    dependencies=[Depends(require_client)])
@@ -31,7 +31,7 @@ async def post_run(werkgebied_id: str, response: Response, actor: str = Depends(
 # Vóór `/begrippen-runs/{run_id}`, anders leest de router "laatste" als een run-id.
 @router.get("/begrippen-runs/laatste")
 async def get_laatste(werkgebied_id: str, actor: str = Depends(actieve_userid)):
-    return {"run": await store.laatste(await werkgebied_store.haal(werkgebied_id), resolve_bron)}
+    return {"run": await store.laatste(await werkgebied_store.haal(werkgebied_id), lees_bron)}
 
 
 @router.get("/begrippen-runs/{run_id}")
