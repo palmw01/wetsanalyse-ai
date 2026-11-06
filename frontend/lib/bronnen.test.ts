@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normaliseerBronnen, samenhangDoelen, samenhangKnopTekst } from "./bronnen";
+import { antwoordDoelen, antwoordKnopTekst, normaliseerBronnen, samenhangDoelen, samenhangKnopTekst } from "./bronnen";
 import type { Bron } from "./types";
 
 const IW = "BWBR0004770", AWB = "BWBR0005537", AWR = "BWBR0002320", AWIR = "BWBR0018472";
@@ -76,9 +76,15 @@ describe("normaliseerBronnen", () => {
 describe("samenhangDoelen", () => {
   const tekst = "Artikel 4:94a Awb gaat over kwijtschelding. Zie ook artikel 4 en artikel 31bis Awir, "
     + "en opnieuw artikel 4:94a. Artikel 26a, tweede lid noemt een termijn.";
+  // Noemt de tekst een regeling, dan moet de bron die dragen: artikelnummers komen in elke wet terug.
+  const NAMEN: Record<string, Pick<Bron, "regeling" | "afkortingen">> = {
+    [AWB]: { regeling: "Algemene wet bestuursrecht", afkortingen: ["Awb"] },
+    [AWIR]: { regeling: "Algemene wet inkomensafhankelijke regelingen", afkortingen: ["Awir"] },
+  };
+  const metNamen = () => overzichtsantwoord().map((b) => ({ ...b, ...NAMEN[b.uri.match(/BWB[RV]\d+/)?.[0] ?? ""] }));
 
   it("neemt de artikelen die de tekst noemt, in tekstvolgorde, één per artikel en zo precies als genoemd", () => {
-    const { doelen, totaal } = samenhangDoelen(tekst, overzichtsantwoord());
+    const { doelen, totaal } = samenhangDoelen(tekst, metNamen());
     expect(doelen.map((d) => d.bron_iri)).toEqual([
       "urn:bwb:BWBR0005537:artikel:4%3A94a", "urn:bwb:BWBR0004770:artikel:4",
       "urn:bwb:BWBR0018472:artikel:31bis", "urn:bwb:BWBR0004770:artikel:26a:lid:2",
@@ -88,7 +94,7 @@ describe("samenhangDoelen", () => {
   });
 
   it("begrenst het aantal en meldt het totaal", () => {
-    const { doelen, totaal } = samenhangDoelen(tekst, overzichtsantwoord(), 2);
+    const { doelen, totaal } = samenhangDoelen(tekst, metNamen(), 2);
     expect([doelen.length, totaal]).toEqual([2, 4]);
     expect(samenhangKnopTekst({ doelen, totaal })).toBe("Bekijk samenhang van de 4 genoemde artikelen (2 getoond)");
   });
@@ -106,5 +112,91 @@ describe("samenhangDoelen", () => {
     // "artikel 1" bestaat in twee regelingen: geen doel, dus de terugval.
     const keuze = samenhangDoelen("Zie artikel 1.", [oud(iri(IW, "artikel", "1")), oud(iri(AWR, "artikel", "1"))]);
     expect(keuze.doelen.map((d) => d.bron_iri)).toEqual(["urn:bwb:BWBR0004770:artikel:1"]);
+  });
+});
+
+describe("antwoordDoelen", () => {
+  const IW_NAAM = { regeling: "Invorderingswet 1990", afkortingen: ["IW", "Iw 1990"] };
+  const AWB_NAAM = { regeling: "Algemene wet bestuursrecht", afkortingen: ["Awb"] };
+  const iw = (...pad: string[]): Bron => ({ label: "x", uri: iri(IW, ...pad), ...IW_NAAM });
+  const awb = (...pad: string[]): Bron => ({ label: "x", uri: iri(AWB, ...pad), ...AWB_NAAM });
+  const uit = (tekst: string, bronnen: Bron[]) => antwoordDoelen({ type: "antwoord", tekst, bronnen });
+  const iris = (tekst: string, bronnen: Bron[]) => uit(tekst, bronnen).doelen.map((d) => d.bron_iri);
+
+  it("geeft één doel per bepaling, ook binnen één artikel", () => {
+    expect(iris("Artikel 9, eerste lid, en artikel 9, derde lid.", [iw("artikel", "9", "lid", "1"), iw("artikel", "9", "lid", "3")]))
+      .toEqual([iri(IW, "artikel", "9", "lid", "1"), iri(IW, "artikel", "9", "lid", "3")]);
+  });
+
+  it("laat een ouder wegvallen als een kind ook genoemd is, in beide volgordes", () => {
+    const bronnen = [iw("artikel", "9"), iw("artikel", "9", "lid", "1")];
+    expect(iris("Artikel 9 regelt dit. Artikel 9, eerste lid, zegt:", bronnen)).toEqual([iri(IW, "artikel", "9", "lid", "1")]);
+    expect(iris("Artikel 9, eerste lid, zegt dit. Zie verder artikel 9.", bronnen)).toEqual([iri(IW, "artikel", "9", "lid", "1")]);
+  });
+
+  it("verwart een artikel niet met een artikel dat ermee begint", () => {
+    const bronnen = [iw("artikel", "9"), iw("artikel", "9a")];
+    expect(iris("Artikel 9 en artikel 9a.", bronnen)).toEqual([iri(IW, "artikel", "9"), iri(IW, "artikel", "9a")]);
+  });
+
+  it("verdiept een artikelbron naar het genoemde lid en onderdeel", () => {
+    const { doelen } = uit("Zie artikel 2, eerste lid, onderdeel m.", [iw("artikel", "2")]);
+    expect(doelen).toEqual([{ bron_iri: iri(IW, "artikel", "2", "lid", "1", "o", "m"), bwb_id: IW, artikel: "2", lid: "1",
+      label: "Artikel 2, lid 1, onderdeel m", citeertitel: "Invorderingswet 1990", herkomst: "vermelding" }]);
+  });
+
+  it("verdiept vanaf de diepste bron erboven", () => {
+    expect(iris("Artikel 2, eerste lid, onderdeel m.", [iw("artikel", "2"), iw("artikel", "2", "lid", "1")]))
+      .toEqual([iri(IW, "artikel", "2", "lid", "1", "o", "m")]);
+  });
+
+  it("verzint niets: een bepaling zonder bron erboven of eronder telt niet", () => {
+    const bron = iw("artikel", "2", "lid", "2");
+    const { doelen } = uit("Artikel 2, eerste lid, en artikel 77.", [bron]);
+    expect(doelen.map((d) => [d.bron_iri, d.herkomst])).toEqual([[iri(IW, "artikel", "2", "lid", "2"), "eerste_bron"]]);
+  });
+
+  it("toetst de wet als de regelingnaam achter de vermelding staat", () => {
+    const bronnen = [iw("artikel", "9"), awb("artikel", "9")];
+    expect(iris("Artikel 9, eerste lid, van de Algemene wet bestuursrecht.", bronnen)).toEqual([iri(AWB, "artikel", "9", "lid", "1")]);
+    expect(iris("Artikel 9, eerste lid, onderdeel a Iw 1990.", bronnen)).toEqual([iri(IW, "artikel", "9", "lid", "1", "o", "a")]);
+    const anders = uit("Artikel 9 van de Algemene wet bestuursrecht.", [iw("artikel", "9")]);
+    expect(anders.doelen.map((d) => d.herkomst)).toEqual(["eerste_bron"]);
+  });
+
+  it("kiest niet tussen twee wetten als de tekst er geen noemt", () => {
+    const { doelen } = uit("Artikel 9, eerste lid.", [iw("artikel", "9"), awb("artikel", "9", "lid", "1")]);
+    expect(doelen.map((d) => d.herkomst)).toEqual(["eerste_bron"]);
+  });
+
+  it("valt terug op de eerste bepaling en zegt dat", () => {
+    const { doelen } = uit("Geen vindplaats.", [oud(iri(IW)), iw("artikel", "9", "lid", "2")]);
+    expect(doelen.map((d) => [d.bron_iri, d.herkomst, d.citeertitel])).toEqual([[iri(IW, "artikel", "9", "lid", "2"), "eerste_bron", "Invorderingswet 1990"]]);
+  });
+
+  it("geeft geen doel zonder bepaling", () => {
+    expect(uit("Artikel 9.", [oud(iri(IW))]).doelen).toEqual([]);
+    expect(antwoordDoelen({ type: "antwoord", tekst: "Niets." })).toEqual({ doelen: [], totaal: 0 });
+    expect(antwoordDoelen({ type: "annotatie" })).toEqual({ doelen: [], totaal: 0 });
+  });
+
+  it("neemt het doel van een annotatie en van een chip over", () => {
+    const doel = { bron_iri: iri(IW, "artikel", "9", "lid", "1"), label: "Artikel 9, lid 1" };
+    expect(antwoordDoelen({ type: "annotatie", annotatie_doel: doel })).toEqual({ doelen: [{ ...doel, herkomst: "vermelding" }], totaal: 1 });
+    expect(antwoordDoelen({ type: "citatie", doel })).toEqual({ doelen: [{ ...doel, herkomst: "vermelding" }], totaal: 1 });
+  });
+
+  it("begrenst het aantal en meldt het totaal", () => {
+    const tekst = "Artikel 1, artikel 2 en artikel 3.";
+    const { doelen, totaal } = antwoordDoelen({ type: "antwoord", tekst, bronnen: [iw("artikel", "1"), iw("artikel", "2"), iw("artikel", "3")] }, 2);
+    expect([doelen.length, totaal]).toEqual([2, 3]);
+  });
+
+  it("noemt op de knop bepalingen, of de ene bepaling", () => {
+    const twee = uit("Artikel 9, eerste lid, en artikel 9, derde lid.", [iw("artikel", "9")]);
+    expect(antwoordKnopTekst(twee)).toBe("Bekijk samenhang van de 2 genoemde bepalingen");
+    expect(antwoordKnopTekst({ doelen: twee.doelen.slice(0, 1), totaal: 2 })).toBe("Bekijk samenhang van Artikel 9, lid 1 Invorderingswet 1990");
+    expect(antwoordKnopTekst(uit("Artikel 2, eerste lid, onderdeel m.", [iw("artikel", "2")])))
+      .toBe("Bekijk samenhang van Artikel 2, lid 1, onderdeel m Invorderingswet 1990");
   });
 });

@@ -158,8 +158,19 @@ export const parseRun: Parser<AgentRun> = (v) =>
       }
     : undefined;
 
+// Alles wat de bron draagt: de citatie-chip vergelijkt een genoemde regeling met `regeling` en
+// `afkortingen`, en die moeten live hetzelfde zijn als na herladen (daar leest de werkplek het bericht).
+const BRON_VELDEN = ["bron_iri", "jci", "bwb_id", "soort", "regeling"] as const;
+
 export const parseBronnen = lijst<Bron>((v) =>
-  isObject(v) ? { label: tekst(v.label), uri: tekst(v.uri) } : undefined,
+  isObject(v)
+    ? {
+        label: tekst(v.label),
+        uri: tekst(v.uri),
+        ...Object.fromEntries(BRON_VELDEN.filter((k) => typeof v[k] === "string").map((k) => [k, v[k]])),
+        ...(Array.isArray(v.afkortingen) ? { afkortingen: v.afkortingen.filter((a) => typeof a === "string") } : {}),
+      }
+    : undefined,
 );
 
 export const parseKandidaten = lijst<AgentKandidaat>((v) => {

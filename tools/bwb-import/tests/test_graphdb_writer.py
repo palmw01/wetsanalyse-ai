@@ -399,22 +399,35 @@ def test_doel_pad_en_ankertekst_op_verwijzing() -> None:
     assert (vw, V.ns.verwijzingId, Literal("2386592")) in g
 
 
+def _wet_met_losse_verwijzing() -> Wet:
+    wet = _kleine_wet()
+    wet.structuurdelen[0].artikelen[1].tekst = "zie artikel 9, tweede lid"
+    return wet
+
+
 def test_tekstuele_fallback_verwijzing() -> None:
     """Ongetagde tekstverwijzingen worden gedetecteerd, gemarkeerd 'laag'."""
-    g, _ = _writer().build_graph(_echte_wet())
-    bron = V.by_ref_key("BWBR0004770#artikel=2#lid=1#o=t")
-    doel = V.by_ref_key("BWBR0004770#artikel=112")
+    g, _ = _writer().build_graph(_wet_met_losse_verwijzing())
+    bron = V.by_ref_key("BWBR0000001#artikel=2")
+    doel = V.by_ref_key("BWBR0000001#artikel=9")
     assert (bron, V.ns.verwijstNaar, doel) in g
     vw = V.verwijzing(bron, doel, "tekstueel")
     assert (vw, V.ns.soort, Literal("tekstueel")) in g
     assert (vw, V.ns.betrouwbaarheid, Literal("laag")) in g
 
 
+def test_verwijzing_naar_het_douanewetboek_landt_niet_in_de_eigen_wet() -> None:
+    """Art. 2 lid 1 onderdeel t IW 1990 noemt "artikel 112, tweede lid, van het Douanewetboek"."""
+    g, _ = _writer().build_graph(_echte_wet())
+    bron = V.by_ref_key("BWBR0004770#artikel=2#lid=1#o=t")
+    assert (bron, V.ns.verwijstNaar, V.by_ref_key("BWBR0004770#artikel=112")) not in g
+
+
 def test_tekstuele_fallback_uitschakelbaar() -> None:
     writer = GraphDbWriter(
         url="http://graphdb:7200", repository="inning", vocab=V, tekstuele_refs=False
     )
-    g, _ = writer.build_graph(_echte_wet())
+    g, _ = writer.build_graph(_wet_met_losse_verwijzing())
     assert (None, V.ns.soort, Literal("tekstueel")) not in g
 
 

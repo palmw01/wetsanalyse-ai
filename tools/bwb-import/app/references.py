@@ -20,13 +20,13 @@ from app.models import Verwijzing, VerwijzingSoort
 _REF_XPATH = ".//*[self::intref or self::extref][not(ancestor::meta-data)]"
 
 # Losse tekstverwijzingen: "artikel 4", "12a", "10.1", "3:2 Awb", "6:162 BW".
-# Vangt het artikelnummer (cijfers met optionele letter/punt/dubbelepunt) plus
+# Vangt het artikelnummer (cijfers met optionele letters/punt/dubbelepunt: "30fa", "1cbis.2") plus
 # een optionele wetafkorting (hoofdletter-initiaal, bv. BW, Awb, Sr).
 # Geen IGNORECASE: de wetafkorting (bv. BW, Awb, Sr) begint met een hoofdletter,
 # zodat losse woorden als "en"/"van" niet als afkorting worden aangezien.
 _TEXT_REF = re.compile(
     r"\b[Aa]rtikel(?:en)?\s+"
-    r"(?P<nummer>\d+[a-z]?(?:[.:]\d+[a-z]?)*)"
+    r"(?P<nummer>\d+[a-z]*(?:[.:]\d+[a-z]*)*)"
     r"(?:\s+(?P<wet>[A-Z][A-Za-z]{0,6}))?"
 )
 
@@ -213,6 +213,23 @@ _ARTIKELNUMMER = re.compile(r"\d+[a-z]*(?:[.:]\d+[a-z]*)*")
 _REGELINGSNAAM = re.compile(r"\s+(?:van|in|bij)\s+(?:de|het|die|deze|dat|dit|Boek)\b")
 
 
+# Wat tussen een artikelnummer en de naam van zijn regeling kan staan: leden, onderdelen, volzinnen
+# en de rest van een opsomming ("artikelen 107 en 108", "artikel 4 en artikel 5").
+_AANWIJZING = (
+    rf"(?:{_WOORD}|laatste|lid|leden|onderdelen|onderdeel|onder|sub|subonderdeel|aanhef|volzin"
+    r"|alinea|artikelen|artikel|onderscheidenlijk|volgende|en|of|tot|met"
+    r"|\d+[a-z]*(?:[.:]\d+[a-z]*)*°?|[a-z])"
+)
+# "…, eerste lid, van het Douanewetboek van de Unie", "van Verordening (EU) nr. 910/2014". "van deze
+# wet" past hier niet: die wijst naar de eigen regeling.
+_NAAM_NA_ARTIKEL = re.compile(
+    rf"(?:[\s,]+{_AANWIJZING}(?!\w))*[\s,]+van\s+"
+    r"(?:(?:de|het)\s+(?P<naam>\w+)|(?P<eigennaam>[A-Z]\w*))"
+)
+# Een soortnaam waarmee een regeling zichzelf aanduidt: "artikel 14.1.4 van de leidraad".
+_EIGEN_REGELING = {"leidraad"}
+
+
 def _reeks(fragment: str, nummer: str, waarde=str) -> list[str]:
     """De nummers uit een opsomming; een "tot en met" vult aan wat ertussen ligt."""
     uit: list[str] = []
@@ -343,6 +360,10 @@ def detect_textual_references(tekst: str, *, eigen_bwb_id: str) -> list[Verwijzi
     Een herkende wetafkorting wordt via :mod:`app.afkortingen` naar een BWB-id
     vertaald; zonder afkorting geldt de verwijzing als intern (eigen wet).
     Matches met een onbekende afkorting worden overgeslagen (te onzeker).
+
+    Volgt na het nummer "van de/het <Naam>", dan beslist die naam, ook als er eerst een lid of
+    onderdeel tussen staat. Kent `zoek_bwb_id` hem niet, dan is het doel onbekend en vervalt de
+    treffer: "artikel 167 van het Douanewetboek van de Unie" is geen artikel 167 van de eigen wet.
     """
     treffers: list[Verwijzing] = []
     for match in _TEXT_REF.finditer(tekst):
@@ -353,6 +374,14 @@ def detect_textual_references(tekst: str, *, eigen_bwb_id: str) -> list[Verwijzi
             if doel_bwb is None:
                 continue
             anker = f"artikel {nummer} {wet}"
+        elif naam_match := _NAAM_NA_ARTIKEL.match(tekst, match.end("nummer")):
+            naam = naam_match["naam"] or naam_match["eigennaam"]
+            if naam.lower() in _EIGEN_REGELING:
+                doel_bwb, anker = eigen_bwb_id, f"artikel {nummer}"
+            elif doel_bwb := zoek_bwb_id(naam, nummer):
+                anker = f"artikel {nummer} {naam}"
+            else:
+                continue
         else:
             doel_bwb = eigen_bwb_id
             anker = f"artikel {nummer}"
