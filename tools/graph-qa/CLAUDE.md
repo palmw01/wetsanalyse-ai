@@ -97,6 +97,9 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   vullen (`Onvulbaar`) is een `is_error`-resultaat en het model gaat verder; een halve vulling bestaat niet. Naast een
   graaftool wacht het sjabloon tot de volgende ronde. Tekst in plaats van de tool blijft geldig (log `sjabloon gemist`).
   Alleen de sjabloontools zijn `strict`, en ze staan niet in `TOOLS`. Per specialist: `Specialist.sjablonen`.
+  `antwoord_duiding` (uitleg) toetst elk fragment tegen de tekst van de aangewezen bepaling, niet tegen de hele trace, en
+  weigert een bepaling die de uitleg noemt zonder passage; kort antwoord, waarom en twijfel gaan als tekst door `verify`.
+  Citeren kan alleen uit rijen met een iri bij hun tekst, dus niet uit `get_context`.
 - **`verify_node`** – `check_grounding(answer, source_trace)`. Bij ongegrond volgt via `correct_node`
   hoogstens één corrigerende ronde (`GROUNDING_CORRECT`, default aan; `state["corrected"]`). De controle
   keurt **twee** dingen af en `correct_node` moet ze allebei benoemen: `unsupported` (een vindplaats die
