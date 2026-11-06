@@ -288,12 +288,35 @@ class NaamwoordgroepDetector:
 
 # --- bijzinnen: 'als'-voorwaarde en beperkende relatieve bijzin --------------------------------
 
+# Voegwoorden van een voorwaardelijke bijzin (H2:64). De grens komt hier uit de parse, dus een komma in een
+# verwijzing of opsomming knipt de bijzin niet, zoals in de regel `jas.voorwaarde.voorwaardelijke_bijzin`.
+_VOORWAARDELIJK = {"als", "indien", "mits", "tenzij", "wanneer", "ingeval", "voorzover", "zolang"}
+
+
+def _voegwoord_van(a: LinguisticAnalysis, t: Token) -> Token | None:
+    """Het voorwaardelijke voegwoord van bijzin `t`. De parser hangt het soms aan een woord in de bijzin
+    ('Indien op grond van artikel 25 …' aan 'artikel'), dus ook een voegwoord direct vóór de bijzin telt."""
+    van = (a.tokens[i] for i in a.subboom(t.i) if a.tokens[i].deprel == "mark")
+    return next((m for m in van if m.tekst.lower() in _VOORWAARDELIJK), None)
+
+
+def _bijzinbereik(a: LinguisticAnalysis, tokens: set[int]) -> tuple[int, int] | None:
+    """Een bijzin mag komma's bevatten; alleen die aan de rand vallen weg."""
+    geordend = sorted(tokens)
+    if not a.aaneengesloten(tuple(geordend)):
+        return None
+    while geordend and a.tokens[geordend[-1]].upos == "PUNCT":
+        geordend.pop()
+    return (a.tokens[geordend[0]].start, a.tokens[geordend[-1]].eind) if geordend else None
+
+
 class BijzinDetector:
     REGELS: tuple[str, ...] = ("jas.voorwaarde.als_bijzin", "jas.voorwaarde.beperkende_bijzin",
                                "jas.voorwaarde.beperkende_bijzin_bij_zaak")
     naam = "bijzin"
     # 3: een beperkende bijzin bij een zaak of handeling biedt geen Rechtssubject aan
-    versie = f"3+verwijzing.{VERWIJZING_VERSIE}"
+    # 4: elk voorwaardelijk voegwoord, en de bijzin zelf als spanoptie
+    versie = f"4+verwijzing.{VERWIJZING_VERSIE}"
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
@@ -305,16 +328,15 @@ class BijzinDetector:
             kinderen = a.kinderen(t.i)
             # Ook vergelijkend 'als dat van …' en 'als bestuurder' kunnen mark + advcl krijgen.
             # Een nominale groep zonder werkwoordelijke predicatie is nog geen conditionele bijzin.
-            als = next((a.tokens[k] for k in kinderen if a.tokens[k].deprel == "mark"
-                        and a.tokens[k].tekst.lower() == "als"), None)
+            als = _voegwoord_van(a, t)
             eigen_predicaat = any(a.tokens[i].upos in {"VERB", "AUX"} for i in a.subboom(t.i)) if als else False
             if t.deprel in _BIJZIN and als is not None and eigen_predicaat \
                     and not _in_verwijzing(bron, als.start, als.eind):
-                g = _bereik(a, a.subboom(t.i))
+                g = _bijzinbereik(a, {als.i, *a.subboom(t.i)})
                 if g:
                     kandidaten.append(_kandidaat(bron, [(g, "bijzin")], [VW], [Evidence(
                         detector=self.naam, code="CONDITIONAL_CLAUSE", regel="jas.voorwaarde.als_bijzin",
-                        relatie=t.deprel, detail="als")]))
+                        relatie=t.deprel, detail=als.tekst.lower())]))
             # 'een partner die geen verzekerde is': de bijzin stelt een eis aan de referent.
             if _nominaal(a, t) and any(a.tokens[k].deprel == "acl:relcl" for k in kinderen):
                 geheel = set(a.subboom(t.i)) - {i for k in kinderen if a.tokens[k].deprel in {"conj", "parataxis"}
@@ -322,7 +344,9 @@ class BijzinDetector:
                 g = _bereik(a, _zonder_randfunctie(a, geheel, t.i))
                 if g:
                     persoonloos = referent(a, t, uitgesloten) in {ZAAK, HANDELING}
-                    kandidaten.append(_kandidaat(bron, [(g, "np_met_bijzin")],
+                    bijzinnen = [(b, "bijzin") for k in kinderen if a.tokens[k].deprel == "acl:relcl"
+                                 if (b := _bereik(a, a.subboom(k)))]
+                    kandidaten.append(_kandidaat(bron, [(g, "np_met_bijzin"), *bijzinnen],
                                                  [VW, OBJ] if persoonloos else [VW, SUBJ, OBJ], [Evidence(
                         detector=self.naam, code="RESTRICTIVE_RELATIVE",
                         regel="jas.voorwaarde.beperkende_bijzin_bij_zaak" if persoonloos
@@ -448,6 +472,18 @@ def _in_hoofdzin(a: LinguisticAnalysis, i: int) -> bool:
     return a.tokens[i].deprel == "root"
 
 
+def _norm_in_tegenwoordige_tijd(a: LinguisticAnalysis, i: int, tekst: str, segmenten) -> bool:
+    """'De ontvanger betaalt …', 'vindt … plaats', 'wordt melding gemaakt': de wet gebiedt meestal zonder modaal
+    werkwoord. Een eindig werkwoord als gezegde, in een segment zonder ander normsignaal of delegatieformule."""
+    t = a.tokens[i]
+    if t.upos != "VERB" or any(a.tokens[k].deprel == "mark" for k in a.kinderen(i)) or not (
+            t.feat("VerbForm") == "Fin" or any(a.tokens[k].deprel == "aux:pass"
+                                               and a.tokens[k].feat("VerbForm") == "Fin" for k in a.kinderen(i))):
+        return False
+    seg = next((tekst[g.start:g.eind] for g in segmenten if g.start <= t.start < g.eind), "")
+    return not _norm_in(seg) and not re.search(r"\bregels\b.*\bgesteld\b", seg, re.IGNORECASE)
+
+
 def _predicaatvorm(a: LinguisticAnalysis, i: int) -> str:
     """Het lemma met een scheidbaar partikel ervoor ('gaat … over' → 'overgaan') en 'in werking treden'."""
     lemma = (a.tokens[i].lemma or a.tokens[i].tekst).lower()
@@ -514,6 +550,43 @@ class GevolgDetector:
         return resultaat(self, bron, kandidaten)
 
 
+class TegenwoordigeTijdDetector:
+    """De wet gebiedt meestal zonder modaal werkwoord: 'De ontvanger betaalt …', '… vindt … plaats' (H2:46, H2:55).
+
+    Dat kan een plicht zijn of een gebeurtenis, en dat bepaalt de tekst niet: dus Rechtsbetrekking of Rechtsfeit als
+    hypothese, het model kiest. Alleen in de hoofdzin, en niet naast een ander normsignaal. Zonder parse slaat hij
+    zich zichtbaar over.
+    """
+    REGELS: tuple[str, ...] = ("jas.betrekking.tegenwoordige_tijd",)
+    naam = "tegenwoordige_tijd"
+    versie = "1"
+
+    def detecteer(self, bron: BronTekst) -> DetectorResult:
+        a, reden = _parse_of_reden(bron)
+        if a is None:
+            return resultaat(self, bron, overgeslagen=True, reden=reden)
+        segmenten = analyseer_grenzen(bron.tekst).segmenten(bron.tekst)
+        kandidaten, gezien = [], set()
+        for p in predicaten(a):
+            if not _in_hoofdzin(a, p.kop) or not _norm_in_tegenwoordige_tijd(a, p.kop, bron.tekst, segmenten):
+                continue
+            t = a.tokens[p.kop]
+            seg = next(((g.start, g.eind) for g in segmenten if g.start <= t.start < g.eind), None)
+            span = clausebereik(a, p.kop) or (seg and _trim(bron.tekst, *seg))
+            if not span or span[0] >= span[1] or _in_verwijzing(bron, *span) or span in gezien:
+                continue
+            gezien.add(span)
+            grenzen = [(span, "clause")]
+            if seg:
+                grenzen.append((_trim(bron.tekst, *seg), "segment"))
+            if span[0] < t.start < span[1]:
+                grenzen.append(((t.start, span[1]), "vanaf_gezegde"))
+            kandidaten.append(_kandidaat(bron, grenzen, [BETR, FEIT], [Evidence(
+                detector=self.naam, code="NORM_IN_PRESENT_TENSE", regel=self.REGELS[0], relatie=t.deprel,
+                detail=t.tekst)]))
+        return resultaat(self, bron, kandidaten)
+
+
 # --- Operator: nevenschikking tussen clauses en negatie ----------------------------------------
 
 class LogischeOperatorDetector:
@@ -553,5 +626,5 @@ class LogischeOperatorDetector:
 
 
 def syntactische_detectoren() -> list:
-    return [NormDetector(), GevolgDetector(), NaamwoordgroepDetector(), BijzinDetector(), NominalisatieDetector(),
+    return [NormDetector(), GevolgDetector(), TegenwoordigeTijdDetector(), NaamwoordgroepDetector(), BijzinDetector(), NominalisatieDetector(),
             LogischeOperatorDetector()]
