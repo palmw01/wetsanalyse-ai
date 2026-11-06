@@ -252,4 +252,16 @@ def test_een_beurt_rondt_af_met_de_wettekst_uit_de_graaf():
     antwoord = _eerste(events, "antwoord")["antwoord"]
     assert antwoord["sjabloon"] == "bepaling"
     assert antwoord["blokken"][0]["items"][0]["tekst"] == "Een belastingaanslag is invorderbaar."
-    assert _eerste(events, "grounding")["grounded"] is True
+    grounding = _eerste(events, "grounding")
+    assert grounding["grounded"] is True and grounding["niveau"] == "gegrond", "de vindplaats staat erbij, dus niet: niets te controleren"
+
+
+def test_de_regelingnaam_komt_ook_op_de_doelen():
+    from types import SimpleNamespace
+
+    from agent.nodes.sjabloon import _met_regelingen
+    from agent.regelingnamen import _CACHE
+    _CACHE["BWBR0004770"] = "Invorderingswet 1990"
+    a = vul("antwoord_bepaling", {"bepalingen": [ART], "toelichting": ""}, [artikel(EEN)])
+    _met_regelingen(SimpleNamespace(graph=FakeGraph(result="")), a)
+    assert a.doelen[0].regeling == a.blokken[0].items[0].vindplaats.regeling == "Invorderingswet 1990"
