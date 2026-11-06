@@ -1,9 +1,10 @@
 # bwb-import
 
 ETL-pijplijn die Nederlandse wetgeving uit het **Basiswettenbestand (BWB)**
-importeert in **GraphDB** (RDF/SPARQL). Referentie-implementatie: de
-Invorderingswet 1990 (`BWBR0004770`). De oplossing is uitbreidbaar naar de
-volledige BWB-collectie zonder het datamodel te wijzigen.
+importeert in **GraphDB** (RDF/SPARQL). Op Azure gaat het om zeven regelingen (param `bwbIds` in
+`deploy/azure/main.bicep`): `BWBR0002320`, `BWBR0004766`, `BWBR0004770` (Invorderingswet 1990, de
+standaardregeling), `BWBR0005537`, `BWBR0018472`, `BWBR0019237` en `BWBR0024096`. Een andere regeling
+importeer je met haar BWB-id, zolang ze tot een van de drie documentsoorten hieronder behoort.
 
 ## Pijplijn
 
@@ -52,7 +53,7 @@ De vorm is `urn:bwb:{bwbId}[:{sleutel}:{waarde}]*`, bijvoorbeeld
 waarde niet als segmentgrens leest.
 
 - **Klassen**: `bwb:Regeling/Hoofdstuk/Titeldeel/Afdeling/Paragraaf/Artikel/Lid/
-  Onderdeel/Divisie/Bijlage` (+ abstracte `bwb:Structuurdeel`); elke node met een
+  Onderdeel/Divisie/Bijlage` (+ abstracte `bwb:Structuurdeel`) en `bwb:Verwijzing`; elke node met een
   JuriConnect-identiteit draagt ook `bwb:Citeerbaar` (incl. `bwb:Bijlage`). Het
   documenttype staat als subklasse van `bwb:Regeling` op de top-node (`bwb:Wet`,
   `bwb:AMvB`, `bwb:KoninklijkBesluit`, `bwb:MinisterieleRegeling`,
@@ -72,8 +73,8 @@ waarde niet als segmentgrens leest.
   geïmporteerde toestand staat als `bwb:toestandUrl`. Wil je sameAs-expansie
   in een query uitzetten: `FROM onto:disable-sameAs`.
 - **Vindplaats vs. identiteit**: `owl:sameAs` bestaat alleen waar de bron een échte jci geeft, en
-  dat is lang niet overal — van de 800 Leidraad-divisies hebben er 113 een eigen `<jci>` (102/102
-  op het topniveau, 10/306 één laag dieper, 1/389 daaronder). Voor de rest is er `bwb:bronUrl`: de
+  dat is lang niet overal — bij de meting waarop dit ontwerp rust hadden van de 800 Leidraad-divisies
+  er 113 een eigen `<jci>` (102/102 op het topniveau, 10/306 één laag dieper, 1/389 daaronder). Voor de rest is er `bwb:bronUrl`: de
   anker-URL op de toestandspagina, afgeleid uit het `bwb-ng-variabel-deel`-pad
   (`…/BWBR0024096/2026-07-01#Circulaire.divisie25_Circulaire.divisie25.1`). Elke citeerbare node
   krijgt hem, ook die mét jci — anders wordt zijn aanwezigheid zélf een signaal.
@@ -135,9 +136,9 @@ waarde niet als segmentgrens leest.
   sorteren).
 - **Predicaten**: `bwb:heeftHoofdstuk/…/heeftArtikel/heeftLid/heeftOnderdeel/
   heeftDivisie/heeftBijlage`, `bwb:bevatIllustratie`, `bwb:ondertekendDoor`,
-  `bwb:volgtOp`, `bwb:verwijstNaar`; properties als
+  `bwb:volgtOp`, `bwb:verwijstNaar`, `bwb:heeftVerwijzing`, `bwb:inBepaling`; properties als
   `bwb:nummer/tekst/jci/refKey/labelId/voetnoot/definieertBegrip/aanhef/considerans/
-  terugwerkendTot/…` (illustratie: `naam/formaat/breedte/hoogte`; ondertekenaar:
+  terugwerkendTot/…` (illustratie: `naam/formaat/breedte/hoogte/alt`; ondertekenaar:
   `functie/naam/voornaam/achternaam/plaats`). Datums zijn `xsd:date`, tekst `@nl`.
 - **WTI-relaties** (met `BWB_IMPORT_WTI`): naast de bestaande verrijking
   (citeertitels, rechtsgebieden als `skos:Concept`, `bwb:heeftGrondslag`) ook
@@ -259,7 +260,8 @@ geladen: officiële citeertitels en afkortingen (`bwb:afkorting`,
 `bwb:alternatieveTitel`), eerstverantwoordelijk ministerie, rechtsgebieden en
 overheidsdomeinen als `skos:Concept`en (`dcterms:subject`, hiërarchie via
 `skos:broader`) en grondslag-relaties (`bwb:heeftGrondslag` ⊑ `eli:based_on`).
-Best-effort: een falende WTI-download breekt de import niet. Het eerstverantwoordelijke ministerie staat
+Een mislukte WTI-download laat de wet gewoon lezen, maar is poortwerk: een verrijkte graph wordt niet
+vervangen door een onverrijkte, en de import eindigt met exitcode 2. Het eerstverantwoordelijke ministerie staat
 ook als TOOI-URI op `bwb:eerstverantwoordelijkeOrganisatie` (met `rdfs:label`), via de snapshot
 `app/tooi_ministeries.json` (CC0, met bron en datum; ook historische namen). Een onbekende naam blijft
 alleen tekst en wordt gelogd (`app/tooi.py`).
@@ -269,7 +271,7 @@ alleen tekst en wordt gelogd (`app/tooi.py`).
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
-cp .env.example .env   # vul GRAPHDB_* in (bij anonieme GraphDB volstaan de defaults)
+cp .env.example .env   # zet GRAPHDB_URL; lokaal is dat http://localhost:7200
 ```
 
 > Vereist Python ≥ 3.13 (`pyproject.toml`); de container draait 3.14. De officiële XSD's
@@ -279,7 +281,7 @@ cp .env.example .env   # vul GRAPHDB_* in (bij anonieme GraphDB volstaan de defa
 
 | Variabele              | Default                       | Uitleg                                        |
 |------------------------|-------------------------------|-----------------------------------------------|
-| `GRAPHDB_URL`          | `http://graphdb:7200`         | GraphDB-basis-URL                             |
+| `GRAPHDB_URL`          | `http://graphdb:7200`         | GraphDB-basis-URL; de default is een containernaam |
 | `GRAPHDB_REPOSITORY`   | `inning`                      | Doel-repository                               |
 | `GRAPHDB_USER`         | –                             | Optioneel; leeg = anoniem                     |
 | `GRAPHDB_PASSWORD`     | –                             | Optioneel                                     |
@@ -323,8 +325,9 @@ onderdelen en relaties), de tekstdekking, de XSD-uitslag en wat de importpoort b
 
 `--alleen-bij-verlies` doet eerst één SPARQL-peiling (`GraphDbWriter.graaf_is_compleet`): staat
 van elke gevraagde regeling tekst in de repository, dan stopt hij met exitcode 0
-zonder overheid.nl te benaderen. Elke fout in die peiling telt als "niet compleet": een ontbrekende
-repository geeft een 404, en dat is precies de toestand waarvoor de peiling bestaat.
+zonder overheid.nl te benaderen. Een HTTP-fout of onleesbaar antwoord in die peiling telt als "niet
+compleet": een ontbrekende repository geeft een 404, en dat is precies de toestand waarvoor de peiling
+bestaat.
 
 ## Tests
 
@@ -332,8 +335,7 @@ repository geeft een 404, en dat is precies de toestand waarvoor de peiling best
 .venv/bin/python -m pytest -q
 ```
 
-De tests draaien offline op de fixtures in `tests/fixtures/`; tests met de marker `integration`
-vereisen een echte GraphDB en worden standaard overgeslagen. CI draait dezelfde suite vóór de
+De tests draaien offline op de fixtures in `tests/fixtures/`. CI draait dezelfde suite vóór de
 image-build.
 
 ## Service
@@ -343,8 +345,9 @@ image-build.
 ```
 
 - `GET /health` → `{"status": "ok"}`
-- `POST /import` met body `{"bwb_id": "BWBR0004770"}` → import + overzicht-JSON
-  (zonder body wordt `BWB_DEFAULT_ID` geïmporteerd)
+- `POST /import` met body `{"bwb_id": "BWBR0004770"}` → import + overzicht-JSON, met `status: "ok"` of
+  `"tegengehouden"` (zonder body wordt `BWB_DEFAULT_ID` geïmporteerd). Dit is de losse route: ze kent
+  alleen de eigen wet en bouwt geen similarity-index
 - `POST /import` met body `{"bwb_ids": ["BWBR0004770", "BWBR0005537"]}` →
   batch; respons `{"status": "ok"|"gedeeltelijk"|"mislukt", "resultaten": […]}`
   met per wet `status`/`overzicht`/`fout` (een falende wet breekt de batch niet)

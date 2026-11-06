@@ -6,7 +6,9 @@ de rest van dit platform.
 
 Dit is een **side project**: het draait niet mee in de dienst, wordt niet meegebouwd in een image en
 heeft geen eigen CI. Het staat hier omdat het dezelfde graaf en dezelfde toollaag gebruikt, en dus
-mee hoort te bewegen als die veranderen.
+mee hoort te bewegen als die veranderen. Het staat los van de begrippen in de werkplek: die bewaart de
+api per werkgebied met hun passages en projecteert ze als NL-SBB (ADR-003). De workflow levert alleen
+losse bestanden, in de URI-ruimte `http://nlbegrip.nl/id/…`.
 
 ## Aanroepen
 
@@ -18,8 +20,9 @@ mee hoort te bewegen als die veranderen.
 ```
 
 `wetteksten: [...]` mag in plaats van `artikelen`: dan slaat hij het ophalen over en analyseert hij
-de meegegeven teksten. Uitvoer: `<Begrip>.md` en `<Begrip>.ttl` in de uitvoermap, plus een
-samenvatting met de gebruikte vindplaatsen.
+de meegegeven teksten (geef je beide, dan gaat `artikelen` voor). Uitvoer: `<Begrip>.md` en
+`<Begrip>.ttl` in de uitvoermap, plus een samenvatting met de gebruikte vindplaatsen. Met `wetteksten`
+blijft die lijst leeg, want er is niets uit de graaf gehaald.
 
 ## Hij schrijft geen SPARQL — en dat is het punt
 
@@ -48,9 +51,11 @@ De MCP-server draait naast de workflow en praat met de graaf:
 
 ```bash
 cd tools/graph-qa
-uv sync --extra mcp
 GRAPHDB_MCP_URL=… GRAPHDB_TOKEN=… uv run --extra mcp graph-qa-mcp
 ```
+
+GraphDB staat op Azure niet open naar buiten: de graaf bereik je via de MCP-proxy op acceptatie (zie
+[`deploy/azure/README.md`](../../deploy/azure/README.md)) of met een eigen GraphDB.
 
 Registreer hem onder de naam **`wetsanalyse-graaf`** – die naam verwacht de workflow
 (`nl-sbb-begrip.js`). Registreren doe je **machine-lokaal** (`claude mcp add`), niet in deze repo — die is publiek, en de

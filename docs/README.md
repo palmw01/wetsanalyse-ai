@@ -51,8 +51,8 @@ landen; de tekst niet.
 
 **`wetsanalyse/bronnen/`** — het [manifest](wetsanalyse/bronnen/manifest.json) van de lokaal
 bewaarde originelen (bron-ID, herkomst, versie, SHA-256) waarnaar de skill verwijst via
-`references/bronnen.md`. Alleen de README en het manifest staan in git; de PDF's en HTML-bestanden
-zelf zijn lokaal.
+`references/bronnen.md`. Alleen de README, het manifest en een `.gitignore` staan in git; de PDF's en
+HTML-bestanden zelf zijn lokaal.
 
 ## Per doel één ingang
 
@@ -62,18 +62,23 @@ zelf zijn lokaal.
 | Hoe werkt de annotatieketen nu? | [`architectuur/annotatieketen.md`](architectuur/annotatieketen.md) | specificatie |
 | Hoe werken het annotatiedomein en de graaf? | [`architectuur/annotatie-bronnodes.md`](architectuur/annotatie-bronnodes.md) + [`wetsanalyse-workbench/jas-annotatie-ontologie.md`](wetsanalyse-workbench/jas-annotatie-ontologie.md) | specificatie |
 | Hoe werkt de bronselectie per deelvraag? | [`architectuur/bronselectie-per-deelvraag.md`](architectuur/bronselectie-per-deelvraag.md) | specificatie |
+| Hoe verhouden artefacten zich tot het artefactmodel van Claude? | [`architectuur/artefacten-langs-claude.md`](architectuur/artefacten-langs-claude.md) | onderzoek |
 | Wat is de projectmethode en hoe landt die in de agents? | [`wetsanalyse/methode-onderzoek.md`](wetsanalyse/methode-onderzoek.md) + de skill | specificatie |
 | Wat is er gemeten? | [`architectuur/metingen/README.md`](architectuur/metingen/README.md) | meting |
 | Hoe valideren we juridisch? | [`architectuur/onderzoek-empirische-validatie.md`](architectuur/onderzoek-empirische-validatie.md) + [`wetsanalyse/referentieset/`](wetsanalyse/referentieset/README.md) | onderzoek |
+| Waartegen meten we begrippen en bronselectie? | [`wetsanalyse/referentieset-begrippen/`](wetsanalyse/referentieset-begrippen/README.md) en `wetsanalyse/referentieset-bronselectie/` (per set een conceptmap met eigen README) | meting |
+| Wat bleek uit het onderzoek naar invordering? | [`wetsanalyse/onderzoek-invordering-2026-09-29/`](wetsanalyse/onderzoek-invordering-2026-09-29/README.md) | onderzoek |
 | Wat biedt INT-terminologie voor activiteit 2 en 3? | [Volledig onderzoek als HTML-pagina](wetsanalyse/onderzoek-int-terminologie-2026-10-08/index.html) · [dossier van 8 oktober 2026](wetsanalyse/onderzoek-int-terminologie-2026-10-08/README.md), met alle hulpmiddelen en relevante concepten | onderzoek |
 | Hoe vindt een werkgebied zijn bronnen, en welke taalpatronen helpen bij begrippen? | [`architectuur/onderzoek-werkgebied-en-begrippen-2026-10.md`](architectuur/onderzoek-werkgebied-en-begrippen-2026-10.md) | onderzoek |
-| Waarom is het zo ontworpen? | [ADR-001](architectuur/adr-001-hybride-jas-pijplijn.md), [ADR-002](architectuur/adr-002-taalprovider.md), [ADR-003](architectuur/adr-003-nl-sbb-begrippencontract.md), [ADR-004](architectuur/adr-004-begrippenketen.md), [ADR-005](architectuur/adr-005-vraag-lex-en-agents.md), [ADR-006](architectuur/adr-006-generieke-begrippen.md) | besluit |
+| Waarom is het zo ontworpen? | [ADR-001](architectuur/adr-001-hybride-jas-pijplijn.md), [ADR-002](architectuur/adr-002-taalprovider.md), [ADR-003](architectuur/adr-003-nl-sbb-begrippencontract.md), [ADR-004](architectuur/adr-004-begrippenketen.md), [ADR-005](architectuur/adr-005-vraag-lex-en-agents.md), [ADR-006](architectuur/adr-006-generieke-begrippen.md), [ADR-007](architectuur/adr-007-llm-pad-en-verwerker.md) (concept), [ADR-008](architectuur/adr-008-antwoordsjablonen.md) | besluit |
 | Hoe praat Lex? | [`schrijfrichtlijn-lex.md`](schrijfrichtlijn-lex.md) | specificatie |
+| Hoe test een agent-team de hele keten op acceptatie? | [`acceptatie/briefing-team.md`](acceptatie/briefing-team.md) + [`acceptatie/wetsanalyse-e2e.md`](acceptatie/wetsanalyse-e2e.md) | runbook |
 
 Toelichting bij enkele documenten:
 
 - **`PLAN.md`** is het enige plan. Wat af is gaat eruit; ontwerpbesluiten horen in een ADR of
-  specificatie.
+  specificatie. Eén uitwerking staat apart, omdat `PLAN.md` ernaar verwijst:
+  [`architectuur/plan-betekenisonderzoek.md`](architectuur/plan-betekenisonderzoek.md) (spoor M).
 - **`architectuur/verbeterplan-jas-pipeline-2026-10-08.md`** is *onderzoek*: het ontwerp voor de
   kandidaten na V7 uit spoor A (bewijs per hypothese, frames, relaties), met eigen meet- en
   acceptatiecriteria. Het start na V7.
@@ -89,13 +94,15 @@ Toelichting bij enkele documenten:
   betekenisgroepen voorstelt; de voorstellen staan er, de meting per deelkeuze loopt door.
   **ADR-005** legt Vraag Lex en de agents vast, met een aanvulling over de tekstroutes vóór de
   supervisor. **ADR-006** legt de generieke begrippen vast, gebouwd en op acceptatie. **ADR-007** is een
-  concept over het LLM-pad en de verwerker, met open punten voor de eigenaar.
-- **`onderzoek-empirische-validatie.md`** bevat de fouttaxonomie v2, de metrics, het
+  concept over het LLM-pad en de verwerker, met open punten voor de eigenaar. **ADR-008** maakt van een
+  antwoord een toolaanroep op een sjabloon; dat geldt nu voor het sjabloon `begrip`.
+- **`architectuur/onderzoek-empirische-validatie.md`** bevat de fouttaxonomie v2, de metrics, het
   adjudicatieprotocol en de stopcriteria (§18). V1–V6 zijn uitgevoerd, V7 is open.
 - **`architectuur/metingen/`** is bewijs: meetbestanden worden niet achteraf gewijzigd. Het
   onderzoek naar invordering staat in `wetsanalyse/onderzoek-invordering-2026-09-29/`, omdat
   code en meethashes dat pad gebruiken.
-- **`wetsanalyse/referentieset/*.md`** zijn gegenereerd uit `v1/cases.json`
+- **De zes familiedossiers in `wetsanalyse/referentieset/`** (`awb.md`, `bw6.md`, `iw.md`,
+  `omgevingswet.md`, `rvv.md`, `wzt.md`) zijn gegenereerd uit `v1/cases.json`
   (`tools/graph-qa/scripts/render_jas_referentieset.py`, met `--check` als controle). Bewerk de
   JSON, niet de Markdown.
 
@@ -103,3 +110,6 @@ Toelichting bij enkele documenten:
 
 - **`observability.md`** — logschema, tracing, Grafana, de controle-meting. Operations, geen
   methode; het staat hier omdat er nog geen betere plek voor is.
+- **`acceptatie/`** — het scenario en de briefing voor een acceptatietest van begin tot eind met de
+  [acceptatie-MCP](../tools/wetsanalyse-acceptatie-mcp/README.md). Lokale runs staan in
+  `acceptatie/lokaal/` en gaan niet in git.
