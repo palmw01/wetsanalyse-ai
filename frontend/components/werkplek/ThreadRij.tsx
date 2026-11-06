@@ -29,7 +29,7 @@ import type { NodeDoel } from "@/lib/annotatieNode";
 import { artefactLabel, isTeOpenen, type Artefact } from "@/lib/artefact";
 import { doelenVanKandidaten, reeksPrompt } from "@/lib/reeks";
 import { antwoordDoelen, antwoordKnopTekst, normaliseerBronnen } from "@/lib/bronnen";
-import { overzichtAlsMarkdown, overzichtDoelen, overzichtFocus, overzichtKnopTekst } from "@/lib/overzicht";
+import { overzichtAlsMarkdown, overzichtDefinities, overzichtDoelen, overzichtFocus, overzichtKnopTekst } from "@/lib/overzicht";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 import { beurtSamenvatting, laatsteRun } from "@/lib/waarom";
 import type { ThreadItem } from "@/lib/threadItem";
@@ -167,7 +167,8 @@ export const ThreadRij = memo(function ThreadRij({
           const tekst = ov ? overzichtKnopTekst(ov) : `${antwoordKnopTekst(keuze)} in de graaf`;
           const [doel, ...extra] = keuze.doelen;
           return doel && <button type="button"
-            onClick={() => acties.openSamenhang(doel, extra, ov ? { bereik: "kennisgraaf", focus: overzichtFocus(ov) } : undefined)}
+            onClick={() => acties.openSamenhang(doel, ov ? [...extra, ...overzichtDefinities(ov)] : extra,
+              ov ? { bereik: "kennisgraaf", focus: overzichtFocus(ov), keten: true } : undefined)}
             className="focus-ring mt-3 flex items-center gap-2 rounded-lg border border-lint/20 bg-lint/[0.03] px-3 py-2 text-left text-xs font-medium text-lint transition-colors hover:bg-lint/10">
             <GraafIcoon />{tekst}
           </button>;
