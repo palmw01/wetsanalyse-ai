@@ -1,7 +1,7 @@
-"""Per-client bearer-tokens – erft het bearer-token-patroon van de projectbrede MCP-servers.
+"""Per-client bearer-tokens.
 
 Constant-tijd-vergelijking, fail-closed start (geen tokens ⇒ alles 401), tokens nooit loggen.
-Elke geslaagde auth levert een client_id op die in de audit (job.json) belandt.
+Elke geslaagde auth levert een client_id op die de logs en de audit dragen.
 """
 
 from __future__ import annotations

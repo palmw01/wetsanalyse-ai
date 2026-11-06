@@ -9,10 +9,10 @@
 // verschil faalt stil: je ziet telemetrie, alleen elke dienst in zijn eigen trace.
 //
 // De BFF injecteert de header daarom zelf, expliciet, op elke fetch naar een upstream – zie
-// `app/api/_lib/trace.ts`. Haal dat niet weg omdat de instrumentatie het "zou moeten doen".
+// `lib/trace.ts`. Haal dat niet weg omdat de instrumentatie het "zou moeten doen".
 //
-// `NEXT_OTEL_FETCH_DISABLED=1` staat op de frontend (Azure: `deploy/azure/main.bicep`, docker-host:
-// de compose-/app-config). Dat was een eerdere poging tot een fix en heeft niets opgelost;
+// `NEXT_OTEL_FETCH_DISABLED=1` staat op de frontend (`deploy/azure/main.bicep`). Dat was een
+// eerdere poging tot een fix en heeft niets opgelost;
 // het staat er nog omdat de Next.js-documentatie de vlag aanwijst wanneer je een eigen
 // fetch-instrumentatie gebruikt – wat nu letterlijk het geval is.
 //
