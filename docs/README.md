@@ -70,7 +70,7 @@ HTML-bestanden zelf zijn lokaal.
 | Wat bleek uit het onderzoek naar invordering? | [`wetsanalyse/onderzoek-invordering-2026-09-29/`](wetsanalyse/onderzoek-invordering-2026-09-29/README.md) | onderzoek |
 | Wat biedt INT-terminologie voor activiteit 2 en 3? | [Volledig onderzoek als HTML-pagina](wetsanalyse/onderzoek-int-terminologie-2026-10-08/index.html) · [dossier van 8 oktober 2026](wetsanalyse/onderzoek-int-terminologie-2026-10-08/README.md), met alle hulpmiddelen en relevante concepten | onderzoek |
 | Hoe vindt een werkgebied zijn bronnen, en welke taalpatronen helpen bij begrippen? | [`architectuur/onderzoek-werkgebied-en-begrippen-2026-10.md`](architectuur/onderzoek-werkgebied-en-begrippen-2026-10.md) | onderzoek |
-| Waarom is het zo ontworpen? | [ADR-001](architectuur/adr-001-hybride-jas-pijplijn.md), [ADR-002](architectuur/adr-002-taalprovider.md), [ADR-003](architectuur/adr-003-nl-sbb-begrippencontract.md), [ADR-004](architectuur/adr-004-begrippenketen.md), [ADR-005](architectuur/adr-005-vraag-lex-en-agents.md), [ADR-006](architectuur/adr-006-generieke-begrippen.md), [ADR-007](architectuur/adr-007-llm-pad-en-verwerker.md) (concept) | besluit |
+| Waarom is het zo ontworpen? | [ADR-001](architectuur/adr-001-hybride-jas-pijplijn.md), [ADR-002](architectuur/adr-002-taalprovider.md), [ADR-003](architectuur/adr-003-nl-sbb-begrippencontract.md), [ADR-004](architectuur/adr-004-begrippenketen.md), [ADR-005](architectuur/adr-005-vraag-lex-en-agents.md), [ADR-006](architectuur/adr-006-generieke-begrippen.md), [ADR-007](architectuur/adr-007-llm-pad-en-verwerker.md) (concept), [ADR-008](architectuur/adr-008-antwoordsjablonen.md) | besluit |
 | Hoe praat Lex? | [`schrijfrichtlijn-lex.md`](schrijfrichtlijn-lex.md) | specificatie |
 | Hoe test een agent-team de hele keten op acceptatie? | [`acceptatie/briefing-team.md`](acceptatie/briefing-team.md) + [`acceptatie/wetsanalyse-e2e.md`](acceptatie/wetsanalyse-e2e.md) | runbook |
 
@@ -94,7 +94,8 @@ Toelichting bij enkele documenten:
   betekenisgroepen voorstelt; de voorstellen staan er, de meting per deelkeuze loopt door.
   **ADR-005** legt Vraag Lex en de agents vast, met een aanvulling over de tekstroutes vóór de
   supervisor. **ADR-006** legt de generieke begrippen vast, gebouwd en op acceptatie. **ADR-007** is een
-  concept over het LLM-pad en de verwerker, met open punten voor de eigenaar.
+  concept over het LLM-pad en de verwerker, met open punten voor de eigenaar. **ADR-008** maakt van een
+  antwoord een toolaanroep op een sjabloon; dat geldt nu voor het sjabloon `begrip`.
 - **`architectuur/onderzoek-empirische-validatie.md`** bevat de fouttaxonomie v2, de metrics, het
   adjudicatieprotocol en de stopcriteria (§18). V1–V6 zijn uitgevoerd, V7 is open.
 - **`architectuur/metingen/`** is bewijs: meetbestanden worden niet achteraf gewijzigd. Het

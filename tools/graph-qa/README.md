@@ -19,8 +19,8 @@ een suggestie, een bevestiging of een vraagkaart gaat zonder model naar de juist
 vraag leest hij met een klein model. Een vraag die niet over wetgeving gaat, wijst hij af.
 
 ```
-supervisor ─┬→ agent ⇄ tools → verify ─┬→ correct → agent        antwoord
-            │                          └→ finalize → advance
+supervisor ─┬→ agent ⇄ tools [→ sjabloon] → verify ─┬→ correct → agent   antwoord
+            │                                       └→ finalize → advance
             ├→ annotaties_zoeken → agent …                       leesroute annotaties
             ├→ begrippen_zoeken → agent …                        leesroute begrippen
             ├→ overzicht_bouwen → verify …                       overzichtsroute
@@ -33,7 +33,9 @@ supervisor ─┬→ agent ⇄ tools → verify ─┬→ correct → agent     
 
 - **Antwoord** (vragen): een specialist redeneert en roept getypeerde tools aan tegen de graaf
   (*tool-trace*) → een deterministische **grounding-controle** toetst vindplaatsen en citaten, met zo
-  nodig één corrigerende ronde → **finalize** bouwt de bronnenlijst.
+  nodig één corrigerende ronde → **finalize** bouwt de bronnenlijst. Rondt het model af met een
+  **sjabloon** ([ADR-008](../../docs/architectuur/adr-008-antwoordsjablonen.md), nu voor `begrip`), dan vult
+  de code de blokken uit de trace en levert het model alleen de eigen tekst.
 - **Annotatie** (*"annoteer artikel 36 lid 4 van de Invorderingswet 1990"*): de bronnode gericht
   ophalen → deterministische **detectoren** leveren kandidaat-fragmenten → een kleine **classifier**
   kiest per kandidaat een JAS-klasse → een **gerichte reviewer** kijkt alleen naar de twijfelgevallen →
@@ -137,7 +139,8 @@ werk door en legt de agent de uitkomst zelf vast.
 | `POST /v1/chat` | Eén beurt **aan de verbinding gekoppeld** (SSE, zelfde body, maar 422 bij een `actie` of een werkgebied-modus). Zonder eigenaarscontrole en zonder vastleggen: voor scripts en handmatig testen, niet voor de webapp. |
 
 **Events.** Antwoord: `status` · `reason` (denkproces) · `token` (eindantwoord) · `sources` ·
-`grounding` · `conversation_id` · `tool_execution` · `overzicht` · `done` · `error`. Annotatie: `doel` ·
+`grounding` · `conversation_id` · `tool_execution` · `overzicht` · `antwoord` (de blokken van een
+sjabloon) · `done` · `error`. Annotatie: `doel` ·
 `run` · `dekking` · `element` · `kandidaten` · `hergebruik` · `waarschuwing`, en bij een reeks `reeks` en
 `onderdeel`. Werkgebied en agents: `vraagkaart` · `werkgebied_aanmaken` · `werkgebied_wijzigen` ·
 `artefact` · `bevestiging`. Alleen bij runs: `opgeslagen` en `gat` (er is vluchtig verkeer weggevallen
