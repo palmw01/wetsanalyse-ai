@@ -13,6 +13,7 @@ semantic_signals:
 structural_signals: []
 candidate_rules:
   - {id: jas.feit.nominalisatie_van, status: geïmplementeerd}
+  - {id: jas.feit.nominalisatie_met_voorwerp, status: geïmplementeerd}
   - {id: jas.feit.nominalisatie_referentiemoment, status: geïmplementeerd}
   - {id: jas.feit.nominalisatie_in_voorwaarde, status: geïmplementeerd}
   - {id: jas.feit.rechtsgevolg_in_norm, status: geïmplementeerd}
@@ -20,7 +21,7 @@ candidate_rules:
 confusable_classes:
   - {klasse: Voorwaarde, reden: "een feit als eis voor een rechtsgevolg ('indien … betaalt')"}
   - {klasse: Tijdsaanduiding, reden: "tijdsverloop ('het verstrijken van de termijn') of een startgebeurtenis in een termijn"}
-  - {klasse: Rechtsobject, reden: "genominaliseerde handeling als voorwerp"}
+  - {klasse: Rechtsobject, reden: "genominaliseerde handeling als voorwerp; met een eigen voorwerp ('van' + naamwoordgroep) is dat voorwerp het Rechtsobject"}
 negative_patterns:
   - {patroon: "-ing-woord in een vaste voorzetseluitdrukking ('in afwijking van', 'met inachtneming van')", reden: "verhouding tussen bepalingen, geen handeling (audit D04)"}
   - {patroon: "regelingsvorm ('regeling van Onze Minister')", reden: "noemt een regeling, geen handeling (audit D04)"}

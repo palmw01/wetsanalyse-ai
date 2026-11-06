@@ -95,13 +95,17 @@ metingen `AGENT_VERSION` op de commit.
 - **Sterk boven generiek**: generiek NP-bewijs (`SUBJECT_NP`, `OBJECT_NP`, `ENUMERATED_NP`)
   blokkeert sterk patroonbewijs niet. Ander zwak bewijs doet dat wel.
 - **Afwijzing door specificiteit** is een aparte deterministische route.
+- **Handeling met een eigen voorwerp**: bij "van" + naamwoordgroep (`jas.feit.nominalisatie_met_voorwerp`) valt Rechtsobject
+  af: dat voorwerp is het object, de nominalisatie niet (H2:35, H2:55). De kale kern ("de betaling") is dan geen eigen kandidaat.
+  Een "door"-bepaling noemt alleen de handelende partij en laat Rechtsobject staan. Of er een rechtsgevolg is, beslist het model.
 - **Afgewezen centrale norm**: blijft de enige normkandidaat afgewezen terwijl er nog
   Rechtsobject- of Tijdsaanduiding-voorstellen staan, dan volgt één gerichte herbeoordeling per
   normeenheid. De oorspronkelijke afwijzing blijft bewaard. Ontbreekt de gevraagde context, dan gaat
-  het naar de mens.
+  het naar de mens. Bevestigt de reviewer de afwijzing (`R-CENTRAAL-KEEP`), dan gaat het ook naar de
+  mens, zonder klasse en met de motivering: de hoofdnorm van een bepaling verdwijnt niet stil.
 - **Onzekerheid** wordt uitgedrukt in codes en aandacht-niveau, nooit in een confidence-getal.
 - **Geen klasse gekozen** (abstain zonder bruikbaar reviewoordeel, `R-ABSTAIN-HUMAN`/`R-ONGELDIG`,
-  of een centrale norm die het model afwees, `R-CENTRAAL-HUMAN`): het voorstel draagt **geen
+  of een centrale norm die het model afwees, `R-CENTRAAL-HUMAN`/`R-CENTRAAL-KEEP`): het voorstel draagt **geen
   klasse** (`klasse: ""`). De mogelijke klassen staan als alternatief, de beslisser is `terugval`.
   In de graaf is het een vraag (`oa:motivatedBy oa:questioning`, zonder `jas:klasse`; SHACL eist
   precies één van beide vormen), de export zegt "Nog geen klasse", de werkplek toont "Kies een

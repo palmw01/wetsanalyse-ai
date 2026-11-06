@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from agent.jas_pipeline.detectoren import BronTekst, detecteer_alles
-from agent.jas_pipeline.detectoren.syntactisch import BijzinDetector, NominalisatieDetector
+from agent.jas_pipeline.detectoren.syntactisch import BijzinDetector, NaamwoordgroepDetector, NominalisatieDetector
 from agent.jas_pipeline.taal import SpacyProvider
 
 CASES = {c["id"]: c for c in json.loads((Path(__file__).parent / "fixtures/detector_audit_diagnostiek.json").read_text())}
@@ -74,3 +74,42 @@ def test_nominalisatie_infinitieftak_verwart_deelwoord_niet_met_infinitief(parse
     assert token.feat("VerbForm") == "Part", "de regressie betreft de waargenomen deelwoordparse"
     ks = NominalisatieDetector().detecteer(BronTekst.van_tekst(cid, tekst, analyse=a)).kandidaten
     assert not any(e.detail == "bepaalde" for k in ks for e in k.evidence)
+
+
+def _kandidaten(detector, tekst, parser, cid="urn:bwb:BWBX:artikel:1"):
+    return detector.detecteer(BronTekst.van_tekst(cid, tekst, analyse=parser.analyseer(tekst))).kandidaten
+
+
+@pytest.mark.parametrize("tekst,woord", [
+    ("De inspecteur beslist over de toekenning van een subsidie.", "toekenning"),   # bestuursrecht
+    ("De ontvanger stelt de termijn vast voor de betaling van een belastingaanslag.", "betaling"),   # belastingrecht
+])
+def test_nominalisatie_met_voorwerp_is_geen_rechtsobject(parser, tekst, woord):
+    [k] = [k for k in _kandidaten(NominalisatieDetector(), tekst, parser) if woord in k.span.tekst]
+    assert k.evidence[0].regel == "jas.feit.nominalisatie_met_voorwerp"
+    assert set(k.possible_classes) == {"Rechtsfeit", "Voorwaarde"}
+    assert not [n for n in _kandidaten(NaamwoordgroepDetector(), tekst, parser) if n.span.tekst.endswith(woord)]
+
+
+def test_door_bepaling_laat_een_zaak_mogelijk(parser):
+    tekst = "De verzekerde ontvangt een vergoeding door de zorgverzekeraar."
+    assert [n for n in _kandidaten(NaamwoordgroepDetector(), tekst, parser) if n.span.tekst.endswith("vergoeding")]
+
+
+@pytest.mark.parametrize("tekst", [
+    "De minister stelt regels met betrekking tot de verstrekking van gegevens.",
+    "De raad neemt een besluit met betrekking tot de verlening van een vergunning.",
+])
+def test_grens_begint_na_de_vaste_uitdrukking(parser, tekst):
+    [k] = [k for k in _kandidaten(NominalisatieDetector(), tekst, parser)]
+    assert k.span.tekst.startswith("de ") and "betrekking" not in k.span.tekst
+    assert not [n for n in _kandidaten(NaamwoordgroepDetector(), tekst, parser) if "betrekking" in n.span.tekst]
+
+
+@pytest.mark.parametrize("tekst,zaak,getal", [
+    ("De aanvrager kan niet meer dan twee percelen opgeven.", "percelen", "twee"),   # omgevingsrecht
+    ("Het college benoemt ten hoogste drie leden.", "leden", "drie"),                # bestuursrecht
+])
+def test_aantalsgrens_valt_buiten_de_naamwoordgroep(parser, tekst, zaak, getal):
+    groepen = [n.span.tekst for n in _kandidaten(NaamwoordgroepDetector(), tekst, parser)]
+    assert zaak in groepen and not [g for g in groepen if getal in g and zaak in g]

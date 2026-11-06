@@ -119,8 +119,12 @@ def test_historische_replay_alleen_volledig_beschikbaar_voor_lid1(pakket, detect
     c = pakket["casussen"][0]
     oud = historie[c["id"]]
     uit, _ = speel(c, {b["label"]: b["klasse"] or "Geen annotatie" for b in oud["beslissingen"]})
-    assert uit.meting["per_status"] == oud["run"]["instellingen"]["meting"]["per_status"]
-    assert {(v["tekst"], v["klasse"]) for v in uit.voorstellen} == {(v["tekst"], v["klasse"]) for v in oud["elementen"]}
+    # De run van toen wees de centrale norm af nadat de reviewer dat bevestigde; nu beslist de jurist (R-CENTRAAL-KEEP).
+    toen = oud["run"]["instellingen"]["meting"]["per_status"]
+    assert uit.meting["per_status"] == {**toen, "REJECTED": toen["REJECTED"] - 1, "HUMAN_REVIEW": toen["HUMAN_REVIEW"] + 1}
+    assert {(v["tekst"], v["klasse"]) for v in uit.voorstellen if v["klasse"]} == {(v["tekst"], v["klasse"]) for v in oud["elementen"]}
+    [vraag] = [v for v in uit.voorstellen if not v["klasse"]]
+    assert vraag["aandacht"] == "geel" and vraag["review_uitleg"].startswith("De reviewer ziet hier geen norm: ")
     assert [t["reden"] for t in uit.meting["twijfels"]] == ["CENTRALE_NORM_AFGEWEZEN"]
     assert uit.meting["review_calls"] == 1
     assert uit.meting["resolutie"][0]["regel"] == "R-CENTRAAL-KEEP"

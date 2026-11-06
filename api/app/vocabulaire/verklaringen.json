@@ -108,6 +108,10 @@
       "naam": "Vaste voorwaardeformule",
       "uitleg": "'Met dien verstande dat', 'met uitzondering van': een vaste inleiding van een voorwaarde."
     },
+    "COUNT": {
+      "naam": "Aantal",
+      "uitleg": "Een getal direct na een grens als 'ten hoogste' of 'niet meer dan'."
+    },
     "DEFINITION_ITEM": {
       "naam": "Begripsbepaling (onderdeel)",
       "uitleg": "Een onderdeel van een begripsbepalingenartikel: 'a. X: …'."
@@ -716,6 +720,13 @@
       "soort": "detector",
       "uitleg": "'Wegens', 'ten gevolge van': een oorzaak die een voorwaarde of rechtsfeit kan zijn."
     },
+    "jas.waarde.aantal": {
+      "bron": "H2:91",
+      "code": "COUNT",
+      "naam": "Aantal",
+      "soort": "detector",
+      "uitleg": "Een getal direct na een grens als 'ten hoogste' of 'niet meer dan'."
+    },
     "jas.waarde.bedrag": {
       "bron": "H2:91",
       "code": "MONEY_AMOUNT",
@@ -760,8 +771,8 @@
       "uitleg": "De centrale norm vraagt een menselijke keuze; de getoonde klasse is voorlopig."
     },
     "R-CENTRAAL-KEEP": {
-      "naam": "Afwijzing bevestigd",
-      "uitleg": "De reviewer bevestigt gemotiveerd dat de centrale kandidaat geen annotatie oplevert."
+      "naam": "Afwijzing door de reviewer – jij beslist",
+      "uitleg": "De reviewer ziet hier geen norm. Het is de enige normkandidaat, dus die vervalt niet zonder oordeel van de jurist."
     },
     "R-CONFLICT-CHANGE": {
       "naam": "Reviewer volgt het patroon",
@@ -852,5 +863,5 @@
       "uitleg": "Waarschuwing: hetzelfde fragment kreeg twee klassen."
     }
   },
-  "vocabulaire_versie": "6526912d0f78"
+  "vocabulaire_versie": "f83b2378568b"
 }

@@ -24,6 +24,21 @@
     negatief: [{tekst: "procentueel", span: "procent"}]
     rand: [{tekst: "tegen 5,25%", span: "5,25%"}]
     overlap: [{tekst: "20% of vijftig procent", spans: ["20%", "vijftig procent"]}]
+- id: jas.waarde.aantal
+  klassen: [Parameter en parameterwaarde, Variabele en variabelewaarde]
+  code: COUNT
+  bewijs: zwak
+  bron: "H2:91"
+  versie: 1
+  alleen_na: '\b(?:{AANTALSVERGELIJKING})\s+'
+  patroon: '\b{TELWOORD}\b(?!\s*(?:%|procent\b|(?:{PERIODE})\b))'
+  tests:
+    positief: [{tekst: "De aanvrager kan niet meer dan twee percelen opgeven.", span: "twee"},
+               {tekst: "Het college benoemt ten hoogste drie leden.", span: "drie"}]
+    negatief: [{tekst: "binnen meer dan zes weken", span: "zes"},
+               {tekst: "De raad vergadert meer dan eens.", span: "eens"}]
+    rand: [{tekst: "ten minste 12 leden", span: "12"}]
+    overlap: [{tekst: "minimaal twee en maximaal vier leden", spans: ["twee", "vier"]}]
 - id: jas.waarde.veelvoud
   klassen: [Operator, Parameter en parameterwaarde]
   code: MULTIPLIER

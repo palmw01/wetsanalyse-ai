@@ -26,9 +26,9 @@ VAR, PAR, DEL = ("Variabele en variabelewaarde", "Parameter en parameterwaarde",
 
 #: klasse → [(subtype, codes die het aanwijzen)]
 REGELS: dict[str, tuple[tuple[str, frozenset[str]], ...]] = {
-    VAR: (("variabelewaarde", frozenset({"MONEY_AMOUNT", "PERCENTAGE", "TEMPORAL_DATE"})),
+    VAR: (("variabelewaarde", frozenset({"MONEY_AMOUNT", "PERCENTAGE", "COUNT", "TEMPORAL_DATE"})),
           ("variabele", frozenset({"PROPERTY_NOUN"}))),
-    PAR: (("parameterwaarde", frozenset({"MONEY_AMOUNT", "PERCENTAGE", "MULTIPLIER"})),
+    PAR: (("parameterwaarde", frozenset({"MONEY_AMOUNT", "PERCENTAGE", "COUNT", "MULTIPLIER"})),
           ("parameter", frozenset({"PARAMETER_NOUN"}))),
     DEL: (("delegatiebevoegdheid", frozenset({"DELEGATION_FORMULA"})),),
 }

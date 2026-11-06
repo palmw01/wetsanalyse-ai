@@ -204,7 +204,9 @@ class NaamwoordgroepDetector:
     # 3: een zaak of handeling als kop krijgt geen Rechtssubject (art. 9 lid 5 IW 1990)
     # 4: een onderdeel onder een aanhef heeft normcontext
     # 5: een partij buiten de rollenlijst krijgt Rechtssubject als hypothese
-    versie = f"5+verwijzing.{VERWIJZING_VERSIE}"
+    # 6: geen kale kern van een nominalisatie, niets binnen een vaste uitdrukking
+    # 7: een aantalsgrens valt buiten de groep
+    versie = f"7+verwijzing.{VERWIJZING_VERSIE}"
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
@@ -215,8 +217,16 @@ class NaamwoordgroepDetector:
         # Een onderdeel van een opsomming draagt zijn norm in de aanhef van de ouder, niet in de eigen tekst.
         onder_aanhef = bron.context.rstrip().endswith(":")
         uitgesloten = _vaste_uitdrukkingen(bron.tekst)
+        # Een aantalsgrens hoort niet bij de groep: "niet meer dan één woning" is een Operator, een waarde en een zaak.
+        grenzen_aantal = [m.span() for m in re.finditer(
+            rf"\b(?:{woordenlijsten()['AANTALSVERGELIJKING']})\s+(?:{woordenlijsten()['TELWOORD']})\b", bron.tekst, re.IGNORECASE)]
+        in_aantal = {x.i for x in a.tokens if _in_vaste_uitdrukking(x, grenzen_aantal)}
         for t in a.tokens:
+            aantal = in_aantal - {t.i}
             if not _nominaal(a, t) or t.deprel in {"fixed", "flat", "flat:name", "compound", "nmod:poss"}:
+                continue
+            # Een handeling met een eigen voorwerp is de kandidaat; haar kale kern is geen object of kenmerk.
+            if _in_vaste_uitdrukking(t, uitgesloten) or (_nominalisatie(a, t, uitgesloten) and _heeft_voorwerp(a, t)):
                 continue
             kern = {t.i} | {i for k in a.kinderen(t.i) if a.tokens[k].deprel in _KERN for i in a.subboom(k)}
             zonder_bijzin = set(a.subboom(t.i)) - {i for k in a.kinderen(t.i)
@@ -226,9 +236,9 @@ class NaamwoordgroepDetector:
                                             if a.tokens[k].deprel in {"conj", "parataxis", "cc", "punct"}
                                             for i in a.subboom(k)}
             grenzen = [(g, soort) for g, soort in (
-                (_bereik(a, _zonder_randfunctie(a, kern, t.i)), "np_kern"),
-                (_bereik(a, _zonder_randfunctie(a, zonder_bijzin, t.i)), "np"),
-                (_bereik(a, _zonder_randfunctie(a, geheel, t.i)), "np_met_bijzin")) if g]
+                (_bereik(a, _zonder_randfunctie(a, kern - aantal, t.i)), "np_kern"),
+                (_bereik(a, _zonder_randfunctie(a, zonder_bijzin - aantal, t.i)), "np"),
+                (_bereik(a, _zonder_randfunctie(a, geheel - aantal, t.i)), "np_met_bijzin")) if g]
             if not grenzen or _in_verwijzing(bron, *grenzen[0][0]):
                 continue
             lemma = (t.lemma or t.tekst).lower()
@@ -365,6 +375,16 @@ def _vaste_uitdrukkingen(tekst: str) -> list[tuple[int, int]]:
             for m in re.finditer(rf"\b(?:{woordenlijsten()[naam]})\b", tekst, re.IGNORECASE)]
 
 
+def _heeft_voorwerp(a: LinguisticAnalysis, t: Token) -> bool:
+    """Een 'van'-bepaling. Een 'door'-bepaling noemt de handelende partij: daarmee blijft het woord een zaak mogelijk."""
+    return any(a.tokens[k].deprel == "nmod" and any(a.tokens[c].deprel == "case" and a.tokens[c].tekst.lower() == "van"
+                                                    for c in a.kinderen(k)) for k in a.kinderen(t.i))
+
+
+def _in_vaste_uitdrukking(t: Token, uitgesloten: list[tuple[int, int]]) -> bool:
+    return any(s <= t.start and t.eind <= e for s, e in uitgesloten)
+
+
 def _nominalisatie(a: LinguisticAnalysis, t: Token, uitgesloten: list[tuple[int, int]]) -> bool:
     """Is `t` de kop van een genominaliseerde handeling ('het indienen van', 'de toepassing van')?
 
@@ -383,7 +403,7 @@ def _nominalisatie(a: LinguisticAnalysis, t: Token, uitgesloten: list[tuple[int,
                  and any(bepaling(k) for k in (
                      *kinderen, *(j for c in kinderen if a.tokens[c].deprel == "conj"
                                   and a.tokens[c].tekst.lower().endswith("ing") for j in a.kinderen(c))))
-                 and not any(s <= t.start and t.eind <= e for s, e in uitgesloten))
+                 and not _in_vaste_uitdrukking(t, uitgesloten))
     return infinitief or handeling
 
 
@@ -406,13 +426,18 @@ class NominalisatieDetector:
       naamwoord erin.
 
     Elders blijft Voorwaarde een hypothese ('gericht op het voorkomen van herhaling').
+
+    Met een 'van'-bepaling heeft de handeling haar eigen voorwerp ('het indienen van een bezwaarschrift'): dat
+    bezwaarschrift is het Rechtsobject, de nominalisatie zelf niet (H2:35, H2:55). Of er een rechtsgevolg aan hangt,
+    blijft aan het model (H2:53).
     """
-    REGELS: tuple[str, ...] = ("jas.feit.nominalisatie_van", "jas.feit.nominalisatie_referentiemoment",
-                               "jas.feit.nominalisatie_in_voorwaarde")
+    REGELS: tuple[str, ...] = ("jas.feit.nominalisatie_van", "jas.feit.nominalisatie_met_voorwerp",
+                               "jas.feit.nominalisatie_referentiemoment", "jas.feit.nominalisatie_in_voorwaarde")
     naam = "nominalisatie"
     # 5: de context bepaalt of Voorwaarde een hypothese is (art. 9 lid 5 IW 1990)
     # 6: een zaak op -ing is geen handeling
-    versie = f"6+verwijzing.{VERWIJZING_VERSIE}"
+    # 7: met een eigen voorwerp geen Rechtsobject; de grens begint na een vaste uitdrukking
+    versie = f"7+verwijzing.{VERWIJZING_VERSIE}"
     _AAN_DE_RAND = {"case", "cc", "advmod", "mark", "punct"}
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
@@ -437,7 +462,8 @@ class NominalisatieDetector:
                 ):
                     weg.update(a.subboom(i))
             tokens = sorted(set(a.subboom(t.i)) - weg)
-            while tokens and a.tokens[tokens[0]].deprel in self._AAN_DE_RAND and tokens[0] != t.i:
+            while tokens and tokens[0] != t.i and (a.tokens[tokens[0]].deprel in self._AAN_DE_RAND
+                                                   or _in_vaste_uitdrukking(a.tokens[tokens[0]], uitgesloten)):
                 tokens.pop(0)
             g = _bereik(a, tokens)
             if not g or _in_verwijzing(bron, *g):
@@ -458,6 +484,8 @@ class NominalisatieDetector:
                 and any(a.tokens[m].deprel == "mark" and (a.tokens[m].lemma or a.tokens[m].tekst).lower()
                         in VOORWAARDE_VOEGWOORDEN for m in a.kinderen(gezegde.i))):
             return "jas.feit.nominalisatie_in_voorwaarde", [FEIT, OBJ]
+        if _heeft_voorwerp(a, t):
+            return "jas.feit.nominalisatie_met_voorwerp", [FEIT, VW]
         return "jas.feit.nominalisatie_van", [FEIT, VW, OBJ]
 
 

@@ -376,7 +376,7 @@
     dcterms:source "H2:100" ;
     skos:prefLabel "Logische verbinding"@nl ;
     jas:code <urn:jas-ns:code:LOGICAL> ;
-    jas:regelVersie 1 ;
+    jas:regelVersie 2 ;
     jas:wijstAan <urn:jas-ns:klasse:Operator> .
 
 <urn:jas-ns:regel:jas.operator.rekenkundig> a jas:Detectorregel ;
@@ -390,7 +390,7 @@
     dcterms:source "H2:100" ;
     skos:prefLabel "Vergelijking"@nl ;
     jas:code <urn:jas-ns:code:COMPARISON> ;
-    jas:regelVersie 1 ;
+    jas:regelVersie 2 ;
     jas:wijstAan <urn:jas-ns:klasse:Operator> .
 
 <urn:jas-ns:regel:jas.plaats.gazetteer> a jas:Detectorregel ;
@@ -507,6 +507,14 @@
     jas:wijstAan <urn:jas-ns:klasse:Rechtsfeit>,
         <urn:jas-ns:klasse:Voorwaarde> .
 
+<urn:jas-ns:regel:jas.waarde.aantal> a jas:Detectorregel ;
+    dcterms:source "H2:91" ;
+    skos:prefLabel "Aantal"@nl ;
+    jas:code <urn:jas-ns:code:COUNT> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:ParameterEnParameterwaarde>,
+        <urn:jas-ns:klasse:VariabeleEnVariabelewaarde> .
+
 <urn:jas-ns:regel:jas.waarde.bedrag> a jas:Detectorregel ;
     dcterms:source "H2:91" ;
     skos:prefLabel "Geldbedrag"@nl ;
@@ -557,8 +565,8 @@
     jas:codeWaarde "R-CENTRAAL-HUMAN" .
 
 <urn:jas-ns:resolutie:R-CENTRAAL-KEEP> a jas:Resolutieregel ;
-    skos:definition "De reviewer bevestigt gemotiveerd dat de centrale kandidaat geen annotatie oplevert."@nl ;
-    skos:prefLabel "Afwijzing bevestigd"@nl ;
+    skos:definition "De reviewer ziet hier geen norm. Het is de enige normkandidaat, dus die vervalt niet zonder oordeel van de jurist."@nl ;
+    skos:prefLabel "Afwijzing door de reviewer – jij beslist"@nl ;
     jas:codeWaarde "R-CENTRAAL-KEEP" .
 
 <urn:jas-ns:resolutie:R-CONFLICT-CHANGE> a jas:Resolutieregel ;
@@ -710,6 +718,11 @@
     skos:definition "'Met dien verstande dat', 'met uitzondering van': een vaste inleiding van een voorwaarde."@nl ;
     skos:prefLabel "Vaste voorwaardeformule"@nl ;
     jas:codeWaarde "CONDITIONAL_FORMULA" .
+
+<urn:jas-ns:code:COUNT> a jas:Detectiecode ;
+    skos:definition "Een getal direct na een grens als 'ten hoogste' of 'niet meer dan'."@nl ;
+    skos:prefLabel "Aantal"@nl ;
+    jas:codeWaarde "COUNT" .
 
 <urn:jas-ns:code:DELEGATION_DESIGNATION> a jas:Detectiecode ;
     skos:definition "Lagere regelgeving moet gevallen of bedragen aanwijzen of bepalen."@nl ;
@@ -933,19 +946,6 @@
     jas:uitdrukkingswijze "Verplichte delegatie: ‘bij (of krachtens) algemene maatregel van bestuur / bij ministeriële regeling worden regels gesteld (…)’. Facultatieve bevoegdheid: ‘kunnen regels worden gesteld’. Bij ‘bij of krachtens’ kan subdelegatie plaatsvinden."@nl ;
     jas:volgorde 11 .
 
-<urn:jas-ns:klasse:VariabeleEnVariabelewaarde> a skos:Concept,
-        jas:Klasse ;
-    dcterms:source "omschrijving H2:80",
-        "uitdrukkingswijze H2:82",
-        "vraag H2:81" ;
-    skos:definition "Een variabele is een kenmerk van een rechtssubject, rechtsobject, rechtsbetrekking of rechtsfeit dat voor verschillende instanties daarvan (dus voor specifieke personen, zaken, relaties, handelingen of gebeurtenissen in de werkelijkheid) een andere waarde kan hebben. Een variabelewaarde geeft de waarde aan die een bepaalde variabele kan hebben. De wijze waarop een variabelewaarde is omschreven in wetgeving kan een beperking in de mogelijke waarden voor een variabele inhouden, of een voorwaarde aan een variabele stellen."@nl ;
-    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
-    skos:prefLabel "Variabele en variabelewaarde"@nl ;
-    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
-    jas:herkenningsvraag "Wat zijn de specifieke kenmerken van een rechtsobject, rechtssubject, rechtsbetrekking of rechtsfeit? Welke eigenschappen worden genoemd? Welke waarde heeft een rechtsobject? Hoe lang of hoe hoog is een rechtsobject? En voor de waarde: welk bedrag, welke duur of welke hoogte hoort bij deze variabele?"@nl ;
-    jas:uitdrukkingswijze "vier varianten: getal of datum — een concreet bedrag, een concrete datum, een concrete tijdsduur of een andere numerieke waarde; tekst — bijvoorbeeld de variabele ‘naam van een werkgever’; enumeratiewaarde — een limitatieve opsomming van de mogelijke waarden, in getallen of tekst; booleaanse waarde — een bijzondere enumeratiewaarde met twee waarden, ‘ja’ (waar) of ‘nee’ (onwaar); bijvoorbeeld de variabele ‘geregistreerd in het donorregister’."@nl ;
-    jas:volgorde 6 .
-
 <urn:jas-ns:klasse:Afleidingsregel> a skos:Concept,
         jas:Klasse ;
     dcterms:source "omschrijving H2:71",
@@ -958,6 +958,19 @@
     jas:herkenningsvraag "Hoe wordt een variabele berekend of afgeleid? Hoe wordt een specifiek rechtssubject of rechtsobject bepaald?"@nl ;
     jas:uitdrukkingswijze "Te herkennen aan woorden die duiden op een berekening of afleiding, zoals ‘is (…) verminderd met’, ‘bedraagt (…) vermeerderd met’, ‘wordt gesteld op’ of ‘is het gezamenlijke bedrag van’, maar ook eenvoudigweg ‘en’."@nl ;
     jas:volgorde 5 .
+
+<urn:jas-ns:klasse:VariabeleEnVariabelewaarde> a skos:Concept,
+        jas:Klasse ;
+    dcterms:source "omschrijving H2:80",
+        "uitdrukkingswijze H2:82",
+        "vraag H2:81" ;
+    skos:definition "Een variabele is een kenmerk van een rechtssubject, rechtsobject, rechtsbetrekking of rechtsfeit dat voor verschillende instanties daarvan (dus voor specifieke personen, zaken, relaties, handelingen of gebeurtenissen in de werkelijkheid) een andere waarde kan hebben. Een variabelewaarde geeft de waarde aan die een bepaalde variabele kan hebben. De wijze waarop een variabelewaarde is omschreven in wetgeving kan een beperking in de mogelijke waarden voor een variabele inhouden, of een voorwaarde aan een variabele stellen."@nl ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Variabele en variabelewaarde"@nl ;
+    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
+    jas:herkenningsvraag "Wat zijn de specifieke kenmerken van een rechtsobject, rechtssubject, rechtsbetrekking of rechtsfeit? Welke eigenschappen worden genoemd? Welke waarde heeft een rechtsobject? Hoe lang of hoe hoog is een rechtsobject? En voor de waarde: welk bedrag, welke duur of welke hoogte hoort bij deze variabele?"@nl ;
+    jas:uitdrukkingswijze "vier varianten: getal of datum — een concreet bedrag, een concrete datum, een concrete tijdsduur of een andere numerieke waarde; tekst — bijvoorbeeld de variabele ‘naam van een werkgever’; enumeratiewaarde — een limitatieve opsomming van de mogelijke waarden, in getallen of tekst; booleaanse waarde — een bijzondere enumeratiewaarde met twee waarden, ‘ja’ (waar) of ‘nee’ (onwaar); bijvoorbeeld de variabele ‘geregistreerd in het donorregister’."@nl ;
+    jas:volgorde 6 .
 
 <urn:jas-ns:klasse:ParameterEnParameterwaarde> a skos:Concept,
         jas:Klasse ;
@@ -989,5 +1002,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "6526912d0f78" .
+    jas:vocabulaireVersie "f83b2378568b" .
 
