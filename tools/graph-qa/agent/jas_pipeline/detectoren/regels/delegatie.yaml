@@ -13,3 +13,43 @@
     negatief: [{tekst: "Bij ministeriële regeling wordt de datum vastgesteld.", span: "Bij ministeriële regeling wordt de datum vastgesteld."}]
     rand: [{tekst: "Bij of krachtens algemene maatregel van bestuur kunnen regels worden gesteld;", span: "Bij of krachtens algemene maatregel van bestuur kunnen regels worden gesteld;"}]
     overlap: [{tekst: "Bij algemene maatregel van bestuur worden regels gesteld. Bij ministeriële regeling kunnen nadere regels worden gesteld.", spans: ["Bij algemene maatregel van bestuur worden regels gesteld.", "Bij ministeriële regeling kunnen nadere regels worden gesteld."]}]
+- id: jas.delegatie.aan_te_wijzen
+  klassen: [Delegatiebevoegdheid en delegatie-invulling]
+  code: DELEGATION_DESIGNATION
+  bewijs: zwak
+  bron: "H2:125"
+  versie: 1
+  niet_binnen: []
+  patroon: '\b(?:bij|krachtens)(?:\s+of\s+krachtens)?\s+{REGELINGSVORM}\s+(?:aan\s+te\s+wijzen|vast\s+te\s+stellen|te\s+bepalen)(?:\s+[\w-]+)?'
+  links: '\b[Ii]n\s[^.;:]*?'
+  tests:
+    positief: [{tekst: "In bij algemene maatregel van bestuur aan te wijzen gevallen kan ontheffing worden verleend.", span: "bij algemene maatregel van bestuur aan te wijzen gevallen"}]
+    negatief: [{tekst: "Bij ministeriële regeling wordt de datum vastgesteld.", span: "Bij ministeriële regeling wordt de datum"}]
+    rand: [{tekst: "De bij of krachtens ministeriële regeling vast te stellen bedragen worden bekendgemaakt.", span: "bij of krachtens ministeriële regeling vast te stellen bedragen"}]
+    overlap: [{tekst: "In bij ministeriële regeling te bepalen gevallen en bij algemene maatregel van bestuur aan te wijzen organen.", spans: ["In bij ministeriële regeling te bepalen gevallen", "bij algemene maatregel van bestuur aan te wijzen organen"]}]
+- id: jas.delegatie.regels_verwijzend
+  klassen: [Delegatiebevoegdheid en delegatie-invulling]
+  code: DELEGATION_FORMULA
+  bewijs: sterk
+  bron: "H2:127"
+  versie: 1
+  niet_binnen: []
+  patroon: '\b(?:daarbij|daartoe|daarover|hierbij|hiertoe|hierover)\s+(?:worden|kunnen)\b[^.;]*?\bregels\b[^.;]*?\bgesteld\b[^.;]*[.;]?'
+  tests:
+    positief: [{tekst: "Daarbij worden regels gesteld over de wijze van melden.", span: "Daarbij worden regels gesteld over de wijze van melden."}]
+    negatief: [{tekst: "Daarbij wordt rekening gehouden met het inkomen.", span: "Daarbij wordt rekening gehouden"}]
+    rand: [{tekst: "Hiertoe kunnen nadere regels worden gesteld;", span: "Hiertoe kunnen nadere regels worden gesteld;"}]
+    overlap: [{tekst: "Daartoe worden regels gesteld. Daarbij kunnen regels worden gesteld.", spans: ["Daartoe worden regels gesteld.", "Daarbij kunnen regels worden gesteld."]}]
+- id: jas.delegatie.invulling_aanwijzing
+  klassen: [Delegatiebevoegdheid en delegatie-invulling, Afleidingsregel]
+  code: DELEGATION_FILLING
+  bewijs: zwak
+  bron: "H2:126"
+  versie: 1
+  niet_binnen: []
+  patroon: '\b[Aa]ls\s+[\w-]+\s+als\s+bedoeld\s+in\s+[^.;:]*?\bworden\s+(?:[\w-]+\s+)?aangewezen\b[^.;:]*'
+  tests:
+    positief: [{tekst: "Als organen als bedoeld in artikel 3 van de wet worden aangewezen de besturen van de havens:", span: "Als organen als bedoeld in artikel 3 van de wet worden aangewezen de besturen van de havens"}]
+    negatief: [{tekst: "De organen worden aangewezen door de minister.", span: "De organen worden aangewezen"}]
+    rand: [{tekst: "Als gebieden als bedoeld in artikel 1, tweede lid, van de wet worden voorts aangewezen de stadsdelen;", span: "Als gebieden als bedoeld in artikel 1, tweede lid, van de wet worden voorts aangewezen de stadsdelen"}]
+    overlap: [{tekst: "Als diensten als bedoeld in artikel 2 worden aangewezen de scholen. Als diensten als bedoeld in artikel 3 worden aangewezen de musea.", spans: ["Als diensten als bedoeld in artikel 2 worden aangewezen de scholen", "Als diensten als bedoeld in artikel 3 worden aangewezen de musea"]}]

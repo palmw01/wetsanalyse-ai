@@ -317,14 +317,50 @@
     jas:regelVersie 2 ;
     jas:wijstAan <urn:jas-ns:klasse:Afleidingsregel> .
 
+<urn:jas-ns:regel:jas.afleiding.gelijkstelling> a jas:Detectorregel ;
+    dcterms:source "H2:71" ;
+    skos:prefLabel "Gelijkstelling"@nl ;
+    jas:code <urn:jas-ns:code:LEGAL_EQUATION> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Afleidingsregel> .
+
+<urn:jas-ns:regel:jas.afleiding.verhouding> a jas:Detectorregel ;
+    dcterms:source "H2:73" ;
+    skos:prefLabel "Verhouding of som"@nl ;
+    jas:code <urn:jas-ns:code:CALCULATION_RATIO> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Afleidingsregel> .
+
 <urn:jas-ns:regel:jas.afleiding.wordt_gesteld_op> a jas:Detectorregel ;
     dcterms:source "H2:73" ;
     skos:prefLabel "Berekening in de lijdende vorm"@nl ;
     jas:code <urn:jas-ns:code:CALCULATION_PASSIVE> ;
-    jas:regelVersie 2 ;
+    jas:regelVersie 3 ;
     jas:wijstAan <urn:jas-ns:klasse:Afleidingsregel> .
 
+<urn:jas-ns:regel:jas.delegatie.aan_te_wijzen> a jas:Detectorregel ;
+    dcterms:source "H2:125" ;
+    skos:prefLabel "Aan te wijzen bij regeling"@nl ;
+    jas:code <urn:jas-ns:code:DELEGATION_DESIGNATION> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:DelegatiebevoegdheidEnDelegatieInvulling> .
+
+<urn:jas-ns:regel:jas.delegatie.invulling_aanwijzing> a jas:Detectorregel ;
+    dcterms:source "H2:126" ;
+    skos:prefLabel "Aanwijzing op grond van een wet"@nl ;
+    jas:code <urn:jas-ns:code:DELEGATION_FILLING> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Afleidingsregel>,
+        <urn:jas-ns:klasse:DelegatiebevoegdheidEnDelegatieInvulling> .
+
 <urn:jas-ns:regel:jas.delegatie.regels_gesteld> a jas:Detectorregel ;
+    dcterms:source "H2:127" ;
+    skos:prefLabel "Delegatieformule"@nl ;
+    jas:code <urn:jas-ns:code:DELEGATION_FORMULA> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:DelegatiebevoegdheidEnDelegatieInvulling> .
+
+<urn:jas-ns:regel:jas.delegatie.regels_verwijzend> a jas:Detectorregel ;
     dcterms:source "H2:127" ;
     skos:prefLabel "Delegatieformule"@nl ;
     jas:code <urn:jas-ns:code:DELEGATION_FORMULA> ;
@@ -640,6 +676,11 @@
     skos:prefLabel "Berekening in de lijdende vorm"@nl ;
     jas:codeWaarde "CALCULATION_PASSIVE" .
 
+<urn:jas-ns:code:CALCULATION_RATIO> a jas:Detectiecode ;
+    skos:definition "De uitkomst volgt uit een verhouding of optelling van andere waarden."@nl ;
+    skos:prefLabel "Verhouding of som"@nl ;
+    jas:codeWaarde "CALCULATION_RATIO" .
+
 <urn:jas-ns:code:CAUSAL_PHRASE> a jas:Detectiecode ;
     skos:definition "'Wegens', 'ten gevolge van': een oorzaak die een voorwaarde of rechtsfeit kan zijn."@nl ;
     skos:prefLabel "Oorzaak"@nl ;
@@ -665,10 +706,20 @@
     skos:prefLabel "Vaste voorwaardeformule"@nl ;
     jas:codeWaarde "CONDITIONAL_FORMULA" .
 
-<urn:jas-ns:code:DELEGATION_FORMULA> a jas:Detectiecode ;
-    skos:definition "'Bij of krachtens … worden regels gesteld': de vaste vorm waarmee de wet een bevoegdheid delegeert."@nl ;
-    skos:prefLabel "Delegatieformule"@nl ;
-    jas:codeWaarde "DELEGATION_FORMULA" .
+<urn:jas-ns:code:DELEGATION_DESIGNATION> a jas:Detectiecode ;
+    skos:definition "Lagere regelgeving moet gevallen of bedragen aanwijzen of bepalen."@nl ;
+    skos:prefLabel "Aan te wijzen bij regeling"@nl ;
+    jas:codeWaarde "DELEGATION_DESIGNATION" .
+
+<urn:jas-ns:code:DELEGATION_FILLING> a jas:Detectiecode ;
+    skos:definition "Deze bepaling wijst aan wat de hogere regeling aan haar overliet."@nl ;
+    skos:prefLabel "Aanwijzing op grond van een wet"@nl ;
+    jas:codeWaarde "DELEGATION_FILLING" .
+
+<urn:jas-ns:code:LEGAL_EQUATION> a jas:Detectiecode ;
+    skos:definition "De bepaling stelt het een met het ander gelijk: geldt als, wordt aangemerkt als."@nl ;
+    skos:prefLabel "Gelijkstelling"@nl ;
+    jas:codeWaarde "LEGAL_EQUATION" .
 
 <urn:jas-ns:code:LEGAL_FICTION> a jas:Detectiecode ;
     skos:definition "'Wordt vermoed dat', 'wordt geacht': de wet leidt een feit af."@nl ;
@@ -781,6 +832,11 @@
     jas:uitdrukkingswijze "Te herkennen aan een of meer werkwoorden, langs twee herkenningsroutes: hoofdwerkwoord met hulpwerkwoord — bij een recht: ‘kan verzoeken’, ‘mag wijzigen’; bij een plicht: ‘stelt vast’, ‘mag niet inhalen’, ‘is verplicht informatie te verstrekken’, ‘moet informeren’, ‘dient te voldoen’. samengesteld werkwoord — bij een recht: ‘heeft recht op’, ‘heeft aanspraak op’; bij een plicht: ‘heeft de plicht om’, ‘draagt de last om’."@nl ;
     jas:volgorde 2 .
 
+<urn:jas-ns:code:DELEGATION_FORMULA> a jas:Detectiecode ;
+    skos:definition "'Bij of krachtens … worden regels gesteld': de vaste vorm waarmee de wet een bevoegdheid delegeert."@nl ;
+    skos:prefLabel "Delegatieformule"@nl ;
+    jas:codeWaarde "DELEGATION_FORMULA" .
+
 <urn:jas-ns:klasse:Rechtsfeit> a skos:Concept,
         jas:Klasse ;
     dcterms:source "omschrijving H2:53",
@@ -819,32 +875,6 @@
     jas:herkenningsvraag "Wie heeft het recht? Wie heeft de plicht? Van wie is een rechtsobject? Bij wie hoort een waarde?"@nl ;
     jas:uitdrukkingswijze "Te herkennen aan een zelfstandig naamwoord waarmee een persoon of andere entiteit wordt beschreven, of aan een persoonlijk voornaamwoord zoals ‘hij’, ‘zij’ en soms ook ‘het’. Maar ook een onbepaald of betrekkelijk voornaamwoord kan wijzen op een rechtssubject, bijvoorbeeld ‘iemand’, ‘een ieder’ of ‘degene’."@nl ;
     jas:volgorde 0 .
-
-<urn:jas-ns:klasse:DelegatiebevoegdheidEnDelegatieInvulling> a skos:Concept,
-        jas:Klasse ;
-    dcterms:source "omschrijving H2:125",
-        "uitdrukkingswijze H2:127",
-        "vraag H2:126" ;
-    skos:definition "Een delegatiebevoegdheid maakt het mogelijk of schrijft voor dat (nadere) regels worden gesteld over een rechtsbetrekking, rechtsfeit of afleidingsregel. Met delegatie-invulling duiden we de regeling of het regelingsonderdeel aan waarin de delegatiebevoegdheid is gebruikt. Een delegatiebevoegdheid wordt altijd aan een specifiek rechtssubject toegekend: de regering (bij een amvb, vastgesteld door de Koning) of een minister (bij een ministeriële regeling). De delegatie kan verplicht of facultatief zijn. Vaak is subdelegatie mogelijk: bepalingen in een amvb kunnen verder worden uitgewerkt in een ministeriële regeling. Vier dingen die de bron hier expliciet maakt en die je bij het annoteren nodig hebt: 1. Delegaties bepalen het werkgebied. \"Het herkennen van delegatiebevoegdheden is vooral van belang voor het bepalen van het werkgebied van de Wetsanalyse. Als de delegatiebevoegdheid daadwerkelijk is gebruikt, moet de op grond daarvan vastgestelde gedelegeerde regelgeving in het werkgebied worden betrokken.\" 2. De delegerende wet wijst nooit naar de invulling. \"De delegerende wet bevat logischerwijs geen concrete verwijzingen naar de delegatie-invulling. Die is immers op het moment van voorbereiden van die wet nog niet vastgesteld.\" Zoek een delegatie-invulling dus niet in de moederwet. 3. wetten.nl-metadata is onvolledig. De wetsinformatie bij een artikel \"is echter niet altijd volledig. Afstemming met wetgevingsjuristen om het werkgebied compleet te maken is daarom van belang.\" Dat geldt ook voor de verwijzingen die de kennisgraaf uit die bron overneemt. 4. Een delegatie-invulling is niet lexicaal te herkennen. \"In de delegatie-invulling wordt niet met standaard uitdrukkingswijzen gewerkt\" (H2:127). Je vindt hem alleen via de relatie met de grondslag, niet via signaalwoorden."@nl ;
-    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
-    skos:prefLabel "Delegatiebevoegdheid en delegatie-invulling"@nl ;
-    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
-    jas:herkenningsvraag "Geeft een wetsartikel de opdracht om (nadere) regels te stellen? Verwijst een bepaling in een gedelegeerde regeling naar een artikel in de bovenliggende wet?"@nl ;
-    jas:uitdrukkingswijze "Verplichte delegatie: ‘bij (of krachtens) algemene maatregel van bestuur / bij ministeriële regeling worden regels gesteld (…)’. Facultatieve bevoegdheid: ‘kunnen regels worden gesteld’. Bij ‘bij of krachtens’ kan subdelegatie plaatsvinden."@nl ;
-    jas:volgorde 11 .
-
-<urn:jas-ns:klasse:Afleidingsregel> a skos:Concept,
-        jas:Klasse ;
-    dcterms:source "omschrijving H2:71",
-        "uitdrukkingswijze H2:73",
-        "vraag H2:72" ;
-    skos:definition "Een afleidingsregel is een regel die nieuwe feiten of waarden creëert met behulp van bestaande feiten of waarden. Te denken valt aan regels die bepalen of een recht bestaat (een beslisregel), of die de hoogte en duur van een recht bepalen (een rekenregel). De variabele die vastgesteld wordt door de afleidingsregels, noemen we uitvoervariabele. Bij een rekenregel is dit de uitkomst van de rekensom; bij een beslisregel een conclusie als ja/nee of waar/onwaar. De variabelen die gebruikt worden voor de vaststelling, noemen we invoervariabelen. Als sprake is van vaste getallen of waarden in een afleidingsregel die over een periode gelijk zijn voor alle rechtssubjecten en rechtsobjecten, noemen we deze parameters. Afleidingsregels worden ook gebruikt om te bepalen of een rechtssubject of rechtsobject tot een bepaalde doelgroep behoort; het gaat dan om het afleiden van specialisaties van rechtssubjecten en rechtsobjecten op basis van bepaalde kenmerken."@nl ;
-    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
-    skos:prefLabel "Afleidingsregel"@nl ;
-    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
-    jas:herkenningsvraag "Hoe wordt een variabele berekend of afgeleid? Hoe wordt een specifiek rechtssubject of rechtsobject bepaald?"@nl ;
-    jas:uitdrukkingswijze "Te herkennen aan woorden die duiden op een berekening of afleiding, zoals ‘is (…) verminderd met’, ‘bedraagt (…) vermeerderd met’, ‘wordt gesteld op’ of ‘is het gezamenlijke bedrag van’, maar ook eenvoudigweg ‘en’."@nl ;
-    jas:volgorde 5 .
 
 <urn:jas-ns:klasse:Plaatsaanduiding> a skos:Concept,
         jas:Klasse ;
@@ -885,6 +915,19 @@
     jas:uitdrukkingswijze "Te herkennen aan een voorwaardelijke bijzin, in de meeste gevallen ingeleid door een voegwoord zoals ‘indien’, ‘als’, ‘tenzij’, ‘mits’ of een combinatie van woorden, zoals ‘met dien verstande dat’ of ‘met uitzondering van’. Ook kan een voorwaarde afgeleid worden uit een bijwoord bij een werkwoord, zoals ‘schriftelijk’ of ‘elektronisch’. Voorwaarden kunnen enkelvoudig of samengesteld zijn: een samengestelde voorwaarde bestaat uit verschillende eisen die alle vervuld moeten zijn (cumulatief) of waarvan er één vervuld moet zijn (alternatief)."@nl ;
     jas:volgorde 4 .
 
+<urn:jas-ns:klasse:DelegatiebevoegdheidEnDelegatieInvulling> a skos:Concept,
+        jas:Klasse ;
+    dcterms:source "omschrijving H2:125",
+        "uitdrukkingswijze H2:127",
+        "vraag H2:126" ;
+    skos:definition "Een delegatiebevoegdheid maakt het mogelijk of schrijft voor dat (nadere) regels worden gesteld over een rechtsbetrekking, rechtsfeit of afleidingsregel. Met delegatie-invulling duiden we de regeling of het regelingsonderdeel aan waarin de delegatiebevoegdheid is gebruikt. Een delegatiebevoegdheid wordt altijd aan een specifiek rechtssubject toegekend: de regering (bij een amvb, vastgesteld door de Koning) of een minister (bij een ministeriële regeling). De delegatie kan verplicht of facultatief zijn. Vaak is subdelegatie mogelijk: bepalingen in een amvb kunnen verder worden uitgewerkt in een ministeriële regeling. Vier dingen die de bron hier expliciet maakt en die je bij het annoteren nodig hebt: 1. Delegaties bepalen het werkgebied. \"Het herkennen van delegatiebevoegdheden is vooral van belang voor het bepalen van het werkgebied van de Wetsanalyse. Als de delegatiebevoegdheid daadwerkelijk is gebruikt, moet de op grond daarvan vastgestelde gedelegeerde regelgeving in het werkgebied worden betrokken.\" 2. De delegerende wet wijst nooit naar de invulling. \"De delegerende wet bevat logischerwijs geen concrete verwijzingen naar de delegatie-invulling. Die is immers op het moment van voorbereiden van die wet nog niet vastgesteld.\" Zoek een delegatie-invulling dus niet in de moederwet. 3. wetten.nl-metadata is onvolledig. De wetsinformatie bij een artikel \"is echter niet altijd volledig. Afstemming met wetgevingsjuristen om het werkgebied compleet te maken is daarom van belang.\" Dat geldt ook voor de verwijzingen die de kennisgraaf uit die bron overneemt. 4. Een delegatie-invulling is niet lexicaal te herkennen. \"In de delegatie-invulling wordt niet met standaard uitdrukkingswijzen gewerkt\" (H2:127). Je vindt hem alleen via de relatie met de grondslag, niet via signaalwoorden."@nl ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Delegatiebevoegdheid en delegatie-invulling"@nl ;
+    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
+    jas:herkenningsvraag "Geeft een wetsartikel de opdracht om (nadere) regels te stellen? Verwijst een bepaling in een gedelegeerde regeling naar een artikel in de bovenliggende wet?"@nl ;
+    jas:uitdrukkingswijze "Verplichte delegatie: ‘bij (of krachtens) algemene maatregel van bestuur / bij ministeriële regeling worden regels gesteld (…)’. Facultatieve bevoegdheid: ‘kunnen regels worden gesteld’. Bij ‘bij of krachtens’ kan subdelegatie plaatsvinden."@nl ;
+    jas:volgorde 11 .
+
 <urn:jas-ns:klasse:VariabeleEnVariabelewaarde> a skos:Concept,
         jas:Klasse ;
     dcterms:source "omschrijving H2:80",
@@ -897,6 +940,19 @@
     jas:herkenningsvraag "Wat zijn de specifieke kenmerken van een rechtsobject, rechtssubject, rechtsbetrekking of rechtsfeit? Welke eigenschappen worden genoemd? Welke waarde heeft een rechtsobject? Hoe lang of hoe hoog is een rechtsobject? En voor de waarde: welk bedrag, welke duur of welke hoogte hoort bij deze variabele?"@nl ;
     jas:uitdrukkingswijze "vier varianten: getal of datum — een concreet bedrag, een concrete datum, een concrete tijdsduur of een andere numerieke waarde; tekst — bijvoorbeeld de variabele ‘naam van een werkgever’; enumeratiewaarde — een limitatieve opsomming van de mogelijke waarden, in getallen of tekst; booleaanse waarde — een bijzondere enumeratiewaarde met twee waarden, ‘ja’ (waar) of ‘nee’ (onwaar); bijvoorbeeld de variabele ‘geregistreerd in het donorregister’."@nl ;
     jas:volgorde 6 .
+
+<urn:jas-ns:klasse:Afleidingsregel> a skos:Concept,
+        jas:Klasse ;
+    dcterms:source "omschrijving H2:71",
+        "uitdrukkingswijze H2:73",
+        "vraag H2:72" ;
+    skos:definition "Een afleidingsregel is een regel die nieuwe feiten of waarden creëert met behulp van bestaande feiten of waarden. Te denken valt aan regels die bepalen of een recht bestaat (een beslisregel), of die de hoogte en duur van een recht bepalen (een rekenregel). De variabele die vastgesteld wordt door de afleidingsregels, noemen we uitvoervariabele. Bij een rekenregel is dit de uitkomst van de rekensom; bij een beslisregel een conclusie als ja/nee of waar/onwaar. De variabelen die gebruikt worden voor de vaststelling, noemen we invoervariabelen. Als sprake is van vaste getallen of waarden in een afleidingsregel die over een periode gelijk zijn voor alle rechtssubjecten en rechtsobjecten, noemen we deze parameters. Afleidingsregels worden ook gebruikt om te bepalen of een rechtssubject of rechtsobject tot een bepaalde doelgroep behoort; het gaat dan om het afleiden van specialisaties van rechtssubjecten en rechtsobjecten op basis van bepaalde kenmerken."@nl ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Afleidingsregel"@nl ;
+    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
+    jas:herkenningsvraag "Hoe wordt een variabele berekend of afgeleid? Hoe wordt een specifiek rechtssubject of rechtsobject bepaald?"@nl ;
+    jas:uitdrukkingswijze "Te herkennen aan woorden die duiden op een berekening of afleiding, zoals ‘is (…) verminderd met’, ‘bedraagt (…) vermeerderd met’, ‘wordt gesteld op’ of ‘is het gezamenlijke bedrag van’, maar ook eenvoudigweg ‘en’."@nl ;
+    jas:volgorde 5 .
 
 <urn:jas-ns:klasse:ParameterEnParameterwaarde> a skos:Concept,
         jas:Klasse ;
@@ -928,5 +984,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "60309a8a8acd" .
+    jas:vocabulaireVersie "cab7bb7a2d79" .
 

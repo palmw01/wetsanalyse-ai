@@ -80,6 +80,10 @@
       "naam": "Aantal uit een restant",
       "uitleg": "Zoveel onderdelen als er overblijven: invoer en uitkomst van een mogelijke berekening."
     },
+    "CALCULATION_RATIO": {
+      "naam": "Verhouding of som",
+      "uitleg": "De uitkomst volgt uit een verhouding of optelling van andere waarden."
+    },
     "CAUSAL_PHRASE": {
       "naam": "Oorzaak",
       "uitleg": "'Wegens', 'ten gevolge van': een oorzaak die een voorwaarde of rechtsfeit kan zijn."
@@ -112,6 +116,14 @@
       "naam": "Begripsbepaling (zin)",
       "uitleg": "'In deze wet wordt verstaan onder X: …'."
     },
+    "DELEGATION_DESIGNATION": {
+      "naam": "Aan te wijzen bij regeling",
+      "uitleg": "Lagere regelgeving moet gevallen of bedragen aanwijzen of bepalen."
+    },
+    "DELEGATION_FILLING": {
+      "naam": "Aanwijzing op grond van een wet",
+      "uitleg": "Deze bepaling wijst aan wat de hogere regeling aan haar overliet."
+    },
     "DELEGATION_FORMULA": {
       "naam": "Delegatieformule",
       "uitleg": "'Bij of krachtens … worden regels gesteld': de vaste vorm waarmee de wet een bevoegdheid delegeert."
@@ -127,6 +139,10 @@
     "LEGAL_EFFECT_PREDICATE": {
       "naam": "Rechtsgevolg in de norm",
       "uitleg": "Het normsegment noemt een rechtsgevolg (ontstaan, vervallen, verschuldigd, invorderbaar …); pas dan is Rechtsfeit een hypothese."
+    },
+    "LEGAL_EQUATION": {
+      "naam": "Gelijkstelling",
+      "uitleg": "De bepaling stelt het een met het ander gelijk: geldt als, wordt aangemerkt als."
     },
     "LEGAL_FICTION": {
       "naam": "Wettelijk vermoeden of fictie",
@@ -514,6 +530,20 @@
       "soort": "detector",
       "uitleg": "'Wordt vermoed dat', 'wordt geacht': de wet leidt een feit af."
     },
+    "jas.afleiding.gelijkstelling": {
+      "bron": "H2:71",
+      "code": "LEGAL_EQUATION",
+      "naam": "Gelijkstelling",
+      "soort": "detector",
+      "uitleg": "De bepaling stelt het een met het ander gelijk: geldt als, wordt aangemerkt als."
+    },
+    "jas.afleiding.verhouding": {
+      "bron": "H2:73",
+      "code": "CALCULATION_RATIO",
+      "naam": "Verhouding of som",
+      "soort": "detector",
+      "uitleg": "De uitkomst volgt uit een verhouding of optelling van andere waarden."
+    },
     "jas.afleiding.wordt_gesteld_op": {
       "bron": "H2:73",
       "code": "CALCULATION_PASSIVE",
@@ -521,7 +551,28 @@
       "soort": "detector",
       "uitleg": "'Wordt gesteld op', 'wordt berekend', 'wordt in aanmerking genomen': een waarde wordt vastgesteld."
     },
+    "jas.delegatie.aan_te_wijzen": {
+      "bron": "H2:125",
+      "code": "DELEGATION_DESIGNATION",
+      "naam": "Aan te wijzen bij regeling",
+      "soort": "detector",
+      "uitleg": "Lagere regelgeving moet gevallen of bedragen aanwijzen of bepalen."
+    },
+    "jas.delegatie.invulling_aanwijzing": {
+      "bron": "H2:126",
+      "code": "DELEGATION_FILLING",
+      "naam": "Aanwijzing op grond van een wet",
+      "soort": "detector",
+      "uitleg": "Deze bepaling wijst aan wat de hogere regeling aan haar overliet."
+    },
     "jas.delegatie.regels_gesteld": {
+      "bron": "H2:127",
+      "code": "DELEGATION_FORMULA",
+      "naam": "Delegatieformule",
+      "soort": "detector",
+      "uitleg": "'Bij of krachtens … worden regels gesteld': de vaste vorm waarmee de wet een bevoegdheid delegeert."
+    },
+    "jas.delegatie.regels_verwijzend": {
       "bron": "H2:127",
       "code": "DELEGATION_FORMULA",
       "naam": "Delegatieformule",
@@ -797,5 +848,5 @@
       "uitleg": "Waarschuwing: hetzelfde fragment kreeg twee klassen."
     }
   },
-  "vocabulaire_versie": "60309a8a8acd"
+  "vocabulaire_versie": "cab7bb7a2d79"
 }
