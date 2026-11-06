@@ -11,9 +11,14 @@ Dekt:
 """
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pytest
 
+from eval.run_eval import GOLDEN_CONCEPT, load_golden
 from eval.scoring import (
+    klasse_dekking,
     _koppel,
     _token_iou,
     candidate_recall,
@@ -273,3 +278,37 @@ class TestVerworpenPer100:
 
     def test_leeg(self):
         assert verworpen_per_100([], []) == 0.0
+
+
+# --- klasse_dekking -------------------------------------------------------------------------
+
+def test_klasse_dekking_op_plek_en_letterlijk():
+    verwacht = [{"klasse": "Rechtsfeit", "tekst": "de uitbetaling van een voorschot"},
+                {"klasse": "Rechtsobject", "tekst": "een voorschot"},
+                {"klasse": "Delegatiebevoegdheid en delegatie-invulling", "tekst": "worden regels gesteld"}]
+    elementen = [{"klasse": "Rechtsobject", "tekst": "de uitbetaling van een voorschot"},  # plek goed, klasse niet
+                 {"klasse": "Rechtsobject", "tekst": "een voorschot"},
+                 {"klasse": "Delegatiebevoegdheid en delegatie-invulling", "tekst": "Daarbij worden regels gesteld over de bestemming"},
+                 {"klasse": "Variabele en variabelewaarde", "tekst": "de bestemming"},
+                 {"klasse": "", "tekst": "een voorschot"}]
+    uit = klasse_dekking(elementen, verwacht)
+    assert uit["Rechtsfeit"] == dict(n=1, gedekt=0, exact=0, voorstellen=0, raak=0)
+    assert uit["Rechtsobject"] == dict(n=1, gedekt=1, exact=1, voorstellen=2, raak=2)
+    assert uit["Delegatiebevoegdheid en delegatie-invulling"] == dict(n=1, gedekt=1, exact=0, voorstellen=1, raak=1)
+    assert uit["Variabele en variabelewaarde"] == dict(n=0, gedekt=0, exact=0, voorstellen=1, raak=0)
+
+
+def test_lidwoorden_maken_geen_plek():
+    assert klasse_dekking([{"klasse": "Rechtsobject", "tekst": "de bestemming"}],
+                          [{"klasse": "Rechtsobject", "tekst": "de uitbetaling"}])["Rechtsobject"]["gedekt"] == 0
+
+
+def test_conceptset_volgt_de_conceptcasussen():
+    gouden = {r["concept"]: r for r in load_golden(GOLDEN_CONCEPT)}
+    casussen = [json.loads(p.read_text(encoding="utf-8")) for p in
+                sorted((Path(__file__).parents[3] / "docs/wetsanalyse/referentieset/concept").glob("UBT*.json"))]
+    assert set(gouden) == {c["id"] for c in casussen}
+    for c in casussen:
+        r = gouden[c["id"]]
+        assert r["bron"] == c["vindplaats"] and r["referentie_status"] == c["referentie_status"]
+        assert r["verwacht"] == [{"klasse": g["klasse"], "tekst": g["tekst"]} for g in c["gold"]]

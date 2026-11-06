@@ -210,6 +210,40 @@ def precisie_en_recall(
     return (precisie, overlap / len(gewenst))
 
 
+# Lidwoorden en "van" dragen geen plek: zonder deze lijst zou "de bestemming" op "de uitbetaling van X" lijken.
+_ZONDER_PLEK = {"de", "het", "een", "van"}
+
+
+def _zelfde_plek(a: str, b: str) -> bool:
+    """Minstens de helft van het kortste fragment valt samen. Een jurist en de keten verschillen vaak een paar
+    woorden in de grens; dat is een andere vraag dan of de klasse op die plek is herkend."""
+    ta, tb = _tokens(a) - _ZONDER_PLEK, _tokens(b) - _ZONDER_PLEK
+    return bool(ta and tb) and len(ta & tb) >= 0.5 * min(len(ta), len(tb))
+
+
+def klasse_dekking(elementen: list[dict[str, Any]], verwacht: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
+    """Per klasse: hoeveel referenties (`n`), hoeveel daarvan terugkomen op dezelfde plek (`gedekt`) of letterlijk
+    (`exact`), hoeveel voorstellen er zijn en hoeveel daarvan op een referentie vallen (`raak`). De referentie is bij
+    een concept bewust onvolledig, dus `voorstellen - raak` is een bovengrens voor wat onjuist is."""
+    uit: dict[str, dict[str, int]] = {}
+
+    def rij(klasse: str) -> dict[str, int]:
+        return uit.setdefault(klasse, dict(n=0, gedekt=0, exact=0, voorstellen=0, raak=0))
+
+    for r in verwacht:
+        hier = [e for e in elementen if e.get("klasse") == r["klasse"]]
+        x = rij(r["klasse"])
+        x["n"] += 1
+        x["gedekt"] += any(_zelfde_plek(e.get("tekst", ""), r["tekst"]) for e in hier)
+        x["exact"] += any(_norm(e.get("tekst", "")) == _norm(r["tekst"]) for e in hier)
+    for e in elementen:
+        if e.get("klasse"):
+            x = rij(e["klasse"])
+            x["voorstellen"] += 1
+            x["raak"] += any(r["klasse"] == e["klasse"] and _zelfde_plek(e.get("tekst", ""), r["tekst"]) for r in verwacht)
+    return uit
+
+
 # --- Annotatie: matching en fijnmazige scorers -------------------------------------------
 #
 # De bestaande precisie_en_recall koppelt op (klasse, genormaliseerde span) als set-operatie —
@@ -437,6 +471,7 @@ class AnnotatieResult:
     # verwachtingen geeft `precisie_en_recall` gratis (1.0, 1.0), en die vrije punten hoorden niet
     # in het gemiddelde thuis (zie print_annotatie_report).
     ankers: int = 0
+    per_klasse: dict[str, dict[str, int]] = field(default_factory=dict)
     error: str | None = None
     fout_soort: str | None = None
     # Sneuvelde deze case op de infrastructuur (provider overbelast, timeout) in plaats van op de
@@ -550,6 +585,7 @@ def score_annotatie(
         cand_recall=candidate_recall(_kandidaten, verwacht),
         verworpen_p100=verworpen_per_100(elementen, _verworpen),
         ankers=len(verwacht),
+        per_klasse=klasse_dekking(elementen, verwacht),
         error=error,
         fout_soort=fout_soort,
     )

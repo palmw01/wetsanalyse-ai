@@ -270,8 +270,13 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
         # ongewijzigde kindlagen hergebruiken zonder hun status/revisie aan te raken.
         existing_keys = {digest({"klasse": e["klasse"], "ankers": e["ankers"]})
                          for e in current.values() if not e.get("verouderd")}
+        def bekend(value: dict) -> dict | None:
+            # Het id volgt uit de kandidaat. Is het element daarna gecorrigeerd, dan wijkt de digest af
+            # terwijl het hetzelfde voorstel blijft: een nieuwe ronde mag daar niet op stranden.
+            bestaand = current.get(value["id"]) if value["id"] else None
+            return bestaand if bestaand and not bestaand.get("verouderd") else None
         owners = set() if reuse else ({v["eigenaar_iri"] for v in values
-            if digest({"klasse": v["klasse"], "ankers": v["ankers"]}) not in existing_keys}
+            if digest({"klasse": v["klasse"], "ankers": v["ankers"]}) not in existing_keys and not bekend(v)}
             | {i for i in req.dekking.bereik if i not in layers} | changed_owners)
         for iri in sorted(owners):
             touched[iri] = await _laag(conn, layers, iri, req.snapshot_id, req.verwachte_revisies)
@@ -294,6 +299,7 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
             key = digest({"klasse": value["klasse"], "ankers": value["ankers"]})
             existing = next((x for x in current.values() if not x.get("verouderd")
                              and digest({"klasse": x["klasse"], "ankers": x["ankers"]}) == key), None)
+            existing = existing or bekend(value)
             if existing:
                 saved.append(existing)
                 continue  # nooit menselijke historie of afwijzingen met agentwerk overschrijven
@@ -316,9 +322,8 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
                 current[zelfde["id"]] = bijgewerkt
                 saved.append(bijgewerkt)
                 continue
-            element_id = value["id"] or uuid.uuid4().hex
-            if element_id in current:
-                raise HTTPException(409, "Element-ID bestaat al; gebruik de correctieroute.")
+            # Een verouderd element met dit id blijft als historie staan; het nieuwe krijgt een eigen id.
+            element_id = value["id"] if value["id"] and value["id"] not in current else uuid.uuid4().hex
             value.update(id=element_id, laag_id=touched[value["eigenaar_iri"]]["id"],
                          lifecycle="human_approved" if mens else "voorgesteld", herkomst="mens" if mens else "agent",
                          aangemaakt_door=actor, verouderd=False, geproduceerd_door=req.run,
