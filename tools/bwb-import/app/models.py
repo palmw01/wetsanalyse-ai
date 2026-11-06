@@ -99,6 +99,7 @@ class Artikel:
     effect: str | None = None  # "wijziging" | "nieuwe-regeling" | ...
     status: str | None = None  # bv. "goed"
     terugwerkend_tot: str | None = None  # retroactieve ingangsdatum (ISO), indien aanwezig
+    definieert_begrippen: list[str] = field(default_factory=list)
     wijzigingsbronnen: list[str] = field(default_factory=list)  # <juncto> Stb-refs
     leden: list[Lid] = field(default_factory=list)
     verwijzingen: list[Verwijzing] = field(default_factory=list)

@@ -231,6 +231,7 @@ class _Collector:
                     "vindplaats": vindplaats,
                     "tekst": artikel.tekst,
                     "ref_key": ref_key,
+                    "definieert_begrip": artikel.definieert_begrippen,
                     "jci": artikel.jci,
                     "label_id": artikel.label_id,
                     "inwerking": artikel.inwerking,
