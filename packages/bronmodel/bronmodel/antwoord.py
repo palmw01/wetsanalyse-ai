@@ -147,6 +147,14 @@ class Antwoord(BaseModel):
     doelen: list[Vindplaats] = []
 
 
+#: Een onvolledig resultaat blijft ook in de tekst zichtbaar: die voedt de historie, *Kopieer* en de eval.
+NIET_ALLES = "Dit zijn niet alle markeringen; ontbrekende treffers zijn niet uitgesloten."
+
+#: Wat de brongetrouwheidscontrole niet leest. Annotaties en begrippen zijn afgeleide duiding die niet als bron telt, en
+#: een leemte is tekst van de code: alle drie komen niet van het model, en hun BWB-id's of citaten staan niet in de bron.
+NIET_GETOETST = frozenset({"annotaties", "begrippen", "leemte"})
+
+
 def _vindplaats_regel(v: Vindplaats) -> str:
     return f"{v.label}, {v.regeling}" if v.regeling else v.label
 
@@ -169,7 +177,8 @@ def _blok_tekst(b: BaseModel) -> str:
     if isinstance(b, Verwijzingen):
         return "\n".join(f"- {_vindplaats_regel(v)}" for v in b.items)
     if isinstance(b, Annotaties):
-        return "\n".join(f"- {m.klasse}: {m.tekst}" + (f" ({m.vindplaats})" if m.vindplaats else "") for m in b.items)
+        rijen = "\n".join(f"- {m.klasse}: {m.tekst}" + (f" ({m.vindplaats})" if m.vindplaats else "") for m in b.items)
+        return rijen if b.volledig else f"{rijen}\n\n{NIET_ALLES}"
     if isinstance(b, Toelichting):
         return b.tekst
     if isinstance(b, Twijfel):
@@ -183,11 +192,11 @@ KOPPEN = {"definities": "Wettelijke definitie", "begrippen": "Vastgelegd begrip"
           "verwijzingen": "Verwijzingen", "annotaties": "Markeringen", "twijfel": "Twijfel en aannames"}
 
 
-def antwoord_tekst(antwoord: Antwoord) -> str:
+def antwoord_tekst(antwoord: Antwoord, zonder: frozenset[str] = frozenset()) -> str:
     """De vaste Markdown van een antwoord. Dezelfde blokken geven dezelfde tekst."""
     delen: list[str] = []
     for b in antwoord.blokken:
-        tekst = _blok_tekst(b)
+        tekst = "" if b.soort in zonder else _blok_tekst(b)
         if not tekst:
             continue
         kop = b.kop if isinstance(b, Toelichting) else KOPPEN.get(b.soort, "")

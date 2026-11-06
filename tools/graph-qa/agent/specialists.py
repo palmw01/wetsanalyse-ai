@@ -93,9 +93,14 @@ SPECIALISTS: dict[str, Specialist] = {
                 "Een toolfout of gedeeltelijk resultaat betekent niet dat niets bestaat. "
                 "Annotaties en beoordelingen zijn afgeleide duiding, geen wettelijke bron. "
                 "Haal bij inhoudelijke wetsclaims de bepaling afzonderlijk op met een brontool. "
-                "Gebruik zoekresultaten uit wetgeving nooit als vervanging voor annotatiezoekresultaten."),
+                "Gebruik zoekresultaten uit wetgeving nooit als vervanging voor annotatiezoekresultaten.\n"
+                "AFRONDEN: vraagt de gebruiker welke annotaties of markeringen er zijn, dan schrijf je geen antwoord in "
+                "tekst maar roep je als laatste stap antwoord_annotaties aan: de werkplek toont de treffers uit je laatste "
+                "zoekopdracht zelf, met of ze compleet zijn. Gaat de vraag om meer (waarom deze klasse, hoe verhouden ze zich), "
+                "dan antwoord je in tekst."),
         tools=frozenset({"search_annotaties", "overzicht_annotaties", "get_annotatie", "get_annotatiedekking",
                          "get_artikel", "get_lid", "get_bepaling", "list_regelingen", "inhoudsopgave"}),
+        sjablonen=frozenset({"antwoord_annotaties"}),
     ),
     "begrippen_lezen": Specialist(
         system=("Je raadpleegt de begrippen die juristen in werkgebieden vastlegden. De eerste zoekopdracht is al "
@@ -105,9 +110,14 @@ SPECIALISTS: dict[str, Specialist] = {
                 "Noem per begrip de status en het werkgebied; bij een vervangen begrip de opvolger. Een begrip is "
                 "een analyse-uitkomst, geen wettelijke definitie: zet de definitie niet tussen aanhalingstekens, "
                 "en haal bij inhoudelijke wetsclaims de bepaling afzonderlijk op met een brontool. Een toolfout "
-                "of onvolledig resultaat betekent niet dat een begrip niet bestaat."),
+                "of onvolledig resultaat betekent niet dat een begrip niet bestaat.\n"
+                "AFRONDEN: vraagt de gebruiker welke begrippen er liggen of of een term is vastgelegd, dan schrijf je "
+                "geen antwoord in tekst maar roep je als laatste stap antwoord_begrip aan met een leeg begrip: de werkplek "
+                "toont de begrippen uit je laatste zoekopdracht zelf. Wil de gebruiker ook weten wat de wet zegt, zoek "
+                "dan met zoek_definitie en noem het begrip. Gaat de vraag om meer (passages, relaties), dan antwoord je in tekst."),
         tools=frozenset({"search_begrippen", "get_begrip", "zoek_definitie", "get_artikel", "get_lid",
                          "get_bepaling", "list_regelingen"}),
+        sjablonen=frozenset({"antwoord_begrip"}),
     ),
     "definitie": Specialist(
         system=(

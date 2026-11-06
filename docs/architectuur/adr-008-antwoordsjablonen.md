@@ -1,6 +1,6 @@
 # ADR-008: Antwoordsjablonen, het antwoord als toolaanroep
 
-**Status:** aangenomen, 6 nov 2026. Geldt nu voor de sjablonen `begrip`, `bepaling` en `duiding`; de andere volgen.
+**Status:** aangenomen, 6 nov 2026. Geldt voor de sjablonen `begrip` (ook de begrippen-leesroute: zonder term een lijst uit `search_begrippen`, zonder uitspraak over de wet), `bepaling`, `duiding` en `annotaties`. De overzichtsroute krijgt er bewust geen.
 
 ## Context
 

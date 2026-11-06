@@ -15,10 +15,10 @@ from fakes import FakeGraph, FakeLLM, make_settings, response, text_block, tool_
 K = "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k"
 
 
-def definitie(**rij) -> tuple[str, str]:
+def definitie(term="belastingschuldige", **rij) -> tuple[str, str]:
     basis = {"node": K, "begrip": "belastingschuldige", "tekst": "belastingschuldige: degene te wiens naam de belastingaanslag is gesteld;",
              "jci": "jci1.3:c:BWBR0004770&artikel=2&lid=1&o=k", "citeertitel": "Invorderingswet 1990"}
-    return "zoek_definitie", json.dumps({"status": "ok", "volledig": True, "aantal": 1, "resultaten": [{**basis, **rij}]})
+    return "zoek_definitie", json.dumps({"status": "ok", "volledig": True, "aantal": 1, "term": term, "resultaten": [{**basis, **rij}]})
 
 
 def begrip(**rij) -> tuple[str, str]:
@@ -44,18 +44,18 @@ def test_de_definitie_komt_uit_de_rij_niet_van_het_model():
 
 
 def test_alleen_dezelfde_term_telt():
-    a = vul("antwoord_begrip", {"begrip": "aanslag", "toelichting": ""}, [definitie(begrip="belastingaanslag")])
+    a = vul("antwoord_begrip", {"begrip": "aanslag", "toelichting": ""}, [definitie("aanslag", begrip="belastingaanslag")])
     assert [b.soort for b in a.blokken] == ["leemte"]
     assert a.doelen == []
 
 
 def test_meervoud_en_opsomming_tellen_wel():
-    a = vul("antwoord_begrip", {"begrip": "ontvangers", "toelichting": ""}, [definitie(begrip="directeur, inspecteur of ontvanger")])
+    a = vul("antwoord_begrip", {"begrip": "ontvangers", "toelichting": ""}, [definitie("ontvanger", begrip="directeur, inspecteur of ontvanger")])
     assert isinstance(a.blokken[0], Definities)
 
 
 def test_nul_rijen_is_een_leemte_en_zegt_in_de_graaf():
-    leeg = ("zoek_definitie", json.dumps({"status": "ok", "volledig": True, "aantal": 0, "resultaten": []}))
+    leeg = ("zoek_definitie", json.dumps({"status": "ok", "volledig": True, "aantal": 0, "term": "kwijtschelding", "resultaten": []}))
     a = vul("antwoord_begrip", {"begrip": "kwijtschelding", "toelichting": ""}, [leeg])
     assert isinstance(a.blokken[0], Leemte) and "in de graaf" in a.blokken[0].tekst
 
@@ -144,7 +144,7 @@ def test_een_verzonnen_verwijzing_in_de_toelichting_gaat_door_de_correctie():
 
 
 def test_een_sjabloon_naast_een_graaftool_wacht_op_de_graaftool():
-    beide = response([tool_block("t1", "zoek_definitie", {"term": "x"}), tool_block("t2", "antwoord_begrip", {"begrip": "x", "toelichting": ""})], "tool_use")
+    beide = response([tool_block("t1", "zoek_definitie", {"term": "belastingschuldige"}), tool_block("t2", "antwoord_begrip", {"begrip": "belastingschuldige", "toelichting": ""})], "tool_use")
     events, llm = _beurt(beide, _sjabloon())
     assert llm.index == 3
     assert [e for e in events if e["type"] == "antwoord"]
@@ -159,7 +159,7 @@ def test_het_model_krijgt_de_tool_echt_aangeboden():
 
 
 def test_zonder_definitie_blijven_de_opgehaalde_bronnen_herleidbaar():
-    llm = FakeLLM([KIES, ZOEK, response([tool_block("t2", "get_artikel", {"bwb_id": "BWBR0018472", "artikel": "7"})], "tool_use"),
+    llm = FakeLLM([KIES, response([tool_block("t1", "zoek_definitie", {"term": "draagkracht"})], "tool_use"), response([tool_block("t2", "get_artikel", {"bwb_id": "BWBR0018472", "artikel": "7"})], "tool_use"),
                    response([tool_block("t3", "antwoord_begrip", {"begrip": "draagkracht", "toelichting": "Zie artikel 7."})], "tool_use")])
     graph = FakeGraph(results=lambda q: RIJ if "definieertBegrip" in q else "node\ttekst\n<urn:bwb:BWBR0018472:artikel:7>\t\"Tekst\"\n")
 
@@ -407,6 +407,239 @@ def _duidingsbeurt(*rondes, **instellingen):
     async def alles():
         return [e async for e in answer_stream("Hoe werkt uitstel?", settings=settings, llm=llm, graph=FakeGraph(result=TIEN_TSV))]
 
+
+# De garantie van "geen wettelijke definitie": alleen over wat er echt op deze term gezocht is.
+def test_een_zoekactie_op_een_andere_term_is_geen_bewijs():
+    """Het bronregister draagt `zoek_definitie` uit eerdere beurten mee: die zegt niets over deze term."""
+    with pytest.raises(Onvulbaar, match="kwijtschelding"):
+        vul("antwoord_begrip", {"begrip": "kwijtschelding", "toelichting": ""}, [definitie()])
+
+
+def test_de_kortere_zoekterm_dekt_de_langere_maar_niet_andersom():
+    a = vul("antwoord_begrip", {"begrip": "belastingaanslag", "toelichting": ""}, [definitie("aanslag", begrip="aanslag", node=K)])
+    assert isinstance(a.blokken[0], Leemte)
+    with pytest.raises(Onvulbaar):
+        vul("antwoord_begrip", {"begrip": "aanslag", "toelichting": ""}, [definitie("belastingaanslag")])
+
+
+def test_de_tool_noemt_de_term_waarop_hij_zocht():
+    from agent.tools import dispatch
+    data = json.loads(dispatch("zoek_definitie", FakeGraph(result=RIJ), {"term": "aanslag", "bwb_id": "BWBR0004770"}))
+    assert data["term"] == "aanslag" and data["bwb_id"] == "BWBR0004770"
+
+
+def test_een_zoekactie_binnen_een_regeling_spreekt_niet_voor_de_graaf():
+    leeg = ("zoek_definitie", json.dumps({"status": "ok", "volledig": True, "aantal": 0, "term": "x", "bwb_id": "BWBR0004770", "resultaten": []}))
+    assert "in de gezochte regeling" in vul("antwoord_begrip", {"begrip": "x", "toelichting": ""}, [leeg]).blokken[0].tekst
+
+
+def test_een_onvolledige_zoekuitkomst_is_geen_leemte():
+    meer = ("zoek_definitie", json.dumps({"status": "ok", "volledig": False, "aantal": 0, "term": "x", "resultaten": [], "vervolg": {"tool": "zoek_definitie", "args": {}}}))
+    with pytest.raises(Onvulbaar, match="vervolg"):
+        vul("antwoord_begrip", {"begrip": "x", "toelichting": ""}, [meer])
+
+
+def test_een_onvolledige_lijst_met_definities_zegt_dat():
+    trace = [("zoek_definitie", definitie()[1].replace('"volledig": true', '"volledig": false'))]
+    a = vul("antwoord_begrip", {"begrip": "belastingschuldige", "toelichting": ""}, trace)
+    assert [b.soort for b in a.blokken] == ["definities", "leemte"]
+
+
+# De begrippen-leesroute: zonder term een lijst, en geen woord over de wet.
+def test_de_leesroute_toont_de_begrippen_en_zegt_niets_over_de_wet():
+    a = vul("antwoord_begrip", {"begrip": "", "toelichting": "Eén begrip is geaccordeerd."}, [begrip(naam="bestemming bankrekening")])
+    assert [b.soort for b in a.blokken] == ["begrippen", "toelichting"]
+    assert a.blokken[0].items[0].naam == "bestemming bankrekening", "de zoekterm stond al in de zoekopdracht"
+    assert "wettelijke definitie" not in antwoord_tekst(a).casefold().replace("vastgelegd begrip", "")
+
+
+def test_met_een_term_blijft_zoek_definitie_verplicht():
+    with pytest.raises(Onvulbaar, match="laat begrip dan leeg"):
+        vul("antwoord_begrip", {"begrip": "belastingschuldige", "toelichting": ""}, [begrip()])
+
+
+def test_de_leesroute_zonder_zoekactie_vult_niet():
+    with pytest.raises(Onvulbaar, match="search_begrippen"):
+        vul("antwoord_begrip", {"begrip": "", "toelichting": ""}, [])
+
+
+def test_de_laatste_zoekopdracht_telt():
+    a = vul("antwoord_begrip", {"begrip": "", "toelichting": ""}, [begrip(id="b1"), begrip(id="b2", naam="termijn")])
+    assert [x.id for x in a.blokken[0].items] == ["b2"]
+
+
+def test_nul_treffers_zegt_de_code_en_de_toelichting_vervalt():
+    leeg = ("search_begrippen", json.dumps({"status": "ok", "volledig": True, "aantal": 0, "resultaten": [], "geen_treffers": "Ik vond er geen. Dat zegt niet dat ze er niet zijn."}))
+    a = vul("antwoord_begrip", {"begrip": "", "toelichting": "Er zijn geen begrippen."}, [leeg])
+    assert [(b.soort, b.tekst) for b in a.blokken] == [("leemte", "Ik vond er geen. Dat zegt niet dat ze er niet zijn.")]
+
+
+def test_een_storing_klinkt_niet_als_geen_begrippen():
+    a = vul("antwoord_begrip", {"begrip": "", "toelichting": "Er zijn geen begrippen."}, [("search_begrippen", json.dumps({"status": "unavailable"}))])
+    assert [b.soort for b in a.blokken] == ["leemte"] and "niet betrouwbaar" in a.blokken[0].tekst
+
+
+def test_onvolledig_blijft_zichtbaar_bij_de_begrippen():
+    trace = [("search_begrippen", begrip()[1].replace('"status": "ok", "volledig": true', '"status": "partial", "volledig": false'))]
+    assert "onvolledig" in antwoord_tekst(vul("antwoord_begrip", {"begrip": "", "toelichting": ""}, trace))
+    assert "onvolledig" in antwoord_tekst(vul("antwoord_begrip", {"begrip": "belastingschuldige", "toelichting": ""}, [definitie(), *trace]))
+
+
+def test_een_storing_bij_de_begrippen_zwijgt_niet_naast_een_definitie():
+    a = vul("antwoord_begrip", {"begrip": "belastingschuldige", "toelichting": "Uitleg."}, [definitie(), ("search_begrippen", "Fout bij tool")])
+    assert [b.soort for b in a.blokken] == ["definities", "leemte", "toelichting"]
+
+
+def test_de_begrippen_specialist_krijgt_het_sjabloon():
+    from agent import specialists
+    assert "antwoord_begrip" in specialists.get("begrippen_lezen").sjablonen
+
+
+# Het bereik staat in de aanhef van het lid, niet in het onderdeel.
+LID_RIJ = ("get_lid", json.dumps({"status": "ok", "volledig": True, "lid": {"iri": K.rsplit(":o:", 1)[0], "tekst": "Voor de toepassing van dit artikel wordt verstaan onder:"}, "resultaten": []}))
+
+
+def test_het_bereik_komt_uit_de_aanhef_van_de_rij():
+    a = vul("antwoord_begrip", {"begrip": "belastingschuldige", "toelichting": ""}, [definitie(aanhef="Deze wet verstaat onder:")])
+    assert a.blokken[0].items[0].bereik == "Deze wet"
+
+
+def test_het_bereik_komt_uit_het_opgehaalde_lid():
+    a = vul("antwoord_begrip", {"begrip": "belastingschuldige", "toelichting": ""}, [definitie(), LID_RIJ])
+    assert a.blokken[0].items[0].bereik == "Voor de toepassing van dit artikel"
+
+
+def test_het_bereik_komt_ook_uit_een_lid_van_get_artikel():
+    rij = ("get_artikel", json.dumps({"status": "ok", "volledig": True, "artikel": {"iri": "x"}, "resultaten": [{"lid": K.rsplit(":o:", 1)[0], "tekst": "In dit artikel wordt verstaan onder:"}]}))
+    assert vul("antwoord_begrip", {"begrip": "belastingschuldige", "toelichting": ""}, [definitie(), rij]).blokken[0].items[0].bereik == "In dit artikel"
+
+
+def test_de_aanhef_gaat_voor_wat_de_definitie_zelf_noemt():
+    a = vul("antwoord_begrip", {"begrip": "belastingschuldige", "toelichting": ""},
+            [definitie(tekst="belastingschuldige: degene als bedoeld in deze wet;", aanhef="In dit artikel wordt verstaan onder:")])
+    assert a.blokken[0].items[0].bereik == "In dit artikel"
+
+
+def test_een_subonderdeel_vindt_de_aanhef_van_het_lid():
+    a = vul("antwoord_begrip", {"begrip": "belastingschuldige", "toelichting": ""}, [definitie(node=f"{K}:o:1"), LID_RIJ])
+    assert a.blokken[0].items[0].bereik == "Voor de toepassing van dit artikel"
+
+
+def test_zonder_aanhef_blijft_de_eigen_tekst_gelden_en_anders_leeg():
+    assert vul("antwoord_begrip", {"begrip": "belastingschuldige", "toelichting": ""}, [definitie()]).blokken[0].items[0].bereik == ""
+    a = vul("antwoord_begrip", {"begrip": "belastingschuldige", "toelichting": ""}, [definitie(tekst="In deze wet is de belastingschuldige degene die betaalt.")])
+    assert a.blokken[0].items[0].bereik == "deze wet"
+
+
+# Het sjabloon `annotaties`.
+def zoek(*rijen, **kop) -> tuple[str, str]:
+    return "search_annotaties", json.dumps({"bewijssoort": "annotatie", "status": "ok", "volledig": True, "filters": {"jas_klassen": ["Rechtssubject"], "offset": 0, "limit": 25},
+                                            "volgende_offset": None, "resultaten": list(rijen), **kop})
+
+
+M1 = {"id": "e1", "klasse": "Rechtssubject", "tekst": "de ontvanger", "vindplaats": "BWBR0004770 art. 9 lid 1", "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1"}
+M2 = {"id": "e2", "klasse": "Rechtssubject", "tekst": "de belastingschuldige", "vindplaats": "BWBR0004770 art. 9 lid 2"}
+
+
+def test_de_treffers_komen_uit_de_rijen():
+    a = vul("antwoord_annotaties", {"toelichting": "Gefilterd op Rechtssubject."}, [zoek(M1, M2)])
+    assert a.sjabloon == "annotaties" and [b.soort for b in a.blokken] == ["annotaties", "toelichting"]
+    blok = a.blokken[0]
+    assert [m.id for m in blok.items] == ["e1", "e2"] and blok.totaal == 2 and blok.volledig is True
+    assert blok.items[0].vindplaats == M1["vindplaats"] and blok.door == "bron"
+
+
+def test_een_volgende_pagina_is_onvolledig_ook_als_de_api_volledig_zegt():
+    """De api zet `volledig` op de dekking van de projectie; de paginering staat in `volgende_offset`."""
+    a = vul("antwoord_annotaties", {"toelichting": ""}, [zoek(M1, volgende_offset=25)])
+    assert a.blokken[0].volledig is False
+    assert "niet alle markeringen" in antwoord_tekst(a)
+
+
+def test_pagina_s_van_dezelfde_zoekopdracht_voegen_samen():
+    a = vul("antwoord_annotaties", {"toelichting": ""}, [zoek(M1, volgende_offset=1), zoek(M1, M2)])
+    assert [m.id for m in a.blokken[0].items] == ["e1", "e2"] and a.blokken[0].totaal == 2 and a.blokken[0].volledig is True
+
+
+def test_de_laatste_zoekopdracht_telt_bij_de_annotaties():
+    ander = zoek(M2, filters={"tekst": "belastingschuldige"})
+    assert [m.id for m in vul("antwoord_annotaties", {"toelichting": ""}, [zoek(M1), ander]).blokken[0].items] == ["e2"]
+
+
+def test_partial_is_onvolledig():
+    a = vul("antwoord_annotaties", {"toelichting": ""}, [zoek(M1, status="partial", volledig=False)])
+    assert a.blokken[0].volledig is False
+
+
+def test_een_mislukte_zoekopdracht_na_een_gelukte_maakt_onvolledig():
+    a = vul("antwoord_annotaties", {"toelichting": ""}, [zoek(M1), ("search_annotaties", "Fout bij tool")])
+    assert a.blokken[0].volledig is False and [m.id for m in a.blokken[0].items] == ["e1"]
+
+
+def test_nul_treffers_klinkt_niet_als_bestaat_niet():
+    a = vul("antwoord_annotaties", {"toelichting": "Er zijn geen rechtssubjecten geannoteerd."}, [zoek()])
+    assert [b.soort for b in a.blokken] == ["leemte"], "de toelichting vervalt: die kan de leegte duiden"
+    assert "Rechtssubject" in a.blokken[0].tekst and "zegt niet dat ze er niet zijn" in a.blokken[0].tekst
+
+
+def test_een_toolfout_klinkt_niet_als_bestaat_niet():
+    for fout in (json.dumps({"status": "unavailable", "volledig": False}), "Fout bij tool search_annotaties"):
+        a = vul("antwoord_annotaties", {"toelichting": "Er zijn geen annotaties."}, [("search_annotaties", fout)])
+        assert [b.soort for b in a.blokken] == ["leemte"] and "niet betrouwbaar" in a.blokken[0].tekst
+
+
+def test_zonder_zoekactie_vult_het_annotatiesjabloon_niet():
+    with pytest.raises(Onvulbaar, match="search_annotaties"):
+        vul("antwoord_annotaties", {"toelichting": ""}, [])
+
+
+def test_het_overzicht_telt_markeringen_niet_groepen():
+    ov = ("overzicht_annotaties", json.dumps({"status": "ok", "volledig": False, "bekeken": 90, "meer_groepen": 2, "filters": {},
+          "groepen": [{"klasse": "Rechtssubject", "tekst": "de ontvanger", "aantal": 3, "vindplaatsen": ["BWBR0004770 art. 9", "BWBR0004770 art. 10"], "voorbeeld_id": "e1"}]}))
+    a = vul("antwoord_annotaties", {"toelichting": ""}, [ov])
+    blok = a.blokken[0]
+    assert blok.totaal == 3 and blok.volledig is False and blok.items[0].id == "e1"
+    assert blok.items[0].vindplaats == "3×: BWBR0004770 art. 9, BWBR0004770 art. 10"
+
+
+def test_een_verwijzing_en_een_verouderde_annotatie_blijven_herkenbaar():
+    a = vul("antwoord_annotaties", {"toelichting": ""}, [zoek({"id": "e3", "klasse": "Voorwaarde", "soort": "verwijzing"}, {**M1, "verouderd": True})])
+    assert a.blokken[0].items[0].tekst == "Annotatie met een ruimere bronselectie"
+    assert a.blokken[0].items[1].vindplaats.endswith("(verouderd)")
+
+
+class _Port:
+    def __init__(self, *paginas):
+        self.paginas = list(paginas)
+
+    def zoeken(self, _):
+        return self.paginas.pop(0)
+
+
+def test_het_echte_overzicht_past_op_het_sjabloon():
+    from agent.tools.annotatie_tools import overzicht
+    e = {"id": "e1", "klasse": "Rechtssubject", "tekst": "de ontvanger", "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9"}
+    uit = overzicht({"jas_klassen": ["Rechtssubject"]}, _Port({"status": "ok", "volledig": True, "resultaten": [e, {**e, "id": "e2"}]}))
+    blok = vul("antwoord_annotaties", {"toelichting": ""}, [("overzicht_annotaties", json.dumps(uit))]).blokken[0]
+    assert blok.totaal == 2 and blok.volledig is True
+
+
+LEES = response([tool_block("t2", "antwoord_annotaties", {"toelichting": "Op klasse gefilterd."})], "tool_use")
+
+
+class _Lees:
+    def zoeken(self, _):
+        return {"status": "ok", "volledig": True, "filters": {}, "volgende_offset": None,
+                "resultaten": [{"id": "e1", "klasse": "Rechtssubject", "tekst": 'de "ontvanger van de rijksbelastingen in deze wet" zelf', "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9"}]}
+
+
+def _leesbeurt(*rondes):
+    llm = FakeLLM(list(rondes))
+    graph = FakeGraph(result="")
+
+    async def alles():
+        return [e async for e in answer_stream("Welke annotaties zijn er?", settings=make_settings(grounding_correct=True), llm=llm, graph=graph, annotaties=_Lees())]
+
     return asyncio.run(alles()), llm
 
 
@@ -474,3 +707,58 @@ def test_een_vervolgvraag_vindt_de_doelen_in_het_register():
     with patch("agent.nodes.antwoord.get_stream_writer", return_value=lambda _: None):
         uit = finalize_node(b, state)
     assert [s["uri"] for s in uit["sources"]] == [TIEN_1]
+
+
+def test_een_beurt_rondt_af_met_de_annotaties_zonder_correctieronde():
+    """Annotaties tellen niet als bron: zonder uitzondering gaven hun BWB-id's en aanhalingstekens elke beurt een correctieronde."""
+    events, llm = _leesbeurt(LEES)
+    assert llm.index == 1
+    assert llm.calls[0]["tools"][-1]["name"] == "antwoord_annotaties"
+    antwoord = _eerste(events, "antwoord")["antwoord"]
+    assert antwoord["sjabloon"] == "annotaties" and antwoord["blokken"][0]["totaal"] == 1
+    assert _eerste(events, "grounding")["grounded"] is True
+
+
+def test_een_verzinsel_in_de_toelichting_gaat_ook_hier_door_de_correctie():
+    fout = response([tool_block("t2", "antwoord_annotaties", {"toelichting": "Zie BWBR9999999."})], "tool_use")
+    events, llm = _leesbeurt(fout, response([tool_block("t3", "antwoord_annotaties", {"toelichting": "Zonder verzinsel."})], "tool_use"))
+    assert llm.index == 2
+    assert "BWBR9999999" not in _eerste(events, "token")["content"]
+
+
+def test_vrije_tekst_in_de_leesroute_blijft_begrensd():
+    events, _ = _leesbeurt(response([text_block("Er zijn annotaties.")], "end_turn"))
+    assert not [e for e in events if e["type"] == "antwoord"]
+    assert _eerste(events, "token")["content"] == "Er zijn annotaties."
+
+
+def test_de_vindplaats_van_een_markering_krijgt_de_naam_van_de_regeling(monkeypatch):
+    from types import SimpleNamespace
+    from agent.nodes import sjabloon
+    monkeypatch.setattr(sjabloon, "regelingnamen", lambda _, bwbs: {b: "Invorderingswet 1990" for b in bwbs})
+    a = vul("antwoord_annotaties", {"toelichting": ""}, [zoek(M1)])
+    sjabloon._met_regelingen(SimpleNamespace(graph=None), a)
+    assert a.blokken[0].items[0].vindplaats == "Invorderingswet 1990 art. 9 lid 1"
+
+
+class _Begrippen:
+    werkgebied_id = ""
+
+    def verifieer(self, ids, werkgebieden):
+        return {"status": "ok", "werkgebieden": {},
+                "begrippen": {i: {"id": i, "naam": "termijn", "status": "geaccordeerd", "werkgebied_id": "w1", "werkgebied_naam": "Rekeningafspraak"} for i in ids}}
+
+
+def test_de_begrippen_leesroute_rondt_af_met_het_sjabloon():
+    llm = FakeLLM([response([tool_block("t2", "antwoord_begrip", {"begrip": "", "toelichting": "Eén begrip."})], "tool_use")])
+    graph = FakeGraph(results=lambda q: 'wid\thash\n' if 'projectieHash' in q else 'c\twid\n<urn:wa:begrip:b1>\t"w1"\n')
+
+    async def alles():
+        return [e async for e in answer_stream("Welke begrippen hebben we al geaccordeerd?", settings=make_settings(grounding_correct=True), llm=llm, graph=graph, begrippen=_Begrippen())]
+
+    events = asyncio.run(alles())
+    assert llm.index == 1 and "antwoord_begrip" in [x["name"] for x in llm.calls[0]["tools"]]
+    antwoord = _eerste(events, "antwoord")["antwoord"]
+    assert [b["soort"] for b in antwoord["blokken"]] == ["begrippen", "toelichting"]
+    assert antwoord["blokken"][0]["items"][0]["naam"] == "termijn"
+    assert "Geen wettelijke definitie" not in _eerste(events, "token")["content"]

@@ -100,6 +100,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   `antwoord_duiding` (uitleg) toetst elk fragment tegen de tekst van de aangewezen bepaling, niet tegen de hele trace, en
   weigert een bepaling die de uitleg noemt zonder passage; kort antwoord, waarom en twijfel gaan als tekst door `verify`.
   Citeren kan alleen uit rijen met een iri bij hun tekst, dus niet uit `get_context`.
+  `verify_node` toetst de blokken `annotaties`, `begrippen` en `leemte` niet (`NIET_GETOETST`): afgeleide duiding en tekst van de code.
 - **`verify_node`** – `check_grounding(answer, source_trace)`. Bij ongegrond volgt via `correct_node`
   hoogstens één corrigerende ronde (`GROUNDING_CORRECT`, default aan; `state["corrected"]`). De controle
   keurt **twee** dingen af en `correct_node` moet ze allebei benoemen: `unsupported` (een vindplaats die
@@ -1339,7 +1340,11 @@ de route en de eval-scorer vast.
 3. **Een storing wordt nooit een leeg antwoord** (`begrens_antwoord`): zonder bruikbaar zoekresultaat
    vervangt die het modelantwoord door een eerlijke melding, met een logregel. Die melding gaat **niet**
    in `messages`: anders leest het model zijn eigen "ik kon niet raadplegen" in de volgende beurt als
-   feit.
+   feit. Die begrenzing vangt het vrije antwoord; het sjabloon `antwoord_annotaties` (`sjablonen/annotaties.py`) gaat er niet
+   langs en gebruikt dezelfde meldingen: een storing of nul treffers is een `leemte` en de toelichting van het model vervalt.
+   Getoond wordt de laatste zoekopdracht (pagina's voegen samen); `volledig` is ook onwaar bij een `volgende_offset`, want
+   de api zet `volledig` alleen op de dekking van de projectie, niet op de paginering. `begrens_begrippen_antwoord` en
+   `antwoord_begrip` delen zo `begrippen_stand`.
 
 **Wat de doelbepaling leest is alleen deze beurt** (`doel._deze_beurt`). De thread bewaart alle
 beurten; las `_doel_uit_toolcalls` de hele historie, dan filterde de leesroute op de wet van een

@@ -252,8 +252,11 @@ def _h_zoek_definitie(g: GraphPort, a: dict[str, Any]) -> str:
     limit, offset = _geheel(a.get("limit"), 25, 1, 100), _geheel(a.get("offset"), 0, 0, 100_000)
     rijen = parse_select(g.sparql(queries.zoek_definitie(
         a["term"], a.get("bwb_id") or None, limit, offset=offset, meer=True)))
+    # `term` en `bwb_id` terug in het resultaat: het sjabloon zegt alleen "geen wettelijke definitie" over wat er
+    # echt is gezocht, ook als een eerdere beurt op een andere term zocht (`sjablonen/begrip.py`).
     return pagina([_met_voorproef(r, _VOORPROEF_DEFINITIE) for r in rijen], tool="zoek_definitie",
-                  args={**a, "limit": limit}, limit=limit, offset=offset)
+                  args={**a, "limit": limit}, limit=limit, offset=offset,
+                  extra={"term": a["term"], **({"bwb_id": a["bwb_id"]} if a.get("bwb_id") else {})})
 
 
 def _h_grondslagen(g: GraphPort, a: dict[str, Any]) -> str:
