@@ -50,6 +50,11 @@ export const DOSSIER_VELDEN = [
 
 export type DossierVeld = (typeof DOSSIER_VELDEN)[number]["veld"];
 
+/** Het hele werkgebied als één bestand (api `werkgebied_export`): één vaste inhoud, op de stand van nu. */
+export const WERKGEBIED_EXPORT_FORMATEN = [
+  { formaat: "pdf" as const, label: "PDF van het werkgebied", uitleg: "dossier, bronnen met wettekst, annotaties en begrippen" },
+];
+
 export const ROL_LABEL: Record<BronRol, string> = {
   analyseren: "Analyseren",
   context: "Contextbron",
@@ -99,7 +104,7 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
     return pad.length === 4 && !!a && a !== "dekking" && a !== "voorstellen" && b === "koppelingen";
   }
   // `verdieping` (fase C) is alleen lezen; de batches en de uitkomst zet graph-qa, niet de werkplek.
-  if (deel === "elementen" || deel === "audit" || deel === "annotatie-werkvoorraad" || deel === "verdieping"
+  if (deel === "export" || deel === "elementen" || deel === "audit" || deel === "annotatie-werkvoorraad" || deel === "verdieping"
       || deel === "herbeoordelingen" || deel === "thema-voorstel" || deel === "toestanden" || deel === "regelingen" || deel === "bepalingen")
     return pad.length === 2;
   // Relaties (fase F2): lezen en vastleggen, één relatie weghalen of bevestigen, een voorstel afwijzen.
