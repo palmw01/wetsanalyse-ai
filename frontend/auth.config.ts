@@ -18,7 +18,7 @@ export const SESSIE_TOKEN = 60 * 60; // 1 uur (ingewisseld accounttoken; de clie
 
 // Paden die zonder sessie bereikbaar moeten zijn (login, eenmalige registratie, zelfregistratie
 // + hun BFF-routes,
-// en de health-check voor Docker/NPM/CI – die mag nooit achter de login vallen).
+// en de health-check voor Azure en CI – die mag nooit achter de login vallen).
 function isPublic(path: string): boolean {
   return (
     path === "/login" ||
@@ -54,8 +54,26 @@ function buitenTokenSessie(path: string): boolean {
 // Muterende methodes waarop de Origin-check geldt (CSRF defense-in-depth naast SameSite=Lax).
 const MUTEREND = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
+/**
+ * De hosts die als eigen Origin tellen. `AUTH_URL` wint: `main.bicep` zet daar de publieke URL. Een
+ * `x-forwarded-host` telt nooit mee: de Azure-ingress geeft die header van de client ongemoeid door
+ * (gemeten op acceptatie), dus wie hem gelijk aan zijn Origin zette, kwam langs deze check. Zonder
+ * `AUTH_URL` (lokaal) is de `Host` de maat; `nextUrl.host` staat er omdat Next die zelf invult.
+ */
+function eigenHosts(nextHost: string, headers: Headers): Set<string> {
+  const publiek = process.env.AUTH_URL;
+  if (publiek) {
+    try {
+      return new Set([new URL(publiek).host]);
+    } catch {
+      // Een onbruikbare AUTH_URL valt terug op de lokale regel; Auth.js klaagt er zelf over.
+    }
+  }
+  return new Set([nextHost, headers.get("host")].filter((h): h is string => Boolean(h)));
+}
+
 export const authConfig = {
-  // De app draait achter Nginx Proxy Manager; vertrouw de forward-headers voor de callback-host.
+  // De app draait achter de ingress van Azure Container Apps; `Host` is daar de publieke host.
   trustHost: true,
   pages: { signIn: "/login" },
   // Rollende sessie. maxAge is de bovengrens/cookie-levensduur (30 d); de effectieve JWT-levensduur
@@ -97,14 +115,7 @@ export const authConfig = {
           } catch {
             originHost = null;
           }
-          // LET OP: `x-forwarded-host` wordt hier vertrouwd. Dat is veilig achter de Nginx Proxy
-          // Manager (die de header autoritair zet), maar hard afhankelijk van die proxy: stel de app
-          // nooit direct (zonder proxy) bloot, anders kan een client de Origin-check omzeilen door
-          // zelf een `x-forwarded-host` gelijk aan zijn Origin mee te sturen.
-          const eigenHosts = new Set(
-            [nextUrl.host, request.headers.get("x-forwarded-host")].filter(Boolean),
-          );
-          if (!originHost || !eigenHosts.has(originHost)) {
+          if (!originHost || !eigenHosts(nextUrl.host, request.headers).has(originHost)) {
             return Response.json({ detail: "Origin niet toegestaan." }, { status: 403 });
           }
         }
@@ -124,7 +135,12 @@ export const authConfig = {
         if (path.startsWith("/api/")) {
           return Response.json({ detail: "Niet ingelogd." }, { status: 401 });
         }
-        return false; // → redirect naar de signIn-pagina (/login)
+        // Zelf omleiden, geen `return false`: `proxy.ts` geeft `auth()` een eigen handler mee, en dan negeert
+        // next-auth een `false` en rendert hij de pagina gewoon. Alleen een Response telt.
+        const login = new URL("/login", nextUrl);
+        const terug = path + nextUrl.search;
+        if (terug !== "/") login.searchParams.set("callbackUrl", terug);
+        return Response.redirect(login);
       }
       if ((user as { viaToken?: string }).viaToken && buitenTokenSessie(path)) {
         return Response.json({ detail: "Niet met een accounttoken." }, { status: 403 });

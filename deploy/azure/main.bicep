@@ -4,14 +4,14 @@
 //   PostgreSQL Flexible Server · GraphDB · BWB-import (job) · API · graph-qa · Frontend
 //   + Log Analytics, Application Insights en een OTel-collector (de monitoring van deze straat)
 //
-// Deze stack praat NIET met de docker-host: hij brengt zijn eigen kennisgraaf mee. Dat scheelt een
-// publieke ingang naar het thuisnetwerk, en maakt de omgeving los aan- en uitzetbaar.
+// Elke straat brengt zijn eigen kennisgraaf mee en praat met geen andere omgeving.
 //
 // Deployment (vanuit de projectroot):
 //   python3 deploy/azure/gen-deploy.py "<azure-ai-key>" \
 //       --llm-api-base https://<resource>.services.ai.azure.com [--run]
 //
-// Na de deployment moet de import-job één keer draaien om de graaf te vullen; zie README.
+// `azure-infra.yml` start daarna zelf de import-job; met de hand moet die één keer draaien om de
+// graaf te vullen. Zie README.
 
 @description('Azure-regio; erft van de resource group.')
 param location string = resourceGroup().location
@@ -199,9 +199,7 @@ resource pgDatabase 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-06
 // ─────────────────────────────────────────────────────────────────────────────
 // De logs moeten ergens landen. Zonder `appLogsConfiguration` bewaart Azure de stdout van de
 // containers NIET – en dat is precies waar api, frontend en graph-qa hun gestructureerde JSON-logs
-// heen schrijven. De observability-stack (Grafana/Tempo/Loki) draait alleen op de docker-host en is
-// van buiten het LAN niet bereikbaar, dus die kan deze omgeving niet bedienen; een Log Analytics
-// workspace per straat is wat het hier doorzoekbaar maakt.
+// heen schrijven. Een Log Analytics workspace per straat maakt ze doorzoekbaar.
 //
 // PerGB2018 met 30 dagen retentie: de goedkoopste zinnige stand. Traces en metrics komen erbij via
 // Application Insights hieronder, dat op dezelfde workspace schrijft.
@@ -363,9 +361,8 @@ var collectorEndpoint = 'http://${collectorApp.name}'
 // 3. GraphDB – de kennisgraaf (intern)
 // ─────────────────────────────────────────────────────────────────────────────
 // GEEN persistente opslag, en dat is een bewuste keuze. GraphDB's opslaglaag gebruikt
-// geheugen-gemapte bestanden en file-locking; op Azure Files levert dat hetzelfde risico als op een
-// NFS-share (traagheid, in het slechtste geval stille indexcorruptie) – precies waarom de graaf op
-// de zelfgehoste opzet lokale opslag heeft. Een managed disk lost dat op maar kan niet aan een container-app.
+// geheugen-gemapte bestanden en file-locking; op Azure Files levert dat traagheid en in het slechtste
+// geval stille indexcorruptie op. Een managed disk lost dat op maar kan niet aan een container-app.
 //
 // Dat kan hier, omdat de graaf volledig REPRODUCEERBAAR is: de import-job haalt alle regelingen
 // rechtstreeks bij overheid.nl (~20s). Herstart betekent dus opnieuw importeren, niet dataverlies.
@@ -656,7 +653,7 @@ resource bwbImportJob 'Microsoft.App/jobs@2024-03-01' = {
   tags: straatTags
   properties: {
     environmentId: cae.id
-    // Wekelijks herimporteren, net als de zelfgehoste importer. De import is per wet idempotent
+    // Wekelijks herimporteren. De import is per wet idempotent
     // (named-graph PUT), dus dit is veilig – en het is wat de graaf bijhoudt zonder dat er een
     // deploy voor nodig is. `azure-infra.yml` start hem daarnaast direct na elke deploy, want
     // GraphDB is niet-persistent en komt dus leeg op.
@@ -901,12 +898,10 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
 // ─────────────────────────────────────────────────────────────────────────────
 // Praat met de GraphDB uit deze stack, via de MCP-server die GraphDB >= 11.2 zelf meebrengt op /mcp.
 //
-// LET OP – geen auth-proxy zoals in de zelfgehoste opzet. Daar controleert een nginx het bearer-token en vervangt
-// het door het GraphDB-service-account; hier is de graaf alleen binnen de Container Apps
+// LET OP – geen auth-proxy tussen graph-qa en de graaf: die is alleen binnen de Container Apps
 // Environment bereikbaar (`external: false`) en dat is de grens. `GRAPHDB_TOKEN` blijft gezet omdat
 // de code het fail-closed eist (`require_graph`), maar het is hier GEEN slot – GraphDB draait
-// zonder eigen security. Zodra deze omgeving meer dan standby/demo wordt, hoort daar hetzelfde
-// service-account + proxy-patroon als in de zelfgehoste opzet.
+// zonder eigen security.
 resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: '${appName}-graph-qa'
   location: location

@@ -408,7 +408,7 @@ Een begripsvraag komt als `antwoord`-event binnen vóór de `token` en staat op 
 `parseAntwoord` in `lib/antwoord.ts`, de spiegel van `bronmodel/antwoord.py`; ADR-008). **`components/antwoord/Antwoord.tsx`**
 tekent de blokken: elk soort één functie in `BLOKKEN`, dus een nieuw soort zonder component compileert niet. **Geen kaart, geen
 achtergrond, geen rand**: een sjabloon is een vorm van antwoorden, geen artefact (`app/knoppen.test.ts` bewaakt het). Wat Lex schreef
-staat onder een eigen kop. Een ongeldig blok geeft geen sjabloon en dan is `tekst` het antwoord, net als bij vrije tekst. Er staat geen
+staat onder een eigen kop. Een ongeldig blok geeft geen sjabloon en dan is `tekst` het antwoord, net als bij vrije tekst. Heeft het sjabloon doelen, dan staat er geen
 bronnenlijst bij: de blokken noemen elke vindplaats (`Vindplaats`: een klik opent de bepaling naast het gesprek).
 
 ### Het overzicht van een onderwerp
@@ -1464,10 +1464,10 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   antwoord* is de weg van regeling tot de diepste bepaling die het bericht aanwijst (`antwoordDoelen` in `lib/bronnen.ts`: per
   bepaling een doel met `herkomst`, een ouder valt weg als een kind genoemd is; de tekst selecteert alleen uit de bronnen),
   met de markeringen, de begrippen die daar gelden en de uitgaande verwijzingen. Er staat niets gedimd, want de rest is niet
-  geladen; `ketenZin` zegt boven de graaf wat je ziet en wat er niet bij staat. `layoutKeten` zet elke knoop op een eigen
-  regel, ingesprongen naar zijn diepte (synchroon, geen worker of cache). `ketenFocus` geeft de nadruk: in de hele
+  geladen; `ketenZin` zegt boven de graaf wat je ziet en wat er niet bij staat. De ketting krijgt de vorm van de hele kennisgraaf:
+  een rond sterrenstel, geen boom met knopen onder elkaar (`layoutSterrenstel`, besluit gebruiker 6 nov 2026). `ketenFocus` geeft de nadruk: in de hele
   kennisgraaf licht de ketting op. *Toon het hele artikel* laadt het artikel erbij (`laadErbij`); de ketting telt daarbij niet
-  als geladen, en met twee bronnen rekent de gewone layout. De knop onder een antwoord, een annotatie in het gesprek en de
+  als geladen. De knop onder een antwoord, een annotatie in het gesprek en de
   doelen van `doel` uit de werkplek gebruiken de ketting; de tab Samenhang van een werkgebied en de annotatiepagina niet.
   Een overzicht opent in de kennisgraaf met zijn eigen focus (`eigenFocus`); zijn *Dit antwoord* is de ketting van de delen
   en de definities (`overzichtDefinities`).

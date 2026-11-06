@@ -12,6 +12,9 @@
 // van de REQUEST en zet het op zijn eigen scripts. De `authorized`-callback draait eerst; geeft die
 // een eigen antwoord (redirect, 401/403/400), dan komt het verzoek hier niet – dat antwoord rendert
 // geen pagina en heeft geen nonce nodig.
+//
+// Let op: met deze handler telt in `authorized` alleen een `Response` als weigering. Een `false`
+// negeert next-auth dan; `auth.config.test.ts` bewaakt dat de callback dat nergens teruggeeft.
 
 import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
