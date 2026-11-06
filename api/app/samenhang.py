@@ -85,6 +85,11 @@ class Samenhang(BaseModel):
     afgekapt: bool = False
 
 
+def citeertitel_van(snapshot: dict) -> str:
+    """De citeertitel van de regeling. `bouw_snapshot` zet hem onder `doel`, niet bovenaan."""
+    return (snapshot.get("doel") or {}).get("citeertitel") or snapshot.get("citeertitel") or ""
+
+
 def artikel_van(nodes: dict[str, dict], iri: str) -> str:
     """Het dichtstbijzijnde artikel (of divisie) boven of op `iri`; anders `iri` zelf."""
     for kandidaat in store.keten(nodes, iri):
@@ -263,7 +268,7 @@ async def samenhang(snapshot: dict) -> dict:
         if ouder in knopen:
             relaties.append(Relatie(bron=ouder, doel=iri, soort="bevat", groep="structuur"))
     regeling = next((i for i in keten if nodes[i].get("type") == "Regeling"), keten[-1])
-    knopen[regeling] = knopen[regeling].model_copy(update={"label": snapshot.get("citeertitel") or knopen[regeling].label})
+    knopen[regeling] = knopen[regeling].model_copy(update={"label": citeertitel_van(snapshot) or knopen[regeling].label})
 
     # Annotaties: actuele markeringen en hun klasse.
     m_knopen, m_relaties = markeringen(weergave["elementen"], set(knopen))

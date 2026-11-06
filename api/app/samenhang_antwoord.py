@@ -36,6 +36,7 @@ from .samenhang import (
     _uitgaand,
     artikel_van,
     bronknoop,
+    citeertitel_van,
     markeringen,
     verwijzingen,
 )
@@ -284,7 +285,7 @@ async def antwoord(bron_iris: list[str], werkgebied_id: str = "") -> dict:
                 if ouder not in knopen:
                     knopen[ouder] = AntwoordKnoop.model_validate(bronknoop(nodes[ouder], nodes=nodes).model_dump())
                     if nodes[ouder].get("type") == "Regeling":
-                        knopen[ouder].label = snapshot.get("citeertitel") or knopen[ouder].label
+                        knopen[ouder].label = citeertitel_van(snapshot) or knopen[ouder].label
                     if p := nodes[ouder].get("parent_iri"):
                         relaties.append(AntwoordRelatie(bron=p, doel=ouder, soort="bevat", groep="structuur"))
             eronder = kinderen.get(doel, [])

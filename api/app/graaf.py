@@ -30,7 +30,7 @@ from bronmodel import BronFout
 from . import annotatie_v2_store as store
 from .bron_resolver import bwb_van, haal_bronrijen, snapshot_uit
 from .graaf_projectie_v2 import _select
-from .samenhang import _PREFIXES, Knoop, Relatie, _label, bronknoop, markeringen, verwijzingen
+from .samenhang import _PREFIXES, Knoop, Relatie, _label, bronknoop, citeertitel_van, markeringen, verwijzingen
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +86,7 @@ async def _structuur(bwb: str, toestand: str) -> dict:
             return deel
         snapshot = snapshot_uit(await haal_bronrijen(bwb), bwb, {})
         deel = {"snapshot": snapshot, "nodes": store.nodes_van(snapshot),
-                "citeertitel": snapshot.get("citeertitel", ""), "gehaald": time.monotonic()}
+                "citeertitel": citeertitel_van(snapshot), "gehaald": time.monotonic()}
         for oud in [k for k in _STRUCTUUR if k[0] == bwb]:
             del _STRUCTUUR[oud]         # een vorige toestand van deze regeling is voorbij
         while len(_STRUCTUUR) >= MAX_CACHE:

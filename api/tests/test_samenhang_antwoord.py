@@ -34,7 +34,8 @@ def boom(*rijen):
         nodes.append(dict(bron_iri=iri, parent_iri=ouder, type=soort, label=iri.rsplit(":", 2)[-2:][-1], tekst=tekst, volgorde=i,
                           bwb_id="BWBR0004770", vindplaats=iri.removeprefix(LAW), nummer="",
                           bron_hash=hashlib.sha256(tekst.encode()).hexdigest()))
-    return dict(snapshot_id=store.digest(nodes), doel=nodes[0], nodes=nodes, citeertitel="Invorderingswet 1990")
+    # Zoals `bouw_snapshot`: de citeertitel staat onder `doel`.
+    return dict(snapshot_id=store.digest(nodes), doel={**nodes[0], "citeertitel": "Invorderingswet 1990"}, nodes=nodes)
 
 
 def standaard():
