@@ -31,7 +31,10 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
 - **`app/api/_lib/proxy.ts`** – de kern van de BFF: één `proxy(path, init)` die de upstream-status
   en -body **ongewijzigd** teruggeeft, inclusief de headers in `PASS_THROUGH_HEADERS`
   (`Retry-After`, `Location`, `Content-Type`, `Content-Disposition`). `init.admin: true` injecteert
-  het admin-token. Verzin in een nieuwe route geen eigen fetch-logica. De helper bewaakt ook de
+  het admin-token, na de rolcontrole en de 2FA-plicht: `tweeFactorOntbreekt` vraagt bij elke admin-aanroep
+  `/v1/auth/me` (403 `code: "2fa_nodig"`, 503 als dat niet lukt). Bewust niet uit de JWT: de cookie loopt
+  achter, dus na het koppelen bleef het beheer dan tot vijf minuten dicht. Verzin in een nieuwe route geen
+  eigen fetch-logica. De helper bewaakt ook de
   **wachttijd**, want Node's `fetch` kent geen standaardtimeout en een upstream die verbindt maar niet
   antwoordt laat de UI anders eeuwig laden: default 30 s → **504** met een leesbare reden
   (onbereikbaar = 502); `timeoutMs` per route hoger waar dat hoort (de modeltest: 120 s).
@@ -41,7 +44,8 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
 - **Inloggen met een accounttoken** (`auth.ts`, provider `api-token`, alleen met `API_TOKEN_LOGIN`): een
   MCP-client wisselt zijn `wa_pat_`-token in voor een gewone sessie, dus de BFF-routes weten niets van tokens.
   Zo'n sessie draagt `viaToken`, duurt een uur, vervalt met het token en mag nooit bij
-  `/api/admin/api-tokens`, `/api/account/password` en `/api/account/2fa` (`auth.config.ts`).
+  `/api/admin/api-tokens`, `/api/account/password`, `/api/account/2fa` en de 2FA-reset van een gebruiker
+  (`auth.config.ts`). De 2FA-plicht geldt er niet: zo'n sessie kan niet koppelen.
 - **`lib/server.ts`** – server-side helpers voor Server Components en auth
   (`verifyCredentials`/`getAccountStatus`/`getSetupStatus`), rechtstreeks server→server.
 - **`lib/api.ts`** – alle client-side fetch-helpers naar `/api/**`, met één foutcontract
@@ -1683,8 +1687,12 @@ knop. Zie `docs/observability.md`.
     geen e-mail: wie inlogt terwijl zijn aanvraag loopt, krijgt de `code` `aanvraag_open` uit
     `/verify` (afgehandeld in `LoginClient` naast `totp_required`) – alleen bij het **juiste
     wachtwoord**, anders is het een middel om te ontdekken wie een aanvraag heeft.
-  - **2FA (TOTP)** is optioneel en self-service in de accounttab; inschakelen vraagt het huidige
-    wachtwoord. De account/2FA-routes zetten `X-User-Id` uit de sessie, nooit uit browser-input.
+  - **2FA (TOTP)** is self-service in de tab Beveiliging; inschakelen vraagt het huidige wachtwoord. De
+    account/2FA-routes zetten `X-User-Id` uit de sessie, nooit uit browser-input. Voor een beheerder is het
+    verplicht: `InstellingenInhoud` toont dan op de beheertabs `BeheerVraagt2fa` (de BFF houdt ze hoe dan
+    ook dicht). Bij het koppelen komen de herstelcodes één keer in beeld; `TwoFactorClient` neemt een
+    herstelcode aan in hetzelfde veld als de code uit de app. De 2FA-reset staat in het menu ⋯ van
+    `UsersPanel` en zet `X-User-Id`, want de api wil weten welke beheerder het doet.
   - Auth.js' eigen routes leven onder `/api/auth/*`; zet daar geen eigen BFF-route bij (daarom
     `/api/setup`, `/api/registreren`, `/api/login-verify`, `/api/login-2fa`). Publieke paden staan in
     `isPublic()` in `auth.config.ts`; vergeet je er een, dan stuurt de gate een bezoeker zonder account

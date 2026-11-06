@@ -31,6 +31,29 @@ interface ProxyInit {
   timeoutMs?: number;
 }
 
+/** Beheer vraagt 2FA: een weigering, of null als deze beheerder door mag.
+ *
+ *  Bij elke admin-aanroep vers bij de api en niet uit de JWT: de sessiecookie loopt achter (`auth()` in
+ *  een route handler schrijft hem niet terug), dus na het koppelen zou beheer anders tot vijf minuten
+ *  dicht blijven. Is de api niet te bevragen, dan gaat het beheer dicht. */
+async function tweeFactorOntbreekt(userid: string): Promise<Response | null> {
+  const { getAccountStatus } = await import("@/lib/server");
+  const account = await getAccountStatus(userid);
+  if (account.status === "onbekend") {
+    return Response.json({ detail: "Je account is nu niet te controleren. Probeer het zo opnieuw." }, { status: 503 });
+  }
+  if (account.status === "ingetrokken" || account.role !== "beheerder") {
+    return Response.json({ detail: "Alleen voor beheerders." }, { status: 403 });
+  }
+  if (account.tfaNodig) {
+    return Response.json(
+      { detail: "Koppel eerst tweestapsverificatie aan je account.", code: "2fa_nodig" },
+      { status: 403 },
+    );
+  }
+  return null;
+}
+
 export async function proxy(path: string, init: ProxyInit = {}): Promise<Response> {
   // Defense-in-depth: de middleware gate't /api/admin al op rol, maar een admin-proxy dwingt de
   // beheerder-rol hier server-side nóg eens af – één matcher-/callback-regressie opent dan niet
@@ -40,8 +63,15 @@ export async function proxy(path: string, init: ProxyInit = {}): Promise<Respons
     // alleen een echte admin-proxy laadt 'm.
     const { auth } = await import("@/auth");
     const session = await auth();
-    if ((session?.user as { role?: string } | undefined)?.role !== "beheerder") {
+    const user = session?.user as { role?: string; userid?: string; viaToken?: string } | undefined;
+    if (user?.role !== "beheerder") {
       return Response.json({ detail: "Alleen voor beheerders." }, { status: 403 });
+    }
+    // Een sessie uit een accounttoken kan niet koppelen (`buitenTokenSessie` in `auth.config.ts`),
+    // dus de plicht zou daar een doodlopende weg zijn.
+    if (!user.viaToken) {
+      const geweigerd = await tweeFactorOntbreekt(user.userid ?? "");
+      if (geweigerd) return geweigerd;
     }
   }
   const upstreamUrl = `${apiBaseUrl()}${path}`;

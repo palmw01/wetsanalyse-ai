@@ -248,6 +248,11 @@ export async function resetUserPassword(userid: string): Promise<TempPassword> {
   return json<TempPassword>(res);
 }
 
+export async function resetUser2fa(userid: string): Promise<void> {
+  const res = await fetch(`/api/admin/users/${pathSegment(userid)}/2fa-reset`, { method: "POST" });
+  if (!res.ok) throw await parseError(res);
+}
+
 export async function deleteUser(userid: string): Promise<void> {
   const res = await fetch(`/api/admin/users/${encodeURIComponent(userid)}`, { method: "DELETE" });
   if (!res.ok) throw await parseError(res);
@@ -429,13 +434,26 @@ export async function begin2fa(password: string): Promise<TotpBegin> {
   return json<TotpBegin>(res);
 }
 
-export async function activate2fa(totp: string): Promise<void> {
+/** Geeft de herstelcodes: die zijn hierna nergens meer op te vragen. */
+export async function activate2fa(totp: string): Promise<string[]> {
   const res = await fetch("/api/account/2fa/activate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ totp }),
   });
   if (!res.ok) throw await parseError(res);
+  return ((await res.json()) as { codes: string[] }).codes;
+}
+
+/** Een nieuwe set herstelcodes, op vertoon van een code uit de app of een herstelcode. */
+export async function vervangHerstelcodes(totp: string): Promise<string[]> {
+  const res = await fetch("/api/account/2fa/herstelcodes", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ totp }),
+  });
+  if (!res.ok) throw await parseError(res);
+  return ((await res.json()) as { codes: string[] }).codes;
 }
 
 export async function disable2fa(totp: string): Promise<void> {

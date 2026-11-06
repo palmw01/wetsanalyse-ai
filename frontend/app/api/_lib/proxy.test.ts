@@ -5,6 +5,10 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 process.env.API_BASE_URL = "http://api.test";
 process.env.API_TOKEN = "test-token";
 
+const sessie = vi.hoisted(() => ({ auth: vi.fn(), getAccountStatus: vi.fn() }));
+vi.mock("@/auth", () => ({ auth: sessie.auth }));
+vi.mock("@/lib/server", () => ({ getAccountStatus: sessie.getAccountStatus }));
+
 let proxy: typeof import("./proxy").proxy;
 
 beforeAll(async () => {
@@ -78,5 +82,73 @@ describe("proxy – timeout", () => {
     expect(res.status).toBe(201);
     expect(res.headers.get("Location")).toBe("/v1/x/1");
     expect(await res.json()).toEqual({ ok: true });
+  });
+});
+
+describe("proxy – beheer vraagt 2FA", () => {
+  const beheerder = { user: { userid: "baas", role: "beheerder" } };
+  const actief = { status: "actief", role: "beheerder", email: "b@example.test", tfaNodig: false };
+
+  function upstream() {
+    const nep = vi.fn((_url: string, _init?: RequestInit) => Promise.resolve(new Response("{}", { status: 200 })));
+    vi.stubGlobal("fetch", nep);
+    return nep;
+  }
+
+  it("laat een beheerder met 2FA door", async () => {
+    const nep = upstream();
+    sessie.auth.mockResolvedValue(beheerder);
+    sessie.getAccountStatus.mockResolvedValue(actief);
+
+    expect((await proxy("/v1/admin/users", { admin: true })).status).toBe(200);
+    expect(sessie.getAccountStatus).toHaveBeenCalledWith("baas");
+    expect(nep).toHaveBeenCalledOnce();
+  });
+
+  it("houdt een beheerder zonder 2FA tegen, met een code die de client kan lezen", async () => {
+    const nep = upstream();
+    sessie.auth.mockResolvedValue(beheerder);
+    sessie.getAccountStatus.mockResolvedValue({ ...actief, tfaNodig: true });
+
+    const res = await proxy("/v1/admin/users", { admin: true });
+
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe("2fa_nodig");
+    expect(nep).not.toHaveBeenCalled();
+  });
+
+  it("gaat dicht als het account niet te controleren is", async () => {
+    const nep = upstream();
+    sessie.auth.mockResolvedValue(beheerder);
+    sessie.getAccountStatus.mockResolvedValue({ status: "onbekend" });
+
+    expect((await proxy("/v1/admin/users", { admin: true })).status).toBe(503);
+    expect(nep).not.toHaveBeenCalled();
+  });
+
+  it.each([{ status: "ingetrokken" }, { ...actief, role: "analist" }])("weigert %o, ook met een oude rol in de sessie", async (status) => {
+    const nep = upstream();
+    sessie.auth.mockResolvedValue(beheerder);
+    sessie.getAccountStatus.mockResolvedValue(status);
+
+    expect((await proxy("/v1/admin/users", { admin: true })).status).toBe(403);
+    expect(nep).not.toHaveBeenCalled();
+  });
+
+  it("laat een sessie uit een accounttoken buiten de plicht: die kan niet koppelen", async () => {
+    upstream();
+    sessie.getAccountStatus.mockClear();
+    sessie.auth.mockResolvedValue({ user: { ...beheerder.user, viaToken: "token-1" } });
+
+    expect((await proxy("/v1/admin/users", { admin: true })).status).toBe(200);
+    expect(sessie.getAccountStatus).not.toHaveBeenCalled();
+  });
+
+  it("vraagt niets extra's bij een gewone aanroep", async () => {
+    upstream();
+    sessie.getAccountStatus.mockClear();
+
+    expect((await proxy("/v1/gesprekken")).status).toBe(200);
+    expect(sessie.getAccountStatus).not.toHaveBeenCalled();
   });
 });

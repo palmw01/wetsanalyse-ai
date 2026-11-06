@@ -132,7 +132,8 @@ De workflows **falen** bewust als een van deze secrets of vars ontbreekt (een pr
 Los van de Azure-credentials draagt de stack zijn eigen secrets: de sessiesleutel, de api-/admin-/
 qa-tokens, het databasewachtwoord en `llm-config-secret`. Dat laatste is de **Fernet-sleutel**
 waarmee de api de API-keys van modelprofielen én de 2FA-secrets van gebruikers versleutelt; roteert
-die, dan is dat materiaal onherstelbaar onleesbaar.
+die, dan is dat materiaal onherstelbaar onleesbaar. Herstelcodes staan er bewust buiten: daarmee komt
+een account dan nog binnen.
 
 `azure-infra.yml` bepaalt ze per deploy in deze volgorde:
 
@@ -374,6 +375,24 @@ met een service-account (read-only voor graph-qa) en een proxy die het token con
 
 Alle applicatie-secrets zijn **bestanden** (`*_FILE`-patroon via secret-volumes), nooit platte
 env-vars.
+
+### 2FA voor beheerders
+
+Een beheerder zonder 2FA logt in en werkt als analist, maar het beheer blijft dicht tot die in
+*Instellingen → Beveiliging* een authenticator-app koppelt. Dat is self-service, dus er is geen migratie:
+na een uitrol koppelt elke beheerder zelf. Tot die tijd werkt het beheer voor dat account niet, op acceptatie meteen na de
+merge, op productie na de `v*`-tag. `wa_pat_`-sessies en admin-tokens vallen er buiten: de eerste kunnen
+niet koppelen en bestaan alleen op acceptatie, de tweede dragen geen persoon.
+
+Authenticator kwijt:
+
+1. **Met herstelcodes:** inloggen met een code, in *Beveiliging* uitschakelen met de volgende code, opnieuw
+   koppelen.
+2. **Zonder herstelcodes:** een andere beheerder met 2FA kiest bij dat account in *Gebruikers* het menu ⋯ →
+   *2FA resetten*. Het security-log noemt wie dat deed (`actie: 2fa_reset`).
+3. **Enige beheerder, telefoon én codes kwijt:** daarvoor is er geen weg in de app, en bewust ook geen
+   achterdeur in de api. Herstellen vraagt dan een bewerking op de database door iemand met Azure-rechten.
+   Houd daarom op elke straat twee beheerders met 2FA aan.
 
 ### De graaf van buiten bevragen (MCP-proxy)
 

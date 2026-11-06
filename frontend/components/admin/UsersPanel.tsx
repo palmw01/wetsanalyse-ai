@@ -20,6 +20,7 @@ import {
   listUsers,
   listVerbruik,
   patchUser,
+  resetUser2fa,
   resetUserPassword,
 } from "@/lib/api";
 import { tokensKort } from "@/lib/tokenbudget";
@@ -128,6 +129,15 @@ export function UsersPanel() {
     }
   }
 
+  async function onReset2fa(u: UserOut) {
+    try {
+      await resetUser2fa(u.userid);
+      await laad();
+    } catch (e) {
+      melden(e);
+    }
+  }
+
   // De bevestiging zit in de knop (twee klikken), zoals overal in deze app.
   async function onVerwijder(u: UserOut) {
     try {
@@ -216,6 +226,7 @@ export function UsersPanel() {
                   <span className="min-w-0 break-words text-sm text-muted">{u.email}</span>
                   <StatusLabel toon={u.role === "beheerder" ? "lint" : "neutraal"}>{u.role}</StatusLabel>
                   {u.totp_enabled && <StatusLabel toon="groen">2FA aan</StatusLabel>}
+                  {u.role === "beheerder" && !u.totp_enabled && <StatusLabel toon="rood">2FA ontbreekt</StatusLabel>}
                   {!u.active && (
                     <StatusLabel toon="rood">gedeactiveerd</StatusLabel>
                   )}
@@ -233,6 +244,11 @@ export function UsersPanel() {
                         {u.active ? "Deactiveren" : "Activeren"}
                       </MenuKnop>
                       <MenuKnop onClick={() => { sluit(); void onReset(u); }}>Wachtwoord resetten</MenuKnop>
+                      {u.totp_enabled && (
+                        <MenuVerwijder vraag={`2FA van "${u.userid}" resetten?`} onBevestig={() => onReset2fa(u)}>
+                          2FA resetten
+                        </MenuVerwijder>
+                      )}
                       <MenuVerwijder vraag={`"${u.userid}" verwijderen?`} onBevestig={() => onVerwijder(u)} />
                     </>
                   )}
