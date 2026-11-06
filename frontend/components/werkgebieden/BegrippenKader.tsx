@@ -22,21 +22,32 @@ import { geraakteBegrippen, herbeoordelingZin, strookKop } from "@/lib/herbeoord
 import type { BegripSamenvatting, BegrippenLijst, Herbeoordelingen } from "@/lib/types";
 import { begripPad } from "@/lib/werkgebiedPaden";
 
+/** Hoe lang het kader wacht op *Te doen* voordat de begrippen er toch staan: een haperende bron mag de lijst niet
+ *  verbergen. Alleen wat daarna nog binnenkomt, schuift de lijst omlaag. */
+const GEDULD_MS = 2500;
+
 /** Het begrippenkader van een werkgebied, in de vorm van de tab Bronnen (spoor N): eerst *Te doen* – de termen die Lex
  *  voorstelt en de begrippen om te herbeoordelen –, dan de begrippen als rijen. Een rij opent de pagina van het begrip,
- *  daar lees en besluit je. Begrippen zijn analyse-uitkomsten, geen wettelijke definities. */
+ *  daar lees en besluit je. Begrippen zijn analyse-uitkomsten, geen wettelijke definities.
+ *
+ *  *Te doen* staat boven de lijst en is pas bekend als de bronnen vergeleken zijn. Daarom verschijnt het kader in één
+ *  keer; losse rijen die later binnenkomen duwen de lijst omlaag. */
 export function BegrippenKader({ id }: { id: string }) {
   const router = useRouter();
   const [lijst, setLijst] = useState<BegrippenLijst | null>(null);
   // Herbeoordelen (fase F1) vraagt de bronboom en is dus trager dan de lijst; faalt stil, de lijst staat er gewoon.
   const [herbeoordeling, setHerbeoordeling] = useState<Herbeoordelingen | null>(null);
+  const [herbeoordelingKlaar, setHerbeoordelingKlaar] = useState(false);
+  const [voorstellenKlaar, setVoorstellenKlaar] = useState(false);
+  const [geduldOp, setGeduldOp] = useState(false);
   const [fout, setFout] = useState<string | null>(null);
   const [zoek, setZoek] = useState("");
   const [status, setStatus] = useState<BegripStatusFilter>("alle");
   const [gebruiken, setGebruiken] = useState(false);
 
   const laad = useCallback(async () => {
-    void haalHerbeoordelingen(id).then(setHerbeoordeling, () => setHerbeoordeling(null));
+    void haalHerbeoordelingen(id).then(setHerbeoordeling, () => setHerbeoordeling(null))
+      .finally(() => setHerbeoordelingKlaar(true));
     try {
       setLijst(await lijstBegrippen(id));
     } catch (e) {
@@ -46,7 +57,10 @@ export function BegrippenKader({ id }: { id: string }) {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void laad();
+    const klok = setTimeout(() => setGeduldOp(true), GEDULD_MS);
+    return () => clearTimeout(klok);
   }, [laad]);
+  const voorstellenGeladen = useCallback(() => setVoorstellenKlaar(true), []);
 
   const nieuw = useBewerken({
     begin: "",
@@ -69,11 +83,18 @@ export function BegrippenKader({ id }: { id: string }) {
       status={<StatusLabel toon="geel">Herbeoordelen</StatusLabel>} />
   ))];
 
-  return (
-    <div className="space-y-5" data-begrippen-kader>
-      {fout && <Melding type="fout">{fout}</Melding>}
+  const gereed = geduldOp || ((lijst !== null || fout !== null) && herbeoordelingKlaar && voorstellenKlaar);
 
-      <BegripVoorstellen id={id} kop="Te doen" boven={teDoen}
+  return (
+    <div className="space-y-5" data-begrippen-kader aria-busy={!gereed}>
+      {fout && <Melding type="fout">{fout}</Melding>}
+      {!gereed && (
+        <div className="space-y-2" data-kader-laadt><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
+      )}
+
+      {/* Verborgen in plaats van weg: BegripVoorstellen laadt zijn eigen deel. */}
+      <div className="space-y-5" hidden={!gereed}>
+      <BegripVoorstellen id={id} kop="Te doen" boven={teDoen} onGeladen={voorstellenGeladen}
         sub={herbeoordeling?.begrippen.length ? <>
           {strookKop(herbeoordeling)}
           {!herbeoordeling.volledig && " Niet elke bron kon worden opgehaald; wat daar veranderde staat er niet bij."}
@@ -122,6 +143,7 @@ export function BegrippenKader({ id }: { id: string }) {
               : b.aandachtspunten[0]} />)}
         </Groep>
       )}
+      </div>
       {gebruiken && <GeneriekGebruiken id={id} gebruikt={begrippen} onSluit={() => setGebruiken(false)} />}
     </div>
   );

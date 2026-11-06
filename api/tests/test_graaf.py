@@ -1,7 +1,9 @@
 """De complete graaf: alle regelingen samen, één keer opgehaald per toestand, gecomprimeerd geleverd."""
+import asyncio
 import hashlib
 
 import pytest
+from bronmodel import BronFout
 
 from app import annotatie_v2_store as store
 from app import db, graaf
@@ -110,6 +112,33 @@ async def test_de_bronboom_wordt_per_toestand_een_keer_opgehaald(bron):
     nieuw = await graaf.graaf()
     assert sorted(bron.bronbomen) == ["BWBR0004770", "BWBR0004770", "BWBR0005537"], "een nieuwe toestand: opnieuw"
     assert nieuw["versie"] != eerste["versie"], "de werkplek cachet zijn layout op de versie"
+
+
+async def test_lees_bron_haalt_per_toestand_een_keer_op_ook_tegelijk(bron):
+    uit = await asyncio.gather(*(graaf.lees_bron({"bron_iri": A9}) for _ in range(5)))
+    assert bron.bronbomen == ["BWBR0004770"], "een scherm vraagt drie routes tegelijk: één bronboom"
+    assert all(s is uit[0] for s in uit) and A9 in store.nodes_van(uit[0])
+    await graaf.lees_bron({"bron_iri": L1})
+    assert bron.bronbomen == ["BWBR0004770"], "een andere bepaling in dezelfde regeling: dezelfde boom"
+    bron.toestand["BWBR0004770"] = "http://wetten.overheid.nl/id/BWBR0004770/2027-01-01/0"
+    await graaf.lees_bron({"bron_iri": A9})
+    assert bron.bronbomen == ["BWBR0004770"] * 2, "een nieuwe toestand: opnieuw"
+
+
+async def test_lees_bron_bij_dezelfde_toestand_verloopt(bron, monkeypatch):
+    await graaf.lees_bron({"bron_iri": A9})
+    monkeypatch.setattr(graaf, "GELDIG_S", 0)
+    await graaf.lees_bron({"bron_iri": A9})
+    assert bron.bronbomen == ["BWBR0004770"] * 2, "een herimport houdt soms de toestand; de tekst mag niet blijven hangen"
+
+
+async def test_lees_bron_weigert_wat_er_niet_is(bron):
+    with pytest.raises(BronFout):
+        await graaf.lees_bron({"bron_iri": f"{IW}:artikel:999"})
+    with pytest.raises(BronFout):
+        await graaf.lees_bron({"bron_iri": "urn:bwb:BWBR0000001:artikel:1"})
+    with pytest.raises(BronFout):
+        await graaf.lees_bron({"bwb_id": "x"})
 
 
 async def test_een_keuze_van_regelingen_en_strikte_invoer(bron):

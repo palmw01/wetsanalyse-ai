@@ -99,6 +99,13 @@ function muteer(route, b, verwacht, actie, detail, doe) {
   return route.fulfill({ json: uit(b) });
 }
 
+// Trage antwoorden, om te zien dat het kader in één keer verschijnt: ms per route.
+const traag = { herbeoordelingen: 0, laatste: 0 };
+const herbeoordeling = {
+  werkgebied_id: "wg1", generiek: [], volledig: true, open_punten: [],
+  begrippen: [{ begrip_id: "b1", naam: "Belastingschuldige", status: "concept", revisie: 1, koppelingen: [],
+    relaties: [{ relatie_id: "r1", type: "verwant", ander: { begrip_id: "b2", naam: "Ontvanger" }, reden: "Veranderd." }] }],
+};
 const bulkOp = [];
 await page.route("**/api/**", async (route) => {
   const req = route.request(), url = new URL(req.url()), p = url.pathname, m = req.method();
@@ -166,7 +173,14 @@ await page.route("**/api/**", async (route) => {
   }
   // De strook "Voorstellen van Lex" staat op dezelfde tab; hier zonder voorstellen.
   if (p === "/api/werkgebieden/wg1/groepen") return route.fulfill({ json: { run: null, groepen: [], passages: {} } });
-  if (p === "/api/werkgebieden/wg1/begrippen-runs/laatste") return route.fulfill({ json: { run: null } });
+  if (p === "/api/werkgebieden/wg1/begrippen-runs/laatste") {
+    if (traag.laatste) await new Promise((r) => setTimeout(r, traag.laatste));
+    return route.fulfill({ json: { run: null } });
+  }
+  if (p === "/api/werkgebieden/wg1/herbeoordelingen" && traag.herbeoordelingen) {
+    await new Promise((r) => setTimeout(r, traag.herbeoordelingen));
+    return route.fulfill({ json: herbeoordeling }).catch(() => {});
+  }
   if (p === "/api/gesprekken") return route.fulfill({ json: [] });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   return route.fulfill({ status: 404, json: { detail: "Niet in deze test." } });
@@ -371,6 +385,27 @@ try {
   await kaart().getByText("Historie").click();
   await page.getByRole("list", { name: "Historie van het begrip" }).getByText("Geaccordeerd").waitFor();
 
+  // Het kader verschijnt in één keer: de begrippen wachten op *Te doen*, niet op de trage laatste ronde.
+  Object.assign(traag, { herbeoordelingen: 800, laatste: 4000 });
+  await page.goto(`${base}/werkgebieden/wg1/artefacten/begrippen`);
+  await page.locator("[data-kader-laadt]").waitFor();
+  assert.equal(await page.locator("[data-begrip-rij]").first().isVisible(), false, "de lijst wacht op Te doen");
+  await page.locator("[data-herbeoordelen]").first().waitFor();
+  assert.ok(await page.locator("[data-begrip-rij]").first().isVisible(), "Te doen en de lijst komen tegelijk");
+  const lijstY = () => page.locator("[data-begrip-rij]").first().evaluate((el) => el.getBoundingClientRect().top);
+  const lijstBegin = await lijstY();
+  await page.waitForTimeout(300);
+  assert.equal(await lijstY(), lijstBegin, "er komt niets meer boven de lijst bij");
+
+  // Hapert de bron, dan staat de lijst er na de geduldsgrens toch.
+  Object.assign(traag, { herbeoordelingen: 6000, laatste: 0 });
+  await page.goto(`${base}/werkgebieden/wg1/artefacten/begrippen`);
+  await page.locator("[data-kader-laadt]").waitFor();
+  await page.locator("[data-begrip-rij]").first().waitFor({ timeout: 4000 });
+  assert.equal(await page.locator("[data-kader-laadt]").count(), 0);
+  Object.assign(traag, { herbeoordelingen: 0 });
+  await page.goto(kaartUrl);
+
   // Smal scherm: alles onder elkaar, zonder horizontale scroll.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("heading", { name: "Passages 3" }).waitFor();
@@ -380,7 +415,7 @@ try {
   await page.waitForTimeout(300);
   await foto("begrip-mobiel");
   assert.deepEqual(errors, []);
-  console.log("Browser OK: begrip uit passages in twee regelingen (met al_primair), poort met redenen, opslaan met revisie, 412 met behoud van invoer, tabwissel bewaakt, beoordelen, accorderen, link naar het element, CSV-export met elke passage, herladen, historie, smal scherm.");
+  console.log("Browser OK: begrip uit passages in twee regelingen (met al_primair), poort met redenen, opslaan met revisie, 412 met behoud van invoer, tabwissel bewaakt, beoordelen, accorderen, link naar het element, CSV-export met elke passage, herladen, historie, het kader verschijnt in één keer, smal scherm.");
 } catch (e) {
   await foto("begrippen-fout");
   throw e;
