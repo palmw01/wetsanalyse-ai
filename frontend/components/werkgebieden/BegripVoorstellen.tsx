@@ -143,7 +143,7 @@ export function BegripVoorstellen({ id, runId, kop = "Voorstellen van Lex", sub,
                   </>}
                   status={<>
                     <StatusLabel toon="lint">Voorstel van Lex</StatusLabel>
-                    {t.lijktOp.length > 0 && <StatusLabel>lijkt op {t.lijktOp[0].naam}{t.lijktOp[0].generiek ? " (generiek)" : ""}</StatusLabel>}
+                    {t.lijktOp.length > 0 && <StatusLabel rekbaar><span className="truncate">lijkt op {t.lijktOp[0].naam}{t.lijktOp[0].generiek ? " (generiek)" : ""}</span></StatusLabel>}
                     {t.open.some((g) => g.aandacht === "geel") && <StatusLabel toon="geel">{AANDACHT_LABEL.geel}</StatusLabel>}
                   </>} />
               ))}
