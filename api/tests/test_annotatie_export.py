@@ -5,6 +5,8 @@ import csv
 import io
 import json
 import re
+import shutil
+import subprocess
 
 import jsonschema
 import pytest
@@ -167,6 +169,14 @@ def test_een_terugval_heet_geen_besluit_van_het_model():
                                                          alternatieven=[{"klasse": "Rechtsfeit"}, {"klasse": "Voorwaarde"}])]), v)]
     assert "Nog geen klasse (Rechtsfeit, Voorwaarde): binnen zes weken (voorgesteld)" in pdf
 
+
+
+@pytest.mark.skipif(shutil.which("pdftotext") is None, reason="pdftotext ontbreekt voor onafhankelijke tekstextractie")
+def test_pdf_houdt_tekens_buiten_cp1252_letterlijk():
+    """Met de standaardletters werd dit stil een ■: dat mag niet in een letterlijk citaat."""
+    view = _view([_element(tekst="1‑1‑2026 ≥ Māori", ankers=[])])
+    uit = subprocess.run(["pdftotext", "-", "-"], input=export.pdf_export(view, V), capture_output=True, check=True).stdout.decode()
+    assert "1‑1‑2026 ≥ Māori" in uit and "■" not in uit
 
 
 def test_pdf_en_json_dragen_wat_er_per_dimensie_gevonden_werd():
