@@ -53,14 +53,14 @@ import {
   doelInvoerVan, isVerwijderd,
 } from "@/lib/annotatie";
 import {
-  definitieveStroomfout, herstelWachttijd, leesLopendeRuns, naEenGebrokenStream, onthoudRun,
+  aankondiging, definitieveStroomfout, herstelWachttijd, leesLopendeRuns, naEenGebrokenStream, onthoudRun,
   schrijfLopendeRuns, standVanVorigeRun, vergeetRun, wachtMetWekker,
 } from "@/lib/lopendeRun";
 import { useBreedScherm } from "@/lib/useBreedScherm";
 import { jasStyle, klasseLabel } from "@/lib/jas";
 import type { ThreadItem } from "@/lib/threadItem";
-import { WerkplekHeader } from "./WerkplekHeader";
-import { parseHergebruik, parseOverzicht, parseUitkomst } from "@/lib/agentEvents";
+import { LEX_KORT, WerkplekHeader } from "./WerkplekHeader";
+import { parseGrounding, parseHergebruik, parseOverzicht, parseUitkomst } from "@/lib/agentEvents";
 import { DEMO_DOEL, DEMO_SLUG, type DemoScene } from "@/lib/rondleidingDemo";
 import {
   SOORT_LABEL, VERVOLG_TEKST, actieVerzoek, chipTekst, overVan, suggestiesVan, verzoekVan, werkgebiedSuggesties, type Onderwerp, type Vervolg,
@@ -222,6 +222,8 @@ export function WerkplekClient({
   // Wat er zojuist is opgeslagen, voor schermlezers. Zonder dit gebeurt elke annotatie-wijziging
   // volledig stil: de kaart verandert visueel, maar er wordt niets aangekondigd.
   const [melding, setMelding] = useState("");
+  // Hoe de laatste beurt afliep, voor de live-regio: een gewone beurt heeft geen melding.
+  const [beurtEinde, setBeurtEinde] = useState("");
   // Een vervolgstap die Lex zelf aankondigde (`opgeslagen.vervolg`): verstuurd zodra de beurt klaar is en de werkplek
   // in dat werkgebied staat, als een klik op de suggestie met die actie.
   const [vervolg, setVervolg] = useState<(Vervolg & { id: string }) | null>(null);
@@ -332,7 +334,9 @@ export function WerkplekClient({
                   bevestiging: parseBevestiging(b.bevestiging),
                   // Het kaartje van het samenstellen: na herladen nog te beantwoorden als het het laatste is.
                   vraagkaart: parseVraagkaart(b.vraagkaart),
-                  uitkomst: parseUitkomst(b.uitkomst) }];
+                  uitkomst: parseUitkomst(b.uitkomst),
+                  // Het oordeel en de aanwijzing in de tekst blijven zo na herladen staan.
+                  grounding: parseGrounding(b.grounding) }];
         });
         // VÓÓR wat er al staat, niet in plaats daarvan. Verstuurde de jurist een vraag terwijl dit nog
         // laadde (een koude start duurt seconden), dan staan zijn vraag en het lopende antwoord al in
@@ -500,6 +504,7 @@ export function WerkplekClient({
     setRunVerdwenen(false);
     setVerbindingWeg(false);
     setBudgetGeweigerd(false);
+    setBeurtEinde("");
 
     // Zorg voor een gesprek-id (maak er bij de eerste beurt één aan; titel = de vraag, afgekapt).
     let gid = gesprekId;
@@ -726,6 +731,7 @@ export function WerkplekClient({
           },
           onOpgeslagen: (uitkomst) => (opgeslagen = uitkomst),
           onWaarschuwing: (bericht) => setMelding(bericht),
+          onDone: (uitkomst) => setBeurtEinde(aankondiging(uitkomst)),
         },
         vanaf,
         beheerser.signal,
@@ -794,7 +800,10 @@ export function WerkplekClient({
       // banner – die verdwijnt vanzelf zodra er weer iets binnenkomt.
       setVerbindingWeg(verbroken);
       // Dezelfde melding als op het bericht dat graph-qa bewaarde: live en na herladen staat er hetzelfde.
-      if (!verbroken) updateItem(antId, { tekst, denk, uitkomst: { status: "mislukt", melding: foutTekst(e) } });
+      if (!verbroken) {
+        updateItem(antId, { tekst, denk, uitkomst: { status: "mislukt", melding: foutTekst(e) } });
+        setBeurtEinde(aankondiging("mislukt"));
+      }
     } finally {
       afbrekenRef.current = null;
       setRunId(null);
@@ -1144,7 +1153,8 @@ export function WerkplekClient({
     <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
       {/* Beknopte statusmelding voor schermlezers (niet de hele thread live maken → geen token-spam). */}
       <p className="sr-only" aria-live="polite">
-        {stopt ? "Bezig met stoppen; de agent rondt zijn huidige stap af." : bezig ? "Bezig met antwoorden…" : melding}
+        {stopt ? "Bezig met stoppen; de agent rondt zijn huidige stap af." : bezig ? "Bezig met antwoorden…"
+          : [beurtEinde, melding].filter(Boolean).join(" ")}
       </p>
       {/* Begroeting en silhouet: volledig in de lege werkplek, een smalle strook zodra er een gesprek
           loopt. Buiten de scroller, zodat alleen de thread scrolt. */}
@@ -1278,8 +1288,7 @@ export function WerkplekClient({
           {items.length === 0 && (
             <div className="pt-[6dvh] text-center">
               <p className="mx-auto max-w-md text-sm text-muted md:hidden">
-                Ik zoek bepalingen op, citeer letterlijk en stel JAS-markeringen voor. Wat ik voorstel,
-                beoordeel jij.
+                {LEX_KORT}
               </p>
               {/* Wat je kunt vragen staat al in het invoerveld; hier geen tweede uitnodiging. */}
               {onRondleiding && (

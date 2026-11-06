@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { begroeting } from "@/lib/begroeting";
+
+/** Wat Lex doet, in één adem: de korte variant van het IDENTITEIT-blok in `tools/graph-qa/agent/prompts.py`, op één plek
+ *  voor de kop en de lege werkplek. Noem de hele lijn, niet alleen het annoteren. */
+export const LEX_KORT = "Ik help je wet- en regelgeving analyseren: van werkgebied en bronnen tot annotaties en begrippen. "
+  + "Ik citeer letterlijk; wat ik voorstel, beoordeel jij.";
 import { Skyline } from "./Skyline";
 
 /** De regel rechts in de header. Eén plek, zodat de tekst te vervangen is zonder de opmaak te raken. */
@@ -56,8 +61,7 @@ export function WerkplekHeader({ compact }: { compact: boolean }) {
               <Groet groet={groet} className="text-3xl" />
               <p className="mt-1 text-lg text-lint">Waar kan ik je vandaag mee helpen?</p>
               <p className="mt-2 max-w-xl text-sm text-muted">
-                Ik zoek bepalingen op, citeer letterlijk en stel JAS-markeringen voor. Wat ik voorstel,
-                beoordeel jij.
+                {LEX_KORT}
               </p>
             </div>
             <Tagline />

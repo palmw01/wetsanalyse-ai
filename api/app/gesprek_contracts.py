@@ -278,6 +278,8 @@ class Bericht(BaseModel):
     intake_antwoord: IntakeAntwoord | None = None
     # Hoe de beurt afliep, als dat niet gewoon klaar was: dezelfde melding live en na herladen.
     uitkomst: BeurtUitkomst | None = None
+    # Het oordeel van de brongetrouwheidstoets (graph-qa `grounding`-event), met `afgekapt` als het antwoord niet paste.
+    grounding: dict = {}
     created: datetime | None = None
 
 
@@ -331,6 +333,7 @@ class BerichtInvoer(BaseModel):
     vraagkaart: Vraagkaart | None = None
     intake_antwoord: IntakeAntwoord | None = None
     uitkomst: BeurtUitkomst | None = None
+    grounding: dict = {}
 
 
 class GesprekSamenvatting(BaseModel):

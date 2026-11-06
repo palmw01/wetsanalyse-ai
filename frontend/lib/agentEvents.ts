@@ -27,6 +27,7 @@
 import type {
   Aandacht,
   AgentDoel,
+  AgentGrounding,
   AgentHergebruik,
   AgentKandidaat,
   AgentKeuze,
@@ -143,6 +144,18 @@ export function metingUitDekking(dekking: unknown): BeurtMeting | undefined {
     gedegradeerd: Array.isArray(gedegradeerd) ? gedegradeerd.filter((g): g is string => typeof g === "string") : [],
   };
 }
+
+/** Het oordeel uit het `grounding`-event of van een bewaard bericht: één vorm, dus live en na herladen hetzelfde. Een
+ *  ouder bericht heeft een leeg object, en dat is geen oordeel. `niveau` ontbreekt bij een oudere agent. */
+export const parseGrounding = (v: unknown): AgentGrounding | undefined => {
+  if (!isObject(v) || !("niveau" in v || "grounded" in v)) return undefined;
+  const lijst = (w: unknown) => (Array.isArray(w) ? w.filter((x): x is string => typeof x === "string") : []);
+  const niveau = v.niveau === "gegrond" || v.niveau === "onbepaald" || v.niveau === "ongegrond" ? v.niveau
+    : v.grounded === false ? "ongegrond" : "gegrond";
+  return { niveau, grounded: v.grounded !== false, cited: typeof v.cited === "number" ? v.cited : 0,
+    unsupported: lijst(v.unsupported), niet_letterlijk: lijst(v.niet_letterlijk), ...(v.afgekapt === true ? { afgekapt: true } : {}),
+    ...(lijst(v.onbevestigd).length ? { onbevestigd: lijst(v.onbevestigd) } : {}) };
+};
 
 /** De uitkomst op een bewaard bericht. Niets of een onbekende vorm is een gewone beurt: oudere berichten hebben hem niet. */
 export const parseUitkomst = (v: unknown): BeurtUitkomst | undefined => {

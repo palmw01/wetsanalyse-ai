@@ -411,6 +411,15 @@ BEPALINGENKAART = {**VRAAGKAART, "stap": "bepalingen", "nr": 29, "totaal": 29,
 
 
 @pytest.mark.asyncio
+async def test_het_oordeel_van_de_controle_overleeft_het_heropenen(client):
+    gid = await _maak(client)
+    g = {"niveau": "ongegrond", "grounded": False, "cited": 1, "unsupported": ["x"], "niet_letterlijk": ["y"], "afgekapt": True}
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "tekst": "t", "run_id": "rg", "grounding": g}, headers=A)
+    assert r.status_code == 201 and r.json()["grounding"] == g
+    assert (await client.get(f"{BASIS}/{gid}", headers=A)).json()["berichten"][-1]["grounding"] == g
+
+
+@pytest.mark.asyncio
 async def test_de_uitkomst_van_een_beurt_overleeft_het_heropenen(client):
     gid = await _maak(client)
     u = {"status": "mislukt", "melding": "Deze beurt werd te lang."}

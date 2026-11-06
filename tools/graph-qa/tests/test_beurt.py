@@ -446,3 +446,14 @@ async def test_een_afbraak_zonder_gesprek_of_verdwenen_gesprek_is_geen_fout(monk
     monkeypatch.setattr("agent.beurt.WetsanalyseApi", lambda *_a, **_k: nep)
     await leg_afbraak_vast(_settings(), Run(run_id="r", conversation_id="g", vraag="v", user_id="j"), "x")
     await leg_afbraak_vast(_settings(), Run(run_id="r", conversation_id="", vraag="v", user_id="j"), "x")
+
+
+@asyncio_test
+async def test_het_oordeel_van_de_controle_staat_op_het_bericht(api):
+    """Zonder dit veld verdween de waarschuwing bij herladen (AG-02)."""
+    await _draai([{"type": "token", "content": "x"},
+                  {"type": "grounding", "grounded": False, "cited": 0, "unsupported": ["BWBR9"], "niet_letterlijk": [],
+                   "niveau": "ongegrond", "afgekapt": True, "seq": 7},
+                  {"type": "done"}])
+    assert api.berichten[0][1]["grounding"] == {"grounded": False, "cited": 0, "unsupported": ["BWBR9"],
+                                                "niet_letterlijk": [], "niveau": "ongegrond", "afgekapt": True}

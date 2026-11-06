@@ -314,6 +314,11 @@ hier vandaan maar uit `bronmodel.resolve` (zie §*De annotatieketen*).
   haalde de correctieronde bij doorvragen juist de onderbouwing weg. Het register bevat nooit
   modeltekst en nooit annotatieresultaten. Bronnen uit eerdere beurten komen alleen in de lijst als
   het antwoord hun regeling noemt.
+- **Elke citaatvorm telt** (`_PAREN`: recht, typografisch, `„…”`, ook gemengd; binnen één alinea, geen lengtegrens). Eén
+  tabel voor herkennen en herstellen. Cursief is geen citaatclaim; enkele aanhalingstekens blijven erbuiten.
+- **`onbevestigd` is een signaal, geen afkeuring**: een artikel in gewone taal dat nergens in het opgehaalde voorkomt (ook
+  niet in de wettekst zelf) en een blokcitaat dat niet letterlijk klopt. `niveau` zakt naar `onbepaald`, `grounded` blijft
+  waar, dus geen correctieronde. `verify_node` logt het aantal: eerst meten hoe vaak dit vals alarm is.
 - **Een bijna-letterlijk citaat wordt de brontekst** (`grounding.herstel_citaten`, in `agent_node`
   vóór de controle). Afwijkingen als een hoofdletter aan het begin of een punt
   binnen de aanhalingstekens zoekt hij hoofdletter- en witruimte-ongevoelig op in register + trace.
@@ -380,7 +385,7 @@ eind via `agent/wetsanalyse_api.py`: **eerst de annotatielaag, dan het chatberic
 `opgeslagen`-event. Dit staat **buiten** de LangGraph-code. **De server is de enige schrijver:** elke afloop krijgt
 een bericht, ook een fout (`uitkomst: {status: "mislukt", melding}`, letterlijk de tekst van het `error`-event, dus
 live en na herladen hetzelfde). Een bericht is daarmee ook de plek voor een kaartje dat na een fout klikbaar moet
-blijven (`_leg_fout_vast`). Een nieuw veld op het bericht hoort in `BerichtInvoer`, `Bericht` én de mapping in
+blijven (`_leg_fout_vast`). Ook het oordeel van de controle staat op het bericht (`grounding`), met `afgekapt` als `agent_node` op `max_tokens` stuitte: de tekst blijft, tool-aanroepen vallen weg want hun argumenten zijn half, en `refusal` krijgt een eigen melding. Een nieuw veld op het bericht hoort in `BerichtInvoer`, `Bericht` én de mapping in
 `gesprek_store.py`; de api laat een onbekend veld stil vallen (`test_contract_drift.py`). Een annotatie gaat als één batch per
 bronnode: `POST /v1/annotatie/lagen/batch` met `batch_id` (= run_id), `bron_iri`, `snapshot_id`,
 `verwachte_revisies`, elementen, dekking, `run` en het beslisregister. Het contract staat in

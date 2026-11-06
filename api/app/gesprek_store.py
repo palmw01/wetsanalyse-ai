@@ -52,6 +52,7 @@ def _bericht_uit_row(row) -> Bericht:
         vraagkaart=inhoud.get("vraagkaart") or None,
         intake_antwoord=inhoud.get("intake_antwoord") or None,
         uitkomst=inhoud.get("uitkomst") or None,
+        grounding=inhoud.get("grounding", {}) or {},
         created=db.aware(d["created"]),
     )
     try:
@@ -103,6 +104,8 @@ def _inhoud(inv: BerichtInvoer | Bericht) -> dict:
         inhoud["intake_antwoord"] = inv.intake_antwoord.model_dump()
     if inv.uitkomst:
         inhoud["uitkomst"] = inv.uitkomst.model_dump()
+    if inv.grounding:
+        inhoud["grounding"] = inv.grounding
     return inhoud
 
 

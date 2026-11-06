@@ -516,6 +516,10 @@ export interface AgentGrounding {
   unsupported: string[];
   /** Als citaat gepresenteerde tekst die niet letterlijk in de opgehaalde tekst staat. */
   niet_letterlijk: string[];
+  /** Het antwoord stuitte op de limiet van het model en is niet af. */
+  afgekapt?: boolean;
+  /** Genoemd maar niet teruggevonden in het opgehaalde: een signaal, geen afkeuring. */
+  onbevestigd?: string[];
 }
 
 /** Artikeltekst uit de graaf (weergave == annotatie-corpus). */
@@ -610,6 +614,8 @@ export interface Bericht {
   bevestiging_antwoord?: unknown;
   /** Hoe de beurt afliep, als dat niet gewoon klaar was; zie `lib/agentEvents.ts:parseUitkomst`. */
   uitkomst?: unknown;
+  /** Het oordeel van de brongetrouwheidstoets; zie `lib/agentEvents.ts:parseGrounding`. */
+  grounding?: unknown;
   created?: string;
 }
 
