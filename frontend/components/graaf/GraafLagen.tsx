@@ -2,7 +2,7 @@
 
 import { useId } from "react";
 import { Lagen as LagenIcoon } from "@/components/ui/Icoon";
-import { BEGRIPKLEUR, BRONKLEUR, DEKKINGSKLEUR, GEDIMD, LIJNKLEUR, RANDKLEUR, VOORSTELKLEUR, klasseKleur } from "@/lib/graaf/stijl";
+import { BEGRIPKLEUR, BRONKLEUR, DEKKINGSKLEUR, GEDIMD, LIJNKLEUR, RANDKLEUR, VOORSTELKLEUR, WETBEGRIPKLEUR, klasseKleur } from "@/lib/graaf/stijl";
 import type { Lagen } from "@/lib/graaf/weergave";
 import { MARKERING_FILTERS, type MarkeringFilter } from "@/lib/samenhang";
 
@@ -65,7 +65,7 @@ export function GraafLagen({ lagen, onWissel, open, onOpen, dekking, begrippen =
         </svg>
         <span className="min-w-0">
           <span className={`block text-xs ${lagen.begrippen ? "text-ink" : "text-faint"}`}>Begrippen</span>
-          <span className="block text-[10px] text-faint">met hun passages en relaties; analyse-uitkomsten, geen wettelijke definities</span>
+          <span className="block text-[10px] text-faint">wettelijke begrippen en analyse-uitkomsten, met hun passages</span>
         </span>
       </label>}
       {lagen.annotaties && <div className="flex items-center gap-2 px-2 py-1.5">
@@ -86,6 +86,10 @@ export function GraafLagen({ lagen, onWissel, open, onOpen, dekking, begrippen =
             Omtrek: buiten wat geladen is
           </li>
           {begrippen && <>
+            <li className="flex items-center gap-1" data-testid="legenda-wetbegrip">
+              <svg viewBox="0 0 10 10" className="h-2.5 w-2.5" aria-hidden="true"><circle cx="5" cy="5" r="3.8" fill={WETBEGRIPKLEUR} /></svg>
+              Wettelijk begrip
+            </li>
             <li className="flex items-center gap-1">
               <svg viewBox="0 0 10 10" className="h-2.5 w-2.5" aria-hidden="true"><circle cx="5" cy="5" r="3.8" fill={BEGRIPKLEUR.geaccordeerd} /></svg>
               Begrip, geaccordeerd

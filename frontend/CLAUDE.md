@@ -1442,11 +1442,19 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
 
 **Data en gedrag**:
 
-- **`antwoordDoelen` in `lib/bronnen.ts` staat klaar voor de ketting** (nog niet aangesloten, met
-  `antwoordKnopTekst`): per bepaling een doel met `herkomst`, een ouder valt weg als een kind genoemd is.
-  De tekst selecteert alleen uit de bronnen. Hij is pas bruikbaar op de ketenroute: op `/samenhang` laadt
-  elk doel het hele artikel, dus twee leden van één artikel zouden dat artikel dubbel laden.
-- **De knop opent wat het antwoord noemt** (`samenhangDoelen` in `lib/bronnen.ts`, max.
+- **De ketting bij een antwoord** (`GraafOpties.keten`, `GET samenhang/antwoord`, api §*`/samenhang/antwoord`*). *Dit
+  antwoord* is de weg van regeling tot de diepste bepaling die het bericht aanwijst (`antwoordDoelen` in `lib/bronnen.ts`: per
+  bepaling een doel met `herkomst`, een ouder valt weg als een kind genoemd is; de tekst selecteert alleen uit de bronnen),
+  met de markeringen, de begrippen die daar gelden en de uitgaande verwijzingen. Er staat niets gedimd, want de rest is niet
+  geladen; `ketenZin` zegt boven de graaf wat je ziet en wat er niet bij staat. `layoutKeten` zet elke knoop op een eigen
+  regel, ingesprongen naar zijn diepte (synchroon, geen worker of cache). `ketenFocus` geeft de nadruk: in de hele
+  kennisgraaf licht de ketting op. *Toon het hele artikel* laadt het artikel erbij (`laadErbij`); de ketting telt daarbij niet
+  als geladen, en met twee bronnen rekent de gewone layout. De knop onder een antwoord, een annotatie in het gesprek en de
+  doelen van `doel` uit de werkplek gebruiken de ketting; de tab Samenhang van een werkgebied en de annotatiepagina niet.
+  Een wettelijk begrip (`begrip_bron: "wet"`) heeft een eigen kleur (`WETBEGRIPKLEUR`) en toont in de inspector zijn
+  definities met vindplaats en geldingsbereik. Browserregressie: scenario 0 in `scripts/test-samenhang.mjs`; de rest van dat
+  script draait op het hele artikel, zodat de bediening getoetst blijft.
+- **De knop opent wat het antwoord noemt** (`antwoordDoelen` in `lib/bronnen.ts`, max.
   `MAX_SAMENHANG_DOELEN`) of de delen van een overzicht (`overzichtDoelen` in `lib/overzicht.ts`, max.
   `MAX_OVERZICHT_DOELEN`, uit het overzicht en niet uit de tekst: dezelfde vraag geeft dezelfde kaart).
   Meer dan één doel gaat in **één** verzoek (`/samenhang/meer`, één bronboom per regeling) – in

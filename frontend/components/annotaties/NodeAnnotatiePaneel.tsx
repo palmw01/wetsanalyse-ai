@@ -264,7 +264,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
       )}
       {toonTabs && graafGeopend && (
         <div className={tab === "graaf" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
-          <Graaf stand={graafStand} zichtbaar={tab === "graaf"} groot={groot || !onSluit} actiefElementId={actiefId}
+          <Graaf stand={graafStand} herkomst={(doel as NodeDoel & { herkomst?: string }).herkomst} zichtbaar={tab === "graaf"} groot={groot || !onSluit} actiefElementId={actiefId}
             weergave={view} dekking={dekkingPerKnoop} koppelingRef={koppelingRef} onKiesElement={setActiefId} onOpenTekst={openTekst}
             onWisselArtikel={onWisselDoel}
             onVraag={onVraag || onVraagOverBron ? vraagOverKnoop : undefined} />

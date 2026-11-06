@@ -87,6 +87,12 @@ export function focusVan(g: GraafModel, doelen: Iterable<string>): Focus {
   return { doelen: eigen, bereik };
 }
 
+/** De focus in de ketting: de doelen, met als bereik wat de ketting toont. In *Dit antwoord* staat er niets
+ *  anders op de kaart, dus er valt niets te dimmen; in de kennisgraaf licht de ketting op. */
+export function ketenFocus(g: GraafModel, doelen: Iterable<string>, ketting: readonly { id: string }[]): Focus {
+  return { doelen: new Set([...doelen].filter((id) => g.hasNode(id))), bereik: new Set(ketting.map((k) => k.id).filter((id) => g.hasNode(id))) };
+}
+
 /** De knopen die buiten de lagen of het markeringsfilter vallen. */
 export function verborgenKnopen(g: GraafModel, lagen: Lagen, markering: MarkeringFilter): Set<string> {
   const weg = new Set<string>();
