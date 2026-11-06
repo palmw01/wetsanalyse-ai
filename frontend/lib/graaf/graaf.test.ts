@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Samenhang, SamenhangKnoop, SamenhangRelatie } from "@/lib/samenhang";
 import { layoutSleutel, leesLayout, naarReeksen, uitReeksen } from "./cache";
-import { berekenLayout, layoutKeten, plaatsAnnotaties, startposities, structuurVan, type Posities } from "./layout";
+import { berekenLayout, layoutSterrenstel, plaatsAnnotaties, startposities, structuurVan, type Posities } from "./layout";
 import { bouwModel, type GraafBron } from "./model";
 import { proefgraaf } from "./proefgraaf";
 import { layoutVoor } from "./rekenaar";
@@ -312,22 +312,30 @@ describe("de ketting", () => {
       knoop("m", "markering"), knoop("b", "begrip", { begrip_bron: "wet" }), knoop("def", "onderdeel", { rand: true }), knoop("x", "extern", { rand: true })],
     relaties: [rel("wet", "bevat", "art"), rel("art", "bevat", "lid"), rel("m", "markeert", "lid"), rel("b", "komt_voor_in", "m"), rel("def", "definieert", "b"), rel("lid", "verwijst_naar", "x")] });
 
-  it("zet elke knoop op een eigen regel, ingesprongen naar zijn diepte", () => {
-    const pos = layoutKeten(bouwModel([bron()]));
-    expect([...pos.keys()]).toEqual(["wet", "art", "lid", "m", "b", "def", "x"]);
-    expect(new Set([...pos.values()].map((p) => p[1])).size).toBe(7);
-    expect(pos.get("art")![0]).toBeGreaterThan(pos.get("wet")![0]);
-    expect(pos.get("def")![0]).toBeGreaterThan(pos.get("b")![0]);
+  it("krijgt de gewone netwerkvorm: de begrippen en markeringen staan erbij, niet op een regel", () => {
+    const g = bouwModel([bron()]);
+    const s = structuurVan(g);
+    const pos = plaatsAnnotaties(g, berekenLayout(s));
+    for (const id of ["wet", "art", "lid", "m", "b", "def"]) expect(pos.has(id)).toBe(true);
+    expect(new Set([...pos.values()].map((p) => p[0].toFixed(3))).size).toBeGreaterThan(2);
+    // De definitiebepaling buiten wat geladen is, staat bij haar begrip en niet als losse boom ver weg.
+    expect(s.knopen.map((k) => k.id)).not.toContain("def");
+    const afstand = (a: string, b: string) => Math.hypot(pos.get(a)![0] - pos.get(b)![0], pos.get(a)![1] - pos.get(b)![1]);
+    expect(afstand("def", "b")).toBeLessThan(afstand("wet", "x") + afstand("wet", "lid") + 1);
   });
 
-  it("is deterministisch", () => {
-    expect([...layoutKeten(bouwModel([bron()]))]).toEqual([...layoutKeten(bouwModel([bron()]))]);
-  });
-
-  it("plaatst ook wat nergens aan hangt", () => {
+  it("is een rond sterrenstel met de doelen in het hart", () => {
     const b = bron();
-    b.knopen.push(knoop("los", "begrip"));
-    expect(layoutKeten(bouwModel([b])).has("los")).toBe(true);
+    for (let i = 0; i < 6; i++) { b.knopen.push(knoop(`m${i}`, "markering")); b.relaties.push(rel(`m${i}`, "markeert", "lid")); }
+    const pos = layoutSterrenstel(bouwModel([b]), ["lid"]);
+    const punten = [...pos.values()];
+    expect(pos.size).toBe(13);
+    const breed = Math.max(...punten.map((p) => p[0])) - Math.min(...punten.map((p) => p[0]));
+    const hoog = Math.max(...punten.map((p) => p[1])) - Math.min(...punten.map((p) => p[1]));
+    expect(Math.max(breed, hoog) / Math.min(breed, hoog)).toBeLessThan(1.6);
+    expect(pos.get("lid")).toEqual([0, 0]);
+    expect(Math.hypot(...pos.get("wet")!)).toBeGreaterThan(Math.hypot(...pos.get("art")!));
+    expect([...layoutSterrenstel(bouwModel([b]), ["lid"])]).toEqual([...pos]);
   });
 
   it("licht de ketting op in een groter model", () => {

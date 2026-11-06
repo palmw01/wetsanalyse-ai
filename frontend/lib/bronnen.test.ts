@@ -138,6 +138,14 @@ describe("antwoordDoelen", () => {
     expect(antwoordDoelen({ type: "annotatie" })).toEqual({ doelen: [], totaal: 0 });
   });
 
+  it("een sjabloon draagt zijn doelen zelf en de tekst doet niet mee", () => {
+    const iri = "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k";
+    const antwoord = { sjabloon: "begrip", versie: 1, blokken: [], doelen: [{ iri, label: "Artikel 2, lid 1, onderdeel k", jci: "", regeling: "Invorderingswet 1990" }] };
+    const { doelen } = antwoordDoelen({ type: "antwoord", tekst: "Zie artikel 9.", antwoord });
+    expect(doelen).toMatchObject([{ bron_iri: iri, label: "Artikel 2, lid 1, onderdeel k", citeertitel: "Invorderingswet 1990", herkomst: "vermelding" }]);
+    expect(antwoordDoelen({ type: "antwoord", tekst: "Zie artikel 9.", antwoord: { ...antwoord, doelen: [] } })).toEqual({ doelen: [], totaal: 0 });
+  });
+
   it("neemt het doel van een annotatie en van een chip over", () => {
     const doel = { bron_iri: iri(IW, "artikel", "9", "lid", "1"), label: "Artikel 9, lid 1" };
     expect(antwoordDoelen({ type: "annotatie", annotatie_doel: doel })).toEqual({ doelen: [{ ...doel, herkomst: "vermelding" }], totaal: 1 });

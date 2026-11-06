@@ -1,7 +1,7 @@
 /** De layout van een model ophalen: uit de cache, of gerekend in een worker met voortgang. Dit is de
  *  enige ingang die de UI gebruikt; `layout.ts` blijft puur en testbaar. */
 import { bewaarLayout, layoutSleutel, leesLayout, naarReeksen, uitReeksen } from "./cache";
-import { layoutKeten, plaatsAnnotaties, structuurVan, type Posities, type Structuur } from "./layout";
+import { layoutSterrenstel, plaatsAnnotaties, structuurVan, type Posities, type Structuur } from "./layout";
 import type { GraafModel } from "./model";
 
 export interface LayoutVerzoek {
@@ -67,10 +67,10 @@ export interface LayoutResultaat {
  *    Zo'n uitkomst hangt af van wat er eerder lag en gaat de cache niet in.
  *
  *  Markeringen en klassen worden daarna afgeleid (`plaatsAnnotaties`). */
-export async function layoutVoor(g: GraafModel, opties: { vast?: Posities; opVoortgang?: (f: number) => void; signal?: AbortSignal; keten?: boolean } = {}): Promise<LayoutResultaat> {
+export async function layoutVoor(g: GraafModel, opties: { vast?: Posities; opVoortgang?: (f: number) => void; signal?: AbortSignal; sterrenstel?: readonly string[] } = {}): Promise<LayoutResultaat> {
   const { vast, signal } = opties;
   blijfBijDeZaak(signal);
-  if (opties.keten) return { posities: layoutKeten(g), uitCache: true };
+  if (opties.sterrenstel) return { posities: layoutSterrenstel(g, opties.sterrenstel), uitCache: true };
   const structuur = structuurVan(g);
   if (vast) {
     const nieuw = structuur.knopen.some((k) => !vast.has(k.id));
