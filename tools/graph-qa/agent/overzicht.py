@@ -97,6 +97,9 @@ def onderwerp_uit(vraag: str) -> str:
 # --- Regeling in de vraag ---------------------------------------------------------------------------
 
 _REGELINGEN_CACHE: list[dict[str, Any]] = []
+_UITVOERING_AFGEKORT = {"Uitvoeringsregeling": "UR", "Uitvoeringsbesluit": "UB"}
+# Direct vóór een naam: de analist noemt iets anders dan die regeling. Bestond het, dan was de langere naam gevonden.
+_NA_UITVOERING = re.compile(r"(?<![\w.])(?:uitvoeringsregeling|uitvoeringsbesluit|ur|ub) $")
 
 
 def _regelingen(graph: GraphPort) -> list[dict[str, Any]]:
@@ -112,26 +115,47 @@ def _regelingen(graph: GraphPort) -> list[dict[str, Any]]:
             namen |= {re.sub(r"\s+\d{4}$", "", n) for n in namen if re.search(r"\s\d{4}$", n)}
             if bwb:
                 _REGELINGEN_CACHE.append({"bwb_id": bwb, "soort": r.get("soort", ""),
-                                          "namen": sorted(namen, key=len, reverse=True)})
+                                          "citeertitel": r.get("citeertitel", ""), "namen": namen})
+        _voeg_uitvoeringsnamen_toe(_REGELINGEN_CACHE)
+        for r in _REGELINGEN_CACHE:
+            r["namen"] = sorted(r["namen"], key=len, reverse=True)
     return _REGELINGEN_CACHE
+
+
+def _voeg_uitvoeringsnamen_toe(regelingen: list[dict[str, Any]]) -> None:
+    """"Uitvoeringsregeling Awir" is geen naam in de graaf (die kent "Uitv reg Awir"), maar wel hoe een jurist haar
+    noemt, en dan bleef alleen "Awir" over: stil de moederwet. Een regeling die naar een andere heet, krijgt daarom
+    ook de andere namen daarvan achter het voorvoegsel."""
+    moeders = [(m["citeertitel"], sorted(m["namen"])) for m in regelingen if m["citeertitel"]]
+    for r in regelingen:
+        for citeertitel, namen in moeders:
+            voorvoegsel = r["citeertitel"].removesuffix(f" {citeertitel}")
+            if voorvoegsel in _UITVOERING_AFGEKORT:
+                r["namen"] |= {f"{v} {n}" for v in (voorvoegsel, _UITVOERING_AFGEKORT[voorvoegsel]) for n in namen}
 
 
 def regelingen_in_vraag(graph: GraphPort, vraag: str) -> list[str]:
     """De BWB-id's van de regelingen die de vraag bij naam of afkorting noemt (woordgrens, hoofdletter-
-    ongevoelig), in vaste volgorde. Een fout bij het ophalen kost alleen de afbakening."""
+    ongevoelig), in vaste volgorde. Waar namen overlappen wint de langste: in "Uitvoeringsregeling Algemene wet
+    inkomensafhankelijke regelingen" staat ook de wet zelf, maar die wordt daar niet genoemd. Een fout bij het
+    ophalen kost alleen de afbakening."""
     tekst = _normaliseer(vraag)
     try:
         regelingen = _regelingen(graph)
     except Exception:  # noqa: BLE001 – zonder namenlijst geen afbakening, wel een overzicht
         logger.warning("regelingnamen voor de afbakening niet opgehaald", exc_info=True)
         return []
-    gevonden = []
-    for r in regelingen:
-        for naam in r["namen"]:
-            if re.search(rf"(?<![\w.]){re.escape(naam.casefold())}(?![\w])", tekst):
-                gevonden.append(r["bwb_id"])
-                break
-    return sorted(set(gevonden))
+    plekken = [(m.start(), m.end(), r["bwb_id"]) for r in regelingen for naam in r["namen"]
+               for m in re.finditer(rf"(?<![\w.]){re.escape(naam.casefold())}(?![\w])", tekst)]
+    gevonden: dict[str, None] = {}
+    bezet: list[tuple[int, int]] = []
+    for start, eind, bwb in sorted(plekken, key=lambda p: p[0] - p[1]):
+        if (start, eind) not in bezet and any(start < e and s < eind for s, e in bezet):
+            continue
+        bezet.append((start, eind))
+        if not _NA_UITVOERING.search(tekst[:start]):
+            gevonden[bwb] = None
+    return sorted(gevonden)
 
 
 def _zonder_regeling(onderwerp: str, graph: GraphPort, scope: list[str]) -> str:
