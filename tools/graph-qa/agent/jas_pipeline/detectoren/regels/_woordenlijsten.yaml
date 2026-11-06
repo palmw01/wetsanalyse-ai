@@ -189,6 +189,10 @@ NORMATIEF:
   - geboden
   - verboden
   - toegestaan
+  - nietig
+  - vernietigbaar
+  - "re:niet\\s+vatbaar"
+  - "re:(?:niet\\s+)?van\\s+(?:overeenkomstige\\s+)?toepassing"
   - "re:recht\\s+op"
   - "re:aanspraak\\s+op"
   - "re:de\\s+plicht"

@@ -147,7 +147,7 @@ Leidraad wel. `herkomst=graaf` is een intern contract, geen cryptografisch bewij
 
 ## Detectoren
 
-Zeventien actieve generators (`standaard_detectoren()`). Klassen: RS Rechtssubject, RO Rechtsobject,
+Achttien actieve generators (`standaard_detectoren()`). Klassen: RS Rechtssubject, RO Rechtsobject,
 RB Rechtsbetrekking, RF Rechtsfeit, VW Voorwaarde, AR Afleidingsregel, V Variabele(waarde), P
 Parameter(waarde), O Operator, T Tijdsaanduiding, L Plaatsaanduiding, D Delegatie, B
 Brondefinitie. Actuele versies staan in de runmeting. De regels en hun vier testsoorten staan in

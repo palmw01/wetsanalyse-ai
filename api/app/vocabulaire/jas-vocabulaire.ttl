@@ -231,6 +231,11 @@
     skos:prefLabel "Normatief gezegde"@nl ;
     jas:codeWaarde "NORMATIVE_PREDICATE" .
 
+<urn:jas-ns:code:NORM_IN_PRESENT_TENSE> a jas:Detectiecode ;
+    skos:definition "Het gezegde van de hoofdzin gebiedt zonder modaal werkwoord ('de ontvanger betaalt'). Of het een plicht of een gebeurtenis is, vraagt een oordeel."@nl ;
+    skos:prefLabel "Norm in de tegenwoordige tijd"@nl ;
+    jas:codeWaarde "NORM_IN_PRESENT_TENSE" .
+
 <urn:jas-ns:code:OBJECT_NP> a jas:Detectiecode ;
     skos:definition "Een naamwoordgroep als voorwerp bij een normatief gezegde."@nl ;
     skos:prefLabel "Voorwerp bij een recht of plicht"@nl ;
@@ -984,5 +989,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "cab7bb7a2d79" .
+    jas:vocabulaireVersie "6526912d0f78" .
 
