@@ -32,6 +32,10 @@ detectie:
   LOCATION_NAME: {naam: "Plaatsnaam", uitleg: "Een gemeente, provincie of land uit de lijst van bekende namen."}
   LOCATION_DESCRIPTION: {naam: "Gebiedsomschrijving", uitleg: "Een omschreven gebied, zoals 'een lidstaat van de Europese Unie'."}
   ROLE_NOUN: {naam: "Rol of instantie", uitleg: "Een woord uit de lijst van rollen en instanties (de ontvanger, de inspecteur, Onze Minister)."}
+  DELEGATION_DESIGNATION: {naam: "Aan te wijzen bij regeling", uitleg: "Lagere regelgeving moet gevallen of bedragen aanwijzen of bepalen."}
+  DELEGATION_FILLING: {naam: "Aanwijzing op grond van een wet", uitleg: "Deze bepaling wijst aan wat de hogere regeling aan haar overliet."}
+  LEGAL_EQUATION: {naam: "Gelijkstelling", uitleg: "De bepaling stelt het een met het ander gelijk: geldt als, wordt aangemerkt als."}
+  CALCULATION_RATIO: {naam: "Verhouding of som", uitleg: "De uitkomst volgt uit een verhouding of optelling van andere waarden."}
   PARTY_NP: {naam: "Mogelijke partij", uitleg: "Een naamwoordgroep die een partij kan aanduiden: een woord voor een organisatie of persoon, een eigennaam of het handelend voorwerp."}
   TEMPORAL_DATE: {naam: "Datum", uitleg: "Een concrete datum."}
   TEMPORAL_DURATION: {naam: "Termijn", uitleg: "Een duur, zoals 'zes weken na de dagtekening'."}

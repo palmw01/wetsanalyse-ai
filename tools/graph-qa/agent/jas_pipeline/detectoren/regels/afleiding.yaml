@@ -20,10 +20,10 @@
   code: CALCULATION_PASSIVE
   bewijs: zwak
   bron: "H2:73"
-  versie: 2
+  versie: 3
   bereik: segment
   niet_binnen: []
-  patroon: '[\s\S]*?\b(?:wordt|worden)\b[\s\S]*?\b(?:gesteld\s+op|berekend|vastgesteld\s+op|in\s+aanmerking\s+genomen)\b'
+  patroon: '[\s\S]*?\b(?:wordt|worden)\b[\s\S]*?\b(?:gesteld\s+op|bepaald\s+op|berekend|vastgesteld\s+op|in\s+aanmerking\s+genomen)\b'
   rechts: '[\s\S]*'
   tests:
     positief: [{tekst: "Voor een verzekerde met een partner wordt daarbij tweemaal de standaardpremie in aanmerking genomen; klaar.", span: "Voor een verzekerde met een partner wordt daarbij tweemaal de standaardpremie in aanmerking genomen"}]
@@ -44,3 +44,31 @@
     negatief: [{tekst: "Hij vermoedt dat het klopt.", span: "vermoedt"}]
     rand: [{tekst: "de periode wordt geacht in te gaan op het tijdstip waarop het lichaam in gebreke is.", span: "wordt geacht in te gaan op het tijdstip waarop het lichaam in gebreke is"}]
     overlap: [{tekst: "wordt geacht in te gaan op het tijdstip waarop hij in gebreke is", spans: ["wordt geacht in te gaan op het tijdstip waarop hij in gebreke is", "het tijdstip waarop hij in gebreke is"]}]
+- id: jas.afleiding.gelijkstelling
+  klassen: [Afleidingsregel]
+  code: LEGAL_EQUATION
+  bewijs: zwak
+  bron: "H2:71"
+  versie: 1
+  bereik: segment
+  niet_binnen: []
+  patroon: '[\s\S]*?\b(?:geldt\s+als|gelden\s+als|wordt\s+aangemerkt\s+als|worden\s+aangemerkt\s+als|wordt\s+gelijkgesteld\s+met|worden\s+gelijkgesteld\s+met|wordt\s+beschouwd\s+als|worden\s+beschouwd\s+als)\b[\s\S]*'
+  tests:
+    positief: [{tekst: "Als tijdstip van betaling geldt als dag de datum van ontvangst.", span: "Als tijdstip van betaling geldt als dag de datum van ontvangst."}]
+    negatief: [{tekst: "De regel geldt voor iedereen.", span: "geldt voor iedereen"}]
+    rand: [{tekst: "Een stiefkind wordt gelijkgesteld met een eigen kind.", span: "Een stiefkind wordt gelijkgesteld met een eigen kind."}]
+    overlap: [{tekst: "Een pleegkind wordt aangemerkt als kind; een partner wordt beschouwd als gezinslid.", spans: ["Een pleegkind wordt aangemerkt als kind;", "een partner wordt beschouwd als gezinslid."]}]
+- id: jas.afleiding.verhouding
+  klassen: [Afleidingsregel]
+  code: CALCULATION_RATIO
+  bewijs: zwak
+  bron: "H2:73"
+  versie: 1
+  bereik: segment
+  niet_binnen: []
+  patroon: '[\s\S]*?\b(?:in\s+dezelfde\s+verhouding|in\s+evenredigheid|evenredig\s+aan|naar\s+evenredigheid|het\s+gezamenlijke\s+bedrag\s+van|de\s+som\s+van)\b[\s\S]*'
+  tests:
+    positief: [{tekst: "De kosten worden verdeeld naar evenredigheid van het inkomen.", span: "De kosten worden verdeeld naar evenredigheid van het inkomen."}]
+    negatief: [{tekst: "De kosten worden gedragen door de huurder.", span: "gedragen door de huurder"}]
+    rand: [{tekst: "De bijdrage is evenredig aan de oppervlakte;", span: "De bijdrage is evenredig aan de oppervlakte;"}]
+    overlap: [{tekst: "Het bedrag staat in dezelfde verhouding tot de rest; de uitkomst is de som van beide.", spans: ["Het bedrag staat in dezelfde verhouding tot de rest;", "de uitkomst is de som van beide."]}]
