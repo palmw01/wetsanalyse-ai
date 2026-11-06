@@ -9,7 +9,7 @@ import { haalKennisgraaf } from "@/lib/graaf/data";
 import { bouwModel, type GraafBron, type GraafModel, type KennisgraafAntwoord } from "@/lib/graaf/model";
 import { layoutVoor } from "@/lib/graaf/rekenaar";
 import { STANDAARD_LAGEN, type Lagen } from "@/lib/graaf/weergave";
-import { haalSamenhang, haalSamenhangen, type MarkeringFilter, type Samenhang } from "@/lib/samenhang";
+import { haalKeten, haalSamenhang, haalSamenhangen, type MarkeringFilter, type Samenhang } from "@/lib/samenhang";
 import type { GraafBediening } from "./GraafTekenaar";
 import type { DetailCache, InfoCache } from "./useKnoopDetail";
 
@@ -32,6 +32,11 @@ export interface GraafOpties {
    *  een actuele: wie hem doorgeeft, garandeert dat er sindsdien geen annotatie veranderde
    *  (`kennisgraafActueel`). */
   kennisgraaf?: KennisgraafAntwoord;
+  /** *Dit antwoord* is de ketting: van regeling tot de diepste bepaling die het bericht aanwijst
+   *  (`GET samenhang/antwoord`). Zonder: het hele artikel van elk doel. */
+  keten?: boolean;
+  /** Het werkgebied van het gesprek: de ketting toont dan zijn begrippen. */
+  werkgebiedId?: string | null;
 }
 
 /** Wat het tekenen tegenhoudt, per bron, met de handeling die het herstelt. Een fout geldt in het
@@ -112,9 +117,10 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolea
       // Het doel van het paneel eerst; de andere doelen uit het antwoord in één verzoek (één bronboom
       // per regeling). Een doel dat niet laadt is een melding, geen fout voor het geheel – behalve het
       // doel van het paneel zelf.
-      const { resultaten, fouten: nietGelukt } = extraDoelen.length
-        ? await haalSamenhangen([doel, ...extraDoelen])
-        : { resultaten: [await haalSamenhang(doel)], fouten: [] };
+      const { resultaten, fouten: nietGelukt } = opties.keten
+        ? { resultaten: [await haalKeten([doel, ...extraDoelen], opties.werkgebiedId ?? undefined)], fouten: [] }
+        : extraDoelen.length ? await haalSamenhangen([doel, ...extraDoelen])
+          : { resultaten: [await haalSamenhang(doel)], fouten: [] };
       const eigen = nietGelukt.find((f) => f.bron_iri === doel.bron_iri);
       if (eigen || !resultaten.length) {
         setFouten((f) => ({ ...f, samenhang: eigen?.reden ?? "De samenhang is niet geladen." }));
@@ -124,7 +130,7 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolea
       setBronnen(resultaten.filter((d, i) => resultaten.findIndex((x) => x.artikel_iri === d.artikel_iri) === i));
       bijTot(ronde);
     } catch (e) { setFouten((f) => ({ ...f, samenhang: foutTekst(e, "De samenhang is niet geladen.") })); }
-  }, [doel, extraDoelen, bijTot]);
+  }, [doel, extraDoelen, bijTot, opties.keten, opties.werkgebiedId]);
   useEffect(() => {
     // Externe request initialiseren; dezelfde actie dient ook de retryknop.
     if (actief) void laad();
@@ -164,15 +170,18 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolea
     if (!model) return;
     const afbreken = new AbortController();
     const voor = bereik;
+    const alsKeten = voor === "antwoord" && bronnen?.length === 1 && !!bronnen[0].keten;
     layoutVoor(model, {
       vast: vorige.current[voor],
       signal: afbreken.signal,
+      keten: alsKeten,
       opVoortgang: (fractie) => setLaadfase({ fase: "layout", fractie }),
     }).then(({ posities }) => {
       // Een vervallen run (nieuw model, ander bereik) zet niets: anders komt een oude kaart over een
       // nieuwere heen.
       if (afbreken.signal.aborted) return;
-      vorige.current[voor] = posities;
+      // De ketting legt geen kaart vast: wat erbij komt (*Toon het hele artikel*) krijgt een eigen layout.
+      vorige.current[voor] = alsKeten ? undefined : posities;
       setGetekend({ model, posities, bereik: voor });
       setLaadfase({ fase: "klaar" });
       setFouten((f) => (f.layout?.bereik === voor ? { ...f, layout: undefined } : f));
@@ -181,6 +190,8 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolea
       setFouten((f) => ({ ...f, layout: { bereik: voor, tekst: foutTekst(e, "De layout van de graaf kon niet worden berekend.") } }));
     });
     return () => afbreken.abort();
+    // `bronnen` volgt hetzelfde model; het bereik van de ketting hangt er alleen van af.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [model, bereik, layoutPoging]);
 
   /** Na een annotatiewijziging. Mutaties gebeuren op de Tekst-tab, dus de graaf is dan niet te zien:
@@ -198,19 +209,21 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolea
     if (!zichtbaar || gevraagd <= gedaan || bezig.current || !bronnen?.length) return;
     bezig.current = true;
     const ronde = gevraagdRef.current;
-    const doelen = bronnen.map((d) => d.doel);
+    const doelen = bronnen.filter((d) => !d.keten).map((d) => d.doel);
+    const ketting = bronnen.find((d) => d.keten);
     const metKennisgraaf = !!kennisgraaf;
     void (async () => {
       // De markeringen in de opgehaalde teksten kunnen veranderd zijn.
       detailCache.current = new Map();
       setDetailVersie((v) => v + 1);
       try {
-        const [{ resultaten }, kg] = await Promise.all([
-          haalSamenhangen(doelen),
+        const [{ resultaten }, nieuweKetting, kg] = await Promise.all([
+          doelen.length ? haalSamenhangen(doelen) : Promise.resolve({ resultaten: [] as Samenhang[] }),
+          ketting ? haalKeten([doel, ...extraDoelen], opties.werkgebiedId ?? undefined) : Promise.resolve(undefined),
           metKennisgraaf ? haalKennisgraaf() : Promise.resolve(undefined),
         ]);
         if (!levend.current) return;
-        setBronnen((oud) => oud?.map((d) => resultaten.find((n) => n.artikel_iri === d.artikel_iri) ?? d));
+        setBronnen((oud) => oud?.map((d) => (d.keten ? nieuweKetting ?? d : resultaten.find((n) => n.artikel_iri === d.artikel_iri) ?? d)));
         if (kg) setKennisgraaf(kg);
         setMelding("");
       } catch (e) {
@@ -221,7 +234,7 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolea
         if (levend.current) bijTot(ronde);
       }
     })();
-  }, [zichtbaar, gevraagd, gedaan, bronnen, kennisgraaf, bijTot]);
+  }, [zichtbaar, gevraagd, gedaan, bronnen, kennisgraaf, bijTot, doel, extraDoelen, opties.werkgebiedId]);
 
   /** Een bepaling buiten wat geladen is erbij laden, als eigen deel. De kaart blijft liggen; alleen
    *  het nieuwe wordt geplaatst. */
@@ -229,7 +242,8 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolea
     setLaadtBij(id);
     try {
       const nieuw = await haalSamenhang({ bron_iri: id });
-      setBronnen((oud) => (oud?.some((d) => d.artikel_iri === nieuw.artikel_iri) ? oud : [...(oud ?? []), nieuw]));
+      // De ketting telt niet als geladen: zij toont het artikel juist niet helemaal.
+      setBronnen((oud) => (oud?.some((d) => !d.keten && d.artikel_iri === nieuw.artikel_iri) ? oud : [...(oud ?? []), nieuw]));
       setMelding("");
     } catch (e) { setMelding(foutTekst(e, "Deze bepaling kon niet worden bijgeladen.")); }
     finally { setLaadtBij(""); }
