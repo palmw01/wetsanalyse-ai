@@ -413,8 +413,8 @@ bronnenlijst bij: de blokken noemen elke vindplaats (`Vindplaats`: een klik open
 
 ### Het overzicht van een onderwerp
 
-Op "welke artikelen gaan over X?" bouwt graph-qa een overzicht uit de graaf (`agent/overzicht.py`) en
-schrijft Lex er alleen een korte duiding bij. Het overzicht komt als `overzicht`-event
+Op "welke artikelen gaan over X?" bouwt graph-qa een overzicht uit de graaf (`agent/overzicht.py`) met een
+samenvatting erbij, allebei zonder model. Dit is geen sjabloon (ADR-008). Het overzicht komt als `overzicht`-event
 (`parseOverzicht` in `lib/agentEvents.ts`, streng op bron-IRI's: één slechte rij en er is geen blok)
 en reist mee in het bericht (`Bericht.overzicht`), ook als de werkplek het bericht zelf vastlegt.
 Het staat **naast het gesprek** (besluit gebruiker 6 nov 2026, in de lijn van de bronselectie): in het gesprek de

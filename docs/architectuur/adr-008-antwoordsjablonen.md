@@ -32,3 +32,5 @@ agent ⇄ tools → sjabloontool → sjabloon → verify → (correct) → final
 ## Gevolgen
 
 Sjabloontools staan los van `TOOLS`: ze staan niet op de MCP-server. Decompositie (op Azure uit) blijft vrije tekst. Een nieuw sjabloon: een module in `agent/sjablonen/`, een regel in `SJABLONEN`, de naam in `Specialist.sjablonen`, en voor een nieuw blok een component in `BLOKKEN`.
+
+De overzichtsroute krijgt geen sjabloon: daar typt geen model feiten over, en de controle, bronnen, graaf en kopieerknop lezen `Bericht.overzicht`, dus een `Antwoord` zou die gegevens alleen dubbel dragen.

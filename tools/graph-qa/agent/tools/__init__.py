@@ -501,7 +501,7 @@ TOOLS: list[dict[str, Any]] = [
             "opbouw (een bepaling binnen een gevonden deel staat er niet nog eens los), waar de wet het "
             "begrip definieert en welke regelingen het als trefwoord dragen.\n"
             "GEEFT TERUG per regeling: de delen met het aantal bepalingen, het aantal 'ook genoemd' en de "
-            "delen waarin die staan; plus definities en trefwoorden. De nummers zelf toont de werkplek."
+            "delen waarin die staan; plus definities en trefwoorden. De nummers van een deel: inhoudsopgave."
             + _CONTRACT
         ),
         "input_schema": _obj(
