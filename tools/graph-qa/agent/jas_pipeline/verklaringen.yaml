@@ -25,6 +25,7 @@ detectie:
   DELEGATION_FORMULA: {naam: "Delegatieformule", uitleg: "'Bij of krachtens … worden regels gesteld': de vaste vorm waarmee de wet een bevoegdheid delegeert."}
   MONEY_AMOUNT: {naam: "Geldbedrag", uitleg: "Een bedrag in euro's."}
   PERCENTAGE: {naam: "Percentage", uitleg: "Een percentage, in cijfers of woorden."}
+  COUNT: {naam: "Aantal", uitleg: "Een getal direct na een grens als 'ten hoogste' of 'niet meer dan'."}
   MULTIPLIER: {naam: "Veelvoud", uitleg: "'Tweemaal', 'het drievoudige': een vermenigvuldiging."}
   COMPARISON: {naam: "Vergelijking", uitleg: "'Meer bedraagt dan', 'ten minste', 'niet meer dan': een vergelijkende operator."}
   ARITHMETIC: {naam: "Rekenkundige bewerking", uitleg: "'Vermeerderd met', 'verminderd met', 'de som van': een rekenkundige operator."}

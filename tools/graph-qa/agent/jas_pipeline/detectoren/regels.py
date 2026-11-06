@@ -84,6 +84,7 @@ class Regel:
     controle: str = ""
     bewijs: str = "zwak"
     niet_woordsoort: tuple[str, ...] = ()
+    alleen_na: re.Pattern | None = None     # de treffer telt alleen direct na deze tekst, die zelf buiten de span blijft
 
     @classmethod
     def van(cls, detector: str, d: dict[str, Any]) -> Regel:
@@ -105,7 +106,8 @@ class Regel:
         return cls(d["id"], detector, tuple(d["klassen"]), d["code"], d["bron"], int(d["versie"]),
                    comp(d["patroon"]), comp(d.get("links"), "$"), comp(d.get("rechts")),
                    tuple(d.get("niet_binnen", ["verwijzing"])), d.get("tests", {}),
-                   d.get("bereik", "bron"), d.get("controle", ""), d["bewijs"], tuple(d.get("niet_woordsoort", ())))
+                   d.get("bereik", "bron"), d.get("controle", ""), d["bewijs"], tuple(d.get("niet_woordsoort", ())),
+                   comp(d.get("alleen_na"), "$"))
 
     def vind(self, tekst: str, analyse: Any = None) -> list[list[tuple[int, int]]]:
         """Per treffer de mogelijke grenzen: kern, links+kern, kern+rechts, links+kern+rechts."""
@@ -133,6 +135,8 @@ class Regel:
             if self.controle == "kalenderdatum" and not _kalenderdatum(m.group()):
                 continue
             if self._afgekeurd(m, analyse, verschuiving):
+                continue
+            if self.alleen_na and not self.alleen_na.search(tekst, 0, m.start()):
                 continue
             s, e = _trim(tekst, *m.span())
             if s >= e:

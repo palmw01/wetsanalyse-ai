@@ -104,3 +104,12 @@ def test_grens_begint_na_de_vaste_uitdrukking(parser, tekst):
     [k] = [k for k in _kandidaten(NominalisatieDetector(), tekst, parser)]
     assert k.span.tekst.startswith("de ") and "betrekking" not in k.span.tekst
     assert not [n for n in _kandidaten(NaamwoordgroepDetector(), tekst, parser) if "betrekking" in n.span.tekst]
+
+
+@pytest.mark.parametrize("tekst,zaak,getal", [
+    ("De aanvrager kan niet meer dan twee percelen opgeven.", "percelen", "twee"),   # omgevingsrecht
+    ("Het college benoemt ten hoogste drie leden.", "leden", "drie"),                # bestuursrecht
+])
+def test_aantalsgrens_valt_buiten_de_naamwoordgroep(parser, tekst, zaak, getal):
+    groepen = [n.span.tekst for n in _kandidaten(NaamwoordgroepDetector(), tekst, parser)]
+    assert zaak in groepen and not [g for g in groepen if getal in g and zaak in g]

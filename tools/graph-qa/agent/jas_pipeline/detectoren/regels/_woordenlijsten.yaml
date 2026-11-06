@@ -230,6 +230,18 @@ DISTRIBUTIEF:
   - elke
   - ieder
   - iedere
+# Woorden die een aantal begrenzen: de grens is een Operator, het aantal een waarde, en de naamwoordgroep begint erna.
+AANTALSVERGELIJKING:
+  - niet meer dan
+  - niet minder dan
+  - meer dan
+  - minder dan
+  - ten hoogste
+  - ten minste
+  - maximaal
+  - minimaal
+  - hoogstens
+  - minstens
 # Vaste voorzetseluitdrukkingen met een -ing-woord: een relatie tussen bepalingen, geen handeling.
 VOORZETSELUITDRUKKING:
   - in afwijking van

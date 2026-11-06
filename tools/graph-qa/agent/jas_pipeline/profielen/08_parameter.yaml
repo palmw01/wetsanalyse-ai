@@ -15,6 +15,7 @@ structural_signals: []
 candidate_rules:
   - {id: jas.waarde.bedrag, status: geïmplementeerd}
   - {id: jas.waarde.percentage, status: geïmplementeerd}
+  - {id: jas.waarde.aantal, status: geïmplementeerd}
   - {id: jas.parameter.beschrijving, status: geïmplementeerd}
 confusable_classes:
   - {klasse: Variabele en variabelewaarde, reden: "constant of per geval verschillend"}

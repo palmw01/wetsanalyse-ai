@@ -5,13 +5,14 @@
   code: COMPARISON
   bewijs: sterk
   bron: "H2:100"
-  versie: 1
-  patroon: '\b(?:(?:meer|minder|groter|kleiner|hoger|lager)\s+(?:(?:bedraagt|bedragen|is|zijn)\s+)?dan|(?:is|zijn)\s+gelijk\s+aan|te\s+boven\s+(?:gaat|gaan))\b'
+  versie: 2
+  patroon: '\b(?:(?:niet\s+)?(?:meer|minder|groter|kleiner|hoger|lager)\s+(?:(?:bedraagt|bedragen|is|zijn)\s+)?dan|(?:is|zijn)\s+gelijk\s+aan|te\s+boven\s+(?:gaat|gaan))\b'
   tests:
     positief: [{tekst: "in het berekeningsjaar minder bedraagt dan de standaardpremie", span: "minder bedraagt dan"}]
     negatief: [{tekst: "Hij is dan ook bevoegd.", span: "dan"}]
     rand: [{tekst: "voorzover dat toetsingsinkomen het drempelinkomen te boven gaat.", span: "te boven gaat"}]
-    overlap: [{tekst: "groter dan of gelijk aan", spans: ["groter dan"]}]
+    overlap: [{tekst: "groter dan of gelijk aan", spans: ["groter dan"]},
+              {tekst: "niet meer dan drie kinderen", spans: ["niet meer dan"]}]
 - id: jas.operator.rekenkundig
   klassen: [Operator]
   code: ARITHMETIC
@@ -29,8 +30,8 @@
   code: LOGICAL
   bewijs: zwak
   bron: "H2:100"
-  versie: 1
-  patroon: '\b(?:ten\s+minste|ten\s+hoogste|dan\s+wel|noch)\b'
+  versie: 2
+  patroon: '\b(?:ten\s+minste|ten\s+hoogste|maximaal|minimaal|hoogstens|minstens|dan\s+wel|noch)\b'
   tests:
     positief: [{tekst: "dan wel tot het wegnemen van de gevolgen", span: "dan wel"}]
     negatief: [{tekst: "tentoonstelling", span: "ten"}]

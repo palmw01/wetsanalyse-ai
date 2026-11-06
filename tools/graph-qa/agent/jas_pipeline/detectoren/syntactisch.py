@@ -205,7 +205,8 @@ class NaamwoordgroepDetector:
     # 4: een onderdeel onder een aanhef heeft normcontext
     # 5: een partij buiten de rollenlijst krijgt Rechtssubject als hypothese
     # 6: geen kale kern van een nominalisatie, niets binnen een vaste uitdrukking
-    versie = f"6+verwijzing.{VERWIJZING_VERSIE}"
+    # 7: een aantalsgrens valt buiten de groep
+    versie = f"7+verwijzing.{VERWIJZING_VERSIE}"
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
@@ -216,7 +217,12 @@ class NaamwoordgroepDetector:
         # Een onderdeel van een opsomming draagt zijn norm in de aanhef van de ouder, niet in de eigen tekst.
         onder_aanhef = bron.context.rstrip().endswith(":")
         uitgesloten = _vaste_uitdrukkingen(bron.tekst)
+        # Een aantalsgrens hoort niet bij de groep: "niet meer dan één woning" is een Operator, een waarde en een zaak.
+        grenzen_aantal = [m.span() for m in re.finditer(
+            rf"\b(?:{woordenlijsten()['AANTALSVERGELIJKING']})\s+(?:{woordenlijsten()['TELWOORD']})\b", bron.tekst, re.IGNORECASE)]
+        in_aantal = {x.i for x in a.tokens if _in_vaste_uitdrukking(x, grenzen_aantal)}
         for t in a.tokens:
+            aantal = in_aantal - {t.i}
             if not _nominaal(a, t) or t.deprel in {"fixed", "flat", "flat:name", "compound", "nmod:poss"}:
                 continue
             # Een handeling met een eigen voorwerp is de kandidaat; haar kale kern is geen object of kenmerk.
@@ -230,9 +236,9 @@ class NaamwoordgroepDetector:
                                             if a.tokens[k].deprel in {"conj", "parataxis", "cc", "punct"}
                                             for i in a.subboom(k)}
             grenzen = [(g, soort) for g, soort in (
-                (_bereik(a, _zonder_randfunctie(a, kern, t.i)), "np_kern"),
-                (_bereik(a, _zonder_randfunctie(a, zonder_bijzin, t.i)), "np"),
-                (_bereik(a, _zonder_randfunctie(a, geheel, t.i)), "np_met_bijzin")) if g]
+                (_bereik(a, _zonder_randfunctie(a, kern - aantal, t.i)), "np_kern"),
+                (_bereik(a, _zonder_randfunctie(a, zonder_bijzin - aantal, t.i)), "np"),
+                (_bereik(a, _zonder_randfunctie(a, geheel - aantal, t.i)), "np_met_bijzin")) if g]
             if not grenzen or _in_verwijzing(bron, *grenzen[0][0]):
                 continue
             lemma = (t.lemma or t.tekst).lower()
