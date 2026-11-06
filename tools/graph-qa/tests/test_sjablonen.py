@@ -148,3 +148,11 @@ def test_een_sjabloon_naast_een_graaftool_wacht_op_de_graaftool():
     events, llm = _beurt(beide, _sjabloon())
     assert llm.index == 3
     assert [e for e in events if e["type"] == "antwoord"]
+
+
+def test_het_model_krijgt_de_tool_echt_aangeboden():
+    """Op acceptatie stond de tool niet in het verzoek: `get_specialist` liet het veld vallen, en een nepmodel dat de tool
+    toch aanroept ziet dat niet. Dus kijken naar wat er naar het model gaat."""
+    _, llm = _beurt(ZOEK, _sjabloon())
+    assert "antwoord_begrip" in [t["name"] for t in llm.calls[1]["tools"]]
+    assert next(t for t in llm.calls[1]["tools"] if t["name"] == "antwoord_begrip")["strict"] is True
