@@ -5,7 +5,7 @@ import re
 
 import pytest
 
-from agent.nodes.annotatie_samenvatting import MAX_ZINNEN, samenvatting, vindplaats
+from agent.nodes.annotatie_samenvatting import MAX_ZINNEN, aantal_bekend, samenvatting, vindplaats
 
 DOEL = {"artikel": "9", "lid": "1", "type": "Lid", "citeertitel": "Invorderingswet 1990"}
 
@@ -65,3 +65,29 @@ def test_zonder_beslisinfo_valt_de_laatste_zin_weg():
 def test_een_divisie_is_een_bepaling_en_geen_artikel():
     assert vindplaats({"nummer": "25.1", "type": "Divisie"}) == "bepaling 25.1"
     assert vindplaats({"artikel": "9", "lid": "5"}) == "artikel 9 lid 5"
+
+
+@pytest.mark.parametrize("n,bekend,verwacht", [
+    (3, 0, "drie JAS-elementen gevonden."),
+    (3, 2, "drie JAS-elementen gevonden: één is nieuw, twee lagen er al."),
+    (3, 1, "drie JAS-elementen gevonden: twee zijn nieuw, één lag er al."),
+    (3, 3, "drie JAS-elementen gevonden, die er allemaal al lagen."),
+    (1, 1, "één JAS-element gevonden, dat er al lag."),
+])
+def test_een_nieuwe_ronde_zegt_wat_er_nieuw_is(n, bekend, verwacht):
+    assert zinnen(samenvatting([v("Rechtsobject") for _ in range(n)], DOEL, bekend))[0].endswith(verwacht)
+
+
+def test_bekend_op_id_en_op_klasse_met_ankers():
+    anker = [{"bron_iri": "b", "start": 0, "eind": 4}]
+    weergave = {"elementen": [
+        {"id": "gecorrigeerd", "klasse": "Rechtsfeit", "ankers": [{"bron_iri": "b", "start": 9, "eind": 12}]},
+        {"id": "zelfde-plek", "klasse": "Rechtsobject", "ankers": anker},
+        {"id": "weg", "klasse": "Operator", "ankers": anker, "verouderd": True},
+    ]}
+    voorstellen = [{"id": "gecorrigeerd", "klasse": "Rechtsobject", "ankers": anker},
+                   {"id": "x", "klasse": "Rechtsobject", "ankers": anker},
+                   {"id": "weg", "klasse": "Operator", "ankers": anker},
+                   {"id": "y", "klasse": "Voorwaarde", "ankers": anker}]
+    assert aantal_bekend(voorstellen, weergave) == 2
+    assert aantal_bekend(voorstellen, None) == 0
