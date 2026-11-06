@@ -290,6 +290,29 @@ async def reset_user_wachtwoord(userid: str):
     return TempPassword(userid=user.userid, temp_password=temp)
 
 
+@router.post("/users/{userid}/2fa/reset", status_code=status.HTTP_204_NO_CONTENT)
+async def reset_user_2fa(userid: str, door: str = Depends(huidige_beheerder)):
+    """Haal 2FA van een account dat authenticator én herstelcodes kwijt is.
+
+    Dit endpoint wil weten wíe het doet, dus een admin-token alleen is niet genoeg: de BFF zet
+    `X-User-Id` uit de sessie. Zo kan een los token (de admin-MCP) geen 2FA weghalen, en staat er een
+    persoon in het log. Wie dit doet, moet zelf 2FA hebben: de BFF toetst dat ook, maar een beheerder
+    zonder 2FA mag er ook hier niet langs.
+    """
+    uitvoerder = await users.get_user(door)
+    if uitvoerder is None or not uitvoerder.totp_enabled:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Koppel eerst zelf 2FA.")
+    try:
+        user = await users.reset_2fa(userid, door=door)
+    except users.UserError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    vergeet_actief(user.userid)
+    logger.warning(
+        "2FA gereset door een beheerder",
+        extra={"categorie": "security", "actie": "2fa_reset", "userid": user.userid, "door": door},
+    )
+
+
 @router.delete("/users/{userid}", status_code=status.HTTP_204_NO_CONTENT)
 async def verwijder_user(userid: str):
     try:

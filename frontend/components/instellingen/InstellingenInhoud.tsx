@@ -12,8 +12,10 @@ import { BerichtenArchiefClient } from "@/components/berichten/BerichtenArchiefC
 import { ProfielenPanel } from "@/components/admin/ProfielenPanel";
 import { RegistratiesPanel } from "@/components/admin/RegistratiesPanel";
 import { UsersPanel } from "@/components/admin/UsersPanel";
+import { Button } from "@/components/ui/Button";
+import { Melding } from "@/components/ui/Melding";
 import { Tabs, type TabDef } from "@/components/ui/Tabs";
-import { getOngelezenFeedbackAantal, listRegistraties } from "@/lib/api";
+import { getAccount, getOngelezenFeedbackAantal, listRegistraties } from "@/lib/api";
 import { INSTELLINGEN_TABS, padVanTab, tabUitPad, type TabKey } from "@/lib/instellingen";
 
 const PANEEL: Record<TabKey, React.ReactNode> = {
@@ -28,6 +30,18 @@ const PANEEL: Record<TabKey, React.ReactNode> = {
   berichtenbeheer: <BerichtenBeheerPanel />,
   feedback: <FeedbackLijstClient />,
 };
+
+/** Staat op de beheertabs van een beheerder zonder 2FA, in plaats van een paneel vol 403's. */
+function BeheerVraagt2fa({ onNaarBeveiliging }: { onNaarBeveiliging: () => void }) {
+  return (
+    <Melding type="waarschuwing" titel="Koppel eerst tweestapsverificatie">
+      <p className="mb-2 text-sm">
+        Het beheer gaat pas open als er een authenticator-app aan je account hangt. De rest van de app werkt gewoon.
+      </p>
+      <Button size="sm" variant="secondary" onClick={onNaarBeveiliging}>Naar Beveiliging</Button>
+    </Melding>
+  );
+}
 
 interface Props {
   actief: TabKey;
@@ -49,7 +63,19 @@ export function InstellingenInhoud({ actief: uitServer, isBeheerder, vervangHist
   const actief = pad.startsWith("/instellingen") ? tabUitPad(pad.split("/").slice(2)) : uitServer;
   const [ongelezenFeedback, setOngelezenFeedback] = useState(0);
   const [openAanvragen, setOpenAanvragen] = useState(0);
+  const [tfaNodig, setTfaNodig] = useState(false);
   const zichtbaar = INSTELLINGEN_TABS.filter((t) => !t.admin || isBeheerder);
+
+  // Opnieuw bij elke tabwissel: wie net gekoppeld heeft, loopt zo meteen door naar het beheer. Stil
+  // falend: de melding is uitleg, de BFF houdt het beheer hoe dan ook dicht.
+  useEffect(() => {
+    if (!isBeheerder) return;
+    let weg = false;
+    getAccount()
+      .then((a) => { if (!weg) setTfaNodig(a.tfa_nodig); })
+      .catch(() => {});
+    return () => { weg = true; };
+  }, [actief, isBeheerder]);
 
   // Ongelezen-teller voor de feedbacktab. Alleen voor beheerders (het endpoint eist die rol) en
   // stil falend: een hapering mag het venster niet blokkeren, de badge is een hint.
@@ -88,12 +114,20 @@ export function InstellingenInhoud({ actief: uitServer, isBeheerder, vervangHist
     if (actief !== "feedback") void laadFeedbackTeller();
   }, [actief, laadFeedbackTeller]);
 
+  // Een tab is een stap in de History API, ook vanuit de melding: een navigatie zou het venster
+  // eroverheen openen.
+  function kiesTab(key: TabKey) {
+    const doel = padVanTab(key);
+    if (vervangHistorie) window.history.replaceState(null, "", doel);
+    else window.history.pushState(null, "", doel);
+  }
+
   const tabs: TabDef[] = zichtbaar.map((t, i) => ({
     key: t.key,
     label: t.label,
     // Alleen wie ook beheert ziet twee soorten tabs, en heeft dus een kop nodig.
     groep: !isBeheerder ? undefined : i === 0 ? "Persoonlijk" : t.admin && !zichtbaar[i - 1].admin ? "Beheer" : undefined,
-    content: PANEEL[t.key],
+    content: t.admin && tfaNodig ? <BeheerVraagt2fa onNaarBeveiliging={() => kiesTab("beveiliging")} /> : PANEEL[t.key],
     badge:
       t.key === "feedback"
         ? ongelezenFeedback
@@ -109,11 +143,7 @@ export function InstellingenInhoud({ actief: uitServer, isBeheerder, vervangHist
       label="Instellingen"
       orientation="vertical"
       lazy
-      onChange={(key) => {
-        const doel = padVanTab(key as TabKey);
-        if (vervangHistorie) window.history.replaceState(null, "", doel);
-        else window.history.pushState(null, "", doel);
-      }}
+      onChange={(key) => kiesTab(key as TabKey)}
     />
   );
 }

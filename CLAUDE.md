@@ -98,7 +98,8 @@ overzien.
    De hele webapp zit achter een **login met userid + wachtwoord** (Auth.js; e-mail verplicht/uniek
    maar geen inlog-identiteit; de API is de identiteitsbron; rollen `beheerder`/`analist`; eenmalige
    eerste-beheerder-registratie via `/setup`; **zelfregistratie** via `/registreren`, die een beheerder
-   goedkeurt voor er een account ontstaat; optionele TOTP-2FA). De UI volgt de **Rijkshuisstijl**
+   goedkeurt voor er een account ontstaat; TOTP-2FA, optioneel behalve voor beheerders: zonder 2FA blijft
+   het beheer dicht). De UI volgt de **Rijkshuisstijl**
    (Belastingdienst-stijlvak: lintblauw, Fira-fonts, het officiële Belastingdienst-logo en
    JAS-klassekleuren uit `docs/wetsanalyse/wa-table.png`).
 3. **`tools/graph-qa/`** – de eigen **QA/annotatie-agent**, **Lex** (de naam die de gebruiker ziet; de

@@ -40,12 +40,14 @@ function isPublic(path: string): boolean {
 }
 
 // Wat een sessie uit een accounttoken niet mag, ook niet met de beheerderrol: het token zelf
-// vermenigvuldigen of de inlog van het account overnemen. Een uitgelekt token blijft zo intrekbaar.
+// vermenigvuldigen, de inlog van het account overnemen, of de 2FA van een ander weghalen. Een uitgelekt
+// token blijft zo intrekbaar.
 function buitenTokenSessie(path: string): boolean {
   return (
     path.startsWith("/api/admin/api-tokens") ||
     path.startsWith("/api/account/password") ||
-    path.startsWith("/api/account/2fa")
+    path.startsWith("/api/account/2fa") ||
+    (path.startsWith("/api/admin/users/") && path.endsWith("/2fa-reset"))
   );
 }
 

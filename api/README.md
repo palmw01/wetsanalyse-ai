@@ -7,7 +7,7 @@ bedient:
   laag per bronnode (artikel, lid of onderdeel);
 - de **chatgeschiedenis** van de werkplek;
 - **login en gebruikersbeheer** – de API is de identiteitsbron van de webapp, inclusief
-  zelfregistratie en optionele TOTP-2FA;
+  zelfregistratie en TOTP-2FA (verplicht voor beheer) met herstelcodes;
 - het **LLM-modelprofielbeheer**;
 - het **tokenbudget** per gebruiker;
 - **berichten** (release notes) en **gebruikersfeedback**.
@@ -72,10 +72,12 @@ zijn gedeeld tussen gebruikers; wie wat deed staat in de audit. Specificatie:
 | `GET` | `/v1/auth/setup-status` | Is de users-tabel nog leeg? (dan staat de eenmalige registratie open) |
 | `POST` | `/v1/auth/setup` | Maak de allereerste beheerder (alleen bij lege tabel, anders 409) |
 | `POST` | `/v1/auth/registratie` | Zelfregistratie: vraag toegang aan (eigen rate limit; maakt géén account) |
-| `POST` | `/v1/auth/verify` | Valideer userid + wachtwoord (+ optionele TOTP) |
-| `GET` | `/v1/auth/me` | Eigen account (rol + 2FA-status) |
+| `POST` | `/v1/auth/verify` | Valideer userid + wachtwoord (+ TOTP-code of herstelcode) |
+| `GET` | `/v1/auth/me` | Eigen account (rol, 2FA-status, `tfa_nodig`, `herstelcodes_over`) |
 | `POST` | `/v1/auth/change-password` | Eigen wachtwoord wijzigen |
-| `POST` | `/v1/auth/2fa/{begin,activate,disable}` | Optionele TOTP-2FA, self-service; `begin` vraagt het wachtwoord en weigert (409) bij actieve 2FA |
+| `POST` | `/v1/auth/2fa/{begin,activate,disable}` | TOTP-2FA, self-service; `begin` vraagt het wachtwoord en weigert (409) bij actieve 2FA, `activate` geeft de herstelcodes, `disable` neemt ook een herstelcode |
+| `POST` | `/v1/auth/2fa/herstelcodes` | Vervang de herstelcodes, met een code uit de app of een herstelcode |
+| `POST` | `/v1/admin/users/{id}/2fa/reset` | Haal 2FA van een ander account; vraagt naast het admin-token `X-User-Id` van een beheerder met 2FA |
 
 **Tokenbudget, berichten, feedback, keuzelijst:**
 
@@ -175,7 +177,7 @@ wint. Op Azure staan alle secrets als bestand onder `/run/secrets/`.
 | `WETSANALYSE_ADMIN_TOKENS(_FILE)` | – | Admin-tokens, zelfde vorm |
 | `DATABASE_URL(_FILE)` | `postgresql+asyncpg://localhost:5432/wetsanalyse` | Een kale `postgresql://` wordt naar asyncpg omgezet |
 | `WETSANALYSE_DB_CONNECT_RETRIES` / `_BACKOFF` | `30` / `2` (s) | Bounded retry bij het opstarten |
-| `LLM_CONFIG_SECRET(_FILE)` | – | Fernet-key; versleutelt de API-keys van profielen en de 2FA-secrets. Zonder: geen key-opslag via de UI |
+| `LLM_CONFIG_SECRET(_FILE)` | – | Fernet-key; versleutelt de API-keys van profielen en de 2FA-secrets. Zonder: geen key-opslag via de UI, geen 2FA, dus ook geen beheer |
 | `LLM_PROVIDER` | `azure_ai` | Seed/fallback van het default-profiel (`azure_ai` = Foundry, `azure` = Azure OpenAI) |
 | `LLM_MODEL`, `LLM_API_BASE`, `LLM_API_KEY(_FILE)` | leeg | Idem |
 | `LLM_API_VERSION` | – | Alleen voor `azure` |

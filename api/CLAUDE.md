@@ -1023,6 +1023,24 @@ de stand van die beurt zien, dan heb je een momentopname nodig. Alleen een begri
   staan: een sessie alleen mag de tweede factor niet vervangen. Die weigering (409, security-log
   `2fa_begin_geweigerd`) zit in de voorwaardelijke `UPDATE`, niet in een eerdere lezing. Uitzetten kan
   alleen met een code; een herstelpad bij een verloren authenticator is er nog niet.
+- **Herstelcodes** (`users.py`, tabel `herstelcodes`): tien stuks van 80 bits bij `activate_2fa`, één keer
+  getoond en daarna alleen als sha256 over `userid|code`. Verbruiken is één voorwaardelijke `DELETE`.
+  `_verbruik_tweede_factor` kiest op de **vorm** van de invoer, in hetzelfde veld als de TOTP-code; zo raakt
+  een herstelcode de Fernet-sleutel niet en overleeft hij een geroteerde `LLM_CONFIG_SECRET`. Ze werken bij
+  het inloggen (`"ok_herstelcode"`, security-log `herstelcode_login`), bij `disable_2fa` en bij
+  `vervang_herstelcodes`. Een nieuwe telefoon is dus: inloggen met een code, uitschakelen met de volgende,
+  opnieuw koppelen.
+- **De 2FA-plicht is afgeleide toestand** (`users.moet_2fa_koppelen`): `role == "beheerder"` zonder
+  `totp_enabled`, en `/v1/auth/me` meldt hem als `tfa_nodig`. Er is geen controle per ingang, dus `/setup`,
+  promotie, een nieuw account en een goedgekeurde aanvraag vallen vanzelf onder dezelfde regel. Afdwingen doet
+  de BFF (`proxy()`, zie `frontend/CLAUDE.md`), omdat `/v1/admin` geen gebruiker kent. Zo'n account logt
+  gewoon in en werkt als analist, want koppelen vraagt een sessie. Zonder `LLM_CONFIG_SECRET` kan niemand
+  koppelen, dus blijft het beheer dicht (fail-closed); de api logt dat bij het starten.
+- **Reset door een beheerder** (`POST /v1/admin/users/{id}/2fa/reset`, `users.reset_2fa`): achter
+  `require_admin` én `huidige_beheerder`, dus een kaal admin-token komt er niet door en de `door` in het
+  security-log (`2fa_reset`) is een persoon. De uitvoerder heeft zelf 2FA en reset zichzelf niet. Secret en
+  herstelcodes gaan weg, `sessions_valid_from` wordt nu. De laatste beheerder heeft geen collega: daar dragen
+  de herstelcodes het, zie `deploy/azure/README.md` §*2FA voor beheerders*.
 - **Zelfregistratie** (`registraties.py`): een aanvraag is **geen account** – tot de goedkeuring
   bestaat er geen rij in `users`. De userid wordt afgeleid uit de naam (vier letters achternaam +
   eerste letter voornaam + volgnummer) en is bij goedkeuren corrigeerbaar; de bcrypt-hash gaat
