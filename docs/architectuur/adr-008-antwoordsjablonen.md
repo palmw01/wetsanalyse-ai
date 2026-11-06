@@ -1,6 +1,6 @@
 # ADR-008: Antwoordsjablonen, het antwoord als toolaanroep
 
-**Status:** aangenomen, 6 nov 2026. Geldt nu voor de sjablonen `begrip` en `bepaling`; de andere volgen.
+**Status:** aangenomen, 6 nov 2026. Geldt voor de sjablonen `begrip` (ook de begrippen-leesroute: zonder term een lijst uit `search_begrippen`, zonder uitspraak over de wet), `bepaling`, `duiding` en `annotaties`. De overzichtsroute krijgt er bewust geen.
 
 ## Context
 
@@ -19,6 +19,7 @@ agent ⇄ tools → sjabloontool → sjabloon → verify → (correct) → final
 - **`tekst` blijft.** `antwoord_tekst` maakt vaste Markdown uit de blokken: die voedt de controle, de historie, *Kopieer* en de eval. Een vorm die de blokken niet kent, gebruikt de tekst.
 - **Niet te vullen is een fout aan het model** (`Onvulbaar`, `is_error`), nooit een halve vulling.
 - **Een bepaling is compleet of ze wordt niet getoond.** `get_artikel` levert de onderdelen onder een lid niet mee, dus markeert die leden; het sjabloon weigert tot `get_lid` ze heeft opgehaald.
+- **Een passage hoort bij de aangewezen bepaling.** `duiding` toetst elk fragment tegen de tekst van die bepaling, en een bepaling die de uitleg noemt zonder passage gaat terug naar het model; de uitleg zelf gaat als tekst door `verify`.
 - **Niets gevonden is een `leemte`:** "in de graaf bij deze term", nooit "bestaat niet".
 - **Vrije tekst blijft geldig.** `tool_choice` blijft `auto`, dus het model kán tekst schrijven; `sjabloon gemist` in de log telt hoe vaak.
 
@@ -32,3 +33,5 @@ agent ⇄ tools → sjabloontool → sjabloon → verify → (correct) → final
 ## Gevolgen
 
 Sjabloontools staan los van `TOOLS`: ze staan niet op de MCP-server. Decompositie (op Azure uit) blijft vrije tekst. Een nieuw sjabloon: een module in `agent/sjablonen/`, een regel in `SJABLONEN`, de naam in `Specialist.sjablonen`, en voor een nieuw blok een component in `BLOKKEN`.
+
+De overzichtsroute krijgt geen sjabloon: daar typt geen model feiten over, en de controle, bronnen, graaf en kopieerknop lezen `Bericht.overzicht`, dus een `Antwoord` zou die gegevens alleen dubbel dragen.
