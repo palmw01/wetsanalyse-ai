@@ -111,6 +111,18 @@ waarde niet als segmentgrens leest.
   Blijkt een dip legitiem — een regeling die nu eenmaal lager meet — verlaag dan `minDekking` in
   `deploy/azure/main.bicep`; 0 zet de dipregel uit. Dat is een bewuste, zichtbare keuze in plaats
   van een stille. De lege toestand en de WTI-regel blijven dan gelden.
+- **Een bijlage is een volwaardig deel, met een eigen identiteit.** Hoofdstukken in een bijlage staan
+  in de bron als `<divisie>` met een koplabel (Bijlage 2 van de Awb) en worden gewone structuurdelen.
+  Een artikelnummer is alleen binnen de wettekst uniek: Bijlage 2 en 3 van de Awb hebben allebei een
+  artikel 1. Daarom krijgt alles in een bijlage de wet-lokale vorm die de bijlage zelf al heeft
+  (`urn:bwb:BWBR0005537:id:BWBR0005537%2FBijlage2%2FDivisie1%2FArtikel1`), met `bwb:vindplaats`
+  "Bijlage 2, artikel 1". `bwb:jci` houdt de echte jci; een sleutel uit die jci zou de bijlage weglaten.
+  Een jci die in een bijlage wijst, wijst daarom nooit naar een node in de wet zelf, en "artikel 16"
+  zonder wetsnaam in een bijlage is geen verwijzing naar de eigen wet.
+- **Onbekende structuur is een signaal, geen stilte en geen crash.** Wat de parser in een container niet
+  kent, komt in `Wet.overgeslagen` en weegt in de importpoort als een dip. Een ParseError zou op een
+  lege graaf de hele wet weghouden; stil overslaan is hoe Bijlage 2 verdween, en de drempel heeft
+  genoeg speling om een heel artikel te verbergen.
 - **Tekst ná een opsomming is een eigen node.** De bron zet een `<al>` achter een `<lijst>` in
   hetzelfde element (art. 6 lid 2 c Uitvoeringsregeling Awir, art. 24 lid 1 IW 1990, en bij de
   Leidraad vaak). Zo'n reeks alinea's wordt een ongenummerde `bwb:Onderdeel` met

@@ -164,6 +164,8 @@ class Bijlage:
     wijzigingsbronnen: list[str] = field(default_factory=list)
     verwijzingen: list[Verwijzing] = field(default_factory=list)
     artikelen: list[Artikel] = field(default_factory=list)
+    # Hoofdstukken e.d. in de bijlage; in de bron meestal `<divisie>` met een koplabel.
+    structuurdelen: list[Structuurdeel] = field(default_factory=list)
     onderdelen: list[Onderdeel] = field(default_factory=list)
     voetnoten: list[str] = field(default_factory=list)
     illustraties: list[Illustratie] = field(default_factory=list)
@@ -233,6 +235,9 @@ class Wet:
     bijlagen: list[Bijlage] = field(default_factory=list)
     # Ondertekenaars van de regeling (Fase 1b).
     ondertekenaars: list[Ondertekenaar] = field(default_factory=list)
+    # Structuur in de bron die de parser niet kent ("wettekst/deel"). De importpoort weegt dit als
+    # een dip: de dekking alleen is te grof om een los artikel te zien.
+    overgeslagen: list[str] = field(default_factory=list)
 
 
 @dataclass(slots=True)

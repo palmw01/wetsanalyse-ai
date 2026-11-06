@@ -192,8 +192,8 @@ def _instellingen(*, wti: bool = False, drempel: float = 0.995) -> SimpleNamespa
 
 def _item(bwb_id: str = "BWBR0005537", *, wti=None, xsd=None) -> SimpleNamespace:
     return SimpleNamespace(
-        wet=SimpleNamespace(bwb_id=bwb_id), wti=wti, batch=None, summary=None, xml_path=None,
-        xsd_geldig=xsd,
+        wet=SimpleNamespace(bwb_id=bwb_id, overgeslagen=[]), wti=wti, batch=None, summary=None,
+        xml_path=None, xsd_geldig=xsd,
     )
 
 
