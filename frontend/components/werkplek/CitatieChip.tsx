@@ -18,12 +18,13 @@ const BREEDTE = 320;
  *
  *  Een knop en geen `Popover`: die is een `div`, en een vermelding staat midden in een alinea. De
  *  kaart hangt daarom via een portal aan de body, geplaatst zoals de selectiepopover. */
-export function CitatieChip({ bron, children, onOpenSamenhang }: {
-  bron: Bron; children: ReactNode; onOpenSamenhang?: (doel: NodeDoel) => void;
+export function CitatieChip({ bron, doelIri, children, onOpenSamenhang }: {
+  /** De bepaling onder de bron die de vermelding aanwijst (`koppelVermelding`); anders de bron zelf. */
+  bron: Bron; doelIri?: string; children: ReactNode; onOpenSamenhang?: (doel: NodeDoel) => void;
 }) {
   const [rect, setRect] = useState<DOMRect | null>(null);
   const knop = useRef<HTMLButtonElement>(null);
-  const doel = bronDoel(bron.uri);
+  const doel = (doelIri && bronDoel(doelIri)) || bronDoel(bron.uri);
   return <>
     <button ref={knop} type="button" aria-haspopup="dialog" aria-expanded={!!rect}
       onClick={(e) => setRect(rect ? null : e.currentTarget.getBoundingClientRect())}

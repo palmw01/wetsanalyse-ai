@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bronLabel, koppelBron, markeerCitaties, vindVermeldingen } from "./citaties";
+import { bronLabel, koppelBron, koppelVermelding, markeerCitaties, vindVermeldingen } from "./citaties";
 import { parseBronnen } from "./agentEvents";
 import type { HastKnoop } from "./markering";
 import type { Bron } from "./types";
@@ -114,5 +114,67 @@ describe("de bron uit de live stroom", () => {
     expect(bron).toEqual({ label: "Artikel 9", uri: `${B}:artikel:9`, bron_iri: `${B}:artikel:9`, bwb_id: "BWBR0004770",
       soort: "artikel", regeling: "Invorderingswet 1990", afkortingen: ["IW", "Iw 1990"] });
     expect(koppelBron(vindVermeldingen("artikel 9 Iw")[0], [bron])).toBe(0);
+  });
+});
+
+describe("een onderdeel", () => {
+  const plek = (tekst: string) => vindVermeldingen(tekst).map(({ artikel, lid, onderdeel }) => ({ artikel, lid, onderdeel }));
+  const iri = (tekst: string, bronnen: Bron[]) => koppelVermelding(vindVermeldingen(tekst)[0], bronnen)?.doel.bron_iri;
+
+  it("herkent de vormen waarin Lex het schrijft", () => {
+    expect(plek("artikel 2, eerste lid, onderdeel m")).toEqual([{ artikel: "2", lid: "1", onderdeel: "m" }]);
+    expect(plek("artikel 2 lid 1 onderdeel aa")).toEqual([{ artikel: "2", lid: "1", onderdeel: "aa" }]);
+    expect(plek("art. 2, lid 1, aanhef en onderdeel c")).toEqual([{ artikel: "2", lid: "1", onderdeel: "c" }]);
+    expect(plek("artikel 9.2, onderdeel d")).toEqual([{ artikel: "9.2", lid: undefined, onderdeel: "d" }]);
+    expect(plek("artikel 5 onderdeel 2°")).toEqual([{ artikel: "5", lid: undefined, onderdeel: "2" }]);
+  });
+  it("neemt het onderdeel mee in de vermelding, en de wet daarachter", () => {
+    const tekst = "Zie artikel 2, eerste lid, onderdeel m van de Invorderingswet 1990.";
+    const [v] = vindVermeldingen(tekst);
+    expect(tekst.slice(v.start, v.eind)).toBe("artikel 2, eerste lid, onderdeel m");
+    expect(v.regeling?.[0]).toBe("invorderingswet");
+  });
+  it("ziet in gewone woorden geen onderdeel", () => {
+    expect(plek("artikel 9 onderdeel is van de wet")).toEqual([{ artikel: "9", lid: undefined, onderdeel: undefined }]);
+    expect(plek("artikel 9 onderdeel vormt")).toEqual([{ artikel: "9", lid: undefined, onderdeel: undefined }]);
+  });
+  it("koppelt het genoemde onderdeel, niet een ander onder hetzelfde lid", () => {
+    const bronnen = [bron("artikel:2:lid:1:o:a"), bron("artikel:2:lid:1:o:m")];
+    expect(iri("artikel 2, eerste lid, onderdeel m", bronnen)).toBe(`${B}:artikel:2:lid:1:o:m`);
+    expect(iri("artikel 2, eerste lid, onderdeel b", bronnen)).toBeUndefined();
+    expect(iri("artikel 2, eerste lid, onderdeel b", [bron("artikel:2:lid:1:o:a")])).toBeUndefined();
+  });
+});
+
+describe("koppelVermelding", () => {
+  const koppel = (tekst: string, bronnen: Bron[]) => koppelVermelding(vindVermeldingen(tekst)[0], bronnen);
+
+  it("geeft de bron die precies de vermelding is, ook als er een kind bij staat", () => {
+    expect(koppel("artikel 9, eerste lid", [bron("artikel:9:lid:1:o:a"), bron("artikel:9:lid:1")])?.index).toBe(1);
+  });
+  it("wijst onder de bron aan wat de vermelding noemt", () => {
+    const k = koppel("artikel 9, tweede lid", [bron("artikel:9")]);
+    expect(k).toMatchObject({ index: 0, doel: { bron_iri: `${B}:artikel:9:lid:2`, lid: "2", label: "Artikel 9, lid 2" } });
+  });
+  it("houdt een dubbele punt in het artikelnummer vast", () => {
+    expect(koppel("artikel 4:94a, eerste lid", [bron("artikel:4%3A94a")])?.doel.bron_iri).toBe(`${B}:artikel:4%3A94a:lid:1`);
+  });
+  it("leest de jci-vorm van een bron", () => {
+    expect(koppel("artikel 9, eerste lid", [{ label: "x", uri: "jci1.3:c:BWBR0004770&artikel=9&z=2026-01-01&g=2026-01-01" }])?.doel.bron_iri)
+      .toBe(`${B}:artikel:9:lid:1`);
+  });
+  it("past niet op een ander lid", () => {
+    expect(koppel("artikel 9, eerste lid", [bron("artikel:9:lid:2")])).toBeUndefined();
+  });
+  it("kiest bij een hele vermelding niet tussen twee leden", () => {
+    expect(koppel("artikel 9", [bron("artikel:9:lid:1"), bron("artikel:9:lid:2")])).toBeUndefined();
+  });
+  it("laat de chip naar de diepere bepaling wijzen en de tekst staan", () => {
+    const boom: HastKnoop = { type: "root", children: [{ type: "element", tagName: "p", children: [
+      { type: "text", value: "Zie artikel 2, eerste lid, onderdeel m." }] }] };
+    markeerCitaties([bron("artikel:2")])()(boom);
+    const cite = boom.children![0].children![1];
+    expect(cite.properties).toEqual({ dataBron: "0", dataDoel: `${B}:artikel:2:lid:1:o:m` });
+    expect(cite.children![0].value).toBe("artikel 2, eerste lid, onderdeel m");
   });
 });

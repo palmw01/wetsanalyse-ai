@@ -30,3 +30,12 @@ describe("Markdown laat lijstnummers staan", () => {
     expect(waarden(html("- 3 dagen\n- los"))).toEqual([]);
   });
 });
+
+describe("Markdown wijst een citatie zo diep aan als de tekst", () => {
+  it("de chip noemt het onderdeel, ook als de bron het artikel is", () => {
+    const uri = "urn:bwb:BWBR0004770:artikel:2";
+    const uit = renderToStaticMarkup(createElement(Markdown, { tekst: "Zie artikel 2, eerste lid, onderdeel m.", bronnen: [{ label: "Artikel 2", uri }] }));
+    expect(uit).toContain('title="Bron: Artikel 2, lid 1, onderdeel m"');
+    expect(uit.replace(/<[^>]+>/g, "")).toContain("Zie artikel 2, eerste lid, onderdeel m.");
+  });
+});

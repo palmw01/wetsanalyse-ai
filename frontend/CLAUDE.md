@@ -407,7 +407,8 @@ graaf (zie §*De samenhangsgraaf*). Rekenkern in `lib/overzicht.ts`.
 
 Een vindplaats die Lex in gewone taal noemt ("artikel 9 lid 2", "art. 10a, derde lid") en die
 **éénduidig** bij een bron van de beurt hoort, wordt een citatie-chip (`lib/citaties.ts`:
-`vindVermeldingen` + `koppelBron`, via `bronDoel`). De rehype-plugin `markeerCitaties` wikkelt de
+`vindVermeldingen` + `koppelVermelding`, via `bronDoel`; "onderdeel m" hoort bij de vermelding, en een
+artikelbron bij "artikel 9, eerste lid" opent dat lid via `data-doel`). De rehype-plugin `markeerCitaties` wikkelt de
 vermelding in een `cite` – de tekst zelf verandert niet, net als bij `markeerPassages`. Een klik
 opent `CitatieChip` → een bronkaart via een portal (een `Popover` is een `div` en mag niet in een
 alinea), met de wettekst (lui via `haalSamenhang`), een link naar wetten.overheid.nl en *Bekijk
@@ -1437,6 +1438,10 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
 
 **Data en gedrag**:
 
+- **`antwoordDoelen` in `lib/bronnen.ts` staat klaar voor de ketting** (nog niet aangesloten, met
+  `antwoordKnopTekst`): per bepaling een doel met `herkomst`, een ouder valt weg als een kind genoemd is.
+  De tekst selecteert alleen uit de bronnen. Hij is pas bruikbaar op de ketenroute: op `/samenhang` laadt
+  elk doel het hele artikel, dus twee leden van één artikel zouden dat artikel dubbel laden.
 - **De knop opent wat het antwoord noemt** (`samenhangDoelen` in `lib/bronnen.ts`, max.
   `MAX_SAMENHANG_DOELEN`) of de delen van een overzicht (`overzichtDoelen` in `lib/overzicht.ts`, max.
   `MAX_OVERZICHT_DOELEN`, uit het overzicht en niet uit de tekst: dezelfde vraag geeft dezelfde kaart).

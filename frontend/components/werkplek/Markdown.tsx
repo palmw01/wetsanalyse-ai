@@ -94,9 +94,10 @@ export const Markdown = memo(function Markdown({
           ),
           // Alleen gezet door `markeerCitaties`: een vindplaats die bij een bron van de beurt hoort.
           cite: ({ children, ...props }) => {
-            const index = Number((props as Record<string, unknown>)["data-bron"]);
-            const bron = bronnen?.[index];
-            return bron ? <CitatieChip bron={bron} onOpenSamenhang={onOpenSamenhang}>{children}</CitatieChip> : <>{children}</>;
+            const data = props as Record<string, unknown>;
+            const bron = bronnen?.[Number(data["data-bron"])];
+            const doelIri = typeof data["data-doel"] === "string" ? data["data-doel"] : undefined;
+            return bron ? <CitatieChip bron={bron} doelIri={doelIri} onOpenSamenhang={onOpenSamenhang}>{children}</CitatieChip> : <>{children}</>;
           },
           code: ({ children }) => <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">{children}</code>,
           pre: ({ children }) => (
