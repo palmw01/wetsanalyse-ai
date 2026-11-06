@@ -404,6 +404,19 @@ async def samenhang(werkgebied_id: str) -> dict:
                              "beoordeling": k["beoordeling"], "actualiteit": k["actualiteit"]} for k in koppelingen]}
 
 
+async def generiek_bij_elementen(element_ids: set[str]) -> list[dict]:
+    """Geaccordeerde generieke begrippen met een niet-afgewezen koppeling op deze elementen, voor een los gesprek."""
+    k, b = db.begrip_koppelingen, db.begrippen
+    async with db.get_engine().connect() as conn:
+        rows = (await conn.execute(select(b.c.id, b.c.status, b.c.inhoud, k.c.element_id, k.c.rol)
+                                   .join_from(k, b, k.c.begrip_id == b.c.id)
+                                   .where(k.c.element_id.in_(element_ids), k.c.verwijderd.is_(None),
+                                          k.c.beoordeling != "afgewezen", b.c.werkgebied_id.is_(None),
+                                          b.c.verwijderd.is_(None), b.c.status == "geaccordeerd"))).all()
+    return [{"id": r.id, "status": r.status, "naam": r.inhoud.get("naam", ""), "definitie": r.inhoud.get("definitie", ""),
+             "element_id": r.element_id, "rol": r.rol} for r in rows]
+
+
 async def primaire_duidingen(werkgebied_id: str) -> dict[str, dict]:
     """Per element het begrip dat het primair aanduidt – voor de inventaris in de werkplek."""
     k, b = db.begrip_koppelingen, db.begrippen

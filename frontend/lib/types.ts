@@ -496,6 +496,8 @@ export interface Bron {
   bwb_id?: string;
   soort?: string;
   regeling?: string | null;
+  /** De afkortingen van die regeling uit de graaf ("Awb"); oudere berichten hebben ze niet. */
+  afkortingen?: string[] | null;
 }
 
 /** De uitkomst van de brongetrouwheidstoets op één antwoord (graph-qa `grounding`-event).
