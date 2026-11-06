@@ -346,3 +346,33 @@ describe("sessie uit een accounttoken", () => {
     expect(res).toBe(true);
   });
 });
+
+describe("een pagina zonder sessie", () => {
+  it("gaat naar /login, met de bestemming erbij", () => {
+    for (const pad of ["/workbench?gesprek=g1", "/instellingen/beheer", "/werkgebieden", "/annotaties", "/begrippen"]) {
+      const res = authorized({ auth: null, request: fakeRequest("GET", `https://app.example${pad}`) }) as Response;
+      expect(res).toBeInstanceOf(Response);
+      const naar = new URL(res.headers.get("location") ?? "");
+      expect(naar.pathname).toBe("/login");
+      expect(naar.searchParams.get("callbackUrl")).toBe(pad);
+    }
+  });
+
+  it("de startpagina krijgt geen bestemming mee", () => {
+    const res = authorized({ auth: null, request: fakeRequest("GET", "https://app.example/") }) as Response;
+    expect(res.headers.get("location")).toBe("https://app.example/login");
+  });
+
+  it("laat de openbare paden door", () => {
+    for (const pad of ["/login", "/login/2fa", "/setup", "/registreren", "/disclaimer"]) {
+      expect(authorized({ auth: null, request: fakeRequest("GET", `https://app.example${pad}`) })).toBe(true);
+    }
+  });
+
+  it("de callback geeft nooit `false`: met de handler in `proxy.ts` negeert next-auth dat", async () => {
+    const { readFileSync } = await import("node:fs");
+    const bron = readFileSync(new URL("./auth.config.ts", import.meta.url), "utf8").split("\n").filter((r) => !r.trim().startsWith("//")).join("\n");
+    expect(bron).not.toMatch(/return\s+false\b/);
+    expect(readFileSync(new URL("./proxy.ts", import.meta.url), "utf8")).toMatch(/export default auth\(\(request\)/);
+  });
+});

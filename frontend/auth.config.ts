@@ -124,7 +124,12 @@ export const authConfig = {
         if (path.startsWith("/api/")) {
           return Response.json({ detail: "Niet ingelogd." }, { status: 401 });
         }
-        return false; // → redirect naar de signIn-pagina (/login)
+        // Zelf omleiden, geen `return false`: `proxy.ts` geeft `auth()` een eigen handler mee, en dan negeert
+        // next-auth een `false` en rendert hij de pagina gewoon. Alleen een Response telt.
+        const login = new URL("/login", nextUrl);
+        const terug = path + nextUrl.search;
+        if (terug !== "/") login.searchParams.set("callbackUrl", terug);
+        return Response.redirect(login);
       }
       if ((user as { viaToken?: string }).viaToken && buitenTokenSessie(path)) {
         return Response.json({ detail: "Niet met een accounttoken." }, { status: 403 });
