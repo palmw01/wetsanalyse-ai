@@ -13,7 +13,17 @@ import uuid
 from collections.abc import AsyncIterator, Callable
 from typing import Any
 
-from . import BEWAAR_NA_AFLOOP_S, MAX_EVENTS, VLUCHTIGE_TYPES, Run, RunBestaatAl
+from . import (
+    BEWAAR_NA_AFLOOP_S,
+    MAX_EVENTS,
+    VLUCHTIGE_TYPES,
+    BijAfbraak,
+    Run,
+    RunBestaatAl,
+    afgebroken_events,
+    meld_afbraak,
+    sluit_af,
+)
 
 logger = logging.getLogger("graph_qa.runs")
 
@@ -21,8 +31,10 @@ logger = logging.getLogger("graph_qa.runs")
 class GeheugenStore:
     """Houdt de lopende en recent afgeronde runs bij, één per gesprek. In dit proces."""
 
-    def __init__(self, *, max_events: int = MAX_EVENTS, bewaar_s: float = BEWAAR_NA_AFLOOP_S) -> None:
+    def __init__(self, *, max_events: int = MAX_EVENTS, bewaar_s: float = BEWAAR_NA_AFLOOP_S,
+                 bij_afbraak: BijAfbraak | None = None) -> None:
         self._runs: dict[str, Run] = {}
+        self._bij_afbraak = bij_afbraak
         self._max_events = max_events
         self._bewaar_s = bewaar_s
 
@@ -89,9 +101,9 @@ class GeheugenStore:
 
     async def _draai(self, run: Run, maak_stroom: Callable[[Run], AsyncIterator[dict[str, Any]]]) -> None:
         try:
-            async for event in maak_stroom(run):
+            async for event in sluit_af(maak_stroom(run), run, self._bij_afbraak):
                 await self._voeg_toe(run, event)
-            nieuwe_status = "gestopt" if run.stop_gevraagd else "klaar"
+            nieuwe_status = run.uitkomst
         except asyncio.CancelledError:
             await self._rond_af(run, "gestopt")
             raise
@@ -99,10 +111,10 @@ class GeheugenStore:
             # De stroom zelf saniteert zijn fouten al naar een `error`-event; komt er tóch een
             # exception doorheen, dan is dat een defect in de driver en hoort het in het log.
             logger.exception("run mislukt", extra={"categorie": "technisch", "run_id": run.run_id})
-            await self._voeg_toe(run, {
-                "type": "error",
-                "message": "Er ging iets mis bij het beantwoorden. Probeer het opnieuw.",
-            })
+            melding = "Er ging iets mis bij het beantwoorden. Probeer het opnieuw."
+            await self._voeg_toe(run, {"type": "error", "message": melding})
+            await self._voeg_toe(run, {"type": "done", "uitkomst": "mislukt"})
+            await meld_afbraak(self._bij_afbraak, run, melding)
             nieuwe_status = "mislukt"
         await self._rond_af(run, nieuwe_status)
 
@@ -173,6 +185,7 @@ class GeheugenStore:
           blijft hangen op een run die klaar is, met een SSE-stream die nooit sluit.
         """
         cursor = vanaf
+        gezien = False
         while True:
             for event in [e for e in run.events if e.get("seq", 0) >= cursor]:
                 seq = int(event.get("seq", cursor))
@@ -181,14 +194,21 @@ class GeheugenStore:
                     # leveren; dit dekt zowel te laat aanhaken als tussentijds snoeien.
                     yield {"type": "gat", "weggevallen": seq - cursor}
                 yield event
+                gezien = gezien or event.get("type") == "done"
                 cursor = seq + 1
             async with run._wakker:
-                if cursor >= run.geproduceerd and not run.loopt:
-                    return
+                afgelopen = cursor >= run.geproduceerd and not run.loopt
+                if afgelopen:
+                    break
                 if cursor >= run.geproduceerd:
                     await run._wakker.wait_for(
                         lambda: cursor < run.geproduceerd or not run.loopt
                     )
+        if not gezien:
+            # Ook wie aanhaakt ná de `done` (`vanaf`) krijgt hem: alleen `done` sluit een beurt voor de client.
+            einde = next((e for e in run.events if e.get("type") == "done"), None)
+            for event in [einde] if einde else afgebroken_events():
+                yield event
 
     # -- opruimen ------------------------------------------------------------------------------
 

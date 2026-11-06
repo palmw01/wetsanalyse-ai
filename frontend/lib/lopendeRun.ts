@@ -31,7 +31,8 @@ export function vergeetRun(huidig: LopendeRuns, gesprekId: string): LopendeRuns 
  *  - `"afgerond"` – de beurt is netjes vastgelegd; het bericht staat in de geschiedenis. Alleen het
  *    spoor opruimen, geen mededeling: de gebruiker ziet het antwoord gewoon staan.
  *  - `"verdwenen"` – er is geen run meer én geen bericht. Dan is het register weg (herstart) en
- *    hoort dat gezegd te worden, in plaats van een beurt die stilzwijgend nooit afkwam.
+ *    hoort dat gezegd te worden, in plaats van een beurt die stilzwijgend nooit afkwam. Sinds graph-qa
+ *    ook een afgebroken run vastlegt is dit het vangnet voor als dat schrijven zelf niet lukte.
  *
  *  De controle op het bericht is wat dit betrouwbaar maakt: een run die afliep terwijl niemand keek
  *  is óók uit het register verdwenen (na de bewaartermijn), maar heeft wél een bericht achtergelaten.

@@ -34,7 +34,17 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 from psycopg_pool import AsyncConnectionPool
 
-from . import MAX_EVENTS, VLUCHTIGE_TYPES, Run, RunBestaatAl
+from . import (
+    AFGEBROKEN,
+    MAX_EVENTS,
+    VLUCHTIGE_TYPES,
+    BijAfbraak,
+    Run,
+    RunBestaatAl,
+    afgebroken_events,
+    meld_afbraak,
+    sluit_af,
+)
 
 logger = logging.getLogger("graph_qa.runs")
 
@@ -104,8 +114,12 @@ def _naar_run(rij: dict[str, Any]) -> Run:
 class PostgresStore:
     """Runs in PostgreSQL, zodat elke replica ze ziet."""
 
-    def __init__(self, conninfo: str, *, max_events: int = MAX_EVENTS) -> None:
+    def __init__(self, conninfo: str, *, max_events: int = MAX_EVENTS,
+                 bij_afbraak: BijAfbraak | None = None) -> None:
         self._conninfo = conninfo
+        self._bij_afbraak = bij_afbraak
+        # De runs die dit proces draait: bij het afsluiten krijgt wat dan nog loopt een bericht.
+        self._lopend: dict[str, Run] = {}
         self._max_events = max_events
         self._pool: AsyncConnectionPool | None = None
         # Alleen de runs die in dít proces draaien. De store is gedeeld, de taak is dat niet.
@@ -128,6 +142,7 @@ class PostgresStore:
     async def sluit(self) -> None:
         run_ids = list(self._taken)
         taken = list(self._taken.values())
+        afgebroken = list(self._lopend.values())
         for taak in taken:
             taak.cancel()
         # Annulering schrijft nog de eindstatus en stopt de heartbeat. Houd de pool
@@ -141,6 +156,8 @@ class PostgresStore:
                     "UPDATE agent_runs SET status = 'gestopt', afgerond = now() "
                     "WHERE run_id = ANY(%s) AND status = 'loopt'", (run_ids,))
             self._taken.clear()
+            # Niemand anders kan dit nog: de status staat al op `gestopt`, dus geen replica verklaart ze verweesd.
+            await asyncio.gather(*(meld_afbraak(self._bij_afbraak, run, AFGEBROKEN) for run in afgebroken))
         if self._pool is not None:
             await self._pool.close()
             self._pool = None
@@ -186,6 +203,8 @@ class PostgresStore:
             extra={"categorie": "technisch", "run_id": run.run_id, "grens_s": VERWEESD_NA_S},
         )
         run.status = "mislukt"
+        # De `RETURNING` hierboven kiest precies één winnaar, dus er is één schrijver, ook met meer lezers.
+        await meld_afbraak(self._bij_afbraak, run, AFGEBROKEN)
         return run
 
     async def get(self, run_id: str, *, user_id: str | None = None) -> Run | None:
@@ -236,6 +255,7 @@ class PostgresStore:
             bestaand = await self.actief_voor(conversation_id)
             raise RunBestaatAl(bestaand.run_id if bestaand else "") from botsing
 
+        self._lopend[run.run_id] = run
         run.taak = asyncio.create_task(self._draai(run, maak_stroom))
         self._taken[run.run_id] = run.taak
         return run
@@ -243,18 +263,20 @@ class PostgresStore:
     async def _draai(self, run: Run, maak_stroom: Callable[[Run], AsyncIterator[dict[str, Any]]]) -> None:
         hart = asyncio.create_task(self._pols(run))
         try:
-            async for event in maak_stroom(run):
+            async for event in sluit_af(maak_stroom(run), run, self._bij_afbraak):
                 await self._voeg_toe(run, event)
-            status = "gestopt" if await self.stop_gevraagd(run) else "klaar"
+            status = run.uitkomst
+            self._lopend.pop(run.run_id, None)
         except asyncio.CancelledError:
             await self._rond_af(run, "gestopt")
             raise
         except Exception:
             logger.exception("run mislukt", extra={"categorie": "technisch", "run_id": run.run_id})
-            await self._voeg_toe(run, {
-                "type": "error",
-                "message": "Er ging iets mis bij het beantwoorden. Probeer het opnieuw.",
-            })
+            melding = "Er ging iets mis bij het beantwoorden. Probeer het opnieuw."
+            await self._voeg_toe(run, {"type": "error", "message": melding})
+            await self._voeg_toe(run, {"type": "done", "uitkomst": "mislukt"})
+            await meld_afbraak(self._bij_afbraak, run, melding)
+            self._lopend.pop(run.run_id, None)
             status = "mislukt"
         finally:
             hart.cancel()
@@ -395,6 +417,7 @@ class PostgresStore:
         waar die ook staat, dus "de eerste N zijn weg" is een verkeerde aanname.
         """
         cursor = vanaf
+        gezien = False
         while True:
             async with self.pool.connection() as conn:
                 cur = await conn.execute(
@@ -408,6 +431,7 @@ class PostgresStore:
                 if seq > cursor:
                     yield {"type": "gat", "weggevallen": seq - cursor}
                 yield rij["payload"]
+                gezien = gezien or rij["payload"].get("type") == "done"
                 cursor = seq + 1
 
             vers = await self.get(run.run_id)
@@ -415,6 +439,18 @@ class PostgresStore:
                 return
             run.status, run.geproduceerd = vers.status, vers.geproduceerd
             if cursor >= vers.geproduceerd and not vers.loopt:
-                return
+                break
             if cursor >= vers.geproduceerd:
                 await asyncio.sleep(POLL_S)
+        if not gezien:
+            # Ook wie aanhaakt ná de `done` (`vanaf`) krijgt hem: alleen `done` sluit een beurt voor de client.
+            einde = await self._einde(run)
+            for event in [einde] if einde else afgebroken_events():
+                yield event
+
+    async def _einde(self, run: Run) -> dict[str, Any] | None:
+        async with self.pool.connection() as conn:
+            cur = await conn.execute(
+                "SELECT payload FROM agent_run_events WHERE run_id = %s AND type = 'done' LIMIT 1", (run.run_id,))
+            rij = await cur.fetchone()
+        return rij["payload"] if rij else None

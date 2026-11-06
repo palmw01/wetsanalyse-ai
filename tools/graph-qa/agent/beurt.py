@@ -130,6 +130,8 @@ class BeurtSchrijver:
         # Wat een agent-taak opleverde (F3c, `nodes/agent_taak.py`): het paneel en de knop.
         self.artefact: dict[str, Any] = {}
         self.bevestiging: dict[str, Any] = {}
+        # De fout waarop de beurt strandde: de melding komt letterlijk op het bericht (live = na herladen).
+        self.fout = ""
 
     def verwerk(self, event: dict[str, Any]) -> None:
         """Eén event bijhouden. Dezelfde toewijzing als de handlers in de werkplek."""
@@ -168,6 +170,8 @@ class BeurtSchrijver:
             self.bevestiging = event.get("bevestiging") or {}
         elif soort == "tool_execution":
             self._voeg_tool_toe({k: v for k, v in event.items() if k != "type"})
+        elif soort == "error":
+            self.fout = str(event.get("message") or "") or self.fout or "Er ging iets mis."
 
     def _voeg_tool_toe(self, event: dict[str, Any]) -> None:
         """Eén regel per aanroep: het eind-event werkt het start-event bij.
@@ -192,7 +196,7 @@ class BeurtSchrijver:
     def _voeg_element_toe(self, element: dict[str, Any]) -> None:
         """Ontdubbeld verzamelen: komt hetzelfde element opnieuw binnen, dan wint de laatste versie.
 
-        Dezelfde regel als `mergeVoorstellen` in de werkplek en als de merge in de api: eerst op
+        Dezelfde regel als de merge in de api: eerst op
         `id`, anders op de canonieke inhoudssleutel (`sleutel_van` – genormaliseerde tekst + lid).
         Niet op rúwe tekst in één tuple mét het id: dan levert een witruimteverschil een tweede
         kaart op en matcht een herziening zonder id nooit.
@@ -335,6 +339,44 @@ async def _boek_verbruik(
         )
 
 
+async def leg_afbraak_vast(settings: Settings, run, melding: str) -> None:
+    """Een run die `voer_beurt_uit` niet afrondde: de replica verdween, het proces sloot af, of de route ging er niet
+    langs. Zonder dit bericht zou de vraag na herladen onbeantwoord blijven. Idempotent op `run_id`."""
+    if not (settings.legt_zelf_vast and run.conversation_id and run.user_id):
+        return
+    api = WetsanalyseApi(settings, run.user_id)
+    try:
+        await api.voeg_bericht_toe(run.conversation_id, {
+            "rol": "assistant", "run_id": run.run_id, "tekst": "",
+            "uitkomst": {"status": "mislukt", "melding": melding[:2000]}})
+    except GesprekVerdwenen:
+        pass  # Het gesprek is weg: dan valt er niets vast te leggen, en dat is geen fout.
+    finally:
+        await api.aclose()
+
+
+async def _leg_fout_vast(
+    api: WetsanalyseApi,
+    gesprek_id: str,
+    bericht: dict[str, Any],
+    schrijver: BeurtSchrijver,
+    melding: str,
+    *,
+    kaart: dict[str, Any] | None = None,
+) -> None:
+    """De fout die de jurist net zag, ook op het bericht. Best-effort: de `error` is al weg, en een storing hier mag de
+    afloop niet veranderen. Een kaart gaat mee, anders is opnieuw klikken na herladen niet meer mogelijk."""
+    try:
+        await api.voeg_bericht_toe(gesprek_id, {
+            **bericht, "tekst": "", "denk": schrijver.denk,
+            "uitkomst": {"status": "mislukt", "melding": melding[:2000]},
+            **({"vraagkaart": kaart} if kaart else {})})
+    except GesprekVerdwenen:
+        pass
+    except Exception:  # noqa: BLE001 – zie de docstring
+        logger.warning("foutbericht niet vastgelegd", exc_info=True, extra={"categorie": "technisch"})
+
+
 async def _leg_vast(
     schrijver: BeurtSchrijver,
     *,
@@ -354,6 +396,7 @@ async def _leg_vast(
                                  **({"reeks": reeks} if reeks else {})}
         annotatie_bewaard = False
         opgeslagen_doel = None
+        bericht_poging = False
 
         if schrijver.is_annotatie:
             # Eén batch naar de laag van de bronnode. Vanaf hier kan een deel geslaagd zijn – de laag
@@ -365,7 +408,7 @@ async def _leg_vast(
                 "doel": {"bron_iri": doel["bron_iri"]}, "snapshot_id": doel["snapshot_id"],
                 "verwachte_revisies": doel.get("verwachte_revisies") or {},
                 "elementen": schrijver.elementen,
-                "dekking": {"voltooid": not gestopt, "bereik": doel.get("bereik") or [],
+                "dekking": {"voltooid": not gestopt and not schrijver.fout, "bereik": doel.get("bereik") or [],
                             "parent_context": not gestopt,
                             # Wat de keten wel en niet kon bekijken (dimensies, ongedekte
                             # zinsdelen met offsets, procesdekking) – de api toont het in de
@@ -403,9 +446,10 @@ async def _leg_vast(
             except WetsanalyseApiFout:
                 logger.exception("intake: werkgebied niet aangemaakt",
                                  extra={"categorie": "technisch", "run_id": run.run_id})
-                yield {"type": "error", "foutcode": "werkgebied_niet_aangemaakt",
-                       "message": "Het werkgebied kon niet worden aangemaakt. Klik opnieuw op Aanmaken; "
-                                  "er ontstaat dan geen dubbel werkgebied."}
+                melding = ("Het werkgebied kon niet worden aangemaakt. Klik opnieuw op Aanmaken; "
+                           "er ontstaat dan geen dubbel werkgebied.")
+                yield {"type": "error", "foutcode": "werkgebied_niet_aangemaakt", "message": melding}
+                await _leg_fout_vast(api, gesprek_id, bericht, schrijver, melding, kaart=schrijver.aanmaken.get("kaart"))
                 return
             tekst = werkgebied_tekst(werkgebied)
             yield {"type": "token", "content": tekst}
@@ -421,8 +465,9 @@ async def _leg_vast(
                 if fout.status not in (404, 412):
                     logger.exception("aanvullen: werkgebied niet gewijzigd",
                                      extra={"categorie": "technisch", "run_id": run.run_id, "http_status": fout.status})
-                    yield {"type": "error", "foutcode": "werkgebied_niet_gewijzigd",
-                           "message": "Het dossier kon niet worden aangepast; er is niets opgeslagen. Klik opnieuw op Opslaan."}
+                    melding = "Het dossier kon niet worden aangepast; er is niets opgeslagen. Klik opnieuw op Opslaan."
+                    yield {"type": "error", "foutcode": "werkgebied_niet_gewijzigd", "message": melding}
+                    await _leg_fout_vast(api, gesprek_id, bericht, schrijver, melding, kaart=verzoek.get("kaart"))
                     return
                 tekst = ("Dat werkgebied bestaat niet meer; er is niets opgeslagen." if fout.status == 404 else
                          "Iemand anders wijzigde het werkgebied net; er is niets opgeslagen. Klik nog eens op Opslaan: "
@@ -439,13 +484,17 @@ async def _leg_vast(
                 bericht |= {"tekst": tekst, "denk": schrijver.denk, "artefact": werkgebied_artefact(werkgebied)}
         else:
             tekst = schrijver.tekst.strip()
-            if gestopt:
+            if gestopt and not schrijver.fout:
                 # Weggooien wat de agent al schreef is niet wat "stoppen" betekent. Maar beloof ook
                 # geen half resultaat dat er niet is: `emit_node` is terminaal, dus stoppen vóór dat
-                # punt levert écht nul voorstellen op – dan is dat wat er staat.
-                tekst = f"{tekst}\n\n_(gestopt)_" if tekst else "_Gestopt – er waren nog geen voorstellen._"
+                # punt levert écht nul voorstellen op – dan is dat wat er staat. Ook live, anders zegt
+                # stoppen pas iets na herladen.
+                slot = "\n\n_(gestopt)_" if tekst else "_Gestopt – er waren nog geen voorstellen._"
+                tekst += slot
+                yield {"type": "token", "content": slot}
             bericht |= {
-                "tekst": tekst or "(geen antwoord)",
+                # Bij een fout zegt `uitkomst` wat er is; een "(geen antwoord)" erboven is dan geen informatie.
+                "tekst": tekst or ("" if schrijver.fout else "(geen antwoord)"),
                 "denk": schrijver.denk,
                 "bronnen": schrijver.bronnen,
                 # Het overzicht uit de graaf (`agent/overzicht.py`): zonder dit veld toonde de werkplek
@@ -458,6 +507,11 @@ async def _leg_vast(
                 **({"bevestiging": schrijver.bevestiging} if schrijver.bevestiging else {}),
             }
 
+        if schrijver.fout:
+            bericht["uitkomst"] = {"status": "mislukt", "melding": schrijver.fout[:2000]}
+        elif gestopt:
+            bericht["uitkomst"] = {"status": "gestopt"}
+        bericht_poging = True
         bewaard = await api.voeg_bericht_toe(gesprek_id, bericht)
         # De api legt bij een artefact de stand van dat moment vast en zet het id in `artefact.ref.versie`
         # (`artefact_versies`). Stuur dat artefact live mee, anders kent de chip zijn versie pas na herladen.
@@ -497,8 +551,9 @@ async def _leg_vast(
         #
         # Het geval "document bestaat, markeringen niet" is er niet meer: de laag en haar
         # markeringen gaan in één PUT. Mislukt die, dan valt dit in de laatste tak.
+        fout: dict[str, Any]
         if annotatie_bewaard:
-            yield {
+            fout = {
                 "type": "error",
                 "message": ("De annotatie is bewaard, alleen het bericht in dit gesprek niet. "
                             "Je vindt hem terug bij Annotaties."),
@@ -508,17 +563,18 @@ async def _leg_vast(
         elif isinstance(exc, WetsanalyseApiFout) and exc.status == 409 and exc.reden == "heropen_nodig":
             # De laag werd afgerond terwijl de beurt liep (vooraf controleert de annotatie-route
             # dat al). Opnieuw proberen helpt dan niet; heropenen wel.
-            yield {"type": "error", "foutcode": "annotatie_afgerond",
-                   "message": "Deze annotatie is afgerond. De nieuwe voorstellen zijn niet opgeslagen; "
-                              "heropen de annotatie in het paneel als je Lex hem opnieuw wilt laten annoteren."}
+            fout = {"type": "error", "foutcode": "annotatie_afgerond",
+                    "message": "Deze annotatie is afgerond. De nieuwe voorstellen zijn niet opgeslagen; "
+                               "heropen de annotatie in het paneel als je Lex hem opnieuw wilt laten annoteren."}
         elif isinstance(exc, WetsanalyseApiFout) and exc.status in (409, 412):
-            yield {"type": "error", "foutcode": "annotatie_conflict",
-                   "message": "De bron of annotatielaag is intussen gewijzigd. De nieuwe voorstellen "
-                              "zijn niet opgeslagen; laad de annotatie opnieuw."}
+            fout = {"type": "error", "foutcode": "annotatie_conflict",
+                    "message": "De bron of annotatielaag is intussen gewijzigd. De nieuwe voorstellen "
+                               "zijn niet opgeslagen; laad de annotatie opnieuw."}
         else:
-            yield {
-                "type": "error",
-                "message": "Het antwoord is gemaakt, maar niet opgeslagen. Probeer de vraag opnieuw.",
-            }
+            fout = {"type": "error", "message": "Het antwoord is gemaakt, maar niet opgeslagen. Probeer de vraag opnieuw."}
+        yield fout
+        # Strandde het bericht zelf, dan heeft een tweede poging geen zin. Anders staat de fout zo ook na herladen.
+        if not bericht_poging:
+            await _leg_fout_vast(api, gesprek_id, bericht, schrijver, fout["message"])
     finally:
         await api.aclose()

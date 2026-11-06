@@ -32,6 +32,7 @@ import type {
   AgentKeuze,
   AgentRun,
   BeurtMeting,
+  BeurtUitkomst,
   KandidaatStand,
   Alternatief,
   Bron,
@@ -142,6 +143,12 @@ export function metingUitDekking(dekking: unknown): BeurtMeting | undefined {
     gedegradeerd: Array.isArray(gedegradeerd) ? gedegradeerd.filter((g): g is string => typeof g === "string") : [],
   };
 }
+
+/** De uitkomst op een bewaard bericht. Niets of een onbekende vorm is een gewone beurt: oudere berichten hebben hem niet. */
+export const parseUitkomst = (v: unknown): BeurtUitkomst | undefined => {
+  if (!isObject(v) || (v.status !== "klaar" && v.status !== "mislukt" && v.status !== "gestopt")) return undefined;
+  return { status: v.status, ...(typeof v.melding === "string" && v.melding ? { melding: v.melding } : {}) };
+};
 
 export const parseRun: Parser<AgentRun> = (v) =>
   isObject(v)

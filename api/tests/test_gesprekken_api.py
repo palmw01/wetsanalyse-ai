@@ -410,6 +410,18 @@ BEPALINGENKAART = {**VRAAGKAART, "stap": "bepalingen", "nr": 29, "totaal": 29,
                    "deel": {"index": 19, "totaal": 20, "deelvraag": "Wie kan bezwaar maken?"}}
 
 
+@pytest.mark.asyncio
+async def test_de_uitkomst_van_een_beurt_overleeft_het_heropenen(client):
+    gid = await _maak(client)
+    u = {"status": "mislukt", "melding": "Deze beurt werd te lang."}
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "run_id": "ru", "uitkomst": u}, headers=A)
+    assert r.status_code == 201 and r.json()["uitkomst"] == u and r.json()["tekst"] == ""
+    doc = (await client.get(f"{BASIS}/{gid}", headers=A)).json()
+    assert doc["berichten"][-1]["uitkomst"] == u
+    fout = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "uitkomst": {"status": "anders"}}, headers=A)
+    assert fout.status_code == 422
+
+
 async def test_een_vraagkaart_overleeft_het_heropenen(client):
     """Activiteit 1: het kaartje waarmee Lex een werkgebied samenstelt staat na herladen nog."""
     gid = await _maak(client)

@@ -104,6 +104,16 @@ describe("reeksUitBerichten", () => {
     expect(r.afgerond).toBe(true);
   });
 
+  it("een mislukt onderdeel zegt na herladen wat het live zei; een gestopt onderdeel is geen fout", () => {
+    const r = reeksUitBerichten([
+      bericht(0, { annotatie_doel: undefined, uitkomst: { status: "mislukt", melding: "De laag is afgerond." } }),
+      bericht(1, { annotatie_doel: undefined, uitkomst: { status: "gestopt" } }),
+    ])!;
+    expect(r.onderdelen[0]).toMatchObject({ status: "fout", fout: "De laag is afgerond." });
+    expect(r.onderdelen[1].status).toBe("gestopt");
+    expect(r.onderdelen[1].fout).toBeUndefined();
+  });
+
   it("zonder reeks geen blok", () => {
     expect(reeksUitBerichten([bericht(0, { reeks: null })])).toBeNull();
   });

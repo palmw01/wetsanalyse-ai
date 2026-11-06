@@ -357,8 +357,16 @@ De store kiest `api/main.py:_maak_runstore`, met dezelfde voorrang als de checkp
 replica's). In Postgres is de 409 een **unieke index** (geen check-then-insert), het stopverzoek een
 vlag die een polstaak elke 2 s op de `Run` zet (zodat `stop_check()` een synchrone attribuutlezing
 blijft), en een hartslag maakt een run van een omgevallen replica na een minuut `mislukt`. Een run
-overleeft geen herstart (synchrone nodes, geen resume-pad); de werkplek meldt dat
-(`frontend/lib/lopendeRun.ts`).
+overleeft geen herstart (synchrone nodes, geen resume-pad).
+
+**Elke run eindigt met precies één `done`, en die draagt de `uitkomst`** (klaar, mislukt, gestopt): `runstore.sluit_af`
+staat om elke stroom in `_draai`, dus een route hoeft dat niet zelf te regelen. Kon de run zelf niet meer eindigen
+(replica weg, proces sluit af), dan levert `volg` `afgebroken_events()`. Voor de client is alleen `done` het einde.
+
+**De haak `bij_afbraak`** (`beurt.leg_afbraak_vast`) legt een bericht vast als niemand anders dat nog kan: de winnaar
+van de verweesd-`UPDATE … RETURNING` (precies één, ook met meer lezers), de runs die `sluit()` annuleert, een crash in
+de driver, en een fout uit een route die niet langs `voer_beurt_uit` gaat. Dubbel kan niet: de api ontdubbelt op
+`run_id`. Lukt het schrijven niet, dan toont de werkplek de banner (`frontend/lib/lopendeRun.ts`).
 
 > **Testen:** gebruik `with TestClient(app)` (zie `tests/test_run_endpoints.py`). Zonder `with` breekt de
 > harnas per request zijn event loop af en sneuvelt de achtergrondtaak. Een bare `TestClient` draait de
@@ -368,7 +376,11 @@ overleeft geen herstart (synchrone nodes, geen resume-pad); de werkplek meldt da
 
 `voer_beurt_uit` zit om `answer_stream` heen, verzamelt de events (`BeurtSchrijver`) en schrijft aan het
 eind via `agent/wetsanalyse_api.py`: **eerst de annotatielaag, dan het chatbericht**, gevolgd door één
-`opgeslagen`-event. Dit staat **buiten** de LangGraph-code. Een annotatie gaat als één batch per
+`opgeslagen`-event. Dit staat **buiten** de LangGraph-code. **De server is de enige schrijver:** elke afloop krijgt
+een bericht, ook een fout (`uitkomst: {status: "mislukt", melding}`, letterlijk de tekst van het `error`-event, dus
+live en na herladen hetzelfde). Een bericht is daarmee ook de plek voor een kaartje dat na een fout klikbaar moet
+blijven (`_leg_fout_vast`). Een nieuw veld op het bericht hoort in `BerichtInvoer`, `Bericht` én de mapping in
+`gesprek_store.py`; de api laat een onbekend veld stil vallen (`test_contract_drift.py`). Een annotatie gaat als één batch per
 bronnode: `POST /v1/annotatie/lagen/batch` met `batch_id` (= run_id), `bron_iri`, `snapshot_id`,
 `verwachte_revisies`, elementen, dekking, `run` en het beslisregister. Het contract staat in
 `docs/architectuur/annotatie-bronnodes.md`.
