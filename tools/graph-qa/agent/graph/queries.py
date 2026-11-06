@@ -1066,7 +1066,7 @@ def bijlagen(bwb_id: str, sleutel: str | None = None, limit: int = 50, offset: i
   OPTIONAL {{ ?node bwb:tekst ?tekst }}
   OPTIONAL {{ ?node bwb:jci ?jci }}
   OPTIONAL {{
-    ?node (bwb:heeftArtikel|bwb:heeftOnderdeel|bwb:heeftDivisie)+ ?deel .
+    ?node (bwb:heeftHoofdstuk|bwb:heeftArtikel|bwb:heeftLid|bwb:heeftOnderdeel|bwb:heeftDivisie)+ ?deel .
     FILTER(STRSTARTS(STR(?deel), "{scope}"))
     OPTIONAL {{ ?deel bwb:nummer ?deelnummer }}
     OPTIONAL {{ ?deel bwb:tekst ?deeltekst }}

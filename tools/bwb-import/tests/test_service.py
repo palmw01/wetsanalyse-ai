@@ -111,7 +111,9 @@ def _nep_fasen(monkeypatch, *, stuk_bij_verzamelen=(), stuk_bij_schrijven=()):
         main_module,
         "maak_writer",
         # Geen kaal object(): `run_imports` waarborgt na afloop de similarity-index.
-        lambda settings: SimpleNamespace(ensure_similarity_index=lambda: None),
+        lambda settings: SimpleNamespace(
+            ensure_similarity_index=lambda: None, graaf_stand=lambda bwb_ids: {}
+        ),
     )
     monkeypatch.setattr(main_module, "prepare", lambda writer: None)
 

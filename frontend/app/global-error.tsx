@@ -5,6 +5,8 @@
 
 import { useEffect } from "react";
 
+import { meldBrowserfout } from "@/lib/uiSpoor";
+
 import { sans, mono } from "./fonts";
 
 // Kleuren hardcoded op de huisstijl-tokens (uit app/globals.css) – de CSS-variabelen zijn hier
@@ -13,6 +15,7 @@ import { sans, mono } from "./fonts";
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     console.error(error);
+    meldBrowserfout("globaal", error);
   }, [error]);
 
   return (

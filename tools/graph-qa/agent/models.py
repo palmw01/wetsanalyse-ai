@@ -421,6 +421,8 @@ class Verbruiksmeter:
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
+        # De beurtsoort (`beurtmeting.route_van`), voor de logregel aan het eind van de beurt.
+        self.route = ""
         self.invoer = 0
         self.uitvoer = 0
         self.cache_lees = 0

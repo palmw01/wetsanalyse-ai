@@ -14,7 +14,7 @@ POST /v1/auth/api-token/verify    – wissel een accounttoken in voor de identit
 GET  /v1/auth/api-token/{id}/status – geldt het accounttoken nog? (de hercontrole van de BFF)
 GET  /v1/auth/me                  – eigen account (rol + of 2FA aanstaat) – X-User-Id
 POST /v1/auth/change-password     – eigen wachtwoord wijzigen (huidig → nieuw) – X-User-Id
-POST /v1/auth/2fa/begin           – start 2FA-koppeling, geeft de otpauth-URI – X-User-Id
+POST /v1/auth/2fa/begin           – start 2FA-koppeling (met wachtwoord), geeft de otpauth-URI – X-User-Id
 POST /v1/auth/2fa/activate        – bevestig 2FA met één geldige code – X-User-Id
 POST /v1/auth/2fa/disable         – schakel 2FA uit – X-User-Id
 """
@@ -117,6 +117,10 @@ class MeOut(BaseModel):
 
 class TotpBeginOut(BaseModel):
     otpauth_uri: str
+
+
+class TotpBeginIn(BaseModel):
+    password: str = Field(max_length=512)
 
 
 class TotpActivateIn(BaseModel):
@@ -347,16 +351,24 @@ async def change_password(body: PasswordChangeIn, userid: str = Depends(huidige_
 
 
 @router.post("/2fa/begin", response_model=TotpBeginOut)
-async def tfa_begin(userid: str = Depends(huidige_userid)):
+async def tfa_begin(body: TotpBeginIn, userid: str = Depends(huidige_userid)):
+    _rem_gevoelig(userid)
     if not crypto_beschikbaar():
         raise HTTPException(
             status_code=400,
             detail="Geen LLM_CONFIG_SECRET geconfigureerd; 2FA-secret kan niet versleuteld worden opgeslagen.",
         )
     try:
-        uri = await users.begin_2fa(userid)
+        uri = await users.begin_2fa(userid, body.password)
+    except users.TotpActiefError as e:
+        # De webapp toont deze actie niet bij actieve 2FA: wie hier komt, doet het met de hand.
+        logger.warning(
+            "2FA-koppeling geweigerd: 2FA staat al aan",
+            extra={"categorie": "security", "actie": "2fa_begin_geweigerd", "userid": userid},
+        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except users.UserError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
     return TotpBeginOut(otpauth_uri=uri)
 
 

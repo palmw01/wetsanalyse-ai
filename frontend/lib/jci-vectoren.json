@@ -10,6 +10,8 @@
     {"ref": "jci1.3:c:BWBR0005537&artikel=3:40", "iri": "urn:bwb:BWBR0005537:artikel:3%3A40", "soort": "artikel", "label": "Artikel 3:40"},
     {"ref": "jci1.3:c:BWBR0004770", "iri": "urn:bwb:BWBR0004770", "soort": "regeling", "label": ""},
     {"ref": "jci1.3:c:BWBR0005537&bijlage=1&o=a&z=2026-08-15&g=2026-08-15", "iri": null, "soort": null, "label": ""},
+    {"ref": "jci1.3:c:BWBR0005537&bijlage=2&hoofdstuk=1&z=2026-08-15&g=2026-08-15", "iri": null, "soort": null, "label": ""},
+    {"ref": "jci1.3:c:BWBR0005537&bijlage=3&artikel=1&z=2026-08-15&g=2026-08-15", "iri": null, "soort": null, "label": ""},
     {"ref": "urn:bwb:BWBR0004770:artikel:26a:lid:2", "iri": "urn:bwb:BWBR0004770:artikel:26a:lid:2", "soort": "lid", "label": "Artikel 26a, lid 2"},
     {"ref": "urn:bwb:BWBR0004770:hoofdstuk:I", "iri": "urn:bwb:BWBR0004770:hoofdstuk:I", "soort": "hoofdstuk", "label": "Hoofdstuk I"},
     {"ref": "urn:bwb:BWBR0005537:artikel:4%3A94a", "iri": "urn:bwb:BWBR0005537:artikel:4%3A94a", "soort": "artikel", "label": "Artikel 4:94a"},

@@ -9,7 +9,8 @@
  *  - het tokenbudget: een samenvatting, en bewerken ter plekke;
  *  - een tab op de volle pagina opent geen venster erbovenop, en een tab in het venster is geen navigatie;
  *  - de berichten verschijnen meteen, en de bulkknop van de aanvragen pas na een selectie;
- *  - op een smal scherm staat de actieve tab in beeld, ook nadat een telbadge de rij breder maakte.
+ *  - op een smal scherm staat de actieve tab in beeld, ook nadat een telbadge de rij breder maakte;
+ *  - 2FA inschakelen vraagt eerst het huidige wachtwoord, en een fout wachtwoord toont geen QR-code.
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -56,6 +57,12 @@ async function open(role, viewport = { width: 1280, height: 860 }) {
       inhoud: "Tekst", type: "update", versie: null, gepubliceerd: false, gepubliceerd_op: null, created: nu, updated: nu }] } });
     if (p === "/api/admin/feedback") return route.fulfill({ json: { items: [], totaal: 0 } });
     if (p === "/api/admin/feedback/ongelezen-aantal") return route.fulfill({ json: { aantal: 0 } });
+    if (p === "/api/account/2fa/begin") {
+      const { password } = route.request().postDataJSON();
+      return password === "goed"
+        ? route.fulfill({ json: { otpauth_uri: "otpauth://totp/Wetsanalyse:wpalm?secret=TESTSECRET&issuer=Wetsanalyse" } })
+        : route.fulfill({ status: 400, json: { detail: "Huidig wachtwoord onjuist." } });
+    }
     if (p === "/api/account/me") return route.fulfill({ json: { userid: "wpalm", email: "w@example.test", role, totp_enabled: false } });
     return route.fulfill({ json: [] });
   });
@@ -68,6 +75,19 @@ try {
   await analist.page.goto(`${base}/instellingen/account`);
   await analist.page.getByRole("tablist", { name: "Instellingen" }).waitFor();
   assert.equal(await analist.page.getByText("Beheer", { exact: true }).count(), 0);
+
+  // 2FA koppelen vraagt het wachtwoord: de QR-code verschijnt pas na het juiste.
+  await analist.page.goto(`${base}/instellingen/beveiliging`);
+  await analist.page.getByRole("button", { name: "2FA inschakelen" }).click();
+  const wachtwoord = analist.page.getByLabel("Huidig wachtwoord");
+  await wachtwoord.fill("fout");
+  await analist.page.getByRole("button", { name: "Doorgaan" }).click();
+  await analist.page.getByText("Huidig wachtwoord onjuist.").waitFor();
+  assert.equal(await analist.page.getByAltText("QR-code voor 2FA").count(), 0);
+  await wachtwoord.fill("goed");
+  await analist.page.getByRole("button", { name: "Doorgaan" }).click();
+  await analist.page.getByAltText("QR-code voor 2FA").waitFor();
+  assert.equal(await wachtwoord.count(), 0);
   await analist.context.close();
 
   const { page, fouten } = await open("beheerder");

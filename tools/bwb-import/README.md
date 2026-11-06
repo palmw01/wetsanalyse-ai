@@ -85,24 +85,44 @@ waarde niet als segmentgrens leest.
   bron naast de `bwb:tekst`-literals in de graaf en toont de uitkomst in het import-overzicht.
   `tests/test_dekking.py` bewaakt hem offline op de fixtures. Ontbrekende tekst geeft anders geen
   fout, geen lege node en geen waarschuwing: hij is gewoon stil weg.
-- **En het cijfer bijt** (`BWB_MIN_DEKKING`, default 0,995): zakt een regeling eronder, dan eindigt
-  de import met **exitcode 2** en wordt de container-app-job rood — net als de `vul-graaf`-workflow,
-  die alleen `Succeeded` accepteert. Exitcode **1** blijft voorbehouden aan een import die niet
-  geschreven kon worden; dat onderscheid bestaat zodat je in het logboek van een gefaalde job niet
-  hoeft te zoeken welk van de twee het was.
+- **En het cijfer bijt, vóór de PUT** (`BWB_MIN_DEKKING`, default 0,995): de import bouwt de graph
+  offline, meet hem tegen de bron (bijlagen tellen mee) en beslist dan pas of hij de bestaande named
+  graph mag vervangen (`dekking.poortbesluit`). Een PUT vervangt alles, dus een controle erna kan niets
+  tegenhouden. De regel is **vervang nooit door minder**:
 
-  Drie dingen om te kennen. **Een 2 kost geen data**: `write_wet` doet de named-graph PUT vóórdat er
-  iets te meten valt, dus de graaf is na een "gefaalde" run precies zo compleet als hij zonder deze
-  controle geweest zou zijn. **De job probeert het eerst nog een keer**: `replicaRetryLimit: 1`
-  betekent dat een dip een volledige tweede import uitlokt voordat de execution `Failed` wordt —
-  verspilling, want de meting is deterministisch, maar die limiet verlagen zou echte tijdelijke
-  fouten hun tweede kans afnemen. En **een onleesbare waarde zet de controle niet uit**: `_as_float`
-  valt terug op de default met een waarschuwing, want stilzwijgend op 0 vallen door een tikfout is
-  het ene faalgedrag dat een drempel niet mag hebben.
+  - een toestand zonder tekst wordt nooit geschreven (exitcode **1**);
+  - onder de drempel wordt alleen geschreven als er minstens zoveel tekst komt te staan als er stond.
+    Een lege graaf wordt dus gevuld: na een GraphDB-herstart is een onvolledige wet beter dan geen wet;
+  - een mislukte WTI vervangt geen verrijkte graph. Op een graph zonder WTI wordt wel geschreven.
+
+  Sloeg de poort aan, dan eindigt de import met exitcode **2** en wordt de container-app-job rood,
+  net als de `vul-graaf`-workflow, die alleen `Succeeded` accepteert. De graaf gaat bij een 2 niet
+  achteruit, maar hij kan achterlopen op de bron. Het overzicht en de JSON noemen de reden, en
+  `tegengehouden` als de bestaande graph bleef staan. Exitcode **1** blijft voor een wet die niet
+  gelezen of geschreven kon worden. De XSD-uitslag staat in het overzicht en blokkeert niet.
+
+  Twee dingen om te kennen. **De job probeert het eerst nog een keer**: `replicaRetryLimit: 1`
+  betekent dat een dip een volledige tweede import uitlokt voordat de execution `Failed` wordt.
+  Bij een dip is dat verspilling, bij een tijdelijke WTI-fout juist de bedoeling. En **een
+  onleesbare waarde zet de controle niet uit**: `_as_float` valt terug op de default met een
+  waarschuwing, want stilzwijgend op 0 vallen door een tikfout is het ene faalgedrag dat een
+  drempel niet mag hebben.
 
   Blijkt een dip legitiem — een regeling die nu eenmaal lager meet — verlaag dan `minDekking` in
-  `deploy/azure/main.bicep`; 0 zet de controle helemaal uit. Dat is een bewuste, zichtbare keuze in
-  plaats van een stille.
+  `deploy/azure/main.bicep`; 0 zet de dipregel uit. Dat is een bewuste, zichtbare keuze in plaats
+  van een stille. De lege toestand en de WTI-regel blijven dan gelden.
+- **Een bijlage is een volwaardig deel, met een eigen identiteit.** Hoofdstukken in een bijlage staan
+  in de bron als `<divisie>` met een koplabel (Bijlage 2 van de Awb) en worden gewone structuurdelen.
+  Een artikelnummer is alleen binnen de wettekst uniek: Bijlage 2 en 3 van de Awb hebben allebei een
+  artikel 1. Daarom krijgt alles in een bijlage de wet-lokale vorm die de bijlage zelf al heeft
+  (`urn:bwb:BWBR0005537:id:BWBR0005537%2FBijlage2%2FDivisie1%2FArtikel1`), met `bwb:vindplaats`
+  "Bijlage 2, artikel 1". `bwb:jci` houdt de echte jci; een sleutel uit die jci zou de bijlage weglaten.
+  Een jci die in een bijlage wijst, wijst daarom nooit naar een node in de wet zelf, en "artikel 16"
+  zonder wetsnaam in een bijlage is geen verwijzing naar de eigen wet.
+- **Onbekende structuur is een signaal, geen stilte en geen crash.** Wat de parser in een container niet
+  kent, komt in `Wet.overgeslagen` en weegt in de importpoort als een dip. Een ParseError zou op een
+  lege graaf de hele wet weghouden; stil overslaan is hoe Bijlage 2 verdween, en de drempel heeft
+  genoeg speling om een heel artikel te verbergen.
 - **Tekst ná een opsomming is een eigen node.** De bron zet een `<al>` achter een `<lijst>` in
   hetzelfde element (art. 6 lid 2 c Uitvoeringsregeling Awir, art. 24 lid 1 IW 1990, en bij de
   Leidraad vaak). Zo'n reeks alinea's wordt een ongenummerde `bwb:Onderdeel` met
@@ -297,11 +317,12 @@ GRAPHDB_URL=http://localhost:7200 .venv/bin/python main.py BWBR0004770
 
 Na afloop verschijnt per wet een overzicht met tellingen per elementtype
 (wetten, hoofdstukken, afdelingen, paragrafen, divisies, artikelen, leden,
-onderdelen en relaties) en de tekstdekking. Exitcodes: **0** goed, **1** een wet is niet
-geschreven, **2** alles is geschreven maar de tekstdekking zakt onder `BWB_MIN_DEKKING`.
+onderdelen en relaties), de tekstdekking, de XSD-uitslag en wat de importpoort besloot. Exitcodes:
+**0** goed, **1** een wet kon niet gelezen of geschreven worden, **2** de importpoort sloeg aan (zie
+*En het cijfer bijt*).
 
 `--alleen-bij-verlies` doet eerst één SPARQL-peiling (`GraphDbWriter.graaf_is_compleet`): staat
-elke gevraagde regeling als gevulde named graph in de repository, dan stopt hij met exitcode 0
+van elke gevraagde regeling tekst in de repository, dan stopt hij met exitcode 0
 zonder overheid.nl te benaderen. Elke fout in die peiling telt als "niet compleet": een ontbrekende
 repository geeft een 404, en dat is precies de toestand waarvoor de peiling bestaat.
 

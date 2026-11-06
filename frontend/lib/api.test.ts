@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { isApiError, login2fa, loginVerify, parseError, startRun, volgRun } from "./api";
+import { begin2fa, isApiError, login2fa, loginVerify, parseError, startRun, volgRun } from "./api";
 import type { AgentGrounding } from "./types";
 
 describe("parseError", () => {
@@ -447,6 +447,17 @@ describe("isApiError", () => {
 // Een storing mag nooit als "verkeerd wachtwoord" bij de gebruiker aankomen: dat is precies het
 // moment waarop iemand aan zijn geheugen gaat twijfelen in plaats van aan de infrastructuur. De
 // API wijst een login af met een 200 + `ok: false`, dus alleen een 5xx is hier een storing.
+describe("begin2fa", () => {
+  it("stuurt het wachtwoord mee, want koppelen vraagt bewijs naast de sessie", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ otpauth_uri: "otpauth://x" }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(begin2fa("geheim")).resolves.toEqual({ otpauth_uri: "otpauth://x" });
+    const [pad, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(pad).toBe("/api/account/2fa/begin");
+    expect(JSON.parse(init.body as string)).toEqual({ password: "geheim" });
+  });
+});
+
 describe("loginVerify / login2fa – storing vs. afwijzing", () => {
   afterEach(() => vi.restoreAllMocks());
 

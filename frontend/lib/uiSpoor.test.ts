@@ -1,6 +1,32 @@
 import { describe, expect, it } from "vitest";
 
-import { leesSpoor, UI_ACTIES, UI_UITKOMSTEN } from "@/lib/uiSpoor";
+import { isRuisfout, leesBrowserfout, leesSpoor, UI_ACTIES, UI_UITKOMSTEN } from "@/lib/uiSpoor";
+
+describe("leesBrowserfout", () => {
+  it("neemt plek, naam en digest over", () => {
+    expect(leesBrowserfout({ soort: "fout", plek: "belofte", naam: "TypeError", digest: "1234-abc" })).toEqual({
+      plek: "belofte", naam: "TypeError", digest: "1234-abc",
+    });
+  });
+
+  it("weigert een onbekende plek", () => {
+    expect(leesBrowserfout({ plek: "waar dan ook" })).toBeNull();
+    expect(leesBrowserfout(null)).toBeNull();
+  });
+
+  it("laat vrije tekst niet door, ook niet in de naam of de digest", () => {
+    const fout = leesBrowserfout({
+      plek: "script", naam: "de vraag van de jurist", digest: "een zin met spaties", melding: "geheim", stack: "geheim",
+    });
+    expect(fout).toEqual({ plek: "script" });
+  });
+
+  it("telt een afgebroken verzoek niet als crash", () => {
+    expect(isRuisfout({ name: "AbortError" })).toBe(true);
+    expect(isRuisfout(new TypeError("x"))).toBe(false);
+    expect(isRuisfout(undefined)).toBe(false);
+  });
+});
 
 describe("leesSpoor", () => {
   it("neemt een geldige melding over", () => {

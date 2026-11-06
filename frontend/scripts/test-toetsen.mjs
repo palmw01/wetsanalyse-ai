@@ -224,4 +224,25 @@ const beslissingen = (requests) => requests.filter((r) => r.pad.endsWith("/besli
   } finally { await browser.close(); }
 }
 
+// --- Een fout buiten de error boundary bereikt de logs, zonder tekst --------------------------------
+{
+  const { browser, page, requests } = await nieuwePagina(chromium, { viewport: { width: 1440, height: 1000 } });
+  try {
+    await page.goto(`${base}/workbench`);
+    await page.getByPlaceholder("Stel een vraag of geef een opdracht aan Lex…").waitFor();
+    const melding = page.waitForRequest((r) => r.url().endsWith("/api/ui-spoor"));
+    await page.evaluate(() => {
+      setTimeout(() => {
+        const afgebroken = new Error("weg"); afgebroken.name = "AbortError";
+        Promise.reject(afgebroken);
+        Promise.reject(new TypeError("de vraag van de jurist"));
+      });
+    });
+    await melding;
+    await page.waitForTimeout(300);
+    const fouten = requests.filter((r) => r.pad === "/api/ui-spoor").map((r) => r.body);
+    assert.deepEqual(fouten, [{ soort: "fout", plek: "belofte", naam: "TypeError" }]);
+  } finally { await browser.close(); }
+}
+
 console.log("Browser OK: geen sneltoetsen (een letter beslist niets), Escape voor het bovenste venster, focus terug na sluiten, geen herstellus na een geslaagde beurt, vraag blijft staan tijdens laden, selectie op een aanraakscherm.");

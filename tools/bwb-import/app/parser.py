@@ -42,6 +42,17 @@ _STRUCTUUR_TAGS = {
 }
 
 
+# Kinderen die geen eigen structuur dragen: wat een container hier niet kent, wordt gemeld
+# (`_meld_onbekend`). Stil overslaan is hoe Bijlage 2 van de Awb (66.086 tekens) en elf artikelen van
+# de Leidraad verdwenen.
+_GEEN_STRUCTUUR = frozenset({"kop", "meta-data", "officiele-inhoudsopgave"})
+# Een bijlage is ook tekstdrager: deze kinderen leest `_bijlage_tekst` of `_parse_onderdelen`.
+_BIJLAGE_TEKST = _GEEN_STRUCTUUR | {
+    "al", "al-groep", "lijst", "table", "plaatje", "tussenkop", "wetcitaat", "model",
+    "bijlage-sluiting",
+}
+
+
 # Kondigt een lid/artikel een begrippenlijst aan? "Deze wet verstaat onder:", "Deze wet verstaat
 # MEDE onder:" (art. 2 lid 2 IW 1990 – een echte definitiegroep, dus die moet erin), "waar wordt
 # verstaan onder". Zie `ToestandParser._definities` voor waarom dit een harde eis is.
@@ -73,6 +84,7 @@ class ToestandParser:
 
     def __init__(self, schema_path: Path | None = None) -> None:
         self._schema_path = schema_path
+        self._overgeslagen: list[str] = []
         self._schema: etree.XMLSchema | None = None
 
     # ------------------------------------------------------------- validatie
@@ -129,6 +141,7 @@ class ToestandParser:
             **self._wet_aanhef(wetgeving),
             **self._wet_brondata(wetgeving),
         )
+        self._overgeslagen = wet.overgeslagen
 
         # Ministeriële regelingen dragen dezelfde bouwstenen als een
         # wettekst, maar onder <regeling>/<regeling-tekst>.
@@ -136,12 +149,7 @@ class ToestandParser:
         if wettekst is None:
             wettekst = wetgeving.find("regeling/regeling-tekst")
         if wettekst is not None:
-            for child in wettekst:
-                tag = child.tag if isinstance(child.tag, str) else ""
-                if tag in _STRUCTUUR_TAGS:
-                    wet.structuurdelen.append(self._parse_structuurdeel(child, bwb_id))
-                elif tag == "artikel":
-                    wet.losse_artikelen.append(self._parse_artikel(child, bwb_id))
+            self._lees_kinderen(wettekst, bwb_id, wet.structuurdelen, wet.losse_artikelen)
             # Bijlagen staan náást de wettekst: kind van <wet-besluit>/<regeling>.
             houder = wettekst.getparent()
             if houder is not None:
@@ -152,8 +160,17 @@ class ToestandParser:
             # recursieve <circulaire.divisie>-boom.
             circulaire = wetgeving.find("circulaire/circulaire-tekst")
             if circulaire is not None:
-                for child in circulaire.iterfind("circulaire.divisie"):
-                    wet.divisies.append(self._parse_divisie(child, bwb_id))
+                for child in circulaire:
+                    tag = child.tag if isinstance(child.tag, str) else ""
+                    if tag == "circulaire.divisie":
+                        wet.divisies.append(self._parse_divisie(child, bwb_id))
+                    elif tag == "artikel":
+                        wet.losse_artikelen.append(self._parse_artikel(child, bwb_id))
+                    elif tag and tag not in _GEEN_STRUCTUUR:
+                        self._meld_onbekend(circulaire, tag)
+                # Het XSD staat ook een bijlage bij een circulaire toe.
+                for bijlage in circulaire.getparent().iterfind("bijlage"):
+                    wet.bijlagen.append(self._parse_bijlage(bijlage, bwb_id))
             else:
                 logger.warning(
                     "Geen <wettekst>, <regeling-tekst> of <circulaire> gevonden voor %s",
@@ -176,23 +193,57 @@ class ToestandParser:
         return wet
 
     # ------------------------------------------------------------- structuur
+    def _meld_onbekend(self, houder: etree._Element, tag: str) -> None:
+        """Noteer structuur die de parser niet leest. De importpoort behandelt dat als een dip.
+
+        Geen ParseError: dan ontbreekt de hele wet op een lege graaf. Geen stil overslaan: de dekking
+        heeft een halve procent speling, en dat is bij de Awb ruim 1.800 tekens, een heel artikel.
+        """
+        melding = f"{houder.tag}/{tag}"
+        if melding not in self._overgeslagen:
+            logger.warning("Onbekende structuur overgeslagen: %s", melding)
+            self._overgeslagen.append(melding)
+
+    def _structuursoort(self, element: etree._Element) -> str | None:
+        """De structuursoort van een element. Een ``<divisie>`` in een bijlage noemt die in zijn kop."""
+        if element.tag == "divisie":
+            kop = element.find("kop")
+            label = self._tekst(kop.find("label")).lower() if kop is not None else ""
+            return _STRUCTUUR_TAGS.get(label)
+        return _STRUCTUUR_TAGS.get(element.tag)
+
+    def _lees_kinderen(
+        self,
+        element: etree._Element,
+        bwb_id: str,
+        delen: list[Structuurdeel],
+        artikelen: list[Artikel],
+        tekst: frozenset[str] = _GEEN_STRUCTUUR,
+    ) -> None:
+        """De kinderen van een container, in documentvolgorde. Eén lus voor elke container."""
+        for child in element:
+            tag = child.tag if isinstance(child.tag, str) else ""
+            if not tag:
+                continue
+            if tag == "artikel":
+                artikelen.append(self._parse_artikel(child, bwb_id))
+            elif self._structuursoort(child):
+                delen.append(self._parse_structuurdeel(child, bwb_id))
+            elif tag not in tekst:
+                self._meld_onbekend(element, tag)
+
     def _parse_structuurdeel(self, element: etree._Element, bwb_id: str) -> Structuurdeel:
         kop = element.find("kop")
         deel = Structuurdeel(
             id=self._knoop_id(bwb_id, element),
-            soort=_STRUCTUUR_TAGS[element.tag],
+            soort=self._structuursoort(element) or "",
             nummer=self._tekst(kop.find("nr")) if kop is not None else "",
             label=self._tekst(kop.find("label")) if kop is not None else "",
             titel=self._tekst(kop.find("titel")) if kop is not None else "",
             jci=self._element_jci(element),
             label_id=element.get("label-id"),
         )
-        for child in element:
-            tag = child.tag if isinstance(child.tag, str) else ""
-            if tag in _STRUCTUUR_TAGS:
-                deel.subdelen.append(self._parse_structuurdeel(child, bwb_id))
-            elif tag == "artikel":
-                deel.artikelen.append(self._parse_artikel(child, bwb_id))
+        self._lees_kinderen(element, bwb_id, deel.subdelen, deel.artikelen)
         return deel
 
     def _parse_divisie(self, element: etree._Element, bwb_id: str) -> Divisie:
@@ -249,6 +300,8 @@ class ToestandParser:
                 divisie.subdivisies.append(self._parse_divisie(child, bwb_id))
             elif tag == "artikel":
                 divisie.artikelen.append(self._parse_artikel(child, bwb_id))
+            elif tag and tag != "tekst" and tag not in _GEEN_STRUCTUUR:
+                self._meld_onbekend(element, tag)
         return divisie
 
     def _parse_bijlage(self, element: etree._Element, bwb_id: str) -> Bijlage:
@@ -258,6 +311,10 @@ class ToestandParser:
         kan eigen artikelen bevatten (die als aparte ``Artikel``-nodes tellen).
         Tekst/verwijzingen/onderdelen op bijlage-niveau sluiten de inhoud van
         geneste artikelen/leden/onderdelen uit om dubbeling te vermijden.
+
+        De artikelen hoeven geen direct kind te zijn: Bijlage 2 van de Awb deelt ze in onder
+        ``<divisie>``-en met het koplabel Hoofdstuk. Die worden gewone structuurdelen, zodat leden,
+        bronboom en annotatie-eenheden werken zoals in de hoofdwet.
         """
         kop = element.find("kop")
         excl = f" and not(ancestor::artikel) and not(ancestor::lid) and not(ancestor::li){_GEEN_SLOT}"
@@ -279,8 +336,9 @@ class ToestandParser:
             voetnoten=self._noten(element, excl),
             illustraties=self._illustraties(element, extra_excl=excl),
         )
-        for art in element.iterfind("artikel"):
-            bijlage.artikelen.append(self._parse_artikel(art, bwb_id))
+        self._lees_kinderen(
+            element, bwb_id, bijlage.structuurdelen, bijlage.artikelen, _BIJLAGE_TEKST
+        )
         return bijlage
 
     def _parse_artikel(self, element: etree._Element, bwb_id: str) -> Artikel:

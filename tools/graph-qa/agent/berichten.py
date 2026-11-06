@@ -99,7 +99,7 @@ _TOOLRESULT_KRIMP = 800
 _KRIMP_NOOT = "\n[… ingekort: ouder tool-resultaat, vraag het opnieuw op als je het nodig hebt]"
 
 
-def _krimp_oude_toolresultaten(messages: list[dict[str, Any]], max_chars: int) -> list[dict[str, Any]]:
+def _krimp_oude_toolresultaten(messages: list[dict[str, Any]], max_chars: int, vraag: str = "") -> list[dict[str, Any]]:
     """Kort de inhoud van oudere tool-resultaten in zodat het gesprek zelf langer meegaat.
 
     Zonder dit weegt één SPARQL-dump van 8000 tekens even zwaar als twintig beurten proza: het
@@ -118,7 +118,7 @@ def _krimp_oude_toolresultaten(messages: list[dict[str, Any]], max_chars: int) -
     # groter dan dat halve budget, dan brak de lus meteen af en werd óók dat resultaat ingekort, met
     # de noot "vraag het opnieuw op". Het model zocht dan opnieuw, kreeg weer een ingekort resultaat,
     # en zo door tot de beurtlimiet – de zoeklus bij "welke rechtssubjecten ken je nog meer".
-    beschermd = beurt_start(messages)
+    beschermd = beurt_start(messages, vraag)
     ruimte = max_chars // 2
     for i in range(beschermd - 1, -1, -1):
         ruimte -= _msg_lengte(messages[i])
@@ -143,7 +143,7 @@ def _krimp_oude_toolresultaten(messages: list[dict[str, Any]], max_chars: int) -
     return uit
 
 
-def _trim_messages(messages: list[dict[str, Any]], max_chars: int) -> list[dict[str, Any]]:
+def _trim_messages(messages: list[dict[str, Any]], max_chars: int, vraag: str = "") -> list[dict[str, Any]]:
     """Beperk de historie die naar de LLM gaat tot een char-budget, met behoud van de
     tool_use/tool_result-integriteit (Anthropic weigert een orphan tool_result).
 
@@ -151,10 +151,13 @@ def _trim_messages(messages: list[dict[str, Any]], max_chars: int) -> list[dict[
     user-beurt, zodat elk tool_result zijn tool_use behoudt (Anthropic weigert een orphan). Omdat
     messages[0] altijd een platte user-vraag is, termineert dat en is het resultaat nooit leeg;
     correctheid gaat daarbij boven het strikte char-budget. `max_chars<=0` → ongewijzigd.
+
+    `vraag` wijst de lopende beurt aan (`beurt_start`). Zonder telt een correctiebericht als begin van
+    de beurt, en dan krimpt juist de brontekst die het model moet herstellen, of valt de vraag weg.
     """
     if max_chars <= 0 or not messages:
         return messages
-    messages = _krimp_oude_toolresultaten(messages, max_chars)
+    messages = _krimp_oude_toolresultaten(messages, max_chars, vraag)
     total = 0
     start = 0
     for i in range(len(messages) - 1, -1, -1):
@@ -166,7 +169,7 @@ def _trim_messages(messages: list[dict[str, Any]], max_chars: int) -> list[dict[
     # (een platte user-beurt), zodat er geen orphan tool_result vooraan blijft staan.
     while start > 0 and not _is_plain_user(messages[start]):
         start -= 1
-    return messages[start:]
+    return messages[min(start, beurt_start(messages, vraag)):] if vraag else messages[start:]
 
 
 # Bovengrens op wat er in de CHECKPOINTER blijft staan. `max_history_chars` begrenst alleen wat er
@@ -215,18 +218,35 @@ def _voeg_toe_en_snoei(
     return _snoei_historie(list(bestaand) + list(nieuw), MAX_HISTORIE_CHARS)
 
 
+def _beantwoord(messages: list[dict[str, Any]], i: int) -> set[str]:
+    """De id's van de tool-aanroepen die in het bericht ná `i` een resultaat hebben."""
+    volgend = messages[i + 1].get("content") if i + 1 < len(messages) else None
+    if not isinstance(volgend, list):
+        return set()
+    return {b.get("tool_use_id", "") for b in volgend if isinstance(b, dict) and b.get("type") == "tool_result"}
+
+
 def _schoon_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Strip lege tekstblokken (Anthropic weigert {"type":"text","text":""} – Claude stuurt die soms
-    mee náást een tool_use; via het gespreksgeheugen komen ze terug). Berichten waarvan de content
-    daardoor leeg wordt, slaan we over; tool_use/tool_result en string-content blijven ongemoeid."""
+    """Maak de bewaarde historie geldig voor de provider, in de kopie die naar het model gaat.
+
+    - Lege tekstblokken weg: Anthropic weigert {"type":"text","text":""}, Claude stuurt die soms mee
+      náást een tool_use, en via het gespreksgeheugen komen ze terug.
+    - Een `tool_use` zonder `tool_result` direct erna weg. De checkpointer bewaart de aanroep vóór
+      `tools_node` draait, dus stoppen, een crash of de stappenlimiet laat hem open staan, en dan
+      weigert Anthropic elke volgende beurt in dat gesprek. Geen verzonnen resultaat: de aanroep is
+      niet uitgevoerd. Omdat dit bij elke beurt gebeurt, herstelt het ook bestaande gesprekken.
+
+    Berichten waarvan de content daardoor leeg wordt, slaan we over; twee user-berichten op rij
+    zijn toegestaan."""
     schoon: list[dict[str, Any]] = []
-    for m in messages:
+    for i, m in enumerate(messages):
         c = m.get("content")
         if isinstance(c, list):
             nieuw = [
                 b
                 for b in c
                 if not (isinstance(b, dict) and b.get("type") == "text" and not str(b.get("text", "")).strip())
+                and not (isinstance(b, dict) and b.get("type") == "tool_use" and b.get("id") not in _beantwoord(messages, i))
             ]
             if nieuw:
                 schoon.append({**m, "content": nieuw})

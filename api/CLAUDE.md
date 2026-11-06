@@ -5,6 +5,14 @@ die de [frontend](../frontend) (werkplek, login, beheervenster) en graph-qa bedi
 projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staan in
 [`README.md`](README.md); dit bestand gaat over hoe de code in elkaar zit en wat je niet mag breken.
 
+## Lijn van de code
+
+Nieuwe domeinen volgen **stijl C**: de store gooit de HTTP-fouten in de transactie, de router is dun. Zo zitten de
+sloten waar de transactie zit. Oudere modules wijken af en dat is geen bug: `gesprek_store` is een klasse met `Depends`
+(A), `users`, `registraties`, `profiles`, `api_tokens`, `verbruik`, `berichten` en `feedback` geven domeinfouten die de
+router vertaalt (B), en `begrippen_overzicht` en `artefact_versies` hebben router en store in één bestand (D). Niet
+ombouwen zonder reden.
+
 ## Wat de API doet
 
 1. **Het JAS-annotatiedomein** (`/v1/annotatie/*`): markeringen, beslissingen, append-only audit,
@@ -1019,6 +1027,10 @@ de stand van die beurt zien, dan heb je een momentopname nodig. Alleen een begri
   (`maak_2fa_ticket`, 5 min, Fernet); `verify_credentials` meldt dat als `"ok_totp"`. De 2FA-secret
   is versleuteld met dezelfde Fernet-key als de LLM-keys. Tests zetten de klok stil via
   `users._nu`; `_totp_now` in `tests/test_users_auth.py` schuift per code een stap op.
+- **Een 2FA-koppeling starten vraagt het wachtwoord** (`users.begin_2fa`), en actieve 2FA blijft
+  staan: een sessie alleen mag de tweede factor niet vervangen. Die weigering (409, security-log
+  `2fa_begin_geweigerd`) zit in de voorwaardelijke `UPDATE`, niet in een eerdere lezing. Uitzetten kan
+  alleen met een code; een herstelpad bij een verloren authenticator is er nog niet.
 - **Zelfregistratie** (`registraties.py`): een aanvraag is **geen account** – tot de goedkeuring
   bestaat er geen rij in `users`. De userid wordt afgeleid uit de naam (vier letters achternaam +
   eerste letter voornaam + volgnummer) en is bij goedkeuren corrigeerbaar; de bcrypt-hash gaat

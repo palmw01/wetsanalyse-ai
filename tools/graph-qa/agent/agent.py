@@ -14,6 +14,7 @@ user-message; de append-reducer plakt die aan de gepersisteerde historie.
 from __future__ import annotations
 
 import logging
+import re
 import uuid
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
@@ -24,6 +25,7 @@ from langgraph.errors import GraphRecursionError
 
 from .agent_common import BeurtGestopt, run_sync
 from .config import Settings
+from .beurtmeting import route_van
 from .models import Verbruiksmeter
 from .observability import get_tracer
 from .ports import GraphPort, LLMPort
@@ -65,6 +67,23 @@ def _checkpointer_ctx(settings: Settings):
     return _mem()
 
 
+#: Hoe de provider een te grote vraag noemt. De statuscode zegt dat niet: elke 400 is een
+#: `BadRequestError`, ook een ongeldige berichtenreeks, en "begin een nieuw gesprek" is daar geen hulp.
+_TE_LANG_RE = re.compile(r"too long|too large|too many tokens|maximum context|context length|exceed", re.IGNORECASE)
+
+
+def _provider_fout(exc: Exception) -> tuple[str, str]:
+    """Foutsoort en melding uit de body van de provider, voor zover die er is.
+
+    Een fout midden in een stream komt binnen bij HTTP 200: de SDK maakt er een kale `APIStatusError`
+    van, en alleen `body.error.type` zegt dan wat er aan de hand is."""
+    body = getattr(exc, "body", None)
+    fout = body.get("error") if isinstance(body, dict) else None
+    if not isinstance(fout, dict):
+        return "", str(getattr(exc, "message", "") or "")
+    return str(fout.get("type") or ""), str(fout.get("message") or "")
+
+
 def _foutmelding(exc: Exception) -> str:
     """Wat de jurist te zien krijgt als een beurt sneuvelt – per soort fout iets anders.
 
@@ -73,12 +92,18 @@ def _foutmelding(exc: Exception) -> str:
     hem niet heeft.
     """
     soort = type(exc).__name__
-    if soort == "RateLimitError":
+    body_soort, bericht = _provider_fout(exc)
+    if soort in ("RateLimitError", "OverloadedError", "ServiceUnavailableError") or body_soort in (
+            "rate_limit_error", "overloaded_error"):
         return ("De modelprovider is momenteel overbelast. Probeer het over een halve minuut "
                 "opnieuw – je vraag is niet verloren, hij is alleen niet uitgevoerd.")
-    if soort in ("BadRequestError", "UnprocessableEntityError"):
+    if soort == "RequestTooLargeError" or body_soort == "request_too_large" or (
+            soort in ("BadRequestError", "UnprocessableEntityError") and _TE_LANG_RE.search(bericht)):
         return ("Deze beurt paste niet binnen de grenzen van het model – meestal is het gesprek te "
                 "lang geworden. Begin een nieuw gesprek of stel de vraag gerichter.")
+    if soort in ("BadRequestError", "UnprocessableEntityError"):
+        return ("De modelprovider weigerde deze beurt door een technische fout. Probeer het opnieuw; "
+                "blijft het misgaan, dan staat de oorzaak in het server-log.")
     if soort in ("APIConnectionError", "APITimeoutError"):
         return ("Ik kon de modelprovider niet bereiken. Probeer het zo opnieuw; blijft het "
                 "misgaan, dan staat de oorzaak in het server-log.")
@@ -217,8 +242,12 @@ async def answer_stream(
             # niet uitschakelen; eventuele aanvullende brontools rapporteren hun eigen fout.
             logger.warning("brongraaf niet beschikbaar; annotatieleesroute blijft bereikbaar", exc_info=True)
     except Exception as exc:
-        logger.warning("MCP-verbinding mislukt", exc_info=True)
-        yield {"type": "error", "message": f"MCP-verbinding mislukt: {exc}"}
+        # Hetzelfde `try` bouwt ook de LLM-client, en de ruwe fout kan endpoints bevatten: de jurist krijgt
+        # een vaste melding, het detail staat in het log. `soort` zoals bij elke andere fout.
+        logger.warning("MCP-verbinding of modelclient mislukt", exc_info=True)
+        yield {"type": "error", "soort": type(exc).__name__,
+               "message": ("Ik kon de kennisgraaf of de modelprovider niet bereiken. Probeer het zo opnieuw; "
+                           "blijft het misgaan, dan staat de oorzaak in het server-log.")}
         if graph is not None:
             graph.close()
         return
@@ -305,8 +334,10 @@ async def answer_stream(
                 async for mode, chunk in app.astream(init, config=config, stream_mode=["custom", "values"]):
                     if mode == "custom":
                         yield chunk
-                    elif mode == "values" and "grounded" in chunk:
-                        grounded = chunk["grounded"]
+                    elif mode == "values":
+                        grounded = chunk.get("grounded", grounded)
+                        if meter is not None:
+                            meter.route = route_van(chunk)
                 span.set_attribute("graph_qa.grounded", grounded)
                 logger.info(
                     "antwoord klaar",

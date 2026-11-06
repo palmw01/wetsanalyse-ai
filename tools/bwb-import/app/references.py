@@ -35,6 +35,7 @@ _JCI_BWB = re.compile(r":c:(BWBR\d+)")
 _JCI_ARTIKEL = re.compile(r"[&?]artikel=([^&]+)")
 _JCI_LID = re.compile(r"[&?]lid=([^&]+)")
 _JCI_ONDERDEEL = re.compile(r"[&?]o=([^&]+)")
+_JCI_BIJLAGE = re.compile(r"[&?]bijlage=")
 _JCI_STRUCTUUR = re.compile(r"[&?](hoofdstuk|titeldeel|afdeling|paragraaf)=([^&]+)")
 
 
@@ -102,7 +103,8 @@ def jci_node_ref_key(doc: str | None) -> tuple[str | None, str | None]:
     met hiërarchische nummering (de Awb: ``afdeling=10.2.1``) hebben géén hoofdstuk-segment en houden
     dus precies dezelfde sleutel als met alleen het laatste segment — daar is ook geen collisie.
 
-    Artikel-, lid- en onderdeelsleutels blijven ongemoeid: die zijn binnen een regeling al uniek.
+    Artikel-, lid- en onderdeelsleutels blijven ongemoeid: die zijn binnen de wettekst al uniek.
+    Een jci die in een bijlage wijst valt onder :func:`jci_doel_ref_key`: daar bestaat geen padsleutel.
     """
     if not doc:
         return (None, None)
@@ -110,7 +112,7 @@ def jci_node_ref_key(doc: str | None) -> tuple[str | None, str | None]:
     if not bwb_match:
         return (None, None)
     bwb = bwb_match.group(1)
-    if _JCI_ARTIKEL.search(doc):
+    if _JCI_ARTIKEL.search(doc) or _JCI_BIJLAGE.search(doc):
         # Een artikel (of lid/onderdeel) heeft zijn eigen unieke sleutel; het structuurpad
         # ernaartoe hoort daar niet in, anders verandert elke artikel-IRI in de graaf.
         return jci_doel_ref_key(doc)
@@ -135,6 +137,10 @@ def jci_doel_ref_key(doc: str | None) -> tuple[str | None, str | None]:
 
     Versieparameters (``&z=``/``&g=``) worden genegeerd; van herhaalde
     ``&artikel=``-/structuursegmenten telt het laatste (meest specifieke).
+
+    Een doel in een bijlage (``&bijlage=2``, eventueel met hoofdstuk of artikel) blijft op de regeling
+    staan. De nodes in een bijlage hebben een wet-lokale `id:`-sleutel die uit de jci niet valt af te
+    leiden, en zonder deze regel wijst ``&bijlage=2&hoofdstuk=1`` naar hoofdstuk 1 van de wet.
     """
     if not doc:
         return (None, None)
@@ -142,6 +148,8 @@ def jci_doel_ref_key(doc: str | None) -> tuple[str | None, str | None]:
     if not bwb_match:
         return (None, None)
     bwb = bwb_match.group(1)
+    if _JCI_BIJLAGE.search(doc):
+        return (bwb, "wet")
 
     artikelen = _JCI_ARTIKEL.findall(doc)
     if artikelen:

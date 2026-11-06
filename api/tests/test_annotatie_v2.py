@@ -208,6 +208,8 @@ async def test_approved_element_requires_explicit_reopen():
         await store.beslis(eid, Beslissing(type="reject", snapshot_id=snap["snapshot_id"],
                                           verwachte_revisies={ONE: 2}), snap, "b")
     assert exc.value.status_code == 409
+    # graph-qa herkent dit aan de code, de werkplek toont de melding (`parseError`, `nodeError`).
+    assert exc.value.detail["fout"] == "heropen_nodig" and exc.value.detail["melding"].startswith("Heropen")
 
 
 async def test_search_stale_projection_is_partial_not_false_empty(monkeypatch):

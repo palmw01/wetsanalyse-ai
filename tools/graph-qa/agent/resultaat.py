@@ -179,6 +179,20 @@ def fout(reden: str, melding: str, **velden: Any) -> str:
     return _json({"status": "error", "reden": reden, "melding": melding, **velden})
 
 
+def is_fout(raw: str) -> bool:
+    """Is dit toolresultaat een fout? De ene toets: voor `is_error` naar het model én in de MCP-server.
+
+    Een tool werpt niet: `dispatch` geeft een fout terug als tekst met uitleg, of als JSON met een status
+    (`fout`, en `unavailable`/`invalid_request` van de leestools)."""
+    if raw.startswith(("Fout bij tool", "Onbekende tool")):
+        return True
+    try:
+        data = json.loads(raw)
+    except ValueError:
+        return False
+    return isinstance(data, dict) and data.get("status") in {"error", "unavailable", "invalid_request"}
+
+
 def waarden(tekst: str) -> str:
     """De inhoud van een toolresultaat zoals een controle hem moet lezen.
 

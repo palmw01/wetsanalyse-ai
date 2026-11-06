@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { auth } from "@/auth";
+import { BrowserFouten } from "@/components/BrowserFouten";
 import { Providers } from "@/components/Providers";
 import { sans, mono } from "./fonts";
 import "./globals.css";
@@ -58,6 +59,7 @@ export default async function RootLayout({
           browsers zonder dvh. */}
       <body className="min-h-screen min-h-[100dvh]">
         <Providers session={session}>
+          <BrowserFouten />
           {children}
           {modal}
         </Providers>

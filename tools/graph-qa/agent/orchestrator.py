@@ -26,6 +26,7 @@ from typing import Any
 from langgraph.graph import END, START, StateGraph
 
 from .agent_common import BeurtGestopt, truncate
+from .observability import get_tracer
 from .doel import (  # noqa: F401 – re-export: tests importeren _kandidaten_uit_json hiervandaan
     _bepaal_doel,
     _corpus_uit_trace,
@@ -220,9 +221,19 @@ def build_graph(
             return fn(state)
         return bewaakt
 
+    tracer = get_tracer(__name__)
+
+    def met_span(naam: str, fn):
+        """Eén span per node, ná de stopcontrole: zo is te zien welke stap van een beurt traag was."""
+        @functools.wraps(fn)
+        def gemeten(state: State) -> dict[str, Any]:
+            with tracer.start_as_current_span(f"graph_qa.node.{naam}"):
+                return fn(state)
+        return gemeten
+
     def add(naam: str, fn) -> None:
         """Registreer een node, altijd met de stopbewaking eromheen."""
-        g.add_node(naam, stopbaar(fn))
+        g.add_node(naam, stopbaar(met_span(naam, fn)))
 
     def annotatieketen() -> str:
         """Registreer de annotatie-worker en zijn edges; geeft de naam van de ingang terug.

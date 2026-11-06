@@ -60,7 +60,7 @@ routering, dan faalt die test – dat hoort, maar het moet een bewuste wijziging
 legt één helper (`annotatieketen()`) in elke tak identiek; de antwoordketen staat per tak apart omdat
 die echt verschilt (`verify → resynth` bij decompositie, `verify → correct` anders). Decompositie
 (`ENABLE_DECOMPOSITION`, op Azure uit) bouwt in `solve_node` een eigen agent-lus per deelvraag na met
-lokale scratch-messages; alleen de synthese streamt.
+lokale scratch-messages.
 
 Ondersteunend, op agent-niveau omdat meerdere ketens ze delen: `agent/state.py` (de `State`-TypedDict;
 `messages` en `entities_seen` zijn `operator.add`-reducers), `agent/berichten.py` (het venster naar de
@@ -82,20 +82,28 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   tekst, geen extra call).
 - **`agent_node`** – draait de specialist (`agent/specialists.py`): `SYSTEM_PROMPT` + methode-instructies
   (`agent/methode.py`, uit het gegenereerde `methodepakket.py`) + addendum + plan, met
-  `anthropic_schemas(only=spec.tools)`. Op een beurtgrens (turns > 0) gaat vóór de eerste tekst-delta één
-  `\n\n` uit, zodat de narratie van opeenvolgende beurten niet aan elkaar plakt.
+  `anthropic_schemas(only=spec.tools)`. Tekst stroomt niet mee: pas na de ronde is bekend of het narratie
+  is. Een ronde mét tools gaat dan als `reason` naar het denkproces (`narratie.ronde_in_denk`, met `\n\n`
+  op een rondegrens). Een ronde zonder tools is een eindantwoord: dat gaat de state in, nooit naar `reason`.
 - **`tools_node`** – voert elke aanroep uit via `dispatch(...)` en voegt `(tool_naam, resultaat)` toe
   aan de `source_trace`. Dezelfde aanroep (naam + argumenten) gaat in één beurt één keer naar de graaf; een herhaling krijgt
   het bewaarde resultaat met `HERHAALD` (`_al_gedaan`, uit de berichten van de beurt). Elke aanroep houdt zijn resultaat,
-  want het model eist er een.
+  want het model eist er een. Een fout (`resultaat.is_fout`, dezelfde toets als de MCP-server) draagt `is_error` en mag
+  één keer opnieuw (`MAX_POGINGEN`): een tijdelijke storing zegt niets over de graaf, een blijvende mag de beurtlimiet niet
+  opeten.
 - **`verify_node`** – `check_grounding(answer, source_trace)`. Bij ongegrond volgt via `correct_node`
   hoogstens één corrigerende ronde (`GROUNDING_CORRECT`, default aan; `state["corrected"]`). De controle
   keurt **twee** dingen af en `correct_node` moet ze allebei benoemen: `unsupported` (een vindplaats die
   niet uit de graaf kwam) en `niet_letterlijk` (een citaat dat niet letterlijk in de opgehaalde tekst
   staat). Bij de citaten gaan de passages zelf mee (afgekapt) – zonder de tekst weet het model niet
   wélk citaat het moet herstellen.
-- **`finalize_node`** – `collect_sources` → `curate_sources` → `met_regelingnamen` → emit `sources` +
-  `grounding`; werkt `entities_seen` bij.
+- **`finalize_node`** – de enige plek in de antwoordketen die `token` uitstuurt (ook voor het overzicht en
+  de decompositie; `tests/test_uitgifte_na_controle.py` bewaakt het). Een controle die volgt op publicatie
+  houdt niets tegen, dus de jurist ziet een antwoord pas ná `verify` en afgekeurde tekst nooit, ook niet in
+  het denkproces (besluit 6 nov 2026). Blijft de tekst na de correctieronde afgekeurd, dan gaat hij mee met
+  het oordeel in het `grounding`-event: de controle keurt ook terechte citaten af. Daarna `collect_sources`
+  → `curate_sources` → `met_regelingnamen` → emit `sources` + `grounding`; werkt `entities_seen` bij.
+  Het afgekeurde antwoord blijft wel als modelbericht in de checkpoint staan.
 
 ### Gespreksgeheugen (checkpointer)
 
@@ -103,7 +111,12 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
 (getrimd op `MAX_HISTORY_CHARS`; oudere tool-resultaten krimpen eerst, maar **de lopende beurt
 krimpt nooit** – `berichten.beurt_start` – anders leest het model zijn verse resultaat als
 "ingekort, vraag opnieuw op" en zoekt het in een lus; de opslagrem `berichten.MAX_HISTORIE_CHARS` hoort ruim daarboven te
-liggen, `Settings.controleer_historie_grens` waarschuwt). De annotatie-worker laat een korte
+liggen, `Settings.controleer_historie_grens` waarschuwt). `agent_node` geeft daarom de vraag mee aan
+`_trim_messages`: zonder telt een correctiebericht als begin van de beurt, en krimpt de brontekst die het model
+moet herstellen. **Een `tool_use` zonder `tool_result` gaat niet naar het model** (`_schoon_messages`): de
+checkpointer bewaart de aanroep vóór `tools_node` draait, dus stoppen, een crash of de stappenlimiet laat hem open
+staan, en Anthropic weigert dan elke volgende beurt. Hij valt weg bij elke beurt, dus ook bestaande gesprekken
+herstellen; `tests/test_gesprek_blijft_bruikbaar.py` breekt een beurt op elke nodegrens af. De annotatie-worker laat een korte
 samenvatting van de markeringen achter, zodat vervolgvragen context hebben. Backend
 (`agent.py:_checkpointer_ctx`, voorrang): `CHECKPOINT_DB_URL` → `AsyncPostgresSaver` (gedeeld,
 verplicht bij >1 replica) → `CHECKPOINT_DB_PATH` → `AsyncSqliteSaver` (per instance; de default is een
@@ -301,7 +314,7 @@ hier vandaan maar uit `bronmodel.resolve` (zie §*De annotatieketen*).
   modeltekst en nooit annotatieresultaten. Bronnen uit eerdere beurten komen alleen in de lijst als
   het antwoord hun regeling noemt.
 - **Een bijna-letterlijk citaat wordt de brontekst** (`grounding.herstel_citaten`, in `agent_node`
-  vóór het antwoord de deur uit gaat). Afwijkingen als een hoofdletter aan het begin of een punt
+  vóór de controle). Afwijkingen als een hoofdletter aan het begin of een punt
   binnen de aanhalingstekens zoekt hij hoofdletter- en witruimte-ongevoelig op in register + trace.
   Bij precies één vindplaats zet hij de brontekst terug, met een eventueel leesteken achter het
   aanhalingsteken. Alles daarbuiten (een ander woord, een weglating, eigen woorden) blijft voor
@@ -375,10 +388,8 @@ bronnode: `POST /v1/annotatie/lagen/batch` met `batch_id` (= run_id), `bron_iri`
   annotatie blijft staan. `DELETE /v1/conversations/{id}` zet bovendien het stopverzoek.
 - **Een afgeronde laag** geeft de foutcode `annotatie_afgerond` met de vraag om te heropenen;
   `wetsanalyse_api` logt de reden van de api (`api_reden`, nooit de body).
-- **Wat de api niet bewaart, meldt de driver als `waarschuwing`** (geen `error`: de beurt slaagde):
-  verworpen elementen (header `X-Verworpen`) en al geannoteerde, ongewijzigde leden. **Lees
-  response-headers in kleine letters** – httpx geeft ze zo terug. `tests/test_gedeelde_laag.py` draait
-  daarom tegen de échte client met een `MockTransport`.
+- **Wat de api niet bewaart, meldt de driver als `error`** met een eigen tekst.
+  `tests/test_gedeelde_laag.py` draait daarom tegen de échte client met een `MockTransport`.
 - **De contractgrens ligt in `wetsanalyse_api.naar_contract`.** Hier `aandacht: str = ""`, bij de api
   `Aandacht | None`: dat verschil is een 422. Vertaal zulke velden op de grens en zet ze in `OPGEVANGEN`
   in `tests/test_contract_drift.py`, dat beide modellen veld voor veld vergelijkt – ook het chatbericht
@@ -914,7 +925,7 @@ werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en
   gaat het dan meteen naar de samenvatting.
 - **Alleen een gekozen bepaling wordt een bronselectie** (rol *analyseren*, bereik *onderliggend*),
   gekoppeld aan de deelvragen op wier kaartje ze gekozen werd (één bron voor meer deelvragen). **Een getypte
-  bepaling is ook een keuze** (spoor L): de node ontleedt de tekst vóór `verwerk` (`_eigen_bepalingen` →
+  bepaling is ook een keuze** (spoor L): de node ontleedt de tekst vóór `verwerk` (
   `bepaling_namen.bepalingen_uit_tekst`, dezelfde regels als spoor J: geknipt vóór elk "artikel", per stuk de
   regeling die het noemt, anders de enige van de tekst of van de intake; Awb-nummers als 4:86) en toetst elke
   bepaling in de graaf (`bepaling_namen.bepaling_in_graaf`, één lichte query). Gevonden: `eigen` op het antwoord.
@@ -1084,7 +1095,7 @@ onder de supervisor, naast de intake; zie `docs/architectuur/bronselectie-per-de
 Draagt een beurt een `werkgebied_id`, dan haalt `answer_stream` het werkgebied bij de api
 (`_werkgebied_blok`, per beurt vers) en zet `als_blok` het in `State.werkgebied_context`;
 `memory_context` geeft het naast de focus aan de supervisor en elke specialist – ook met
-`ENABLE_MEMORY_CONTEXT` uit. Context, geen filter; zonder api of bij een storing leeg. Dezelfde
+`Settings.enable_memory_context` uit (een veld zonder env-variabele, dus alleen in tests uit te zetten). Context, geen filter; zonder api of bij een storing leeg. Dezelfde
 `context_tekst` voedt de intake en de deelvragenrun. De bronnenrun krijgt het dossier in zijn
 invoer (`invoer.dossier`, api); alleen de methode `deelvraag` leest het, en dan voor de rangschikking en het
 weglaten van wat buiten de afbakening valt. Meer vraagt eerst een meting (PLAN spoor F, *Vervolg*).
@@ -1096,7 +1107,7 @@ gesprek. Het verzoek draagt alleen `onderwerp: {soort, werkgebied_id, id?, label
 `answer_stream` haalt het object per beurt bij de api (`onderwerp.haal`: het werkgebied, de dekking, de
 kandidaten, het begrip met zijn open kaartvoorstellen) en zet het blok in `State.onderwerp_context`.
 `memory_context` geeft het vóór het werkgebiedblok aan supervisor en elke specialist, ook met
-`ENABLE_MEMORY_CONTEXT` uit.
+`Settings.enable_memory_context` uit.
 
 - **Context, geen filter en geen route.** De supervisor kiest zoals altijd; het onderwerp zegt alleen
   waar de vraag over gaat. `focus.bij_onderwerp` houdt het object vast voor een vervolgvraag zonder chip
@@ -1262,7 +1273,7 @@ SPARQL was deterministisch; de keten eromheen niet. Nu is wat feitelijk is code 
    (`bwb:label`: "Artikel 79.5a" → "art. 79.5a", "79.5" → "79.5" – de Leidraad wisselt zelf, en dat
    verschil wordt niet weggepoetst), `vindplaats` per definitie (`bronmodel.vindplaats`).
 5. **Uitgangen:** een `overzicht`-event (de werkplek toont het als blok en bewaart het in
-   `Bericht.overzicht`); de samenvatting als `token`, `answer` en assistent-bericht na het
+   `Bericht.overzicht`); de samenvatting als `answer` (`finalize_node` stuurt de `token`) en assistent-bericht na het
    `tool_use`/`tool_result`-paar (`voor_model`, voor vervolgvragen); in de `source_trace` de
    vindplaatsen (`bronrijen`). Route `overzicht_bouwen → verify → finalize`; `route_after_verify` gaat
    met een overzicht nooit naar een correctieronde (die zou het model alsnog laten schrijven).
@@ -1360,8 +1371,8 @@ wie een oordeel velt over wetgeving hoort niet met een env-var te verzwakken.
 - **DI, geen globale clients.**
 - **SSE-event-contract.** De event-types zijn het contract met de werkplek; wijzig ze bewust,
   gelijktijdig en over beide wegen (`/v1/chat` én de run-events). **`reason` = het denkproces, `token` =
-  alléén het eindantwoord** – houd ze gescheiden. `waarschuwing` betekent dat de beurt slaagde maar niet
-  alles bewaard is; dat is iets anders dan `error`. `error` draagt `soort` (de exception-naam) naast de
+  alléén het eindantwoord, na de controle** – houd ze gescheiden. `waarschuwing` heeft één afzender: een gedegradeerde taalanalyse
+  (`nodes/annotatie.py`). De beurt slaagde; dat is iets anders dan `error`. `error` draagt `soort` (de exception-naam) naast de
   gesaniteerde melding, zodat de eval een providerstoring van een inhoudelijke fout onderscheidt.
 - **De keten meldt zich per fase, met duur, in één idioom: `Actor · wat er gebeurde`.** Alle
   statusregels lopen via `narratie._stap(writer, actor, bericht)`; een test bewaakt de vorm. De

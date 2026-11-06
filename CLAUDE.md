@@ -48,7 +48,7 @@ plaats van schijnzekerheid.
 > Daarop formuleert de analist **begrippen**: een begripskaart, gekoppeld aan de annotatiepassages
 > die het begrip dragen, met beoordeling, historie en export. Lex stelt betekenisgroepen voor
 > (deterministisch, ADR-004), ook vanuit het gesprek: wat een beurt oplevert is een **artefact**
-> (annotatie, begripsvoorstellen, gevonden bepalingen, het werkgebied, één deelvraag of één begrip;
+> (annotatie, begripsvoorstellen, de bronselectie, het werkgebied, één deelvraag of één begrip;
 > afleidingsregels gereserveerd), dat naast het gesprek opent om te beoordelen. Lex denkt mee met een model bij
 > twijfel en stelt definities voor (geel, met de fragmenten waarop ze rusten), en werkt een begrip uit
 > vanuit het gesprek (*Vraag Lex* bij het begrip): brondefinitie zoeken, een scherpere definitie, het
@@ -375,8 +375,11 @@ de digest van de eerste, `ghcr-cleanup` ruimt die op en de deploy van de eerste 
 ### De poort
 
 `poort.yml` heeft bewust **geen `paths`-filter**: een verplichte check die door een filter niet
-draait, laat een PR voorgoed op "expected" staan. Hij bepaalt zelf wat de PR raakt en draait alleen
-die suites (`*.md` telt niet mee, behalve onder `.claude/skills/wetsanalyse/`, en
+draait, laat een PR voorgoed op "expected" staan. Bij elke wijziging aan code draait hij
+`scripts/kruistests.sh`: het routecontract en de vormtests (`tests/poort/`, alleen stdlib) en alle tests die
+buiten hun onderdeel lezen, zodat drift ook rood wordt als alleen de andere kant wijzigt. De hook doet hetzelfde.
+De browsertests mocken `/api/**`; een methode- of padfout tussen de lagen vangt alleen dat contract. Daarnaast
+bepaalt hij wat de PR raakt en draait alleen die suites (`*.md` telt niet mee, behalve onder `.claude/skills/wetsanalyse/`, en
 `packages/bronmodel/` triggert api én graph-qa). De frontend draait naast vitest/lint/typecheck een
 Playwright-browserregressie (`npm run test:browser`); graph-qa en api draaien tegen een
 PostgreSQL-servicecontainer (`RUNSTORE_TEST_DSN`, `ANNOTATIE_TEST_DSN`), zodat de databasetests niet
@@ -463,14 +466,14 @@ plan mag verouderen.
   begrippen (activiteit 3), niet alleen het exportformaat. `adr-004-begrippenketen.md` ontwerpt
   de keten die betekenisgroepen voorstelt, in de vorm van `hybrid_v1`. `adr-005-vraag-lex-en-agents.md`
   legt Vraag Lex en de agents onder de supervisor vast (F3). `adr-006-generieke-begrippen.md` legt
-  het generieke begrippenkader boven de werkgebieden vast (spoor N).
+  het generieke begrippenkader boven de werkgebieden vast (spoor N). `adr-007-llm-pad-en-verwerker.md` is
+  een concept: wat vastligt over het LLM-pad en wat de eigenaar nog moet besluiten.
 - `docs/architectuur/annotatieketen.md` – hoe de annotatieketen **nu** werkt: stappen,
   configuratie (`CLASSIFIER_GRANULARITEIT` e.d.), beslisbeleid, detectoren en bekende beperkingen.
   `docs/architectuur/metingen/README.md` is het meetlogboek: welke meting bij welke code hoort.
   Meetbestanden zijn bewijs en worden niet achteraf gewijzigd.
 - `docs/wetsanalyse-workbench/` – de JAS-annotatie-ontologie (het RDF-model van de lagen).
-- `docs/PLAN.md` – het **enige plan**: de open sporen (A validatie V7, B herkomst in werkplek en
-  exports, C leerlus, D werkgebieden en begrippen, E kennisbank) en de open keuzes. Lees spoor E vóór
-  je aan retrieval of grounding werkt, want het stelt eisen aan beide.
+- `docs/PLAN.md` – het **enige plan**: de sporen met hun stand (tabel *Open sporen*) en de open
+  keuzes. Lees spoor E vóór je aan retrieval of grounding werkt, want het stelt eisen aan beide.
 - `docs/observability.md` en `docs/schrijfrichtlijn-lex.md` (de toon van Lex; zijn identiteit staat in
   `tools/graph-qa/agent/prompts.py`).

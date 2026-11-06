@@ -505,7 +505,7 @@ async def _leg_vast(
                 **({"annotatie_doel": opgeslagen_doel,
                     "artefact": annotatie_artefact(opgeslagen_doel, _titel(opgeslagen_doel))} if opgeslagen_doel else {}),
             }
-        elif isinstance(exc, WetsanalyseApiFout) and exc.status == 409 and "Heropen" in exc.reden:
+        elif isinstance(exc, WetsanalyseApiFout) and exc.status == 409 and exc.reden == "heropen_nodig":
             # De laag werd afgerond terwijl de beurt liep (vooraf controleert de annotatie-route
             # dat al). Opnieuw proberen helpt dan niet; heropenen wel.
             yield {"type": "error", "foutcode": "annotatie_afgerond",

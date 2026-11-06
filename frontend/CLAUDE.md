@@ -77,7 +77,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   - `annotaties/` – het overzicht en de losse annotatiepagina (`AnnotatiesClient`, `AnnotatieKaart`,
     `NodeAnnotatiePaneel`, `AnnotatiePaginaSchil`).
   - `werkgebieden/` – overzicht en pagina van een werkgebied (`WerkgebiedenClient`,
-    `WerkgebiedClient`, de tabs `BronnenTab`/`ElementenTab`/`SamenhangTab`/`HistorieTab`, het kader `BegrippenKader`,
+    `WerkgebiedClient`, de tabs `OverzichtTab`/`ElementenTab`/`SamenhangTab`/`HistorieTab`, het kader `BegrippenKader`,
     het begrip als `BegripInhoud` met `useBegrip` (dezelfde inhoud op de pagina en naast het gesprek),
     `WerkgebiedSchil`, en
     `OpnemenInWerkgebied` voor de annotatiepagina).
@@ -329,15 +329,15 @@ herladen breekt hem niet af. Regels:
 - **Stoppen is een verzoek** (`stopRun`), geen dichtvallende socket. De agent stopt op een nodegrens,
   dat kan tientallen seconden duren; de knop blijft daarom in de `stopt`-stand. Stoppen vóór de
   voorstellen levert er nul op, en het bericht zegt dat.
-- **Na een herstart van de agent is het run-register leeg.** `lib/lopendeRun.ts` onthoudt per gesprek
+- **Een run kan onbekend zijn als je terugkomt** (opgeruimd, of een agent zonder database; op Azure staat
+  het register in Postgres). `lib/lopendeRun.ts` onthoudt per gesprek
   welk run-id er liep; `standVanVorigeRun` bepaalt dan of de beurt gewoon is afgerond (het bericht met
   dat `run_id` staat in de geschiedenis) of echt verdwenen is. Alleen in dat tweede geval komt er een
   melding; zonder die controle zou elke normale afloop als "afgebroken" gemeld worden.
 - **Een weggevallen verbinding is geen mislukte beurt.** Bij een deploy wordt de frontend-container
-  vervangen terwijl de run doorloopt. `volgBeurt` haakt daarom **één keer** opnieuw aan
-  (`naEenGebrokenStream`, na 1,5 s, met `vanaf: 0`); pas als die herkansing op is of het venster weg
-  is, komt er een foutmelding. Eén poging: is de dienst echt onbereikbaar, dan vertelt doorproberen
-  de gebruiker niets.
+  vervangen terwijl de run doorloopt. `volgBeurt` haakt daarom opnieuw aan zonder
+  pogingen-cap, met oplopende wachttijd (`naEenGebrokenStream`, `herstelWachttijd`: 1,5 tot 15 s). De
+  uitleg staat bij `naEenGebrokenStream` in `lib/lopendeRun.ts`.
 - **`run_id` reist mee naar de API** bij het bewaren van de assistent-beurt; kijken er twee tabbladen
   mee, dan landt de uitkomst toch één keer (de API dedupliceert erop).
 - **Bij een 409 op `startRun`** (er loopt al een beurt op dit gesprek) haakt de client aan bij die run
@@ -1195,7 +1195,7 @@ de markering (`DocumentPaneel`) en de kaart (`ReviewQueue`), met respect voor
   "Waarschijnlijk fout"**, maar de keten zet dat niet: de resolver in graph-qa geeft alleen groen of
   geel. Het veld `review_uitleg` draagt de uitleg van de review en staat uitgeklapt als "Review: …".
 - **De aandacht is een badge met tekst**, in dezelfde vorm als de documentstatus-badge
-  (`AANDACHT_PILL` in `ReviewQueue.tsx` naast `DOCUMENT_STATUS_STYLE`): één badgevorm in de app. Kleur
+  (`StatusLabel`): één badgevorm in de app. Kleur
   doet mee via de linker accentrand en de zachte tint (het scan-signaal), maar draagt het oordeel niet
   alleen. De badge staat op volle sterkte terwijl de kaart dezelfde tint op 40% draagt – anders
   verdwijnt hij in zijn kleurfamilie.
@@ -1600,8 +1600,8 @@ leest als "hij laadt", niet als "log eerst in".
   muispositie en klemt zichzelf via `plaatsPopover`.
 - Eén **`.focus-ring`-utility** in `globals.css` (2.4.13, AAA): een dubbele ring die ook op de donkere
   JAS-kleuren opvalt. Gebruik die in plaats van een eigen `focus-visible:outline`.
-- Elke beslissing wordt **aangekondigd** via de `sr-only aria-live`-regio in `WerkplekClient`
-  (`beslissingMelding`); anders is annoteren voor een schermlezer stil.
+- Elke beslissing wordt **aangekondigd** via de `sr-only aria-live`-regio in
+  `NodeAnnotatiePaneel`; anders is annoteren voor een schermlezer stil.
 - **Escape en Tab zijn voor het bovenste venster.** `Dialog` houdt een stapel bij; alleen het
   bovenste venster reageert, en bij sluiten gaat de focus terug naar waar hij vandaan kwam. `Popover`
   en een scherpe `BevestigKnop` vangen hun Escape in de capture-fase af. Lex heeft geen sneltoetsen;
@@ -1670,8 +1670,8 @@ knop. Zie `docs/observability.md`.
     geen e-mail: wie inlogt terwijl zijn aanvraag loopt, krijgt de `code` `aanvraag_open` uit
     `/verify` (afgehandeld in `LoginClient` naast `totp_required`) – alleen bij het **juiste
     wachtwoord**, anders is het een middel om te ontdekken wie een aanvraag heeft.
-  - **2FA (TOTP)** is optioneel en self-service in de accounttab. De account/2FA-routes zetten
-    `X-User-Id` uit de sessie, nooit uit browser-input.
+  - **2FA (TOTP)** is optioneel en self-service in de accounttab; inschakelen vraagt het huidige
+    wachtwoord. De account/2FA-routes zetten `X-User-Id` uit de sessie, nooit uit browser-input.
   - Auth.js' eigen routes leven onder `/api/auth/*`; zet daar geen eigen BFF-route bij (daarom
     `/api/setup`, `/api/registreren`, `/api/login-verify`, `/api/login-2fa`). Publieke paden staan in
     `isPublic()` in `auth.config.ts`; vergeet je er een, dan stuurt de gate een bezoeker zonder account

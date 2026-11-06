@@ -172,4 +172,40 @@ describe("veiligPad", () => {
   it("valt zonder callbackUrl terug op de startpagina", () => {
     expect(veiligPad(null, eigen)).toBe("/");
   });
+
+  // SEC-2: `//evil` zelf is niet het probleem; wat pas na normalisatie met twee slashes begint wel.
+  it.each([
+    "/.//evil.example",
+    "/x/..//evil.example/p?q=1",
+    "/%2e//evil.example",
+    "/./\\evil.example",
+    "/.///evil.example",
+    "https://app.example/.//evil.example",
+  ])("weigert %s, dat na normalisatie van host wisselt", (invoer) => {
+    expect(veiligPad(invoer, eigen)).toBe("/");
+  });
+
+  it("geeft nooit een waarde terug die `location.href` laat gooien", () => {
+    expect(veiligPad("/\\", eigen)).toBe("/");
+  });
+
+  it("laat een dubbele slash midden in een eigen pad staan", () => {
+    expect(veiligPad("/a//b?c=1", eigen)).toBe("/a//b?c=1");
+  });
+
+  it("levert voor geen enkele combinatie een pad op dat van origin wisselt", () => {
+    // Vijf delen is genoeg voor `/.//evil.example`. Eén verzamelde `expect`: per invoer is te traag.
+    const fragmenten = ["/", "\\", ".", "..", "%2e", "\t", "@", "evil.example", eigen];
+    const mis: string[] = [];
+    let invoer = [""];
+    for (let lengte = 0; lengte < 5; lengte++) {
+      invoer = invoer.flatMap((begin) => fragmenten.map((deel) => begin + deel));
+      for (const cb of invoer) {
+        const pad = veiligPad(cb, eigen);
+        // Tegen een diepere pagina, zoals de login: het resultaat mag niet van de basis afhangen.
+        if (!pad.startsWith("/") || new URL(pad, `${eigen}/login/2fa`).origin !== eigen) mis.push(cb);
+      }
+    }
+    expect(mis).toEqual([]);
+  });
 });

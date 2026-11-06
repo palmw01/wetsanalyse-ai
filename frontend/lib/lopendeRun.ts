@@ -1,7 +1,7 @@
 // Welke beurt had dit gesprek nog lopen toen je wegging?
 //
-// Een run leeft in het geheugen van graph-qa. Een deploy of herstart wist dat register – en dan is
-// een client die terugkomt met een run-id dat niemand meer kent nergens meer aan te haken. Zonder
+// Een run staat op Azure in Postgres, maar een client kan terugkomen met een run-id dat niemand meer
+// kent (opgeruimd, of een agent zonder database: dan leeft het register in het geheugen). Zonder
 // dit spoor zie je dan niets: geen antwoord, geen melding, alleen een gesprek dat halverwege
 // ophoudt. Mét dit spoor kan de werkplek zeggen wát er gebeurd is.
 //

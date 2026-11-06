@@ -55,7 +55,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   }
 
   // Fouten vóór de stream als JSON, niet als SSE-frame: de client zit dan nog in `if (!res.ok)` en
-  // komt aan de frames niet toe. Zelfde afspraak als de agent-route hiernaast.
+  // komt aan de frames niet toe. Zelfde afspraak als bij de andere BFF-routes.
   if (!upstream.ok || !upstream.body) {
     const text = await upstream.text().catch(() => "");
     const headers = new Headers();
