@@ -309,3 +309,14 @@ async def test_het_model_is_slank_en_de_herkomst_rekent_de_api(client):
     r = await client.patch(_url(wg, b), json={"verwachte_revisie": b["revisie"],
                                               "inhoud": {"naam": "X", "definitie_herkomst": "letterlijk"}})
     assert r.json()["inhoud"]["definitie_herkomst"] is None
+
+
+def test_de_vindplaatsregel_is_geen_toelichting():
+    """S6: de gegenereerde zin zegt waar de term staat, niet wat hij afbakent."""
+    from app.begrip_store import eigen_toelichting
+
+    assert not eigen_toelichting("")
+    assert not eigen_toelichting("Komt voor in Artikel 9 · Lid 1; Artikel 79.5a.")
+    assert not eigen_toelichting("Komt voor in Lid 1. Wettelijke definitie in Lid 3.")
+    assert eigen_toelichting("Geldt alleen voor de rijksbelastingen.")
+    assert eigen_toelichting("Komt voor in Lid 1. Geldt alleen voor de rijksbelastingen.")

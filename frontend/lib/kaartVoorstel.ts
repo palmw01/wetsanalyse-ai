@@ -91,6 +91,7 @@ export function duidingZin(d: Duiding): string {
 /** De kop van de onderbouwing onder een overgenomen definitie: "Letterlijk uit Artikel 2, lid 1 – via een
  *  voorstel van Lex" of "Rust op 2 fragmenten uit de bron – via een betekenisgroep". */
 export function onderbouwingKop(o: DefinitieOnderbouwing): string {
+  if (o.aangepast) return "Waar Lex van uitging (de definitie is daarna aangepast)";
   const n = o.fragmenten.length;
   const wat = o.herkomst === "letterlijk" && (o.definitie_vindplaats || o.definitie_bron_iri)
     ? `Letterlijk uit ${o.definitie_vindplaats || o.definitie_bron_iri}`

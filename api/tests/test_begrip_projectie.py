@@ -268,3 +268,30 @@ async def test_een_werkgebied_kiest_een_thema_uit_tooitop(client):
     r = await client.patch(f"/v1/werkgebieden/{wg['id']}", json={"verwachte_revisie": r.json()["revisie"],
                                                                "thema": "https://example.org/verzonnen"})
     assert r.status_code == 422
+
+
+def test_elk_brondocument_heeft_een_naam():
+    """S6: zonder `dct:title` gaf NL-SBB op elke bron een melding, ook op een bron die alleen de definitie onderbouwt."""
+    from app import begrip_projectie as p
+    from rdflib import RDF
+
+    inv = {"schema": p.SCHEMA_VERSIE, "werkgebied": {"id": "w", "naam": "W", "analysevraag": "", "thema": ""}, "relaties": [],
+           "begrippen": [{"id": "b", "status": "concept", "revisie": 1, "gewijzigd": "2026-01-01T00:00:00Z",
+                          "geaccordeerd_op": None, "geaccordeerd_revisie": None, "inhoud": {"naam": "Alfa"},
+                          "koppelingen": [], "onderbouwing": ["urn:bwb:BWBR0004770:artikel:9:lid:1"]}]}
+    g = p.bouw_graaf(inv)
+    [doc] = list(g.subjects(RDF.type, p.FOAF.Document))
+    assert str(g.value(doc, p.DCT.title)) == "Artikel 9, lid 1"
+
+
+def test_de_passage_is_de_laatst_bevestigde_stand():
+    """N2: een bevestigde wijziging verandert wat de export toont; de stand bij het koppelen blijft bewaard."""
+    from app.begrip_store import bevestigde_stand
+
+    bewijs = {"tekst": "oud", "klasse": "Rechtsobject", "element_hash": "h1", "ankers": [{"a": 1}], "vindplaats": "Lid 1"}
+    assert bevestigde_stand(bewijs, []) is bewijs
+    nu = bevestigde_stand(bewijs, [{"tekst": "eerst", "element_hash": "h2"},
+                                   {"tekst": "nieuw", "klasse": "Rechtsfeit", "element_hash": "h3", "ankers": [{"a": 2}]}])
+    assert (nu["tekst"], nu["klasse"], nu["element_hash"], nu["ankers"], nu["vindplaats"]) == (
+        "nieuw", "Rechtsfeit", "h3", [{"a": 2}], "Lid 1")
+    assert bewijs["tekst"] == "oud"
