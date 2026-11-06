@@ -172,6 +172,20 @@ async def test_overzicht_overleeft_het_opslaan(client):
     assert berichten[1]["overzicht"] == {}
 
 
+async def test_het_sjabloon_overleeft_het_opslaan(client):
+    """Het antwoord als sjabloon (ADR-008): de blokken komen na herladen terug; een ongeldig sjabloon wordt geweigerd."""
+    gid = (await client.post(BASIS, json={}, headers=A)).json()["id"]
+    vindplaats = {"iri": "urn:bwb:BWBR0004770:artikel:2", "label": "Artikel 2", "jci": "", "regeling": "Invorderingswet 1990"}
+    antwoord = {"sjabloon": "begrip", "versie": 1, "doelen": [vindplaats], "blokken": [
+        {"soort": "definities", "door": "bron", "items": [{"term": "x", "tekst": "x: y", "vindplaats": vindplaats, "bereik": ""}]},
+        {"soort": "toelichting", "door": "lex", "kop": "Toelichting van Lex", "tekst": "Uitleg."},
+    ]}
+    await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "tekst": "x", "antwoord": antwoord}, headers=A)
+    assert (await client.get(f"{BASIS}/{gid}", headers=A)).json()["berichten"][0]["antwoord"] == antwoord
+    fout = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "tekst": "x", "antwoord": {"sjabloon": "begrip", "blokken": [{"soort": "tabel"}]}}, headers=A)
+    assert fout.status_code == 422
+
+
 async def test_dekking_overleeft_het_opslaan(client):
     """Wat de annotatieketen wel en niet kon bekijken, met de fasen en hun duur – ook na herladen."""
     gid = await _maak(client)
