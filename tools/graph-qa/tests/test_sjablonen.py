@@ -252,8 +252,8 @@ def test_een_beurt_rondt_af_met_de_wettekst_uit_de_graaf():
     antwoord = _eerste(events, "antwoord")["antwoord"]
     assert antwoord["sjabloon"] == "bepaling"
     assert antwoord["blokken"][0]["items"][0]["tekst"] == "Een belastingaanslag is invorderbaar."
-    assert _eerste(events, "grounding")["grounded"] is True
-
+    grounding = _eerste(events, "grounding")
+    assert grounding["grounded"] is True and grounding["niveau"] == "gegrond", "de vindplaats staat erbij, dus niet: niets te controleren"
 
 
 # Het sjabloon `duiding`: het model wijst aan, de code toetst per bepaling, en de uitleg blijft door de controle gaan.
@@ -407,7 +407,73 @@ def _duidingsbeurt(*rondes, **instellingen):
     async def alles():
         return [e async for e in answer_stream("Hoe werkt uitstel?", settings=settings, llm=llm, graph=FakeGraph(result=TIEN_TSV))]
 
+    return asyncio.run(alles()), llm
 
+
+def test_de_duidingsspecialist_krijgt_beide_sjablonen_en_algemeen_niet():
+    from agent import specialists
+    duidend = specialists.get("duiding")
+    assert {"antwoord_bepaling", "antwoord_duiding"} <= duidend.sjablonen
+    assert "antwoord_bepaling" in duidend.system and "antwoord_duiding" in duidend.system
+    assert "antwoord_duiding" not in specialists.get("algemeen").sjablonen
+
+
+def test_een_beurt_rondt_af_met_de_duiding():
+    events, llm = _duidingsbeurt(HAAL, _sluit_af())
+    assert llm.index == 3
+    antwoord = _eerste(events, "antwoord")["antwoord"]
+    assert antwoord["sjabloon"] == "duiding" and antwoord["blokken"][1]["items"][0]["tekst"] == ZIN_1
+    grounding = _eerste(events, "grounding")
+    assert grounding["grounded"] is True and grounding["niveau"] == "gegrond"
+    assert [s["uri"] for s in _eerste(events, "sources")["sources"]] == [TIEN_1]
+
+
+@pytest.mark.parametrize("veld", ["kort", "waarom", "twijfel"])
+def test_een_verzonnen_verwijzing_in_de_uitleg_gaat_door_de_correctie(veld):
+    fout = "Zie BWBR9999999."
+    velden = {"twijfel": [fout]} if veld == "twijfel" else {veld: fout}
+    events, llm = _duidingsbeurt(HAAL, _sluit_af(**velden), _sluit_af("t3"))
+    assert llm.index == 4
+    assert "BWBR9999999" not in _eerste(events, "token")["content"]
+    assert _eerste(events, "grounding")["grounded"] is True
+
+
+@pytest.mark.parametrize("veld", ["kort", "waarom", "twijfel"])
+def test_een_verzonnen_citaat_in_de_uitleg_gaat_door_de_correctie(veld):
+    fout = '"De ontvanger mag altijd en zonder enige voorwaarde uitstel verlenen."'
+    velden = {"twijfel": [fout]} if veld == "twijfel" else {veld: fout}
+    events, llm = _duidingsbeurt(HAAL, _sluit_af(**velden), _sluit_af("t3"))
+    assert llm.index == 4
+    assert "zonder enige voorwaarde" not in _eerste(events, "token")["content"]
+
+
+def test_een_fragment_buiten_de_bron_komt_nooit_bij_de_controle_of_de_jurist():
+    events, llm = _duidingsbeurt(HAAL, _sluit_af(fragment="Dit staat nergens in de wet, maar klinkt wel zo."), _sluit_af("t3"))
+    assert llm.index == 4 and len([e for e in events if e["type"] == "antwoord"]) == 1
+    assert "nergens in de wet" not in _eerste(events, "token")["content"]
+
+
+def test_een_sjabloon_dat_onvulbaar_blijft_stopt_bij_de_beurtlimiet():
+    onvulbaar = [_sluit_af(f"t{n}", fragment="Dit staat nergens in de wet.") for n in range(2, 7)]
+    events, llm = _duidingsbeurt(HAAL, *onvulbaar, max_turns=3)
+    assert llm.index == 5, "na de ronde op de limiet vraagt niets het model meer"
+    assert "beurtlimiet" in _eerste(events, "token")["content"]
+    assert not [e for e in events if e["type"] == "antwoord"]
+
+
+def test_een_vervolgvraag_vindt_de_doelen_in_het_register():
+    """De bepaling kwam in de vorige beurt binnen; de bronnen van deze beurt mogen dan niet leeg zijn."""
+    from agent.nodes.antwoord import finalize_node
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    a = vul("antwoord_duiding", duiding(), [tien()])
+    naam, tekst = tien()
+    state = {"answer": "x", "antwoord": a.model_dump(), "bronregister": [[naam, tekst]], "source_trace": []}
+    b = SimpleNamespace(graph=FakeGraph(result=""), settings=make_settings())
+    with patch("agent.nodes.antwoord.get_stream_writer", return_value=lambda _: None):
+        uit = finalize_node(b, state)
+    assert [s["uri"] for s in uit["sources"]] == [TIEN_1]
 # De garantie van "geen wettelijke definitie": alleen over wat er echt op deze term gezocht is.
 def test_een_zoekactie_op_een_andere_term_is_geen_bewijs():
     """Het bronregister draagt `zoek_definitie` uit eerdere beurten mee: die zegt niets over deze term."""
@@ -538,6 +604,8 @@ def zoek(*rijen, **kop) -> tuple[str, str]:
 
 
 M1 = {"id": "e1", "klasse": "Rechtssubject", "tekst": "de ontvanger", "vindplaats": "BWBR0004770 art. 9 lid 1", "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1"}
+
+
 M2 = {"id": "e2", "klasse": "Rechtssubject", "tekst": "de belastingschuldige", "vindplaats": "BWBR0004770 art. 9 lid 2"}
 
 
@@ -643,72 +711,6 @@ def _leesbeurt(*rondes):
     return asyncio.run(alles()), llm
 
 
-def test_de_duidingsspecialist_krijgt_beide_sjablonen_en_algemeen_niet():
-    from agent import specialists
-    duidend = specialists.get("duiding")
-    assert {"antwoord_bepaling", "antwoord_duiding"} <= duidend.sjablonen
-    assert "antwoord_bepaling" in duidend.system and "antwoord_duiding" in duidend.system
-    assert "antwoord_duiding" not in specialists.get("algemeen").sjablonen
-
-
-def test_een_beurt_rondt_af_met_de_duiding():
-    events, llm = _duidingsbeurt(HAAL, _sluit_af())
-    assert llm.index == 3
-    antwoord = _eerste(events, "antwoord")["antwoord"]
-    assert antwoord["sjabloon"] == "duiding" and antwoord["blokken"][1]["items"][0]["tekst"] == ZIN_1
-    grounding = _eerste(events, "grounding")
-    assert grounding["grounded"] is True and grounding["niveau"] == "gegrond"
-    assert [s["uri"] for s in _eerste(events, "sources")["sources"]] == [TIEN_1]
-
-
-@pytest.mark.parametrize("veld", ["kort", "waarom", "twijfel"])
-def test_een_verzonnen_verwijzing_in_de_uitleg_gaat_door_de_correctie(veld):
-    fout = "Zie BWBR9999999."
-    velden = {"twijfel": [fout]} if veld == "twijfel" else {veld: fout}
-    events, llm = _duidingsbeurt(HAAL, _sluit_af(**velden), _sluit_af("t3"))
-    assert llm.index == 4
-    assert "BWBR9999999" not in _eerste(events, "token")["content"]
-    assert _eerste(events, "grounding")["grounded"] is True
-
-
-@pytest.mark.parametrize("veld", ["kort", "waarom", "twijfel"])
-def test_een_verzonnen_citaat_in_de_uitleg_gaat_door_de_correctie(veld):
-    fout = '"De ontvanger mag altijd en zonder enige voorwaarde uitstel verlenen."'
-    velden = {"twijfel": [fout]} if veld == "twijfel" else {veld: fout}
-    events, llm = _duidingsbeurt(HAAL, _sluit_af(**velden), _sluit_af("t3"))
-    assert llm.index == 4
-    assert "zonder enige voorwaarde" not in _eerste(events, "token")["content"]
-
-
-def test_een_fragment_buiten_de_bron_komt_nooit_bij_de_controle_of_de_jurist():
-    events, llm = _duidingsbeurt(HAAL, _sluit_af(fragment="Dit staat nergens in de wet, maar klinkt wel zo."), _sluit_af("t3"))
-    assert llm.index == 4 and len([e for e in events if e["type"] == "antwoord"]) == 1
-    assert "nergens in de wet" not in _eerste(events, "token")["content"]
-
-
-def test_een_sjabloon_dat_onvulbaar_blijft_stopt_bij_de_beurtlimiet():
-    onvulbaar = [_sluit_af(f"t{n}", fragment="Dit staat nergens in de wet.") for n in range(2, 7)]
-    events, llm = _duidingsbeurt(HAAL, *onvulbaar, max_turns=3)
-    assert llm.index == 5, "na de ronde op de limiet vraagt niets het model meer"
-    assert "beurtlimiet" in _eerste(events, "token")["content"]
-    assert not [e for e in events if e["type"] == "antwoord"]
-
-
-def test_een_vervolgvraag_vindt_de_doelen_in_het_register():
-    """De bepaling kwam in de vorige beurt binnen; de bronnen van deze beurt mogen dan niet leeg zijn."""
-    from agent.nodes.antwoord import finalize_node
-    from types import SimpleNamespace
-    from unittest.mock import patch
-
-    a = vul("antwoord_duiding", duiding(), [tien()])
-    naam, tekst = tien()
-    state = {"answer": "x", "antwoord": a.model_dump(), "bronregister": [[naam, tekst]], "source_trace": []}
-    b = SimpleNamespace(graph=FakeGraph(result=""), settings=make_settings())
-    with patch("agent.nodes.antwoord.get_stream_writer", return_value=lambda _: None):
-        uit = finalize_node(b, state)
-    assert [s["uri"] for s in uit["sources"]] == [TIEN_1]
-
-
 def test_een_beurt_rondt_af_met_de_annotaties_zonder_correctieronde():
     """Annotaties tellen niet als bron: zonder uitzondering gaven hun BWB-id's en aanhalingstekens elke beurt een correctieronde."""
     events, llm = _leesbeurt(LEES)
@@ -762,8 +764,6 @@ def test_de_begrippen_leesroute_rondt_af_met_het_sjabloon():
     assert [b["soort"] for b in antwoord["blokken"]] == ["begrippen", "toelichting"]
     assert antwoord["blokken"][0]["items"][0]["naam"] == "termijn"
     assert "Geen wettelijke definitie" not in _eerste(events, "token")["content"]
-    grounding = _eerste(events, "grounding")
-    assert grounding["grounded"] is True and grounding["niveau"] == "gegrond", "de vindplaats staat erbij, dus niet: niets te controleren"
 
 
 def test_de_regelingnaam_komt_ook_op_de_doelen():
