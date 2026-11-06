@@ -53,6 +53,7 @@ async def database():
 def graaf(monkeypatch):
     g = Graaf()
     monkeypatch.setattr(werkgebieden, "_resolve_bron", g.resolve)
+    monkeypatch.setattr(werkgebieden, "_lees_bron", g.resolve)
     return g
 
 
