@@ -150,6 +150,54 @@ async def test_changed_source_invalidates_only_affected_anchors():
     assert {e["eigenaar_iri"]: e["verouderd"] for e in view["elementen"]} == {ONE: False, TWO: True}
 
 
+async def _ronde_na(snap, type_, wijziging=None):
+    """Een voorstel met vast id, een besluit daarover, en een nieuwe ronde met hetzelfde voorstel."""
+    voorstel = element(snap, id="kandidaat-1")
+    await store.batch(request(snap, [voorstel]), snap, "agent")
+    await store.beslis("kandidaat-1", Beslissing(type=type_, snapshot_id=snap["snapshot_id"], wijziging=wijziging or {},
+                                                 verwachte_revisies={ONE: 1}), snap, "jurist")
+    return voorstel
+
+
+@pytest.mark.parametrize("type_,wijziging", [
+    ("edit", {"klasse": "Rechtsobject"}),
+    ("edit", {"tekst": "Alfa Alfa", "ankers": None}),
+    ("reject", None),
+])
+async def test_nieuwe_ronde_laat_een_besluit_staan(type_, wijziging):
+    snap = snapshot(ONE)
+    n = store.nodes_van(snap)[ONE]
+    if wijziging and "ankers" in wijziging:
+        wijziging["ankers"] = element(snap, end=11)["ankers"]
+    voorstel = await _ronde_na(snap, type_, wijziging)
+    voor = await store.weergave(snap)
+    nieuw = element(snap, start=7, end=11, id="kandidaat-2")
+    res = await store.batch(request(snap, [voorstel, nieuw], batch_id="ronde-2", revisions={ONE: 2}), snap, "agent")
+    na = await store.weergave(snap)
+    oud = next(e for e in na["elementen"] if e["id"] == "kandidaat-1")
+    assert oud == next(e for e in voor["elementen"] if e["id"] == "kandidaat-1")      # besluit en historie onaangeroerd
+    assert {e["id"] for e in res["elementen"]} == {"kandidaat-1", "kandidaat-2"}      # het nieuwe voorstel is er wel
+    assert n["tekst"][7:11] == next(e for e in na["elementen"] if e["id"] == "kandidaat-2")["tekst"]
+
+
+async def test_nieuwe_ronde_zonder_nieuw_werk_raakt_de_laag_niet():
+    snap = snapshot(ONE)
+    voorstel = await _ronde_na(snap, "edit", {"klasse": "Rechtsobject"})
+    await store.batch(request(snap, [voorstel], batch_id="ronde-2", revisions={ONE: 2}), snap, "agent")
+    assert (await store.weergave(snap))["lagen"][0]["revisie"] == 2
+
+
+async def test_verouderd_element_blijft_staan_naast_het_nieuwe_voorstel():
+    snap = snapshot(TWO)
+    await store.batch(request(snap, [element(snap, TWO, 0, 4, id="kandidaat-1")]), snap, "agent")
+    changed = snapshot(TWO, second="Other")
+    await store.batch(request(changed, [element(changed, TWO, 0, 4, id="kandidaat-1")], batch_id="eerst", revisions={TWO: 1}),
+                      changed, "agent")
+    view = await store.weergave(changed)
+    assert sorted(e["verouderd"] for e in view["elementen"]) == [False, True]
+    assert next(e for e in view["elementen"] if e["verouderd"])["id"] == "kandidaat-1"
+
+
 async def test_approved_element_requires_explicit_reopen():
     snap = snapshot(ONE)
     first = await store.batch(request(snap, [element(snap)]), snap, "a")
