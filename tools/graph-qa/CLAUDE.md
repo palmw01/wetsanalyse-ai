@@ -279,7 +279,8 @@ hier vandaan maar uit `bronmodel.resolve` (zie §*De annotatieketen*).
   `frontend/lib/jci-vectoren.json` toetsen alle drie). `uri` is de graaf-IRI, `iri`/`jci` bewaren beide
   vormen, `label` is leesbaar ("Artikel 26a, lid 2", "Hoofdstuk I") en `bron_iri`/`bwb_id`/`soort`
   reizen mee. Een hoofdstuk valt dus niet samen met de regeling. `regelingnamen.met_regelingnamen`
-  zet daarna met één query per beurt de citeertitel in `regeling`. Het label komt waar nodig uit het
+  zet daarna met één query per beurt de citeertitel in `regeling` en de afkortingen in `afkortingen`
+  (de werkplek koppelt "artikel 9 Awb" daarmee alleen aan een bron uit de Awb). Het label komt waar nodig uit het
   toolresultaat (`_labels`): een wet-lokale `id:`-node (Leidraad 26.5) krijgt zo zijn naam in plaats van
   zijn IRI, en een structuurdeel zijn titel ("Hoofdstuk II – Invordering in eerste aanleg") – daaraan
   herkent de werkplek het deel in de tekst (cache per proces; een fout kost

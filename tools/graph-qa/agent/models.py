@@ -320,6 +320,7 @@ class Source(BaseModel):
     bwb_id: str | None = None
     soort: str | None = None
     regeling: str | None = None
+    afkortingen: list[str] | None = None
 
 
 # --- Annotatie (JAS) ---------------------------------------------------------

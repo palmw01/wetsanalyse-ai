@@ -76,9 +76,15 @@ describe("normaliseerBronnen", () => {
 describe("samenhangDoelen", () => {
   const tekst = "Artikel 4:94a Awb gaat over kwijtschelding. Zie ook artikel 4 en artikel 31bis Awir, "
     + "en opnieuw artikel 4:94a. Artikel 26a, tweede lid noemt een termijn.";
+  // Noemt de tekst een regeling, dan moet de bron die dragen: artikelnummers komen in elke wet terug.
+  const NAMEN: Record<string, Pick<Bron, "regeling" | "afkortingen">> = {
+    [AWB]: { regeling: "Algemene wet bestuursrecht", afkortingen: ["Awb"] },
+    [AWIR]: { regeling: "Algemene wet inkomensafhankelijke regelingen", afkortingen: ["Awir"] },
+  };
+  const metNamen = () => overzichtsantwoord().map((b) => ({ ...b, ...NAMEN[b.uri.match(/BWB[RV]\d+/)?.[0] ?? ""] }));
 
   it("neemt de artikelen die de tekst noemt, in tekstvolgorde, één per artikel en zo precies als genoemd", () => {
-    const { doelen, totaal } = samenhangDoelen(tekst, overzichtsantwoord());
+    const { doelen, totaal } = samenhangDoelen(tekst, metNamen());
     expect(doelen.map((d) => d.bron_iri)).toEqual([
       "urn:bwb:BWBR0005537:artikel:4%3A94a", "urn:bwb:BWBR0004770:artikel:4",
       "urn:bwb:BWBR0018472:artikel:31bis", "urn:bwb:BWBR0004770:artikel:26a:lid:2",
@@ -88,7 +94,7 @@ describe("samenhangDoelen", () => {
   });
 
   it("begrenst het aantal en meldt het totaal", () => {
-    const { doelen, totaal } = samenhangDoelen(tekst, overzichtsantwoord(), 2);
+    const { doelen, totaal } = samenhangDoelen(tekst, metNamen(), 2);
     expect([doelen.length, totaal]).toEqual([2, 4]);
     expect(samenhangKnopTekst({ doelen, totaal })).toBe("Bekijk samenhang van de 4 genoemde artikelen (2 getoond)");
   });

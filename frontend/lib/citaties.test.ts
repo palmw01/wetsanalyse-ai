@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { bronLabel, koppelBron, markeerCitaties, vindVermeldingen } from "./citaties";
+import { parseBronnen } from "./agentEvents";
 import type { HastKnoop } from "./markering";
+import type { Bron } from "./types";
 
 const B = "urn:bwb:BWBR0004770";
 const bron = (pad: string) => ({ label: `${B}:${pad}`, uri: `${B}:${pad}` });
@@ -60,5 +62,57 @@ describe("bronLabel", () => {
   it("maakt een leesbaar label van een graaf-IRI en laat de rest staan", () => {
     expect(bronLabel(bron("artikel:9:lid:2"))).toBe("Artikel 9, lid 2");
     expect(bronLabel({ label: "iets", uri: "https://example.org" })).toBe("iets");
+  });
+});
+
+describe("een genoemde regeling", () => {
+  const AWB = "urn:bwb:BWBR0005537";
+  const iw = { ...bron("artikel:9"), regeling: "Invorderingswet 1990", afkortingen: ["IW", "Iw 1990"] };
+  const awb = { label: `${AWB}:artikel:9`, uri: `${AWB}:artikel:9`, regeling: "Algemene wet bestuursrecht", afkortingen: ["Awb"] };
+  const koppel = (tekst: string, bronnen: Parameters<typeof koppelBron>[1]) => koppelBron(vindVermeldingen(tekst)[0], bronnen);
+
+  it("leest wat er achter de vermelding staat", () => {
+    expect(vindVermeldingen("artikel 9 van de Algemene wet bestuursrecht geldt hier")[0].regeling?.slice(0, 2))
+      .toEqual(["algemene", "wet"]);
+    expect(vindVermeldingen("artikel 9, tweede lid, Awb")[0].regeling).toEqual(["awb"]);
+    expect(vindVermeldingen("artikel 9 Iw 1990. Daarna")[0].regeling?.[0]).toBe("iw");
+  });
+  it("ziet in kleine letters of een verwijzing naar de eigen wet geen regeling", () => {
+    expect(vindVermeldingen("artikel 9 van deze wet")[0].regeling).toBeUndefined();
+    expect(vindVermeldingen("artikel 9 en artikel 10.")[0].regeling).toBeUndefined();
+    expect(vindVermeldingen("artikel 9. De ontvanger")[0].regeling).toBeUndefined();
+  });
+  it("geeft geen chip als de genoemde regeling niet de bron is", () => {
+    expect(koppel("artikel 9 van de Algemene wet bestuursrecht", [iw])).toBe(-1);
+    expect(koppel("artikel 9 Awb", [iw])).toBe(-1);
+    expect(koppel("artikel 9 van de Algemene wet inzake rijksbelastingen", [awb])).toBe(-1);
+  });
+  it("geeft een chip bij de citeertitel, zonder jaartal en bij de afkorting", () => {
+    expect(koppel("artikel 9 van de Invorderingswet 1990", [iw])).toBe(0);
+    expect(koppel("artikel 9 van de Invorderingswet geldt", [iw])).toBe(0);
+    expect(koppel("artikel 9 Iw", [iw])).toBe(0);
+    expect(koppel("artikel 9 IW 1990", [iw])).toBe(0);
+    expect(koppel("artikel 9 Leidr. Inv.", [{ ...iw, regeling: "Leidraad Invordering 2008", afkortingen: ["Leidr. Inv."] }])).toBe(0);
+  });
+  it("laat de regeling beslissen als twee wetten hetzelfde nummer hebben", () => {
+    expect(koppel("artikel 9 Awb", [iw, awb])).toBe(1);
+    expect(koppel("artikel 9 Iw", [iw, awb])).toBe(0);
+    expect(koppel("artikel 9", [iw, awb])).toBe(-1);
+  });
+  it("koppelt zonder genoemde regeling zoals altijd", () => {
+    expect(koppel("artikel 9 van deze wet", [iw])).toBe(0);
+  });
+  it("geeft geen chip als de naam van de bron onbekend is", () => {
+    expect(koppel("artikel 9 Awb", [bron("artikel:9")])).toBe(-1);
+  });
+});
+
+describe("de bron uit de live stroom", () => {
+  it("houdt de velden waarmee een vermelding gekoppeld wordt", () => {
+    const [bron] = parseBronnen([{ label: "Artikel 9", uri: `${B}:artikel:9`, bron_iri: `${B}:artikel:9`, jci: null, bwb_id: "BWBR0004770",
+      soort: "artikel", regeling: "Invorderingswet 1990", afkortingen: ["IW", "Iw 1990"], origin_tool: "get_artikel" }]) as Bron[];
+    expect(bron).toEqual({ label: "Artikel 9", uri: `${B}:artikel:9`, bron_iri: `${B}:artikel:9`, bwb_id: "BWBR0004770",
+      soort: "artikel", regeling: "Invorderingswet 1990", afkortingen: ["IW", "Iw 1990"] });
+    expect(koppelBron(vindVermeldingen("artikel 9 Iw")[0], [bron])).toBe(0);
   });
 });
