@@ -41,13 +41,36 @@ def _door(v: dict[str, Any]) -> str:
     return str(((v.get("trace") or {}).get("beslissing") or {}).get("door") or "")
 
 
-def samenvatting(voorstellen: list[dict[str, Any]], doel: dict[str, Any]) -> str:
-    """Hoogstens `MAX_ZINNEN` zinnen over deze annotatieronde."""
+def _sleutel(v: dict[str, Any]) -> tuple:
+    return (v.get("klasse") or "", tuple(sorted((a.get("bron_iri"), a.get("start"), a.get("eind"))
+                                                for a in v.get("ankers") or [])))
+
+
+def aantal_bekend(voorstellen: list[dict[str, Any]], weergave: dict[str, Any] | None) -> int:
+    """Hoeveel voorstellen er al lagen: met hetzelfde id, of met dezelfde klasse en ankers (zie `batch` in de api)."""
+    bestaand = [e for e in (weergave or {}).get("elementen") or [] if not e.get("verouderd")]
+    ids, sleutels = {e.get("id") for e in bestaand}, {_sleutel(e) for e in bestaand}
+    return sum(v.get("id") in ids or _sleutel(v) in sleutels for v in voorstellen)
+
+
+def _gevonden(n: int, bekend: int) -> str:
+    """Wat een nieuwe ronde oplevert: een voorstel dat er al lag, verandert niets aan de laag."""
+    gevonden = f"{_getal(n)} JAS-{'element' if n == 1 else 'elementen'} gevonden"
+    if not bekend:
+        return gevonden
+    if bekend == n:
+        return f"{gevonden}, die er allemaal al lagen" if n > 1 else f"{gevonden}, dat er al lag"
+    nieuw = n - bekend
+    return f"{gevonden}: {_getal(nieuw)} {'is' if nieuw == 1 else 'zijn'} nieuw, {_getal(bekend)} {'lag' if bekend == 1 else 'lagen'} er al"
+
+
+def samenvatting(voorstellen: list[dict[str, Any]], doel: dict[str, Any], bekend: int = 0) -> str:
+    """Hoogstens `MAX_ZINNEN` zinnen over deze annotatieronde. `bekend`: de voorstellen die er al lagen."""
     n = len(voorstellen)
     plek = vindplaats(doel)
     if not n:
         return f"Ik heb {plek} geanalyseerd en geen JAS-elementen gevonden."
-    zinnen = [f"Ik heb {plek} geanalyseerd en {_getal(n)} JAS-{'element' if n == 1 else 'elementen'} gevonden."]
+    zinnen = [f"Ik heb {plek} geanalyseerd en {_gevonden(n, bekend)}."]
 
     # Welke klassen overheersen – alleen zinvol vanaf drie elementen. Hoogstens twee, elk minstens
     # twee keer; staat geen klasse er twee keer, dan de eerste.

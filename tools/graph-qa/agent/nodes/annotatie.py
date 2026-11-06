@@ -33,7 +33,7 @@ from ..jas_pipeline.broncontext import BronContext
 from ..models import AgentRun
 from ..narratie import _stap
 from ..state import State
-from .annotatie_samenvatting import samenvatting as annotatie_samenvatting
+from .annotatie_samenvatting import aantal_bekend, samenvatting as annotatie_samenvatting
 from .context import Bouw
 
 logger = logging.getLogger("graph_qa.orchestrator")
@@ -266,7 +266,7 @@ def emit_node(b: Bouw, state: State) -> dict[str, Any]:
 
     plek = f"artikel {aanduiding}" + (f" lid {doel['lid']}" if doel.get("lid") else "")
     # Hoogstens vier zinnen, alles uit de voorstellen zelf – geen modelaanroep, niets verzonnen.
-    samenvatting = annotatie_samenvatting(voorstellen, doel)
+    samenvatting = annotatie_samenvatting(voorstellen, doel, aantal_bekend(voorstellen, state.get("annotatie_weergave")))
     _stap(writer, "Klaar", f"{len(voorstellen)} elementen ter beoordeling")
     writer({"type": "token", "content": samenvatting})
 
