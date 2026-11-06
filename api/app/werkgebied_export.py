@@ -25,8 +25,9 @@ from . import (annotatie_v2_store, begrip_relatie_store, begrip_store, begrippen
                werkgebied_store)
 from .annotatie_export import herkomst_regels
 from .annotatie_v2_contracts import BEOORDEELD
+from .bestandsnaam import met_tijd
 from .jas_klassen import jas_sorteersleutel
-from .pdf_opmaak import INHOUD, MARKERING, PAGINA
+from .pdf_opmaak import BEGRIP, BLOK_BEGIN, BLOK_EIND, INHOUD, MARKERING, PAGINA
 from .werkgebied_inventaris import Resolver, bwb_van, inventaris_met_bronbomen
 
 _DOSSIER = (("aanleiding", "Aanleiding"), ("context", "Context"), ("doel", "Doel"), ("analysevraag", "Analysevraag"),
@@ -50,6 +51,9 @@ _RELATIE = {"kwalificatie": "kwalificeert", "inclusie": "omvat", "uitsluiting": 
 _DEFINITIE = {"letterlijk": "brondefinitie, letterlijk uit de wettekst", "samengesteld": "analysebegrip, samengesteld uit de wettekst",
               "geformuleerd": "analysebegrip, geformuleerd"}
 _DEFINITIE_DOOR = {"lex": "voorgesteld door Lex", "analist": "door de analist"}
+_LEEG = "Niet ingevuld."
+_BLOK = ((BLOK_BEGIN, ""),)
+_BLOK_UIT = ((BLOK_EIND, ""),)
 _ZONE = ZoneInfo("Europe/Amsterdam")
 _MAANDEN = ("januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober",
             "november", "december")
@@ -84,10 +88,10 @@ def _datum(iso: str | None) -> str:
 
 
 def bestandsnaam(data: dict) -> str:
-    """Alleen ASCII: de naam gaat een header in, en een aanhalingsteken erin zou die breken."""
+    """Met het moment van de stand in het dossier, dus elke download is een eigen bestand."""
     naam = unicodedata.normalize("NFKD", data["werkgebied"]["naam"]).encode("ascii", "ignore").decode()
     naam = re.sub(r"[^a-z0-9]+", "-", naam.lower()).strip("-")[:80].rstrip("-")
-    return f"werkgebied-{naam or data['werkgebied']['id']}.pdf"
+    return met_tijd(f"werkgebied-{naam or data['werkgebied']['id']}", "pdf", data["export"]["op"])
 
 
 def _meervoud(n: int, een: str, meer: str) -> str:
@@ -210,7 +214,7 @@ def _deelvragen(data: dict, nodes: dict[str, dict]) -> list[tuple[str, str]]:
     voorstellen: dict[str, dict] = {}
     for v in overzicht["deelvragen"]:
         titel = "Analysevraag" if overzicht["modus"] == "analysevraag" else f"Deelvraag {v['nr']}"
-        uit.append(("Heading2", titel))
+        uit += [*_BLOK, ("Heading2", titel)]
         uit.append(("BodyText", v["vraag"]))
         stand = "Opnieuw bekijken" if v["opnieuw_bekijken"] else _VOORTGANG.get(v["status"], v["status"])
         uit.append(("Meta", f"Stand: {stand} · {_meervoud(len(v['bronnen']), 'bron', 'bronnen')}"))
@@ -222,6 +226,7 @@ def _deelvragen(data: dict, nodes: dict[str, dict]) -> list[tuple[str, str]]:
             uit.append(("BodyText", f"{b['label']} · {_BRONROL.get(b['rol'], b['rol'])}" + (f": {reden}" if reden else "")))
         if niet := v["telling"].get("niet_gekozen"):
             uit.append(("Meta", _meervoud(niet, "voorstel van Lex is niet gekozen.", "voorstellen van Lex zijn niet gekozen.")))
+        uit += _BLOK_UIT
         for k in v["kandidaten"]:
             doel = uitgesloten if k["stand"] == "uitgesloten" else voorstellen if k["stand"] == "voorgesteld" else None
             if doel is not None:
@@ -285,7 +290,7 @@ def _markering(e: dict, nodes: dict[str, dict], verklaringen: dict, node_iri: st
     kop = klasse or "Nog geen klasse (" + ", ".join(a.get("klasse", "") for a in e.get("alternatieven") or []) + ")"
     if e.get("jas_subtype"):
         kop += f", {e['jas_subtype']}"
-    uit = [(MARKERING + klasse, f"{kop} · {_LIFECYCLE.get(e['lifecycle'], e['lifecycle'])}"),
+    uit = [*_BLOK, (MARKERING + klasse, f"{kop} · {_LIFECYCLE.get(e['lifecycle'], e['lifecycle'])}"),
            ("Citaat", f"“{e['tekst']}”")]
     for iri in dict.fromkeys(a["bron_iri"] for a in e.get("ankers") or []):
         if iri != node_iri:
@@ -299,7 +304,7 @@ def _markering(e: dict, nodes: dict[str, dict], verklaringen: dict, node_iri: st
         uit.append(("Waarschuwing", "Verouderd: de bepaling veranderde na het annoteren."))
     if e.get("deels_buiten"):
         uit.append(("Meta", "Deze markering valt deels buiten de bronselectie."))
-    return uit
+    return [*uit, *_BLOK_UIT]
 
 
 def _kop_van(iri: str, nodes: dict[str, dict]) -> str:
@@ -358,7 +363,7 @@ def _wettekst(data: dict, nodes: dict[str, dict], verklaringen: dict) -> list[tu
 
     getoond: set[str] = set()
     for bwb in per_bwb:
-        uit.append(("Heading2", _regeling_titel(bwb, data)))
+        uit += [(PAGINA, ""), ("Heading2", _regeling_titel(bwb, data))]
         boom = annotatie_v2_store.nodes_van(data["bomen"][bwb])
         reeks = sorted((n for iri, n in boom.items() if iri in rollen),
                        key=lambda n: n.get("volgorde", 0))
@@ -384,10 +389,10 @@ def _wettekst(data: dict, nodes: dict[str, dict], verklaringen: dict) -> list[tu
         uit.append(("Waarschuwing", f"De tekst ontbreekt: {regel['onbereikbaar']}"))
     rest = [e for e in inv["elementen"] if e["id"] not in getoond]
     if rest:
-        uit.append(("Heading2", "Markeringen buiten de getoonde tekst"))
+        uit += [(PAGINA, ""), ("Heading2", "Markeringen buiten de getoonde tekst")]
         for e in rest:
             uit += _markering(e, nodes, verklaringen)
-    uit.append(("Heading2", "Afgewezen markeringen"))
+    uit += [(PAGINA, ""), ("Heading2", "Afgewezen markeringen")]
     if not inv["afgewezen"]:
         uit.append(("Meta", "Er zijn geen markeringen afgewezen."))
     else:
@@ -418,57 +423,67 @@ def _passage(k: dict, elementen: dict[str, dict], nodes: dict[str, dict]) -> lis
 
 
 def _begrip(b: dict, data: dict, elementen: dict[str, dict], nodes: dict[str, dict], redenen: dict[str, str]) -> list[tuple[str, str]]:
+    """Eén begrip op een eigen pagina: elke pagina heeft dezelfde kopjes in dezelfde volgorde, ook als er niets staat."""
     i = b["inhoud"]
-    uit: list[tuple[str, str]] = [("Heading3", i["naam"])]
+    uit: list[tuple[str, str]] = [(BEGRIP, i["naam"])]
     meta = [_BEGRIPSTATUS.get(b["status"], b["status"])]
     if b.get("kader") == "generiek":
         meta.append("generiek begrip, gebruikt in dit werkgebied")
     uit.append(("Meta", " · ".join(meta)))
     if i.get("alternatieve_termen"):
         uit.append(("BodyText", "Ook genoemd: " + ", ".join(i["alternatieve_termen"])))
+
+    uit.append(("Heading4", "Definitie"))
     if (i.get("definitie") or "").strip():
         aard = [_DEFINITIE.get(i.get("definitie_herkomst") or "", "definitie"), _DEFINITIE_DOOR.get(i.get("definitie_door") or "", "")]
-        uit.append(("Heading4", "Definitie"))
         uit.append(("Citaat" if i.get("definitie_herkomst") == "letterlijk" else "BodyText", i["definitie"]))
         uit.append(("Meta", ", ".join(filter(None, aard)) + "."))
     else:
-        uit.append(("Voorstel", "Nog geen definitie."))
-    if (i.get("uitleg") or "").strip():
-        uit.append(("Heading4", "Uitleg"))
-        uit += _alinea(i["uitleg"])
-    if (i.get("context") or "").strip():
-        uit.append(("Heading4", "Toelichting"))
-        uit += _alinea(i["context"])
-    if i.get("voorbeelden"):
-        uit.append(("Heading4", "Voorbeelden"))
-        uit += [("BodyText", f"{_OORDEEL.get(v['oordeel'], v['oordeel']).capitalize()}: {v['tekst']}") for v in i["voorbeelden"]]
+        uit.append(("Meta", _LEEG))
+    uit.append(("Heading4", "Uitleg"))
+    uit += _alinea(i.get("uitleg") or "") or [("Meta", _LEEG)]
+    uit.append(("Heading4", "Toelichting"))
+    uit += _alinea(i.get("context") or "") or [("Meta", _LEEG)]
+    uit.append(("Heading4", "Voorbeelden"))
+    uit += [("BodyText", f"{_OORDEEL.get(v['oordeel'], v['oordeel']).capitalize()}: {v['tekst']}") for v in i.get("voorbeelden") or []] \
+        or [("Meta", _LEEG)]
+
+    uit.append(("Heading4", "Waarop de definitie rust"))
     o = b.get("definitie_onderbouwing") or {}
     if o.get("fragmenten"):
-        uit.append(("Heading4", "Waarop de definitie rust"))
         if o.get("aangepast"):
             uit.append(("Meta", "De analist paste de definitie aan; deze fragmenten waren het vertrekpunt."))
         for f in o["fragmenten"]:
             uit += [("Citaat", f"“{f['tekst']}”"), ("Meta", f"{_vindplaats(f['bron_iri'], nodes)} · {_verwijzing(f['bron_iri'], nodes)}")]
+    else:
+        uit.append(("Meta", "Geen fragmenten vastgelegd."))
+
+    uit.append(("Heading4", "Passages"))
     if b["koppelingen"]:
-        uit.append(("Heading4", _meervoud(len(b["koppelingen"]), "passage", "passages")))
+        uit.append(("Meta", _meervoud(len(b["koppelingen"]), "passage", "passages")))
         for k in sorted(b["koppelingen"], key=lambda k: (("duiding", "definitie", "context").index(k["rol"])
                                                          if k["rol"] in ("duiding", "definitie", "context") else 9)):
             uit += _passage(k, elementen, nodes)
+    else:
+        uit.append(("Meta", "Geen passages gekoppeld."))
+
+    uit.append(("Heading4", "Relaties"))
     relaties = [r for r in data["relaties"]["relaties"] if r["beoordeling"] == "akkoord" and b["id"] in (r["van_begrip"], r["naar_begrip"])]
-    if relaties:
-        uit.append(("Heading4", "Relaties"))
-        for r in relaties:
-            uit.append(("BodyText", f"{r['van_naam']} {_RELATIE.get(r['type'], r['type'])} {r['naar_naam']}"
-                        + (f": {r['toelichting']}" if r.get("toelichting") else "")))
-    if b.get("aandachtspunten"):
-        uit.append(("Heading4", "Nog open"))
-        uit += [("Waarschuwing", p) for p in b["aandachtspunten"]]
+    uit += [("BodyText", f"{r['van_naam']} {_RELATIE.get(r['type'], r['type'])} {r['naar_naam']}"
+             + (f": {r['toelichting']}" if r.get("toelichting") else "")) for r in relaties] or [("Meta", "Geen relaties vastgelegd.")]
+
+    uit.append(("Heading4", "Nog open"))
+    uit += [("Waarschuwing", p) for p in b.get("aandachtspunten") or []] or [("Meta", "Geen open punten.")]
+
+    uit.append(("Heading4", "Beoordeling"))
     if b["status"] == "geaccordeerd":
         reden = redenen.get(b["id"])
         uit.append(("Meta", f"Geaccordeerd door {b['geaccordeerd_door']} op {_datum(b['geaccordeerd_op'])}"
                     + (f". Reden: {reden}" if reden else ".")))
-    if b.get("vervangen_door"):
+    elif b.get("vervangen_door"):
         uit.append(("Meta", "Vervangen door een opvolger; dit begrip is alleen nog te lezen."))
+    else:
+        uit.append(("Meta", "Nog niet geaccordeerd."))
     return uit
 
 
@@ -483,17 +498,26 @@ def _begrippen(data: dict, nodes: dict[str, dict]) -> list[tuple[str, str]]:
                                   ("Meta", "Begrippen zijn analyse-uitkomsten van dit werkgebied, geen wettelijke definities.")]
     if not data["begrippen"]:
         uit.append(("Meta", "Dit werkgebied heeft nog geen begrippen."))
+    # Een groepskop staat boven zijn eerste begrip, dus de breuk komt vóór de kop en niet erna: een kop blijft nooit alleen.
+    eerste_groep = True
     for status, kop in (("geaccordeerd", "Geaccordeerde begrippen"), ("concept", "Conceptbegrippen"), ("vervangen", "Vervangen begrippen")):
         groep = sorted((b for b in data["begrippen"] if b["status"] == status), key=lambda b: b["inhoud"]["naam"].casefold())
         if not groep:
             continue
+        if not eerste_groep:
+            uit.append((PAGINA, ""))
+        eerste_groep = False
         uit.append(("Heading2", f"{kop} ({len(groep)})"))
         if status == "concept":
             uit.append(("Meta", "Nog niet geaccordeerd: de inhoud kan veranderen."))
-        for b in groep:
+        for n, b in enumerate(groep):
+            if n:
+                uit.append((PAGINA, ""))
             uit += _begrip(b, data, elementen, nodes, redenen)
     open_groepen = [g for g in data["groepen"]["groepen"] if g["besluit"] in ("open", "geparkeerd") and g["leden"]]
     voorstellen = data["relaties"]["voorstellen"]
+    if data["begrippen"]:
+        uit.append((PAGINA, ""))
     uit.append(("Heading2", "Open voorstellen van Lex"))
     if not open_groepen and not voorstellen:
         uit.append(("Meta", "Er staan geen voorstellen open."))

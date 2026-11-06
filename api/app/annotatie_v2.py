@@ -12,6 +12,7 @@ from bronmodel import BronFout
 
 from . import annotatie_export as export
 from . import annotatie_v2_store as store
+from . import bestandsnaam
 from . import graaf as graaf_mod
 from . import knoopinfo as knoopinfo_mod
 from . import samenhang as samenhang_mod
@@ -349,7 +350,7 @@ async def post_export(req: ExportInvoer, actor: str = Depends(actieve_userid)):
     else:
         body = export.trig_export(await _laaggrafen(view))
     return Response(body, media_type=_EXPORT_MIME[req.formaat], headers={
-        "Content-Disposition": f'attachment; filename="annotaties.{req.formaat}"'})
+        "Content-Disposition": f'attachment; filename="{bestandsnaam.met_tijd("annotaties", req.formaat, view["export"]["op"])}"'})
 
 
 async def _laaggrafen(view: dict) -> list:

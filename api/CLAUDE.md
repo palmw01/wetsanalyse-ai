@@ -185,6 +185,8 @@ Hieronder wat je moet weten om de code te wijzigen.
   `trace` kan staan. Dat bestand en `vocabulaire/jas-vocabulaire.ttl` worden **gegenereerd** door
   `tools/graph-qa/scripts/genereer_jas_vocabulaire.py`; bewerk ze niet met de hand.
   `tests/test_vocabulaire.py` bewaakt dat elke klasse van de API een concept heeft.
+- **Elke export is een eigen bestand** (`bestandsnaam.met_tijd`): de naam draagt datum en tijd op de seconde, in Nederland,
+  in dezelfde vorm als de Markdown van de werkplek (`bestandsnaam` in `frontend/lib/artefactMarkdown.ts`).
 - **Export** (`POST weergave/export`, `annotatie_export.py`): `json` (v3, schema in
   `schemas/annotatie-export-v3.schema.json`, ook op `GET export-schema`), `csv`, `pdf` en `trig`.
   `herkomst_regels` zet het spoor om in de leesbare namen uit `verklaringen.json`, met dezelfde
@@ -387,7 +389,13 @@ spoor D (*Werkgebied als node*).
   - Staat een ankerfragment niet meer op zijn offsets, dan toont de PDF toen en nu. Wat niet te lezen was, staat op het
     voorblad én op zijn plek. Is geen enkele regeling te lezen, dan 503.
   - Reportlab is puur Python: zetten gebeurt in een thread (`asyncio.to_thread`), niet op de event loop.
-- **PDF-opmaak** (`pdf_opmaak.py`, ook voor de annotatie-export). De lettertypen zijn ingesloten (`app/fonts/`, met licentie):
+  - **De pagina-opbouw ligt vast.** Een eigen pagina krijgen elk deel, elke regeling, elk begrip, *Afgewezen markeringen* en
+    de *Open voorstellen van Lex*. De kop van een begrippengroep staat boven zijn eerste begrip: de breuk hoort vóór een kop,
+    want een breuk erna laat hem alleen staan. Een deelvraag en een markering blijven bij elkaar (`BLOK_BEGIN`/`BLOK_EIND`).
+    Een artikel krijgt geen eigen pagina: dat zijn er honderden. De begrippagina heeft altijd dezelfde kopjes, en een leeg veld
+    zegt dat. Toets de opbouw met `render(..., spoor=[])`, niet met `pdftotext`: poppler staat niet op CI.
+- **PDF-opmaak** (`pdf_opmaak.py`, ook voor de annotatie-export). `PAGINA` is `PageBreakIfNotEmpty`: twee kale `PageBreak`s
+  achter elkaar geven een blanke pagina. De lettertypen zijn ingesloten (`app/fonts/`, met licentie):
   de standaardletters kennen alleen cp1252 en maakten van een `ā` of harde afbreekstreep stil een `■`. Wat Fira Sans niet
   heeft, tekent DejaVu per teken (`opgemaakt`). Elke tekst gaat daar doorheen: hij wordt ook geëscaped.
 - Tests: `tests/test_werkgebieden.py` en `tests/test_werkgebied_werkvoorraad.py` (SQLite) en

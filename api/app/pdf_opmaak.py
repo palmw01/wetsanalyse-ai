@@ -27,12 +27,16 @@ _ROOD = "#A1132B"
 MARKERING = "Markering:"
 """Voorvoegsel van een stijl: `Markering:<JAS-klasse>` is de kop van een markering in de kleur van die klasse."""
 PAGINA = "Pagina"
-"""Een regel met deze stijl begint een nieuwe pagina."""
+"""Een regel met deze stijl begint een nieuwe pagina. Staat de pagina nog leeg, dan gebeurt er niets: nooit een blanke pagina."""
 INHOUD = "Inhoud"
 """Een regel met deze stijl is de plek van de inhoudsopgave."""
+BLOK_BEGIN, BLOK_EIND = "BlokBegin", "BlokEind"
+"""De regels ertussen blijven op één pagina, als dat past. Past het niet, dan lopen ze gewoon door."""
+BEGRIP = "Begrip"
+"""De kop van een begrip: die van `Heading3`, maar wel in de inhoudsopgave. Een begrip heeft een eigen pagina."""
 
-_NIVEAU = {"Heading1": 0, "Heading2": 1, "Heading3": 2}
-_IN_INHOUD = 2                                 # koppen tot dit niveau staan in de inhoudsopgave
+_NIVEAU = {"Heading1": 0, "Heading2": 1, "Heading3": 2, BEGRIP: 2}
+_IN_INHOUD = 2                                 # koppen boven dit niveau staan in de inhoudsopgave, plus elk begrip
 
 
 def _registreer() -> None:
@@ -67,6 +71,7 @@ def _stijlen() -> dict:
            "Heading1": ParagraphStyle("Heading1", **kop, fontSize=18, leading=23, spaceAfter=10),
            "Heading2": ParagraphStyle("Heading2", **kop, fontSize=13.5, leading=18, spaceBefore=13, spaceAfter=6),
            "Heading3": ParagraphStyle("Heading3", **kop, fontSize=11.5, leading=15, spaceBefore=11, spaceAfter=4),
+           BEGRIP: ParagraphStyle(BEGRIP, **kop, fontSize=11.5, leading=15, spaceBefore=11, spaceAfter=4),
            "Heading4": ParagraphStyle("Heading4", **kop, fontSize=10, leading=14, spaceBefore=7, spaceAfter=3),
            "Citaat": ParagraphStyle("Citaat", parent=basis, leftIndent=11, borderPadding=(0, 0, 0, 7),
                                     fontName="Fira", spaceAfter=5),
@@ -82,13 +87,16 @@ def _stijlen() -> dict:
     return uit
 
 
-def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "") -> bytes:
-    """De regels als PDF. Met een `INHOUD`-regel een inhoudsopgave; koppen worden altijd bladwijzers."""
+def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor: list[dict] | None = None) -> bytes:
+    """De regels als PDF. Met een `INHOUD`-regel een inhoudsopgave; koppen worden altijd bladwijzers.
+
+    `spoor` krijgt per alinea `{pagina, stijl, tekst, bovenaan, inhoud}`, van de laatste zetronde: zo is de opbouw van de
+    pagina's te toetsen zonder de PDF terug te lezen (`tekst` en `inhoud` alleen bij een kop)."""
     from reportlab.lib.colors import HexColor
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib.units import mm
-    from reportlab.platypus import BaseDocTemplate, Frame, PageBreak, PageTemplate, Paragraph
+    from reportlab.platypus import BaseDocTemplate, Frame, KeepTogether, PageBreakIfNotEmpty, PageTemplate, Paragraph
     from reportlab.platypus.tableofcontents import TableOfContents
 
     _registreer()
@@ -99,38 +107,57 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "") -> by
     class Kop(Paragraph):
         """Een kop die bij het zetten zijn plek doorgeeft aan bladwijzers en inhoudsopgave."""
 
-        def __init__(self, tekst, stijl, platte_tekst, niveau):
+        def __init__(self, tekst, stijl, platte_tekst, niveau, in_inhoud):
             super().__init__(tekst, stijl)
-            self.platte_tekst, self.niveau = platte_tekst, niveau
+            self.platte_tekst, self.niveau, self.in_inhoud = platte_tekst, niveau, in_inhoud
             teller["kop"] += 1
             self.sleutel = f"kop-{teller['kop']}"
 
     class Document(BaseDocTemplate):
+        def beforeDocument(self):                  # `multiBuild` zet meer dan eens: het spoor is van de laatste ronde
+            if spoor is not None:
+                spoor.clear()
+
+        def beforePage(self):
+            self.leeg = True
+
         def afterFlowable(self, flowable):
+            if spoor is not None and isinstance(flowable, Paragraph):
+                kop = isinstance(flowable, Kop)
+                spoor.append({"pagina": self.page, "stijl": flowable.style.name, "bovenaan": self.leeg,
+                              "tekst": flowable.platte_tekst if kop else "", "inhoud": kop and flowable.in_inhoud})
+                self.leeg = False
             if not isinstance(flowable, Kop):
                 return
             self.canv.bookmarkPage(flowable.sleutel)
             self.canv.addOutlineEntry(flowable.platte_tekst, flowable.sleutel, flowable.niveau, closed=flowable.niveau > 0)
-            if flowable.niveau < _IN_INHOUD:
+            if flowable.in_inhoud:
                 self.notify("TOCEntry", (flowable.niveau, flowable.platte_tekst, self.page, flowable.sleutel))
 
-    heeft_inhoud, laatste = False, -1
+    heeft_inhoud, laatste, blok = False, -1, None
     for stijl, tekst in regels:
-        if stijl == PAGINA:
-            verhaal.append(PageBreak())
+        doel = verhaal if blok is None else blok
+        if stijl == BLOK_BEGIN:
+            blok = []
+        elif stijl == BLOK_EIND:
+            verhaal.append(KeepTogether(blok))
+            blok = None
+        elif stijl == PAGINA:
+            doel.append(PageBreakIfNotEmpty())
         elif stijl == INHOUD:
             heeft_inhoud = True
             inhoud = TableOfContents(dotsMinLevel=0)
             inhoud.levelStyles = [
                 ParagraphStyle("Inhoud0", parent=stijlen["BodyText"], fontName="Fira-SemiBold", spaceBefore=6, spaceAfter=2),
-                ParagraphStyle("Inhoud1", parent=stijlen["BodyText"], leftIndent=12, spaceAfter=1)]
-            verhaal.append(inhoud)
+                ParagraphStyle("Inhoud1", parent=stijlen["BodyText"], leftIndent=12, spaceAfter=1),
+                ParagraphStyle("Inhoud2", parent=stijlen["BodyText"], leftIndent=24, spaceAfter=0)]
+            doel.append(inhoud)
         elif stijl in _NIVEAU:
             # Een bladwijzer mag maar één niveau dieper dan de vorige: een kop zonder bovenliggende kop schuift op.
             laatste = min(_NIVEAU[stijl], laatste + 1)
-            verhaal.append(Kop(opgemaakt(tekst), stijlen[stijl], tekst, laatste))
+            doel.append(Kop(opgemaakt(tekst), stijlen[stijl], tekst, laatste, laatste < _IN_INHOUD or stijl == BEGRIP))
         else:
-            verhaal.append(Paragraph(opgemaakt(tekst), stijlen[stijl] if stijl in stijlen else stijlen["Markering"]))
+            doel.append(Paragraph(opgemaakt(tekst), stijlen[stijl] if stijl in stijlen else stijlen["Markering"]))
 
     def voettekst(canvas, doc):
         canvas.saveState()

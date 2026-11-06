@@ -3,13 +3,14 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import re
 import shutil
 import subprocess
 import threading
 
 import pytest
 
-from app import annotatie_v2_store as store, pdf_opmaak, werkgebied_export as export, werkgebieden
+from app import annotatie_v2_store as store, bestandsnaam, pdf_opmaak, werkgebied_export as export, werkgebieden
 from test_annotatie_v2 import ART, LAW, ONE, TWO, element, request, snapshot
 from test_begrippen import _annoteer, _begrip, _beslis, _keur_alles_goed, _url, _werkgebied
 from test_werkgebieden import ART2, LAW2, _bron, _nieuw, client, database, graaf, snapshot2  # noqa: F401
@@ -170,7 +171,7 @@ async def test_begrippen_op_status_met_herkomst_passages_en_accordering(client):
     assert "Degene die schuldig is & blijft <altijd>." in teksten
     assert "analysebegrip, geformuleerd, door de analist." in teksten
     assert any(t.startswith("Geaccordeerd door jurist-a") and "Reden: Getoetst aan de wet" in t for t in teksten)
-    assert "Nog geen definitie." in teksten
+    assert ("Meta", "Niet ingevuld.") in regels                  # het begrip zonder definitie
 
 
 async def test_uitgesloten_bronnen_en_open_voorstellen_staan_apart(client):
@@ -232,7 +233,7 @@ async def test_de_route_geeft_een_pdf_met_een_veilige_bestandsnaam(client):
     wg = (await _bron(client, wg, bron_iri=ART))["werkgebied"]
     r = await client.get(f"/v1/werkgebieden/{wg['id']}/export")
     assert r.status_code == 200 and r.content.startswith(b"%PDF") and r.headers["content-type"] == "application/pdf"
-    assert r.headers["content-disposition"] == 'attachment; filename="werkgebied-rekeningafspraken-een-2026.pdf"'
+    assert re.fullmatch(r'attachment; filename="werkgebied-rekeningafspraken-een-2026-\d{8}-\d{6}\.pdf"', r.headers["content-disposition"])
 
 
 async def test_de_route_kent_alleen_pdf_en_bestaande_werkgebieden(client):
@@ -293,6 +294,125 @@ async def test_de_echte_pdf_is_letterlijk_met_inhoud_en_bladwijzers(client, graa
     assert "1. Dossier" in tekst.split("Dossier", 1)[0] + "Dossier"          # de inhoudsopgave
     assert b"/Outlines" in r.content and b"/FontFile2" in r.content
     assert pdf_opmaak.aantal_paginas(r.content) >= 7                         # voorblad, inhoud en vijf delen
+
+
+async def _spoor(data: dict) -> list[dict]:
+    spoor: list[dict] = []
+    pdf_opmaak.render(export.pdf_regels(data, V), spoor=spoor)
+    return spoor
+
+
+async def _met_begrippen(client, *namen: str) -> dict:
+    """Een rapport met meer begrippen dan de fixture, in elke status een of meer."""
+    wg, _ids = await _gevuld(client)
+    data = await _data(wg)
+    basis = next(b for b in data["begrippen"] if b["status"] == "concept")
+    data["begrippen"] += [{**basis, "id": f"extra-{n}", "inhoud": {**basis["inhoud"], "naam": naam}} for n, naam in enumerate(namen)]
+    data["begrippen"].append({**basis, "id": "weg", "status": "vervangen", "vervangen_door": "extra-0",
+                              "inhoud": {**basis["inhoud"], "naam": "oud begrip"}})
+    return data
+
+
+async def test_elk_begrip_begint_op_een_eigen_pagina(client):
+    data = await _met_begrippen(client, "termijn", "uitstel", "zekerheid")
+    spoor = await _spoor(data)
+    begrippen = [r for r in spoor if r["stijl"] == pdf_opmaak.BEGRIP]
+    assert {r["tekst"] for r in begrippen} == {b["inhoud"]["naam"] for b in data["begrippen"]}
+    assert len({r["pagina"] for r in begrippen}) == len(begrippen)
+    for r in begrippen:
+        # Bovenaan, of direct onder de kop van zijn groep: het eerste begrip van een groep deelt daarmee de pagina.
+        ervoor = [x for x in spoor if x["pagina"] == r["pagina"] and spoor.index(x) < spoor.index(r)]
+        assert r["bovenaan"] or all(x["stijl"] in ("Heading1", "Heading2", "Meta") for x in ervoor)
+
+
+async def test_een_lang_begrip_loopt_door_en_het_volgende_begint_vers(client):
+    data = await _met_begrippen(client, "termijn")
+    lang = next(b for b in data["begrippen"] if b["inhoud"]["naam"] == "aanslag")
+    lang["inhoud"] = {**lang["inhoud"], "uitleg": "\n\n".join(f"Alinea {n} van een lange uitleg." for n in range(120))}
+    begrippen = [r for r in await _spoor(data) if r["stijl"] == pdf_opmaak.BEGRIP]
+    op = {r["tekst"]: r for r in begrippen}
+    assert op["termijn"]["pagina"] - op["aanslag"]["pagina"] >= 2 and op["termijn"]["bovenaan"]
+
+
+async def test_een_groepskop_staat_nooit_alleen_en_er_is_geen_blanke_pagina(client):
+    spoor = await _spoor(await _met_begrippen(client, "termijn", "uitstel"))
+    laatste = max(r["pagina"] for r in spoor)
+    assert {r["pagina"] for r in spoor} == set(range(1, laatste + 1))
+    for r in spoor:
+        if r["stijl"] == "Heading2" and "begrippen (" in r["tekst"].lower():
+            assert any(x["stijl"] == pdf_opmaak.BEGRIP and x["pagina"] == r["pagina"] for x in spoor)
+
+
+async def test_voorstellen_en_afgewezen_hangen_niet_aan_het_vorige_stuk(client):
+    spoor = await _spoor(await _met_begrippen(client, "termijn"))
+    for kop in ("Afgewezen markeringen", "Open voorstellen van Lex"):
+        assert any(r["tekst"] == kop and r["bovenaan"] for r in spoor), kop
+
+
+async def test_elke_regeling_begint_op_een_nieuwe_pagina(client):
+    wg, _ids = await _gevuld(client)
+    data = await _data(wg)
+    titels = [export._regeling_titel(b, data) for b in data["bomen"]]
+    spoor = await _spoor(data)
+    assert titels and all(any(r["tekst"] == t and r["bovenaan"] for r in spoor) for t in titels)
+
+
+async def test_begrippen_staan_in_de_inhoudsopgave_artikelen_niet(client):
+    spoor = await _spoor(await _met_begrippen(client, "termijn"))
+    assert all(r["inhoud"] for r in spoor if r["stijl"] == pdf_opmaak.BEGRIP)
+    assert not any(r["inhoud"] for r in spoor if r["stijl"] == "Heading3")
+    assert any(r["inhoud"] for r in spoor if r["stijl"] == "Heading1")
+
+
+async def test_de_begrippagina_heeft_altijd_dezelfde_kopjes(client):
+    wg, _ids = await _gevuld(client)
+    regels = export.pdf_regels(await _data(wg), V)
+    begin = [i for i, (s, _t) in enumerate(regels) if s == pdf_opmaak.BEGRIP]
+    einde = max(i for i, (s, t) in enumerate(regels) if t == "Open voorstellen van Lex")      # deel 2 heeft dezelfde kop
+    kopjes = ["Definitie", "Uitleg", "Toelichting", "Voorbeelden", "Waarop de definitie rust", "Passages", "Relaties", "Nog open", "Beoordeling"]
+    assert len(begin) == 2
+    for van, tot in zip(begin, [*begin[1:], einde]):
+        assert [t for s, t in regels[van:tot] if s == "Heading4"] == kopjes
+
+
+async def test_een_deelvraag_en_een_markering_blijven_bij_elkaar(client):
+    wg, _ids = await _gevuld(client)
+    regels = export.pdf_regels(await _data(wg), V)
+    stijlen = [s for s, _t in regels]
+    assert stijlen.count(pdf_opmaak.BLOK_BEGIN) == stijlen.count(pdf_opmaak.BLOK_EIND) >= 4
+    open_ = 0
+    for s in stijlen:                                             # nooit genest, en altijd weer dicht
+        open_ += (s == pdf_opmaak.BLOK_BEGIN) - (s == pdf_opmaak.BLOK_EIND)
+        assert open_ in (0, 1)
+    assert open_ == 0
+    assert pdf_opmaak.render(regels).startswith(b"%PDF")
+
+
+def test_een_blok_dat_niet_op_een_pagina_past_loopt_door():
+    regels = [(pdf_opmaak.BLOK_BEGIN, ""), ("Heading2", "Lang"), *[("BodyText", f"regel {n}") for n in range(200)], (pdf_opmaak.BLOK_EIND, "")]
+    spoor: list[dict] = []
+    pdf_opmaak.render(regels, spoor=spoor)
+    assert len(spoor) == 201 and max(r["pagina"] for r in spoor) > 1
+
+
+def test_een_breuk_op_een_lege_pagina_geeft_geen_blanke_pagina():
+    regels = [(pdf_opmaak.PAGINA, ""), ("Heading1", "Een"), (pdf_opmaak.PAGINA, ""), (pdf_opmaak.PAGINA, ""), ("Heading1", "Twee")]
+    spoor: list[dict] = []
+    pdf_opmaak.render(regels, spoor=spoor)
+    assert [(r["pagina"], r["bovenaan"]) for r in spoor] == [(1, True), (2, True)]
+
+
+def test_het_spoor_is_van_de_laatste_ronde_van_de_inhoudsopgave():
+    regels = [(pdf_opmaak.INHOUD, ""), (pdf_opmaak.PAGINA, ""), ("Heading1", "Een")]
+    spoor: list[dict] = []
+    pdf_opmaak.render(regels, spoor=spoor)
+    assert len([r for r in spoor if r["tekst"] == "Een"]) == 1
+
+
+def test_de_bestandsnaam_draagt_de_nederlandse_tijd_op_de_seconde():
+    assert bestandsnaam.met_tijd("x", "pdf", "2026-11-07T13:32:05+00:00") == "x-20261107-143205.pdf"
+    assert bestandsnaam.met_tijd("x", "pdf", "2026-07-07T13:32:05+00:00") == "x-20260707-153205.pdf"    # zomertijd
+    assert bestandsnaam.met_tijd("x", "pdf", "2026-11-07T13:32:05+00:00") != bestandsnaam.met_tijd("x", "pdf", "2026-11-07T13:32:06+00:00")
 
 
 def test_een_teken_buiten_fira_valt_per_teken_terug():
