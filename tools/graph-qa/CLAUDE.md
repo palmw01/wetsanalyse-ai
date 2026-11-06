@@ -32,6 +32,7 @@ ankerlogica die de api en de agent delen staat in `packages/bronmodel` (`wetsana
 |---|---|
 | `nodes/supervisie.py` | supervisor, `_entry_node`, advance, afwijzen |
 | `nodes/antwoord.py` | agent ⇄ tools, verify, correct, finalize |
+| `nodes/sjabloon.py` | de afronding met een sjabloon (ADR-008): vullen uit de trace |
 | `nodes/decompositie.py` | decompose, solve, synthesize, resynth |
 | `nodes/annotatie.py` | annoteer (voorbereiding + `jas_pipeline.keten.analyseer`) en emit |
 | `nodes/annotatie_lezen.py` | de leesroute: eerst zoeken in de opgeslagen annotaties, dan formuleren |
@@ -91,6 +92,11 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   want het model eist er een. Een fout (`resultaat.is_fout`, dezelfde toets als de MCP-server) draagt `is_error` en mag
   één keer opnieuw (`MAX_POGINGEN`): een tijdelijke storing zegt niets over de graaf, een blijvende mag de beurtlimiet niet
   opeten.
+- **`sjabloon_node`** – roept het model een sjabloontool aan (`agent/sjablonen/`, ADR-008), dan vult de code het antwoord
+  uit de trace (register + deze beurt): blokken in `State.antwoord`, de vaste tekst uit `antwoord_tekst` in `answer`. Niet te
+  vullen (`Onvulbaar`) is een `is_error`-resultaat en het model gaat verder; een halve vulling bestaat niet. Naast een
+  graaftool wacht het sjabloon tot de volgende ronde. Tekst in plaats van de tool blijft geldig (log `sjabloon gemist`).
+  Alleen de sjabloontools zijn `strict`, en ze staan niet in `TOOLS`. Per specialist: `Specialist.sjablonen`.
 - **`verify_node`** – `check_grounding(answer, source_trace)`. Bij ongegrond volgt via `correct_node`
   hoogstens één corrigerende ronde (`GROUNDING_CORRECT`, default aan; `state["corrected"]`). De controle
   keurt **twee** dingen af en `correct_node` moet ze allebei benoemen: `unsupported` (een vindplaats die

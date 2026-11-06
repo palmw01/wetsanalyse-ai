@@ -44,6 +44,8 @@ class State(TypedDict, total=False):
     # `overzicht` is het deterministisch gebouwde overzicht. Beide per beurt gereset.
     overzicht_route: bool
     overzicht: dict[str, Any]
+    # Het antwoord als sjabloon (`agent/sjablonen`, ADR-008): leeg bij vrije tekst.
+    antwoord: dict[str, Any]
     bron_snapshot: dict[str, Any]
     annotatie_weergave: dict[str, Any]
     corpus_segmenten: list[dict[str, Any]]

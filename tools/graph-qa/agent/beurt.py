@@ -119,6 +119,7 @@ class BeurtSchrijver:
         self.hergebruik: dict[str, Any] = {}
         self.dekking: dict[str, Any] = {}
         self.overzicht: dict[str, Any] = {}
+        self.antwoord: dict[str, Any] = {}
         self.tekst = ""
         self.denk = ""
         self.bronnen: list[dict[str, Any]] = []
@@ -160,6 +161,8 @@ class BeurtSchrijver:
             self.dekking = event.get("dekking") or {}
         elif soort == "overzicht":
             self.overzicht = event.get("overzicht") or {}
+        elif soort == "antwoord":
+            self.antwoord = event.get("antwoord") or {}
         elif soort == "vraagkaart":
             self.vraagkaart = event.get("vraagkaart") or {}
         elif soort == "werkgebied_aanmaken":
@@ -505,6 +508,7 @@ async def _leg_vast(
                 # Het overzicht uit de graaf (`agent/overzicht.py`): zonder dit veld toonde de werkplek
                 # na herladen alleen de duiding, en het blok en de 3D-doelen waren weg.
                 **({"overzicht": schrijver.overzicht} if schrijver.overzicht else {}),
+                **({"antwoord": schrijver.antwoord} if schrijver.antwoord else {}),
                 # Het kaartje van het samenstellen (activiteit 1): ook na herladen te beantwoorden.
                 **({"vraagkaart": schrijver.vraagkaart} if schrijver.vraagkaart else {}),
                 # Wat een agent opleverde (F3c): het paneel en, bij duur werk, de knop – ook na herladen.

@@ -6,7 +6,9 @@
  *  - lijstnummers staan er zoals Lex ze schreef, ook na afloop van de stroom: een lijst die bij 3 begint, een
  *    lijst met een gat en een lijst die na een alinea verdergaat;
  *  - een vermelding die een andere regeling noemt dan de bron, krijgt geen citatie-chip; de juiste wel, ook
- *    live: `parseBronnen` moet de naam van de regeling en de afkortingen doorlaten.
+ *    live: `parseBronnen` moet de naam van de regeling en de afkortingen doorlaten;
+ *  - een sjabloon staat als blokken in de tekst, zonder kaart en zonder bronnenlijst; een ongeldig sjabloon valt terug
+ *    op `tekst`.
  */
 import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
@@ -33,6 +35,18 @@ const BRON = { label: "Artikel 9", uri: IRI, bron_iri: IRI, bwb_id: "BWBR0004770
 const stroom = [{ type: "token", content: TEKST }, { type: "sources", sources: [BRON] },
   { type: "grounding", grounded: true, cited: 1, unsupported: [], niet_letterlijk: [], niveau: "gegrond" },
   { type: "opgeslagen", run_id: "r1" }, { type: "done" }];
+const K = "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k";
+const VINDPLAATS = { iri: K, label: "Artikel 2, lid 1, onderdeel k", jci: "jci1.3:c:BWBR0004770&artikel=2&lid=1&o=k", regeling: "Invorderingswet 1990" };
+const SJABLOON = { sjabloon: "begrip", versie: 1, doelen: [VINDPLAATS], blokken: [
+  { soort: "definities", door: "bron", items: [{ term: "belastingschuldige", tekst: "belastingschuldige: degene te wiens naam de belastingaanslag is gesteld;", vindplaats: VINDPLAATS, bereik: "" }] },
+  { soort: "begrippen", door: "bron", items: [{ id: "b1", naam: "belastingschuldige", status: "geaccordeerd", definitie: "degene te wiens naam de belastingaanslag is gesteld", werkgebied: "Rekeningafspraak", werkgebied_id: "w1", herbeoordelen: false }] },
+  { soort: "toelichting", door: "lex", kop: "Toelichting van Lex", tekst: "De tenaamstelling beslist." },
+] };
+const sjabloonStroom = (antwoord) => [{ type: "antwoord", antwoord }, { type: "token", content: "De tekst uit de blokken." },
+  { type: "sources", sources: [{ label: VINDPLAATS.label, uri: K, bron_iri: K, bwb_id: "BWBR0004770", soort: "onderdeel" }] },
+  { type: "grounding", grounded: true, cited: 1, unsupported: [], niet_letterlijk: [], niveau: "gegrond" },
+  { type: "opgeslagen", run_id: "r2" }, { type: "done" }];
+let huidige = stroom;
 const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
 
 await context.route("**/api/**", async (route) => {
@@ -45,7 +59,7 @@ await context.route("**/api/**", async (route) => {
   if (p.endsWith("/berichten") && m === "POST") return route.fulfill({ status: 201, json: { id: 1 } });
   if (p === "/api/annotatie/run" && m === "POST") return route.fulfill({ status: 201, json: { run_id: "r1", conversation_id: body.conversation_id, status: "loopt" } });
   if (p === "/api/annotatie/run") return route.fulfill({ json: null });
-  if (/\/run\/[^/]+\/events$/.test(p)) return route.fulfill({ contentType: "text/event-stream", body: sse(stroom) });
+  if (/\/run\/[^/]+\/events$/.test(p)) return route.fulfill({ contentType: "text/event-stream", body: sse(huidige) });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: false } });
   return route.fulfill({ json: [] });
@@ -67,6 +81,34 @@ try {
   assert.equal(await chips.count(), 1);
   await page.getByText("Zie artikel 9 van de Algemene wet bestuursrecht", { exact: false }).waitFor();
   await page.screenshot({ path: `${shots}/antwoord.png` });
+
+  // Een sjabloon: blokken in de tekst, de definitie uit de bron, wat Lex schreef onder een eigen kop.
+  huidige = sjabloonStroom(SJABLOON);
+  await page.goto(`${base}/workbench`);
+  await vraag.fill("Wat betekent belastingschuldige?");
+  await vraag.press("Enter");
+  const blokken = page.getByTestId("antwoord-sjabloon");
+  await blokken.waitFor();
+  const inhoud = await blokken.innerText();
+  assert.match(inhoud, /Wettelijke definitie\s+belastingschuldige: degene te wiens naam/);
+  assert.match(inhoud, /Artikel 2, lid 1, onderdeel k, Invorderingswet 1990/);
+  assert.match(inhoud, /Vastgelegd begrip/);
+  assert.match(inhoud, /Toelichting van Lex\s+De tenaamstelling beslist\./);
+  assert.equal(await page.getByRole("button", { name: /^Bronnen \(/ }).count(), 0, "de blokken noemen de vindplaats al");
+  const stijl = await blokken.evaluate((el) => { const s = getComputedStyle(el); return [s.backgroundColor, s.borderTopWidth]; });
+  assert.deepEqual(stijl, ["rgba(0, 0, 0, 0)", "0px"], "een sjabloon staat in de tekst");
+  await page.screenshot({ path: `${shots}/sjabloon.png` });
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page.screenshot({ path: `${shots}/sjabloon-mobiel.png` });
+  await page.setViewportSize({ width: 1280, height: 900 });
+
+  // Klopt het sjabloon niet, dan is `tekst` het antwoord.
+  huidige = sjabloonStroom({ sjabloon: "begrip", blokken: [{ soort: "onbekend" }] });
+  await page.goto(`${base}/workbench`);
+  await vraag.fill("Nog eens");
+  await vraag.press("Enter");
+  await page.getByText("De tekst uit de blokken.").waitFor();
+  assert.equal(await page.getByTestId("antwoord-sjabloon").count(), 0);
   assert.deepEqual(errors, []);
   console.log("antwoordweergave: ok");
 } finally {

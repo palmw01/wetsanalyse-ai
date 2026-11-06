@@ -45,6 +45,7 @@ from .nodes.antwoord import (
     verify_node,
 )
 from .nodes.annotatie import annoteer_node, emit_node
+from .nodes.sjabloon import route_na_sjabloon, sjabloon_node
 from .nodes.context import Bouw
 from .nodes.annotatie_lezen import zoek_annotaties_node
 from .nodes.begrippen_lezen import zoek_begrippen_node
@@ -332,9 +333,11 @@ def build_graph(
         g.add_edge("afwijzen", END)
         g.add_conditional_edges(
             "agent", functools.partial(route_after_agent, b),
-            {"tools": "tools", "verify": "verify", "annoteer": _annoteer_entry},
+            {"tools": "tools", "verify": "verify", "annoteer": _annoteer_entry, "sjabloon": "sjabloon"},
         )
         g.add_edge("tools", "agent")
+        add("sjabloon", functools.partial(sjabloon_node, b))
+        g.add_conditional_edges("sjabloon", functools.partial(route_na_sjabloon, b), {"verify": "verify", "agent": "agent"})
         g.add_conditional_edges("verify", functools.partial(route_after_verify, b), {"correct": "correct", "finalize": "finalize"})
         g.add_edge("correct", "agent")
         g.add_edge("finalize", "advance")
@@ -347,8 +350,10 @@ def build_graph(
 
     # Geen classificatie (planning off, decomp off): pure QA-agent, ongewijzigd (geen annotatie-route).
     g.add_edge(START, "agent")
-    g.add_conditional_edges("agent", functools.partial(route_after_agent, b), {"tools": "tools", "verify": "verify"})
+    g.add_conditional_edges("agent", functools.partial(route_after_agent, b), {"tools": "tools", "verify": "verify", "sjabloon": "sjabloon"})
     g.add_edge("tools", "agent")
+    add("sjabloon", functools.partial(sjabloon_node, b))
+    g.add_conditional_edges("sjabloon", functools.partial(route_na_sjabloon, b), {"verify": "verify", "agent": "agent"})
     g.add_conditional_edges("verify", functools.partial(route_after_verify, b), {"correct": "correct", "finalize": "finalize"})
     g.add_edge("correct", "agent")
     g.add_edge("finalize", END)

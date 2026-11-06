@@ -1,6 +1,7 @@
 // Client-side fetch-helpers. Praten UITSLUITEND met de eigen Next.js-origin (/api/**);
 // de BFF-laag injecteert het token server-side. Hier dus geen Authorization-header.
 
+import { parseAntwoord } from "./antwoord";
 import { parseBronselectie, type BronselectieOverzicht } from "./bronselectie";
 import {
   geldig,
@@ -570,6 +571,7 @@ export type AgentHandlers = {
   onVraagkaart?: (k: import("./vraagkaart").Vraagkaart) => void;
   /** Het overzicht van een onderwerp, deterministisch uit de graaf; komt vóór de duiding. */
   onOverzicht?: (o: import("./types").Overzicht) => void;
+  onAntwoord?: (a: import("./antwoord").Antwoord) => void;
   /** Het volgnummer van het laatst verwerkte event. Daarmee haakt een client na een onderbreking
    *  weer aan op precies het juiste punt in plaats van vanaf het begin. */
   onSeq?: (seq: number) => void;
@@ -873,6 +875,10 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
         else if (ev.type === "overzicht" && ev.overzicht) {
           const overzicht = geldig(parseOverzicht, ev.overzicht, "overzicht");
           if (overzicht) handlers.onOverzicht?.(overzicht);
+        }
+        else if (ev.type === "antwoord") {
+          const antwoord = geldig(parseAntwoord, (ev as { antwoord?: unknown }).antwoord, "antwoord");
+          if (antwoord) handlers.onAntwoord?.(antwoord);
         }
         else if (ev.type === "vraagkaart") {
           const kaart = geldig(parseVraagkaart, (ev as { vraagkaart?: unknown }).vraagkaart, "vraagkaart");

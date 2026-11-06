@@ -3,6 +3,7 @@ name = "wetsanalyse-bronmodel"
 version = "0.1.0"
 description = "Canonieke bronboom en lokale tekstankers voor Wetsanalyse"
 requires-python = ">=3.11"
+dependencies = ["pydantic>=2"]
 
 [build-system]
 requires = ["hatchling"]

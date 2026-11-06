@@ -14,6 +14,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Literal
 
+from bronmodel.antwoord import Antwoord
 from pydantic import BaseModel, Field, model_serializer, model_validator
 
 
@@ -261,6 +262,9 @@ class Bericht(BaseModel):
     # opgebouwd door graph-qa: per regeling de delen met hun bepalingen, wat er verder over gaat, de
     # definitie en het trefwoord. De werkplek toont het als blok en opent er de 3D-graaf mee.
     overzicht: dict = {}
+    # Het antwoord als sjabloon (ADR-008): de blokken die de werkplek tekent. Zonder sjabloon leeg, en dan is
+    # `tekst` het antwoord.
+    antwoord: Antwoord | None = None
     # Bronnode-annotatie (contract 2): de verwijzing die `annotatie_slug` voor een artikeldocument is.
     annotatie_doel: AnnotatieDoel | None = None
     # Het uitvoeringsspoor van de beurt ("Graaf geraadpleegd · N aanroepen"), ook na herladen.
@@ -322,6 +326,7 @@ class BerichtInvoer(BaseModel):
     hergebruik: dict = {}
     dekking: dict = {}
     overzicht: dict = {}
+    antwoord: Antwoord | None = None
     annotatie_doel: AnnotatieDoel | None = None
     # Een beurt levert er hooguit enkele tientallen; de grens is een vangnet, geen verwachting.
     tool_executions: list[dict] = Field(default_factory=list, max_length=200)

@@ -13,6 +13,7 @@ import Link from "next/link";
 import { memo, useEffect, useMemo, useState } from "react";
 
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
+import { Antwoord } from "@/components/antwoord/Antwoord";
 import { Button } from "@/components/ui/Button";
 import { ChevronOmlaag, Cirkel, Waarschuwing } from "@/components/ui/Icoon";
 import { HergebruikMelding } from "@/components/werkplek/HergebruikMelding";
@@ -138,7 +139,9 @@ export const ThreadRij = memo(function ThreadRij({
         <p className="mb-1 text-xs font-medium text-muted">Lex</p>
         {item.denk && <DenkProces tekst={item.denk} actief={bezig && !item.tekst} />}
         <ToolSpoor events={item.tool_executions} />
-        {item.tekst ? (
+        {item.antwoord ? (
+          <Antwoord antwoord={item.antwoord} bronnen={item.bronnen} nietLetterlijk={item.grounding?.niet_letterlijk} />
+        ) : item.tekst ? (
           streamt ? (
             <StreamendeTekst tekst={item.tekst} />
           ) : (
@@ -161,7 +164,7 @@ export const ThreadRij = memo(function ThreadRij({
         )}
         {/* Bij een overzicht linkt het blok elke vindplaats: een bronnenlijst van 40–90 regels ernaast
             zegt niets nieuws. De bronnen blijven in het bericht (herkomst, eval). */}
-        {!item.overzicht && item.bronnen && item.bronnen.length > 0 && <Bronnen bronnen={item.bronnen} />}
+        {!item.overzicht && !item.antwoord && item.bronnen && item.bronnen.length > 0 && <Bronnen bronnen={item.bronnen} />}
         {samenhangAan && !demo && (item.overzicht || !!item.bronnen?.length) && (() => {
           // Met een overzicht: de delen daarvan, in zijn eigen volgorde – los van hoe Lex formuleerde.
           // Anders: de bepalingen die het antwoord noemt, tot de diepste (`antwoordDoelen`).
