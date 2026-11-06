@@ -243,7 +243,7 @@ try {
   const suggesties = page.getByTestId("vraag-suggesties").getByRole("button");
   assert.deepEqual(await suggesties.allTextContents(), ["Waarom is dit een Rechtssubject?",
     "Welk recht of welke plicht heeft deze partij in deze bepaling?", "Waarom geen Rechtsobject?"]);
-  assert.equal(await page.getByPlaceholder("Stel een vraag of geef een opdracht aan Lex…").inputValue(), "");
+  assert.equal(await page.getByPlaceholder("Vraag of opdracht voor Lex…").inputValue(), "");
   await suggesties.first().click();
   await page.getByText("Het element betreft de handelende instantie.", { exact: true }).waitFor();
   const advice = requests.find((r) => r.path === "/api/annotatie/run").body;
