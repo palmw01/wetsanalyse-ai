@@ -258,10 +258,19 @@ class ImportResult:
     overzicht: ImportSummary | None = None
     fout: str | None = None
 
+    @property
+    def tegengehouden(self) -> bool:
+        """De import lukte, maar de poort liet de bestaande graph staan."""
+        return self.overzicht is not None and self.overzicht.tegengehouden
+
     def as_dict(self) -> dict:
+        if not self.ok:
+            status = "fout"
+        else:
+            status = "tegengehouden" if self.tegengehouden else "ok"
         return {
             "bwb_id": self.bwb_id,
-            "status": "ok" if self.ok else "fout",
+            "status": status,
             "overzicht": self.overzicht.as_dict() if self.overzicht else None,
             "fout": self.fout,
         }
@@ -290,8 +299,15 @@ class ImportSummary:
     # tekens) konden daardoor anderhalve maand stil ontbreken.
     bron_tekens: int = 0
     graaf_tekens: int = 0
+    # De importpoort (`dekking.poortbesluit`): wat er te melden is, en of de bestaande graph daarom
+    # is blijven staan. Een reden zonder `tegengehouden` betekent: geschreven, maar kijk ernaar.
+    poort: str | None = None
+    tegengehouden: bool = False
+    # Uitslag van de XSD-validatie. None = niet gevalideerd. Een signaal: een afwijkend document is
+    # nog geen fout document, en verloren tekst vangt de dekking.
+    xsd_geldig: bool | None = None
 
-    def as_dict(self) -> dict[str, int | str]:
+    def as_dict(self) -> dict[str, int | str | bool | None]:
         return {
             "bwb_id": self.bwb_id,
             "wetten": self.wetten,
@@ -311,4 +327,7 @@ class ImportSummary:
             # te zien wannéér er tekst begon te ontbreken.
             "bron_tekens": self.bron_tekens,
             "graaf_tekens": self.graaf_tekens,
+            "poort": self.poort,
+            "tegengehouden": self.tegengehouden,
+            "xsd_geldig": self.xsd_geldig,
         }

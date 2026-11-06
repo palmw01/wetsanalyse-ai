@@ -81,7 +81,7 @@ async def importeer(
     if body is not None and body.bwb_ids is not None:
         logger.info("Batch-import-verzoek voor %d regelingen", len(body.bwb_ids))
         resultaten = await run_in_threadpool(run_imports, body.bwb_ids, settings)
-        geslaagd = sum(1 for r in resultaten if r.ok)
+        geslaagd = sum(1 for r in resultaten if r.ok and not r.tegengehouden)
         if geslaagd == len(resultaten):
             status = "ok"
         elif geslaagd:
@@ -99,4 +99,5 @@ async def importeer(
         logger.error("Import mislukt voor %s: %s", bwb_id, exc)
         raise HTTPException(status_code=500, detail=f"Import mislukt: {exc}") from exc
 
-    return {"status": "ok", "overzicht": summary.as_dict()}
+    status = "tegengehouden" if summary.tegengehouden else "ok"
+    return {"status": status, "overzicht": summary.as_dict()}
