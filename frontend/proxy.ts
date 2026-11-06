@@ -14,7 +14,7 @@
 // geen pagina en heeft geen nonce nodig.
 //
 // Let op: met deze handler telt in `authorized` alleen een `Response` als weigering. Een `false`
-// negeert next-auth dan; `auth.config.test.ts` bewaakt dat de callback dat nergens teruggeeft.
+// negeert next-auth dan; `proxy.gate.test.ts` draait deze proxy en bewaakt dat.
 
 import NextAuth from "next-auth";
 import { NextResponse } from "next/server";

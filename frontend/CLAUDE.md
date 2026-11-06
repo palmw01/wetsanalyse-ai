@@ -1686,6 +1686,9 @@ knop. Zie `docs/observability.md`.
     einde en zondert `/api/` daarvan uit, anders valt een route-parameter die op een bestandsnaam lijkt
     (`/api/gesprekken/abc.png`) buiten de gate. `proxy.test.ts` leest het patroon uit de bron; houd de
     matcher een **letterlijke string**, want Next analyseert hem statisch.
+    `proxy.ts` geeft `auth()` een eigen handler mee (de CSP), en dan telt in `authorized` alleen een
+    `Response`: een `false` negeert next-auth en de pagina rendert gewoon. `proxy.gate.test.ts` draait de
+    echte proxy met echte sessiecookies; `auth.config.test.ts` ziet alleen de callback.
   - Inloggen gaat uitsluitend met de userid; e-mail is verplicht en uniek maar geen inlog-identiteit.
     De sessie is een httpOnly JWT-cookie (`AUTH_SECRET`) met `userid` + rol; de Credentials-provider
     verifieert bij de API (`verifyCredentials` → `/v1/auth/verify`). De API bewaart users, hash en
