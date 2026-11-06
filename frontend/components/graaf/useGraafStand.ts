@@ -170,18 +170,15 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolea
     if (!model) return;
     const afbreken = new AbortController();
     const voor = bereik;
-    const alsKeten = voor === "antwoord" && bronnen?.length === 1 && !!bronnen[0].keten;
     layoutVoor(model, {
       vast: vorige.current[voor],
       signal: afbreken.signal,
-      keten: alsKeten,
       opVoortgang: (fractie) => setLaadfase({ fase: "layout", fractie }),
     }).then(({ posities }) => {
       // Een vervallen run (nieuw model, ander bereik) zet niets: anders komt een oude kaart over een
       // nieuwere heen.
       if (afbreken.signal.aborted) return;
-      // De ketting legt geen kaart vast: wat erbij komt (*Toon het hele artikel*) krijgt een eigen layout.
-      vorige.current[voor] = alsKeten ? undefined : posities;
+      vorige.current[voor] = posities;
       setGetekend({ model, posities, bereik: voor });
       setLaadfase({ fase: "klaar" });
       setFouten((f) => (f.layout?.bereik === voor ? { ...f, layout: undefined } : f));
@@ -190,8 +187,6 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolea
       setFouten((f) => ({ ...f, layout: { bereik: voor, tekst: foutTekst(e, "De layout van de graaf kon niet worden berekend.") } }));
     });
     return () => afbreken.abort();
-    // `bronnen` volgt hetzelfde model; het bereik van de ketting hangt er alleen van af.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [model, bereik, layoutPoging]);
 
   /** Na een annotatiewijziging. Mutaties gebeuren op de Tekst-tab, dus de graaf is dan niet te zien:

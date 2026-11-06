@@ -286,7 +286,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
       <div className="relative min-h-[260px] min-w-0 flex-1 bg-[#f7f9fc]">
         {geenWebgl ? <CanvasMelding>{GEEN_WEBGL}</CanvasMelding>
           : getekend && <TekenGrens><Tekenaar model={getekend.model} posities={getekend.posities} context={context} zichtbaar={zichtbaar}
-            inpassen={inpassen ?? undefined} rand={ketting && bereik === "antwoord" && bronnen?.length === 1 ? 72 : undefined} cameraRef={camera} bedieningRef={bediening} bedekking={bedekking} onKies={(id) => kies(id, false)} onFout={() => setGeenWebgl(true)} /></TekenGrens>}
+            inpassen={inpassen ?? undefined} cameraRef={camera} bedieningRef={bediening} bedekking={bedekking} onKies={(id) => kies(id, false)} onFout={() => setGeenWebgl(true)} /></TekenGrens>}
         {/* Bij een wissel van bereik blijft de vorige kaart zichtbaar onder de laadbalk. */}
         {!opBereik && !fout && <Laadbalk fase={laadfase} kennisgraaf={bereik === "kennisgraaf"} over={!!getekend} />}
         {/* Wat het tekenen in dit bereik tegenhoudt, midden op het canvas, met de weg terug. */}
