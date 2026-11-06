@@ -10,12 +10,11 @@ import { StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { Groep, GroepRij } from "@/components/ui/Pagina";
 import { SkeletonCard } from "@/components/ui/Skeleton";
-import { KnoopTekst } from "@/components/graaf/KnoopTekst";
+import { Wettekst } from "@/components/bronnen/Wettekst";
 import { PeildatumRegel } from "@/components/werkgebieden/Peildatum";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import { besluitBronselectie, foutTekst, haalBronselectie, verwijderBron, wijzigBron, type BronselectieBesluit } from "@/lib/api";
-import { haalNodeWeergave, type NodeWeergave } from "@/lib/annotatieNode";
 import {
   BRONSELECTIE_GEWIJZIGD, BEWIJS_LABEL, STAND_LABEL, ordenVoorstellen, zoekvraagZin, meldBronselectieGewijzigd, bronnenZin, deelvraagStand, slotZin, voortgangZin, zoekBeperkingen,
   type BronselectieOverzicht, type DeelvraagSelectie, type KandidaatHier,
@@ -258,30 +257,6 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
   );
 }
 
-
-/** De wettekst van een bepaling, uitgeklapt naast het gesprek: lezen zonder de werkplek te verlaten. De pagina van
- *  de bepaling blijft één klik verder. */
-function Wettekst({ bronIri, werkgebiedId }: { bronIri: string; werkgebiedId: string }) {
-  const [view, setView] = useState<NodeWeergave | null>(null);
-  const [fout, setFout] = useState<string | null>(null);
-  useEffect(() => {
-    let levend = true;
-    haalNodeWeergave({ bron_iri: bronIri }).then((v) => { if (levend) setView(v); })
-      .catch((e) => { if (levend) setFout(foutTekst(e, "De tekst kon niet worden geladen.")); });
-    return () => { levend = false; };
-  }, [bronIri]);
-  const actueel = (view?.elementen ?? []).filter((e) => !e.verouderd && e.lifecycle !== "rejected");
-  return (
-    <div className="mx-4 mb-2 rounded-kaart border border-line bg-surface/60 px-3 py-2.5" data-wettekst={bronIri}>
-      {fout ? <p className="text-sm text-muted">{fout}</p>
-        : view ? <KnoopTekst segmenten={view.segmenten} elementen={actueel} kiesbaar={() => false} onKies={() => {}} />
-          : <p className="text-sm text-muted">Tekst laden…</p>}
-      <Link href={bronPad(bronIri, werkgebiedId)} className="focus-ring mt-2 inline-block rounded text-xs font-medium text-lint hover:underline">
-        Open de bepaling
-      </Link>
-    </div>
-  );
-}
 
 /** Eén bron als rij (de `itemrow` van de mock-up): de bepaling als titel, de regeling en wat ze hier doet eronder,
  *  de status rechts; de rij opent de pagina van de bepaling. Met beheer staan rol en verwijderen achter ⋯. */

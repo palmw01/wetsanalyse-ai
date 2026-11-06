@@ -168,6 +168,7 @@ try {
 
   // --- De werkplek: een werkgebied uit een overzicht, en het bronnenartefact ---
   await page.goto(`${base}/workbench?gesprek=g1`);
+  await page.getByTestId("overzicht-kaartje").click();
   await page.getByRole("button", { name: "Maak hier een werkgebied van" }).click();
   const dialoog = page.getByRole("dialog", { name: "Werkgebied maken uit het overzicht" });
   await dialoog.waitFor();

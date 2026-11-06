@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Component, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Melding } from "@/components/ui/Melding";
 import { Meter } from "@/components/ui/Meter";
 import type { NodeDoel, NodeWeergave } from "@/lib/annotatieNode";
@@ -17,7 +17,6 @@ import { GraafLagen } from "./GraafLagen";
 import { GraafZoek } from "./GraafZoek";
 import { ChevronOmlaag, Terug } from "@/components/ui/Icoon";
 import { eigenKleur } from "@/lib/graaf/stijl";
-import type { GraafKoppeling } from "./koppeling";
 import type { Bereik, GraafOpties, GraafStand } from "./useGraafStand";
 import { useKnoopDetail, useKnoopInfo, useMarkeringElement } from "./useKnoopDetail";
 
@@ -62,7 +61,7 @@ export interface GraafContext {
 }
 export const ANTWOORD: GraafContext = { naam: "Dit antwoord", kort: "Antwoord", terug: "het antwoord", focus: "wat het antwoord noemt" };
 
-export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekking, koppelingRef, onKiesElement, onOpenTekst, onWisselArtikel, onVraag,
+export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekking, onKiesElement, onOpenTekst, onWisselArtikel, onVraag,
   benaming = ANTWOORD, bijKnoop, herkomst }: {
   stand: GraafStand; zichtbaar: boolean; groot: boolean;
   /** Hoe het doel gekozen is: `eerste_bron` = Lex noemde geen bepaling (`antwoordDoelen`). */
@@ -73,9 +72,6 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
   weergave?: NodeWeergave;
   /** Per bron-IRI de zinsdelen zonder detectortreffer, uit het paneel (alleen de geopende bepaling). */
   dekking?: Record<string, string[]>;
-  /** Waar de graaf zijn handelingen neerzet voor het overzichtsblok (`koppeling.ts`), zolang hij in
-   *  beeld is. */
-  koppelingRef?: RefObject<GraafKoppeling | null>;
   onKiesElement: (elementId?: string) => void;
   /** *Bekijk in de tekst*. Bij een markering staat `anker` op de bronknoop waar zij op ligt. */
   onOpenTekst: (knoop: KnoopData, anker?: string) => void;
@@ -89,7 +85,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
   /** Een extra handeling bij de gekozen knoop, naast de hoofdactie – bv. opnemen in een werkgebied. */
   bijKnoop?: (knoop: KnoopData & { id: string }) => ReactNode;
 }) {
-  const { bronnen, getekend, laadfase, fout, melding, selectie, setSelectie, wachtendeKeuze, setWachtendeKeuze,
+  const { bronnen, getekend, laadfase, fout, melding, selectie, setSelectie,
     lagen, setLagen, markering, setMarkering, lagenOpen, setLagenOpen, aangeraakt, setAangeraakt, camera, bediening,
     laadErbij, laadtBij, bereik, setBereik, focusIds, eigenFocus } = stand;
   const [geenWebgl, setGeenWebgl] = useState(false);
@@ -108,7 +104,6 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
       return !v;
     });
   }
-  const [aangewezen, setAangewezen] = useState<string | null>(null);
   // De markering die de graaf zelf koos (en aan het paneel doorgaf): een keuze uit de tekst is een
   // andere, en die moet in beeld komen.
   const eigenKeuze = useRef<string | undefined>(undefined);
@@ -131,8 +126,8 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
     const f = focusVan(model, focusIds);
     return f.bereik.size && f.bereik.size < model.order ? f : null;
   }, [getekend, model, focusIds, ketting, bereik, eigenFocus]);
-  const context = useMemo(() => weergaveContext(model, { lagen, markering, selectie: gekozen, focus, ongedekt, aangewezen }),
-    [model, lagen, markering, gekozen, focus, ongedekt, aangewezen]);
+  const context = useMemo(() => weergaveContext(model, { lagen, markering, selectie: gekozen, focus, ongedekt }),
+    [model, lagen, markering, gekozen, focus, ongedekt]);
   // Een nieuwe kaart in beeld: op de keuze als die er is, anders op wat het antwoord noemt. De tekenaar
   // doet er alleen iets mee als de sleutel (het bereik) verandert.
   const inpassen = useMemo(() => getekend && {
@@ -184,37 +179,10 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
     if (nodig.markering !== markering) setMarkering(nodig.markering);
     if (vlieg) requestAnimationFrame(() => bediening.current?.focus(id));
   }
-  // Het overzichtsblok wijst aan en kiest via de werkplek (`koppeling.ts`). Een knoop die alleen in de
-  // kennisgraaf staat, haalt die erbij: de keuze blijft staan en komt in beeld zodra hij er is.
-  useEffect(() => {
-    if (!koppelingRef || !zichtbaar) return;
-    koppelingRef.current = {
-      wijs: (id) => setAangewezen(id),
-      kies: (id) => {
-        setAangewezen(null);
-        if (model.hasNode(id)) { kies(id); return true; }
-        // Niet op deze kaart: de hele kennisgraaf erbij halen, en de keuze laten wachten tot hij er
-        // is (hieronder). Staat die al open en kent hij de knoop ook niet, dan is het gewoon een link.
-        if (bereik === "kennisgraaf") return false;
-        setAangeraakt(true);
-        setWachtendeKeuze(id);
-        setBereik("kennisgraaf");
-        return true;
-      },
-    };
-    return () => { koppelingRef.current = null; };
-  });
 
   // Een wachtende keuze wordt een gewone keuze zodra de kaart van dit bereik er is – met de lagen die
   // hij nodig heeft en de melding aan het paneel. Kent die kaart hem niet, dan vervalt hij.
   const opBereik = getekend?.bereik === bereik;
-  useEffect(() => {
-    if (!wachtendeKeuze || !opBereik) return;
-    setWachtendeKeuze(null);
-    kies(wachtendeKeuze);
-    // `kies` leest de stand van deze render; alleen de komst van de kaart telt.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wachtendeKeuze, opBereik, getekend]);
 
   // Een keuze die niet meer op de kaart staat (de markering is verworpen of verwijderd, of de keuze
   // kwam uit een bereik dat meer bevat) vervalt: anders is er een onzichtbare keuze en doet de eerste
@@ -264,7 +232,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
     : (hoofd && model.hasNode(hoofd.artikel_iri) ? model.getNodeAttribute(hoofd.artikel_iri, "naam") : hoofd?.doel.label) ?? "de bepaling";
   const hoofdNaam = hoofd && model.hasNode(hoofd.artikel_iri) ? model.getNodeAttribute(hoofd.artikel_iri, "naam") : "het eerste artikel";
   return <div className="flex min-h-0 flex-1 flex-col" data-testid="samenhang-graaf" data-vergroot={groot}
-    data-gereed={!!getekend && opBereik} data-bereik={bereik} data-zijbalk={groot && zijbalkIn ? "in" : "uit"} data-selectie={gekozen ?? ""} data-aangewezen={aangewezen ?? ""}>
+    data-gereed={!!getekend && opBereik} data-bereik={bereik} data-zijbalk={groot && zijbalkIn ? "in" : "uit"} data-selectie={gekozen ?? ""}>
     <div className="shrink-0 border-b border-line px-5 py-2.5">
       <h2 className="text-sm font-semibold text-lint">
         {bereik === "kennisgraaf" ? "De hele kennisgraaf" : `Samenhang van ${titel}`}

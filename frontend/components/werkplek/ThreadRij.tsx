@@ -19,7 +19,6 @@ import { HergebruikMelding } from "@/components/werkplek/HergebruikMelding";
 import { Melding } from "@/components/ui/Melding";
 import { KeuzeKaart } from "@/components/werkplek/KeuzeKaart";
 import { Markdown, StreamendeTekst } from "@/components/werkplek/Markdown";
-import { OverzichtBlok } from "@/components/werkplek/OverzichtBlok";
 import { ReeksBlok } from "@/components/werkplek/ReeksBlok";
 import { ToolSpoor } from "@/components/werkplek/ToolSpoor";
 import { VragenKaart } from "@/components/werkplek/VragenKaart";
@@ -30,7 +29,7 @@ import type { NodeDoel } from "@/lib/annotatieNode";
 import { artefactLabel, isTeOpenen, type Artefact } from "@/lib/artefact";
 import { doelenVanKandidaten, reeksPrompt } from "@/lib/reeks";
 import { antwoordDoelen, antwoordKnopTekst, normaliseerBronnen } from "@/lib/bronnen";
-import { overzichtAlsMarkdown, overzichtDefinities, overzichtDoelen, overzichtFocus, overzichtKnopTekst } from "@/lib/overzicht";
+import { overzichtAlsMarkdown, overzichtDefinities, overzichtDoelen, overzichtFocus, overzichtKnopTekst, telling } from "@/lib/overzicht";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 import { beurtSamenvatting, laatsteRun } from "@/lib/waarom";
 import type { ThreadItem } from "@/lib/threadItem";
@@ -71,8 +70,8 @@ export interface ThreadActies {
   stop: () => void;
   /** *Annuleren* bij een voorstel van Lex: niets starten, en dat vastleggen in het gesprek. */
   annuleer: () => void;
-  /** *Maak hier een werkgebied van* onder een overzicht (spoor D, fase A). */
-  maakWerkgebied: (overzicht: Overzicht) => void;
+  /** Het overzicht van een antwoord naast het gesprek openen. */
+  openOverzicht: (overzicht: Overzicht) => void;
   /** "Een vraag stellen ›": de weggeklikte vraag onderaan weer openen (activiteit 1). */
   openVraag: () => void;
 }
@@ -151,15 +150,11 @@ export const ThreadRij = memo(function ThreadRij({
           <Punten />
         )}
         <BeurtUitkomstBlok uitkomst={item.uitkomst} />
-        {/* Het overzicht uit de graaf staat los van de tekst: dezelfde vraag, hetzelfde blok. */}
-        {item.overzicht && <OverzichtBlok overzicht={item.overzicht} />}
-        {item.overzicht && !demo && item.overzicht.regelingen.length > 0 && (
-          <button type="button" onClick={() => acties.maakWerkgebied(item.overzicht!)}
-            className="focus-ring mt-3 flex items-center gap-2 rounded-lg border border-lint/20 bg-lint/[0.03] px-3 py-2 text-left text-xs font-medium text-lint transition-colors hover:bg-lint/10">
-            Maak hier een werkgebied van
-          </button>
+        {/* Het overzicht uit de graaf staat naast het gesprek: hier de samenvatting en een kaartje. */}
+        {item.overzicht && item.overzicht.regelingen.length > 0 && !demo && (
+          <div className="mt-3"><OverzichtKaartje overzicht={item.overzicht} onOpen={() => acties.openOverzicht(item.overzicht!)} /></div>
         )}
-        {/* Bij een overzicht linkt het blok elke vindplaats: een bronnenlijst van 40–90 regels ernaast
+        {/* Bij een overzicht linkt het paneel elke vindplaats: een bronnenlijst van 40–90 regels ernaast
             zegt niets nieuws. De bronnen blijven in het bericht (herkomst, eval). */}
         {!item.overzicht && item.bronnen && item.bronnen.length > 0 && <Bronnen bronnen={item.bronnen} />}
         {samenhangAan && !demo && (item.overzicht || !!item.bronnen?.length) && (() => {
@@ -326,6 +321,26 @@ function zelfdeRij(a: Props, b: Props): boolean {
   const sleutels = Object.keys(b) as (keyof Props)[];
   if (Object.keys(a).length !== sleutels.length) return false;
   return sleutels.every((k) => k === "vragen" ? JSON.stringify(a.vragen) === JSON.stringify(b.vragen) : a[k] === b[k]);
+}
+
+/** Het kaartje van een overzicht, in de vorm van de artefactchip: de inhoud staat naast het gesprek. */
+function OverzichtKaartje({ overzicht, onOpen }: { overzicht: Overzicht; onOpen: () => void }) {
+  const t = telling(overzicht);
+  return (
+    <button type="button" onClick={onOpen} data-testid="overzicht-kaartje"
+      className="flex w-full items-center gap-3 rounded-kaart border border-line bg-surface px-4 py-3 text-left shadow-zacht transition-all hover:-translate-y-0.5 hover:border-lint/40 hover:shadow-kaart focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-lint/10 text-lint" aria-hidden><GraafIcoon /></span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-medium text-ink">Overzicht: {overzicht.gevraagd}</span>
+        <span className="block text-xs text-muted">
+          {t.regelingen} regeling{t.regelingen === 1 ? "" : "en"} · {t.bepalingen + t.ookGenoemd} bepaling{t.bepalingen + t.ookGenoemd === 1 ? "" : "en"}
+        </span>
+      </span>
+      <span className="shrink-0 text-muted" aria-hidden>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+      </span>
+    </button>
+  );
 }
 
 /** De chip van een artefact dat geen annotatie is. Afleidingsregels zijn gereserveerd: de kaart staat

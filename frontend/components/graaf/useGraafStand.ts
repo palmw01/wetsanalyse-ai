@@ -80,9 +80,6 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolea
   // Geen beginkeuze: het begin is de focus (wat het antwoord noemt). Een keuze is wat je daarna
   // aanklikt, en haar opheffen brengt het begin terug.
   const [selectie, setSelectie] = useState<string | null>(null);
-  // Een keuze voor een knoop die nog niet op de kaart staat (het overzichtsblok wijst iets uit de
-  // kennisgraaf aan terwijl die nog laadt). `Graaf` maakt er een echte keuze van zodra hij er is.
-  const [wachtendeKeuze, setWachtendeKeuze] = useState<string | null>(null);
   const [lagen, setLagen] = useState<Lagen>(STANDAARD_LAGEN);
   const [markering, setMarkering] = useState<MarkeringFilter>("alle");
   const [lagenOpen, setLagenOpen] = useState(false);
@@ -264,7 +261,7 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolea
     /** De geladen kennisgraaf, als er sinds het laden geen annotatie veranderde: die mag een volgend
      *  paneel overnemen (`GraafOpties.kennisgraaf`). */
     kennisgraafActueel: gevraagd <= gedaan ? kennisgraaf : undefined,
-    selectie, setSelectie, wachtendeKeuze, setWachtendeKeuze,
+    selectie, setSelectie,
     lagen, setLagen, markering, setMarkering, lagenOpen, setLagenOpen,
     aangeraakt, setAangeraakt, camera, bediening, detailCache, infoCache, detailVersie,
   };

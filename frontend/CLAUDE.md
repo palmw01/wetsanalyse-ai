@@ -408,14 +408,15 @@ Op "welke artikelen gaan over X?" bouwt graph-qa een overzicht uit de graaf (`ag
 schrijft Lex er alleen een korte duiding bij. Het overzicht komt als `overzicht`-event
 (`parseOverzicht` in `lib/agentEvents.ts`, streng op bron-IRI's: één slechte rij en er is geen blok)
 en reist mee in het bericht (`Bericht.overzicht`), ook als de werkplek het bericht zelf vastlegt.
-**`OverzichtBlok`** toont het onder de samenvatting (die graph-qa uit dezelfde data schrijft, zonder
-model): per regeling de delen met **al** hun bepalingen (`kop`/`naam` uit de data via `deelKop` en
+Het staat **naast het gesprek** (besluit gebruiker 6 nov 2026, in de lijn van de bronselectie): in het gesprek de
+samenvatting met een kaartje (`OverzichtKaartje`), en **`OverzichtPaneel`** in het `ContextPaneel` (`soort: "overzicht"`,
+de inhoud uit het bericht, zonder pagina). Het paneel opent vanzelf vanaf 800px; daaronder met het kaartje of de balk
+boven de chat. Het toont, naast de samenvatting die graph-qa uit dezelfde data schrijft, zonder model: per regeling de delen als uitklapbare rijen met **al** hun bepalingen, één tegelijk met de wettekst (`Wettekst`) eronder (`kop`/`naam` uit de data via `deelKop` en
 `bepalingNaam` – nooit een bereik; de naam zoals de bron hem geeft, ook waar de Leidraad wisselt), wat het onderwerp verder noemt met zijn
 plek in de opbouw (ingeklapt; open als de regeling geen deel heeft), de wettelijke definitie met haar
 `vindplaats`, het redactionele trefwoord en waarop er gezocht is (`zoekverantwoording`). **Bij een
-overzicht staat er geen bronnenlijst**: het blok linkt elke vindplaats. De kopieerknop neemt het
-overzicht mee (`overzichtAlsMarkdown`). Met de graaf open zijn koppen en nummers aanwijsbaar in de
-graaf (zie §*De samenhangsgraaf*). Rekenkern in `lib/overzicht.ts`.
+overzicht staat er geen bronnenlijst**: het paneel linkt elke vindplaats. De kopieerknop neemt het
+overzicht mee (`overzichtAlsMarkdown`). Rekenkern in `lib/overzicht.ts`.
 
 ### Citatie-chips onder en in het antwoord
 
@@ -902,7 +903,7 @@ bestaat los van de gesprekken.
     alleen waar je kiest met vinkjes: het koppelvenster van een deelvraag en de termpagina.
   - De allowlist (`isWerkgebiedRoute`) laat alleen `kandidaten` (lezen) en `bronnen-runs/laatste|{run}` door,
     nooit een besluit op een kandidaat, een kale POST op `bronnen-runs` of `…/uitkomst|loopt|mislukt`.
-  - **Werkgebied vanuit een overzicht**: onder `OverzichtBlok` de knop *Maak hier een werkgebied van*
+  - **Werkgebied vanuit een overzicht**: onderaan `OverzichtPaneel` de knop *Maak hier een werkgebied van*
     (`WerkgebiedUitOverzicht`): naam en analysevraag vooringevuld, de bepalingen uit het overzicht
     (`bepalingenVanOverzicht`) voorgeselecteerd. Daarna staat de werkplek in dat werkgebied; wat niet
     kon worden opgenomen staat in een zichtbare melding onder de balk.
@@ -1397,7 +1398,7 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
 - **`lib/graaf/labels.ts`** – **welke knopen een label krijgen**: nooit twee over elkaar, en meer detail
   naarmate je inzoomt. Sigma's eigen labelraster toetst de breedte van een label niet en zet
   `labelVisibility: "visible"` ongetoetst bovenop; daarom staat het op nul (`labelDensity: 0`) en kiest
-  `kiesLabels` per camerastand: gulzig op prioriteit (keuze/aangewezen > nadruk > gewoon > gedimd, dan de soort), een
+  `kiesLabels` per camerastand: gulzig op prioriteit (keuze > nadruk > gewoon > gedimd, dan de soort), een
   label alleen als zijn rechthoek vrij ligt én helemaal in beeld past; wat vorig beeld stond wint bij
   gelijke prioriteit (geen geflikker). De zwevende bediening telt als bezet. Detailniveau per soort
   (`LABEL_VANAF`, `magLabel`) op een *effectieve* zoom die de grootte van de kaart meeweegt: uitgezoomd
@@ -1445,10 +1446,8 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   layout), staat midden op het canvas en heeft zijn eigen herstel (*Opnieuw proberen*); `melding`
   (verversen of bijladen mislukt) blokkeert niets en verdwijnt bij de volgende geslaagde handeling. Eén
   gedeelde foutstring liet een melding uit het andere bereik staan en hield de laadbalk weg.
-  **`selectie` bevat alleen ids op de kaart.** Een keuze voor iets dat nog niet geladen is (het
-  overzichtsblok wijst een knoop uit de kennisgraaf aan) is een `wachtendeKeuze`; die wordt een gewone
-  `kies` (met `lagenVoor` en de melding aan het paneel) zodra de kaart er is. Een keuze die van de
-  kaart verdwijnt (verworpen markering) vervalt.
+  **`selectie` bevat alleen ids op de kaart.** Een keuze die van de kaart verdwijnt (verworpen markering)
+  vervalt.
 
 **Data en gedrag**:
 
@@ -1547,18 +1546,12 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   delen, subdelen, bepalingen en wat het onderwerp verder noemt – geen grens), zonder keuze: een keuze
   zou de focus overschrijven. De knop zegt het: "Bekijk de 4 delen in de kennisgraaf". *Dit antwoord*
   laadt daar de delen zelf (`/samenhang/meer`, hoogstens `MAX_OVERZICHT_DOELEN`).
-- **Het overzichtsblok is de inhoudsopgave van de kaart** (`components/graaf/koppeling.ts`). Staat de
-  graaf open, dan licht aanwijzen (hover of focus) van een kop of nummer de knoop uit
-  (`WeergaveStand.aangewezen`) en kiest een klik hem – met Ctrl/⌘/Shift, of zonder open graaf, is het
-  de gewone link. Een knoop die alleen in de kennisgraaf staat, schakelt daarheen. De graaf zet zijn
-  handelingen in een ref (`koppelingRef`), de werkplek geeft via context een stabiel doorgeefluik aan de
-  thread: zo rendert geen `ThreadRij` opnieuw als het paneel opent of sluit.
 - **Buiten het paneel** draagt `Graaf` twee haken: `benaming` (`GraafContext`: hoe de doelen heten in
   de bereikschakelaar, *Terug naar …*, de focusregel en de inspector; standaard het antwoord) en
   `bijKnoop` (een extra handeling in de inspector). De uitleg over "de tekst en de annotatie in het
   paneel" staat er alleen mét `weergave`. Gebruikt door de tab Samenhang van een werkgebied.
 - Browserregressie: `scripts/test-samenhang.mjs` (klikken via de canvasmidden na *Centreren*, kiezen
-  en lagen via de zoeklijst, `data-selectie`/`data-aangewezen`/`data-bereik`/`data-gereed` op de graaf,
+  en lagen via de zoeklijst, `data-selectie`/`data-bereik`/`data-gereed` op de graaf,
   `data-labels`/`data-label-soorten` op de tekenaar;
   een gegenereerde kennisgraaf van ~6.500 knopen voor laadbalk, focus, koppeling en de cache).
 

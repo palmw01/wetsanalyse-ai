@@ -6,6 +6,7 @@ import { createContext, useEffect, useState } from "react";
 
 import { KnoopTekst } from "@/components/graaf/KnoopTekst";
 import { WaaromUitklap } from "@/components/annotaties/WaaromUitklap";
+import { OverzichtPaneel } from "@/components/werkplek/OverzichtPaneel";
 import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
 import { StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
@@ -14,46 +15,56 @@ import { LIFECYCLE_LABEL } from "@/lib/annotatie";
 import { haalElementDetail, haalNodeWeergave, nodeLink, type ElementDetail, type NodeWeergave } from "@/lib/annotatieNode";
 import { foutTekst, haalWerkgebied } from "@/lib/api";
 import { jasStyle, klasseLabel } from "@/lib/jas";
-import type { Lifecycle, Werkgebied } from "@/lib/types";
+import type { Lifecycle, Overzicht, Werkgebied } from "@/lib/types";
 import { ROL_LABEL } from "@/lib/werkgebied";
 import { bronPad, elementPad, projectPad } from "@/lib/werkgebiedPaden";
 
 /** Wat het contextpaneel naast het gesprek kan tonen naast de artefacten van een beurt (spoor G4): een
- *  bepaling, één JAS-element, of de bronnen van het werkgebied van het gesprek. Geen bericht in het
- *  gesprek: puur om te raadplegen terwijl je praat. */
+ *  bepaling, één JAS-element, de bronnen van het werkgebied van het gesprek, of het overzicht van een
+ *  onderwerp. Dat laatste komt uit het bericht zelf: het hoort bij een antwoord, niet bij een werkgebied. */
 export type ContextDoel =
   | { soort: "bron"; bron_iri: string; werkgebied_id?: string; titel: string }
   | { soort: "element"; element_id: string; titel: string }
-  | { soort: "bibliotheek"; werkgebied_id: string; titel: string };
+  | { soort: "bibliotheek"; werkgebied_id: string; titel: string }
+  | { soort: "overzicht"; overzicht: Overzicht; titel: string };
 
 /** Opent een context naast het gesprek. Alleen binnen de werkplek (`WerkplekClient`); daarbuiten is er
  *  geen gesprek om naast te staan en tonen de aanroepers deze handeling niet. */
 export const ContextPaneelContext = createContext<((doel: ContextDoel) => void) | null>(null);
 
 const KOP: Record<ContextDoel["soort"], string> = {
-  bron: "Bepaling", element: "JAS-element", bibliotheek: "Bronnen van dit werkgebied",
+  bron: "Bepaling", element: "JAS-element", bibliotheek: "Bronnen van dit werkgebied", overzicht: "Overzicht uit de kennisgraaf",
 };
 
 export function contextSleutel(d: ContextDoel): string {
   return d.soort === "bron" ? `bron:${d.bron_iri}:${d.werkgebied_id ?? ""}`
-    : d.soort === "element" ? `element:${d.element_id}` : `bibliotheek:${d.werkgebied_id}`;
+    : d.soort === "element" ? `element:${d.element_id}`
+    : d.soort === "overzicht" ? `overzicht:${d.overzicht.gevraagd}` : `bibliotheek:${d.werkgebied_id}`;
 }
 
-/** De volledige pagina van wat het paneel toont: daar werk je verder (beoordelen, opnemen). */
-export function paginaVanContext(d: ContextDoel): string {
+export function overzichtContext(overzicht: Overzicht): ContextDoel {
+  return { soort: "overzicht", overzicht, titel: overzicht.gevraagd };
+}
+
+/** De volledige pagina van wat het paneel toont: daar werk je verder (beoordelen, opnemen). Een overzicht
+ *  bestaat alleen in zijn bericht en heeft er geen. */
+export function paginaVanContext(d: ContextDoel): string | undefined {
   return d.soort === "bron" ? bronPad(d.bron_iri, d.werkgebied_id)
-    : d.soort === "element" ? elementPad(d.element_id) : projectPad(d.werkgebied_id, "bronnen");
+    : d.soort === "element" ? elementPad(d.element_id)
+    : d.soort === "overzicht" ? undefined : projectPad(d.werkgebied_id, "bronnen");
 }
 
 /** Het contextpaneel (spoor G4, mock-up v4 `sideRail`): dezelfde schil als de artefacten – een kolom vanaf
  *  1280px, anders een sheet –, met bovenaan *Open volledige pagina*. Het paneel is om te raadplegen, niet
  *  om in te werken: beoordelen gebeurt op de pagina. Een paneel is geen vervanging van die pagina. */
-export function ContextPaneel({ doel, variant, onSluit, onWissel }: {
+export function ContextPaneel({ doel, variant, onSluit, onWissel, onMaakWerkgebied }: {
   doel: ContextDoel;
   variant: DialogVariant;
   onSluit: () => void;
   /** Iets anders in hetzelfde paneel openen (een element uit de bepaling, een bron uit de lijst). */
   onWissel: (doel: ContextDoel) => void;
+  /** *Maak hier een werkgebied van* bij een overzicht. */
+  onMaakWerkgebied?: (overzicht: Overzicht) => void;
 }) {
   const titel = doel.titel || KOP[doel.soort];
   return (
@@ -63,6 +74,7 @@ export function ContextPaneel({ doel, variant, onSluit, onWissel }: {
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
           {doel.soort === "bron" ? <BronInhoud doel={doel} onWissel={onWissel} />
             : doel.soort === "element" ? <ElementInhoud id={doel.element_id} />
+            : doel.soort === "overzicht" ? <OverzichtPaneel overzicht={doel.overzicht} onMaakWerkgebied={onMaakWerkgebied} />
             : <BibliotheekInhoud werkgebiedId={doel.werkgebied_id} onWissel={onWissel} />}
         </div>
       </div>
