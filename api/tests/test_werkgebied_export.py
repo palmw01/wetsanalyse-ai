@@ -199,6 +199,17 @@ async def test_uitgesloten_bronnen_en_open_voorstellen_staan_apart(client):
     assert any("1 voorstel van Lex is niet gekozen." in t for _s, t in regels)
 
 
+async def test_een_regeling_zonder_einde_krijgt_geen_einddatum(client):
+    wg, _ids = await _gevuld(client)
+    data = await _data(wg)
+    data["toestanden"]["regelingen"] = [
+        {"bwb_id": "BWBR1", "citeertitel": "Open", "geldig_vanaf": "2026-01-01", "geldig_tot": "9999-12-31", "na_peildatum": False},
+        {"bwb_id": "BWBR2", "citeertitel": "Dicht", "geldig_vanaf": "2026-01-01", "geldig_tot": "2026-12-31", "na_peildatum": False}]
+    teksten = _teksten(data)
+    assert "Open (BWBR1): geldt vanaf 1 januari 2026" in teksten
+    assert "Dicht (BWBR2): geldt vanaf 1 januari 2026 tot 31 december 2026" in teksten
+
+
 async def test_een_generiek_begrip_gaat_mee(client):
     wg, _ids = await _gevuld(client)
     data = await _data(wg)
