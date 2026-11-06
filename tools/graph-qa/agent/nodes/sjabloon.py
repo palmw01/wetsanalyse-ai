@@ -6,9 +6,10 @@ het model te horen wat er ontbreekt en mag het verder binnen `max_turns`.
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
-from bronmodel.antwoord import Antwoord, Vindplaats, antwoord_tekst
+from bronmodel.antwoord import Annotaties, Antwoord, Vindplaats, antwoord_tekst
 from bronmodel.vindplaats import vindplaats
 
 from ..bronregister import controletrace
@@ -22,6 +23,8 @@ logger = logging.getLogger("graph_qa.orchestrator")
 #: Wat het model ziet als het sjabloon gevuld is. De tekst erna staat als eigen bericht in de historie.
 VASTGELEGD = "Het antwoord is vastgelegd."
 
+_BWB = re.compile(r"\bBWB[RV]\d+\b")
+
 
 def _met_regelingen(b: Bouw, antwoord: Antwoord) -> None:
     """De naam van de regeling bij elke vindplaats waar de tool-rij hem niet droeg."""
@@ -31,9 +34,13 @@ def _met_regelingen(b: Bouw, antwoord: Antwoord) -> None:
             v = getattr(rij, "vindplaats", None)
             if isinstance(v, Vindplaats) and not v.regeling and (vp := vindplaats(v.iri)) and vp.bwb_id:
                 open.append((v, vp.bwb_id))
-    namen = regelingnamen(b.graph, {bwb for _, bwb in open})
+    # Een markering draagt haar vindplaats als regel ("BWBR0004770 art. 9 lid 1"): de jurist leest liever de naam.
+    markeringen = [m for blok in antwoord.blokken if isinstance(blok, Annotaties) for m in blok.items]
+    namen = regelingnamen(b.graph, {bwb for _, bwb in open} | {bwb for m in markeringen for bwb in _BWB.findall(m.vindplaats)})
     for v, bwb in open:
         v.regeling = namen.get(bwb, "")
+    for m in markeringen:
+        m.vindplaats = _BWB.sub(lambda x: namen.get(x.group(0), x.group(0)), m.vindplaats)
 
 
 def sjabloon_node(b: Bouw, state: State) -> dict[str, Any]:

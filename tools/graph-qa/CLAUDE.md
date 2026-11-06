@@ -96,7 +96,8 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   uit de trace (register + deze beurt): blokken in `State.antwoord`, de vaste tekst uit `antwoord_tekst` in `answer`. Niet te
   vullen (`Onvulbaar`) is een `is_error`-resultaat en het model gaat verder; een halve vulling bestaat niet. Naast een
   graaftool wacht het sjabloon tot de volgende ronde. Tekst in plaats van de tool blijft geldig (log `sjabloon gemist`).
-  Alleen de sjabloontools zijn `strict`, en ze staan niet in `TOOLS`. Per specialist: `Specialist.sjablonen`.
+  Alleen de sjabloontools zijn `strict`, en ze staan niet in `TOOLS`. Per specialist: `Specialist.sjablonen`. `verify_node`
+  toetst de blokken `annotaties`, `begrippen` en `leemte` niet (`NIET_GETOETST`): afgeleide duiding en tekst van de code.
 - **`verify_node`** – `check_grounding(answer, source_trace)`. Bij ongegrond volgt via `correct_node`
   hoogstens één corrigerende ronde (`GROUNDING_CORRECT`, default aan; `state["corrected"]`). De controle
   keurt **twee** dingen af en `correct_node` moet ze allebei benoemen: `unsupported` (een vindplaats die
@@ -1331,7 +1332,11 @@ herkenning, samenstelling, volgorde, de route en de eval-scorer vast.
 3. **Een storing wordt nooit een leeg antwoord** (`begrens_antwoord`): zonder bruikbaar zoekresultaat
    vervangt die het modelantwoord door een eerlijke melding, met een logregel. Die melding gaat **niet**
    in `messages`: anders leest het model zijn eigen "ik kon niet raadplegen" in de volgende beurt als
-   feit.
+   feit. Die begrenzing vangt het vrije antwoord; het sjabloon `antwoord_annotaties` (`sjablonen/annotaties.py`) gaat er niet
+   langs en gebruikt dezelfde meldingen: een storing of nul treffers is een `leemte` en de toelichting van het model vervalt.
+   Getoond wordt de laatste zoekopdracht (pagina's voegen samen); `volledig` is ook onwaar bij een `volgende_offset`, want
+   de api zet `volledig` alleen op de dekking van de projectie, niet op de paginering. `begrens_begrippen_antwoord` en
+   `antwoord_begrip` delen zo `begrippen_stand`.
 
 **Wat de doelbepaling leest is alleen deze beurt** (`doel._deze_beurt`). De thread bewaart alle
 beurten; las `_doel_uit_toolcalls` de hele historie, dan filterde de leesroute op de wet van een

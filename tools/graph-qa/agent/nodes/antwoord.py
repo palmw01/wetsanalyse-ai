@@ -11,6 +11,7 @@ import logging
 from collections import Counter
 from typing import Any
 
+from bronmodel.antwoord import NIET_GETOETST, Antwoord, antwoord_tekst
 from langgraph.config import get_stream_writer
 
 from ..berichten import CORRECTIE, _parse_final, _schoon_messages, _trim_messages, beurt_start
@@ -255,7 +256,9 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
     # Getoetst tegen deze beurt én wat eerder in het gesprek letterlijk is opgehaald: een vervolgantwoord
     # dat een citaat uit het vorige antwoord herhaalt, is niet minder brongetrouw dan dat antwoord.
-    report = check_grounding(state.get("answer", ""), controletrace(state), overzicht=state.get("overzicht") or None)
+    # Bij een sjabloon niet de blokken die afgeleide duiding of tekst van de code dragen (`NIET_GETOETST`).
+    tekst = antwoord_tekst(Antwoord.model_validate(state["antwoord"]), zonder=NIET_GETOETST) if state.get("antwoord") else state.get("answer", "")
+    report = check_grounding(tekst, controletrace(state), overzicht=state.get("overzicht") or None)
     # Deze controle heeft geen eigen narratie (geen LLM), dus zonder deze regel gebeurt er iets
     # wezenlijks – de brongetrouwheidstoets – zonder dat de jurist het ziet. De tijdlijn wordt
     # bij de beurt bewaard, dus dit is tegelijk het spoor waarop je achteraf terugvalt.

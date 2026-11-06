@@ -53,7 +53,7 @@ def volledige_tekst(iri: str, trace: Trace) -> str:
     beste = ""
     for _, tekst in trace:
         for rij in _rijen_diep(_data(tekst)):
-            if iri in (rij.get("node"), rij.get("iri"), rij.get("uri")) and rij.get("tekst_volledig") is not False:
+            if iri in (rij.get(k) for k in ("node", "iri", "uri", "lid", "onderdeel")) and rij.get("tekst_volledig") is not False:
                 t = rij.get("tekst")
                 if isinstance(t, str) and len(t) > len(beste):
                     beste = t
