@@ -40,11 +40,14 @@ ANNOTATIE_NODES = {"annoteer", "emit"}
 def test_planning_is_de_standaardvorm():
     nodes, edges = structuur(enable_planning=True)
     assert nodes == {
-        "supervisor", "agent", "tools", "verify", "correct", "finalize", "annotaties_zoeken",
+        "supervisor", "agent", "tools", "sjabloon", "verify", "correct", "finalize", "annotaties_zoeken",
         "begrippen_zoeken", "overzicht_bouwen", "annoteer", "emit", "advance", "afwijzen",
         "werkgebied_intake", "bronselectie", "agent_taak",
     }
     assert edges == {
+        ("agent", "sjabloon", "", True),
+        ("sjabloon", "verify", "", True),
+        ("sjabloon", "agent", "", True),
         (START, "supervisor", "", False),
         ("supervisor", "agent", "", True),
         ("supervisor", "annoteer", "", True),
@@ -124,7 +127,7 @@ def test_decompositie_voegt_de_deelvraag_keten_toe():
 
 def test_de_kale_tak_heeft_geen_annotatie_en_geen_supervisor():
     nodes, edges = structuur(enable_planning=False)
-    assert nodes == {"agent", "tools", "verify", "correct", "finalize"}
+    assert nodes == {"agent", "tools", "sjabloon", "verify", "correct", "finalize"}
     assert not (ANNOTATIE_NODES & nodes)
     assert "supervisor" not in nodes
     # Zonder supervisor begint de graaf bij de agent en eindigt finalize direct.

@@ -19,6 +19,7 @@ from ..focus import na_antwoord
 from ..grounding import check_grounding, curate_sources, herstel_citaten
 from ..narratie import _grounding_melding, _stap, _toolregel, ronde_in_denk
 from ..overzicht import bronrijen as overzicht_bronrijen
+from ..sjablonen import SJABLONEN, sjabloon_schemas
 from .overzicht import TOOL as OVERZICHT_TOOL
 from ..prompts import SYSTEM_PROMPT
 from ..provenance import collect_sources
@@ -78,7 +79,7 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         model=b.model_ophaal if spec_naam == "retrieval" else b.model,
         max_tokens=MAX_TOKENS_OPHALEN if spec_naam == "retrieval" else MAX_TOKENS_ANTWOORD,
         system=[stabiel, variabel],
-        tools=anthropic_schemas(only=spec.tools),
+        tools=anthropic_schemas(only=spec.tools) + sjabloon_schemas(spec.sjablonen),
         # Historie begrenzen (tegen onbegrensde promptgroei in een lange sessie); state blijft heel.
         messages=_trim_messages(_schoon_messages(state["messages"]), b.settings.max_history_chars,
                                 state.get("question", "")),
@@ -88,6 +89,9 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         final = stream.final_message()
 
     tool_uses, text_parts = _parse_final(final)
+    # Een sjabloon rondt af: staat hij naast graaftools, dan eerst die, en daarna komt hij vanzelf terug.
+    if len(tool_uses) > 1:
+        tool_uses = [t for t in tool_uses if t["name"] not in SJABLONEN]
 
     stopreden = getattr(final, "stop_reason", "") or ""
     afgekapt = stopreden == "max_tokens"
@@ -107,7 +111,7 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     # Anders belandt er een assistant(tool_use) zónder tool_result in de checkpointer (orphan →
     # de volgende beurt in dezelfde conversatie crasht op Anthropic 400) én blijft het antwoord
     # leeg. Laat de tools dan vallen en lever een net eind-antwoord (desnoods een korte melding).
-    if tool_uses and state.get("turns", 0) + 1 >= b.settings.max_turns:
+    if tool_uses and tool_uses[0]["name"] not in SJABLONEN and state.get("turns", 0) + 1 >= b.settings.max_turns:
         tool_uses = []
         if not any(p and p.strip() for p in text_parts):
             text_parts = [
@@ -130,6 +134,8 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         "afgekapt": afgekapt,
     }
     if not tool_uses:
+        if spec.sjablonen and not state.get("corrected"):
+            logger.info("sjabloon gemist", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""), "specialist": spec_naam})
         # De tool-loze beurt is het eindantwoord. Het gaat de state in en pas in `finalize_node` naar
         # de jurist: `verify` kan het nog afkeuren.
         antwoord = "\n\n".join(p for p in text_parts if p)
@@ -168,7 +174,10 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     return upd
 
 def route_after_agent(b: Bouw, state: State) -> str:
-    if state.get("pending_tools") and state.get("turns", 0) < b.settings.max_turns:
+    pending = state.get("pending_tools") or []
+    if pending and pending[0]["name"] in SJABLONEN:
+        return "sjabloon"
+    if pending and state.get("turns", 0) < b.settings.max_turns:
         return "tools"
     if state.get("specialist") == "annotatie":
         return "annoteer"  # ophaal-agent klaar → de aparte annoteer-stap
@@ -321,13 +330,14 @@ def correct_node(b: Bouw, state: State) -> dict[str, Any]:
         "messages": [{"role": "user", "content": CORRECTIE + " ".join(opdrachten) + _HERSCHRIJF}],
         "corrected": True,
         "answer": "",
+        "antwoord": {},
     }
 
 
 _HERSCHRIJF = (
     "\n\nDit bericht komt van de brongetrouwheidscontrole, niet van de jurist; de jurist ziet het niet. "
     "Schrijf je VOLLEDIGE antwoord op de oorspronkelijke vraag opnieuw, met deze correctie verwerkt – "
-    "je nieuwe antwoord vervangt het vorige. Reageer niet op deze melding: geen 'u heeft gelijk', geen "
+    "je nieuwe antwoord vervangt het vorige; rondde je af met een sjabloontool, doe dat dan opnieuw. Reageer niet op deze melding: geen 'u heeft gelijk', geen "
     "excuus, geen verwijzing naar het vorige antwoord."
 )
 
@@ -375,12 +385,18 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
     # De enige plek in de antwoordketen die `token` uitstuurt: dit is de tekst die de controle zag. Een
     # controle die volgt op publicatie houdt niets tegen, en een tekst blijft dan naast zijn correctie
     # staan. Keurde de laatste ronde hem af, dan gaat hij mee met het oordeel in het grounding-event.
+    if state.get("antwoord"):
+        writer({"type": "antwoord", "antwoord": state["antwoord"]})
     writer({"type": "token", "content": antwoord})
 
     if state.get("overzicht"):
         # De overzichtsroute: de bronnen zijn de vindplaatsen van het overzicht, en hangen dus niet af
         # van hoe de duiding geformuleerd is – geen cureren op de proza, geen bronnen van eerder.
         sources = collect_sources([(OVERZICHT_TOOL, overzicht_bronrijen(state["overzicht"]))])
+    elif state.get("antwoord"):
+        # Een sjabloon draagt zijn vindplaatsen zelf; cureren op de proza heeft dan geen zin.
+        doelen = {d["iri"] for d in state["antwoord"].get("doelen") or []}
+        sources = [s for s in collect_sources(state.get("source_trace", [])) if s.uri in doelen]
     else:
         sources = collect_sources(state.get("source_trace", []))
         # Bronnen uit eerdere beurten alleen als het antwoord hun regeling noemt: anders vult elke

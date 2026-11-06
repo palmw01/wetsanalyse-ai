@@ -18,6 +18,8 @@ from .methode import instructies
 class Specialist:
     system: str
     tools: frozenset[str] | None  # None = alle tools
+    # De sjablonen waarmee deze specialist afrondt (`agent/sjablonen`, ADR-008).
+    sjablonen: frozenset[str] = frozenset()
 
 
 # De OPHAAL-agent: vindt en haalt de EXACTE bepaling op die geannoteerd moet worden. Geen annotatie —
@@ -89,8 +91,10 @@ SPECIALISTS: dict[str, Specialist] = {
     "definitie": Specialist(
         system=(
             "Je bent de DEFINITIE-specialist. Je herleidt en verklaart juridische begrippen. "
-            "Citeer de brondefinitie letterlijk met vindplaats en benoem of het een wettelijke "
-            "definitie of een interpretatie is.\n"
+            "Vraagt de gebruiker wat een begrip betekent, rond dan af met antwoord_begrip: de werkplek "
+            "toont de definities en hun vindplaats zelf. Gaat de vraag verder dan één begrip, citeer de "
+            "brondefinitie dan letterlijk met vindplaats en benoem of het een wettelijke definitie of "
+            "een interpretatie is.\n"
             "BEGIN BIJ zoek_definitie: die vindt het tekstdeel waar de wet het begrip zélf "
             "definieert, mét jci en citeertitel. Pas als dat niets geeft: resolve_begrip (de "
             "SKOS-thesaurus – redactionele trefwoorden, géén wettelijke definitie) of "
@@ -108,6 +112,7 @@ SPECIALISTS: dict[str, Specialist] = {
             # Een vastgelegd begrip (fase F4) naast de wettelijke definitie – gescheiden gehouden.
             "search_begrippen", "get_begrip",
         }),
+        sjablonen=frozenset({"antwoord_begrip"}),
     ),
     "duiding": Specialist(
         system=(

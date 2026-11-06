@@ -182,3 +182,10 @@ describe("één menu ⋯", () => {
     expect(bron("components/werkplek/GesprekActies.tsx")).toContain("<MenuKnop");
   });
 });
+
+describe("een sjabloon staat in de tekst", () => {
+  it("heeft geen kaart, achtergrond of rand", () => {
+    const bron = readFileSync(join(process.cwd(), "components/antwoord/Antwoord.tsx"), "utf8");
+    expect(bron).not.toMatch(/rounded-kaart|shadow-|\bbg-/);
+  });
+});
