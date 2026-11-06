@@ -10,6 +10,10 @@ onder `(bwb_id, bwb:toestandUrl)`: een nieuwe toestand van de regeling geeft van
 sleutel. Markeringen veranderen per beoordeling en komen altijd vers uit Postgres. De `versie` in het
 antwoord is de hash van de toestanden: daarop cachet de werkplek de layout.
 
+Dezelfde cache draagt de leesroutes van een werkgebied (`lees_bron`). Die haalden elk elke regeling
+opnieuw op en bouwden de snapshot, terwijl één scherm er drie tegelijk aanroept. Schrijfroutes doen dat
+bewust niet: wat ze vastleggen toetsen ze tegen de bron van nu (`bron_resolver.resolve_bron`).
+
 Tekst zit bewust niet in de knopen: de complete graaf is zo ~2 MB in plaats van tientallen; de
 werkplek haalt de tekst van een gekozen bepaling op als die nodig is.
 """
@@ -18,11 +22,13 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+import time
 
 import httpx
+from bronmodel import BronFout
 
 from . import annotatie_v2_store as store
-from .bron_resolver import haal_bronrijen, snapshot_uit
+from .bron_resolver import bwb_van, haal_bronrijen, snapshot_uit
 from .graaf_projectie_v2 import _select
 from .samenhang import _PREFIXES, Knoop, Relatie, _label, bronknoop, markeringen, verwijzingen
 
@@ -32,6 +38,9 @@ logger = logging.getLogger(__name__)
 # een herimport (nieuwe toestand naast de oude, tot die vervalt) nooit de hele cache verdringt.
 MAX_CACHE = 64
 _CACHE: dict[tuple[str, str], dict] = {}
+# Hoe lang een bronboom geldt, ook bij dezelfde toestand: een herimport met een andere parser verandert de
+# tekst zonder nieuwe toestand, en dat mag niet tot de volgende herstart blijven staan.
+GELDIG_S = 600
 _SLOTEN: dict[str, asyncio.Lock] = {}
 
 
@@ -61,22 +70,47 @@ def _verwijzingen_query(bwb: str) -> str:
 _STRUCTUUR: dict[tuple[str, str], dict] = {}
 
 
+def _bewaard(sleutel: tuple[str, str]) -> dict | None:
+    deel = _STRUCTUUR.get(sleutel)
+    return deel if deel and time.monotonic() - deel["gehaald"] < GELDIG_S else None
+
+
 async def _structuur(bwb: str, toestand: str) -> dict:
-    """De knopen en citeertitel van één regeling, uit de cache of vers (één SPARQL-query)."""
+    """De snapshot, knopen en citeertitel van één regeling, uit de cache of vers (één SPARQL-query)."""
     sleutel = (bwb, toestand)
-    if sleutel in _STRUCTUUR:
-        return _STRUCTUUR[sleutel]
+    if deel := _bewaard(sleutel):
+        return deel
     async with _SLOTEN.setdefault(f"structuur:{bwb}", asyncio.Lock()):
-        if sleutel in _STRUCTUUR:       # een gelijktijdig verzoek haalde hem intussen op
-            return _STRUCTUUR[sleutel]
+        if deel := _bewaard(sleutel):   # een gelijktijdig verzoek haalde hem intussen op
+            return deel
         snapshot = snapshot_uit(await haal_bronrijen(bwb), bwb, {})
-        deel = {"nodes": store.nodes_van(snapshot), "citeertitel": snapshot.get("citeertitel", "")}
+        deel = {"snapshot": snapshot, "nodes": store.nodes_van(snapshot),
+                "citeertitel": snapshot.get("citeertitel", ""), "gehaald": time.monotonic()}
         for oud in [k for k in _STRUCTUUR if k[0] == bwb]:
             del _STRUCTUUR[oud]         # een vorige toestand van deze regeling is voorbij
         while len(_STRUCTUUR) >= MAX_CACHE:
             del _STRUCTUUR[next(iter(_STRUCTUUR))]
         _STRUCTUUR[sleutel] = deel
         return deel
+
+
+async def lees_bron(doel: dict) -> dict:
+    """De bronboom van een regeling voor een leesroute, uit de cache van deze toestand (één lichte query).
+
+    Een `Resolver` zoals `bron_resolver.resolve_bron`, met één verschil: de snapshot gaat over de hele
+    regeling, dus `doel` is de wortel en `segmenten` de hele tekst. Leesroutes gebruiken alleen de `nodes` en
+    de citeertitel, en die zijn gedeeld: niet wijzigen. Een schrijfroute hoort hier niet."""
+    bwb = bwb_van(doel)
+    if not _BWB.match(bwb):
+        raise BronFout("Ongeldig BWB-id")
+    async with httpx.AsyncClient(timeout=30) as client:
+        rijen = [r for r in await _select(client, _toestanden_query([bwb])) if r.get("bwbId") == bwb]
+    if not rijen:
+        raise BronFout("Regeling niet gevonden in de brongraaf")
+    deel = await _structuur(bwb, rijen[0].get("toestand", ""))
+    if (iri := doel.get("bron_iri")) and iri not in deel["nodes"]:
+        raise BronFout("De gevraagde bronnode bestaat niet")
+    return deel["snapshot"]
 
 
 async def _regeling(client: httpx.AsyncClient, bwb: str, toestand: str) -> dict:
