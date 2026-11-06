@@ -1,5 +1,5 @@
 // Het overzicht van een onderwerp, zoals graph-qa het uit de graaf opbouwt
-// (`tools/graph-qa/agent/overzicht.py`): de rekenkern achter `OverzichtBlok`, de graafknop en de
+// (`tools/graph-qa/agent/overzicht.py`): de rekenkern achter `OverzichtPaneel`, de graafknop en de
 // kopieerknop.
 //
 // Alles hier leest het overzicht, niet de tekst van Lex. Dat is de reden van bestaan: de doelen van de
@@ -106,7 +106,7 @@ export function zoekverantwoording(ov: Overzicht): string {
   return `${zin}.`;
 }
 
-/** Het overzicht als Markdown, voor de kopieerknop: dezelfde inhoud als het blok, in dezelfde volgorde. */
+/** Het overzicht als Markdown, voor de kopieerknop: dezelfde inhoud als het paneel, in dezelfde volgorde. */
 export function overzichtAlsMarkdown(ov: Overzicht): string {
   const regels: string[] = [];
   for (const d of ov.definities) {

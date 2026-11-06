@@ -647,15 +647,20 @@ async function wachtGereed(page) {
   echteKetting = true;
   const { page, log } = await nieuwePagina();
   await page.goto(`${base}/workbench?gesprek=g3`);
+  // In het gesprek staat een kaartje; de inhoud staat naast het gesprek. `.thread-rij` heeft
+  // content-visibility: auto – eerst in beeld, dan lezen.
+  const kaartje = page.getByTestId("overzicht-kaartje");
+  await kaartje.scrollIntoViewIfNeeded();
+  await kaartje.click();
   const blok = page.getByTestId("overzicht");
-  await blok.waitFor();
-  // `.thread-rij` heeft content-visibility: auto – eerst in beeld, dan lezen.
-  await blok.scrollIntoViewIfNeeded();
-  await blok.getByText("Hoofdstuk II – Invordering in eerste aanleg").waitFor();
-  assert.match(await blok.innerText(), /Hoofdstuk II – Invordering in eerste aanleg\s+art\. 9, art\. 10/);
+  await blok.getByRole("button", { name: "Hoofdstuk II – Invordering in eerste aanleg" }).click();
+  await blok.getByRole("button", { name: "art. 10" }).waitFor();
+  assert.ok(await blok.getByRole("button", { name: "art. 9" }).isVisible());
   await blok.getByRole("button", { name: /Noemt het onderwerp ook \(1\)/ }).click();
   assert.match(await blok.innerText(), /art\. 4 · in Hoofdstuk I – Algemene bepalingen/);
   assert.equal(await page.getByRole("button", { name: /^Bronnen \(/ }).count(), 0, "geen bronnenlijst bij een overzicht");
+  await page.screenshot({ path: `${shots}/2b-overzicht-paneel.png` });
+  await page.getByRole("button", { name: "Sluiten" }).last().click();
   await page.getByRole("button", { name: "Bekijk de 2 delen in de kennisgraaf" }).click();
   await graaf(page).waitFor();
   await page.getByRole("button", { name: "Dit antwoord" }).click();
@@ -673,15 +678,12 @@ async function wachtGereed(page) {
 }
 
 // 14b. Een overzicht opent de hele kennisgraaf (~6.500 knopen) met de nadruk op alles uit het overzicht;
-// koppen en nummers in het blok wijzen hun knoop aan en kiezen hem; de tweede keer komt de layout uit de
-// cache.
+// de tweede keer komt de layout uit de cache.
 {
   bijgewerkt = false;
   const { page, log } = await nieuwePagina();
   await page.goto(`${base}/workbench?gesprek=g3`);
-  const blok = page.getByTestId("overzicht");
-  await blok.waitFor();
-  await blok.scrollIntoViewIfNeeded();
+  await page.getByTestId("overzicht-kaartje").scrollIntoViewIfNeeded();
   const begin = Date.now();
   await page.getByRole("button", { name: "Bekijk de 2 delen in de kennisgraaf" }).click();
   await page.getByRole("heading", { name: /^De hele kennisgraaf/ }).waitFor();
@@ -711,15 +713,7 @@ async function wachtGereed(page) {
   await page.getByRole("button", { name: "Naar het antwoord" }).click();
   await page.waitForTimeout(900);
 
-  // Het blok is de inhoudsopgave van de kaart: aanwijzen licht uit, klikken kiest – geen nieuw tabblad.
-  await blok.getByRole("link", { name: "art. 28" }).hover();
-  assert.equal(await graaf(page).getAttribute("data-aangewezen"), A28);
-  await blok.getByRole("link", { name: "art. 28" }).click();
-  for (let i = 0; i < 20 && (await gekozen(page)) !== A28; i++) await page.waitForTimeout(100);
-  assert.equal(await gekozen(page), A28, "een klik in het blok kiest de knoop in de graaf");
-  assert.equal(page.context().pages().length, 1, "geen link geopend");
-  await page.mouse.move(5, 5);
-  assert.equal(await graaf(page).getAttribute("data-aangewezen"), "");
+  await zoekEnKies(page, "Artikel 28", A28);
   await page.waitForTimeout(600);
   await page.screenshot({ path: `${shots}/5b-kennisgraaf-keuze.png` });
 
@@ -764,7 +758,7 @@ async function wachtGereed(page) {
   bijgewerkt = false;
   const { page, log } = await nieuwePagina();
   await page.goto(`${base}/workbench?gesprek=g4`);
-  await page.getByTestId("overzicht").scrollIntoViewIfNeeded();
+  await page.getByTestId("overzicht-kaartje").scrollIntoViewIfNeeded();
   await page.getByRole("button", { name: "Bekijk de 30 delen in de kennisgraaf" }).click();
   await page.locator('[data-testid="samenhang-graaf"][data-bereik="kennisgraaf"][data-gereed="true"]').waitFor({ timeout: 60000 });
   assert.equal(log.graaf.length, 1);

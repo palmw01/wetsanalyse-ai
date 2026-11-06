@@ -7,12 +7,11 @@ import { ThreadRij, type ThreadActies, type WerkgebiedAnnoteren } from "@/compon
 import { reeksNavigatie, reeksUitBerichten, verwerkReeksEvent, type Reeks } from "@/lib/reeks";
 import { mergeToolExecution, toolSpoorUit, type NodeDoel, type ToolExecution } from "@/lib/annotatieNode";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { GraafKoppelingContext, type GraafKoppeling } from "@/components/graaf/koppeling";
 import { VraagLexContext } from "@/components/werkplek/VraagLexKnop";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 
 import { WerkgebiedArtefactPaneel } from "@/components/werkplek/WerkgebiedArtefactPaneel";
-import { ContextPaneel, ContextPaneelContext, contextSleutel, type ContextDoel } from "@/components/werkplek/ContextPaneel";
+import { ContextPaneel, ContextPaneelContext, contextSleutel, overzichtContext, type ContextDoel } from "@/components/werkplek/ContextPaneel";
 import { WerkgebiedUitOverzicht } from "@/components/werkplek/WerkgebiedUitOverzicht";
 import { annotatieDoelVan, artefactSleutel, bronselectieVanKaart, werkgebiedLabel, artefactVanBericht, werkgebiedArtefactVan, type Artefact, type WerkgebiedArtefact } from "@/lib/artefact";
 import { StatusLabel } from "@/components/ui/Lijst";
@@ -206,13 +205,6 @@ export function WerkplekClient({
   const [nodeExtra, setNodeExtra] = useState<NodeDoel[]>([]);
   // Met welk bereik de graaf opent en wat de nadruk krijgt (een overzicht: de hele kennisgraaf).
   const [nodeGraaf, setNodeGraaf] = useState<GraafOpties>({});
-  // De graaf in het paneel zet hier zijn handelingen neer; het overzichtsblok in de thread bereikt hem
-  // via de context hieronder, zonder dat een rij opnieuw rendert als het paneel opent of sluit.
-  const graafKoppelingRef = useRef<GraafKoppeling | null>(null);
-  const [graafKoppeling] = useState<GraafKoppeling>(() => ({
-    wijs: (id) => graafKoppelingRef.current?.wijs(id),
-    kies: (id) => graafKoppelingRef.current?.kies(id) ?? false,
-  }));
   const [samenhangAan, setSamenhangAan] = useState(false);
   useEffect(() => { void samenhangBeschikbaar().then(setSamenhangAan); }, []);
   // Waar de volgende vraag over gaat (*Vraag Lex*, F3b): een markering, of een object uit een werkgebied.
@@ -698,8 +690,13 @@ export function WerkplekClient({
           },
           onSources: (b) => updateItem(antId, { bronnen: b }),
           onGrounding: (g) => updateItem(antId, { grounding: g }),
-          onOverzicht: (o) => updateItem(antId, { overzicht: o }),
           onAntwoord: (a) => updateItem(antId, { antwoord: a }),
+          onOverzicht: (o) => {
+            updateItem(antId, { overzicht: o });
+            // Op een breed scherm staat het meteen naast het antwoord, zoals de bronselectie. Op een smal
+            // scherm niet: daar ligt het paneel over het antwoord, en het kaartje is één tik.
+            if (breed && o.regelingen.length) { setNodeDoel(undefined); setWgArtefact(undefined); setCtx(overzichtContext(o)); }
+          },
           onVraagkaart: (k) => updateItem(antId, { vraagkaart: k }),
           onToolExecution: (event) => {
             toolExecutions = mergeToolExecution(toolExecutions, event);
@@ -980,7 +977,7 @@ export function WerkplekClient({
       },
       stop: () => void stop(),
       annuleer: () => void annuleer(),
-      maakWerkgebied: (ov) => setWgUitOverzicht(ov),
+      openOverzicht: (ov) => openContext(overzichtContext(ov)),
       openVraag: () => setWeggeklikt(null),
     };
   });
@@ -992,7 +989,7 @@ export function WerkplekClient({
     openReeksLid: (reeksRun, doel) => actiesRef.current?.openReeksLid(reeksRun, doel),
     stop: () => actiesRef.current?.stop(),
     annuleer: () => actiesRef.current?.annuleer(),
-    maakWerkgebied: (ov) => actiesRef.current?.maakWerkgebied(ov),
+    openOverzicht: (ov) => actiesRef.current?.openOverzicht(ov),
     openVraag: () => actiesRef.current?.openVraag(),
   }));
 
@@ -1022,10 +1019,15 @@ export function WerkplekClient({
   const bsItem = items[bsIndex];
   const laatsteBronselectie = bsItem?.type === "antwoord" && bsIndex > (laatsteItem ? items.lastIndexOf(laatsteItem) : -1)
     ? bronselectieVanKaart(bsItem.vraagkaart) : undefined;
-  const laatsteAnnotatieItem = !laatsteBronselectie && laatsteItem?.type === "annotatie" ? laatsteItem : undefined;
+  // Een overzicht (het hoort bij een antwoord) is het laatste werk als er daarna geen artefact meer kwam.
+  const ovIndex = items.length - 1 - [...items].reverse().findIndex((x) => x.type === "antwoord" && !!x.overzicht?.regelingen.length);
+  const ovItem = items[ovIndex];
+  const laatsteOverzicht = ovItem?.type === "antwoord" && ovIndex > Math.max(laatsteItem ? items.lastIndexOf(laatsteItem) : -1, laatsteBronselectie ? bsIndex : -1)
+    ? ovItem.overzicht : undefined;
+  const laatsteAnnotatieItem = !laatsteBronselectie && !laatsteOverzicht && laatsteItem?.type === "annotatie" ? laatsteItem : undefined;
   const laatsteNodeAnnotatie = laatsteAnnotatieItem?.annotatie_doel ? laatsteAnnotatieItem : undefined;
   const laatsteWgArtefact = laatsteBronselectie
-    ?? (laatsteItem?.type === "artefact" ? werkgebiedArtefactVan(laatsteItem.artefact) : undefined);
+    ?? (!laatsteOverzicht && laatsteItem?.type === "artefact" ? werkgebiedArtefactVan(laatsteItem.artefact) : undefined);
   // Het samenstellen van een werkgebied (activiteit 1): de vragen per reeks als één kaart, de open vraag
   // onderaan in plaats van het invoerveld.
   const { groepen: vraagGroepen, verborgen: verborgenItems } = useStabieleGroepen(items, bezig);
@@ -1068,7 +1070,7 @@ export function WerkplekClient({
     return nav ? { ...nav, onGa: (d: NodeDoel) => { setNodeGraaf(zonderKennisgraaf); setNodeDoel(d); } } : undefined;
   })();
   const artefact = nodeDoel ? <NodeAnnotatiePaneel key={`${nodeDoel.bron_iri}:${nodeDoel.snapshot_id ?? ""}:${nodeDoel.versie ?? ""}:${nodeTab}:${nodeGraaf.bereik ?? ""}:${nodeGraaf.keten ? "keten" : ""}:${nodeExtra.map((d) => d.bron_iri).join("|")}`} doel={nodeDoel}
-    extraDoelen={nodeExtra} graaf={nodeGraaf.keten ? { ...nodeGraaf, werkgebiedId } : nodeGraaf} koppelingRef={graafKoppelingRef}
+    extraDoelen={nodeExtra} graaf={nodeGraaf.keten ? { ...nodeGraaf, werkgebiedId } : nodeGraaf}
     // Een knoop uit een ander artikel (meegeopend, of uit de hele kennisgraaf): het paneel op dát
     // artikel; de rest van de kaart, het bereik en de nadruk blijven mee.
     onWisselDoel={(nieuw, graaf) => {
@@ -1128,7 +1130,7 @@ export function WerkplekClient({
 
   const paneel = ctx ? (
     <ContextPaneel key={contextSleutel(ctx)} doel={ctx} variant={breed ? "kolom" : "side"}
-      onSluit={() => setCtx(undefined)} onWissel={setCtx} />
+      onSluit={() => setCtx(undefined)} onWissel={setCtx} onMaakWerkgebied={setWgUitOverzicht} />
   ) : artefact;
 
   /** *Vraag Lex* vanuit een object in een paneel (`VraagLexKnop`): de chip boven het invoerveld. Op een smal
@@ -1149,7 +1151,6 @@ export function WerkplekClient({
   }
 
   return (
-    <GraafKoppelingContext.Provider value={graafKoppeling}>
     <VraagLexContext.Provider value={demo ? null : kiesOnderwerp}>
     <ContextPaneelContext.Provider value={demo ? null : openContext}>
     <div className="flex min-h-0 min-w-0 flex-1">
@@ -1191,6 +1192,17 @@ export function WerkplekClient({
           className="focus-ring flex w-full shrink-0 items-center gap-2 border-b border-line bg-surface px-4 py-2 text-left text-xs text-muted transition hover:bg-surface-2"
         >
           <span className="truncate"><span className="font-medium text-ink">{laatsteWgArtefact.titel || werkgebiedLabel(laatsteWgArtefact)}</span> · {werkgebiedLabel(laatsteWgArtefact).toLowerCase()}</span>
+          <span className="ml-auto shrink-0 font-medium text-lint">Openen</span>
+        </button>
+      )}
+      {!nodeDoel && !wgArtefact && !ctx && laatsteOverzicht && (
+        <button
+          type="button"
+          onClick={() => openContext(overzichtContext(laatsteOverzicht))}
+          data-testid="laatste-overzicht"
+          className="focus-ring flex w-full shrink-0 items-center gap-2 border-b border-line bg-surface px-4 py-2 text-left text-xs text-muted transition hover:bg-surface-2"
+        >
+          <span className="truncate"><span className="font-medium text-ink">{laatsteOverzicht.gevraagd}</span> · overzicht</span>
           <span className="ml-auto shrink-0 font-medium text-lint">Openen</span>
         </button>
       )}
@@ -1500,7 +1512,6 @@ export function WerkplekClient({
     </div>
     </ContextPaneelContext.Provider>
     </VraagLexContext.Provider>
-    </GraafKoppelingContext.Provider>
   );
 }
 

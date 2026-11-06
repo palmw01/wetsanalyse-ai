@@ -99,7 +99,7 @@ const SOORT_VOLGORDE: Record<KnoopSoort, number> = {
   regeling: 7, deel: 6, klasse: 5, begrip: 5, artikel: 4, lid: 3, onderdeel: 2, extern: 1, markering: 1,
 };
 
-/** De prioriteit van een label: eerst het niveau uit de weergave (gekozen of aangewezen 3, nadruk 2,
+/** De prioriteit van een label: eerst het niveau uit de weergave (gekozen 3, nadruk 2,
  *  gewoon 1), dan of het altijd een label hoort te hebben (de keuze met haar buren, de doelen van de
  *  focus), dan de soort. */
 export function labelPrioriteit(niveau: number, altijdLabel: boolean, soort: KnoopSoort): number {
