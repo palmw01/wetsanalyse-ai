@@ -219,7 +219,7 @@ blijft handmatig via `azure-infra.yml`. Het runbook staat in
 
 ## Hulp en bijdragen
 
-Onderhouden door Willard Palm. Vragen en fouten kun je melden via
+Vragen en fouten kun je melden via
 [GitHub Issues](https://github.com/palmw01/wetsanalyse-ai/issues); bijdragen graag eerst in overleg.
 Meld een beveiligingsprobleem niet in een openbare issue, maar via
 [private vulnerability reporting](https://github.com/palmw01/wetsanalyse-ai/security/advisories/new).
