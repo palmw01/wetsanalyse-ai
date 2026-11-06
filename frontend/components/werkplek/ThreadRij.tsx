@@ -159,7 +159,7 @@ export const ThreadRij = memo(function ThreadRij({
         )}
         {/* Bij een overzicht linkt het paneel elke vindplaats: een bronnenlijst van 40–90 regels ernaast
             zegt niets nieuws. De bronnen blijven in het bericht (herkomst, eval). */}
-        {!item.overzicht && !item.antwoord && item.bronnen && item.bronnen.length > 0 && <Bronnen bronnen={item.bronnen} />}
+        {!item.overzicht && !item.antwoord?.doelen.length && item.bronnen && item.bronnen.length > 0 && <Bronnen bronnen={item.bronnen} />}
         {samenhangAan && !demo && (item.overzicht || !!item.bronnen?.length) && (() => {
           // Met een overzicht: de delen daarvan, in zijn eigen volgorde – los van hoe Lex formuleerde.
           // Anders: de bepalingen die het antwoord noemt, tot de diepste (`antwoordDoelen`).

@@ -19,7 +19,9 @@ SCHEMA: dict[str, Any] = {
         "Rond een vraag naar de betekenis van een begrip af. Roep deze tool aan nadat je zoek_definitie en zo nodig "
         "search_begrippen hebt gebruikt, en schrijf geen antwoord ernaast. De werkplek toont de wettelijke definities met "
         "hun vindplaats en de vastgelegde begrippen zelf, uit wat de tools teruggaven: herhaal die niet. Jij levert het begrip "
-        "en een korte toelichting in eigen woorden, zonder citaten en zonder vindplaatsen die je niet hebt opgehaald."),
+        "en een korte toelichting in eigen woorden, zonder citaten en zonder vindplaatsen die je niet hebt opgehaald. Vond je geen "
+        "definitie, schrijf dan nooit dat er geen definitie bestaat: dat de graaf niets vond zegt de werkplek zelf, in die "
+        "woorden. Noem dan alleen wat je wel opgehaald hebt, met de bepaling erbij, of laat de toelichting leeg."),
     "strict": True,
     "input_schema": {
         "type": "object",

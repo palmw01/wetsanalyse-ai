@@ -394,9 +394,10 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
         # van hoe de duiding geformuleerd is – geen cureren op de proza, geen bronnen van eerder.
         sources = collect_sources([(OVERZICHT_TOOL, overzicht_bronrijen(state["overzicht"]))])
     elif state.get("antwoord"):
-        # Een sjabloon draagt zijn vindplaatsen zelf; cureren op de proza heeft dan geen zin.
+        # Een sjabloon draagt zijn vindplaatsen zelf; cureren op de proza heeft dan geen zin. Zonder doelen (een
+        # leemte) rust de toelichting op wat er verder is opgehaald, en dat moet herleidbaar blijven.
         doelen = {d["iri"] for d in state["antwoord"].get("doelen") or []}
-        sources = [s for s in collect_sources(state.get("source_trace", [])) if s.uri in doelen]
+        sources = [s for s in collect_sources(state.get("source_trace", [])) if not doelen or s.uri in doelen]
     else:
         sources = collect_sources(state.get("source_trace", []))
         # Bronnen uit eerdere beurten alleen als het antwoord hun regeling noemt: anders vult elke
