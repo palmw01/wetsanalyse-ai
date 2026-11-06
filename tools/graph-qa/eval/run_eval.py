@@ -31,6 +31,9 @@ from eval.scoring import AnnotatieResult, CaseResult, score_annotatie, score_cas
 
 GOLDEN = Path(__file__).parent / "golden.jsonl"
 GOLDEN_ANNOTATIE = Path(__file__).parent / "golden_annotatie.jsonl"
+# De bepalingen uit `docs/wetsanalyse/referentieset/concept/`: wat een klasse doet over de runs heen, zonder iets te
+# schrijven. Provisional en bewust onvolledig, dus trendmeting (`tests/test_eval.py` bewaakt de drift).
+GOLDEN_CONCEPT = Path(__file__).parent / "golden_annotatie_concept.jsonl"
 
 
 def load_golden(path: Path = GOLDEN) -> list[dict[str, Any]]:
@@ -229,6 +232,17 @@ def print_report(results: list[CaseResult]) -> bool:
     print("-" * 80)
     print(f"{passed}/{len(results)} geslaagd")
     return passed == len(results)
+
+
+def print_klassen(results: list[AnnotatieResult]) -> None:
+    """Per klasse, alle dertien, ook zonder referentie: een klasse die nooit opkomt valt anders nergens op."""
+    from agent.jas_klassen import GELDIGE_JAS_KLASSEN
+
+    velden = ("n", "gedekt", "exact", "voorstellen", "raak")
+    print(f"\n{'klasse':46} " + " ".join(f"{v:>11}" for v in velden))
+    for klasse in sorted(GELDIGE_JAS_KLASSEN):
+        rijen = [r.per_klasse.get(klasse, {}) for r in results if not r.niet_gemeten]
+        print(f"{klasse:46} " + " ".join(f"{sum(x.get(v, 0) for x in rijen):11d}" for v in velden))
 
 
 def print_annotatie_report(results: list[AnnotatieResult]) -> bool:
@@ -450,6 +464,8 @@ def main() -> None:
     ap.add_argument("--golden", type=Path, default=GOLDEN, help="pad naar de golden set (jsonl)")
     ap.add_argument("--annotatie", action="store_true",
                     help="draai de annotatie-set (JAS-markeringen) in plaats van de QA-set")
+    ap.add_argument("--concept", action="store_true",
+                    help="met --annotatie: de conceptcasussen, met een overzicht per klasse")
     ap.add_argument("--gesprek", action="store_true",
                     help="draai de gesprekken-set (vervolgvragen in één thread)")
     ap.add_argument("--retrieval-smoke", action="store_true",
@@ -489,9 +505,12 @@ def main() -> None:
         else:
             _laad_env()
             resultaten = asyncio.run(run_annotatie_suite(
-                load_golden(GOLDEN_ANNOTATIE), settings=Settings.from_env(),
+                load_golden(GOLDEN_CONCEPT if args.concept else GOLDEN_ANNOTATIE), settings=Settings.from_env(),
             ))
-        sys.exit(0 if print_annotatie_report(resultaten) else 1)
+        ok = print_annotatie_report(resultaten)
+        if args.concept:
+            print_klassen(resultaten)
+        sys.exit(0 if ok else 1)
 
     if args.offline:
         cases, llm, graph = _offline_scenario()
