@@ -11,6 +11,7 @@ def test_verwijdert_leeg_tekstblok_naast_tool_use():
             {"type": "text", "text": ""},  # leeg → weg
             {"type": "tool_use", "id": "1", "name": "get_lid", "input": {}},
         ]},
+        {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "1", "content": "x"}]},
     ]
     out = _schoon_messages(msgs)
     assert out[0]["content"] == "hoi"  # string-content ongemoeid

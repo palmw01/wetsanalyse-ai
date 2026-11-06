@@ -13,7 +13,7 @@ from typing import Any
 from langgraph.config import get_stream_writer
 
 from ..berichten import _parse_final, _schoon_messages, _trim_messages
-from ..narratie import _stap, _toolregel
+from ..narratie import _stap, _toolregel, ronde_in_denk
 from ..methode import instructies
 from ..prompts import SYSTEM_PROMPT
 from ..specialists import get as get_specialist
@@ -68,12 +68,12 @@ def decompose_node(b: Bouw, state: State) -> dict[str, Any]:
 def solve_node(b: Bouw, state: State) -> dict[str, Any]:
     """Beantwoord elke deelvraag met een eigen agent⇄tools-loop (lokale scratch-messages).
 
-    De per-beurt narratie stroomt als `reason` (het denkproces), nooit als `token`. Bij ÉÉN
-    deelvraag (een simpele vraag) is er geen aparte synthese nodig: de tool-loze eindbeurt ís het
-    eindantwoord en wordt als één `token` geëmit (en `answer` gezet), zodat een eenvoudige vraag
-    geen synthese-tax betaalt. Bij MEERDERE deelvragen emit solve géén token – `synthesize_node`
-    streamt dan het eindantwoord. De gedeelde source_trace accumuleert over álle deelvragen zodat
-    grounding/provenance ongewijzigd werken.
+    De narratie van een ronde met tools gaat als `reason` naar het denkproces. Bij ÉÉN deelvraag (een
+    simpele vraag) is er geen aparte synthese nodig: de tool-loze eindbeurt ís het eindantwoord en zet
+    `answer`, zodat een eenvoudige vraag geen synthese-tax betaalt. Bij MEERDERE deelvragen schrijft
+    `synthesize_node` het eindantwoord. De `token` komt in beide gevallen uit `finalize_node`, na de
+    controle. De gedeelde source_trace accumuleert over álle deelvragen zodat grounding/provenance
+    ongewijzigd werken.
     """
     writer = get_stream_writer()
     spec = get_specialist(state.get("specialist"))
@@ -110,14 +110,9 @@ def solve_node(b: Bouw, state: State) -> dict[str, Any]:
                 tools=[] if laatste_beurt else schemas,
                 messages=_trim_messages(_schoon_messages(msgs), b.settings.max_history_chars),
             ) as stream:
-                first = True
-                for delta in stream.text_deltas:
-                    if first and _turn > 0:
-                        writer({"type": "reason", "content": "\n\n"})  # alinea-scheiding tussen beurten
-                    writer({"type": "reason", "content": delta})
-                    first = False
                 final = stream.final_message()
             tool_uses, text_parts = _parse_final(final)
+            ronde_in_denk(writer, tool_uses, text_parts, _turn)
             assistant_content: list[dict[str, Any]] = [{"type": "text", "text": p} for p in text_parts if p and p.strip()]
             assistant_content += [
                 {"type": "tool_use", "id": t["id"], "name": t["name"], "input": t["input"]}
@@ -145,21 +140,20 @@ def solve_node(b: Bouw, state: State) -> dict[str, Any]:
         findings.append({"vraag": sub, "antwoord": antwoord})
     upd: dict[str, Any] = {"sub_findings": findings, "source_trace": trace}
     if enkelvoudig:
-        # Simpele vraag: de tool-loze eindbeurt ís het eind-antwoord (geen synthese) → als token.
+        # Simpele vraag: de tool-loze eindbeurt ís het eind-antwoord (geen synthese); `finalize_node`
+        # stuurt het uit, na de controle.
         antwoord = findings[0]["antwoord"] if findings else ""
         if state.get("annotaties_lezen"):
             antwoord = begrens_antwoord(antwoord, trace)
         upd["answer"] = antwoord
-        if antwoord:
-            writer({"type": "token", "content": antwoord})
     return upd
 
 def route_after_solve(b: Bouw, state: State) -> str:
-    # Eén deelvraag → antwoord staat al (gestreamd in solve); sla de synthese over.
+    # Eén deelvraag → het antwoord staat al in de state; sla de synthese over.
     return "verify" if len(state.get("sub_questions") or []) <= 1 else "synthesize"
 
 def synthesize_node(b: Bouw, state: State) -> dict[str, Any]:
-    """Stel het eind-antwoord samen uit de deelbevindingen (streamt de tokens)."""
+    """Stel het eind-antwoord samen uit de deelbevindingen; `finalize_node` stuurt het uit."""
     writer = get_stream_writer()
     findings = state.get("sub_findings") or []
     _stap(writer, "Synthese", f"antwoord uit {len(findings)} deelbevindingen")
@@ -174,20 +168,14 @@ def synthesize_node(b: Bouw, state: State) -> dict[str, Any]:
             + ", ".join(state["unsupported"]) + "."
         )
     user = f"OORSPRONKELIJKE VRAAG:\n{state['question']}\n\nBEVINDINGEN PER DEELVRAAG:\n{bevindingen}"
-    parts: list[str] = []
     with b.llm.stream(
         model=b.model, max_tokens=4096, system=[system, variabel], tools=[],
         messages=[{"role": "user", "content": user}],
     ) as stream:
-        for delta in stream.text_deltas:
-            parts.append(delta)
-            if not state.get("annotaties_lezen"):
-                writer({"type": "token", "content": delta})
-        stream.final_message()
-    answer = "".join(parts).strip()
+        final = stream.final_message()
+    answer = "\n\n".join(_parse_final(final)[1]).strip()
     if state.get("annotaties_lezen"):
         answer = begrens_antwoord(answer, state.get("source_trace", []))
-        writer({"type": "token", "content": answer})
     return {"answer": answer}
 
 def resynth_node(b: Bouw, state: State) -> dict[str, Any]:
