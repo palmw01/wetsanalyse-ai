@@ -28,7 +28,7 @@ negative_patterns:
   - {patroon: "los hulpwerkwoord of gezegde zonder partij of object", reden: "projectregel annotatieprotocol: een geïsoleerd gezegde is slechts een herkenningssignaal"}
   - {patroon: "'kunnen regels worden gesteld' / 'worden regels gesteld'", reden: "delegatiepatroon (H2:127) – hoort bij Delegatiebevoegdheid"}
 required_context:
-  - "de partijen (subject, eventueel wederpartij) en het object in dezelfde uitspraak"
+  - "de partij en het object in dezelfde uitspraak; de wederpartij hoeft er niet te staan: 'kan verzoeken' is al een recht (H2:46)"
 deterministic_detection_possible: middel
 llm_needed_for:
   - "recht of plicht tussen rechtssubjecten tegenover louter handeling of toestand"

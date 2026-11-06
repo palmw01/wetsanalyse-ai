@@ -85,7 +85,7 @@ twijfel:
   DEGRADED_PARSE: {naam: "Zonder zinsontleding", uitleg: "De zinsontleding ontbrak voor deze tekst; het model besliste met minder signalen."}
 
 resolutie:
-  R-CENTRAAL-KEEP: {naam: "Afwijzing bevestigd", uitleg: "De reviewer bevestigt gemotiveerd dat de centrale kandidaat geen annotatie oplevert."}
+  R-CENTRAAL-KEEP: {naam: "Afwijzing door de reviewer – jij beslist", uitleg: "De reviewer ziet hier geen norm. Het is de enige normkandidaat, dus die vervalt niet zonder oordeel van de jurist."}
   R-CENTRAAL-CHANGE: {naam: "Centrale norm herbeoordeeld", uitleg: "De reviewer kiest een toegestane klasse voor de eerder afgewezen kandidaat."}
   R-CENTRAAL-HUMAN: {naam: "Centrale norm ter beoordeling", uitleg: "De centrale norm vraagt een menselijke keuze; de getoonde klasse is voorlopig."}
   R-CONFLICT-KEEP: {naam: "Reviewer houdt de keuze van het model aan – jij beslist", uitleg: "Het conflict met het patroon blijft bestaan, dus de keuze ligt bij de jurist."}
