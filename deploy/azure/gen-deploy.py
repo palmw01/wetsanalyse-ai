@@ -19,8 +19,9 @@ Vereisten:
 
 LET OP: elke run genereert VERSE tokens en wachtwoorden. Op een draaiende omgeving betekent
 opnieuw deployen dus dat sessies vervallen en de admin-tokens wijzigen. Voor een omgeving die je
-aan- en uitzet is dat juist wenselijk; wil je ze stabiel houden, geef dan een bestaand
-parameterbestand mee met --params-file en laat dit script het niet overschrijven.
+aan- en uitzet is dat juist wenselijk; wil je ze stabiel houden, zet dan de `WA_*`-variabelen: die
+neemt het script over (zie `_secret`). `--params-file` kiest alleen waar het gegenereerde bestand
+komt: het wordt elke run overschreven en na `--run` of `--what-if` weggehaald.
 """
 import argparse
 import base64

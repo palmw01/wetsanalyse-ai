@@ -1,6 +1,6 @@
 # Meetlogboek
 
-Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 4 november 2026
+Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 6 november 2026
 
 Hier staat per datum wat er gemeten is, op welke code, wat eruit kwam en waar de gegevens staan.
 Nieuwste bovenaan. De meetbestanden zelf zijn bewijs: **wijzig ze niet achteraf**. Een correctie
@@ -62,6 +62,10 @@ Vanuit `tools/graph-qa`:
 | Keten tegen referentie, met stabiliteit | `.venv/bin/python -m eval.compare_pipelines --output /tmp/ab.json [--casussen v1\|concept:IW05] [--cases …] [--herhalingen 3]`, daarna `--analyseer /tmp/ab.json --md /tmp/ab.md` | betaald; weigert held-out |
 | Variantmatrix met een vooraf vastgelegd criterium | `.venv/bin/python -m eval.baseline_proef` (en `rapport`) | betaald |
 | Rapport per laag, familie en tekstsoort | `eval/laagrapport.py` op een run-set van `compare_pipelines` | 0 |
+| Kandidaatruimte per klasse | `.venv/bin/python -m eval.kandidaat_eval [--casussen …] [--md …] [--json …]` | 0 |
+| Conceptcasussen door de hele keten | `.venv/bin/python eval/run_eval.py --annotatie --concept` | betaald; diagnostisch |
+| Begrippenketen | `.venv/bin/python -m eval.begrippen_eval --variant lemma\|keten` (met `--model`: betaald) | 0 |
+| Bronselectie, betekenisonderzoek, kaartacties | `eval/bronselectie_eval.py`, `eval/betekenisonderzoek_eval.py`, `eval/kaartacties_eval.py`; opties in hun docstring | zie docstring |
 | Referentieset controleren | `python -m eval.referentieset --check` / `--dekking` | 0 |
 
 Regels voor een nieuwe meting:

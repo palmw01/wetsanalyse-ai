@@ -148,3 +148,25 @@ def test_een_sjabloon_naast_een_graaftool_wacht_op_de_graaftool():
     events, llm = _beurt(beide, _sjabloon())
     assert llm.index == 3
     assert [e for e in events if e["type"] == "antwoord"]
+
+
+def test_het_model_krijgt_de_tool_echt_aangeboden():
+    """Op acceptatie stond de tool niet in het verzoek: `get_specialist` liet het veld vallen, en een nepmodel dat de tool
+    toch aanroept ziet dat niet. Dus kijken naar wat er naar het model gaat."""
+    _, llm = _beurt(ZOEK, _sjabloon())
+    assert "antwoord_begrip" in [t["name"] for t in llm.calls[1]["tools"]]
+    assert next(t for t in llm.calls[1]["tools"] if t["name"] == "antwoord_begrip")["strict"] is True
+
+
+def test_zonder_definitie_blijven_de_opgehaalde_bronnen_herleidbaar():
+    llm = FakeLLM([KIES, ZOEK, response([tool_block("t2", "get_artikel", {"bwb_id": "BWBR0018472", "artikel": "7"})], "tool_use"),
+                   response([tool_block("t3", "antwoord_begrip", {"begrip": "draagkracht", "toelichting": "Zie artikel 7."})], "tool_use")])
+    graph = FakeGraph(results=lambda q: RIJ if "definieertBegrip" in q else "node\ttekst\n<urn:bwb:BWBR0018472:artikel:7>\t\"Tekst\"\n")
+
+    async def alles():
+        return [e async for e in answer_stream("Wat betekent draagkracht?", settings=make_settings(enable_planning=True), llm=llm, graph=graph)]
+
+    events = asyncio.run(alles())
+    assert _eerste(events, "antwoord")["antwoord"]["blokken"][0]["soort"] == "leemte"
+    assert _eerste(events, "sources")["sources"], "de toelichting rust ergens op"
+

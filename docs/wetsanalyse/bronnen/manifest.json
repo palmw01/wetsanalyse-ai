@@ -188,10 +188,10 @@
     "auteur": "Wettenbank",
     "versie": "geldend vanaf 2025-01-01; weergegeven raadpleegdatum 2025-02-26",
     "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0018451",
-    "pad": "docs/wetsanalyse/referentieset/cases.json",
+    "pad": "docs/wetsanalyse/referentieset/v1/cases.json",
     "registratiedatum": "2026-09-11",
     "status": "passages_bewaard",
-    "sha256": "13dbb5335b79459172f6b2e01909d692b3ea1b29e03d1af8bb6fe6995a2d8d2b",
-    "toelichting": "Alleen geselecteerde passages uit online gelezen historische weergave opgeslagen; niet presenteren als geldend in 2026."
+    "sha256": "b2d780ad4b996cead46b51e19d03dfad923c9a4afb34fbd22ec76c7e21e9e710",
+    "toelichting": "Alleen geselecteerde passages uit online gelezen historische weergave opgeslagen; niet presenteren als geldend in 2026. 6 nov 2026: pad en hash bijgewerkt naar v1/cases.json, de plek sinds de geversioneerde referentieset (#525)."
   }
 ]

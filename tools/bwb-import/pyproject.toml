@@ -17,6 +17,3 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = [
-    "integration: tests die een echte GraphDB-instance vereisen (standaard geskipt)",
-]

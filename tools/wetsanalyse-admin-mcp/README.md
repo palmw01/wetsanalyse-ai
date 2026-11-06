@@ -6,8 +6,8 @@ annotatiekwaliteit kan inzien: modelprofielen, gebruikers, de genereerbare API-t
 annotatie-controles. Het *wrapt* de admin-API – er is geen tweede configuratie-API. De code is één
 bestand: `src/index.ts`.
 
-Draait **lokaal** (op jouw machine) wanneer je Claude Code draait en praat over HTTPS met de API met
-een admin-token. Het is dus sessie-tooling, geen standing verbinding. Logs (JSON) gaan naar stderr;
+Draait **lokaal** (op jouw machine) wanneer je Claude Code draait en praat met de API met een
+admin-token. Het is dus sessie-tooling, geen standing verbinding. Logs (JSON) gaan naar stderr;
 het token wordt nooit gelogd.
 
 ## Tools
@@ -17,7 +17,7 @@ het token wordt nooit gelogd.
 | annotatiekwaliteit | `annotatie_statistiek` (optioneel `limit`), `annotatie_graafcontrole` (optioneel `shacl`) | `GET /v1/admin/annotatie-statistiek`, `GET /v1/admin/annotatie/graafcontrole` |
 | modelprofielen | `list_profiles`, `get_profile`, `upsert_profile`, `set_default_profile`, `test_profile`, `delete_profile` | `/v1/admin/profiles[/{name}[/default\|/test]]` |
 | gebruikers | `list_users`, `create_user` (rol default `analist`), `patch_user` (rol en/of `active`) | `/v1/admin/users[/{userid}]` |
-| API-tokens | `list_api_tokens` (alleen metadata, nooit het token) | `GET /v1/admin/api-tokens` |
+| API-tokens | `list_api_tokens` (alleen metadata, nooit het token; ook accounttokens, scope `gebruiker`) | `GET /v1/admin/api-tokens` |
 
 `annotatie_graafcontrole` geeft `in_orde: null` als de graaf niet bereikbaar of niet geconfigureerd
 is; dat betekent nooit "goed".
@@ -34,13 +34,15 @@ npm run build      # → dist/ (gecommit, zodat `node dist/index.js` zonder buil
 ```
 
 Vereist Node ≥ 20.3. `npm run dev` draait `src/index.ts` direct via `tsx`. Wijzig je `src/index.ts`,
-bouw en commit dan ook `dist/index.js` mee: de registratie hieronder start de gebouwde versie.
+bouw en commit dan ook `dist/index.js` mee: de registratie hieronder start de gebouwde versie. Er zijn
+geen eigen tests; de poort controleert de typecheck en of `dist/` bijloopt.
 
-## Activeren (koppelen aan productie)
+## Activeren (koppelen aan acceptatie)
 
 1. **Genereer een token** in de webapp: instellingen → **Beheer** → **API-tokens**
    (`/instellingen/beheer/api-tokens`) → *Token genereren* (label bijv.
-   `claude-admin-mcp`). Het volledige token wordt **één keer** getoond – kopieer het.
+   `claude-admin-mcp`) en kies bij *Inloggen als* **Geen account (admin-token)**. Het volledige token
+   wordt **één keer** getoond – kopieer het.
 2. **Zet het token** als env-var voor Claude Code. In `.claude/settings.local.json` (gitignored,
    machine-lokaal, dus het reist niet mee naar een andere kloon):
 
@@ -61,8 +63,8 @@ bouw en commit dan ook `dist/index.js` mee: de registratie hieronder start de ge
    en zet `WETSANALYSE_ADMIN_API_URL` in dezelfde `env`-sectie als het token hierboven.
 
    **Welke URL?** De api van **acceptatie** heeft een publieke ingress juist hiervoor
-   (`apiExtern` in `deploy/azure/main.bicep`); productie blijft intern en is dus niet te koppelen —
-   gebruik daar de beheertab in de webapp. De FQDN haal je op met:
+   (`apiExtern` in `deploy/azure/main.bicep`; die opent de hele api, niet alleen `/v1/admin`);
+   productie blijft intern en is dus niet te koppelen — gebruik daar de beheertab in de webapp. De FQDN haal je op met:
 
    ```bash
    az containerapp show -n wetsanalyse-api -g rg-wetsanalyse \
@@ -86,27 +88,3 @@ in – de MCP kan er niets meer mee.
 | `WETSANALYSE_ADMIN_TOKEN`   | ja | Admin-token (het statische env-token van de api óf een in de beheertab gegenereerd token). Uit je lokale env. |
 
 Zonder beide weigert de server te starten (fail-closed).
-
----
-
-## Grafana-MCP (aparte, officiële server)
-
-Voor het inrichten van Grafana (datasources/dashboards/alerting) gebruik je de **officiële**
-`mcp/grafana`-server – geen eigen build, en net als hierboven **machine-lokaal geregistreerd** in
-plaats van gecommit. Twee stappen:
-
-1. **Grafana service-account + token**: in Grafana → *Administration → Users and access → Service
-   accounts* → nieuw account (rol *Editor* of *Admin*) → *Add service account token*. Kopieer het.
-2. Registreer de server lokaal met jouw Grafana-URL en het token uit stap 1:
-
-   ```bash
-   claude mcp add grafana \
-     -e GRAFANA_URL=https://grafana.example \
-     -e GRAFANA_SERVICE_ACCOUNT_TOKEN=glsa_… \
-     -- docker run --rm -i -e GRAFANA_URL -e GRAFANA_SERVICE_ACCOUNT_TOKEN mcp/grafana -t stdio
-   ```
-
-3. `claude mcp list` → `grafana` verbonden. Grafana draait als container app naast de Azure-straten
-   (`deploy/azure/grafana.bicep`); via de MCP bekijk je de datasources en het keten-dashboard. Let op
-   dat de provisioning as-code gaat: wijzigingen horen in `deploy/azure/grafana/`, niet in de UI —
-   de app heeft geen persistente opslag. Zie `docs/observability.md`.

@@ -54,6 +54,11 @@ Drie dingen om te weten:
   wordt er bij de eerste uitrol een gegenereerd, en dat moet je daarna uit de app-secret opvissen.
 - **Schaalt naar nul.** De eerste paginalading wekt hem; dat kost een koude start van enkele seconden.
 
+Lezen vanuit een MCP-client kan met de officiële server `mcp/grafana`, machine-lokaal geregistreerd. Een
+service-account-token overleeft een herstart niet, dus meld je aan met het admin-wachtwoord. Logs lezen op
+acceptatie gaat eenvoudiger met `logs_zoek` van de
+[acceptatie-MCP](../../tools/wetsanalyse-acceptatie-mcp/README.md).
+
 Rol Grafana in **één** straat uit: dat exemplaar leest beide workspaces via een datasource per
 straat. Een tweede uitrol in de andere straat maakt een tweede, overbodige app aan – die wordt door
 `opruimen` níét als wees herkend, want `$s-grafana` staat voor beide straten op de beschermde lijst.
@@ -100,7 +105,8 @@ Wat je daarvoor inlevert, en waar je op moet letten:
   eerst wat erin staat.
 - **Kosten scheiden gaat via tags.** Elke resource draagt `straat: <appName>`; filter daarop in
   Cost analysis.
-- **`opruimen` kent alle straten** (repo-vars `ACCEPTATIE_APP_NAME` en `PRODUCTIE_APP_NAME`).
+- **`opruimen` kent alle straten** (repo-vars `ACCEPTATIE_APP_NAME` en `PRODUCTIE_APP_NAME`; `promote.yml`
+  leest `ACCEPTATIE_APP_NAME` ook, samen met `ACCEPTATIE_RESOURCE_GROUP`, om de digests op te halen).
   Voeg je ooit een derde straat toe, zet die dan óók in die lijst – anders ruimt de actie hem op als
   wees.
 
@@ -124,8 +130,10 @@ Op `productie` staat een **required reviewer** en een deployment-policy die alle
 toelaat; op `acceptatie` alleen de branch `master`. Die poort hoort in de environment te zitten en
 niet in een workflow-conditie die je per ongeluk wegcommit.
 
-De workflows **falen** bewust als een van deze secrets of vars ontbreekt (een preflight-stap). Een
-`if` die de stap oversloeg zou de run groen laten terwijl er niets is uitgerold.
+De workflows **falen** bewust als een verplicht secret of var ontbreekt (een preflight-stap). Een
+`if` die de stap oversloeg zou de run groen laten terwijl er niets is uitgerold. `AZURE_AI_KEY` en
+`LLM_API_BASE` worden alleen bij `wat-if` en `deploy` geëist; een ontbrekende `GRAPHDB_LICENSE_B64` geeft
+alleen een waarschuwing.
 
 #### De applicatie-secrets roteren niet
 
@@ -156,8 +164,8 @@ Daardoor is een infra-deploy op een draaiende omgeving veilig. De toets daarop: 
 
 ### Image-swap: automatisch
 
-De vier `*-docker-publish.yml`-workflows bouwen naar GHCR (pip-audit/npm-audit vooraf, Trivy-gate op
-HIGH/CRITICAL achteraf) en hebben daarna een `deploy`-job die de container app op acceptatie naar de
+De vier `*-docker-publish.yml`-workflows bouwen naar GHCR (`pip-audit` vooraf bij api, graph-qa en bwb-import,
+`npm audit` bij de frontend, en bij alle vier een Trivy-gate op HIGH/CRITICAL achteraf) en hebben daarna een `deploy`-job die de container app op acceptatie naar de
 nieuwe **digest** zet (niet naar een tag). Die job wacht tot de nieuwe revisie daadwerkelijk
 `Running` is; `az containerapp update` keert namelijk al terug zodra de revisie is *aangemaakt*, dus
 een container die bij het starten crasht bleef anders onopgemerkt. Bestaat de doel-app nog niet (een
@@ -211,8 +219,9 @@ zijn padgefilterd, dus een merge bouwt alleen wat veranderde — en een componen
 onveranderd is (bijvoorbeeld `api/`) heeft dan géén image bij die commit. Tag je zonder meer, dan
 faalt de promotie op precies dat punt.
 
-1. Kies de commit op `master` die je wilt uitbrengen.
-2. Draai **alle vier** de `*-docker-publish.yml`-workflows met `workflow_dispatch` op die commit.
+1. Kies de commit op `master` die je wilt uitbrengen; dat is de top van `master`, want
+   `workflow_dispatch` neemt geen losse commit aan.
+2. Draai **alle vier** de `*-docker-publish.yml`-workflows met `workflow_dispatch` op `master`.
    Elke run rolt ook naar acceptatie uit: inhoudelijk identiek, maar met een nieuw digest.
 3. Controleer met `azure-infra` → `inventaris` dat acceptatie die vier digests draait.
 4. Tag en push. `promote.yml` draait en wacht op de required reviewer.
@@ -331,8 +340,8 @@ open "<frontendUrl>/setup"     # frontendUrl staat in de deployment-output
 > draaiende omgeving betekent opnieuw deployen zonder die variabelen dus dat sessies vervallen, de
 > admin-tokens wijzigen en de Fernet-sleutel roteert. Voor acc en prd loopt de weg via
 > `azure-infra.yml`, dat ze stabiel houdt. Wil je met de hand tóch een bestaande omgeving bijwerken,
-> zet dan de `WA_*`-variabelen of bewaar het parameterbestand (`--params-file`) buiten de repo en
-> hergebruik het.
+> zet dan de `WA_*`-variabelen. Het parameterbestand hergebruiken kan niet: `gen-deploy.py` schrijft
+> het bij elke run opnieuw en verwijdert het na `--run` en `--what-if`.
 
 ## De graaf is bewust vluchtig
 
@@ -359,8 +368,9 @@ Dat kan hier, omdat de graaf **reproduceerbaar** is: de import-job haalt alle re
   index valt `semantic_search` stil terug op `search_wetgeving`. Mislukt de herbouw, dan blijft de
   import groen — de wettekst staat er dan gewoon — en zegt de importlog waarom.
 - De import controleert de tekstdekking per regeling (`minDekking`, default `0.995`); zakt een
-  regeling eronder, dan eindigt de job met exitcode 2 en wordt hij rood, terwijl de graaf wél volledig
-  geschreven is.
+  regeling eronder, dan beslist de importpoort vóór de `PUT`: de job eindigt met exitcode 2 en wordt rood, en de
+  bestaande graaf blijft staan, die dus kan achterlopen op de bron. Een mislukte WTI geeft ook exitcode
+  2. Zie de [importer](../../tools/bwb-import/README.md).
 
 ## Beveiliging
 
@@ -373,8 +383,8 @@ Voor de huidige omgevingen is dat verdedigbaar. Hoort er ooit harder bij, dan is
 met een service-account (read-only voor graph-qa) en een proxy die het token controleert; dat raakt
 `bwb-import` én graph-qa en is een eigen traject.
 
-Alle applicatie-secrets zijn **bestanden** (`*_FILE`-patroon via secret-volumes), nooit platte
-env-vars.
+De applicatie-secrets van api, graph-qa en frontend zijn **bestanden** (`*_FILE`-patroon via
+secret-volumes), nooit platte env-vars. De collector en Grafana krijgen hun secrets als `secretRef`.
 
 ### 2FA voor beheerders
 
@@ -413,7 +423,7 @@ proxy aan:
    ```
 
 Wat de proxy is: een nginx (`<appName>-graphdb-proxy`) die uitsluitend `/mcp` doorlaat, alleen met
-het juiste bearer-token, en al het andere met 404 afwijst – geen Workbench, geen REST-API, geen
+het juiste bearer-token (anders 401), en al het andere met 404 afwijst – geen Workbench, geen REST-API, geen
 SPARQL-endpoint. GraphDB zelf blijft `external: false` en wordt niet aangeraakt, dus de graaf
 herstart niet en hoeft niet opnieuw geïmporteerd te worden. Hij schaalt naar nul. De nginx-config
 zit in een secret, en secrets zijn in Container Apps niet revisie-scoped; daarom hangt de
@@ -436,8 +446,8 @@ achter een acceptatie-conditie.
 - **Uit**: `az group delete -n rg-wetsanalyse` – haalt beide straten weg; een straat is in een
   kwartier terug te zetten.
 - **Pauze**: `az postgres flexible-server stop -n <appName>-db -g rg-wetsanalyse` plus de
-  graphdb-app op nul replica's. Api en graph-qa schalen zelf terug; de frontend houdt één replica,
-  want een cold start laat Auth.js-redirects timeouten.
+  graphdb-app op nul replica's. Graph-qa schaalt zelf terug, en de api ook als `MIN_REPLICAS_API` dat
+  toelaat (acceptatie houdt hem op 1); de frontend houdt één replica, want een cold start laat Auth.js-redirects timeouten.
 
 ## Bestanden
 
@@ -450,4 +460,10 @@ achter een acceptatie-conditie.
 | `.gitignore` | houdt `params.json` en licentiebestanden buiten de repo |
 
 Het image dat elke app draait is een parameter (`apiImage`, `graphQaImage`, `frontendImage`,
-`bwbImportImage`), zodat CI een digest kan meegeven in plaats van `:latest`.
+`bwbImportImage`), zodat CI een digest kan meegeven in plaats van `:latest`. Ook te zetten:
+`graphdbImage`, `otelCollectorImage`, `dbServerName`, `graphdbHeap` en `llmProvider`.
+
+Twee vlaggen staan alleen op acceptatie aan: `apiExtern` (`--api-extern`) en `apiTokenLogin`
+(`--api-token-login`, inloggen met een accounttoken voor de
+[acceptatie-MCP](../../tools/wetsanalyse-acceptatie-mcp/README.md)). Beide hebben default `false`, en
+`poort.yml` bewaakt dat.

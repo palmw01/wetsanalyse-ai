@@ -680,15 +680,15 @@ TOOLS: list[dict[str, Any]] = [
             "of divisies zitten erin (en waarin zitten ze)? Gebruik dit om een regeling te "
             "verkennen of een werkgebied af te bakenen, vóór je gaat zoeken.\n"
             "GEEFT TERUG de boom in DOCUMENTVOLGORDE: per deel niveau, soort, nummer en titel; "
-            "opeenvolgende artikelen zonder titel als 'bereik' (bijv. '32–48a', aantal 32). Zo diep "
-            "als past; een deel dat ingeklapt is draagt zijn 'iri' en tellingen – vraag het op met "
-            "vanaf=<die iri>. Ook de totale 'telling' per soort." + _CONTRACT
+            "opeenvolgende artikelen zonder titel als 'nummers' (bijv. '32–48a') met 'bepalingen' "
+            "(bijv. 32). Zo diep als past; een deel dat ingeklapt is draagt tellingen en 'openen': "
+            "de aanroep die dat deel levert. Ook de totale 'telling' per soort." + _CONTRACT
         ),
         "input_schema": _obj(
             {
                 "bwb_id": _BWB,
-                "vanaf": {"type": "string", "description": "Begin bij dit deel: de 'iri' van een ingeklapt "
-                          "deel uit een eerder resultaat, of een nummer ('6', '25.1'). Leeg = hele regeling."},
+                "vanaf": {"type": "string", "description": "Begin bij dit deel: de waarde uit 'openen' van een "
+                          "ingeklapt deel, of een nummer ('6', '25.1'). Leeg = hele regeling."},
                 "offset": _OFFSET,
             },
             ["bwb_id"],

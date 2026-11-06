@@ -13,7 +13,11 @@ in een andere relatie, en welke lijken op elkaar maar zijn het níét. Per versi
 | `manifest.json` | versie, status en een hash over bronnen + cases |
 
 Controle en meten: `cd tools/graph-qa && uv run python -m eval.begrippen_eval --check` en
-`--variant lemma|keten`. Zie de docstring van `eval/begrippen_eval.py` voor de maten.
+`--variant lemma|keten|keten_zonder_parse`; `--versie` kiest de set en `--model` zet het model op de
+twijfelparen en kaarten (kost geld). Zie de docstring van `eval/begrippen_eval.py` voor de maten.
+
+Naast de sets staan `manifest-id.vectoren.json` en `onderzoek-id.vectoren.json`: de testvectoren
+waarmee api en graph-qa toetsen dat ze dezelfde id's rekenen.
 
 ## Sets
 

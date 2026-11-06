@@ -3,8 +3,8 @@
  * Wetsanalyse-admin MCP-server (stdio).
  *
  * Ontsluit de bestaande admin-API van de Wetsanalyse-webapp (`/v1/admin/*`) als agent-tools, zodat
- * een MCP-client (Claude Code) de productie-app kan configureren: modelprofielen, gebruikers en de
- * genereerbare API-tokens (read).
+ * een MCP-client (Claude Code) de app op acceptatie kan configureren: modelprofielen, gebruikers en
+ * de genereerbare API-tokens (read). Productie heeft geen publieke api-ingress en is dus niet te koppelen.
  *
  * Config via env (nooit in de repo):
  *   WETSANALYSE_ADMIN_API_URL   – basis-URL van de API, bv. https://api.wetsanalyse.example

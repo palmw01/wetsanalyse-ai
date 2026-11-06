@@ -1,58 +1,62 @@
 # Wetsanalyse-frontend
 
-Next.js (App Router) + TypeScript-webapp. De app **is de werkplek**: een chat-achtige werkruimte
-tegen de graph-qa-agent **Lex**; login, beheer en alles wat bewaard blijft lopen via de
-[Wetsanalyse-API](../api). Architectuurregels, invarianten en valkuilen voor wie code wijzigt staan
-in [`CLAUDE.md`](CLAUDE.md).
+Next.js-webapp (App Router, TypeScript) van het platform. De app **is de werkplek**: een gesprek met
+de agent **Lex** (graph-qa), met daarnaast alles wat dat gesprek oplevert. Login, beheer en alles wat
+bewaard blijft lopen via de [Wetsanalyse-API](../api/README.md). Regels, invarianten en valkuilen voor
+wie code wijzigt staan in [`CLAUDE.md`](CLAUDE.md).
 
-- **De werkplek** (`/workbench`, de *Lex-pagina*; `/` leidt hierheen door): één gespreksvenster met
-  twee werkwijzen – **vragen** aan Lex (brongetrouwe Q&A over de kennisgraaf) en **JAS-annotatie**
-  (Lex stelt markeringen voor, de jurist beoordeelt ze per element). De beurt draait bij graph-qa,
-  de werkplek kijkt mee via SSE; de review-state staat in de API.
-- **De annotaties** staan los van de gesprekken: `/annotaties` is het overzicht en `/annotaties/node`
-  toont één bronnode-annotatie, met dezelfde inhoud als het paneel in de werkplek.
-- **Het instellingenvenster** (`/instellingen/*`) opent als dialoog over de werkplek heen: account
-  (wachtwoord, 2FA, verbruik), berichten en – voor beheerders – modelprofielen, gebruikers,
-  aanvragen, API-tokens, berichtenbeheer en feedback. Het beheer loopt via `/api/admin/*` met een
-  apart admin-token. `/beheer` en `/account` zijn redirects naar de bijbehorende tab.
+## Wat er in de app zit
 
-## Architectuur – BFF met server-side token
+| Pad | Wat je er doet |
+|---|---|
+| `/workbench` (`/` leidt hierheen) | Eén gespreksvenster voor vragen en werk: bepalingen laten annoteren, een werkgebied samenstellen, bronnen per deelvraag kiezen, begrippen uitwerken. Wat een beurt oplevert (een *artefact*) opent naast het gesprek, met een versiekiezer. |
+| `/annotaties` | Overzicht van de gedeelde annotaties. `/annotaties/node` toont één bronnode-annotatie, `/annotaties/element/[id]` één markering. |
+| `/werkgebieden` | Overzicht, en per werkgebied de tabs Overzicht, Gesprekken, Bronnen, Artefacten en Historie, met detailpagina's voor deelvragen, begrippen en het dossier. Aanmaken gaat via Lex. |
+| `/begrippen` | Begrippen over alle werkgebieden heen; `/begrippen/[id]` is de pagina van een generiek begrip. |
+| `/bronnen?bron_iri=…` | De pagina van één bepaling: wettekst met markeringen en wat de kennisgraaf erover weet. |
+| `/instellingen/*` | Dialoog over de werkplek: account (wachtwoord, 2FA, verbruik), berichten en voor beheerders modelprofielen, gebruikers, aanvragen, API-tokens, berichtenbeheer en feedback. `/beheer` en `/account` leiden door naar de juiste tab. |
+| `/login`, `/login/2fa`, `/setup`, `/registreren`, `/disclaimer` | Inloggen, de eerste beheerder, toegang aanvragen en de disclaimer. |
+
+## Architectuur: BFF met server-side token
 
 De browser praat **uitsluitend** met de eigen Next.js-origin (`/api/**`). Die Route Handlers (de
 _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injecteren het Bearer-token,
-dat dus nooit in de browser komt. Daarmee vervalt CORS (same-origin) en werkt SSE (de native
-`EventSource` kan geen `Authorization`-header sturen; de BFF doet dat en pipet de stream door).
+dat dus nooit in de browser komt. Daarmee vervalt CORS (same-origin). De werkplek leest de
+SSE-stroom van een lopende beurt met `fetch`; de BFF geeft de stroom ongewijzigd door.
 
 ```
 Browser ──/api/**──► Next.js (BFF, injecteert token) ──/v1/**──► wetsanalyse-api:3000
                                                      ──/v1/**──► graph-qa:8080
 ```
 
-## Vormgeving – Rijkshuisstijl (Belastingdienst)
+Werkgebieden en begrippen lopen via catch-all-routes met een allowlist (`isWerkgebiedRoute`,
+`isGeneriekRoute`): een nieuwe api-route vraagt daar een regel. Wat Lex doet, start als beurt in het
+gesprek (`/api/annotatie/run`); een pagina start geen run.
 
-De app volgt de **Rijkshuisstijl** in het Belastingdienst-stijlvak: lintblauw `#154273` + hemelblauw
-`#007bc7` op wit, het officiële Belastingdienst-logo (`public/belastingdienst-logo.svg`, ongewijzigd)
-en **Fira Sans/Mono** als vrij alternatief voor Rijksoverheid Sans. De design tokens staan centraal
-(CSS-variabelen in `app/globals.css` → Tailwind in `tailwind.config.ts`), de primitives in
-`components/ui/` (40px-knoppen/velden, 48px op aanraakschermen). De **JAS-klassekleuren**
-(`lib/jas.ts`) zijn de labelkleuren uit de officiële JAS-tabel `docs/wetsanalyse/wa-table.png`.
-Kleur en typografie lopen via de tokens, niet via losse hex-waarden.
+## Vormgeving
+
+De app volgt de **Rijkshuisstijl** in het Belastingdienst-stijlvak. Tokens staan in `app/globals.css`
+en `tailwind.config.ts`, de primitives in `components/ui/`. De regels staan in
+[`CLAUDE.md`](CLAUDE.md) (§*Vormgeving*).
 
 ## Lokaal draaien
 
-Vereist een draaiende API (zie [`../api/CLAUDE.md`](../api/CLAUDE.md)) en, voor de werkplek, een
-bereikbare graph-qa.
+Vereist Node.js (CI en image draaien op 26), npm, een draaiende API (zie
+[`../api/README.md`](../api/README.md)) en, voor de werkplek, een bereikbare graph-qa.
 
 ```bash
 cd frontend
-cp .env.example .env.local      # vul API_BASE_URL, API_TOKEN, ADMIN_API_TOKEN, AUTH_SECRET, GRAPH_QA_URL
+cp .env.example .env.local
 npm install
-npm run dev                     # http://localhost:3000
+npm run dev -- -p 3001          # http://localhost:3001; 3000 is voor de API
 ```
 
-Draait de lokale API óók op poort 3000, start de frontend dan op een andere poort:
-`npm run dev -- -p 3001`. De tokenwaarden zijn **alleen het deel na de `:`** uit de token-lijst van
-de API (`API_TOKEN` uit de gewone lijst, `ADMIN_API_TOKEN` uit de admin-lijst).
+Pas `.env.local` eerst aan, want het voorbeeld wijst naar containernamen:
+
+- `API_BASE_URL=http://localhost:3000`, en voor de agent `GRAPH_QA_URL=http://localhost:8080` plus
+  `GRAPH_QA_TOKEN` (gelijk aan `QA_API_TOKEN` van de agent);
+- `API_TOKEN` en `ADMIN_API_TOKEN`: **alleen het deel na de `:`** uit de tokenlijsten van de API;
+- `AUTH_SECRET`: `openssl rand -base64 32`.
 
 > **Eerste keer inloggen.** De webapp zit volledig achter een login met **userid** + wachtwoord;
 > e-mail is verplicht en uniek maar geen inlog-identiteit. Is de users-tabel van de API leeg, dan
@@ -63,9 +67,10 @@ de API (`API_TOKEN` uit de gewone lijst, `ADMIN_API_TOKEN` uit de admin-lijst).
 > (TOTP) zet de gebruiker zelf aan in de tab Beveiliging, en is verplicht voor wie het beheer wil gebruiken;
 > daarvoor moet `LLM_CONFIG_SECRET` op de **API** gezet zijn (de TOTP-secrets worden ermee versleuteld).
 
-Zonder sessie bereikbaar zijn alleen `/login`, `/setup`, `/registreren`, `/disclaimer` en
-`/api/health` (plus de bijbehorende BFF-routes); de rest stuurt naar `/login`. De beheertabs zijn
-bovendien afgeschermd tot de rol `beheerder`.
+Zonder sessie bereikbaar zijn alleen `/login`, `/login/2fa`, `/setup`, `/registreren`, `/disclaimer` en
+`/api/health` (plus de bijbehorende BFF-routes). Voor de rest is een sessie vereist; `/api/**` geeft
+zonder sessie 401 als JSON. Na het inloggen vraagt de app eerst akkoord op de disclaimer. De beheertabs
+zijn afgeschermd tot de rol `beheerder` met 2FA.
 
 ## Scripts
 
@@ -77,7 +82,21 @@ bovendien afgeschermd tot de rol `beheerder`.
 | `npm run lint`         | ESLint                                                               |
 | `npm run typecheck`    | `tsc --noEmit`                                                       |
 | `npm test`             | Vitest (node-env, zonder DOM)                                        |
-| `npm run test:browser` | Playwright tegen een devserver op poort 3109 met gemockte BFF (`scripts/test-*.mjs`, zie `CLAUDE.md`) |
+| `npm run test:watch`   | Vitest in watch-modus                                                |
+| `npm run test:browser` | Playwright-regressie met gemockte BFF (`scripts/test-*.mjs`)         |
+
+`test:browser` start zelf geen server. In CI gaat het zo, in twee shells:
+
+```bash
+npx playwright install --with-deps chromium
+AUTH_SECRET=test-only AUTH_TRUST_HOST=true npm run dev -- --hostname 127.0.0.1 --port 3109
+```
+
+```bash
+npm run test:browser
+```
+
+`TEST_URL` overschrijft de basis-URL (default `http://localhost:3109`).
 
 ## Omgevingsvariabelen
 
@@ -94,35 +113,55 @@ bovendien afgeschermd tot de rol `beheerder`.
 | `AUTH_SECRET`          | –                             | Ondertekent de Auth.js-sessiecookie/JWT. Verplicht (`openssl rand -base64 32`). |
 | `AUTH_SECRET_FILE`     | –                             | Pad naar een secret-bestand; `docker-entrypoint.sh` laadt het in `AUTH_SECRET` als dat leeg is (Auth.js kent zelf geen `*_FILE`). |
 | `AUTH_URL`             | –                             | Publieke origin. **Verplicht achter een reverse proxy** – anders redirecten login/logout naar het interne `0.0.0.0:3000`. |
+| `API_TOKEN_LOGIN`      | uit                           | Inloggen met een accounttoken (`1` of `true`); alleen op acceptatie aan, en ook nodig op de API. |
 | `LOG_LEVEL`            | `info`                        | Niveau van de JSON-logger. |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | leeg                   | OTLP-endpoint; leeg = OpenTelemetry uit, alleen logs. |
+| `OTEL_SERVICE_NAME`    | `wetsanalyse-frontend`        | Servicenaam in de traces. |
+
+## Problemen oplossen
+
+| Symptoom | Oorzaak en oplossing |
+|---|---|
+| `/instellingen/beheer/…` geeft 403 | De gebruiker heeft rol `analist`, de beheerder heeft nog geen 2FA gekoppeld, of `ADMIN_API_TOKEN` ontbreekt. |
+| Inloggen springt naar een intern adres | `AUTH_URL` staat niet op de publieke origin. |
+| De werkplek bereikt Lex niet | `GRAPH_QA_URL` wijst nog naar de containernaam, of `GRAPH_QA_TOKEN` wijkt af van `QA_API_TOKEN`. |
+| De werkplek toont 0 elementen | SSE-frames worden met `\r\n` gescheiden; een handgeschreven parser die de CR niet stript, levert stil niets op. |
+| Een filter werkt niet, zonder foutmelding | Een BFF-proxyroute stuurt de query-parameter niet door. |
 
 ## Observability
 
-De BFF is geïnstrumenteerd via `@vercel/otel` (`instrumentation.ts`): tracing van route handlers en
-uitgaande `fetch`, alleen actief als `OTEL_EXPORTER_OTLP_ENDPOINT` gezet is. `lib/trace.ts` zet de
-`traceparent` op elke upstream-fetch, `lib/logger.ts` is de server-only JSON-logger. Zie
-`CLAUDE.md` §Observability en [`../docs/observability.md`](../docs/observability.md).
+JSON-logs op stdout, en OpenTelemetry zodra `OTEL_EXPORTER_OTLP_ENDPOINT` gezet is. Een BFF-route die
+zelf fetcht gebruikt `metTrace()` uit `lib/trace.ts`, anders valt de keten stil uiteen in losse
+traces. Zie [`CLAUDE.md`](CLAUDE.md) §*Observability* en
+[`../docs/observability.md`](../docs/observability.md).
 
 ## Docker en uitrol
 
-Multi-stage `Dockerfile` (standalone, non-root). CI: `.github/workflows/frontend-docker-publish.yml`
-(lint, typecheck, test, build, npm audit → image naar GHCR → Trivy), met daarna een `deploy`-job die
-het image op acceptatie uitrolt. Productie loopt via `promote.yml` (zie de projectroot-`CLAUDE.md`).
+Multi-stage `Dockerfile` (standalone, non-root), bouwcontext `frontend/`. Het image start met
+`node server.js` via `docker-entrypoint.sh`, op poort 3000, met health op `/api/health`.
 
-Op Azure draait de frontend als container app met externe ingress (`deploy/azure/main.bicep`); hij
-praat server→server met de API en graph-qa, die allebei intern-only zijn. De tokens en het
-`AUTH_SECRET` komen als secret-bestanden onder `/run/secrets/` binnen (`API_TOKEN_FILE`,
-`ADMIN_API_TOKEN_FILE`, `GRAPH_QA_TOKEN_FILE`, `AUTH_SECRET_FILE`); `AUTH_URL` staat op de publieke
-origin van de container app. 2FA hergebruikt de Fernet-sleutel van de API; de frontend heeft
-daarvoor geen eigen secret.
+```bash
+docker build -t wetsanalyse-frontend frontend
+```
+
+CI: `.github/workflows/frontend-docker-publish.yml` (lint, typecheck, test, build, npm audit → image
+naar GHCR → Trivy), met daarna een `deploy`-job die het image op acceptatie uitrolt. Productie loopt
+via `promote.yml`; zie [`../deploy/azure/README.md`](../deploy/azure/README.md).
+
+Op Azure draait de frontend als container app met externe ingress (`deploy/azure/main.bicep`). Hij
+praat server→server met de API en graph-qa: graph-qa is overal intern, de API is intern op productie
+en publiek op acceptatie. De tokens en het `AUTH_SECRET` komen als secret-bestanden onder
+`/run/secrets/` binnen (`API_TOKEN_FILE`, `ADMIN_API_TOKEN_FILE`, `GRAPH_QA_TOKEN_FILE`,
+`AUTH_SECRET_FILE`); `AUTH_URL` staat op de publieke origin van de container app. 2FA hergebruikt de
+Fernet-sleutel van de API; de frontend heeft daarvoor geen eigen secret.
 
 ## Types bijhouden
 
-`lib/types.ts` is met de hand afgeleid van `api/app/annotatie_v2_contracts.py` en
-`api/app/gesprek_contracts.py`, en is de bron van waarheid
-aan de TS-kant. Controleren tegen het live OpenAPI-schema bij een contractwijziging:
+`lib/types.ts` is met de hand afgeleid van `api/app/annotatie_v2_contracts.py`,
+`gesprek_contracts.py`, `werkgebied_contracts.py` en `begrip_contracts.py`, en is de bron van waarheid
+aan de TS-kant. Controleren tegen het live OpenAPI-schema bij een contractwijziging, zonder iets in de
+repo achter te laten:
 
 ```bash
-npx openapi-typescript http://localhost:3000/openapi.json -o lib/openapi.d.ts
+npx openapi-typescript http://localhost:3000/openapi.json -o /tmp/wetsanalyse-openapi.d.ts
 ```

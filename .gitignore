@@ -55,8 +55,6 @@ docs/regelspraak/
 .env
 .env.local
 api/secrets/
-api/docker-compose.override.yml
-api/_data/
 
 # Door de BWB-importer gedownloade wettekst (XML + WTI). Afgeleide data die de importer
 # zelf bij overheid.nl ophaalt en als cache bewaart; hoort niet in de repo – 47 MB per

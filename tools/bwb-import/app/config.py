@@ -93,7 +93,7 @@ class Settings:
             detect_tekstuele_refs=_as_bool(os.getenv("BWB_DETECT_TEKSTUELE_REFS"), default=True),
             import_wti=_as_bool(os.getenv("BWB_IMPORT_WTI"), default=False),
             service_api_key=api_key,
-            graphdb_url=os.getenv("GRAPHDB_URL", "http://graphdb:7200"),
+            graphdb_url=os.getenv("GRAPHDB_URL", "http://localhost:7200"),
             graphdb_repository=os.getenv("GRAPHDB_REPOSITORY", "inning"),
             graphdb_user=os.getenv("GRAPHDB_USER") or None,
             graphdb_password=os.getenv("GRAPHDB_PASSWORD") or None,

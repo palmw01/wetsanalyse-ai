@@ -46,6 +46,10 @@ jobs:
       - run: uv sync --extra dev --extra mcp
       - run: uv run python scripts/genereer_jas_klassen.py --check
       - run: uv run pytest -q
+      # De image-build installeert `.[otel]` en spaCy; `dev` en `mcp` draaien mee omdat de stdio-MCP en
+      # de tests uit dezelfde lock komen.
+      - name: pip-audit (faalt bij bekende kwetsbaarheden)
+        run: uv run --extra dev --extra mcp --extra otel --extra nlp --locked --with pip-audit pip-audit
 
   build-and-push:
     needs: test
