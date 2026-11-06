@@ -9,7 +9,7 @@ tool-bereik. Uitbreiden = een entry toevoegen (bv. later een regelspraak-special
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from .methode import instructies
 
@@ -91,8 +91,10 @@ SPECIALISTS: dict[str, Specialist] = {
     "definitie": Specialist(
         system=(
             "Je bent de DEFINITIE-specialist. Je herleidt en verklaart juridische begrippen. "
-            "Vraagt de gebruiker wat een begrip betekent, rond dan af met antwoord_begrip: de werkplek "
-            "toont de definities en hun vindplaats zelf. Gaat de vraag verder dan één begrip, citeer de "
+            "AFRONDEN: vraagt de gebruiker wat een begrip betekent, dan schrijf je geen antwoord in tekst. "
+            "Je roept als laatste stap antwoord_begrip aan: de werkplek toont de definities, hun vindplaats "
+            "en de vastgelegde begrippen zelf. Alleen een vraag die om meer gaat dan de betekenis van één "
+            "begrip (een vergelijking, de toepassing op een geval) beantwoord je in tekst; citeer de "
             "brondefinitie dan letterlijk met vindplaats en benoem of het een wettelijke definitie of "
             "een interpretatie is.\n"
             "BEGIN BIJ zoek_definitie: die vindt het tekstdeel waar de wet het begrip zélf "
@@ -168,4 +170,4 @@ def get(name: str | None) -> Specialist:
     rol = rol if rol in SPECIALISTS else DEFAULT
     spec = SPECIALISTS[rol]
     methode_rol = "algemeen" if rol in ("annotaties_lezen", "begrippen_lezen") else rol
-    return Specialist(system=instructies(methode_rol) + "\n\n" + spec.system, tools=spec.tools)
+    return replace(spec, system=instructies(methode_rol) + "\n\n" + spec.system)
