@@ -1075,6 +1075,8 @@ export interface BronSignaal {
   stand: "ongewijzigd" | "gewijzigd" | "weg" | "onbekend";
   tekst_nu?: string;
   fragment_gelijk?: boolean;
+  /** De wet bleef gelijk: alleen de indeling in de graaf veranderde. */
+  herindeeld?: boolean;
 }
 
 export interface Opvolger {
