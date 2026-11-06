@@ -234,3 +234,33 @@ def test_een_leidraadonderdeel_heet_naar_zijn_vindplaats_en_hoort_bij_zijn_divis
     assert (k.artikel, k.lid, k.bwb_id) == ("9.2", "", "BWBR0024096")
     # Zonder boom blijft de oude afleiding uit de IRI.
     assert samenhang.bronknoop(nodes[f"{lr}:artikel:9:o:d"]).artikel == "9"
+
+
+def _label(*rijen_):
+    knopen = {}
+    samenhang.verwijzingen([("uit", r) for r in rijen_], knopen)
+    return knopen[STUB].label
+
+
+def test_label_van_een_verwijsdoel():
+    van = {"van": ONE, "naar": STUB}
+    # Een naam uit de graaf wint van alles.
+    assert _label({**van, "label": "Artikel 3", "stub": "art. 3 (BWBR1)", "anker": "Awb"}) == "Artikel 3"
+    # De brontekst noemt de wet: die wint van het id.
+    assert _label({**van, "stub": "BWBR0002448", "anker": "Algemene termijnenwet"}) == "Algemene termijnenwet"
+    assert _label({**van, "stub": "hoofdstuk 9 (BWBR1)", "anker": "hoofdstuk 9 van de Algemene douanewet"}) \
+        == "hoofdstuk 9 van de Algemene douanewet"
+    # Alleen een plek: het label van de importer zegt welke wet.
+    assert _label({**van, "stub": "art. 8 (BWBR1)", "anker": "artikel 8, eerste lid"}) == "art. 8 (BWBR1)"
+    assert _label({**van, "stub": "art. 8 (BWBR1)"}) == "art. 8 (BWBR1)"
+
+
+def test_onzeker_doel_zegt_dat_het_onzeker_is():
+    r = {"van": ONE, "naar": STUB, "stub": "art. 167 (BWBR1)", "anker": "artikel 167", "betrouwbaarheid": "laag"}
+    assert _label(r) == "artikel 167 (doel onzeker)"
+
+
+def test_label_hangt_niet_af_van_de_volgorde_van_de_rijen():
+    plek = {"van": ONE, "naar": STUB, "stub": "BWBR1", "anker": "artikel 8"}
+    naam = {"van": TWO, "naar": STUB, "stub": "BWBR1", "anker": "Algemene termijnenwet"}
+    assert _label(plek, naam) == _label(naam, plek) == "Algemene termijnenwet"

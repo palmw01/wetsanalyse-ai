@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 MAX_VERWIJZINGEN = 200
 _IRI = re.compile(r"urn:bwb:(BWB[RV]\d+)(?::[^<>\s\"{}|^`\\]*)?")
+_KAAL_BWB = re.compile(r"BWB[RV]\d+")
 # Wat in het overzicht van een structuurdeel staat; leden en onderdelen horen bij het artikel.
 _OVERZICHT = {"Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf", "Artikel", "Divisie"}
 _SOORT = {"Regeling": "regeling", "Artikel": "artikel", "Divisie": "artikel", "Lid": "lid", "Onderdeel": "onderdeel"}
@@ -132,10 +133,11 @@ def plaats_in(nodes: dict[str, dict], iri: str) -> dict[str, str]:
 
 def _uitgaand(iris: list[str]) -> str:
     waarden = " ".join(f"<{i}>" for i in iris)
-    return _PREFIXES + f"""SELECT DISTINCT ?van ?naar ?anker ?label ?stub WHERE {{
+    return _PREFIXES + f"""SELECT DISTINCT ?van ?naar ?anker ?label ?stub ?betrouwbaarheid WHERE {{
   VALUES ?van {{ {waarden} }}
   ?van bwb:heeftVerwijzing ?v . ?v bwb:naar ?naar .
   OPTIONAL {{ ?v bwb:ankerTekst ?anker }}
+  OPTIONAL {{ ?v bwb:betrouwbaarheid ?betrouwbaarheid }}
   OPTIONAL {{ ?naar rdfs:label ?label }}
   OPTIONAL {{ ?naar bwb:doelLabel ?stub }}
 }} LIMIT {MAX_VERWIJZINGEN + 1}"""
@@ -197,12 +199,33 @@ def markeringen(elementen: list[dict], aanwezig: set[str]) -> tuple[list[Knoop],
     return list(knopen.values()), relaties
 
 
+def _noemt_naam(anker: str) -> bool:
+    """Noemt de brontekst een naam ("hoofdstuk 9 van de Algemene douanewet"), of alleen een plek
+    ("artikel 2, eerste lid")? Een plek zegt zonder de wet minder dan het label van de importer."""
+    return any(c.isupper() for c in anker[1:])
+
+
+def _doel_label(r: dict, buiten: str) -> str:
+    """Het label van een verwijsdoel buiten de knopen: de naam uit de graaf, anders wat de bron zelf
+    zegt als dat meer is dan een kaal BWB-id. Het id blijft in de knoop staan."""
+    if r.get("label"):
+        return r["label"]
+    anker, stub = r.get("anker", ""), r.get("stub", "")
+    if r.get("betrouwbaarheid") == "laag":
+        return f"{anker or stub or buiten.removeprefix('urn:bwb:')} (doel onzeker)"
+    if anker and (not stub or _KAAL_BWB.fullmatch(stub) or _noemt_naam(anker)):
+        return anker
+    return stub or buiten.removeprefix("urn:bwb:")
+
+
 def verwijzingen(rijen: list[tuple[str, dict]], knopen: dict[str, Knoop]) -> list[Relatie]:
     """Verwijzingsrelaties uit SPARQL-rijen, als `(richting, rij)` met richting "uit" of "in". Een doel
     buiten `knopen` wordt een randknoop (geïmporteerd: artikel of lid; anders `extern`) – `knopen` wordt
-    daarvoor aangevuld. Elke verwijzing één keer."""
+    daarvoor aangevuld. Elke verwijzing één keer. Gesorteerd, met namen vooraan: zo krijgt een doel met
+    meer verwijzingen altijd hetzelfde label, en het leesbaarste."""
     relaties: list[Relatie] = []
     gezien: set[tuple[str, str]] = set()
+    rijen = sorted(rijen, key=lambda rij: (not _noemt_naam(rij[1].get("anker", "")), rij[1].get("anker", "")))
     for richting, r in rijen:
         van, naar = r.get("van", ""), r.get("naar", "")
         buiten = naar if richting == "uit" else van
@@ -210,10 +233,9 @@ def verwijzingen(rijen: list[tuple[str, dict]], knopen: dict[str, Knoop]) -> lis
             continue
         gezien.add((van, naar))
         if buiten not in knopen:
-            label = r.get("label") or r.get("stub") or buiten.removeprefix("urn:bwb:")
             knopen[buiten] = Knoop(id=buiten, soort="extern" if not r.get("label") else
                                    ("lid" if plaats(buiten)["lid"] else "artikel"),
-                                   label=label, rand=True, **plaats(buiten))
+                                   label=_doel_label(r, buiten), rand=True, **plaats(buiten))
         relaties.append(Relatie(bron=van, doel=naar, soort="verwijst_naar", groep="verwijzingen",
                                 anker_tekst=r.get("anker", "")))
     return relaties

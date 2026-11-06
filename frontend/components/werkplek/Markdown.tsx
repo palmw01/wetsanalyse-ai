@@ -30,6 +30,12 @@ export function StreamendeTekst({ tekst }: { tekst: string }) {
   return <div className={`whitespace-pre-wrap ${TEKST_CLASS}`}>{tekst}</div>;
 }
 
+/** Het getal waarmee een lijstitem in de bron begint, of niets (een opsomming). */
+function lijstnummer(tekst: string, begin: number | undefined): number | undefined {
+  const getal = begin === undefined ? null : /^\d+(?=[.)])/.exec(tekst.slice(begin, begin + 10));
+  return getal ? Number(getal[0]) : undefined;
+}
+
 export const Markdown = memo(function Markdown({
   tekst,
   nietLetterlijk,
@@ -64,6 +70,11 @@ export const Markdown = memo(function Markdown({
           },
           ul: ({ children }) => <ul className="ml-4 list-disc space-y-0.5">{children}</ul>,
           ol: ({ children }) => <ol className="ml-4 list-decimal space-y-0.5">{children}</ol>,
+          // Een lijstnummer is inhoud: "3." kan onderdeel 3 van een bepaling zijn. Daarom het getal uit de
+          // tekst zelf, per item. `start` op de `ol` dekt een lijst met een gat niet ("1.", "3.").
+          li: ({ node, children, ...props }) => (
+            <li {...props} value={lijstnummer(tekst, node?.position?.start.offset)}>{children}</li>
+          ),
           h1: ({ children }) => <p className="text-sm font-semibold text-lint">{children}</p>,
           h2: ({ children }) => <p className="text-sm font-semibold text-lint">{children}</p>,
           h3: ({ children }) => <p className="font-semibold">{children}</p>,
@@ -83,9 +94,10 @@ export const Markdown = memo(function Markdown({
           ),
           // Alleen gezet door `markeerCitaties`: een vindplaats die bij een bron van de beurt hoort.
           cite: ({ children, ...props }) => {
-            const index = Number((props as Record<string, unknown>)["data-bron"]);
-            const bron = bronnen?.[index];
-            return bron ? <CitatieChip bron={bron} onOpenSamenhang={onOpenSamenhang}>{children}</CitatieChip> : <>{children}</>;
+            const data = props as Record<string, unknown>;
+            const bron = bronnen?.[Number(data["data-bron"])];
+            const doelIri = typeof data["data-doel"] === "string" ? data["data-doel"] : undefined;
+            return bron ? <CitatieChip bron={bron} doelIri={doelIri} onOpenSamenhang={onOpenSamenhang}>{children}</CitatieChip> : <>{children}</>;
           },
           code: ({ children }) => <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">{children}</code>,
           pre: ({ children }) => (
