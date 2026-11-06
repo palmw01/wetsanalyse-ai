@@ -59,7 +59,7 @@ import {
 import { useBreedScherm } from "@/lib/useBreedScherm";
 import { jasStyle, klasseLabel } from "@/lib/jas";
 import type { ThreadItem } from "@/lib/threadItem";
-import { WerkplekHeader } from "./WerkplekHeader";
+import { LEX_KORT, WerkplekHeader } from "./WerkplekHeader";
 import { parseHergebruik, parseOverzicht, parseUitkomst } from "@/lib/agentEvents";
 import { DEMO_DOEL, DEMO_SLUG, type DemoScene } from "@/lib/rondleidingDemo";
 import {
@@ -1278,8 +1278,7 @@ export function WerkplekClient({
           {items.length === 0 && (
             <div className="pt-[6dvh] text-center">
               <p className="mx-auto max-w-md text-sm text-muted md:hidden">
-                Ik zoek bepalingen op, citeer letterlijk en stel JAS-markeringen voor. Wat ik voorstel,
-                beoordeel jij.
+                {LEX_KORT}
               </p>
               {/* Wat je kunt vragen staat al in het invoerveld; hier geen tweede uitnodiging. */}
               {onRondleiding && (
