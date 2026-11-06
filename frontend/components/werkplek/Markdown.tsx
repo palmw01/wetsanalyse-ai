@@ -30,6 +30,12 @@ export function StreamendeTekst({ tekst }: { tekst: string }) {
   return <div className={`whitespace-pre-wrap ${TEKST_CLASS}`}>{tekst}</div>;
 }
 
+/** Het getal waarmee een lijstitem in de bron begint, of niets (een opsomming). */
+function lijstnummer(tekst: string, begin: number | undefined): number | undefined {
+  const getal = begin === undefined ? null : /^\d+(?=[.)])/.exec(tekst.slice(begin, begin + 10));
+  return getal ? Number(getal[0]) : undefined;
+}
+
 export const Markdown = memo(function Markdown({
   tekst,
   nietLetterlijk,
@@ -64,6 +70,11 @@ export const Markdown = memo(function Markdown({
           },
           ul: ({ children }) => <ul className="ml-4 list-disc space-y-0.5">{children}</ul>,
           ol: ({ children }) => <ol className="ml-4 list-decimal space-y-0.5">{children}</ol>,
+          // Een lijstnummer is inhoud: "3." kan onderdeel 3 van een bepaling zijn. Daarom het getal uit de
+          // tekst zelf, per item. `start` op de `ol` dekt een lijst met een gat niet ("1.", "3.").
+          li: ({ node, children, ...props }) => (
+            <li {...props} value={lijstnummer(tekst, node?.position?.start.offset)}>{children}</li>
+          ),
           h1: ({ children }) => <p className="text-sm font-semibold text-lint">{children}</p>,
           h2: ({ children }) => <p className="text-sm font-semibold text-lint">{children}</p>,
           h3: ({ children }) => <p className="font-semibold">{children}</p>,
