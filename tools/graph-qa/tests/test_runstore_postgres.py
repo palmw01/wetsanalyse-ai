@@ -246,3 +246,66 @@ async def test_sluiten_direct_na_start_laat_geen_lopende_run_achter(store):
         assert saved.status == "gestopt"
     finally:
         await replica.sluit()
+
+
+# ── het einde van een run ───────────────────────────────────────────────────────────────────────
+
+@met_store
+async def test_elke_run_eindigt_met_een_done_ook_op_de_andere_replica(store):
+    run = await store.start(conversation_id="einde", vraag="v", maak_stroom=stroom([{"type": "token", "content": "x"}]))
+    await asyncio.wait_for(run.taak, timeout=5)
+    uit = [e async for e in store.volg(run)]
+    assert [e["type"] for e in uit] == ["token", "done"] and uit[-1]["uitkomst"] == "klaar"
+    # Aanhaken ná de `done`: geen vals alarm, en de client krijgt zijn einde.
+    laat = [e async for e in store.volg(run, vanaf=run.geproduceerd)]
+    assert [e["type"] for e in laat] == ["done"] and laat[0]["uitkomst"] == "klaar"
+
+
+async def _wees(store: PostgresStore, gemeld: list[str]):
+    """Een run die 'loopt' zonder hartslag en zonder eigen taak: zijn replica is weg."""
+    run = await store.start(conversation_id="wees", vraag="v", user_id="u1", maak_stroom=blijf_draaien())
+    await asyncio.sleep(0.05)  # de taak moet draaien, anders ruimt hij zichzelf niet op
+    run.taak.cancel()
+    await asyncio.gather(run.taak, return_exceptions=True)
+    gemeld.clear()
+    async with store.pool.connection() as conn:
+        await conn.execute("UPDATE agent_runs SET status = 'loopt', hartslag = now() - interval '1 hour' "
+                           "WHERE run_id = %s", (run.run_id,))
+    return run
+
+
+@met_store
+async def test_een_wees_krijgt_precies_een_bericht_ook_met_twee_lezers(store):
+    gemeld: list[str] = []
+
+    async def haak(run, melding):
+        gemeld.append(f"{run.run_id}:{melding}")
+
+    store._bij_afbraak = haak
+    run = await _wees(store, gemeld)
+    await asyncio.gather(store.get(run.run_id), store.get(run.run_id))
+    assert (await store.get(run.run_id)).status == "mislukt"
+    assert len(gemeld) == 1 and gemeld[0].startswith(run.run_id)
+
+
+@met_store
+async def test_een_wees_eindigt_voor_de_kijker_met_een_fout_en_done(store):
+    run = await _wees(store, [])
+    uit = [e async for e in store.volg(run)]
+    assert [e["type"] for e in uit][-2:] == ["error", "done"]
+    assert uit[-2]["foutcode"] == "beurt_afgebroken" and uit[-1]["uitkomst"] == "mislukt"
+
+
+@met_store
+async def test_afsluiten_legt_de_lopende_runs_vast(store):
+    gemeld: list[str] = []
+
+    async def haak(run, _melding):
+        gemeld.append(run.run_id)
+
+    store._bij_afbraak = haak
+    run = await store.start(conversation_id="uitrol", vraag="v", maak_stroom=blijf_draaien())
+    klaar = await store.start(conversation_id="klaar", vraag="v", maak_stroom=stroom([{"type": "done"}]))
+    await asyncio.wait_for(klaar.taak, timeout=5)
+    await store.sluit()
+    assert gemeld == [run.run_id]

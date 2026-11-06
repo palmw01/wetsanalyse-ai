@@ -172,7 +172,7 @@ const wacht = async (n) => {
   assert.ok(starts.length >= n, `verwacht ${n} beurten, kreeg ${starts.length}`);
 };
 const dock = (stap) => page.locator(`[data-vraagdock=${stap}]`);
-const invoer = () => page.getByPlaceholder("Stel een vraag of geef een opdracht aan Lex…");
+const invoer = () => page.getByPlaceholder("Vraag of opdracht voor Lex…");
 const paneel = () => page.locator("[data-artefact-soort=bronselectie][data-artefact]");
 const deelvraagInPaneel = (id) => paneel().locator(`[data-bronselectie-deelvraag=${id}]`);
 

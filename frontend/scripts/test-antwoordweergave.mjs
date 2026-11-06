@@ -53,7 +53,7 @@ await context.route("**/api/**", async (route) => {
 
 try {
   await page.goto(`${base}/workbench`);
-  const vraag = page.getByPlaceholder("Stel een vraag of geef een opdracht aan Lex…");
+  const vraag = page.getByPlaceholder("Vraag of opdracht voor Lex…");
   await vraag.fill("Wat regelt artikel 9?");
   await vraag.press("Enter");
 

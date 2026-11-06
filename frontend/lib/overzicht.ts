@@ -27,6 +27,11 @@ export function overzichtDoelen(ov: Overzicht, max = MAX_OVERZICHT_DOELEN): { do
   return { doelen: alle.slice(0, max), totaal: alle.length };
 }
 
+/** De definities van het overzicht als doelen: in de ketting staan ze naast de delen. */
+export function overzichtDefinities(ov: Overzicht): NodeDoel[] {
+  return ov.definities.map((d) => ({ bron_iri: d.iri, bwb_id: d.bwb_id, label: d.vindplaats || d.label, citeertitel: d.citeertitel }));
+}
+
 /** Wat de graaf in de hele kennisgraaf benadrukt: álle delen (met hun subdelen) en bepalingen van het
  *  overzicht, en wat het onderwerp verder noemt – zonder grens, in de volgorde van het overzicht. */
 export function overzichtFocus(ov: Overzicht): string[] {

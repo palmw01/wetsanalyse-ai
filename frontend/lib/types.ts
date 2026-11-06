@@ -608,7 +608,15 @@ export interface Bericht {
   /** Op het user-bericht dat een `bevestiging` beantwoordt: `{keuze: "gestart" | "geannuleerd"}`
    *  (zie `lib/werkgebiedAnnoteren.ts:parseBevestigingKeuze`). */
   bevestiging_antwoord?: unknown;
+  /** Hoe de beurt afliep, als dat niet gewoon klaar was; zie `lib/agentEvents.ts:parseUitkomst`. */
+  uitkomst?: unknown;
   created?: string;
+}
+
+/** Hoe een beurt afliep (graph-qa `agent/beurt.py`). De melding is letterlijk de fout die de jurist live zag. */
+export interface BeurtUitkomst {
+  status: "klaar" | "mislukt" | "gestopt";
+  melding?: string;
 }
 
 /** Een opdracht die Lex niet zonder akkoord start; klikken start de run met `bevestigd: aantal`. Is de

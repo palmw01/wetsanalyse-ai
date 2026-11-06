@@ -27,7 +27,9 @@ export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecu
       // Lex stelt voor het werkgebied te annoteren (fase B): de knop eronder start de run.
       bevestiging?: import("./types").Bevestiging;
       // Een vraag van Lex bij het samenstellen van een werkgebied (activiteit 1): het kaartje eronder.
-      vraagkaart?: import("./vraagkaart").Vraagkaart }
+      vraagkaart?: import("./vraagkaart").Vraagkaart;
+      // Hoe de beurt afliep: live uit de stroom, na herladen van het bericht, met dezelfde melding.
+      uitkomst?: import("./types").BeurtUitkomst }
   // `denk` = de tijdlijn van het samenspel (supervisor → ophaal → annoteer → emit). Die blijft ook
   // bewaard als de beurt een annotatie blijkt; juist bij een annotatie wil je achteraf kunnen zien
   // hoe hij tot stand kwam.
@@ -54,4 +56,4 @@ export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecu
   // `keuze` gezet: de onderdelen van één bepaling (leden, subbepalingen) of een dubbelzinnig nummer.
   | { id: string; type: "kandidaten"; tekst: string; kandidaten: AgentKandidaat[]; keuze?: AgentKeuze }
   // Meerdere onderdelen van één artikel in één run: per onderdeel een regel met zijn eigen spoor.
-  | { id: string; type: "reeks"; reeks: Reeks; tekst?: string });
+  | { id: string; type: "reeks"; reeks: Reeks; tekst?: string; uitkomst?: import("./types").BeurtUitkomst });

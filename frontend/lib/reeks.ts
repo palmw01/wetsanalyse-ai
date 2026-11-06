@@ -10,7 +10,7 @@
 // De events komen ruw binnen (zie `onReeksEvent` in lib/api.ts) en worden hier gevalideerd:
 // een misvormd event slaat over, het breekt de reeks niet af.
 
-import { parseHergebruik } from "./agentEvents";
+import { parseHergebruik, parseUitkomst } from "./agentEvents";
 import { annotatieDoelVan, artefactVanBericht } from "./artefact";
 import type { NodeDoel, ToolExecution } from "./annotatieNode";
 import { mergeToolExecution, parseToolExecution, toolSpoorUit } from "./annotatieNode";
@@ -163,12 +163,13 @@ export function reeksUitBerichten(berichten: Bericht[]): Reeks | null {
     const art = artefactVanBericht(b);
     const doel = annotatieDoelVan(art);
     const hergebruik = b.hergebruik ? parseHergebruik(b.hergebruik) : undefined;
+    const uitkomst = parseUitkomst(b.uitkomst);
     onderdelen.push({
       bron_iri: doel?.bron_iri ?? `onbekend:${i}`,
       label: doel?.label || art?.titel || b.annotatie_titel || `Onderdeel ${i + 1}`,
-      status: doel ? (hergebruik?.volledig ? "hergebruik" : "klaar") : "fout",
+      status: doel ? (hergebruik?.volledig ? "hergebruik" : "klaar") : uitkomst?.status === "gestopt" ? "gestopt" : "fout",
       voorstellen: 0,
-      ...(doel ? {} : { fout: b.tekst || "Niet vastgelegd." }),
+      ...(doel || uitkomst?.status === "gestopt" ? {} : { fout: uitkomst?.melding || b.tekst || "Niet vastgelegd." }),
       denk: b.denk ?? "",
       tool_executions: toolSpoorUit(b.tool_executions),
       ...(doel ? { annotatie_doel: doel } : {}),

@@ -16,6 +16,7 @@ import { GraafIcoon } from "@/components/graaf/GraafIcoon";
 import { Button } from "@/components/ui/Button";
 import { ChevronOmlaag, Cirkel, Waarschuwing } from "@/components/ui/Icoon";
 import { HergebruikMelding } from "@/components/werkplek/HergebruikMelding";
+import { Melding } from "@/components/ui/Melding";
 import { KeuzeKaart } from "@/components/werkplek/KeuzeKaart";
 import { Markdown, StreamendeTekst } from "@/components/werkplek/Markdown";
 import { OverzichtBlok } from "@/components/werkplek/OverzichtBlok";
@@ -29,7 +30,7 @@ import type { NodeDoel } from "@/lib/annotatieNode";
 import { artefactLabel, isTeOpenen, type Artefact } from "@/lib/artefact";
 import { doelenVanKandidaten, reeksPrompt } from "@/lib/reeks";
 import { antwoordDoelen, antwoordKnopTekst, normaliseerBronnen } from "@/lib/bronnen";
-import { overzichtAlsMarkdown, overzichtDoelen, overzichtFocus, overzichtKnopTekst } from "@/lib/overzicht";
+import { overzichtAlsMarkdown, overzichtDefinities, overzichtDoelen, overzichtFocus, overzichtKnopTekst } from "@/lib/overzicht";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 import { beurtSamenvatting, laatsteRun } from "@/lib/waarom";
 import type { ThreadItem } from "@/lib/threadItem";
@@ -38,6 +39,7 @@ import { MEEDENK_PROMPT } from "@/lib/begripVoorstellen";
 import type { IntakeActie, VragenGroep } from "@/lib/vraagkaart";
 import type {
   AgentDoelInvoer, AgentGrounding, AgentKandidaat, AnnotatieDocument, Bron, Overzicht,
+  BeurtUitkomst,
 } from "@/lib/types";
 
 /** Een werkgebiedopdracht die Lex pas na akkoord start: het werkgebied annoteren (fase B, de default)
@@ -145,9 +147,10 @@ export const ThreadRij = memo(function ThreadRij({
             <Markdown tekst={item.tekst} nietLetterlijk={item.grounding?.niet_letterlijk} bronnen={item.bronnen}
               onOpenSamenhang={samenhangAan && !demo ? acties.openSamenhang : undefined} />
           )
-        ) : item.denk || item.overzicht ? null : (
+        ) : item.denk || item.overzicht || !streamt ? null : (
           <Punten />
         )}
+        <BeurtUitkomstBlok uitkomst={item.uitkomst} />
         {/* Het overzicht uit de graaf staat los van de tekst: dezelfde vraag, hetzelfde blok. */}
         {item.overzicht && <OverzichtBlok overzicht={item.overzicht} />}
         {item.overzicht && !demo && item.overzicht.regelingen.length > 0 && (
@@ -167,7 +170,8 @@ export const ThreadRij = memo(function ThreadRij({
           const tekst = ov ? overzichtKnopTekst(ov) : `${antwoordKnopTekst(keuze)} in de graaf`;
           const [doel, ...extra] = keuze.doelen;
           return doel && <button type="button"
-            onClick={() => acties.openSamenhang(doel, extra, ov ? { bereik: "kennisgraaf", focus: overzichtFocus(ov) } : undefined)}
+            onClick={() => acties.openSamenhang(doel, ov ? [...extra, ...overzichtDefinities(ov)] : extra,
+              ov ? { bereik: "kennisgraaf", focus: overzichtFocus(ov), keten: true } : undefined)}
             className="focus-ring mt-3 flex items-center gap-2 rounded-lg border border-lint/20 bg-lint/[0.03] px-3 py-2 text-left text-xs font-medium text-lint transition-colors hover:bg-lint/10">
             <GraafIcoon />{tekst}
           </button>;
@@ -238,6 +242,7 @@ export const ThreadRij = memo(function ThreadRij({
       <LexAvatar />
       <div className="min-w-0 flex-1 text-sm text-ink">
         <p className="mb-1 text-xs font-medium text-muted">Lex</p>
+        <BeurtUitkomstBlok uitkomst={item.uitkomst} />
         <ReeksBlok
           reeks={item.reeks}
           loopt={loopt}
@@ -642,6 +647,16 @@ function Brongetrouwheid({ grounding }: { grounding: AgentGrounding }) {
           </>
         )}
       </span>
+    </div>
+  );
+}
+
+/** Een mislukte beurt: dezelfde melding live en na herladen. Gestopt zegt de tekst zelf (`_(gestopt)_`). */
+function BeurtUitkomstBlok({ uitkomst }: { uitkomst?: BeurtUitkomst }) {
+  if (uitkomst?.status !== "mislukt") return null;
+  return (
+    <div className="mt-2" data-beurt-uitkomst="mislukt">
+      <Melding type="fout" compact>{uitkomst.melding || "Er ging iets mis."}</Melding>
     </div>
   );
 }

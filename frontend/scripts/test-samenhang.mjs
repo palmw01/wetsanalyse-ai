@@ -63,6 +63,8 @@ function ketenVan(iris) {
   const ketting = new Set();
   const ouder = new Map(delen.flatMap((d) => d.relaties.filter((r) => r.soort === "bevat").map((r) => [r.doel, r.bron])));
   for (const iri of iris) for (let i = iri; i; i = ouder.get(i)) ketting.add(i);
+  // Eén niveau onder de doelen, zoals de api.
+  for (const d of delen) for (const r of d.relaties) if (r.soort === "bevat" && iris.includes(r.bron)) ketting.add(r.doel);
   const knopen = new Map();
   for (const d of delen) for (const k of d.knopen) if (ketting.has(k.id)) knopen.set(k.id, k);
   const relaties = delen.flatMap((d) => d.relaties).filter((r) => r.soort === "bevat" && ketting.has(r.bron) && ketting.has(r.doel));
@@ -642,6 +644,7 @@ async function wachtGereed(page) {
 // uit dát overzicht – niet uit de tekst – in één verzoek.
 {
   bijgewerkt = false;
+  echteKetting = true;
   const { page, log } = await nieuwePagina();
   await page.goto(`${base}/workbench?gesprek=g3`);
   const blok = page.getByTestId("overzicht");
@@ -656,9 +659,9 @@ async function wachtGereed(page) {
   await page.getByRole("button", { name: "Bekijk de 2 delen in de kennisgraaf" }).click();
   await graaf(page).waitFor();
   await page.getByRole("button", { name: "Dit antwoord" }).click();
-  await page.getByRole("heading", { name: /^Samenhang van 2 delen/ }).waitFor();
+  await page.getByRole("heading", { name: /^Samenhang van 2 delen en bepalingen/ }).waitFor();
   assert.deepEqual(log.samenhang, [], "geen los verzoek per deel");
-  assert.deepEqual(log.samenhangMeer.at(-1), [HII, HV], "één verzoek met de delen in overzichtsvolgorde");
+  assert.deepEqual(log.keten.at(-1), [HII, HV], "één verzoek met de delen in overzichtsvolgorde");
   await wachtGereed(page);
   await zoekEnKies(page, "Artikel 10", A10);
   await page.getByRole("button", { name: "Bekijk in de tekst" }).waitFor();
@@ -666,6 +669,7 @@ async function wachtGereed(page) {
   assert.deepEqual(log.errors, []);
   assert.deepEqual(log.console, [], "geen consolefouten");
   await page.close();
+  echteKetting = false;
 }
 
 // 14b. Een overzicht opent de hele kennisgraaf (~6.500 knopen) met de nadruk op alles uit het overzicht;
@@ -722,7 +726,7 @@ async function wachtGereed(page) {
   // Wisselen naar "Dit antwoord" en terug: de keuze blijft, de kennisgraaf wordt niet opnieuw opgehaald.
   await page.getByRole("button", { name: "Dit antwoord" }).click();
   await page.locator('[data-testid="samenhang-graaf"][data-bereik="antwoord"][data-gereed="true"]').waitFor({ timeout: 20000 });
-  await page.getByRole("heading", { name: /^Samenhang van 2 delen/ }).waitFor();
+  await page.getByRole("heading", { name: /^Samenhang van / }).waitFor();
   assert.equal(await gekozen(page), A28, "de keuze blijft bij een wissel");
   await page.getByRole("button", { name: "Hele kennisgraaf" }).click();
   await page.locator('[data-testid="samenhang-graaf"][data-bereik="kennisgraaf"][data-gereed="true"]').waitFor({ timeout: 20000 });

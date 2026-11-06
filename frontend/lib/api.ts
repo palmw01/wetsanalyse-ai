@@ -577,8 +577,6 @@ export type AgentHandlers = {
   /** Er zijn events weggevallen (de eventlog van de run is gecapt). Toon een gat in plaats van te
    *  doen alsof de tekst compleet is. */
   onGat?: (aantal: number) => void;
-  /** De agent heeft de uitkomst zelf vastgelegd (bericht + eventueel annotatiedocument). Komt vlak
-   *  vóór het einde. Blijft hij uit, dan legt de werkplek het bericht zelf vast. */
   /** De agent legde de beurt vast. `artefact`: wat hij opleverde (annotatie, begripsvoorstellen);
    *  `annotatie_doel` is de oudere vorm van een annotatie-artefact. */
   onOpgeslagen?: (uitkomst: {
@@ -839,6 +837,8 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
             continue;
           }
         }
+        // Alleen `done` sluit een beurt; graph-qa stuurt hem altijd (`runstore.sluit_af`, en `volg` bij een afgebroken run).
+        if (ev.type === "done") return;
         if (ev.type === "gat") handlers.onGat?.(ev.weggevallen ?? 0);
         else if (ev.type === "status") handlers.onStatus?.(ev.message ?? "");
         else if (ev.type === "reason") handlers.onReason?.(ev.content ?? "");
@@ -900,6 +900,8 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
           throw { status: 502, detail: ev.message ?? "Agent mislukt.", agentFout: true } as AgentFout;
       }
     }
+    // Zonder `done` is de verbinding weggevallen, hoe netjes de stroom ook sloot: de beurt zelf kan nog lopen.
+    throw { status: 0, detail: "De verbinding viel weg." } as ApiError;
   } finally {
     clearTimeout(stilteTimer);
     reader.cancel().catch(() => {});

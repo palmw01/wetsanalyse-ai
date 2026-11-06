@@ -12,7 +12,6 @@ import type {
   GraafArtikel,
   DocumentStatus,
   Lifecycle,
-  VoorstelElement,
 } from "./types";
 
 // Presentatie-helpers voor de annotatie-workbench (statuslabels/kleuren).
@@ -55,35 +54,6 @@ export function bronVan(regels: LidRegel[]): string {
   return regels.map((r) => r.regel).join("\n\n");
 }
 
-/** Voeg een binnenkomend `element`-event samen met wat er al verzameld is.
- *
- *  Komt hetzelfde element in één stroom twee keer binnen, dan toont de werkplek het één keer. Matcht
- *  op `id`, met als terugval de genormaliseerde tekst + lid voor voorstellen zonder id. De laatste
- *  versie wint.
- *
- *  De **klasse telt niet mee** in de terugval – een herziening mag juist herclassificeren en moet
- *  dan hetzelfde element treffen. Canonieke regel: `agent/annotatie.py:sleutel_van` (graph-qa), met
- *  dezelfde tabel in beider tests.
- *
- *  Eén bewuste afwijking van de server: staat er al een element mét id en komt hetzelfde fragment
- *  zónder id binnen, dan houdt de werkplek ze apart terwijl de api ze zou samenvoegen. De agent
- *  geeft elk voorstel een id, dus dat geval komt in de stroom niet voor; het id leidend houden is
- *  hier veiliger dan raden.
- */
-export function mergeVoorstellen(
-  bestaand: VoorstelElement[],
-  binnen: VoorstelElement,
-): VoorstelElement[] {
-  const sleutel = (e: VoorstelElement) =>
-    e.id ? `id:${e.id}` : `t:${e.tekst.split(/\s+/).join(" ").toLowerCase()}|${e.lid ?? ""}`;
-  const doel = sleutel(binnen);
-  const index = bestaand.findIndex((e) => sleutel(e) === doel);
-  if (index < 0) return [...bestaand, binnen];
-  const kopie = [...bestaand];
-  kopie[index] = binnen;
-  return kopie;
-}
-
 /** Mensleesbare aanduiding van een kandidaat-bepaling ("Artikel 36a, lid 1 – Invorderingswet 1990"). */
 export function kandidaatLabel(k: AgentKandidaat): string {
   const bepaling = `Artikel ${k.artikel}${k.lid ? `, lid ${k.lid}` : ""}`;
@@ -121,17 +91,6 @@ export function kandidaatPrompt(k: AgentKandidaat): string {
   const regeling = k.citeertitel ? `${k.citeertitel} (${k.bwbId})` : k.bwbId;
   return `Annoteer ${bepaling} van de ${regeling}.`;
 }
-
-/** De keuze als tekst, zodat de thread na herladen nog laat zien wát er te kiezen viel.
- *
- *  De kandidaten zelf zijn geen onderdeel van het berichtcontract van de api; alleen deze tekst
- *  wordt bewaard. Zonder dit leest een herladen gesprek als "Ik vond 5 bepalingen" zonder welke.
- */
-export function kandidatenAlsTekst(melding: string, kandidaten: AgentKandidaat[]): string {
-  const regels = kandidaten.map((k) => `- ${kandidaatLabel(k)}`);
-  return [melding.trim(), ...regels].filter(Boolean).join("\n");
-}
-
 
 /** Raakt een selectie het bereik van de actieve markering?
  *

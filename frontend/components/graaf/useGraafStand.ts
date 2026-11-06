@@ -259,6 +259,8 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolea
   return {
     bronnen, getekend, laadfase, nietGeladen, fout, melding, ververs, laadErbij, laadtBij,
     bereik, setBereik, focusIds,
+    /** Heeft de aanroeper de focus zelf gezet (een overzicht)? Dan blijft die in de kennisgraaf gelden. */
+    eigenFocus: !!opties.focus,
     /** De geladen kennisgraaf, als er sinds het laden geen annotatie veranderde: die mag een volgend
      *  paneel overnemen (`GraafOpties.kennisgraaf`). */
     kennisgraafActueel: gevraagd <= gedaan ? kennisgraaf : undefined,

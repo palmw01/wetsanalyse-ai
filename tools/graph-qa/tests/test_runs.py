@@ -207,9 +207,10 @@ async def test_fout_in_de_stroom_wordt_een_error_event():
     run = await register.start(conversation_id="g1", vraag="v", maak_stroom=stuk)
     await _wacht_af(run)
     assert run.status == "mislukt"
-    assert run.events[-1]["type"] == "error"
+    assert [e["type"] for e in run.events][-2:] == ["error", "done"]
+    assert run.events[-1]["uitkomst"] == "mislukt"
     # De ruwe fout hoort niet in de browser.
-    assert "kapot" not in run.events[-1]["message"]
+    assert "kapot" not in run.events[-2]["message"]
 
 
 @asyncio_test
@@ -270,7 +271,7 @@ async def test_volgen_sluit_ook_als_de_run_afrondt_tijdens_het_wachten():
     async def acquire_en_rond_af():
         if eerste["keer"]:
             eerste["keer"] = False
-            await register._voeg_toe(run, {"type": "done"})
+            await register._voeg_toe(run, {"type": "done", "uitkomst": "klaar"})
             await register._rond_af(run, "klaar")
         return await origineel()
 
@@ -279,7 +280,95 @@ async def test_volgen_sluit_ook_als_de_run_afrondt_tijdens_het_wachten():
     async with asyncio.timeout(3):   # zonder de fix loopt dit af in plaats van te sluiten
         geleverd = [e async for e in register.volg(run, vanaf=0)]
 
-    assert [e["type"] for e in geleverd] == ["token", "done"]
+    # De vooraf gestarte lege run heeft zelf al een `done`; het gaat om wat na de race nog binnenkomt.
+    assert [e["type"] for e in geleverd][-2:] == ["token", "done"]
+
+
+# ── het einde van een run ───────────────────────────────────────────────────────────────────────
+
+async def _gevolgd(register: GeheugenStore, run, vanaf: int = 0) -> list[dict]:
+    async with asyncio.timeout(3):
+        return [e async for e in register.volg(run, vanaf=vanaf)]
+
+
+@asyncio_test
+@pytest.mark.parametrize("events, stop, uitkomst", [
+    ([{"type": "token", "content": "x"}, {"type": "done"}], False, "klaar"),
+    ([{"type": "token", "content": "x"}], False, "klaar"),   # een route die `done` vergeet, eindigt toch
+    ([{"type": "error", "message": "stuk"}, {"type": "done"}], False, "mislukt"),
+    ([{"type": "error", "message": "stuk"}, {"type": "done"}], True, "mislukt"),
+    ([{"type": "token", "content": "x"}, {"type": "done"}], True, "gestopt"),
+    ([{"type": "error", "message": "stuk", "onderdeel": "lid1"}, {"type": "done"}], False, "klaar"),
+])
+async def test_elke_run_eindigt_met_precies_een_done_en_zijn_uitkomst(events, stop, uitkomst):
+    register = RunRegister()
+
+    def maak(run):
+        run.stop_gevraagd = stop
+        return _stroom(events)(run)
+
+    run = await register.start(conversation_id="g1", vraag="v", maak_stroom=maak)
+    await _wacht_af(run)
+    uit = await _gevolgd(register, run)
+    assert [e for e in uit if e["type"] == "done"] == [{"type": "done", "uitkomst": uitkomst, "seq": len(uit) - 1}]
+    assert run.status == uitkomst
+
+
+@asyncio_test
+async def test_een_run_zonder_done_eindigt_voor_de_kijker_als_afgebroken():
+    """Een taak die annuleert (het proces sluit af) schrijft geen `done`; de kijker hoort het toch."""
+    register = RunRegister()
+    run = await register.start(conversation_id="g1", vraag="v", maak_stroom=_stroom([]))
+    await _wacht_af(run)
+    run.events.clear()
+    run.geproduceerd = 0
+    uit = await _gevolgd(register, run)
+    assert [e["type"] for e in uit] == ["error", "done"]
+    assert uit[0]["foutcode"] == "beurt_afgebroken" and uit[1]["uitkomst"] == "mislukt"
+
+
+@asyncio_test
+async def test_wie_na_de_done_aanhaakt_krijgt_hem_nog_en_geen_vals_alarm():
+    register = RunRegister()
+    run = await register.start(conversation_id="g1", vraag="v", maak_stroom=_stroom([{"type": "token", "content": "x"}]))
+    await _wacht_af(run)
+    uit = await _gevolgd(register, run, vanaf=run.geproduceerd)
+    assert [e["type"] for e in uit] == ["done"] and uit[0]["uitkomst"] == "klaar"
+
+
+@asyncio_test
+@pytest.mark.parametrize("events, vastgelegd", [
+    ([{"type": "error", "message": "De bron weigert."}, {"type": "done"}], ["De bron weigert."]),
+    ([{"type": "error", "message": "x"}, {"type": "opgeslagen", "run_id": "r"}, {"type": "done"}], []),
+    ([{"type": "token", "content": "x"}, {"type": "done"}], []),
+    ([{"type": "error", "message": "x", "onderdeel": "lid1"}, {"type": "done"}], []),
+])
+async def test_een_fout_zonder_bericht_krijgt_er_alsnog_een(events, vastgelegd):
+    """Paden die niet langs `voer_beurt_uit` gaan: de server blijft de enige schrijver."""
+    gemeld: list[str] = []
+
+    async def haak(_run, melding):
+        gemeld.append(melding)
+
+    register = RunRegister(bij_afbraak=haak)
+    run = await register.start(conversation_id="g1", vraag="v", maak_stroom=_stroom(events))
+    await _wacht_af(run)
+    assert gemeld == vastgelegd
+
+
+@asyncio_test
+async def test_een_crash_in_de_driver_krijgt_een_bericht_en_een_kapotte_haak_verandert_niets():
+    async def haak(_run, _melding):
+        raise RuntimeError("api weg")
+
+    async def stuk(_run):
+        yield {"type": "token", "content": "half"}
+        raise RuntimeError("kapot")
+
+    register = RunRegister(bij_afbraak=haak)
+    run = await register.start(conversation_id="g1", vraag="v", maak_stroom=stuk)
+    await _wacht_af(run)
+    assert run.status == "mislukt" and run.events[-1] == {"type": "done", "uitkomst": "mislukt", "seq": 2}
 
 
 # ── welke store kiest de app? ────────────────────────────────────────────────────────────────────

@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 #: soort –, dan valt alleen dat veld weg. Anders weigerde de api het hele gesprek (500), en daarmee ook
 #: laden én verwijderen: een gesprek is een verslag en moet altijd te openen en weg te halen zijn.
 _OPTIONEEL = ("hergebruik", "dekking", "overzicht", "annotatie_doel", "tool_executions", "reeks", "artefact",
-              "bevestiging", "bevestiging_antwoord", "vraagkaart", "intake_antwoord")
+              "bevestiging", "bevestiging_antwoord", "vraagkaart", "intake_antwoord", "uitkomst")
 
 
 def _bericht_uit_row(row) -> Bericht:
@@ -51,6 +51,7 @@ def _bericht_uit_row(row) -> Bericht:
         bevestiging_antwoord=inhoud.get("bevestiging_antwoord") or None,
         vraagkaart=inhoud.get("vraagkaart") or None,
         intake_antwoord=inhoud.get("intake_antwoord") or None,
+        uitkomst=inhoud.get("uitkomst") or None,
         created=db.aware(d["created"]),
     )
     try:
@@ -100,6 +101,8 @@ def _inhoud(inv: BerichtInvoer | Bericht) -> dict:
         inhoud["vraagkaart"] = inv.vraagkaart.model_dump()
     if inv.intake_antwoord:
         inhoud["intake_antwoord"] = inv.intake_antwoord.model_dump()
+    if inv.uitkomst:
+        inhoud["uitkomst"] = inv.uitkomst.model_dump()
     return inhoud
 
 

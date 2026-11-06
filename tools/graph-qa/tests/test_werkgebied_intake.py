@@ -591,11 +591,21 @@ def test_de_slotzin_en_het_vervolg_volgen_wat_er_is():
     assert vervolg_na_aanmaken(leeg) is None and "meteen" not in werkgebied_tekst(leeg)
 
 
-def test_mislukt_aanmaken_dan_een_fout_en_geen_bericht(monkeypatch):
+def test_mislukt_aanmaken_staat_ook_na_herladen_met_de_kaart(monkeypatch):
     nep = NepApi(faal=True)
-    uit = _driver(monkeypatch, nep, [dict(VERZOEK), {"type": "done"}])
-    assert [e.get("foutcode") for e in uit if e["type"] == "error"] == ["werkgebied_niet_aangemaakt"]
-    assert not nep.berichten and uit[-1]["type"] == "done"
+    kaart = wi.kaart(wi.nieuwe_intake("x"))
+    uit = _driver(monkeypatch, nep, [{**VERZOEK, "kaart": kaart}, {"type": "done"}])
+    fout = next(e for e in uit if e["type"] == "error")
+    assert fout["foutcode"] == "werkgebied_niet_aangemaakt" and uit[-1]["type"] == "done"
+    assert len(nep.berichten) == 1
+    assert nep.berichten[0]["uitkomst"] == {"status": "mislukt", "melding": fout["message"]}
+    # Zonder de kaart is *Aanmaken* na herladen weg, en de melding zegt juist dat je opnieuw moet klikken.
+    assert nep.berichten[0]["vraagkaart"] == kaart and "artefact" not in nep.berichten[0]
+
+
+def test_het_aanmaakverzoek_draagt_de_samenvatting(monkeypatch):
+    intake = {**wi.nieuwe_intake("x"), "antwoorden": {"naam": "n", "regelingen": [], "deelvragen": []}}
+    assert wi.aanmaakverzoek(intake)["kaart"]["stap"] == "samenvatting"
 
 
 def test_het_kaartje_gaat_mee_in_het_bericht(monkeypatch):
@@ -967,8 +977,9 @@ def test_de_driver_bij_412_en_404_niets_opgeslagen_en_zegt_waarom(monkeypatch):
 def test_de_driver_een_andere_fout_is_zichtbaar(monkeypatch):
     nep = AanvulApi(patch_status=503)
     uit = _driver(monkeypatch, nep, [dict(VERZOEK_WIJZIG), {"type": "done"}])
-    assert [e.get("foutcode") for e in uit if e["type"] == "error"] == ["werkgebied_niet_gewijzigd"]
-    assert not nep.berichten and uit[-1]["type"] == "done"
+    fout = next(e for e in uit if e["type"] == "error")
+    assert fout["foutcode"] == "werkgebied_niet_gewijzigd" and uit[-1]["type"] == "done"
+    assert [b["uitkomst"] for b in nep.berichten] == [{"status": "mislukt", "melding": fout["message"]}]
 
 
 def test_dossier_aanvullen_is_een_actie_zonder_agent():

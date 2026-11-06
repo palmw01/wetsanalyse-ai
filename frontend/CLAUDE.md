@@ -162,6 +162,10 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     PDF/CSV/JSON/TriG, begrippen CSV/JSON/Turtle). De inhoud wordt bij de klik opgehaald; `downloadTekst` in
     `lib/api.ts` maakt het bestand;
   - **menu's** delen één rijstijl (`components/ui/Menu`: `MENU_RIJ`, `MENU_PANEEL`);
+  - **Exporteren en ⋯ delen op mobiel één rij** (besluit gebruiker 6 nov 2026, `KleineActies` in
+    `components/ui/Pagina`): in de kop van een pagina staan ze samen boven de hoofdknoppen, Exporteren links en ⋯
+    rechts. De hoofdknoppen blijven op mobiel onder elkaar op volle breedte. Vanaf `sm:` staat alles in één rij, met ⋯
+    als laatste. Een klein gereedschap krijgt geen eigen regel. `app/knoppen.test.ts` bewaakt het;
   - **het menu ⋯ is overal hetzelfde** (5 nov 2026, `components/ui/MeerMenu`):
     - plekken: werkgebied (kop), deelvraag, bron, gesprek (kop en zijbalk);
     - de knop is `MeerKnop`, een rondje met een lijn, in twee maten: `xs` in een rij (even hoog als *Bewerken*) en
@@ -342,17 +346,20 @@ herladen breekt hem niet af. Regels:
   vervangen terwijl de run doorloopt. `volgBeurt` haakt daarom opnieuw aan zonder
   pogingen-cap, met oplopende wachttijd (`naEenGebrokenStream`, `herstelWachttijd`: 1,5 tot 15 s). De
   uitleg staat bij `naEenGebrokenStream` in `lib/lopendeRun.ts`.
-- **`run_id` reist mee naar de API** bij het bewaren van de assistent-beurt; kijken er twee tabbladen
-  mee, dan landt de uitkomst toch één keer (de API dedupliceert erop).
+- **Alleen `done` sluit een beurt.** graph-qa eindigt elke run met precies één `done` (met `uitkomst`:
+  klaar, mislukt of gestopt; `runstore.sluit_af`, en `volg` bij een afgebroken run). Een stroom die sluit
+  zonder `done` is een verbroken verbinding: `verwerkSseStroom` gooit, en `volgBeurt` haakt opnieuw aan.
+- **De uitkomst staat op het bericht** (`Bericht.uitkomst`, `parseUitkomst`): een mislukte beurt toont live en
+  na herladen dezelfde melding (`BeurtUitkomstBlok` in `ThreadRij`), gestopt zegt de tekst zelf.
 - **Bij een 409 op `startRun`** (er loopt al een beurt op dit gesprek) haakt de client aan bij die run
   in plaats van te falen: twee gelijktijdige beurten schrijven door elkaar in het agent-geheugen.
-- **De agent schrijft weg, de werkplek nooit.** graph-qa stuurt vlak vóór het einde een
-  `opgeslagen`-event met het `annotatie_doel` (de bronnode); de client opent dan de weergave
-  (`toonVastgelegdeBeurt`). Blijft dat event uit terwijl er markeringen waren, dan is dat een
-  **storing** en toont de werkplek het zo. Zet er geen tweede schrijfpad vanuit de browser naast –
-  bij gedeeltelijk falen levert dat een tweede annotatie op. Een eigen markering van de jurist is een
-  andere handeling (`POST elementen` in `NodeAnnotatiePaneel`). Een graph-qa zonder API-koppeling meldt zelf met een
-  `error`-event dat niets is vastgelegd (`agent/beurt.py`).
+- **De agent schrijft weg, de werkplek nooit.** graph-qa legt elke afloop vast en stuurt vlak vóór het einde
+  een `opgeslagen`-event met het `annotatie_doel` (de bronnode); de client opent dan de weergave
+  (`toonVastgelegdeBeurt`). Zet er geen tweede schrijfpad vanuit de browser naast: bij gedeeltelijk falen
+  levert dat een tweede annotatie op, en het `run_id` van zo'n bericht houdt het echte antwoord tegen. De ene
+  uitzondering is de fout als `startRun` zelf mislukt: dan is er geen run en dus geen server die kan schrijven.
+  Een eigen markering van de jurist is een andere handeling (`POST elementen` in `NodeAnnotatiePaneel`). Een
+  graph-qa zonder API-koppeling meldt zelf met een `error`-event dat niets is vastgelegd (`agent/beurt.py`).
 - **Tokens komen hooguit één keer per frame binnen** (`planStroom` in `volgBeurt`).
 
 **Identiteit is een vertrouwensgrens.** De BFF zet `X-User-Id` uit de sessie op alle run-routes en
@@ -1451,6 +1458,8 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   kennisgraaf licht de ketting op. *Toon het hele artikel* laadt het artikel erbij (`laadErbij`); de ketting telt daarbij niet
   als geladen, en met twee bronnen rekent de gewone layout. De knop onder een antwoord, een annotatie in het gesprek en de
   doelen van `doel` uit de werkplek gebruiken de ketting; de tab Samenhang van een werkgebied en de annotatiepagina niet.
+  Een overzicht opent in de kennisgraaf met zijn eigen focus (`eigenFocus`); zijn *Dit antwoord* is de ketting van de delen
+  en de definities (`overzichtDefinities`).
   Een wettelijk begrip (`begrip_bron: "wet"`) heeft een eigen kleur (`WETBEGRIPKLEUR`) en toont in de inspector zijn
   definities met vindplaats en geldingsbereik. Browserregressie: scenario 0 in `scripts/test-samenhang.mjs`; de rest van dat
   script draait op het hele artikel, zodat de bediening getoetst blijft.

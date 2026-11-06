@@ -29,6 +29,19 @@ describe("één bedieningsstijl", () => {
     expect(bron("components/ui/Button.tsx")).not.toMatch(/rounded-button/);
   });
 
+  // Besluit gebruiker 6 nov 2026: Exporteren en ⋯ krijgen op een telefoon geen eigen regel.
+  it("in de kop van een pagina staan Exporteren en ⋯ samen in KleineActies", () => {
+    for (const pad of ["components/werkgebieden/ProjectKop.tsx", "components/werkgebieden/BegripPagina.tsx",
+      "components/begrippen/BegripGeneriekPagina.tsx"]) {
+      const code = bron(pad);
+      expect(code, pad).toMatch(/<KleineActies/);
+      expect(code, pad).toMatch(/links=\{<ExportKnop/);
+      expect(code, pad).toMatch(/rechts=\{<(MeerMenu|BegripMenu)/);
+    }
+    const regel = bron("components/ui/Pagina.tsx");
+    expect(regel).toMatch(/flex items-center justify-between gap-2 sm:contents/);
+  });
+
   it("een label is de pil van StatusLabel, en een span", () => {
     const lijst = bron("components/ui/Lijst.tsx");
     const label = lijst.slice(lijst.indexOf("export function StatusLabel"));

@@ -1,3 +1,4 @@
+import { definitieveStroomfout } from "./lopendeRun";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { begin2fa, isApiError, login2fa, loginVerify, parseError, startRun, volgRun } from "./api";
 import type { AgentGrounding } from "./types";
@@ -210,18 +211,46 @@ describe("een stroom die breekt of stilvalt", () => {
     });
   });
 
+  it("een stroom die sluit zonder done is een verbroken verbinding, geen afgeronde beurt", async () => {
+    // Dit was de oorzaak van de stille "(geen antwoord)": sluiten telde als klaar (FB-03).
+    const frames = [`data: ${JSON.stringify({ type: "token", content: "Half" })}\r\n\r\n`];
+    vi.stubGlobal("fetch", vi.fn(async () => sseResponse(frames)));
+    const fout = await volgRun("run-1", {}).catch((e) => e);
+    expect(fout).toMatchObject({ status: 0 });
+    expect(definitieveStroomfout(fout)).toBe(false);   // dus: opnieuw aanhaken
+  });
+
+  it("stopt bij done, wat er ook nog volgt", async () => {
+    const frames = [`data: ${JSON.stringify({ type: "done", uitkomst: "klaar" })}\r\n\r\n`,
+      `data: ${JSON.stringify({ type: "token", content: "te laat" })}\r\n\r\n`];
+    vi.stubGlobal("fetch", vi.fn(async () => sseResponse(frames)));
+    let tekst = "";
+    await volgRun("run-1", { onToken: (t) => (tekst += t) });
+    expect(tekst).toBe("");
+  });
+
+  it("een afgebroken run eindigt als definitieve fout, niet in eindeloos aanhaken", async () => {
+    const frames = [`data: ${JSON.stringify({ type: "error", foutcode: "beurt_afgebroken", message: "Afgebroken." })}\r\n\r\n`,
+      `data: ${JSON.stringify({ type: "done", uitkomst: "mislukt" })}\r\n\r\n`];
+    vi.stubGlobal("fetch", vi.fn(async () => sseResponse(frames)));
+    const fout = await volgRun("run-1", {}).catch((e) => e);
+    expect(fout).toMatchObject({ detail: "Afgebroken.", agentFout: true });
+    expect(definitieveStroomfout(fout)).toBe(true);
+  });
+
   it("meldt een levensteken bij het eerste event", async () => {
     // Hierop haalt de werkplek de "verbinding weg"-melding weg. Zonder dit zou een geslaagd
     // heraanhaken pas aan het eind van de beurt zichtbaar zijn.
     const frames = [
       `data: ${JSON.stringify({ type: "status", message: "Bezig" })}\r\n\r\n`,
       `data: ${JSON.stringify({ type: "token", content: "Ja." })}\r\n\r\n`,
+      `data: ${JSON.stringify({ type: "done" })}\r\n\r\n`,
     ];
     vi.stubGlobal("fetch", vi.fn(async () => sseResponse(frames)));
 
     let levenstekens = 0;
     await volgRun("run-1", { onLeeft: () => levenstekens++ });
-    expect(levenstekens).toBe(2);
+    expect(levenstekens).toBe(3);
   });
 
   it("verwerpt een stroom die stilvalt in plaats van eeuwig te wachten", async () => {
@@ -268,6 +297,7 @@ describe("volgRun – aanhaken bij een lopende beurt", () => {
     const frames = [
       `data: ${JSON.stringify({ type: "gat", weggevallen: 12 })}\r\n\r\n`,
       `data: ${JSON.stringify({ type: "token", content: "de rest", seq: 12 })}\r\n\r\n`,
+      `data: ${JSON.stringify({ type: "done" })}\r\n\r\n`,
     ];
     vi.stubGlobal("fetch", vi.fn(async () => sseResponse(frames)));
 
@@ -290,6 +320,7 @@ describe("grounding-event", () => {
         type: "grounding", grounded: true, cited: 0, unsupported: [],
         niet_letterlijk: [], niveau: "onbepaald",
       })}\r\n\r\n`,
+      `data: ${JSON.stringify({ type: "done" })}\r\n\r\n`,
     ];
     vi.stubGlobal("fetch", vi.fn(async () => sseResponse(frames)));
 
@@ -304,6 +335,7 @@ describe("grounding-event", () => {
   it("valt terug op grounded als een oudere agent nog geen niveau stuurt", async () => {
     const frames = [
       `data: ${JSON.stringify({ type: "grounding", grounded: false, cited: 2, unsupported: ["BWBR9999999"] })}\r\n\r\n`,
+      `data: ${JSON.stringify({ type: "done" })}\r\n\r\n`,
     ];
     vi.stubGlobal("fetch", vi.fn(async () => sseResponse(frames)));
 

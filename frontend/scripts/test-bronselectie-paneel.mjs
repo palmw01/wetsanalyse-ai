@@ -128,7 +128,7 @@ const foto = (naam) => process.env.SCREENSHOT_DIR
 
 try {
   await page.goto(`${base}/workbench?gesprek=g1`);
-  await page.getByPlaceholder("Stel een vraag of geef een opdracht aan Lex…").fill("Help mij de bronnen bij dit werkgebied te bepalen.");
+  await page.getByPlaceholder("Vraag of opdracht voor Lex…").fill("Help mij de bronnen bij dit werkgebied te bepalen.");
   await page.getByRole("button", { name: "Versturen" }).click();
   await wacht(1);
 
@@ -182,7 +182,7 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   stand.fase = "kern";
   await page.reload();
-  await page.getByPlaceholder("Stel een vraag of geef een opdracht aan Lex…").fill("Verder met de bronselectie.");
+  await page.getByPlaceholder("Vraag of opdracht voor Lex…").fill("Verder met de bronselectie.");
   await page.getByRole("button", { name: "Versturen" }).click();
   await wacht(4);
   await kaart().getByRole("button", { name: /Bronnen beoordelen/ }).click();

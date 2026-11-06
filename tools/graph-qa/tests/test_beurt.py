@@ -371,3 +371,78 @@ async def test_verwijderd_gesprek_is_geen_storing(monkeypatch):
     assert uit[-1]["type"] == "done"                        # de beurt eindigt gewoon
     assert nep.batches                 # het werk is bewaard
     assert nep.gesloten
+
+
+# ── de afloop op het bericht ────────────────────────────────────────────────────────────────────
+
+@asyncio_test
+async def test_een_fout_van_de_agent_staat_letterlijk_op_het_bericht(api):
+    """Live en na herladen dezelfde tekst, geen "(geen antwoord)" erboven (AG-03, FB-11, AG-N4)."""
+    uit = await _draai([{"type": "status", "message": "Graaf bevragen"},
+                        {"type": "error", "message": "Deze beurt werd te lang."}])
+    assert [e["type"] for e in uit][-3:] == ["error", "opgeslagen", "done"]
+    bericht = api.berichten[0][1]
+    assert bericht["uitkomst"] == {"status": "mislukt", "melding": "Deze beurt werd te lang."}
+    assert bericht["tekst"] == "" and "Graaf bevragen" in bericht["denk"]
+
+
+@asyncio_test
+async def test_een_gewone_beurt_draagt_geen_uitkomst(api):
+    await _draai([{"type": "token", "content": "x"}, {"type": "done"}])
+    assert "uitkomst" not in api.berichten[0][1]
+
+
+@asyncio_test
+@pytest.mark.parametrize("tekst, verwacht", [("Half", "Half\n\n_(gestopt)_"),
+                                             ("", "_Gestopt – er waren nog geen voorstellen._")])
+async def test_stoppen_zegt_live_hetzelfde_als_na_herladen(api, tekst, verwacht):
+    uit = await _draai([*([{"type": "token", "content": tekst}] if tekst else []), {"type": "done"}], run=_run(stop=True))
+    assert "".join(e["content"] for e in uit if e["type"] == "token") == verwacht
+    assert api.berichten[0][1]["tekst"] == verwacht
+    assert api.berichten[0][1]["uitkomst"] == {"status": "gestopt"}
+
+
+@asyncio_test
+async def test_een_mislukte_annotatie_is_niet_voltooid(api):
+    await _draai([{"type": "doel", "doel": _doel()},
+                  {"type": "element", "element": {"klasse": "Rechtsfeit", "tekst": "x"}},
+                  {"type": "error", "message": "stuk"}])
+    assert api.batches[0]["dekking"]["voltooid"] is False
+    assert api.berichten[0][1]["uitkomst"]["status"] == "mislukt"
+
+
+@asyncio_test
+async def test_een_conflict_op_de_laag_staat_ook_na_herladen(monkeypatch):
+    nep = NepApi()
+
+    async def conflict(_payload):
+        raise WetsanalyseApiFout("POST → 409", 409)
+
+    nep.zet_bronnode_batch = conflict
+    monkeypatch.setattr("agent.beurt.WetsanalyseApi", lambda *_a, **_k: nep)
+    uit = await _draai([{"type": "doel", "doel": _doel()},
+                        {"type": "element", "element": {"klasse": "Rechtsfeit", "tekst": "x"}}, {"type": "done"}])
+    fout = next(e for e in uit if e["type"] == "error")
+    assert fout["foutcode"] == "annotatie_conflict"
+    assert [b["uitkomst"]["melding"] for _g, b in nep.berichten] == [fout["message"]]
+
+
+@asyncio_test
+async def test_een_afgebroken_run_krijgt_een_bericht(api):
+    from agent.beurt import leg_afbraak_vast
+
+    run = Run(run_id="r9", conversation_id="g1", vraag="v", user_id="jurist")
+    await leg_afbraak_vast(_settings(), run, "Afgebroken.")
+    assert api.berichten == [("g1", {"rol": "assistant", "run_id": "r9", "tekst": "",
+                                     "uitkomst": {"status": "mislukt", "melding": "Afgebroken."}})]
+    assert api.gesloten
+
+
+@asyncio_test
+async def test_een_afbraak_zonder_gesprek_of_verdwenen_gesprek_is_geen_fout(monkeypatch):
+    from agent.beurt import leg_afbraak_vast
+
+    nep = NepApi(faalt="verdwenen")
+    monkeypatch.setattr("agent.beurt.WetsanalyseApi", lambda *_a, **_k: nep)
+    await leg_afbraak_vast(_settings(), Run(run_id="r", conversation_id="g", vraag="v", user_id="j"), "x")
+    await leg_afbraak_vast(_settings(), Run(run_id="r", conversation_id="", vraag="v", user_id="j"), "x")
