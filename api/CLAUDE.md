@@ -73,6 +73,7 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 | `graaf.py` | De complete graaf (`/graaf`): alle regelingen met structuur, verwijzingen en markeringen; structuur en verwijzingen gecachet per `(bwb_id, toestandUrl)`. |
 | `knoopinfo.py` | Wat de kennisgraaf over één knoop weet (`/knoop`), voor de inspector van de graaf. |
 | `werkgebieden.py` (router), `werkgebied_store.py`, `werkgebied_contracts.py`, `werkgebied_inventaris.py`, `werkgebied_werkvoorraad.py` | Werkgebieden: bronselecties, revisies, audit, de inventaris en de annotatie-werkvoorraad. |
+| `werkgebied_export.py`, `pdf_opmaak.py`, `fonts/` | Het hele werkgebied als één PDF; de gedeelde PDF-opmaak met ingesloten lettertypen. |
 | `werkgebied_deelvragen.py` | Deelvragen: opslag, voorstellen van Lex, koppelingen en de dekkingscheck. |
 | `begrippen.py` (router), `begrip_store.py`, `begrip_contracts.py` | Begrippen: inhoud, koppelingen met bewijsstand, actualiteit, de accorderingspoort, revisies en export. |
 | `begrippen_runs.py` (router), `begrippen_run_store.py`, `begrippen_run_contracts.py`, `begrip_manifest.py` | Voorstellen van Lex: manifest voor de begrippenketen, runs, betekenisgroepen en besluiten. |
@@ -348,6 +349,19 @@ spoor D (*Werkgebied als node*).
   `bereik`, `deelvragen` (`{id, vraag, selecties}`) en `buiten_bereik` (analysebronnen die niet meegaan).
   `deelvraag_id` zonder `bereik=deelvragen` 422; een onbekende deelvraag 404; een niet-actieve 409
   `niet_actief`; geen actieve deelvragen 409 `geen_deelvragen` (elk met `melding`).
+- **De export** (`GET {id}/export?formaat=pdf`, `werkgebied_export.py`): het hele werkgebied als één PDF, een
+  overdrachtsdossier voor wie niet in Lex werkt. Op de stand van nu en met één vaste inhoud, zonder bovengrens: voorblad met
+  bronstand en waarschuwingen, inhoudsopgave en bladwijzers, dossier, deelvragen en bronnen, wettekst met markeringen,
+  begrippen, korte verantwoording. `verzamel` leest met dezelfde functies als de schermen, `pdf_regels` geeft (stijl, tekst)
+  en is zonder reportlab te testen.
+  - Geen modelvragen, hashes of beurtmeting: dat spoor staat in de annotatie-export.
+  - Alles draagt zijn status; voorstellen, afgewezen en uitgesloten staan in eigen delen.
+  - Staat een ankerfragment niet meer op zijn offsets, dan toont de PDF toen en nu. Wat niet te lezen was, staat op het
+    voorblad én op zijn plek. Is geen enkele regeling te lezen, dan 503.
+  - Reportlab is puur Python: zetten gebeurt in een thread (`asyncio.to_thread`), niet op de event loop.
+- **PDF-opmaak** (`pdf_opmaak.py`, ook voor de annotatie-export). De lettertypen zijn ingesloten (`app/fonts/`, met licentie):
+  de standaardletters kennen alleen cp1252 en maakten van een `ā` of harde afbreekstreep stil een `■`. Wat Fira Sans niet
+  heeft, tekent DejaVu per teken (`opgemaakt`). Elke tekst gaat daar doorheen: hij wordt ook geëscaped.
 - Tests: `tests/test_werkgebieden.py` en `tests/test_werkgebied_werkvoorraad.py` (SQLite) en
   `tests/test_werkgebieden_postgres.py` (het rij-slot, met `ANNOTATIE_TEST_DSN`).
 
