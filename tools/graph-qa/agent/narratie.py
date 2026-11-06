@@ -76,6 +76,9 @@ def _grounding_melding(report: Any) -> str:
     controleren"-tak hierboven had moeten voorkomen, maar die vangt alleen het geval waarin er
     helemaal niets was.
     """
+    onbevestigd = getattr(report, "onbevestigd", None)
+    if report.niveau == "onbepaald" and onbevestigd:
+        return f"brongetrouwheid: {len(onbevestigd)} vermelding(en) niet teruggevonden in wat is opgehaald"
     if report.niveau == "onbepaald":
         return "brongetrouwheid: geen vindplaats of citaat genoemd – niets te controleren"
 

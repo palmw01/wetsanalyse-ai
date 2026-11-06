@@ -616,7 +616,8 @@ function DenkProces({
  *    letterlijk in de opgehaalde tekst staat. Dat is precies waar een jurist op afgaat. */
 function Brongetrouwheid({ grounding }: { grounding: AgentGrounding }) {
   if (grounding.niveau === "gegrond" && !grounding.afgekapt) return null;
-  const onbepaald = grounding.niveau === "onbepaald" && !grounding.afgekapt;
+  const onbevestigd = grounding.onbevestigd ?? [];
+  const onbepaald = grounding.niveau === "onbepaald" && !grounding.afgekapt && !onbevestigd.length;
   return (
     <div
       data-tour="grounding"
@@ -635,6 +636,11 @@ function Brongetrouwheid({ grounding }: { grounding: AgentGrounding }) {
             {grounding.afgekapt && (
               <span className="block" data-afgekapt>
                 Dit antwoord is afgekapt: het is langer dan Lex in één keer kan schrijven. Stel een gerichtere vraag voor de rest.
+              </span>
+            )}
+            {onbevestigd.length > 0 && (
+              <span className="block break-words" data-onbevestigd>
+                Niet teruggevonden in wat Lex ophaalde: {onbevestigd.join(" · ")}. Controleer dit zelf.
               </span>
             )}
             {grounding.unsupported.length > 0 && (

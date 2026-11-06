@@ -251,11 +251,16 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     # wezenlijks – de brongetrouwheidstoets – zonder dat de jurist het ziet. De tijdlijn wordt
     # bij de beurt bewaard, dus dit is tegelijk het spoor waarop je achteraf terugvalt.
     _stap(writer, "Controle", _grounding_melding(report))
+    if report.onbevestigd:
+        # Alleen het aantal: hiermee is vals alarm te meten voordat dit signaal zwaarder mag wegen.
+        logger.info("grounding: niet teruggevonden in het opgehaalde",
+                    extra={"categorie": "functioneel", "run_id": state.get("run_id", ""), "aantal": len(report.onbevestigd)})
     return {
         "grounded": report.grounded,
         "cited": len(report.cited),
         "unsupported": report.unsupported,
         "niet_letterlijk": report.niet_letterlijk,
+        "onbevestigd": report.onbevestigd,
         "grounding_niveau": report.niveau,
     }
 
@@ -396,6 +401,7 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
         "niet_letterlijk": state.get("niet_letterlijk", []),
         "niveau": state.get("grounding_niveau", "gegrond"),
         **({"afgekapt": True} if state.get("afgekapt") else {}),
+        **({"onbevestigd": state["onbevestigd"]} if state.get("onbevestigd") else {}),
     })
     # entiteit-tier: alleen nieuwe IRI's toevoegen (append-reducer + dedup).
     existing = set(state.get("entities_seen") or [])

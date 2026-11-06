@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from urllib.parse import unquote
 
 from .annotatie import _normaliseer, komt_letterlijk_voor
 from .models import Source
@@ -26,10 +27,24 @@ from .provenance import _BWB_RE, citations_in, first_bwb
 from .resultaat import waarden
 from .tools.begrip_tools import AFGELEIDE_TOOL_NAMEN
 
-# Citaten in de vormen die een model gebruikt: rechte en typografische dubbele aanhalingstekens.
-# Enkele quotes blijven erbuiten – die staan in Nederlandse lopende tekst te vaak om iets anders
-# (een aanhaling binnen een aanhaling, een apostrof) en zouden vals alarm geven.
-_CITAAT_RE = re.compile(r'"([^"\n]{2,400})"' r"|“([^”\n]{2,400})”")
+# Citaten in de vormen die een model gebruikt: rechte, typografische en Nederlandse dubbele aanhalingstekens, ook
+# gemengd. De ene tabel voor de herkenning én het herstel: een vorm die er maar op één plek bijkomt, wordt wel
+# afgekeurd maar nooit meer hersteld. Enkele quotes blijven erbuiten – die staan in Nederlandse lopende tekst te vaak
+# om iets anders (een aanhaling binnen een aanhaling, een apostrof) en zouden vals alarm geven.
+_PAREN = (('"', '"'), ("“", "”"), ("„", "”"), ("„", '"'), ("„", "“"))
+
+
+def _citaat_patroon() -> re.Pattern[str]:
+    """Per openingsteken tot het eerste sluitteken, binnen één alinea en zonder lengtegrens: een lang citaat is juist
+    het citaat waar een jurist op afgaat, en een lege regel betekent dat een los aanhalingsteken geen paar heeft."""
+    delen = []
+    for open_ in dict.fromkeys(o for o, _ in _PAREN):
+        sluit = "".join(re.escape(d) for o, d in _PAREN if o == open_)
+        delen.append(rf"{re.escape(open_)}((?:(?!\n[ \t]*\n)[^{sluit}]){{2,}})[{sluit}]")
+    return re.compile("|".join(delen))
+
+
+_CITAAT_RE = _citaat_patroon()
 
 # Onder deze lengte controleren we niet. Een korte quote is meestal een begrip of een label
 # ("belastingschuldige", "de ontvanger") en geen citaat van een passage; daar is de kans op een
@@ -49,6 +64,8 @@ class GroundingReport:
     # 1 onderdeel m") heeft nul vindplaatsen, en dan las de tijdlijn "0 verwijzingen onderbouwd" —
     # terwijl er twee citaten wél waren getoetst en klopten.
     citaten: int = 0
+    # Wat niet is teruggevonden maar ook niet is afgekeurd (`_onbevestigd`). Telt niet in `grounded`: geen correctieronde.
+    onbevestigd: list[str] = field(default_factory=list)
     # "gegrond" | "onbepaald" | "ongegrond" – fijner dan de bool, die voor het bestaande
     # event-contract blijft bestaan.
     niveau: str = "gegrond"
@@ -58,9 +75,58 @@ def _citaten(text: str) -> list[str]:
     """De passages die het antwoord als letterlijk citaat presenteert."""
     uit: list[str] = []
     for m in _CITAAT_RE.finditer(text or ""):
-        passage = (m.group(1) or m.group(2) or "").strip()
+        passage = next((g for g in m.groups() if g), "").strip()
         if len(passage.split()) >= _MIN_WOORDEN:
             uit.append(passage)
+    return uit
+
+
+_BLOCKQUOTE_RE = re.compile(r"(?:^[ \t]*>.*(?:\n|$))+", re.MULTILINE)
+_AANHALINGSTEKENS = frozenset(t for paar in _PAREN for t in paar)
+_ARTIKEL_VINDPLAATS = re.compile(r""":(?:artikel|bepaling):([^\s:"'<>,\\]+)|[&?]artikel=([^\s&"'<>,\\]+)""", re.IGNORECASE)
+# Een opbouwtreffer noemt zijn bepalingen als kale lijst (`bepalingen: "4, 5"`), zonder IRI per bepaling.
+_ARTIKEL_VELD = re.compile(r'''"(?:artikel|nummer|bepalingen)"\s*:\s*"([^"]+)"''')
+
+
+def _blockquotes(text: str) -> list[str]:
+    """Blokcitaten van voldoende lengte. Staan er aanhalingstekens in, dan toetst `_citaten` ze al."""
+    uit: list[str] = []
+    for blok in _BLOCKQUOTE_RE.findall(text or ""):
+        passage = " ".join(re.sub(r"^[ \t]*>[ \t]?", "", regel) for regel in blok.splitlines()).strip()
+        if len(passage.split()) >= _MIN_WOORDEN and not _AANHALINGSTEKENS & set(passage):
+            uit.append(passage)
+    return uit
+
+
+def _bekende_artikelen(source_trace: list[tuple[str, str]]) -> set[str]:
+    """Elk artikel dat in de opgehaalde resultaten voorkomt: als vindplaats (IRI of jci), of omdat de tekst het noemt
+    ("bedoeld in artikel 8"). Dat laatste is een terechte vermelding die in geen enkele IRI staat. Ook de afgeleide
+    tools tellen mee: een annotatie is geen bron voor een citaat, maar wijst wel naar een bestaande bepaling."""
+    from .overzicht import vermeldingen
+
+    bekend: set[str] = set()
+    for _naam, tekst in source_trace:
+        for m in _ARTIKEL_VINDPLAATS.finditer(tekst or ""):
+            bekend.add(unquote(m.group(1) or m.group(2)).casefold())
+        for m in _ARTIKEL_VELD.finditer(tekst or ""):
+            bekend |= {nummer.strip().casefold() for nummer in m.group(1).split(",")}
+        bekend |= {v.removeprefix("artikel ").casefold() for v in vermeldingen(waarden(tekst or ""))
+                   if v.startswith("artikel ")}
+    return bekend
+
+
+def _onbevestigd(answer_text: str, source_trace: list[tuple[str, str]], trace_text: str) -> list[str]:
+    """Wat het antwoord noemt maar niet in het opgehaalde terug te vinden is: artikelen in gewone taal, en blokcitaten
+    die niet letterlijk kloppen. Een signaal en geen afkeuring: een blokcitaat over twee leden en een artikel uit een
+    samenvatting zijn vaak terecht, dus eerst meten hoe vaak dit vals alarm is."""
+    from .overzicht import vermeldingen
+
+    bekend = _bekende_artikelen(source_trace)
+    uit = [v for v in vermeldingen(answer_text)
+           if v.startswith("artikel ") and v.removeprefix("artikel ").casefold() not in bekend]
+    for passage in _blockquotes(answer_text):
+        if "\\" not in passage and not komt_letterlijk_voor(trace_text, passage):
+            uit.append(passage if len(passage) <= 80 else passage[:80].rstrip() + "…")
     return uit
 
 
@@ -96,7 +162,7 @@ def herstel_citaten(answer_text: str, source_trace: list[tuple[str, str]]) -> tu
             continue
         bron = vindplaatsen.pop()
         staart = citaat[len(kern):].strip()
-        for open_, dicht in (('"', '"'), ("“", "”")):
+        for open_, dicht in _PAREN:
             answer_text = answer_text.replace(f"{open_}{citaat}{dicht}", f"{open_}{bron}{dicht}{staart}")
         hersteld.append((citaat, bron))
     return answer_text, hersteld
@@ -142,6 +208,9 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
         unsupported += [v for v in buiten if v not in unsupported]
         cited = [*cited, *(v for v in vermeldingen(answer_text) if v not in cited)]
 
+    # De overzichtsroute heeft hierboven elke genoemde bepaling al hard getoetst.
+    onbevestigd = [] if overzicht else _onbevestigd(answer_text, source_trace, trace_text)
+
     if unsupported:
         niveau = "ongegrond"
     elif not cited and not citaten:
@@ -149,18 +218,22 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
         niveau = "onbepaald"
     elif niet_letterlijk:
         niveau = "ongegrond"
+    elif onbevestigd:
+        # Niet afgekeurd, maar ook niet goedgekeurd.
+        niveau = "onbepaald"
     else:
         niveau = "gegrond"
 
     return GroundingReport(
         citaten=len(citaten),
         # `grounded` blijft de vraag "is er iets aangetroffen dat níét klopt": het bestaande
-        # event-contract en de eval hangen eraan. Het onderscheid tussen "gecontroleerd en goed" en
+        # event-contract en de eval hangen eraan. `onbevestigd` telt hier bewust niet mee. Het onderscheid tussen "gecontroleerd en goed" en
         # "er viel niets te controleren" zit in `niveau`.
         grounded=not unsupported and not niet_letterlijk,
         cited=cited,
         unsupported=unsupported,
         niet_letterlijk=niet_letterlijk,
+        onbevestigd=onbevestigd,
         niveau=niveau,
     )
 

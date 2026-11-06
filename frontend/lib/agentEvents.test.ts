@@ -19,6 +19,8 @@ describe("parseGrounding", () => {
 
   it("neemt afgekapt mee en valt terug op grounded bij een oudere agent", () => {
     expect(parseGrounding({ niveau: "gegrond", grounded: true, afgekapt: true })?.afgekapt).toBe(true);
+    expect(parseGrounding({ niveau: "onbepaald", grounded: true, onbevestigd: ["artikel 999", 3] })?.onbevestigd).toEqual(["artikel 999"]);
+    expect(parseGrounding({ niveau: "gegrond", onbevestigd: [] })).not.toHaveProperty("onbevestigd");
     expect(parseGrounding({ grounded: false })).toEqual({
       niveau: "ongegrond", grounded: false, cited: 0, unsupported: [], niet_letterlijk: [] });
   });

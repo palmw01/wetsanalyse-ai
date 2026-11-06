@@ -39,7 +39,7 @@ const berichten = {
     { rol: "assistant", tekst: "Half\n\n_(gestopt)_", ...leeg, run_id: "gestopt", uitkomst: { status: "gestopt" } }],
 };
 berichten.oordeel = [{ rol: "user", tekst: "oordeel", ...leeg }, { rol: "assistant", tekst: "Er staat “verzonnen tekst” in de wet.", ...leeg,
-  run_id: "oordeel", grounding: { niveau: "ongegrond", grounded: false, cited: 0, unsupported: [], niet_letterlijk: ["verzonnen tekst"], afgekapt: true } }];
+  run_id: "oordeel", grounding: { niveau: "ongegrond", grounded: false, cited: 0, unsupported: [], niet_letterlijk: ["verzonnen tekst"], afgekapt: true, onbevestigd: ["artikel 999"] } }];
 let gid = "mislukt";
 const pogingen = {};
 
@@ -98,6 +98,7 @@ await page.getByText("(gestopt)").waitFor();
 // Het oordeel na herladen: het blok, de aanwijzing in de tekst en de afkapping.
 await page.goto(`${base}/workbench?gesprek=oordeel`);
 await page.locator("[data-afgekapt]").waitFor();
+assert.match(await page.locator("[data-onbevestigd]").innerText(), /artikel 999/);
 await page.locator("mark", { hasText: "verzonnen tekst" }).waitFor();
 
 assert.deepEqual(geschreven.filter((b) => b.rol === "assistant"), [], "de werkplek schrijft geen beurt weg");

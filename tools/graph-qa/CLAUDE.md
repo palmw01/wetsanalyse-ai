@@ -314,6 +314,11 @@ hier vandaan maar uit `bronmodel.resolve` (zie §*De annotatieketen*).
   haalde de correctieronde bij doorvragen juist de onderbouwing weg. Het register bevat nooit
   modeltekst en nooit annotatieresultaten. Bronnen uit eerdere beurten komen alleen in de lijst als
   het antwoord hun regeling noemt.
+- **Elke citaatvorm telt** (`_PAREN`: recht, typografisch, `„…”`, ook gemengd; binnen één alinea, geen lengtegrens). Eén
+  tabel voor herkennen en herstellen. Cursief is geen citaatclaim; enkele aanhalingstekens blijven erbuiten.
+- **`onbevestigd` is een signaal, geen afkeuring**: een artikel in gewone taal dat nergens in het opgehaalde voorkomt (ook
+  niet in de wettekst zelf) en een blokcitaat dat niet letterlijk klopt. `niveau` zakt naar `onbepaald`, `grounded` blijft
+  waar, dus geen correctieronde. `verify_node` logt het aantal: eerst meten hoe vaak dit vals alarm is.
 - **Een bijna-letterlijk citaat wordt de brontekst** (`grounding.herstel_citaten`, in `agent_node`
   vóór de controle). Afwijkingen als een hoofdletter aan het begin of een punt
   binnen de aanhalingstekens zoekt hij hoofdletter- en witruimte-ongevoelig op in register + trace.

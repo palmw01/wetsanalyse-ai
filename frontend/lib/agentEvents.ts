@@ -153,7 +153,8 @@ export const parseGrounding = (v: unknown): AgentGrounding | undefined => {
   const niveau = v.niveau === "gegrond" || v.niveau === "onbepaald" || v.niveau === "ongegrond" ? v.niveau
     : v.grounded === false ? "ongegrond" : "gegrond";
   return { niveau, grounded: v.grounded !== false, cited: typeof v.cited === "number" ? v.cited : 0,
-    unsupported: lijst(v.unsupported), niet_letterlijk: lijst(v.niet_letterlijk), ...(v.afgekapt === true ? { afgekapt: true } : {}) };
+    unsupported: lijst(v.unsupported), niet_letterlijk: lijst(v.niet_letterlijk), ...(v.afgekapt === true ? { afgekapt: true } : {}),
+    ...(lijst(v.onbevestigd).length ? { onbevestigd: lijst(v.onbevestigd) } : {}) };
 };
 
 /** De uitkomst op een bewaard bericht. Niets of een onbekende vorm is een gewone beurt: oudere berichten hebben hem niet. */
