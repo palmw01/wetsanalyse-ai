@@ -1327,6 +1327,13 @@ JSON / RDF (TriG)**. De vorm staat in de api (`api/app/annotatie_export.py`); de
   herkomstkolommen, PDF met een herkomstzin, beurtmeting en dekking, JSON v3 met schema
   (`GET export-schema`), TriG met de lagen zoals de kennisgraaf ze krijgt.
 
+### Het werkgebied exporteren
+
+*Exporteren* in de kop van het werkgebied (`ProjectKop`) en in het werkgebiedpaneel naast het gesprek biedt naast de
+Markdown van het dossier de **PDF van het werkgebied** (`exporteerWerkgebied`, `GET …/export`; de inhoud staat in
+`api/app/werkgebied_export.py`). Eén vaste inhoud, dus geen keuzes bij het exporteren. De PDF gaat over de stand van nu en
+staat daarom niet op een oude versie. De route krijgt een ruime timeout, want hij leest de bronbomen.
+
 ## De samenhangsgraaf (sigma.js)
 
 `NodeAnnotatiePaneel` heeft naast *Tekst* een tab **Graaf** (`components/graaf/Graaf.tsx`), en onder een

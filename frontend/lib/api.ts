@@ -1396,6 +1396,13 @@ export async function exporteerBegrippen(id: string, formaat: "json" | "csv" | "
   await downloadAntwoord(res, `begrippen.${formaat === "ttl-alle" ? "ttl" : formaat}`);
 }
 
+/** Het hele werkgebied als PDF, op de stand van nu; de naam komt van de server. */
+export async function exporteerWerkgebied(id: string): Promise<void> {
+  const res = await fetch(`${wg(id, "export")}?formaat=pdf`, { cache: "no-store" });
+  if (!res.ok) throw await parseError(res);
+  await downloadAntwoord(res, "werkgebied.pdf");
+}
+
 /** De begrippen voor de samenhangsgraaf (fase F3); `null` als het antwoord niet de verwachte vorm heeft. */
 export async function haalBegripSamenhang(id: string): Promise<BegripSamenhang | null> {
   const s = await json<unknown>(await fetch(wg(id, "begrippen", "samenhang"), { cache: "no-store" }));

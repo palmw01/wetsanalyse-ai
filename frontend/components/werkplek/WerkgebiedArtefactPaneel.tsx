@@ -2,7 +2,7 @@
 
 import { ExportKnop } from "@/components/werkplek/ExportKnop";
 import { EXPORT_FORMATEN } from "@/lib/begrippen";
-import { exporteerBegrippen, haalBegrip, haalBronselectie, haalWerkgebied, lijstBegrippen } from "@/lib/api";
+import { exporteerBegrippen, exporteerWerkgebied, haalBegrip, haalBronselectie, haalWerkgebied, lijstBegrippen } from "@/lib/api";
 import { begripAlsMarkdown, begrippenAlsMarkdown, bronselectieAlsMarkdown, deelvraagAlsMarkdown, dossierAlsMarkdown, voorstellenAlsMarkdown } from "@/lib/artefactMarkdown";
 import { termenVan } from "@/lib/begripTermen";
 import { PaneelKop } from "@/components/ui/PaneelKop";
@@ -29,12 +29,13 @@ import { isRevisieConflict } from "@/lib/werkgebied";
 import { werkgebiedLabel, type WerkgebiedArtefact } from "@/lib/artefact";
 import type { ArtefactVersie, Begrip, Deelvraag, GroepenAntwoord, RelatiesAntwoord, Werkgebied } from "@/lib/types";
 import type { BronselectieOverzicht } from "@/lib/bronselectie";
-import { STATUS_LABEL } from "@/lib/werkgebied";
+import { STATUS_LABEL, WERKGEBIED_EXPORT_FORMATEN } from "@/lib/werkgebied";
 import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
 import { artefactPad, begripPad, deelvraagPad, projectPad } from "@/lib/werkgebiedPaden";
 
-/** Kopiëren en exporteren per soort (4 nov 2026): altijd Markdown, en bij de begrippen de bestaande exports van het
- *  begrippenkader. De inhoud wordt bij de klik opgehaald – de kop kent de gegevens van de inhoud niet. */
+/** Kopiëren en exporteren per soort (4 nov 2026): altijd Markdown, bij het werkgebied de PDF en bij de begrippen de
+ *  bestaande exports van het begrippenkader. De inhoud wordt bij de klik opgehaald – de kop kent de gegevens van de
+ *  inhoud niet. */
 function exportVan(doel: WerkgebiedArtefact, opname?: Opname | null): Pick<React.ComponentProps<typeof ExportKnop>, "markdown" | "formaten" | "onDownload"> {
   const id = doel.werkgebied_id;
   // Een oude versie: kopiëren en exporteren gaan over wat je ziet (besluit gebruiker), dus uit de opname.
@@ -48,13 +49,14 @@ function exportVan(doel: WerkgebiedArtefact, opname?: Opname | null): Pick<React
         return d ? deelvraagAlsMarkdown(d) : `# ${o.deelvraag?.vraag ?? doel.titel}\n`;
       } };
       case "begrip": return { formaten: [], markdown: () => begripAlsMarkdown(o.begrip!) };
-      // De exports van het begrippenkader (JSON, CSV, Turtle) gaan over de stand van nu: niet bij een oude versie.
+      // De PDF en de exports van het begrippenkader gaan over de stand van nu: niet bij een oude versie.
       default: return { formaten: [], markdown: () => voorstellenAlsMarkdown(doel.titel, termenVan(o.groepen ?? null)) };
     }
   }
   switch (doel.soort) {
     case "werkgebied":
-      return { formaten: [], markdown: async () => dossierAlsMarkdown(await haalWerkgebied(id), await haalBronselectie(id).catch(() => undefined)) };
+      return { formaten: WERKGEBIED_EXPORT_FORMATEN, onDownload: () => exporteerWerkgebied(id),
+        markdown: async () => dossierAlsMarkdown(await haalWerkgebied(id), await haalBronselectie(id).catch(() => undefined)) };
     case "bronselectie":
       return { formaten: [], markdown: async () => bronselectieAlsMarkdown(await haalBronselectie(id)) };
     case "deelvraag":

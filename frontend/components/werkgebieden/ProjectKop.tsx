@@ -7,23 +7,27 @@ import { AutoTextarea } from "@/components/ui/AutoTextarea";
 import { Button, knopKlasse } from "@/components/ui/Button";
 import { BewerkVoet } from "@/components/ui/Bewerkbaar";
 import { Field, Input, Select } from "@/components/ui/Field";
+import { Melding } from "@/components/ui/Melding";
 import { StatusLabel } from "@/components/ui/Lijst";
 import { MeerMenu, MenuVerwijder } from "@/components/ui/MeerMenu";
 import { PaginaKop, Stip, TabLinks, type Kruimel } from "@/components/ui/Pagina";
 import { useWerkgebied } from "@/components/werkgebieden/WerkgebiedProject";
-import { haalThemaVoorstel } from "@/lib/api";
+import { ExportKnop } from "@/components/werkplek/ExportKnop";
+import { exporteerWerkgebied, haalBronselectie, haalThemaVoorstel } from "@/lib/api";
+import { dossierAlsMarkdown } from "@/lib/artefactMarkdown";
 import { bewerkToets, isGewijzigd } from "@/lib/bewerken";
 import { themaGroepen } from "@/lib/tooiThemas";
 import type { ThemaVoorstel, Werkgebied, WerkgebiedStatus } from "@/lib/types";
 import { VERWIJDER_UITLEG, verwijderLabel } from "@/lib/verwijderen";
-import { DOSSIER_VELDEN, STATUS_LABEL, datumNl, type DossierVeld } from "@/lib/werkgebied";
+import { DOSSIER_VELDEN, STATUS_LABEL, WERKGEBIED_EXPORT_FORMATEN, datumNl, type DossierVeld } from "@/lib/werkgebied";
 import { ARTEFACT_SOORTEN, PROJECT_TABS, artefactPad, projectPad, type ProjectTab } from "@/lib/werkgebiedPaden";
 
 /** De kop van een werkgebied boven de vijf tabs (mock-up v4, `projectHead` + `tabbar`): de naam, één zin,
- *  status en wanneer gewijzigd, en twee knoppen – *Gegevens bewerken* en *Nieuw gesprek*. Verwijderen staat in
+ *  status en wanneer gewijzigd, en de knoppen *Exporteren*, *Gegevens bewerken* en *Nieuw gesprek*. Verwijderen staat in
  *  het menu ernaast; de historie is een eigen tab. */
 export function ProjectKop({ tab }: { tab: ProjectTab }) {
   const { wg, verwijder, stand } = useWerkgebied();
+  const [fout, setFout] = useState<string | null>(null);
   const tellers: Partial<Record<ProjectTab, number>> = {
     gesprekken: stand.gesprekken?.length, bronnen: wg.bronnen.length, artefacten: ARTEFACT_SOORTEN.length,
   };
@@ -48,6 +52,9 @@ export function ProjectKop({ tab }: { tab: ProjectTab }) {
         }
         acties={
           <>
+            <ExportKnop onFout={setFout} titel={wg.naam} formaten={WERKGEBIED_EXPORT_FORMATEN}
+              onDownload={() => exporteerWerkgebied(wg.id)}
+              markdown={async () => dossierAlsMarkdown(wg, await haalBronselectie(wg.id).catch(() => undefined))} />
             {/* Bewerken gebeurt ter plekke op de kaart van het dossier (4 nov 2026), niet in een venster. */}
             <Link href={`${artefactPad(wg.id, "dossier")}?bewerk=1`} className={knopKlasse("secondary", "sm")}>Gegevens bewerken</Link>
             <Link href={`/workbench?werkgebied=${encodeURIComponent(wg.id)}`}
@@ -60,6 +67,7 @@ export function ProjectKop({ tab }: { tab: ProjectTab }) {
           </>
         }
       />
+      {fout && <Melding type="fout" className="mb-4">{fout}</Melding>}
       <TabLinks label="Werkgebied" actief={tab}
         tabs={PROJECT_TABS.map((t) => ({ key: t.key, label: t.label, href: projectPad(wg.id, t.key), telling: tellers[t.key] }))} />
     </>
