@@ -343,3 +343,36 @@ def test_illustratie(sample_bijlage_xml: Path) -> None:
     assert illustratie.formaat == "png"
     assert illustratie.breedte == "1417px"
     assert illustratie.hoogte == "364px"
+
+
+def _met_tekst(*teksten: str) -> etree._Element:
+    return etree.fromstring("<lid>" + "".join(f"<al>{t}</al>" for t in teksten) + "</lid>")
+
+
+def test_onder_x_wordt_verstaan_definieert_een_begrip() -> None:
+    """Awb 1:2 en verwanten: de zin leidt zichzelf in, dus zonder definitiecontext."""
+    gevallen = {
+        "Onder belanghebbende wordt verstaan: degene wiens belang rechtstreeks is betrokken.": "belanghebbende",
+        "Onder bestuursorgaan wordt verstaan:": "bestuursorgaan",
+        "Onder rijksbelastingen worden verstaan belastingen welke van rijkswege worden geheven.": "rijksbelastingen",
+        "Onder het maken van bezwaar wordt verstaan: het gebruik maken van de bevoegdheid.": "maken van bezwaar",
+        "Onder Dienst Toeslagen wordt verstaan: het organisatieonderdeel.": "Dienst Toeslagen",
+        "Onder inlener wordt mede verstaan:": "inlener",
+        "Onder betalingscapaciteit, bedoeld in artikel 11, wordt verstaan het positieve verschil.": "betalingscapaciteit",
+        "Onder vermogen als bedoeld in artikel 11 wordt verstaan de waarde.": "vermogen",
+        "Onder last onder dwangsom wordt verstaan: de herstelsanctie, inhoudende:": "last onder dwangsom",
+    }
+    for tekst, term in gevallen.items():
+        assert ToestandParser._definities(_met_tekst(tekst)) == [term], tekst
+
+
+def test_niet_elke_onder_zin_is_een_definitie() -> None:
+    for tekst in ("Onder partner wordt niet verstaan degene die uitsluitend als partner wordt aangemerkt.",
+                  "Een belanghebbende die onder toezicht staat, wordt verstaan.",
+                  "Bij regeling wordt aangewezen. Onder werkzaamheden wordt mede verstaan het doen van aangifte.",
+                  "Onder voorwaarden kan de ontvanger uitstel verlenen."):
+        assert ToestandParser._definities(_met_tekst(tekst)) == [], tekst
+
+
+def test_alleen_de_eerste_alinea_telt() -> None:
+    assert ToestandParser._definities(_met_tekst("Gewone tekst.", "Onder aanvraag wordt verstaan: een verzoek.")) == []
