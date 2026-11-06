@@ -408,7 +408,7 @@ Een begripsvraag komt als `antwoord`-event binnen vóór de `token` en staat op 
 `parseAntwoord` in `lib/antwoord.ts`, de spiegel van `bronmodel/antwoord.py`; ADR-008). **`components/antwoord/Antwoord.tsx`**
 tekent de blokken: elk soort één functie in `BLOKKEN`, dus een nieuw soort zonder component compileert niet. **Geen kaart, geen
 achtergrond, geen rand**: een sjabloon is een vorm van antwoorden, geen artefact (`app/knoppen.test.ts` bewaakt het). Wat Lex schreef
-staat onder een eigen kop. Een ongeldig blok geeft geen sjabloon en dan is `tekst` het antwoord, net als bij vrije tekst. Er staat geen
+staat onder een eigen kop. Een ongeldig blok geeft geen sjabloon en dan is `tekst` het antwoord, net als bij vrije tekst. Heeft het sjabloon doelen, dan staat er geen
 bronnenlijst bij: de blokken noemen elke vindplaats (`Vindplaats`: een klik opent de bepaling naast het gesprek).
 
 ### Het overzicht van een onderwerp
