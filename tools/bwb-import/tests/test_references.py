@@ -72,6 +72,61 @@ def test_losse_woorden_niet_als_wet() -> None:
     assert _ankers("artikel 4 en artikel 5") == ["artikel 4", "artikel 5"]
 
 
+def test_naam_na_het_artikel_is_geen_eigen_wet() -> None:
+    """Art. 9 lid 9 Invorderingswet: artikel 167 staat in het Douanewetboek, niet in die wet."""
+    zin = (
+        "In afwijking van het vierde lid is een uitnodiging tot betaling die is vastgesteld "
+        "overeenkomstig een op een kalendermaand betrekking hebbende, aanvullende aangifte als "
+        "bedoeld in artikel 167, eerste lid, van het Douanewetboek van de Unie invorderbaar "
+        "vijftien dagen na de maand waarover de aangifte is gedaan."
+    )
+    assert _ankers(zin) == []
+
+
+def test_naam_na_opsomming_leden_en_volzinnen() -> None:
+    """Tussen het nummer en de naam kan van alles staan dat nog bij de aanwijzing hoort."""
+    assert _ankers("de artikelen 107 en 108 van het Verdrag betreffende de werking") == []
+    assert _ankers("artikel 116, zesde lid, tweede en derde volzin, van het Douanewetboek") == []
+    # Artikel 15 staat in de verordening; artikel 8:45 is wel van de eigen wet.
+    assert _ankers("artikel 15, derde lid, eerste alinea, van de in artikel 8:45 genoemde") == [
+        "artikel 8:45"
+    ]
+    assert _ankers("artikelen 4.3 tot en met 4.5b van de Wet inkomstenbelasting 2001") == []
+    assert _ankers("artikel 3 van Verordening (EU) nr. 1407/2013 van de Commissie") == []
+    assert _ankers("artikel 5, eerste lid, onderdeel e, onder 1°, van de Wet") == []
+    # "De wet" in een lagere regeling is de hogere wet, niet de regeling zelf.
+    assert _ankers("artikel 22bis, tweede of derde lid, van de wet") == []
+    assert _ankers("artikel 10bis.4, vierde lid, of artikel 10bis.5, vijfde lid, van de Wet") == []
+
+
+def test_herkende_naam_achter_van_wijst_naar_die_regeling() -> None:
+    (awb,) = detect_textual_references(
+        "artikel 3:2, eerste lid, van de Awb", eigen_bwb_id="BWBR0004770"
+    )
+    assert (awb.doel_bwb_id, awb.doel_artikel) == ("BWBR0005537", "3:2")
+    assert awb.tekst == "artikel 3:2 Awb"
+    (bw,) = detect_textual_references(
+        "de artikelen 1:10 en volgende van het BW", eigen_bwb_id="BWBR0024096"
+    )
+    assert (bw.doel_bwb_id, bw.doel_artikel) == ("BWBR0002656", "1:10")
+
+
+def test_verwijzing_naar_de_eigen_regeling_blijft_intern() -> None:
+    assert _ankers("artikel 25.5.1 van deze leidraad") == ["artikel 25.5.1"]
+    assert _ankers("artikel 14.1.4, laatste volzin, van de leidraad") == ["artikel 14.1.4"]
+    assert _ankers("artikel 35.12.2 van de Leidraad") == ["artikel 35.12.2"]
+    assert _ankers("artikel 9, tweede lid, is van overeenkomstige toepassing") == ["artikel 9"]
+    # Een zin die na het nummer stopt zegt niets over de volgende zin.
+    assert _ankers("zie artikel 9. Van de Wet is geen sprake") == ["artikel 9"]
+
+
+def test_artikelnummer_wordt_niet_afgekapt() -> None:
+    """Met één letter werd "artikel 30fa" artikel 30f en "artikel 53ter" artikel 53t."""
+    assert _ankers("artikel 30fa, eerste lid") == ["artikel 30fa"]
+    assert _ankers("artikel 53ter, is te wijten") == ["artikel 53ter"]
+    assert _ankers("artikel 1cbis.2 is van toepassing") == ["artikel 1cbis.2"]
+
+
 def test_jci_doel_ref_key_alle_niveaus() -> None:
     assert jci_doel_ref_key("jci1.3:c:BWBR0005537&artikel=3:40") == (
         "BWBR0005537#artikel=3:40",
