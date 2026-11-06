@@ -298,6 +298,8 @@ export interface AnnotatieElement {
   /** Wie het daarna inhoudelijk aanpaste ("" | agent | mens). */
   gewijzigd_door: string;
   lifecycle: Lifecycle;
+  /** Waarom dit element niet zomaar te wijzigen is (`slotVan`). Afwezig: alleen de regel op het element zelf. */
+  slot?: "geen" | "element" | "laag" | "alleen-lezen";
   alternatieven: Alternatief[];
   aandacht?: Aandacht | null;
   /** De uitleg van de gerichte review bij een twijfelgeval (resolver, ADR-001). */

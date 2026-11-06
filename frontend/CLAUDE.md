@@ -1265,7 +1265,7 @@ is dubbelop. Bij **verwerpen** blijft de reden een vraag aan de jurist; die staa
   klik = verworpen, terug te draaien met *Heropenen*); een eigen markering wordt "Wissen?" en is na de
   tweede klik weg (`DELETE`). Een agent-voorstel verwijder je niet maar verwerp je, zodat het
   auditspoor laat zien dát er een voorstel was.
-- **Een oordeel vergrendelt de kaart.** Bij `human_approved`/`rejected` (`isVergrendeld`; een ander
+- **Een oordeel vergrendelt de kaart.** Bij `human_approved`/`rejected` (`slotVan`; een ander
   begrip dan `isBeslist`, dat de filters en de telling stuurt) zijn klasse en toelichting alleen-lezen
   en zijn *Akkoord*, het kruisje, de alternatieven en de kanttekening-acties weg; **Heropenen**
   (`type: "heropen"`) zet het element terug in de review. Zonder vergrendeling zouden badge en

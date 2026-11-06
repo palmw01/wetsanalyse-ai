@@ -5,7 +5,7 @@ import { IcoonBevestig } from "@/components/ui/IcoonBevestig";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import { groeneVoorstellen, isBeslist, isVergrendeld, type ReviewFilter } from "@/lib/annotatie";
+import { groeneVoorstellen, isBeslist, slotVan, type ReviewFilter } from "@/lib/annotatie";
 import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { ChevronOmlaag, Ruit, Vinkje, Waarschuwing } from "@/components/ui/Icoon";
 import { Meter } from "@/components/ui/Meter";
@@ -203,11 +203,13 @@ function DecisionCard({
   const kaartRef = useRef<HTMLDivElement>(null);
 
   const beslist = isBeslist(el);
-  // Twee sloten met een verschillend bereik: een eindoordeel op dít element bevriest de inhoud maar
-  // laat een kanttekening toe; een afgerond document bevriest alles. `slot` is wat de bediening
-  // uitschakelt, `elVergrendeld` is wat de Heropenen-knop tevoorschijn haalt.
-  const elVergrendeld = isVergrendeld(el);
-  const slot = elVergrendeld || !!docVergrendeld;
+  // Sloten met een verschillend bereik: een eindoordeel op dít element bevriest de inhoud maar laat
+  // heropenen en een kanttekening toe; een afgeronde laag of document, of een verouderd element, bevriest
+  // alles. `slot` is wat de bediening uitschakelt, `elVergrendeld` haalt de Heropenen-knop tevoorschijn.
+  const elementSlot = el.slot ?? slotVan(el);
+  const elVergrendeld = elementSlot === "element";
+  const slot = elementSlot !== "geen" || !!docVergrendeld;
+  const notitieDicht = !!docVergrendeld || elementSlot === "laag" || elementSlot === "alleen-lezen";
   const aandacht = el.aandacht ? AANDACHT[el.aandacht] : null;
   const eigen = el.herkomst === "mens";
   const verklaringen = useVerklaringen();
@@ -536,7 +538,7 @@ function DecisionCard({
 
       <div className="mt-2 flex items-center justify-between gap-2 border-t border-line/60 pt-1.5 text-[0.65rem] text-muted">
         <span className="min-w-0 flex-1" onClick={(e) => e.stopPropagation()}>
-          {!uitgeklapt || docVergrendeld ? null : notitie ? (
+          {!uitgeklapt || notitieDicht ? null : notitie ? (
             <InlineVeld
               waarde=""
               placeholder="Opmerking bij de review…"

@@ -1,0 +1,115 @@
+[
+  {
+    "geval": "voorstel",
+    "element": {
+      "lifecycle": "voorgesteld",
+      "herkomst": "agent"
+    },
+    "laag_status": "in_review",
+    "slot": "geen"
+  },
+  {
+    "geval": "aangepast element blijft bewerkbaar",
+    "element": {
+      "lifecycle": "edited",
+      "herkomst": "agent"
+    },
+    "laag_status": "in_review",
+    "slot": "geen"
+  },
+  {
+    "geval": "goedgekeurd voorstel",
+    "element": {
+      "lifecycle": "human_approved",
+      "herkomst": "agent"
+    },
+    "laag_status": "in_review",
+    "slot": "element"
+  },
+  {
+    "geval": "verworpen voorstel",
+    "element": {
+      "lifecycle": "rejected",
+      "herkomst": "agent"
+    },
+    "laag_status": "in_review",
+    "slot": "element"
+  },
+  {
+    "geval": "gepubliceerd element",
+    "element": {
+      "lifecycle": "published",
+      "herkomst": "agent"
+    },
+    "laag_status": "in_review",
+    "slot": "element"
+  },
+  {
+    "geval": "eigen markering",
+    "element": {
+      "lifecycle": "human_approved",
+      "herkomst": "mens",
+      "beslissingen": [
+        {
+          "type": "markering"
+        }
+      ]
+    },
+    "laag_status": "in_review",
+    "slot": "geen"
+  },
+  {
+    "geval": "eigen markering met een oordeel",
+    "element": {
+      "lifecycle": "human_approved",
+      "herkomst": "mens",
+      "beslissingen": [
+        {
+          "type": "markering"
+        },
+        {
+          "type": "comment"
+        }
+      ]
+    },
+    "laag_status": "in_review",
+    "slot": "element"
+  },
+  {
+    "geval": "geen laag",
+    "element": {
+      "lifecycle": "voorgesteld",
+      "herkomst": "agent"
+    },
+    "laag_status": null,
+    "slot": "geen"
+  },
+  {
+    "geval": "voorstel in een geaccordeerde laag",
+    "element": {
+      "lifecycle": "voorgesteld",
+      "herkomst": "agent"
+    },
+    "laag_status": "geaccordeerd",
+    "slot": "laag"
+  },
+  {
+    "geval": "goedgekeurd in een geaccordeerde laag",
+    "element": {
+      "lifecycle": "human_approved",
+      "herkomst": "agent"
+    },
+    "laag_status": "geaccordeerd",
+    "slot": "laag"
+  },
+  {
+    "geval": "verouderd gaat voor alles",
+    "element": {
+      "lifecycle": "human_approved",
+      "herkomst": "agent",
+      "verouderd": true
+    },
+    "laag_status": "geaccordeerd",
+    "slot": "alleen-lezen"
+  }
+]

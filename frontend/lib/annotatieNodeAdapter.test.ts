@@ -88,6 +88,16 @@ describe("nodeBronVan", () => {
 });
 
 describe("elementVanNode", () => {
+  it("rekent het slot per element tegen zijn eigen laag: een reeks kan half afgerond zijn", () => {
+    const view = weergave([LID1, ONDA]);
+    const nb = nodeBronVan(view);
+    const anker = segmentAnker(LID1, 0, 2);
+    const lagen = [{ id: "l1", bron_iri: LID1.bron_iri, revisie: 1, status: "geaccordeerd" },
+      { id: "l2", bron_iri: ONDA.bron_iri, revisie: 1, status: "in_review" }];
+    expect(elementVanNode(element([anker]), nb, undefined, lagen).slot).toBe("laag");
+    expect(elementVanNode(element([anker], { eigenaar_iri: ONDA.bron_iri }), nb, undefined, lagen).slot).toBe("geen");
+  });
+
   it("vertaalt codepoints naar UTF-16 zodat de weergave het anker exact terugvindt", () => {
     const view = weergave([LID1, ONDA]);
     const nb = nodeBronVan(view);
