@@ -274,10 +274,11 @@ class PostgresStore:
         **De hartslag schrijven.** Minder vaak dan de pols: hij krijgt pas na een minuut betekenis.
         """
         sinds_hartslag = 0.0
+        faalt = False  # Eén regel per storing: de pols loopt elke paar seconden.
         while True:
             await asyncio.sleep(POLS_S)
             sinds_hartslag += POLS_S
-            with contextlib.suppress(Exception):
+            try:
                 async with self.pool.connection() as conn:
                     if sinds_hartslag >= HARTSLAG_S:
                         cur = await conn.execute(
@@ -288,9 +289,15 @@ class PostgresStore:
                         cur = await conn.execute(
                             "SELECT stop_verzocht FROM agent_runs WHERE run_id = %s", (run.run_id,))
                     rij = await cur.fetchone()
+                faalt = False
                 if rij and rij["stop_verzocht"]:
                     run.stop_gevraagd = True
                     return  # de graaf ziet de vlag; verder polsen heeft geen zin
+            except Exception:  # noqa: BLE001 – de pols mag de beurt niet laten vallen
+                if not faalt:
+                    logger.warning("run-pols mislukt", exc_info=True,
+                                   extra={"categorie": "technisch", "run_id": run.run_id})
+                faalt = True
 
     async def _rond_af(self, run: Run, status: str) -> None:
         run.status = status

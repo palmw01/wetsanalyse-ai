@@ -24,6 +24,7 @@ from langgraph.errors import GraphRecursionError
 
 from .agent_common import BeurtGestopt, run_sync
 from .config import Settings
+from .beurtmeting import route_van
 from .models import Verbruiksmeter
 from .observability import get_tracer
 from .ports import GraphPort, LLMPort
@@ -305,8 +306,10 @@ async def answer_stream(
                 async for mode, chunk in app.astream(init, config=config, stream_mode=["custom", "values"]):
                     if mode == "custom":
                         yield chunk
-                    elif mode == "values" and "grounded" in chunk:
-                        grounded = chunk["grounded"]
+                    elif mode == "values":
+                        grounded = chunk.get("grounded", grounded)
+                        if meter is not None:
+                            meter.route = route_van(chunk)
                 span.set_attribute("graph_qa.grounded", grounded)
                 logger.info(
                     "antwoord klaar",

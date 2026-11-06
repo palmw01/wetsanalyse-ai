@@ -61,6 +61,13 @@ daarnaast per tool-aanroep een `tool_execution`-event in de SSE vast – start e
 status, aantal en duur. Dat is een uitvoeringsspoor voor de jurist in de werkplek, geen logkanaal:
 het gaat naar de browser en naar het chatbericht, niet naar Log Analytics.
 
+**`beurt_meting`** is één regel per beurt (`agent/beurtmeting.py`), ook bij fout, stop of afbreken: `route`,
+`uitkomst`, `duur_ms`, `eerste_tekst_ms` (eerste `reason` of `token`), `toolaanroepen`, `modelrondes`, `invoer`,
+`uitvoer`, `cache_lees`, `cache_schrijf`, `model`. Geen inhoud. Hij voedt de panelen *Wachttijd per beurtsoort* en
+*Tokens en cachetreffer per beurtsoort*. Bedragen staan er niet bij: prijzen staan nergens in de repo, en de
+boekhouding blijft het verbruiksjournaal van de api. De batchruns van `begrippen_verdieping` zijn geen beurt en
+vallen erbuiten. Welke stap traag was, staat in de spans `graph_qa.node.<naam>`.
+
 De **GraphDB-kennisgraaf en de externe diensten** (overheid.nl-bronnen, de LLM-provider) draaien buiten
 deze repo en zijn niet geïnstrumenteerd; ze verschijnen in de traces als virtuele peer-node (zie de
 service-graph-connector) i.p.v. als eigen span.
@@ -103,6 +110,13 @@ in dat vormpje past en houdt een rem van 60 meldingen per gebruiker per minuut.
 Het paneel *Handelingen die blijven hangen* in `dashboard-keten.json` zet ze naast elkaar; de
 BFF-regels `Gesprek verwijderen` en `Gesprek verwijderen: agent-geheugen` dragen per stap een
 `duur_ms`, zodat een trage stap aanwijsbaar is in plaats van vermoed.
+
+### De crash in de browser: `bericht: "Browserfout"`
+
+Een fout in de browser bereikte geen log. `lib/uiSpoor.ts` meldt hem nu via dezelfde route (`/api/ui-spoor`), uit de error
+boundaries en uit `BrowserFouten` (`error`, `unhandledrejection`). De regel draagt alleen `fout_plek`, `fout_naam` en
+`fout_digest`: geen melding en geen stack, want daar kan tekst van de gebruiker in staan. Een `AbortError` telt niet mee, en
+zonder sessie wordt er niets gelogd. Het paneel heet *Browserfouten*.
 
 ## Aanzetten
 
