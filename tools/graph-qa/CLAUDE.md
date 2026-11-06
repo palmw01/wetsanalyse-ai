@@ -60,7 +60,7 @@ routering, dan faalt die test – dat hoort, maar het moet een bewuste wijziging
 legt één helper (`annotatieketen()`) in elke tak identiek; de antwoordketen staat per tak apart omdat
 die echt verschilt (`verify → resynth` bij decompositie, `verify → correct` anders). Decompositie
 (`ENABLE_DECOMPOSITION`, op Azure uit) bouwt in `solve_node` een eigen agent-lus per deelvraag na met
-lokale scratch-messages; alleen de synthese streamt.
+lokale scratch-messages.
 
 Ondersteunend, op agent-niveau omdat meerdere ketens ze delen: `agent/state.py` (de `State`-TypedDict;
 `messages` en `entities_seen` zijn `operator.add`-reducers), `agent/berichten.py` (het venster naar de
@@ -82,8 +82,9 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   tekst, geen extra call).
 - **`agent_node`** – draait de specialist (`agent/specialists.py`): `SYSTEM_PROMPT` + methode-instructies
   (`agent/methode.py`, uit het gegenereerde `methodepakket.py`) + addendum + plan, met
-  `anthropic_schemas(only=spec.tools)`. Op een beurtgrens (turns > 0) gaat vóór de eerste tekst-delta één
-  `\n\n` uit, zodat de narratie van opeenvolgende beurten niet aan elkaar plakt.
+  `anthropic_schemas(only=spec.tools)`. Tekst stroomt niet mee: pas na de ronde is bekend of het narratie
+  is. Een ronde mét tools gaat dan als `reason` naar het denkproces (`narratie.ronde_in_denk`, met `\n\n`
+  op een rondegrens). Een ronde zonder tools is een eindantwoord: dat gaat de state in, nooit naar `reason`.
 - **`tools_node`** – voert elke aanroep uit via `dispatch(...)` en voegt `(tool_naam, resultaat)` toe
   aan de `source_trace`. Dezelfde aanroep (naam + argumenten) gaat in één beurt één keer naar de graaf; een herhaling krijgt
   het bewaarde resultaat met `HERHAALD` (`_al_gedaan`, uit de berichten van de beurt). Elke aanroep houdt zijn resultaat,
@@ -94,8 +95,13 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   niet uit de graaf kwam) en `niet_letterlijk` (een citaat dat niet letterlijk in de opgehaalde tekst
   staat). Bij de citaten gaan de passages zelf mee (afgekapt) – zonder de tekst weet het model niet
   wélk citaat het moet herstellen.
-- **`finalize_node`** – `collect_sources` → `curate_sources` → `met_regelingnamen` → emit `sources` +
-  `grounding`; werkt `entities_seen` bij.
+- **`finalize_node`** – de enige plek in de antwoordketen die `token` uitstuurt (ook voor het overzicht en
+  de decompositie; `tests/test_uitgifte_na_controle.py` bewaakt het). Een controle die volgt op publicatie
+  houdt niets tegen, dus de jurist ziet een antwoord pas ná `verify` en afgekeurde tekst nooit, ook niet in
+  het denkproces (besluit 6 nov 2026). Blijft de tekst na de correctieronde afgekeurd, dan gaat hij mee met
+  het oordeel in het `grounding`-event: de controle keurt ook terechte citaten af. Daarna `collect_sources`
+  → `curate_sources` → `met_regelingnamen` → emit `sources` + `grounding`; werkt `entities_seen` bij.
+  Het afgekeurde antwoord blijft wel als modelbericht in de checkpoint staan.
 
 ### Gespreksgeheugen (checkpointer)
 
@@ -301,7 +307,7 @@ hier vandaan maar uit `bronmodel.resolve` (zie §*De annotatieketen*).
   modeltekst en nooit annotatieresultaten. Bronnen uit eerdere beurten komen alleen in de lijst als
   het antwoord hun regeling noemt.
 - **Een bijna-letterlijk citaat wordt de brontekst** (`grounding.herstel_citaten`, in `agent_node`
-  vóór het antwoord de deur uit gaat). Afwijkingen als een hoofdletter aan het begin of een punt
+  vóór de controle). Afwijkingen als een hoofdletter aan het begin of een punt
   binnen de aanhalingstekens zoekt hij hoofdletter- en witruimte-ongevoelig op in register + trace.
   Bij precies één vindplaats zet hij de brontekst terug, met een eventueel leesteken achter het
   aanhalingsteken. Alles daarbuiten (een ander woord, een weglating, eigen woorden) blijft voor
@@ -1262,7 +1268,7 @@ SPARQL was deterministisch; de keten eromheen niet. Nu is wat feitelijk is code 
    (`bwb:label`: "Artikel 79.5a" → "art. 79.5a", "79.5" → "79.5" – de Leidraad wisselt zelf, en dat
    verschil wordt niet weggepoetst), `vindplaats` per definitie (`bronmodel.vindplaats`).
 5. **Uitgangen:** een `overzicht`-event (de werkplek toont het als blok en bewaart het in
-   `Bericht.overzicht`); de samenvatting als `token`, `answer` en assistent-bericht na het
+   `Bericht.overzicht`); de samenvatting als `answer` (`finalize_node` stuurt de `token`) en assistent-bericht na het
    `tool_use`/`tool_result`-paar (`voor_model`, voor vervolgvragen); in de `source_trace` de
    vindplaatsen (`bronrijen`). Route `overzicht_bouwen → verify → finalize`; `route_after_verify` gaat
    met een overzicht nooit naar een correctieronde (die zou het model alsnog laten schrijven).
@@ -1360,7 +1366,7 @@ wie een oordeel velt over wetgeving hoort niet met een env-var te verzwakken.
 - **DI, geen globale clients.**
 - **SSE-event-contract.** De event-types zijn het contract met de werkplek; wijzig ze bewust,
   gelijktijdig en over beide wegen (`/v1/chat` én de run-events). **`reason` = het denkproces, `token` =
-  alléén het eindantwoord** – houd ze gescheiden. `waarschuwing` betekent dat de beurt slaagde maar niet
+  alléén het eindantwoord, na de controle** – houd ze gescheiden. `waarschuwing` betekent dat de beurt slaagde maar niet
   alles bewaard is; dat is iets anders dan `error`. `error` draagt `soort` (de exception-naam) naast de
   gesaniteerde melding, zodat de eval een providerstoring van een inhoudelijke fout onderscheidt.
 - **De keten meldt zich per fase, met duur, in één idioom: `Actor · wat er gebeurde`.** Alle

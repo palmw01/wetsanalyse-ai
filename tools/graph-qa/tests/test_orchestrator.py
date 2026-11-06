@@ -65,6 +65,8 @@ def test_grounding_correctie_doet_extra_ronde():
     grounding = next(e for e in events if e["type"] == "grounding")
     assert llm.index == 2                      # beide agent-rondes verbruikt (correctie liep)
     assert grounding["grounded"] is True       # na correctie gegrond
+    # Het oordeel gaat over deze tekst, en alleen deze tekst staat er.
+    assert "".join(e["content"] for e in events if e["type"] == "token") == "Herzien antwoord zonder citatie."
     assert "done" in [e["type"] for e in events]
 
 
@@ -106,8 +108,7 @@ def test_narratie_reason_antwoord_token_gescheiden():
     token = "".join(e["content"] for e in events if e["type"] == "token")
     assert "Ik zoek nu op." in reason and "Ik zoek nu op." not in token   # narratie → reason, niet in token
     assert token == "De definitie is helder."                             # eindantwoord → token (schoon)
-    # (Het eindantwoord staat óók in reason – de antwoordbeurt streamt als denkproces en de frontend
-    #  klapt dat blok dicht zodra het antwoord landt. Bewuste tradeoff: geen extra call/flikkering.)
+    assert "De definitie is helder." not in reason                        # en alleen daar (besluit 2)
 
 
 def test_beurt_narratie_krijgt_alinea_scheiding_in_reason():

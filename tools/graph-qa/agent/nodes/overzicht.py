@@ -65,7 +65,6 @@ def bouw_overzicht_node(b, state: State) -> dict[str, Any]:
     # De tekst komt uit het overzicht, niet van het model: een modelduiding ging buiten het
     # overzicht en wisselde van vorm per run. Dezelfde vraag geeft zo dezelfde tekst.
     tekst = ov_mod.samenvatting(gebouwd)
-    writer({"type": "token", "content": tekst})
     return {
         "overzicht": gebouwd,
         "answer": tekst,

@@ -31,6 +31,22 @@ def _stap(writer: Any, actor: str, bericht: str, duur_ms: int | None = None) -> 
     writer(event)
 
 
+def ronde_in_denk(writer: Any, tool_uses: list[Any], tekst: list[str], ronde: int) -> None:
+    """Zet de tekst van een afgelopen modelronde in het denkproces (`reason`), als het narratie is.
+
+    Een ronde zonder tool-aanroepen is een eindantwoord, en dat hoort daar niet: `verify` kan het nog
+    afkeuren, en het denkproces staat tijdens de beurt open (besluit 2, 6 nov 2026). Vandaar ná de
+    ronde en niet per delta: tijdens het streamen is nog niet bekend welke van de twee het is.
+
+    Op een rondegrens een alinea-scheiding, anders plakt "…tegelijkertijd." aan "De thesaurus…".
+    Een ronde zonder tekst geeft niets, dus ook geen loshangende witregel.
+    """
+    inhoud = "".join(tekst)
+    if not tool_uses or not inhoud.strip():
+        return
+    writer({"type": "reason", "content": ("\n\n" if ronde > 0 else "") + inhoud})
+
+
 def _toolregel(call: dict[str, Any]) -> str:
     """`get_lid(BWBR0004770, art. 9, lid 1)` – de tool mét waar hij naar kijkt.
 

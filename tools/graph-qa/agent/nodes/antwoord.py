@@ -16,7 +16,7 @@ from ..berichten import CORRECTIE, _parse_final, _schoon_messages, _trim_message
 from ..bronregister import bij, controletrace
 from ..focus import na_antwoord
 from ..grounding import check_grounding, curate_sources, herstel_citaten
-from ..narratie import _grounding_melding, _stap, _toolregel
+from ..narratie import _grounding_melding, _stap, _toolregel, ronde_in_denk
 from ..overzicht import bronrijen as overzicht_bronrijen
 from .overzicht import TOOL as OVERZICHT_TOOL
 from ..prompts import SYSTEM_PROMPT
@@ -58,9 +58,8 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     variabel += b.advies_context(state)
 
     # De annotatie-worker produceert JSON, geen leesbaar antwoord – díe narratie tonen we niet
-    # (annoteer_node emit straks een korte samenvatting). De narratie van een gewone worker is de
-    # "denkproces"-stroom (reason), niet het antwoord: die scheiden we van het eindantwoord (token).
-    stream_naar_denk = state.get("specialist") != "annotatie"
+    # (annoteer_node emit straks een korte samenvatting).
+    narratie_tonen = state.get("specialist") != "annotatie"
     with b.llm.stream(
         # Deze node draait twee verschillende rollen: de OPHAAL-agent (annotatieroute – zoeken
         # en ophalen) en de QA-specialisten (die het antwoord zelf schrijven). Alleen de eerste
@@ -72,17 +71,8 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         # Historie begrenzen (tegen onbegrensde promptgroei in een lange sessie); state blijft heel.
         messages=_trim_messages(_schoon_messages(state["messages"]), b.settings.max_history_chars),
     ) as stream:
-        # Beurt-narratie stroomt per beurt binnen als `reason` (het denkproces). Op een beurt-grens
-        # ontbreekt anders een scheiding, zodat "…tegelijkertijd." + "De thesaurus…" aan elkaar
-        # plakt. Emit één alinea-scheiding vóór de éérste tekst van een vervolgbeurt (turns>0).
-        # Lazy, zodat een tool-only beurt (geen tekst) geen loshangende of dubbele witregel geeft.
-        first_delta = True
-        for delta in stream.text_deltas:
-            if stream_naar_denk:
-                if first_delta and state.get("turns", 0) > 0:
-                    writer({"type": "reason", "content": "\n\n"})
-                writer({"type": "reason", "content": delta})
-            first_delta = False
+        # Geen tekst tijdens het streamen: pas aan het eind van de ronde is bekend of dit narratie is
+        # of een eindantwoord, en een eindantwoord mag pas na de controle in beeld (`finalize_node`).
         final = stream.final_message()
 
     tool_uses, text_parts = _parse_final(final)
@@ -98,6 +88,9 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
                 "Ik kon deze vraag niet binnen de beurtlimiet afronden; stel 'm eventueel gerichter."
             ]
 
+    if narratie_tonen:
+        ronde_in_denk(writer, tool_uses, text_parts, state.get("turns", 0))
+
     assistant_content: list[dict[str, Any]] = [{"type": "text", "text": p} for p in text_parts if p and p.strip()]
     assistant_content += [
         {"type": "tool_use", "id": t["id"], "name": t["name"], "input": t["input"]}
@@ -110,8 +103,8 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         "turns": state.get("turns", 0) + 1,
     }
     if not tool_uses:
-        # De tool-loze beurt is het eindantwoord: dát is de leesbare `token`-stroom (de annotatie-
-        # route levert JSON, geen antwoord – daar geen token; annoteer_node vat samen).
+        # De tool-loze beurt is het eindantwoord. Het gaat de state in en pas in `finalize_node` naar
+        # de jurist: `verify` kan het nog afkeuren.
         antwoord = "\n\n".join(p for p in text_parts if p)
         if state.get("annotaties_lezen"):
             begrensd = begrens_antwoord(antwoord, state.get("source_trace", []))
@@ -133,9 +126,9 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
                 logger.warning("leesroute begrippen: antwoord begrensd",
                                extra={"categorie": "functioneel", "run_id": state.get("run_id", "")})
             antwoord = begrensd
-        # Vóór het antwoord de deur uit gaat: een bijna-letterlijk citaat (hoofdletter, punt binnen de
-        # aanhalingstekens) wordt de brontekst. Anders zag de jurist het afgekeurde citaat al, en
-        # volgde er een volledige correctieronde voor een afwijking die mechanisch te herstellen is.
+        # Vóór de controle: een bijna-letterlijk citaat (hoofdletter, punt binnen de aanhalingstekens)
+        # wordt de brontekst. Anders volgde er een volledige correctieronde voor een afwijking die
+        # mechanisch te herstellen is.
         antwoord, hersteld = herstel_citaten(antwoord, controletrace(state))
         if hersteld:
             _stap(writer, "Controle", f"{len(hersteld)} citaat letterlijk gemaakt naar de bron"
@@ -145,8 +138,6 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
                                  if blok.get("type") == "text" else blok for blok in assistant_content]
             upd["messages"] = [{"role": "assistant", "content": assistant_content}]
         upd["answer"] = antwoord
-        if stream_naar_denk and antwoord:
-            writer({"type": "token", "content": antwoord})
     return upd
 
 def route_after_agent(b: Bouw, state: State) -> str:
@@ -331,8 +322,12 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
             "De gevonden bronnen staan hieronder; stel de vraag eventueel gerichter "
             "(bijvoorbeeld met een specifiek artikel of lid)."
         )
-        writer({"type": "token", "content": antwoord})
         state = {**state, "answer": antwoord}
+
+    # De enige plek in de antwoordketen die `token` uitstuurt: dit is de tekst die de controle zag. Een
+    # controle die volgt op publicatie houdt niets tegen, en een tekst blijft dan naast zijn correctie
+    # staan. Keurde de laatste ronde hem af, dan gaat hij mee met het oordeel in het grounding-event.
+    writer({"type": "token", "content": antwoord})
 
     if state.get("overzicht"):
         # De overzichtsroute: de bronnen zijn de vindplaatsen van het overzicht, en hangen dus niet af
