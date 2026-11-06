@@ -23,8 +23,8 @@ async function forward(req: Request, { params }: Params) {
     // dat langer dan de standaard 30 s. Koppelen (ook een nieuw begrip uit een selectie) toetst de
     // elementen tegen diezelfde inventaris.
     // De annotatie-werkvoorraad (fase B) haalt dezelfde bronbomen op, net als herbeoordelen en de
-    // dekking (fase F1).
-    ...(["elementen", "annotatie-werkvoorraad", "herbeoordelingen", "dekking"].includes(pad[1])
+    // dekking (fase F1). De export leest dat allemaal en zet er nog een PDF van.
+    ...(["export", "elementen", "annotatie-werkvoorraad", "herbeoordelingen", "dekking"].includes(pad[1])
       || (pad[1] === "begrippen" && req.method === "POST")
       ? { timeoutMs: 90_000 } : {}),
   });

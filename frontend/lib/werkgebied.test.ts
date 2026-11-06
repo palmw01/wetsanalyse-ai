@@ -151,6 +151,7 @@ describe("isWerkgebiedRoute", async () => {
     [["w", "deelvragen", "d", "koppelingen"]],
     // De bronselectie per deelvraag (spoor J).
     [["w", "bronselectie"]], [["w", "bronselectie", "d", "status"]], [["w", "bronselectie", "d", "kandidaten", "K1"]],
+    [["w1", "export"]],
   ])("laat %j door", (pad) => expect(isWerkgebiedRoute(pad)).toBe(true));
   it.each([
     [[]], [["w", "onbekend"]], [["w", "elementen", "x"]], [["w", "bronnen", "s", "x"]],
@@ -181,6 +182,7 @@ describe("isWerkgebiedRoute", async () => {
     [["w", "deelvragen", "d", "koppelingen", "x"]],
     [["w", "bronselectie", "d"]], [["w", "bronselectie", "d", "kandidaten"]], [["w", "bronselectie", "d", "wissen"]],
     [["w", "bronselectie", "d", "kandidaten", "K1", "x"]],
+    [["w1", "export", "pdf"]],
   ])("weigert %j", (pad) => expect(isWerkgebiedRoute(pad)).toBe(false));
 });
 
