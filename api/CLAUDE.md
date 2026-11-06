@@ -190,6 +190,14 @@ Hieronder wat je moet weten om de code te wijzigen.
   `herkomst_regels` zet het spoor om in de leesbare namen uit `verklaringen.json`, met dezelfde
   opzoekregels als `frontend/lib/waarom.ts`. De oude CSV-kolommen blijven vooraan staan; nieuwe komen
   erachter. TriG bouwt per laag met `laag_invoer` + `bouw_graaf`, dus exact wat de projectie schrijft.
+- **`/samenhang/antwoord`** (`samenhang_antwoord.py`) is de ketting bij een antwoord: per doel de keten
+  erboven, het doel, één niveau eronder, de markeringen daarop (boven `MAX_MARKERINGEN` alleen de telling), de
+  begrippen die daar gelden en de uitgaande verwijzingen, zonder broers en zonder klasseknopen. Een wettelijk
+  begrip komt uit `bwb:definieertBegrip` en staat er alleen als de term letterlijk in de getoonde tekst staat én
+  het doel binnen het geldingsbereik valt (formules in `bronmodel.definities`, op te lossen via de boom; niet op te
+  lossen is niet tonen). `komt_voor_in` zegt dus alleen dat de term er letterlijk staat. Een begrip uit een
+  werkgebied hangt aan een getoonde markering; in een los gesprek alleen geaccordeerde generieke begrippen.
+  `begrippen_beschikbaar: false` bij een haperende graaf, nooit "geen begrippen".
 - **`/samenhang`** (`samenhang.py`) geeft drie soorten relaties en niets anders: de bronboom, de
   letterlijke verwijzingen uit de BWB-import (één stap in en uit, max. `MAX_VERWIJZINGEN`) en de
   actuele markeringen. Er wordt niets afgeleid. Een doel buiten de boom krijgt een leesbaar label:
