@@ -199,13 +199,18 @@ async def _bewaar_snapshot(conn, snapshot: dict):
         await conn.execute(insert(table).values(id=snapshot["snapshot_id"], inhoud=snapshot))
 
 
+def _heropen_eerst(melding: str) -> HTTPException:
+    """Afgerond werk is alleen-lezen tot het heropend is. graph-qa herkent dit aan de code, de werkplek toont `melding`."""
+    return HTTPException(409, {"fout": "heropen_nodig", "melding": melding})
+
+
 async def _laag(conn, layers: dict, iri: str, snapshot_id: str, expected: dict) -> dict:
     layer = layers.get(iri)
     revision = layer["revisie"] if layer else 0
     if expected.get(iri, 0) != revision:
         raise HTTPException(412, {"fout": "revisie_conflict", "bron_iri": iri, "revisie": revision})
     if layer and layer["status"] != "in_review":
-        raise HTTPException(409, "Heropen de laag voordat je haar wijzigt.")
+        raise _heropen_eerst("Heropen de laag voordat je haar wijzigt.")
     if layer is None:
         layer = dict(id=uuid.uuid4().hex, bron_iri=iri, revisie=0, status="in_review",
                      snapshot_id=snapshot_id, geprojecteerd_revisie=0, updated=db.utcnow())
@@ -529,7 +534,7 @@ async def _beslis_in(conn, element_id: str, req, verwacht: dict[str, int], snaps
     touched.setdefault(old["eigenaar_iri"], await _laag(conn, layers, old["eigenaar_iri"], snapshot_id, verwacht))
     frozen = old["lifecycle"] in VERGRENDELD and (old.get("herkomst") != "mens" or heeft_oordeel(old))
     if frozen and req.type not in {"heropen", "comment"}:
-        raise HTTPException(409, "Heropen het element voordat je het wijzigt.")
+        raise _heropen_eerst("Heropen het element voordat je het wijzigt.")
     value = dict(old)
     wijziging = req.wijziging
     if req.type in {"edit", "grens"}:
@@ -598,9 +603,10 @@ async def beslis_laag(laag_id: str, req: Laagbesluiten, snapshot: dict, actor: s
                 value = await _beslis_in(conn, besluit.element_id, besluit, {layer["bron_iri"]: req.verwachte_revisie},
                                          snapshot, actor, layers, touched)
             except HTTPException as exc:
-                if exc.status_code == 409 and isinstance(exc.detail, str):
+                reden = exc.detail.get("melding") if isinstance(exc.detail, dict) else exc.detail
+                if exc.status_code == 409 and isinstance(reden, str):
                     raise HTTPException(409, {"fout": "besluit_geweigerd", "element_id": besluit.element_id,
-                                              "melding": f"Er is niets vastgelegd. {exc.detail}"}) from exc
+                                              "melding": f"Er is niets vastgelegd. {reden}"}) from exc
                 raise
             uit.append({"id": value["id"], "klasse": value["klasse"], "lifecycle": value["lifecycle"]})
         await _bewaar_snapshot(conn, snapshot)

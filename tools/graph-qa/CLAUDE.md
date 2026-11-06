@@ -88,7 +88,9 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
 - **`tools_node`** – voert elke aanroep uit via `dispatch(...)` en voegt `(tool_naam, resultaat)` toe
   aan de `source_trace`. Dezelfde aanroep (naam + argumenten) gaat in één beurt één keer naar de graaf; een herhaling krijgt
   het bewaarde resultaat met `HERHAALD` (`_al_gedaan`, uit de berichten van de beurt). Elke aanroep houdt zijn resultaat,
-  want het model eist er een.
+  want het model eist er een. Een fout (`resultaat.is_fout`, dezelfde toets als de MCP-server) draagt `is_error` en mag
+  één keer opnieuw (`MAX_POGINGEN`): een tijdelijke storing zegt niets over de graaf, een blijvende mag de beurtlimiet niet
+  opeten.
 - **`verify_node`** – `check_grounding(answer, source_trace)`. Bij ongegrond volgt via `correct_node`
   hoogstens één corrigerende ronde (`GROUNDING_CORRECT`, default aan; `state["corrected"]`). De controle
   keurt **twee** dingen af en `correct_node` moet ze allebei benoemen: `unsupported` (een vindplaats die
@@ -109,7 +111,12 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
 (getrimd op `MAX_HISTORY_CHARS`; oudere tool-resultaten krimpen eerst, maar **de lopende beurt
 krimpt nooit** – `berichten.beurt_start` – anders leest het model zijn verse resultaat als
 "ingekort, vraag opnieuw op" en zoekt het in een lus; de opslagrem `berichten.MAX_HISTORIE_CHARS` hoort ruim daarboven te
-liggen, `Settings.controleer_historie_grens` waarschuwt). De annotatie-worker laat een korte
+liggen, `Settings.controleer_historie_grens` waarschuwt). `agent_node` geeft daarom de vraag mee aan
+`_trim_messages`: zonder telt een correctiebericht als begin van de beurt, en krimpt de brontekst die het model
+moet herstellen. **Een `tool_use` zonder `tool_result` gaat niet naar het model** (`_schoon_messages`): de
+checkpointer bewaart de aanroep vóór `tools_node` draait, dus stoppen, een crash of de stappenlimiet laat hem open
+staan, en Anthropic weigert dan elke volgende beurt. Hij valt weg bij elke beurt, dus ook bestaande gesprekken
+herstellen; `tests/test_gesprek_blijft_bruikbaar.py` breekt een beurt op elke nodegrens af. De annotatie-worker laat een korte
 samenvatting van de markeringen achter, zodat vervolgvragen context hebben. Backend
 (`agent.py:_checkpointer_ctx`, voorrang): `CHECKPOINT_DB_URL` → `AsyncPostgresSaver` (gedeeld,
 verplicht bij >1 replica) → `CHECKPOINT_DB_PATH` → `AsyncSqliteSaver` (per instance; de default is een

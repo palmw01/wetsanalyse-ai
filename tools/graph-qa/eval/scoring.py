@@ -533,7 +533,7 @@ _INFRA_SIGNALEN = (
 # draagt daarom ook `soort` (de exception-naam).
 _INFRA_SOORTEN = (
     "APIStatusError", "APITimeoutError", "APIConnectionError", "RateLimitError",
-    "InternalServerError", "ServiceUnavailableError", "ReadTimeout", "ConnectError",
+    "InternalServerError", "ServiceUnavailableError", "OverloadedError", "ReadTimeout", "ConnectError",
 )
 
 

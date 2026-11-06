@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections import Counter
 from typing import Any
 
 from langgraph.config import get_stream_writer
@@ -22,6 +23,7 @@ from .overzicht import TOOL as OVERZICHT_TOOL
 from ..prompts import SYSTEM_PROMPT
 from ..provenance import collect_sources
 from ..regelingnamen import met_regelingnamen
+from ..resultaat import is_fout
 from ..specialists import DEFAULT as DEFAULT_SPECIALIST
 from ..specialists import get as get_specialist
 from ..state import State
@@ -69,7 +71,8 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         system=[stabiel, variabel],
         tools=anthropic_schemas(only=spec.tools),
         # Historie begrenzen (tegen onbegrensde promptgroei in een lange sessie); state blijft heel.
-        messages=_trim_messages(_schoon_messages(state["messages"]), b.settings.max_history_chars),
+        messages=_trim_messages(_schoon_messages(state["messages"]), b.settings.max_history_chars,
+                                state.get("question", "")),
     ) as stream:
         # Geen tekst tijdens het streamen: pas aan het eind van de ronde is bekend of dit narratie is
         # of een eindantwoord, en een eindantwoord mag pas na de controle in beeld (`finalize_node`).
@@ -152,11 +155,18 @@ def _sleutel(tu: dict[str, Any]) -> str:
     return tu["name"] + json.dumps(tu.get("input") or {}, sort_keys=True, ensure_ascii=False)
 
 
+#: Hoe vaak dezelfde aanroep in één beurt mag mislukken voor het resultaat vaststaat. Een tijdelijke fout
+#: verdient een tweede kans, een blijvende (ongeldig argument) mag de beurtlimiet niet opeten.
+MAX_POGINGEN = 2
+
+
 def _al_gedaan(state: State) -> dict[str, str]:
-    """Wat deze beurt al opvroeg: aanroep → resultaat, uit de berichten van de beurt."""
+    """Wat deze beurt al opvroeg: aanroep → resultaat, uit de berichten van de beurt. Een mislukte aanroep
+    telt pas na `MAX_POGINGEN`: een fout zegt niets over de graaf."""
     messages = state.get("messages", [])
     aanroepen: dict[str, str] = {}
     uit: dict[str, str] = {}
+    mislukt: Counter[str] = Counter()
     for m in messages[beurt_start(messages, state.get("question", "")):]:
         inhoud = m.get("content")
         for blok in inhoud if isinstance(inhoud, list) else []:
@@ -165,12 +175,21 @@ def _al_gedaan(state: State) -> dict[str, str]:
             if blok.get("type") == "tool_use":
                 aanroepen[blok.get("id", "")] = _sleutel(blok)
             elif blok.get("type") == "tool_result" and blok.get("tool_use_id") in aanroepen:
-                uit[aanroepen[blok["tool_use_id"]]] = str(blok.get("content", ""))
+                sleutel = aanroepen[blok["tool_use_id"]]
+                mislukt[sleutel] += 1 if blok.get("is_error") else 0
+                if not blok.get("is_error") or mislukt[sleutel] >= MAX_POGINGEN:
+                    uit[sleutel] = str(blok.get("content", ""))
     return uit
 
 
 HERHAALD = ("\n\nDezelfde aanroep met dezelfde argumenten is in deze beurt al uitgevoerd; dit is dat resultaat. "
             "Herhaal hem niet, ook niet als er niets gevonden is.")
+
+
+def _tool_result(tu: dict[str, Any], tekst: str) -> dict[str, Any]:
+    """Het resultaat van één aanroep; een fout draagt `is_error`, ook voor `_al_gedaan` straks."""
+    fout = is_fout(tekst.removesuffix(HERHAALD))
+    return {"type": "tool_result", "tool_use_id": tu["id"], "content": tekst, **({"is_error": True} if fout else {})}
 
 
 def tools_node(b: Bouw, state: State) -> dict[str, Any]:
@@ -187,12 +206,12 @@ def tools_node(b: Bouw, state: State) -> dict[str, Any]:
     for tu in pending:
         sleutel = _sleutel(tu)
         if sleutel in gedaan:
-            results.append({"type": "tool_result", "tool_use_id": tu["id"], "content": gedaan[sleutel].removesuffix(HERHAALD) + HERHAALD})
+            results.append(_tool_result(tu, gedaan[sleutel].removesuffix(HERHAALD) + HERHAALD))
             continue
         result_text = execute_tool(b, state, writer, tu)
         gedaan[sleutel] = result_text
         trace.append((tu["name"], result_text))
-        results.append({"type": "tool_result", "tool_use_id": tu["id"], "content": result_text})
+        results.append(_tool_result(tu, result_text))
     return {
         "messages": [{"role": "user", "content": results}],  # delta
         "source_trace": trace,
