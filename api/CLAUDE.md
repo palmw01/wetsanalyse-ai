@@ -386,8 +386,8 @@ spoor D (*Werkgebied als node*).
   een rol. Het werkgebiedslot maakt dit race-vrij; `GET …/begrippen` geeft per element het primaire
   begrip mee (`primair`).
 - **De poort** (`begrip_store.poort`) staat bij elke GET als `accorderen: {mag, redenen}`; accorderen
-  zonder geeft 409 `{fout: "poort", redenen}`. Voorwaarden: definitie, toelichting (`context`),
-  minstens één aanduidende passage, en elke dragende koppeling (`duiding`/`definitie`, niet
+  zonder geeft 409 `{fout: "poort", redenen}`. Voorwaarden: definitie, toelichting (`context`; de gegenereerde
+  vindplaatsregel "Komt voor in …" telt niet, `eigen_toelichting`, S6), minstens één aanduidende passage, en elke dragende koppeling (`duiding`/`definitie`, niet
   afgewezen) beoordeeld, actueel en op een door een jurist beoordeelde annotatie. Een voorbeeld is
   geen voorwaarde. Elke analist mag accorderen; de revisie en de audit leggen vast wie.
 - **Verwijderen is echt wissen** (`DELETE …/begrippen/{id}`, `begrip_store.verwijder`/`wis_begrippen`):
@@ -516,7 +516,9 @@ uitleg in B1, alleen op een definitie – anders 409 `geen_definitie`, net als `
   toegevoegd, nooit vervangen; wat er al staat, geeft geen revisie (wel het besluit).
 - **Het bewijs blijft na overnemen** (spoor M): `GET` van een begrip draagt `definitie_onderbouwing`,
   afgeleid uit het voorstel achter de revisie die de huidige definitie zette (fragmenten met rol
-  `ondersteunend`, vindplaats, duiding, `onderzoek_id`); met de hand gewijzigd of aangepast: `null`.
+  `ondersteunend`, vindplaats, duiding, `onderzoek_id`). Paste de analist de definitie aan, bij het overnemen of later,
+  dan blijft ze staan met `aangepast: true` (S8), en de projectie noemt die bronnen dan niet meer als onderbouwing;
+  `null` als er nooit een voorstel of groep achter zat.
   Langs overnemen en akkoord op een groep staat de onderbouwing bevroren in het revisiedetail van het
   aanmaken (`detail.onderbouwing`: `groep_id`, `run_id`, de kaart of het letterlijke voorstel), zodat een
   latere verdieping haar niet verandert.
@@ -550,7 +552,9 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
   (`inventaris_met_bronbomen`) en zet per anker `bron_signalen`: `ongewijzigd`, `gewijzigd` (met
   `fragment_gelijk`: staat het gemarkeerde fragment nog letterlijk op zijn offsets), `weg` of `onbekend`
   (regeling niet op te halen – een open punt, nooit "ongewijzigd").
-- **Het bewijs verandert nooit.** Per geraakte koppeling: `toen` (het bewijs), `nu` (het element),
+- **Het bewijs verandert nooit.** Een koppeling leest als `bewijs` de laatst bevestigde stand
+  (`begrip_store.bevestigde_stand`, ook in de export en `wa:passage`), en als `bewijs_bij_koppelen` de stand van toen; de
+  rij zelf blijft ongemoeid (N2). Per geraakte koppeling: `toen` (die bevestigde stand), `nu` (het element),
   `bron`, `redenen` (zinnen voor de werkplek), `opvolgers`, `opnieuw_annoteren` en `acties`.
 - **Opvolgers** (`opvolgers`, zuiver): herannotatie maakt een nieuw element met een nieuw id. Kandidaat =
   actueel element op een bronnode van de oude ankers of met dezelfde eigenaar; signalen met richting
@@ -619,7 +623,7 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
   context, `example` = voorbeelden met oordeel *wel*; *niet* is `wa:tegenvoorbeeld`, *onzeker*
   `wa:grensgeval`; de bronnen van de overgenomen definitie zijn ook `dct:source`, met `wa:rol
   "definitieonderbouwing"` – een alleen onderzochte bron niet, `inScheme`, `dct:source` → `foaf:Document` met
-  vindplaats). Eigen predicaten onder `urn:wa-ns:`: status, revisie, herkomst en `definitieDoor`,
+  vindplaats en `dct:title`, de vindplaats of bij een bron zonder passage de naam uit de IRI). Eigen predicaten onder `urn:wa-ns:`: status, revisie, herkomst en `definitieDoor`,
   JAS-klasse (IRI uit de vocabulaire), geaccordeerd-op, en per koppeling (`urn:wa:koppeling:<id>`) rol,
   beoordeling, element (`urn:jas:element:<id>`), `elementHash` (de bewijsstand, of de laatste bevestiging)
   en de bronnode. **Alle begrippen met hun status**, ook concepten en vervangen begrippen.

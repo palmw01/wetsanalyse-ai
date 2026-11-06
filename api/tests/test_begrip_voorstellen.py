@@ -292,7 +292,7 @@ async def test_afwijzen_laat_het_begrip_staan(client):
 async def test_overnemen_maakt_een_geaccordeerd_begrip_weer_concept(client):
     ids, wg, _ = await _voorstel(client, lambda ids: _alfa(ids, definitie="Alfa Alfa", definitie_vindplaats=LID1))
     await _keur_goed(ids["alfa1"], ids["alfa2"])
-    b = (await _akkoord(client, wg, groep_ids=["Gaaa111"])).json()["begrip"]
+    b = (await _akkoord(client, wg, groep_ids=["Gaaa111"], aanpassing={"context": "Alleen de eerste."})).json()["begrip"]
     # Het akkoord op een voorstel van Lex legt ook vast dat de definitie van Lex komt.
     assert (b["status"], b["inhoud"]["definitie_door"]) == ("geaccordeerd", "lex")
     run = await _run(client, wg, b, status=201)
@@ -343,11 +343,12 @@ async def test_na_overnemen_draagt_het_begrip_de_onderbouwing_van_zijn_definitie
     assert "definitie_onderbouwing" not in nu["inhoud"]                 # de inhoud blijft slank
     # Over werkgebieden heen leest hetzelfde detail.
     assert (await client.get(f"/v1/begrippen/{b['id']}")).json()["begrip"]["definitie_onderbouwing"] == o
-    # Wijzigt de analist de definitie, dan rust ze niet meer op dat voorstel.
+    # Wijzigt de analist de definitie, dan blijft zichtbaar waar ze vandaan komt (S8), met die melding erbij.
     r = await client.patch(_pad(wg, b), json={"verwachte_revisie": nu["revisie"],
                                               "inhoud": {**nu["inhoud"], "definitie": "Iets anders."}})
     assert r.status_code == 200, r.text
-    assert (await client.get(_pad(wg, b))).json()["definitie_onderbouwing"] is None
+    o = (await client.get(_pad(wg, b))).json()["definitie_onderbouwing"]
+    assert o["aangepast"] is True and o["voorstel_id"] == v["id"]
 
 
 async def test_de_projectie_noemt_de_onderbouwing_en_houdt_tegenvoorbeelden_buiten_skos_example(client):

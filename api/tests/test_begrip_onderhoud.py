@@ -110,7 +110,8 @@ async def test_fragment_nog_letterlijk_dan_bevestigen_met_een_tweede_bewijsstand
     assert r.status_code == 200, r.text
     b2 = r.json()
     [kb] = b2["koppelingen"]
-    assert kb["bewijs"] == next(x for x in b["koppelingen"])["bewijs"]      # het bewijs is onveranderd
+    assert kb["bewijs_bij_koppelen"] == next(x for x in b["koppelingen"])["bewijs"]      # de stand van toen blijft
+    assert kb["bewijs"]["ankers"] == kb["bevestigingen"][-1]["ankers"]                     # lezen toont de bevestigde
     [bev] = kb["bevestigingen"]
     assert (bev["door"], bev["motivatie"]) == ("jurist-a", "Alleen aangevuld.")
     assert b2["status"] == "geaccordeerd" and b2["revisie"] == b["revisie"] + 1
@@ -136,7 +137,8 @@ async def test_een_gewijzigde_annotatie_bevestigen_maakt_haar_weer_actueel(clien
     r = await client.post(_url(wg, b, "koppelingen", k["koppeling_id"], "bevestigen"),
                           json={"verwachte_revisie": h["revisie"]})
     [kb] = r.json()["koppelingen"]
-    assert kb["actualiteit"] == "actueel" and kb["bewijs"]["klasse"] == "Rechtssubject"
+    assert kb["actualiteit"] == "actueel" and kb["bewijs_bij_koppelen"]["klasse"] == "Rechtssubject"
+    assert kb["bewijs"]["klasse"] == kb["bevestigingen"][-1]["klasse"] != "Rechtssubject"      # N2
     assert b["status"] == "concept" and r.json()["status"] == "concept"
 
 

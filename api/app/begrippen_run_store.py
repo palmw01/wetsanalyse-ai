@@ -514,7 +514,7 @@ async def _neem_over(werkgebied: dict, o: Overname, actor: str, resolve: Resolve
         _kies_leden(rows, leden, run)
         bid = await begrip_store.maak_in(conn, wid, inhoud, bewijs, "duiding", actor,
                                          "akkoord" if akkoord else "open",
-                                         onderbouwing=None if "definitie" in velden else _onderbouwing(rows, o, inhoud, run))
+                                         onderbouwing=_onderbouwing(rows, o, inhoud, run, "definitie" in velden))
         p = await begrip_store.accordeer_in(conn, wid, bid, 1, actor) if akkoord else None
         detail = {"geaccordeerd": p["mag"], **({"aangepast": velden} if velden else {})} if akkoord else {}
         await _verwerk(conn, wid, rows, leden, actor, bid, "overgenomen",
@@ -526,20 +526,27 @@ async def _neem_over(werkgebied: dict, o: Overname, actor: str, resolve: Resolve
     return {"begrip": begrip, "geaccordeerd": begrip["status"] == "geaccordeerd", "poort": begrip["accorderen"]}
 
 
-def _onderbouwing(rows, o: Overname, inhoud: dict, run) -> dict | None:
+def _onderbouwing(rows, o: Overname, inhoud: dict, run, aangepast: bool = False) -> dict | None:
     """Waarop de overgenomen definitie rust, bevroren zoals het bewijs van een koppeling (spoor M): de
     kaart van de groep die haar leverde (fragmenten, bron, vindplaats, duiding), of de letterlijke
-    definitie van de keten. Een latere verdieping kan de kaart van de groep nog veranderen; dit niet."""
+    definitie van de keten. Een latere verdieping kan de kaart van de groep nog veranderen; dit niet. Paste de analist
+    de definitie aan, dan blijft dit staan met `aangepast` (S8): de groep waarvan hij uitging, als die vaststaat."""
     definitie = inhoud.get("definitie")
     if not definitie:
         return None
     gekozen = getattr(o, "definitie_van", None)
-    x = next((x for x in rows if (x.id == gekozen if gekozen else (_definitie_uit(x) or ("",))[0] == definitie)), None)
+    if aangepast:
+        x = next((x for x in rows if x.id == gekozen), rows[0] if len(rows) == 1 else None)
+        definitie = (_definitie_uit(x) or ("",))[0] if x is not None else ""
+        if not definitie:
+            return None
+    else:
+        x = next((x for x in rows if (x.id == gekozen if gekozen else (_definitie_uit(x) or ("",))[0] == definitie)), None)
     if x is None:
         return None
     k = x.kaart or {}
     bron = k if k.get("definitie") == definitie else x.voorstel
-    return {"groep_id": x.id, "run_id": run.id if run else "", "herkomst": inhoud.get("definitie_herkomst", ""),
+    return {"aangepast": aangepast, "groep_id": x.id, "run_id": run.id if run else "", "herkomst": inhoud.get("definitie_herkomst", ""),
             "definitie_bron_iri": bron.get("definitie_bron_iri", ""), "definitie_vindplaats": _definitie_vindplaats(x),
             "fragmenten": [{f: v[f] for f in ("bron_iri", "start", "eind", "tekst")} for v in bron.get("fragmenten") or []],
             "duiding": bron.get("duiding"), "onderzoek_id": (run.onderzoek_id or "") if run else ""}

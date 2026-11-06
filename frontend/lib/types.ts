@@ -1226,6 +1226,8 @@ export interface Begrip extends BegripBasis {
 
 /** Afgeleid van `api/app/begrip_store.py:definitie_onderbouwing`. */
 export interface DefinitieOnderbouwing {
+  /** De analist paste de definitie aan: dit is waar Lex mee begon, niet wat de tekst van nu draagt. */
+  aangepast?: boolean;
   herkomst: string;
   definitie_bron_iri: string;
   definitie_vindplaats: string;

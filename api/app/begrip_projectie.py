@@ -44,6 +44,8 @@ from rdflib import Graph, Literal, Namespace, RDF, RDFS, URIRef
 from sqlalchemy import select
 
 from . import db
+from bronmodel.vindplaats import vindplaats as bronmodel_vindplaats
+
 from .config import get_settings
 from .graaf_projectie_v2 import _lit, _repo, _select, element_iri
 
@@ -58,7 +60,7 @@ ISOTHES = Namespace("http://purl.org/iso25964/skos-thes#")
 XSD = Namespace("http://www.w3.org/2001/XMLSchema#")
 SH = Namespace("http://www.w3.org/ns/shacl#")
 
-SCHEMA_VERSIE = 1
+SCHEMA_VERSIE = 2
 REGISTER = URIRef("urn:wa:graph:register:begrippen")
 NL_SBB_VERSIE = "1.0.0"
 NL_SBB = URIRef("https://docs.geostandaarden.nl/nl-sbb/def-st-nl-sbb-20241010/")
@@ -139,21 +141,23 @@ async def invoer(conn, werkgebied_id: str) -> dict | None:
                                           .order_by(k.c.id))).all() if eigen else []
         relaties = (await conn.execute(select(r).where(r.c.werkgebied_id == werkgebied_id, r.c.verwijderd.is_(None),
                                                        r.c.beoordeling == "akkoord").order_by(r.c.id))).all()
-    from .begrip_store import definitie_onderbouwing      # begrip_store schrijft; de projectie leest alleen
+    from .begrip_store import bevestigde_stand, definitie_onderbouwing  # begrip_store schrijft; de projectie leest alleen
     onderbouwing = {}
     for x in begrippen:
         o = await definitie_onderbouwing(conn, x.id, x.inhoud)
+        if o and o.get("aangepast"):                      # een aangepaste tekst rust niet meer op die bronnen
+            o = None
         iris = sorted({f["bron_iri"] for f in (o or {}).get("fragmenten") or []}
                       | ({o["definitie_bron_iri"]} if o and o.get("definitie_bron_iri") else set()))
         if iris:
             onderbouwing[x.id] = iris
     per_begrip: dict[str, list[dict]] = {}
     for x in koppelingen:
-        bewijs = x.bewijs or {}
+        bewijs = bevestigde_stand(x.bewijs or {}, x.bevestigingen)
         ankers = bewijs.get("ankers") or []
         per_begrip.setdefault(x.begrip_id, []).append({
             "id": x.id, "element_id": x.element_id, "rol": x.rol, "beoordeling": x.beoordeling,
-            "element_hash": (x.bevestigingen or [{}])[-1].get("element_hash") or bewijs.get("element_hash", ""),
+            "element_hash": bewijs.get("element_hash", ""),
             "vindplaats": bewijs.get("vindplaats", ""), "tekst": bewijs.get("tekst", ""),
             "bron": sorted({a["bron_iri"] for a in ankers if a.get("bron_iri")}) or
                     ([bewijs["eigenaar_iri"]] if bewijs.get("eigenaar_iri") else [])})
@@ -238,6 +242,11 @@ def bouw_graaf(inv: dict, paginas: dict[str, str] | None = None, uitgevers: dict
     return g
 
 
+def _leesbaar(bron_iri: str) -> str:
+    vp = bronmodel_vindplaats(bron_iri)
+    return vp.label if vp and vp.label else bron_iri
+
+
 def _begrip(g: Graph, kader: URIRef, b: dict, paginas: dict[str, str], uitgevers: dict[str, str]) -> None:
     c, i = begrip_iri(b["id"]), b["inhoud"]
     g.add((c, RDF.type, SKOS.Concept))
@@ -292,6 +301,8 @@ def _begrip(g: Graph, kader: URIRef, b: dict, paginas: dict[str, str], uitgevers
         g.add((c, DCT.source, doc))
         g.add((doc, RDF.type, FOAF.Document))
         g.add((doc, WA.bron, URIRef(bron)))
+        # NL-SBB wil een naam op het brondocument; een bron die alleen de definitie onderbouwt heeft geen vindplaats.
+        g.add((doc, DCT.title, _nl(vindplaats or _leesbaar(bron))))
         if vindplaats:
             g.add((doc, RDFS.label, _nl(vindplaats)))
             g.add((doc, DCT.bibliographicCitation, Literal(vindplaats)))
