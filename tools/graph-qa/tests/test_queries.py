@@ -30,6 +30,11 @@ def test_get_artikel_bouwt_iri_en_leden():
     assert "bwb:heeftLid" in sparql
 
 
+def test_inkomend_op_een_artikel_telt_verwijzingen_naar_zijn_leden_mee():
+    """Sinds de importer de hele verwijzing volgt, wijst "artikel 25, derde lid" naar het lid."""
+    assert "?node (bwb:heeftLid|bwb:heeftOnderdeel)* ?doel" in q.verwijst_naar_deze("BWBR0018472", "25")
+
+
 def test_get_lid_iri():
     assert "<urn:bwb:BWBR0004770:artikel:9:lid:1>" in q.get_lid("BWBR0004770", "9", "1")
 

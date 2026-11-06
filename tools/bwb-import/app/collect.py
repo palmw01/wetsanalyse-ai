@@ -32,6 +32,7 @@ from app.models import (
     Wet,
 )
 from app.references import (
+    deeldoelen,
     detect_textual_references,
     jci_doel,
     jci_doel_ref_key,
@@ -467,7 +468,7 @@ class _Collector:
         tekstuele fallback ongetagde verwijzingen in de lopende tekst
         (``soort=tekstueel``, ``betrouwbaarheid=laag``).
         """
-        gezien: set[tuple[str, str]] = set()
+        gezien: set[tuple[str, ...]] = set()
         artikelnummers: set[str] = set()
 
         for verwijzing in refs:
@@ -494,7 +495,11 @@ class _Collector:
                 artikelnummers.add(to_art)
             if to_key == ref_key:
                 continue  # zelfverwijzing
-            sleutel = (to_key, verwijzing.soort.value)
+            # De jci noemt alleen het artikel; lid en onderdeel staan in de tekst. Of ze bestaan,
+            # beslist `koppel_deelverwijzingen`, als alle wetten van de run bekend zijn.
+            delen = deeldoelen(verwijzing.tekst, to_art) if doel_soort == "artikel" else []
+            sleutels = [d.sleutel(to_key) for d in delen]
+            sleutel = (to_key, verwijzing.soort.value, *sleutels)
             if sleutel in gezien:
                 continue
             gezien.add(sleutel)
@@ -502,9 +507,10 @@ class _Collector:
                 {
                     "from": ref_key,
                     "to": to_key,
+                    "deelsleutels": sleutels,
                     "to_bwb": to_bwb,
                     "to_nummer": _doel_nummer(to_key, doel_soort, to_art),
-                    "doel_lid": to_lid,
+                    "doel_lid": ", ".join(d.lid for d in delen if d.lid) or to_lid,
                     "doel_soort": doel_soort,
                     "doel_pad": verwijzing.doel_pad,
                     "soort": verwijzing.soort.value,
@@ -612,6 +618,72 @@ def koppel_structuurverwijzingen(batch: Batch, index: dict[str, str]) -> int:
         if volledig and volledig != to_key:
             rij["to"] = volledig
             gekoppeld += 1
+    return gekoppeld
+
+
+def bepalingsindex(batches: Iterable[Batch]) -> set[str]:
+    """De sleutels van alle leden en onderdelen in deze run, over de wetten heen."""
+    return {
+        props["ref_key"]
+        for batch in batches
+        for entiteit in ("Lid", "Onderdeel")
+        for props in batch.nodes.get(entiteit, [])
+        if props.get("ref_key")
+    }
+
+
+def _meest_specifiek(sleutel: str, bekend: set[str]) -> str | None:
+    """De sleutel zelf of de dichtstbijzijnde ouder die bestaat: onderdeel, dan lid, nooit het artikel."""
+    while "#lid=" in sleutel or "#o=" in sleutel:
+        if sleutel in bekend:
+            return sleutel
+        sleutel = sleutel.rpartition("#")[0]
+    return None
+
+
+def koppel_deelverwijzingen(batch: Batch, bekend: set[str]) -> int:
+    """Laat een verwijzing uitkomen op het lid of onderdeel dat haar tekst noemt.
+
+    De jci van een verwijzing stopt bij het artikel, de tekst niet: "artikel 25, derde lid". Daarom
+    wijst `bwb:verwijstNaar` naar elk genoemd lid of onderdeel dat echt bestaat, ook als het er meer
+    zijn ("eerste en tweede lid"). Bestaat een onderdeel niet, dan het lid eromheen.
+
+    **Het artikel is de terugval**, en `bwb:doelLid` bewaart dan wat de tekst noemde. Dat is ook de
+    uitkomst voor een doel in een wet die niet in de run zit: een open lid-IRI is van geen enkele
+    query te bereiken, het artikel wel. Dezelfde lijn als `structuurindex`: wat niet vaststaat, wordt
+    niet gegokt.
+
+    Geeft terug hoeveel verwijzingen fijner zijn geworden (voor de logregel).
+    """
+    gekoppeld = 0
+    rijen: list[dict] = []
+    gezien: set[tuple[str, str, str]] = set()
+
+    def voeg_toe(rij: dict) -> None:
+        sleutel = (rij["from"], rij["to"], rij["soort"])
+        if sleutel not in gezien and rij["from"] != rij["to"]:
+            gezien.add(sleutel)
+            rijen.append(rij)
+
+    for rij in batch.verwijzingen:
+        doelen = dict.fromkeys(
+            d for d in (_meest_specifiek(s, bekend) for s in rij.pop("deelsleutels", [])) if d
+        )
+        if not doelen:
+            voeg_toe(rij)
+            continue
+        gekoppeld += 1
+        for doel in doelen:
+            lid = re.search(r"#lid=([^#]+)", doel)
+            voeg_toe(
+                {
+                    **rij,
+                    "to": doel,
+                    "doel_soort": "onderdeel" if "#o=" in doel else "lid",
+                    "doel_lid": lid.group(1) if lid else None,
+                }
+            )
+    batch.verwijzingen[:] = rijen
     return gekoppeld
 
 

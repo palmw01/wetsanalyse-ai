@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<toestand xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" bwb-ng-vast-deel="http://wetten.overheid.nl/id/BWBR0018472/2026-10-01/0" xsi:noNamespaceSchemaLocation="https://repository.officiele-overheidspublicaties.nl/Schema/BWB-toestand/2016-1/xsd/toestand_2016-1.xsd" bwb-id="BWBR0018472" inwerkingtreding="2026-10-01"><wetgeving soort="wet" stam-id="7134623" versie-id="12034962" id="C16139931" label-id="7123014" inwerkingtredingsdatum="2005-09-01">
+  <intitule bwb-ng-variabel-deel="/Intitule" stam-id="7134643" versie-id="12034252" id="C16139221" label-id="7122304" inwerking="2005-09-01" bron="Stb.2005-344" effect="nieuwe-regeling" ondertekening_bron="2005-06-23" publicatie_bron="2005-07-05" publicatie_iwt="2005-07-05" status="goed">Wet van 23 juni 2005 tot harmonisatie van inkomensafhankelijke regelingen (Algemene wet inkomensafhankelijke regelingen)<meta-data/></intitule>
+  <citeertitel bwb-ng-variabel-deel="/Citeertitel" status="officieel" stam-id="7134653" versie-id="12034262" id="C16139231" label-id="7122314" inwerking="2005-09-01" bron="Stb.2005-344" effect="nieuwe-regeling" ondertekening_bron="2005-06-23" publicatie_bron="2005-07-05" publicatie_iwt="2005-07-05">Algemene wet inkomensafhankelijke regelingen<meta-data/></citeertitel>
+  <wet-besluit>
+    <wettekst>
+      <hoofdstuk bwb-ng-variabel-deel="/Hoofdstuk1" stam-id="7134823" versie-id="12034432" id="C16139401" label-id="7122484" inwerking="2005-09-01" label="Hoofdstuk 1" bron="Stb.2005-344" effect="nieuwe-regeling" ondertekening_bron="2005-06-23" publicatie_bron="2005-07-05" publicatie_iwt="2005-07-05" status="goed">
+  <kop>
+    <label>Hoofdstuk</label>
+    <nr>1</nr>
+    <titel>Algemene bepalingen</titel>
+  </kop><paragraaf bwb-ng-variabel-deel="/Hoofdstuk1/Paragraaf4" stam-id="7134793" versie-id="23953212" id="C34984311" label-id="7122454" inwerking="2017-10-01" label="Paragraaf 4" bron="Stb.2017-78" effect="wijziging" ondertekening_bron="2017-01-16" publicatie_bron="2017-03-09" publicatie_iwt="2017-09-29" status="goed">
+  <kop>
+    <label>Paragraaf</label>
+    <nr status="officieel">4</nr>
+    <titel status="officieel">Afwijkende rechten bij vreemdelingen en uitreizigers</titel>
+  </kop><artikel bwb-ng-variabel-deel="/Hoofdstuk1/Paragraaf4/Artikel9" stam-id="7134783" versie-id="28287682" id="C39880871" label-id="7122444" inwerking="2022-01-01" label="Artikel 9" bron="Stb.2021-651" effect="wijziging" ondertekening_bron="2021-12-22" publicatie_bron="2021-12-27" publicatie_iwt="2021-12-27" status="goed">
+  <kop>
+    <label>Artikel</label>
+    <nr status="officieel">9</nr>
+    <titel status="officieel">Wijziging status vreemdelingen; partner of medebewoner is vreemdeling</titel>
+  </kop>
+  <lid bwb-ng-variabel-deel="/Hoofdstuk1/Paragraaf4/Artikel9/Lid1" label-id="7122444L1">
+    <lidnr status="officieel">1</lidnr>
+    <al>Indien aan een vreemdeling tijdens een rechtmatig verblijf als bedoeld in <extref doc="jci1.3:c:BWBR0011823&amp;artikel=8" label-id="1384184" verwijzing-id="1965238" bwb-id="BWBR0011823">artikel 8, onderdelen a tot en met e, en l, van de Vreemdelingenwet 2000</extref> een tegemoetkoming is toegekend, heeft de omstandigheid dat hij aansluitend aan dit verblijf rechtmatig verblijf houdt in de zin van <extref doc="jci1.3:c:BWBR0011823&amp;artikel=8" label-id="1384184" verwijzing-id="1965239" bwb-id="BWBR0011823">artikel 8, onderdeel g of h, van die wet</extref> niet tot gevolg dat hij daardoor zijn aanspraak verliest op eenzelfde tegemoetkoming gedurende de periode van laatstgenoemd verblijf.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0018472&amp;hoofdstuk=1&amp;paragraaf=4&amp;artikel=9&amp;lid=1&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=1"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/Hoofdstuk1/Paragraaf4/Artikel9/Lid2" label-id="7122444L2">
+    <lidnr status="officieel">2</lidnr>
+    <al>Ingeval de partner van de belanghebbende een vreemdeling is die niet rechtmatig verblijf houdt in de zin van <extref doc="jci1.3:c:BWBR0011823&amp;artikel=8" label-id="1384184" verwijzing-id="1965240" bwb-id="BWBR0011823">artikel 8 van de Vreemdelingenwet 2000</extref>, heeft de belanghebbende geen aanspraak op een tegemoetkoming.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0018472&amp;hoofdstuk=1&amp;paragraaf=4&amp;artikel=9&amp;lid=2&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=2"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/Hoofdstuk1/Paragraaf4/Artikel9/Lid3" label-id="7122444L3">
+    <lidnr status="officieel">3</lidnr>
+    <al>Indien in een inkomensafhankelijke regeling is bepaald dat naast de draagkracht van de belanghebbende en diens partner ook de draagkracht van medebewoners van belang is voor de beoordeling van de aanspraak op of de bepaling van de hoogte van een tegemoetkoming, heeft de belanghebbende geen aanspraak op een tegemoetkoming ingeval een medebewoner van achttien jaar of ouder een vreemdeling is die niet rechtmatig verblijf houdt in de zin van <extref doc="jci1.3:c:BWBR0011823&amp;artikel=8" label-id="1384184" verwijzing-id="1965241" bwb-id="BWBR0011823">artikel 8 van de Vreemdelingenwet 2000</extref>.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0018472&amp;hoofdstuk=1&amp;paragraaf=4&amp;artikel=9&amp;lid=3&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=3"/></jcis></meta-data></lid>
+<meta-data><jcis><jci versie="1.0" verwijzing="1.0:c:BWBR0018472&amp;artikel=9&amp;g=2026-10-01" onderdeel="artikel=9" korte-verwijzing="1.0:c:BWBR0018472&amp;artikel=9"/><jci versie="1.3" verwijzing="jci1.3:c:BWBR0018472&amp;hoofdstuk=1&amp;paragraaf=4&amp;artikel=9&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="artikel=9" korte-verwijzing="jci1.3:c:BWBR0018472&amp;artikel=9"/></jcis></meta-data></artikel><meta-data><jcis><jci versie="1.0" verwijzing="1.0:c:BWBR0018472&amp;paragraaf=4&amp;g=2026-10-01" onderdeel="paragraaf=4" korte-verwijzing="1.0:c:BWBR0018472&amp;paragraaf=4"/><jci versie="1.3" verwijzing="jci1.3:c:BWBR0018472&amp;hoofdstuk=1&amp;paragraaf=4&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="paragraaf=4" korte-verwijzing="jci1.3:c:BWBR0018472&amp;paragraaf=4"/></jcis></meta-data></paragraaf><meta-data><jcis><jci versie="1.0" verwijzing="1.0:c:BWBR0018472&amp;hoofdstuk=1&amp;g=2026-10-01" onderdeel="hoofdstuk=1" korte-verwijzing="1.0:c:BWBR0018472&amp;hoofdstuk=1"/><jci versie="1.3" verwijzing="jci1.3:c:BWBR0018472&amp;hoofdstuk=1&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="hoofdstuk=1" korte-verwijzing="jci1.3:c:BWBR0018472&amp;hoofdstuk=1"/></jcis></meta-data></hoofdstuk>
+      </wettekst>
+    </wet-besluit>
+</wetgeving></toestand>

@@ -256,7 +256,12 @@ _DATA_PROPS: dict[str, tuple[str, str, tuple[URIRef, ...], URIRef | None]] = {
     "effect": ("effect", "Effect van de laatste wijziging.", (), None),
     "status": ("status", "Redactionele status.", (), None),
     "wijzigingsbronnen": ("wijzigingsbron", "Stb-bron van een wijziging (<juncto>).", (), None),
-    "doelLid": ("doel-lid", "Lidnummer waarop de verwijzing mikt.", (), None),
+    "doelLid": (
+        "doel-lid",
+        "Lidnummer dat de verwijzing noemt, ook als het doel op het artikel is blijven staan.",
+        (),
+        None,
+    ),
     "doelSoort": ("doel-soort", "Niveau van het verwijsdoel (artikel/lid/…).", (), None),
     "doelPad": ("doel-pad", "bwb-ng-variabel-deel van het verwijsdoel.", (), None),
     "ankerTekst": ("ankertekst", "Tekst waarmee de verwijzing in de bron staat.", (), None),

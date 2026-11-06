@@ -167,6 +167,15 @@ waarde niet als segmentgrens leest.
   gemarkeerd met `bwb:soort "tekstueel"` + `bwb:betrouwbaarheid "laag"`,
   zodat een chatbot erop kan filteren (uit te zetten met
   `BWB_DETECT_TEKSTUELE_REFS=false`).
+  **Een verwijzing volgt haar hele tekst.** De `doc` stopt in de BWB altijd bij het artikel; lid en
+  onderdeel staan alleen in de ankertekst ("artikel 25, derde lid"). `deeldoelen` (`app/references.py`)
+  leest die tekst, en `koppel_deelverwijzingen` (`app/collect.py`) laat `bwb:verwijstNaar` uitkomen op
+  elk genoemd lid of onderdeel dat in de run bestaat, met terugval van onderdeel op lid op artikel.
+  Het artikel is ook de uitkomst voor een wet buiten de run en voor tekst die niet eenduidig is
+  ("artikelen 3 en 4, eerste lid"); `bwb:doelLid` bewaart dan het genoemde lid. Een losse
+  `run_import` kent alleen de eigen wet, dus de batch-import levert de fijnste koppeling. Ongetagde
+  tekstverwijzingen blijven op artikelniveau. Wie inkomende verwijzingen van een artikel wil, loopt
+  mee over `(bwb:heeftLid|bwb:heeftOnderdeel)*`.
 - **Idempotentie**: elke wet in named graph `BASE graph:{bwb_id}` (bij de default `urn:bwb:graph:BWBR…`); `PUT` vervangt.
 
 Stabiele sleutels komen uit het XML-attribuut `bwb-ng-variabel-deel`
