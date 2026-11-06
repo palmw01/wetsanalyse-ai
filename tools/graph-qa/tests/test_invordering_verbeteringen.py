@@ -268,7 +268,7 @@ def test_generieke_np_toetst_normcontext(parser):
                           if not any(e.code == "ROLE_NOUN" for e in k.evidence))
     assert all(e.regel in {"jas.object.np", "jas.subject.np"} for k in np for e in k.evidence
                if e.code in {"OBJECT_NP", "SUBJECT_NP"})
-    met = detect("De vereniging moet het besluit bekendmaken.", parser).kandidaten
+    met = detect("De kapper moet het besluit bekendmaken.", parser).kandidaten
     assert any(e.regel == "jas.subject.np_bij_normatief_predicaat" and "Rechtssubject" in k.possible_classes
                for k in met for e in k.evidence)
 

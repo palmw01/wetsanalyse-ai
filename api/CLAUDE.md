@@ -796,6 +796,8 @@ werkgebied zonder deelvragen werkt zoals altijd.
 de bronselectie in het gesprek, maar de stand staat hier – niet in de gesprek-checkpointer –, zodat hij er
 na herladen, in een ander gesprek en bij een collega ook is.
 
+- **Het overzicht herhaalt het bewijs niet.** Per kandidaat staan `bewijs_soorten` en `zoekvragen`; het bewijs zelf staat
+  in `GET …/kandidaten`. Per deelvraag herhaald was het de oorzaak van 760 KB, terwijl geen afnemer het hier las.
 - **Zelf genoemd is een voorstel** (4 nov 2026): `POST …/bronselectie/{deelvraag}/voorstellen {bron_iri, rol: kern|
   afhankelijkheid, tekst}` (`bronselectie.noem`) zet een bepaling die de analist noemt als kandidaat bij die
   deelvraag, met bewijs `methode: genoemd` (`detail.deelvraag_id`, `tekst`, `door`), zodat ze in het paneel staat
