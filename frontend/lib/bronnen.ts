@@ -5,6 +5,7 @@
 // bepaling als graaf-IRI én als jci kan staan. Daarom normaliseert de werkplek zelf ook, met dezelfde
 // regels (`vindplaatsVan`, de spiegel van bronmodel): één weergave voor oud en nieuw.
 
+import type { Antwoord } from "./antwoord";
 import type { NodeDoel } from "./annotatieNode";
 import { koppelVermelding, vindVermeldingen } from "./citaties";
 import { bronHref } from "./url";
@@ -127,13 +128,18 @@ export type AntwoordDoel = NodeDoel & { herkomst: DoelHerkomst };
 
 /** Waar `antwoordDoelen` uit leest: een antwoord (`ThreadItem`), een annotatie of een citatie-chip. */
 export type AntwoordBron =
-  | { type: "antwoord"; tekst: string; bronnen?: readonly Bron[] }
+  | { type: "antwoord"; tekst: string; bronnen?: readonly Bron[]; antwoord?: Antwoord }
   | { type: "annotatie"; annotatie_doel?: NodeDoel }
   | { type: "citatie"; doel: NodeDoel };
 
 function doelenVan(item: AntwoordBron): AntwoordDoel[] {
   if (item.type === "citatie") return [{ ...item.doel, herkomst: "vermelding" }];
   if (item.type === "annotatie") return item.annotatie_doel ? [{ ...item.annotatie_doel, herkomst: "vermelding" }] : [];
+  // Een sjabloon draagt zijn doelen zelf (ADR-008): dan valt er niets uit de tekst te halen.
+  if (item.antwoord) return item.antwoord.doelen.flatMap((v) => {
+    const doel = bronDoel(v.iri);
+    return doel ? [{ ...doel, label: v.label, ...(v.regeling ? { citeertitel: v.regeling } : {}), herkomst: "vermelding" as const }] : [];
+  });
   const bronnen = item.bronnen ?? [];
   const gezien = new Map<string, AntwoordDoel>();
   for (const v of vindVermeldingen(item.tekst)) {
@@ -153,7 +159,7 @@ function doelenVan(item: AntwoordBron): AntwoordDoel[] {
  *  de volgorde van de tekst. Een ouder valt weg als een kind ook genoemd is (de keten toont hem toch).
  *  De tekst selecteert alleen uit de bronnen en voegt niets toe (`koppelVermelding`), dezelfde regel als
  *  de citatie-chips. Noemt de tekst niets te koppelen, dan de eerste bepaling uit de bronnen, met
- *  `herkomst: "eerste_bron"`. Een annotatie en een chip dragen hun doel zelf.
+ *  `herkomst: "eerste_bron"`. Een annotatie, een chip en een sjabloon dragen hun doel zelf.
  *
  *  Een overzichtsantwoord gaat hier niet langs. */
 export function antwoordDoelen(item: AntwoordBron, max = MAX_SAMENHANG_DOELEN): { doelen: AntwoordDoel[]; totaal: number } {

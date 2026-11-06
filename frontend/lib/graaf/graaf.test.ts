@@ -318,6 +318,10 @@ describe("de ketting", () => {
     const pos = plaatsAnnotaties(g, berekenLayout(s));
     for (const id of ["wet", "art", "lid", "m", "b", "def"]) expect(pos.has(id)).toBe(true);
     expect(new Set([...pos.values()].map((p) => p[0].toFixed(3))).size).toBeGreaterThan(2);
+    // De definitiebepaling buiten wat geladen is, staat bij haar begrip en niet als losse boom ver weg.
+    expect(s.knopen.map((k) => k.id)).not.toContain("def");
+    const afstand = (a: string, b: string) => Math.hypot(pos.get(a)![0] - pos.get(b)![0], pos.get(a)![1] - pos.get(b)![1]);
+    expect(afstand("def", "b")).toBeLessThan(afstand("wet", "x") + afstand("wet", "lid") + 1);
   });
 
   it("licht de ketting op in een groter model", () => {

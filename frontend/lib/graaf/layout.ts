@@ -17,7 +17,7 @@ import { jasVolgorde, JAS_KLASSEN } from "@/lib/jas";
 import { ankerVan, isBron, voegToe, type GraafModel, type KnoopSoort, type RelatieData } from "./model";
 
 /** Verhoog bij elke wijziging die de uitkomst verandert: de cache onder de oude sleutel vervalt dan. */
-export const LAYOUT_VERSIE = 1;
+export const LAYOUT_VERSIE = 2;
 
 export type Punt = [number, number];
 export type Posities = Map<string, Punt>;
@@ -29,8 +29,14 @@ export interface Structuur {
   relaties: { bron: string; doel: string; soort: RelatieData["soort"] }[];
 }
 
+/** Een definitiebepaling buiten wat geladen is: ze hangt alleen aan haar begrip. In de layout zou ze als losse
+ *  boom ver van de rest belanden; ze staat daarom bij het begrip (`plaatsAnnotaties`). */
+function losseDefinitie(g: GraafModel, id: string): boolean {
+  return !!g.getNodeAttribute(id, "rand") && g.degree(id) > 0 && g.edges(id).every((e) => g.getEdgeAttribute(e, "soort") === "definieert");
+}
+
 export function structuurVan(g: GraafModel): Structuur {
-  const knopen = g.filterNodes((_, a) => isBron(a)).map((id) => ({ id, soort: g.getNodeAttribute(id, "soort") }));
+  const knopen = g.filterNodes((id, a) => isBron(a) && !losseDefinitie(g, id)).map((id) => ({ id, soort: g.getNodeAttribute(id, "soort") }));
   const ids = new Set(knopen.map((k) => k.id));
   const relaties = g.filterEdges((_e, _a, bron, doel) => ids.has(bron) && ids.has(doel) && bron !== doel)
     .map((e) => ({ bron: g.source(e), doel: g.target(e), soort: g.getEdgeAttribute(e, "soort") }));
@@ -275,13 +281,21 @@ export function plaatsAnnotaties(g: GraafModel, bron: Posities): Posities {
   // die alleen van zijn eigen id afhangt. Zonder geplaatste passage op een binnenring.
   g.forEachNode((id, a) => {
     if (a.soort !== "begrip") return;
-    const passages = g.outEdges(id).filter((e) => ["duidt", "komt_voor_in"].includes(g.getEdgeAttribute(e, "soort")))
-      .map((e) => pos.get(g.target(e))).filter((p): p is Punt => !!p);
+    const passages = [
+      ...g.outEdges(id).filter((e) => ["duidt", "komt_voor_in"].includes(g.getEdgeAttribute(e, "soort"))).map((e) => pos.get(g.target(e))),
+      ...g.inEdges(id).filter((e) => g.getEdgeAttribute(e, "soort") === "definieert").map((e) => pos.get(g.source(e))),
+    ].filter((p): p is Punt => !!p);
     const [cx, cy] = passages.length
       ? [passages.reduce((s, p) => s + p[0], 0) / passages.length, passages.reduce((s, p) => s + p[1], 0) / passages.length]
       : midden;
     const [dx, dy] = pool(passages.length ? maat * 1.2 : straal * 0.6, 2 * Math.PI * hash01(id, 17));
     pos.set(id, [cx + dx, cy + dy]);
+  });
+  g.forEachNode((id, a) => {
+    if (!isBron(a) || pos.has(id) || !losseDefinitie(g, id)) return;
+    const [bx, by] = pos.get(g.outNeighbors(id)[0]) ?? midden;
+    const [dx, dy] = pool(maat, 2 * Math.PI * hash01(id, 19));
+    pos.set(id, [bx + dx, by + dy]);
   });
   return pos;
 }
