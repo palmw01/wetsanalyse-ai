@@ -47,7 +47,7 @@ from . import db
 from bronmodel.vindplaats import vindplaats as bronmodel_vindplaats
 
 from .config import get_settings
-from .graaf_projectie_v2 import _lit, _repo, _select, element_iri
+from .graaf_projectie_v2 import _lit, _repo, _select, element_iri, is_verbindingsfout
 
 logger = logging.getLogger(__name__)
 
@@ -547,13 +547,27 @@ async def reconcile() -> int:
     teller = 0
     for wid, inv in stand.items():
         if reg.get(wid, {}).get("hash") != invoer_hash(inv) or str(graph_iri(wid)) not in graphs:
-            await projecteer(wid, zeker=True)
+            try:
+                await projecteer(wid, zeker=True)
+            except Exception as exc:  # noqa: BLE001
+                if is_verbindingsfout(exc):
+                    raise
+                logger.warning("begrippen_werkgebied_niet_geprojecteerd",
+                               extra={"werkgebied_id": wid, "fouttype": type(exc).__name__})
+                continue
             teller += 1
     prefix = str(graph_iri(""))
     wees = set(reg) | {g[len(prefix):] for g in graphs}
     for wid in sorted(wees - set(stand)):
         if _ID.fullmatch(wid):          # nooit een willekeurige graaf uit registergegevens wissen
-            await projecteer(wid, zeker=True)
+            try:
+                await projecteer(wid, zeker=True)
+            except Exception as exc:  # noqa: BLE001
+                if is_verbindingsfout(exc):
+                    raise
+                logger.warning("begrippen_werkgebied_niet_geprojecteerd",
+                               extra={"werkgebied_id": wid, "fouttype": type(exc).__name__})
+                continue
             teller += 1
     if teller:
         logger.info("begrippen_geprojecteerd", extra={"aantal": teller})
