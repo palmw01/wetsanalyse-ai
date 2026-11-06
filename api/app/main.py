@@ -65,8 +65,8 @@ async def lifespan(app: FastAPI):
     # de admin-verbindingstest is nu de enige LLM-call, maar de rem blijft goedkoop en veilig).
     from .llm import throttle
     throttle.configure(settings.llm_max_concurrency)
-    # Async SQLAlchemy-engine + tabellen. In productie zou een migratietool (Alembic) het schema
-    # beheren; voor de beproevingsfase volstaat create_all (idempotent: alleen ontbrekende tabellen).
+    # Async SQLAlchemy-engine + tabellen. create_all is idempotent (alleen ontbrekende tabellen); een
+    # kolom op een bestaande tabel vraagt dus een eigen stap.
     db.init_engine(settings.database_url)
     # create_all (idempotent) met bounded retry – vangt een nog-niet-klare DB bij cold start op
     # (postgres is een aparte stack zonder cross-stack depends_on).

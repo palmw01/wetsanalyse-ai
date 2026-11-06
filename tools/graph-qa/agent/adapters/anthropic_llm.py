@@ -22,8 +22,8 @@ logger = logging.getLogger("graph_qa.llm")
 # geen fout, alleen de duurdere write zonder ooit een hit. Nederlands tokeniseert op ~3,5 tekens per
 # token, dus 4000 tekens ≈ 1150 tokens: net boven het minimum, bewust aan de veilige kant.
 #
-# De winst landt waar de kosten zitten: de classifier en de reviewer van de annotatieketen doen per
-# beurt meerdere calls met hetzelfde lange voorvoegsel. Een korte QA-systeemprompt blijft eronder.
+# De prompts van de classifier en de reviewer blijven hier meestal onder en verschillen per batch; in
+# de meetmappen van de annotatieketen staat 0 cache-lees. Winst daar komt uit minder kandidaten.
 _MIN_CACHE_TEKENS = 4000
 
 
@@ -57,10 +57,9 @@ class AnthropicLLM:
         specialist) apart van het variabele (het plan van deze beurt, de gespreksgeheugen-context),
         en het cache-punt gaat op het laatste stabiele blok.
 
-        Wat dit oplevert: de annotatieketen doet 3 tot 5 calls per beurt waarin telkens dezelfde
-        dertien-klassen-referentie zit, en de antwoordroute herhaalt de systeemprompt bij élke
-        tool-ronde. Dat is precies het profiel waarvoor caching bestaat – groot, stabiel, en per
-        beurt meermaals identiek.
+        Wat dit oplevert: de antwoordroute herhaalt de systeemprompt bij élke tool-ronde, en als die
+        boven `_MIN_CACHE_TEKENS` komt, is dat het profiel waarvoor caching bestaat. In de
+        annotatieketen verschilt de prompt per batch, dus daar levert het niets op.
         """
         aan = self._caching if caching is None else caching
         delen = [system] if isinstance(system, str) else [d for d in system if d]

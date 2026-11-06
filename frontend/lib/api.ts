@@ -563,8 +563,8 @@ export type AgentHandlers = {
     run_id: string; artefact?: import("./artefact").Artefact; annotatie_doel?: import("./annotatieNode").NodeDoel;
     bevestiging?: Bevestiging; vervolg?: import("./vraagLex").Vervolg;
   }) => void;
-  /** De beurt slaagde, maar niet alles is bewaard – bv. een markering die de api niet accepteerde.
-   *  Geen fout (het meeste staat er wél), maar de jurist hoort te weten dat er iets ontbreekt. */
+  /** De beurt slaagde, maar er is iets dat de jurist hoort te weten: nu alleen een taalanalyse die
+   *  gedegradeerd draaide. Een bewaarfout is een `error`. */
   onWaarschuwing?: (bericht: string) => void;
 };
 

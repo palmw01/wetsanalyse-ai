@@ -1,7 +1,7 @@
 // BFF-route voor het starten en opzoeken van een agent-run (graph-qa /v1/runs).
 //
-// Waarom naast de bestaande agent-route: die koppelt de beurt aan de verbinding van één tabblad —
-// wegklikken of herladen doodde het antwoord. Een run is een object van de server; starten,
+// Waarom een run en geen open verbinding: die koppelde de beurt aan één tabblad — wegklikken of
+// herladen doodde het antwoord. Een run is een object van de server; starten,
 // meekijken (`[id]/events`) en stoppen (`[id]/cancel`) zijn losse handelingen.
 
 import { proxy } from "@/app/api/_lib/proxy";

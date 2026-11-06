@@ -1,6 +1,6 @@
 # ADR-001 — Hybride JAS-annotatiepijplijn
 
-Status: **uitgevoerd t/m PR 18** (25-09-2026; zie §15) · Datum: 2026-09-24 · Soort: *plan* (zie `docs/README.md`) · JAS-versie: 1.0.10
+Status: **uitgevoerd t/m PR 18** (25-09-2026; zie §15) · Datum: 2026-09-24 · Soort: *besluit* (zie `docs/README.md`) · JAS-versie: 1.0.10
 
 Opdracht: `opdracht-jas-annotatiepijplijn.md` (sinds 29 sep 2026 alleen in de git-geschiedenis, toegevoegd in `b4e81e8`). Dit document is
 de oplevering van de analysefase (§42 van de opdracht, stap 1–8): current state, JAS-conformiteit,

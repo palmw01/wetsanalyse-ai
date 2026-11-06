@@ -144,9 +144,9 @@ class Settings(BaseModel):
     checkpoint_db_url: str | None = None
     checkpoint_db_path: str | None = "conversations_checkpoints.db"
 
-    # Prompt-caching op het stabiele deel van de systeemprompt (identiteit, JAS-klassen,
-    # specialist). Die blokken zijn groot en gaan per beurt meermaals identiek de deur uit – de
-    # annotatieketen alleen al doet 3 tot 5 calls met dezelfde dertien-klassen-referentie. Uit te
+    # Prompt-caching op het stabiele deel van de systeemprompt (identiteit, specialist), dat per
+    # tool-ronde identiek de deur uit gaat. De annotatieketen heeft er niets aan: elke batch heeft
+    # een eigen prompt en schema. Uit te
     # zetten met `PROMPT_CACHING=false`; de adapter schakelt zichzelf bovendien uit zodra de
     # provider `cache_control` weigert (het is op Azure AI Foundry een beta-functie).
     prompt_caching: bool = True

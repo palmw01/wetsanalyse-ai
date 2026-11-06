@@ -5,6 +5,14 @@ die de [frontend](../frontend) (werkplek, login, beheervenster) en graph-qa bedi
 projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staan in
 [`README.md`](README.md); dit bestand gaat over hoe de code in elkaar zit en wat je niet mag breken.
 
+## Lijn van de code
+
+Nieuwe domeinen volgen **stijl C**: de store gooit de HTTP-fouten in de transactie, de router is dun. Zo zitten de
+sloten waar de transactie zit. Oudere modules wijken af en dat is geen bug: `gesprek_store` is een klasse met `Depends`
+(A), `users`, `registraties`, `profiles`, `api_tokens`, `verbruik`, `berichten` en `feedback` geven domeinfouten die de
+router vertaalt (B), en `begrippen_overzicht` en `artefact_versies` hebben router en store in één bestand (D). Niet
+ombouwen zonder reden.
+
 ## Wat de API doet
 
 1. **Het JAS-annotatiedomein** (`/v1/annotatie/*`): markeringen, beslissingen, append-only audit,

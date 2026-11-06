@@ -15,9 +15,9 @@ auditlog. Interpretatiekeuzes – inclusief twijfel en aannames – worden zicht
 van weggepoetst tot schijnzekerheid. Het platform is een hulpmiddel voor de jurist, geen vervanger.
 
 > [!IMPORTANT]
-> **Scope: activiteit 2** – het markeren van wetsformuleringen en het classificeren daarvan in de
-> dertien JAS-klassen. Activiteit 3 (begrippen, afleidingsregels) en de RegelSpraak-formalisering
-> zijn *niet* gebouwd. Alle contracten dragen `scope: "act2"`.
+> **Scope: activiteit 2, en het begin van activiteit 3** – het markeren van wetsformuleringen, het
+> classificeren daarvan in de dertien JAS-klassen, en daarop werkgebieden en begrippen. Afleidingsregels
+> en de RegelSpraak-formalisering zijn *niet* gebouwd. De annotatiecontracten dragen `scope: "act2"`.
 
 ## Wat het platform kan
 

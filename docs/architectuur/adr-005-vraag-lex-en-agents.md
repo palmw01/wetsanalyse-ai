@@ -1,6 +1,6 @@
 # ADR-005 — Vraag Lex en de agents onder de supervisor
 
-Status: **aangenomen, in uitvoering** · Datum: 2026-10-21 · Hoort bij: [PLAN spoor F3](../PLAN.md), [ADR-001](adr-001-hybride-jas-pijplijn.md), [ADR-004](adr-004-begrippenketen.md)
+Status: **aangenomen, gebouwd, met een aanvulling** (6 nov 2026, onderaan) · Datum: 2026-10-21 · Hoort bij: [PLAN spoor F3](../PLAN.md), [ADR-001](adr-001-hybride-jas-pijplijn.md), [ADR-004](adr-004-begrippenketen.md)
 
 ## Context
 
@@ -53,8 +53,8 @@ accorderen doet de analist. Wat duur is – meedenken, het hele werkgebied annot
 ### Suggesties zijn deterministisch
 
 Een klik op een suggestie stuurt een `actie` mee (`models.ACTIE_TAAK`). De supervisor kiest dan agent en
-taak **zonder model**, net als bij een meegegeven `doel`. Getypte tekst gaat altijd langs de supervisor;
-de tekstpatronen zijn weg. Zo kost een klik nooit een routeringscall en kan hij niet anders uitvallen dan
+taak **zonder model**, net als bij een meegegeven `doel`. Getypte tekst gaat langs de supervisor;
+de tekstpatronen voor de agents zijn weg (voor de vaste vormen die vóór het model blijven: zie de aanvulling). Zo kost een klik nooit een routeringscall en kan hij niet anders uitvallen dan
 de knop zegt, terwijl een vrije vraag nog altijd de juiste agent vindt.
 
 ### Uitvoering
@@ -69,6 +69,19 @@ per bepaling een gewone beurt draait (`werkgebied_annotatie_beurt`).
 
 - De routering naar de agents is een modelbeslissing en wordt gemeten: `eval/golden_gesprek.jsonl`,
   scenario F (getypte vragen, vervolgvragen, en negatieven die bij `antwoord` horen te blijven).
-- `vervangt` op een deelvraagvoorstel (de oude deelvraag automatisch intrekken bij overnemen) bestaat nog
-  niet: de tekst van Lex zegt het, de analist trekt in. Komt met het deelvraagpaneel (F3d).
+- `vervangt` op een deelvraagvoorstel staat er sinds F3d: overnemen vervangt de oude deelvraag.
 - Bronnen per deelvraag op lidniveau komen met de intake (F3f), via dezelfde zoekfunctie.
+
+## Aanvulling (6 nov 2026): tekstroutes vóór het model
+
+Dit besluit zei dat getypte tekst altijd langs de supervisor gaat en dat de tekstpatronen weg zijn. Dat geldt voor de
+agents. Vijf vaste vormen beslist `supervisie.py` wel op tekst, zonder model: `is_bronselectievraag`, `is_werkgebiedvraag`,
+`is_begrip_leesvraag`, `is_leesvraag` en `is_overzichtsvraag`. Ze zijn bewust: de vorm ligt vast, de route hoort niet af te hangen van
+een modelkeuze, en bronselectie en intake zijn stapmachines die een startzin nodig hebben.
+
+**Regel.** Een tekstroute hoort alleen bij een zin met de vorm van een verzoek, en een nieuwe route krijgt negatieven in
+`eval/golden_gesprek.jsonl`.
+
+**Open.** `_BRONSELECTIE` matcht ook uitleg: "Hoe moet een rechter deze bepalingen beoordelen?" gaat binnen een werkgebied naar de
+bronselectie, terwijl uitleg bij `antwoord` hoort. De regex is daarop getoetst, de route niet van begin tot eind. De oplossing
+is het patroon aanscherpen plus een negatief in de eval. Dat is een gedragswijziging en valt buiten deze aanvulling.

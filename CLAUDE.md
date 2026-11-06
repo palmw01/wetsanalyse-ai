@@ -48,7 +48,7 @@ plaats van schijnzekerheid.
 > Daarop formuleert de analist **begrippen**: een begripskaart, gekoppeld aan de annotatiepassages
 > die het begrip dragen, met beoordeling, historie en export. Lex stelt betekenisgroepen voor
 > (deterministisch, ADR-004), ook vanuit het gesprek: wat een beurt oplevert is een **artefact**
-> (annotatie, begripsvoorstellen, gevonden bepalingen, het werkgebied, één deelvraag of één begrip;
+> (annotatie, begripsvoorstellen, de bronselectie, het werkgebied, één deelvraag of één begrip;
 > afleidingsregels gereserveerd), dat naast het gesprek opent om te beoordelen. Lex denkt mee met een model bij
 > twijfel en stelt definities voor (geel, met de fragmenten waarop ze rusten), en werkt een begrip uit
 > vanuit het gesprek (*Vraag Lex* bij het begrip): brondefinitie zoeken, een scherpere definitie, het
@@ -463,14 +463,14 @@ plan mag verouderen.
   begrippen (activiteit 3), niet alleen het exportformaat. `adr-004-begrippenketen.md` ontwerpt
   de keten die betekenisgroepen voorstelt, in de vorm van `hybrid_v1`. `adr-005-vraag-lex-en-agents.md`
   legt Vraag Lex en de agents onder de supervisor vast (F3). `adr-006-generieke-begrippen.md` legt
-  het generieke begrippenkader boven de werkgebieden vast (spoor N).
+  het generieke begrippenkader boven de werkgebieden vast (spoor N). `adr-007-llm-pad-en-verwerker.md` is
+  een concept: wat vastligt over het LLM-pad en wat de eigenaar nog moet besluiten.
 - `docs/architectuur/annotatieketen.md` – hoe de annotatieketen **nu** werkt: stappen,
   configuratie (`CLASSIFIER_GRANULARITEIT` e.d.), beslisbeleid, detectoren en bekende beperkingen.
   `docs/architectuur/metingen/README.md` is het meetlogboek: welke meting bij welke code hoort.
   Meetbestanden zijn bewijs en worden niet achteraf gewijzigd.
 - `docs/wetsanalyse-workbench/` – de JAS-annotatie-ontologie (het RDF-model van de lagen).
-- `docs/PLAN.md` – het **enige plan**: de open sporen (A validatie V7, B herkomst in werkplek en
-  exports, C leerlus, D werkgebieden en begrippen, E kennisbank) en de open keuzes. Lees spoor E vóór
-  je aan retrieval of grounding werkt, want het stelt eisen aan beide.
+- `docs/PLAN.md` – het **enige plan**: de sporen met hun stand (tabel *Open sporen*) en de open
+  keuzes. Lees spoor E vóór je aan retrieval of grounding werkt, want het stelt eisen aan beide.
 - `docs/observability.md` en `docs/schrijfrichtlijn-lex.md` (de toon van Lex; zijn identiteit staat in
   `tools/graph-qa/agent/prompts.py`).

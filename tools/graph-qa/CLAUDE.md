@@ -375,10 +375,8 @@ bronnode: `POST /v1/annotatie/lagen/batch` met `batch_id` (= run_id), `bron_iri`
   annotatie blijft staan. `DELETE /v1/conversations/{id}` zet bovendien het stopverzoek.
 - **Een afgeronde laag** geeft de foutcode `annotatie_afgerond` met de vraag om te heropenen;
   `wetsanalyse_api` logt de reden van de api (`api_reden`, nooit de body).
-- **Wat de api niet bewaart, meldt de driver als `waarschuwing`** (geen `error`: de beurt slaagde):
-  verworpen elementen (header `X-Verworpen`) en al geannoteerde, ongewijzigde leden. **Lees
-  response-headers in kleine letters** – httpx geeft ze zo terug. `tests/test_gedeelde_laag.py` draait
-  daarom tegen de échte client met een `MockTransport`.
+- **Wat de api niet bewaart, meldt de driver als `error`** met een eigen tekst.
+  `tests/test_gedeelde_laag.py` draait daarom tegen de échte client met een `MockTransport`.
 - **De contractgrens ligt in `wetsanalyse_api.naar_contract`.** Hier `aandacht: str = ""`, bij de api
   `Aandacht | None`: dat verschil is een 422. Vertaal zulke velden op de grens en zet ze in `OPGEVANGEN`
   in `tests/test_contract_drift.py`, dat beide modellen veld voor veld vergelijkt – ook het chatbericht
@@ -914,7 +912,7 @@ werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en
   gaat het dan meteen naar de samenvatting.
 - **Alleen een gekozen bepaling wordt een bronselectie** (rol *analyseren*, bereik *onderliggend*),
   gekoppeld aan de deelvragen op wier kaartje ze gekozen werd (één bron voor meer deelvragen). **Een getypte
-  bepaling is ook een keuze** (spoor L): de node ontleedt de tekst vóór `verwerk` (`_eigen_bepalingen` →
+  bepaling is ook een keuze** (spoor L): de node ontleedt de tekst vóór `verwerk` (
   `bepaling_namen.bepalingen_uit_tekst`, dezelfde regels als spoor J: geknipt vóór elk "artikel", per stuk de
   regeling die het noemt, anders de enige van de tekst of van de intake; Awb-nummers als 4:86) en toetst elke
   bepaling in de graaf (`bepaling_namen.bepaling_in_graaf`, één lichte query). Gevonden: `eigen` op het antwoord.
@@ -1084,7 +1082,7 @@ onder de supervisor, naast de intake; zie `docs/architectuur/bronselectie-per-de
 Draagt een beurt een `werkgebied_id`, dan haalt `answer_stream` het werkgebied bij de api
 (`_werkgebied_blok`, per beurt vers) en zet `als_blok` het in `State.werkgebied_context`;
 `memory_context` geeft het naast de focus aan de supervisor en elke specialist – ook met
-`ENABLE_MEMORY_CONTEXT` uit. Context, geen filter; zonder api of bij een storing leeg. Dezelfde
+`Settings.enable_memory_context` uit (een veld zonder env-variabele, dus alleen in tests uit te zetten). Context, geen filter; zonder api of bij een storing leeg. Dezelfde
 `context_tekst` voedt de intake en de deelvragenrun. De bronnenrun krijgt het dossier in zijn
 invoer (`invoer.dossier`, api); alleen de methode `deelvraag` leest het, en dan voor de rangschikking en het
 weglaten van wat buiten de afbakening valt. Meer vraagt eerst een meting (PLAN spoor F, *Vervolg*).
@@ -1096,7 +1094,7 @@ gesprek. Het verzoek draagt alleen `onderwerp: {soort, werkgebied_id, id?, label
 `answer_stream` haalt het object per beurt bij de api (`onderwerp.haal`: het werkgebied, de dekking, de
 kandidaten, het begrip met zijn open kaartvoorstellen) en zet het blok in `State.onderwerp_context`.
 `memory_context` geeft het vóór het werkgebiedblok aan supervisor en elke specialist, ook met
-`ENABLE_MEMORY_CONTEXT` uit.
+`Settings.enable_memory_context` uit.
 
 - **Context, geen filter en geen route.** De supervisor kiest zoals altijd; het onderwerp zegt alleen
   waar de vraag over gaat. `focus.bij_onderwerp` houdt het object vast voor een vervolgvraag zonder chip
@@ -1360,8 +1358,8 @@ wie een oordeel velt over wetgeving hoort niet met een env-var te verzwakken.
 - **DI, geen globale clients.**
 - **SSE-event-contract.** De event-types zijn het contract met de werkplek; wijzig ze bewust,
   gelijktijdig en over beide wegen (`/v1/chat` én de run-events). **`reason` = het denkproces, `token` =
-  alléén het eindantwoord** – houd ze gescheiden. `waarschuwing` betekent dat de beurt slaagde maar niet
-  alles bewaard is; dat is iets anders dan `error`. `error` draagt `soort` (de exception-naam) naast de
+  alléén het eindantwoord** – houd ze gescheiden. `waarschuwing` heeft één afzender: een gedegradeerde taalanalyse
+  (`nodes/annotatie.py`). De beurt slaagde; dat is iets anders dan `error`. `error` draagt `soort` (de exception-naam) naast de
   gesaniteerde melding, zodat de eval een providerstoring van een inhoudelijke fout onderscheidt.
 - **De keten meldt zich per fase, met duur, in één idioom: `Actor · wat er gebeurde`.** Alle
   statusregels lopen via `narratie._stap(writer, actor, bericht)`; een test bewaakt de vorm. De

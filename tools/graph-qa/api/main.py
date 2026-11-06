@@ -1,9 +1,10 @@
 """
 FastAPI-backend voor de graph-qa agent.
 
-Endpoint: POST /v1/chat
-  - Request: {"question": "..."}
-  - Response: SSE-stream van JSON-events
+De werkplek gebruikt POST /v1/runs (+ /events en /cancel): de beurt draait hier en de browser kijkt
+mee. POST /v1/chat is aan de verbinding gekoppeld, zonder eigenaarscontrole, en niet voor de webapp.
+
+De events zijn op beide wegen gelijk. De kern (de volledige lijst staat in `BeurtSchrijver.verwerk`):
     {"type": "status", "message": "..."}     # stap-labels (specialist/tools/deelvraag)
     {"type": "reason", "content": "..."}     # denkproces-narratie (live), gescheiden van het antwoord
     {"type": "token", "content": "..."}      # het eindantwoord
