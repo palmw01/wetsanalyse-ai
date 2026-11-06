@@ -199,6 +199,13 @@ try {
   await page.getByRole("heading", { name: "Te doen" }).waitFor();
   assert.deepEqual(await page.locator("[data-term]").evaluateAll((els) => els.map((e) => e.dataset.term)),
     ["aanslag", "belastingschuldige", "termijn"]);
+  // Labels duwen de titel nooit tot een letterkolom: ze gaan een regel omlaag.
+  for (const width of [1040, 720, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    const titel = await termen().locator('[data-term="aanslag"] a span.font-semibold').boundingBox();
+    assert.ok(titel.width >= 120, `op ${width}px blijft de titel leesbaar breed (${titel.width})`);
+  }
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await termen().locator('[data-term="aanslag"]').getByText("2 voorstellen · IW 1990 · 4 passages · 1 vraag naar een andere term").waitFor();
   // Geen reviewlijst, geen knoppen per voorstel.
   assert.equal(await page.locator("[data-review-item]").count(), 0);
