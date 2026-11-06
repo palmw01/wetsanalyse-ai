@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  groepeerPerRegeling, isTeDoen, kleurstrip, sorteerTeDoen, vindplaatsLabel, weergaveUitParam, zoek,
+  groepeerPerRegeling, inWeergave, isKlaarOmAfTeRonden, isTeBeoordelen, kleurstrip, legeWeergave, sorteerTeBeoordelen,
+  uitlegWeergave, vindplaatsLabel, weergaveUitParam, WEERGAVEN, zoek,
 } from "./annotatieOverzicht";
 import { JAS_KLASSEN } from "./jas";
 import type { DocumentSamenvatting } from "./types";
@@ -17,10 +18,43 @@ function doc(over: Partial<DocumentSamenvatting> = {}): DocumentSamenvatting {
 
 describe("te doen", () => {
   it("telt alleen wat de jurist niet heeft afgerond", () => {
-    expect(isTeDoen(doc({ te_beoordelen: 2 }))).toBe(true);
-    expect(isTeDoen(doc({ te_beoordelen: 0 }))).toBe(false);
+    expect(isTeBeoordelen(doc({ te_beoordelen: 2 }))).toBe(true);
+    expect(isTeBeoordelen(doc({ te_beoordelen: 0 }))).toBe(false);
     // Afgerond mét open elementen is een bewuste keuze, geen restpost.
-    expect(isTeDoen(doc({ status: "geaccordeerd", te_beoordelen: 5 }))).toBe(false);
+    expect(isTeBeoordelen(doc({ status: "geaccordeerd", te_beoordelen: 5 }))).toBe(false);
+  });
+
+  it("noemt een laag klaar als alles beoordeeld is en alleen het afronden ontbreekt", () => {
+    expect(isKlaarOmAfTeRonden(doc({ te_beoordelen: 0 }))).toBe(true);
+    expect(isKlaarOmAfTeRonden(doc({ te_beoordelen: 1 }))).toBe(false);
+    // Afronden is een handeling: wat afgerond is, is niet meer "klaar om".
+    expect(isKlaarOmAfTeRonden(doc({ status: "geaccordeerd", te_beoordelen: 0 }))).toBe(false);
+    expect(isKlaarOmAfTeRonden(doc({ status: "gepromoveerd", te_beoordelen: 0 }))).toBe(false);
+    // Zonder actuele markeringen is er niets beoordeeld.
+    expect(isKlaarOmAfTeRonden(doc({ aantal_elementen: 0, te_beoordelen: 0 }))).toBe(false);
+  });
+
+  it("verdeelt de lagen zonder overlap over de weergaven; alleen een lege laag staat uitsluitend bij Alles", () => {
+    const open = doc({ te_beoordelen: 2 });
+    const klaar = doc({ te_beoordelen: 0 });
+    const akkoord = doc({ status: "geaccordeerd", te_beoordelen: 1 });
+    const inGraaf = doc({ status: "gepromoveerd", te_beoordelen: 0 });
+    const leeg = doc({ aantal_elementen: 0, te_beoordelen: 0 });
+    const weergavenVan = (d: DocumentSamenvatting) =>
+      WEERGAVEN.filter((w) => inWeergave(d, w.waarde)).map((w) => w.waarde);
+    expect(weergavenVan(open)).toEqual(["te-beoordelen", "alles"]);
+    expect(weergavenVan(klaar)).toEqual(["af-te-ronden", "alles"]);
+    expect(weergavenVan(akkoord)).toEqual(["afgerond", "alles"]);
+    expect(weergavenVan(inGraaf)).toEqual(["afgerond", "alles"]);
+    expect(weergavenVan(leeg)).toEqual(["alles"]);
+  });
+
+  it("legt elke weergave uit en noemt dat de aantallen bepalingen tellen", () => {
+    for (const { waarde } of WEERGAVEN) {
+      expect(uitlegWeergave(waarde)).toContain("De aantallen tellen bepalingen, niet markeringen.");
+      expect(legeWeergave(waarde)).toBeTruthy();
+    }
+    expect(legeWeergave("te-beoordelen")).not.toContain("afgehandeld");
   });
 
   it("zet rood boven geel, en daarna wat het langst stil ligt", () => {
@@ -29,13 +63,13 @@ describe("te doen", () => {
     const oud = doc({ slug: "oud", updated: "2026-01-01T10:00:00Z" });
     const nieuw = doc({ slug: "nieuw", updated: "2026-08-18T10:00:00Z" });
 
-    expect(sorteerTeDoen([nieuw, geel, oud, rood]).map((d) => d.slug))
+    expect(sorteerTeBeoordelen([nieuw, geel, oud, rood]).map((d) => d.slug))
       .toEqual(["rood", "geel", "oud", "nieuw"]);
   });
 
   it("laat de invoer ongemoeid", () => {
     const lijst = [doc({ slug: "a" }), doc({ slug: "b", per_aandacht: { rood: 1 } })];
-    sorteerTeDoen(lijst);
+    sorteerTeBeoordelen(lijst);
     expect(lijst.map((d) => d.slug)).toEqual(["a", "b"]);
   });
 });
@@ -64,6 +98,15 @@ describe("groeperen per regeling", () => {
     ])[0];
     expect(groep.documenten.map((d) => d.lid)).toEqual(["2", "10"]);
   });
+
+  it("zet onderdelen van één lid op volgorde, na het lid zelf", () => {
+    const groep = groepeerPerRegeling([
+      doc({ slug: "c", artikel: "6", lid: "1", label: "Onderdeel c." }),
+      doc({ slug: "a", artikel: "6", lid: "1", label: "Onderdeel a." }),
+      doc({ slug: "l", artikel: "6", lid: "1", label: "Lid 1" }),
+    ])[0];
+    expect(groep.documenten.map((d) => d.slug)).toEqual(["l", "a", "c"]);
+  });
 });
 
 describe("zoeken", () => {
@@ -75,6 +118,19 @@ describe("zoeken", () => {
   it("matcht woord voor woord, ongeacht volgorde", () => {
     expect(zoek(lijst, "zorgverzekering 43").map((d) => d.slug)).toEqual(["zvw"]);
     expect(zoek(lijst, "43 zorg").map((d) => d.slug)).toEqual(["zvw"]);
+  });
+
+  it("vindt een bepaling op wat erboven staat: artikel, lid en onderdeel", () => {
+    const onderdeel = doc({ slug: "o", artikel: "6", lid: "1", soort: "Onderdeel", label: "Onderdeel c." });
+    expect(zoek([onderdeel], "artikel 6")).toHaveLength(1);
+    expect(zoek([onderdeel], "art. 6 lid 1")).toHaveLength(1);
+    expect(zoek([onderdeel], "onderdeel c")).toHaveLength(1);
+    expect(zoek([onderdeel], "onderdeel d")).toHaveLength(0);
+    // Een nummer is een heel woord: de 9 uit "1990" is geen artikel 9.
+    const iw = doc({ slug: "iw", citeertitel: "Invorderingswet 1990", artikel: "25", lid: "1" });
+    expect(zoek([iw], "artikel 9")).toHaveLength(0);
+    expect(zoek([iw], "invordering 25")).toHaveLength(1);
+    expect(zoek([iw], "1990")).toHaveLength(1);
   });
 
   it("geeft alles terug bij een lege term", () => {
@@ -109,8 +165,10 @@ describe("kleurstrip", () => {
 describe("weergave", () => {
   it("valt terug op de werkvoorraad", () => {
     expect(weergaveUitParam("alles")).toBe("alles");
-    expect(weergaveUitParam(null)).toBe("te-doen");
-    expect(weergaveUitParam("onzin")).toBe("te-doen");
+    expect(weergaveUitParam("af-te-ronden")).toBe("af-te-ronden");
+    expect(weergaveUitParam("afgerond")).toBe("afgerond");
+    expect(weergaveUitParam(null)).toBe("te-beoordelen");
+    expect(weergaveUitParam("onzin")).toBe("te-beoordelen");
   });
 });
 
@@ -118,6 +176,8 @@ describe("vindplaats", () => {
   it("noemt het lid alleen als het er is", () => {
     expect(vindplaatsLabel(doc())).toBe("art. 9");
     expect(vindplaatsLabel(doc({ lid: "2" }))).toBe("art. 9 lid 2");
+    expect(vindplaatsLabel(doc({ lid: "1", soort: "Onderdeel", label: "Onderdeel c." }))).toBe("art. 9 lid 1, onderdeel c");
+    expect(vindplaatsLabel(doc({ lid: "1", soort: "Lid", label: "Lid 1" }))).toBe("art. 9 lid 1");
   });
 });
 

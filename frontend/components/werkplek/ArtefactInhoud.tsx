@@ -14,7 +14,7 @@ import { ExportKnop } from "@/components/werkplek/ExportKnop";
 import { ReviewQueue, type OpenRij } from "@/components/werkplek/ReviewQueue";
 import { SelectiePopover, type SelectieDoel } from "@/components/werkplek/SelectiePopover";
 import {
-  DOCUMENT_STATUS_LABEL, DOCUMENT_STATUS_TOON, LIFECYCLE_LABEL, bronVan, isDocumentVergrendeld,
+  LIFECYCLE_LABEL, bronVan, documentStand, isBeslist, isDocumentVergrendeld,
   overlaptSelectie, pastInFilter, regelsVan, sorteerReview, splitsVerouderd,
   volgendeElement, type ReviewFilter,
 } from "@/lib/annotatie";
@@ -93,6 +93,11 @@ export function ArtefactInhoud({
   // werkvoorraad: ze gaan over tekst die er niet meer staat. Ze blijven wél zichtbaar als historie,
   // met het oordeel dat er destijds over werd geveld.
   const { actueel, historie } = useMemo(() => splitsVerouderd(doc.elementen), [doc.elementen]);
+  // Dezelfde telling als de samenvatting op de kaart: alleen actuele markeringen.
+  const stand = documentStand({
+    status: doc.status, aantal_elementen: actueel.length,
+    te_beoordelen: actueel.filter((el) => !isBeslist(el)).length,
+  });
 
   // Eén lus, twee antwoorden – beide uit dezelfde `vindPositie` als de weergave, dus ze kloppen
   // altijd met wat je ziet:
@@ -330,7 +335,7 @@ export function ArtefactInhoud({
             De acties krijgen hun eigen regel en lijnen rechts uit, onder het kruisje. Dat kost op een
             breed scherm een regel hoogte, en dat is de prijs voor een sluitknop die niet wandelt. */}
         <PaneelKop soort="Annotatie · JAS" titel={opschrift} pagina={pagina} onSluit={onSluiten} onder={kopOnder} balk={kopBalk} acties={<>
-          <StatusLabel toon={DOCUMENT_STATUS_TOON[doc.status]}>{DOCUMENT_STATUS_LABEL[doc.status]}</StatusLabel>
+          <StatusLabel toon={stand.toon} uitleg={stand.uitleg}>{stand.label}</StatusLabel>
           <ExportKnop onFout={setFout} onDownload={onExport} titel={opschrift} markdown={() => annotatieAlsMarkdown(doc, opschrift)} />
           {onStatus && <StatusKnop status={doc.status} bezig={statusBezig} onZet={zetStatus} />}
           {/* Elke gebruiker mag dit, ook op een afgeronde annotatie; de audit legt vast wie het deed.
