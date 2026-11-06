@@ -298,6 +298,26 @@ def test_onder_een_aanhef_blijft_rechtssubject_mogelijk_in_elke_wetsfamilie(pars
         return {c for k in NaamwoordgroepDetector().detecteer(_bron(tekst, parser, context=context)).kandidaten
                 if k.span.tekst == woord for c in k.possible_classes}
     for aanhef, onderdeel, woord in (("Worden aangewezen betalingen op de rekening:", "van een curator;", "een curator"),
-                                     ("Onder huurder wordt verstaan degene die:", "van een stichting;", "een stichting")):
+                                     ("Onder huurder wordt verstaan degene die:", "van een kapper;", "een kapper")):
         assert "Rechtssubject" in klassen(onderdeel, woord, aanhef)
         assert "Rechtssubject" not in klassen(onderdeel, woord)
+
+
+@pytest.mark.parametrize(("tekst", "woord"), [
+    ("De uitbetaling vindt plaats door de Dienst Toeslagen.", "de Dienst Toeslagen"),
+    ("Gegevens gaan naar de Belastingdienst.", "de Belastingdienst"),
+    ("De premie wordt betaald aan een zorgverzekeraar.", "een zorgverzekeraar"),
+    ("De aanvraag wordt door de wethouder beoordeeld.", "de wethouder"),
+    ("Dit geldt voor een stichting zonder winstoogmerk.", "een stichting"),
+])
+def test_een_partij_buiten_de_rollenlijst_kan_rechtssubject_zijn(parser, tekst, woord):
+    ks = [k for k in NaamwoordgroepDetector().detecteer(_bron(tekst, parser)).kandidaten if k.span.tekst == woord]
+    assert ks and "Rechtssubject" in ks[0].possible_classes
+
+
+@pytest.mark.parametrize(("tekst", "woord"), [("Dit volgt uit de Woningwet.", "de Woningwet"),
+                                              ("Dit volgt uit het besluit.", "het besluit")])
+def test_een_regeling_is_geen_partij(parser, tekst, woord):
+    ks = [k for k in NaamwoordgroepDetector().detecteer(_bron(tekst, parser)).kandidaten if k.span.tekst == woord]
+    assert ks and "PARTY_NP" not in {e.code for k in ks for e in k.evidence}
+

@@ -17,6 +17,7 @@ candidate_rules:
   - {id: jas.subject.np_bij_normatief_predicaat, status: geïmplementeerd}
   - {id: jas.subject.np, status: geïmplementeerd}
   - {id: jas.subject.rollexicon, status: geïmplementeerd}
+  - {id: jas.subject.partij, status: geïmplementeerd}
   - {id: jas.subject.voornaamwoord, status: geïmplementeerd}
 confusable_classes:
   - {klasse: Rechtsobject, reden: "beide naamwoordgroep; een persoon kan ook voorwerp zijn (H2:35)"}

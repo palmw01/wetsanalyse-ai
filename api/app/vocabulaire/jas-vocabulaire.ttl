@@ -241,6 +241,11 @@
     skos:prefLabel "Parameterwoord"@nl ;
     jas:codeWaarde "PARAMETER_NOUN" .
 
+<urn:jas-ns:code:PARTY_NP> a jas:Detectiecode ;
+    skos:definition "Een naamwoordgroep die een partij kan aanduiden: een woord voor een organisatie of persoon, een eigennaam of het handelend voorwerp."@nl ;
+    skos:prefLabel "Mogelijke partij"@nl ;
+    jas:codeWaarde "PARTY_NP" .
+
 <urn:jas-ns:code:PERSON_PRONOUN> a jas:Detectiecode ;
     skos:definition "'Hij', 'degene', 'een ieder': een voornaamwoord dat naar een persoon verwijst."@nl ;
     skos:prefLabel "Verwijzend voornaamwoord"@nl ;
@@ -923,5 +928,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "7009cebc1b79" .
+    jas:vocabulaireVersie "60309a8a8acd" .
 

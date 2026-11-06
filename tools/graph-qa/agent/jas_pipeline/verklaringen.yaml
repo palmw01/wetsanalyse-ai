@@ -32,6 +32,7 @@ detectie:
   LOCATION_NAME: {naam: "Plaatsnaam", uitleg: "Een gemeente, provincie of land uit de lijst van bekende namen."}
   LOCATION_DESCRIPTION: {naam: "Gebiedsomschrijving", uitleg: "Een omschreven gebied, zoals 'een lidstaat van de Europese Unie'."}
   ROLE_NOUN: {naam: "Rol of instantie", uitleg: "Een woord uit de lijst van rollen en instanties (de ontvanger, de inspecteur, Onze Minister)."}
+  PARTY_NP: {naam: "Mogelijke partij", uitleg: "Een naamwoordgroep die een partij kan aanduiden: een woord voor een organisatie of persoon, een eigennaam of het handelend voorwerp."}
   TEMPORAL_DATE: {naam: "Datum", uitleg: "Een concrete datum."}
   TEMPORAL_DURATION: {naam: "Termijn", uitleg: "Een duur, zoals 'zes weken na de dagtekening'."}
   TEMPORAL_RELATIVE_PERIOD: {naam: "Relatieve periode", uitleg: "Een periode ten opzichte van iets anders: 'de eerste veertien dagen'."}

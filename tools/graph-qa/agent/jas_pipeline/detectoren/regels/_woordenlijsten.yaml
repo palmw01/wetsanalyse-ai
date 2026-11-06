@@ -101,6 +101,27 @@ ROL:
   - hij
   - zij
   - diegene
+# Woorden voor een partij of organisatie, op het einde van het lemma ("zorgverzekeraar", "rekeninghouder",
+# "Belastingdienst"). Geen rol die de wet noemt, maar een aanwijzing dat Rechtssubject mogelijk is: alleen een
+# hypothese, want "een dienst" kan ook een prestatie zijn. Zo groeit ROL niet per wet.
+PARTIJ:
+  - dienst
+  - instelling
+  - organisatie
+  - onderneming
+  - vereniging
+  - stichting
+  - maatschappij
+  - vennootschap
+  - overheid
+  - houder
+  - nemer
+  - gever
+  - uitvoerder
+  - verzekeraar
+  - vertegenwoordiger
+  - gemachtigde
+  - derde
 # Documenten en rechtshandelingen als ding (profiel Rechtsobject): een naamwoordgroep met zo'n kern
 # is geen drager van een recht of plicht, ook niet als onderwerp ("het aanslagbiljet heeft een
 # dagtekening"). Matcht op het einde van het lemma ("belastingaanslag", "navorderingsaanslag").
