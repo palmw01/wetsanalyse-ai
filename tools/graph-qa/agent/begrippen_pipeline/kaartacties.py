@@ -44,6 +44,7 @@ TEKST: dict[str, str] = {
     "DEFINITIE_VIA_VERWIJZING": "De definitie staat in een regeling waarnaar een begripsbepaling van het werkgebied "
                                 "verwijst; controleer of ze hier geldt.",
     "DEFINITIE_ELDERS": "Elders in de graaf gevonden; een verband met het werkgebied is niet aangetoond.",
+    "DEFINITIE_VERWIJST_DOOR": "Deze bepaling noemt alleen de term en verwijst door; de bepaling waarnaar ze verwijst was niet te lezen.",
     "GEEN_VERBETERING": "Lex vond geen scherpere definitie dan de huidige.",
     "MODEL_ONBRUIKBAAR": "Lex gaf geen bruikbaar antwoord.",
     "DOOR_LEX_VERGELEKEN": "De vergelijking is van Lex; toets haar aan de passages van beide begrippen.",
@@ -90,6 +91,8 @@ class Treffer:
     vindplaats: str
     term: str
     plaats: str                       # een van PLAATSEN
+    via: str = ""                     # de begripsbepaling die hierheen verwees
+    doorverwijzing: bool = False      # de definitie verwijst alleen door, en het doel is niet te lezen
 
 
 def brondefinities(treffers: list[Treffer], huidig: str = "", maximum: int = MAX_BRONDEFINITIES) -> list[dict]:
@@ -102,8 +105,10 @@ def brondefinities(treffers: list[Treffer], huidig: str = "", maximum: int = MAX
             continue
         gezien.add(_norm(d))
         punten = {"definitieverwijzing": ["DEFINITIE_VIA_VERWIJZING"], "elders": ["DEFINITIE_ELDERS"]}.get(t.plaats, [])
+        punten = ["DEFINITIE_VERWIJST_DOOR"] if t.doorverwijzing else punten
+        waar = f"{t.vindplaats or t.bron_iri}" + (f", waarnaar {t.via} verwijst" if t.via else "")
         uit.append({"veld": "definitie", "aandacht": "geel" if punten else "groen", "aandachtspunten": punten,
-                    "motivatie": f"De wet definieert “{t.term}” in {t.vindplaats or t.bron_iri}.",
+                    "motivatie": f"De wet definieert “{t.term}” in {waar}.",
                     "definitie": {"definitie": d, "herkomst": "letterlijk", "definitie_bron_iri": t.bron_iri,
                                   "definitie_vindplaats": (t.vindplaats or t.bron_iri)[:500],
                                   "vindplaats_soort": t.plaats}})

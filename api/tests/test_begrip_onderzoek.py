@@ -247,3 +247,13 @@ def test_de_bevestiging_draagt_de_werkvoorraad():
     assert b.model_dump()["werkvoorraad_id"] == "W0123456789abcdef"
     with pytest.raises(ValueError):
         Bevestiging(soort="begrippen_verdiepen", werkgebied_id="wg", aantal=2, werkvoorraad_id="nep")
+
+
+def test_gedefinieerd_leest_de_term_niet_wat_er_toevallig_staat():
+    from app.begrip_onderzoek import gedefinieerd
+
+    assert gedefinieerd("Onder belanghebbende wordt verstaan: degene wiens belang is betrokken.", "") == {"belanghebbende"}
+    assert gedefinieerd("directeur, inspecteur of ontvanger: de functionaris;", "Deze wet verstaat onder:") == {
+        "directeur", "inspecteur", "ontvanger"}
+    assert gedefinieerd("de ontvanger betaalt uit.", "Deze wet verstaat onder:") == set()
+    assert gedefinieerd("ontvanger: iets;", "De minister besluit:") == set()

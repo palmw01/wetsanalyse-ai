@@ -417,7 +417,9 @@ bouwt de invoer, toetst en bewaart de uitkomst, en legt de besluiten vast.
   en zowel `tests/test_begrippen_runs.py` als graph-qa `tests/test_begrippen_manifest_drift.py`
   toetsen ertegen. Wijzigt het model van de keten, laat de vectoren dan door de keten herberekenen.
 - **De onderzoeksstand** (`begrip_onderzoek.py`, spoor M): naast het manifest de context die de keten
-  moet lezen – leden van hetzelfde artikel, begripsbepalingen en kwalificaties met een
+  moet lezen – eerst een begripsbepaling die een formuleringstekst als term definieert (`gedefinieerd`; ook in een
+  regeling die alleen via een verwijzing in beeld komt, want de keten neemt haar letterlijk over en dan is er geen model
+  nodig), dan leden van hetzelfde artikel, begripsbepalingen en kwalificaties met een
   formuleringstekst, verwijzingen één stap vanaf de ankers (`samenhang._uitgaand`; een andere regeling
   via `resolve`), contextselecties – in die prioriteit, binnen `MAX_*`, met `ontbrekend` (`budget`,
   `niet_in_graaf`, `onbereikbaar`) en vergelijkingsbegrippen. `onderzoek_id` rekent zoals `Onderzoek.id`, met
@@ -476,8 +478,8 @@ bouwt de invoer, toetst en bewaart de uitkomst, en legt de besluiten vast.
 laatste klare run. graph-qa rekent (`agent/begrippen_verdieping.py`), de api bewaart en toetst.
 
 - `GET …/verdieping` is de **werkvoorraad**: twijfelvragen (behalve `Z-RELATIE-GAAT-VOOR`) en groepen
-  zonder definitie, min wat in een klare batch zit; plus de klare batches, een schatting (mediaan
-  tokens per item over de laatste 20 batches van de gebruiker; anders `null`) en het budget. `aantal`
+  zonder definitie, min wat in een klare batch zit; plus de klare batches, een schatting (gemeten
+  tokens per item, per soort, over de laatste 20 batches van de gebruiker, met `hoog` als bovenkant; anders `null`) en het budget. `aantal`
   is wat een `bevestiging` (`soort: "begrippen_verdiepen"`) noemt.
 - `PUT …/begrippen-runs/{run}/batches/{batch_id}` bewaart **één afgeronde batch** (`begrippen_batches`;
   alleen klare batches staan erin, dus een herstart doet de rest). Idempotent op (run, batch-id) +

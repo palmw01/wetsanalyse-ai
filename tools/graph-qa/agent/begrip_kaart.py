@@ -20,10 +20,12 @@ voorstellen terug (`PUT …/uitkomst`); de api toetst de garanties opnieuw. Het 
 from __future__ import annotations
 
 import asyncio
+from dataclasses import replace
 import logging
+import re
 from typing import Any, AsyncIterator, Awaitable, Callable
 
-from .begrippen_pipeline import kaartacties as ka
+from .begrippen_pipeline import definities, kaartacties as ka
 from .begrippen_run import manifest_uit, onderzoek_uit
 from .bepaling_namen import bwb_van as _bwb, rijen as _rijen
 from .bronnen_vinden import in_selectie
@@ -38,19 +40,106 @@ MODEL_ACTIES = {"scherper", "uitleg", "betekenisverschil", "voorbeelden"}
 NAAM = {"brondefinitie": "Brondefinitie zoeken", "scherper": "Scherpere definitie", "uitleg": "Uitleg in B1",
         "betekenisverschil": "Betekenisverschil", "voorbeelden": "Voorbeelden"}
 MAX_TREFFERS = 40
+#: Rijen uit de graaf vóór de exacte toets (`_draagt`): een kort woord staat in veel langere termen.
+MAX_RIJEN = 200
 
 
 # --- de graaf (brondefinitie) ------------------------------------------------------------------
 
-def q_brondefinities(termen: list[str], limit: int = MAX_TREFFERS) -> str:
-    waarden = ", ".join(_lit(t) for t in termen)
+def q_brondefinities(termen: list[str], limit: int = MAX_RIJEN) -> str:
+    """Op CONTAINS: de graaf kent ook één begrip voor meer termen ("directeur, inspecteur of ontvanger"). Of de term
+    er echt bij hoort, zegt `_draagt`; daarom hier ruim."""
+    bevat = " || ".join(f"CONTAINS(LCASE(STR(?begrip)), {_lit(t)})" for t in termen)
     return PREFIXES + f"""SELECT DISTINCT ?node ?begrip ?tekst ?aanhef WHERE {{
   ?node bwb:definieertBegrip ?begrip .
   FILTER(STRSTARTS(STR(?node), {_lit(NS)}))
-  FILTER(LCASE(STR(?begrip)) IN ({waarden}))
+  FILTER({bevat})
   ?node bwb:tekst ?tekst .
   OPTIONAL {{ ?ouder ({BEVAT}) ?node . ?ouder bwb:tekst ?aanhef }}
 }} ORDER BY ?node LIMIT {limit + 1}"""
+
+
+def q_onder(termen: list[str], limit: int = MAX_TREFFERS) -> str:
+    """ "Onder X wordt verstaan: …" (Awb 1:2): de importer legt daar geen `bwb:definieertBegrip` op, dus de tekst zelf.
+    `definities.definiens` beslist of het een definitie is."""
+    bevat = " || ".join(f"CONTAINS(LCASE(STR(?tekst)), {_lit(f'onder {t} w')}) || "
+                        f"CONTAINS(LCASE(STR(?tekst)), {_lit(f'onder {t} verstaan')})" for t in termen)
+    return PREFIXES + f"""SELECT DISTINCT ?node ?tekst WHERE {{
+  ?node bwb:tekst ?tekst .
+  FILTER(STRSTARTS(STR(?node), {_lit(NS)}))
+  FILTER({bevat})
+  FILTER(CONTAINS(LCASE(STR(?tekst)), "verstaan"))
+}} ORDER BY ?node LIMIT {limit + 1}"""
+
+
+def q_verwijzingen(iri: str) -> str:
+    return PREFIXES + f"""SELECT DISTINCT ?naar ?anker WHERE {{
+  <{iri}> bwb:heeftVerwijzing ?v . ?v bwb:naar ?naar .
+  OPTIONAL {{ ?v bwb:ankerTekst ?anker }}
+  FILTER(STRSTARTS(STR(?naar), {_lit(NS)}))
+}} LIMIT 20"""
+
+
+def q_teksten(iris: list[str]) -> str:
+    waarden = " ".join(f"<{i}>" for i in iris)
+    return PREFIXES + f"""SELECT ?node ?tekst ?aanhef WHERE {{
+  VALUES ?node {{ {waarden} }}
+  ?node bwb:tekst ?tekst .
+  OPTIONAL {{ ?ouder ({BEVAT}) ?node . ?ouder bwb:tekst ?aanhef }}
+}} LIMIT 20"""
+
+
+_RANG = {"eerste": 1, "tweede": 2, "derde": 3, "vierde": 4, "vijfde": 5, "zesde": 6, "zevende": 7, "achtste": 8,
+         "negende": 9, "tiende": 10, "elfde": 11, "twaalfde": 12}
+_ANKER_LID = re.compile(r"\b(\w+)\s+lid\b", re.IGNORECASE)
+_ANKER_ONDERDEEL = re.compile(r"\bonderdeel\s+([a-z]+)\b", re.IGNORECASE)
+
+
+def doelen(naar: str, anker: str) -> list[str]:
+    """Waar de verwijzing heen wijst, de meest precieze plek eerst: de graaf wijst soms naar het artikel, terwijl de
+    ankertekst het lid en onderdeel noemt."""
+    uit = [naar]
+    lid = _RANG.get((m.group(1).lower() if (m := _ANKER_LID.search(anker or "")) else ""))
+    if lid and ":lid:" not in naar:
+        uit.insert(0, f"{naar}:lid:{lid}")
+    if m := _ANKER_ONDERDEEL.search(anker or ""):
+        uit.insert(0, f"{uit[0]}:o:{m.group(1).lower()}")
+    return uit
+
+
+def _draagt(begrip: str, tekst: str, aanhef: str, termen: set[str]) -> bool:
+    """Definieert deze bepaling een van de termen? Exact, niet als deel van een langer woord."""
+    gedefinieerd = definities.termen_van(begrip) if begrip else definities.gedefinieerde_termen(
+        ka.Bron(bron_iri="urn:x", tekst=tekst, bron_hash="", aanhef=aanhef))
+    return bool(set(gedefinieerd) & termen)
+
+
+def volg(graph: GraphPort, t: ka.Treffer, termen: set[str], diepte: int = 2) -> ka.Treffer | None:
+    """De definitie waarnaar een doorverwijzing wijst (S4), hoogstens `diepte` stappen, of None."""
+    for r in _rijen(graph, q_verwijzingen(t.bron_iri)):
+        rijen = {x["node"]: x for x in _rijen(graph, q_teksten(doelen(r["naar"], r.get("anker", ""))))}
+        for iri in doelen(r["naar"], r.get("anker", "")):
+            x = rijen.get(iri)
+            if x is None or not _draagt("", x.get("tekst", ""), x.get("aanhef", ""), termen):
+                continue
+            doel = ka.Treffer(bron_iri=iri, tekst=x["tekst"], aanhef=x.get("aanhef", ""), term=t.term,
+                              vindplaats=definitie_vindplaats_van(graph, iri), plaats="definitieverwijzing",
+                              via=t.vindplaats)
+            d = definities.definiens(ka.Bron(bron_iri=iri, tekst=doel.tekst, bron_hash="", aanhef=doel.aanhef))
+            if d and not definities.verwijst_door(d, termen):
+                return doel
+            if diepte > 1 and d and (verder := volg(graph, doel, termen, diepte - 1)):
+                return verder
+    return None
+
+
+def definitie_vindplaats_van(graph: GraphPort, iri: str) -> str:
+    from .overzicht import definitie_vindplaats
+    from .regelingnamen import regelingnamen
+
+    plek = definitie_vindplaats(iri) or iri
+    naam = regelingnamen(graph, {_bwb(iri)}).get(_bwb(iri))
+    return f"{plek} – {naam}" if naam else plek
 
 
 def q_verwezen(bwb_ids: list[str], limit: int = 200) -> str:
@@ -74,6 +163,15 @@ def plaats(bron_iri: str, selecties: list[str], regelingen: set[str], verwezen: 
     return "elders"
 
 
+def _gevolgd(graph: GraphPort, t: ka.Treffer, termen: set[str]) -> ka.Treffer:
+    """Een definitie die alleen doorverwijst, wordt de definitie waarnaar ze wijst; lukt dat niet, dan blijft ze geel
+    staan (`doorverwijzing`), nooit groen."""
+    d = definities.definiens(ka.Bron(bron_iri=t.bron_iri, tekst=t.tekst, bron_hash="", aanhef=t.aanhef))
+    if not d or not definities.verwijst_door(d, termen):
+        return t
+    return volg(graph, t, termen) or replace(t, doorverwijzing=True)
+
+
 def zoek_brondefinities(graph: GraphPort, invoer: dict[str, Any]) -> ka.Uitkomst:
     from .overzicht import definitie_vindplaats
     from .regelingnamen import regelingnamen
@@ -84,7 +182,12 @@ def zoek_brondefinities(graph: GraphPort, invoer: dict[str, Any]) -> ka.Uitkomst
         return ka.Uitkomst(melding="Het begrip heeft geen naam om op te zoeken.")
     selecties = [s["bron_iri"] for s in invoer.get("selecties") or []]
     regelingen = {_bwb(s) for s in selecties if _bwb(s)}
-    rijen = _rijen(graph, q_brondefinities(termen))
+    gezocht = set(termen)
+    rijen = [r for r in _rijen(graph, q_brondefinities(termen))
+             if _draagt(r.get("begrip", ""), r.get("tekst", ""), r.get("aanhef", ""), gezocht)]
+    gedekt = {r["node"] for r in rijen}
+    rijen += [r for r in _rijen(graph, q_onder(termen))
+              if r["node"] not in gedekt and _draagt("", r.get("tekst", ""), "", gezocht)]
     verwezen = {_bwb(r["naar"]) for r in _rijen(graph, q_verwezen(sorted(regelingen)))} - regelingen \
         if regelingen else set()
     namen = regelingnamen(graph, {_bwb(r["node"]) for r in rijen})
@@ -97,11 +200,13 @@ def zoek_brondefinities(graph: GraphPort, invoer: dict[str, Any]) -> ka.Uitkomst
         naam = namen.get(_bwb(iri))
         per_node[iri] = ka.Treffer(bron_iri=iri, tekst=r.get("tekst", ""), aanhef=r.get("aanhef", ""),
                                    vindplaats=f"{plek} – {naam}" if naam else plek,
-                                   term=r.get("begrip", "").strip(), plaats=plaats(iri, selecties, regelingen, verwezen))
-    voorstellen = ka.brondefinities(list(per_node.values()), huidig=inhoud.get("definitie", ""))
+                                   term=r.get("begrip", "").strip() or termen[0],
+                                   plaats=plaats(iri, selecties, regelingen, verwezen))
+    treffers = [_gevolgd(graph, t, gezocht) for t in per_node.values()]
+    voorstellen = ka.brondefinities(treffers, huidig=inhoud.get("definitie", ""))
     if voorstellen:
         return ka.Uitkomst(voorstellen=voorstellen)
-    return ka.Uitkomst(melding=ka.geen_definitie_melding(list(per_node.values()), termen))
+    return ka.Uitkomst(melding=ka.geen_definitie_melding(treffers, termen))
 
 
 # --- het model ------------------------------------------------------------------------------------

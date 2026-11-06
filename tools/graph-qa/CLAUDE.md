@@ -653,6 +653,14 @@ zonder definitie zijn.
   bevestiging); anders – alleen na bevestiging – stop en budget, het model in een thread met een eigen
   `AnthropicLLM` (meter), het verbruik geboekt op `<run>.v<n>`, en `PUT …/batches/{id}`. Een fout in één
   batch stopt de rest niet, maar dan blijft de verdieping open en zegt Lex hoeveel er klaar is.
+- **Eerst de brondefinitie** (S2, e2e 5 nov 2026: 153.504 tokens voor één onbruikbare definitie, daarna vond de
+  zoekactie zonder model er drie). Twee stappen zonder model: de keten neemt een definitie uit het onderzoek letterlijk
+  over als haar bereik een lid omvat (`kaart.naam_en_letterlijk`, ook bij `voorstel`, dus de groep valt uit de
+  werkvoorraad), en vlak voor de kaartbatches zoekt `brondefinitie_eerst` per overgebleven groep in de graaf. Wat daar in
+  het werkgebied of zijn regelingen staat, gaat niet naar het model; de kaart noemt de vindplaats en de analist neemt over
+  op de begripskaart. Een treffer *elders* slaat het model niet over, en een haperende graaf ook niet.
+- **De schatting volgt de meting** (api `schatting`): gemeten tokens per item, per soort, plus een bovenkant (`hoog`). De
+  samenvatting noemt wat het kostte naast de schatting.
 - **Alles klaar** → hergroeperen, kaarten, `PUT …/verdieping` (groepen met `door`, kaarten, oordelen,
   open vragen), en een samenvatting met het begrippenartefact.
 - `/v1/chat` weigert de modus (422), zoals de andere `WERKGEBIED_MODI`.
@@ -667,7 +675,13 @@ invoer ophalen, `…/loopt`, rekenen, `PUT …/uitkomst`; loopt dezelfde actie a
 endpoint `/v1/kaart-runs` is met F3e vervallen.
 
 - **Zoek de brondefinitie** – geen model, geen budgetpoort. `q_brondefinities` zoekt
-  `bwb:definieertBegrip` op naam en alternatieve termen (`LCASE … IN`), met de aanhef van de ouder;
+  `bwb:definieertBegrip` op naam en alternatieve termen, met de aanhef van de ouder (`CONTAINS`, want de graaf kent ook
+  één begrip voor meer termen, "directeur, inspecteur of ontvanger"; `_draagt` toetst de term daarna exact, dus een langer
+  woord telt niet). `q_onder` zoekt "Onder X wordt verstaan" in de tekst: de importer legt daar geen
+  `bwb:definieertBegrip` op (Awb 1:2; 31 bepalingen op acceptatie). **Een definitie die alleen de term noemt en
+  doorverwijst** ("de ontvanger, bedoeld in artikel 2 …", `definities.verwijst_door`) is circulair: `_gevolgd` volgt
+  `bwb:heeftVerwijzing` naar lid en onderdeel uit de ankertekst (`doelen`, hoogstens twee stappen) en stelt de definitie
+  daar voor; lukt dat niet, dan geel met `DEFINITIE_VERWIJST_DOOR`, nooit groen.
   `plaats` geeft elke treffer *werkgebied* (`in_selectie`), *regeling*, *definitieverwijzing* (een
   regeling waar een begripsbepaling uit de regelingen van het werkgebied naar verwijst, `q_verwezen`)
   of *elders*. `kaartacties.brondefinities` neemt alleen een echte definitie letterlijk over

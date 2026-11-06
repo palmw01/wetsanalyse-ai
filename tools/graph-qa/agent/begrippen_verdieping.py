@@ -69,7 +69,9 @@ def voorstel_tekst(naam: str, wv: dict[str, Any], wid: str = "") -> tuple[str, d
     if wv.get("batches"):
         zinnen.append(f"{_meervoud(len(wv['batches']), 'batch is', 'batches zijn')} al klaar; ik ga verder waar ik bleef.")
     schat, budget = wv.get("schatting"), wv.get("budget") or {}
-    zin = (f"Naar schatting kost dat ~{_getal(schat['totaal'])} tokens" if schat else
+    marge = f" (tot ~{_getal(schat['hoog'])}, gemeten over je laatste {schat['basis']} batches)" \
+        if schat and schat.get("hoog", 0) > schat["totaal"] else ""
+    zin = (f"Naar schatting kost dat ~{_getal(schat['totaal'])} tokens{marge}" if schat else
            "Een schatting kan ik nog niet geven: er is nog geen eerdere verdieping van jou om op te baseren")
     zin += f"; je hebt nog {_getal(int(budget.get('resterend') or 0))} tokens." if budget.get("actief") else "."
     zinnen.append(zin)
@@ -80,7 +82,35 @@ def voorstel_tekst(naam: str, wv: dict[str, Any], wid: str = "") -> tuple[str, d
                               **({"werkvoorraad_id": wid} if wid else {})}
 
 
-def samenvatting(naam: str, her: vd.Hergroepering, kaarten: dict[str, Any]) -> str:
+def brondefinitie_eerst(graph: Any, selecties: list[dict[str, Any]], opdrachten: list[Any]) -> tuple[list[Any], dict[str, Any]]:
+    """De groepen waarvoor de graaf een brondefinitie heeft, gaan niet naar het model (S2): 153.504 tokens leverden in
+    de e2e-test één onbruikbare definitie op, terwijl de zoekactie zonder model er daarna drie vond. Die groepen houden
+    hun kaart zonder definitie, met de vindplaats; overnemen doet de analist op de begripskaart. Alleen wat binnen het
+    werkgebied of zijn regelingen valt, of via een verwijzing: een treffer elders is een homoniem tot het tegendeel
+    blijkt. Hapert de graaf, dan gaat alles naar het model."""
+    from .begrip_kaart import zoek_brondefinities
+
+    rest, gevonden = [], {}
+    for o in opdrachten:
+        try:
+            uit = zoek_brondefinities(graph, {"begrip": {"inhoud": {"naam": o.kaart.naam, "alternatieve_termen": list(o.kaart.alternatieve_termen)}},
+                                              "selecties": selecties})
+        except Exception:  # noqa: BLE001 – geen graaf is geen reden om niet mee te denken
+            logger.warning("verdieping: brondefinitie niet opgehaald", exc_info=True)
+            return list(opdrachten), {}
+        beste = next((v for v in uit.voorstellen if v["definitie"]["vindplaats_soort"] != "elders"
+                      and "DEFINITIE_VERWIJST_DOOR" not in v["aandachtspunten"]), None)
+        if beste is None:
+            rest.append(o)
+            continue
+        plek = beste["definitie"]["definitie_vindplaats"]
+        gevonden[o.kaart.groep_id] = o.kaart.model_copy(
+            update={"motivatie": f"De wet definieert dit in {plek}. Kies *Zoek de brondefinitie* op de begripskaart."})
+    return rest, gevonden
+
+
+def samenvatting(naam: str, her: vd.Hergroepering, kaarten: dict[str, Any], *, brondefinities: int = 0,
+                 tokens: int = 0, geschat: int | None = None) -> str:
     """Uit de getallen, geen model."""
     tel = {o: sum(1 for x in her.oordelen if x.oordeel is o) for o in Oordeel}
     model_groepen = sum(1 for g in her.groepen if g.aandacht is Aandacht.GEEL)
@@ -94,14 +124,19 @@ def samenvatting(naam: str, her: vd.Hergroepering, kaarten: dict[str, Any]) -> s
     if kaarten:
         zinnen.append(f"Definities: {herkomst['letterlijk']} letterlijk uit de wet, {herkomst['samengesteld']} "
                       f"samengesteld uit de bron, {herkomst['geformuleerd']} door mij geformuleerd, {zonder} zonder.")
+    if brondefinities:
+        zinnen.append(f"Voor {_meervoud(brondefinities, 'begrip', 'begrippen')} staat de definitie in de wet; daar heb "
+                      "ik geen model voor gebruikt. De vindplaats staat op de kaart.")
     if model_groepen:
         zinnen.append(f"{_meervoud(model_groepen, 'voorstel staat', 'voorstellen staan')} geel: beoordeel die eerst.")
+    if tokens:
+        zinnen.append(f"Dit kostte {_getal(tokens)} tokens" + (f" (geschat ~{_getal(geschat)})." if geschat else "."))
     return " ".join(zinnen) + " Open de voorstellen om ze te beoordelen."
 
 
-def _groep_contract(g, manifest, uitkomst, model_links: set[str]) -> dict[str, Any]:
+def _groep_contract(g, manifest, uitkomst, model_links: set[str], onderzoek=None) -> dict[str, Any]:
     return {"id": g.id, "leden": list(g.leden), "aandacht": g.aandacht.value, "uitleg": list(g.uitleg),
-            "conflicten": list(g.conflicten), "voorstel": voorstel(manifest, uitkomst, g.leden),
+            "conflicten": list(g.conflicten), "voorstel": voorstel(manifest, uitkomst, g.leden, onderzoek),
             "door": "model" if set(g.kandidaten) & model_links else "regel"}
 
 
@@ -113,7 +148,9 @@ async def verdieping_kern(ctx: Context, werkgebied_id: str, bevestigd: int | Non
     api, taak = ctx.api, "meedenken"
     settings, run_id, gesprek_id = ctx.settings, ctx.run_id, ctx.gesprek_id
     try:
-        naam = str((await api.haal_werkgebied(werkgebied_id)).get("naam") or "zonder naam")
+        werkgebied = await api.haal_werkgebied(werkgebied_id)
+        naam = str(werkgebied.get("naam") or "zonder naam")
+        selecties = list(werkgebied.get("bronnen") or [])
         ctx.melding(f"Werkgebied {naam}: wat er te verdiepen is")
         wv = {"werkgebied_id": werkgebied_id, **await api.haal_verdieping(werkgebied_id)}
     except WetsanalyseApiFout as fout:
@@ -159,7 +196,7 @@ async def verdieping_kern(ctx: Context, werkgebied_id: str, bevestigd: int | Non
     budget_toegestaan = ctx.budget_toegestaan
     if budget_toegestaan is None and settings.legt_zelf_vast and ctx.user_id:
         budget_toegestaan = _budget_poort(settings, ctx.user_id)
-    teller = {"n": len(klaar), "fout": 0, "gestopt": "", "nieuw": 0}
+    teller = {"n": len(klaar), "fout": 0, "gestopt": "", "nieuw": 0, "tokens": 0}
 
     async def batch(soort: str, ids: list[str], versie: str, reken: Callable[[Any], Any],
                     bewaar: Callable[[Any], dict[str, Any]], lees: Callable[[dict], Any]) -> Any | None:
@@ -186,6 +223,7 @@ async def verdieping_kern(ctx: Context, werkgebied_id: str, bevestigd: int | Non
             return None
         tokens = await _boek(api, llm, model, gesprek_id, f"{run_id}.v{teller['n']}")
         teller["n"] += 1
+        teller["tokens"] += tokens
         await api.zet_begrippen_batch(werkgebied_id, str(api_run["id"]), bid,
                                       {"soort": soort, "ids": ids, "model": model, "promptversie": versie,
                                        "tokens": tokens, **bewaar(uit)})
@@ -210,9 +248,14 @@ async def verdieping_kern(ctx: Context, werkgebied_id: str, bevestigd: int | Non
             compleet = False
     her = vd.hergroepeer(manifest, uitkomst, oordelen) if compleet else None
     kaarten: dict[str, Any] = {}
+    met_brondefinitie: dict[str, Any] = {}
     if her is not None:
         kaarten, opdrachten = vd.kaartopdrachten(manifest, uitkomst, her.groepen, onderzoek)
         geel = {g.id: g.aandacht is Aandacht.GEEL for g in her.groepen}
+        if ctx.graph is not None and opdrachten:
+            ctx.melding(f"Eerst de brondefinities van {len(opdrachten)} begrippen, zonder model")
+            opdrachten, met_brondefinitie = await asyncio.to_thread(brondefinitie_eerst, ctx.graph, selecties, opdrachten)
+            kaarten.update(met_brondefinitie)
         kbatches = kaart_mod.batches(opdrachten)
         for i, b in enumerate(kbatches, 1):
             if met_model:
@@ -226,7 +269,8 @@ async def verdieping_kern(ctx: Context, werkgebied_id: str, bevestigd: int | Non
             elif met_model:
                 compleet = False
 
-    meting = {"batches": teller["n"], "nieuw": teller["nieuw"], "model": met_model}
+    meting = {"batches": teller["n"], "nieuw": teller["nieuw"], "model": met_model, "tokens": teller["tokens"],
+              "brondefinities": len(met_brondefinitie)}
     if not compleet or her is None:
         waarom = {"budget_op": " – je tokenbudget is op", "gestopt": " – gestopt op verzoek"}.get(teller["gestopt"], "")
         fout = f" {_meervoud(teller['fout'], 'batch mislukte', 'batches mislukten')}." if teller["fout"] else ""
@@ -237,13 +281,14 @@ async def verdieping_kern(ctx: Context, werkgebied_id: str, bevestigd: int | Non
     model_links = {o.kandidaat_id for o in oordelen if o.oordeel is Oordeel.ZELFDE_BETEKENIS}
     await api.zet_verdieping(werkgebied_id, str(api_run["id"]), {
         "manifest_id": manifest.id, "model": model,
-        "groepen": [_groep_contract(g, manifest, uitkomst, model_links) for g in her.groepen],
+        "groepen": [_groep_contract(g, manifest, uitkomst, model_links, onderzoek) for g in her.groepen],
         "kaarten": [k.model_dump(mode="json") for k in kaarten.values()],
         "oordelen": [o.model_dump(mode="json") for o in her.oordelen],
         "vragen": [v.kandidaat_id for v in her.vragen],
         "meting": {"batches": teller["n"], "nieuw": teller["nieuw"], "met_model": met_model,
                    "promptversie": {"vraag": classificatie.promptversie(), "kaart": kaart_mod.promptversie()}}})
-    return Uitkomst(taak=taak, artefact=artefact, tekst=samenvatting(naam, her, kaarten), meting=meting,
+    return Uitkomst(taak=taak, artefact=artefact, tekst=samenvatting(naam, her, kaarten, brondefinities=len(met_brondefinitie), tokens=teller["tokens"],
+                                       geschat=(wv.get("schatting") or {}).get("totaal")), meting=meting,
                     voorstellen=[g.id for g in her.groepen])
 
 
