@@ -8,7 +8,7 @@ from . import begrip_onderhoud_store as store, werkgebied_store
 from .auth import require_client
 from .begrip_onderhoud_contracts import Bevestiging, Bevestigingen, BuitenBehandeling, Herkoppeling
 from .routers.auth import actieve_userid
-from .werkgebieden import resolve_bron
+from .werkgebieden import lees_bron, resolve_bron
 
 router = APIRouter(prefix="/werkgebieden/{werkgebied_id}", tags=["begrippen"],
                    dependencies=[Depends(require_client)])
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/werkgebieden/{werkgebied_id}", tags=["begrippen"],
 @router.get("/herbeoordelingen")
 async def get_herbeoordelingen(werkgebied_id: str, begrip_id: str | None = Query(None, max_length=64),
                                actor: str = Depends(actieve_userid)):
-    return await store.herbeoordelingen(await werkgebied_store.haal(werkgebied_id), resolve_bron, begrip_id)
+    return await store.herbeoordelingen(await werkgebied_store.haal(werkgebied_id), lees_bron, begrip_id)
 
 
 @router.post("/begrippen/{begrip_id}/koppelingen/{koppeling_id}/herkoppelen")
@@ -42,7 +42,7 @@ async def post_bevestigen(werkgebied_id: str, begrip_id: str, koppeling_id: str,
 
 @router.get("/dekking")
 async def get_dekking(werkgebied_id: str, actor: str = Depends(actieve_userid)):
-    return await store.dekking(await werkgebied_store.haal(werkgebied_id), resolve_bron)
+    return await store.dekking(await werkgebied_store.haal(werkgebied_id), lees_bron)
 
 
 @router.post("/dekking/buiten-behandeling")

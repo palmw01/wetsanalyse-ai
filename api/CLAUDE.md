@@ -70,7 +70,7 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 | `graaf_projectie_v2.py`, `vocabulaire/` | Projectie van de lagen naar GraphDB, en de JAS-vocabulaire. |
 | `graafcontrole.py`, `shacl.py`, `shapes/jas-v2.ttl` | Controle achteraf: klopt de graaf met Postgres? |
 | `samenhang.py` | Structuur, annotaties en verwijzingen van één artikel (of het overzicht van een structuurdeel), voor de graafweergave; de bouwstenen (`bronknoop`, `markeringen`, `verwijzingen`) deelt hij met `graaf.py`. |
-| `graaf.py` | De complete graaf (`/graaf`): alle regelingen met structuur, verwijzingen en markeringen; structuur en verwijzingen gecachet per `(bwb_id, toestandUrl)`. |
+| `graaf.py` | De complete graaf (`/graaf`): alle regelingen met structuur, verwijzingen en markeringen; structuur en verwijzingen gecachet per `(bwb_id, toestandUrl)`. Ook `lees_bron`: de gecachete bronboom voor leesroutes. |
 | `knoopinfo.py` | Wat de kennisgraaf over één knoop weet (`/knoop`), voor de inspector van de graaf. |
 | `werkgebieden.py` (router), `werkgebied_store.py`, `werkgebied_contracts.py`, `werkgebied_inventaris.py`, `werkgebied_werkvoorraad.py` | Werkgebieden: bronselecties, revisies, audit, de inventaris en de annotatie-werkvoorraad. |
 | `werkgebied_export.py`, `pdf_opmaak.py`, `fonts/` | Het hele werkgebied als één PDF; de gedeelde PDF-opmaak met ingesloten lettertypen. |
@@ -328,6 +328,12 @@ spoor D (*Werkgebied als node*).
   geeft `404 {fout: "verwijderd", soort, op, door, melding}` uit de audit (`niet_gevonden`; ook voor
   oude gearchiveerde werkgebieden en soft verwijderde begrippen); een id dat nooit bestond blijft een
   gewone 404. De werkplek toont dan "… is verwijderd op … door …", zoals bij een annotatie.
+- **Lezen uit de cache, vastleggen tegen de bron van nu.** Eén scherm vraagt `elementen`, `dekking`, `herbeoordelingen`,
+  `annotatie-werkvoorraad` en `begrippen-runs/laatste` tegelijk, en elk las alle regelingen van het werkgebied (acceptatie, 5
+  regelingen: samen 5,4 s). Deze GET's krijgen daarom `werkgebieden.lees_bron` (`graaf.lees_bron`): de gebouwde snapshot per
+  `(bwb_id, toestandUrl)`, één keer per proces gebouwd ook bij parallelle verzoeken, hoogstens `GELDIG_S` (10 min) oud,
+  want een herimport met een andere parser houdt de toestand. Hij gaat over de hele regeling (`doel` is de wortel) en is
+  gedeeld: niet wijzigen. Elke route die iets vastlegt, houdt `resolve_bron`.
 - **De inventaris** (`GET {id}/elementen`) leest per regeling één bronboom en de actuele
   elementen. Elk element staat één keer in de inventaris; `analyseren` wint van `context`;
   `deels_buiten` als een anker buiten de selecties valt; afgewezen elementen staan apart in `afgewezen` (de tab toont ze

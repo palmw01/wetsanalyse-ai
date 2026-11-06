@@ -1064,9 +1064,13 @@ bestaat los van de gesprekken.
 - **Herbeoordelen en dekking** (fase F1; api §*Onderhoud van begrippen*). Acceptatie: een gewijzigde
   dragende passage verschijnt bij de geraakte begrippen; de oude bewijsstand blijft.
   - **Het kader**: *Te doen* noemt de begrippen met een geraakte passage (`strookKop` in `lib/herbeoordeling.ts`), de
-    rij in de lijst ook; een klik opent de pagina van het begrip. Het antwoord komt van `GET …/herbeoordelingen` en vraagt de bronboom: het laadt los van de lijst
-    en faalt stil
+    rij in de lijst ook; een klik opent de pagina van het begrip. Het antwoord komt van `GET …/herbeoordelingen` en vraagt de bronboom; het faalt stil
     (`isHerbeoordelingen`; zonder antwoord staan de begrippen er gewoon).
+  - **Het kader verschijnt in één keer** (`BegrippenKader`): *Te doen* staat boven de lijst, dus rijen die later binnenkomen
+    duwen de lijst omlaag. Tot begrippen, groepen (`onGeladen`) en herbeoordelingen er zijn of faalden staat er één skeleton,
+    hoogstens `GEDULD_MS` (2,5 s): een haperende bron mag de lijst niet verbergen. `BegripVoorstellen` wacht niet op
+    `begrippen-runs/laatste` (die rekent `verouderd` en duurt seconden); `groepen` draagt de run ook, en `verouderd` komt als
+    zin in de regel *Laatste voorstel*, zodat hij geen eigen regel laat verschijnen.
   - **Bij de passage** (`Herbeoordeling` in `BegripPassages`, uit `useBegrip` dat per revisie
     `?begrip_id=` opnieuw vraagt): de redenen van de api, *toen* (het bewijs) naast *nu*, de wettekst van
     nu met het fragment aangewezen (`markeer`) of de zin dat het er niet meer staat, de opvolgers met hun

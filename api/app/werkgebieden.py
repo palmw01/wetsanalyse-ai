@@ -16,6 +16,7 @@ from . import annotatie_v2_store, pdf_opmaak, werkgebied_deelvragen as deelvrage
 from .auth import require_client
 from .bron_resolver import resolve_bron as _resolve_bron
 from .graaf_projectie_v2 import verklaringen
+from .graaf import lees_bron as _lees_bron
 from .routers.auth import actieve_userid
 from .werkgebied_contracts import (
     BronselectieInvoer, BronselectieWijziging, DeelvraagInvoer, DeelvraagKoppelingen, DeelvragenSamen,
@@ -30,10 +31,9 @@ router = APIRouter(prefix="/werkgebieden", tags=["werkgebieden"],
                    dependencies=[Depends(require_client)])
 
 
-async def resolve_bron(doel: dict) -> dict:
-    """Zelfde foutvertaling als de annotatie-API: ongeldige bron 422, graaf weg 503."""
+async def _met_foutvertaling(resolve, doel: dict) -> dict:
     try:
-        return await _resolve_bron(doel)
+        return await resolve(doel)
     except BronKeuze as exc:
         # Een dubbelzinnig nummer of een lid dat niet bestaat: de graaf kent wel de opties. Die gaan mee,
         # zodat de werkplek kan laten kiezen in plaats van alleen "niet gevonden" te zeggen.
@@ -42,6 +42,17 @@ async def resolve_bron(doel: dict) -> dict:
         raise HTTPException(422, str(exc)) from exc
     except (httpx.HTTPError, ConnectionError) as exc:
         raise HTTPException(503, "De brongraaf is tijdelijk niet beschikbaar.") from exc
+
+
+async def resolve_bron(doel: dict) -> dict:
+    """Zelfde foutvertaling als de annotatie-API: ongeldige bron 422, graaf weg 503."""
+    return await _met_foutvertaling(_resolve_bron, doel)
+
+
+async def lees_bron(doel: dict) -> dict:
+    """De bronboom voor een route die alleen leest, uit de cache (`graaf.lees_bron`); wat iets vastlegt, neemt
+    `resolve_bron`."""
+    return await _met_foutvertaling(_lees_bron, doel)
 
 
 @router.get("")
@@ -258,7 +269,7 @@ async def delete_deelvraag(werkgebied_id: str, deelvraag_id: str, verwachte_revi
 async def get_elementen(werkgebied_id: str, actor: str = Depends(actieve_userid)):
     wg = await store.haal(werkgebied_id)
     return {"werkgebied_id": werkgebied_id, "revisie": wg["revisie"],
-            **await inventaris(wg["bronnen"], resolve_bron)}
+            **await inventaris(wg["bronnen"], lees_bron)}
 
 
 @router.get("/{werkgebied_id}/annotatie-werkvoorraad")
@@ -288,7 +299,7 @@ async def get_annotatie_werkvoorraad(werkgebied_id: str,
         extra |= {"deelvragen": meegenomen,
                   "buiten_bereik": sum(1 for s in wg["bronnen"] if s["rol"] == "analyseren" and s["id"] not in binnen)}
     return {"werkgebied_id": werkgebied_id, "revisie": wg["revisie"], "naam": wg["naam"], **extra,
-            **await werkvoorraad(selecties, resolve_bron, actor)}
+            **await werkvoorraad(selecties, lees_bron, actor)}
 
 
 @router.get("/{werkgebied_id}/export")
