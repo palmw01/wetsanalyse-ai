@@ -8,8 +8,9 @@
   code: ROLE_NOUN
   bewijs: zwak
   bron: "H2:28"
-  versie: 1
-  patroon: '(?:\b(?:de|een|elke|iedere|zijn|haar|deze|die)\s+)?\b(?:Onze\s+Ministers?|{ROL})\b'
+  versie: 2
+  niet_woordsoort: ['VERB:Fin', 'AUX:Fin']
+  patroon: '(?:\b(?:de|een|elke|iedere|zijn|haar|deze|die)\s+)?\b(?P<doel>Onze\s+Ministers?|{ROL})\b'
   links: '\b(?:(?:de|een)\s+)?(?:reeds\s+|niet\s+)?[\w-]+nde\s+'
   rechts: '\s+van\s+(?:de|het|zijn|haar)\s+[\w-]+'
   tests:
