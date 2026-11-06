@@ -173,7 +173,8 @@ def _voorblad(data: dict, nodes: dict[str, dict]) -> list[tuple[str, str]]:
     if toestanden["regelingen"]:
         uit.append(("Heading4", "Bronstand per regeling"))
         for r in toestanden["regelingen"]:
-            tot = f" tot {_datum(r['geldig_tot'])}" if r["geldig_tot"] else ""
+            # De graaf zet een regeling zonder einde op 9999-12-31.
+            tot = f" tot {_datum(r['geldig_tot'])}" if r["geldig_tot"] and r["geldig_tot"] < "9999" else ""
             vanaf = f"geldt vanaf {_datum(r['geldig_vanaf'])}{tot}" if r["geldig_vanaf"] else "geldigheid onbekend"
             uit.append(("Meta", f"{r['citeertitel']} ({r['bwb_id']}): {vanaf}"))
     waarschuwingen = _waarschuwingen(data, nodes)
