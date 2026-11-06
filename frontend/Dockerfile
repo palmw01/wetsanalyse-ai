@@ -1,8 +1,8 @@
 # Dockerfile voor de Wetsanalyse-frontend (Next.js, standalone output).
-# Build-context = deze map (frontend/), net als de MCP:
+# Build-context = deze map (frontend/):
 #   docker build -t wetsanalyse-frontend frontend
 # De frontend is een BFF: de browser praat alleen met deze server; het API-token blijft
-# server-side. De server bereikt de API intern via API_BASE_URL (proxy-netwerk).
+# server-side. De server bereikt de API intern via API_BASE_URL (binnen de Container Apps Environment).
 
 # ── Dependencies ──────────────────────────────────────────────────────────────
 FROM node:26-slim@sha256:deae974a69e140f44f434ab29cb519fb5f8fe250fd364b8ca446bd0761acdc6a AS deps

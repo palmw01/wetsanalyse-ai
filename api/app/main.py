@@ -30,8 +30,8 @@ logger = logging.getLogger(__name__)
 
 
 async def _init_db_met_retry() -> None:
-    """Verbind met de DB en maak de tabellen aan, met **bounded retry**. Postgres draait als
-    aparte stack (geen cross-stack `depends_on`), dus bij een cold start kan de DB nog niet klaar zijn
+    """Verbind met de DB en maak de tabellen aan, met **bounded retry**. Postgres is een
+    aparte Azure-dienst die Container Apps niet afwacht, dus bij een cold start kan de DB nog niet klaar zijn
     wanneer de API opstart – dan retrye we i.p.v. crash-loopen. Knoppen: `WETSANALYSE_DB_CONNECT_RETRIES`
     (default 30) en `WETSANALYSE_DB_CONNECT_BACKOFF` (seconden, default 2) → ~60s venster."""
     import sqlalchemy.exc
@@ -88,7 +88,7 @@ async def lifespan(app: FastAPI):
     # kolom op een bestaande tabel vraagt dus een eigen stap.
     db.init_engine(settings.database_url)
     # create_all (idempotent) met bounded retry – vangt een nog-niet-klare DB bij cold start op
-    # (postgres is een aparte stack zonder cross-stack depends_on).
+    # (Postgres is een aparte dienst die Container Apps niet afwacht).
     await _init_db_met_retry()
     try:
         from . import profiles

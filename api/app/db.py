@@ -47,7 +47,7 @@ metadata = MetaData()
 
 # NB: de analyse-pijplijn en de wet-catalogus zijn verwijderd. De bijbehorende tabellen (`projects`,
 # `rondes`, `llm_calls`, `app_settings`, `wet_catalogus`) worden niet meer gedefinieerd of aangemaakt;
-# op een bestaande productie-DB blijven ze verweesd staan (samen met een eventuele Grafana-view erop)
+# op een bestaande productie-DB blijven ze verweesd staan
 # – het daadwerkelijk droppen is een aparte, bewuste migratie, niet iets dat hier stil bij de start gebeurt.
 
 llm_profiles = Table(
