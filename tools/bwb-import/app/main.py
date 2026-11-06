@@ -15,7 +15,7 @@ from pathlib import Path
 
 from app.collect import Batch, bepalingsindex, collect, structuurindex
 from app.config import Settings
-from app.dekking import Dekking, bron_tekens
+from app.dekking import Dekking, Stand, bron_tekens, poortbesluit
 from app.downloader import BwbDownloader
 from app.graphdb_writer import GraphDbWriter
 from app.models import ImportResult, ImportSummary, ToestandRef, Wet
@@ -24,6 +24,10 @@ from app.rdf_vocab import Vocab
 from app.wti_parser import WtiInfo, WtiParser
 
 logger = logging.getLogger(__name__)
+
+
+class LegeToestand(RuntimeError):
+    """De bron leverde geen tekst op. Dat is geen regeling, en die schrijven we nooit weg."""
 
 
 def maak_writer(settings: Settings) -> GraphDbWriter:
@@ -64,10 +68,19 @@ def run_import(
         prepare(writer)
 
     item = _verzamel(bwb_id, settings)
-    return _schrijf(item, writer, structuurindex([item.batch]), bepalingsindex([item.batch]))
+    return _schrijf(
+        item,
+        writer,
+        structuurindex([item.batch]),
+        bepalingsindex([item.batch]),
+        writer.graaf_stand([bwb_id]),
+        settings,
+    )
 
 
-def _haal_en_parse(bwb_id: str, settings: Settings) -> tuple[Wet, WtiInfo | None, Path]:
+def _haal_en_parse(
+    bwb_id: str, settings: Settings
+) -> tuple[Wet, WtiInfo | None, Path, bool | None]:
     """Download de laatste toestand, valideer tegen het XSD en parse hem tot een ``Wet``."""
     downloader = BwbDownloader(settings)
     toestand = downloader.latest_toestand(bwb_id)
@@ -75,8 +88,7 @@ def _haal_en_parse(bwb_id: str, settings: Settings) -> tuple[Wet, WtiInfo | None
 
     schema_path = settings.schemas_dir / "toestand.xsd"
     parser = ToestandParser(schema_path=schema_path if settings.validate_xsd else None)
-    if settings.validate_xsd:
-        parser.validate(xml_path)
+    xsd_geldig = parser.validate(xml_path) if settings.validate_xsd else None
 
     wet = parser.parse(xml_path)
     # Geldigheidsvenster uit de SRU-index aanvullen.
@@ -84,7 +96,7 @@ def _haal_en_parse(bwb_id: str, settings: Settings) -> tuple[Wet, WtiInfo | None
     wet.geldig_tot = toestand.geldig_tot
 
     wti = _laad_wti(downloader, toestand) if settings.import_wti else None
-    return wet, wti, xml_path
+    return wet, wti, xml_path, xsd_geldig
 
 
 def _laad_wti(downloader: BwbDownloader, toestand: ToestandRef) -> WtiInfo | None:
@@ -143,11 +155,15 @@ def run_imports(bwb_ids: list[str], settings: Settings) -> list[ImportResult]:
         len(index), len(verzameld),
     )
 
+    # De stand voor de importpoort. Faalt dit, dan stopt de run: terugvallen op "er staat niets"
+    # zou de poort stil openzetten, en die bestaat juist om een goede graph te beschermen.
+    stand = writer.graaf_stand([v.wet.bwb_id for v in verzameld]) if verzameld else {}
+
     # Fase 2 – schrijven, met de index van álle wetten bij de hand.
-    geschreven: dict[str, ImportSummary] = {}
+    verwerkt: dict[str, ImportSummary] = {}
     for item in verzameld:
         try:
-            geschreven[item.wet.bwb_id] = _schrijf(item, writer, index, bepalingen)
+            verwerkt[item.wet.bwb_id] = _schrijf(item, writer, index, bepalingen, stand, settings)
         except Exception as exc:  # noqa: BLE001 - batch loopt door, fout per wet
             logger.error("Schrijven mislukt voor %s: %s", item.wet.bwb_id, exc)
             mislukt[item.wet.bwb_id] = str(exc)
@@ -156,14 +172,14 @@ def run_imports(bwb_ids: list[str], settings: Settings) -> list[ImportResult]:
     # met wat er wordt geschreven) is een similarity-index een momentopname: hij wordt bij het
     # aanmaken getraind over wat er op dát moment staat. In `prepare()` zou hij dus over een lege
     # graaf worden gebouwd en daarna nooit iets vinden.
-    if geschreven:
+    if any(not summary.tegengehouden for summary in verwerkt.values()):
         writer.ensure_similarity_index()
 
     # De volgorde van `bwb_ids` aanhouden: het overzicht leest zoals de gebruiker het opgaf.
     resultaten: list[ImportResult] = []
     for bwb_id in bwb_ids:
-        if bwb_id in geschreven:
-            resultaten.append(ImportResult(bwb_id=bwb_id, ok=True, overzicht=geschreven[bwb_id]))
+        if bwb_id in verwerkt:
+            resultaten.append(ImportResult(bwb_id=bwb_id, ok=True, overzicht=verwerkt[bwb_id]))
         else:
             resultaten.append(
                 ImportResult(bwb_id=bwb_id, ok=False, fout=mislukt.get(bwb_id, "onbekende fout"))
@@ -180,29 +196,61 @@ class _Verzameld:
     batch: Batch
     summary: ImportSummary
     xml_path: Path
+    xsd_geldig: bool | None = None
 
 
 def _verzamel(bwb_id: str, settings: Settings) -> _Verzameld:
     """Downloaden, valideren, parsen en verzamelen – alles behalve schrijven."""
     logger.info("Verzamelen voor %s", bwb_id)
-    wet, wti, xml_path = _haal_en_parse(bwb_id, settings)
+    wet, wti, xml_path, xsd_geldig = _haal_en_parse(bwb_id, settings)
     batch, summary = collect(wet, tekstuele_refs=settings.detect_tekstuele_refs)
-    return _Verzameld(wet=wet, wti=wti, batch=batch, summary=summary, xml_path=xml_path)
+    return _Verzameld(
+        wet=wet, wti=wti, batch=batch, summary=summary, xml_path=xml_path, xsd_geldig=xsd_geldig
+    )
 
 
 def _schrijf(
-    item: _Verzameld, writer: GraphDbWriter, index: dict[str, str], bepalingen: set[str]
+    item: _Verzameld,
+    writer: GraphDbWriter,
+    index: dict[str, str],
+    bepalingen: set[str],
+    stand: dict[str, Stand],
+    settings: Settings,
 ) -> ImportSummary:
-    """Schrijf één verzamelde wet weg, met de indexen van de hele batch."""
-    summary = writer.write_wet(
+    """Bouw één verzamelde wet, meet hem, en schrijf hem pas als de importpoort dat toestaat.
+
+    De volgorde is het punt: een named-graph PUT vervangt alles, dus een controle erna kan niets
+    meer tegenhouden.
+    """
+    bwb_id = item.wet.bwb_id
+    graph, summary = writer.build_graph(
         item.wet,
         wti=item.wti,
         verzameld=(item.batch, item.summary),
         structuurindex=index,
         bepalingsindex=bepalingen,
     )
-    _meet_dekking(summary, item.xml_path, item.wet.bwb_id)
-    logger.info("Import voltooid voor %s", item.wet.bwb_id)
+    summary.graaf_tekens = writer.tel_tekens(graph)
+    summary.xsd_geldig = item.xsd_geldig
+    if item.xsd_geldig is False:
+        logger.warning("XSD-validatie mislukt voor %s; de import gaat door", bwb_id)
+    _meet_dekking(summary, item.xml_path, bwb_id)
+    if summary.graaf_tekens <= 0:
+        raise LegeToestand(f"{bwb_id}: de toestand levert geen tekst op; niet geschreven")
+
+    besluit = poortbesluit(
+        Dekking(bwb_id, summary.bron_tekens, summary.graaf_tekens),
+        stand.get(bwb_id, Stand()),
+        drempel=settings.min_dekking,
+        wti_mislukt=settings.import_wti and item.wti is None,
+    )
+    summary.poort = besluit.reden
+    summary.tegengehouden = not besluit.schrijven
+    if besluit.reden:
+        logger.warning("Importpoort %s: %s", bwb_id, besluit.reden)
+    if besluit.schrijven:
+        writer.vervang_wet(bwb_id, graph)
+        logger.info("Import voltooid voor %s", bwb_id)
     return summary
 
 
@@ -233,6 +281,11 @@ def _print_overzicht(summary: ImportSummary) -> None:
             ("Tekstdekking", f"{dekking:.1%} ({summary.graaf_tekens}/{summary.bron_tekens})"
              + (f" – MIST {mist} tekens" if mist else ""))
         )
+    if summary.xsd_geldig is not None:
+        regels.append(("XSD", "geldig" if summary.xsd_geldig else "ONGELDIG"))
+    if summary.poort:
+        status = "NIET GESCHREVEN" if summary.tegengehouden else "geschreven"
+        regels.append(("Importpoort", f"{status} – {summary.poort}"))
     breedte = max(len(label) for label, _ in regels)
     print("\n=== Import-overzicht ===")
     for label, waarde in regels:
@@ -248,8 +301,8 @@ def _dekkingsrapport(resultaten: list[ImportResult], drempel: float) -> list[Dek
     cijfer dat je moet opsporen tussen zeven overzichten is precies het probleem dat deze drempel
     oplost.
 
-    Resultaten zonder meting (`bron_tekens == 0`) tellen niet mee. De meting zit in `run_import` in
-    een `try` — ze mag de import nooit breken — en een mislukte meting is geen bewijs van een gat.
+    Resultaten zonder meting (`bron_tekens == 0`) tellen niet mee. De meting zit in een `try` — ze
+    mag de import nooit breken — en een mislukte meting is geen bewijs van een gat.
     """
     gemeten = [
         Dekking(
@@ -272,13 +325,12 @@ def _dekkingsrapport(resultaten: list[ImportResult], drempel: float) -> list[Dek
 
 def main(argv: list[str] | None = None) -> int:
     """Importeer de opgegeven regelingen. Exitcodes: 0 = goed, 1 = een import mislukte,
-    2 = de tekstdekking zakte onder `BWB_MIN_DEKKING`.
+    2 = de importpoort sloeg aan (dekking onder `BWB_MIN_DEKKING`, of de WTI mislukte).
 
-    Die twee foutcodes staan los van elkaar omdat ze om iets anders vragen. Een 1 betekent dat er
-    een wet níét geschreven is; een 2 betekent dat alles geschreven is maar dat er tekst ontbreekt
-    ten opzichte van de bron — de graaf is dan even compleet als hij zonder deze controle geweest
-    zou zijn, want `write_wet` schrijft de named graph vóórdat er iets te meten valt. Een 2 is dus
-    een signaal, geen dataverlies.
+    Die twee foutcodes staan los van elkaar omdat ze om iets anders vragen. Een 1 betekent dat een
+    wet niet gelezen of geschreven kon worden. Een 2 betekent dat de inhoud niet klopt: de poort
+    heeft de bestaande graph laten staan, of geschreven omdat er niets beters stond. De graaf gaat
+    bij een 2 dus nooit achteruit, maar hij kan achterlopen op de bron: `dekking.poortbesluit`.
     """
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
@@ -318,13 +370,14 @@ def main(argv: list[str] | None = None) -> int:
 
     if not all(r.ok for r in resultaten):
         return 1
-    # Pas ná alle imports: de batch moet doorlopen zodat één dip de andere regelingen niet
-    # tegenhoudt, en op dit punt staat de graaf toch al volledig geschreven.
-    if settings.min_dekking > 0 and _dekkingsrapport(resultaten, settings.min_dekking):
+    # Pas ná alle imports: de batch moet doorlopen zodat één dip de andere regelingen niet tegenhoudt.
+    dip = settings.min_dekking > 0 and _dekkingsrapport(resultaten, settings.min_dekking)
+    signalen = [r for r in resultaten if r.overzicht and r.overzicht.poort]
+    if dip or signalen:
         logger.error(
-            "Tekstdekking onder de drempel (%.1f%%). De graaf is geschreven, maar er ontbreekt "
-            "tekst ten opzichte van de bron-XML.",
-            settings.min_dekking * 100,
+            "Importpoort sloeg aan bij %d regeling(en); %d graph(s) ongewijzigd gelaten.",
+            len(signalen) or len(dip),
+            sum(1 for r in resultaten if r.tegengehouden),
         )
         return 2
     return 0

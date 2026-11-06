@@ -26,6 +26,7 @@ from app.collect import (
     koppel_deelverwijzingen,
     structuurindex as structuurindex_van,
 )
+from app.dekking import Stand
 from app.models import ImportSummary, Wet
 from app import tooi
 from app.ontology import build_ontology
@@ -455,8 +456,33 @@ class GraphDbWriter:
 
         return g, summary
 
+    def graaf_stand(self, bwb_ids: list[str]) -> dict[str, Stand]:
+        """Wat staat er nu per regeling in de graaf: tekens, en of de WTI-verrijking erbij zit.
+
+        Eén query, voor de importpoort én de graafwacht. Een regeling die niet in de uitkomst staat
+        heeft geen named graph, of een zonder tekst: `Stand()`. Fouten gaan naar de aanroeper, want
+        daar verschillen ze: de wacht importeert dan, de poort schrijft dan juist niet.
+        """
+        grafen = " ".join(f"<{self._vocab.graph(bwb_id)}>" for bwb_id in bwb_ids)
+        ns = self._vocab.ns
+        bindings = self._select_bindings(
+            'SELECT ?g (SUM(STRLEN(STR(COALESCE(?t, "")))) AS ?tekens) (COUNT(?o) AS ?wti) WHERE { '
+            f"VALUES ?g {{ {grafen} }} GRAPH ?g {{ "
+            f"{{ ?s <{ns.tekst}> ?t }} UNION {{ ?w <{ns.uitgegevenDoor}> ?o }} "
+            "} } GROUP BY ?g"
+        )
+        rijen = {b.get("g", {}).get("value", ""): b for b in bindings}
+        stand: dict[str, Stand] = {}
+        for bwb_id in bwb_ids:
+            rij = rijen.get(str(self._vocab.graph(bwb_id)), {})
+            stand[bwb_id] = Stand(
+                tekens=int(rij.get("tekens", {}).get("value", 0)),
+                wti=int(rij.get("wti", {}).get("value", 0)) > 0,
+            )
+        return stand
+
     def graaf_is_compleet(self, bwb_ids: list[str]) -> bool:
-        """Staat elke gevraagde regeling als gevulde named graph in de repository?
+        """Staat elke gevraagde regeling met tekst in de repository?
 
         De goedkope peiling waarop de *graafwacht* draait (`--alleen-bij-verlies`). Eén SELECT, geen
         download bij overheid.nl: dat is wat hem elk kwartier betaalbaar maakt.
@@ -468,30 +494,31 @@ class GraphDbWriter:
         dan eerlijk `Repository inning doesn't exist` en weigert terecht uit eigen geheugen te
         citeren, maar niemand ziet het en niets herstelt het.
 
+        **Tekens, geen marker.** Een graph met triples maar zonder tekst telt als verlies. Meer dan
+        "tekens > 0" hoeft niet: een named-graph PUT is atomair en de opslag verdwijnt in zijn
+        geheel, dus een graph kan niet half leeglopen. Een opgeslagen verwachting zou in dezelfde
+        graph staan en nooit afwijken van de inhoud.
+
         Elke fout telt als "niet compleet" en niet als crash: een ontbrekende repository geeft een
         HTTP 404, precies de toestand waarvoor deze controle bedoeld is. Wie hier zou opwerpen dat
         een netwerkstoring dan een onnodige import uitlokt heeft gelijk — dat kost één import, en
         het alternatief kost een graaf die leeg blijft.
         """
-        gewenst = {str(self._vocab.graph(bwb_id)) for bwb_id in bwb_ids}
         try:
-            bindings = self._select_bindings(
-                "SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } }"
-            )
+            stand = self.graaf_stand(bwb_ids)
         except (requests.RequestException, ValueError) as exc:
             logger.warning("graafpeiling mislukt (%s); de graaf geldt als incompleet", exc)
             return False
-        aanwezig = {b.get("g", {}).get("value", "") for b in bindings}
-        ontbreekt = gewenst - aanwezig
+        ontbreekt = [bwb_id for bwb_id in bwb_ids if stand[bwb_id].tekens <= 0]
         if ontbreekt:
             logger.info(
                 "graaf incompleet: %d van %d regelingen ontbreken (%s)",
                 len(ontbreekt),
-                len(gewenst),
+                len(bwb_ids),
                 ", ".join(sorted(ontbreekt)),
             )
             return False
-        logger.info("graaf compleet: alle %d regelingen aanwezig", len(gewenst))
+        logger.info("graaf compleet: alle %d regelingen aanwezig", len(bwb_ids))
         return True
 
     def ensure_fts_connector(self) -> None:
@@ -708,25 +735,11 @@ class GraphDbWriter:
         g.add((iri, RDFS.label, Literal(label, lang="nl")))
         return iri
 
-    def write_wet(
-        self,
-        wet: Wet,
-        wti: WtiInfo | None = None,
-        *,
-        verzameld: tuple[Batch, ImportSummary] | None = None,
-        structuurindex: dict[str, str] | None = None,
-        bepalingsindex: set[str] | None = None,
-    ) -> ImportSummary:
-        """Bouw de graaf en vervang de named graph van deze wet in GraphDB."""
-        graph, summary = self.build_graph(
-            wet,
-            wti=wti,
-            verzameld=verzameld,
-            structuurindex=structuurindex,
-            bepalingsindex=bepalingsindex,
-        )
-        # Gratis meting: de graaf staat hier toch al in het geheugen. Zie `app/dekking.py`.
-        summary.graaf_tekens = sum(len(str(o)) for o in graph.objects(None, self._vocab.ns.tekst))
-        self._put_graph(self._vocab.graph(wet.bwb_id), graph)
-        logger.info("Wet %s naar GraphDB geschreven: %s", wet.bwb_id, summary.as_dict())
-        return summary
+    def tel_tekens(self, graph: Graph) -> int:
+        """De `bwb:tekst`-tekens van een gebouwde graph: de graafkant van de dekking."""
+        return sum(len(str(o)) for o in graph.objects(None, self._vocab.ns.tekst))
+
+    def vervang_wet(self, bwb_id: str, graph: Graph) -> None:
+        """Vervang de named graph van deze wet. Pas na de importpoort: dit overschrijft alles."""
+        self._put_graph(self._vocab.graph(bwb_id), graph)
+        logger.info("Wet %s naar GraphDB geschreven (%d triples)", bwb_id, len(graph))

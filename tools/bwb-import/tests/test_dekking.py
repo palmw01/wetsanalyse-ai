@@ -15,7 +15,15 @@ from pathlib import Path
 import pytest
 from lxml import etree
 
-from app.dekking import STANDAARD_DREMPEL, _tekst_zonder, bron_tekens, meet
+from app.dekking import (
+    STANDAARD_DREMPEL,
+    Dekking,
+    Stand,
+    _tekst_zonder,
+    bron_tekens,
+    meet,
+    poortbesluit,
+)
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -68,3 +76,46 @@ def test_tekst_zonder_slaat_redactionele_opmerkingen_over() -> None:
         "<al>De wettekst<opmerkingen-inhoud>redactionele noot</opmerkingen-inhoud></al>"
     )
     assert _tekst_zonder(alinea) == "De wettekst"
+
+
+def test_bron_telt_bijlagen_mee_en_niets_dubbel(tmp_path: Path) -> None:
+    """Bijlage 2 van de Awb ontbrak met een dekking van 104%, omdat de meting haar niet zag."""
+    pad = tmp_path / "bijlage.xml"
+    pad.write_text(
+        '<toestand bwb-id="BWBR0000001"><wetgeving soort="wet"><wet-besluit>'
+        "<wettekst><artikel><al>wettekst</al></artikel></wettekst>"
+        '<bijlage><kop/><divisie><artikel><al>bijlagetekst</al></artikel></divisie></bijlage>'
+        "</wet-besluit></wetgeving></toestand>",
+        encoding="utf-8",
+    )
+    assert bron_tekens(pad) == len("wettekst") + len("bijlagetekst")
+
+
+@pytest.mark.parametrize(
+    ("bron", "graaf", "stand", "wti_mislukt", "schrijven", "reden"),
+    [
+        (1000, 1000, Stand(tekens=1000, wti=True), False, True, False),
+        (1000, 800, Stand(tekens=1000), False, False, True),
+        (1000, 800, Stand(), False, True, True),
+        (1000, 800, Stand(tekens=800), False, True, True),
+        (1000, 1000, Stand(tekens=1000, wti=True), True, False, True),
+        (1000, 1000, Stand(tekens=1000), True, True, True),
+        (0, 800, Stand(tekens=1000), False, False, True),
+        (0, 1000, Stand(tekens=1000), False, True, False),
+    ],
+)
+def test_poortbesluit(bron, graaf, stand, wti_mislukt, schrijven, reden) -> None:
+    besluit = poortbesluit(
+        Dekking("X", bron, graaf), stand, drempel=STANDAARD_DREMPEL, wti_mislukt=wti_mislukt
+    )
+    assert besluit.schrijven is schrijven
+    assert bool(besluit.reden) is reden
+
+
+def test_drempel_nul_zet_alleen_de_dipregel_uit() -> None:
+    dip = poortbesluit(Dekking("X", 1000, 800), Stand(tekens=1000), drempel=0)
+    assert dip.schrijven is True
+    wti = poortbesluit(
+        Dekking("X", 1000, 800), Stand(tekens=1000, wti=True), drempel=0, wti_mislukt=True
+    )
+    assert wti.schrijven is False
