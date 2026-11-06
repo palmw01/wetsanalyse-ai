@@ -216,6 +216,36 @@ export function berekenLayout(s: Structuur, opties: LayoutOpties = {}): Posities
   return uit;
 }
 
+// ── Het sterrenstel: de kaart bij een antwoord ───────────────────────────────────────────────────
+
+const GOUDEN_HOEK = Math.PI * (3 - Math.sqrt(5));
+
+/** De ketting bij een antwoord als rond sterrenstel, dezelfde vorm als de hele kennisgraaf (besluit gebruiker 6 nov
+ *  2026). Het gaat om de vorm: een schijf, ook bij een handvol knopen. Een ketting is een pad, dus elke layout met
+ *  veren maakt er een lijn of boog van. Daarom een zonnebloemspiraal zonder krachten: de doelen in het hart, en verder
+ *  naar buiten wat verder van ze af ligt. Synchroon en deterministisch; het zijn hoogstens enkele tientallen knopen. */
+export function layoutSterrenstel(g: GraafModel, centrum: readonly string[]): Posities {
+  const afstand = new Map<string, number>();
+  let rand = centrum.filter((id) => g.hasNode(id));
+  rand.forEach((id) => afstand.set(id, 0));
+  for (let d = 1; rand.length; d++) {
+    const volgende: string[] = [];
+    for (const id of rand) for (const buur of g.neighbors(id)) {
+      if (afstand.has(buur)) continue;
+      afstand.set(buur, d);
+      volgende.push(buur);
+    }
+    rand = volgende;
+  }
+  const volgorde = g.nodes().sort((a, b) => (afstand.get(a) ?? Infinity) - (afstand.get(b) ?? Infinity) || natuurlijk(a, b));
+  const uit: Posities = new Map();
+  volgorde.forEach((id, i) => {
+    const straal = RING * Math.sqrt(i);
+    uit.set(id, [straal * Math.cos(i * GOUDEN_HOEK), straal * Math.sin(i * GOUDEN_HOEK)]);
+  });
+  return uit;
+}
+
 // ── Annotaties: afgeleid van hun anker ──────────────────────────────────────────────────────────
 
 const mediaan = (getallen: number[]) => {

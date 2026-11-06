@@ -167,15 +167,18 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolea
     if (!model) return;
     const afbreken = new AbortController();
     const voor = bereik;
+    // De ketting: één bron op het eigen bereik. Komt er iets bij (*Toon het hele artikel*), dan rekent de gewone layout.
+    const ketting = voor === "antwoord" && bronnen?.length === 1 && bronnen[0].keten ? bronnen[0] : undefined;
     layoutVoor(model, {
-      vast: vorige.current[voor],
+      vast: ketting ? undefined : vorige.current[voor],
+      sterrenstel: ketting ? ketting.doelen ?? [] : undefined,
       signal: afbreken.signal,
       opVoortgang: (fractie) => setLaadfase({ fase: "layout", fractie }),
     }).then(({ posities }) => {
       // Een vervallen run (nieuw model, ander bereik) zet niets: anders komt een oude kaart over een
       // nieuwere heen.
       if (afbreken.signal.aborted) return;
-      vorige.current[voor] = posities;
+      vorige.current[voor] = ketting ? undefined : posities;
       setGetekend({ model, posities, bereik: voor });
       setLaadfase({ fase: "klaar" });
       setFouten((f) => (f.layout?.bereik === voor ? { ...f, layout: undefined } : f));
@@ -184,6 +187,8 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolea
       setFouten((f) => ({ ...f, layout: { bereik: voor, tekst: foutTekst(e, "De layout van de graaf kon niet worden berekend.") } }));
     });
     return () => afbreken.abort();
+    // `bronnen` volgt hetzelfde model.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [model, bereik, layoutPoging]);
 
   /** Na een annotatiewijziging. Mutaties gebeuren op de Tekst-tab, dus de graaf is dan niet te zien:

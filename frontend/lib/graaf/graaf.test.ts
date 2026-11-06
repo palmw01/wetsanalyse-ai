@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Samenhang, SamenhangKnoop, SamenhangRelatie } from "@/lib/samenhang";
 import { layoutSleutel, leesLayout, naarReeksen, uitReeksen } from "./cache";
-import { berekenLayout, plaatsAnnotaties, startposities, structuurVan, type Posities } from "./layout";
+import { berekenLayout, layoutSterrenstel, plaatsAnnotaties, startposities, structuurVan, type Posities } from "./layout";
 import { bouwModel, type GraafBron } from "./model";
 import { proefgraaf } from "./proefgraaf";
 import { layoutVoor } from "./rekenaar";
@@ -322,6 +322,20 @@ describe("de ketting", () => {
     expect(s.knopen.map((k) => k.id)).not.toContain("def");
     const afstand = (a: string, b: string) => Math.hypot(pos.get(a)![0] - pos.get(b)![0], pos.get(a)![1] - pos.get(b)![1]);
     expect(afstand("def", "b")).toBeLessThan(afstand("wet", "x") + afstand("wet", "lid") + 1);
+  });
+
+  it("is een rond sterrenstel met de doelen in het hart", () => {
+    const b = bron();
+    for (let i = 0; i < 6; i++) { b.knopen.push(knoop(`m${i}`, "markering")); b.relaties.push(rel(`m${i}`, "markeert", "lid")); }
+    const pos = layoutSterrenstel(bouwModel([b]), ["lid"]);
+    const punten = [...pos.values()];
+    expect(pos.size).toBe(13);
+    const breed = Math.max(...punten.map((p) => p[0])) - Math.min(...punten.map((p) => p[0]));
+    const hoog = Math.max(...punten.map((p) => p[1])) - Math.min(...punten.map((p) => p[1]));
+    expect(Math.max(breed, hoog) / Math.min(breed, hoog)).toBeLessThan(1.6);
+    expect(pos.get("lid")).toEqual([0, 0]);
+    expect(Math.hypot(...pos.get("wet")!)).toBeGreaterThan(Math.hypot(...pos.get("art")!));
+    expect([...layoutSterrenstel(bouwModel([b]), ["lid"])]).toEqual([...pos]);
   });
 
   it("licht de ketting op in een groter model", () => {

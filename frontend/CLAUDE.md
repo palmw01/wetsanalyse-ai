@@ -1464,8 +1464,8 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   antwoord* is de weg van regeling tot de diepste bepaling die het bericht aanwijst (`antwoordDoelen` in `lib/bronnen.ts`: per
   bepaling een doel met `herkomst`, een ouder valt weg als een kind genoemd is; de tekst selecteert alleen uit de bronnen),
   met de markeringen, de begrippen die daar gelden en de uitgaande verwijzingen. Er staat niets gedimd, want de rest is niet
-  geladen; `ketenZin` zegt boven de graaf wat je ziet en wat er niet bij staat. De ketting krijgt dezelfde netwerkvorm als de hele
-  kennisgraaf (besluit gebruiker 6 nov 2026: de graaf heeft één vorm, geen boom met knopen onder elkaar). `ketenFocus` geeft de nadruk: in de hele
+  geladen; `ketenZin` zegt boven de graaf wat je ziet en wat er niet bij staat. De ketting krijgt de vorm van de hele kennisgraaf:
+  een rond sterrenstel, geen boom met knopen onder elkaar (`layoutSterrenstel`, besluit gebruiker 6 nov 2026). `ketenFocus` geeft de nadruk: in de hele
   kennisgraaf licht de ketting op. *Toon het hele artikel* laadt het artikel erbij (`laadErbij`); de ketting telt daarbij niet
   als geladen. De knop onder een antwoord, een annotatie in het gesprek en de
   doelen van `doel` uit de werkplek gebruiken de ketting; de tab Samenhang van een werkgebied en de annotatiepagina niet.
