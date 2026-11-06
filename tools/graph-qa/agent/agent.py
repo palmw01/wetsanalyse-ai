@@ -308,6 +308,7 @@ async def answer_stream(
         "turns": 0,
         "corrected": False,
         "afgekapt": False,
+        "onbevestigd": [],
         "answer": "",
         "sub_questions": [],
         "sub_findings": [],

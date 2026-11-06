@@ -1,6 +1,8 @@
 """Grounding-verificatie en bron-curatie."""
 from __future__ import annotations
 
+import pytest
+
 from agent.grounding import check_grounding, curate_sources
 from agent.models import Source
 from agent.provenance import citations_in, iter_refs
@@ -99,7 +101,7 @@ def test_antwoord_zonder_vindplaats_is_onbepaald_niet_gegrond():
 
 
 def test_gecontroleerde_verwijzing_is_gegrond():
-    report = check_grounding("Zie BWBR0004770, artikel 9.", _trace("resultaat met BWBR0004770"))
+    report = check_grounding("Zie BWBR0004770, artikel 9.", _trace("resultaat met urn:bwb:BWBR0004770:artikel:9"))
     assert report.niveau == "gegrond"
 
 
@@ -174,7 +176,7 @@ def test_melding_noemt_de_citaten_als_er_geen_vindplaats_is():
         'Volgens artikel 2 lid 1 onderdeel m geldt: "De ontvanger verleent uitstel van betaling" '
         'en verderop "indien de schuldenaar daarom verzoekt".'
     )
-    bron = "De ontvanger verleent uitstel van betaling indien de schuldenaar daarom verzoekt."
+    bron = "urn:bwb:BWBR0004770:artikel:2 De ontvanger verleent uitstel van betaling indien de schuldenaar daarom verzoekt."
     report = check_grounding(answer, _trace(bron))
 
     assert report.cited == [] and report.niveau == "gegrond"
@@ -224,3 +226,77 @@ def test_curate_snoeit_alleen_binnen_de_regeling_met_een_precieze_vindplaats():
     sources = [Source(label=u, uri=u) for u in [iw_k, iw_a, awr]]
     antwoord = "Zie jci1.3:c:BWBR0004770&artikel=2&lid=1&o=k en de AWR (BWBR0002320)."
     assert [s.uri for s in curate_sources(sources, antwoord)] == [iw_k, awr]
+
+
+# ── elke citaatvorm, en wat niet is teruggevonden ───────────────────────────────────────────────
+
+BRON_IW = [("get_lid", 'urn:bwb:BWBR0004770:artikel:9\n?tekst\n"Een belastingaanslag is invorderbaar zes weken na de dagtekening '
+                       'van het aanslagbiljet, bedoeld in artikel 8."')]
+ECHT = "Een belastingaanslag is invorderbaar zes weken na de dagtekening"
+VALS = "Een belastingaanslag is invorderbaar drie weken na de verzending van het aanslagbiljet"
+
+
+@pytest.mark.parametrize("antwoord", [
+    f'Artikel 9: "{VALS}". BWBR0004770',
+    f"Artikel 9: “{VALS}”. BWBR0004770",
+    f"Artikel 9: „{VALS}”. BWBR0004770",
+    f'Artikel 9: „{VALS}". BWBR0004770',
+    f"Artikel 9: „{VALS}“. BWBR0004770",
+    f'Artikel 9: "{VALS[:30]}\n{VALS[30:]}". BWBR0004770',
+    'Artikel 9: "' + (VALS + " ") * 6 + '". BWBR0004770',
+])
+def test_elke_citaatvorm_wordt_getoetst(antwoord):
+    rapport = check_grounding(antwoord, BRON_IW)
+    assert rapport.niveau == "ongegrond" and rapport.niet_letterlijk and rapport.grounded is False
+
+
+@pytest.mark.parametrize("antwoord", [f"Artikel 9 luidt:\n\n> {VALS}.\n\nBWBR0004770", "Artikel 999 lid 7 regelt dit. BWBR0004770"])
+def test_een_signaal_is_nooit_gegrond_en_start_geen_correctie(antwoord):
+    rapport = check_grounding(antwoord, BRON_IW)
+    assert rapport.niveau == "onbepaald" and rapport.onbevestigd
+    assert rapport.grounded is True, "een correctieronde op vals alarm beschadigt een goed antwoord"
+
+
+@pytest.mark.parametrize("antwoord", [
+    f"Artikel 9: „{ECHT}”. BWBR0004770",
+    "Artikel 9: \"" + ECHT.replace("invorderbaar ", "invorderbaar\n") + "\". BWBR0004770",
+    f"Artikel 9 luidt:\n\n> {ECHT}\n\nBWBR0004770",
+    "Artikel 9 verwijst naar artikel 8. BWBR0004770",    # de wettekst noemt artikel 8, in geen enkele IRI
+])
+def test_wat_klopt_blijft_gegrond(antwoord):
+    rapport = check_grounding(antwoord, BRON_IW)
+    assert rapport.niveau == "gegrond" and not rapport.onbevestigd and not rapport.niet_letterlijk
+
+
+def test_een_nummer_met_dubbele_punt_uit_de_iri_is_bekend():
+    trace = [("get_lid", "urn:bwb:BWBR0005537:artikel:5%3A2:lid:1\nx")]
+    assert check_grounding("Artikel 5:2 regelt dit. BWBR0005537", trace).onbevestigd == []
+    jci = [("get_lid", "jci1.3:c:BWBR0005537&artikel=7:1&z=2026-01-01 x")]
+    assert check_grounding("Artikel 7:1 regelt dit. BWBR0005537", jci).onbevestigd == []
+
+
+def test_een_kale_nummerlijst_en_een_bepaling_zijn_bekend():
+    trace = [("zoek", '{"bepalingen": "4, 5a"}'), ("get_bepaling", "urn:bwb:BWBR0024096:bepaling:9.1\nx")]
+    assert check_grounding("Artikel 5a en artikel 9.1. BWBR0024096", trace).onbevestigd == []
+
+
+def test_wat_eerder_is_opgehaald_telt_mee():
+    """`controletrace`: eerst het bronregister, dan deze beurt."""
+    trace = [("get_lid", "urn:bwb:BWBR0004770:artikel:36\nx"), *BRON_IW]
+    assert check_grounding("Artikel 36 en artikel 9. BWBR0004770", trace).onbevestigd == []
+
+
+def test_losse_aanhalingstekens_in_twee_alineas_zijn_geen_citaat():
+    antwoord = 'Het woord " staat hier los en dit zijn nog wat woorden.\n\nEn hier nog een " in een andere alinea. BWBR0004770'
+    assert check_grounding(antwoord, BRON_IW).citaten == 0
+
+
+def test_de_overzichtsroute_toetst_hard_en_geeft_geen_signaal():
+    rapport = check_grounding("Artikel 999 regelt dit.", BRON_IW, overzicht={"regelingen": []})
+    assert "artikel 999" in rapport.unsupported and rapport.onbevestigd == []
+
+
+def test_de_tijdlijn_zegt_wat_er_niet_is_teruggevonden():
+    from agent.narratie import _grounding_melding
+
+    assert "niet teruggevonden" in _grounding_melding(check_grounding("Artikel 999 regelt dit. BWBR0004770", BRON_IW))

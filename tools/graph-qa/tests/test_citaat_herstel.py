@@ -78,3 +78,17 @@ def test_in_de_keten_ziet_de_jurist_alleen_het_herstelde_citaat():
     assert next(e for e in events if e["type"] == "grounding")["niveau"] == "gegrond"
     assert len(llm.calls) == 3, "geen correctieronde"
     assert any("letterlijk gemaakt" in e.get("message", "") for e in events if e["type"] == "status")
+
+
+def test_elke_vorm_wordt_hersteld_met_de_eigen_tekens():
+    from agent.grounding import _PAREN
+
+    for open_, dicht in _PAREN:
+        nieuw, hersteld = herstel_citaten(f"Zie {open_}Zes weken na de dagtekening van het aanslagbiljet{dicht}.", BRON)
+        assert hersteld, (open_, dicht)
+        assert nieuw.startswith(f"Zie {open_}zes weken") and dicht in nieuw
+
+
+def test_een_citaat_over_twee_regels_wordt_hersteld():
+    nieuw, hersteld = herstel_citaten('Zie "Zes weken na de\ndagtekening van het aanslagbiljet".', BRON)
+    assert hersteld and "zes weken na de dagtekening" in nieuw

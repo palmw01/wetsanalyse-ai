@@ -518,6 +518,8 @@ export interface AgentGrounding {
   niet_letterlijk: string[];
   /** Het antwoord stuitte op de limiet van het model en is niet af. */
   afgekapt?: boolean;
+  /** Genoemd maar niet teruggevonden in het opgehaalde: een signaal, geen afkeuring. */
+  onbevestigd?: string[];
 }
 
 /** Artikeltekst uit de graaf (weergave == annotatie-corpus). */
