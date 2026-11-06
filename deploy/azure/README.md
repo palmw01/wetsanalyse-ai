@@ -164,8 +164,8 @@ Daardoor is een infra-deploy op een draaiende omgeving veilig. De toets daarop: 
 
 ### Image-swap: automatisch
 
-De vier `*-docker-publish.yml`-workflows bouwen naar GHCR (`pip-audit` vooraf bij de api, `npm audit` bij
-de frontend, en bij alle vier een Trivy-gate op HIGH/CRITICAL achteraf) en hebben daarna een `deploy`-job die de container app op acceptatie naar de
+De vier `*-docker-publish.yml`-workflows bouwen naar GHCR (`pip-audit` vooraf bij api, graph-qa en bwb-import,
+`npm audit` bij de frontend, en bij alle vier een Trivy-gate op HIGH/CRITICAL achteraf) en hebben daarna een `deploy`-job die de container app op acceptatie naar de
 nieuwe **digest** zet (niet naar een tag). Die job wacht tot de nieuwe revisie daadwerkelijk
 `Running` is; `az containerapp update` keert namelijk al terug zodra de revisie is *aangemaakt*, dus
 een container die bij het starten crasht bleef anders onopgemerkt. Bestaat de doel-app nog niet (een

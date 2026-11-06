@@ -187,8 +187,8 @@ blijft handmatig via `azure-infra.yml`. Het runbook staat in
 - **Netwerkgrens.** GraphDB draait zonder eigen security en is alleen binnen de Container Apps Environment
   bereikbaar; `poort` bewaakt dat. De api is alleen op acceptatie publiek.
 - **De repo is publiek.** Een CI-guard blokkeert hostnamen, interne IP's en machinenamen.
-- **Afhankelijkheden.** `pip-audit` bij de api en `npm audit` bij de frontend, Trivy met een gate op HIGH en
-  CRITICAL op alle images, en wekelijks Dependabot.
+- **Afhankelijkheden.** `pip-audit` bij de Python-onderdelen en `npm audit` bij de frontend, Trivy met een
+  gate op HIGH en CRITICAL op alle images, en wekelijks Dependabot.
 
 ## Beperkingen
 
