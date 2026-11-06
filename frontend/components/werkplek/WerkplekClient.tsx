@@ -1493,7 +1493,7 @@ export function WerkplekClient({
               disabled={Boolean(demo) || geblokkeerd || (!bezig && !invoer.trim()) || stopt}
               aria-label={bezig ? (stopt ? "Bezig met stoppen" : "Stoppen") : "Versturen"}
               title={stopt ? "De agent rondt zijn huidige stap nog af" : undefined}
-              className="focus-ring mb-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-paper transition-colors hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-40"
+              className="focus-ring inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-paper transition-colors hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-40"
             >
               {stopt ? (
                 // Stoppen kan tientallen seconden duren (de agent rondt zijn stap af). Een knop die
