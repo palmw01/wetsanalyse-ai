@@ -499,6 +499,16 @@ async def test_zonder_graaf_geen_directe_projectie(monkeypatch):
     assert not graaf_projectie_v2._taken
 
 
+async def test_compacte_elementen_dragen_geen_spoor():
+    snap = snapshot(ONE)
+    await store.batch(request(snap, [element(snap, trace={"pijplijn": "hybrid_v1"})]), snap, "a")
+    nodes = store.nodes_van(snap)
+    [compact] = await store.actuele_elementen(nodes, compact=True)
+    [vol] = await store.actuele_elementen(nodes)
+    assert vol["trace"] and store.ZWAAR.isdisjoint(compact)
+    assert compact == store.compact_element(vol), "de rest van het element blijft gelijk, ook `verouderd`"
+
+
 async def test_herkomstspoor_per_element_blijft_bewaard_tot_in_de_weergave():
     """ADR-001: `trace` is een expliciet contractveld en reist mee tot in de opslag en de export."""
     snap = snapshot(ONE)

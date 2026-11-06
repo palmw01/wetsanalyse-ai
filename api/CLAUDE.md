@@ -333,6 +333,10 @@ spoor D (*Werkgebied als node*).
   `(bwb_id, toestandUrl)`, één keer per proces gebouwd ook bij parallelle verzoeken, hoogstens `GELDIG_S` (10 min) oud,
   want een herimport met een andere parser houdt de toestand. Hij gaat over de hele regeling (`doel` is de wortel) en is
   gedeeld: niet wijzigen. Elke route die iets vastlegt, houdt `resolve_bron`.
+  De bronboom was niet de grootste post. Een leesroute over de hele elemententabel neemt daarom `store.compacte_elementen`
+  (`actuele_elementen(compact=True)`): op Postgres valt `ZWAAR` al in de query weg, want dat parsen kost anders op 0,5 vCPU
+  bij elk scherm rond een seconde. De werkvoorraad leest per snapshot alleen nog de bron-hashes, één keer per proces
+  (`_bronstanden`; een snapshot-id is de hash van zijn inhoud). Lees `annotatie_v2_snapshots` nooit zonder filter.
 - **De inventaris** (`GET {id}/elementen`) leest per regeling één bronboom en de actuele
   elementen. Elk element staat één keer in de inventaris; `analyseren` wint van `context`;
   `deels_buiten` als een anker buiten de selecties valt; afgewezen elementen staan apart in `afgewezen` (de tab toont ze

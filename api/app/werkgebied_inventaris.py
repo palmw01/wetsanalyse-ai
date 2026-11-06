@@ -95,7 +95,7 @@ async def inventaris_met_bronbomen(selecties: list[dict], resolve: Resolver) -> 
             volgorde.setdefault(n["bron_iri"], n.get("volgorde", i))
         regel["bron_gewijzigd"] = bool(sel["bron_hash"]) and nodes[sel["bron_iri"]].get("bron_hash") != sel["bron_hash"]
 
-    elementen = await store.actuele_elementen(alle_nodes) if alle_nodes else []
+    elementen = await store.actuele_elementen(alle_nodes, compact=True) if alle_nodes else []
     alle_scope = set(alle_nodes)
     per_id = {r["id"]: r for r in samenvatting}
     uit, afgewezen = [], []
