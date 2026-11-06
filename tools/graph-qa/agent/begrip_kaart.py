@@ -60,7 +60,7 @@ def q_brondefinities(termen: list[str], limit: int = MAX_RIJEN) -> str:
 
 
 def q_onder(termen: list[str], limit: int = MAX_TREFFERS) -> str:
-    """ "Onder X wordt verstaan: …" (Awb 1:2): de importer legt daar geen `bwb:definieertBegrip` op, dus de tekst zelf.
+    """ "Onder X wordt verstaan: …" (Awb 1:2): de importer legt daar alleen aan het begin van de tekst `bwb:definieertBegrip` op, dus ook de tekst zelf.
     `definities.definiens` beslist of het een definitie is."""
     bevat = " || ".join(f"CONTAINS(LCASE(STR(?tekst)), {_lit(f'onder {t} w')}) || "
                         f"CONTAINS(LCASE(STR(?tekst)), {_lit(f'onder {t} verstaan')})" for t in termen)

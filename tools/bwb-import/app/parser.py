@@ -63,6 +63,13 @@ _DEFINITIE_AANHEF = re.compile(
 # leesteken; dat weert opsommingen die toevallig een dubbele punt bevatten.
 _DEFINITIE_TERM = re.compile(r"^([^:;.]{2,60}):\s+\S")
 
+# De vorm `Onder X wordt verstaan` (Awb 1:2), alleen aan het begin van de tekst: midden in een lid is het
+# vaak een aanvulling op iets anders. "niet verstaan" sluit uit en definieert dus niet; "bedoeld in …"
+# hoort niet bij de term.
+_ONDER_TERM = re.compile(r"^Onder\s+(?:(?:de|het|een)\s+)?([^,:;.]{2,60}?)"
+                         r"(?:,?\s+(?:als\s+)?bedoeld\s+in\b[^:;]*?,?)?"
+                         r"\s+(?:wordt|worden)\s+(?:(?:mede|ook|tevens)\s+)?verstaan\b")
+
 # Een `<al>` ná een `<lijst>` in hetzelfde element is geen tekst van de aanhef: hij wordt een eigen
 # slottekst-node (zie `ToestandParser._parse_onderdelen`). De ouders zijn precies de elementen
 # waarvan die methode de lijsten leest; een `<lijst>` in iets anders heeft geen onderdelen en dan
@@ -356,6 +363,7 @@ class ToestandParser:
             effect=element.get("effect"),
             status=element.get("status"),
             terugwerkend_tot=self._terugwerkend(element),
+            definieert_begrippen=self._definities(element),
             wijzigingsbronnen=self._wijzigingsbronnen(element),
             verwijzingen=self._verwijzingen_scope(element, bwb_id, extra_excl=excl),
             onderdelen=self._parse_onderdelen(
@@ -653,7 +661,10 @@ class ToestandParser:
         over
         BWBR0004770 en BWBR0005537 laat de aanhef-eis precies die gevallen vallen.
 
-        Beide routes kunnen op hetzelfde onderdeel vuren (een cursieve term matcht ook het patroon),
+        **3. Zin** – "Onder X wordt verstaan" aan het begin van de tekst (Awb 1:2): die zin leidt zichzelf
+        in, dus zonder `definitie_context`.
+
+        Beide eerste routes kunnen op hetzelfde onderdeel vuren (een cursieve term matcht ook het patroon),
         dus ontdubbelen we met behoud van volgorde.
         """
         begrippen: list[str] = []
@@ -667,6 +678,10 @@ class ToestandParser:
                 treffer = _DEFINITIE_TERM.match(ToestandParser._tekst(al))
                 if treffer:
                     begrippen.append(treffer.group(1).strip())
+
+        eerste = element.find("al")
+        if eerste is not None and (treffer := _ONDER_TERM.match(ToestandParser._tekst(eerste))):
+            begrippen.append(treffer.group(1).strip())
 
         return list(dict.fromkeys(begrippen))
 
