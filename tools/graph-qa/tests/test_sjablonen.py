@@ -253,3 +253,224 @@ def test_een_beurt_rondt_af_met_de_wettekst_uit_de_graaf():
     assert antwoord["sjabloon"] == "bepaling"
     assert antwoord["blokken"][0]["items"][0]["tekst"] == "Een belastingaanslag is invorderbaar."
     assert _eerste(events, "grounding")["grounded"] is True
+
+
+
+# Het sjabloon `duiding`: het model wijst aan, de code toetst per bepaling, en de uitleg blijft door de controle gaan.
+TIEN = "urn:bwb:BWBR0004770:artikel:10"
+TIEN_1, TIEN_2 = f"{TIEN}:lid:1", f"{TIEN}:lid:2"
+ZIN_1 = "De ontvanger kan uitstel verlenen voor de duur van zes maanden."
+ZIN_2 = "Het uitstel eindigt zodra de belastingschuldige een nieuwe aanslag ontvangt."
+
+
+def tien(**lid2) -> tuple[str, str]:
+    leden = [{"lid": TIEN_1, "nummer": "1", "tekst": ZIN_1}, {"lid": TIEN_2, "nummer": "2", "tekst": ZIN_2, **lid2}]
+    return "get_artikel", json.dumps({"status": "ok", "volledig": True, "aantal": 2, "artikel": {"iri": TIEN, "delen": 2}, "resultaten": leden})
+
+
+def duiding(fragment: str = ZIN_1, bepaling: str = TIEN_1, kort: str = "Uitstel is mogelijk.", waarom: str = "Dit geeft de bevoegdheid.",
+            twijfel: list[str] | None = None, **extra) -> dict:
+    return {"kort_antwoord": kort, "onderbouwing": [{"bepaling": bepaling, "fragment": fragment, "waarom": waarom}], "twijfel": twijfel or [], **extra}
+
+
+def test_duiding_is_strict_ook_in_de_geneste_rij():
+    schema = sjabloon_schemas(frozenset({"antwoord_duiding"}))[0]
+    rij = schema["input_schema"]["properties"]["onderbouwing"]["items"]
+    assert schema["strict"] is True and rij["additionalProperties"] is False
+    assert set(rij["required"]) == set(rij["properties"]) and set(schema["input_schema"]["required"]) == set(schema["input_schema"]["properties"])
+
+
+def test_duiding_heeft_kort_antwoord_citaten_en_twijfel_in_die_volgorde():
+    a = vul("antwoord_duiding", duiding(twijfel=["Of dit ook voor naheffingen geldt, zegt de tekst niet."]), [tien()])
+    assert [b.soort for b in a.blokken] == ["toelichting", "citaten", "twijfel"]
+    assert a.sjabloon == "duiding" and a.blokken[0].kop == "Kort antwoord" and a.blokken[0].door == "lex"
+    c = a.blokken[1].items[0]
+    assert (c.tekst, c.vindplaats.iri, c.vindplaats.label, c.waarom) == (ZIN_1, TIEN_1, "Artikel 10, lid 1", "Dit geeft de bevoegdheid.")
+    assert [v.iri for v in a.doelen] == [TIEN_1]
+
+
+def test_duiding_zonder_twijfel_heeft_geen_twijfelblok_en_ontdubbelt_de_doelen():
+    invoer = duiding()
+    invoer["onderbouwing"] *= 2
+    a = vul("antwoord_duiding", invoer, [tien()])
+    assert [b.soort for b in a.blokken] == ["toelichting", "citaten"] and [v.iri for v in a.doelen] == [TIEN_1]
+
+
+def test_bijna_letterlijk_wordt_de_brontekst():
+    a = vul("antwoord_duiding", duiding(fragment="de ontvanger kan uitstel verlenen voor de duur van zes maanden."), [tien()])
+    assert a.blokken[1].items[0].tekst == ZIN_1.rstrip(".")
+
+
+@pytest.mark.parametrize("fragment", ["De ontvanger kan uitstel verlenen (...) zes maanden.", "De ontvanger mag uitstel verlenen voor de duur van zes maanden.", ""])
+def test_een_fragment_dat_niet_in_de_bron_staat_wordt_nooit_getoond(fragment):
+    with pytest.raises(Onvulbaar, match="staat niet in Artikel 10, lid 1"):
+        vul("antwoord_duiding", duiding(fragment=fragment), [tien()])
+
+
+def test_een_echte_zin_bij_het_verkeerde_lid_wordt_geweigerd():
+    """De controle op de tekst ziet dit niet: de zin staat in de trace. Alleen de toets per bepaling vangt het."""
+    with pytest.raises(Onvulbaar, match="staat niet in Artikel 10, lid 2"):
+        vul("antwoord_duiding", duiding(bepaling=TIEN_2), [tien()])
+
+
+def test_een_onbekende_iri_is_onvulbaar():
+    with pytest.raises(Onvulbaar, match="niet \\(helemaal\\) opgehaald"):
+        vul("antwoord_duiding", duiding(bepaling=f"{ART}:lid:99"), [tien()])
+
+
+def test_wijst_het_model_het_artikel_aan_dan_is_de_vindplaats_het_lid():
+    a = vul("antwoord_duiding", duiding(bepaling=TIEN), [tien()])
+    assert a.blokken[1].items[0].vindplaats.iri == TIEN_1
+
+
+def test_staat_de_passage_in_twee_leden_dan_blijft_het_artikel_de_vindplaats():
+    a = vul("antwoord_duiding", duiding(fragment="uitstel", bepaling=TIEN, waarom=""), [tien(tekst=f"Het uitstel eindigt. {ZIN_1}")])
+    assert a.blokken[1].items[0].vindplaats.iri == TIEN
+
+
+def test_een_onderdeel_van_het_aangewezen_lid_telt_met_zijn_eigen_vindplaats():
+    a = vul("antwoord_duiding", duiding(fragment="zolang twijfel bestaat", bepaling=LID), [lid(A)])
+    assert a.blokken[1].items[0].vindplaats.iri == A["onderdeel"]
+
+
+def test_een_passage_over_twee_rijen_is_onvulbaar():
+    with pytest.raises(Onvulbaar, match="één lid of onderdeel"):
+        vul("antwoord_duiding", duiding(fragment=f"{ZIN_1} {ZIN_2}", bepaling=TIEN), [tien()])
+
+
+def test_een_voorproef_is_geen_bron_voor_een_citaat():
+    zoek = ("search_wetgeving", json.dumps({"status": "ok", "volledig": True, "aantal": 1, "resultaten": [{"node": TIEN_1, "tekst": ZIN_1[:30], "tekst_volledig": False}]}))
+    with pytest.raises(Onvulbaar, match="get_artikel"):
+        vul("antwoord_duiding", duiding(fragment=ZIN_1[:30]), [zoek])
+
+
+def test_get_context_draagt_geen_vindplaats_per_tekst():
+    ctx = ("get_context", json.dumps({"status": "ok", "volledig": True, "aantal": 1, "resultaten": [{"relatie": "5-lid", "a": "1", "b": ZIN_1}]}))
+    with pytest.raises(Onvulbaar, match="get_artikel"):
+        vul("antwoord_duiding", duiding(), [ctx])
+
+
+def test_een_annotatie_is_geen_bron_voor_een_citaat():
+    ann = ("get_annotatie", json.dumps({"status": "ok", "volledig": True, "aantal": 1, "resultaten": [{"iri": TIEN_1, "tekst": ZIN_1}]}))
+    with pytest.raises(Onvulbaar, match="niet \\(helemaal\\) opgehaald"):
+        vul("antwoord_duiding", duiding(), [ann])
+
+
+def test_zonder_kort_antwoord_of_passage_vult_het_niet():
+    with pytest.raises(Onvulbaar, match="korte antwoord"):
+        vul("antwoord_duiding", duiding(kort=" "), [tien()])
+    with pytest.raises(Onvulbaar, match="ten minste één passage"):
+        vul("antwoord_duiding", {"kort_antwoord": "x", "onderbouwing": [], "twijfel": []}, [tien()])
+
+
+@pytest.mark.parametrize("veld", ["kort", "waarom", "twijfel"])
+def test_een_bepaling_in_de_uitleg_zonder_passage_gaat_terug_naar_het_model(veld):
+    """De werkplek toont bij doelen geen bronnenlijst: deze vermelding zou nergens herleidbaar zijn, ook als hij is opgehaald."""
+    tekst = "Zie ook artikel 12."
+    invoer = duiding(twijfel=[tekst]) if veld == "twijfel" else duiding(**{veld: tekst})
+    with pytest.raises(Onvulbaar, match="artikel 12 zonder passage"):
+        vul("antwoord_duiding", invoer, [tien(), artikel(EEN)])
+
+
+def test_de_eigen_bepaling_en_een_verwijzing_in_de_passage_mag_de_uitleg_noemen():
+    tekst = f"Bedoeld in artikel 9 komt {ZIN_1}"
+    a = vul("antwoord_duiding", duiding(fragment=tekst, bepaling=TIEN, kort="Artikel 10 lid 2 sluit aan op artikel 9."), [tien(tekst=tekst)])
+    assert a.blokken[1].items[0].vindplaats.iri == TIEN_2
+
+
+def test_de_uitleg_komt_in_de_tekst_die_verify_controleert():
+    a = vul("antwoord_duiding", duiding(kort="KORT", waarom="WAAROM", twijfel=["TWIJFEL"]), [tien()])
+    tekst = antwoord_tekst(a)
+    assert all(x in tekst for x in ("**Kort antwoord**", "KORT", f'"{ZIN_1}"', "Artikel 10, lid 1", "WAAROM", "**Twijfel en aannames**", "- TWIJFEL"))
+    assert antwoord_tekst(Antwoord.model_validate(a.model_dump())) == tekst
+
+
+def test_een_bijna_letterlijk_citaat_in_de_uitleg_wordt_hersteld():
+    a = vul("antwoord_duiding", duiding(kort="De wet zegt: \"de ontvanger kan uitstel verlenen voor de duur van zes maanden.\""), [tien()])
+    assert f'"{ZIN_1[:-1]}".' in a.blokken[0].tekst
+
+
+TIEN_TSV = ("?lid\t?lidnummer\t?lidtekst\t?lidonderdelen\n"
+            f'<{TIEN_1}>\t"1"\t"{ZIN_1}"\t"false"\n<{TIEN_2}>\t"2"\t"{ZIN_2}"\t"false"\n')
+KIES_DUIDING = response([text_block("SPECIALIST: duiding\nPLAN: artikel ophalen.")], "end_turn")
+HAAL = response([tool_block("t1", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": "10"})], "tool_use")
+
+
+def _sluit_af(id: str = "t2", **velden):
+    return response([tool_block(id, "antwoord_duiding", duiding(**velden))], "tool_use")
+
+
+def _duidingsbeurt(*rondes, **instellingen):
+    llm = FakeLLM([KIES_DUIDING, *rondes])
+    settings = make_settings(enable_planning=True, grounding_correct=True, **instellingen)
+
+    async def alles():
+        return [e async for e in answer_stream("Hoe werkt uitstel?", settings=settings, llm=llm, graph=FakeGraph(result=TIEN_TSV))]
+
+    return asyncio.run(alles()), llm
+
+
+def test_de_duidingsspecialist_krijgt_beide_sjablonen_en_algemeen_niet():
+    from agent import specialists
+    duidend = specialists.get("duiding")
+    assert {"antwoord_bepaling", "antwoord_duiding"} <= duidend.sjablonen
+    assert "antwoord_bepaling" in duidend.system and "antwoord_duiding" in duidend.system
+    assert "antwoord_duiding" not in specialists.get("algemeen").sjablonen
+
+
+def test_een_beurt_rondt_af_met_de_duiding():
+    events, llm = _duidingsbeurt(HAAL, _sluit_af())
+    assert llm.index == 3
+    antwoord = _eerste(events, "antwoord")["antwoord"]
+    assert antwoord["sjabloon"] == "duiding" and antwoord["blokken"][1]["items"][0]["tekst"] == ZIN_1
+    grounding = _eerste(events, "grounding")
+    assert grounding["grounded"] is True and grounding["niveau"] == "gegrond"
+    assert [s["uri"] for s in _eerste(events, "sources")["sources"]] == [TIEN_1]
+
+
+@pytest.mark.parametrize("veld", ["kort", "waarom", "twijfel"])
+def test_een_verzonnen_verwijzing_in_de_uitleg_gaat_door_de_correctie(veld):
+    fout = "Zie BWBR9999999."
+    velden = {"twijfel": [fout]} if veld == "twijfel" else {veld: fout}
+    events, llm = _duidingsbeurt(HAAL, _sluit_af(**velden), _sluit_af("t3"))
+    assert llm.index == 4
+    assert "BWBR9999999" not in _eerste(events, "token")["content"]
+    assert _eerste(events, "grounding")["grounded"] is True
+
+
+@pytest.mark.parametrize("veld", ["kort", "waarom", "twijfel"])
+def test_een_verzonnen_citaat_in_de_uitleg_gaat_door_de_correctie(veld):
+    fout = '"De ontvanger mag altijd en zonder enige voorwaarde uitstel verlenen."'
+    velden = {"twijfel": [fout]} if veld == "twijfel" else {veld: fout}
+    events, llm = _duidingsbeurt(HAAL, _sluit_af(**velden), _sluit_af("t3"))
+    assert llm.index == 4
+    assert "zonder enige voorwaarde" not in _eerste(events, "token")["content"]
+
+
+def test_een_fragment_buiten_de_bron_komt_nooit_bij_de_controle_of_de_jurist():
+    events, llm = _duidingsbeurt(HAAL, _sluit_af(fragment="Dit staat nergens in de wet, maar klinkt wel zo."), _sluit_af("t3"))
+    assert llm.index == 4 and len([e for e in events if e["type"] == "antwoord"]) == 1
+    assert "nergens in de wet" not in _eerste(events, "token")["content"]
+
+
+def test_een_sjabloon_dat_onvulbaar_blijft_stopt_bij_de_beurtlimiet():
+    onvulbaar = [_sluit_af(f"t{n}", fragment="Dit staat nergens in de wet.") for n in range(2, 7)]
+    events, llm = _duidingsbeurt(HAAL, *onvulbaar, max_turns=3)
+    assert llm.index == 5, "na de ronde op de limiet vraagt niets het model meer"
+    assert "beurtlimiet" in _eerste(events, "token")["content"]
+    assert not [e for e in events if e["type"] == "antwoord"]
+
+
+def test_een_vervolgvraag_vindt_de_doelen_in_het_register():
+    """De bepaling kwam in de vorige beurt binnen; de bronnen van deze beurt mogen dan niet leeg zijn."""
+    from agent.nodes.antwoord import finalize_node
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    a = vul("antwoord_duiding", duiding(), [tien()])
+    naam, tekst = tien()
+    state = {"answer": "x", "antwoord": a.model_dump(), "bronregister": [[naam, tekst]], "source_trace": []}
+    b = SimpleNamespace(graph=FakeGraph(result=""), settings=make_settings())
+    with patch("agent.nodes.antwoord.get_stream_writer", return_value=lambda _: None):
+        uit = finalize_node(b, state)
+    assert [s["uri"] for s in uit["sources"]] == [TIEN_1]

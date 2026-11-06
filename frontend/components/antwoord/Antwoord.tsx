@@ -61,14 +61,19 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
       </div>
     </Sectie>
   ),
-  citaten: ({ blok }) => (
+  citaten: ({ blok, bronnen, nietLetterlijk }) => (
     <Sectie kop="Onderbouwing">
       <div className="space-y-3">
         {blok.items.map((c, i) => (
           <div key={`${c.vindplaats.iri}-${i}`} className="space-y-1">
             <Citaat>{c.tekst}</Citaat>
             <p className="text-xs text-muted"><Vindplaats vindplaats={c.vindplaats} /></p>
-            {c.waarom && <p>{c.waarom}</p>}
+            {c.waarom && (
+              <div data-door="lex">
+                <p className="text-xs text-muted">Toelichting van Lex</p>
+                <Markdown tekst={c.waarom} bronnen={bronnen} nietLetterlijk={nietLetterlijk} />
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -90,9 +95,9 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
   toelichting: ({ blok, bronnen, nietLetterlijk }) => (
     <Sectie kop={blok.kop}><Markdown tekst={blok.tekst} bronnen={bronnen} nietLetterlijk={nietLetterlijk} /></Sectie>
   ),
-  twijfel: ({ blok }) => (
+  twijfel: ({ blok, bronnen, nietLetterlijk }) => (
     <Sectie kop="Twijfel en aannames">
-      <ul className="ml-4 list-disc space-y-0.5">{blok.punten.map((p) => <li key={p}>{p}</li>)}</ul>
+      <ul className="ml-4 list-disc space-y-0.5">{blok.punten.map((p) => <li key={p}><Markdown tekst={p} bronnen={bronnen} nietLetterlijk={nietLetterlijk} /></li>)}</ul>
     </Sectie>
   ),
   leemte: ({ blok }) => <p className="text-muted" data-leemte>{blok.tekst}</p>,
