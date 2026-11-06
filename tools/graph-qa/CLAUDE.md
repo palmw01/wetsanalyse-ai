@@ -380,7 +380,7 @@ eind via `agent/wetsanalyse_api.py`: **eerst de annotatielaag, dan het chatberic
 `opgeslagen`-event. Dit staat **buiten** de LangGraph-code. **De server is de enige schrijver:** elke afloop krijgt
 een bericht, ook een fout (`uitkomst: {status: "mislukt", melding}`, letterlijk de tekst van het `error`-event, dus
 live en na herladen hetzelfde). Een bericht is daarmee ook de plek voor een kaartje dat na een fout klikbaar moet
-blijven (`_leg_fout_vast`). Een nieuw veld op het bericht hoort in `BerichtInvoer`, `Bericht` én de mapping in
+blijven (`_leg_fout_vast`). Ook het oordeel van de controle staat op het bericht (`grounding`), met `afgekapt` als `agent_node` op `max_tokens` stuitte: de tekst blijft, tool-aanroepen vallen weg want hun argumenten zijn half, en `refusal` krijgt een eigen melding. Een nieuw veld op het bericht hoort in `BerichtInvoer`, `Bericht` én de mapping in
 `gesprek_store.py`; de api laat een onbekend veld stil vallen (`test_contract_drift.py`). Een annotatie gaat als één batch per
 bronnode: `POST /v1/annotatie/lagen/batch` met `batch_id` (= run_id), `bron_iri`, `snapshot_id`,
 `verwachte_revisies`, elementen, dekking, `run` en het beslisregister. Het contract staat in

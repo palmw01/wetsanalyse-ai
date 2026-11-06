@@ -46,6 +46,12 @@ export function standVanVorigeRun(
   return berichtRunIds.includes(bewaardRunId) ? "afgerond" : "verdwenen";
 }
 
+/** Wat een schermlezer hoort als een beurt eindigt. Uit de uitkomst, niet uit een meldingstekst: een beurt die gewoon
+ *  klaar is heeft geen melding, en dan bleef het stil. */
+export function aankondiging(uitkomst: "klaar" | "mislukt" | "gestopt"): string {
+  return { klaar: "Lex is klaar met antwoorden.", gestopt: "De beurt is gestopt.", mislukt: "De beurt is mislukt." }[uitkomst];
+}
+
 /** Wat doe je als de eventstroom van een lopende beurt met een fout eindigt?
  *
  *  - `"negeren"` – er is niets te doen: wíj koppelden zelf los (unmount, van gesprek wisselen), of

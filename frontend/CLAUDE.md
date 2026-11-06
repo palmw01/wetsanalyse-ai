@@ -382,8 +382,9 @@ aanroep.
   `niveau: "gegrond"` – een groen vinkje bij elk antwoord leert mensen erover heen te kijken – en
   spreekt bij **ongegrond** (een verwijzing die niet uit de graaf kwam, of een citaat dat niet
   letterlijk in de opgehaalde tekst staat) en **onbepaald** (geen vindplaats en geen citaat, dus niets
-  te controleren). Onbepaald is geen goedkeuring; toon het niet groen. De uitkomst reist niet mee in
-  het berichtcontract, maar de statusregel staat in `denk`.
+  te controleren). Onbepaald is geen goedkeuring; toon het niet groen. Het oordeel staat op het bericht
+  (`Bericht.grounding`, `parseGrounding`), dus blok en aanwijzing in de tekst blijven na herladen staan. Het blok
+  spreekt ook bij `afgekapt`, zelfs als het niveau `gegrond` is: wat er staat klopt dan, maar het is niet af.
 - **Een afgekeurd citaat wordt in de tekst zelf aangewezen.** `Markdown` neemt `nietLetterlijk` aan
   en wikkelt elke treffer in een `<mark>` (aandacht-geel, stippellijn en een `sr-only`-toelichting,
   zodat het signaal niet alleen aan kleur hangt). Dat is een **rehype-plugin op de hast-boom**, niet

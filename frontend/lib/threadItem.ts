@@ -18,8 +18,7 @@ export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecu
       // Het antwoord op een bevestiging erboven (de knop of *Annuleren*): het voorstel is afgehandeld.
       bevestigingKeuze?: import("./werkgebiedAnnoteren").BevestigingKeuze }
   | { id: string; type: "antwoord"; tekst: string; denk?: string; bronnen?: Bron[];
-      // De brongetrouwheidstoets van déze beurt. Live; hij reist niet mee in het berichtcontract,
-      // maar de statusregel ervan staat wél in `denk` en blijft dus na herladen terug te vinden.
+      // De brongetrouwheidstoets van déze beurt: live uit de stroom, na herladen van het bericht.
       grounding?: AgentGrounding;
       // Het overzicht van een onderwerp, uit de graaf (graph-qa `agent/overzicht.py`): de werkplek
       // toont het als blok onder de duiding, en de graafknop opent er de delen van.

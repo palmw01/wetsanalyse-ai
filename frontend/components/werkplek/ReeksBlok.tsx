@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { actiefOnderdeel, reeksSamenvatting, type Reeks, type ReeksOnderdeel } from "@/lib/reeks";
+import { Melding } from "@/components/ui/Melding";
+import { actiefOnderdeel, reeksDegradatie, reeksSamenvatting, type Reeks, type ReeksOnderdeel } from "@/lib/reeks";
 
 /** Meerdere onderdelen van één artikel, geannoteerd in één run: per onderdeel een blok.
  *
@@ -22,6 +23,7 @@ export function ReeksBlok({
   spoor: (onderdeel: ReeksOnderdeel, actief: boolean) => ReactNode;
 }) {
   const bezig = actiefOnderdeel(reeks);
+  const degradatie = reeksDegradatie(reeks);
   return (
     <div className="rounded-kaart border border-line bg-surface shadow-zacht" aria-live="polite">
       <div className="flex items-center gap-3 border-b border-line px-4 py-2.5">
@@ -44,6 +46,7 @@ export function ReeksBlok({
             onOpen={() => onOpen(o, i)} spoor={spoor} />
         ))}
       </ol>
+      {degradatie && <div className="border-t border-line p-3" data-reeks-degradatie><Melding type="waarschuwing" compact>{degradatie}</Melding></div>}
     </div>
   );
 }

@@ -615,8 +615,8 @@ function DenkProces({
  *  - **ongegrond** – er staat een verwijzing in die niet uit de graaf kwam, of een citaat dat niet
  *    letterlijk in de opgehaalde tekst staat. Dat is precies waar een jurist op afgaat. */
 function Brongetrouwheid({ grounding }: { grounding: AgentGrounding }) {
-  if (grounding.niveau === "gegrond") return null;
-  const onbepaald = grounding.niveau === "onbepaald";
+  if (grounding.niveau === "gegrond" && !grounding.afgekapt) return null;
+  const onbepaald = grounding.niveau === "onbepaald" && !grounding.afgekapt;
   return (
     <div
       data-tour="grounding"
@@ -632,6 +632,11 @@ function Brongetrouwheid({ grounding }: { grounding: AgentGrounding }) {
           "Dit antwoord noemt geen vindplaats of letterlijk citaat, dus er valt niets te controleren tegen de graaf."
         ) : (
           <>
+            {grounding.afgekapt && (
+              <span className="block" data-afgekapt>
+                Dit antwoord is afgekapt: het is langer dan Lex in één keer kan schrijven. Stel een gerichtere vraag voor de rest.
+              </span>
+            )}
             {grounding.unsupported.length > 0 && (
               <span className="block break-words">
                 Niet uit de graaf: {grounding.unsupported.join(", ")}

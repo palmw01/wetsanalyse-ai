@@ -7,12 +7,14 @@ import {
   parseBronnen,
   parseDoel,
   parseElement,
+  parseGrounding,
   parseHergebruik,
   parseOverzicht,
   parseKandidaten,
   parseKeuze,
   parseRun,
   parseRunStart,
+  parseUitkomst,
 } from "./agentEvents";
 import { isBegripSamenhang, isConformiteit, type BegripSamenhang, type Conformiteit } from "./begripGraaf";
 import type { BegrippenOverzicht } from "./begrippenOverzicht";
@@ -49,6 +51,7 @@ import type {
   AgentDoelInvoer,
   AgentDoel,
   AgentGrounding,
+  BeurtUitkomst,
   AgentHergebruik,
   AgentKandidaat,
   AgentRun,
@@ -568,6 +571,8 @@ export type AgentHandlers = {
   /** De beurt slaagde, maar er is iets dat de jurist hoort te weten: nu alleen een taalanalyse die
    *  gedegradeerd draaide. Een bewaarfout is een `error`. */
   onWaarschuwing?: (bericht: string) => void;
+  /** De beurt is afgelopen. Een mislukte beurt gooit al bij het `error`-event, dus dit is klaar of gestopt. */
+  onDone?: (uitkomst: BeurtUitkomst["status"]) => void;
 };
 
 // --- Runs: de beurt is van de server -----------------------------------------
@@ -797,12 +802,7 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
               bevestiging?: unknown; vervolg?: unknown;
               annotatie_doel?: import("./annotatieNode").NodeDoel;
               run_id?: string;
-              // grounding: `niveau` is nieuw; een oudere agent stuurt alleen `grounded`.
-              niveau?: AgentGrounding["niveau"];
-              grounded?: boolean;
-              cited?: number;
-              unsupported?: string[];
-              niet_letterlijk?: string[];
+              uitkomst?: unknown;
             }
           | null;
         if (!ev) continue;
@@ -820,7 +820,10 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
           }
         }
         // Alleen `done` sluit een beurt; graph-qa stuurt hem altijd (`runstore.sluit_af`, en `volg` bij een afgebroken run).
-        if (ev.type === "done") return;
+        if (ev.type === "done") {
+          handlers.onDone?.(parseUitkomst({ status: ev.uitkomst })?.status ?? "klaar");
+          return;
+        }
         if (ev.type === "gat") handlers.onGat?.(ev.weggevallen ?? 0);
         else if (ev.type === "status") handlers.onStatus?.(ev.message ?? "");
         else if (ev.type === "reason") handlers.onReason?.(ev.content ?? "");
@@ -829,14 +832,10 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
           const bronnen = geldig(parseBronnen, ev.sources, "sources");
           if (bronnen) handlers.onSources?.(bronnen);
         }
-        else if (ev.type === "grounding")
-          handlers.onGrounding?.({
-            niveau: ev.niveau ?? (ev.grounded === false ? "ongegrond" : "gegrond"),
-            grounded: ev.grounded !== false,
-            cited: ev.cited ?? 0,
-            unsupported: ev.unsupported ?? [],
-            niet_letterlijk: ev.niet_letterlijk ?? [],
-          });
+        else if (ev.type === "grounding") {
+          const grounding = parseGrounding(ev);
+          if (grounding) handlers.onGrounding?.(grounding);
+        }
         else if (ev.type === "doel" && ev.doel) {
           const doel = geldig(parseDoel, ev.doel, "doel");
           if (doel) handlers.onDoel?.(doel);

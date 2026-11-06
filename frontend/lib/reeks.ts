@@ -29,6 +29,8 @@ export interface ReeksOnderdeel {
   /** Waar de annotatie van dit onderdeel staat; gezet zodra hij is vastgelegd. */
   annotatie_doel?: NodeDoel;
   hergebruik?: AgentHergebruik;
+  /** Aantal bronnodes dat zonder zinsontleding draaide (`dekking.gedegradeerd`). */
+  zonderZinsontleding?: number;
 }
 
 export interface Reeks {
@@ -107,6 +109,8 @@ export function verwerkReeksEvent(reeks: Reeks | null, ev: Ruw): Reeks | null {
       const uitvoering = parseToolExecution(ev);
       return uitvoering ? werkBij(reeks, iri, (o) => ({ ...o, tool_executions: mergeToolExecution(o.tool_executions, uitvoering) })) : reeks;
     }
+    case "dekking":
+      return werkBij(reeks, iri, (o) => ({ ...o, zonderZinsontleding: zonderZinsontleding(ev.dekking) }));
     case "hergebruik": {
       const h = parseHergebruik(ev.hergebruik);
       return h ? werkBij(reeks, iri, (o) => ({ ...o, hergebruik: h })) : reeks;
@@ -123,6 +127,21 @@ export function verwerkReeksEvent(reeks: Reeks | null, ev: Ruw): Reeks | null {
     default:
       return reeks;
   }
+}
+
+/** Hoeveel bronnodes zonder zinsontleding draaiden: dezelfde `dekking`, live en op het bewaarde bericht. */
+function zonderZinsontleding(dekking: unknown): number {
+  const lijst = dekking && typeof dekking === "object" ? (dekking as { gedegradeerd?: unknown }).gedegradeerd : undefined;
+  return Array.isArray(lijst) ? lijst.length : 0;
+}
+
+/** De melding onder een reeks als er onderdelen zonder zinsontleding draaiden. Juist belangrijk als er weinig gevonden
+ *  is: dan zegt de reeks anders niet waaróm. */
+export function reeksDegradatie(reeks: Reeks): string {
+  const n = reeks.onderdelen.reduce((som, o) => som + (o.zonderZinsontleding ?? 0), 0);
+  if (!n) return "";
+  return `De zinsontleding was niet beschikbaar voor ${n} ${n === 1 ? "bronnode" : "bronnodes"}. Alleen vaste patronen `
+    + "(termijnen, bedragen, verwijzingen, formules) zijn gezocht; onderwerpen, voorwerpen en bijzinnen kunnen ontbreken.";
 }
 
 /** "3 van 5 klaar" – of, na afloop, wat er is gebeurd. */
@@ -174,6 +193,7 @@ export function reeksUitBerichten(berichten: Bericht[]): Reeks | null {
       tool_executions: toolSpoorUit(b.tool_executions),
       ...(doel ? { annotatie_doel: doel } : {}),
       ...(hergebruik ? { hergebruik } : {}),
+      ...(zonderZinsontleding(b.dekking) ? { zonderZinsontleding: zonderZinsontleding(b.dekking) } : {}),
     });
   }
   return { runId: eerste.reeks.run_id, ouder: { bron_iri: "", label: eerste.reeks.ouder }, onderdelen, afgerond: true };
