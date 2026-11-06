@@ -397,14 +397,6 @@ export function WerkplekClient({
     setToonNaarBeneden(false);
   }
 
-  // Auto-groeiende textarea (groeit met de inhoud tot een max; daarna intern scrollen).
-  useLayoutEffect(() => {
-    const ta = taRef.current;
-    if (!ta) return;
-    ta.style.height = "0px";
-    ta.style.height = `${Math.min(ta.scrollHeight, 200)}px`;
-  }, [invoer]);
-
   function updateItem(id: string, patch: Partial<Item>) {
     setItems((xs) => xs.map((x) => (x.id === id ? ({ ...x, ...patch } as Item) : x)));
   }
@@ -1078,6 +1070,28 @@ export function WerkplekClient({
   // Het open compacte kaartje van de bronselectie: *Klaar* mag dan ook vanuit het paneel.
   const paneelKaart = open?.open?.weergave === "paneel" ? open.open : undefined;
   const toonDock = !!open?.open && !bezig && !demo && weggeklikt !== open.openId;
+
+  // Auto-groeiende textarea (groeit met de inhoud tot een max; daarna intern scrollen). Ook de breedte telt: een
+  // plaatshouder die op een smal scherm afbrak, hield anders na het verbreden zijn hoogte, en dan staan tekst en knop
+  // niet meer op één lijn. Alleen op een andere breedte: de hoogte zetten we zelf, en die mag geen lus starten.
+  useLayoutEffect(() => {
+    const ta = taRef.current;
+    if (!ta) return;
+    const pasAan = () => {
+      ta.style.height = "0px";
+      ta.style.height = `${Math.min(ta.scrollHeight, 200)}px`;
+    };
+    pasAan();
+    let breedte = ta.offsetWidth;
+    const waarnemer = new ResizeObserver(() => {
+      if (ta.offsetWidth === breedte) return;
+      breedte = ta.offsetWidth;
+      pasAan();
+    });
+    waarnemer.observe(ta);
+    return () => waarnemer.disconnect();
+  }, [invoer, toonDock]);
+
   const suggesties = onderwerp ? suggestiesVan(onderwerp)
     : werkgebiedId && !demo && !invoer.trim() ? werkgebiedSuggesties() : [];
 

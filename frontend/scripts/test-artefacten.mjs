@@ -377,7 +377,10 @@ try {
   await suggesties.waitFor();
   await page.setViewportSize({ width: 960, height: 800 });
   assert.ok((await suggesties.boundingBox()).height <= 48, "de suggesties blijven één rij, ook in een smalle chat");
+  // Een plaatshouder die op een telefoon afbreekt, houdt zijn hoogte niet na het verbreden.
+  await page.setViewportSize({ width: 300, height: 800 });
   await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.waitForFunction(() => document.querySelector("[data-tour=invoer] textarea").offsetHeight <= 44);
   await suggesties.getByRole("button", { name: "Stel begrippen voor" }).click();
   await page.getByRole("region", { name: "Begripsvoorstellen: Live voorstellen" }).waitFor();
   assert.equal(runs[0]?.werkgebied_id, "wg1", "de beurt hoort het werkgebied te dragen");
