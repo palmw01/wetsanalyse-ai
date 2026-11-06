@@ -3,7 +3,7 @@ het overzicht. Het scenario uit de opdracht staat hier op api-niveau: vier deelv
 springen, en de voortgang van 2 blijft staan."""
 from __future__ import annotations
 
-from app import db
+from app import bronselectie, db
 from sqlalchemy import select
 from test_annotatie_v2 import ART, ONE
 from test_bronnen_runs import LID3, _start, _uitkomst
@@ -423,7 +423,7 @@ async def test_een_zelf_genoemde_bepaling_is_een_voorstel_in_het_paneel(client):
     d = _dq(ov, ids[1])
     k = _kid(d, ONE)
     assert (k["stand"], k["rol"], k["bewijs_soorten"]) == ("voorgesteld", "kern", ["genoemd"])
-    assert k["bewijs"][0]["detail"]["tekst"] == "artikel 9 lid 1 Iw 1990" and d["status"] == "in_behandeling"
+    assert "bewijs" not in k and d["status"] == "in_behandeling"
     assert [x["bron_iri"] for x in _dq(ov, ids[0])["kandidaten"]] == [], "alleen bij de deelvraag waar het genoemd is"
     ov = await _noem(client, wg, ids[1], ONE)
     assert len(_dq(ov, ids[1])["kandidaten"]) == 1
@@ -449,10 +449,30 @@ async def test_een_genoemd_voorstel_vervalt_niet_en_overleeft_een_nieuwe_zoekopd
     await _met_kandidaten(client, wg, [_kd(ONE, "kern", deelvragen=[ids[2]])])
     ov = await _overzicht(client, wg)
     k = _kid(_dq(ov, ids[0]), ONE)
-    assert sorted(b["methode"] for b in k["bewijs"]) == ["deelvraag", "genoemd"]
+    r = await client.get(f"/v1/werkgebieden/{wg['id']}/kandidaten")
+    [volledig] = [x for x in r.json()["kandidaten"] if x["bron_iri"] == ONE]
+    assert sorted(b["methode"] for b in volledig["bewijs"]) == ["deelvraag", "genoemd"]
     assert k["rol"] == "kern" and ONE in [x["bron_iri"] for x in _dq(ov, ids[2])["kandidaten"]]
     ov = await _status(client, wg, ids[0], "fase", fase="afronden", verwachte_revisie=_dq(ov, ids[0])["revisie"])
     assert _kid(_dq(ov, ids[0]), ONE)["stand"] == "voorgesteld"
     # Werkgebiedbreed uitgesloten: noemen is 409.
     ov = await _besluit(client, wg, ids[0], k["id"], "uitsluiten", reden="Valt erbuiten.", overal=True)
     await _noem(client, wg, ids[1], ONE, 409)
+
+
+async def test_het_overzicht_noemt_de_zoekvragen_maar_herhaalt_het_bewijs_niet(client):
+    """Het bewijs per kandidaat, herhaald per deelvraag, maakte dit het grootste antwoord van de api. Wie het nodig heeft
+    leest `GET …/kandidaten`; hier staan de soorten en de zoekvragen."""
+    wg, ids = await _vier(client)
+    await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=ids[:2])])
+    kandidaten = (await client.get(f"/v1/werkgebieden/{wg['id']}/kandidaten")).json()["kandidaten"]
+    ov = await _overzicht(client, wg)
+    k = _kid(_dq(ov, ids[0]), ART)
+    assert "bewijs" not in k and k["bewijs_soorten"] and "_bewijzen" not in k
+    assert k["zoekvragen"] == sorted(k["zoekvragen"])
+    assert any(x["bewijs"] for x in kandidaten)
+
+
+def test_zoekvragen_uit_het_bewijs():
+    assert bronselectie.zoekvragen([{"detail": {"zoekvraag": "b"}}, {"detail": {"zoekvraag": "a"}}, {"detail": {"zoekvraag": "a"}},
+                                    {"detail": {"zoekvraag": "x"}}, {"detail": None}, {}]) == ["a", "b"]

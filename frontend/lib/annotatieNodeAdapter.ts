@@ -61,9 +61,13 @@ export function nodeBronVan(view: NodeWeergave): NodeBron {
   const segmenten = [...view.segmenten].sort((a, b) => a.volgorde - b.volgorde);
   const groepen: { lid: string; tekst: string; delen: { segment: NodeSegment; binnen: number }[] }[] = [];
   for (const s of segmenten) {
-    const lid = s.type === "Lid" ? (s.nummer?.trim() || lidUitIri(s.bron_iri)) : lidUitIri(s.bron_iri);
     const huidig = groepen.at(-1);
     const onderdeel = s.type === "Onderdeel";
+    // Een onderdeel zonder lid in zijn IRI (een slottekst, tekst ná een opsomming) blijft bij het lid
+    // waarin het staat: de segmenten staan in documentvolgorde.
+    const lid = s.type === "Lid"
+      ? (s.nummer?.trim() || lidUitIri(s.bron_iri))
+      : lidUitIri(s.bron_iri) || (onderdeel ? (huidig?.lid ?? "") : "");
     if (!onderdeel || !huidig || huidig.lid !== lid) {
       // Een onderdeel dat een groep opent heeft een lid zonder eigen tekst boven zich (dan een lege
       // kopregel voor het lidnummer) of geen lid (dan meteen het onderdeel).
@@ -170,15 +174,20 @@ export function grensOpties(el: NodeElement, nb: NodeBron): { index: number; soo
   return uit;
 }
 
+/** Dezelfde sleutel als `run_sleutel` in de api: de weergave draagt de meting van een ronde één keer. */
+export function runSleutel(run: { ronde?: number; tijd?: string; model?: string }): string {
+  return `${run.ronde ?? ""}|${run.tijd ?? ""}|${run.model ?? ""}`;
+}
+
 /** Een v2-element als paneel-element.
  *
  *  Een element met meerdere ankers (over onderdelen heen) wordt één doorlopende markering van het
  *  eerste tot het laatste anker, precies zoals een markering over onderdelen er in het paneel al
  *  uitzag. De tekst is dan het stuk bron dat ertussen staat, inclusief het onderdeelnummer; de
  *  letterlijke ankers blijven ongewijzigd in de api staan. */
-export function elementVanNode(el: NodeElement, nb: NodeBron): AnnotatieElement {
+export function elementVanNode(el: NodeElement, nb: NodeBron, runs?: NodeWeergave["runs"]): AnnotatieElement {
   const bereik = el.verouderd ? null : bereikVan(nb, el.ankers);
-  const run = el.geproduceerd_door ?? null;
+  const run = (el.geproduceerd_door && runs?.[runSleutel(el.geproduceerd_door)]) ?? el.geproduceerd_door ?? null;
   return {
     id: el.id,
     klasse: el.klasse,
@@ -217,7 +226,7 @@ export function documentVanNode(view: NodeWeergave, nb: NodeBron): AnnotatieDocu
     artikel: nb.info.artikel,
     lid: view.doel.lid ?? "",
     status: afgerond ? "geaccordeerd" : "in_review",
-    elementen: view.elementen.map((e) => elementVanNode(e, nb)),
+    elementen: view.elementen.map((e) => elementVanNode(e, nb, view.runs)),
     runs: [],
     // Gedeelde laag: het paneel toont dan geen verwijderknop voor het geheel.
     laag_sleutel: view.doel.bron_iri,

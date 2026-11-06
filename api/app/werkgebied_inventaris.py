@@ -8,7 +8,8 @@
 - Rol: `analyseren` als een analyse-selectie het element dekt, anders `context`.
 - Een element met een anker buiten de samengevoegde scope krijgt `deels_buiten`; het wordt niet
   stil verbreed.
-- Afgewezen elementen worden geteld, niet getoond.
+- Afgewezen elementen staan apart (`afgewezen`) en worden per selectie geteld. In `elementen` horen ze niet: wat daaruit
+  leest (het manifest, koppelen) mag ze niet oppakken. Ze blijven wel terug te vinden.
 - Per selectie: `bron_gewijzigd` als de huidige hash van de bronnode afwijkt van de bewaarde (een
   signaal, geen ongeldigverklaring), en `onbereikbaar` als de bronboom niet op te halen is. De rest
   van de inventaris komt dan gewoon: een niet-beschikbare bron is een open punt.
@@ -97,22 +98,20 @@ async def inventaris_met_bronbomen(selecties: list[dict], resolve: Resolver) -> 
     elementen = await store.actuele_elementen(alle_nodes) if alle_nodes else []
     alle_scope = set(alle_nodes)
     per_id = {r["id"]: r for r in samenvatting}
-    uit = []
+    uit, afgewezen = [], []
     for el in elementen:
         dekkend = [sid for sid, scope in scopes.items() if el["eigenaar_iri"] in scope]
         if not dekkend:
             continue
-        if el.get("lifecycle") == "rejected":
-            for sid in dekkend:
-                per_id[sid]["afgewezen"] += 1
-            continue
+        verworpen = el.get("lifecycle") == "rejected"
         for sid in dekkend:
-            per_id[sid]["aantal"] += 1
+            per_id[sid]["afgewezen" if verworpen else "aantal"] += 1
         analyse = any(per_id[sid]["rol"] == "analyseren" for sid in dekkend)
-        uit.append({**{k: el.get(k) for k in _VELDEN if k in el},
-                    "rol": "analyseren" if analyse else "context",
-                    "selecties": sorted(dekkend),
-                    "deels_buiten": any(a["bron_iri"] not in alle_scope for a in el.get("ankers", []))})
+        (afgewezen if verworpen else uit).append({
+            **{k: el.get(k) for k in _VELDEN if k in el},
+            "rol": "analyseren" if analyse else "context",
+            "selecties": sorted(dekkend),
+            "deels_buiten": any(a["bron_iri"] not in alle_scope for a in el.get("ankers", []))})
 
     def sleutel(e: dict):
         eerste = min(e.get("ankers") or [{"bron_iri": e["eigenaar_iri"], "start": 0}],
@@ -120,5 +119,6 @@ async def inventaris_met_bronbomen(selecties: list[dict], resolve: Resolver) -> 
         return (volgorde.get(eerste["bron_iri"], 1 << 30), eerste.get("start", 0), e["id"])
 
     uit.sort(key=sleutel)
-    return {"selecties": samenvatting, "elementen": uit,
+    afgewezen.sort(key=sleutel)
+    return {"selecties": samenvatting, "elementen": uit, "afgewezen": afgewezen,
             "volledig": not any(r["onbereikbaar"] for r in samenvatting)}, per_bwb

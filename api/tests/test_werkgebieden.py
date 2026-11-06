@@ -301,6 +301,9 @@ async def test_inventaris_overlap_eenmaal_rol_en_afgewezen(client):
     assert (per_sel[ONE]["aantal"], per_sel[ONE]["afgewezen"]) == (1, 1)
     assert per_sel[ART]["aantal"] == 3 and per_sel[ART]["afgewezen"] == 1
     assert all(e["lifecycle"] != "rejected" for e in inv["elementen"])
+    # Verworpen blijft terug te vinden, apart: het manifest en koppelen lezen alleen `elementen`.
+    [weg] = inv["afgewezen"]
+    assert weg["lifecycle"] == "rejected" and weg["eigenaar_iri"] == ONE and weg["selecties"]
 
 
 async def test_inventaris_deels_buiten_wordt_gemeld_niet_verbreed(client):

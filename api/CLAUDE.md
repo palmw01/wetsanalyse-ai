@@ -127,10 +127,23 @@ Hieronder wat je moet weten om de code te wijzigen.
 - **Verouderd.** Wijkt de hash van een geankerde bronnode af van de actuele bron, dan is het
   element verouderd: alleen-lezen (409), telt niet mee bij afronden. De lifecycle blijft staan als
   historie.
-- **Een oordeel vergrendelt.** Een element in `human_approved`/`rejected`/`published` dat van de
-  agent komt of al beslissingen draagt, accepteert alleen `comment` en `heropen`
-  (`annotatie_v2_store.beslis`). Afronden (`zet_status` → `geaccordeerd`) kan pas als elk actueel
-  element beoordeeld is en de bron niet veranderde.
+- **Eén definitie van beoordeeld** (`annotatie_v2_contracts`): `BEOORDEELD` (`human_approved`, `edited`, `published`),
+  `AFGEHANDELD` (daarnaast `rejected`) en `VERGRENDELD` (`AFGEHANDELD` zonder `edited`). Schrijf de lifecycles
+  nergens los uit; `frontend/lib/annotatie.ts` draagt dezelfde waarden en `tests/test_lifecycle_drift.py` bewaakt dat.
+- **Een oordeel vergrendelt.** Een element in `VERGRENDELD` dat van de agent komt of een oordeel draagt
+  (`heeft_oordeel`), accepteert alleen `comment` en `heropen` (`annotatie_v2_store._beslis_in`). Afronden (`zet_status`
+  → `geaccordeerd`) kan pas als elk actueel element afgehandeld is en de bron niet veranderde.
+- **Een eigen markering heeft een beslissingsregel** (`type: "markering"`, met actor, tijd en klasse), zodat de audit van
+  elk element compleet is. Die regel is geen oordeel: de maker mag nog bijwerken en wissen, en de statistiek telt hem niet.
+- **De toelichting volgt de klasse.** Wisselt een `edit` de klasse zonder eigen toelichting, dan ging de oude over de
+  vorige klasse: ze wijkt voor een zin die dat zegt (`_herzien_toelichting`), en de beslissing bewaart haar in `voor`.
+- **Antwoorden op een besluit zijn klein** (`compact_element`): zonder `trace` en `geproduceerd_door`. De werkplek laadt
+  de weergave daarna toch opnieuw. Elk element droeg de hele meting van zijn ronde; **`GET weergave` draagt elke meting nu
+  één keer** (`compacte_weergave`, `runs` op `run_sleutel`) en `GET elementen/{id}` geen. De opslag, de export en
+  `bouw_graaf` lezen de volledige `store.weergave`: daar hoort de meting bij.
+- **Bulk per laag** (`POST lagen/{id}/beslissingen`, `beslis_laag`): hoogstens 500 besluiten in één transactie en één
+  revisie, alles of niets (409 `besluit_geweigerd` met het element), met `_beslis_in` als enige pad, dus dezelfde regels en
+  auditregels als los. `edit` alleen op klasse en toelichting: ankers kunnen de eigenaar verplaatsen.
 - **Wissen van één element** (`DELETE elementen/{id}`) mag alleen voor een eigen, nog niet
   beoordeelde markering.
 - **Verwijderen van de bepaling in beeld mag iedereen** (`POST weergave/verwijder`,
@@ -316,7 +329,8 @@ spoor D (*Werkgebied als node*).
   gewone 404. De werkplek toont dan "… is verwijderd op … door …", zoals bij een annotatie.
 - **De inventaris** (`GET {id}/elementen`) leest per regeling één bronboom en de actuele
   elementen. Elk element staat één keer in de inventaris; `analyseren` wint van `context`;
-  `deels_buiten` als een anker buiten de selecties valt; afgewezen elementen worden alleen geteld.
+  `deels_buiten` als een anker buiten de selecties valt; afgewezen elementen staan apart in `afgewezen` (de tab toont ze
+  achter een filter), omdat het manifest en koppelen alleen `elementen` lezen.
   Per selectie is `bron_gewijzigd` een signaal, geen ongeldigverklaring. Een onbereikbare bron geeft
   `onbereikbaar` en `volledig: false`, nooit een stil kleinere inventaris.
 - **De annotatie-werkvoorraad** (`GET {id}/annotatie-werkvoorraad`, `werkgebied_werkvoorraad.py`,
@@ -368,6 +382,12 @@ spoor D (*Werkgebied als node*).
 - **Een 412 draagt een `melding`**, net als de 409's (`al_primair`, `al_gekoppeld`, `poort`): de
   werkplek toont die tekst waar hij de fout niet zelf afhandelt, in plaats van ruwe JSON. Dat geldt ook
   voor de werkgebieden.
+- **Een besluit over koppelingen geeft de stand, niet de kaart** (`begrip_store.koppelstand`): koppelen, wijzigen, losmaken,
+  herkoppelen en bevestigen antwoorden met status, revisie, poort en per koppeling de rol en beoordeling, zonder inhoud en
+  bewijs. Anders wordt een reeks besluiten kwadratisch in het aantal passages. De werkplek legt de stand over de kaart die
+  ze heeft (`metKoppelstand`) en haalt hem alleen opnieuw op bij een nieuwe passage of bewijsstand.
+- **Bulk op koppelingen**: `POST …/koppelingen/beoordelen` en `…/koppelingen/bevestigen` (hoogstens 500), in één revisie
+  en één auditregel met `koppelingen`, alles of niets. Wat er al zo staat telt niet mee; niets te doen is geen revisie.
 - **Per begrip één koppeling per element en rol.** Bij koppelen idempotent; een rol ombuigen naar een
   rol die dat element bij dit begrip al heeft geeft 409 `al_gekoppeld`. Een wijziging die niets
   verandert, is geen revisie.
@@ -386,10 +406,13 @@ spoor D (*Werkgebied als node*).
   een rol. Het werkgebiedslot maakt dit race-vrij; `GET …/begrippen` geeft per element het primaire
   begrip mee (`primair`).
 - **De poort** (`begrip_store.poort`) staat bij elke GET als `accorderen: {mag, redenen}`; accorderen
-  zonder geeft 409 `{fout: "poort", redenen}`. Voorwaarden: definitie, toelichting (`context`),
-  minstens één aanduidende passage, en elke dragende koppeling (`duiding`/`definitie`, niet
+  zonder geeft 409 `{fout: "poort", redenen}`. Voorwaarden: definitie, toelichting (`context`; de gegenereerde
+  vindplaatsregel "Komt voor in …" telt niet, `eigen_toelichting`, S6), minstens één aanduidende passage, en elke dragende koppeling (`duiding`/`definitie`, niet
   afgewezen) beoordeeld, actueel en op een door een jurist beoordeelde annotatie. Een voorbeeld is
-  geen voorwaarde. Elke analist mag accorderen; de revisie en de audit leggen vast wie.
+  geen voorwaarde. Elke analist mag accorderen; de revisie en de audit leggen vast wie en waarom: `Accordering.reden`
+  is verplicht (422 zonder), staat in het revisiedetail en de audit, en `accordeer_in` weigert zonder reden. Een akkoord op
+  een voorstel zonder reden blijft dus een concept met beoordeelde passages; alleen het opnieuw accorderen na koppelen vanuit
+  de review draagt een vaste zin, omdat er dan al een geaccordeerd begrip lag.
 - **Verwijderen is echt wissen** (`DELETE …/begrippen/{id}`, `begrip_store.verwijder`/`wis_begrippen`):
   het begrip met zijn revisies, koppelingen, relaties (beide richtingen), voorstellen en kaartruns
   (`BEGRIP_TABELLEN`), en zijn plek bij de deelvragen; een betekenisgroep houdt haar uitkomst en verliest
@@ -417,7 +440,9 @@ bouwt de invoer, toetst en bewaart de uitkomst, en legt de besluiten vast.
   en zowel `tests/test_begrippen_runs.py` als graph-qa `tests/test_begrippen_manifest_drift.py`
   toetsen ertegen. Wijzigt het model van de keten, laat de vectoren dan door de keten herberekenen.
 - **De onderzoeksstand** (`begrip_onderzoek.py`, spoor M): naast het manifest de context die de keten
-  moet lezen – leden van hetzelfde artikel, begripsbepalingen en kwalificaties met een
+  moet lezen – eerst een begripsbepaling die een formuleringstekst als term definieert (`gedefinieerd`; ook in een
+  regeling die alleen via een verwijzing in beeld komt, want de keten neemt haar letterlijk over en dan is er geen model
+  nodig), dan leden van hetzelfde artikel, begripsbepalingen en kwalificaties met een
   formuleringstekst, verwijzingen één stap vanaf de ankers (`samenhang._uitgaand`; een andere regeling
   via `resolve`), contextselecties – in die prioriteit, binnen `MAX_*`, met `ontbrekend` (`budget`,
   `niet_in_graaf`, `onbereikbaar`) en vergelijkingsbegrippen. `onderzoek_id` rekent zoals `Onderzoek.id`, met
@@ -476,8 +501,8 @@ bouwt de invoer, toetst en bewaart de uitkomst, en legt de besluiten vast.
 laatste klare run. graph-qa rekent (`agent/begrippen_verdieping.py`), de api bewaart en toetst.
 
 - `GET …/verdieping` is de **werkvoorraad**: twijfelvragen (behalve `Z-RELATIE-GAAT-VOOR`) en groepen
-  zonder definitie, min wat in een klare batch zit; plus de klare batches, een schatting (mediaan
-  tokens per item over de laatste 20 batches van de gebruiker; anders `null`) en het budget. `aantal`
+  zonder definitie, min wat in een klare batch zit; plus de klare batches, een schatting (gemeten
+  tokens per item, per soort, over de laatste 20 batches van de gebruiker, met `hoog` als bovenkant; anders `null`) en het budget. `aantal`
   is wat een `bevestiging` (`soort: "begrippen_verdiepen"`) noemt.
 - `PUT …/begrippen-runs/{run}/batches/{batch_id}` bewaart **één afgeronde batch** (`begrippen_batches`;
   alleen klare batches staan erin, dus een herstart doet de rest). Idempotent op (run, batch-id) +
@@ -514,7 +539,9 @@ uitleg in B1, alleen op een definitie – anders 409 `geen_definitie`, net als `
   toegevoegd, nooit vervangen; wat er al staat, geeft geen revisie (wel het besluit).
 - **Het bewijs blijft na overnemen** (spoor M): `GET` van een begrip draagt `definitie_onderbouwing`,
   afgeleid uit het voorstel achter de revisie die de huidige definitie zette (fragmenten met rol
-  `ondersteunend`, vindplaats, duiding, `onderzoek_id`); met de hand gewijzigd of aangepast: `null`.
+  `ondersteunend`, vindplaats, duiding, `onderzoek_id`). Paste de analist de definitie aan, bij het overnemen of later,
+  dan blijft ze staan met `aangepast: true` (S8), en de projectie noemt die bronnen dan niet meer als onderbouwing;
+  `null` als er nooit een voorstel of groep achter zat.
   Langs overnemen en akkoord op een groep staat de onderbouwing bevroren in het revisiedetail van het
   aanmaken (`detail.onderbouwing`: `groep_id`, `run_id`, de kaart of het letterlijke voorstel), zodat een
   latere verdieping haar niet verandert.
@@ -548,7 +575,9 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
   (`inventaris_met_bronbomen`) en zet per anker `bron_signalen`: `ongewijzigd`, `gewijzigd` (met
   `fragment_gelijk`: staat het gemarkeerde fragment nog letterlijk op zijn offsets), `weg` of `onbekend`
   (regeling niet op te halen – een open punt, nooit "ongewijzigd").
-- **Het bewijs verandert nooit.** Per geraakte koppeling: `toen` (het bewijs), `nu` (het element),
+- **Het bewijs verandert nooit.** Een koppeling leest als `bewijs` de laatst bevestigde stand
+  (`begrip_store.bevestigde_stand`, ook in de export en `wa:passage`), en als `bewijs_bij_koppelen` de stand van toen; de
+  rij zelf blijft ongemoeid (N2). Per geraakte koppeling: `toen` (die bevestigde stand), `nu` (het element),
   `bron`, `redenen` (zinnen voor de werkplek), `opvolgers`, `opnieuw_annoteren` en `acties`.
 - **Opvolgers** (`opvolgers`, zuiver): herannotatie maakt een nieuw element met een nieuw id. Kandidaat =
   actueel element op een bronnode van de oude ankers of met dezelfde eigenaar; signalen met richting
@@ -617,7 +646,7 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
   context, `example` = voorbeelden met oordeel *wel*; *niet* is `wa:tegenvoorbeeld`, *onzeker*
   `wa:grensgeval`; de bronnen van de overgenomen definitie zijn ook `dct:source`, met `wa:rol
   "definitieonderbouwing"` – een alleen onderzochte bron niet, `inScheme`, `dct:source` → `foaf:Document` met
-  vindplaats). Eigen predicaten onder `urn:wa-ns:`: status, revisie, herkomst en `definitieDoor`,
+  vindplaats en `dct:title`, de vindplaats of bij een bron zonder passage de naam uit de IRI). Eigen predicaten onder `urn:wa-ns:`: status, revisie, herkomst en `definitieDoor`,
   JAS-klasse (IRI uit de vocabulaire), geaccordeerd-op, en per koppeling (`urn:wa:koppeling:<id>`) rol,
   beoordeling, element (`urn:jas:element:<id>`), `elementHash` (de bewijsstand, of de laatste bevestiging)
   en de bronnode. **Alle begrippen met hun status**, ook concepten en vervangen begrippen.
@@ -796,6 +825,8 @@ werkgebied zonder deelvragen werkt zoals altijd.
 de bronselectie in het gesprek, maar de stand staat hier – niet in de gesprek-checkpointer –, zodat hij er
 na herladen, in een ander gesprek en bij een collega ook is.
 
+- **Het overzicht herhaalt het bewijs niet.** Per kandidaat staan `bewijs_soorten` en `zoekvragen`; het bewijs zelf staat
+  in `GET …/kandidaten`. Per deelvraag herhaald was het de oorzaak van 760 KB, terwijl geen afnemer het hier las.
 - **Zelf genoemd is een voorstel** (4 nov 2026): `POST …/bronselectie/{deelvraag}/voorstellen {bron_iri, rol: kern|
   afhankelijkheid, tekst}` (`bronselectie.noem`) zet een bepaling die de analist noemt als kandidaat bij die
   deelvraag, met bewijs `methode: genoemd` (`detail.deelvraag_id`, `tekst`, `door`), zodat ze in het paneel staat
@@ -933,7 +964,8 @@ de stand van die beurt zien, dan heb je een momentopname nodig. Alleen een begri
   bestaand werkgebied, met in de samenvatting `{wijzigingen: [{veld, label, toen, nu}]}`. Het user-bericht van een klik draagt
   **`intake_antwoord`** `{intake_id, stap, actie}` (`actie` ook `opslaan`, de knop van het aanvullen): zo bundelt de werkplek na herladen de antwoorden
   in één Vragen-kaart en onderscheidt hij ze van een getypte tussenvraag. `reeks.totaal` mag 1 zijn: een werkgebied kan één nieuwe
-  bepaling hebben.
+  bepaling hebben. `modus: "begrip"` (stap `begrip_kiezen`, `intake_id` `bk-<werkgebied>`) is de keuzekaart van de
+  begrippen-agent: welk begrip bedoel je? Lex gokt niet.
   De review-state zelf blijft in het annotatiedomein. **Een veld dat graph-qa meestuurt moet in
   `BerichtInvoer` staan**, anders laat Pydantic het stil vallen en verdwijnen na het heropenen de
   chip naar het annotatiepaneel en het toolspoor. `tools/graph-qa/tests/test_contract_drift.py`

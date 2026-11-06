@@ -39,8 +39,11 @@ def _alfa(ids, **extra):
     return [_groep("Gaaa111", [ids["alfa1"], ids["alfa2"]], **extra)]
 
 
+TOELICHTING = "Alleen de alfa uit de eerste bepaling."
+
+
 async def _akkoord(client, wg, **body):
-    return await client.post(f"/v1/werkgebieden/{wg['id']}/groepen/akkoord", json={"naam": "Alfa", **body})
+    return await client.post(f"/v1/werkgebieden/{wg['id']}/groepen/akkoord", json={"naam": "Alfa", "reden": "Getoetst", **body})
 
 
 async def _groepen(client, wg) -> dict:
@@ -51,17 +54,18 @@ async def test_akkoord_accordeert_meteen_als_de_poort_het_toelaat(client):
     ids, wg, _ = await _voorstel(client, lambda ids: _alfa(ids, definitie="Alfa Alfa", definitie_vindplaats=LID1))
     await _keur_goed(ids["alfa1"], ids["alfa2"])
     g = (await _groepen(client, wg))["Gaaa111"]
-    assert g["poort_vooraf"] == {"mag": True, "redenen": []}
+    # De vindplaatsregel is geen toelichting: die vult de jurist in (S6).
+    assert g["poort_vooraf"] == {"mag": False, "redenen": ["De toelichting ontbreekt."]}
     assert all(x["annotatie_beoordeeld"] for x in g["leden"])
 
-    r = await _akkoord(client, wg, groep_ids=["Gaaa111"])
+    r = await _akkoord(client, wg, groep_ids=["Gaaa111"], aanpassing={"context": TOELICHTING})
     assert r.status_code == 201, r.text
     uit = r.json()
     b = uit["begrip"]
     assert (uit["geaccordeerd"], b["status"], b["revisie"]) == (True, "geaccordeerd", 2)
     assert b["inhoud"]["definitie_herkomst"] == "letterlijk"
     # Zonder kaart: de context komt uit de vindplaatsen, zoals de concept-kaart hem zou schrijven.
-    assert b["inhoud"]["context"] == f"Komt voor in {LID1}. Wettelijke definitie in {LID1}."
+    assert b["inhoud"]["context"] == TOELICHTING
     assert {k["beoordeling"] for k in b["koppelingen"]} == {"akkoord"}
     assert all(k["beoordeeld_door"] == b["aangemaakt_door"] for k in b["koppelingen"])
     g = (await _groepen(client, wg))["Gaaa111"]
@@ -77,7 +81,7 @@ async def test_de_letterlijke_definitie_van_een_groep_houdt_haar_onderbouwing(cl
     ids, wg, run = await _voorstel(client, lambda ids: _alfa(ids, definitie="Alfa Alfa", definitie_vindplaats=LID1,
                                                               definitie_bron_iri=ONE))
     await _keur_goed(ids["alfa1"], ids["alfa2"])
-    b = (await _akkoord(client, wg, groep_ids=["Gaaa111"])).json()["begrip"]
+    b = (await _akkoord(client, wg, groep_ids=["Gaaa111"], aanpassing={"context": TOELICHTING})).json()["begrip"]
     assert b["status"] == "geaccordeerd"                     # accorderen raakt de definitie niet
     o = b["definitie_onderbouwing"]
     assert (o["groep_id"], o["run_id"], o["herkomst"]) == ("Gaaa111", run["id"], "letterlijk")
@@ -87,32 +91,35 @@ async def test_de_letterlijke_definitie_van_een_groep_houdt_haar_onderbouwing(cl
     assert next(x for x in inv["begrippen"] if x["id"] == b["id"])["onderbouwing"] == [ONE]
 
 
-async def test_een_aangepaste_definitie_heeft_geen_onderbouwing_van_lex(client):
+async def test_een_aangepaste_definitie_houdt_haar_onderbouwing_en_zegt_dat(client):
     _, wg, _ = await _voorstel(client, lambda ids: _alfa(ids, definitie="Alfa Alfa", definitie_vindplaats=LID1,
                                                           definitie_bron_iri=ONE))
     b = (await _akkoord(client, wg, groep_ids=["Gaaa111"], aanpassing={"definitie": "Een eigen definitie."})).json()
-    assert b["begrip"]["definitie_onderbouwing"] is None
+    o = b["begrip"]["definitie_onderbouwing"]                # S8: de bronnen blijven, de tekst is niet meer die van hen
+    assert o["aangepast"] is True and o["definitie_bron_iri"] == ONE
     # Een andere aanpassing laat de definitie, en dus haar onderbouwing, staan.
     _, wg, _ = await _voorstel(client, lambda ids: _alfa(ids, definitie="Alfa Alfa", definitie_vindplaats=LID1,
                                                           definitie_bron_iri=ONE))
     b = (await _akkoord(client, wg, groep_ids=["Gaaa111"], aanpassing={"context": "Eigen toelichting."})).json()
     assert b["begrip"]["definitie_onderbouwing"]["definitie_bron_iri"] == ONE
+    assert b["begrip"]["definitie_onderbouwing"]["aangepast"] is False
 
 
 async def test_onbeoordeelde_annotaties_laten_een_concept_achter_dat_later_kan(client):
     ids, wg, _ = await _voorstel(client, lambda ids: _alfa(ids, definitie="Alfa Alfa", definitie_vindplaats=LID1))
     g = (await _groepen(client, wg))["Gaaa111"]
     assert g["poort_vooraf"]["mag"] is False
-    assert g["poort_vooraf"]["redenen"] == ["2 dragende annotaties zijn nog niet door een jurist beoordeeld."]
+    assert g["poort_vooraf"]["redenen"] == ["De toelichting ontbreekt.",
+                                            "2 dragende annotaties zijn nog niet door een jurist beoordeeld."]
 
-    uit = (await _akkoord(client, wg, groep_ids=["Gaaa111"])).json()
+    uit = (await _akkoord(client, wg, groep_ids=["Gaaa111"], aanpassing={"context": TOELICHTING})).json()
     assert (uit["geaccordeerd"], uit["begrip"]["status"]) == (False, "concept")
-    assert uit["poort"]["redenen"] == g["poort_vooraf"]["redenen"]
+    assert uit["poort"]["redenen"] == g["poort_vooraf"]["redenen"][1:]
     # De jurist keurt de annotaties goed ("Annotatie akkoord"), daarna lukt accorderen.
     await _keur_goed(ids["alfa1"], ids["alfa2"])
     b = uit["begrip"]
     r = await client.post(f"/v1/werkgebieden/{wg['id']}/begrippen/{b['id']}/accorderen",
-                          json={"verwachte_revisie": b["revisie"]})
+                          json={"reden": "Getoetst", "verwachte_revisie": b["revisie"]})
     assert r.status_code == 200, r.text
     assert r.json()["status"] == "geaccordeerd"
 
@@ -122,7 +129,7 @@ async def test_zonder_definitie_een_concept_en_met_eigen_definitie_geformuleerd(
     await _keur_goed(ids["alfa1"], ids["alfa2"])
     assert (await _groepen(client, wg))["Gaaa111"]["poort_vooraf"]["redenen"][:1] == ["Er is nog geen definitie."]
     uit = (await _akkoord(client, wg, groep_ids=["Gaaa111"], element_ids=[ids["alfa1"]],
-                          aanpassing={"definitie": "de eerste van twee"})).json()
+                          aanpassing={"definitie": "de eerste van twee", "context": TOELICHTING})).json()
     b = uit["begrip"]
     assert uit["geaccordeerd"] is True
     assert (b["inhoud"]["definitie"], b["inhoud"]["definitie_herkomst"]) == ("de eerste van twee", "geformuleerd")
@@ -224,7 +231,7 @@ async def test_koppelen_vanuit_de_review_houdt_een_begrip_geaccordeerd(client):
         _groep("Gaaa111", [ids["alfa1"], ids["alfa2"]], definitie="Alfa Alfa", definitie_vindplaats=LID1),
         _groep("Gbbb222", [ids["beta"], ids["awr"]], naam="beta")])
     await _keur_goed(ids["alfa1"], ids["alfa2"], ids["beta"])
-    b = (await _akkoord(client, wg, groep_ids=["Gaaa111"])).json()["begrip"]
+    b = (await _akkoord(client, wg, groep_ids=["Gaaa111"], aanpassing={"context": TOELICHTING})).json()["begrip"]
     assert b["status"] == "geaccordeerd"
     r = await client.post(f"/v1/werkgebieden/{wg['id']}/groepen/Gbbb222/koppelen",
                           json={"begrip_id": b["id"], "element_ids": [ids["beta"]], "akkoord": True})
@@ -246,3 +253,13 @@ def test_de_context_volgt_de_concept_kaart_van_graph_qa():
                 "bronnen": [{"bron_iri": "x", "label": "Lid 1"}, {"bron_iri": "y", "label": ""}]}
     assert begrippen_run_store.context_uit(manifest, ["a", "b", "c"], "Lid 3") == \
         "Komt voor in Lid 1; y. Wettelijke definitie in Lid 3."
+
+
+async def test_een_akkoord_zonder_reden_blijft_een_concept(client):
+    """Accorderen zonder reden bestaat niet, ook niet in één handeling met het voorstel."""
+    ids, wg, _ = await _voorstel(client, lambda ids: _alfa(ids, definitie="Alfa Alfa", definitie_vindplaats=LID1))
+    await _keur_goed(ids["alfa1"], ids["alfa2"])
+    r = await _akkoord(client, wg, groep_ids=["Gaaa111"], reden="  ")
+    assert r.status_code == 201, r.text
+    assert r.json()["geaccordeerd"] is False and r.json()["begrip"]["status"] == "concept"
+    assert "De reden van het accorderen ontbreekt." in r.json()["poort"]["redenen"]

@@ -30,6 +30,11 @@ def test_get_artikel_bouwt_iri_en_leden():
     assert "bwb:heeftLid" in sparql
 
 
+def test_inkomend_op_een_artikel_telt_verwijzingen_naar_zijn_leden_mee():
+    """Sinds de importer de hele verwijzing volgt, wijst "artikel 25, derde lid" naar het lid."""
+    assert "?node (bwb:heeftLid|bwb:heeftOnderdeel)* ?doel" in q.verwijst_naar_deze("BWBR0018472", "25")
+
+
 def test_get_lid_iri():
     assert "<urn:bwb:BWBR0004770:artikel:9:lid:1>" in q.get_lid("BWBR0004770", "9", "1")
 
@@ -54,6 +59,13 @@ def test_get_lid_levert_de_onderdelen_mee():
     assert "GROUP_CONCAT" not in sparql
     assert "ORDER BY ?o" in sparql, "deterministische volgorde; de documentvolgorde zet de handler"
     assert "bwb:jci ?ojci" in sparql, "elk onderdeel krijgt zijn eigen vindplaats"
+
+
+def test_onderdelen_komen_in_documentvolgorde():
+    """Tekst ná een opsomming heeft geen nummer en 'aa.' staat ná 'z.': de IRI zegt niets over de plek."""
+    assert "ORDER BY ?ovolg ?o" in q.get_lid("BWBR0004770", "25", "14")
+    assert "?ovolg ?o" in q.get_artikel("BWBR0019237", "9a")
+    assert "bwb:volgnummer ?ovolg" in q.get_lid("BWBR0004770", "25", "14")
 
 
 def test_get_artikel_levert_directe_onderdelen_mee():

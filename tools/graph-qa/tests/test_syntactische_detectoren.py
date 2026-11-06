@@ -7,7 +7,7 @@ from agent.jas_pipeline.detectoren import BronTekst, detecteer_alles, kandidaten
 from agent.jas_pipeline.detectoren.structuur import BetekenisDetector
 from agent.jas_pipeline.detectoren.syntactisch import (
     BijzinDetector, GevolgDetector, LogischeOperatorDetector, NaamwoordgroepDetector, NominalisatieDetector,
-    NormDetector,
+    NormDetector, TegenwoordigeTijdDetector,
 )
 from agent.jas_pipeline.taal import NullProvider, SpacyProvider
 
@@ -31,7 +31,8 @@ def _grenzen(kandidaten):
 # --- geen stille terugval ----------------------------------------------------------------------
 
 @pytest.mark.parametrize("detector", [NaamwoordgroepDetector(), BijzinDetector(), NominalisatieDetector(),
-                                      LogischeOperatorDetector(), GevolgDetector()], ids=lambda d: d.naam)
+                                      LogischeOperatorDetector(), GevolgDetector(), TegenwoordigeTijdDetector()],
+                         ids=lambda d: d.naam)
 def test_zonder_parse_slaat_een_parsedetector_zich_zichtbaar_over(detector):
     for bron in (_bron("De inspecteur stelt de aanslag vast."),
                  BronTekst.van_tekst("urn:test", "x", analyse=NullProvider().analyseer("x"))):
@@ -320,4 +321,38 @@ def test_een_partij_buiten_de_rollenlijst_kan_rechtssubject_zijn(parser, tekst, 
 def test_een_regeling_is_geen_partij(parser, tekst, woord):
     ks = [k for k in NaamwoordgroepDetector().detecteer(_bron(tekst, parser)).kandidaten if k.span.tekst == woord]
     assert ks and "PARTY_NP" not in {e.code for k in ks for e in k.evidence}
+
+
+@pytest.mark.parametrize("tekst", [
+    "De ontvanger maakt de beschikking bekend.",
+    "In afwijking van artikel 10 vindt de levering plaats op het adres van de koper.",
+    "Ingeval de huurder niet betaalt, zendt de verhuurder een aanmaning.",
+    "Voorts wordt melding gemaakt van de beëindiging.",
+])
+def test_een_norm_zonder_modaal_werkwoord_is_een_hypothese(parser, tekst):
+    ks = TegenwoordigeTijdDetector().detecteer(_bron(tekst, parser)).kandidaten
+    assert [k for k in ks if {"Rechtsbetrekking", "Rechtsfeit"} <= set(k.possible_classes)]
+
+
+@pytest.mark.parametrize("tekst", ["De ontvanger moet de beschikking bekendmaken.",
+                                   "Bij ministeriële regeling worden regels gesteld.",
+                                   "Indien de huurder niet betaalt."])
+def test_geen_dubbele_norm_naast_een_ander_signaal(parser, tekst):
+    assert not TegenwoordigeTijdDetector().detecteer(_bron(tekst, parser)).kandidaten
+
+
+@pytest.mark.parametrize(("tekst", "bijzin"), [
+    ("Indien op grond van artikel 25, derde lid, van de wet een uitkering plaatsvindt, gaat het bericht naar de bank.",
+     "Indien op grond van artikel 25, derde lid, van de wet een uitkering plaatsvindt"),
+    ("Mits de koper, de verkoper of de makelaar dit meldt, vervalt de koop.",
+     "Mits de koper, de verkoper of de makelaar dit meldt"),
+])
+def test_een_komma_knipt_een_voorwaardelijke_bijzin_niet(parser, tekst, bijzin):
+    assert bijzin in {k.span.tekst for k in BijzinDetector().detecteer(_bron(tekst, parser)).kandidaten}
+
+
+@pytest.mark.parametrize("tekst", ["Het beding is nietig.", "Artikel 3 is niet van toepassing.",
+                                   "Het vijfde lid is van overeenkomstige toepassing."])
+def test_nietig_en_toepasselijkheid_zijn_normsignalen(parser, tekst):
+    assert NormDetector().detecteer(_bron(tekst)).kandidaten
 

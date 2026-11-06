@@ -73,7 +73,9 @@ class IntakeActie(BaseModel):
                   # Een oud kaartje (vóór 4 nov 2026, `werkgebied_intake.OUDE_STAPPEN`): een klik erop is verouderd.
                   "bepalingen",
                   "bs_gebeurtenis", "bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder",
-                  "bs_toevoegen"]
+                  "bs_toevoegen",
+                  # De keuzekaart van de begrippen-agent (`intake_id` `bk-…`): welk begrip bedoel je?
+                  "begrip_kiezen"]
     # Bij de bepalingen: het kaartje van welke deelvraag (0-based); een ander deel is een oud kaartje.
     deel: int = Field(default=0, ge=0, le=19)
     # `aanmaken` sluit het samenstellen af, `opslaan` het aanvullen van een bestaand werkgebied.

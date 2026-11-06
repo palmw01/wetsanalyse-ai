@@ -49,11 +49,11 @@ def test_elke_bevestiging_van_een_agent_kent_de_api(contracten):
 
 def test_het_bericht_draagt_artefact_en_bevestiging(contracten):
     velden = set(contracten.BerichtInvoer.model_fields)
-    assert {"artefact", "bevestiging", "tekst", "denk", "run_id"} <= velden
+    assert {"artefact", "bevestiging", "vraagkaart", "tekst", "denk", "run_id"} <= velden
 
 
 def test_de_uitkomst_heeft_een_vaste_vorm():
-    assert set(Uitkomst.model_fields) == {"taak", "status", "reden", "voorstellen", "artefact", "bevestiging",
+    assert set(Uitkomst.model_fields) == {"taak", "status", "reden", "voorstellen", "artefact", "bevestiging", "vraagkaart",
                                           "tekst", "meting"}
     # Elke agent heeft dezelfde vorm: een vaste lijst taken, een getypte invoer, en wat er een model kan raken.
     for agent, mod in register.AGENTS.items():

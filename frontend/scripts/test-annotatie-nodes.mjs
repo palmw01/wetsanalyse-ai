@@ -157,6 +157,11 @@ try {
   assert.deepEqual(decision.body.wijziging, { klasse: "Rechtsobject" });
   assert.equal(decision.body.snapshot_id, "snapshot");
   assert.deepEqual(decision.body.verwachte_revisies, { "urn:lid1": 1 });
+  // Akkoord met de groene: één bulk per laag, met één bevestiging. Het gele voorstel gaat niet mee.
+  await page.getByRole("button", { name: "Akkoord met de groene (1)" }).click();
+  await page.getByRole("button", { name: "1 akkoord?" }).click();
+  const bulk = await verzoek((r) => r.path.endsWith("/lagen/laag1/beslissingen"));
+  assert.deepEqual(bulk.body, { verwachte_revisie: 1, snapshot_id: "snapshot", besluiten: [{ element_id: "e1", type: "approve" }] });
   // Waarom: leesbare namen in beeld, het id in de tooltip, de modelvraag onder technisch detail.
   const waarom = page.getByTestId("waarom").first();
   await waarom.getByText("Waarom?", { exact: true }).click();

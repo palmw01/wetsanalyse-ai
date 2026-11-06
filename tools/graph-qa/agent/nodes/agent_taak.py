@@ -82,6 +82,8 @@ def agent_taak_node(b: Bouw, state: State) -> dict[str, Any]:
         writer({"type": "artefact", "artefact": uitkomst.artefact})
     if uitkomst.bevestiging:
         writer({"type": "bevestiging", "bevestiging": uitkomst.bevestiging})
+    if uitkomst.vraagkaart:
+        writer({"type": "vraagkaart", "vraagkaart": uitkomst.vraagkaart})
     _stap(writer, "Klaar", {"ok": "gedaan", "bevestiging": "wacht op je bevestiging",
                             "geweigerd": "niet gestart", "fout": "mislukt"}[uitkomst.status])
     return {"answer": tekst, "messages": [{"role": "assistant", "content": tekst}],

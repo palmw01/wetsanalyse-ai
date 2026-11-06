@@ -40,18 +40,19 @@ def onderzoek_uit(data: dict[str, Any] | None, manifest: Manifest) -> Onderzoek 
     return Onderzoek(**data).past_bij(manifest) if data else None
 
 
-def voorstel(manifest: Manifest, uitkomst: Uitkomst, leden: tuple[str, ...]) -> dict[str, str]:
+def voorstel(manifest: Manifest, uitkomst: Uitkomst, leden: tuple[str, ...],
+             onderzoek: Onderzoek | None = None) -> dict[str, str]:
     """Naam en (als die er letterlijk is) definitie bij een groep."""
     taal = {t.element_id: t for t in uitkomst.taal}
-    return naam_en_letterlijk(manifest, taal, definities.wettelijke_termen(manifest, taal), leden)
+    return naam_en_letterlijk(manifest, taal, definities.wettelijke_termen(manifest, taal), leden, onderzoek)
 
 
-def naar_uitkomst(manifest: Manifest, uitkomst: Uitkomst) -> dict[str, Any]:
+def naar_uitkomst(manifest: Manifest, uitkomst: Uitkomst, onderzoek: Onderzoek | None = None) -> dict[str, Any]:
     """De uitkomst in de vorm van het api-contract (`api/app/begrippen_run_contracts.py`)."""
     return {
         "manifest_id": manifest.id,
         "groepen": [{"id": g.id, "leden": list(g.leden), "aandacht": g.aandacht.value, "uitleg": list(g.uitleg),
-                     "conflicten": list(g.conflicten), "voorstel": voorstel(manifest, uitkomst, g.leden)}
+                     "conflicten": list(g.conflicten), "voorstel": voorstel(manifest, uitkomst, g.leden, onderzoek)}
                     for g in uitkomst.groepen],
         "relaties": [{"kandidaat_id": r.kandidaat_id, "hypothese": r.hypothese.value, "van": r.van, "naar": r.naar,
                       "aandacht": r.aandacht.value, "uitleg": list(r.uitleg)} for r in uitkomst.relaties],
@@ -118,7 +119,7 @@ async def begrippen_stroom(werkgebied_id: str, api_run_id: str, run: Run, *, set
             yield {"type": "done"}
             return
         try:
-            uit = naar_uitkomst(manifest, uitkomst)
+            uit = naar_uitkomst(manifest, uitkomst, onderzoek)
             if onderzoek is not None:
                 uit["meting"] = {**uit["meting"], "onderzoek_id": onderzoek.id}
             await api.zet_begrippen_uitkomst(werkgebied_id, api_run_id, uit)

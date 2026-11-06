@@ -421,10 +421,12 @@ function BeoordelingBlok({ stand, begrip, weergave, onbewaard, onNaarBegrip }: O
   onNaarBegrip?: (begripId: string) => void;
 }) {
   const [bezig, setBezig] = useState(false);
+  const [reden, setReden] = useState("");
   async function doe(actie: (r: number) => Promise<Begrip>, gelukt: string) {
     setBezig(true);
     await stand.muteer(actie, { gelukt });
     setBezig(false);
+    setReden("");
   }
   const { mag, redenen } = begrip.accorderen;
   return (
@@ -471,8 +473,13 @@ function BeoordelingBlok({ stand, begrip, weergave, onbewaard, onNaarBegrip }: O
               <p className="text-xs text-ink">Alles is er: naam, definitie, toelichting en beoordeelde, actuele passages.</p>
             )}
             <NlSbbStand stand={stand} begrip={begrip} />
-            <Button size="sm" className="w-full sm:w-auto" disabled={!mag || onbewaard || bezig}
-              onClick={() => void doe((r) => stand.api.accordeer(r), "Geaccordeerd.")}>
+            {mag && !onbewaard && (
+              <Field label="Reden van accorderen" hint="waarom dit begrip klopt; het komt in de historie" required>
+                <AutoTextarea value={reden} onChange={(e) => setReden(e.target.value)} rows={2} maxLength={2000} />
+              </Field>
+            )}
+            <Button size="sm" className="w-full sm:w-auto" disabled={!mag || onbewaard || bezig || !reden.trim()}
+              onClick={() => void doe((r) => stand.api.accordeer(r, reden.trim()), "Geaccordeerd.")}>
               Accorderen
             </Button>
           </>

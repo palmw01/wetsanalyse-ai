@@ -85,7 +85,9 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   `anthropic_schemas(only=spec.tools)`. Op een beurtgrens (turns > 0) gaat vóór de eerste tekst-delta één
   `\n\n` uit, zodat de narratie van opeenvolgende beurten niet aan elkaar plakt.
 - **`tools_node`** – voert elke aanroep uit via `dispatch(...)` en voegt `(tool_naam, resultaat)` toe
-  aan de `source_trace`.
+  aan de `source_trace`. Dezelfde aanroep (naam + argumenten) gaat in één beurt één keer naar de graaf; een herhaling krijgt
+  het bewaarde resultaat met `HERHAALD` (`_al_gedaan`, uit de berichten van de beurt). Elke aanroep houdt zijn resultaat,
+  want het model eist er een.
 - **`verify_node`** – `check_grounding(answer, source_trace)`. Bij ongegrond volgt via `correct_node`
   hoogstens één corrigerende ronde (`GROUNDING_CORRECT`, default aan; `state["corrected"]`). De controle
   keurt **twee** dingen af en `correct_node` moet ze allebei benoemen: `unsupported` (een vindplaats die
@@ -553,6 +555,15 @@ manifest → taal.py → definities.py + signalen.py + patronen.py → kandidate
   in elke beslissing) kent link / non-link / possible link. Sterk tegenbewijs wint altijd; zwak bewijs
   alleen levert géén relatievoorstel op.
 - **Relaties worden geen groepen, en conflicten worden gemarkeerd, niet geknipt.**
+- **Geen begrip** (`geen_begrip.yaml`, `taal.geen_begrip`): een operator of parameterwaarde, een functiewoord, de kern van
+  een vaste voorzetseluitdrukking ("kader", "betrekking") of een formulering die met "van" begint, doet niet mee aan
+  zelfde term en de kop. De markering blijft; ze wordt alleen geen groep. `meting.geen_begrip` telt ze.
+- **Relatievoorstellen uit wat er ligt** (S5; alle drie `Sterkte.MIDDEL`, dus een geel voorstel, `R-MIDDEL`): de kop van
+  een samenstelling (`KOP_VAN_SAMENSTELLING`), een term met een bepalend woord naast zijn kern (`SPECIALISATIE_IN_TERM`:
+  niet tussen twee termen uit dezelfde opsomming, die zijn nevenschikt) en het soortbegrip van een definitie
+  (`GENUS_IN_DEFINITIE`: alleen met een afbakening erna, "X: de Y die …"; een komma is een opsomming en dan zijn het juist
+  de soorten). `van` is het genus, `naar` de soort. Op de drie referentiesets is de uitkomst gelijk aan vóór deze regels;
+  ze zijn dus niet bewezen op een gouden set.
 - **Het bereik van een definitie** komt uit de aanhef ("Deze wet verstaat onder", "in dit artikel");
   "dit hoofdstuk" is onbekend, omdat de opbouw niet in de IRI staat.
 - **Patronen** staan in `regels/relaties.yaml` met groepen `van`/`naar` en vier verplichte
@@ -651,6 +662,14 @@ zonder definitie zijn.
   bevestiging); anders – alleen na bevestiging – stop en budget, het model in een thread met een eigen
   `AnthropicLLM` (meter), het verbruik geboekt op `<run>.v<n>`, en `PUT …/batches/{id}`. Een fout in één
   batch stopt de rest niet, maar dan blijft de verdieping open en zegt Lex hoeveel er klaar is.
+- **Eerst de brondefinitie** (S2, e2e 5 nov 2026: 153.504 tokens voor één onbruikbare definitie, daarna vond de
+  zoekactie zonder model er drie). Twee stappen zonder model: de keten neemt een definitie uit het onderzoek letterlijk
+  over als haar bereik een lid omvat (`kaart.naam_en_letterlijk`, ook bij `voorstel`, dus de groep valt uit de
+  werkvoorraad), en vlak voor de kaartbatches zoekt `brondefinitie_eerst` per overgebleven groep in de graaf. Wat daar in
+  het werkgebied of zijn regelingen staat, gaat niet naar het model; de kaart noemt de vindplaats en de analist neemt over
+  op de begripskaart. Een treffer *elders* slaat het model niet over, en een haperende graaf ook niet.
+- **De schatting volgt de meting** (api `schatting`): gemeten tokens per item, per soort, plus een bovenkant (`hoog`). De
+  samenvatting noemt wat het kostte naast de schatting.
 - **Alles klaar** → hergroeperen, kaarten, `PUT …/verdieping` (groepen met `door`, kaarten, oordelen,
   open vragen), en een samenvatting met het begrippenartefact.
 - `/v1/chat` weigert de modus (422), zoals de andere `WERKGEBIED_MODI`.
@@ -665,7 +684,13 @@ invoer ophalen, `…/loopt`, rekenen, `PUT …/uitkomst`; loopt dezelfde actie a
 endpoint `/v1/kaart-runs` is met F3e vervallen.
 
 - **Zoek de brondefinitie** – geen model, geen budgetpoort. `q_brondefinities` zoekt
-  `bwb:definieertBegrip` op naam en alternatieve termen (`LCASE … IN`), met de aanhef van de ouder;
+  `bwb:definieertBegrip` op naam en alternatieve termen, met de aanhef van de ouder (`CONTAINS`, want de graaf kent ook
+  één begrip voor meer termen, "directeur, inspecteur of ontvanger"; `_draagt` toetst de term daarna exact, dus een langer
+  woord telt niet). `q_onder` zoekt "Onder X wordt verstaan" in de tekst: de importer legt daar geen
+  `bwb:definieertBegrip` op (Awb 1:2; 31 bepalingen op acceptatie). **Een definitie die alleen de term noemt en
+  doorverwijst** ("de ontvanger, bedoeld in artikel 2 …", `definities.verwijst_door`) is circulair: `_gevolgd` volgt
+  `bwb:heeftVerwijzing` naar lid en onderdeel uit de ankertekst (`doelen`, hoogstens twee stappen) en stelt de definitie
+  daar voor; lukt dat niet, dan geel met `DEFINITIE_VERWIJST_DOOR`, nooit groen.
   `plaats` geeft elke treffer *werkgebied* (`in_selectie`), *regeling*, *definitieverwijzing* (een
   regeling waar een begripsbepaling uit de regelingen van het werkgebied naar verwijst, `q_verwezen`)
   of *elders*. `kaartacties.brondefinities` neemt alleen een echte definitie letterlijk over
@@ -1131,7 +1156,16 @@ reeks) en `doelen`.
   die er nog niet is, en voorbeelden; daarna zegt Lex wat er nog open is) – en na elke losse kaartactie noemt Lex het volgende logische stuk
   (`kaart_beurt.VOLGENDE`: definitie → uitleg → voorbeelden → relaties)
   en `relaties` (`GET …/relaties`, zonder model). Het begrip komt van het onderwerp (`als_rij`) of uit de
-  term (`los_op`). Skillrol `begrippen`.
+  term (`los_op`, zie *Welk begrip*). Skillrol `begrippen`.
+- **Welk begrip** (`agents/begrippen._begrippen`, `kaart_beurt`). De termen komen uit de woorden van de analist, alleen
+  zonder termen uit de herschreven vraag (`register.parameters`: `herschreven`): een herschrijving voegde een begrip toe
+  dat niemand noemde (e2e 5 nov 2026). Noemt de vraag twee begrippen, dan wint de vraag van het onderwerp; het onderwerp
+  vult alleen aan wat ontbreekt, en is nooit zijn eigen vergelijking (`zonder`). Geen exacte naam: `naaste` (de kern van
+  de naam, zonder haakje, in de term of andersom; de meeste gedeelde woorden). Meer dan één: de **keuzekaart**
+  (`keuzekaart`, `modus: "begrip"`, stap `begrip_kiezen`, `intake_id` `bk-<werkgebied>`; `Uitkomst.vraagkaart`). De klik
+  draagt taak en id's in de `waarde` (`uit_keuze`) en gaat zonder model terug naar de taak (`_begrip_keuze` in
+  `nodes/supervisie.py`). Een term die niets oplevert, wordt een zin, nooit het onderwerp. Bij een vergelijking noemt elke
+  tekst beide begrippen (`samenvatting`, `melding`).
 - **De annotatie-agent** heeft twee taken hier: `werkgebied` en `deelvragen` (alleen de bronnen onder de
   deelvragen, of onder één; `werkgebied_annotatie.werkgebied_voorstel`), het voorstel met de bevestiging. Met `bevestigd` blijft het de eigen reeks, want die draait per bepaling een
   gewone beurt.
@@ -1165,7 +1199,13 @@ en werkgebied, geen aanhalingstekens om een begripsdefinitie, wettekst apart oph
   `POST /v1/begrippen/verifieer` (`agent/begrip_read.py`). Wat de api niet meer kent valt af, status en
   werkgebied gelden zoals de api ze nu kent, en wijkt de hash van een werkgebied af van wat de api nu zou
   projecteren, dan is het resultaat `partial`/`volledig: false`. Een haperende graaf of api is nooit een
-  lege lijst (`begrens_begrippen_antwoord`). Een rij met `herbeoordelen` (geaccordeerd, maar een dragende
+  lege lijst (`begrens_begrippen_antwoord`). **Nul treffers is geen bewijs**: het resultaat draagt `geen_treffers` (wat
+  er gezocht is, en hoeveel begrippen er wél liggen), en die zin vervangt het antwoord als de beurt verder niets las
+  (`alleen_begrippen_gezocht`, ook buiten de leesroute). De e2e-test van 5 nov 2026 gaf 0 bij 21 concepten: de projectie
+  klopte (status `ok`, geen achterstand) en concepten staan erin, dus het lag aan de argumenten van het model. Elk woord
+  moet nu ergens staan, niet alles in één veld (de regel van de api); vulwoorden en meervoud zoeken niet (`_woorden`),
+  en `werkgebied_id` mag de naam zijn (`dct:title` van het kader). De argumenten staan voortaan in `tool_execution.filters`.
+  Een rij met `herbeoordelen` (geaccordeerd, maar een dragende
   passage veranderde) noemt Lex zo (TOOLKEUZE 7): niet als vaststaand, met de vraag het op de kaart te
   herbeoordelen. `tests/test_begrip_tools.py` draait de query tegen een
   nagebouwde projectie en leest `BegripStatus`/`BegripVerificatie` uit de api-bron.

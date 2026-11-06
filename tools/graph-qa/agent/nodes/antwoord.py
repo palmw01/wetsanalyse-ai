@@ -6,12 +6,13 @@ bronnen uit de tool-trace, nooit uit de prozatekst van het model.
 """
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
 from langgraph.config import get_stream_writer
 
-from ..berichten import CORRECTIE, _parse_final, _schoon_messages, _trim_messages
+from ..berichten import CORRECTIE, _parse_final, _schoon_messages, _trim_messages, beurt_start
 from ..bronregister import bij, controletrace
 from ..focus import na_antwoord
 from ..grounding import check_grounding, curate_sources, herstel_citaten
@@ -27,7 +28,7 @@ from ..state import State
 from ..tools import anthropic_schemas
 from ..tool_execution import execute_tool
 from ..tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN, begrens_antwoord
-from ..tools.begrip_tools import begrens_begrippen_antwoord
+from ..tools.begrip_tools import alleen_begrippen_gezocht, begrens_begrippen_antwoord
 from .context import Bouw
 
 logger = logging.getLogger("graph_qa.orchestrator")
@@ -126,7 +127,7 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
                                                  if naam in ANNOTATIE_TOOL_NAMEN)},
                 )
             antwoord = begrensd
-        elif state.get("begrippen_lezen"):
+        elif state.get("begrippen_lezen") or alleen_begrippen_gezocht(state.get("source_trace", [])):
             begrensd = begrens_begrippen_antwoord(antwoord, state.get("source_trace", []))
             if begrensd != antwoord:
                 logger.warning("leesroute begrippen: antwoord begrensd",
@@ -156,14 +157,49 @@ def route_after_agent(b: Bouw, state: State) -> str:
     return "verify"
 
 
+def _sleutel(tu: dict[str, Any]) -> str:
+    return tu["name"] + json.dumps(tu.get("input") or {}, sort_keys=True, ensure_ascii=False)
+
+
+def _al_gedaan(state: State) -> dict[str, str]:
+    """Wat deze beurt al opvroeg: aanroep → resultaat, uit de berichten van de beurt."""
+    messages = state.get("messages", [])
+    aanroepen: dict[str, str] = {}
+    uit: dict[str, str] = {}
+    for m in messages[beurt_start(messages, state.get("question", "")):]:
+        inhoud = m.get("content")
+        for blok in inhoud if isinstance(inhoud, list) else []:
+            if not isinstance(blok, dict):
+                continue
+            if blok.get("type") == "tool_use":
+                aanroepen[blok.get("id", "")] = _sleutel(blok)
+            elif blok.get("type") == "tool_result" and blok.get("tool_use_id") in aanroepen:
+                uit[aanroepen[blok["tool_use_id"]]] = str(blok.get("content", ""))
+    return uit
+
+
+HERHAALD = ("\n\nDezelfde aanroep met dezelfde argumenten is in deze beurt al uitgevoerd; dit is dat resultaat. "
+            "Herhaal hem niet, ook niet als er niets gevonden is.")
+
+
 def tools_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
     pending = state.get("pending_tools", [])
-    _stap(writer, "Graaf bevragen", ", ".join(_toolregel(t) for t in pending))
+    # Binnen één beurt verandert de graaf niet: dezelfde aanroep nog eens kost alleen tokens (de e2e-test van 5 nov
+    # 2026: drie gelijke zoekopdrachten, 63.867 tokens voor één vraag). Elke aanroep krijgt een resultaat, want het
+    # model eist er een; alleen de eerste voert hem uit.
+    gedaan = _al_gedaan(state)
+    uit_te_voeren = list({_sleutel(t): t for t in reversed(pending) if _sleutel(t) not in gedaan}.values())[::-1]
+    _stap(writer, "Graaf bevragen", ", ".join(_toolregel(t) for t in uit_te_voeren) or "al opgevraagd in deze beurt")
     trace = list(state.get("source_trace", []))
     results = []
     for tu in pending:
+        sleutel = _sleutel(tu)
+        if sleutel in gedaan:
+            results.append({"type": "tool_result", "tool_use_id": tu["id"], "content": gedaan[sleutel].removesuffix(HERHAALD) + HERHAALD})
+            continue
         result_text = execute_tool(b, state, writer, tu)
+        gedaan[sleutel] = result_text
         trace.append((tu["name"], result_text))
         results.append({"type": "tool_result", "tool_use_id": tu["id"], "content": result_text})
     return {

@@ -196,7 +196,7 @@ export interface ApiError {
 
 export type Lifecycle =
   | "voorgesteld" | "human_approved" | "edited" | "rejected" | "published" | "reused";
-export type BeslissingType = "approve" | "edit" | "reject" | "comment" | "heropen" | "grens";
+export type BeslissingType = "markering" | "approve" | "edit" | "reject" | "comment" | "heropen" | "grens";
 export type ReviewReason =
   | "verkeerde_klasse" | "bron_gemist" | "tekst" | "interpretatie" | "onvoldoende_context" | "anders";
 export type Aandacht = "groen" | "geel" | "rood";
@@ -956,6 +956,8 @@ export interface Inventaris {
   revisie: number;
   selecties: InventarisSelectie[];
   elementen: InventarisElement[];
+  /** De verworpen elementen: apart, zodat ze niet meegaan in koppelen en tellingen. */
+  afgewezen?: InventarisElement[];
   volledig: boolean;
 }
 
@@ -1035,6 +1037,21 @@ export interface Koppeling {
   bevestigingen?: KoppelBevestiging[];
   /** Deze koppeling verving een eerdere bij herkoppelen; diens bewijs blijft zo leesbaar. */
   vervangt?: { koppeling_id: string; element_id: string; bewijs: Bewijs; vervangen_op: string | null };
+}
+
+/** Het antwoord op een besluit over koppelingen: wat er veranderde, niet de hele kaart (`koppelstand` in de api). */
+export interface KoppelStand {
+  id: string;
+  status: Begrip["status"];
+  revisie: number;
+  gewijzigd: string;
+  geaccordeerd_door: string | null;
+  geaccordeerd_op: string | null;
+  geaccordeerd_revisie: number | null;
+  accorderen: Begrip["accorderen"];
+  aandachtspunten: Begrip["aandachtspunten"];
+  koppelingen: (Pick<Koppeling, "id" | "element_id" | "rol" | "motivatie" | "beoordeling" | "beoordeeld_door" | "beoordeeld_op"
+    | "actualiteit" | "lifecycle_nu" | "annotatie_beoordeeld"> & { bevestigingen: number })[];
 }
 
 export interface KoppelBevestiging {
@@ -1226,6 +1243,8 @@ export interface Begrip extends BegripBasis {
 
 /** Afgeleid van `api/app/begrip_store.py:definitie_onderbouwing`. */
 export interface DefinitieOnderbouwing {
+  /** De analist paste de definitie aan: dit is waar Lex mee begon, niet wat de tekst van nu draagt. */
+  aangepast?: boolean;
   herkomst: string;
   definitie_bron_iri: string;
   definitie_vindplaats: string;
@@ -1410,6 +1429,8 @@ export interface AkkoordInvoer {
   kandidaat_id?: string;
   /** Spoor H4: alle twijfelvragen tussen de gekozen groepen in één keer "samen". */
   kandidaat_ids?: string[];
+  /** Waarom de jurist accordeert. Zonder reden wordt het begrip een concept. */
+  reden?: string;
 }
 
 export interface AkkoordAntwoord {

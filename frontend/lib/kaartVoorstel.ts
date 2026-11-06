@@ -15,6 +15,7 @@ import type {
 export const AANDACHTSPUNT_LEX: Record<string, string> = {
   DEFINITIE_VIA_VERWIJZING: "De definitie staat in een regeling waarnaar een begripsbepaling van het werkgebied verwijst; controleer of ze hier geldt.",
   DEFINITIE_ELDERS: "Elders in de graaf gevonden; een verband met het werkgebied is niet aangetoond.",
+  DEFINITIE_VERWIJST_DOOR: "Deze bepaling noemt alleen de term en verwijst door; de bepaling waarnaar ze verwijst was niet te lezen.",
   GEEN_VERBETERING: "Lex vond geen scherpere definitie dan de huidige.",
   MODEL_ONBRUIKBAAR: "Lex gaf geen bruikbaar antwoord.",
   DOOR_LEX_VERGELEKEN: "De vergelijking is van Lex; toets haar aan de passages van beide begrippen.",
@@ -91,6 +92,7 @@ export function duidingZin(d: Duiding): string {
 /** De kop van de onderbouwing onder een overgenomen definitie: "Letterlijk uit Artikel 2, lid 1 – via een
  *  voorstel van Lex" of "Rust op 2 fragmenten uit de bron – via een betekenisgroep". */
 export function onderbouwingKop(o: DefinitieOnderbouwing): string {
+  if (o.aangepast) return "Waar Lex van uitging (de definitie is daarna aangepast)";
   const n = o.fragmenten.length;
   const wat = o.herkomst === "letterlijk" && (o.definitie_vindplaats || o.definitie_bron_iri)
     ? `Letterlijk uit ${o.definitie_vindplaats || o.definitie_bron_iri}`

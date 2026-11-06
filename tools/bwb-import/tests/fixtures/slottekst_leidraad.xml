@@ -1,0 +1,86 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<toestand xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" bwb-ng-vast-deel="http://wetten.overheid.nl/id/BWBR0024096/2026-07-01/0" xsi:noNamespaceSchemaLocation="https://repository.officiele-overheidspublicaties.nl/Schema/BWB-toestand/2016-1/xsd/toestand_2016-1.xsd" bwb-id="BWBR0024096" inwerkingtreding="2026-07-01"><wetgeving dtdversie="2.0" soort="beleidsregel" stam-id="9618253" versie-id="25528472" id="C36487311" label-id="9608064" inwerkingtredingsdatum="2019-01-01">
+  <intitule bwb-ng-variabel-deel="/Intitule" stam-id="9618283" versie-id="15523182" id="C21450261" label-id="9595224" inwerking="2008-07-01" bron="Supplement-Stcrt.2008-122" effect="nieuwe-regeling" ondertekening_bron="2008-06-12" publicatie_bron="2008-06-27" publicatie_iwt="2008-06-27" status="goed">Bijlage bij besluit van 12 juni 2008, nr. CPP2008/1137M<meta-data/></intitule>
+  <citeertitel bwb-ng-variabel-deel="/Citeertitel" status="redactioneel" stam-id="9618293" versie-id="15523192" id="C21450271" label-id="9595234" inwerking="2008-07-01" bron="Supplement-Stcrt.2008-122" effect="nieuwe-regeling" ondertekening_bron="2008-06-12" publicatie_bron="2008-06-27" publicatie_iwt="2008-06-27">Leidraad Invordering 2008<meta-data/></citeertitel>
+  <circulaire>
+    <circulaire-tekst>
+      <circulaire.divisie bwb-ng-variabel-deel="/Circulaire.divisie48a" opmaak="default" stam-id="12539563" versie-id="22037172" id="C31597081" label-id="12509974" inwerking="2015-01-01" label="Artikel 48a" bron="Stcrt.2014-38032" effect="wijziging" ondertekening_bron="2014-12-16" publicatie_bron="2014-12-30" publicatie_iwt="2014-12-30" status="goed">
+  <kop>
+    <label>Artikel</label>
+    <nr status="officieel">48a</nr>
+    <titel status="officieel">Aansprakelijkheid van derden voor uitbetaalde bedragen inkomstenbelasting</titel>
+  </kop><tekst bwb-ng-variabel-deel="/Circulaire.divisie48a/Tekst" stam-id="12539553" versie-id="23838432" id="C34287271" label-id="12509964" inwerking="2017-01-01" status="goed">
+  <al>In aansluiting op <extref doc="jci1.3:c:BWBR0004770&amp;artikel=48a" label-id="12466864" verwijzing-id="2614938" bwb-id="BWBR0004770">artikel 48a van de wet</extref> beschrijft dit artikel het beleid dat de ontvanger hanteert bij de toepassing van de wettelijke aansprakelijkheid van derden voor belastingaanslagen die samenhangen met bedragen inkomstenbelasting die zijn uitbetaald op een bankrekening waarover die derde heeft kunnen beschikken.</al>
+  <lijst level="single" nr-sluiting="." start="1" type="expliciet">
+    <li bwb-ng-variabel-deel="/Circulaire.divisie48a/Tekst/Onderdeel1">
+      <li.nr>1.</li.nr>
+      <al>In afwijking van <intref doc="" label-id="9604914" verwijzing-id="2614940" bwb-id="BWBR0024096" bwb-ng-variabel-deel="/Circulaire.divisie49/Circulaire.divisie49.6">artikel 49.6</intref> van deze leidraad kan de ontvanger als er een vermoeden van fraude is, eerst verhaal zoeken bij de aansprakelijkgestelde.</al>
+    <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0024096&amp;artikel=48a&amp;o=1&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="o=1"/></jcis></meta-data></li>
+    <li bwb-ng-variabel-deel="/Circulaire.divisie48a/Tekst/Onderdeel2">
+      <li.nr>2.</li.nr>
+      <al>Als de ontvanger inkomstenbelasting heeft uitbetaald aan:</al>
+      <lijst bwb-ng-variabel-deel="/Circulaire.divisie48a/Tekst/Onderdeel2/Opsomming_1" level="single" nr-sluiting="." start="1" type="expliciet">
+        <li bwb-ng-variabel-deel="/Circulaire.divisie48a/Tekst/Onderdeel2/Opsomming_1/Onderdeel._1">
+          <li.nr>–</li.nr>
+          <al>een lid van de NVVK in het kader van een schuldregelingsovereenkomst of een overeenkomst tot budgetbeheer in de zin van de Gedragscode Schuldhulpverlening van de NVVK;</al>
+        </li>
+        <li bwb-ng-variabel-deel="/Circulaire.divisie48a/Tekst/Onderdeel2/Opsomming_1/Onderdeel._2">
+          <li.nr>–</li.nr>
+          <al>een gemeente in het kader van een schuldregelingsovereenkomst of een overeenkomst tot budgetbeheer in de zin van de Gedragscode Schuldhulpverlening van de NVVK of overeenkomsten met dezelfde strekking;</al>
+        </li>
+        <li bwb-ng-variabel-deel="/Circulaire.divisie48a/Tekst/Onderdeel2/Opsomming_1/Onderdeel._3">
+          <li.nr>–</li.nr>
+          <al>een derde die voldoet aan de norm NEN-ISO 9001 en die in het kader van de uitvoering van een schuldregelingsovereenkomst of een overeenkomst tot budgetbeheer als hiervóór bedoeld of een overeenkomst met dezelfde strekking:</al>
+          <lijst level="single" nr-sluiting="." start="1" type="expliciet">
+            <li bwb-ng-variabel-deel="/Circulaire.divisie48a/Tekst/Onderdeel2/Opsomming_1/Onderdeel._3/Onderdeel._1">
+              <li.nr>–</li.nr>
+              <al>een subsidiebeschikking heeft ontvangen van een gemeente, of</al>
+            </li>
+            <li bwb-ng-variabel-deel="/Circulaire.divisie48a/Tekst/Onderdeel2/Opsomming_1/Onderdeel._3/Onderdeel._2">
+              <li.nr>–</li.nr>
+              <al>een contract heeft met een zorgkantoor voor het leveren van zorg in natura ingevolge de <extref doc="jci1.3:c:BWBR0002614" label-id="2867704" verwijzing-id="2643855" bwb-id="BWBR0002614">Algemene Wet Bijzondere Ziektekosten</extref>;</al>
+            </li>
+          </lijst>
+        </li>
+      </lijst>
+      <lijst bwb-ng-variabel-deel="/Circulaire.divisie48a/Tekst/Onderdeel2/Opsomming_2" level="single" nr-sluiting="." start="1" type="expliciet">
+        <li bwb-ng-variabel-deel="/Circulaire.divisie48a/Tekst/Onderdeel2/Opsomming_2/Onderdeel._1">
+          <li.nr>–</li.nr>
+          <al>een curator;</al>
+        </li>
+        <li bwb-ng-variabel-deel="/Circulaire.divisie48a/Tekst/Onderdeel2/Opsomming_2/Onderdeel._2">
+          <li.nr>–</li.nr>
+          <al>een bewindvoerder,</al>
+        </li>
+      </lijst>
+      <al>gaat de ontvanger alleen over tot aansprakelijkstelling als:</al>
+      <lijst bwb-ng-variabel-deel="/Circulaire.divisie48a/Tekst/Onderdeel2/Opsomming_3" level="single" nr-sluiting="." start="1" type="expliciet">
+        <li bwb-ng-variabel-deel="/Circulaire.divisie48a/Tekst/Onderdeel2/Opsomming_3/Onderdeel._1">
+          <li.nr>–</li.nr>
+          <al>het aan opzet of grove schuld van de schuldhulpverlener, de gemeente, de derde, de curator of de bewindvoerder te wijten is dat onjuiste of onvolledige gegevens of inlichtingen zijn verstrekt die ten grondslag hebben gelegen aan de belastingaanslag, of</al>
+        </li>
+        <li bwb-ng-variabel-deel="/Circulaire.divisie48a/Tekst/Onderdeel2/Opsomming_3/Onderdeel._2">
+          <li.nr>–</li.nr>
+          <al>de schuldhulpverlener, de gemeente, de derde, de curator of de bewindvoerder financieel voordeel heeft gehad van de te hoge of onterecht uitbetaalde bedragen.</al>
+        </li>
+      </lijst>
+    <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0024096&amp;artikel=48a&amp;o=2&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="o=2"/></jcis></meta-data></li>
+    <li bwb-ng-variabel-deel="/Circulaire.divisie48a/Tekst/Onderdeel3">
+      <li.nr>3.</li.nr>
+      <al>Als de ontvanger aan een derde inkomstenbelasting heeft uitbetaald van iemand die niet beschikt over een bankrekening op zijn naam en door zijn geestelijke of lichamelijke toestand niet in staat is om een bankrekening op zijn naam te openen, gaat de ontvanger alleen over tot aansprakelijkstelling als die derde:</al>
+      <lijst level="single" nr-sluiting="." start="1" type="expliciet">
+        <li bwb-ng-variabel-deel="/Circulaire.divisie48a/Tekst/Onderdeel3/Onderdeel._1">
+          <li.nr>–</li.nr>
+          <al>financieel voordeel heeft gehad van de te hoge of onterecht ontvangen teruggaaf inkomstenbelasting, of</al>
+        </li>
+        <li bwb-ng-variabel-deel="/Circulaire.divisie48a/Tekst/Onderdeel3/Onderdeel._2">
+          <li.nr>–</li.nr>
+          <al>wist of behoorde te weten dat de teruggaaf inkomstenbelasting te hoog was of dat er geen recht bestond op de teruggaaf inkomstenbelasting.</al>
+        </li>
+      </lijst>
+    <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0024096&amp;artikel=48a&amp;o=3&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="o=3"/></jcis></meta-data></li>
+  </lijst>
+<meta-data/></tekst><meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0024096&amp;artikel=48a&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="artikel=48a" korte-verwijzing="jci1.3:c:BWBR0024096&amp;artikel=48a"/></jcis></meta-data></circulaire.divisie>
+      </circulaire-tekst>
+  </circulaire>
+</wetgeving></toestand>

@@ -12,10 +12,11 @@ import { MeerMenu, MenuKeuze, MenuKnop, MenuLink, MenuVerwijder } from "@/compon
 import { Melding } from "@/components/ui/Melding";
 import { BegripBlok, type BegripWeergaveVorm } from "@/components/werkgebieden/BegripBlok";
 import { Herbeoordeling } from "@/components/werkgebieden/Herbeoordeling";
-import { foutTekst, haalInventaris, koppelElementen, ontkoppel, wijzigKoppeling } from "@/lib/api";
+import { beoordeelKoppelingen, bevestigKoppelingen, foutTekst, haalInventaris, koppelElementen, ontkoppel, wijzigKoppeling } from "@/lib/api";
 import { ACTUALITEIT_LABEL, BEOORDELING_LABEL, KOPPELROL_LABEL, sorteerKoppelingen } from "@/lib/begrippen";
 import { bouwBoom, regelingUitLabel } from "@/lib/bronPlaats";
 import { klasseLabel } from "@/lib/jas";
+import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import type { Begrip, GeraakteKoppeling, InventarisElement, KoppelBeoordeling, KoppelRol, Koppeling } from "@/lib/types";
 import type { BegripMutatie } from "@/lib/useBegrip";
 import { usePlaatsen } from "@/lib/usePlaatsen";
@@ -24,6 +25,8 @@ import { elementPad } from "@/lib/werkgebiedPaden";
 
 const ROLLEN = Object.keys(KOPPELROL_LABEL) as KoppelRol[];
 const BEOORDELING_TOON = { akkoord: "groen", afgewezen: "rood", open: "neutraal" } as const;
+
+const BULKKNOP = "focus-ring rounded-knop-xs border border-line px-2.5 py-1 text-xs text-muted transition hover:border-lint hover:text-ink";
 
 /** De bronpassages van het begrip, elk een eigen rij: de letterlijke tekst zoals die gekoppeld werd, waar hij staat,
  *  en hoe het er nu mee staat. Een samenvatting vervangt de passages nooit. Akkoord is een vinkje in de rij; de rol,
@@ -39,11 +42,31 @@ export function BegripPassages({ id, begrip, primair, muteer, geraakt, weergave 
 }) {
   const [kiezerOpen, setKiezerOpen] = useState(false);
   const passages = sorteerKoppelingen(begrip.koppelingen);
+  const vervangen = begrip.status === "vervangen";
+  // In één handeling: wat open staat en actueel is, en wat veranderde maar nog klopt. De rest vraagt een blik per passage.
+  const open = passages.filter((k) => k.beoordeling === "open" && k.actualiteit === "actueel");
+  const teBevestigen = [...(geraakt?.values() ?? [])].filter((g) => g.acties.includes("bevestigen"));
   return (
     <BegripBlok weergave={weergave} titel="Passages" telling={passages.length} data-blok="passages"
-      acties={begrip.status !== "vervangen" && (
+      acties={!vervangen && <>
+        {open.length > 1 && (
+          <BevestigKnop bevestigTekst={`${open.length} akkoord?`} className={BULKKNOP}
+            titel="Zet alle open, actuele passages op akkoord."
+            onBevestig={async () => { await muteer((r) => beoordeelKoppelingen(id, begrip.id, {
+              verwachte_revisie: r, koppeling_ids: open.map((k) => k.id), beoordeling: "akkoord" })); }}>
+            Alle open akkoord ({open.length})
+          </BevestigKnop>
+        )}
+        {teBevestigen.length > 1 && (
+          <BevestigKnop bevestigTekst={`${teBevestigen.length} bevestigen?`} className={BULKKNOP}
+            titel="Deze passages veranderden, maar het begrip klopt nog. De oude bewijsstand blijft."
+            onBevestig={async () => { await muteer((r) => bevestigKoppelingen(id, begrip.id, {
+              verwachte_revisie: r, koppeling_ids: teBevestigen.map((g) => g.koppeling_id) })); }}>
+            Klopt nog, alle {teBevestigen.length}
+          </BevestigKnop>
+        )}
         <Button size="xs" variant="secondary" onClick={() => setKiezerOpen(true)}>Passages toevoegen</Button>
-      )}>
+      </>}>
       {passages.length === 0 ? (
         <p className="text-sm text-muted">
           Nog geen passages. Een begrip krijgt zijn onderbouwing uit de annotaties: voeg de passages toe die

@@ -16,7 +16,8 @@ from agent.kaart_beurt import begrip_artefact, kaartactie_uit, kies, termen_uit
 from agent.nodes.begrippen_lezen import zoekfilters, zoekterm_uit
 from agent.provenance import collect_sources
 from agent.tools.begrip_tools import (
-    MAX_KANDIDATEN, Q_REGISTER, STATUSSEN, begrens_begrippen_antwoord, dispatch_begrip, is_begrip_leesvraag,
+    MAX_KANDIDATEN, Q_REGISTER, STATUSSEN, _woorden, alleen_begrippen_gezocht, begrens_begrippen_antwoord, dispatch_begrip,
+    is_begrip_leesvraag,
     q_begrippen,
 )
 from agent.wetsanalyse_api import WetsanalyseApiFout
@@ -152,6 +153,10 @@ def test_kandidaatquery_vindt_naam_term_en_definitie_in_de_projectie():
     assert _ids(q_begrippen("betaling uitstel", [], "", 50)) == {"b2"}
     assert _ids(q_begrippen("", ["concept"], "", 50)) == {"b2"}
     assert _ids(q_begrippen("", [], "wg-anders", 50)) == set()
+    assert _ids(q_begrippen("betaling verzuim", [], "", 50)) == set()
+    # Elk woord ergens, niet alles in één veld, en de naam van het werkgebied telt als werkgebied.
+    assert _ids(q_begrippen("tijdvak periode", [], "", 50)) == {"b1"}
+    assert _ids(q_begrippen("", [], "termijnen", 50)) == {"b1", "b2"}
     # Alleen de begrippengraphs: niets uit een annotatielaag of het register.
     assert _ids(q_begrippen("", [], "", 50)) == {"b1", "b2"}
     ds = Dataset()
@@ -437,5 +442,43 @@ def test_uitwerken_zonder_brondefinitie(monkeypatch):
 def test_relaties_zonder_model():
     api = KaartApi([], begrip={"status": "concept", "inhoud": {"naam": "Termijn"}})
     uit = _taak(api, "relaties", begrip_id="b1")
-    assert "*Termijn* is een soort van *Betalingstermijn*" in uit.tekst and "Ik stel 1 relatie voor" in uit.tekst
+    assert "*Termijn* heeft als soort *Betalingstermijn*" in uit.tekst and "Ik stel 1 relatie voor" in uit.tekst
     assert uit.voorstellen == ["R1"] and uit.meting["model"] is False
+
+
+# --- S3: nul treffers en de zoekterm (e2e 5 nov 2026) -------------------------------------------
+
+def test_nul_treffers_zegt_ik_vond_er_geen_en_noemt_wat_er_wel_ligt():
+    def antwoord(q):
+        if "projectieHash" in q and "Concept" not in q:
+            return f'?wid\t?hash\n"{WG}"\t"h1"\n'
+        return ('?c\t?wid\n<urn:wa:begrip:b1>\t"' + WG + '"\n<urn:wa:begrip:b2>\t"' + WG + '"\n') if "CONTAINS" not in q else "?c\t?wid\n"
+    port = Port([], hashes={WG: "h1"}, werkgebied_id=WG)
+    uit = json.loads(dispatch_begrip("search_begrippen", {"zoekterm": "kaas"}, FakeGraph(results=antwoord), port))
+    assert uit["status"] == "ok" and uit["resultaten"] == []
+    assert "Ik vond er geen" in uit["geen_treffers"] and "niet dat ze er niet zijn" in uit["geen_treffers"]
+    assert "“kaas”" in uit["geen_treffers"] and "staan 2 begrippen" in uit["geen_treffers"]
+
+
+def test_het_model_kan_niet_meer_zeggen_dat_er_geen_begrippen_zijn():
+    zoek = json.dumps({"bewijssoort": "begrip", "status": "ok", "volledig": True, "resultaten": [],
+                       "geen_treffers": "Ik vond er geen met deze zoekopdracht (“kaas”)."})
+    uit = begrens_begrippen_antwoord("Er zijn nog geen begrippen opgeslagen.", [("search_begrippen", zoek)])
+    assert uit.startswith("Ik vond er geen") and "nog geen begrippen" not in uit
+
+
+def test_alleen_begrippen_gezocht_geldt_ook_buiten_de_leesroute():
+    assert alleen_begrippen_gezocht([("search_begrippen", "{}")])
+    assert not alleen_begrippen_gezocht([("search_begrippen", "{}"), ("get_artikel", "{}")])
+    assert not alleen_begrippen_gezocht([])
+
+
+@pytest.mark.parametrize("vraag", ["Welke begrippen gaan over een bankrekening?",
+                                   "Welke begrippen in dit werkgebied gaan over de bankrekening?"])
+def test_begrippen_over_iets_is_een_leesvraag_met_een_zoekterm(vraag):
+    assert is_begrip_leesvraag(vraag) and zoekterm_uit(vraag) == "bankrekening"
+
+
+def test_de_zoekwoorden_zoeken_niet_op_vulling_en_meervoud():
+    assert _woorden("begrippen over een bankrekeningen") == ["bankrekening"]
+    assert _woorden("de rente") == ["rente"]

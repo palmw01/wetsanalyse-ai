@@ -1,6 +1,7 @@
 // Rekenkern van de werkgebiedpagina's (spoor D, levering 1): labels, foutherkenning, de invoer van
 // een bepaling en de indeling van de inventaris. Puur, zodat vitest (node-env) het kan toetsen.
 
+import { BEOORDEELD_LIFECYCLES } from "./annotatie";
 import { isApiError } from "./api";
 import { TYPE_LABEL } from "./begripRelaties";
 import { revisieZin } from "./begrippen";
@@ -203,7 +204,7 @@ export function klasseTelling(elementen: InventarisElement[]): { klasse: string;
 /** Door een jurist beoordeeld. Een voorstel van Lex of een hergebruikt element is dat (nog) niet:
  *  het mag als input dienen, maar met zichtbaar voorbehoud. */
 export function isBeoordeeld(e: InventarisElement): boolean {
-  return e.lifecycle === "human_approved" || e.lifecycle === "edited" || e.lifecycle === "published";
+  return BEOORDEELD_LIFECYCLES.includes(e.lifecycle);
 }
 
 /** De voortgang over de werkvoorraad: alleen elementen met rol `analyseren`. Zegt niets over
@@ -235,6 +236,7 @@ export function auditZin(regel: WerkgebiedAuditRegel, labels: Map<string, string
     const naam = typeof d.naam === "string" ? d.naam
       : typeof d.begrip_id === "string" ? begrippen.get(d.begrip_id) : undefined;
     const wie = naam ? `Begrip "${naam}"` : "Een begrip";
+    if (regel.actie === "begrip-geaccordeerd" && typeof d.reden === "string" && d.reden) return `${wie}: geaccordeerd (${d.reden})`;
     return `${wie}: ${revisieZin(regel).toLowerCase()}`;
   }
   const bron = typeof d.bron_iri === "string" ? (labels.get(d.bron_iri) ?? d.bron_iri) : "een bron";

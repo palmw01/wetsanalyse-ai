@@ -66,7 +66,8 @@ def analyseer(manifest: Manifest, provider: TaalProvider | None = None,
             *signalen.afwijkende_kwalificatie(manifest, taal, wts),
             *signalen.uitsluiting_in_aanhef(manifest, taal, wts), *signalen.uit_verwijzingen(manifest, taal),
             *patronen.toepassen(manifest, taal, wts), *patronen.kopsignalen(manifest, taal),
-            *signalen.uit_contextdefinities(manifest, taal, onderzoek)]
+            *signalen.uit_contextdefinities(manifest, taal, onderzoek), *signalen.specialisatie_in_term(manifest, taal, wts),
+            *signalen.genus_in_definitie(manifest, taal, onderzoek)]
     kandidaten = _kandidaten(sigs)
     fase("Signalen", t, f"{len(wts)} wettelijke termen, {len(sigs)} signalen, {len(kandidaten)} kandidaten")
 
@@ -89,4 +90,5 @@ def analyseer(manifest: Manifest, provider: TaalProvider | None = None,
                             "signalen": signalen.VERSIE, "patronen": patronen.VERSIE,
                             "besluit": besluit_mod.VERSIE, "groeperen": groeperen.VERSIE},
                 "taalmodel": getattr(provider, "model", ""), "gedegradeerd": gedegradeerd,
+                "geen_begrip": sum(taal_mod.geen_begrip(f, taal[f.element_id]) for f in manifest.formuleringen),
                 "besluiten": per_besluit, "fasen": fasen})

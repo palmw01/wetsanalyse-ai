@@ -21,7 +21,7 @@ async def _geaccordeerd(client, wg, element_ids, naam="Belastingschuldige") -> d
     for k in b["koppelingen"]:
         b = (await client.patch(_url(wg, b, "koppelingen", k["id"]),
                                 json={"verwachte_revisie": b["revisie"], "beoordeling": "akkoord"})).json()
-    r = await client.post(_url(wg, b, "accorderen"), json={"verwachte_revisie": b["revisie"]})
+    r = await client.post(_url(wg, b, "accorderen"), json={"reden": "Getoetst", "verwachte_revisie": b["revisie"]})
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -79,7 +79,7 @@ async def test_een_gewijzigde_dragende_passage_verschijnt_en_de_oude_bewijsstand
     r = await client.post(_url(wg, b, "koppelingen", k["koppeling_id"], "herkoppelen"),
                           json={"verwachte_revisie": h["revisie"], "element_id": nieuw})
     assert r.status_code == 200, r.text
-    b2 = r.json()
+    b2 = (await client.get(_url(wg, b))).json()
     [kn] = b2["koppelingen"]
     assert (kn["element_id"], kn["beoordeling"], kn["actualiteit"]) == (nieuw, "akkoord", "actueel")
     # De oude bewijsstand blijft, bij de nieuwe koppeling te lezen.
@@ -108,9 +108,10 @@ async def test_fragment_nog_letterlijk_dan_bevestigen_met_een_tweede_bewijsstand
     r = await client.post(_url(wg, b, "koppelingen", k["koppeling_id"], "bevestigen"),
                           json={"verwachte_revisie": h["revisie"], "motivatie": "Alleen aangevuld."})
     assert r.status_code == 200, r.text
-    b2 = r.json()
+    b2 = (await client.get(_url(wg, b))).json()
     [kb] = b2["koppelingen"]
-    assert kb["bewijs"] == next(x for x in b["koppelingen"])["bewijs"]      # het bewijs is onveranderd
+    assert kb["bewijs_bij_koppelen"] == next(x for x in b["koppelingen"])["bewijs"]      # de stand van toen blijft
+    assert kb["bewijs"]["ankers"] == kb["bevestigingen"][-1]["ankers"]                     # lezen toont de bevestigde
     [bev] = kb["bevestigingen"]
     assert (bev["door"], bev["motivatie"]) == ("jurist-a", "Alleen aangevuld.")
     assert b2["status"] == "geaccordeerd" and b2["revisie"] == b["revisie"] + 1
@@ -135,8 +136,9 @@ async def test_een_gewijzigde_annotatie_bevestigen_maakt_haar_weer_actueel(clien
     assert "bevestigen" in k["acties"] and "herkoppelen" not in k["acties"]
     r = await client.post(_url(wg, b, "koppelingen", k["koppeling_id"], "bevestigen"),
                           json={"verwachte_revisie": h["revisie"]})
-    [kb] = r.json()["koppelingen"]
-    assert kb["actualiteit"] == "actueel" and kb["bewijs"]["klasse"] == "Rechtssubject"
+    [kb] = (await client.get(_url(wg, b))).json()["koppelingen"]
+    assert kb["actualiteit"] == "actueel" and kb["bewijs_bij_koppelen"]["klasse"] == "Rechtssubject"
+    assert kb["bewijs"]["klasse"] == kb["bevestigingen"][-1]["klasse"] != "Rechtssubject"      # N2
     assert b["status"] == "concept" and r.json()["status"] == "concept"
 
 

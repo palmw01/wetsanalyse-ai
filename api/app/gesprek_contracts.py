@@ -137,7 +137,9 @@ IntakeStap = Literal["naam", "aanleiding", "context", "doel", "analysevraag", "p
                      "bepalingen",
                      # De bronselectie per deelvraag (spoor J): dezelfde kaartjes, de stand staat bij de api.
                      "bs_gebeurtenis", "bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder",
-                     "bs_toevoegen"]
+                     "bs_toevoegen",
+                     # De keuzekaart van de begrippen-agent: welk begrip bedoel je?
+                     "begrip_kiezen"]
 
 
 class IntakeDeel(BaseModel):
@@ -170,9 +172,10 @@ class Vraagkaart(BaseModel):
     het dossier, en de samenvatting draagt `{wijzigingen: [{veld, label, toen, nu}]}` met *Opslaan*."""
 
     intake_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
+    # `begrip`: de begrippen-agent vraagt welk begrip de analist bedoelt (`intake_id` `bk-<werkgebied>`).
     # `bronselectie` (spoor J): de kaartjes van de bronselectie per deelvraag; `intake_id` is dan
     # `bs-<werkgebied>` en `deelvraag_id` de deelvraag waar het kaartje over gaat.
-    modus: Literal["samenstellen", "aanvullen", "bronselectie"] = "samenstellen"
+    modus: Literal["samenstellen", "aanvullen", "bronselectie", "begrip"] = "samenstellen"
     deelvraag_id: str = Field(default="", pattern=r"^[A-Za-z0-9-]{0,64}$")
     soort: Literal["vraag", "samenvatting"] = "vraag"
     stap: IntakeStap

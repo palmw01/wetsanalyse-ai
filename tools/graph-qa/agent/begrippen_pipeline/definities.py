@@ -29,7 +29,7 @@ from dataclasses import dataclass
 
 from .model import Bron, Formulering, Manifest, Taalanalyse
 
-VERSIE = "2"
+VERSIE = "3"
 
 _DEF_AANHEF = re.compile(r"\b(?:verstaat|wordt|worden)\s+(?:(mede|niet)\s+)?(?:verstaan\s+)?onder\s*:?\s*$",
                          re.IGNORECASE)
@@ -112,6 +112,11 @@ def bereik_uit(formule: str, bron_iri: str) -> Bereik:
     return Bereik("regeling", regeling_van(bron_iri), "")
 
 
+def termen_van(ruw: str) -> list[str]:
+    """De termen in een opsomming, zoals de graaf ze als één begrip draagt."""
+    return _termen(ruw)
+
+
 def _termen(ruw: str) -> list[str]:
     """"directeur, inspecteur of ontvanger" → drie termen; kleine letters, gewone spaties."""
     delen = re.split(r",\s*|\s+(?:of|en)\s+", ruw.strip())
@@ -178,6 +183,18 @@ def definiens(bron: Bron) -> str | None:
         return None
     rest = bron.tekst[d.term_eind:].strip().lstrip(":").strip().rstrip(";").strip()
     return rest or None
+
+
+# "de ontvanger, bedoeld in artikel 2, eerste lid, onderdeel i, van de Invorderingswet 1990": de definitie staat elders.
+_DOORVERWIJZING = re.compile(r"^(?:(?:de|het|een)\s+)?(?P<term>[^,]{0,80}?),?\s+(?:(?:als|zoals)\s+)?bedoeld\s+in\b",
+                             re.IGNORECASE)
+
+
+def verwijst_door(definiens_: str, termen) -> bool:
+    """Noemt deze definiens alleen de term zelf en waar die geregeld is? Dan is ze circulair: de betekenis staat op
+    de plek waarnaar ze verwijst."""
+    m = _DOORVERWIJZING.match((definiens_ or "").strip())
+    return bool(m) and " ".join(m.group("term").lower().split()) in {" ".join(t.lower().split()) for t in termen}
 
 
 def wettelijke_termen(manifest: Manifest, taal: dict[str, Taalanalyse]) -> list[WettelijkeTerm]:

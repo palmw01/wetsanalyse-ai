@@ -77,7 +77,7 @@ def test_uitsluiting_is_ook_tegenbewijs_tegen_samenvoegen():
     assert ("zelfde_betekenis", "b", "w", "tegen") in sig
 
 
-def test_kopsignaal_is_zwak_en_alleen_naar_een_bestaande_kern():
+def test_kopsignaal_is_middel_en_alleen_naar_een_bestaande_kern():
     b = Bron(bron_iri="urn:bwb:BWBR1:artikel:1", bron_hash="h", tekst="de aanslag en de navorderingsaanslag")
     fs = tuple(Formulering(element_id=e, bron_iri=b.bron_iri, start=b.tekst.index(t),
                            eind=b.tekst.index(t) + len(t), tekst=t, jas_klasse="Rechtsobject")
@@ -87,10 +87,10 @@ def test_kopsignaal_is_zwak_en_alleen_naar_een_bestaande_kern():
                              kop="aanslag")}
     sig = patronen.kopsignalen(Manifest(bronnen=(b,), formuleringen=fs), taal)
     assert [(s.hypothese, s.van, s.naar, s.bewijs.sterkte.value) for s in sig] == \
-        [(Hypothese.HIERARCHIE, "a", "n", "zwak")]
+        [(Hypothese.HIERARCHIE, "a", "n", "middel")]
 
 
-def test_referentieset_gelijkstelling_en_alleen_zwakke_kopsignalen():
+def test_referentieset_gelijkstelling_en_kopsignalen_zijn_middel():
     pytest.importorskip("spacy")
     from agent.begrippen_pipeline.taal import analyseer
     from agent.jas_pipeline.taal.provider import SpacyProvider
@@ -103,4 +103,4 @@ def test_referentieset_gelijkstelling_en_alleen_zwakke_kopsignalen():
     taal = analyseer(m, p)
     sig = {(s.hypothese.value, s.van, s.naar, s.bewijs.code) for s in patronen.toepassen(m, taal)}
     assert ("kwalificatie", "f21", "f01", "KWALIFICATIE") in sig
-    assert {s.bewijs.sterkte.value for s in patronen.kopsignalen(m, taal)} == {"zwak"}
+    assert {s.bewijs.sterkte.value for s in patronen.kopsignalen(m, taal)} == {"middel"}

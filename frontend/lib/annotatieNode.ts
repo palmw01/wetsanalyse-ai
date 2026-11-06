@@ -1,5 +1,6 @@
 import { downloadAntwoord, naarInloggen, type ExportFormaat } from "./api";
 import { pathSegment } from "./url";
+import { heeftOordeel } from "./annotatie";
 
 /** Canonieke bronnodeweergave. Posities zijn Unicode-codepunten, niet UTF-16. */
 export interface NodeDoel {
@@ -53,6 +54,8 @@ export interface NodeWeergave {
   /** Gezet als deze bepaling geannoteerd was en die annotatie is verwijderd (en er sindsdien geen
    *  nieuwe laag is). Zo leest een heropend gesprek "verwijderd" in plaats van een leeg paneel. */
   verwijderd?: { op: string } | null;
+  /** De agent-rondes met hun meting, elk één keer (`run_sleutel` in de api); een element draagt zijn ronde zonder. */
+  runs?: Record<string, import("./types").AgentRun>;
 }
 export interface ToolExecution {
   run_id: string; call_id: string; tool: string; phase: "started" | "completed" | "failed";
@@ -128,7 +131,7 @@ export function verwachteRevisies(view: NodeWeergave): Record<string, number> {
 }
 export function elementVergrendeld(view: NodeWeergave, el: NodeElement): boolean {
   return !!el.verouderd || el.lifecycle === "published"
-    || ((el.herkomst !== "mens" || !!el.beslissingen?.length) && ["human_approved", "rejected"].includes(el.lifecycle))
+    || ((el.herkomst !== "mens" || heeftOordeel(el)) && ["human_approved", "rejected"].includes(el.lifecycle))
     || view.lagen.some((l) => l.bron_iri === el.eigenaar_iri && l.status === "geaccordeerd");
 }
 export async function nodeError(response: Response): Promise<Error> {
@@ -216,9 +219,15 @@ export async function haalNodeWeergave(doel: NodeDoel): Promise<NodeWeergave> {
  *  (`lib/rondleidingDemo.ts`), zodat de voorbeeldannotatie in hetzelfde paneel staat als echt werk,
  *  zonder één verzoek naar de api. Zo kan de rondleiding niet meer achterlopen op het paneel. De
  *  lichamen zijn die van de api: wat de demo ontvangt, is precies wat de api zou krijgen. */
+export interface LaagBesluiten {
+  verwachte_revisie: number; snapshot_id: string;
+  besluiten: { element_id: string; type: "approve" | "reject" | "heropen" | "comment"; comment?: string }[];
+}
 export interface NodeOpslag {
   weergave(doel: NodeDoel): Promise<NodeWeergave>;
   beslis(elementId: string, body: Record<string, unknown>): Promise<unknown>;
+  /** Besluiten op één laag in één transactie en één revisie (`POST lagen/{id}/beslissingen`). */
+  beslisLaag(laagId: string, body: LaagBesluiten): Promise<unknown>;
   markeer(body: Record<string, unknown>): Promise<{ element?: { id?: string } } | undefined>;
   wis(elementId: string, verwachteRevisie: number): Promise<unknown>;
   status(laagId: string, body: { status: string; verwachte_revisie: number }): Promise<unknown>;
@@ -233,7 +242,7 @@ export interface NodeOpslag {
  *  opslag van de rondleiding `levend: false`: er hoort geen kennisgraaf en geen historie bij. */
 export function momentopnameOpslag(weergave: NodeWeergave): NodeOpslag {
   const weiger = async (): Promise<never> => { throw new Error("Een oude versie is alleen te lezen."); };
-  return { weergave: async () => weergave, beslis: weiger, markeer: weiger, wis: weiger, status: weiger, verwijder: weiger,
+  return { weergave: async () => weergave, beslis: weiger, beslisLaag: weiger, markeer: weiger, wis: weiger, status: weiger, verwijder: weiger,
     exporteer: weiger, levend: false };
 }
 
@@ -250,6 +259,7 @@ export async function verwijderAnnotatie(doel: NodeDoel, opslag: NodeOpslag = ap
 export const apiOpslag: NodeOpslag = {
   weergave: haalNodeWeergave,
   beslis: (id, body) => nodeRequest(`elementen/${encodeURIComponent(id)}/beslissing`, body),
+  beslisLaag: (laagId, body) => nodeRequest(`lagen/${encodeURIComponent(laagId)}/beslissingen`, body),
   markeer: (body) => nodeRequest("elementen", body),
   wis: (id, revisie) => nodeRequest(`elementen/${encodeURIComponent(id)}?verwachte_revisie=${revisie}`, {}, "DELETE"),
   status: (laagId, body) => nodeRequest(`lagen/${encodeURIComponent(laagId)}/status`, body),

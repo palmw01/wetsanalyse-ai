@@ -1,0 +1,65 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<toestand xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" bwb-ng-vast-deel="http://wetten.overheid.nl/id/BWBR0002320/2026-10-01/0" xsi:noNamespaceSchemaLocation="https://repository.officiele-overheidspublicaties.nl/Schema/BWB-toestand/2016-1/xsd/toestand_2016-1.xsd" bwb-id="BWBR0002320" inwerkingtreding="2026-10-01"><wetgeving dtdversie="2.0" soort="wet" xml:lang="nl" stam-id="2924483" versie-id="24936552" id="C35664671" label-id="2875044" inwerkingtredingsdatum="2018-02-21">
+  <intitule bwb-ng-variabel-deel="/Intitule" stam-id="2924513" versie-id="4507042" id="C4507041" label-id="2873724" inwerking="1962-10-01" bron="Stb.1959-301" effect="nieuwe-regeling" ondertekening_bron="1959-07-02" status="goed">Wet van 2 juli 1959, houdende regelen, welke aan een aantal rijksbelastingen gemeen zijn <meta-data/></intitule>
+  <citeertitel bwb-ng-variabel-deel="/Citeertitel" status="officieel" stam-id="2924523" versie-id="4507052" id="C4507051" label-id="2873734" inwerking="1962-10-01" bron="Stb.1959-301" effect="nieuwe-regeling" ondertekening_bron="1959-07-02">Algemene wet inzake rijksbelastingen<meta-data/></citeertitel>
+  <wet-besluit>
+    <wettekst>
+      <hoofdstuk bwb-ng-variabel-deel="/HoofdstukIVA" stam-id="2925953" versie-id="17027312" id="C28255061" label-id="2875174" inwerking="2010-01-01" label="Hoofdstuk IVA" bron="Stb.2009-611" effect="structuurwijziging" ondertekening_bron="2009-12-23" publicatie_bron="2009-12-29" publicatie_iwt="2009-12-29" status="goed">
+  <kop>
+    <label>Hoofdstuk</label>
+    <nr status="officieel">IVA</nr>
+    <titel status="officieel">Basisregistratie inkomen </titel>
+  </kop><artikel bwb-ng-variabel-deel="/HoofdstukIVA/Artikel21d" stam-id="9651953" versie-id="15571622" id="C41527101" label-id="9628894" inwerking="2009-01-01" label="Artikel 21d" bron="Stb.2008-269" effect="nieuw" ondertekening_bron="2008-06-27" publicatie_bron="2008-07-15" publicatie_iwt="2008-12-29" status="goed">
+  <kop>
+    <label>Artikel</label>
+    <nr status="officieel">21d</nr>
+  </kop>
+  <lid bwb-ng-variabel-deel="/HoofdstukIVA/Artikel21d/Lid1" label-id="9628894L1">
+    <lidnr status="officieel">1</lidnr>
+    <al>De inspecteur plaatst de aantekening «in onderzoek» bij een inkomensgegeven indien ten aanzien van dat inkomensgegeven:</al>
+    <lijst level="single" nr-sluiting="." start="1" type="expliciet">
+      <li bwb-ng-variabel-deel="/HoofdstukIVA/Artikel21d/Lid1/Onderdeela">
+        <li.nr>a.</li.nr>
+        <al>een terugmelding is gedaan;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0002320&amp;hoofdstuk=IVA&amp;artikel=21d&amp;lid=1&amp;o=a&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=a"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIVA/Artikel21d/Lid1/Onderdeelb">
+        <li.nr>b.</li.nr>
+        <al>een bezwaar- of beroepschrift is ingediend;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0002320&amp;hoofdstuk=IVA&amp;artikel=21d&amp;lid=1&amp;o=b&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=b"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIVA/Artikel21d/Lid1/Onderdeelc">
+        <li.nr>c.</li.nr>
+        <al>een verzoek om ambtshalve vermindering is ingediend, of</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0002320&amp;hoofdstuk=IVA&amp;artikel=21d&amp;lid=1&amp;o=c&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=c"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIVA/Artikel21d/Lid1/Onderdeeld">
+        <li.nr>d.</li.nr>
+        <al>overigens gerede twijfel is ontstaan omtrent de juistheid van dat gegeven.</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0002320&amp;hoofdstuk=IVA&amp;artikel=21d&amp;lid=1&amp;o=d&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=d"/></jcis></meta-data></li>
+    </lijst>
+    <al>Voor de onderdelen a en d geldt een bij ministeriële regeling te bepalen termijn waarbinnen de inspecteur bepaalt of de aantekening «in onderzoek» al dan niet wordt geplaatst.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0002320&amp;hoofdstuk=IVA&amp;artikel=21d&amp;lid=1&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=1"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIVA/Artikel21d/Lid2" label-id="9628894L2">
+    <lidnr status="officieel">2</lidnr>
+    <al>De inspecteur verwijdert de aantekening «in onderzoek»:</al>
+    <lijst level="single" nr-sluiting="." start="1" type="expliciet">
+      <li bwb-ng-variabel-deel="/HoofdstukIVA/Artikel21d/Lid2/Onderdeela">
+        <li.nr>a.</li.nr>
+        <al>na de afhandeling van het onderzoek naar aanleiding van de terugmelding;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0002320&amp;hoofdstuk=IVA&amp;artikel=21d&amp;lid=2&amp;o=a&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=a"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIVA/Artikel21d/Lid2/Onderdeelb">
+        <li.nr>b.</li.nr>
+        <al>nadat de beslissing op bezwaar of de rechterlijke uitspraak onherroepelijk is geworden;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0002320&amp;hoofdstuk=IVA&amp;artikel=21d&amp;lid=2&amp;o=b&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=b"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIVA/Artikel21d/Lid2/Onderdeelc">
+        <li.nr>c.</li.nr>
+        <al>na de afhandeling van het verzoek om ambtshalve vermindering, of</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0002320&amp;hoofdstuk=IVA&amp;artikel=21d&amp;lid=2&amp;o=c&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=c"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIVA/Artikel21d/Lid2/Onderdeeld">
+        <li.nr>d.</li.nr>
+        <al>na de afhandeling van het onderzoek naar aanleiding van de situatie, bedoeld in het eerste lid, onderdeel d.</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0002320&amp;hoofdstuk=IVA&amp;artikel=21d&amp;lid=2&amp;o=d&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=d"/></jcis></meta-data></li>
+    </lijst>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0002320&amp;hoofdstuk=IVA&amp;artikel=21d&amp;lid=2&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=2"/></jcis></meta-data></lid>
+<meta-data><jcis><jci versie="1.0" verwijzing="1.0:c:BWBR0002320&amp;artikel=21d&amp;g=2026-10-01" onderdeel="artikel=21d" korte-verwijzing="1.0:c:BWBR0002320&amp;artikel=21d"/><jci versie="1.3" verwijzing="jci1.3:c:BWBR0002320&amp;hoofdstuk=IVA&amp;artikel=21d&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="artikel=21d" korte-verwijzing="jci1.3:c:BWBR0002320&amp;artikel=21d"/></jcis></meta-data></artikel><meta-data><jcis><jci versie="1.0" verwijzing="1.0:c:BWBR0002320&amp;hoofdstuk=IVA&amp;g=2026-10-01" onderdeel="hoofdstuk=IVA" korte-verwijzing="1.0:c:BWBR0002320&amp;hoofdstuk=IVA"/><jci versie="1.3" verwijzing="jci1.3:c:BWBR0002320&amp;hoofdstuk=IVA&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="hoofdstuk=IVA" korte-verwijzing="jci1.3:c:BWBR0002320&amp;hoofdstuk=IVA"/></jcis></meta-data></hoofdstuk>
+      </wettekst>
+    </wet-besluit>
+</wetgeving></toestand>

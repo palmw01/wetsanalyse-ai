@@ -29,8 +29,9 @@ from fastapi import HTTPException
 from sqlalchemy import insert, select, update
 
 from . import begrip_relatie_store, begrip_store, begrippen_run_store, db
+from .annotatie_v2_contracts import BEOORDEELD
 from .begrip_manifest import _vindplaats
-from .begrip_onderhoud_contracts import Bevestiging, BuitenBehandeling, Herkoppeling
+from .begrip_onderhoud_contracts import Bevestiging, Bevestigingen, BuitenBehandeling, Herkoppeling
 from .werkgebied_inventaris import Resolver, inventaris, inventaris_met_bronbomen, nodes_met_titel
 from .werkgebied_store import _audit as werkgebied_audit
 
@@ -141,7 +142,7 @@ def opvolgers(ref: dict, oud_element_id: str, kandidaten: list[dict], primair: d
         eerste = min(ankers, key=lambda a: a.get("start", 0)) if ankers else {}
         uit.append({"element_id": e["id"], "tekst": e.get("tekst", ""), "klasse": e.get("klasse", ""),
                     "lifecycle": e.get("lifecycle", ""),
-                    "annotatie_beoordeeld": e.get("lifecycle") in begrip_store.BEOORDEELD,
+                    "annotatie_beoordeeld": e.get("lifecycle") in BEOORDEELD,
                     "signalen": signalen, "_sleutel": (not overlap, not zelfde_tekst, eerste.get("start", 0), e["id"])})
     uit.sort(key=lambda x: x.pop("_sleutel"))
     return uit[:MAX_OPVOLGERS]
@@ -258,48 +259,78 @@ async def herkoppel(werkgebied: dict, begrip_id: str, koppeling_id: str, h: Herk
         detail.update(oud_element=oud.element_id, nieuwe_koppeling=nieuw_id, rol=oud.rol)
         if row.status == "geaccordeerd":
             stand["status"] = "geaccordeerd"
-    return await begrip_store.haal(werkgebied["id"], begrip_id)
+    return begrip_store.koppelstand(await begrip_store.haal(werkgebied["id"], begrip_id))
+
+
+async def _nodes_van(werkgebied: dict, resolve: Resolver) -> dict[str, dict]:
+    _, per_bwb = await inventaris_met_bronbomen(werkgebied["bronnen"], resolve)
+    nodes: dict[str, dict] = {}
+    for snap in per_bwb.values():
+        nodes.update(nodes_met_titel(snap))
+    return nodes
+
+
+async def _bevestig_in(conn, begrip_id: str, koppeling_id: str, nodes: dict[str, dict], motivatie: str, actor: str):
+    """Eén nieuwe bewijsstand naast de oude, of `None` als er niets te bevestigen is."""
+    oud = await _koppeling_rij(conn, begrip_id, koppeling_id)
+    h = (await begrip_store._huidige_elementen(conn, {oud.element_id})).get(oud.element_id)
+    if h is None or h.get("lifecycle") == "rejected" or h.get("verouderd"):
+        raise HTTPException(422, {"fout": "niet_te_bevestigen", "koppeling_id": koppeling_id,
+                                  "melding": "Deze annotatie bestaat niet meer, is verworpen of door een nieuwe "
+                                             "annotatie vervangen; herkoppel of koppel los."})
+    ankers = []
+    for a in h.get("ankers", []):
+        n = nodes.get(a["bron_iri"])
+        if n is None or n.get("tekst", "")[a.get("start", 0):a.get("eind", 0)] != a.get("tekst", ""):
+            raise HTTPException(422, {"fout": "fragment_weg", "koppeling_id": koppeling_id,
+                                      "melding": "Het gemarkeerde fragment staat niet meer op zijn plek in de "
+                                                 "wettekst; laat de bepaling opnieuw annoteren."})
+        ankers.append({**a, "bron_hash": n["bron_hash"]})
+    k = {"bewijs": oud.bewijs, "bevestigingen": oud.bevestigingen or []}
+    hash_nu = begrip_store.element_hash(h)
+    if begrip_store.referentie_hash(k) == hash_nu and \
+            [a["bron_hash"] for a in referentie_ankers(k)] == [a["bron_hash"] for a in ankers]:
+        return None
+    bevestiging = {"element_hash": hash_nu, "ankers": ankers, "tekst": h.get("tekst", ""),
+                   "klasse": h.get("klasse", ""), "door": actor, "op": db.utcnow().isoformat(),
+                   "motivatie": motivatie}
+    await conn.execute(update(db.begrip_koppelingen).where(db.begrip_koppelingen.c.id == koppeling_id)
+                       .values(bevestigingen=[*k["bevestigingen"], bevestiging]))
+    return oud
 
 
 async def bevestig(werkgebied: dict, begrip_id: str, koppeling_id: str, bv: Bevestiging, actor: str,
                    resolve: Resolver) -> dict:
     await begrip_store.haal(werkgebied["id"], begrip_id)
-    _, per_bwb = await inventaris_met_bronbomen(werkgebied["bronnen"], resolve)
-    nodes: dict[str, dict] = {}
-    for snap in per_bwb.values():
-        nodes.update(nodes_met_titel(snap))
+    nodes = await _nodes_van(werkgebied, resolve)
     detail: dict = {"koppeling": koppeling_id}
     async with begrip_store._gewijzigd(werkgebied["id"], begrip_id, bv.verwachte_revisie, actor,
                                        "koppeling-bevestigd", detail, passage=True) as (conn, row, stand):
-        oud = await _koppeling_rij(conn, begrip_id, koppeling_id)
-        h = (await begrip_store._huidige_elementen(conn, {oud.element_id})).get(oud.element_id)
-        if h is None or h.get("lifecycle") == "rejected" or h.get("verouderd"):
-            raise HTTPException(422, {"fout": "niet_te_bevestigen",
-                                      "melding": "Deze annotatie bestaat niet meer, is verworpen of door een nieuwe "
-                                                 "annotatie vervangen; herkoppel of koppel los."})
-        ankers = []
-        for a in h.get("ankers", []):
-            n = nodes.get(a["bron_iri"])
-            if n is None or n.get("tekst", "")[a.get("start", 0):a.get("eind", 0)] != a.get("tekst", ""):
-                raise HTTPException(422, {"fout": "fragment_weg",
-                                          "melding": "Het gemarkeerde fragment staat niet meer op zijn plek in de "
-                                                     "wettekst; laat de bepaling opnieuw annoteren."})
-            ankers.append({**a, "bron_hash": n["bron_hash"]})
-        k = {"bewijs": oud.bewijs, "bevestigingen": oud.bevestigingen or []}
-        hash_nu = begrip_store.element_hash(h)
-        if begrip_store.referentie_hash(k) == hash_nu and \
-                [a["bron_hash"] for a in referentie_ankers(k)] == [a["bron_hash"] for a in ankers]:
+        oud = await _bevestig_in(conn, begrip_id, koppeling_id, nodes, bv.motivatie, actor)
+        if oud is None:
             stand["geen_wijziging"] = True              # er is niets te bevestigen
         else:
-            bevestiging = {"element_hash": hash_nu, "ankers": ankers, "tekst": h.get("tekst", ""),
-                           "klasse": h.get("klasse", ""), "door": actor, "op": db.utcnow().isoformat(),
-                           "motivatie": bv.motivatie}
-            await conn.execute(update(db.begrip_koppelingen).where(db.begrip_koppelingen.c.id == koppeling_id)
-                               .values(bevestigingen=[*k["bevestigingen"], bevestiging]))
             detail.update(element_id=oud.element_id, rol=oud.rol)
             if row.status == "geaccordeerd":
                 stand["status"] = "geaccordeerd"
-    return await begrip_store.haal(werkgebied["id"], begrip_id)
+    return begrip_store.koppelstand(await begrip_store.haal(werkgebied["id"], begrip_id))
+
+
+async def bevestig_alle(werkgebied: dict, begrip_id: str, bv: Bevestigingen, actor: str, resolve: Resolver) -> dict:
+    """Meer veranderde passages in één revisie, alles of niets: kan er één niet, dan gebeurt er niets."""
+    await begrip_store.haal(werkgebied["id"], begrip_id)
+    nodes = await _nodes_van(werkgebied, resolve)
+    detail: dict = {"koppelingen": []}
+    async with begrip_store._gewijzigd(werkgebied["id"], begrip_id, bv.verwachte_revisie, actor,
+                                       "koppeling-bevestigd", detail, passage=True) as (conn, row, stand):
+        for koppeling_id in bv.koppeling_ids:
+            if await _bevestig_in(conn, begrip_id, koppeling_id, nodes, bv.motivatie, actor) is not None:
+                detail["koppelingen"].append(koppeling_id)
+        if not detail["koppelingen"]:
+            stand["geen_wijziging"] = True
+        elif row.status == "geaccordeerd":
+            stand["status"] = "geaccordeerd"
+    return begrip_store.koppelstand(await begrip_store.haal(werkgebied["id"], begrip_id))
 
 
 # --- dekking -----------------------------------------------------------------------------------

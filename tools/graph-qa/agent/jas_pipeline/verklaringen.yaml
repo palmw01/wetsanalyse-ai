@@ -55,6 +55,7 @@ detectie:
   # zinsontleding (detectoren/syntactisch.py)
   NORMATIVE_PREDICATE: {naam: "Normatief gezegde", uitleg: "'Is verplicht', 'kan', 'heeft recht op', 'is bevoegd': een recht of plicht."}
   LEGAL_EFFECT_CLAUSE: {naam: "Rechtsgevolg als hoofdzin", uitleg: "Het gezegde van de hoofdzin drukt zelf een rechtsgevolg uit ('de termijn vervalt', 'de schuld ontstaat'). Niet in een bijzin; de span is de eigen zin."}
+  NORM_IN_PRESENT_TENSE: {naam: "Norm in de tegenwoordige tijd", uitleg: "Het gezegde van de hoofdzin gebiedt zonder modaal werkwoord ('de ontvanger betaalt'). Of het een plicht of een gebeurtenis is, vraagt een oordeel."}
   APPLICABILITY_CONSEQUENCE: {naam: "Toepasselijkheid als gevolg", uitleg: "De bepaling zegt dat een andere regel toepassing vindt. Dat is het gevolg zelf; de voorwaarde ervoor is een eigen markering."}
   PARAMETER_NOUN: {naam: "Parameterwoord", uitleg: "'Tarief', 'drempel', 'vrijstelling': een woord dat een vaste waarde benoemt."}
   PROPERTY_NOUN: {naam: "Eigenschap", uitleg: "'De hoogte van', 'het bedrag van': een naamwoordgroep die een eigenschap noemt."}

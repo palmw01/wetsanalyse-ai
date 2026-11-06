@@ -47,14 +47,16 @@ BEGRIP_TOOLS = [
            "op naam, alternatieve term of definitie, over alle werkgebieden, het werkgebied van het gesprek "
            "eerst. Een begrip is een analyse-uitkomst met een status (concept, geaccordeerd, vervangen), "
            "geen wettelijke definitie – daarvoor is zoek_definitie. Zonder zoekterm: alle begrippen "
-           "(eventueel per status of werkgebied). Onvolledig is geen bewijs dat een begrip ontbreekt. "
+           "(eventueel per status of werkgebied). Onvolledig is geen bewijs dat een begrip ontbreekt, en nul treffers ook niet: zeg dan 'ik vond er "
+           "geen', niet dat ze er niet zijn. "
            "GEEFT TERUG: status en volledig, dan per begrip id, naam, status, werkgebied, definitie (ingekort), "
            "alternatieve termen, aantal dragende passages en bij een vervangen begrip de opvolger. Gebruik "
            "get_begrip voor de passages en relaties van één begrip.",
            {"zoekterm": _d(S, "Woord of woorden uit naam, alternatieve term of definitie; leeg = alles."),
             "status": {"type": "array", "items": {"type": "string", "enum": list(STATUSSEN)}, "maxItems": 3,
                        "description": "Alleen deze statussen (meerdere = of)."},
-            "werkgebied_id": _d(S, "Alleen begrippen uit dit werkgebied, plus de generieke begrippen."),
+            "werkgebied_id": _d(S, "Alleen begrippen uit dit werkgebied (id of naam), plus de generieke begrippen. "
+                                   "Laat leeg voor alle werkgebieden: het werkgebied van het gesprek staat dan vooraan."),
             "limit": {"type": "integer", "minimum": 1, "maximum": MAX_KANDIDATEN}}),
     schema("get_begrip", "Lees één begrip: inhoud (definitie met herkomst, context, uitleg, voorbeelden), status, "
            "werkgebied, de passages waarop het rust (rol, beoordeling, of de passage nog actueel is, vindplaats) "
@@ -70,7 +72,7 @@ BEGRIP_TOOLS = [
 _BEGRIP = re.compile(r"\b(begrip|begrippen|begripskaart|begripskaarten)\b")
 _AL_VASTGELEGD = re.compile(r"\b(al|reeds|vastgelegd\w*|geaccordeerd\w*|bestaande?|opgeslagen|status|concept\w*"
                             r"|vervangen|hebben we|kennen we|staan er|staat er|zijn er|ons|onze|overzicht|lijst"
-                            r"|als begrip|begripskaart\w*)\b")
+                            r"|als begrip|begripskaart\w*|gaan over|gaat over)\b")
 _BEGRIP_SCHRIJVEN = re.compile(r"\b(stel|voorstel\w*|maak|maken|formuleer\w*|herken|bepaal|accordeer\w*|koppel\w*"
                                r"|wijzig\w*|verwijder\w*|denk|annoteer\w*|scherper|aanscherp\w*|voorbeeld\w*"
                                r"|brondefinitie)\b")
@@ -86,8 +88,22 @@ def normaal(tekst: str) -> str:
     return " ".join("".join(c for c in t if not unicodedata.combining(c)).casefold().split())
 
 
+#: Woorden die een zoekopdracht vult zonder iets te zoeken ("begrippen over een bankrekening").
+_GEEN_ZOEKWOORD = {"begrip", "begrippen", "over", "de", "het", "een", "van", "in", "op", "bij", "voor", "met", "en", "of",
+                   "werkgebied"}
+
+
+def _stam(woord: str) -> str:
+    """Meervoud en verbuiging eraf, zodat "bankrekeningen" "bankrekening" vindt (de zoekvraag is CONTAINS)."""
+    for eind in ("en", "s"):
+        if len(woord) - len(eind) >= 5 and woord.endswith(eind):
+            return woord[:-len(eind)]
+    return woord
+
+
 def _woorden(zoekterm: str) -> list[str]:
-    return [w for w in (zoekterm or "").casefold().split() if w][:8]
+    woorden = [w.strip(".,;:?!“”‘’") for w in (zoekterm or "").casefold().split()]
+    return list(dict.fromkeys(_stam(w) for w in woorden if w and w not in _GEEN_ZOEKWOORD))[:8]
 
 
 GENERIEK = "generiek"
@@ -96,20 +112,25 @@ GENERIEK = "generiek"
 def q_begrippen(zoekterm: str, statussen: list[str], werkgebied_id: str, limit: int) -> str:
     """Kandidaten uit de projectie. Alleen id's en werkgebied: wat telt, zegt de api daarna."""
     tekst = ""
-    if woorden := _woorden(zoekterm):
-        bevat = " && ".join(f"CONTAINS(LCASE(STR(?t)), {_lit(w)})" for w in woorden)
-        tekst = ("{ ?c skos:prefLabel ?t } UNION { ?c skos:altLabel ?t } UNION { ?c skos:definition ?t }\n"
-                 f"    FILTER({bevat})")
+    # Elk woord moet ergens staan, niet alle woorden in hetzelfde veld: dezelfde regel als de api ("alle woorden
+    # ergens", `begrippen_overzicht.treffer`). Anders vindt "bestemming bankrekening" niets als de naam het ene
+    # woord draagt en de definitie het andere.
+    tekst = "\n    ".join(
+        f"{{ {{ ?c skos:prefLabel ?t{i} }} UNION {{ ?c skos:altLabel ?t{i} }} UNION {{ ?c skos:definition ?t{i} }}\n"
+        f"      FILTER(CONTAINS(LCASE(STR(?t{i})), {_lit(w)})) }}" for i, w in enumerate(_woorden(zoekterm)))
     filters = [f"STRSTARTS(STR(?g), {_lit(GRAPH_PREFIX)})"]
     if statussen:
         filters.append(f"?status IN ({', '.join(_lit(s) for s in statussen)})")
     if werkgebied_id:
         # Generieke begrippen staan boven de werkgebieden (ADR-006) en horen er altijd bij.
-        filters.append(f"?wid IN ({_lit(werkgebied_id)}, {_lit(GENERIEK)})")
+        # Het model kent de naam van het werkgebied, niet zijn id: de naam telt ook, in plaats van stil nul treffers.
+        filters.append(f"(?wid IN ({_lit(werkgebied_id)}, {_lit(GENERIEK)}) "
+                       f"|| LCASE(STR(?titel)) = {_lit(werkgebied_id.casefold())})")
     return _PREFIX + f"""SELECT DISTINCT ?c ?wid WHERE {{
   GRAPH ?g {{
     ?c a skos:Concept ; skos:inScheme ?k ; <{WA}status> ?status .
     ?k <{WA}werkgebiedId> ?wid .
+    OPTIONAL {{ ?k <http://purl.org/dc/terms/title> ?titel }}
     {tekst}
   }}
   FILTER({' && '.join(filters)})
@@ -162,6 +183,18 @@ def _rij(r: dict[str, Any]) -> dict[str, Any]:
     return uit
 
 
+def _geen_treffers(zoekterm: str, statussen: list[str], graph, eerst: str) -> str:
+    """De zin die het antwoord draagt bij nul treffers: wat er gezocht is, en wat er wél ligt (uit de graaf)."""
+    gezocht = " · ".join(x for x in (f"“{zoekterm}”" if zoekterm else "", ", ".join(statussen)) if x)
+    zin = f"Ik vond er geen met deze zoekopdracht ({gezocht or 'zonder filter'}). Dat zegt niet dat ze er niet zijn."
+    try:
+        aantal = len({r["c"] for r in parse_select(graph.sparql(q_begrippen("", [], eerst, MAX_KANDIDATEN)))})
+    except Exception:  # noqa: BLE001 – de telling is een gemak; zonder telling blijft de zin waar
+        return zin
+    plek = "dit werkgebied" if eerst else "de werkgebieden"
+    return zin + (f" In {plek} {'staat 1 begrip' if aantal == 1 else f'staan {aantal} begrippen'}." if aantal else "")
+
+
 def zoek(args: dict[str, Any], graph, port) -> dict[str, Any]:
     zoekterm, statussen = str(args.get("zoekterm") or ""), list(args.get("status") or [])
     wg, limit = str(args.get("werkgebied_id") or ""), int(args.get("limit") or 25)
@@ -178,8 +211,10 @@ def zoek(args: dict[str, Any], graph, port) -> dict[str, Any]:
     if bevestigd.get("status") != "ok":
         return {k: bevestigd[k] for k in ("status", "volledig", "reden", "detail") if k in bevestigd}
     # De api is de waarheid: wat er niet meer is valt af, en status en werkgebied gelden zoals ze nu zijn.
+    gewenst = normaal(wg)
     rijen = [r for r in (bevestigd.get("begrippen") or {}).values() if isinstance(r, dict)
-             and (not statussen or r.get("status") in statussen) and (not wg or r.get("werkgebied_id") in (wg, None))]
+             and (not statussen or r.get("status") in statussen)
+             and (not wg or r.get("werkgebied_id") in (wg, None) or normaal(r.get("werkgebied_naam", "")) == gewenst)]
     rijen.sort(key=lambda r: (treffer(zoekterm, r), bool(eerst) and r.get("werkgebied_id") != eerst,
                               STATUS_VOLGORDE.get(r.get("status", ""), 9), normaal(r.get("naam", "")), r["id"]))
     achter = sorted(wid for wid, v in (bevestigd.get("werkgebieden") or {}).items()
@@ -193,6 +228,8 @@ def zoek(args: dict[str, Any], graph, port) -> dict[str, Any]:
                               "recente begrippen kunnen ontbreken.")
     if eerst:
         uit["werkgebied_gesprek"] = eerst
+    if not rijen and not achter:
+        uit["geen_treffers"] = _geen_treffers(zoekterm, statussen, graph, wg or eerst)
     return uit
 
 
@@ -257,8 +294,14 @@ def dispatch_begrip(name: str, args: dict[str, Any], graph, port) -> str:
     return json.dumps({"bewijssoort": "begrip", **result}, ensure_ascii=False)
 
 
+def alleen_begrippen_gezocht(trace) -> bool:
+    """Las deze beurt alleen in de begrippen? Dan gaat het antwoord over begrippen, ook buiten de leesroute."""
+    return bool(trace) and all(name in BEGRIP_TOOL_NAMEN for name, _ in trace)
+
+
 def begrens_begrippen_antwoord(answer: str, trace) -> str:
-    """Een zoekstoring mag nooit "er zijn geen begrippen" worden (de tweeling van `begrens_antwoord`)."""
+    """Een zoekstoring mag nooit "er zijn geen begrippen" worden (de tweeling van `begrens_antwoord`), en nul
+    treffers evenmin: dan zegt de code het, niet het model."""
     antwoorden = []
     for name, text in trace:
         if name in BEGRIP_TOOL_NAMEN:
@@ -272,6 +315,9 @@ def begrens_begrippen_antwoord(answer: str, trace) -> str:
                 "welke begrippen er zijn. Stel de vraag opnieuw.")
     if not any(r.get("status") in {"ok", "partial"} for r in antwoorden):
         return "De vastgelegde begrippen zijn nu niet betrouwbaar te raadplegen. Dit betekent niet dat er geen begrippen zijn."
+    leeg = [r["geen_treffers"] for r in antwoorden if r.get("geen_treffers")]
+    if leeg and not any(r.get("resultaten") or r.get("id") for r in antwoorden):
+        return leeg[-1]
     if any(r.get("status") != "ok" or r.get("volledig") is False for r in antwoorden):
         return answer + "\n\nDeze zoekuitkomst is onvolledig; ontbrekende begrippen zijn niet uitgesloten."
     return answer

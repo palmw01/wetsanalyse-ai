@@ -180,6 +180,10 @@
       "naam": "Normatief gezegde",
       "uitleg": "'Is verplicht', 'kan', 'heeft recht op', 'is bevoegd': een recht of plicht."
     },
+    "NORM_IN_PRESENT_TENSE": {
+      "naam": "Norm in de tegenwoordige tijd",
+      "uitleg": "Het gezegde van de hoofdzin gebiedt zonder modaal werkwoord ('de ontvanger betaalt'). Of het een plicht of een gebeurtenis is, vraagt een oordeel."
+    },
     "OBJECT_NP": {
       "naam": "Voorwerp bij een recht of plicht",
       "uitleg": "Een naamwoordgroep als voorwerp bij een normatief gezegde."
@@ -848,5 +852,5 @@
       "uitleg": "Waarschuwing: hetzelfde fragment kreeg twee klassen."
     }
   },
-  "vocabulaire_versie": "cab7bb7a2d79"
+  "vocabulaire_versie": "6526912d0f78"
 }

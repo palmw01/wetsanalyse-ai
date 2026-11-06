@@ -67,7 +67,7 @@ async def test_uit_meerdere_annotaties_een_begrip_en_elke_passage_terug(client):
     r = await client.post(_url(wg, b, "koppelingen"), json={"verwachte_revisie": b["revisie"],
                                                             "element_ids": [ids["lid2"]], "rol": "definitie"})
     assert r.status_code == 200, r.text
-    b = r.json()
+    b = (await client.get(_url(wg, b))).json()
     assert {k["element_id"]: k["rol"] for k in b["koppelingen"]} == {
         ids["lid1"]: "duiding", ids["awr"]: "duiding", ids["lid2"]: "definitie"}
     assert {k["actualiteit"] for k in b["koppelingen"]} == {"actueel"}
@@ -82,7 +82,7 @@ async def test_uit_meerdere_annotaties_een_begrip_en_elke_passage_terug(client):
     for stuk in ("geen definitie", "toelichting", "3 dragende koppelingen",
                  "3 dragende annotaties zijn nog niet door een jurist"):
         assert stuk in redenen, redenen
-    assert (await client.post(_url(wg, b, "accorderen"), json={"verwachte_revisie": b["revisie"]})).status_code == 409
+    assert (await client.post(_url(wg, b, "accorderen"), json={"reden": "Getoetst", "verwachte_revisie": b["revisie"]})).status_code == 409
 
     # Invullen, de annotaties beoordelen, de koppelingen beoordelen – dan mag het.
     b = (await client.patch(_url(wg, b), json={"verwachte_revisie": b["revisie"],
@@ -92,7 +92,7 @@ async def test_uit_meerdere_annotaties_een_begrip_en_elke_passage_terug(client):
         b = (await client.patch(_url(wg, b, "koppelingen", k["id"]),
                                 json={"verwachte_revisie": b["revisie"], "beoordeling": "akkoord"})).json()
     assert b["accorderen"] == {"mag": True, "redenen": []}
-    r = await client.post(_url(wg, b, "accorderen"), json={"verwachte_revisie": b["revisie"]})
+    r = await client.post(_url(wg, b, "accorderen"), json={"reden": "Getoetst", "verwachte_revisie": b["revisie"]})
     assert r.status_code == 200, r.text
     b = r.json()
     assert (b["status"], b["geaccordeerd_door"], b["geaccordeerd_revisie"]) == ("geaccordeerd", "jurist-a", b["revisie"])
@@ -228,11 +228,11 @@ async def test_een_wijziging_na_accorderen_maakt_het_weer_een_concept(client):
     await _beslis(ids["lid1"], "approve", snapshot())
     b = (await client.patch(_url(wg, b, "koppelingen", b["koppelingen"][0]["id"]),
                             json={"verwachte_revisie": b["revisie"], "beoordeling": "akkoord"})).json()
-    b = (await client.post(_url(wg, b, "accorderen"), json={"verwachte_revisie": b["revisie"]})).json()
+    b = (await client.post(_url(wg, b, "accorderen"), json={"reden": "Getoetst", "verwachte_revisie": b["revisie"]})).json()
     assert b["status"] == "geaccordeerd"
     r = await client.post(_url(wg, b, "heropenen"), json={"verwachte_revisie": b["revisie"]})
     assert r.json()["status"] == "concept"
-    b = (await client.post(_url(wg, r.json(), "accorderen"), json={"verwachte_revisie": r.json()["revisie"]})).json()
+    b = (await client.post(_url(wg, r.json(), "accorderen"), json={"reden": "Getoetst", "verwachte_revisie": r.json()["revisie"]})).json()
     b = (await client.patch(_url(wg, b), json={"verwachte_revisie": b["revisie"],
                                                "inhoud": {**b["inhoud"], "uitleg": "Aanvulling"}})).json()
     assert b["status"] == "concept"
@@ -309,3 +309,14 @@ async def test_het_model_is_slank_en_de_herkomst_rekent_de_api(client):
     r = await client.patch(_url(wg, b), json={"verwachte_revisie": b["revisie"],
                                               "inhoud": {"naam": "X", "definitie_herkomst": "letterlijk"}})
     assert r.json()["inhoud"]["definitie_herkomst"] is None
+
+
+def test_de_vindplaatsregel_is_geen_toelichting():
+    """S6: de gegenereerde zin zegt waar de term staat, niet wat hij afbakent."""
+    from app.begrip_store import eigen_toelichting
+
+    assert not eigen_toelichting("")
+    assert not eigen_toelichting("Komt voor in Artikel 9 · Lid 1; Artikel 79.5a.")
+    assert not eigen_toelichting("Komt voor in Lid 1. Wettelijke definitie in Lid 3.")
+    assert eigen_toelichting("Geldt alleen voor de rijksbelastingen.")
+    assert eigen_toelichting("Komt voor in Lid 1. Geldt alleen voor de rijksbelastingen.")

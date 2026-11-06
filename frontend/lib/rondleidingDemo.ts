@@ -324,8 +324,8 @@ export function voegDemoElementToe(
   const nieuw: NodeElement = {
     id, eigenaar_iri: eigenaar, laag_id: view.lagen.find((l) => l.bron_iri === eigenaar)?.id ?? laagId("eigen"),
     klasse: invoer.klasse, tekst: invoer.tekst, toelichting: invoer.toelichting, ankers: invoer.ankers,
-    lifecycle: "human_approved", herkomst: "mens", alternatieven: [], aandacht: null, beslissingen: [],
-    geproduceerd_door: null,
+    lifecycle: "human_approved", herkomst: "mens", alternatieven: [], aandacht: null, geproduceerd_door: null,
+    beslissingen: [{ type: "markering", actor: "voorbeeld", tijd: new Date().toISOString(), comment: "", wijziging: { klasse: invoer.klasse } }],
   };
   return { view: metRevisie({ ...view, elementen: [...view.elementen, nieuw] }, eigenaar), id };
 }
@@ -354,6 +354,10 @@ export function maakDemoOpslag(): NodeOpslag {
     weergave: async () => structuredClone(view),
     async beslis(id, body) {
       view = pasDemoBeslissingToe(view, id, body as unknown as BeslissingLichaam);
+      return {};
+    },
+    async beslisLaag(_laag, body) {
+      for (const b of body.besluiten) view = pasDemoBeslissingToe(view, b.element_id, b as unknown as BeslissingLichaam);
       return {};
     },
     async markeer(body) {

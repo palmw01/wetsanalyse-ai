@@ -526,8 +526,10 @@ def get_artikel(bwb_id: str, artikel: str) -> str:
     FILTER(STRSTARTS(STR(?o), "{NS}"))
     OPTIONAL {{ ?o bwb:nummer ?onderdeel }}
     OPTIONAL {{ ?o bwb:tekst ?onderdeeltekst }}
+    # Documentvolgorde: tekst ná een opsomming heeft geen nummer, en de IRI zegt niets over zijn plek.
+    OPTIONAL {{ ?o bwb:volgnummer ?ovolg }}
   }}
-}} ORDER BY ?lidsort ?lid ?o"""
+}} ORDER BY ?lidsort ?lid ?ovolg ?o"""
 
 
 def get_lid(bwb_id: str, artikel: str, lid: str) -> str:
@@ -565,8 +567,10 @@ def get_lid(bwb_id: str, artikel: str, lid: str) -> str:
     # De jci van het onderdeel zélf: anders citeert de agent "onderdeel k" met de vindplaats van
     # het hele definitielid.
     OPTIONAL {{ ?o bwb:jci ?ojci }}
+    # Documentvolgorde: 'aa.' staat ná 'z.', en tekst ná een opsomming heeft geen nummer.
+    OPTIONAL {{ ?o bwb:volgnummer ?ovolg }}
   }}
-}} ORDER BY ?o"""
+}} ORDER BY ?ovolg ?o"""
 
 
 def get_bepaling(bwb_id: str, nummer: str) -> str:
@@ -738,10 +742,12 @@ def verwijst_naar_deze(bwb_id: str, artikel: str, lid: str | None = None, limit:
     lim = max(1, min(int(limit), 200))
     return PREFIXES + f"""SELECT DISTINCT ?bron ?bronLabel ?bronJci ?ankerTekst ?soort WHERE {{
   {node_patroon(bwb_id, artikel, lid)}
+  # Een verwijzing wijst naar het lid of onderdeel dat ze noemt: wie een artikel vraagt, wil die ook.
+  ?node (bwb:heeftLid|bwb:heeftOnderdeel)* ?doel .
   {{
-    ?bron bwb:verwijstNaar ?node .
+    ?bron bwb:verwijstNaar ?doel .
   }} UNION {{
-    ?v bwb:naar ?node .
+    ?v bwb:naar ?doel .
     ?bron bwb:heeftVerwijzing ?v .
     OPTIONAL {{ ?v bwb:ankerTekst ?ankerTekst }}
     OPTIONAL {{ ?v bwb:soort ?soort }}
@@ -852,7 +858,8 @@ def context(bwb_id: str, artikel: str, lid: str | None = None, limit: int = 100,
     OPTIONAL {{ ?v2 bwb:ankerTekst ?a }} OPTIONAL {{ ?v2 bwb:naar ?b }} }}
   UNION {{ BIND("7-verwezen-door" AS ?relatie) ?art bwb:verwijzingDoor ?r .
     FILTER(STRSTARTS(STR(?r), "{NS}")) OPTIONAL {{ ?r bwb:citeertitel ?a }} BIND(STR(?r) AS ?b) }}
-  UNION {{ BIND("8-verwezen-door-bepaling" AS ?relatie) ?bron bwb:verwijstNaar ?node .
+  UNION {{ BIND("8-verwezen-door-bepaling" AS ?relatie)
+    ?node (bwb:heeftLid|bwb:heeftOnderdeel)* ?doel . ?bron bwb:verwijstNaar ?doel .
     FILTER(STRSTARTS(STR(?bron), "{NS}"))
     OPTIONAL {{ ?bron rdfs:label ?a }} BIND(STR(?bron) AS ?b) }}
   UNION {{ BIND("9-volgt-op" AS ?relatie) ?node bwb:volgtOp ?vorige .

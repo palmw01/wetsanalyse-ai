@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<toestand xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" bwb-ng-vast-deel="http://wetten.overheid.nl/id/BWBR0018472/2026-10-01/0" xsi:noNamespaceSchemaLocation="https://repository.officiele-overheidspublicaties.nl/Schema/BWB-toestand/2016-1/xsd/toestand_2016-1.xsd" bwb-id="BWBR0018472" inwerkingtreding="2026-10-01"><wetgeving soort="wet" stam-id="7134623" versie-id="12034962" id="C16139931" label-id="7123014" inwerkingtredingsdatum="2005-09-01">
+  <intitule bwb-ng-variabel-deel="/Intitule" stam-id="7134643" versie-id="12034252" id="C16139221" label-id="7122304" inwerking="2005-09-01" bron="Stb.2005-344" effect="nieuwe-regeling" ondertekening_bron="2005-06-23" publicatie_bron="2005-07-05" publicatie_iwt="2005-07-05" status="goed">Wet van 23 juni 2005 tot harmonisatie van inkomensafhankelijke regelingen (Algemene wet inkomensafhankelijke regelingen)<meta-data/></intitule>
+  <citeertitel bwb-ng-variabel-deel="/Citeertitel" status="officieel" stam-id="7134653" versie-id="12034262" id="C16139231" label-id="7122314" inwerking="2005-09-01" bron="Stb.2005-344" effect="nieuwe-regeling" ondertekening_bron="2005-06-23" publicatie_bron="2005-07-05" publicatie_iwt="2005-07-05">Algemene wet inkomensafhankelijke regelingen<meta-data/></citeertitel>
+  <wet-besluit>
+    <wettekst>
+      <hoofdstuk bwb-ng-variabel-deel="/Hoofdstuk4" stam-id="7135283" versie-id="28293112" id="C39890831" label-id="7122944" inwerking="2021-12-22" label="Hoofdstuk 4" bron="Stb.2021-652" effect="structuurwijziging" ondertekening_bron="2021-12-22" publicatie_bron="2021-12-27" publicatie_iwt="2021-12-27" status="goed">
+  <kop>
+    <label>Hoofdstuk</label>
+    <nr status="officieel">4</nr>
+    <titel status="officieel">Bijzondere bepalingen</titel>
+  </kop><artikel bwb-ng-variabel-deel="/Hoofdstuk4/Artikel45" stam-id="7135253" versie-id="24003392" id="C38558261" label-id="7122914" inwerking="2021-01-01" label="Artikel 45" bron="Stb.2017-110" effect="wijziging" ondertekening_bron="2017-03-08" publicatie_bron="2017-03-24" publicatie_iwt="2020-12-08" status="goed">
+  <kop>
+    <label>Artikel</label>
+    <nr status="officieel">45</nr>
+    <titel status="officieel">Beslagverbod</titel>
+  </kop>
+  <lid bwb-ng-variabel-deel="/Hoofdstuk4/Artikel45/Lid1" label-id="7122914L1">
+    <lidnr status="officieel">1</lidnr>
+    <al>Een tegemoetkoming is niet vatbaar voor vervreemding, verpanding, belening of beslag, waaronder begrepen beslag ingevolge faillissement of toepassing van de schuldsaneringsregeling natuurlijke personen, tenzij het betreft beslag wegens:</al>
+    <lijst level="single" nr-sluiting="." start="1" type="expliciet">
+      <li bwb-ng-variabel-deel="/Hoofdstuk4/Artikel45/Lid1/Onderdeela">
+        <li.nr>a.</li.nr>
+        <al>een vordering tot nakoming van een betalingsverplichting wegens een geleverde prestatie waarbij de betalingsverplichting ter zake van die prestatie oorzaak is voor de tegemoetkoming;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0018472&amp;hoofdstuk=4&amp;artikel=45&amp;lid=1&amp;o=a&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=a"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/Hoofdstuk4/Artikel45/Lid1/Onderdeelb">
+        <li.nr>b.</li.nr>
+        <al>een door de belanghebbende verschuldigd bedrag aan terugvordering dat betrekking heeft op dezelfde inkomensafhankelijke regeling.</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0018472&amp;hoofdstuk=4&amp;artikel=45&amp;lid=1&amp;o=b&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=b"/></jcis></meta-data></li>
+    </lijst>
+    <al>De uitzondering opgenomen in onderdeel a van dit lid is niet van toepassing met betrekking tot een tegemoetkoming in het kader van de <extref doc="jci1.3:c:BWBR0022751" label-id="9238954" verwijzing-id="2188050" bwb-id="BWBR0022751">Wet op het kindgebonden budget</extref>.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0018472&amp;hoofdstuk=4&amp;artikel=45&amp;lid=1&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=1"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/Hoofdstuk4/Artikel45/Lid2" label-id="7122914L2">
+    <lidnr status="officieel">2</lidnr>
+    <al>Bij een beslag als bedoeld in het eerste lid is <extref doc="jci1.3:c:BWBR0001827&amp;artikel=475c" label-id="3183424" verwijzing-id="2816022" bwb-id="BWBR0001827">artikel 475c, tweede lid</extref>, niet van toepassing.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0018472&amp;hoofdstuk=4&amp;artikel=45&amp;lid=2&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=2"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/Hoofdstuk4/Artikel45/Lid3" label-id="7122914L3">
+    <lidnr status="officieel">3</lidnr>
+    <al>Elk beding dat strijdt met het eerste lid is nietig.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0018472&amp;hoofdstuk=4&amp;artikel=45&amp;lid=3&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=3"/></jcis></meta-data></lid>
+<meta-data><jcis><jci versie="1.0" verwijzing="1.0:c:BWBR0018472&amp;artikel=45&amp;g=2026-10-01" onderdeel="artikel=45" korte-verwijzing="1.0:c:BWBR0018472&amp;artikel=45"/><jci versie="1.3" verwijzing="jci1.3:c:BWBR0018472&amp;hoofdstuk=4&amp;artikel=45&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="artikel=45" korte-verwijzing="jci1.3:c:BWBR0018472&amp;artikel=45"/></jcis></meta-data></artikel><meta-data><jcis><jci versie="1.0" verwijzing="1.0:c:BWBR0018472&amp;hoofdstuk=4&amp;g=2026-10-01" onderdeel="hoofdstuk=4" korte-verwijzing="1.0:c:BWBR0018472&amp;hoofdstuk=4"/><jci versie="1.3" verwijzing="jci1.3:c:BWBR0018472&amp;hoofdstuk=4&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="hoofdstuk=4" korte-verwijzing="jci1.3:c:BWBR0018472&amp;hoofdstuk=4"/></jcis></meta-data></hoofdstuk>
+      </wettekst>
+    </wet-besluit>
+</wetgeving></toestand>

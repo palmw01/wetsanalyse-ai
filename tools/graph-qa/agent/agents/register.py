@@ -34,10 +34,14 @@ def model_taak(agent: str, taak: str) -> bool:
     return is_taak(agent, taak) and AGENTS[agent].Taak(taak) in AGENTS[agent].MODEL_TAKEN
 
 
-def parameters(agent: str, taak: str, *, vraag: str = "", onderwerp: dict[str, Any] | None = None,
+def parameters(agent: str, taak: str, *, vraag: str = "", herschreven: str = "",
+               onderwerp: dict[str, Any] | None = None,
                werkgebied_id: str = "", actie: str = "", bevestigd: int | None = None,
                werkvoorraad_id: str = "") -> dict[str, Any]:
-    """De invoer van een taak, behalve de taak zelf."""
+    """De invoer van een taak, behalve de taak zelf. `vraag` is de vraag van de analist, `herschreven` wat de
+    supervisor er zelfstandig van maakte: de termen van een begrip komen uit de woorden van de analist, en alleen
+    als die er geen noemen uit het herschreven gesprek. Een herschrijving voegt anders een begrip toe dat niemand
+    vroeg."""
     from ..kaart_beurt import termen_uit
 
     o = onderwerp or {}
@@ -54,7 +58,8 @@ def parameters(agent: str, taak: str, *, vraag: str = "", onderwerp: dict[str, A
         if o.get("soort") == "begrip" and o.get("id"):
             p["begrip_id"] = o["id"]
         if taak not in ("voorstellen", "meedenken"):
-            p["termen"] = termen_uit(vraag, taak if taak in begrippen.KAARTACTIES else "brondefinitie")[:2]
+            soort = taak if taak in begrippen.KAARTACTIES else "brondefinitie"
+            p["termen"] = (termen_uit(vraag, soort) or termen_uit(herschreven, soort))[:2]
         if taak == "meedenken" and bevestigd is not None:
             p["bevestigd"] = bevestigd
             if werkvoorraad_id:

@@ -123,7 +123,7 @@ def _nep_fasen(monkeypatch, *, stuk_bij_verzamelen=(), stuk_bij_schrijven=()):
             summary=_summary(bwb_id), xml_path=None,
         )
 
-    def nep_schrijf(item, writer, index):
+    def nep_schrijf(item, writer, *_indexen):
         if item.wet.bwb_id in stuk_bij_schrijven:
             raise RuntimeError("kapot bij schrijven")
         return item.summary

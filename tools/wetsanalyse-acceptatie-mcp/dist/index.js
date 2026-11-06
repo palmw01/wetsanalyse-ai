@@ -12,6 +12,8 @@
  *   WETSANALYSE_ACC_TOKEN_BEHEERDER  – optioneel, accounttoken van een beheerder
  *   WETSANALYSE_ACC_GRAFANA_URL      – optioneel, voor logs_zoek
  *   WETSANALYSE_ACC_GRAFANA_WACHTWOORD – optioneel, het admin-wachtwoord van die Grafana
+ *   WETSANALYSE_ACC_GRAAF_URL        – optioneel, voor graaf_lezen: de MCP-proxy van acceptatie
+ *   WETSANALYSE_ACC_GRAAF_TOKEN      – optioneel, het bearer-token van die proxy
  *
  * Fail-closed: zonder URL en token weigert de server te starten, en een productie-URL ook. Logs (JSON)
  * gaan naar stderr; tokens worden nooit gelogd. stdout is exclusief voor het MCP-protocol.
@@ -19,14 +21,21 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import { BronClient } from "./bron.js";
 import { AcceptatieClient, controleerUrl } from "./client.js";
+import { GraafClient } from "./graaf.js";
+import { aanvullen, lezen, ROLLEN, SOORTEN, standaardMap } from "./logboek.js";
 import { zoekLogs } from "./logs.js";
 const URL_ACC = process.env.WETSANALYSE_ACC_URL ?? "";
 const TOKEN_ANALIST = (process.env.WETSANALYSE_ACC_TOKEN ?? "").trim();
 const TOKEN_BEHEERDER = (process.env.WETSANALYSE_ACC_TOKEN_BEHEERDER ?? "").trim();
 const GRAFANA_URL = (process.env.WETSANALYSE_ACC_GRAFANA_URL ?? "").replace(/\/+$/, "");
 const GRAFANA_WACHTWOORD = process.env.WETSANALYSE_ACC_GRAFANA_WACHTWOORD ?? "";
+const GRAAF_URL = process.env.WETSANALYSE_ACC_GRAAF_URL ?? "";
+const GRAAF_TOKEN = (process.env.WETSANALYSE_ACC_GRAAF_TOKEN ?? "").trim();
+const LOGBOEK_MAP = standaardMap(fileURLToPath(new URL("../../../", import.meta.url)));
 function log(niveau, bericht, velden = {}) {
     process.stderr.write(JSON.stringify({ ts: new Date().toISOString(), niveau, bericht, ...velden }) + "\n");
 }
@@ -42,6 +51,15 @@ function client(als) {
         clients.set(rol, c);
     }
     return c;
+}
+const bron = new BronClient();
+let graaf;
+function graafClient() {
+    if (!GRAAF_URL || !GRAAF_TOKEN) {
+        throw new Error("Zet WETSANALYSE_ACC_GRAAF_URL en WETSANALYSE_ACC_GRAAF_TOKEN; dat doet de gebruiker, niet een agent.");
+    }
+    graaf ??= new GraafClient(controleerUrl(GRAAF_URL), GRAAF_TOKEN);
+    return graaf;
 }
 const seg = (s) => encodeURIComponent(String(s));
 const S = z.object;
@@ -177,6 +195,53 @@ const TOOLS = [
                 minuten: a.minuten ?? 60,
             });
         },
+    },
+    {
+        name: "bron_lezen",
+        description: "De officiële tekst van één artikel of lid uit de BWB-repository: de letterlijke XML, de tekst in dezelfde " +
+            "volgorde, en de toestand met url. Hierop rust elke bevinding over brontekst, niet op een samenvatting. " +
+            "Zonder peildatum de nieuwste toestand, dezelfde die de importer in de graaf zet.",
+        input: S({
+            bwb_id: z.string(),
+            artikel: z.string(),
+            lid: z.string().optional(),
+            peildatum: z.string().optional(),
+        }),
+        run: (a) => bron.lees({
+            bwb_id: a.bwb_id,
+            artikel: a.artikel,
+            lid: a.lid,
+            peildatum: a.peildatum,
+        }),
+    },
+    {
+        name: "graaf_lezen",
+        description: "Alleen-lezen SPARQL op de kennisgraaf van acceptatie, om te zien wat er echt staat: SELECT, ASK, CONSTRUCT of " +
+            "DESCRIBE, zonder SERVICE. Zonder LIMIT komt er LIMIT 200 bij. Voor de beoordeling, niet om een stap van het " +
+            "scenario te vervangen: wat een gebruiker aan Lex vraagt, vraag je aan Lex.",
+        input: S({ query: z.string() }),
+        run: (a) => graafClient().lees(a.query),
+    },
+    {
+        name: "logboek_aanvullen",
+        description: "Voeg één regel toe aan het gedeelde logboek van een run. Bestaande regels veranderen niet. Noteer beslissingen, " +
+            "id's, overleg, bevindingen en omwegen, kort; geen tokens. Bij soort `onenigheid` is `argumenten` verplicht.",
+        input: S({
+            run: z.string(),
+            rol: z.enum(ROLLEN),
+            soort: z.enum(SOORTEN),
+            stap: z.number().int().min(0).max(9).optional(),
+            tekst: z.string().min(1).max(4000),
+            ids: z.array(z.string()).max(50).optional(),
+            argumenten: S({ jurist: z.string(), gegevensspecialist: z.string() }).optional(),
+        }),
+        run: (a) => aanvullen(LOGBOEK_MAP, a),
+    },
+    {
+        name: "logboek_lezen",
+        description: "Lees het logboek van een run. Geef de teruggekregen `vanaf` mee om alleen te lezen wat er sindsdien bij kwam.",
+        input: S({ run: z.string(), vanaf: z.number().int().min(0).optional() }),
+        run: (a) => lezen(LOGBOEK_MAP, a.run, a.vanaf),
     },
 ];
 function alsJsonSchema(schema) {

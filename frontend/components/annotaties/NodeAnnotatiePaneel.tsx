@@ -21,6 +21,7 @@ import {
   beslissingNaarNode, documentVanNode, nodeAnkersUitSelectie, nodeBronVan, nogOngedekt, ongedektVanNode, tekstVanAnkers,
 } from "@/lib/annotatieNodeAdapter";
 import type { ReeksNavigatie } from "@/lib/reeks";
+import { groeneVoorstellen } from "@/lib/annotatie";
 import { metSpoor } from "@/lib/uiSpoor";
 import { samenhangBeschikbaar } from "@/lib/samenhang";
 import type { KnoopData } from "@/lib/graaf/model";
@@ -129,6 +130,20 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
     })));
     setMelding("Wijziging opgeslagen.");
     onBeslist?.(req.type);
+  }
+
+  /** *Akkoord met de groene*: per laag één bulk, dus één revisie per laag en alles of niets per laag. */
+  async function akkoordGroen() {
+    if (!view) return;
+    const groen = groeneVoorstellen(view.elementen);
+    await muteer(async () => {
+      for (const laag of view.lagen.filter((l) => l.status === "in_review")) {
+        const besluiten = groen.filter((e) => e.laag_id === laag.id)
+          .map((e) => ({ element_id: e.id, type: "approve" as const }));
+        if (besluiten.length) await opslag.beslisLaag(laag.id, { verwachte_revisie: laag.revisie, snapshot_id: view.snapshot_id, besluiten });
+      }
+    });
+    setMelding(`${groen.length === 1 ? "1 voorstel" : `${groen.length} voorstellen`} akkoord.`);
   }
 
   async function eigenMarkering(invoer: { klasse: string; toelichting: string; anker: Anker }) {
@@ -261,6 +276,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
         actiefId={actiefId}
         onKies={(id) => setActiefId((huidig) => (id && id === huidig ? undefined : id))}
         onBeslissing={beslissing}
+        onAkkoordGroen={opslag.levend ? akkoordGroen : undefined}
         onEigenMarkering={eigenMarkering}
         onWisEigenMarkering={wisEigenMarkering}
         onVraag={onVraag ? (el) => {

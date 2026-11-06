@@ -1,0 +1,324 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<toestand xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" bwb-ng-vast-deel="http://wetten.overheid.nl/id/BWBR0004770/2026-10-01/0" xsi:noNamespaceSchemaLocation="https://repository.officiele-overheidspublicaties.nl/Schema/BWB-toestand/2016-1/xsd/toestand_2016-1.xsd" bwb-id="BWBR0004770" inwerkingtreding="2026-10-01"><wetgeving dtdversie="2.0" soort="wet" xml:lang="nl" stam-id="2961563" versie-id="24936392" id="C35664511" label-id="2911504" inwerkingtredingsdatum="2018-02-21">
+  <intitule bwb-ng-variabel-deel="/Intitule" stam-id="2961593" versie-id="4575372" id="C4575371" label-id="2910534" inwerking="1990-06-01" bron="Stb.1990-221" effect="nieuwe-regeling" ondertekening_bron="1990-05-30" publicatie_iwt="1990-05-31" status="goed">Wet van 30 mei 1990, inzake invordering van rijksbelastingen, andere dan invoerrechten en accijnzen <meta-data/></intitule>
+  <citeertitel bwb-ng-variabel-deel="/Citeertitel" status="officieel" stam-id="2961603" versie-id="4575382" id="C4575381" label-id="2910544" inwerking="1990-06-01" bron="Stb.1990-221" effect="nieuwe-regeling" ondertekening_bron="1990-05-30" publicatie_iwt="1990-05-31">Invorderingswet 1990<meta-data/></citeertitel>
+  <wet-besluit>
+    <wettekst>
+      <hoofdstuk bwb-ng-variabel-deel="/HoofdstukIV" stam-id="2961953" versie-id="23150852" id="C33454201" label-id="2910894" inwerking="2016-04-20" label="Hoofdstuk IV" bron="Stb.2016-163" effect="structuurwijziging" ondertekening_bron="2016-04-20" publicatie_bron="2016-04-28" publicatie_iwt="2016-04-28" status="goed">
+  <kop>
+    <label>Hoofdstuk</label>
+    <nr status="officieel">IV</nr>
+    <titel status="officieel">Bijzondere bepalingen </titel>
+  </kop><afdeling bwb-ng-variabel-deel="/HoofdstukIV/Afdeling2" stam-id="2961903" versie-id="4575682" id="C4575681" label-id="2910844" inwerking="1990-06-01" label="Afdeling 2" bron="Stb.1990-221" effect="nieuwe-regeling" ondertekening_bron="1990-05-30" publicatie_iwt="1990-05-31" status="goed">
+  <kop>
+    <label>Afdeling</label>
+    <nr>2</nr>
+    <titel status="officieel">Verrekening </titel>
+  </kop><artikel bwb-ng-variabel-deel="/HoofdstukIV/Afdeling2/Artikel24" stam-id="2961893" versie-id="29852112" id="C43308541" label-id="2910834" inwerking="2024-01-01" label="Artikel 24" bron="Stb.2023-499" effect="wijziging" ondertekening_bron="2023-12-20" publicatie_bron="2023-12-27" publicatie_iwt="2023-12-27" status="goed">
+  <kop>
+    <label>Artikel</label>
+    <nr status="officieel">24</nr>
+  </kop>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling2/Artikel24/Lid1" label-id="2910834L1">
+    <lidnr status="officieel">1</lidnr>
+    <al>De ontvanger is ten aanzien van de belastingschuldige bevoegd:</al>
+    <lijst level="single" nr-sluiting="." start="1" type="expliciet">
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling2/Artikel24/Lid1/Onderdeela">
+        <li.nr>a.</li.nr>
+        <al>aan de belastingschuldige uit te betalen en van de belastingschuldige te innen bedragen ter zake van rijksbelastingen en andere belastingen en heffingen voor zover de invordering daarvan aan de ontvanger is opgedragen met elkaar te verrekenen;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=2&amp;artikel=24&amp;lid=1&amp;o=a&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=a"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling2/Artikel24/Lid1/Onderdeelb">
+        <li.nr>b.</li.nr>
+        <al>aan de belastingschuldige uit te betalen bedragen ter zake van met de in onderdeel a bedoelde rijksbelastingen en andere belastingen en heffingen verband houdende vorderingen op de Staat of de ontvanger te verrekenen met van de belastingschuldige te innen bedragen ter zake van rijksbelastingen en andere belastingen en heffingen voor zover de invordering daarvan aan de ontvanger is opgedragen.</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=2&amp;artikel=24&amp;lid=1&amp;o=b&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=b"/></jcis></meta-data></li>
+    </lijst>
+    <al>Verrekening op grond van de onderdelen a en b is eveneens mogelijk wanneer op een aan de belastingschuldige uit te betalen bedrag beslag is gelegd.</al>
+    <al>De <extref doc="jci1.3:c:BWBR0001860&amp;artikel=53" label-id="2888054,2888064,2888074" verwijzing-id="2282629" bwb-id="BWBR0001860">artikelen 53 tot en met 55</extref>, <extref doc="jci1.3:c:BWBR0001860&amp;artikel=234" label-id="2890154" verwijzing-id="2282630" bwb-id="BWBR0001860">234</extref>, <extref doc="jci1.3:c:BWBR0001860&amp;artikel=235" label-id="2890164" verwijzing-id="2282631" bwb-id="BWBR0001860">235</extref> en <extref doc="jci1.3:c:BWBR0001860&amp;artikel=307" label-id="2891334" verwijzing-id="2282632" bwb-id="BWBR0001860">307 van de Faillissementswet</extref> zijn van overeenkomstige toepassing. Met betrekking tot door de ontvanger uit te betalen en te innen bedragen welker verschuldigdheid materieel is ontstaan over dan wel in een tijdvak waarin de belastingschuldige deel uitmaakt of uitmaakte van een fiscale eenheid als bedoeld in <extref doc="jci1.3:c:BWBR0002672&amp;artikel=15" label-id="2642904" verwijzing-id="1621172" bwb-id="BWBR0002672">artikel 15, eerste of tweede lid</extref>, of <extref doc="jci1.3:c:BWBR0002672&amp;artikel=15a" label-id="2642914" verwijzing-id="1621173" bwb-id="BWBR0002672">artikel 15a, eerste lid, van de Wet op de vennootschapsbelasting 1969</extref>, kunnen aan die belastingschuldige uit te betalen bedragen, behalve met van deze te innen bedragen, worden verrekend met te innen bedragen van een andere maatschappij die in dat tijdvak deel uitmaakt of uitmaakte van vorenbedoelde fiscale eenheid. De vorige volzin vindt toepassing, ongeacht het in staat van surseance van betaling of van faillissement geraken van de in die volzin bedoelde belastingschuldige of andere maatschappij.</al>
+    <al>Op verzoek van de belastingschuldige is de ontvanger verplicht te verrekenen. In afwijking van <extref doc="jci1.3:c:BWBR0005537&amp;artikel=4:93" label-id="10066754" verwijzing-id="2284023" bwb-id="BWBR0005537">artikel 4:93, derde lid, van de Algemene wet bestuursrecht</extref> geldt als tijdstip van verrekening de dagtekening van het aanslagbiljet waaruit van het te betalen bedrag blijkt. In afwijking van de vorige volzin geldt met betrekking tot een verrekening van een termijn van een voorlopige aanslag als bedoeld in <intref doc="jci1.3:c:BWBR0004770&amp;hoofdstuk=II&amp;artikel=9&amp;z=2026-10-01&amp;g=2026-10-01" label-id="2910654" verwijzing-id="1621174" bwb-id="BWBR0004770" bwb-ng-variabel-deel="/HoofdstukII/Artikel9">artikel 9, zesde en zevende lid</intref>, als tijdstip van verrekening het tijdstip waarop de desbetreffende termijn vervalt.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=2&amp;artikel=24&amp;lid=1&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=1"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling2/Artikel24/Lid2" label-id="2910834L2">
+    <lidnr status="officieel">2</lidnr>
+    <al>De verrekening is ook mogelijk ingeval de termijn, bedoeld in <intref doc="jci1.3:c:BWBR0004770&amp;hoofdstuk=II&amp;artikel=9&amp;z=2026-10-01&amp;g=2026-10-01" label-id="2910654" verwijzing-id="1449484" bwb-id="BWBR0004770" bwb-ng-variabel-deel="/HoofdstukII/Artikel9">artikel 9</intref>, nog niet is verstreken, met dien verstande dat indien het betreft belastingaanslagen als bedoeld in <intref doc="jci1.3:c:BWBR0004770&amp;hoofdstuk=II&amp;artikel=9&amp;z=2026-10-01&amp;g=2026-10-01" label-id="2910654" verwijzing-id="1449485" bwb-id="BWBR0004770" bwb-ng-variabel-deel="/HoofdstukII/Artikel9">artikel 9, vijfde en zevende lid</intref>, verrekening alleen mogelijk is met belastingaanslagen die op dezelfde belasting en hetzelfde tijdvak betrekking hebben.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=2&amp;artikel=24&amp;lid=2&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=2"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling2/Artikel24/Lid3" label-id="2910834L3">
+    <lidnr status="officieel">3</lidnr>
+    <al>Verrekening is niet mogelijk met betrekking tot een door de ontvanger uit te betalen bedrag indien deze vordering door de gerechtigde onder bijzondere titel is overgedragen, mits de ontvanger met de overdracht heeft ingestemd. Verrekening is voorts niet mogelijk met betrekking tot een door de ontvanger uit te betalen bedrag indien op deze vordering een pandrecht als bedoeld in <extref doc="jci1.3:c:BWBR0005291&amp;artikel=239" label-id="2900694" verwijzing-id="1648605" bwb-id="BWBR0005291">artikel 239 van Boek 3 van het Burgerlijk Wetboek</extref> is gevestigd, mits de ontvanger op het tijdstip waarop het pandrecht hem wordt medegedeeld met het pandrecht heeft ingestemd. De ontvanger is verplicht bij beschikking met de overdracht of het pandrecht in te stemmen indien op het tijdstip van de mededeling van de akte van overdracht of van het pandrecht ten name van de belastingschuldige geen voor verrekening vatbare schuld invorderbaar is. De ontvanger kan bij beschikking instemming met de overdracht of het pandrecht weigeren. De ontvanger maakt de beschikking bekend door middel van een gedagtekende kennisgeving waarin, bij weigering tot instemming met de overdracht of het pandrecht, de grond is vermeld waarop de weigering berust. </al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=2&amp;artikel=24&amp;lid=3&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=3"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling2/Artikel24/Lid4" label-id="2910834L4">
+    <lidnr status="officieel">4</lidnr>
+    <al>In afwijking in zoverre van het derde lid is ook na de instemming, bedoeld in dat lid, verrekening mogelijk van belastingaanslagen die een uit te betalen bedrag behelzen met belastingaanslagen die op dezelfde belasting en hetzelfde tijdvak betrekking hebben.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=2&amp;artikel=24&amp;lid=4&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=4"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling2/Artikel24/Lid5" label-id="2910834L5">
+    <lidnr status="officieel">5</lidnr>
+    <al> De belastingschuldige kan binnen een week na de dagtekening van de in het derde lid bedoelde kennisgeving waarmee de beschikking is bekendgemaakt beroep instellen bij de directeur. Het beroepschrift wordt ingediend bij de ontvanger tegen een door deze af te geven ontvangbewijs. De directeur neemt zo spoedig mogelijk een beslissing en maakt deze bekend aan de belastingschuldige door middel van een gedagtekende kennisgeving. Indien op het beroepschrift afwijzend wordt beslist, vindt verrekening niet eerder plaats dan nadat na de dagtekening van de kennisgeving waarmee de beslissing van de directeur is bekendgemaakt acht dagen zijn verstreken. </al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=2&amp;artikel=24&amp;lid=5&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=5"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling2/Artikel24/Lid6" label-id="2910834L6">
+    <lidnr status="officieel">6</lidnr>
+    <al>Met betrekking tot het bedrag waarvoor krachtens <intref doc="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;z=2026-10-01&amp;g=2026-10-01" label-id="2910854" verwijzing-id="1449488" bwb-id="BWBR0004770" bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25">artikel 25, derde tot en met vijfde, achtste, negende, elfde tot en met veertiende, zestiende tot en met negentiende lid</intref>, uitstel van betaling is verleend, is gedurende het uitstel verrekening niet mogelijk, tenzij de belastingschuldige dit verzoekt.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=2&amp;artikel=24&amp;lid=6&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=6"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling2/Artikel24/Lid7" label-id="2910834L7">
+    <lidnr status="officieel">7</lidnr>
+    <al> De ontvanger maakt de verrekening onverwijld bekend. </al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=2&amp;artikel=24&amp;lid=7&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=7"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling2/Artikel24/Lid8" label-id="2910834L8">
+    <lidnr status="officieel">8</lidnr>
+    <al>In afwijking van <extref doc="jci1.3:c:BWBR0005537&amp;artikel=4:93" label-id="10066754" verwijzing-id="2282634" bwb-id="BWBR0005537">artikel 4:93, vierde lid, van de Algemene wet bestuursrecht</extref> is verrekening ook mogelijk van een voorlopige aanslag tot een negatief bedrag als bedoeld in <extref doc="jci1.3:c:BWBR0002320&amp;artikel=13" label-id="2873904" verwijzing-id="2282635" bwb-id="BWBR0002320">artikel 13, tweede lid, van de Algemene wet inzake rijksbelastingen</extref>.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=2&amp;artikel=24&amp;lid=8&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=8"/></jcis></meta-data></lid>
+<meta-data><jcis><jci versie="1.0" verwijzing="1.0:c:BWBR0004770&amp;artikel=24&amp;g=2026-10-01" onderdeel="artikel=24" korte-verwijzing="1.0:c:BWBR0004770&amp;artikel=24"/><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=2&amp;artikel=24&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="artikel=24" korte-verwijzing="jci1.3:c:BWBR0004770&amp;artikel=24"/></jcis></meta-data></artikel><meta-data><jcis><jci versie="1.0" verwijzing="1.0:c:BWBR0004770&amp;afdeling=2&amp;g=2026-10-01" onderdeel="afdeling=2" korte-verwijzing="1.0:c:BWBR0004770&amp;afdeling=2"/><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=2&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="afdeling=2" korte-verwijzing="jci1.3:c:BWBR0004770&amp;afdeling=2"/></jcis></meta-data></afdeling><afdeling bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3" stam-id="2961943" versie-id="29167742" id="C41439291" label-id="2910884" inwerking="2022-12-21" label="Afdeling 3" bron="Stb.2022-531" effect="structuurwijziging" ondertekening_bron="2022-12-21" publicatie_bron="2022-12-27" publicatie_iwt="2022-12-27" status="goed">
+  <kop>
+    <label>Afdeling</label>
+    <nr status="officieel">3</nr>
+    <titel status="officieel">Uitstel van betaling, kwijtschelding en verjaring </titel>
+  </kop><artikel bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25" stam-id="2961913" versie-id="31233662" id="C44671631" label-id="2910854" inwerking="2026-01-01" label="Artikel 25" bron="Stb.2025-431" effect="wijziging" ondertekening_bron="2025-12-04" publicatie_bron="2025-12-12" publicatie_iwt="2025-12-12" status="goed">
+  <kop>
+    <label>Artikel</label>
+    <nr status="officieel">25</nr>
+  </kop>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid1" label-id="2910854L1">
+    <lidnr status="officieel">1</lidnr>
+    <al>De ontvanger kan onder door hem te stellen voorwaarden aan een belastingschuldige voor een bepaalde tijd bij beschikking uitstel van betaling verlenen. Gedurende het uitstel vangt de dwanginvordering niet aan, dan wel wordt deze geschorst. </al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=1&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=1"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid2" label-id="2910854L2">
+    <lidnr status="officieel">2</lidnr>
+    <al> Het uitstel kan tussentijds bij beschikking worden beëindigd. </al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=2&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=2"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid3" label-id="2910854L3">
+    <lidnr status="officieel">3</lidnr>
+    <al> Bij algemene maatregel van bestuur kunnen regels worden gesteld met betrekking tot het verlenen van uitstel van betaling voor de duur van ten hoogste tien jaren in de gevallen waarin belastingaanslagen in de schenk- of erfbelasting zijn opgelegd en door de voldoening daarvan zonder uitstel een sociaal-economisch dan wel cultureel belang in gevaar zou komen en dat uitstel niet of onvoldoende mogelijk is ingevolge de overige leden van dit artikel. </al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=3&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=3"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid4" label-id="2910854L4">
+    <lidnr status="officieel">4</lidnr>
+    <al>Bij ministeriële regeling worden regels gesteld met betrekking tot het verlenen van uitstel van betaling voor de duur van 12 maanden en voor de eventuele verlenging daarvan op grond van <extref doc="jci1.3:c:BWBR0011353&amp;artikel=3.64" label-id="2782754" verwijzing-id="1449491" bwb-id="BWBR0011353">artikel 3.64, derde lid, van de Wet inkomstenbelasting 2001</extref>, mits voldoende zekerheid is gesteld, voor belastingaanslagen betreffende de inkomstenbelasting die is verschuldigd door de toepassing van <extref doc="jci1.3:c:BWBR0011353&amp;artikel=3.64" label-id="2782754" verwijzing-id="1449492" bwb-id="BWBR0011353">artikel 3.64, eerste lid, van de Wet inkomstenbelasting 2001</extref>. Het uitstel wordt beëindigd indien de herinvesteringen niet leiden tot in Nederland belastbare winst van de onderneming en bij emigratie van de belastingschuldige.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=4&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=4"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid5" label-id="2910854L5">
+    <lidnr status="officieel">5</lidnr>
+    <al>Bij ministeriële regeling worden regels gesteld met betrekking tot het verlenen van uitstel van betaling voor belastingaanslagen betreffende de inkomstenbelasting die is verschuldigd door de toepassing van de <extref doc="jci1.3:c:BWBR0011353&amp;artikel=3.83" label-id="2782984" verwijzing-id="1449493" bwb-id="BWBR0011353">artikelen 3.83, eerste lid of tweede lid</extref>, <extref doc="jci1.3:c:BWBR0011353&amp;artikel=3.133" label-id="2783574" verwijzing-id="1449494" bwb-id="BWBR0011353">3.133, tweede lid, onderdelen h of j</extref>, <extref doc="jci1.3:c:BWBR0011353&amp;artikel=3.136" label-id="2783604" verwijzing-id="1449495" bwb-id="BWBR0011353">3.136, eerste, tweede, derde, vierde of vijfde lid</extref>, of <extref doc="jci1.3:c:BWBR0011353&amp;artikel=7.2" label-id="2785994" verwijzing-id="1449496" bwb-id="BWBR0011353">7.2, achtste lid, van de Wet inkomstenbelasting 2001</extref>. Het in de eerste volzin bedoelde uitstel wordt verleend tot uiterlijk het begin van het tiende jaar na afloop van het kalenderjaar waarop de belastingaanslag betrekking heeft. De in de eerste volzin bedoelde regels kunnen mede betrekking hebben op het stellen van voldoende zekerheid. Het uitstel wordt beëindigd indien zich een omstandigheid voordoet als genoemd in <extref doc="jci1.3:c:BWBR0002471&amp;artikel=19b" label-id="2635664" verwijzing-id="1449497" bwb-id="BWBR0002471">artikel 19b, eerste lid, of tweede lid, eerste volzin, van de Wet op de loonbelasting 1964</extref>, <extref doc="jci1.3:c:BWBR0011353&amp;artikel=3.133" label-id="2783574" verwijzing-id="1449498" bwb-id="BWBR0011353">artikel 3.133, tweede lid, onderdelen a tot en met g, i en k</extref>, of <extref doc="jci1.3:c:BWBR0011353&amp;artikel=3.135" label-id="2783594" verwijzing-id="1449499" bwb-id="BWBR0011353">artikel 3.135, eerste lid, van de Wet inkomstenbelasting 2001</extref>.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=5&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=5"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid6" label-id="2910854L6">
+    <lidnr status="officieel">6</lidnr>
+    <al>
+      <redactie type="vervanging">Vervallen.</redactie>
+    </al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=6&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=6"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid7" label-id="2910854L7">
+    <lidnr status="officieel">7</lidnr>
+    <al> Bij algemene maatregel van bestuur worden nadere regels gesteld met betrekking tot het verlenen van uitstel van betaling als bedoeld in de artikelen 110 en 111 van het Douanewetboek van de Unie. </al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=7&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=7"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid8" label-id="2910854L8">
+    <lidnr status="officieel">8</lidnr>
+    <al>Bij ministeriële regeling worden regels gesteld met betrekking tot het verlenen van uitstel van betaling voor belastingaanslagen betreffende de inkomstenbelasting die is verschuldigd ter zake van geconserveerd inkomen als bedoeld in <extref doc="jci1.3:c:BWBR0011353&amp;artikel=2.8" label-id="2781954" verwijzing-id="2323763" bwb-id="BWBR0011353">artikel 2.8, vierde, vijfde, zesde of zevende lid, van de Wet inkomstenbelasting 2001</extref> of ter zake van geconserveerd inkomen door de toepassing van <extref doc="jci1.3:c:BWBR0011353&amp;artikel=4.16" label-id="2784114" verwijzing-id="2323764" bwb-id="BWBR0011353">artikel 4.16, eerste lid, onderdeel h, van die wet</extref>, <extref doc="jci1.3:c:BWBR0011353&amp;artikel=7.2" label-id="2785994" verwijzing-id="3410795" bwb-id="BWBR0011353">artikel 7.2, twintigste lid, van die wet</extref> of van <extref doc="jci1.3:c:BWBR0011353&amp;artikel=7.5" label-id="2786084" verwijzing-id="2323765" bwb-id="BWBR0011353">artikel 7.5, vierde, vijfde of zevende lid, van die wet</extref>. De in de eerste volzin bedoelde regels kunnen mede betrekking hebben op het stellen van voldoende zekerheid.</al>
+    <al>Het uitstel wordt beëindigd:</al>
+    <lijst level="single" nr-sluiting="." start="1" type="expliciet">
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid8/Onderdeela">
+        <li.nr>a.</li.nr>
+        <al>ingeval aandelen of winstbewijzen die aan het uitstel ten grondslag liggen, worden vervreemd in de zin van de <extref doc="jci1.3:c:BWBR0011353&amp;artikel=4.12" label-id="2784024" verwijzing-id="2605408" bwb-id="BWBR0011353">artikelen 4.12</extref> of <extref doc="jci1.3:c:BWBR0011353&amp;artikel=4.16" label-id="2784114" verwijzing-id="2605409" bwb-id="BWBR0011353">4.16, eerste lid, onderdelen a tot en met g, i, j of k, tweede lid, derde lid of vierde lid, van de Wet inkomstenbelasting 2001</extref>. In geval van een vervreemding in het kader van een aandelenfusie als bedoeld in <extref doc="jci1.3:c:BWBR0011353&amp;artikel=3.55" label-id="2782664" verwijzing-id="2413399" bwb-id="BWBR0011353">artikel 3.55 van de Wet inkomstenbelasting 2001</extref>, een splitsing als bedoeld in <extref doc="jci1.3:c:BWBR0011353&amp;artikel=3.56" label-id="2782674" verwijzing-id="2413400" bwb-id="BWBR0011353">artikel 3.56 van die wet</extref> of een fusie als bedoeld in <extref doc="jci1.3:c:BWBR0011353&amp;artikel=3.57" label-id="2782684" verwijzing-id="2413401" bwb-id="BWBR0011353">artikel 3.57 van die wet</extref> kan het uitstel van betaling onder nader te stellen voorwaarden worden voortgezet. In geval van een vervreemding in de zin van artikel 4.16, eerste lid, onderdelen e, f en g, van de Wet inkomstenbelasting 2001 of wegens een verdeling van een nalatenschap of een huwelijksgemeenschap binnen twee jaren na het overlijden van de erflater onderscheidenlijk na de ontbinding van de huwelijksgemeenschap, kan het uitstel van betaling eveneens onder nader te stellen voorwaarden worden voortgezet. In geval van schenking aan een natuurlijk persoon kan het uitstel van betaling eveneens onder nader te stellen voorwaarden worden voortgezet;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=8&amp;o=a&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=a"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid8/Onderdeelb">
+        <li.nr>b.</li.nr>
+        <al>ingeval de vennootschap op de aandelen of winstbewijzen die aan het uitstel ten grondslag liggen, reserves heeft uitgedeeld, voor een bedrag ter grootte van het bedrag van die uitgedeelde reserves, vermenigvuldigd met:</al>
+        <lijst level="single" nr-sluiting="." start="1" type="expliciet">
+          <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid8/Onderdeelb/Onderdeel1">
+            <li.nr>1°.</li.nr>
+            <al>het in de vierde kolom van de in <extref doc="jci1.3:c:BWBR0011353&amp;artikel=2.12" label-id="2781994" verwijzing-id="3213010" bwb-id="BWBR0011353">artikel 2.12 van de Wet inkomstenbelasting 2001</extref> opgenomen tabel als eerste vermelde percentage, voor zover het bedrag van de uitgedeelde reserves op de aandelen of winstbewijzen die aan het uitstel ten grondslag liggen niet meer bedraagt dan het in de eerste en tweede kolom van die tabel vermelde bedrag; en</al>
+          <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=8&amp;o=b&amp;o=1&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=1"/></jcis></meta-data></li>
+          <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid8/Onderdeelb/Onderdeel2">
+            <li.nr>2°.</li.nr>
+            <al>het in de vierde kolom van die tabel als tweede vermelde percentage, voor zover het bedrag van die uitgedeelde reserves meer bedraagt dan het in de eerste en tweede kolom van die tabel vermelde bedrag;</al>
+          <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=8&amp;o=b&amp;o=2&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=2"/></jcis></meta-data></li>
+        </lijst>
+        <al>verminderd met de over die uitgedeelde reserves in Nederland verschuldigde dividendbelasting of inkomstenbelasting en de daarover in het buitenland feitelijk geheven belasting;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=8&amp;o=b&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=b"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid8/Onderdeelc">
+        <li.nr>c.</li.nr>
+        <al>in geval van een teruggaaf van wat op aandelen of bewijzen van deelgerechtigdheid in een fonds voor gemene rekening is gestort dan wel van wat door houders van winstbewijzen is gestort of ingelegd.</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=8&amp;o=c&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=c"/></jcis></meta-data></li>
+    </lijst>
+    <al>Indien rechten die besloten liggen in de aandelen of winstbewijzen die aan het uitstel ten grondslag liggen overgaan op andere aandelen of winstbewijzen, worden die andere aandelen of winstbewijzen geacht eveneens aan het uitstel ten grondslag te liggen.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=8&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=8"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid9" label-id="2910854L9">
+    <lidnr status="officieel">9</lidnr>
+    <al>Bij ministeriële regeling worden regels gesteld met betrekking tot het verlenen van uitstel van betaling voor de duur van ten hoogste tien jaar, mits voldoende zekerheid is gesteld, voor belastingaanslagen voor zover daarin is begrepen inkomstenbelasting ter zake van een vervreemding van tot een aanmerkelijk belang behorende aandelen of winstbewijzen aan een natuurlijk persoon of aan een rechtspersoon als bedoeld in de tweede volzin, indien de koper de tegenprestatie schuldig is gebleven, de vervreemde aandelen ten minste vijf percent van het geplaatste kapitaal van de vennootschap uitmaken en de bezittingen van de vennootschap waarop het aanmerkelijk belang betrekking heeft niet in belangrijke mate onmiddellijk of middellijk bestaan uit beleggingen.</al>
+    <al>Een rechtspersoon als bedoeld in de eerste volzin is een besloten vennootschap of een andere vennootschap waarvan het kapitaal in aandelen is verdeeld en in een aandelenregister de aandeelhouders worden geadministreerd, welke is gevestigd in een lidstaat van de Europese Unie of een bij ministeriële regeling aangewezen andere staat die partij is bij de Overeenkomst betreffende de Europese Economische Ruimte, en waarvan alle aandelen worden gehouden door een natuurlijk persoon.</al>
+    <al>Het uitstel wordt beëindigd indien aflossingen plaatsvinden dan wel de koper van de aandelen of winstbewijzen deze vervreemdt of wanneer daaruit reguliere voordelen van substantiële omvang worden genoten.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=9&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=9"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid10" label-id="2910854L10">
+    <lidnr status="officieel">10</lidnr>
+    <al>Voor de toepassing van het negende lid wordt het begrip vervreemding opgevat overeenkomstig <extref doc="jci1.3:c:BWBR0011353&amp;artikel=4.12" label-id="2784024" verwijzing-id="1449505" bwb-id="BWBR0011353">artikel 4.12</extref> en <extref doc="jci1.3:c:BWBR0011353&amp;artikel=4.16" label-id="2784114" verwijzing-id="1449506" bwb-id="BWBR0011353">4.16, eerste lid, onderdelen a, b en c, van de Wet inkomstenbelasting 2001</extref>.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=10&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=10"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid11" label-id="2910854L11">
+    <lidnr status="officieel">11</lidnr>
+    <al>Bij ministeriële regeling worden regels gesteld met betrekking tot het verlenen van uitstel van betaling voor de duur van ten hoogste tien jaar, mits voldoende zekerheid is gesteld, voor belastingaanslagen voor zover daarin is begrepen inkomstenbelasting ter zake van inkomen uit aanmerkelijk belang omdat de vennootschap waarop het belang betrekking heeft op verzoek van haar aandeelhouder aandelen in een andere vennootschap heeft overgedragen aan een natuurlijk persoon of aan een rechtspersoon als bedoeld in het negende lid, tweede volzin, tegen een tegenprestatie lager dan de waarde in het economische verkeer. Dit uitstel wordt slechts verleend wanneer de overgedragen aandelen ten minste vijf percent van het geplaatste kapitaal van de vennootschap uitmaken en de bezittingen van de vennootschap waarop de overgedragen aandelen betrekking hebben niet in belangrijke mate onmiddellijk of middellijk bestaan uit beleggingen.</al>
+    <al>Het uitstel wordt beëindigd indien de begiftigde aandelen of winstbewijzen welke aan het uitstel ten grondslag liggen, vervreemdt of wanneer daaruit reguliere voordelen van substantiële omvang worden genoten.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=11&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=11"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid12" label-id="2910854L12">
+    <lidnr status="officieel">12</lidnr>
+    <al>Bij ministeriële regeling worden regels gesteld met betrekking tot het verlenen van uitstel van betaling voor de duur van tien jaren voor belastingaanslagen betreffende de schenk- of erfbelasting, bedoeld in <extref doc="jci1.3:c:BWBR0002226&amp;artikel=35b" label-id="2955394" verwijzing-id="2413403" bwb-id="BWBR0002226">artikel 35b, derde lid, van de Successiewet 1956</extref>. Het uitstel wordt beëindigd:</al>
+    <lijst level="single" nr-sluiting="." start="1" type="expliciet">
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid12/Onderdeela">
+        <li.nr>a.</li.nr>
+        <al>in geval van faillissement van de belastingschuldige;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=12&amp;o=a&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=a"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid12/Onderdeelb">
+        <li.nr>b.</li.nr>
+        <al>ingeval de schuldsaneringsregeling natuurlijke personen ten aanzien van de belastingschuldige van toepassing is;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=12&amp;o=b&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=b"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid12/Onderdeelc">
+        <li.nr>c.</li.nr>
+        <al>ingeval zich ten aanzien van de verkrijger tijdens de in de eerste volzin bedoelde periode een gebeurtenis voordoet als bedoeld in <extref doc="jci1.3:c:BWBR0002226&amp;artikel=35e" label-id="10317774" verwijzing-id="2319621" bwb-id="BWBR0002226">artikel 35e, eerste lid, van de Successiewet 1956</extref>.</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=12&amp;o=c&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=c"/></jcis></meta-data></li>
+    </lijst>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=12&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=12"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid13" label-id="2910854L13">
+    <lidnr status="officieel">13</lidnr>
+    <al>Bij ministeriële regeling worden regels gesteld met betrekking tot het verlenen van uitstel van betaling voor de duur van tien jaar voor belastingaanslagen in de schenk- of erfbelasting voor zover die belastingen kunnen worden toegerekend aan de verkrijging van een vordering op een medeverkrijger ter zake van door deze medeverkrijger verkregen ondernemingsvermogen, als bedoeld in <extref doc="jci1.3:c:BWBR0002226&amp;artikel=35c" label-id="2955404" verwijzing-id="2318698" bwb-id="BWBR0002226">artikel 35c, eerste lid, van de Successiewet 1956</extref>. Het uitstel wordt beëindigd: </al>
+    <lijst level="single" nr-sluiting="." start="1" type="expliciet">
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid13/Onderdeela">
+        <li.nr>a.</li.nr>
+        <al>in geval van faillissement van de belastingschuldige;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=13&amp;o=a&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=a"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid13/Onderdeelb">
+        <li.nr>b.</li.nr>
+        <al>ingeval de schuldsaneringsregeling natuurlijke personen ten aanzien van de belastingschuldige van toepassing is;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=13&amp;o=b&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=b"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid13/Onderdeelc">
+        <li.nr>c.</li.nr>
+        <al>ingeval zich ten aanzien van de medeverkrijger tijdens de in de eerste volzin bedoelde periode een gebeurtenis voordoet als bedoeld in <extref doc="jci1.3:c:BWBR0002226&amp;artikel=35e" label-id="10317774" verwijzing-id="2319622" bwb-id="BWBR0002226">artikel 35e, eerste lid, van de Successiewet 1956</extref>;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=13&amp;o=c&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=c"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid13/Onderdeeld">
+        <li.nr>d.</li.nr>
+        <al>voor zover de vordering, bedoeld in de eerste volzin, wordt voldaan.</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=13&amp;o=d&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=d"/></jcis></meta-data></li>
+    </lijst>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=13&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=13"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid14" label-id="2910854L14">
+    <lidnr status="officieel">14</lidnr>
+    <al>Bij ministeriële regeling worden regels gesteld met betrekking tot het verlenen van uitstel van betaling voor de duur van ten hoogste tien jaar, mits voldoende zekerheid is gesteld, voor belastingaanslagen voor zover daarin is begrepen inkomstenbelasting die is verschuldigd wegens het beëindigen van een terbeschikkingstelling van een zaak in de zin van <extref doc="jci1.3:c:BWBR0011353&amp;artikel=3.91" label-id="2783094" verwijzing-id="2323769" bwb-id="BWBR0011353">artikel 3.91</extref> of <extref doc="jci1.3:c:BWBR0011353&amp;artikel=3.92" label-id="2783104" verwijzing-id="2323770" bwb-id="BWBR0011353">artikel 3.92 van de Wet inkomstenbelasting 2001</extref>, welke belasting kan worden toegerekend aan het verschil tussen de boekwaarde en de waarde in het economisch verkeer van die zaak, ingeval de zaak waarvan de terbeschikkingstelling is beëindigd:</al>
+    <lijst bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid14/Opsomming_1" level="single" nr-sluiting="." start="1" type="expliciet">
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid14/Opsomming_1/Onderdeela">
+        <li.nr>a.</li.nr>
+        <al>niet is vervreemd;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=14&amp;o=a&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=a"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid14/Opsomming_1/Onderdeelb">
+        <li.nr>b.</li.nr>
+        <al>is vervreemd waarbij de koper de overdrachtsprijs schuldig is gebleven, of</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=14&amp;o=b&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=b"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid14/Opsomming_1/Onderdeelc">
+        <li.nr>c.</li.nr>
+        <al>is geschonken.</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=14&amp;o=c&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=c"/></jcis></meta-data></li>
+    </lijst>
+    <al>Het uitstel wordt beëindigd:</al>
+    <lijst bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid14/Opsomming_2" level="single" nr-sluiting="." start="1" type="expliciet">
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid14/Opsomming_2/Onderdeel1">
+        <li.nr>1°.</li.nr>
+        <al>wanneer de zaak niet is vervreemd: ingeval de zaak wordt vervreemd, in geval de belastingschuldige overlijdt, in geval van faillissement van de belastingschuldige of in geval de schuldsanering natuurlijke personen ten aanzien van hem van toepassing is;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=14&amp;o=1&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=1"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid14/Opsomming_2/Onderdeel2">
+        <li.nr>2°.</li.nr>
+        <al>wanneer de overdrachtsprijs schuldig is gebleven: ingeval aflossingen plaatsvinden, in geval de koper de zaak vervreemdt, in geval de belastingschuldige overlijdt, in geval van faillissement van de belastingschuldige of in geval de schuldsanering natuurlijke personen ten aanzien van hem van toepassing is;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=14&amp;o=2&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=2"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid14/Opsomming_2/Onderdeel3">
+        <li.nr>3°.</li.nr>
+        <al>wanneer is geschonken: ingeval de begiftigde de zaak vervreemdt, in geval de belastingschuldige overlijdt, in geval van faillissement van de belastingschuldige of in geval de schuldsanering natuurlijke personen ten aanzien van hem van toepassing is.</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=14&amp;o=3&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=3"/></jcis></meta-data></li>
+    </lijst>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=14&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=14"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid15" label-id="2910854L15">
+    <lidnr status="officieel">15</lidnr>
+    <al>Voor de toepassing van het achtste tot en met veertiende lid zijn de <extref doc="onbekend">artikelen 4.3 tot en met 4.5b van de Wet inkomstenbelasting 2001</extref> en <extref doc="jci1.3:c:BWBR0002320&amp;artikel=2" label-id="2873764" verwijzing-id="2004255" bwb-id="BWBR0002320">artikel 2, derde lid, onderdeel e, van de Algemene wet inzake rijksbelastingen</extref> van overeenkomstige toepassing.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=15&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=15"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid16" label-id="2910854L16">
+    <lidnr status="officieel">16</lidnr>
+    <al>Bij ministeriële regeling worden regels gesteld met betrekking tot het verlenen van uitstel van betaling voor de duur van ten hoogste tien jaar, mits voldoende zekerheid is gesteld, voor belastingaanslagen voorzover daarin is begrepen inkomstenbelasting die bij staking van een onderneming is verschuldigd en kan worden toegerekend aan het verschil tussen de boekwaarde en de waarde in het economische verkeer van een woning als bedoeld in <extref doc="jci1.3:c:BWBR0011353&amp;artikel=3.19" label-id="2782304" verwijzing-id="1449516" bwb-id="BWBR0011353">artikel 3.19, eerste lid, van de Wet inkomstenbelasting 2001</extref> die na het staken wordt aangemerkt als een eigen woning als bedoeld in <extref doc="jci1.3:c:BWBR0011353&amp;artikel=3.111" label-id="2783334" verwijzing-id="1449517" bwb-id="BWBR0011353">artikel 3.111 van die wet</extref>. Het uitstel wordt beëindigd:</al>
+    <lijst level="single" nr-sluiting="." start="1" type="expliciet">
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid16/Onderdeela">
+        <li.nr>a.</li.nr>
+        <al>in geval van faillissement van de belastingschuldige;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=16&amp;o=a&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=a"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid16/Onderdeelb">
+        <li.nr>b.</li.nr>
+        <al>ingeval de schuldsaneringsregeling natuurlijke personen ten aanzien van de belastingschuldige van toepassing is;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=16&amp;o=b&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=b"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid16/Onderdeelc">
+        <li.nr>c.</li.nr>
+        <al>in geval van overlijden van de belastingschuldige, tenzij de partner, bedoeld in <extref doc="jci1.3:c:BWBR0011353&amp;artikel=1.2" label-id="2781784" verwijzing-id="1449523" bwb-id="BWBR0011353">artikel 1.2 van de Wet inkomstenbelasting 2001</extref>, aannemelijk maakt dat de resterende belasting binnen de periode waarvoor uitstel is verleend, zal worden voldaan;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=16&amp;o=c&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=c"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid16/Onderdeeld">
+        <li.nr>d.</li.nr>
+        <al>ingeval zich een omstandigheid voordoet waardoor de woning ophoudt een eigen woning te zijn.</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=16&amp;o=d&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=d"/></jcis></meta-data></li>
+    </lijst>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=16&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=16"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid17" label-id="2910854L17">
+    <lidnr status="officieel">17</lidnr>
+    <al>Bij ministeriële regeling worden regels gesteld met betrekking tot het verlenen van uitstel van betaling voor de duur van tien jaar voor belastingaanslagen betreffende de inkomstenbelasting die is verschuldigd bij staking door overlijden als bedoeld in <extref doc="jci1.3:c:BWBR0011353&amp;artikel=3.58" label-id="2782694" verwijzing-id="1449518" bwb-id="BWBR0011353">artikel 3.58, eerste lid, van de Wet inkomstenbelasting 2001</extref>.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=17&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=17"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid18" label-id="2910854L18">
+    <lidnr status="officieel">18</lidnr>
+    <al>Bij ministeriële regeling worden regels gesteld met betrekking tot het verlenen van uitstel van betaling, mits voldoende zekerheid is gesteld, voor belastingaanslagen waarin is begrepen inkomstenbelasting ter zake van winst behaald met of bij het staken van een onderneming of een gedeelte van een onderneming door de overdracht aan een natuurlijk persoon die de onderneming voortzet en de overdrachtsprijs geheel of gedeeltelijk schuldig is gebleven. Het uitstel heeft betrekking op de in de eerste volzin bedoelde belasting voorzover die betrekking heeft op de overdracht van vermogensbestanddelen aan de daar bedoelde persoon. Het uitstel wordt verleend voor een gedeelte in evenredigheid met de verhouding tussen het, op het moment met ingang waarvan het uitstel wordt verleend, schuldig gebleven gedeelte van de overdrachtsprijs en de totale overdrachtsprijs voor de duur van de overeengekomen aflossingsperiode, doch tot uiterlijk het begin van het tiende jaar na afloop van het kalenderjaar waarop de belastingaanslag betrekking heeft.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=18&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=18"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid19" label-id="2910854L19">
+    <lidnr status="officieel">19</lidnr>
+    <al>Het uitstel bedoeld in het vorige lid wordt aan het begin van elk kalenderjaar, te beginnen bij de aanvang van het eerste kalenderjaar volgend op het kalenderjaar waarin de voor de belastingaanslag geldende enige of laatste betalingstermijn vervalt, voor een evenredig gedeelte beëindigd waarbij de teller is één en de noemer gelijk aan het aantal nog resterende gehele jaren van de overeengekomen aflossingsperiode plus één, doch maximaal tien minus het aantal van de reeds verstreken jaren sedert het einde van het kalenderjaar waarop de belastingaanslag betrekking heeft. Het uitstel wordt voorts beëindigd:</al>
+    <lijst level="single" nr-sluiting="." start="1" type="expliciet">
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid19/Onderdeela">
+        <li.nr>a.</li.nr>
+        <al>in geval van faillissement van de belastingschuldige;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=19&amp;o=a&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=a"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid19/Onderdeelb">
+        <li.nr>b.</li.nr>
+        <al>ingeval de schuldsaneringsregeling natuurlijke personen ten aanzien van de belastingschuldige van toepassing is;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=19&amp;o=b&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=b"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid19/Onderdeelc">
+        <li.nr>c.</li.nr>
+        <al>in geval van overlijden van de belastingschuldige;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=19&amp;o=c&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=c"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid19/Onderdeeld">
+        <li.nr>d.</li.nr>
+        <al>voorzover aan het begin van het kalenderjaar het bedrag van het resterende uitstel uitgaat boven het bedrag dat gelijk is aan het gedeelte van de in het vorige lid bedoelde belasting in evenredigheid met de verhouding tussen het nog niet ontvangen deel van de overdrachtsprijs en de totale overdrachtsprijs;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=19&amp;o=d&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=d"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid19/Onderdeele">
+        <li.nr>e.</li.nr>
+        <al>voorzover op de dag volgend op de dag waarop de enige of laatste betalingstermijn is vervallen het resterende uitstel uitgaat boven het bedrag dat gelijk is aan het gedeelte van de in het vorige lid bedoelde belasting in evenredigheid met de verhouding tussen 1e het aantal nog resterende gehele jaren van de overeengekomen aflossingstermijn plus één doch maximaal negen verminderd met de reeds verstreken jaren sedert het einde van het kalenderjaar waarop de belastingaanslag betrekking heeft, en 2e het aantal gehele jaren van de overeengekomen aflossingsperiode, doch maximaal tien. Ingeval de in het vorige lid bedoelde natuurlijk persoon de daar bedoelde onderneming staakt, kan de ontvanger het uitstel beëindigen.</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=19&amp;o=e&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=e"/></jcis></meta-data></li>
+    </lijst>
+    <al>Bij ministeriële regeling kunnen nadere regels worden gesteld voor de toepassing van dit lid.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=19&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=19"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid20" label-id="2910854L20">
+    <lidnr status="officieel">20</lidnr>
+    <al>Bij ministeriële regeling worden regels gesteld met betrekking tot het verlenen van uitstel van betaling, mits voldoende zekerheid is gesteld, voor belastingaanslagen betreffende de erfbelasting ter zake van de verkrijging van de blote eigendom van een woning, bedoeld in <extref doc="jci1.3:c:BWBR0002226&amp;artikel=35g" label-id="10317974" verwijzing-id="2323822" bwb-id="BWBR0002226">artikel 35g van de Successiewet 1956</extref>, alsmede ter zake van de verkrijging van een onderbedelingsvordering, bedoeld in het vierde lid van dat artikel. Het uitstel wordt slechts verleend voor zover degene van wie op grond van de bevoegdheid, bedoeld in <extref doc="jci1.3:c:BWBR0002226&amp;artikel=78" label-id="2955194" verwijzing-id="2477347" bwb-id="BWBR0002226">artikel 78, eerste lid, van de Successiewet 1956</extref>, wordt gevorderd de erfbelasting ter zake van de blote eigendom voor te schieten of uit de met vruchtgebruik bezwaarde goederen te voldoen, onderscheidenlijk degene die op grond van <extref doc="jci1.3:c:BWBR0002761&amp;artikel=14" label-id="5000564" verwijzing-id="2477353" bwb-id="BWBR0002761">artikel 14, eerste lid, van Boek 4 van het Burgerlijk Wetboek</extref> dan wel op grond van het testament gehouden is tot voldoening van de erfbelasting ter zake van de onderbedelingsvordering, niet in staat is anders dan met buitengewoon bezwaar als bedoeld in <intref doc="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=26&amp;z=2026-10-01&amp;g=2026-10-01" label-id="2910864" verwijzing-id="2477352" bwb-id="BWBR0004770" bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel26">artikel 26</intref> de erfbelasting te betalen, waarbij het vruchtgebruik van de woning, dan wel – voor zover de hiervoor bedoelde persoon de eigendom van de woning heeft – de woning, bedoeld in <extref doc="jci1.3:c:BWBR0002226&amp;artikel=35g" label-id="10317974" verwijzing-id="2477348" bwb-id="BWBR0002226">artikel 35g van de Successiewet 1956</extref>, buiten beschouwing blijft. Het uitstel wordt beëindigd:</al>
+    <lijst level="single" nr-sluiting="." start="1" type="expliciet">
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid20/Onderdeela">
+        <li.nr>a.</li.nr>
+        <al>ingeval de woning voor de vruchtgebruiker niet langer een eigen woning is als bedoeld in <extref doc="jci1.3:c:BWBR0011353&amp;artikel=3.111" label-id="2783334" verwijzing-id="2323821" bwb-id="BWBR0011353">artikel 3.111 van de Wet inkomstenbelasting 2001</extref>;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=20&amp;o=a&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=a"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid20/Onderdeelb">
+        <li.nr>b.</li.nr>
+        <al>in geval van faillissement van de belastingschuldige;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=20&amp;o=b&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=b"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid20/Onderdeelc">
+        <li.nr>c.</li.nr>
+        <al>ingeval de schuldsaneringsregeling natuurlijke personen ten aanzien van de belastingschuldige van toepassing is;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=20&amp;o=c&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=c"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid20/Onderdeeld">
+        <li.nr>d.</li.nr>
+        <al>bij vervreemding van de blote eigendom;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=20&amp;o=d&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=d"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid20/Onderdeele">
+        <li.nr>e.</li.nr>
+        <al>voor zover de onderbedelingsvordering, bedoeld in de eerste volzin, wordt afgelost.</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=20&amp;o=e&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="o=e"/></jcis></meta-data></li>
+    </lijst>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=20&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=20"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid21" label-id="2910854L21">
+    <lidnr status="officieel">21</lidnr>
+    <al>Bij ministeriële regeling worden regels gesteld met betrekking tot het verlenen van uitstel van betaling voor de duur van ten minste vijf jaar, voor zover het binnen de geldende betalingstermijn moeten betalen van een belastingaanslag die is opgelegd aan een natuurlijk persoon leidt tot onbillijkheden van overwegende aard.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=21&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=21"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/HoofdstukIV/Afdeling3/Artikel25/Lid22" label-id="2910854L22">
+    <lidnr status="officieel">22</lidnr>
+    <al>Voor de toepassing van het vierde, vijfde, achtste en zeventiende lid wordt de belastingrente en voor de toepassing van het vijfde lid wordt voorts de revisierente gelijkgesteld met de inkomstenbelasting waarmee deze samenhangen. Voor de toepassing van het negende, elfde, veertiende, zestiende en achttiende lid wordt de belastingrente voorzover deze samenhangt met de inkomstenbelasting waarvoor op de voet van die leden uitstel van betaling wordt verleend, gelijkgesteld met die belasting. Voor de toepassing van het twaalfde lid, wordt de belastingrente gelijkgesteld met de erfbelasting waarmee deze samenhangt. Voor de toepassing van het dertiende lid wordt de belastingrente voor zover deze samenhangt met de erfbelasting waarvoor op de voet van dat lid uitstel van betaling wordt verleend, gelijkgesteld met die belasting. Voor zover ingevolge het eenentwintigste lid uitstel van betaling is verleend, wordt voor de toepassing van dat lid de belastingrente gelijkgesteld met de belasting waarmee deze samenhangt. De vorige zin is van overeenkomstige toepassing op revisierente die samenhangt met een belastingaanslag.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;lid=22&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="lid=22"/></jcis></meta-data></lid>
+<meta-data><jcis><jci versie="1.0" verwijzing="1.0:c:BWBR0004770&amp;artikel=25&amp;g=2026-10-01" onderdeel="artikel=25" korte-verwijzing="1.0:c:BWBR0004770&amp;artikel=25"/><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;artikel=25&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="artikel=25" korte-verwijzing="jci1.3:c:BWBR0004770&amp;artikel=25"/></jcis></meta-data></artikel><meta-data><jcis><jci versie="1.0" verwijzing="1.0:c:BWBR0004770&amp;afdeling=3&amp;g=2026-10-01" onderdeel="afdeling=3" korte-verwijzing="1.0:c:BWBR0004770&amp;afdeling=3"/><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;afdeling=3&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="afdeling=3" korte-verwijzing="jci1.3:c:BWBR0004770&amp;afdeling=3"/></jcis></meta-data></afdeling><meta-data><jcis><jci versie="1.0" verwijzing="1.0:c:BWBR0004770&amp;hoofdstuk=IV&amp;g=2026-10-01" onderdeel="hoofdstuk=IV" korte-verwijzing="1.0:c:BWBR0004770&amp;hoofdstuk=IV"/><jci versie="1.3" verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV&amp;z=2026-10-01&amp;g=2026-10-01" onderdeel="hoofdstuk=IV" korte-verwijzing="jci1.3:c:BWBR0004770&amp;hoofdstuk=IV"/></jcis></meta-data></hoofdstuk>
+      </wettekst>
+    </wet-besluit>
+</wetgeving></toestand>

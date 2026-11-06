@@ -183,7 +183,9 @@ overzien.
   eigen tekst). Registreren hoort machine-lokaal; de URL en het token horen niet in deze repo.
 - **`tools/wetsanalyse-acceptatie-mcp/`** – stdio-MCP die de webapp op acceptatie bedient zoals een gebruiker:
   via de BFF, met een sessie uit een accounttoken (`wa_pat_…`). Daarmee doet een MCP-client een acceptatietest
-  van begin tot eind en leest hij annotaties, begrippen en logs uit. De scenario's staan in `docs/acceptatie/`.
+  van begin tot eind en leest hij annotaties, begrippen en logs uit. Voor de beoordeling leest hij ook de officiële
+  bron (`bron_lezen`) en de graaf (`graaf_lezen`), en het team deelt per run een logboek dat alleen kan aanvullen.
+  De scenario's en de briefing van het team staan in `docs/acceptatie/`.
 - **`tools/nl-sbb-begrip/`** – side project: agent-workflow die voor één wettelijk begrip een
   NL-SBB-definitie opstelt (Markdown + SKOS-Turtle) op basis van de graaf, via die MCP-server.
   Draait niet mee in de dienst en heeft geen eigen CI.

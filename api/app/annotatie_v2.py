@@ -15,7 +15,7 @@ from . import annotatie_v2_store as store
 from . import graaf as graaf_mod
 from . import knoopinfo as knoopinfo_mod
 from . import samenhang as samenhang_mod
-from .annotatie_v2_contracts import Batch, Beslissing, Doel, Element, Zoekvraag
+from .annotatie_v2_contracts import Batch, Beslissing, Doel, Element, Laagbesluiten, Zoekvraag
 from .auth import require_client
 from .bron_resolver import bwb_van, haal_bronrijen, snapshot_uit
 from .bron_resolver import resolve_bron as _resolve_bron
@@ -64,7 +64,7 @@ async def capabilities(actor: str = Depends(actieve_userid)):
 
 @router.get("/weergave")
 async def get_weergave(doel: dict = Depends(doel_query), actor: str = Depends(actieve_userid)):
-    return await store.weergave(await resolve_bron(doel))
+    return store.compacte_weergave(await store.weergave(await resolve_bron(doel)))
 
 
 @router.get("/samenhang")
@@ -168,6 +168,9 @@ async def post_batch(req: Batch, actor: str = Depends(actieve_userid)):
 @router.get("/elementen/{element_id}")
 async def get_element(element_id: str, actor: str = Depends(actieve_userid)):
     result = await store.detail(element_id)
+    # De meting van de ronde hoort bij de weergave (`runs`), niet bij elk element apart.
+    result["element"] = {**result["element"], "geproduceerd_door": store.zonder_meting(
+        result["element"].get("geproduceerd_door") or {})}
     # DB-identiteit/historie is waarheid; actualiteit volgt uit huidige gecontroleerde bron.
     owner = result["element"]["eigenaar_iri"]
     law = re.fullmatch(r"urn:bwb:(BWB[RV]\d+)(?::[^<>\s\"{}|^`\\]*)?", owner)
@@ -221,7 +224,7 @@ async def post_element(req: MensInvoer, actor: str = Depends(actieve_userid)):
     batch = Batch(batch_id=uuid.uuid4().hex, doel=req.doel, snapshot_id=req.snapshot_id,
                   verwachte_revisies=req.verwachte_revisies, elementen=[req.element])
     result = await store.batch(batch, await resolve_bron(req.doel.model_dump()), actor, mens=True)
-    return {"element": result["elementen"][0], "lagen": result["lagen"]}
+    return {"element": store.compact_element(result["elementen"][0]), "lagen": result["lagen"]}
 
 
 @router.delete("/elementen/{element_id}")
@@ -240,6 +243,14 @@ async def post_status(laag_id: str, req: StatusInvoer, actor: str = Depends(acti
     layer = await store.laag_detail(laag_id)
     snapshot = await resolve_bron({"bron_iri": layer["bron_iri"]})
     return await store.zet_status(laag_id, req.status, req.verwachte_revisie, actor, snapshot)
+
+
+@router.post("/lagen/{laag_id}/beslissingen")
+async def post_laagbesluiten(laag_id: str, req: Laagbesluiten, actor: str = Depends(actieve_userid)):
+    """Besluiten op één laag in één transactie en één revisie: alles of niets. Het antwoord is klein: per element
+    zijn stand, plus hoeveel er nog open staat."""
+    layer = await store.laag_detail(laag_id)
+    return await store.beslis_laag(laag_id, req, await resolve_bron({"bron_iri": layer["bron_iri"]}), actor)
 
 
 @router.get("/lagen/{laag_id}/revisies")

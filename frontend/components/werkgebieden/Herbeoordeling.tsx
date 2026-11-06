@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/Field";
 import type { BegripMutatie } from "@/lib/useBegrip";
 import { bevestigKoppeling, herkoppel } from "@/lib/api";
 import { ACTIE_LABEL, RICHTING_LABEL, RICHTING_TEKEN, markeer } from "@/lib/herbeoordeling";
-import type { Begrip, BronSignaal, GeraakteKoppeling, Opvolger } from "@/lib/types";
+import type { Begrip, BronSignaal, GeraakteKoppeling, KoppelStand, Opvolger } from "@/lib/types";
 import { annotatieHref } from "@/lib/werkgebied";
 import { KlasseLabel } from "@/components/ui/Lijst";
 
@@ -33,7 +33,7 @@ export function Herbeoordeling({ id, begrip, geraakt: g, muteer }: {
   const [motivatie, setMotivatie] = useState("");
   const [bezig, setBezig] = useState(false);
 
-  async function doe(actie: (revisie: number) => Promise<Begrip>, gelukt: string) {
+  async function doe(actie: (revisie: number) => Promise<KoppelStand>, gelukt: string) {
     setBezig(true);
     await muteer(actie, { gelukt });
     setBezig(false);

@@ -25,6 +25,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import re
 import uuid
 from contextlib import asynccontextmanager
 from typing import Awaitable, Callable
@@ -33,15 +34,15 @@ from fastapi import HTTPException
 from sqlalchemy import delete, func, insert, or_, select, update
 
 from . import annotatie_v2_store as annotaties, db
+from .annotatie_v2_contracts import BEOORDEELD
 from .begrip_contracts import (
-    BegripInhoud, BegripInvoer, BegripWijziging, KoppelInvoer, KoppelWijziging,
+    BegripInhoud, BegripInvoer, BegripWijziging, KoppelBeoordelingen, KoppelInvoer, KoppelWijziging,
 )
 from .werkgebied_inventaris import inventaris
 from .werkgebied_store import _audit as werkgebied_audit, niet_gevonden
 
 Resolver = Callable[[dict], Awaitable[dict]]
 
-BEOORDEELD = {"human_approved", "edited", "published"}
 DRAGEND = {"duiding", "definitie"}
 
 
@@ -73,9 +74,20 @@ def element_hash(el: dict) -> str:
 
 # --- lezen ------------------------------------------------------------------------------------
 
+def bevestigde_stand(bewijs: dict, bevestigingen: list[dict] | None) -> dict:
+    """Het bewijs zoals de analist het voor het laatst bevestigde: wat een lezer en de export moeten zien. Een
+    bevestiging legt een nieuwe tekst vast; zonder deze stap toonde `wa:passage` de tekst van vóór de wijziging (N2).
+    De rij verandert niet: de stand bij het koppelen blijft `bewijs_bij_koppelen`."""
+    if not bevestigingen:
+        return bewijs
+    laatste = bevestigingen[-1]
+    return {**bewijs, **{k: laatste[k] for k in ("element_hash", "ankers", "tekst", "klasse") if laatste.get(k)}}
+
+
 def _koppeling(row) -> dict:
     return {"id": row.id, "begrip_id": row.begrip_id, "werkgebied_id": row.werkgebied_id, "element_id": row.element_id,
-            "rol": row.rol, "motivatie": row.motivatie, "bewijs": row.bewijs, "beoordeling": row.beoordeling,
+            "rol": row.rol, "motivatie": row.motivatie, "bewijs": bevestigde_stand(row.bewijs, row.bevestigingen),
+            "bewijs_bij_koppelen": row.bewijs, "beoordeling": row.beoordeling,
             "beoordeeld_door": row.beoordeeld_door,
             "beoordeeld_op": db.aware(row.beoordeeld_op).isoformat() if row.beoordeeld_op else None,
             "toegevoegd_door": row.toegevoegd_door, "toegevoegd": db.aware(row.toegevoegd).isoformat(),
@@ -108,12 +120,26 @@ def _meervoud(n: int, een: str, meer: str) -> str:
     return een if n == 1 else meer.format(n=n)
 
 
+# De zin die `begrippen_run_store.context_uit` en graph-qa `kaart._context` maken. Een punt binnen een vindplaats staat
+# tegen het volgende teken ("Artikel 79.5a"); een punt met een spatie erachter is het eind van de zin, dus wie er een
+# eigen tekst achter zet, valt hier niet onder.
+_NIET_EINDE = r"(?:[^.]|\.(?=\S))+"
+_VINDPLAATSREGEL = re.compile(rf"Komt voor in {_NIET_EINDE}\.(?: Wettelijke definitie in {_NIET_EINDE}\.)?")
+
+
+def eigen_toelichting(context: str) -> bool:
+    """Staat er een toelichting? De gegenereerde vindplaatsregel is er geen: die zegt waar de term staat, niet wat er
+    afgebakend wordt (S6)."""
+    tekst = (context or "").strip()
+    return bool(tekst) and _VINDPLAATSREGEL.fullmatch(tekst) is None
+
+
 def poort(inhoud: dict, koppelingen: list[dict]) -> dict:
     """Mag dit begrip geaccordeerd worden, en zo nee, waarom niet. `koppelingen` met actualiteit."""
     redenen = []
     if not inhoud.get("definitie", "").strip():
         redenen.append("Er is nog geen definitie.")
-    if not inhoud.get("context", "").strip():
+    if not eigen_toelichting(inhoud.get("context", "")):
         redenen.append("De toelichting ontbreekt.")
     dragend = [k for k in koppelingen if k["rol"] in DRAGEND and k["beoordeling"] != "afgewezen"]
     if not any(k["rol"] == "duiding" for k in dragend):
@@ -194,6 +220,20 @@ def _begrip(row, koppelingen: list[dict], opvolging: dict | None = None) -> dict
             "vervangen_door": o.get("vervangen_door"), "vervangt": o.get("vervangt", [])}
 
 
+#: Wat een besluit over een koppeling kan veranderen. De kaart en het bewijs blijven staan.
+_KOPPELSTAND = ("id", "element_id", "rol", "motivatie", "beoordeling", "beoordeeld_door", "beoordeeld_op", "actualiteit",
+                "lifecycle_nu", "annotatie_beoordeeld")
+_BEGRIPSTAND = ("id", "status", "revisie", "gewijzigd", "geaccordeerd_door", "geaccordeerd_op", "geaccordeerd_revisie",
+                "accorderen", "aandachtspunten")
+
+
+def koppelstand(begrip: dict) -> dict:
+    """Het antwoord op een besluit over koppelingen. Niet de hele kaart: die groeit met het aantal passages, en de
+    jurist neemt ze één voor één door, dus een reeks besluiten werd kwadratisch. De werkplek legt dit over wat ze heeft."""
+    return {**{k: begrip[k] for k in _BEGRIPSTAND}, "koppelingen": [
+        {k: x[k] for k in _KOPPELSTAND} | {"bevestigingen": len(x.get("bevestigingen") or [])} for x in begrip["koppelingen"]]}
+
+
 async def _opvolging(conn, werkgebied_id: str | None) -> dict[str, dict]:
     """Per begrip `vervangen_door` en `vervangt` ({begrip_id, naam, reden}) uit de opvolgingsrelaties. De opvolging van
     een generiek begrip heeft geen werkgebied en geldt overal."""
@@ -229,31 +269,33 @@ async def definitie_onderbouwing(conn, begrip_id: str, inhoud: dict) -> dict | N
     revisie die deze definitie zette (`begrip_revisies.detail.voorstel_id`), met zijn fragmenten, de
     vindplaats van een brondefinitie, de duiding en het onderzoek van de run. Komt de definitie uit een
     groep van de keten (overnemen of akkoord), dan staat de onderbouwing bevroren in het revisiedetail
-    (`onderbouwing`). `inhoud` blijft slank. None als de definitie niet (ongewijzigd) uit een voorstel
-    of groep komt: met de hand geschreven of aangepast bij het overnemen."""
+    (`onderbouwing`). `inhoud` blijft slank. Paste de analist de definitie aan, bij het overnemen of later, dan blijft
+    de onderbouwing staan met `aangepast: true` (S8): de bronnen zijn nog steeds waar hij mee begon, maar de tekst is
+    niet meer wat ze dragen. None als er nooit een voorstel of groep achter zat."""
     definitie = (inhoud.get("definitie") or "").strip()
     if not definitie:
         return None
     r, v, k = db.begrip_revisies, db.begrip_voorstellen, db.begrip_kaartruns
     revisies = (await conn.execute(select(r.c.detail, r.c.inhoud).where(r.c.begrip_id == begrip_id)
                                    .order_by(r.c.revisie.desc()))).all()
+    aangepast = False
     for x in revisies:
         if (x.inhoud or {}).get("definitie", "").strip() != definitie:
-            break                                       # vóór deze revisie was het een andere definitie
+            aangepast = True                            # de definitie van nu is hierna geschreven
         d = x.detail or {}
         if d.get("onderbouwing"):
             o = d["onderbouwing"]
-            return {**o, "fragmenten": [{**f, "rol": "ondersteunend"} for f in o.get("fragmenten") or []]}
+            return {**o, "aangepast": aangepast or bool(o.get("aangepast")),
+                    "fragmenten": [{**f, "rol": "ondersteunend"} for f in o.get("fragmenten") or []]}
         if d.get("voorstel_id") and d.get("veld") == "definitie":
-            if d.get("aangepast"):
-                return None
+            aangepast = aangepast or bool(d.get("aangepast"))
             vrow = (await conn.execute(select(v.c.id, v.c.run_id, v.c.actie, v.c.waarde)
                                        .where(v.c.id == d["voorstel_id"]))).first()
             if vrow is None:
                 return None
             krow = (await conn.execute(select(k.c.invoer).where(k.c.id == vrow.run_id))).first()
             w = vrow.waarde or {}
-            return {"voorstel_id": vrow.id, "actie": vrow.actie, "herkomst": w.get("herkomst", ""),
+            return {"voorstel_id": vrow.id, "actie": vrow.actie, "herkomst": w.get("herkomst", ""), "aangepast": aangepast,
                     "definitie_bron_iri": w.get("definitie_bron_iri", ""),
                     "definitie_vindplaats": w.get("definitie_vindplaats", ""),
                     "fragmenten": [{"bron_iri": f["bron_iri"], "start": f["start"], "eind": f["eind"],
@@ -669,7 +711,7 @@ async def koppel(werkgebied: dict, begrip_id: str, invoer: KoppelInvoer, actor: 
     async with db.get_engine().begin() as conn:
         await koppel_in(conn, werkgebied["id"], begrip_id, invoer.verwachte_revisie, bewijs, invoer.rol.value,
                         invoer.motivatie, actor)
-    return await haal(werkgebied["id"], begrip_id)
+    return koppelstand(await haal(werkgebied["id"], begrip_id))
 
 
 async def koppel_in(conn, werkgebied_id: str, begrip_id: str, verwacht: int, bewijs: dict[str, dict], rol: str,
@@ -717,7 +759,28 @@ async def wijzig_koppeling(werkgebied_id: str, begrip_id: str, koppeling_id: str
             if "beoordeling" in velden:
                 velden.update(beoordeeld_door=actor, beoordeeld_op=db.utcnow())
             await conn.execute(update(k).where(k.c.id == koppeling_id).values(**velden))
-    return await haal(werkgebied_id, begrip_id)
+    return koppelstand(await haal(werkgebied_id, begrip_id))
+
+
+async def beoordeel_koppelingen(werkgebied_id: str, begrip_id: str, w: KoppelBeoordelingen, actor: str) -> dict:
+    """Dezelfde beoordeling op meer koppelingen, in één revisie. Wat er al zo staat, telt niet mee."""
+    k = db.begrip_koppelingen
+    beoordeling = w.beoordeling.value
+    detail: dict = {"velden": ["beoordeling"], "beoordeling": beoordeling}
+    async with _gewijzigd(werkgebied_id, begrip_id, w.verwachte_revisie, actor, "koppeling-gewijzigd",
+                          detail, passage=True) as (conn, _, stand):
+        rijen = {r.id: r for r in (await conn.execute(select(k).where(
+            k.c.id.in_(w.koppeling_ids), k.c.begrip_id == begrip_id, k.c.verwijderd.is_(None)))).all()}
+        if onbekend := [i for i in w.koppeling_ids if i not in rijen]:
+            raise HTTPException(404, {"fout": "onbekende_koppeling", "koppeling_ids": onbekend,
+                                      "melding": f"{len(onbekend)} koppeling(en) bestaan niet (meer) bij dit begrip."})
+        anders = [i for i in w.koppeling_ids if rijen[i].beoordeling != beoordeling]
+        detail["koppelingen"] = anders
+        stand["geen_wijziging"] = not anders
+        if anders:
+            await conn.execute(update(k).where(k.c.id.in_(anders)).values(
+                beoordeling=beoordeling, beoordeeld_door=actor, beoordeeld_op=db.utcnow()))
+    return koppelstand(await haal(werkgebied_id, begrip_id))
 
 
 async def _toets_primair(conn, werkgebied_id: str, begrip_id: str, element_ids: list[str]) -> None:
@@ -745,24 +808,29 @@ async def ontkoppel(werkgebied_id: str, begrip_id: str, koppeling_id: str, verwa
         if row is None:
             raise HTTPException(404, "Koppeling bestaat niet.")
         await conn.execute(update(k).where(k.c.id == koppeling_id).values(verwijderd=db.utcnow()))
-    return await haal(werkgebied_id, begrip_id)
+    return koppelstand(await haal(werkgebied_id, begrip_id))
 
 
-async def accordeer(werkgebied_id: str | None, begrip_id: str, verwacht: int, actor: str) -> dict:
+async def accordeer(werkgebied_id: str | None, begrip_id: str, verwacht: int, reden: str, actor: str) -> dict:
     async with db.get_engine().begin() as conn:
-        p = await accordeer_in(conn, werkgebied_id, begrip_id, verwacht, actor)
+        p = await accordeer_in(conn, werkgebied_id, begrip_id, verwacht, reden, actor)
     if not p["mag"]:
         raise HTTPException(409, {"fout": "poort", "redenen": p["redenen"],
                                   "melding": "Nog niet te accorderen: " + " ".join(p["redenen"])})
     return await haal(werkgebied_id, begrip_id)
 
 
-async def accordeer_in(conn, werkgebied_id: str | None, begrip_id: str, verwacht: int, actor: str) -> dict:
+async def accordeer_in(conn, werkgebied_id: str | None, begrip_id: str, verwacht: int, reden: str, actor: str) -> dict:
     """Accorderen als de poort het toelaat, binnen de transactie van de aanroeper. Mag het niet, dan
-    verandert er niets en komen de redenen terug: de aanroeper beslist of dat een fout is."""
+    verandert er niets en komen de redenen terug: de aanroeper beslist of dat een fout is. Een akkoord op
+    een voorstel zonder reden blijft dus een concept: accorderen zonder reden bestaat niet."""
+    reden = reden.strip()
+    detail = {"reden": reden}
     async with _gewijzigd_in(conn, werkgebied_id, begrip_id, verwacht, actor, "begrip-geaccordeerd",
-                             {}) as (_, row, stand):
+                             detail) as (_, row, stand):
         p = poort(row.inhoud, await _koppelingen_van(conn, werkgebied_id, begrip_id))
+        if not reden:
+            p = {"mag": False, "redenen": [*p["redenen"], "De reden van het accorderen ontbreekt."]}
         if not p["mag"]:
             stand["geen_wijziging"] = True
         else:

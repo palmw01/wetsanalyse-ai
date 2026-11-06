@@ -50,6 +50,7 @@ _PROP_DATATYPES: dict[str, URIRef] = {
     "uitgiftedatum": XSD.date,
     "publicatiejaar": XSD.gYear,
     "publicatienr": XSD.integer,
+    "volgnummer": XSD.integer,
 }
 
 # Props met Nederlandstalige tekst -> taaltag ``@nl``.

@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { OpnemenInWerkgebied } from "@/components/werkgebieden/OpnemenInWerkgebied";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
-import { LIFECYCLE_LABEL } from "@/lib/annotatie";
+import { BEOORDEELD_LIFECYCLES, LIFECYCLE_LABEL } from "@/lib/annotatie";
 import { haalNodeWeergave, nodeLink, type NodeWeergave } from "@/lib/annotatieNode";
 import { foutTekst, haalWerkgebied, lijstWerkgebieden } from "@/lib/api";
 import { haalKnoopInfo, type KnoopInfo } from "@/lib/graaf/knoopinfo";
@@ -48,7 +48,7 @@ export function BronPagina({ bronIri, werkgebiedId }: { bronIri: string; werkgeb
   const doel = view?.segmenten.find((s) => s.bron_iri === bronIri);
   const naam = view?.doel.label || doel?.label || "Bepaling";
   const actueel = (view?.elementen ?? []).filter((e) => !e.verouderd && e.lifecycle !== "rejected");
-  const beoordeeld = actueel.filter((e) => ["human_approved", "edited", "published"].includes(e.lifecycle)).length;
+  const beoordeeld = actueel.filter((e) => BEOORDEELD_LIFECYCLES.includes(e.lifecycle)).length;
   const afgerond = !!view?.lagen.length && view.lagen.every((l) => l.status === "geaccordeerd");
   const selectie = wg?.bronnen.find((b) => b.bron_iri === bronIri);
   const kruimels: Kruimel[] = wg
