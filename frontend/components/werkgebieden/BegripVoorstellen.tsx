@@ -27,7 +27,7 @@ const datum = (iso: string) =>
  *  ronde, de voorstellen **per term** (spoor H4: de keten maakt één groep per term per bepaling, dus
  *  "tijdvak" stond er zeven keer) en de relaties. Beoordelen gebeurt op de pagina van een term
  *  (`BegripTermPagina`). Een voorstel is geen begrip, en geen besluit wijzigt een annotatie. */
-export function BegripVoorstellen({ id, runId, kop = "Voorstellen van Lex", sub, boven, opname }: {
+export function BegripVoorstellen({ id, runId, kop = "Voorstellen van Lex", sub, boven, opname, onGeladen }: {
   id: string;
   /** De ronde waar een artefact in het gesprek naar wijst. De voorstellen zijn altijd die van de
    *  laatste ronde – daar wordt verder beoordeeld –, maar is dat een andere, dan zegt de strook dat. */
@@ -40,6 +40,8 @@ export function BegripVoorstellen({ id, runId, kop = "Voorstellen van Lex", sub,
   /** Een oude versie (de versiekiezer): de voorstellen zoals ze toen waren. Alleen lezen: niets ophalen en geen besluiten;
    *  de rijen naar de termpagina tonen de stand van nu, en dat staat erbij. De aanroeper remount per versie (`key`). */
   opname?: GroepenAntwoord;
+  /** De voorstellen zijn er, of kwamen er niet: het kader wacht hierop met verschijnen. */
+  onGeladen?: () => void;
 }) {
   const [data, setData] = useState<GroepenAntwoord | null>(opname ?? null);
   const [laatste, setLaatste] = useState<BegrippenRun | null>(null);
@@ -48,14 +50,17 @@ export function BegripVoorstellen({ id, runId, kop = "Voorstellen van Lex", sub,
   const router = useRouter();
 
   const laad = useCallback(async () => {
+    // De laatste ronde rekent of ze verouderd is en duurt daardoor seconden; de voorstellen wachten daar niet
+    // op. Faalt stil: `groepen` draagt de run ook, en of ze verouderd is, is dan onbekend.
+    void haalLaatsteBegrippenRun(id).then(setLaatste, () => setLaatste(null));
     try {
-      const [g, l] = await Promise.all([haalGroepen(id), haalLaatsteBegrippenRun(id)]);
-      setData(g);
-      setLaatste(l);
+      setData(await haalGroepen(id));
     } catch (e) {
       setFout(foutTekst(e, "De voorstellen konden niet worden geladen."));
+    } finally {
+      onGeladen?.();
     }
-  }, [id]);
+  }, [id, onGeladen]);
 
   useEffect(() => {
     if (opname) return;
@@ -96,15 +101,15 @@ export function BegripVoorstellen({ id, runId, kop = "Voorstellen van Lex", sub,
                 Laatste voorstel {datum(run.gewijzigd)} · {run.aantal_formuleringen} passages ·{" "}
                 {telling(data?.groepen.length ?? 0, "groep", "groepen")} · {telling(vragen.length, "vraag", "vragen")}
                 {run.status === "mislukt" && <span className="text-aandacht-geel-tekst"> · mislukt: {run.reden || "onbekend"}</span>}
+                {laatste?.verouderd && (
+                  <span className="text-aandacht-geel-tekst" data-verouderd>
+                    {" "}· gebaseerd op een oudere stand van het werkgebied (er kwamen passages of bronnen bij). Vraag Lex opnieuw om voorstellen om ze mee te nemen.
+                  </span>
+                )}
               </p>
               {data?.verdieping && (
                 <p>Lex dacht mee{data.verdieping.op ? ` op ${datum(data.verdieping.op)}` : ""}: advies bij de twijfelvragen en
                   een kaart per groep. Een definitie die Lex formuleerde, staat geel.</p>
-              )}
-              {laatste?.verouderd && (
-                <p className="text-aandacht-geel-tekst">
-                  Gebaseerd op een oudere stand van het werkgebied (er kwamen passages of bronnen bij). Vraag Lex opnieuw om voorstellen om ze mee te nemen.
-                </p>
               )}
               {run.overgeslagen.length > 0 && (
                 <details>

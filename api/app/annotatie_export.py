@@ -15,9 +15,10 @@ import io
 import json
 from pathlib import Path
 from typing import Any
-from xml.sax.saxutils import escape
 
 from rdflib import Dataset
+
+from . import pdf_opmaak
 
 SCHEMA_PAD = Path(__file__).parent / "schemas" / "annotatie-export-v3.schema.json"
 EXPORT_VERSIE = 3
@@ -232,18 +233,7 @@ def pdf_regels(view: dict, verklaringen: dict) -> list[tuple[str, str]]:
 
 
 def pdf_export(view: dict, verklaringen: dict) -> bytes:
-    from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
-
-    output = io.BytesIO()
-    styles = getSampleStyleSheet()
-    story = []
-    for stijl, tekst in pdf_regels(view, verklaringen):
-        if stijl == "Heading4":
-            story.append(Spacer(1, 6))
-        story.append(Paragraph(escape(tekst), styles[stijl]))
-    SimpleDocTemplate(output).build(story)
-    return output.getvalue()
+    return pdf_opmaak.render(pdf_regels(view, verklaringen), titel=str(view["doel"].get("label", "Annotaties")))
 
 
 def trig_export(lagen: list[tuple[str, Any]]) -> bytes:

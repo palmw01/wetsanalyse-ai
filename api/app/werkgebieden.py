@@ -2,15 +2,21 @@
 gebruiker, die als actor in de audit komt."""
 from __future__ import annotations
 
+import asyncio
+import logging
 import re
+import time
+from typing import Literal
 
 import httpx
 from bronmodel import BronFout, BronKeuze
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
-from . import annotatie_v2_store, werkgebied_deelvragen as deelvragen, werkgebied_store as store
+from . import annotatie_v2_store, pdf_opmaak, werkgebied_deelvragen as deelvragen, werkgebied_export, werkgebied_store as store
 from .auth import require_client
 from .bron_resolver import resolve_bron as _resolve_bron
+from .graaf_projectie_v2 import verklaringen
+from .graaf import lees_bron as _lees_bron
 from .routers.auth import actieve_userid
 from .werkgebied_contracts import (
     BronselectieInvoer, BronselectieWijziging, DeelvraagInvoer, DeelvraagKoppelingen, DeelvragenSamen,
@@ -19,14 +25,15 @@ from .werkgebied_contracts import (
 from .werkgebied_inventaris import inventaris
 from .werkgebied_werkvoorraad import selecties_in_bereik, werkvoorraad
 
+logger = logging.getLogger("wetsanalyse.werkgebieden")
+
 router = APIRouter(prefix="/werkgebieden", tags=["werkgebieden"],
                    dependencies=[Depends(require_client)])
 
 
-async def resolve_bron(doel: dict) -> dict:
-    """Zelfde foutvertaling als de annotatie-API: ongeldige bron 422, graaf weg 503."""
+async def _met_foutvertaling(resolve, doel: dict) -> dict:
     try:
-        return await _resolve_bron(doel)
+        return await resolve(doel)
     except BronKeuze as exc:
         # Een dubbelzinnig nummer of een lid dat niet bestaat: de graaf kent wel de opties. Die gaan mee,
         # zodat de werkplek kan laten kiezen in plaats van alleen "niet gevonden" te zeggen.
@@ -35,6 +42,17 @@ async def resolve_bron(doel: dict) -> dict:
         raise HTTPException(422, str(exc)) from exc
     except (httpx.HTTPError, ConnectionError) as exc:
         raise HTTPException(503, "De brongraaf is tijdelijk niet beschikbaar.") from exc
+
+
+async def resolve_bron(doel: dict) -> dict:
+    """Zelfde foutvertaling als de annotatie-API: ongeldige bron 422, graaf weg 503."""
+    return await _met_foutvertaling(_resolve_bron, doel)
+
+
+async def lees_bron(doel: dict) -> dict:
+    """De bronboom voor een route die alleen leest, uit de cache (`graaf.lees_bron`); wat iets vastlegt, neemt
+    `resolve_bron`."""
+    return await _met_foutvertaling(_lees_bron, doel)
 
 
 @router.get("")
@@ -87,14 +105,12 @@ SELECT ?r ?citeertitel ?vanaf ?tot WHERE {{ VALUES ?r {{ {waarden} }}
 }}"""
 
 
-@router.get("/{werkgebied_id}/toestanden")
-async def get_toestanden(werkgebied_id: str, actor: str = Depends(actieve_userid)):
+async def toestanden_van(wg: dict) -> dict:
     """De peildatum naast de toestand van elke regeling van het werkgebied (`regelingen_van`). De graaf bevat per regeling alleen de
     nieuwste toestand: ging die pas ná de peildatum gelden, dan kan de tekst afwijken van wat op de peildatum
     gold (`na_peildatum`). Best-effort: een haperende graaf geeft `volledig: false`, nooit een stille leegte."""
     from .graaf_projectie_v2 import _select
 
-    wg = await store.haal(werkgebied_id)
     bwbs = store.regelingen_van(wg)
     uit = {"peildatum": wg["peildatum"], "peildatum_standaard": wg["peildatum_standaard"], "regelingen": [],
            "volledig": True}
@@ -113,6 +129,11 @@ async def get_toestanden(werkgebied_id: str, actor: str = Depends(actieve_userid
                                   "geldig_tot": (r.get("tot") or "")[:10] or None,
                                   "na_peildatum": bool(vanaf) and vanaf > wg["peildatum"]})
     return uit
+
+
+@router.get("/{werkgebied_id}/toestanden")
+async def get_toestanden(werkgebied_id: str, actor: str = Depends(actieve_userid)):
+    return await toestanden_van(await store.haal(werkgebied_id))
 
 
 _GRAAF_WEG = "De kennisgraaf is tijdelijk niet bereikbaar."
@@ -248,7 +269,7 @@ async def delete_deelvraag(werkgebied_id: str, deelvraag_id: str, verwachte_revi
 async def get_elementen(werkgebied_id: str, actor: str = Depends(actieve_userid)):
     wg = await store.haal(werkgebied_id)
     return {"werkgebied_id": werkgebied_id, "revisie": wg["revisie"],
-            **await inventaris(wg["bronnen"], resolve_bron)}
+            **await inventaris(wg["bronnen"], lees_bron)}
 
 
 @router.get("/{werkgebied_id}/annotatie-werkvoorraad")
@@ -278,7 +299,21 @@ async def get_annotatie_werkvoorraad(werkgebied_id: str,
         extra |= {"deelvragen": meegenomen,
                   "buiten_bereik": sum(1 for s in wg["bronnen"] if s["rol"] == "analyseren" and s["id"] not in binnen)}
     return {"werkgebied_id": werkgebied_id, "revisie": wg["revisie"], "naam": wg["naam"], **extra,
-            **await werkvoorraad(selecties, resolve_bron, actor)}
+            **await werkvoorraad(selecties, lees_bron, actor)}
+
+
+@router.get("/{werkgebied_id}/export")
+async def get_export(werkgebied_id: str, formaat: Literal["pdf"] = "pdf", actor: str = Depends(actieve_userid)):
+    """Het hele werkgebied als één PDF, op de stand van nu: dossier, deelvragen en bronnen met hun wettekst, annotaties,
+    begrippen en een korte verantwoording. De inhoud staat in `werkgebied_export`. Reportlab is puur Python en de api
+    deelt de event loop: het zetten gebeurt in een thread."""
+    start = time.monotonic()
+    data = await werkgebied_export.verzamel(werkgebied_id, actor, resolve_bron, toestanden_van)
+    body = await asyncio.to_thread(werkgebied_export.pdf_export, data, verklaringen())
+    logger.info("werkgebied_export", extra={"werkgebied_id": werkgebied_id, "paginas": pdf_opmaak.aantal_paginas(body),
+                                            "bytes": len(body), "ms": round((time.monotonic() - start) * 1000)})
+    return Response(body, media_type="application/pdf", headers={
+        "Content-Disposition": f'attachment; filename="{werkgebied_export.bestandsnaam(data)}"'})
 
 
 @router.get("/{werkgebied_id}/audit")

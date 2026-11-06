@@ -372,7 +372,7 @@ async def verwijder_bron(werkgebied_id: str, selectie_id: str, verwacht: int, ac
     return await haal(werkgebied_id)
 
 
-async def audit(werkgebied_id: str, limit: int = 100) -> list[dict]:
+async def audit(werkgebied_id: str, limit: int | None = 100) -> list[dict]:
     a = db.werkgebied_audit
     async with db.get_engine().connect() as conn:
         rows = (await conn.execute(select(a).where(a.c.werkgebied_id == werkgebied_id)
