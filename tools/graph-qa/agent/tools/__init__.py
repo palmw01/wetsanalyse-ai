@@ -157,32 +157,32 @@ def _offset(a: dict[str, Any]) -> int:
 def _h_get_artikel(g: GraphPort, a: dict[str, Any]) -> str:
     rijen = parse_select(g.sparql(queries.get_artikel(a["bwb_id"], a["artikel"])))
     kop = rijen[0] if rijen else {}
-    artikel = compact({"iri": queries.artikel_iri(a["bwb_id"], a["artikel"]), "tekst": kop.get("tekst", ""),
-                       "jci": kop.get("jci", "")})
+    artikel = {"iri": queries.artikel_iri(a["bwb_id"], a["artikel"]), "tekst": kop.get("tekst", ""), "jci": kop.get("jci", "")}
     # De leden (of de onderdelen direct onder een artikel zonder leden) als hele eenheden, in de
     # volgorde van de query (numeriek op lidnummer). Een lid wordt nooit doorgeknipt.
     eenheden, gezien = [], set()
     for r in rijen:
-        for iri, rij in ((r.get("lid"), {"lid": r.get("lid"), "nummer": r.get("lidnummer"), "tekst": r.get("lidtekst")}),
+        for iri, rij in ((r.get("lid"), {"lid": r.get("lid"), "nummer": r.get("lidnummer"), "tekst": r.get("lidtekst"),
+                                         "heeft_onderdelen": True if r.get("lidonderdelen") == "true" else None}),
                          (r.get("o"), {"onderdeel": r.get("o"), "nummer": r.get("onderdeel"), "tekst": r.get("onderdeeltekst")})):
             if iri and iri not in gezien:
                 gezien.add(iri)
                 eenheden.append(compact(rij))
     return per_eenheid(eenheden, tool="get_artikel", args={k: v for k, v in a.items() if k != "offset"},
-                       offset=_offset(a), extra={"artikel": artikel},
-                       toelichting="Onderdelen onder een LID staan hier niet in: haal die op met get_lid.")
+                       offset=_offset(a), extra={"artikel": compact({**artikel, "delen": len(eenheden)})},
+                       toelichting="Een lid met heeft_onderdelen is hier niet compleet: de onderdelen haal je op met get_lid.")
 
 
 def _h_get_lid(g: GraphPort, a: dict[str, Any]) -> str:
     rijen = parse_select(g.sparql(queries.get_lid(a["bwb_id"], a["artikel"], a["lid"])))
     kop = rijen[0] if rijen else {}
-    lid = compact({"iri": queries.lid_iri(a["bwb_id"], a["artikel"], a["lid"]), "nummer": kop.get("nummer", ""),
-                   "tekst": kop.get("tekst", ""), "jci": kop.get("jci", "")})
+    lid = {"iri": queries.lid_iri(a["bwb_id"], a["artikel"], a["lid"]), "nummer": kop.get("nummer", ""),
+           "tekst": kop.get("tekst", ""), "jci": kop.get("jci", "")}
     onderdelen = {r["o"]: compact({"onderdeel": r["o"], "nummer": r.get("onummer"), "tekst": r.get("otekst"),
                                    "jci": _zonder_datum(r.get("ojci", ""))}) for r in rijen if r.get("o")}
     eenheden = [onderdelen[iri] for iri in sorted(onderdelen, key=_onderdeelsleutel)]
     return per_eenheid(eenheden, tool="get_lid", args={k: v for k, v in a.items() if k != "offset"},
-                       offset=_offset(a), extra={"lid": lid},
+                       offset=_offset(a), extra={"lid": compact({**lid, "onderdelen": len(eenheden)})},
                        toelichting="Citeer de jci van het ONDERDEEL, niet die van het hele lid.")
 
 
@@ -191,12 +191,12 @@ def _h_get_bepaling(g: GraphPort, a: dict[str, Any]) -> str:
     if not rijen:
         raise ValueError(f"Bepaling {a['nummer']!r} niet gevonden in {a['bwb_id']}.")
     kop = rijen[0]
-    bepaling = compact({k: kop.get(k, "") for k in ("nummer", "soort", "label", "tekst", "jci")})
+    bepaling = {"iri": kop.get("node", ""), **{k: kop.get(k, "") for k in ("nummer", "soort", "label", "tekst", "jci")}}
     subs = {r["sub"]: compact({"sub": r["sub"], "nummer": r.get("subnummer"), "label": r.get("sublabel"),
                                "begin": r.get("subbegin")}) for r in rijen if r.get("sub")}
     eenheden = sorted(subs.values(), key=lambda r: (natuurlijke_sleutel(r.get("nummer", "")), r["sub"]))
     return per_eenheid(eenheden, tool="get_bepaling", args={k: v for k, v in a.items() if k != "offset"},
-                       offset=_offset(a), extra={"bepaling": bepaling},
+                       offset=_offset(a), extra={"bepaling": compact({**bepaling, "subdivisies": len(eenheden)})},
                        toelichting="Subdivisies met het begin van hun tekst; de volledige tekst via "
                                    "get_bepaling(nummer=<subnummer>).")
 

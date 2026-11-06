@@ -170,3 +170,86 @@ def test_zonder_definitie_blijven_de_opgehaalde_bronnen_herleidbaar():
     assert _eerste(events, "antwoord")["antwoord"]["blokken"][0]["soort"] == "leemte"
     assert _eerste(events, "sources")["sources"], "de toelichting rust ergens op"
 
+
+
+# Het sjabloon `bepaling`: een lid zonder zijn onderdelen is een stil onjuiste wettekst.
+ART = "urn:bwb:BWBR0004770:artikel:9"
+LID = f"{ART}:lid:11"
+
+
+def artikel(*leden, **extra) -> tuple[str, str]:
+    return "get_artikel", json.dumps({"status": "ok", "volledig": True, "aantal": len(leden), "artikel": {"iri": ART, "delen": len(leden), **extra},
+                                      "resultaten": list(leden)})
+
+
+def lid(*onderdelen, verwacht=None) -> tuple[str, str]:
+    return "get_lid", json.dumps({"status": "ok", "volledig": True, "aantal": len(onderdelen),
+                                  "lid": {"iri": LID, "nummer": "11", "tekst": "In afwijking van het eerste lid:", "onderdelen": len(onderdelen) if verwacht is None else verwacht},
+                                  "resultaten": list(onderdelen)})
+
+
+EEN = {"lid": f"{ART}:lid:1", "nummer": "1", "tekst": "Een belastingaanslag is invorderbaar."}
+ELF = {"lid": LID, "nummer": "11", "tekst": "In afwijking van het eerste lid:", "heeft_onderdelen": True}
+A = {"onderdeel": f"{LID}:o:a", "nummer": "a.", "tekst": "zolang twijfel bestaat;"}
+B1 = {"onderdeel": f"{LID}:o:b:o:1", "nummer": "1°.", "tekst": "de eerste grond;"}
+
+
+def test_een_artikel_toont_elk_lid_met_zijn_eigen_vindplaats():
+    a = vul("antwoord_bepaling", {"bepalingen": [ART], "toelichting": "Regelt de termijn."}, [artikel(EEN)])
+    assert [b.soort for b in a.blokken] == ["wettekst", "toelichting"]
+    assert [(i.vindplaats.label, i.tekst) for i in a.blokken[0].items] == [("Artikel 9, lid 1", EEN["tekst"])]
+    assert a.sjabloon == "bepaling" and [v.iri for v in a.doelen] == [ART]
+
+
+def test_een_lid_zonder_zijn_onderdelen_wordt_nooit_getoond():
+    with pytest.raises(Onvulbaar, match="lid 11.*get_lid"):
+        vul("antwoord_bepaling", {"bepalingen": [ART], "toelichting": ""}, [artikel(EEN, ELF)])
+
+
+def test_met_get_lid_erbij_staan_de_onderdelen_onder_de_aanhef():
+    a = vul("antwoord_bepaling", {"bepalingen": [ART], "toelichting": ""}, [artikel(EEN, ELF), lid(A, B1)])
+    assert a.blokken[0].items[1].tekst == "In afwijking van het eerste lid:\na. zolang twijfel bestaat;\n1°. de eerste grond;"
+
+
+def test_een_vervolgvraag_wijst_een_lid_uit_het_eerdere_artikel_aan():
+    a = vul("antwoord_bepaling", {"bepalingen": [EEN["lid"]], "toelichting": ""}, [artikel(EEN, ELF)])
+    assert [i.tekst for i in a.blokken[0].items] == [EEN["tekst"]]
+
+
+def test_een_halve_pagina_is_onvulbaar():
+    with pytest.raises(Onvulbaar, match="vervolg"):
+        vul("antwoord_bepaling", {"bepalingen": [LID], "toelichting": ""}, [lid(A, verwacht=25)])
+
+
+def test_een_verzonnen_iri_is_onvulbaar():
+    with pytest.raises(Onvulbaar, match="niet opgehaald"):
+        vul("antwoord_bepaling", {"bepalingen": [f"{ART}:lid:99"], "toelichting": ""}, [artikel(EEN)])
+
+
+def test_een_container_noemt_zijn_subdivisies_en_toont_geen_begin():
+    bep = ("get_bepaling", json.dumps({"status": "ok", "volledig": True, "aantal": 2, "bepaling": {"iri": "urn:bwb:BWBR0024096:x", "nummer": "25.1", "subdivisies": 2}, "resultaten": []}))
+    with pytest.raises(Onvulbaar, match="subdivisies"):
+        vul("antwoord_bepaling", {"bepalingen": ["urn:bwb:BWBR0024096:x"], "toelichting": ""}, [bep])
+
+
+def test_de_specialisten_voor_een_tekstvraag_krijgen_het_sjabloon():
+    from agent import specialists
+    assert "antwoord_bepaling" in specialists.get("duiding").sjablonen and "antwoord_bepaling" in specialists.get("algemeen").sjablonen
+    assert "antwoord_bepaling" not in specialists.get("definitie").sjablonen
+
+
+def test_een_beurt_rondt_af_met_de_wettekst_uit_de_graaf():
+    tsv = "?lid\t?lidnummer\t?lidtekst\t?lidonderdelen\n<urn:bwb:BWBR0004770:artikel:9:lid:1>\t\"1\"\t\"Een belastingaanslag is invorderbaar.\"\t\"false\"\n"
+    llm = FakeLLM([response([text_block("SPECIALIST: duiding\nPLAN: artikel ophalen.")], "end_turn"),
+                   response([tool_block("t1", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": "9"})], "tool_use"),
+                   response([tool_block("t2", "antwoord_bepaling", {"bepalingen": [ART], "toelichting": "Regelt de termijn."})], "tool_use")])
+    settings = make_settings(enable_planning=True, grounding_correct=True)
+
+    async def alles():
+        return [e async for e in answer_stream("Wat staat er in artikel 9?", settings=settings, llm=llm, graph=FakeGraph(result=tsv))]
+
+    events = asyncio.run(alles())
+    antwoord = _eerste(events, "antwoord")["antwoord"]
+    assert antwoord["sjabloon"] == "bepaling"
+    assert antwoord["blokken"][0]["items"][0]["tekst"] == "Een belastingaanslag is invorderbaar."
+    assert _eerste(events, "grounding")["grounded"] is True

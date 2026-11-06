@@ -8,9 +8,11 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from bronmodel.antwoord import antwoord_tekst
+from bronmodel.antwoord import Antwoord, Vindplaats, antwoord_tekst
+from bronmodel.vindplaats import vindplaats
 
 from ..bronregister import controletrace
+from ..regelingnamen import regelingnamen
 from ..sjablonen import Onvulbaar, vul
 from ..state import State
 from .context import Bouw
@@ -19,6 +21,19 @@ logger = logging.getLogger("graph_qa.orchestrator")
 
 #: Wat het model ziet als het sjabloon gevuld is. De tekst erna staat als eigen bericht in de historie.
 VASTGELEGD = "Het antwoord is vastgelegd."
+
+
+def _met_regelingen(b: Bouw, antwoord: Antwoord) -> None:
+    """De naam van de regeling bij elke vindplaats waar de tool-rij hem niet droeg."""
+    open: list[tuple[Vindplaats, str]] = []
+    for blok in antwoord.blokken:
+        for rij in getattr(blok, "items", []):
+            v = getattr(rij, "vindplaats", None)
+            if isinstance(v, Vindplaats) and not v.regeling and (vp := vindplaats(v.iri)) and vp.bwb_id:
+                open.append((v, vp.bwb_id))
+    namen = regelingnamen(b.graph, {bwb for _, bwb in open})
+    for v, bwb in open:
+        v.regeling = namen.get(bwb, "")
 
 
 def sjabloon_node(b: Bouw, state: State) -> dict[str, Any]:
@@ -32,6 +47,7 @@ def sjabloon_node(b: Bouw, state: State) -> dict[str, Any]:
         logger.warning("sjabloon niet te vullen", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""),
                                                          "sjabloon": tu["name"], "reden": str(fout)})
         return {"messages": [{"role": "user", "content": [resultaat(str(fout), is_error=True)]}], "pending_tools": []}
+    _met_regelingen(b, antwoord)
     tekst = antwoord_tekst(antwoord)
     return {
         "messages": [{"role": "user", "content": [resultaat(VASTGELEGD)]},

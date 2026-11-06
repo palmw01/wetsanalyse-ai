@@ -501,15 +501,17 @@ def soort_van_regelingen(bwb_ids: list[str]) -> str:
 
 
 def get_artikel(bwb_id: str, artikel: str) -> str:
-    """Artikel met zijn leden, plus de onderdelen die rechtstreeks onder het artikel hangen.
+    """Artikel met zijn leden, plus de onderdelen die rechtstreeks onder het artikel hangen, tot in de
+    diepte: 'b.' en zijn '1°.' horen allebei bij de tekst.
 
     Die directe onderdelen (`heeftOnderdeel`) zijn er bij artikelen zónder leden – een opsomming
     a/b/c direct onder het artikel – en ontbraken volledig. Onderdelen die onder een *lid* hangen
-    komen bewust niet mee: bij een definitieartikel zijn dat er tientallen en dan kapt de
-    8000-tekenslimiet het resultaat af. Daarvoor is `get_lid`, dat ze wél levert.
+    komen bewust niet mee: bij een definitieartikel zijn dat er tientallen. Daarvoor is `get_lid`.
+    `?lidonderdelen` zegt wél dát ze er zijn: de eigen tekst van zo'n lid is vaak alleen de aanhef, en
+    wie hem als het hele lid toont, laat stil de helft van de wet weg (artikel 9, lid 11 IW 1990).
     """
     iri = artikel_iri(bwb_id, artikel)
-    return PREFIXES + f"""SELECT ?tekst ?jci ?lid ?lidnummer ?lidtekst ?o ?onderdeel ?onderdeeltekst WHERE {{
+    return PREFIXES + f"""SELECT ?tekst ?jci ?lid ?lidnummer ?lidtekst ?lidonderdelen ?o ?onderdeel ?onderdeeltekst WHERE {{
   OPTIONAL {{ <{iri}> bwb:tekst ?tekst }}
   OPTIONAL {{ <{iri}> bwb:jci ?jci }}
   OPTIONAL {{
@@ -517,12 +519,13 @@ def get_artikel(bwb_id: str, artikel: str) -> str:
     FILTER(STRSTARTS(STR(?lid), "{NS}"))
     OPTIONAL {{ ?lid bwb:nummer ?lidnummer }}
     OPTIONAL {{ ?lid bwb:tekst ?lidtekst }}
+    BIND(EXISTS {{ ?lid bwb:heeftOnderdeel ?lidonderdeel }} AS ?lidonderdelen)
     # Numeriek sorteren, niet lexicaal: anders staat lid 10 vóór lid 2. SPARQL moet het doen, want
     # de tool levert zijn rijen rechtstreeks aan het model. "1a" telt als 1 en houdt zijn plaats via ?lid.
     BIND(xsd:integer(REPLACE(STR(?lidnummer), "[^0-9].*$", "")) AS ?lidsort)
   }}
   OPTIONAL {{
-    <{iri}> bwb:heeftOnderdeel ?o .
+    <{iri}> bwb:heeftOnderdeel+ ?o .
     FILTER(STRSTARTS(STR(?o), "{NS}"))
     OPTIONAL {{ ?o bwb:nummer ?onderdeel }}
     OPTIONAL {{ ?o bwb:tekst ?onderdeeltekst }}
@@ -595,7 +598,7 @@ def get_bepaling(bwb_id: str, nummer: str) -> str:
     """
     lit = _lit(_nummer_vrij(nummer))
     scope = f"{NS}{_bwb(bwb_id)}"
-    return PREFIXES + f"""SELECT ?nummer ?tekst ?label ?jci ?soort ?sub ?subnummer ?sublabel ?subbegin WHERE {{
+    return PREFIXES + f"""SELECT ?node ?nummer ?tekst ?label ?jci ?soort ?sub ?subnummer ?sublabel ?subbegin WHERE {{
   {{ SELECT DISTINCT ?node ?tekst WHERE {{
       ?node bwb:nummer {lit} .
       FILTER(STRSTARTS(STR(?node), "{scope}"))

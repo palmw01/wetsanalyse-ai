@@ -20,6 +20,7 @@ from typing import Any
 from bronmodel.antwoord import Antwoord
 
 from .begrip import SCHEMA as _BEGRIP, vul as _vul_begrip
+from .bepaling import SCHEMA as _BEPALING, vul as _vul_bepaling
 from .vullen import Onvulbaar, Trace
 
 __all__ = ["Onvulbaar", "Sjabloon", "SJABLONEN", "sjabloon_schemas", "vul"]
@@ -31,7 +32,10 @@ class Sjabloon:
     vul: Callable[[dict[str, Any], Trace], Antwoord]
 
 
-SJABLONEN: dict[str, Sjabloon] = {_BEGRIP["name"]: Sjabloon(_BEGRIP, _vul_begrip)}
+SJABLONEN: dict[str, Sjabloon] = {
+    _BEGRIP["name"]: Sjabloon(_BEGRIP, _vul_begrip),
+    _BEPALING["name"]: Sjabloon(_BEPALING, _vul_bepaling),
+}
 
 
 def sjabloon_schemas(namen: frozenset[str]) -> list[dict[str, Any]]:
