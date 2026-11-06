@@ -6,6 +6,8 @@ bronnen uit de tool-trace, nooit uit de prozatekst van het model.
 """
 from __future__ import annotations
 
+from dataclasses import replace
+
 import json
 import logging
 from collections import Counter
@@ -261,6 +263,10 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     # Bij een sjabloon niet de blokken die afgeleide duiding of tekst van de code dragen (`NIET_GETOETST`).
     tekst = antwoord_tekst(Antwoord.model_validate(state["antwoord"]), zonder=NIET_GETOETST) if state.get("antwoord") else state.get("answer", "")
     report = check_grounding(tekst, controletrace(state), overzicht=state.get("overzicht") or None)
+    # Wettekst uit een sjabloon staat zonder aanhalingstekens, dus de toets ziet "niets te controleren". Maar de code
+    # toonde hem uit de tool-rijen, met de vindplaats erbij: de melding dat er geen vindplaats is, zou onwaar zijn.
+    if report.niveau == "onbepaald" and not report.onbevestigd and (state.get("antwoord") or {}).get("doelen"):
+        report = replace(report, niveau="gegrond")
     # Deze controle heeft geen eigen narratie (geen LLM), dus zonder deze regel gebeurt er iets
     # wezenlijks – de brongetrouwheidstoets – zonder dat de jurist het ziet. De tijdlijn wordt
     # bij de beurt bewaard, dus dit is tegelijk het spoor waarop je achteraf terugvalt.

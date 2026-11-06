@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 
 VERSIE = 1
 
-Sjabloon = Literal["begrip", "bepaling", "duiding", "annotaties", "overzicht"]
+Sjabloon = Literal["begrip", "bepaling", "duiding", "annotaties"]
 
 
 class Vindplaats(BaseModel):
@@ -126,15 +126,8 @@ class Leemte(BaseModel):
     tekst: str
 
 
-class OverzichtVerwijzing(BaseModel):
-    """Het overzicht staat naast het gesprek en reist in `Bericht.overzicht`; dit blok wijst ernaar."""
-
-    soort: Literal["overzicht_verwijzing"] = "overzicht_verwijzing"
-    door: Literal["bron"] = "bron"
-
-
 Blok = Annotated[
-    Definities | Begrippen | Wettekst | Citaten | Verwijzingen | Annotaties | Toelichting | Twijfel | Leemte | OverzichtVerwijzing,
+    Definities | Begrippen | Wettekst | Citaten | Verwijzingen | Annotaties | Toelichting | Twijfel | Leemte,
     Field(discriminator="soort"),
 ]
 

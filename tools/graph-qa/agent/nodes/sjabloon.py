@@ -28,12 +28,8 @@ _BWB = re.compile(r"\bBWB[RV]\d+\b")
 
 def _met_regelingen(b: Bouw, antwoord: Antwoord) -> None:
     """De naam van de regeling bij elke vindplaats waar de tool-rij hem niet droeg."""
-    open: list[tuple[Vindplaats, str]] = []
-    for blok in antwoord.blokken:
-        for rij in getattr(blok, "items", []):
-            v = getattr(rij, "vindplaats", None)
-            if isinstance(v, Vindplaats) and not v.regeling and (vp := vindplaats(v.iri)) and vp.bwb_id:
-                open.append((v, vp.bwb_id))
+    alle = [*antwoord.doelen, *(getattr(rij, "vindplaats", None) for blok in antwoord.blokken for rij in getattr(blok, "items", []))]
+    open = [(v, vp.bwb_id) for v in alle if isinstance(v, Vindplaats) and not v.regeling and (vp := vindplaats(v.iri)) and vp.bwb_id]
     # Een markering draagt haar vindplaats als regel ("BWBR0004770 art. 9 lid 1"): de jurist leest liever de naam.
     markeringen = [m for blok in antwoord.blokken if isinstance(blok, Annotaties) for m in blok.items]
     namen = regelingnamen(b.graph, {bwb for _, bwb in open} | {bwb for m in markeringen for bwb in _BWB.findall(m.vindplaats)})

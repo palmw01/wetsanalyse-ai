@@ -762,3 +762,16 @@ def test_de_begrippen_leesroute_rondt_af_met_het_sjabloon():
     assert [b["soort"] for b in antwoord["blokken"]] == ["begrippen", "toelichting"]
     assert antwoord["blokken"][0]["items"][0]["naam"] == "termijn"
     assert "Geen wettelijke definitie" not in _eerste(events, "token")["content"]
+    grounding = _eerste(events, "grounding")
+    assert grounding["grounded"] is True and grounding["niveau"] == "gegrond", "de vindplaats staat erbij, dus niet: niets te controleren"
+
+
+def test_de_regelingnaam_komt_ook_op_de_doelen():
+    from types import SimpleNamespace
+
+    from agent.nodes.sjabloon import _met_regelingen
+    from agent.regelingnamen import _CACHE
+    _CACHE["BWBR0004770"] = "Invorderingswet 1990"
+    a = vul("antwoord_bepaling", {"bepalingen": [ART], "toelichting": ""}, [artikel(EEN)])
+    _met_regelingen(SimpleNamespace(graph=FakeGraph(result="")), a)
+    assert a.doelen[0].regeling == a.blokken[0].items[0].vindplaats.regeling == "Invorderingswet 1990"

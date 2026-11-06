@@ -101,7 +101,6 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
     </Sectie>
   ),
   leemte: ({ blok }) => <p className="text-muted" data-leemte>{blok.tekst}</p>,
-  overzicht_verwijzing: () => null,
 };
 
 function BlokWeergave({ blok, ...rest }: { blok: AntwoordBlok; bronnen?: readonly Bron[]; nietLetterlijk?: readonly string[] }) {
