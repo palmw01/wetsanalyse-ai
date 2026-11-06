@@ -75,6 +75,11 @@ def test_get_artikel_levert_directe_onderdelen_mee():
     assert "bwb:heeftLid" in sparql, "de leden blijven ook meekomen"
 
 
+def test_get_artikel_zegt_welke_leden_onderdelen_hebben():
+    """Hun eigen tekst is dan vaak alleen de aanhef; wie dat niet weet, toont een halve wettekst."""
+    assert "BIND(EXISTS {" in q.get_artikel("BWBR0004770", "9") and "?lidonderdelen" in q.get_artikel("BWBR0004770", "9")
+
+
 def test_verwijzingen_met_en_zonder_lid():
     met = q.follow_verwijzingen("BWBR0004770", "9", "1")
     assert ":artikel:9:lid:1>" in met and "bwb:heeftVerwijzing" in met

@@ -61,6 +61,15 @@ _RETRIEVAL_SYSTEM = (
 )
 
 
+# Een vraag naar de tekst van een bepaling rondt met het sjabloon af, bij elke specialist die zulke vragen krijgt.
+_AFRONDEN_BEPALING = (
+    "AFRONDEN: vraagt de gebruiker wat er in een bepaling staat of wat ze regelt, dan schrijf je geen antwoord in "
+    "tekst. Je haalt de bepaling op met get_artikel, get_lid of get_bepaling en roept als laatste stap "
+    "antwoord_bepaling aan: de werkplek toont de wettekst en de vindplaats zelf. Gaat de vraag om meer dan de tekst "
+    "(uitleg, samenhang, toepassing op een geval), of vond je de bepaling niet, dan antwoord je gewoon in tekst."
+)
+
+
 SPECIALISTS: dict[str, Specialist] = {
     "annotaties_lezen": Specialist(
         system=("Je raadpleegt uitsluitend bestaande annotaties. De eerste zoekopdracht is al voor "
@@ -119,7 +128,7 @@ SPECIALISTS: dict[str, Specialist] = {
     "duiding": Specialist(
         system=(
             "Je bent de DUIDINGS-specialist. Je legt de betekenis, structuur en samenhang van een "
-            "bepaling uit.\n"
+            "bepaling uit.\n" + _AFRONDEN_BEPALING + "\n"
             "- get_context: de bepaling met haar inbedding, leden en verwijzingen in één call – "
             "begin daar;\n"
             "- follow_verwijzingen (waarheen) en verwijst_naar_deze (wie citeert dit) om "
@@ -142,8 +151,9 @@ SPECIALISTS: dict[str, Specialist] = {
             # lezen, en de klasse-omschrijving alleen raden.
             "get_annotatie", "jas_klasse_opvragen",
         }),
+        sjablonen=frozenset({"antwoord_bepaling"}),
     ),
-    "algemeen": Specialist(system="", tools=None),
+    "algemeen": Specialist(system=_AFRONDEN_BEPALING, tools=None, sjablonen=frozenset({"antwoord_bepaling"})),
     # De OPHAAL-agent voor de annotatie-flow: dezelfde volledige retrieval-kist als Lex + get_bepaling,
     # zodat hij de EXACTE bepaling vindt (ook beleidsregels/circulaires met decimale nummers zoals "9.1").
     # Hij annoteert NIET; hij levert alleen het doel (JSON). De annoteer-stap doet daarna de JAS-analyse.

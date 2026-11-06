@@ -1,6 +1,6 @@
 # ADR-008: Antwoordsjablonen, het antwoord als toolaanroep
 
-**Status:** aangenomen, 6 nov 2026. Geldt nu voor het sjabloon `begrip`; de andere volgen na de meting op acceptatie.
+**Status:** aangenomen, 6 nov 2026. Geldt nu voor de sjablonen `begrip` en `bepaling`; de andere volgen.
 
 ## Context
 
@@ -18,6 +18,7 @@ agent ⇄ tools → sjabloontool → sjabloon → verify → (correct) → final
 - **`door`:** elk blok zegt of het uit de bron komt of van Lex.
 - **`tekst` blijft.** `antwoord_tekst` maakt vaste Markdown uit de blokken: die voedt de controle, de historie, *Kopieer* en de eval. Een vorm die de blokken niet kent, gebruikt de tekst.
 - **Niet te vullen is een fout aan het model** (`Onvulbaar`, `is_error`), nooit een halve vulling.
+- **Een bepaling is compleet of ze wordt niet getoond.** `get_artikel` levert de onderdelen onder een lid niet mee, dus markeert die leden; het sjabloon weigert tot `get_lid` ze heeft opgehaald.
 - **Niets gevonden is een `leemte`:** "in de graaf bij deze term", nooit "bestaat niet".
 - **Vrije tekst blijft geldig.** `tool_choice` blijft `auto`, dus het model kán tekst schrijven; `sjabloon gemist` in de log telt hoe vaak.
 
