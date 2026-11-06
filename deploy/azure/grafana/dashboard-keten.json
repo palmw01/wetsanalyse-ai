@@ -499,6 +499,123 @@
           }
         ]
       }
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Wachttijd per beurtsoort",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 25
+      },
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "__DSUID__"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "azureLogAnalytics": {
+            "resources": [
+              "__WORKSPACE__"
+            ],
+            "dashboardTime": true,
+            "timeColumn": "TimeGenerated",
+            "query": "ContainerAppConsoleLogs_CL\n| where ContainerAppName_s == '__APPNAME__-graph-qa'\n| extend j = parse_json(Log_s)\n| where tostring(j.bericht) == 'beurt_meting'\n| extend route = tostring(j.route), uitkomst = tostring(j.uitkomst), duur = toreal(j.duur_ms) / 1000, eerste = toreal(j.eerste_tekst_ms) / 1000, rondes = toint(j.modelrondes)\n| summarize beurten = count(), duur_p50 = round(percentile(duur, 50), 1), duur_p95 = round(percentile(duur, 95), 1), eerste_tekst_p50 = round(percentile(eerste, 50), 1), eerste_tekst_p95 = round(percentile(eerste, 95), 1), rondes_p50 = percentile(rondes, 50), fout = countif(uitkomst == 'fout'), gestopt = countif(uitkomst == 'gestopt'), afgebroken = countif(uitkomst == 'afgebroken') by route\n| order by beurten desc"
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "description": "Eén rij per beurtsoort, uit de logregel `beurt_meting` (`agent/beurtmeting.py`). **duur** loopt van de start van de beurt tot `done`; **eerste_tekst** tot de eerste `reason` of `token`, het moment dat de jurist tekst ziet. De tijden zijn in seconden."
+    },
+    {
+      "id": 12,
+      "type": "table",
+      "title": "Tokens en cachetreffer per beurtsoort",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 32
+      },
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "__DSUID__"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "azureLogAnalytics": {
+            "resources": [
+              "__WORKSPACE__"
+            ],
+            "dashboardTime": true,
+            "timeColumn": "TimeGenerated",
+            "query": "ContainerAppConsoleLogs_CL\n| where ContainerAppName_s == '__APPNAME__-graph-qa'\n| extend j = parse_json(Log_s)\n| where tostring(j.bericht) == 'beurt_meting'\n| extend route = tostring(j.route), invoer = tolong(j.invoer), uitvoer = tolong(j.uitvoer), lees = tolong(j.cache_lees), schrijf = tolong(j.cache_schrijf)\n| summarize beurten = count(), invoer = sum(invoer), uitvoer = sum(uitvoer), cache_lees = sum(lees), cache_schrijf = sum(schrijf) by route\n| extend cachetreffer = round(100.0 * cache_lees / iff(invoer + cache_lees + cache_schrijf == 0, 1, invoer + cache_lees + cache_schrijf), 1)\n| order by uitvoer desc"
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "description": "Het verbruik per beurtsoort, uit `beurt_meting`. **cachetreffer** is `cache_lees / (invoer + cache_lees + cache_schrijf)` in procenten. Geen bedragen: prijzen staan nergens in de repo, en de boekhouding is het verbruiksjournaal van de api. De batchruns van de begrippenverdieping vallen erbuiten."
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Browserfouten",
+      "description": "Crashes in de browser, gemeld via `lib/uiSpoor.ts`: **route** en **globaal** komen uit de error boundaries, **script** en **belofte** uit de luisteraars in `BrowserFouten`. Zonder melding of stack, want daar kan tekst van de gebruiker in staan; `fout_naam` en `fout_digest` staan in de logregel `Browserfout`.",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      },
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "__DSUID__"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "azureLogAnalytics": {
+            "resources": [
+              "__WORKSPACE__"
+            ],
+            "dashboardTime": true,
+            "timeColumn": "TimeGenerated",
+            "query": "ContainerAppConsoleLogs_CL\n| where ContainerAppName_s == '__APPNAME__-frontend'\n| extend j = parse_json(Log_s)\n| where tostring(j.bericht) == 'Browserfout'\n| extend plek = tostring(j.fout_plek)\n| summarize aantal = count() by bin(TimeGenerated, 1h), plek\n| order by TimeGenerated asc"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      }
     }
   ]
 }

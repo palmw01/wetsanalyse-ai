@@ -78,6 +78,49 @@ export function meldSpoor(spoor: UiSpoor): void {
   }
 }
 
+/** Waar een browserfout vandaan kwam. Een gesloten lijst, net als de actienamen. */
+export const FOUT_PLEKKEN = ["route", "globaal", "script", "belofte"] as const;
+export type FoutPlek = (typeof FOUT_PLEKKEN)[number];
+
+/** Een crash in de browser, voor de logs. Bewust geen melding en geen stack: daar kan tekst van de
+ *  gebruiker in staan. De naam van de fout en de `digest` van Next zijn genoeg om hem terug te vinden. */
+export interface Browserfout {
+  plek: FoutPlek;
+  naam?: string;
+  digest?: string;
+}
+
+const FOUT_NAAM = /^[A-Za-z]{1,40}$/;
+const FOUT_DIGEST = /^[A-Za-z0-9-]{1,40}$/;
+
+/** Lees een binnengekomen browserfout en geef hem terug in de vorm die gelogd mag worden, of `null`. */
+export function leesBrowserfout(ruw: unknown): Browserfout | null {
+  if (typeof ruw !== "object" || ruw === null) return null;
+  const o = ruw as Record<string, unknown>;
+  if (!FOUT_PLEKKEN.includes(o.plek as FoutPlek)) return null;
+  const fout: Browserfout = { plek: o.plek as FoutPlek };
+  if (typeof o.naam === "string" && FOUT_NAAM.test(o.naam)) fout.naam = o.naam;
+  if (typeof o.digest === "string" && FOUT_DIGEST.test(o.digest)) fout.digest = o.digest;
+  return fout;
+}
+
+/** Een afgebroken verzoek is geen crash: elke wissel van gesprek breekt er een af. */
+export function isRuisfout(fout: unknown): boolean {
+  return (fout as { name?: unknown } | null)?.name === "AbortError";
+}
+
+/** Meld een browserfout. Faalt stil, net als `meldSpoor`. */
+export function meldBrowserfout(plek: FoutPlek, fout?: unknown): void {
+  if (isRuisfout(fout) || typeof navigator === "undefined" || typeof navigator.sendBeacon !== "function") return;
+  const { name, digest } = (fout ?? {}) as { name?: unknown; digest?: unknown };
+  try {
+    navigator.sendBeacon("/api/ui-spoor", new Blob([JSON.stringify({ soort: "fout", plek, naam: name, digest })],
+      { type: "application/json" }));
+  } catch {
+    /* een waarneming mag nooit iets breken */
+  }
+}
+
 /** Voer een handeling uit met een spoor eromheen: `gestart` vooraf, de uitkomst achteraf.
  *
  *  De fout gaat gewoon door naar de aanroeper — dit meet, het vangt niet af. */

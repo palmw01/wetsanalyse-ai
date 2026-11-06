@@ -59,6 +59,7 @@ load_dotenv()  # laad .env als die naast de server staat
 from agent import observability  # noqa: E402
 from agent.agent import answer_stream, delete_conversation  # noqa: E402
 from agent.beurt import voer_beurt_uit  # noqa: E402
+from agent.beurtmeting import gemeten  # noqa: E402
 from agent.reeks import reeks_run  # noqa: E402
 from agent.werkgebied_annotatie import werkgebied_annotatie_beurt, zonder_api  # noqa: E402
 from agent.config import Settings  # noqa: E402
@@ -338,7 +339,7 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
             # beurt-driver boekt hem daarna bij de api. Dat werkt ook als de beurt op een fout of een
             # stopverzoek eindigt – die tokens zijn dan wél verbruikt.
             meter = Verbruiksmeter()
-            return voer_beurt_uit(
+            beurt = voer_beurt_uit(
                 answer_stream(
                     request.question, request.conversation_id,
                     modus=request.modus, context=request.context, doel=request.doel,
@@ -364,6 +365,8 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
                 user_id=gebruiker,
                 meter=meter,
             )
+            return gemeten(beurt, meter=meter, run=run, gesprek_id=request.conversation_id or "",
+                           model=settings.llm_model)
 
         if request.intake_actie is not None:
             # Een klik op een vraagkaartje (activiteit 1): altijd de werkgebied-worker.
