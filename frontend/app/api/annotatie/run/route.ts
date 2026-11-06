@@ -9,7 +9,7 @@ import { metTrace } from "@/lib/trace";
 import { graphQaAuthHeader, graphQaBaseUrl } from "@/lib/config";
 import { logger } from "@/lib/logger";
 import { geenSessie, sessionUserId } from "@/app/api/_lib/session";
-import { pathSegment } from "@/lib/url";
+import { isPuntSegment, pathSegment } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
 
@@ -82,10 +82,11 @@ export async function GET(req: Request) {
   if (!userid) return geenSessie();
 
   const gesprek = new URL(req.url).searchParams.get("gesprek") ?? "";
-  if (!gesprek) return Response.json(null);
+  // `pathSegment` weigert `..` met een fout, en die zou hieronder een 502 worden.
+  if (!gesprek || isPuntSegment(gesprek)) return Response.json(null);
   try {
     const upstream = await fetch(
-      `${graphQaBaseUrl()}/v1/conversations/${encodeURIComponent(gesprek)}/run`,
+      `${graphQaBaseUrl()}/v1/conversations/${pathSegment(gesprek)}/run`,
       {
         // Zonder deze header zou een gespreks-id – dat gewoon in de URL van de werkplek staat —
         // genoeg zijn om andermans lopende vraag en antwoord te lezen.

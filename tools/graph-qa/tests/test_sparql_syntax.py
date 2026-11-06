@@ -15,9 +15,16 @@ zijn voor de parser gewone prefixed names, dus die hoeven niet te bestaan.
 """
 from __future__ import annotations
 
+import ast
+import re
+from pathlib import Path
+
 import pytest
 
+import agent
+from agent import begrip_kaart, bronnen_vinden, plekken, regelingnamen, zoekvragen
 from agent.graph import queries as q
+from agent.tools import begrip_tools
 
 rdflib = pytest.importorskip("rdflib", reason="rdflib is een dev-only parser-afhankelijkheid")
 from rdflib.plugins.sparql import prepareQuery  # noqa: E402
@@ -69,6 +76,22 @@ GEVALLEN: list[tuple[str, str]] = [
     ("bijlagen", q.bijlagen(IW)),
     ("bijlagen+nummer", q.bijlagen(IW, "1")),
     ("ontologie", q.ontologie()),
+    # De bouwers buiten `queries.py` horen bij hun domein; `test_elke_bouwer_buiten_queries_wordt_getoetst`
+    # ontdekt ze zelf.
+    ("begrip_kaart.q_brondefinities", begrip_kaart.q_brondefinities(["bestuurder"])),
+    ("begrip_kaart.q_onder", begrip_kaart.q_onder(["bestuurder"])),
+    ("begrip_kaart.q_verwijzingen", begrip_kaart.q_verwijzingen(f"urn:bwb:{IW}:artikel:4")),
+    ("begrip_kaart.q_teksten", begrip_kaart.q_teksten([f"urn:bwb:{IW}:artikel:4"])),
+    ("begrip_kaart.q_verwezen", begrip_kaart.q_verwezen([IW])),
+    ("bronnen_vinden.q_uitgaand", bronnen_vinden.q_uitgaand([f"urn:bwb:{IW}:artikel:4"], 10)),
+    ("bronnen_vinden.q_inkomend", bronnen_vinden.q_inkomend([f"urn:bwb:{IW}:artikel:4"], 10)),
+    ("bronnen_vinden.q_teksten", bronnen_vinden.q_teksten([f"urn:bwb:{IW}:artikel:4"])),
+    ("bronnen_vinden.q_definities", bronnen_vinden.q_definities([IW], 10)),
+    ("bronnen_vinden.q_opbouw", bronnen_vinden.q_opbouw([f"urn:bwb:{IW}:artikel:4"])),
+    ("plekken.q_plekken", plekken.q_plekken([f"urn:bwb:{IW}:artikel:4"])),
+    ("regelingnamen._query", regelingnamen._query([IW])),
+    ("zoekvragen.q_subdivisies", zoekvragen.q_subdivisies([f"urn:bwb:{IW}:artikel:4"], 10)),
+    ("tools.begrip_tools.q_begrippen", begrip_tools.q_begrippen("bestuurder", ["onderzocht"], "wg", 10)),
 ]
 
 
@@ -78,6 +101,34 @@ def test_query_is_geldige_sparql(naam: str, sparql: str):
         prepareQuery(sparql)
     except Exception as exc:  # noqa: BLE001 – rdflib gooit van alles; we willen de tekst zien
         pytest.fail(f"{naam} levert ongeldige SPARQL op: {exc}\n\n{sparql}")
+
+
+# Functies met een query in de eigen tekst, zonder aparte bouwer. Ze hebben een eigen test tegen fakes.
+INLINE = {"bepaling_namen.bepaling_in_graaf"}
+
+
+def _sparql_bouwers() -> set[str]:
+    """Alle functies in `agent/` buiten `queries.py` die SPARQL opbouwen, gevonden op wat er in staat."""
+    wortel = Path(agent.__file__).parent
+    uit = set()
+    for pad in wortel.rglob("*.py"):
+        if pad.name == "queries.py" or "runstore" in pad.parts:
+            continue
+        module = ".".join(pad.relative_to(wortel).with_suffix("").parts)
+        for fn in ast.walk(ast.parse(pad.read_text(encoding="utf-8"))):
+            if not isinstance(fn, ast.FunctionDef):
+                continue
+            teksten = (n.value for n in ast.walk(fn) if isinstance(n, ast.Constant) and isinstance(n.value, str))
+            if any(re.search(r"\bSELECT\b[^\n]*\?\w", t) for t in teksten):
+                uit.add(f"{module}.{fn.name}")
+    return uit
+
+
+def test_elke_bouwer_buiten_queries_wordt_getoetst():
+    """Staat een bouwer niet in GEVALLEN, dan ziet alleen de live graaf een tikfout, als stil minder resultaat."""
+    getoetst = {naam for naam, _ in GEVALLEN}
+    ontbreekt = _sparql_bouwers() - getoetst - INLINE
+    assert not ontbreekt, f"deze SPARQL-bouwers staan niet in GEVALLEN: {sorted(ontbreekt)}"
 
 
 def test_elke_publieke_bouwer_wordt_getoetst():

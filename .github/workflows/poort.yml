@@ -338,7 +338,12 @@ jobs:
             echo "Referentieset gewijzigd: graph-qa-tests draaien."
             graph_qa=true
           fi
+          # Elke wijziging aan code draait de kruistests (scripts/kruistests.sh); alleen documentatie niet.
+          kruis=false
+          if [ -n "$code" ] || [ -n "$skill" ]; then kruis=true; fi
           {
+            echo "kruis=$kruis"
+            echo "mcp=$(heeft 'tools/wetsanalyse-')"
             echo "frontend=$(heeft 'frontend/')"
             echo "graph_qa=$graph_qa"
             echo "bwb_import=$(heeft 'tools/bwb-import/')"
@@ -347,15 +352,47 @@ jobs:
 
       # ── frontend ────────────────────────────────────────────────────────────
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v6
-        if: steps.raakt.outputs.frontend == 'true'
+        if: steps.raakt.outputs.kruis == 'true'
         with:
           node-version: "26"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: frontend – installeren
-        if: steps.raakt.outputs.frontend == 'true'
+        if: steps.raakt.outputs.kruis == 'true'
         working-directory: frontend
         run: npm ci
+      - name: uv installeren
+        if: steps.raakt.outputs.kruis == 'true'
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          enable-cache: true
+
+      # Altijd bij code, wat de PR ook raakt: een test die de bicep of de andere laag leest, moet draaien
+      # als alleen die andere kant wijzigt. Het routecontract staat hier ook in. Zie het script.
+      - name: Kruistests – de lagen passen op elkaar
+        if: steps.raakt.outputs.kruis == 'true'
+        run: scripts/kruistests.sh
+
+      # De acceptatie-MCP is een meetinstrument, en `dist/` is gecommit omdat de lokale registratie die start.
+      - name: MCP-tools – typecheck, tests en dist
+        if: steps.raakt.outputs.mcp == 'true'
+        run: |
+          set -euo pipefail
+          for map in tools/wetsanalyse-acceptatie-mcp tools/wetsanalyse-admin-mcp; do
+            echo "── $map"
+            (
+              cd "$map"
+              npm ci
+              npx tsc --noEmit
+              if npm pkg get scripts.test | grep -q .; then npm test; fi
+              npm run build
+              git diff --exit-code -- dist || {
+                echo "::error::dist/ loopt achter op src/ in $map: draai npm run build en commit dist/"
+                exit 1
+              }
+            )
+          done
+
       - name: frontend – tests
         if: steps.raakt.outputs.frontend == 'true'
         working-directory: frontend
@@ -387,12 +424,6 @@ jobs:
           npm run test:browser
 
       # ── Python-onderdelen ───────────────────────────────────────────────────
-      - name: uv installeren
-        if: steps.raakt.outputs.api == 'true' || steps.raakt.outputs.graph_qa == 'true'
-        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-        with:
-          enable-cache: true
-
       - name: graph-qa – tests
         if: steps.raakt.outputs.graph_qa == 'true'
         working-directory: tools/graph-qa
@@ -433,6 +464,8 @@ jobs:
             echo ""
             echo "| onderdeel | gedraaid |"
             echo "|---|---|"
+            echo "| kruistests | ${{ steps.raakt.outputs.kruis }} |"
+            echo "| mcp-tools  | ${{ steps.raakt.outputs.mcp }} |"
             echo "| frontend   | ${{ steps.raakt.outputs.frontend }} |"
             echo "| graph-qa   | ${{ steps.raakt.outputs.graph_qa }} |"
             echo "| bwb-import | ${{ steps.raakt.outputs.bwb_import }} |"

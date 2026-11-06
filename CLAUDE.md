@@ -375,8 +375,11 @@ de digest van de eerste, `ghcr-cleanup` ruimt die op en de deploy van de eerste 
 ### De poort
 
 `poort.yml` heeft bewust **geen `paths`-filter**: een verplichte check die door een filter niet
-draait, laat een PR voorgoed op "expected" staan. Hij bepaalt zelf wat de PR raakt en draait alleen
-die suites (`*.md` telt niet mee, behalve onder `.claude/skills/wetsanalyse/`, en
+draait, laat een PR voorgoed op "expected" staan. Bij elke wijziging aan code draait hij
+`scripts/kruistests.sh`: het routecontract en de vormtests (`tests/poort/`, alleen stdlib) en alle tests die
+buiten hun onderdeel lezen, zodat drift ook rood wordt als alleen de andere kant wijzigt. De hook doet hetzelfde.
+De browsertests mocken `/api/**`; een methode- of padfout tussen de lagen vangt alleen dat contract. Daarnaast
+bepaalt hij wat de PR raakt en draait alleen die suites (`*.md` telt niet mee, behalve onder `.claude/skills/wetsanalyse/`, en
 `packages/bronmodel/` triggert api én graph-qa). De frontend draait naast vitest/lint/typecheck een
 Playwright-browserregressie (`npm run test:browser`); graph-qa en api draaien tegen een
 PostgreSQL-servicecontainer (`RUNSTORE_TEST_DSN`, `ANNOTATIE_TEST_DSN`), zodat de databasetests niet
