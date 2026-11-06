@@ -329,7 +329,8 @@ spoor D (*Werkgebied als node*).
   gewone 404. De werkplek toont dan "… is verwijderd op … door …", zoals bij een annotatie.
 - **De inventaris** (`GET {id}/elementen`) leest per regeling één bronboom en de actuele
   elementen. Elk element staat één keer in de inventaris; `analyseren` wint van `context`;
-  `deels_buiten` als een anker buiten de selecties valt; afgewezen elementen worden alleen geteld.
+  `deels_buiten` als een anker buiten de selecties valt; afgewezen elementen staan apart in `afgewezen` (de tab toont ze
+  achter een filter), omdat het manifest en koppelen alleen `elementen` lezen.
   Per selectie is `bron_gewijzigd` een signaal, geen ongeldigverklaring. Een onbereikbare bron geeft
   `onbereikbaar` en `volledig: false`, nooit een stil kleinere inventaris.
 - **De annotatie-werkvoorraad** (`GET {id}/annotatie-werkvoorraad`, `werkgebied_werkvoorraad.py`,
@@ -815,6 +816,8 @@ werkgebied zonder deelvragen werkt zoals altijd.
 de bronselectie in het gesprek, maar de stand staat hier – niet in de gesprek-checkpointer –, zodat hij er
 na herladen, in een ander gesprek en bij een collega ook is.
 
+- **Het overzicht herhaalt het bewijs niet.** Per kandidaat staan `bewijs_soorten` en `zoekvragen`; het bewijs zelf staat
+  in `GET …/kandidaten`. Per deelvraag herhaald was het de oorzaak van 760 KB, terwijl geen afnemer het hier las.
 - **Zelf genoemd is een voorstel** (4 nov 2026): `POST …/bronselectie/{deelvraag}/voorstellen {bron_iri, rol: kern|
   afhankelijkheid, tekst}` (`bronselectie.noem`) zet een bepaling die de analist noemt als kandidaat bij die
   deelvraag, met bewijs `methode: genoemd` (`detail.deelvraag_id`, `tekst`, `door`), zodat ze in het paneel staat

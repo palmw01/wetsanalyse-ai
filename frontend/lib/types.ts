@@ -956,6 +956,8 @@ export interface Inventaris {
   revisie: number;
   selecties: InventarisSelectie[];
   elementen: InventarisElement[];
+  /** De verworpen elementen: apart, zodat ze niet meegaan in koppelen en tellingen. */
+  afgewezen?: InventarisElement[];
   volledig: boolean;
 }
 

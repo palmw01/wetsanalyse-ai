@@ -169,7 +169,8 @@ export function parseBronselectie(ruw: unknown): BronselectieOverzicht | undefin
         return tekst(k.id) ? [{ id: tekst(k.id), bron_iri: tekst(k.bron_iri), label: tekst(k.label),
           rol: een(k.rol, ["kern", "afhankelijkheid", "aanverwant"] as const, "aanverwant"),
           bewijs_soorten: Array.isArray(k.bewijs_soorten) ? k.bewijs_soorten.filter((s): s is BewijsSoort => BEWIJZEN.includes(s as BewijsSoort)) : [],
-          zoekvragen: zoekvragenUit(k.bewijs),
+          // De api geeft de zoekvragen; een oude versie van het artefact draagt nog het hele bewijs.
+          zoekvragen: Array.isArray(k.zoekvragen) ? k.zoekvragen.filter((z): z is Zoekvraag => typeof z === "string" && z in ZOEKVRAAG_LABEL) : zoekvragenUit(k.bewijs),
           stand: een(k.stand, STANDEN, "voorgesteld"), overal: k.overal === true, elders_opgenomen: k.elders_opgenomen === true,
           reden: tekst(k.reden) }] : [];
       }) : [],

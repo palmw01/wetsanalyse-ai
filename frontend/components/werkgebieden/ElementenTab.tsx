@@ -43,6 +43,7 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
   const [dekkingFout, setDekkingFout] = useState<string | null>(null);
   const [fout, setFout] = useState<string | null>(null);
   const [filter, setFilter] = useState<ElementFilter>({ rol: "alle", klasse: "alle", term: "" });
+  const [verworpen, setVerworpen] = useState(false);
   // De gekozen elementen, voor "nieuw begrip uit selectie" of "koppelen aan begrip".
   const [selectie, setSelectie] = useState<Set<string>>(new Set());
 
@@ -102,12 +103,12 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
   if (inv.selecties.length === 0)
     return <p className="text-sm text-muted">Nog geen bronnen, dus nog geen elementen. Neem eerst een bepaling op.</p>;
 
-  const getoond = filterElementen(inv.elementen, filter);
+  const verworpenElementen = inv.afgewezen ?? [];
+  const getoond = filterElementen(verworpen ? verworpenElementen : inv.elementen, filter);
   const groepen = groepeerPerSelectie(inv.selecties, getoond).filter(
     (g) => g.elementen.length > 0 || g.selectie.onbereikbaar || filter.rol === "alle",
   );
   const { totaal, beoordeeld } = voortgang(inv.elementen);
-  const afgewezen = inv.selecties.reduce((n, s) => n + s.afgewezen, 0);
   const klassen = klasseTelling(inv.elementen);
   const dekkingPer = new Map((dekking?.elementen ?? []).map((d) => [d.element_id, d]));
 
@@ -137,7 +138,6 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
         {inv.elementen.length === 1 ? "1 element" : `${inv.elementen.length} elementen`} in{" "}
         {inv.selecties.length === 1 ? "1 bron" : `${inv.selecties.length} bronnen`} ·{" "}
         {beoordeeld} van {totaal} in de werkvoorraad beoordeeld
-        {afgewezen > 0 && <span className="text-muted"> · {afgewezen} verworpen (niet getoond)</span>}
       </p>
 
       {dekking && <DekkingBalk dekking={dekking} />}
@@ -158,6 +158,18 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
               {k.label}
             </button>
           ))}
+          {verworpenElementen.length > 0 && (
+            <button
+              type="button"
+              aria-pressed={verworpen}
+              onClick={() => setVerworpen(!verworpen)}
+              className={`focus-ring min-h-[24px] rounded-knop-xs border px-2.5 py-0.5 text-[0.7rem] transition coarse:min-h-[44px] ${
+                verworpen ? "border-lint bg-lint text-paper" : "border-line text-muted hover:border-lint hover:text-ink"
+              }`}
+            >
+              Verworpen ({verworpenElementen.length})
+            </button>
+          )}
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <Select
@@ -213,7 +225,7 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
                     key={e.id}
                     element={e}
                     gekozen={selectie.has(e.id)}
-                    onWissel={() => wissel(e.id)}
+                    onWissel={verworpen ? undefined : () => wissel(e.id)}
                     primair={begrippen?.primair[e.id]}
                     onNaarBegrip={onNaarBegrip}
                     dekking={dekkingPer.get(e.id)}
@@ -261,7 +273,8 @@ function DekkingBalk({ dekking: d }: { dekking: Dekking }) {
 function ElementRij({ element: e, gekozen, onWissel, primair, onNaarBegrip, dekking, onTerug }: {
   element: InventarisElement;
   gekozen: boolean;
-  onWissel: () => void;
+  /** Weglaten: niet te kiezen, zoals een verworpen element. */
+  onWissel?: () => void;
   /** Het begrip dat dit element primair aanduidt, als er een is. */
   primair?: { begrip_id: string; naam: string };
   onNaarBegrip: (begripId: string) => void;
@@ -273,13 +286,15 @@ function ElementRij({ element: e, gekozen, onWissel, primair, onNaarBegrip, dekk
     <li className={`rounded-kaart border bg-paper px-3 py-2 ${gekozen ? "border-lint" : "border-line"}`}>
       <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-2.5">
-          <input
-            type="checkbox"
-            checked={gekozen}
-            onChange={onWissel}
-            aria-label={`Kies "${e.tekst}"`}
-            className="focus-ring mt-1 h-4 w-4 shrink-0 accent-lint coarse:h-5 coarse:w-5"
-          />
+          {onWissel && (
+            <input
+              type="checkbox"
+              checked={gekozen}
+              onChange={onWissel}
+              aria-label={`Kies "${e.tekst}"`}
+              className="focus-ring mt-1 h-4 w-4 shrink-0 accent-lint coarse:h-5 coarse:w-5"
+            />
+          )}
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-1.5">
               <KlasseLabel klasse={e.klasse} />
