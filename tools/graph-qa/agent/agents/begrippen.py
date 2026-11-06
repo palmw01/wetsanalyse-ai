@@ -108,7 +108,7 @@ async def _begrippen(ctx: Context, invoer: Invoer) -> tuple[dict[str, Any] | Non
 
 
 RELATIETYPE = {"kwalificatie": "kwalificeert", "inclusie": "omvat", "uitsluiting": "sluit uit",
-               "hierarchie": "is een soort van", "verwant": "is verwant met", "opvolging": "volgt op"}
+               "hierarchie": "heeft als soort", "verwant": "is verwant met", "opvolging": "volgt op"}
 
 
 def _relatieregel(r: dict[str, Any]) -> str:

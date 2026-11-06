@@ -34,6 +34,7 @@ from typing import Any
 import yaml
 
 from .definities import WettelijkeTerm, wettelijke_termen
+from .taal import geen_begrip
 from .model import Bewijs, Hypothese, Manifest, Polariteit, Sterkte, Taalanalyse
 from .signalen import Signaal
 
@@ -135,17 +136,19 @@ def toepassen(manifest: Manifest, taal: dict[str, Taalanalyse],
 
 
 def kopsignalen(manifest: Manifest, taal: dict[str, Taalanalyse]) -> list[Signaal]:
-    """Kop van een samenstelling die elders een eigen kern is: zwak bewijs voor een hiërarchie."""
+    """Kop van een samenstelling die elders een eigen kern is: "schuldregelingsovereenkomst" naast "overeenkomst".
+    Middel: de vorm wijst de soort aan, maar de wet zegt het niet, dus een geel voorstel (de grens van ADR-004: alleen
+    zwak bewijs levert geen voorstel op, en dan kwamen er in de e2e-test 0)."""
     kernen: dict[str, list[str]] = {}
     for f in manifest.formuleringen:
         t = taal[f.element_id]
-        if not t.beperkt:
+        if not t.beperkt and not geen_begrip(f, t):
             kernen.setdefault(t.term, []).append(f.element_id)
     uit = []
     for f in manifest.formuleringen:
         t = taal[f.element_id]
         for boven in sorted(kernen.get(t.kop, [])) if t.kop else []:
             uit.append(Signaal(Hypothese.HIERARCHIE, boven, f.element_id, _b(
-                "KOP_VAN_SAMENSTELLING", Polariteit.STEUN, Sterkte.ZWAK,
+                "KOP_VAN_SAMENSTELLING", Polariteit.STEUN, Sterkte.MIDDEL,
                 "begrip.hierarchie.kop_samenstelling", VERSIE, f"{t.kern} → {t.kop}", f.bron_iri)))
     return uit

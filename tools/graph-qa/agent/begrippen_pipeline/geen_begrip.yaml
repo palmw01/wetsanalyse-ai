@@ -1,0 +1,32 @@
+# Formuleringen die geen begrip aanduiden en dus niet groeperen (S5, e2e 5 nov 2026: 22 groepen met "en", "dan",
+# "niet", "kader" en "betrekking"). Wat hier staat is geen oordeel over de annotatie: de markering blijft bestaan,
+# ze wordt alleen geen betekenisgroep. Een passage die de jurist toch als begrip wil, koppelt hij zelf.
+#
+# klassen: JAS-klassen die een verband of waarde uitdrukken, geen begrip (H2: Operator; Parameterwaarde is de waarde).
+klassen:
+  - Operator
+  - Parameter en parameterwaarde
+# woorden: functiewoorden, en de kern van een vaste voorzetseluitdrukking ("in het kader van", "met betrekking tot").
+# Alleen de hele term telt: "belastingkader" of "kader van de wet" (een beperkte term) valt hier niet onder.
+woorden:
+  - en
+  - of
+  - niet
+  - dan
+  - als
+  - meer
+  - minder
+  - ten minste
+  - ten hoogste
+  - kader
+  - betrekking
+  - zin
+  - plaats
+  - geval
+  - gevallen
+  - wijze
+  - grond
+  - verband
+# voorzetsel: een formulering die hiermee begint, is een bepaling bij een ander woord, geen zelfstandige term.
+voorzetsels:
+  - van

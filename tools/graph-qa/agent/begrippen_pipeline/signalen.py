@@ -20,6 +20,8 @@ gebeurt, beslist de beslistabel; hier wordt alleen waargenomen.
 | `BEDOELD_IN` | zelfde betekenis | steun, sterk | "Y, bedoeld in onderdeel c" wijst de formulering met dezelfde kern daar aan |
 | `AANWIJZEND` | zelfde betekenis | steun, sterk | "die X" wijst terug naar X (direct, of via "als bedoeld in") |
 | `NIET_AANGEMERKT` | uitsluiting (+ tegen zelfde) | steun, sterk | aanhef "… als X niet wordt aangemerkt:" boven een opsomming |
+| `SPECIALISATIE_IN_TERM` | hiërarchie | steun, middel | "andere X" naast "X": een bepalend woord maakt een soort |
+| `GENUS_IN_DEFINITIE` | hiërarchie | steun, middel | "X: de Y die …": de definitie noemt een andere term als soortbegrip |
 | `BEREKENING_IN_BEPALING` | zelfde betekenis | onbeslist, zwak | naast `ZELFDE_BEPALING`: de bepaling bewerkt de term zelf (een homoniem door berekening, Wetsanalyse 3a) |
 
 Met een **onderzoek** (spoor M) tellen ook de definities in de contextbronnen (`uit_contextdefinities`):
@@ -33,12 +35,13 @@ import re
 from dataclasses import dataclass
 
 from .definities import (
-    VERSIE as DEF_VERSIE, WettelijkeTerm, bronnen_onder, definitie_van, genus_van_mede, regeling_van,
-    verwijzing_na, wettelijke_termen,
+    VERSIE as DEF_VERSIE, WettelijkeTerm, bronnen_onder, definiens, definitie_van, genus_van_mede, regeling_van,
+    verwijst_door, verwijzing_na, wettelijke_termen,
 )
 from .model import Bewijs, Hypothese, Manifest, Onderzoek, Polariteit, Sterkte, Taalanalyse
+from .taal import geen_begrip
 
-VERSIE = "4"
+VERSIE = "5"
 
 _AFWIJKING = re.compile(r"\bin afwijking\b.*?\b(?:lid|leden|artikel|artikelen)\b", re.IGNORECASE | re.DOTALL)
 _GELDT_ALS = re.compile(r"\bgeldt\b.*?\bals\s+(?P<term>[\w-]+)", re.IGNORECASE | re.DOTALL)
@@ -71,7 +74,7 @@ def zelfde_term(manifest: Manifest, taal: dict[str, Taalanalyse]) -> list[Signaa
     per: dict[str, list[str]] = {}
     for f in manifest.formuleringen:
         t = taal[f.element_id]
-        if not t.beperkt and not t.zin:
+        if not t.beperkt and not t.zin and not geen_begrip(f, t):
             per.setdefault(t.term, []).append(f.element_id)
     uit = []
     for term, ids in sorted(per.items()):
@@ -293,6 +296,68 @@ def uit_verwijzingen(manifest: Manifest, taal: dict[str, Taalanalyse]) -> list[S
                         "AANWIJZEND", Polariteit.STEUN, Sterkte.STERK, "begrip.verwijzing.aanwijzend",
                         bron.tekst[t.antecedent_start:t.antecedent_eind + 60].strip(), f.bron_iri,
                         doel)))
+    return uit
+
+
+_MAX_PER_TERM = 3
+_LIDWOORD = re.compile(r"^(?:de|het|een)\s+", re.IGNORECASE)
+_EERSTE_WOORDEN = re.compile(r"[\w-]+")
+#: Na het soortbegrip volgt de afbakening; een komma of "en" is een opsomming, en dan zijn het juist de soorten.
+_AFBAKENING = {"die", "dat", "welke", "waarvan", "waarop", "waarbij", "waarin"}
+
+
+def _termen_met_passages(manifest: Manifest, taal: dict[str, Taalanalyse]) -> dict[str, list[str]]:
+    per: dict[str, list[str]] = {}
+    for f in manifest.formuleringen:
+        t = taal[f.element_id]
+        if not t.beperkt and not t.zin and not geen_begrip(f, t):
+            per.setdefault(t.term, []).append(f.element_id)
+    return {term: sorted(ids)[:_MAX_PER_TERM] for term, ids in sorted(per.items())}
+
+
+def specialisatie_in_term(manifest: Manifest, taal: dict[str, Taalanalyse],
+                          wts: list[WettelijkeTerm] = ()) -> list[Signaal]:
+    """"andere bankrekening" naast "bankrekening": een term met een bepalend woord erbij is een soort van zijn kern, als
+    die kern ook zelf een term is. Middel: een voorstel, geen wet (geel). Per term een paar passages: de relatie gaat
+    over groepen, en `groeperen` houdt er per paar groepen één over. Twee termen uit dezelfde opsomming zijn
+    nevenschikt: daar zegt de wet zelf dat ze soorten naast elkaar zijn, ook als de een de kern van de ander is."""
+    per = _termen_met_passages(manifest, taal)
+    naast = {(a.term, b.term) for a in wts for b in wts
+             if a.soort == b.soort == "opsomming" and a.bron_iri == b.bron_iri}
+    uit = []
+    for term, ids in per.items():
+        kern = taal[ids[0]].kern
+        if term == kern or kern not in per or (term, kern) in naast:
+            continue
+        for boven in per[kern]:
+            for onder in ids:
+                uit.append(Signaal(Hypothese.HIERARCHIE, boven, onder, _b(
+                    "SPECIALISATIE_IN_TERM", Polariteit.STEUN, Sterkte.MIDDEL, "begrip.hierarchie.specialisatie",
+                    f"{term} → {kern}", manifest.formulering(onder).bron_iri)))
+    return uit
+
+
+def genus_in_definitie(manifest: Manifest, taal: dict[str, Taalanalyse], onderzoek: Onderzoek | None) -> list[Signaal]:
+    """Een definitie die begint met een andere term ("aanslag: de belastingaanslag die …") maakt de gedefinieerde term een
+    soort van die term. Uit de begripsbepalingen in het manifest en het onderzoek."""
+    per = _termen_met_passages(manifest, taal)
+    uit = []
+    for bron in (*manifest.bronnen, *(onderzoek.bronnen if onderzoek else ())):
+        d = definitie_van(bron)
+        tekst = definiens(bron)
+        if d is None or d[1] != "definitie" or not tekst or verwijst_door(tekst, d[0]):
+            continue
+        woorden = [w.lower() for w in _EERSTE_WOORDEN.findall(_LIDWOORD.sub("", tekst))[:4]]
+        genus = next((" ".join(woorden[:n]) for n in (3, 2, 1) if " ".join(woorden[:n]) in per
+                      and woorden[n:n + 1] and woorden[n] in _AFBAKENING), "")
+        for term in d[0]:
+            if not genus or term == genus or term not in per:
+                continue
+            for boven in per[genus]:
+                for onder in per[term]:
+                    uit.append(Signaal(Hypothese.HIERARCHIE, boven, onder, _b(
+                        "GENUS_IN_DEFINITIE", Polariteit.STEUN, Sterkte.MIDDEL, "begrip.hierarchie.genus",
+                        f"{term}: {genus} …", bron.bron_iri)))
     return uit
 
 

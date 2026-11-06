@@ -553,6 +553,15 @@ manifest → taal.py → definities.py + signalen.py + patronen.py → kandidate
   in elke beslissing) kent link / non-link / possible link. Sterk tegenbewijs wint altijd; zwak bewijs
   alleen levert géén relatievoorstel op.
 - **Relaties worden geen groepen, en conflicten worden gemarkeerd, niet geknipt.**
+- **Geen begrip** (`geen_begrip.yaml`, `taal.geen_begrip`): een operator of parameterwaarde, een functiewoord, de kern van
+  een vaste voorzetseluitdrukking ("kader", "betrekking") of een formulering die met "van" begint, doet niet mee aan
+  zelfde term en de kop. De markering blijft; ze wordt alleen geen groep. `meting.geen_begrip` telt ze.
+- **Relatievoorstellen uit wat er ligt** (S5; alle drie `Sterkte.MIDDEL`, dus een geel voorstel, `R-MIDDEL`): de kop van
+  een samenstelling (`KOP_VAN_SAMENSTELLING`), een term met een bepalend woord naast zijn kern (`SPECIALISATIE_IN_TERM`:
+  niet tussen twee termen uit dezelfde opsomming, die zijn nevenschikt) en het soortbegrip van een definitie
+  (`GENUS_IN_DEFINITIE`: alleen met een afbakening erna, "X: de Y die …"; een komma is een opsomming en dan zijn het juist
+  de soorten). `van` is het genus, `naar` de soort. Op de drie referentiesets is de uitkomst gelijk aan vóór deze regels;
+  ze zijn dus niet bewezen op een gouden set.
 - **Het bereik van een definitie** komt uit de aanhef ("Deze wet verstaat onder", "in dit artikel");
   "dit hoofdstuk" is onbekend, omdat de opbouw niet in de IRI staat.
 - **Patronen** staan in `regels/relaties.yaml` met groepen `van`/`naar` en vier verplichte

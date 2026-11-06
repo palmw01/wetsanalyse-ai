@@ -31,6 +31,10 @@ lidwoord. Er is dan geen kop-, beperkings- of antecedentbepaling, en de analyse 
 from __future__ import annotations
 
 import re
+from functools import cache
+from pathlib import Path
+
+import yaml
 
 from ..jas_pipeline.taal.afgeleid import _KERN, naamwoordgroepen
 from ..jas_pipeline.taal.model import LinguisticAnalysis
@@ -153,6 +157,20 @@ def _koppen(analyses: dict[str, Taalanalyse]) -> dict[str, str]:
         if staarten:
             koppen[eid] = max(staarten, key=len)
     return koppen
+
+
+@cache
+def _geen_begrip() -> dict[str, frozenset[str]]:
+    data = yaml.safe_load((Path(__file__).with_name("geen_begrip.yaml")).read_text(encoding="utf-8"))
+    return {k: frozenset(str(x) for x in data[k]) for k in ("klassen", "woorden", "voorzetsels")}
+
+
+def geen_begrip(f: Formulering, t: Taalanalyse) -> bool:
+    """Geen term om te groeperen: een operator, een functiewoord, een vaste uitdrukking, of een bepaling bij een ander
+    woord (`geen_begrip.yaml`). De markering blijft; ze wordt alleen geen betekenisgroep."""
+    r = _geen_begrip()
+    woorden = f.tekst.lower().split()
+    return f.jas_klasse in r["klassen"] or t.term in r["woorden"] or bool(woorden and woorden[0] in r["voorzetsels"])
 
 
 def analyseer(manifest: Manifest, provider: TaalProvider) -> dict[str, Taalanalyse]:
