@@ -44,6 +44,8 @@ class Uitkomst(BaseModel):
     artefact: dict[str, Any] | None = None
     # In de vorm van `api/app/gesprek_contracts.Bevestiging`.
     bevestiging: dict[str, Any] | None = None
+    # Lex twijfelt en vraagt het: in de vorm van `api/app/gesprek_contracts.Vraagkaart`.
+    vraagkaart: dict[str, Any] | None = None
     tekst: str = ""
     # Per stap wat er gebeurde: duur, aantal, volledig, en of er een model aan te pas kwam.
     meting: dict[str, Any] = Field(default_factory=dict)

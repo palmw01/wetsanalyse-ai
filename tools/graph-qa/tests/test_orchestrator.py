@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+from unittest.mock import patch
 
 from agent.agent import answer_stream
 from fakes import FakeGraph, FakeLLM, make_settings, response, text_block, tool_block
@@ -292,3 +293,35 @@ def test_correctie_noemt_beide_soorten_als_beide_mis_zijn():
     instructie = llm.calls[-1]["messages"][-1]["content"]
     assert "BWBR9999999" in instructie
     assert "niet letterlijk" in instructie
+
+
+def test_dezelfde_aanroep_in_een_beurt_gaat_een_keer_naar_de_graaf():
+    """S7: drie gelijke zoekopdrachten in één beurt worden er één, en elke aanroep krijgt een resultaat."""
+    from agent.nodes.antwoord import HERHAALD, tools_node
+
+    uitgevoerd = []
+
+    class B:
+        graph = settings = None
+
+    def voer_uit(b, state, writer, tool, **_):
+        uitgevoerd.append(tool["id"])
+        return f"resultaat {tool['id']}"
+
+    tool = {"name": "search_begrippen", "input": {"zoekterm": "x"}}
+    state = {"question": "vraag", "source_trace": [], "pending_tools": [{**tool, "id": "1"}, {**tool, "id": "2"}],
+             "messages": [{"role": "user", "content": "vraag"}]}
+    with patch("agent.nodes.antwoord.get_stream_writer", return_value=lambda *_: None), \
+            patch("agent.nodes.antwoord.execute_tool", voer_uit):
+        eerste = tools_node(B(), state)
+        vervolg = {**state, "pending_tools": [{**tool, "id": "3", "input": {"zoekterm": "x"}}],
+                   "source_trace": eerste["source_trace"],
+                   "messages": [*state["messages"],
+                                {"role": "assistant", "content": [{"type": "tool_use", **t} for t in state["pending_tools"]]},
+                                *eerste["messages"]]}
+        tweede = tools_node(B(), vervolg)
+    assert uitgevoerd == ["1"]
+    assert [b["tool_use_id"] for b in eerste["messages"][0]["content"]] == ["1", "2"]
+    assert eerste["messages"][0]["content"][1]["content"] == "resultaat 1" + HERHAALD
+    assert tweede["messages"][0]["content"][0]["content"] == "resultaat 1" + HERHAALD
+    assert len(tweede["source_trace"]) == 1

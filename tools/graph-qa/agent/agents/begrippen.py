@@ -16,6 +16,7 @@ is geen taak van deze agent: die blijft bij de antwoord-worker (`definitie`).
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
@@ -23,7 +24,7 @@ from pydantic import BaseModel, Field
 
 from ..begrippen_beurt import begrippen_kern
 from ..begrippen_verdieping import verdieping_kern
-from ..kaart_beurt import als_rij, begrip_artefact, kaart_kern, los_op
+from ..kaart_beurt import _normaal, als_rij, begrip_artefact, kaart_kern, keuzekaart, los_op
 from ..wetsanalyse_api import WetsanalyseApiFout
 from . import Context, Uitkomst, geweigerd
 
@@ -71,9 +72,12 @@ async def voer_uit(invoer: Invoer, ctx: Context) -> Uitkomst:
         if taak is Taak.VOORSTELLEN:
             return await begrippen_kern(ctx, invoer.werkgebied_id)
         return await verdieping_kern(ctx, invoer.werkgebied_id, invoer.bevestigd, invoer.werkvoorraad_id)
-    begrip, ander, zin = await _begrippen(ctx, invoer)
+    keuze = await _begrippen(ctx, invoer)
+    if keuze.kaart:
+        return Uitkomst(taak=taak, status="geweigerd", reden=keuze.kaart["vraag"], vraagkaart=keuze.kaart)
+    begrip, ander = keuze.begrip, keuze.ander
     if begrip is None:
-        return geweigerd(taak, zin)
+        return geweigerd(taak, keuze.zin)
     if taak in KAARTACTIES:
         return await kaart_kern(ctx, str(taak), begrip, ander)
     if taak is Taak.RELATIES:
@@ -81,30 +85,56 @@ async def voer_uit(invoer: Invoer, ctx: Context) -> Uitkomst:
     return await uitwerken(ctx, begrip)
 
 
-async def _begrippen(ctx: Context, invoer: Invoer) -> tuple[dict[str, Any] | None, dict[str, Any] | None, str]:
-    """Het begrip (en bij betekenisverschil het andere): aangewezen, anders uit de termen van de vraag."""
+@dataclass
+class Keuze:
+    begrip: dict[str, Any] | None = None
+    ander: dict[str, Any] | None = None
+    zin: str = ""
+    kaart: dict[str, Any] | None = None
+
+
+def _is_naam_van(term: str, b: dict[str, Any]) -> bool:
+    return _normaal(term) in {_normaal(n) for n in [b["naam"], *(b.get("alternatieve_termen") or [])]}
+
+
+async def _begrippen(ctx: Context, invoer: Invoer) -> Keuze:
+    """Het begrip (en bij betekenisverschil het andere): aangewezen, anders uit de termen van de vraag. Noemt de
+    vraag zelf twee begrippen, dan gaat de vraag voor op wat er aangewezen is: het onderwerp vult alleen aan wat de
+    vraag niet noemt, en een term wordt nooit stil vervangen door iets anders (S1 in de e2e-test van 5 nov 2026)."""
     begrip = ander = None
+    verschil = invoer.taak is Taak.BETEKENISVERSCHIL
     if invoer.begrip_id and invoer.werkgebied_id:
         begrip = await als_rij(ctx, invoer.werkgebied_id, invoer.begrip_id)
         if begrip is None:
-            return None, None, "Dat begrip bestaat niet (meer) in dit werkgebied."
+            return Keuze(zin="Dat begrip bestaat niet (meer) in dit werkgebied.")
     if invoer.ander_id and (invoer.werkgebied_id or begrip):
         ander = await als_rij(ctx, invoer.werkgebied_id or begrip["werkgebied_id"], invoer.ander_id)
     # Wat nog ontbreekt, komt uit de termen van de vraag, in volgorde: eerst het begrip, dan bij
     # betekenisverschil het andere. De naam van een aangewezen begrip telt niet als het andere.
-    nodig = (0 if begrip else 1) + (1 if invoer.taak is Taak.BETEKENISVERSCHIL and ander is None else 0)
-    rest = [t for t in invoer.termen if begrip is None or t.casefold() != begrip["naam"].casefold()][:nodig]
+    termen = [t for t in invoer.termen if begrip is None or not _is_naam_van(t, begrip)]
+    if verschil and len(termen) >= 2 and begrip is not None and not invoer.ander_id:
+        begrip = None
+    nodig = (0 if begrip else 1) + (1 if verschil and ander is None else 0)
+    rest = termen[:nodig]
     if begrip is None and not rest:
-        return None, None, ("Over welk begrip gaat het? Kies *Vraag Lex* bij het begrip, of noem het – bijvoorbeeld "
-                            "“zoek de brondefinitie van het begrip termijn”.")
-    gevonden, zin = await los_op(ctx, rest, invoer.werkgebied_id) if rest else ([], "")
-    if rest and not gevonden:
-        return None, None, zin
+        return Keuze(zin="Over welk begrip gaat het? Kies *Vraag Lex* bij het begrip, of noem het – bijvoorbeeld "
+                         "“zoek de brondefinitie van het begrip termijn”.")
+    gevonden: list[dict[str, Any]] = []
+    for term in rest:
+        wel = begrip or (gevonden[0] if gevonden else None)
+        zonder = frozenset(r["id"] for r in (wel,) if r)
+        uit = await los_op(ctx, term, invoer.werkgebied_id, zonder)
+        if uit.opties:
+            wid = invoer.werkgebied_id or uit.opties[0].get("werkgebied_id") or ""
+            return Keuze(kaart=keuzekaart(str(invoer.taak), wid, term, uit.opties, wel))
+        if uit.begrip is None:
+            return Keuze(zin=uit.zin)
+        gevonden.append(uit.begrip)
     if begrip is None:
         begrip, gevonden = gevonden[0], gevonden[1:]
     if ander is None and gevonden:
         ander = gevonden[0]
-    return begrip, ander, ""
+    return Keuze(begrip=begrip, ander=ander)
 
 
 RELATIETYPE = {"kwalificatie": "kwalificeert", "inclusie": "omvat", "uitsluiting": "sluit uit",

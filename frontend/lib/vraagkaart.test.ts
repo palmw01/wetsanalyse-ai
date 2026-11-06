@@ -294,3 +294,13 @@ describe("de bronselectie stilzetten vanaf het compacte kaartje", () => {
     expect(antwoordTekst({ ...k, modus: "bronselectie" } as Vraagkaart, stilActie(k))).toBe("Zet de bronselectie even stil.");
   });
 });
+
+describe("de keuzekaart van de begrippen-agent", () => {
+  it("is leesbaar en geeft geen stap naar een samenvatting", () => {
+    const k = parseVraagkaart({ intake_id: "bk-wg1", modus: "begrip", stap: "begrip_kiezen", vraag: "Welk begrip?",
+      opties: [{ label: "akte", waarde: "betekenisverschil:a:b" }] });
+    expect(k?.modus).toBe("begrip");
+    expect(isLaatsteVraag(k!)).toBe(true);
+    expect(antwoordTekst(k!, { ...{ intake_id: "bk-wg1", stap: "begrip_kiezen" }, actie: "afbreken" } as never)).toBe("Laat maar.");
+  });
+});

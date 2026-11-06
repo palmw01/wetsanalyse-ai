@@ -933,7 +933,8 @@ de stand van die beurt zien, dan heb je een momentopname nodig. Alleen een begri
   bestaand werkgebied, met in de samenvatting `{wijzigingen: [{veld, label, toen, nu}]}`. Het user-bericht van een klik draagt
   **`intake_antwoord`** `{intake_id, stap, actie}` (`actie` ook `opslaan`, de knop van het aanvullen): zo bundelt de werkplek na herladen de antwoorden
   in één Vragen-kaart en onderscheidt hij ze van een getypte tussenvraag. `reeks.totaal` mag 1 zijn: een werkgebied kan één nieuwe
-  bepaling hebben.
+  bepaling hebben. `modus: "begrip"` (stap `begrip_kiezen`, `intake_id` `bk-<werkgebied>`) is de keuzekaart van de
+  begrippen-agent: welk begrip bedoel je? Lex gokt niet.
   De review-state zelf blijft in het annotatiedomein. **Een veld dat graph-qa meestuurt moet in
   `BerichtInvoer` staan**, anders laat Pydantic het stil vallen en verdwijnen na het heropenen de
   chip naar het annotatiepaneel en het toolspoor. `tools/graph-qa/tests/test_contract_drift.py`
