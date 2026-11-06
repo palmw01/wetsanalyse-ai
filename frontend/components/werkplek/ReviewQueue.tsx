@@ -5,7 +5,8 @@ import { IcoonBevestig } from "@/components/ui/IcoonBevestig";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import { isBeslist, isVergrendeld, type ReviewFilter } from "@/lib/annotatie";
+import { groeneVoorstellen, isBeslist, isVergrendeld, type ReviewFilter } from "@/lib/annotatie";
+import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { ChevronOmlaag, Ruit, Vinkje, Waarschuwing } from "@/components/ui/Icoon";
 import { Meter } from "@/components/ui/Meter";
 import { JAS_KLASSEN, jasStyle } from "@/lib/jas";
@@ -584,6 +585,7 @@ export function ReviewQueue({
   onAkkoord,
   onKies,
   onBeslissing,
+  onAkkoordGroen,
   onVerwijder,
   onVraag,
   docVergrendeld,
@@ -604,6 +606,8 @@ export function ReviewQueue({
   onAkkoord: (elementId: string) => Promise<void>;
   onKies: (id?: string) => void;
   onBeslissing: (elementId: string, req: BeslissingInvoer) => Promise<void>;
+  /** Alle voorstellen zonder twijfel in één handeling. Geel en rood bekijk je één voor één. */
+  onAkkoordGroen?: () => Promise<void>;
   /** Eigen markering wissen. Weglaten maakt de lijst alleen-beoordeelbaar. */
   onVerwijder?: (elementId: string) => Promise<void>;
   /** Zet een vraag over een element klaar in het centrale chatvenster. */
@@ -617,6 +621,7 @@ export function ReviewQueue({
   const beslist = elementen.filter(isBeslist).length;
   const teReviewen = totaal - beslist;
   const metAandacht = elementen.filter((el) => el.aandacht === "rood" || el.aandacht === "geel").length;
+  const groen = groeneVoorstellen(elementen).filter((el) => !zwevendeIds?.has(el.id)).length;
   const zwevend = zwevendeIds?.size ?? 0;
   const perc = totaal ? Math.round((beslist / totaal) * 100) : 0;
   const afgerond = totaal > 0 && beslist === totaal;
@@ -670,6 +675,14 @@ export function ReviewQueue({
               </button>
             );
           })}
+          {onAkkoordGroen && groen > 0 && (
+            <BevestigKnop bevestigTekst={`${groen} akkoord?`} onBevestig={onAkkoordGroen}
+              titel="Bevestigt de voorstellen zonder twijfel; geel en rood bekijk je één voor één."
+              className="focus-ring min-h-[24px] rounded-knop-xs border border-line px-2.5 py-0.5 text-[0.7rem] text-muted transition hover:border-lint hover:text-ink coarse:min-h-[44px]"
+              bevestigClassName="border-aandacht-groen-rand text-aandacht-groen-tekst">
+              Akkoord met de groene ({groen})
+            </BevestigKnop>
+          )}
         </div>
 
       </div>

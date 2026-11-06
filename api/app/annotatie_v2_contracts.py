@@ -14,6 +14,16 @@ class Lifecycle(str, Enum):
     reused = "reused"
 
 
+#: Eén definitie, voor de hele api: een jurist bevestigde dit element (ook `edited`: een aanpassing ís een oordeel).
+#: `frontend/lib/annotatie.ts` draagt dezelfde waarden; `tests/test_lifecycle_drift.py` bewaakt dat.
+BEOORDEELD = frozenset({Lifecycle.human_approved.value, Lifecycle.edited.value, Lifecycle.published.value})
+#: Geen open werk meer aan dit element: bevestigd, of verworpen.
+AFGEHANDELD = BEOORDEELD | {Lifecycle.rejected.value}
+#: Wat alleen na een heropening nog wijzigt. Bewust zonder `edited`: een klasse wijzigen en er een toelichting bij
+#: typen is één doorlopende handeling (`isVergrendeld` in de werkplek).
+VERGRENDELD = AFGEHANDELD - {Lifecycle.edited.value}
+
+
 class LaagStatus(str, Enum):
     in_review = "in_review"
     geaccordeerd = "geaccordeerd"
@@ -108,6 +118,38 @@ class Beslissing(BaseModel):
     wijziging: dict = Field(default_factory=dict)
     comment: str = ""
     review_reason: str | None = None
+
+
+class Laagbesluit(BaseModel):
+    """Eén besluit in een bulk. Een bewerking blijft hier binnen de laag: ankers en tekst wijzigen kan de eigenaar
+    verplaatsen, en dat hoort bij de losse route met de revisies van beide lagen."""
+
+    element_id: str = Field(min_length=1, max_length=64)
+    type: Literal["approve", "reject", "heropen", "comment", "edit"]
+    wijziging: dict = Field(default_factory=dict)
+    comment: str = ""
+    review_reason: str | None = None
+
+    @model_validator(mode="after")
+    def _binnen_de_laag(self):
+        if set(self.wijziging) - {"klasse", "toelichting"}:
+            raise ValueError("In een bulk wijzig je alleen klasse en toelichting.")
+        return self
+
+
+class Laagbesluiten(BaseModel):
+    """Besluiten op één laag, in één transactie en één revisie: alles of niets."""
+
+    verwachte_revisie: int = Field(ge=0)
+    snapshot_id: str
+    besluiten: list[Laagbesluit] = Field(min_length=1, max_length=500)
+
+    @model_validator(mode="after")
+    def _uniek(self):
+        ids = [b.element_id for b in self.besluiten]
+        if len(ids) != len(set(ids)):
+            raise ValueError("Elk element hoogstens één keer per bulk.")
+        return self
 
 
 class Zoekvraag(BaseModel):

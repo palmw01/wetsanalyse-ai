@@ -36,6 +36,8 @@ export interface ArtefactInhoudProps {
   actiefId?: string;
   onKies: (id?: string) => void;
   onBeslissing: (elementId: string, req: BeslissingInvoer) => Promise<void>;
+  /** De voorstellen zonder twijfel in één handeling bevestigen. Weglaten verbergt de knop. */
+  onAkkoordGroen?: () => Promise<void>;
   /** De jurist markeert zelf een fragment. Weglaten maakt het paneel alleen-lezen. */
   onEigenMarkering?: (invoer: {
     klasse: string; tekst: string; lid: string; toelichting: string;
@@ -72,7 +74,7 @@ export interface ArtefactInhoudProps {
  *  werkplek zit hij in een `Dialog`, op `/annotaties/node` in een gewone pagina. Eén inhoud, twee
  *  schillen – anders gaan de twee weergaven uit elkaar lopen. */
 export function ArtefactInhoud({
-  doc, info, actiefId, onKies, onBeslissing, onEigenMarkering,
+  doc, info, actiefId, onKies, onBeslissing, onAkkoordGroen, onEigenMarkering,
   onWisEigenMarkering, onVraag, onStatus, onVerwijder, onSluiten, pagina, onExport, extra, ongedekt, kopOnder, kopBalk, alleenLezen = false,
 }: ArtefactInhoudProps) {
   // Eén bron voor de bewoording: `vindplaatsLabel` weet uit het graaf-`soort` of dit een artikel
@@ -233,6 +235,15 @@ export function ArtefactInhoud({
     }
   }
 
+  async function akkoordGroen() {
+    setFout(null);
+    try {
+      await onAkkoordGroen?.();
+    } catch (e) {
+      setFout(foutTekst(e, "De voorstellen zijn niet opgeslagen."));
+    }
+  }
+
   /** Wissen loopt om dezelfde reden hierlangs: de fout hoort bij de kaart, niet in de chat. */
   async function wis(elementId: string) {
     if (vergrendeld) return;
@@ -387,6 +398,7 @@ export function ArtefactInhoud({
               onAkkoord={keurGoed}
               onKies={onKies}
               onBeslissing={beslis}
+              onAkkoordGroen={onAkkoordGroen && !vergrendeld ? akkoordGroen : undefined}
               onVerwijder={onWisEigenMarkering && !vergrendeld ? wis : undefined}
               onVraag={onVraag}
               docVergrendeld={vergrendeld}

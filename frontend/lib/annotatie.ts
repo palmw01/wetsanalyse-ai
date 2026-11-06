@@ -147,13 +147,31 @@ export function overlaptSelectie(
 
 // --- de reviewlijst ordenen -----------------------------------------------------------------------
 
-/** Elementen waar de jurist al over besloten heeft. Ook `edited`: een aanpassing ís een besluit. */
-export const BESLIST_LIFECYCLES = ["human_approved", "edited", "rejected"];
+/** Door een jurist bevestigd. Dezelfde definitie als `BEOORDEELD` in `api/app/annotatie_v2_contracts.py`;
+ *  `api/tests/test_lifecycle_drift.py` bewaakt dat. */
+export const BEOORDEELD_LIFECYCLES = ["human_approved", "edited", "published"];
+/** Elementen waar de jurist al over besloten heeft. Ook `edited`: een aanpassing ís een besluit. Dezelfde definitie als
+ *  `AFGEHANDELD` in de api. */
+export const BESLIST_LIFECYCLES = ["human_approved", "edited", "published", "rejected"];
 
 export type ReviewFilter = "alles" | "te_beoordelen" | "aandacht";
 
-export function isBeslist(el: AnnotatieElement): boolean {
+export function isBeslist(el: { lifecycle: string }): boolean {
   return BESLIST_LIFECYCLES.includes(el.lifecycle);
+}
+
+/** Draagt dit element een oordeel? De regel van een eigen markering zelf telt niet (`heeft_oordeel` in de api). */
+export function heeftOordeel(el: { beslissingen?: { type: string }[] }): boolean {
+  return !!el.beslissingen?.some((b) => b.type !== "markering");
+}
+
+/** De voorstellen die zonder twijfel uit de keten kwamen: geen aandachtspunt, een klasse, en nog niemand besloot erover.
+ *  Dit is wat *Akkoord met de groene* in één handeling bevestigt; geel en rood bekijkt de jurist één voor één. */
+export function groeneVoorstellen<T extends { lifecycle: string; klasse: string; herkomst: string; aandacht?: string | null; verouderd?: boolean }>(
+  elementen: T[],
+): T[] {
+  return elementen.filter((e) => e.lifecycle === "voorgesteld" && !!e.klasse && e.herkomst !== "mens" && !e.verouderd
+    && e.aandacht !== "geel" && e.aandacht !== "rood");
 }
 
 /** Staat dit ontbrekend-item inmiddels als markering in het document?

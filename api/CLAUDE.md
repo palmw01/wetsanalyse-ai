@@ -127,10 +127,23 @@ Hieronder wat je moet weten om de code te wijzigen.
 - **Verouderd.** Wijkt de hash van een geankerde bronnode af van de actuele bron, dan is het
   element verouderd: alleen-lezen (409), telt niet mee bij afronden. De lifecycle blijft staan als
   historie.
-- **Een oordeel vergrendelt.** Een element in `human_approved`/`rejected`/`published` dat van de
-  agent komt of al beslissingen draagt, accepteert alleen `comment` en `heropen`
-  (`annotatie_v2_store.beslis`). Afronden (`zet_status` → `geaccordeerd`) kan pas als elk actueel
-  element beoordeeld is en de bron niet veranderde.
+- **Eén definitie van beoordeeld** (`annotatie_v2_contracts`): `BEOORDEELD` (`human_approved`, `edited`, `published`),
+  `AFGEHANDELD` (daarnaast `rejected`) en `VERGRENDELD` (`AFGEHANDELD` zonder `edited`). Schrijf de lifecycles
+  nergens los uit; `frontend/lib/annotatie.ts` draagt dezelfde waarden en `tests/test_lifecycle_drift.py` bewaakt dat.
+- **Een oordeel vergrendelt.** Een element in `VERGRENDELD` dat van de agent komt of een oordeel draagt
+  (`heeft_oordeel`), accepteert alleen `comment` en `heropen` (`annotatie_v2_store._beslis_in`). Afronden (`zet_status`
+  → `geaccordeerd`) kan pas als elk actueel element afgehandeld is en de bron niet veranderde.
+- **Een eigen markering heeft een beslissingsregel** (`type: "markering"`, met actor, tijd en klasse), zodat de audit van
+  elk element compleet is. Die regel is geen oordeel: de maker mag nog bijwerken en wissen, en de statistiek telt hem niet.
+- **De toelichting volgt de klasse.** Wisselt een `edit` de klasse zonder eigen toelichting, dan ging de oude over de
+  vorige klasse: ze wijkt voor een zin die dat zegt (`_herzien_toelichting`), en de beslissing bewaart haar in `voor`.
+- **Antwoorden op een besluit zijn klein** (`compact_element`): zonder `trace` en `geproduceerd_door`. De werkplek laadt
+  de weergave daarna toch opnieuw. Elk element droeg de hele meting van zijn ronde; **`GET weergave` draagt elke meting nu
+  één keer** (`compacte_weergave`, `runs` op `run_sleutel`) en `GET elementen/{id}` geen. De opslag, de export en
+  `bouw_graaf` lezen de volledige `store.weergave`: daar hoort de meting bij.
+- **Bulk per laag** (`POST lagen/{id}/beslissingen`, `beslis_laag`): hoogstens 500 besluiten in één transactie en één
+  revisie, alles of niets (409 `besluit_geweigerd` met het element), met `_beslis_in` als enige pad, dus dezelfde regels en
+  auditregels als los. `edit` alleen op klasse en toelichting: ankers kunnen de eigenaar verplaatsen.
 - **Wissen van één element** (`DELETE elementen/{id}`) mag alleen voor een eigen, nog niet
   beoordeelde markering.
 - **Verwijderen van de bepaling in beeld mag iedereen** (`POST weergave/verwijder`,

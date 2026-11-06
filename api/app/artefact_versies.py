@@ -68,7 +68,7 @@ async def _inhoud(soort: str, ref: dict[str, Any]) -> dict[str, Any]:
         from .annotatie_v2 import resolve_bron
         from . import annotatie_v2_store
         doel = {"bron_iri": ref["bron_iri"], "bwb_id": "", "artikel": "", "lid": ""}
-        return {"weergave": await annotatie_v2_store.weergave(await resolve_bron(doel))}
+        return {"weergave": annotatie_v2_store.compacte_weergave(await annotatie_v2_store.weergave(await resolve_bron(doel)))}
     raise ValueError(soort)
 
 

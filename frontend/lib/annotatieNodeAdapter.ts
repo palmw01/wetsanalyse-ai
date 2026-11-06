@@ -174,15 +174,20 @@ export function grensOpties(el: NodeElement, nb: NodeBron): { index: number; soo
   return uit;
 }
 
+/** Dezelfde sleutel als `run_sleutel` in de api: de weergave draagt de meting van een ronde één keer. */
+export function runSleutel(run: { ronde?: number; tijd?: string; model?: string }): string {
+  return `${run.ronde ?? ""}|${run.tijd ?? ""}|${run.model ?? ""}`;
+}
+
 /** Een v2-element als paneel-element.
  *
  *  Een element met meerdere ankers (over onderdelen heen) wordt één doorlopende markering van het
  *  eerste tot het laatste anker, precies zoals een markering over onderdelen er in het paneel al
  *  uitzag. De tekst is dan het stuk bron dat ertussen staat, inclusief het onderdeelnummer; de
  *  letterlijke ankers blijven ongewijzigd in de api staan. */
-export function elementVanNode(el: NodeElement, nb: NodeBron): AnnotatieElement {
+export function elementVanNode(el: NodeElement, nb: NodeBron, runs?: NodeWeergave["runs"]): AnnotatieElement {
   const bereik = el.verouderd ? null : bereikVan(nb, el.ankers);
-  const run = el.geproduceerd_door ?? null;
+  const run = (el.geproduceerd_door && runs?.[runSleutel(el.geproduceerd_door)]) ?? el.geproduceerd_door ?? null;
   return {
     id: el.id,
     klasse: el.klasse,
@@ -221,7 +226,7 @@ export function documentVanNode(view: NodeWeergave, nb: NodeBron): AnnotatieDocu
     artikel: nb.info.artikel,
     lid: view.doel.lid ?? "",
     status: afgerond ? "geaccordeerd" : "in_review",
-    elementen: view.elementen.map((e) => elementVanNode(e, nb)),
+    elementen: view.elementen.map((e) => elementVanNode(e, nb, view.runs)),
     runs: [],
     // Gedeelde laag: het paneel toont dan geen verwijderknop voor het geheel.
     laag_sleutel: view.doel.bron_iri,
