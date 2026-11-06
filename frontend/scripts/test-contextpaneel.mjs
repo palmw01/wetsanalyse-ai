@@ -83,6 +83,16 @@ try {
   // De chat blijft bruikbaar ernaast.
   assert.ok(await page.getByRole("textbox").last().isVisible());
 
+  // Ook in een half venster: chat en paneel staan naast elkaar, allebei leesbaar breed.
+  for (const width of [800, 960, 1024, 1280]) {
+    await page.setViewportSize({ width, height: 800 });
+    const invoer = await page.getByRole("textbox").last().boundingBox();
+    const kader = await paneel("bron").boundingBox();
+    assert.ok(invoer.x + invoer.width <= kader.x + 1, `op ${width}px ligt het paneel niet over de invoer`);
+    assert.ok(invoer.width >= 300 && kader.width >= 320, `op ${width}px zijn beide kolommen bruikbaar`);
+  }
+  await page.setViewportSize({ width: 1440, height: 1000 });
+
   // --- Een markering opent het element in hetzelfde paneel; geen beoordelingsknoppen ---
   await paneel("bron").locator("mark[data-element=e1]").click();
   await paneel("element").waitFor();

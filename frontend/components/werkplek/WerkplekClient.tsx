@@ -1512,7 +1512,7 @@ export function WerkplekClient({
 
     {/* Op een breed scherm staat het ernaast: chat en review tegelijk in beeld. */}
     {breed && paneel && (
-      <div className="hidden w-[min(34rem,42vw)] shrink-0 xl:block">{paneel}</div>
+      <div className="hidden w-[min(34rem,46%)] shrink-0 min-[800px]:block">{paneel}</div>
     )}
     </div>
     </ContextPaneelContext.Provider>

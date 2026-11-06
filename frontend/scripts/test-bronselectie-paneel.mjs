@@ -146,7 +146,7 @@ try {
   assert.ok(klaar.y > beoordelen.y + beoordelen.height, "Klaar staat onder de nevenknop");
   assert.ok(Math.abs(klaar.x + klaar.width - (beoordelen.x + beoordelen.width)) <= 1, "Klaar sluit rechts aan");
 
-  // Het paneel (vanaf 1280px open het vanzelf): de kandidaat openklappen en de tekst lezen, zonder weg te gaan.
+  // Het paneel (vanaf 800px open het vanzelf): de kandidaat openklappen en de tekst lezen, zonder weg te gaan.
   await paneel().waitFor();
   await paneel().getByRole("button", { name: "Tekst van Artikel 9, lid 1 – Invorderingswet 1990" }).click();
   await paneel().locator(`[data-wettekst="${A9}"]`).getByText("zes weken na de dagtekening", { exact: false }).waitFor();
