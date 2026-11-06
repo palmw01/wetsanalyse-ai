@@ -12,6 +12,7 @@ dat de vertaling het opvangt.
 """
 from __future__ import annotations
 
+import asyncio
 import re
 from pathlib import Path
 
@@ -243,3 +244,53 @@ def test_de_acties_op_een_kaartje_zijn_overal_dezelfde():
     assert api and re.findall(r'"(\w+)"', api.group(1)) == acties
     ts = re.search(r'actie: ("antwoord".*?);', (root / "frontend" / "lib" / "vraagkaart.ts").read_text(), re.S)
     assert ts and re.findall(r'"(\w+)"', ts.group(1)) == acties
+
+
+GESPREK_CONTRACT = CONTRACT.parent / "gesprek_contracts.py"
+
+
+@pytest.mark.skipif(not GESPREK_CONTRACT.exists(), reason="api-contract niet beschikbaar (los uitgecheckt)")
+@pytest.mark.parametrize("events, stop", [
+    ([{"type": "token", "content": "x"}, {"type": "sources", "sources": [{"uri": "u"}]},
+      {"type": "overzicht", "overzicht": {"a": 1}}, {"type": "vraagkaart", "vraagkaart": {"stap": "naam"}},
+      {"type": "artefact", "artefact": {"soort": "begrip"}}, {"type": "bevestiging", "bevestiging": {"aantal": 1}},
+      {"type": "tool_execution", "call_id": "c", "phase": "start"}], False),
+    ([{"type": "error", "message": "stuk"}], False),
+    ([{"type": "token", "content": "x"}], True),
+    ([{"type": "doel", "doel": {"bron_iri": "urn:x", "snapshot_id": "s", "bwbId": "B"}},
+      {"type": "element", "element": {"klasse": "Rechtsfeit", "tekst": "x"}},
+      {"type": "hergebruik", "hergebruik": {"volledig": False}}, {"type": "dekking", "dekking": {"per_bron": {}}}], False),
+])
+def test_elk_veld_van_het_bericht_bestaat_bij_de_api(monkeypatch, events, stop):
+    """Een veld dat de api niet kent, valt daar stil weg: geen fout, alleen een beurt die na herladen anders leest."""
+    from agent.beurt import voer_beurt_uit
+    from agent.runs import Run
+    from tests.fakes import make_settings
+
+    bewaard: list[dict] = []
+
+    class Api:
+        async def zet_bronnode_batch(self, _payload):
+            return {}
+
+        async def voeg_bericht_toe(self, _gesprek, bericht):
+            bewaard.append(bericht)
+            return {}
+
+        async def aclose(self):
+            pass
+
+    monkeypatch.setattr("agent.beurt.WetsanalyseApi", lambda *_a, **_k: Api())
+
+    async def stroom():
+        for event in events:
+            yield event
+
+    async def draai():
+        run = Run(run_id="r", conversation_id="g", vraag="v", stop_gevraagd=stop)
+        settings = make_settings(wetsanalyse_api_url="http://api", wetsanalyse_api_token="t", qa_api_token="q")
+        return [e async for e in voer_beurt_uit(stroom(), settings=settings, run=run, gesprek_id="g", user_id="j")]
+
+    asyncio.run(draai())
+    velden = set(_api_velden("BerichtInvoer", GESPREK_CONTRACT))
+    assert bewaard and set(bewaard[0]) <= velden, f"niet in BerichtInvoer: {sorted(set(bewaard[0]) - velden)}"

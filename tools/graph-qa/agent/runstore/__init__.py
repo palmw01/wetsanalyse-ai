@@ -35,7 +35,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
@@ -97,6 +97,8 @@ class Run:
     gestart: float = field(default_factory=time.monotonic)
     eind_op: float | None = None
     stop_gevraagd: bool = False
+    # Hoe de stroom eindigde (`sluit_af`): klaar, mislukt of gestopt. Leeg zolang hij loopt.
+    uitkomst: str = ""
     taak: asyncio.Task[None] | None = None
     _wakker: asyncio.Condition = field(default_factory=asyncio.Condition)
 
@@ -119,6 +121,63 @@ class Run:
             "volgende_seq": self.volgende_seq,
             "weggevallen": self.weggevallen,
         }
+
+
+#: Wat de jurist leest als een run eindigt zonder dat de driver het zelf kon afronden.
+AFGEBROKEN = "Deze beurt is afgebroken doordat Lex opnieuw is opgestart. Stel de vraag gerust nog eens."
+
+#: Hoe lang het vastleggen van een afbraak mag duren: dit loopt ook tijdens het afsluiten van het proces.
+AFBRAAK_TIMEOUT_S = 5.0
+
+# Legt een afgebroken run vast als bericht (`beurt.leg_afbraak_vast`). De store kent de api niet.
+BijAfbraak = Callable[[Run, str], Awaitable[None]]
+
+
+def afgebroken_events() -> list[dict[str, Any]]:
+    """Het einde van een run die zelf geen `done` meer kon schrijven: een andere replica ging weg of het proces
+    sloot af. Een client hoort dit, in plaats van een stroom die zomaar ophoudt."""
+    return [{"type": "error", "foutcode": "beurt_afgebroken", "message": AFGEBROKEN},
+            {"type": "done", "uitkomst": "mislukt"}]
+
+
+async def meld_afbraak(bij_afbraak: BijAfbraak | None, run: Run, melding: str) -> None:
+    """Best-effort: dit loopt naast het echte werk, en de run staat al op zijn eindstatus."""
+    if bij_afbraak is None:
+        return
+    try:
+        await asyncio.wait_for(bij_afbraak(run, melding), AFBRAAK_TIMEOUT_S)
+    except Exception:  # noqa: BLE001 – de banner in de werkplek blijft het vangnet
+        logger.warning("afgebroken run niet vastgelegd", exc_info=True,
+                       extra={"categorie": "technisch", "run_id": run.run_id})
+
+
+async def sluit_af(
+    stroom: AsyncIterator[dict[str, Any]], run: Run, bij_afbraak: BijAfbraak | None = None,
+) -> AsyncIterator[dict[str, Any]]:
+    """Elke run eindigt met precies één `done`, en die zegt hoe het afliep.
+
+    Een plek voor alle routes (beurt, reeks, het annoteren van een werkgebied), zodat de client alleen op `done` hoeft
+    te letten: een stroom die sluit zonder `done` is een verbroken verbinding, geen afgeronde beurt.
+
+    Een fout zonder `opgeslagen` komt uit een pad dat niet langs `voer_beurt_uit` gaat (de bron weigert, de brongraaf
+    is weg). Die krijgt alsnog een bericht, want de server is de enige schrijver. Dubbel kan niet: de api ontdubbelt
+    op `run_id`. Fouten van een onderdeel horen bij dat onderdeel; de reeks loopt door.
+    """
+    fout, vastgelegd = "", False
+    async for event in stroom:
+        soort = event.get("type")
+        if soort == "done":
+            continue
+        if not event.get("onderdeel"):
+            if soort == "error":
+                fout = str(event.get("message") or "") or fout or "Er ging iets mis."
+            elif soort == "opgeslagen":
+                vastgelegd = True
+        yield event
+    if fout and not vastgelegd:
+        await meld_afbraak(bij_afbraak, run, fout)
+    run.uitkomst = "mislukt" if fout else "gestopt" if run.stop_gevraagd else "klaar"
+    yield {"type": "done", "uitkomst": run.uitkomst}
 
 
 @runtime_checkable

@@ -16,6 +16,7 @@ import { GraafIcoon } from "@/components/graaf/GraafIcoon";
 import { Button } from "@/components/ui/Button";
 import { ChevronOmlaag, Cirkel, Waarschuwing } from "@/components/ui/Icoon";
 import { HergebruikMelding } from "@/components/werkplek/HergebruikMelding";
+import { Melding } from "@/components/ui/Melding";
 import { KeuzeKaart } from "@/components/werkplek/KeuzeKaart";
 import { Markdown, StreamendeTekst } from "@/components/werkplek/Markdown";
 import { OverzichtBlok } from "@/components/werkplek/OverzichtBlok";
@@ -38,6 +39,7 @@ import { MEEDENK_PROMPT } from "@/lib/begripVoorstellen";
 import type { IntakeActie, VragenGroep } from "@/lib/vraagkaart";
 import type {
   AgentDoelInvoer, AgentGrounding, AgentKandidaat, AnnotatieDocument, Bron, Overzicht,
+  BeurtUitkomst,
 } from "@/lib/types";
 
 /** Een werkgebiedopdracht die Lex pas na akkoord start: het werkgebied annoteren (fase B, de default)
@@ -145,9 +147,10 @@ export const ThreadRij = memo(function ThreadRij({
             <Markdown tekst={item.tekst} nietLetterlijk={item.grounding?.niet_letterlijk} bronnen={item.bronnen}
               onOpenSamenhang={samenhangAan && !demo ? acties.openSamenhang : undefined} />
           )
-        ) : item.denk || item.overzicht ? null : (
+        ) : item.denk || item.overzicht || !streamt ? null : (
           <Punten />
         )}
+        <BeurtUitkomstBlok uitkomst={item.uitkomst} />
         {/* Het overzicht uit de graaf staat los van de tekst: dezelfde vraag, hetzelfde blok. */}
         {item.overzicht && <OverzichtBlok overzicht={item.overzicht} />}
         {item.overzicht && !demo && item.overzicht.regelingen.length > 0 && (
@@ -239,6 +242,7 @@ export const ThreadRij = memo(function ThreadRij({
       <LexAvatar />
       <div className="min-w-0 flex-1 text-sm text-ink">
         <p className="mb-1 text-xs font-medium text-muted">Lex</p>
+        <BeurtUitkomstBlok uitkomst={item.uitkomst} />
         <ReeksBlok
           reeks={item.reeks}
           loopt={loopt}
@@ -643,6 +647,16 @@ function Brongetrouwheid({ grounding }: { grounding: AgentGrounding }) {
           </>
         )}
       </span>
+    </div>
+  );
+}
+
+/** Een mislukte beurt: dezelfde melding live en na herladen. Gestopt zegt de tekst zelf (`_(gestopt)_`). */
+function BeurtUitkomstBlok({ uitkomst }: { uitkomst?: BeurtUitkomst }) {
+  if (uitkomst?.status !== "mislukt") return null;
+  return (
+    <div className="mt-2" data-beurt-uitkomst="mislukt">
+      <Melding type="fout" compact>{uitkomst.melding || "Er ging iets mis."}</Melding>
     </div>
   );
 }

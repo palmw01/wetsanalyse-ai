@@ -227,6 +227,14 @@ class IntakeAntwoord(BaseModel):
     _serialiseer = model_serializer(mode="wrap")(_zonder_lege_deelvraag)
 
 
+class BeurtUitkomst(BaseModel):
+    """Hoe een beurt afliep, als dat iets anders is dan gewoon klaar (graph-qa `agent/beurt.py`). De werkplek toont
+    hetzelfde live en na herladen. Een run zonder uitkomst op zijn bericht is een ouder bericht, of gewoon klaar."""
+
+    status: Literal["klaar", "mislukt", "gestopt"]
+    melding: str = Field(default="", max_length=2000)
+
+
 class Bericht(BaseModel):
     """Eén beurt in het gesprek. Assistent-berichten dragen optioneel `denk`/`bronnen`, of een
     verwijzing naar een annotatie-document (`annotatie_slug`) of bronnode (`annotatie_doel`).
@@ -268,6 +276,8 @@ class Bericht(BaseModel):
     vraagkaart: Vraagkaart | None = None
     bevestiging_antwoord: BevestigingAntwoord | None = None
     intake_antwoord: IntakeAntwoord | None = None
+    # Hoe de beurt afliep, als dat niet gewoon klaar was: dezelfde melding live en na herladen.
+    uitkomst: BeurtUitkomst | None = None
     created: datetime | None = None
 
 
@@ -320,6 +330,7 @@ class BerichtInvoer(BaseModel):
     bevestiging_antwoord: BevestigingAntwoord | None = None
     vraagkaart: Vraagkaart | None = None
     intake_antwoord: IntakeAntwoord | None = None
+    uitkomst: BeurtUitkomst | None = None
 
 
 class GesprekSamenvatting(BaseModel):

@@ -40,6 +40,7 @@ import httpx2
 
 httpx2.alias_httpx()
 
+import functools  # noqa: E402
 import json  # noqa: E402
 import logging  # noqa: E402
 import secrets  # noqa: E402
@@ -59,7 +60,7 @@ load_dotenv()  # laad .env als die naast de server staat
 
 from agent import observability  # noqa: E402
 from agent.agent import answer_stream, delete_conversation  # noqa: E402
-from agent.beurt import voer_beurt_uit  # noqa: E402
+from agent.beurt import leg_afbraak_vast, voer_beurt_uit  # noqa: E402
 from agent.beurtmeting import gemeten  # noqa: E402
 from agent.reeks import reeks_run  # noqa: E402
 from agent.werkgebied_annotatie import werkgebied_annotatie_beurt, zonder_api  # noqa: E402
@@ -88,8 +89,8 @@ def _maak_runstore(s: Settings) -> RunStore:
     if s.checkpoint_db_url:
         from agent.runstore.postgres import PostgresStore
 
-        return PostgresStore(s.checkpoint_db_url)
-    return GeheugenStore()
+        return PostgresStore(s.checkpoint_db_url, bij_afbraak=functools.partial(leg_afbraak_vast, s))
+    return GeheugenStore(bij_afbraak=functools.partial(leg_afbraak_vast, s))
 
 
 # Een beurt leeft hier, niet in de HTTP-request van één tabblad.

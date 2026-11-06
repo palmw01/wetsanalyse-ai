@@ -558,6 +558,8 @@ def aanmaakverzoek(intake: dict[str, Any]) -> dict[str, Any]:
     a = intake.get("antwoorden") or {}
     wg = als_werkgebied(intake)
     return {"intake_id": intake["id"],
+            # De samenvatting: mislukt het aanmaken, dan blijft *Aanmaken* ook na herladen te klikken.
+            "kaart": kaart({**intake, "stap": "samenvatting"}),
             "werkgebied": {"naam": wg["naam"], "analysevraag": wg["analysevraag"], "afbakening": wg["afbakening"],
                            "aanleiding": wg["aanleiding"], "context": wg["context"], "doel": wg["doel"],
                            "praktijkvoorbeeld": wg["praktijkvoorbeeld"], "intake_id": intake["id"],

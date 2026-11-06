@@ -38,21 +38,19 @@ import type {
   AgentKandidaat,
   AgentKeuze,
   BeslissingType,
-  Bron,
   Bevestiging,
   Gesprek,
   Verbruiksstand,
-  VoorstelElement,
 } from "@/lib/types";
 import { metingUitDekking } from "@/lib/agentEvents";
 import { ANNULEER_TEKST, afgehandeld, parseBevestiging, parseBevestigingKeuze } from "@/lib/werkgebiedAnnoteren";
 import {
-  antwoordOp, antwoordTekst, groepeerVragen, klaarActie, openVraag, parseAntwoordOp, parseVraagkaart, type IntakeActie, type Vraagkaart,
+  antwoordOp, antwoordTekst, groepeerVragen, klaarActie, openVraag, parseAntwoordOp, parseVraagkaart, type IntakeActie,
 } from "@/lib/vraagkaart";
 import { VraagDock } from "@/components/werkplek/VraagDock";
 import { BronselectieKaart } from "@/components/werkplek/BronselectieKaart";
 import {
-  doelInvoerVan, isVerwijderd, kandidatenAlsTekst, mergeVoorstellen,
+  doelInvoerVan, isVerwijderd,
 } from "@/lib/annotatie";
 import {
   definitieveStroomfout, herstelWachttijd, leesLopendeRuns, naEenGebrokenStream, onthoudRun,
@@ -62,7 +60,7 @@ import { useBreedScherm } from "@/lib/useBreedScherm";
 import { jasStyle, klasseLabel } from "@/lib/jas";
 import type { ThreadItem } from "@/lib/threadItem";
 import { WerkplekHeader } from "./WerkplekHeader";
-import { parseHergebruik, parseOverzicht } from "@/lib/agentEvents";
+import { parseHergebruik, parseOverzicht, parseUitkomst } from "@/lib/agentEvents";
 import { DEMO_DOEL, DEMO_SLUG, type DemoScene } from "@/lib/rondleidingDemo";
 import {
   SOORT_LABEL, VERVOLG_TEKST, actieVerzoek, chipTekst, overVan, suggestiesVan, verzoekVan, werkgebiedSuggesties, type Onderwerp, type Vervolg,
@@ -333,7 +331,8 @@ export function WerkplekClient({
                   overzicht: b.overzicht ? parseOverzicht(b.overzicht) : undefined,
                   bevestiging: parseBevestiging(b.bevestiging),
                   // Het kaartje van het samenstellen: na herladen nog te beantwoorden als het het laatste is.
-                  vraagkaart: parseVraagkaart(b.vraagkaart) }];
+                  vraagkaart: parseVraagkaart(b.vraagkaart),
+                  uitkomst: parseUitkomst(b.uitkomst) }];
         });
         // VÓÓR wat er al staat, niet in plaats daarvan. Verstuurde de jurist een vraag terwijl dit nog
         // laadde (een koude start duurt seconden), dan staan zijn vraag en het lopende antwoord al in
@@ -625,22 +624,15 @@ export function WerkplekClient({
     setBezig(true);
 
     const doelRef: { d: AgentDoel | null } = { d: null };
-    // Ontdubbeld verzamelen: komt hetzelfde element twee keer binnen, dan wint de laatste versie.
-    let els: VoorstelElement[] = [];
     let kandidaten: AgentKandidaat[] = [];
     let keuze: AgentKeuze | undefined;
     // Een reeks (meerdere onderdelen in één run): de stroom wordt per onderdeel ingedeeld.
     let reeks: Reeks | null = null;
     let hergebruik: AgentHergebruik | undefined;
     let meting: BeurtMeting | undefined;
-    let overzicht: Overzicht | undefined;
-    let vraagkaart: Vraagkaart | undefined;
     let tekst = "";
     let denk = "";
-    let bronnen: Bron[] = [];
-    // Heeft de agent de beurt zelf vastgelegd? Dan schrijft de werkplek niets meer weg – anders
-    // staat alles er twee keer. Blijft dit leeg, dan legt de client het bericht zelf vast; zo werkt
-    // een graph-qa zonder api-koppeling gewoon door.
+    // De agent legde de beurt vast. De werkplek schrijft een beurt nooit zelf weg: de server is de enige schrijver.
     let opgeslagen: { run_id: string; artefact?: Artefact; annotatie_doel?: NodeDoel; bevestiging?: Bevestiging;
       vervolg?: Vervolg } | null = null;
     let toolExecutions: ToolExecution[] = [];
@@ -697,25 +689,15 @@ export function WerkplekClient({
             tekst += t;
             planStroom();
           },
-          onSources: (b) => {
-            bronnen = b;
-            updateItem(antId, { bronnen: b });
-          },
+          onSources: (b) => updateItem(antId, { bronnen: b }),
           onGrounding: (g) => updateItem(antId, { grounding: g }),
-          onOverzicht: (o) => {
-            overzicht = o;
-            updateItem(antId, { overzicht: o });
-          },
-          onVraagkaart: (k) => {
-            vraagkaart = k;
-            updateItem(antId, { vraagkaart: k });
-          },
+          onOverzicht: (o) => updateItem(antId, { overzicht: o }),
+          onVraagkaart: (k) => updateItem(antId, { vraagkaart: k }),
           onToolExecution: (event) => {
             toolExecutions = mergeToolExecution(toolExecutions, event);
             updateItem(antId, { tool_executions: toolExecutions });
           },
           onDoel: (d) => (doelRef.d = d),
-          onElement: (e) => (els = mergeVoorstellen(els, e)),
           onKandidaten: (k, kz) => { kandidaten = k; keuze = kz; },
           onReeksEvent: (ev) => {
             schrijfStroom();
@@ -754,25 +736,16 @@ export function WerkplekClient({
       // komen we hier niet (dat gooit een AbortError), en dan blijft het spoor terecht staan.
       vergeetLopendeRun(gid);
 
-      // Kandidaten EERST: dit is een keuzelijst in de thread, geen uitkomst die is vastgelegd.
-      // Stond deze tak onder de `opgeslagen`-check, dan sneed die hem af zodra graph-qa zelf ging
-      // wegschrijven – en verdween de keuzelijst stilzwijgend uit beeld.
       // Een reeks legt zichzelf per onderdeel vast (graph-qa); het blok staat al in beeld.
       if (reeks) {
         onGewijzigd();
         return;
       }
+      // Kandidaten eerst: dit is een keuzelijst in de thread, geen uitkomst die is vastgelegd.
       if (kandidaten.length) {
         setItems((xs) =>
           xs.map((x) => (x.id === antId ? { id: antId, type: "kandidaten", tekst, kandidaten, ...(keuze ? { keuze } : {}) } : x)),
         );
-        // Alleen de tekst overleeft een herlaadbeurt: de kandidaten zitten niet in het
-        // berichtcontract van de api. Beter een leesbare opsomming dan "ik vond 5 bepalingen".
-        // Heeft de agent de beurt al vastgelegd, dan schrijft de client niets meer – anders stond
-        // de opsomming er twee keer.
-        if (!opgeslagen) {
-          void persisteer(gid, "assistant", { tekst: kandidatenAlsTekst(tekst, kandidaten), denk, run_id: id, tool_executions: toolExecutions });
-        }
         onGewijzigd();
         return;
       }
@@ -786,31 +759,9 @@ export function WerkplekClient({
         // start er niets vanzelf.
         const verder = (opgeslagen as { vervolg?: Vervolg } | null)?.vervolg;
         if (verder) setVervolg({ ...verder, id: uid() });
-        onGewijzigd();
-        return;
-      }
-
-      const doel = doelRef.d;
-      if (doel && doel.bwbId && els.length) {
-        // De agent had dit moeten vastleggen (`agent/beurt.py`) en deed dat niet: geen
-        // `opgeslagen`-event terwijl er wél markeringen waren. Dat is een storing en die tonen we
-        // als storing.
-        //
-        // De werkplek schrijft het hier niet zelf weg. Dat zou een tweede, volledige implementatie
-        // van dezelfde handeling zijn – mét eigen artikelophaling en eigen titelopbouw – en welke
-        // van de twee liep, hing dan af van de aan/afwezigheid van één SSE-event. Bij een
-        // gedeeltelijk falen levert dat een tweede document op. Eén schrijver, en die is de agent.
-        const melding =
-          "**Deze beurt is niet vastgelegd.** De markeringen zijn wel voorgesteld, maar niet " +
-          "opgeslagen. Stel de vraag opnieuw; blijft het gebeuren, meld het dan.";
-        updateItem(antId, { tekst: melding, denk });
-        void persisteer(gid, "assistant", { tekst: melding, denk, run_id: id, tool_executions: toolExecutions });
-      } else {
-        if (!tekst.trim()) updateItem(antId, { tekst: "(geen antwoord)" });
-        // `run_id` maakt dit bericht idempotent: kijken er twee tabbladen mee, dan landt de
-        // uitkomst van deze run toch maar één keer.
-        void persisteer(gid, "assistant", { tekst: tekst.trim() || "(geen antwoord)", denk, bronnen, run_id: id,
-          tool_executions: toolExecutions, ...(overzicht ? { overzicht } : {}), ...(vraagkaart ? { vraagkaart } : {}) });
+      } else if (!tekst.trim()) {
+        // Geen `opgeslagen` en geen fout: het gesprek werd verwijderd terwijl de beurt liep.
+        updateItem(antId, { tekst: "(geen antwoord)" });
       }
       onGewijzigd();
     } catch (e) {
@@ -842,7 +793,8 @@ export function WerkplekClient({
       // opnieuw af, dus de tekst wordt zo meteen alsnog opgebouwd. Wat er aan de hand is staat in de
       // banner – die verdwijnt vanzelf zodra er weer iets binnenkomt.
       setVerbindingWeg(verbroken);
-      if (!verbroken) updateItem(antId, { tekst: `**Er ging iets mis.** ${foutTekst(e)}` });
+      // Dezelfde melding als op het bericht dat graph-qa bewaarde: live en na herladen staat er hetzelfde.
+      if (!verbroken) updateItem(antId, { tekst, denk, uitkomst: { status: "mislukt", melding: foutTekst(e) } });
     } finally {
       afbrekenRef.current = null;
       setRunId(null);
