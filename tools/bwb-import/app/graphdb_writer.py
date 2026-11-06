@@ -336,6 +336,7 @@ class GraphDbWriter:
         # Een node mét ref_key is JuriConnect-adresseerbaar: IRI uit de
         # ref_key (= verwijs-doel-IRI, open-world) + het Citeerbaar-type.
         iri_by_id: dict[str, URIRef] = {}
+        bezet: dict[URIRef, str] = {}
         # label-id -> IRI, voor het koppelen van WTI-regelingelementen aan hun node.
         label_iri: dict[str, URIRef] = {}
         for entiteit, rows in batch.nodes.items():
@@ -358,6 +359,10 @@ class GraphDbWriter:
                     raise ValueError(
                         f"{entiteit} {row['id']} krijgt de IRI van de regeling zelf ({iri})"
                     )
+                # Twee verschillende bepalingen op één IRI vloeien stil samen tot één node met de
+                # tekst van allebei (bijlage-artikelen die `artikel:1` deelden).
+                if ref_key and bezet.setdefault(iri, row["id"]) != row["id"]:
+                    raise ValueError(f"{row['id']} en {bezet[iri]} krijgen dezelfde IRI ({iri})")
                 iri_by_id[row["id"]] = iri
                 if row.get("label_id"):
                     label_iri[row["label_id"]] = iri

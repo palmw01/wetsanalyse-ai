@@ -23,6 +23,7 @@ aan beide kanten niet mee.
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -39,9 +40,9 @@ _WS = re.compile(r"\s+")
 #
 # Waarom 0,995 en niet 1,0. Gemeten verhouding graaf/bron op de toestanden van november 2026, mét
 # bijlagen in de bronmeting: Awr 1,00002 · Uitv.reg. IW 1,00012 · IW 1,00003 · Awir 1,00000 ·
-# Uitv.reg. Awir 1,00003 · Leidraad 1,00013. De krapste marge is nul, dus een halve procent speling
-# is geen luxe. Ter ijking: de Leidraad stond op 98,4% toen er elf artikelen ontbraken, en de Awb
-# staat op 81,6% zolang Bijlage 2 ontbreekt (66.086 tekens).
+# Uitv.reg. Awir 1,00003 · Leidraad 1,00013 · Awb 1,00125. De krapste marge is nul, dus een halve
+# procent speling is geen luxe. Ter ijking: de Leidraad stond op 98,4% toen er elf artikelen
+# ontbraken, en de Awb op 81,6% toen Bijlage 2 ontbrak (66.086 tekens).
 STANDAARD_DREMPEL = 0.995
 
 
@@ -123,7 +124,12 @@ class Poortbesluit:
 
 
 def poortbesluit(
-    dekking: Dekking, stand: Stand, *, drempel: float, wti_mislukt: bool = False
+    dekking: Dekking,
+    stand: Stand,
+    *,
+    drempel: float,
+    wti_mislukt: bool = False,
+    overgeslagen: Sequence[str] = (),
 ) -> Poortbesluit:
     """Beslis vóór de PUT, want een named-graph PUT vervangt alles en een controle erna is te laat.
 
@@ -138,18 +144,23 @@ def poortbesluit(
     Een mislukte bronmeting (`bron_tekens == 0`) is geen bewijs van een gat, maar ook geen bewijs
     van het tegendeel: dan telt alleen dat er niet minder mag komen te staan. `drempel == 0` zet
     alleen de dipregel uit.
+
+    Structuur die de parser oversloeg weegt als een dip, ook bij volle dekking: de speling van de
+    drempel is groot genoeg om een heel artikel te verbergen.
     """
     tekort = drempel > 0 and dekking.bron_tekens > 0 and dekking.verhouding < drempel
     onmeetbaar = dekking.bron_tekens <= 0
-    if (tekort or onmeetbaar) and dekking.graaf_tekens < stand.tekens:
+    probleem = dekking.regel()
+    if overgeslagen:
+        probleem = f"{probleem}; onbekende structuur overgeslagen: {', '.join(overgeslagen)}"
+    if (tekort or onmeetbaar or overgeslagen) and dekking.graaf_tekens < stand.tekens:
         return Poortbesluit(
-            False,
-            f"{dekking.regel()}; de bestaande graph ({stand.tekens} tekens) blijft staan",
+            False, f"{probleem}; de bestaande graph ({stand.tekens} tekens) blijft staan"
         )
     if wti_mislukt and stand.wti:
         return Poortbesluit(False, "WTI mislukt; de bestaande verrijkte graph blijft staan")
-    if tekort:
-        return Poortbesluit(True, f"{dekking.regel()}; geschreven, er staat niets beters")
+    if tekort or overgeslagen:
+        return Poortbesluit(True, f"{probleem}; geschreven, er staat niets beters")
     if wti_mislukt:
         return Poortbesluit(True, "WTI mislukt; geschreven zonder verrijking")
     return Poortbesluit(True)

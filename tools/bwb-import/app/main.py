@@ -243,6 +243,7 @@ def _schrijf(
         stand.get(bwb_id, Stand()),
         drempel=settings.min_dekking,
         wti_mislukt=settings.import_wti and item.wti is None,
+        overgeslagen=item.wet.overgeslagen,
     )
     summary.poort = besluit.reden
     summary.tegengehouden = not besluit.schrijven
