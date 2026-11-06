@@ -29,14 +29,17 @@ export const NADRUK_LIJN = "#154273";
  *  relatie is geel, zoals elk voorstel van Lex in de werkplek. */
 export const BEGRIPKLEUR: Record<string, string> = { geaccordeerd: "#5b2c83", concept: "#a684c6", vervangen: "#c8c0d2" };
 export const VOORSTELKLEUR = "#d9a400";
+/** Een wettelijk begrip: wat de wet zelf definieert, in donkerrood en dus niet in het paars van de
+ *  analyse-uitkomsten. De herkomst hangt zo niet alleen aan de tekst. */
+export const WETBEGRIPKLEUR = "#a90061";
 
 export const LIJNKLEUR: Record<RelatieData["soort"], string> = {
   bevat: "#a9bccf", verwijst_naar: "#6f9fc8", markeert: "#c3ccd6", heeft_klasse: "#c3ccd6",
-  duidt: "#cdbddd", begripsrelatie: "#5b2c83", begripsvoorstel: VOORSTELKLEUR,
+  duidt: "#cdbddd", begripsrelatie: "#5b2c83", begripsvoorstel: VOORSTELKLEUR, definieert: WETBEGRIPKLEUR, komt_voor_in: "#dcb3c9",
 };
 /** Lijndikte in schermpixels. */
 export const LIJNDIKTE: Record<RelatieData["soort"], number> = {
-  bevat: 1, verwijst_naar: 1, markeert: 0.8, heeft_klasse: 0.8, duidt: 0.8, begripsrelatie: 1.4, begripsvoorstel: 1.2,
+  bevat: 1, verwijst_naar: 1, markeert: 0.8, heeft_klasse: 0.8, duidt: 0.8, begripsrelatie: 1.4, begripsvoorstel: 1.2, definieert: 1.2, komt_voor_in: 0.8,
 };
 
 /** Grootte in schermpixels bij zoom 1: de opbouw draagt het beeld, de details zijn klein. */
@@ -52,8 +55,9 @@ export function klasseKleur(klasse: string): string {
 
 /** De eigen kleur van een knoop, los van nadruk: een annotatie in haar klasse, een randbepaling wit
  *  (met omtrek), de wettekst in de lintblauw-reeks. Ook de stip in inspector, zoeklijst en legenda. */
-export function eigenKleur(a: Pick<KnoopData, "soort" | "klasse" | "label" | "rand" | "status">): string {
+export function eigenKleur(a: Pick<KnoopData, "soort" | "klasse" | "label" | "rand" | "status" | "begrip_bron">): string {
   if (a.soort === "markering" || a.soort === "klasse") return klasseKleur(a.klasse || a.label);
+  if (a.soort === "begrip" && a.begrip_bron === "wet") return WETBEGRIPKLEUR;
   if (a.soort === "begrip") return BEGRIPKLEUR[a.status ?? ""] ?? BEGRIPKLEUR.concept;
   return a.rand ? RAND_VULLING : BRONKLEUR[a.soort];
 }

@@ -135,7 +135,7 @@ function schrijfBeeld(g: TekenGraaf, ctx: WeergaveContext, zoom: number, info: M
 
 const beweging = () => (typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 400);
 
-export function GraafTekenaar({ model, posities, context, zichtbaar, inpassen, cameraRef, bedieningRef, bedekking, onKies, onFout }: {
+export function GraafTekenaar({ model, posities, context, zichtbaar, inpassen, rand = 24, cameraRef, bedieningRef, bedekking, onKies, onFout }: {
   model: GraafModel;
   posities: Posities;
   context: WeergaveContext;
@@ -145,6 +145,8 @@ export function GraafTekenaar({ model, posities, context, zichtbaar, inpassen, c
    *  of de keuze. Declaratief, zodat het ook werkt als sigma nog aan het laden was. Een bewaarde
    *  camerastand (vergroten) gaat voor. */
   inpassen?: { sleutel: string; ids: readonly string[] };
+  /** Ruimte rond de kaart in pixels. De ketting is klein en zou anders onder de zwevende bediening komen. */
+  rand?: number;
   /** De camerastand buiten deze component: vergroten remount hem, en dan blijft het beeld staan. */
   cameraRef: RefObject<CameraState | null>;
   bedieningRef: RefObject<GraafBediening | null>;
@@ -160,6 +162,11 @@ export function GraafTekenaar({ model, posities, context, zichtbaar, inpassen, c
   const sigma = useRef<TekenSigma | null>(null);
   const ctx = useRef(context);
   const inpassenRef = useRef(inpassen);
+  const randRef = useRef(rand);
+  useEffect(() => {
+    randRef.current = rand;
+    sigma.current?.setSetting("stagePadding", rand);
+  }, [rand]);
   const ingepast = useRef<string | undefined>(undefined);
   const handlers = useRef({ onKies, onFout });
   // De labels van het laatste beeld (`kiesLabels`), wat de keuze per knoop nodig heeft, en de zoom
@@ -222,7 +229,7 @@ export function GraafTekenaar({ model, posities, context, zichtbaar, inpassen, c
             itemSizesReference: "screen",
             minCameraRatio: 0.01,
             maxCameraRatio: 3,
-            stagePadding: 24,
+            stagePadding: randRef.current,
           },
         });
       } catch {
