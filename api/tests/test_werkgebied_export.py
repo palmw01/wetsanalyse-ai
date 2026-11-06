@@ -1,0 +1,294 @@
+"""Het werkgebied als één PDF: alles staat erin, met zijn status, en een citaat blijft letterlijk."""
+from __future__ import annotations
+
+import copy
+import hashlib
+import shutil
+import subprocess
+import threading
+
+import pytest
+
+from app import annotatie_v2_store as store, pdf_opmaak, werkgebied_export as export, werkgebieden
+from test_annotatie_v2 import ART, LAW, ONE, TWO, element, request, snapshot
+from test_begrippen import _annoteer, _begrip, _beslis, _keur_alles_goed, _url, _werkgebied
+from test_werkgebieden import ART2, LAW2, _bron, _nieuw, client, database, graaf, snapshot2  # noqa: F401
+
+V = {"besluit": {"model": {"naam": "het model"}}}
+
+
+async def _toestanden(wg: dict) -> dict:
+    return {"peildatum": wg["peildatum"], "peildatum_standaard": wg["peildatum_standaard"], "volledig": True,
+            "regelingen": [{"bwb_id": "BWBR0004770", "citeertitel": "Invorderingswet 1990", "geldig_vanaf": "2026-01-01",
+                            "geldig_tot": None, "na_peildatum": False}]}
+
+
+@pytest.fixture(autouse=True)
+def toestanden(monkeypatch):
+    monkeypatch.setattr(werkgebieden, "toestanden_van", _toestanden)
+
+
+async def _gevuld(client) -> tuple[dict, dict]:
+    ids = await _annoteer()
+    wg = await _werkgebied(client)
+    await _keur_alles_goed(ids)
+    b = await _begrip(client, wg, [ids["lid1"]], naam="belastingschuldige")
+    r = await client.patch(_url(wg, b), json={"verwachte_revisie": b["revisie"], "inhoud": {
+        "naam": "belastingschuldige", "definitie": "Degene die schuldig is & blijft <altijd>.", "context": "Alleen hier."}})
+    assert r.status_code == 200, r.text
+    b = r.json()
+    b = (await client.post(_url(wg, b, "koppelingen", "beoordelen"), json={
+        "verwachte_revisie": b["revisie"], "koppeling_ids": [b["koppelingen"][0]["id"]], "beoordeling": "akkoord"})).json()
+    r = await client.post(_url(wg, b, "accorderen"), json={"reden": "Getoetst aan de wet", "verwachte_revisie": b["revisie"]})
+    assert r.status_code == 200, r.text
+    await _begrip(client, wg, [ids["lid2"]], naam="aanslag")
+    await _beslis(ids["lid2"], "heropen", snapshot())
+    await _beslis(ids["lid2"], "reject", snapshot(), comment="Geen rechtssubject")
+    return (await client.get(f"/v1/werkgebieden/{wg['id']}")).json(), ids
+
+
+async def _data(wg: dict) -> dict:
+    return await export.verzamel(wg["id"], "jurist-a", werkgebieden.resolve_bron, werkgebieden.toestanden_van)
+
+
+def _teksten(data: dict) -> list[str]:
+    return [t for _s, t in export.pdf_regels(data, V)]
+
+
+def _tekst(pdf: bytes) -> str:
+    return " ".join(subprocess.run(["pdftotext", "-", "-"], input=pdf, capture_output=True, check=True).stdout.decode().split())
+
+
+async def test_de_delen_staan_op_volgorde_met_elke_bepaling_een_keer(client):
+    wg, _ids = await _gevuld(client)
+    regels = export.pdf_regels(await _data(wg), V)
+    koppen = [t for s, t in regels if s == "Heading1"]
+    assert koppen == ["1. Dossier", "2. Deelvragen en bronnen", "3. Wettekst en annotaties", "4. Begrippen", "5. Verantwoording"]
+    assert [i for i, (s, _t) in enumerate(regels) if s == pdf_opmaak.INHOUD]
+    # Lid 1 heeft een emoji vooraan: de offsets tellen codepoints, en de tekst staat letterlijk en één keer.
+    assert sum(s == "Citaat" and t == "😀 Alfa Alfa" for s, t in regels) == 1
+    assert sum(s == "Citaat" and t == "Beta" for s, t in regels) == 1
+
+
+async def test_elke_markering_staat_er_precies_een_keer_met_haar_status(client):
+    wg, _ids = await _gevuld(client)
+    data = await _data(wg)
+    regels = export.pdf_regels(data, V)
+    koppen = [t for s, t in regels if s.startswith(pdf_opmaak.MARKERING)]
+    assert len(koppen) == len(data["inventaris"]["elementen"]) + len(data["inventaris"]["afgewezen"]) == 3
+    assert sum("beoordeeld: akkoord" in k for k in koppen) == 2 and sum(k.endswith("afgewezen") for k in koppen) == 1
+    teksten = [t for _s, t in regels]
+    afgewezen = teksten.index("Afgewezen markeringen")
+    assert any("afgewezen" in t for t in teksten[afgewezen:])
+
+
+async def test_een_voorstel_is_als_voorstel_te_herkennen(client):
+    snap = snapshot()
+    await store.batch(request(snap, [element(snap, ONE)]), snap, "lex")
+    wg = await _nieuw(client)
+    wg = (await _bron(client, wg, bron_iri=ART))["werkgebied"]
+    teksten = _teksten(await _data(wg))
+    assert any(t.endswith("voorstel, nog niet beoordeeld") for t in teksten)
+
+
+async def test_geen_modelvragen_hashes_of_beurtmeting(client):
+    wg, ids = await _gevuld(client)
+    data = await _data(wg)
+    for e in data["inventaris"]["elementen"]:
+        e["trace"] = {"vraag": "GEHEIME-MODELVRAAG", "beslissing": {"door": "model"}}
+        e["geproduceerd_door"] = {"model": "model-x", "instellingen": {"meting": {"fasen": [{"fase": "BEURTMETING"}]}}}
+    alles = "\n".join(_teksten(data))
+    assert "GEHEIME-MODELVRAAG" not in alles and "BEURTMETING" not in alles and "model-x" not in alles
+    assert not any(a["bron_hash"] in alles for e in data["inventaris"]["elementen"] for a in e["ankers"])
+    assert "voorgesteld door Lex (het model)" in alles
+
+
+async def test_citaat_draagt_vindplaats_en_jci_met_de_iri_als_terugval(client):
+    wg, _ids = await _gevuld(client)
+    data = await _data(wg)
+    alles = "\n".join(_teksten(data))
+    assert f"· {ONE}" in alles                                  # geen jci in de fixture: de bron-IRI
+    data["bomen"]["BWBR0004770"] = copy.deepcopy(data["bomen"]["BWBR0004770"])
+    for n in store.nodes_van(data["bomen"]["BWBR0004770"]).values():
+        n["jci"] = f"jci1.3:c:BWBR0004770&artikel=9&{n['label']}"
+        n["vindplaats"] = f"Artikel 9, {n['label']}"
+    alles = "\n".join(_teksten(data))
+    assert "jci1.3:c:BWBR0004770&artikel=9&Lid 1" in alles and "Artikel 9, Lid 1 · rol analyseren" in alles
+
+
+async def test_een_gewijzigde_brontekst_staat_met_toen_en_nu_op_voorblad_en_plek(client, graaf):
+    wg, _ids = await _gevuld(client)
+    data = await _data(wg)
+    for n in store.nodes_van(data["bomen"]["BWBR0004770"]).values():
+        if n["bron_iri"] == ONE:
+            n["tekst"] = "😀 Gamma Alfa"
+    regels = export.pdf_regels(data, V)
+    waarschuwingen = [t for s, t in regels if s == "Waarschuwing"]
+    assert any("markering staat op tekst die veranderde" in w for w in waarschuwingen)
+    assert any("Brontekst gewijzigd" in w and "Toen: “Alfa”" in w and "Nu: “Gamm”" in w for w in waarschuwingen)
+
+
+async def test_een_veranderde_passage_bij_een_begrip_toont_toen_en_nu(client):
+    wg, _ids = await _gevuld(client)
+    data = await _data(wg)
+    k = next(b for b in data["begrippen"] if b["inhoud"]["naam"] == "belastingschuldige")["koppelingen"][0]
+    k["actualiteit"] = "gewijzigd"
+    k["bewijs"] = {**k["bewijs"], "tekst": "Oude passage"}
+    teksten = [t for s, t in export.pdf_regels(data, V) if s == "Waarschuwing"]
+    assert any("Na bevestiging: de passage veranderde" in t and "Toen: “Oude passage”" in t and "Nu: “Alfa”" in t for t in teksten)
+    assert any("toen en nu staan bij het begrip" in t for t in teksten)
+
+
+async def test_een_onbereikbare_regeling_staat_op_voorblad_en_plek(client, graaf):
+    wg, _ids = await _gevuld(client)
+    graaf.weg = {LAW2}
+    data = await _data(wg)
+    assert data["inventaris"]["volledig"] is False
+    regels = export.pdf_regels(data, V)
+    waarschuwingen = [(i, t) for i, (s, t) in enumerate(regels) if s == "Waarschuwing"]
+    eerste_deel = next(i for i, (s, _t) in enumerate(regels) if s == "Heading1")
+    assert any(i < eerste_deel and t.startswith("Niet in dit dossier") for i, t in waarschuwingen)
+    assert any(i > eerste_deel and t.startswith("De tekst ontbreekt") for i, t in waarschuwingen)
+
+
+async def test_zonder_enige_regeling_geen_dossier(client, graaf, monkeypatch):
+    wg, _ids = await _gevuld(client)
+
+    async def weg(_doel):
+        raise ConnectionError("graaf weg")
+
+    monkeypatch.setattr(werkgebieden, "_resolve_bron", weg)
+    r = await client.get(f"/v1/werkgebieden/{wg['id']}/export")
+    assert r.status_code == 503 and "brongraaf" in r.json()["detail"]
+
+
+async def test_begrippen_op_status_met_herkomst_passages_en_accordering(client):
+    wg, _ids = await _gevuld(client)
+    regels = export.pdf_regels(await _data(wg), V)
+    teksten = [t for _s, t in regels]
+    assert teksten.index("Geaccordeerde begrippen (1)") < teksten.index("Conceptbegrippen (1)")
+    assert "Degene die schuldig is & blijft <altijd>." in teksten
+    assert "analysebegrip, geformuleerd, door de analist." in teksten
+    assert any(t.startswith("Geaccordeerd door jurist-a") and "Reden: Getoetst aan de wet" in t for t in teksten)
+    assert "Nog geen definitie." in teksten
+
+
+async def test_uitgesloten_bronnen_en_open_voorstellen_staan_apart(client):
+    wg, _ids = await _gevuld(client)
+    data = await _data(wg)
+    vraag = data["overzicht"]["deelvragen"][0]
+    basis = {"bron_iri": LAW + ":artikel:3", "bwb_id": "BWBR0004770", "rol": "kern", "bewijs_soorten": [], "zoekvragen": [],
+             "overal": False, "elders_opgenomen": False, "reden": "", "besloten_door": None}
+    vraag["kandidaten"] = [{**basis, "id": "k1", "label": "Artikel 3", "stand": "uitgesloten", "reden": "Te ruim", "besloten_door": "jurist-a"},
+                           {**basis, "id": "k2", "label": "Artikel 4", "stand": "voorgesteld"},
+                           {**basis, "id": "k3", "label": "Artikel 5", "stand": "niet_gekozen"}]
+    vraag["telling"]["niet_gekozen"] = 1
+    vraag["open_punten"] = [{"tekst": "De wet zwijgt hierover."}]
+    data["overzicht"]["zonder_deelvraag"] = [{**basis, "id": "k4", "label": "Artikel 6", "stand": "voorgesteld"}]
+    data["relaties"]["voorstellen"] = [{"van_naam": "a", "naar_naam": "b", "type": "inclusie"}]
+    data["groepen"]["groepen"] = [{"besluit": "open", "voorstel": {"naam": "termijn"}, "kaart": None, "leden": [
+        {"tekst": "zes weken", "vindplaats": "Artikel 9", "bron_iri": ONE}]}]
+    regels = export.pdf_regels(data, V)
+    voorstel = [t for s, t in regels if s == "Voorstel"]
+    assert any("Artikel 3" in t and "door jurist-a" in t and "Reden: Te ruim" in t for _s, t in regels)
+    assert "Voorstel voor een bron: Artikel 4 · kernbepaling · deelvraag 1" in voorstel
+    assert "Voorstel voor een bron: Artikel 6 · kernbepaling · bij geen deelvraag" in voorstel
+    assert "Voorstel voor een relatie: a omvat b" in voorstel and "Voorstel voor een begrip: termijn" in voorstel
+    assert not any("Artikel 5" in t for _s, t in regels)
+    assert ("Waarschuwing", "Open punt: De wet zwijgt hierover.") in regels
+    assert any("1 voorstel van Lex is niet gekozen." in t for _s, t in regels)
+
+
+async def test_een_generiek_begrip_gaat_mee(client):
+    wg, _ids = await _gevuld(client)
+    data = await _data(wg)
+    data["begrippen"][0]["kader"] = "generiek"
+    assert any("generiek begrip" in t for t in _teksten(data))
+
+
+async def test_verantwoording_telt_de_hele_audit_en_noemt_de_bronnen(client):
+    wg, _ids = await _gevuld(client)
+    data = await _data(wg)
+    data["audit"] = data["audit"] * 40
+    assert len(data["audit"]) > 100
+    teksten = _teksten(data)
+    assert any(t.endswith(f"{len(data['audit'])} handelingen in de audit, per soort:") for t in teksten)
+    assert "Artikel 9" in "\n".join(teksten) and f"Rol analyseren · {ART}" in teksten
+
+
+async def test_de_route_geeft_een_pdf_met_een_veilige_bestandsnaam(client):
+    wg = await _nieuw(client, naam='Rekeningafspraken "één" / 2026')
+    wg = (await _bron(client, wg, bron_iri=ART))["werkgebied"]
+    r = await client.get(f"/v1/werkgebieden/{wg['id']}/export")
+    assert r.status_code == 200 and r.content.startswith(b"%PDF") and r.headers["content-type"] == "application/pdf"
+    assert r.headers["content-disposition"] == 'attachment; filename="werkgebied-rekeningafspraken-een-2026.pdf"'
+
+
+async def test_de_route_kent_alleen_pdf_en_bestaande_werkgebieden(client):
+    wg = await _nieuw(client)
+    assert (await client.get(f"/v1/werkgebieden/{wg['id']}/export?formaat=docx")).status_code == 422
+    assert (await client.get("/v1/werkgebieden/bestaat-niet/export")).status_code == 404
+
+
+async def test_een_werkgebied_zonder_bronnen_geeft_toch_een_dossier(client):
+    wg = await _nieuw(client)
+    r = await client.get(f"/v1/werkgebieden/{wg['id']}/export")
+    assert r.status_code == 200 and r.content.startswith(b"%PDF")
+
+
+async def test_het_zetten_gebeurt_niet_op_de_event_loop(client, monkeypatch):
+    """Reportlab is puur Python: op de event loop houdt een groot dossier elk verzoek van de api vast."""
+    wg, _ids = await _gevuld(client)
+    lus, gezien = threading.get_ident(), []
+    echt = export.pdf_export
+
+    def spion(*a):
+        gezien.append(threading.get_ident())
+        return echt(*a)
+
+    monkeypatch.setattr(export, "pdf_export", spion)
+    assert (await client.get(f"/v1/werkgebieden/{wg['id']}/export")).status_code == 200
+    assert gezien and lus not in gezien
+
+
+@pytest.mark.skipif(shutil.which("pdftotext") is None, reason="pdftotext ontbreekt voor onafhankelijke tekstextractie")
+async def test_de_echte_pdf_is_letterlijk_met_inhoud_en_bladwijzers(client, graaf, monkeypatch):
+    """De standaardletters van een PDF maakten van deze tekens stil een ■; `≥` verloor zijn spaties."""
+    bijzonder = "Een bedrag ≥ € 10 – na 1‑1‑2026 → Māori § 3   “citaat” & <tag>"
+
+    def boom(iri=ART, second="Beta"):
+        snap = snapshot(iri, second=second)
+        for n in snap["nodes"]:
+            if n["bron_iri"] == TWO:
+                n.update(tekst=bijzonder, bron_hash=hashlib.sha256(bijzonder.encode()).hexdigest())
+        snap["snapshot_id"] = store.digest(snap["nodes"])
+        return snap
+
+    async def resolve(doel):
+        return boom(doel["bron_iri"])
+
+    monkeypatch.setattr(werkgebieden, "_resolve_bron", resolve)
+    snap = boom()
+    fragment = element(snap, TWO, 4, 22, toelichting="Tekens: ≥ en ā.")
+    await store.batch(request(snap, [fragment]), snap, "lex")
+    wg = await _nieuw(client, naam="Tekens")
+    wg = (await _bron(client, wg, bron_iri=ART))["werkgebied"]
+
+    r = await client.get(f"/v1/werkgebieden/{wg['id']}/export")
+    tekst = _tekst(r.content)
+    assert "■" not in tekst
+    assert "Een bedrag ≥ € 10 – na 1‑1‑2026 → Māori § 3" in tekst and "“citaat” & <tag>" in tekst
+    assert fragment["tekst"] in tekst and "Tekens: ≥ en ā." in tekst
+    assert "1. Dossier" in tekst.split("Dossier", 1)[0] + "Dossier"          # de inhoudsopgave
+    assert b"/Outlines" in r.content and b"/FontFile2" in r.content
+    assert pdf_opmaak.aantal_paginas(r.content) >= 7                         # voorblad, inhoud en vijf delen
+
+
+def test_een_teken_buiten_fira_valt_per_teken_terug():
+    assert pdf_opmaak.opgemaakt("a b") == 'a<font name="DejaVu"> </font>b'
+    assert pdf_opmaak.opgemaakt("a & <b>") == "a &amp; &lt;b&gt;"
+
+
+def test_ook_een_lange_onafgebroken_iri_past():
+    regels = [("Heading3", "Kop"), ("Meta", "urn:bwb:" + "x" * 900), ("Markering:Onbekend", "Klasse")]
+    assert pdf_opmaak.render(regels).startswith(b"%PDF")

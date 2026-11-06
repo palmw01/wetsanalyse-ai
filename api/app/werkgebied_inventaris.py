@@ -63,9 +63,11 @@ async def inventaris(selecties: list[dict], resolve: Resolver) -> dict:
     return (await inventaris_met_bronbomen(selecties, resolve))[0]
 
 
-async def inventaris_met_bronbomen(selecties: list[dict], resolve: Resolver) -> tuple[dict, dict[str, dict]]:
+async def inventaris_met_bronbomen(selecties: list[dict], resolve: Resolver, *,
+                                   volledige_elementen: bool = False) -> tuple[dict, dict[str, dict]]:
     """De inventaris, plus de bronboom per regeling die ervoor is opgehaald – zodat wie daarna de
-    teksten nodig heeft (het manifest van de begrippenketen) de graaf niet opnieuw vraagt."""
+    teksten nodig heeft (het manifest van de begrippenketen) de graaf niet opnieuw vraagt. Met
+    `volledige_elementen` dragen de elementen ook hun spoor en beslissingen (de export)."""
     per_bwb, fouten = await bronbomen(selecties, resolve)
 
     alle_nodes: dict[str, dict] = {}
@@ -108,7 +110,7 @@ async def inventaris_met_bronbomen(selecties: list[dict], resolve: Resolver) -> 
             per_id[sid]["afgewezen" if verworpen else "aantal"] += 1
         analyse = any(per_id[sid]["rol"] == "analyseren" for sid in dekkend)
         (afgewezen if verworpen else uit).append({
-            **{k: el.get(k) for k in _VELDEN if k in el},
+            **(el if volledige_elementen else {k: el.get(k) for k in _VELDEN if k in el}),
             "rol": "analyseren" if analyse else "context",
             "selecties": sorted(dekkend),
             "deels_buiten": any(a["bron_iri"] not in alle_scope for a in el.get("ankers", []))})
