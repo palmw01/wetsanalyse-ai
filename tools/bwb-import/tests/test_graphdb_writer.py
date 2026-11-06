@@ -1,6 +1,6 @@
 """Tests voor de GraphDB-writer: bouw de RDF-graaf en assert triples (geen HTTP).
 
-``build_graph`` is puur offline; alleen ``ensure_constraints``/``write_wet`` doen
+``build_graph`` is puur offline; alleen ``ensure_constraints``/``vervang_wet`` doen
 netwerk-I/O. We controleren klassen, het ref_key-afgeleide IRI-schema, de
 structuur-/volg-/verwijs-relaties en dat een cross-referentie exact op de
 doel-artikel-IRI uitkomt (open-world, geen stubs).
@@ -17,6 +17,7 @@ import requests
 from rdflib import OWL, RDF, RDFS, XSD, Literal, URIRef
 
 from app.collect import collect, structuurindex
+from app.dekking import Stand
 from app.graphdb_writer import (
     GraphDbWriter,
     _fts_connector_config,
@@ -398,22 +399,35 @@ def test_doel_pad_en_ankertekst_op_verwijzing() -> None:
     assert (vw, V.ns.verwijzingId, Literal("2386592")) in g
 
 
+def _wet_met_losse_verwijzing() -> Wet:
+    wet = _kleine_wet()
+    wet.structuurdelen[0].artikelen[1].tekst = "zie artikel 9, tweede lid"
+    return wet
+
+
 def test_tekstuele_fallback_verwijzing() -> None:
     """Ongetagde tekstverwijzingen worden gedetecteerd, gemarkeerd 'laag'."""
-    g, _ = _writer().build_graph(_echte_wet())
-    bron = V.by_ref_key("BWBR0004770#artikel=2#lid=1#o=t")
-    doel = V.by_ref_key("BWBR0004770#artikel=112")
+    g, _ = _writer().build_graph(_wet_met_losse_verwijzing())
+    bron = V.by_ref_key("BWBR0000001#artikel=2")
+    doel = V.by_ref_key("BWBR0000001#artikel=9")
     assert (bron, V.ns.verwijstNaar, doel) in g
     vw = V.verwijzing(bron, doel, "tekstueel")
     assert (vw, V.ns.soort, Literal("tekstueel")) in g
     assert (vw, V.ns.betrouwbaarheid, Literal("laag")) in g
 
 
+def test_verwijzing_naar_het_douanewetboek_landt_niet_in_de_eigen_wet() -> None:
+    """Art. 2 lid 1 onderdeel t IW 1990 noemt "artikel 112, tweede lid, van het Douanewetboek"."""
+    g, _ = _writer().build_graph(_echte_wet())
+    bron = V.by_ref_key("BWBR0004770#artikel=2#lid=1#o=t")
+    assert (bron, V.ns.verwijstNaar, V.by_ref_key("BWBR0004770#artikel=112")) not in g
+
+
 def test_tekstuele_fallback_uitschakelbaar() -> None:
     writer = GraphDbWriter(
         url="http://graphdb:7200", repository="inning", vocab=V, tekstuele_refs=False
     )
-    g, _ = writer.build_graph(_echte_wet())
+    g, _ = writer.build_graph(_wet_met_losse_verwijzing())
     assert (None, V.ns.soort, Literal("tekstueel")) not in g
 
 
@@ -845,14 +859,29 @@ class _GraafStub:
     SELECT klappen zoals GraphDB doet wanneer de repository niet bestaat.
     """
 
-    def __init__(self, graven: list[str] | None = None, fout: Exception | None = None) -> None:
+    def __init__(
+        self,
+        graven: list[str] | None = None,
+        fout: Exception | None = None,
+        tekens: int = 1000,
+    ) -> None:
         self._graven = graven or []
         self._fout = fout
+        self._tekens = tekens
+        self.queries: list[str] = []
 
     def post(self, url: str, *, data=None, **_kw) -> _StubResponse:
         if self._fout is not None:
             raise self._fout
-        bindings = [{"g": {"value": str(V.graph(b))}} for b in self._graven]
+        self.queries.append(data["query"])
+        bindings = [
+            {
+                "g": {"value": str(V.graph(b))},
+                "tekens": {"value": str(self._tekens)},
+                "wti": {"value": "1"},
+            }
+            for b in self._graven
+        ]
         return _StubResponse({"results": {"bindings": bindings}})
 
 
@@ -883,6 +912,28 @@ def test_ontbrekende_repository_telt_als_incompleet_en_werpt_niet() -> None:
     """
     session = _GraafStub(fout=requests.HTTPError("404 Repository inning doesn't exist"))
     assert _graaf_writer(session).graaf_is_compleet(["BWBR0004770"]) is False
+
+
+def test_graph_zonder_tekst_telt_als_verlies() -> None:
+    """Triples zonder wettekst: de oude peiling zag alleen dat de graph er was."""
+    session = _GraafStub(graven=["BWBR0004770"], tekens=0)
+    assert _graaf_writer(session).graaf_is_compleet(["BWBR0004770"]) is False
+
+
+def test_graaf_stand_noemt_tekens_en_wti_per_regeling() -> None:
+    session = _GraafStub(graven=["BWBR0004770"], tekens=42)
+    stand = _graaf_writer(session).graaf_stand(["BWBR0004770", "BWBR0005537"])
+    assert stand["BWBR0004770"] == Stand(tekens=42, wti=True)
+    # Geen rij: geen graph, of een zonder tekst.
+    assert stand["BWBR0005537"] == Stand()
+    assert str(V.graph("BWBR0005537")) in session.queries[0]
+
+
+def test_graaf_stand_geeft_een_fout_door() -> None:
+    """De poort mag een onleesbare stand niet voor een lege graaf aanzien."""
+    session = _GraafStub(fout=requests.HTTPError("503"))
+    with pytest.raises(requests.HTTPError):
+        _graaf_writer(session).graaf_stand(["BWBR0004770"])
 
 
 # ------------------------------------------------- similarity-index

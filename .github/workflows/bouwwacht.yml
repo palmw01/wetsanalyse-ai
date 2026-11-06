@@ -34,8 +34,8 @@ name: bouwwacht
 
 on:
   schedule:
-    # Elk kwartier. GitHub voert een cron niet op de seconde uit; dat is prima, de wacht is een
-    # vangnet en geen deploypad.
+    # Elk kwartier. GitHub voert een cron niet op de seconde uit; dat is prima. Voor een merge uit
+    # GITHUB_TOKEN (Dependabot) is deze wacht wél het enige deploypad.
     - cron: "*/15 * * * *"
   workflow_dispatch:
 

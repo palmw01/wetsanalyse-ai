@@ -81,7 +81,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   - `annotaties/` – het overzicht en de losse annotatiepagina (`AnnotatiesClient`, `AnnotatieKaart`,
     `NodeAnnotatiePaneel`, `AnnotatiePaginaSchil`).
   - `werkgebieden/` – overzicht en pagina van een werkgebied (`WerkgebiedenClient`,
-    `WerkgebiedClient`, de tabs `BronnenTab`/`ElementenTab`/`SamenhangTab`/`HistorieTab`, het kader `BegrippenKader`,
+    `WerkgebiedClient`, de tabs `OverzichtTab`/`ElementenTab`/`SamenhangTab`/`HistorieTab`, het kader `BegrippenKader`,
     het begrip als `BegripInhoud` met `useBegrip` (dezelfde inhoud op de pagina en naast het gesprek),
     `WerkgebiedSchil`, en
     `OpnemenInWerkgebied` voor de annotatiepagina).
@@ -333,15 +333,15 @@ herladen breekt hem niet af. Regels:
 - **Stoppen is een verzoek** (`stopRun`), geen dichtvallende socket. De agent stopt op een nodegrens,
   dat kan tientallen seconden duren; de knop blijft daarom in de `stopt`-stand. Stoppen vóór de
   voorstellen levert er nul op, en het bericht zegt dat.
-- **Na een herstart van de agent is het run-register leeg.** `lib/lopendeRun.ts` onthoudt per gesprek
+- **Een run kan onbekend zijn als je terugkomt** (opgeruimd, of een agent zonder database; op Azure staat
+  het register in Postgres). `lib/lopendeRun.ts` onthoudt per gesprek
   welk run-id er liep; `standVanVorigeRun` bepaalt dan of de beurt gewoon is afgerond (het bericht met
   dat `run_id` staat in de geschiedenis) of echt verdwenen is. Alleen in dat tweede geval komt er een
   melding; zonder die controle zou elke normale afloop als "afgebroken" gemeld worden.
 - **Een weggevallen verbinding is geen mislukte beurt.** Bij een deploy wordt de frontend-container
-  vervangen terwijl de run doorloopt. `volgBeurt` haakt daarom **één keer** opnieuw aan
-  (`naEenGebrokenStream`, na 1,5 s, met `vanaf: 0`); pas als die herkansing op is of het venster weg
-  is, komt er een foutmelding. Eén poging: is de dienst echt onbereikbaar, dan vertelt doorproberen
-  de gebruiker niets.
+  vervangen terwijl de run doorloopt. `volgBeurt` haakt daarom opnieuw aan zonder
+  pogingen-cap, met oplopende wachttijd (`naEenGebrokenStream`, `herstelWachttijd`: 1,5 tot 15 s). De
+  uitleg staat bij `naEenGebrokenStream` in `lib/lopendeRun.ts`.
 - **`run_id` reist mee naar de API** bij het bewaren van de assistent-beurt; kijken er twee tabbladen
   mee, dan landt de uitkomst toch één keer (de API dedupliceert erop).
 - **Bij een 409 op `startRun`** (er loopt al een beurt op dit gesprek) haakt de client aan bij die run
@@ -411,7 +411,8 @@ graaf (zie §*De samenhangsgraaf*). Rekenkern in `lib/overzicht.ts`.
 
 Een vindplaats die Lex in gewone taal noemt ("artikel 9 lid 2", "art. 10a, derde lid") en die
 **éénduidig** bij een bron van de beurt hoort, wordt een citatie-chip (`lib/citaties.ts`:
-`vindVermeldingen` + `koppelBron`, via `bronDoel`). De rehype-plugin `markeerCitaties` wikkelt de
+`vindVermeldingen` + `koppelVermelding`, via `bronDoel`; "onderdeel m" hoort bij de vermelding, en een
+artikelbron bij "artikel 9, eerste lid" opent dat lid via `data-doel`). De rehype-plugin `markeerCitaties` wikkelt de
 vermelding in een `cite` – de tekst zelf verandert niet, net als bij `markeerPassages`. Een klik
 opent `CitatieChip` → een bronkaart via een portal (een `Popover` is een `div` en mag niet in een
 alinea), met de wettekst (lui via `haalSamenhang`), een link naar wetten.overheid.nl en *Bekijk
@@ -1199,7 +1200,7 @@ de markering (`DocumentPaneel`) en de kaart (`ReviewQueue`), met respect voor
   "Waarschijnlijk fout"**, maar de keten zet dat niet: de resolver in graph-qa geeft alleen groen of
   geel. Het veld `review_uitleg` draagt de uitleg van de review en staat uitgeklapt als "Review: …".
 - **De aandacht is een badge met tekst**, in dezelfde vorm als de documentstatus-badge
-  (`AANDACHT_PILL` in `ReviewQueue.tsx` naast `DOCUMENT_STATUS_STYLE`): één badgevorm in de app. Kleur
+  (`StatusLabel`): één badgevorm in de app. Kleur
   doet mee via de linker accentrand en de zachte tint (het scan-signaal), maar draagt het oordeel niet
   alleen. De badge staat op volle sterkte terwijl de kaart dezelfde tint op 40% draagt – anders
   verdwijnt hij in zijn kleurfamilie.
@@ -1441,6 +1442,10 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
 
 **Data en gedrag**:
 
+- **`antwoordDoelen` in `lib/bronnen.ts` staat klaar voor de ketting** (nog niet aangesloten, met
+  `antwoordKnopTekst`): per bepaling een doel met `herkomst`, een ouder valt weg als een kind genoemd is.
+  De tekst selecteert alleen uit de bronnen. Hij is pas bruikbaar op de ketenroute: op `/samenhang` laadt
+  elk doel het hele artikel, dus twee leden van één artikel zouden dat artikel dubbel laden.
 - **De knop opent wat het antwoord noemt** (`samenhangDoelen` in `lib/bronnen.ts`, max.
   `MAX_SAMENHANG_DOELEN`) of de delen van een overzicht (`overzichtDoelen` in `lib/overzicht.ts`, max.
   `MAX_OVERZICHT_DOELEN`, uit het overzicht en niet uit de tekst: dezelfde vraag geeft dezelfde kaart).
@@ -1604,8 +1609,8 @@ leest als "hij laadt", niet als "log eerst in".
   muispositie en klemt zichzelf via `plaatsPopover`.
 - Eén **`.focus-ring`-utility** in `globals.css` (2.4.13, AAA): een dubbele ring die ook op de donkere
   JAS-kleuren opvalt. Gebruik die in plaats van een eigen `focus-visible:outline`.
-- Elke beslissing wordt **aangekondigd** via de `sr-only aria-live`-regio in `WerkplekClient`
-  (`beslissingMelding`); anders is annoteren voor een schermlezer stil.
+- Elke beslissing wordt **aangekondigd** via de `sr-only aria-live`-regio in
+  `NodeAnnotatiePaneel`; anders is annoteren voor een schermlezer stil.
 - **Escape en Tab zijn voor het bovenste venster.** `Dialog` houdt een stapel bij; alleen het
   bovenste venster reageert, en bij sluiten gaat de focus terug naar waar hij vandaan kwam. `Popover`
   en een scherpe `BevestigKnop` vangen hun Escape in de capture-fase af. Lex heeft geen sneltoetsen;

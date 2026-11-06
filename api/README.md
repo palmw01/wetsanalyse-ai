@@ -124,6 +124,17 @@ zijn gedeeld tussen gebruikers; wie wat deed staat in de audit. Specificatie:
 **Zonder auth:** `GET /health` (liveness, met `git_sha` en `build_time`) en `GET /ready` (alleen
 booleans: `auth_geconfigureerd`, `llm_model_gezet`, `database_geconfigureerd`).
 
+## Afwijkingen van de REST-richtlijnen, met reden
+
+De API is intern, achter de BFF; productie heeft geen ingress. De REST-regels gelden bij het aanbieden van een API,
+dus hier is afwijken verdedigbaar. Ook graph-qa valt hieronder.
+
+- Geen `API-Version`-header: de enige clients zijn de BFF en graph-qa uit dezelfde repo, en ze rollen samen uit.
+- Geen `application/problem+json`: de fouten zijn FastAPI-`detail`, en de frontend leest die vorm.
+- Geen OpenAPI-`contact`: er is geen externe afnemer.
+- `/docs` en `/openapi.json` staan aan: de repo is publiek, dus ze tonen niets nieuws. Op acceptatie is de ingress
+  publiek (`apiExtern`), elke route achter een token.
+
 ## Model-profielen
 
 De LLM-configuratie leeft in **benoemde modelprofielen** in de database (provider, model, endpoint,

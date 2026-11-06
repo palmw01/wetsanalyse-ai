@@ -8,11 +8,12 @@ met de hele regeling, of opende de 3D-graaf een node die niet bestaat.
 De regels zijn die van de importer (`jci_node_ref_key` + `Vocab.by_ref_key` in tools/bwb-import):
 
 - met een artikel: `artikel` (het laatste), `lid` (het laatste) en elke `o`; het structuurpad
-  ernaartoe hoort er níét in, want een artikel is binnen de regeling al uniek;
+  ernaartoe hoort er níét in, want een artikel is binnen de wettekst al uniek;
 - zonder artikel: het volledige structuurpad (hoofdstuk, titeldeel, afdeling, paragraaf), want
   "afdeling 1" komt in elk hoofdstuk terug;
-- zonder artikel én zonder structuur (alleen `&bijlage=1&o=a`) wijst een jci geen eigen node aan:
-  geen vindplaats, in plaats van stil de hele regeling.
+- een jci met `&bijlage=` wijst geen node aan die hieruit valt af te leiden: wat in een bijlage staat
+  heeft een wet-lokale `id:`-IRI. Geen vindplaats, in plaats van stil de hele regeling of, erger,
+  het hoofdstuk of artikel met hetzelfde nummer in de wet zelf.
 
 `frontend/lib/jci-vectoren.json` is de gedeelde vectorset; alle drie de kanten toetsen ertegen.
 """
@@ -63,6 +64,9 @@ def _soort(pad: tuple[tuple[str, str], ...]) -> str:
 
 
 def _jci_pad(paren: list[tuple[str, str]]) -> tuple[tuple[str, str], ...]:
+    if any(k == "bijlage" for k, _ in paren):
+        return ()
+
     def laatste(sleutel: str) -> str | None:
         waarden = [v for k, v in paren if k == sleutel]
         return waarden[-1] if waarden else None

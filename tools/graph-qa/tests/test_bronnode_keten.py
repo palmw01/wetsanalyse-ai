@@ -547,7 +547,7 @@ def test_409_op_een_afgeronde_laag_krijgt_een_eerlijke_melding(monkeypatch):
         def __init__(self, *args):
             pass
         async def zet_bronnode_batch(self, data):
-            raise WetsanalyseApiFout("conflict", 409, "Heropen de laag voordat je haar wijzigt.")
+            raise WetsanalyseApiFout("conflict", 409, "heropen_nodig")
         async def aclose(self):
             pass
     monkeypatch.setattr(beurt, "WetsanalyseApi", Api)
@@ -562,6 +562,7 @@ def test_409_op_een_afgeronde_laag_krijgt_een_eerlijke_melding(monkeypatch):
 
 @pytest.mark.parametrize("body,reden", [
     ({"detail": "Heropen de laag voordat je haar wijzigt."}, "Heropen de laag voordat je haar wijzigt."),
+    ({"detail": {"fout": "heropen_nodig", "melding": "Heropen de laag voordat je haar wijzigt."}}, "heropen_nodig"),
     ({"detail": {"fout": "revisie_conflict", "bron_iri": L1}}, "revisie_conflict"),
     ({"detail": [{"loc": ["body"], "input": "geheime invoer"}]}, ""),
     ({"detail": "x" * 500}, ""),

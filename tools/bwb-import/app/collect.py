@@ -123,6 +123,20 @@ class _Collector:
         self.batch = Batch()
         self.summary = ImportSummary(bwb_id=wet.bwb_id, wetten=1)
         self._onderdeel_teller = 0
+        # De naam van de bijlage waar we nu in zitten ("Bijlage 2"). Daar geldt een andere identiteit,
+        # zie `_id_sleutel`.
+        self._in_bijlage: str | None = None
+
+    def _id_sleutel(self, node_id: str) -> str:
+        """De wet-lokale sleutel van een node in een bijlage.
+
+        Een artikelnummer is binnen een regeling alleen uniek buiten de bijlagen: Bijlage 2 en 3 van
+        de Awb hebben allebei een artikel 1 en 2, en `&bijlage=2&hoofdstuk=1` is een ander hoofdstuk
+        dan het eerste van de wet. Een sleutel uit de jci laat de bijlage weg en zou ze op één node
+        laten vallen. De `id:`-vorm is wat de bijlage en haar onderdelen al hebben: hij is uniek,
+        elke afnemer kent hem, en `bwb:jci` houdt de echte jci uit de bron.
+        """
+        return f"{self._bwb}#id={node_id}"
 
     def run(self, wet: Wet) -> None:
         self.batch.node(
@@ -166,6 +180,8 @@ class _Collector:
         # structuursegment aan, waardoor elke "Afdeling 1" van een regeling op dezelfde IRI landde.
         # Zie de docstring daar voor de meting; kort: 16 van de 93 afdelingen waren samengevallen.
         ref_key, soort = jci_node_ref_key(deel.jci)
+        if self._in_bijlage:
+            ref_key, soort = self._id_sleutel(deel.id), deel.soort
         if soort == "wet":
             # Een jci zonder eigen structuursegment (bv. alleen `&bijlage=1`) wijst de hele
             # regeling aan; als identiteit zou dit deel op de regeling-IRI landen.
@@ -199,8 +215,13 @@ class _Collector:
     def _artikelen(self, artikelen: list[Artikel], ouder_id: str, ouder_ent: str) -> None:
         vorige_artikel: str | None = None
         for artikel in artikelen:
-            ref_key = jci_to_ref_key(artikel.jci) or f"{self._bwb}#id={artikel.id}"
+            if self._in_bijlage:
+                ref_key = self._id_sleutel(artikel.id)
+            else:
+                ref_key = jci_to_ref_key(artikel.jci) or self._id_sleutel(artikel.id)
             vindplaats = _bepaling_naam("Artikel", artikel.nummer, artikel.label)
+            if self._in_bijlage:
+                vindplaats = f"{self._in_bijlage}, {vindplaats[:1].lower()}{vindplaats[1:]}"
             self.batch.node(
                 "Artikel",
                 {
@@ -305,10 +326,15 @@ class _Collector:
 
             self._verwijzingen(ref_key, bijlage.verwijzingen, bijlage.tekst)
             self._illustraties("Bijlage", bijlage.id, bijlage.illustraties)
+            self._in_bijlage = vindplaats
             self._onderdelen(bijlage.onderdelen, bijlage.id, "Bijlage", ref_key,
                              _Plek(vindplaats, ("Bijlage", bijlage.id)))
-            # Een bijlage kan eigen artikelen bevatten (aparte Artikel-nodes).
+            # Een bijlage kan eigen artikelen bevatten (aparte Artikel-nodes), direct of onder een
+            # hoofdstuk.
+            for deel in bijlage.structuurdelen:
+                self._structuur(deel, bijlage.id, "Bijlage")
             self._artikelen(bijlage.artikelen, bijlage.id, "Bijlage")
+            self._in_bijlage = None
 
     def _illustraties(self, ouder_ent: str, ouder_id: str, illustraties: list[Illustratie]) -> None:
         for illustratie in illustraties:
@@ -364,6 +390,8 @@ class _Collector:
         for lid in artikel.leden:
             lb, la, ll = jci_doel(lid.jci)
             lid_ref = f"{lb}#artikel={la}#lid={ll}" if lb and la and ll else None
+            if self._in_bijlage:
+                lid_ref = self._id_sleutel(lid.id)
             nr = nummer_van(lid.nummer)
             vindplaats = f"{artikel_vindplaats}, lid {nr}" if nr else artikel_vindplaats
             self.batch.node(
@@ -424,11 +452,12 @@ class _Collector:
             else:
                 vindplaats, genummerd = f"{plek.vindplaats}, onderdeel {nr}", True
             ref_key, soort = jci_doel_ref_key(onderdeel.jci)
-            if soort != "onderdeel":
+            if soort != "onderdeel" or self._in_bijlage:
                 # Een onderdeel van een bijlage draagt `&bijlage=1&o=a`: geen artikel, dus de
                 # jci-sleutel valt terug op de hele regeling. Alle onderdelen van de bijlage
                 # landden zo op `urn:bwb:<bwb>` (Awb, Uitvoeringsregeling IW 1990). Dan de
-                # wet-lokale by_id-IRI, zoals de bijlage zelf.
+                # wet-lokale by_id-IRI, zoals de bijlage zelf. Binnen een artikel van de bijlage
+                # geldt hetzelfde: die jci laat de bijlage weg uit de sleutel.
                 ref_key = None
             self._onderdeel_teller += 1
             self.batch.node(
@@ -523,6 +552,10 @@ class _Collector:
         if not (self._tekstuele_refs and tekst):
             return
         for verwijzing in detect_textual_references(tekst, eigen_bwb_id=self._bwb):
+            # "Artikel 16" zonder wet is in de wettekst een eigen artikel, maar in een bijlage niet:
+            # Bijlage 2 van de Awb somt op die manier bepalingen van ándere wetten op.
+            if self._in_bijlage and verwijzing.doel_bwb_id == self._bwb:
+                continue
             # Ankertekst van een al gestructureerde verwijzing (zelfde
             # artikelnummer) opnieuw detecteren zou een dubbele/onterechte
             # edge opleveren -> overslaan.

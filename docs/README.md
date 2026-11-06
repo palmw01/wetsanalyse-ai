@@ -85,9 +85,11 @@ Toelichting bij enkele documenten:
   graaf is een projectie.
 - **ADR-001** is uitgevoerd: de hybride keten is de enige annotatieroute. **ADR-002** legt de
   taalprovider vast (spaCy, `nl_core_news_md`). **ADR-003** maakt NL-SBB het datacontract
-  voor begrippen vanaf levering 2 van spoor D; de begrippen staan er sinds levering 2, nog zonder
-  NL-SBB-projectie (levering 4). **ADR-004** ontwerpt de
-  begrippenketen die betekenisgroepen voorstelt; in uitvoering.
+  voor begrippen; de projectie naar de graaf staat er. **ADR-004** ontwerpt de begrippenketen die
+  betekenisgroepen voorstelt; de voorstellen staan er, de meting per deelkeuze loopt door.
+  **ADR-005** legt Vraag Lex en de agents vast, met een aanvulling over de tekstroutes vóór de
+  supervisor. **ADR-006** legt de generieke begrippen vast, gebouwd en op acceptatie. **ADR-007** is een
+  concept over het LLM-pad en de verwerker, met open punten voor de eigenaar.
 - **`onderzoek-empirische-validatie.md`** bevat de fouttaxonomie v2, de metrics, het
   adjudicatieprotocol en de stopcriteria (§18). V1–V6 zijn uitgevoerd, V7 is open.
 - **`architectuur/metingen/`** is bewijs: meetbestanden worden niet achteraf gewijzigd. Het

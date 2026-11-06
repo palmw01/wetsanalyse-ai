@@ -132,7 +132,7 @@ export function vindplaatsVan(uri: string): Vindplaats | undefined {
       .map(([k, v]) => [k.toLowerCase(), v] as [string, string]).filter(([k]) => k !== "z" && k !== "g");
     if (ruw.some(([, v]) => !v)) return undefined;
     paren = jciPad(ruw);
-    // Alleen `&bijlage=1&o=a`: geen artikel en geen structuur, dus geen eigen node.
+    // Een jci met `&bijlage=` wijst geen node aan die hieruit valt af te leiden: die heeft een `id:`-IRI.
     if (ruw.length && !paren.length) return undefined;
   } else return undefined;
   const soort = paren.length ? (paren.at(-1)![0] === "o" ? "onderdeel" : paren.at(-1)![0]) : "regeling";
@@ -174,6 +174,7 @@ const STRUCTUUR = new Set(["hoofdstuk", "titeldeel", "afdeling", "paragraaf"]);
  *  De vectoren in `lib/jci-vectoren.json` toetsen beide kanten; wijkt dit af van de importer, dan
  *  opent "Bekijk in de graaf" een bronnode die niet bestaat. */
 function jciPad(paren: [string, string][]): [string, string][] {
+  if (paren.some(([n]) => n === "bijlage")) return [];
   const laatste = (k: string) => paren.filter(([n]) => n === k).at(-1)?.[1];
   const artikel = laatste("artikel");
   if (artikel) {

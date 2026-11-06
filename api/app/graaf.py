@@ -58,8 +58,9 @@ def _toestanden_query(bwbs: list[str]) -> str:
 def _verwijzingen_query(bwb: str) -> str:
     """Alle verwijzingen ván deze regeling, uit haar eigen named graph (zonder LIMIT: de graaf is het
     doel, niet één artikel). Het label van het doel komt uit de hele graaf."""
-    return _PREFIXES + f"""SELECT ?van ?naar ?anker ?label ?stub WHERE {{
-  GRAPH <urn:bwb:graph:{bwb}> {{ ?van bwb:heeftVerwijzing ?v . ?v bwb:naar ?naar . OPTIONAL {{ ?v bwb:ankerTekst ?anker }} }}
+    return _PREFIXES + f"""SELECT ?van ?naar ?anker ?label ?stub ?betrouwbaarheid WHERE {{
+  GRAPH <urn:bwb:graph:{bwb}> {{ ?van bwb:heeftVerwijzing ?v . ?v bwb:naar ?naar .
+    OPTIONAL {{ ?v bwb:ankerTekst ?anker }} OPTIONAL {{ ?v bwb:betrouwbaarheid ?betrouwbaarheid }} }}
   OPTIONAL {{ ?naar rdfs:label ?label }}
   OPTIONAL {{ ?naar bwb:doelLabel ?stub }}
 }} ORDER BY ?van ?naar"""

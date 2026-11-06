@@ -85,7 +85,7 @@ duiding filtert daarop.
 ```turtle
 GRAPH <urn:jas:graph:v2:8d9d3fb6…> {
   <urn:jas:laag:v2:8d9d3fb6…> a jas:AnnotatieLaag ;
-      jas:laagId "8d9d3fb6…" ; jas:revisie 8 ; jas:status "geaccordeerd" ; jas:schemaVersie 2 ;
+      jas:laagId "8d9d3fb6…" ; jas:revisie 8 ; jas:status "geaccordeerd" ; jas:schemaVersie 3 ;
       jas:bepaling <urn:bwb:BWBR0004770:artikel:9:lid:1> .
 
   <urn:jas:element:867fc7b4166d> a jas:Markering ;

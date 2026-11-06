@@ -1,6 +1,6 @@
 # Plan — wetsanalyse-ai
 
-Soort: *plan* (zie [`README.md`](README.md)) · Bijgewerkt: 5 november 2026
+Soort: *plan* (zie [`README.md`](README.md)) · Bijgewerkt: 6 november 2026
 
 Dit is het **enige plan** van het project. Het vervangt de losse plannen voor de workbench, het
 herkomstspoor, werkgebieden en begrippen en de kennisbank. Hier staat wat er openstaat, niet wat er
@@ -99,15 +99,18 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | A | Juridische validatie van `hybrid_v1` (V7) | Wacht op mensenwerk: 0 casussen `adjudicated` |
 | B | Herkomst zichtbaar in werkplek en exports | Af: alle PR's gebouwd en op productie (`v1.11.0`) |
 | C | Leerlus en knowledge-check | Te herijken |
-| D | Activiteit 3: werkgebieden en begrippen | Ontwerp klaar, niets gebouwd |
+| D | Activiteit 3: werkgebieden en begrippen | Gebouwd en op acceptatie: de leveringen in *Leveringen en fasen*, laatste PR #703; open: G2 (meten en valideren) |
 | E | Kennisbank (tweede corpus) | Ontwerp klaar, niets gebouwd |
-| F | Activiteit 1 in het gesprek: werkgebied bepalen | F0 en F1 gebouwd (vraagkaarten zoals Claude → werkgebied); vervolg open |
+| F | Activiteit 1 in het gesprek: werkgebied bepalen | F0–F3f gebouwd (vraagkaarten, startactiviteit a, de agents onder de supervisor), laatste PR #731; open: het *Vervolg* in de sectie |
 | G | Lex als projectgerichte werkplek (mock-up v4) | G1–G5 gebouwd (gesprek bij een werkgebied, de projectpagina, eigen pagina's per object, het contextpaneel, de begripskaart in NL-SBB-volgorde) |
 | H | Structuur: begrippen per term, bepalingen als boom | H1–H4 gebouwd (plek van een bepaling, bronvoorstellen met vinkjes en actiebalk, geen sneltoetsen, deelvragen met structuur, begrippenkader per term) |
 | I | Begrippen volgens NL-SBB met uitleg in B1, TOOI, één bedieningsstijl | Af: I5, I1–I4, I6, I7 gemerged (#752–#756, #762, #763), het thema als vraagkaart erna; open: de meting `eval.uitleg_eval` (3 runs, kost geld) |
+| J | Bronselectie in het gesprek, per deelvraag | Gebouwd en gemerged (#765); de zoekkant is daarna doorontwikkeld, zie de sectie |
 | K | Eén bronnenlijst, deelvragen zonder begrip, rustige panelen, één stijl | K1–K5 gemerged (#767–#771) |
-| L | Getypte bepalingen bij het samenstellen, één plek voor de bronnen per deelvraag | L1 (#772) en L2–L3 gebouwd |
-| N | Begrippen: nieuwe bediening en generieke begrippen | Gebouwd als PR-stapel #836–#847; nog te mergen en op acceptatie te toetsen |
+| L | Getypte bepalingen bij het samenstellen, één plek voor de bronnen per deelvraag | Af: L1 (#772), L2–L3 (#773) |
+| M | Betekenisonderzoek: begrippen vanuit hun juridische context | M1–M4 gemerged (#774–#777) |
+| N | Begrippen: nieuwe bediening en generieke begrippen | Gemerged (#836–#847) en op acceptatie, met de opvolging van de review (#848–#852) |
+| O | Acceptatietesten via MCP | Accounttoken en acceptatie-MCP gebouwd, eerste scenario gedraaid; open: de fixtures voor de Playwright-mocks |
 
 ---
 
@@ -645,7 +648,7 @@ staan altijd in beeld.
 | # | Besluit | Waarom |
 |---|---|---|
 | D1 | Bestaande PostgreSQL met **pgvector** | Geen nieuwe stateful dienst; rechten, audit en back-up lopen mee. Een aparte vector-DB is overkill, GraphDB is zwak in documentbeheer |
-| D2 | Azure `text-embedding-3-small` (1536 dim) | Geen AVG-beletsel, verwaarloosbare kosten. Geen LocalAI: te traag op 2 vCPU en schijnvertrouwelijkheid zolang generatie via Azure loopt |
+| D2 | Azure `text-embedding-3-small` (1536 dim) | Geen AVG-beletsel voor wettekst (voor vrije tekst van de jurist: zie ADR-007), verwaarloosbare kosten. Geen LocalAI: te traag op 2 vCPU en schijnvertrouwelijkheid zolang generatie via Azure loopt |
 | D3 | Geen ANN-index in v1, exacte cosine-scan | Bij 2–3k chunks sneller en exacter. HNSW is later één DDL-statement |
 | D4 | Hybride retrieval: Dutch FTS + vector met RRF | Spiegelt `search_wetgeving` / `semantic_search` |
 | D5 | De api bezit de kennisbank; graph-qa zoekt via `GET /v1/kennis/zoek` | Geen tweede DB-verbinding; embedding-config op één plek |
@@ -1311,9 +1314,9 @@ werkelijkheid afdrijven. De MCP ziet zelf geen rendering; de schermen blijven bi
 - **A** loopt los van de rest en is vooral werk voor beoordelaars. Het blokkeert alleen semantisch
   werk aan de annotatieketen, niet B, D of E.
 - **B** is af; vervolgwerk aan de herkomst volgt de werkwijze en verificatie van dat spoor.
-- **D** en **E** zijn onafhankelijk. D-levering 4 (Lex leest begrippen) en E-fase 3 (koppelen aan
-  bepalingen) gebruiken allebei het projectie- en schrijfpad van de api. Ontwerp ze samen als ze
-  tegelijk aan de orde komen.
+- **D** en **E** zijn onafhankelijk. Het lezen van begrippen door Lex (spoor D, gebouwd) en E-fase 3 (koppelen aan
+  bepalingen) gebruiken allebei het projectie- en schrijfpad van de api. Houd daar rekening mee bij het
+  ontwerp van E.
 - **C** eerst herijken. Een eventuele knowledge-check past het best bij D (ontdubbeling over een
   werkgebied).
 

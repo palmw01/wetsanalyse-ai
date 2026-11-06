@@ -56,7 +56,14 @@ def _gebruikte_namen() -> set[str]:
     De lookahead `(?![0-9])` vangt het tweede; `ast` het eerste. Liever iets te ruim wegfilteren
     dan een valse melding: een guard die vals alarm slaat wordt uitgezet, en dan bewaakt hij niets.
     """
-    bron = Path(queries.__file__).read_text(encoding="utf-8")
+    namen: set[str] = set()
+    # Niet alleen `queries.py`: de bouwers bij hun domein horen er ook bij (`agent/` rglob op `bwb:`).
+    for pad in Path(queries.__file__).parents[1].rglob("*.py"):
+        namen |= _namen_in(pad.read_text(encoding="utf-8"))
+    return namen
+
+
+def _namen_in(bron: str) -> set[str]:
     boom = ast.parse(bron)
     docstrings = []
     for node in ast.walk(boom):
@@ -67,7 +74,7 @@ def _gebruikte_namen() -> set[str]:
     for tekst in docstrings:
         bron = bron.replace(tekst, "")
     regels = [r for r in bron.splitlines() if not r.strip().startswith("#")]
-    return set(re.findall(r"bwb:([A-Za-z]+)(?![0-9])", "\n".join(regels)))
+    return set(re.findall(r"(?<![:\w])bwb:([A-Za-z]+)(?![0-9])", "\n".join(regels)))
 
 
 @pytest.mark.skipif(not ONTOLOGIE.exists(), reason=f"ontologie niet beschikbaar: {ONTOLOGIE}")

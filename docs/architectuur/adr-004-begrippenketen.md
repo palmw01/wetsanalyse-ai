@@ -1,6 +1,6 @@
 # ADR-004 — Begrippenketen: van geannoteerde formuleringen naar betekenisgroepen
 
-Status: **aangenomen, in uitvoering** · Datum: 2026-10-14 · Hoort bij: [PLAN spoor D](../PLAN.md#d-activiteit-3-werkgebieden-en-begrippen), [ADR-001](adr-001-hybride-jas-pijplijn.md), [ADR-003](adr-003-nl-sbb-begrippencontract.md)
+Status: **aangenomen, gebouwd** (stand en open metingen: PLAN spoor D) · Datum: 2026-10-14 · Hoort bij: [PLAN spoor D](../PLAN.md#d-activiteit-3-werkgebieden-en-begrippen), [ADR-001](adr-001-hybride-jas-pijplijn.md), [ADR-003](adr-003-nl-sbb-begrippencontract.md)
 
 ## Context
 

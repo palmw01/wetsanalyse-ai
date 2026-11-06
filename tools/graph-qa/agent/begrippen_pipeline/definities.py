@@ -27,6 +27,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from bronmodel.definities import geldigheid_uit, losse_termen
+
 from .model import Bron, Formulering, Manifest, Taalanalyse
 
 VERSIE = "3"
@@ -41,13 +43,6 @@ _DEF_ONDER = re.compile(r"\bonder\s+(?P<term>[^:,;]{1,60}?)\s+(?:(?:wordt|worden
                         r"(?:(?P<soort>mede|niet|tevens|ook)\s+)?verstaan\b\s*:?\s*", re.IGNORECASE)
 _WORDT = re.compile(r"\b(?:wordt|worden)\b", re.IGNORECASE)
 _TERM_DUBBELPUNT = re.compile(r"^([^:]{1,80}?):\s+")
-
-_REGELING = re.compile(r"\b(?:deze|dit)\s+(?:wet|besluit|regeling|rijkswet)\b", re.IGNORECASE)
-_ARTIKEL_HIER = re.compile(r"\b(?:in|voor de toepassing van)\s+dit\s+artikel\b", re.IGNORECASE)
-_LID_HIER = re.compile(r"\bin\s+dit\s+lid\b", re.IGNORECASE)
-_ARTIKEL_N = re.compile(r"\bvoor de toepassing van artikel\s+([0-9]+[a-z]*)\b", re.IGNORECASE)
-_STRUCTUUR = re.compile(r"\b(?:dit|deze)\s+(?:hoofdstuk|afdeling|paragraaf|titel|titeldeel|onderdeel)\b",
-                        re.IGNORECASE)
 
 _RANG = {"eerste": 1, "tweede": 2, "derde": 3, "vierde": 4, "vijfde": 5, "zesde": 6, "zevende": 7,
          "achtste": 8, "negende": 9, "tiende": 10, "elfde": 11, "twaalfde": 12}
@@ -98,18 +93,17 @@ def _lid_van(bron_iri: str) -> str:
 
 
 def bereik_uit(formule: str, bron_iri: str) -> Bereik:
-    if m := _ARTIKEL_N.search(formule):
-        return Bereik("artikel", f"{regeling_van(bron_iri)}:artikel:{m.group(1)}", m.group(0))
-    if m := _ARTIKEL_HIER.search(formule):
-        return Bereik("artikel", _artikel_van(bron_iri), m.group(0))
-    if m := _LID_HIER.search(formule):
-        return Bereik("lid", _lid_van(bron_iri), m.group(0))
-    if m := _STRUCTUUR.search(formule):
-        return Bereik("onbekend", "", m.group(0))
-    if m := _REGELING.search(formule):
-        return Bereik("regeling", regeling_van(bron_iri), m.group(0))
+    g = geldigheid_uit(formule)
+    if g.soort == "artikel_n":
+        return Bereik("artikel", f"{regeling_van(bron_iri)}:artikel:{g.waarde}", g.formule)
+    if g.soort == "artikel":
+        return Bereik("artikel", _artikel_van(bron_iri), g.formule)
+    if g.soort == "lid":
+        return Bereik("lid", _lid_van(bron_iri), g.formule)
+    if g.soort == "structuur":
+        return Bereik("onbekend", "", g.formule)
     # Geen formule: een begripsbepaling geldt dan voor de hele regeling (Aanwijzingen).
-    return Bereik("regeling", regeling_van(bron_iri), "")
+    return Bereik("regeling", regeling_van(bron_iri), g.formule)
 
 
 def termen_van(ruw: str) -> list[str]:
@@ -119,8 +113,7 @@ def termen_van(ruw: str) -> list[str]:
 
 def _termen(ruw: str) -> list[str]:
     """"directeur, inspecteur of ontvanger" → drie termen; kleine letters, gewone spaties."""
-    delen = re.split(r",\s*|\s+(?:of|en)\s+", ruw.strip())
-    return [" ".join(d.lower().split()) for d in delen if d.strip()]
+    return [t.lower() for t in losse_termen(ruw)]
 
 
 @dataclass(frozen=True)

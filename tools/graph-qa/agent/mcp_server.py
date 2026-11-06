@@ -45,6 +45,7 @@ from agent import tools
 from agent.adapters.graphdb_graph import make_graph
 from agent.config import Settings
 from agent.ports import GraphPort
+from agent.resultaat import is_fout
 from agent.annotatie_read import AnnotatieReadApi
 from agent.begrip_read import BegripReadApi
 
@@ -88,12 +89,7 @@ def _bouw_server() -> tuple[Any, Settings, GraphPort]:
         # `dispatch` werpt niet: een toolfout komt terug als tekst, met uitleg voor het model. Die
         # afspraak houden we hier vast — een MCP-fout zou de client dwingen te raden of het aan de
         # vraag lag of aan de graaf, terwijl de tekst dat gewoon zegt.
-        try:
-            parsed = json.loads(resultaat)
-        except ValueError:
-            parsed = {}
-        failed = resultaat.startswith("Fout bij tool") or (isinstance(parsed, dict) and parsed.get("status") in {"unavailable", "invalid_request"})
-        return CallToolResult(content=[TextContent(type="text", text=resultaat)], is_error=failed)
+        return CallToolResult(content=[TextContent(type="text", text=resultaat)], is_error=is_fout(resultaat))
 
     # De low-level server neemt de handlers als constructor-argumenten. Bewust niet de high-level
     # MCPServer: die leidt het JSON-schema af uit een Python-functiesignatuur, terwijl onze schema's

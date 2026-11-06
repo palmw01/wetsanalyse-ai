@@ -5,6 +5,14 @@ die de [frontend](../frontend) (werkplek, login, beheervenster) en graph-qa bedi
 projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staan in
 [`README.md`](README.md); dit bestand gaat over hoe de code in elkaar zit en wat je niet mag breken.
 
+## Lijn van de code
+
+Nieuwe domeinen volgen **stijl C**: de store gooit de HTTP-fouten in de transactie, de router is dun. Zo zitten de
+sloten waar de transactie zit. Oudere modules wijken af en dat is geen bug: `gesprek_store` is een klasse met `Depends`
+(A), `users`, `registraties`, `profiles`, `api_tokens`, `verbruik`, `berichten` en `feedback` geven domeinfouten die de
+router vertaalt (B), en `begrippen_overzicht` en `artefact_versies` hebben router en store in één bestand (D). Niet
+ombouwen zonder reden.
+
 ## Wat de API doet
 
 1. **Het JAS-annotatiedomein** (`/v1/annotatie/*`): markeringen, beslissingen, append-only audit,
@@ -182,9 +190,19 @@ Hieronder wat je moet weten om de code te wijzigen.
   `herkomst_regels` zet het spoor om in de leesbare namen uit `verklaringen.json`, met dezelfde
   opzoekregels als `frontend/lib/waarom.ts`. De oude CSV-kolommen blijven vooraan staan; nieuwe komen
   erachter. TriG bouwt per laag met `laag_invoer` + `bouw_graaf`, dus exact wat de projectie schrijft.
+- **`/samenhang/antwoord`** (`samenhang_antwoord.py`) is de ketting bij een antwoord: per doel de keten
+  erboven, het doel, één niveau eronder, de markeringen daarop (boven `MAX_MARKERINGEN` alleen de telling), de
+  begrippen die daar gelden en de uitgaande verwijzingen, zonder broers en zonder klasseknopen. Een wettelijk
+  begrip komt uit `bwb:definieertBegrip` en staat er alleen als de term letterlijk in de getoonde tekst staat én
+  het doel binnen het geldingsbereik valt (formules in `bronmodel.definities`, op te lossen via de boom; niet op te
+  lossen is niet tonen). `komt_voor_in` zegt dus alleen dat de term er letterlijk staat. Een begrip uit een
+  werkgebied hangt aan een getoonde markering; in een los gesprek alleen geaccordeerde generieke begrippen.
+  `begrippen_beschikbaar: false` bij een haperende graaf, nooit "geen begrippen".
 - **`/samenhang`** (`samenhang.py`) geeft drie soorten relaties en niets anders: de bronboom, de
   letterlijke verwijzingen uit de BWB-import (één stap in en uit, max. `MAX_VERWIJZINGEN`) en de
-  actuele markeringen. Er wordt niets afgeleid. Een markeringsknoop draagt herkomst, aandacht,
+  actuele markeringen. Er wordt niets afgeleid. Een doel buiten de boom krijgt een leesbaar label:
+  de naam uit de graaf, anders het anker als dat een naam noemt of het importerlabel een kaal BWB-id
+  is, anders dat label; een verwijzing met `betrouwbaarheid` laag heet "… (doel onzeker)". Een markeringsknoop draagt herkomst, aandacht,
   subtype, `beslist_door` en `twijfel` uit het element, zodat de werkplek erop kan filteren. Is het
   doel een **structuurdeel** (hoofdstuk, titeldeel, afdeling, paragraaf), dan is het een overzicht: het
   deel met de structuur en artikelen eronder, zonder leden, onderdelen, markeringen en verwijzingen

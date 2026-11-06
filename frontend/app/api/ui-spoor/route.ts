@@ -12,7 +12,7 @@
 import { geenSessie, sessionUserId } from "@/app/api/_lib/session";
 import { Venstertel } from "@/app/api/_lib/venstertel";
 import { logger } from "@/lib/logger";
-import { leesSpoor } from "@/lib/uiSpoor";
+import { leesBrowserfout, leesSpoor } from "@/lib/uiSpoor";
 
 export const dynamic = "force-dynamic";
 
@@ -31,19 +31,30 @@ export async function POST(req: Request) {
   } catch {
     return new Response(null, { status: 400 });
   }
-  const spoor = leesSpoor(ruw);
-  if (!spoor) return new Response(null, { status: 400 });
+  // Een eigen logregel, geen `UI-actie`: een fout zonder `gestart` zou het paneel *Handelingen die
+  // blijven hangen* scheef trekken.
+  const isFout = (ruw as { soort?: unknown } | null)?.soort === "fout";
+  const fout = isFout ? leesBrowserfout(ruw) : null;
+  const spoor = isFout ? null : leesSpoor(ruw);
+  if (!fout && !spoor) return new Response(null, { status: 400 });
   // Stil weigeren: de client kan er niets mee, en een fout terugsturen naar een `sendBeacon` is
   // sowieso een gesprek met niemand.
   if (!rem.mag(userid)) return new Response(null, { status: 204 });
 
+  if (fout) {
+    logger.warn("Browserfout", { fout_plek: fout.plek, fout_naam: fout.naam, fout_digest: fout.digest });
+    return new Response(null, { status: 204 });
+  }
+
   // Platte velden, en `http_status`/`duur_ms` met dezelfde namen als in `proxy.ts`: dan staan de
   // klik en de bijbehorende upstream-call in dezelfde query naast elkaar.
-  logger.info("UI-actie", {
-    ui_actie: spoor.actie,
-    ui_uitkomst: spoor.uitkomst,
-    duur_ms: spoor.duur_ms,
-    http_status: spoor.status,
-  });
+  if (spoor) {
+    logger.info("UI-actie", {
+      ui_actie: spoor.actie,
+      ui_uitkomst: spoor.uitkomst,
+      duur_ms: spoor.duur_ms,
+      http_status: spoor.status,
+    });
+  }
   return new Response(null, { status: 204 });
 }

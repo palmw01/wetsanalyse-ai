@@ -176,6 +176,7 @@ def beurt_fabriek(run, *, gesprek_id: str | None, hergebruik: str, totaal: int, 
     vastlegt – `reeks: {run_id, index, totaal, ouder}` in het bericht."""
     from .agent import answer_stream
     from .beurt import voer_beurt_uit
+    from .beurtmeting import gemeten
     from .models import Verbruiksmeter
 
     run_id = getattr(run, "run_id", "") or ""
@@ -192,9 +193,10 @@ def beurt_fabriek(run, *, gesprek_id: str | None, hergebruik: str, totaal: int, 
         )
         if not legt_vast or deel is None:
             return stroom
-        return voer_beurt_uit(stroom, settings=settings, run=deel, gesprek_id=gesprek_id or "",
-                              user_id=user_id, meter=meter,
-                              reeks={"run_id": run_id, "index": index, "totaal": totaal, "ouder": ouder})
+        uitgevoerd = voer_beurt_uit(stroom, settings=settings, run=deel, gesprek_id=gesprek_id or "",
+                                    user_id=user_id, meter=meter,
+                                    reeks={"run_id": run_id, "index": index, "totaal": totaal, "ouder": ouder})
+        return gemeten(uitgevoerd, meter=meter, run=deel, gesprek_id=gesprek_id or "", model=settings.llm_model)
     return beurt
 
 

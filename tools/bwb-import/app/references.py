@@ -20,13 +20,13 @@ from app.models import Verwijzing, VerwijzingSoort
 _REF_XPATH = ".//*[self::intref or self::extref][not(ancestor::meta-data)]"
 
 # Losse tekstverwijzingen: "artikel 4", "12a", "10.1", "3:2 Awb", "6:162 BW".
-# Vangt het artikelnummer (cijfers met optionele letter/punt/dubbelepunt) plus
+# Vangt het artikelnummer (cijfers met optionele letters/punt/dubbelepunt: "30fa", "1cbis.2") plus
 # een optionele wetafkorting (hoofdletter-initiaal, bv. BW, Awb, Sr).
 # Geen IGNORECASE: de wetafkorting (bv. BW, Awb, Sr) begint met een hoofdletter,
 # zodat losse woorden als "en"/"van" niet als afkorting worden aangezien.
 _TEXT_REF = re.compile(
     r"\b[Aa]rtikel(?:en)?\s+"
-    r"(?P<nummer>\d+[a-z]?(?:[.:]\d+[a-z]?)*)"
+    r"(?P<nummer>\d+[a-z]*(?:[.:]\d+[a-z]*)*)"
     r"(?:\s+(?P<wet>[A-Z][A-Za-z]{0,6}))?"
 )
 
@@ -35,6 +35,7 @@ _JCI_BWB = re.compile(r":c:(BWBR\d+)")
 _JCI_ARTIKEL = re.compile(r"[&?]artikel=([^&]+)")
 _JCI_LID = re.compile(r"[&?]lid=([^&]+)")
 _JCI_ONDERDEEL = re.compile(r"[&?]o=([^&]+)")
+_JCI_BIJLAGE = re.compile(r"[&?]bijlage=")
 _JCI_STRUCTUUR = re.compile(r"[&?](hoofdstuk|titeldeel|afdeling|paragraaf)=([^&]+)")
 
 
@@ -102,7 +103,8 @@ def jci_node_ref_key(doc: str | None) -> tuple[str | None, str | None]:
     met hiërarchische nummering (de Awb: ``afdeling=10.2.1``) hebben géén hoofdstuk-segment en houden
     dus precies dezelfde sleutel als met alleen het laatste segment — daar is ook geen collisie.
 
-    Artikel-, lid- en onderdeelsleutels blijven ongemoeid: die zijn binnen een regeling al uniek.
+    Artikel-, lid- en onderdeelsleutels blijven ongemoeid: die zijn binnen de wettekst al uniek.
+    Een jci die in een bijlage wijst valt onder :func:`jci_doel_ref_key`: daar bestaat geen padsleutel.
     """
     if not doc:
         return (None, None)
@@ -110,7 +112,7 @@ def jci_node_ref_key(doc: str | None) -> tuple[str | None, str | None]:
     if not bwb_match:
         return (None, None)
     bwb = bwb_match.group(1)
-    if _JCI_ARTIKEL.search(doc):
+    if _JCI_ARTIKEL.search(doc) or _JCI_BIJLAGE.search(doc):
         # Een artikel (of lid/onderdeel) heeft zijn eigen unieke sleutel; het structuurpad
         # ernaartoe hoort daar niet in, anders verandert elke artikel-IRI in de graaf.
         return jci_doel_ref_key(doc)
@@ -135,6 +137,10 @@ def jci_doel_ref_key(doc: str | None) -> tuple[str | None, str | None]:
 
     Versieparameters (``&z=``/``&g=``) worden genegeerd; van herhaalde
     ``&artikel=``-/structuursegmenten telt het laatste (meest specifieke).
+
+    Een doel in een bijlage (``&bijlage=2``, eventueel met hoofdstuk of artikel) blijft op de regeling
+    staan. De nodes in een bijlage hebben een wet-lokale `id:`-sleutel die uit de jci niet valt af te
+    leiden, en zonder deze regel wijst ``&bijlage=2&hoofdstuk=1`` naar hoofdstuk 1 van de wet.
     """
     if not doc:
         return (None, None)
@@ -142,6 +148,8 @@ def jci_doel_ref_key(doc: str | None) -> tuple[str | None, str | None]:
     if not bwb_match:
         return (None, None)
     bwb = bwb_match.group(1)
+    if _JCI_BIJLAGE.search(doc):
+        return (bwb, "wet")
 
     artikelen = _JCI_ARTIKEL.findall(doc)
     if artikelen:
@@ -203,6 +211,23 @@ _GEEN_NUMMER = {"de", "en", "of", "in", "op", "te", "is", "na", "om", "al", "er"
 _ARTIKELNUMMER = re.compile(r"\d+[a-z]*(?:[.:]\d+[a-z]*)*")
 # Waar het aanwijzen ophoudt en de naam van de regeling begint: "…, van de Awb".
 _REGELINGSNAAM = re.compile(r"\s+(?:van|in|bij)\s+(?:de|het|die|deze|dat|dit|Boek)\b")
+
+
+# Wat tussen een artikelnummer en de naam van zijn regeling kan staan: leden, onderdelen, volzinnen
+# en de rest van een opsomming ("artikelen 107 en 108", "artikel 4 en artikel 5").
+_AANWIJZING = (
+    rf"(?:{_WOORD}|laatste|lid|leden|onderdelen|onderdeel|onder|sub|subonderdeel|aanhef|volzin"
+    r"|alinea|artikelen|artikel|onderscheidenlijk|volgende|en|of|tot|met"
+    r"|\d+[a-z]*(?:[.:]\d+[a-z]*)*°?|[a-z])"
+)
+# "…, eerste lid, van het Douanewetboek van de Unie", "van Verordening (EU) nr. 910/2014". "van deze
+# wet" past hier niet: die wijst naar de eigen regeling.
+_NAAM_NA_ARTIKEL = re.compile(
+    rf"(?:[\s,]+{_AANWIJZING}(?!\w))*[\s,]+van\s+"
+    r"(?:(?:de|het)\s+(?P<naam>\w+)|(?P<eigennaam>[A-Z]\w*))"
+)
+# Een soortnaam waarmee een regeling zichzelf aanduidt: "artikel 14.1.4 van de leidraad".
+_EIGEN_REGELING = {"leidraad"}
 
 
 def _reeks(fragment: str, nummer: str, waarde=str) -> list[str]:
@@ -335,6 +360,10 @@ def detect_textual_references(tekst: str, *, eigen_bwb_id: str) -> list[Verwijzi
     Een herkende wetafkorting wordt via :mod:`app.afkortingen` naar een BWB-id
     vertaald; zonder afkorting geldt de verwijzing als intern (eigen wet).
     Matches met een onbekende afkorting worden overgeslagen (te onzeker).
+
+    Volgt na het nummer "van de/het <Naam>", dan beslist die naam, ook als er eerst een lid of
+    onderdeel tussen staat. Kent `zoek_bwb_id` hem niet, dan is het doel onbekend en vervalt de
+    treffer: "artikel 167 van het Douanewetboek van de Unie" is geen artikel 167 van de eigen wet.
     """
     treffers: list[Verwijzing] = []
     for match in _TEXT_REF.finditer(tekst):
@@ -345,6 +374,14 @@ def detect_textual_references(tekst: str, *, eigen_bwb_id: str) -> list[Verwijzi
             if doel_bwb is None:
                 continue
             anker = f"artikel {nummer} {wet}"
+        elif naam_match := _NAAM_NA_ARTIKEL.match(tekst, match.end("nummer")):
+            naam = naam_match["naam"] or naam_match["eigennaam"]
+            if naam.lower() in _EIGEN_REGELING:
+                doel_bwb, anker = eigen_bwb_id, f"artikel {nummer}"
+            elif doel_bwb := zoek_bwb_id(naam, nummer):
+                anker = f"artikel {nummer} {naam}"
+            else:
+                continue
         else:
             doel_bwb = eigen_bwb_id
             anker = f"artikel {nummer}"

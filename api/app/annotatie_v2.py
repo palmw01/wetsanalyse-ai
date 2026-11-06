@@ -15,6 +15,7 @@ from . import annotatie_v2_store as store
 from . import graaf as graaf_mod
 from . import knoopinfo as knoopinfo_mod
 from . import samenhang as samenhang_mod
+from . import samenhang_antwoord
 from .annotatie_v2_contracts import Batch, Beslissing, Doel, Element, Laagbesluiten, Zoekvraag
 from .auth import require_client
 from .bron_resolver import bwb_van, haal_bronrijen, snapshot_uit
@@ -76,6 +77,22 @@ async def get_samenhang(doel: dict = Depends(doel_query), actor: str = Depends(a
 
 # Een overzicht opent hoogstens zoveel delen tegelijk; de werkplek blijft daaronder.
 MAX_SAMENHANG_MEER = 30
+
+
+@router.get("/samenhang/antwoord")
+async def get_samenhang_antwoord(bron_iri: list[str] = Query(default=[]), werkgebied_id: str = "",
+                                 actor: str = Depends(actieve_userid)):
+    """De ketting bij een antwoord: per doel de keten erboven, het doel, één niveau eronder, de markeringen, de
+    begrippen en de uitgaande verwijzingen. Zie `samenhang_antwoord.py`."""
+    doelen = list(dict.fromkeys(i for i in bron_iri if i))
+    if not doelen:
+        raise HTTPException(422, "Geef minstens één bron_iri.")
+    if len(doelen) > MAX_SAMENHANG_MEER:
+        raise HTTPException(422, f"Hoogstens {MAX_SAMENHANG_MEER} doelen per verzoek.")
+    try:
+        return await samenhang_antwoord.antwoord(doelen, werkgebied_id)
+    except (httpx.HTTPError, ConnectionError) as exc:
+        raise HTTPException(503, "De brongraaf is tijdelijk niet beschikbaar.") from exc
 
 
 @router.get("/samenhang/meer")

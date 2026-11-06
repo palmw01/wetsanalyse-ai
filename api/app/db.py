@@ -792,7 +792,7 @@ async def dispose_engine() -> None:
 
 
 async def create_all() -> None:
-    """Maak de tabellen aan (tests + beproevingsfase; productie kan dit later via Alembic doen).
+    """Maak de tabellen aan (idempotent; er is geen migratietool).
     Idempotent: alleen ONTBREKENDE tabellen worden aangemaakt."""
     async with get_engine().begin() as conn:
         await conn.run_sync(metadata.create_all)

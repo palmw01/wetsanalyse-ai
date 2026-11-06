@@ -1,5 +1,5 @@
 // Het artefact van een beurt: wat Lex in het gesprek oplevert om te beoordelen – een annotatie, de
-// begripsvoorstellen of gevonden bepalingen van een werkgebied, het werkgebied, één deelvraag of één
+// begripsvoorstellen of de bronselectie van een werkgebied, het werkgebied, één deelvraag of één
 // begrip, of (later) afleidingsregels. Het bericht verwijst ernaar
 // (`Bericht.artefact`, api `gesprek_contracts.Artefact`); de inhoud leeft in de api.
 //
@@ -22,8 +22,8 @@ export interface Artefact {
   titel: string;
 }
 
-/** Wat een artefact van een werkgebied aanwijst: de begripsvoorstellen of de gevonden bepalingen van
- *  één run (`run_id`); het werkgebied zelf, dat Lex in het gesprek samenstelde (activiteit 1); één
+/** Wat een artefact van een werkgebied aanwijst: de begripsvoorstellen van één run (`run_id`), de
+ *  bronselectie; het werkgebied zelf, dat Lex in het gesprek samenstelde (activiteit 1); één
  *  deelvraag (`deelvraag_id`, F3d) of één begrip (`begrip_id`, F3d). */
 export interface WerkgebiedArtefact {
   soort: "begrippen" | "werkgebied" | "deelvraag" | "begrip" | "bronselectie";

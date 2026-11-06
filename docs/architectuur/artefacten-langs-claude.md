@@ -26,8 +26,9 @@ al is, wat ontbreekt en wat niet bij het platform past.
 
 ## De artefacten van de werkplek
 
-De soorten staan in `frontend/lib/artefact.ts`: annotatie, begrippen, bronnen (gevonden bepalingen), werkgebied,
-deelvraag, begrip, bronselectie en regels (gereserveerd).
+De soorten staan in `frontend/lib/artefact.ts`: annotatie, begrippen, werkgebied, deelvraag, begrip, bronselectie en
+regels (gereserveerd). De soort `bronnen` is sinds 4 november 2026 weg; een oud bericht opent de bronselectie. De
+bevindingen hieronder beschrijven de stand op de datum van deze toets.
 
 | punt van Claude | stand in de werkplek | oordeel |
 |---|---|---|
