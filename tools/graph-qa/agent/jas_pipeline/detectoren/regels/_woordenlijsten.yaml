@@ -237,6 +237,9 @@ VOORZETSELUITDRUKKING:
   - met toepassing van
   - ter uitvoering van
   - in overeenstemming met
+  - met betrekking tot
+  - met uitzondering van
+  - onder vermelding van
 # Rechtsgevolg in een normsegment (H2:53): alleen dan biedt NormDetector ook Rechtsfeit aan (audit D03).
 # Werkwoorden die zelf een rechtsgevolg uitdrukken als predicaat van een hoofdzin ('De termijn
 # vervalt …'). Lemma, met een scheidbaar partikel ervoor ('overgaan'); de gevolgdetector toetst ze op

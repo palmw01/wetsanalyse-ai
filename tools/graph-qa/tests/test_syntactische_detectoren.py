@@ -206,7 +206,7 @@ def test_zaak_en_rol_zijn_disjunct_ook_via_het_einde_van_het_lemma():
 @pytest.mark.parametrize("tekst,np,met_rs", [
     ("Het aanslagbiljet vermeldt de dagtekening.", "Het aanslagbiljet", False),
     ("Een belastingaanslag is invorderbaar.", "Een belastingaanslag", False),
-    ("De toepassing van het eerste lid leidt tot een bedrag.", "De toepassing", False),
+    ("De betaling door de ontvanger leidt tot een bedrag.", "De betaling", False),
     ("De belastingschuldige is verplicht te betalen.", "De belastingschuldige", True),
     ("De inspecteur is bevoegd de aanslag te verminderen.", "De inspecteur", True),
     ("Hij is verplicht de aanslag te betalen.", "Hij", True),
@@ -258,8 +258,11 @@ def test_geen_fusiekandidaat_met_een_zaak_als_kop_krijgt_rechtssubject(parser):
      "de toepassing van het eerste lid", ("Rechtsfeit", "Rechtsobject"), "jas.feit.nominalisatie_in_voorwaarde"),
     # elders blijft Voorwaarde mogelijk ('tot' en 'voor' zijn bewust geen tijdvoorzetsel)
     ("De last is gericht op het voorkomen van herhaling van een overtreding.", "het voorkomen van herhaling",
-     ("Rechtsfeit", "Voorwaarde", "Rechtsobject"), "jas.feit.nominalisatie_van"),
+     ("Rechtsfeit", "Voorwaarde"), "jas.feit.nominalisatie_met_voorwerp"),
     ("Nadere regels worden gesteld voor de toepassing van deze wet.", "de toepassing van deze wet",
+     ("Rechtsfeit", "Voorwaarde"), "jas.feit.nominalisatie_met_voorwerp"),
+    # alleen een handelende partij: dan is het voorwerp niet genoemd
+    ("Het bezwaar richt zich tegen de betaling door de ontvanger.", "de betaling door de ontvanger",
      ("Rechtsfeit", "Voorwaarde", "Rechtsobject"), "jas.feit.nominalisatie_van"),
 ])
 def test_nominalisatiecontext(parser, tekst, np, klassen, regel):
