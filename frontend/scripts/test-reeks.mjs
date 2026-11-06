@@ -97,6 +97,11 @@ try {
   await page.waitForLoadState("networkidle");
   // De gesprekkenlijst is pas gevuld als de app gehydrateerd is (de eerste keer compileert dev).
   await page.getByText("Test", { exact: true }).first().waitFor({ timeout: 120000 });
+  // De plaatshouder past ook op een smal scherm op één regel, dus de knop blijft naast de tekst.
+  await page.setViewportSize({ width: 320, height: 700 });
+  await page.waitForTimeout(150);
+  assert.equal((await invoer.boundingBox()).height, 36, "de lege invoer is één regel hoog op 320 px");
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await invoer.click();
   await invoer.pressSequentially("annoteer artikel 9 IW 1990");
   assert.equal(await invoer.inputValue(), "annoteer artikel 9 IW 1990");

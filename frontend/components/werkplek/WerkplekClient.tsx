@@ -1481,7 +1481,7 @@ export function WerkplekClient({
                   ? "Tijdens de rondleiding staat het invoerveld stil"
                   : geblokkeerd
                     ? "Je tokenbudget is op"
-                    : "Stel een vraag of geef een opdracht aan Lex…"
+                    : "Vraag of opdracht voor Lex…"
               }
               className="max-h-[200px] flex-1 resize-none bg-transparent px-2 py-2 text-sm text-ink placeholder:text-faint focus:outline-none"
             />

@@ -150,7 +150,7 @@ await context.route("**/api/**", async (route) => {
 
 const wacht = async (n) => { for (let i = 0; i < 80 && starts.length < n; i++) await page.waitForTimeout(50); };
 const dock = (stap, deel) => page.locator(deel === undefined ? `[data-vraagdock=${stap}]` : `[data-vraagdock=${stap}][data-deel="${deel}"]`);
-const invoer = () => page.getByPlaceholder("Stel een vraag of geef een opdracht aan Lex…");
+const invoer = () => page.getByPlaceholder("Vraag of opdracht voor Lex…");
 const kaartIn = () => page.locator("[data-vragenkaart]");
 
 try {
