@@ -374,6 +374,10 @@ try {
   await balk2.getByRole("button", { name: "Bronnen" }).waitFor();
   // De handelingen op het werkgebied staan als suggesties boven het invoerveld, zonder chip.
   const suggesties = page.locator('[data-testid="vraag-suggesties"][data-suggesties-van="werkgebied"]');
+  await suggesties.waitFor();
+  await page.setViewportSize({ width: 960, height: 800 });
+  assert.ok((await suggesties.boundingBox()).height <= 48, "de suggesties blijven één rij, ook in een smalle chat");
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await suggesties.getByRole("button", { name: "Stel begrippen voor" }).click();
   await page.getByRole("region", { name: "Begripsvoorstellen: Live voorstellen" }).waitFor();
   assert.equal(runs[0]?.werkgebied_id, "wg1", "de beurt hoort het werkgebied te dragen");

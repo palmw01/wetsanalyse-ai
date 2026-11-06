@@ -1422,12 +1422,16 @@ export function WerkplekClient({
           {/* Wat Lex met het onderwerp kan; zonder onderwerp, in een werkgebied, wat hij met het werkgebied kan
               (F3d: dat waren de knoppen in de werkgebiedbalk). Die laatste wijken zodra je typt. */}
           {!bezig && suggesties.length > 0 && (
-            <div className="mb-1.5 flex flex-wrap gap-1.5" data-testid="vraag-suggesties"
+            // Eén rij die zijwaarts schuift: naast een paneel wordt de chat smal, en dan namen rijen suggesties de
+            // leesruimte weg. De rand vervaagt, zodat je ziet dat er meer staat; de focus scrolt een knop in beeld.
+            <div className="mb-1 flex gap-1.5 overflow-x-auto p-0.5 pb-1 pr-8 [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)]"
+              data-testid="vraag-suggesties"
               data-suggesties-van={onderwerp?.soort ?? "werkgebied"}>
               {suggesties.map((s) => (
                 <Suggestie
                   key={s.tekst}
                   klein
+                  className="shrink-0 whitespace-nowrap"
                   disabled={geblokkeerd}
                   data-actie={s.actie}
                   data-invullen={s.invullen ? "" : undefined}
