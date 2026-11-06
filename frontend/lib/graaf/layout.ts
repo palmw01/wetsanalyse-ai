@@ -275,8 +275,8 @@ export function plaatsAnnotaties(g: GraafModel, bron: Posities): Posities {
   // die alleen van zijn eigen id afhangt. Zonder geplaatste passage op een binnenring.
   g.forEachNode((id, a) => {
     if (a.soort !== "begrip") return;
-    const passages = g.outNeighbors(id).filter((n) => g.getNodeAttribute(n, "soort") === "markering")
-      .map((n) => pos.get(n)).filter((p): p is Punt => !!p);
+    const passages = g.outEdges(id).filter((e) => ["duidt", "komt_voor_in"].includes(g.getEdgeAttribute(e, "soort")))
+      .map((e) => pos.get(g.target(e))).filter((p): p is Punt => !!p);
     const [cx, cy] = passages.length
       ? [passages.reduce((s, p) => s + p[0], 0) / passages.length, passages.reduce((s, p) => s + p[1], 0) / passages.length]
       : midden;
@@ -285,3 +285,42 @@ export function plaatsAnnotaties(g: GraafModel, bron: Posities): Posities {
   });
   return pos;
 }
+
+const KETEN_INSPRINGEN = 0.35;
+
+/** De ketting bij een antwoord: elke knoop op een eigen regel, ingesprongen naar zijn diepte. Van regeling
+ *  naar doel, en onder een bepaling haar markeringen, de begrippen daarop met hun definities, en haar
+ *  verwijzingen. Een krachtlayout op een dozijn knopen leest niet als ketting, en met één knoop per regel
+ *  botsen de labels nooit. Puur en synchroon: er valt niets te rekenen of te bewaren. */
+export function layoutKeten(g: GraafModel): Posities {
+  const pos: Posities = new Map();
+  const plaats = (id: string, diepte: number) => {
+    if (pos.has(id) || !g.hasNode(id)) return false;
+    pos.set(id, [diepte * KETEN_INSPRINGEN, -pos.size]);
+    return true;
+  };
+  const buren = (id: string, soort: RelatieData["soort"], kant: "in" | "uit") =>
+    (kant === "in" ? g.inEdges(id).map((e) => [e, g.source(e)] as const) : g.outEdges(id).map((e) => [e, g.target(e)] as const))
+      .filter(([e]) => g.getEdgeAttribute(e, "soort") === soort).map(([, n]) => n).sort(natuurlijk);
+  const begrip = (id: string, diepte: number) => {
+    if (!plaats(id, diepte)) return;
+    for (const b of buren(id, "definieert", "in")) plaats(b, diepte + 1);
+  };
+  const bij = (id: string, diepte: number) => {
+    for (const b of [...buren(id, "komt_voor_in", "in"), ...buren(id, "duidt", "in")]) begrip(b, diepte);
+  };
+  const volg = (id: string, diepte: number) => {
+    if (!plaats(id, diepte)) return;
+    for (const m of buren(id, "markeert", "in")) { plaats(m, diepte + 1); bij(m, diepte + 2); }
+    bij(id, diepte + 1);
+    for (const v of buren(id, "verwijst_naar", "uit")) plaats(v, diepte + 1);
+    for (const kind of buren(id, "bevat", "uit")) volg(kind, diepte + 1);
+  };
+  const wortels = g.filterNodes((id, a) => isBron(a) && !a.rand && g.inEdges(id).every((e) => g.getEdgeAttribute(e, "soort") !== "bevat"));
+  for (const w of wortels.sort(natuurlijk)) volg(w, 0);
+  // Wat nergens aan hangt (een begrip van een doel dat zelf definieert, een definitie zonder treffer).
+  g.forEachNode((id, a) => { if (a.soort === "begrip") begrip(id, 1); });
+  g.forEachNode((id) => { plaats(id, 1); });
+  return pos;
+}
+
