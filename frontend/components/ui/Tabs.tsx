@@ -41,9 +41,16 @@ export function Tabs({
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const verticaal = orientation === "vertical";
 
-  // Op een smal scherm is de tabkolom een rij die scrolt: de actieve tab hoort in beeld te staan.
+  // Op een smal scherm is de tabkolom een rij die scrolt: de actieve tab hoort in beeld te staan. Eén keer scrollen is niet
+  // genoeg: een telbadge of het webfont komt later en maakt een tab ervoor breder, en dat duwt de actieve tab weer uit beeld.
   useEffect(() => {
-    if (verticaal) tabRefs.current[active]?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+    if (!verticaal) return;
+    const inBeeld = () => tabRefs.current[active]?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+    inBeeld();
+    if (typeof ResizeObserver === "undefined") return;
+    const waarnemer = new ResizeObserver(inBeeld);
+    for (const tab of Object.values(tabRefs.current)) if (tab) waarnemer.observe(tab);
+    return () => waarnemer.disconnect();
   }, [active, verticaal]);
 
   function onKeyDown(e: React.KeyboardEvent, index: number) {
