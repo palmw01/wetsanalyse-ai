@@ -6,7 +6,7 @@
 // regels (`vindplaatsVan`, de spiegel van bronmodel): één weergave voor oud en nieuw.
 
 import type { NodeDoel } from "./annotatieNode";
-import { koppelBron, vindVermeldingen } from "./citaties";
+import { koppelBron, koppelVermelding, vindVermeldingen } from "./citaties";
 import { bronHref } from "./url";
 import { bronDoel, iriSegment, vindplaatsVan } from "./samenhang";
 import type { Bron } from "./types";
@@ -148,11 +148,58 @@ export function samenhangDoelen(tekst: string, bronnen: readonly Bron[], max = M
   return { doelen: alle.slice(0, max), totaal: alle.length };
 }
 
-/** De tekst op de knop: wat hij opent, niet alleen dát hij iets opent. */
-export function samenhangKnopTekst({ doelen, totaal }: { doelen: NodeDoel[]; totaal: number }): string {
+/** Waar een doel vandaan komt, zodat de graaf eerlijk kan zeggen wat hij toont: het bericht wijst de
+ *  bepaling zelf aan, of de tekst noemde niets te koppelen en het is de eerste bepaling uit de bronnen.
+ *  `bronnen` is alles wat de tools teruggaven, niet waar het antwoord op rust. */
+export type DoelHerkomst = "vermelding" | "eerste_bron";
+export type AntwoordDoel = NodeDoel & { herkomst: DoelHerkomst };
+
+/** Waar `antwoordDoelen` uit leest: een antwoord (`ThreadItem`), een annotatie of een citatie-chip. */
+export type AntwoordBron =
+  | { type: "antwoord"; tekst: string; bronnen?: readonly Bron[] }
+  | { type: "annotatie"; annotatie_doel?: NodeDoel }
+  | { type: "citatie"; doel: NodeDoel };
+
+function doelenVan(item: AntwoordBron): AntwoordDoel[] {
+  if (item.type === "citatie") return [{ ...item.doel, herkomst: "vermelding" }];
+  if (item.type === "annotatie") return item.annotatie_doel ? [{ ...item.annotatie_doel, herkomst: "vermelding" }] : [];
+  const bronnen = item.bronnen ?? [];
+  const gezien = new Map<string, AntwoordDoel>();
+  for (const v of vindVermeldingen(item.tekst)) {
+    const k = koppelVermelding(v, bronnen);
+    if (!k?.doel.artikel || gezien.has(k.doel.bron_iri)) continue;
+    const regeling = bronnen[k.index].regeling;
+    gezien.set(k.doel.bron_iri, { ...k.doel, ...(regeling ? { citeertitel: regeling } : {}), herkomst: "vermelding" });
+  }
+  const genoemd = [...gezien.values()];
+  if (genoemd.length) return genoemd.filter((d) => !genoemd.some((x) => x.bron_iri.startsWith(`${d.bron_iri}:`)));
+  const eerste = bronnen.find((b) => bronDoel(b.bron_iri || b.uri)?.artikel);
+  const doel = eerste && bronDoel(eerste.bron_iri || eerste.uri);
+  return doel ? [{ ...doel, ...(eerste.regeling ? { citeertitel: eerste.regeling } : {}), herkomst: "eerste_bron" }] : [];
+}
+
+/** De doelen van de graaf bij een antwoord: per bepaling één doel, zo diep als het bericht aanwijst, in
+ *  de volgorde van de tekst. Een ouder valt weg als een kind ook genoemd is (de keten toont hem toch).
+ *  De tekst selecteert alleen uit de bronnen en voegt niets toe (`koppelVermelding`), dezelfde regel als
+ *  de citatie-chips. Noemt de tekst niets te koppelen, dan de eerste bepaling uit de bronnen, met
+ *  `herkomst: "eerste_bron"`. Een annotatie en een chip dragen hun doel zelf.
+ *
+ *  Een overzichtsantwoord gaat hier niet langs, net als bij `samenhangDoelen`. */
+export function antwoordDoelen(item: AntwoordBron, max = MAX_SAMENHANG_DOELEN): { doelen: AntwoordDoel[]; totaal: number } {
+  const alle = doelenVan(item);
+  return { doelen: alle.slice(0, max), totaal: alle.length };
+}
+
+function knopTekst({ doelen, totaal }: { doelen: NodeDoel[]; totaal: number }, meervoud: string): string {
   if (doelen.length === 1) {
     const d = doelen[0];
     return `Bekijk samenhang van ${d.label ?? "de bepaling"}${d.citeertitel ? ` ${d.citeertitel}` : ""}`;
   }
-  return `Bekijk samenhang van de ${totaal} genoemde artikelen${totaal > doelen.length ? ` (${doelen.length} getoond)` : ""}`;
+  return `Bekijk samenhang van de ${totaal} genoemde ${meervoud}${totaal > doelen.length ? ` (${doelen.length} getoond)` : ""}`;
 }
+
+/** De tekst op de knop: wat hij opent, niet alleen dát hij iets opent. */
+export const samenhangKnopTekst = (keuze: { doelen: NodeDoel[]; totaal: number }) => knopTekst(keuze, "artikelen");
+
+/** De knoptekst bij `antwoordDoelen`: een doel is daar een bepaling, geen artikel. */
+export const antwoordKnopTekst = (keuze: { doelen: NodeDoel[]; totaal: number }) => knopTekst(keuze, "bepalingen");

@@ -18,8 +18,10 @@ _TSV = (
 @pytest.fixture(autouse=True)
 def _lege_cache():
     rn._CACHE.clear()
+    rn._AFKORTINGEN.clear()
     yield
     rn._CACHE.clear()
+    rn._AFKORTINGEN.clear()
 
 
 def test_namen_in_een_query_met_terugval_op_opschrift():
@@ -55,3 +57,16 @@ def test_geen_bwb_geen_query():
     graph = FakeGraph(result=_TSV)
     rn.met_regelingnamen(graph, [Source(label="x", uri="https://example.org")])
     assert graph.queries == []
+
+
+def test_bronnen_krijgen_de_afkortingen_uit_de_graaf():
+    tsv = '?r\t?citeertitel\t?opschrift\t?afkortingen\n<urn:bwb:BWBR0004770>\t"Invorderingswet 1990"@nl\t\t"IW | Iw 1990"\n'
+    sources = [Source(label="Artikel 9", uri="urn:bwb:BWBR0004770:artikel:9", bwb_id="BWBR0004770", soort="artikel")]
+    rn.met_regelingnamen(FakeGraph(result=tsv), sources)
+    assert sources[0].afkortingen == ["IW", "Iw 1990"]
+
+
+def test_een_regeling_zonder_afkorting_heeft_er_geen():
+    sources = [Source(label="Artikel 9", uri="urn:bwb:BWBR0004770:artikel:9", bwb_id="BWBR0004770", soort="artikel")]
+    rn.met_regelingnamen(FakeGraph(result=_TSV), sources)
+    assert sources[0].afkortingen is None
