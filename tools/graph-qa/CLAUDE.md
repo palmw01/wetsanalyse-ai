@@ -1401,8 +1401,9 @@ cd tools/graph-qa && .venv/bin/python eval/run_eval.py --retrieval-smoke       #
 **Live meten gaat via de eval-job, niet vanaf je machine.** `run_eval.py` draait de agent in-proces en
 heeft een directe graafverbinding nodig, en GraphDB staat op Azure op `external: false`. Draai
 `azure-infra.yml` → actie **`eval`** (per straat): de retrieval-smoke en daarna `--annotatie` en `--gesprek`
-elk **drie keer**, met het rapport in de workflow-samenvatting. Met de invoer `eval_set` (`gesprek` of
-`annotatie`) draait alleen die set: goedkoper als je één ding hermeet. Drie, omdat dezelfde bepaling tussen runs sterk
+elk **drie keer**, met het rapport in de workflow-samenvatting. Met de invoer `eval_set` (`gesprek`, `annotatie` of
+`concept`) draait alleen die set: goedkoper als je één ding hermeet. `concept` zijn de bepalingen uit
+`docs/wetsanalyse/referentieset/concept/`, met per klasse wat er gedekt is, en zonder schrijfactie op de lagen. Drie, omdat dezelfde bepaling tussen runs sterk
 verschillende uitkomsten geeft: lees precisie/recall en span-IoU als bandbreedte; de garanties horen
 wél op 100%. Niet vlak na een deploy draaien: de importjob loopt dan nog.
 

@@ -55,9 +55,9 @@ on:
         options: [wat-if, deploy, afbreken, opruimen, vul-graaf, eval, inventaris, telemetrie, grafana, grafana-afbreken, mcp-proxy-afbreken]
         default: wat-if
       eval_set:
-        description: "Alleen voor 'eval': alles (smoke + 3× annotatie + 3× gesprek), of alleen gesprek of annotatie (smoke + 3×)"
+        description: "Alleen voor 'eval': alles (smoke + 3× annotatie + 3× gesprek), of alleen gesprek, annotatie of de conceptcasussen (smoke + 3×)"
         type: choice
-        options: [alles, gesprek, annotatie]
+        options: [alles, gesprek, annotatie, concept]
         default: alles
       query:
         description: "Alleen voor 'telemetrie': een eigen KQL-query (leeg = de standaardset)"
@@ -862,6 +862,7 @@ jobs:
             case "$EVAL_SET" in
               gesprek) vlag="--gesprek"; titel="GESPREK"; uit="|| true" ;;
               annotatie) vlag="--annotatie"; titel="RUN"; uit="|| rc=1" ;;
+              concept) vlag="--annotatie --concept"; titel="CONCEPT"; uit="|| true" ;;
               *) echo "::error::onbekende eval_set"; exit 1 ;;
             esac
             args="rc=0; echo \"=== RETRIEVAL-SMOKE ===\"; python -u eval/run_eval.py --retrieval-smoke || rc=1; for i in 1 2 3; do echo \"=== $titel \$i VAN 3 ===\"; python -u eval/run_eval.py $vlag $uit; done; echo \"=== KLAAR (rc=\$rc) ===\"; exit \$rc"
