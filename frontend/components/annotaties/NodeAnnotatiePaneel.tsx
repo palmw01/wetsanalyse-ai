@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { DekkingOverzicht } from "@/components/annotaties/DekkingOverzicht";
 import { ongedektPerBron } from "@/lib/dekking";
@@ -29,7 +29,6 @@ import type { Anker, ArtefactVersie, BeslissingInvoer } from "@/lib/types";
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
 import { Graaf } from "@/components/graaf/Graaf";
 import { useGraafStand, type GraafOpties } from "@/components/graaf/useGraafStand";
-import type { GraafKoppeling } from "@/components/graaf/koppeling";
 
 // sigma zit in `GraafTekenaar`, dat `Graaf` zelf lui laadt: pas als de tab opengaat.
 export type PaneelTab = "tekst" | "graaf";
@@ -43,15 +42,13 @@ export type PaneelTab = "tekst" | "graaf";
  *
  *  Met `onSluit` staat hij in dezelfde `Dialog`-schil als `ArtefactPaneel` (werkplek); zonder is
  *  het de kale inhoud voor een eigen pagina. */
-export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, onWisselDoel, onSluit, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst", reeks, beginElement, opslag: basisOpslag = apiOpslag, onBeslist }: {
+export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, onSluit, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst", reeks, beginElement, opslag: basisOpslag = apiOpslag, onBeslist }: {
   doel: NodeDoel; onSluit?: () => void; variant?: DialogVariant;
   /** Andere bepalingen of delen die de graaf meeopent (wat een antwoord noemt). Tekst en annotatie
    *  blijven over `doel`. */
   extraDoelen?: NodeDoel[];
   /** Met welk bereik de graaf opent en wat de nadruk krijgt (`GraafOpties`). */
   graaf?: GraafOpties;
-  /** Waar de graaf zijn handelingen neerzet voor het overzichtsblok in de thread. */
-  koppelingRef?: RefObject<GraafKoppeling | null>;
   /** Het paneel op een ander artikel openen, vanuit een knoop in de graaf die niet bij `doel` hoort;
    *  `graaf` draagt het bereik van nu (en een actuele kennisgraaf) naar het nieuwe paneel. */
   onWisselDoel?: (doel: NodeDoel, graaf: GraafOpties) => void;
@@ -265,7 +262,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
       {toonTabs && graafGeopend && (
         <div className={tab === "graaf" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
           <Graaf stand={graafStand} herkomst={(doel as NodeDoel & { herkomst?: string }).herkomst} zichtbaar={tab === "graaf"} groot={groot || !onSluit} actiefElementId={actiefId}
-            weergave={view} dekking={dekkingPerKnoop} koppelingRef={koppelingRef} onKiesElement={setActiefId} onOpenTekst={openTekst}
+            weergave={view} dekking={dekkingPerKnoop} onKiesElement={setActiefId} onOpenTekst={openTekst}
             onWisselArtikel={onWisselDoel}
             onVraag={onVraag || onVraagOverBron ? vraagOverKnoop : undefined} />
         </div>

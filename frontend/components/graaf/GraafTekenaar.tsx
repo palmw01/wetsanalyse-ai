@@ -35,7 +35,7 @@ export interface GraafBediening {
  *  elk begin of einde van een gebaar alle knopen en lijnen opnieuw door. */
 type TekenKnoop = KnoopData & {
   x: number; y: number;
-  size?: number; color?: string; zicht?: "visible" | "hidden"; zIndex?: number; aangewezen?: boolean;
+  size?: number; color?: string; zicht?: "visible" | "hidden"; zIndex?: number;
   labelKleur?: string; randDikte?: number; randKleur?: string;
 };
 type TekenLijn = RelatieData & { size?: number; color?: string; zicht?: "visible" | "hidden"; zIndex?: number; head?: "arrow" | "none" };
@@ -49,7 +49,7 @@ type LabelInfo = {
   soort: KnoopSoort; prioriteit: number; label: string; size: number;
   /** Positie in graafcoördinaten (`graphToViewport`). */
   x: number; y: number;
-  /** Gekozen of aangewezen: altijd een label, ook als het botst. */
+  /** Gekozen: altijd een label, ook als het botst. */
   altijd: boolean;
   /** Hoort een label te hebben (de keuze met haar buren, de doelen van de focus): los van de zoom. */
   vast: boolean;
@@ -99,7 +99,6 @@ const stijlen = (font: string) => ({
       backdropVisibility: "hidden", backdropColor: "#ffffff", backdropShadowColor: "rgba(0, 0, 0, 0.3)", backdropShadowBlur: 8, backdropPadding: 4,
     },
     { whenState: "label", then: { labelVisibility: "visible" } },
-    { whenData: { aangewezen: true }, then: { labelVisibility: "visible", backdropVisibility: "visible", depth: "topNodes" } },
     { whenState: "isHovered", then: { label: { attribute: "naam" }, labelColor: LABELKLEUR, labelVisibility: "visible", backdropVisibility: "visible", depth: "topNodes" } },
   ],
   edges: [{
@@ -120,13 +119,13 @@ function schrijfBeeld(g: TekenGraaf, ctx: WeergaveContext, zoom: number, info: M
     const size = b.grootte * (b.niveau >= 2 ? 1 : detailFactor(a.soort, zoom));
     if (!b.verborgen) {
       info.set(id, { soort: a.soort, prioriteit: labelPrioriteit(b.niveau, b.altijdLabel, a.soort), label: a.kort,
-        size, x: a.x, y: a.y, altijd: b.gekozen || b.aangewezen, vast: b.altijdLabel });
+        size, x: a.x, y: a.y, altijd: b.gekozen, vast: b.altijdLabel });
     }
     return {
-      ...a, size, color: b.kleur, zicht: b.verborgen ? "hidden" : "visible", zIndex: b.niveau, aangewezen: b.aangewezen,
+      ...a, size, color: b.kleur, zicht: b.verborgen ? "hidden" : "visible", zIndex: b.niveau,
       labelKleur: b.gedimd ? GEDIMD_LABEL : LABELKLEUR, randDikte: b.omtrek ? 0.32 : 0, randKleur: b.omtrek ?? b.kleur,
     };
-  }, { attributes: ["size", "color", "zicht", "zIndex", "aangewezen", "labelKleur", "randDikte", "randKleur"] });
+  }, { attributes: ["size", "color", "zicht", "zIndex", "labelKleur", "randDikte", "randKleur"] });
   g.updateEachEdgeAttributes((_e, a, bron, doel) => {
     const b = lijnBeeld(a, bron, doel, ctx);
     return { ...a, size: b.dikte, color: b.kleur, zicht: b.verborgen ? "hidden" : "visible", zIndex: b.niveau, head: b.pijl ? "arrow" : "none" };
