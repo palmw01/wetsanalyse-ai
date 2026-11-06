@@ -100,7 +100,9 @@ export function Herbeoordeling({ id, begrip, geraakt: g, muteer }: {
 
       {g.opnieuw_annoteren.length > 0 && (
         <p className="text-xs text-ink">
-          De tekst op de gemarkeerde plek veranderde en er is nog geen nieuwe annotatie.{" "}
+          {g.bron.some((b) => b.herindeeld)
+            ? "Het fragment staat nu in een eigen deel van de bepaling, en daar is nog geen annotatie."
+            : "De tekst op de gemarkeerde plek veranderde en er is nog geen nieuwe annotatie."}{" "}
           {g.opnieuw_annoteren.map((iri) => (
             <Link key={iri} href={annotatieHref(iri)} className="focus-ring rounded text-lint underline">
               Annoteer {g.bron.find((b) => b.bron_iri === iri)?.vindplaats || "de bepaling"} opnieuw

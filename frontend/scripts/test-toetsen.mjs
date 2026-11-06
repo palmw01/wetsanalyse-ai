@@ -142,7 +142,7 @@ const beslissingen = (requests) => requests.filter((r) => r.pad.endsWith("/besli
 
 // --- Smal scherm: focus terug naar de trigger na sluiten --------------------------------------
 {
-  const { browser, page, errors } = await nieuwePagina(chromium, { viewport: { width: 800, height: 1000 } });
+  const { browser, page, errors } = await nieuwePagina(chromium, { viewport: { width: 700, height: 1000 } });
   try {
     await page.goto(`${base}/workbench?gesprek=g1`);
     await chip(page, 1).click();

@@ -39,6 +39,15 @@ async def postgres_schema():
         await administration.dispose()
 
 
+async def test_compacte_elementen_laten_het_spoor_in_de_query_weg():
+    snap = snapshot(ONE)
+    await store.batch(request(snap, [element(snap)]), snap, "a")
+    async with db.get_engine().connect() as conn:
+        [compact] = await store.compacte_elementen(conn)
+        [vol] = (await conn.execute(select(db.annotatie_v2_elementen.c.inhoud))).scalars().all()
+    assert store.ZWAAR.isdisjoint(compact) and compact == store.compact_element(vol)
+
+
 async def test_concurrent_retry_commits_once():
     snap = snapshot(ONE)
     req = request(snap, [element(snap)])

@@ -230,7 +230,7 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
   stream. De graph-qa `conversation_id` (thread_id) is het `gesprekId`.
 - **Wat Lex oplevert is een artefact** (`Bericht.artefact`, `lib/artefact.ts`): `{soort, ref, titel}`
   met soort `annotatie`, `begrippen`, `werkgebied`, `deelvraag`, `begrip`, `bronselectie` of `regels`. Elke soort heeft een chip in de thread en een paneel
-  in dezelfde schil (kolom vanaf 1280px, anders een sheet); er staat er hoogstens één open.
+  in dezelfde schil (kolom vanaf 800px, anders een sheet); er staat er hoogstens één open.
   - **annotatie** – het `annotatie`-item met `AnnotatieChip`, dat **`NodeAnnotatiePaneel`** opent
     (een bericht zonder bronnode wijst naar een verwijderde annotatie: een tombstone). `DocumentPaneel` toont de wettekst met de **letterlijke** fragmenten
     (`segmenteer` + `lib/jas.ts:jasStyle`), `ReviewQueue` de beslissingskaarten.
@@ -291,7 +291,7 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     `bevestigd`: de bevestiging komt in het gesprek.
   - **Een context naast het gesprek** (spoor G4, `ContextPaneel`): wat geen artefact van een beurt is – een
     bepaling (`bron`), één JAS-element (`element`) of de bronnen van het werkgebied van het gesprek
-    (`bibliotheek`). Zelfde schil (kolom vanaf 1280px, anders een sheet) en hoogstens één paneel: een
+    (`bibliotheek`). Zelfde schil (kolom vanaf 800px, anders een sheet) en hoogstens één paneel: een
     artefact of annotatie sluit de context, een context sluit die (`ctx` in `WerkplekClient`, bijgesteld in de
     render). Ingangen: *Naast het gesprek* op de bronkaart van een citatie-chip (via `ContextPaneelContext`,
     alleen in de werkplek), *Bronnen* in de chatkop (`bronnenSignaal`) en een markering of elementrij in het
@@ -520,7 +520,7 @@ heeft *Verzend* (`isLaatsteVraag`), want wat erna komt hangt af van het antwoord
   kaartje (`onKlaar`/`klaarVoor` vanuit `WerkplekClient`). Browserregressie: `scripts/test-bronselectie-paneel.mjs`.
 - **Een bronselectiebeurt blijft een antwoord met kaartje**: het artefact `bronselectie` maakt er geen
   artefact-item van (anders is de open vraag weg), live (`toonVastgelegdeBeurt`) en na herladen. Het paneel
-  opent vanzelf alleen vanaf 1280px; daaronder via de balk *laatste artefact* (`bronselectieVanKaart`).
+  opent vanzelf alleen vanaf 800px; daaronder via de balk *laatste artefact* (`bronselectieVanKaart`).
 - **De suggesties volgen de methode** (`SUGGESTIES` in `lib/vraagLex.ts`): bij het werkgebied dossier, thema,
   deelvragen, *Bepaal de bronnen per deelvraag*, annoteren, begrippen en als laatste de dekking; bij een deelvraag
   eerst scherper of splitsen, dan de bronnen, annoteren en gedekt.
@@ -1160,7 +1160,7 @@ bestaat los van de gesprekken.
 
 ## De artefact-werkbank
 
-Vanaf **1280px** (`lib/useBreedScherm.ts`) staat het artefact als **eigen kolom naast de chat**:
+Vanaf **800px** (`lib/useBreedScherm.ts`) staat het artefact als **eigen kolom naast de chat**:
 `Dialog`-variant **`kolom`**, zonder backdrop, `aria-modal` en focus-trap (die zou je opsluiten
 terwijl de chat ernaast bereikbaar moet zijn); Escape sluit in alle varianten. Daaronder is het de
 `side`-sheet (mobiel een bottom-sheet). De splitsing zit in `WerkplekClient` en niet in

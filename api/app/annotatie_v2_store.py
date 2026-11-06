@@ -11,7 +11,8 @@ import uuid
 from contextlib import asynccontextmanager
 
 from fastapi import HTTPException
-from sqlalchemy import delete, insert, select, update
+from sqlalchemy import delete, insert, literal_column, select, update
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import IntegrityError
 from bronmodel import BronFout, valideer_ankers
 
@@ -410,11 +411,23 @@ def _met_veroudering(value: dict, nodes: dict) -> dict:
     return value
 
 
-async def actuele_elementen(nodes: dict) -> list[dict]:
+async def compacte_elementen(conn) -> list[dict]:
+    """Alle elementen zonder `ZWAAR`. Dat is het grootste deel van een element, dus op Postgres valt het al in de
+    query weg: elke leesroute over de hele tabel betaalt anders het parsen op de event loop."""
+    inhoud = db.annotatie_v2_elementen.c.inhoud
+    if conn.dialect.name == "postgresql":
+        for veld in sorted(ZWAAR):
+            inhoud = inhoud.op("-", return_type=JSONB)(literal_column(f"'{veld}'"))
+    return [compact_element(v) for v in (await conn.execute(select(inhoud))).scalars().all()]
+
+
+async def actuele_elementen(nodes: dict, *, compact: bool = False) -> list[dict]:
     """De elementen waarvan de eigenaar in `nodes` ligt (een of meer hele bronbomen), met
-    `verouderd` bepaald tegen die bronbomen – voor de complete graaf (`graaf.py`)."""
+    `verouderd` bepaald tegen die bronbomen. De complete graaf (`graaf.py`) leest het spoor; wie dat niet doet,
+    vraagt `compact`."""
     async with leestransactie() as conn:
-        rows = (await conn.execute(select(db.annotatie_v2_elementen.c.inhoud))).scalars().all()
+        rows = (await compacte_elementen(conn) if compact else
+                (await conn.execute(select(db.annotatie_v2_elementen.c.inhoud))).scalars().all())
     return [_met_veroudering(dict(v), nodes) for v in rows if v["eigenaar_iri"] in nodes]
 
 

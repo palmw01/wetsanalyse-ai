@@ -9,7 +9,7 @@
  *  - het tokenbudget: een samenvatting, en bewerken ter plekke;
  *  - een tab op de volle pagina opent geen venster erbovenop, en een tab in het venster is geen navigatie;
  *  - de berichten verschijnen meteen, en de bulkknop van de aanvragen pas na een selectie;
- *  - op een smal scherm staat de actieve tab in beeld.
+ *  - op een smal scherm staat de actieve tab in beeld, ook nadat een telbadge de rij breder maakte.
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -141,6 +141,8 @@ try {
   await smal.page.goto(`${base}/instellingen/beheer/feedback`);
   const tab = smal.page.getByRole("tab", { name: "Feedback" });
   await tab.waitFor();
+  // Pas ná de telbadge meten: die maakt *Aanvragen* breder en duwt de tab erachter opzij. Daarvoor zegt de stand niets.
+  await smal.page.getByRole("tab", { name: "Aanvragen" }).getByText("1", { exact: true }).waitFor();
   await smal.page.waitForFunction(() => {
     const t = [...document.querySelectorAll("[role=tab]")].find((x) => x.textContent?.startsWith("Feedback"));
     const r = t?.getBoundingClientRect();

@@ -1,8 +1,11 @@
 """De annotatie-werkvoorraad van een werkgebied (spoor D, fase B1): eenheden, stand, schatting."""
 from __future__ import annotations
 
+from sqlalchemy import delete
+
 from app import annotatie_v2_store as store, db, verbruik
 from app.annotatie_v2_contracts import Beslissing
+from app.werkgebied_werkvoorraad import _gedekt
 from test_annotatie_v2 import ART, ONE, TWO, element, request, snapshot
 from test_werkgebieden import ART2, LAW2, _bron, _nieuw, client, database, graaf  # noqa: F401
 
@@ -51,6 +54,24 @@ async def test_afgerond_beoordeeld_en_zonder_markeringen(client):
     await store.zet_status(laag["id"], "geaccordeerd", laag["revisie"], "jurist-a", een)
     v = await _voorraad(client, wg)
     assert {e["bron_iri"]: e["stand"]["status"] for e in v["eenheden"]}[ONE] == "afgerond"
+
+
+async def test_de_bronstand_van_een_snapshot_wordt_een_keer_gelezen(client):
+    twee = snapshot(TWO)
+    await store.batch(request(twee, [], batch_id="leeg", dekking={"bereik": [TWO]}), twee, "lex")
+    wg = (await _bron(client, await _nieuw(client), bron_iri=ART))["werkgebied"]
+    stand = lambda v: {e["bron_iri"]: e["stand"]["status"] for e in v["eenheden"]}[TWO]  # noqa: E731
+    assert stand(await _voorraad(client, wg)) == "zonder_markeringen"
+
+    async with db.get_engine().begin() as conn:     # een snapshot bevat een hele regeling: niet bij elk scherm
+        await conn.execute(delete(db.annotatie_v2_snapshots))
+    assert stand(await _voorraad(client, wg)) == "zonder_markeringen"
+
+
+def test_een_andere_tekst_is_niet_gedekt_door_de_beurt_over_de_oude():
+    dekking = [{"snapshot_id": "s", "inhoud": {"bereik": ["a", "b", "buiten"]}}]
+    assert _gedekt(dekking, {"s": {"a": "1", "b": "2"}}, {"a": {"bron_hash": "1"}, "b": {"bron_hash": "nieuw"}}) == {"a"}
+    assert _gedekt(dekking, {}, {"a": {"bron_hash": "1"}}) == set(), "een onbekende snapshot bewijst niets"
 
 
 async def test_onbereikbare_bron_is_een_open_punt(client, graaf):

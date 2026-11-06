@@ -44,26 +44,44 @@ def _regeling(nodes: dict[str, dict], iri: str) -> str:
     return nodes.get(iri, {}).get("label", "")
 
 
-async def _annotatiestaat() -> tuple[dict[str, dict], list[dict], list[dict], dict[str, dict]]:
+# Per snapshot de bron-hash van elke bronnode. Een snapshot-id is de hash van zijn inhoud en een snapshot verandert
+# nooit, dus dit veroudert niet; een snapshot bevat een hele regeling en die lees je niet bij elk scherm opnieuw.
+MAX_BRONSTANDEN = 256
+_BRONSTANDEN: dict[str, dict[str, str]] = {}
+
+
+async def _bronstanden(conn, ids: set[str]) -> dict[str, dict[str, str]]:
+    ontbreekt = sorted(ids - set(_BRONSTANDEN))
+    if ontbreekt:
+        s = db.annotatie_v2_snapshots
+        for rij in (await conn.execute(select(s).where(s.c.id.in_(ontbreekt)))).all():
+            while len(_BRONSTANDEN) >= MAX_BRONSTANDEN:
+                del _BRONSTANDEN[next(iter(_BRONSTANDEN))]
+            _BRONSTANDEN[rij.id] = {i: n["bron_hash"] for i, n in store.nodes_van(rij.inhoud).items()}
+    return {i: _BRONSTANDEN[i] for i in ids if i in _BRONSTANDEN}
+
+
+async def _annotatiestaat(nodes: dict[str, dict]) -> tuple[dict[str, dict], list[dict], set[str]]:
+    """De lagen en elementen, en welke `nodes` een annotatiebeurt over déze tekst bereikte."""
     async with store.leestransactie() as conn:
         lagen = {r["bron_iri"]: dict(r) for r in
                  (await conn.execute(select(db.annotatie_v2_lagen))).mappings().all()}
-        elementen = list((await conn.execute(select(db.annotatie_v2_elementen.c.inhoud))).scalars().all())
-        dekking = [dict(r) for r in (await conn.execute(select(db.annotatie_v2_dekking))).mappings().all()]
-        snapshots = {r.id: r.inhoud for r in (await conn.execute(select(db.annotatie_v2_snapshots))).all()}
-    return lagen, elementen, dekking, snapshots
+        elementen = await store.compacte_elementen(conn)
+        dekking = [r for r in (await conn.execute(select(db.annotatie_v2_dekking))).mappings().all()
+                   if any(i in nodes for i in r["inhoud"].get("bereik", []))]
+        standen = await _bronstanden(conn, {r["snapshot_id"] for r in dekking})
+    return lagen, elementen, _gedekt(dekking, standen, nodes)
 
 
-def _gedekt(dekking: list[dict], snapshots: dict[str, dict], nodes: dict[str, dict]) -> set[str]:
+def _gedekt(dekking: list[dict], standen: dict[str, dict[str, str]], nodes: dict[str, dict]) -> set[str]:
     """De bronnodes die een annotatiebeurt over déze tekst bereikte, ook als hij niets vond."""
     uit: set[str] = set()
     for row in dekking:
-        oud = snapshots.get(row["snapshot_id"])
+        oud = standen.get(row["snapshot_id"])
         if oud is None:
             continue
-        oude = store.nodes_van(oud)
         uit.update(i for i in row["inhoud"].get("bereik", [])
-                   if i in nodes and i in oude and oude[i]["bron_hash"] == nodes[i]["bron_hash"])
+                   if i in nodes and oud.get(i) == nodes[i]["bron_hash"])
     return uit
 
 
@@ -126,9 +144,8 @@ def selecties_in_bereik(selecties: list[dict], deelvragen: list[dict],
 async def werkvoorraad(selecties: list[dict], resolve: Resolver, userid: str) -> dict:
     analyse = [s for s in selecties if s["rol"] == "analyseren"]
     per_bwb, fouten = await bronbomen(analyse, resolve)
-    lagen, elementen, dekking, snapshots = await _annotatiestaat()
     alle_nodes = {i: n for snap in per_bwb.values() for i, n in store.nodes_van(snap).items()}
-    gedekt = _gedekt(dekking, snapshots, alle_nodes)
+    lagen, elementen, gedekt = await _annotatiestaat(alle_nodes)
 
     eenheden: dict[str, dict] = {}
     samenvatting, open_punten = [], []

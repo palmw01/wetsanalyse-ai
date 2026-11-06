@@ -223,11 +223,14 @@ export function GroepRij({ href, uitklap, titel, sub, status, eind, onder, ...re
 } & Omit<React.LiHTMLAttributes<HTMLLIElement>, "title">) {
   const binnen = (
     <>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold text-lint [overflow-wrap:anywhere] group-hover:underline">{titel}</span>
-        {sub && <span className="mt-0.5 block text-xs leading-relaxed text-muted [overflow-wrap:anywhere]">{sub}</span>}
+      {/* De titel houdt een leesbare breedte: passen de labels er niet naast, dan gaan zij een regel omlaag. */}
+      <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1.5">
+        <span className="min-w-[min(12rem,100%)] flex-[1_1_12rem]">
+          <span className="block text-sm font-semibold text-lint [overflow-wrap:anywhere] group-hover:underline">{titel}</span>
+          {sub && <span className="mt-0.5 block text-xs leading-relaxed text-muted [overflow-wrap:anywhere]">{sub}</span>}
+        </span>
+        {status && <span className="flex min-w-0 max-w-full flex-wrap gap-1.5">{status}</span>}
       </span>
-      {status && <span className="flex shrink-0 flex-wrap justify-end gap-1.5">{status}</span>}
       <ChevronOmlaag className={`shrink-0 text-faint transition-transform group-hover:text-lint ${
         uitklap ? (uitklap.open ? "rotate-180" : "") : "-rotate-90"}`} />
     </>

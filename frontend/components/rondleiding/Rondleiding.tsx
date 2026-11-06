@@ -200,7 +200,7 @@ export function Rondleiding({
     // Twee soorten wijzigingen, twee reacties.
     //
     // Een anker kan van element wisselen zonder dat er een stap verandert: in de reviewlijst verhuist
-    // `data-tour="review-kaart"` mee met de selectie (een attribuutwissel), en op 1280px bouwt het
+    // `data-tour="review-kaart"` mee met de selectie (een attribuutwissel), en op 800px bouwt het
     // artefact zichzelf opnieuw op in een andere tak van de boom (`childList`) – dan zijn wettekst,
     // reviewlijst en kaart allemaal nieuwe knopen. Zonder dit bleef de bubbel aan een losgekoppelde
     // node hangen tot de volgende stap.
