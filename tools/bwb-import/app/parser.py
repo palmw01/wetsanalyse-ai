@@ -52,6 +52,17 @@ _DEFINITIE_AANHEF = re.compile(
 # leesteken; dat weert opsommingen die toevallig een dubbele punt bevatten.
 _DEFINITIE_TERM = re.compile(r"^([^:;.]{2,60}):\s+\S")
 
+# Een `<al>` ná een `<lijst>` in hetzelfde element is geen tekst van de aanhef: hij wordt een eigen
+# slottekst-node (zie `ToestandParser._parse_onderdelen`). De ouders zijn precies de elementen
+# waarvan die methode de lijsten leest; een `<lijst>` in iets anders heeft geen onderdelen en dan
+# blijft de alinea bij zijn ouder staan, zodat er nooit tekst tussen wal en schip valt.
+_SLOT_AL = (
+    "al[preceding-sibling::lijst]"
+    "[parent::lid or parent::li or parent::artikel or parent::tekst or parent::bijlage]"
+)
+# Als XPath-voorwaarde: dit element is geen slottekst en staat er ook niet in.
+_GEEN_SLOT = f" and not(ancestor-or-self::{_SLOT_AL})"
+
 
 class ParseError(RuntimeError):
     """De XML kon niet als geldige toestand worden geïnterpreteerd."""
@@ -219,14 +230,17 @@ class ToestandParser:
             terugwerkend_tot=self._terugwerkend(element),
             wijzigingsbronnen=self._wijzigingsbronnen(element),
             verwijzingen=self._verwijzingen_scope(
-                element, bwb_id, base="./tekst//*", extra_excl=" and not(ancestor::li)"
+                element, bwb_id, base="./tekst//*", extra_excl=f" and not(ancestor::li){_GEEN_SLOT}"
             ),
             onderdelen=self._parse_onderdelen(tekst_el, bwb_id) if tekst_el is not None else [],
             voetnoten=[
-                self._noot_tekst(noot) for noot in element.xpath("./tekst//noot[not(ancestor::li)]")
+                self._noot_tekst(noot)
+                for noot in element.xpath(f"./tekst//noot[not(ancestor::li){_GEEN_SLOT}]")
             ],
             illustraties=self._illustraties(
-                element, base="./tekst//illustratie", extra_excl=" and not(ancestor::li)"
+                element,
+                base="./tekst//illustratie",
+                extra_excl=f" and not(ancestor::li){_GEEN_SLOT}",
             ),
         )
         for child in element:
@@ -246,7 +260,7 @@ class ToestandParser:
         geneste artikelen/leden/onderdelen uit om dubbeling te vermijden.
         """
         kop = element.find("kop")
-        excl = " and not(ancestor::artikel) and not(ancestor::lid) and not(ancestor::li)"
+        excl = f" and not(ancestor::artikel) and not(ancestor::lid) and not(ancestor::li){_GEEN_SLOT}"
         bijlage = Bijlage(
             id=self._knoop_id(bwb_id, element),
             nummer=self._tekst(kop.find("nr")) if kop is not None else "",
@@ -271,6 +285,7 @@ class ToestandParser:
 
     def _parse_artikel(self, element: etree._Element, bwb_id: str) -> Artikel:
         kop = element.find("kop")
+        excl = f" and not(ancestor::lid) and not(ancestor::li){_GEEN_SLOT}"
         artikel = Artikel(
             id=self._knoop_id(bwb_id, element),
             nummer=self._tekst(kop.find("nr")) if kop is not None else "",
@@ -284,44 +299,43 @@ class ToestandParser:
             status=element.get("status"),
             terugwerkend_tot=self._terugwerkend(element),
             wijzigingsbronnen=self._wijzigingsbronnen(element),
-            verwijzingen=self._verwijzingen_scope(
-                element, bwb_id, extra_excl=" and not(ancestor::lid) and not(ancestor::li)"
-            ),
+            verwijzingen=self._verwijzingen_scope(element, bwb_id, extra_excl=excl),
             onderdelen=self._parse_onderdelen(
                 element, bwb_id, self._leidt_definities_in(element)
             ),
-            voetnoten=self._noten(element, " and not(ancestor::lid) and not(ancestor::li)"),
-            illustraties=self._illustraties(
-                element, extra_excl=" and not(ancestor::lid) and not(ancestor::li)"
-            ),
+            voetnoten=self._noten(element, excl),
+            illustraties=self._illustraties(element, extra_excl=excl),
         )
         for lid in element.iterfind("lid"):
             artikel.leden.append(self._parse_lid(lid, bwb_id))
         return artikel
 
     def _parse_lid(self, element: etree._Element, bwb_id: str) -> Lid:
+        excl = f" and not(ancestor::li){_GEEN_SLOT}"
         return Lid(
             id=self._knoop_id(bwb_id, element),
             nummer=self._tekst(element.find("lidnr")),
             tekst=self._lichaamstekst(element, binnen_lid=True),
             jci=self._element_jci(element),
             terugwerkend_tot=self._terugwerkend(element),
-            verwijzingen=self._verwijzingen_scope(
-                element, bwb_id, extra_excl=" and not(ancestor::li)"
-            ),
+            verwijzingen=self._verwijzingen_scope(element, bwb_id, extra_excl=excl),
             onderdelen=self._parse_onderdelen(
                 element, bwb_id, self._leidt_definities_in(element)
             ),
-            voetnoten=self._noten(element, " and not(ancestor::li)"),
+            voetnoten=self._noten(element, excl),
             definieert_begrippen=self._definities(element),
-            illustraties=self._illustraties(element, extra_excl=" and not(ancestor::li)"),
+            illustraties=self._illustraties(element, extra_excl=excl),
         )
 
     # --------------------------------------------------------------- onderdelen
     def _parse_onderdelen(
         self, element: etree._Element, bwb_id: str, definitie_context: bool = False
     ) -> list[Onderdeel]:
-        """Onderdelen uit direct geneste ``<lijst>/<li>`` (recursief).
+        """Onderdelen uit direct geneste ``<lijst>/<li>`` (recursief), in documentvolgorde.
+
+        Tekst die ná een lijst doorloopt komt ertussen als slottekst (`_parse_slottekst`): die hoort
+        op de plek waar hij staat, en niet achter de aanhef van zijn ouder. De bron kan zo ook lijst
+        en tekst laten afwisselen (art. 25 lid 14 IW 1990): elk stuk tekst krijgt dan zijn eigen node.
 
         `definitie_context` komt van de houder (zie `_leidt_definities_in`) en **erft naar
         beneden**:
@@ -329,26 +343,73 @@ class ToestandParser:
         dezelfde begrippenlijst als hun ouder, maar de aanhef staat alleen bij het lid.
         """
         onderdelen: list[Onderdeel] = []
-        for lijst in element.findall("lijst"):
-            for li in lijst.findall("li"):
+        reeks: list[etree._Element] = []
+        slotteksten = 0
+
+        def sluit_reeks() -> None:
+            nonlocal slotteksten
+            if reeks:
+                slotteksten += 1
+                onderdelen.append(self._parse_slottekst(element, reeks, slotteksten, bwb_id))
+                reeks.clear()
+
+        for kind in element.xpath(f"./lijst | ./{_SLOT_AL}"):
+            if kind.tag == "al":
+                reeks.append(kind)
+                continue
+            sluit_reeks()
+            for li in kind.findall("li"):
                 onderdelen.append(self._parse_onderdeel(li, bwb_id, definitie_context))
+        sluit_reeks()
         return onderdelen
+
+    def _parse_slottekst(
+        self, houder: etree._Element, alineas: list[etree._Element], volgnummer: int, bwb_id: str
+    ) -> Onderdeel:
+        """Aaneengesloten alinea's ná een opsomming: een ongenummerd onderdeel van de houder.
+
+        Een eigen node en geen veld op de ouder: één laag per bronnode, ankers in de eigen tekst en
+        de bronboom die de volgorde draagt werken dan zonder meer. De bron geeft een `<al>` geen eigen
+        jci, dus de sleutel volgt uit de houder (`bwb-ng-variabel-deel`) en de plek.
+        """
+        tekst = " ".join(_tekst_zonder_noot(al) for al in alineas)
+        verwijzingen: list[Verwijzing] = []
+        voetnoten: list[str] = []
+        illustraties: list[Illustratie] = []
+        for al in alineas:
+            verwijzingen.extend(self._verwijzingen_scope(al, bwb_id))
+            voetnoten.extend(self._noten(al, ""))
+            illustraties.extend(self._illustraties(al))
+        return Onderdeel(
+            id=f"{self._knoop_id(bwb_id, houder)}/Slottekst{volgnummer}",
+            nummer="",
+            tekst=re.sub(r"\s+", " ", tekst).strip(),
+            slottekst=True,
+            verwijzingen=verwijzingen,
+            voetnoten=voetnoten,
+            illustraties=illustraties,
+        )
 
     def _parse_onderdeel(
         self, li: etree._Element, bwb_id: str, definitie_context: bool = False
     ) -> Onderdeel:
         nr = li.find("li.nr")
-        tekst_delen = [_tekst_zonder_noot(node) for node in li.xpath("./al")]
+        tekst_delen = [
+            _tekst_zonder_noot(node) for node in li.xpath("./al[not(preceding-sibling::lijst)]")
+        ]
         return Onderdeel(
             id=self._knoop_id(bwb_id, li),
             nummer=self._tekst(nr) if nr is not None else "",
             tekst=re.sub(r"\s+", " ", " ".join(tekst_delen)).strip(),
             jci=self._element_jci(li),
-            verwijzingen=self._verwijzingen_scope(li, bwb_id, base="./al//*"),
+            verwijzingen=self._verwijzingen_scope(li, bwb_id, base="./al//*", extra_excl=_GEEN_SLOT),
             subonderdelen=self._parse_onderdelen(li, bwb_id, definitie_context),
-            voetnoten=[self._noot_tekst(noot) for noot in li.xpath("./al//noot")],
+            voetnoten=[
+                self._noot_tekst(noot)
+                for noot in li.xpath(f"./al//noot[not(ancestor::meta-data){_GEEN_SLOT}]")
+            ],
             definieert_begrippen=self._definities(li, definitie_context=definitie_context),
-            illustraties=self._illustraties(li, base="./al//illustratie"),
+            illustraties=self._illustraties(li, base="./al//illustratie", extra_excl=_GEEN_SLOT),
         )
 
     # --------------------------------------------------------------- helpers
@@ -373,7 +434,8 @@ class ToestandParser:
         Sluit meta-data en voetnoten uit. Voor een artikel met leden wordt de
         tekst die in leden staat overgeslagen (die hoort bij het lid), zodat er
         geen dubbeling ontstaat. Tabellen (CALS) worden – buiten de alinea's om
-        – als leesbare rijen ná de lopende tekst toegevoegd.
+        – als leesbare rijen ná de lopende tekst toegevoegd. Tekst ná een opsomming
+        hoort hier niet bij: dat is een eigen slottekst-node (`_parse_onderdelen`).
         """
 
         # Onderdeel-tekst (al binnen <li>) hoort bij het onderdeel-node, niet bij
@@ -385,7 +447,7 @@ class ToestandParser:
             scope = "not(ancestor::lid) and not(ancestor::li) and not(ancestor::meta-data)"
         delen = [
             _tekst_zonder_noot(node)
-            for node in element.xpath(f".//al[{scope} and not(ancestor::table)]")
+            for node in element.xpath(f".//al[{scope} and not(ancestor::table){_GEEN_SLOT}]")
         ]
         tekst = re.sub(r"\s+", " ", " ".join(delen)).strip()
         tabellen = [_tabel_tekst(t) for t in element.xpath(f".//table[{scope}]")]
@@ -400,7 +462,7 @@ class ToestandParser:
         artikel/lid/onderdeel of tabel staan (die horen bij hun eigen node)."""
         scope = (
             "not(ancestor::artikel) and not(ancestor::lid) and not(ancestor::li)"
-            " and not(ancestor::meta-data) and not(ancestor::table)"
+            f" and not(ancestor::meta-data) and not(ancestor::table){_GEEN_SLOT}"
         )
         delen = [_tekst_zonder_noot(al) for al in element.xpath(f".//al[{scope}]")]
         tekst = re.sub(r"\s+", " ", " ".join(delen)).strip()
@@ -479,7 +541,7 @@ class ToestandParser:
         """
         xpath = (
             "./tekst//al[not(ancestor::li) and not(ancestor::meta-data)"
-            " and not(ancestor::table)]"
+            f" and not(ancestor::table){_GEEN_SLOT}]"
         )
         delen = [_tekst_zonder_noot(node) for node in element.xpath(xpath)]
         return re.sub(r"\s+", " ", " ".join(delen)).strip()

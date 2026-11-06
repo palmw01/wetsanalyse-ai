@@ -61,9 +61,13 @@ export function nodeBronVan(view: NodeWeergave): NodeBron {
   const segmenten = [...view.segmenten].sort((a, b) => a.volgorde - b.volgorde);
   const groepen: { lid: string; tekst: string; delen: { segment: NodeSegment; binnen: number }[] }[] = [];
   for (const s of segmenten) {
-    const lid = s.type === "Lid" ? (s.nummer?.trim() || lidUitIri(s.bron_iri)) : lidUitIri(s.bron_iri);
     const huidig = groepen.at(-1);
     const onderdeel = s.type === "Onderdeel";
+    // Een onderdeel zonder lid in zijn IRI (een slottekst, tekst ná een opsomming) blijft bij het lid
+    // waarin het staat: de segmenten staan in documentvolgorde.
+    const lid = s.type === "Lid"
+      ? (s.nummer?.trim() || lidUitIri(s.bron_iri))
+      : lidUitIri(s.bron_iri) || (onderdeel ? (huidig?.lid ?? "") : "");
     if (!onderdeel || !huidig || huidig.lid !== lid) {
       // Een onderdeel dat een groep opent heeft een lid zonder eigen tekst boven zich (dan een lege
       // kopregel voor het lidnummer) of geen lid (dan meteen het onderdeel).

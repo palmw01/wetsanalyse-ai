@@ -1,0 +1,88 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<toestand xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" bwb-ng-vast-deel="http://wetten.overheid.nl/id/BWBR0019237/2026-07-01/0" xsi:noNamespaceSchemaLocation="https://repository.officiele-overheidspublicaties.nl/Schema/BWB-toestand/2016-1/xsd/toestand_2016-1.xsd" bwb-id="BWBR0019237" inwerkingtreding="2026-07-01"><wetgeving dtdversie="2.0" soort="ministeriele-regeling" stam-id="7708303" versie-id="31250782" id="C44689761" label-id="7696084" inwerkingtredingsdatum="2025-12-24">
+  <intitule bwb-ng-variabel-deel="/Intitule" stam-id="7708333" versie-id="12603612" id="C16950201" label-id="7695934" inwerking="2006-01-01" bron="Stcrt.2005-251" effect="nieuwe-regeling" ondertekening_bron="2005-12-12" publicatie_bron="2005-12-27" publicatie_iwt="2005-12-27" status="goed">Uitvoeringsregeling Algemene wet inkomensafhankelijke regelingen<meta-data/></intitule>
+  <citeertitel bwb-ng-variabel-deel="/Citeertitel" status="officieel" stam-id="7708343" versie-id="12603622" id="C16950211" label-id="7695944" inwerking="2006-01-01" bron="Stcrt.2005-251" effect="nieuwe-regeling" ondertekening_bron="2005-12-12" publicatie_bron="2005-12-27" publicatie_iwt="2005-12-27">Uitvoeringsregeling Algemene wet inkomensafhankelijke regelingen <meta-data/></citeertitel>
+  <regeling>
+    <regeling-tekst>
+      <artikel bwb-ng-variabel-deel="/Artikel6" stam-id="7708413" versie-id="29872092" id="C42821981" label-id="7696014" inwerking="2024-01-01" label="Artikel 6" bron="Stcrt.2023-34571" effect="wijziging" ondertekening_bron="2023-12-15" publicatie_bron="2023-12-29" publicatie_iwt="2023-12-29" status="goed">
+  <kop>
+    <label>Artikel</label>
+    <nr status="officieel">6</nr>
+    <titel status="officieel">Gegevensverkeer bij betaling op andere bankrekening</titel>
+  </kop>
+  <lid bwb-ng-variabel-deel="/Artikel6/Lid1" label-id="7696014L1">
+    <lidnr status="officieel">1</lidnr>
+    <al>Als gevallen als bedoeld in <extref doc="jci1.3:c:BWBR0018472&amp;artikel=25" label-id="7122654" verwijzing-id="2597337" bwb-id="BWBR0018472">artikel 25, derde lid, van de wet</extref> worden aangewezen uitbetalingen door de Dienst Toeslagen:</al>
+    <lijst level="single" nr-sluiting="." start="1" type="expliciet">
+      <li bwb-ng-variabel-deel="/Artikel6/Lid1/Onderdeela">
+        <li.nr>a.</li.nr>
+        <al>van kinderopvangtoeslag op de bankrekening van een onderneming als bedoeld in de <extref doc="jci1.3:c:BWBR0021777" label-id="9038684" verwijzing-id="2597338" bwb-id="BWBR0021777">Handelsregisterwet 2007</extref>, die een of meerdere kindercentra of een of meerdere gastouderbureaus exploiteert, als bedoeld in <extref doc="jci1.3:c:BWBR0017017&amp;artikel=1.1" label-id="10594604" verwijzing-id="2597339" bwb-id="BWBR0017017">artikel 1.1, eerste lid, van de Wet kinderopvang en kwaliteitseisen peuterspeelzalen</extref>;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=6&amp;lid=1&amp;o=a&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="o=a"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/Artikel6/Lid1/Onderdeelb">
+        <li.nr>b.</li.nr>
+        <al>van huurtoeslag op de bankrekening van een toegelaten instelling, als bedoeld in <extref doc="jci1.3:c:BWBR0005181&amp;artikel=19" label-id="2984674" verwijzing-id="3126960" bwb-id="BWBR0005181">artikel 19 van de Woningwet</extref>;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=6&amp;lid=1&amp;o=b&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="o=b"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/Artikel6/Lid1/Onderdeelc">
+        <li.nr>c.</li.nr>
+        <al>van zorgtoeslag op de bankrekening van een zorgverzekeraar, als bedoeld in <extref doc="jci1.3:c:BWBR0018450&amp;artikel=1" label-id="7146304" verwijzing-id="2597341" bwb-id="BWBR0018450">artikel 1, onderdeel b, van de Zorgverzekeringswet</extref>;</al>
+        <al>voor zover de onderneming, instelling of zorgverzekeraar voor dit doel een convenant heeft afgesloten met de Dienst Toeslagen.</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=6&amp;lid=1&amp;o=c&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="o=c"/></jcis></meta-data></li>
+    </lijst>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=6&amp;lid=1&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="lid=1"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/Artikel6/Lid2" label-id="7696014L2">
+    <lidnr status="officieel">2</lidnr>
+    <al>Als gevallen als bedoeld in <extref doc="jci1.3:c:BWBR0018472&amp;artikel=25" label-id="7122654" verwijzing-id="2597342" bwb-id="BWBR0018472">artikel 25, derde lid, van de wet</extref> worden voorts aangewezen uitbetalingen door de Dienst Toeslagen op de bankrekening:</al>
+    <lijst level="single" nr-sluiting="." start="1" type="expliciet">
+      <li bwb-ng-variabel-deel="/Artikel6/Lid2/Onderdeela">
+        <li.nr>a.</li.nr>
+        <al>van een lid van de Nederlandse Vereniging voor Volkskrediet voor zover de uitbetaling plaatsvindt in het kader van de uitvoering van een schuldregelingsovereenkomst in de zin van de Gedragscode Schuldregeling of een overeenkomst tot budgetbeheer in de zin van de Gedragscode Budgetbeheer;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=6&amp;lid=2&amp;o=a&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="o=a"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/Artikel6/Lid2/Onderdeelb">
+        <li.nr>b.</li.nr>
+        <al>van een gemeente op grond van een schuldregelingsovereenkomst in de zin van de Gedragscode Schuldregeling of een overeenkomst tot budgetbeheer in de zin van de Gedragscode Budgetbeheer van de Nederlandse Vereniging voor Volkskrediet of overeenkomsten met dezelfde strekking;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=6&amp;lid=2&amp;o=b&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="o=b"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/Artikel6/Lid2/Onderdeelc">
+        <li.nr>c.</li.nr>
+        <al>van een derde die:</al>
+        <lijst level="single" nr-sluiting="." start="1" type="expliciet">
+          <li bwb-ng-variabel-deel="/Artikel6/Lid2/Onderdeelc/Onderdeel1">
+            <li.nr>1°.</li.nr>
+            <al>een subsidiebeschikking heeft ontvangen van een gemeente dan wel een overeenkomst heeft met een Wlz-uitvoerder voor het leveren van zorg in natura ingevolge de <extref doc="jci1.3:c:BWBR0035917" label-id="12850634" verwijzing-id="2673882" bwb-id="BWBR0035917">Wet langdurige zorg</extref>; en</al>
+          <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=6&amp;lid=2&amp;o=c&amp;o=1&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="o=1"/></jcis></meta-data></li>
+          <li bwb-ng-variabel-deel="/Artikel6/Lid2/Onderdeelc/Onderdeel2">
+            <li.nr>2°.</li.nr>
+            <al>voldoet aan de norm NEN-ISO 9001;</al>
+          <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=6&amp;lid=2&amp;o=c&amp;o=2&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="o=2"/></jcis></meta-data></li>
+        </lijst>
+        <al>voor zover de uitbetaling plaatsvindt in het kader van de uitvoering van een schuldregelingsovereenkomst in de zin van de Gedragscode Schuldregeling of een overeenkomst tot budgetbeheer in de zin van de Gedragscode Budgetbeheer of overeenkomsten met dezelfde strekking;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=6&amp;lid=2&amp;o=c&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="o=c"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/Artikel6/Lid2/Onderdeeld">
+        <li.nr>d.</li.nr>
+        <al>van een curator in een faillissement;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=6&amp;lid=2&amp;o=d&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="o=d"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/Artikel6/Lid2/Onderdeele">
+        <li.nr>e.</li.nr>
+        <al>van een bewindvoerder in een schuldsaneringsregeling natuurlijke personen;</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=6&amp;lid=2&amp;o=e&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="o=e"/></jcis></meta-data></li>
+      <li bwb-ng-variabel-deel="/Artikel6/Lid2/Onderdeelf">
+        <li.nr>f.</li.nr>
+        <al>van een derde, die meerderjarig en handelingsbekwaam is, indien een belanghebbende niet beschikt over een bankrekening die op zijn naam staat, naar het oordeel van de Dienst Toeslagen niet in staat is een bankrekening op zijn naam te openen door zijn lichamelijke of geestelijke toestand, en de belanghebbende hierom verzoekt.</al>
+      <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=6&amp;lid=2&amp;o=f&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="o=f"/></jcis></meta-data></li>
+    </lijst>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=6&amp;lid=2&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="lid=2"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/Artikel6/Lid3" label-id="7696014L3">
+    <lidnr status="officieel">3</lidnr>
+    <al>Bij gevallen als bedoeld <extref doc="jci1.3:c:BWBR0004770&amp;artikel=7a" label-id="6976164" verwijzing-id="2597343" bwb-id="BWBR0004770">artikel 7a, vierde lid, van de Invorderingswet 1990</extref> is <extref doc="jci1.3:c:BWBR0018472&amp;artikel=25" label-id="7122654" verwijzing-id="2597344" bwb-id="BWBR0018472">artikel 25, eerste lid, tweede volzin, van de wet</extref> niet van toepassing.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=6&amp;lid=3&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="lid=3"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/Artikel6/Lid4" label-id="7696014L4">
+    <lidnr status="officieel">4</lidnr>
+    <al>Indien op grond van <extref doc="jci1.3:c:BWBR0018472&amp;artikel=25" label-id="7122654" verwijzing-id="2009405" bwb-id="BWBR0018472">artikel 25, derde lid, van de wet</extref> de uitbetaling van een voorschot of een tegemoetkoming plaatsvindt op een andere bankrekening dan die van de belanghebbende of diens partner, vindt het gegevensverkeer met betrekking tot de uitbetaling tussen de Dienst Toeslagen en die rekeninghouder plaats met gebruikmaking van het burgerservicenummer van de belanghebbende.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=6&amp;lid=4&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="lid=4"/></jcis></meta-data></lid>
+  <lid bwb-ng-variabel-deel="/Artikel6/Lid5" label-id="7696014L5">
+    <lidnr status="officieel">5</lidnr>
+    <al>Bij toepassing van het tweede lid, onderdelen a tot en met c, wijst het aldaar bedoelde lid, de aldaar bedoelde gemeente of de aldaar bedoelde derde aan op welke bankrekening wordt uitbetaald, ten behoeve van welke belanghebbende en voor welke uitbetaling. Voorts wordt melding gemaakt van de beëindiging van de in het tweede lid, onderdelen a tot en met c, bedoelde overeenkomst.</al>
+  <meta-data><jcis><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=6&amp;lid=5&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="lid=5"/></jcis></meta-data></lid>
+<meta-data><jcis><jci versie="1.0" verwijzing="1.0:c:BWBR0019237&amp;artikel=6&amp;g=2026-07-01" onderdeel="artikel=6" korte-verwijzing="1.0:c:BWBR0019237&amp;artikel=6"/><jci versie="1.3" verwijzing="jci1.3:c:BWBR0019237&amp;artikel=6&amp;z=2026-07-01&amp;g=2026-07-01" onderdeel="artikel=6" korte-verwijzing="jci1.3:c:BWBR0019237&amp;artikel=6"/></jcis></meta-data></artikel>
+      </regeling-tekst>
+    </regeling>
+</wetgeving></toestand>

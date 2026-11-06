@@ -121,6 +121,7 @@ class _Collector:
         self._tekstuele_refs = tekstuele_refs
         self.batch = Batch()
         self.summary = ImportSummary(bwb_id=wet.bwb_id, wetten=1)
+        self._onderdeel_teller = 0
 
     def run(self, wet: Wet) -> None:
         self.batch.node(
@@ -403,7 +404,16 @@ class _Collector:
         ``plek`` geeft elk onderdeel zijn vindplaats ("Artikel 2, lid 1, onderdeel a, 1°", zoals
         `bronmodel.vindplaats`) en zijn bepaling (`bwb:inBepaling`), uit de echte boom: de IRI van een
         onderdeel van een beleidsregel zegt niet waar het staat (`…:artikel:9:o:d` hangt onder divisie
-        9.2). Een ongenummerd opsommingsteken heeft geen eigen naam: het heet zoals zijn ouder."""
+        9.2). Een ongenummerd opsommingsteken heeft geen eigen naam: het heet zoals zijn ouder.
+
+        **De volgorde.** `bwb:volgnummer` is de plek in het document, voor een query die op één
+        niveau sorteert: de IRI's van een regeling zeggen dat niet (`…:o:aa` staat lexicaal vóór
+        `…:o:b`, en een slottekst heeft een `:id:`-IRI). `bronmodel` leest `bwb:volgtOp` en sorteert
+        verder op nummer. Alleen onderdelen met een slottekst ertussen krijgen die keten: een node
+        zonder nummer staat anders vooraan, terwijl de rest van de regeling ongewijzigd blijft en
+        haar snapshot-id houdt."""
+        keten = any(o.slottekst for o in onderdelen)
+        vorige: str | None = None
         for onderdeel in onderdelen:
             nr = nummer_van(onderdeel.nummer)
             if not nr:
@@ -419,11 +429,14 @@ class _Collector:
                 # landden zo op `urn:bwb:<bwb>` (Awb, Uitvoeringsregeling IW 1990). Dan de
                 # wet-lokale by_id-IRI, zoals de bijlage zelf.
                 ref_key = None
+            self._onderdeel_teller += 1
             self.batch.node(
                 "Onderdeel",
                 {
                     "id": onderdeel.id,
                     "nummer": onderdeel.nummer,
+                    "label": "Slottekst" if onderdeel.slottekst else None,
+                    "volgnummer": self._onderdeel_teller,
                     "tekst": onderdeel.tekst,
                     "ref_key": ref_key,
                     "jci": onderdeel.jci,
@@ -435,6 +448,9 @@ class _Collector:
             self.batch.rel(ouder_ent, "HEEFT_ONDERDEEL", "Onderdeel", ouder_id, onderdeel.id)
             self.batch.rel("Onderdeel", "IN_BEPALING", plek.bepaling[0], onderdeel.id, plek.bepaling[1])
             self.summary.onderdelen += 1
+            if keten and vorige is not None:
+                self.batch.rel("Onderdeel", "VOLGT_OP", "Onderdeel", onderdeel.id, vorige)
+            vorige = onderdeel.id
 
             bron = ref_key or erf_ref_key
             self._verwijzingen(bron, onderdeel.verwijzingen, onderdeel.tekst)

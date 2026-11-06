@@ -62,6 +62,9 @@ class Onderdeel:
     voetnoten: list[str] = field(default_factory=list)
     definieert_begrippen: list[str] = field(default_factory=list)  # uit <nadruk type="cur">…:
     illustraties: list[Illustratie] = field(default_factory=list)
+    # Tekst die in de bron ná een opsomming doorloopt: geen `<li>` maar een `<al>` in de houder. Hij
+    # staat op zijn plek tussen de onderdelen en heeft geen nummer.
+    slottekst: bool = False
 
 
 @dataclass(slots=True)

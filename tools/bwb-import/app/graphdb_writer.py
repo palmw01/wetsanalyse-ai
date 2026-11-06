@@ -83,7 +83,7 @@ def _rdfs_label(entiteit: str, props: dict) -> str:
     if entiteit == "Lid":
         return f"Lid {nummer}" if nummer else "Lid"
     if entiteit == "Onderdeel":
-        return f"Onderdeel {nummer}" if nummer else "Onderdeel"
+        return f"Onderdeel {nummer}" if nummer else props.get("label") or "Onderdeel"
     return props.get("label") or props.get("titel") or entiteit
 
 

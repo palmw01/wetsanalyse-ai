@@ -55,6 +55,21 @@ describe("nodeBronVan", () => {
     expect(nb.plekken.map((p) => p.lid)).toEqual(["1", "1", "1", "2"]);
   });
 
+  it("houdt een slottekst bij zijn lid: zijn IRI noemt geen lid", () => {
+    const slot = seg("urn:bwb:BWBR0004770:id:BWBR0004770%2FArtikel9%2FLid1%2FSlottekst1", "Onderdeel", "",
+      "tenzij de ontvanger anders beslist.", 4);
+    const twee = { ...LID2, volgorde: 5 };
+    const nb = nodeBronVan(weergave([LID1, ONDA, ONDB, slot, twee]));
+    expect(nb.info.leden_teksten[0]).toEqual({
+      lid: "1",
+      tekst: "De ontvanger kan 𝑥 invorderen:\na. bij dwangbevel 1° graden;\nb. bij verrekening.\ntenzij de ontvanger anders beslist.",
+    });
+    expect(nb.plekken.map((p) => p.lid)).toEqual(["1", "1", "1", "1", "2"]);
+    for (const p of nb.plekken) {
+      expect(nb.bron.slice(p.begin, p.begin + p.segment.tekst.length)).toBe(p.segment.tekst);
+    }
+  });
+
   it("laat de onderdelen ingesprongen zien, ook als het lid zelf geen tekst heeft", () => {
     const nb = nodeBronVan(weergave([ONDA, ONDB]));
     expect(nb.info.leden_teksten[0].lid).toBe("1");

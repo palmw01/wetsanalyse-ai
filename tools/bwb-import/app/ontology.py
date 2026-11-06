@@ -60,7 +60,8 @@ _KLASSEN: dict[str, tuple[str, str, tuple[str | URIRef, ...]]] = {
     "Lid": ("Lid", "Genummerd lid binnen een artikel.", (ELI.LegalResourceSubdivision,)),
     "Onderdeel": (
         "Onderdeel",
-        "Opsommings- of definitieonderdeel (<li>) binnen een lijst.",
+        "Opsommings- of definitieonderdeel (<li>) binnen een lijst, of de tekst die ná een "
+        "opsomming doorloopt: een ongenummerd onderdeel met bwb:label \"Slottekst\".",
         (ELI.LegalResourceSubdivision,),
     ),
     "Divisie": (
@@ -225,6 +226,12 @@ _DATA_PROPS: dict[str, tuple[str, str, tuple[URIRef, ...], URIRef | None]] = {
     "uitgiftedatum": ("uitgiftedatum", "Datum van uitgifte.", (ELI.date_publication,), XSD.date),
     "dossier": ("dossier", "Kamerdossiernummer.", (), None),
     "nummer": ("nummer", "Nummer binnen de ouder (artikel-/lid-/onderdeelnummer).", (), None),
+    "volgnummer": (
+        "volgnummer",
+        "Plek van een onderdeel in de documentvolgorde van zijn regeling, om op te sorteren.",
+        (),
+        XSD.integer,
+    ),
     "label": ("label", "Structuurlabel uit de bron-XML.", (), None),
     "titel": ("titel", "Titel van het structuurdeel of de divisie.", (), None),
     "vindplaats": (
