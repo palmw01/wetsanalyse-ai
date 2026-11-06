@@ -3,12 +3,13 @@
 Een **stdio-MCP-server** die de webapp op acceptatie bedient zoals een gebruiker dat doet, zodat een
 MCP-client (Claude Code) een acceptatietest van begin tot eind kan doen zonder schermen aan te raken.
 
-Alles loopt via de **BFF**. De MCP wisselt een accounttoken in voor een gewone sessie, dus er gelden
+De acties van de gebruiker lopen via de **BFF**. De MCP wisselt een accounttoken in voor een gewone sessie, dus er gelden
 dezelfde controles als voor een gebruiker: sessie, rol, eigenaarschap en tokenbudget. De BFF is ook de
 enige publieke weg naar graph-qa. De rendering test dit niet: dat doet Playwright op een gemockte BFF.
 
 `src/client.ts` kent geen MCP, zodat scenario's die later ook los kunnen gebruiken; `src/index.ts` is de
-dunne laag met de tools.
+dunne laag met de tools. `src/bron.ts`, `src/graaf.ts` en `src/logboek.ts` staan buiten de BFF: ze dienen de
+beoordeling en de samenwerking, en doen niets wat een scherm hoort te doen.
 
 De agent-jurist en de agent-gegevensspecialist (`.claude/agents/`) gebruiken deze MCP om op acceptatie samen een
 wetsanalyse uit te voeren, inclusief echte beslissingen; het scenario staat in `docs/acceptatie/wetsanalyse-e2e.md`.
@@ -24,12 +25,35 @@ wetsanalyse uit te voeren, inclusief echte beslissingen; het scenario staat in `
 | `annotatie_lezen` | één element met klasse, ankers, bron en graaf |
 | `begrip_lezen` | een begrip met revisies, of alle begrippen van een werkgebied met conformiteit en samenhang |
 | `logs_zoek` | de keten op `trace_id`, de logregels op `run_id`, of de fouten; alleen vaste queries |
+| `bron_lezen` | de officiële XML en tekst van één artikel of lid, met de toestand en de url |
+| `graaf_lezen` | alleen-lezen SPARQL op de kennisgraaf van acceptatie, om te vergelijken met de bron |
+| `logboek_aanvullen`, `logboek_lezen` | het gedeelde logboek van een run: alleen aanvullen, en lezen vanaf een stand |
 
-Elke tool behalve `logs_zoek` neemt optioneel `als: "beheerder"`. `lex_wacht` wacht hooguit 110 seconden; bij `klaar: false`
+De tools tot en met `begrip_lezen` nemen optioneel `als: "beheerder"`. `lex_wacht` wacht hooguit 110 seconden; bij `klaar: false`
 loopt de run door en vraag je opnieuw met de teruggegeven `vanaf`.
 
 Inloggen, tokens maken en wachtwoord of 2FA wijzigen kan hier niet: dat weigert de server voor een sessie
 uit een accounttoken ook.
+
+## Bron, graaf en logboek
+
+**`bron_lezen`** volgt de weg van de importer: de SRU-zoekdienst noemt de toestanden, de repository
+(`repository.officiele-overheidspublicaties.nl`) levert de XML. Het geeft één artikel of lid, omdat een hele wet niet in
+de context van een agent hoort; het nummer `artikel` is verplicht. Zonder `peildatum` krijg je de nieuwste toestand,
+dezelfde die de importer in de graaf zet. De SRU-dienst geeft HTTP 406 bij een geldig antwoord, dus de inhoud beslist
+en niet de status. Er is één eerlijke aanroep: een eigen User-Agent, geen tweede poging en geen redirect. Is het
+antwoord geen XML, bijvoorbeeld door een botcontrole, dan komt dat terug als fout om te melden, niet om te omzeilen.
+
+**`graaf_lezen`** gaat via de MCP-proxy van acceptatie. Alleen `SELECT`, `ASK`, `CONSTRUCT` en `DESCRIBE`; update-woorden
+en `SERVICE` worden geweigerd, en zonder `LIMIT` komt er `LIMIT 200` bij. De controle staat op de tekst, na het
+weghalen van literals, IRI's en commentaar, zodat een wettekst met het woord "delete" gewoon kan. Dat houdt een
+vergissing tegen en is geen slot: de proxy is dat wel, met zijn token.
+
+**Het logboek** staat in `docs/acceptatie/lokaal/<run>/logboek.md`. Dit is de enige schrijfweg van de agents: ze hebben
+geen `Write`, `Edit` of `Bash`, en dat blijft zo. Een shell zou elk bestand kunnen overschrijven en maakt omwegen om de
+BFF makkelijk; de MCP legt het pad vast, opent in append-modus, en houdt de run-naam binnen de map. Het schrijft in de
+hoofdcheckout, ook als de sessie in een worktree draait, omdat een worktree wordt opgeruimd en het dossier daar niet
+staat. Een onenigheid vraagt beide argumenten, en iets wat op een token lijkt wordt geweigerd.
 
 ## Activeren
 
@@ -58,6 +82,10 @@ Op de straat moet `API_TOKEN_LOGIN` aanstaan; `azure-infra` zet die alleen op ac
 Voor `logs_zoek` komen daar `WETSANALYSE_ACC_GRAFANA_URL` en `WETSANALYSE_ACC_GRAFANA_WACHTWOORD` bij: de
 Grafana van `azure-infra` → `grafana`, met het wachtwoord uit `WA_GRAFANA_ADMIN_PASSWORD`. Die tool leest via
 de datasource van acceptatie, zodat er geen Azure-secret op je machine hoeft te staan.
+
+Voor `graaf_lezen` komen daar `WETSANALYSE_ACC_GRAAF_URL` en `WETSANALYSE_ACC_GRAAF_TOKEN` bij: de MCP-proxy van
+acceptatie (`azure-infra` → `graphdb_proxy: true`) met het token uit `WA_GRAPHDB_PROXY_TOKEN`. `bron_lezen` en het
+logboek hebben geen configuratie nodig. Deze waarden zet de gebruiker: de agents halen geen wachtwoorden of tokens op.
 
 Zonder URL en analist-token weigert de server te starten, en een URL van de productiestraat ook.
 
