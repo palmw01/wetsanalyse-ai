@@ -9,8 +9,9 @@ verbindt instructies met precieze brononderdelen en benoemt eigen projectkeuzes.
 
 Regels:
 
-- **PDF's, HTML en `*.pages.md` staan niet in Git** (`.gitignore` hier en in de repo-wortel). Deze
-  repo is publiek; een verse kloon heeft alleen deze README en het manifest.
+- **PDF's, HTML, `*.pages.md` en `*.brm.*` staan niet in Git** (`.gitignore` hier en in de
+  repo-wortel). Deze repo is publiek; een verse kloon heeft alleen deze README, het manifest en die
+  `.gitignore`.
 - **Overschrijf een bewaard exemplaar niet.** Een nieuw exemplaar krijgt een nieuwe versie of
   raadpleegdatum en een eigen regel in het manifest.
 - Bestaande bronpublicaties en hun licentievoorwaarden blijven ongewijzigd.

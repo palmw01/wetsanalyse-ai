@@ -8,11 +8,13 @@ dezelfde controles als voor een gebruiker: sessie, rol, eigenaarschap en tokenbu
 enige publieke weg naar graph-qa. De rendering test dit niet: dat doet Playwright op een gemockte BFF.
 
 `src/client.ts` kent geen MCP, zodat scenario's die later ook los kunnen gebruiken; `src/index.ts` is de
-dunne laag met de tools. `src/bron.ts`, `src/graaf.ts` en `src/logboek.ts` staan buiten de BFF: ze dienen de
-beoordeling en de samenwerking, en doen niets wat een scherm hoort te doen.
+dunne laag met de tools. `src/bron.ts`, `src/graaf.ts`, `src/logs.ts` (via Grafana) en `src/logboek.ts` staan
+buiten de BFF: ze dienen de beoordeling en de samenwerking, en doen niets wat een scherm hoort te doen.
 
 De agent-jurist en de agent-gegevensspecialist (`.claude/agents/`) gebruiken deze MCP om op acceptatie samen een
-wetsanalyse uit te voeren, inclusief echte beslissingen; het scenario staat in `docs/acceptatie/wetsanalyse-e2e.md`.
+wetsanalyse uit te voeren, inclusief echte beslissingen; het scenario staat in
+[`docs/acceptatie/wetsanalyse-e2e.md`](../../docs/acceptatie/wetsanalyse-e2e.md), de briefing in
+[`docs/acceptatie/briefing-team.md`](../../docs/acceptatie/briefing-team.md).
 
 ## Tools
 
@@ -32,8 +34,8 @@ wetsanalyse uit te voeren, inclusief echte beslissingen; het scenario staat in `
 De tools tot en met `begrip_lezen` nemen optioneel `als: "beheerder"`. `lex_wacht` wacht hooguit 110 seconden; bij `klaar: false`
 loopt de run door en vraag je opnieuw met de teruggegeven `vanaf`.
 
-Inloggen, tokens maken en wachtwoord of 2FA wijzigen kan hier niet: dat weigert de server voor een sessie
-uit een accounttoken ook.
+Inloggen met een wachtwoord kan hier niet: de client blokkeert dat. Tokens maken en wachtwoord of 2FA wijzigen
+kan evenmin: dat weigert de server voor een sessie uit een accounttoken.
 
 ## Bron, graaf en logboek
 
@@ -44,8 +46,10 @@ dezelfde die de importer in de graaf zet. De SRU-dienst geeft HTTP 406 bij een g
 en niet de status. Er is één eerlijke aanroep: een eigen User-Agent, geen tweede poging en geen redirect. Is het
 antwoord geen XML, bijvoorbeeld door een botcontrole, dan komt dat terug als fout om te melden, niet om te omzeilen.
 
+De uitvoer van `bron_lezen` en `graaf_lezen` wordt afgekapt op 40.000 tekens.
+
 **`graaf_lezen`** gaat via de MCP-proxy van acceptatie. Alleen `SELECT`, `ASK`, `CONSTRUCT` en `DESCRIBE`; update-woorden
-en `SERVICE` worden geweigerd, en zonder `LIMIT` komt er `LIMIT 200` bij. De controle staat op de tekst, na het
+en `SERVICE` worden geweigerd, en zonder `LIMIT` komt er `LIMIT 200` bij (niet bij `ASK`). De controle staat op de tekst, na het
 weghalen van literals, IRI's en commentaar, zodat een wettekst met het woord "delete" gewoon kan. Dat houdt een
 vergissing tegen en is geen slot: de proxy is dat wel, met zijn token.
 
@@ -62,7 +66,8 @@ Op de straat moet `API_TOKEN_LOGIN` aanstaan; `azure-infra` zet die alleen op ac
 1. Kies een testaccount. Eén account voor beide agents kan; `WETSANALYSE_ACC_TOKEN_BEHEERDER` is alleen nodig om
    beheerrechten of het verschil tussen rollen te testen.
 2. Genereer een token: instellingen → **Beheer** → **API-tokens** → kies bij *Inloggen als*
-   het account. Het token is 90 dagen geldig en wordt één keer getoond.
+   het account. Het token is 90 dagen geldig en wordt één keer getoond. Staat `API_TOKEN_LOGIN` uit, dan
+   weigert de api het (409).
 3. Zet machine-lokaal, in `.claude/settings.local.json` (gitignored):
 
    ```json
@@ -87,9 +92,12 @@ Voor `graaf_lezen` komen daar `WETSANALYSE_ACC_GRAAF_URL` en `WETSANALYSE_ACC_GR
 acceptatie (`azure-infra` → `graphdb_proxy: true`) met het token uit `WA_GRAPHDB_PROXY_TOKEN`. `bron_lezen` en het
 logboek hebben geen configuratie nodig. Deze waarden zet de gebruiker: de agents halen geen wachtwoorden of tokens op.
 
-Zonder URL en analist-token weigert de server te starten, en een URL van de productiestraat ook.
+Zonder URL en analist-token weigert de server te starten, en een URL van de productiestraat ook; die
+controle kijkt alleen naar `prd` in de hostnaam.
 
 ## Bouwen en testen
+
+Vereist Node ≥ 20.3.
 
 ```bash
 cd tools/wetsanalyse-acceptatie-mcp

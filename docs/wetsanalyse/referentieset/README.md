@@ -76,6 +76,8 @@ tekst vandaag toepasselijk is. Actualiteit is een afzonderlijk onderzoeks- en re
 
 ## Samen beoordelen
 
+Conceptcasussen staan apart in [`concept/`](concept/README.md); ze zijn geen referentie.
+
 Hoe een casus `adjudicated` wordt, staat in het [adjudicatieprotocol](adjudicatieprotocol.md): blind
 annoteren met een formulier dat alleen de bron toont, automatisch vergelijken op positie (met κ),
 adjudiceren per verschil en daarna bevriezen. De aanwijzingen hieronder gelden voor de

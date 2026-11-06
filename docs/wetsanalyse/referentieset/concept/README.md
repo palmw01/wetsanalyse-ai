@@ -1,8 +1,9 @@
 # Conceptcasussen – nog niet beoordeeld
 
-Casussen die nog niet in een versie van de referentieset horen. Ze staan bewust **buiten `v1/`**:
-de evaluatie (`tools/graph-qa/eval/referentieset.py`) en de meetlogboeken lezen alleen de versies,
-en een casus erbij zou de nulmeting verschuiven.
+Casussen die nog niet in een versie van de referentieset horen. Ze staan bewust **buiten `v1/`**: een
+casus erbij zou de nulmeting verschuiven. De evaluatie leest ze wel, maar alleen op verzoek en als
+**diagnose** (`eval/casusbron.py`, `run_eval.py --annotatie --concept`): ze tonen of een fout weg is en
+tellen niet als score tegen een vastgestelde set.
 
 Een conceptcasus is een **voorstel, geen referentie**. Hij gaat pas naar een versie (`v<N+1>`) als
 een jurist hem volgens het [adjudicatieprotocol](../adjudicatieprotocol.md) heeft beoordeeld. Laat
@@ -13,10 +14,11 @@ het concept niet zien aan wie blind annoteert: het is bedoeld voor de conceptbes
 | [`IW05.json`](IW05.json) | art. 9 lid 5 Invorderingswet 1990 | Externe review van de TriG-export (5 okt 2026): NP-first-classificatie, ontbrekende normatieve predicaten ("vervalt", "vindt … toepassing"), ALS→DAN en de afleiding "zoveel … als". |
 | `UBT01`–`UBT14` | bepalingen over uitbetaling op een bankrekening (Awir, IW 1990 en hun uitvoeringsregelingen) | Acceptatietest van november 2026: toetst de kandidaatruimte per klasse, vooral delegatie, normen zonder modaal werkwoord, partijen in opsommingen en afleidingsregels. De gold is bewust niet volledig. |
 
-Per casus naast de gewone velden (zie `v1/cases.json`):
+Per casus naast de gewone velden (zie `v1/cases.json`) kunnen deze staan:
 
-- `export_vergelijking` per element: behouden, wijzigen of ontbrak in de export;
-- `verwijderd_uit_export`: exportelementen die in dit concept geen eigen markering zijn, met reden;
+- `export_vergelijking` per element, alleen bij IW05: behouden, wijzigen of ontbrak in de export;
+- `verwijderd_uit_export`, alleen bij IW05: exportelementen die in dit concept geen eigen markering
+  zijn, met reden;
 - `relaties`: voorgestelde verbanden (`uitkomst_van`, `invoer_van`, `vervalmoment_van`,
   `voorwaarde_voor`) – een kandidaat-uitbreiding na V7, nog geen onderdeel van het schema;
 - `concept`: herkomst van het voorstel;
