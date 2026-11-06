@@ -52,6 +52,9 @@ BEWIJS_SOORT = {"verwijzing_uit": "verwijzing", "verwijzing_in": "verwijzing", "
 BEWIJS_VOLGORDE = {"grondslag": -1, "genoemd": -0.5, "verwijzing": 0, "definitie": 1, "structuur": 2, "tekst": 3, "gelijkenis": 4}
 
 
+ZOEKVRAGEN = ("a", "b", "c", "d")
+
+
 def scope_stand(werkgebied: dict, vraag: str, kandidaten: list[str]) -> str:
     """De stand waarop een afronding rust. `kandidaten`: de ids die bij de deelvraag in de lijst staan (besluiten
     én de voorstellen van de laatste run), zodat een zoekopdracht die er iets anders vindt de afronding heropent."""
@@ -64,6 +67,12 @@ def scope_stand(werkgebied: dict, vraag: str, kandidaten: list[str]) -> str:
 def bewijs_soorten(bewijs: list[dict]) -> list[str]:
     soorten = {BEWIJS_SOORT.get(b.get("methode", ""), "tekst") for b in bewijs}
     return sorted(soorten, key=lambda s: BEWIJS_VOLGORDE.get(s, 9))
+
+
+def zoekvragen(bewijs: list[dict]) -> list[str]:
+    """De zoekvragen (a–d) die dit voorstel vonden. Het bewijs zelf staat in `GET …/kandidaten`: per deelvraag herhaald
+    was het overzicht het grootste antwoord van de api (760 KB in de e2e-wetsanalyse), terwijl niemand het hier las."""
+    return sorted({z for x in bewijs if (z := str((x.get("detail") or {}).get("zoekvraag", ""))) in ZOEKVRAGEN})
 
 
 def _actief(werkgebied: dict) -> list[dict]:
@@ -182,12 +191,13 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
                 stand, overal = "voorgesteld", False
             uitgesloten_hier = rij is not None and stand == "uitgesloten" and not overal
             lijst.append({"id": kd.id, "bron_iri": kd.bron_iri, "label": kd.label, "bwb_id": kd.bwb_id,
-                          "rol": kd.rol, "bewijs": kd.bewijs, "bewijs_soorten": bewijs_soorten(kd.bewijs or []),
+                          "rol": kd.rol, "bewijs_soorten": bewijs_soorten(kd.bewijs or []), "zoekvragen": zoekvragen(kd.bewijs or []),
+                          "_bewijzen": len(kd.bewijs or []),
                           "stand": stand, "overal": overal, "elders_opgenomen": elders,
                           "reden": rij.reden if uitgesloten_hier else kd.reden if overal else "",
                           "besloten_door": rij.besloten_door if uitgesloten_hier else kd.besloten_door if overal else None})
         lijst.sort(key=lambda x: (ROL_VOLGORDE.get(x["rol"], 9), BEWIJS_VOLGORDE.get(
-            (x["bewijs_soorten"] or ["tekst"])[0], 9), -len(x["bewijs"] or []), x["label"], x["bron_iri"]))
+            (x["bewijs_soorten"] or ["tekst"])[0], 9), -x.pop("_bewijzen"), x["label"], x["bron_iri"]))
         telling = {st: sum(1 for x in lijst if x["stand"] == st) for st in STANDEN_TELLING}
         telling["opgenomen"] = len(bronnen)
         stand_nu = scope_stand(werkgebied, vraag["vraag"] if not alleen else "", [x["id"] for x in lijst])

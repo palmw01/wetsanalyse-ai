@@ -91,3 +91,11 @@ describe("de stand van een deelvraag in een rij (spoor K)", () => {
     expect([bronnenZin(0), bronnenZin(1), bronnenZin(3)]).toEqual(["nog geen bronnen", "1 bron", "3 bronnen"]);
   });
 });
+
+describe("zoekvragen in het overzicht", () => {
+  const ruw = (k: object) => ({ werkgebied_id: "w", deelvragen: [{ id: "d", kandidaten: [{ id: "k", ...k }] }] });
+  it("leest ze van de api, en van het bewijs in een oude versie", () => {
+    expect(parseBronselectie(ruw({ zoekvragen: ["a", "x", "c"] }))?.deelvragen[0].kandidaten[0].zoekvragen).toEqual(["a", "c"]);
+    expect(parseBronselectie(ruw({ bewijs: [{ detail: { zoekvraag: "b" } }] }))?.deelvragen[0].kandidaten[0].zoekvragen).toEqual(["b"]);
+  });
+});

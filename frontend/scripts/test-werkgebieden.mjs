@@ -145,6 +145,10 @@ await page.route("**/api/**", async (route) => {
         laag_id: "l1", ankers: [], rol: "analyseren", selecties: ["s1"], deels_buiten: false },
       { id: "e2", klasse: "Rechtsfeit", tekst: "de aanslag is invorderbaar", lifecycle: "voorgesteld", eigenaar_iri: `${IRI9}:lid2`,
         laag_id: "l2", ankers: [], rol: "analyseren", selecties: ["s1"], deels_buiten: true },
+    ],
+    afgewezen: [
+      { id: "e3", klasse: "Rechtsobject", tekst: "de verworpen passage", lifecycle: "rejected", eigenaar_iri: `${IRI9}:lid1`,
+        laag_id: "l1", ankers: [], rol: "analyseren", selecties: ["s1"], deels_buiten: false },
     ] } });
   if (p === "/api/werkgebieden/wg1/audit") return route.fulfill({ json: { audit } });
   if (p === "/api/werkgebieden/wg1/begrippen") return route.fulfill({ json: { kader_iri: "urn:wa:kader:wg1", begrippen: [], primair: {} } });
@@ -264,7 +268,11 @@ try {
   await melding("De inventaris is niet volledig");
   await melding("Open punt: De brongraaf is tijdelijk niet beschikbaar.");
   await melding("Brontekst gewijzigd sinds opname");
-  await melding("1 verworpen (niet getoond)");
+  // Verworpen elementen blijven terug te vinden, achter een filter, en zijn niet te kiezen.
+  await page.getByRole("button", { name: "Verworpen (1)" }).click();
+  await melding("de verworpen passage");
+  assert.equal(await page.getByRole("checkbox", { name: /de verworpen passage/ }).count(), 0);
+  await page.getByRole("button", { name: "Verworpen (1)" }).click();
   await melding("voorstel van Lex · nog niet beoordeeld");
   await melding("Valt deels buiten de selecties");
   await melding("1 van 2 in de werkvoorraad beoordeeld");
