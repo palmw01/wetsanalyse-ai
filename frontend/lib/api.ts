@@ -420,8 +420,12 @@ export async function getAccount(): Promise<MeAccount> {
   return json<MeAccount>(res);
 }
 
-export async function begin2fa(): Promise<TotpBegin> {
-  const res = await fetch("/api/account/2fa/begin", { method: "POST" });
+export async function begin2fa(password: string): Promise<TotpBegin> {
+  const res = await fetch("/api/account/2fa/begin", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
   return json<TotpBegin>(res);
 }
 

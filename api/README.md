@@ -75,7 +75,7 @@ zijn gedeeld tussen gebruikers; wie wat deed staat in de audit. Specificatie:
 | `POST` | `/v1/auth/verify` | Valideer userid + wachtwoord (+ optionele TOTP) |
 | `GET` | `/v1/auth/me` | Eigen account (rol + 2FA-status) |
 | `POST` | `/v1/auth/change-password` | Eigen wachtwoord wijzigen |
-| `POST` | `/v1/auth/2fa/{begin,activate,disable}` | Optionele TOTP-2FA, self-service |
+| `POST` | `/v1/auth/2fa/{begin,activate,disable}` | Optionele TOTP-2FA, self-service; `begin` vraagt het wachtwoord en weigert (409) bij actieve 2FA |
 
 **Tokenbudget, berichten, feedback, keuzelijst:**
 

@@ -214,7 +214,7 @@ async def test_trusted_device_bind_invalidatie_bij_wachtwoordwijziging(monkeypat
     from app import users
 
     await users.bootstrap_admin("baas", "a@example.com", "wachtwoord1")
-    uri = await users.begin_2fa("baas")
+    uri = await users.begin_2fa("baas", "wachtwoord1")
     await users.activate_2fa("baas", _totp_now(uri))
 
     token = users.maak_trusted_device(await users.get_user("baas"))
@@ -241,7 +241,7 @@ async def test_verify_credentials_via_ticket_en_trusted(monkeypatch, db):
     from app import users
 
     await users.bootstrap_admin("baas", "a@example.com", "wachtwoord1")
-    uri = await users.begin_2fa("baas")
+    uri = await users.begin_2fa("baas", "wachtwoord1")
     await users.activate_2fa("baas", _totp_now(uri))
 
     # Wachtwoord ok maar 2FA nodig.
@@ -289,7 +289,7 @@ async def test_2fa_cyclus(monkeypatch, db):
     from app import users
 
     await users.bootstrap_admin("baas", "u@example.com", "wachtwoord1")
-    uri = await users.begin_2fa("baas")
+    uri = await users.begin_2fa("baas", "wachtwoord1")
     assert not (await users.get_user("baas")).totp_enabled
     assert (await users.verify_credentials("baas", "wachtwoord1"))[1] == "ok"
 
@@ -316,7 +316,7 @@ async def test_totp_code_geldt_maar_een_keer(monkeypatch, db):
     from app import users
 
     await users.bootstrap_admin("baas", "u@example.com", "wachtwoord1")
-    uri = await users.begin_2fa("baas")
+    uri = await users.begin_2fa("baas", "wachtwoord1")
     await users.activate_2fa("baas", _totp_now(uri))
 
     code = _totp_now(uri)
@@ -335,7 +335,7 @@ async def test_totp_oudere_stap_na_nieuwere_geweigerd(monkeypatch, db):
     from app import users
 
     await users.bootstrap_admin("baas", "u@example.com", "wachtwoord1")
-    uri = await users.begin_2fa("baas")
+    uri = await users.begin_2fa("baas", "wachtwoord1")
     await users.activate_2fa("baas", _totp_now(uri))
 
     _KLOK["t"] += 30
@@ -351,7 +351,7 @@ async def test_2fa_ticket_bewijst_wachtwoord_en_tweede_factor(monkeypatch, db):
     from app import users
 
     await users.bootstrap_admin("baas", "u@example.com", "wachtwoord1")
-    uri = await users.begin_2fa("baas")
+    uri = await users.begin_2fa("baas", "wachtwoord1")
     await users.activate_2fa("baas", _totp_now(uri))
 
     code = _totp_now(uri)
@@ -389,7 +389,7 @@ async def test_2fa_aan_en_uit_verbruiken_de_code(monkeypatch, db):
     from app import users
 
     await users.bootstrap_admin("baas", "u@example.com", "wachtwoord1")
-    uri = await users.begin_2fa("baas")
+    uri = await users.begin_2fa("baas", "wachtwoord1")
     code = _totp_now(uri)
     await users.activate_2fa("baas", code)
     # Met de activeringscode meteen weer uitzetten gaat niet: die is gebruikt.
@@ -513,7 +513,7 @@ async def test_2fa_http_via_header(client):
     assert (await client.get("/v1/auth/me", headers=hdr)).json()["totp_enabled"] is False
     assert (await client.get("/v1/auth/me")).status_code == 401
 
-    begin = await client.post("/v1/auth/2fa/begin", headers=hdr)
+    begin = await client.post("/v1/auth/2fa/begin", json={"password": "wachtwoord1"}, headers=hdr)
     assert begin.status_code == 200
     code = _totp_now(begin.json()["otpauth_uri"])
 
@@ -529,6 +529,95 @@ async def test_2fa_http_via_header(client):
     assert dis.status_code == 204
 
 
+async def test_begin_2fa_laat_actieve_2fa_staan(monkeypatch, db):
+    """SEC-1: `begin` zette actieve 2FA uit zonder code. Het secret en de vlag blijven nu staan, dus
+    het wachtwoord alleen is geen inlog en de oude authenticator blijft gelden."""
+    _fresh_settings(monkeypatch)
+    from app import users
+
+    await users.bootstrap_admin("baas", "boss@example.com", "wachtwoord1")
+    uri = await users.begin_2fa("baas", "wachtwoord1")
+    await users.activate_2fa("baas", _totp_now(uri))
+    secret_voor = (await users.get_user("baas")).totp_secret_enc
+
+    with pytest.raises(users.TotpActiefError):
+        await users.begin_2fa("baas", "wachtwoord1")
+
+    na = await users.get_user("baas")
+    assert na.totp_enabled and na.totp_secret_enc == secret_voor
+    assert (await users.verify_credentials("baas", "wachtwoord1"))[1] == "totp_required"
+    assert (await users.verify_credentials("baas", "wachtwoord1", _totp_now(uri)))[1] == "ok_totp"
+
+
+async def test_begin_2fa_race_met_activeren(monkeypatch, db):
+    """De weigering zit in de UPDATE, niet in een eerdere lezing: wie 2FA nog uit zag staan terwijl
+    een ander tabblad hem net activeerde, overschrijft het secret niet."""
+    _fresh_settings(monkeypatch)
+    from app import users
+
+    await users.bootstrap_admin("baas", "boss@example.com", "wachtwoord1")
+    uri = await users.begin_2fa("baas", "wachtwoord1")
+    verouderd = await users.get_user("baas")
+    await users.activate_2fa("baas", _totp_now(uri))
+    secret_voor = (await users.get_user("baas")).totp_secret_enc
+
+    async def oude_lezing(_userid):
+        return verouderd
+
+    monkeypatch.setattr(users, "_require_user", oude_lezing)
+    with pytest.raises(users.TotpActiefError):
+        await users.begin_2fa("baas", "wachtwoord1")
+
+    na = await users.get_user("baas")
+    assert na.totp_enabled and na.totp_secret_enc == secret_voor
+
+
+async def test_begin_2fa_vraagt_het_wachtwoord(monkeypatch, db):
+    """Een gekaapte sessie kent het wachtwoord niet en kan dus geen eigen authenticator koppelen."""
+    _fresh_settings(monkeypatch)
+    from app import users
+
+    await users.bootstrap_admin("baas", "boss@example.com", "wachtwoord1")
+    with pytest.raises(users.UserError, match="wachtwoord"):
+        await users.begin_2fa("baas", "fout")
+    u = await users.get_user("baas")
+    assert u.totp_secret_enc is None and not u.totp_enabled
+
+
+async def test_begin_2fa_opnieuw_voor_bevestiging_en_na_uitzetten(monkeypatch, db):
+    _fresh_settings(monkeypatch)
+    from app import users
+
+    await users.bootstrap_admin("baas", "boss@example.com", "wachtwoord1")
+    eerste = await users.begin_2fa("baas", "wachtwoord1")
+    tweede = await users.begin_2fa("baas", "wachtwoord1")  # onbevestigd: vervangt het eerste secret
+    assert _secret(eerste) != _secret(tweede)
+
+    await users.activate_2fa("baas", _totp_now(tweede))
+    await users.disable_2fa("baas", _totp_now(tweede))
+    derde = await users.begin_2fa("baas", "wachtwoord1")
+    await users.activate_2fa("baas", _totp_now(derde))
+    assert (await users.get_user("baas")).totp_enabled
+
+
+async def test_2fa_begin_http_statussen(client):
+    await client.post(
+        "/v1/auth/setup", json={"userid": "baas", "email": "boss@example.com", "password": "wachtwoord1"}
+    )
+    hdr = {"X-User-Id": "baas"}
+
+    assert (await client.post("/v1/auth/2fa/begin", headers=hdr)).status_code == 422
+    fout = await client.post("/v1/auth/2fa/begin", json={"password": "fout"}, headers=hdr)
+    assert fout.status_code == 400
+
+    uri = (await client.post("/v1/auth/2fa/begin", json={"password": "wachtwoord1"}, headers=hdr)).json()["otpauth_uri"]
+    assert (await client.post("/v1/auth/2fa/activate", json={"totp": _totp_now(uri)}, headers=hdr)).status_code == 204
+
+    actief = await client.post("/v1/auth/2fa/begin", json={"password": "wachtwoord1"}, headers=hdr)
+    assert actief.status_code == 409
+    assert (await client.get("/v1/auth/me", headers=hdr)).json()["totp_enabled"] is True
+
+
 async def test_2fa_login_http_verbruikt_code_en_geeft_2fa_ticket(client):
     """De flow van de webapp: wachtwoord → login-ticket, 2FA-scherm → 2FA-ticket, Auth.js → sessie.
     De code gaat één keer mee; de tweede verificatie leunt op het 2FA-ticket."""
@@ -536,7 +625,7 @@ async def test_2fa_login_http_verbruikt_code_en_geeft_2fa_ticket(client):
         "/v1/auth/setup", json={"userid": "baas", "email": "boss@example.com", "password": "wachtwoord1"}
     )
     hdr = {"X-User-Id": "baas"}
-    uri = (await client.post("/v1/auth/2fa/begin", headers=hdr)).json()["otpauth_uri"]
+    uri = (await client.post("/v1/auth/2fa/begin", json={"password": "wachtwoord1"}, headers=hdr)).json()["otpauth_uri"]
     assert (await client.post("/v1/auth/2fa/activate", json={"totp": _totp_now(uri)}, headers=hdr)).status_code == 204
 
     stap_a = (await client.post("/v1/auth/verify", json={"userid": "baas", "password": "wachtwoord1"})).json()
@@ -583,6 +672,8 @@ async def test_gevoelige_endpoints_rate_limited(monkeypatch):
         assert (await ac.post("/v1/auth/change-password", json=payload, headers=hdr)).status_code == 400
         geblokkeerd = await ac.post("/v1/auth/change-password", json=payload, headers=hdr)
         assert geblokkeerd.status_code == 429 and geblokkeerd.headers.get("Retry-After")
+        # `2fa/begin` vraagt ook het wachtwoord en deelt dus dezelfde rem.
+        assert (await ac.post("/v1/auth/2fa/begin", json={"password": "fout"}, headers=hdr)).status_code == 429
 
         # De rem is per-userid: een andere X-User-Id wordt niet meteen geblokkeerd (eigen bucket).
         ander = await ac.post("/v1/auth/change-password", json=payload, headers={"X-User-Id": "ander"})
