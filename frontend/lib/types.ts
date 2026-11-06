@@ -162,6 +162,9 @@ export interface MeAccount {
   email: string;
   role: Role;
   totp_enabled: boolean;
+  /** Beheerder zonder 2FA: het beheer blijft dicht tot er een app gekoppeld is. */
+  tfa_nodig: boolean;
+  herstelcodes_over: number;
 }
 
 export interface TotpBegin {

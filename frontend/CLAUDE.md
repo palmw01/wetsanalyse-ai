@@ -31,7 +31,10 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
 - **`app/api/_lib/proxy.ts`** – de kern van de BFF: één `proxy(path, init)` die de upstream-status
   en -body **ongewijzigd** teruggeeft, inclusief de headers in `PASS_THROUGH_HEADERS`
   (`Retry-After`, `Location`, `Content-Type`, `Content-Disposition`). `init.admin: true` injecteert
-  het admin-token. Verzin in een nieuwe route geen eigen fetch-logica. De helper bewaakt ook de
+  het admin-token, na de rolcontrole en de 2FA-plicht: `tweeFactorOntbreekt` vraagt bij elke admin-aanroep
+  `/v1/auth/me` (403 `code: "2fa_nodig"`, 503 als dat niet lukt). Bewust niet uit de JWT: de cookie loopt
+  achter, dus na het koppelen bleef het beheer dan tot vijf minuten dicht. Verzin in een nieuwe route geen
+  eigen fetch-logica. De helper bewaakt ook de
   **wachttijd**, want Node's `fetch` kent geen standaardtimeout en een upstream die verbindt maar niet
   antwoordt laat de UI anders eeuwig laden: default 30 s → **504** met een leesbare reden
   (onbereikbaar = 502); `timeoutMs` per route hoger waar dat hoort (de modeltest: 120 s).
@@ -41,7 +44,8 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
 - **Inloggen met een accounttoken** (`auth.ts`, provider `api-token`, alleen met `API_TOKEN_LOGIN`): een
   MCP-client wisselt zijn `wa_pat_`-token in voor een gewone sessie, dus de BFF-routes weten niets van tokens.
   Zo'n sessie draagt `viaToken`, duurt een uur, vervalt met het token en mag nooit bij
-  `/api/admin/api-tokens`, `/api/account/password` en `/api/account/2fa` (`auth.config.ts`).
+  `/api/admin/api-tokens`, `/api/account/password`, `/api/account/2fa` en de 2FA-reset van een gebruiker
+  (`auth.config.ts`). De 2FA-plicht geldt er niet: zo'n sessie kan niet koppelen.
 - **`lib/server.ts`** – server-side helpers voor Server Components en auth
   (`verifyCredentials`/`getAccountStatus`/`getSetupStatus`), rechtstreeks server→server.
 - **`lib/api.ts`** – alle client-side fetch-helpers naar `/api/**`, met één foutcontract
@@ -158,6 +162,10 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     PDF/CSV/JSON/TriG, begrippen CSV/JSON/Turtle). De inhoud wordt bij de klik opgehaald; `downloadTekst` in
     `lib/api.ts` maakt het bestand;
   - **menu's** delen één rijstijl (`components/ui/Menu`: `MENU_RIJ`, `MENU_PANEEL`);
+  - **Exporteren en ⋯ delen op mobiel één rij** (besluit gebruiker 6 nov 2026, `KleineActies` in
+    `components/ui/Pagina`): in de kop van een pagina staan ze samen boven de hoofdknoppen, Exporteren links en ⋯
+    rechts. De hoofdknoppen blijven op mobiel onder elkaar op volle breedte. Vanaf `sm:` staat alles in één rij, met ⋯
+    als laatste. Een klein gereedschap krijgt geen eigen regel. `app/knoppen.test.ts` bewaakt het;
   - **het menu ⋯ is overal hetzelfde** (5 nov 2026, `components/ui/MeerMenu`):
     - plekken: werkgebied (kop), deelvraag, bron, gesprek (kop en zijbalk);
     - de knop is `MeerKnop`, een rondje met een lijn, in twee maten: `xs` in een rij (even hoog als *Bewerken*) en
@@ -1442,11 +1450,21 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
 
 **Data en gedrag**:
 
-- **`antwoordDoelen` in `lib/bronnen.ts` staat klaar voor de ketting** (nog niet aangesloten, met
-  `antwoordKnopTekst`): per bepaling een doel met `herkomst`, een ouder valt weg als een kind genoemd is.
-  De tekst selecteert alleen uit de bronnen. Hij is pas bruikbaar op de ketenroute: op `/samenhang` laadt
-  elk doel het hele artikel, dus twee leden van één artikel zouden dat artikel dubbel laden.
-- **De knop opent wat het antwoord noemt** (`samenhangDoelen` in `lib/bronnen.ts`, max.
+- **De ketting bij een antwoord** (`GraafOpties.keten`, `GET samenhang/antwoord`, api §*`/samenhang/antwoord`*). *Dit
+  antwoord* is de weg van regeling tot de diepste bepaling die het bericht aanwijst (`antwoordDoelen` in `lib/bronnen.ts`: per
+  bepaling een doel met `herkomst`, een ouder valt weg als een kind genoemd is; de tekst selecteert alleen uit de bronnen),
+  met de markeringen, de begrippen die daar gelden en de uitgaande verwijzingen. Er staat niets gedimd, want de rest is niet
+  geladen; `ketenZin` zegt boven de graaf wat je ziet en wat er niet bij staat. `layoutKeten` zet elke knoop op een eigen
+  regel, ingesprongen naar zijn diepte (synchroon, geen worker of cache). `ketenFocus` geeft de nadruk: in de hele
+  kennisgraaf licht de ketting op. *Toon het hele artikel* laadt het artikel erbij (`laadErbij`); de ketting telt daarbij niet
+  als geladen, en met twee bronnen rekent de gewone layout. De knop onder een antwoord, een annotatie in het gesprek en de
+  doelen van `doel` uit de werkplek gebruiken de ketting; de tab Samenhang van een werkgebied en de annotatiepagina niet.
+  Een overzicht opent in de kennisgraaf met zijn eigen focus (`eigenFocus`); zijn *Dit antwoord* is de ketting van de delen
+  en de definities (`overzichtDefinities`).
+  Een wettelijk begrip (`begrip_bron: "wet"`) heeft een eigen kleur (`WETBEGRIPKLEUR`) en toont in de inspector zijn
+  definities met vindplaats en geldingsbereik. Browserregressie: scenario 0 in `scripts/test-samenhang.mjs`; de rest van dat
+  script draait op het hele artikel, zodat de bediening getoetst blijft.
+- **De knop opent wat het antwoord noemt** (`antwoordDoelen` in `lib/bronnen.ts`, max.
   `MAX_SAMENHANG_DOELEN`) of de delen van een overzicht (`overzichtDoelen` in `lib/overzicht.ts`, max.
   `MAX_OVERZICHT_DOELEN`, uit het overzicht en niet uit de tekst: dezelfde vraag geeft dezelfde kaart).
   Meer dan één doel gaat in **één** verzoek (`/samenhang/meer`, één bronboom per regeling) – in
@@ -1679,8 +1697,12 @@ knop. Zie `docs/observability.md`.
     geen e-mail: wie inlogt terwijl zijn aanvraag loopt, krijgt de `code` `aanvraag_open` uit
     `/verify` (afgehandeld in `LoginClient` naast `totp_required`) – alleen bij het **juiste
     wachtwoord**, anders is het een middel om te ontdekken wie een aanvraag heeft.
-  - **2FA (TOTP)** is optioneel en self-service in de accounttab; inschakelen vraagt het huidige
-    wachtwoord. De account/2FA-routes zetten `X-User-Id` uit de sessie, nooit uit browser-input.
+  - **2FA (TOTP)** is self-service in de tab Beveiliging; inschakelen vraagt het huidige wachtwoord. De
+    account/2FA-routes zetten `X-User-Id` uit de sessie, nooit uit browser-input. Voor een beheerder is het
+    verplicht: `InstellingenInhoud` toont dan op de beheertabs `BeheerVraagt2fa` (de BFF houdt ze hoe dan
+    ook dicht). Bij het koppelen komen de herstelcodes één keer in beeld; `TwoFactorClient` neemt een
+    herstelcode aan in hetzelfde veld als de code uit de app. De 2FA-reset staat in het menu ⋯ van
+    `UsersPanel` en zet `X-User-Id`, want de api wil weten welke beheerder het doet.
   - Auth.js' eigen routes leven onder `/api/auth/*`; zet daar geen eigen BFF-route bij (daarom
     `/api/setup`, `/api/registreren`, `/api/login-verify`, `/api/login-2fa`). Publieke paden staan in
     `isPublic()` in `auth.config.ts`; vergeet je er een, dan stuurt de gate een bezoeker zonder account

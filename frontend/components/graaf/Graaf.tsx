@@ -7,7 +7,8 @@ import { Meter } from "@/components/ui/Meter";
 import type { NodeDoel, NodeWeergave } from "@/lib/annotatieNode";
 import { hoofdactie as bepaalHoofdactie, knopenInWeergave, paneelDoel, relatieGroepen, telling, tellingTekst } from "@/lib/graaf/bediening";
 import { ankerVan, bouwModel, type KnoopData } from "@/lib/graaf/model";
-import { focusVan, lagenVoor, weergaveContext } from "@/lib/graaf/weergave";
+import { ketenZin } from "@/lib/graaf/ketenZin";
+import { focusVan, ketenFocus, lagenVoor, weergaveContext } from "@/lib/graaf/weergave";
 import { clusterOmschrijving, isDeelCluster } from "@/lib/samenhang";
 import { GraafBeeld } from "./GraafBeeld";
 import { GraafHint } from "./GraafHint";
@@ -62,8 +63,10 @@ export interface GraafContext {
 export const ANTWOORD: GraafContext = { naam: "Dit antwoord", kort: "Antwoord", terug: "het antwoord", focus: "wat het antwoord noemt" };
 
 export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekking, koppelingRef, onKiesElement, onOpenTekst, onWisselArtikel, onVraag,
-  benaming = ANTWOORD, bijKnoop }: {
+  benaming = ANTWOORD, bijKnoop, herkomst }: {
   stand: GraafStand; zichtbaar: boolean; groot: boolean;
+  /** Hoe het doel gekozen is: `eerste_bron` = Lex noemde geen bepaling (`antwoordDoelen`). */
+  herkomst?: string;
   actiefElementId?: string;
   /** De weergave in het paneel: daaruit haalt de inspector tekst, markeringen en hun spoor zonder
    *  extra verzoek. */
@@ -88,7 +91,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
 }) {
   const { bronnen, getekend, laadfase, fout, melding, selectie, setSelectie, wachtendeKeuze, setWachtendeKeuze,
     lagen, setLagen, markering, setMarkering, lagenOpen, setLagenOpen, aangeraakt, setAangeraakt, camera, bediening,
-    laadErbij, laadtBij, bereik, setBereik, focusIds } = stand;
+    laadErbij, laadtBij, bereik, setBereik, focusIds, eigenFocus } = stand;
   const [geenWebgl, setGeenWebgl] = useState(false);
   const bedekking = useRef<HTMLDivElement>(null);
   // De zijbalk (inspector naast de vergrote graaf) in te klappen tot een strook; per kijker onthouden.
@@ -110,6 +113,9 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
   // andere, en die moet in beeld komen.
   const eigenKeuze = useRef<string | undefined>(undefined);
   const model = getekend?.model ?? LEEG;
+  const ketting = bronnen?.find((d) => d.keten);
+  // Het hele artikel kan erbij zolang het er niet staat: de stap tussen de ketting en de hele kennisgraaf.
+  const heelArtikel = ketting && !bronnen?.some((d) => !d.keten && d.artikel_iri === ketting.artikel_iri) ? ketting.artikel_iri : null;
   const ongedekt = useMemo(() => new Set(Object.keys(dekking ?? {})), [dekking]);
 
   // De gekozen markering van het paneel gaat voor; anders de eigen keuze, zolang die nog bestaat (na
@@ -121,9 +127,10 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
   // is er niets te dimmen.
   const focus = useMemo(() => {
     if (!getekend) return null;
+    if (ketting && (bereik === "antwoord" || !eigenFocus)) return ketenFocus(model, ketting.doelen ?? focusIds, ketting.knopen);
     const f = focusVan(model, focusIds);
     return f.bereik.size && f.bereik.size < model.order ? f : null;
-  }, [getekend, model, focusIds]);
+  }, [getekend, model, focusIds, ketting, bereik, eigenFocus]);
   const context = useMemo(() => weergaveContext(model, { lagen, markering, selectie: gekozen, focus, ongedekt, aangewezen }),
     [model, lagen, markering, gekozen, focus, ongedekt, aangewezen]);
   // Een nieuwe kaart in beeld: op de keuze als die er is, anders op wat het antwoord noemt. De tekenaar
@@ -250,7 +257,10 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
       <button type="button" onClick={fout.herstel} className="underline">Opnieuw proberen</button></Melding>
   </div>;
 
-  const titel = bereik === "kennisgraaf" ? "de hele kennisgraaf" : bronnen && bronnen.length > 1 ? clusterOmschrijving(bronnen)
+  const titel = bereik === "kennisgraaf" ? "de hele kennisgraaf"
+    : ketting && (ketting.doelen?.length ?? 0) > 1 ? `${ketting.doelen!.length} ${ketting.knopen.some((k) => k.soort === "deel" && ketting.doelen!.includes(k.id)) ? "delen en bepalingen" : "bepalingen"}`
+    : ketting?.doelen?.[0] && model.hasNode(ketting.doelen[0]) ? model.getNodeAttribute(ketting.doelen[0], "naam")
+    : bronnen && bronnen.length > 1 ? clusterOmschrijving(bronnen)
     : (hoofd && model.hasNode(hoofd.artikel_iri) ? model.getNodeAttribute(hoofd.artikel_iri, "naam") : hoofd?.doel.label) ?? "de bepaling";
   const hoofdNaam = hoofd && model.hasNode(hoofd.artikel_iri) ? model.getNodeAttribute(hoofd.artikel_iri, "naam") : "het eerste artikel";
   return <div className="flex min-h-0 flex-1 flex-col" data-testid="samenhang-graaf" data-vergroot={groot}
@@ -260,7 +270,11 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
         {bereik === "kennisgraaf" ? "De hele kennisgraaf" : `Samenhang van ${titel}`}
         {getekend && <span className="ml-2 text-xs font-normal text-muted" data-testid="graaf-telling">{tellingTekst(tel)}</span>}
       </h2>
-      {focus && opBereik && <p className="mt-1 text-xs text-muted" data-testid="graaf-focus">Nadruk op {benaming.focus}{" "}
+      {ketting && opBereik && bereik === "antwoord" && <p className="mt-1 text-xs text-muted" data-testid="graaf-keten-zin">
+        {ketenZin(ketting, herkomst === "eerste_bron")}{" "}
+        {heelArtikel && <button type="button" data-testid="graaf-heel-artikel" disabled={!!laadtBij} onClick={() => void laadErbij(heelArtikel)}
+          className="focus-ring rounded text-lint underline disabled:opacity-50">Toon het hele artikel</button>}</p>}
+      {focus && !(ketting && bereik === "antwoord") && opBereik && <p className="mt-1 text-xs text-muted" data-testid="graaf-focus">Nadruk op {benaming.focus}{" "}
         ({focus.doelen.size === 1 ? "1 deel of bepaling" : `${focus.doelen.size} delen en bepalingen`}<span className="hidden sm:inline">, met wat eronder valt en waarnaar het verwijst</span>)<span className="hidden sm:inline">; de rest staat gedimd op de kaart</span>.</p>}
       {hoofd && !hoofd.verwijzingen_beschikbaar && <p className="mt-1 text-xs text-muted">Verwijzingen zijn nu niet beschikbaar; je ziet de bronstructuur en de annotaties.</p>}
       {bronnen?.some((d) => d.afgekapt) && <p className="mt-1 text-xs text-muted">Er zijn meer verwijzingen dan getoond; de eerste 200 per richting staan in beeld.</p>}
@@ -272,7 +286,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
       <div className="relative min-h-[260px] min-w-0 flex-1 bg-[#f7f9fc]">
         {geenWebgl ? <CanvasMelding>{GEEN_WEBGL}</CanvasMelding>
           : getekend && <TekenGrens><Tekenaar model={getekend.model} posities={getekend.posities} context={context} zichtbaar={zichtbaar}
-            inpassen={inpassen ?? undefined} cameraRef={camera} bedieningRef={bediening} bedekking={bedekking} onKies={(id) => kies(id, false)} onFout={() => setGeenWebgl(true)} /></TekenGrens>}
+            inpassen={inpassen ?? undefined} rand={ketting && bereik === "antwoord" && bronnen?.length === 1 ? 72 : undefined} cameraRef={camera} bedieningRef={bediening} bedekking={bedekking} onKies={(id) => kies(id, false)} onFout={() => setGeenWebgl(true)} /></TekenGrens>}
         {/* Bij een wissel van bereik blijft de vorige kaart zichtbaar onder de laadbalk. */}
         {!opBereik && !fout && <Laadbalk fase={laadfase} kennisgraaf={bereik === "kennisgraaf"} over={!!getekend} />}
         {/* Wat het tekenen in dit bereik tegenhoudt, midden op het canvas, met de weg terug. */}

@@ -29,8 +29,8 @@ import {
 import type { NodeDoel } from "@/lib/annotatieNode";
 import { artefactLabel, isTeOpenen, type Artefact } from "@/lib/artefact";
 import { doelenVanKandidaten, reeksPrompt } from "@/lib/reeks";
-import { normaliseerBronnen, samenhangDoelen, samenhangKnopTekst } from "@/lib/bronnen";
-import { overzichtAlsMarkdown, overzichtDoelen, overzichtFocus, overzichtKnopTekst } from "@/lib/overzicht";
+import { antwoordDoelen, antwoordKnopTekst, normaliseerBronnen } from "@/lib/bronnen";
+import { overzichtAlsMarkdown, overzichtDefinities, overzichtDoelen, overzichtFocus, overzichtKnopTekst } from "@/lib/overzicht";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 import { beurtSamenvatting, laatsteRun } from "@/lib/waarom";
 import type { ThreadItem } from "@/lib/threadItem";
@@ -164,13 +164,14 @@ export const ThreadRij = memo(function ThreadRij({
         {!item.overzicht && item.bronnen && item.bronnen.length > 0 && <Bronnen bronnen={item.bronnen} />}
         {samenhangAan && !demo && (item.overzicht || !!item.bronnen?.length) && (() => {
           // Met een overzicht: de delen daarvan, in zijn eigen volgorde – los van hoe Lex formuleerde.
-          // Anders: de artikelen die het antwoord noemt, in tekstvolgorde (`samenhangDoelen`).
+          // Anders: de bepalingen die het antwoord noemt, tot de diepste (`antwoordDoelen`).
           const ov = item.overzicht;
-          const keuze = ov ? overzichtDoelen(ov) : samenhangDoelen(item.tekst ?? "", item.bronnen ?? []);
-          const tekst = ov ? overzichtKnopTekst(ov) : `${samenhangKnopTekst(keuze)} in de graaf`;
+          const keuze = ov ? overzichtDoelen(ov) : antwoordDoelen(item);
+          const tekst = ov ? overzichtKnopTekst(ov) : `${antwoordKnopTekst(keuze)} in de graaf`;
           const [doel, ...extra] = keuze.doelen;
           return doel && <button type="button"
-            onClick={() => acties.openSamenhang(doel, extra, ov ? { bereik: "kennisgraaf", focus: overzichtFocus(ov) } : undefined)}
+            onClick={() => acties.openSamenhang(doel, ov ? [...extra, ...overzichtDefinities(ov)] : extra,
+              ov ? { bereik: "kennisgraaf", focus: overzichtFocus(ov), keten: true } : undefined)}
             className="focus-ring mt-3 flex items-center gap-2 rounded-lg border border-lint/20 bg-lint/[0.03] px-3 py-2 text-left text-xs font-medium text-lint transition-colors hover:bg-lint/10">
             <GraafIcoon />{tekst}
           </button>;

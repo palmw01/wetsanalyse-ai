@@ -9,8 +9,11 @@ Verantwoordelijkheden:
     de tabel leeg is; daarna sluit die route.
   - Admin-CRUD voor gebruikersbeheer in /beheer, met de beleidsgaranties (laatste actieve
     beheerder mag niet verdwijnen).
-  - Optionele 2FA (TOTP): koppelen (`begin_2fa`, met het wachtwoord), bevestigen (`activate_2fa`) en losmaken
-    (`disable_2fa`). Het secret staat versleuteld (Fernet, zie secrets_crypto).
+  - 2FA (TOTP): koppelen (`begin_2fa`, met het wachtwoord), bevestigen (`activate_2fa`) en losmaken
+    (`disable_2fa`). Het secret staat versleuteld (Fernet, zie secrets_crypto). Optioneel, behalve voor
+    een beheerder: zonder 2FA geen beheer (`moet_2fa_koppelen`).
+  - Herstel bij een verloren authenticator: herstelcodes (`maak_herstelcodes`) en een reset door een
+    andere beheerder (`reset_2fa`).
 
 Het wachtwoord-hash en het versleutelde TOTP-secret blijven binnen deze laag; de routers geven ze
 nooit terug.
@@ -18,6 +21,7 @@ nooit terug.
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
 import json
@@ -40,6 +44,13 @@ _TRUSTED_DEVICE_TTL_S = 30 * 24 * 3600  # trusted device: 30 dagen 2FA overslaan
 # Issuer-naam in de authenticator-app (bij het scannen van de QR zichtbaar als "Wetsanalyse").
 _TOTP_ISSUER = "Wetsanalyse"
 
+# Herstelcodes: tien stuks van 80 bits, dus sha256 volstaat (zoals bij de API-tokens) en bcrypt zou
+# per poging alleen tien keer de kost zijn.
+_HERSTELCODE_AANTAL = 10
+_HERSTELCODE_BYTES = 10
+_HERSTELCODE_TEKENS = 16  # base32 van 10 bytes, zonder opvulling
+_BASE32 = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567")
+
 # Userid: 3–64 tekens, kleine letters/cijfers en . _ - (genormaliseerd lowercase).
 _USERID_RE = re.compile(r"^[a-z0-9._-]{3,64}$")
 
@@ -50,6 +61,17 @@ class UserError(ValueError):
 
 class TotpActiefError(UserError):
     """Een nieuwe 2FA-koppeling terwijl 2FA aanstaat: eerst uitzetten, met een code."""
+
+
+def moet_2fa_koppelen(user: User) -> bool:
+    """Staat dit account onder de 2FA-plicht en voldoet het nog niet?
+
+    Bewust afgeleide toestand en geen controle bij elke ingang: `/setup`, promotie, een nieuw account
+    en een goedgekeurde aanvraag vallen zo vanzelf onder dezelfde regel. De webapp houdt zo'n
+    beheerder buiten het beheer (`proxy()` in de BFF), maar het account werkt verder als analist,
+    want koppelen vraagt een sessie.
+    """
+    return user.role == "beheerder" and not user.totp_enabled
 
 
 def _norm_userid(userid: str) -> str:
@@ -189,6 +211,69 @@ async def _verbruik_totp(user: User, code: str) -> bool:
     return res.rowcount == 1
 
 
+# --- herstelcodes ---------------------------------------------------------------
+
+def _norm_herstelcode(code: str) -> str | None:
+    """De kale code als de invoer de vorm van een herstelcode heeft, anders None.
+
+    De vorm kiest de route: een herstelcode raakt de Fernet-sleutel niet, dus hij werkt ook als het
+    TOTP-secret door een geroteerde `LLM_CONFIG_SECRET` niet meer te lezen is.
+    """
+    kaal = code.strip().upper().replace("-", "").replace(" ", "")
+    if len(kaal) != _HERSTELCODE_TEKENS or not _BASE32.issuperset(kaal):
+        return None
+    return kaal
+
+
+def _herstelcode_hash(userid: str, kaal: str) -> str:
+    return hashlib.sha256(f"{userid}|{kaal}".encode()).hexdigest()
+
+
+def _nieuwe_herstelcode() -> str:
+    kaal = base64.b32encode(secrets.token_bytes(_HERSTELCODE_BYTES)).decode("ascii")
+    return "-".join(kaal[i:i + 4] for i in range(0, _HERSTELCODE_TEKENS, 4))
+
+
+async def _vervang_herstelcodes(conn, userid: str) -> list[str]:
+    """Vervang de hele set binnen de transactie van de aanroeper; geeft de nieuwe codes (eenmalig)."""
+    codes = [_nieuwe_herstelcode() for _ in range(_HERSTELCODE_AANTAL)]
+    nu = _utcnow()
+    await conn.execute(delete(db.herstelcodes).where(db.herstelcodes.c.userid == userid))
+    await conn.execute(insert(db.herstelcodes), [
+        {"userid": userid, "code_hash": _herstelcode_hash(userid, _norm_herstelcode(c)), "created": nu}
+        for c in codes
+    ])
+    return codes
+
+
+async def aantal_herstelcodes(userid: str) -> int:
+    async with db.get_engine().connect() as conn:
+        return (await conn.execute(
+            select(func.count()).select_from(db.herstelcodes)
+            .where(db.herstelcodes.c.userid == _norm_userid(userid))
+        )).scalar() or 0
+
+
+async def _verbruik_herstelcode(user: User, kaal: str) -> bool:
+    """Eén voorwaardelijke DELETE: van twee gelijktijdige pogingen met dezelfde code haalt er één het."""
+    async with db.get_engine().begin() as conn:
+        res = await conn.execute(
+            delete(db.herstelcodes).where(
+                db.herstelcodes.c.userid == user.userid,
+                db.herstelcodes.c.code_hash == _herstelcode_hash(user.userid, kaal),
+            )
+        )
+    return res.rowcount == 1
+
+
+async def _verbruik_tweede_factor(user: User, code: str) -> str | None:
+    """Verbruik een TOTP-code of een herstelcode. Geeft "totp", "herstelcode" of None."""
+    kaal = _norm_herstelcode(code)
+    if kaal is not None:
+        return "herstelcode" if await _verbruik_herstelcode(user, kaal) else None
+    return "totp" if await _verbruik_totp(user, code) else None
+
+
 # --- stateless auth-tokens (login-ticket + trusted device) ---------------------
 #
 # Beide zijn Fernet-tokens (hergebruiken de LLM-master-key; 2FA vereist die toch al). Er is GEEN
@@ -305,8 +390,8 @@ async def verify_credentials(
     niets te lekken), "totp_required" (wachtwoord klopt, maar 2FA staat aan en de code ontbreekt
     of is onjuist) en "aanvraag_open" (er is nog geen account, maar wel een openstaande
     zelfregistratie-aanvraag met dit voorgestelde userid – zie `_aanvraag_status`).
-    Geslaagd is "ok", of "ok_totp" als daarvoor zojuist een TOTP-code is verbruikt: dan geeft de
-    route een 2FA-ticket mee (`maak_2fa_ticket`), omdat diezelfde code geen tweede keer geldt.
+    Geslaagd is "ok", of "ok_totp"/"ok_herstelcode" als daarvoor zojuist een code is verbruikt: dan
+    geeft de route een 2FA-ticket mee (`maak_2fa_ticket`), omdat diezelfde code geen tweede keer geldt.
 
     Twee alternatieve bewijzen naast het wachtwoord:
     - `ticket`: een geldig login-ticket voor deze userid telt als wachtwoord-bewijs, een geldig
@@ -334,9 +419,10 @@ async def verify_credentials(
             return user, "ok"  # vertrouwd apparaat → 2FA overgeslagen
         if tweede_factor_ok:
             return user, "ok"  # de code is net al gecontroleerd (en verbruikt)
-        if not totp or not await _verbruik_totp(user, totp):
+        factor = await _verbruik_tweede_factor(user, totp) if totp else None
+        if factor is None:
             return None, "totp_required"
-        return user, "ok_totp"
+        return user, f"ok_{factor}"
     return user, "ok"
 
 
@@ -524,6 +610,7 @@ async def delete_user(userid: str) -> None:
         await conn.execute(
             update(db.api_tokens).where(db.api_tokens.c.userid == user.userid).values(active=False)
         )
+        await conn.execute(delete(db.herstelcodes).where(db.herstelcodes.c.userid == user.userid))
         await conn.execute(delete(db.users).where(db.users.c.userid == user.userid))
 
 
@@ -562,19 +649,64 @@ async def begin_2fa(userid: str, password: str) -> str:
     return pyotp.TOTP(secret).provisioning_uri(name=user.userid, issuer_name=_TOTP_ISSUER)
 
 
-async def activate_2fa(userid: str, code: str) -> None:
+async def activate_2fa(userid: str, code: str) -> list[str]:
+    """Bevestig de koppeling. Geeft de herstelcodes terug: die verlaten de server alleen hier."""
     user = await _require_user(userid)
     if not user.totp_secret_enc:
         raise UserError("Geen 2FA-aanmelding gestart; vraag eerst een nieuwe code aan.")
     if not await _verbruik_totp(user, code):
         raise UserError("Onjuiste of verlopen code.")
-    await _update(user.userid, totp_enabled=True)
+    async with db.get_engine().begin() as conn:
+        await conn.execute(
+            update(db.users).where(db.users.c.userid == user.userid)
+            .values(totp_enabled=True, updated=_utcnow())
+        )
+        return await _vervang_herstelcodes(conn, user.userid)
 
 
 async def disable_2fa(userid: str, code: str) -> None:
+    """Zet 2FA uit met een TOTP-code of een herstelcode. Dat laatste is de weg bij een nieuwe telefoon:
+    koppelen kan pas weer als 2FA uit staat. Een beheerder mag dit ook, en valt dan onder
+    `moet_2fa_koppelen` tot er opnieuw een app gekoppeld is."""
     user = await _require_user(userid)
     if not user.totp_enabled:
         raise UserError("2FA staat niet aan.")
-    if not await _verbruik_totp(user, code):
+    if await _verbruik_tweede_factor(user, code) is None:
         raise UserError("Onjuiste of verlopen 2FA-code.")
-    await _update(user.userid, totp_secret_enc=None, totp_enabled=False)
+    await _wis_2fa(user.userid)
+
+
+async def _wis_2fa(userid: str, **extra) -> None:
+    async with db.get_engine().begin() as conn:
+        await conn.execute(
+            update(db.users).where(db.users.c.userid == userid)
+            .values(totp_secret_enc=None, totp_enabled=False, updated=_utcnow(), **extra)
+        )
+        await conn.execute(delete(db.herstelcodes).where(db.herstelcodes.c.userid == userid))
+
+
+async def vervang_herstelcodes(userid: str, code: str) -> list[str]:
+    """Een nieuwe set, op vertoon van een TOTP-code of een herstelcode. De oude vervalt."""
+    user = await _require_user(userid)
+    if not user.totp_enabled:
+        raise UserError("2FA staat niet aan.")
+    if await _verbruik_tweede_factor(user, code) is None:
+        raise UserError("Onjuiste of verlopen 2FA-code.")
+    async with db.get_engine().begin() as conn:
+        return await _vervang_herstelcodes(conn, user.userid)
+
+
+async def reset_2fa(userid: str, *, door: str) -> User:
+    """Haal 2FA van een ander account, voor wie zijn authenticator én codes kwijt is.
+
+    Niet op jezelf: dat zou 2FA uitzetten zonder code, en daarvoor zijn de herstelcodes er. De sessies
+    van het account vervallen; trusted devices doen dat vanzelf, want hun binding bevat het secret.
+    """
+    user = await _require_user(userid)
+    if user.userid == _norm_userid(door):
+        raise UserError("Je eigen 2FA reset je niet; gebruik een herstelcode.")
+    if not user.totp_enabled:
+        raise UserError("2FA staat niet aan.")
+    await _wis_2fa(user.userid, sessions_valid_from=_utcnow())
+    user.totp_enabled, user.totp_secret_enc = False, None
+    return user

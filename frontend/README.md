@@ -60,8 +60,8 @@ de API (`API_TOKEN` uit de gewone lijst, `ADMIN_API_TOKEN` uit de admin-lijst).
 > route. Verdere gebruikers (rol `analist` of `beheerder`) maak je aan in de beheertab
 > **Gebruikers** (eenmalig tijdelijk wachtwoord), of ze melden zich zelf aan op `/registreren`: die
 > aanvraag levert pas een account op als een beheerder hem goedkeurt in de tab **Aanvragen**. 2FA
-> (TOTP) is optioneel en zet de gebruiker zelf aan in de accounttab; daarvoor moet
-> `LLM_CONFIG_SECRET` op de **API** gezet zijn (de TOTP-secrets worden ermee versleuteld).
+> (TOTP) zet de gebruiker zelf aan in de tab Beveiliging, en is verplicht voor wie het beheer wil gebruiken;
+> daarvoor moet `LLM_CONFIG_SECRET` op de **API** gezet zijn (de TOTP-secrets worden ermee versleuteld).
 
 Zonder sessie bereikbaar zijn alleen `/login`, `/setup`, `/registreren`, `/disclaimer` en
 `/api/health` (plus de bijbehorende BFF-routes); de rest stuurt naar `/login`. De beheertabs zijn

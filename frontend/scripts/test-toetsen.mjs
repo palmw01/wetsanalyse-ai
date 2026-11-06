@@ -165,7 +165,7 @@ const beslissingen = (requests) => requests.filter((r) => r.pad.endsWith("/besli
     assert.equal(await kop.getAttribute("data-compact"), "nee");
     await page.waitForFunction(() => [...document.querySelectorAll('[data-testid="werkplek-header"] h1')]
       .some((h) => /^(Goedemorgen|Goedemiddag|Goedenavond|Goedenacht)$/.test(h.textContent.trim())));
-    await page.getByPlaceholder("Stel een vraag of geef een opdracht aan Lex…").fill("annoteer artikel 9 lid 1");
+    await page.getByPlaceholder("Vraag of opdracht voor Lex…").fill("annoteer artikel 9 lid 1");
     await page.keyboard.press("Enter");
     await page.waitForFunction(() => document.querySelector('[data-testid="werkplek-header"]')?.getAttribute("data-compact") === "ja");
     await page.getByText("De brongraaf is tijdelijk niet beschikbaar", { exact: false }).waitFor();
@@ -185,7 +185,7 @@ const beslissingen = (requests) => requests.filter((r) => r.pad.endsWith("/besli
   const { browser, page, errors } = await nieuwePagina(chromium, { viewport: { width: 1440, height: 1000 } });
   try {
     await page.goto(`${base}/workbench?gesprek=g2`);
-    await page.getByPlaceholder("Stel een vraag of geef een opdracht aan Lex…").fill("Nieuwe vraag");
+    await page.getByPlaceholder("Vraag of opdracht voor Lex…").fill("Nieuwe vraag");
     await page.keyboard.press("Enter");
     await page.getByText("Nieuw antwoord.", { exact: true }).waitFor();
     await page.getByText("Oud antwoord", { exact: true }).waitFor({ timeout: 10_000 });
@@ -229,7 +229,7 @@ const beslissingen = (requests) => requests.filter((r) => r.pad.endsWith("/besli
   const { browser, page, requests } = await nieuwePagina(chromium, { viewport: { width: 1440, height: 1000 } });
   try {
     await page.goto(`${base}/workbench`);
-    await page.getByPlaceholder("Stel een vraag of geef een opdracht aan Lex…").waitFor();
+    await page.getByPlaceholder("Vraag of opdracht voor Lex…").waitFor();
     // De placeholder staat er al vóór de hydratatie, de luisteraar van `BrowserFouten` nog niet: een fout die dan valt
     // meldt niemand. Dus herhalen tot er een melding is, en daarna toetsen dat elke melding de juiste is.
     const melding = page.waitForRequest((r) => r.url().endsWith("/api/ui-spoor"), { timeout: 30_000 });

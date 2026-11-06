@@ -118,7 +118,7 @@ export async function verifyCredentials(
 
 /** Actuele accountstatus voor de periodieke sessie-herverificatie (jwt-callback in auth.ts). */
 export type AccountStatus =
-  | { status: "actief"; role: "beheerder" | "analist"; email: string; sessionsValidFrom?: number }
+  | { status: "actief"; role: "beheerder" | "analist"; email: string; sessionsValidFrom?: number; tfaNodig: boolean }
   | { status: "ingetrokken" } // 401: account inactief of verwijderd → sessie invalideren
   | { status: "onbekend" }; // API tijdelijk onbereikbaar → sessie laten staan (maxAge begrenst)
 
@@ -175,6 +175,7 @@ export async function getAccountStatus(userid: string): Promise<AccountStatus> {
     const me = (await res.json()) as {
       role: "beheerder" | "analist";
       email: string;
+      tfa_nodig?: boolean;
       sessions_valid_from?: string | null;
     };
     const svf = me.sessions_valid_from ? Date.parse(me.sessions_valid_from) : NaN;
@@ -183,6 +184,7 @@ export async function getAccountStatus(userid: string): Promise<AccountStatus> {
       role: me.role,
       email: me.email,
       sessionsValidFrom: Number.isNaN(svf) ? undefined : svf,
+      tfaNodig: me.tfa_nodig === true,
     };
   } catch {
     return { status: "onbekend" };

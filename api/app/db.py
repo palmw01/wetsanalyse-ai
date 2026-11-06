@@ -102,6 +102,18 @@ users = Table(
     Column("updated", _DT, nullable=False),
 )
 
+# De herstelcodes van een account met 2FA: de uitweg als de authenticator weg is. Eén rij per nog
+# ongebruikte code; verbruiken is de rij verwijderen, zodat een code nooit twee keer geldt. Alleen een
+# sha256 staat hier (de codes hebben 80 bits entropie, zie `users.maak_herstelcodes`) en bewust geen
+# Fernet: zo overleeft een code ook een geroteerde `LLM_CONFIG_SECRET`.
+herstelcodes = Table(
+    "herstelcodes",
+    metadata,
+    Column("userid", String(64), primary_key=True),
+    Column("code_hash", String(64), primary_key=True),
+    Column("created", _DT, nullable=False),
+)
+
 # --- Zelfregistratie ------------------------------------------------------------
 # Aanvragen voor een account. Een bezoeker vult naam, e-mail en een zelfgekozen wachtwoord in; het
 # systeem leidt een userid af. Pas als een beheerder goedkeurt ontstaat er een rij in `users` – tot

@@ -59,6 +59,18 @@ export function PaginaKop({ kruimels, titel, sub, meta, acties }: {
   );
 }
 
+/** Exporteren en ⋯ in de kop van een pagina: kleine knoppen met één rij samen, boven de hoofdknoppen, Exporteren
+ *  links en ⋯ rechts. Vanaf `sm:` staan ze gewoon in de rij van de kop, met ⋯ als laatste. Ontwerpkeuze van
+ *  6 nov 2026: een klein gereedschap krijgt op een telefoon geen eigen regel, zie `frontend/CLAUDE.md`. */
+export function KleineActies({ links, rechts }: { links: React.ReactNode; rechts: React.ReactNode }) {
+  return (
+    <div data-kleine-acties className="flex items-center justify-between gap-2 sm:contents">
+      {links}
+      <span className="flex sm:order-last">{rechts}</span>
+    </div>
+  );
+}
+
 /** Een punt tussen twee meta-gegevens. */
 export function Stip() {
   return <span aria-hidden className="text-faint">·</span>;

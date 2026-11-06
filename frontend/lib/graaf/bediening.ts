@@ -30,18 +30,20 @@ export function zoekKnopen(g: GraafModel, vraag: string, max = 12): string[] {
 }
 
 export type RelatieGroepNaam = "Onderdeel van" | "Bevat" | "Markeringen" | "Markeert" | "Klasse" | "Verwijst naar" | "Wordt verwezen door"
-  | "Begrippen" | "Dragende passages" | "Relaties met begrippen" | "Voorgestelde relaties";
+  | "Begrippen" | "Dragende passages" | "Relaties met begrippen" | "Voorgestelde relaties" | "Definieert" | "Wettelijke definitie" | "Komt voor in";
 export interface RelatieRegel { id: string; anker_tekst: string }
 
 const UIT: Record<RelatieData["soort"], RelatieGroepNaam> = {
   bevat: "Bevat", verwijst_naar: "Verwijst naar", markeert: "Markeert", heeft_klasse: "Klasse",
   duidt: "Dragende passages", begripsrelatie: "Relaties met begrippen", begripsvoorstel: "Voorgestelde relaties",
+  definieert: "Definieert", komt_voor_in: "Komt voor in",
 };
 const IN: Record<RelatieData["soort"], RelatieGroepNaam> = {
   bevat: "Onderdeel van", verwijst_naar: "Wordt verwezen door", markeert: "Markeringen", heeft_klasse: "Markeringen",
   duidt: "Begrippen", begripsrelatie: "Relaties met begrippen", begripsvoorstel: "Voorgestelde relaties",
+  definieert: "Wettelijke definitie", komt_voor_in: "Begrippen",
 };
-const VOLGORDE: RelatieGroepNaam[] = ["Onderdeel van", "Bevat", "Begrippen", "Markeringen", "Markeert", "Klasse",
+const VOLGORDE: RelatieGroepNaam[] = ["Onderdeel van", "Bevat", "Begrippen", "Wettelijke definitie", "Definieert", "Komt voor in", "Markeringen", "Markeert", "Klasse",
   "Dragende passages", "Relaties met begrippen", "Voorgestelde relaties", "Verwijst naar", "Wordt verwezen door"];
 
 /** De relaties van een knoop, per soort en richting, in vaste volgorde. Over het hele model: een buur

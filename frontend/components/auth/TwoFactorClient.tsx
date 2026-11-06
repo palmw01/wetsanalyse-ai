@@ -15,6 +15,8 @@ export function TwoFactorClient() {
   // undefined = sessionStorage nog niet gelezen; null = afwezig (opnieuw beginnen); string = ok.
   const [userid, setUserid] = useState<string | null | undefined>(undefined);
   const [totp, setTotp] = useState("");
+  // Authenticator kwijt? Dan kan een herstelcode in hetzelfde veld; de api herkent hem aan de vorm.
+  const [herstel, setHerstel] = useState(false);
   // De keuze "Ingelogd blijven op dit apparaat" is al op stap 1 (/login) gemaakt en meegedragen.
   const [onthouden, setOnthouden] = useState(false);
   const [fout, setFout] = useState<string | null>(null);
@@ -99,10 +101,15 @@ export function TwoFactorClient() {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       {fout && <Melding type="fout">{fout}</Melding>}
-      <Field label="2FA-code" hint="6 cijfers uit je authenticator-app" required>
+      <Field
+        label={herstel ? "Herstelcode" : "2FA-code"}
+        hint={herstel ? "Een van de codes die je bij het koppelen bewaarde; elke code werkt één keer" : "6 cijfers uit je authenticator-app"}
+        required
+      >
         <Input
-          inputMode="numeric"
-          autoComplete="one-time-code"
+          inputMode={herstel ? "text" : "numeric"}
+          autoCapitalize={herstel ? "characters" : undefined}
+          autoComplete={herstel ? "off" : "one-time-code"}
           autoFocus
           required
           value={totp}
@@ -119,6 +126,14 @@ export function TwoFactorClient() {
       <Button type="submit" disabled={bezig} className="w-full">
         {bezig ? "Bezig met verifiëren…" : "Verifiëren"}
       </Button>
+
+      <button
+        type="button"
+        className="block w-full text-center text-sm text-muted underline"
+        onClick={() => { setTotp(""); setFout(null); setHerstel(!herstel); }}
+      >
+        {herstel ? "Code uit de app gebruiken" : "Geen toegang tot je app? Gebruik een herstelcode"}
+      </button>
 
       <Link href="/login" className="block text-center text-sm text-muted underline">
         Terug naar inloggen

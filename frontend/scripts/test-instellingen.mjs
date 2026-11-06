@@ -10,7 +10,11 @@
  *  - een tab op de volle pagina opent geen venster erbovenop, en een tab in het venster is geen navigatie;
  *  - de berichten verschijnen meteen, en de bulkknop van de aanvragen pas na een selectie;
  *  - op een smal scherm staat de actieve tab in beeld, ook nadat een telbadge de rij breder maakte;
- *  - 2FA inschakelen vraagt eerst het huidige wachtwoord, en een fout wachtwoord toont geen QR-code.
+ *  - 2FA inschakelen vraagt eerst het huidige wachtwoord, en een fout wachtwoord toont geen QR-code;
+ *  - een beheerder zonder 2FA ziet op de beheertabs waarom het dicht is, koppelt, ziet zijn herstelcodes
+ *    één keer en loopt dan zonder herladen door naar het beheer;
+ *  - een andere beheerder reset 2FA met twee klikken, en een beheerder zonder 2FA valt op in de lijst;
+ *  - het 2FA-scherm neemt een herstelcode aan.
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -35,6 +39,7 @@ async function open(role, viewport = { width: 1280, height: 860 }) {
     users: [gebruiker("wpalm", "beheerder"), gebruiker("jdevries", "analist")],
     budget: { tokens: 1000000, periode_dagen: 7, anker: nu, actief: true, updated_by: "wpalm", updated: nu, reset_op: straks },
     verzoeken: [],
+    account: { totp_enabled: false, tfa_nodig: false, herstelcodes_over: 0 },
   };
   await page.route("**/api/**", async (route) => {
     const req = route.request(), p = new URL(req.url()).pathname, m = req.method();
@@ -45,6 +50,15 @@ async function open(role, viewport = { width: 1280, height: 860 }) {
       stand.users.push(gebruiker(body.userid, body.role));
       return route.fulfill({ status: 201, json: { ...gebruiker(body.userid, body.role), temp_password: "tijdelijk-1" } });
     }
+    if (p.endsWith("/2fa-reset")) {
+      stand.users.find((u) => p.includes(`/${u.userid}/`)).totp_enabled = false;
+      return route.fulfill({ status: 204 });
+    }
+    if (p === "/api/account/2fa/activate") {
+      Object.assign(stand.account, { totp_enabled: true, tfa_nodig: false, herstelcodes_over: 10 });
+      return route.fulfill({ json: { codes: ["AAAA-BBBB-CCCC-DDDD", "EEEE-FFFF-GGGG-HHHH"] } });
+    }
+    if (p === "/api/login-2fa") return route.fulfill({ json: { ok: false, code: "totp_required", userid: "wpalm" } });
     if (/\/api\/admin\/users\/[^/]+\/reset/.test(p)) return route.fulfill({ json: { ...gebruiker("jdevries", "analist"), temp_password: "tijdelijk-2" } });
     if (p === "/api/admin/users") return route.fulfill({ json: stand.users });
     if (p === "/api/admin/verbruik") return route.fulfill({ json: [] });
@@ -63,7 +77,7 @@ async function open(role, viewport = { width: 1280, height: 860 }) {
         ? route.fulfill({ json: { otpauth_uri: "otpauth://totp/Wetsanalyse:wpalm?secret=TESTSECRET&issuer=Wetsanalyse" } })
         : route.fulfill({ status: 400, json: { detail: "Huidig wachtwoord onjuist." } });
     }
-    if (p === "/api/account/me") return route.fulfill({ json: { userid: "wpalm", email: "w@example.test", role, totp_enabled: false } });
+    if (p === "/api/account/me") return route.fulfill({ json: { userid: "wpalm", email: "w@example.test", role, ...stand.account } });
     return route.fulfill({ json: [] });
   });
   return { page, stand, fouten, context };
@@ -168,6 +182,60 @@ try {
     const r = t?.getBoundingClientRect();
     return r && r.left >= 0 && r.right <= window.innerWidth;
   });
+  // Een beheerder zonder 2FA: het beheer legt uit waarom het dicht is, en koppelen opent het zonder herladen.
+  const plicht = await open("beheerder");
+  plicht.stand.account.tfa_nodig = true;
+  await plicht.page.goto(`${base}/instellingen/beheer/gebruikers`);
+  await plicht.page.getByText("Koppel eerst tweestapsverificatie").waitFor();
+  assert.equal(await plicht.page.getByRole("button", { name: "Nieuwe gebruiker" }).count(), 0);
+  await plicht.page.getByRole("button", { name: "Naar Beveiliging" }).click();
+  await plicht.page.getByText("Het beheer is dicht tot je koppelt").waitFor();
+  await plicht.page.getByRole("button", { name: "2FA inschakelen" }).click();
+  await plicht.page.getByLabel("Huidig wachtwoord").fill("goed");
+  await plicht.page.getByRole("button", { name: "Doorgaan" }).click();
+  await plicht.page.getByLabel(/Code uit de app/).fill("123456");
+  await plicht.page.getByRole("button", { name: "Bevestigen" }).click();
+  await plicht.page.getByText("Herstelcodes – bewaar ze nu").waitFor();
+  await plicht.page.getByText("AAAA-BBBB-CCCC-DDDD").waitFor();
+  await plicht.page.getByText("10 over").waitFor();
+  assert.equal(await plicht.page.getByText("Het beheer is dicht tot je koppelt").count(), 0);
+  await plicht.page.getByRole("tab", { name: "Gebruikers" }).click();
+  await plicht.page.getByRole("button", { name: "Nieuwe gebruiker" }).waitFor();
+  assert.equal(await plicht.page.getByText("Koppel eerst tweestapsverificatie").count(), 0);
+
+  // De reset: alleen bij wie 2FA heeft, met een tweede klik. Een beheerder zonder 2FA valt op.
+  const reset = await open("beheerder");
+  reset.stand.users[1].totp_enabled = true;
+  await reset.page.goto(`${base}/instellingen/beheer/gebruikers`);
+  const rij = (id) => reset.page.locator(`[data-gebruiker="${id}"]`);
+  await rij("wpalm").getByText("2FA ontbreekt").waitFor();
+  assert.equal(await rij("jdevries").getByText("2FA ontbreekt").count(), 0);
+  await rij("wpalm").getByRole("button", { name: "Acties voor wpalm" }).click();
+  assert.equal(await reset.page.getByRole("menuitem", { name: "2FA resetten" }).count(), 0, "zonder 2FA valt er niets te resetten");
+  await reset.page.keyboard.press("Escape");
+  await rij("jdevries").getByRole("button", { name: "Acties voor jdevries" }).click();
+  await reset.page.getByRole("menuitem", { name: "2FA resetten" }).click();
+  assert.equal(reset.stand.verzoeken.filter((v) => v.p.endsWith("/2fa-reset")).length, 0, "de eerste klik vraagt alleen");
+  await reset.page.getByRole("menuitem", { name: /resetten\?/ }).click();
+  await rij("jdevries").getByText("2FA aan").waitFor({ state: "detached" });
+  assert.equal(reset.stand.verzoeken.filter((v) => v.p === "/api/admin/users/jdevries/2fa-reset").length, 1);
+
+  // Het 2FA-scherm: de herstelcode gaat door hetzelfde veld, en wisselen maakt het veld leeg.
+  const inlog = await open("analist");
+  await inlog.context.clearCookies();
+  await inlog.context.addCookies([{ name: "wa-login-ticket", value: "ticket", url: base },
+    { name: "__Secure-wa-login-ticket", value: "ticket", domain: new URL(base).hostname, path: "/", secure: true }]);
+  await inlog.page.addInitScript(() => sessionStorage.setItem("wa_login_userid", "wpalm"));
+  await inlog.page.goto(`${base}/login/2fa`);
+  await inlog.page.getByLabel(/2FA-code/).fill("123");
+  await inlog.page.getByRole("button", { name: /Gebruik een herstelcode/ }).click();
+  const herstelveld = inlog.page.getByLabel(/Herstelcode/);
+  assert.equal(await herstelveld.inputValue(), "");
+  await herstelveld.fill("AAAA-BBBB-CCCC-DDDD");
+  await inlog.page.getByRole("button", { name: "Verifiëren" }).click();
+  await inlog.page.getByText(/Onjuiste of verlopen code/).waitFor();
+  assert.equal(inlog.stand.verzoeken.find((v) => v.p === "/api/login-2fa").body.totp, "AAAA-BBBB-CCCC-DDDD");
+  for (const v of [plicht, reset, inlog]) assert.deepEqual(v.fouten, []);
   console.log("OK test-instellingen");
 } finally {
   await browser.close();

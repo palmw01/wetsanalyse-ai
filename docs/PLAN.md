@@ -571,7 +571,8 @@ typen of `verwant` (met toelichting) vast, opvolging alleen via de knoppen. F3: 
 begrippen met hun status (concept, geaccordeerd, vervangen); de Turtle-export standaard alleen de
 geaccordeerde (`inclusief=alle` voor de rest); de NL-SBB-shapes (profiel 1.0.0, CC-BY 4.0) staan
 gevendord in `api/app/shapes/` met een hashtoets; de begrippengraaf komt op de tab *Samenhang*, met
-data uit Postgres.
+data uit Postgres. Bij een antwoord staan begrippen in de ketting (`GET samenhang/antwoord`, 6 nov 2026): wettelijke begrippen uit
+de graaf, en begrippen die aan een getoonde markering hangen.
 
 **Besloten voor F4 (19 okt 2026).** Lex leest de begrippen van **alle** werkgebieden; opent de werkplek
 vanuit een werkgebied, dan staan diens begrippen vooraan. Hij noemt **alle** begrippen met hun status

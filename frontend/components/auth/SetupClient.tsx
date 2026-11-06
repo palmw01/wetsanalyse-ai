@@ -41,11 +41,11 @@ export function SetupClient() {
         );
         return;
       }
-      // Direct inloggen met de zojuist aangemaakte beheerder. Harde navigatie (niet router.push):
-      // "/" kan door de disclaimer-gate omgeleid worden naar /disclaimer, en dat combineert niet
-      // goed met een soft router.push (zie de toelichting in LoginClient.tsx).
+      // Direct inloggen met de zojuist aangemaakte beheerder, en door naar het koppelen van 2FA: zonder
+      // blijft het beheer dicht. Harde navigatie (niet router.push): de disclaimer-gate kan omleiden
+      // naar /disclaimer, en dat combineert niet goed met een soft router.push (zie LoginClient.tsx).
       const login = await signIn("credentials", { redirect: false, userid, password });
-      window.location.href = login?.error ? "/login" : "/";
+      window.location.href = login?.error ? "/login" : "/instellingen/beveiliging";
     } catch {
       // Zie LoginClient: een transportfout is geen antwoord en viel dus buiten alle afhandeling.
       setFout("Aanmaken lukt nu niet – de dienst is niet bereikbaar. Probeer het zo opnieuw.");

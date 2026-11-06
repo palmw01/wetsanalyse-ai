@@ -6,9 +6,9 @@
 // regels (`vindplaatsVan`, de spiegel van bronmodel): één weergave voor oud en nieuw.
 
 import type { NodeDoel } from "./annotatieNode";
-import { koppelBron, koppelVermelding, vindVermeldingen } from "./citaties";
+import { koppelVermelding, vindVermeldingen } from "./citaties";
 import { bronHref } from "./url";
-import { bronDoel, iriSegment, vindplaatsVan } from "./samenhang";
+import { bronDoel, vindplaatsVan } from "./samenhang";
 import type { Bron } from "./types";
 
 export interface BronItem {
@@ -119,35 +119,6 @@ export function normaliseerBronnen(bronnen: readonly Bron[]): Bronnenlijst {
  *  kaart van eilandjes, en elk artikel is een eigen request. */
 export const MAX_SAMENHANG_DOELEN = 8;
 
-/** De artikelen die het antwoord zelf noemt, in de volgorde van de tekst, als doelen voor de
- *  graaf. Alleen een éénduidige koppeling telt (`koppelBron`, dezelfde regel als de
- *  citatie-chips). Eén doel per artikel, maar wel zo precies als de eerste vermelding: een genoemd lid
- *  opent zijn artikel met dát lid gekozen. Noemt de tekst niets te koppelen, dan de eerste bepaling
- *  uit de bronnen.
- *
- *  Een overzichtsantwoord gaat hier niet langs: dat draagt zijn delen zelf (`overzichtDoelen` in
- *  `lib/overzicht.ts`), zodat de kaart niet afhangt van hoe Lex formuleerde. */
-export function samenhangDoelen(tekst: string, bronnen: readonly Bron[], max = MAX_SAMENHANG_DOELEN): { doelen: NodeDoel[]; totaal: number } {
-  const gezien = new Map<string, NodeDoel>();
-  const voegToe = (b: Bron) => {
-    const doel = bronDoel(b.bron_iri || b.uri);
-    if (!doel?.artikel) return;
-    const artikel = `urn:bwb:${doel.bwb_id}:artikel:${iriSegment(doel.artikel)}`;
-    if (gezien.has(artikel)) return;
-    gezien.set(artikel, { ...doel, ...(b.regeling ? { citeertitel: b.regeling } : {}) });
-  };
-  for (const v of vindVermeldingen(tekst)) {
-    const i = koppelBron(v, bronnen);
-    if (i >= 0) voegToe(bronnen[i]);
-  }
-  if (!gezien.size) {
-    const eerste = bronnen.find((b) => bronDoel(b.bron_iri || b.uri)?.artikel);
-    if (eerste) voegToe(eerste);
-  }
-  const alle = [...gezien.values()];
-  return { doelen: alle.slice(0, max), totaal: alle.length };
-}
-
 /** Waar een doel vandaan komt, zodat de graaf eerlijk kan zeggen wat hij toont: het bericht wijst de
  *  bepaling zelf aan, of de tekst noemde niets te koppelen en het is de eerste bepaling uit de bronnen.
  *  `bronnen` is alles wat de tools teruggaven, niet waar het antwoord op rust. */
@@ -184,7 +155,7 @@ function doelenVan(item: AntwoordBron): AntwoordDoel[] {
  *  de citatie-chips. Noemt de tekst niets te koppelen, dan de eerste bepaling uit de bronnen, met
  *  `herkomst: "eerste_bron"`. Een annotatie en een chip dragen hun doel zelf.
  *
- *  Een overzichtsantwoord gaat hier niet langs, net als bij `samenhangDoelen`. */
+ *  Een overzichtsantwoord gaat hier niet langs. */
 export function antwoordDoelen(item: AntwoordBron, max = MAX_SAMENHANG_DOELEN): { doelen: AntwoordDoel[]; totaal: number } {
   const alle = doelenVan(item);
   return { doelen: alle.slice(0, max), totaal: alle.length };
@@ -198,8 +169,5 @@ function knopTekst({ doelen, totaal }: { doelen: NodeDoel[]; totaal: number }, m
   return `Bekijk samenhang van de ${totaal} genoemde ${meervoud}${totaal > doelen.length ? ` (${doelen.length} getoond)` : ""}`;
 }
 
-/** De tekst op de knop: wat hij opent, niet alleen dát hij iets opent. */
-export const samenhangKnopTekst = (keuze: { doelen: NodeDoel[]; totaal: number }) => knopTekst(keuze, "artikelen");
-
-/** De knoptekst bij `antwoordDoelen`: een doel is daar een bepaling, geen artikel. */
+/** De tekst op de knop: wat hij opent, niet alleen dát hij iets opent. Een doel is een bepaling, geen artikel. */
 export const antwoordKnopTekst = (keuze: { doelen: NodeDoel[]; totaal: number }) => knopTekst(keuze, "bepalingen");

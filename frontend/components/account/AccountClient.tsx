@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { KopieerVeld } from "@/components/admin/KopieerVeld";
 import { Button } from "@/components/ui/Button";
 import { SettingGroup, SettingList, SettingRow } from "@/components/ui/SettingRow";
 import { Field, Input } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
 import { StatusLabel } from "@/components/ui/Lijst";
 import { SkeletonCard } from "@/components/ui/Skeleton";
-import { activate2fa, begin2fa, disable2fa, getAccount, isApiError } from "@/lib/api";
+import { activate2fa, begin2fa, disable2fa, getAccount, isApiError, vervangHerstelcodes } from "@/lib/api";
 import type { MeAccount } from "@/lib/types";
 
 /** Haal het base32-secret uit de otpauth://-URI voor handmatige invoer in de authenticator-app. */
@@ -19,6 +20,41 @@ function secretUit(uri: string): string {
   }
 }
 
+/** Vraagt één code (uit de app of een herstelcode) om iets aan actieve 2FA te doen. */
+function CodeFormulier({ uitleg, knop, gevaar = false, bezig, onBevestig, onAnnuleer }: {
+  uitleg: React.ReactNode;
+  knop: string;
+  gevaar?: boolean;
+  bezig: boolean;
+  onBevestig: (code: string) => Promise<void>;
+  onAnnuleer: () => void;
+}) {
+  const [code, setCode] = useState("");
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void onBevestig(code.trim());
+      }}
+      className="mt-4 space-y-3"
+    >
+      <p className="text-sm text-muted">{uitleg}</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+        <Field label="Code" hint="6 cijfers uit de app, of een herstelcode">
+          <Input autoComplete="one-time-code" required value={code} onChange={(e) => setCode(e.target.value)} />
+        </Field>
+        <Button type="submit" size="sm" variant={gevaar ? "danger" : undefined} disabled={bezig} className="w-full sm:w-auto">
+          {knop}
+        </Button>
+        <Button type="button" size="sm" variant="ghost" onClick={onAnnuleer} disabled={bezig} className="w-full sm:w-auto">
+          Annuleren
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 export function AccountClient() {
   const [account, setAccount] = useState<MeAccount | null>(null);
   const [fout, setFout] = useState<string | null>(null);
@@ -28,9 +64,10 @@ export function AccountClient() {
   // Lopende 2FA-koppeling: de QR/secret + het in te voeren code-veld.
   const [koppeling, setKoppeling] = useState<{ uri: string; qr: string } | null>(null);
   const [code, setCode] = useState("");
-  // Bevestigingsformulier bij het uitschakelen van 2FA.
-  const [uitschakelen, setUitschakelen] = useState(false);
-  const [uitschakelCode, setUitschakelCode] = useState("");
+  // Welke actie op actieve 2FA om een code vraagt.
+  const [codeVoor, setCodeVoor] = useState<"uitschakelen" | "herstelcodes" | null>(null);
+  // Net gemaakte herstelcodes: dit is de enige keer dat ze te zien zijn.
+  const [herstelcodes, setHerstelcodes] = useState<string[] | null>(null);
   const [bezig, setBezig] = useState(false);
 
   const laad = useCallback(async () => {
@@ -78,7 +115,7 @@ export function AccountClient() {
     setFout(null);
     setBezig(true);
     try {
-      await activate2fa(code.trim());
+      setHerstelcodes(await activate2fa(code.trim()));
       setKoppeling(null);
       setCode("");
       await laad();
@@ -89,14 +126,27 @@ export function AccountClient() {
     }
   }
 
-  async function onUitschakelen(e: React.FormEvent) {
-    e.preventDefault();
+  async function onUitschakelen(code: string) {
     setFout(null);
     setBezig(true);
     try {
-      await disable2fa(uitschakelCode.trim());
-      setUitschakelCode("");
-      setUitschakelen(false);
+      await disable2fa(code);
+      setCodeVoor(null);
+      setHerstelcodes(null);
+      await laad();
+    } catch (e) {
+      melden(e);
+    } finally {
+      setBezig(false);
+    }
+  }
+
+  async function onNieuweCodes(code: string) {
+    setFout(null);
+    setBezig(true);
+    try {
+      setHerstelcodes(await vervangHerstelcodes(code));
+      setCodeVoor(null);
       await laad();
     } catch (e) {
       melden(e);
@@ -108,11 +158,34 @@ export function AccountClient() {
   return (
     <SettingGroup
       titel="Beveiliging"
-      omschrijving="Tweestapsverificatie is optioneel. Staat die aan, dan vraagt het inloggen om een code uit je authenticator-app."
+      omschrijving={
+        account?.role === "beheerder"
+          ? "Tweestapsverificatie is voor beheerders verplicht: het inloggen vraagt dan om een code uit je authenticator-app."
+          : "Tweestapsverificatie is optioneel. Staat die aan, dan vraagt het inloggen om een code uit je authenticator-app."
+      }
     >
       {fout && (
         <Melding type="fout" className="mb-3">
           {fout}
+        </Melding>
+      )}
+
+      {account?.tfa_nodig && (
+        <Melding type="waarschuwing" titel="Het beheer is dicht tot je koppelt" className="mb-3">
+          <p className="text-sm">Koppel hieronder een authenticator-app. De rest van de app werkt gewoon.</p>
+        </Melding>
+      )}
+
+      {herstelcodes && (
+        <Melding type="waarschuwing" titel="Herstelcodes – bewaar ze nu" className="mb-3">
+          <p className="mb-2 text-sm">
+            Ben je je authenticator-app kwijt, dan log je met een van deze codes in. Elke code werkt één keer. Je
+            ziet ze hierna niet meer terug; bewaar ze buiten je telefoon.
+          </p>
+          <KopieerVeld waarde={herstelcodes.join("\n")} label="Herstelcodes" />
+          <Button size="sm" variant="ghost" className="mt-2" onClick={() => setHerstelcodes(null)}>
+            Ik heb ze bewaard
+          </Button>
         </Melding>
       )}
 
@@ -122,45 +195,53 @@ export function AccountClient() {
           <SettingList>
             <SettingRow label="Tweestapsverificatie">
               <StatusLabel toon={account.totp_enabled ? "groen" : "neutraal"}>{account.totp_enabled ? "Aan" : "Uit"}</StatusLabel>
-              {account.totp_enabled && !uitschakelen && (
-                <Button size="sm" variant="secondary" onClick={() => setUitschakelen(true)}>Uitschakelen</Button>
+              {account.totp_enabled && codeVoor !== "uitschakelen" && (
+                <Button size="sm" variant="secondary" onClick={() => setCodeVoor("uitschakelen")}>Uitschakelen</Button>
               )}
               {!account.totp_enabled && !koppeling && !inschakelen && (
                 <Button size="sm" onClick={() => setInschakelen(true)}>2FA inschakelen</Button>
               )}
             </SettingRow>
+            {account.totp_enabled && (
+              <SettingRow label="Herstelcodes">
+                <StatusLabel toon={account.herstelcodes_over > 0 ? "neutraal" : "rood"}>
+                  {account.herstelcodes_over} over
+                </StatusLabel>
+                {codeVoor !== "herstelcodes" && (
+                  <Button size="sm" variant="secondary" onClick={() => setCodeVoor("herstelcodes")}>
+                    {account.herstelcodes_over > 0 ? "Nieuwe codes" : "Codes aanmaken"}
+                  </Button>
+                )}
+              </SettingRow>
+            )}
           </SettingList>
 
-          {account.totp_enabled ? uitschakelen && (
-            <form onSubmit={onUitschakelen} className="mt-4 space-y-3">
-              <p className="text-sm text-muted">
-                Voer een geldige code uit je authenticator-app in om tweestapsverificatie uit te schakelen.
-              </p>
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-                <Field label="Code uit de app" hint="6 cijfers">
-                  <Input
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    required
-                    value={uitschakelCode}
-                    onChange={(e) => setUitschakelCode(e.target.value)}
-                  />
-                </Field>
-                <Button type="submit" size="sm" variant="danger" disabled={bezig} className="w-full sm:w-auto">
-                  2FA uitschakelen
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => { setUitschakelCode(""); setUitschakelen(false); }}
-                  disabled={bezig}
-                  className="w-full sm:w-auto"
-                >
-                  Annuleren
-                </Button>
-              </div>
-            </form>
+          {account.totp_enabled ? (
+            <>
+              {codeVoor === "uitschakelen" && (
+                <CodeFormulier
+                  uitleg={
+                    account.role === "beheerder"
+                      ? "Voer een code in om tweestapsverificatie uit te schakelen. Daarna is het beheer dicht tot je opnieuw koppelt."
+                      : "Voer een code in om tweestapsverificatie uit te schakelen."
+                  }
+                  knop="2FA uitschakelen"
+                  gevaar
+                  bezig={bezig}
+                  onBevestig={onUitschakelen}
+                  onAnnuleer={() => setCodeVoor(null)}
+                />
+              )}
+              {codeVoor === "herstelcodes" && (
+                <CodeFormulier
+                  uitleg="Voer een code in voor een nieuwe set herstelcodes. De oude codes vervallen."
+                  knop="Codes aanmaken"
+                  bezig={bezig}
+                  onBevestig={onNieuweCodes}
+                  onAnnuleer={() => setCodeVoor(null)}
+                />
+              )}
+            </>
           ) : inschakelen ? (
             <form onSubmit={onStart} className="mt-4 space-y-3">
               <p className="text-sm text-muted">

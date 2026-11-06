@@ -58,9 +58,28 @@ async def _init_db_met_retry() -> None:
             await asyncio.sleep(backoff)
 
 
+def _waarschuw_zonder_master_key() -> None:
+    """Zonder master key kan niemand 2FA koppelen, dus dan houdt geen beheerder toegang tot het beheer.
+
+    Dat is bedoeld (fail-closed), maar wie het tegenkomt moet de oorzaak in de log kunnen vinden.
+    """
+    from .secrets_crypto import SecretsCryptoError, crypto_beschikbaar
+
+    try:
+        aanwezig = crypto_beschikbaar()
+    except SecretsCryptoError:
+        aanwezig = False
+    if not aanwezig:
+        logger.warning(
+            "Geen geldige LLM_CONFIG_SECRET: 2FA kan niet gekoppeld worden, dus beheerders komen niet in het beheer",
+            extra={"categorie": "security", "actie": "geen_master_key"},
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
+    _waarschuw_zonder_master_key()
     # Globale LLM-concurrency-rem instellen (kostenbeheersing tegen zelf-veroorzaakte rate-limits;
     # de admin-verbindingstest is nu de enige LLM-call, maar de rem blijft goedkoop en veilig).
     from .llm import throttle

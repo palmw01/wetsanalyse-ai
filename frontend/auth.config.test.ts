@@ -309,7 +309,14 @@ describe("rol-gate op /api/admin", () => {
 describe("sessie uit een accounttoken", () => {
   const sessie = (role: string, viaToken?: string) => ({ user: { userid: "acc", role, viaToken } });
 
-  it.each(["/api/admin/api-tokens", "/api/admin/api-tokens/abc", "/api/account/password", "/api/account/2fa/begin"])(
+  it.each([
+    "/api/admin/api-tokens",
+    "/api/admin/api-tokens/abc",
+    "/api/account/password",
+    "/api/account/2fa/begin",
+    "/api/account/2fa/herstelcodes",
+    "/api/admin/users/iemand/2fa-reset",
+  ])(
     "mag %s niet, ook niet als beheerder",
     async (pad) => {
       const res = authorized({

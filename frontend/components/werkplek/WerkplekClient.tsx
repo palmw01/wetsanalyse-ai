@@ -200,7 +200,7 @@ export function WerkplekClient({
   const [nodeReeks, setNodeReeks] = useState<string>();
   // Opent het node-paneel op de graaf (knop onder een antwoord) of op de tekst (annotatie).
   const [nodeTab, setNodeTab] = useState<"tekst" | "graaf">("tekst");
-  // Wat de graaf verder meeopent: de artikelen die een antwoord noemt (`samenhangDoelen`) of de delen
+  // Wat de graaf verder meeopent: de bepalingen die een antwoord noemt (`antwoordDoelen`) of de delen
   // van een overzicht (`overzichtDoelen`). Leeg zodra het paneel op een andere manier opent.
   const [nodeExtra, setNodeExtra] = useState<NodeDoel[]>([]);
   // Met welk bereik de graaf opent en wat de nadruk krijgt (een overzicht: de hele kennisgraaf).
@@ -439,7 +439,7 @@ export function WerkplekClient({
   async function openArtefact(slug: string, doel?: NodeDoel) {
     gevraagdArtefact.current = slug;
     setWgArtefact(undefined);
-    if (doel?.bron_iri) { setNodeTab("tekst"); setNodeExtra([]); setNodeGraaf({}); setNodeDoel(doel); return; }
+    if (doel?.bron_iri) { setNodeTab("tekst"); setNodeExtra([]); setNodeGraaf({ keten: true }); setNodeDoel(doel); return; }
     setNodeDoel(undefined);
     // Een bericht zonder bronnode verwijst naar een annotatie die niet meer bestaat.
     setVerwijderd((m) => ({ ...m, [slug]: true }));
@@ -882,7 +882,7 @@ export function WerkplekClient({
       annotatie_doel: node, titel: uitkomst.artefact?.titel || node.label, tekst: tekst?.trim() || undefined, denk, hergebruik, doel,
       tool_executions, meting } : x));
     // Deze beurt veranderde de annotaties: een kennisgraaf die een vorig paneel doorgaf, klopt niet meer.
-    setWgArtefact(undefined); setNodeGraaf(zonderKennisgraaf); setNodeDoel(node);
+    setWgArtefact(undefined); setNodeGraaf((g) => ({ ...zonderKennisgraaf(g), keten: true })); setNodeDoel(node);
   }
 
   /** Loopt er nog een beurt in dit gesprek? Haak er dan weer op aan.
@@ -963,7 +963,8 @@ export function WerkplekClient({
         if (!ref) return;
         setNodeDoel(undefined); setWgArtefact(ref);
       },
-      openSamenhang: (doel, extra = [], graaf = {}) => {
+      // Zonder eigen opties opent een antwoord op de ketting; een overzicht geeft zijn bereik zelf mee.
+      openSamenhang: (doel, extra = [], graaf = { keten: true }) => {
         setWgArtefact(undefined);
         setNodeTab("graaf");
         setNodeExtra(extra);
@@ -1063,8 +1064,8 @@ export function WerkplekClient({
     const nav = item && reeksNavigatie(item.reeks, nodeDoel.bron_iri);
     return nav ? { ...nav, onGa: (d: NodeDoel) => { setNodeGraaf(zonderKennisgraaf); setNodeDoel(d); } } : undefined;
   })();
-  const artefact = nodeDoel ? <NodeAnnotatiePaneel key={`${nodeDoel.bron_iri}:${nodeDoel.snapshot_id ?? ""}:${nodeDoel.versie ?? ""}:${nodeTab}:${nodeGraaf.bereik ?? ""}:${nodeExtra.map((d) => d.bron_iri).join("|")}`} doel={nodeDoel}
-    extraDoelen={nodeExtra} graaf={nodeGraaf} koppelingRef={graafKoppelingRef}
+  const artefact = nodeDoel ? <NodeAnnotatiePaneel key={`${nodeDoel.bron_iri}:${nodeDoel.snapshot_id ?? ""}:${nodeDoel.versie ?? ""}:${nodeTab}:${nodeGraaf.bereik ?? ""}:${nodeGraaf.keten ? "keten" : ""}:${nodeExtra.map((d) => d.bron_iri).join("|")}`} doel={nodeDoel}
+    extraDoelen={nodeExtra} graaf={nodeGraaf.keten ? { ...nodeGraaf, werkgebiedId } : nodeGraaf} koppelingRef={graafKoppelingRef}
     // Een knoop uit een ander artikel (meegeopend, of uit de hele kennisgraaf): het paneel op dát
     // artikel; de rest van de kaart, het bereik en de nadruk blijven mee.
     onWisselDoel={(nieuw, graaf) => {
@@ -1443,7 +1444,7 @@ export function WerkplekClient({
                   ? "Tijdens de rondleiding staat het invoerveld stil"
                   : geblokkeerd
                     ? "Je tokenbudget is op"
-                    : "Stel een vraag of geef een opdracht aan Lex…"
+                    : "Vraag of opdracht voor Lex…"
               }
               className="max-h-[200px] flex-1 resize-none bg-transparent px-2 py-2 text-sm text-ink placeholder:text-faint focus:outline-none"
             />

@@ -15,8 +15,9 @@ GET  /v1/auth/api-token/{id}/status – geldt het accounttoken nog? (de hercontr
 GET  /v1/auth/me                  – eigen account (rol + of 2FA aanstaat) – X-User-Id
 POST /v1/auth/change-password     – eigen wachtwoord wijzigen (huidig → nieuw) – X-User-Id
 POST /v1/auth/2fa/begin           – start 2FA-koppeling (met wachtwoord), geeft de otpauth-URI – X-User-Id
-POST /v1/auth/2fa/activate        – bevestig 2FA met één geldige code – X-User-Id
-POST /v1/auth/2fa/disable         – schakel 2FA uit – X-User-Id
+POST /v1/auth/2fa/activate        – bevestig 2FA met één geldige code, geeft de herstelcodes – X-User-Id
+POST /v1/auth/2fa/disable         – schakel 2FA uit (code of herstelcode) – X-User-Id
+POST /v1/auth/2fa/herstelcodes    – vervang de herstelcodes (code of herstelcode) – X-User-Id
 """
 
 from __future__ import annotations
@@ -36,6 +37,10 @@ from ..secrets_crypto import SecretsCryptoError, crypto_beschikbaar
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"], dependencies=[Depends(require_client)])
+
+
+# Lang genoeg voor een herstelcode met streepjes en spaties; de vorm toetst `users._norm_herstelcode`.
+CODE_MAX = 32
 
 
 # --- modellen ------------------------------------------------------------------
@@ -68,7 +73,8 @@ class VerifyIn(BaseModel):
     userid: str = Field(max_length=64)
     # Wachtwoord is optioneel: het 2FA-scherm bewijst de identiteit via `ticket` i.p.v. het wachtwoord.
     password: str = Field(default="", max_length=512)
-    totp: str | None = Field(default=None, max_length=16)
+    # Een TOTP-code of een herstelcode; de vorm bepaalt welke (`users._verbruik_tweede_factor`).
+    totp: str | None = Field(default=None, max_length=CODE_MAX)
     # Login-ticket (wachtwoord-bewijs voor de 2FA-stap) en trusted-device-token (2FA overslaan);
     # beide server→server via httpOnly cookies, nooit direct uit browser-input. Ruime cap: Fernet-tokens.
     ticket: str | None = Field(default=None, max_length=1024)
@@ -111,6 +117,9 @@ class MeOut(BaseModel):
     email: str
     role: str
     totp_enabled: bool
+    # Beheerder zonder 2FA: de BFF houdt dat account buiten het beheer (`users.moet_2fa_koppelen`).
+    tfa_nodig: bool = False
+    herstelcodes_over: int = 0
     # Sessie-epoch voor revocatie: de BFF verwerpt JWT's die vóór deze tijd zijn uitgegeven.
     sessions_valid_from: datetime | None = None
 
@@ -128,7 +137,12 @@ class TotpActivateIn(BaseModel):
 
 
 class TotpDisableIn(BaseModel):
-    totp: str = Field(max_length=16)
+    totp: str = Field(max_length=CODE_MAX)
+
+
+class HerstelcodesOut(BaseModel):
+    """De codes verlaten de server alleen in dit antwoord; daarna staat er een hash."""
+    codes: list[str]
 
 
 class PasswordChangeIn(BaseModel):
@@ -222,7 +236,10 @@ async def setup(body: SetupIn):
     except users.UserError as e:
         # Tabel niet meer leeg, of ongeldige invoer → registratie gesloten/ongeldig.
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
-    return MeOut(userid=user.userid, email=user.email, role=user.role, totp_enabled=user.totp_enabled)
+    return MeOut(
+        userid=user.userid, email=user.email, role=user.role, totp_enabled=user.totp_enabled,
+        tfa_nodig=users.moet_2fa_koppelen(user),
+    )
 
 
 @router.post(
@@ -276,7 +293,12 @@ async def verify(body: VerifyIn):
     # Er is zojuist een TOTP-code verbruikt. Die geldt geen tweede keer, en de BFF verifieert na het
     # 2FA-scherm nog één keer (Auth.js zet dan de sessie): dit ticket draagt de geslaagde controle
     # daarheen. De BFF zet het in dezelfde httpOnly cookie als het login-ticket.
-    tweede_factor = users.maak_2fa_ticket(user.userid) if code == "ok_totp" else None
+    tweede_factor = users.maak_2fa_ticket(user.userid) if code in ("ok_totp", "ok_herstelcode") else None
+    if code == "ok_herstelcode":
+        logger.warning(
+            "ingelogd met een herstelcode",
+            extra={"categorie": "security", "actie": "herstelcode_login", "userid": user.userid},
+        )
     # Bij een geslaagde 2FA-login met "onthouden" aangevinkt: een 30-daags trusted-device-token.
     trusted = (
         users.maak_trusted_device(user)
@@ -326,6 +348,8 @@ async def me(userid: str = Depends(huidige_userid)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Account niet (meer) actief.")
     return MeOut(
         userid=user.userid, email=user.email, role=user.role, totp_enabled=user.totp_enabled,
+        tfa_nodig=users.moet_2fa_koppelen(user),
+        herstelcodes_over=await users.aantal_herstelcodes(user.userid),
         sessions_valid_from=user.sessions_valid_from,
     )
 
@@ -372,13 +396,27 @@ async def tfa_begin(body: TotpBeginIn, userid: str = Depends(huidige_userid)):
     return TotpBeginOut(otpauth_uri=uri)
 
 
-@router.post("/2fa/activate", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/2fa/activate", response_model=HerstelcodesOut)
 async def tfa_activate(body: TotpActivateIn, userid: str = Depends(huidige_userid)):
     _rem_gevoelig(userid)
     try:
-        await users.activate_2fa(userid, body.totp)
+        return HerstelcodesOut(codes=await users.activate_2fa(userid, body.totp))
     except users.UserError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/2fa/herstelcodes", response_model=HerstelcodesOut)
+async def tfa_herstelcodes(body: TotpDisableIn, userid: str = Depends(huidige_userid)):
+    _rem_gevoelig(userid)
+    try:
+        codes = await users.vervang_herstelcodes(userid, body.totp)
+    except users.UserError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    logger.info(
+        "herstelcodes vervangen",
+        extra={"categorie": "security", "actie": "herstelcodes_vervangen", "userid": userid},
+    )
+    return HerstelcodesOut(codes=codes)
 
 
 @router.post("/2fa/disable", status_code=status.HTTP_204_NO_CONTENT)

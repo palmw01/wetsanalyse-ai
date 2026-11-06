@@ -21,7 +21,11 @@ export function KopieerVeld({ waarde, label }: { waarde: string; label: string }
   return (
     <div>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <Input readOnly value={waarde} aria-label={label} className="font-mono" onFocus={(e) => e.currentTarget.select()} />
+        {waarde.includes("\n") ? (
+          <pre aria-label={label} className="w-full overflow-x-auto rounded-field border border-line bg-surface p-2 font-mono text-sm">{waarde}</pre>
+        ) : (
+          <Input readOnly value={waarde} aria-label={label} className="font-mono" onFocus={(e) => e.currentTarget.select()} />
+        )}
         <Button size="sm" variant="secondary" onClick={() => void kopieer()}>
           {stand === "gekopieerd" ? "Gekopieerd" : "Kopiëren"}
         </Button>
