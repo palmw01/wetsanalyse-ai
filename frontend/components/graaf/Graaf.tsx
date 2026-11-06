@@ -91,7 +91,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
 }) {
   const { bronnen, getekend, laadfase, fout, melding, selectie, setSelectie, wachtendeKeuze, setWachtendeKeuze,
     lagen, setLagen, markering, setMarkering, lagenOpen, setLagenOpen, aangeraakt, setAangeraakt, camera, bediening,
-    laadErbij, laadtBij, bereik, setBereik, focusIds } = stand;
+    laadErbij, laadtBij, bereik, setBereik, focusIds, eigenFocus } = stand;
   const [geenWebgl, setGeenWebgl] = useState(false);
   const bedekking = useRef<HTMLDivElement>(null);
   // De zijbalk (inspector naast de vergrote graaf) in te klappen tot een strook; per kijker onthouden.
@@ -127,10 +127,10 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
   // is er niets te dimmen.
   const focus = useMemo(() => {
     if (!getekend) return null;
-    if (ketting) return ketenFocus(model, ketting.doelen ?? focusIds, ketting.knopen);
+    if (ketting && (bereik === "antwoord" || !eigenFocus)) return ketenFocus(model, ketting.doelen ?? focusIds, ketting.knopen);
     const f = focusVan(model, focusIds);
     return f.bereik.size && f.bereik.size < model.order ? f : null;
-  }, [getekend, model, focusIds, ketting]);
+  }, [getekend, model, focusIds, ketting, bereik, eigenFocus]);
   const context = useMemo(() => weergaveContext(model, { lagen, markering, selectie: gekozen, focus, ongedekt, aangewezen }),
     [model, lagen, markering, gekozen, focus, ongedekt, aangewezen]);
   // Een nieuwe kaart in beeld: op de keuze als die er is, anders op wat het antwoord noemt. De tekenaar
@@ -258,7 +258,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
   </div>;
 
   const titel = bereik === "kennisgraaf" ? "de hele kennisgraaf"
-    : ketting && (ketting.doelen?.length ?? 0) > 1 ? `${ketting.doelen!.length} bepalingen`
+    : ketting && (ketting.doelen?.length ?? 0) > 1 ? `${ketting.doelen!.length} ${ketting.knopen.some((k) => k.soort === "deel" && ketting.doelen!.includes(k.id)) ? "delen en bepalingen" : "bepalingen"}`
     : ketting?.doelen?.[0] && model.hasNode(ketting.doelen[0]) ? model.getNodeAttribute(ketting.doelen[0], "naam")
     : bronnen && bronnen.length > 1 ? clusterOmschrijving(bronnen)
     : (hoofd && model.hasNode(hoofd.artikel_iri) ? model.getNodeAttribute(hoofd.artikel_iri, "naam") : hoofd?.doel.label) ?? "de bepaling";
@@ -274,7 +274,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
         {ketenZin(ketting, herkomst === "eerste_bron")}{" "}
         {heelArtikel && <button type="button" data-testid="graaf-heel-artikel" disabled={!!laadtBij} onClick={() => void laadErbij(heelArtikel)}
           className="focus-ring rounded text-lint underline disabled:opacity-50">Toon het hele artikel</button>}</p>}
-      {focus && !ketting && opBereik && <p className="mt-1 text-xs text-muted" data-testid="graaf-focus">Nadruk op {benaming.focus}{" "}
+      {focus && !(ketting && bereik === "antwoord") && opBereik && <p className="mt-1 text-xs text-muted" data-testid="graaf-focus">Nadruk op {benaming.focus}{" "}
         ({focus.doelen.size === 1 ? "1 deel of bepaling" : `${focus.doelen.size} delen en bepalingen`}<span className="hidden sm:inline">, met wat eronder valt en waarnaar het verwijst</span>)<span className="hidden sm:inline">; de rest staat gedimd op de kaart</span>.</p>}
       {hoofd && !hoofd.verwijzingen_beschikbaar && <p className="mt-1 text-xs text-muted">Verwijzingen zijn nu niet beschikbaar; je ziet de bronstructuur en de annotaties.</p>}
       {bronnen?.some((d) => d.afgekapt) && <p className="mt-1 text-xs text-muted">Er zijn meer verwijzingen dan getoond; de eerste 200 per richting staan in beeld.</p>}

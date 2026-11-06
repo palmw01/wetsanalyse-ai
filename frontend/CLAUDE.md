@@ -1447,6 +1447,8 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   kennisgraaf licht de ketting op. *Toon het hele artikel* laadt het artikel erbij (`laadErbij`); de ketting telt daarbij niet
   als geladen, en met twee bronnen rekent de gewone layout. De knop onder een antwoord, een annotatie in het gesprek en de
   doelen van `doel` uit de werkplek gebruiken de ketting; de tab Samenhang van een werkgebied en de annotatiepagina niet.
+  Een overzicht opent in de kennisgraaf met zijn eigen focus (`eigenFocus`); zijn *Dit antwoord* is de ketting van de delen
+  en de definities (`overzichtDefinities`).
   Een wettelijk begrip (`begrip_bron: "wet"`) heeft een eigen kleur (`WETBEGRIPKLEUR`) en toont in de inspector zijn
   definities met vindplaats en geldingsbereik. Browserregressie: scenario 0 in `scripts/test-samenhang.mjs`; de rest van dat
   script draait op het hele artikel, zodat de bediening getoetst blijft.
