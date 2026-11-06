@@ -442,7 +442,7 @@ def test_uitwerken_zonder_brondefinitie(monkeypatch):
 def test_relaties_zonder_model():
     api = KaartApi([], begrip={"status": "concept", "inhoud": {"naam": "Termijn"}})
     uit = _taak(api, "relaties", begrip_id="b1")
-    assert "*Termijn* is een soort van *Betalingstermijn*" in uit.tekst and "Ik stel 1 relatie voor" in uit.tekst
+    assert "*Termijn* heeft als soort *Betalingstermijn*" in uit.tekst and "Ik stel 1 relatie voor" in uit.tekst
     assert uit.voorstellen == ["R1"] and uit.meting["model"] is False
 
 
