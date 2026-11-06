@@ -231,7 +231,7 @@ annotatie_v2_batches = Table("annotatie_v2_batches", metadata,
     Column("antwoord", _JSON, nullable=False))
 annotatie_v2_dekking = Table("annotatie_v2_dekking", metadata,
     Column("id", String(64), primary_key=True), Column("bron_iri", Text, nullable=False, index=True),
-    Column("snapshot_id", String(128), nullable=False), Column("inhoud", _JSON, nullable=False))
+    Column("snapshot_id", String(128), nullable=False, index=True), Column("inhoud", _JSON, nullable=False))
 # `laag_id` is gezet waar een regel bij één laag hoort; de regel `revisie` (één per geraakte laag aan
 # het eind van een schrijftransactie) maakt er de revisiehistorie per laag van. Oudere regels hebben
 # hem niet – die laag heeft dan geen historie, geen verkeerde.
@@ -240,7 +240,8 @@ annotatie_v2_audit = Table("annotatie_v2_audit", metadata,
     Column("actor", String(64), nullable=False), Column("actie", String(40), nullable=False),
     Column("detail", _JSON, nullable=False), Column("tijdstip", _DT, nullable=False),
     Column("laag_id", String(64), nullable=True),
-    Index("ix_annotatie_v2_audit_laag", "laag_id", "id"))
+    Index("ix_annotatie_v2_audit_laag", "laag_id", "id"),
+    Index("ix_annotatie_v2_audit_actie", "actie", "id"))
 
 # --- Werkgebieden (spoor D, levering 1) ---------------------------------------
 # Een werkgebied is een benoemde analyse met bronselecties. Gedeeld tussen analisten, net als de
@@ -361,7 +362,7 @@ begrip_koppelingen = Table("begrip_koppelingen", metadata,
     # als historie leesbaar. `bevestigingen` = [{element_hash, bron_hashes, door, op, motivatie}]: de
     # analist zag de veranderde passage en het begrip klopt nog – de nieuwste is de stand waartegen de
     # actualiteit daarna rekent. Additief, dus `reconcile_schema` zet ze bij.
-    Column("vervangen_door", String(64), nullable=True),
+    Column("vervangen_door", String(64), nullable=True, index=True),
     Column("bevestigingen", _JSON, nullable=True))
 # Een element bewust buiten behandeling (fase F1, dekking): geen begrip nodig, met reden. Gedeeld zoals
 # het werkgebied; terugdraaien is soft (tijdstip), zodat de audit en de rij het besluit bewaren.
@@ -808,48 +809,71 @@ def _ontbrekende_kolommen(sync_conn, tabel: Table) -> list[Column]:
     return [col for col in tabel.columns if col.name not in bestaand]
 
 
+async def bouw_schema() -> None:
+    """Het schema bij de start: tabellen maken en bijwerken, per database één replica tegelijk.
+
+    Zonder slot botsen twee gelijktijdige starts op dezelfde `CREATE TABLE` of `ADD COLUMN`. Een tweede replica
+    wacht hier en vindt daarna niets meer te doen. Eén transactie, want een advisory lock tot het einde daarvan
+    hoeft niemand los te laten, ook niet bij een crash."""
+    async with get_engine().begin() as conn:
+        if conn.dialect.name == "postgresql":
+            await conn.execute(text("SELECT pg_advisory_xact_lock(hashtext('wetsanalyse-schema'))"))
+        await conn.run_sync(metadata.create_all)
+        await _reconcile_in(conn)
+
+
 async def reconcile_schema() -> None:
+    async with get_engine().begin() as conn:
+        await _reconcile_in(conn)
+
+
+def _nullable_in_db(sync_conn, tabel: str, kolom: str) -> bool:
+    return next(c["nullable"] for c in sa_inspect(sync_conn).get_columns(tabel) if c["name"] == kolom)
+
+
+async def _reconcile_in(conn) -> None:
     """Additieve kolom-migratie: voeg kolommen toe die in de tabeldefinitie staan maar in de DB
     ontbreken. `create_all` maakt alleen ontbrekende *tabellen*; zonder deze stap breekt een `SELECT`
     over een nieuw gedefinieerde kolom op een bestaande productie-tabel. **Alleen toevoegen** – nooit
     droppen of typewijzigen (dus dataverlies uitgesloten). Veilig op SQLite én Postgres; draait in de
     lifespan vóór het serveren."""
-    engine = get_engine()
+    engine = conn.engine
     preparer = engine.dialect.identifier_preparer
-    async with engine.begin() as conn:
-        for tabel in metadata.tables.values():
-            for col in await conn.run_sync(_ontbrekende_kolommen, tabel):
-                coltype = col.type.compile(dialect=engine.dialect)
-                ddl = (
-                    f"ALTER TABLE {preparer.format_table(tabel)} "
-                    f"ADD COLUMN {preparer.format_column(col)} {coltype}"
-                )
-                # De server_default hoort mee: zonder DEFAULT krijgen bestaande rijen NULL, en dan
-                # klopt niets wat op die kolom filtert. Een partiële index op `<> ''` sluit NULL
-                # bijvoorbeeld stil uit (NULL <> '' is NULL, niet TRUE) en beschermt dan niets.
-                if col.server_default is not None:
-                    standaard = col.server_default.arg
-                    ddl += f" DEFAULT {standaard!r}" if isinstance(standaard, str) else f" DEFAULT {standaard}"
-                await conn.execute(text(ddl))
-                await _na_kolom(conn, tabel, col)
-        # Indexen komen niet uit `create_all` op een bestaande tabel; ze zijn idempotent aan te
-        # maken en dat is precies wat een unieke constraint op een bestaande productietabel nodig
-        # heeft.
-        for tabel in metadata.tables.values():
-            for index in tabel.indexes:
-                await conn.run_sync(lambda sync_conn, ix=index: ix.create(sync_conn, checkfirst=True))
-        # Een generiek begrip heeft geen werkgebied (ADR-006). Geen kolom erbij maar de enige uitzondering op "alleen
-        # toevoegen": er gaat niets verloren, en SQLite maakt de tabel in de tests vers aan.
-        if engine.dialect.name == "postgresql":
-            for naam in ("begrippen", "begrip_relaties"):
+    for tabel in metadata.tables.values():
+        for col in await conn.run_sync(_ontbrekende_kolommen, tabel):
+            coltype = col.type.compile(dialect=engine.dialect)
+            ddl = (
+                f"ALTER TABLE {preparer.format_table(tabel)} "
+                f"ADD COLUMN {preparer.format_column(col)} {coltype}"
+            )
+            # De server_default hoort mee: zonder DEFAULT krijgen bestaande rijen NULL, en dan
+            # klopt niets wat op die kolom filtert. Een partiële index op `<> ''` sluit NULL
+            # bijvoorbeeld stil uit (NULL <> '' is NULL, niet TRUE) en beschermt dan niets.
+            if col.server_default is not None:
+                standaard = col.server_default.arg
+                ddl += f" DEFAULT {standaard!r}" if isinstance(standaard, str) else f" DEFAULT {standaard}"
+            await conn.execute(text(ddl))
+            await _na_kolom(conn, tabel, col)
+    # Indexen komen niet uit `create_all` op een bestaande tabel; ze zijn idempotent aan te
+    # maken en dat is precies wat een unieke constraint op een bestaande productietabel nodig
+    # heeft.
+    for tabel in metadata.tables.values():
+        for index in tabel.indexes:
+            await conn.run_sync(lambda sync_conn, ix=index: ix.create(sync_conn, checkfirst=True))
+    # Een generiek begrip heeft geen werkgebied (ADR-006). Geen kolom erbij maar de enige uitzondering op "alleen
+    # toevoegen": er gaat niets verloren, en SQLite maakt de tabel in de tests vers aan.
+    if engine.dialect.name == "postgresql":
+        for naam in ("begrippen", "begrip_relaties"):
+            # Alleen als het nog moet: ook een ALTER zonder effect neemt een exclusief tabelslot.
+            if not await conn.run_sync(_nullable_in_db, naam, "werkgebied_id"):
                 await conn.execute(text(f"ALTER TABLE {naam} ALTER COLUMN werkgebied_id DROP NOT NULL"))
-        # Het besluit *later* bestaat niet meer (sinds spoor J kies je per deelvraag): een oude rij is een voorstel.
-        # Idempotent; daarna kent de code de waarde niet meer.
-        if await conn.run_sync(lambda c: sa_inspect(c).has_table("bron_kandidaten")):
-            await conn.execute(text("UPDATE bron_kandidaten SET status = 'voorgesteld', besloten_door = NULL, "
-                                    "besloten_op = NULL WHERE status = 'later'"))
-        if await conn.run_sync(lambda c: sa_inspect(c).has_table("bron_kandidaat_deelvragen")):
-            await conn.execute(text("DELETE FROM bron_kandidaat_deelvragen WHERE status = 'later'"))
+    # Het besluit *later* bestaat niet meer (sinds spoor J kies je per deelvraag): een oude rij is een voorstel.
+    # Idempotent; daarna kent de code de waarde niet meer.
+    if await conn.run_sync(lambda c: sa_inspect(c).has_table("bron_kandidaten")):
+        await conn.execute(text("UPDATE bron_kandidaten SET status = 'voorgesteld', besloten_door = NULL, "
+                                "besloten_op = NULL WHERE status = 'later'"))
+    if await conn.run_sync(lambda c: sa_inspect(c).has_table("bron_kandidaat_deelvragen")):
+        await conn.execute(text("DELETE FROM bron_kandidaat_deelvragen WHERE status = 'later'"))
 
 
 async def _na_kolom(conn, tabel, col) -> None:
