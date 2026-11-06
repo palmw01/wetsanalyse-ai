@@ -100,7 +100,14 @@ try {
   await invoer.click();
   await invoer.pressSequentially("annoteer artikel 9 IW 1990");
   assert.equal(await invoer.inputValue(), "annoteer artikel 9 IW 1990");
-  await page.getByRole("button", { name: "Versturen", exact: true }).click();
+  // Eén regel tekst staat op het midden van de knop ernaast: beide zijn even hoog en onderaan uitgelijnd.
+  const midden = async (el) => {
+    const r = await el.boundingBox();
+    return r.y + r.height / 2;
+  };
+  const verstuurKnop = page.getByRole("button", { name: "Versturen", exact: true });
+  assert.equal(await midden(invoer), await midden(verstuurKnop), "invoerveld en knop lopen niet gelijk");
+  await verstuurKnop.click();
 
   // De keuzekaart: drie leden met hun stand, focus in de lijst.
   const lijst = page.getByRole("listbox", { name: "Kies leden om te annoteren" });
