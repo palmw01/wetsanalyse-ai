@@ -264,3 +264,8 @@ def test_label_hangt_niet_af_van_de_volgorde_van_de_rijen():
     plek = {"van": ONE, "naar": STUB, "stub": "BWBR1", "anker": "artikel 8"}
     naam = {"van": TWO, "naar": STUB, "stub": "BWBR1", "anker": "Algemene termijnenwet"}
     assert _label(plek, naam) == _label(naam, plek) == "Algemene termijnenwet"
+
+
+def test_citeertitel_staat_onder_doel():
+    assert samenhang.citeertitel_van({"doel": {"citeertitel": "Awb"}}) == "Awb"
+    assert samenhang.citeertitel_van({"doel": {}}) == ""
