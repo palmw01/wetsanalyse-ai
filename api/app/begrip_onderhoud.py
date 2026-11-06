@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query
 
 from . import begrip_onderhoud_store as store, werkgebied_store
 from .auth import require_client
-from .begrip_onderhoud_contracts import Bevestiging, BuitenBehandeling, Herkoppeling
+from .begrip_onderhoud_contracts import Bevestiging, Bevestigingen, BuitenBehandeling, Herkoppeling
 from .routers.auth import actieve_userid
 from .werkgebieden import resolve_bron
 
@@ -25,6 +25,12 @@ async def post_herkoppelen(werkgebied_id: str, begrip_id: str, koppeling_id: str
                            actor: str = Depends(actieve_userid)):
     return await store.herkoppel(await werkgebied_store.haal(werkgebied_id), begrip_id, koppeling_id, req, actor,
                                  resolve_bron)
+
+
+@router.post("/begrippen/{begrip_id}/koppelingen/bevestigen")
+async def post_alle_bevestigen(werkgebied_id: str, begrip_id: str, req: Bevestigingen,
+                               actor: str = Depends(actieve_userid)):
+    return await store.bevestig_alle(await werkgebied_store.haal(werkgebied_id), begrip_id, req, actor, resolve_bron)
 
 
 @router.post("/begrippen/{begrip_id}/koppelingen/{koppeling_id}/bevestigen")

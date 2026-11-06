@@ -1039,6 +1039,21 @@ export interface Koppeling {
   vervangt?: { koppeling_id: string; element_id: string; bewijs: Bewijs; vervangen_op: string | null };
 }
 
+/** Het antwoord op een besluit over koppelingen: wat er veranderde, niet de hele kaart (`koppelstand` in de api). */
+export interface KoppelStand {
+  id: string;
+  status: Begrip["status"];
+  revisie: number;
+  gewijzigd: string;
+  geaccordeerd_door: string | null;
+  geaccordeerd_op: string | null;
+  geaccordeerd_revisie: number | null;
+  accorderen: Begrip["accorderen"];
+  aandachtspunten: Begrip["aandachtspunten"];
+  koppelingen: (Pick<Koppeling, "id" | "element_id" | "rol" | "motivatie" | "beoordeling" | "beoordeeld_door" | "beoordeeld_op"
+    | "actualiteit" | "lifecycle_nu" | "annotatie_beoordeeld"> & { bevestigingen: number })[];
+}
+
 export interface KoppelBevestiging {
   element_hash: string;
   tekst: string;
@@ -1414,6 +1429,8 @@ export interface AkkoordInvoer {
   kandidaat_id?: string;
   /** Spoor H4: alle twijfelvragen tussen de gekozen groepen in één keer "samen". */
   kandidaat_ids?: string[];
+  /** Waarom de jurist accordeert. Zonder reden wordt het begrip een concept. */
+  reden?: string;
 }
 
 export interface AkkoordAntwoord {

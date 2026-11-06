@@ -99,6 +99,7 @@ function muteer(route, b, verwacht, actie, detail, doe) {
   return route.fulfill({ json: uit(b) });
 }
 
+const bulkOp = [];
 await page.route("**/api/**", async (route) => {
   const req = route.request(), url = new URL(req.url()), p = url.pathname, m = req.method();
   if (p.startsWith("/api/auth/")) return route.continue();
@@ -121,7 +122,7 @@ await page.route("**/api/**", async (route) => {
     return route.fulfill({ status: 200, headers: { "Content-Type": "text/csv", "Content-Disposition": 'attachment; filename="begrippen.csv"' },
       body: ["begrip,status,passage,vindplaats", ...rijen].join("\n") });
   }
-  const pm = p.match(/^\/api\/werkgebieden\/wg1\/begrippen\/(b\d+)(?:\/(\w+))?(?:\/(k\d+))?$/);
+  const pm = p.match(/^\/api\/werkgebieden\/wg1\/begrippen\/(b\d+)(?:\/(\w+))?(?:\/(k\d+|beoordelen))?$/);
   if (pm) {
     const b = begrippen.get(pm[1]), deel = pm[2], kid = pm[3];
     if (!deel && m === "GET") return route.fulfill({ json: uit(b) });
@@ -139,6 +140,11 @@ await page.route("**/api/**", async (route) => {
       });
     }
     if (deel === "revisies") return route.fulfill({ json: { revisies: b.revisies.map((r) => ({ ...r, status: b.status, inhoud: b.inhoud, tijdstip: nu })) } });
+    if (kid === "beoordelen")
+      return muteer(route, b, body.verwachte_revisie, "koppeling-gewijzigd", { beoordeling: body.beoordeling, koppelingen: body.koppeling_ids }, () => {
+        bulkOp.push(body.koppeling_ids.length);
+        for (const k of b.koppelingen) if (body.koppeling_ids.includes(k.id)) Object.assign(k, { beoordeling: body.beoordeling, beoordeeld_door: "browser-test" });
+      });
     if (deel === "koppelingen" && !kid)
       return muteer(route, b, body.verwachte_revisie, "begrip-gekoppeld", { element_ids: body.element_ids }, () => {
         const fout = alPrimair(b.id, body.element_ids, body.rol);
@@ -152,7 +158,7 @@ await page.route("**/api/**", async (route) => {
         if (body.rol) k.rol = body.rol;
       });
     if (deel === "accorderen")
-      return muteer(route, b, body.verwachte_revisie, "begrip-geaccordeerd", {}, () => {
+      return muteer(route, b, body.verwachte_revisie, "begrip-geaccordeerd", { reden: body.reden }, () => {
         const pt = poort(b);
         if (!pt.mag) return { status: 409, detail: { fout: "poort", redenen: pt.redenen, melding: "Nog niet te accorderen." } };
         Object.assign(b, { status: "geaccordeerd", geaccordeerd_door: "browser-test", geaccordeerd_op: nu, geaccordeerd_revisie: b.revisie + 1 });
@@ -303,14 +309,21 @@ try {
   await kaart().waitFor();
 
   // 3. De passages beoordelen; de jurist keurt intussen de laatste annotatie goed.
-  for (let i = 0; i < 3; i++) {
-    if (i === 2) elementen.e2.lifecycle = "human_approved";
-    await page.getByRole("button", { name: /^Akkoord met “/ }).first().click();
-    await page.getByRole("button", { name: "Akkoord?" }).click();
-    await page.waitForFunction((n) => [...document.querySelectorAll("button")]
-      .filter((b) => b.getAttribute("aria-label")?.startsWith("Akkoord met ")).length === n, 2 - i);
-  }
+  const openPassages = (n) => page.waitForFunction((n) => [...document.querySelectorAll("button")]
+    .filter((b) => b.getAttribute("aria-label")?.startsWith("Akkoord met ")).length === n, n);
+  await page.getByRole("button", { name: /^Akkoord met “/ }).first().click();
+  await page.getByRole("button", { name: "Akkoord?" }).click();
+  await openPassages(2);
+  // De rest in één handeling: één verzoek, één revisie.
+  elementen.e2.lifecycle = "human_approved";
+  await page.getByRole("button", { name: "Alle open akkoord (2)" }).click();
+  await page.getByRole("button", { name: "2 akkoord?" }).click();
+  await openPassages(0);
+  assert.deepEqual(bulkOp, [2]);
   await zie("Alles is er");
+  // Accorderen vraagt een reden: zonder blijft de knop uit, en de reden gaat mee.
+  assert.equal(await page.getByRole("button", { name: "Accorderen" }).isDisabled(), true);
+  await page.getByLabel("Reden van accorderen").fill("Getoetst aan de bron.");
   await page.getByRole("button", { name: "Accorderen" }).click();
   await zie("Geaccordeerd door browser-test");
   await foto("begrip-geaccordeerd");

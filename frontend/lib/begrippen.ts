@@ -4,12 +4,14 @@
 import { isApiError } from "./api";
 import type {
   Actualiteit,
+  Begrip,
   BegripInhoud,
   BegripRevisie,
   BegripSamenvatting,
   DefinitieHerkomst,
   KoppelBeoordeling,
   KoppelRol,
+  KoppelStand,
   Koppeling,
   VoorbeeldOordeel,
 } from "./types";
@@ -179,6 +181,14 @@ const ACTIE: Record<string, string> = {
   "begrip-opgevolgd": "Opvolger gemaakt (nieuwe betekenis)",
 };
 
+/** De kaart met de stand na een besluit erover. `null`: de stand noemt iets dat de kaart niet heeft (een nieuwe passage,
+ *  een nieuwe bewijsstand), en dan hoort de kaart opnieuw opgehaald te worden. */
+export function metKoppelstand(begrip: Begrip, stand: KoppelStand): Begrip | null {
+  const oud = new Map(begrip.koppelingen.map((k) => [k.id, k]));
+  if (stand.koppelingen.some((k) => !oud.has(k.id) || (oud.get(k.id)?.bevestigingen?.length ?? 0) !== k.bevestigingen)) return null;
+  return { ...begrip, ...stand, koppelingen: stand.koppelingen.map(({ bevestigingen: _, ...k }) => ({ ...oud.get(k.id)!, ...k })) };
+}
+
 /** Eén revisie als zin, voor de historie op de kaart. */
 export function revisieZin(r: Pick<BegripRevisie, "actie" | "detail">): string {
   const d = r.detail ?? {};
@@ -196,9 +206,13 @@ export function revisieZin(r: Pick<BegripRevisie, "actie" | "detail">): string {
     const veld = typeof d.veld === "string" ? (VELD[d.veld] ?? d.veld).toLowerCase() : "";
     return `${d.aangepast ? "Aangepast overgenomen" : "Overgenomen"} van Lex${veld ? `: ${veld}` : ""}`;
   }
+  const aantal = Array.isArray(d.koppelingen) ? d.koppelingen.length : 0;
   if (r.actie === "koppeling-gewijzigd" && typeof d.beoordeling === "string") {
-    return `Passage beoordeeld: ${BEOORDELING_LABEL[d.beoordeling as KoppelBeoordeling] ?? d.beoordeling}`;
+    const uitkomst = BEOORDELING_LABEL[d.beoordeling as KoppelBeoordeling] ?? d.beoordeling;
+    return aantal ? `${aantal === 1 ? "Passage" : `${aantal} passages`} beoordeeld: ${uitkomst}` : `Passage beoordeeld: ${uitkomst}`;
   }
+  if (r.actie === "koppeling-bevestigd" && aantal > 1) return `${aantal} veranderde passages bevestigd`;
+  if (r.actie === "begrip-geaccordeerd" && typeof d.reden === "string" && d.reden) return `Geaccordeerd: ${d.reden}`;
   return ACTIE[r.actie] ?? r.actie;
 }
 

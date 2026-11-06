@@ -129,6 +129,7 @@ describe("isWerkgebiedRoute", async () => {
     [["w", "begrippen", "b", "koppelingen"]], [["w", "begrippen", "b", "accorderen"]],
     [["w", "begrippen", "b", "heropenen"]], [["w", "begrippen", "b", "revisies"]],
     [["w", "begrippen", "b", "koppelingen", "k"]],
+    [["w", "begrippen", "b", "koppelingen", "beoordelen"]], [["w", "begrippen", "b", "koppelingen", "bevestigen"]],
     [["w", "begrippen-runs", "laatste"]], [["w", "begrippen-runs", "r"]], [["w", "begrippen-runs", "r", "vragen", "P1"]],
     [["w", "groepen"]], [["w", "groepen", "overnemen"]], [["w", "groepen", "akkoord"]], [["w", "groepen", "G1", "koppelen"]],
     [["w", "groepen", "G1", "afwijzen"]], [["w", "groepen", "G1", "parkeren"]], [["w", "groepen", "G1", "heropenen"]],

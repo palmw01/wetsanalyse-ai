@@ -9,7 +9,9 @@ from fastapi import APIRouter, Depends, Query, Response
 
 from . import begrip_projectie, begrip_relatie_store, begrip_store as store, werkgebied_store
 from .auth import require_client
-from .begrip_contracts import BegripInvoer, BegripWijziging, GebruikInvoer, KoppelInvoer, KoppelWijziging, Revisie
+from .begrip_contracts import (
+    Accordering, BegripInvoer, BegripWijziging, GebruikInvoer, KoppelBeoordelingen, KoppelInvoer, KoppelWijziging, Revisie,
+)
 from .routers.auth import actieve_userid
 from .werkgebieden import resolve_bron
 
@@ -105,6 +107,13 @@ async def post_koppelingen(werkgebied_id: str, begrip_id: str, req: KoppelInvoer
     return await store.koppel(await werkgebied_store.haal(werkgebied_id), begrip_id, req, actor, resolve_bron)
 
 
+@router.post("/{begrip_id}/koppelingen/beoordelen")
+async def post_koppelingen_beoordelen(werkgebied_id: str, begrip_id: str, req: KoppelBeoordelingen,
+                                      actor: str = Depends(actieve_userid)):
+    """Dezelfde beoordeling op meer koppelingen, in één revisie: alles of niets."""
+    return await store.beoordeel_koppelingen(werkgebied_id, begrip_id, req, actor)
+
+
 @router.patch("/{begrip_id}/koppelingen/{koppeling_id}")
 async def patch_koppeling(werkgebied_id: str, begrip_id: str, koppeling_id: str, req: KoppelWijziging,
                           actor: str = Depends(actieve_userid)):
@@ -118,8 +127,8 @@ async def delete_koppeling(werkgebied_id: str, begrip_id: str, koppeling_id: str
 
 
 @router.post("/{begrip_id}/accorderen")
-async def post_accorderen(werkgebied_id: str, begrip_id: str, req: Revisie, actor: str = Depends(actieve_userid)):
-    return await store.accordeer(werkgebied_id, begrip_id, req.verwachte_revisie, actor)
+async def post_accorderen(werkgebied_id: str, begrip_id: str, req: Accordering, actor: str = Depends(actieve_userid)):
+    return await store.accordeer(werkgebied_id, begrip_id, req.verwachte_revisie, req.reden, actor)
 
 
 @router.post("/{begrip_id}/heropenen")

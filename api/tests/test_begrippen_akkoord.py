@@ -43,7 +43,7 @@ TOELICHTING = "Alleen de alfa uit de eerste bepaling."
 
 
 async def _akkoord(client, wg, **body):
-    return await client.post(f"/v1/werkgebieden/{wg['id']}/groepen/akkoord", json={"naam": "Alfa", **body})
+    return await client.post(f"/v1/werkgebieden/{wg['id']}/groepen/akkoord", json={"naam": "Alfa", "reden": "Getoetst", **body})
 
 
 async def _groepen(client, wg) -> dict:
@@ -119,7 +119,7 @@ async def test_onbeoordeelde_annotaties_laten_een_concept_achter_dat_later_kan(c
     await _keur_goed(ids["alfa1"], ids["alfa2"])
     b = uit["begrip"]
     r = await client.post(f"/v1/werkgebieden/{wg['id']}/begrippen/{b['id']}/accorderen",
-                          json={"verwachte_revisie": b["revisie"]})
+                          json={"reden": "Getoetst", "verwachte_revisie": b["revisie"]})
     assert r.status_code == 200, r.text
     assert r.json()["status"] == "geaccordeerd"
 
@@ -253,3 +253,13 @@ def test_de_context_volgt_de_concept_kaart_van_graph_qa():
                 "bronnen": [{"bron_iri": "x", "label": "Lid 1"}, {"bron_iri": "y", "label": ""}]}
     assert begrippen_run_store.context_uit(manifest, ["a", "b", "c"], "Lid 3") == \
         "Komt voor in Lid 1; y. Wettelijke definitie in Lid 3."
+
+
+async def test_een_akkoord_zonder_reden_blijft_een_concept(client):
+    """Accorderen zonder reden bestaat niet, ook niet in één handeling met het voorstel."""
+    ids, wg, _ = await _voorstel(client, lambda ids: _alfa(ids, definitie="Alfa Alfa", definitie_vindplaats=LID1))
+    await _keur_goed(ids["alfa1"], ids["alfa2"])
+    r = await _akkoord(client, wg, groep_ids=["Gaaa111"], reden="  ")
+    assert r.status_code == 201, r.text
+    assert r.json()["geaccordeerd"] is False and r.json()["begrip"]["status"] == "concept"
+    assert "De reden van het accorderen ontbreekt." in r.json()["poort"]["redenen"]

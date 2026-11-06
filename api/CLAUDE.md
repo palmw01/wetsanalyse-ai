@@ -382,6 +382,12 @@ spoor D (*Werkgebied als node*).
 - **Een 412 draagt een `melding`**, net als de 409's (`al_primair`, `al_gekoppeld`, `poort`): de
   werkplek toont die tekst waar hij de fout niet zelf afhandelt, in plaats van ruwe JSON. Dat geldt ook
   voor de werkgebieden.
+- **Een besluit over koppelingen geeft de stand, niet de kaart** (`begrip_store.koppelstand`): koppelen, wijzigen, losmaken,
+  herkoppelen en bevestigen antwoorden met status, revisie, poort en per koppeling de rol en beoordeling, zonder inhoud en
+  bewijs. Anders wordt een reeks besluiten kwadratisch in het aantal passages. De werkplek legt de stand over de kaart die
+  ze heeft (`metKoppelstand`) en haalt hem alleen opnieuw op bij een nieuwe passage of bewijsstand.
+- **Bulk op koppelingen**: `POST …/koppelingen/beoordelen` en `…/koppelingen/bevestigen` (hoogstens 500), in één revisie
+  en één auditregel met `koppelingen`, alles of niets. Wat er al zo staat telt niet mee; niets te doen is geen revisie.
 - **Per begrip één koppeling per element en rol.** Bij koppelen idempotent; een rol ombuigen naar een
   rol die dat element bij dit begrip al heeft geeft 409 `al_gekoppeld`. Een wijziging die niets
   verandert, is geen revisie.
@@ -403,7 +409,10 @@ spoor D (*Werkgebied als node*).
   zonder geeft 409 `{fout: "poort", redenen}`. Voorwaarden: definitie, toelichting (`context`; de gegenereerde
   vindplaatsregel "Komt voor in …" telt niet, `eigen_toelichting`, S6), minstens één aanduidende passage, en elke dragende koppeling (`duiding`/`definitie`, niet
   afgewezen) beoordeeld, actueel en op een door een jurist beoordeelde annotatie. Een voorbeeld is
-  geen voorwaarde. Elke analist mag accorderen; de revisie en de audit leggen vast wie.
+  geen voorwaarde. Elke analist mag accorderen; de revisie en de audit leggen vast wie en waarom: `Accordering.reden`
+  is verplicht (422 zonder), staat in het revisiedetail en de audit, en `accordeer_in` weigert zonder reden. Een akkoord op
+  een voorstel zonder reden blijft dus een concept met beoordeelde passages; alleen het opnieuw accorderen na koppelen vanuit
+  de review draagt een vaste zin, omdat er dan al een geaccordeerd begrip lag.
 - **Verwijderen is echt wissen** (`DELETE …/begrippen/{id}`, `begrip_store.verwijder`/`wis_begrippen`):
   het begrip met zijn revisies, koppelingen, relaties (beide richtingen), voorstellen en kaartruns
   (`BEGRIP_TABELLEN`), en zijn plek bij de deelvragen; een betekenisgroep houdt haar uitkomst en verliest
