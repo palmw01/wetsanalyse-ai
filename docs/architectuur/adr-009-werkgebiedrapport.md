@@ -33,3 +33,14 @@ Bewust anders, want een rapport is geen chatantwoord:
 ## Gevolgen
 
 Een JSON-export voor de gebruiker vraagt `formaat=json`, een schemabestand uit `Rapport.model_json_schema()` en een knop, zonder wijziging aan het document. Een nieuw veld hoort in het contract én in de tekstlaag; de dekkingstest faalt als het niet in de regels terechtkomt.
+
+## Aanvulling (nov 2026): opmaak, indeling en graaf
+
+**Status:** aangenomen, 7 nov 2026. Het rapport moet er professioneel uitzien en een jurist moet het kunnen overdragen. De lijn hierboven blijft staan: één document, en de uitvoer ziet alleen het document.
+
+- **Versie 2 (`werkgebied-rapport-v2`).** Nieuw zijn `document` (titel, kenmerk `WG-<id[:8]>-r<revisie>`, `concept` zolang het werkgebied niet `afgerond` is), `samenvatting` (kerncijfers als `{code, aantal}` in een vaste volgorde) en `verantwoording.besluiten` (het besluitenlog: de beslissende audit-acties met datum, wie, onderwerp en reden; het werk van Lex zelf staat alleen geteld). Het JSON-schema staat in `api/app/schemas/werkgebied-rapport-v2.schema.json`, gemaakt met `werkgebied_rapport.schrijf_schema()` en bewaakt door een test. Er is geen compat-laag naar v1, want niemand buiten de api las het.
+- **Een documentstatus wordt niet verzonnen.** Het titelblad en het colofon noemen de status van het werkgebied en "concept" volgt uit een code. Het woord "definitief" staat er niet, want daarover beslist geen code.
+- **Indeling.** Vooraan staan het titelblad, het colofon, de inhoud, de samenvatting, een leeswijzer, het werkgebied, de deelvragen, de analyse per bepaling en een begrippenlijst. Bijlagen met letters bevatten de naslag: de begripskaarten, het bronnenregister, de contextbepalingen, de samenhang, wat niet is meegenomen en de verantwoording. Annotatie en wettekst blijven bij elkaar. Alleen de contextbepalingen zonder markering gaan naar een bijlage.
+- **Graafgegevens komen via de api in het document**, net als de toestanden: de regeling (WTI-soort, verantwoordelijke, toestand), de opbouw van elke bepaling en de verwijzingen vanuit het dossier. Dat gebeurt best-effort met het signaal `graaf_onvolledig`, alleen met strikt gelezen IRI's in de query, en altijd met een expliciete sortering.
+- **Toegankelijkheid.** Reportlab (open source) maakt geen tagged PDF, dus volledige PDF/UA-1 is met deze renderer niet haalbaar. Het rapport doet wat wél kan: `/Lang nl-NL`, de titel in het venster, metadata, bladwijzers, ingesloten letters, één kolom en contrast volgens WCAG AA. Kleur is nooit de enige drager. Een overstap naar een renderer met tags (WeasyPrint of ReportLab PLUS) vraagt een eigen ADR. De laag `(stijl, tekst)` houdt die overstap beperkt.
+- **Een regel mag spans dragen.** `GEMARKEERD` is een citaat met markeringen als `(start, eind, nr, klasse)` in codepoints. Dat is de enige regel met een derde element, zodat de andere vormen niet veranderen.
