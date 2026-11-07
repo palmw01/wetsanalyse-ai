@@ -20,9 +20,16 @@ from .jas_klassen import JAS_KLASSE_KLEUREN, JAS_TEKSTKLEUR
 _FONTS = Path(__file__).parent / "fonts"
 _LETTERS = {"Fira": "FiraSans-Regular.ttf", "Fira-Italic": "FiraSans-Italic.ttf", "Fira-SemiBold": "FiraSans-SemiBold.ttf",
             "DejaVu": "DejaVuSans.ttf", "DejaVu-Mono": "DejaVuSansMono.ttf"}
-_LINTBLAUW = "#154273"
-_GRIJS = "#535353"
-_ROOD = "#A1132B"
+LINTBLAUW = "#154273"
+TEKST = "#1A1A1A"
+GRIJS = "#535353"
+ROOD = "#A1132B"
+LET_OP_VLAK = "#FBEAEC"
+LET_OP_TEKST = "#6E0A1C"
+HAARLIJN = "#B4C3D3"
+KLEURPAREN = {"tekst": (TEKST, "#FFFFFF"), "meta": (GRIJS, "#FFFFFF"), "koppen": (LINTBLAUW, "#FFFFFF"),
+              "let op": (LET_OP_TEKST, LET_OP_VLAK)}
+"""Elke tekstkleur op haar achtergrond; een test eist WCAG AA (4,5:1). De JAS-kleuren toetst hij met `JAS_TEKSTKLEUR`."""
 
 MARKERING = "Markering:"
 """Voorvoegsel van een stijl: `Markering:<JAS-klasse>` is de kop van een markering in de kleur van die klasse."""
@@ -62,50 +69,60 @@ def _stijlen() -> dict:
     from reportlab.lib.colors import HexColor
     from reportlab.lib.styles import ParagraphStyle
 
-    basis = ParagraphStyle("BodyText", fontName="Fira", fontSize=10, leading=14, spaceAfter=5, textColor=HexColor("#1A1A1A"))
-    meta = ParagraphStyle("Meta", parent=basis, fontSize=8.5, leading=11.5, textColor=HexColor(_GRIJS), spaceAfter=4)
-    kop = dict(parent=basis, fontName="Fira-SemiBold", textColor=HexColor(_LINTBLAUW), keepWithNext=1)
+    basis = ParagraphStyle("BodyText", fontName="Fira", fontSize=10, leading=14, spaceAfter=5, textColor=HexColor(TEKST))
+    meta = ParagraphStyle("Meta", parent=basis, fontSize=8.5, leading=11.5, textColor=HexColor(GRIJS), spaceAfter=4)
+    kop = dict(parent=basis, fontName="Fira-SemiBold", textColor=HexColor(LINTBLAUW), keepWithNext=1)
     uit = {"BodyText": basis, "Meta": meta,
            "Title": ParagraphStyle("Title", **kop, fontSize=24, leading=29, spaceAfter=12),
-           "Subtitle": ParagraphStyle("Subtitle", parent=basis, fontSize=13, leading=18, spaceAfter=14),
-           "Heading1": ParagraphStyle("Heading1", **kop, fontSize=18, leading=23, spaceAfter=10),
-           "Heading2": ParagraphStyle("Heading2", **kop, fontSize=13.5, leading=18, spaceBefore=13, spaceAfter=6),
-           "Heading3": ParagraphStyle("Heading3", **kop, fontSize=11.5, leading=15, spaceBefore=11, spaceAfter=4),
-           BEGRIP: ParagraphStyle(BEGRIP, **kop, fontSize=11.5, leading=15, spaceBefore=11, spaceAfter=4),
-           "Heading4": ParagraphStyle("Heading4", **kop, fontSize=10, leading=14, spaceBefore=7, spaceAfter=3),
-           "Citaat": ParagraphStyle("Citaat", parent=basis, leftIndent=11, borderPadding=(0, 0, 0, 7),
-                                    fontName="Fira", spaceAfter=5),
-           "Waarschuwing": ParagraphStyle("Waarschuwing", parent=basis, fontName="Fira-SemiBold",
-                                          textColor=HexColor(_ROOD)),
-           "Voorstel": ParagraphStyle("Voorstel", parent=basis, fontName="Fira-Italic"),
+           "Subtitle": ParagraphStyle("Subtitle", parent=basis, fontSize=13, leading=18, spaceAfter=14, textColor=HexColor(GRIJS)),
+           "Heading1": ParagraphStyle("Heading1", **kop, fontSize=18, leading=23, spaceAfter=12),
+           "Heading2": ParagraphStyle("Heading2", **kop, fontSize=13.5, leading=18, spaceBefore=14, spaceAfter=6),
+           "Heading3": ParagraphStyle("Heading3", **kop, fontSize=11.5, leading=15, spaceBefore=12, spaceAfter=4),
+           BEGRIP: ParagraphStyle(BEGRIP, **kop, fontSize=11.5, leading=15, spaceBefore=12, spaceAfter=4),
+           "Heading4": ParagraphStyle("Heading4", **kop, fontSize=10, leading=14, spaceBefore=8, spaceAfter=3),
+           # De lijn links tekent `_Lijn`; de inspringing maakt er ruimte voor.
+           "Citaat": ParagraphStyle("Citaat", parent=basis, leftIndent=12, spaceBefore=2, spaceAfter=7),
+           # Een kader in plaats van vette rode tekst: opvallend, maar het overheerst de pagina niet.
+           "Waarschuwing": ParagraphStyle("Waarschuwing", parent=basis, fontSize=9.5, leading=13, textColor=HexColor(LET_OP_TEKST),
+                                          backColor=HexColor(LET_OP_VLAK), borderColor=HexColor(ROOD), borderWidth=0.6,
+                                          borderPadding=(5, 7, 5, 7), borderRadius=2, leftIndent=7, rightIndent=7,
+                                          spaceBefore=9, spaceAfter=11),
+           "Voorstel": ParagraphStyle("Voorstel", parent=basis, fontName="Fira-Italic", textColor=HexColor(GRIJS)),
            "Code": ParagraphStyle("Code", parent=basis, fontName="DejaVu-Mono", fontSize=7.5, leading=10),
            "Markering": ParagraphStyle("Markering", parent=basis, fontName="Fira-SemiBold", fontSize=9.5, leading=13,
-                                       borderPadding=(2, 4, 2, 4), spaceBefore=7, spaceAfter=6, keepWithNext=1,
+                                       borderPadding=(2, 4, 2, 4), spaceBefore=8, spaceAfter=6, keepWithNext=1,
                                        textColor=HexColor(JAS_TEKSTKLEUR))}
     for klasse, (kleur, _rand) in JAS_KLASSE_KLEUREN.items():
         uit[MARKERING + klasse] = ParagraphStyle(klasse, parent=uit["Markering"], backColor=HexColor(kleur))
     return uit
 
 
-def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor: list[dict] | None = None) -> bytes:
+def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor: list[dict] | None = None, *,
+           onderwerp: str = "", auteur: str = "Lex", trefwoorden: str = "", paginas: list[dict] | None = None) -> bytes:
     """De regels als PDF. Met een `INHOUD`-regel een inhoudsopgave; koppen worden altijd bladwijzers.
 
+    Elke pagina behalve de eerste krijgt een kopregel (`titel` links, het lopende hoofdstuk rechts) en elke pagina een
+    voetregel (`voet` links, "Pagina n van N" rechts). Het document draagt taal en titel (`/Lang`, `DisplayDocTitle`).
+
     `spoor` krijgt per alinea `{pagina, stijl, tekst, bovenaan, inhoud}`, van de laatste zetronde: zo is de opbouw van de
-    pagina's te toetsen zonder de PDF terug te lezen (`tekst` en `inhoud` alleen bij een kop)."""
+    pagina's te toetsen zonder de PDF terug te lezen (`tekst` en `inhoud` alleen bij een kop). `paginas` krijgt per
+    pagina `{pagina, kopregel, voetregel}`."""
     from reportlab.lib.colors import HexColor
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib.units import mm
-    from reportlab.platypus import BaseDocTemplate, Frame, KeepTogether, PageBreakIfNotEmpty, PageTemplate, Paragraph
+    from reportlab.pdfgen.canvas import Canvas
+    from reportlab.platypus import BaseDocTemplate, Flowable, Frame, KeepTogether, PageBreakIfNotEmpty, PageTemplate, Paragraph, TableStyle
     from reportlab.platypus.tableofcontents import TableOfContents
 
     _registreer()
     stijlen = _stijlen()
     verhaal: list = []
     teller = {"kop": 0}
+    links, rechts, boven, onder = 25 * mm, 20 * mm, 25 * mm, 20 * mm
 
     class Kop(Paragraph):
-        """Een kop die bij het zetten zijn plek doorgeeft aan bladwijzers en inhoudsopgave."""
+        """Een kop die bij het zetten zijn plek doorgeeft aan bladwijzers, inhoudsopgave en kopregel."""
 
         def __init__(self, tekst, stijl, platte_tekst, niveau, in_inhoud):
             super().__init__(tekst, stijl)
@@ -113,22 +130,104 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
             teller["kop"] += 1
             self.sleutel = f"kop-{teller['kop']}"
 
+    class Lijn(Flowable):
+        """Een citaat met een lintblauwe lijn links, ook als het over een pagina breekt."""
+
+        def __init__(self, alinea):
+            super().__init__()
+            self.alinea = alinea
+            self.style = alinea.style                    # voor het spoor en voor de ruimte ervoor en erna
+
+        def wrap(self, breedte, hoogte):
+            self.breedte, self.hoogte = self.alinea.wrap(breedte, hoogte)
+            return self.breedte, self.hoogte
+
+        def split(self, breedte, hoogte):
+            return [Lijn(d) for d in self.alinea.split(breedte, hoogte)]
+
+        def getSpaceBefore(self):
+            return self.alinea.getSpaceBefore()
+
+        def getSpaceAfter(self):
+            return self.alinea.getSpaceAfter()
+
+        def draw(self):
+            self.canv.saveState()
+            self.canv.setStrokeColor(HexColor(LINTBLAUW))
+            self.canv.setLineWidth(2)
+            self.canv.line(1, 0, 1, self.hoogte)
+            self.canv.restoreState()
+            self.alinea.drawOn(self.canv, 0, 0)
+
+    def kader(canvas, doc):
+        """Kop- en voetregel; de voetregel krijgt zijn totaal pas bij het opslaan (`Teller`)."""
+        canvas.saveState()
+        kopregel = ""
+        if doc.page > 1:
+            kopregel = " · ".join(filter(None, [titel[:70], doc.hoofdstuk]))
+            canvas.setFont("Fira", 8)
+            canvas.setFillColor(HexColor(GRIJS))
+            canvas.drawString(links, A4[1] - 14 * mm, opgemaakt_plat(titel[:70]))
+            canvas.drawRightString(A4[0] - rechts, A4[1] - 14 * mm, opgemaakt_plat(doc.hoofdstuk[:70]))
+            canvas.setStrokeColor(HexColor(HAARLIJN))
+            canvas.setLineWidth(0.5)
+            canvas.line(links, A4[1] - 16 * mm, A4[0] - rechts, A4[1] - 16 * mm)
+        canvas.setStrokeColor(HexColor(HAARLIJN))
+        canvas.setLineWidth(0.5)
+        canvas.line(links, 14 * mm, A4[0] - rechts, 14 * mm)
+        canvas.setFont("Fira", 8)
+        canvas.setFillColor(HexColor(GRIJS))
+        canvas.drawString(links, 10 * mm, opgemaakt_plat(voet[:100]))
+        canvas.restoreState()
+        if paginas is not None:
+            paginas.append({"pagina": doc.page, "kopregel": kopregel, "voetregel": voet[:100]})
+
+    class Teller(Canvas):
+        """Schrijft "Pagina n van N": het totaal is pas bekend als alle pagina's gezet zijn."""
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self._standen: list[dict] = []
+
+        def showPage(self):
+            self._standen.append(dict(self.__dict__))
+            self._startPage()
+
+        def save(self):
+            totaal = len(self._standen)
+            for p in paginas or []:
+                p["totaal"] = totaal
+            for stand in self._standen:
+                self.__dict__.update(stand)
+                self.saveState()
+                self.setFont("Fira", 8)
+                self.setFillColor(HexColor(GRIJS))
+                self.drawRightString(A4[0] - rechts, 10 * mm, f"Pagina {self._pageNumber} van {totaal}")
+                self.restoreState()
+                super().showPage()
+            super().save()
+
     class Document(BaseDocTemplate):
         def beforeDocument(self):                  # `multiBuild` zet meer dan eens: het spoor is van de laatste ronde
+            self.hoofdstuk = ""
             if spoor is not None:
                 spoor.clear()
+            if paginas is not None:
+                paginas.clear()
 
         def beforePage(self):
             self.leeg = True
 
         def afterFlowable(self, flowable):
-            if spoor is not None and isinstance(flowable, Paragraph):
+            if spoor is not None and isinstance(flowable, (Paragraph, Lijn)):
                 kop = isinstance(flowable, Kop)
                 spoor.append({"pagina": self.page, "stijl": flowable.style.name, "bovenaan": self.leeg,
                               "tekst": flowable.platte_tekst if kop else "", "inhoud": kop and flowable.in_inhoud})
                 self.leeg = False
             if not isinstance(flowable, Kop):
                 return
+            if flowable.niveau == 0:
+                self.hoofdstuk = flowable.platte_tekst
             self.canv.bookmarkPage(flowable.sleutel)
             self.canv.addOutlineEntry(flowable.platte_tekst, flowable.sleutel, flowable.niveau, closed=flowable.niveau > 0)
             if flowable.in_inhoud:
@@ -146,37 +245,46 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
             doel.append(PageBreakIfNotEmpty())
         elif stijl == INHOUD:
             heeft_inhoud = True
-            inhoud = TableOfContents(dotsMinLevel=0)
+            # De standaardtabelstijl zet Helvetica op elke cel: een niet-ingesloten letter in een verder ingesloten document.
+            inhoud = TableOfContents(dotsMinLevel=0, tableStyle=TableStyle([
+                ("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("FONTNAME", (0, 0), (-1, -1), "Fira")]))
             inhoud.levelStyles = [
-                ParagraphStyle("Inhoud0", parent=stijlen["BodyText"], fontName="Fira-SemiBold", spaceBefore=6, spaceAfter=2),
-                ParagraphStyle("Inhoud1", parent=stijlen["BodyText"], leftIndent=12, spaceAfter=1),
-                ParagraphStyle("Inhoud2", parent=stijlen["BodyText"], leftIndent=24, spaceAfter=0)]
+                ParagraphStyle("Inhoud0", parent=stijlen["BodyText"], fontName="Fira-SemiBold", spaceBefore=7, spaceAfter=2,
+                               textColor=HexColor(LINTBLAUW)),
+                ParagraphStyle("Inhoud1", parent=stijlen["BodyText"], leftIndent=14, spaceAfter=1),
+                ParagraphStyle("Inhoud2", parent=stijlen["BodyText"], leftIndent=28, spaceAfter=0, textColor=HexColor(GRIJS))]
             doel.append(inhoud)
         elif stijl in _NIVEAU:
             # Een bladwijzer mag maar één niveau dieper dan de vorige: een kop zonder bovenliggende kop schuift op.
             laatste = min(_NIVEAU[stijl], laatste + 1)
             doel.append(Kop(opgemaakt(tekst), stijlen[stijl], tekst, laatste, laatste < _IN_INHOUD or stijl == BEGRIP))
+        elif stijl == "Citaat":
+            doel.append(Lijn(Paragraph(opgemaakt(tekst), stijlen["Citaat"])))
+        elif stijl == "Waarschuwing":
+            doel.append(Paragraph('<font name="Fira-SemiBold">Let op: </font>' + opgemaakt(tekst), stijlen["Waarschuwing"]))
         else:
             doel.append(Paragraph(opgemaakt(tekst), stijlen[stijl] if stijl in stijlen else stijlen["Markering"]))
 
-    def voettekst(canvas, doc):
-        canvas.saveState()
-        canvas.setFont("Fira", 8)
-        canvas.setFillColor(HexColor(_GRIJS))
-        canvas.drawString(20 * mm, 11 * mm, voet[:110])
-        canvas.drawRightString(A4[0] - 20 * mm, 11 * mm, f"Pagina {doc.page}")
-        canvas.restoreState()
-
     output = io.BytesIO()
-    doc = Document(output, pagesize=A4, title=titel, author="Lex", leftMargin=20 * mm, rightMargin=20 * mm,
-                   topMargin=20 * mm, bottomMargin=20 * mm)
-    doc.addPageTemplates(PageTemplate(id="pagina", onPage=voettekst, frames=[
+    doc = Document(output, pagesize=A4, title=titel, author=auteur, subject=onderwerp, keywords=trefwoorden,
+                   creator="Lex – wetsanalyseplatform", lang="nl-NL", displayDocTitle=True, initialFontName="Fira",
+                   leftMargin=links, rightMargin=rechts, topMargin=boven, bottomMargin=onder)
+    doc.addPageTemplates(PageTemplate(id="pagina", onPageEnd=kader, frames=[
         Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id="tekst")]))
     if heeft_inhoud:
-        doc.multiBuild(verhaal)
+        doc.multiBuild(verhaal, canvasmaker=Teller)
     else:
-        doc.build(verhaal)
+        doc.build(verhaal, canvasmaker=Teller)
     return output.getvalue()
+
+
+def opgemaakt_plat(tekst: str) -> str:
+    """Tekst voor het canvas (kop- en voetregel): geen opmaak, en wat Fira niet heeft wordt een spatie in plaats van een ■."""
+    from reportlab.pdfbase import pdfmetrics
+    _registreer()
+    heeft = pdfmetrics.getFont("Fira").face.charToGlyph
+    return "".join(c if ord(c) < 128 or ord(c) in heeft else " " for c in tekst)
 
 
 def aantal_paginas(pdf: bytes) -> int:

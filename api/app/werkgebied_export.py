@@ -389,4 +389,8 @@ def markdown_export(data: dict, verklaringen: dict) -> bytes:
 
 def pdf_export(data: dict, verklaringen: dict) -> bytes:
     naam = data["werkgebied"]["naam"]
-    return pdf_opmaak.render(regels(data, verklaringen), titel=naam, voet=f"{naam} · stand van {datum(data['export']['op'])}")
+    wg = data["werkgebied"]
+    concept = " · concept" if wg["status"] != "afgerond" else ""
+    return pdf_opmaak.render(regels(data, verklaringen), titel=naam, voet=f"Werkgebiedrapport{concept} · revisie {wg['revisie']} · stand van {datum(data['export']['op'])}",
+                             onderwerp="Wetsanalyse – rapport van het werkgebied", auteur=data["export"]["actor"],
+                             trefwoorden=", ".join(sorted({bwb_van(s) for s in wg["bronnen"]})))
