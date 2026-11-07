@@ -68,6 +68,33 @@ def bron_rijen(trace: Trace) -> dict[str, dict[str, Any]]:
     return uit
 
 
+def ouders(trace: Trace) -> dict[str, str]:
+    """Per onderdeel uit `get_lid` het lid waar het bij hoort. Een slotzin na de onderdelen ("…, indien …") heeft een
+    eigen `:id:`-iri die niet onder die van het lid valt; zonder deze kaart stond hij voor de code in geen enkel lid
+    (Iw 24 lid 1, eval 7 nov 2026)."""
+    uit: dict[str, str] = {}
+    for naam, tekst in trace:
+        data = _data(tekst) if naam == "get_lid" else None
+        lid = ((data or {}).get("lid") or {}).get("iri")
+        for r in (data or {}).get("resultaten") or []:
+            if isinstance(r, dict) and lid and isinstance(r.get("onderdeel"), str):
+                uit[r["onderdeel"]] = lid
+    return uit
+
+
+def iri_van_jci(trace: Trace) -> dict[str, str]:
+    """Per jci die een rij draagt de iri van die rij, ook zonder de toestandsstaart (`&z=…&g=…`). Het model nam soms de
+    jci uit het toolresultaat als bepaling; de rijen staan op hun iri (eval 7 nov 2026)."""
+    uit: dict[str, str] = {}
+    for naam, tekst in trace:
+        for rij in _rijen_diep(None if naam in AFGELEIDE_TOOL_NAMEN else _data(tekst)):
+            jci, iri = rij.get("jci"), next((rij[v] for v in _IRI_VELDEN if isinstance(rij.get(v), str) and rij[v]), "")
+            if isinstance(jci, str) and jci and iri:
+                uit.setdefault(jci, iri)
+                uit.setdefault(jci.split("&z=", 1)[0], iri)
+    return uit
+
+
 def volledige_tekst(iri: str, trace: Trace) -> str:
     return bron_rijen(trace).get(iri, {}).get("tekst", "")
 

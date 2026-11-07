@@ -367,6 +367,46 @@ def test_een_onderdeel_van_het_aangewezen_lid_telt_met_zijn_eigen_vindplaats():
     assert a.blokken[1].items[0].vindplaats.iri == A["onderdeel"]
 
 
+# De weigeringen uit de duidingseval van 7 nov 2026: de tekst stond in de bron, de code vond hem niet.
+
+def test_een_typografische_apostrof_in_de_bron_telt_als_de_gewone_en_de_bron_blijft_staan():
+    """Iw 9 lid 8: de wet schrijft personenauto’s, het model personenauto's (vier weigeringen)."""
+    tekst = "Terstond invorderbaar is een naheffingsaanslag ter zake van personenauto’s en motorrijwielen."
+    a = vul("antwoord_duiding", duiding(van="Terstond invorderbaar", tot="personenauto's en motorrijwielen.", bepaling=TIEN_2),
+            [tien(tekst=tekst)])
+    assert a.blokken[1].items[0].tekst == tekst, "de getoonde tekst is die van de bron, met ’"
+    a = vul("antwoord_duiding", duiding(van="een naheffingsaanslag – ter", tot="", bepaling=TIEN_2),
+            [tien(tekst="Het is een naheffingsaanslag – ter zake van iets.")])
+    assert a.blokken[1].items[0].tekst == "een naheffingsaanslag – ter zake van iets."
+
+
+SLOT = {"onderdeel": "urn:bwb:BWBR0004770:id:Slottekst1", "tekst": "Op verzoek van de belastingschuldige is de ontvanger verplicht te verrekenen."}
+
+
+@pytest.mark.parametrize("bepaling", [LID, ART])
+def test_de_slotzin_van_een_lid_met_onderdelen_telt_onder_dat_lid(bepaling):
+    """Iw 24 lid 1: de slotzin heeft een eigen `:id:`-iri, buiten die van het lid (twee weigeringen)."""
+    a = vul("antwoord_duiding", duiding(van="Op verzoek van", tot="te verrekenen.", bepaling=bepaling), [lid(A, SLOT)])
+    c = a.blokken[1].items[0]
+    assert c.tekst == SLOT["tekst"] and c.vindplaats.iri == LID and c.vindplaats.label == "Artikel 9, lid 11"
+
+
+def test_een_slotzin_van_een_ander_lid_telt_niet():
+    with pytest.raises(Onvulbaar, match="staat niet in"):
+        vul("antwoord_duiding", duiding(van="Op verzoek van", tot="te verrekenen.", bepaling=f"{ART}:lid:1"),
+            [artikel(EEN), lid(A, SLOT)])
+
+
+def test_een_jci_als_bepaling_wordt_de_iri_van_de_rij():
+    """Het model nam de jci van het lid uit het toolresultaat, met de toestandsstaart (één weigering)."""
+    jci = "jci1.3:c:BWBR0004770&hoofdstuk=II&artikel=9&lid=11"
+    rij = ("get_lid", json.dumps({"status": "ok", "volledig": True, "lid": {"iri": LID, "nummer": "11", "tekst": "In afwijking van het eerste lid:",
+                                                                               "jci": jci + "&z=2026-10-01&g=2026-10-01"}, "resultaten": [A]}))
+    for opgegeven in (jci + "&z=2026-10-01&g=2026-10-01", jci):
+        a = vul("antwoord_duiding", duiding(van="zolang twijfel", tot="bestaat", bepaling=opgegeven), [rij])
+        assert a.blokken[1].items[0].vindplaats.iri == A["onderdeel"], opgegeven
+
+
 def test_een_passage_over_twee_rijen_is_onvulbaar():
     with pytest.raises(Onvulbaar, match="één lid of onderdeel"):
         vul("antwoord_duiding", duiding(van="De ontvanger kan", tot="nieuwe aanslag ontvangt.", bepaling=TIEN), [tien()])
