@@ -42,6 +42,14 @@ GOLDEN_ANNOTATIE = Path(__file__).parent / "golden_annotatie.jsonl"
 GOLDEN_CONCEPT = Path(__file__).parent / "golden_annotatie_concept.jsonl"
 
 
+def annotatieset(args: argparse.Namespace) -> Path:
+    """De set voor `--annotatie`: `--concept`, anders een expliciete `--golden` (bv. een lokale set uit
+    `eval/extern_dossier.py`, die niet in de repo hoort), anders de ankerset."""
+    if args.concept:
+        return GOLDEN_CONCEPT
+    return args.golden if args.golden != GOLDEN else GOLDEN_ANNOTATIE
+
+
 def load_golden(path: Path = GOLDEN) -> list[dict[str, Any]]:
     cases = []
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -519,7 +527,7 @@ def _laad_env() -> None:
 def main() -> None:
     ap = argparse.ArgumentParser(description="graph-qa eval-harnas")
     ap.add_argument("--offline", action="store_true", help="draai met fakes (geen netwerk/kosten)")
-    ap.add_argument("--golden", type=Path, default=GOLDEN, help="pad naar de golden set (jsonl)")
+    ap.add_argument("--golden", type=Path, default=GOLDEN, help="pad naar de golden set (jsonl); met --annotatie een eigen annotatieset")
     ap.add_argument("--annotatie", action="store_true",
                     help="draai de annotatie-set (JAS-markeringen) in plaats van de QA-set")
     ap.add_argument("--concept", action="store_true",
@@ -586,7 +594,7 @@ def main() -> None:
         else:
             _laad_env()
             resultaten = asyncio.run(run_annotatie_suite(
-                load_golden(GOLDEN_CONCEPT if args.concept else GOLDEN_ANNOTATIE), settings=Settings.from_env(),
+                load_golden(annotatieset(args)), settings=Settings.from_env(),
             ))
         ok = print_annotatie_report(resultaten)
         if args.concept:
