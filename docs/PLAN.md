@@ -560,7 +560,7 @@ vraag aan Lex ─► werkgebied: Lex stelt bepalingen voor ─► Lex annoteert 
 | F. Onderhoud en uitwisseling (was L4) – **gebouwd**: F1 (#686, #687), F2 (#688, #689), F3 (#690, #691), F4 (#695 api, #696 graph-qa, F4c werkplek) | in vier deelleveringen: **F1** gerichte herbeoordeling (annotatie én wettekst onder het anker, toen naast nu), voorstel tot herkoppeling (opvolgers na herannotatie, signalen met richting), bevestigen met een tweede bewijsstand, dekking met *buiten behandeling*; **F2** begripsrelaties en opvolging; **F3** NL-SBB-projectie, RDF-export en begrippengraaf; **F4** Lex leest begrippen, overzicht over werkgebieden heen en de chat-ingang voor Lex naast de kaart | een gewijzigde dragende passage verschijnt bij de geraakte begrippen; de oude bewijsstand blijft |
 
 Volgorde: AF → A → B → C → D → E → F. Voorbeelden op de concept-kaart zijn van C naar E verschoven:
-ze hebben geen bronanker en horen als voorstel per veld bij Lex naast de kaart. Afleidingsregels (RegelSpraak) vallen erbuiten; AF legt alleen
+ze hebben geen bronanker en horen als voorstel per veld bij Lex naast de kaart. Afleidingsregels (activiteit 3b) en RegelSpraak (activiteit 6) vallen erbuiten; AF legt alleen
 hun plek in het artefactmodel vast.
 
 **Besloten voor F (16 okt 2026).** Volgorde F1 → F2 → F3 → F4. Een geaccordeerd begrip met een
@@ -1370,13 +1370,16 @@ opruimstappen H1–H3 en H6–H9, en de rem op (IP, userid) bij B2.
    accorderen kan, kaart en export tonen of een begrip NL-SBB-conform is (zie ADR-003, fase F3).
 6. **C**: blijft de leerlus een doel, en in welke vorm?
 7. **A — scope**: horen relaties (operand, afleiding) en beleidsregels met rekenvoorbeelden bij
-   activiteit 2? Zie het onderzoek §17, punten 7 en 9.
+   activiteit 2? Zie het onderzoek §17, punten 7 en 9. *Relaties besloten 8 nov 2026*: ja, als relaties
+   tussen markeringen (deelactiviteit 2c), zie [ADR-011](architectuur/adr-011-relaties-tussen-markeringen.md).
+   Beleidsregels met rekenvoorbeelden blijven open.
 8. **A — Rechtsbetrekking zonder genoemde partijen** (jurist): telt een impliciete partij (de
    ontvanger, de belastingschuldige) voor een Rechtsbetrekking (H2:44: een relatie tussen twee
    rechtssubjecten), of is "Een belastingaanslag is invorderbaar …" een rechtsgevolg (Rechtsfeit)?
    Het model wijst de centrale norm hier af, de referentie (IW01, provisional) zegt Rechtsbetrekking.
    Na het oordeel wordt het een deterministische regel (klasse-invariant), met een meting – niet
-   eerder, want anders legt de code een methodekeuze vast die nog open is.
+   eerder, want anders legt de code een methodekeuze vast die nog open is. Hoe je zo'n partij
+   vastlegt, staat in ADR-011: alleen als Rechtssubject en alleen door de jurist; of ze telt, blijft open.
 9. **GraphDB-licentie**: de Free-sleutel volstaat voor de proeftuin. Voor gebruik in een
    organisatie moet Graphwise de licentievorm bevestigen; Enterprise geeft meer gelijktijdige
    queries, enterprise-authenticatie en clustering. Overstappen naar Jena/Fuseki is geen doel: dan

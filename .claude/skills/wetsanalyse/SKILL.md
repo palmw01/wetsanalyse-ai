@@ -47,7 +47,8 @@ wanneer je de methode zelf aanpast.
    Scheid wetstekst, interpretatie, beleid en hypothetische scenariofeiten.
 5. Classificeer met de onderstaande labels en [klassenreferentie](references/jas-klassen-referentie.md).
    Onderbouw alternatieven; vul impliciete partijen nooit als letterlijk citaat in.
-6. Verbind elementen en scenario's volgens [JRM-verrijking](references/jrm-verrijking.md).
+6. Verbind elementen met de typen uit de [relatiecatalogus](references/relaties.md) (deelactiviteit 2c) en
+   scenario's volgens [JRM-verrijking](references/jrm-verrijking.md).
 7. Controleer dekking en onderbouwing. Lever open punten met concrete reviewvragen op.
    Alleen een mens kan de status 'vastgesteld' verlenen.
 
