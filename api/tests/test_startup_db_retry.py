@@ -1,6 +1,6 @@
 """De startup DB-connect-retry (`app.main._init_db_met_retry`): bij een nog-niet-klare DB retrye we
 met bounded backoff i.p.v. crash-loopen (postgres draait als aparte stack, geen cross-stack
-depends_on). Geen netwerk/DB – `create_all`/`sleep` worden gemockt."""
+depends_on). Geen netwerk/DB – `bouw_schema`/`sleep` worden gemockt."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ async def test_db_retry_slaagt_na_paar_pogingen(monkeypatch):
 
     calls = {"create": 0, "sleep": 0}
 
-    async def flaky_create_all():
+    async def flaky_schema():
         calls["create"] += 1
         if calls["create"] < 3:  # eerste twee pogingen mislukken
             raise _op_error()
@@ -27,11 +27,7 @@ async def test_db_retry_slaagt_na_paar_pogingen(monkeypatch):
     async def fake_sleep(_s):
         calls["sleep"] += 1
 
-    async def noop_reconcile():
-        return None
-
-    monkeypatch.setattr(main.db, "create_all", flaky_create_all)
-    monkeypatch.setattr(main.db, "reconcile_schema", noop_reconcile)
+    monkeypatch.setattr(main.db, "bouw_schema", flaky_schema)
     monkeypatch.setattr(main.asyncio, "sleep", fake_sleep)
 
     await main._init_db_met_retry()
@@ -51,7 +47,7 @@ async def test_db_retry_geeft_op_na_max(monkeypatch):
     async def noop_sleep(_s):
         return None
 
-    monkeypatch.setattr(main.db, "create_all", altijd_stuk)
+    monkeypatch.setattr(main.db, "bouw_schema", altijd_stuk)
     monkeypatch.setattr(main.asyncio, "sleep", noop_sleep)
 
     with pytest.raises(sqlalchemy.exc.OperationalError):

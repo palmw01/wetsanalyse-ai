@@ -19,8 +19,10 @@ from typing import Any
 
 from bronmodel.antwoord import Antwoord
 
+from .annotaties import SCHEMA as _ANNOTATIES, vul as _vul_annotaties
 from .begrip import SCHEMA as _BEGRIP, vul as _vul_begrip
 from .bepaling import SCHEMA as _BEPALING, vul as _vul_bepaling
+from .duiding import SCHEMA as _DUIDING, vul as _vul_duiding
 from .vullen import Onvulbaar, Trace
 
 __all__ = ["Onvulbaar", "Sjabloon", "SJABLONEN", "sjabloon_schemas", "vul"]
@@ -33,8 +35,10 @@ class Sjabloon:
 
 
 SJABLONEN: dict[str, Sjabloon] = {
+    _ANNOTATIES["name"]: Sjabloon(_ANNOTATIES, _vul_annotaties),
     _BEGRIP["name"]: Sjabloon(_BEGRIP, _vul_begrip),
     _BEPALING["name"]: Sjabloon(_BEPALING, _vul_bepaling),
+    _DUIDING["name"]: Sjabloon(_DUIDING, _vul_duiding),
 }
 
 

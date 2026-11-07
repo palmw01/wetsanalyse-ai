@@ -22,7 +22,8 @@ ombouwen zonder reden.
 3. **Login en gebruikersbeheer** (`/v1/auth/*`, `/v1/admin/users`, `/v1/admin/registraties`): de API
    is de identiteitsbron van de webapp.
 4. **LLM-modelprofielbeheer** (`/v1/admin/profiles`).
-5. **Tokenbudget** (`/v1/verbruik/*`, `/v1/admin/budget`, `/v1/admin/verbruik`).
+5. **Tokenbudget** (`/v1/verbruik/*`, `/v1/admin/budget`, `/v1/admin/budget/rollen/{rol}`, `/v1/admin/verbruik`,
+   `/v1/admin/users/{userid}/verbruik/reset`).
 6. **Berichten** (release notes, `/v1/berichten/*` + `/v1/admin/berichten/*`) met leesbewijzen per
    (bericht, gebruiker), en **gebruikersfeedback** (`/v1/feedback` + `/v1/admin/feedback/*`).
 7. **Werkgebieden** (`/v1/werkgebieden/*`, spoor D levering 1): benoemde analyses met
@@ -81,7 +82,7 @@ ombouwen zonder reden.
 | `graaf.py` | De complete graaf (`/graaf`): alle regelingen met structuur, verwijzingen en markeringen; structuur en verwijzingen gecachet per `(bwb_id, toestandUrl)`. Ook `lees_bron`: de gecachete bronboom voor leesroutes. |
 | `knoopinfo.py` | Wat de kennisgraaf over één knoop weet (`/knoop`), voor de inspector van de graaf. |
 | `werkgebieden.py` (router), `werkgebied_store.py`, `werkgebied_contracts.py`, `werkgebied_inventaris.py`, `werkgebied_werkvoorraad.py` | Werkgebieden: bronselecties, revisies, audit, de inventaris en de annotatie-werkvoorraad. |
-| `werkgebied_export.py`, `pdf_opmaak.py`, `fonts/` | Het hele werkgebied als één PDF; de gedeelde PDF-opmaak met ingesloten lettertypen. |
+| `werkgebied_export.py`, `werkgebied_rapport.py`, `markdown_opmaak.py`, `pdf_opmaak.py`, `fonts/` | Het hele werkgebied als één rapport (ADR-009): `werkgebied_rapport` is het contract en de tekstlaag, `werkgebied_export` leest de stand en vult het; de gedeelde PDF-opmaak met ingesloten lettertypen. |
 | `werkgebied_deelvragen.py` | Deelvragen: opslag, voorstellen van Lex, koppelingen en de dekkingscheck. |
 | `begrippen.py` (router), `begrip_store.py`, `begrip_contracts.py` | Begrippen: inhoud, koppelingen met bewijsstand, actualiteit, de accorderingspoort, revisies en export. |
 | `begrippen_runs.py` (router), `begrippen_run_store.py`, `begrippen_run_contracts.py`, `begrip_manifest.py` | Voorstellen van Lex: manifest voor de begrippenketen, runs, betekenisgroepen en besluiten. |
@@ -185,6 +186,8 @@ Hieronder wat je moet weten om de code te wijzigen.
   `trace` kan staan. Dat bestand en `vocabulaire/jas-vocabulaire.ttl` worden **gegenereerd** door
   `tools/graph-qa/scripts/genereer_jas_vocabulaire.py`; bewerk ze niet met de hand.
   `tests/test_vocabulaire.py` bewaakt dat elke klasse van de API een concept heeft.
+- **Elke export is een eigen bestand** (`bestandsnaam.met_tijd`): de naam draagt datum en tijd op de seconde, in Nederland,
+  in dezelfde vorm als de Markdown van de werkplek (`bestandsnaam` in `frontend/lib/artefactMarkdown.ts`).
 - **Export** (`POST weergave/export`, `annotatie_export.py`): `json` (v3, schema in
   `schemas/annotatie-export-v3.schema.json`, ook op `GET export-schema`), `csv`, `pdf` en `trig`.
   `herkomst_regels` zet het spoor om in de leesbare namen uit `verklaringen.json`, met dezelfde
@@ -377,17 +380,25 @@ spoor D (*Werkgebied als node*).
   `bereik`, `deelvragen` (`{id, vraag, selecties}`) en `buiten_bereik` (analysebronnen die niet meegaan).
   `deelvraag_id` zonder `bereik=deelvragen` 422; een onbekende deelvraag 404; een niet-actieve 409
   `niet_actief`; geen actieve deelvragen 409 `geen_deelvragen` (elk met `melding`).
-- **De export** (`GET {id}/export?formaat=pdf`, `werkgebied_export.py`): het hele werkgebied als één PDF, een
-  overdrachtsdossier voor wie niet in Lex werkt. Op de stand van nu en met één vaste inhoud, zonder bovengrens: voorblad met
+- **De export** (`GET {id}/export?formaat=pdf|md`, `werkgebied_export.py`): het hele werkgebied als één PDF of Markdown, een
+  overdrachtsdossier voor wie niet in Lex werkt. De PDF komt uit één gestructureerd document (`werkgebied_rapport.Rapport`, ADR-009):
+  `bouw_rapport` vult het, `rapport_regels` maakt er tekst van, en de uitvoer gaat letterlijk door de JSON heen. Een nieuw
+  veld hoort in het contract én in de tekstlaag; `test_elke_tekst_in_het_rapport_komt_in_de_uitvoer` bewaakt dat. Op de stand van nu en met één vaste inhoud, zonder bovengrens: voorblad met
   bronstand en waarschuwingen, inhoudsopgave en bladwijzers, dossier, deelvragen en bronnen, wettekst met markeringen,
-  begrippen, korte verantwoording. `verzamel` leest met dezelfde functies als de schermen, `pdf_regels` geeft (stijl, tekst)
-  en is zonder reportlab te testen.
+  begrippen, korte verantwoording. `verzamel` leest met dezelfde functies als de schermen, en `regels` geeft (stijl, tekst),
+  zonder reportlab te testen.
   - Geen modelvragen, hashes of beurtmeting: dat spoor staat in de annotatie-export.
   - Alles draagt zijn status; voorstellen, afgewezen en uitgesloten staan in eigen delen.
   - Staat een ankerfragment niet meer op zijn offsets, dan toont de PDF toen en nu. Wat niet te lezen was, staat op het
     voorblad én op zijn plek. Is geen enkele regeling te lezen, dan 503.
   - Reportlab is puur Python: zetten gebeurt in een thread (`asyncio.to_thread`), niet op de event loop.
-- **PDF-opmaak** (`pdf_opmaak.py`, ook voor de annotatie-export). De lettertypen zijn ingesloten (`app/fonts/`, met licentie):
+  - **De pagina-opbouw ligt vast.** Een eigen pagina krijgen elk deel, elke regeling, elk begrip, *Afgewezen markeringen* en
+    de *Open voorstellen van Lex*. De kop van een begrippengroep staat boven zijn eerste begrip: de breuk hoort vóór een kop,
+    want een breuk erna laat hem alleen staan. Een deelvraag en een markering blijven bij elkaar (`BLOK_BEGIN`/`BLOK_EIND`).
+    Een artikel krijgt geen eigen pagina: dat zijn er honderden. De begrippagina heeft altijd dezelfde kopjes, en een leeg veld
+    zegt dat. Toets de opbouw met `render(..., spoor=[])`, niet met `pdftotext`: poppler staat niet op CI.
+- **PDF-opmaak** (`pdf_opmaak.py`, ook voor de annotatie-export). `PAGINA` is `PageBreakIfNotEmpty`: twee kale `PageBreak`s
+  achter elkaar geven een blanke pagina. De lettertypen zijn ingesloten (`app/fonts/`, met licentie):
   de standaardletters kennen alleen cp1252 en maakten van een `ā` of harde afbreekstreep stil een `■`. Wat Fira Sans niet
   heeft, tekent DejaVu per teken (`opgemaakt`). Elke tekst gaat daar doorheen: hij wordt ook geëscaped.
 - Tests: `tests/test_werkgebieden.py` en `tests/test_werkgebied_werkvoorraad.py` (SQLite) en
@@ -1088,8 +1099,9 @@ de stand van die beurt zien, dan heb je een momentopname nodig. Alleen een begri
 ## Tokenbudget
 
 `verbruik.py`. **Verbruik is een journaal, de stand is een som.** `token_verbruik` krijgt één rij per
-LLM-call; de stand is `sum(...) WHERE userid = ? AND tijdstip >= venster_start`, en het vensterbegin
-volgt uit het `anker` in `budget_beleid`. Daaruit volgt:
+LLM-call; de stand is `sum(...) WHERE userid = ? AND tijdstip >= vanaf`. `vanaf` is het vensterbegin
+(uit het `anker` in `budget_beleid`), of de laatste reset door een beheerder als die later ligt.
+Daaruit volgt:
 
 - **Werk weggooien geeft geen tokens terug.** `userid` is de enige harde sleutel; `gesprek_id` en
   `run_id` zijn metadata zonder foreign key, want `gesprek_store.verwijder_gesprek` en
@@ -1099,14 +1111,27 @@ volgt uit het `anker` in `budget_beleid`. Daaruit volgt:
   verlaagt de factuur, niet het budget. De vier getallen staan apart, zodat een gewogen variant een
   rekenregel is en geen migratie.
 - Het beleid staat in de database, want een limiet aanpassen mag geen redeploy vragen; de env-waarden
-  seeden alleen de eerste rij (`verbruik.ensure_seeded`). Boeken is idempotent op `run_id`.
+  seeden alleen de eerste rijen (`verbruik.ensure_seeded`). Boeken is idempotent op `run_id`.
+- **Het budget volgt uit de rol, en uit niets anders** (`budget_rol`, `PUT /v1/admin/budget/rollen/{rol}`).
+  Er is geen budget per gebruiker en geen algemeen budget: `WETSANALYSE_TOKEN_BUDGET` seedt elke rol. Een
+  rolwissel geeft meteen het budget van de nieuwe rol, want `_budget_van` leest de rol elke keer vers.
+  `PATCH /v1/admin/users/{id}` weigert onbekende velden, dus een oud `token_budget` geeft 422 en geen stille 200.
+- **Een reset wist niets** (`POST /v1/admin/users/{userid}/verbruik/reset`, `verbruik.reset_verbruik`).
+  Hij schrijft een rij in `budget_audit`, en de som begint bij de laatste reset binnen het venster. Geen
+  tegenboeking: een negatieve rij is geen LLM-call, en alles wat over de calls telt (de schatting per beurt in
+  `werkgebied_werkvoorraad`, een gewogen variant) zou hem moeten uitsluiten. Het venster schuift niet op, en wat
+  na de reset geboekt wordt telt mee, ook van een beurt die al liep. In het volgende venster doet de reset niets meer.
+- **Wijzigen draagt iemands naam.** Reset, `PUT /v1/admin/budget` en het rolbudget staan achter `require_admin`
+  én `beheerder_met_2fa`: de BFF zet `X-User-Id` uit de sessie, een kaal admin-token (de admin-MCP) komt er niet
+  door, en de `door` komt in `budget_audit`, append-only, met de oude en de nieuwe waarde.
 
 ## Schema
 
-Er is geen Alembic. `db.create_all` maakt bij de start **ontbrekende tabellen** aan;
+Er is geen Alembic. `db.bouw_schema` draait bij de start, onder een advisory lock zodat replica's op elkaar wachten:
+`db.create_all` maakt **ontbrekende tabellen** aan;
 `db.reconcile_schema` voegt daarna **ontbrekende kolommen** toe (`ALTER TABLE … ADD COLUMN`, mét
 `server_default`) en maakt **ontbrekende indexen** aan (`checkfirst`). Nooit droppen of van type
-wisselen: dat is een bewuste, handmatige ingreep. Declareer een nieuwe kolom dus altijd in de
+wisselen: dat is een bewuste ingreep, die als benoemde uitzondering in `reconcile_schema` staat. Declareer een nieuwe kolom dus altijd in de
 `Table` in `db.py`; zonder die declaratie kent SQLAlchemy Core haar niet, ook als ze in de database
 bestaat. `_na_kolom` vult een nieuw toegevoegde kolom waar de waarde al elders stond (nu alleen
 `gesprek_berichten.run_id` uit `inhoud`).
