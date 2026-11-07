@@ -276,12 +276,6 @@ class WetsanalyseApi:
         return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronselectie/"
                                 f"{quote(deelvraag_id, safe='')}/bronnen", bron)
 
-    async def besluit_bronselectie(self, werkgebied_id: str, deelvraag_id: str, kandidaat_id: str,
-                                   besluit: dict[str, Any]) -> dict[str, Any]:
-        """Een besluit over één kandidaat bij één deelvraag; geeft het overzicht."""
-        return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronselectie/"
-                                f"{quote(deelvraag_id, safe='')}/kandidaten/{quote(kandidaat_id, safe='')}", besluit)
-
     async def haal_groepen(self, werkgebied_id: str) -> dict[str, Any]:
         """De betekenisgroepen van de laatste klare run, met hun besluiten."""
         return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/groepen")

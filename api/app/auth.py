@@ -7,11 +7,16 @@ Elke geslaagde auth levert een client_id op die de logs en de audit dragen.
 from __future__ import annotations
 
 import hmac
+from contextvars import ContextVar
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from . import agent_toegang
 from .config import Settings, get_settings
+
+#: De client van het verzoek dat nu loopt, voor de audit (`client` naast `actor`). Leeg buiten een verzoek.
+huidige_client: ContextVar[str] = ContextVar("huidige_client", default="")
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -48,10 +53,19 @@ def authenticate(authorization: str | None, settings: Settings) -> str:
     )
 
 
-def require_client(credentials: HTTPAuthorizationCredentials | None = Depends(_bearer)) -> str:
-    """FastAPI-dependency: geeft de client_id of werpt 401."""
+async def require_client(request: Request,
+                         credentials: HTTPAuthorizationCredentials | None = Depends(_bearer)) -> str:
+    """FastAPI-dependency: geeft de client_id, of werpt 401 (geen geldig token) of 403 (route niet voor deze client).
+
+    Async, zodat `huidige_client` in de taak van het verzoek staat: een sync dependency draait in een threadpool en
+    zijn context komt niet terug bij de route."""
     authorization = f"Bearer {credentials.credentials}" if credentials else None
-    return authenticate(authorization, get_settings())
+    client_id = authenticate(authorization, get_settings())
+    route = request.scope.get("route")
+    if route is not None and not agent_toegang.mag(client_id, request.method, route.path):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Deze route is niet voor deze client.")
+    huidige_client.set(client_id)
+    return client_id
 
 
 def _match_env_admin(presented: str, settings: Settings) -> str | None:

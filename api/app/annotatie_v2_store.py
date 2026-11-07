@@ -17,6 +17,7 @@ from sqlalchemy.exc import IntegrityError
 from bronmodel import BronFout, anker_actueel, element_actueel, valideer_ankers
 
 from . import db
+from .auth import huidige_client
 from .annotatie_v2_contracts import AFGEHANDELD, VERGRENDELD, Batch, Beslissing, Element, Laagbesluiten
 from .validation import GELDIGE_JAS_KLASSEN
 
@@ -176,7 +177,8 @@ async def leestransactie():
 async def _audit(conn, actor: str, actie: str, detail: dict, element_id: str | None = None,
                  laag_id: str | None = None):
     await conn.execute(insert(db.annotatie_v2_audit).values(
-        actor=actor, actie=actie, detail=detail, element_id=element_id, laag_id=laag_id, tijdstip=db.utcnow()))
+        actor=actor, actie=actie, detail=detail, element_id=element_id, laag_id=laag_id, tijdstip=db.utcnow(),
+        client=huidige_client.get() or None))
     # Wat deze transactie deed, voor de revisieregels aan het eind ervan (`_revisieregels`).
     if "acties" in conn.info:
         conn.info["actor"] = actor
@@ -195,7 +197,7 @@ async def _revisieregels(conn):
                   if a["laag_id"] in (None, laag_id)]
         await conn.execute(insert(db.annotatie_v2_audit).values(
             actor=conn.info.get("actor", ""), actie="revisie", detail={"revisie": revisie, "acties": acties},
-            element_id=None, laag_id=laag_id, tijdstip=db.utcnow()))
+            element_id=None, laag_id=laag_id, tijdstip=db.utcnow(), client=huidige_client.get() or None))
 
 
 async def _lagen(conn) -> dict[str, dict]:
