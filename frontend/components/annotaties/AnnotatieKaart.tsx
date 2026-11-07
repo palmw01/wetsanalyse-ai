@@ -3,6 +3,8 @@
 import Link from "next/link";
 
 import { KleurStrip } from "@/components/annotaties/KleurStrip";
+import { knopKlasse } from "@/components/ui/Button";
+import { KaartActies } from "@/components/ui/Pagina";
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
 import { documentStand } from "@/lib/annotatie";
 import { naamVan, vindplaatsLabel } from "@/lib/annotatieOverzicht";
@@ -71,15 +73,10 @@ export function AnnotatieKaart({ doc, onVerwijder }: {
         {doc.laatste_model && <span className="font-mono text-[0.65rem]">{doc.laatste_model}</span>}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Link
-          href={href}
-          className="focus-ring inline-flex min-h-[24px] items-center rounded-knop-xs border border-line px-2.5 py-0.5 text-[11px] font-medium text-lint transition-colors hover:bg-surface coarse:min-h-[44px]"
-        >
-          Openen
-        </Link>
-        {onVerwijder && doc.bron_iri && <VerwijderKnop soort="annotatie" onBevestig={onVerwijder} className="ml-auto" />}
-      </div>
+      <KaartActies>
+        <Link href={href} className={`focus-ring ${knopKlasse("secondary", "sm")}`}>Openen</Link>
+        {onVerwijder && doc.bron_iri && <VerwijderKnop soort="annotatie" maat="sm" onBevestig={onVerwijder} />}
+      </KaartActies>
     </article>
   );
 }

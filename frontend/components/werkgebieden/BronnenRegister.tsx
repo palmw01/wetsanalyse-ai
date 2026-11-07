@@ -33,7 +33,7 @@ export function BronnenRegister() {
   return (
     <div data-bronnen-register>
       <ProjectKop tab="bronnen" />
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h2 className="font-display text-base font-semibold text-lint">Bronnen per deelvraag</h2>
           <p className="mt-0.5 text-xs text-muted">
