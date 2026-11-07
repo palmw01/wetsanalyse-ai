@@ -313,6 +313,8 @@ class RunStand(BaseModel):
     conversation_id: str = ""
     status: str = "loopt"          # loopt | klaar | gestopt | mislukt
     afgerond_op: str | None = None
+    # De regierun die deze run startte (ADR-012): de sidebar zet hem onder zijn regiegesprek.
+    ouder_run_id: str = ""
 
 
 class Source(BaseModel):

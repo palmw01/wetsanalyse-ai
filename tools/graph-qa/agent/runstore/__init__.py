@@ -110,6 +110,8 @@ class Run:
     # Het gesprek is gewist terwijl deze run liep (`beurt._leg_vast` merkt dat). De store gooit hem dan bij het
     # afronden weg in plaats van hem als afgerond te bewaren: de vraag hoort na wissen nergens meer te staan.
     gewist: bool = False
+    # De regierun die deze run startte (ADR-012; leeg = een gewone run). Stoppen van de ouder stopt de kinderen.
+    ouder_run_id: str = ""
     _wakker: asyncio.Condition = field(default_factory=asyncio.Condition)
 
     @property
@@ -140,6 +142,7 @@ class Run:
             "conversation_id": self.conversation_id,
             "status": self.status,
             "afgerond_op": self.afgerond_op.isoformat() if self.afgerond_op else None,
+            "ouder_run_id": self.ouder_run_id,
         }
 
 
@@ -226,8 +229,15 @@ class RunStore(Protocol):
         vraag: str,
         maak_stroom: Callable[[Run], AsyncIterator[dict[str, Any]]],
         user_id: str = "",
+        ouder_run_id: str = "",
     ) -> Run:
-        """Registreer een run en zet hem als achtergrondtaak weg. `RunBestaatAl` als er al één loopt."""
+        """Registreer een run en zet hem als achtergrondtaak weg. `RunBestaatAl` als er al één loopt.
+
+        `ouder_run_id` maakt hem een kind van een regierun (ADR-012)."""
+        ...
+
+    async def kinderen(self, run_id: str) -> list[Run]:
+        """De lopende kind-runs van deze run (ADR-012), op elke replica."""
         ...
 
     async def vraag_stop(self, run: Run) -> None:

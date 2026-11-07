@@ -437,7 +437,7 @@ async def test_voor_gebruiker_toont_lopend_en_net_klaar_van_alleen_jezelf():
     standen = {r.conversation_id: r.stand() for r in runs}
     assert standen["g2"]["status"] == "loopt" and standen["g2"]["afgerond_op"] is None
     assert standen["g1"]["status"] == "klaar" and standen["g1"]["afgerond_op"]  # ISO, wandklok
-    assert set(standen["g1"]) == {"run_id", "conversation_id", "status", "afgerond_op"}  # geen vraag
+    assert set(standen["g1"]) == {"run_id", "conversation_id", "status", "afgerond_op", "ouder_run_id"}  # geen vraag
     await _wacht_af(lopend)
 
 
