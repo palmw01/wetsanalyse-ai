@@ -21,6 +21,7 @@ from bronmodel.antwoord import Antwoord
 
 from .aanwijzing import lees_aanwijzing
 from .graph import queries
+from .hoeveelheden import buiten as hoeveelheden_buiten
 from .overzicht import regelingen_in_vraag
 from .ports import GraphPort, LLMPort
 from .sjablonen import Onvulbaar
@@ -125,8 +126,10 @@ def antwoord(v: Bepalingsvraag, trace: list[tuple[str, str]], toelichting: str =
 TOELICHTING_SYSTEM = (
     "Je bent Lex, een hulpmiddel voor wetsanalyse. Schrijf in twee of drie korte zinnen, in de je-vorm en op B1-niveau, "
     "wat de bepaling hieronder regelt. Gebruik alleen deze tekst: geen kennis van buiten, geen praktijk, geen andere "
-    "artikelen, geen datums of getallen die er niet in staan. Geen citaten, geen koppen, geen opsomming. Vertel de tekst "
-    "niet na; de jurist ziet hem er al boven."
+    "artikelen. Noem een termijn, bedrag of datum zoals de tekst hem noemt (\"zes weken\", niet \"een bepaalde periode\"), "
+    "en geen andere. Staat er een uitzondering (\"behoudens\", \"tenzij\", \"in afwijking van\", \"met uitzondering "
+    "van\"), zeg dan voor wie of wat die geldt in de woorden van de tekst, en draai haar niet om. Geen citaten, geen koppen, "
+    "geen opsomming. Vertel de tekst niet na; de jurist ziet hem er al boven."
 )
 
 
@@ -141,4 +144,9 @@ def schrijf_toelichting(llm: LLMPort, model: str, bepaling: str) -> str:
         return ""
     if getattr(resp, "stop_reason", "") != "end_turn":
         return ""
-    return "".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip()
+    tekst = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip()
+    # De tekst is de enige bron, dus een termijn, bedrag of datum die hij niet noemt, is verzonnen: dan geen toelichting.
+    if extra := hoeveelheden_buiten(tekst, bepaling):
+        logger.warning("toelichting noemt wat de bepaling niet noemt", extra={"categorie": "functioneel", "buiten": extra})
+        return ""
+    return tekst

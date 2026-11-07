@@ -157,3 +157,25 @@ def test_niet_op_te_halen_gaat_de_gewone_weg_via_de_agent():
                          response([text_block("Artikel 999 staat niet in de graaf.")], "end_turn"))
     assert llm.index == 1 and llm.calls[0]["tools"], "de agent krijgt de vraag, met zijn tools"
     assert "999" in _eerste(events, "token")["content"]
+
+
+def test_een_toelichting_met_een_termijn_die_de_bepaling_niet_noemt_valt_weg():
+    """R4a: de tekst is de enige bron van de toelichting, dus een andere termijn is verzonnen."""
+    from fakes import response, text_block
+    g = _graaf(**{"artikel_9_lid_1>": LID_9_1})
+    events, _ = _beurt("Wat staat er in artikel 9, eerste lid, van de Invorderingswet 1990?", g,
+                       response([text_block("Je moet binnen twee maanden betalen.")], "end_turn"))
+    assert [b["soort"] for b in _eerste(events, "antwoord")["antwoord"]["blokken"]] == ["wettekst"]
+
+
+def test_een_toelichting_met_de_termijn_uit_de_bepaling_blijft():
+    from fakes import response, text_block
+    g = _graaf(**{"artikel_9_lid_1>": LID_9_1})
+    events, _ = _beurt("Wat staat er in artikel 9, eerste lid, van de Invorderingswet 1990?", g,
+                       response([text_block("Je hebt zes weken na de dagtekening om te betalen.")], "end_turn"))
+    assert _eerste(events, "antwoord")["antwoord"]["blokken"][1]["tekst"].startswith("Je hebt zes weken")
+
+
+def test_de_prompt_vraagt_de_termijn_en_een_uitzondering_niet_om_te_draaien():
+    """Acceptatie 7 nov 2026: "een bepaalde periode" bij Iw 9 lid 1, en de uitzondering van Iw 22 lid 3 omgedraaid."""
+    assert "zes weken" in wf.TOELICHTING_SYSTEM and "draai haar niet om" in wf.TOELICHTING_SYSTEM
