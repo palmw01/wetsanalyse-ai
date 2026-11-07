@@ -26,4 +26,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 COPY schemas ./schemas
 
+# Niet als root (SEC-12), net als de andere images. De importer schrijft alleen zijn downloadcache (`BWB_DATA_DIR`,
+# standaard /app/data); die map is van de gebruiker.
+RUN useradd --no-create-home --uid 10003 --gid 0 importer \
+ && mkdir -p /app/data && chown 10003:0 /app/data
+USER 10003
+
 CMD ["python", "-m", "app.main"]

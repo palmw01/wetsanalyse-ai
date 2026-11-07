@@ -79,3 +79,14 @@ def test_een_client_component_komt_niet_bij_de_tokens():
                 r'from\s+"@/lib/(config|server)"', s):
             fout.append(str(pad.relative_to(WORTEL)))
     assert not fout, f"client component importeert serverconfig: {fout}"
+
+
+def test_geen_eigen_image_draait_als_root():
+    """SEC-12: elk eigen image zet een USER vóór zijn startcommando; zonder draait de container als root."""
+    dockerfiles = [p for p in WORTEL.rglob("Dockerfile") if "node_modules" not in p.parts and ".venv" not in p.parts]
+    assert len(dockerfiles) >= 4, dockerfiles
+    for pad in dockerfiles:
+        regels = [r.strip() for r in pad.read_text(encoding="utf-8").splitlines()]
+        start = max(i for i, r in enumerate(regels) if r.startswith(("CMD", "ENTRYPOINT")))
+        gebruikers = [r.split(None, 1)[1] for r in regels[:start] if r.startswith("USER ")]
+        assert gebruikers and gebruikers[-1] not in ("root", "0"), pad.relative_to(WORTEL)
