@@ -2,6 +2,7 @@
 import asyncio
 import os
 import uuid
+from datetime import datetime, timezone
 
 import pytest
 from sqlalchemy import event, inspect, text
@@ -73,3 +74,16 @@ async def test_een_herstart_neemt_geen_tabelslot(leeg_schema):
     event.listen(db.get_engine().sync_engine, "before_cursor_execute", noteer)
     await db.bouw_schema()
     assert ddl == []
+
+
+async def test_een_unieke_index_op_dubbelen_houdt_de_start_niet_tegen(leeg_schema):
+    """Een journaal ruimen we niet stil op: de index komt er dan niet, en de start gaat door (API-07)."""
+    await db.create_all()
+    rij = dict(userid="u", bron="agent", model="", invoer=1, uitvoer=0, cache_lees=0, cache_schrijf=0, run_id="r1",
+               tijdstip=datetime.now(timezone.utc))
+    async with db.get_engine().begin() as conn:
+        await conn.execute(text("DROP INDEX ux_token_verbruik_run_bron"))
+        await conn.execute(db.token_verbruik.insert().values(**rij))
+        await conn.execute(db.token_verbruik.insert().values(**rij))
+    await db.reconcile_schema()
+    assert "ux_token_verbruik_run_bron" not in (await _stand(leeg_schema))["token_verbruik"]["indexen"]

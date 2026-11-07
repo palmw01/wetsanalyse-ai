@@ -36,6 +36,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func, insert, or_, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from . import db
@@ -232,25 +233,28 @@ async def boek(
         return False
 
     now = _utcnow()
-    async with db.get_engine().begin() as conn:
-        if run_id:
-            # Check-then-insert binnen dezelfde transactie, net als bij `voeg_bericht_toe`. Geen
-            # unieke index: `reconcile_schema` voegt die op een bestaande tabel niet toe.
-            al = (await conn.execute(
-                select(func.count()).select_from(db.token_verbruik).where(
-                    db.token_verbruik.c.run_id == run_id,
-                    db.token_verbruik.c.bron == bron,
-                )
-            )).scalar() or 0
-            if al:
-                return False
-        await conn.execute(insert(db.token_verbruik).values(
-            userid=userid, bron=bron, model=model,
-            invoer=invoer, uitvoer=uitvoer,
-            cache_lees=cache_lees, cache_schrijf=cache_schrijf,
-            gesprek_id=gesprek_id or None, run_id=run_id or None,
-            tijdstip=now,
-        ))
+    try:
+        async with db.get_engine().begin() as conn:
+            if run_id:
+                # Check-then-insert voor het gewone geval; twee gelijktijdige meldingen vangt de unieke index
+                # `ux_token_verbruik_run_bron` (hieronder: dan was hij al geboekt).
+                al = (await conn.execute(
+                    select(func.count()).select_from(db.token_verbruik).where(
+                        db.token_verbruik.c.run_id == run_id,
+                        db.token_verbruik.c.bron == bron,
+                    )
+                )).scalar() or 0
+                if al:
+                    return False
+            await conn.execute(insert(db.token_verbruik).values(
+                userid=userid, bron=bron, model=model,
+                invoer=invoer, uitvoer=uitvoer,
+                cache_lees=cache_lees, cache_schrijf=cache_schrijf,
+                gesprek_id=gesprek_id or None, run_id=run_id or None,
+                tijdstip=now,
+            ))
+    except IntegrityError:  # een gelijktijdige melding van dezelfde beurt was eerder
+        return False
     logger.info(
         "verbruik geboekt",
         extra={"categorie": "functioneel", "actie": "verbruik_geboekt", "userid": userid,
@@ -303,7 +307,7 @@ def _maak_stand(userid: str, gebruikt: int, budget: int, rol: str, beleid: Budge
                 *, gereset_op: datetime | None = None, gereset_door: str = "",
                 nu: datetime | None = None) -> Verbruiksstand:
     percentage = min(VOL, int(gebruikt * 100 / budget)) if budget > 0 else VOL
-    vol = budget > 0 and gebruikt >= budget
+    vol = gebruikt >= budget  # een budget van 0 is geen tokens, niet onbeperkt
     return Verbruiksstand(
         userid=userid,
         gebruikt=gebruikt,

@@ -546,3 +546,30 @@ async def test_admin_endpoints_vereisen_token(client):
     assert (await client.put(
         "/v1/admin/budget", json={"periode_dagen": 1, "actief": True}
     )).status_code == 401
+
+
+def test_een_budget_van_nul_is_geen_tokens():
+    """Budget 0 toonde een volle meter maar blokkeerde niemand (API-06)."""
+    from app import verbruik
+
+    beleid = verbruik.BudgetBeleid(periode_dagen=7, anker=datetime(2026, 1, 1, tzinfo=timezone.utc), actief=True)
+    stand = verbruik._maak_stand("x", 0, 0, "analist", beleid)
+    assert stand.geblokkeerd is True and stand.percentage == 100
+
+
+async def test_dezelfde_beurt_twee_keer_tegelijk_boekt_een_keer(client):
+    """De toets vóór het schrijven dekt twee gelijktijdige meldingen niet; de unieke index wel (API-07)."""
+    from sqlalchemy import insert
+    from sqlalchemy.exc import IntegrityError
+
+    from app import db, verbruik
+
+    assert await verbruik.boek("gebruiker-a", bron="agent", invoer=10, run_id="r1")
+    rij = dict(userid="gebruiker-a", bron="agent", model="", invoer=10, uitvoer=0, cache_lees=0, cache_schrijf=0,
+               run_id="r1", tijdstip=datetime.now(timezone.utc))
+    with pytest.raises(IntegrityError):
+        async with db.get_engine().begin() as conn:
+            await conn.execute(insert(db.token_verbruik).values(**rij))
+    # Zonder run ontdubbelt niets: de verbindingstest boekt elke keer.
+    assert await verbruik.boek("gebruiker-a", bron="test", invoer=1)
+    assert await verbruik.boek("gebruiker-a", bron="test", invoer=1)
