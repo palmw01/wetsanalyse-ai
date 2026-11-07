@@ -44,9 +44,9 @@ SELECT ?d ?titel ?inwerking ?bron WHERE {{ VALUES ?d {{ {waarden} }}
 
 
 _VERWIJZINGEN = """PREFIX bwb: <urn:bwb-ns:>
-SELECT ?van ?naar ?anker ?vindplaats ?doellabel ?jci ?regeling WHERE {{ VALUES ?van {{ {waarden} }}
+SELECT ?van ?naar ?anker ?vanlabel ?vindplaats ?doellabel ?jci ?regeling ?inGraaf WHERE {{ VALUES ?van {{ {waarden} }}
   ?van bwb:heeftVerwijzing ?v . ?v bwb:naar ?naar .
-  OPTIONAL {{ ?v bwb:ankerTekst ?anker }} OPTIONAL {{ ?naar bwb:vindplaats ?vindplaats }} OPTIONAL {{ ?naar bwb:doelLabel ?doellabel }}
+  OPTIONAL {{ ?v bwb:ankerTekst ?anker }} OPTIONAL {{ ?van bwb:vindplaats ?vanlabel }} OPTIONAL {{ ?naar bwb:vindplaats ?vindplaats }} OPTIONAL {{ ?naar bwb:doelLabel ?doellabel }}
   OPTIONAL {{ ?naar bwb:jci ?jci }}
   BIND(EXISTS {{ ?naar bwb:nummer ?n }} || EXISTS {{ ?naar bwb:citeertitel ?c }} AS ?inGraaf)
   BIND(IRI(CONCAT("urn:bwb:", REPLACE(STRAFTER(STR(?naar), "urn:bwb:"), ":.*$", ""))) AS ?r)
@@ -159,6 +159,7 @@ async def lees(bwb_ids: list[str], structuur_iris: list[str], bron_iris: list[st
                     sleutel = (r["van"], r["naar"], r.get("anker") or "")
                     oud = gezien.get(sleutel, {})
                     gezien[sleutel] = {"van": r["van"], "naar": r["naar"], "anker": r.get("anker") or "",
+                                       "van_label": min(filter(None, [oud.get("van_label"), r.get("vanlabel")]), default=""),
                                        "label": min(filter(None, [oud.get("label"), r.get("vindplaats") or r.get("doellabel")]), default=""),
                                        "jci": min(filter(None, [oud.get("jci"), r.get("jci")]), default=""),
                                        "regeling": min(filter(None, [oud.get("regeling"), r.get("regeling")]), default=""),

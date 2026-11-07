@@ -19,6 +19,7 @@ from collections import Counter
 from typing import Awaitable, Callable
 
 from bronmodel.antwoord import Vindplaats
+from bronmodel.vindplaats import vindplaats as bron_vindplaats
 from fastapi import HTTPException
 
 from . import (annotatie_v2_store, begrip_relatie_store, begrip_store, begrippen_run_store, bronselectie, db, markdown_opmaak,
@@ -237,13 +238,24 @@ def _graaf(data: dict) -> dict:
     return {"volledig": True, "regelingen": {}, "structuur": {}, "verwijzingen": [], "verwijzingen_volledig": True, **(data.get("graaf") or {})}
 
 
+def _doel_label(naar: str, regeling: str, label: str) -> str:
+    """Het doel van een verwijzing zoals het paneel het noemt (#1083): regeling en vindplaats, een naam nooit twee keer, en zonder
+    naam in de graaf het label uit de IRI of het BWB-id: nooit de kale IRI."""
+    vp = bron_vindplaats(naar)
+    m = re.match(r"urn:bwb:(BWB[RV]\d+)", naar)
+    eigen = label or (vp.label if vp else "")
+    if eigen in (regeling, m.group(1) if m else None):      # een verwijzing naar de regeling zelf: het importerlabel is haar BWB-id
+        eigen = ""
+    return " – ".join(filter(None, [regeling, eigen])) or (m.group(1) if m else naar)
+
+
 def _verwijzingen(data: dict, nodes: dict[str, dict], in_dossier: set[str]) -> dict[str, list[Verwijzing]]:
     """Per bronnode de verwijzingen eruit. Een doel staat in het dossier als het daar zelf staat of een van zijn delen er staat."""
     uit: dict[str, list[Verwijzing]] = {}
     for v in _graaf(data)["verwijzingen"]:
         naar = v["naar"]
         binnen = naar in in_dossier or any(i.startswith(naar + ":") for i in in_dossier)
-        label = " – ".join(filter(None, [v.get("regeling"), v.get("label")])) or naar
+        label = _doel_label(naar, v.get("regeling") or "", v.get("label") or "")
         uit.setdefault(v["van"], []).append(Verwijzing(
             van=_plek(v["van"], nodes), naar=Vindplaats(iri=naar, label=label, jci=v.get("jci") or ""), anker=v.get("anker") or "",
             in_graaf=v.get("in_graaf", True), in_dossier=binnen))
