@@ -12,6 +12,7 @@ vanzelf inhoud zodra de doelwet later wordt geïmporteerd.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 
@@ -244,6 +245,11 @@ _REPO_CONFIG_TTL = """\
 """
 
 
+def inhoud_hash(graph: Graph) -> str:
+    """sha256 over de gesorteerde N-Triples: dezelfde inhoud geeft dezelfde hash, ongeacht de volgorde."""
+    return hashlib.sha256("\n".join(sorted(graph.serialize(format="nt").splitlines())).encode("utf-8")).hexdigest()
+
+
 class GraphDbWriter:
     """Schrijft een :class:`~app.models.Wet` als RDF naar een GraphDB-repository."""
 
@@ -459,6 +465,9 @@ class GraphDbWriter:
                 g.add((vw, v.ns.ankerTekst, Literal(row["anker_tekst"], lang="nl")))
             summary.relaties += 1
 
+        # Een vingerafdruk van wat er in deze graph staat. De api cachet de bronboom erop: een herimport met een
+        # andere parser verandert de tekst zonder nieuwe toestand, en dan moet de cache dat zien (F4).
+        g.add((v.wet(wet.bwb_id), v.ns.inhoudHash, Literal(inhoud_hash(g))))
         return g, summary
 
     def graaf_stand(self, bwb_ids: list[str]) -> dict[str, Stand]:
