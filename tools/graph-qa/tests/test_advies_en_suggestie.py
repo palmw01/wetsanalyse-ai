@@ -44,7 +44,7 @@ def test_adviesvraag_wijzigt_nooit_een_annotatie():
             fragment="indien de schuldenaar daarom verzoekt",
             corpus="De ontvanger verleent uitstel van betaling indien de schuldenaar daarom verzoekt.",
         ),
-        settings=make_settings(enable_decomposition=False), llm=llm, graph=FakeGraph(result=LID_TSV),
+        settings=make_settings(), llm=llm, graph=FakeGraph(result=LID_TSV),
     ))
 
     soorten = {e["type"] for e in events}
@@ -60,7 +60,7 @@ def test_adviesvraag_slaat_de_supervisor_over():
     ])
     _run(answer_stream(
         "waarom deze klasse?", modus="advies", context=ChatContext(klasse="Voorwaarde"),
-        settings=make_settings(enable_decomposition=False), llm=llm, graph=FakeGraph(result=LID_TSV),
+        settings=make_settings(), llm=llm, graph=FakeGraph(result=LID_TSV),
     ))
     # De eerste call is meteen de agent (met SYSTEM_PROMPT), niet de supervisor.
     assert "WORKERS" not in llm.calls[0]["system"], "de supervisor-prompt hoort niet gedraaid te zijn"
@@ -75,7 +75,7 @@ def test_de_context_staat_in_de_prompt():
         "klopt dit?", modus="advies",
         context=ChatContext(bwbId="BWBR0004770", artikel="9", lid="1", klasse="Voorwaarde",
                             fragment="indien de schuldenaar daarom verzoekt", corpus="De ontvanger…"),
-        settings=make_settings(enable_decomposition=False), llm=llm, graph=FakeGraph(result=LID_TSV),
+        settings=make_settings(), llm=llm, graph=FakeGraph(result=LID_TSV),
     ))
     system = llm.calls[0]["system"]
     assert "WAAR DE VRAAG OVER GAAT" in system
@@ -93,7 +93,7 @@ def _motiveer(buren=()):
         context=ChatContext(bwbId="BWBR0004770", artikel="9", lid="1", klasse="Voorwaarde",
                             fragment="indien de schuldenaar daarom verzoekt",
                             bestaande_elementen=list(buren)),
-        settings=make_settings(enable_decomposition=False), llm=llm, graph=FakeGraph(result=LID_TSV),
+        settings=make_settings(), llm=llm, graph=FakeGraph(result=LID_TSV),
     ))
     return llm.calls[0]["system"]
 
@@ -143,7 +143,7 @@ def test_zonder_fragment_geen_afbakening():
     _run(answer_stream(
         "waar gaat dit artikel over?", modus="advies",
         context=ChatContext(bwbId="BWBR0004770", artikel="9"),
-        settings=make_settings(enable_decomposition=False), llm=llm, graph=FakeGraph(result=LID_TSV),
+        settings=make_settings(), llm=llm, graph=FakeGraph(result=LID_TSV),
     ))
     assert "AFBAKENING VAN DEZE VRAAG" not in llm.calls[0]["system"]
 
@@ -157,6 +157,6 @@ def test_gewone_vraag_gebruikt_de_supervisor_gewoon():
     ])
     _run(answer_stream(
         "wat is een voorwaarde?",
-        settings=make_settings(enable_decomposition=False), llm=llm, graph=FakeGraph(result=LID_TSV),
+        settings=make_settings(), llm=llm, graph=FakeGraph(result=LID_TSV),
     ))
     assert "WORKERS" in llm.calls[0]["system"], "zonder adviesmodus loopt het via de supervisor"

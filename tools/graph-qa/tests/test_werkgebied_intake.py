@@ -355,7 +355,7 @@ def _tekst(events) -> str:
 
 
 def test_een_heel_gesprek_tot_aanmaken(tmp_path, graaf):
-    settings = make_settings(enable_decomposition=False, checkpoint_db_path=str(tmp_path / "cp.db"))
+    settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"))
     llm = FakeLLM([_voorstel(aanleiding=["wetswijziging"]),
                    _voorstel(doel=["webservices"]),
                    _voorstel(vraag=["Wie is belastingplichtig voor box 3?"]),
@@ -428,7 +428,7 @@ def test_een_heel_gesprek_tot_aanmaken(tmp_path, graaf):
 
 def test_terugbladeren_zonder_wijziging_kost_niets_met_wijziging_nieuwe_voorstellen(tmp_path, graaf):
     """Het dossier bepaalt de voorstellen: een gewijzigd antwoord maakt ze opnieuw, een ongewijzigd niet."""
-    settings = make_settings(enable_decomposition=False, checkpoint_db_path=str(tmp_path / "cp.db"))
+    settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"))
     llm = FakeLLM([_voorstel(naam=["Box 3"]), _voorstel(aanleiding=["wetswijziging"]),
                    _voorstel(aanleiding=["digitaliseren"])])
     k = _kaart(_beurt(settings, llm, "Ik wil een werkgebied maken over box 3"))
@@ -447,7 +447,7 @@ def test_terugbladeren_zonder_wijziging_kost_niets_met_wijziging_nieuwe_voorstel
 
 
 def test_een_getypt_antwoord_op_het_open_kaartje(tmp_path, graaf):
-    settings = make_settings(enable_decomposition=False, checkpoint_db_path=str(tmp_path / "cp.db"))
+    settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"))
     llm = FakeLLM([response([text_block("WORKERS: werkgebied\nPLAN: antwoord op het kaartje")], "end_turn"),
                    _voorstel()])
     _beurt(settings, llm, "Kunnen we een werkgebied samenstellen?")
@@ -456,7 +456,7 @@ def test_een_getypt_antwoord_op_het_open_kaartje(tmp_path, graaf):
 
 
 def test_een_kaartje_van_een_oude_intake(tmp_path, graaf):
-    settings = make_settings(enable_decomposition=False, checkpoint_db_path=str(tmp_path / "cp.db"))
+    settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"))
     llm = FakeLLM([])
     _beurt(settings, llm, "Kunnen we een werkgebied samenstellen?")
     e = _beurt(settings, llm, "Box 3", {"intake_id": "oud", "stap": "naam", "tekst": "Box 3"})
@@ -464,7 +464,7 @@ def test_een_kaartje_van_een_oude_intake(tmp_path, graaf):
 
 
 def test_vooringevuld_uit_de_eerste_zin(tmp_path, graaf):
-    settings = make_settings(enable_decomposition=False, checkpoint_db_path=str(tmp_path / "cp.db"))
+    settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"))
     llm = FakeLLM([_voorstel(naam=["Box 3-heffing"], vraag=["Hoe wordt box 3 per 2026 berekend?"], onderwerp="box 3"),
                    _voorstel(aanleiding=["wetswijziging"])])
     k = _kaart(_beurt(settings, llm, "Ik wil een werkgebied maken over de box 3-heffing per 2026"))
@@ -480,7 +480,7 @@ def _sla_over(settings, llm, k, tot):
 
 
 def test_niets_gevonden_bij_eigen_zoekterm(tmp_path, graaf):
-    settings = make_settings(enable_decomposition=False, checkpoint_db_path=str(tmp_path / "cp.db"))
+    settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"))
     llm = FakeLLM([_voorstel(), _voorstel(), _voorstel(), _voorstel()])
     k = _kaart(_beurt(settings, llm, "Kunnen we een werkgebied samenstellen?"))
     k = _kaart(_beurt(settings, llm, "X", {"intake_id": k["intake_id"], "stap": "naam", "tekst": "X"}))
@@ -871,7 +871,7 @@ def _aanvulbeurt(settings, llm, nep, vraag, klik=None, cid="ga", **kw):
 
 
 def _aanvulsettings(tmp_path):
-    return make_settings(enable_decomposition=False, checkpoint_db_path=str(tmp_path / "cp.db"),
+    return make_settings(checkpoint_db_path=str(tmp_path / "cp.db"),
                          wetsanalyse_api_url="http://api", wetsanalyse_api_token="t")
 
 

@@ -384,7 +384,7 @@ def _beurt(tmp_path, nep, vraag, llm=None, **kw):
     from agent.agent import answer_stream
     from fakes import FakeGraph, FakeLLM, make_settings
 
-    settings = make_settings(enable_decomposition=False, checkpoint_db_path=str(tmp_path / "cp.db"),
+    settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"),
                              wetsanalyse_api_url="http://api", wetsanalyse_api_token="t")
     llm = llm or FakeLLM([])
 

@@ -285,8 +285,7 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
             "afwijzen": False, "annotaties_lezen": False}
 
 def _entry_node(b: Bouw, state: State) -> str:
-    """Ingang voor de huidige worker: de annotatie-worker draait altijd de agent⇄tools-lus; een
-    antwoord-worker gaat in decompositie-modus langs decompose, anders ook langs de agent-lus.
+    """Ingang voor de huidige worker: een eigen route als die er is, anders de agent⇄tools-lus.
 
     Wees de vraag afgewezen, dan gaat er geen enkele worker draaien – dat is de hele winst."""
     if state.get("afwijzen"):
@@ -298,19 +297,18 @@ def _entry_node(b: Bouw, state: State) -> str:
     if state.get("specialist") == "agent_taak":
         return "agent_taak"
     if state.get("overzicht_route"):
-        # Eerst het overzicht bouwen, dan duiden – ook met decompositie aan.
+        # Eerst het overzicht bouwen, dan duiden.
         return "overzicht_bouwen"
     if state.get("begrippen_lezen"):
         return "begrippen_zoeken"
     if state.get("annotaties_lezen"):
-        # Eerst zoeken, dan formuleren – ook met decompositie aan: `solve_node` bouwt de agent-lus
-        # na en zou de zoekstap dubbel doen.
+        # Eerst zoeken, dan formuleren.
         return "annotaties_zoeken"
     if state.get("specialist") == "annotatie":
         # Doel al bekend → recht naar de annoteerder; de agent⇄tools-lus zou alleen opzoeken
         # wat de aanroeper al meestuurde. `annoteer_node` haalt het corpus zelf gericht op.
         return "annoteer" if _heeft_opgegeven_doel(state) else "agent"
-    return "decompose" if b.settings.enable_decomposition else "agent"
+    return "agent"
 
 def advance_node(b: Bouw, state: State) -> dict[str, Any]:
     """Ga naar de volgende worker in de keten; reset de per-worker werkvelden."""

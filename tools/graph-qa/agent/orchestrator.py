@@ -60,13 +60,6 @@ from .nodes.supervisie import (
     route_after_advance,
     supervisor_node,
 )
-from .nodes.decompositie import (
-    decompose_node,
-    resynth_node,
-    route_after_solve,
-    solve_node,
-    synthesize_node,
-)
 from .berichten import (  # noqa: F401 – re-export: tests en node-modules importeren ze hiervandaan
     MAX_HISTORIE_CHARS,
     _msg_lengte,
@@ -236,125 +229,66 @@ def build_graph(
         """Registreer een node, altijd met de stopbewaking eromheen."""
         g.add_node(naam, stopbaar(met_span(naam, fn)))
 
-    def annotatieketen() -> str:
-        """Registreer de annotatie-worker en zijn edges; geeft de naam van de ingang terug.
-
-        `annoteer → emit` (ADR-001): detectie, fusie, kleine classifier, validatie, gerichte review
-        en resolver zitten allemaal in `annoteer` (`jas_pipeline.keten`); `emit` is de enige uitgang,
-        zodat de werkplek nooit tussenversies ziet. Dit blok is in elke tak identiek; de
-        antwoordketen eromheen verschilt per tak en staat daarom apart.
-        """
-        add("annoteer", functools.partial(annoteer_node, b))
-        add("emit", functools.partial(emit_node, b))
-        g.add_edge("annoteer", "emit")
-        g.add_edge("emit", "advance")
-        return "annoteer"
-
-    add("verify", functools.partial(verify_node, b))
-    add("finalize", functools.partial(finalize_node, b))
-
-    if settings.enable_decomposition:
-        # Supervisor → (annotatie: agent⇄tools→annoteer_finalize | antwoord: decompose→solve→…→
-        # finalize) → advance → (volgende worker | einde).
-        add("supervisor", functools.partial(supervisor_node, b))
-        add("decompose", functools.partial(decompose_node, b))
-        add("solve", functools.partial(solve_node, b))
-        add("synthesize", functools.partial(synthesize_node, b))
-        add("resynth", functools.partial(resynth_node, b))
-        add("agent", functools.partial(agent_node, b))
-        add("tools", functools.partial(tools_node, b))
-        add("advance", functools.partial(advance_node, b))
-        add("afwijzen", functools.partial(afwijs_node, b))
-        _annoteer_entry = annotatieketen()
-        entrymap = {"agent": "agent", "annoteer": _annoteer_entry, "decompose": "decompose",
-                    "annotaties_zoeken": "annotaties_zoeken", "begrippen_zoeken": "begrippen_zoeken",
-                    "overzicht_bouwen": "overzicht_bouwen", "werkgebied_intake": "werkgebied_intake", "bronselectie": "bronselectie",
-                    "agent_taak": "agent_taak", "afwijzen": "afwijzen"}
-        add("werkgebied_intake", functools.partial(werkgebied_intake_node, b))
-        g.add_edge("werkgebied_intake", END)
-        add("bronselectie", functools.partial(bronselectie_node, b))
-        g.add_edge("bronselectie", END)
-        add("agent_taak", functools.partial(agent_taak_node, b))
-        g.add_edge("agent_taak", END)
-        add("annotaties_zoeken", functools.partial(zoek_annotaties_node, b))
-        g.add_edge("annotaties_zoeken", "agent")
-        add("begrippen_zoeken", functools.partial(zoek_begrippen_node, b))
-        g.add_edge("begrippen_zoeken", "agent")
-        add("overzicht_bouwen", functools.partial(bouw_overzicht_node, b))
-        g.add_conditional_edges("overzicht_bouwen", functools.partial(route_na_overzicht, b),
-                                {"verify": "verify", "agent": "agent"})
-        g.add_edge(START, "supervisor")
-        g.add_edge("afwijzen", END)
-        g.add_conditional_edges("supervisor", functools.partial(_entry_node, b), entrymap)
-        g.add_edge("decompose", "solve")
-        g.add_conditional_edges("solve", functools.partial(route_after_solve, b), {"verify": "verify", "synthesize": "synthesize"})
-        g.add_edge("synthesize", "verify")
-        g.add_conditional_edges("verify", functools.partial(route_after_verify, b), {"correct": "resynth", "finalize": "finalize"})
-        g.add_edge("resynth", "synthesize")
-        g.add_conditional_edges(
-            "agent", functools.partial(route_after_agent, b),
-            {"tools": "tools", "verify": "verify", "annoteer": _annoteer_entry},
-        )
-        g.add_edge("tools", "agent")
-        g.add_edge("finalize", "advance")
-        g.add_conditional_edges("advance", functools.partial(route_after_advance, b), {**entrymap, "einde": END})
-        return g
-
-    # Één-loop-stroom.
+    # De antwoordketen: agent ⇄ tools → (sjabloon) → verify → (correct) → finalize.
     add("agent", functools.partial(agent_node, b))
     add("tools", functools.partial(tools_node, b))
-    add("correct", functools.partial(correct_node, b))
-
-    if settings.enable_planning:
-        # Supervisor → agent⇄tools → (verify→finalize | annoteer_finalize) → advance → (volgende | einde).
-        add("supervisor", functools.partial(supervisor_node, b))
-        add("advance", functools.partial(advance_node, b))
-        add("afwijzen", functools.partial(afwijs_node, b))
-        _annoteer_entry = annotatieketen()
-        g.add_edge(START, "supervisor")
-        add("annotaties_zoeken", functools.partial(zoek_annotaties_node, b))
-        g.add_edge("annotaties_zoeken", "agent")
-        add("begrippen_zoeken", functools.partial(zoek_begrippen_node, b))
-        g.add_edge("begrippen_zoeken", "agent")
-        add("overzicht_bouwen", functools.partial(bouw_overzicht_node, b))
-        g.add_conditional_edges("overzicht_bouwen", functools.partial(route_na_overzicht, b),
-                                {"verify": "verify", "agent": "agent"})
-        add("werkgebied_intake", functools.partial(werkgebied_intake_node, b))
-        g.add_edge("werkgebied_intake", END)
-        add("bronselectie", functools.partial(bronselectie_node, b))
-        g.add_edge("bronselectie", END)
-        add("agent_taak", functools.partial(agent_taak_node, b))
-        g.add_edge("agent_taak", END)
-        g.add_conditional_edges("supervisor", functools.partial(_entry_node, b),
-                                {"agent": "agent", "annoteer": _annoteer_entry,
-                                 "annotaties_zoeken": "annotaties_zoeken", "begrippen_zoeken": "begrippen_zoeken",
-                                 "overzicht_bouwen": "overzicht_bouwen", "werkgebied_intake": "werkgebied_intake", "bronselectie": "bronselectie",
-                                 "agent_taak": "agent_taak", "afwijzen": "afwijzen"})
-        g.add_edge("afwijzen", END)
-        g.add_conditional_edges(
-            "agent", functools.partial(route_after_agent, b),
-            {"tools": "tools", "verify": "verify", "annoteer": _annoteer_entry, "sjabloon": "sjabloon"},
-        )
-        g.add_edge("tools", "agent")
-        add("sjabloon", functools.partial(sjabloon_node, b))
-        g.add_conditional_edges("sjabloon", functools.partial(route_na_sjabloon, b), {"verify": "verify", "agent": "agent"})
-        g.add_conditional_edges("verify", functools.partial(route_after_verify, b), {"correct": "correct", "finalize": "finalize"})
-        g.add_edge("correct", "agent")
-        g.add_edge("finalize", "advance")
-        g.add_conditional_edges("advance", functools.partial(route_after_advance, b),
-                                {"agent": "agent", "annoteer": _annoteer_entry,
-                                 "annotaties_zoeken": "annotaties_zoeken", "begrippen_zoeken": "begrippen_zoeken",
-                                 "overzicht_bouwen": "overzicht_bouwen", "werkgebied_intake": "werkgebied_intake", "bronselectie": "bronselectie",
-                                 "agent_taak": "agent_taak", "afwijzen": "afwijzen", "einde": END})
-        return g
-
-    # Geen classificatie (planning off, decomp off): pure QA-agent, ongewijzigd (geen annotatie-route).
-    g.add_edge(START, "agent")
-    g.add_conditional_edges("agent", functools.partial(route_after_agent, b), {"tools": "tools", "verify": "verify", "sjabloon": "sjabloon"})
-    g.add_edge("tools", "agent")
     add("sjabloon", functools.partial(sjabloon_node, b))
+    add("verify", functools.partial(verify_node, b))
+    add("correct", functools.partial(correct_node, b))
+    add("finalize", functools.partial(finalize_node, b))
+    g.add_edge("tools", "agent")
     g.add_conditional_edges("sjabloon", functools.partial(route_na_sjabloon, b), {"verify": "verify", "agent": "agent"})
     g.add_conditional_edges("verify", functools.partial(route_after_verify, b), {"correct": "correct", "finalize": "finalize"})
     g.add_edge("correct", "agent")
-    g.add_edge("finalize", END)
+
+    if not settings.enable_planning:
+        # Zonder supervisor: alleen de antwoordketen (geen annotatie-route). Een testvorm.
+        g.add_edge(START, "agent")
+        g.add_conditional_edges("agent", functools.partial(route_after_agent, b),
+                                {"tools": "tools", "verify": "verify", "sjabloon": "sjabloon"})
+        g.add_edge("finalize", END)
+        return g
+
+    # Supervisor → worker → advance → (volgende worker | einde).
+    add("supervisor", functools.partial(supervisor_node, b))
+    add("advance", functools.partial(advance_node, b))
+    add("afwijzen", functools.partial(afwijs_node, b))
+    g.add_edge(START, "supervisor")
+    g.add_edge("afwijzen", END)
+    g.add_conditional_edges(
+        "agent", functools.partial(route_after_agent, b),
+        {"tools": "tools", "verify": "verify", "annoteer": "annoteer", "sjabloon": "sjabloon"},
+    )
+    g.add_edge("finalize", "advance")
+
+    # De annotatie-worker, `annoteer → emit` (ADR-001): detectie, fusie, kleine classifier, validatie,
+    # gerichte review en resolver zitten allemaal in `annoteer` (`jas_pipeline.keten`); `emit` is de
+    # enige uitgang, zodat de werkplek nooit tussenversies ziet.
+    add("annoteer", functools.partial(annoteer_node, b))
+    add("emit", functools.partial(emit_node, b))
+    g.add_edge("annoteer", "emit")
+    g.add_edge("emit", "advance")
+
+    # De lees- en overzichtsroutes zoeken eerst zelf en geven dan door aan de antwoordketen.
+    add("annotaties_zoeken", functools.partial(zoek_annotaties_node, b))
+    g.add_edge("annotaties_zoeken", "agent")
+    add("begrippen_zoeken", functools.partial(zoek_begrippen_node, b))
+    g.add_edge("begrippen_zoeken", "agent")
+    add("overzicht_bouwen", functools.partial(bouw_overzicht_node, b))
+    g.add_conditional_edges("overzicht_bouwen", functools.partial(route_na_overzicht, b),
+                            {"verify": "verify", "agent": "agent"})
+
+    # Eén stap en klaar: het werkgebied samenstellen, de bronselectie, een agenttaak.
+    add("werkgebied_intake", functools.partial(werkgebied_intake_node, b))
+    g.add_edge("werkgebied_intake", END)
+    add("bronselectie", functools.partial(bronselectie_node, b))
+    g.add_edge("bronselectie", END)
+    add("agent_taak", functools.partial(agent_taak_node, b))
+    g.add_edge("agent_taak", END)
+
+    ingangen = {naam: naam for naam in (
+        "agent", "annoteer", "annotaties_zoeken", "begrippen_zoeken", "overzicht_bouwen",
+        "werkgebied_intake", "bronselectie", "agent_taak", "afwijzen")}
+    g.add_conditional_edges("supervisor", functools.partial(_entry_node, b), ingangen)
+    g.add_conditional_edges("advance", functools.partial(route_after_advance, b), {**ingangen, "einde": END})
     return g
