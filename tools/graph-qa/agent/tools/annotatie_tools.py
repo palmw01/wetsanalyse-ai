@@ -110,7 +110,8 @@ ANNOTATIE_TOOLS = [
            "`beslist_door` (regel/model/specificiteit/terugval) en `met_twijfel`. "
            "GEEFT TERUG: status en volledig, dan per treffer id, klasse, tekst, vindplaats, bron_iri, "
            "aandacht, lifecycle, alternatieven en een ingekorte toelichting; plus paginatie "
-           "(volgende_offset/cursor). Wil je weten WELKE teksten van een klasse er zijn, gebruik dan "
+           "(volgende_offset/cursor); op een bepaling (bron_iri) komen de pagina's vanzelf mee. "
+           "Wil je weten WELKE teksten van een klasse er zijn, gebruik dan "
            "overzicht_annotaties; voor het volledige spoor van één treffer get_annotatie.",
            {"bron_iri": BRON_IRI, "bwb_id": BWB_ID,
             "klasse": _d(S, "Eén JAS-klasse; liever jas_klassen."), "jas_klassen": _klassen(),
@@ -278,6 +279,34 @@ def overzicht(args: dict[str, Any], port) -> dict[str, Any]:
             "groepen": lijst[:maximum], "meer_groepen": max(0, len(lijst) - maximum)}
 
 
+#: Zoveel pagina's van 100 leest een zoekopdracht op één bepaling. Daarboven blijft `volgende_offset` staan, dus het
+#: antwoord zegt dat het er niet alle zijn.
+BEPALING_PAGINAS = 3
+
+
+def zoek_bepaling(args: dict[str, Any], port) -> dict[str, Any]:
+    """Een zoekopdracht op één bepaling, in één keer compleet.
+
+    Doorbladeren aan het model overlaten gaf bij dezelfde vraag de ene keer 54 markeringen en de andere keer 50, en zijn
+    toelichting gaat over wat het zag: dus haalt de code de pagina's op voordat het model ze leest."""
+    samen: dict[str, Any] = {}
+    rijen: list[Any] = []
+    offset = 0
+    for _ in range(BEPALING_PAGINAS):
+        pagina = port.zoeken({**args, "limit": 100, "offset": offset})
+        if pagina.get("status") not in ("ok", "partial"):
+            # De eerste pagina zegt zelf wat er mis is; daarna blijft wat er al is, met de melding dat het niet alles is.
+            return {**samen, "status": "partial", "volledig": False, "volgende_offset": None, "resultaten": rijen} if samen else pagina
+        status = "partial" if "partial" in (samen.get("status"), pagina.get("status")) else "ok"
+        volledig = samen.get("volledig", True) is not False and pagina.get("volledig") is not False
+        rijen += pagina.get("resultaten") or []
+        samen = {**pagina, "status": status, "volledig": volledig, "resultaten": rijen}
+        offset = pagina.get("volgende_offset")
+        if not offset:
+            break
+    return samen
+
+
 def dispatch_annotatie(name: str, args: dict[str, Any], port) -> str:
     args = _normaliseer_klassen(args)
     definition = next(t for t in ANNOTATIE_TOOLS if t["name"] == name)["input_schema"]
@@ -309,7 +338,8 @@ def dispatch_annotatie(name: str, args: dict[str, Any], port) -> str:
     if port is None:
         result = {"status": "unavailable", "volledig": False, "reden": "annotatie_api_niet_ingesteld"}
     elif name == "search_annotaties":
-        result = port.zoeken(args)
+        op_bepaling = args.get("bron_iri") and not args.get("offset") and not args.get("cursor")
+        result = zoek_bepaling(args, port) if op_bepaling else port.zoeken(args)
     elif name == "get_annotatie":
         result = port.element(args["id"])
     elif name == "overzicht_annotaties":
