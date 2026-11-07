@@ -19,7 +19,8 @@ from ..agents import Context
 from ..agents.uitvoering import draai
 from ..narratie import _stap
 from ..state import State
-from .agent_taak import STORING, ZONDER_API, _maak_api
+from .agent_taak import STORING, ZONDER_API
+from .context import met_api, zeg
 
 logger = logging.getLogger("graph_qa.bronselectie")
 
@@ -35,14 +36,17 @@ def bronselectie_node(b, state: State) -> dict[str, Any]:
     actie = dict(state.get("intake_actie") or {})
     wid = bs.werkgebied_van(actie["intake_id"]) if actie.get("intake_id") else state.get("werkgebied_id", "")
     if not wid:
-        return _zeg(writer, ZONDER_WERKGEBIED)
+        return zeg(writer, ZONDER_WERKGEBIED)
     if not b.settings.legt_zelf_vast:
-        return _zeg(writer, ZONDER_API)
+        return zeg(writer, ZONDER_API)
     onderwerp = state.get("onderwerp") or {}
     aangewezen = onderwerp.get("id", "") if onderwerp.get("soort") == "deelvraag" else ""
 
     async def stap(stuur) -> dict[str, Any]:
-        api = _maak_api(b, state.get("user_id", ""))
+        async with met_api(b, state.get("user_id", "")) as api:
+            return await met(api, stuur)
+
+    async def met(api, stuur) -> dict[str, Any]:
         ctx = Context(api=api, settings=b.settings, user_id=state.get("user_id", ""), run_id=state.get("run_id", ""),
                       gesprek_id=state.get("gesprek_id", ""), graph=b.graph, llm=b.llm,
                       melding=lambda bericht: _stap(stuur, "Lex", bericht),
@@ -96,15 +100,12 @@ def bronselectie_node(b, state: State) -> dict[str, Any]:
             if fout.status == 404:
                 return {"zinnen": ["Dit werkgebied bestaat niet (meer)."]}
             raise
-        finally:
-            if (aclose := getattr(api, "aclose", None)) is not None:
-                await aclose()
 
     try:
         uit = draai(stap, loop=b.loop, schrijf=writer)
     except Exception:  # noqa: BLE001 – een storing is een zin in het gesprek, de oorzaak staat in het log
         logger.exception("bronselectie mislukt", extra={"categorie": "technisch"})
-        return _zeg(writer, STORING)
+        return zeg(writer, STORING)
     tekst = " ".join(z for z in uit.get("zinnen") or [] if z).strip()
     kaart = uit.get("kaart")
     writer({"type": "token", "content": tekst})
@@ -117,6 +118,3 @@ def bronselectie_node(b, state: State) -> dict[str, Any]:
     return {"answer": tekst, "messages": [{"role": "assistant", "content": inhoud.strip()}]}
 
 
-def _zeg(writer, tekst: str) -> dict[str, Any]:
-    writer({"type": "token", "content": tekst})
-    return {"answer": tekst, "messages": [{"role": "assistant", "content": tekst}]}

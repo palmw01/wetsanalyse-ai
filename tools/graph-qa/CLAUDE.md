@@ -747,7 +747,7 @@ endpoint `/v1/kaart-runs` is met F3e vervallen.
   aanwijst, een `context` (de toelichting, `skos:scopeNote`); voorbeelden zijn altijd geel en zonder
   bronanker, met een signaal zonder tegenvoorbeeld, en het *waarom* van Lex staat als `motivatie` bij
   het voorstel, niet bij het begrip (spoor I1).
-- **Budget** vóór een model-actie (`reeks._budget_poort`); het verbruik op `kaart-<run>`, ook bij een fout.
+- **Budget** vóór een model-actie (`verbruik.budget_poort`); het verbruik op `kaart-<run>`, ook bij een fout.
 - **Codes**: de aandachtspunten van deze acties staan in `kaartacties.TEKST`, los van `toetsen.TEKST`
   (de werkplek leest die laatste letterlijk mee; een nieuwe code daar breekt de frontend-drift-test).
 - **Contract**: `tests/test_begrip_kaart.py` leest `api/app/begrip_voorstel_contracts.py` uit de bron.
