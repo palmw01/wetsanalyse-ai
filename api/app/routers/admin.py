@@ -17,8 +17,10 @@ POST   /v1/admin/registraties/{id}/afwijzen    – wijs af (verwijdert de aanvra
 POST   /v1/admin/registraties/goedkeuren       – meerdere tegelijk goedkeuren
 DELETE /v1/admin/registraties/{id}             – ruim een goedgekeurde aanvraag op uit het archief
 GET    /v1/admin/budget                   – het tokenbudget-beleid
-PUT    /v1/admin/budget                   – beleid wijzigen (budget, resetperiode, aan/uit)
+PUT    /v1/admin/budget                   – beleid wijzigen (resetperiode, aan/uit)
+PUT    /v1/admin/budget/rollen/{rol}      – het tokenbudget van een rol zetten
 GET    /v1/admin/verbruik                 – stand per gebruiker, zwaarste eerst
+POST   /v1/admin/users/{id}/verbruik/reset – geef een gebruiker zijn budget terug voor dit venster
 """
 
 from __future__ import annotations
@@ -29,7 +31,7 @@ from datetime import datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from .. import (
     api_tokens,
@@ -46,12 +48,26 @@ from ..llm.litellm_client import build_llm_client
 from ..llm_profile import LlmProfile
 from ..ratelimit import rate_limited_admin_test
 from ..secrets_crypto import SecretsCryptoError, crypto_beschikbaar
+from ..user import ROLLEN
 from ..annotatie_statistiek import ReviewStatistiek, rapport
 from .auth import huidige_beheerder, vergeet_actief
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
+
+
+async def beheerder_met_2fa(door: str = Depends(huidige_beheerder)) -> str:
+    """De beheerder die dit persoonlijk doet: voor beheerhandelingen die iemands naam moeten dragen.
+
+    Een admin-token alleen is niet genoeg: de BFF zet `X-User-Id` uit de sessie. Zo kan een los token
+    (de admin-MCP) hier niet bij, en staat er een persoon in het log. Wie dit doet, moet zelf 2FA
+    hebben: de BFF toetst dat ook, maar een beheerder zonder 2FA mag er ook hier niet langs.
+    """
+    uitvoerder = await users.get_user(door)
+    if uitvoerder is None or not uitvoerder.totp_enabled:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Koppel eerst zelf 2FA.")
+    return uitvoerder.userid
 
 
 # --- modellen ------------------------------------------------------------------
@@ -204,14 +220,33 @@ async def test_profiel(name: str, admin_id: str = Depends(require_admin)):
 
 # --- gebruikersbeheer ----------------------------------------------------------
 
+class VerbruikRegel(BaseModel):
+    """De stand van één gebruiker, voor het beheeroverzicht. `budget` is dat van zijn `rol`."""
+    userid: str
+    gebruikt: int
+    budget: int
+    percentage: int
+    rol: str
+    geblokkeerd: bool
+    # De laatste reset door een beheerder in dit venster.
+    gereset_op: str | None = None
+    gereset_door: str = ""
+
+
+def _regel(s) -> VerbruikRegel:
+    return VerbruikRegel(
+        userid=s.userid, gebruikt=s.gebruikt, budget=s.budget, percentage=s.percentage, rol=s.rol,
+        geblokkeerd=s.geblokkeerd, gereset_op=s.gereset_op.isoformat() if s.gereset_op else None,
+        gereset_door=s.gereset_door,
+    )
+
+
 class UserOut(BaseModel):
     userid: str
     email: str
     role: str
     totp_enabled: bool
     active: bool
-    # Afwijkend tokenbudget; None = volg het systeembrede beleid.
-    token_budget: int | None = None
     created: str = ""
     updated: str = ""
 
@@ -223,13 +258,12 @@ class UserCreateIn(BaseModel):
 
 
 class UserPatchIn(BaseModel):
+    # Een onbekend veld is een fout en geen no-op: wie hier nog een budget per gebruiker meestuurt,
+    # moet dat merken in plaats van een 200 te krijgen terwijl er niets gebeurt.
+    model_config = ConfigDict(extra="forbid")
+
     role: str | None = Field(default=None, max_length=16)
     active: bool | None = None
-    # Afwijkend tokenbudget. Weglaten = ongewijzigd; expliciet `null` = terug naar de standaard.
-    # Dat onderscheid vraagt een sentinel, want None betekent hier twee dingen – zie `wijzig_user`.
-    token_budget: int | None = Field(default=None, ge=0)
-    # Zet dit op true om `token_budget` te wissen (terug naar het beleid).
-    token_budget_wissen: bool = False
 
 
 class UserCreated(UserOut):
@@ -245,7 +279,6 @@ class TempPassword(BaseModel):
 def _user_to_out(u) -> UserOut:
     return UserOut(
         userid=u.userid, email=u.email, role=u.role, totp_enabled=u.totp_enabled, active=u.active,
-        token_budget=u.token_budget,
         created=u.created.isoformat(), updated=u.updated.isoformat(),
     )
 
@@ -270,10 +303,7 @@ async def wijzig_user(userid: str, body: UserPatchIn):
     try:
         # Rol + active in één atomaire patch (invariant op de eind-toestand – voorkomt de TOCTOU
         # waarbij twee losse checks de laatste actieve beheerder alsnog laten verdwijnen).
-        user = await users.patch_user(
-            userid, role=body.role, active=body.active,
-            token_budget=body.token_budget, token_budget_wissen=body.token_budget_wissen,
-        )
+        user = await users.patch_user(userid, role=body.role, active=body.active)
     except users.UserError as e:
         raise HTTPException(status_code=409, detail=str(e))
     # Deactiveren moet meteen bijten, niet pas als de actief-cache verloopt.
@@ -291,17 +321,8 @@ async def reset_user_wachtwoord(userid: str):
 
 
 @router.post("/users/{userid}/2fa/reset", status_code=status.HTTP_204_NO_CONTENT)
-async def reset_user_2fa(userid: str, door: str = Depends(huidige_beheerder)):
-    """Haal 2FA van een account dat authenticator én herstelcodes kwijt is.
-
-    Dit endpoint wil weten wíe het doet, dus een admin-token alleen is niet genoeg: de BFF zet
-    `X-User-Id` uit de sessie. Zo kan een los token (de admin-MCP) geen 2FA weghalen, en staat er een
-    persoon in het log. Wie dit doet, moet zelf 2FA hebben: de BFF toetst dat ook, maar een beheerder
-    zonder 2FA mag er ook hier niet langs.
-    """
-    uitvoerder = await users.get_user(door)
-    if uitvoerder is None or not uitvoerder.totp_enabled:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Koppel eerst zelf 2FA.")
+async def reset_user_2fa(userid: str, door: str = Depends(beheerder_met_2fa)):
+    """Haal 2FA van een account dat authenticator én herstelcodes kwijt is."""
     try:
         user = await users.reset_2fa(userid, door=door)
     except users.UserError as e:
@@ -311,6 +332,23 @@ async def reset_user_2fa(userid: str, door: str = Depends(huidige_beheerder)):
         "2FA gereset door een beheerder",
         extra={"categorie": "security", "actie": "2fa_reset", "userid": user.userid, "door": door},
     )
+
+
+@router.post("/users/{userid}/verbruik/reset", response_model=VerbruikRegel)
+async def reset_user_verbruik(userid: str, door: str = Depends(beheerder_met_2fa)):
+    """Geef een gebruiker zijn volledige budget terug voor de rest van dit venster.
+
+    Wist niets: `verbruik.reset_verbruik` legt het moment vast en de som begint daar.
+    """
+    user = await users.get_user(userid)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Onbekende gebruiker.")
+    await verbruik_svc.reset_verbruik(user.userid, door=door)
+    logger.warning(
+        "verbruik gereset door een beheerder",
+        extra={"categorie": "security", "actie": "verbruik_reset", "userid": user.userid, "door": door},
+    )
+    return next(_regel(s) for s in await verbruik_svc.standen() if s.userid == user.userid)
 
 
 @router.delete("/users/{userid}", status_code=status.HTTP_204_NO_CONTENT)
@@ -326,10 +364,18 @@ async def verwijder_user(userid: str):
 #
 # Het beleid staat in de database en niet in de env, zodat een limiet aanpassen geen redeploy
 # vraagt. Het `anker` bepaalt vanaf welk moment de vensters lopen: verschuiven verplaatst ieders
-# resetdatum in één klap, dus dat kan alleen expliciet.
+# resetdatum in één klap, dus dat kan alleen expliciet. Hoeveel tokens iemand heeft volgt uit zijn rol.
+#
+# Lezen kan met het admin-token; wijzigen draagt iemands naam (`beheerder_met_2fa` + `budget_audit`).
+
+class RolBudgetOut(BaseModel):
+    rol: str
+    tokens: int
+    updated_by: str = ""
+    updated: str | None = None
+
 
 class BudgetOut(BaseModel):
-    tokens: int
     periode_dagen: int
     anker: str
     actief: bool
@@ -337,66 +383,77 @@ class BudgetOut(BaseModel):
     updated: str = ""
     # Afgeleid, puur voor de UI: wanneer het huidige venster afloopt.
     reset_op: str = ""
+    rollen: list[RolBudgetOut] = []
 
 
 class BudgetIn(BaseModel):
-    tokens: int = Field(ge=0)
     periode_dagen: int = Field(ge=1, le=365)
     actief: bool = True
     # Alleen meesturen om de vensters te herankeren; weglaten laat het anker staan.
     anker: datetime | None = None
 
 
-class VerbruikRegel(BaseModel):
-    """De stand van één gebruiker, voor het beheeroverzicht."""
-    userid: str
-    gebruikt: int
-    budget: int
-    percentage: int
-    eigen_budget: bool
-    geblokkeerd: bool
+class RolBudgetIn(BaseModel):
+    # De ondergrens is 1: een budget van 0 begrenst niets (`verbruik._maak_stand`), en wie bij een rol
+    # 0 invult bedoelt het tegenovergestelde. De bovengrens is wat de kolom kan dragen.
+    tokens: int = Field(ge=1, le=2_000_000_000)
 
 
-def _budget_to_out(b) -> BudgetOut:
+def _rol_to_out(r) -> RolBudgetOut:
+    return RolBudgetOut(
+        rol=r.rol, tokens=r.tokens, updated_by=r.updated_by,
+        updated=r.updated.isoformat() if r.updated else None,
+    )
+
+
+async def _budget_to_out(b) -> BudgetOut:
     return BudgetOut(
-        tokens=b.tokens, periode_dagen=b.periode_dagen, anker=b.anker.isoformat(),
+        periode_dagen=b.periode_dagen, anker=b.anker.isoformat(),
         actief=b.actief, updated_by=b.updated_by, updated=b.updated.isoformat(),
         reset_op=verbruik_svc.venster_einde(b).isoformat(),
+        rollen=[_rol_to_out(r) for r in await verbruik_svc.rolbudgetten()],
     )
 
 
 @router.get("/budget", response_model=BudgetOut)
 async def lees_budget():
-    return _budget_to_out(await verbruik_svc.get_beleid())
+    return await _budget_to_out(await verbruik_svc.get_beleid())
 
 
 @router.put("/budget", response_model=BudgetOut)
-async def zet_budget(body: BudgetIn, admin_id: str = Depends(require_admin)):
+async def zet_budget(body: BudgetIn, door: str = Depends(beheerder_met_2fa)):
     try:
         beleid = await verbruik_svc.zet_beleid(
-            tokens=body.tokens, periode_dagen=body.periode_dagen, actief=body.actief,
-            anker=body.anker, actor=admin_id,
+            periode_dagen=body.periode_dagen, actief=body.actief, anker=body.anker, actor=door,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     logger.info(
         "budgetbeleid gewijzigd",
-        extra={"categorie": "security", "actie": "budget_gewijzigd", "tokens": body.tokens,
-               "periode_dagen": body.periode_dagen, "actief": body.actief, "door": admin_id},
+        extra={"categorie": "security", "actie": "budget_gewijzigd",
+               "periode_dagen": body.periode_dagen, "actief": body.actief, "door": door},
     )
-    return _budget_to_out(beleid)
+    return await _budget_to_out(beleid)
+
+
+@router.put("/budget/rollen/{rol}", response_model=RolBudgetOut)
+async def zet_rolbudget(rol: str, body: RolBudgetIn, door: str = Depends(beheerder_met_2fa)):
+    """Zet het budget van een rol; het geldt meteen voor iedereen met die rol."""
+    if rol not in ROLLEN:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Onbekende rol.")
+    rolbudget = await verbruik_svc.zet_rolbudget(rol, body.tokens, actor=door)
+    logger.info(
+        "rolbudget gewijzigd",
+        extra={"categorie": "security", "actie": "rolbudget_gewijzigd", "rol": rol, "tokens": body.tokens,
+               "door": door},
+    )
+    return _rol_to_out(rolbudget)
 
 
 @router.get("/verbruik", response_model=list[VerbruikRegel])
 async def lijst_verbruik():
     """Alle gebruikers met hun stand, de zwaarste verbruiker eerst."""
-    return [
-        VerbruikRegel(
-            userid=s.userid, gebruikt=s.gebruikt, budget=s.budget, percentage=s.percentage,
-            eigen_budget=s.eigen_budget, geblokkeerd=s.geblokkeerd,
-        )
-        for s in await verbruik_svc.standen()
-    ]
+    return [_regel(s) for s in await verbruik_svc.standen()]
 
 
 # --- zelfregistratie: aanvragen beoordelen -------------------------------------

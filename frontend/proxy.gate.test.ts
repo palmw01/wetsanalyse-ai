@@ -88,7 +88,10 @@ describe("de routegate met de CSP-handler", () => {
       expect(new URL(analist.headers.get("location") ?? "").pathname, pad).toBe("/");
       expect(doorgelaten(await proxy(verzoek(pad, await sessie("beheerder")), {})), pad).toBe(true);
     }
-    const bff = await proxy(verzoek("/api/admin/users", await sessie("analist")), {});
-    expect(bff.status).toBe(403);
+    for (const pad of ["/api/admin/users", "/api/admin/budget", "/api/admin/budget/rollen/analist",
+      "/api/admin/users/jdevries/verbruik-reset"]) {
+      const bff = await proxy(verzoek(pad, await sessie("analist")), {});
+      expect(bff.status, pad).toBe(403);
+    }
   });
 });

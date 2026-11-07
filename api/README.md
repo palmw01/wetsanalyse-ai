@@ -9,7 +9,7 @@ bedient:
 - **login en gebruikersbeheer** – de API is de identiteitsbron van de webapp, inclusief
   zelfregistratie en TOTP-2FA (verplicht voor beheer) met herstelcodes;
 - het **LLM-modelprofielbeheer**;
-- het **tokenbudget** per gebruiker;
+- het **tokenbudget**: per rol ingesteld, per gebruiker gemeten;
 - **berichten** (release notes) en **gebruikersfeedback**;
 - de **werkgebieden**: dossier, deelvragen, bronselectie per deelvraag, inventaris, annotatie-werkvoorraad
   en PDF-export;
@@ -136,6 +136,7 @@ zijn gedeeld tussen gebruikers; wie wat deed staat in de audit. Specificatie:
 | `GET` `POST` | `/v1/admin/users` | Lijst accounts / account maken (geeft eenmalig een tijdelijk wachtwoord) |
 | `PATCH` `DELETE` | `/v1/admin/users/{userid}` | Rol/actief wijzigen (laatste actieve beheerder beschermd) / verwijderen |
 | `POST` | `/v1/admin/users/{userid}/reset-password` | Nieuw tijdelijk wachtwoord |
+| `POST` | `/v1/admin/users/{userid}/verbruik/reset` | Geef een gebruiker zijn volledige budget terug voor dit venster; het journaal blijft intact. Vraagt `X-User-Id` van een beheerder met 2FA |
 | `POST` | `/v1/admin/users/{id}/2fa/reset` | Haal 2FA van een ander account; vraagt naast het admin-token `X-User-Id` van een beheerder met 2FA |
 | `GET` `POST` | `/v1/admin/api-tokens` | Lijst / nieuw token (eenmalig getoond); met `userid` een accounttoken (409 als `API_TOKEN_LOGIN` uit staat) |
 | `DELETE` | `/v1/admin/api-tokens/{id}` | Token intrekken |
@@ -144,7 +145,8 @@ zijn gedeeld tussen gebruikers; wie wat deed staat in de audit. Specificatie:
 | `POST` | `/v1/admin/registraties/{id}/afwijzen` | Aanvraag verwijderen; de reden gaat naar het security-log |
 | `POST` | `/v1/admin/registraties/goedkeuren` | Meerdere tegelijk goedkeuren (best-effort) |
 | `DELETE` | `/v1/admin/registraties/{id}` | Goedgekeurde aanvraag uit het archief halen |
-| `GET` `PUT` | `/v1/admin/budget` | Tokenbudget-beleid (budget, resetperiode, aan/uit) |
+| `GET` `PUT` | `/v1/admin/budget` | Tokenbudget-beleid (resetperiode, aan/uit); `GET` toont ook het budget per rol. `PUT` vraagt `X-User-Id` van een beheerder met 2FA |
+| `PUT` | `/v1/admin/budget/rollen/{rol}` | Tokenbudget van een rol; vraagt `X-User-Id` van een beheerder met 2FA |
 | `GET` | `/v1/admin/verbruik` | Stand per gebruiker, zwaarste verbruiker eerst |
 | `GET` `POST` | `/v1/admin/berichten` | Alle berichten / nieuw bericht |
 | `PUT` `DELETE` | `/v1/admin/berichten/{id}` | Bewerken / verwijderen |
@@ -243,7 +245,7 @@ wint. Op Azure staan alle secrets als bestand onder `/run/secrets/`.
 | `WETSANALYSE_LLM_MAX_CONCURRENCY` | `4` | Plafond op gelijktijdige LLM-calls (`0` = uit) |
 | `WETSANALYSE_RATE_LIMIT_MAX` / `_WINDOW` | `30` / `60` (s) | Rate limit op `POST /v1/feedback` (per client), de login (per userid plus een ruimer globaal plafond) en wachtwoord en 2FA (per userid); `0` = uit |
 | `WETSANALYSE_ADMIN_TEST_RATE_MAX` / `_WINDOW` | `10` / `60` (s) | Rate limit op de verbindingstest |
-| `WETSANALYSE_TOKEN_BUDGET` | `500000` | Seed van het tokenbudget; daarna leeft het beleid in de database |
+| `WETSANALYSE_TOKEN_BUDGET` | `500000` | Seed van het tokenbudget van elke rol; daarna leeft het budget per rol in de database |
 | `WETSANALYSE_TOKEN_BUDGET_DAGEN` | `7` | Seed van de resetperiode |
 | `GRAPHDB_URL` | leeg | GraphDB voor bronboom en projectie; leeg = beide uit |
 | `GRAPHDB_REPOSITORY` | `inning` | |
