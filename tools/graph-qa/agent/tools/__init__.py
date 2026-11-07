@@ -183,6 +183,7 @@ def _h_get_artikel(g: GraphPort, a: dict[str, Any]) -> str:
     eenheden, gezien = [], set()
     for r in rijen:
         for iri, rij in ((r.get("lid"), {"lid": r.get("lid"), "nummer": r.get("lidnummer"), "tekst": r.get("lidtekst"),
+                                         "jci": _zonder_datum(r.get("lidjci", "")),
                                          "heeft_onderdelen": True if r.get("lidonderdelen") == "true" else None}),
                          (r.get("o"), {"onderdeel": r.get("o"), "nummer": r.get("onderdeel"), "tekst": r.get("onderdeeltekst")})):
             if iri and iri not in gezien:

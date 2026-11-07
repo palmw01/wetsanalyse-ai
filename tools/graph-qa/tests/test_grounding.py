@@ -315,3 +315,13 @@ def test_de_tijdlijn_zegt_wat_er_niet_is_teruggevonden():
     from agent.narratie import _grounding_melding
 
     assert "niet teruggevonden" in _grounding_melding(check_grounding("Artikel 999 regelt dit. BWBR0004770", BRON_IW))
+
+
+def test_melding_zonder_aanhaling_heeft_geen_lege_telling():
+    """De bepalingsroute toont tekst van de code: niets aangehaald. "brongetrouwheid:  gecontroleerd" las als een fout."""
+    from agent.orchestrator import _grounding_melding
+
+    from types import SimpleNamespace
+
+    report = SimpleNamespace(niveau="gegrond", onbevestigd=[], unsupported=[], niet_letterlijk=[], cited=[], citaten=0)
+    assert _grounding_melding(report) == "brongetrouwheid: gecontroleerd, niets aangehaald"

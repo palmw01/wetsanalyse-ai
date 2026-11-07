@@ -13,9 +13,11 @@ describe("stroomReducer", () => {
   it("hoopt tekst en denkregels op zoals de werkplek ze toont", () => {
     const s = speel([
       { type: "status", bericht: "Graaf bevragen" }, { type: "status", bericht: "Antwoord" },
-      { type: "reason", tekst: " – nog even" }, { type: "token", tekst: "Het " }, { type: "token", tekst: "antwoord." },
+      { type: "reason", tekst: "Ik zoek eerst." }, { type: "reason", tekst: "\n\nNu lees ik." },
+      { type: "token", tekst: "Het " }, { type: "token", tekst: "antwoord." },
     ]);
-    expect(s.denk).toBe("· Graaf bevragen\n· Antwoord – nog even");
+    // De eerste ronde draagt geen alinea-scheiding: zonder regelgrens plakte de narratie aan de statusregel.
+    expect(s.denk).toBe("· Graaf bevragen\n· Antwoord\nIk zoek eerst.\n\nNu lees ik.");
     expect(s.tekst).toBe("Het antwoord.");
   });
 
