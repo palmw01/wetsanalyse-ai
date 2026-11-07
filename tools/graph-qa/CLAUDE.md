@@ -169,10 +169,12 @@ bruikbaar is.
   geeft een `Stopreden` terug, logt één `model_aanroep` (rol, model, stopreden, duur, gebruik; geen inhoud) en eist dat
   de systeemprompt de methodetekst van de rol draagt (`Rol.methoderol`, of `methoderol=` voor de specialist van de
   antwoordlus). `stroom` doet hetzelfde voor de streamende antwoordlus en logt bij `final_message()`. Supervisor,
-  antwoordlus, ophaal-agent en de toelichting van de bepalingsroute lopen erlangs. `vraag_tool` is de vorm voor één strict tool:
+  antwoordlus, ophaal-agent en de toelichting van de bepalingsroute lopen erlangs. `vraag_tool` is de vorm voor één tool (meestal strict):
   `pogingen` verplicht, `haal` bepaalt wat bruikbaar is, de tellers houden hun namen (`llm_calls`, `review_calls`,
   `afgekapt`). Na `refusal` of `max_tokens` geen tweede poging (`GEEN_HERHALING`, H5d). Geen eigen retry (dat doet de SDK) en geen except. Een nieuwe modelaanroep gaat hierlangs, met een
   eigen `Rol` en een scenario in `tests/test_modelverzoeken.py`: dat legt elk verzoek byte voor byte vast.
+  `tests/test_methoderollen.py` eist dat elke methoderol uit de skill een aanroep heeft, dat elke `Rol` gebruikt wordt
+  en dat niemand buiten de adapter en de stap `llm.create` of `llm.stream` aanroept.
 - **`adapters/graphdb_graph.py`** – `make_graph(settings)` → `MCPClient`; roept `require_graph()`.
 - **`mcp_client.py`** – synchrone MCP-client (Streamable HTTP): `sparql()` via `sparql_query`,
   `semantic_search()` via `similarity_search`, één persistente `httpx.Client`. `_reject_updates`
@@ -765,7 +767,8 @@ endpoint `/v1/kaart-runs` is met F3e vervallen.
   `B1_LIJDENDE_VORM` (spaCy `aux:pass`, zonder parser een patroon), `B1_MOEILIJK_WOORD`,
   `B1_VAKTERM_ONVERKLAARD`, `B1_HERHAALT_DEFINITIE`. Een treffer is een aandachtspunt, geen weigering; het
   voorstel is altijd geel. De regels staan in de skill (`references/nl-sbb-en-b1.md`, sectie
-  `nl-sbb-taalniveau` van de rol `begrippen`).
+  `nl-sbb-taalniveau`, die de specialisten `definitie` en `algemeen` dragen; de prompt van `schrijf_uitleg` draagt hem
+  niet, de toetsen zijn code).
 - Meten: `uv run python -m eval.kaartacties_eval` (live tegen de graaf, geen model; een ontwikkelset,
   meetlogboek `kaartacties-2026-10-16`); de uitleg met `uv run python -m eval.uitleg_eval --runs 3` (graaf én
   model, kost geld: per code hoe vaak een B1-toets afgaat).
@@ -866,7 +869,8 @@ Deelvragen bij een werkgebied zijn optioneel (open keuze 4); de api bewaart ze
 (`api/app/werkgebied_deelvragen.py`). Voorstellen is de taak `voorstellen` van de deelvragen-agent
 (`deelvragen.voorstellen_kern`; het eigen endpoint `/v1/deelvragen-runs` is met F3e vervallen): werkgebied
 ophalen, zonder analysevraag `geweigerd` (`soort: "invoer"`) zonder modelaanroep, dan één aanroep op
-`LLM_MODEL` met een strict tool (`stel_deelvragen_voor`; het hele dossier van het werkgebied gaat mee via
+`LLM_MODEL` met één tool (`stel_deelvragen_voor`, niet strict: het schema begrenst aantal en lengte, en `valideer` doet
+de rest; het hele dossier van het werkgebied gaat mee via
 `werkgebied_context.context_tekst`, en de bestaande deelvragen, zodat Lex er geen variant van bedenkt),
 `valideer` (alleen vragen met een vraagteken, ontdubbeld, hoogstens `MAX_DEELVRAGEN`),
 `POST …/deelvragen/voorstellen`. Het verbruik telt mee in de beurt. De api laat weg wat er al staat of is
@@ -938,7 +942,7 @@ werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en
   `DOELEN`; de Leidraad is BRM-materiaal en hoort niet letterlijk in deze publieke repo), plus eigen
   tekst; doel is meerkeuze. Context en praktijkvoorbeeld zijn vrije tekst, zonder voorstel – een
   praktijkvoorbeeld verzint Lex niet.
-- **Het model stelt alleen voor** (`stel_voor`, op `LLM_MODEL_ROUTER`, één strict tool): naam,
+- **Het model stelt alleen voor** (`stel_voor`, op `LLM_MODEL_ROUTER`, één tool, niet strict – het schema begrenst aantal en lengte): naam,
   voorselectie van aanleiding en doel (enum-sleutels; een onbekende valt weg), analysevraag en een
   onderwerp om mee te zoeken. Een startzin zonder inhoud kost bij de naam geen aanroep; een storing
   levert een kaartje zonder voorstellen.
@@ -1202,7 +1206,8 @@ reeks) en `doelen`.
   die er nog niet is, en voorbeelden; daarna zegt Lex wat er nog open is) – en na elke losse kaartactie noemt Lex het volgende logische stuk
   (`kaart_beurt.VOLGENDE`: definitie → uitleg → voorbeelden → relaties)
   en `relaties` (`GET …/relaties`, zonder model). Het begrip komt van het onderwerp (`als_rij`) of uit de
-  term (`los_op`, zie *Welk begrip*). Skillrol `begrippen`.
+  term (`los_op`, zie *Welk begrip*). Geen skillrol: de regels voor begrippen staan in de keten en de toetsen, en
+  `references/begrippen.md` is methode-uitleg (besluit 7 nov 2026).
 - **Welk begrip** (`agents/begrippen._begrippen`, `kaart_beurt`). De termen komen uit de woorden van de analist, alleen
   zonder termen uit de herschreven vraag (`register.parameters`: `herschreven`): een herschrijving voegde een begrip toe
   dat niemand noemde (e2e 5 nov 2026). Noemt de vraag twee begrippen, dan wint de vraag van het onderwerp; het onderwerp

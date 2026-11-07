@@ -94,8 +94,8 @@ Voor conceptvoorbeelden en de gezamenlijke beoordelingsprocedure:
 
 [Agentrollen](references/agentrollen.md) beschrijft de beperkte runtime-uitvoering.
 `agentrollen.json` koppelt rollen aan stabiele sectie-ID’s en M/P-bronnen: supervisor,
-ophaalagent, specialisten, decompositie en synthese, en de deelvragen- en begrippen-agent
-([deelvragen en bronnen](references/deelvragen-en-bronnen.md), [begrippen](references/begrippen.md)).
+ophaalagent, specialisten en de deelvragen-agent ([deelvragen en bronnen](references/deelvragen-en-bronnen.md)).
+[Begrippen](references/begrippen.md) beschrijft hoe Lex met begrippen werkt; die tekst is geen agentrol.
 De bronnenrun zoekt vanaf de gebeurtenis langs vier zoekvragen
 ([zoekvragen bij de bronselectie](references/zoekvragen-bronselectie.md)).
 De annotatie gebruikt geen methodeprompt meer.

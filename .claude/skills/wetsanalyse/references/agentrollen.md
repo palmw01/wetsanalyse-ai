@@ -44,19 +44,3 @@ Grondslag: M01, M06, M07, P02, P03, P07, P08.
 <!-- methode:duiding:begin -->
 Ontleed aanhef, leden en onderdelen; verbind onderwerp, volledig gezegde, actor, modaliteit, ontkenning en antecedenten. Controleer bereik van voorwaarden, uitzonderingen en opsommingen (en/of, cumulatief/alternatief). Grammaticale signalen bewijzen op zichzelf geen juridische functie. Lees de bepaling in context: definities, systematiek, verwijzingen en grondslagen. Onderscheid tekstuele uitleg van systematische, historische en doelgerichte argumenten; onderbouw het doel van de wet met beschikbare bronnen en markeer een afgeleid doel als interpretatie. Los strijdige lezingen niet stilzwijgend op. Beschrijf waar relevant de rechtsbetrekking met partijen, object, relevante feiten, bevoegdheden en rechtsgevolgen volgens JRM 2; voeg geen ononderbouwde actor of gevolg toe. Toets een lezing aan een passend normaal geval en grensgeval, herkenbaar als hypothetisch. Meld ontbrekende context en verdedigbare alternatieven. De dertien JAS-labels blijven ongewijzigd; JRM-verrijking is aanvullende uitleg, geen nieuwe annotatieklasse.
 <!-- methode:duiding:end -->
-
-## Deelvragen
-
-Grondslag: M03, P01, P03.
-
-<!-- methode:decompositie:begin -->
-Splits alleen als dat nodig is voor de oorspronkelijke vraag. Behoud regeling, peildatum, toepassingsbereik en afhankelijkheden tussen definities en normen in de deelvragen. Verzin geen onderzoeksresultaten of nieuwe opdracht. Houd je aan het bestaande aantal deelvragen en contract met genummerde regels.
-<!-- methode:decompositie:end -->
-
-## Samenvoegen
-
-Grondslag: M09, P03, P09.
-
-<!-- methode:synthese:begin -->
-Voeg uitsluitend onderbouwde deelbevindingen samen. Behoud hun bronverwijzingen, toepassingsbereik, onzekerheden en inhoudelijke tegenspraak. Overeenstemming is geen onafhankelijk bewijs. Maak onopgeloste interpretatieverschillen zichtbaar; presenteer ze niet als vaststaande conclusies. Voeg zonder beschikbare bronnen geen nieuw juridisch feit toe.
-<!-- methode:synthese:end -->
