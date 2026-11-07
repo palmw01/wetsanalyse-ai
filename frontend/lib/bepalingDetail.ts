@@ -74,3 +74,15 @@ export function afwijkendeToestand(gelezenJci: string | undefined, geldigVanaf: 
   const gelezen = /[&?]g=(\d{4}-\d{2}-\d{2})/.exec(gelezenJci ?? "")?.[1];
   return gelezen && geldigVanaf && geldigVanaf > gelezen ? gelezen : undefined;
 }
+
+/** Een aantal zoals het paneel het noemt: exact als de api het telde, anders "minstens n". Een begrensde lijst rijen is
+ *  nooit het totaal (de telquery kon falen; dan staat `volledig` op false en is het aantal een ondergrens). */
+export function aantalTekst(aantal: number, volledig: boolean): string {
+  return volledig ? String(aantal) : `minstens ${aantal}`;
+}
+
+/** Hoeveel er na de voorbeelden nog zijn, in dezelfde taal: "en 13 meer" of "en minstens 13 meer". */
+export function meerTekst(t: Telling): string {
+  const meer = t.aantal - t.items.length;
+  return meer > 0 ? `en ${t.volledig ? "" : "minstens "}${meer} meer` : "";
+}

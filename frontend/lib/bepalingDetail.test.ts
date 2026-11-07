@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { BEPALING_DETAIL_VELDEN, afwijkendeToestand, parseBepalingDetail, plaatsZin } from "./bepalingDetail";
+import { BEPALING_DETAIL_VELDEN, aantalTekst, afwijkendeToestand, meerTekst, parseBepalingDetail, plaatsZin } from "./bepalingDetail";
 
 const VP = { iri: "urn:bwb:BWBR0004770:artikel:36", label: "Artikel 36", jci: "", regeling: "Invorderingswet 1990" };
 const LEEG = { aantal: 0, volledig: true, items: [] };
@@ -43,5 +43,18 @@ describe("bepalingDetail", () => {
     expect(afwijkendeToestand(jci, "2026-07-01")).toBeUndefined();
     expect(afwijkendeToestand("", "2026-10-01")).toBeUndefined();
     expect(afwijkendeToestand(jci, null)).toBeUndefined();
+  });
+});
+
+describe("aantallen in het paneel", () => {
+  const vp = (n: number) => ({ iri: `urn:bwb:X:artikel:${n}`, label: `Artikel ${n}`, jci: "", regeling: "" });
+  it("een geteld aantal is exact, een begrensd aantal is minstens", () => {
+    expect(aantalTekst(1000, true)).toBe("1000");
+    expect(aantalTekst(1000, false)).toBe("minstens 1000");
+  });
+  it("wat na de voorbeelden overblijft volgt dezelfde regel", () => {
+    expect(meerTekst({ aantal: 14, volledig: true, items: [vp(1)] })).toBe("en 13 meer");
+    expect(meerTekst({ aantal: 1000, volledig: false, items: [vp(1), vp(2)] })).toBe("en minstens 998 meer");
+    expect(meerTekst({ aantal: 1, volledig: true, items: [vp(1)] })).toBe("");
   });
 });
