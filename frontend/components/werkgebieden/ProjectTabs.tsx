@@ -60,8 +60,8 @@ export function ArtefactenTab() {
                 <path d="M6 3h8l5 5v13H6z" /><path d="M14 3v5h5" /><path d="M9 13h7M9 17h7" />
               </svg>
             </span>
-            <span className="mt-3 text-[11px] font-medium uppercase tracking-wide text-faint">{ARTEFACT_LABEL[k.soort]}</span>
-            <span className="mt-0.5 font-display text-sm font-semibold text-ink group-hover:text-lint">{k.titel}</span>
+            {/* Geen soortregel: de titel is de soortnaam al (`ARTEFACT_LABEL`). */}
+            <span className="mt-3 font-display text-sm font-semibold text-ink group-hover:text-lint">{k.titel}</span>
             <span className="mt-1 flex-1 text-xs leading-relaxed text-muted">{k.omschrijving}</span>
             <span className="mt-3 flex items-center justify-between gap-2">
               <span className="text-xs text-muted">{k.versie}</span>
