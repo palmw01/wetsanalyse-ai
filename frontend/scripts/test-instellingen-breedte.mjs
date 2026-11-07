@@ -24,7 +24,7 @@ const BREEDTES = [375, 640, 800, 1280];
 const lang = "johanna.van-den-berg-oosterhuis";
 const adres = `${lang}@belastingdienst.example.test`;
 const gebruiker = (userid, role, extra = {}) => ({ userid, email: `${userid}@belastingdienst.example.test`, role, totp_enabled: false,
-  active: true, token_budget: null, created: nu, updated: nu, ...extra });
+  active: true, created: nu, updated: nu, ...extra });
 const aanvraag = (id, status, extra = {}) => ({ id, voornaam: "Johanna", achternaam: "van den Berg-Oosterhuis", email: adres,
   userid_voorstel: lang, status, reden: null, userid: status === "goedgekeurd" ? lang : null, besloten_door: null, besloten_op: null,
   created: nu, updated: nu, ...extra });
@@ -57,12 +57,12 @@ async function open(viewport) {
     if (p === "/api/account/me") return route.fulfill({ json: stand.account });
     if (p === "/api/account/2fa/begin") return route.fulfill({ json: { otpauth_uri: "otpauth://totp/Wetsanalyse:wpalm?secret=JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP&issuer=Wetsanalyse" } });
     if (p === "/api/account/verbruik") return route.fulfill({ json: { userid: lang, gebruikt: 824000, budget: 1000000, percentage: 82, resterend: 176000, reset_op: straks,
-      waarschuwing: true, geblokkeerd: false, actief: true, eigen_budget: true } });
+      waarschuwing: true, geblokkeerd: false, actief: true, rol: "beheerder", gereset_op: null } });
     if (p === "/api/admin/users" && m === "GET") return route.fulfill({ json: [gebruiker("wpalm", "beheerder"), gebruiker(lang, "beheerder", { totp_enabled: true }), gebruiker("jdevries", "analist", { active: false })] });
     if (p === "/api/admin/users" && m === "POST") return route.fulfill({ status: 201, json: { ...gebruiker("nieuw", "analist"), temp_password: "tijdelijk-wachtwoord-1234" } });
-    if (p === "/api/admin/verbruik") return route.fulfill({ json: [{ userid: "wpalm", gebruikt: 10000, budget: 1000000, percentage: 1, eigen_budget: false, geblokkeerd: false },
-      { userid: lang, gebruikt: 1000000, budget: 1000000, percentage: 100, eigen_budget: true, geblokkeerd: true }] });
-    if (p === "/api/admin/budget") return route.fulfill({ json: { tokens: 1000000, periode_dagen: 7, anker: nu, actief: true, updated_by: "wpalm", updated: nu, reset_op: straks } });
+    if (p === "/api/admin/verbruik") return route.fulfill({ json: [{ userid: "wpalm", gebruikt: 10000, budget: 1000000, percentage: 1, rol: "beheerder", gereset_op: null, geblokkeerd: false },
+      { userid: lang, gebruikt: 1000000, budget: 1000000, percentage: 100, rol: "beheerder", gereset_op: nu, gereset_door: "wpalm", geblokkeerd: true }] });
+    if (p === "/api/admin/budget") return route.fulfill({ json: { rollen: [{ rol: "beheerder", tokens: 2000000 }, { rol: "analist", tokens: 1000000 }], periode_dagen: 7, anker: nu, actief: true, updated_by: "wpalm", updated: nu, reset_op: straks } });
     if (p === "/api/admin/registraties") return route.fulfill({ json: [aanvraag(1, "aangevraagd"), aanvraag(2, "goedgekeurd")] });
     if (p === "/api/admin/profiles") return route.fulfill({ json: [profiel("azure-sonnet-standaard-profiel", { is_default: true }), profiel("anthropic-reserve", { api_key_set: false })] });
     if (p.endsWith("/test") && p.includes("/profiles/")) return route.fulfill({ json: { ok: false, model: "", tokens_in: 0, tokens_out: 0, detail: "De verbinding met https://voorbeeld.services.ai.azure.example.test/openai/deployments is verbroken." } });
@@ -120,7 +120,7 @@ const SCHERMEN = [
   } },
   { naam: "budget-bewerken", tab: "Gebruikers", klaar: async (p) => {
     await p.locator("[data-budget-beleid]").getByRole("button", { name: /bewerken/i }).click();
-    await p.getByLabel(/Tokens per periode/).waitFor();
+    await p.getByLabel(/tokens per periode/).first().waitFor();
   } },
   { naam: "aanvragen", tab: "Aanvragen", klaar: (p) => p.getByRole("button", { name: "Goedkeuren" }).waitFor() },
   { naam: "aanvraag-afwijzen", tab: "Aanvragen", klaar: async (p) => {
