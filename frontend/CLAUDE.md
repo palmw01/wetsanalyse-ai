@@ -166,6 +166,9 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     - **Icoonknop**: `IcoonKnop`/`icoonKnopKlasse`, een vierkant in dezelfde vorm (⋯, ✕). De enige ronde knop is de
       verstuurknop van het invoerveld.
     - **Kiezen**: `FilterChip`, een kleine rechthoek. Gekozen is lintblauw gevuld.
+      Chips staan altijd in **`KeuzeRij`** (7 nov 2026, melding van de gebruiker op een iPhone): één regel, nooit
+      wrappen; past hij niet, dan scrolt hij horizontaal, net als de tabs. Geen eigen `flex flex-wrap` om chips heen;
+      `app/uitlijning.test.ts` bewaakt het.
     - **Suggestie**: `Suggestie`, de vorm van de voorbeeldvragen in de lege werkplek; `klein` boven het invoerveld.
     - De JAS-klasse op de reviewkaart is een knop in de kleur van de klasse: een rechthoek met ▾ en een hover-rand.
     - `app/knoppen.test.ts` bewaakt het voor de hele app: een element met `focus-ring` (elke knop en link) is nooit
@@ -747,9 +750,10 @@ sidebar blijft staan.
   `components/werkplek/MobieleTopbar.tsx`; `components/werkplek/sidebar.test.ts` bewaakt dat elk
   scherm met `AppSidebar` `drawerOpen` en `onDrawerSluit` doorgeeft.
 - **De drie overzichten – Annotaties, Werkgebieden, Begrippen – zien er hetzelfde uit** (besluit
-  gebruiker 21 okt 2026): onder de kop één balk, `components/ui/OverzichtBalk` (links filterknoppen met
-  tellers, dan *Door mij bewerkt*, eventueel iets extra's, rechts het zoekveld; slaat om als het niet
-  past), en daaronder kaarten in twee kolommen (`AnnotatieKaart`, `WerkgebiedKaart`,
+  gebruiker 21 okt 2026): onder de kop één balk, `components/ui/OverzichtBalk` (een vaste indeling sinds 7 nov
+  2026: op een telefoon de filterknoppen met tellers op één scrollende regel, het zoekveld over de volle breedte en dan
+  *Door mij bewerkt* met eventueel iets extra's; vanaf `sm:` de filterknoppen links en het zoekveld rechts op één
+  regel, *Door mij bewerkt* eronder), en daaronder kaarten in twee kolommen (`AnnotatieKaart`, `WerkgebiedKaart`,
   `BegripOverzichtKaart`) met de naam als link en onderaan *Openen* en *Verwijderen*. *Door mij bewerkt*
   komt overal uit de audit (de api, `mijn`).
 - **`/annotaties`** (`AnnotatiesClient`) heeft twee weergaven op één lijst: *te doen* (rood → geel →

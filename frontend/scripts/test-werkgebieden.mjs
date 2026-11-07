@@ -424,6 +424,26 @@ try {
   assert.deepEqual(tabrij, { hoog: 0, y: "hidden" });
   await rij.evaluate((el) => { el.scrollTop = 20; });
   assert.equal(await rij.evaluate((el) => el.scrollTop), 0);
+  // Het overzicht op een telefoon (7 nov 2026): de statusfilters staan op één regel en scrollen horizontaal, in plaats
+  // van *Afgerond* alleen op een tweede regel te zetten; de pagina zelf scrolt niet opzij.
+  await page.goto(`${base}/werkgebieden`);
+  await page.locator("[data-werkgebied-kaart=wg1]").waitFor();
+  const chips = await page.locator("[data-overzichtbalk] [data-keuzerij]").evaluate((el) => ({
+    regels: new Set([...el.children].map((c) => Math.round(c.getBoundingClientRect().top))).size,
+    aantal: el.children.length, wrap: getComputedStyle(el).flexWrap, x: getComputedStyle(el).overflowX }));
+  assert.deepEqual(chips, { regels: 1, aantal: 4, wrap: "nowrap", x: "auto" }, "statusfilters op één regel");
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+  await foto("werkgebieden-mobiel");
+  // Op een tablet staan chips en zoekveld op dezelfde regel; het zoekveld staat niet los op een eigen regel.
+  await page.setViewportSize({ width: 768, height: 1000 });
+  await page.waitForTimeout(100);
+  const balk = await page.locator("[data-overzichtbalk]").evaluate((el) => {
+    const mid = (r) => r.top + r.height / 2;
+    return Math.abs(mid(el.querySelector("[data-keuzerij]").getBoundingClientRect()) - mid(el.querySelector("input[type=search]").getBoundingClientRect()));
+  });
+  assert.ok(balk <= 4, `chips en zoekveld op één regel (verschil ${balk}px)`);
+  await page.goto(`${base}/werkgebieden/wg1`);
+  await page.locator("[data-paginakop] [data-meer-knop]").waitFor();
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.waitForTimeout(100);
   const opBreed = await page.locator("[data-paginakop]").evaluate((el) => {

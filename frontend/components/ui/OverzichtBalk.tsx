@@ -1,11 +1,15 @@
 "use client";
 
-import { FilterChip } from "./FilterChip";
+import { FilterChip, KeuzeRij } from "./FilterChip";
 
 /** De ene balk boven een overzicht – Annotaties, Werkgebieden, Begrippen: links de filterknoppen met
  *  tellers, in het midden *Door mij bewerkt* (en wat een overzicht extra nodig heeft), rechts het
  *  zoekveld. Gedeeld, zodat de drie overzichten niet uit elkaar lopen. Twee of vier knoppen in plaats
- *  van een keuzelijst: bij zo weinig standen is kiezen sneller dan uitklappen. */
+ *  van een keuzelijst: bij zo weinig standen is kiezen sneller dan uitklappen.
+ *
+ *  Een vaste indeling (7 nov 2026), zodat niets los op een regel belandt: op een telefoon onder elkaar – de chips
+ *  (één regel, scrollend), het zoekveld over de volle breedte, dan *Door mij bewerkt* en `extra`; vanaf `sm:` op de
+ *  eerste regel de chips links en het zoekveld rechts, op de tweede *Door mij bewerkt* en `extra`. */
 export function OverzichtBalk<T extends string>({
   filters, gekozen, onKies, filterLabel, mijn, onMijn, extra, zoekterm, onZoek, zoekLabel, placeholder,
 }: {
@@ -22,27 +26,15 @@ export function OverzichtBalk<T extends string>({
   placeholder: string;
 }) {
   return (
-    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-      <div role="group" aria-label={filterLabel} className="flex flex-wrap gap-1.5">
+    <div data-overzichtbalk className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-x-4">
+      <KeuzeRij label={filterLabel}>
         {filters.map((f) => (
           <FilterChip key={f.waarde} gekozen={gekozen === f.waarde} onKies={() => onKies(f.waarde)}>
             {f.label}
             {typeof f.aantal === "number" ? ` (${f.aantal})` : ""}
           </FilterChip>
         ))}
-      </div>
-
-      <label className="inline-flex items-center gap-1.5 text-xs text-muted">
-        <input
-          type="checkbox"
-          checked={mijn}
-          onChange={(e) => onMijn(e.target.checked)}
-          className="focus-ring h-3.5 w-3.5 accent-lint"
-        />
-        Door mij bewerkt
-      </label>
-
-      {extra}
+      </KeuzeRij>
 
       <input
         type="search"
@@ -52,6 +44,19 @@ export function OverzichtBalk<T extends string>({
         placeholder={placeholder}
         className="w-full rounded-field border border-line bg-paper px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-faint focus:border-lint focus:ring-2 focus:ring-lint/20 coarse:min-h-[48px] sm:w-72"
       />
+
+      <div className="flex flex-col gap-3 sm:col-span-2 sm:flex-row sm:items-center">
+        <label className="inline-flex items-center gap-1.5 text-xs text-muted">
+          <input
+            type="checkbox"
+            checked={mijn}
+            onChange={(e) => onMijn(e.target.checked)}
+            className="focus-ring h-3.5 w-3.5 accent-lint"
+          />
+          Door mij bewerkt
+        </label>
+        {extra}
+      </div>
     </div>
   );
 }
