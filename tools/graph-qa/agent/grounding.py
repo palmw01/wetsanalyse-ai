@@ -83,7 +83,7 @@ def _citaten(text: str) -> list[str]:
 
 _BLOCKQUOTE_RE = re.compile(r"(?:^[ \t]*>.*(?:\n|$))+", re.MULTILINE)
 _AANHALINGSTEKENS = frozenset(t for paar in _PAREN for t in paar)
-_ARTIKEL_VINDPLAATS = re.compile(r""":(?:artikel|bepaling):([^\s:"'<>,\\]+)|[&?]artikel=([^\s&"'<>,\\]+)""", re.IGNORECASE)
+_ARTIKEL_VINDPLAATS = re.compile(r""":(?:artikel|bepaling):([^\s:"'<>,\\`*]+)|[&?]artikel=([^\s&"'<>,\\`*]+)""", re.IGNORECASE)
 # Een opbouwtreffer noemt zijn bepalingen als kale lijst (`bepalingen: "4, 5"`), zonder IRI per bepaling.
 _ARTIKEL_VELD = re.compile(r'''"(?:artikel|nummer|bepalingen)"\s*:\s*"([^"]+)"''')
 

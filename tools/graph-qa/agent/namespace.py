@@ -41,5 +41,5 @@ def vindplaats_patroon(basis: str = BASIS) -> str:
     """
     if basis.startswith("https://"):
         kern = re.escape(basis[len("https://") :])
-        return r"https?://" + kern + r"[^\s\"'<>)\]}\\]+"
-    return re.escape(basis) + r"[^\s\"'<>)\]}\\]+"
+        return r"https?://" + kern + r"[^\s\"'<>)\]}\\`*]+"
+    return re.escape(basis) + r"[^\s\"'<>)\]}\\`*]+"

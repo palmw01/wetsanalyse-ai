@@ -742,6 +742,29 @@ def test_een_verzinsel_in_de_toelichting_gaat_ook_hier_door_de_correctie():
     assert "BWBR9999999" not in _eerste(events, "token")["content"]
 
 
+def test_een_vindplaats_van_de_treffers_staat_in_woorden_in_de_toelichting():
+    """Het model schreef "Gezocht op bron_iri `urn:bwb:BWBR0004770:artikel:9`" (acceptatie 7 nov 2026). De treffers
+    staan op lid 1 van dat artikel, dus het is een bekende plek in een onleesbare vorm."""
+    a = vul("antwoord_annotaties", {"toelichting": "Gezocht op `urn:bwb:BWBR0004770:artikel:9`, ook urn:bwb:BWBR0004770:artikel:9:lid:1."},
+            [zoek(M1)])
+    tekst = a.blokken[1].tekst
+    assert "urn:" not in tekst and "`" not in tekst
+    assert tekst == "Gezocht op Artikel 9, ook Artikel 9, lid 1."
+
+
+def test_een_vindplaats_die_de_treffers_niet_dragen_blijft_staan_voor_de_controle():
+    a = vul("antwoord_annotaties", {"toelichting": "Zie urn:bwb:BWBR9999999:artikel:1 en urn:bwb:BWBR0004770:artikel:10."}, [zoek(M1)])
+    assert "urn:bwb:BWBR9999999:artikel:1" in a.blokken[1].tekst and "urn:bwb:BWBR0004770:artikel:10" in a.blokken[1].tekst
+
+
+def test_een_iri_van_de_gezochte_bepaling_kost_geen_correctieronde():
+    iri = response([tool_block("t2", "antwoord_annotaties", {"toelichting": "Gezocht op `urn:bwb:BWBR0004770:artikel:9`."})], "tool_use")
+    events, llm = _leesbeurt(iri)
+    assert llm.index == 1
+    assert _eerste(events, "grounding")["niveau"] != "ongegrond"
+    assert "urn:" not in _eerste(events, "token")["content"]
+
+
 def test_vrije_tekst_in_de_leesroute_blijft_begrensd():
     events, _ = _leesbeurt(response([text_block("Er zijn annotaties.")], "end_turn"))
     assert not [e for e in events if e["type"] == "antwoord"]
