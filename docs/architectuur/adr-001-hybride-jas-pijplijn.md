@@ -335,6 +335,21 @@ Elke PR bevat de 14 acceptatiepunten uit §36. Elke PR na PR 1 draagt een sectie
 | **17 Tuning op fouten** | per foutcategorie gerichte regel-, profiel- of detectorwijziging + regressietest | detectors/profielen, niet de prompt | — | regressietest per fout | geen promptpatch zonder foutcode | 16 | — |
 | **18 Legacy removal** | alleen na aangetoonde gelijkwaardigheid op adjudicated set | legacy-nodes, grote prompts | vlag weg | graafopbouw | beslisdocument | 16-17 + mens | — |
 
+**Aanvulling bij PR 8 (7 nov 2026, besluit van de gebruiker): de verbijzondering.** PRIORITY-001 beslist over de
+klasse en blijft staan: een duur of hoeveelheid in een tijdsaanduiding ('zes weken', 'één maand', 'binnen 48 uur')
+is één element **Tijdsaanduiding**, geen tweede markering Parameter op dezelfde formulering (IW01-regressie
+ongewijzigd). Wat H2:107 er ook over zegt – dat een tijdsaanduiding een parameter(waarde) kan zijn – legt het
+element vast als `jas_subtype` **"verbijzondert parameter"**. `subtype.py` zet dat alleen bij eenduidig bewijs: een
+duurcode in de tijdtreffer (`TEMPORAL_DURATION`, `TEMPORAL_PERIOD_OF`, `TEMPORAL_RECURRENCE`; een geregistreerde
+kern erft de codes van zijn ouder). Een datum of een relatieve periode blijft leeg. Een los getal in cijfers erin
+(de '48', het boekvoorbeeld) is wél een eigen, geneste **Parameter** met subtype parameterwaarde: regel
+`jas.waarde.getal_in_duur` (code `DURATION_NUMBER`, sterk, alleen Parameter). Die code begint bewust niet met
+`TEMPORAL_`, zodat `specificiteit.pas_toe` hem niet als "dezelfde functie" schrapt, en de span is nooit de
+geregistreerde kern ('48 uur'), zodat `ontdubbel_tijd` hem niet raakt. Een telwoord in woorden ('zes') blijft deel
+van de duur. Het subtype reist via het contract, `jas:subtype` in de graaf en de exports; de vocabulaire draagt het
+als `jas:Subtype`-concept onder Tijdsaanduiding (geen zeventiende begrip). `eval/extern_dossier.py` telt zo'n
+Tijdsaanduiding als dekking van een referentie-Parameter op dezelfde plek.
+
 ---
 
 ## 7. Teststrategie

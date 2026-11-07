@@ -5,6 +5,8 @@ import json
 import re
 from typing import Any
 
+from ..jas_pipeline.subtype import ALLE_SUBTYPEN
+
 ANNOTATIE_TOOL_NAMEN = frozenset({"search_annotaties", "overzicht_annotaties", "get_annotatie",
                                   "get_annotatiedekking"})
 
@@ -126,8 +128,7 @@ ANNOTATIE_TOOLS = [
             "scope": {"type": "string", "enum": ["node", "subtree"]},
             "inclusief_verouderd": {"type": "boolean"}, "cursor": S,
             "herkomst": keuzes("agent", "mens"), "aandacht": keuzes("groen", "geel"),
-            "subtype": keuzes("variabele", "variabelewaarde", "parameter", "parameterwaarde",
-                              "delegatiebevoegdheid", "delegatie-invulling"),
+            "subtype": keuzes(*ALLE_SUBTYPEN),
             "beslist_door": keuzes("regel", "model", "specificiteit", "terugval"),
             "met_twijfel": {"type": "boolean"},
             "limit": {"type": "integer", "minimum": 1, "maximum": 100},

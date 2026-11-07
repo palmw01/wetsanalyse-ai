@@ -555,8 +555,14 @@ reviewer (`review.py`), de resolver (`resolver.py`), dekking, beslisregister en 
   `categorie` nooit in de reviewer-prompt: dat is een promptwijziging, en die hoort pas na de
   V7-baseline.
 - **Het JAS-subtype** (`subtype.py`: variabele/variabelewaarde, parameter/parameterwaarde,
-  delegatiebevoegdheid) wordt alleen gezet bij eenduidig bewijs uit de detectiecodes, anders leeg. Het
-  reist via het contract naar de api, de graaf (`jas:subtype`) en de exports.
+  delegatiebevoegdheid, en op een Tijdsaanduiding "verbijzondert parameter") wordt alleen gezet bij
+  eenduidig bewijs uit de detectiecodes, anders leeg. Het reist via het contract naar de api, de graaf
+  (`jas:subtype`) en de exports. De toegestane waarden staan in `ALLE_SUBTYPEN`; de api-patroon en de
+  zoektool moeten daar precies mee overeenkomen (`test_contract_drift.py`).
+- **Een duur is één Tijdsaanduiding** (JAS-PRIORITY-001) met subtype "verbijzondert parameter"; alleen een
+  getal in cijfers erin ('48' in 'binnen 48 uur') wordt een geneste Parameter (`jas.waarde.getal_in_duur`,
+  code `DURATION_NUMBER`). Die code mag niet met `TEMPORAL_` beginnen, anders schrapt `specificiteit` hem
+  (ADR-001, aanvulling bij PR 8).
 - **Elke code in een `trace` heeft een verklaring** in `verklaringen.yaml`; `tests/test_verklaringen.py`
   weigert een code zonder verklaring en een verklaring zonder code. Draai daarna
   `python scripts/genereer_jas_vocabulaire.py`: die schrijft de vocabulairegraaf en `verklaringen.json`
