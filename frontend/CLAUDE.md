@@ -1360,9 +1360,10 @@ JSON / RDF (TriG)**. De vorm staat in de api (`api/app/annotatie_export.py`); de
 ### Het werkgebied exporteren
 
 *Exporteren* in de kop van het werkgebied (`ProjectKop`) en in het werkgebiedpaneel naast het gesprek biedt naast de
-Markdown van het dossier de **PDF van het werkgebied** (`exporteerWerkgebied`, `GET …/export`; de inhoud staat in
-`api/app/werkgebied_export.py`). Eén vaste inhoud, dus geen keuzes bij het exporteren. De PDF gaat over de stand van nu en
-staat daarom niet op een oude versie. De route krijgt een ruime timeout, want hij leest de bronbomen.
+Markdown van het dossier de **PDF van het werkgebied** en **Rapport als Markdown** (`exporteerWerkgebied`, `GET …/export`). Beide
+komen uit één document in de api (`api/app/werkgebied_rapport.py`, ADR-009), dus met dezelfde inhoud; *Kopieer* en *Download als
+Markdown* blijven het korte dossier uit `lib/artefactMarkdown.ts`. Eén vaste inhoud, dus geen keuzes bij het exporteren. Het rapport
+gaat over de stand van nu en staat daarom niet op een oude versie. De route krijgt een ruime timeout, want hij leest de bronbomen.
 
 ## De samenhangsgraaf (sigma.js)
 
