@@ -31,6 +31,11 @@ const RUW = {
 };
 
 describe("bronselectie", () => {
+  it("maakt van een onbekende stand geen voorstel", () => {
+    const o = parseBronselectie({ werkgebied_id: "w", deelvragen: [{ id: "d1", vraag: "v", kandidaten: [
+      { id: "k1", bron_iri: "urn:x", label: "x", stand: "nieuwe_stand" }] }] });
+    expect(o?.deelvragen[0].kandidaten[0].stand).toBe("onbekend");
+  });
   it("leest het overzicht streng waar het telt", () => {
     const o = parseBronselectie(RUW)!;
     expect(o.deelvragen.map((d) => d.id)).toEqual(["d1", "d2", "d3"]);
