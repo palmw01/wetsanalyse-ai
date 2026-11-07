@@ -49,6 +49,9 @@ class Invoer(BaseModel):
     deelvraag_nr: int | None = Field(default=None, ge=1, le=99)
     # Bij `verbeteren`: wat de analist vroeg; leeg = het model kiest.
     soort: Literal["", "herformuleer", "splits"] = ""
+    # Bij `dekking`: de vraag, zo nodig herschreven. Daaruit leest de code "minst/meest" en een deelvraag die de
+    # herschrijving bij haar tekst noemt.
+    vraag: str = Field(default="", max_length=2000)
 
 
 async def voer_uit(invoer: Invoer, ctx: Context) -> Uitkomst:
@@ -67,7 +70,7 @@ async def voer_uit(invoer: Invoer, ctx: Context) -> Uitkomst:
         return await voorstellen_kern(ctx, invoer.werkgebied_id)
     if taak is Taak.VERBETEREN:
         return await verbeteren_kern(ctx, invoer.werkgebied_id, invoer.deelvraag_id, invoer.soort)
-    return await dekking(ctx, invoer.werkgebied_id, invoer.deelvraag_id)
+    return await dekking(ctx, invoer.werkgebied_id, invoer.deelvraag_id, invoer.vraag)
 
 
 async def deelvraag_op_nummer(ctx: Context, werkgebied_id: str, nr: int) -> tuple[str, str]:
@@ -102,8 +105,35 @@ def dekking_regel(nr: int, d: dict[str, Any], rollen: dict[str, str], open_: int
     return f"{nr}. “{d.get('vraag', '')}” – {'; '.join(delen)}"
 
 
+def _woorden(tekst: str) -> str:
+    return " ".join(re.findall(r"\w+", (tekst or "").casefold()))
+
+
+def deelvraag_in(vraag: str, vragen: list[dict[str, Any]]) -> str:
+    """De deelvraag die de (herschreven) vraag bij haar tekst noemt, als dat er precies één is."""
+    v = _woorden(vraag)
+    treffers = [d.get("id", "") for d in vragen if d.get("vraag") and _woorden(d["vraag"]) in v]
+    return treffers[0] if len(treffers) == 1 else ""
+
+
+_UITERSTE = re.compile(r"\b(minst|meest)\b", re.IGNORECASE)
+
+
+def _uiterste(vraag: str, vragen: list[dict[str, Any]]) -> str:
+    """"Welke deelvraag is het minst uitgewerkt?" beantwoordt de code naar het aantal bronnen, en zegt dat erbij."""
+    m = _UITERSTE.search(vraag or "")
+    if not m or not vragen:
+        return ""
+    aantal = {i: len(d.get("bronnen") or []) for i, d in enumerate(vragen, 1)}
+    grens = (min if m.group(1).casefold() == "minst" else max)(aantal.values())
+    nrs = [str(i) for i, n in aantal.items() if n == grens]
+    wie = f"deelvraag {nrs[0]}" if len(nrs) == 1 else "deelvragen " + ", ".join(nrs[:-1]) + " en " + nrs[-1]
+    return (f"Het {m.group(1).casefold()} uitgewerkt, gemeten naar het aantal bronnen: {wie} "
+            f"({grens} {'bron' if grens == 1 else 'bronnen'}).")
+
+
 def dekkingstekst(naam: str, dek: dict[str, Any], wg: dict[str, Any], kandidaten: list[dict[str, Any]],
-                  deelvraag_id: str = "") -> str:
+                  deelvraag_id: str = "", vraag: str = "") -> str:
     """Uit de api, geen model. Zegt wat er ontbreekt en maakt de dekking niet mooier dan ze is."""
     vragen = dek.get("deelvragen") or []
     if not vragen:
@@ -125,12 +155,19 @@ def dekkingstekst(naam: str, dek: dict[str, Any], wg: dict[str, Any], kandidaten
            f"{'deelvraag' if len(vragen) == 1 else 'deelvragen'} gedekt." if not deelvraag_id
            else f"Dekking in werkgebied *{naam}*:")
     tekst = kop + "\n\n" + "\n".join(regels)
+    if deelvraag_id:
+        # Eén deelvraag: welke bronnen erbij horen, bij naam ("welke bronnen horen daarbij?").
+        d = next(x for x in vragen if x.get("id") == deelvraag_id)
+        if namen := [b.get("label") or b.get("id", "") for b in d.get("bronnen") or []]:
+            tekst += "\n\nBronnen bij deze deelvraag:\n" + "\n".join(f"- {n}" for n in namen)
+    elif zin := _uiterste(vraag, vragen):
+        tekst += "\n\n" + zin
     if any(d.get("stand") == "geen_bron" for d in vragen if not deelvraag_id or d.get("id") == deelvraag_id):
         tekst += "\n\nBij een deelvraag zonder bron: bepaal met me de bronnen per deelvraag (*Bepaal de bronnen per deelvraag*)."
     return tekst
 
 
-async def dekking(ctx: Context, werkgebied_id: str, deelvraag_id: str = "") -> Uitkomst:
+async def dekking(ctx: Context, werkgebied_id: str, deelvraag_id: str = "", vraag: str = "") -> Uitkomst:
     taak = Taak.DEKKING
     try:
         wg = await ctx.api.haal_werkgebied(werkgebied_id)
@@ -144,10 +181,11 @@ async def dekking(ctx: Context, werkgebied_id: str, deelvraag_id: str = "") -> U
     except WetsanalyseApiFout:
         kandidaten = []     # de kandidaten zijn een aanvulling; de stand zelf staat er dan wel
     naam = str(wg.get("naam") or "zonder naam")
+    deelvraag_id = deelvraag_id or deelvraag_in(vraag, dek.get("deelvragen") or [])
     ctx.melding(f"Dekking van {dek.get('totaal', 0)} deelvragen in {naam}")
     from ..beurt import deelvraag_artefact, werkgebied_artefact
     d = next((x for x in wg.get("deelvragen") or [] if deelvraag_id and x.get("id") == deelvraag_id), None)
-    return Uitkomst(taak=taak, tekst=dekkingstekst(naam, dek, wg, kandidaten, deelvraag_id),
+    return Uitkomst(taak=taak, tekst=dekkingstekst(naam, dek, wg, kandidaten, deelvraag_id, vraag),
                     artefact=deelvraag_artefact(werkgebied_id, d) if d else werkgebied_artefact(wg),
                     meting={"telling": dek.get("telling") or {}, "kandidaten": len(kandidaten), "model": False})
 

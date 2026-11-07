@@ -41,3 +41,9 @@ def test_in_het_gesprek_vraagt_lex_door_zonder_model(monkeypatch):
                           {"role": "user", "content": "En het tweede lid?"}]}
     upd = supervisie.supervisor_node(b, state)
     assert supervisie._entry_node(b, {**state, **upd}) == "afwijzen" and "welk artikel" in upd["afwijs_melding"]
+
+
+def test_een_vage_keuzevraag_staat_er_niet_twee_keer():
+    """Acceptatie 7 nov 2026: "Kun je aangeven welk artikel je precies bedoelt?" en daarna nog eens "Noem het artikel"."""
+    tekst = doorvraag("En het tweede lid?", "Kun je aangeven welk artikel je precies bedoelt, zodat ik het kan ophalen?")
+    assert "Kun je aangeven" not in tekst and "Noem het artikel" in tekst

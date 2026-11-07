@@ -31,5 +31,7 @@ def doorvraag(vraag: str, vorig_antwoord: str) -> str:
     keuze = open_keuzevraag(vorig_antwoord)
     if not keuze or lees_aanwijzing(vraag).artikelen or not _TERUG.search(vraag or ""):
         return ""
-    return (f"Ik weet nog niet welk artikel je bedoelt, dus ik kies er niet zelf een. {keuze} "
+    # De eigen keuzevraag alleen als die opties noemt ("3:1, 3:2 …"); anders stond het verzoek er twee keer.
+    opties = f" {keuze}" if re.search(r"\d", keuze) else ""
+    return (f"Ik weet nog niet welk artikel je bedoelt, dus ik kies er niet zelf een.{opties} "
             "Noem het artikel, dan zoek ik het lid erbij op.")

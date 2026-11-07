@@ -52,6 +52,8 @@ def parameters(agent: str, taak: str, *, vraag: str = "", herschreven: str = "",
         elif m := _DEELVRAAG_NR.search(vraag or ""):
             p["deelvraag_nr"] = int(m.group(1))
     if agent == "deelvragen":
+        if taak == "dekking" and (herschreven or vraag):
+            p["vraag"] = (herschreven or vraag)[:2000]
         if actie in ("deelvraag_herformuleren", "deelvraag_splitsen"):
             p["soort"] = "splits" if actie == "deelvraag_splitsen" else "herformuleer"
     elif agent == "begrippen":

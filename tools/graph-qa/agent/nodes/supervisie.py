@@ -281,6 +281,10 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         return {**upd, **_lees(writer, vraag)}
     if is_overzichtsvraag(zelfstandig):
         return {**upd, **_overzicht(writer, vraag)}
+    if modus == "auto" and vraag and state.get("werkgebied_id") and is_dekkingsvraag(zelfstandig):
+        # "Welke bronnen horen daarbij?" is pas herschreven een vraag naar de stand ("… bij de deelvraag '…'"). Op
+        # acceptatie ging hij de open lus in: 188 s en 7 rondes voor wat de api zonder model weet.
+        return {**upd, **_agent(writer, state, "deelvragen", "dekking", zelfstandig)}
 
     plan += _herschreven(vraag)
     if afwijzen:
