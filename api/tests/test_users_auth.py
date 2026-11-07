@@ -1071,3 +1071,17 @@ async def test_zonder_master_key_geen_koppeling_en_de_plicht_blijft(monkeypatch)
             assert (await ac.post("/v1/auth/verify", json={"userid": "baas", "password": "wachtwoord1"})).json()["ok"] is True
     finally:
         await _db.dispose_engine()
+
+
+async def test_elke_inlogpoging_staat_in_de_log_zonder_wat_iemand_per_ongeluk_typte(client, caplog):
+    """SEC-10/11: de uitkomst van elke poging, en een userid alleen als het account bestaat."""
+    import logging
+
+    await client.post("/v1/auth/setup", json={"userid": "baas", "email": "boss@example.com", "password": "wachtwoord1"})
+    with caplog.at_level(logging.INFO, logger="app.routers.auth"):
+        await client.post("/v1/auth/verify", json={"userid": "baas", "password": "fout"})
+        await client.post("/v1/auth/verify", json={"userid": "mijnWachtwoord!", "password": "x"})
+        await client.post("/v1/auth/verify", json={"userid": "baas", "password": "wachtwoord1"})
+    pogingen = [(r.uitkomst, r.userid) for r in caplog.records if getattr(r, "actie", "") == "inloggen"]
+    assert pogingen == [("invalid", "baas"), ("invalid", "(onbekend)"), ("ok", "baas")]
+    assert "mijnWachtwoord!" not in caplog.text
