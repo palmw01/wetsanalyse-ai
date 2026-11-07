@@ -8,7 +8,6 @@ import {
   rolLabel,
   tokens,
   tokensKort,
-  toonWaarschuwing,
   verbruikSamenvatting,
   WAARSCHUWINGSDREMPEL,
 } from "./tokenbudget";
@@ -124,22 +123,6 @@ describe("verbruikSamenvatting", () => {
   });
 });
 
-describe("toonWaarschuwing", () => {
-  it("volgt de server, niet een eigen drempelberekening", () => {
-    // De api zet `waarschuwing`; zou de browser zelf rekenen, dan kan de balk op een ander moment
-    // verkleuren dan waarop de melding verschijnt.
-    expect(toonWaarschuwing(stand({ waarschuwing: true, percentage: 91 }))).toBe(true);
-    expect(toonWaarschuwing(stand({ waarschuwing: false, percentage: 95 }))).toBe(false);
-  });
-
-  it("zwijgt als de begrenzing uitstaat", () => {
-    expect(toonWaarschuwing(stand({ waarschuwing: true, actief: false }))).toBe(false);
-  });
-
-  it("zwijgt zonder stand", () => {
-    expect(toonWaarschuwing(null)).toBe(false);
-  });
-});
 
 describe("drempel", () => {
   it("staat gelijk aan de api-drempel", () => {

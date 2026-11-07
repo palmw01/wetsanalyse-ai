@@ -161,6 +161,11 @@ def test_rate_limit_telt_per_gebruiker(client, monkeypatch):
     main._hits.clear()
 
 
+def test_er_is_geen_beurt_zonder_run(client):
+    """`POST /v1/chat` koppelde een beurt aan de verbinding en kende geen eigenaar (L12). De enige weg is een run."""
+    assert client.post("/v1/chat", json={"question": "v", "conversation_id": "g1"}).status_code == 404
+
+
 def test_onbekende_run_is_404(client):
     """Na een herstart is het register leeg. Dan hoort de client dát te horen, in plaats van eeuwig
     te wachten op een run die niet meer bestaat."""

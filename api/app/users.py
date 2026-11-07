@@ -542,29 +542,6 @@ async def _require_user(userid: str) -> User:
     return user
 
 
-async def set_role(userid: str, role: str) -> User:
-    if role not in ROLLEN:
-        raise UserError(f"Onbekende rol: {role!r}")
-    user = await _require_user(userid)
-    # Laatste actieve beheerder niet kunnen degraderen.
-    if user.role == "beheerder" and role != "beheerder" and user.active:
-        if await _aantal_actieve_beheerders() <= 1:
-            raise UserError("Kan de laatste actieve beheerder niet degraderen.")
-    await _update(user.userid, role=role)
-    user.role = role
-    return user
-
-
-async def set_active(userid: str, active: bool) -> User:
-    user = await _require_user(userid)
-    if user.role == "beheerder" and user.active and not active:
-        if await _aantal_actieve_beheerders() <= 1:
-            raise UserError("Kan de laatste actieve beheerder niet deactiveren.")
-    await _update(user.userid, active=active)
-    user.active = active
-    return user
-
-
 async def patch_user(userid: str, *, role: str | None = None, active: bool | None = None) -> User:
     """Combineer een rol- en/of active-wijziging in ÉÉN transactie, met de 'laatste actieve
     beheerder'-invariant getoetst op de EIND-toestand. Zo kan een gelijktijdige rol+active-patch

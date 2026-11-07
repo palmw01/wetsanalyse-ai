@@ -266,16 +266,14 @@ def test_multianchors_use_lca_and_same_text_in_siblings_stays_separate():
     assert len(actual[-1]["ankers"]) == 2
 
 
-@pytest.mark.parametrize("decomposition", [False, True])
-def test_read_route_tools_execute_api_and_emit_actual_events(decomposition):
-    # Ook met decompositie aan: de leesroute gaat langs de eigen zoekstap, niet langs `decompose`
-    # (die keten bouwt de agent-lus na en zou de zoekopdracht dubbel doen). Dus geen plan-antwoord.
+def test_read_route_tools_execute_api_and_emit_actual_events():
+    # De leesroute gaat langs de eigen zoekstap, dus geen plan-antwoord.
     responses = [response([tool_block("c1", "search_annotaties", {"klasse": "Rechtssubject"})], "tool_use"),
                  response([text_block("Er zijn geen treffers binnen dit filter.")], "end_turn")]
     llm, api, graph = FakeLLM(responses), ReadApi(snapshot()), FakeGraph()
     events = run(answer_stream("zoek bestaande annotaties", doel={"bron_iri": L1},
                               llm=llm, graph=graph, annotaties=api,
-                              settings=make_settings(enable_decomposition=decomposition), run_id="r1"))
+                              settings=make_settings(), run_id="r1"))
     assert not [e for e in events if e["type"] == "error"], events
     # Eerst de deterministische zoekopdracht van de route zelf, daarna die van het model.
     assert [c[0] for c in api.calls] == ["zoeken", "zoeken"]
@@ -499,7 +497,7 @@ def test_node_advice_keeps_identity_and_snapshot_and_cannot_write_even_with_goal
     ])
     api = ReadApi(snapshot())
     events = run(answer_stream(req.question, modus=req.modus, doel=req.doel, context=req.context,
-        settings=make_settings(enable_decomposition=False), llm=llm,
+        settings=make_settings(), llm=llm,
         graph=FakeGraph(result='?tekst\n"'+T1+'"'), annotaties=api))
     assert {e["type"] for e in events}.isdisjoint({"element", "doel", "suggestie", "run"})
     assert not api.calls
@@ -572,8 +570,7 @@ def test_api_reden_neemt_alleen_korte_serverteksten_over(body, reden):
     assert api_reden(httpx.Response(409, json=body)) == reden
 
 
-@pytest.mark.parametrize("decomposition", [False, True])
-def test_leesroute_zoekt_ook_als_het_model_geen_tool_aanroept(decomposition):
+def test_leesroute_zoekt_ook_als_het_model_geen_tool_aanroept():
     """Laat je het zoeken aan het model over, dan volgt soms één LLM-call zonder tools en leest de
     jurist "ik heb de opgeslagen annotaties niet kunnen raadplegen". Zoeken is daarom een stap in de
     keten, geen keuze van het model."""
@@ -581,7 +578,7 @@ def test_leesroute_zoekt_ook_als_het_model_geen_tool_aanroept(decomposition):
     api = ReadApi(snapshot())
     events = run(answer_stream("welke element is allemaal een rechtsobject?", llm=llm,
                               graph=FakeGraph(result=ROWS), annotaties=api, run_id="r9",
-                              settings=make_settings(enable_decomposition=decomposition)))
+                              settings=make_settings()))
     assert not [e for e in events if e["type"] == "error"], events
     assert [c[0] for c in api.calls] == ["zoeken"]
     assert api.calls[0][1]["jas_klassen"] == ["Rechtsobject"]   # klasse uit de vraag

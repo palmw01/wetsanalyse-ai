@@ -17,6 +17,7 @@ import unicodedata
 from dataclasses import dataclass
 
 from bronmodel import bouw_snapshot, subtree
+from bronmodel.taal import rangnummers
 
 from . import annotatie_v2_store as store
 from .bron_resolver import haal_bronrijen
@@ -26,12 +27,7 @@ FRAGMENT = 160
 _TTL = 600.0
 _CACHE: dict[str, tuple[float, list[dict]]] = {}
 
-_RANGTELWOORD = {
-    "eerste": "1", "tweede": "2", "derde": "3", "vierde": "4", "vijfde": "5", "zesde": "6", "zevende": "7",
-    "achtste": "8", "negende": "9", "tiende": "10", "elfde": "11", "twaalfde": "12", "dertiende": "13",
-    "veertiende": "14", "vijftiende": "15", "zestiende": "16", "zeventiende": "17", "achttiende": "18",
-    "negentiende": "19", "twintigste": "20",
-}
+_RANGTELWOORD = {woord: str(n) for woord, n in rangnummers(20).items()}
 _BEPALING = {"Artikel", "Divisie"}
 _SOORT = {"Artikel": "artikel", "Divisie": "artikel", "Lid": "lid", "Onderdeel": "onderdeel"}
 
@@ -170,53 +166,3 @@ def zoek(ordered: list[dict], invoer: str, limit: int = MAX_TREFFERS) -> list[di
     gerangschikt = sorted(((r, n["volgorde"], n) for n in kandidaten if (r := rang(n)) is not None),
                           key=lambda x: (x[0], x[1]))
     return [_treffer(n, ordered, plekken[n["bron_iri"]]) for _, _, n in gerangschikt[:limit]]
-
-
-def regelingen(alle: list[dict], invoer: str, eerst: list[str], limit: int = MAX_TREFFERS) -> list[dict]:
-    """Regelingen uit `alle` ({bwb_id, citeertitel, soort, afkortingen}) op citeertitel, afkorting of BWB-id;
-    die van het werkgebied (`eerst`) vooraan. Lege invoer: alleen die van het werkgebied."""
-    t = _plat(invoer).strip()
-    plek = {b: i for i, b in enumerate(eerst)}
-
-    def past(r: dict) -> bool:
-        if not t:
-            return r["bwb_id"] in plek
-        namen = [_plat(r.get("citeertitel") or ""), *(_plat(a) for a in r.get("afkortingen") or [])]
-        return t in _plat(r["bwb_id"]) or any(all(w in n for w in t.split()) for n in namen)
-
-    raak = [r for r in alle if past(r)]
-    raak.sort(key=lambda r: (plek.get(r["bwb_id"], len(plek)), not _plat(r.get("citeertitel") or "").startswith(t),
-                             r.get("citeertitel") or r["bwb_id"]))
-    return raak[:limit]
-
-
-def regelingen_query() -> str:
-    """Alle regelingen in de graaf met citeertitel, soort en afkortingen (de WTI-verrijking)."""
-    return """PREFIX bwb: <urn:bwb-ns:>
-SELECT ?r ?citeertitel ?soort (GROUP_CONCAT(DISTINCT ?afk; separator=" | ") AS ?afkortingen) WHERE {
-  ?r a bwb:Regeling . FILTER(STRSTARTS(STR(?r), "urn:bwb:"))
-  OPTIONAL { ?r bwb:citeertitel ?citeertitel } OPTIONAL { ?r bwb:soort ?soort } OPTIONAL { ?r bwb:afkorting ?afk }
-} GROUP BY ?r ?citeertitel ?soort LIMIT 2000"""
-
-
-_REGELINGEN: tuple[float, list[dict]] | None = None
-
-
-async def alle_regelingen() -> list[dict]:
-    """De regelingen in de graaf, gecachet per proces (`_TTL`)."""
-    global _REGELINGEN
-    import httpx
-
-    from .graaf_projectie_v2 import _select
-
-    nu = time.monotonic()
-    if _REGELINGEN and nu - _REGELINGEN[0] < _TTL:
-        return _REGELINGEN[1]
-    async with httpx.AsyncClient(timeout=20) as client:
-        rijen = await _select(client, regelingen_query())
-    alle = [{"bwb_id": (r.get("r") or "").removeprefix("urn:bwb:"), "citeertitel": r.get("citeertitel") or "",
-             "soort": r.get("soort") or "",
-             "afkortingen": [a.strip() for a in (r.get("afkortingen") or "").split(" | ") if a.strip()]}
-            for r in rijen if re.fullmatch(r"urn:bwb:BWB[RV]\d+", r.get("r") or "")]
-    _REGELINGEN = (nu, alle)
-    return alle

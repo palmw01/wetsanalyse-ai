@@ -140,8 +140,6 @@ await page.route("**/api/**", async (route) => {
   if (bb && m === "DELETE") { delete buiten[bb[1]]; return route.fulfill({ json: { element_id: bb[1] } }); }
   if (p === "/api/werkgebieden/wg1/groepen") return route.fulfill({ json: { run: null, groepen: [], passages: {} } });
   if (p === "/api/werkgebieden/wg1/begrippen-runs/laatste") return route.fulfill({ json: { run: null } });
-  if (p === "/api/werkgebieden/wg1/verdieping")
-    return route.fulfill({ json: { run: null, aantal: 0, vragen: [], kaarten: [], batches: [], verdiept: false, schatting: null, budget: null } });
   if (p === "/api/gesprekken") return route.fulfill({ json: [] });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   return route.fulfill({ status: 404, json: { detail: "Niet in deze test." } });

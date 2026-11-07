@@ -219,16 +219,6 @@ def test_het_plafond(api, monkeypatch):
 
 # --- de endpoints ------------------------------------------------------------------------------------
 
-def test_niet_via_chat(monkeypatch):
-    from fastapi.testclient import TestClient
-    import api.main as main
-    monkeypatch.setattr(main.settings, "graphdb_token", "test", raising=False)
-    monkeypatch.setattr(main.settings, "graphdb_mcp_url", "https://graaf.test/mcp", raising=False)
-    with TestClient(main.app) as c:
-        r = c.post("/v1/chat", json={"question": "x", "modus": "werkgebied_annoteren", "werkgebied_id": "wg1"})
-    assert r.status_code == 422
-
-
 def test_annoteer_het_werkgebied_via_runs_gaat_deze_route_in(monkeypatch):
     from fastapi.testclient import TestClient
     import api.main as main

@@ -89,13 +89,6 @@ def test_explicit_doel():
     assert all('WETSANALYSE' not in c['system'] for c in llm.calls)
 
 
-def test_decompositie_synthese():
-    llm = FakeLLM([antwoord('SPECIALIST: duiding\nPLAN: onderzoek'), antwoord('1. Eerste vraag\n2. Tweede vraag'),
-                   antwoord('Eerste antwoord.'), antwoord('Tweede antwoord.'), antwoord('Samen.')])
-    _run(answer_stream('Twee vragen', settings=make_settings(enable_decomposition=True), llm=llm, graph=FakeGraph()))
-    for call,rol in zip(llm.calls,['supervisor','decompositie','duiding','duiding','synthese'], strict=True): check(call,rol)
-
-
 def test_correctie():
     llm = FakeLLM([antwoord('SPECIALIST: duiding\nPLAN: uitleg'),
                    antwoord('Zie [jci1.3:c:BWBR0004770&artikel=99].'), antwoord('Zonder onbewezen verwijzing.')])

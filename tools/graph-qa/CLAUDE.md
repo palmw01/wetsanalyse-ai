@@ -33,7 +33,6 @@ ankerlogica die de api en de agent delen staat in `packages/bronmodel` (`wetsana
 | `nodes/supervisie.py` | supervisor, `_entry_node`, advance, afwijzen |
 | `nodes/antwoord.py` | agent ⇄ tools, verify, correct, finalize |
 | `nodes/sjabloon.py` | de afronding met een sjabloon (ADR-008): vullen uit de trace |
-| `nodes/decompositie.py` | decompose, solve, synthesize, resynth |
 | `nodes/annotatie.py` | annoteer (voorbereiding + `jas_pipeline.keten.analyseer`) en emit |
 | `nodes/annotatie_lezen.py` | de leesroute: eerst zoeken in de opgeslagen annotaties, dan formuleren |
 | `nodes/overzicht.py` | de overzichtsroute: overzicht en tekst uit de graaf, zonder model |
@@ -56,12 +55,11 @@ supervisor ─┬─ antwoord-worker:  agent ⇄ tools → verify → (correct) 
             └─ afwijzen (geen wetgevingsvraag)
 ```
 
-De vorm ligt vast in `tests/test_graafopbouw.py` (nodes en edges per configuratietak). Wijzig je de
-routering, dan faalt die test – dat hoort, maar het moet een bewuste wijziging zijn. De annotatieketen
-legt één helper (`annotatieketen()`) in elke tak identiek; de antwoordketen staat per tak apart omdat
-die echt verschilt (`verify → resynth` bij decompositie, `verify → correct` anders). Decompositie
-(`ENABLE_DECOMPOSITION`, op Azure uit) bouwt in `solve_node` een eigen agent-lus per deelvraag na met
-lokale scratch-messages.
+De vorm ligt vast in `tests/test_graafopbouw.py` (nodes en edges, met en zonder supervisor). Wijzig je
+de routering, dan faalt die test – dat hoort, maar het moet een bewuste wijziging zijn. Zonder supervisor
+(`enable_planning=False`, alleen in tests) blijft alleen de antwoordketen over. De decompositieketen
+(`ENABLE_DECOMPOSITION`) is in november 2026 weggehaald; hij staat in de git-historie
+(`agent/nodes/decompositie.py`).
 
 Ondersteunend, op agent-niveau omdat meerdere ketens ze delen: `agent/state.py` (de `State`-TypedDict;
 `messages` en `entities_seen` zijn `operator.add`-reducers), `agent/berichten.py` (het venster naar de
@@ -107,8 +105,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   niet uit de graaf kwam) en `niet_letterlijk` (een citaat dat niet letterlijk in de opgehaalde tekst
   staat). Bij de citaten gaan de passages zelf mee (afgekapt) – zonder de tekst weet het model niet
   wélk citaat het moet herstellen.
-- **`finalize_node`** – de enige plek in de antwoordketen die `token` uitstuurt (ook voor het overzicht en
-  de decompositie; `tests/test_uitgifte_na_controle.py` bewaakt het). Een controle die volgt op publicatie
+- **`finalize_node`** – de enige plek in de antwoordketen die `token` uitstuurt (ook voor het overzicht; `tests/test_uitgifte_na_controle.py` bewaakt het). Een controle die volgt op publicatie
   houdt niets tegen, dus de jurist ziet een antwoord pas ná `verify` en afgekeurde tekst nooit, ook niet in
   het denkproces (besluit 6 nov 2026). Blijft de tekst na de correctieronde afgekeurd, dan gaat hij mee met
   het oordeel in het `grounding`-event: de controle keurt ook terechte citaten af. Daarna `collect_sources`
@@ -442,8 +439,7 @@ markeringen op, dan meldt hij dat ze niet zijn vastgelegd.
 idempotent op `run_id`), zodat ook een mislukte of gestopte beurt telt. Een mislukte boeking is stil
 (alleen log). De **pre-check** is `_budget_check` op `POST /v1/runs`: de api is de autoriteit (een
 budget in procesgeheugen telt per replica), **fail-open** bij een onbereikbare api, en een lopende beurt
-wordt nooit afgekapt – een halve annotatie is erger dan een kleine overschrijding. `/v1/chat` draagt
-geen identiteit en krijgt geen check.
+wordt nooit afgekapt – een halve annotatie is erger dan een kleine overschrijding.
 
 ## De annotatieketen
 
@@ -714,7 +710,6 @@ zonder definitie zijn.
   samenvatting noemt wat het kostte naast de schatting.
 - **Alles klaar** → hergroeperen, kaarten, `PUT …/verdieping` (groepen met `door`, kaarten, oordelen,
   open vragen), en een samenvatting met het begrippenartefact.
-- `/v1/chat` weigert de modus (422), zoals de andere `WERKGEBIED_MODI`.
 - Tests: `tests/test_begrippen_verdieping_run.py` (nep-api en nep-model; het api-contract uit de bron).
 
 ### Lex naast de kaart (`agent/begrip_kaart.py`, `begrippen_pipeline/kaartacties.py`, fase E)
@@ -775,7 +770,6 @@ vraag om begrippen is sinds F3c de taak `voorstellen` van de begrippen-agent (su
 - **Een weigering van de api is een antwoord**, geen storing: 404 (werkgebied weg) en 409
   (`te_weinig_passages`, `inventaris_onvolledig`, in de woorden van `WEIGERING`) worden `geweigerd`
   zónder artefact. Een andere api-fout wordt in de node een zin (`STORING`).
-- `/v1/chat` weigert een actie (422): de taak schrijft in werkgebied en gesprek.
 - In de antwoordroute gaat `werkgebied_id` mee als `State.werkgebied_id`: de begrippen van dat werkgebied
   staan vooraan bij `search_begrippen` (fase F4, hieronder).
 - Tests: `tests/test_begrippen_beurt.py` (request-model, verloop tegen een nep-api).
@@ -786,7 +780,7 @@ Vier modules, elk één taak (gesplitst 4 nov 2026, gedrag ongewijzigd – de ev
 `bronnen_vinden` (de graafmethoden, `Verzameling`, `vind`), `deelvraag_zoeken` (`kandidatenpool` en de
 rangschikking `bepaling_opties`, gedeeld met de intake), `zoektermen` (termen, stammen, samenstellingen,
 `uitsluitstammen`, `buiten_uit_afbakening`) en `bepaling_namen` (`_benoem`, `plek_uit_iri`,
-`bepaling_in_graaf`, `bepalingen_uit_tekst`).
+`bepalingen_uit_tekst`).
 
 Vanaf de selectie van een werkgebied (kern = rol *analyseren*) zoekt Lex bepalingen die erbij kunnen
 horen; de api bewaart de kandidaten en de besluiten (`api/app/bronnen_run_store.py`).
@@ -892,7 +886,6 @@ het voorstel met de bevestiging (`werkgebied_voorstel`, F3c).
   een fout in één eenheid stopt de rest niet. Hoogstens `PLAFOND` (40) per run.
 - **Aan het eind** een samenvatting (geannoteerd, mislukt, niet aan bod gekomen en waarom, wat buiten
   het plafond bleef) als gewoon bericht met het `run_id` van de hele run.
-- `/v1/chat` weigert de modus (422), net als `begrippen` en `bronnen` (`WERKGEBIED_MODI`).
 - Tests: `tests/test_werkgebied_annotatie.py`.
 
 ### Lex stelt een werkgebied samen (`agent/werkgebied_intake.py`, `nodes/werkgebied.py`, activiteit 1)
@@ -969,11 +962,8 @@ werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en
   deelvraag moet een optie een deelvraagterm raken; dossiertermen rangschikken alleen (anders vulde het dossier
   elk kaartje tot het maximum).
 - **Aanmaken doet de beurt-driver** (`beurt._maak_werkgebied`), na het `werkgebied_aanmaken`-event:
-  `POST /v1/werkgebieden` met het dossier, de deelvragen en de `intake_id` (idempotent bij de api),
-  per bron `POST …/bronnen`, en daarna per deelvraag `PUT …/koppelingen` met de bronnen die Lex erbij
-  vond (een set, dus een herhaling koppelt niets dubbel). De afrondingstekst (`werkgebied_tekst`) volgt
-  wat er werkelijk gekoppeld is – zonder koppelingen belooft hij niets (fix 2). Een geweigerde bron laat
-  het werkgebied staan en Lex noemt hem; mislukt het werkgebied zelf, dan `error` met `foutcode: werkgebied_niet_aangemaakt`.
+  `POST /v1/werkgebieden` met het dossier, de deelvragen, het zoekbereik en de `intake_id` (idempotent bij de
+  api). Bronnen kiest daarna de bronselectie per deelvraag; mislukt het werkgebied zelf, dan `error` met `foutcode: werkgebied_niet_aangemaakt`.
   Het bericht draagt het artefact `{soort: "werkgebied", ref: {werkgebied_id}}`.
 - **Het kaartje reist mee**: een `vraagkaart`-event (vorm `api/app/gesprek_contracts.Vraagkaart`) en
   het veld `vraagkaart` op het bericht, zodat het na herladen nog te beantwoorden is.
@@ -1052,7 +1042,7 @@ onder de supervisor, naast de intake; zie `docs/architectuur/bronselectie-per-de
 - **Een klik wordt een stap** (`verwerk`); er is geen *later*. **Eigen tekst op een bepalingenkaartje is een bepaling die de analist zelf
   toevoegt** (`bepalingen_uit_tekst`: artikel en lid uit de tekst, de regeling uit de tekst via
   `overzicht.regelingen_in_vraag` of – als het werkgebied er één heeft – uit het werkgebied; dan
-  `POST …/bronselectie/{d}/bronnen`). Geen artikel, geen eenduidige regeling of een onbekende bepaling: een zin
+  `GET …/bepalingen` voor de treffers en `POST …/bronselectie/{d}/voorstellen`, zodat ze in het paneel staat). Geen artikel, geen eenduidige regeling of een onbekende bepaling: een zin
   en hetzelfde kaartje. Eigen tekst op het afrondkaartje is een onderzoekspunt. Iets toevoegen kan later altijd
   door de vragen opnieuw te doorlopen (*Bepaal de bronnen bij deze deelvraag*, *verder onderzoeken*). Alles is
   idempotent bij de api, dus een dubbele klik wordt verwerkt op de stand van nu. Een 412
@@ -1152,7 +1142,7 @@ kandidaten, het begrip met zijn open kaartvoorstellen) en zet het blok in `State
   agent, zonder model gekozen (zie *De agents onder de supervisor*). De validator `_actie_kiest_de_route`
   neemt het werkgebied uit het onderwerp als het verzoek er geen draagt, eist er een, sluit `modus`,
   `doel`, `doelen` en `intake_actie` uit, en laat `bevestigd` alleen toe bij `BEVESTIG_ACTIES`. Alleen
-  `werkgebied_annoteren` zet een modus (de reeks). `/v1/chat` weigert een actie (422).
+  `werkgebied_annoteren` zet een modus (de reeks).
 - Tests: `tests/test_onderwerp.py` (contract, blok per soort tegen een nep-api, focus, de beurt, de
   api-routes uit de bron).
 
@@ -1381,7 +1371,7 @@ anders wijst één afgewezen vraag de hele thread af. De workerlijst is een **al
 (`antwoord`/`annotatie`/`werkgebied`/`deelvragen`/`begrippen`; de laatste drie staan altijd alleen) met een cap van twee: een onbekende naam zou anders een extra antwoord-worker
 worden.
 
-**Advies bij twijfel** (`modus: "advies"`, op `/v1/runs` én `/v1/chat`): de supervisor routeert hard naar
+**Advies bij twijfel** (`modus: "advies"`, op `/v1/runs`): de supervisor routeert hard naar
 de `duiding`-specialist, dus een adviesvraag kan topologisch geen annotatie wijzigen. `ChatRequest`
 eist een context met minimaal een fragment, `bwbId` of `bron_iri`. `_advies_context` (in
 `orchestrator.py`) bakent de vraag af tot dát element: andere markeringen mogen erbij als dat nodig is,
@@ -1410,7 +1400,7 @@ wie een oordeel velt over wetgeving hoort niet met een env-var te verzwakken.
   het vocabulaire en de IRI-patronen, zodat die ontsnapping niet op geraden predicaten draait.
 - **DI, geen globale clients.**
 - **SSE-event-contract.** De event-types zijn het contract met de werkplek; wijzig ze bewust,
-  gelijktijdig en over beide wegen (`/v1/chat` én de run-events). **`reason` = het denkproces, `token` =
+  gelijktijdig met de werkplek (de run-events). **`reason` = het denkproces, `token` =
   alléén het eindantwoord, na de controle** – houd ze gescheiden. `waarschuwing` heeft één afzender: een gedegradeerde taalanalyse
   (`nodes/annotatie.py`). De beurt slaagde; dat is iets anders dan `error`. `error` draagt `soort` (de exception-naam) naast de
   gesaniteerde melding, zodat de eval een providerstoring van een inhoudelijke fout onderscheidt.
@@ -1521,8 +1511,8 @@ Nog **niet** gemeten: injectie via graafdata.
   eval-job. Hij draait ook bij wijzigingen in `packages/bronmodel/**` en `.claude/skills/wetsanalyse/**`.
 - **Azure** (`deploy/azure/main.bicep`, `<appName>-graph-qa`): intern (`external: false`), poort 8080,
   `maxReplicas: 2`. Secrets als bestanden onder `/run/secrets` via `*_FILE`-env (`config._read_secret`);
-  gespreksgeheugen en run-register in Postgres (`CHECKPOINT_DB_URL_FILE`); `SIMILARITY_INDEX=bwb_similarity`;
-  `ENABLE_DECOMPOSITION=0`. `tests/test_deploy_drift.py` bewaakt dat de bicep `WETSANALYSE_API_URL`/`_TOKEN`
+  gespreksgeheugen en run-register in Postgres (`CHECKPOINT_DB_URL_FILE`); `SIMILARITY_INDEX=bwb_similarity`.
+  `tests/test_deploy_drift.py` bewaakt dat de bicep `WETSANALYSE_API_URL`/`_TOKEN`
   zet – zonder die twee legt de agent niets vast en toont de werkplek markeringen die nergens landen.
 - **Werkplek:** de frontend gebruikt de run-endpoints (BFF-routes in `frontend/app/api/annotatie/run/**`);
   de review-state en de wettekst van het paneel lopen via de api (`/v1/annotatie/*`), waar graph-qa

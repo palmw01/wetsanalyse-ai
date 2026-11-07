@@ -15,7 +15,7 @@ from typing import Literal
 
 import httpx
 
-from .graaf_projectie_v2 import _select
+from .graaf_client import sparql_select
 from .samenhang import _IRI, _PREFIXES, MAX_VERWIJZINGEN, plaats
 
 BWB = "urn:bwb-ns:"
@@ -130,10 +130,10 @@ async def _rijen(iri: str) -> tuple[list[dict], list[dict], list[dict], list[dic
     verwijzingen van en naar de knoop."""
     regeling = f"urn:bwb:{plaats(iri)['bwb_id']}"
     async with httpx.AsyncClient(timeout=20) as client:
-        uit = await _select(client, _uitgaand(iri))
-        inn = await _select(client, _berust_hierop(iri))
-        reg = await _select(client, _regeling_geldigheid(regeling)) if regeling != iri else []
-        verw = await _select(client, _verwijzingen(iri))
+        uit = await sparql_select(client, _uitgaand(iri))
+        inn = await sparql_select(client, _berust_hierop(iri))
+        reg = await sparql_select(client, _regeling_geldigheid(regeling)) if regeling != iri else []
+        verw = await sparql_select(client, _verwijzingen(iri))
     return uit, inn, reg, verw
 
 

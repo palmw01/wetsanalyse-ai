@@ -15,15 +15,15 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
+from bronmodel.taal import RANGTELWOORDEN
+
 _NUM = r"\d+[a-z]{0,3}(?:[:.]\d+[a-z]{0,3})*"
 _SCHEIDER = r"\s*(?:,|en|of|t/m|tot en met|-|–)\s*"
 _LIJST = rf"{_NUM}(?:{_SCHEIDER}(?:art(?:ikel(?:en)?)?\.?\s*)?{_NUM})*"
 # "artikel 9", "artikelen 8 en 9", "art. 9", "artt. 8-10". Niet na een woord (b.v. "startartikel").
 _ARTIKEL = re.compile(rf"(?<![\w])(?:artikelen|artikel|artt\.|art\.?)\s*({_LIJST})", re.IGNORECASE)
 _LEDEN = re.compile(rf"(?<![\w])(?:leden|lid)\s+({_NUM}(?:{_SCHEIDER}(?:lid\s+)?{_NUM})*)", re.IGNORECASE)
-_RANGTELWOORDEN = ("eerste", "tweede", "derde", "vierde", "vijfde", "zesde", "zevende", "achtste",
-                   "negende", "tiende", "elfde", "twaalfde", "dertiende", "veertiende", "vijftiende",
-                   "zestiende", "zeventiende", "achttiende", "negentiende", "twintigste")
+_RANGTELWOORDEN = RANGTELWOORDEN[:20]
 _RANG = "|".join(_RANGTELWOORDEN)
 _RANG_LEDEN = re.compile(rf"(?<![\w])((?:{_RANG})(?:{_SCHEIDER}(?:{_RANG}))*)\s+(?:lid|leden)\b", re.IGNORECASE)
 _BEREIK = re.compile(r"\s*(?:t/m|tot en met|-|–)\s*")

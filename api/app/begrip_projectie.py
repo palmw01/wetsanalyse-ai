@@ -11,7 +11,7 @@ de koppelingen met hun bewijsstand en de begripsrelaties met hun juridische type
 - **Direct na de commit, de lus als vangnet.** Elke audited werkgebiedmutatie noteert het werkgebied
   op de verbinding (`werkgebied_store._audit` → `db.noteer_na_commit`); na de commit projecteert
   `na_mutatie` op de achtergrond. `reconcile` vergelijkt de hash in het register met Postgres, dus ook
-  een lege GraphDB na een herstart wordt weer gevuld, en ruimt graphs van gearchiveerde of lege
+  een lege GraphDB na een herstart wordt weer gevuld, en ruimt graphs van verwijderde of lege
   werkgebieden op. Twee projectoren tegelijk kunnen in de verkeerde volgorde schrijven; de volgende
   ronde ziet dan een afwijkende hash en herstelt het.
 - **Alle begrippen met hun status** (besloten 16 okt 2026): concept, geaccordeerd en vervangen. De
@@ -44,10 +44,12 @@ from rdflib import Graph, Literal, Namespace, RDF, RDFS, URIRef
 from sqlalchemy import select
 
 from . import db
+from bronmodel.taal import BRON_IRI
 from bronmodel.vindplaats import vindplaats as bronmodel_vindplaats
 
 from .config import get_settings
-from .graaf_projectie_v2 import _lit, _repo, _select, element_iri, is_verbindingsfout
+from .graaf_client import repo, sparql_select
+from .graaf_projectie_v2 import _lit, element_iri, is_verbindingsfout
 
 logger = logging.getLogger(__name__)
 
@@ -110,13 +112,13 @@ def _kader_van(wg) -> dict:
 
 async def invoer(conn, werkgebied_id: str) -> dict | None:
     """Alles wat de graph van dit werkgebied draagt, als JSON-vorm. None = geen graph: het werkgebied
-    bestaat niet, is gearchiveerd of heeft geen begrippen."""
+    bestaat niet of heeft geen begrippen."""
     w, b, k, r, g = db.werkgebieden, db.begrippen, db.begrip_koppelingen, db.begrip_relaties, db.werkgebied_begrippen
     generiek = werkgebied_id == GENERIEK
     gebruikt: list[str] = []
     if generiek:
         wg = None
-        begrippen = (await conn.execute(select(b).where(b.c.werkgebied_id.is_(None), b.c.verwijderd.is_(None))
+        begrippen = (await conn.execute(select(b).where(b.c.werkgebied_id.is_(None))
                                         .order_by(b.c.id))).all()
         if not begrippen:
             return None
@@ -128,9 +130,9 @@ async def invoer(conn, werkgebied_id: str) -> dict | None:
                                                        r.c.beoordeling == "akkoord").order_by(r.c.id))).all()
     else:
         wg = (await conn.execute(select(w).where(w.c.id == werkgebied_id))).first()
-        if wg is None or wg.gearchiveerd is not None:
+        if wg is None:
             return None
-        begrippen = (await conn.execute(select(b).where(b.c.werkgebied_id == werkgebied_id, b.c.verwijderd.is_(None))
+        begrippen = (await conn.execute(select(b).where(b.c.werkgebied_id == werkgebied_id)
                                         .order_by(b.c.id))).all()
         gebruikt = list((await conn.execute(select(g.c.begrip_id).where(
             g.c.werkgebied_id == werkgebied_id, g.c.verwijderd.is_(None)).order_by(g.c.begrip_id))).scalars().all())
@@ -368,7 +370,7 @@ PREFIX bwb: <urn:bwb-ns:>
 SELECT ?s ?jci ?url WHERE {{ VALUES ?s {{ {waarden} }}
   OPTIONAL {{ GRAPH ?g {{ ?s owl:sameAs ?jci }} FILTER(STRSTARTS(STR(?g), "urn:bwb:graph:")) }}
   OPTIONAL {{ GRAPH ?h {{ ?s bwb:bronUrl ?url }} FILTER(STRSTARTS(STR(?h), "urn:bwb:graph:")) }} }}"""
-_BWB_IRI = re.compile(r"urn:bwb:BWB[RV]\d+(?::[^<>\s\"{}|^`\\]*)?")
+_BWB_IRI = BRON_IRI
 
 
 async def paginas(bronnen: set[str]) -> dict[str, str]:
@@ -379,7 +381,7 @@ async def paginas(bronnen: set[str]) -> dict[str, str]:
         return {}
     try:
         async with httpx.AsyncClient(timeout=20) as client:
-            rijen = await _select(client, _PAGINA_QUERY.format(waarden=" ".join(URIRef(i).n3() for i in iris)))
+            rijen = await sparql_select(client, _PAGINA_QUERY.format(waarden=" ".join(URIRef(i).n3() for i in iris)))
     except (httpx.HTTPError, ConnectionError, ValueError) as exc:
         logger.warning("begrippen_export_paginas_onbeschikbaar", extra={"fouttype": type(exc).__name__})
         return {}
@@ -409,7 +411,7 @@ async def uitgevers(bronnen: set[str]) -> dict[str, str]:
         return {}
     try:
         async with httpx.AsyncClient(timeout=20) as client:
-            rijen = await _select(client, _UITGEVER_QUERY.format(waarden=" ".join(URIRef(r).n3() for r in regelingen)))
+            rijen = await sparql_select(client, _UITGEVER_QUERY.format(waarden=" ".join(URIRef(r).n3() for r in regelingen)))
     except (httpx.HTTPError, ConnectionError, ValueError) as exc:
         logger.warning("begrippen_export_uitgevers_onbeschikbaar", extra={"fouttype": type(exc).__name__})
         return {}
@@ -420,15 +422,10 @@ async def uitgevers(bronnen: set[str]) -> dict[str, str]:
 async def export_turtle(werkgebied_id: str, alles: bool) -> bytes:
     """De Turtle-export: dezelfde `bouw_graaf` als de projectie (standaard alleen geaccordeerd), met
     `foaf:page` naar de wettekst, de NL-SBB-versie en per begrip `wa:nlSbbConform`."""
-    from fastapi import HTTPException
+    from .werkgebied_store import werkgebied_rij  # schrijft de werkgebieden; de projectie leest alleen
 
     async with db.get_engine().connect() as conn:
-        w = db.werkgebieden
-        wg = None
-        if werkgebied_id != GENERIEK:
-            wg = (await conn.execute(select(w).where(w.c.id == werkgebied_id))).first()
-            if wg is None or wg.gearchiveerd is not None:
-                raise HTTPException(404, "Werkgebied bestaat niet.")
+        wg = await werkgebied_rij(conn, werkgebied_id) if werkgebied_id != GENERIEK else None
         inv = await invoer(conn, werkgebied_id) or {
             "schema": SCHEMA_VERSIE, "werkgebied": _kader_van(wg), "begrippen": [], "relaties": []}
     if not alles:
@@ -497,15 +494,15 @@ async def projecteer(werkgebied_id: str, zeker: bool = False) -> str:
             return "ongewijzigd"
         async with httpx.AsyncClient(timeout=30) as client:
             if inv is None:
-                r = await client.post(_repo() + "/statements", data={"update": _register_statement(werkgebied_id, None)})
+                r = await client.post(repo() + "/statements", data={"update": _register_statement(werkgebied_id, None)})
                 r.raise_for_status()
                 _geschreven[werkgebied_id] = None
                 return "verwijderd"
             data = await asyncio.to_thread(lambda: bouw_graaf(inv).serialize(format="turtle").encode())
-            r = await client.put(_repo() + "/rdf-graphs/service", params={"graph": str(graph_iri(werkgebied_id))},
+            r = await client.put(repo() + "/rdf-graphs/service", params={"graph": str(graph_iri(werkgebied_id))},
                                  content=data, headers={"Content-Type": "text/turtle"})
             r.raise_for_status()
-            r = await client.post(_repo() + "/statements", data={"update": _register_statement(werkgebied_id, stand)})
+            r = await client.post(repo() + "/statements", data={"update": _register_statement(werkgebied_id, stand)})
             r.raise_for_status()
             _geschreven[werkgebied_id] = stand
     return "geschreven"
@@ -521,14 +518,13 @@ _GRAPHS_QUERY = f"""SELECT DISTINCT ?g WHERE {{ GRAPH ?g {{ ?k <{WA.werkgebiedId
 
 async def register() -> dict[str, dict]:
     async with httpx.AsyncClient(timeout=20) as client:
-        return {r["id"]: r for r in await _select(client, _REGISTER_QUERY)}
+        return {r["id"]: r for r in await sparql_select(client, _REGISTER_QUERY)}
 
 
 async def postgres_stand() -> dict[str, dict]:
     """Per werkgebied met iets te projecteren: de invoer."""
     async with db.get_engine().connect() as conn:
-        ids = sorted({wid or GENERIEK for wid in (await conn.execute(select(db.begrippen.c.werkgebied_id).where(
-            db.begrippen.c.verwijderd.is_(None)))).scalars()} | set((await conn.execute(
+        ids = sorted({wid or GENERIEK for wid in (await conn.execute(select(db.begrippen.c.werkgebied_id))).scalars()} | set((await conn.execute(
                 select(db.werkgebied_begrippen.c.werkgebied_id).where(
                     db.werkgebied_begrippen.c.verwijderd.is_(None)))).scalars()))
         uit = {}
@@ -543,7 +539,7 @@ async def reconcile() -> int:
     """Projecteer wat afwijkt van het register, en ruim graphs op van werkgebieden zonder begrippen."""
     stand, reg = await postgres_stand(), await register()
     async with httpx.AsyncClient(timeout=20) as client:
-        graphs = {r["g"] for r in await _select(client, _GRAPHS_QUERY)}
+        graphs = {r["g"] for r in await sparql_select(client, _GRAPHS_QUERY)}
     teller = 0
     for wid, inv in stand.items():
         if reg.get(wid, {}).get("hash") != invoer_hash(inv) or str(graph_iri(wid)) not in graphs:

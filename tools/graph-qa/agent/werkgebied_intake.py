@@ -46,9 +46,10 @@ import hashlib
 import json
 import logging
 import re
-import unicodedata
 import uuid
 from typing import Any
+
+from bronmodel.taal import normaliseer_vraag as normaliseer  # gelijk aan de api (`werkgebied_deelvragen`)
 
 from .graph import queries
 from .ports import GraphPort
@@ -340,14 +341,6 @@ def _volgende(stap: str, antwoorden: dict[str, Any], deel: int = 0, stappen: lis
 
 def _optie(intake: dict[str, Any], sleutel: str, waarde: str) -> dict[str, Any] | None:
     return next((o for o in intake.get("voorstellen", {}).get(sleutel, []) if o["waarde"] == waarde), None)
-
-
-def normaliseer(vraag: str) -> str:
-    """Gelijk aan de api (`werkgebied_deelvragen.normaliseer`): hoofdletters, diakrieten en leestekens
-    tellen niet."""
-    t = unicodedata.normalize("NFKD", vraag.casefold())
-    t = "".join(c for c in t if not unicodedata.combining(c))
-    return " ".join(re.sub(r"[^\w\s]", " ", t).split())
 
 
 def _deelvragen_uit(intake: dict[str, Any], keuzes: list[str], teksten: list[str]) -> list[dict[str, str]]:

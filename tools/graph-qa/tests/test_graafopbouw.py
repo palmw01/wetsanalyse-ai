@@ -1,7 +1,8 @@
 """De vorm van de toestandsgraaf per configuratietak — nodes en edges, niet het gedrag.
 
-Waarom deze test bestaat: `build_graph` legt de edges in drie aparte takken (decompositie,
-planning, kaal), en de annotatieketen stond daarin twee keer letterlijk gekopieerd. Wie die keten
+Waarom deze test bestaat: `build_graph` legde de edges in drie aparte takken (decompositie,
+planning, kaal; de decompositie is in november 2026 weggehaald), en de annotatieketen stond daarin
+twee keer letterlijk gekopieerd. Wie die keten
 wijzigt moet dat op elke plek doen, en niets bewaakte dat ze gelijk bleven. Deze test legt de
 structuur vast zodat een ontvlechting van `build_graph` aantoonbaar gedragsbehoudend is: hij hoort
 ongewijzigd groen te blijven. Moet je hem aanpassen, dan is er iets aan de routering veranderd —
@@ -12,8 +13,6 @@ gaat het puur om welke node met welke verbonden is.
 """
 
 from __future__ import annotations
-
-import pytest
 
 from agent.orchestrator import build_graph
 
@@ -97,34 +96,6 @@ def test_planning_is_de_standaardvorm():
     } | ANNOTATIEKETEN
 
 
-def test_decompositie_voegt_de_deelvraag_keten_toe():
-    nodes, edges = structuur(enable_decomposition=True)
-    assert {"decompose", "solve", "synthesize", "resynth"} <= nodes
-    # `correct` bestaat hier niet: een ongegrond antwoord gaat terug de synthese in (resynth),
-    # niet terug naar de agent. Dat is het echte verschil met de planning-tak.
-    assert "correct" not in nodes
-    assert ("verify", "resynth", "correct", True) in edges
-    assert ("decompose", "solve", "", False) in edges
-    assert ("solve", "verify", "", True) in edges
-    assert ("solve", "synthesize", "", True) in edges
-    assert ("synthesize", "verify", "", False) in edges
-    assert ("resynth", "synthesize", "", False) in edges
-    # De supervisor kan hier ook naar decompose routeren.
-    assert ("supervisor", "decompose", "", True) in edges
-    # Ook met decompositie gaat de leesroute eerst langs de eigen zoekstap, niet langs decompose.
-    assert ("annotaties_zoeken", "agent", "", False) in edges
-    assert ("begrippen_zoeken", "agent", "", False) in edges
-    # En de overzichtsroute bouwt eerst het overzicht, ook met decompositie.
-    assert ("supervisor", "overzicht_bouwen", "", True) in edges
-    assert ("overzicht_bouwen", "verify", "", True) in edges
-    assert ("overzicht_bouwen", "agent", "", True) in edges
-    assert ("advance", "decompose", "", True) in edges
-    assert ("supervisor", "werkgebied_intake", "", True) in edges
-    assert ("werkgebied_intake", EIND, "", False) in edges
-    assert ("supervisor", "agent_taak", "", True) in edges
-    assert ("agent_taak", EIND, "", False) in edges
-
-
 def test_de_kale_tak_heeft_geen_annotatie_en_geen_supervisor():
     nodes, edges = structuur(enable_planning=False)
     assert nodes == {"agent", "tools", "sjabloon", "verify", "correct", "finalize"}
@@ -135,22 +106,14 @@ def test_de_kale_tak_heeft_geen_annotatie_en_geen_supervisor():
     assert ("finalize", EIND, "", False) in edges
 
 
-@pytest.mark.parametrize("tak", [{"enable_planning": True}, {"enable_decomposition": True}])
-def test_de_annotatieketen_is_identiek_in_elke_tak_die_hem_heeft(tak):
-    """De invariant die de ontvlechting moet behouden: de keten van annoteer tot emit is in beide
-    takken exact dezelfde, ook al verschilt de antwoordketen eromheen."""
-    _, edges = structuur(**tak)
-    assert ANNOTATIEKETEN <= edges
-
-
 def test_stopbewaking_zit_om_elke_node():
     """Elke node wordt via `add()` geregistreerd, die `stopbaar()` eromheen wikkelt. Zou een node
     daarbuiten om geregistreerd worden, dan negeert hij een stopverzoek."""
-    nodes, _ = structuur(enable_decomposition=True)
+    nodes, _ = structuur()
     # Alle nodes van de rijkste tak; als hier iets bijkomt zonder dat deze lijst meegroeit,
     # is dat een signaal om te controleren of het via add() ging.
     assert nodes == {
-        "supervisor", "decompose", "solve", "synthesize", "resynth", "agent", "tools",
+        "supervisor", "agent", "tools", "sjabloon", "correct",
         "annoteer", "emit", "advance", "afwijzen", "verify", "finalize", "annotaties_zoeken",
         "begrippen_zoeken", "overzicht_bouwen", "werkgebied_intake", "bronselectie", "agent_taak",
     }

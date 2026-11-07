@@ -35,7 +35,6 @@ TOEGESTAAN: frozenset[tuple[str, str]] = frozenset({
     ("GET", "/v1/werkgebieden/{}/deelvragen/dekking"),
     ("GET", "/v1/werkgebieden/{}/groepen"),
     ("GET", "/v1/werkgebieden/{}/kandidaten"),
-    ("GET", "/v1/werkgebieden/{}/regelingen"),
     ("GET", "/v1/werkgebieden/{}/relaties"),
     ("GET", "/v1/werkgebieden/{}/thema-voorstel"),
     ("GET", "/v1/werkgebieden/{}/verdieping"),
@@ -52,11 +51,9 @@ TOEGESTAAN: frozenset[tuple[str, str]] = frozenset({
     ("POST", "/v1/werkgebieden/{}/begrippen/{}/kaart-runs"),
     ("POST", "/v1/werkgebieden/{}/begrippen/{}/kaart-runs/{}/loopt"),
     ("POST", "/v1/werkgebieden/{}/begrippen/{}/kaart-runs/{}/mislukt"),
-    ("POST", "/v1/werkgebieden/{}/bronnen"),
     ("POST", "/v1/werkgebieden/{}/bronnen-runs"),
     ("POST", "/v1/werkgebieden/{}/bronnen-runs/{}/loopt"),
     ("POST", "/v1/werkgebieden/{}/bronnen-runs/{}/mislukt"),
-    ("POST", "/v1/werkgebieden/{}/bronselectie/{}/bronnen"),
     ("POST", "/v1/werkgebieden/{}/bronselectie/{}/status"),
     ("POST", "/v1/werkgebieden/{}/bronselectie/{}/voorstellen"),
     ("POST", "/v1/werkgebieden/{}/deelvragen/voorstellen"),
@@ -65,7 +62,6 @@ TOEGESTAAN: frozenset[tuple[str, str]] = frozenset({
     ("PUT", "/v1/werkgebieden/{}/begrippen-runs/{}/verdieping"),
     ("PUT", "/v1/werkgebieden/{}/begrippen/{}/kaart-runs/{}/uitkomst"),
     ("PUT", "/v1/werkgebieden/{}/bronnen-runs/{}/uitkomst"),
-    ("PUT", "/v1/werkgebieden/{}/deelvragen/{}/koppelingen"),
 })
 
 

@@ -208,8 +208,8 @@ class _AnthropicStream:
         """Het volledige antwoord. Hier komt ook het `usage`-blok van een streamende call binnen.
 
         `get_final_message()` is idempotent aan de SDK-kant, maar de meter is dat niet: twee keer
-        aanroepen zou dubbel tellen. De aanroeper doet dit één keer per stream (zie `antwoord.py`
-        en `decompositie.py`); mocht dat ooit veranderen, dan hoort de ontdubbeling hier.
+        aanroepen zou dubbel tellen. De aanroeper doet dit één keer per stream (zie `antwoord.py`);
+        mocht dat ooit veranderen, dan hoort de ontdubbeling hier.
         """
         resp = self._stream.get_final_message()
         if self._meter is not None:

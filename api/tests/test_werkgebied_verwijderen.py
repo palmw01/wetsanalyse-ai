@@ -6,8 +6,8 @@ from __future__ import annotations
 from sqlalchemy import func, select
 
 from app import begrip_store, db, werkgebied_store
-from test_annotatie_v2 import ART
 from test_begrippen import _annoteer, _begrip, _url, _werkgebied
+from test_werkgebied_deelvragen import _dv, _koppel
 from test_werkgebieden import _nieuw, client, database, graaf  # noqa: F401
 
 
@@ -27,15 +27,9 @@ async def _gevuld(client) -> tuple[dict, dict, dict, dict]:
                           json={"van_begrip": a["id"], "naar_begrip": b["id"], "type": "verwant", "toelichting": "x"})
     assert r.status_code == 201, r.text
     wg = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()
-    r = await client.post(f"/v1/werkgebieden/{wg['id']}/deelvragen",
-                          json={"verwachte_revisie": wg["revisie"], "vraag": "Wie is belastingschuldige?"})
-    assert r.status_code == 201, r.text
-    wg = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()
+    wg = await _dv(client, wg, "Wie is belastingschuldige?")
     d = wg["deelvragen"][0]
-    r = await client.put(f"/v1/werkgebieden/{wg['id']}/deelvragen/{d['id']}/koppelingen",
-                         json={"verwachte_revisie": wg["revisie"], "bronnen": [wg["bronnen"][0]["id"]],
-                               "begrippen": [a["id"], b["id"]]})
-    assert r.status_code == 200, r.text
+    await _koppel(client, wg, d["id"], bronnen=[wg["bronnen"][0]["id"]], begrippen=[a["id"], b["id"]])
     return (await client.get(f"/v1/werkgebieden/{wg['id']}")).json(), a, b, d
 
 
@@ -122,6 +116,35 @@ async def test_de_opvolger_verwijderen_zet_de_voorganger_terug(client):
     assert r.status_code == 201, r.text
     oud = (await client.get(_url(wg, oud))).json()
     assert (await client.delete(_url(wg, oud), params={"verwachte_revisie": oud["revisie"]})).status_code == 409
+
+
+# --- de oude zachte verwijdering --------------------------------------------------------------------
+
+async def test_de_start_wist_wat_nog_zacht_verwijderd_was_en_haalt_de_kolommen_weg(client):
+    """`werkgebieden.gearchiveerd` en `begrippen.verwijderd` schrijft niemand meer. Een rij die er nog mee gemarkeerd
+    is, mag niet terugkomen als de kolom weg is: de start wist haar zoals verwijderen dat doet (`db._wis_oude_zachte_verwijdering`)."""
+    from sqlalchemy import inspect, text
+
+    weg = await _nieuw(client, "Gearchiveerd")
+    blijft = await _werkgebied(client)
+    b = await _begrip(client, blijft, [], naam="Zacht weg")
+    houd = await _begrip(client, blijft, [], naam="Blijft")
+    async with db.get_engine().begin() as conn:
+        await conn.execute(text("ALTER TABLE werkgebieden ADD COLUMN gearchiveerd TIMESTAMP"))
+        await conn.execute(text("ALTER TABLE begrippen ADD COLUMN verwijderd TIMESTAMP"))
+        await conn.execute(text("UPDATE werkgebieden SET gearchiveerd = '2026-10-01 00:00:00' WHERE id = :i"), {"i": weg["id"]})
+        await conn.execute(text("UPDATE begrippen SET verwijderd = '2026-10-01 00:00:00' WHERE id = :i"), {"i": b["id"]})
+    await db.reconcile_schema()
+    await db.reconcile_schema()  # idempotent
+    assert (await client.get(f"/v1/werkgebieden/{weg['id']}")).status_code == 404
+    assert await _aantal("werkgebied_audit", "werkgebied_id", weg["id"]) > 0           # de audit blijft
+    assert (await client.get(_url(blijft, b))).status_code == 404
+    assert await _aantal("begrip_revisies", "begrip_id", b["id"]) == 0
+    assert (await client.get(_url(blijft, houd))).status_code == 200
+    async with db.get_engine().connect() as conn:
+        for tabel, kolom in (("werkgebieden", "gearchiveerd"), ("begrippen", "verwijderd")):
+            namen = await conn.run_sync(lambda c, t=tabel: {k["name"] for k in inspect(c).get_columns(t)})
+            assert kolom not in namen
 
 
 # --- de wislijsten zijn volledig ------------------------------------------------------------------

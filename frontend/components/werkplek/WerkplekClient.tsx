@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { NodeAnnotatiePaneel } from "@/components/annotaties/NodeAnnotatiePaneel";
 import { samenhangBeschikbaar } from "@/lib/samenhang";
 import { ThreadRij, type ThreadActies, type WerkgebiedAnnoteren } from "@/components/werkplek/ThreadRij";
@@ -159,9 +158,6 @@ export function WerkplekClient({
   const [items, setItems] = useState<Item[]>(demo?.items ?? []);
   // De open vraag die je met ✕ wegklikte (het item-id); "Een vraag stellen ›" opent hem weer.
   const [weggeklikt, setWeggeklikt] = useState<string | null>(null);
-  // Slugs van berichten die naar een annotatie zonder bronnode wijzen: die bestaat niet meer. Dat is
-  // een tóéstand, geen fout – opnieuw proberen kan per definitie niet lukken.
-  const [verwijderd, setVerwijderd] = useState<Record<string, true>>({});
   const [invoer, setInvoer] = useState(beginInvoer ?? "");
   // Het concept van de vraag per gesprek (UI-08, `lib/conceptVraag.ts`). Eerst lezen, pas daarna schrijven: anders wist
   // de lege begininvoer het concept voordat het terug is. Lezen in een effect, want `sessionStorage` bestaat niet
@@ -263,9 +259,6 @@ export function WerkplekClient({
   // LLM-call maakt zichzelf af – dat kan tientallen seconden duren en de knop hoort dat te tonen
   // in plaats van te doen alsof het al klaar is.
   const [stopt, setStopt] = useState(false);
-  // Zojuist geprobeerd te openen, maar de annotatie bestaat niet meer. Geen storing: geen rode balk
-  // en geen retry.
-  const [artefactWeg, setArtefactWeg] = useState<string | null>(null);
   // De vorige beurt van dit gesprek is nooit afgekomen: het run-register van de agent is leeg (een
   // herstart of deploy). Beter dit zeggen dan een gesprek dat halverwege ophoudt zonder uitleg.
   const [runVerdwenen, setRunVerdwenen] = useState(false);
@@ -347,8 +340,8 @@ export function WerkplekClient({
           return [b.rol === "user"
             ? { id: uid(), type: "user" as const, tekst: b.tekst, antwoordOp: parseAntwoordOp(b.intake_antwoord),
                 bevestigingKeuze: parseBevestigingKeuze(b.bevestiging_antwoord) }
-            : annotatieDoel || b.annotatie_slug
-              ? { id: uid(), type: "annotatie" as const, slug: annotatieDoel?.bron_iri || b.annotatie_slug!,
+            : annotatieDoel
+              ? { id: uid(), type: "annotatie" as const, slug: annotatieDoel.bron_iri,
                   titel: art?.titel || b.annotatie_titel || undefined, annotatie_doel: annotatieDoel,
                   tool_executions: toolSpoorUit(b.tool_executions), denk: b.denk,
                   // De samenvatting van Lex (hoogstens vier zinnen), zoals graph-qa hem bewaarde.
@@ -371,10 +364,6 @@ export function WerkplekClient({
         // laadde (een koude start duurt seconden), dan staan zijn vraag en het lopende antwoord al in
         // de thread – vervangen liet het antwoord onzichtbaar binnenstromen tot een herlaadbeurt.
         setItems((xs) => [...geschiedenis, ...xs]);
-        // Een bericht met alleen een slug en geen bronnode verwijst naar een annotatie die niet meer
-        // bestaat: de kaart wordt een tombstone.
-        const weg = g.berichten.filter((b) => b.annotatie_slug && !artefactVanBericht(b));
-        if (weg.length) setVerwijderd((m) => ({ ...m, ...Object.fromEntries(weg.map((b) => [b.annotatie_slug!, true as const])) }));
         // Liep hier nog een beurt terwijl je ergens anders keek? Pak hem weer op. De run-ids uit de
         // geschiedenis gaan mee: daarmee is "afgerond terwijl je weg was" te onderscheiden van
         // "weg door een herstart".
@@ -470,9 +459,6 @@ export function WerkplekClient({
     wisselPaneel(undefined, { ook: () => {
       if (doel?.bron_iri) { setNodeTab("tekst"); setNodeExtra([]); setNodeGraaf({ keten: true }); setNodeDoel(doel); return; }
       setNodeDoel(undefined);
-      // Een bericht zonder bronnode verwijst naar een annotatie die niet meer bestaat.
-      setVerwijderd((m) => ({ ...m, [slug]: true }));
-      setArtefactWeg(slug);
     } });
   }
 
@@ -915,7 +901,7 @@ export function WerkplekClient({
     if (!node && uitkomst.bevestiging) updateItem(antId, { bevestiging: uitkomst.bevestiging });
     if (!node) return; // een gewoon antwoord staat al in beeld
     setItems((xs) => xs.map((x) => x.id === antId ? { id: antId, type: "annotatie", slug: node.bron_iri,
-      annotatie_doel: node, titel: uitkomst.artefact?.titel || node.label, tekst: tekst?.trim() || undefined, denk, hergebruik, doel,
+      annotatie_doel: node, titel: uitkomst.artefact?.titel || node.label, tekst: tekst?.trim() || undefined, denk, hergebruik,
       tool_executions, meting } : x));
     // Deze beurt veranderde de annotaties: een kennisgraaf die een vorig paneel doorgaf, klopt niet meer.
     wisselPaneel(undefined, { ook: () => { setNodeGraaf((g) => ({ ...zonderKennisgraaf(g), keten: true })); setNodeDoel(node); } });
@@ -1037,17 +1023,13 @@ export function WerkplekClient({
     }
   }
 
-  // De laatste annotatie in dit gesprek: die hoort altijd één klik weg te zijn. Verwijderde
-  // documenten slaan we over – anders verdwijnt de balk terwijl er verderop in het gesprek nog een
-  // annotatie staat die wél bestaat.
-  // Eén "laatste", over beide soorten heen: de node-annotatie ging eerst altijd voor, ook als er
-  // daarna nog een artikeldocument in het gesprek stond.
+  // De laatste annotatie in dit gesprek: die hoort altijd één klik weg te zijn.
   // Ook over de soorten artefacten heen: stelde Lex na een annotatie begrippen voor, dan is dát het
   // laatste werk. Een artefact dat de werkplek (nog) niet kan openen, telt niet mee.
   const laatsteItem = [...items]
     .reverse()
     .find((x): x is Extract<Item, { type: "annotatie" | "artefact" }> =>
-      (x.type === "annotatie" && !verwijderd[x.slug]) || (x.type === "artefact" && !!werkgebiedArtefactVan(x.artefact)));
+      x.type === "annotatie" || (x.type === "artefact" && !!werkgebiedArtefactVan(x.artefact)));
   // De bronselectie (spoor J) is een antwoord met een kaartje, geen artefact-item: komt ze na het laatste
   // artefact, dan is zij het laatste werk.
   const bsIndex = items.length - 1 - [...items].reverse().findIndex((x) => x.type === "antwoord" && x.vraagkaart?.modus === "bronselectie");
@@ -1306,19 +1288,6 @@ export function WerkplekClient({
         </div>
       )}
 
-      {/* Verwijderd is een toestand, geen storing: een neutrale mededeling zónder "Opnieuw proberen",
-          want die knop kan hier per definitie niet slagen. */}
-      {artefactWeg && (
-        <div className="shrink-0 px-4 pt-2">
-          <Melding type="uitleg" compact>
-            Deze annotatie is verwijderd. Het gesprek blijft staan.{" "}
-            <Link href="/annotaties" className="focus-ring rounded font-medium underline underline-offset-2">
-              Alle annotaties
-            </Link>
-          </Melding>
-        </div>
-      )}
-
       {bewaarFout && (
         <div role="status" className="shrink-0 border-b border-fout/30 bg-fout/10 px-4 py-2 text-center text-[0.8125rem] text-fout">
           Dit gesprek wordt op dit moment niet bewaard ({bewaarFout}). Wat je hier ziet verdwijnt bij
@@ -1377,7 +1346,6 @@ export function WerkplekClient({
                 demo={!!demo}
                 samenhangAan={samenhangAan}
                 loopt={item.type === "reeks" && !!runId && runId === item.reeks.runId}
-                verwijderd={item.type === "annotatie" && !!verwijderd[item.slug]}
                 acties={acties}
               />
             </div>

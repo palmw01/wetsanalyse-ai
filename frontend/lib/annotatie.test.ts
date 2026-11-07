@@ -15,7 +15,6 @@ import {
   doelVanKandidaat,
   kandidaatLabel,
   kandidaatPrompt,
-  annotatieTitel,
   isVerwijderd,
   isBeslist,
   slotVan,
@@ -324,29 +323,6 @@ describe("regelsVan", () => {
     const bron = bronVan(regels);
     expect(bron).toBe("1. Eerste.\n\n2. Tweede.");
     expect(bron.indexOf("Tweede")).toBe("1. Eerste.\n\n2. ".length);
-  });
-});
-
-describe("annotatieTitel", () => {
-  const basis = { bwbId: "BWBR0004770", artikel: "9", lid: "" };
-
-  it("zet naam en vindplaats samen tot één label", () => {
-    expect(annotatieTitel({ ...basis, citeertitel: "Invorderingswet 1990" })).toBe(
-      "Invorderingswet 1990 – art. 9",
-    );
-  });
-
-  it("neemt het lid mee als het document op één lid is afgebakend", () => {
-    expect(annotatieTitel({ ...basis, citeertitel: "Invorderingswet 1990", lid: "2" })).toBe(
-      "Invorderingswet 1990 – art. 9 lid 2",
-    );
-  });
-
-  it("valt terug op werkgebied en dan op het bwbId, net als de server", () => {
-    expect(annotatieTitel({ ...basis, werkgebied: "Uitstel van betaling" })).toBe(
-      "Uitstel van betaling – art. 9",
-    );
-    expect(annotatieTitel(basis)).toBe("BWBR0004770 – art. 9");
   });
 });
 

@@ -52,7 +52,7 @@ def test_open_markeringen_gaan_mee_bij_een_gewone_vraag():
 
 
 def test_vervolgvraag_na_annotatie_kent_bepaling_en_element_ids(tmp_path):
-    settings = make_settings(enable_decomposition=False, checkpoint_db_path=str(tmp_path / "cp.db"))
+    settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"))
     llm1 = KetenLLM(_aanloop(), kies=_alleen(**{"De ontvanger": "Rechtssubject"}))
     events = _run(answer_stream("annoteer artikel 9 lid 1 IW", "focus-1", settings=settings, llm=llm1,
                                 graph=FakeGraph(result=LID_TSV)))

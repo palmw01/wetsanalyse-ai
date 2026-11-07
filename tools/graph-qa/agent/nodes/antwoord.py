@@ -449,11 +449,4 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
                            "bronregister": bij(state.get("bronregister"), state.get("source_trace")),
                            "focus": na_antwoord(state.get("focus"), state.get("specialist", ""),
                                                 [s["uri"] for s in src_dicts])}
-    # In de decompositie-stroom stroomt het eind-antwoord uit synthesize_node en is het nog niet
-    # in het durabele messages-kanaal beland (agent_node doet dat in de één-loop-stroom). Voeg het
-    # hier één keer toe zodat het gespreksgeheugen het antwoord onthoudt.
-    if b.settings.enable_decomposition:
-        upd["messages"] = [
-            {"role": "assistant", "content": [{"type": "text", "text": state.get("answer", "")}]}
-        ]
     return upd

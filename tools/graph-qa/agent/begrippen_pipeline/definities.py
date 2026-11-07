@@ -28,6 +28,7 @@ import re
 from dataclasses import dataclass
 
 from bronmodel.definities import geldigheid_uit, losse_termen
+from bronmodel.taal import rangnummers
 
 from .model import Bron, Formulering, Manifest, Taalanalyse
 
@@ -44,8 +45,7 @@ _DEF_ONDER = re.compile(r"\bonder\s+(?P<term>[^:,;]{1,60}?)\s+(?:(?:wordt|worden
 _WORDT = re.compile(r"\b(?:wordt|worden)\b", re.IGNORECASE)
 _TERM_DUBBELPUNT = re.compile(r"^([^:]{1,80}?):\s+")
 
-_RANG = {"eerste": 1, "tweede": 2, "derde": 3, "vierde": 4, "vijfde": 5, "zesde": 6, "zevende": 7,
-         "achtste": 8, "negende": 9, "tiende": 10, "elfde": 11, "twaalfde": 12}
+_RANG = rangnummers(12)
 _BEDOELD = re.compile(
     r"^[\s,]*(?:als\s+)?bedoeld\s+in\s+"
     r"(?:artikel\s+(?P<art>[0-9]+[a-z]*)(?:,\s+(?P<lid>\w+)\s+lid)?(?:,\s+onderdeel\s+(?P<od>[a-z]+))?"
