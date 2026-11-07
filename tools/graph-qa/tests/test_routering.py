@@ -107,3 +107,26 @@ def test_buiten_een_werkgebied_stelt_de_werkgebied_worker_nog_steeds_samen():
              "focus": {}, "messages": [{"role": "user", "content": "Ik wil de invordering van belastingen onderzoeken"}]}
     upd = supervisie.supervisor_node(b, state)
     assert supervisie._entry_node(b, {**state, **upd}) == "werkgebied_intake"
+
+
+def test_een_vervolgvraag_zonder_regeling_gaat_na_het_herschrijven_de_workflow_in():
+    """"Wat staat er in artikel 9?" na Iw 9 lid 1: het model herschrijft met de regeling, de code kiest de workflow."""
+    b = _bouw(_Supervisor("VRAAG: Wat staat er in artikel 9 van de Invorderingswet 1990?\nWORKERS: antwoord\n"
+                          "SPECIALIST: duiding\nPLAN: de tekst"))
+    state = {"question": "Wat staat er in artikel 9?", "modus": "auto", "werkgebied_id": "", "focus": {},
+             "messages": [{"role": "user", "content": "Wat staat er in artikel 9 lid 1 van de Invorderingswet 1990?"},
+                          {"role": "assistant", "content": "Een belastingaanslag is invorderbaar zes weken na …"},
+                          {"role": "user", "content": "Wat staat er in artikel 9?"}]}
+    upd = supervisie.supervisor_node(b, state)
+    assert supervisie._entry_node(b, {**state, **upd}) == "bepaling_lezen"
+    assert upd["bepalingsvraag"] == {"bwb_id": "BWBR0004770", "artikel": "9", "lid": ""}
+
+
+def test_een_herschreven_uitlegvraag_blijft_bij_de_specialist():
+    b = _bouw(_Supervisor("VRAAG: Wat betekent artikel 9 van de Invorderingswet 1990?\nWORKERS: antwoord\n"
+                          "SPECIALIST: duiding\nPLAN: uitleg"))
+    state = {"question": "En wat betekent dat?", "modus": "auto", "werkgebied_id": "", "focus": {},
+             "messages": [{"role": "user", "content": "Wat staat er in artikel 9 van de Invorderingswet 1990?"},
+                          {"role": "assistant", "content": "…"}, {"role": "user", "content": "En wat betekent dat?"}]}
+    upd = supervisie.supervisor_node(b, state)
+    assert supervisie._entry_node(b, {**state, **upd}) == "agent" and upd["specialist"] == "duiding"
