@@ -1127,7 +1127,8 @@ Daaruit volgt:
 
 ## Schema
 
-Er is geen Alembic. `db.create_all` maakt bij de start **ontbrekende tabellen** aan;
+Er is geen Alembic. `db.bouw_schema` draait bij de start, onder een advisory lock zodat replica's op elkaar wachten:
+`db.create_all` maakt **ontbrekende tabellen** aan;
 `db.reconcile_schema` voegt daarna **ontbrekende kolommen** toe (`ALTER TABLE … ADD COLUMN`, mét
 `server_default`) en maakt **ontbrekende indexen** aan (`checkfirst`). Nooit droppen of van type
 wisselen: dat is een bewuste ingreep, die als benoemde uitzondering in `reconcile_schema` staat. Declareer een nieuwe kolom dus altijd in de
