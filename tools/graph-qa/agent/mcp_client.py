@@ -65,6 +65,26 @@ def _query_kern(query: str) -> str:
         kern = nieuw.lstrip()
 
 
+# Een SPARQL-query mag tekens als codepunt schrijven, ook sleutelwoorden: eerst terugzetten, dan pas lezen.
+_CODEPUNT = re.compile(r"\\u([0-9a-fA-F]{4})|\\U([0-9a-fA-F]{8})")
+_LETTERLIJK = re.compile(
+    r'"""(?:[^"\\]|\\.|"(?!""))*"""' r"|'''(?:[^'\\]|\\.|'(?!''))*'''"
+    r'|"(?:[^"\\\n]|\\.)*"' r"|'(?:[^'\\\n]|\\.)*'" r"|<[^<>\"{}|^`\\\s]*>" r"|#[^\n]*",
+    re.DOTALL,
+)
+_SERVICE_RE = re.compile(r"(?<![\w:?$.\-])service\b", re.IGNORECASE)
+
+
+def sparql_kern(query: str) -> str:
+    """De query zoals de parser hem leest, met elke string als `""`, elke IRI als `<>` en zonder commentaar.
+    Zo vindt een controle op sleutelwoorden geen tekst in een literal, en mist hij er geen."""
+    leesbaar = _CODEPUNT.sub(lambda m: chr(min(int(m.group(1) or m.group(2), 16), 0x10FFFF)), query or "")
+    def vervang(m: re.Match) -> str:
+        teken = m.group(0)[0]
+        return "" if teken == "#" else "<>" if teken == "<" else '""'
+    return _LETTERLIJK.sub(vervang, leesbaar)
+
+
 def _looks_like_update(query: str) -> bool:
     """True voor alles wat geen leesquery is – inclusief een lege of onherkenbare query.
 
@@ -248,6 +268,8 @@ class MCPClient:
         anders zou hij ook de natuurlijke-taal-query van `similarity_search` scannen en die onterecht
         weigeren zodra ze met een verb begint of iets als 'delete where' bevat."""
         self._reject_updates({"query": query})
+        if _SERVICE_RE.search(sparql_kern(query)):
+            raise MCPError("Geweigerd: een query blijft binnen de graaf (SERVICE is niet toegestaan).")
         content = self.call_tool(
             self._sparql_tool,
             {"query": query, "repositoryId": self._repository_id},

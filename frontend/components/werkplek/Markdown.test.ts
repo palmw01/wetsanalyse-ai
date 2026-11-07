@@ -39,3 +39,20 @@ describe("Markdown wijst een citatie zo diep aan als de tekst", () => {
     expect(uit.replace(/<[^>]+>/g, "")).toContain("Zie artikel 2, eerste lid, onderdeel m.");
   });
 });
+
+// Modeltekst is de standaard: een link gaat alleen naar de bron. Alleen wat een mens schreef kiest `vrij`.
+describe("Markdown en links", () => {
+  const vrij = (tekst: string) => renderToStaticMarkup(createElement(Markdown, { tekst, links: "vrij" }));
+  it("laat een link naar de wet door", () => {
+    expect(html("[art. 9](https://wetten.overheid.nl/BWBR0004770/#Artikel9)")).toContain('href="https://wetten.overheid.nl/');
+  });
+  it("maakt van een vreemde host platte tekst", () => {
+    const uit = html("[klik](https://voorbeeld.test/?q=vraag)");
+    expect(uit).not.toContain("href");
+    expect(uit).toContain("klik");
+  });
+  it("laat een beheerbericht elke http(s)-link, maar geen ander schema", () => {
+    expect(vrij("[klik](https://voorbeeld.test/)")).toContain('href="https://voorbeeld.test/"');
+    expect(vrij("[klik](mailto:a@b.nl)")).not.toContain("href");
+  });
+});

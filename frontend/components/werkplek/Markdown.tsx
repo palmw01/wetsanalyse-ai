@@ -8,9 +8,11 @@ import type { NodeDoel } from "@/lib/annotatieNode";
 import { markeerCitaties } from "@/lib/citaties";
 import { markeerPassages } from "@/lib/markering";
 import type { Bron } from "@/lib/types";
+import { bronHref } from "@/lib/url";
 
 /** Rendert een agent-antwoord als (GitHub-flavored) Markdown. Geen rauwe HTML (geen rehype-raw), dus
- *  veilig; links laten we alleen door voor http(s) en openen extern.
+ *  veilig. Een link in modeltekst opent alleen naar de bron (`bronHref`, host-pinning); wat een mens
+ *  zelf schreef (`links="vrij"`, de beheerberichten) mag elke http(s)-link zijn.
  *
  *  **Gememoïseerd op de tekst.** Tijdens het streamen wordt de hele thread bij elke token opnieuw
  *  gerenderd; zonder dit parseerde react-markdown élk afgerond antwoord in het gesprek dan opnieuw,
@@ -30,6 +32,13 @@ export function StreamendeTekst({ tekst }: { tekst: string }) {
   return <div className={`whitespace-pre-wrap ${TEKST_CLASS}`}>{tekst}</div>;
 }
 
+/** Waar een link heen mag. Bron is de standaard: wie Markdown toevoegt voor modeltekst, hoeft er niet aan te denken. */
+function linkDoel(href: unknown, links: "bron" | "vrij"): string | undefined {
+  if (typeof href !== "string") return undefined;
+  if (links === "bron") return bronHref(href);
+  return /^https?:\/\//i.test(href) ? href : undefined;
+}
+
 /** Het getal waarmee een lijstitem in de bron begint, of niets (een opsomming). */
 function lijstnummer(tekst: string, begin: number | undefined): number | undefined {
   const getal = begin === undefined ? null : /^\d+(?=[.)])/.exec(tekst.slice(begin, begin + 10));
@@ -41,6 +50,7 @@ export const Markdown = memo(function Markdown({
   nietLetterlijk,
   bronnen,
   onOpenSamenhang,
+  links = "bron",
 }: {
   tekst: string;
   /** Passages die de brongetrouwheidscontrole afkeurde (`grounding.niet_letterlijk`). */
@@ -48,6 +58,7 @@ export const Markdown = memo(function Markdown({
   /** De bronnen van de beurt: een vindplaats die er éénduidig bij hoort wordt een citatie-chip. */
   bronnen?: readonly Bron[];
   onOpenSamenhang?: (doel: NodeDoel) => void;
+  links?: "bron" | "vrij";
 }) {
   const teMarkeren = nietLetterlijk?.length ? nietLetterlijk : null;
   const plugins = [...(teMarkeren ? [markeerPassages(teMarkeren)] : []), ...(bronnen?.length ? [markeerCitaties(bronnen)] : [])];
@@ -59,9 +70,9 @@ export const Markdown = memo(function Markdown({
         components={{
           p: ({ children }) => <p className="leading-relaxed">{children}</p>,
           a: ({ href, children }) => {
-            const veilig = typeof href === "string" && /^https?:\/\//i.test(href);
-            return veilig ? (
-              <a href={href} target="_blank" rel="noopener noreferrer" className="text-lint underline underline-offset-2">
+            const doel = linkDoel(href, links);
+            return doel ? (
+              <a href={doel} target="_blank" rel="noopener noreferrer" className="text-lint underline underline-offset-2">
                 {children}
               </a>
             ) : (

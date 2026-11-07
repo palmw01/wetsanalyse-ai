@@ -193,6 +193,32 @@ def test_een_ondeelbare_eenheid_boven_de_begroting_wordt_een_fout_geen_inkorting
     assert "x" * 100 not in uit, "geen ingekorte data in een foutresultaat"
 
 
+@pytest.mark.parametrize("query", [
+    'SELECT ?t WHERE { ?s ?p ?o . BIND("verzonnen wettekst" AS ?t) } LIMIT 5',
+    'SELECT ?t WHERE { VALUES ?t { "verzonnen wettekst" } } LIMIT 5',
+    'SELECT (CONCAT("verzonnen", "") AS ?t) WHERE { ?s ?p ?o } LIMIT 5',
+    'SELECT ?t WHERE { ?s ?p ?o } GROUP BY (CONCAT("x", STR(?s)) AS ?t) LIMIT 5',
+    'SELECT ?t WHERE { { SELECT (STR(?s) AS ?t) WHERE { ?s ?p ?o } } } LIMIT 5',
+    'SELECT ?t WHERE { BIND(\\u0022verzonnen\\u0022 AS ?t) } LIMIT 5',
+])
+def test_raw_sparql_bedenkt_geen_waarden(query):
+    from agent.resultaat import is_foutresultaat
+
+    data = is_foutresultaat(_aanroep("raw_sparql", {"query": query}, WorstCaseGraaf()))
+    assert data and data["reden"] == "eigen_waarden"
+
+
+@pytest.mark.parametrize("query", [
+    "SELECT (COUNT(DISTINCT ?s) AS ?n) WHERE { ?s ?p ?o } LIMIT 5",
+    "SELECT ?p (COUNT(*) AS ?n) (MIN(?o) AS ?eerste) WHERE { ?s ?p ?o } GROUP BY ?p LIMIT 5",
+    "SELECT ?s WHERE { VALUES ?s { <urn:a> <urn:b> } ?s ?p ?o } LIMIT 5",
+    'SELECT ?s WHERE { ?s ?p ?o . FILTER(CONTAINS(STR(?o), "als ?x")) } LIMIT 5',
+    'SELECT ?s WHERE { ?s <urn:nummer> "25" } LIMIT 5',
+])
+def test_raw_sparql_laat_terechte_query_door(query):
+    assert is_contract(_aanroep("raw_sparql", {"query": query}, WorstCaseGraaf())) is not None
+
+
 def test_raw_sparql_is_streng_en_geeft_nooit_een_half_antwoord():
     from agent.resultaat import is_foutresultaat
 

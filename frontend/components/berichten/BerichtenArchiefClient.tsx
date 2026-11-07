@@ -27,7 +27,7 @@ function BerichtArchiefItem({ bericht }: { bericht: BerichtenPaginaOut["items"][
       </div>
       <h4 className="mt-2 text-sm font-semibold text-ink">{bericht.titel}</h4>
       <div className="mt-2 text-sm">
-        <Markdown tekst={bericht.inhoud} />
+        <Markdown tekst={bericht.inhoud} links="vrij" />
       </div>
     </article>
   );
