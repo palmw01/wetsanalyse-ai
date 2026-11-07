@@ -4,8 +4,9 @@ import Link from "next/link";
 import { NodeAnnotatiePaneel } from "@/components/annotaties/NodeAnnotatiePaneel";
 import { samenhangBeschikbaar } from "@/lib/samenhang";
 import { ThreadRij, type ThreadActies, type WerkgebiedAnnoteren } from "@/components/werkplek/ThreadRij";
-import { reeksNavigatie, verwerkReeksEvent, type Reeks } from "@/lib/reeks";
-import { mergeToolExecution, type NodeDoel, type ToolExecution } from "@/lib/annotatieNode";
+import { reeksNavigatie } from "@/lib/reeks";
+import { LEGE_STAND, afronding, frameplanner, stroomReducer, type StroomEvent } from "@/lib/beurtStroom";
+import { type NodeDoel, type ToolExecution } from "@/lib/annotatieNode";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { VraagLexContext } from "@/components/werkplek/VraagLexKnop";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
@@ -29,13 +30,10 @@ import {
 } from "@/lib/api";
 import { resetdatum } from "@/lib/tokenbudget";
 import type {
-  AgentDoel,
   AgentDoelInvoer,
   AgentHergebruik,
   BeurtMeting,
   Overzicht,
-  AgentKandidaat,
-  AgentKeuze,
   BeslissingType,
   Bevestiging,
   Gesprek,
@@ -613,72 +611,35 @@ export function WerkplekClient({
     bezigRef.current = true;
     setBezig(true);
 
-    const doelRef: { d: AgentDoel | null } = { d: null };
-    let kandidaten: AgentKandidaat[] = [];
-    let keuze: AgentKeuze | undefined;
-    // Een reeks (meerdere onderdelen in één run): de stroom wordt per onderdeel ingedeeld.
-    let reeks: Reeks | null = null;
-    let hergebruik: AgentHergebruik | undefined;
-    let meting: BeurtMeting | undefined;
-    let tekst = "";
-    let denk = "";
-    // De agent legde de beurt vast. De werkplek schrijft een beurt nooit zelf weg: de server is de enige schrijver.
-    let opgeslagen: { run_id: string; artefact?: Artefact; annotatie_doel?: NodeDoel; bevestiging?: Bevestiging;
-      vervolg?: Vervolg } | null = null;
-    let toolExecutions: ToolExecution[] = [];
+    // Wat er van deze poging binnenkomt (`lib/beurtStroom.ts`). Elke poging begint leeg: het opnieuw aanhaken
+    // speelt de eventlog vanaf `seq 0` terug. De agent legt de beurt vast (`opgeslagen`); de werkplek nooit.
+    let stand = LEGE_STAND;
+    const pas = (e: StroomEvent) => { stand = stroomReducer(stand, e); };
     // De verbinding viel weg terwijl de run doorliep. Buiten de `try` gezet omdat het opnieuw
     // aanhaken ná de `finally` moet gebeuren: die reset `bezig`/`afbrekenRef`, en een nieuwe lus
     // die daarvóór begint raakt zijn eigen beheerser kwijt.
     let verbroken = false;
-    // Kwam er iets over déze verbinding binnen? Zo ja, dan telt een volgende breuk als een verse
-    // onderbreking en begint de wachttijd weer onderaan – anders zou een lange beurt met twee losse
-    // dips in de hoogste backoff blijven hangen.
-    let ontving = false;
     // De stroom zelf is afgelopen; wat daarna misgaat (het document of de wettekst ophalen) is geen
     // verbroken verbinding. Zonder dit onderscheid speelde een mislukte graaf-call na een geslaagde
     // beurt de hele run eindeloos opnieuw af onder "De verbinding met Lex is weggevallen".
     let stroomKlaar = false;
-    // Tokens en denkregels komen tientallen keren per seconde binnen. Elke keer de thread bijwerken
-    // renderde het hele gesprek per token; nu hooguit één keer per frame. Voor elke andere
-    // bijwerking van dit item wordt de wachtende stand eerst weggeschreven (`schrijfStroom`), zodat
-    // er nooit een oudere tekst overheen komt.
-    let frame = 0;
-    const schrijfStroom = () => {
-      if (!frame) return;
-      cancelAnimationFrame(frame);
-      frame = 0;
-      updateItem(antId, { tekst, denk });
-    };
-    const planStroom = () => {
-      if (frame) return;
-      frame = requestAnimationFrame(() => {
-        frame = 0;
-        updateItem(antId, { tekst, denk });
-      });
-    };
+    // Tokens en denkregels hooguit één keer per frame; vóór elke andere bijwerking van dit item eerst de wachtende
+    // stand (`stroom.nu()`), zodat er nooit een oudere tekst overheen komt.
+    const stroom = frameplanner(() => updateItem(antId, { tekst: stand.tekst, denk: stand.denk }));
     try {
       await volgRun(
         id,
         {
           onLeeft: () => {
-            ontving = true;
+            pas({ type: "leeft" });
             setVerbindingWeg(false);
             // Er ís weer contact met een lopende beurt; een eerdere "de agent is herstart"-melding
             // slaat nu nergens meer op.
             setRunVerdwenen(false);
           },
-          onStatus: (m) => {
-            denk += (denk ? "\n" : "") + "· " + m;
-            planStroom();
-          },
-          onReason: (t) => {
-            denk += t;
-            planStroom();
-          },
-          onToken: (t) => {
-            tekst += t;
-            planStroom();
-          },
+          onStatus: (m) => { pas({ type: "status", bericht: m }); stroom.plan(); },
+          onReason: (t) => { pas({ type: "reason", tekst: t }); stroom.plan(); },
+          onToken: (t) => { pas({ type: "token", tekst: t }); stroom.plan(); },
           onSources: (b) => updateItem(antId, { bronnen: b }),
           onGrounding: (g) => updateItem(antId, { grounding: g }),
           onAntwoord: (a) => updateItem(antId, { antwoord: a }),
@@ -690,81 +651,67 @@ export function WerkplekClient({
           },
           onVraagkaart: (k) => updateItem(antId, { vraagkaart: k }),
           onToolExecution: (event) => {
-            toolExecutions = mergeToolExecution(toolExecutions, event);
-            updateItem(antId, { tool_executions: toolExecutions });
+            pas({ type: "tool", event });
+            updateItem(antId, { tool_executions: stand.toolExecutions });
           },
-          onDoel: (d) => (doelRef.d = d),
-          onKandidaten: (k, kz) => { kandidaten = k; keuze = kz; },
+          onDoel: (d) => pas({ type: "doel", doel: d }),
+          onKandidaten: (k, kz) => pas({ type: "kandidaten", kandidaten: k, keuze: kz }),
           onReeksEvent: (ev) => {
-            schrijfStroom();
-            const volgende = verwerkReeksEvent(reeks, ev);
-            if (!volgende || volgende === reeks) return;
-            reeks = volgende;
-            const r = volgende;
+            stroom.nu();
+            const voor = stand.reeks;
+            pas({ type: "reeks", event: ev });
+            if (stand.reeks === voor || !stand.reeks) return;
+            const r = stand.reeks, tekst = stand.tekst;
             setItems((xs) => xs.map((x) => (x.id === antId ? { id: antId, type: "reeks", reeks: r, tekst } : x)));
           },
-          onHergebruik: (h) => (hergebruik = h),
-          onRun: (r) => (meting = r.instellingen?.meting),
+          onHergebruik: (h) => pas({ type: "hergebruik", hergebruik: h }),
+          onRun: (r) => pas({ type: "meting", meting: r.instellingen?.meting }),
           // De eventlog van de run is gecapt: er is narratie weggevallen. Benoem dat, in plaats van
-          // een tekst te tonen die compleet lijkt maar het niet is.
-          // Er viel narratie weg doordat de eventlog gecapt is. Zet de markering in het spoor waar
-          // hij hoort: stond er al antwoordtekst, dan is die mogelijk onvolledig; anders raakte het
-          // alleen het denkproces en zou een "…" in het antwoord een gat suggereren dat er niet is.
+          // een tekst te tonen die compleet lijkt maar het niet is (`GAT_IN_TEKST`/`GAT_IN_DENK`).
           onGat: () => {
-            schrijfStroom();
-            if (tekst) {
-              tekst += "\n\n…\n\n";
-              updateItem(antId, { tekst });
-            } else {
-              denk += (denk ? "\n" : "") + "· (een deel van het spoor is niet bewaard)";
-              updateItem(antId, { denk });
-            }
+            stroom.nu();
+            pas({ type: "gat" });
+            updateItem(antId, stand.tekst ? { tekst: stand.tekst } : { denk: stand.denk });
           },
-          onOpgeslagen: (uitkomst) => (opgeslagen = uitkomst),
+          onOpgeslagen: (uitkomst) => pas({ type: "opgeslagen", uitkomst }),
           onWaarschuwing: (bericht) => setMelding(bericht),
           onDone: (uitkomst) => setBeurtEinde(aankondiging(uitkomst)),
         },
         vanaf,
         beheerser.signal,
       );
-      schrijfStroom();
+      stroom.nu();
       stroomKlaar = true;
       // De stroom liep tot het einde: deze beurt is afgerond en het spoor mag weg. Bij loskoppelen
       // komen we hier niet (dat gooit een AbortError), en dan blijft het spoor terecht staan.
       vergeetLopendeRun(gid);
 
-      // Een reeks legt zichzelf per onderdeel vast (graph-qa); het blok staat al in beeld.
-      if (reeks) {
-        onGewijzigd();
-        return;
-      }
-      // Kandidaten eerst: dit is een keuzelijst in de thread, geen uitkomst die is vastgelegd.
-      if (kandidaten.length) {
-        setItems((xs) =>
-          xs.map((x) => (x.id === antId ? { id: antId, type: "kandidaten", tekst, kandidaten, ...(keuze ? { keuze } : {}) } : x)),
-        );
-        onGewijzigd();
-        return;
-      }
-
-      // De agent heeft het vastgelegd. Nu alleen nog tonen wat er staat – de api is de bron.
-      if (opgeslagen) {
-        await toonVastgelegdeBeurt(opgeslagen, {
-          antId, tekst, denk, hergebruik, doel: doelInvoerVan(doelRef.d), tool_executions: toolExecutions, meting,
-        });
-        // Lex gaat zelf verder (na *Werkgebied aanmaken*: de bronselectie). Alleen live, nooit na herladen: dan
-        // start er niets vanzelf.
-        const verder = (opgeslagen as { vervolg?: Vervolg } | null)?.vervolg;
-        if (verder) setVervolg({ ...verder, id: uid() });
-      } else if (!tekst.trim()) {
-        // Geen `opgeslagen` en geen fout: het gesprek werd verwijderd terwijl de beurt liep.
-        updateItem(antId, { tekst: "(geen antwoord)" });
+      const { tekst, denk, kandidaten, keuze, opgeslagen } = stand;
+      switch (afronding(stand)) {
+        case "reeks": break;
+        case "kandidaten":
+          setItems((xs) =>
+            xs.map((x) => (x.id === antId ? { id: antId, type: "kandidaten", tekst, kandidaten, ...(keuze ? { keuze } : {}) } : x)),
+          );
+          break;
+        case "opgeslagen":
+          await toonVastgelegdeBeurt(opgeslagen!, {
+            antId, tekst, denk, hergebruik: stand.hergebruik, doel: doelInvoerVan(stand.doel),
+            tool_executions: stand.toolExecutions, meting: stand.meting,
+          });
+          // Lex gaat zelf verder (na *Werkgebied aanmaken*: de bronselectie). Alleen live, nooit na herladen: dan
+          // start er niets vanzelf.
+          if (opgeslagen!.vervolg) setVervolg({ ...opgeslagen!.vervolg, id: uid() });
+          break;
+        case "leeg":
+          updateItem(antId, { tekst: "(geen antwoord)" });
+          break;
+        case "tekst": break;
       }
       onGewijzigd();
     } catch (e) {
       // Een half frame met oudere tekst mag de foutmelding of het herstel niet overschrijven.
-      cancelAnimationFrame(frame);
-      frame = 0;
+      stroom.annuleer();
       if (stroomKlaar) {
         // De beurt zelf is rond; alleen de naverwerking faalde. Niet opnieuw aanhaken – dat speelt
         // dezelfde afloop nog eens af – maar zeggen wat er mis is, bij het antwoord.
@@ -792,7 +739,7 @@ export function WerkplekClient({
       setVerbindingWeg(verbroken);
       // Dezelfde melding als op het bericht dat graph-qa bewaarde: live en na herladen staat er hetzelfde.
       if (!verbroken) {
-        updateItem(antId, { tekst, denk, uitkomst: { status: "mislukt", melding: foutTekst(e) } });
+        updateItem(antId, { tekst: stand.tekst, denk: stand.denk, uitkomst: { status: "mislukt", melding: foutTekst(e) } });
         setBeurtEinde(aankondiging("mislukt"));
       }
     } finally {
@@ -816,7 +763,7 @@ export function WerkplekClient({
         herstelWachttijd(herstel), () => levendRef.current,
       );
       if (!doorgaan) return;
-      await volgBeurt({ runId: id, gid, antId, vanaf: 0, herstel: ontving ? 0 : herstel + 1 });
+      await volgBeurt({ runId: id, gid, antId, vanaf: 0, herstel: stand.ontving ? 0 : herstel + 1 });
     }
   }
 
