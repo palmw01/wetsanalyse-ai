@@ -367,7 +367,7 @@ function Voorstel({ o, d, k, beslis, inGesprek = false, alleenLezen = false }: {
               <Button type="submit" size="xs" variant="secondary" disabled={!reden.trim() || bezig}>Uitsluiten</Button>
               <Button type="button" size="xs" variant="ghost" onClick={() => setUitsluiten(false)}>Annuleren</Button>
             </form>
-          ) : k.stand !== "uitgesloten" ? (
+          ) : k.stand === "onbekend" ? null : k.stand !== "uitgesloten" ? (
             <>
               <Button size="xs" variant="secondary" disabled={bezig} aria-label={`Opnemen: ${k.label}`}
                 onClick={() => doe({ besluit: "opnemen", verwachte_revisie: o.revisie, rol: k.rol === "kern" ? "analyseren" : "context" })}>
