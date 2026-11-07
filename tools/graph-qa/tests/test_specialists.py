@@ -34,7 +34,7 @@ def test_duiding_beperkt_toolset():
     names = _agent_tools(llm)
     assert "get_context" in names and "referenced_by" in names
     assert "resolve_begrip" not in names  # definitie-only tool
-    assert any(e["type"] == "status" and "duiding" in e["message"] for e in events)
+    assert any(e["type"] == "status" and e.get("route") == "duiding" for e in events)
 
 
 def test_definitie_beperkt_toolset():

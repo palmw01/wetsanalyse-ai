@@ -62,7 +62,7 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     # zou dit bij elke tool-lus opnieuw voorbijkomen.
     if not state.get("turns"):
         spec_naam = state.get("specialist") or DEFAULT_SPECIALIST
-        _stap(writer, f"Specialist {spec_naam}", "raadpleegt de kennisgraaf")
+        _stap(writer, "Lex", "zoekt in de kennisgraaf", route=spec_naam)
     # De annotatie-route draait de agent⇄tools-lus als OPHAAL-agent (retrieval-specialist): hij
     # vindt de exacte bepaling. De JAS-annotatie gebeurt daarna in annoteer_node (pure LLM-call).
     spec_naam = "retrieval" if state.get("specialist") == "annotatie" else state.get("specialist")

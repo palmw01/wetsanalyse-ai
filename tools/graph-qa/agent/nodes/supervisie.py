@@ -38,10 +38,16 @@ from .context import Bouw
 
 logger = logging.getLogger("graph_qa.orchestrator")
 
+# Wat de jurist in het denkproces ziet: wat Lex gaat doen, niet welke worker of agent het doet (G2b). Het plan van de
+# supervisor gaat naar de specialist, niet in beeld; welke worker of agent het werd, staat in het log.
+_WORKER_STAP = {"duiding": "legt de bepaling uit", "definitie": "zoekt de definitie op", "annotatie": "zoekt de bepaling op om te annoteren"}
+_AGENT_STAP = {"deelvragen": "kijkt naar de deelvragen van het werkgebied", "begrippen": "werkt aan de begrippen van het werkgebied",
+               "annotatie": "annoteert de bronnen van het werkgebied"}
+
 
 def _bepaling(writer, bepaling) -> dict[str, Any]:
     """De bepalingsroute (ADR-010, laag 2): de workflow haalt op en vult het sjabloon."""
-    _stap(writer, "Lex", "haalt de tekst van de bepaling op")
+    _stap(writer, "Lex", "haalt de tekst van de bepaling op", route="bepaling")
     return {"specialist": "algemeen", "worker_plan": ["algemeen"], "worker_idx": 0, "plan": "de tekst van een bepaling",
             "afwijzen": False, "annotaties_lezen": False, "bepalingsvraag": asdict(bepaling)}
 
@@ -64,14 +70,14 @@ def _vervolgcontext(b: Bouw, state: State) -> str:
 
 
 def _lees(writer, vraag: str) -> dict[str, Any]:
-    _stap(writer, "Lex", "raadpleegt bestaande annotaties")
+    _stap(writer, "Lex", "raadpleegt bestaande annotaties", route="annotaties_lezen")
     return {"specialist": "annotaties_lezen", "worker_plan": ["annotaties_lezen"],
             "worker_idx": 0, "plan": "bestaande annotaties raadplegen" + _herschreven(vraag),
             "afwijzen": False, "annotaties_lezen": True}
 
 
 def _begrippen_lees(writer, vraag: str) -> dict[str, Any]:
-    _stap(writer, "Lex", "raadpleegt vastgelegde begrippen")
+    _stap(writer, "Lex", "raadpleegt vastgelegde begrippen", route="begrippen_lezen")
     return {"specialist": "begrippen_lezen", "worker_plan": ["begrippen_lezen"],
             "worker_idx": 0, "plan": "vastgelegde begrippen raadplegen" + _herschreven(vraag),
             "afwijzen": False, "annotaties_lezen": False, "begrippen_lezen": True}
@@ -80,7 +86,7 @@ def _begrippen_lees(writer, vraag: str) -> dict[str, Any]:
 def _overzicht(writer, vraag: str) -> dict[str, Any]:
     """Een overzichtsvraag: hard naar de overzichtsroute, zoals een leesvraag naar de leesroute. Het
     overzicht bouwt `overzicht_bouwen` uit de graaf; de algemene specialist duidt het daarna."""
-    _stap(writer, "Lex", "overzicht van een onderwerp")
+    _stap(writer, "Lex", "maakt een overzicht van het onderwerp", route="overzicht")
     return {
         "specialist": "algemeen", "worker_plan": ["algemeen"], "worker_idx": 0,
         "plan": "overzicht van een onderwerp" + _herschreven(vraag), "afwijzen": False,
@@ -91,7 +97,7 @@ def _overzicht(writer, vraag: str) -> dict[str, Any]:
 def _werkgebied(writer, waarom: str, *, aanvullen: bool = False) -> dict[str, Any]:
     """Samenstellen van een werkgebied (activiteit 1), of het dossier van het werkgebied van het gesprek
     aanvullen: de werkgebied-worker, geen specialist."""
-    _stap(writer, "Lex", waarom)
+    _stap(writer, "Lex", waarom, route="werkgebied")
     return {"specialist": "werkgebied", "worker_plan": ["werkgebied"], "worker_idx": 0,
             "plan": "het dossier aanvullen" if aanvullen else "een werkgebied samenstellen", "afwijzen": False,
             "annotaties_lezen": False, "intake_modus": "aanvullen" if aanvullen else ""}
@@ -99,7 +105,7 @@ def _werkgebied(writer, waarom: str, *, aanvullen: bool = False) -> dict[str, An
 
 def _bronselectie(writer, waarom: str) -> dict[str, Any]:
     """De bronselectie per deelvraag (spoor J): de bronselectie-worker, op de stand die de api bewaart."""
-    _stap(writer, "Lex", waarom)
+    _stap(writer, "Lex", waarom, route="bronselectie")
     return {"specialist": "bronselectie", "worker_plan": ["bronselectie"], "worker_idx": 0,
             "plan": "de bronnen per deelvraag bepalen", "afwijzen": False, "annotaties_lezen": False,
             "intake_modus": ""}
@@ -114,8 +120,8 @@ def _agent(writer, state: State, agent: str, taak: str, vraag: str, *, actie: st
                                      werkgebied_id=state.get("werkgebied_id", ""), actie=actie,
                                      bevestigd=state.get("bevestigd"),
                                      werkvoorraad_id=state.get("werkvoorraad_id", ""))
-    _stap(writer, "Supervisor", f"kiest de {register.NAAM.get(agent, agent)} · taak {taak or '?'}"
-          + (" (suggestie)" if actie else ""))
+    _stap(writer, "Lex", _AGENT_STAP.get(agent, "werkt aan het werkgebied"), route=agent)
+    logger.info("agent gekozen", extra={"categorie": "functioneel", "agent": agent, "taak": taak, "suggestie": bool(actie)})
     return {"specialist": "agent_taak", "worker_plan": ["agent_taak"], "worker_idx": 0,
             "plan": f"{agent}: {taak}", "afwijzen": False, "annotaties_lezen": False,
             "agent_taak": {"agent": agent, "taak": taak, "parameters": parameters}}
@@ -127,7 +133,7 @@ def _begrip_keuze(writer, state: State) -> dict[str, Any]:
     keuze = uit_keuze((actie.get("keuzes") or [""])[0] if actie.get("actie") == "antwoord" else "")
     parameters = {"werkgebied_id": str(actie.get("intake_id", "")).removeprefix(KAARTPREFIX),
                   "begrip_id": keuze["begrip_id"], "ander_id": keuze["ander_id"]}
-    _stap(writer, "Supervisor", f"verwerkt je keuze · taak {keuze['taak'] or '?'}")
+    _stap(writer, "Lex", "verwerkt je keuze", route="begrippen")
     return {"specialist": "agent_taak", "worker_plan": ["agent_taak"], "worker_idx": 0, "plan": f"begrippen: {keuze['taak']}",
             "afwijzen": False, "annotaties_lezen": False,
             "agent_taak": {"agent": "begrippen", "taak": keuze["taak"], "parameters": parameters}}
@@ -198,7 +204,7 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
     gesprek = _vervolgcontext(b, state)
     if gesprek and modus == "auto" and (melding := _doorvraag(state)):
         # Een open keuzevraag van Lex, en een vervolgvraag die hem niet beantwoordt: opnieuw vragen, niet gokken (R3).
-        _stap(writer, "Lex", "vraagt eerst welk artikel je bedoelt")
+        _stap(writer, "Lex", "vraagt eerst welk artikel je bedoelt", route="verduidelijken")
         return {"specialist": "", "plan": "", "worker_plan": [], "worker_idx": 0, "afwijzen": True,
                 "afwijs_melding": melding, "afwijs_stap": "vraagt eerst welk artikel je bedoelt", "annotaties_lezen": False}
     # Vóór de annotatie-leesvraag: "welke begrippen hebben we" noemt geen annotatie, maar "welke
@@ -219,7 +225,7 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # er al – inclusief de zekerheid dat het de bepaling is die de jurist aanwees.
         doel = state.get("opgegeven_doel") or {}
         aanduiding = doel.get("artikel") or doel.get("nummer") or ""
-        _stap(writer, "Lex", f"annoteert de aangewezen bepaling (art. {aanduiding})")
+        _stap(writer, "Lex", f"annoteert de aangewezen bepaling (art. {aanduiding})", route="annotatie")
         return {
             "specialist": "annotatie", "worker_plan": ["annotatie"], "worker_idx": 0,
             "plan": "annotatie van een aangewezen bepaling", "afwijzen": False, "annotaties_lezen": False,
@@ -239,7 +245,7 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # duiding-specialist. Dat is een topologische garantie in plaats van een belofte in een
         # prompt – de antwoord-route emit geen `doel`/`element`-events, dus advies vragen kán de
         # annotatie niet wijzigen. Scheelt bovendien een LLM-call.
-        _stap(writer, "Lex", "advies bij een bestaande markering")
+        _stap(writer, "Lex", "geeft advies bij een bestaande markering", route="advies")
         return {
             "specialist": "duiding", "worker_plan": ["duiding"], "worker_idx": 0,
             "plan": "adviesvraag bij een bestaande annotatie", "annotaties_lezen": False,
@@ -262,7 +268,7 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
     zelfstandig = vraag or state.get("question", "")
     upd: dict[str, Any] = {"zelfstandige_vraag": vraag}
     if vraag and vraag != state.get("question"):
-        _stap(writer, "Supervisor", f"leest de vraag als: {vraag[:120]}")
+        _stap(writer, "Lex", f"leest je vraag als: {vraag[:120]}")
 
     # Een leesvraag in de vraag zoals de analist haar stelde, gaat altijd voor.
     if begripvraag:
@@ -303,7 +309,7 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # Buiten de scope. Dit hoort hier te eindigen en niet als "AANPAK: AFWIJZEN" de
         # systeemprompt van een specialist in te gaan, waar een tweede modelbeslissing bepaalt
         # wat er gebeurt – dat kost minstens één extra call en is bovendien geen garantie.
-        _stap(writer, "Supervisor", "buiten de wet- en regelgeving in de graaf")
+        _stap(writer, "Lex", "deze vraag valt buiten de wet- en regelgeving in de graaf", route="afgewezen")
         return {**upd, "specialist": "", "plan": plan, "worker_plan": [], "worker_idx": 0,
                 "afwijzen": True, "annotaties_lezen": False}
     eerste = worker_plan[0]
@@ -323,11 +329,12 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # functie. Deterministisch en vóór de ophaal-agent: die zou er anders stil één uitkiezen.
         aanwijzing = lees_aanwijzing(zelfstandig)
         if aanwijzing.meerdere_artikelen:
-            _stap(writer, "Lex", f"meer dan één artikel genoemd ({', '.join(aanwijzing.artikelen)})")
+            _stap(writer, "Lex", f"meer dan één artikel genoemd ({', '.join(aanwijzing.artikelen)})", route="afgewezen")
             return {**upd, "specialist": "", "plan": plan, "worker_plan": [], "worker_idx": 0,
                     "afwijzen": True, "afwijs_melding": melding_meerdere(aanwijzing.artikelen),
                     "annotaties_lezen": False}
-    _stap(writer, "Supervisor", f"kiest de {eerste}-worker · {plan.splitlines()[0][:80]}")
+    _stap(writer, "Lex", _WORKER_STAP.get(eerste, "zoekt het antwoord in de kennisgraaf"), route=eerste)
+    logger.info("worker gekozen", extra={"categorie": "functioneel", "worker": eerste})
     return {**upd, "specialist": eerste, "plan": plan, "worker_plan": worker_plan, "worker_idx": 0,
             "afwijzen": False, "annotaties_lezen": False}
 

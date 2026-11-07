@@ -64,7 +64,7 @@ def test_vervolgvraag_wordt_met_het_gesprek_gelezen_en_herschreven(tmp_path):
     specialist = str(llm.calls[1]["system"])
     assert "zelfstandig geformuleerd: Wat regelt artikel 9 lid 2" in specialist
     assert llm.calls[1]["messages"][-1]["content"] == "En lid 2?"
-    assert any("leest de vraag als" in e.get("message", "") for e in events if e["type"] == "status")
+    assert any("leest je vraag als" in e.get("message", "") for e in events if e["type"] == "status")
 
 
 def test_een_herschreven_leesvraag_gaat_de_leesroute_in_met_het_klassefilter(tmp_path):
