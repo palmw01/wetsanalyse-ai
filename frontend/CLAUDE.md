@@ -398,6 +398,13 @@ herladen breekt hem niet af. Regels:
   Een eigen markering van de jurist is een andere handeling (`POST elementen` in `NodeAnnotatiePaneel`). Een
   graph-qa zonder API-koppeling meldt zelf met een `error`-event dat niets is vastgelegd (`agent/beurt.py`).
 - **Tokens komen hooguit één keer per frame binnen** (`planStroom` in `volgBeurt`).
+- **Runs buiten het open gesprek zijn zichtbaar** (E6, `lib/runStanden.ts`, `useRunStanden` in `WorkbenchShell`): de
+  sidebar toont per gesprek de stip `components/ui/GesprekStatus` (*Lex is bezig* / *Nieuw antwoord*) en de tab heet
+  `Bezig · …` of, bij een antwoord in een verborgen tab, `Klaar · …` (`lib/tabTitel.ts`). Bron: `GET
+  /api/annotatie/run?actief=1` (graph-qa `/v1/runs?actief=true`). Peilen bij laden, focus, zichtbaar worden en
+  `verversSignaal`; elke 5 s alleen zolang er een spoor is (`wa_lopende_run`, of een run die nog liep). Het register
+  `wa_runs_gezien` staat in `localStorage` (try/catch); een run in het open gesprek telt als gezien. Geen
+  browsermeldingen. Browserregressie: `scripts/test-runstanden.mjs`.
 
 **Identiteit is een vertrouwensgrens.** De BFF zet `X-User-Id` uit de sessie op alle run-routes en
 verifieert bij het starten eerst bij de API of het gesprek van deze gebruiker is. `conversation_id` is

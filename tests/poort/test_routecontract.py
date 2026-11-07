@@ -17,7 +17,11 @@ from routeboek import (
 )
 
 # Bekende breuken, elk met de stap die ze oplost. Een vermelding die niet meer nodig is, laat de test falen.
-BEKEND: dict[tuple[str, str, str], str] = {}
+BEKEND: dict[tuple[str, str, str], str] = {
+    # E6-S2 vraagt de actieve runs al op; graph-qa levert `GET /v1/runs?actief=true` in E6-S1. Haal dit weg
+    # zodra die route op master staat.
+    ("GEEN_API", "GET", "/v1/runs"): "E6-S1",
+}
 
 
 def _zoek(routes: list[Route], aanroep: Aanroep) -> tuple[list[Route], bool]:

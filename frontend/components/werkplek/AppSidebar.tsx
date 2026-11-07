@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Dialog } from "@/components/ui/Dialog";
 import { GesprekSidebar } from "@/components/werkplek/GesprekSidebar";
 import type { GesprekLijstStand } from "@/components/werkplek/GesprekLijst";
+import type { GesprekRunStand } from "@/lib/runStanden";
 import { foutTekst, hernoemGesprek, laadGesprekken, verwijderGesprek, wijzigGesprek } from "@/lib/api";
 import { metSpoor } from "@/lib/uiSpoor";
 import type { GesprekSamenvatting, Verbruiksstand } from "@/lib/types";
@@ -38,6 +39,8 @@ interface Props {
   demoGesprekken?: GesprekSamenvatting[];
   /** Eigen verbruiksstand, doorgegeven aan het gebruikersblok onderin. */
   verbruik?: Verbruiksstand | null;
+  /** Per gesprek de stip *Lex is bezig* of *Nieuw antwoord* (E6); alleen de werkplek geeft dit mee. */
+  runStanden?: Record<string, GesprekRunStand>;
 }
 
 /** Zoveel gesprekken per keer; *Meer laden* vraagt de volgende pagina erbij. */
@@ -64,7 +67,7 @@ const LEGE_PAGINA: Pagina = { lijst: null, meer: false, aantal: GESPREK_PAGINA, 
  *  lokale state, op het overzicht navigeert hij terug naar de werkplek. */
 export function AppSidebar({
   activeId, onNieuw, onNieuwInWerkgebied, onOpen, onVerplaatst, onVerwijderd, onFout, onLijst, verversSignaal = 0,
-  drawerOpen = false, onDrawerSluit, onRondleiding, demoGesprekken, verbruik = null,
+  drawerOpen = false, onDrawerSluit, onRondleiding, demoGesprekken, verbruik = null, runStanden,
 }: Props) {
   const [gesprekken, setGesprekken] = useState<GesprekSamenvatting[]>(demoGesprekken ?? []);
   const [laden, setLaden] = useState(!demoGesprekken);
@@ -306,6 +309,7 @@ export function AppSidebar({
     onMeer: meerActief,
     archief: { open: archiefOpen, onWissel: wisselArchief, ...archief, onMeer: meerArchief },
     zoek: { term: zoekterm, onTerm: zetZoekterm, ...zoek, onMeer: meerZoek },
+    runStanden,
   };
 
   const inhoud = (extra?: { onSluit: () => void }) => (
