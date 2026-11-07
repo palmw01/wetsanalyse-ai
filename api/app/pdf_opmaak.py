@@ -39,6 +39,8 @@ INHOUD = "Inhoud"
 """Een regel met deze stijl is de plek van de inhoudsopgave."""
 BLOK_BEGIN, BLOK_EIND = "BlokBegin", "BlokEind"
 """De regels ertussen blijven op één pagina, als dat past. Past het niet, dan lopen ze gewoon door."""
+PLAATS = "Plaats"
+"""De plaats in de opbouw ("Hoofdstuk 2 – … › § 3 – …") boven een artikel. Ook de kopregel toont hem, tot het volgende hoofdstuk."""
 BEGRIP = "Begrip"
 """De kop van een begrip: die van `Heading3`, maar wel in de inhoudsopgave. Een begrip heeft een eigen pagina."""
 
@@ -97,6 +99,8 @@ def _stijlen() -> dict:
                                           backColor=HexColor(LET_OP_VLAK), borderColor=HexColor(ROOD), borderWidth=0.6,
                                           borderPadding=(5, 7, 5, 7), borderRadius=2, leftIndent=7, rightIndent=7,
                                           spaceBefore=9, spaceAfter=11),
+           PLAATS: ParagraphStyle(PLAATS, parent=basis, fontName="Fira-SemiBold", fontSize=8.5, leading=11.5, textColor=HexColor(GRIJS),
+                                  spaceBefore=12, spaceAfter=0, keepWithNext=1),
            "Voorstel": ParagraphStyle("Voorstel", parent=basis, fontName="Fira-Italic", textColor=HexColor(GRIJS)),
            "Code": ParagraphStyle("Code", parent=basis, fontName="DejaVu-Mono", fontSize=7.5, leading=10),
            "Markering": ParagraphStyle("Markering", parent=basis, fontName="Fira-SemiBold", fontSize=9.5, leading=13,
@@ -252,11 +256,15 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
         canvas.saveState()
         kopregel = ""
         if doc.page > 1:
-            kopregel = " · ".join(filter(None, [titel[:70], doc.hoofdstuk]))
+            kopregel = " · ".join(filter(None, [titel[:70], doc.hoofdstuk, doc.plaats]))
             canvas.setFont("Fira", 8)
             canvas.setFillColor(HexColor(GRIJS))
-            canvas.drawString(links, A4[1] - 14 * mm, opgemaakt_plat(titel[:70]))
-            canvas.drawRightString(A4[0] - rechts, A4[1] - 14 * mm, opgemaakt_plat(doc.hoofdstuk[:70]))
+            # Met een plaats in de opbouw schuiven titel en hoofdstuk een regel omhoog; de plaats staat vlak boven de lijn.
+            hoogte = A4[1] - (10.5 if doc.plaats else 14) * mm
+            canvas.drawString(links, hoogte, opgemaakt_plat(titel[:70]))
+            canvas.drawRightString(A4[0] - rechts, hoogte, opgemaakt_plat(doc.hoofdstuk[:70]))
+            if doc.plaats:
+                canvas.drawRightString(A4[0] - rechts, A4[1] - 14 * mm, opgemaakt_plat(doc.plaats[:110]))
             canvas.setStrokeColor(HexColor(HAARLIJN))
             canvas.setLineWidth(0.5)
             canvas.line(links, A4[1] - 16 * mm, A4[0] - rechts, A4[1] - 16 * mm)
@@ -300,7 +308,7 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
 
     class Document(BaseDocTemplate):
         def beforeDocument(self):                  # `multiBuild` zet meer dan eens: het spoor is van de laatste ronde
-            self.hoofdstuk = ""
+            self.hoofdstuk, self.plaats = "", ""
             if spoor is not None:
                 spoor.clear()
             if paginas is not None:
@@ -310,6 +318,8 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
             self.leeg = True
 
         def afterFlowable(self, flowable):
+            if isinstance(flowable, Paragraph) and flowable.style.name == PLAATS:
+                self.plaats = flowable.platte_plaats
             if spoor is not None and isinstance(flowable, (Paragraph, Lijn)):
                 kop = isinstance(flowable, Kop)
                 spoor.append({"pagina": self.page, "stijl": flowable.style.name, "bovenaan": self.leeg,
@@ -318,7 +328,9 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
             if not isinstance(flowable, Kop):
                 return
             if flowable.niveau == 0:
-                self.hoofdstuk = flowable.platte_tekst
+                self.hoofdstuk, self.plaats = flowable.platte_tekst, ""
+            elif flowable.niveau == 1:
+                self.plaats = ""
             self.canv.bookmarkPage(flowable.sleutel)
             self.canv.addOutlineEntry(flowable.platte_tekst, flowable.sleutel, flowable.niveau, closed=flowable.niveau > 0)
             if flowable.in_inhoud:
@@ -364,6 +376,10 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
             # Een bladwijzer mag maar één niveau dieper dan de vorige: een kop zonder bovenliggende kop schuift op.
             laatste = min(_NIVEAU[stijl], laatste + 1)
             doel.append(Kop(opgemaakt(tekst), stijlen[stijl], tekst, laatste, laatste < _IN_INHOUD or stijl == BEGRIP))
+        elif stijl == PLAATS:
+            alinea = Paragraph(opgemaakt(tekst), stijlen[PLAATS])
+            alinea.platte_plaats = tekst
+            doel.append(alinea)
         elif stijl == "Citaat":
             doel.append(Lijn(Paragraph(opgemaakt(tekst), stijlen["Citaat"])))
         elif stijl == "Waarschuwing":

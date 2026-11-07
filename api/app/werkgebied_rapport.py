@@ -19,7 +19,7 @@ from bronmodel.antwoord import Vindplaats
 from pydantic import BaseModel, ConfigDict
 
 from .jas_klassen import JAS_KLASSEN_VOLGORDE
-from .pdf_opmaak import BEGRIP, BLOK_BEGIN, BLOK_EIND, INHOUD, MARKERING, PAGINA, TITELBLAD
+from .pdf_opmaak import BEGRIP, BLOK_BEGIN, BLOK_EIND, INHOUD, MARKERING, PAGINA, PLAATS, TITELBLAD
 
 VERSIE = 2
 SCHEMA = "werkgebied-rapport-v2"
@@ -69,11 +69,31 @@ class Bronstand(_Deel):
     geldig_tot: str | None = None
 
 
+class RegelingInfo(Bronstand):
+    """De regeling zoals de graaf haar kent (WTI en toestand)."""
+
+    soort: str = ""
+    afkorting: str = ""
+    verantwoordelijke: str = ""                      # bwb:eerstverantwoordelijke
+    organisatie: str = ""                            # TOOI-IRI van de verantwoordelijke organisatie
+    toestand_url: str = ""
+    url: str = ""                                    # de regeling op wetten.overheid.nl
+
+
+class Structuurdeel(_Deel):
+    """Een deel van de opbouw boven een artikel: hoofdstuk, afdeling, paragraaf."""
+
+    soort: str
+    nummer: str = ""
+    titel: str = ""
+    iri: str
+
+
 class Signaal(_Deel):
     """Wat een lezer moet weten voor hij het rapport gebruikt. Dezelfde punten staan ook op hun plek."""
 
     soort: Literal["niet_in_dossier", "bron_veranderd", "toestand_onvolledig", "na_peildatum", "markeringen_veranderd",
-                   "passages_veranderd", "opnieuw_bekijken", "zoeken_onvolledig"]
+                   "passages_veranderd", "opnieuw_bekijken", "zoeken_onvolledig", "graaf_onvolledig"]
     label: str = ""
     reden: str = ""
     datum: str | None = None
@@ -89,7 +109,7 @@ class Voorblad(_Deel):
     thema: str = ""
     peildatum: str | None = None
     peildatum_standaard: bool = False
-    regelingen: list[Bronstand] = []
+    regelingen: list[RegelingInfo] = []
     signalen: list[Signaal] = []
 
 
@@ -210,6 +230,9 @@ class Bepaling(_Deel):
 class Artikel(_Deel):
     kop: str
     bepalingen: list[Bepaling]
+    plaats: list[Structuurdeel] = []                 # van buiten naar binnen, zonder de regeling
+    inwerking: str | None = None
+    gewijzigd_bij: str = ""                          # bwb:bron: de publicatie van de laatste wijziging, zoals "Stb.2023-499"
 
 
 class Regeling(_Deel):
@@ -467,6 +490,8 @@ def _signaal(s: Signaal) -> str:
                         "passages bij begrippen veranderden; toen en nu staan bij het begrip.")
     if s.soort == "opnieuw_bekijken":
         return "Opnieuw te bekijken na een wijziging van de scope: deelvraag " + ", ".join(map(str, s.nrs)) + "."
+    if s.soort == "graaf_onvolledig":
+        return "De kennisgraaf gaf niet alle gegevens over de regelingen en hun opbouw; wat ontbreekt, staat niet in dit rapport."
     return "Het zoeken naar bronnen is onvolledig of verouderd; zie de bijlage Niet meegenomen."
 
 
@@ -496,7 +521,8 @@ def bronstand_regels(v: Voorblad) -> list[Regel]:
             # De graaf zet een regeling zonder einde op 9999-12-31.
             tot = f" tot {datum(r.geldig_tot)}" if r.geldig_tot and r.geldig_tot < "9999" else ""
             vanaf = f"geldt vanaf {datum(r.geldig_vanaf)}{tot}" if r.geldig_vanaf else "geldigheid onbekend"
-            uit.append(("Meta", f"{r.citeertitel} ({r.bwb_id}): {vanaf}"))
+            wie = " · ".join(filter(None, [r.soort, r.verantwoordelijke and "verantwoordelijk: " + r.verantwoordelijke]))
+            uit.append(("Meta", f"{r.citeertitel} ({r.bwb_id}{', ' + r.afkorting if r.afkorting else ''}): {vanaf}" + (f" · {wie}" if wie else "")))
     return uit
 
 
@@ -691,8 +717,13 @@ def wettekst_regels(w: Wettekst) -> list[Regel]:
     uit += [("Meta", f"{k.klasse or 'Nog geen klasse'}: {k.aantal}") for k in w.per_klasse]
     for r in w.regelingen:
         uit += [(PAGINA, ""), ("Heading2", r.titel)]
+        plaats = None
         for a in r.artikelen:
+            if a.plaats and a.plaats != plaats:
+                uit.append((PLAATS, _plaats(a.plaats)))
+            plaats = a.plaats
             uit.append(("Heading3", a.kop))
+            uit += _artikelmeta(a)
             for b in a.bepalingen:
                 uit += _bepaling(b)
     for o in w.onbereikbaar:
@@ -704,6 +735,34 @@ def wettekst_regels(w: Wettekst) -> list[Regel]:
     if any(r.context for r in w.regelingen):
         uit.append(("Meta", "De contextbepalingen zonder markering staan in de bijlage Contextbepalingen."))
     return uit
+
+
+_SOORT = {"Hoofdstuk": "Hoofdstuk", "Titeldeel": "Titel", "Afdeling": "Afdeling", "Paragraaf": "§", "Divisie": "", "Bijlage": "Bijlage",
+          "Artikel": "Artikel"}
+
+
+def _plaats(plaats: list[Structuurdeel]) -> str:
+    """"Hoofdstuk 2 – Uitbetaling › § 3 – Rekening": de opbouw boven een artikel, uit de bronboom met de titels uit de graaf."""
+    delen = []
+    for d in plaats:
+        naam = " ".join(filter(None, [_SOORT.get(d.soort, d.soort), d.nummer])) or d.soort
+        delen.append(f"{naam} – {d.titel}" if d.titel else naam)
+    return " › ".join(delen)
+
+
+def _publicatie(bron: str) -> str:
+    m = re.fullmatch(r"(Stb|Stcrt|Trb)\.\s*(\d{4})-(\d+)", bron)
+    return f"{m[1]}. {m[2]}, {m[3]}" if m else bron
+
+
+def _artikelmeta(a: Artikel) -> list[Regel]:
+    delen = []
+    if a.inwerking:
+        delen.append(f"in werking sinds {datum(a.inwerking)}")
+    if a.gewijzigd_bij:
+        delen.append(f"laatst gewijzigd bij {_publicatie(a.gewijzigd_bij)}")
+    tekst = " · ".join(delen)
+    return [("Meta", tekst[:1].upper() + tekst[1:] + ".")] if delen else []
 
 
 def _bepaling(b: Bepaling) -> list[Regel]:
@@ -726,7 +785,10 @@ def context_regels(w: Wettekst) -> list[Regel]:
     for r in regelingen:
         uit.append(("Heading2", r.titel))
         for a in r.context:
+            if a.plaats:
+                uit.append((PLAATS, _plaats(a.plaats)))
             uit.append(("Heading3", a.kop))
+            uit += _artikelmeta(a)
             for b in a.bepalingen:
                 uit += _bepaling(b)
     return uit
@@ -868,7 +930,17 @@ def open_begrippen_regels(d: Begrippen) -> list[Regel]:
 def register_regels(v: Voorblad, ver: Verantwoording) -> list[Regel]:
     """Bijlage: elke regeling met haar toestand, en elke bronselectie met haar volledige bronreferentie."""
     uit: list[Regel] = [("Heading2", "Regelingen")]
-    uit += bronstand_regels(v)[1:] or [("Meta", "Er zijn geen regelingen in dit werkgebied.")]
+    if not v.regelingen:
+        uit.append(("Meta", "Er zijn geen regelingen in dit werkgebied."))
+    for r, regel in zip(v.regelingen, bronstand_regels(v)[1:]):
+        uit += [*BLOK, ("BodyText", regel[1])]
+        if r.url:
+            uit.append(("Meta", "Op wetten.overheid.nl: " + r.url))
+        if r.toestand_url:
+            uit.append(("Meta", "Toestand in de graaf: " + r.toestand_url))
+        if r.organisatie:
+            uit.append(("Meta", "Organisatie (TOOI): " + r.organisatie))
+        uit += BLOK_UIT
     uit.append(("Heading2", "Bronselecties"))
     if not ver.bronnen:
         uit.append(("Meta", "Er zijn geen bronnen geselecteerd."))
