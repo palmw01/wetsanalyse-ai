@@ -1005,6 +1005,12 @@ bestaat los van de gesprekken.
     tab vraagt dan eerst bevestiging (`OnbewaardMelding`), en herladen of sluiten vangt `beforeunload`. Een link elders
     (sidebar) en een knop die zelf navigeert vangt `useOnbewaardBewaker` (`lib/useOnbewaardBewaker.ts`: links in de
     capture-fase op `document`, knoppen via `bewaak`; `?instellingen=` opent over de pagina en telt niet).
+    In de werkplek hoort de bewaker van het paneel naast het gesprek bij `WerkplekClient` (FB-05): elke wissel van dat
+    paneel (een ander artefact, een annotatie of context ervoor in de plaats, opnieuw laden na een beurt) loopt door
+    `wisselPaneel`; `bewaak` leest de stand van nu, dus ook een beurt die later klaar is vraagt eerst.
+    `app/paneelWissel.test.ts` bewaakt dat de kale setter nergens anders staat.
+  - **Het concept van de vraag** staat per gesprek in `sessionStorage` (UI-08, `lib/conceptVraag.ts`, in try/catch):
+    een ander gesprek of herladen gooit een half getypte vraag niet weg; versturen wist hem.
   - **De poort rekent de server.** *Accorderen* staat uit zolang `accorderen.mag` onwaar is, met de
     redenen letterlijk eronder; met onbewaarde wijzigingen ook (de poort kijkt naar wat bewaard is).
   - **Elke knop per passage noemt zijn passage** (`aria-label`, "Akkoord met “…”"): dezelfde knoppen

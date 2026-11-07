@@ -56,6 +56,8 @@ import {
   schrijfLopendeRuns, standVanVorigeRun, vergeetRun, wachtMetWekker,
 } from "@/lib/lopendeRun";
 import { useBreedScherm } from "@/lib/useBreedScherm";
+import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
+import { bewaarConcept, leesConcept } from "@/lib/conceptVraag";
 import { jasStyle, klasseLabel } from "@/lib/jas";
 import type { ThreadItem } from "@/lib/threadItem";
 import { LEX_KORT, WerkplekHeader } from "./WerkplekHeader";
@@ -161,6 +163,22 @@ export function WerkplekClient({
   // een tóéstand, geen fout – opnieuw proberen kan per definitie niet lukken.
   const [verwijderd, setVerwijderd] = useState<Record<string, true>>({});
   const [invoer, setInvoer] = useState(beginInvoer ?? "");
+  // Het concept van de vraag per gesprek (UI-08, `lib/conceptVraag.ts`). Eerst lezen, pas daarna schrijven: anders wist
+  // de lege begininvoer het concept voordat het terug is. Lezen in een effect, want `sessionStorage` bestaat niet
+  // tijdens de server-render. Een klaargezette vraag (`beginInvoer`) gaat voor; na versturen is de invoer leeg en het
+  // concept dus weg.
+  const conceptGelezen = useRef(false);
+  useEffect(() => {
+    if (demo) return;
+    if (!conceptGelezen.current) {
+      conceptGelezen.current = true;
+      const concept = beginInvoer ? "" : leesConcept(gesprekId);
+      // Eenmalig herstel uit de opslag van de browser, geen afgeleide state.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (concept) { setInvoer(concept); return; }
+    }
+    bewaarConcept(gesprekId, invoer);
+  }, [demo, gesprekId, invoer, beginInvoer]);
   // Niet-blokkerende melding als het opslaan van een beurt faalt (de chat loopt door).
   const [bewaarFout, setBewaarFout] = useState<string | null>(null);
   // De vraag is geweigerd omdat het tokenbudget op is. Apart van `bewaarFout`: die zegt dat het
@@ -170,7 +188,14 @@ export function WerkplekClient({
   const [nodeDoel, setNodeDoel] = useState<NodeDoel>();
   /** Het open artefact van een werkgebied (begripsvoorstellen of gevonden bepalingen). Er staat
    *  hoogstens één artefact open: wie een annotatie opent, sluit dit, en andersom. */
-  const [wgArtefact, setWgArtefact] = useState<WerkgebiedArtefact>();
+  const [wgArtefact, zetWgArtefactOnbewaakt] = useState<WerkgebiedArtefact>();
+  // Telt elke beurt die een werkgebied opleverde of aanpaste: het paneel laadt dan opnieuw, ook als het al
+  // op dat werkgebied openstond (het dossier aanvullen geeft hetzelfde artefact terug).
+  const [wgLading, setWgLading] = useState(0);
+  // Wat er in dat paneel onbewaard openstaat (een begrip in bewerking). De bewaker hoort hier en niet in het paneel:
+  // de wissels komen van de werkplek (FB-05).
+  const [wgOnbewaard, setWgOnbewaard] = useState(false);
+  const wgBewaker = useOnbewaardBewaker(wgOnbewaard);
   // Een context naast het gesprek die geen artefact van een beurt is (spoor G4): een bepaling, een
   // element, de bronnen van het werkgebied. Ook hier hoogstens één paneel tegelijk: opent er een
   // annotatie of artefact, dan gaat de context dicht; opent de context, dan gaan die dicht.
@@ -184,14 +209,24 @@ export function WerkplekClient({
   if (vorigBronnenSignaal !== bronnenSignaal) {
     setVorigBronnenSignaal(bronnenSignaal);
     if (werkgebiedId) {
-      setNodeDoel(undefined);
-      setWgArtefact(undefined);
-      setCtx({ soort: "bibliotheek", werkgebied_id: werkgebiedId, titel: "" });
+      const bibliotheek: ContextDoel = { soort: "bibliotheek", werkgebied_id: werkgebiedId, titel: "" };
+      wisselPaneel(undefined, { ook: () => { setNodeDoel(undefined); setCtx(bibliotheek); } });
     }
   }
-  // Telt elke beurt die een werkgebied opleverde of aanpaste: het paneel laadt dan opnieuw, ook als het al
-  // op dat werkgebied openstond (het dossier aanvullen geeft hetzelfde artefact terug).
-  const [wgLading, setWgLading] = useState(0);
+
+  /** De enige weg naar het paneel van een werkgebied naast het gesprek (FB-05). Alles wat dat paneel vervangt, sluit of
+   *  opnieuw laadt – een ander artefact, een annotatie of context die ervoor in de plaats komt, een beurt die hetzelfde
+   *  artefact opnieuw oplevert (`opnieuw`, de `key` met `wgLading`) – loopt hierdoor: staat er onbewaard werk open, dan
+   *  vraagt het paneel eerst, zoals bij sluiten. `ook` draait binnen dezelfde vraag mee. De kale setter staat nergens
+   *  anders (`app/paneelWissel.test.ts`). */
+  function wisselPaneel(naar: WerkgebiedArtefact | undefined,
+    { opnieuw = false, ook, handeling = "wisselen" }: { opnieuw?: boolean; ook?: () => void; handeling?: "wisselen" | "sluiten" } = {}) {
+    wgBewaker.bewaak(() => {
+      zetWgArtefactOnbewaakt(naar);
+      if (opnieuw) setWgLading((n) => n + 1);
+      ook?.();
+    }, handeling);
+  }
   /** Het overzicht waaruit de jurist een werkgebied maakt (de dialoog staat open). */
   const [wgUitOverzicht, setWgUitOverzicht] = useState<Overzicht>();
   /** Wat er bij het maken misging (een bepaling die de api niet kon opnemen): zichtbaar, niet stil. */
@@ -432,12 +467,13 @@ export function WerkplekClient({
 
   async function openArtefact(slug: string, doel?: NodeDoel) {
     gevraagdArtefact.current = slug;
-    setWgArtefact(undefined);
-    if (doel?.bron_iri) { setNodeTab("tekst"); setNodeExtra([]); setNodeGraaf({ keten: true }); setNodeDoel(doel); return; }
-    setNodeDoel(undefined);
-    // Een bericht zonder bronnode verwijst naar een annotatie die niet meer bestaat.
-    setVerwijderd((m) => ({ ...m, [slug]: true }));
-    setArtefactWeg(slug);
+    wisselPaneel(undefined, { ook: () => {
+      if (doel?.bron_iri) { setNodeTab("tekst"); setNodeExtra([]); setNodeGraaf({ keten: true }); setNodeDoel(doel); return; }
+      setNodeDoel(undefined);
+      // Een bericht zonder bronnode verwijst naar een annotatie die niet meer bestaat.
+      setVerwijderd((m) => ({ ...m, [slug]: true }));
+      setArtefactWeg(slug);
+    } });
   }
 
   /** Persisteer één beurt. Mislukken mag de chat niet blokkeren – maar ook niet stil gebeuren:
@@ -695,7 +731,7 @@ export function WerkplekClient({
             updateItem(antId, { overzicht: o });
             // Op een breed scherm staat het meteen naast het antwoord, zoals de bronselectie. Op een smal
             // scherm niet: daar ligt het paneel over het antwoord, en het kaartje is één tik.
-            if (breed && o.regelingen.length) { setNodeDoel(undefined); setWgArtefact(undefined); setCtx(overzichtContext(o)); }
+            if (breed && o.regelingen.length) wisselPaneel(undefined, { ook: () => { setNodeDoel(undefined); setCtx(overzichtContext(o)); } });
           },
           onVraagkaart: (k) => updateItem(antId, { vraagkaart: k }),
           onToolExecution: (event) => {
@@ -860,13 +896,13 @@ export function WerkplekClient({
     if (begrippen?.soort === "bronselectie") {
       // Het antwoord en het kaartje staan al in beeld; het paneel ernaast toont de stand per deelvraag. Op een
       // smal scherm niet vanzelf: daar ligt het paneel over de vraag die je moet beantwoorden.
-      if (breed) { setNodeDoel(undefined); setWgArtefact(begrippen); setWgLading((n) => n + 1); }
+      if (breed) wisselPaneel(begrippen, { opnieuw: true, ook: () => setNodeDoel(undefined) });
       return;
     }
     if (uitkomst.artefact && begrippen) {
       const artefact = uitkomst.artefact;
       setItems((xs) => xs.map((x) => x.id === antId ? { id: antId, type: "artefact", artefact, tekst: tekst?.trim() || undefined, denk } : x));
-      setNodeDoel(undefined); setWgArtefact(begrippen); setWgLading((n) => n + 1);
+      wisselPaneel(begrippen, { opnieuw: true, ook: () => setNodeDoel(undefined) });
       // Een werkgebied dat Lex met je samenstelde: het gesprek gaat erin verder (de shell koppelt het,
       // de suggesties bieden bepalingen zoeken en begrippen voorstellen), het paneel toont wat er staat.
       if (begrippen.soort === "werkgebied") onKiesWerkgebied?.(begrippen.werkgebied_id);
@@ -882,7 +918,7 @@ export function WerkplekClient({
       annotatie_doel: node, titel: uitkomst.artefact?.titel || node.label, tekst: tekst?.trim() || undefined, denk, hergebruik, doel,
       tool_executions, meting } : x));
     // Deze beurt veranderde de annotaties: een kennisgraaf die een vorig paneel doorgaf, klopt niet meer.
-    setWgArtefact(undefined); setNodeGraaf((g) => ({ ...zonderKennisgraaf(g), keten: true })); setNodeDoel(node);
+    wisselPaneel(undefined, { ook: () => { setNodeGraaf((g) => ({ ...zonderKennisgraaf(g), keten: true })); setNodeDoel(node); } });
   }
 
   /** Loopt er nog een beurt in dit gesprek? Haak er dan weer op aan.
@@ -961,16 +997,15 @@ export function WerkplekClient({
       openArtefactVan: (artefact) => {
         const ref = werkgebiedArtefactVan(artefact);
         if (!ref) return;
-        setNodeDoel(undefined); setWgArtefact(ref);
+        wisselPaneel(ref, { ook: () => setNodeDoel(undefined) });
       },
       // Zonder eigen opties opent een antwoord op de ketting; een overzicht geeft zijn bereik zelf mee.
-      openSamenhang: (doel, extra = [], graaf = { keten: true }) => {
-        setWgArtefact(undefined);
+      openSamenhang: (doel, extra = [], graaf = { keten: true }) => wisselPaneel(undefined, { ook: () => {
         setNodeTab("graaf");
         setNodeExtra(extra);
         setNodeGraaf(graaf);
         setNodeDoel(doel);
-      },
+      } }),
       openReeksLid: (reeksRun, doel) => {
         setNodeReeks(reeksRun);
         void openArtefact(doel.bron_iri, doel);
@@ -1115,8 +1150,10 @@ export function WerkplekClient({
         } : undefined}
       klaarVoor={paneelKaart?.deelvraag_id}
       variant={breed ? "kolom" : "side"}
-      onSluit={() => setWgArtefact(undefined)}
-      onWissel={setWgArtefact}
+      bewaker={wgBewaker}
+      onOnbewaard={setWgOnbewaard}
+      onSluit={() => wisselPaneel(undefined, { handeling: "sluiten" })}
+      onWissel={(d) => wisselPaneel(d)}
       onVerwijderd={(id) => { if (id === werkgebiedId) onVerlaatWerkgebied?.(); }}
     />
   ));
@@ -1124,9 +1161,8 @@ export function WerkplekClient({
   /** Een context naast het gesprek (`ContextPaneelContext`): een bron uit een antwoord krijgt het werkgebied
    *  van het gesprek mee, zodat *Open volledige pagina* in dat werkgebied landt. */
   function openContext(d: ContextDoel) {
-    setNodeDoel(undefined);
-    setWgArtefact(undefined);
-    setCtx(d.soort === "bron" && !d.werkgebied_id && werkgebiedId ? { ...d, werkgebied_id: werkgebiedId } : d);
+    const naar = d.soort === "bron" && !d.werkgebied_id && werkgebiedId ? { ...d, werkgebied_id: werkgebiedId } : d;
+    wisselPaneel(undefined, { ook: () => { setNodeDoel(undefined); setCtx(naar); } });
   }
 
   const paneel = ctx ? (
@@ -1143,11 +1179,7 @@ export function WerkplekClient({
     // Een open vraagkaart staat op de plek van het invoerveld: klap hem weg (niets beantwoord), anders zie je
     // de chip en de suggesties niet. *Een vraag stellen ›* haalt hem terug (spoor J: van deelvraag wisselen).
     if (open?.openId) setWeggeklikt(open.openId);
-    if (!breed) {
-      setNodeDoel(undefined);
-      setWgArtefact(undefined);
-      setCtx(undefined);
-    }
+    if (!breed) wisselPaneel(undefined, { ook: () => { setNodeDoel(undefined); setCtx(undefined); } });
     taRef.current?.focus();
   }
 
@@ -1189,7 +1221,7 @@ export function WerkplekClient({
       {!nodeDoel && !wgArtefact && !ctx && laatsteWgArtefact && (
         <button
           type="button"
-          onClick={() => setWgArtefact(laatsteWgArtefact)}
+          onClick={() => wisselPaneel(laatsteWgArtefact)}
           className="focus-ring flex w-full shrink-0 items-center gap-2 border-b border-line bg-surface px-4 py-2 text-left text-xs text-muted transition hover:bg-surface-2"
         >
           <span className="truncate"><span className="font-medium text-ink">{laatsteKop?.titel}</span>{laatsteKop?.soort && <> · {laatsteKop.soort.toLowerCase()}</>}</span>
@@ -1374,7 +1406,7 @@ export function WerkplekClient({
             <BronselectieKaart key={open.openId} kaart={open.open} uitgeschakeld={geblokkeerd}
               onSluit={() => setWeggeklikt(open.openId ?? null)}
               onActie={(a) => void verstuur(antwoordTekst(open.open!, a), undefined, undefined, undefined, undefined, a)}
-              onBeoordelen={() => { const doel = bronselectieVanKaart(open.open); if (doel) { setNodeDoel(undefined); setWgArtefact(doel); } }} />
+              onBeoordelen={() => { const doel = bronselectieVanKaart(open.open); if (doel) wisselPaneel(doel, { ook: () => setNodeDoel(undefined) }); }} />
           ) : toonDock && open?.open ? (
             <VraagDock key={open.openId} kaart={open.open} uitgeschakeld={geblokkeerd}
               onSluit={() => setWeggeklikt(open.openId ?? null)}

@@ -9,7 +9,7 @@ import { PaneelKop } from "@/components/ui/PaneelKop";
 import { VersieKiezer } from "@/components/ui/VersieKiezer";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
 import { BegripCompact } from "@/components/werkgebieden/BegripInhoud";
@@ -112,9 +112,14 @@ function paginaVan(doel: WerkgebiedArtefact): string {
  *  suggesties boven het invoerveld doen het werk. Een deelvraag in de samenvatting is wel aan te klikken.
  *
  *  Eén inhoud, twee schillen. Net als op de tab vraagt het paneel eerst bevestiging als de kaart
- *  niet-bewaarde wijzigingen draagt: bij sluiten (kruisje, Escape, achtergrond) en bij een link weg. */
-export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWissel, onVerwijderd, onKlaar, klaarVoor }: {
+ *  niet-bewaarde wijzigingen draagt: bij sluiten (kruisje, Escape, achtergrond), bij een link weg en bij elke
+ *  wissel vanuit de werkplek (FB-05). De bewaker hoort daarom bij de werkplek (`WerkplekClient`,
+ *  `wisselPaneel`): die wisselt het paneel, dit paneel toont alleen zijn vraag. */
+export function WerkgebiedArtefactPaneel({ doel, variant = "side", bewaker, onOnbewaard, onSluit, onWissel, onVerwijderd, onKlaar, klaarVoor }: {
   doel: WerkgebiedArtefact;
+  /** De bewaker van de werkplek; `onOnbewaard` meldt hem wat er onbewaard openstaat. */
+  bewaker: ReturnType<typeof useOnbewaardBewaker>;
+  onOnbewaard: (onbewaard: boolean) => void;
   /** De bronselectie: *Klaar met deze deelvraag* stuurt de actie van het open kaartje in het gesprek. */
   onKlaar?: (deelvraagId: string) => void;
   klaarVoor?: string;
@@ -126,10 +131,14 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
   onWissel?: (doel: WerkgebiedArtefact) => void;
 }) {
   const router = useRouter();
-  const [onbewaard, setOnbewaard] = useState(false);
   const [exportFout, setExportFout] = useState<string | null>(null);
-  const bewaker = useOnbewaardBewaker(onbewaard);
-  const sluit = () => bewaker.bewaak(onSluit, "sluiten");
+  // De vraag staat bovenaan de inhoud: wie ver naar beneden gescrold zat, moet hem toch zien.
+  const vraagRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (bewaker.wachtend) vraagRef.current?.scrollIntoView({ block: "nearest" });
+  }, [bewaker.wachtend]);
+  // `onSluit` loopt zelf door de bewaker (`wisselPaneel` met *sluiten*).
+  const sluit = onSluit;
   const naarWerkgebied = paginaVan(doel);
   const { soort, titel } = artefactKop(doel);
   // De versiekiezer (deel 2 van de artefacten): `undefined` zolang hij nog kiest, `null` voor *Nu*, anders de versie die
@@ -146,15 +155,16 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           {exportFout && <Melding type="waarschuwing" className="mb-4">{exportFout}</Melding>}
           {bewaker.wachtend && (
-            <OnbewaardMelding
-              className="mb-4"
-              handeling={bewaker.wachtend.handeling}
-              onBlijf={bewaker.blijf}
-              onToch={() => {
-                setOnbewaard(false);
-                bewaker.toch();
-              }}
-            />
+            <div ref={vraagRef} data-onbewaard-vraag className="mb-4">
+              <OnbewaardMelding
+                handeling={bewaker.wachtend.handeling}
+                onBlijf={bewaker.blijf}
+                onToch={() => {
+                  onOnbewaard(false);
+                  bewaker.toch();
+                }}
+              />
+            </div>
           )}
           {opname === undefined ? (
             <SkeletonCard regels={4} />
@@ -163,7 +173,7 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
               onVerwijderd={() => onVerwijderd?.(doel.werkgebied_id)} />
           ) : doel.soort === "begrip" && doel.begrip_id ? (
             <BegripCompact key={opname?.id ?? "nu"} context={{ soort: "werkgebied", werkgebiedId: doel.werkgebied_id }}
-              begripId={doel.begrip_id} onOnbewaard={setOnbewaard}
+              begripId={doel.begrip_id} onOnbewaard={onOnbewaard}
               opname={opname?.inhoud.begrip ? { begrip: opname.inhoud.begrip, relaties: opname.inhoud.relaties } : undefined}
               onNaarBegrip={(b) => onWissel
                 ? onWissel({ soort: "begrip", werkgebied_id: doel.werkgebied_id, run_id: "", begrip_id: b, titel: "" })
