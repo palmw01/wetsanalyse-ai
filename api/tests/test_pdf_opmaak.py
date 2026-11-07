@@ -77,3 +77,48 @@ def test_een_lang_citaat_breekt_over_een_pagina_en_houdt_zijn_lijn():
 def test_een_kop_of_voetregel_met_een_teken_buiten_fira_geeft_geen_blokje():
     assert pdf_opmaak.opgemaakt_plat("a b") in ("a b", "a b")
     assert "■" not in pdf_opmaak.opgemaakt_plat("ā – ő")
+
+
+def test_het_merk_op_het_titelblad_is_het_beeldmerk_uit_de_frontend():
+    import xml.etree.ElementTree as ET
+    from pathlib import Path
+    svg = ET.parse(Path(__file__).parents[2] / "frontend" / "merk" / "lex-merk.svg").getroot()
+    ns = "{http://www.w3.org/2000/svg}"
+    rechthoeken = []
+    for el in svg.iter():
+        if el.tag != ns + "rect":
+            continue
+        groep = next((g for g in svg.iter(ns + "g") if el in list(g)), None)
+        rol = (el.get("class") or (groep.get("class") if groep is not None else "")).strip()
+        kleur = el.get("fill") or (groep.get("fill") if groep is not None else "")
+        rechthoeken.append((rol, int(el.get("x", 0)), int(el.get("y", 0)), int(el.get("width")), int(el.get("height")), kleur.upper()))
+    assert sorted(rechthoeken) == sorted((r, x, y, w, h, k.upper()) for r, x, y, w, h, k in pdf_opmaak.MERK)
+
+
+def _met_titelblad(n: int = 3) -> list[tuple[str, str]]:
+    T = pdf_opmaak.TITELBLAD
+    return [(T + "titel", "Mijn werkgebied"), (T + "soort", "Wetsanalyse"), (T + "vraag", "Wat mag de ontvanger?"),
+            (T + "rij", "Status: Actief"), (T + "rij", "Kenmerk: WG-1"), (T + "regelingen", "Regelingen: Iw 1990"),
+            (T + "voetnoot", "Geen oordeel."), (pdf_opmaak.PAGINA, ""), ("Heading4", "Colofon"),
+            (pdf_opmaak.PAGINA, ""), ("Heading1", "1. Eerste"), *[("BodyText", "tekst " * 80) for _ in range(n)]]
+
+
+def test_het_titelblad_is_pagina_een_zonder_kop_en_voetregel():
+    paginas: list[dict] = []
+    spoor: list[dict] = []
+    pdf_opmaak.render(_met_titelblad(), titel="Mijn werkgebied", voet="Werkgebiedrapport", paginas=paginas, spoor=spoor)
+    assert paginas[0] == {"pagina": 1, "kopregel": "", "voetregel": "", "titelblad": True, "totaal": len(paginas)}
+    assert not any(p["titelblad"] for p in paginas[1:]) and all(p["voetregel"] == "Werkgebiedrapport" for p in paginas[1:])
+    # Niets van de lopende tekst staat op het titelblad: het colofon begint bovenaan pagina 2.
+    assert min(r["pagina"] for r in spoor) == 2 and spoor[0]["bovenaan"]
+
+
+def test_het_titelblad_staat_in_de_bladwijzers():
+    pdf = pdf_opmaak.render(_met_titelblad(1), titel="T")
+    assert b"(Titelblad)" in pdf
+
+
+def test_zonder_titelblad_blijft_de_eerste_pagina_gewone_tekst():
+    paginas: list[dict] = []
+    pdf_opmaak.render([("Heading1", "Een")], paginas=paginas)
+    assert paginas == [{"pagina": 1, "kopregel": "", "voetregel": "", "titelblad": False, "totaal": 1}]
