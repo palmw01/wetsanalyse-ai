@@ -201,5 +201,11 @@ def get(name: str | None) -> Specialist:
     rol = (name or "").strip().lower()
     rol = rol if rol in SPECIALISTS else DEFAULT
     spec = SPECIALISTS[rol]
-    methode_rol = "algemeen" if rol in ("annotaties_lezen", "begrippen_lezen") else rol
-    return replace(spec, system=instructies(methode_rol) + "\n\n" + spec.system)
+    return replace(spec, system=instructies(methoderol(rol)) + "\n\n" + spec.system)
+
+
+def methoderol(name: str | None) -> str:
+    """De rol uit de skill waarvan de specialist de methodetekst krijgt (`llm_stap` toetst dat hij er staat)."""
+    rol = (name or "").strip().lower()
+    rol = rol if rol in SPECIALISTS else DEFAULT
+    return "algemeen" if rol in ("annotaties_lezen", "begrippen_lezen") else rol

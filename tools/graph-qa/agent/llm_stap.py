@@ -21,7 +21,8 @@ from __future__ import annotations
 import json
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum, StrEnum
 from typing import Any
@@ -54,6 +55,12 @@ class Rol(Enum):
     `None` als de rol zijn methode niet uit `methode.instructies` haalt: de classifier en de reviewer krijgen de
     JAS-klassen uit `jas_klassen.py`, en de begrippenrol is vervallen (besluit 6, 7 nov 2026)."""
 
+    SUPERVISOR = ("supervisor", "supervisor")
+    # De antwoordlus draait twee rollen: de ophaal-agent van de annotatieroute en de QA-specialisten. Die laatste krijgen
+    # de methoderol van hun specialist (`specialists.methoderol`), dus die geeft de aanroeper mee.
+    OPHAAL = ("ophaal", "retrieval")
+    ANTWOORD = ("antwoord", None)
+    BEPALING_TOELICHTING = ("bepaling_toelichting", None)
     JAS_CLASSIFIER = ("jas_classifier", None)
     JAS_REVIEWER = ("jas_reviewer", None)
     BEGRIP_VERGELIJK = ("begrip_vergelijk", None)
@@ -84,11 +91,12 @@ def _systeemtekst(system: Any) -> str:
     return "\n\n".join(delen)
 
 
-def _controleer_rol(rol: Rol, system: Any) -> None:
+def _controleer_rol(rol: Rol, system: Any, methoderol: str | None = None) -> None:
     """De methodetekst van de rol moet in de systeemprompt staan (`methode.instructies` zet die kop). Een rol zonder
     haar methode is een stille drift: de skill zegt dan iets wat geen model leest (bevinding S-01)."""
-    if rol.methoderol and f"— rol {rol.methoderol}\n\n" not in _systeemtekst(system):
-        raise ValueError(f"de systeemprompt van {rol.naam} mist de methoderol '{rol.methoderol}'")
+    methode = methoderol or rol.methoderol
+    if methode and f"— rol {methode}\n\n" not in _systeemtekst(system):
+        raise ValueError(f"de systeemprompt van {rol.naam} mist de methoderol '{methode}'")
 
 
 def _gebruik(resp: Any) -> dict[str, int]:
@@ -99,17 +107,46 @@ def _gebruik(resp: Any) -> dict[str, int]:
             "cache_schrijf": int(getattr(u, "cache_creation_input_tokens", 0) or 0)}
 
 
-def aanroep(llm: Any, rol: Rol, **verzoek: Any) -> Antwoord:
-    """Eén `llm.create`, met de kwargs zoals ze binnenkomen. Logt `model_aanroep`: geen inhoud, geen veldnaam met
-    "token" (de redactie in `observability` kijkt daarnaar)."""
-    _controleer_rol(rol, verzoek.get("system"))
-    begin = time.perf_counter()
-    resp = llm.create(**verzoek)
+def _log(rol: Rol, model: str, resp: Any, begin: float) -> Antwoord:
     duur = round((time.perf_counter() - begin) * 1000)
     stop = Stopreden.van(resp)
-    logger.info("model_aanroep", extra={"categorie": "technisch", "rol": rol.naam, "model": verzoek.get("model", ""),
+    logger.info("model_aanroep", extra={"categorie": "technisch", "rol": rol.naam, "model": model,
                                         "stopreden": str(stop), "duur_ms": duur, **_gebruik(resp)})
     return Antwoord(resp, stop, duur)
+
+
+def aanroep(llm: Any, rol: Rol, *, methoderol: str | None = None, **verzoek: Any) -> Antwoord:
+    """Eén `llm.create`, met de kwargs zoals ze binnenkomen. Logt `model_aanroep`: geen inhoud, geen veldnaam met
+    "token" (de redactie in `observability` kijkt daarnaar). `methoderol` gaat vóór die van de rol."""
+    _controleer_rol(rol, verzoek.get("system"), methoderol)
+    begin = time.perf_counter()
+    return _log(rol, verzoek.get("model", ""), llm.create(**verzoek), begin)
+
+
+class Stroom:
+    """Om de stream van de adapter heen: `final_message()` geeft het volledige antwoord, zoals de adapter, en legt de
+    stopreden en de logregel vast. Eén keer aanroepen, net als bij de adapter (de meter telt anders dubbel)."""
+
+    def __init__(self, stream: Any, rol: Rol, model: str, begin: float) -> None:
+        self._stream, self._rol, self._model, self._begin = stream, rol, model, begin
+        self.antwoord: Antwoord | None = None
+
+    @property
+    def text_deltas(self) -> Any:
+        return self._stream.text_deltas
+
+    def final_message(self) -> Any:
+        self.antwoord = _log(self._rol, self._model, self._stream.final_message(), self._begin)
+        return self.antwoord.resp
+
+
+@contextmanager
+def stroom(llm: Any, rol: Rol, *, methoderol: str | None = None, **verzoek: Any) -> Iterator[Stroom]:
+    """Eén `llm.stream`, met de kwargs zoals ze binnenkomen (ook `historie_cache`)."""
+    _controleer_rol(rol, verzoek.get("system"), methoderol)
+    begin = time.perf_counter()
+    with llm.stream(**verzoek) as s:
+        yield Stroom(s, rol, verzoek.get("model", ""), begin)
 
 
 def lees_tool(resp: Any, naam: str) -> dict[str, Any] | None:

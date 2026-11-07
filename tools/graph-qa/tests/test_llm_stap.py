@@ -9,7 +9,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from agent.llm_stap import Rol, Stopreden, aanroep, lees_tool, lijst, vraag_tool
+from agent.llm_stap import Rol, Stopreden, aanroep, lees_tool, lijst, stroom, vraag_tool
 from agent.methode import instructies
 from fakes import FakeLLM, response, text_block, tool_block
 
@@ -164,3 +164,26 @@ def test_tekst_of_onbruikbare_invoer_krijgt_wel_een_tweede_poging(eerste):
     llm = FakeLLM([eerste, _tool({"items": [1]})])
     uit = vraag_tool(llm, Rol.BEGRIP_KAART, verzoek=_verzoek(), pogingen=2, haal=lijst("items"))
     assert uit.waarde == [1] and uit.pogingen == 2 and len(llm.calls) == 2
+
+
+# --- H5c: de streamende aanroep van de antwoordlus ------------------------------------------------
+
+def test_stroom_geeft_de_kwargs_door_en_logt_bij_het_eindantwoord(caplog):
+    llm = FakeLLM([response([text_block("Antwoord.")], "end_turn")])
+    verzoek = {**_verzoek("Taak.\n\n" + instructies("duiding")), "historie_cache": True}
+    with caplog.at_level(logging.INFO, logger="graph_qa.llm"):
+        with stroom(llm, Rol.ANTWOORD, methoderol="duiding", **verzoek) as s:
+            assert not [r for r in caplog.records if r.getMessage() == "model_aanroep"]
+            resp = s.final_message()
+    assert llm.calls == [verzoek] and resp.stop_reason == "end_turn" and s.antwoord.stopreden is Stopreden.END_TURN
+    [r] = [r for r in caplog.records if r.getMessage() == "model_aanroep"]
+    assert r.rol == "antwoord"
+
+
+def test_stroom_eist_de_methoderol_van_de_specialist():
+    with pytest.raises(ValueError, match="duiding"):
+        with stroom(FakeLLM([]), Rol.ANTWOORD, methoderol="duiding", **_verzoek(instructies("algemeen"))):
+            pass
+    with pytest.raises(ValueError, match="retrieval"):
+        with stroom(FakeLLM([]), Rol.OPHAAL, **_verzoek("Geen methode.")):
+            pass

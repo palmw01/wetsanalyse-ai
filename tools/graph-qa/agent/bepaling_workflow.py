@@ -22,6 +22,7 @@ from bronmodel.antwoord import Antwoord
 from .aanwijzing import lees_aanwijzing
 from .graph import queries
 from .hoeveelheden import buiten as hoeveelheden_buiten
+from .llm_stap import Rol, Stopreden, aanroep
 from .overzicht import regelingen_in_vraag
 from .ports import GraphPort, LLMPort
 from .sjablonen import Onvulbaar
@@ -137,14 +138,14 @@ def schrijf_toelichting(llm: LLMPort, model: str, bepaling: str) -> str:
     """De enige modelaanroep van deze workflow: een korte toelichting bij de opgehaalde tekst. Zonder tools, hoogstens
     300 tokens. Een storing kost alleen de toelichting; de wettekst staat er dan toch."""
     try:
-        resp = llm.create(model=model, max_tokens=300, system=TOELICHTING_SYSTEM, tools=[],
-                          messages=[{"role": "user", "content": bepaling}])
+        antwoord = aanroep(llm, Rol.BEPALING_TOELICHTING, model=model, max_tokens=300, system=TOELICHTING_SYSTEM,
+                           tools=[], messages=[{"role": "user", "content": bepaling}])
     except Exception:  # noqa: BLE001 – de wettekst komt uit de graaf, de toelichting is een extra
         logger.warning("toelichting bij een bepaling niet geschreven", exc_info=True)
         return ""
-    if getattr(resp, "stop_reason", "") != "end_turn":
+    if antwoord.stopreden is not Stopreden.END_TURN:
         return ""
-    tekst = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip()
+    tekst = "".join(b.text for b in antwoord.resp.content if getattr(b, "type", "") == "text").strip()
     # De tekst is de enige bron, dus een termijn, bedrag of datum die hij niet noemt, is verzonnen: dan geen toelichting.
     if extra := hoeveelheden_buiten(tekst, bepaling):
         logger.warning("toelichting noemt wat de bepaling niet noemt", extra={"categorie": "functioneel", "buiten": extra})
