@@ -293,6 +293,14 @@
           "title": "Markeringen",
           "type": "array"
         },
+        "verwijzingen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Verwijzing"
+          },
+          "title": "Verwijzingen",
+          "type": "array"
+        },
         "door": {
           "default": "bron",
           "enum": [
@@ -1443,6 +1451,44 @@
       "title": "Verantwoording",
       "type": "object"
     },
+    "Verwijzing": {
+      "additionalProperties": false,
+      "description": "Een verwijzing uit een bepaling in het dossier, uit de graaf; de ankertekst staat er letterlijk.",
+      "properties": {
+        "van": {
+          "$ref": "#/$defs/Vindplaats"
+        },
+        "naar": {
+          "$ref": "#/$defs/Vindplaats"
+        },
+        "anker": {
+          "default": "",
+          "title": "Anker",
+          "type": "string"
+        },
+        "in_dossier": {
+          "default": false,
+          "title": "In Dossier",
+          "type": "boolean"
+        },
+        "door": {
+          "default": "bron",
+          "enum": [
+            "bron",
+            "lex",
+            "analist"
+          ],
+          "title": "Door",
+          "type": "string"
+        }
+      },
+      "required": [
+        "van",
+        "naar"
+      ],
+      "title": "Verwijzing",
+      "type": "object"
+    },
     "Vindplaats": {
       "description": "Waar iets staat, altijd uit de tool-rijen: nooit overgetypt door het model.",
       "properties": {
@@ -1607,6 +1653,14 @@
             "$ref": "#/$defs/Markering"
           },
           "title": "Afgewezen",
+          "type": "array"
+        },
+        "verwijzingen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Verwijzing"
+          },
+          "title": "Verwijzingen",
           "type": "array"
         }
       },

@@ -33,6 +33,16 @@ SELECT ?d ?titel ?inwerking ?bron WHERE {{ VALUES ?d {{ {waarden} }}
 }}"""
 
 
+_VERWIJZINGEN = """PREFIX bwb: <urn:bwb-ns:>
+SELECT ?van ?naar ?anker ?vindplaats ?doellabel ?jci ?regeling WHERE {{ VALUES ?van {{ {waarden} }}
+  ?van bwb:heeftVerwijzing ?v . ?v bwb:naar ?naar .
+  OPTIONAL {{ ?v bwb:ankerTekst ?anker }} OPTIONAL {{ ?naar bwb:vindplaats ?vindplaats }} OPTIONAL {{ ?naar bwb:doelLabel ?doellabel }}
+  OPTIONAL {{ ?naar bwb:jci ?jci }}
+  BIND(IRI(CONCAT("urn:bwb:", REPLACE(STRAFTER(STR(?naar), "urn:bwb:"), ":.*$", ""))) AS ?r)
+  OPTIONAL {{ ?r bwb:citeertitel ?regeling }}
+}}"""
+
+
 def _waarden(iris: list[str]) -> str:
     return " ".join(f"<{i}>" for i in iris)
 
@@ -43,6 +53,10 @@ def regelingen_query(bwb_ids: list[str]) -> str:
 
 def structuur_query(iris: list[str]) -> str:
     return _STRUCTUUR.format(waarden=_waarden(iris))
+
+
+def verwijzingen_query(iris: list[str]) -> str:
+    return _VERWIJZINGEN.format(waarden=_waarden(iris))
 
 
 def geldige_iris(iris) -> list[str]:
@@ -61,11 +75,12 @@ def _per(rijen: list[dict], sleutel: str) -> dict[str, list[dict]]:
     return uit
 
 
-async def lees(bwb_ids: list[str], structuur_iris: list[str]) -> dict:
-    """Per regeling de WTI-gegevens en de toestand; per structuurdeel of artikel de titel, inwerkingtreding en laatste wijziging."""
-    uit: dict = {"volledig": True, "regelingen": {}, "structuur": {}}
+async def lees(bwb_ids: list[str], structuur_iris: list[str], bron_iris: list[str] = ()) -> dict:
+    """Per regeling de WTI-gegevens en de toestand; per structuurdeel of artikel de titel, inwerkingtreding en laatste wijziging;
+    per bronnode in het dossier de verwijzingen die eruit vertrekken, met de ankertekst letterlijk."""
+    uit: dict = {"volledig": True, "regelingen": {}, "structuur": {}, "verwijzingen": []}
     bwbs = sorted({b for b in bwb_ids if _BWB.fullmatch(b)})
-    iris = geldige_iris(structuur_iris)
+    iris, bronnen = geldige_iris(structuur_iris), geldige_iris(bron_iris)
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             if bwbs:
@@ -78,6 +93,18 @@ async def lees(bwb_ids: list[str], structuur_iris: list[str]) -> dict:
                 for iri, rijen in _per(await sparql_select(client, structuur_query(iris[i:i + _PER_QUERY])), "d").items():
                     uit["structuur"][iri] = {"titel": _kleinste(rijen, "titel"), "inwerking": _kleinste(rijen, "inwerking")[:10],
                                              "gewijzigd_bij": _kleinste(rijen, "bron")}
+            gezien: dict[tuple[str, str, str], dict] = {}
+            for i in range(0, len(bronnen), _PER_QUERY):
+                for r in await sparql_select(client, verwijzingen_query(bronnen[i:i + _PER_QUERY])):
+                    if not (r.get("van") and r.get("naar")):
+                        continue
+                    sleutel = (r["van"], r["naar"], r.get("anker") or "")
+                    oud = gezien.get(sleutel, {})
+                    gezien[sleutel] = {"van": r["van"], "naar": r["naar"], "anker": r.get("anker") or "",
+                                       "label": min(filter(None, [oud.get("label"), r.get("vindplaats") or r.get("doellabel")]), default=""),
+                                       "jci": min(filter(None, [oud.get("jci"), r.get("jci")]), default=""),
+                                       "regeling": min(filter(None, [oud.get("regeling"), r.get("regeling")]), default="")}
+            uit["verwijzingen"] = [gezien[k] for k in sorted(gezien)]
     except (httpx.HTTPError, ConnectionError, ValueError):
         return {**uit, "volledig": False}
     return uit

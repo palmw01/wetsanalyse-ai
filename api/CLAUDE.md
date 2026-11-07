@@ -391,12 +391,16 @@ spoor D (*Werkgebied als node*).
   bronstand en waarschuwingen, inhoudsopgave en bladwijzers, dossier, deelvragen en bronnen, wettekst met markeringen,
   begrippen, korte verantwoording. De indeling (v2): titelblad, colofon, inhoud, 1 Samenvatting, 2 Leeswijzer (met de JAS-legenda),
   3 Werkgebied, 4 Deelvragen en bronnen, 5 Analyse per bepaling, 6 Begrippen (lijst), dan de bijlagen (`BIJLAGEN`, letters op volgorde):
-  Begripskaarten, Bronnenregister, Contextbepalingen (rol context zonder markering, `Regeling.context`), Niet meegenomen, Verantwoording.
+  Begripskaarten, Bronnenregister, Contextbepalingen (rol context zonder markering, `Regeling.context`), Samenhang, Niet meegenomen,
+  Verantwoording.
   - **Graaf in het rapport** (`rapport_graaf.lees`, best-effort zoals de toestanden): per regeling de WTI-gegevens (soort,
     eerstverantwoordelijke, TOOI-organisatie, afkorting, toestand-URL), en per voorouder van een geselecteerde bronnode
     (`werkgebied_export.structuur_iris`) de titel, `bwb:inwerking` en `bwb:bron`. Een artikel krijgt zo zijn `plaats` in de opbouw, die
     boven het artikel en in de kopregel staat (`PLAATS`). Alleen strikte IRI's gaan de query in (`BRON_IRI`). Een haperende graaf geeft het
-    signaal `graaf_onvolledig`. De router geeft `rapport_graaf.lees` mee, de tests vervangen hem. `verzamel` leest met dezelfde functies als de schermen, en `regels` geeft (stijl, tekst),
+    signaal `graaf_onvolledig`. De router geeft `rapport_graaf.lees` mee, de tests vervangen hem.
+    De verwijzingen komen uit `bwb:heeftVerwijzing`/`bwb:naar`, alleen vanuit bronnodes in het dossier (`bron_iris`; inkomende verwijzingen
+    zijn ruis), met `bwb:ankerTekst` letterlijk. Ze staan bij de bepaling en in de bijlage Samenhang. Een doel telt als "in dit dossier" als het
+    daar zelf staat of als een van zijn delen er staat. `verzamel` leest met dezelfde functies als de schermen, en `regels` geeft (stijl, tekst),
   zonder reportlab te testen.
   - Geen modelvragen, hashes of beurtmeting: dat spoor staat in de annotatie-export.
   - Alles draagt zijn status; voorstellen, afgewezen en uitgesloten staan in eigen delen.

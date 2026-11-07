@@ -218,12 +218,23 @@ class Markering(_Deel):
     door: Door = "lex"
 
 
+class Verwijzing(_Deel):
+    """Een verwijzing uit een bepaling in het dossier, uit de graaf; de ankertekst staat er letterlijk."""
+
+    van: Vindplaats
+    naar: Vindplaats
+    anker: str = ""
+    in_dossier: bool = False
+    door: Door = "bron"
+
+
 class Bepaling(_Deel):
     vindplaats: Vindplaats
     rol: str
     bron_gewijzigd: bool = False
     tekst: str = ""
     markeringen: list[Markering] = []
+    verwijzingen: list[Verwijzing] = []
     door: Door = "bron"
 
 
@@ -255,6 +266,7 @@ class Wettekst(_Deel):
     onbereikbaar: list[Onbereikbaar] = []
     buiten_tekst: list[Markering] = []
     afgewezen: list[Markering] = []
+    verwijzingen: list[Verwijzing] = []              # alle verwijzingen uit het dossier, in de volgorde van de bronboom
 
 
 class Voorbeeld(_Deel):
@@ -545,7 +557,8 @@ def leeswijzer_regels() -> list[Regel]:
                         ("Heading4", "Opbouw"),
                         ("BodyText", "Hoofdstuk 3 tot en met 6 dragen de analyse: het werkgebied, de deelvragen met hun bronnen, de "
                                      "analyse per bepaling en de begrippen. De bijlagen zijn naslag: de volledige begripskaarten, het "
-                                     "bronnenregister, de contextbepalingen, wat niet is meegenomen en de verantwoording."),
+                                     "bronnenregister, de contextbepalingen, de samenhang (verwijzingen), wat niet is meegenomen "
+                                     "en de verantwoording."),
                         ("Heading4", "De klassen van het Juridisch Analyseschema"),
                         ("Meta", "Een markering draagt de kleur van haar klasse, en altijd ook de naam: de kleur is nooit de enige drager.")]
     uit += [(MARKERING + k, k) for k in JAS_KLASSEN_VOLGORDE]
@@ -773,6 +786,29 @@ def _bepaling(b: Bepaling) -> list[Regel]:
         uit.append(("Citaat", b.tekst))
     for m in b.markeringen:
         uit += _markering(m, b.vindplaats.iri)
+    uit += [("Meta", _verwijst(v)) for v in b.verwijzingen]
+    return uit
+
+
+def _verwijst(v: Verwijzing) -> str:
+    return (f"Verwijst naar {v.naar.label}" + (f" (“{v.anker}”)" if v.anker else "")
+            + (" · in dit dossier" if v.in_dossier else ""))
+
+
+def samenhang_regels(w: Wettekst) -> list[Regel]:
+    """Bijlage: de verwijzingen uit het dossier, eerst die binnen het dossier blijven, dan die naar buiten wijzen."""
+    uit: list[Regel] = [("Meta", "Uit de kennisgraaf: de verwijzingen die vertrekken uit een bepaling in dit dossier, met de verwijzende "
+                                 "tekst letterlijk. Verwijzingen naar deze bepalingen vanuit andere regelingen staan er niet in.")]
+    for binnen, kop in ((True, "Binnen het dossier"), (False, "Naar buiten het dossier")):
+        groep = [v for v in w.verwijzingen if v.in_dossier == binnen]
+        uit.append(("Heading2", f"{kop} ({len(groep)})"))
+        if not groep:
+            uit.append(("Meta", "Geen."))
+        for v in groep:
+            uit += [*BLOK, ("BodyText", f"{v.van.label} → {v.naar.label}")]
+            if v.anker:
+                uit.append(("Citaat", f"“{v.anker}”"))
+            uit += [("Meta", _verwijzing(v.naar)), *BLOK_UIT]
     return uit
 
 
@@ -975,7 +1011,7 @@ def verantwoording_regels(v: Verantwoording) -> list[Regel]:
     return uit
 
 
-BIJLAGEN = ("Begripskaarten", "Bronnenregister", "Contextbepalingen", "Niet meegenomen", "Verantwoording")
+BIJLAGEN = ("Begripskaarten", "Bronnenregister", "Contextbepalingen", "Samenhang", "Niet meegenomen", "Verantwoording")
 
 
 def rapport_regels(r: Rapport) -> list[Regel]:
@@ -983,6 +1019,7 @@ def rapport_regels(r: Rapport) -> list[Regel]:
     bijlagen = {"Begripskaarten": begrippen_regels(r.begrippen),
                 "Bronnenregister": register_regels(r.voorblad, r.verantwoording),
                 "Contextbepalingen": context_regels(r.wettekst),
+                "Samenhang": samenhang_regels(r.wettekst),
                 "Niet meegenomen": niet_meegenomen_regels(r.deelvragen, r.wettekst, r.begrippen),
                 "Verantwoording": verantwoording_regels(r.verantwoording)}
     uit = [*titelblad_regels(r.document, r.voorblad, r.stand), *colofon_regels(r.document, r.voorblad, r.stand, r.verantwoording),
