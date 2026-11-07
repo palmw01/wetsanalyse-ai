@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { BEPALING_DETAIL_VELDEN, afwijkendeToestand, parseBepalingDetail, plaatsZin } from "./bepalingDetail";
 
 const VP = { iri: "urn:bwb:BWBR0004770:artikel:36", label: "Artikel 36", jci: "", regeling: "Invorderingswet 1990" };
-const LEEG = { aantal: 0, items: [] };
+const LEEG = { aantal: 0, volledig: true, items: [] };
 const DETAIL = {
   schema_versie: 1, bron_iri: VP.iri, beschikbaar: true, vindplaats: VP,
   plaats: [{ soort: "hoofdstuk", nummer: "VI", titel: "Aansprakelijkheid", iri: "urn:bwb:BWBR0004770:hoofdstuk:VI" },
@@ -12,7 +12,7 @@ const DETAIL = {
   status: "goed", inwerking: "2010-07-04", terugwerkend_tot: null, gewijzigd_bij: "Stb.2009-610",
   geldig_vanaf: "2026-10-01", geldig_tot: null, toestand_url: "",
   verwijst_naar: [{ van: { ...VP, label: "Artikel 36, lid 1" }, naar: { ...VP, label: "Artikel 1" }, anker: "artikel 1", in_graaf: true, door: "bron" }],
-  verwijst_naar_volledig: true, verwezen_door: { aantal: 1, items: [VP] }, grondslag_voor: LEEG, bevoegdheid_voor: LEEG, genoemd_in: LEEG,
+  verwijst_naar_aantal: 1, verwijst_naar_volledig: true, verwezen_door: { aantal: 1, volledig: true, items: [VP] }, grondslag_voor: LEEG, bevoegdheid_voor: LEEG, genoemd_in: LEEG,
   definieert: ["bestuurder"],
 };
 
@@ -27,6 +27,7 @@ describe("bepalingDetail", () => {
   it("neemt een geldig detail aan en weigert een half detail", () => {
     expect(parseBepalingDetail(DETAIL)?.inwerking).toBe("2010-07-04");
     expect(parseBepalingDetail({ ...DETAIL, verwezen_door: { aantal: 1 } })).toBeUndefined();
+    expect(parseBepalingDetail({ ...DETAIL, verwezen_door: { aantal: 1, items: [] } })).toBeUndefined(); // zonder `volledig`
     expect(parseBepalingDetail({ ...DETAIL, vindplaats: { iri: VP.iri } })).toBeUndefined();
     expect(parseBepalingDetail(null)).toBeUndefined();
   });

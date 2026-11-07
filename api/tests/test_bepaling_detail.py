@@ -131,3 +131,66 @@ async def test_de_route(route, monkeypatch):
 
 async def test_de_route_weigert_een_ongeldige_iri(route):
     assert (await route(bron_iri="urn:bwb:nee")).status_code == 422
+
+
+# Het aantal komt uit een telquery, de rijen dragen alleen de voorbeelden (review #1064): een bepaling met meer dan
+# `MAX_VERWIJZINGSRIJEN` verwijzingen kreeg anders een te laag aantal, alsof het volledig was.
+GRENS = bepaling_detail.MAX_VERWIJZINGSRIJEN
+
+
+def _nepgraaf(monkeypatch, *, inkomend: int, telling: dict | None, uitgaand_triples: int = 0):
+    """Een nepgraaf die per query de passende rijen geeft, met dezelfde LIMIT als de echte; `telling=None` laat de telquery falen."""
+    async def select(client, query):
+        if "COUNT(" in query:
+            if telling is None:
+                raise httpx.ConnectError("telling weg")
+            return [{"wat": k if k in ("uit", "in") else BWB + k, "n": str(v)} for k, v in telling.items()]
+        if 'BIND("in" AS ?richting)' in query:
+            return [{"richting": "in", "van": f"{LIDR}:artikel:{n}", "naar": A36, "vanLabel": f"Artikel {n}"}
+                    for n in range(min(inkomend, GRENS))]
+        if 'BIND("uit" AS ?richting)' in query:
+            return []
+        if "SELECT ?p ?o ?isIri" in query:
+            return [t("bevoegdheidVoor", f"urn:bwb:BWBR9{n:06d}", iri=True) for n in range(min(uitgaand_triples, bepaling_detail.MAX_TRIPLES))]
+        return []
+
+    async def plaatsen(iris):
+        return [{"bron_iri": iris[0], "regeling": {}, "pad": []}]
+    monkeypatch.setattr(bepaling_detail, "sparql_select", select)
+    monkeypatch.setattr(bepaling_detail.graaf_mod, "plaatsen", plaatsen)
+
+
+@pytest.mark.parametrize("echt", [GRENS, GRENS + 1, 4321])
+async def test_het_aantal_komt_uit_de_telling_ook_boven_de_grens_van_de_rijen(monkeypatch, echt):
+    _nepgraaf(monkeypatch, inkomend=echt, telling={"uit": 0, "in": echt})
+    d = await bepaling_detail.bepaling_detail(A36)
+    assert d.verwezen_door.aantal == echt and d.verwezen_door.volledig
+    assert len(d.verwezen_door.items) == MAX_VOORBEELDEN
+
+
+async def test_faalt_de_telling_op_de_grens_dan_is_het_minstens(monkeypatch):
+    _nepgraaf(monkeypatch, inkomend=GRENS + 500, telling=None)
+    d = await bepaling_detail.bepaling_detail(A36)
+    assert d.beschikbaar and d.verwezen_door.aantal == GRENS and d.verwezen_door.volledig is False
+
+
+async def test_faalt_de_telling_onder_de_grens_dan_klopt_het_aantal_rijen(monkeypatch):
+    _nepgraaf(monkeypatch, inkomend=GRENS - 1, telling=None)
+    d = await bepaling_detail.bepaling_detail(A36)
+    assert d.verwezen_door.aantal == GRENS - 1 and d.verwezen_door.volledig
+
+
+async def test_ook_grondslag_en_genoemd_in_tellen_los_van_de_begrensde_triples(monkeypatch):
+    _nepgraaf(monkeypatch, inkomend=0, telling={"uit": 73, "in": 0, "bevoegdheidVoor": 2500, "verwijzingDoor": 17})
+    d = await bepaling_detail.bepaling_detail(A36)
+    assert (d.bevoegdheid_voor.aantal, d.genoemd_in.aantal, d.grondslag_voor.aantal) == (2500, 17, 0)
+    assert d.verwijst_naar_aantal == 73 and d.verwijst_naar_volledig is False  # meer dan MAX_UITGAAND in het paneel
+
+    _nepgraaf(monkeypatch, inkomend=0, telling=None, uitgaand_triples=5000)
+    d = await bepaling_detail.bepaling_detail(A36)
+    assert d.bevoegdheid_voor.aantal == bepaling_detail.MAX_TRIPLES and d.bevoegdheid_voor.volledig is False
+
+
+def test_de_telquery_leest_ook_een_predicaat_als_volle_iri():
+    assert bepaling_detail.aantallen_uit([{"wat": "in", "n": "25"}, {"wat": BWB + "bevoegdheidVoor", "n": "11"}, {"wat": "uit", "n": "x"}]) == {
+        "in": 25, "bevoegdheidVoor": 11}
