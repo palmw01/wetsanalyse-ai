@@ -113,6 +113,11 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   vanaf `sm:` naast elkaar). Staat een knop buiten een `ButtonRow`, geef hem dan
   `className="w-full sm:w-auto"` en laat de container op mobiel stapelen (`flex flex-col …
   sm:flex-row`). Geen vaste of `flex-wrap`-knoprijen die op een smal scherm overlopen.
+- **Een paneel van de instellingen breekt op zijn eigen ruimte, niet op `sm:`** (7 nov 2026). Het staat naast de
+  tabkolom, dus op een venster van 640 px is de kolom maar 325 px breed en is `sm:` al waar. Rijen lopen via
+  `components/ui/SettingRow`: `SettingRow` (`veld` voor een invoerveld), `FormRij` en `FormKnoppen` (velden en knoppen op
+  één regel zolang dat past) en `FormRaster` (twee kolommen of één). `app/knoppen.test.ts` bewaakt het, en
+  `scripts/test-instellingen-breedte.mjs` loopt elk scherm na op 375, 640, 800 en 1280 px met lange namen.
 - **Eén bedieningsstijl** (spoor I4, voor de hoofdknoppen herzien in spoor K, besluit gebruiker 27 okt 2026, en voor labels en knoppen op 5 nov 2026;
   `app/knoppen.test.ts` legt het vast):
   - **een hoofdknop heeft de vorm van *Nieuw gesprek*** (`Button`/`LinkButton`/`knopKlasse` in maat `sm`/`md`):

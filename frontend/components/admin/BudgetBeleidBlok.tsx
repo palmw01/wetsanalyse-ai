@@ -5,6 +5,7 @@ import { BewerkKnop, BewerkVoet } from "@/components/ui/Bewerkbaar";
 import { Card } from "@/components/ui/Card";
 import { Field, Input } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
+import { FormRij } from "@/components/ui/SettingRow";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { getBudgetBeleid, isApiError, zetBudgetBeleid } from "@/lib/api";
 import { resetdatum, tokens } from "@/lib/tokenbudget";
@@ -99,14 +100,14 @@ export function BudgetBeleidBlok({ onGewijzigd }: { onGewijzigd?: () => void }) 
 
       {!beleid ? !fout && <Skeleton className="mt-3 h-10 w-full" /> : (
         <form onSubmit={opslaan} className="mt-3 space-y-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <FormRij>
             <Field label="Tokens per periode" hint="bijvoorbeeld 500000">
               <Input type="number" min={0} step={1000} required value={aantal} onChange={(e) => setAantal(e.target.value)} />
             </Field>
             <Field label="Reset na (dagen)">
               <Input type="number" min={1} max={365} required value={dagen} onChange={(e) => setDagen(e.target.value)} />
             </Field>
-          </div>
+          </FormRij>
           <label className="flex items-start gap-2 text-sm text-ink">
             <input type="checkbox" className="mt-0.5 h-4 w-4 accent-lint" checked={actief} onChange={(e) => setActief(e.target.checked)} />
             <span>

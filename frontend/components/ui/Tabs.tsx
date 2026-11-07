@@ -134,7 +134,8 @@ export function Tabs({
             aria-labelledby={`${base}-tab-${t.key}`}
             data-tabpanel
             hidden={!selected}
-            className={verticaal ? "min-h-0 flex-1 overflow-y-auto px-5 py-5" : "pt-6"}
+            // `min-w-0` en `anywhere`: een lang adres of een lange modelnaam breekt af in plaats van de kolom breder te maken.
+            className={verticaal ? "min-h-0 min-w-0 flex-1 overflow-y-auto px-5 py-5 [overflow-wrap:anywhere]" : "pt-6"}
           >
             {t.content}
           </div>

@@ -4,7 +4,7 @@ import { BewerkVoet } from "@/components/ui/Bewerkbaar";
 import { useState } from "react";
 import { Field, Input, Select } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
-import { SettingGroup } from "@/components/ui/SettingRow";
+import { FormRaster, SettingGroup } from "@/components/ui/SettingRow";
 import { isApiError, saveProfile } from "@/lib/api";
 import type { LlmProfileIn, LlmProfileOut } from "@/lib/types";
 
@@ -59,7 +59,7 @@ export function ProfileEditor({ profile, onDone, onCancel }: Props) {
   return (
     <SettingGroup titel={nieuw ? "Nieuw profiel" : `Profiel bewerken – ${profile?.name}`}>
       <form onSubmit={onSubmit} className="space-y-5">
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <FormRaster>
           <Field label="Naam" required hint={nieuw ? "uniek, bv. azure-sonnet" : "vast"}>
             <Input value={naam} onChange={(e) => setNaam(e.target.value)} disabled={!nieuw} placeholder="azure-sonnet" autoComplete="off" />
           </Field>
@@ -94,7 +94,7 @@ export function ProfileEditor({ profile, onDone, onCancel }: Props) {
           >
             <Input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder={profile?.api_key_set ? "••••••••" : "sk-…"} autoComplete="new-password" />
           </Field>
-        </div>
+        </FormRaster>
 
         {fout && <Melding type="fout">{fout}</Melding>}
 

@@ -5,7 +5,7 @@ import { BewerkVoet } from "@/components/ui/Bewerkbaar";
 import { Button } from "@/components/ui/Button";
 import { ButtonRow } from "@/components/ui/ButtonRow";
 import { Card } from "@/components/ui/Card";
-import { SettingGroup } from "@/components/ui/SettingRow";
+import { FormRij, SettingGroup } from "@/components/ui/SettingRow";
 import { Field, Input, Select } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
 import { MeerMenu, MenuKnop, MenuVerwijder } from "@/components/ui/MeerMenu";
@@ -175,7 +175,7 @@ export function UsersPanel() {
       {toevoegen && (
         <Card className="mb-4 p-3" data-gebruiker-nieuw>
           <form onSubmit={onAanmaken}>
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+            <FormRij>
               <Field label="Gebruikersnaam">
                 <Input
                   type="text"
@@ -187,24 +187,22 @@ export function UsersPanel() {
                   onChange={(e) => setNieuwUserid(e.target.value)}
                 />
               </Field>
-              <div className="min-w-[14rem] flex-1">
-                <Field label="E-mailadres">
-                  <Input
-                    type="email"
-                    required
-                    placeholder="naam@belastingdienst.nl"
-                    value={nieuwEmail}
-                    onChange={(e) => setNieuwEmail(e.target.value)}
-                  />
-                </Field>
-              </div>
+              <Field label="E-mailadres">
+                <Input
+                  type="email"
+                  required
+                  placeholder="naam@belastingdienst.nl"
+                  value={nieuwEmail}
+                  onChange={(e) => setNieuwEmail(e.target.value)}
+                />
+              </Field>
               <Field label="Rol">
                 <Select value={nieuwRol} onChange={(e) => setNieuwRol(e.target.value as Role)}>
                   <option value="analist">analist</option>
                   <option value="beheerder">beheerder</option>
                 </Select>
               </Field>
-            </div>
+            </FormRij>
             <BewerkVoet submit bezig={bezig} gewijzigd opslaanTekst="Gebruiker toevoegen" onAnnuleer={() => setToevoegen(false)} />
           </form>
         </Card>
@@ -259,7 +257,7 @@ export function UsersPanel() {
                   slaat op bij verlaten, zoals de andere acties hier direct doorwerken. */}
               {verbruik[u.userid] && (
                 <div className="mt-3 flex flex-wrap items-end gap-x-6 gap-y-3">
-                  <div className="min-w-[12rem] flex-1">
+                  <div className="min-w-0 flex-[999_1_12rem]">
                     <div className="flex items-baseline justify-between gap-2 text-xs text-muted">
                       <span>
                         {tokensKort(verbruik[u.userid].gebruikt)} van{" "}
@@ -274,14 +272,14 @@ export function UsersPanel() {
                       className="mt-1"
                     />
                   </div>
-                  <label className="flex items-center gap-2 text-xs text-muted">
+                  <label className="flex flex-[1_1_auto] items-center gap-2 whitespace-nowrap text-xs text-muted">
                     Eigen budget
                     <Input
                       type="number"
                       min={0}
                       step={1000}
                       placeholder="standaard"
-                      className="w-32"
+                      className="min-w-24 flex-1"
                       defaultValue={u.token_budget ?? ""}
                       onBlur={(e) => {
                         const nieuw = e.target.value.trim();
