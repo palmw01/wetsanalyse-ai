@@ -308,7 +308,6 @@ export interface AnnotatieElement {
   tekst: string;
   lid: string;
   toelichting: string;
-  vindplaats: string;
   /** Wie het element AANMAAKTE (agent | mens) – verandert nooit. */
   herkomst: string;
   /** Wie het daarna inhoudelijk aanpaste ("" | agent | mens). */
@@ -327,7 +326,6 @@ export interface AnnotatieElement {
    *  `index` is de positie in `trace.kandidaat.spanopties` – dat is wat de api terugkrijgt. */
   grensopties?: { index: number; soort: string; tekst: string }[];
   anker?: Anker | null;
-  diff: Record<string, { voor: unknown; na: unknown }>;
   beslissingen: Beslissing[];
   /** null = markering van de jurist, of een agent-ronde van vóór de registratie. */
   geproduceerd_door?: AgentRun | null;
@@ -339,29 +337,15 @@ export interface AnnotatieElement {
 
 export interface AnnotatieDocument {
   slug: string;
-  user_id: string;
-  client_id: string;
-  /** Naam van de regeling zoals hij in beeld komt; los van `werkgebied` (het kennisdomein). */
+  /** Naam van de regeling zoals hij in beeld komt. */
   citeertitel: string;
-  werkgebied: string;
   bwbId: string;
   artikel: string;
   lid: string;
   status: DocumentStatus;
   elementen: AnnotatieElement[];
-  /** Het productiespoor: elke agent-ronde die aan dit document werkte. */
-  runs: AgentRun[];
-  /** De brontekstversies waar de ankers van dit document over gaan (`anker.bron_hash`).
-   *
-   *  Eén waarde is normaal. Méér betekent dat er opnieuw is geïmporteerd terwijl er al geannoteerd
-   *  was, en dan wijzen de offsets van de oudere markeringen naar tekst die verschoven is – de
-   *  markering springt dan naar een ander voorkomen of verdwijnt. Door de api afgeleid en niet
-   *  opgeslagen; oudere responses kennen het veld niet, vandaar optioneel. */
-  bronversies?: string[];
   /** Gevuld = de gedeelde laag van één artikel (voor iedereen, niet te verwijderen). */
   laag_sleutel?: string;
-  created?: string | null;
-  updated?: string | null;
 }
 
 /** Eén regel in het annotatie-overzicht: naam, voortgang en de JAS-verdeling voor de kleurstrip,

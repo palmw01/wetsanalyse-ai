@@ -194,7 +194,6 @@ export function elementVanNode(el: NodeElement, nb: NodeBron, runs?: NodeWeergav
     tekst: bereik ? nb.bron.slice(bereik.start, bereik.eind) : el.tekst,
     lid: bereik?.lid ?? lidUitIri(el.eigenaar_iri),
     toelichting: el.toelichting ?? "",
-    vindplaats: "",
     herkomst: el.herkomst,
     gewijzigd_door: el.gewijzigd_door ?? "",
     lifecycle: el.lifecycle as Lifecycle,
@@ -206,7 +205,6 @@ export function elementVanNode(el: NodeElement, nb: NodeBron, runs?: NodeWeergav
     jas_subtype: el.jas_subtype,
     grensopties: el.verouderd ? [] : grensOpties(el, nb),
     anker: bereik ? maakAnker(nb.bron, bereik.start, bereik.eind, bereik.lid) : null,
-    diff: {},
     beslissingen: el.beslissingen ?? [],
     geproduceerd_door: run,
     verouderd: !!el.verouderd,
@@ -219,16 +217,12 @@ export function documentVanNode(view: NodeWeergave, nb: NodeBron): AnnotatieDocu
   const afgerond = view.lagen.length > 0 && view.lagen.every((l) => l.status === "geaccordeerd");
   return {
     slug: view.doel.bron_iri,
-    user_id: "",
-    client_id: "",
     citeertitel: nb.info.citeertitel,
-    werkgebied: "",
     bwbId: nb.info.bwbId,
     artikel: nb.info.artikel,
     lid: view.doel.lid ?? "",
     status: afgerond ? "geaccordeerd" : "in_review",
     elementen: view.elementen.map((e) => elementVanNode(e, nb, view.runs, view.lagen)),
-    runs: [],
     // Gedeelde laag: het paneel toont dan geen verwijderknop voor het geheel.
     laag_sleutel: view.doel.bron_iri,
   };
