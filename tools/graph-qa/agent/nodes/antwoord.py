@@ -22,7 +22,7 @@ from ..focus import na_antwoord
 from ..grounding import check_grounding, curate_sources, herstel_citaten
 from ..narratie import _grounding_melding, _stap, _toolregel, ronde_in_denk
 from ..overzicht import bronrijen as overzicht_bronrijen
-from ..sjablonen import SJABLONEN, sjabloon_schemas
+from ..sjablonen import SJABLONEN, sjabloon_schemas, sjabloon_uit_tekst
 from .overzicht import TOOL as OVERZICHT_TOOL
 from ..prompts import SYSTEM_PROMPT
 from ..provenance import collect_sources
@@ -95,6 +95,9 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         final = stream.final_message()
 
     tool_uses, text_parts = _parse_final(final)
+    if not tool_uses and spec.sjablonen and (aanroep := sjabloon_uit_tekst(text_parts, spec.sjablonen)):
+        logger.warning("sjabloon als tekst", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""), "sjabloon": aanroep["name"]})
+        tool_uses, text_parts = [aanroep], []
     # Een sjabloon rondt af: staat hij naast graaftools, dan eerst die, en daarna komt hij vanzelf terug.
     if len(tool_uses) > 1:
         tool_uses = [t for t in tool_uses if t["name"] not in SJABLONEN]
