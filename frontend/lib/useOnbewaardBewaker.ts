@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { verlaatPagina } from "@/lib/onbewaard";
 
@@ -14,9 +14,13 @@ import { verlaatPagina } from "@/lib/onbewaard";
  *  `bewaak`.
  *
  *  `wachtend` staat tot de gebruiker kiest; toon dan `OnbewaardMelding` met zijn `handeling`, `blijf`
- *  en `toch` (die zet de vlag zelf niet terug: dat doet de eigenaar van `onbewaard`). */
+ *  en `toch` (die zet de vlag zelf niet terug: dat doet de eigenaar van `onbewaard`).
+ *
+ *  `bewaak` leest de stand van nu, niet die van de render waarin hij werd opgepakt: een beurt van Lex die
+ *  pas klaar is als de jurist al typt, wisselt het paneel anders stil (FB-05). Hij is daarom stabiel, en
+ *  `doe` zelf mag niet opnieuw door `bewaak` lopen (na *Toch* staat de vlag nog even aan). */
 interface Wachtend {
-  handeling: "verlaten" | "sluiten";
+  handeling: "verlaten" | "sluiten" | "wisselen";
   doe: () => void;
 }
 
@@ -50,12 +54,16 @@ export function useOnbewaardBewaker(onbewaard: boolean) {
     if (!onbewaard) setWachtend(null);
   }
 
+  const actueel = useRef(onbewaard);
+  useLayoutEffect(() => {
+    actueel.current = onbewaard;
+  }, [onbewaard]);
   const bewaak = useCallback(
     (doe: () => void, handeling: Wachtend["handeling"] = "verlaten") => {
-      if (onbewaard) setWachtend({ handeling, doe });
+      if (actueel.current) setWachtend({ handeling, doe });
       else doe();
     },
-    [onbewaard],
+    [],
   );
   const blijf = useCallback(() => setWachtend(null), []);
   const toch = useCallback(() => {

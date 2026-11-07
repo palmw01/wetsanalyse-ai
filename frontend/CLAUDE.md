@@ -37,7 +37,13 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   eigen fetch-logica. De helper bewaakt ook de
   **wachttijd**, want Node's `fetch` kent geen standaardtimeout en een upstream die verbindt maar niet
   antwoordt laat de UI anders eeuwig laden: default 30 s → **504** met een leesbare reden
-  (onbereikbaar = 502); `timeoutMs` per route hoger waar dat hoort (de modeltest: 120 s).
+  (onbereikbaar = 502); `timeoutMs` per route hoger waar dat hoort (de modeltest: 120 s). De grens
+  geldt tot de headers: de body **stroomt door** zonder buffer, zodat een grote export (de PDF van een
+  werkgebied) niet op de time-out of het geheugen strandt. `Content-Encoding` en `Content-Length` gaan
+  daarom niet mee – Node's `fetch` heeft het gzip-antwoord van de api al uitgepakt. Leest een route
+  alleen de status van een proxy-antwoord (een eigenaarscontrole), sluit de stroom dan met `sluit()`.
+  `agent: true` maakt graph-qa de upstream, met zijn eigen token; de run-routes (starten, de actieve
+  run, stoppen) lopen zo ook via `proxy()`.
   **Uitzondering: SSE.** `app/api/annotatie/run/[id]/events/route.ts` gebruikt geen `proxy()` maar
   geeft `upstream.body` rauw door met `X-Accel-Buffering: no` en `Cache-Control: no-transform`.
 - **`app/api/_lib/session.ts`** – `sessionUserId()` voor de vertrouwde `X-User-Id`-header.
@@ -1005,6 +1011,12 @@ bestaat los van de gesprekken.
     tab vraagt dan eerst bevestiging (`OnbewaardMelding`), en herladen of sluiten vangt `beforeunload`. Een link elders
     (sidebar) en een knop die zelf navigeert vangt `useOnbewaardBewaker` (`lib/useOnbewaardBewaker.ts`: links in de
     capture-fase op `document`, knoppen via `bewaak`; `?instellingen=` opent over de pagina en telt niet).
+    In de werkplek hoort de bewaker van het paneel naast het gesprek bij `WerkplekClient` (FB-05): elke wissel van dat
+    paneel (een ander artefact, een annotatie of context ervoor in de plaats, opnieuw laden na een beurt) loopt door
+    `wisselPaneel`; `bewaak` leest de stand van nu, dus ook een beurt die later klaar is vraagt eerst.
+    `app/paneelWissel.test.ts` bewaakt dat de kale setter nergens anders staat.
+  - **Het concept van de vraag** staat per gesprek in `sessionStorage` (UI-08, `lib/conceptVraag.ts`, in try/catch):
+    een ander gesprek of herladen gooit een half getypte vraag niet weg; versturen wist hem.
   - **De poort rekent de server.** *Accorderen* staat uit zolang `accorderen.mag` onwaar is, met de
     redenen letterlijk eronder; met onbewaarde wijzigingen ook (de poort kijkt naar wat bewaard is).
   - **Elke knop per passage noemt zijn passage** (`aria-label`, "Akkoord met “…”"): dezelfde knoppen
@@ -1638,6 +1650,15 @@ leest als "hij laadt", niet als "log eerst in".
 
 ## Toegankelijkheid (WCAG 2.2 AA, NLDS-niveau)
 
+- **axe meet het machinaal toetsbare deel** in `npm run test:browser`: `scripts/axe.mjs`
+  (`toetsToegankelijkheid(page, scherm)`, tags `wcag2a`/`wcag2aa`/`wcag21aa`/`wcag22aa`) op de werkplek, de
+  annotaties, het annotatiepaneel, de werkgebieden en de instellingen. Elke overtreding faalt, zonder drempel op
+  ernst; een uitzondering staat in `UITZONDERINGEN` met regel en reden, voor alle schermen tegelijk. axe opent
+  een tweede pagina in de context, dus een script dat hem gebruikt maakt zijn pagina via `browser.newContext()`.
+  Toetsenbord, focus en aankondigingen meet axe niet: die bewaken de scripts met hun stappen.
+- **`text-faint` haalt 4,5:1 op paper, surface en surface-2, niet op een getint vlak** (`bg-lint/10`, de actieve
+  gespreksrij): gebruik daar `text-muted`.
+
 - Markeringen in de tekst zijn **`<mark role="button" tabIndex={0}>`** met een `onKeyDown` voor
   Enter/Space: bedienbaar met het toetsenbord (2.1.1) maar **inline**. Een echte `<button>` is
   inline-block en wordt bij een markering over twee regels een rechthoekig blok. Daarbij hoort
@@ -1667,7 +1688,7 @@ zelf geen `traceparent` op de request**, dus de keten valt dan stil uiteen in lo
 die hun eigen fetch doen. Zonder OTel is het een no-op.
 
 `lib/logger.ts` is de **server-only** JSON-logger (secret-redactie, `LOG_LEVEL`, `trace_id`/`span_id`),
-gebruikt in `proxy.ts`, `lib/server.ts` en de routes die zelf fetchen (run, artikel, gesprekken,
+gebruikt in `proxy.ts`, `lib/server.ts` en de routes die zelf fetchen (de run-events, het agent-geheugen bij gesprekken,
 ui-spoor). Nooit importeren in een Client Component, nooit tokens, secrets of inhoud loggen. In vitest
 wordt `server-only` gestubd (`vitest.config.ts` → `test/stub-empty.ts`).
 

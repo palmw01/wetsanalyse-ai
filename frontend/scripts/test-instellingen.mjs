@@ -20,6 +20,7 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { toetsToegankelijkheid } from "./axe.mjs";
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const nu = "2026-11-05T09:42:00Z", straks = "2026-11-12T09:42:00Z";
@@ -116,6 +117,7 @@ try {
   await wachtwoord.fill("fout");
   await analist.page.getByRole("button", { name: "Doorgaan" }).click();
   await analist.page.getByText("Huidig wachtwoord onjuist.").waitFor();
+  await toetsToegankelijkheid(analist.page, "instellingen – beveiliging met fout");
   assert.equal(await analist.page.getByAltText("QR-code voor 2FA").count(), 0);
   await wachtwoord.fill("goed");
   await analist.page.getByRole("button", { name: "Doorgaan" }).click();
@@ -126,6 +128,7 @@ try {
   const { page, fouten, stand } = await open("beheerder");
   await page.goto(`${base}/workbench?instellingen=gebruikers`);
   await page.getByText("Beheer", { exact: true }).waitFor();
+  await toetsToegankelijkheid(page, "instellingen – gebruikers");
 
   // Het budget is een samenvatting; bewerken gebeurt ter plekke.
   const budget = page.locator("[data-budget-beleid]");

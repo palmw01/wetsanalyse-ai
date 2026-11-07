@@ -4,10 +4,7 @@
 // herladen doodde het antwoord. Een run is een object van de server; starten,
 // meekijken (`[id]/events`) en stoppen (`[id]/cancel`) zijn losse handelingen.
 
-import { proxy } from "@/app/api/_lib/proxy";
-import { metTrace } from "@/lib/trace";
-import { graphQaAuthHeader, graphQaBaseUrl } from "@/lib/config";
-import { logger } from "@/lib/logger";
+import { proxy, sluit } from "@/app/api/_lib/proxy";
 import { geenSessie, sessionUserId } from "@/app/api/_lib/session";
 import { isPuntSegment, pathSegment } from "@/lib/url";
 
@@ -44,35 +41,27 @@ export async function POST(req: Request) {
       headers: { "X-User-Id": userid },
     });
     if (eigen.status === 404) {
+      await sluit(eigen);
       return Response.json({ detail: "Onbekend gesprek." }, { status: 404 });
     }
     // Elke andere fout is een storing bij de api, geen oordeel over het gesprek: die status gaat
     // ongewijzigd door, zodat de werkplek "probeer het zo opnieuw" kan zeggen in plaats van
     // "onbekend gesprek".
     if (!eigen.ok) return eigen;
+    await sluit(eigen);
   }
 
-  try {
-    // Bewust ZONDER `req.signal`: de browser die deze POST afbreekt mag de run niet meenemen —
-    // dat was precies de oude fout. Alleen een eigen timeout op het starten zelf.
-    const upstream = await fetch(`${graphQaBaseUrl()}/v1/runs`, {
-      method: "POST",
-      headers: metTrace({ ...graphQaAuthHeader(), "X-User-Id": userid, "Content-Type": "application/json" }),
-      body,
-      cache: "no-store",
-      signal: AbortSignal.timeout(START_TIMEOUT_MS),
-    });
-    const text = await upstream.text();
-    // 409 (er loopt al een run) gaat ongewijzigd door: de client hoort daarop aan te haken bij het
-    // meegegeven run_id, niet te falen.
-    return new Response(text || null, {
-      status: upstream.status,
-      headers: { "Content-Type": upstream.headers.get("content-type") ?? "application/json" },
-    });
-  } catch (err) {
-    logger.warn("Run-proxy: agent onbereikbaar", { fout: (err as Error).message });
-    return Response.json({ detail: `Agent onbereikbaar (${(err as Error).message})` }, { status: 502 });
-  }
+  // Bewust ZONDER `req.signal`: de browser die deze POST afbreekt mag de run niet meenemen — dat was
+  // precies de oude fout. `proxy()` geeft hem ook niet door; alleen een eigen timeout op het starten.
+  // 409 (er loopt al een run) gaat ongewijzigd door: de client hoort daarop aan te haken bij het
+  // meegegeven run_id, niet te falen.
+  return proxy("/v1/runs", {
+    agent: true,
+    method: "POST",
+    headers: { "X-User-Id": userid, "Content-Type": "application/json" },
+    body,
+    timeoutMs: START_TIMEOUT_MS,
+  });
 }
 
 /** `?gesprek=<id>` → de run waar je op kunt aanhaken, of `null`. Dit is wat de werkplek bij
@@ -84,28 +73,15 @@ export async function GET(req: Request) {
   const gesprek = new URL(req.url).searchParams.get("gesprek") ?? "";
   // `pathSegment` weigert `..` met een fout, en die zou hieronder een 502 worden.
   if (!gesprek || isPuntSegment(gesprek)) return Response.json(null);
-  try {
-    const upstream = await fetch(
-      `${graphQaBaseUrl()}/v1/conversations/${pathSegment(gesprek)}/run`,
-      {
-        // Zonder deze header zou een gespreks-id – dat gewoon in de URL van de werkplek staat —
-        // genoeg zijn om andermans lopende vraag en antwoord te lezen.
-        headers: metTrace({ ...graphQaAuthHeader(), "X-User-Id": userid }),
-        cache: "no-store",
-        signal: AbortSignal.timeout(10_000),
-      },
-    );
-    const text = await upstream.text();
-    return new Response(text || null, {
-      status: upstream.status,
-      headers: { "Content-Type": upstream.headers.get("content-type") ?? "application/json" },
-    });
-  } catch (err) {
-    // Een fout is géén `null`: `null` betekent "er loopt niets", en dat is een uitspraak die we hier
-    // juist niet kunnen doen. Gaven we hem toch, dan las de werkplek een timeout als een beurt die
-    // verdwenen was – mét de bijbehorende waarschuwing – terwijl de run gewoon doorliep. De client
-    // maakt dat onderscheid wél (`haalActieveRun` → `"onbekend"`) en laat het dan stil.
-    logger.warn("Run-proxy: actieve run niet op te halen", { fout: (err as Error).message });
-    return Response.json({ detail: "Actieve run niet op te halen." }, { status: 502 });
-  }
+  // Een fout is géén `null`: `null` betekent "er loopt niets", en dat is een uitspraak die we bij een
+  // storing juist niet kunnen doen. Gaven we hem toch, dan las de werkplek een timeout als een beurt
+  // die verdwenen was – mét de bijbehorende waarschuwing – terwijl de run gewoon doorliep. `proxy()`
+  // geeft dan 502/504, en de client maakt het onderscheid (`haalActieveRun` → `"onbekend"`).
+  return proxy(`/v1/conversations/${pathSegment(gesprek)}/run`, {
+    agent: true,
+    // Zonder deze header zou een gespreks-id – dat gewoon in de URL van de werkplek staat — genoeg
+    // zijn om andermans lopende vraag en antwoord te lezen.
+    headers: { "X-User-Id": userid },
+    timeoutMs: 10_000,
+  });
 }

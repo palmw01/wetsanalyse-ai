@@ -7,9 +7,11 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { toetsToegankelijkheid } from "./axe.mjs";
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
-const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+// Een eigen context: axe opent voor zijn eindberekening een tweede pagina, en dat mag niet in die van `browser.newPage()`.
+const page = await (await browser.newContext({ viewport: { width: 1440, height: 1000 } })).newPage();
 const errors = [], requests = [];
 page.on("pageerror", (e) => errors.push(e.message));
 await page.context().addCookies(await sessieCookies(base));
@@ -142,6 +144,7 @@ try {
   // Het vertrouwde paneel: kop met statuspil, exportknop en afronden.
   await page.getByText("Invorderingswet 1990 – art. 9 lid 1", { exact: true }).waitFor();
   await page.getByRole("button", { name: "Annotatie afronden", exact: true }).waitFor();
+  await toetsToegankelijkheid(page, "annotatiepaneel");
   // Historie: per revisie wie wat deed, pas bij openklappen geladen; een geraakt element kies je met één klik.
   assert.equal(requests.filter((r) => r.path.endsWith("/revisies")).length, 0);
   const historie = page.getByTestId("revisies");
@@ -236,6 +239,7 @@ try {
   assert.equal((await page.getByTestId("annotatie-samenvatting").first().textContent()).trim(), SAMENVATTING);
   assert.equal(await page.getByTestId("werkplek-header").getAttribute("data-compact"), "ja");
   await page.getByText("Juridische analyse met AI", { exact: true }).first().waitFor();
+  await toetsToegankelijkheid(page, "werkplek met gesprek");
   await page.getByText("Invorderingswet – artikel 9 lid 1", { exact: true }).last().click();
   await wettekst().getByText("ontvanger", { exact: false }).waitFor();
   assert.equal(await wettekst().getByText("UITSLUITEND TWEE", { exact: false }).count(), 0);
@@ -271,6 +275,7 @@ try {
   await page.getByRole("button", { name: "Te beoordelen (1)" }).waitFor();
   await page.getByRole("button", { name: "Afgerond (0)" }).waitFor();
   await page.getByRole("button", { name: "Alles (2)" }).waitFor();
+  await toetsToegankelijkheid(page, "annotaties");
   assert.equal(await page.getByText("Klaar om af te ronden", { exact: true }).count(), 0);
   await page.getByRole("button", { name: "Af te ronden (1)" }).click();
   await page.waitForURL("**/annotaties?weergave=af-te-ronden");

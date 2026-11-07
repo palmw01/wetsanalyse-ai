@@ -23,6 +23,7 @@ POST /v1/auth/2fa/herstelcodes    – vervang de herstelcodes (code of herstelco
 
 from __future__ import annotations
 
+import ipaddress
 import logging
 from datetime import datetime
 from time import monotonic
@@ -294,23 +295,50 @@ async def _log_inlogpoging(userid: str, uitkomst: str) -> None:
                                       "userid": userid if bestaat else "(onbekend)"})
 
 
+#: De client wiens `X-Client-IP` de api gelooft: de BFF, die de header zelf zet (`frontend/lib/clientIp.ts`). Van
+#: elke andere client is de header een bewering van de aanroeper, dus telt hij niet.
+IP_VERTROUWD = frozenset({"frontend"})
+
+
+def vertrouwd_client_ip(client_id: str, waarde: str | None) -> str | None:
+    """Het client-IP voor de inlogrem, alleen van de BFF en alleen als het een IP-adres is (genormaliseerd)."""
+    if client_id not in IP_VERTROUWD or not waarde or len(waarde) > 64:
+        return None
+    try:
+        return str(ipaddress.ip_address(waarde.strip()))
+    except ValueError:
+        return None
+
+
 @router.post("/verify", response_model=VerifyResult)
-async def verify(body: VerifyIn):
-    if not ratelimit.login_allowed(body.userid):
+async def verify(
+    body: VerifyIn,
+    client_id: str = Depends(require_client),
+    x_client_ip: str | None = Header(default=None),
+):
+    poging = ratelimit.login_allowed(body.userid, vertrouwd_client_ip(client_id, x_client_ip))
+    if poging is None:
         await _log_inlogpoging(body.userid, "geremd")
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Te veel inlogpogingen; probeer later opnieuw.",
         )
+    # Alleen een misser remt: een fout wachtwoord of een foute code. Het eerste deel van een 2FA-login (wachtwoord
+    # goed, nog geen code), een openstaande aanvraag (wachtwoord goed) en een storing aan onze kant zijn dat niet.
+    misser = False
     try:
         user, code = await users.verify_credentials(
             body.userid, body.password, body.totp,
             ticket=body.ticket, trusted_token=body.trusted_token,
         )
+        misser = code == "invalid" or (code == "totp_required" and bool(body.totp))
     except SecretsCryptoError:
         # 2FA staat aan maar het secret kan niet ontsleuteld worden (master key weg/geroteerd).
         await _log_inlogpoging(body.userid, "secret_onleesbaar")
         return VerifyResult(ok=False, code="invalid")
+    finally:
+        if not misser:
+            ratelimit.login_telt_niet(poging)
     await _log_inlogpoging(body.userid, code)
     if user is None:
         # Wachtwoord klopte maar 2FA is nog nodig → geef een login-ticket mee zodat het aparte

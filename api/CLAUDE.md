@@ -1234,6 +1234,11 @@ providerfout alleen in het serverlog. De rate-limiter is begrensd (sweep + harde
 sleutels, fail-closed), zodat aanvaller-gekozen sleutels via de publieke login-route het geheugen
 niet vullen. `POST /v1/auth/registratie` heeft een eigen rate limit.
 
+De inlogrem op `/v1/auth/verify` telt alleen **missers** (fout wachtwoord, foute code), per (client-IP, userid),
+plus een globale teller op twintig keer die grens. Het IP komt uit `X-Client-IP`, en alleen van de client
+`frontend` (`IP_VERTROUWD` in `routers/auth.py`); de BFF leest het in `frontend/lib/clientIp.ts`. Zonder
+vertrouwd IP remt hij op de userid alleen. Zo sluiten de missers van een ander de echte gebruiker niet buiten.
+
 ## Nog niet gebouwd
 
 - **Externe IdP/OIDC.** De API is zelf de identiteitsbron.

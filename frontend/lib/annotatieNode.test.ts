@@ -14,6 +14,10 @@ describe("canonieke bronnode-annotaties", () => {
     const fout = await nodeError(new Response(JSON.stringify({ detail: { reden: "slot", melding: "Deze laag is afgerond." } }), { status: 409 }));
     expect(fout.message).toBe("Deze laag is afgerond.");
   });
+  it("valt zonder tekst van de server terug op een eigen melding", async () => {
+    const fout = await nodeError(new Response("", { status: 500 }));
+    expect(fout.message).toBe("Verzoek mislukt (500).");
+  });
   it("vertaalt DOM UTF-16 naar lokale Unicode posities zonder siblingtekst", () => {
     const segment = { bron_iri: "urn:lid2", type: "Lid", label: "Lid 2", tekst: "A😀 café", bron_hash: "sha256", volgorde: 2 };
     expect(codepointOffset(segment.tekst, 3)).toBe(2);
