@@ -22,20 +22,26 @@ nooit terug.
 from __future__ import annotations
 
 import base64
+import asyncio
 import hashlib
 import hmac
 import json
 import re
 import secrets
 import time
+from concurrent.futures import ThreadPoolExecutor
+from typing import Callable, TypeVar
 
 import bcrypt
 import pyotp
+from fastapi import HTTPException, status
 from sqlalchemy import delete, func, insert, or_, select, text, update
 
 from . import db
 from .secrets_crypto import crypto_beschikbaar, decrypt, decrypt_ttl, encrypt
 from .user import ROLLEN, User, _utcnow
+
+T = TypeVar("T")
 
 # TTL's voor de stateless auth-tokens (Fernet stempelt zelf de timestamp).
 _LOGIN_TICKET_TTL_S = 5 * 60            # login-ticket: 5 min tussen wachtwoord- en 2FA-stap
@@ -113,6 +119,34 @@ def verify_password(plain: str, hashed: str) -> bool:
         return bcrypt.checkpw(plain.encode("utf-8")[:72], hashed.encode("ascii"))
     except ValueError:
         return False
+
+
+# bcrypt kost op deze replica's honderden milliseconden CPU en laat de GIL los. Op de event loop zou elke
+# inlogpoging, ook een anonieme, alle andere verzoeken stilzetten. Daarom een eigen kleine pool, met een grens op
+# de wachtrij: anders verplaatst de wachtrij het probleem alleen en wacht de echte gebruiker achter een golf pogingen.
+_BCRYPT_POOL = ThreadPoolExecutor(max_workers=2, thread_name_prefix="bcrypt")
+_BCRYPT_MAX_WACHTEND = 20
+_bcrypt_wachtend = 0
+
+
+async def _in_bcrypt_pool(fn: Callable[..., T], *args) -> T:
+    global _bcrypt_wachtend
+    if _bcrypt_wachtend >= _BCRYPT_MAX_WACHTEND:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Het is even druk; probeer het zo opnieuw.",
+                            headers={"Retry-After": "5"})
+    _bcrypt_wachtend += 1
+    try:
+        return await asyncio.get_running_loop().run_in_executor(_BCRYPT_POOL, fn, *args)
+    finally:
+        _bcrypt_wachtend -= 1
+
+
+async def hash_wachtwoord(plain: str) -> str:
+    return await _in_bcrypt_pool(hash_password, plain)
+
+
+async def controleer_wachtwoord(plain: str, hashed: str) -> bool:
+    return await _in_bcrypt_pool(verify_password, plain, hashed)
 
 
 # Vaste dummy-hash om bij een onbekende/inactieve gebruiker toch de bcrypt-kost te betalen
@@ -375,7 +409,7 @@ async def _aanvraag_status(userid: str, password: str) -> str:
     from . import registraties  # lokaal: registraties importeert deze module
 
     aanvraag = await registraties.openstaand_voor_userid(userid)
-    if aanvraag is None or not verify_password(password, aanvraag.password_hash):
+    if aanvraag is None or not await controleer_wachtwoord(password, aanvraag.password_hash):
         return "invalid"
     return "aanvraag_open"
 
@@ -408,11 +442,11 @@ async def verify_credentials(
     if user is None or not user.active:
         if not ticket_ok:
             # Constant-tijd: betaal de bcrypt-kost ook bij een onbekende/inactieve user.
-            verify_password(password, _DUMMY_HASH)
+            await controleer_wachtwoord(password, _DUMMY_HASH)
         if user is None:
             return None, await _aanvraag_status(userid, password)
         return None, "invalid"
-    if not ticket_ok and not verify_password(password, user.password_hash):
+    if not ticket_ok and not await controleer_wachtwoord(password, user.password_hash):
         return None, "invalid"
     if user.totp_enabled:
         if await valideer_trusted_device(trusted_token) == userid:
@@ -477,7 +511,7 @@ async def insert_user_met_hash(userid: str, email: str, password_hash: str, *, r
 
 
 async def _insert_user(userid: str, email: str, password: str, *, role: str) -> User:
-    return await insert_user_met_hash(userid, email, hash_password(password), role=role)
+    return await insert_user_met_hash(userid, email, await hash_wachtwoord(password), role=role)
 
 
 # --- eenmalige registratie (bootstrap) -----------------------------------------
@@ -587,7 +621,7 @@ async def reset_password(userid: str) -> tuple[User, str]:
     """Zet een nieuw tijdelijk wachtwoord (eenmalig teruggegeven) en revoke alle sessies."""
     user = await _require_user(userid)
     tijdelijk = genereer_wachtwoord()
-    await _update(user.userid, password_hash=hash_password(tijdelijk), sessions_valid_from=_utcnow())
+    await _update(user.userid, password_hash=await hash_wachtwoord(tijdelijk), sessions_valid_from=_utcnow())
     return user, tijdelijk
 
 
@@ -596,9 +630,9 @@ async def change_own_password(userid: str, current: str, nieuw: str) -> None:
     sessie-epoch zodat bestaande sessies op andere apparaten vervallen (het acterende apparaat logt
     zelf opnieuw in)."""
     user = await _require_user(userid)
-    if not user.active or not verify_password(current, user.password_hash):
+    if not user.active or not await controleer_wachtwoord(current, user.password_hash):
         raise UserError("Huidig wachtwoord onjuist.")
-    await _update(user.userid, password_hash=hash_password(nieuw), sessions_valid_from=_utcnow())
+    await _update(user.userid, password_hash=await hash_wachtwoord(nieuw), sessions_valid_from=_utcnow())
 
 
 async def delete_user(userid: str) -> None:
@@ -634,7 +668,7 @@ async def begin_2fa(userid: str, password: str) -> str:
     UPDATE zelf, zodat een gelijktijdige `activate_2fa` er niet tussendoor valt.
     """
     user = await _require_user(userid)
-    if not user.active or not verify_password(password, user.password_hash):
+    if not user.active or not await controleer_wachtwoord(password, user.password_hash):
         raise UserError("Huidig wachtwoord onjuist.")
     secret = pyotp.random_base32()
     async with db.get_engine().begin() as conn:
