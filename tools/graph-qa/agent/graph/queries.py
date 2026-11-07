@@ -280,6 +280,7 @@ def fts(
   OPTIONAL {{ ?node rdfs:label ?label }}
   OPTIONAL {{ ?node bwb:tekst ?tekst }}
   OPTIONAL {{ ?node bwb:jci ?jci }}
+  OPTIONAL {{ ?node bwb:status ?status }}
   OPTIONAL {{ ?node a ?t . FILTER(?t IN ({", ".join(CONCRETE_TYPES)})) BIND(STRAFTER(STR(?t), "{ONTOLOGIE}") AS ?soort) }}
   BIND(SUBSTR(STR(?node), {len(NS) + 1}) AS ?rest)
   BIND(IF(CONTAINS(?rest, "{SEP}"), STRBEFORE(?rest, "{SEP}"), ?rest) AS ?bwbId)
@@ -511,9 +512,10 @@ def get_artikel(bwb_id: str, artikel: str) -> str:
     wie hem als het hele lid toont, laat stil de helft van de wet weg (artikel 9, lid 11 IW 1990).
     """
     iri = artikel_iri(bwb_id, artikel)
-    return PREFIXES + f"""SELECT ?tekst ?jci ?lid ?lidnummer ?lidtekst ?lidonderdelen ?o ?onderdeel ?onderdeeltekst WHERE {{
+    return PREFIXES + f"""SELECT ?tekst ?jci ?status ?lid ?lidnummer ?lidtekst ?lidonderdelen ?o ?onderdeel ?onderdeeltekst WHERE {{
   OPTIONAL {{ <{iri}> bwb:tekst ?tekst }}
   OPTIONAL {{ <{iri}> bwb:jci ?jci }}
+  OPTIONAL {{ <{iri}> bwb:status ?status }}
   OPTIONAL {{
     <{iri}> bwb:heeftLid ?lid .
     FILTER(STRSTARTS(STR(?lid), "{NS}"))
@@ -558,10 +560,12 @@ def get_lid(bwb_id: str, artikel: str, lid: str) -> str:
     # Eén rij per onderdeel (de handler zet de lidvelden één keer apart en pagineert op hele
     # onderdelen). Vroeger zaten ze in één GROUP_CONCAT-cel om onder de 8000-tekenkap te blijven –
     # één cel kan niet op een onderdeelgrens worden voortgezet, rijen wel.
-    return PREFIXES + f"""SELECT ?nummer ?tekst ?jci ?o ?onummer ?otekst ?ojci WHERE {{
+    return PREFIXES + f"""SELECT ?nummer ?tekst ?jci ?status ?o ?onummer ?otekst ?ojci WHERE {{
   OPTIONAL {{ <{iri}> bwb:nummer ?nummer }}
   OPTIONAL {{ <{iri}> bwb:tekst ?tekst }}
   OPTIONAL {{ <{iri}> bwb:jci ?jci }}
+  # De bron zet de status op het artikel, niet op het lid.
+  OPTIONAL {{ ?artikel bwb:heeftLid <{iri}> ; bwb:status ?status }}
   OPTIONAL {{
     <{iri}> bwb:heeftOnderdeel+ ?o .
     FILTER(STRSTARTS(STR(?o), "{NS}"))
@@ -598,7 +602,7 @@ def get_bepaling(bwb_id: str, nummer: str) -> str:
     """
     lit = _lit(_nummer_vrij(nummer))
     scope = f"{NS}{_bwb(bwb_id)}"
-    return PREFIXES + f"""SELECT ?node ?nummer ?tekst ?label ?jci ?soort ?sub ?subnummer ?sublabel ?subbegin WHERE {{
+    return PREFIXES + f"""SELECT ?node ?nummer ?tekst ?label ?jci ?status ?soort ?sub ?subnummer ?sublabel ?subbegin WHERE {{
   {{ SELECT DISTINCT ?node ?tekst WHERE {{
       ?node bwb:nummer {lit} .
       FILTER(STRSTARTS(STR(?node), "{scope}"))

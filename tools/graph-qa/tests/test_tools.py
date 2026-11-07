@@ -53,6 +53,17 @@ def test_dispatch_get_artikel():
     assert ":artikel:9>" in g.queries[0]
 
 
+def test_een_bepaling_die_nog_niet_geldt_zegt_dat_bij_de_tekst():
+    g = FakeGraph(result='?tekst\t?status\n"Tekst."\t"nogniet"\n')
+    uit = {"artikel": ("get_artikel", {"artikel": "57a"}), "lid": ("get_lid", {"artikel": "6f", "lid": "1"})}
+    for kop, (tool, args) in uit.items():
+        assert json.loads(tools.dispatch(tool, g, {"bwb_id": "BWBR0004770", **args}))[kop]["nog_niet_in_werking"] is True
+    g = FakeGraph(result='?node\t?status\n<urn:bwb:BWBR0004770:artikel:9>\t"nogniet"\n')
+    assert json.loads(tools.dispatch("get_bepaling", g, {"bwb_id": "BWBR0004770", "nummer": "9"}))["bepaling"]["nog_niet_in_werking"] is True
+    g = FakeGraph(result='?tekst\t?status\n"Tekst."\t"goed"\n')
+    assert "nog_niet_in_werking" not in json.dumps(json.loads(tools.dispatch("get_artikel", g, {"bwb_id": "BWBR0004770", "artikel": "9"})))
+
+
 def test_dispatch_vangt_validatiefout_op():
     g = FakeGraph()
     out = tools.dispatch("get_artikel", g, {"bwb_id": "kwaadaardig", "artikel": "9"})

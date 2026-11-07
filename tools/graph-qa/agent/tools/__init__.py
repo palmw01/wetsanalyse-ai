@@ -19,6 +19,7 @@ from collections.abc import Callable
 from typing import Any
 
 import httpx
+from bronmodel import NOG_NIET
 
 from ..graph import queries, schema
 from ..graph.results import parse_select
@@ -154,10 +155,16 @@ def _offset(a: dict[str, Any]) -> int:
     return _geheel(a.get("offset"), 0, 0, 100_000)
 
 
+def _werking(kop: dict[str, Any]) -> dict[str, bool]:
+    """Staat de bepaling al in de regeling maar geldt ze nog niet? Dan hoort dat bij de tekst die het model leest."""
+    return {"nog_niet_in_werking": True} if kop.get("status") == NOG_NIET else {}
+
+
 def _h_get_artikel(g: GraphPort, a: dict[str, Any]) -> str:
     rijen = parse_select(g.sparql(queries.get_artikel(a["bwb_id"], a["artikel"])))
     kop = rijen[0] if rijen else {}
-    artikel = {"iri": queries.artikel_iri(a["bwb_id"], a["artikel"]), "tekst": kop.get("tekst", ""), "jci": kop.get("jci", "")}
+    artikel = {"iri": queries.artikel_iri(a["bwb_id"], a["artikel"]), "tekst": kop.get("tekst", ""), "jci": kop.get("jci", ""),
+               **_werking(kop)}
     # De leden (of de onderdelen direct onder een artikel zonder leden) als hele eenheden, in de
     # volgorde van de query (numeriek op lidnummer). Een lid wordt nooit doorgeknipt.
     eenheden, gezien = [], set()
@@ -177,7 +184,7 @@ def _h_get_lid(g: GraphPort, a: dict[str, Any]) -> str:
     rijen = parse_select(g.sparql(queries.get_lid(a["bwb_id"], a["artikel"], a["lid"])))
     kop = rijen[0] if rijen else {}
     lid = {"iri": queries.lid_iri(a["bwb_id"], a["artikel"], a["lid"]), "nummer": kop.get("nummer", ""),
-           "tekst": kop.get("tekst", ""), "jci": kop.get("jci", "")}
+           "tekst": kop.get("tekst", ""), "jci": kop.get("jci", ""), **_werking(kop)}
     onderdelen = {r["o"]: compact({"onderdeel": r["o"], "nummer": r.get("onummer"), "tekst": r.get("otekst"),
                                    "jci": _zonder_datum(r.get("ojci", ""))}) for r in rijen if r.get("o")}
     eenheden = [onderdelen[iri] for iri in sorted(onderdelen, key=_onderdeelsleutel)]
@@ -191,7 +198,7 @@ def _h_get_bepaling(g: GraphPort, a: dict[str, Any]) -> str:
     if not rijen:
         raise ValueError(f"Bepaling {a['nummer']!r} niet gevonden in {a['bwb_id']}.")
     kop = rijen[0]
-    bepaling = {"iri": kop.get("node", ""), **{k: kop.get(k, "") for k in ("nummer", "soort", "label", "tekst", "jci")}}
+    bepaling = {"iri": kop.get("node", ""), **{k: kop.get(k, "") for k in ("nummer", "soort", "label", "tekst", "jci")}, **_werking(kop)}
     subs = {r["sub"]: compact({"sub": r["sub"], "nummer": r.get("subnummer"), "label": r.get("sublabel"),
                                "begin": r.get("subbegin")}) for r in rijen if r.get("sub")}
     eenheden = sorted(subs.values(), key=lambda r: (natuurlijke_sleutel(r.get("nummer", "")), r["sub"]))

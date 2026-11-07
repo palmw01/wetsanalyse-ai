@@ -25,6 +25,16 @@ def snapshot(**kwargs):
     return bouw_snapshot(fixture(), bwb_id=BWB, **kwargs)
 
 
+def test_een_lid_erft_de_status_en_die_raakt_de_bronidentiteit_niet():
+    rijen = fixture()
+    rijen[1] = {**rijen[1], "status": "nogniet"}
+    s = bouw_snapshot(rijen, bwb_id=BWB, artikel="9", lid="1")
+    assert s["doel"]["status"] == "nogniet"
+    assert {n["status"] for n in s["segmenten"]} == {"nogniet"}
+    assert s["snapshot_id"] == snapshot(artikel="9", lid="1")["snapshot_id"]
+    assert snapshot()["nodes"][0]["status"] == ""
+
+
 def test_lid_selection_keeps_xml_identity_and_subtree_without_sibling():
     s = snapshot(artikel="9", lid="1")
     assert s["doel"]["bron_iri"] == ROOT + ":id:lid-een"

@@ -11,10 +11,11 @@ import { Melding } from "@/components/ui/Melding";
 import { PaneelKop } from "@/components/ui/PaneelKop";
 import { VersieKiezer } from "@/components/ui/VersieKiezer";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { NogNietInWerking } from "@/components/bronnen/NogNietInWerking";
 import { ArtefactInhoud } from "@/components/werkplek/ArtefactInhoud";
 import { foutTekst, type ExportFormaat } from "@/lib/api";
 import {
-  apiOpslag, momentopnameOpslag, nodeLink, verwachteRevisies,
+  apiOpslag, momentopnameOpslag, nodeLink, nogNietInWerking, verwachteRevisies,
   type NodeDoel, type NodeElement, type NodeOpslag, type NodeWeergave,
 } from "@/lib/annotatieNode";
 import {
@@ -267,6 +268,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
             onVraag={onVraag || onVraagOverBron ? vraagOverKnoop : undefined} />
         </div>
       )}
+      {(!toonTabs || tab === "tekst") && view?.segmenten.some(nogNietInWerking) && <div className="px-4 pt-3"><NogNietInWerking /></div>}
       {(!toonTabs || tab === "tekst") && <ArtefactInhoud
         doc={doc}
         info={nb.info}

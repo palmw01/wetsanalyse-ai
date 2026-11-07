@@ -194,6 +194,13 @@ A = {"onderdeel": f"{LID}:o:a", "nummer": "a.", "tekst": "zolang twijfel bestaat
 B1 = {"onderdeel": f"{LID}:o:b:o:1", "nummer": "1°.", "tekst": "de eerste grond;"}
 
 
+def test_een_lid_erft_dat_zijn_artikel_nog_niet_geldt():
+    a = vul("antwoord_bepaling", {"bepalingen": [ART], "toelichting": ""}, [artikel(EEN, nog_niet_in_werking=True)])
+    assert [b.nog_niet_in_werking for b in a.blokken[0].items] == [True]
+    assert "nog niet in werking getreden" in antwoord_tekst(a)
+    assert not vul("antwoord_bepaling", {"bepalingen": [ART], "toelichting": ""}, [artikel(EEN)]).blokken[0].items[0].nog_niet_in_werking
+
+
 def test_een_artikel_toont_elk_lid_met_zijn_eigen_vindplaats():
     a = vul("antwoord_bepaling", {"bepalingen": [ART], "toelichting": "Regelt de termijn."}, [artikel(EEN)])
     assert [b.soort for b in a.blokken] == ["wettekst", "toelichting"]
