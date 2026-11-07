@@ -556,7 +556,7 @@ class GraphDbWriter:
         )
         logger.info("FTS-connector %s aangemaakt", _FTS_CONNECTOR_NAAM)
 
-    def ensure_similarity_index(self) -> None:
+    def ensure_similarity_index(self, *, herbouw: bool = False) -> None:
         """Waarborg de text-similarity-index (zelfherstellend, idempotent, nooit fataal).
 
         De tegenhanger van :meth:`ensure_fts_connector` voor `semantic_search`. De index overleeft
@@ -568,16 +568,25 @@ class GraphDbWriter:
         volledig bevraagbaar; alleen het semantisch zoeken degradeert. Rood worden zou een geslaagde
         import weggooien om een hulpindex.
 
-        Wat hij bewust *niet* doet: een bestaande index herbouwen. Een similarity-index is een
-        momentopname, dus na een wekelijkse herimport blijft hij op de vorige wettekst staan. Dat is
-        de goedkope kant van de afweging — herbouwen kost bij elke run een training, terwijl de
-        wettekst zelden verandert. Waar het op aankomt is de lege graaf ná een herstart, en daar
-        bestaat de index niet en wordt hij dus wél gebouwd.
+        Een bestaande index herbouwt hij alleen met `herbouw`, als er een wet bijkwam. Een similarity-index
+        is een momentopname, dus na een wekelijkse herimport blijft hij op de vorige wettekst staan. Dat is
+        de goedkope kant van de afweging — herbouwen kost bij elke run een training, terwijl de wettekst
+        zelden verandert. Een ontbrekende wet is iets anders: na een run waarin ze mislukte, stond de index
+        anders tot de volgende herstart op een onvolledige graaf.
         """
         try:
             if _SIMILARITY_NAAM in self._bestaande_similarity_indexen():
-                logger.info("similarity-index %s bestaat al", _SIMILARITY_NAAM)
-                return
+                if not herbouw:
+                    logger.info("similarity-index %s bestaat al", _SIMILARITY_NAAM)
+                    return
+                self._http.delete(
+                    f"{self._url}/rest/similarity",
+                    params={"name": _SIMILARITY_NAAM},
+                    headers={"X-GraphDB-Repository": self._repo},
+                    auth=self._auth,
+                    timeout=self._timeout,
+                ).raise_for_status()
+                logger.info("similarity-index %s weg, er kwam een wet bij", _SIMILARITY_NAAM)
             resp = self._http.post(
                 f"{self._url}/rest/similarity",
                 json=_similarity_index_config(self._vocab),

@@ -142,8 +142,10 @@ def run_imports(bwb_ids: list[str], settings: Settings) -> list[ImportResult]:
     # met wat er wordt geschreven) is een similarity-index een momentopname: hij wordt bij het
     # aanmaken getraind over wat er op dát moment staat. In `prepare()` zou hij dus over een lege
     # graaf worden gebouwd en daarna nooit iets vinden.
-    if any(not summary.tegengehouden for summary in verwerkt.values()):
-        writer.ensure_similarity_index()
+    geschreven = [bwb_id for bwb_id, summary in verwerkt.items() if not summary.tegengehouden]
+    if geschreven:
+        # Kwam er een wet bij, dan mist een bestaande index die: bijvoorbeeld na een run waarin ze mislukte.
+        writer.ensure_similarity_index(herbouw=any(not stand[b].tekens for b in geschreven if b in stand))
 
     # De volgorde van `bwb_ids` aanhouden: het overzicht leest zoals de gebruiker het opgaf.
     resultaten: list[ImportResult] = []

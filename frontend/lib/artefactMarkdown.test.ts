@@ -54,9 +54,14 @@ describe("artefacten als Markdown", () => {
   });
 
   it("een bestandsnaam uit de titel", () => {
-    expect(bestandsnaam("Artikel 9 – Invorderingswet 1990")).toBe("artikel-9-invorderingswet-1990.md");
-    expect(bestandsnaam("Ö")).toBe("o.md");
-    expect(bestandsnaam("")).toBe("artefact.md");
+    const nu = new Date(2026, 10, 7, 9, 5, 3);
+    expect(bestandsnaam("Artikel 9 – Invorderingswet 1990", "md", nu)).toBe("artikel-9-invorderingswet-1990-20261107-090503.md");
+    expect(bestandsnaam("Ö", "md", nu)).toBe("o-20261107-090503.md");
+    expect(bestandsnaam("", "md", nu)).toBe("artefact-20261107-090503.md");
+  });
+
+  it("elke download een eigen bestand: een seconde later is een andere naam", () => {
+    expect(bestandsnaam("a", "md", new Date(2026, 10, 7, 9, 5, 3))).not.toBe(bestandsnaam("a", "md", new Date(2026, 10, 7, 9, 5, 4)));
   });
 });
 

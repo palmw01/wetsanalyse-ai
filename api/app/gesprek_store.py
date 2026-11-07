@@ -125,6 +125,13 @@ class GesprekStore:
                 updated=now,
             ))
 
+    async def eigenaar_van(self, gesprek_id: str) -> str | None:
+        """De eigenaar zonder de berichten: een schrijfroute hoeft het hele gesprek niet te laden."""
+        async with db.get_engine().connect() as conn:
+            return (await conn.execute(
+                select(db.gesprekken.c.user_id).where(db.gesprekken.c.id == gesprek_id)
+            )).scalar_one_or_none()
+
     async def laad_gesprek(self, gesprek_id: str) -> Gesprek | None:
         async with db.get_engine().connect() as conn:
             row = (await conn.execute(
