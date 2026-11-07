@@ -65,3 +65,10 @@ export function plaatsZin(plaats: readonly Structuurdeel[]): string {
     .map((p) => [soortnaam(p.soort), p.nummer].filter(Boolean).join(" ") + (p.titel ? ` – ${p.titel}` : ""))
     .join(" › ");
 }
+
+/** De toestand die Lex las (`&g=` in de jci van de beurt), als de graaf nu een latere draagt; anders niets. Dan kan de tekst
+ *  die het antwoord citeert intussen veranderd zijn, en het paneel zegt dat in plaats van het weg te poetsen. */
+export function afwijkendeToestand(gelezenJci: string | undefined, geldigVanaf: string | null): string | undefined {
+  const gelezen = /[&?]g=(\d{4}-\d{2}-\d{2})/.exec(gelezenJci ?? "")?.[1];
+  return gelezen && geldigVanaf && geldigVanaf > gelezen ? gelezen : undefined;
+}

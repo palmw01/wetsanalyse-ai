@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { BEPALING_DETAIL_VELDEN, parseBepalingDetail, plaatsZin } from "./bepalingDetail";
+import { BEPALING_DETAIL_VELDEN, afwijkendeToestand, parseBepalingDetail, plaatsZin } from "./bepalingDetail";
 
 const VP = { iri: "urn:bwb:BWBR0004770:artikel:36", label: "Artikel 36", jci: "", regeling: "Invorderingswet 1990" };
 const LEEG = { aantal: 0, items: [] };
@@ -34,5 +34,13 @@ describe("bepalingDetail", () => {
   it("noemt de plek in gewone woorden, met het opschrift", () => {
     expect(plaatsZin(DETAIL.plaats)).toBe("Hoofdstuk VI – Aansprakelijkheid › Afdeling 1");
     expect(plaatsZin([])).toBe("");
+  });
+
+  it("zegt alleen iets over de toestand als de graaf een latere draagt dan Lex las", () => {
+    const jci = "jci1.3:c:BWBR0004770&artikel=9&z=2026-07-01&g=2026-07-01";
+    expect(afwijkendeToestand(jci, "2026-10-01")).toBe("2026-07-01");
+    expect(afwijkendeToestand(jci, "2026-07-01")).toBeUndefined();
+    expect(afwijkendeToestand("", "2026-10-01")).toBeUndefined();
+    expect(afwijkendeToestand(jci, null)).toBeUndefined();
   });
 });

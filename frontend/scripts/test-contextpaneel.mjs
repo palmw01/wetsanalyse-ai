@@ -46,6 +46,22 @@ const wg = { id: "wg1", naam: "Invorderbaarheid", status: "in_voorbereiding", re
   bronnen: [{ id: "s1", bron_iri: LID, rol: "analyseren", bereik: "onderliggend", reden: "De afwijking", label: "Artikel 9, lid 2",
     bwb_id: "BWBR0004770", toegevoegd_door: "t", toegevoegd: "", snapshot_id: "", bron_hash: "" }] };
 
+// Wat de graaf verder over de bepaling weet (`GET bepaling`, ADR-008 *Detail bij een antwoord*).
+const VP = (iri, label, regeling = "Invorderingswet 1990") => ({ iri, label, jci: "", regeling });
+const LEEG = { aantal: 0, items: [] };
+const BEPALING = {
+  schema_versie: 1, bron_iri: LID, beschikbaar: true, vindplaats: VP(LID, "Artikel 9, lid 2"),
+  plaats: [{ soort: "hoofdstuk", nummer: "II", titel: "Invordering in eerste aanleg", iri: "urn:bwb:BWBR0004770:hoofdstuk:II" }],
+  status: "goed", inwerking: "2010-07-04", terugwerkend_tot: null, gewijzigd_bij: "Stb.2009-610", geldig_vanaf: "2026-10-01", geldig_tot: null,
+  toestand_url: "", verwijst_naar_volledig: true,
+  verwijst_naar: [{ van: VP(LID, "Artikel 9, lid 2"), naar: VP("urn:bwb:BWBR0004770:artikel:8", "Artikel 8"), anker: "artikel 8", in_graaf: true, door: "bron" },
+    { van: VP(LID, "Artikel 9, lid 2"), naar: VP("urn:bwb:BWBR0005291:artikel:45", "Artikel 45", ""), anker: "Artikel 45 van Boek 3 van het Burgerlijk Wetboek", in_graaf: false, door: "bron" }],
+  verwezen_door: { aantal: 14, items: [VP("urn:bwb:BWBR0004770:artikel:56:lid:1", "Artikel 56, lid 1")] },
+  grondslag_voor: LEEG, bevoegdheid_voor: { aantal: 2, items: [VP("urn:bwb:BWBR0004772", "Uitvoeringsbesluit Invorderingswet 1990", "Uitvoeringsbesluit Invorderingswet 1990")] },
+  genoemd_in: LEEG, definieert: [],
+};
+let graafWeg = false;
+
 await page.route("**/api/**", async (route) => {
   const req = route.request(), url = new URL(req.url()), p = url.pathname, m = req.method();
   if (p.startsWith("/api/auth/")) return route.continue();
@@ -60,6 +76,11 @@ await page.route("**/api/**", async (route) => {
       segmenten: [segment], lagen: [{ id: "l1", bron_iri: LID, revisie: 1, status: "in_review" }], elementen: [element], verwijzingen: [], dekking: {} } });
   if (p === "/api/annotatie/v2/elementen/e1")
     return route.fulfill({ json: { status: "ok", element, laag: { id: "l1", bron_iri: LID, revisie: 1, status: "in_review" }, snapshot_id: "snap-1", bronnen: [segment] } });
+  if (p === "/api/annotatie/v2/bepaling") {
+    if (graafWeg) return route.fulfill({ json: { ...BEPALING, beschikbaar: false, plaats: [], verwijst_naar: [] } });
+    return route.fulfill({ json: url.searchParams.get("bron_iri") === LID ? BEPALING : { ...BEPALING, bron_iri: url.searchParams.get("bron_iri"),
+      vindplaats: { iri: url.searchParams.get("bron_iri"), label: "Artikel 56, lid 1", jci: "", regeling: "Invorderingswet 1990" } } });
+  }
   if (p === "/api/annotatie/v2/verklaringen") return route.fulfill({ json: {} });
   if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: false } });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
@@ -82,6 +103,39 @@ try {
     `/bronnen?bron_iri=${encodeURIComponent(LID)}&werkgebied=wg1`, "de pagina in het werkgebied van het gesprek");
   // De chat blijft bruikbaar ernaast.
   assert.ok(await page.getByRole("textbox").last().isVisible());
+
+  // Onder de wettekst: wat de graaf verder weet, letterlijk uit het detail, zonder iets erbij te verzinnen.
+  const feiten = paneel("bron").locator("[data-bepaling-feiten=gereed]");
+  await feiten.waitFor();
+  assert.equal((await feiten.locator("[data-feit=plek]").textContent()).trim(), "Invorderingswet 1990 › Hoofdstuk II – Invordering in eerste aanleg");
+  await feiten.locator("[data-feit=inwerking]", { hasText: "4 juli 2010" }).waitFor();
+  assert.equal(await feiten.locator("[data-feit=verwijst-naar]").count(), 2, "elke verwijzing één keer");
+  assert.equal(await feiten.getByRole("button", { name: "Artikel 45" }).count(), 0, "een doel buiten de graaf is geen knop");
+  await feiten.getByText("Wordt genoemd in (14)").waitFor();
+  await feiten.getByText("en 13 meer").waitFor();
+  await feiten.getByText("Bevoegdheid voor (2)").waitFor();
+  assert.equal(await feiten.getByText("Grondslag voor").count(), 0, "een lege telling staat er niet");
+
+  // Op een telefoon en in een half venster: geen horizontale scroll in het paneel.
+  for (const width of [375, 800, 1280]) {
+    await page.setViewportSize({ width, height: 800 });
+    const breed = await paneel("bron").evaluate((el) => el.scrollWidth > el.clientWidth + 1);
+    assert.ok(!breed, `op ${width}px loopt het paneel niet over`);
+  }
+  await page.setViewportSize({ width: 1440, height: 1000 });
+
+  // Een verwijzing in de graaf opent in hetzelfde paneel.
+  await feiten.getByRole("button", { name: "Artikel 56, lid 1, Invorderingswet 1990" }).click();
+  await paneel("bron").locator("[data-feit=plek]").waitFor();
+  await page.getByRole("heading", { name: "Artikel 56, lid 1, Invorderingswet 1990" }).waitFor();
+
+  // Een haperende graaf zegt dat, en laat de wettekst staan.
+  graafWeg = true;
+  await page.getByRole("button", { name: "Artikel 9 lid 2", exact: true }).click();
+  await page.getByTestId("bronkaart").getByRole("button", { name: "Naast het gesprek" }).click();
+  await paneel("bron").locator("[data-bepaling-feiten=niet-beschikbaar]").waitFor();
+  await paneel("bron").getByText("invorderbaar op de dagtekening", { exact: false }).waitFor();
+  graafWeg = false;
 
   // Ook in een half venster: chat en paneel staan naast elkaar, allebei leesbaar breed.
   for (const width of [800, 960, 1024, 1280]) {
@@ -125,7 +179,7 @@ try {
   assert.equal(await page.locator("[data-context-paneel]").count(), 0);
 
   assert.deepEqual(errors, []);
-  console.log("Browser OK: bron uit een antwoord naast het gesprek met markeringen, element in hetzelfde paneel zonder beoordelingsknoppen, Open volledige pagina in het werkgebied, Bronnen in de chatkop, één paneel tegelijk, weg uit de werkplek is het paneel weg.");
+  console.log("Browser OK: bron uit een antwoord naast het gesprek met markeringen en wat de graaf verder weet (plek, geldigheid, verwijzingen, tellingen; haperende graaf gemeld), element in hetzelfde paneel zonder beoordelingsknoppen, Open volledige pagina in het werkgebied, Bronnen in de chatkop, één paneel tegelijk, weg uit de werkplek is het paneel weg.");
 } finally {
   await browser.close();
 }

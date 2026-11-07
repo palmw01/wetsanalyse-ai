@@ -18,7 +18,7 @@ export function Vindplaats({ vindplaats: v }: { vindplaats: AntwoordVindplaats }
       onClick={(e) => {
         if (!opener || e.metaKey || e.ctrlKey || e.shiftKey) return;
         e.preventDefault();
-        opener({ soort: "bron", bron_iri: v.iri, titel: label });
+        opener({ soort: "bron", bron_iri: v.iri, titel: label, jci: v.jci || undefined });
       }}
       className="focus-ring rounded text-lint underline underline-offset-2 [overflow-wrap:anywhere]">{label}</a>
   );
