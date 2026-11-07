@@ -26,6 +26,7 @@ from ..state import State
 from ..methode import instructies
 from ..berichten import eerdere_beurten
 from ..agents import register
+from ..agents.deelvragen import is_dekkingsvraag
 from ..supervisor import INTAKE_SYSTEM, SUPERVISOR_SYSTEM, VERVOLG_SYSTEM, parse_supervisor, parse_taak, parse_vraag
 from ..overzicht import is_overzichtsvraag
 from ..tools.annotatie_tools import is_leesvraag
@@ -175,6 +176,9 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         return _bronselectie(writer, "bepaalt met je de bronnen per deelvraag")
     if modus == "auto" and is_werkgebiedvraag(state.get("question", "")):
         return _werkgebied(writer, "stelt met je een werkgebied samen")
+    if modus == "auto" and state.get("werkgebied_id") and is_dekkingsvraag(state.get("question", "")):
+        # De stand van het werkgebied staat bij de api: geen LLM-call, en geen model dat een eigen indeling bouwt.
+        return _agent(writer, state, "deelvragen", "dekking", "")
 
     gesprek = _vervolgcontext(b, state)
     # Vóór de annotatie-leesvraag: "welke begrippen hebben we" noemt geen annotatie, maar "welke

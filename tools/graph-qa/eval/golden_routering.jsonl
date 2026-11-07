@@ -19,3 +19,8 @@
 {"id": "jas-klasse-welke", "vraag": "Welke elementen zijn als Rechtsfeit gemarkeerd?", "verwacht": {"route": "annotaties_zoeken", "model": false}}
 {"id": "jas-klasse-welke-zonder-gemarkeerd", "vraag": "Welke klassen komen in artikel 9 het meest voor?", "verwacht": {"route": "annotaties_zoeken", "model": false}}
 {"id": "jas-element-hoe", "vraag": "Hoe herken ik het element voorwaarde?", "verwacht": {"model": true}}
+{"id": "dekking-minst-uitgewerkt", "vraag": "Welke deelvraag is nog het minst uitgewerkt?", "context": {"werkgebied_id": "w1"}, "verwacht": {"route": "agent_taak", "model": false}}
+{"id": "dekking-gedekt", "vraag": "Is deelvraag 2 al gedekt?", "context": {"werkgebied_id": "w1"}, "verwacht": {"route": "agent_taak", "model": false}}
+{"id": "dekking-ontbreekt", "vraag": "Welke bepalingen ontbreken nog bij dit werkgebied?", "context": {"werkgebied_id": "w1"}, "verwacht": {"route": "agent_taak", "model": false}}
+{"id": "dekking-geen-handeling", "vraag": "Annoteer deelvraag 2.", "context": {"werkgebied_id": "w1"}, "verwacht": {"model": true}}
+{"id": "dekking-buiten-werkgebied", "vraag": "Welke deelvraag is het minst uitgewerkt?", "verwacht": {"model": true}}
