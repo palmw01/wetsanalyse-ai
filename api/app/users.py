@@ -35,7 +35,7 @@ from typing import Callable, TypeVar
 import bcrypt
 import pyotp
 from fastapi import HTTPException, status
-from sqlalchemy import delete, func, insert, or_, select, text, update
+from sqlalchemy import case, delete, func, insert, or_, select, text, update
 
 from . import db
 from .secrets_crypto import crypto_beschikbaar, decrypt, decrypt_ttl, encrypt
@@ -99,6 +99,8 @@ def _row_to_user(row) -> User:
         totp_enabled=m["totp_enabled"],
         active=m["active"],
         sessions_valid_from=db.aware(m["sessions_valid_from"]),
+        rondleiding_aangeboden=m["rondleiding_aangeboden"],
+        rondleiding_knop=m["rondleiding_knop"],
         created=db.aware(m["created"]),
         updated=db.aware(m["updated"]),
     )
@@ -636,6 +638,20 @@ async def _update(userid: str, **waarden) -> None:
     waarden["updated"] = _utcnow()
     async with db.get_engine().begin() as conn:
         await conn.execute(update(db.users).where(db.users.c.userid == userid).values(**waarden))
+
+
+async def zet_rondleiding(userid: str, *, aangeboden: int | None = None, knop: bool | None = None) -> User:
+    """Werkt de stand van de rondleiding bij. De versie gaat alleen omhoog: een browser met een oude
+    bundel mag een nieuwere versie niet opnieuw laten aanbieden."""
+    waarden: dict[str, object] = {}
+    if aangeboden is not None:
+        kolom = db.users.c.rondleiding_aangeboden
+        waarden["rondleiding_aangeboden"] = case((kolom < aangeboden, aangeboden), else_=kolom)
+    if knop is not None:
+        waarden["rondleiding_knop"] = knop
+    if waarden:
+        await _update(userid, **waarden)
+    return await _require_user(userid)
 
 
 # --- 2FA (TOTP) ----------------------------------------------------------------

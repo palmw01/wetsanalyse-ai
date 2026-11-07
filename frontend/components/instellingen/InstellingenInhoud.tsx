@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AccountClient } from "@/components/account/AccountClient";
 import { PasswordPanel } from "@/components/account/PasswordPanel";
+import { RondleidingPanel } from "@/components/account/RondleidingPanel";
 import { VerbruikPanel } from "@/components/account/VerbruikPanel";
 import { ApiTokensPanel } from "@/components/admin/ApiTokensPanel";
 import { BerichtenBeheerPanel } from "@/components/admin/BerichtenBeheerPanel";
@@ -22,6 +23,7 @@ const PANEEL: Record<TabKey, React.ReactNode> = {
   account: <PasswordPanel />,
   beveiliging: <AccountClient />,
   verbruik: <VerbruikPanel />,
+  rondleiding: <RondleidingPanel />,
   modelprofielen: <ProfielenPanel />,
   gebruikers: <UsersPanel />,
   registraties: <RegistratiesPanel />,

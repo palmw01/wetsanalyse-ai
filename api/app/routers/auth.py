@@ -13,6 +13,7 @@ POST /v1/auth/verify              – valideer userid + wachtwoord (+ optionele 
 POST /v1/auth/api-token/verify    – wissel een accounttoken in voor de identiteit van het account
 GET  /v1/auth/api-token/{id}/status – geldt het accounttoken nog? (de hercontrole van de BFF)
 GET  /v1/auth/me                  – eigen account (rol + of 2FA aanstaat) – X-User-Id
+PATCH /v1/auth/me/rondleiding     – stand van de rondleiding: aangeboden versie, knop op het startscherm – X-User-Id
 POST /v1/auth/change-password     – eigen wachtwoord wijzigen (huidig → nieuw) – X-User-Id
 POST /v1/auth/2fa/begin           – start 2FA-koppeling (met wachtwoord), geeft de otpauth-URI – X-User-Id
 POST /v1/auth/2fa/activate        – bevestig 2FA met één geldige code, geeft de herstelcodes – X-User-Id
@@ -120,8 +121,23 @@ class MeOut(BaseModel):
     # Beheerder zonder 2FA: de BFF houdt dat account buiten het beheer (`users.moet_2fa_koppelen`).
     tfa_nodig: bool = False
     herstelcodes_over: int = 0
+    # De hoogste rondleidingsversie die zich aan deze gebruiker heeft aangeboden (0 = nog nooit).
+    rondleiding_aangeboden: int = 0
+    # Staat de knop op het startscherm? Aan voor een nieuwe gebruiker; uit alleen op eigen keuze.
+    rondleiding_knop: bool = True
     # Sessie-epoch voor revocatie: de BFF verwerpt JWT's die vóór deze tijd zijn uitgegeven.
     sessions_valid_from: datetime | None = None
+
+
+class RondleidingIn(BaseModel):
+    """Alleen wat meegegeven wordt, verandert: de instellingen zetten `knop`, de rondleiding `aangeboden`."""
+    aangeboden: int | None = Field(default=None, ge=0, le=1000)
+    knop: bool | None = None
+
+
+class RondleidingOut(BaseModel):
+    rondleiding_aangeboden: int
+    rondleiding_knop: bool
 
 
 class TotpBeginOut(BaseModel):
@@ -350,8 +366,16 @@ async def me(userid: str = Depends(huidige_userid)):
         userid=user.userid, email=user.email, role=user.role, totp_enabled=user.totp_enabled,
         tfa_nodig=users.moet_2fa_koppelen(user),
         herstelcodes_over=await users.aantal_herstelcodes(user.userid),
+        rondleiding_aangeboden=user.rondleiding_aangeboden, rondleiding_knop=user.rondleiding_knop,
         sessions_valid_from=user.sessions_valid_from,
     )
+
+
+@router.patch("/me/rondleiding", response_model=RondleidingOut)
+async def rondleiding(body: RondleidingIn, userid: str = Depends(actieve_userid)):
+    """Een voorkeur van de gebruiker zelf, dus niet achter de 2FA-eis van het beheer."""
+    user = await users.zet_rondleiding(userid, aangeboden=body.aangeboden, knop=body.knop)
+    return RondleidingOut(rondleiding_aangeboden=user.rondleiding_aangeboden, rondleiding_knop=user.rondleiding_knop)
 
 
 def _rem_gevoelig(userid: str) -> None:

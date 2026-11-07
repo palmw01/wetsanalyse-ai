@@ -517,7 +517,7 @@ const SLEUTEL = "wa_rondleiding";
 
 export interface Stand {
   versie: number;
-  /** Heeft deze gebruiker de rondleiding afgerond of bewust overgeslagen? */
+  /** Heeft deze browser de rondleiding afgerond of bewust overgeslagen zien worden? */
   gezien: boolean;
   /** Waar hij was toen hij werd onderbroken. Leeg zodra de rondleiding is afgerond. */
   gestoptBij?: string;
@@ -525,10 +525,22 @@ export interface Stand {
 
 export const LEGE_STAND: Stand = { versie: RONDLEIDING_VERSIE, gezien: false };
 
-/** Start de rondleiding vanzelf? Alleen als deze browser hem nooit heeft gezien, en alleen voor de
- *  versie die nu draait – een latere uitbreiding kan zich zo opnieuw aanbieden. */
-export function moetStarten(stand: Stand): boolean {
-  return !stand.gezien || stand.versie < RONDLEIDING_VERSIE;
+/** Biedt de rondleiding zich vanzelf aan? Eén keer per gebruiker en per versie, dus een latere uitbreiding kan
+ *  zich opnieuw aanbieden. De api weet dat (`aangeboden`, `null` als hij niet antwoordde: dan blijft een aanbod
+ *  achterwege, want een dialoog tijdens een storing helpt niemand); de browser onthoudt alleen waar iemand op dit
+ *  apparaat onderbroken werd, en dat gaat vóór. */
+export function moetStarten(stand: Stand, aangeboden: number | null): boolean {
+  if (stand.gestoptBij) return true;
+  if (stand.gezien && stand.versie >= RONDLEIDING_VERSIE) return false;
+  return aangeboden !== null && aangeboden < RONDLEIDING_VERSIE;
+}
+
+/** De vraag uit de instellingen om de rondleiding te starten: daar staat de werkplek niet klaar, dus de vraag gaat
+ *  mee in de url. Eén keer gelezen en meteen weer weggehaald, net als de andere startparameters. */
+export const START_PARAMETER = "rondleiding";
+export const START_URL = `/workbench?${START_PARAMETER}=start`;
+export function startUitUrl(zoek: { get(naam: string): string | null }): boolean {
+  return zoek.get(START_PARAMETER) === "start";
 }
 
 export function leesStand(): Stand {

@@ -50,6 +50,11 @@ interface Props {
   onSluitArtefact: () => void;
   /** De rondleiding is voorbij: demo opruimen en de gewone werkplek terugzetten. */
   onKlaar: () => void;
+  /** De gebruiker heeft hem afgehandeld, door afronden of wegklikken: hij biedt zich niet meer vanzelf aan. */
+  onAfgehandeld: () => void;
+  /** Staat de knop op het startscherm? Het vinkje aan het eind toont en wijzigt dezelfde voorkeur als de instellingen. */
+  knopZichtbaar: boolean;
+  onKnop: (aan: boolean) => void;
   /** Meldt of de werkplek eronder op slot moet. Aan tijdens de gewone stappen, uit zodra de stap om
    *  een handeling vraagt — dan moet de knop eronder juist bereikbaar zijn, ook met het toetsenbord. */
   onAchtergrondSlot: (slot: boolean) => void;
@@ -62,8 +67,8 @@ interface Props {
 
 /** De motor van de rondleiding: welke stap staat er, waar hangt hij aan, en wat onderbreekt hem. */
 export function Rondleiding({
-  isBeheerder, artefactOpen, onOpenArtefact, onSluitArtefact, onKlaar, beslissingen,
-  laatsteBeslissing, onAchtergrondSlot,
+  isBeheerder, artefactOpen, onOpenArtefact, onSluitArtefact, onKlaar, onAfgehandeld, knopZichtbaar, onKnop,
+  beslissingen, laatsteBeslissing, onAchtergrondSlot,
 }: Props) {
   const stappen = zichtbareStappen(isBeheerder);
   const [fase, setFase] = useState<TourFase>("welkom");
@@ -117,10 +122,11 @@ export function Rondleiding({
   const sluit = useCallback(
     (afgerond: boolean) => {
       schrijfStand({ versie: RONDLEIDING_VERSIE, gezien: true, gestoptBij: undefined });
+      onAfgehandeld();
       setFase(afgerond ? "slot" : "welkom");
       if (!afgerond) onKlaar();
     },
-    [onKlaar],
+    [onKlaar, onAfgehandeld],
   );
 
   /** Onderbreken: de rondleiding verdwijnt, maar onthoudt waar hij was.
@@ -235,8 +241,7 @@ export function Rondleiding({
   const naar = useCallback(
     (nieuw: number) => {
       if (nieuw >= stappen.length) {
-        setFase("slot");
-        schrijfStand({ versie: RONDLEIDING_VERSIE, gezien: true });
+        sluit(true);
         return;
       }
       const doelStap = stappen[Math.max(0, nieuw)];
@@ -246,7 +251,7 @@ export function Rondleiding({
       setIndex(Math.max(0, nieuw));
       schrijfStand({ versie: RONDLEIDING_VERSIE, gezien: false, gestoptBij: doelStap?.id });
     },
-    [stappen, artefactOpen, onOpenArtefact, onSluitArtefact],
+    [stappen, artefactOpen, onOpenArtefact, onSluitArtefact, sluit],
   );
 
   // De stap "De annotatie openen" vraagt de gebruiker de kaart zelf aan te klikken. Gaat het paneel
@@ -361,6 +366,16 @@ export function Rondleiding({
               voor modelprofielen en gebruikers.</>
             )}
           </p>
+          {/* Jouw keuze en niet iets dat vanzelf gebeurt; terugdraaien kan in de instellingen, tab Rondleiding. */}
+          <label className="mt-4 flex items-start gap-2 text-[0.8125rem] leading-5 text-ink">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-lint"
+              checked={!knopZichtbaar}
+              onChange={(e) => onKnop(!e.target.checked)}
+            />
+            Toon de knop op het startscherm niet meer
+          </label>
           <div className="mt-5 flex justify-end">
             <button
               type="button"

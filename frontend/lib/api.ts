@@ -441,6 +441,18 @@ export async function getAccount(): Promise<MeAccount> {
   return json<MeAccount>(res);
 }
 
+/** De stand van de rondleiding bij de gebruiker: alleen wat je meegeeft, verandert. */
+export async function zetRondleiding(
+  wijziging: { aangeboden?: number; knop?: boolean },
+): Promise<Pick<MeAccount, "rondleiding_aangeboden" | "rondleiding_knop">> {
+  const res = await fetch("/api/account/rondleiding", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(wijziging),
+  });
+  return json(res);
+}
+
 export async function begin2fa(password: string): Promise<TotpBegin> {
   const res = await fetch("/api/account/2fa/begin", {
     method: "POST",

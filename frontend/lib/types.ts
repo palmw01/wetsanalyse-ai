@@ -177,6 +177,10 @@ export interface MeAccount {
   /** Beheerder zonder 2FA: het beheer blijft dicht tot er een app gekoppeld is. */
   tfa_nodig: boolean;
   herstelcodes_over: number;
+  /** De hoogste rondleidingsversie die zich aan deze gebruiker heeft aangeboden (0 = nog nooit). */
+  rondleiding_aangeboden: number;
+  /** Staat de knop *Laat me de werkplek zien* op het startscherm? */
+  rondleiding_knop: boolean;
 }
 
 export interface TotpBegin {

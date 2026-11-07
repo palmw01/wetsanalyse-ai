@@ -32,6 +32,9 @@ class User(BaseModel):
     # Sessie-epoch: JWT-sessies met een inlogmoment vóór deze tijd zijn ongeldig (revocatie bij
     # wachtwoordwijziging/-reset). None ⇒ nooit gewijzigd → geen revocatie.
     sessions_valid_from: datetime | None = None
+    # De hoogste rondleidingsversie die zich heeft aangeboden, en of de knop op het startscherm staat.
+    rondleiding_aangeboden: int = 0
+    rondleiding_knop: bool = True
 
     created: datetime = Field(default_factory=_utcnow)
     updated: datetime = Field(default_factory=_utcnow)

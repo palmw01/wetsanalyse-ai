@@ -961,6 +961,40 @@ async def test_tfa_nodig_http_op_setup_en_me(client):
     assert (await client.get("/v1/auth/me", headers=hdr)).json()["tfa_nodig"] is False
 
 
+async def test_rondleiding_hoort_bij_de_gebruiker(client):
+    await client.post(
+        "/v1/auth/setup", json={"userid": "baas", "email": "boss@example.com", "password": "wachtwoord1"}
+    )
+    hdr = {"X-User-Id": "baas"}
+    me = (await client.get("/v1/auth/me", headers=hdr)).json()
+    assert me["rondleiding_aangeboden"] == 0 and me["rondleiding_knop"] is True  # een nieuwe gebruiker ziet de knop
+
+    # Overslaan: niet meer vanzelf aanbieden, de knop blijft.
+    res = await client.patch("/v1/auth/me/rondleiding", json={"aangeboden": 3}, headers=hdr)
+    assert res.json() == {"rondleiding_aangeboden": 3, "rondleiding_knop": True}
+
+    # Het vinkje aan het eind: de knop gaat uit, en elke sessie leest dat terug.
+    await client.patch("/v1/auth/me/rondleiding", json={"knop": False}, headers=hdr)
+    assert (await client.get("/v1/auth/me", headers=hdr)).json()["rondleiding_knop"] is False
+
+    # De knop alleen aanzetten laat de versie staan, en een oude bundel zet de versie niet terug.
+    res = await client.patch("/v1/auth/me/rondleiding", json={"knop": True}, headers=hdr)
+    assert res.json() == {"rondleiding_aangeboden": 3, "rondleiding_knop": True}
+    res = await client.patch("/v1/auth/me/rondleiding", json={"aangeboden": 2}, headers=hdr)
+    assert res.json()["rondleiding_aangeboden"] == 3
+
+
+async def test_rondleiding_vraagt_een_actief_account(client):
+    assert (await client.patch("/v1/auth/me/rondleiding", json={"knop": False})).status_code == 401
+    res = await client.patch("/v1/auth/me/rondleiding", json={"knop": False}, headers={"X-User-Id": "niemand"})
+    assert res.status_code == 401
+    await client.post(
+        "/v1/auth/setup", json={"userid": "baas", "email": "boss@example.com", "password": "wachtwoord1"}
+    )
+    res = await client.patch("/v1/auth/me/rondleiding", json={"aangeboden": -1}, headers={"X-User-Id": "baas"})
+    assert res.status_code == 422
+
+
 async def _twee_beheerders(client) -> str:
     """"baas" heeft 2FA, "kwijt" (beheerder) ook; geeft de URI van baas."""
     await client.post(
