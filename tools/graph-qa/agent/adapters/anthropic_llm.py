@@ -33,6 +33,9 @@ class AnthropicLLM:
     def __init__(self, settings: Settings) -> None:
         settings.require_llm()
         self._caching = settings.prompt_caching
+        # Het cache-punt op het eind van de berichten (de top-level `cache_control`). Apart van `_caching`: weigert de
+        # provider alleen dit, dan blijft het cache-punt op de systeemprompt staan.
+        self._historie_caching = settings.prompt_caching
         # Eén meter per adapter, en de adapter wordt per beurt gebouwd – dus deze telt precies één
         # beurt op. `answer_stream` leest hem aan het eind uit en meldt het verbruik aan de api.
         self.meter = Verbruiksmeter()
@@ -80,7 +83,7 @@ class AnthropicLLM:
             blokken.append({"type": "text", "text": variabel})
         return blokken
 
-    def _zonder_caching(self, exc: Exception) -> bool:
+    def _zonder_caching(self, exc: Exception, *, historie: bool = False) -> bool:
         """Weigerde de provider het cache-punt? Zet caching uit en meld het één keer.
 
         Prompt-caching is op Azure AI Foundry een beta-functie. Zou hij `cache_control` niet
@@ -89,6 +92,15 @@ class AnthropicLLM:
         """
         if not self._caching or "cache_control" not in str(exc):
             return False
+        # Droeg het verzoek het cache-punt op de historie, dan ligt het daaraan: het cache-punt op de systeemprompt nam
+        # de provider al aan. Alleen dat ene gaat dan uit.
+        if historie and self._historie_caching:
+            self._historie_caching = False
+            logger.warning(
+                "historie-caching geweigerd door de provider; voortaan alleen de systeemprompt",
+                extra={"categorie": "technisch", "fout": str(exc)[:200]},
+            )
+            return True
         self._caching = False
         logger.warning(
             "prompt-caching geweigerd door de provider; voortaan zonder cache-punt",
@@ -136,19 +148,30 @@ class AnthropicLLM:
         system: Systeem,
         tools: list[dict[str, Any]],
         messages: list[dict[str, Any]],
+        historie_cache: bool = False,
     ) -> "_AnthropicStream":
+        """`historie_cache`: ook een cache-punt op het eind van de berichten (F7, CL-4). Voor de toollus van de
+        antwoordroute: elke ronde stuurt de hele historie opnieuw, en die is binnen een beurt een groeiend
+        voorvoegsel. Elders niet: een prompt die niet terugkomt, betaalt alleen de duurdere cache-write."""
         # Bij streamen valt een weigering pas bij het openen van de stream (daar gaat de call de
         # deur uit), dus de terugval zit in `_AnthropicStream.__enter__` – met deze fabriek als
-        # tweede poging.
-        def open_stream(*, caching: bool):
+        # tweede poging. Die leest de vlaggen opnieuw: de terugval heeft er één uitgezet.
+        def met_historie() -> bool:
+            return historie_cache and self._caching and self._historie_caching
+
+        def open_stream():
+            extra: dict[str, Any] = {}
+            if met_historie():
+                extra["cache_control"] = {"type": "ephemeral"}
             return self._client.messages.stream(
                 model=model, max_tokens=max_tokens,
-                system=self._system(system, caching=caching),
-                tools=tools, messages=messages,
+                system=self._system(system, caching=self._caching),
+                tools=tools, messages=messages, **extra,
             )
 
         return _AnthropicStream(
-            open_stream(caching=self._caching), opnieuw=open_stream, terugval=self._zonder_caching,
+            open_stream(), opnieuw=open_stream,
+            terugval=lambda exc, h=met_historie(): self._zonder_caching(exc, historie=h),
             meter=self.meter,
         )
 
@@ -170,7 +193,7 @@ class _AnthropicStream:
         except anthropic.BadRequestError as exc:
             if not (self._terugval and self._opnieuw and self._terugval(exc)):
                 raise
-            self._manager = self._opnieuw(caching=False)
+            self._manager = self._opnieuw()
             self._stream = self._manager.__enter__()
         return self
 

@@ -286,9 +286,18 @@ async def registratie(body: RegistratieIn):
     return RegistratieAangevraagd(userid=aanvraag.userid_voorstel, status=aanvraag.status)
 
 
+async def _log_inlogpoging(userid: str, uitkomst: str) -> None:
+    """Eén regel per inlogpoging, met de uitkomst (SEC-10, SEC-11). De userid alleen als het account bestaat: wie zich
+    vergist, typt soms zijn wachtwoord in het verkeerde veld, en dat hoort niet in de logs."""
+    bestaat = bool(userid) and await users.get_user(userid) is not None
+    logger.info("inlogpoging", extra={"categorie": "security", "actie": "inloggen", "uitkomst": uitkomst,
+                                      "userid": userid if bestaat else "(onbekend)"})
+
+
 @router.post("/verify", response_model=VerifyResult)
 async def verify(body: VerifyIn):
     if not ratelimit.login_allowed(body.userid):
+        await _log_inlogpoging(body.userid, "geremd")
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Te veel inlogpogingen; probeer later opnieuw.",
@@ -300,7 +309,9 @@ async def verify(body: VerifyIn):
         )
     except SecretsCryptoError:
         # 2FA staat aan maar het secret kan niet ontsleuteld worden (master key weg/geroteerd).
+        await _log_inlogpoging(body.userid, "secret_onleesbaar")
         return VerifyResult(ok=False, code="invalid")
+    await _log_inlogpoging(body.userid, code)
     if user is None:
         # Wachtwoord klopte maar 2FA is nog nodig → geef een login-ticket mee zodat het aparte
         # 2FA-scherm de identiteit heeft zonder het wachtwoord opnieuw te hoeven vasthouden.

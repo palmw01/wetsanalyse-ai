@@ -381,7 +381,9 @@ def bouw_snapshot(rows: list[dict], *, bron_iri: str = "", bwb_id: str,
     def visit(parent: str, depth: int = 0):
         if depth > 100:
             raise BronFout("Bronboom is te diep")
-        remaining = sorted(children[parent], key=lambda n: (_sort(n["nummer"]), n["bron_iri"]))
+        # `volgtOp` ketent per soort, dus tussen soorten beslist deze sortering. Een bijlage staat in de bron altijd ná
+        # de tekst van de regeling; zonder die regel kwam bijlage 1 tussen hoofdstuk 1 en 2 (D5, GR-08).
+        remaining = sorted(children[parent], key=lambda n: (n["type"] == "Bijlage", _sort(n["nummer"]), n["bron_iri"]))
         sibling_ids = {n["bron_iri"] for n in remaining}
         done = set()
         while remaining:

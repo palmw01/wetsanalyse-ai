@@ -1,6 +1,7 @@
 """Bronnode-API. Elke lees- en schrijfactie vereist een actieve gebruiker."""
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import uuid
@@ -339,14 +340,16 @@ async def post_export(req: ExportInvoer, actor: str = Depends(actieve_userid)):
     view = await store.weergave(snapshot)
     view["audit"] = await store.audit_weergave(view)
     view["export"] = {"versie": export.EXPORT_VERSIE, "actor": actor, "op": store.db.utcnow().isoformat()}
+    # Opmaken is rekenwerk (de PDF-opmaak, rdflib voor TriG): in een thread, want deze lus deelt de event loop met
+    # elk ander verzoek en de api draait met één worker (F6, API-09).
     if req.formaat == "json":
-        body = export.json_export(view, verklaringen())
+        body = await asyncio.to_thread(export.json_export, view, verklaringen())
     elif req.formaat == "csv":
-        body = export.csv_export(view, verklaringen(), _provenance)
+        body = await asyncio.to_thread(export.csv_export, view, verklaringen(), _provenance)
     elif req.formaat == "pdf":
-        body = export.pdf_export(view, verklaringen())
+        body = await asyncio.to_thread(export.pdf_export, view, verklaringen())
     else:
-        body = export.trig_export(await _laaggrafen(view))
+        body = await asyncio.to_thread(export.trig_export, await _laaggrafen(view))
     return Response(body, media_type=_EXPORT_MIME[req.formaat], headers={
         "Content-Disposition": f'attachment; filename="{bestandsnaam.met_tijd("annotaties", req.formaat, view["export"]["op"])}"'})
 
@@ -364,7 +367,8 @@ async def _laaggrafen(view: dict) -> list:
             store.db.annotatie_v2_lagen.c.id.in_(ids)))).mappings().all()
         for rij in sorted((dict(r) for r in rijen), key=lambda r: ids.index(r["id"])):
             elementen, dekking = await laag_invoer(conn, rij)
-            uit.append((graph_iri(rij["id"]), bouw_graaf(rij, elementen, dekking=dekking)))
+            graaf = await asyncio.to_thread(bouw_graaf, rij, elementen, dekking=dekking)
+            uit.append((graph_iri(rij["id"]), graaf))
     return uit
 
 
