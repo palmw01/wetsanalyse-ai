@@ -10,6 +10,7 @@ import asyncio
 import json
 
 from agent.agent import answer_stream
+from agent.doel import kandidaten_uit_graaf
 from agent.orchestrator import _kandidaten_uit_json
 from fakes import FakeGraph, FakeLLM, make_settings, response, text_block, tool_block
 
@@ -17,9 +18,8 @@ ZOEK_TSV = json.dumps('?iri\t?titel\n"iri"\t"Invorderingswet 1990"')
 
 KANDIDATEN_JSON = json.dumps({"kandidaten": [
     {"bwbId": "BWBR0004770", "artikel": "36", "lid": "", "citeertitel": "Invorderingswet 1990",
-     "fragment": "Hoofdelijk aansprakelijk is voor de loonbelasting…"},
-    {"bwbId": "BWBR0004770", "artikel": "36a", "lid": "1", "citeertitel": "Invorderingswet 1990",
-     "fragment": "Hoofdelijk aansprakelijk is de bestuurder…"},
+     "fragment": "Door het model getypt."},
+    {"bwbId": "BWBR0004770", "artikel": "36a", "lid": "1", "citeertitel": "Invorderingswet 1990"},
 ]})
 
 
@@ -59,6 +59,14 @@ def test_parser_laat_een_gewoon_doel_met_rust():
 
 # --- de keten -------------------------------------------------------------------------------------
 
+def _graaf(query: str) -> str:
+    """Zoeken geeft een treffer; de bepalingen zelf hebben hun tekst in de graaf."""
+    if "bwb:heeftLid" in query or "bwb:heeftOnderdeel" in query:
+        tekst = "Hoofdelijk aansprakelijk is de bestuurder. Meer." if ":lid:" in query else "Artikel 36 tekst."
+        return json.dumps(f'?tekst\n"{tekst}"')
+    return ZOEK_TSV
+
+
 def _onderwerp_scenario(*, decompositie: bool = True):
     llm = FakeLLM([
         response([text_block("WORKERS: annotatie\nPLAN: zoek de bepalingen over dit onderwerp")], "end_turn"),
@@ -67,7 +75,7 @@ def _onderwerp_scenario(*, decompositie: bool = True):
     ])
     events = _run(answer_stream(
         "annoteer alles over aansprakelijkheid van de bestuurder",
-        settings=make_settings(enable_decomposition=decompositie), llm=llm, graph=FakeGraph(result=ZOEK_TSV),
+        settings=make_settings(enable_decomposition=decompositie), llm=llm, graph=FakeGraph(results=_graaf),
     ))
     return events, llm
 
@@ -94,3 +102,21 @@ def test_werkt_ook_zonder_decompositie():
     """build_graph bedraadt de annotatieroute twee keer; dev draait met ENABLE_DECOMPOSITION=0."""
     events, _ = _onderwerp_scenario(decompositie=False)
     assert next(e for e in events if e["type"] == "kandidaten")["kandidaten"]
+
+
+def test_het_fragment_komt_uit_de_graaf_en_een_onbekende_bepaling_valt_weg():
+    """Wat op de kaart staat, is wettekst; het model wijst alleen aan (C7)."""
+    def graaf(query: str) -> str:
+        return json.dumps('?tekst\n"Een belastingaanslag is invorderbaar. Tweede zin."') if ":artikel:9>" in query else json.dumps("?tekst\n")
+    uit = kandidaten_uit_graaf(FakeGraph(results=graaf), [
+        {"bwbId": "BWBR0004770", "artikel": "9", "lid": "", "citeertitel": "IW 1990", "fragment": "verzonnen"},
+        {"bwbId": "BWBR0004770", "artikel": "999", "lid": "", "citeertitel": "IW 1990"},
+    ])
+    assert uit == [{"bwbId": "BWBR0004770", "artikel": "9", "lid": "", "citeertitel": "IW 1990",
+                    "fragment": "Een belastingaanslag is invorderbaar."}]
+
+
+def test_de_kaart_toont_wettekst():
+    events, _ = _onderwerp_scenario()
+    kandidaten = next(e for e in events if e["type"] == "kandidaten")["kandidaten"]
+    assert [k["fragment"] for k in kandidaten] == ["Artikel 36 tekst.", "Hoofdelijk aansprakelijk is de bestuurder."]

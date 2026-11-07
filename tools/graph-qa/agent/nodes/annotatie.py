@@ -24,7 +24,7 @@ from ..bron_annotatie import controleer_hergebruik, doel_event, lees_bron, lokal
 from ..aanwijzing import lees_aanwijzing, melding_meerdere
 from ..bronregister import bij
 from ..focus import na_annotatie
-from ..doel import _bepaal_doel, _heeft_opgegeven_doel, _kandidaten_uit_json, _meerdere_artikelen
+from ..doel import _bepaal_doel, _heeft_opgegeven_doel, _kandidaten_uit_json, _meerdere_artikelen, kandidaten_uit_graaf
 from ..jas_klassen import methode_versie
 from ..jas_pipeline.classificatie import promptversie
 from ..jas_pipeline.beslisregister import compact as beslisregister
@@ -159,7 +159,7 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
             writer({"type": "token", "content": melding})
             _stap(writer, "Klaar", "niet geannoteerd – vraag opnieuw voor één artikel")
             return {"answer": melding, "voorstellen": [], "messages": [{"role": "assistant", "content": melding}]}
-    kandidaten = _kandidaten_uit_json(state.get("answer", ""))
+    kandidaten = kandidaten_uit_graaf(b.graph, _kandidaten_uit_json(state.get("answer", "")))
     if kandidaten:
         writer({"type": "kandidaten", "kandidaten": kandidaten})
         melding = f"Ik vond {len(kandidaten)} bepalingen over dit onderwerp. Kies welke je wilt laten annoteren."
@@ -277,11 +277,16 @@ def emit_node(b: Bouw, state: State) -> dict[str, Any]:
     # De geannoteerde tekst kwam letterlijk uit de graaf (`bronmodel.resolve`); een vervolgvraag die
     # eruit citeert ("waarom is 'zes weken na de dagtekening' een Tijdsaanduiding?") is daarmee
     # onderbouwd, ook als de antwoordbeurt hem niet opnieuw ophaalt.
-    register = bij(state.get("bronregister"), [("get_bronnode", f"{focus['bron_iri']}\n{state.get('corpus', '')}")]
-                   if state.get("corpus") else [])
-    return {"answer": samenvatting, "focus": focus, "bronregister": register,
+    return {"answer": samenvatting, "focus": focus, "bronregister": _register(state, focus),
             "entities_seen": [focus["bron_iri"]] if focus["bron_iri"] else [],
             "messages": [{"role": "assistant", "content": _geheugenregel(focus, "")}]}
+
+
+def _register(state: State, focus: dict[str, Any]) -> Any:
+    """De geannoteerde tekst kwam letterlijk uit de graaf (`bronmodel.resolve`). In het register is een vervolgvraag die
+    eruit citeert onderbouwd, ook als de antwoordbeurt hem niet opnieuw ophaalt. Voor beide uitgangen van emit."""
+    return bij(state.get("bronregister"), [("get_bronnode", f"{focus['bron_iri']}\n{state.get('corpus', '')}")]
+               if state.get("corpus") else [])
 
 
 def _geheugenregel(focus: dict[str, Any], extra: str) -> str:
@@ -321,6 +326,6 @@ def _emit_hergebruik(
     markeringen = hergebruik.get("markeringen") or []
     focus = na_annotatie(state.get("bron_snapshot") or {}, plek, str(doel.get("citeertitel") or ""),
                          markeringen, hergebruikt=True)
-    return {"answer": samenvatting, "focus": focus,
+    return {"answer": samenvatting, "focus": focus, "bronregister": _register(state, focus),
             "entities_seen": [focus["bron_iri"]] if focus["bron_iri"] else [],
             "messages": [{"role": "assistant", "content": _geheugenregel(focus, ", hergebruikt")}]}

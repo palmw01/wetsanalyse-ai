@@ -55,7 +55,7 @@ _RETRIEVAL_SYSTEM = (
     "zoek met zoek_opbouw en semantic_search/search_wetgeving en leg de gevonden bepalingen als keuze voor. Haal in "
     "dat geval GEEN tekst op en geef deze JSON terug:\n"
     '{"kandidaten": [{"bwbId": "<BWBR…>", "artikel": "<nr>", "lid": "<nr of leeg>", '
-    '"citeertitel": "<regeling>", "fragment": "<eerste zin van de bepaling>"}]}\n'
+    '"citeertitel": "<regeling>"}]}\n'
     "Maximaal 8 kandidaten, de meest relevante eerst. Twijfel je of het een onderwerp of een concrete "
     "bepaling is, en wijst de vraag één bepaling aan? Dan is het een concrete bepaling – haal die op."
 )
