@@ -71,3 +71,23 @@ describe("een overzichtskaart eindigt in KaartActies", () => {
     expect(knop).not.toMatch(/min-h-\[|text-\[11px\]/);
   });
 });
+
+describe("een blok heeft één kop: BlokKop", () => {
+  it("Sectie en Kaart gebruiken BlokKop, met de acties rechtsboven op elke breedte", () => {
+    const lijst = bron("components/ui/Lijst.tsx");
+    const kop = lijst.slice(lijst.indexOf("export function BlokKop"), lijst.indexOf("export function Sectie"));
+    expect(kop).toMatch(/flex items-start justify-between/);
+    expect(kop).not.toMatch(/flex-col/);
+    const sectie = lijst.slice(lijst.indexOf("export function Sectie"), lijst.indexOf("export function Lijst("));
+    expect(sectie).toMatch(/<BlokKop\b/);
+    const pagina = bron("components/ui/Pagina.tsx");
+    const kaart = pagina.slice(pagina.indexOf("export function Kaart("));
+    expect(kaart.slice(0, kaart.indexOf("\n}\n"))).toMatch(/<BlokKop\b/);
+  });
+});
+
+describe("een hoofdknop buiten de paginakop staat op een telefoon over de volle breedte", () => {
+  it("Bespreek met Lex is w-full tot sm", () => {
+    expect(bron("components/werkplek/VraagLexKnop.tsx")).toMatch(/const PRIMAIR = `\$\{knopKlasse\("primary", "sm"\)\} w-full sm:w-auto`/);
+  });
+});

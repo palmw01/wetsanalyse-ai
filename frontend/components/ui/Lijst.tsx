@@ -5,6 +5,7 @@ import { jasStyle, klasseLabel } from "@/lib/jas";
  *  in plaats van een omrande box per deelvraag, bron of kandidaat. Een box per rij maakt van elke lijst
  *  een stapel kaarten; een lijn ertussen laat de inhoud spreken.
  *
+ *  - `BlokKop` – de kop van een blok: titel, telling en toelichting links, de acties rechtsboven (ook `Kaart` gebruikt hem);
  *  - `Sectie` – een kop met telling, toelichting en acties, zonder rand eromheen;
  *  - `Lijst` + `LijstRij` – de rijen: titel, meta, status rechts, acties eronder;
  *  - `Voorstel` – een rij die een voorstel van Lex is: een gele rand links, met tekst erbij;
@@ -15,30 +16,51 @@ import { jasStyle, klasseLabel } from "@/lib/jas";
 
 type Attrs = Omit<React.HTMLAttributes<HTMLElement>, "title">;
 
+/** De kop van elk blok – `Sectie` hier en `Kaart` in `Pagina` (7 nov 2026): links titel, telling en toelichting, rechts
+ *  bovenaan de acties, op elke breedte. Een kopactie is klein (`BewerkKnop`, `MeerKnop`, een xs-knop, *Alles bekijken*),
+ *  dus hij past ook op een telefoon naast de titel; daar stond hij bij een `Sectie` eerder op volle breedte op een eigen
+ *  regel, terwijl dezelfde inhoud als `Kaart` hem rechtsboven had. Een hoofdknop hoort hier niet maar in een
+ *  `ButtonRow` onder de kop. */
+export function BlokKop({ id, titel, telling, toelichting, acties, niveau = 2, className = "" }: {
+  id?: string;
+  titel?: React.ReactNode;
+  telling?: React.ReactNode;
+  toelichting?: React.ReactNode;
+  acties?: React.ReactNode;
+  niveau?: 2 | 3;
+  className?: string;
+}) {
+  const Kop = niveau === 3 ? "h3" : "h2";
+  return (
+    <div data-blokkop className={`flex items-start justify-between gap-3 ${className}`}>
+      <div className="min-w-0">
+        {titel && (
+          <Kop id={id} className="font-display text-sm font-semibold text-ink">
+            {titel}
+            {telling !== undefined && <> <span className="font-normal tabular-nums text-muted">{telling}</span></>}
+          </Kop>
+        )}
+        {toelichting && <p className="mt-0.5 text-xs text-muted">{toelichting}</p>}
+      </div>
+      {acties && <div className="flex shrink-0 items-center gap-2">{acties}</div>}
+    </div>
+  );
+}
+
 export function Sectie({ titel, telling, toelichting, acties, niveau = 2, children, className = "", ...rest }: {
   titel: React.ReactNode;
   telling?: number;
   toelichting?: React.ReactNode;
-  /** Knoppen rechts van de kop; mobiel eronder, op volle breedte. */
+  /** Kleine knoppen rechtsboven in de kop (`BlokKop`), op elke breedte. */
   acties?: React.ReactNode;
   niveau?: 2 | 3;
   children?: React.ReactNode;
   className?: string;
 } & Attrs) {
   const id = useId();
-  const Kop = niveau === 3 ? "h3" : "h2";
   return (
     <section aria-labelledby={id} className={className} {...rest}>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <Kop id={id} className="font-display text-sm font-semibold text-ink">
-            {titel}
-            {telling !== undefined && <> <span className="font-normal tabular-nums text-muted">{telling}</span></>}
-          </Kop>
-          {toelichting && <p className="mt-0.5 text-xs text-muted">{toelichting}</p>}
-        </div>
-        {acties && <div className="flex shrink-0 flex-col gap-2 sm:flex-row">{acties}</div>}
-      </div>
+      <BlokKop id={id} titel={titel} telling={telling} toelichting={toelichting} acties={acties} niveau={niveau} />
       {children !== undefined && <div className="mt-2 space-y-3">{children}</div>}
     </section>
   );
