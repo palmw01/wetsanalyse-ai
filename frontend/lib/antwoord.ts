@@ -7,7 +7,7 @@ export interface AntwoordVindplaats { iri: string; label: string; jci: string; r
 export type AntwoordBlok =
   | { soort: "definities"; door: "bron"; items: { term: string; tekst: string; vindplaats: AntwoordVindplaats; bereik: string }[] }
   | { soort: "begrippen"; door: "bron"; items: { id: string; naam: string; status: string; definitie: string; werkgebied: string; werkgebied_id: string; herbeoordelen: boolean }[] }
-  | { soort: "wettekst"; door: "bron"; items: { tekst: string; vindplaats: AntwoordVindplaats }[] }
+  | { soort: "wettekst"; door: "bron"; items: { tekst: string; vindplaats: AntwoordVindplaats; nog_niet_in_werking?: boolean }[] }
   | { soort: "citaten"; door: "bron"; items: { tekst: string; vindplaats: AntwoordVindplaats; waarom: string }[] }
   | { soort: "verwijzingen"; door: "bron"; items: AntwoordVindplaats[] }
   | { soort: "annotaties"; door: "bron"; items: { id: string; klasse: string; tekst: string; vindplaats: string }[]; totaal: number; volledig: boolean }

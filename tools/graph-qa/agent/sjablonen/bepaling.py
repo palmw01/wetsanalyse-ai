@@ -44,6 +44,7 @@ class _Stuk:
     verwacht: int | None = None  # zoveel delen zegt de tool dat er zijn
     onderdelen_elders: bool = False  # een lid uit `get_artikel`: zijn onderdelen staan daar niet in
     subdivisies: int = 0  # een bepaling uit `get_bepaling`: daar staat alleen het begin van
+    nog_niet_in_werking: bool = False
 
 
 def _stukken(trace: Trace) -> dict[str, _Stuk]:
@@ -52,6 +53,7 @@ def _stukken(trace: Trace) -> dict[str, _Stuk]:
     def stuk(iri: str, rij: dict[str, Any]) -> _Stuk:
         s = uit.setdefault(iri, _Stuk())
         s.tekst, s.nummer = rij.get("tekst") or s.tekst, rij.get("nummer") or s.nummer
+        s.nog_niet_in_werking = s.nog_niet_in_werking or bool(rij.get("nog_niet_in_werking"))
         return s
 
     for data in resultaten(trace, ["get_artikel"]):
@@ -87,7 +89,7 @@ def _tekst(iri: str, stukken: dict[str, _Stuk]) -> str:
     return "\n".join(t for t in (s.tekst, *map(_regel, onder)) if t)
 
 
-def _bepalingen(iri: str, stukken: dict[str, _Stuk], ontbreekt: list[str]) -> list[Bepaling]:
+def _bepalingen(iri: str, stukken: dict[str, _Stuk], ontbreekt: list[str], nog_niet: bool = False) -> list[Bepaling]:
     s = stukken.get(iri)
     label = vindplaats_van(iri).label
     if s is None:
@@ -102,11 +104,12 @@ def _bepalingen(iri: str, stukken: dict[str, _Stuk], ontbreekt: list[str]) -> li
     if s.onderdelen_elders and not s.delen:
         ontbreekt.append(f"{label}: de onderdelen ontbreken. Haal ze op met get_lid")
         return []
+    nog_niet = nog_niet or s.nog_niet_in_werking  # een lid erft het van zijn artikel
     uit: list[Bepaling] = []
     if tekst := _tekst(iri, stukken):
-        uit.append(Bepaling(tekst=tekst, vindplaats=vindplaats_van(iri)))
+        uit.append(Bepaling(tekst=tekst, vindplaats=vindplaats_van(iri), nog_niet_in_werking=nog_niet))
     for lid in (k for k, d in s.delen.items() if d.get("lid")):
-        uit += _bepalingen(lid, stukken, ontbreekt)
+        uit += _bepalingen(lid, stukken, ontbreekt, nog_niet)
     if not uit and not ontbreekt:
         ontbreekt.append(f"{label}: geen tekst in het resultaat. Haal de bepaling op met get_artikel of get_lid")
     return uit

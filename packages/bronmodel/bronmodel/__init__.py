@@ -146,7 +146,7 @@ def bron_query(bwb_id: str, *, limit: int | None = None, offset: int = 0) -> str
         raise BronFout("Ongeldig BWB-id")
     types = " ".join("bwb:" + t for t in TYPEN)
     query = f'''PREFIX bwb: <urn:bwb-ns:>
-SELECT DISTINCT ?node ?type ?parent ?nummer ?label ?titel ?tekst ?vorige ?jci ?url ?toestand ?citeertitel ?vindplaats ?bepaling WHERE {{
+SELECT DISTINCT ?node ?type ?parent ?nummer ?label ?titel ?tekst ?vorige ?jci ?url ?toestand ?citeertitel ?vindplaats ?bepaling ?status WHERE {{
  GRAPH <urn:bwb:graph:{bwb_id}> {{
   VALUES ?type {{ {types} }}
   ?node a ?type .
@@ -160,6 +160,7 @@ SELECT DISTINCT ?node ?type ?parent ?nummer ?label ?titel ?tekst ?vorige ?jci ?u
   OPTIONAL {{ ?node <http://www.w3.org/2002/07/owl#sameAs> ?url }}
   OPTIONAL {{ ?node bwb:vindplaats ?vindplaats }}
   OPTIONAL {{ ?node bwb:inBepaling ?bepaling }}
+  OPTIONAL {{ ?node bwb:status ?status }}
   OPTIONAL {{ <urn:bwb:{bwb_id}> bwb:toestandUrl ?toestand }}
   OPTIONAL {{ <urn:bwb:{bwb_id}> bwb:citeertitel ?citeertitel }}
  }}
@@ -315,7 +316,13 @@ def _kop(n: dict) -> str:
 
 # Velden die de importer als naam bij een node schrijft (`bwb:vindplaats`, `bwb:inBepaling`). Ze staan op
 # de node, maar tellen niet mee in de snapshot-id.
-PLEK = ("vindplaats", "bepaling")
+# Wat een node draagt zonder dat het zijn identiteit is. De bron schrijft de status op artikel en divisie, en een
+# wijziging ervan (een artikel treedt in werking) verandert de tekst niet.
+PLEK = ("vindplaats", "bepaling", "status")
+
+#: `bwb:status` van een bepaling die al in de regeling staat maar nog niet geldt. `vervallen` hoeft geen eigen stand:
+#: daar zegt de tekst het zelf.
+NOG_NIET = "nogniet"
 
 
 def _vast(n: dict) -> dict:
@@ -374,6 +381,9 @@ def bouw_snapshot(rows: list[dict], *, bron_iri: str = "", bwb_id: str,
     visit("")
     if len(visited) != len(nodes):
         raise BronFout("Niet alle nodes zijn verbonden")
+    for n in ordered:  # de ouder staat eerder in de lijst: een lid erft van zijn artikel, een onderdeel van zijn lid
+        if not n["status"] and n["parent_iri"]:
+            n["status"] = nodes[n["parent_iri"]]["status"]
     titel = next((r["citeertitel"] for r in rows if r.get("citeertitel")), bwb_id)
     if not bron_iri:
         if artikel:
