@@ -99,12 +99,18 @@ async function open(role, viewport = { width: 1280, height: 860 }) {
 try {
   // Een analist ziet geen groepskop: er is maar één soort tab.
   const analist = await open("analist");
+  // Een oude link naar /instellingen opent het venster als pop-up op de werkplek, nooit als losse pagina.
   await analist.page.goto(`${base}/instellingen/account`);
-  await analist.page.getByRole("tablist", { name: "Instellingen" }).waitFor();
+  await analist.page.waitForURL("**/workbench?instellingen=account");
+  await analist.page.getByRole("dialog", { name: "Instellingen" }).getByRole("tablist", { name: "Instellingen" }).waitFor();
+  assert.equal(await analist.page.getByText("Terug naar de werkplek").count(), 0, "geen losse instellingenpagina");
+  // Herladen houdt het venster open.
+  await analist.page.reload();
+  await analist.page.getByRole("dialog", { name: "Instellingen" }).waitFor();
   assert.equal(await analist.page.getByText("Beheer", { exact: true }).count(), 0);
 
   // 2FA koppelen vraagt het wachtwoord: de QR-code verschijnt pas na het juiste.
-  await analist.page.goto(`${base}/instellingen/beveiliging`);
+  await analist.page.goto(`${base}/workbench?instellingen=beveiliging`);
   await analist.page.getByRole("button", { name: "2FA inschakelen" }).click();
   const wachtwoord = analist.page.getByLabel("Huidig wachtwoord");
   await wachtwoord.fill("fout");
@@ -118,7 +124,7 @@ try {
   await analist.context.close();
 
   const { page, fouten, stand } = await open("beheerder");
-  await page.goto(`${base}/instellingen/beheer/gebruikers`);
+  await page.goto(`${base}/workbench?instellingen=gebruikers`);
   await page.getByText("Beheer", { exact: true }).waitFor();
 
   // Het budget is een samenvatting; bewerken gebeurt ter plekke.
@@ -154,10 +160,10 @@ try {
   await page.getByRole("menuitem", { name: "Wachtwoord resetten" }).click();
   await page.waitForFunction(() => document.querySelector("[aria-label='Tijdelijk wachtwoord']")?.value === "tijdelijk-2");
 
-  // De berichten staan er meteen, zonder *Toon berichten*. Op de volle pagina opent een tab geen venster erbovenop.
+  // De berichten staan er meteen, zonder *Toon berichten*. Een tab wisselt in hetzelfde venster: er komt er geen bij.
   await page.getByRole("tab", { name: "Berichten beheren" }).click();
-  await page.waitForURL("**/instellingen/beheer/berichten");
-  assert.equal(await page.getByRole("dialog").count(), 0);
+  await page.waitForURL("**instellingen=berichtenbeheer");
+  assert.equal(await page.getByRole("dialog").count(), 1);
   await page.getByText("Nieuw in Lex").waitFor();
 
   // De bulkknop verschijnt pas als er iets geselecteerd is.
@@ -180,7 +186,7 @@ try {
     await venster.page.getByRole("dialog").getByRole("tab", { name: naam }).click();
     await venster.page.waitForFunction((n) => document.querySelector("[role=tab][aria-selected=true]")?.textContent?.startsWith(n), naam);
   }
-  await venster.page.waitForURL("**/instellingen/account");
+  await venster.page.waitForURL("**/workbench?instellingen=account");
   assert.deepEqual(serververzoeken, [], "een tabwissel haalt niets bij de server");
   assert.equal(await venster.page.getByRole("dialog").count(), 1);
   await venster.page.getByRole("button", { name: /· instellingen/ }).waitFor({ state: "attached" });
@@ -190,7 +196,7 @@ try {
 
   // Op een smal scherm is de tabkolom een rij: de actieve tab staat in beeld.
   const smal = await open("beheerder", { width: 390, height: 800 });
-  await smal.page.goto(`${base}/instellingen/beheer/feedback`);
+  await smal.page.goto(`${base}/workbench?instellingen=feedback`);
   const tab = smal.page.getByRole("tab", { name: "Feedback" });
   await tab.waitFor();
   // Pas ná de telbadge meten: die maakt *Aanvragen* breder en duwt de tab erachter opzij. Daarvoor zegt de stand niets.
@@ -203,7 +209,7 @@ try {
   // Een beheerder zonder 2FA: het beheer legt uit waarom het dicht is, en koppelen opent het zonder herladen.
   const plicht = await open("beheerder");
   plicht.stand.account.tfa_nodig = true;
-  await plicht.page.goto(`${base}/instellingen/beheer/gebruikers`);
+  await plicht.page.goto(`${base}/workbench?instellingen=gebruikers`);
   await plicht.page.getByText("Koppel eerst tweestapsverificatie").waitFor();
   assert.equal(await plicht.page.getByRole("button", { name: "Nieuwe gebruiker" }).count(), 0);
   await plicht.page.getByRole("button", { name: "Naar Beveiliging" }).click();
@@ -224,7 +230,7 @@ try {
   // De reset: alleen bij wie 2FA heeft, met een tweede klik. Een beheerder zonder 2FA valt op.
   const reset = await open("beheerder");
   reset.stand.users[1].totp_enabled = true;
-  await reset.page.goto(`${base}/instellingen/beheer/gebruikers`);
+  await reset.page.goto(`${base}/workbench?instellingen=gebruikers`);
   const rij = (id) => reset.page.locator(`[data-gebruiker="${id}"]`);
   await rij("wpalm").getByText("2FA ontbreekt").waitFor();
   assert.equal(await rij("jdevries").getByText("2FA ontbreekt").count(), 0);
@@ -242,7 +248,7 @@ try {
   const beurt = await open("beheerder");
   beurt.stand.verbruik = [{ userid: "jdevries", gebruikt: 400000, budget: 500000, percentage: 80, rol: "analist", geblokkeerd: false,
     gereset_op: null, gereset_door: "" }];
-  await beurt.page.goto(`${base}/instellingen/beheer/gebruikers`);
+  await beurt.page.goto(`${base}/workbench?instellingen=gebruikers`);
   const beurtRij = beurt.page.locator(`[data-gebruiker="jdevries"]`);
   await beurtRij.getByText("Budget van de rol analist: 500.000 tokens").waitFor();
   assert.equal(await beurt.page.getByText("Eigen budget").count(), 0);

@@ -45,7 +45,7 @@ export function SetupClient() {
       // blijft het beheer dicht. Harde navigatie (niet router.push): de disclaimer-gate kan omleiden
       // naar /disclaimer, en dat combineert niet goed met een soft router.push (zie LoginClient.tsx).
       const login = await signIn("credentials", { redirect: false, userid, password });
-      window.location.href = login?.error ? "/login" : "/instellingen/beveiliging";
+      window.location.href = login?.error ? "/login" : "/workbench?instellingen=beveiliging";
     } catch {
       // Zie LoginClient: een transportfout is geen antwoord en viel dus buiten alle afhandeling.
       setFout("Aanmaken lukt nu niet – de dienst is niet bereikbaar. Probeer het zo opnieuw.");

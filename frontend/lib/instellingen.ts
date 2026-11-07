@@ -1,9 +1,12 @@
-/** Tabdefinities van het instellingenvenster + de pure pad-helpers.
+/** Tabdefinities van het instellingenvenster + de pure helpers.
  *
- *  Bewust een eigen module **zonder** `"use client"`: zowel de server components (de volle pagina en
- *  de intercepting route, die de rolgate afdwingen) als de client-component roepen deze functies
- *  aan. Stonden ze in het client-bestand, dan faalt de server-aanroep met "Attempted to call
- *  tabUitPad() from the server but tabUitPad is on the client". */
+ *  Het venster is altijd een pop-up over de pagina waar je bent, net als in Slack: het hangt aan de parameter
+ *  `?instellingen=<tab>`, niet aan een eigen pagina. Een oude link naar `/instellingen/…` stuurt door naar de werkplek
+ *  met het venster open.
+ *
+ *  Bewust een eigen module **zonder** `"use client"`: de doorverwijzing (een server component) gebruikt `tabUitPad`.
+ *  Stond die in een client-bestand, dan faalt de server-aanroep met "Attempted to call tabUitPad() from the server but
+ *  tabUitPad is on the client". */
 
 export const INSTELLINGEN_TABS = [
   { key: "account", pad: "account", label: "Account", admin: false },
@@ -27,13 +30,23 @@ export function tabUitPad(segmenten: string[] | undefined): TabKey {
   return INSTELLINGEN_TABS.find((t) => t.pad === pad)?.key ?? "account";
 }
 
-export function padVanTab(key: TabKey): string {
-  const tab = INSTELLINGEN_TABS.find((t) => t.key === key);
-  return `/instellingen/${tab ? tab.pad : "account"}`;
+/** De parameter waarmee het venster openstaat. */
+export const INSTELLINGEN_PARAM = "instellingen";
+
+/** De waarde van `?instellingen=` → tabsleutel; zonder parameter `null` (het venster is dicht). Een onbekende waarde
+ *  opent op `account`, zodat een verouderde link het venster niet stil dicht laat. */
+export function tabUitParam(waarde: string | null | undefined): TabKey | null {
+  if (waarde == null) return null;
+  return INSTELLINGEN_TABS.find((t) => t.key === waarde || t.pad === waarde)?.key ?? "account";
 }
 
-/** Is deze tab alleen voor beheerders? De beheer-tabs staan onder `beheer/`, zodat de rolgate in
- *  `auth.config.ts` één prefix-check blijft. */
+/** Waar een oude link naar `/instellingen/…`, `/account` of `/beheer` heen gaat: de werkplek met het venster open. */
+export function instellingenOpWerkplek(key: TabKey): string {
+  return `/workbench?${INSTELLINGEN_PARAM}=${key}`;
+}
+
+/** Is deze tab alleen voor beheerders? Het venster toont hem dan alleen aan een beheerder; de BFF houdt het beheer
+ *  hoe dan ook dicht. */
 export function isAdminTab(key: TabKey): boolean {
   return INSTELLINGEN_TABS.find((t) => t.key === key)?.admin ?? false;
 }

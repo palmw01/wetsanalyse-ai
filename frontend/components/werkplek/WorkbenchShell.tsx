@@ -2,9 +2,11 @@
 
 import { Opstellen } from "@/components/ui/Icoon";
 import Link from "next/link";
+import { InstellingenLink } from "@/components/instellingen/InstellingenLink";
+import { INSTELLINGEN_PARAM } from "@/lib/instellingen";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 import { AppSidebar } from "@/components/werkplek/AppSidebar";
@@ -143,9 +145,9 @@ export function WorkbenchShell({
   // Antwoordt de api niet, dan staat hij er: de knop is onschuldig en een nieuwe gebruiker heeft hem nodig.
   const [rondleidingKnop, setRondleidingKnop] = useState<boolean | null>(null);
   const aanbodGedaan = useRef(false);
-  // Staan de instellingen over de werkplek heen, dan leeft dit component door. Bij het sluiten opnieuw lezen: daar kan
-  // de knop net veranderd zijn.
-  const inInstellingen = usePathname().startsWith("/instellingen");
+  // Staan de instellingen over de werkplek heen (`?instellingen=`), dan leeft dit component door. Bij het sluiten opnieuw
+  // lezen: daar kan de knop net veranderd zijn.
+  const inInstellingen = useSearchParams().has(INSTELLINGEN_PARAM);
 
   // Eerste bezoek aan de werkplek: de rondleiding biedt zichzelf aan. Bewust hier en niet in een
   // effect verderop – dit is het enige scherm waar hij iets kan aanwijzen. Bewust in een effect en
@@ -321,9 +323,9 @@ export function WorkbenchShell({
         <div role="status" className="shrink-0 border-b border-fout/30 bg-fout/10 px-4 py-2 text-center text-[0.8125rem] text-fout">
           <span className="font-semibold">Je tokenbudget is op.</span>{" "}
           Je kunt geen nieuwe vragen stellen tot {resetdatum(verbruik.reset_op)}.{" "}
-          <Link href="/instellingen/verbruik" className="focus-ring rounded font-medium underline underline-offset-2">
+          <InstellingenLink tab="verbruik" className="focus-ring rounded font-medium underline underline-offset-2">
             Bekijk je verbruik
-          </Link>
+          </InstellingenLink>
         </div>
       )}
       {verbruik?.actief && !verbruik.geblokkeerd && verbruik.waarschuwing && !strookGesloten && (
