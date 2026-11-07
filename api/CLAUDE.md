@@ -139,9 +139,18 @@ Hieronder wat je moet weten om de code te wijzigen.
 - **Verouderd.** Wijkt de hash van een geankerde bronnode af van de actuele bron, dan is het
   element verouderd: alleen-lezen (409), telt niet mee bij afronden. De lifecycle blijft staan als
   historie.
+- **Opnieuw annoteren ruimt op** (`_vervang_oude_voorstellen`). Een batch met `run.modus == "opnieuw"` en een voltooide
+  dekking zet elk element met de eigenaar in het bereik dat van de agent komt, actueel is, geen oordeel draagt en niet
+  opnieuw in de batch zit op `vervangen` (`vervangen_in`, auditregel `element-vervangen`); wissen doet hij niet. De
+  respons draagt `vervangen` (ids). Komt hetzelfde id later terug, dan leeft het op (`element-hersteld`). `vervangen` is
+  niet actueel (`NIET_ACTUEEL`, `is_vervangen`): `weergave` en `actuele_elementen` laten het weg (de weergave en de
+  inventaris noemen het apart in `vervangen`, `actuele_elementen(inclusief_vervangen=True)` voor wie het wil tonen), net
+  als zoeken, werkvoorraad, statistiek, overzicht, afronden en `laag_invoer` (de projectie); `slot_van` en `_beslis_in`
+  maken het alleen-lezen; `begrip_store.actualiteit` geeft `gewijzigd`. Een nieuwe lezer van de elementtabel moet
+  dezelfde keuze maken. Zie de specificatie §*Opslag en projectie*.
 - **Eén definitie van beoordeeld** (`annotatie_v2_contracts`): `BEOORDEELD` (`human_approved`, `edited`, `published`),
-  `AFGEHANDELD` (daarnaast `rejected`) en `VERGRENDELD` (`AFGEHANDELD` zonder `edited`). Schrijf de lifecycles
-  nergens los uit; `frontend/lib/annotatie.ts` draagt dezelfde waarden en `tests/test_lifecycle_drift.py` bewaakt dat.
+  `AFGEHANDELD` (daarnaast `rejected`), `VERGRENDELD` (`AFGEHANDELD` zonder `edited`) en `NIET_ACTUEEL` (`vervangen`).
+  Schrijf de lifecycles nergens los uit; `frontend/lib/annotatie.ts` draagt dezelfde waarden en `tests/test_lifecycle_drift.py` bewaakt dat.
 - **Een oordeel vergrendelt.** Een element in `VERGRENDELD` dat van de agent komt of een oordeel draagt
   (`heeft_oordeel`), accepteert alleen `comment` en `heropen` (`annotatie_v2_store._beslis_in`). Afronden (`zet_status`
   → `geaccordeerd`) kan pas als elk actueel element afgehandeld is en de bron niet veranderde.

@@ -198,7 +198,8 @@ def vindplaats_label(iri: str) -> str:
 # rest van het gesprek. Wat een jurist vraagt – welke klasse, welke tekst, waar, hoe zeker, waarom –
 # staat hier; het volledige record blijft via `get_annotatie` op te vragen.
 BEOORDELING = {"voorgesteld": "voorstel van Lex", "proposed": "voorstel van Lex", "human_approved": "akkoord",
-               "edited": "door jurist aangepast", "rejected": "verworpen", "published": "gepubliceerd", "reused": "hergebruikt"}
+               "edited": "door jurist aangepast", "rejected": "verworpen", "published": "gepubliceerd", "reused": "hergebruikt",
+               "vervangen": "vervangen door een nieuwe ronde"}
 LAAGSTAND = {"in_review": "in behandeling", "geaccordeerd": "afgerond", "gepromoveerd": "in de graaf"}
 
 _ZOEKVELDEN = ("id", "klasse", "tekst", "jas_subtype", "aandacht", "lifecycle", "verouderd", "soort")
