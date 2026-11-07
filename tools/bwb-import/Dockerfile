@@ -1,4 +1,4 @@
-# Self-contained image voor de BWB-importservice (FastAPI).
+# Self-contained image voor de BWB-importer: de jobs op Azure starten `python -m app.main`.
 FROM python:3.14-slim
 
 WORKDIR /app
@@ -26,6 +26,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 COPY schemas ./schemas
 
-EXPOSE 8000
-
-CMD ["uvicorn", "app.service:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "app.main"]

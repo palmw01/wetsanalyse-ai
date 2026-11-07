@@ -169,7 +169,7 @@ waarde niet als segmentgrens leest.
 
   Die volgorde is het hele punt. Los je een verwijzing op tijdens de import van de *citerende* wet,
   dan kan dat per definitie niet voor een doel in een ándere wet: die is dan nog niet gezien, en de
-  verwijzing landt op een lege node. Een losse `run_import` (één wet) heeft precies die grens.
+  verwijzing landt op een lege node. Een run met één wet heeft precies die grens.
 
   Is het nummer binnen de doelwet niet ondubbelzinnig, dan blijft de verwijzing een open stub; bij
   een écht ambigue verwijzing is dat eerlijker dan een gok. Hetzelfde geldt voor een doel in een wet
@@ -193,8 +193,8 @@ waarde niet als segmentgrens leest.
   leest die tekst, en `koppel_deelverwijzingen` (`app/collect.py`) laat `bwb:verwijstNaar` uitkomen op
   elk genoemd lid of onderdeel dat in de run bestaat, met terugval van onderdeel op lid op artikel.
   Het artikel is ook de uitkomst voor een wet buiten de run en voor tekst die niet eenduidig is
-  ("artikelen 3 en 4, eerste lid"); `bwb:doelLid` bewaart dan het genoemde lid. Een losse
-  `run_import` kent alleen de eigen wet, dus de batch-import levert de fijnste koppeling. Ongetagde
+  ("artikelen 3 en 4, eerste lid"); `bwb:doelLid` bewaart dan het genoemde lid. Een
+  run met één wet kent alleen die wet, dus de batch-import levert de fijnste koppeling. Ongetagde
   tekstverwijzingen blijven op artikelniveau. Wie inkomende verwijzingen van een artikel wil, loopt
   mee over `(bwb:heeftLid|bwb:heeftOnderdeel)*`.
 - **Idempotentie**: elke wet in named graph `BASE graph:{bwb_id}` (bij de default `urn:bwb:graph:BWBR…`); `PUT` vervangt.
@@ -292,11 +292,9 @@ cp .env.example .env   # zet GRAPHDB_URL; lokaal is dat http://localhost:7200
 | `BWB_DETECT_TEKSTUELE_REFS` | `true`                   | Ongetagde tekstverwijzingen detecteren        |
 | `BWB_IMPORT_WTI`       | `false`                       | WTI-verrijking (titels/rechtsgebieden/grondslagen); op Azure `true` |
 | `BWB_MIN_DEKKING`      | `0.995`                       | Ondergrens tekstdekking; eronder exitcode 2; `0` = uit |
-| `BWB_SERVICE_API_KEY`  | –                             | Optionele API-key voor de service (`X-API-Key`-header) |
 | `BWB_DATA_DIR`         | `data/` (in de projectwortel) | Cache-map voor gedownloade XML                |
 | `BWB_SCHEMAS_DIR`      | `schemas/` (in de projectwortel) | Map met de officiële XSD's                 |
 | `BWB_SRU_URL`          | `https://zoekservice.overheid.nl/sru/Search` | SRU-zoekdienst (discovery)     |
-| `BWB_REPO_URL`         | `https://repository.officiele-overheidspublicaties.nl` | BWB-repository (downloads) |
 
 ## Gebruik
 
@@ -337,28 +335,6 @@ bestaat.
 
 De tests draaien offline op de fixtures in `tests/fixtures/`. CI draait dezelfde suite vóór de
 image-build.
-
-## Service
-
-```bash
-.venv/bin/python -m uvicorn app.service:app --host 0.0.0.0 --port 8000
-```
-
-- `GET /health` → `{"status": "ok"}`
-- `POST /import` met body `{"bwb_id": "BWBR0004770"}` → import + overzicht-JSON, met `status: "ok"` of
-  `"tegengehouden"` (zonder body wordt `BWB_DEFAULT_ID` geïmporteerd). Dit is de losse route: ze kent
-  alleen de eigen wet en bouwt geen similarity-index
-- `POST /import` met body `{"bwb_ids": ["BWBR0004770", "BWBR0005537"]}` →
-  batch; respons `{"status": "ok"|"gedeeltelijk"|"mislukt", "resultaten": […]}`
-  met per wet `status`/`overzicht`/`fout` (een falende wet breekt de batch niet)
-
-Is `BWB_SERVICE_API_KEY` gezet, dan vereist `POST /import` de header
-`X-API-Key: <key>` (anders 401).
-
-De service is de Dockerfile-`CMD`. Op Azure draait hij niet: daar starten de jobs de CLI
-(`python -m app.main`), omdat een job geen webserver nodig heeft en de exitcode meteen het resultaat
-van de import is. De importer publiceert bewust geen poort: importeren is een schrijfactie op de
-graaf.
 
 ## Uitrol op Azure
 
