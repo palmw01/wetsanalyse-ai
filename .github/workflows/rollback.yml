@@ -60,6 +60,12 @@ jobs:
             [ -n "${!v:-}" ] || { echo "::error::ontbrekende secret/var: $v (zie deploy/azure/README.md)"; exit 1; }
           done
 
+      # De uitrolpoort staat als composite action in de repo; alleen die map is nodig.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/actions
+          persist-credentials: false
+
       - name: Inloggen bij Azure
         run: |
           set -euo pipefail
@@ -103,26 +109,13 @@ jobs:
           # bicep beschrijft. Zo blijft de template de waarheid.
           az containerapp update -n "$naam" -g "$RG" --image "$image" --output none
 
-      - name: Wachten tot de teruggezette revisie draait
+      - name: Uitrolpoort (teruggezette revisie gezond, keten werkt)
         if: ${{ inputs.revisie != '' }}
-        env:
-          APP: ${{ inputs.app }}
-        run: |
-          set -euo pipefail
-          naam="$APP_NAME-$APP"
-          rev=$(az containerapp show -n "$naam" -g "$RG" --query "properties.latestRevisionName" -o tsv)
-          echo "Nieuwe revisie: $rev"
-          for _ in $(seq 1 30); do
-            st=$(az containerapp revision show -n "$naam" -g "$RG" --revision "$rev" \
-                   --query "properties.runningState" -o tsv 2>/dev/null || echo Unknown)
-            echo "  $st"
-            case "$st" in
-              Running|RunningAtMaxScale) echo "$rev draait."; exit 0 ;;
-              Failed|Degraded) echo "::error::revisie $rev kwam niet gezond op ($st)"; exit 1 ;;
-            esac
-            sleep 10
-          done
-          echo "::error::revisie $rev werd niet Running binnen 5 minuten"; exit 1
+        uses: ./.github/actions/wacht-op-revisie
+        with:
+          apps: ${{ env.APP_NAME }}-${{ inputs.app }}
+          resource-group: ${{ env.RG }}
+          keten: ${{ env.APP_NAME }}-frontend
 
       - name: Samenvatting
         if: always()

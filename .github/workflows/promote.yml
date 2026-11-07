@@ -128,28 +128,14 @@ jobs:
             echo "::warning::job $PRD_APP-graafwacht bestaat nog niet – rol de infra op productie uit."
           fi
 
-      # Dezelfde gate als in de publish-workflows: `update` keert terug zodra de revisie is
-      # AANGEMAAKT, niet zodra hij draait.
-      - name: Wachten tot de nieuwe revisies draaien
-        run: |
-          set -euo pipefail
-          wacht() {
-            rev=$(az containerapp show -n "$PRD_APP-$1" -g "$PRD_RG" --query "properties.latestRevisionName" -o tsv)
-            echo "$1 → $rev"
-            for _ in $(seq 1 30); do
-              st=$(az containerapp revision show -n "$PRD_APP-$1" -g "$PRD_RG" --revision "$rev" \
-                     --query "properties.runningState" -o tsv 2>/dev/null || echo Unknown)
-              case "$st" in
-                Running|RunningAtMaxScale) echo "  draait."; return 0 ;;
-                Failed|Degraded) echo "::error::revisie $rev kwam niet gezond op ($st)"; return 1 ;;
-              esac
-              sleep 10
-            done
-            echo "::error::revisie $rev werd niet Running binnen 5 minuten"; return 1
-          }
-          wacht api
-          wacht frontend
-          wacht graph-qa
+      # Dezelfde poort als in de publish-workflows: `update` keert terug zodra de revisie is
+      # AANGEMAAKT, niet zodra hij draait. Daarna de rooktest via de frontend.
+      - name: Uitrolpoort (revisies gezond, keten werkt)
+        uses: ./.github/actions/wacht-op-revisie
+        with:
+          apps: ${{ env.PRD_APP }}-api ${{ env.PRD_APP }}-frontend ${{ env.PRD_APP }}-graph-qa
+          resource-group: ${{ env.PRD_RG }}
+          keten: ${{ env.PRD_APP }}-frontend
 
       # ghcr-cleanup bewaart per image alleen de vijf nieuwste builds. Wat productie draait (en de
       # versie daarvoor, voor een rollback) moet daar buiten vallen, anders verdwijnt het image

@@ -166,11 +166,25 @@ Daardoor is een infra-deploy op een draaiende omgeving veilig. De toets daarop: 
 
 De vier `*-docker-publish.yml`-workflows bouwen naar GHCR (`pip-audit` vooraf bij api, graph-qa en bwb-import,
 `npm audit` bij de frontend, en bij alle vier een Trivy-gate op HIGH/CRITICAL achteraf) en hebben daarna een `deploy`-job die de container app op acceptatie naar de
-nieuwe **digest** zet (niet naar een tag). Die job wacht tot de nieuwe revisie daadwerkelijk
-`Running` is; `az containerapp update` keert namelijk al terug zodra de revisie is *aangemaakt*, dus
-een container die bij het starten crasht bleef anders onopgemerkt. Bestaat de doel-app nog niet (een
+nieuwe **digest** zet (niet naar een tag). Die job gaat door de **uitrolpoort**
+(`.github/actions/wacht-op-revisie`, dezelfde in `promote.yml`, `rollback.yml` en `azure-infra`):
+eerst wacht hij tot de nieuwe revisie gezond is (`Running`, of `ScaledToZero` voor een app op
+minReplicas 0); `az containerapp update` keert namelijk al terug zodra de revisie is *aangemaakt*, dus
+een container die bij het starten crasht bleef anders onopgemerkt. Daarna de **rooktest**: de publieke
+`/api/health?keten=1` van de frontend moet melden dat hij de api én graph-qa bereikt (anders 503). Die
+aanroep wekt ook een koude api of graph-qa, dus de poort probeert het een paar minuten. Zonder
+parameter blijft `/api/health` altijd 200: daar hangen de probes en de Docker-HEALTHCHECK aan, en de
+frontend leeft zolang de route antwoordt. Bestaat de doel-app nog niet (een
 verse straat zonder infra), dan waarschuwt de job en slaat hij de swap over in plaats van rood te
 worden: het image staat dan wél in GHCR.
+
+**Versies naast elkaar: N en N-1.** api, graph-qa en frontend rollen los van elkaar uit (padgefilterde
+builds, `promote.yml` swapt ze na elkaar, `rollback.yml` per app), dus versie N van de een draait
+geregeld naast N-1 van de ander. De regel: **elke wijziging op een grens tussen die drie werkt met de
+vorige versie van de andere kant.** Eerst toevoegen (een nieuw veld of endpoint, dat de oude kant
+negeert), dan gebruiken, en het oude pas weghalen in een latere release, als beide kanten het nieuwe
+draaien. Zo blijft ook het terugrollen van één app naar N-1 veilig. De rooktest volgt dezelfde regel:
+een frontend die `?keten` nog niet kent, toetst hij alleen op het veld `api`.
 
 **Een job lift niet vanzelf mee.** Zo'n `deploy`-job werkt de container **app** bij; een container
 app **job** krijgt alleen een nieuw image als de workflow er expliciet een `az containerapp job
