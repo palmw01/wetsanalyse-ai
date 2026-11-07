@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
+import json
+from pathlib import Path
 from typing import Literal
 from zoneinfo import ZoneInfo
 
@@ -18,8 +20,8 @@ from pydantic import BaseModel, ConfigDict
 
 from .pdf_opmaak import BEGRIP, BLOK_BEGIN, BLOK_EIND, INHOUD, MARKERING, PAGINA
 
-VERSIE = 1
-SCHEMA = "werkgebied-rapport-v1"
+VERSIE = 2
+SCHEMA = "werkgebied-rapport-v2"
 
 Regel = tuple[str, str]
 Door = Literal["bron", "lex", "analist"]
@@ -32,6 +34,29 @@ class _Deel(BaseModel):
 class Stand(_Deel):
     op: str
     door: str
+
+
+class Document(_Deel):
+    """Wat het rapport als document identificeert: titelblad en colofon."""
+
+    titel: str
+    kenmerk: str                                     # "WG-<eerste 8 tekens van het id>-r<revisie>"
+    werkgebied_id: str
+    concept: bool                                    # zolang het werkgebied niet afgerond is
+
+
+class Telling(_Deel):
+    code: str
+    aantal: int
+
+
+class Kerncijfers(_Deel):
+    """De samenvatting: codes en getallen, de zinnen maakt de tekstlaag."""
+
+    deelvragen: list[Telling] = []                   # voortgang → aantal
+    bronnen: list[Telling] = []                      # rol → aantal
+    markeringen: list[Telling] = []                  # beoordeeld | voorstel | afgewezen → aantal
+    begrippen: list[Telling] = []                    # status → aantal
 
 
 class Bronstand(_Deel):
@@ -290,6 +315,16 @@ class Handeling(_Deel):
     aantal: int
 
 
+class Besluit(_Deel):
+    """Een beslissende handeling uit de audit: wie besloot wat, en wanneer."""
+
+    op: str
+    door: str
+    actie: str
+    onderwerp: str = ""
+    reden: str = ""
+
+
 class Selectie(_Deel):
     rol: str
     vindplaats: Vindplaats
@@ -304,19 +339,35 @@ class Verantwoording(_Deel):
     juristen: list[str] = []
     accordeurs: list[str] = []
     handelingen: list[Handeling] = []
+    besluiten: list[Besluit] = []
     bronnen: list[Selectie] = []
 
 
 class Rapport(_Deel):
-    schema_naam: Literal["werkgebied-rapport-v1"] = SCHEMA
+    schema_naam: Literal["werkgebied-rapport-v2"] = SCHEMA
     versie: int = VERSIE
     stand: Stand
+    document: Document
     voorblad: Voorblad
+    samenvatting: Kerncijfers
     dossier: Dossier
     deelvragen: Deelvragen
     wettekst: Wettekst
     begrippen: Begrippen
     verantwoording: Verantwoording
+
+
+SCHEMA_PAD = Path(__file__).parent / "schemas" / f"{SCHEMA}.schema.json"
+
+
+def json_schema() -> dict:
+    """Het JSON-schema van het document; het bestand in `schemas/` is hieruit gemaakt en een test bewaakt dat."""
+    return {"$schema": "https://json-schema.org/draft/2020-12/schema", "$id": f"urn:wetsanalyse:schema:{SCHEMA}",
+            **Rapport.model_json_schema()}
+
+
+def schrijf_schema() -> None:
+    SCHEMA_PAD.write_text(json.dumps(json_schema(), ensure_ascii=False, indent=2) + "\n")
 
 
 _DOSSIER = {"aanleiding": "Aanleiding", "context": "Context", "doel": "Doel", "analysevraag": "Analysevraag",
@@ -341,6 +392,23 @@ _RELATIE = {"kwalificatie": "kwalificeert", "inclusie": "omvat", "uitsluiting": 
 _DEFINITIE = {"letterlijk": "brondefinitie, letterlijk uit de wettekst", "samengesteld": "analysebegrip, samengesteld uit de wettekst",
               "geformuleerd": "analysebegrip, geformuleerd"}
 _DEFINITIE_DOOR = {"lex": "voorgesteld door Lex", "analist": "door de analist"}
+_MARKERINGSTAND = {"beoordeeld": "beoordeeld door een jurist", "voorstel": "voorstel, nog niet beoordeeld", "afgewezen": "afgewezen"}
+_BESLUIT = {"status-gewijzigd": "status van het werkgebied gewijzigd",
+            "bron-toegevoegd": "bron opgenomen in het werkgebied", "bron-verwijderd": "bron verwijderd uit het werkgebied",
+            "bronselectie-opgenomen": "bron opgenomen bij een deelvraag", "bronselectie-uitgesloten": "bron uitgesloten bij een deelvraag",
+            "bronselectie-losgekoppeld": "bron losgemaakt van een deelvraag",
+            "kandidaat-opgenomen": "voorgestelde bron opgenomen", "kandidaat-uitgesloten": "voorgestelde bron uitgesloten",
+            "bronselectie-afronden": "bronselectie afgerond", "bronselectie-heropenen": "bronselectie heropend",
+            "bronselectie-heropend": "bronselectie heropend",
+            "begrip-geaccordeerd": "begrip geaccordeerd", "begrip-heropend": "accordering van een begrip ingetrokken",
+            "begrip-generiek": "begrip generiek gemaakt", "begrip-vervangen": "begrip vervangen", "begrip-opgevolgd": "begrip opgevolgd",
+            "begrip-gecombineerd": "begrippen gecombineerd", "begrip-verwijderd": "begrip verwijderd",
+            "relatie-vastgelegd": "relatie vastgelegd", "relatie-bevestigd": "relatie bevestigd", "relatie-afgewezen": "relatie afgewezen",
+            "koppeling-bevestigd": "passage bij een begrip bevestigd",
+            "voorstel-overgenomen": "voorstel van Lex overgenomen", "voorstel-afgewezen": "voorstel van Lex afgewezen",
+            "groep-overgenomen": "betekenisgroep overgenomen", "groep-akkoord": "betekenisgroep akkoord bevonden"}
+BESLUITEN = frozenset(_BESLUIT)
+"""De audit-acties die een besluit zijn: die staan met datum en naam in het besluitenlog, de rest alleen geteld."""
 _LEEG = "Niet ingevuld."
 _ZONE = ZoneInfo("Europe/Amsterdam")
 _MAANDEN = ("januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober",
@@ -348,6 +416,18 @@ _MAANDEN = ("januari", "februari", "maart", "april", "mei", "juni", "juli", "aug
 
 BLOK: tuple[Regel, ...] = ((BLOK_BEGIN, ""),)
 BLOK_UIT: tuple[Regel, ...] = ((BLOK_EIND, ""),)
+
+
+def datum_tijd(iso: str | None) -> str:
+    """"7 november 2026, 14:03", in Nederlandse tijd."""
+    if not iso:
+        return ""
+    try:
+        d = datetime.fromisoformat(iso)
+    except ValueError:
+        return iso
+    d = d.astimezone(_ZONE) if d.tzinfo else d
+    return f"{datum(iso)}, {d:%H:%M}"
 
 
 def datum(iso: str | None) -> str:
@@ -413,6 +493,50 @@ def voorblad_regels(v: Voorblad, stand: Stand) -> list[Regel]:
                      "bepaling staat de vindplaats en de bronreferentie (jci)."),
             ("Meta", "Lex stelt voor, de jurist beslist. Beoordeeld of geaccordeerd betekent dat een jurist het bevestigde. "
                      "Voorstel en concept zijn nog niet bevestigd; afgewezen en uitgesloten zijn bewust niet meegenomen.")]
+    return uit
+
+
+def colofon_regels(doc: Document, v: Voorblad, stand: Stand, verantwoording: Verantwoording) -> list[Regel]:
+    """Pagina 2: wat het document is, wie het opstelde en waar de tekst vandaan komt."""
+    status = _WERKGEBIED_STATUS.get(v.status, v.status) + (" · concept" if doc.concept else "")
+    uit: list[Regel] = [(PAGINA, ""), ("Heading4", "Colofon"),
+                        ("Meta", "Titel: " + doc.titel),
+                        ("Meta", "Kenmerk: " + doc.kenmerk),
+                        ("Meta", "Werkgebied: " + doc.werkgebied_id),
+                        ("Meta", f"Status: {status} · revisie {v.revisie}"),
+                        ("Meta", "Peildatum: " + (datum(v.peildatum) or "niet vastgelegd")),
+                        ("Meta", f"Stand van {datum_tijd(stand.op)}, geëxporteerd door {stand.door}."),
+                        ("Meta", "Opgesteld door: " + verantwoording.aangemaakt_door)]
+    if verantwoording.juristen:
+        uit.append(("Meta", "Markeringen beoordeeld door: " + ", ".join(verantwoording.juristen)))
+    if verantwoording.accordeurs:
+        uit.append(("Meta", "Begrippen geaccordeerd door: " + ", ".join(verantwoording.accordeurs)))
+    uit += [("Meta", "Opgesteld met Lex, het wetsanalyseplatform. Lex stelt voor, de jurist beslist."),
+            ("Meta", "Wettekst: de BWB-kennisgraaf, gevuld uit de officiële publicatie op wetten.overheid.nl. "
+                     "De toestand per regeling staat in het rapport."),
+            ("Meta", "Dit rapport is een analyse-uitkomst volgens de methode Wetsanalyse, geen wettelijke definitie en geen "
+                     "juridisch oordeel.")]
+    return uit
+
+
+def _tellingen(t: list[Telling], labels: dict[str, str]) -> str:
+    return ", ".join(f"{labels.get(x.code, x.code)}: {x.aantal}" for x in t) or "geen"
+
+
+def samenvatting_regels(k: Kerncijfers, v: Voorblad, d: Deelvragen) -> list[Regel]:
+    """De kern op één pagina: de vraag, de cijfers en wat een lezer eerst moet weten."""
+    uit: list[Regel] = [(PAGINA, ""), ("Heading1", "Samenvatting")]
+    if v.analysevraag:
+        uit += [("Heading4", "Analysevraag"), *alinea(v.analysevraag)]
+    uit += [("Heading4", "Kerncijfers"),
+            ("BodyText", "Deelvragen – " + _tellingen(k.deelvragen, _VOORTGANG)),
+            ("BodyText", "Bronnen – " + _tellingen(k.bronnen, {"analyseren": "te analyseren", "context": "context"})),
+            ("BodyText", "Markeringen – " + _tellingen(k.markeringen, _MARKERINGSTAND)),
+            ("BodyText", "Begrippen – " + _tellingen(k.begrippen, {s: t.split(",")[0].lower() for s, t in _BEGRIPSTATUS.items()}))]
+    if d.deelvragen and d.modus != "analysevraag":
+        uit.append(("Heading4", "Stand per deelvraag"))
+        uit += [("BodyText", f"{x.nr}. {'Opnieuw bekijken' if x.opnieuw_bekijken else _VOORTGANG.get(x.status, x.status)} – {x.vraag}")
+                for x in d.deelvragen]
     return uit
 
 
@@ -662,6 +786,16 @@ def verantwoording_regels(v: Verantwoording) -> list[Regel]:
     uit += [("Heading2", "Handelingen in dit werkgebied"),
             ("Meta", meervoud(sum(h.aantal for h in v.handelingen), "handeling", "handelingen") + " in de audit, per soort:")]
     uit += [("Meta", f"{h.actie.replace('-', ' ')}: {h.aantal}") for h in v.handelingen]
+    uit.append(("Heading2", "Besluitenlog"))
+    if v.besluiten:
+        uit.append(("Meta", "De beslissende handelingen, oudste eerst. Het werk van Lex zelf (zoeken, voorstellen) staat hierboven geteld."))
+    else:
+        uit.append(("Meta", "Er zijn nog geen besluiten vastgelegd."))
+    for b in v.besluiten:
+        uit.append(("BodyText", f"{datum_tijd(b.op)} · {b.door} · {_BESLUIT.get(b.actie, b.actie.replace('-', ' '))}"
+                    + (f": {b.onderwerp}" if b.onderwerp else "")))
+        if b.reden:
+            uit.append(("Meta", "Reden: " + b.reden))
     uit.append(("Heading2", "Bronnen"))
     for s in v.bronnen:
         uit += [("BodyText", s.vindplaats.label), ("Meta", f"Rol {_BRONROL.get(s.rol, s.rol)} · {_verwijzing(s.vindplaats)}")]
@@ -672,6 +806,7 @@ def verantwoording_regels(v: Verantwoording) -> list[Regel]:
 
 def rapport_regels(r: Rapport) -> list[Regel]:
     """Het hele rapport als (stijl, tekst), de vorm die elke uitvoer leest."""
-    return [*voorblad_regels(r.voorblad, r.stand), (PAGINA, ""), ("Heading4", "Inhoud"), (INHOUD, ""), *dossier_regels(r.dossier),
+    return [*voorblad_regels(r.voorblad, r.stand), *colofon_regels(r.document, r.voorblad, r.stand, r.verantwoording),
+            (PAGINA, ""), ("Heading4", "Inhoud"), (INHOUD, ""), *samenvatting_regels(r.samenvatting, r.voorblad, r.deelvragen), *dossier_regels(r.dossier),
             *deelvragen_regels(r.deelvragen), *wettekst_regels(r.wettekst), *begrippen_regels(r.begrippen),
             *verantwoording_regels(r.verantwoording)]
