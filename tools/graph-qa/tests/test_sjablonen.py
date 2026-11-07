@@ -275,9 +275,9 @@ def tien(**lid2) -> tuple[str, str]:
     return "get_artikel", json.dumps({"status": "ok", "volledig": True, "aantal": 2, "artikel": {"iri": TIEN, "delen": 2}, "resultaten": leden})
 
 
-def duiding(fragment: str = ZIN_1, bepaling: str = TIEN_1, kort: str = "Uitstel is mogelijk.", waarom: str = "Dit geeft de bevoegdheid.",
-            twijfel: list[str] | None = None, **extra) -> dict:
-    return {"kort_antwoord": kort, "onderbouwing": [{"bepaling": bepaling, "fragment": fragment, "waarom": waarom}], "twijfel": twijfel or [], **extra}
+def duiding(van: str = "De ontvanger kan uitstel", tot: str = "van zes maanden.", bepaling: str = TIEN_1, kort: str = "Uitstel is mogelijk.",
+            waarom: str = "Dit geeft de bevoegdheid.", twijfel: list[str] | None = None, **extra) -> dict:
+    return {"kort_antwoord": kort, "onderbouwing": [{"bepaling": bepaling, "van": van, "tot": tot, "waarom": waarom}], "twijfel": twijfel or [], **extra}
 
 
 def test_duiding_is_strict_ook_in_de_geneste_rij():
@@ -303,15 +303,42 @@ def test_duiding_zonder_twijfel_heeft_geen_twijfelblok_en_ontdubbelt_de_doelen()
     assert [b.soort for b in a.blokken] == ["toelichting", "citaten"] and [v.iri for v in a.doelen] == [TIEN_1]
 
 
-def test_bijna_letterlijk_wordt_de_brontekst():
-    a = vul("antwoord_duiding", duiding(fragment="de ontvanger kan uitstel verlenen voor de duur van zes maanden."), [tien()])
+def test_de_tekst_tussen_de_ankers_komt_uit_de_bron_niet_van_het_model():
+    """D5: het model schrijft het citaat niet meer uit; wat ertussen staat neemt de code letterlijk uit de bron."""
+    a = vul("antwoord_duiding", duiding(van="kan uitstel", tot="duur"), [tien()])
+    assert a.blokken[1].items[0].tekst == "kan uitstel verlenen voor de duur"
+
+
+def test_bijna_letterlijke_ankers_worden_de_brontekst():
+    a = vul("antwoord_duiding", duiding(van="de ontvanger kan uitstel verlenen", tot="zes maanden"), [tien()])
     assert a.blokken[1].items[0].tekst == ZIN_1.rstrip(".")
 
 
-@pytest.mark.parametrize("fragment", ["De ontvanger kan uitstel verlenen (...) zes maanden.", "De ontvanger mag uitstel verlenen voor de duur van zes maanden.", ""])
-def test_een_fragment_dat_niet_in_de_bron_staat_wordt_nooit_getoond(fragment):
+def test_zonder_ankers_telt_het_hele_lid_en_met_een_anker_tot_het_begin_of_eind():
+    assert vul("antwoord_duiding", duiding(van="", tot=""), [tien()]).blokken[1].items[0].tekst == ZIN_1
+    assert vul("antwoord_duiding", duiding(van="voor de duur", tot=""), [tien()]).blokken[1].items[0].tekst == "voor de duur van zes maanden."
+    assert vul("antwoord_duiding", duiding(van="", tot="uitstel verlenen"), [tien()]).blokken[1].items[0].tekst == "De ontvanger kan uitstel verlenen"
+
+
+def test_een_lang_lid_zonder_ankers_gaat_terug_naar_het_model():
+    lang = "De ontvanger kan uitstel verlenen. " * 30
+    with pytest.raises(Onvulbaar, match="te lang om heel te tonen"):
+        vul("antwoord_duiding", duiding(van="", tot="", bepaling=TIEN_2), [tien(tekst=lang)])
+
+
+def test_staat_het_begin_er_vaker_dan_telt_de_plek_waarna_het_eind_volgt():
+    tekst = "Het uitstel geldt. Het uitstel eindigt zodra een nieuwe aanslag komt."
+    a = vul("antwoord_duiding", duiding(van="Het uitstel", tot="aanslag komt.", bepaling=TIEN_2), [tien(tekst=tekst)])
+    assert a.blokken[1].items[0].tekst == tekst
+    a = vul("antwoord_duiding", duiding(van="Het uitstel", tot="eindigt", bepaling=TIEN_2), [tien(tekst=tekst)])
+    assert a.blokken[1].items[0].tekst == "Het uitstel geldt. Het uitstel eindigt"
+
+
+@pytest.mark.parametrize("van,tot", [("De ontvanger mag uitstel", "zes maanden."), ("De ontvanger kan uitstel", "zes weken."),
+                                      ("zes maanden.", "De ontvanger")])
+def test_ankers_die_niet_of_omgekeerd_in_de_bron_staan_worden_nooit_getoond(van, tot):
     with pytest.raises(Onvulbaar, match="staat niet in Artikel 10, lid 1"):
-        vul("antwoord_duiding", duiding(fragment=fragment), [tien()])
+        vul("antwoord_duiding", duiding(van=van, tot=tot), [tien()])
 
 
 def test_een_echte_zin_bij_het_verkeerde_lid_wordt_geweigerd():
@@ -331,24 +358,24 @@ def test_wijst_het_model_het_artikel_aan_dan_is_de_vindplaats_het_lid():
 
 
 def test_staat_de_passage_in_twee_leden_dan_blijft_het_artikel_de_vindplaats():
-    a = vul("antwoord_duiding", duiding(fragment="uitstel", bepaling=TIEN, waarom=""), [tien(tekst=f"Het uitstel eindigt. {ZIN_1}")])
+    a = vul("antwoord_duiding", duiding(van="uitstel", tot="", bepaling=TIEN, waarom=""), [tien(tekst=f"Het uitstel eindigt. {ZIN_1}")])
     assert a.blokken[1].items[0].vindplaats.iri == TIEN
 
 
 def test_een_onderdeel_van_het_aangewezen_lid_telt_met_zijn_eigen_vindplaats():
-    a = vul("antwoord_duiding", duiding(fragment="zolang twijfel bestaat", bepaling=LID), [lid(A)])
+    a = vul("antwoord_duiding", duiding(van="zolang twijfel", tot="bestaat", bepaling=LID), [lid(A)])
     assert a.blokken[1].items[0].vindplaats.iri == A["onderdeel"]
 
 
 def test_een_passage_over_twee_rijen_is_onvulbaar():
     with pytest.raises(Onvulbaar, match="één lid of onderdeel"):
-        vul("antwoord_duiding", duiding(fragment=f"{ZIN_1} {ZIN_2}", bepaling=TIEN), [tien()])
+        vul("antwoord_duiding", duiding(van="De ontvanger kan", tot="nieuwe aanslag ontvangt.", bepaling=TIEN), [tien()])
 
 
 def test_een_voorproef_is_geen_bron_voor_een_citaat():
     zoek = ("search_wetgeving", json.dumps({"status": "ok", "volledig": True, "aantal": 1, "resultaten": [{"node": TIEN_1, "tekst": ZIN_1[:30], "tekst_volledig": False}]}))
     with pytest.raises(Onvulbaar, match="get_artikel"):
-        vul("antwoord_duiding", duiding(fragment=ZIN_1[:30]), [zoek])
+        vul("antwoord_duiding", duiding(van=ZIN_1[:10], tot=ZIN_1[20:30]), [zoek])
 
 
 def test_get_context_draagt_geen_vindplaats_per_tekst():
@@ -381,7 +408,7 @@ def test_een_bepaling_in_de_uitleg_zonder_passage_gaat_terug_naar_het_model(veld
 
 def test_de_eigen_bepaling_en_een_verwijzing_in_de_passage_mag_de_uitleg_noemen():
     tekst = f"Bedoeld in artikel 9 komt {ZIN_1}"
-    a = vul("antwoord_duiding", duiding(fragment=tekst, bepaling=TIEN, kort="Artikel 10 lid 2 sluit aan op artikel 9."), [tien(tekst=tekst)])
+    a = vul("antwoord_duiding", duiding(van="Bedoeld in artikel 9", tot="", bepaling=TIEN, kort="Artikel 10 lid 2 sluit aan op artikel 9."), [tien(tekst=tekst)])
     assert a.blokken[1].items[0].vindplaats.iri == TIEN_2
 
 
@@ -454,14 +481,14 @@ def test_een_verzonnen_citaat_in_de_uitleg_gaat_door_de_correctie(veld):
     assert "zonder enige voorwaarde" not in _eerste(events, "token")["content"]
 
 
-def test_een_fragment_buiten_de_bron_komt_nooit_bij_de_controle_of_de_jurist():
-    events, llm = _duidingsbeurt(HAAL, _sluit_af(fragment="Dit staat nergens in de wet, maar klinkt wel zo."), _sluit_af("t3"))
+def test_een_passage_buiten_de_bron_komt_nooit_bij_de_controle_of_de_jurist():
+    events, llm = _duidingsbeurt(HAAL, _sluit_af(van="Dit staat nergens in de wet,", tot="klinkt wel zo."), _sluit_af("t3"))
     assert llm.index == 4 and len([e for e in events if e["type"] == "antwoord"]) == 1
     assert "nergens in de wet" not in _eerste(events, "token")["content"]
 
 
 def test_een_sjabloon_dat_onvulbaar_blijft_stopt_bij_de_beurtlimiet():
-    onvulbaar = [_sluit_af(f"t{n}", fragment="Dit staat nergens in de wet.") for n in range(2, 7)]
+    onvulbaar = [_sluit_af(f"t{n}", van="Dit staat nergens", tot="in de wet.") for n in range(2, 7)]
     events, llm = _duidingsbeurt(HAAL, *onvulbaar, max_turns=3)
     assert llm.index == 5, "na de ronde op de limiet vraagt niets het model meer"
     assert "beurtlimiet" in _eerste(events, "token")["content"]
