@@ -24,6 +24,7 @@ import re
 from typing import Literal
 
 import httpx
+from bronmodel.taal import BRON_IRI
 from pydantic import BaseModel
 
 from . import annotatie_v2_store as store
@@ -32,7 +33,7 @@ from .graaf_client import sparql_select
 logger = logging.getLogger(__name__)
 
 MAX_VERWIJZINGEN = 200
-_IRI = re.compile(r"urn:bwb:(BWB[RV]\d+)(?::[^<>\s\"{}|^`\\]*)?")
+_IRI = BRON_IRI
 _KAAL_BWB = re.compile(r"BWB[RV]\d+")
 # Wat in het overzicht van een structuurdeel staat; leden en onderdelen horen bij het artikel.
 _OVERZICHT = {"Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf", "Artikel", "Divisie"}

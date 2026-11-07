@@ -44,6 +44,7 @@ from rdflib import Graph, Literal, Namespace, RDF, RDFS, URIRef
 from sqlalchemy import select
 
 from . import db
+from bronmodel.taal import BRON_IRI
 from bronmodel.vindplaats import vindplaats as bronmodel_vindplaats
 
 from .config import get_settings
@@ -369,7 +370,7 @@ PREFIX bwb: <urn:bwb-ns:>
 SELECT ?s ?jci ?url WHERE {{ VALUES ?s {{ {waarden} }}
   OPTIONAL {{ GRAPH ?g {{ ?s owl:sameAs ?jci }} FILTER(STRSTARTS(STR(?g), "urn:bwb:graph:")) }}
   OPTIONAL {{ GRAPH ?h {{ ?s bwb:bronUrl ?url }} FILTER(STRSTARTS(STR(?h), "urn:bwb:graph:")) }} }}"""
-_BWB_IRI = re.compile(r"urn:bwb:BWB[RV]\d+(?::[^<>\s\"{}|^`\\]*)?")
+_BWB_IRI = BRON_IRI
 
 
 async def paginas(bronnen: set[str]) -> dict[str, str]:

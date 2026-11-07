@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+from bronmodel.taal import BRON_IRI
 from rdflib import BNode, Graph, Literal, Namespace, RDF, URIRef
 from sqlalchemy import select, update
 from sqlalchemy.exc import SQLAlchemyError
@@ -342,13 +343,13 @@ def zoek_query(filters: dict, limit: int = 10001) -> str:
     clauses = []
     if "scoped_nodes" in filters:
         iris = filters["scoped_nodes"]
-        if not all(re.fullmatch(r"urn:bwb:(BWB[RV]\d+)(?::[^<>\s\"{}|^`\\]*)?", str(i)) for i in iris):
+        if not all(BRON_IRI.fullmatch(str(i)) for i in iris):
             raise ValueError("Ongeldige bronscope")
         values = " ".join(URIRef(i).n3() for i in iris)
         clauses.append(f"FILTER EXISTS {{ VALUES ?geraakt {{ {values} }} ?e oa:hasTarget/oa:hasSource ?geraakt }}")
     source = filters.get("bron_iri")
     if source:
-        match = re.fullmatch(r"urn:bwb:(BWB[RV]\d+)(?::[^<>\s\"{}|^`\\]*)?", str(source))
+        match = BRON_IRI.fullmatch(str(source))
         if not match:
             raise ValueError("Ongeldige bronnode")
         if filters.get("scope", "subtree") == "node":
