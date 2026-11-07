@@ -15,4 +15,7 @@
 {"id": "duiding", "vraag": "Wat betekent artikel 9 van de Invorderingswet 1990?", "verwacht": {"model": true}}
 {"id": "begrip", "vraag": "Wat is een belastingschuld?", "verwacht": {"model": true}}
 {"id": "bepaling-zonder-regeling", "vraag": "Wat staat er in artikel 3?", "verwacht": {"model": true}}
-{"id": "jas-methodevraag", "vraag": "Wat is de JAS-klasse Rechtsfeit?", "verwacht": {"model": true}, "bekend": "R1: is_leesvraag vangt een methodevraag (klasse + wat) als vraag naar annotaties"}
+{"id": "jas-methodevraag", "vraag": "Wat is de JAS-klasse Rechtsfeit?", "verwacht": {"model": true}}
+{"id": "jas-klasse-welke", "vraag": "Welke elementen zijn als Rechtsfeit gemarkeerd?", "verwacht": {"route": "annotaties_zoeken", "model": false}}
+{"id": "jas-klasse-welke-zonder-gemarkeerd", "vraag": "Welke klassen komen in artikel 9 het meest voor?", "verwacht": {"route": "annotaties_zoeken", "model": false}}
+{"id": "jas-element-hoe", "vraag": "Hoe herken ik het element voorwaarde?", "verwacht": {"model": true}}
