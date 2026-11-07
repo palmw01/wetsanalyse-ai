@@ -145,7 +145,7 @@ Hieronder wat je moet weten om de code te wijzigen.
 - **Opnieuw annoteren ruimt op** (`_vervang_oude_voorstellen`). Een batch met `run.modus == "opnieuw"` en een voltooide
   dekking zet elk element met de eigenaar in het bereik dat van de agent komt, actueel is, geen oordeel draagt en niet
   opnieuw in de batch zit op `vervangen` (`vervangen_in`, auditregel `element-vervangen`); wissen doet hij niet. De
-  respons draagt `vervangen` (ids). Komt hetzelfde id later terug, dan leeft het op (`element-hersteld`). `vervangen` is
+  respons draagt `vervangen` (ids). Komt hetzelfde id later terug, dan leeft het op (`element-hersteld`). Staat het er nog met een andere duiding (`VERVERS`: subtype, toelichting, alternatieven, aandacht, reviewuitleg, grounded), dan ververst de ronde het als niemand erover besliste (`_ververs`, auditregel `element-bijgewerkt` met de velden); een gelijk voorstel blijft byte-gelijk. `vervangen` is
   niet actueel (`NIET_ACTUEEL`, `is_vervangen`): `weergave` en `actuele_elementen` laten het weg (de weergave en de
   inventaris noemen het apart in `vervangen`, `actuele_elementen(inclusief_vervangen=True)` voor wie het wil tonen), net
   als zoeken, werkvoorraad, statistiek, overzicht, afronden en `laag_invoer` (de projectie); `slot_van` en `_beslis_in`

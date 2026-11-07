@@ -184,3 +184,39 @@ async def test_lezers_zien_vervangen_niet_als_actueel():
     koppeling = {"bewijs": {"element_hash": element_hash(stelt_toen)}, "bevestigingen": []}
     assert actualiteit(koppeling, stelt_toen)["actualiteit"] == "actueel"
     assert actualiteit(koppeling, await _rij("stelt"))["actualiteit"] == "gewijzigd"
+
+
+async def test_opnieuw_ververst_een_voorstel_waar_niemand_over_besliste():
+    """Hetzelfde id, een betere duiding: de keten kreeg een subtype en een andere toelichting. Zonder verversen bereikt
+    een verbetering aan de keten een bestaand element nooit (meting WA TRM, iteratie 2)."""
+    snap = snapshot()
+    await _eerste_ronde(snap)
+    beter = {**element(snap, 3, 12, "ontvanger"), "jas_subtype": "variabele", "toelichting": "nieuwe duiding",
+             "trace": {"ronde": 2}}
+    res = await store.batch(request(snap, [beter, element(snap, 13, 18, "stelt", "Operator"),
+                                           element(snap, 19, 21, "de")], "ronde-2", 1, OPNIEUW), snap, "agent")
+    rij = await _rij("ontvanger")
+    assert (rij["jas_subtype"], rij["toelichting"], rij["trace"]) == ("variabele", "nieuwe duiding", {"ronde": 2})
+    assert rij["geproduceerd_door"] == OPNIEUW and rij["lifecycle"] == "voorgesteld" and rij["id"] == "ontvanger"
+    assert next(e for e in res["elementen"] if e["id"] == "ontvanger")["jas_subtype"] == "variabele"
+    [regel] = await _audit("element-bijgewerkt")
+    assert regel["element_id"] == "ontvanger" and regel["detail"]["velden"] == ["jas_subtype", "toelichting"]
+    assert (await store.weergave(snap))["lagen"][0]["revisie"] == 2
+
+
+@pytest.mark.parametrize("geval", ["oordeel", "nieuw", "mens"])
+async def test_verversen_raakt_geen_oordeel_geen_gewone_ronde_en_geen_eigen_markering(geval):
+    snap = snapshot()
+    await _eerste_ronde(snap)
+    revisie = 1
+    if geval == "oordeel":
+        await store.beslis("ontvanger", Beslissing(type="comment", comment="klopt dit?", snapshot_id=snap["snapshot_id"],
+                                                   verwachte_revisies={ONE: 1}), snap, "jurist")
+        revisie = 2
+    voor = await _rij("ontvanger")
+    beter = {**element(snap, 3, 12, "ontvanger"), "jas_subtype": "variabele"}
+    run = {"modus": "nieuw"} if geval == "nieuw" else OPNIEUW
+    await store.batch(request(snap, [beter], "ronde-2", revisie, run), snap, "jurist" if geval == "mens" else "agent",
+                      mens=geval == "mens")
+    assert (await _rij("ontvanger"))["jas_subtype"] == voor["jas_subtype"] == ""
+    assert not await _audit("element-bijgewerkt")
