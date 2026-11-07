@@ -1,5 +1,5 @@
-"""Bepalingen benoemen en opzoeken: een naam uit de echte boom (`_benoem`, `plek_uit_iri`) en één bepaling die de
-analist zelf noemde, getoetst in de graaf (`bepaling_in_graaf`). Zonder model."""
+"""Bepalingen benoemen en opzoeken: een naam uit de echte boom (`_benoem`, `plek_uit_iri`) en de bepalingen die de
+analist zelf noemde (`bepalingen_uit_tekst`). Zonder model."""
 from __future__ import annotations
 
 import re
@@ -38,27 +38,6 @@ def plek_uit_iri(iri: str) -> str:
         divisie = re.search(r"divisie([\d.]+[a-z]?)$", delen[-1], re.I) if delen else None
         return f"divisie {divisie.group(1)}" if divisie else (delen[-1] if len(delen) > 1 else rest)
     return rest or iri
-
-
-def bepaling_in_graaf(graph: GraphPort, bwb_id: str, artikel: str, lid: str = "") -> dict[str, Any] | None:
-    """Eén bepaling die de analist zelf noemde (artikel en eventueel lid in een regeling), getoetst in de graaf:
-    `{bron_iri, bwb_id, label}` als ze bestaat, anders None. Licht: één query op het patroon van de bepaling
-    (`queries.node_patroon`, ook een Awb-nummer als 4:86 en een Leidraad-divisie), geen hele bronboom."""
-    try:
-        patroon = queries.node_patroon(bwb_id, artikel, lid or None)
-    except ValueError:
-        return None
-    soorten = ", ".join(queries.CONCRETE_TYPES)
-    q = queries.PREFIXES + f"""SELECT ?node WHERE {{
-  {patroon}
-  ?node a ?t . FILTER(?t IN ({soorten}))
-}} LIMIT 1"""
-    gevonden = rijen(graph, q)
-    if not gevonden or not gevonden[0].get("node"):
-        return None
-    uit = [{"bron_iri": gevonden[0]["node"], "bwb_id": bwb_id.upper(), "label": ""}]
-    _benoem(graph, uit)
-    return uit[0]
 
 
 def _benoem(graph: GraphPort, kandidaten: list[dict[str, Any]]) -> None:

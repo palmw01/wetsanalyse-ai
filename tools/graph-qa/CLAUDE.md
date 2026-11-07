@@ -780,7 +780,7 @@ Vier modules, elk één taak (gesplitst 4 nov 2026, gedrag ongewijzigd – de ev
 `bronnen_vinden` (de graafmethoden, `Verzameling`, `vind`), `deelvraag_zoeken` (`kandidatenpool` en de
 rangschikking `bepaling_opties`, gedeeld met de intake), `zoektermen` (termen, stammen, samenstellingen,
 `uitsluitstammen`, `buiten_uit_afbakening`) en `bepaling_namen` (`_benoem`, `plek_uit_iri`,
-`bepaling_in_graaf`, `bepalingen_uit_tekst`).
+`bepalingen_uit_tekst`).
 
 Vanaf de selectie van een werkgebied (kern = rol *analyseren*) zoekt Lex bepalingen die erbij kunnen
 horen; de api bewaart de kandidaten en de besluiten (`api/app/bronnen_run_store.py`).

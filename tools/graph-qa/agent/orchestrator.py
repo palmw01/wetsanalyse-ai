@@ -29,7 +29,6 @@ from .agent_common import BeurtGestopt, truncate
 from .observability import get_tracer
 from .doel import (  # noqa: F401 – re-export: tests importeren _kandidaten_uit_json hiervandaan
     _bepaal_doel,
-    _corpus_uit_trace,
     _doel_uit_json,
     _doel_uit_toolcalls,
     _heeft_opgegeven_doel,
@@ -119,11 +118,6 @@ def build_graph(
             (state.get("context") or {}).get("bestaande_elementen")
         return focus_als_context(state.get("focus"), state.get("entities_seen"), open_elementen) + werkgebied
 
-    def _corpus(state: State) -> str:
-        """De tekst van deze annotatiebeurt. `annoteer_node` haalde hem gericht op en zette hem in de
-        state; de terugval is er voor een state van vóór dit veld (een hervatte thread)."""
-        return state.get("corpus") or _corpus_uit_trace(state.get("source_trace", []))
-
     def _advies_context(state: State) -> str:
         """Contextblok voor een adviesvraag: waar gaat het over, en wat mag de agent niet doen.
 
@@ -195,7 +189,7 @@ def build_graph(
     b = Bouw(
         settings=settings, llm=llm, graph=graph, stop_check=stop_check,
         model=model, model_router=model_router, model_ophaal=model_ophaal,
-        memory_context=_memory_context, corpus=_corpus, advies_context=_advies_context,
+        memory_context=_memory_context, advies_context=_advies_context,
         annotaties=annotaties, begrippen=begrippen, loop=_lopende_loop(), agent_api=agent_api,
     )
 
