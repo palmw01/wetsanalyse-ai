@@ -10,6 +10,9 @@ contains- en refusal-checks. Twee modi:
   offline        : gescripte fakes, geen netwerk/kosten – bewijst de harnas + scorers.
       .venv/bin/python eval/run_eval.py --offline
 
+Met `--bewaar uit.jsonl` komt per case (of beurt, met --gesprek) de opname mee; `--herscoor uit.jsonl` scoort die
+opnieuw met de huidige scorers, zonder agent of model (eval/opname.py).
+
 Exit-code ≠ 0 als niet alle cases slagen (CI-klaar).
 """
 from __future__ import annotations
@@ -27,7 +30,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from agent.agent import answer_stream  # noqa: E402
 from agent.config import Settings  # noqa: E402
 from agent.models import Verbruiksmeter  # noqa: E402
-from eval.scoring import AnnotatieResult, CaseResult, score_annotatie, score_case  # noqa: E402
+from eval.opname import bewaar, lees, neem_op, nieuwe_opname  # noqa: E402
+from eval.scoring import AnnotatieResult, CaseResult, score_annotatie, score_opname  # noqa: E402
+from eval.vraagtypen import print_per_vraagtype, vraagtype_van  # noqa: E402
 
 GOLDEN = Path(__file__).parent / "golden.jsonl"
 GOLDEN_ANNOTATIE = Path(__file__).parent / "golden_annotatie.jsonl"
@@ -45,31 +50,32 @@ def load_golden(path: Path = GOLDEN) -> list[dict[str, Any]]:
     return cases
 
 
-async def run_case(case: dict[str, Any], *, settings: Settings, llm=None, graph=None) -> CaseResult:
-    parts: list[str] = []
-    sources: list[dict[str, Any]] = []
-    grounding: dict[str, Any] = {"grounded": True, "cited": 0, "unsupported": []}
-    error: str | None = None
-    overzicht: dict[str, Any] | None = None
-
+async def neem_case_op(case: dict[str, Any], *, settings: Settings, llm=None, graph=None) -> dict[str, Any]:
+    """De events van één case die de scorers lezen (eval/opname.py)."""
+    opname = nieuwe_opname(case["question"], vraagtype_van(case))
     async for ev in answer_stream(case["question"], settings=settings, llm=llm, graph=graph):
-        t = ev.get("type")
-        if t == "token":
-            parts.append(ev["content"])
-        elif t == "overzicht":
-            overzicht = ev["overzicht"]
-        elif t == "sources":
-            sources = ev["sources"]
-        elif t == "grounding":
-            grounding = ev
-        elif t == "error":
-            error = ev["message"]
-
-    return score_case(case, "".join(parts), sources, grounding, error, overzicht)
+        neem_op(opname, ev)
+    return opname
 
 
-async def run_suite(cases: list[dict[str, Any]], *, settings: Settings, llm=None, graph=None) -> list[CaseResult]:
-    return [await run_case(c, settings=settings, llm=llm, graph=graph) for c in cases]
+async def run_case(case: dict[str, Any], *, settings: Settings, llm=None, graph=None) -> CaseResult:
+    return score_opname(case, await neem_case_op(case, settings=settings, llm=llm, graph=graph))
+
+
+async def run_suite(cases: list[dict[str, Any]], *, settings: Settings, llm=None, graph=None,
+                    regels: list[dict[str, Any]] | None = None) -> list[CaseResult]:
+    """Draai de cases; met `regels` komt per case de opname erbij, om te bewaren (`--bewaar`)."""
+    uit = []
+    for c in cases:
+        opname = await neem_case_op(c, settings=settings, llm=llm, graph=graph)
+        if regels is not None:
+            regels.append({"soort": "qa", "case": c, "opname": opname})
+        uit.append(score_opname(c, opname))
+    return uit
+
+
+def herscoor_qa(regels: list[dict[str, Any]]) -> list[CaseResult]:
+    return [score_opname(r["case"], r["opname"]) for r in regels]
 
 
 def doel_van_case(case: dict[str, Any]) -> dict[str, Any]:
@@ -217,20 +223,25 @@ async def run_annotatie_suite(
 
 
 def print_report(results: list[CaseResult]) -> bool:
-    print(f"\n{'faith':>6} {'recall':>6} {'cont':>4} {'refu':>4} {'schoon':>6} {'ovz':>4}  vraag")
-    print("-" * 80)
+    print(f"\n{'faith':>6} {'recall':>6} {'cont':>4} {'refu':>4} {'schoon':>6} {'ovz':>4} {'volg':>4} {'sjab':>4} "
+          f"{'toon':>4}  vraag")
+    print("-" * 100)
     for r in results:
         flag = "OK " if r.passed else "XX "
         extra = f"  ! {r.error}" if r.error else ""
         print(
             f"{r.faithfulness:6.2f} {r.source_recall:6.2f} "
             f"{'ja' if r.contains_ok else 'nee':>4} {'ja' if r.refusal_ok else 'nee':>4} "
-            f"{'ja' if r.zonder_verboden_ok else 'NEE':>6} {'ja' if r.overzicht_ok else 'NEE':>4}  "
+            f"{'ja' if r.zonder_verboden_ok else 'NEE':>6} {'ja' if r.overzicht_ok else 'NEE':>4} "
+            f"{'ja' if r.volgorde_ok else 'NEE':>4} {'ja' if r.sjabloon_ok else 'NEE':>4} {r.toon.aantal:4d}  "
             f"{flag}{r.question[:44]}{extra}"
         )
+        for t in r.toon.overtredingen:
+            print(f"{'':46}toon: {t}")
     passed = sum(r.passed for r in results)
-    print("-" * 80)
-    print(f"{passed}/{len(results)} geslaagd")
+    print("-" * 100)
+    print(f"{passed}/{len(results)} geslaagd (de toon telt niet mee)")
+    print_per_vraagtype((r.vraagtype, r.passed, r.toon.aantal, r.toon.lange_zinnen) for r in results)
     return passed == len(results)
 
 
@@ -419,6 +430,7 @@ def _offline_scenario():
     ])
     case = {
         "question": "Welke regelingen zitten er in de kennisgraaf?",
+        "vraagtype": "feit",
         "expected_sources": ["BWBR0004770"],
         "expected_contains": ["Invorderingswet 1990"],
         "should_refuse": False,
@@ -440,8 +452,8 @@ def _offline_gesprek_scenario(db: str):
         response([tool_block("t2", "get_lid", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "2"})], "tool_use"),
         response([text_block("Lid 2 van artikel 9 regelt een afwijkende termijn.")], "end_turn"),
     ])
-    case = {"id": "offline-doorvragen", "scenario": "A", "beurten": [
-        {"vraag": "Wat regelt artikel 9 van de Invorderingswet 1990?",
+    case = {"id": "offline-doorvragen", "scenario": "A", "vraagtype": "vervolg", "beurten": [
+        {"vraag": "Wat regelt artikel 9 van de Invorderingswet 1990?", "vraagtype": "bepaling",
          "verwacht": {"route": "duiding", "tools_wel": ["get_artikel"], "bevat": ["invorderbaar"]}},
         {"vraag": "En lid 2?",
          "verwacht": {"niet_route": ["afgewezen"], "tools_wel": ["get_lid"], "bevat": ["lid 2"]}},
@@ -470,7 +482,26 @@ def main() -> None:
                     help="draai de gesprekken-set (vervolgvragen in één thread)")
     ap.add_argument("--retrieval-smoke", action="store_true",
                     help="raak elke graaftool één keer tegen de ECHTE graaf en meld lege uitkomsten")
+    ap.add_argument("--bewaar", type=Path, metavar="PAD",
+                    help="QA of --gesprek: schrijf per case/beurt de events die de scorers lezen (jsonl)")
+    ap.add_argument("--herscoor", type=Path, metavar="PAD",
+                    help="scoor een bewaard bestand opnieuw met de huidige scorers, zonder agent of model")
     args = ap.parse_args()
+    if (args.bewaar or args.herscoor) and (args.annotatie or args.retrieval_smoke):
+        ap.error("--bewaar en --herscoor gelden voor de QA-set en --gesprek")
+
+    if args.herscoor:
+        from eval.gesprek import herscoor_gesprekken, print_gesprek_report
+
+        bewaard = lees(args.herscoor)
+        qa = [r for r in bewaard if r["soort"] == "qa"]
+        ok = print_report(herscoor_qa(qa)) if qa else True
+        gesprek = [r for r in bewaard if r["soort"] == "gesprek"]
+        if gesprek:
+            ok = print_gesprek_report(herscoor_gesprekken(gesprek)) and ok
+        sys.exit(0 if ok else 1)
+
+    regels: list[dict[str, Any]] | None = [] if args.bewaar else None
 
     if args.retrieval_smoke:
         # Bewust geen --offline-variant: een fake-graaf geeft altijd antwoord, en dan meet je de
@@ -490,10 +521,14 @@ def main() -> None:
 
             with tempfile.TemporaryDirectory() as tmp:
                 cases, llm, graph, settings = _offline_gesprek_scenario(str(Path(tmp) / "cp.db"))
-                resultaten = asyncio.run(run_gesprek_suite(cases, settings=settings, llm=llm, graph=graph))
+                resultaten = asyncio.run(run_gesprek_suite(cases, settings=settings, llm=llm, graph=graph,
+                                                           regels=regels))
         else:
             _laad_env()
-            resultaten = asyncio.run(run_gesprek_suite(load_golden(GOLDEN_GESPREK), settings=Settings.from_env()))
+            resultaten = asyncio.run(run_gesprek_suite(load_golden(GOLDEN_GESPREK), settings=Settings.from_env(),
+                                                       regels=regels))
+        if args.bewaar:
+            bewaar(args.bewaar, regels)
         sys.exit(0 if print_gesprek_report(resultaten) else 1)
 
     if args.annotatie:
@@ -514,7 +549,8 @@ def main() -> None:
 
     if args.offline:
         cases, llm, graph = _offline_scenario()
-        results = asyncio.run(run_suite(cases, settings=Settings(checkpoint_db_path=None), llm=llm, graph=graph))
+        results = asyncio.run(run_suite(cases, settings=Settings(checkpoint_db_path=None), llm=llm, graph=graph,
+                                        regels=regels))
     else:
         _laad_env()
         settings = Settings.from_env()
@@ -522,8 +558,10 @@ def main() -> None:
         if not settings.similarity_index:
             # semantic_search-cases overslaan tot de similarity-index bestaat.
             cases = [c for c in cases if c.get("requires") != "semantic"]
-        results = asyncio.run(run_suite(cases, settings=settings))
+        results = asyncio.run(run_suite(cases, settings=settings, regels=regels))
 
+    if args.bewaar:
+        bewaar(args.bewaar, regels)
     ok = print_report(results)
     sys.exit(0 if ok else 1)
 

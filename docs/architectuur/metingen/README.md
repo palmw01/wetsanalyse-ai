@@ -1,6 +1,6 @@
 # Meetlogboek
 
-Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 6 november 2026
+Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 7 november 2026
 
 Hier staat per datum wat er gemeten is, op welke code, wat eruit kwam en waar de gegevens staan.
 Nieuwste bovenaan. De meetbestanden zelf zijn bewijs: **wijzig ze niet achteraf**. Een correctie
@@ -67,6 +67,27 @@ Vanuit `tools/graph-qa`:
 | Begrippenketen | `.venv/bin/python -m eval.begrippen_eval --variant lemma\|keten` (met `--model`: betaald) | 0 |
 | Bronselectie, betekenisonderzoek, kaartacties | `eval/bronselectie_eval.py`, `eval/betekenisonderzoek_eval.py`, `eval/kaartacties_eval.py`; opties in hun docstring | zie docstring |
 | Referentieset controleren | `python -m eval.referentieset --check` / `--dekking` | 0 |
+
+### Een bewaarde run: opnieuw scoren zonder model
+
+De QA-set en de gesprekken (`eval/golden.jsonl`, `eval/golden_gesprek.jsonl`) zijn de basis van de
+**kwaliteitsnulmeting**: elke case en elke beurt draagt een `vraagtype` (`eval/vraagtypen.py`), en het rapport
+toont per type het aantal, het slagingspercentage, de toonovertredingen en welke types onder de vijf cases zitten.
+Naast de bestaande checks scoort het `volgorde` en `sjabloon` (als de case ze noemt) en altijd de toon, als aparte
+maat (`eval/kwaliteit.py`).
+
+Bewaar de run, dan is opnieuw scoren gratis:
+
+```bash
+.venv/bin/python eval/run_eval.py --bewaar run.jsonl            # QA, live (kost geld)
+.venv/bin/python eval/run_eval.py --gesprek --bewaar run.jsonl  # gesprekken, live (kost geld)
+.venv/bin/python eval/run_eval.py --herscoor run.jsonl          # 0 modelcalls, geen graaf
+```
+
+Per case of beurt staat er één regel in: de vraag, het vraagtype, de verwachting van toen en de events die de
+scorers lezen (tekst, antwoord-event, grounding, bronnen, statusregels, toolnamen). Een nieuwe of verbeterde
+scorer toets je zo op dezelfde antwoorden, los van de spreiding van het model. Een bewaard bestand is bewijs, zoals
+de andere meetbestanden: leg het in de map van de meting en wijzig het niet achteraf.
 
 Regels voor een nieuwe meting:
 - leg de commit, het image of `AGENT_VERSION`, het model, de provider, de referentiesetversie en de
