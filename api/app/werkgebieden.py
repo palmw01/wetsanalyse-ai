@@ -79,6 +79,13 @@ async def post_werkgebied(req: WerkgebiedInvoer, actor: str = Depends(actieve_us
     return await store.maak(req, actor)
 
 
+@router.get("/export-schema")
+async def get_export_schema(actor: str = Depends(actieve_userid)):
+    """Vóór `/{werkgebied_id}`, anders vangt die route hem af. Het JSON-schema van het werkgebiedrapport (`formaat=json`), zodat een ontvanger het document kan toetsen."""
+    from . import werkgebied_rapport
+    return werkgebied_rapport.json_schema()
+
+
 @router.get("/{werkgebied_id}")
 async def get_werkgebied(werkgebied_id: str, actor: str = Depends(actieve_userid)):
     return await store.haal(werkgebied_id)
@@ -275,18 +282,19 @@ async def get_annotatie_werkvoorraad(werkgebied_id: str,
 
 
 @router.get("/{werkgebied_id}/export")
-async def get_export(werkgebied_id: str, formaat: Literal["pdf", "md"] = "pdf", actor: str = Depends(actieve_userid)):
+async def get_export(werkgebied_id: str, formaat: Literal["pdf", "md", "json"] = "pdf", actor: str = Depends(actieve_userid)):
     """Het hele werkgebied als één PDF of Markdown, op de stand van nu en met dezelfde inhoud: dossier, deelvragen en bronnen met hun wettekst, annotaties,
     begrippen en een korte verantwoording. De inhoud staat in `werkgebied_export`. Reportlab is puur Python en de api
     deelt de event loop: het zetten gebeurt in een thread."""
     start = time.monotonic()
     data = await werkgebied_export.verzamel(werkgebied_id, actor, resolve_bron, toestanden_van, rapport_graaf.lees)
-    maak = werkgebied_export.markdown_export if formaat == "md" else werkgebied_export.pdf_export
+    maak = {"md": werkgebied_export.markdown_export, "json": werkgebied_export.json_export}.get(formaat, werkgebied_export.pdf_export)
     body = await asyncio.to_thread(maak, data, verklaringen())
     logger.info("werkgebied_export", extra={"werkgebied_id": werkgebied_id, "formaat": formaat, "bytes": len(body),
                                             "paginas": pdf_opmaak.aantal_paginas(body) if formaat == "pdf" else None,
                                             "ms": round((time.monotonic() - start) * 1000)})
-    return Response(body, media_type="text/markdown; charset=utf-8" if formaat == "md" else "application/pdf", headers={
+    soort = {"md": "text/markdown; charset=utf-8", "json": "application/json"}.get(formaat, "application/pdf")
+    return Response(body, media_type=soort, headers={
         "Content-Disposition": f'attachment; filename="{werkgebied_export.bestandsnaam(data, formaat)}"'})
 
 

@@ -12,6 +12,7 @@ class Lifecycle(str, Enum):
     rejected = "rejected"
     published = "published"
     reused = "reused"
+    vervangen = "vervangen"
 
 
 #: Eén definitie, voor de hele api: een jurist bevestigde dit element (ook `edited`: een aanpassing ís een oordeel).
@@ -22,6 +23,15 @@ AFGEHANDELD = BEOORDEELD | {Lifecycle.rejected.value}
 #: Wat alleen na een heropening nog wijzigt. Bewust zonder `edited`: een klasse wijzigen en er een toelichting bij
 #: typen is één doorlopende handeling (`slotVan` in de werkplek).
 VERGRENDELD = AFGEHANDELD - {Lifecycle.edited.value}
+#: Niet meer actueel, wel bewaard: een nieuwe ronde van Lex (`run.modus == "opnieuw"`) maakte dit voorstel niet meer
+#: (`annotatie_v2_store.batch`). Het telt nergens mee als actueel – weergave, inventaris, zoeken, werkvoorraad,
+#: projectie – maar de rij, de herkomst en de audit blijven, en de weergave en de inventaris noemen het apart.
+NIET_ACTUEEL = frozenset({Lifecycle.vervangen.value})
+
+
+def is_vervangen(element: dict) -> bool:
+    """Is dit element door een nieuwe ronde van Lex vervangen (`NIET_ACTUEEL`)?"""
+    return element.get("lifecycle") in NIET_ACTUEEL
 
 
 class LaagStatus(str, Enum):
@@ -58,7 +68,7 @@ class Element(BaseModel):
     # contract zegt dat het meereist en tot in de opslag en de export bewaard blijft.
     trace: dict = Field(default_factory=dict)
     # JAS-subtype binnen een samengevoegde klasse; leeg = onbepaald. Expliciet, net als `trace`.
-    jas_subtype: str = Field(default="", pattern=r"^(|variabele|variabelewaarde|parameter|parameterwaarde|delegatiebevoegdheid|delegatie-invulling)$")
+    jas_subtype: str = Field(default="", pattern=r"^(|variabele|variabelewaarde|parameter|parameterwaarde|delegatiebevoegdheid|delegatie-invulling|verbijzondert parameter)$")
 
 
 class Dekking(BaseModel):
@@ -168,7 +178,8 @@ class Zoekvraag(BaseModel):
     herkomst: list[Literal["agent", "mens"]] = Field(default_factory=list)
     aandacht: list[Literal["groen", "geel"]] = Field(default_factory=list)
     subtype: list[Literal["variabele", "variabelewaarde", "parameter", "parameterwaarde",
-                          "delegatiebevoegdheid", "delegatie-invulling"]] = Field(default_factory=list)
+                          "delegatiebevoegdheid", "delegatie-invulling",
+                          "verbijzondert parameter"]] = Field(default_factory=list)
     beslist_door: list[Literal["regel", "model", "specificiteit", "terugval"]] = Field(default_factory=list)
     # None = geen filter; True = alleen met twijfel in het spoor; False = alleen zonder.
     met_twijfel: bool | None = None

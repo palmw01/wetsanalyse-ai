@@ -35,7 +35,9 @@ een parameterwaarde de *concrete waarde* — maar beide krijgen hetzelfde label.
 Deze bronvelden zijn herkenningshulp; uitdrukkingswijzen zijn geen contextloze
 beslisregels. De ordening in H3 rechtvaardigt geen algemene 'diepste klasse wint'.
 Alleen de expliciete tijd/plaats-voorrang boven variabele/parameter geldt bij dezelfde
-functie. Andere samenloop: onderscheid overlap van concurrerende interpretaties.
+functie; een duur of hoeveelheid in een tijdsaanduiding houdt de parameter vast als subtype
+*verbijzondert parameter* (zie §10, *Verbijzondering*). Andere samenloop: onderscheid overlap van
+concurrerende interpretaties.
 Lees markeren-fragmentgrenzen.md en annotatieprotocol.md voor projectregels.
 
 ---
@@ -310,6 +312,23 @@ specialisaties daarvan zoals kalenderjaar.
 **Prioriteitsregel** (`H2:107`, letterlijk) — "Een formulering kan zowel tot de klasse
 tijdsaanduiding als tot de klasse parameter of variabele behoren. Als dat zich voordoet, kiezen we
 bij de analyse voor de meest specifieke klasse, dus de tijdsaanduiding."
+
+**Verbijzondering** (projectkeuze, 7 nov 2026; steunt op `H2:107` en op het boek, hoofdstuk over de
+tijdsaanduiding, relatie met andere klassen) — Volgens dezelfde bronregel kan een tijdsaanduiding
+ook een parameter(waarde) of variabele zijn. De voorrang beslist over de *klasse*; dat de
+tijdsaanduiding ook een parameter is, gaat daarmee niet verloren maar wordt een eigenschap van
+hetzelfde element:
+
+- Een **duur of hoeveelheid** in de tijdsaanduiding ('zes weken', 'één maand', 'binnen 48 uur') is
+  één element Tijdsaanduiding met het subtype **verbijzondert parameter**. Markeer dezelfde
+  formulering niet nog eens als Parameter.
+- Een **los getal** in de tijdsaanduiding (de '48' in 'binnen 48 uur') is een eigen, geneste
+  markering Parameter en parameterwaarde, subtype parameterwaarde: het is de concrete waarde, de
+  tijdsaanduiding is de omschrijving waarin die waarde staat. Een telwoord in woorden ('zes' in 'zes
+  weken') is deel van de duur en geen los getal.
+- Een datum of een periode zonder hoeveelheid ('de overige dagen', 'het kalenderjaar') krijgt geen
+  subtype: of zij een parameter of een variabele verbijzondert, hangt van de context af en wordt
+  niet geraden.
 
 ---
 

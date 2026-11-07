@@ -21,6 +21,8 @@ from typing import Any, Iterable
 
 from pydantic import BaseModel
 
+from .annotatie_v2_contracts import is_vervangen
+
 
 class ReviewStatistiek(BaseModel):
     """Het rapport. Alle velden zijn tellingen; percentages laat ik aan de lezer."""
@@ -71,13 +73,14 @@ def _bij(doel: dict[str, dict[str, int]], sleutel: str, uitkomst: str) -> None:
 
 def rapport(elementen: Iterable[dict[str, Any]], lagen: int = 0) -> ReviewStatistiek:
     """Tel de review-uitkomsten over een verzameling elementen. Verouderde elementen tellen niet mee:
-    hun brontekst bestaat niet meer, dus hun oordeel gaat niet meer over de wet zoals die nu luidt."""
+    hun brontekst bestaat niet meer, dus hun oordeel gaat niet meer over de wet zoals die nu luidt. Vervangen
+    elementen evenmin: een nieuwe ronde maakte ze niet meer, en niemand besliste erover."""
     st = ReviewStatistiek(lagen=lagen)
     redenen: Counter[str] = Counter()
     verschuivingen: Counter[str] = Counter()
 
     for el in elementen:
-        if el.get("verouderd"):
+        if el.get("verouderd") or is_vervangen(el):
             continue
         st.elementen += 1
         if el.get("herkomst") == "mens":

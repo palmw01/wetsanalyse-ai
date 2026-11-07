@@ -5,6 +5,7 @@ begrippen:
 syntactic_signals:
   - "kopulatieve zin met berekening: '<variabele> bedraagt …', '<variabele> is het gezamenlijke bedrag van …' – H2:73"
   - "'wordt gesteld op', 'wordt berekend', 'wordt geacht', 'wordt vermoed' (afleiding van een feit)"
+  - "rechtsgevolg als hoofdzin met een tijdtreffer die een moment toekent ('vervalt één maand na …', 'vervalt op 15 april') – H2:71; met een voorwaarde ervoor ook de hele als-dan-zin"
 lexical_signals:
   - "bedragen, stellen op, verminderen met, vermeerderen met, berekenen, gezamenlijk bedrag, geacht, vermoed"
 semantic_signals:
@@ -21,6 +22,7 @@ candidate_rules:
   - {id: jas.afleiding.bedraagt, status: geïmplementeerd}
   - {id: jas.afleiding.wordt_gesteld_op, status: geïmplementeerd}
   - {id: jas.afleiding.fictie_vermoeden, status: geïmplementeerd}
+  - {id: jas.afleiding.datumtoewijzing, status: geïmplementeerd}
 confusable_classes:
   - {klasse: Parameter en parameterwaarde, reden: "'bedraagt € 23' kan een parameterwaarde vastleggen"}
   - {klasse: Rechtsbetrekking, reden: "'is … verschuldigd' als norm of als uitkomst"}

@@ -24,6 +24,7 @@ confusable_classes:
   - {klasse: Rechtsfeit, reden: "een genominaliseerde handeling ('de betaling') kan voorwerp of feit zijn"}
 negative_patterns:
   - {patroon: "naamwoord in een wettelijke verwijzing ('artikel 9, derde lid')", reden: "verwijzing, geen voorwerp"}
+  - {patroon: "een kale duur ('zes weken', 'één maand')", reden: "H2:35: een duur is geen voorwerp van een recht; het is een tijdvak (H2:107)"}
 required_context:
   - "het predicaat of rechtsfeit waar het voorwerp bij hoort"
 deterministic_detection_possible: laag

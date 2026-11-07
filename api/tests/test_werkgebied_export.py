@@ -42,15 +42,19 @@ GRAAF = {"volledig": True,
                                         "organisatie": "https://identifier.overheid.nl/tooi/id/ministerie/mnre1090",
                                         "toestand_url": "http://wetten.overheid.nl/id/BWBR0004770/2026-10-01/0",
                                         "url": "https://wetten.overheid.nl/BWBR0004770"}},
-         "structuur": {ART: {"titel": "", "inwerking": "2024-01-01", "gewijzigd_bij": "Stb.2023-499"}}}
+         "structuur": {ART: {"titel": "", "inwerking": "2024-01-01", "gewijzigd_bij": "Stb.2023-499"}},
+         "verwijzingen": [{"van": ONE, "naar": TWO, "anker": "het tweede lid", "label": "Artikel 9, lid 2", "jci": "jci1.3:c:twee",
+                           "regeling": "Invorderingswet 1990"},
+                          {"van": ONE, "naar": "urn:bwb:BWBR0005537:artikel:4%3A89", "anker": "artikel 4:89 van de Awb",
+                           "label": "Artikel 4:89", "jci": "", "regeling": "Algemene wet bestuursrecht"}]}
 
 
 @pytest.fixture(autouse=True)
 def rapportgraaf(monkeypatch):
     gevraagd: list = []
 
-    async def lees(bwbs, iris):
-        gevraagd.append((bwbs, iris))
+    async def lees(bwbs, iris, bronnen):
+        gevraagd.append((bwbs, iris, bronnen))
         return copy.deepcopy(GRAAF)
     monkeypatch.setattr(rapport_graaf, "lees", lees)
     return gevraagd
@@ -93,7 +97,7 @@ async def test_de_delen_staan_op_volgorde_met_elke_bepaling_een_keer(client):
     koppen = [t for s, t in regels if s == "Heading1"]
     assert koppen == ["1. Samenvatting", "2. Leeswijzer", "3. Werkgebied", "4. Deelvragen en bronnen", "5. Analyse per bepaling",
                       "6. Begrippen", "Bijlage A. Begripskaarten", "Bijlage B. Bronnenregister", "Bijlage C. Contextbepalingen",
-                      "Bijlage D. Niet meegenomen", "Bijlage E. Verantwoording"]
+                      "Bijlage D. Samenhang", "Bijlage E. Niet meegenomen", "Bijlage F. Verantwoording"]
     assert [i for i, (s, _t) in enumerate(regels) if s == pdf_opmaak.INHOUD]
     # Lid 1 heeft een emoji vooraan: de offsets tellen codepoints, en de tekst staat letterlijk en één keer.
     assert sum(s == "Citaat" and t == "😀 Alfa Alfa" for s, t in regels) == 1
@@ -266,7 +270,7 @@ async def test_de_route_geeft_een_pdf_met_een_veilige_bestandsnaam(client):
     assert re.fullmatch(r'attachment; filename="werkgebied-rekeningafspraken-een-2026-\d{8}-\d{6}\.pdf"', r.headers["content-disposition"])
 
 
-async def test_de_route_kent_alleen_pdf_en_markdown_en_bestaande_werkgebieden(client):
+async def test_de_route_kent_alleen_pdf_markdown_en_json_en_bestaande_werkgebieden(client):
     wg = await _nieuw(client)
     assert (await client.get(f"/v1/werkgebieden/{wg['id']}/export?formaat=docx")).status_code == 422
     assert (await client.get("/v1/werkgebieden/bestaat-niet/export")).status_code == 404
@@ -319,7 +323,8 @@ async def test_de_echte_pdf_is_letterlijk_met_inhoud_en_bladwijzers(client, graa
     r = await client.get(f"/v1/werkgebieden/{wg['id']}/export")
     tekst = _tekst(r.content)
     assert "■" not in tekst
-    assert "Een bedrag ≥ € 10 – na 1‑1‑2026 → Māori § 3" in tekst and "“citaat” & <tag>" in tekst
+    # Het fragment (4–22) staat gemarkeerd in de tekst, met zijn nummer erachter: de woorden eromheen staan er letterlijk.
+    assert bijzonder[:22] in tekst and "1‑1‑2026 → Māori § 3" in tekst and "“citaat” & <tag>" in tekst
     assert fragment["tekst"] in tekst and "Tekens: ≥ en ā." in tekst
     assert tekst.index("3. Werkgebied") < tekst.index("Aanleiding")             # eerst in de inhoudsopgave
     assert b"/Outlines" in r.content and b"/FontFile2" in r.content
@@ -492,7 +497,13 @@ async def test_ook_de_json_draagt_geen_modelvragen_hashes_of_beurtmeting(client)
 
 # Velden die de tekst bewust niet toont: sleutels, of een keuze tussen twee velden die de andere kant van de test laat zien.
 _NIET_GETOOND = {"id", "iri", "regeling", "herkomst", "code", "definitie_herkomst", "definitie_door", "oordeel", "modus", "geldig_tot",
-                 "alternatieven", "r.wettekst.regelingen.0.bwb_id"}
+                 "alternatieven", "r.wettekst.regelingen.0.bwb_id",
+                 # Bij een bepaling is `van` de bepaling zelf, en de jci van het doel staat in de bijlage Samenhang.
+                 *(f"r.wettekst.regelingen.0.{deel}.0.bepalingen.0.verwijzingen.0.{veld}" for deel in ("artikelen", "context")
+                   for veld in ("van.label", "van.jci", "naar.jci")),
+                 # Een markering die gemarkeerd in de wettekst staat, herhaalt haar tekst niet: die staat in het citaat erboven.
+                 *(f"r.wettekst.regelingen.0.{deel}.0.bepalingen.0.markeringen.0.tekst" for deel in ("artikelen", "context")),
+                 "r.wettekst.verwijzingen.0.van.jci"}
 
 
 def _vul(soort, pad: str, ja: bool, spoor: list[str]):
@@ -591,7 +602,11 @@ async def test_markdown_en_pdf_hebben_dezelfde_inhoud(client):
     data = await _data(wg)
     tekst = _zonder_escape(export.markdown_export(data, V).decode())
     for stijl, regel in export.regels(data, V):
-        if stijl == pdf_opmaak.TITELBLAD + "rij":                      # een rij wordt "- **Label:** waarde"
+        if stijl == pdf_opmaak.SPANS:                                  # geen tekst: de markeringen in het citaat erna
+            continue
+        if stijl == "Citaat" and "⁽" in tekst:                          # een gemarkeerd citaat: zonder ** en nummers letterlijk
+            assert regel in re.sub(r"⁽[⁰¹²³⁴⁵⁶⁷⁸⁹]+⁾", "", tekst.replace("**", "")), regel
+        elif stijl == pdf_opmaak.TITELBLAD + "rij":                      # een rij wordt "- **Label:** waarde"
             label, _, waarde = regel.partition(": ")
             assert f"- **{label}:** {waarde}" in tekst, regel
         elif regel and stijl != "Waarschuwing":
@@ -720,14 +735,14 @@ async def test_de_leeswijzer_toont_elke_klasse_met_naam_en_de_bijlagen_hebben_le
     begin, eind = regels.index(("Heading1", "2. Leeswijzer")), regels.index(("Heading1", "3. Werkgebied"))
     assert [t for s, t in regels[begin:eind] if s.startswith(pdf_opmaak.MARKERING)] == list(JAS_KLASSEN_VOLGORDE)
     bijlagen = [t for s, t in regels if s == "Heading1" and t.startswith("Bijlage")]
-    assert bijlagen == [f"Bijlage {letter}. {naam}" for letter, naam in zip("ABCDE", BIJLAGEN)]
+    assert bijlagen == [f"Bijlage {letter}. {naam}" for letter, naam in zip("ABCDEF", BIJLAGEN, strict=True)]
     assert regels.index(("Heading1", "6. Begrippen")) < regels.index(("Heading1", bijlagen[0]))
 
 
 async def test_de_graaf_geeft_regeling_en_artikel_en_vraagt_alleen_de_voorouders(client, rapportgraaf):
     wg, _ids = await _gevuld(client)
     data = await _data(wg)
-    bwbs, iris = rapportgraaf[-1]
+    bwbs, iris, _bronnen = rapportgraaf[-1]
     assert bwbs == ["BWBR0004770"] and ART in iris and ONE not in iris and "urn:bwb:BWBR0004770" not in iris
     rapport = export.bouw_rapport(data, V)
     [regeling] = rapport.voorblad.regelingen
@@ -742,7 +757,7 @@ async def test_de_graaf_geeft_regeling_en_artikel_en_vraagt_alleen_de_voorouders
 
 
 async def test_zonder_graaf_zegt_het_rapport_wat_ontbreekt(client, monkeypatch):
-    async def weg(bwbs, iris):
+    async def weg(bwbs, iris, bronnen):
         return {"volledig": False, "regelingen": {}, "structuur": {}}
     monkeypatch.setattr(rapport_graaf, "lees", weg)
     wg, _ids = await _gevuld(client)
@@ -783,3 +798,121 @@ async def test_de_graaf_is_best_effort_en_kiest_bij_meer_waarden_de_kleinste(mon
         raise ConnectionError("graaf weg")
     monkeypatch.setattr(rapport_graaf, "sparql_select", kapot)
     assert (await ECHTE_LEES(["BWBR0004770"], ["urn:bwb:BWBR0004770:artikel:1"]))["volledig"] is False
+
+
+async def test_verwijzingen_staan_bij_de_bepaling_en_in_de_samenhang_met_de_ankertekst_letterlijk(client, rapportgraaf):
+    wg, _ids = await _gevuld(client)
+    data = await _data(wg)
+    assert ONE in rapportgraaf[-1][2]                                  # gevraagd vanuit de bronnodes in het dossier
+    rapport = export.bouw_rapport(data, V)
+    [binnen, buiten] = rapport.wettekst.verwijzingen
+    assert binnen.in_dossier and not buiten.in_dossier and binnen.anker == "het tweede lid"
+    assert buiten.naar.label == "Algemene wet bestuursrecht – Artikel 4:89" and buiten.naar.jci == ""
+    regels = rapport_regels(rapport)
+    assert ("Meta", "Verwijst naar Invorderingswet 1990 – Artikel 9, lid 2 (“het tweede lid”) · in dit dossier") in regels
+    begin = regels.index(("Heading1", "Bijlage D. Samenhang"))
+    eind = regels.index(("Heading1", "Bijlage E. Niet meegenomen"))
+    deel = regels[begin:eind]
+    assert ("Heading2", "Binnen het dossier (1)") in deel and ("Heading2", "Naar buiten het dossier (1)") in deel
+    assert ("Citaat", "“artikel 4:89 van de Awb”") in deel and ("Meta", "urn:bwb:BWBR0005537:artikel:4%3A89") in deel
+
+
+async def test_een_verwijzing_naar_een_artikel_waarvan_een_lid_in_het_dossier_staat_blijft_binnen(client, monkeypatch):
+    graaf = copy.deepcopy(GRAAF)
+    graaf["verwijzingen"] = [{"van": TWO, "naar": ART, "anker": "dit artikel", "label": "Artikel 9", "jci": "", "regeling": ""}]
+
+    async def lees(bwbs, iris, bronnen):
+        return graaf
+    monkeypatch.setattr(rapport_graaf, "lees", lees)
+    wg, _ids = await _gevuld(client)
+    [v] = export.bouw_rapport(await _data(wg), V).wettekst.verwijzingen
+    assert v.in_dossier and v.naar.label == "Artikel 9"
+
+
+async def test_verwijzingen_uit_de_graaf_zijn_ontdubbeld_en_gesorteerd(monkeypatch):
+    rijen = [{"van": "urn:bwb:BWBR1:artikel:2", "naar": "urn:bwb:BWBR2:artikel:5", "anker": "a", "vindplaats": "Artikel 5"},
+             {"van": "urn:bwb:BWBR1:artikel:1", "naar": "urn:bwb:BWBR2:artikel:5", "anker": "b", "doellabel": "art. 5 (BWBR2)"},
+             {"van": "urn:bwb:BWBR1:artikel:2", "naar": "urn:bwb:BWBR2:artikel:5", "anker": "a", "vindplaats": "Artikel 5", "regeling": "Wet"}]
+
+    async def select(_client, q):
+        return rijen if "heeftVerwijzing" in q else []
+    monkeypatch.setattr(rapport_graaf, "sparql_select", select)
+    uit = await ECHTE_LEES([], [], ["urn:bwb:BWBR1:artikel:1", "urn:bwb:BWBR1:artikel:2"])
+    assert [(v["van"][-1], v["label"], v["regeling"]) for v in uit["verwijzingen"]] == [("1", "art. 5 (BWBR2)", ""), ("2", "Artikel 5", "Wet")]
+
+
+async def test_een_markering_staat_gekleurd_en_genummerd_in_de_wettekst_en_het_citaat_blijft_letterlijk(client):
+    wg, _ids = await _gevuld(client)
+    rapport = export.bouw_rapport(await _data(wg), V)
+    bepaling = next(b for a in rapport.wettekst.regelingen[0].artikelen for b in a.bepalingen if b.spans)
+    for x in bepaling.spans:
+        m = next(m for m in bepaling.markeringen if m.nr == x.nr)
+        assert bepaling.tekst[x.start:x.eind] == m.tekst and x.klasse == m.klasse   # brongetrouw: de span is het fragment
+    regels = rapport_regels(rapport)
+    i = regels.index(("Citaat", bepaling.tekst))
+    assert regels[i - 1][0] == pdf_opmaak.SPANS and json.loads(regels[i - 1][1])[0][2] == bepaling.spans[0].nr
+    nr = bepaling.spans[0].nr
+    assert any(s.startswith(pdf_opmaak.MARKERING) and t.startswith(f"{nr} · ") for s, t in regels)
+    md = markdown_opmaak.markdown(regels)
+    assert "⁽" in md and "**" in md
+
+
+def test_overlappende_markeringen_zijn_deterministisch_en_de_woorden_blijven_letterlijk():
+    t = "vindt uitbetaling aan de belanghebbende plaats"
+    spans = [(22, 39, 2, "Rechtssubject"), (6, 17, 1, "Rechtsfeit"), (18, 39, 3, "Rechtsbetrekking")]
+    a = pdf_opmaak.gemarkeerd(t, spans)
+    assert a == pdf_opmaak.gemarkeerd(t, list(reversed(spans)))
+    assert re.sub(r"<super>.*?</super>|<[^>]+>", "", a) == t
+    assert "<u>" in a                                                    # waar er twee overlappen
+    md = markdown_opmaak.markdown([(pdf_opmaak.SPANS, json.dumps([list(x) for x in spans])), ("Citaat", t)])
+    assert md.strip() == "> vindt **uitbetaling⁽¹⁾** **aan de belanghebbende⁽²⁾⁽³⁾** plaats"
+
+
+async def test_de_route_geeft_het_document_als_json_met_een_schema_dat_erbij_hoort(client):
+    wg, _ids = await _gevuld(client)
+    r = await client.get(f"/v1/werkgebieden/{wg['id']}/export?formaat=json")
+    assert r.status_code == 200 and r.headers["content-type"].startswith("application/json")
+    assert re.search(r'filename="werkgebied-.*-\d{8}-\d{6}\.json"', r.headers["content-disposition"])
+    doc = r.json()
+    assert doc["schema_naam"] == "werkgebied-rapport-v2" and Rapport.model_validate(doc).document.werkgebied_id == wg["id"]
+    schema = await client.get("/v1/werkgebieden/export-schema")
+    assert schema.status_code == 200 and schema.json()["$id"] == "urn:wetsanalyse:schema:werkgebied-rapport-v2"
+    # Het document voldoet aan zijn schema: elk verplicht veld staat erin.
+    assert set(schema.json()["required"]) <= set(doc)
+
+
+async def test_de_inhoudscode_is_gelijk_bij_gelijke_inhoud_en_anders_bij_andere(client):
+    from app.werkgebied_rapport import inhoud_hash, kort
+    wg, ids = await _gevuld(client)
+    data = await _data(wg)
+    een = export.bouw_rapport(data, V)
+    assert re.fullmatch(r"sha256:[0-9a-f]{64}", een.document.inhoud_hash)
+    # Een ander exportmoment of een andere exporteur verandert de inhoud niet.
+    later = copy.deepcopy(data)
+    later["export"] = {"actor": "jurist-b", "op": "2030-01-01T00:00:00+00:00"}
+    assert export.bouw_rapport(later, V).document.inhoud_hash == een.document.inhoud_hash
+    # Een andere beslissing wel, ook als de werkgebiedrevisie gelijk blijft.
+    await _beslis(ids["lid2"], "heropen", snapshot())
+    ander = export.bouw_rapport(await _data(wg), V)
+    assert ander.document.kenmerk == een.document.kenmerk and ander.document.inhoud_hash != een.document.inhoud_hash
+    # Na te rekenen uit de JSON: de hash leeg en zonder stand.
+    terug = Rapport.model_validate_json(een.model_dump_json())
+    assert inhoud_hash(terug) == een.document.inhoud_hash
+    regels = rapport_regels(een)
+    assert (pdf_opmaak.TITELBLAD + "rij", "Inhoudscode: " + kort(een.document.inhoud_hash)) in regels
+    assert any(s == "Meta" and t.startswith("Inhoudscode: " + een.document.inhoud_hash) for s, t in regels)
+
+
+async def test_de_voetregel_draagt_de_inhoudscode(client, monkeypatch):
+    from app.werkgebied_rapport import kort
+    wg, _ids = await _gevuld(client)
+    data = await _data(wg)
+    gezien = {}
+    echt = pdf_opmaak.render
+
+    def render(regels, **kw):
+        gezien.update(kw)
+        return echt(regels, **kw)
+    monkeypatch.setattr(pdf_opmaak, "render", render)
+    export.pdf_export(data, V)
+    assert f"inhoud {kort(export.bouw_rapport(data, V).document.inhoud_hash)}" in gezien["voet"]

@@ -5,7 +5,7 @@ PAKKET = {'bronbestanden': {'SKILL.md': '67ce7d6f1872d4f5718b143067c0e5aafca74de
                    'references/agentrollen.md': 'c95a55241b9190a14be0804ca5875db9f2be58dc045cb8e4d570c8952f77f76b',
                    'references/bronnen.md': 'ab8e9d2016dd6a0509214268675692a132184a5201c0dad8d5a1d0c19c7962fb',
                    'references/deelvragen-en-bronnen.md': '480d3ff17a613799e4f1cc380488e2c47d60bd1babe9256f85ba75c205c17490',
-                   'references/jas-klassen-referentie.md': '5fe94a8c3718eb3d0f21a04cda9e89d9c35db4260b39f1900ead19a86ee91a95',
+                   'references/jas-klassen-referentie.md': 'fcff29a0b63d54e457dcb32de3706552a327033b0e7571e8b26025dd552da429',
                    'references/nl-sbb-en-b1.md': 'ceeb1110d57ed267ef04fe4289ae701562290689525b14c9783908dcb3575411'},
  'rollen': {'algemeen': ['basis', 'nl-sbb-taalniveau'],
             'deelvragen': ['basis', 'deelvragen'],
@@ -160,5 +160,5 @@ PAKKET = {'bronbestanden': {'SKILL.md': '67ce7d6f1872d4f5718b143067c0e5aafca74de
                                      'JAS/JRM-dossier via een route die alleen markeringen of een '
                                      'antwoord levert. Laat inhoudelijke analyse aan de gekozen '
                                      'rol over.'}},
- 'sha256': '20d3c60a2a582d1161fe2a5f1a4ce39534f7ed97242f81944bb6a2e8064881e7',
+ 'sha256': 'd098ab93d173552ab0a92cd8407d4359c29d8cbcbb598eb49d36d156333b262a',
  'versie': '2.1'}

@@ -11,7 +11,7 @@ import { Citaat } from "@/components/ui/Citaat";
 import { StatusLabel } from "@/components/ui/Lijst";
 import { Vindplaats } from "./Vindplaats";
 import { Markdown } from "@/components/werkplek/Markdown";
-import type { Antwoord as AntwoordData, AntwoordBlok, BlokSoort } from "@/lib/antwoord";
+import { groepeerWettekst, type Antwoord as AntwoordData, type AntwoordBlok, type BlokSoort } from "@/lib/antwoord";
 import { begripPad, generiekPad } from "@/lib/werkgebiedPaden";
 import type { Bron } from "@/lib/types";
 
@@ -57,8 +57,22 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
   ),
   wettekst: ({ blok }) => (
     <Sectie kop="Wettekst">
-      <div className="space-y-3">
-        {blok.items.map((b) => <div key={b.vindplaats.iri} className="space-y-1">{b.nog_niet_in_werking && <NogNietInWerking />}<Citaat>{b.tekst}</Citaat><p className="text-xs text-muted"><Vindplaats vindplaats={b.vindplaats} /></p></div>)}
+      <div className="space-y-4">
+        {groepeerWettekst(blok.items).map((g) => g.artikel ? (
+          // Leden van één artikel onder één kop; elk lid houdt zijn eigen link (naast het gesprek, of naar de bron).
+          <div key={g.artikel.iri} className="space-y-2" data-wettekst-artikel={g.artikel.iri}>
+            <p className="text-xs font-medium text-muted"><Vindplaats vindplaats={g.artikel} /></p>
+            {g.items.map(({ item: b, lid }) => (
+              <div key={b.vindplaats.iri} className="space-y-1">
+                {b.nog_niet_in_werking && <NogNietInWerking />}
+                <p className="text-xs text-muted"><Vindplaats vindplaats={{ ...b.vindplaats, label: `lid ${lid}`, regeling: "" }} /></p>
+                <Citaat>{b.tekst}</Citaat>
+              </div>
+            ))}
+          </div>
+        ) : g.items.map(({ item: b }) => (
+          <div key={b.vindplaats.iri} className="space-y-1">{b.nog_niet_in_werking && <NogNietInWerking />}<Citaat>{b.tekst}</Citaat><p className="text-xs text-muted"><Vindplaats vindplaats={b.vindplaats} /></p></div>
+        )))}
       </div>
     </Sectie>
   ),

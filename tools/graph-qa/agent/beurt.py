@@ -28,6 +28,8 @@ from typing import Any
 from .annotatie import sleutel_van
 from .config import Settings
 from .models import Verbruiksmeter
+from .narratie import met_regelgrens
+from .nodes.annotatie_samenvatting import vervangen_zin
 from .wetsanalyse_api import GesprekVerdwenen, WetsanalyseApi, WetsanalyseApiFout
 
 logger = logging.getLogger("graph_qa.beurt")
@@ -144,7 +146,7 @@ class BeurtSchrijver:
         elif soort == "status":
             self.denk += ("\n" if self.denk else "") + "· " + event.get("message", "")
         elif soort == "reason":
-            self.denk += event.get("content", "")
+            self.denk += met_regelgrens(self.denk, event.get("content", ""))
         elif soort == "sources":
             self.bronnen = event.get("sources") or []
         elif soort == "doel":
@@ -429,6 +431,12 @@ async def _leg_vast(
                 "beslissingen": schrijver.dekking.get("beslissingen") or [],
             })
             annotatie_bewaard = True
+            # Een ronde `opnieuw` ruimt de oude voorstellen op die ze niet meer maakte; dat hoort de jurist te lezen,
+            # anders lijkt het alsof ze zijn verdwenen. Het getal komt uit de api, niet uit de keten.
+            if zin := vervangen_zin(len((laag or {}).get("vervangen") or [])):
+                zin = (" " if schrijver.tekst.strip() else "") + zin
+                schrijver.tekst = schrijver.tekst.rstrip() + zin
+                yield {"type": "token", "content": zin}
             opgeslagen_doel = {"bron_iri": doel["bron_iri"], "label": doel.get("label", ""),
                                "snapshot_id": doel["snapshot_id"]}
             bericht |= {
