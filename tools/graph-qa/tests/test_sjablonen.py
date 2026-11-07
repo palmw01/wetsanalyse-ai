@@ -992,3 +992,16 @@ def test_een_beurt_leest_het_genoemde_artikel_en_citeert_het_daarna():
     citaten = _eerste(events, "antwoord")["antwoord"]["blokken"][1]["items"]
     assert [c["vindplaats"]["iri"] for c in citaten] == [TIEN_1, f"{ACHTTIEN}:lid:3"] and citaten[1]["tekst"] == ZIN_28
     assert _eerste(events, "grounding")["grounded"] is True
+
+
+def test_een_jci_die_geen_rij_draagt_wordt_het_graafadres_uit_de_jci_zelf():
+    """De leden van get_artikel dragen vaak geen eigen jci; het model gaf toch de jci van Iw 25 lid 1 op (eval 7 nov 2026)."""
+    jci = "jci1.3:c:BWBR0004770&hoofdstuk=IV&artikel=10&lid=1&z=2026-10-01&g=2026-10-01"
+    a = vul("antwoord_duiding", duiding(bepaling=jci), [tien()])
+    assert a.blokken[1].items[0].vindplaats.iri == TIEN_1 and a.blokken[1].items[0].tekst == ZIN_1
+
+
+def test_een_jci_van_een_bepaling_die_niet_is_opgehaald_blijft_onvulbaar():
+    jci = "jci1.3:c:BWBR0004770&hoofdstuk=IV&artikel=11&lid=1"
+    with pytest.raises(Onvulbaar, match="artikel:11:lid:1: de tekst is niet"):
+        vul("antwoord_duiding", duiding(bepaling=jci), [tien()])
