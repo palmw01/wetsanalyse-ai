@@ -1,4 +1,4 @@
-import { proxy } from "@/app/api/_lib/proxy";
+import { proxy, sluit } from "@/app/api/_lib/proxy";
 import { wisAgentGeheugen } from "@/app/api/_lib/agentGeheugen";
 import { geenSessie, sessionUserId } from "@/app/api/_lib/session";
 import { logger } from "@/lib/logger";
@@ -39,6 +39,7 @@ export async function DELETE(_req: Request, { params }: Params) {
   const eigen = await proxy(`/v1/gesprekken/${pathSegment(id)}`, { headers: { "X-User-Id": userid } });
   // Stoppen vóór verwijderen: andersom bleef er een venster waarin de agent doorwerkte en aan het
   // eind in een gesprek schreef dat al weg was.
+  await sluit(eigen);
   if (eigen.ok) await wisAgentGeheugen(id, userid);
   const res = await proxy(`/v1/gesprekken/${pathSegment(id)}`, {
     method: "DELETE",

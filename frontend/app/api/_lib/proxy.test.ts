@@ -4,6 +4,8 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 // vóór de import, want `lib/config.ts` leest ze bij de eerste aanroep en cachet het token.
 process.env.API_BASE_URL = "http://api.test";
 process.env.API_TOKEN = "test-token";
+process.env.GRAPH_QA_URL = "http://agent.test";
+process.env.GRAPH_QA_TOKEN = "agent-token";
 
 const sessie = vi.hoisted(() => ({ auth: vi.fn(), getAccountStatus: vi.fn() }));
 vi.mock("@/auth", () => ({ auth: sessie.auth }));
@@ -150,5 +152,88 @@ describe("proxy – beheer vraagt 2FA", () => {
 
     expect((await proxy("/v1/gesprekken")).status).toBe(200);
     expect(sessie.getAccountStatus).not.toHaveBeenCalled();
+  });
+});
+
+describe("proxy – de body stroomt door", () => {
+  /** Een upstream die eerst de headers stuurt en de body daarna in delen, op het tempo van de test. */
+  function stromendeUpstream(headers: Record<string, string> = {}) {
+    let zend!: ReadableStreamDefaultController<Uint8Array>;
+    const body = new ReadableStream<Uint8Array>({ start: (c) => { zend = c; } });
+    const nep = vi.fn((_url: string, _init?: RequestInit) =>
+      Promise.resolve(new Response(body, { status: 200, headers: { "Content-Type": "application/pdf", ...headers } })),
+    );
+    vi.stubGlobal("fetch", nep);
+    return { nep, deel: (t: string) => zend.enqueue(new TextEncoder().encode(t)), klaar: () => zend.close() };
+  }
+
+  it("geeft de delen door voordat de upstream klaar is", async () => {
+    const up = stromendeUpstream();
+    const res = await proxy("/v1/werkgebieden/w1/rapport.pdf");
+    const lezer = res.body!.getReader();
+
+    up.deel("eerste ");
+    // Met een buffer zou deze read pas na `klaar()` terugkomen, en de test hangen.
+    expect(new TextDecoder().decode((await lezer.read()).value)).toBe("eerste ");
+    up.deel("tweede");
+    up.klaar();
+    expect(new TextDecoder().decode((await lezer.read()).value)).toBe("tweede");
+    expect((await lezer.read()).done).toBe(true);
+  });
+
+  it("geeft content-encoding en content-length niet door: fetch heeft de body al uitgepakt", async () => {
+    const up = stromendeUpstream({
+      "Content-Encoding": "gzip",
+      "Content-Length": "12",
+      "Content-Disposition": 'attachment; filename="rapport.pdf"',
+    });
+    const res = await proxy("/v1/werkgebieden/w1/rapport.pdf");
+    up.klaar();
+
+    expect(res.headers.get("content-encoding")).toBeNull();
+    expect(res.headers.get("content-length")).toBeNull();
+    expect(res.headers.get("content-disposition")).toBe('attachment; filename="rapport.pdf"');
+    expect(res.headers.get("content-type")).toBe("application/pdf");
+  });
+
+  it("de time-out geldt tot de headers, niet voor de body", async () => {
+    const up = stromendeUpstream();
+    const res = await proxy("/v1/werkgebieden/w1/rapport.pdf", { timeoutMs: 20 });
+    const signaal = up.nep.mock.calls[0][1]?.signal as AbortSignal;
+
+    await new Promise((r) => setTimeout(r, 60));
+    expect(signaal.aborted).toBe(false);
+    up.deel("na de grens");
+    up.klaar();
+    expect(await res.text()).toBe("na de grens");
+  });
+
+  it("geeft een 204 zonder body door", async () => {
+    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response(null, { status: 204 }))));
+    const res = await proxy("/v1/gesprekken/g1", { method: "DELETE" });
+    expect(res.status).toBe(204);
+    expect(res.body).toBeNull();
+  });
+});
+
+describe("proxy – de agent als upstream", () => {
+  it("praat met graph-qa en zijn token, niet met de api", async () => {
+    const nep = vi.fn((_url: string, _init?: RequestInit) => Promise.resolve(new Response("{}", { status: 202 })));
+    vi.stubGlobal("fetch", nep);
+
+    const res = await proxy("/v1/runs/r1/cancel", { agent: true, method: "POST", headers: { "X-User-Id": "jan" } });
+
+    expect(res.status).toBe(202);
+    expect(nep.mock.calls[0][0]).toBe("http://agent.test/v1/runs/r1/cancel");
+    const headers = nep.mock.calls[0][1]?.headers as Record<string, string>;
+    expect(headers.Authorization).toBe("Bearer agent-token");
+    expect(headers["X-User-Id"]).toBe("jan");
+  });
+
+  it("noemt de agent in de foutmelding", async () => {
+    vi.stubGlobal("fetch", hangendeUpstream());
+    const res = await proxy("/v1/runs", { agent: true, method: "POST", timeoutMs: 30 });
+    expect(res.status).toBe(504);
+    expect((await res.json()).detail).toBe("De agent antwoordde niet binnen 30 ms.");
   });
 });

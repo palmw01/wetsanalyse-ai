@@ -37,7 +37,13 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   eigen fetch-logica. De helper bewaakt ook de
   **wachttijd**, want Node's `fetch` kent geen standaardtimeout en een upstream die verbindt maar niet
   antwoordt laat de UI anders eeuwig laden: default 30 s → **504** met een leesbare reden
-  (onbereikbaar = 502); `timeoutMs` per route hoger waar dat hoort (de modeltest: 120 s).
+  (onbereikbaar = 502); `timeoutMs` per route hoger waar dat hoort (de modeltest: 120 s). De grens
+  geldt tot de headers: de body **stroomt door** zonder buffer, zodat een grote export (de PDF van een
+  werkgebied) niet op de time-out of het geheugen strandt. `Content-Encoding` en `Content-Length` gaan
+  daarom niet mee – Node's `fetch` heeft het gzip-antwoord van de api al uitgepakt. Leest een route
+  alleen de status van een proxy-antwoord (een eigenaarscontrole), sluit de stroom dan met `sluit()`.
+  `agent: true` maakt graph-qa de upstream, met zijn eigen token; de run-routes (starten, de actieve
+  run, stoppen) lopen zo ook via `proxy()`.
   **Uitzondering: SSE.** `app/api/annotatie/run/[id]/events/route.ts` gebruikt geen `proxy()` maar
   geeft `upstream.body` rauw door met `X-Accel-Buffering: no` en `Cache-Control: no-transform`.
 - **`app/api/_lib/session.ts`** – `sessionUserId()` voor de vertrouwde `X-User-Id`-header.
@@ -1682,7 +1688,7 @@ zelf geen `traceparent` op de request**, dus de keten valt dan stil uiteen in lo
 die hun eigen fetch doen. Zonder OTel is het een no-op.
 
 `lib/logger.ts` is de **server-only** JSON-logger (secret-redactie, `LOG_LEVEL`, `trace_id`/`span_id`),
-gebruikt in `proxy.ts`, `lib/server.ts` en de routes die zelf fetchen (run, artikel, gesprekken,
+gebruikt in `proxy.ts`, `lib/server.ts` en de routes die zelf fetchen (de run-events, het agent-geheugen bij gesprekken,
 ui-spoor). Nooit importeren in een Client Component, nooit tokens, secrets of inhoud loggen. In vitest
 wordt `server-only` gestubd (`vitest.config.ts` → `test/stub-empty.ts`).
 
