@@ -389,7 +389,9 @@ spoor D (*Werkgebied als node*).
   `document` (kenmerk, concept), `samenvatting` (kerncijfers) en een besluitenlog (`BESLUITEN`: welke audit-acties een besluit zijn). Het
   JSON-schema (`app/schemas/werkgebied-rapport-v2.schema.json`) maak je opnieuw met `werkgebied_rapport.schrijf_schema()`, en een test vergelijkt het. Op de stand van nu en met één vaste inhoud, zonder bovengrens: voorblad met
   bronstand en waarschuwingen, inhoudsopgave en bladwijzers, dossier, deelvragen en bronnen, wettekst met markeringen,
-  begrippen, korte verantwoording. `verzamel` leest met dezelfde functies als de schermen, en `regels` geeft (stijl, tekst),
+  begrippen, korte verantwoording. De indeling (v2): titelblad, colofon, inhoud, 1 Samenvatting, 2 Leeswijzer (met de JAS-legenda),
+  3 Werkgebied, 4 Deelvragen en bronnen, 5 Analyse per bepaling, 6 Begrippen (lijst), dan de bijlagen (`BIJLAGEN`, letters op volgorde):
+  Begripskaarten, Bronnenregister, Contextbepalingen (rol context zonder markering, `Regeling.context`), Niet meegenomen, Verantwoording. `verzamel` leest met dezelfde functies als de schermen, en `regels` geeft (stijl, tekst),
   zonder reportlab te testen.
   - Geen modelvragen, hashes of beurtmeting: dat spoor staat in de annotatie-export.
   - Alles draagt zijn status; voorstellen, afgewezen en uitgesloten staan in eigen delen.
