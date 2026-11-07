@@ -120,7 +120,8 @@ krimpt nooit** – `berichten.beurt_start` – anders leest het model zijn verse
 "ingekort, vraag opnieuw op" en zoekt het in een lus; de opslagrem `berichten.MAX_HISTORIE_CHARS` hoort ruim daarboven te
 liggen, `Settings.controleer_historie_grens` waarschuwt). `agent_node` geeft daarom de vraag mee aan
 `_trim_messages`: zonder telt een correctiebericht als begin van de beurt, en krimpt de brontekst die het model
-moet herstellen. **Een `tool_use` zonder `tool_result` gaat niet naar het model** (`_schoon_messages`): de
+moet herstellen. Hoe vaak er gesprek uit het venster valt, meet de logregel `venster` (`berichten.venster_telling`,
+één per beurt; zie `docs/observability.md`) – eerst meten, dan pas een index, samenvatting of ruimer venster. **Een `tool_use` zonder `tool_result` gaat niet naar het model** (`_schoon_messages`): de
 checkpointer bewaart de aanroep vóór `tools_node` draait, dus stoppen, een crash of de stappenlimiet laat hem open
 staan, en Anthropic weigert dan elke volgende beurt. Hij valt weg bij elke beurt, dus ook bestaande gesprekken
 herstellen; `tests/test_gesprek_blijft_bruikbaar.py` breekt een beurt op elke nodegrens af. De annotatie-worker laat een korte
