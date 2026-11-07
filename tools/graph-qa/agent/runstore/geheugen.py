@@ -123,6 +123,12 @@ class GeheugenStore:
         run.eind_op = time.monotonic()
         async with run._wakker:
             run._wakker.notify_all()
+        if run.gewist:
+            self._runs.pop(run.run_id, None)
+
+    async def wis_gesprek(self, conversation_id: str) -> None:
+        for run_id in [i for i, r in self._runs.items() if r.conversation_id == conversation_id and not r.loopt]:
+            del self._runs[run_id]
 
     async def _voeg_toe(self, run: Run, event: dict[str, Any]) -> None:
         run.events.append({**event, "seq": run.geproduceerd})

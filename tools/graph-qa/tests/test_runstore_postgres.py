@@ -309,3 +309,32 @@ async def test_afsluiten_legt_de_lopende_runs_vast(store):
     await asyncio.wait_for(klaar.taak, timeout=5)
     await store.sluit()
     assert gemeld == [run.run_id]
+
+
+@met_store
+async def test_gesprek_wissen_en_een_gewiste_run_laten_niets_achter(store):
+    klaar = await store.start(conversation_id="g1", vraag="Geheime vraag", maak_stroom=stroom([{"type": "done"}]))
+    await klaar.taak
+    await store.wis_gesprek("g1")
+
+    def gewist_tijdens(run):
+        async def stroom():
+            run.gewist = True
+            yield {"type": "done"}
+        return stroom()
+    lopend = await store.start(conversation_id="g2", vraag="Geheime vraag", maak_stroom=gewist_tijdens)
+    await lopend.taak
+    async with store.pool.connection() as conn:
+        rijen = await (await conn.execute("SELECT count(*) AS n FROM agent_runs WHERE vraag = 'Geheime vraag'")).fetchone()
+        events = await (await conn.execute("SELECT count(*) AS n FROM agent_run_events")).fetchone()
+    assert rijen["n"] == 0 and events["n"] == 0
+
+
+@met_store
+async def test_oude_afgeronde_runs_verdwijnen_bij_de_start(store):
+    run = await store.start(conversation_id="g1", vraag="v", maak_stroom=stroom([{"type": "done"}]))
+    await run.taak
+    async with store.pool.connection() as conn:
+        await conn.execute("UPDATE agent_runs SET gestart = now() - interval '31 days'")
+    await store.setup()
+    assert await store.get(run.run_id) is None
