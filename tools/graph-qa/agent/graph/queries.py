@@ -560,7 +560,7 @@ def get_lid(bwb_id: str, artikel: str, lid: str) -> str:
     # Eén rij per onderdeel (de handler zet de lidvelden één keer apart en pagineert op hele
     # onderdelen). Vroeger zaten ze in één GROUP_CONCAT-cel om onder de 8000-tekenkap te blijven –
     # één cel kan niet op een onderdeelgrens worden voortgezet, rijen wel.
-    return PREFIXES + f"""SELECT ?nummer ?tekst ?jci ?status ?o ?onummer ?otekst ?ojci WHERE {{
+    return PREFIXES + f"""SELECT ?nummer ?tekst ?jci ?status ?o ?onummer ?otekst ?ojci ?ovolg WHERE {{
   OPTIONAL {{ <{iri}> bwb:nummer ?nummer }}
   OPTIONAL {{ <{iri}> bwb:tekst ?tekst }}
   OPTIONAL {{ <{iri}> bwb:jci ?jci }}
