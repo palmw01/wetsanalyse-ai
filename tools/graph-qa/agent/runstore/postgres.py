@@ -26,6 +26,7 @@ import contextlib
 import logging
 import time
 import uuid
+from datetime import UTC, datetime
 from collections.abc import AsyncIterator, Callable
 from typing import Any
 
@@ -35,6 +36,7 @@ from psycopg.types.json import Jsonb
 from psycopg_pool import AsyncConnectionPool
 
 from . import (
+    RECENT_S,
     AFGEBROKEN,
     MAX_EVENTS,
     VLUCHTIGE_TYPES,
@@ -101,6 +103,9 @@ CREATE TABLE IF NOT EXISTS agent_run_events (
 CREATE UNIQUE INDEX IF NOT EXISTS agent_runs_een_lopende_per_gesprek
     ON agent_runs (conversation_id)
     WHERE status = 'loopt' AND conversation_id <> '';
+
+-- `voor_gebruiker` (de sidebar) zoekt per gebruiker; zonder index is dat een scan over 30 dagen runs.
+CREATE INDEX IF NOT EXISTS agent_runs_per_gebruiker ON agent_runs (user_id, gestart DESC);
 """
 
 
@@ -115,6 +120,7 @@ def _naar_run(rij: dict[str, Any]) -> Run:
         weggevallen=rij["weggevallen"],
         geproduceerd=rij["geproduceerd"],
         stop_gevraagd=rij["stop_verzocht"],
+        afgerond_op=rij.get("afgerond"),
     )
 
 
@@ -222,6 +228,7 @@ class PostgresStore:
             extra={"categorie": "technisch", "run_id": run.run_id, "grens_s": VERWEESD_NA_S},
         )
         run.status = "mislukt"
+        run.afgerond_op = datetime.now(UTC)
         # De `RETURNING` hierboven kiest precies één winnaar, dus er is één schrijver, ook met meer lezers.
         await meld_afbraak(self._bij_afbraak, run, AFGEBROKEN)
         return run
@@ -247,6 +254,20 @@ class PostgresStore:
         if user_id is not None and run.user_id and run.user_id != user_id:
             return None
         return run
+
+    async def voor_gebruiker(self, user_id: str, *, recent_s: float = RECENT_S) -> list[Run]:
+        if not user_id:
+            return []
+        async with self.pool.connection() as conn:
+            cur = await conn.execute(
+                "SELECT * FROM agent_runs WHERE user_id = %s AND (status = 'loopt' "
+                "OR afgerond > now() - make_interval(secs => %s)) ORDER BY gestart DESC LIMIT 50",
+                (user_id, recent_s),
+            )
+            rijen = await cur.fetchall()
+        # Een lopende run zonder hartslag is verweesd: dezelfde toets als bij elk ander uitlezen, anders toont de
+        # sidebar "bezig" bij een beurt die nergens meer draait.
+        return [await self._verweesd_afhandelen(_naar_run(rij)) for rij in rijen]
 
     # -- starten -------------------------------------------------------------------------------
 

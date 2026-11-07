@@ -10,12 +10,14 @@ import asyncio
 import logging
 import time
 import uuid
+from datetime import UTC, datetime
 from collections.abc import AsyncIterator, Callable
 from typing import Any
 
 from . import (
     BEWAAR_NA_AFLOOP_S,
     MAX_EVENTS,
+    RECENT_S,
     VLUCHTIGE_TYPES,
     BijAfbraak,
     Run,
@@ -69,6 +71,15 @@ class GeheugenStore:
         lopend = [r for r in kandidaten if r.loopt]
         return sorted(lopend or kandidaten, key=lambda r: r.gestart)[-1]
 
+    async def voor_gebruiker(self, user_id: str, *, recent_s: float = RECENT_S) -> list[Run]:
+        self._ruim_op()
+        if not user_id:
+            return []
+        nu = time.monotonic()
+        uit = [r for r in self._runs.values()
+               if r.user_id == user_id and (r.loopt or (r.eind_op is not None and nu - r.eind_op <= recent_s))]
+        return sorted(uit, key=lambda r: r.gestart, reverse=True)
+
     # -- starten -------------------------------------------------------------------------------
 
     async def start(
@@ -121,6 +132,7 @@ class GeheugenStore:
     async def _rond_af(self, run: Run, status: str) -> None:
         run.status = status
         run.eind_op = time.monotonic()
+        run.afgerond_op = datetime.now(UTC)
         async with run._wakker:
             run._wakker.notify_all()
         if run.gewist:
