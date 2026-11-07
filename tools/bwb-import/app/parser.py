@@ -355,6 +355,7 @@ class ToestandParser:
             id=self._knoop_id(bwb_id, element),
             nummer=self._tekst(kop.find("nr")) if kop is not None else "",
             label=element.get("label", ""),
+            titel=self._tekst(kop.find("titel")) if kop is not None else "",
             tekst=self._lichaamstekst(element, binnen_lid=False),
             jci=self._element_jci(element),
             label_id=element.get("label-id"),
@@ -495,53 +496,15 @@ class ToestandParser:
 
     @staticmethod
     def _lichaamstekst(element: etree._Element, *, binnen_lid: bool) -> str:
-        """Verzamel de lopende tekst (alinea's + lijstnummers) van een element.
-
-        Sluit meta-data en voetnoten uit. Voor een artikel met leden wordt de
-        tekst die in leden staat overgeslagen (die hoort bij het lid), zodat er
-        geen dubbeling ontstaat. Tabellen (CALS) worden – buiten de alinea's om
-        – als leesbare rijen ná de lopende tekst toegevoegd. Tekst ná een opsomming
-        hoort hier niet bij: dat is een eigen slottekst-node (`_parse_onderdelen`).
-        """
-
-        # Onderdeel-tekst (al binnen <li>) hoort bij het onderdeel-node, niet bij
-        # het lid/artikel → uitsluiten zodat de full-text index niet dubbelt.
-        # Alinea's binnen tabellen horen bij de tabelweergave.
-        if binnen_lid:
-            scope = "not(ancestor::li) and not(ancestor::meta-data)"
-        else:
-            scope = "not(ancestor::lid) and not(ancestor::li) and not(ancestor::meta-data)"
-        delen = [
-            _tekst_zonder_noot(node)
-            for node in element.xpath(f".//al[{scope} and not(ancestor::table){_GEEN_SLOT}]")
-        ]
-        tekst = re.sub(r"\s+", " ", " ".join(delen)).strip()
-        tabellen = [_tabel_tekst(t) for t in element.xpath(f".//table[{scope}]")]
-        tabellen = [t for t in tabellen if t]
-        if tabellen:
-            tekst = "\n".join([tekst, *tabellen]).strip()
-        return tekst
+        """De lopende tekst van een artikel of lid. Tekst in een lid hoort bij het lid, tekst in een onderdeel
+        (``<li>``) bij het onderdeel, en tekst ná een opsomming is een eigen slottekst-node (`_parse_onderdelen`)."""
+        binnen = "not(ancestor::li)" if binnen_lid else "not(ancestor::lid) and not(ancestor::li)"
+        return _tekst_in(element, ".//", binnen)
 
     @staticmethod
     def _bijlage_tekst(element: etree._Element) -> str:
-        """Eigen lopende tekst van een bijlage: alinea's die niet in een genest
-        artikel/lid/onderdeel of tabel staan (die horen bij hun eigen node)."""
-        scope = (
-            "not(ancestor::artikel) and not(ancestor::lid) and not(ancestor::li)"
-            f" and not(ancestor::meta-data) and not(ancestor::table){_GEEN_SLOT}"
-        )
-        delen = [_tekst_zonder_noot(al) for al in element.xpath(f".//al[{scope}]")]
-        tekst = re.sub(r"\s+", " ", " ".join(delen)).strip()
-        tabellen = [
-            _tabel_tekst(t)
-            for t in element.xpath(
-                ".//table[not(ancestor::artikel) and not(ancestor::lid) and not(ancestor::li)]"
-            )
-        ]
-        tabellen = [t for t in tabellen if t]
-        if tabellen:
-            tekst = "\n".join([tekst, *tabellen]).strip()
-        return tekst
+        """Eigen lopende tekst van een bijlage: wat niet in een genest artikel, lid of onderdeel staat."""
+        return _tekst_in(element, ".//", "not(ancestor::artikel) and not(ancestor::lid) and not(ancestor::li)")
 
     @staticmethod
     def _illustraties(
@@ -600,17 +563,9 @@ class ToestandParser:
 
     @staticmethod
     def _divisie_tekst(element: etree._Element) -> str:
-        """Lopende tekst van een divisie: alinea's in ``./tekst``.
-
-        Sluit alinea's binnen onderdelen (``<li>``), voetnoten en meta-data
-        uit; geneste subdivisies staan buiten ``./tekst`` en tellen dus niet mee.
-        """
-        xpath = (
-            "./tekst//al[not(ancestor::li) and not(ancestor::meta-data)"
-            f" and not(ancestor::table){_GEEN_SLOT}]"
-        )
-        delen = [_tekst_zonder_noot(node) for node in element.xpath(xpath)]
-        return re.sub(r"\s+", " ", " ".join(delen)).strip()
+        """Lopende tekst van een divisie: wat in ``./tekst`` staat, buiten de onderdelen. Geneste subdivisies staan
+        buiten ``./tekst`` en tellen dus niet mee."""
+        return _tekst_in(element, "./tekst//", "not(ancestor::li)")
 
     def _wet_aanhef(self, wetgeving: etree._Element) -> dict[str, str | None]:
         """Aanhef en considerans (``wet-besluit/aanhef`` of ``regeling/aanhef``)."""
@@ -767,6 +722,20 @@ class ToestandParser:
             "uitgiftedatum": uitg.get("isodatum") if uitg is not None else None,
             "dossier": doss.get("dossier") if doss is not None else None,
         }
+
+
+def _tekst_in(element: etree._Element, basis: str, binnen: str) -> str:
+    """De ene tekstfunctie voor artikel, lid, bijlage en divisie (D3).
+
+    Alinea's én tussenkoppen in documentvolgorde, zonder voetnoten en meta-data; tabellen (CALS) als leesbare rijen
+    ná de lopende tekst. `binnen` zegt welke tekst bij een ander node hoort. Drie plekken hadden elk een eigen
+    variant, en de divisie las daardoor geen tabel en niemand een tussenkop."""
+    scope = f"{binnen} and not(ancestor::meta-data)"
+    delen = [_tekst_zonder_noot(node) for node in element.xpath(
+        f"{basis}*[(self::al or self::tussenkop) and {scope} and not(ancestor::table){_GEEN_SLOT}]")]
+    tekst = re.sub(r"\s+", " ", " ".join(delen)).strip()
+    tabellen = [t for t in (_tabel_tekst(x) for x in element.xpath(f"{basis}table[{scope}]")) if t]
+    return "\n".join([tekst, *tabellen]).strip() if tabellen else tekst
 
 
 def _tekst_zonder_noot(element: etree._Element) -> str:

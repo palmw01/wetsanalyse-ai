@@ -351,7 +351,10 @@ def bouw_snapshot(rows: list[dict], *, bron_iri: str = "", bwb_id: str,
         if kind not in TYPEN or not _IRI.fullmatch(iri) or _IRI.fullmatch(iri).group(1) != bwb_id:
             raise BronFout("Onbekende of bronvreemde node")
         item = {"bron_iri": iri, "parent_iri": row.get("parent", ""), "type": kind,
-                "nummer": row.get("nummer", ""), "label": row.get("label") or row.get("titel")
+                "nummer": row.get("nummer", ""),
+                # Een artikel zonder eigen label heet naar zijn nummer, niet naar zijn opschrift (`bwb:titel`): dat
+                # opschrift kwam er pas later bij, en de naam van een node hoort bij zijn identiteit.
+                "label": row.get("label") or (row.get("titel") if kind != "Artikel" else "")
                 or f"{kind} {row.get('nummer', '')}".strip(), "tekst": row.get("tekst", ""),
                 "bwb_id": bwb_id, "vorige": row.get("vorige", ""), "url": row.get("url", ""),
                 "jci": row.get("jci", "")}

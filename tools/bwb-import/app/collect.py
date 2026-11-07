@@ -228,6 +228,7 @@ class _Collector:
                     "id": artikel.id,
                     "nummer": artikel.nummer,
                     "label": artikel.label,
+                    "titel": artikel.titel,
                     "vindplaats": vindplaats,
                     "tekst": artikel.tekst,
                     "ref_key": ref_key,

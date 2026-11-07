@@ -91,6 +91,7 @@ class Artikel:
     nummer: str
     label: str
     tekst: str
+    titel: str = ""  # het opschrift uit ``kop/titel``, als de bron er een geeft
     jci: str | None = None  # canonieke jci-verwijzing uit meta-data
     label_id: str | None = None  # WTI-join-sleutel (label-id-attribuut)
     # Provenance/temporaliteit uit de artikel-attributen.
