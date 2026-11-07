@@ -121,9 +121,8 @@ overzien.
    overzicht én tekst komen deterministisch uit de graaf, zonder model, en de werkplek toont het als
    kaartje met paneel – dezelfde vraag geeft hetzelfde overzicht, dezelfde tekst, dezelfde bronnen en dezelfde
    graaf).
-   Endpoints: `POST /v1/runs` (+ `/events`, `/cancel`; de weg van de werkplek – de beurt draait bij de
-   agent, de browser kijkt mee), `POST /v1/chat` (SSE, aan de verbinding gekoppeld en **zonder
-   eigenaarscontrole** – niet voor de webapp). De werkplek praat er **direct** mee
+   Endpoints: `POST /v1/runs` (+ `/events`, `/cancel`; de enige weg voor een beurt – die draait bij de
+   agent, de browser kijkt mee). De werkplek praat er **direct** mee
    (SSE); de persistente review-state loopt via de API (`/v1/annotatie/*`). Image
    `ghcr.io/palmw01/graph-qa`.
 4. **`tools/bwb-import/`** – de **BWB-importer**: haalt de wettekst op bij
@@ -472,7 +471,7 @@ plan mag verouderen.
   legt Vraag Lex en de agents onder de supervisor vast (F3). `adr-006-generieke-begrippen.md` legt
   het generieke begrippenkader boven de werkgebieden vast (spoor N). `adr-007-llm-pad-en-verwerker.md` is
   een concept: wat vastligt over het LLM-pad en wat de eigenaar nog moet besluiten. `adr-008-antwoordsjablonen.md`
-  legt het antwoord als toolaanroep vast: vaste blokken per vraagtype, de feiten uit de code. `adr-009-werkgebiedrapport.md` legt het rapport van een werkgebied vast: één JSON-document waaruit PDF en Markdown komen.
+  legt het antwoord als toolaanroep vast: vaste blokken per vraagtype, de feiten uit de code. `adr-009-werkgebiedrapport.md` legt het rapport van een werkgebied vast: één JSON-document waaruit PDF en Markdown komen. `adr-010-agentarchitectuur.md` legt het eindbeeld van de agents vast: routering in code, vaste workflows voor vaste vragen, taakagents met een contract, en één open laag; met gedeelde modelstap, context en kwaliteitsmeting.
 - `docs/architectuur/annotatieketen.md` – hoe de annotatieketen **nu** werkt: stappen,
   configuratie (`CLASSIFIER_GRANULARITEIT` e.d.), beslisbeleid, detectoren en bekende beperkingen.
   `docs/architectuur/metingen/README.md` is het meetlogboek: welke meting bij welke code hoort.

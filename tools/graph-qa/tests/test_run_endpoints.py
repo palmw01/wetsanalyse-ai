@@ -112,6 +112,24 @@ def test_run_van_een_ander_bestaat_niet_voor_je(client):
     assert client.get("/v1/conversations/g-a/run", headers=A).json()["run_id"] == run_id
 
 
+def test_lijst_van_runs_is_per_gebruiker(client):
+    """De sidebar vraagt welke beurten lopen of net klaar zijn (E6). Alleen de eigen runs: een andere jurist ziet
+    niet eens dat je gesprek bestaat."""
+    van_a = client.post("/v1/runs", json={"question": "v", "conversation_id": "g-a"}, headers=A).json()
+    lijst = client.get("/v1/runs?actief=true", headers=A).json()
+    assert [(r["run_id"], r["conversation_id"], r["status"]) for r in lijst] == [(van_a["run_id"], "g-a", "loopt")]
+    assert client.get("/v1/runs?actief=true", headers=B).json() == []
+
+    time.sleep(0.6)
+    [klaar] = client.get("/v1/runs?actief=true", headers=A).json()
+    assert klaar["status"] == "klaar" and klaar["afgerond_op"]
+
+
+def test_lijst_van_runs_vraagt_actief(client):
+    """Een volledige runhistorie hoort niet bij graph-qa: die staat in het gesprek."""
+    assert client.get("/v1/runs", headers=A).status_code == 400
+
+
 def test_botsing_op_een_thread_geldt_over_gebruikers_heen(client):
     """De 409 beschermt de DATA, niet de gebruiker: twee beurten op één thread_id schrijven door
     elkaar in de checkpointer, ongeacht wie ze start."""
@@ -141,6 +159,11 @@ def test_rate_limit_telt_per_gebruiker(client, monkeypatch):
                        headers=B).status_code == 201
 
     main._hits.clear()
+
+
+def test_er_is_geen_beurt_zonder_run(client):
+    """`POST /v1/chat` koppelde een beurt aan de verbinding en kende geen eigenaar (L12). De enige weg is een run."""
+    assert client.post("/v1/chat", json={"question": "v", "conversation_id": "g1"}).status_code == 404
 
 
 def test_onbekende_run_is_404(client):

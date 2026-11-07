@@ -532,14 +532,6 @@ def test_open_telt_vervallen_en_opgenomen_niet_mee():
     assert not bronnen_run.is_open({"status": "uitgesloten"})
 
 
-def test_chat_weigert_een_actie():
-    from fastapi.testclient import TestClient
-
-    import api.main as main
-    c = TestClient(main.app)
-    assert c.post("/v1/chat", json={"question": "x", "actie": "bronnen_zoeken", "werkgebied_id": "wg1"}).status_code == 422
-
-
 def test_een_divisie_zonder_label_krijgt_een_naam_en_nooit_de_iri():
     """Spoor H: anders kwam de IRI in het label van de kandidaat en in de afbakening van het dossier."""
     from agent.bepaling_namen import plek_uit_iri

@@ -1,29 +1,33 @@
-{"question": "Wat zijn de invorderingstermijnen bij belastingen?", "expected_sources": ["BWBR0004770"], "expected_contains": ["artikel 9"], "should_refuse": false}
-{"question": "Welke regelingen zitten er in de kennisgraaf?", "expected_contains": ["Invorderingswet 1990", "Algemene wet bestuursrecht"], "should_refuse": false}
-{"question": "Binnen welke termijn is een naheffingsaanslag invorderbaar?", "expected_sources": ["BWBR0004770"], "expected_contains": ["14 dagen"], "should_refuse": false}
-{"question": "Welke soort regeling is de Leidraad Invordering 2008?", "expected_sources": ["BWBR0024096"], "expected_contains": ["beleidsregel"], "should_refuse": false}
-{"question": "Wie heeft de Invorderingswet 1990 ondertekend?", "expected_sources": ["BWBR0004770"], "should_refuse": false}
-{"question": "Wat is het weer vandaag?", "should_refuse": true}
-{"question": "Wat geldt er als iemand zijn belasting niet op tijd betaalt?", "expected_sources": ["BWBR0004770"], "should_refuse": false, "requires": "semantic"}
-{"question": "Kan de ontvanger een betalingsregeling weigeren?", "expected_sources": ["BWBR0024096"], "should_refuse": false, "requires": "semantic"}
-{"question": "Wat is een belastingschuldige en binnen welke termijn is een naheffingsaanslag invorderbaar?", "expected_sources": ["BWBR0004770"], "expected_contains": ["belastingschuldige", "14 dagen"], "should_refuse": false, "requires": "multihop"}
-{"question": "Welke soort regeling is de Leidraad Invordering 2008, en welke wet regelt de invordering van rijksbelastingen?", "expected_sources": ["BWBR0024096", "BWBR0004770"], "expected_contains": ["beleidsregel", "Invorderingswet 1990"], "should_refuse": false, "requires": "multihop"}
+{"question": "Wat zijn de invorderingstermijnen bij belastingen?", "vraagtype": "feit", "expected_sources": ["BWBR0004770"], "expected_contains": ["artikel 9"], "should_refuse": false}
+{"question": "Welke regelingen zitten er in de kennisgraaf?", "vraagtype": "feit", "expected_contains": ["Invorderingswet 1990", "Algemene wet bestuursrecht"], "should_refuse": false}
+{"question": "Binnen welke termijn is een naheffingsaanslag invorderbaar?", "vraagtype": "feit", "expected_sources": ["BWBR0004770"], "expected_contains": ["14 dagen"], "should_refuse": false}
+{"question": "Welke soort regeling is de Leidraad Invordering 2008?", "vraagtype": "feit", "expected_sources": ["BWBR0024096"], "expected_contains": ["beleidsregel"], "should_refuse": false}
+{"question": "Wie heeft de Invorderingswet 1990 ondertekend?", "vraagtype": "feit", "expected_sources": ["BWBR0004770"], "should_refuse": false}
+{"question": "Wat is het weer vandaag?", "vraagtype": "afwijzing", "should_refuse": true}
+{"question": "Wat geldt er als iemand zijn belasting niet op tijd betaalt?", "vraagtype": "duiding", "expected_sources": ["BWBR0004770"], "should_refuse": false, "requires": "semantic"}
+{"question": "Kan de ontvanger een betalingsregeling weigeren?", "vraagtype": "duiding", "expected_sources": ["BWBR0024096"], "should_refuse": false, "requires": "semantic"}
+{"question": "Wat is een belastingschuldige en binnen welke termijn is een naheffingsaanslag invorderbaar?", "vraagtype": "begrip", "expected_sources": ["BWBR0004770"], "expected_contains": ["belastingschuldige", "14 dagen"], "should_refuse": false, "requires": "multihop"}
+{"question": "Welke soort regeling is de Leidraad Invordering 2008, en welke wet regelt de invordering van rijksbelastingen?", "vraagtype": "feit", "expected_sources": ["BWBR0024096", "BWBR0004770"], "expected_contains": ["beleidsregel", "Invorderingswet 1990"], "should_refuse": false, "requires": "multihop"}
 # Brede onderwerp-vraag. Op dev bleek de antwoordroute hier een lijstje "voorgestelde JAS-klassen"
 # onder te zetten met zelfbedachte labels (art36-IW, betalingsonmacht-melding). Die klassen bestaan
 # niet: de dertien staan vast, en de klassecontrole zit alleen in de annotatieroute. `verboden` vangt
 # dat af – in een ANTWOORD hoort geen JAS-klasse voor te komen, ook niet als suggestie.
-{"question": "alles over aansprakelijkheid van de bestuurder", "expected_sources": ["BWBR0004770"], "expected_contains": ["artikel 36"], "verboden": ["JAS-klasse"], "should_refuse": false}
+{"question": "alles over aansprakelijkheid van de bestuurder", "vraagtype": "overzicht", "expected_sources": ["BWBR0004770"], "expected_contains": ["artikel 36"], "verboden": ["JAS-klasse"], "should_refuse": false}
 # Een wet die NIET in de graaf zit, maar wel wetgeving is. Dit hoort geen afwijzing te worden: de
 # supervisor heeft geen tools en kan dus niet weten wat er in de graaf staat. Art. 36 IW 1990 noemt
 # de Wet belastingen op milieugrondslag, dus er is zelfs iets aangrenzends te vinden. `should_refuse`
 # staat daarom op false: er horen bronnen te komen, ook als het antwoord "dat staat er niet in" is.
-{"question": "wat is bekend over het milieu in de milieuwet?", "should_refuse": false}
-{"question": "Welke bepalingen verwijzen naar artikel 36 van de Invorderingswet 1990?", "expected_sources": ["BWBR0004770"], "expected_contains": ["artikel"], "should_refuse": false}
-{"question": "Waar definieert de Invorderingswet 1990 het begrip belastingschuldige?", "expected_sources": ["BWBR0004770"], "expected_contains": ["artikel 2"], "should_refuse": false}
-{"question": "Op welke wettelijke grondslag berust de Leidraad Invordering 2008?", "expected_sources": ["BWBR0024096"], "expected_contains": ["Invorderingswet"], "should_refuse": false}
-{"question": "Welke hoofdstukken heeft de Invorderingswet 1990?", "expected_sources": ["BWBR0004770"], "expected_contains": ["hoofdstuk"], "should_refuse": false}
-{"question": "Sinds wanneer geldt de huidige tekst van artikel 36 van de Invorderingswet 1990?", "expected_sources": ["BWBR0004770"], "should_refuse": false}
-{"question": "Welke hoofdstukken heeft de Invorderingswet 1990 en welke artikelen vallen eronder?", "expected_sources": ["BWBR0004770"], "expected_contains": ["Aansprakelijkheid", "32"], "verboden": ["…", "..."], "should_refuse": false}
-{"question": "Welke artikelen gaan over invordering?", "expected_sources": ["BWBR0004770", "BWBR0005537"], "verwacht_overzicht": {"delen": ["urn:bwb:BWBR0004770:hoofdstuk:II", "urn:bwb:BWBR0004770:hoofdstuk:III", "urn:bwb:BWBR0004770:hoofdstuk:V", "urn:bwb:BWBR0004770:hoofdstuk:VII", "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.4:afdeling:4.4.4"], "niet_los": ["urn:bwb:BWBR0004770:artikel:31", "urn:bwb:BWBR0004770:artikel:63"]}, "verboden": ["…"], "should_refuse": false}
-{"question": "Welke bepalingen gaan over kwijtschelding?", "expected_sources": ["BWBR0004766", "BWBR0024096"], "verwacht_overzicht": {"delen": ["urn:bwb:BWBR0004766:hoofdstuk:II", "urn:bwb:BWBR0024096:artikel:26"]}, "verboden": ["…"], "should_refuse": false}
-{"question": "Waar is de invordering geregeld in de Awb?", "expected_sources": ["BWBR0005537"], "verwacht_overzicht": {"delen": ["urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.4:afdeling:4.4.4"]}, "should_refuse": false}
+{"question": "wat is bekend over het milieu in de milieuwet?", "vraagtype": "feit", "should_refuse": false}
+{"question": "Welke bepalingen verwijzen naar artikel 36 van de Invorderingswet 1990?", "vraagtype": "feit", "expected_sources": ["BWBR0004770"], "expected_contains": ["artikel"], "should_refuse": false}
+{"question": "Waar definieert de Invorderingswet 1990 het begrip belastingschuldige?", "vraagtype": "begrip", "expected_sources": ["BWBR0004770"], "expected_contains": ["artikel 2"], "should_refuse": false}
+{"question": "Op welke wettelijke grondslag berust de Leidraad Invordering 2008?", "vraagtype": "feit", "expected_sources": ["BWBR0024096"], "expected_contains": ["Invorderingswet"], "should_refuse": false}
+{"question": "Welke hoofdstukken heeft de Invorderingswet 1990?", "vraagtype": "feit", "expected_sources": ["BWBR0004770"], "expected_contains": ["hoofdstuk"], "should_refuse": false}
+{"question": "Sinds wanneer geldt de huidige tekst van artikel 36 van de Invorderingswet 1990?", "vraagtype": "feit", "expected_sources": ["BWBR0004770"], "should_refuse": false}
+{"question": "Welke hoofdstukken heeft de Invorderingswet 1990 en welke artikelen vallen eronder?", "vraagtype": "feit", "expected_sources": ["BWBR0004770"], "expected_contains": ["Aansprakelijkheid", "32"], "verboden": ["…", "..."], "should_refuse": false}
+{"question": "Welke artikelen gaan over invordering?", "vraagtype": "overzicht", "expected_sources": ["BWBR0004770", "BWBR0005537"], "verwacht_overzicht": {"delen": ["urn:bwb:BWBR0004770:hoofdstuk:II", "urn:bwb:BWBR0004770:hoofdstuk:III", "urn:bwb:BWBR0004770:hoofdstuk:V", "urn:bwb:BWBR0004770:hoofdstuk:VII", "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.4:afdeling:4.4.4"], "niet_los": ["urn:bwb:BWBR0004770:artikel:31", "urn:bwb:BWBR0004770:artikel:63"]}, "verboden": ["…"], "should_refuse": false}
+{"question": "Welke bepalingen gaan over kwijtschelding?", "vraagtype": "overzicht", "expected_sources": ["BWBR0004766", "BWBR0024096"], "verwacht_overzicht": {"delen": ["urn:bwb:BWBR0004766:hoofdstuk:II", "urn:bwb:BWBR0024096:artikel:26"]}, "verboden": ["…"], "should_refuse": false}
+{"question": "Waar is de invordering geregeld in de Awb?", "vraagtype": "overzicht", "expected_sources": ["BWBR0005537"], "verwacht_overzicht": {"delen": ["urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.4:afdeling:4.4.4"]}, "should_refuse": false}
+# Regressie: de slotzin van art. 22 lid 3 ("indien de … vruchten") hoort ná de onderdelen. Een antwoord dat
+# hem ervoor zet, leest als een andere regel. `volgorde` toetst de tekstvolgorde, `sjabloon` dat het bepalingssjabloon
+# de tekst leverde.
+{"question": "Wat staat er in artikel 22, derde lid, van de Invorderingswet 1990?", "vraagtype": "bepaling", "sjabloon": "bepaling", "expected_sources": ["BWBR0004770"], "volgorde": ["kunnen derden nimmer verzet in rechte doen tegen", "de beslaglegging ter zake van naheffingsaanslagen in", "de beslaglegging ter zake van:", "indien de ingeoogste of nog niet ingeoogste vruchten"], "should_refuse": false}

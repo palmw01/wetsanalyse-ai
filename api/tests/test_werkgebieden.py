@@ -8,7 +8,7 @@ from fastapi import HTTPException
 
 from app import annotatie_v2_store as store, db, werkgebieden
 from app.annotatie_v2_contracts import Beslissing
-from test_annotatie_v2 import ART, LAW, ONE, TWO, element, request, snapshot
+from test_annotatie_v2 import ART, ONE, TWO, element, request, snapshot
 
 LAW2 = "urn:bwb:BWBR0002320"
 ART2 = LAW2 + ":artikel:2"
@@ -400,8 +400,6 @@ async def test_de_peildatum_is_standaard_de_aanmaakdag(client):
 
 
 async def test_toestanden_zeggen_of_de_tekst_van_na_de_peildatum_is(client, monkeypatch):
-    from app import graaf_projectie_v2
-
     wg = await _nieuw(client)
     await _bron(client, wg, bwb_id="BWBR0004770", artikel="9")
     wg = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()
@@ -411,7 +409,7 @@ async def test_toestanden_zeggen_of_de_tekst_van_na_de_peildatum_is(client, monk
     async def select(_client, query):
         gevraagd.append(query)
         return [{"r": "urn:bwb:BWBR0004770", "citeertitel": "Invorderingswet 1990", "vanaf": "2026-07-01"}]
-    monkeypatch.setattr(graaf_projectie_v2, "_select", select)
+    monkeypatch.setattr(werkgebieden, "sparql_select", select)
     r = (await client.get(f"/v1/werkgebieden/{wg['id']}/toestanden")).json()
     assert r["peildatum"] == "2026-03-01" and r["volledig"] is True
     assert r["regelingen"] == [{"bwb_id": "BWBR0004770", "citeertitel": "Invorderingswet 1990",
@@ -420,12 +418,12 @@ async def test_toestanden_zeggen_of_de_tekst_van_na_de_peildatum_is(client, monk
 
     async def kapot(_client, query):
         raise ConnectionError("weg")
-    monkeypatch.setattr(graaf_projectie_v2, "_select", kapot)
+    monkeypatch.setattr(werkgebieden, "sparql_select", kapot)
     r = (await client.get(f"/v1/werkgebieden/{wg['id']}/toestanden")).json()
     assert (r["volledig"], r["regelingen"]) == (False, [])
 
 
-async def test_bepaling_zoeken_en_regelingen_voor_bepaling_toevoegen(client, monkeypatch):
+async def test_bepaling_zoeken_voor_bepaling_toevoegen(client, monkeypatch):
     from app import bepaling_zoeken as zoeken
     from test_bepaling_zoeken import IW, iw
 
@@ -450,12 +448,6 @@ async def test_bepaling_zoeken_en_regelingen_voor_bepaling_toevoegen(client, mon
     monkeypatch.setattr(zoeken, "haal_bronrijen", weg)
     r = await client.get(f"/v1/werkgebieden/{wg['id']}/bepalingen", params={"bwb_id": IW, "q": "9"})
     assert r.status_code == 503 and "niet bereikbaar" in r.json()["detail"]
-
-    async def alle():
-        return [{"bwb_id": IW, "citeertitel": "Invorderingswet 1990", "soort": "wet", "afkortingen": []}]
-    monkeypatch.setattr(zoeken, "alle_regelingen", alle)
-    r = await client.get(f"/v1/werkgebieden/{wg['id']}/regelingen", params={"q": "invordering"})
-    assert [x["bwb_id"] for x in r.json()["regelingen"]] == [IW]
 
 
 async def test_een_dubbelzinnige_bepaling_geeft_de_opties_mee(monkeypatch):

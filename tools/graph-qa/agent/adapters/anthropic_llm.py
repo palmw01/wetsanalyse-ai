@@ -7,6 +7,7 @@ api-version) en de prompt-caching kent.
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any
 
 import anthropic
@@ -125,6 +126,7 @@ class AnthropicLLM:
             extra["tool_choice"] = tool_choice
         if temperature is not None:
             extra["temperature"] = temperature
+        begin = time.perf_counter()
         try:
             resp = self._client.messages.create(
                 model=model, max_tokens=max_tokens, system=self._system(system),
@@ -137,7 +139,7 @@ class AnthropicLLM:
                 model=model, max_tokens=max_tokens, system=self._system(system),
                 tools=tools, messages=messages, **extra,
             )
-        self.meter.tel_response(resp)
+        self.meter.tel_response(resp, ms=round((time.perf_counter() - begin) * 1000))
         return resp
 
     def stream(
@@ -186,8 +188,10 @@ class _AnthropicStream:
         self._opnieuw = opnieuw          # zelfde call, maar zonder cache-punt
         self._terugval = terugval        # beslist of de fout over caching ging
         self._meter = meter              # telt het verbruik van deze beurt op
+        self._begin = 0.0                # het openen van de stream: daar gaat de call de deur uit
 
     def __enter__(self) -> "_AnthropicStream":
+        self._begin = time.perf_counter()
         try:
             self._stream = self._manager.__enter__()
         except anthropic.BadRequestError as exc:
@@ -208,10 +212,10 @@ class _AnthropicStream:
         """Het volledige antwoord. Hier komt ook het `usage`-blok van een streamende call binnen.
 
         `get_final_message()` is idempotent aan de SDK-kant, maar de meter is dat niet: twee keer
-        aanroepen zou dubbel tellen. De aanroeper doet dit één keer per stream (zie `antwoord.py`
-        en `decompositie.py`); mocht dat ooit veranderen, dan hoort de ontdubbeling hier.
+        aanroepen zou dubbel tellen. De aanroeper doet dit één keer per stream (zie `antwoord.py`);
+        mocht dat ooit veranderen, dan hoort de ontdubbeling hier.
         """
         resp = self._stream.get_final_message()
         if self._meter is not None:
-            self._meter.tel_response(resp)
+            self._meter.tel_response(resp, ms=round((time.perf_counter() - self._begin) * 1000))
         return resp

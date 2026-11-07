@@ -16,8 +16,6 @@ import { parseBevestiging, parseBevestigingKeuze } from "./werkgebiedAnnoteren";
 
 export interface Geschiedenis {
   items: ThreadItem[];
-  /** Slugs van berichten die naar een annotatie zonder bronnode wijzen: die bestaat niet meer (een tombstone). */
-  verwijderdeSlugs: string[];
   /** De run-ids in de geschiedenis. Een reeks bewaart per onderdeel een bericht met run_id `<run>.<n>`; het run-id
    *  van de reeks zelf staat in `reeks.run_id`. Zonder dat telde een afgeronde reeks als verdwenen
    *  (`standVanVorigeRun`). */
@@ -46,8 +44,8 @@ export function itemsUitGesprek(berichten: Bericht[], uid: () => string): Geschi
     return [b.rol === "user"
       ? { id: uid(), type: "user" as const, tekst: b.tekst, antwoordOp: parseAntwoordOp(b.intake_antwoord),
           bevestigingKeuze: parseBevestigingKeuze(b.bevestiging_antwoord) }
-      : annotatieDoel || b.annotatie_slug
-        ? { id: uid(), type: "annotatie" as const, slug: annotatieDoel?.bron_iri || b.annotatie_slug!,
+      : annotatieDoel
+        ? { id: uid(), type: "annotatie" as const, slug: annotatieDoel.bron_iri,
             titel: art?.titel || b.annotatie_titel || undefined, annotatie_doel: annotatieDoel,
             tool_executions: toolSpoorUit(b.tool_executions), denk: b.denk,
             // De samenvatting van Lex (hoogstens vier zinnen), zoals graph-qa hem bewaarde.
@@ -68,7 +66,6 @@ export function itemsUitGesprek(berichten: Bericht[], uid: () => string): Geschi
   });
   return {
     items,
-    verwijderdeSlugs: berichten.filter((b) => b.annotatie_slug && !artefactVanBericht(b)).map((b) => b.annotatie_slug!),
     runIds: berichten.flatMap((b) => [b.run_id, b.reeks?.run_id ?? ""]).filter(Boolean),
   };
 }

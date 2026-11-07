@@ -18,7 +18,7 @@ from eval.gesprek import (
 )
 
 ROUTES = {"annotaties_lezen", "annotatie", "advies", "afgewezen", "definitie", "duiding", "algemeen",
-          "deelvragen", "begrippen", "werkgebied"}
+          "deelvragen", "begrippen", "werkgebied", "overzicht", "begrippen_lezen", "bronselectie"}
 VELDEN = {"route", "niet_route", "tools_wel", "tools_niet", "max_tools", "bevat", "bevat_een",
           "verboden", "niet_ongegrond"}
 
@@ -46,6 +46,15 @@ def test_routes_uit_status_volgt_de_supervisorregels():
     # De werkgebied-worker, ook bij het aanvullen van het dossier.
     assert routes_uit_status(["Lex · vult met je het dossier aan"]) == ["werkgebied"]
     assert routes_uit_status(["Lex · stelt met je een werkgebied samen"]) == ["werkgebied"]
+    # De leesroute van begrippen, de overzichtsroute en de bronselectie (agent/nodes/supervisie.py).
+    assert routes_uit_status(["Lex · raadpleegt vastgelegde begrippen", "Begrippen · zoeken: x"]) == ["begrippen_lezen"]
+    assert routes_uit_status(["Lex · overzicht van een onderwerp", "Overzicht · onderwerp: invordering",
+                              "Specialist algemeen · raadpleegt de kennisgraaf"]) == ["overzicht", "algemeen"]
+    for regel in ("bepaalt met je de bronnen per deelvraag", "pakt de bronselectie op waar die was",
+                  "verwerkt je keuze in de bronselectie", "zoekt met je een bepaling op"):
+        assert routes_uit_status([f"Lex · {regel}"]) == ["bronselectie"], regel
+    # Een stap binnen de bronselectie is geen eigen route.
+    assert routes_uit_status(["Lex · zoekt bepalingen bij het werkgebied en zijn deelvragen"]) == []
 
 
 def test_de_routeringscases_naar_de_agents_staan_in_de_set():
@@ -94,7 +103,7 @@ def test_gouden_gesprekken_zijn_geldig():
     cases = _cases()
     assert len({c["id"] for c in cases}) == len(cases)
     for c in cases:
-        assert c["scenario"] in {"A", "B", "C", "R", "F"}, c["id"]
+        assert c["scenario"] in {"A", "B", "C", "R", "F", "V"}, c["id"]
         assert len(c["beurten"]) >= 2, f"{c['id']}: een gesprek heeft een vervolgbeurt nodig"
         for e in c.get("andere_annotaties") or []:
             assert e["klasse"] in GELDIGE_JAS_KLASSEN, e

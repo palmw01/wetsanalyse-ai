@@ -8,7 +8,7 @@ from sqlalchemy import select
 
 from app import annotatie_export, annotatie_statistiek, db
 from app import annotatie_v2_store as store
-from app.annotatie_v2_contracts import AFGEHANDELD, BEOORDEELD, Batch, Beslissing, Laagbesluiten
+from app.annotatie_v2_contracts import AFGEHANDELD, BEOORDEELD, Beslissing, Laagbesluiten
 from app.graaf_projectie_v2 import bouw_graaf
 from tests.test_annotatie_v2 import ONE, TWO, element, request, snapshot
 

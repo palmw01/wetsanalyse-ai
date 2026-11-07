@@ -17,12 +17,14 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+from bronmodel.taal import BRON_IRI
 from rdflib import BNode, Graph, Literal, Namespace, RDF, URIRef
 from sqlalchemy import select, update
 from sqlalchemy.exc import SQLAlchemyError
 
 from . import db
 from .config import get_settings
+from .graaf_client import repo, sparql_ask, sparql_select
 
 JAS = Namespace("urn:jas-ns:")
 OA = Namespace("http://www.w3.org/ns/oa#")
@@ -71,13 +73,10 @@ async def zorg_voor_vocabulaire(client: httpx.AsyncClient) -> bool:
 
     De graaf is niet-persistent; na een herstart bouwt de reconcile-lus hem zo opnieuw op, net als de lagen."""
     versie, ttl = vocabulaire()
-    r = await client.post(_repo(), data={"query": f'ASK {{ GRAPH <{VOCABULAIRE}> {{ <{VOCAB_SCHEMA}> '
-                                                  f'<{JAS.vocabulaireVersie}> {_lit(versie)} }} }}'},
-                          headers={"Accept": "application/sparql-results+json"})
-    r.raise_for_status()
-    if r.json().get("boolean"):
+    if await sparql_ask(client, f"ASK {{ GRAPH <{VOCABULAIRE}> {{ <{VOCAB_SCHEMA}> "
+                                f"<{JAS.vocabulaireVersie}> {_lit(versie)} }} }}"):
         return False
-    r = await client.put(_repo() + "/rdf-graphs/service", params={"graph": str(VOCABULAIRE)},
+    r = await client.put(repo() + "/rdf-graphs/service", params={"graph": str(VOCABULAIRE)},
                          content=ttl.encode("utf-8"), headers={"Content-Type": "text/turtle"})
     r.raise_for_status()
     logger.info("annotatie_vocabulaire_geprojecteerd", extra={"versie": versie})
@@ -344,13 +343,13 @@ def zoek_query(filters: dict, limit: int = 10001) -> str:
     clauses = []
     if "scoped_nodes" in filters:
         iris = filters["scoped_nodes"]
-        if not all(re.fullmatch(r"urn:bwb:(BWB[RV]\d+)(?::[^<>\s\"{}|^`\\]*)?", str(i)) for i in iris):
+        if not all(BRON_IRI.fullmatch(str(i)) for i in iris):
             raise ValueError("Ongeldige bronscope")
         values = " ".join(URIRef(i).n3() for i in iris)
         clauses.append(f"FILTER EXISTS {{ VALUES ?geraakt {{ {values} }} ?e oa:hasTarget/oa:hasSource ?geraakt }}")
-    source = filters.get("bronnode_id") or filters.get("bron_iri")
+    source = filters.get("bron_iri")
     if source:
-        match = re.fullmatch(r"urn:bwb:(BWB[RV]\d+)(?::[^<>\s\"{}|^`\\]*)?", str(source))
+        match = BRON_IRI.fullmatch(str(source))
         if not match:
             raise ValueError("Ongeldige bronnode")
         if filters.get("scope", "subtree") == "node":
@@ -413,20 +412,6 @@ SELECT DISTINCT ?id WHERE {{
 }} ORDER BY ?id LIMIT {max(1, min(10001, int(limit)))}'''
 
 
-def _repo() -> str:
-    cfg = get_settings()
-    if not cfg.graphdb_url:
-        raise ConnectionError("Annotatiegraaf is niet geconfigureerd")
-    return f"{cfg.graphdb_url}/repositories/{cfg.graphdb_repository}"
-
-
-async def _select(client: httpx.AsyncClient, query: str) -> list[dict]:
-    r = await client.post(_repo(), data={"query": query}, headers={"Accept": "application/sparql-results+json"})
-    r.raise_for_status()
-    from bronmodel import parse_rows
-    return parse_rows(r.json())
-
-
 async def zoek_kandidaten(filters: dict) -> dict:
     manifest_query = f'''PREFIX jas: <urn:jas-ns:>
 SELECT ?id ?rev WHERE {{ GRAPH <{REGISTER}> {{ <{SCHEMA}> jas:versie {SCHEMA_VERSIE} .
@@ -434,14 +419,11 @@ SELECT ?id ?rev WHERE {{ GRAPH <{REGISTER}> {{ <{SCHEMA}> jas:versie {SCHEMA_VER
  GRAPH ?g {{ ?laag jas:revisie ?rev ; jas:schemaVersie {SCHEMA_VERSIE} . }} }}'''
     try:
         async with httpx.AsyncClient(timeout=20) as client:
-            r = await client.post(_repo(), data={"query": f"ASK {{ GRAPH <{REGISTER}> {{ <{SCHEMA}> <{JAS.versie}> {SCHEMA_VERSIE} }} }}"},
-                                  headers={"Accept": "application/sparql-results+json"})
-            r.raise_for_status()
-            if not r.json().get("boolean"):
+            if not await sparql_ask(client, f"ASK {{ GRAPH <{REGISTER}> {{ <{SCHEMA}> <{JAS.versie}> {SCHEMA_VERSIE} }} }}"):
                 return {"ids": [], "manifest": {}, "beschikbaar": False, "reden": "projectie_herstelt"}
-            before = await _select(client, manifest_query)
-            ids = await _select(client, zoek_query(filters))
-            after = await _select(client, manifest_query)
+            before = await sparql_select(client, manifest_query)
+            ids = await sparql_select(client, zoek_query(filters))
+            after = await sparql_select(client, manifest_query)
         manifest = {r["id"]: int(r["rev"]) for r in after}
         return {"ids": [r["id"] for r in ids[:10000]], "manifest": manifest, "beschikbaar": True,
                 "truncated": len(ids) > 10000,
@@ -499,7 +481,7 @@ async def projecteer(laag_id: str) -> bool:
             data = await asyncio.to_thread(
                 lambda: bouw_graaf(laag, elements, dekking=dekking).serialize(format="turtle").encode())
             async with httpx.AsyncClient(timeout=30) as client:
-                r = await client.put(_repo() + "/rdf-graphs/service", params={"graph": str(graph_iri(laag_id))},
+                r = await client.put(repo() + "/rdf-graphs/service", params={"graph": str(graph_iri(laag_id))},
                                      content=data,
                                      headers={"Content-Type": "text/turtle"})
                 r.raise_for_status()
@@ -512,7 +494,7 @@ INSERT {{ GRAPH <{REGISTER}> {{
  <{SCHEMA}> jas:versie {SCHEMA_VERSIE} . {owner} jas:inGraaf {graph_iri(laag_id).n3()} ;
  jas:laagId {_lit(laag_id)} ; jas:revisie {int(laag['revisie'])} .
 }} }} WHERE {{ OPTIONAL {{ GRAPH <{REGISTER}> {{ {owner} ?p ?o }} }} }}'''
-                r = await client.post(_repo() + "/statements", data={"update": statement})
+                r = await client.post(repo() + "/statements", data={"update": statement})
                 r.raise_for_status()
             async with db.get_engine().begin() as conn:
                 gezet = await conn.execute(update(db.annotatie_v2_lagen).where(
@@ -588,7 +570,7 @@ async def reconcile() -> int:
                                extra={"laag_id": row["id"], "fouttype": type(exc).__name__})
     if not lagen:
         async with httpx.AsyncClient(timeout=20) as client:
-            r = await client.post(_repo() + "/statements", data={"update":
+            r = await client.post(repo() + "/statements", data={"update":
                 _OUDE_SCHEMAVERSIES + f"INSERT DATA {{ GRAPH <{REGISTER}> {{ <{SCHEMA}> <{JAS.versie}> {SCHEMA_VERSIE} }} }}"})
             r.raise_for_status()
     await verwijder_verweesde_projecties()
@@ -613,7 +595,7 @@ async def verwijder_projecties(laag_ids: list[str]) -> str:
     try:
         async with httpx.AsyncClient(timeout=20) as client:
             for laag_id in laag_ids:
-                r = await client.post(_repo() + "/statements", data={"update": _verwijder_statement(laag_id)})
+                r = await client.post(repo() + "/statements", data={"update": _verwijder_statement(laag_id)})
                 r.raise_for_status()
     except (httpx.HTTPError, ConnectionError) as exc:
         logger.warning("annotatie_v2_verwijderen_uitgesteld", extra={"fouttype": type(exc).__name__,
@@ -639,7 +621,7 @@ SELECT ?id ?laag ?g WHERE {{ GRAPH <{REGISTER}> {{
     async with db.get_engine().connect() as conn:
         live_ids = set((await conn.execute(select(db.annotatie_v2_lagen.c.id))).scalars())
     async with httpx.AsyncClient(timeout=20) as client:
-        registered = await _select(client, query)
+        registered = await sparql_select(client, query)
         for item in registered:
             if removed >= limit:
                 break
@@ -655,7 +637,7 @@ SELECT ?id ?laag ?g WHERE {{ GRAPH <{REGISTER}> {{
                     db.annotatie_v2_lagen.c.id == layer_id))).first()
                 if exists:
                     continue
-                response = await client.post(_repo() + "/statements", data={"update": _verwijder_statement(layer_id)})
+                response = await client.post(repo() + "/statements", data={"update": _verwijder_statement(layer_id)})
                 response.raise_for_status()
                 removed += 1
     if removed:

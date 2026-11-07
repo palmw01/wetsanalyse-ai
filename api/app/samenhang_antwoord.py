@@ -28,7 +28,7 @@ from pydantic import BaseModel
 from . import annotatie_v2_store as store
 from . import begrip_store, graaf
 from .bron_resolver import bwb_van
-from .graaf_projectie_v2 import _select
+from .graaf_client import sparql_select
 from .samenhang import (
     MAX_VERWIJZINGEN,
     Knoop,
@@ -109,7 +109,7 @@ async def _definities(bwb: str, snapshot_id: str) -> list[dict]:
     sleutel = (bwb, snapshot_id)
     if sleutel not in _DEFINITIES:
         async with httpx.AsyncClient(timeout=20) as client:
-            rijen = await _select(client, _definities_query(bwb))
+            rijen = await sparql_select(client, _definities_query(bwb))
         for oud in [k for k in _DEFINITIES if k[0] == bwb]:
             del _DEFINITIES[oud]        # een vorige toestand van deze regeling is voorbij
         _DEFINITIES[sleutel] = rijen
@@ -355,7 +355,7 @@ async def antwoord(bron_iris: list[str], werkgebied_id: str = "") -> dict:
     beschikbaar = True
     try:
         async with httpx.AsyncClient(timeout=20) as client:
-            rijen = await _select(client, _uitgaand(bepalingen))
+            rijen = await sparql_select(client, _uitgaand(bepalingen))
     except (httpx.HTTPError, ConnectionError, ValueError) as exc:
         logger.warning("verwijzingen voor de ketting niet beschikbaar", extra={"fout": type(exc).__name__})
         beschikbaar, rijen = False, []

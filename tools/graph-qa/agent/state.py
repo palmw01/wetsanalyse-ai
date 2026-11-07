@@ -44,6 +44,9 @@ class State(TypedDict, total=False):
     # `overzicht` is het deterministisch gebouwde overzicht. Beide per beurt gereset.
     overzicht_route: bool
     overzicht: dict[str, Any]
+    # De tekst van een bepaling als workflow (ADR-010, D1): wat `bepaling_workflow.lees` las ({bwb_id, artikel, lid}).
+    # Per beurt gereset; leeg betekent de gewone weg.
+    bepalingsvraag: dict[str, Any]
     # Het antwoord als sjabloon (`agent/sjablonen`, ADR-008): leeg bij vrije tekst.
     antwoord: dict[str, Any]
     bron_snapshot: dict[str, Any]
@@ -89,10 +92,6 @@ class State(TypedDict, total=False):
     pending_tools: list[dict[str, Any]]
     turns: int
     corrected: bool
-    # Decompositie (multi-hop): deelvragen + per-deelvraag bevindingen (last-value-wins;
-    # solve_node zet ze in één keer). De per-deelvraag agent⇄tools-loop draait lokaal in solve_node.
-    sub_questions: list[str]
-    sub_findings: list[dict[str, str]]
     # Het doel dat de AANROEPER meegaf ({bwbId, artikel, lid?, citeertitel?}). Weet de werkplek de
     # bepaling al – een open document, een item uit de werkvoorraad, een gekozen kandidaat – dan
     # hoeft niemand hem meer te zoeken: de supervisor doet geen LLM-call en de ophaal-agent draait

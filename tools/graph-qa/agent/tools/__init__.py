@@ -151,6 +151,19 @@ def _onderdeelsleutel(iri: str) -> tuple:
     return tuple((len(delen[i + 1]), delen[i + 1]) for i in range(len(delen) - 1) if delen[i] == "o")
 
 
+def _in_documentvolgorde(onderdelen: dict[str, Any], rijen: list[dict[str, Any]]) -> list[str]:
+    """De onderdelen in de volgorde van het document. `bwb:volgnummer` (de importer) is de plek; de IRI is alleen de
+    terugval voor een graaf zonder volgnummer. Op de IRI kwam een slottekst ("…, indien …", een `:id:`-IRI zonder `:o:`)
+    vóór onderdeel a: de jurist las Iw 22 lid 3 met de slotzin direct na de aanhef (acceptatie 7 nov 2026)."""
+    volg: dict[str, int] = {}
+    for r in rijen:
+        if r.get("o") and str(r.get("ovolg") or "").lstrip("-").isdigit():
+            volg[r["o"]] = int(r["ovolg"])
+    if len(volg) == len(onderdelen):
+        return sorted(onderdelen, key=lambda iri: (volg[iri], _onderdeelsleutel(iri)))
+    return sorted(onderdelen, key=_onderdeelsleutel)
+
+
 def _offset(a: dict[str, Any]) -> int:
     return _geheel(a.get("offset"), 0, 0, 100_000)
 
@@ -187,7 +200,7 @@ def _h_get_lid(g: GraphPort, a: dict[str, Any]) -> str:
            "tekst": kop.get("tekst", ""), "jci": kop.get("jci", ""), **_werking(kop)}
     onderdelen = {r["o"]: compact({"onderdeel": r["o"], "nummer": r.get("onummer"), "tekst": r.get("otekst"),
                                    "jci": _zonder_datum(r.get("ojci", ""))}) for r in rijen if r.get("o")}
-    eenheden = [onderdelen[iri] for iri in sorted(onderdelen, key=_onderdeelsleutel)]
+    eenheden = [onderdelen[iri] for iri in _in_documentvolgorde(onderdelen, rijen)]
     return per_eenheid(eenheden, tool="get_lid", args={k: v for k, v in a.items() if k != "offset"},
                        offset=_offset(a), extra={"lid": compact({**lid, "onderdelen": len(eenheden)})},
                        toelichting="Citeer de jci van het ONDERDEEL, niet die van het hele lid.")

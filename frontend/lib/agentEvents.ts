@@ -14,8 +14,8 @@
 //     de api-contracten; deze controles spiegelen het, ze vervangen het niet. Het
 //     retourtype van elke parser is het handgeschreven type, dus loopt het uit elkaar, dan faalt
 //     `npm run typecheck`.
-//  3. MET DE HAND, NIET MET ZOD. Zod stáát in package.json, maar wordt nergens in de
-//     clientcode geïmporteerd en zit dus niet in de clientbundel. Hem hier gebruiken kost gemeten
+//  3. MET DE HAND, NIET MET ZOD. Zod is geen dependency van de frontend en zit dus niet in de
+//     clientbundel. Hem hier gebruiken kost gemeten
 //     235 KB extra op de werkplek-route (1.220 KB → 1.456 KB). `zod/mini` helpt niet: dat deelt dezelfde core van 83 KB. Voor acht
 //     platte vormen is dit goedkoper, en het leest niet slechter.
 //

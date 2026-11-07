@@ -24,15 +24,16 @@ import re
 from typing import Literal
 
 import httpx
+from bronmodel.taal import BRON_IRI
 from pydantic import BaseModel
 
 from . import annotatie_v2_store as store
-from .graaf_projectie_v2 import _select
+from .graaf_client import sparql_select
 
 logger = logging.getLogger(__name__)
 
 MAX_VERWIJZINGEN = 200
-_IRI = re.compile(r"urn:bwb:(BWB[RV]\d+)(?::[^<>\s\"{}|^`\\]*)?")
+_IRI = BRON_IRI
 _KAAL_BWB = re.compile(r"BWB[RV]\d+")
 # Wat in het overzicht van een structuurdeel staat; leden en onderdelen horen bij het artikel.
 _OVERZICHT = {"Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf", "Artikel", "Divisie"}
@@ -163,7 +164,7 @@ async def _verwijzingen(iris: list[str]) -> tuple[list[dict], list[dict]] | None
     """Uitgaande en inkomende rijen, of None als de graaf de vraag niet kon beantwoorden."""
     try:
         async with httpx.AsyncClient(timeout=20) as client:
-            return await _select(client, _uitgaand(iris)), await _select(client, _inkomend(iris))
+            return await sparql_select(client, _uitgaand(iris)), await sparql_select(client, _inkomend(iris))
     except (httpx.HTTPError, ConnectionError, ValueError) as exc:
         logger.warning("verwijzingen voor samenhang niet beschikbaar", extra={"fout": type(exc).__name__})
         return None

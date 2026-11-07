@@ -124,7 +124,7 @@ async def test_verify_credentials(monkeypatch, db):
 
     # Een gedeactiveerd account kan niet inloggen (apart account; de enige beheerder is beschermd).
     _, temp = await users.create_user("analist1", "b@example.com", role="analist")
-    await users.set_active("analist1", False)
+    await users.patch_user("analist1", active=False)
     assert (await users.verify_credentials("analist1", temp))[1] == "invalid"
 
 
@@ -149,15 +149,15 @@ async def test_laatste_beheerder_beschermd(monkeypatch, db):
 
     await users.bootstrap_admin("admin", "admin@example.com", "wachtwoord1")
     with pytest.raises(users.UserError):
-        await users.set_role("admin", "analist")
+        await users.patch_user("admin", role="analist")
     with pytest.raises(users.UserError):
-        await users.set_active("admin", False)
+        await users.patch_user("admin", active=False)
     with pytest.raises(users.UserError):
         await users.delete_user("admin")
 
     # Met een tweede beheerder mag het wél.
     await users.create_user("admin2", "admin2@example.com", role="beheerder")
-    await users.set_role("admin", "analist")
+    await users.patch_user("admin", role="analist")
     assert (await users.get_user("admin")).role == "analist"
 
 

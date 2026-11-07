@@ -82,7 +82,7 @@ async def test_begrippen_volgen_dezelfde_regel(monkeypatch, fout, verwacht):
 
     monkeypatch.setattr(bp, "postgres_stand", stand)
     monkeypatch.setattr(bp, "register", register)
-    monkeypatch.setattr(bp, "_select", graphs)
+    monkeypatch.setattr(bp, "sparql_select", graphs)
     monkeypatch.setattr(bp, "invoer_hash", lambda _inv: "h")
     monkeypatch.setattr(bp, "projecteer", projecteer)
     if verwacht is None:
