@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Iterable, Iterator
 from typing import Any
 
@@ -15,7 +16,15 @@ Trace = list[tuple[str, str]]
 
 class Onvulbaar(ValueError):
     """Het sjabloon kan niet uit de trace gevuld worden. De tekst gaat als fout terug naar het model, dat
-    eerst ophaalt wat ontbreekt: een halve vulling tonen we nooit."""
+    eerst ophaalt wat ontbreekt: een halve vulling tonen we nooit.
+
+    `ophalen` zijn de artikelen die de code zelf ophaalt voordat het model het opnieuw probeert, als
+    `{"bwb_id", "artikel"}` voor `get_artikel`: een artikel dat het antwoord noemt en dat de opgehaalde tekst
+    aanwijst, maar waarvan de tekst er niet bij zit (D, "genoemd is gelezen")."""
+
+    def __init__(self, tekst: str, *, ophalen: Iterable[dict[str, str]] = ()) -> None:
+        super().__init__(tekst)
+        self.ophalen = list(ophalen)
 
 
 def _data(tekst: str) -> dict[str, Any] | None:
@@ -93,6 +102,17 @@ def iri_van_jci(trace: Trace) -> dict[str, str]:
                 uit.setdefault(jci, iri)
                 uit.setdefault(jci.split("&z=", 1)[0], iri)
     return uit
+
+
+def artikel_in_trace(nummer: str, trace: Trace) -> str:
+    """De iri van artikel `nummer` als de opgehaalde resultaten het aanwijzen, en in precies één regeling; anders leeg.
+
+    Een artikel staat vaak in een resultaat zonder zijn tekst: `get_context` noemt de bepalingen die naar het gevraagde
+    artikel verwijzen (Iw 28 verwijst naar 25 en 9; eval 7 nov 2026). Dan weet het model dát het erbij hoort, maar heeft
+    het niets gelezen. In twee regelingen is niet te zeggen welk artikel het antwoord bedoelt: dan haalt de code niets."""
+    patroon = re.compile(rf"urn:bwb:(BWB[RV]\d+):artikel:{re.escape(nummer)}(?![0-9A-Za-z.])")
+    regelingen = {m.group(1) for naam, tekst in trace if naam not in AFGELEIDE_TOOL_NAMEN for m in patroon.finditer(tekst or "")}
+    return f"urn:bwb:{regelingen.pop()}:artikel:{nummer}" if len(regelingen) == 1 else ""
 
 
 def volledige_tekst(iri: str, trace: Trace) -> str:

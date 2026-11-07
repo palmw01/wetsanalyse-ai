@@ -21,7 +21,7 @@ from bronmodel.antwoord import Antwoord, Citaat, Citaten, Toelichting, Twijfel
 from ..annotatie import _normaliseer, komt_letterlijk_voor
 from ..grounding import _bekende_artikelen, herstel_citaten
 from ..overzicht import vermeldingen
-from .vullen import Onvulbaar, Trace, bron_rijen, iri_van_jci, ouders, vindplaats_van
+from .vullen import Onvulbaar, Trace, artikel_in_trace, bron_rijen, iri_van_jci, ouders, vindplaats_van
 
 SCHEMA: dict[str, Any] = {
     "name": "antwoord_duiding",
@@ -155,6 +155,44 @@ def _niet_onderbouwd(uitleg: str, citaten: list[Citaat]) -> list[str]:
     return [v for v in vermeldingen(uitleg) if v.startswith("artikel ") and v.removeprefix("artikel ").casefold() not in bekend]
 
 
+#: Zoveel artikelen haalt de code in één weigering zelf op; de rest moet het model ophalen of weglaten.
+MAX_OPHALEN = 2
+
+
+def _genoemd_is_gelezen(los: list[str], rijen: dict[str, dict[str, Any]], trace: Trace) -> Onvulbaar:
+    """Wat het antwoord noemt, moet gelezen zijn (D, besluit gebruiker 7 nov 2026). Per artikel zonder passage:
+
+    - de tekst is opgehaald maar niet aangewezen: wijs een passage aan of laat het weg;
+    - de opgehaalde resultaten wijzen het aan zonder tekst (een verwijzing in `get_context`): de code haalt het op, en
+      het model kiest daarna een passage of laat het weg;
+    - het staat nergens in wat er is opgehaald: dan komt het uit het geheugen van het model. Ophalen of weglaten.
+
+    Een markering "niet opgehaald" bestaat niet: een artikel staat in beeld met een passage, of niet."""
+    gelezen, ophalen, onbekend = [], [], []
+    for vermelding in los:
+        nummer = vermelding.removeprefix("artikel ")
+        iri = artikel_in_trace(nummer, trace)
+        if iri and any(_binnen(k, iri) for k in rijen):
+            gelezen.append(vermelding)
+        elif iri and len(ophalen) < MAX_OPHALEN:
+            ophalen.append({"bwb_id": iri.split(":")[2], "artikel": nummer, "vermelding": vermelding})
+        else:
+            onbekend.append(vermelding)
+    zinnen = []
+    if gelezen:
+        zinnen.append(f"Je noemt {', '.join(gelezen)} zonder passage, terwijl de tekst al is opgehaald. Wijs er een passage uit "
+                      "aan, of laat de vermelding weg.")
+    if ophalen:
+        zinnen.append(f"Je noemt {', '.join(o['vermelding'] for o in ophalen)} zonder passage. Wat je noemt, moet gelezen zijn: "
+                      "de tekst staat hieronder. Wijs er een passage uit aan met `bepaling`, `van` en `tot`, of laat de "
+                      "vermelding weg als het artikel er na lezing niet toe doet.")
+    if onbekend:
+        zinnen.append(f"Je noemt {', '.join(onbekend)} zonder passage, en de tekst daarvan heb je niet opgehaald. Haal het op "
+                      "met get_artikel als het ertoe doet en wijs dan een passage aan, of laat de vermelding weg.")
+    return Onvulbaar(" ".join([*zinnen, "Rond daarna opnieuw af."]),
+                     ophalen=[{"bwb_id": o["bwb_id"], "artikel": o["artikel"]} for o in ophalen])
+
+
 def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
     kort = _lex(invoer.get("kort_antwoord"), trace)
     if not kort:
@@ -168,8 +206,7 @@ def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
         raise Onvulbaar("Niet te tonen, dus er wordt niets getoond. " + "; ".join(fouten) + ". Rond daarna opnieuw af.")
     twijfel = list(dict.fromkeys(t for x in invoer.get("twijfel") or [] if (t := _lex(x, trace))))
     if los := _niet_onderbouwd("\n".join([kort, *(c.waarom for c in citaten), *twijfel]), citaten):
-        raise Onvulbaar(f"Je noemt {', '.join(los)} zonder passage, dus de jurist kan het niet naslaan. Wijs er een passage uit "
-                        "aan, en haal de bepaling zo nodig op, of laat de vermelding weg. Rond daarna opnieuw af.")
+        raise _genoemd_is_gelezen(los, rijen, trace)
     blokken: list[Any] = [Toelichting(kop="Kort antwoord", tekst=kort), Citaten(items=citaten)]
     if twijfel:
         blokken.append(Twijfel(punten=twijfel))

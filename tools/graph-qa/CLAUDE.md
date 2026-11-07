@@ -101,6 +101,11 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   D5), de code neemt de tekst ertussen uit de bron; gezocht wordt met typografische tekens als hun gewone vorm (’ = '),
   een slotzin uit `get_lid` telt onder zijn lid en een jci wordt de iri van de rij. Ze toetst tegen de tekst van de aangewezen bepaling, niet tegen de hele trace, en
   weigert een bepaling die de uitleg noemt zonder passage; kort antwoord, waarom en twijfel gaan als tekst door `verify`.
+  **Wat de uitleg noemt, is gelezen** (D, besluit gebruiker 7 nov 2026; `duiding._genoemd_is_gelezen`): wijst de opgehaalde
+  tekst het genoemde artikel aan zonder zijn tekst (een verwijzing in `get_context`, in precies één regeling,
+  `vullen.artikel_in_trace`), dan haalt `sjabloon_node` het op via `execute_tool` (hoogstens `MAX_OPHALEN`), zet het in het
+  bronspoor en geeft de tekst bij de weigering mee; het model wijst daarna een passage aan of laat het weg. Uit het geheugen
+  van het model haalt de code niets op. Een markering "niet opgehaald" bestaat bewust niet.
   Citeren kan alleen uit rijen met een iri bij hun tekst, dus niet uit `get_context`.
   `verify_node` toetst de blokken `annotaties`, `begrippen` en `leemte` niet (`NIET_GETOETST`): afgeleide duiding en tekst van de code.
 - **`verify_node`** – `check_grounding(answer, source_trace)`. Bij ongegrond volgt via `correct_node`
