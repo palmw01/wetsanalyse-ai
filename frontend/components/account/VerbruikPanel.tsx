@@ -63,7 +63,7 @@ export function VerbruikPanel() {
               Je kunt geen nieuwe vragen of annotatierondes meer starten. Je budget is weer vol op{" "}
               <span className="font-medium">{resetdatum(stand.reset_op)}</span>. Bestaande gesprekken
               en annotaties blijven gewoon leesbaar; heb je eerder ruimte nodig, vraag een beheerder
-              om je budget te verhogen.
+              om je verbruik te resetten.
             </Melding>
           )}
           {!stand.geblokkeerd && stand.waarschuwing && (
@@ -86,8 +86,7 @@ export function VerbruikPanel() {
             className="mt-2"
           />
           <p className="mt-2 text-sm text-muted">
-            {tokens(stand.gebruikt)} van {tokens(stand.budget)} tokens gebruikt
-            {stand.eigen_budget && " (persoonlijk budget)"}.
+            {tokens(stand.gebruikt)} van {tokens(stand.budget)} tokens gebruikt.
           </p>
         </>
       )}

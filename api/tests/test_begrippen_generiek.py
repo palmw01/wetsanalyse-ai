@@ -72,6 +72,38 @@ async def test_dezelfde_term_staat_een_keer_generiek(client):
     assert r.json()["detail"]["fout"] == "al_generiek" and r.json()["detail"]["begrip_id"] == g["id"]
 
 
+async def test_een_nieuwe_naam_mag_geen_bestaande_generieke_term_zijn(client):
+    ids, _, g = await generiek(client)
+    ander = await _nieuw(client, "Ander")
+    ander = (await _bron(client, ander, bron_iri=ART))["werkgebied"]
+    b = await geaccordeerd(client, ander, {"lid1": ids["lid2"]}, naam="Ontvanger")
+    r = await client.post(_url(ander, b, "generiek-maken"), json={"verwachte_revisie": b["revisie"]})
+    assert r.status_code == 200, r.text
+    tweede_begrip = r.json()
+    inhoud = {**DEFINITIE, "naam": " belastingschuldige"}
+    r = await client.patch(f"/v1/begrippen/{tweede_begrip['id']}",
+                           json={"verwachte_revisie": tweede_begrip["revisie"], "inhoud": inhoud})
+    assert r.status_code == 409 and r.json()["detail"]["begrip_id"] == g["id"]
+    r = await client.patch(f"/v1/begrippen/{tweede_begrip['id']}",
+                           json={"verwachte_revisie": tweede_begrip["revisie"], "inhoud": {**DEFINITIE, "naam": "De ontvanger"}})
+    assert r.status_code == 200, r.text
+
+
+async def test_een_koppeling_is_alleen_vanuit_haar_eigen_werkgebied_te_wijzigen(client):
+    _, wg, g = await generiek(client)
+    ander, _ = await tweede(client, g)
+    koppeling = g["koppelingen"][0]["id"]
+    r = await client.patch(_url(ander, g, "koppelingen", koppeling),
+                           json={"verwachte_revisie": g["revisie"], "beoordeling": "open"})
+    assert r.status_code == 404
+    r = await client.post(_url(ander, g, "koppelingen", "beoordelen"), json={
+        "verwachte_revisie": g["revisie"], "koppeling_ids": [koppeling], "beoordeling": "open"})
+    assert r.status_code == 404
+    r = await client.delete(_url(ander, g, "koppelingen", koppeling), params={"verwachte_revisie": g["revisie"]})
+    assert r.status_code == 404
+    assert (await begrip_store.haal(wg["id"], g["id"]))["koppelingen"][0]["id"] == koppeling
+
+
 async def test_een_tweede_werkgebied_gebruikt_het_met_eigen_passages(client):
     ids, _, g = await generiek(client)
     ander = await _nieuw(client, "Ander")
