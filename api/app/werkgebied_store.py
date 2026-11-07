@@ -23,6 +23,7 @@ from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import db, tooi
+from .auth import huidige_client
 from .werkgebied_contracts import (
     BronselectieInvoer, BronselectieWijziging, WerkgebiedInvoer, WerkgebiedWijziging,
 )
@@ -72,7 +73,8 @@ async def _audit(conn, werkgebied_id: str, actor: str, actie: str, detail: dict)
     # die niets aan de graph verandert, kost alleen het lezen en vergelijken (`begrip_projectie.projecteer`).
     db.noteer_na_commit(conn, "werkgebieden", werkgebied_id)
     await conn.execute(insert(db.werkgebied_audit).values(
-        werkgebied_id=werkgebied_id, actor=actor, actie=actie, detail=detail, tijdstip=db.utcnow()))
+        werkgebied_id=werkgebied_id, actor=actor, actie=actie, detail=detail, tijdstip=db.utcnow(),
+        client=huidige_client.get() or None))
 
 
 #: Elke tabel met een `werkgebied_id`, behalve de audit: wat `wis` leegmaakt. Een nieuwe tabel met die

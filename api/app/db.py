@@ -236,6 +236,8 @@ annotatie_v2_audit = Table("annotatie_v2_audit", metadata,
     Column("actor", String(64), nullable=False), Column("actie", String(40), nullable=False),
     Column("detail", _JSON, nullable=False), Column("tijdstip", _DT, nullable=False),
     Column("laag_id", String(64), nullable=True),
+    # Welke client het verzoek deed (`auth.huidige_client`): de jurist via de webapp of de agent. `actor` is de persoon.
+    Column("client", String(64), nullable=True),
     Index("ix_annotatie_v2_audit_laag", "laag_id", "id"),
     Index("ix_annotatie_v2_audit_actie", "actie", "id"))
 
@@ -296,6 +298,7 @@ werkgebied_audit = Table("werkgebied_audit", metadata,
     Column("actie", String(40), nullable=False),
     Column("detail", _JSON, nullable=False),
     Column("tijdstip", _DT, nullable=False),
+    Column("client", String(64), nullable=True),  # zie `annotatie_v2_audit.client`
     Index("ix_werkgebied_audit_werkgebied", "werkgebied_id", "id"))
 
 # --- Begrippen (spoor D, levering 2) ------------------------------------------
