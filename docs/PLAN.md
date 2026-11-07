@@ -113,6 +113,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | P | Antwoordsjablonen: vaste vorm per vraagtype (ADR-008) | Gebouwd: `begrip`, `bepaling`, `duiding`, `annotaties`; de overzichtsroute bewust zonder sjabloon. Open: tokens en duur meten, `verwijzingen` als blok alleen als het vast kan, en de eval `gesprek` (kost geld) |
 | O | Acceptatietesten via MCP | Accounttoken en acceptatie-MCP gebouwd, eerste scenario gedraaid; open: de fixtures voor de Playwright-mocks |
 | R | Verbeterplan uit de applicatiereview (6 nov 2026) | Ronde 1 en 2 gemerged (t/m #951); ronde 3 als losse PR's (#963–#985), zie de sectie. Uitgesteld: F2, F3, E4, E6, H5; bij de eigenaar: G2 (meldkanaal), G4, G9 |
+| S | Multi-agent regie binnen een werkgebied (ADR-012) | Ontwerp aangenomen (7 nov 2026); bouw in zeven stappen, zie de sectie |
 
 ---
 
@@ -1344,6 +1345,31 @@ environment-regels en OIDC bij B5, `security.txt` en de naamsvermelding van het 
 
 **Nog te doen in de repo:** G3 (rooktest na een uitrol), G8a (axe in de browsertests), E3 (sidebar), E5-klein, de
 opruimstappen H1–H3 en H6–H9, en de rem op (IP, userid) bij B2.
+
+
+### S. Multi-agent regie binnen een werkgebied
+
+**Doel.** In één regiegesprek binnen een werkgebied vraagt de jurist iets als "zoek per deelvraag de bronnen". Een
+regisseur maakt in code een plan, start per deelvraag een kindgesprek met een gewone run, laat er hoogstens
+`REGIE_PARALLEL` tegelijk lopen, en bundelt de uitkomst. Het ontwerp staat in
+[ADR-012](architectuur/adr-012-multi-agent-regie.md).
+
+**Besluiten.**
+- Het plan komt uit code, niet van een model. Er is één ingang voor elke run (`start_beurt`).
+- Agents leveren voorstellen. Bronnen zoeken en annoteren zijn twee regieronden, met de jurist ertussen.
+- Er loopt één regie per werkgebied en één per gebruiker. Het budget wordt vooraf geschat, het plan krimpt tot het past,
+  en elk kind krijgt een aandeel.
+
+**Bouwvolgorde.**
+1. ADR-012 en dit spoor.
+2. api: `gesprekken.ouder_id` en de regies.
+3. graph-qa: één ingang en `ouder_run_id`, met stoppen dat doorwerkt naar de kinderen.
+4. graph-qa: het plan in code, en `eenheden` bij het annoteren van een werkgebied.
+5. graph-qa: de regisseur.
+6. Werkplek: de kindgesprekken, het regiekaartje en *Stop alles*.
+7. Meting op acceptatie, na akkoord (kost tokens).
+
+**Open.** Begrippen in de regie, een reservering bij de api, `minReplicas: 1` voor graph-qa, en een Grafana-paneel.
 
 ## Volgorde en samenhang
 
