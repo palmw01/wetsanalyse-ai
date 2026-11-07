@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
+import hashlib
 import json
 from pathlib import Path
 from typing import Literal
@@ -19,7 +20,7 @@ from bronmodel.antwoord import Vindplaats
 from pydantic import BaseModel, ConfigDict
 
 from .jas_klassen import JAS_KLASSEN_VOLGORDE
-from .pdf_opmaak import BEGRIP, BLOK_BEGIN, BLOK_EIND, INHOUD, MARKERING, PAGINA, PLAATS, TITELBLAD
+from .pdf_opmaak import BEGRIP, BLOK_BEGIN, BLOK_EIND, INHOUD, MARKERING, PAGINA, PLAATS, SPANS, TITELBLAD, TOELICHTING
 
 VERSIE = 2
 SCHEMA = "werkgebied-rapport-v2"
@@ -41,9 +42,10 @@ class Document(_Deel):
     """Wat het rapport als document identificeert: titelblad en colofon."""
 
     titel: str
-    kenmerk: str                                     # "WG-<eerste 8 tekens van het id>-r<revisie>"
+    kenmerk: str                                     # "WG-<eerste 8 tekens van het id>-r<revisie>": welk werkgebied, welke revisie
     werkgebied_id: str
     concept: bool                                    # zolang het werkgebied niet afgerond is
+    inhoud_hash: str = ""                            # "sha256:<hex>" over de inhoud (`inhoud_hash`): welke analyseversie precies
 
 
 class Telling(_Deel):
@@ -201,8 +203,18 @@ class Afwijking(_Deel):
     nu: str
 
 
+class Span(_Deel):
+    """Een markering in de wettekst van haar bepaling: offsets in Unicode-codepoints, uit het opgeslagen anker."""
+
+    start: int
+    eind: int
+    nr: int                                          # het nummer van de markering in de lijst onder de bepaling
+    klasse: str = ""
+
+
 class Markering(_Deel):
     id: str
+    nr: int = 0                                      # het nummer binnen de bepaling; 0 buiten de wettekst
     klasse: str = ""
     alternatieven: list[str] = []
     subtype: str = ""
@@ -218,12 +230,24 @@ class Markering(_Deel):
     door: Door = "lex"
 
 
+class Verwijzing(_Deel):
+    """Een verwijzing uit een bepaling in het dossier, uit de graaf; de ankertekst staat er letterlijk."""
+
+    van: Vindplaats
+    naar: Vindplaats
+    anker: str = ""
+    in_dossier: bool = False
+    door: Door = "bron"
+
+
 class Bepaling(_Deel):
     vindplaats: Vindplaats
     rol: str
     bron_gewijzigd: bool = False
     tekst: str = ""
     markeringen: list[Markering] = []
+    spans: list[Span] = []                           # alleen ankers die nog op hun offsets staan; een afwijking staat bij de markering
+    verwijzingen: list[Verwijzing] = []
     door: Door = "bron"
 
 
@@ -255,6 +279,7 @@ class Wettekst(_Deel):
     onbereikbaar: list[Onbereikbaar] = []
     buiten_tekst: list[Markering] = []
     afgewezen: list[Markering] = []
+    verwijzingen: list[Verwijzing] = []              # alle verwijzingen uit het dossier, in de volgorde van de bronboom
 
 
 class Voorbeeld(_Deel):
@@ -382,6 +407,21 @@ class Rapport(_Deel):
     verantwoording: Verantwoording
 
 
+def inhoud_hash(r: "Rapport") -> str:
+    """De identiteit van de inhoud: SHA-256 over het document zonder `stand` (wanneer en door wie geëxporteerd) en zonder de hash
+    zelf, als JSON met gesorteerde sleutels. Gelijke inhoud geeft dezelfde hash, op elk moment en voor elke exporteur; een
+    andere annotatie, beoordeling, begrip of graafgegeven geeft een andere. De werkgebiedrevisie (`kenmerk`) ziet dat niet.
+    Narekenen: zet `document.inhoud_hash` op "" en laat `stand` weg."""
+    inhoud = r.model_dump(mode="json", exclude={"stand": True, "document": {"inhoud_hash"}})
+    tekst = json.dumps(inhoud, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return "sha256:" + hashlib.sha256(tekst.encode()).hexdigest()
+
+
+def kort(h: str) -> str:
+    """De eerste twaalf tekens van de hash: genoeg om twee rapporten naast elkaar te herkennen."""
+    return h.removeprefix("sha256:")[:12]
+
+
 SCHEMA_PAD = Path(__file__).parent / "schemas" / f"{SCHEMA}.schema.json"
 
 
@@ -504,6 +544,8 @@ def titelblad_regels(doc: Document, v: Voorblad, stand: Stand) -> list[Regel]:
     uit += [(TITELBLAD + "rij", "Status: " + status), (TITELBLAD + "rij", f"Revisie: {v.revisie}"),
             (TITELBLAD + "rij", "Peildatum: " + (datum(v.peildatum) or "niet vastgelegd") + (" (de aanmaakdag)" if v.peildatum_standaard else "")),
             (TITELBLAD + "rij", "Stand van: " + datum_tijd(stand.op)), (TITELBLAD + "rij", "Kenmerk: " + doc.kenmerk)]
+    if doc.inhoud_hash:
+        uit.append((TITELBLAD + "rij", "Inhoudscode: " + kort(doc.inhoud_hash)))
     if v.thema:
         uit.append((TITELBLAD + "rij", "Thema: " + v.thema))
     if v.regelingen:
@@ -545,7 +587,8 @@ def leeswijzer_regels() -> list[Regel]:
                         ("Heading4", "Opbouw"),
                         ("BodyText", "Hoofdstuk 3 tot en met 6 dragen de analyse: het werkgebied, de deelvragen met hun bronnen, de "
                                      "analyse per bepaling en de begrippen. De bijlagen zijn naslag: de volledige begripskaarten, het "
-                                     "bronnenregister, de contextbepalingen, wat niet is meegenomen en de verantwoording."),
+                                     "bronnenregister, de contextbepalingen, de samenhang (verwijzingen), wat niet is meegenomen "
+                                     "en de verantwoording."),
                         ("Heading4", "De klassen van het Juridisch Analyseschema"),
                         ("Meta", "Een markering draagt de kleur van haar klasse, en altijd ook de naam: de kleur is nooit de enige drager.")]
     uit += [(MARKERING + k, k) for k in JAS_KLASSEN_VOLGORDE]
@@ -558,9 +601,12 @@ def colofon_regels(doc: Document, v: Voorblad, stand: Stand, verantwoording: Ver
     uit: list[Regel] = [(PAGINA, ""), ("Heading4", "Colofon"),
                         ("Meta", "Titel: " + doc.titel),
                         ("Meta", "Kenmerk: " + doc.kenmerk),
+                        ("Meta", "Inhoudscode: " + (doc.inhoud_hash or "niet berekend")
+                         + " (SHA-256 over de inhoud, zonder het exportmoment: gelijke inhoud, gelijke code)"),
                         ("Meta", "Werkgebied: " + doc.werkgebied_id),
                         ("Meta", f"Status: {status} · revisie {v.revisie}"),
-                        ("Meta", "Peildatum: " + (datum(v.peildatum) or "niet vastgelegd")),
+                        ("Meta", "Peildatum: " + (datum(v.peildatum) or "niet vastgelegd") + (" (de aanmaakdag)" if v.peildatum_standaard else "")),
+                        *([("Meta", "Thema: " + v.thema)] if v.thema else []),
                         ("Meta", f"Stand van {datum_tijd(stand.op)}, geëxporteerd door {stand.door}."),
                         ("Meta", "Opgesteld door: " + verantwoording.aangemaakt_door)]
     if verantwoording.juristen:
@@ -689,15 +735,20 @@ def _herkomst(h: Herkomst) -> str:
     return "Herkomst: " + "; ".join(delen) + "."
 
 
-def _markering(m: Markering, eigen_iri: str = "") -> list[Regel]:
+def _markering(m: Markering, eigen_iri: str = "", in_tekst: bool = False) -> list[Regel]:
+    """Eén markering. Staat ze gemarkeerd in de wettekst erboven (`in_tekst`), dan draagt ze haar nummer en komt het citaat niet nog
+    eens: de tekst staat er al, met dezelfde kleur en hetzelfde nummer."""
     # Een terugval draagt geen klasse: zeg dat, en noem de keuze.
     kop = m.klasse or "Nog geen klasse (" + ", ".join(m.alternatieven) + ")"
     if m.subtype:
         kop += f", {m.subtype}"
-    uit: list[Regel] = [*BLOK, (MARKERING + m.klasse, f"{kop} · {_LIFECYCLE.get(m.lifecycle, m.lifecycle)}"), ("Citaat", f"“{m.tekst}”")]
+    nummer = f"{m.nr} · " if m.nr else ""
+    uit: list[Regel] = [*BLOK, (MARKERING + m.klasse, f"{nummer}{kop} · {_LIFECYCLE.get(m.lifecycle, m.lifecycle)}")]
+    if not in_tekst:
+        uit.append(("Citaat", f"“{m.tekst}”"))
     uit += [("Meta", f"Vindplaats: {v.label} · {_verwijzing(v)}") for v in m.vindplaatsen if v.iri != eigen_iri]
     if m.toelichting:
-        uit.append(("BodyText", m.toelichting))
+        uit.append((TOELICHTING, m.toelichting))
     uit.append(("Meta", _herkomst(m.herkomst)))
     if m.reden_afwijzing:
         uit.append(("Meta", "Reden van afwijzing: " + m.reden_afwijzing))
@@ -770,9 +821,36 @@ def _bepaling(b: Bepaling) -> list[Regel]:
     if b.bron_gewijzigd:
         uit.append(("Waarschuwing", "Deze bron veranderde sinds de selectie."))
     if b.tekst:
+        if b.spans:
+            # De markeringen gaan als eigen regel vlak vóór het citaat mee; zo blijft elke regel (stijl, tekst).
+            uit.append((SPANS, json.dumps([[x.start, x.eind, x.nr, x.klasse] for x in b.spans], ensure_ascii=False)))
         uit.append(("Citaat", b.tekst))
+    in_tekst = {x.nr for x in b.spans}
     for m in b.markeringen:
-        uit += _markering(m, b.vindplaats.iri)
+        uit += _markering(m, b.vindplaats.iri, m.nr in in_tekst)
+    uit += [("Meta", _verwijst(v)) for v in b.verwijzingen]
+    return uit
+
+
+def _verwijst(v: Verwijzing) -> str:
+    return (f"Verwijst naar {v.naar.label}" + (f" (“{v.anker}”)" if v.anker else "")
+            + (" · in dit dossier" if v.in_dossier else ""))
+
+
+def samenhang_regels(w: Wettekst) -> list[Regel]:
+    """Bijlage: de verwijzingen uit het dossier, eerst die binnen het dossier blijven, dan die naar buiten wijzen."""
+    uit: list[Regel] = [("Meta", "Uit de kennisgraaf: de verwijzingen die vertrekken uit een bepaling in dit dossier, met de verwijzende "
+                                 "tekst letterlijk. Verwijzingen naar deze bepalingen vanuit andere regelingen staan er niet in.")]
+    for binnen, kop in ((True, "Binnen het dossier"), (False, "Naar buiten het dossier")):
+        groep = [v for v in w.verwijzingen if v.in_dossier == binnen]
+        uit.append(("Heading2", f"{kop} ({len(groep)})"))
+        if not groep:
+            uit.append(("Meta", "Geen."))
+        for v in groep:
+            uit += [*BLOK, ("BodyText", f"{v.van.label} → {v.naar.label}")]
+            if v.anker:
+                uit.append(("Citaat", f"“{v.anker}”"))
+            uit += [("Meta", _verwijzing(v.naar)), *BLOK_UIT]
     return uit
 
 
@@ -975,7 +1053,7 @@ def verantwoording_regels(v: Verantwoording) -> list[Regel]:
     return uit
 
 
-BIJLAGEN = ("Begripskaarten", "Bronnenregister", "Contextbepalingen", "Niet meegenomen", "Verantwoording")
+BIJLAGEN = ("Begripskaarten", "Bronnenregister", "Contextbepalingen", "Samenhang", "Niet meegenomen", "Verantwoording")
 
 
 def rapport_regels(r: Rapport) -> list[Regel]:
@@ -983,6 +1061,7 @@ def rapport_regels(r: Rapport) -> list[Regel]:
     bijlagen = {"Begripskaarten": begrippen_regels(r.begrippen),
                 "Bronnenregister": register_regels(r.voorblad, r.verantwoording),
                 "Contextbepalingen": context_regels(r.wettekst),
+                "Samenhang": samenhang_regels(r.wettekst),
                 "Niet meegenomen": niet_meegenomen_regels(r.deelvragen, r.wettekst, r.begrippen),
                 "Verantwoording": verantwoording_regels(r.verantwoording)}
     uit = [*titelblad_regels(r.document, r.voorblad, r.stand), *colofon_regels(r.document, r.voorblad, r.stand, r.verantwoording),
