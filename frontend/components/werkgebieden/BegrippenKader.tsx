@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { BewerkVoet, useBewerken } from "@/components/ui/Bewerkbaar";
 import { Button } from "@/components/ui/Button";
-import { FilterChip } from "@/components/ui/FilterChip";
+import { FilterChip, KeuzeRij } from "@/components/ui/FilterChip";
 import { Input } from "@/components/ui/Field";
 import { StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
@@ -104,13 +104,13 @@ export function BegrippenKader({ id }: { id: string }) {
         <input type="search" value={zoek} onChange={(e) => setZoek(e.target.value)} placeholder="Zoek op naam, term of definitie"
           aria-label="Begrippen doorzoeken"
           className="focus-ring min-h-[36px] w-full rounded-field border border-line bg-paper px-3 text-sm sm:max-w-xs" />
-        <div className="flex flex-wrap gap-1" role="group" aria-label="Status">
+        <KeuzeRij label="Status">
           {(["alle", ...BEGRIP_STATUSSEN] as const).map((s) => (
             <FilterChip key={s} gekozen={status === s} onKies={() => setStatus(s)}>
               {s === "alle" ? "Alle" : BEGRIP_STATUS_LABEL[s]}
             </FilterChip>
           ))}
-        </div>
+        </KeuzeRij>
         <div className="flex flex-col gap-2 sm:ml-auto sm:flex-row sm:items-center">
           {begrippen.length > 0 && (
             <ExportKnop formaten={EXPORT_FORMATEN} onFout={setFout}

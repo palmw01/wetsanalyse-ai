@@ -9,7 +9,7 @@ import { GesprekRijen } from "@/components/werkgebieden/OverzichtTab";
 import { ProjectKop } from "@/components/werkgebieden/ProjectKop";
 import { useWerkgebied } from "@/components/werkgebieden/WerkgebiedProject";
 import { knopKlasse } from "@/components/ui/Button";
-import { FilterChip } from "@/components/ui/FilterChip";
+import { FilterChip, KeuzeRij } from "@/components/ui/FilterChip";
 import { ARTEFACT_LABEL, ARTEFACT_SOORTEN, artefactKaarten, artefactPad, type ArtefactSoort } from "@/lib/werkgebiedPaden";
 
 /** De gesprekken van dit werkgebied (mock-up v4, `projectChats`). Een klik opent de gewone werkplek; er is
@@ -43,13 +43,13 @@ export function ArtefactenTab() {
     <div data-werkgebied-artefacten>
       <ProjectKop tab="artefacten" />
       <p className="mb-3 text-sm text-muted">Zelfstandig opgeslagen analyseproducten. Wie een gesprek verwijdert, houdt ze.</p>
-      <div className="mb-4 flex flex-wrap gap-1.5" role="group" aria-label="Soort artefact">
+      <KeuzeRij label="Soort artefact" className="mb-4">
         {(["alle", ...ARTEFACT_SOORTEN] as const).map((s) => (
           <FilterChip key={s} gekozen={filter === s} onKies={() => setFilter(s)}>
             {s === "alle" ? "Alles" : ARTEFACT_LABEL[s]}
           </FilterChip>
         ))}
-      </div>
+      </KeuzeRij>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {kaarten.map((k) => (
           <Link key={k.soort} href={artefactPad(wg.id, k.soort)} data-artefact-kaart={k.soort}

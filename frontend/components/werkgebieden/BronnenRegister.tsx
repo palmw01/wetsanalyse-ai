@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { FilterChip } from "@/components/ui/FilterChip";
+import { FilterChip, KeuzeRij } from "@/components/ui/FilterChip";
 import { BronnenBijDeelvraag } from "@/components/werkgebieden/BronnenBijDeelvraag";
 import { ProjectKop } from "@/components/werkgebieden/ProjectKop";
 import { useWerkgebied } from "@/components/werkgebieden/WerkgebiedProject";
@@ -55,13 +55,13 @@ export function BronnenRegister() {
         <input type="search" value={zoek} onChange={(e) => setZoek(e.target.value)} placeholder="Zoek op regeling of bepaling"
           aria-label="Bronnen doorzoeken"
           className="focus-ring min-h-[36px] w-full rounded-field border border-line bg-paper px-3 text-sm sm:max-w-sm" />
-        <div className="flex gap-1" role="group" aria-label="Rol">
+        <KeuzeRij label="Rol">
           {(["alle", "analyseren", "context"] as const).map((r) => (
             <FilterChip key={r} gekozen={rol === r} onKies={() => setRol(r)}>
               {r === "alle" ? "Alle" : ROL_LABEL[r]}
             </FilterChip>
           ))}
-        </div>
+        </KeuzeRij>
         <span className="text-xs text-muted sm:ml-auto">{weergegeven} weergegeven</span>
       </div>
       <BronnenBijDeelvraag werkgebiedId={wg.id} revisie={wg.revisie}

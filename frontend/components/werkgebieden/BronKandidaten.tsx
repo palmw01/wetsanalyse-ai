@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Sectie } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { Groep } from "@/components/ui/Pagina";
-import { FilterChip } from "@/components/ui/FilterChip";
+import { FilterChip, KeuzeRij } from "@/components/ui/FilterChip";
 import { foutTekst, haalKandidaten, haalLaatsteBronnenRun } from "@/lib/api";
 import {
   FILTER_LABEL, KANDIDAAT_ROL_LABEL, KANDIDAAT_ROL_UITLEG, METHODE_LABEL, bewijsSamenvatting, bewijsZin, bijDeelvraag, filterVan, plekNaam,
@@ -88,13 +88,13 @@ export function BronKandidaten({ id, deelvraagId, labels }: {
       )}
 
       {alle.length > 0 && (
-        <div role="tablist" aria-label="Filter" className="flex flex-wrap gap-1.5">
+        <KeuzeRij rol="tablist" label="Filter">
           {FILTERS.map((f) => (
             <FilterChip key={f} rol="tab" gekozen={filter === f} onKies={() => { setFilter(f); setOpen(null); }}>
               {FILTER_LABEL[f]} ({telling[f]})
             </FilterChip>
           ))}
-        </div>
+        </KeuzeRij>
       )}
 
       {data && alle.length === 0 && (
