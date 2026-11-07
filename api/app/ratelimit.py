@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import time
 from collections import defaultdict, deque
+from dataclasses import dataclass
 
 from fastapi import Depends, HTTPException, status
 
@@ -39,18 +40,23 @@ def _sweep(now: float, window_s: float) -> None:
             del _hits[key]
 
 
-def _allow(key: str, max_requests: int, window_s: float) -> bool:
-    now = time.monotonic()
-    if key not in _hits and len(_hits) >= _MAX_KEYS:
-        _sweep(now, window_s)
+def _ruimte(key: str, max_requests: int, window_s: float, now: float) -> bool:
+    """Is er op `key` nog ruimte voor één hit? Telt zelf niets, en maakt geen sleutel aan."""
+    if key not in _hits:
         if len(_hits) >= _MAX_KEYS:
-            return False
+            _sweep(now, window_s)
+        return len(_hits) < _MAX_KEYS
     dq = _hits[key]
     while dq and dq[0] <= now - window_s:
         dq.popleft()
-    if len(dq) >= max_requests:
+    return len(dq) < max_requests
+
+
+def _allow(key: str, max_requests: int, window_s: float) -> bool:
+    now = time.monotonic()
+    if not _ruimte(key, max_requests, window_s, now):
         return False
-    dq.append(now)
+    _hits[key].append(now)
     return True
 
 
@@ -71,25 +77,66 @@ def rate_limited_client(client_id: str = Depends(require_client)) -> str:
     return client_id
 
 
-# De globale login-rem staat een veelvoud van de per-userid-limiet toe: legitiem verkeer over veel
-# gebruikers moet ruim passen, maar een password-spray over honderden userids (die de per-userid-rem
-# omzeilt) raakt alsnog dit plafond. In-process (per replica), dus defense-in-depth – echte
-# bescherming hoort op de proxy/WAF.
+# De login-rem telt **missers**, niet pogingen, op de sleutel (client-IP, userid). Telde hij elke poging per
+# userid, dan kon wie de userid van een ander kent die persoon buitensluiten door fout in te loggen; met het IP in
+# de sleutel remmen de missers van een aanvaller alleen zijn eigen pogingen, en een geslaagde login telt niet mee.
+# Het IP komt van de BFF (`vertrouwd_client_ip` in `routers/auth.py`); zonder vertrouwd IP valt de sleutel terug op
+# de userid alleen.
+#
+# Daarnaast een globale teller op de missers, op een veelvoud van de limiet per sleutel: legitiem verkeer over veel
+# gebruikers past er ruim in, maar een password-spray over veel userids of IP's raakt alsnog dit plafond. Die teller
+# begrenst ook hoeveel sleutels er per venster bij kunnen komen (`_MAX_KEYS`). In-process (per replica), dus
+# defense-in-depth – echte bescherming hoort op de proxy/WAF.
 _LOGIN_GLOBAL_FACTOR = 20
+_LOGIN_GLOBAAL = "login:__global__"
 
 
-def login_allowed(userid: str) -> bool:
-    """Brute-force-rem op de login-verificatie: per-userid ÉN een ruimere globale teller (tegen
-    spraying over veel userids). Hergebruikt de muterende-rate-knoppen
-    (`WETSANALYSE_RATE_LIMIT_MAX`/`_WINDOW`); 0 = uit. In-process (per replica)."""
+@dataclass(frozen=True)
+class Inlogpoging:
+    """Een poging die de rem doorliet. Ze telt voorlopig als misser; `login_telt_niet` neemt dat terug.
+
+    Eerst tellen en bij succes terugnemen, in plaats van pas na de controle tellen: anders komen gelijktijdige
+    pogingen allemaal langs de rem voordat er één geteld is."""
+
+    sleutels: tuple[tuple[str, float], ...] = ()
+
+
+def _login_sleutel(userid: str, client_ip: str | None) -> str:
+    return f"login:{client_ip or '-'}|{userid.strip().lower()}"
+
+
+def login_allowed(userid: str, client_ip: str | None = None) -> Inlogpoging | None:
+    """Brute-force-rem op de login-verificatie: per (client-IP, userid) ÉN een ruimere globale teller, beide op
+    missers. Geeft de poging terug, of None als de rem dicht is (dan telt er niets). Hergebruikt de
+    muterende-rate-knoppen (`WETSANALYSE_RATE_LIMIT_MAX`/`_WINDOW`); 0 = uit. In-process (per replica)."""
     s = get_settings()
     if s.rate_limit_max <= 0:
-        return True
-    per_userid = _allow(f"login:{userid.strip().lower()}", s.rate_limit_max, s.rate_limit_window_s)
-    globaal = _allow(
-        "login:__global__", s.rate_limit_max * _LOGIN_GLOBAL_FACTOR, s.rate_limit_window_s
+        return Inlogpoging()
+    now = time.monotonic()
+    grenzen = (
+        (_login_sleutel(userid, client_ip), s.rate_limit_max),
+        (_LOGIN_GLOBAAL, s.rate_limit_max * _LOGIN_GLOBAL_FACTOR),
     )
-    return per_userid and globaal
+    # Eerst beide toetsen, dan pas tellen: een poging die op de ene grens strandt, telt ook op de andere niet.
+    if not all(_ruimte(sleutel, grens, s.rate_limit_window_s, now) for sleutel, grens in grenzen):
+        return None
+    for sleutel, _ in grenzen:
+        _hits[sleutel].append(now)
+    return Inlogpoging(tuple((sleutel, now) for sleutel, _ in grenzen))
+
+
+def login_telt_niet(poging: Inlogpoging) -> None:
+    """Neem de voorlopige telling van een poging terug die geen misser was: alleen missers remmen."""
+    for sleutel, moment in poging.sleutels:
+        dq = _hits.get(sleutel)
+        if dq is None:
+            continue
+        try:
+            dq.remove(moment)
+        except ValueError:
+            pass  # al buiten het venster geveegd
+        if not dq:
+            del _hits[sleutel]
 
 
 def sensitive_allowed(userid: str) -> bool:

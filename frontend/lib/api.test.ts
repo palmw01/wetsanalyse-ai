@@ -1,6 +1,6 @@
 import { definitieveStroomfout } from "./lopendeRun";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { begin2fa, isApiError, login2fa, loginVerify, parseError, startRun, volgRun } from "./api";
+import { begin2fa, isApiError, laadGesprekken, login2fa, loginVerify, parseError, startRun, volgRun } from "./api";
 import type { AgentGrounding } from "./types";
 
 describe("parseError", () => {
@@ -539,5 +539,49 @@ describe("parseError zonder leesbaar antwoord", () => {
   it("noemt de status in plaats van niets (HTTP/2 heeft geen statusText)", async () => {
     const err = await parseError(new Response("Internal Server Error", { status: 500 }));
     expect(err.detail).toBe("HTTP 500");
+  });
+});
+
+// UI-02: de sidebar haalt actief en archief apart, per pagina. `laadGesprekken` bladert over de api-grens (200) heen
+// en zegt of er nog meer zijn – zonder dat verdween een ouder gesprek stil.
+describe("laadGesprekken", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  function nepApi(totaal: number) {
+    const alle = Array.from({ length: totaal }, (_, i) => ({ id: `g${i}`, titel: "", aantal_berichten: 0, updated: "",
+      werkgebied_id: "", werkgebied_naam: "", gearchiveerd: null }));
+    const urls: URL[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (pad: string) => {
+      const url = new URL(pad, "http://x");
+      urls.push(url);
+      const limit = Number(url.searchParams.get("limit") ?? 100), offset = Number(url.searchParams.get("offset") ?? 0);
+      return new Response(JSON.stringify(alle.slice(offset, offset + limit)), { headers: { "Content-Type": "application/json" } });
+    }));
+    return urls;
+  }
+
+  it("vraagt één extra om te weten of er meer zijn", async () => {
+    const urls = nepApi(150);
+    const r = await laadGesprekken({ gearchiveerd: false }, 100);
+    expect(r.lijst).toHaveLength(100);
+    expect(r.meer).toBe(true);
+    expect(urls[0].searchParams.get("limit")).toBe("101");
+    expect(urls[0].searchParams.get("gearchiveerd")).toBe("false");
+  });
+
+  it("bladert over de grens van 200 heen", async () => {
+    const urls = nepApi(250);
+    const r = await laadGesprekken({ gearchiveerd: true }, 300);
+    expect(r.lijst.map((g) => g.id)).toEqual(Array.from({ length: 250 }, (_, i) => `g${i}`));
+    expect(r.meer).toBe(false);
+    expect(urls.map((u) => [u.searchParams.get("limit"), u.searchParams.get("offset")])).toEqual([["200", null], ["101", "200"]]);
+  });
+
+  it("geeft de zoekterm door, zonder spaties eromheen", async () => {
+    const urls = nepApi(3);
+    const r = await laadGesprekken({ q: "  rente " }, 100);
+    expect(r).toMatchObject({ meer: false });
+    expect(urls[0].searchParams.get("q")).toBe("rente");
+    expect(urls[0].searchParams.has("gearchiveerd")).toBe(false);
   });
 });

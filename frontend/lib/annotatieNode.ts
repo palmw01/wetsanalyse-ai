@@ -1,4 +1,4 @@
-import { downloadAntwoord, naarInloggen, type ExportFormaat } from "./api";
+import { downloadAntwoord, parseError, type ExportFormaat } from "./api";
 import { pathSegment } from "./url";
 
 /** Canonieke bronnodeweergave. Posities zijn Unicode-codepunten, niet UTF-16. */
@@ -136,17 +136,14 @@ export function verwachteRevisies(view: NodeWeergave): Record<string, number> {
   return Object.fromEntries(view.lagen.map((l) => [l.bron_iri, l.revisie]));
 }
 export async function nodeError(response: Response): Promise<Error> {
-  const error = await response.json().catch(() => ({}));
   if (response.status === 412)
     return new Error("Deze annotatie is intussen gewijzigd. Laad opnieuw en controleer de laatste stand voordat je de wijziging opnieuw opslaat.");
-  if (response.status === 401) naarInloggen();
-  // Zelfde foutcontract als `parseError` in `lib/api.ts`: een gestructureerde fout (`{reden,
-  // melding}`) draagt zijn leesbare tekst in `melding`. Die bleef hier onbenut, en dan stond er
-  // "Verzoek mislukt (409)" waar de api precies had gezegd wat er mis was.
-  const d = error?.detail;
-  const melding = d && typeof d === "object" && typeof d.melding === "string" && d.melding.trim() ? d.melding : undefined;
-  const detail = typeof d === "string" ? d : melding ?? `Verzoek mislukt (${response.status}).`;
-  return new Error(detail);
+  // Hetzelfde foutcontract als de rest van de app (`parseError`): de `melding` van een gestructureerde
+  // fout, de 401 naar het inlogscherm. Alleen zonder tekst van de server een eigen terugval, want
+  // `parseError` valt dan terug op de statustekst ("Conflict").
+  const fout = await parseError(response);
+  const zonderTekst = fout.detail === (response.statusText || `HTTP ${response.status}`);
+  return new Error(zonderTekst ? `Verzoek mislukt (${response.status}).` : fout.detail);
 }
 export async function nodeRequest<T>(path: string, body?: unknown, method = "POST"): Promise<T> {
   const response = await fetch(`/api/annotatie/v2/${path}`, body === undefined

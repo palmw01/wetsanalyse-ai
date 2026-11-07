@@ -5,9 +5,7 @@
 // en geen 204 – de agent-nodes zijn synchroon, dus een lopende LLM-call maakt zichzelf af en de run
 // eindigt pas op de eerstvolgende grens. Dit is een verzoek, geen feit.
 
-import { graphQaAuthHeader, graphQaBaseUrl } from "@/lib/config";
-import { metTrace } from "@/lib/trace";
-import { logger } from "@/lib/logger";
+import { proxy } from "@/app/api/_lib/proxy";
 import { geenSessie, sessionUserId } from "@/app/api/_lib/session";
 import { pathSegment } from "@/lib/url";
 
@@ -18,24 +16,11 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   if (!userid) return geenSessie();
 
   const { id } = await params;
-  try {
-    const upstream = await fetch(
-      `${graphQaBaseUrl()}/v1/runs/${pathSegment(id)}/cancel`,
-      {
-        method: "POST",
-        // Alleen je eigen beurt stoppen: graph-qa toetst deze header.
-        headers: metTrace({ ...graphQaAuthHeader(), "X-User-Id": userid }),
-        cache: "no-store",
-        signal: AbortSignal.timeout(10_000),
-      },
-    );
-    const text = await upstream.text();
-    return new Response(text || null, {
-      status: upstream.status,
-      headers: { "Content-Type": upstream.headers.get("content-type") ?? "application/json" },
-    });
-  } catch (err) {
-    logger.warn("Run-cancel-proxy: onbereikbaar", { fout: (err as Error).message });
-    return Response.json({ detail: `Agent onbereikbaar (${(err as Error).message})` }, { status: 502 });
-  }
+  return proxy(`/v1/runs/${pathSegment(id)}/cancel`, {
+    agent: true,
+    method: "POST",
+    // Alleen je eigen beurt stoppen: graph-qa toetst deze header.
+    headers: { "X-User-Id": userid },
+    timeoutMs: 10_000,
+  });
 }

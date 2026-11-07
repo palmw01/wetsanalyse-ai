@@ -355,16 +355,31 @@ try {
   await begripPaneel.getByRole("button", { name: "Sluiten" }).first().click();
   await begripPaneel.getByRole("button", { name: "Blijf hier" }).click();
   assert.equal(await begripPaneel.getByLabel(/^Uitleg/).inputValue(), "Nog niet bewaard");
+  // FB-05: een wissel vanuit het gesprek (hier de chip, die het paneel opnieuw opent) vraagt net zo goed eerst.
+  await begripChip.click();
+  await begripPaneel.getByRole("button", { name: "Toch wisselen" }).waitFor();
+  await begripPaneel.getByRole("button", { name: "Blijf hier" }).click();
+  assert.equal(await begripPaneel.getByLabel(/^Uitleg/).inputValue(), "Nog niet bewaard", "de wissel gooide de invoer niet weg");
   await begripPaneel.getByRole("button", { name: "Sluiten" }).first().click();
   await begripPaneel.getByRole("button", { name: "Toch sluiten" }).click();
   await page.locator("button", { hasText: "· begrip" }).waitFor();
 
-  // --- Live: een beurt die begrippen oplevert, opent het paneel ---
+  // --- UI-08: een half getypte vraag blijft per gesprek bewaard, ook na een ander gesprek of herladen ---
   await page.goto(`${base}/workbench`);
   const invoer = page.getByRole("textbox").last();
+  await invoer.fill("Half getypt");
+  await page.goto(`${base}/workbench?gesprek=g3`);
+  await begripChip.waitFor();
+  assert.equal(await page.getByRole("textbox").last().inputValue(), "", "een ander gesprek heeft zijn eigen concept");
+  await page.goto(`${base}/workbench`);
+  await page.waitForFunction(() => [...document.querySelectorAll("textarea")].some((t) => t.value === "Half getypt"));
+
+  // --- Live: een beurt die begrippen oplevert, opent het paneel ---
   await invoer.fill("Stel begrippen voor");
   await invoer.press("Enter");
   await begrippenPaneel().waitFor();
+  assert.equal(await page.evaluate(() => Object.keys(sessionStorage).filter((k) => k.startsWith("lex.concept.")).length), 0,
+    "versturen wist het concept");
   await page.locator('button[data-artefact-soort="begrippen"]', { hasText: "Begripsvoorstellen" }).last().waitFor();
   assert.equal(await page.locator('[data-artefact-soort="begrippen"]', { hasText: "Live voorstellen" }).count(), 0,
     "de bewaarde titel van een verzameling komt niet in beeld");

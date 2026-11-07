@@ -26,7 +26,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
           <p style={{ color: "#4A5A6E" }}>
             De applicatie kon niet worden geladen. Probeer het opnieuw of ververs de pagina.
           </p>
-          {error.digest && <p style={{ fontFamily: `${mono.style.fontFamily}, ui-monospace, monospace`, fontSize: "0.75rem", color: "#6B7685" }}>Referentie: {error.digest}</p>}
+          {error.digest && <p style={{ fontFamily: `${mono.style.fontFamily}, ui-monospace, monospace`, fontSize: "0.75rem", color: "#5F6A78" }}>Referentie: {error.digest}</p>}
           <button
             onClick={() => reset()}
             style={{ marginTop: "1rem", padding: "0.5rem 1rem", borderRadius: "5px", border: "none", background: "#154273", color: "#FFFFFF", cursor: "pointer" }}

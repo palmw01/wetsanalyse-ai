@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Dialog } from "@/components/ui/Dialog";
 import { GesprekSidebar } from "@/components/werkplek/GesprekSidebar";
-import { foutTekst, hernoemGesprek, lijstGesprekken, verwijderGesprek, wijzigGesprek } from "@/lib/api";
+import type { GesprekLijstStand } from "@/components/werkplek/GesprekLijst";
+import { foutTekst, hernoemGesprek, laadGesprekken, verwijderGesprek, wijzigGesprek } from "@/lib/api";
 import { metSpoor } from "@/lib/uiSpoor";
 import type { GesprekSamenvatting, Verbruiksstand } from "@/lib/types";
 
@@ -39,6 +40,22 @@ interface Props {
   verbruik?: Verbruiksstand | null;
 }
 
+/** Zoveel gesprekken per keer; *Meer laden* vraagt de volgende pagina erbij. */
+export const GESPREK_PAGINA = 100;
+
+/** Wacht even na de laatste toets voor er gezocht wordt: niet bij elke letter een verzoek. */
+const ZOEK_WACHT_MS = 250;
+
+/** Een lijst die per pagina groeit (actief, archief of zoekresultaten). `null` = nog niet opgehaald. */
+interface Pagina {
+  lijst: GesprekSamenvatting[] | null;
+  meer: boolean;
+  aantal: number;
+  laden: boolean;
+  fout: string | null;
+}
+const LEGE_PAGINA: Pagina = { lijst: null, meer: false, aantal: GESPREK_PAGINA, laden: false, fout: null };
+
 /** De gesprekssidebar met alles eromheen: laden, hernoemen, verwijderen, en de mobiele drawer.
  *
  *  Gedeeld door de werkplek en het annotatie-overzicht, zodat je bij het wisselen niet "uit de app"
@@ -54,40 +71,142 @@ export function AppSidebar({
   // Een mislukte lijst is iets anders dan een lege: anders staat er "Nog geen gesprekken" terwijl de api
   // alleen even niet antwoordde (acceptatie, 28 okt 2026).
   const [laadFout, setLaadFout] = useState<string | null>(null);
+  // Actief en archief komen apart (UI-02): in één pagina samen duwde een groot archief de oudere actieve
+  // gesprekken er stil uit. Het archief komt pas als je het opent; elke lijst heeft zijn eigen *Meer laden*.
+  const [meer, setMeer] = useState(false);
+  const [archiefOpen, setArchiefOpen] = useState(false);
+  const [archief, setArchief] = useState<Pagina>(LEGE_PAGINA);
+  // Zoeken in de eigen gesprekken (UI-03): server-side, over titel én berichttekst, actief en archief.
+  const [zoekterm, setZoekterm] = useState("");
+  const [zoek, setZoek] = useState<Pagina>(LEGE_PAGINA);
   const demo = Boolean(demoGesprekken);
   // Elke ophaalronde krijgt een nummer; alleen het antwoord van de laatste telt. De rondleiding
   // start bij een eerste bezoek vlak na het openen van de werkplek, terwijl de echte lijst nog
   // onderweg is. Kwam dat (lege) antwoord daarna binnen, dan overschreef het de voorbeeldlijst, en
   // wees "Je werk terugvinden" naar "Nog geen gesprekken".
   const ronde = useRef(0);
+  const archiefRonde = useRef(0);
+  const zoekRonde = useRef(0);
+  // De handlers hieronder zijn stabiel; wat ze nodig hebben van de huidige stand lezen ze hieruit.
+  // `aantal` (hoeveel actieve gesprekken er geladen zijn) verandert alleen in `meerActief`.
+  const stand = useRef({ aantal: GESPREK_PAGINA, archiefOpen, archiefAantal: GESPREK_PAGINA, zoekterm, zoekAantal: GESPREK_PAGINA });
+  useEffect(() => {
+    stand.current = { ...stand.current, archiefOpen, archiefAantal: archief.aantal, zoekterm, zoekAantal: zoek.aantal };
+  }, [archiefOpen, archief.aantal, zoekterm, zoek.aantal]);
   useEffect(() => {
     if (demo) ronde.current++;
   }, [demo]);
+
+  // De aanroeper (de werkplek leidt er de titel en het werkgebied van het open gesprek uit af) krijgt
+  // alles wat de sidebar kent: ook een gesprek dat je uit het archief of uit een zoekresultaat opende.
+  const onLijstRef = useRef(onLijst);
+  useEffect(() => {
+    onLijstRef.current = onLijst;
+  }, [onLijst]);
+  useEffect(() => {
+    if (demo) return;
+    const gezien = new Set<string>();
+    const alle = [...gesprekken, ...(archief.lijst ?? []), ...(zoek.lijst ?? [])]
+      .filter((g) => !gezien.has(g.id) && Boolean(gezien.add(g.id)));
+    onLijstRef.current?.(alle);
+  }, [demo, gesprekken, archief.lijst, zoek.lijst]);
+
+  const haalArchief = useCallback((aantal: number) => {
+    const deze = ++archiefRonde.current;
+    setArchief((a) => ({ ...a, aantal, laden: true }));
+    laadGesprekken({ gearchiveerd: true }, aantal)
+      .then(({ lijst, meer }) => {
+        if (deze === archiefRonde.current) setArchief({ lijst, meer, aantal, laden: false, fout: null });
+      })
+      .catch((e) => {
+        if (deze === archiefRonde.current)
+          setArchief((a) => ({ ...a, laden: false, fout: foutTekst(e, "Het archief kon niet geladen worden.") }));
+      });
+  }, []);
+
+  const haalZoek = useCallback((term: string, aantal: number) => {
+    const deze = ++zoekRonde.current;
+    setZoek((z) => ({ ...z, aantal, laden: true }));
+    laadGesprekken({ q: term }, aantal)
+      .then(({ lijst, meer }) => {
+        if (deze === zoekRonde.current) setZoek({ lijst, meer, aantal, laden: false, fout: null });
+      })
+      .catch((e) => {
+        if (deze === zoekRonde.current)
+          setZoek((z) => ({ ...z, laden: false, fout: foutTekst(e, "Zoeken lukte niet.") }));
+      });
+  }, []);
 
   const verversLijst = useCallback(() => {
     // In de rondleiding is deze lijst een voorbeeld; ophalen zou hem overschrijven met de (vaak
     // lege) echte lijst.
     if (demo) return;
     const deze = ++ronde.current;
-    lijstGesprekken()
-      .then((lijst) => {
+    laadGesprekken({ gearchiveerd: false }, stand.current.aantal)
+      .then(({ lijst, meer }) => {
         if (deze !== ronde.current) return;
         setGesprekken(lijst);
+        setMeer(meer);
         setLaadFout(null);
-        onLijst?.(lijst);
       })
       .catch((e) => {
         if (deze === ronde.current) setLaadFout(foutTekst(e, "De gesprekken konden niet geladen worden."));
       })
       .finally(() => setLaden(false));
-    // `onLijst` bewust buiten de deps: het is vaak een inline callback en zou de fetch anders bij
-    // elke render opnieuw laten lopen.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demo]);
+    // Wat openstaat, blijft kloppen na een handeling (archiveren, herstellen, hernoemen).
+    if (stand.current.archiefOpen) haalArchief(stand.current.archiefAantal);
+    if (stand.current.zoekterm.trim()) haalZoek(stand.current.zoekterm.trim(), stand.current.zoekAantal);
+  }, [demo, haalArchief, haalZoek]);
 
   useEffect(() => {
     verversLijst();
   }, [verversLijst, verversSignaal]);
+
+  function meerActief() {
+    stand.current.aantal += GESPREK_PAGINA;
+    setLaden(true);
+    verversLijst();
+  }
+
+  function wisselArchief() {
+    const open = !archiefOpen;
+    setArchiefOpen(open);
+    if (open && !demo) haalArchief(archief.aantal);
+  }
+
+  const meerArchief = () => haalArchief(archief.aantal + GESPREK_PAGINA);
+  const meerZoek = () => haalZoek(zoekterm.trim(), zoek.aantal + GESPREK_PAGINA);
+
+  /** Een handeling (hernoemen, archiveren, verplaatsen, verwijderen) is meteen zichtbaar in elke lijst
+   *  waar het gesprek staat; `herstel` zet ze bij een fout terug. */
+  function pasAan(f: (lijst: GesprekSamenvatting[]) => GesprekSamenvatting[]): () => void {
+    const vorige = { gesprekken, archief, zoek };
+    setGesprekken(f);
+    setArchief((a) => (a.lijst ? { ...a, lijst: f(a.lijst) } : a));
+    setZoek((z) => (z.lijst ? { ...z, lijst: f(z.lijst) } : z));
+    return () => {
+      setGesprekken(vorige.gesprekken);
+      setArchief(vorige.archief);
+      setZoek(vorige.zoek);
+    };
+  }
+
+  /** Een lege term zet de gewone lijst terug; een antwoord dat nog onderweg is, telt dan niet meer. */
+  function zetZoekterm(term: string) {
+    setZoekterm(term);
+    if (!term.trim()) {
+      zoekRonde.current++;
+      setZoek(LEGE_PAGINA);
+    }
+  }
+
+  // Zoeken pas na een korte pauze in het typen.
+  useEffect(() => {
+    const term = zoekterm.trim();
+    if (demo || !term) return;
+    const t = window.setTimeout(() => haalZoek(term, GESPREK_PAGINA), ZOEK_WACHT_MS);
+    return () => window.clearTimeout(t);
+  }, [zoekterm, demo, haalZoek]);
 
   // De rondleiding kan tussentijds starten of stoppen. Dat bijstellen hoort in de render en niet in
   // een effect: anders rendert de sidebar eerst één frame met de vórige lijst – bij het starten dus
@@ -124,14 +243,13 @@ export function AppSidebar({
       setGesprekken((lijst) => lijst.filter((g) => g.id !== id));
       return;
     }
-    const vorige = gesprekken;
-    setGesprekken((lijst) => lijst.filter((g) => g.id !== id));
+    const herstel = pasAan((lijst) => lijst.filter((g) => g.id !== id));
     try {
       await metSpoor("gesprek_verwijderen", () => verwijderGesprek(id));
       onVerwijderd?.(id);
       verversLijst();
     } catch {
-      setGesprekken(vorige);
+      herstel();
       onFout?.("Het gesprek is niet verwijderd.");
     }
   }
@@ -153,14 +271,13 @@ export function AppSidebar({
       setGesprekken((lijst) => lijst.map((g) => (g.id === id ? lokaal(g) : g)));
       return;
     }
-    const vorige = gesprekken;
-    setGesprekken((lijst) => lijst.map((g) => (g.id === id ? lokaal(g) : g)));
+    const herstel = pasAan((lijst) => lijst.map((g) => (g.id === id ? lokaal(g) : g)));
     try {
       await metSpoor(actie, () => wijzigGesprek(id, wijziging));
       if (wijziging.werkgebied_id !== undefined) onVerplaatst?.(id, wijziging.werkgebied_id);
       verversLijst();
     } catch {
-      setGesprekken(vorige);
+      herstel();
       onFout?.(melding);
     }
   }
@@ -183,9 +300,18 @@ export function AppSidebar({
     return () => mq.removeEventListener("change", opWijziging);
   }, [drawerOpen, onDrawerSluit]);
 
+  // In de rondleiding is er geen zoekveld en geen apart archief: de voorbeeldlijst is alles.
+  const lijstStand: GesprekLijstStand | undefined = demo ? undefined : {
+    meer,
+    onMeer: meerActief,
+    archief: { open: archiefOpen, onWissel: wisselArchief, ...archief, onMeer: meerArchief },
+    zoek: { term: zoekterm, onTerm: zetZoekterm, ...zoek, onMeer: meerZoek },
+  };
+
   const inhoud = (extra?: { onSluit: () => void }) => (
     <GesprekSidebar
       gesprekken={gesprekken}
+      stand={lijstStand}
       activeId={activeId}
       onNieuw={onNieuw}
       onOpen={onOpen}

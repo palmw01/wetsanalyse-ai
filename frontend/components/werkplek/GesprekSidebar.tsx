@@ -10,7 +10,7 @@ import { signOut, useSession } from "next-auth/react";
 
 import { BerichtenPanel } from "@/components/BerichtenPanel";
 import { FeedbackDialoog } from "@/components/FeedbackDialoog";
-import { GesprekLijst } from "@/components/werkplek/GesprekLijst";
+import { GesprekLijst, type GesprekLijstStand } from "@/components/werkplek/GesprekLijst";
 import { Meter } from "@/components/ui/Meter";
 import { knopKlasse } from "@/components/ui/Button";
 import { wisDisclaimer } from "@/lib/api";
@@ -27,6 +27,8 @@ async function uitloggen(): Promise<void> {
 
 interface Props {
   gesprekken: GesprekSamenvatting[];
+  /** Meer laden, het archief en zoeken. Weglaten (de rondleiding) = alleen deze lijst, zonder zoekveld. */
+  stand?: GesprekLijstStand;
   activeId?: string | null;
   onNieuw: () => void;
   onOpen: (id: string) => void;
@@ -54,6 +56,7 @@ interface Props {
  *  onderin het instellingen-/gebruikersblok. Vult de volle hoogte; alleen de gesprekslijst scrollt. */
 export function GesprekSidebar({
   gesprekken,
+  stand,
   activeId,
   onNieuw,
   onOpen,
@@ -186,10 +189,26 @@ export function GesprekSidebar({
         </Link>
       </div>
 
+      {/* Zoeken in de eigen gesprekken: titel en berichttekst, ook in het archief. Het veld scrolt niet mee. */}
+      {stand?.zoek && (
+        <div className="px-3 pb-1 pt-1">
+          <input
+            type="search"
+            value={stand.zoek.term}
+            onChange={(e) => stand.zoek?.onTerm(e.target.value)}
+            aria-label="Zoek in je gesprekken"
+            placeholder="Zoek in gesprekken"
+            maxLength={200}
+            className="w-full rounded-field border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none transition-colors placeholder:text-faint focus:border-lint focus:ring-2 focus:ring-lint/20 coarse:min-h-[44px]"
+          />
+        </div>
+      )}
+
       {/* De gesprekken, per werkgebied en los (scrolt); de koppen staan in de lijst zelf. */}
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
         <GesprekLijst
           gesprekken={gesprekken}
+          stand={stand}
           activeId={activeId}
           onOpen={onOpen}
           onHernoem={onHernoem}
