@@ -30,7 +30,7 @@ from .jas_klassen import jas_sorteersleutel
 from .werkgebied_inventaris import Resolver, bwb_van, inventaris_met_bronbomen
 from .werkgebied_rapport import (DOSSIERVELDEN, Afwijking, Artikel, Begrip, Begrippen, Bepaling, Bronvoorstel, Deelvraag,
                                  DeelvraagBron, Deelvragen, Document, Dossier, DossierVeld, Fragment, Besluit, Handeling, Herkomst, Kerncijfers, KlasseTelling, Markering,
-                                 Onbereikbaar, OpenGroep, OpenRelatie, Passage, Rapport, Regel, Regeling, RegelingInfo, Structuurdeel, Verwijzing, Relatie, Selectie, Signaal,
+                                 Onbereikbaar, OpenGroep, OpenRelatie, Passage, Rapport, Regel, Regeling, RegelingInfo, Span, Structuurdeel, Verwijzing, Relatie, Selectie, Signaal,
                                  Stand, Telling, UitgeslotenBron, Verantwoording, Voorbeeld, Voorblad, Wettekst, Zoekdekking, Zoekregeling,
                                  BESLUITEN, datum, rapport_regels)
 
@@ -223,6 +223,16 @@ def _markering(e: dict, nodes: dict[str, dict], verklaringen: dict) -> Markering
         verouderd=bool(e.get("verouderd")), deels_buiten=bool(e.get("deels_buiten")), door="analist" if r["herkomst"] == "mens" else "lex")
 
 
+def _spans(eigen: list[dict], iri: str, tekst: str) -> list[Span]:
+    """De ankers die op deze bepaling liggen en nog letterlijk op hun offsets staan; de rest staat als afwijking bij de markering."""
+    uit = []
+    for n, e in enumerate(eigen, 1):
+        for a in e.get("ankers") or []:
+            if a["bron_iri"] == iri and 0 <= a["start"] < a["eind"] <= len(tekst) and tekst[a["start"]:a["eind"]] == a["tekst"]:
+                uit.append(Span(start=a["start"], eind=a["eind"], nr=n, klasse=e.get("klasse") or ""))
+    return sorted(uit, key=lambda x: (x.start, -x.eind, x.nr))
+
+
 def _graaf(data: dict) -> dict:
     return {"volledig": True, "regelingen": {}, "structuur": {}, "verwijzingen": [], **(data.get("graaf") or {})}
 
@@ -320,9 +330,10 @@ def _wettekst(data: dict, nodes: dict[str, dict], verklaringen: dict) -> Wetteks
             if nieuw != kop:
                 kop = nieuw
                 artikelen.append(_artikel(kop, nodes, data))
+            markeringen = [_markering(e, nodes, verklaringen).model_copy(update={"nr": n}) for n, e in enumerate(eigen, 1)]
             artikelen[-1].bepalingen.append(Bepaling(
                 vindplaats=_plek(iri, nodes), rol=rollen[iri], bron_gewijzigd=iri in gewijzigd, tekst=tekst if tekst.strip() else "",
-                markeringen=[_markering(e, nodes, verklaringen) for e in eigen], verwijzingen=verwijzingen.get(iri, [])))
+                markeringen=markeringen, spans=_spans(eigen, iri, tekst), verwijzingen=verwijzingen.get(iri, [])))
             alle_verwijzingen += verwijzingen.get(iri, [])
             getoond |= {e["id"] for e in eigen}
         # Een contextbepaling zonder markering is naslag: die gaat naar de bijlage, de rest is de analyse.

@@ -293,6 +293,14 @@
           "title": "Markeringen",
           "type": "array"
         },
+        "spans": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Span"
+          },
+          "title": "Spans",
+          "type": "array"
+        },
         "verwijzingen": {
           "default": [],
           "items": {
@@ -776,6 +784,11 @@
         "id": {
           "title": "Id",
           "type": "string"
+        },
+        "nr": {
+          "default": 0,
+          "title": "Nr",
+          "type": "integer"
         },
         "klasse": {
           "default": "",
@@ -1271,6 +1284,36 @@
         "soort"
       ],
       "title": "Signaal",
+      "type": "object"
+    },
+    "Span": {
+      "additionalProperties": false,
+      "description": "Een markering in de wettekst van haar bepaling: offsets in Unicode-codepoints, uit het opgeslagen anker.",
+      "properties": {
+        "start": {
+          "title": "Start",
+          "type": "integer"
+        },
+        "eind": {
+          "title": "Eind",
+          "type": "integer"
+        },
+        "nr": {
+          "title": "Nr",
+          "type": "integer"
+        },
+        "klasse": {
+          "default": "",
+          "title": "Klasse",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start",
+        "eind",
+        "nr"
+      ],
+      "title": "Span",
       "type": "object"
     },
     "Stand": {

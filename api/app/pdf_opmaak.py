@@ -11,6 +11,7 @@ en image hetzelfde tonen.
 from __future__ import annotations
 
 import io
+import json
 import re
 from pathlib import Path
 from xml.sax.saxutils import escape
@@ -41,6 +42,10 @@ BLOK_BEGIN, BLOK_EIND = "BlokBegin", "BlokEind"
 """De regels ertussen blijven op één pagina, als dat past. Past het niet, dan lopen ze gewoon door."""
 PLAATS = "Plaats"
 """De plaats in de opbouw ("Hoofdstuk 2 – … › § 3 – …") boven een artikel. Ook de kopregel toont hem, tot het volgende hoofdstuk."""
+SPANS = "Spans"
+"""De markeringen in het citaat dat erop volgt: JSON `[[start, eind, nr, klasse], …]`, offsets in codepoints. Geen eigen alinea."""
+TOELICHTING = "Toelichting"
+"""De toelichting bij een markering: kleiner en ingesprongen, onder haar kop."""
 BEGRIP = "Begrip"
 """De kop van een begrip: die van `Heading3`, maar wel in de inhoudsopgave. Een begrip heeft een eigen pagina."""
 
@@ -99,6 +104,7 @@ def _stijlen() -> dict:
                                           backColor=HexColor(LET_OP_VLAK), borderColor=HexColor(ROOD), borderWidth=0.6,
                                           borderPadding=(5, 7, 5, 7), borderRadius=2, leftIndent=7, rightIndent=7,
                                           spaceBefore=9, spaceAfter=11),
+           TOELICHTING: ParagraphStyle(TOELICHTING, parent=basis, fontSize=9, leading=12.5, leftIndent=8, spaceAfter=3),
            PLAATS: ParagraphStyle(PLAATS, parent=basis, fontName="Fira-SemiBold", fontSize=8.5, leading=11.5, textColor=HexColor(GRIJS),
                                   spaceBefore=12, spaceAfter=0, keepWithNext=1),
            "Voorstel": ParagraphStyle("Voorstel", parent=basis, fontName="Fira-Italic", textColor=HexColor(GRIJS)),
@@ -350,8 +356,11 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
             self.canv.bookmarkPage("titelblad")
             self.canv.addOutlineEntry(self.naam, "titelblad", 0, closed=False)
 
-    heeft_inhoud, laatste, blok = False, -1, None
+    heeft_inhoud, laatste, blok, spans = False, -1, None, None
     for stijl, tekst in regels:
+        if stijl == SPANS:
+            spans = [tuple(x) for x in json.loads(tekst)]
+            continue
         doel = verhaal if blok is None else blok
         if stijl == BLOK_BEGIN:
             blok = []
@@ -381,7 +390,8 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
             alinea.platte_plaats = tekst
             doel.append(alinea)
         elif stijl == "Citaat":
-            doel.append(Lijn(Paragraph(opgemaakt(tekst), stijlen["Citaat"])))
+            doel.append(Lijn(Paragraph(gemarkeerd(tekst, spans) if spans else opgemaakt(tekst), stijlen["Citaat"])))
+            spans = None
         elif stijl == "Waarschuwing":
             doel.append(Paragraph('<font name="Fira-SemiBold">Let op: </font>' + opgemaakt(tekst), stijlen["Waarschuwing"]))
         else:
@@ -404,6 +414,32 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
     else:
         doc.build(verhaal, canvasmaker=Teller)
     return output.getvalue()
+
+
+def _segmenten(tekst: str, spans: list[tuple[int, int, int, str]]):
+    """De tekst in stukken met de markeringen die elk stuk dekken, en de nummers die na het stuk eindigen. Deterministisch."""
+    grenzen = sorted({0, len(tekst), *(s for s, _e, _n, _k in spans), *(e for _s, e, _n, _k in spans)})
+    for a, b in zip(grenzen, grenzen[1:]):
+        dekking = sorted((x for x in spans if x[0] <= a and x[1] >= b), key=lambda x: (x[0], -x[1], x[2]))
+        eindigt = sorted({x[2] for x in spans if x[1] == b})
+        yield tekst[a:b], dekking, eindigt
+
+
+def gemarkeerd(tekst: str, spans: list[tuple[int, int, int, str]]) -> str:
+    """Het citaat met de markeringen erin: de achtergrond in de kleur van de buitenste klasse, een onderstreping waar er meer
+    overlappen, en het nummer in superscript waar een markering eindigt. De woorden zelf blijven letterlijk."""
+    uit = []
+    for stuk, dekking, eindigt in _segmenten(tekst, spans):
+        deel = opgemaakt(stuk)
+        if dekking:
+            kleur = JAS_KLASSE_KLEUREN.get(dekking[0][3], ("#E6E6E6", ""))[0]
+            deel = f'<span backColor="{kleur}">{deel}</span>'
+            if len(dekking) > 1:
+                deel = f"<u>{deel}</u>"
+        uit.append(deel)
+        if eindigt:                              # meer nummers op één plek: met komma's, anders leest "2" en "4" als 24
+            uit.append(f'<super><font size="6.5">{",".join(map(str, eindigt))}</font></super>')
+    return "".join(uit)
 
 
 def opgemaakt_plat(tekst: str) -> str:

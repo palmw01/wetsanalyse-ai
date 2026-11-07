@@ -323,7 +323,8 @@ async def test_de_echte_pdf_is_letterlijk_met_inhoud_en_bladwijzers(client, graa
     r = await client.get(f"/v1/werkgebieden/{wg['id']}/export")
     tekst = _tekst(r.content)
     assert "■" not in tekst
-    assert "Een bedrag ≥ € 10 – na 1‑1‑2026 → Māori § 3" in tekst and "“citaat” & <tag>" in tekst
+    # Het fragment (4–22) staat gemarkeerd in de tekst, met zijn nummer erachter: de woorden eromheen staan er letterlijk.
+    assert bijzonder[:22] in tekst and "1‑1‑2026 → Māori § 3" in tekst and "“citaat” & <tag>" in tekst
     assert fragment["tekst"] in tekst and "Tekens: ≥ en ā." in tekst
     assert tekst.index("3. Werkgebied") < tekst.index("Aanleiding")             # eerst in de inhoudsopgave
     assert b"/Outlines" in r.content and b"/FontFile2" in r.content
@@ -500,6 +501,8 @@ _NIET_GETOOND = {"id", "iri", "regeling", "herkomst", "code", "definitie_herkoms
                  # Bij een bepaling is `van` de bepaling zelf, en de jci van het doel staat in de bijlage Samenhang.
                  *(f"r.wettekst.regelingen.0.{deel}.0.bepalingen.0.verwijzingen.0.{veld}" for deel in ("artikelen", "context")
                    for veld in ("van.label", "van.jci", "naar.jci")),
+                 # Een markering die gemarkeerd in de wettekst staat, herhaalt haar tekst niet: die staat in het citaat erboven.
+                 *(f"r.wettekst.regelingen.0.{deel}.0.bepalingen.0.markeringen.0.tekst" for deel in ("artikelen", "context")),
                  "r.wettekst.verwijzingen.0.van.jci"}
 
 
@@ -599,7 +602,11 @@ async def test_markdown_en_pdf_hebben_dezelfde_inhoud(client):
     data = await _data(wg)
     tekst = _zonder_escape(export.markdown_export(data, V).decode())
     for stijl, regel in export.regels(data, V):
-        if stijl == pdf_opmaak.TITELBLAD + "rij":                      # een rij wordt "- **Label:** waarde"
+        if stijl == pdf_opmaak.SPANS:                                  # geen tekst: de markeringen in het citaat erna
+            continue
+        if stijl == "Citaat" and "⁽" in tekst:                          # een gemarkeerd citaat: zonder ** en nummers letterlijk
+            assert regel in re.sub(r"⁽[⁰¹²³⁴⁵⁶⁷⁸⁹]+⁾", "", tekst.replace("**", "")), regel
+        elif stijl == pdf_opmaak.TITELBLAD + "rij":                      # een rij wordt "- **Label:** waarde"
             label, _, waarde = regel.partition(": ")
             assert f"- **{label}:** {waarde}" in tekst, regel
         elif regel and stijl != "Waarschuwing":
@@ -832,3 +839,30 @@ async def test_verwijzingen_uit_de_graaf_zijn_ontdubbeld_en_gesorteerd(monkeypat
     monkeypatch.setattr(rapport_graaf, "sparql_select", select)
     uit = await ECHTE_LEES([], [], ["urn:bwb:BWBR1:artikel:1", "urn:bwb:BWBR1:artikel:2"])
     assert [(v["van"][-1], v["label"], v["regeling"]) for v in uit["verwijzingen"]] == [("1", "art. 5 (BWBR2)", ""), ("2", "Artikel 5", "Wet")]
+
+
+async def test_een_markering_staat_gekleurd_en_genummerd_in_de_wettekst_en_het_citaat_blijft_letterlijk(client):
+    wg, _ids = await _gevuld(client)
+    rapport = export.bouw_rapport(await _data(wg), V)
+    bepaling = next(b for a in rapport.wettekst.regelingen[0].artikelen for b in a.bepalingen if b.spans)
+    for x in bepaling.spans:
+        m = next(m for m in bepaling.markeringen if m.nr == x.nr)
+        assert bepaling.tekst[x.start:x.eind] == m.tekst and x.klasse == m.klasse   # brongetrouw: de span is het fragment
+    regels = rapport_regels(rapport)
+    i = regels.index(("Citaat", bepaling.tekst))
+    assert regels[i - 1][0] == pdf_opmaak.SPANS and json.loads(regels[i - 1][1])[0][2] == bepaling.spans[0].nr
+    nr = bepaling.spans[0].nr
+    assert any(s.startswith(pdf_opmaak.MARKERING) and t.startswith(f"{nr} · ") for s, t in regels)
+    md = markdown_opmaak.markdown(regels)
+    assert "⁽" in md and "**" in md
+
+
+def test_overlappende_markeringen_zijn_deterministisch_en_de_woorden_blijven_letterlijk():
+    t = "vindt uitbetaling aan de belanghebbende plaats"
+    spans = [(22, 39, 2, "Rechtssubject"), (6, 17, 1, "Rechtsfeit"), (18, 39, 3, "Rechtsbetrekking")]
+    a = pdf_opmaak.gemarkeerd(t, spans)
+    assert a == pdf_opmaak.gemarkeerd(t, list(reversed(spans)))
+    assert re.sub(r"<super>.*?</super>|<[^>]+>", "", a) == t
+    assert "<u>" in a                                                    # waar er twee overlappen
+    md = markdown_opmaak.markdown([(pdf_opmaak.SPANS, json.dumps([list(x) for x in spans])), ("Citaat", t)])
+    assert md.strip() == "> vindt **uitbetaling⁽¹⁾** **aan de belanghebbende⁽²⁾⁽³⁾** plaats"

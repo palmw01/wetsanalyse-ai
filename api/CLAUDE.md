@@ -400,7 +400,10 @@ spoor D (*Werkgebied als node*).
     signaal `graaf_onvolledig`. De router geeft `rapport_graaf.lees` mee, de tests vervangen hem.
     De verwijzingen komen uit `bwb:heeftVerwijzing`/`bwb:naar`, alleen vanuit bronnodes in het dossier (`bron_iris`; inkomende verwijzingen
     zijn ruis), met `bwb:ankerTekst` letterlijk. Ze staan bij de bepaling en in de bijlage Samenhang. Een doel telt als "in dit dossier" als het
-    daar zelf staat of als een van zijn delen er staat. `verzamel` leest met dezelfde functies als de schermen, en `regels` geeft (stijl, tekst),
+    daar zelf staat of als een van zijn delen er staat.
+  - **Markeringen in de wettekst**: `Bepaling.spans` (alleen ankers die nog letterlijk op hun offsets staan) gaan als regel `SPANS` (JSON)
+    vlak vóór het citaat mee. `pdf_opmaak.gemarkeerd` kleurt en nummert, `markdown_opmaak` maakt vet met ⁽ⁿ⁾. Een markering in de tekst
+    draagt haar nummer, en de lijst eronder herhaalt het citaat niet. `verzamel` leest met dezelfde functies als de schermen, en `regels` geeft (stijl, tekst),
   zonder reportlab te testen.
   - Geen modelvragen, hashes of beurtmeting: dat spoor staat in de annotatie-export.
   - Alles draagt zijn status; voorstellen, afgewezen en uitgesloten staan in eigen delen.

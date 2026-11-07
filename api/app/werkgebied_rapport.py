@@ -19,7 +19,7 @@ from bronmodel.antwoord import Vindplaats
 from pydantic import BaseModel, ConfigDict
 
 from .jas_klassen import JAS_KLASSEN_VOLGORDE
-from .pdf_opmaak import BEGRIP, BLOK_BEGIN, BLOK_EIND, INHOUD, MARKERING, PAGINA, PLAATS, TITELBLAD
+from .pdf_opmaak import BEGRIP, BLOK_BEGIN, BLOK_EIND, INHOUD, MARKERING, PAGINA, PLAATS, SPANS, TITELBLAD, TOELICHTING
 
 VERSIE = 2
 SCHEMA = "werkgebied-rapport-v2"
@@ -201,8 +201,18 @@ class Afwijking(_Deel):
     nu: str
 
 
+class Span(_Deel):
+    """Een markering in de wettekst van haar bepaling: offsets in Unicode-codepoints, uit het opgeslagen anker."""
+
+    start: int
+    eind: int
+    nr: int                                          # het nummer van de markering in de lijst onder de bepaling
+    klasse: str = ""
+
+
 class Markering(_Deel):
     id: str
+    nr: int = 0                                      # het nummer binnen de bepaling; 0 buiten de wettekst
     klasse: str = ""
     alternatieven: list[str] = []
     subtype: str = ""
@@ -234,6 +244,7 @@ class Bepaling(_Deel):
     bron_gewijzigd: bool = False
     tekst: str = ""
     markeringen: list[Markering] = []
+    spans: list[Span] = []                           # alleen ankers die nog op hun offsets staan; een afwijking staat bij de markering
     verwijzingen: list[Verwijzing] = []
     door: Door = "bron"
 
@@ -702,15 +713,20 @@ def _herkomst(h: Herkomst) -> str:
     return "Herkomst: " + "; ".join(delen) + "."
 
 
-def _markering(m: Markering, eigen_iri: str = "") -> list[Regel]:
+def _markering(m: Markering, eigen_iri: str = "", in_tekst: bool = False) -> list[Regel]:
+    """Eén markering. Staat ze gemarkeerd in de wettekst erboven (`in_tekst`), dan draagt ze haar nummer en komt het citaat niet nog
+    eens: de tekst staat er al, met dezelfde kleur en hetzelfde nummer."""
     # Een terugval draagt geen klasse: zeg dat, en noem de keuze.
     kop = m.klasse or "Nog geen klasse (" + ", ".join(m.alternatieven) + ")"
     if m.subtype:
         kop += f", {m.subtype}"
-    uit: list[Regel] = [*BLOK, (MARKERING + m.klasse, f"{kop} · {_LIFECYCLE.get(m.lifecycle, m.lifecycle)}"), ("Citaat", f"“{m.tekst}”")]
+    nummer = f"{m.nr} · " if m.nr else ""
+    uit: list[Regel] = [*BLOK, (MARKERING + m.klasse, f"{nummer}{kop} · {_LIFECYCLE.get(m.lifecycle, m.lifecycle)}")]
+    if not in_tekst:
+        uit.append(("Citaat", f"“{m.tekst}”"))
     uit += [("Meta", f"Vindplaats: {v.label} · {_verwijzing(v)}") for v in m.vindplaatsen if v.iri != eigen_iri]
     if m.toelichting:
-        uit.append(("BodyText", m.toelichting))
+        uit.append((TOELICHTING, m.toelichting))
     uit.append(("Meta", _herkomst(m.herkomst)))
     if m.reden_afwijzing:
         uit.append(("Meta", "Reden van afwijzing: " + m.reden_afwijzing))
@@ -783,9 +799,13 @@ def _bepaling(b: Bepaling) -> list[Regel]:
     if b.bron_gewijzigd:
         uit.append(("Waarschuwing", "Deze bron veranderde sinds de selectie."))
     if b.tekst:
+        if b.spans:
+            # De markeringen gaan als eigen regel vlak vóór het citaat mee; zo blijft elke regel (stijl, tekst).
+            uit.append((SPANS, json.dumps([[x.start, x.eind, x.nr, x.klasse] for x in b.spans], ensure_ascii=False)))
         uit.append(("Citaat", b.tekst))
+    in_tekst = {x.nr for x in b.spans}
     for m in b.markeringen:
-        uit += _markering(m, b.vindplaats.iri)
+        uit += _markering(m, b.vindplaats.iri, m.nr in in_tekst)
     uit += [("Meta", _verwijst(v)) for v in b.verwijzingen]
     return uit
 
