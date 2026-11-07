@@ -112,6 +112,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | N | Begrippen: nieuwe bediening en generieke begrippen | Gemerged (#836–#847) en op acceptatie, met de opvolging van de review (#848–#852) |
 | P | Antwoordsjablonen: vaste vorm per vraagtype (ADR-008) | Gebouwd: `begrip`, `bepaling`, `duiding`, `annotaties`; de overzichtsroute bewust zonder sjabloon. Open: tokens en duur meten, `verwijzingen` als blok alleen als het vast kan, en de eval `gesprek` (kost geld) |
 | O | Acceptatietesten via MCP | Accounttoken en acceptatie-MCP gebouwd, eerste scenario gedraaid; open: de fixtures voor de Playwright-mocks |
+| R | Verbeterplan uit de applicatiereview (6 nov 2026) | Ronde 1 en 2 gemerged (t/m #951); ronde 3 als losse PR's (#963–#985), zie de sectie. Uitgesteld: F2, F3, E4, E6, H5; bij de eigenaar: G2 (meldkanaal), G4, G9 |
 
 ---
 
@@ -1310,6 +1311,38 @@ iteratie meet. Die lus stopt bij acceptatie: productie krijgt alleen wat een men
 
 Open: de events van een echte run bewaren als fixtures voor de Playwright-mocks, zodat die niet stil van de
 werkelijkheid afdrijven. De MCP ziet zelf geen rendering; de schermen blijven bij Playwright.
+
+### R. Verbeterplan uit de applicatiereview
+
+Het verbeterplan (artifact *Verbeterplan Wetsanalyse-platform*, 6 nov 2026, op `fecfa983`) bundelt 249 bevindingen in
+PR-stappen A–H. Elke stap wordt vóór het bouwen opnieuw getoetst op de code van dat moment: klopt de bevinding nog, is
+er een betere oplossing, mag hij vervallen. Wat volgt is de stand na ronde 3 (7 nov 2026).
+
+**Af (gemerged):** A1–A3, B1, B4, C1–C6, D1, D2, D6, E2, F1, G7, H4, en delen van B2, E7 en E8.
+
+**Ronde 3, als losse PR's:**
+- D4 status bij de tekst (#963) en één definitie van verouderd (#965); D3 tussenkoppen, tabellen en opschriften (#976);
+  D5 bijlagen na de tekst (in behandeling).
+- G6 het agent-token beslist niet (#966); B3 gesprek en account wissen (#969, #970); E1 de koppeldialoog weg (#968);
+  E8 budget 0 en één boeking per beurt (#974); C7 kandidaten uit de graaf (#973).
+- F4 cache op de inhoud (#978); G1 de beurt en de drain (#975, #979); B5 rem op afbreken (#977); G5 de importer niet
+  als root (#980); F5 de projectie zonder rijslot (#982), F6 de export van de event loop (#984), F7 een cache-punt
+  op de toollus (#981), en de inloglog van B2 (#985).
+
+**Uitgesteld, met reden:**
+- F2 en F3: op acceptatie 714 elementen tegenover 12.000 in het plan, en F1 haalde de zwaarste scans al weg. Herwegen
+  vóór echte data.
+- E4 (de beurtlogica uit `WerkplekClient`): een grote refactor zonder eigen gebruikersgevolg. E6 wacht op cijfers
+  over de cache.
+- F8 vervalt: zonder gemeten winst, zoals het plan zelf zegt. E7-rest en L5 vervallen: de drifttest in de poort vangt
+  het eerder.
+- H5 wacht op besluit 6. De setup-code (B2) vraagt een nieuw secret; vóór echte data opnieuw bekijken.
+
+**Bij de eigenaar:** G2 vraagt een meldkanaal; G4 (hersteloefening) en G9 (verantwoordingsdossier) zijn geen PR. De
+environment-regels en OIDC bij B5, `security.txt` en de naamsvermelding van het taalmodel bij G5 ook.
+
+**Nog te doen in de repo:** G3 (rooktest na een uitrol), G8a (axe in de browsertests), E3 (sidebar), E5-klein, de
+opruimstappen H1–H3 en H6–H9, en de rem op (IP, userid) bij B2.
 
 ## Volgorde en samenhang
 
