@@ -61,11 +61,19 @@ export type StroomEvent =
 export const GAT_IN_TEKST = "\n\n…\n\n";
 export const GAT_IN_DENK = "· (een deel van het spoor is niet bewaard)";
 
+/** Een `reason` direct na een statusregel begint op een eigen regel: de eerste ronde van het model draagt geen
+ *  alinea-scheiding, en dan plakte "· Lex · zoekt in de kennisgraaf" aan "Ik zoek …". Gelijk aan
+ *  `narratie.met_regelgrens` in graph-qa, dat het bericht na herladen vult. */
+export function metRegelgrens(denk: string, tekst: string): string {
+  const laatste = denk.slice(denk.lastIndexOf("\n") + 1);
+  return tekst && laatste.startsWith("· ") && !tekst.startsWith("\n") ? "\n" + tekst : tekst;
+}
+
 export function stroomReducer(s: StroomStand, e: StroomEvent): StroomStand {
   switch (e.type) {
     case "leeft": return s.ontving ? s : { ...s, ontving: true };
     case "status": return { ...s, denk: s.denk + (s.denk ? "\n" : "") + "· " + e.bericht };
-    case "reason": return { ...s, denk: s.denk + e.tekst };
+    case "reason": return { ...s, denk: s.denk + metRegelgrens(s.denk, e.tekst) };
     case "token": return { ...s, tekst: s.tekst + e.tekst };
     case "tool": return { ...s, toolExecutions: mergeToolExecution(s.toolExecutions, e.event) };
     case "doel": return { ...s, doel: e.doel };

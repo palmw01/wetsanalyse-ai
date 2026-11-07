@@ -28,6 +28,7 @@ from typing import Any
 from .annotatie import sleutel_van
 from .config import Settings
 from .models import Verbruiksmeter
+from .narratie import met_regelgrens
 from .wetsanalyse_api import GesprekVerdwenen, WetsanalyseApi, WetsanalyseApiFout
 
 logger = logging.getLogger("graph_qa.beurt")
@@ -144,7 +145,7 @@ class BeurtSchrijver:
         elif soort == "status":
             self.denk += ("\n" if self.denk else "") + "· " + event.get("message", "")
         elif soort == "reason":
-            self.denk += event.get("content", "")
+            self.denk += met_regelgrens(self.denk, event.get("content", ""))
         elif soort == "sources":
             self.bronnen = event.get("sources") or []
         elif soort == "doel":

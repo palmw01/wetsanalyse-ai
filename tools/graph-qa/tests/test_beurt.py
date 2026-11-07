@@ -349,7 +349,8 @@ def test_schrijver_houdt_denkproces_en_tekst_gescheiden():
     ]:
         schrijver.verwerk(event)
     assert schrijver.tekst == "Antwoord"
-    assert schrijver.denk == "· Stap éénik denk na"
+    # De eerste ronde draagt geen alinea-scheiding; zonder regelgrens plakte de narratie aan de statusregel.
+    assert schrijver.denk == "· Stap één\nik denk na"
 
 
 @asyncio_test

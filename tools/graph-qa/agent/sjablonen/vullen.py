@@ -119,6 +119,30 @@ def volledige_tekst(iri: str, trace: Trace) -> str:
     return bron_rijen(trace).get(iri, {}).get("tekst", "")
 
 
+_TOESTAND = re.compile(r"jci[\d.]+:c:(BWB[RV]\d+)[^\s\"]*?(&z=[^&\s\"]+&g=[^&\s\"]+)")
+
+
+def toestanden(trace: Trace) -> dict[str, str]:
+    """Per regeling de toestand die de tools in deze beurt lazen, als jci-staart (`&z=…&g=…`). Een lid uit `get_artikel` en
+    een onderdeel uit `get_lid` dragen hun jci zonder die staart (herhaling binnen één regeling); de link naar
+    wetten.overheid.nl moet wél de gelezen toestand openen, niet de actuele (acceptatie 7 nov 2026)."""
+    uit: dict[str, str] = {}
+    for naam, tekst in trace:
+        if naam in AFGELEIDE_TOOL_NAMEN:
+            continue
+        for m in _TOESTAND.finditer(tekst or ""):
+            uit.setdefault(m.group(1), m.group(2))
+    return uit
+
+
+def met_toestand(jci: str, staarten: dict[str, str]) -> str:
+    """De jci met de gelezen toestand van zijn regeling, als hij die nog niet draagt."""
+    if not jci or "&z=" in jci:
+        return jci
+    m = re.match(r"jci[\d.]+:c:(BWB[RV]\d+)", jci)
+    return jci + staarten.get(m.group(1), "") if m else jci
+
+
 def vindplaats_van(iri: str, *, jci: str = "", regeling: str = "", label: str = "") -> Vindplaats:
     """De vindplaats zoals `bronmodel` hem leest; `label` is de terugval voor een wet-lokale node."""
     vp = vindplaats(iri)
