@@ -64,6 +64,9 @@ POLL_S = 0.25
 # Hoe lang een stopverzoek gecachet wordt. De graaf vraagt het per node; zonder cache is dat een
 # query per node en dat is zonde voor een vlag die zelden aan staat.
 STOP_CACHE_S = 2.0
+# Hoe lang een afgeronde run bewaard blijft. Hij dient om na herladen of op een andere replica aan te haken, en
+# draagt de vraag en het antwoord: daarna is hij alleen nog een kopie van wat in het gesprek staat.
+BEWAAR_DAGEN = 30
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS agent_runs (
@@ -138,6 +141,15 @@ class PostgresStore:
             await self._pool.open()
         async with self._pool.connection() as conn:
             await conn.execute(_SCHEMA)
+            # Retentie bij de start: de dienst start vaak genoeg op (inschalen naar nul) om zonder eigen taak te kunnen.
+            await conn.execute("DELETE FROM agent_runs WHERE status <> 'loopt' AND gestart < now() - make_interval(days => %s)",
+                               (BEWAAR_DAGEN,))
+
+    async def wis_gesprek(self, conversation_id: str) -> None:
+        if not conversation_id:
+            return
+        async with self.pool.connection() as conn:
+            await conn.execute("DELETE FROM agent_runs WHERE conversation_id = %s AND status <> 'loopt'", (conversation_id,))
 
     async def sluit(self) -> None:
         run_ids = list(self._taken)
@@ -325,6 +337,9 @@ class PostgresStore:
         run.status = status
         run.eind_op = time.monotonic()
         async with self.pool.connection() as conn:
+            if run.gewist:  # de events gaan mee (ON DELETE CASCADE)
+                await conn.execute("DELETE FROM agent_runs WHERE run_id = %s", (run.run_id,))
+                return
             await conn.execute(
                 "UPDATE agent_runs SET status = %s, afgerond = now() WHERE run_id = %s",
                 (status, run.run_id),

@@ -100,6 +100,9 @@ class Run:
     # Hoe de stroom eindigde (`sluit_af`): klaar, mislukt of gestopt. Leeg zolang hij loopt.
     uitkomst: str = ""
     taak: asyncio.Task[None] | None = None
+    # Het gesprek is gewist terwijl deze run liep (`beurt._leg_vast` merkt dat). De store gooit hem dan bij het
+    # afronden weg in plaats van hem als afgerond te bewaren: de vraag hoort na wissen nergens meer te staan.
+    gewist: bool = False
     _wakker: asyncio.Condition = field(default_factory=asyncio.Condition)
 
     @property
@@ -217,4 +220,9 @@ class RunStore(Protocol):
 
     def volg(self, run: Run, vanaf: int = 0) -> AsyncIterator[dict[str, Any]]:
         """Lever de events vanaf `vanaf` en volg daarna live mee. Losraken laat de run ongemoeid."""
+        ...
+
+    async def wis_gesprek(self, conversation_id: str) -> None:
+        """Gooi de afgeronde runs van dit gesprek weg, met hun events. Een lopende run blijft staan tot hij afrondt:
+        die merkt dan dat het gesprek weg is en gaat zelf (`Run.gewist`)."""
         ...

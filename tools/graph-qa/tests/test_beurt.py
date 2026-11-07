@@ -360,12 +360,21 @@ async def test_verwijderd_gesprek_is_geen_storing(monkeypatch):
     """
     nep = NepApi(faalt="verdwenen")
     monkeypatch.setattr("agent.beurt.WetsanalyseApi", lambda *_a, **_k: nep)
+    gewist: list[str] = []
+
+    async def wis(gesprek_id, *, settings=None):
+        gewist.append(gesprek_id)
+    monkeypatch.setattr("agent.agent.delete_conversation", wis)
+    run = _run()
 
     uit = await _draai([
         {"type": "doel", "doel": _doel()},
         {"type": "element", "element": {"id": "e1", "klasse": "Rechtssubject", "tekst": "t"}},
         {"type": "done"},
-    ])
+    ], run=run)
+
+    # Wat de beurt na het wissen nog schreef, gaat alsnog weg: de checkpoint nu, de run als hij afrondt (B3).
+    assert gewist == ["g1"] and run.gewist
 
     assert [e for e in uit if e["type"] == "error"] == []   # geen alarm
     assert uit[-1]["type"] == "done"                        # de beurt eindigt gewoon

@@ -390,3 +390,29 @@ def test_met_een_database_worden_de_runs_gedeeld():
 
     store = _maak_runstore(make_settings(checkpoint_db_url="postgresql://x/y"))
     assert isinstance(store, PostgresStore)
+
+
+@asyncio_test
+async def test_gesprek_wissen_gooit_de_afgeronde_runs_weg():
+    register = RunRegister()
+    klaar = await register.start(conversation_id="g1", vraag="v", maak_stroom=_stroom([{"type": "done"}]))
+    await _wacht_af(klaar)
+    ander = await register.start(conversation_id="g2", vraag="w", maak_stroom=_stroom([{"type": "done"}]))
+    await _wacht_af(ander)
+    await register.wis_gesprek("g1")
+    assert await register.get(klaar.run_id) is None
+    assert await register.get(ander.run_id) is not None
+
+
+@asyncio_test
+async def test_een_run_die_merkt_dat_zijn_gesprek_weg_is_ruimt_zichzelf_op():
+    register = RunRegister()
+
+    def maak(run):
+        async def stroom():
+            run.gewist = True  # zoals `beurt._leg_vast` bij GesprekVerdwenen
+            yield {"type": "done"}
+        return stroom()
+    run = await register.start(conversation_id="g1", vraag="v", maak_stroom=maak)
+    await _wacht_af(run)
+    assert await register.get(run.run_id) is None
