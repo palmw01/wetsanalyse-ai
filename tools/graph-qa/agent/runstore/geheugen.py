@@ -89,6 +89,7 @@ class GeheugenStore:
         vraag: str,
         maak_stroom: Callable[[Run], AsyncIterator[dict[str, Any]]],
         user_id: str = "",
+        ouder_run_id: str = "",
     ) -> Run:
         """Registreer een run en zet hem als achtergrondtaak weg.
 
@@ -105,10 +106,13 @@ class GeheugenStore:
                 raise RunBestaatAl(bestaand.run_id)
 
         run = Run(run_id=uuid.uuid4().hex, conversation_id=conversation_id,
-                  user_id=user_id, vraag=vraag)
+                  user_id=user_id, vraag=vraag, ouder_run_id=ouder_run_id)
         self._runs[run.run_id] = run
         run.taak = asyncio.create_task(self._draai(run, maak_stroom))
         return run
+
+    async def kinderen(self, run_id: str) -> list[Run]:
+        return [r for r in self._runs.values() if run_id and r.ouder_run_id == run_id and r.loopt]
 
     async def _draai(self, run: Run, maak_stroom: Callable[[Run], AsyncIterator[dict[str, Any]]]) -> None:
         try:

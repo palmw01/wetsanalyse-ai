@@ -380,6 +380,11 @@ kan opnieuw aanhaken. Regels die je niet mag breken:
   `GET /v1/runs?actief=true` (`RunStore.voor_gebruiker`, E6) geeft alleen runs met precies die gebruiker, lopend of
   binnen `RECENT_S` geëindigd, als `Run.stand()` – zonder vraag of events; een lege header krijgt niets. Een lopende run
   zonder hartslag wordt daar ook verweesd verklaard, anders toont de sidebar "bezig" bij een beurt die nergens draait.
+- **Eén ingang: `start_beurt`** (`api/main.py`). `POST /v1/runs` en de regisseur (ADR-012) starten een run langs
+  dezelfde functie: het gesprek-slot, de eigenaar en `_stroom_voor` met vastleggen en boeken. Een kind-run draagt
+  `ouder_run_id` (`Run`, kolom in `agent_runs`, in `RunStand` voor de sidebar). `stop_met_kinderen` stopt bij
+  `cancel` en bij het verwijderen van een gesprek ook de lopende kinderen (`RunStore.kinderen`, over replica's heen).
+  De budgetpoort is bij de route een dependency; `start_beurt(budget=True)` doet hem voor een aanroeper zonder route.
 - **Cappen is klassebewust.** Alleen `VLUCHTIGE_TYPES` (`token`/`reason`/`status`) mogen sneuvelen;
   er gaat dan een `gat`-event voorop.
 - **Stoppen is een vlag, geen `task.cancel()`.** Elke node is gewikkeld in `stopbaar()`

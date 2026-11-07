@@ -415,3 +415,25 @@ async def test_afsluiten_laat_een_lopende_beurt_eerst_afronden(store):
         assert (await replica.get(run.run_id)).status == "klaar"
     finally:
         await replica.sluit()
+
+
+@met_store
+async def test_een_kind_draagt_zijn_ouder_en_stopt_met_hem(store):
+    """ADR-012: de kinderen van een regierun zijn te vinden, ook op een andere replica, en stoppen via de vlag."""
+    ouder = await store.start(conversation_id="regie", vraag="regie", maak_stroom=blijf_draaien(), user_id="a")
+    kind = await store.start(conversation_id="kind", vraag="kind", maak_stroom=blijf_draaien(), user_id="a",
+                             ouder_run_id=ouder.run_id)
+    await store.start(conversation_id="los", vraag="los", maak_stroom=blijf_draaien(), user_id="a")
+    andere = PostgresStore(DSN)
+    await andere.setup()
+    try:
+        gevonden = await andere.kinderen(ouder.run_id)
+        assert [k.run_id for k in gevonden] == [kind.run_id]
+        assert gevonden[0].ouder_run_id == ouder.run_id
+        assert (await andere.get(kind.run_id)).stand()["ouder_run_id"] == ouder.run_id
+        await andere.vraag_stop(gevonden[0])
+    finally:
+        await andere.sluit()
+    await asyncio.wait_for(kind.taak, 10)
+    assert await store.kinderen(ouder.run_id) == []
+    assert await store.kinderen("") == []
