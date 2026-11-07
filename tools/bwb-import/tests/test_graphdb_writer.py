@@ -952,6 +952,7 @@ class _SimilarityStub:
 
     def __init__(self, bestaand: list[str] | None = None, post_fout: Exception | None = None):
         self.aangemaakt: list[dict] = []
+        self.gewist: list[dict] = []
         self._bestaand = bestaand or []
         self._post_fout = post_fout
 
@@ -962,6 +963,10 @@ class _SimilarityStub:
         if self._post_fout is not None:
             raise self._post_fout
         self.aangemaakt.append(json)
+        return _StubResponse()
+
+    def delete(self, url: str, *, params=None, **_kw) -> _StubResponse:
+        self.gewist.append(params)
         return _StubResponse()
 
 
@@ -975,6 +980,19 @@ def test_similarity_index_is_idempotent() -> None:
     session = _SimilarityStub(bestaand=["bwb_similarity"])
     _graaf_writer(session).ensure_similarity_index()
     assert session.aangemaakt == []
+
+
+def test_similarity_index_wordt_herbouwd_als_er_een_wet_bijkwam() -> None:
+    session = _SimilarityStub(bestaand=["bwb_similarity"])
+    _graaf_writer(session).ensure_similarity_index(herbouw=True)
+    assert session.gewist == [{"name": "bwb_similarity"}]
+    assert [c["name"] for c in session.aangemaakt] == ["bwb_similarity"]
+
+
+def test_herbouwen_zonder_bestaande_index_wist_niets() -> None:
+    session = _SimilarityStub(bestaand=[])
+    _graaf_writer(session).ensure_similarity_index(herbouw=True)
+    assert session.gewist == [] and len(session.aangemaakt) == 1
 
 
 def test_falende_similarity_index_maakt_de_import_niet_rood() -> None:

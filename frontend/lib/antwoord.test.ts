@@ -14,6 +14,15 @@ describe("parseAntwoord", () => {
     expect(a?.blokken).toHaveLength(2);
   });
 
+  it("laat een duiding door: kort antwoord met eigen kop, citaten en twijfel", () => {
+    const a = parseAntwoord({ sjabloon: "duiding", versie: 1, doelen: [v], blokken: [
+      { soort: "toelichting", door: "lex", kop: "Kort antwoord", tekst: "Uitleg." },
+      { soort: "citaten", door: "bron", items: [{ tekst: "x", vindplaats: v, waarom: "Omdat." }] },
+      { soort: "twijfel", door: "lex", punten: ["Open punt."] },
+    ] });
+    expect(a?.blokken.map((b) => b.soort)).toEqual(["toelichting", "citaten", "twijfel"]);
+  });
+
   it("weigert een blok met een gat, een onbekende soort en een leeg sjabloon", () => {
     expect(parseAntwoord({ sjabloon: "begrip", blokken: [{ soort: "definities", items: [{ tekst: "x" }] }] })).toBeUndefined();
     expect(parseAntwoord({ sjabloon: "begrip", blokken: [{ soort: "tabel" }] })).toBeUndefined();

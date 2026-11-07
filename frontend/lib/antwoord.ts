@@ -14,13 +14,12 @@ export type AntwoordBlok =
   | { soort: "toelichting"; door: "lex"; kop: string; tekst: string }
   | { soort: "twijfel"; door: "lex"; punten: string[] }
   | { soort: "leemte"; door: "bron"; tekst: string }
-  | { soort: "overzicht_verwijzing"; door: "bron" };
 
 export type BlokSoort = AntwoordBlok["soort"];
 
 export interface Antwoord { sjabloon: string; versie: number; blokken: AntwoordBlok[]; doelen: AntwoordVindplaats[] }
 
-export const BLOK_SOORTEN: readonly BlokSoort[] = ["definities", "begrippen", "wettekst", "citaten", "verwijzingen", "annotaties", "toelichting", "twijfel", "leemte", "overzicht_verwijzing"];
+export const BLOK_SOORTEN: readonly BlokSoort[] = ["definities", "begrippen", "wettekst", "citaten", "verwijzingen", "annotaties", "toelichting", "twijfel", "leemte"];
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
@@ -39,7 +38,6 @@ function isBlok(b: unknown): b is AntwoordBlok {
     case "annotaties": return lijst((x) => isObject(x) && typeof x.klasse === "string" && typeof x.tekst === "string");
     case "toelichting": case "leemte": return typeof b.tekst === "string";
     case "twijfel": return Array.isArray(b.punten) && b.punten.every((p) => typeof p === "string");
-    case "overzicht_verwijzing": return true;
   }
 }
 

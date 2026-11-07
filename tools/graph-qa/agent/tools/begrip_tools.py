@@ -20,7 +20,7 @@ from typing import Any
 
 from ..graph.queries import _lit
 from ..graph.results import parse_select
-from .annotatie_tools import ANNOTATIE_TOOL_NAMEN, _d, schema, vindplaats_label
+from .annotatie_tools import ANNOTATIE_TOOL_NAMEN, _d, schema, uitkomsten, vindplaats_label
 
 BEGRIP_TOOL_NAMEN = frozenset({"search_begrippen", "get_begrip"})
 #: Tools waarvan het resultaat afgeleide duiding is: nooit een bron, nooit grounding.
@@ -299,25 +299,29 @@ def alleen_begrippen_gezocht(trace) -> bool:
     return bool(trace) and all(name in BEGRIP_TOOL_NAMEN for name, _ in trace)
 
 
+BEGRIPPEN_NIET_GEZOCHT = ("Er is bij deze beurt niet in de vastgelegde begrippen gezocht, dus dit is geen uitspraak over "
+                          "welke begrippen er zijn. Stel de vraag opnieuw.")
+BEGRIPPEN_ONVOLLEDIG = "Deze zoekuitkomst is onvolledig; ontbrekende begrippen zijn niet uitgesloten."
+
+
+def begrippen_stand(trace) -> tuple[str, bool]:
+    """(melding, onvolledig). De melding vervangt alles wat het model erover zegt: een storing of nul treffers zegt
+    de code, want "er zijn geen begrippen" is niet bewezen. Gedeeld door een vrij antwoord en het sjabloon."""
+    antwoorden = uitkomsten(trace, BEGRIP_TOOL_NAMEN)
+    if not antwoorden:
+        return BEGRIPPEN_NIET_GEZOCHT, False
+    if not any(r.get("status") in {"ok", "partial"} for r in antwoorden):
+        return "De vastgelegde begrippen zijn nu niet betrouwbaar te raadplegen. Dit betekent niet dat er geen begrippen zijn.", False
+    leeg = [r["geen_treffers"] for r in antwoorden if r.get("geen_treffers")]
+    if leeg and not any(r.get("resultaten") or r.get("id") for r in antwoorden):
+        return leeg[-1], False
+    return "", any(r.get("status") != "ok" or r.get("volledig") is False for r in antwoorden)
+
+
 def begrens_begrippen_antwoord(answer: str, trace) -> str:
     """Een zoekstoring mag nooit "er zijn geen begrippen" worden (de tweeling van `begrens_antwoord`), en nul
     treffers evenmin: dan zegt de code het, niet het model."""
-    antwoorden = []
-    for name, text in trace:
-        if name in BEGRIP_TOOL_NAMEN:
-            try:
-                value = json.loads(text)
-                antwoorden.append(value if isinstance(value, dict) else {"status": "unavailable"})
-            except ValueError:
-                antwoorden.append({"status": "unavailable"})
-    if not antwoorden:
-        return ("Er is bij deze beurt niet in de vastgelegde begrippen gezocht, dus dit is geen uitspraak over "
-                "welke begrippen er zijn. Stel de vraag opnieuw.")
-    if not any(r.get("status") in {"ok", "partial"} for r in antwoorden):
-        return "De vastgelegde begrippen zijn nu niet betrouwbaar te raadplegen. Dit betekent niet dat er geen begrippen zijn."
-    leeg = [r["geen_treffers"] for r in antwoorden if r.get("geen_treffers")]
-    if leeg and not any(r.get("resultaten") or r.get("id") for r in antwoorden):
-        return leeg[-1]
-    if any(r.get("status") != "ok" or r.get("volledig") is False for r in antwoorden):
-        return answer + "\n\nDeze zoekuitkomst is onvolledig; ontbrekende begrippen zijn niet uitgesloten."
-    return answer
+    melding, onvolledig = begrippen_stand(trace)
+    if melding:
+        return melding
+    return f"{answer}\n\n{BEGRIPPEN_ONVOLLEDIG}" if onvolledig else answer
