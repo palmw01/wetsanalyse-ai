@@ -2,9 +2,9 @@
 FastAPI-backend voor de graph-qa agent.
 
 De werkplek gebruikt POST /v1/runs (+ /events en /cancel): de beurt draait hier en de browser kijkt
-mee. POST /v1/chat is aan de verbinding gekoppeld, zonder eigenaarscontrole, en niet voor de webapp.
+mee. Een beurt aan de verbinding gekoppeld (`/v1/chat`) bestaat niet meer: die kende geen eigenaarscontrole.
 
-De events zijn op beide wegen gelijk. De kern (de volledige lijst staat in `BeurtSchrijver.verwerk`):
+De events van een run. De kern (de volledige lijst staat in `BeurtSchrijver.verwerk`):
     {"type": "status", "message": "..."}     # stap-labels (specialist/tools/deelvraag)
     {"type": "reason", "content": "..."}     # denkproces-narratie (live), gescheiden van het antwoord
     {"type": "token", "content": "..."}      # het eindantwoord
@@ -66,7 +66,7 @@ from agent.reeks import reeks_run  # noqa: E402
 from agent.werkgebied_annotatie import werkgebied_annotatie_beurt, zonder_api  # noqa: E402
 from agent.config import Settings  # noqa: E402
 from agent.models import (  # noqa: E402
-    WERKGEBIED_MODI, ChatRequest, RunStart,
+    ChatRequest, RunStart,
     Verbruiksmeter,
 )
 from agent.runstore import Run, RunBestaatAl, RunStore  # noqa: E402
@@ -246,49 +246,6 @@ async def health() -> dict[str, str]:
     return {"status": "ok", "annotatie_contract_versie": "2"}
 
 
-@app.post("/v1/chat")
-async def chat(
-    request: ChatRequest,
-    _rl: None = Depends(_rate_limit),
-    _auth: None = Depends(_check_auth),
-) -> EventSourceResponse:
-    """Eén beurt, gekoppeld aan déze verbinding. Voor de werkplek is `/v1/runs` de weg (zie hieronder).
-
-    **Dit endpoint kent geen eigenaar.** Het `conversation_id` uit de body is de thread_id van de
-    checkpointer, en graph-qa kan niet weten van wie dat gesprek is – die administratie zit in de
-    wetsanalyse-api. Een aanroeper die hier een vreemd gespreks-id instuurt, krijgt dus de historie
-    van dat gesprek in de context van zijn eigen vraag. De frontend-route die dat pad gebruikte is
-    daarom verwijderd; `POST /v1/runs` verifieert het eigenaarschap wél (via de BFF, bij de api) en
-    draagt `X-User-Id`.
-
-    Bouw hier geen nieuwe client op zonder die controle in de aanroeper. Wie het toch nodig heeft
-    (een script, een eval-run), gebruikt het met een eigen conversation_id.
-    """
-    if request.modus in WERKGEBIED_MODI or request.actie is not None:
-        # Deze routes schrijven in het werkgebied en in het gesprek; dat kan alleen een run.
-        raise HTTPException(status_code=422,
-                            detail="Werken op een werkgebied kan alleen via POST /v1/runs.")
-    logger.info(
-        "chat ontvangen",
-        extra={
-            "categorie": "functioneel",
-            "chat_session_id": request.conversation_id or "",
-            "chat_vraag_lengte": len(request.question or ""),
-        },
-    )
-
-    async def event_generator() -> AsyncIterator[dict]:
-        stroom = (reeks_run(request, settings=settings, legt_vast=False) if request.doelen else answer_stream(
-            request.question, request.conversation_id,
-            modus=request.modus, context=request.context, doel=request.doel,
-            hergebruik=request.hergebruik, intake_actie=request.intake_actie, onderwerp=request.onderwerp,
-        ))
-        async for event in stroom:
-            yield {"data": json.dumps(event, ensure_ascii=False)}
-
-    return EventSourceResponse(event_generator())
-
-
 @app.delete("/v1/conversations/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def verwijder_conversation(
     conversation_id: str,
@@ -326,9 +283,8 @@ async def verwijder_conversation(
 
 # --- Runs: de beurt is van de server ---------------------------------------------------------
 #
-# `POST /v1/chat` hierboven koppelt de beurt aan de verbinding: valt de client weg, dan sneuvelt de
-# stream. Deze drie endpoints draaien dat om – starten, meekijken en stoppen zijn losse handelingen,
-# zodat wegklikken, van gesprek wisselen of herladen een lopend antwoord niet meer doodt.
+# De beurt is niet aan een verbinding gekoppeld: starten, meekijken en stoppen zijn losse handelingen,
+# zodat wegklikken, van gesprek wisselen of herladen een lopend antwoord niet doodt.
 
 
 def _stroom_voor(request: ChatRequest, gebruiker: str = ""):

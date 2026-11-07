@@ -8,7 +8,7 @@ from fastapi import HTTPException
 
 from app import annotatie_v2_store as store, db, werkgebieden
 from app.annotatie_v2_contracts import Beslissing
-from test_annotatie_v2 import ART, LAW, ONE, TWO, element, request, snapshot
+from test_annotatie_v2 import ART, ONE, TWO, element, request, snapshot
 
 LAW2 = "urn:bwb:BWBR0002320"
 ART2 = LAW2 + ":artikel:2"
@@ -450,12 +450,6 @@ async def test_bepaling_zoeken_en_regelingen_voor_bepaling_toevoegen(client, mon
     monkeypatch.setattr(zoeken, "haal_bronrijen", weg)
     r = await client.get(f"/v1/werkgebieden/{wg['id']}/bepalingen", params={"bwb_id": IW, "q": "9"})
     assert r.status_code == 503 and "niet bereikbaar" in r.json()["detail"]
-
-    async def alle():
-        return [{"bwb_id": IW, "citeertitel": "Invorderingswet 1990", "soort": "wet", "afkortingen": []}]
-    monkeypatch.setattr(zoeken, "alle_regelingen", alle)
-    r = await client.get(f"/v1/werkgebieden/{wg['id']}/regelingen", params={"q": "invordering"})
-    assert [x["bwb_id"] for x in r.json()["regelingen"]] == [IW]
 
 
 async def test_een_dubbelzinnige_bepaling_geeft_de_opties_mee(monkeypatch):

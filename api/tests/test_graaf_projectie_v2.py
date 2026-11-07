@@ -53,7 +53,7 @@ def test_text_cannot_change_query_structure(tekst):
 
 def test_source_iri_injection_rejected():
     with pytest.raises(ValueError):
-        zoek_query({"bronnode_id": "urn:bwb:BWBR1> } SERVICE <https://example.org> {"})
+        zoek_query({"bron_iri": "urn:bwb:BWBR1> } SERVICE <https://example.org> {"})
 
 
 def test_exact_match_case_sensitive():

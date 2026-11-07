@@ -873,7 +873,6 @@ export interface WerkgebiedSamenvatting {
   aangemaakt_door: string;
   aangemaakt: string;
   gewijzigd: string;
-  gearchiveerd: string | null;
   /** Alleen in de lijst. */
   aantal_bronnen?: number;
 }

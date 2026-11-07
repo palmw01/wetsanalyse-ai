@@ -13,7 +13,6 @@ from . import annotatie_v2_store, bronnen_run_store as store, bronselectie, werk
 from .auth import require_client
 from .bronnen_run_contracts import BronnenMislukt, BronnenUitkomst
 from .bronselectie_contracts import GenoemdVoorstel, KandidaatBesluit, StatusActie
-from .werkgebied_contracts import BronselectieInvoer
 from .routers.auth import actieve_userid
 from .werkgebieden import resolve_bron
 
@@ -125,15 +124,4 @@ async def post_bronselectie_voorstel(werkgebied_id: str, deelvraag_id: str, req:
     await werkgebied_store.haal(werkgebied_id)                 # 404 vóór de graaf wordt gevraagd
     bron = await _geverifieerd({"bron_iri": req.bron_iri})
     await bronselectie.noem(werkgebied_id, deelvraag_id, req, bron, actor)
-    return await bronselectie.overzicht(werkgebied_id, na=deelvraag_id)
-
-
-@router.post("/bronselectie/{deelvraag_id}/bronnen")
-async def post_bronselectie_bron(werkgebied_id: str, deelvraag_id: str, req: BronselectieInvoer,
-                                 actor: str = Depends(actieve_userid)):
-    """Zelf een bepaling als keuze toevoegen bij één deelvraag (bron-IRI, of regeling + artikel (+ lid)); de api
-    verifieert haar in de graaf zoals bij zelf opnemen."""
-    await werkgebied_store.haal(werkgebied_id)                 # 404 vóór de graaf wordt gevraagd
-    bron = await _geverifieerd({"bron_iri": req.bron_iri, "bwb_id": req.bwb_id, "artikel": req.artikel, "lid": req.lid})
-    await bronselectie.toevoegen(werkgebied_id, deelvraag_id, req, bron, actor)
     return await bronselectie.overzicht(werkgebied_id, na=deelvraag_id)

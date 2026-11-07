@@ -154,7 +154,6 @@ class Laagbesluiten(BaseModel):
 
 class Zoekvraag(BaseModel):
     bron_iri: str = ""
-    bronnode_id: str = ""
     bwb_id: str = ""
     klasse: str = ""
     jas_klassen: list[str] = Field(default_factory=list)
@@ -186,9 +185,6 @@ class Zoekvraag(BaseModel):
     @model_validator(mode="after")
     def _filters(self):
         from .validation import GELDIGE_JAS_KLASSEN
-        if self.bron_iri and self.bronnode_id and self.bron_iri != self.bronnode_id:
-            raise ValueError("Tegenstrijdige bronselectie.")
-        self.bron_iri = self.bron_iri or self.bronnode_id
         if self.klasse:
             self.jas_klassen = list(dict.fromkeys([*self.jas_klassen, self.klasse]))
         if set(self.jas_klassen) - GELDIGE_JAS_KLASSEN:

@@ -121,9 +121,8 @@ overzien.
    overzicht én tekst komen deterministisch uit de graaf, zonder model, en de werkplek toont het als
    kaartje met paneel – dezelfde vraag geeft hetzelfde overzicht, dezelfde tekst, dezelfde bronnen en dezelfde
    graaf).
-   Endpoints: `POST /v1/runs` (+ `/events`, `/cancel`; de weg van de werkplek – de beurt draait bij de
-   agent, de browser kijkt mee), `POST /v1/chat` (SSE, aan de verbinding gekoppeld en **zonder
-   eigenaarscontrole** – niet voor de webapp). De werkplek praat er **direct** mee
+   Endpoints: `POST /v1/runs` (+ `/events`, `/cancel`; de enige weg voor een beurt – die draait bij de
+   agent, de browser kijkt mee). De werkplek praat er **direct** mee
    (SSE); de persistente review-state loopt via de API (`/v1/annotatie/*`). Image
    `ghcr.io/palmw01/graph-qa`.
 4. **`tools/bwb-import/`** – de **BWB-importer**: haalt de wettekst op bij

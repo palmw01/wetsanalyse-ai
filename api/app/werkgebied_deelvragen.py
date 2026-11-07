@@ -6,8 +6,8 @@ deelvragen meet de dekkingscheck per vraag of er een bron en een geaccordeerd be
 - **Een actieve deelvraag hoort bij de scope**, dus elke mutatie loopt door
   `werkgebied_store._gewijzigd` (rij-slot, revisie, audit). De bronnenrun neemt de actieve deelvragen
   mee in zijn invoer (`bronnen_run_store.invoer_van`).
-- **De bewerkstand gaat in één keer** (`samen`): één slot, één revisie, alles-of-niets, met per wijziging de
-  auditregel die de losse route ook schrijft.
+- **De bewerkstand gaat in één keer** (`samen`): één slot, één revisie, alles-of-niets, met per wijziging een
+  eigen auditregel (`deelvraag-toegevoegd`, `-gewijzigd`, `-verwijderd`).
 - **Een voorstel van Lex** (`stel_voor`, graph-qa) draagt geen revisie: het raakt de scope pas als de
   analist het overneemt. Lex stelt niets opnieuw voor wat er al staat, wat is afgewezen of wat de
   analist weghaalde – vergeleken op de genormaliseerde tekst.
@@ -25,12 +25,11 @@ import unicodedata
 import uuid
 
 from fastapi import HTTPException
-from sqlalchemy import delete, func, insert, select, update
+from sqlalchemy import func, insert, select, update
 
 from . import db
 from .werkgebied_contracts import (
-    DeelvraagInvoer, DeelvraagKoppelingen, DeelvragenSamen, DeelvraagStatus, DeelvraagVoorstellen,
-    DeelvraagWijziging,
+    DeelvragenSamen, DeelvraagStatus, DeelvraagVoorstellen, DeelvraagWijziging,
 )
 from .werkgebied_store import _audit, _gewijzigd
 
@@ -61,7 +60,7 @@ async def _actieve_doelen(conn, werkgebied_id: str) -> tuple[set[str], dict[str,
         s.c.werkgebied_id == werkgebied_id, s.c.verwijderd.is_(None)))).scalars())
     begrippen = {r.id: {"id": r.id, "naam": (r.inhoud or {}).get("naam", ""), "status": r.status}
                  for r in (await conn.execute(select(b.c.id, b.c.inhoud, b.c.status).where(
-                     b.c.werkgebied_id == werkgebied_id, b.c.verwijderd.is_(None)))).all()}
+                     b.c.werkgebied_id == werkgebied_id))).all()}
     return selecties, begrippen
 
 
@@ -127,14 +126,6 @@ async def _maak_in(conn, werkgebied_id: str, deelvraag_id: str, vraag: str, acto
         id=deelvraag_id, werkgebied_id=werkgebied_id, vraag=vraag, volgorde=await _volgende_plek(conn, werkgebied_id),
         status=DeelvraagStatus.actief.value, herkomst="analist", reden="", aangemaakt_door=actor,
         aangemaakt=nu, gewijzigd=nu))
-
-
-async def maak(werkgebied_id: str, invoer: DeelvraagInvoer, actor: str) -> dict:
-    did = str(uuid.uuid4())
-    async with _gewijzigd(werkgebied_id, invoer.verwachte_revisie, actor, "deelvraag-toegevoegd",
-                          {"deelvraag": did, "vraag": invoer.vraag}) as (conn, _):
-        await _maak_in(conn, werkgebied_id, did, invoer.vraag, actor)
-    return await _werkgebied(werkgebied_id)
 
 
 async def samen(werkgebied_id: str, s: DeelvragenSamen, actor: str) -> dict:
@@ -268,8 +259,8 @@ async def haal(werkgebied_id: str, deelvraag_id: str) -> dict:
     d, k = db.werkgebied_deelvragen, db.werkgebied_deelvraag_koppelingen
     async with db.get_engine().connect() as conn:
         t = db.werkgebieden
-        wg = (await conn.execute(select(t.c.id, t.c.gearchiveerd).where(t.c.id == werkgebied_id))).first()
-        if wg is None or wg.gearchiveerd is not None:
+        wg = (await conn.execute(select(t.c.id).where(t.c.id == werkgebied_id))).first()
+        if wg is None:
             raise HTTPException(404, "Werkgebied bestaat niet.")
         row = await _onder_slot(conn, werkgebied_id, deelvraag_id)
         selecties, begrippen = await _actieve_doelen(conn, werkgebied_id)
@@ -288,46 +279,10 @@ async def haal(werkgebied_id: str, deelvraag_id: str) -> dict:
     return uit
 
 
-async def verwijder(werkgebied_id: str, deelvraag_id: str, verwacht: int, actor: str) -> dict:
-    async with _gewijzigd(werkgebied_id, verwacht, actor, "deelvraag-verwijderd",
-                          {"deelvraag": deelvraag_id}) as (conn, _):
-        await _verwijder_in(conn, werkgebied_id, deelvraag_id)
-    return await _werkgebied(werkgebied_id)
-
-
 async def _verwijder_in(conn, werkgebied_id: str, deelvraag_id: str) -> None:
     await _onder_slot(conn, werkgebied_id, deelvraag_id)
     await conn.execute(update(db.werkgebied_deelvragen).where(db.werkgebied_deelvragen.c.id == deelvraag_id)
                        .values(verwijderd=db.utcnow()))
-
-
-async def _zet_koppelingen(conn, deelvraag_id: str, soort: str, ids: list[str], actor: str) -> None:
-    k = db.werkgebied_deelvraag_koppelingen
-    # De rol bij deze deelvraag (spoor J) blijft staan voor wat gekoppeld blijft.
-    rollen = {r.doel_id: r.rol or "" for r in (await conn.execute(select(k.c.doel_id, k.c.rol).where(
-        k.c.deelvraag_id == deelvraag_id, k.c.soort == soort))).all()}
-    await conn.execute(delete(k).where(k.c.deelvraag_id == deelvraag_id, k.c.soort == soort))
-    nu = db.utcnow()
-    for doel in dict.fromkeys(ids):
-        await conn.execute(insert(k).values(deelvraag_id=deelvraag_id, soort=soort, doel_id=doel,
-                                            rol=rollen.get(doel, ""), gekoppeld_door=actor, gekoppeld=nu))
-
-
-async def koppel(werkgebied_id: str, deelvraag_id: str, w: DeelvraagKoppelingen, actor: str) -> dict:
-    async with _gewijzigd(werkgebied_id, w.verwachte_revisie, actor, "deelvraag-gekoppeld",
-                          {"deelvraag": deelvraag_id, "bronnen": len(set(w.bronnen)),
-                           "begrippen": len(set(w.begrippen))}) as (conn, _):
-        row = await _onder_slot(conn, werkgebied_id, deelvraag_id)
-        if row.status != DeelvraagStatus.actief.value:
-            raise HTTPException(409, {"fout": "niet_actief", "melding": "Neem de deelvraag eerst over."})
-        selecties, begrippen = await _actieve_doelen(conn, werkgebied_id)
-        vreemd = [x for x in w.bronnen if x not in selecties] + [x for x in w.begrippen if x not in begrippen]
-        if vreemd:
-            raise HTTPException(422, {"fout": "buiten_werkgebied", "ids": vreemd,
-                                      "melding": "Koppel alleen bronnen en begrippen van dit werkgebied."})
-        await _zet_koppelingen(conn, deelvraag_id, "bron", w.bronnen, actor)
-        await _zet_koppelingen(conn, deelvraag_id, "begrip", w.begrippen, actor)
-    return await _werkgebied(werkgebied_id)
 
 
 async def koppel_bron_in(conn, werkgebied_id: str, selectie_id: str, deelvraag_ids: list[str], actor: str,
@@ -359,7 +314,7 @@ async def stel_voor(werkgebied_id: str, v: DeelvraagVoorstellen, actor: str) -> 
     overgeslagen: list[dict] = []
     async with db.get_engine().begin() as conn:
         row = (await conn.execute(select(t).where(t.c.id == werkgebied_id).with_for_update())).first()
-        if row is None or row.gearchiveerd is not None:
+        if row is None:
             raise HTTPException(404, "Werkgebied bestaat niet.")
         if v.vervangt:
             d = db.werkgebied_deelvragen
@@ -394,8 +349,8 @@ async def dekking(werkgebied_id: str) -> dict:
     Postgres, zonder graaf."""
     async with db.get_engine().connect() as conn:
         t = db.werkgebieden
-        row = (await conn.execute(select(t.c.id, t.c.gearchiveerd).where(t.c.id == werkgebied_id))).first()
-        if row is None or row.gearchiveerd is not None:
+        row = (await conn.execute(select(t.c.id).where(t.c.id == werkgebied_id))).first()
+        if row is None:
             raise HTTPException(404, "Werkgebied bestaat niet.")
         vragen = [d for d in await lijst_in(conn, werkgebied_id) if d["status"] == DeelvraagStatus.actief.value]
         s = db.werkgebied_bronselecties

@@ -11,7 +11,7 @@ from .config import get_settings
 
 def bwb_van(doel: dict) -> str:
     """Het BWB-id van een doel, getoetst tegen de bron-IRI als die er is."""
-    iri = str(doel.get("bron_iri") or doel.get("bronnode_id") or "")
+    iri = str(doel.get("bron_iri") or "")
     bwb = str(doel.get("bwb_id") or doel.get("bwbId") or "").strip().upper()
     if iri:
         match = re.fullmatch(r"urn:bwb:(BWB[RV]\d+)(?::[^<>\s\"{}|^`\\]*)?", iri)
@@ -38,7 +38,7 @@ async def haal_bronrijen(bwb: str) -> list[dict]:
 def snapshot_uit(rijen: list[dict], bwb: str, doel: dict) -> dict:
     """De snapshot van één doel uit al opgehaalde rijen: meerdere doelen in dezelfde regeling delen zo
     één bronboom (`/samenhang/meer`)."""
-    return bouw_snapshot(rijen, bwb_id=bwb, bron_iri=str(doel.get("bron_iri") or doel.get("bronnode_id") or ""),
+    return bouw_snapshot(rijen, bwb_id=bwb, bron_iri=str(doel.get("bron_iri") or ""),
                          artikel=str(doel.get("artikel") or doel.get("nummer") or ""),
                          lid=str(doel.get("lid") or ""))
 

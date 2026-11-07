@@ -979,8 +979,8 @@ bestaat los van de gesprekken.
     het koppelvenster koppelt alleen bronnen (bestaande begripskoppelingen blijven staan).
   - Een kandidaat die Lex bij een deelvraag vond, zegt dat (`bewijsZin`: "gevonden bij de deelvraag …");
     opnemen koppelt hem aan die deelvraag (api).
-  - De allowlist laat `deelvragen`, `deelvragen/{id}`, `deelvragen/dekking` en `deelvragen/{id}/koppelingen`
-    door, nooit `deelvragen/voorstellen` (van graph-qa).
+  - De allowlist laat `deelvragen/{id}`, `deelvragen/samen` en `deelvragen/dekking` door, nooit
+    `deelvragen/voorstellen` (van graph-qa).
   - Browserregressie: `scripts/test-deelvragen.mjs`.
 - **Deelvragen met structuur** (spoor H3): in het dossier is een deelvraag een rij – de vraag als link naar
   haar pagina, herkomst en omvang ("7 bronnen in 3 regelingen"), de voortgang van haar bronselectie – met

@@ -290,8 +290,7 @@ async def zet_uitkomst(werkgebied_id: str, begrip_id: str, run_id: str, u: Kaart
 
 async def _voorstellen_in(conn, werkgebied_id: str, begrip_id: str) -> dict:
     t, r, b = db.begrip_voorstellen, db.begrip_kaartruns, db.begrippen
-    inhoud = (await conn.execute(select(b.c.inhoud).where(b.c.id == begrip_id, b.c.werkgebied_id == werkgebied_id,
-                                                         b.c.verwijderd.is_(None)))).scalar()
+    inhoud = (await conn.execute(select(b.c.inhoud).where(b.c.id == begrip_id, b.c.werkgebied_id == werkgebied_id))).scalar()
     if inhoud is None:
         raise HTTPException(404, "Begrip bestaat niet.")
     rows = (await conn.execute(select(t).where(t.c.begrip_id == begrip_id, t.c.werkgebied_id == werkgebied_id)
