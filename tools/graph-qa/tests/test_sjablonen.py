@@ -701,9 +701,9 @@ class _Lees:
                 "resultaten": [{"id": "e1", "klasse": "Rechtssubject", "tekst": 'de "ontvanger van de rijksbelastingen in deze wet" zelf', "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9"}]}
 
 
-def _leesbeurt(*rondes):
+def _leesbeurt(*rondes, graaf=""):
     llm = FakeLLM(list(rondes))
-    graph = FakeGraph(result="")
+    graph = FakeGraph(result=graaf)
 
     async def alles():
         return [e async for e in answer_stream("Welke annotaties zijn er?", settings=make_settings(grounding_correct=True), llm=llm, graph=graph, annotaties=_Lees())]
@@ -719,6 +719,13 @@ def test_een_beurt_rondt_af_met_de_annotaties_zonder_correctieronde():
     antwoord = _eerste(events, "antwoord")["antwoord"]
     assert antwoord["sjabloon"] == "annotaties" and antwoord["blokken"][0]["totaal"] == 1
     assert _eerste(events, "grounding")["grounded"] is True
+
+
+def test_een_opgezochte_regeling_is_geen_bron_van_het_annotatieantwoord():
+    """`list_regelingen` geeft alle regelingen terug om een BWB-id te vinden: het antwoord rust daar niet op."""
+    opzoeken = response([tool_block("t1", "list_regelingen", {})], "tool_use")
+    events, _ = _leesbeurt(opzoeken, LEES, graaf=json.dumps("regeling\ttitel\n<urn:bwb:BWBR0005537>\tAlgemene wet bestuursrecht\n"))
+    assert _eerste(events, "sources")["sources"] == []
 
 
 def test_een_verzinsel_in_de_toelichting_gaat_ook_hier_door_de_correctie():
