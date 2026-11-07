@@ -552,3 +552,76 @@ async def test_eigenaar_van_leest_geen_berichten(client):
     await store.maak_gesprek(Gesprek(id="g-eigen", user_id="gebruiker-a", titel="t"))
     assert await store.eigenaar_van("g-eigen") == "gebruiker-a"
     assert await store.eigenaar_van("bestaat-niet") is None
+
+
+# --- Zoeken en het archief apart (UI-02/UI-03) --------------------------------------------------
+
+async def _ids(client, headers=A, **params) -> list[str]:
+    r = await client.get(BASIS, params=params, headers=headers)
+    assert r.status_code == 200, r.text
+    return [g["id"] for g in r.json()]
+
+
+async def test_zoeken_vindt_titel_en_berichttekst_hoofdletterongevoelig(client):
+    titel = await _maak(client, titel="Uitstel van betaling")
+    tekst = await _maak(client, titel="Iets anders")
+    await client.post(f"{BASIS}/{tekst}/berichten", json={"rol": "user", "tekst": "Wat is de INVORDERINGSRENTE?"}, headers=A)
+    await client.post(f"{BASIS}/{tekst}/berichten", json={"rol": "assistant", "tekst": "Dat staat elders."}, headers=A)
+    await _maak(client, titel="Niets hiervan")
+
+    assert await _ids(client, q="uitstel") == [titel]
+    assert await _ids(client, q="invorderingsrente") == [tekst]
+    # Het aantal berichten blijft het hele gesprek tellen, niet alleen de treffers.
+    r = (await client.get(BASIS, params={"q": "invorderingsrente"}, headers=A)).json()
+    assert r[0]["aantal_berichten"] == 2
+    # Een lege term is geen filter.
+    assert len(await _ids(client, q="  ")) == 3
+
+
+async def test_zoeken_is_per_gebruiker(client):
+    from app.gesprek_contracts import BerichtInvoer
+    from app.gesprek_store import GesprekStore
+
+    # Rechtstreeks in de store: een eerdere test zet gebruiker-b soms op inactief.
+    await GesprekStore().voeg_bericht_toe("andermans", BerichtInvoer(rol="user", tekst="geheim"))
+    assert await _ids(client, q="Van B") == []
+    assert await _ids(client, q="geheim") == []
+    assert [g.id for g in await GesprekStore().lijst_samenvattingen("gebruiker-b", zoek="geheim")] == ["andermans"]
+
+
+async def test_zoeken_behandelt_procent_en_underscore_als_tekst(client):
+    met = await _maak(client, titel="Rente 100% en art_9")
+    await _maak(client, titel="Rente 1000 en art19")
+    assert await _ids(client, q="100%") == [met]
+    assert await _ids(client, q="art_9") == [met]
+
+
+async def test_zoeken_kijkt_ook_in_het_archief_tenzij_je_filtert(client):
+    gid = await _maak(client, titel="Oude verkenning")
+    await client.patch(f"{BASIS}/{gid}", json={"gearchiveerd": True}, headers=A)
+    assert await _ids(client, q="verkenning") == [gid]
+    assert await _ids(client, q="verkenning", gearchiveerd="false") == []
+
+
+async def test_actief_en_archief_hebben_elk_hun_eigen_pagina(client):
+    """De sidebar haalt ze apart: een groot archief duwt geen actief gesprek meer uit de pagina."""
+    actief = [await _maak(client, titel=f"Actief {i}") for i in range(3)]
+    archief = []
+    for i in range(5):
+        gid = await _maak(client, titel=f"Archief {i}")
+        await client.patch(f"{BASIS}/{gid}", json={"gearchiveerd": True}, headers=A)
+        archief.append(gid)
+
+    # Samen in één pagina van drie valt er een actief gesprek af; apart niet.
+    assert not set(actief) <= set(await _ids(client, limit=3))
+    assert set(await _ids(client, limit=3, gearchiveerd="false")) == set(actief)
+    # Het archief bladert met offset, zonder overlap.
+    eerste = await _ids(client, limit=3, gearchiveerd="true")
+    tweede = await _ids(client, limit=3, offset=3, gearchiveerd="true")
+    assert len(eerste) == 3 and len(tweede) == 2
+    assert set(eerste) | set(tweede) == set(archief)
+
+
+async def test_een_te_lange_zoekterm_wordt_geweigerd(client):
+    r = await client.get(BASIS, params={"q": "x" * 201}, headers=A)
+    assert r.status_code == 422

@@ -23,8 +23,27 @@ function korteDatum(iso?: string): string {
     : d.toLocaleDateString("nl-NL", { day: "numeric", month: "short" });
 }
 
+/** Een lijst die per pagina groeit. `lijst: null` = nog niet opgehaald. */
+interface Gepagineerd {
+  lijst: GesprekSamenvatting[] | null;
+  meer: boolean;
+  laden: boolean;
+  fout: string | null;
+  onMeer: () => void;
+}
+
+/** Wat de sidebar ophaalt naast de actieve gesprekken: of er meer zijn, het archief (apart, pas bij openen) en de
+ *  zoekresultaten. Zonder (de rondleiding) is `gesprekken` alles, en deelt de lijst zelf het archief af. */
+export interface GesprekLijstStand {
+  meer: boolean;
+  onMeer: () => void;
+  archief: Gepagineerd & { open: boolean; onWissel: () => void };
+  zoek: Gepagineerd & { term: string; onTerm: (term: string) => void };
+}
+
 interface Props {
   gesprekken: GesprekSamenvatting[];
+  stand?: GesprekLijstStand;
   activeId?: string | null;
   onOpen: (id: string) => void;
   onHernoem: (id: string, titel: string) => void;
@@ -44,14 +63,37 @@ type RijActies = Pick<Props, "onOpen" | "onHernoem" | "onVerwijder" | "onArchive
 
 const KOP = "px-2 pb-1 pt-3 text-[0.65rem] font-semibold uppercase tracking-wide text-faint";
 
+/** *Meer laden* onder een lijst die niet in één keer kwam: zonder deze knop verdween een ouder gesprek stil (UI-02). */
+function MeerLaden({ laden, onMeer }: { laden: boolean; onMeer: () => void }) {
+  return (
+    <div className="px-1 pt-1">
+      <Button size="xs" variant="ghost" onClick={onMeer} disabled={laden} data-meer-laden>
+        {laden ? "Laden…" : "Meer laden"}
+      </Button>
+    </div>
+  );
+}
+
+/** Eén keer per id, in volgorde: een gesprek dat je net archiveerde staat even in twee lijsten. */
+function uniek(lijst: GesprekSamenvatting[]): GesprekSamenvatting[] {
+  const gezien = new Set<string>();
+  return lijst.filter((g) => !gezien.has(g.id) && Boolean(gezien.add(g.id)));
+}
+
+const MELDING = "px-2 py-1.5 text-xs text-muted";
+
 /** De gesprekken in de sidebar (spoor G1), zoals een project-app: per werkgebied een uitklapbare
  *  groep met de eigen gesprekken erin, daaronder de losse gesprekken (*Recente gesprekken*) en
  *  ingeklapt het archief. Een klik opent altijd dezelfde werkplek; de groep bepaalt alleen welke
- *  context Lex meekrijgt. */
-export function GesprekLijst({ gesprekken, activeId, onNieuwInWerkgebied, laden, laadFout, onOpnieuw, ...acties }: Props) {
-  const indeling = useMemo(() => deelIn(gesprekken), [gesprekken]);
+ *  context Lex meekrijgt. Met een zoekterm staan alleen de treffers er, actief en gearchiveerd. */
+export function GesprekLijst({ gesprekken, stand, activeId, onNieuwInWerkgebied, laden, laadFout, onOpnieuw, ...acties }: Props) {
+  const archiefLijst = stand?.archief.lijst;
+  const indeling = useMemo(() => deelIn(uniek([...gesprekken, ...(archiefLijst ?? [])])), [gesprekken, archiefLijst]);
   const [dicht, setDicht] = useState<Set<string>>(() => new Set());
-  const [archiefOpen, setArchiefOpen] = useState(false);
+  // Alleen zonder `stand` (de rondleiding) houdt de lijst zelf bij of het archief openstaat.
+  const [archiefOpenLokaal, setArchiefOpenLokaal] = useState(false);
+  const archiefOpen = stand ? stand.archief.open : archiefOpenLokaal;
+  const wisselArchief = stand ? stand.archief.onWissel : () => setArchiefOpenLokaal((v) => !v);
   // Na het mounten: de server kent `localStorage` niet, en een verschil tussen server- en
   // client-render geeft een hydratiefout.
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -67,104 +109,155 @@ export function GesprekLijst({ gesprekken, activeId, onNieuwInWerkgebied, laden,
     });
   }
 
-  if (gesprekken.length === 0) {
-    if (laden) {
-      return (
-        <div className="flex flex-col gap-1 px-1 py-1" aria-hidden>
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-9 w-full" />
-          ))}
-        </div>
-      );
-    }
-    if (laadFout) {
-      return (
-        <div className="flex flex-col items-start gap-2 px-2 py-3 text-xs text-muted" role="status" data-gesprekken-fout>
-          <p>{laadFout}</p>
-          {onOpnieuw && (
-            <Button size="xs" variant="secondary" onClick={onOpnieuw}>
-              Opnieuw proberen
-            </Button>
-          )}
-        </div>
-      );
-    }
-    return <p className="px-2 py-3 text-xs text-muted">Nog geen gesprekken.</p>;
-  }
-
-  const rijen = (lijst: GesprekSamenvatting[]) => (
+  const rijen = (lijst: GesprekSamenvatting[], toonPlek = false) => (
     <ul className="flex flex-col gap-0.5">
       {lijst.map((g) => (
-        <Rij key={g.id} gesprek={g} actief={g.id === activeId} acties={acties} />
+        <Rij key={g.id} gesprek={g} actief={g.id === activeId} acties={acties} toonPlek={toonPlek} />
       ))}
     </ul>
   );
 
-  return (
-    <div className="flex flex-col" data-gesprekken>
-      {indeling.werkgebieden.length > 0 && (
-        <section aria-label="Gesprekken per werkgebied" data-groep="werkgebieden">
-          <p className={KOP}>Werkgebieden</p>
-          {indeling.werkgebieden.map((w) => {
-            const open = !dicht.has(w.id);
-            return (
-              <div key={w.id} className="mb-0.5" data-werkgebied-groep={w.id}>
-                <div className="group flex items-center rounded-lg hover:bg-paper">
-                  <button
-                    type="button"
-                    onClick={() => wissel(w.id)}
-                    aria-expanded={open}
-                    className="focus-ring flex min-h-[32px] min-w-0 flex-1 items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-sm font-medium text-ink coarse:min-h-[44px]"
-                  >
-                    <ChevronOmlaag className={`text-faint transition-transform ${open ? "" : "-rotate-90"}`} />
-                    <Mapje className="text-lint" />
-                    <span className="truncate">{w.naam}</span>
-                  </button>
-                  {onNieuwInWerkgebied && (
-                    <button
-                      type="button"
-                      onClick={() => onNieuwInWerkgebied(w.id)}
-                      aria-label={`Nieuw gesprek in ${w.naam}`}
-                      title="Nieuw gesprek in dit werkgebied"
-                      className="focus-ring mr-1 rounded p-1 text-muted opacity-100 hover:text-lint lg:opacity-0 lg:group-hover:opacity-100 lg:focus:opacity-100"
-                    >
-                      <Plus />
-                    </button>
-                  )}
-                </div>
-                {open && <div className="ml-3 border-l border-line pl-1">{rijen(w.gesprekken)}</div>}
-              </div>
-            );
-          })}
-        </section>
-      )}
-
-      <section aria-label="Recente gesprekken" data-groep="recent">
-        <p className={KOP}>Recente gesprekken</p>
-        {indeling.recent.length > 0 ? rijen(indeling.recent) : (
-          <p className="px-2 py-1.5 text-xs text-muted">Geen losse gesprekken.</p>
+  const zoek = stand?.zoek;
+  if (zoek && zoek.term.trim()) {
+    return (
+      <section aria-label="Zoekresultaten" data-groep="zoek" className="flex flex-col">
+        <p className={KOP}>Zoekresultaten</p>
+        {zoek.fout ? (
+          <p className={MELDING} role="status">{zoek.fout}</p>
+        ) : zoek.lijst === null ? (
+          <p className={MELDING} role="status">Zoeken…</p>
+        ) : zoek.lijst.length === 0 ? (
+          <p className={MELDING} role="status">Geen gesprekken gevonden.</p>
+        ) : (
+          <>
+            {rijen(zoek.lijst, true)}
+            {zoek.meer && <MeerLaden laden={zoek.laden} onMeer={zoek.onMeer} />}
+          </>
         )}
       </section>
+    );
+  }
 
-      {indeling.archief.length > 0 && (
+  if (gesprekken.length === 0 && laden) {
+    return (
+      <div className="flex flex-col gap-1 px-1 py-1" aria-hidden>
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-9 w-full" />
+        ))}
+      </div>
+    );
+  }
+  if (gesprekken.length === 0 && laadFout) {
+    return (
+      <div className="flex flex-col items-start gap-2 px-2 py-3 text-xs text-muted" role="status" data-gesprekken-fout>
+        <p>{laadFout}</p>
+        {onOpnieuw && (
+          <Button size="xs" variant="secondary" onClick={onOpnieuw}>
+            Opnieuw proberen
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  const archief = stand?.archief;
+  // Het aantal pas als het bekend is: het archief komt pas bij openen, en kan groter zijn dan één pagina.
+  const archiefTeller = !archief
+    ? ` (${indeling.archief.length})`
+    : archief.lijst === null ? "" : ` (${indeling.archief.length}${archief.meer ? "+" : ""})`;
+  const toonArchiefKop = Boolean(archief) || indeling.archief.length > 0;
+
+  return (
+    <div className="flex flex-col" data-gesprekken>
+      {gesprekken.length === 0 && !archiefLijst?.length ? (
+        <p className="px-2 py-3 text-xs text-muted">Nog geen gesprekken.</p>
+      ) : (
+        <>
+          {indeling.werkgebieden.length > 0 && (
+            <section aria-label="Gesprekken per werkgebied" data-groep="werkgebieden">
+              <p className={KOP}>Werkgebieden</p>
+              {indeling.werkgebieden.map((w) => {
+                const open = !dicht.has(w.id);
+                return (
+                  <div key={w.id} className="mb-0.5" data-werkgebied-groep={w.id}>
+                    <div className="group flex items-center rounded-lg hover:bg-paper">
+                      <button
+                        type="button"
+                        onClick={() => wissel(w.id)}
+                        aria-expanded={open}
+                        className="focus-ring flex min-h-[32px] min-w-0 flex-1 items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-sm font-medium text-ink coarse:min-h-[44px]"
+                      >
+                        <ChevronOmlaag className={`text-faint transition-transform ${open ? "" : "-rotate-90"}`} />
+                        <Mapje className="text-lint" />
+                        <span className="truncate">{w.naam}</span>
+                      </button>
+                      {onNieuwInWerkgebied && (
+                        <button
+                          type="button"
+                          onClick={() => onNieuwInWerkgebied(w.id)}
+                          aria-label={`Nieuw gesprek in ${w.naam}`}
+                          title="Nieuw gesprek in dit werkgebied"
+                          className="focus-ring mr-1 rounded p-1 text-muted opacity-100 hover:text-lint lg:opacity-0 lg:group-hover:opacity-100 lg:focus:opacity-100"
+                        >
+                          <Plus />
+                        </button>
+                      )}
+                    </div>
+                    {open && <div className="ml-3 border-l border-line pl-1">{rijen(w.gesprekken)}</div>}
+                  </div>
+                );
+              })}
+            </section>
+          )}
+
+          <section aria-label="Recente gesprekken" data-groep="recent">
+            <p className={KOP}>Recente gesprekken</p>
+            {indeling.recent.length > 0 ? rijen(indeling.recent) : (
+              <p className={MELDING}>Geen losse gesprekken.</p>
+            )}
+          </section>
+
+          {/* Eén *Meer laden* voor de actieve gesprekken: de pagina loopt over werkgebieden en losse heen. */}
+          {stand?.meer && <MeerLaden laden={Boolean(laden)} onMeer={stand.onMeer} />}
+        </>
+      )}
+
+      {toonArchiefKop && (
         <section aria-label="Archief" data-groep="archief" className="mt-2">
           <button
             type="button"
-            onClick={() => setArchiefOpen((v) => !v)}
+            onClick={wisselArchief}
             aria-expanded={archiefOpen}
             className={`focus-ring flex w-full items-center gap-1.5 rounded-md ${KOP} hover:text-muted`}
           >
             <ChevronOmlaag className={`transition-transform ${archiefOpen ? "" : "-rotate-90"}`} />
-            <Archief /> Archief ({indeling.archief.length})
+            <Archief /> Archief{archiefTeller}
           </button>
-          {archiefOpen && rijen(indeling.archief)}
+          {archiefOpen && (
+            archief?.fout ? (
+              <p className={MELDING} role="status">{archief.fout}</p>
+            ) : archief && archief.lijst === null ? (
+              <p className={MELDING} role="status">Laden…</p>
+            ) : indeling.archief.length === 0 ? (
+              <p className={MELDING}>Geen gearchiveerde gesprekken.</p>
+            ) : (
+              <>
+                {rijen(indeling.archief)}
+                {archief?.meer && <MeerLaden laden={archief.laden} onMeer={archief.onMeer} />}
+              </>
+            )
+          )}
         </section>
       )}
     </div>
   );
 }
 
-function Rij({ gesprek, actief, acties }: { gesprek: GesprekSamenvatting; actief: boolean; acties: RijActies }) {
+function Rij({ gesprek, actief, acties, toonPlek = false }: {
+  gesprek: GesprekSamenvatting; actief: boolean; acties: RijActies;
+  /** In de zoekresultaten staan alle groepen door elkaar: daar zegt de rij waar het gesprek staat. */
+  toonPlek?: boolean;
+}) {
   const [menu, setMenu] = useState(false);
   const label = gesprek.titel || "Nieuw gesprek";
   // Eén manier van bewerken (4 nov 2026): ter plekke, met Annuleren · Opslaan; Enter slaat op, Escape annuleert.
@@ -204,6 +297,7 @@ function Rij({ gesprek, actief, acties }: { gesprek: GesprekSamenvatting; actief
           </span>
           <span className="mt-0.5 block text-[0.65rem] text-faint">
             {gesprek.aantal_berichten} berichten{korteDatum(gesprek.updated) ? ` · ${korteDatum(gesprek.updated)}` : ""}
+            {toonPlek && (gesprek.gearchiveerd ? " · archief" : gesprek.werkgebied_naam ? ` · ${gesprek.werkgebied_naam}` : "")}
           </span>
         </button>
         {/* Alleen op fijne pointers verborgen tot hover; op touch altijd zichtbaar. */}

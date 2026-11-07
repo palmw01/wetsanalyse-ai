@@ -7,8 +7,9 @@ uit de auth-router); de router zit achter de client-bearer (`require_client`), z
 404 (niet 403) bij andermans gesprek, zodat het bestaan niet lekt.
 
 POST   /v1/gesprekken                       – nieuw gesprek
-GET    /v1/gesprekken?limit=&offset=&werkgebied_id=&gearchiveerd=
-                                            – eigen gesprekken (samenvatting, nieuwste eerst)
+GET    /v1/gesprekken?limit=&offset=&werkgebied_id=&gearchiveerd=&q=
+                                            – eigen gesprekken (samenvatting, nieuwste eerst);
+                                              `q` zoekt in de titel en de tekst van de berichten
 GET    /v1/gesprekken/{id}                  – volledig gesprek (met berichten)
 POST   /v1/gesprekken/{id}/berichten        – bericht toevoegen
 PATCH  /v1/gesprekken/{id}                  – titel, werkgebied (koppelen/loskoppelen), archief
@@ -74,10 +75,11 @@ async def lijst_gesprekken(
     offset: int = Query(0, ge=0),
     werkgebied_id: str | None = Query(None, description='Leeg ("") = alleen losse gesprekken.'),
     gearchiveerd: bool | None = Query(None, description="Weglaten = actief én gearchiveerd."),
+    q: str = Query("", max_length=200, description="Zoek in de titel en de tekst van de berichten."),
     user_id: str = Depends(actieve_userid),
     store: GesprekStore = Depends(get_gesprek_store),
 ):
-    return await store.lijst_samenvattingen(user_id, limit, offset, werkgebied_id, gearchiveerd)
+    return await store.lijst_samenvattingen(user_id, limit, offset, werkgebied_id, gearchiveerd, zoek=q)
 
 
 @router.get("/{gesprek_id}", response_model=Gesprek)

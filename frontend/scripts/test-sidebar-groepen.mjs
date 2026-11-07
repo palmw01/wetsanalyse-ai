@@ -10,7 +10,9 @@
  *  - archiveren, herstellen en verplaatsen zijn drie handelingen met elk hun PATCH;
  *  - verwijderen vraagt een expliciete bevestiging die eerst archiveren aanbiedt, en stuurt pas dan
  *    een DELETE;
- *  - *Nieuw gesprek* bij een groep maakt een gesprek dat bij dat werkgebied hoort.
+ *  - *Nieuw gesprek* bij een groep maakt een gesprek dat bij dat werkgebied hoort;
+ *  - actief en archief komen apart (het archief pas bij openen), met *Meer laden* als er meer zijn;
+ *  - zoeken in de eigen gesprekken gaat via de api (`q`) en toont actief en gearchiveerd.
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -19,7 +21,7 @@ import { sessieCookies } from "./sessie.mjs";
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-const errors = [], patches = [], deletes = [], aangemaakt = [], runs = [];
+const errors = [], patches = [], deletes = [], aangemaakt = [], runs = [], lijstVragen = [];
 page.on("pageerror", (e) => errors.push(e.message));
 await page.context().addCookies(await sessieCookies(base));
 await page.addInitScript(() => localStorage.setItem("wa_rondleiding", JSON.stringify({ versie: 999, gezien: true })));
@@ -74,7 +76,16 @@ await page.route("**/api/**", async (route) => {
     lijst = [g, ...lijst];
     return route.fulfill({ status: 201, json: { ...g, berichten: [] } });
   }
-  if (p === "/api/gesprekken") return route.fulfill({ json: lijst });
+  if (p === "/api/gesprekken") {
+    // Zoals de api: `gearchiveerd`, `q` (titel), `limit` en `offset`.
+    const q = url.searchParams;
+    lijstVragen.push(Object.fromEntries(q));
+    let uit = lijst;
+    if (q.has("gearchiveerd")) uit = uit.filter((g) => Boolean(g.gearchiveerd) === (q.get("gearchiveerd") === "true"));
+    if (q.get("q")) uit = uit.filter((g) => g.titel.toLowerCase().includes(q.get("q").toLowerCase()));
+    const offset = Number(q.get("offset") ?? 0);
+    return route.fulfill({ json: uit.slice(offset, offset + Number(q.get("limit") ?? 100)) });
+  }
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   return route.fulfill({ json: p.endsWith("/berichten") && m === "POST" ? { id: 1 } : [] });
 });
@@ -91,8 +102,26 @@ try {
   assert.equal(await groep("wg1").locator("[data-gesprek-rij]").count(), 1);
   await sidebar.locator("[data-groep=recent]").locator("[data-gesprek-rij=g2]").waitFor();
   assert.equal(await rij("g3").count(), 0, "een gearchiveerd gesprek staat niet in de gewone navigatie");
-  await sidebar.getByRole("button", { name: /Archief \(1\)/ }).click();
+  assert.ok(lijstVragen.every((v) => v.gearchiveerd === "false"), "het archief komt pas als je het opent");
+  await sidebar.getByRole("button", { name: /^Archief/ }).click();
   await sidebar.locator("[data-groep=archief]").locator("[data-gesprek-rij=g3]").waitFor();
+  await sidebar.getByRole("button", { name: /Archief \(1\)/ }).waitFor();
+  assert.ok(lijstVragen.some((v) => v.gearchiveerd === "true"), "openen haalt het archief apart op");
+
+  // --- Zoeken: via de api, actief én gearchiveerd, en leegmaken zet de groepen terug ---
+  const zoekveld = sidebar.getByRole("searchbox", { name: "Zoek in je gesprekken" });
+  await zoekveld.fill("verkenning");
+  const treffers = sidebar.locator("[data-groep=zoek]");
+  await treffers.locator("[data-gesprek-rij=g3]").waitFor();
+  await treffers.getByText("· archief", { exact: false }).waitFor();
+  assert.equal(await treffers.locator("[data-gesprek-rij]").count(), 1);
+  assert.equal(lijstVragen.at(-1).q, "verkenning");
+  assert.ok(!("gearchiveerd" in lijstVragen.at(-1)), "zoeken kijkt in actief en archief");
+  await zoekveld.fill("bestaat niet");
+  await treffers.getByText("Geen gesprekken gevonden.").waitFor();
+  await zoekveld.fill("");
+  await groep("wg1").waitFor();
+  await sidebar.getByRole("button", { name: /^Archief/ }).click();
 
   // Een groep klapt in, en blijft na herladen ingeklapt.
   await groep("wg1").getByRole("button", { name: "Invorderingsrente", exact: true }).click();
@@ -124,8 +153,9 @@ try {
   await rij("g2").getByRole("button", { name: /Acties voor Losse vraag/ }).click();
   await rij("g2").getByRole("menuitem", { name: "Archiveren" }).click();
   // Het archief staat na het herladen hierboven weer ingeklapt; het gesprek staat er wel in.
-  await sidebar.getByRole("button", { name: /Archief \(2\)/ }).click();
+  await sidebar.getByRole("button", { name: /^Archief/ }).click();
   await sidebar.locator("[data-groep=archief]").locator("[data-gesprek-rij=g2]").waitFor();
+  await sidebar.getByRole("button", { name: /Archief \(2\)/ }).waitFor();
   assert.deepEqual(patches.at(-1), { id: "g2", gearchiveerd: true });
   await rij("g2").getByRole("button", { name: /Acties voor Losse vraag/ }).click();
   await rij("g2").getByRole("menuitem", { name: "Herstellen uit archief" }).click();
@@ -160,8 +190,19 @@ try {
   assert.equal(aangemaakt.at(-1)?.werkgebied_id, "wg2", "het nieuwe gesprek wordt aan het werkgebied gekoppeld");
   assert.equal(runs.at(-1)?.werkgebied_id, "wg2", "en de beurt draagt het werkgebied");
 
+  // --- Meer dan één pagina: *Meer laden* in plaats van stil afkappen ---
+  lijst = [...lijst, ...Array.from({ length: 105 }, (_, i) => ({ id: `g${100 + i}`, titel: `Oud gesprek ${i}`,
+    aantal_berichten: 1, updated: nu, werkgebied_id: "", werkgebied_naam: "", gearchiveerd: null }))];
+  await page.reload();
+  const meer = sidebar.locator("[data-meer-laden]");
+  await meer.waitFor();
+  assert.equal(await rij("g204").count(), 0, "het laatste gesprek staat nog niet in de eerste pagina");
+  await meer.click();
+  await rij("g204").waitFor();
+  assert.equal(await sidebar.locator("[data-meer-laden]").count(), 0, "alles geladen: geen knop meer");
+
   assert.deepEqual(errors, []);
-  console.log("Browser OK: gesprekken per werkgebied, recent en archief; openen neemt het werkgebied mee; verplaatsen, archiveren, herstellen; verwijderen met bevestiging; nieuw gesprek in een werkgebied.");
+  console.log("Browser OK: gesprekken per werkgebied, recent en archief (apart, bij openen); zoeken; meer laden; openen neemt het werkgebied mee; verplaatsen, archiveren, herstellen; verwijderen met bevestiging; nieuw gesprek in een werkgebied.");
 } finally {
   await browser.close();
 }
