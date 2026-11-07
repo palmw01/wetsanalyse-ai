@@ -106,7 +106,8 @@ zijn gedeeld tussen gebruikers; wie wat deed staat in de audit. Specificatie:
 | `POST` | `/v1/auth/setup` | Maak de allereerste beheerder (alleen bij lege tabel, anders 409) |
 | `POST` | `/v1/auth/registratie` | Zelfregistratie: vraag toegang aan (eigen rate limit; maakt géén account) |
 | `POST` | `/v1/auth/verify` | Valideer userid + wachtwoord (+ TOTP-code of herstelcode) |
-| `GET` | `/v1/auth/me` | Eigen account (rol, 2FA-status, `tfa_nodig`, `herstelcodes_over`) |
+| `GET` | `/v1/auth/me` | Eigen account (rol, 2FA-status, `tfa_nodig`, `herstelcodes_over`, de stand van de rondleiding) |
+| `PATCH` | `/v1/auth/me/rondleiding` | Stand van de rondleiding: de aangeboden versie (gaat alleen omhoog) en de knop op het startscherm |
 | `POST` | `/v1/auth/change-password` | Eigen wachtwoord wijzigen |
 | `POST` | `/v1/auth/2fa/{begin,activate,disable}` | TOTP-2FA, self-service; `begin` vraagt het wachtwoord en weigert (409) bij actieve 2FA, `activate` geeft de herstelcodes, `disable` neemt ook een herstelcode |
 | `POST` | `/v1/auth/2fa/herstelcodes` | Vervang de herstelcodes, met een code uit de app of een herstelcode |

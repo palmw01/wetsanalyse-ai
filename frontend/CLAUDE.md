@@ -1606,8 +1606,12 @@ leest als "hij laadt", niet als "log eerst in".
 - Beide halen hun teller periodiek of bij openen op en falen **stil**: een badge is een hint en mag de
   werkplek niet blokkeren.
 - **Rondleiding** – `components/rondleiding/` loopt langs elementen met `data-tour="<anker>"` in de
-  werkplek. Stappen, teksten en de opgeslagen stand (`localStorage`, faalt stil) staan in
-  `lib/rondleiding.ts`. De rondleiding doet alleen iets als de gebruiker iets doet: een stap die om
+  werkplek. Stappen en teksten staan in `lib/rondleiding.ts`. **De stand hoort bij de gebruiker**: de api
+  (`rondleiding_aangeboden`, `rondleiding_knop` op `/v1/auth/me`) onthoudt of hij zich al aanbood en of de knop
+  *Laat me de werkplek zien* op het startscherm staat, zodat dat op een andere computer niet terugkomt. Wegklikken of
+  afronden handelt het aanbod af; de knop gaat alleen op eigen keuze weg: het vinkje aan het eind van de rondleiding, of de
+  instellingen (tab *Rondleiding*), waar je hem ook weer aanzet en de rondleiding start (`START_URL`). De browser (`localStorage`, faalt stil) onthoudt
+  alleen waar iemand op dit apparaat onderbroken werd. De rondleiding doet alleen iets als de gebruiker iets doet: een stap die om
   een handeling vraagt (`interactie`) laat het aangewezen element bedienen en wacht erop – geen timer
   die de handeling overneemt – en de toetsen volgen `toetsActie` (een knop of veld handelt zijn eigen
   Enter af). Alle andere browserscripts zetten de rondleiding uit; `scripts/test-rondleiding.mjs`

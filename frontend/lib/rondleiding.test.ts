@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   artefactActie, BUBBEL_MARGE, domineert, heeftOmvang, hervatIndex, indexVan, klikGat, LEGE_STAND,
-  maskRechthoeken, moetStarten, toetsActie, uitsnede, zichtbaarDeel, type ToetsContext,
+  maskRechthoeken, moetStarten, START_URL, startUitUrl, toetsActie, uitsnede, zichtbaarDeel, type ToetsContext,
   plaatsBubbel, RONDLEIDING_VERSIE, STAPPEN, vraagtArtefact, zichtbareStappen, type Vak,
 } from "./rondleiding";
 import {
@@ -69,16 +69,39 @@ describe("hervatten", () => {
 });
 
 describe("moetStarten", () => {
-  it("start bij een lege stand", () => {
-    expect(moetStarten(LEGE_STAND)).toBe(true);
+  it("biedt zich aan een nieuwe gebruiker aan", () => {
+    expect(moetStarten(LEGE_STAND, 0)).toBe(true);
   });
 
-  it("start niet meer na afronden", () => {
-    expect(moetStarten({ versie: RONDLEIDING_VERSIE, gezien: true })).toBe(false);
+  it("komt niet terug op een andere computer", () => {
+    expect(moetStarten(LEGE_STAND, RONDLEIDING_VERSIE)).toBe(false);
   });
 
   it("biedt zich opnieuw aan na een nieuwe versie", () => {
-    expect(moetStarten({ versie: RONDLEIDING_VERSIE - 1, gezien: true })).toBe(true);
+    expect(moetStarten(LEGE_STAND, RONDLEIDING_VERSIE - 1)).toBe(true);
+    expect(moetStarten({ versie: RONDLEIDING_VERSIE - 1, gezien: true }, RONDLEIDING_VERSIE - 1)).toBe(true);
+  });
+
+  it("start niet meer als deze browser hem al afhandelde, ook al weet de api dat nog niet", () => {
+    expect(moetStarten({ versie: RONDLEIDING_VERSIE, gezien: true }, 0)).toBe(false);
+  });
+
+  it("biedt geen dialoog aan als de api niet antwoordt", () => {
+    expect(moetStarten(LEGE_STAND, null)).toBe(false);
+  });
+
+  it("hervat een onderbreking op dit apparaat, ook als de api hem al kent", () => {
+    const onderbroken = { versie: RONDLEIDING_VERSIE, gezien: false, gestoptBij: "wettekst" };
+    expect(moetStarten(onderbroken, RONDLEIDING_VERSIE)).toBe(true);
+    expect(moetStarten(onderbroken, null)).toBe(true);
+  });
+});
+
+describe("starten vanuit de instellingen", () => {
+  it("leest de vraag uit de url", () => {
+    expect(startUitUrl(new URL(START_URL, "http://x").searchParams)).toBe(true);
+    expect(startUitUrl(new URLSearchParams("rondleiding=iets"))).toBe(false);
+    expect(startUitUrl(new URLSearchParams())).toBe(false);
   });
 });
 

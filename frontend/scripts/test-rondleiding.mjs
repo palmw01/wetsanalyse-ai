@@ -15,7 +15,11 @@
  *  - Escape in het klassepalet sluit alleen het palet;
  *  - herladen halverwege biedt *Verder bij stap n*;
  *  - de voorbeeldannotatie staat in het bronnodepaneel, net als echt werk;
- *  - er gaat niets muterends naar de api.
+ *  - er gaat niets muterends naar de api;
+ *  - de knop *Laat me de werkplek zien* staat er voor een nieuwe gebruiker en blijft na wegklikken, halverwege stoppen en
+ *    afronden zonder vinkje; met het vinkje aan het eind is hij weg, ook op een andere computer (die biedt de rondleiding
+ *    dan ook niet meer aan);
+ *  - in de instellingen zet je de knop aan en uit, en start je de rondleiding; de werkplek volgt zonder herladen.
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -26,14 +30,27 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PAT
 const errors = [];
 const mutaties = [];
 
-async function nieuwePagina(viewport) {
-  const page = await browser.newPage({ viewport });
+/** Het account in de api: dat reist mee naar elke computer. */
+const nieuwAccount = () => ({ userid: "wpalm", email: "w@example.test", role: "analist", totp_enabled: false, tfa_nodig: false,
+  herstelcodes_over: 0, rondleiding_aangeboden: 0, rondleiding_knop: true });
+
+async function nieuwePagina(viewport, account = nieuwAccount(), patches = []) {
+  // Elke context is een andere computer: lege `localStorage`, hetzelfde account.
+  const page = await (await browser.newContext({ viewport })).newPage();
   page.on("pageerror", (e) => errors.push(e.message));
   await page.context().addCookies(await sessieCookies(base));
   await page.route("**/api/**", async (route) => {
     const req = route.request(), p = new URL(req.url()).pathname, m = req.method();
     if (p.startsWith("/api/auth/")) return route.continue();
     if (m !== "GET" && (p.startsWith("/api/annotatie") || p.startsWith("/api/gesprekken"))) mutaties.push(`${m} ${p}`);
+    if (p === "/api/account/me") return route.fulfill({ json: account });
+    if (p === "/api/account/rondleiding") {
+      const body = req.postDataJSON();
+      patches.push(body);
+      if (body.aangeboden !== undefined) account.rondleiding_aangeboden = body.aangeboden;
+      if (body.knop !== undefined) account.rondleiding_knop = body.knop;
+      return route.fulfill({ json: { rondleiding_aangeboden: account.rondleiding_aangeboden, rondleiding_knop: account.rondleiding_knop } });
+    }
     if (p === "/api/gesprekken") return route.fulfill({ json: [] });
     if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
     if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: false } });
@@ -88,7 +105,109 @@ async function openenWachtOpKlik(page) {
     document.querySelector("[data-rondleiding-bubbel] p")?.textContent?.trim() === "De wettekst");
 }
 
+const knop = (page) => page.getByRole("button", { name: "Laat me de werkplek zien" });
+
+/** Tot het slot, met *Volgende*; de stap die om een klik vraagt krijgt die. */
+async function totHetSlot(page) {
+  for (let i = 0; i < 30; i++) {
+    if (await page.getByRole("button", { name: "Aan de slag" }).isVisible()) return;
+    if ((await titel(page)) === "De annotatie openen") await page.locator('[data-tour="chip"]').click();
+    else await bubbel(page).getByRole("button", { name: /Volgende|Klaar|Afronden/ }).click();
+    await page.waitForTimeout(200);
+  }
+  throw new Error("het slot van de rondleiding komt niet in beeld");
+}
+
+/** De levensloop van de knop, over twee computers. */
+async function knopVolgtDeGebruiker() {
+  const account = nieuwAccount(), patches = [];
+  const page = await nieuwePagina({ width: 1280, height: 860 }, account, patches);
+  await page.goto(`${base}/workbench`);
+
+  // Nu even niet: de rondleiding biedt zich niet meer aan, de knop blijft.
+  await page.getByRole("button", { name: "Nu even niet" }).click();
+  await knop(page).waitFor();
+  assert.equal(account.rondleiding_aangeboden > 0, true, "wegklikken hoort het aanbod af te handelen");
+  assert.equal(account.rondleiding_knop, true);
+
+  // Halverwege stoppen is nog niet gezien.
+  await knop(page).click();
+  await page.getByRole("button", { name: "Start de rondleiding" }).click();
+  await bubbel(page).waitFor();
+  await bubbel(page).getByRole("button", { name: "Overslaan" }).click();
+  await knop(page).waitFor();
+  assert.equal(account.rondleiding_knop, true, "halverwege stoppen hoort de knop te laten staan");
+
+  // Afronden zonder vinkje laat hem ook staan: weg gaat hij alleen op eigen keuze.
+  const doorlopen = async () => {
+    await knop(page).click();
+    await page.getByRole("button", { name: "Start de rondleiding" }).click();
+    await bubbel(page).waitFor();
+    await totHetSlot(page);
+  };
+  await doorlopen();
+  await page.getByRole("button", { name: "Aan de slag" }).click();
+  await knop(page).waitFor();
+  assert.equal(account.rondleiding_knop, true, "afronden zonder vinkje hoort de knop te laten staan");
+
+  // Het vinkje: aan en weer uit verandert de voorkeur, en aan laat de knop verdwijnen.
+  await doorlopen();
+  const vinkje = page.getByRole("checkbox", { name: "Toon de knop op het startscherm niet meer" });
+  await vinkje.check();
+  await vinkje.uncheck();
+  assert.equal(account.rondleiding_knop, true);
+  await vinkje.check();
+  await page.getByRole("button", { name: "Aan de slag" }).click();
+  await knop(page).waitFor({ state: "detached" });
+  assert.equal(account.rondleiding_knop, false, "het vinkje hoort de knop uit te zetten");
+  assert.deepEqual(patches.at(-1), { knop: false });
+  await page.close();
+
+  // Een andere computer: geen aanbod en geen knop.
+  const ander = await nieuwePagina({ width: 1280, height: 860 }, account, patches);
+  const verzoek = ander.waitForResponse((r) => r.url().endsWith("/api/account/me"));
+  await ander.goto(`${base}/workbench`);
+  await verzoek;
+  await ander.waitForTimeout(800);
+  assert.equal(await ander.getByRole("button", { name: "Start de rondleiding" }).count(), 0, "de andere computer hoort niets aan te bieden");
+  assert.equal(await knop(ander).count(), 0, "de andere computer hoort de knop niet te tonen");
+
+  // De instellingen als venster over de werkplek: aanzetten werkt door zodra het venster sluit, zonder herladen.
+  await ander.getByRole("button", { name: /instellingen/ }).first().click();
+  await ander.getByRole("link", { name: "Account & instellingen" }).click();
+  await ander.getByRole("tab", { name: "Rondleiding" }).click();
+  await ander.getByRole("checkbox", { name: "Toon de knop op het startscherm" }).check();
+  await ander.getByRole("button", { name: "Instellingen sluiten" }).click();
+  await knop(ander).waitFor();
+  await ander.close();
+}
+
+/** De tab in de instellingen: de knop aan en uit, en de rondleiding starten. */
+async function instellingen(account) {
+  const page = await nieuwePagina({ width: 1280, height: 860 }, account);
+  await page.goto(`${base}/instellingen/rondleiding`);
+  const vinkje = page.getByRole("checkbox", { name: "Toon de knop op het startscherm" });
+  await vinkje.waitFor();
+  assert.equal(await vinkje.isChecked(), false);
+  await vinkje.check();
+  await page.waitForFunction(() => document.querySelector("#rondleiding-knop")?.checked);
+  assert.equal(account.rondleiding_knop, true, "het vinkje hoort in de api te landen");
+
+  await page.getByRole("button", { name: "Start de rondleiding" }).click();
+  await page.waitForURL(/\/workbench/);
+  await page.getByRole("button", { name: "Start de rondleiding" }).click();
+  await bubbel(page).waitFor();
+  assert.ok(!page.url().includes("rondleiding="), "de vraag hoort uit de url te verdwijnen");
+  await bubbel(page).getByRole("button", { name: "Overslaan" }).click();
+  await knop(page).waitFor();
+  await page.close();
+}
+
 try {
+  // --- De knop ---
+  await knopVolgtDeGebruiker();
+  await instellingen({ ...nieuwAccount(), rondleiding_aangeboden: 999, rondleiding_knop: false });
+
   // --- Breed scherm ---
   const page = await nieuwePagina({ width: 1440, height: 1000 });
   await start(page);

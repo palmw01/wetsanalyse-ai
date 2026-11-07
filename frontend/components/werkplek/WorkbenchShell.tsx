@@ -3,18 +3,18 @@
 import { Opstellen } from "@/components/ui/Icoon";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 import { AppSidebar } from "@/components/werkplek/AppSidebar";
 import { ChatKop } from "@/components/werkplek/ChatKop";
 import { SkipLink, HOOFDINHOUD_ID } from "@/components/ui/SkipLink";
-import { leesStand, moetStarten } from "@/lib/rondleiding";
+import { leesStand, moetStarten, RONDLEIDING_VERSIE, START_PARAMETER, startUitUrl } from "@/lib/rondleiding";
 import { maakDemoScene, type DemoScene } from "@/lib/rondleidingDemo";
 import { MobieleTopbar, TOPBAR_KNOP } from "@/components/werkplek/MobieleTopbar";
 import { WerkplekClient } from "@/components/werkplek/WerkplekClient";
-import { foutTekst, getVerbruik, verwijderGesprek, wijzigGesprek } from "@/lib/api";
+import { foutTekst, getAccount, getVerbruik, verwijderGesprek, wijzigGesprek, zetRondleiding } from "@/lib/api";
 import { metSpoor } from "@/lib/uiSpoor";
 import { resetdatum, tokensKort } from "@/lib/tokenbudget";
 import type { BeslissingType, Gesprek, GesprekSamenvatting, Verbruiksstand } from "@/lib/types";
@@ -65,12 +65,14 @@ export function WorkbenchShell({
   // *Samenstellen met Lex* vanuit het overzicht Werkgebieden (`?start=werkgebied`): de vraag staat klaar
   // in het invoerveld, versturen doet de analist. Ook één keer gelezen.
   const [beginInvoer] = useState(() => startVraagUitUrl(zoek));
+  // *Start de rondleiding* in de instellingen: ook één keer gelezen.
+  const [beginRondleiding] = useState(() => startUitUrl(zoek));
   useEffect(() => {
-    if (beginOnderwerp === null && beginInvoer === null) return;
+    if (beginOnderwerp === null && beginInvoer === null && !beginRondleiding) return;
     const url = new URL(window.location.href);
-    for (const naam of ["vraag", "vraag_label", "vraag_veld", "start"]) url.searchParams.delete(naam);
+    for (const naam of ["vraag", "vraag_label", "vraag_veld", "start", START_PARAMETER]) url.searchParams.delete(naam);
     window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
-  }, [beginOnderwerp, beginInvoer]);
+  }, [beginOnderwerp, beginInvoer, beginRondleiding]);
   const [mountKey, setMountKey] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
   // Verhoogd zodra de chat een gesprek aanmaakte: de sidebar bezit de lijst en haalt hem dan opnieuw.
@@ -136,14 +138,41 @@ export function WorkbenchShell({
     setDemo(maakDemoScene());
   }
 
+  // Staat de knop op het startscherm? `null` tot de api antwoordt, zodat wie hem uit heeft hem niet even ziet
+  // opflitsen. Weg gaat hij alleen op eigen keuze: het vinkje aan het eind van de rondleiding, of de instellingen.
+  // Antwoordt de api niet, dan staat hij er: de knop is onschuldig en een nieuwe gebruiker heeft hem nodig.
+  const [rondleidingKnop, setRondleidingKnop] = useState<boolean | null>(null);
+  const aanbodGedaan = useRef(false);
+  // Staan de instellingen over de werkplek heen, dan leeft dit component door. Bij het sluiten opnieuw lezen: daar kan
+  // de knop net veranderd zijn.
+  const inInstellingen = usePathname().startsWith("/instellingen");
+
   // Eerste bezoek aan de werkplek: de rondleiding biedt zichzelf aan. Bewust hier en niet in een
-  // effect verderop – dit is het enige scherm waar hij iets kan aanwijzen.
+  // effect verderop – dit is het enige scherm waar hij iets kan aanwijzen. Bewust in een effect en
+  // niet in een lazy initializer: `localStorage` bestaat niet tijdens de server-render.
   useEffect(() => {
-    // Bewust in een effect en niet in een lazy initializer: `localStorage` bestaat niet tijdens de
-    // server-render, dus zou de server "geen rondleiding" renderen en de client wél – een
-    // hydratatieverschil. Eén keer bij binnenkomst is precies wat hier moet gebeuren.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (moetStarten(leesStand())) startRondleiding();
+    if (inInstellingen) return;
+    let weg = false;
+    const klaar = (aangeboden: number | null, knop: boolean) => {
+      if (weg) return;
+      setRondleidingKnop(knop);
+      if (aanbodGedaan.current) return;
+      aanbodGedaan.current = true;
+      if (beginRondleiding || moetStarten(leesStand(), aangeboden)) startRondleiding();
+    };
+    getAccount().then((a) => klaar(a.rondleiding_aangeboden ?? null, a.rondleiding_knop !== false), () => klaar(null, true));
+    return () => { weg = true; };
+  }, [inInstellingen, beginRondleiding]);
+
+  const rondleidingAfgehandeld = useCallback(() => {
+    // Stil: lukt dit niet, dan biedt hij zich op een andere computer nog één keer aan.
+    zetRondleiding({ aangeboden: RONDLEIDING_VERSIE }).catch(() => {});
+  }, []);
+
+  /** Het vinkje aan het eind van de rondleiding. Lukt het opslaan niet, dan springt het terug. */
+  const zetKnop = useCallback((aan: boolean) => {
+    setRondleidingKnop(aan);
+    zetRondleiding({ knop: aan }).catch(() => setRondleidingKnop(!aan));
   }, []);
 
   function nieuwGesprek(werkgebied: string | null = null) {
@@ -412,7 +441,7 @@ export function WorkbenchShell({
             bronnenSignaal={bronnenSignaal}
             onGesprekAangemaakt={gesprekAangemaakt}
             onGewijzigd={() => setVerversSignaal((n) => n + 1)}
-            onRondleiding={startRondleiding}
+            onRondleiding={rondleidingKnop ? startRondleiding : undefined}
             verbruik={verbruik}
             // Na een beurt is de stand net veranderd; wachten op het minuut-interval zou de meter
             // achter laten lopen op precies het moment dat de gebruiker ernaar kijkt.
@@ -432,6 +461,9 @@ export function WorkbenchShell({
           onOpenArtefact={() => setDemoOpenSignaal((n) => n + 1)}
           onSluitArtefact={() => setDemoSluitSignaal((n) => n + 1)}
           onKlaar={() => setDemo(null)}
+          onAfgehandeld={rondleidingAfgehandeld}
+          knopZichtbaar={rondleidingKnop !== false}
+          onKnop={zetKnop}
         />
       )}
     </div>

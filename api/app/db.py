@@ -94,6 +94,11 @@ users = Table(
     # die niet groter is dan deze wordt geweigerd, ook binnen de ±30 s die `valid_window` toelaat.
     # NULL = nog nooit een code gebruikt. Additief, dus `reconcile_schema` zet hem bij.
     Column("totp_laatste_stap", BigInteger, nullable=True),
+    # De rondleiding hoort bij de gebruiker, niet bij de browser: wat op de ene computer gezien of uitgezet
+    # is, komt op de andere niet terug. De hoogste versie die zich heeft aangeboden (0 = nog nooit), en of de
+    # knop op het startscherm staat. Additief, dus `reconcile_schema` zet ze bij.
+    Column("rondleiding_aangeboden", Integer, nullable=False, default=0, server_default="0"),
+    Column("rondleiding_knop", Boolean, nullable=False, default=True, server_default=text("true")),
     Column("created", _DT, nullable=False),
     Column("updated", _DT, nullable=False),
 )
