@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { InstellingenLink } from "@/components/instellingen/InstellingenLink";
 import {
   getOngelezenAantal,
   listBerichten,
@@ -170,9 +170,9 @@ export function BerichtenPanel({ positie, containerClassName }: { positie?: stri
       )}
       {!laden && (
         <div className="border-t border-line px-4 py-2">
-          <Link href="/instellingen/berichten" className="text-xs text-lint hover:underline">
+          <InstellingenLink tab="berichten" className="text-xs text-lint hover:underline">
             Alle berichten bekijken →
-          </Link>
+          </InstellingenLink>
         </div>
       )}
     </Popover>

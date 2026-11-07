@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
 import { AccountClient } from "@/components/account/AccountClient";
 import { PasswordPanel } from "@/components/account/PasswordPanel";
 import { RondleidingPanel } from "@/components/account/RondleidingPanel";
@@ -17,7 +16,8 @@ import { Button } from "@/components/ui/Button";
 import { Melding } from "@/components/ui/Melding";
 import { Tabs, type TabDef } from "@/components/ui/Tabs";
 import { getAccount, getOngelezenFeedbackAantal, listRegistraties } from "@/lib/api";
-import { INSTELLINGEN_TABS, padVanTab, tabUitPad, type TabKey } from "@/lib/instellingen";
+import { INSTELLINGEN_TABS, type TabKey } from "@/lib/instellingen";
+import { kiesInstellingenTab } from "@/lib/instellingenVenster";
 
 const PANEEL: Record<TabKey, React.ReactNode> = {
   account: <PasswordPanel />,
@@ -48,21 +48,11 @@ function BeheerVraagt2fa({ onNaarBeveiliging }: { onNaarBeveiliging: () => void 
 interface Props {
   actief: TabKey;
   isBeheerder: boolean;
-  /** In de dialog wisselen we van tab met `replaceState` (geen extra history-entry per tab, zodat de
-   *  back-knop de dialog sluit i.p.v. door de tabs terug te lopen). Op de volle pagina `pushState`. */
-  vervangHistorie?: boolean;
 }
 
-/** De inhoud van het instellingenvenster: tabkolom links, paneel rechts. Wordt gedeeld door de
- *  dialog (vanuit de werkplek) en de volledige pagina (directe link/refresh), zodat beide dezelfde
- *  panelen tonen. */
-export function InstellingenInhoud({ actief: uitServer, isBeheerder, vervangHistorie = false }: Props) {
-  const pad = usePathname();
-  // Een tab wisselt met de History API en is dus geen navigatie: er hoeft niets van de server te komen, net als bij
-  // `zetGesprekInUrl` in de werkplek. Via de router moest Next bij elke wissel de pagina achter de dialog opnieuw
-  // oplossen, en daarbij kon `app/loading.tsx` de achtergrond vervangen; op de volle pagina opende `router.push` juist de
-  // dialog eroverheen. Het pad zegt welke tab actief is; tijdens het sluiten staat er al een ander pad.
-  const actief = pad.startsWith("/instellingen") ? tabUitPad(pad.split("/").slice(2)) : uitServer;
+/** De inhoud van het instellingenvenster: tabkolom links, paneel rechts. De actieve tab komt uit `?instellingen=`
+ *  (`InstellingenVenster`). */
+export function InstellingenInhoud({ actief, isBeheerder }: Props) {
   const [ongelezenFeedback, setOngelezenFeedback] = useState(0);
   const [openAanvragen, setOpenAanvragen] = useState(0);
   const [tfaNodig, setTfaNodig] = useState(false);
@@ -116,12 +106,9 @@ export function InstellingenInhoud({ actief: uitServer, isBeheerder, vervangHist
     if (actief !== "feedback") void laadFeedbackTeller();
   }, [actief, laadFeedbackTeller]);
 
-  // Een tab is een stap in de History API, ook vanuit de melding: een navigatie zou het venster
-  // eroverheen openen.
+  // Een tab wisselt met de History API, ook vanuit de melding: geen navigatie, dus de pagina eronder blijft staan.
   function kiesTab(key: TabKey) {
-    const doel = padVanTab(key);
-    if (vervangHistorie) window.history.replaceState(null, "", doel);
-    else window.history.pushState(null, "", doel);
+    kiesInstellingenTab(key);
   }
 
   const tabs: TabDef[] = zichtbaar.map((t, i) => ({

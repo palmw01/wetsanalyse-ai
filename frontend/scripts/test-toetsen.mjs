@@ -129,11 +129,11 @@ const beslissingen = (requests) => requests.filter((r) => r.pad.endsWith("/besli
     await page.keyboard.press("Enter");
     await page.getByRole("link", { name: "Account & instellingen" }).focus();
     await page.keyboard.press("Enter");
-    await page.waitForFunction(() => location.pathname.startsWith("/instellingen"));
+    await page.waitForFunction(() => new URLSearchParams(location.search).has("instellingen"));
     await page.getByRole("dialog", { name: "Instellingen" }).waitFor();
     await page.keyboard.press("Escape");
-    // `router.back()` is een soft navigation; `waitForURL` ziet die niet altijd als navigatie.
-    await page.waitForFunction(() => location.pathname === "/workbench");
+    // Sluiten is een stap terug in de geschiedenis, geen navigatie; `waitForURL` ziet die niet altijd.
+    await page.waitForFunction(() => location.pathname === "/workbench" && !new URLSearchParams(location.search).has("instellingen"));
     await page.waitForTimeout(300);
     assert.equal(await inBeeld(page).count(), 1, "Escape in het instellingenvenster mag het artefact eronder niet raken");
     assert.deepEqual(errors, []);

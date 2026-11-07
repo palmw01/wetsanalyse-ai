@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { auth } from "@/auth";
 import { BrowserFouten } from "@/components/BrowserFouten";
+import { InstellingenVenster } from "@/components/instellingen/InstellingenVenster";
 import { Providers } from "@/components/Providers";
 import { sans, mono } from "./fonts";
 import "./globals.css";
@@ -35,7 +37,7 @@ export const viewport: Viewport = {
 };
 
 /** De layout is bewust kaal: er is geen globale chrome meer. Elk scherm draagt zijn eigen kader —
- *  ingelogd is dat de app-schil (`/workbench`, `/instellingen`), uitgelogd de gecentreerde kaart van
+ *  ingelogd is dat de app-schil (`/workbench`), uitgelogd de gecentreerde kaart van
  *  `AuthFrame`. De oude logobalk + navigatiebalk + footer zijn weg: die navigatie wees naar plekken
  *  die inmiddels ín de schil zitten, en de kop verborg zichzelf toch al op de app-paden.
  *
@@ -62,6 +64,11 @@ export default async function RootLayout({
           <BrowserFouten />
           {children}
           {modal}
+          {/* Het instellingenvenster hangt aan `?instellingen=` en ligt over elke pagina (useSearchParams vraagt een
+              Suspense-grens). */}
+          <Suspense fallback={null}>
+            <InstellingenVenster />
+          </Suspense>
         </Providers>
       </body>
     </html>

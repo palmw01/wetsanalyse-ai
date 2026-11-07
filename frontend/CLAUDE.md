@@ -69,10 +69,13 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   `app/workbench/page.tsx` én in `app/default.tsx` (de default van het children-slot); beide renderen
   `WerkplekVenster`, zodat de router bij het wisselen tussen die twee geen remount veroorzaakt en het
   open gesprek blijft staan. Auth-schermen: `app/login/*`, `app/setup`, `app/registreren`,
-  `app/disclaimer`. Account en beheer leven in het **instellingenvenster**:
-  `app/instellingen/[[...tab]]/page.tsx` als volle pagina, `app/@modal/(.)instellingen/…` als
-  intercepting route die hem als dialoog over de werkplek opent. `app/beheer` en `app/account` zijn
-  redirects naar de bijbehorende tab.
+  `app/disclaimer`. Account en beheer leven in het **instellingenvenster**, en dat is **altijd een pop-up**
+  (besluit gebruiker 7 nov 2026, zoals in Slack): `InstellingenVenster` in `app/layout.tsx` opent hem over elke pagina
+  zolang `?instellingen=<tab>` in de URL staat, ook na herladen of via een link. Openen, van tab wisselen en sluiten gaan
+  met de History API (`lib/instellingenVenster.ts`), dus de pagina eronder blijft staan; links gaan via
+  `InstellingenLink`. Geef in die state alleen de eigen markering mee: met `{...history.state}` erin volgt
+  `useSearchParams` de stap niet en blijft het venster dicht. `app/instellingen/[[...tab]]`, `app/beheer` en `app/account`
+  zijn doorverwijzingen naar de werkplek met het venster open; een losse instellingenpagina bestaat niet.
 - **`components/`**:
   - `werkplek/` – de hele chat-werkruimte: schil, sidebar, thread (`ThreadRij`, `ToolSpoor`,
     `KeuzeKaart`, `VraagDock`, `VragenKaart`, `ReeksBlok`, `HergebruikMelding`, `Markdown`) en het annotatiegereedschap in het
@@ -90,9 +93,9 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     `UsersPanel` (+ `BudgetBeleidBlok`), `RegistratiesPanel`, `ApiTokensPanel`,
     `BerichtenBeheerPanel` (+ `BerichtEditor`), `FeedbackLijstClient`.
   - `account/`, `auth/` – account, login/2FA/setup/registratie, disclaimer, `AuthFrame`.
-  - `instellingen/` – `InstellingenDialog` (de dialoogschil) en `InstellingenInhoud` (de tabs). De
-    tabdefinities en pad-helpers staan in `lib/instellingen.ts`, bewust **zonder** `"use client"`,
-    zodat Server Components ze mogen importeren.
+  - `instellingen/` – `InstellingenVenster` (leest de parameter), `InstellingenDialog` (de dialoogschil),
+    `InstellingenInhoud` (de tabs) en `InstellingenLink`. De tabdefinities en helpers staan in `lib/instellingen.ts`,
+    bewust **zonder** `"use client"`, zodat de doorverwijzing ze mag importeren.
   - `rondleiding/` – de rondleiding door de werkplek (zie §*Rondleiding*).
   - `ui/` – de primitives.
 
@@ -994,7 +997,7 @@ bestaat los van de gesprekken.
   - **Onbewaard werk meldt zich.** Elk open blok met een wijziging meldt zich via `onOnbewaard`; een wissel van begrip of
     tab vraagt dan eerst bevestiging (`OnbewaardMelding`), en herladen of sluiten vangt `beforeunload`. Een link elders
     (sidebar) en een knop die zelf navigeert vangt `useOnbewaardBewaker` (`lib/useOnbewaardBewaker.ts`: links in de
-    capture-fase op `document`, knoppen via `bewaak`; `/instellingen/*` opent over de pagina en telt niet).
+    capture-fase op `document`, knoppen via `bewaak`; `?instellingen=` opent over de pagina en telt niet).
   - **De poort rekent de server.** *Accorderen* staat uit zolang `accorderen.mag` onwaar is, met de
     redenen letterlijk eronder; met onbewaarde wijzigingen ook (de poort kijkt naar wat bewaard is).
   - **Elke knop per passage noemt zijn passage** (`aria-label`, "Akkoord met “…”"): dezelfde knoppen
@@ -1597,7 +1600,7 @@ leest als "hij laadt", niet als "log eerst in".
 ## Berichten, feedback en rondleiding
 
 - **Berichten** (release notes) – `BerichtenPanel` is de bel in de sidebar-kop met een
-  ongelezen-badge; het archief is de tab `/instellingen/berichten`. Let op de naam: `Bericht`/
+  ongelezen-badge; het archief is de tab *Berichten* van het instellingenvenster. Let op de naam: `Bericht`/
   `BerichtInvoer` in `lib/types.ts` zijn **chatbeurten**, `BerichtOut` en familie zijn release notes –
   twee API-domeinen (`/v1/gesprekken/…/berichten` vs `/v1/berichten`).
 - **Feedback** – `FeedbackDialoog` opent vanuit het gebruikersmenu onderin de sidebar, bewust niet als
@@ -1704,8 +1707,8 @@ knop. Zie `docs/observability.md`.
     verifieert bij de API (`verifyCredentials` → `/v1/auth/verify`). De API bewaart users, hash en
     TOTP; de BFF alleen de sessie.
   - Rollen: **`beheerder`** (beheertabs + `/api/admin/*`) en **`analist`**, afgedwongen in de
-    `authorized`-callback (edge) én in `app/instellingen/[[...tab]]/page.tsx`
-    (`isAdminTab(actief) && !isBeheerder` → redirect). `/setup` maakt eenmalig de eerste beheerder.
+    `authorized`-callback (edge) en in de BFF (`/api/admin/*`); het instellingenvenster toont een beheer-tab alleen aan
+    een beheerder (`InstellingenVenster`). `/setup` maakt eenmalig de eerste beheerder.
   - **Zelfregistratie**: `/registreren` (`RegistratieClient` → `/api/registreren`) legt een
     *aanvraag* vast, geen account. De API leidt de userid af uit voor- en achternaam en bewaart de
     bcrypt-hash van het gekozen wachtwoord; pas bij goedkeuring in de tab **Aanvragen**

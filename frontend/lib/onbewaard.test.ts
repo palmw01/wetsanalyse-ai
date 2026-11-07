@@ -21,7 +21,11 @@ describe("verlaatPagina", () => {
   });
 
   it("het instellingenvenster opent over de pagina heen", () => {
-    expect(verlaatPagina("/instellingen/account", hier)).toBe(false);
+    expect(verlaatPagina("?instellingen=account", hier)).toBe(false);
+  });
+
+  it("een oude link naar /instellingen gaat via de werkplek, dus die verlaat de pagina wel", () => {
+    expect(verlaatPagina("/instellingen/account", hier)).toBe(true);
   });
 
   it("een andere origin laat hij aan beforeunload over", () => {

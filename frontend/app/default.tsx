@@ -3,7 +3,7 @@ import { WerkplekVenster } from "@/components/werkplek/WerkplekVenster";
 /** Wat het `children`-slot toont zodra de router de vorige entry niet meer kan hergebruiken.
  *
  *  De root-layout heeft twee slots: `children` (de pagina) en `modal` (de intercepting routes onder
- *  `app/@modal/**`). Staat er een dialog open – je bent vanuit de werkplek naar `/instellingen/…`
+ *  `app/@modal/**`). Staat er een dialog open – je bent vanuit de werkplek naar `/disclaimer`
  *  genavigeerd – dan blijft de werkplek in de children-branch staan zolang de router die entry kan
  *  hergebruiken. Verloopt hij (de client-router-cache houdt dynamische pagina's niet vast) en volgt
  *  er een navigatie, bijvoorbeeld een tabwissel in de dialog, dan moet de branch opnieuw worden

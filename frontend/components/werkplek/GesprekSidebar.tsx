@@ -3,6 +3,7 @@
 import { Opstellen } from "@/components/ui/Icoon";
 import Image from "next/image";
 import Link from "next/link";
+import { InstellingenLink } from "@/components/instellingen/InstellingenLink";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
@@ -220,28 +221,28 @@ export function GesprekSidebar({
       <div data-tour="gebruikersmenu" ref={menuRef} className="relative border-t border-line px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
         {menuOpen && (
           <div className="absolute inset-x-3 bottom-full mb-1 overflow-hidden rounded-kaart border border-line bg-paper shadow-kaart">
-            <Link
-              href="/instellingen/account"
+            <InstellingenLink
+              tab="account"
               className="block px-3 py-2.5 text-sm text-ink transition-colors hover:bg-surface"
               onClick={() => setMenuOpen(false)}
             >
               Account &amp; instellingen
-            </Link>
-            <Link
-              href="/instellingen/verbruik"
+            </InstellingenLink>
+            <InstellingenLink
+              tab="verbruik"
               className="block px-3 py-2.5 text-sm text-ink transition-colors hover:bg-surface"
               onClick={() => setMenuOpen(false)}
             >
               Mijn verbruik
-            </Link>
+            </InstellingenLink>
             {isBeheerder && (
-              <Link
-                href="/instellingen/beheer/modelprofielen"
+              <InstellingenLink
+                tab="modelprofielen"
                 className="block px-3 py-2.5 text-sm text-ink transition-colors hover:bg-surface"
                 onClick={() => setMenuOpen(false)}
               >
                 Beheer
-              </Link>
+              </InstellingenLink>
             )}
             {onRondleiding && (
               <button

@@ -1,9 +1,10 @@
+import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { INSTELLINGEN_TABS, isAdminTab, padVanTab, tabUitPad } from "./instellingen";
+import { INSTELLINGEN_TABS, instellingenOpWerkplek, isAdminTab, tabUitPad, tabUitParam } from "./instellingen";
 
 const WORTEL = join(__dirname, "..");
 const lees = (p: string) => readFileSync(join(WORTEL, p), "utf8");
@@ -29,12 +30,27 @@ describe("tabUitPad", () => {
   });
 });
 
-describe("padVanTab", () => {
-  it("is het omgekeerde van tabUitPad", () => {
-    expect(padVanTab("gebruikers")).toBe("/instellingen/beheer/gebruikers");
-    expect(padVanTab("account")).toBe("/instellingen/account");
-    // Verbruik is bewust GEEN beheer-tab: de analist moet zijn eigen stand kunnen zien.
-    expect(padVanTab("verbruik")).toBe("/instellingen/verbruik");
+describe("tabUitParam", () => {
+  it("zonder parameter is het venster dicht", () => {
+    expect(tabUitParam(null)).toBeNull();
+    expect(tabUitParam(undefined)).toBeNull();
+  });
+
+  it("leest de sleutel, ook een oud pad, en opent een onbekende waarde op account", () => {
+    expect(tabUitParam("gebruikers")).toBe("gebruikers");
+    expect(tabUitParam("beheer/gebruikers")).toBe("gebruikers");
+    expect(tabUitParam("bestaat-niet")).toBe("account");
+    expect(tabUitParam("")).toBe("account");
+  });
+});
+
+describe("instellingenOpWerkplek", () => {
+  it("een oude link opent het venster op de werkplek, en elke sleutel leest terug", () => {
+    expect(instellingenOpWerkplek("verbruik")).toBe("/workbench?instellingen=verbruik");
+    for (const tab of INSTELLINGEN_TABS) {
+      const waarde = new URL(instellingenOpWerkplek(tab.key), "http://x").searchParams.get("instellingen");
+      expect(tabUitParam(waarde)).toBe(tab.key);
+    }
   });
 });
 
@@ -80,14 +96,22 @@ describe("RSC-grens", () => {
     expect(isClientComponent(lees("lib/instellingen.ts"))).toBe(false);
   });
 
-  it("de server components halen de helpers uit de gedeelde module", () => {
-    for (const p of [
-      "app/instellingen/[[...tab]]/page.tsx",
-      "app/@modal/(.)instellingen/[[...tab]]/page.tsx",
-    ]) {
-      const src = lees(p);
-      expect(isClientComponent(src)).toBe(false);
-      expect(src).toMatch(/import \{[^}]*tabUitPad[^}]*\} from "@\/lib\/instellingen"/);
-    }
+  it("de doorverwijzing haalt de helpers uit de gedeelde module", () => {
+    const src = lees("app/instellingen/[[...tab]]/page.tsx");
+    expect(isClientComponent(src)).toBe(false);
+    expect(src).toMatch(/import \{[^}]*tabUitPad[^}]*\} from "@\/lib\/instellingen"/);
+  });
+});
+
+// Het venster is een pop-up over de pagina waar je bent, nooit een eigen pagina. Een gewone link naar `/instellingen`
+// zou weer een paginawissel worden (en is nu een doorverwijzing naar de werkplek): links gaan via `InstellingenLink`.
+describe("altijd een pop-up", () => {
+  it("geen gewone link naar /instellingen in de app", () => {
+    const treffers = execSync(`grep -rlE 'href="/instellingen' components app || true`, { cwd: process.cwd() }).toString().trim();
+    expect(treffers).toBe("");
+  });
+
+  it("geen onderschepte route meer die een tweede vorm van het venster maakt", () => {
+    expect(() => lees("app/@modal/(.)instellingen/[[...tab]]/page.tsx")).toThrow();
   });
 });

@@ -92,7 +92,7 @@ overzien.
    *Lex-pagina*): één chat-achtig gespreksvenster voor **vragen én JAS-annotatie**, live tegen
    graph-qa (SSE); de home leidt daarheen door. Naast de werkplek staan in de sidebar de
    **annotaties** (`/annotaties`) en de **werkgebieden** (`/werkgebieden`). Account, beheer en instellingen openen als
-   **dialoog over de werkplek heen** (`/instellingen/*`, intercepting routes); `/beheer` is alleen
+   **pop-up over de pagina waar je bent** (`?instellingen=<tab>`, ook na herladen); `/instellingen/*` en `/beheer` zijn alleen
    nog een doorverwijzing daarheen. De beheertab (modelprofielen, gebruikers, aanvragen, API-tokens)
    zit achter een apart admin-token.
    De hele webapp zit achter een **login met userid + wachtwoord** (Auth.js; e-mail verplicht/uniek

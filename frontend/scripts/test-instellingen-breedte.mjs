@@ -217,12 +217,12 @@ async function openVenster(page) {
 const bevindingen = [];
 try {
   if (afdruk) mkdirSync(afdruk, { recursive: true });
-  for (const vorm of ["venster", "pagina"]) {
+  for (const vorm of ["venster", "link"]) {
     for (const breedte of BREEDTES) {
       if (alleen && !`${vorm} ${breedte}`.includes(alleen) && !SCHERMEN.some((s) => s.naam.includes(alleen))) continue;
       const { page, context, stand } = await open({ width: breedte, height: 844 });
       if (vorm === "venster") await openVenster(page);
-      else await page.goto(`${base}/instellingen/account`);
+      else await page.goto(`${base}/workbench?instellingen=account`);
       // Pas na de telbadge: die maakt de tabrij breder, en dan scrolt de rij terug naar de actieve tab.
       await page.getByRole("tab", { name: "Feedback" }).getByText("12", { exact: true }).waitFor();
       for (const scherm of SCHERMEN) {
