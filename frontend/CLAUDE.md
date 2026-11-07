@@ -137,7 +137,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   shrink-0`); actierijen lopen via `components/ui/ButtonRow.tsx` (mobiel gestapeld op volle breedte,
   vanaf `sm:` naast elkaar). Staat een knop buiten een `ButtonRow`, geef hem dan
   `className="w-full sm:w-auto"` en laat de container op mobiel stapelen (`flex flex-col …
-  sm:flex-row`). Geen vaste of `flex-wrap`-knoprijen die op een smal scherm overlopen.
+  sm:flex-row`). *Bespreek met Lex* (`VraagLexKnop primair`) doet dat zelf. Geen vaste of `flex-wrap`-knoprijen die op een smal scherm overlopen.
 - **Een paneel van de instellingen breekt op zijn eigen ruimte, niet op `sm:`** (7 nov 2026). Het staat naast de
   tabkolom, dus op een venster van 640 px is de kolom maar 325 px breed en is `sm:` al waar. Rijen lopen via
   `components/ui/SettingRow`: `SettingRow` (`veld` voor een invoerveld), `FormRij` en `FormKnoppen` (velden en knoppen op
@@ -170,11 +170,16 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
       wrappen; past hij niet, dan scrolt hij horizontaal, net als de tabs. Geen eigen `flex flex-wrap` om chips heen;
       `app/uitlijning.test.ts` bewaakt het.
     - **Suggestie**: `Suggestie`, de vorm van de voorbeeldvragen in de lege werkplek; `klein` boven het invoerveld.
+      Meer dan één onder elkaar staat in **`SuggestieRij`** (7 nov 2026): op een telefoon elk over de volle breedte, met de
+      tekst links; vanaf `sm:` gecentreerd naast elkaar. Boven het invoerveld is het één rij die zijwaarts schuift.
     - De JAS-klasse op de reviewkaart is een knop in de kleur van de klasse: een rechthoek met ▾ en een hover-rand.
     - `app/knoppen.test.ts` bewaakt het voor de hele app: een element met `focus-ring` (elke knop en link) is nooit
       `rounded-full`. Alleen de verstuurknop van het invoerveld is rond, als hoofdactie van het gesprek zoals bij Claude.
       Ook een sluitknop (✕) of icoonknop is een afgerond vierkant (`rounded-knop`). Een teller, voortgangsbalk of
       avatar mag rond blijven: die is niet klikbaar;
+  - **de actierij van een overzichtskaart is `KaartActies`** (7 nov 2026): *Openen* (`knopKlasse("secondary", "sm")`)
+    en `VerwijderKnop maat="sm"` als twee gelijke helften. `VerwijderKnop` deelt vorm en maat met `Button` (`knopVorm`):
+    `xs` tussen de kleine gereedschappen van een paneelkop, `sm` op een kaart. `app/uitlijning.test.ts` bewaakt het;
   - **kaarten zijn één familie**: `rounded-kaart`, een lichte rand en `shadow-zacht`; klikbaar met `KLIK_KAART`
     (`components/ui/Pagina`: een lichte lift, een lintblauwe rand en `shadow-kaart` bij hover, zoals het
     artefactkaartje in het gesprek) – de tellers, de artefactkaarten en de drie overzichtskaarten;
@@ -228,7 +233,9 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   (aandacht-badge, JAS-badges, accentrand). Knoppen volgen de app: primair lintblauw (`bg-accent`),
   tweede keuze outline – geen volvlak statuskleuren.
 - **Lijsten zijn rijen met een scheidingslijn, geen stapel boxen** (F3a, `components/ui/Lijst.tsx`):
-  `Sectie` (kop, telling, toelichting, acties; geen rand), `Lijst` + `LijstRij` (titel, meta, status
+  `Sectie` (kop, telling, toelichting, acties; geen rand) – met dezelfde kop als `Kaart`, `BlokKop` (7 nov 2026: de
+  acties rechtsboven op elke breedte, want een kopactie is klein; een hoofdknop hoort in een `ButtonRow` eronder),
+  `Lijst` + `LijstRij` (titel, meta, status
   rechts, acties eronder), `Voorstel` (een voorstel van Lex: gele rand links mét de tekst "Voorstel van
   Lex"), `StatusLabel` (pil met tekst; `toon` groen/geel/neutraal alleen als hij een oordeel draagt) en
   `Regels` + `Regel` (naam en waarde, zoals de samenvatting op de vraagkaart). Het voorbeeld is de
@@ -754,7 +761,9 @@ sidebar blijft staan.
   2026: op een telefoon de filterknoppen met tellers op één scrollende regel, het zoekveld over de volle breedte en dan
   *Door mij bewerkt* met eventueel iets extra's; vanaf `sm:` de filterknoppen links en het zoekveld rechts op één
   regel, *Door mij bewerkt* eronder), en daaronder kaarten in twee kolommen (`AnnotatieKaart`, `WerkgebiedKaart`,
-  `BegripOverzichtKaart`) met de naam als link en onderaan *Openen* en *Verwijderen*. *Door mij bewerkt*
+  `BegripOverzichtKaart`) met de naam als link en onderaan *Openen* en *Verwijderen* in `KaartActies`
+  (`components/ui/Pagina`, 7 nov 2026): twee gelijke helften op elke breedte, even hoog, nooit een knop die met
+  `ml-auto` wegspringt. *Door mij bewerkt*
   komt overal uit de audit (de api, `mijn`).
 - **`/annotaties`** (`AnnotatiesClient`) heeft twee weergaven op één lijst: *te doen* (rood → geel →
   langst stil) en *alles* (per regeling). De stand staat in de URL (`?weergave=alles`, via `replace` –
