@@ -35,8 +35,8 @@ from .begrippen_pipeline import classificatie, kaart as kaart_mod, verdieping as
 from .begrippen_pipeline.keten import analyseer
 from .begrippen_pipeline.model import Aandacht, Kaart, ModelOordeel, Oordeel
 from .begrippen_run import manifest_uit, onderzoek_uit, voorstel
-from .reeks import _budget_poort
-from .wetsanalyse_api import WetsanalyseApi, WetsanalyseApiFout
+from .verbruik import boek, budget_poort
+from .wetsanalyse_api import WetsanalyseApiFout
 
 logger = logging.getLogger("graph_qa.begrippen_verdieping")
 
@@ -195,7 +195,7 @@ async def verdieping_kern(ctx: Context, werkgebied_id: str, bevestigd: int | Non
     klaar = {b["id"]: b for b in wv.get("batches") or []}
     budget_toegestaan = ctx.budget_toegestaan
     if budget_toegestaan is None and settings.legt_zelf_vast and ctx.user_id:
-        budget_toegestaan = _budget_poort(settings, ctx.user_id)
+        budget_toegestaan = budget_poort(settings, ctx.user_id)
     teller = {"n": len(klaar), "fout": 0, "gestopt": "", "nieuw": 0, "tokens": 0}
 
     async def batch(soort: str, ids: list[str], versie: str, reken: Callable[[Any], Any],
@@ -218,10 +218,10 @@ async def verdieping_kern(ctx: Context, werkgebied_id: str, bevestigd: int | Non
         except Exception:  # noqa: BLE001 – een fout in één batch stopt de rest niet
             logger.exception("verdieping: batch faalde", extra={"categorie": "technisch", "run_id": run_id})
             teller["fout"] += 1
-            await _boek(api, llm, model, gesprek_id, f"{run_id}.v{teller['n']}")
+            await boek(api, llm, model, gesprek_id, f"{run_id}.v{teller['n']}")
             teller["n"] += 1
             return None
-        tokens = await _boek(api, llm, model, gesprek_id, f"{run_id}.v{teller['n']}")
+        tokens = await boek(api, llm, model, gesprek_id, f"{run_id}.v{teller['n']}")
         teller["n"] += 1
         teller["tokens"] += tokens
         await api.zet_begrippen_batch(werkgebied_id, str(api_run["id"]), bid,
@@ -295,15 +295,3 @@ async def verdieping_kern(ctx: Context, werkgebied_id: str, bevestigd: int | Non
 def _anthropic(settings) -> Any:
     from .adapters.anthropic_llm import AnthropicLLM
     return AnthropicLLM(settings)
-
-
-async def _boek(api: WetsanalyseApi, llm: Any, model: str, gesprek_id: str, run_id: str) -> int:
-    """Boek het verbruik van één batch (best-effort, idempotent op `run_id`); geeft het totaal."""
-    meter = getattr(llm, "meter", None)
-    if meter is None or meter.totaal <= 0:
-        return 0
-    try:
-        await api.boek_verbruik(meter.als_dict(), model=model, gesprek_id=gesprek_id, run_id=run_id)
-    except Exception:  # noqa: BLE001 – boekhouding mag de batch niet laten mislukken
-        logger.warning("verdieping: verbruik niet geboekt", extra={"run_id": run_id}, exc_info=True)
-    return meter.totaal

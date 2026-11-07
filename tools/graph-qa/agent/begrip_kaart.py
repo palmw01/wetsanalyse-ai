@@ -250,8 +250,7 @@ async def kaart_stroom(werkgebied_id: str, begrip_id: str, api_run_id: str, run:
                        budget_toegestaan: Callable[[], Awaitable[bool]] | None = None,
                        api: WetsanalyseApi | None = None) -> AsyncIterator[dict[str, Any]]:
     """`graph`, `maak_llm`, `budget_toegestaan` en `api` zijn er voor tests."""
-    from .begrippen_verdieping import _boek
-    from .reeks import _budget_poort
+    from .verbruik import boek, budget_poort
 
     eigen_api = api is None
     api = api or WetsanalyseApi(settings, user_id)
@@ -285,7 +284,7 @@ async def kaart_stroom(werkgebied_id: str, begrip_id: str, api_run_id: str, run:
         model, llm, meting = "", None, {"llm_calls": 0}
         if actie in MODEL_ACTIES:
             if budget_toegestaan is None and settings.legt_zelf_vast and user_id:
-                budget_toegestaan = _budget_poort(settings, user_id)
+                budget_toegestaan = budget_poort(settings, user_id)
             if budget_toegestaan is not None and not await budget_toegestaan():
                 await mislukt("Het tokenbudget is op.")
                 yield {"type": "error", "message": "Je tokenbudget voor deze periode is op.", "soort": "budget"}
@@ -308,13 +307,13 @@ async def kaart_stroom(werkgebied_id: str, begrip_id: str, api_run_id: str, run:
         except Exception as fout:  # noqa: BLE001 – een storing is een mislukte run, geen crash
             logger.exception("kaartrun mislukt", extra={"categorie": "technisch", "actie": actie})
             if llm is not None:
-                await _boek(api, llm, model, "", f"kaart-{api_run_id}")
+                await boek(api, llm, model, "", f"kaart-{api_run_id}")
             await mislukt(f"{NAAM.get(actie, actie)} faalde: {type(fout).__name__}")
             yield {"type": "error", "message": ("De graaf is mogelijk niet bereikbaar." if llm is None else
                                                 "Het model gaf geen antwoord; probeer het opnieuw."),
                    "soort": "graaf" if llm is None else "model"}
             return
-        tokens = await _boek(api, llm, model, "", f"kaart-{api_run_id}") if llm is not None else 0
+        tokens = await boek(api, llm, model, "", f"kaart-{api_run_id}") if llm is not None else 0
         if gestopt():
             await mislukt("Gestopt op verzoek.")
             yield {"type": "done"}

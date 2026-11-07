@@ -21,6 +21,7 @@ import json
 import logging
 from typing import Any
 
+from ..llm_stap import Rol, lijst, vraag_tool
 from .model import Manifest, ModelOordeel, Oordeel, Vraag
 from .uitleg import verklaringen
 
@@ -113,18 +114,6 @@ def promptversie() -> str:
     return hashlib.sha256(vast.encode()).hexdigest()[:12]
 
 
-def lees(resp: Any) -> list[dict[str, Any]] | None:
-    for blok in getattr(resp, "content", []) or []:
-        if getattr(blok, "type", "") == "tool_use" and getattr(blok, "name", "") == TOOL:
-            try:
-                invoer = blok.input if isinstance(blok.input, dict) else json.loads(blok.input)
-            except (TypeError, ValueError):
-                return None
-            items = invoer.get("oordelen") if isinstance(invoer, dict) else None
-            return items if isinstance(items, list) else None
-    return None
-
-
 def valideer(vragen: list[Vraag], items: list[dict[str, Any]] | None) -> list[ModelOordeel]:
     """Per vraag precies één oordeel; alles wat niet klopt wordt onbeslist met een reden."""
     if items is None:
@@ -159,16 +148,8 @@ def vergelijk(llm: Any, model: str, manifest: Manifest, vragen: list[Vraag],
     verzoek = dict(model=model, max_tokens=min(8000, 1024 + 200 * len(vragen)), system=SYSTEEM,
                    tools=[toolschema(vragen)], tool_choice={"type": "auto"},
                    messages=[{"role": "user", "content": userprompt(manifest, vragen)}])
-    items = None
-    for _poging in range(2):
-        resp = llm.create(**verzoek)
-        if meting is not None:
-            meting["llm_calls"] = meting.get("llm_calls", 0) + 1
-        items = lees(resp)
-        if items is not None:
-            break
-        logger.info("begrippen-classifier gaf geen tool-aanroep", extra={"stop_reden": getattr(resp, "stop_reason", "")})
-    return valideer(vragen, items)
+    uit = vraag_tool(llm, Rol.BEGRIP_VERGELIJK, verzoek=verzoek, pogingen=2, haal=lijst("oordelen"), meting=meting)
+    return valideer(vragen, uit.waarde)
 
 
 def batches(vragen: list[Vraag], grootte: int = BATCH) -> list[list[Vraag]]:

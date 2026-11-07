@@ -165,6 +165,14 @@ bruikbaar is.
   stil waardeloos. Onder `_MIN_CACHE_TEKENS` gaat er geen cache-punt op. Weigert de provider
   `cache_control` (op Foundry een beta-functie), dan zet de adapter zichzelf uit en herhaalt de call
   zonder – caching mag nooit "de dienst ligt plat" kosten. Knop: `PROMPT_CACHING=false`.
+- **`llm_stap.py`** – de gedeelde modelstap (H5). `aanroep(llm, rol, **verzoek)` geeft de kwargs ongewijzigd door,
+  geeft een `Stopreden` terug, logt één `model_aanroep` (rol, model, stopreden, duur, gebruik; geen inhoud) en eist dat
+  de systeemprompt de methodetekst van de rol draagt (`Rol.methoderol`, of `methoderol=` voor de specialist van de
+  antwoordlus). `stroom` doet hetzelfde voor de streamende antwoordlus en logt bij `final_message()`. Supervisor,
+  antwoordlus, ophaal-agent en de toelichting van de bepalingsroute lopen erlangs. `vraag_tool` is de vorm voor één strict tool:
+  `pogingen` verplicht, `haal` bepaalt wat bruikbaar is, de tellers houden hun namen (`llm_calls`, `review_calls`,
+  `afgekapt`). Na `refusal` of `max_tokens` geen tweede poging (`GEEN_HERHALING`, H5d). Geen eigen retry (dat doet de SDK) en geen except. Een nieuwe modelaanroep gaat hierlangs, met een
+  eigen `Rol` en een scenario in `tests/test_modelverzoeken.py`: dat legt elk verzoek byte voor byte vast.
 - **`adapters/graphdb_graph.py`** – `make_graph(settings)` → `MCPClient`; roept `require_graph()`.
 - **`mcp_client.py`** – synchrone MCP-client (Streamable HTTP): `sparql()` via `sparql_query`,
   `semantic_search()` via `similarity_search`, één persistente `httpx.Client`. `_reject_updates`
@@ -747,7 +755,7 @@ endpoint `/v1/kaart-runs` is met F3e vervallen.
   aanwijst, een `context` (de toelichting, `skos:scopeNote`); voorbeelden zijn altijd geel en zonder
   bronanker, met een signaal zonder tegenvoorbeeld, en het *waarom* van Lex staat als `motivatie` bij
   het voorstel, niet bij het begrip (spoor I1).
-- **Budget** vóór een model-actie (`reeks._budget_poort`); het verbruik op `kaart-<run>`, ook bij een fout.
+- **Budget** vóór een model-actie (`verbruik.budget_poort`); het verbruik op `kaart-<run>`, ook bij een fout.
 - **Codes**: de aandachtspunten van deze acties staan in `kaartacties.TEKST`, los van `toetsen.TEKST`
   (de werkplek leest die laatste letterlijk mee; een nieuwe code daar breekt de frontend-drift-test).
 - **Contract**: `tests/test_begrip_kaart.py` leest `api/app/begrip_voorstel_contracts.py` uit de bron.

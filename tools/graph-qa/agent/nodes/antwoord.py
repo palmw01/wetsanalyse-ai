@@ -30,6 +30,8 @@ from ..regelingnamen import met_regelingnamen
 from ..resultaat import is_fout
 from ..specialists import DEFAULT as DEFAULT_SPECIALIST
 from ..specialists import get as get_specialist
+from ..specialists import methoderol as specialist_methoderol
+from ..llm_stap import Rol, stroom
 from ..state import State
 from ..tools import anthropic_schemas
 from ..tool_execution import execute_tool
@@ -92,7 +94,8 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
             **venster_telling(historie, venster),
             "register_items": len(state.get("bronregister") or []),
         })
-    with b.llm.stream(
+    with stroom(
+        b.llm, Rol.OPHAAL if spec_naam == "retrieval" else Rol.ANTWOORD, methoderol=specialist_methoderol(spec_naam),
         # Deze node draait twee verschillende rollen: de OPHAAL-agent (annotatieroute – zoeken
         # en ophalen) en de QA-specialisten (die het antwoord zelf schrijven). Alleen de eerste
         # heeft een eigen modelknop.

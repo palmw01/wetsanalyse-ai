@@ -28,7 +28,8 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any
 
 from .agents import Context, Uitkomst, geweigerd
-from .reeks import _budget_poort, beurt_fabriek, reeks_stroom
+from .reeks import beurt_fabriek, reeks_stroom
+from .verbruik import budget_poort
 from .wetsanalyse_api import GesprekVerdwenen, WetsanalyseApi, WetsanalyseApiFout
 
 logger = logging.getLogger("graph_qa.werkgebied_annotatie")
@@ -300,7 +301,7 @@ async def werkgebied_annotatie_beurt(
         else:
             ouder = {"bron_iri": f"urn:wa:werkgebied:{werkgebied_id}:deelvragen", "label": f"deelvragen van {naam}"}
         if budget_toegestaan is None and settings.legt_zelf_vast and user_id:
-            budget_toegestaan = _budget_poort(settings, user_id)
+            budget_toegestaan = budget_poort(settings, user_id)
         beurt = beurt_fabriek(run, gesprek_id=request.conversation_id, hergebruik="auto", totaal=len(doelen),
                               ouder=ouder["label"], settings=settings, user_id=user_id,
                               graph=graph, llm=llm, annotaties=annotaties)

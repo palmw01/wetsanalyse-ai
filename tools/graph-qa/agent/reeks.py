@@ -27,6 +27,7 @@ from typing import Any
 from bronmodel import BronFout, gedeelde_bepaling, resolve
 
 from .agent_common import run_sync
+from .verbruik import budget_poort
 
 logger = logging.getLogger("graph_qa.reeks")
 
@@ -157,7 +158,7 @@ async def reeks_run(
             controle.close()
 
     if budget_toegestaan is None and settings.legt_zelf_vast and user_id:
-        budget_toegestaan = _budget_poort(settings, user_id)
+        budget_toegestaan = budget_poort(settings, user_id)
 
     beurt = beurt_fabriek(run, gesprek_id=request.conversation_id, hergebruik=request.hergebruik,
                           totaal=len(doelen), ouder=ouder.get("label", ""), settings=settings,
@@ -195,24 +196,6 @@ def beurt_fabriek(run, *, gesprek_id: str | None, hergebruik: str, totaal: int, 
                                     reeks={"run_id": run_id, "index": index, "totaal": totaal, "ouder": ouder})
         return gemeten(uitgevoerd, meter=meter, run=deel, gesprek_id=gesprek_id or "", model=settings.llm_model)
     return beurt
-
-
-def _budget_poort(settings, user_id: str) -> Callable[[], Awaitable[bool]]:
-    """Dezelfde poort als vóór een run (`api/main._budget_check`), maar dan vóór elk volgend
-    onderdeel. Fail-open, net als daar: een haperende boekhouding legt het werk niet stil."""
-    from .wetsanalyse_api import WetsanalyseApi
-
-    async def toegestaan() -> bool:
-        api = WetsanalyseApi(settings, user_id)
-        try:
-            ok, _stand = await api.budget_toegestaan()
-            return bool(ok)
-        except Exception:  # noqa: BLE001
-            logger.warning("reeks: budget niet te controleren", exc_info=True)
-            return True
-        finally:
-            await api.aclose()
-    return toegestaan
 
 
 def weigering(fout: BronFout | str) -> list[dict[str, Any]]:

@@ -25,7 +25,7 @@ from ..agents import register
 from ..agents.uitvoering import draai
 from ..narratie import _stap
 from ..state import State
-from .context import Bouw
+from .context import Bouw, met_api
 
 logger = logging.getLogger("graph_qa.agent_taak")
 
@@ -33,30 +33,19 @@ STORING = "Dat lukte nu niet: de wetsanalyse-api of de graaf haperde. Probeer he
 ZONDER_API = "Zonder koppeling met de wetsanalyse-api kan ik in een werkgebied niets voorstellen of bewaren."
 
 
-def _maak_api(b: Bouw, user_id: str) -> Any:
-    if b.agent_api is not None:
-        return b.agent_api(b.settings, user_id)
-    from ..wetsanalyse_api import WetsanalyseApi
-    return WetsanalyseApi(b.settings, user_id)
-
-
 async def _voer_uit(b: Bouw, state: State, agent: str, invoer: Any, stuur) -> Uitkomst:
     """Op de event loop van de beurt: de api-client hoort bij deze loop."""
-    api = _maak_api(b, state.get("user_id", ""))
-    ctx = Context(api=api, settings=b.settings, user_id=state.get("user_id", ""), run_id=state.get("run_id", ""),
-                  gesprek_id=state.get("gesprek_id", ""), graph=b.graph, llm=b.llm,
-                  melding=lambda bericht: _stap(stuur, "Lex", bericht),
-                  gestopt=lambda: bool(b.stop_check and b.stop_check()))
-    try:
-        return await register.voer_uit(agent, invoer, ctx)
-    except Exception:  # noqa: BLE001 – een storing is een zin in het gesprek, de oorzaak staat in het log
-        logger.exception("agent-taak mislukt", extra={"categorie": "technisch", "agent": agent,
-                                                      "taak": str(getattr(invoer, "taak", ""))})
-        return fout(str(getattr(invoer, "taak", "")), STORING)
-    finally:
-        aclose = getattr(api, "aclose", None)
-        if aclose is not None:
-            await aclose()
+    async with met_api(b, state.get("user_id", "")) as api:
+        ctx = Context(api=api, settings=b.settings, user_id=state.get("user_id", ""), run_id=state.get("run_id", ""),
+                      gesprek_id=state.get("gesprek_id", ""), graph=b.graph, llm=b.llm,
+                      melding=lambda bericht: _stap(stuur, "Lex", bericht),
+                      gestopt=lambda: bool(b.stop_check and b.stop_check()))
+        try:
+            return await register.voer_uit(agent, invoer, ctx)
+        except Exception:  # noqa: BLE001 – een storing is een zin in het gesprek, de oorzaak staat in het log
+            logger.exception("agent-taak mislukt", extra={"categorie": "technisch", "agent": agent,
+                                                          "taak": str(getattr(invoer, "taak", ""))})
+            return fout(str(getattr(invoer, "taak", "")), STORING)
 
 
 def agent_taak_node(b: Bouw, state: State) -> dict[str, Any]:

@@ -27,6 +27,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
+from ..llm_stap import Rol, vraag_tool
 from . import betekenis, definities, fragmenten as fragmenten_mod, toetsen
 from .classificatie import _in_bron
 from .model import Bron, Fragment, Herkomst, Kaart, Manifest, Onderzoek
@@ -194,31 +195,12 @@ def fragmentblok(frs: list[Fragment]) -> list[str]:
     return ["FRAGMENTEN"] + [f'  [{fr.id}] "{fr.tekst}"' for fr in frs]
 
 
-def lees(resp: Any, tool: str) -> dict[str, Any] | None:
-    for blok in getattr(resp, "content", []) or []:
-        if getattr(blok, "type", "") == "tool_use" and getattr(blok, "name", "") == tool:
-            try:
-                invoer = blok.input if isinstance(blok.input, dict) else json.loads(blok.input)
-            except (TypeError, ValueError):
-                return None
-            return invoer if isinstance(invoer, dict) else None
-    return None
-
-
 def _vraag(llm: Any, model: str, systeem: str, prompt: str, schema: dict[str, Any], meting: dict[str, int] | None,
            max_tokens: int = 2000) -> dict[str, Any] | None:
     """Eén modelaanroep (plus hooguit één nieuwe poging zonder tool-aanroep)."""
     verzoek = dict(model=model, max_tokens=max_tokens, system=systeem, tools=[schema], tool_choice={"type": "auto"},
                    messages=[{"role": "user", "content": prompt}])
-    for _poging in range(2):
-        resp = llm.create(**verzoek)
-        if meting is not None:
-            meting["llm_calls"] = meting.get("llm_calls", 0) + 1
-        if (uit := lees(resp, schema["name"])) is not None:
-            return uit
-        logger.info("kaartactie: geen tool-aanroep", extra={"tool": schema["name"],
-                                                             "stop_reden": getattr(resp, "stop_reason", "")})
-    return None
+    return vraag_tool(llm, Rol.KAARTACTIE, verzoek=verzoek, pogingen=2, meting=meting).waarde
 
 
 def _motivatie(item: dict[str, Any]) -> str:
