@@ -294,6 +294,7 @@ async def answer_stream(
         # vraag in dezelfde thread het blok en de bronnen van de vorige.
         "overzicht_route": False,
         "overzicht": {},
+        "bepalingsvraag": {},
         "antwoord": {},
         "modus": modus,
         "context": context.model_dump() if hasattr(context, "model_dump") else (context or {}),

@@ -36,6 +36,7 @@ ankerlogica die de api en de agent delen staat in `packages/bronmodel` (`wetsana
 | `nodes/annotatie.py` | annoteer (voorbereiding + `jas_pipeline.keten.analyseer`) en emit |
 | `nodes/annotatie_lezen.py` | de leesroute: eerst zoeken in de opgeslagen annotaties, dan formuleren |
 | `nodes/overzicht.py` | de overzichtsroute: overzicht en tekst uit de graaf, zonder model |
+| `nodes/bepaling.py` | de bepalingsroute (ADR-010, laag 2): de tekst van een bepaling uit `bepaling_workflow`, zonder toollus |
 | `nodes/werkgebied.py` | de werkgebied-worker: één stap van het samenstellen van een werkgebied (activiteit 1) |
 | `nodes/agent_taak.py` | één taak van een agent op een werkgebied (deelvragen, begrippen, het werkgebied annoteren; F3c) |
 | `nodes/context.py` | `Bouw` – wat een node buiten zijn state om nodig heeft |
@@ -50,6 +51,7 @@ supervisor ─┬─ antwoord-worker:  agent ⇄ tools → verify → (correct) 
             ├─ leesroute:        annotaties_zoeken → agent ⇄ tools → verify → finalize
             ├─ begrippen lezen:  begrippen_zoeken → agent ⇄ tools → verify → finalize
             ├─ overzichtsroute:  overzicht_bouwen → verify → finalize   (geen model; bij een bouwfout → agent)
+            ├─ bepalingsroute:   bepaling_lezen → verify → finalize     (tekst uit code, één aanroep voor de toelichting; anders → agent)
             ├─ werkgebied-worker: werkgebied_intake → einde              (één stap van het samenstellen)
             ├─ agents:           agent_taak → einde                        (deelvragen, begrippen; F3c)
             └─ afwijzen (geen wetgevingsvraag)
@@ -120,7 +122,8 @@ krimpt nooit** – `berichten.beurt_start` – anders leest het model zijn verse
 "ingekort, vraag opnieuw op" en zoekt het in een lus; de opslagrem `berichten.MAX_HISTORIE_CHARS` hoort ruim daarboven te
 liggen, `Settings.controleer_historie_grens` waarschuwt). `agent_node` geeft daarom de vraag mee aan
 `_trim_messages`: zonder telt een correctiebericht als begin van de beurt, en krimpt de brontekst die het model
-moet herstellen. **Een `tool_use` zonder `tool_result` gaat niet naar het model** (`_schoon_messages`): de
+moet herstellen. Hoe vaak er gesprek uit het venster valt, meet de logregel `venster` (`berichten.venster_telling`,
+één per beurt; zie `docs/observability.md`) – eerst meten, dan pas een index, samenvatting of ruimer venster. **Een `tool_use` zonder `tool_result` gaat niet naar het model** (`_schoon_messages`): de
 checkpointer bewaart de aanroep vóór `tools_node` draait, dus stoppen, een crash of de stappenlimiet laat hem open
 staan, en Anthropic weigert dan elke volgende beurt. Hij valt weg bij elke beurt, dus ook bestaande gesprekken
 herstellen; `tests/test_gesprek_blijft_bruikbaar.py` breekt een beurt op elke nodegrens af. De annotatie-worker laat een korte
@@ -357,6 +360,9 @@ kan opnieuw aanhaken. Regels die je niet mag breken:
   elkaar in dezelfde checkpointer-thread. De controle geldt over gebruikers heen.
 - **Een run heeft een eigenaar.** `X-User-Id` (door de BFF uit de sessie gezet) bepaalt wie hem mag
   volgen en stoppen; andermans run geeft 404. Eén identiteitsbron: de header, niet de body.
+  `GET /v1/runs?actief=true` (`RunStore.voor_gebruiker`, E6) geeft alleen runs met precies die gebruiker, lopend of
+  binnen `RECENT_S` geëindigd, als `Run.stand()` – zonder vraag of events; een lege header krijgt niets. Een lopende run
+  zonder hartslag wordt daar ook verweesd verklaard, anders toont de sidebar "bezig" bij een beurt die nergens draait.
 - **Cappen is klassebewust.** Alleen `VLUCHTIGE_TYPES` (`token`/`reason`/`status`) mogen sneuvelen;
   er gaat dan een `gat`-event voorop.
 - **Stoppen is een vlag, geen `task.cancel()`.** Elke node is gewikkeld in `stopbaar()`
@@ -430,7 +436,10 @@ markeringen op, dan meldt hij dat ze niet zijn vastgelegd.
 > elk gebruikersgesprek. Vandaar `Settings.require_api`: kan graph-qa schrijven, dan weigert hij te
 > starten zonder eigen `QA_API_TOKEN`. De BFF vult `user_id` uit de sessie – nooit uit de browser-body.
 
-**Tokenverbruik reist niet als event.** `AnthropicLLM` telt elk `usage`-blok op in een `Verbruiksmeter`
+**Tokenverbruik wordt niet via een event geboekt.** Wie meekijkt krijgt het wel te zien: vlak vóór `done` gaat
+een `meting`-event mee met dezelfde cijfers als de logregel `beurt_meting`, plus het verbruik en de duur per
+modelaanroep (`Verbruiksmeter.aanroepen`, hoogstens `MAX_AANROEPEN`). Alleen de run-events, niet `/v1/chat`;
+de werkplek negeert het. Het boeken zelf blijft zoals hieronder. `AnthropicLLM` telt elk `usage`-blok op in een `Verbruiksmeter`
 (`agent/models.py`, met een lock: takken kunnen parallel lopen). De aanroeper geeft dezelfde meter aan
 `answer_stream` én `voer_beurt_uit`; de driver boekt hem in een `finally` (`POST /v1/verbruik`,
 idempotent op `run_id`), zodat ook een mislukte of gestopte beurt telt. Een mislukte boeking is stil
@@ -1424,12 +1433,21 @@ cd tools/graph-qa && .venv/bin/python eval/run_eval.py --annotatie             #
 cd tools/graph-qa && .venv/bin/python eval/run_eval.py --gesprek --offline     # gesprekken-harnas
 cd tools/graph-qa && .venv/bin/python eval/run_eval.py --gesprek               # live (kost geld)
 cd tools/graph-qa && .venv/bin/python eval/run_eval.py --retrieval-smoke       # live, alleen de graaf
+cd tools/graph-qa && .venv/bin/python eval/run_eval.py --herscoor run.jsonl    # bewaarde run opnieuw scoren, gratis
 ```
 
 - **`tests/fakes.py`** levert `FakeLLM` / `FakeGraph` / `make_settings`. `FakeLLM` speelt een vaste reeks
   Anthropic-responses af via `create()` én `stream()` (gedeelde index); bouw multi-turn-scenario's met
   `response([text_block(...), tool_block(...)], stop_reason)`. `make_settings` zet de checkpointer
   in-memory en `CLASSIFIER_PARALLEL` op 1.
+- **Vraagtype, bewaren en herscoren.** Elke case in `eval/golden.jsonl` en elke beurt in `eval/golden_gesprek.jsonl`
+  draagt een `vraagtype` uit de vaste lijst in `eval/vraagtypen.py` (een gesprek mag een default geven; een
+  onbekend of ontbrekend type laat `tests/test_eval_kwaliteit.py` falen). Het rapport toont per type aantal,
+  slagingspercentage en toonovertredingen. `volgorde` en `sjabloon` in een case tellen mee voor slagen; de toon
+  (`eval/kwaliteit.py`: emoji, koppen, u-vorm, interne termen, lange zinnen in de lopende tekst) bewust niet.
+  `--bewaar run.jsonl` schrijft per case/beurt de events die de scorers lezen, `--herscoor run.jsonl` scoort ze
+  opnieuw zonder agent of model (`eval/opname.py`). Een nieuwe scorer leest dus alleen uit de opname, anders is
+  hij niet te herscoren.
 - **De retrieval-smoke heeft bewust géén offline-variant.** Hij raakt elke graaftool één keer tegen de
   échte graaf en meldt een lege uitkomst waar data hoort – precies wat een `FakeGraph` niet kan meten.
   `_wacht_op_graaf` stopt bij drie identieke fouten in plaats van het wachtbudget leeg te draaien: een

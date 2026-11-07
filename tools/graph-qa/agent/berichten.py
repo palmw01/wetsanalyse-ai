@@ -172,6 +172,35 @@ def _trim_messages(messages: list[dict[str, Any]], max_chars: int, vraag: str = 
     return messages[min(start, beurt_start(messages, vraag)):] if vraag else messages[start:]
 
 
+def _is_vraag(m: dict[str, Any]) -> bool:
+    """Een platte user-beurt die geen correctiebericht is: een vraag van de jurist."""
+    c = m.get("content")
+    return _is_plain_user(m) and not (isinstance(c, str) and c.startswith(CORRECTIE))
+
+
+def venster_telling(origineel: list[dict[str, Any]], venster: list[dict[str, Any]]) -> dict[str, int]:
+    """Wat `_trim_messages` van de historie overliet, als tellingen zonder inhoud (E6-C1).
+
+    `origineel` is de historie vóór het trimmen, `venster` wat naar het model gaat. Een beurt is een
+    vraag van de jurist (geen correctie); `ingekort` telt de tool-resultaten met de krimpnoot. Vallen er
+    beurten weg, dan is `beurten_venster < beurten_historie`."""
+    ingekort = sum(
+        1
+        for m in venster
+        if isinstance(m.get("content"), list)
+        for b in m["content"]
+        if isinstance(b, dict) and b.get("type") == "tool_result"
+        and isinstance(b.get("content"), str) and b["content"].endswith(_KRIMP_NOOT)
+    )
+    return {
+        "historie_tekens": sum(_msg_lengte(m) for m in origineel),
+        "venster_tekens": sum(_msg_lengte(m) for m in venster),
+        "beurten_historie": sum(_is_vraag(m) for m in origineel),
+        "beurten_venster": sum(_is_vraag(m) for m in venster),
+        "ingekort": ingekort,
+    }
+
+
 # Bovengrens op wat er in de CHECKPOINTER blijft staan. `max_history_chars` begrenst alleen wat er
 # per beurt naar het model gaat; de opgeslagen historie groeide onbeperkt door, inclusief elk
 # tool-resultaat van 8000 tekens. Bij een lang gesprek betekent dat een steeds tragere en dikkere

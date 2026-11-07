@@ -12,6 +12,7 @@ from typing import Any
 
 from bronmodel.antwoord import Annotaties, Antwoord, Leemte, Markering, Toelichting
 
+from ..namespace import SEP, vindplaats_patroon
 from ..tools.annotatie_tools import (ANNOTATIE_TOOL_NAMEN, ANNOTATIES_NIET_TE_RAADPLEGEN, ANNOTATIES_ONVOLLEDIG,
                                      annotatie_storing, uitkomsten)
 from .vullen import Onvulbaar, Trace, vindplaats_van
@@ -107,6 +108,34 @@ def _zonder_ander_aantal(tekst: str, totaal: int) -> str:
     return " ".join(z for z in _ZIN.split(tekst) if all(int(n) == totaal for n in _AANTAL.findall(z))).strip()
 
 
+_IRI_IN_TEKST = re.compile(r"`?(" + vindplaats_patroon() + r")`?")
+
+
+def _bekende_bepalingen(paginas: list[dict[str, Any]]) -> set[str]:
+    """De bepalingen waar de treffers op staan, volgens de api: daar mag de toelichting naar wijzen."""
+    bekend: set[str] = set()
+    for data in paginas:
+        for rij in [*(data.get("resultaten") or []), *(data.get("groepen") or [])]:
+            if isinstance(rij, dict):
+                bekend.update(v for k in ("bron_iri", "eigenaar_iri") if isinstance(v := rij.get(k), str) and v)
+    return bekend
+
+
+def _leesbare_vindplaatsen(tekst: str, bekend: set[str]) -> str:
+    """De toelichting met een vindplaats in woorden waar het model een IRI schreef ("`urn:bwb:…:artikel:9`" → "Artikel 9").
+
+    Een annotatie is geen bron, dus `verify` vindt zo'n IRI nergens in de trace en start een correctieronde, met
+    *ongegrond* als uitkomst (acceptatie 7 nov 2026: 131k tokens tegen 86k zonder). Wijst de IRI een bepaling aan waar
+    een treffer op staat, of een bepaling daarboven, dan komt hij uit de api en is het alleen de schrijfwijze. Een IRI
+    die de treffers niet dragen blijft staan: die moet de controle wél zien."""
+    def vervang(m: re.Match[str]) -> str:
+        iri = m.group(1).rstrip(".,;:")
+        if any(b == iri or b.startswith(iri + SEP) for b in bekend):
+            return vindplaats_van(iri).label + m.group(1)[len(iri):]
+        return m.group(0)
+    return _IRI_IN_TEKST.sub(vervang, tekst)
+
+
 def _alleen(tekst: str) -> Antwoord:
     return Antwoord(sjabloon="annotaties", blokken=[Leemte(tekst=tekst)])
 
@@ -129,6 +158,7 @@ def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
         tekst = f"Geen annotaties gevonden met deze zoekopdracht{f' ({filters})' if filters else ''}. Dat zegt niet dat ze er niet zijn."
         return _alleen(tekst if volledig else f"{tekst} {ANNOTATIES_ONVOLLEDIG}")
     blokken: list[Any] = [Annotaties(items=items, totaal=totaal, volledig=volledig)]
-    if toelichting := _zonder_ander_aantal(str(invoer.get("toelichting") or "").strip(), totaal):
+    eigen = _leesbare_vindplaatsen(str(invoer.get("toelichting") or "").strip(), _bekende_bepalingen(paginas))
+    if toelichting := _zonder_ander_aantal(eigen, totaal):
         blokken.append(Toelichting(tekst=toelichting))
     return Antwoord(sjabloon="annotaties", blokken=blokken)

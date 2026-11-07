@@ -48,6 +48,7 @@ from .nodes.sjabloon import route_na_sjabloon, sjabloon_node
 from .nodes.context import Bouw
 from .nodes.annotatie_lezen import zoek_annotaties_node
 from .nodes.begrippen_lezen import zoek_begrippen_node
+from .nodes.bepaling import bepaling_node, route_na_bepaling
 from .nodes.overzicht import bouw_overzicht_node, route_na_overzicht
 from .nodes.bronselectie import bronselectie_node
 from .nodes.werkgebied import werkgebied_intake_node
@@ -271,6 +272,10 @@ def build_graph(
     add("overzicht_bouwen", functools.partial(bouw_overzicht_node, b))
     g.add_conditional_edges("overzicht_bouwen", functools.partial(route_na_overzicht, b),
                             {"verify": "verify", "agent": "agent"})
+    # De tekst van een bepaling (ADR-010, laag 2): ophalen en vullen in code, dan de controle.
+    add("bepaling_lezen", functools.partial(bepaling_node, b))
+    g.add_conditional_edges("bepaling_lezen", functools.partial(route_na_bepaling, b),
+                            {"verify": "verify", "agent": "agent"})
 
     # Eén stap en klaar: het werkgebied samenstellen, de bronselectie, een agenttaak.
     add("werkgebied_intake", functools.partial(werkgebied_intake_node, b))
@@ -281,7 +286,7 @@ def build_graph(
     g.add_edge("agent_taak", END)
 
     ingangen = {naam: naam for naam in (
-        "agent", "annoteer", "annotaties_zoeken", "begrippen_zoeken", "overzicht_bouwen",
+        "agent", "annoteer", "annotaties_zoeken", "begrippen_zoeken", "overzicht_bouwen", "bepaling_lezen",
         "werkgebied_intake", "bronselectie", "agent_taak", "afwijzen")}
     g.add_conditional_edges("supervisor", functools.partial(_entry_node, b), ingangen)
     g.add_conditional_edges("advance", functools.partial(route_after_advance, b), {**ingangen, "einde": END})
