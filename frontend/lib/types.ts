@@ -663,36 +663,6 @@ export interface Bevestiging {
   werkvoorraad_id?: string;
 }
 
-/** Stand van één annotatie-eenheid (een lid, of een artikel zonder leden) in een werkgebied. */
-export type EenheidStatus = "nieuw" | "te_beoordelen" | "beoordeeld" | "zonder_markeringen" | "afgerond";
-
-export interface WerkvoorraadEenheid {
-  bron_iri: string;
-  /** Het pad onder de regeling: "Artikel 9, Lid 1". */
-  label: string;
-  regeling: string;
-  bwb_id: string;
-  stand: { status: EenheidStatus; voorstellen: number; te_beoordelen: number };
-  selecties: string[];
-}
-
-/** `GET /v1/werkgebieden/{id}/annotatie-werkvoorraad` (api `werkgebied_werkvoorraad.py`). */
-export interface AnnotatieWerkvoorraad {
-  werkgebied_id: string;
-  revisie: number;
-  naam: string;
-  selecties: { id: string; bron_iri: string; label: string; bereik: BronBereik; eenheden: number;
-    per_stand: Partial<Record<EenheidStatus, number>>; onbereikbaar: string | null }[];
-  eenheden: WerkvoorraadEenheid[];
-  te_annoteren: string[];
-  context_niet_meegenomen: number;
-  volledig: boolean;
-  open_punten: string[];
-  schatting: { per_bepaling: number; basis: number; totaal: number } | null;
-  schatting_toelichting: string;
-  budget: { resterend: number; budget: number; actief: boolean; geblokkeerd: boolean };
-}
-
 /** Het overzicht van een onderwerp ("welke artikelen gaan over invordering?"), door graph-qa
  *  deterministisch uit de graaf opgebouwd (`tools/graph-qa/agent/overzicht.py`). De werkplek toont
  *  het zoals het is: geen bereiken, geen samenvatting – elk nummer met zijn eigen vindplaats. */
@@ -1415,19 +1385,6 @@ export interface ConceptKaart {
   aandachtspunten: string[];
 }
 
-/** `GET …/verdieping`: wat het model nog moet doen voor de laatste klare run. */
-export interface VerdiepingWerkvoorraad {
-  run: BegrippenRun | null;
-  verdiept: boolean;
-  aantal: number;
-  vragen: string[];
-  kaarten: string[];
-  batches: { id: string; soort: "vraag" | "kaart"; ids: string[] }[];
-  schatting: { per_item: number; basis: number; totaal: number } | null;
-  schatting_toelichting?: string;
-  budget: { resterend: number; budget: number; actief: boolean; geblokkeerd: boolean } | null;
-}
-
 export interface Betekenisgroep {
   id: string;
   aandacht: "groen" | "geel";
@@ -1628,15 +1585,6 @@ export interface KaartVoorstellenAntwoord {
   runs: Partial<Record<KaartActie, KaartRun>>;
   schatting?: Partial<Record<KaartActie, { tokens: number; basis: number }>>;
   budget?: { resterend: number; budget: number; actief: boolean; geblokkeerd: boolean };
-}
-
-/** De 409 bij een verouderd voorstel: wat er stond, wat er nu staat, en wat Lex voorstelde. */
-export interface VoorstelVerouderd {
-  fout: "voorstel_verouderd";
-  toen: { definitie: string; definitie_herkomst: DefinitieHerkomst | null };
-  nu: { definitie: string; definitie_herkomst: DefinitieHerkomst | null };
-  voorstel: { definitie: string; definitie_herkomst: DefinitieHerkomst };
-  melding: string;
 }
 
 /** Eén versie van een artefact (api `artefact_versies`): de stand direct na een beurt van Lex, met haar plek tussen

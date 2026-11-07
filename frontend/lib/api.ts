@@ -1572,14 +1572,6 @@ export async function haalGroepen(id: string): Promise<GroepenAntwoord> {
   return json<GroepenAntwoord>(await fetch(wg(id, "groepen"), { cache: "no-store" }));
 }
 
-/** Eén begrip uit één of meer groepen: meer groepen is combineren, een deel van de leden splitsen. */
-export async function neemGroepenOver(
-  id: string,
-  overname: { groep_ids: string[]; naam: string; element_ids?: string[]; met_definitie?: boolean },
-): Promise<Begrip> {
-  return json<Begrip>(await fetch(wg(id, "groepen", "overnemen"), jsonInit("POST", overname)));
-}
-
 /** Akkoord op een voorstel (fase D): het begrip met beoordeelde koppelingen, geaccordeerd als de poort
  *  het toelaat – anders een concept, en `poort` noemt wat er openstaat. */
 export async function akkoordGroep(id: string, invoer: AkkoordInvoer): Promise<AkkoordAntwoord> {

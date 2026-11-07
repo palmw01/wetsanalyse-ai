@@ -1,24 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  LEGE_INHOUD, begripUitParam, metKoppelstand, filterBegrippen, gewijzigdeVelden, inhoudGewijzigd, isAlPrimair, isPoortFout, revisieZin,
+  LEGE_INHOUD, begripUitParam, metKoppelstand, filterBegrippen, revisieZin,
   sorteerKoppelingen, volledigeInhoud,
 } from "./begrippen";
 import type { Begrip, KoppelStand, Koppeling } from "./types";
 
-const inhoud = (over = {}) => ({ ...LEGE_INHOUD, naam: "Belastingschuldige", ...over });
-
-describe("inhoudGewijzigd", () => {
-  it("ziet een echte wijziging, en niets bij lege regels of een andere sleutelvolgorde", () => {
-    const oud = inhoud({ voorbeelden: [{ tekst: "a", oordeel: "wel" }], alternatieve_termen: ["schuldenaar"] });
-    expect(inhoudGewijzigd(oud, { ...oud, definitie: "Wie de belasting verschuldigd is." })).toBe(true);
-    expect(inhoudGewijzigd(oud, { ...oud, alternatieve_termen: ["schuldenaar", "  "] })).toBe(false);
-    expect(inhoudGewijzigd(oud, { ...oud, voorbeelden: [...oud.voorbeelden, { tekst: " ", oordeel: "niet" }] })).toBe(false);
-    expect(inhoudGewijzigd(oud, { ...oud, naam: " Belastingschuldige " })).toBe(false);
-    expect(gewijzigdeVelden(oud, { ...oud, context: "x", definitie_herkomst: "letterlijk" }))
-      .toEqual(["context", "definitie_herkomst"]);
-  });
-
+describe("volledigeInhoud", () => {
   it("vult een onvolledige inhoud van de api aan", () => {
     expect(volledigeInhoud({ naam: "X" }).voorbeelden).toEqual([]);
     // Spoor I1: wat een oud begrip nog meer droeg, valt weg.
@@ -26,7 +14,6 @@ describe("inhoudGewijzigd", () => {
       voorbeelden: [{ tekst: "a", oordeel: "wel", toelichting: "t" }] } as never);
     expect(Object.keys(oud).sort()).toEqual(Object.keys(LEGE_INHOUD).sort());
     expect(oud.voorbeelden).toEqual([{ tekst: "a", oordeel: "wel" }]);
-    expect(inhoudGewijzigd({ naam: "X" } as never, volledigeInhoud({ naam: "X" }))).toBe(false);
   });
 });
 
@@ -35,12 +22,6 @@ it("sorteert passages op rol, dan natuurlijk op vindplaats", () => {
     ({ id, rol, bewijs: { vindplaats, tekst: id } }) as unknown as Koppeling;
   expect(sorteerKoppelingen([k("c", "context", "A"), k("b", "duiding", "Artikel 10"), k("a", "duiding", "Artikel 9"),
     k("d", "definitie", "A")]).map((x) => x.id)).toEqual(["a", "b", "d", "c"]);
-});
-
-it("herkent de begripsfouten aan status en fout", () => {
-  expect(isAlPrimair({ status: 409, detail: "x", data: { fout: "al_primair" } })).toBe(true);
-  expect(isPoortFout({ status: 409, detail: "x", data: { fout: "poort", redenen: [] } })).toBe(true);
-  expect(isPoortFout({ status: 409, detail: "x", data: { fout: "al_primair" } })).toBe(false);
 });
 
 it("begripUitParam laat alleen een id door", () => {

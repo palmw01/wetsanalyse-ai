@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  AANDACHTSPUNT, aandachtspunten, aanpassingUit, akkoordLabel, akkoordVoor, enigeDefinitie, groepDefinitie,
+  AANDACHTSPUNT, aandachtspunten, aanpassingUit, akkoordLabel, akkoordVoor, groepDefinitie,
   groepenVanVraag, herkomstNaAanpassing, openVragen, overnameVoor, passageTekst, samenAkkoord,
 } from "./begripVoorstellen";
 import type { Betekenisgroep, ConceptKaart, GroepenAntwoord } from "./types";
@@ -28,15 +28,6 @@ describe("overnameVoor", () => {
     const o = overnameVoor([a, b], new Set(["a1", "a2", "b1", "zz"]), "Samen", true);
     expect([o.groep_ids, o.element_ids]).toEqual([["Ga", "Gb"], ["a1", "a2", "b1"]]);
   });
-});
-
-it("enigeDefinitie geeft er alleen één als er precies één is", () => {
-  const met = (id: string, d: string) => groep(id, ["x"], { voorstel: { naam: id, definitie: d, definitie_vindplaats: "art. 2" } });
-  const d1 = { tekst: "D1", vindplaats: "art. 2", herkomst: "letterlijk", fragmenten: [] };
-  expect(enigeDefinitie([met("a", "D1")])).toEqual(d1);
-  expect(enigeDefinitie([met("a", "D1"), met("b", "D1")])).toEqual(d1);
-  expect(enigeDefinitie([met("a", "D1"), met("b", "D2")])).toBeNull();
-  expect(enigeDefinitie([groep("c", ["y"])])).toBeNull();
 });
 
 it("groepenVanVraag zet alleen open groepen klaar", () => {
@@ -77,12 +68,6 @@ describe("groepDefinitie", () => {
     expect(groepDefinitie(groep("G2", ["a"], { voorstel: { naam: "a", definitie: "D" }, kaart: kaart() }))?.herkomst)
       .toBe("letterlijk");
     expect(groepDefinitie(groep("G3", ["a"]))).toBeNull();
-  });
-  it("combineren geeft geen definitie als twee groepen elk een andere hebben", () => {
-    const a = groep("A", ["a"], { kaart: kaart({ definitie: "X", herkomst: "samengesteld",
-      fragmenten: [{ id: "F1", bron_iri: "u", start: 0, eind: 1, tekst: "X" }] }) });
-    const b = groep("B", ["b"], { voorstel: { naam: "b", definitie: "X" } });
-    expect(enigeDefinitie([a, b])).toBeNull();      // zelfde tekst, andere herkomst: de analist kiest
   });
 });
 

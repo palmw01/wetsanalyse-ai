@@ -61,16 +61,6 @@ export const ROL_LABEL: Record<BronRol, string> = {
   context: "Contextbron",
 };
 
-export const ROL_UITLEG: Record<BronRol, string> = {
-  analyseren: "De elementen horen bij de werkvoorraad van dit werkgebied.",
-  context: "Ondersteunt de analyse, bijvoorbeeld met een definitie; de elementen tellen niet als werkvoorraad.",
-};
-
-export const BEREIK_LABEL: Record<BronBereik, string> = {
-  onderliggend: "met alles eronder",
-  node: "alleen deze bepaling",
-};
-
 /** Iemand anders wijzigde het werkgebied tussendoor (412 met `revisie_conflict`). */
 export function isRevisieConflict(e: unknown): boolean {
   return isApiError(e) && e.status === 412 && e.data?.fout === "revisie_conflict";
