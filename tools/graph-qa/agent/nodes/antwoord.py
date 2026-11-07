@@ -89,6 +89,8 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         # Historie begrenzen (tegen onbegrensde promptgroei in een lange sessie); state blijft heel.
         messages=_trim_messages(_schoon_messages(state["messages"]), b.settings.max_history_chars,
                                 state.get("question", "")),
+        # Elke toolronde stuurt de hele historie opnieuw: een cache-punt aan het eind maakt die de volgende ronde goedkoop.
+        historie_cache=True,
     ) as stream:
         # Geen tekst tijdens het streamen: pas aan het eind van de ronde is bekend of dit narratie is
         # of een eindantwoord, en een eindantwoord mag pas na de controle in beeld (`finalize_node`).
