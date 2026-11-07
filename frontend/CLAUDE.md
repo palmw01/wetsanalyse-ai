@@ -1638,6 +1638,15 @@ leest als "hij laadt", niet als "log eerst in".
 
 ## Toegankelijkheid (WCAG 2.2 AA, NLDS-niveau)
 
+- **axe meet het machinaal toetsbare deel** in `npm run test:browser`: `scripts/axe.mjs`
+  (`toetsToegankelijkheid(page, scherm)`, tags `wcag2a`/`wcag2aa`/`wcag21aa`/`wcag22aa`) op de werkplek, de
+  annotaties, het annotatiepaneel, de werkgebieden en de instellingen. Elke overtreding faalt, zonder drempel op
+  ernst; een uitzondering staat in `UITZONDERINGEN` met regel en reden, voor alle schermen tegelijk. axe opent
+  een tweede pagina in de context, dus een script dat hem gebruikt maakt zijn pagina via `browser.newContext()`.
+  Toetsenbord, focus en aankondigingen meet axe niet: die bewaken de scripts met hun stappen.
+- **`text-faint` haalt 4,5:1 op paper, surface en surface-2, niet op een getint vlak** (`bg-lint/10`, de actieve
+  gespreksrij): gebruik daar `text-muted`.
+
 - Markeringen in de tekst zijn **`<mark role="button" tabIndex={0}>`** met een `onKeyDown` voor
   Enter/Space: bedienbaar met het toetsenbord (2.1.1) maar **inline**. Een echte `<button>` is
   inline-block en wordt bij een markering over twee regels een rechthoekig blok. Daarbij hoort
