@@ -1,6 +1,6 @@
 # Connectors en externe bronnen voor Lex: analyse en aanbeveling
 
-> Onderzoek, 7 nov 2026. Alleen lezend; er is niets gebouwd. Basis voor een eventuele ADR-013.
+> Onderzoek, 7 nov 2026. Alleen lezend; er is niets gebouwd. Uitgewerkt in [ADR-013](adr-013-connectors-en-externe-bronnen.md) (concept).
 
 
 ## Context
@@ -192,7 +192,7 @@ werkgebiednotities) mag het model sturen, maar komt nooit in de bronnenlijst en 
    - *Waarde:* middel, per domein.
    - *Moeite:* middel. Het NL-SBB-contract (ADR-003) ligt er al, de import per kader niet.
 
-**Eerste stap.** Schrijf ADR-013 *Externe bronnen* (het brontype in de vindplaats, bron of context, graaf of live, de
+**Eerste stap.** Schrijf ADR-013 *Connectors en externe bronnen* (het brontype in de vindplaats, bron of context, graaf of live, de
 vertrouwensgrens). Doe daarna één verkenning op Kamerstukken, alleen lezend en achter een vlag:
 
 - tools `zoek_kamerstukken` en `get_kamerstuk` met het resultaatcontract;
@@ -207,8 +207,10 @@ LiDO-endpoint en de licentie van Rechtspraak bevestigen kan parallel, zonder cod
 - Geen vrije MCP-koppeling waarbij het model zelf vreemde tools aanroept. Dat geldt ook voor de `mcp_servers`-connector
   van de Messages API: die is beta, valt buiten ZDR, levert geen resultaatcontract en geen vindplaats, en vergroot de
   prefix.
-- Geen connectors die gebruikers zelf toevoegen in de beheertab.
-- Geen interne bronnen (Confluence of SharePoint) zolang ADR-007 open staat.
+- ~~Geen connectors die gebruikers zelf toevoegen.~~ *Herzien op 7 nov 2026, op verzoek van de gebruiker:* ze komen er
+  gefaseerd, als **contextconnectors**. Ze zijn nooit een bron, staan alleen aan als de beheerder dat toestaat, en
+  komen pas na het besluit over ADR-007. Zie de herziening hieronder.
+- Geen interne bronnen (Confluence of SharePoint) zolang ADR-007 open staat. Dat is fase 2 hieronder.
 - Geen bulkimport van de volledige teksten van uitspraken of Kamerstukken.
 - Geen aparte connector voor de RvS (die loopt via de Kamerstukken).
 - Geen RegelSpraak nu.
@@ -218,12 +220,31 @@ LiDO-endpoint en de licentie van Rechtspraak bevestigen kan parallel, zonder cod
 graph-qa), de grounding en de antwoordsjablonen (ADR-008). Het legt ook vast wat bron en wat context is. ADR-010 vraagt
 per nieuwe taakagent of workflow toch al een contract.
 
-## Te kiezen door de gebruiker
+## Herziening 7 nov 2026: connectors zoals in Claude
 
-- A. Alleen deze analyse in de repo zetten (`docs/architectuur/onderzoek-connectors-en-bronnen-2026-11.md`) en stoppen.
-- B. Daarna ADR-013 uitschrijven (concept).
-- C. Daarna de verkenning op Kamerstukken plannen, met de PR-indeling.
-- D. Eerst het LiDO-endpoint en de licentie van Rechtspraak laten toetsen (alleen lezen).
+De gebruiker wil dat connectors werken zoals in Claude ("voeg het allemaal toe"). [ADR-013](adr-013-connectors-en-externe-bronnen.md) legt dat vast. In het kort:
+
+- **Twee soorten connectors.**
+  - *Bronconnectors* (Kamerstukken, rechtspraak, EUR-Lex): de beheerder zet ze aan in de beheertab. Ze zijn getypeerd
+    en hebben een eigen soort vindplaats. Lex mag eruit citeren, en de grounding toetst dat.
+  - *Contextconnectors*: de gebruiker voegt een eigen MCP-URL toe, met OAuth aan het eigen account, alleen als de
+    beheerder dat toestaat. Hun uitvoer is altijd context en nooit bron, en dat staat zichtbaar in het antwoord.
+- **Aan of uit per gesprek.**
+  - Boven het invoerveld staat *Wetgeving ✓ · Kamerstukken ✓ · Rechtspraak –*.
+  - De stand gaat mee met de beurt. Toollaag, `dispatch` en routering bieden alleen de toegestane tools aan.
+  - Per werkgebied is er een standaardstand, en de stand op het gesprek blijft na herladen.
+- **Toestemming per handeling**, alleen voor connectors die iets wijzigen: *Deze keer / Altijd / Weigeren*. Voor
+  connectors die alleen lezen is de schakelaar de toestemming.
+- **Vertrouwensgrens.** Toolbeschrijvingen worden door de beheerder goedgekeurd en vastgezet met een hash. Externe tekst
+  is data en komt in een omhulsel met de herkomst. Na contextinvoer mag de beurt niet schrijven zonder keuzekaart.
+  Context komt niet in de bronnenlijst, het dossier, het rapport of de graaf.
+- **AVG-poort.** Contextconnectors pas na het besluit over ADR-007, met een gegevensclassificatie per connector.
+- **Fasering:**
+  - 1a: soort vindplaats + Kamerstukken;
+  - 1b: beheerregister + de schakelaar per gesprek en per werkgebied;
+  - 1c: LiDO, rechtspraak, EUR-Lex;
+  - 2a: contextconnectors die alleen lezen, na ADR-007;
+  - 2b: contextconnectors die schrijven, met toestemming per handeling.
 
 ## Verificatie
 
