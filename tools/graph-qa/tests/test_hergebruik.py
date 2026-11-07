@@ -247,3 +247,16 @@ def test_dekking_gaat_mee_naar_de_laag_en_het_chatbericht(monkeypatch):
     assert batch["dekking"]["structureel"] == dekking["per_bron"]
     assert batch["dekking"]["proces"] == {"ACCEPTED": 1}
     assert nep.berichten[0]["dekking"] == dekking
+
+
+def test_na_hergebruik_staat_de_brontekst_in_het_register():
+    """Een vervolgvraag die uit de hergebruikte tekst citeert, is onderbouwd, net als na een nieuwe ronde (AG-19)."""
+    from types import SimpleNamespace
+
+    from agent.nodes.annotatie import _emit_hergebruik
+
+    b = SimpleNamespace(model="m", settings=make_settings())
+    hergebruik = {"leden": [{"lid": "2"}], "telling": {"markeringen": 0, "beoordeeld": 0, "te_beoordelen": 0},
+                  "markeringen": []}
+    uit = _emit_hergebruik(b, {"corpus": "De ontvanger handelt."}, {**DOEL, "lid": "2"}, hergebruik, lambda _e: None)
+    assert "De ontvanger handelt." in str(uit["bronregister"])
