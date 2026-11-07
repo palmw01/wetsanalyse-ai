@@ -84,10 +84,6 @@ users = Table(
     # Sessie-epoch: JWT-sessies met een `loginAt` vóór deze tijd zijn ongeldig (revocatie bij
     # wachtwoordwijziging/-reset). NULL = nooit gewijzigd → geen revocatie.
     Column("sessions_valid_from", _DT, nullable=True),
-    # Afwijkend tokenbudget voor deze gebruiker; NULL = volg `budget_beleid.tokens`. Additief
-    # toegevoegd, dus `reconcile_schema` zet hem op een bestaande tabel bij (geen migratie) – zie de
-    # toelichting bij `feedback_gezien_op` hieronder voor waarom de Column-declaratie ook dan nodig is.
-    Column("token_budget", Integer, nullable=True),
     # Tijdstip waarop een beheerder de feedbacklijst voor het laatst bekeek; NULL = nooit.
     # Declaratief hier (nieuwe DB's via create_all) én idempotent via ALTER in reconcile_schema
     # (bestaande DB's). Zonder deze Column-declaratie crasht elke query die de kolom aanraakt met
@@ -611,7 +607,8 @@ begrip_voorstellen = Table("begrip_voorstellen", metadata,
 #      draaien.
 #   3. Elk getal is herleidbaar: "waar zijn mijn tokens heen" is een SELECT.
 #
-# Alleen inserts; nooit update/delete. De tijdlijn = ORDER BY id.
+# Alleen inserts; nooit update/delete. De tijdlijn = ORDER BY id. Ook een reset door een beheerder
+# raakt deze tabel niet: die is een rij in `budget_audit`, en de som begint daarna later.
 token_verbruik = Table(
     "token_verbruik",
     metadata,
@@ -634,15 +631,14 @@ token_verbruik = Table(
     Index("ix_token_verbruik_user_tijd", "userid", "tijdstip"),
 )
 
-# Het budgetbeleid: één rij (id=1). Een tabel en geen env-knop, omdat de beheerder dit zonder
+# Het budgetbeleid: één rij (id=1), voor wat voor iedereen gelijk is. Hoeveel tokens iemand heeft
+# staat in `budget_rol`. Een tabel en geen env-knop, omdat de beheerder dit zonder
 # redeploy moet kunnen wijzigen; de env levert alleen de beginwaarde bij de allereerste start
 # (`verbruik.ensure_seeded`, hetzelfde patroon als bij de modelprofielen).
 budget_beleid = Table(
     "budget_beleid",
     metadata,
     Column("id", Integer, primary_key=True),
-    # Standaardbudget per venster; een gebruiker kan een eigen `users.token_budget` hebben.
-    Column("tokens", Integer, nullable=False, default=500_000),
     Column("periode_dagen", Integer, nullable=False, default=7),
     # Vast startmoment. Alle vensters worden hiervandaan geteld, dus iedereen reset tegelijk en de
     # resetdatum is vooraf te noemen. Verschuif dit niet zonder reden: het verspringt ieders venster.
@@ -651,6 +647,36 @@ budget_beleid = Table(
     Column("actief", Boolean, nullable=False, default=True),
     Column("updated_by", String(128), nullable=False, default=""),
     Column("updated", _DT, nullable=False),
+)
+
+# Het budget per rol: de enige plek die bepaalt hoeveel tokens iemand heeft. Eén rij per rol, geseed
+# door `verbruik.ensure_seeded`. Een budget per gebruiker bestaat niet.
+budget_rol = Table(
+    "budget_rol",
+    metadata,
+    Column("rol", String(16), primary_key=True),
+    Column("tokens", Integer, nullable=False),
+    Column("updated_by", String(128), nullable=False, default=""),
+    Column("updated", _DT, nullable=False),
+)
+
+# Wie wat deed aan het budget: resets en gewijzigde instellingen. Net als `token_verbruik` alleen
+# inserts. Een reset is hier ook de waarheid, niet alleen de melding ervan: de som van een gebruiker
+# begint bij zijn laatste rij met `actie = 'verbruik_reset'` binnen het venster
+# (`verbruik.reset_in_venster`). Zo is er geen tweede plek die kan afwijken van de audit.
+#
+# `doel` is de userid bij een reset, de rol bij een rolbudget en leeg bij het beleid.
+budget_audit = Table(
+    "budget_audit",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("actie", String(32), nullable=False),
+    Column("doel", String(64), nullable=False, default=""),
+    Column("door", String(128), nullable=False),
+    # De stand vlak vóór een reset; de oude en de nieuwe waarde bij een wijziging.
+    Column("details", _JSON, nullable=False, default=dict),
+    Column("tijdstip", _DT, nullable=False),
+    Index("ix_budget_audit_actie_doel_tijd", "actie", "doel", "tijdstip"),
 )
 
 
@@ -838,6 +864,12 @@ async def reconcile_schema() -> None:
         for tabel in metadata.tables.values():
             for index in tabel.indexes:
                 await conn.run_sync(lambda sync_conn, ix=index: ix.create(sync_conn, checkfirst=True))
+        # Het budget volgt alleen uit de rol (`budget_rol`). De tweede uitzondering op "alleen toevoegen":
+        # de oude kolommen dragen niets meer, en `budget_beleid.tokens` is NOT NULL, dus hij moet weg
+        # voordat `ensure_seeded` op een lege tabel een rij zonder die kolom schrijft.
+        for tabel_naam, kolom in (("users", "token_budget"), ("budget_beleid", "tokens")):
+            if await conn.run_sync(_heeft_kolom, tabel_naam, kolom):
+                await conn.execute(text(f"ALTER TABLE {tabel_naam} DROP COLUMN {kolom}"))
         # Een generiek begrip heeft geen werkgebied (ADR-006). Geen kolom erbij maar de enige uitzondering op "alleen
         # toevoegen": er gaat niets verloren, en SQLite maakt de tabel in de tests vers aan.
         if engine.dialect.name == "postgresql":
@@ -850,6 +882,11 @@ async def reconcile_schema() -> None:
                                     "besloten_op = NULL WHERE status = 'later'"))
         if await conn.run_sync(lambda c: sa_inspect(c).has_table("bron_kandidaat_deelvragen")):
             await conn.execute(text("DELETE FROM bron_kandidaat_deelvragen WHERE status = 'later'"))
+
+
+def _heeft_kolom(sync_conn, tabel: str, kolom: str) -> bool:
+    inspector = sa_inspect(sync_conn)
+    return inspector.has_table(tabel) and kolom in {c["name"] for c in inspector.get_columns(tabel)}
 
 
 async def _na_kolom(conn, tabel, col) -> None:
