@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  conceptFout, conceptVan, deelvraagStappen, deelvragenSamen, overgenomenZin, splits, vervangtZin, voorstellenVoor, wissel, zelfdeSet,
+  conceptFout, conceptVan, deelvraagStappen, deelvragenSamen, overgenomenZin, splits, vervangtZin, wissel, zelfdeSet,
 } from "./deelvragen";
 import type { Deelvraag } from "./types";
 
@@ -25,12 +25,11 @@ describe("deelvragen", () => {
     expect(zelfdeSet(["a"], ["a", "b"])).toBe(false);
   });
 
-  it("een verbetering van Lex hoort bij de deelvraag die ze vervangt (F3d)", () => {
+  it("een verbetering van Lex noemt de deelvraag die ze vervangt (F3d)", () => {
     const oud = dv("Wie betaalt?", 0);
     const beter = { ...dv("Wie is de belastingschuldige?", 1, "voorgesteld"), vervangt: oud.id };
     const los = dv("Wanneer?", 2, "voorgesteld");
     const lijst = [oud, beter, los];
-    expect(voorstellenVoor(oud.id, lijst)).toEqual([beter]);
     expect(vervangtZin(beter, lijst)).toBe("Vervangt “Wie betaalt?”");
     expect(vervangtZin(los, lijst)).toBe("");
     expect(overgenomenZin(beter, lijst)).toMatch(/vervangen/);

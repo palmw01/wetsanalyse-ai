@@ -325,7 +325,7 @@ def werkgebied_intake_node(b, state: State) -> dict[str, Any]:
     else:
         if not actie:
             # De supervisor herkende een getypt antwoord op het open kaartje.
-            actie = {"intake_id": intake.get("id"), "stap": intake.get("stap"), "deel": intake.get("deel", 0),
+            actie = {"intake_id": intake.get("id"), "stap": intake.get("stap"),
                      "actie": "antwoord", "tekst": vraag}
         if not intake.get("id") or actie.get("intake_id") != intake.get("id"):
             tekst = ("Dit kaartje hoort bij een samenstelling die niet meer loopt. Vraag me opnieuw een "

@@ -16,18 +16,16 @@ export function SluitKnop({ onSluit, className = "" }: { onSluit: () => void; cl
 }
 
 /** De kop van elk paneel naast het gesprek (spoor I4; één schil voor elk artefact sinds 4 nov 2026): soort en titel,
- *  één regel met *Open volledige pagina* en *Vraag Lex* als pillen, en het kruisje rechtsboven. Extra handelingen
+ *  één regel met *Open volledige pagina* als pil, en het kruisje rechtsboven. Extra handelingen
  *  (status, exporteren, verwijderen) staan op een eigen regel rechts, onder het kruisje, zodat dat niet meewandelt
  *  als de ruimte krap wordt. Twee slots onder de kop: `onder` (één regel: de reeks of de versie) en `balk` (tabs en
  *  *Vergroten*), zodat geen paneel een eigen kop of sluitknop nodig heeft. */
-export function PaneelKop({ soort, titel, pagina, lex, acties, onSluit, onder, balk }: {
+export function PaneelKop({ soort, titel, pagina, acties, onSluit, onder, balk }: {
   /** De soort, klein boven de titel; weg als de titel de soortnaam al is (`artefactKop` in `lib/artefact.ts`). */
   soort?: string;
   titel: string;
   /** Waar *Open volledige pagina* heen gaat; zonder geen knop (de rondleiding). */
   pagina?: string;
-  /** De *Vraag Lex*-knop van het object, als die er is. */
-  lex?: React.ReactNode;
   acties?: React.ReactNode;
   onSluit?: () => void;
   /** Eén regel onder de kop: waar je bent in een reeks of in de versies. */
@@ -45,10 +43,9 @@ export function PaneelKop({ soort, titel, pagina, lex, acties, onSluit, onder, b
         </div>
         {onSluit && <SluitKnop onSluit={onSluit} />}
       </div>
-      {(pagina || lex) && (
+      {pagina && (
         <div className="flex flex-wrap items-center gap-2">
-          {pagina && <Link href={pagina} className={`focus-ring ${knopKlasse("secondary", "xs")}`}>Open volledige pagina</Link>}
-          {lex}
+          <Link href={pagina} className={`focus-ring ${knopKlasse("secondary", "xs")}`}>Open volledige pagina</Link>
         </div>
       )}
       {acties && <div data-tour="artefact-acties" className="flex flex-wrap items-center justify-end gap-2">{acties}</div>}

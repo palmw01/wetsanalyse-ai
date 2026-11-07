@@ -289,7 +289,6 @@ werkgebieden = Table("werkgebieden", metadata,
     Column("aangemaakt_door", String(64), nullable=False),
     Column("aangemaakt", _DT, nullable=False),
     Column("gewijzigd", _DT, nullable=False),
-    Column("gearchiveerd", _DT, nullable=True),
     # Het samenstellen in het gesprek (activiteit 1) maakt een werkgebied met de id van die intake:
     # een tweede klik op *Aanmaken*, of een herhaling na een storing, levert hetzelfde werkgebied op.
     Column("intake_id", String(64), nullable=True),
@@ -338,7 +337,6 @@ begrippen = Table("begrippen", metadata,
     Column("geaccordeerd_door", String(64), nullable=True),
     Column("geaccordeerd_op", _DT, nullable=True),
     Column("geaccordeerd_revisie", Integer, nullable=True),
-    Column("verwijderd", _DT, nullable=True),
     Column("ontstaan_in", String(64), nullable=True))
 # Een werkgebied gebruikt een generiek begrip zonder kopie (ADR-006). `gezien_revisie`: de revisie die dit werkgebied
 # zag; een latere wijziging van de inhoud staat bij het herbeoordelen. Stoppen is soft, zoals een koppeling.
@@ -722,7 +720,7 @@ gesprekken = Table(
     # Het werkgebied waar dit gesprek bij hoort (leeg = een los gesprek). Geen foreign key: een
     # gewist werkgebied maakt het gesprek los (`werkgebied_store.wis`), het verslag blijft staan.
     Column("werkgebied_id", String(64), nullable=False, default="", server_default=""),
-    # Gearchiveerd = uit de navigatie, niet weg. Zelfde vorm als `werkgebieden.gearchiveerd`.
+    # Gearchiveerd = uit de navigatie, niet weg.
     Column("gearchiveerd", _DT, nullable=True),
     Index("ix_gesprekken_user_updated", "user_id", "updated"),
 )
@@ -928,6 +926,7 @@ async def _reconcile_in(conn) -> None:
     for tabel_naam, kolom in (("users", "token_budget"), ("budget_beleid", "tokens")):
         if await conn.run_sync(_heeft_kolom, tabel_naam, kolom):
             await conn.execute(text(f"ALTER TABLE {tabel_naam} DROP COLUMN {kolom}"))
+    await _wis_oude_zachte_verwijdering(conn)
     # Een generiek begrip heeft geen werkgebied (ADR-006). Geen kolom erbij maar de enige uitzondering op "alleen
     # toevoegen": er gaat niets verloren, en SQLite maakt de tabel in de tests vers aan.
     if engine.dialect.name == "postgresql":
@@ -942,6 +941,24 @@ async def _reconcile_in(conn) -> None:
                                 "besloten_op = NULL WHERE status = 'later'"))
     if await conn.run_sync(lambda c: sa_inspect(c).has_table("bron_kandidaat_deelvragen")):
         await conn.execute(text("DELETE FROM bron_kandidaat_deelvragen WHERE status = 'later'"))
+
+
+async def _wis_oude_zachte_verwijdering(conn) -> None:
+    """De derde uitzondering op "alleen toevoegen": `werkgebieden.gearchiveerd` en `begrippen.verwijderd`. Sinds
+    verwijderen echt wissen is, schrijft niemand ze nog. Een rij die er nog mee gemarkeerd is, verborg de code tot nu;
+    zonder de kolom zou ze terugkomen. Dus eerst die rijen wissen zoals verwijderen dat nu doet (met alles wat eraan
+    hangt; de audit blijft), dan de kolom weg. Idempotent: zonder de kolom gebeurt er niets."""
+    from . import begrip_store, werkgebied_store  # die lezen deze module zelf; dus hier, niet bovenaan
+
+    if await conn.run_sync(_heeft_kolom, "werkgebieden", "gearchiveerd"):
+        for (wid,) in (await conn.execute(text("SELECT id FROM werkgebieden WHERE gearchiveerd IS NOT NULL"))).all():
+            await werkgebied_store.wis(conn, wid)
+        await conn.execute(text("ALTER TABLE werkgebieden DROP COLUMN gearchiveerd"))
+    if await conn.run_sync(_heeft_kolom, "begrippen", "verwijderd"):
+        ids = list((await conn.execute(text("SELECT id FROM begrippen WHERE verwijderd IS NOT NULL"))).scalars())
+        if ids:
+            await begrip_store.wis_begrippen(conn, ids)
+        await conn.execute(text("ALTER TABLE begrippen DROP COLUMN verwijderd"))
 
 
 def _heeft_kolom(sync_conn, tabel: str, kolom: str) -> bool:

@@ -67,7 +67,7 @@ def _graaf(query: str) -> str:
     return ZOEK_TSV
 
 
-def _onderwerp_scenario(*, decompositie: bool = True):
+def _onderwerp_scenario():
     llm = FakeLLM([
         response([text_block("WORKERS: annotatie\nPLAN: zoek de bepalingen over dit onderwerp")], "end_turn"),
         response([tool_block("t1", "semantic_search", {"query": "aansprakelijkheid bestuurder"})], "tool_use"),
@@ -75,7 +75,7 @@ def _onderwerp_scenario(*, decompositie: bool = True):
     ])
     events = _run(answer_stream(
         "annoteer alles over aansprakelijkheid van de bestuurder",
-        settings=make_settings(enable_decomposition=decompositie), llm=llm, graph=FakeGraph(results=_graaf),
+        settings=make_settings(), llm=llm, graph=FakeGraph(results=_graaf),
     ))
     return events, llm
 
@@ -96,12 +96,6 @@ def test_de_gebruiker_hoort_wat_er_te_kiezen_valt():
     events, _ = _onderwerp_scenario()
     tekst = "".join(e["content"] for e in events if e["type"] == "token")
     assert "2 bepalingen" in tekst
-
-
-def test_werkt_ook_zonder_decompositie():
-    """build_graph bedraadt de annotatieroute twee keer; dev draait met ENABLE_DECOMPOSITION=0."""
-    events, _ = _onderwerp_scenario(decompositie=False)
-    assert next(e for e in events if e["type"] == "kandidaten")["kandidaten"]
 
 
 def test_het_fragment_komt_uit_de_graaf_en_een_onbekende_bepaling_valt_weg():

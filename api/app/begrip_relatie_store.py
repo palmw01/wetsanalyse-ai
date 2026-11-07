@@ -26,7 +26,7 @@ from sqlalchemy import insert, select, update
 
 from . import begrip_store, begrippen_run_store, db
 from .begrip_relatie_contracts import CombinerenGeneriek,  Combineren, NieuweBetekenis, RelatieInvoer
-from .werkgebied_store import _audit as werkgebied_audit
+from .werkgebied_store import _audit as werkgebied_audit, werkgebied_rij
 
 
 def stand(inhoud: dict) -> str:
@@ -47,8 +47,7 @@ def _relatie(row, namen: dict[str, str]) -> dict:
 
 async def _begrippen(conn, werkgebied_id: str) -> dict[str, object]:
     b = db.begrippen
-    return {r.id: r for r in (await conn.execute(select(b).where(begrip_store.in_werkgebied(werkgebied_id),
-                                                                 b.c.verwijderd.is_(None)))).all()}
+    return {r.id: r for r in (await conn.execute(select(b).where(begrip_store.in_werkgebied(werkgebied_id)))).all()}
 
 
 async def _rijen(conn, werkgebied_id: str):
@@ -107,7 +106,7 @@ def doorwerking(rijen, begrippen: dict) -> dict[str, list[dict]]:
 
 async def lijst(werkgebied_id: str, begrip_id: str | None = None) -> dict:
     async with db.get_engine().connect() as conn:
-        await begrip_store._werkgebied_bestaat(conn, werkgebied_id)
+        await werkgebied_rij(conn, werkgebied_id)
         begrippen = await _begrippen(conn, werkgebied_id)
         rijen = await _rijen(conn, werkgebied_id)
         voorstellen = await _voorstellen(conn, werkgebied_id, begrippen, rijen)
@@ -143,7 +142,7 @@ def _niet_vervangen(begrippen: dict, *ids: str) -> None:
 async def maak(werkgebied_id: str, inv: RelatieInvoer, actor: str) -> dict:
     r = db.begrip_relaties
     async with db.get_engine().begin() as conn:
-        await begrip_store._werkgebied_bestaat(conn, werkgebied_id, slot=True)
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
         begrippen = await _begrippen(conn, werkgebied_id)
         rijen = await _rijen(conn, werkgebied_id)
         if inv.voorstel_id:
@@ -178,7 +177,7 @@ async def maak(werkgebied_id: str, inv: RelatieInvoer, actor: str) -> dict:
 async def wijs_af(werkgebied_id: str, vid: str, reden: str, actor: str) -> dict:
     r = db.begrip_relaties
     async with db.get_engine().begin() as conn:
-        await begrip_store._werkgebied_bestaat(conn, werkgebied_id, slot=True)
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
         begrippen = await _begrippen(conn, werkgebied_id)
         voorstel = next((v for v in await _voorstellen(conn, werkgebied_id, begrippen, await _rijen(conn, werkgebied_id))
                          if v["id"] == vid), None)
@@ -206,7 +205,7 @@ async def _rij(conn, werkgebied_id: str, rid: str):
 async def verwijder(werkgebied_id: str, rid: str, actor: str) -> dict:
     r = db.begrip_relaties
     async with db.get_engine().begin() as conn:
-        await begrip_store._werkgebied_bestaat(conn, werkgebied_id, slot=True)
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
         x = await _rij(conn, werkgebied_id, rid)
         if x.type == "opvolging":
             raise HTTPException(409, {"fout": "opvolging", "melding": "Een opvolging haal je weg door de opvolger "
@@ -220,7 +219,7 @@ async def bevestig(werkgebied_id: str, rid: str, actor: str) -> dict:
     """De relatie klopt nog na een wijziging aan één kant: de stand van nu wordt de nieuwe basis."""
     r = db.begrip_relaties
     async with db.get_engine().begin() as conn:
-        await begrip_store._werkgebied_bestaat(conn, werkgebied_id, slot=True)
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
         x = await _rij(conn, werkgebied_id, rid)
         if x.beoordeling != "akkoord" or x.type == "opvolging":
             raise HTTPException(409, {"fout": "niet_te_bevestigen", "melding": "Alleen een vastgelegde relatie bevestig je."})
@@ -277,7 +276,7 @@ async def opvolger_overnemen(werkgebied_id: str, begrip_id: str, actor: str) -> 
     """Dit werkgebied gaat over op de opvolger: het gebruik en de passages (opnieuw ter beoordeling) gaan mee."""
     r, g, k = db.begrip_relaties, db.werkgebied_begrippen, db.begrip_koppelingen
     async with db.get_engine().begin() as conn:
-        await begrip_store._werkgebied_bestaat(conn, werkgebied_id, slot=True)
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
         rij = (await conn.execute(select(g.c.id).where(g.c.werkgebied_id == werkgebied_id, g.c.begrip_id == begrip_id,
                                                        g.c.verwijderd.is_(None)))).first()
         opv = (await conn.execute(select(r.c.naar_begrip).where(

@@ -19,7 +19,7 @@ collega.
   één deelvraag (`bron_kandidaat_deelvragen`); het besluit op `bron_kandidaten` blijft het
   werkgebiedbrede besluit en geldt voor elke deelvraag. Bestaande uitsluitingen blijven dus wat ze waren.
 - **Kiezen is het besluit.** Wie het kaartje van een deelvraag beantwoordt, kiest; wat niet aangevinkt is, heet
-  daarna `niet_gekozen` (afgeleid uit de fase, niet bewaard). Er is geen *later*. Een bepaling die er niet bij stond, voegt de analist zelf toe (`toevoegen`), en de vragen
+  daarna `niet_gekozen` (afgeleid uit de fase, niet bewaard). Er is geen *later*. Een bepaling die er niet bij stond, noemt de analist zelf (`noem`), en de vragen
   opnieuw doorlopen maakt van *niet gekozen* weer een keuze.
 - **De volgende deelvraag kiest de code** (`volgende`): na de gegeven deelvraag de eerste in de volgorde
   die niet klaar is, en anders vooraan verder. Het model kiest hier niets.
@@ -317,9 +317,8 @@ async def zet_status(werkgebied_id: str, deelvraag_id: str, req: StatusActie, ac
             return
         if row is None:
             raise HTTPException(409, {"fout": "niet_gestart", "melding": "Begin eerst aan deze deelvraag."})
-        if row.revisie != req.verwachte_revisie:
-            raise HTTPException(412, {"fout": "revisie_conflict", "revisie": row.revisie,
-                                      "melding": "Iemand anders werkte intussen aan deze deelvraag; laad haar opnieuw."})
+        werkgebied_store.toets_revisie(row.revisie, req.verwachte_revisie,
+                                       melding="Iemand anders werkte intussen aan deze deelvraag; laad haar opnieuw.")
         toegestaan = {"afronden": (Voortgang.in_behandeling.value, Voortgang.voorlopig_afgerond.value),
                       "beoordelen": (Voortgang.in_behandeling.value, Voortgang.voorlopig_afgerond.value,
                                      Voortgang.beoordeeld.value),
@@ -457,50 +456,6 @@ async def _koppel(werkgebied_id: str, deelvraag_id: str, sid: str, rol: str, ver
                                              gekoppeld_door=actor, gekoppeld=db.utcnow()))
         if binnen is not None:
             await binnen(conn)
-
-
-async def toevoegen(werkgebied_id: str, deelvraag_id: str, invoer, bron: dict, actor: str) -> None:
-    """Zelf een bepaling als keuze toevoegen bij één deelvraag (een eigen tekst op het kaartje): opnemen in het
-    werkgebied als ze er nog niet staat, en koppelen aan deze deelvraag – in één transactie. `bron` komt uit de
-    resolver, zoals bij zelf opnemen. Een besluit *uitgesloten* bij deze deelvraag vervalt: de analist koos haar."""
-    wg = await werkgebied_store.haal(werkgebied_id)
-    _toets_deelvraag(wg, deelvraag_id)
-    alleen = deelvraag_id == ANALYSEVRAAG
-    s, kp, b, k = db.werkgebied_bronselecties, db.werkgebied_deelvraag_koppelingen, db.bron_kandidaat_deelvragen, \
-        db.bron_kandidaten
-    detail = {"deelvraag": deelvraag_id, "bron_iri": bron["bron_iri"], "zelf": True}
-
-    async def wis_besluit(conn) -> None:
-        kid = bronnen_run_store.kandidaat_id(bron["bron_iri"])
-        await conn.execute(delete(b).where(b.c.werkgebied_id == werkgebied_id, b.c.kandidaat_id == kid,
-                                           b.c.deelvraag_id == deelvraag_id))
-
-    async with db.get_engine().connect() as conn:
-        bestaand = (await conn.execute(select(s).where(s.c.werkgebied_id == werkgebied_id, s.c.bron_iri == bron["bron_iri"],
-                                                       s.c.verwijderd.is_(None)))).first()
-        uitgesloten = (await conn.execute(select(k.c.status).where(
-            k.c.werkgebied_id == werkgebied_id, k.c.id == bronnen_run_store.kandidaat_id(bron["bron_iri"])))).scalar()
-    if uitgesloten == "uitgesloten":
-        raise HTTPException(409, {"fout": "status", "status": "uitgesloten",
-                                  "melding": "Deze bepaling is voor het hele werkgebied uitgesloten; heropen haar eerst."})
-    rol = invoer.rol.value
-    if bestaand is None:
-        async def koppel(conn) -> None:
-            sid = (await conn.execute(select(s.c.id).where(s.c.werkgebied_id == werkgebied_id, s.c.bron_iri == bron["bron_iri"],
-                                                           s.c.verwijderd.is_(None)))).scalar()
-            if not alleen:
-                await werkgebied_deelvragen.koppel_bron_in(conn, werkgebied_id, sid, [deelvraag_id], actor)
-            await wis_besluit(conn)
-        await werkgebied_store.voeg_bron_toe(werkgebied_id, invoer, bron, actor, binnen=koppel)
-    elif not alleen:
-        async with db.get_engine().connect() as conn:
-            koppeling = (await conn.execute(select(kp).where(kp.c.deelvraag_id == deelvraag_id, kp.c.soort == "bron",
-                                                             kp.c.doel_id == bestaand.id))).first()
-        await _koppel(werkgebied_id, deelvraag_id, bestaand.id, "" if bestaand.rol == rol else rol,
-                      invoer.verwachte_revisie, actor, detail, koppeling, binnen=wis_besluit)
-    async with db.get_engine().begin() as conn:
-        await _slot(conn, werkgebied_id)
-        await _start_in(conn, werkgebied_id, deelvraag_id, actor)
 
 
 async def noem(werkgebied_id: str, deelvraag_id: str, req, bron: dict, actor: str) -> None:

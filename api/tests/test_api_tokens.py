@@ -182,7 +182,7 @@ async def test_accounttoken_voor_onbekend_of_inactief_account(analist):
 
     with pytest.raises(api_tokens.ApiTokenError):
         await api_tokens.create_gebruiker("x", "bestaat-niet")
-    await users.set_active("analist1", False)
+    await users.patch_user("analist1", active=False)
     with pytest.raises(api_tokens.ApiTokenError):
         await api_tokens.create_gebruiker("x", "analist1")
 
@@ -208,7 +208,7 @@ async def test_ingetrokken_verlopen_en_gedeactiveerd_gelden_niet(analist):
     assert not await api_tokens.gebruiker_geldig(verlopen["id"])
     assert await api_tokens.gebruiker_geldig(actief["id"])
 
-    await users.set_active("analist1", False)
+    await users.patch_user("analist1", active=False)
     assert await api_tokens.verify_gebruiker(c) is None
     assert not await api_tokens.gebruiker_geldig(actief["id"])
     assert not await api_tokens.gebruiker_geldig("onbekend")

@@ -26,7 +26,8 @@ from sqlalchemy import insert, select, update
 
 from . import db, verbruik
 from .begrippen_run_contracts import BatchInvoer, Kaart, VerdiepingInvoer
-from .begrippen_run_store import _run, _werkgebied
+from .begrippen_run_store import _run
+from .werkgebied_store import werkgebied_rij
 from .werkgebied_store import _audit as werkgebied_audit
 
 #: Een paar dat de wet al als relatie noemt, gaat niet naar het model (graph-qa `verdieping.te_vergelijken`).
@@ -150,7 +151,7 @@ async def werkvoorraad(werkgebied_id: str, userid: str) -> dict:
     """Wat het model voor de laatste klare run nog moet doen, met schatting en budget."""
     r, g = db.begrippen_runs, db.betekenisgroepen
     async with db.get_engine().connect() as conn:
-        await _werkgebied(conn, werkgebied_id)
+        await werkgebied_rij(conn, werkgebied_id)
         row = (await conn.execute(select(r).where(r.c.werkgebied_id == werkgebied_id, r.c.status == "klaar")
                                   .order_by(r.c.gestart.desc()).limit(1))).first()
         if row is None:
@@ -186,7 +187,7 @@ async def zet_batch(werkgebied_id: str, run_id: str, batch_id: str, invoer: Batc
     resultaat = {"oordelen": [o.model_dump() for o in invoer.oordelen]} if invoer.soort == "vraag" \
         else {"kaarten": [k.model_dump() for k in invoer.kaarten]}
     async with db.get_engine().begin() as conn:
-        await _werkgebied(conn, werkgebied_id, slot=True)
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
         row = await _run_rij(conn, werkgebied_id, run_id, slot=True)
         bestaand = (await conn.execute(select(b).where(b.c.run_id == run_id, b.c.id == batch_id))).first()
         if bestaand is not None:
@@ -223,7 +224,7 @@ async def zet_verdieping(werkgebied_id: str, run_id: str, invoer: VerdiepingInvo
     h = _hash({**verdieping, "groepen": [x.model_dump() for x in invoer.groepen],
                "kaarten": [k.model_dump() for k in invoer.kaarten]})
     async with db.get_engine().begin() as conn:
-        await _werkgebied(conn, werkgebied_id, slot=True)
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
         row = await _run_rij(conn, werkgebied_id, run_id, slot=True)
         if row.verdieping is not None:
             if row.verdieping.get("hash") == h:

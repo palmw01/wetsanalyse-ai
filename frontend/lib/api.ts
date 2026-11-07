@@ -130,9 +130,8 @@ export async function parseError(res: Response): Promise<ApiError> {
   } catch {
     /* geen JSON-body */
   }
-  const ra = res.headers.get("Retry-After");
   if (res.status === 401) naarInloggen();
-  return { status: res.status, detail, reden, data, retryAfter: ra ? Number(ra) : undefined };
+  return { status: res.status, detail, reden, data };
 }
 
 let opWegNaarInloggen = false;
@@ -1570,14 +1569,6 @@ export async function haalLaatsteBegrippenRun(id: string): Promise<BegrippenRun 
 
 export async function haalGroepen(id: string): Promise<GroepenAntwoord> {
   return json<GroepenAntwoord>(await fetch(wg(id, "groepen"), { cache: "no-store" }));
-}
-
-/** Eén begrip uit één of meer groepen: meer groepen is combineren, een deel van de leden splitsen. */
-export async function neemGroepenOver(
-  id: string,
-  overname: { groep_ids: string[]; naam: string; element_ids?: string[]; met_definitie?: boolean },
-): Promise<Begrip> {
-  return json<Begrip>(await fetch(wg(id, "groepen", "overnemen"), jsonInit("POST", overname)));
 }
 
 /** Akkoord op een voorstel (fase D): het begrip met beoordeelde koppelingen, geaccordeerd als de poort
