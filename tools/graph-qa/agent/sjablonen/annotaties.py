@@ -65,7 +65,8 @@ def _markering(rij: dict[str, Any]) -> Markering:
     plek = rij.get("vindplaats") or (vindplaats_van(rij["bron_iri"]).label if rij.get("bron_iri") else "")
     # Een `verwijzing` is een element dat maar deels binnen het bereik valt: dat draagt geen tekst.
     return Markering(id=rij.get("id", ""), klasse=rij.get("klasse", ""), tekst=rij.get("tekst") or "Annotatie met een ruimere bronselectie",
-                     vindplaats=f"{plek} (verouderd)" if rij.get("verouderd") else plek)
+                     vindplaats=f"{plek} (verouderd)" if rij.get("verouderd") else plek,
+                     bron_iri=str(rij.get("bron_iri") or rij.get("eigenaar_iri") or ""))
 
 
 def _groep(rij: dict[str, Any]) -> Markering:

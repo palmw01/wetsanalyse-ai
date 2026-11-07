@@ -42,6 +42,12 @@ const SJABLOON = { sjabloon: "begrip", versie: 1, doelen: [VINDPLAATS], blokken:
   { soort: "begrippen", door: "bron", items: [{ id: "b1", naam: "belastingschuldige", status: "geaccordeerd", definitie: "degene te wiens naam de belastingaanslag is gesteld", werkgebied: "Rekeningafspraak", werkgebied_id: "w1", herbeoordelen: false }] },
   { soort: "toelichting", door: "lex", kop: "Toelichting van Lex", tekst: "De tenaamstelling beslist." },
 ] };
+// Wat de api na `opgeslagen` als bericht teruggeeft: de werkplek herlaadt het gesprek, en zonder bericht is het antwoord weg.
+let bewaard = [];
+const bewaar = (antwoord, niveau = "gegrond") => {
+  bewaard = [{ id: 1, rol: "user", tekst: "vraag" }, { id: 2, rol: "assistant", tekst: "De tekst uit de blokken.", run_id: "r2", antwoord,
+    grounding: { grounded: true, cited: 0, unsupported: [], niet_letterlijk: [], niveau } }];
+};
 const sjabloonStroom = (antwoord) => [{ type: "antwoord", antwoord }, { type: "token", content: "De tekst uit de blokken." },
   { type: "sources", sources: [{ label: VINDPLAATS.label, uri: K, bron_iri: K, bwb_id: "BWBR0004770", soort: "onderdeel" }] },
   { type: "grounding", grounded: true, cited: 1, unsupported: [], niet_letterlijk: [], niveau: "gegrond" },
@@ -55,11 +61,14 @@ await context.route("**/api/**", async (route) => {
   const body = m === "GET" ? null : req.postDataJSON?.() ?? null;
   if (p === "/api/gesprekken" && m === "POST") return route.fulfill({ status: 201, json: { id: "g9", titel: body?.titel ?? "", berichten: [] } });
   if (p === "/api/gesprekken") return route.fulfill({ json: [] });
-  if (/^\/api\/gesprekken\/g\d$/.test(p)) return route.fulfill({ json: { id: "g9", titel: "Test", berichten: [] } });
+  if (/^\/api\/gesprekken\/g\d$/.test(p)) return route.fulfill({ json: { id: "g9", titel: "Test", berichten: bewaard } });
   if (p.endsWith("/berichten") && m === "POST") return route.fulfill({ status: 201, json: { id: 1 } });
   if (p === "/api/annotatie/run" && m === "POST") return route.fulfill({ status: 201, json: { run_id: "r1", conversation_id: body.conversation_id, status: "loopt" } });
   if (p === "/api/annotatie/run") return route.fulfill({ json: null });
   if (/\/run\/[^/]+\/events$/.test(p)) return route.fulfill({ contentType: "text/event-stream", body: sse(huidige) });
+  if (p === "/api/annotatie/v2/weergave")
+    return route.fulfill({ json: { schema_versie: 2, doel: { bron_iri: K, label: VINDPLAATS.label, bwb_id: "BWBR0004770" }, snapshot_id: "s",
+      segmenten: [], lagen: [], elementen: [], verwijzingen: [], dekking: {} } });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: false } });
   return route.fulfill({ json: [] });
@@ -84,6 +93,7 @@ try {
 
   // Een sjabloon: blokken in de tekst, de definitie uit de bron, wat Lex schreef onder een eigen kop.
   huidige = sjabloonStroom(SJABLOON);
+  bewaar(SJABLOON);
   await page.goto(`${base}/workbench`);
   await vraag.fill("Wat betekent belastingschuldige?");
   await vraag.press("Enter");
@@ -102,8 +112,54 @@ try {
   await page.screenshot({ path: `${shots}/sjabloon-mobiel.png` });
   await page.setViewportSize({ width: 1280, height: 900 });
 
+  // De chip onder het antwoord opent de bepaling naast het gesprek (ADR-008, *Detail bij een antwoord*).
+  await page.waitForURL(/gesprek=g9/);
+  await page.locator(`[data-bepaling-chip="${K}"]`).click();
+  await page.locator("[data-context-paneel=bron]").waitFor();
+  await page.keyboard.press("Escape");
+
+  // Een bepaling met leden: één kop voor het artikel, "lid N" bij elke tekst.
+  const lid = (n, tekst) => ({ tekst, vindplaats: { iri: `${IRI}:lid:${n}`, label: `Artikel 9, lid ${n}`,
+    jci: `jci1.3:c:BWBR0004770&hoofdstuk=II&artikel=9&lid=${n}&z=2026-10-01&g=2026-10-01`, regeling: "Invorderingswet 1990" }, nog_niet_in_werking: false });
+  const bepaling = { sjabloon: "bepaling", versie: 1, doelen: [{ iri: IRI, label: "Artikel 9", jci: "", regeling: "Invorderingswet 1990" }], blokken: [
+    { soort: "wettekst", door: "bron", items: [lid(1, "Een belastingaanslag is invorderbaar zes weken na de dagtekening."), lid(2, "In afwijking van het eerste lid is een navorderingsaanslag invorderbaar na één maand.")] }] };
+  huidige = sjabloonStroom(bepaling);
+  bewaar(bepaling);
+  await page.goto(`${base}/workbench`);
+  await vraag.fill("Wat staat er in artikel 9?");
+  await vraag.press("Enter");
+  await page.locator(`[data-wettekst-artikel="${IRI}"]`).waitFor();
+  assert.equal(await page.locator("[data-wettekst-artikel]").count(), 1, "de leden staan onder één artikelkop");
+  assert.equal(await page.getByRole("link", { name: "Artikel 9, Invorderingswet 1990" }).count(), 1);
+  assert.equal(await page.getByRole("link", { name: "lid 2" }).getAttribute("href"),
+    "https://wetten.overheid.nl/jci1.3:c:BWBR0004770&hoofdstuk=II&artikel=9&lid=2&z=2026-10-01&g=2026-10-01", "de link opent de gelezen toestand");
+  for (const width of [375, 800, 1280]) {
+    await page.setViewportSize({ width, height: 800 });
+    assert.ok(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), `geen horizontale scroll op ${width}px`);
+  }
+  await page.setViewportSize({ width: 1280, height: 900 });
+
+  // Annotaties: een chip naar de bepaling van de markeringen; een leemte van de code krijgt geen "niets te controleren".
+  const metAnnotaties = (blokken, niveau = "gegrond") => {
+    bewaar({ sjabloon: "annotaties", versie: 1, doelen: [], blokken }, niveau);
+    return sjabloonStroom({ sjabloon: "annotaties", versie: 1, doelen: [], blokken }).map((e) => e.type === "grounding" ? { ...e, niveau, cited: 0 } : e);
+  };
+  huidige = metAnnotaties([{ soort: "annotaties", door: "bron", totaal: 1, volledig: true,
+    items: [{ id: "e1", klasse: "Tijdsaanduiding", tekst: "zes weken", vindplaats: "Invorderingswet 1990 art. 9 lid 1", bron_iri: `${IRI}:lid:1` }] }]);
+  await page.goto(`${base}/workbench`);
+  await vraag.fill("Welke annotaties zijn er bij artikel 9 lid 1?");
+  await vraag.press("Enter");
+  await page.locator(`[data-bepaling-chip="${IRI}:lid:1"]`).waitFor();
+  huidige = metAnnotaties([{ soort: "leemte", door: "bron", tekst: "Geen annotaties gevonden met deze zoekopdracht (Artikel 36)." }], "onbepaald");
+  await page.goto(`${base}/workbench`);
+  await vraag.fill("Welke annotaties zijn er bij artikel 36?");
+  await vraag.press("Enter");
+  await page.locator("[data-leemte]").waitFor();
+  assert.equal(await page.getByText("er valt niets te controleren", { exact: false }).count(), 0, "een leemte van de code is geen controlemelding");
+
   // Klopt het sjabloon niet, dan is `tekst` het antwoord.
   huidige = sjabloonStroom({ sjabloon: "begrip", blokken: [{ soort: "onbekend" }] });
+  bewaar({ sjabloon: "begrip", blokken: [{ soort: "onbekend" }] });
   await page.goto(`${base}/workbench`);
   await vraag.fill("Nog eens");
   await vraag.press("Enter");

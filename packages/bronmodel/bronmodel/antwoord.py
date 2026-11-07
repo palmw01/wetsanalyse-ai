@@ -66,6 +66,9 @@ class Markering(BaseModel):
     klasse: str
     tekst: str
     vindplaats: str = ""
+    #: De bronnode waar de markering op staat, uit de rij van de api: daarmee opent de werkplek de bepaling naast het
+    #: gesprek. Leeg bij een groep uit het overzicht (die staat op meer bepalingen).
+    bron_iri: str = ""
 
 
 class Definities(BaseModel):
