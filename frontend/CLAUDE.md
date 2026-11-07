@@ -68,7 +68,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   klassen bij.
 - **De rekenkern staat in `lib/`**, niet in componenten: vitest draait node-env zonder DOM, dus alleen
   pure helpers zijn testbaar (`selectie`, `annotatie`, `annotatieOverzicht`, `reeks`, `samenhang`,
-  `markering`, `popover`, `wetstructuur`, `lopendeRun`, `geschiedenis` (de bewaarde berichten als items), `beurtStroom` (wat één poging van een beurt ophoopt), `beurtVerzoek` (wat een beurt vraagt: `verstuur(verzoek)` en de run-aanvraag `startOpties`), `rondleiding`, `werkgebied`, `begrippen`,
+  `markering`, `popover`, `wetstructuur`, `lopendeRun`, `geschiedenis` (de bewaarde berichten als items), `beurtStroom` (wat één poging van een beurt ophoopt), `beurtVerzoek` (wat een beurt vraagt: `verstuur(verzoek)` en de run-aanvraag `startOpties`), `beurtLus` (een run volgen tot hij afloopt), `rondleiding`, `werkgebied`, `begrippen`,
   `begripVoorstellen`, `begripTermen`, `bronPlaats`, `kaartVoorstel`, `herbeoordeling`, `begripRelaties`, `begripGraaf`, `begrippenOverzicht`, `artefact`, `bronKandidaten`, `deelvragen`, `onbewaard`, `vraagkaart`, `gesprekGroepen`, `werkgebiedPaden`, …).
 - **`app/**/page.tsx`** (Server Components) – data via `lib/server.ts`, interactie in een
   `*Client.tsx`. `app/page.tsx` doet `redirect("/workbench")`. De werkplek zit in
@@ -367,7 +367,7 @@ mee (`volgRun` op `/api/annotatie/run/[id]/events`). Van gesprek wisselen, naar 
 herladen breekt hem niet af. Regels:
 
 - **Unmount koppelt alleen los.** `afbrekenRef.current?.abort()` beëindigt de kijker, niet de run.
-  Een `AbortError` in `volgBeurt` is daarom géén einde: niets bewaren, het antwoord komt later.
+  Een `AbortError` in de lus (`volgTotEinde` in `lib/beurtLus.ts`) is daarom géén einde (`losgekoppeld`): niets bewaren, het antwoord komt later.
 - **Bij binnenkomst haak je weer aan** (`hervatBeurt` na de hydratatie): loopt er nog een beurt, dan
   komt hij vanaf `seq 0` terug. Alleen bij status `loopt` – een afgeronde beurt staat al in de
   gehydrateerde geschiedenis, en twee keer tonen is erger dan missen.
@@ -380,12 +380,12 @@ herladen breekt hem niet af. Regels:
   dat `run_id` staat in de geschiedenis) of echt verdwenen is. Alleen in dat tweede geval komt er een
   melding; zonder die controle zou elke normale afloop als "afgebroken" gemeld worden.
 - **Een weggevallen verbinding is geen mislukte beurt.** Bij een deploy wordt de frontend-container
-  vervangen terwijl de run doorloopt. `volgBeurt` haakt daarom opnieuw aan zonder
+  vervangen terwijl de run doorloopt. `volgTotEinde` haakt daarom opnieuw aan – één `while`-lus per run, geen recursie – zonder
   pogingen-cap, met oplopende wachttijd (`naEenGebrokenStream`, `herstelWachttijd`: 1,5 tot 15 s). De
   uitleg staat bij `naEenGebrokenStream` in `lib/lopendeRun.ts`.
 - **Alleen `done` sluit een beurt.** graph-qa eindigt elke run met precies één `done` (met `uitkomst`:
   klaar, mislukt of gestopt; `runstore.sluit_af`, en `volg` bij een afgebroken run). Een stroom die sluit
-  zonder `done` is een verbroken verbinding: `verwerkSseStroom` gooit, en `volgBeurt` haakt opnieuw aan.
+  zonder `done` is een verbroken verbinding: `verwerkSseStroom` gooit, en `volgTotEinde` haakt opnieuw aan.
 - **De uitkomst staat op het bericht** (`Bericht.uitkomst`, `parseUitkomst`): een mislukte beurt toont live en
   na herladen dezelfde melding (`BeurtUitkomstBlok` in `ThreadRij`), gestopt zegt de tekst zelf.
 - **Bij een 409 op `startRun`** (er loopt al een beurt op dit gesprek) haakt de client aan bij die run
