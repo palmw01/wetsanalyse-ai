@@ -13,6 +13,7 @@ from bronmodel import BronFout, element_actueel
 from bronmodel.taal import BRON_IRI
 
 from . import annotatie_export as export
+from . import bepaling_detail as bepaling_detail_mod
 from . import annotatie_v2_store as store
 from . import bestandsnaam
 from . import graaf as graaf_mod
@@ -173,6 +174,17 @@ async def get_knoop(bron_iri: str = "", actor: str = Depends(actieve_userid)):
         raise HTTPException(422, str(exc)) from exc
     except (httpx.HTTPError, ConnectionError) as exc:
         raise HTTPException(503, "De brongraaf is tijdelijk niet beschikbaar.") from exc
+
+
+@router.get("/bepaling")
+async def get_bepaling(bron_iri: str = "", actor: str = Depends(actieve_userid)):
+    """Wat de graaf over één bepaling weet, voor het paneel naast het gesprek: plaats in de opbouw, geldigheid, verwijzingen
+    in beide richtingen, grondslag en bevoegdheid, genoemd in, gedefinieerde begrippen. Zonder model (ADR-008, *Detail bij
+    een antwoord*); een haperende graaf geeft `beschikbaar: false`. Zie `bepaling_detail.py`."""
+    try:
+        return (await bepaling_detail_mod.bepaling_detail(bron_iri)).model_dump()
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
 
 
 @router.get("/dekking")

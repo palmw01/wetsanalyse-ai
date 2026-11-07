@@ -13,6 +13,8 @@ import { memo, useEffect, useMemo, useState } from "react";
 
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
 import { Antwoord } from "@/components/antwoord/Antwoord";
+import { BepalingChips } from "@/components/antwoord/BepalingChip";
+import { alleenNietGetoetst, bepalingenVan } from "@/lib/antwoord";
 import { Button } from "@/components/ui/Button";
 import { ChevronOmlaag, Cirkel, Waarschuwing } from "@/components/ui/Icoon";
 import { HergebruikMelding } from "@/components/werkplek/HergebruikMelding";
@@ -139,6 +141,8 @@ export const ThreadRij = memo(function ThreadRij({
         ) : item.denk || item.overzicht || !streamt ? null : (
           <Punten />
         )}
+        {/* Wat het antwoord aanwijst, naast het gesprek te openen met wat de graaf er verder over weet (ADR-008). */}
+        {item.antwoord && !demo && <BepalingChips bepalingen={bepalingenVan(item.antwoord)} />}
         <BeurtUitkomstBlok uitkomst={item.uitkomst} />
         {/* Het overzicht uit de graaf staat naast het gesprek: hier de samenvatting en een kaartje. */}
         {item.overzicht && item.overzicht.regelingen.length > 0 && !demo && (
@@ -147,7 +151,7 @@ export const ThreadRij = memo(function ThreadRij({
         {/* Bij een overzicht linkt het paneel elke vindplaats: een bronnenlijst van 40–90 regels ernaast
             zegt niets nieuws. De bronnen blijven in het bericht (herkomst, eval). */}
         {!item.overzicht && !item.antwoord?.doelen.length && item.bronnen && item.bronnen.length > 0 && <Bronnen bronnen={item.bronnen} />}
-        {samenhangAan && !demo && (item.overzicht || !!item.bronnen?.length) && (() => {
+        {samenhangAan && !demo && (item.overzicht || !!item.bronnen?.length || !!item.antwoord?.doelen.length) && (() => {
           // Met een overzicht: de delen daarvan, in zijn eigen volgorde – los van hoe Lex formuleerde.
           // Anders: de bepalingen die het antwoord noemt, tot de diepste (`antwoordDoelen`).
           const ov = item.overzicht;
@@ -194,7 +198,8 @@ export const ThreadRij = memo(function ThreadRij({
             </Button>
           </div>
         )}
-        {item.tekst && item.grounding && <Brongetrouwheid grounding={item.grounding} />}
+        {/* Een antwoord met alleen afgeleide duiding of tekst van de code (een leemte) heeft niets van het model te controleren. */}
+        {item.tekst && item.grounding && !(item.grounding.niveau === "onbepaald" && alleenNietGetoetst(item.antwoord)) && <Brongetrouwheid grounding={item.grounding} />}
         {item.tekst && <KopieerKnop tekst={item.overzicht ? `${item.tekst}\n\n${overzichtAlsMarkdown(item.overzicht)}` : item.tekst} />}
       </div>
     </div>

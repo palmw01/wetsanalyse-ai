@@ -691,6 +691,12 @@ def test_de_treffers_komen_uit_de_rijen():
     assert blok.items[0].vindplaats == M1["vindplaats"] and blok.door == "bron"
 
 
+def test_een_markering_draagt_haar_bronnode_zodat_de_werkplek_de_bepaling_opent():
+    a = vul("antwoord_annotaties", {"toelichting": ""}, [zoek(M1, M2, {**M2, "id": "e3", "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:3"})])
+    assert [m.bron_iri for m in a.blokken[0].items] == [M1["bron_iri"], "", "urn:bwb:BWBR0004770:artikel:9:lid:3"]
+    assert a.doelen == []  # een annotatie is geen bron: geen doelen, dus geen invloed op controle en bronnen
+
+
 def test_een_volgende_pagina_is_onvolledig_ook_als_de_api_volledig_zegt():
     """De api zet `volledig` op de dekking van de projectie; de paginering staat in `volgende_offset`."""
     a = vul("antwoord_annotaties", {"toelichting": ""}, [zoek(M1, volgende_offset=25)])

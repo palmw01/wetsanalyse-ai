@@ -240,6 +240,12 @@ Hieronder wat je moet weten om de code te wijzigen.
   in de graaf niet draagt), en **alle** uitgaande triples ruw, zodat er nooit iets ontbreekt. Een
   nieuw predicaat verschijnt dus eerst alleen ruw; geef hem een plek in `FEITEN`. De IRI gaat
   letterlijk een query in en moet `samenhang._IRI` volledig matchen (422); een haperende graaf 503.
+  **`/bepaling`** (`bepaling_detail.py`, `bron_iri`; ADR-008 *Detail bij een antwoord*) is wat het paneel naast het gesprek
+  over één bepaling toont: plek in de opbouw met opschriften (`graaf.plaatsen` + `bwb:titel`), geldigheid, de verwijzingen
+  vanuit de bepaling en haar leden met ankertekst, wie ernaar verwijst (telling, de eerste tien, zonder de bepaling zelf),
+  grondslag en bevoegdheid, genoemd in en gedefinieerde begrippen. De vorm staat in `bepaling_graaf_contract.py`
+  (`Structuurdeel`, `Verwijzing`, `Telling`, `BepalingDetail`), de ene graaflezing per bepaling die het werkgebiedrapport
+  deelt (ADR-009). `detail_uit` is puur; een haperende graaf geeft `beschikbaar: false` met status 200, nooit een leeg detail.
 
 ### Projectie naar de kennisgraaf
 

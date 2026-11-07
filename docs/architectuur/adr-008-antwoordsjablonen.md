@@ -35,3 +35,19 @@ agent ⇄ tools → sjabloontool → sjabloon → verify → (correct) → final
 Sjabloontools staan los van `TOOLS`: ze staan niet op de MCP-server. Decompositie (op Azure uit) blijft vrije tekst. Een nieuw sjabloon: een module in `agent/sjablonen/`, een regel in `SJABLONEN`, de naam in `Specialist.sjablonen`, en voor een nieuw blok een component in `BLOKKEN`.
 
 De overzichtsroute krijgt geen sjabloon: daar typt geen model feiten over, en de controle, bronnen, graaf en kopieerknop lezen `Bericht.overzicht`, dus een `Antwoord` zou die gegevens alleen dubbel dragen.
+
+## Aanvulling (7 nov 2026): detail bij een antwoord
+
+**Het antwoord wijst aan, het paneel vertelt de rest.** Een sjabloon toont wat het oordeel draagt: de tekst, de vindplaats en, als dat van toepassing is, dat de tekst nog niet geldt. Wat de graaf verder over een bepaling weet, staat in het paneel naast het gesprek. Dat zijn:
+
+- de plek in de opbouw;
+- de geldigheid;
+- de verwijzingen in beide richtingen;
+- grondslag en bevoegdheid;
+- waar de bepaling genoemd wordt;
+- welke begrippen ze definieert.
+
+- **Geen nieuwe artefactsoort.** Een bepaling is geen uitkomst van een beurt: er valt niets te beoordelen. Het paneel is de bestaande context `bron`. Een chip onder het antwoord opent die context per doel, net als een klik op een vindplaats. Bij het sjabloon `annotaties` zijn het de bronnodes van de markeringen (`Markering.bron_iri`). Die zijn geen `doelen`, want een annotatie is geen bron.
+- **De feiten komen van de api, niet uit de trace.** `GET /v1/annotatie/bepaling` (`api/app/bepaling_detail.py`) leest de graaf zonder model. Wat ontbreekt blijft leeg, en een haperende graaf geeft `beschikbaar: false`. De vindplaats draagt de jci die Lex las, met de toestand. Draagt de graaf nu een latere toestand, dan zegt het paneel dat.
+- **Kort in het antwoord, lang in het paneel.** In het antwoord staan de vindplaats met jci en toestand, "nog niet in werking", en leden van één artikel onder één kop. In het paneel staat de rest. Het blok `verwijzingen` blijft voor later: verwijzingen horen bij naslag, niet bij het oordeel.
+- **Eén graaflezing, geen gedeelde blokken.** Het paneel en het werkgebiedrapport (ADR-009) lezen dezelfde gegevens per bepaling. Daarom staan `Structuurdeel`, `Verwijzing` en `Telling` in één contract, `api/app/bepaling_graaf_contract.py`. Een generiek blokkenmodel voor gesprek, paneel en rapport is bewust niet gekozen: om dezelfde redenen als in ADR-009, en omdat het gedeelde stuk klein is. De eigenaar van die graaflezing is ADR-009. Het werkgebiedrapport hernoemt zijn lezer tot `api/app/bepaling_graaf.py` en voegt `in_dossier` toe aan `Verwijzing` en `RegelingInfo` aan het contract. Het paneel gebruikt dezelfde lezer, met de tellingen achter `met_inkomend`.

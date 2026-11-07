@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createContext, useEffect, useState } from "react";
 
 import { KnoopTekst } from "@/components/graaf/KnoopTekst";
+import { BepalingFeiten } from "@/components/werkplek/BepalingFeiten";
 import { WaaromUitklap } from "@/components/annotaties/WaaromUitklap";
 import { OverzichtPaneel } from "@/components/werkplek/OverzichtPaneel";
 import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
@@ -23,7 +24,7 @@ import { bronPad, elementPad, projectPad } from "@/lib/werkgebiedPaden";
  *  bepaling, één JAS-element, de bronnen van het werkgebied van het gesprek, of het overzicht van een
  *  onderwerp. Dat laatste komt uit het bericht zelf: het hoort bij een antwoord, niet bij een werkgebied. */
 export type ContextDoel =
-  | { soort: "bron"; bron_iri: string; werkgebied_id?: string; titel: string }
+  | { soort: "bron"; bron_iri: string; werkgebied_id?: string; titel: string; /** De jci die Lex las, met de toestand. */ jci?: string }
   | { soort: "element"; element_id: string; titel: string }
   | { soort: "bibliotheek"; werkgebied_id: string; titel: string }
   | { soort: "overzicht"; overzicht: Overzicht; titel: string };
@@ -132,6 +133,8 @@ function BronInhoud({ doel, onWissel }: { doel: Extract<ContextDoel, { soort: "b
         Beoordelen in de annotatie
       </Link>
     </section>
+    <BepalingFeiten key={doel.bron_iri} bronIri={doel.bron_iri} gelezenJci={doel.jci}
+      onOpen={(v) => onWissel({ soort: "bron", bron_iri: v.iri, werkgebied_id: doel.werkgebied_id, titel: v.regeling ? `${v.label}, ${v.regeling}` : v.label })} />
   </>;
 }
 
