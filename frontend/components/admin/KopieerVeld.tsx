@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
+import { FormRij } from "@/components/ui/SettingRow";
 
 /** Een waarde die maar één keer te zien is (een tijdelijk wachtwoord). Kopiëren zegt of het lukte; lukt het niet (geen
  *  beveiligde origin, toestemming geweigerd), dan kun je de waarde zelf selecteren. */
@@ -20,7 +21,7 @@ export function KopieerVeld({ waarde, label }: { waarde: string; label: string }
 
   return (
     <div>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <FormRij className="!items-center">
         {waarde.includes("\n") ? (
           <pre aria-label={label} className="w-full overflow-x-auto rounded-field border border-line bg-surface p-2 font-mono text-sm">{waarde}</pre>
         ) : (
@@ -29,7 +30,7 @@ export function KopieerVeld({ waarde, label }: { waarde: string; label: string }
         <Button size="sm" variant="secondary" onClick={() => void kopieer()}>
           {stand === "gekopieerd" ? "Gekopieerd" : "Kopiëren"}
         </Button>
-      </div>
+      </FormRij>
       {stand === "mislukt" && (
         <p role="alert" className="mt-1 text-xs text-fout">Kopiëren lukt niet in deze browser. Selecteer de waarde en kopieer die zelf.</p>
       )}

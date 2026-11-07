@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ButtonRow } from "@/components/ui/ButtonRow";
 import { Card } from "@/components/ui/Card";
-import { SettingGroup } from "@/components/ui/SettingRow";
+import { FormRij, SettingGroup } from "@/components/ui/SettingRow";
 import { Field, Input, Select } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
 import { BevestigKnop } from "@/components/ui/BevestigKnop";
@@ -138,8 +138,8 @@ export function ApiTokensPanel() {
         </Melding>
       )}
 
-      <form onSubmit={onGenereer} className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end">
-        <div className="min-w-[14rem] flex-1">
+      <form onSubmit={onGenereer} className="mb-4">
+        <FormRij>
           <Field label="Label">
             <Input
               type="text"
@@ -149,8 +149,6 @@ export function ApiTokensPanel() {
               onChange={(e) => setLabel(e.target.value)}
             />
           </Field>
-        </div>
-        <div className="min-w-[14rem] flex-1">
           <Field label="Inloggen als">
             <Select value={account} onChange={(e) => setAccount(e.target.value)}>
               <option value="">Geen account (admin-token)</option>
@@ -163,10 +161,10 @@ export function ApiTokensPanel() {
                 ))}
             </Select>
           </Field>
-        </div>
-        <Button size="sm" type="submit" disabled={bezig} className="w-full sm:w-auto">
-          {bezig ? "Genereren…" : "Token genereren"}
-        </Button>
+          <Button size="sm" type="submit" disabled={bezig}>
+            {bezig ? "Genereren…" : "Token genereren"}
+          </Button>
+        </FormRij>
       </form>
 
       {tokens === null ? (

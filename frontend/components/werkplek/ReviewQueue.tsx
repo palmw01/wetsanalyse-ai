@@ -641,7 +641,7 @@ export function ReviewQueue({
           </span>
           {afgerond ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-aandacht-groen-bg px-2 py-0.5 text-[0.65rem] font-semibold text-aandacht-groen-tekst">
-              <Vinkje /> Review afgerond
+              <Vinkje /> Alles beoordeeld
             </span>
           ) : (
             <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[0.65rem] text-muted">

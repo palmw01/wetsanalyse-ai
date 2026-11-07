@@ -365,6 +365,8 @@ export interface AnnotatieDocument {
 export interface DocumentSamenvatting {
   bron_iri?: string;
   label?: string;
+  /** De bronnode: Artikel, Lid, Onderdeel of Divisie (`vindplaatsLabel`). */
+  soort?: string;
   snapshot_id?: string;
   slug: string;
   bwbId: string;

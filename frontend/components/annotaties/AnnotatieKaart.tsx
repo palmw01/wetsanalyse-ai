@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { KleurStrip } from "@/components/annotaties/KleurStrip";
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
-import { DOCUMENT_STATUS_LABEL, DOCUMENT_STATUS_TOON } from "@/lib/annotatie";
+import { documentStand } from "@/lib/annotatie";
 import { naamVan, vindplaatsLabel } from "@/lib/annotatieOverzicht";
 import type { DocumentSamenvatting } from "@/lib/types";
 import { nodeLink } from "@/lib/annotatieNode";
@@ -30,6 +30,7 @@ export function AnnotatieKaart({ doc, onVerwijder }: {
 }) {
   const href = nodeLink({ bron_iri: doc.bron_iri ?? "", snapshot_id: doc.snapshot_id });
   const beoordeeld = doc.aantal_elementen - doc.te_beoordelen;
+  const stand = documentStand(doc);
   return (
     <article className="flex min-w-0 flex-col gap-3 rounded-kaart border border-line bg-paper p-4 shadow-zacht transition hover:-translate-y-0.5 hover:border-lint/40 hover:shadow-kaart motion-reduce:hover:translate-y-0">
       <div className="flex items-start justify-between gap-3">
@@ -42,10 +43,10 @@ export function AnnotatieKaart({ doc, onVerwijder }: {
             </Link>
           </h3>
           <p className="text-xs text-muted">
-            {doc.label || vindplaatsLabel(doc)} · {doc.bwbId}
+            {vindplaatsLabel(doc)} · {doc.bwbId}
           </p>
         </div>
-        <StatusLabel toon={DOCUMENT_STATUS_TOON[doc.status]}>{DOCUMENT_STATUS_LABEL[doc.status]}</StatusLabel>
+        <StatusLabel toon={stand.toon} uitleg={stand.uitleg}>{stand.label}</StatusLabel>
       </div>
 
       <KleurStrip perKlasse={doc.per_klasse} />

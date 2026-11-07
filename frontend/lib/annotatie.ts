@@ -1,5 +1,5 @@
 import { isApiError } from "./api";
-import { naamVan, vindplaatsLabel } from "./annotatieOverzicht";
+import { isKlaarOmAfTeRonden, naamVan, vindplaatsLabel } from "./annotatieOverzicht";
 import { jasVolgorde } from "./jas";
 import type { LidRegel } from "./selectie";
 import type {
@@ -18,11 +18,11 @@ import type {
 
 export const DOCUMENT_STATUS_LABEL: Record<DocumentStatus, string> = {
   in_review: "In behandeling",
-  geaccordeerd: "Geaccordeerd",
+  geaccordeerd: "Afgerond",
   gepromoveerd: "In de graaf",
 };
 
-// De toon van het label per status (`StatusLabel`): in behandeling = geel, geaccordeerd = groen, in de graaf =
+// De toon van het label per status (`StatusLabel`): in behandeling = geel, afgerond = groen, in de graaf =
 // lintblauw.
 export const DOCUMENT_STATUS_TOON: Record<DocumentStatus, "geel" | "groen" | "lint"> = {
   in_review: "geel",
@@ -32,6 +32,21 @@ export const DOCUMENT_STATUS_TOON: Record<DocumentStatus, "geel" | "groen" | "li
 
 export function documentStatusLabel(status: DocumentStatus): string {
   return DOCUMENT_STATUS_LABEL[status] ?? status;
+}
+
+/** Hoe de stand van een annotatie in beeld komt: het label van de status, behalve wanneer er niets meer te beoordelen is
+ *  en alleen het afronden nog ontbreekt. Neutraal, want dat is geen oordeel: groen is voor wat de jurist heeft afgerond.
+ *
+ *  De kaart en het paneel lopen hier allebei langs, zodat één annotatie op beide plekken hetzelfde zegt. */
+export function documentStand(
+  d: Parameters<typeof isKlaarOmAfTeRonden>[0],
+): { label: string; toon: "geel" | "groen" | "lint" | "neutraal"; uitleg?: string } {
+  if (isKlaarOmAfTeRonden(d)) return {
+    label: "Klaar om af te ronden",
+    toon: "neutraal",
+    uitleg: "Alle markeringen zijn beoordeeld. Afronden doe je zelf, met Annotatie afronden.",
+  };
+  return { label: documentStatusLabel(d.status), toon: DOCUMENT_STATUS_TOON[d.status] };
 }
 
 // --- de brontekst van een bepaling ------------------------------------------------------------------

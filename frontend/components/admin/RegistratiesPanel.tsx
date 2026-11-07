@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button, KNOP_GEVAAR, KNOP_GEVAAR_SCHERP } from "@/components/ui/Button";
 import { ButtonRow } from "@/components/ui/ButtonRow";
 import { Card } from "@/components/ui/Card";
-import { SettingGroup } from "@/components/ui/SettingRow";
+import { FormKnoppen, FormRij, SettingGroup } from "@/components/ui/SettingRow";
 import { Field, Input, Select } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
 import { SkeletonCard } from "@/components/ui/Skeleton";
@@ -221,7 +221,7 @@ export function RegistratiesPanel() {
 
                 {openstaand && (
                   <>
-                    <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+                    <FormRij className="mt-3">
                       <Field label="Gebruikersnaam" hint="voorstel — aan te passen">
                         <Input
                           type="text"
@@ -239,7 +239,7 @@ export function RegistratiesPanel() {
                           <option value="beheerder">beheerder</option>
                         </Select>
                       </Field>
-                    </div>
+                    </FormRij>
                     <ButtonRow align="start" className="mt-3">
                       <Button size="sm" disabled={bezig} onClick={() => onGoedkeuren(r)}>
                         Goedkeuren
@@ -286,19 +286,17 @@ function AfwijzenKnop({ onAfwijzen }: { onAfwijzen: (reden: string) => void }) {
     );
   }
   return (
-    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-end">
-      <div className="min-w-[14rem] flex-1">
-        <Field label="Reden" hint="komt alleen in het logboek">
-          <Input
-            type="text"
-            autoFocus
-            value={reden}
-            onChange={(e) => setReden(e.target.value)}
-            placeholder="bijv. onbekende aanvrager"
-          />
-        </Field>
-      </div>
-      <ButtonRow align="start">
+    <FormRij className="w-full">
+      <Field label="Reden" hint="komt alleen in het logboek">
+        <Input
+          type="text"
+          autoFocus
+          value={reden}
+          onChange={(e) => setReden(e.target.value)}
+          placeholder="bijv. onbekende aanvrager"
+        />
+      </Field>
+      <FormKnoppen>
         <Button
           size="sm"
           variant="secondary"
@@ -312,7 +310,7 @@ function AfwijzenKnop({ onAfwijzen }: { onAfwijzen: (reden: string) => void }) {
         <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
           Annuleren
         </Button>
-      </ButtonRow>
-    </div>
+      </FormKnoppen>
+    </FormRij>
   );
 }

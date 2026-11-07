@@ -42,6 +42,15 @@ describe("één bedieningsstijl", () => {
     expect(regel).toMatch(/flex items-center justify-between gap-2 sm:contents/);
   });
 
+  // 7 nov 2026: de panelen staan naast de tabkolom, dus `sm:` zegt niets over de ruimte: op 640 px is de kolom 325 px
+  // breed en liep een veld over zijn label heen. Rijen breken op de ruimte die er is, via `components/ui/SettingRow`.
+  it("een paneel van de instellingen legt zijn rijen niet op de vensterbreedte vast", () => {
+    const panelen = ["components/account", "components/admin"].flatMap((map) =>
+      readdirSync(join(ROOT, map)).map((f) => `${map}/${f}`));
+    for (const pad of panelen) expect(bron(pad), pad).not.toMatch(/\bsm:(flex-row|grid-cols|w-\d)|min-w-\[\d/);
+    expect(bron("components/ui/SettingRow.tsx")).not.toMatch(/\bsm:/);
+  });
+
   it("een label is de pil van StatusLabel, en een span", () => {
     const lijst = bron("components/ui/Lijst.tsx");
     const label = lijst.slice(lijst.indexOf("export function StatusLabel"));

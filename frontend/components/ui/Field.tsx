@@ -9,7 +9,7 @@ interface FieldProps {
 export function Field({ label, hint, required, error, children }: FieldProps) {
   return (
     <label className="block">
-      <span className="mb-1 flex items-baseline gap-1.5 text-sm font-medium text-ink">
+      <span className="mb-1 flex flex-wrap items-baseline gap-x-1.5 text-sm font-medium text-ink">
         {label}
         {required && <span className="text-fout">*</span>}
         {hint && <span className="ml-auto text-xs font-normal text-faint">{hint}</span>}

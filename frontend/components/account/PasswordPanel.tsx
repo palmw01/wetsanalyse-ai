@@ -86,35 +86,32 @@ export function PasswordPanel() {
       )}
       <form onSubmit={onSubmit}>
         <SettingList>
-          <SettingRow label="Huidig wachtwoord" htmlFor="pw-huidig">
+          <SettingRow label="Huidig wachtwoord" htmlFor="pw-huidig" veld>
             <Input
               id="pw-huidig"
               type="password"
               autoComplete="current-password"
               required
-              className="sm:w-64"
               value={huidig}
               onChange={(e) => setHuidig(e.target.value)}
             />
           </SettingRow>
-          <SettingRow label="Nieuw wachtwoord" omschrijving="Minimaal 8 tekens." htmlFor="pw-nieuw">
+          <SettingRow label="Nieuw wachtwoord" omschrijving="Minimaal 8 tekens." htmlFor="pw-nieuw" veld>
             <Input
               id="pw-nieuw"
               type="password"
               autoComplete="new-password"
               required
-              className="sm:w-64"
               value={nieuw}
               onChange={(e) => setNieuw(e.target.value)}
             />
           </SettingRow>
-          <SettingRow label="Herhaal nieuw wachtwoord" htmlFor="pw-herhaal">
+          <SettingRow label="Herhaal nieuw wachtwoord" htmlFor="pw-herhaal" veld>
             <Input
               id="pw-herhaal"
               type="password"
               autoComplete="new-password"
               required
-              className="sm:w-64"
               value={herhaling}
               onChange={(e) => setHerhaling(e.target.value)}
             />
