@@ -23,6 +23,7 @@ from langgraph.config import get_stream_writer
 from .. import werkgebied_intake as wi
 from ..narratie import _stap
 from ..state import State
+from .context import met_api, zeg
 
 logger = logging.getLogger("graph_qa.werkgebied")
 
@@ -158,15 +159,10 @@ def _thema(b, intake: dict[str, Any], writer, user_id: str) -> dict[str, Any]:
     """Het kaartje van het thema (spoor I7): de voorstellen van de api (zonder model, uit de rechtsgebieden van de
     bronnen), plus het huidige thema; het eerste voorstel staat aangevinkt als er nog geen thema is."""
     from ..agents.uitvoering import draai
-    from .agent_taak import _maak_api
 
     async def haal(_stuur):
-        api = _maak_api(b, user_id)
-        try:
+        async with met_api(b, user_id) as api:
             return await api.haal_thema_voorstel(intake["werkgebied_id"])
-        finally:
-            if (aclose := getattr(api, "aclose", None)) is not None:
-                await aclose()
 
     try:
         voorstel = draai(haal, loop=b.loop, schrijf=writer) if b.settings.legt_zelf_vast else {}
@@ -220,11 +216,6 @@ def _bereid_voor(b, intake: dict[str, Any], writer, user_id: str = "") -> dict[s
     return intake
 
 
-def _zeg(writer, tekst: str, **upd: Any) -> dict[str, Any]:
-    writer({"type": "token", "content": tekst})
-    return {**upd, "answer": tekst, "messages": [{"role": "assistant", "content": tekst}]}
-
-
 ZONDER_WERKGEBIED = ("Het dossier vul ik aan in een werkgebied. Open het gesprek vanuit het werkgebied (Vraag Lex "
                      "in de kop), dan vraag ik wat er ontbreekt.")
 WERKGEBIED_WEG = "Dat werkgebied bestaat niet meer, dus er valt niets aan te vullen."
@@ -234,7 +225,7 @@ def _haal_werkgebied(b, state: State, writer) -> tuple[dict[str, Any] | None, st
     """Het werkgebied van het gesprek, vers bij de api; anders (None, wat Lex zegt)."""
     from ..agents.uitvoering import draai
     from ..wetsanalyse_api import WetsanalyseApiFout
-    from .agent_taak import STORING, ZONDER_API, _maak_api
+    from .agent_taak import STORING, ZONDER_API
 
     wid = state.get("werkgebied_id", "")
     if not wid:
@@ -243,12 +234,8 @@ def _haal_werkgebied(b, state: State, writer) -> tuple[dict[str, Any] | None, st
         return None, ZONDER_API
 
     async def haal(_stuur):
-        api = _maak_api(b, state.get("user_id", ""))
-        try:
+        async with met_api(b, state.get("user_id", "")) as api:
             return await api.haal_werkgebied(wid)
-        finally:
-            if (aclose := getattr(api, "aclose", None)) is not None:
-                await aclose()
 
     try:
         return draai(haal, loop=b.loop, schrijf=writer), ""
@@ -312,7 +299,7 @@ def werkgebied_intake_node(b, state: State) -> dict[str, Any]:
     if not actie and state.get("intake_modus") == "aanvullen":
         nieuw, zin = _begin_aanvullen(b, state, writer)
         if nieuw is None:
-            return _zeg(writer, zin)
+            return zeg(writer, zin)
         intake = nieuw
         zinnen.append(zin)
         uitkomst = "begin"
@@ -336,7 +323,7 @@ def werkgebied_intake_node(b, state: State) -> dict[str, Any]:
 
     aanvullen = wi.is_aanvullen(intake)
     if uitkomst == "afgebroken":
-        return _zeg(writer, "Ik stop met aanvullen; er is niets gewijzigd." if aanvullen
+        return zeg(writer, "Ik stop met aanvullen; er is niets gewijzigd." if aanvullen
                     else "Ik stop met samenstellen; er is geen werkgebied aangemaakt.", intake=intake)
     if uitkomst == "opslaan":
         # Eerst de stand van nu: veranderde het werkgebied terwijl de analist aanvulde, dan legt Lex zijn
@@ -344,7 +331,7 @@ def werkgebied_intake_node(b, state: State) -> dict[str, Any]:
         # ook een tweede klik na een geslaagde opslag geen dubbele wijziging.
         werkgebied, melding = _haal_werkgebied(b, {**state, "werkgebied_id": intake.get("werkgebied_id", "")}, writer)
         if werkgebied is None and melding == WERKGEBIED_WEG:
-            return _zeg(writer, melding, intake=intake)
+            return zeg(writer, melding, intake=intake)
         if werkgebied is None:
             # Een storing: het kaartje blijft, opnieuw klikken mag.
             return _toon(writer, {**intake, "stap": "samenvatting"}, f"{melding} Er is nog niets opgeslagen.")
@@ -367,7 +354,7 @@ def werkgebied_intake_node(b, state: State) -> dict[str, Any]:
                               "content": f"Werkgebied ‘{intake['antwoorden'].get('naam', '')}’ aangemaakt."}]}
     if uitkomst == "verouderd":
         if intake.get("stap") == "klaar" and aanvullen:
-            return _zeg(writer, "Dit aanvullen is al afgerond." if not intake.get("afgebroken") else
+            return zeg(writer, "Dit aanvullen is al afgerond." if not intake.get("afgebroken") else
                         "Dit aanvullen is afgebroken. Vraag me opnieuw het dossier aan te vullen.", intake=intake)
         if intake.get("stap") == "klaar":
             tekst = ("Deze samenstelling is al afgerond." if not intake.get("afgebroken") else

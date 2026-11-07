@@ -8,7 +8,8 @@ expliciet: de nodes worden gewone functies met `(b, state)` en `build_graph` bin
 """
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Any
 
@@ -44,3 +45,25 @@ class Bouw:
     loop: Any = None
     # Voor tests: een eigen api-client voor de agents, `(settings, user_id) -> api`.
     agent_api: Callable[[Settings, str], Any] | None = None
+
+
+@asynccontextmanager
+async def met_api(b: Bouw, user_id: str) -> AsyncIterator[Any]:
+    """De wetsanalyse-api namens `user_id`, gesloten na gebruik (H5, M-04). Hoort bij de event loop van de beurt: open
+    hem binnen de coroutine die `agents.uitvoering.draai` uitvoert. Tests geven `Bouw.agent_api` mee."""
+    if b.agent_api is not None:
+        api = b.agent_api(b.settings, user_id)
+    else:
+        from ..wetsanalyse_api import WetsanalyseApi
+        api = WetsanalyseApi(b.settings, user_id)
+    try:
+        yield api
+    finally:
+        if (aclose := getattr(api, "aclose", None)) is not None:
+            await aclose()
+
+
+def zeg(writer: Callable[[dict[str, Any]], Any], tekst: str, **upd: Any) -> dict[str, Any]:
+    """Een zin van Lex als eindantwoord: als `token` naar de werkplek en als assistent-bericht in de historie."""
+    writer({"type": "token", "content": tekst})
+    return {**upd, "answer": tekst, "messages": [{"role": "assistant", "content": tekst}]}
