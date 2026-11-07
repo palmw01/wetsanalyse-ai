@@ -11,8 +11,8 @@ Drie ingangen, alle drie alleen lezend en uit Postgres:
 - `GET /v1/begrippen/{id}` – één begrip met zijn werkgebied en relaties, zonder dat de vrager het
   werkgebied hoeft te kennen.
 
-Een begrip in een gearchiveerd werkgebied, of een verwijderd begrip, bestaat hier niet: doorklikken
-naar de kaart zou anders een 404 geven. Begrippen zijn analyse-uitkomsten, geen wettelijke definities.
+Een verwijderd begrip, of een begrip van een verwijderd werkgebied, is echt gewist en staat hier dus niet.
+Begrippen zijn analyse-uitkomsten, geen wettelijke definities.
 
 Een generiek begrip (ADR-006) heeft geen werkgebied: het staat hier één keer, met waar het gebruikt wordt, en zijn inhoud
 wijzig je hier (`PATCH`, `accorderen`, `heropenen`, `DELETE`).
@@ -24,7 +24,7 @@ import unicodedata
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 
 from . import begrip_projectie, begrip_relatie_store, begrip_store, bestandsnaam, db
 from .begrip_relatie_contracts import NieuweBetekenis
@@ -71,8 +71,7 @@ async def _rijen(conn, ids: list[str] | None = None, werkgebied_id: str | None =
     ook de generieke die dat werkgebied gebruikt. Met `door` alleen de begrippen waarvan deze gebruiker een revisie
     maakte (*Door mij bewerkt*)."""
     b, w, k, r, g = db.begrippen, db.werkgebieden, db.begrip_koppelingen, db.begrip_relaties, db.werkgebied_begrippen
-    q = (select(b, w.c.naam.label("wg_naam")).join_from(b, w, b.c.werkgebied_id == w.c.id, isouter=True)
-         .where(b.c.verwijderd.is_(None), or_(b.c.werkgebied_id.is_(None), w.c.gearchiveerd.is_(None))))
+    q = (select(b, w.c.naam.label("wg_naam")).join_from(b, w, b.c.werkgebied_id == w.c.id, isouter=True))
     if ids is not None:
         q = q.where(b.c.id.in_(ids))
     if werkgebied_id:

@@ -3,7 +3,7 @@ import { itemsUitGesprek } from "./geschiedenis";
 import type { Bericht } from "./types";
 
 const ART = "urn:bwb:BWBR0004770:artikel:9";
-const leeg = { tekst: "", denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "", run_id: "" };
+const leeg = { tekst: "", denk: "", bronnen: [], annotatie_titel: "", run_id: "" };
 const b = (extra: Partial<Bericht>): Bericht => ({ rol: "assistant", ...leeg, ...extra });
 const teller = () => { let n = 0; return () => `id${++n}`; };
 
@@ -39,17 +39,14 @@ describe("itemsUitGesprek", () => {
     expect(zonder[0].type).toBe("artefact");
   });
 
-  it("een annotatie met bronnode wordt een annotatie-item; een slug zonder bronnode een tombstone", () => {
-    const { items, verwijderdeSlugs } = itemsUitGesprek([
+  it("een annotatie met bronnode wordt een annotatie-item; zonder bronnode een gewoon antwoord", () => {
+    const { items } = itemsUitGesprek([
       b({ annotatie_doel: { bron_iri: ART, label: "Artikel 9" }, tekst: " Samenvatting. " }),
-      b({ annotatie_slug: "oude-slug", annotatie_titel: "Oud" }),
+      b({ annotatie_titel: "Oud", tekst: "Oud antwoord." }),
     ], teller());
-    expect(items.map((x) => x.type)).toEqual(["annotatie", "annotatie"]);
+    expect(items.map((x) => x.type)).toEqual(["annotatie", "antwoord"]);
     const eerste = items[0];
     expect(eerste.type === "annotatie" && [eerste.slug, eerste.tekst]).toEqual([ART, "Samenvatting."]);
-    const tweede = items[1];
-    expect(tweede.type === "annotatie" && [tweede.slug, tweede.titel]).toEqual(["oude-slug", "Oud"]);
-    expect(verwijderdeSlugs).toEqual(["oude-slug"]);
   });
 
   it("een user-bericht houdt zijn antwoord op een kaartje en zijn keuze bij een voorstel", () => {

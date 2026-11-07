@@ -11,8 +11,6 @@ import json
 import re
 from types import SimpleNamespace
 
-import pytest
-
 from bron_fakes import answer_stream
 from agent.jas_pipeline.classificatie import TOOL, valideer
 from agent.jas_pipeline.kandidaten import GEEN_ANNOTATIE, CandidateStatus
@@ -56,8 +54,7 @@ def _draai(llm, **settings):
     async def verzamel():
         return [e async for e in answer_stream(
             "annoteer artikel 9 lid 1 van de Invorderingswet 1990",
-            settings=make_settings(enable_decomposition=True,
-                                   taal_provider="null", **settings),
+            settings=make_settings(taal_provider="null", **settings),
             llm=llm, graph=FakeGraph(result=LID_TSV))]
     return asyncio.run(verzamel())
 
@@ -149,10 +146,9 @@ def test_geen_annotatie_is_een_afwijzing_door_het_model():
     assert b.status is CandidateStatus.REJECTED and b.door == "model"
 
 
-@pytest.mark.parametrize("tak", [{"enable_planning": True}, {"enable_decomposition": True}])
-def test_graaf_annotatieketen_heeft_geen_critic(tak):
+def test_graaf_annotatieketen_heeft_geen_critic():
     from test_graafopbouw import structuur
-    nodes, edges = structuur(**tak)
+    nodes, edges = structuur()
     assert "annoteer" in nodes and not {"critic", "patch", "herzie", "hybride_annoteer"} & nodes
     assert ("annoteer", "emit", "", False) in edges
 

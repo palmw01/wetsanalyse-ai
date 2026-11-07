@@ -6,11 +6,10 @@ nooit bij een artikelnummer: `artikel 9.1.` houdt dus zijn echte zinseinde.
 """
 import re
 
+from bronmodel.taal import RANGTELWOORDEN
+
 VERSIE = "2"  # ook samengestelde artikelnummers met punten
-RANGTELWOORD = (
-    r"(?:eerste|tweede|derde|vierde|vijfde|zesde|zevende|achtste|negende|tiende|"
-    r"elfde|twaalfde|\d+e|vorige|volgende|voorgaande|laatste)"
-)
+RANGTELWOORD = "(?:" + "|".join(RANGTELWOORDEN[:12]) + r"|\d+e|vorige|volgende|voorgaande|laatste)"
 PATRONEN = {
     "artikel": re.compile(
         r"\b(?:artikel|artikelen|art\.)\s+\d+[a-z]*(?:[.:]\d+[a-z]*)*"

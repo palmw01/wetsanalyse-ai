@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   artefactActie, BUBBEL_MARGE, domineert, heeftOmvang, hervatIndex, indexVan, klikGat, LEGE_STAND,
   maskRechthoeken, moetStarten, START_URL, startUitUrl, toetsActie, uitsnede, zichtbaarDeel, type ToetsContext,
-  plaatsBubbel, RONDLEIDING_VERSIE, STAPPEN, vraagtArtefact, zichtbareStappen, type Vak,
+  plaatsBubbel, RONDLEIDING_VERSIE, STAPPEN, zichtbareStappen, type Vak,
 } from "./rondleiding";
 import {
   DEMO_DOEL, DEMO_LEDEN, DEMO_SAMENVATTING, DEMO_SLUG, maakDemoOpslag, maakDemoScene, maakDemoWeergave,
@@ -44,12 +44,6 @@ describe("de stappenlijst", () => {
   it("filtert beheerdersstappen weg voor een analist", () => {
     expect(zichtbareStappen(false).every((s) => !s.alleenBeheerder)).toBe(true);
     expect(zichtbareStappen(true).length).toBeGreaterThanOrEqual(zichtbareStappen(false).length);
-  });
-
-  it("weet welke stap het artefact nodig heeft", () => {
-    const i = STAPPEN.findIndex((s) => s.artefactOpen);
-    expect(vraagtArtefact(STAPPEN, i)).toBe(true);
-    expect(vraagtArtefact(STAPPEN, 0)).toBe(false);
   });
 });
 

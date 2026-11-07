@@ -78,6 +78,21 @@ def test_jci_backslash_wordt_gestript():
     assert not any(u.endswith("\\") for u in uris)
 
 
+@pytest.mark.parametrize("tekst", ["Gezocht op `urn:bwb:BWBR0004770:artikel:9` met subtree.",
+                                   "Zie **urn:bwb:BWBR0004770:artikel:9**.",
+                                   "`jci1.3:c:BWBR0004770&artikel=9`"])
+def test_markdown_rond_een_vindplaats_hoort_er_niet_bij(tekst):
+    """Acceptatie 7 nov 2026: "urn:bwb:BWBR0004770:artikel:9`" stond als niet-onderbouwde vindplaats in de grounding."""
+    refs = citations_in(tekst)
+    assert refs and not any(t in r for r in refs for t in "`*")
+
+
+def test_een_artikelnummer_in_markdown_is_bekend():
+    trace = [("get_artikel", '{"status": "ok", "resultaten": [{"iri": "urn:bwb:BWBR0004770:artikel:9", "tekst": "x"}]}')]
+    rapport = check_grounding("Zie `urn:bwb:BWBR0004770:artikel:9`: artikel 9 regelt dit.", trace)
+    assert rapport.unsupported == [] and not getattr(rapport, "onbevestigd", [])
+
+
 def test_citations_in_negeert_vocabulaire_namespace():
     assert citations_in("?s <urn:bwb-ns:heeftLid> ?o") == []
 

@@ -691,8 +691,9 @@ additieve kolom, dus dit vraagt een bewuste migratie (Azure Flexible Server, `ma
 **Geen nieuwe agent.** Er draait één QA-specialist per beurt (`parse_supervisor`). Een aparte
 `beleid`-specialist zou wet en beleid dus juist splitsen. Die komt er pas als de eval aantoont dat
 één prompt de bronsoorten niet uit elkaar houdt, en dat vraagt dan een specialist per worker in de
-supervisor. "Vergelijk wet met handleiding" kan via de bestaande decompositie
-(`ENABLE_DECOMPOSITION`). Er komt geen aparte Critic: `verify_node` is de plek. De annotatie-worker
+supervisor. Voor "vergelijk wet met handleiding" lag er een decompositieketen klaar
+(`ENABLE_DECOMPOSITION`); die is in november 2026 weggehaald en staat in de git-historie
+(`tools/graph-qa/agent/nodes/decompositie.py`), voor als dit spoor hem nodig heeft. Er komt geen aparte Critic: `verify_node` is de plek. De annotatie-worker
 blijft bij de wettekst.
 
 | Fase | Inhoud | Verificatie |
@@ -1336,7 +1337,7 @@ er een betere oplossing, mag hij vervallen. Wat volgt is de stand na ronde 3 (7 
   over de cache.
 - F8 vervalt: zonder gemeten winst, zoals het plan zelf zegt. E7-rest en L5 vervallen: de drifttest in de poort vangt
   het eerder.
-- H5 wacht op besluit 6. De setup-code (B2) vraagt een nieuw secret; vóór echte data opnieuw bekijken.
+- H5 (één gedeelde modelstap): besluit 6 is gevallen (7 nov 2026, eigenaar). De methoderol `begrippen` vervalt; herhalen gebeurt alleen bij `end_turn`, en decompositie blijft erbuiten (H6). Zes PR's H5a–H5f; H5a legt elk modelverzoek byte voor byte vast (`tools/graph-qa/tests/test_modelverzoeken.py`). De setup-code (B2) vraagt een nieuw secret; vóór echte data opnieuw bekijken.
 
 **Bij de eigenaar:** G2 vraagt een meldkanaal; G4 (hersteloefening) en G9 (verantwoordingsdossier) zijn geen PR. De
 environment-regels en OIDC bij B5, `security.txt` en de naamsvermelding van het taalmodel bij G5 ook.

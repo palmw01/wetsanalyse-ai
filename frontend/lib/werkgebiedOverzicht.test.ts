@@ -5,7 +5,7 @@ import { metStatus, perStatus, statusUitParam, zoek } from "./werkgebiedOverzich
 
 const wg = (id: string, naam: string, status: WerkgebiedSamenvatting["status"], over: Partial<WerkgebiedSamenvatting> = {}) =>
   ({ id, naam, status, analysevraag: "", afbakening: "", peildatum: null, revisie: 1, aangemaakt_door: "t",
-    aangemaakt: "", gewijzigd: "", gearchiveerd: null, ...over }) as WerkgebiedSamenvatting;
+    aangemaakt: "", gewijzigd: "", ...over }) as WerkgebiedSamenvatting;
 
 const LIJST = [wg("a", "Invorderbaarheid", "actief", { analysevraag: "Wanneer is een aanslag invorderbaar?" }),
   wg("b", "Bezwaar", "in_voorbereiding", { context: "Ontvankelijkheid van het bezwaarschrift" }),

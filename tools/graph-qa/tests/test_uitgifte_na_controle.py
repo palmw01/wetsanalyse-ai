@@ -141,22 +141,7 @@ def test_de_token_komt_na_de_controle():
     assert controle < types.index("token") < types.index("grounding")
 
 
-def test_afgekeurde_synthese_komt_niet_in_beeld():
-    settings = make_settings(enable_decomposition=True, grounding_correct=True)
-    llm = FakeLLM([
-        response([text_block("SPECIALIST: algemeen\nPLAN: opsplitsen")], "end_turn"),
-        response([text_block("1. Eerste?\n2. Tweede?")], "end_turn"),
-        response([text_block("Bevinding een.")], "end_turn"),
-        response([text_block("Bevinding twee.")], "end_turn"),
-        response([text_block(AFGEKEURD)], "end_turn"),
-        response([text_block(HERZIEN)], "end_turn"),
-    ])
-    events = _run(answer_stream("vraag", settings=settings, llm=llm, graph=FakeGraph(result="")))
-    assert _tekst(events, "token") == HERZIEN
-    assert AFGEKEURD not in _alles(events)
-
-
-@pytest.mark.parametrize("bestand", ["antwoord.py", "overzicht.py", "decompositie.py"])
+@pytest.mark.parametrize("bestand", ["antwoord.py", "overzicht.py"])
 def test_binnen_de_antwoordketen_stuurt_alleen_finalize_een_token(bestand: str):
     """Een controle die volgt op publicatie houdt niets tegen. Een nieuwe `token` in deze keten hoort
     daarom niet te kunnen ontstaan zonder dat deze test het ziet."""

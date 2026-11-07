@@ -1,5 +1,5 @@
 import type { LaagGraafcontrole } from "./annotatieNode";
-import type { AgentRun, AnnotatieElement, Beslissing, BeurtMeting, ElementTrace } from "./types";
+import type { AnnotatieElement, Beslissing, BeurtMeting, ElementTrace } from "./types";
 import { verklaar, type Verklaringen } from "./verklaringen";
 
 /** Eén regel in de Waarom-uitklap: een leesbare naam, met de code in de tooltip. */
@@ -91,17 +91,6 @@ export function redenVoorAlternatief(el: WaaromBron, klasse: string, motivatie: 
   if (!t) return motivatie;
   const r = verklaar(v, "twijfel", t.reden);
   return r.uitleg ? `${r.naam}: ${r.uitleg}` : r.naam;
-}
-
-/** De laatste agent-ronde onder deze elementen (een document kan er meer dragen: hergebruik, een
- *  aanvulling). Op tijd, want de volgorde van de elementen zegt daar niets over. */
-export function laatsteRun(elementen: Pick<AnnotatieElement, "geproduceerd_door">[]): AgentRun | undefined {
-  let laatste: AgentRun | undefined;
-  for (const e of elementen) {
-    const r = e.geproduceerd_door;
-    if (r && (!laatste || (r.tijd ?? "") > (laatste.tijd ?? ""))) laatste = r;
-  }
-  return laatste;
 }
 
 function seconden(ms: number): string {

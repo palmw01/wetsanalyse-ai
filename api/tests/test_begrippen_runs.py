@@ -10,7 +10,7 @@ import pytest
 from sqlalchemy import update
 
 from app import annotatie_v2_store as store, begrip_manifest, begrip_onderzoek, db
-from test_annotatie_v2 import ART, LAW, ONE, TWO, element, request, snapshot
+from test_annotatie_v2 import ART, ONE, TWO, element, request, snapshot
 from test_werkgebieden import ART2, _bron, _nieuw, client, database, graaf, snapshot2  # noqa: F401
 
 SETS = Path(__file__).resolve().parents[2] / "docs" / "wetsanalyse" / "referentieset-begrippen"
@@ -140,21 +140,21 @@ async def test_mislukt_en_loopt(client):
 
 # --- besluiten over groepen --------------------------------------------------------------------------
 
-async def test_overnemen_maakt_een_begrip_met_de_letterlijke_definitie(client):
+async def test_akkoord_zonder_reden_maakt_een_concept_met_de_letterlijke_definitie(client):
     ids = await _annoteer()
     wg = await _werkgebied(client)
     run = await _start(client, wg)
     await _uitkomst(client, wg, run, [_groep("Gabc123", [ids["alfa1"], ids["alfa2"]], definitie="de eerste letter",
                                               definitie_vindplaats="Artikel 9 · Lid 1 – Wet")])
-    r = await client.post(f"/v1/werkgebieden/{wg['id']}/groepen/overnemen",
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/groepen/akkoord",
                           json={"groep_ids": ["Gabc123"], "naam": "Alfa"})
     assert r.status_code == 201, r.text
-    b = r.json()
+    b = r.json()["begrip"]
     assert (b["status"], b["inhoud"]["definitie"], b["inhoud"]["definitie_herkomst"]) == ("concept", "de eerste letter", "letterlijk")
     assert {(k["element_id"], k["rol"]) for k in b["koppelingen"]} == {(ids["alfa1"], "duiding"), (ids["alfa2"], "duiding")}
     groep = (await client.get(f"/v1/werkgebieden/{wg['id']}/groepen")).json()["groepen"][0]
     assert (groep["besluit"], groep["begrip_id"]) == ("overgenomen", b["id"])
-    r = await client.post(f"/v1/werkgebieden/{wg['id']}/groepen/overnemen", json={"groep_ids": ["Gabc123"], "naam": "Alfa"})
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/groepen/akkoord", json={"groep_ids": ["Gabc123"], "naam": "Alfa"})
     assert r.status_code == 409
 
 
@@ -166,21 +166,21 @@ async def test_combineren_en_splitsen(client):
                                       _groep("Gbbb222", [ids["beta"], ids["awr"]], naam="beta")])
     base = f"/v1/werkgebieden/{wg['id']}/groepen"
     # Splitsen: alleen een deel van de leden; een lid van buiten de groepen mag niet.
-    r = await client.post(f"{base}/overnemen", json={"groep_ids": ["Gbbb222"], "naam": "Beta", "element_ids": [ids["alfa1"]]})
+    r = await client.post(f"{base}/akkoord", json={"groep_ids": ["Gbbb222"], "naam": "Beta", "element_ids": [ids["alfa1"]]})
     assert r.status_code == 422
-    r = await client.post(f"{base}/overnemen", json={"groep_ids": ["Gbbb222"], "naam": "Beta", "element_ids": [ids["beta"]]})
-    assert [k["element_id"] for k in r.json()["koppelingen"]] == [ids["beta"]]
+    r = await client.post(f"{base}/akkoord", json={"groep_ids": ["Gbbb222"], "naam": "Beta", "element_ids": [ids["beta"]]})
+    assert [k["element_id"] for k in r.json()["begrip"]["koppelingen"]] == [ids["beta"]]
     # Splitsen laat de rest staan (fase D): Gbbb222 blijft open met alleen de AWR-passage.
     g = {x["id"]: x for x in (await client.get(base)).json()["groepen"]}
     assert (g["Gbbb222"]["besluit"], [x["element_id"] for x in g["Gbbb222"]["leden"]]) == ("open", [ids["awr"]])
     assert g["Gbbb222"]["afgehandeld"] == 1
     # Een passage die al een begrip werd, kan dat niet nog eens.
-    r = await client.post(f"{base}/overnemen", json={"groep_ids": ["Gbbb222"], "naam": "Beta", "element_ids": [ids["beta"]]})
+    r = await client.post(f"{base}/akkoord", json={"groep_ids": ["Gbbb222"], "naam": "Beta", "element_ids": [ids["beta"]]})
     assert r.status_code == 409 and r.json()["detail"]["element_ids"] == [ids["beta"]]
     # Combineren neemt de rest: daarna zijn beide groepen overgenomen.
-    r = await client.post(f"{base}/overnemen", json={"groep_ids": ["Gaaa111", "Gbbb222"], "naam": "Samen"})
+    r = await client.post(f"{base}/akkoord", json={"groep_ids": ["Gaaa111", "Gbbb222"], "naam": "Samen"})
     assert r.status_code == 201
-    assert {k["element_id"] for k in r.json()["koppelingen"]} == {ids["alfa1"], ids["alfa2"], ids["awr"]}
+    assert {k["element_id"] for k in r.json()["begrip"]["koppelingen"]} == {ids["alfa1"], ids["alfa2"], ids["awr"]}
     assert {x["besluit"] for x in (await client.get(base)).json()["groepen"]} == {"overgenomen"}
 
 
@@ -190,10 +190,10 @@ async def test_combineren_van_twee_open_groepen(client):
     run = await _start(client, wg)
     await _uitkomst(client, wg, run, [_groep("Gaaa111", [ids["alfa1"], ids["alfa2"]]),
                                       _groep("Gbbb222", [ids["beta"], ids["awr"]], naam="beta")])
-    r = await client.post(f"/v1/werkgebieden/{wg['id']}/groepen/overnemen",
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/groepen/akkoord",
                           json={"groep_ids": ["Gaaa111", "Gbbb222"], "naam": "Samen"})
     assert r.status_code == 201
-    assert len(r.json()["koppelingen"]) == 4
+    assert len(r.json()["begrip"]["koppelingen"]) == 4
     assert {g["besluit"] for g in (await client.get(f"/v1/werkgebieden/{wg['id']}/groepen")).json()["groepen"]} == {"overgenomen"}
 
 
@@ -269,11 +269,11 @@ async def test_samen_bij_een_twijfelvraag_maakt_een_begrip_ook_met_een_losse_pas
     run = await _start(client, wg)
     await _uitkomst(client, wg, run, [_groep("Gaaa111", [ids["alfa1"], ids["alfa2"]])],
                     vragen=[{"kandidaat_id": "P1", "van": ids["alfa1"], "naar": ids["beta"]}])
-    base = f"/v1/werkgebieden/{wg['id']}/groepen/overnemen"
+    base = f"/v1/werkgebieden/{wg['id']}/groepen/akkoord"
     r = await client.post(base, json={"groep_ids": ["Gaaa111"], "naam": "Alfa",
                                       "element_ids": [ids["alfa1"], ids["alfa2"], ids["beta"]]})
     assert r.status_code == 201, r.text
-    assert {k["element_id"] for k in r.json()["koppelingen"]} == {ids["alfa1"], ids["alfa2"], ids["beta"]}
+    assert {k["element_id"] for k in r.json()["begrip"]["koppelingen"]} == {ids["alfa1"], ids["alfa2"], ids["beta"]}
     assert (await client.get(f"/v1/werkgebieden/{wg['id']}/groepen")).json()["groepen"][0]["besluit"] == "overgenomen"
     # Zonder groep: twee losse passages uit de voorstellen.
     r = await client.post(base, json={"groep_ids": [], "naam": "Deze", "element_ids": [ids["awr"]]})

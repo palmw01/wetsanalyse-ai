@@ -91,7 +91,6 @@ await context.route("**/api/**", async (route) => {
     stand.revisie++; wg.revisie++;
     return route.fulfill({ json: overzicht() });
   }
-  if (p === "/api/werkgebieden/wg1/regelingen") return route.fulfill({ json: { regelingen: [{ bwb_id: IW, citeertitel: "Invorderingswet 1990" }] } });
   if (p.startsWith("/api/werkgebieden/wg1/")) return route.fulfill({ json: {} });
   if (p === "/api/werkgebieden") return route.fulfill({ json: { werkgebieden: [{ ...wg, aantal_bronnen: 0 }] } });
   if (p === "/api/annotatie/v2/weergave") return route.fulfill({ json: {
