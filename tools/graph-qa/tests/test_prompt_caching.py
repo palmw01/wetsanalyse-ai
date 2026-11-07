@@ -87,3 +87,50 @@ def test_orkestrator_zet_het_variabele_deel_achter_het_stabiele():
 
 async def _verzamel(gen):
     return [e async for e in gen]
+
+
+class _Stream:
+    def __init__(self, kwargs):
+        self.kwargs = kwargs
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def _fout(tekst: str) -> anthropic.BadRequestError:
+    return anthropic.BadRequestError(message=tekst, body=None,
+                                     response=type("R", (), {"status_code": 400, "headers": {}, "request": None})())
+
+
+def test_de_toollus_krijgt_een_cache_punt_op_de_historie_en_de_rest_niet():
+    """F7: elke toolronde stuurt de hele historie opnieuw; alleen daar loont een cache-punt aan het eind."""
+    llm = _adapter()
+    gezien: list[dict] = []
+    llm._client = type("C", (), {"messages": type("M", (), {
+        "stream": staticmethod(lambda **kw: gezien.append(kw) or _Stream(kw))})()})()
+    with llm.stream(model="m", max_tokens=1, system=[LANG, "x"], tools=[], messages=[], historie_cache=True):
+        pass
+    with llm.stream(model="m", max_tokens=1, system=[LANG, "x"], tools=[], messages=[]):
+        pass
+    assert gezien[0]["cache_control"] == {"type": "ephemeral"} and "cache_control" not in gezien[1]
+
+
+def test_weigert_de_provider_het_historie_punt_dan_blijft_de_systeemprompt_gecacht():
+    llm = _adapter()
+    pogingen: list[dict] = []
+
+    class Weigerend(_Stream):
+        def __enter__(self):
+            if "cache_control" in self.kwargs:
+                raise _fout("unexpected field cache_control")
+            return self
+    llm._client = type("C", (), {"messages": type("M", (), {
+        "stream": staticmethod(lambda **kw: pogingen.append(kw) or Weigerend(kw))})()})()
+    with llm.stream(model="m", max_tokens=1, system=[LANG, "x"], tools=[], messages=[], historie_cache=True):
+        pass
+    assert len(pogingen) == 2 and "cache_control" not in pogingen[1]
+    assert isinstance(pogingen[1]["system"], list), "het cache-punt op de systeemprompt blijft"
+    assert llm._caching and not llm._historie_caching

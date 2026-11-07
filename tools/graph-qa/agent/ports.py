@@ -68,6 +68,7 @@ class LLMPort(Protocol):
         system: Systeem,
         tools: list[dict[str, Any]],
         messages: list[dict[str, Any]],
+        historie_cache: bool = False,
     ) -> "LLMStream":
         """Als create(), maar streamend. Gebruik als context manager."""
         ...
