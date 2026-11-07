@@ -406,6 +406,10 @@ class AnnotatieVoorstel(BaseModel):
     trace: dict[str, Any] = {}
 
 
+#: Zoveel modelaanroepen per beurt staan los in de meting; de tellers lopen daarna gewoon door.
+MAX_AANROEPEN = 60
+
+
 class Verbruiksmeter:
     """Telt het tokenverbruik van één beurt op, over alle LLM-calls heen.
 
@@ -429,18 +433,33 @@ class Verbruiksmeter:
         self.cache_lees = 0
         self.cache_schrijf = 0
         self.calls = 0
+        # Per modelaanroep wat hij kostte en duurde, in volgorde van terugkomst (`beurtmeting`). Begrensd: een
+        # beurt met meer aanroepen is zelf het signaal, en de som staat hierboven toch compleet.
+        self.aanroepen: list[dict[str, int]] = []
 
-    def tel_response(self, resp: Any) -> None:
-        """Neem het `usage`-blok van één antwoord op. Zonder usage (of bij een fake) telt het niets."""
+    def tel_response(self, resp: Any, ms: int | None = None) -> None:
+        """Neem het `usage`-blok van één antwoord op. Zonder usage (of bij een fake) telt het niets.
+
+        `ms` is hoe lang de aanroep duurde, als de adapter het weet."""
         u = getattr(resp, "usage", None)
         if u is None:
             return
+        aanroep = {
+            "invoer": int(getattr(u, "input_tokens", 0) or 0),
+            "uitvoer": int(getattr(u, "output_tokens", 0) or 0),
+            "cache_lees": int(getattr(u, "cache_read_input_tokens", 0) or 0),
+            "cache_schrijf": int(getattr(u, "cache_creation_input_tokens", 0) or 0),
+        }
+        if ms is not None:
+            aanroep["ms"] = int(ms)
         with self._lock:
             self.calls += 1
-            self.invoer += int(getattr(u, "input_tokens", 0) or 0)
-            self.uitvoer += int(getattr(u, "output_tokens", 0) or 0)
-            self.cache_lees += int(getattr(u, "cache_read_input_tokens", 0) or 0)
-            self.cache_schrijf += int(getattr(u, "cache_creation_input_tokens", 0) or 0)
+            self.invoer += aanroep["invoer"]
+            self.uitvoer += aanroep["uitvoer"]
+            self.cache_lees += aanroep["cache_lees"]
+            self.cache_schrijf += aanroep["cache_schrijf"]
+            if len(self.aanroepen) < MAX_AANROEPEN:
+                self.aanroepen.append(aanroep)
 
     @property
     def totaal(self) -> int:

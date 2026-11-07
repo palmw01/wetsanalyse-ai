@@ -11,6 +11,12 @@ Twee keuzes:
 - **Geen inhoud.** Alleen namen uit de code, tellingen en tijden. Geen veldnaam met "token" erin: die
   zou de redactie in `observability` kunnen raken.
 
+Dezelfde cijfers gaan als **`meting`-event** vlak vóór `done` naar wie meekijkt, plus het verbruik en de
+duur per modelaanroep (`aanroepen`). Zonder dat event was een beurt alleen te meten met toegang tot App
+Insights: de acceptatie-MCP zag het tokentotaal van de gebruiker, niet wat één beurt kostte of hoeveel er uit
+de cache kwam (nulmeting 7 nov 2026). De werkplek negeert het event; de tekst van de beurt verandert niet.
+Een stroom die zonder `done` eindigt (fout in de driver, afgebroken) krijgt geen event, wel de logregel.
+
 Wat dit niet ziet: de batchruns van `begrippen_verdieping`. Die hebben een eigen meter en zijn geen
 beurt; hun verbruik staat in het journaal van de api.
 """
@@ -54,11 +60,7 @@ async def gemeten(
     klaar = False
     gelogd = False
 
-    def log() -> None:
-        nonlocal gelogd
-        if gelogd:
-            return
-        gelogd = True
+    def meting() -> dict[str, Any]:
         verbruik = meter.als_dict() if meter is not None else {}
         if fout:
             uitkomst = "fout"
@@ -66,10 +68,7 @@ async def gemeten(
             uitkomst = "gestopt"
         else:
             uitkomst = "klaar" if klaar else "afgebroken"
-        logger.info("beurt_meting", extra={
-            "categorie": "functioneel",
-            "run_id": getattr(run, "run_id", "") or "",
-            "chat_session_id": gesprek_id,
+        return {
             "route": (meter.route if meter is not None else "") or "onbekend",
             "uitkomst": uitkomst,
             "duur_ms": round((time.perf_counter() - begin) * 1000),
@@ -81,6 +80,18 @@ async def gemeten(
             "cache_lees": verbruik.get("cache_lees", 0),
             "cache_schrijf": verbruik.get("cache_schrijf", 0),
             "model": model,
+        }
+
+    def log(waarden: dict[str, Any] | None = None) -> None:
+        nonlocal gelogd
+        if gelogd:
+            return
+        gelogd = True
+        logger.info("beurt_meting", extra={
+            "categorie": "functioneel",
+            "run_id": getattr(run, "run_id", "") or "",
+            "chat_session_id": gesprek_id,
+            **(waarden or meting()),
         })
 
     try:
@@ -95,9 +106,12 @@ async def gemeten(
                 fout = True
             elif soort == "done":
                 # Vóór het doorgeven: na `done` stopt de lezer, en dan komt een `finally` pas bij het
-                # opruimen van de generator.
+                # opruimen van de generator. Het event gaat ervoor, want na `done` leest niemand meer.
                 klaar = True
-                log()
+                waarden = meting()
+                log(waarden)
+                yield {"type": "meting", **waarden,
+                       "aanroepen": list(meter.aanroepen) if meter is not None else []}
             yield event
     except Exception:
         fout = True
