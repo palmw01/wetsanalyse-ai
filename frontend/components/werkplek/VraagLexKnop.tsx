@@ -16,8 +16,9 @@ const KLASSE = `${KNOP_XS} border-line text-lint hover:border-lint hover:bg-lint
 
 /** *Vraag Lex* over één object (F3b): één knop voor elke soort, met het object als onderwerp. Een link
  *  buiten de werkplek, zodat de bewaker van niet-bewaarde wijzigingen hem ziet (`useOnbewaardBewaker`). */
-/** De ene knop op een detailpagina (spoor G2, de mock-up): primair, met de tekst *Bespreek met Lex*. */
-const PRIMAIR = knopKlasse("primary", "sm");
+/** De ene knop op een detailpagina (spoor G2, de mock-up): primair, met de tekst *Bespreek met Lex*. Een hoofdknop, dus
+ *  op een telefoon over de volle breedte, ook buiten de `PaginaKop` (7 nov 2026; op de tab Bronnen stond hij smal). */
+const PRIMAIR = `${knopKlasse("primary", "sm")} w-full sm:w-auto`;
 
 export function VraagLexKnop({ onderwerp, naam: eigenNaam, tekst: eigenTekst, primair = false, alleenInGesprek = false, className = "" }: {
   onderwerp: Object_;

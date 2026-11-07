@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import json
 import re
 import shutil
 import subprocess
@@ -68,7 +69,7 @@ async def test_de_delen_staan_op_volgorde_met_elke_bepaling_een_keer(client):
     wg, _ids = await _gevuld(client)
     regels = export.regels(await _data(wg), V)
     koppen = [t for s, t in regels if s == "Heading1"]
-    assert koppen == ["1. Dossier", "2. Deelvragen en bronnen", "3. Wettekst en annotaties", "4. Begrippen", "5. Verantwoording"]
+    assert koppen == ["Samenvatting", "1. Dossier", "2. Deelvragen en bronnen", "3. Wettekst en annotaties", "4. Begrippen", "5. Verantwoording"]
     assert [i for i, (s, _t) in enumerate(regels) if s == pdf_opmaak.INHOUD]
     # Lid 1 heeft een emoji vooraan: de offsets tellen codepoints, en de tekst staat letterlijk en één keer.
     assert sum(s == "Citaat" and t == "😀 Alfa Alfa" for s, t in regels) == 1
@@ -445,7 +446,7 @@ async def test_het_rapport_overleeft_json_heen_en_terug(client):
     rapport = export.bouw_rapport(await _data(wg), V)
     terug = Rapport.model_validate_json(rapport.model_dump_json())
     assert terug == rapport and rapport_regels(terug) == rapport_regels(rapport)
-    assert rapport.model_dump(mode="json")["schema_naam"] == "werkgebied-rapport-v1"
+    assert rapport.model_dump(mode="json")["schema_naam"] == "werkgebied-rapport-v2"
 
 
 async def test_ook_de_json_draagt_geen_modelvragen_hashes_of_beurtmeting(client):
@@ -460,7 +461,7 @@ async def test_ook_de_json_draagt_geen_modelvragen_hashes_of_beurtmeting(client)
 
 
 # Velden die de tekst bewust niet toont: sleutels, of een keuze tussen twee velden die de andere kant van de test laat zien.
-_NIET_GETOOND = {"id", "iri", "regeling", "herkomst", "definitie_herkomst", "definitie_door", "oordeel", "modus", "geldig_tot",
+_NIET_GETOOND = {"id", "iri", "regeling", "herkomst", "code", "definitie_herkomst", "definitie_door", "oordeel", "modus", "geldig_tot",
                  "alternatieven", "r.wettekst.regelingen.0.bwb_id"}
 
 
@@ -606,3 +607,46 @@ def test_een_teken_buiten_fira_valt_per_teken_terug():
 def test_ook_een_lange_onafgebroken_iri_past():
     regels = [("Heading3", "Kop"), ("Meta", "urn:bwb:" + "x" * 900), ("Markering:Onbekend", "Klasse")]
     assert pdf_opmaak.render(regels).startswith(b"%PDF")
+
+
+def test_het_schemabestand_hoort_bij_het_contract():
+    """Wie het contract wijzigt, maakt het bestand opnieuw: `werkgebied_rapport.schrijf_schema()`."""
+    from app import werkgebied_rapport
+    assert json.loads(werkgebied_rapport.SCHEMA_PAD.read_text()) == werkgebied_rapport.json_schema()
+
+
+async def test_colofon_noemt_kenmerk_status_en_wie_het_opstelde(client):
+    wg, _ids = await _gevuld(client)
+    rapport = export.bouw_rapport(await _data(wg), V)
+    assert rapport.document.kenmerk == f"WG-{wg['id'][:8]}-r{wg['revisie']}" and rapport.document.concept
+    regels = rapport_regels(rapport)
+    begin = regels.index(("Heading4", "Colofon"))
+    assert regels[begin - 1] == ("Pagina", "")                        # het colofon heeft een eigen pagina
+    colofon = [t for _s, t in regels[begin:begin + 14]]
+    assert "Kenmerk: " + rapport.document.kenmerk in colofon
+    assert any(t.startswith("Status: ") and "concept" in t for t in colofon)
+    assert "Begrippen geaccordeerd door: " + ", ".join(rapport.verantwoording.accordeurs) in colofon
+
+
+async def test_samenvatting_telt_in_een_vaste_volgorde(client):
+    wg, _ids = await _gevuld(client)
+    rapport = export.bouw_rapport(await _data(wg), V)
+    k = rapport.samenvatting
+    assert [(t.code, t.aantal) for t in k.begrippen] == [("geaccordeerd", 1), ("concept", 1)]
+    assert [t.code for t in k.markeringen][0] == "beoordeeld" and k.markeringen[-1].code == "afgewezen"
+    regels = rapport_regels(rapport)
+    assert ("Heading1", "Samenvatting") in regels
+    assert ("BodyText", "Begrippen – geaccordeerd: 1, concept: 1") in regels
+
+
+async def test_het_besluitenlog_noemt_wie_wat_besloot_met_onderwerp_en_reden(client):
+    wg, _ids = await _gevuld(client)
+    rapport = export.bouw_rapport(await _data(wg), V)
+    akkoord = [b for b in rapport.verantwoording.besluiten if b.actie == "begrip-geaccordeerd"]
+    assert len(akkoord) == 1 and akkoord[0].onderwerp == "belastingschuldige" and akkoord[0].reden == "Getoetst aan de wet"
+    assert [b.op for b in rapport.verantwoording.besluiten] == sorted(b.op for b in rapport.verantwoording.besluiten)
+    regels = rapport_regels(rapport)
+    assert any(s == "BodyText" and "begrip geaccordeerd: belastingschuldige" in t for s, t in regels)
+    assert ("Meta", "Reden: Getoetst aan de wet") in regels
+    # Werk van Lex is geen besluit: alleen geteld.
+    assert not any(b.actie.endswith("-gestart") for b in rapport.verantwoording.besluiten)
