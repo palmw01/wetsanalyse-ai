@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import logging
 import sys
 import time
 from pathlib import Path
@@ -53,9 +54,30 @@ def load_golden(path: Path = GOLDEN) -> list[dict[str, Any]]:
 async def neem_case_op(case: dict[str, Any], *, settings: Settings, llm=None, graph=None) -> dict[str, Any]:
     """De events van één case die de scorers lezen (eval/opname.py)."""
     opname = nieuwe_opname(case["question"], vraagtype_van(case))
-    async for ev in answer_stream(case["question"], settings=settings, llm=llm, graph=graph):
-        neem_op(opname, ev)
+    meter, weigeringen = Verbruiksmeter(), _Weigeringen()
+    logging.getLogger("graph_qa.orchestrator").addHandler(weigeringen)
+    begin = time.monotonic()
+    try:
+        async for ev in answer_stream(case["question"], settings=settings, llm=llm, graph=graph, meter=meter):
+            neem_op(opname, ev)
+    finally:
+        logging.getLogger("graph_qa.orchestrator").removeHandler(weigeringen)
+    opname["verbruik"] = {**meter.als_dict(), "modelrondes": meter.calls, "duur_ms": round((time.monotonic() - begin) * 1000)}
+    opname["weigeringen"] = weigeringen.redenen
     return opname
+
+
+class _Weigeringen(logging.Handler):
+    """Vangt `sjabloon niet te vullen` met zijn reden. De eval-log toonde alleen de melding, niet waarom, terwijl
+    elke weigering een modelronde kost (nulmeting duiding 7 nov 2026: 14 in 18 beurten)."""
+
+    def __init__(self) -> None:
+        super().__init__(logging.WARNING)
+        self.redenen: list[str] = []
+
+    def emit(self, record: logging.LogRecord) -> None:
+        if record.getMessage() == "sjabloon niet te vullen":
+            self.redenen.append(str(getattr(record, "reden", "")))
 
 
 async def run_case(case: dict[str, Any], *, settings: Settings, llm=None, graph=None) -> CaseResult:
@@ -222,10 +244,31 @@ async def run_annotatie_suite(
     return resultaten
 
 
+def _verbruik(r: CaseResult) -> str:
+    v = r.verbruik
+    if not v:
+        return f"{'-':>7} {'-':>3} {'-':>5} {'-':>4}"
+    return f"{_kort(sum(v.get(k, 0) for k in _TOKENSOORTEN)):>7} {v.get('modelrondes', 0):3d} {v.get('duur_ms', 0) / 1000:5.1f} {len(r.weigeringen):4d}"
+
+
+_TOKENSOORTEN = ("invoer", "cache_lees", "cache_schrijf", "uitvoer")
+
+
+def print_verbruik(results: list[CaseResult]) -> None:
+    """Wat de suite kostte, per tokensoort: de prijs per soort verschilt (cache lezen is het goedkoopst)."""
+    gemeten = [r.verbruik for r in results if r.verbruik]
+    if not gemeten:
+        return
+    som = {k: sum(v.get(k, 0) for v in gemeten) for k in (*_TOKENSOORTEN, "modelrondes", "duur_ms")}
+    print(f"Verbruik over {len(gemeten)} cases: " + ", ".join(f"{k} {som[k]:,}".replace(",", ".") for k in _TOKENSOORTEN)
+          + f" · {som['modelrondes']} modelrondes · {som['duur_ms'] / 1000:.0f} s · "
+          f"{sum(len(r.weigeringen) for r in results)} weigeringen van het sjabloon")
+
+
 def print_report(results: list[CaseResult]) -> bool:
     print(f"\n{'faith':>6} {'recall':>6} {'cont':>4} {'refu':>4} {'schoon':>6} {'ovz':>4} {'volg':>4} {'sjab':>4} "
-          f"{'toon':>4}  vraag")
-    print("-" * 100)
+          f"{'toon':>4} {'tokens':>7} {'rnd':>3} {'s':>5} {'weig':>4}  vraag")
+    print("-" * 120)
     for r in results:
         flag = "OK " if r.passed else "XX "
         extra = f"  ! {r.error}" if r.error else ""
@@ -233,14 +276,17 @@ def print_report(results: list[CaseResult]) -> bool:
             f"{r.faithfulness:6.2f} {r.source_recall:6.2f} "
             f"{'ja' if r.contains_ok else 'nee':>4} {'ja' if r.refusal_ok else 'nee':>4} "
             f"{'ja' if r.zonder_verboden_ok else 'NEE':>6} {'ja' if r.overzicht_ok else 'NEE':>4} "
-            f"{'ja' if r.volgorde_ok else 'NEE':>4} {'ja' if r.sjabloon_ok else 'NEE':>4} {r.toon.aantal:4d}  "
-            f"{flag}{r.question[:44]}{extra}"
+            f"{'ja' if r.volgorde_ok else 'NEE':>4} {'ja' if r.sjabloon_ok else 'NEE':>4} {r.toon.aantal:4d} "
+            f"{_verbruik(r)}  {flag}{r.question[:44]}{extra}"
         )
         for t in r.toon.overtredingen:
             print(f"{'':46}toon: {t}")
+        for w in r.weigeringen:
+            print(f"{'':46}weigering: {w[:160]}")
     passed = sum(r.passed for r in results)
-    print("-" * 100)
+    print("-" * 120)
     print(f"{passed}/{len(results)} geslaagd (de toon telt niet mee)")
+    print_verbruik(results)
     print_per_vraagtype((r.vraagtype, r.passed, r.toon.aantal, r.toon.lange_zinnen) for r in results)
     return passed == len(results)
 

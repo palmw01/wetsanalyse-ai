@@ -7,7 +7,8 @@ from dataclasses import asdict
 from eval import run_eval
 from eval.gesprek import GOLDEN_GESPREK, herscoor_gesprekken, run_gesprek_suite
 from eval.kwaliteit import lopende_tekst, sjabloon_ok, toon, volgorde_ok, zinnen
-from eval.opname import bewaar, lees
+from eval.opname import bewaar, lees, nieuwe_opname
+from eval.scoring import score_opname
 from eval.vraagtypen import MIN_CASES, VRAAGTYPEN, dekking, dekking_regel, vraagtype_van
 from fakes import make_settings
 
@@ -155,3 +156,48 @@ def test_de_duidingset_is_geldig_en_vraagt_het_duidingsjabloon():
     for c in cases:
         assert vraagtype_van(c) == "duiding" and c["sjabloon"] == "duiding", c["id"]
         assert c["expected_sources"] and c["expected_contains"] and c["should_refuse"] is False, c["id"]
+
+
+# --- verbruik en weigeringen per case -----------------------------------------------------------------
+
+def test_een_qa_case_meldt_tokens_rondes_duur_en_waarom_het_sjabloon_weigerde(capsys, monkeypatch):
+    """De duidingseval van 7 nov 2026 meldde geen kosten, en 14 keer 'sjabloon niet te vullen' zonder reden."""
+    from types import SimpleNamespace
+
+    from fakes import FakeGraph, FakeLLM
+    from test_sjablonen import HAAL, KIES_DUIDING, TIEN_TSV, _sluit_af
+
+    class GemetenLLM(FakeLLM):
+        def _next(self):
+            if getattr(self, "meter", None) is not None:
+                self.meter.tel_response(SimpleNamespace(usage=SimpleNamespace(input_tokens=10, output_tokens=5,
+                                                                              cache_read_input_tokens=100)), ms=20)
+            return super()._next()
+
+    fout = _sluit_af("t2", van="Dit staat nergens", tot="in de wet.")
+    llm = GemetenLLM([KIES_DUIDING, HAAL, fout, _sluit_af("t3")])
+    # Live bouwt answer_stream het model zelf en hangt de meter eraan; met een nepmodel doet de test dat.
+    from agent.models import Verbruiksmeter
+    llm.meter = Verbruiksmeter()
+    monkeypatch.setattr(run_eval, "Verbruiksmeter", lambda: llm.meter)
+    case = {"id": "d", "question": "Hoe werkt uitstel?", "vraagtype": "duiding", "expected_sources": [], "expected_contains": [],
+            "should_refuse": False}
+    [r] = asyncio.run(run_eval.run_suite([case], settings=make_settings(enable_planning=True), llm=llm,
+                                         graph=FakeGraph(result=TIEN_TSV)))
+    assert r.verbruik["modelrondes"] == 4 and r.verbruik["uitvoer"] == 20 and r.verbruik["cache_lees"] == 400
+    assert r.verbruik["duur_ms"] >= 0
+    [w] = r.weigeringen
+    assert "staat niet in" in w
+    run_eval.print_report([r])
+    uit = capsys.readouterr().out
+    assert "weigering: " in uit and "Verbruik over 1 cases: invoer 40, cache_lees 400" in uit.replace(".", "")
+    assert "1 weigeringen van het sjabloon" in uit
+
+
+def test_een_opname_zonder_verbruik_blijft_te_herscoren():
+    """Een bewaarde opname van vóór deze velden: het rapport toont een streep, geen fout."""
+    opname = nieuwe_opname("v", "feit")
+    del opname["verbruik"], opname["weigeringen"]
+    r = score_opname({"question": "v", "expected_sources": [], "expected_contains": [], "should_refuse": False}, opname)
+    assert r.verbruik is None and r.weigeringen == []
+    run_eval.print_report([r])
