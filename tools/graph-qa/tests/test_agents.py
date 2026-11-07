@@ -123,14 +123,23 @@ def test_een_actie_kiest_agent_en_taak_zonder_model():
     assert artefact == {"soort": "werkgebied", "titel": "Invorderbaarheid", "ref": {"werkgebied_id": "wg1"}}
 
 
-def test_een_getypte_vraag_kiest_de_agent_met_het_model():
-    llm = FakeLLM([response([text_block("WORKERS: deelvragen\nSPECIALIST: algemeen\nTAAK: dekking\nPLAN: d")],
-                            "end_turn")])
+def test_een_getypte_vraag_naar_de_dekking_gaat_zonder_model_naar_de_agent():
+    """R2: de stand van het werkgebied staat bij de api; de supervisor hoeft er geen model voor te vragen."""
+    llm = FakeLLM([])
     events = _beurt("Is deelvraag 2 gedekt?", llm)
-    assert len(llm.calls) == 1                                   # alleen de supervisor
+    assert llm.calls == []
     token = "".join(e["content"] for e in events if e["type"] == "token")
     assert token.startswith("Dekking in werkgebied *Invorderbaarheid*") and "“Wie is belastingschuldige" in token
     assert "Wanneer vervalt" not in token                       # alleen de aangewezen deelvraag
+
+
+def test_een_getypte_vraag_die_de_code_niet_leest_kiest_de_agent_met_het_model():
+    llm = FakeLLM([response([text_block("WORKERS: deelvragen\nSPECIALIST: algemeen\nTAAK: dekking\nPLAN: d")],
+                            "end_turn")])
+    events = _beurt("Hoe sta ik ervoor met deelvraag 2?", llm)
+    assert len(llm.calls) == 1                                   # alleen de supervisor
+    token = "".join(e["content"] for e in events if e["type"] == "token")
+    assert token.startswith("Dekking in werkgebied *Invorderbaarheid*")
 
 
 def _gesprek(beurten, llm, tmp_path):

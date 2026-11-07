@@ -18,6 +18,8 @@ import { MobieleTopbar, TOPBAR_KNOP } from "@/components/werkplek/MobieleTopbar"
 import { WerkplekClient } from "@/components/werkplek/WerkplekClient";
 import { foutTekst, getAccount, getVerbruik, verwijderGesprek, wijzigGesprek, zetRondleiding } from "@/lib/api";
 import { metSpoor } from "@/lib/uiSpoor";
+import { useRunStanden } from "@/lib/runStanden";
+import { kaleTitel, tabTitel } from "@/lib/tabTitel";
 import { resetdatum, tokensKort } from "@/lib/tokenbudget";
 import type { BeslissingType, Gesprek, GesprekSamenvatting, Verbruiksstand } from "@/lib/types";
 import { onderwerpUitUrl } from "@/lib/vraagLex";
@@ -103,6 +105,18 @@ export function WorkbenchShell({
   // de invoerbalk. Eén bron voor die drie, zodat ze niet uit elkaar kunnen lopen.
   const [verbruik, setVerbruik] = useState<Verbruiksstand | null>(null);
   const [strookGesloten, setStrookGesloten] = useState(false);
+
+  // Welke gesprekken zijn bezig of hebben een nieuw antwoord (E6): de stip in de sidebar en de tabtitel. Niet in de
+  // rondleiding: die toont een voorbeeldlijst, en een echte stip ertussen zou verwarren.
+  const runStanden = useRunStanden(activeId, verversSignaal);
+  const basisTitel = useRef<string | null>(null);
+  useEffect(() => {
+    basisTitel.current ??= kaleTitel(document.title);
+    document.title = tabTitel(basisTitel.current, runStanden);
+  }, [runStanden.bezig, runStanden.klaarVerborgen]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => {
+    if (basisTitel.current !== null) document.title = basisTitel.current;
+  }, []);
 
   const laadVerbruik = useCallback(async () => {
     try {
@@ -381,6 +395,7 @@ export function WorkbenchShell({
         onRondleiding={startRondleiding}
         demoGesprekken={demo?.gesprekken}
         verbruik={verbruik}
+        runStanden={demo ? undefined : runStanden.standen}
       />
 
       {/* Rechterkolom: mobiele topbar + chatvenster. `tabIndex={-1}` zodat de skip-link de focus

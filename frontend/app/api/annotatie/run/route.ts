@@ -65,12 +65,27 @@ export async function POST(req: Request) {
 }
 
 /** `?gesprek=<id>` → de run waar je op kunt aanhaken, of `null`. Dit is wat de werkplek bij
- *  binnenkomst vraagt om een lopende beurt weer in beeld te krijgen. */
+ *  binnenkomst vraagt om een lopende beurt weer in beeld te krijgen.
+ *
+ *  `?actief=1` → je runs over alle gesprekken heen: de lopende plus wat de laatste tien minuten
+ *  eindigde (`[{run_id, conversation_id, status, afgerond_op?}]`). Daaruit toont de sidebar welk
+ *  gesprek bezig is of een nieuw antwoord heeft (`lib/runStanden.ts`). `proxy()` zet de
+ *  `traceparent` er zelf op (`metTrace()`). */
 export async function GET(req: Request) {
   const userid = await sessionUserId();
   if (!userid) return geenSessie();
 
-  const gesprek = new URL(req.url).searchParams.get("gesprek") ?? "";
+  const params = new URL(req.url).searchParams;
+  if (params.get("actief") === "1") {
+    // Ook hier is de header de eigenaarscontrole: zonder zou de lijst van iedereen zijn.
+    return proxy("/v1/runs?actief=true", {
+      agent: true,
+      headers: { "X-User-Id": userid },
+      timeoutMs: 10_000,
+    });
+  }
+
+  const gesprek = params.get("gesprek") ?? "";
   // `pathSegment` weigert `..` met een fout, en die zou hieronder een 502 worden.
   if (!gesprek || isPuntSegment(gesprek)) return Response.json(null);
   // Een fout is géén `null`: `null` betekent "er loopt niets", en dat is een uitspraak die we bij een

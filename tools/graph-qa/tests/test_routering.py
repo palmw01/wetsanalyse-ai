@@ -33,9 +33,9 @@ class _GeenModel:
         raise ModelGevraagd
 
 
-def _bouw() -> Bouw:
+def _bouw(llm=None) -> Bouw:
     graaf = FakeGraph(results=lambda q: NAMEN if "bwb:Regeling" in q else "")
-    return Bouw(settings=make_settings(), llm=_GeenModel(), graph=graaf, stop_check=None, model="m", model_router="m",
+    return Bouw(settings=make_settings(), llm=llm or _GeenModel(), graph=graaf, stop_check=None, model="m", model_router="m",
                 model_ophaal="m", memory_context=lambda _s: "", advies_context=lambda _s: "")
 
 
@@ -75,3 +75,35 @@ def test_routering(rij, request):
     assert route == verwacht["route"]
     if "specialist" in verwacht:
         assert specialist == verwacht["specialist"]
+
+
+class _Supervisor:
+    """Een model dat de supervisorregels teruggeeft, zoals op acceptatie: in een gesprek een herschreven vraag."""
+
+    def __init__(self, tekst: str):
+        self.tekst = tekst
+
+    def create(self, **_):
+        from fakes import response, text_block
+        return response([text_block(self.tekst)], "end_turn")
+
+
+def test_in_een_bestaand_werkgebied_start_een_vervolgvraag_geen_nieuw_werkgebied(monkeypatch):
+    """Acceptatie 7 nov 2026: "Welke bronnen horen daarbij?" gaf "Hoe noemen we het werkgebied?"."""
+    b = _bouw(_Supervisor("VRAAG: Welke bronnen horen bij de deelvraag die het minst is uitgewerkt?\nWORKERS: werkgebied\n"
+                        "SPECIALIST: algemeen\nPLAN: bronnen per deelvraag"))
+    state = {"question": "Welke bronnen horen daarbij?", "modus": "auto", "werkgebied_id": "w1", "focus": {},
+             "messages": [{"role": "user", "content": "Welke deelvraag is het minst uitgewerkt?"},
+                          {"role": "assistant", "content": "Deelvraag 3."},
+                          {"role": "user", "content": "Welke bronnen horen daarbij?"}]}
+    upd = supervisie.supervisor_node(b, state)
+    assert supervisie._entry_node(b, {**state, **upd}) == "agent_taak"
+    assert upd["agent_taak"]["agent"] == "deelvragen" and upd["agent_taak"]["taak"] == "dekking"
+
+
+def test_buiten_een_werkgebied_stelt_de_werkgebied_worker_nog_steeds_samen():
+    b = _bouw(_Supervisor("WORKERS: werkgebied\nSPECIALIST: algemeen\nPLAN: samenstellen"))
+    state = {"question": "Ik wil de invordering van belastingen onderzoeken", "modus": "auto", "werkgebied_id": "",
+             "focus": {}, "messages": [{"role": "user", "content": "Ik wil de invordering van belastingen onderzoeken"}]}
+    upd = supervisie.supervisor_node(b, state)
+    assert supervisie._entry_node(b, {**state, **upd}) == "werkgebied_intake"
