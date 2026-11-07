@@ -107,14 +107,23 @@ async def niet_gevonden(werkgebied_id: str, begrip_id: str | None = None) -> HTT
     return HTTPException(404, "Begrip bestaat niet." if begrip_id else "Werkgebied bestaat niet.")
 
 
+def toets_revisie(revisie: int, verwacht: int, wat: str = "dit werkgebied", *, melding: str = "") -> None:
+    """De optimistische revisietoets van elk schrijfpad met een revisie: 412 `revisie_conflict` met de revisie van nu,
+    zodat de client weet waartegen hij opnieuw moet beginnen."""
+    if revisie != verwacht:
+        raise HTTPException(412, {"fout": "revisie_conflict", "revisie": revisie,
+                                  "melding": melding or f"Iemand anders wijzigde {wat} intussen; laad het opnieuw."})
+
+
 async def werkgebied_rij(conn, werkgebied_id: str, *, slot: bool = False):
-    """De rij van een bestaand werkgebied (404 als het er niet is), met `slot` onder het rij-slot: het slot dat de
-    schrijfpaden zonder revisie delen (bronnenruns, besluiten over kandidaten, de voortgang per deelvraag)."""
+    """De rij van een bestaand werkgebied, met `slot` onder het rij-slot: het slot dat de schrijfpaden zonder revisie
+    delen (runs, besluiten over kandidaten, de voortgang per deelvraag, begrippen). Bestaat het niet, dan de 404 van
+    `niet_gevonden`: bij een verwijderd werkgebied met wanneer en door wie. Elke store vraagt het werkgebied hier."""
     t = db.werkgebieden
     q = select(t).where(t.c.id == werkgebied_id)
     row = (await conn.execute(q.with_for_update() if slot else q)).first()
     if row is None:
-        raise HTTPException(404, "Werkgebied bestaat niet.")
+        raise await niet_gevonden(werkgebied_id)
     return row
 
 
@@ -131,12 +140,8 @@ async def _gewijzigd(werkgebied_id: str, verwacht: int, actor: str, actie: str |
     Zonder `actie` schrijft de aanroeper zelf de auditregels (`werkgebied_deelvragen.samen`)."""
     t = db.werkgebieden
     async with db.get_engine().begin() as conn:
-        row = (await conn.execute(select(t).where(t.c.id == werkgebied_id).with_for_update())).first()
-        if row is None:
-            raise HTTPException(404, "Werkgebied bestaat niet.")
-        if row.revisie != verwacht:
-            raise HTTPException(412, {"fout": "revisie_conflict", "revisie": row.revisie,
-                                      "melding": "Iemand anders wijzigde dit werkgebied intussen; laad het opnieuw."})
+        row = await werkgebied_rij(conn, werkgebied_id, slot=True)
+        toets_revisie(row.revisie, verwacht)
         yield conn, row
         await conn.execute(update(t).where(t.c.id == werkgebied_id).values(
             revisie=row.revisie + 1, gewijzigd=db.utcnow()))
@@ -260,14 +265,9 @@ async def verwijder(werkgebied_id: str, verwacht: int, actor: str) -> dict:
     """Echt wissen, onder het rij-slot en met de revisietoets: het werkgebied en alles wat eraan hangt.
     De audit krijgt een laatste regel en blijft staan; via die regel volgt de begrippengraaf (de
     projectie vindt geen werkgebied meer en haalt de graph weg)."""
-    t = db.werkgebieden
     async with db.get_engine().begin() as conn:
-        row = (await conn.execute(select(t).where(t.c.id == werkgebied_id).with_for_update())).first()
-        if row is None:
-            raise await niet_gevonden(werkgebied_id)
-        if row.revisie != verwacht:
-            raise HTTPException(412, {"fout": "revisie_conflict", "revisie": row.revisie,
-                                      "melding": "Iemand anders wijzigde dit werkgebied intussen; laad het opnieuw."})
+        row = await werkgebied_rij(conn, werkgebied_id, slot=True)
+        toets_revisie(row.revisie, verwacht)
         await wis(conn, werkgebied_id)
         await _audit(conn, werkgebied_id, actor, "werkgebied-verwijderd", {"naam": row.naam, "revisie": row.revisie})
     return {"verwijderd": werkgebied_id}

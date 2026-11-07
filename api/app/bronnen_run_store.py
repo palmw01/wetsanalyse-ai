@@ -5,7 +5,7 @@
   de methoden toe en zet de kandidaten terug (`zet_uitkomst`).
 - **Idempotent op (werkgebied, invoer).** Dezelfde selectie en analysevraag geven dezelfde run, zolang het
   de nieuwste is: na een tussenstand (A → B → A) zoekt Lex opnieuw, anders klopte `run_id` op de kandidaten
-  niet meer met de run die er nu ligt. Een run die blijft hangen (`VERLOPEN`) mag opnieuw.
+  niet meer met de run die er nu ligt. Een run die blijft hangen (`runs.VERLOPEN`) mag opnieuw.
 - **Wat telt, is de laatste klare run.** Een open voorstel dat die run niet vond, is *vervallen*: het
   dossier of de selectie veranderde en de nieuwe zoekopdracht vond het niet meer. De bronselectie laat het
   weg; een besluit (opgenomen, uitgesloten) blijft staan. De uitkomst van een run die intussen is ingehaald,
@@ -26,18 +26,16 @@ from __future__ import annotations
 import hashlib
 import json
 import uuid
-from datetime import timedelta
 
 from fastapi import HTTPException
 from sqlalchemy import insert, select, update
 
-from . import db, werkgebied_deelvragen, werkgebied_store
+from . import db, runs, werkgebied_deelvragen, werkgebied_store
 from .bronnen_run_contracts import ROL_VOLGORDE, BronnenUitkomst, Opnemen
 from .werkgebied_contracts import Bereik, BronselectieInvoer, Rol
-from .werkgebied_store import _audit as werkgebied_audit
+from .werkgebied_store import _audit as werkgebied_audit, werkgebied_rij
 
 #: Na zoveel stilte telt een run die niet klaar is als vastgelopen; dan mag hij opnieuw.
-VERLOPEN = timedelta(minutes=5)
 
 
 def kandidaat_id(bron_iri: str) -> str:
@@ -78,15 +76,9 @@ def invoer_id(invoer: dict) -> str:
     return "I" + hashlib.sha256(json.dumps(invoer, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:16]
 
 
-def _status(row) -> str:
-    if row.status in ("wacht", "loopt") and db.utcnow() - db.aware(row.gewijzigd) > VERLOPEN:
-        return "mislukt"
-    return row.status
-
-
 def _run(row, met_invoer: bool = False) -> dict:
     uit = {"id": row.id, "werkgebied_id": row.werkgebied_id, "invoer_id": row.invoer_id,
-           "status": _status(row), "reden": row.reden, "meting": row.meting,
+           "status": runs.status(row), "reden": row.reden, "meting": row.meting,
            "aantal_kern": len(row.invoer.get("kern", [])), "zoekversie": row.invoer.get("zoekversie", ""),
            "gestart_door": row.gestart_door, "gestart": db.aware(row.gestart).isoformat(),
            "gewijzigd": db.aware(row.gewijzigd).isoformat()}
@@ -101,10 +93,6 @@ def _kandidaat(row) -> dict:
             "besloten_door": row.besloten_door,
             "besloten_op": db.aware(row.besloten_op).isoformat() if row.besloten_op else None,
             "voorgesteld": db.aware(row.voorgesteld).isoformat(), "gewijzigd": db.aware(row.gewijzigd).isoformat()}
-
-
-async def _werkgebied(conn, werkgebied_id: str, slot: bool = False):
-    return await werkgebied_store.werkgebied_rij(conn, werkgebied_id, slot=slot)
 
 
 # --- runs ------------------------------------------------------------------------------------
@@ -125,12 +113,12 @@ async def start(werkgebied: dict, actor: str, zoekversie: str = "") -> tuple[dic
     iid = invoer_id(invoer)
     r = db.bronnen_runs
     async with db.get_engine().begin() as conn:
-        await _werkgebied(conn, werkgebied["id"], slot=True)
+        await werkgebied_rij(conn, werkgebied["id"], slot=True)
         bestaand = (await conn.execute(select(r).where(r.c.werkgebied_id == werkgebied["id"], r.c.invoer_id == iid)
                                        .order_by(r.c.gestart.desc()).limit(1))).first()
         nieuwste = await _laatste_row(conn, werkgebied["id"])
-        if bestaand is not None and (_status(bestaand) in ("wacht", "loopt")
-                                     or (_status(bestaand) == "klaar" and bestaand.id == nieuwste.id)):
+        if bestaand is not None and (runs.status(bestaand) in runs.LOPEND
+                                     or (runs.status(bestaand) == "klaar" and bestaand.id == nieuwste.id)):
             return _run(bestaand), False
         nu, rid = db.utcnow(), str(uuid.uuid4())
         await conn.execute(insert(r).values(id=rid, werkgebied_id=werkgebied["id"], invoer_id=iid, invoer=invoer,
@@ -144,7 +132,7 @@ async def start(werkgebied: dict, actor: str, zoekversie: str = "") -> tuple[dic
 async def haal(werkgebied_id: str, run_id: str, met_invoer: bool = False) -> dict:
     r = db.bronnen_runs
     async with db.get_engine().connect() as conn:
-        await _werkgebied(conn, werkgebied_id)
+        await werkgebied_rij(conn, werkgebied_id)
         row = (await conn.execute(select(r).where(r.c.id == run_id, r.c.werkgebied_id == werkgebied_id))).first()
     if row is None:
         raise HTTPException(404, "Run bestaat niet.")
@@ -179,7 +167,7 @@ def vervallen(status: str, run_id: str | None, basis: str | None, bewijs: list[d
 async def laatste(werkgebied: dict) -> dict | None:
     """De laatste run, met `verouderd` als de selectie of de analysevraag intussen veranderde."""
     async with db.get_engine().connect() as conn:
-        await _werkgebied(conn, werkgebied["id"])
+        await werkgebied_rij(conn, werkgebied["id"])
         row = await _laatste_row(conn, werkgebied["id"])
     if row is None:
         return None
@@ -190,25 +178,15 @@ async def laatste(werkgebied: dict) -> dict | None:
     return {**_run(row), "verouderd": row.invoer_id != invoer_id(nu)}
 
 
-async def _zet(run_id: str, **waarden) -> None:
-    async with db.get_engine().begin() as conn:
-        await conn.execute(update(db.bronnen_runs).where(db.bronnen_runs.c.id == run_id)
-                           .values(gewijzigd=db.utcnow(), **waarden))
-
-
 async def loopt(werkgebied_id: str, run_id: str) -> dict:
-    run = await haal(werkgebied_id, run_id)
-    if run["status"] == "klaar":
-        return run
-    await _zet(run_id, status="loopt")
+    await haal(werkgebied_id, run_id)                           # 404 als de run hier niet hoort
+    await runs.zet_loopt(db.bronnen_runs, run_id)
     return await haal(werkgebied_id, run_id)
 
 
 async def mislukt(werkgebied_id: str, run_id: str, reden: str) -> dict:
-    run = await haal(werkgebied_id, run_id)
-    if run["status"] == "klaar":
-        raise HTTPException(409, "De run is al klaar.")
-    await _zet(run_id, status="mislukt", reden=reden)
+    await haal(werkgebied_id, run_id)
+    await runs.zet_mislukt(db.bronnen_runs, run_id, reden)
     return await haal(werkgebied_id, run_id)
 
 
@@ -238,7 +216,7 @@ async def zet_uitkomst(werkgebied_id: str, run_id: str, invoer: BronnenUitkomst,
     r = db.bronnen_runs
     h = _uitkomst_hash(invoer)
     async with db.get_engine().begin() as conn:
-        await _werkgebied(conn, werkgebied_id, slot=True)
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
         row = (await conn.execute(select(r).where(r.c.id == run_id, r.c.werkgebied_id == werkgebied_id)
                                   .with_for_update())).first()
         if row is None:
@@ -292,7 +270,7 @@ async def kandidaten(werkgebied_id: str) -> dict:
     """Alle kandidaten, sterkste rol eerst; met de laatste run, zodat de werkplek weet wat er nu speelt."""
     k = db.bron_kandidaten
     async with db.get_engine().connect() as conn:
-        await _werkgebied(conn, werkgebied_id)
+        await werkgebied_rij(conn, werkgebied_id)
         run = await _laatste_row(conn, werkgebied_id)
         rows = (await conn.execute(select(k).where(k.c.werkgebied_id == werkgebied_id))).all()
         in_selectie = await werkgebied_store.actieve_bron_iris(conn, werkgebied_id)

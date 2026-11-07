@@ -118,11 +118,11 @@ def _bevat(tekst: str, term: str) -> bool:
 
 async def _graaf_verwijzingen(iris: list[str]) -> list[tuple[str, str]] | None:
     """Uitgaande verwijzingen vanaf deze nodes, één stap; None als de graaf niet antwoordt."""
-    from .graaf_projectie_v2 import _select
+    from .graaf_client import sparql_select
     from .samenhang import _uitgaand
     try:
         async with httpx.AsyncClient(timeout=20) as client:
-            rijen = await _select(client, _uitgaand(iris))
+            rijen = await sparql_select(client, _uitgaand(iris))
     except (httpx.HTTPError, ConnectionError, ValueError) as exc:
         logger.warning("verwijzingen voor het begripsonderzoek niet beschikbaar", extra={"fout": type(exc).__name__})
         return None

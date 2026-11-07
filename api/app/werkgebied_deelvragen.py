@@ -31,7 +31,7 @@ from . import db
 from .werkgebied_contracts import (
     DeelvragenSamen, DeelvraagStatus, DeelvraagVoorstellen, DeelvraagWijziging,
 )
-from .werkgebied_store import _audit, _gewijzigd
+from .werkgebied_store import _audit, _gewijzigd, werkgebied_rij
 
 # De dekking van een deelvraag is of er een bron bij hoort (methode 1g). Begrippen horen bij het werkgebied,
 # niet bij een deelvraag (spoor K); de stand van het wérk staat in de bronselectie (`bronselectie.py`).
@@ -258,10 +258,7 @@ async def haal(werkgebied_id: str, deelvraag_id: str) -> dict:
     die haar zouden vervangen – voor het paneel van één deelvraag."""
     d, k = db.werkgebied_deelvragen, db.werkgebied_deelvraag_koppelingen
     async with db.get_engine().connect() as conn:
-        t = db.werkgebieden
-        wg = (await conn.execute(select(t.c.id).where(t.c.id == werkgebied_id))).first()
-        if wg is None:
-            raise HTTPException(404, "Werkgebied bestaat niet.")
+        await werkgebied_rij(conn, werkgebied_id)
         row = await _onder_slot(conn, werkgebied_id, deelvraag_id)
         selecties, begrippen = await _actieve_doelen(conn, werkgebied_id)
         per: dict[str, list[str]] = {"bron": [], "begrip": []}
@@ -309,13 +306,10 @@ async def koppel_bron_in(conn, werkgebied_id: str, selectie_id: str, deelvraag_i
 
 async def stel_voor(werkgebied_id: str, v: DeelvraagVoorstellen, actor: str) -> dict:
     """De voorstellen van Lex: alleen wat nieuw is. Geeft `{nieuw, overgeslagen, deelvragen}`."""
-    t = db.werkgebieden
     nieuw: list[str] = []
     overgeslagen: list[dict] = []
     async with db.get_engine().begin() as conn:
-        row = (await conn.execute(select(t).where(t.c.id == werkgebied_id).with_for_update())).first()
-        if row is None:
-            raise HTTPException(404, "Werkgebied bestaat niet.")
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
         if v.vervangt:
             d = db.werkgebied_deelvragen
             oud = (await conn.execute(select(d.c.status).where(
@@ -348,10 +342,7 @@ async def dekking(werkgebied_id: str) -> dict:
     """Per actieve deelvraag: `geen_bron` (niets gekoppeld) of `met_bron`, met de gekoppelde bronnen. Uit
     Postgres, zonder graaf."""
     async with db.get_engine().connect() as conn:
-        t = db.werkgebieden
-        row = (await conn.execute(select(t.c.id).where(t.c.id == werkgebied_id))).first()
-        if row is None:
-            raise HTTPException(404, "Werkgebied bestaat niet.")
+        await werkgebied_rij(conn, werkgebied_id)
         vragen = [d for d in await lijst_in(conn, werkgebied_id) if d["status"] == DeelvraagStatus.actief.value]
         s = db.werkgebied_bronselecties
         labels = {r.id: r.label for r in (await conn.execute(select(s.c.id, s.c.label).where(

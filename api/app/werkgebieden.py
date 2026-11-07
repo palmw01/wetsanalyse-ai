@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from . import annotatie_v2_store, pdf_opmaak, werkgebied_deelvragen as deelvragen, werkgebied_export, werkgebied_store as store
 from .auth import require_client
 from .bron_resolver import resolve_bron as _resolve_bron
+from .graaf_client import sparql_select
 from .graaf_projectie_v2 import verklaringen
 from .graaf import lees_bron as _lees_bron
 from .routers.auth import actieve_userid
@@ -49,6 +50,18 @@ async def resolve_bron(doel: dict) -> dict:
     return await _met_foutvertaling(_resolve_bron, doel)
 
 
+async def geverifieerde_bron(doel: dict) -> dict:
+    """Een bepaling zoals een werkgebied haar opneemt, geverifieerd in de graaf (`resolve_bron`: 422 als ze niet
+    bestaat): de canonieke IRI, het label, de regeling, de snapshot en de teksthash. Eén plek voor zelf opnemen, een
+    kandidaat opnemen en een genoemde bepaling."""
+    snapshot = await resolve_bron(doel)
+    gevonden = snapshot["doel"]
+    node = annotatie_v2_store.nodes_van(snapshot).get(gevonden["bron_iri"], {})
+    return {"bron_iri": gevonden["bron_iri"], "label": gevonden.get("label") or node.get("label", ""),
+            "bwb_id": gevonden.get("bwb_id") or node.get("bwb_id", ""),
+            "snapshot_id": snapshot.get("snapshot_id", ""), "bron_hash": node.get("bron_hash", "")}
+
+
 async def lees_bron(doel: dict) -> dict:
     """De bronboom voor een route die alleen leest, uit de cache (`graaf.lees_bron`); wat iets vastlegt, neemt
     `resolve_bron`."""
@@ -76,7 +89,6 @@ async def get_thema_voorstel(werkgebied_id: str, actor: str = Depends(actieve_us
     """Spoor I6: de thema's (tooitop) die passen bij de WTI-rechtsgebieden van de regelingen van de bronnen,
     zonder model. Best-effort: zonder graaf een lege lijst."""
     from . import tooi
-    from .graaf_projectie_v2 import _select
 
     wg = await store.haal(werkgebied_id)
     regelingen = sorted(f"urn:bwb:{b}" for b in store.regelingen_van(wg))
@@ -87,7 +99,7 @@ async def get_thema_voorstel(werkgebied_id: str, actor: str = Depends(actieve_us
 SELECT ?r ?l WHERE {{ VALUES ?r {{ {waarden} }} ?r dct:subject ?b . ?b skos:prefLabel ?l }}"""
         try:
             async with httpx.AsyncClient(timeout=20) as client:
-                gebieden = [x["l"] for x in await _select(client, q)]
+                gebieden = [x["l"] for x in await sparql_select(client, q)]
         except (httpx.HTTPError, ConnectionError, ValueError):
             gebieden = []
     voorstel = tooi.thema_voorstel(gebieden)
@@ -109,8 +121,6 @@ async def toestanden_van(wg: dict) -> dict:
     """De peildatum naast de toestand van elke regeling van het werkgebied (`regelingen_van`). De graaf bevat per regeling alleen de
     nieuwste toestand: ging die pas ná de peildatum gelden, dan kan de tekst afwijken van wat op de peildatum
     gold (`na_peildatum`). Best-effort: een haperende graaf geeft `volledig: false`, nooit een stille leegte."""
-    from .graaf_projectie_v2 import _select
-
     bwbs = store.regelingen_van(wg)
     uit = {"peildatum": wg["peildatum"], "peildatum_standaard": wg["peildatum_standaard"], "regelingen": [],
            "volledig": True}
@@ -118,7 +128,7 @@ async def toestanden_van(wg: dict) -> dict:
         return uit
     try:
         async with httpx.AsyncClient(timeout=20) as client:
-            rijen = await _select(client, toestanden_query(bwbs))
+            rijen = await sparql_select(client, toestanden_query(bwbs))
     except (httpx.HTTPError, ConnectionError, ValueError):
         return {**uit, "volledig": False}
     per = {(r.get("r") or "").removeprefix("urn:bwb:"): r for r in rijen}
@@ -175,13 +185,8 @@ async def delete_werkgebied(werkgebied_id: str, verwachte_revisie: int = Query(g
 async def post_bron(werkgebied_id: str, req: BronselectieInvoer, response: Response,
                     actor: str = Depends(actieve_userid)):
     await store.haal(werkgebied_id)                     # 404 vóór de graaf wordt gevraagd
-    snapshot = await resolve_bron({"bron_iri": req.bron_iri, "bwb_id": req.bwb_id,
-                                   "artikel": req.artikel, "lid": req.lid})
-    doel = snapshot["doel"]
-    node = annotatie_v2_store.nodes_van(snapshot).get(doel["bron_iri"], {})
-    bron = {"bron_iri": doel["bron_iri"], "label": doel.get("label") or node.get("label", ""),
-            "bwb_id": doel.get("bwb_id") or node.get("bwb_id", ""),
-            "snapshot_id": snapshot.get("snapshot_id", ""), "bron_hash": node.get("bron_hash", "")}
+    bron = await geverifieerde_bron({"bron_iri": req.bron_iri, "bwb_id": req.bwb_id,
+                                     "artikel": req.artikel, "lid": req.lid})
     selectie, nieuw = await store.voeg_bron_toe(werkgebied_id, req, bron, actor)
     response.status_code = 201 if nieuw else 200
     return {"selectie": selectie, "werkgebied": await store.haal(werkgebied_id)}

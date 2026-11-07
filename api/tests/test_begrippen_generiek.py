@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from rdflib import DCTERMS as DCT, SKOS, URIRef
 
-from app import begrip_projectie, begrip_store, db
+from app import begrip_projectie, begrip_store, db, werkgebied_store
 from test_annotatie_v2 import ART
 from test_begrippen import DEFINITIE, _annoteer, _begrip, _keur_alles_goed, _url, _werkgebied
 from test_begrippen import client, database, graaf, snapshot2  # noqa: F401
@@ -311,7 +311,7 @@ async def test_generieke_begrippen_buiten_dit_werkgebied(client):
     assert [x["id"] for x in await begrip_store.generieke_buiten(ander["id"])] == [g["id"]]
     assert (await client.get(_url(ander, g))).status_code == 404
     async with db.get_engine().begin() as conn:
-        await begrip_store._werkgebied_bestaat(conn, ander["id"], slot=True)
+        await werkgebied_store.werkgebied_rij(conn, ander["id"], slot=True)
         await begrip_store.gebruik_in(conn, ander["id"], g["id"], "lex-test")
     assert await begrip_store.generieke_buiten(ander["id"]) == []
     assert (await client.get(_url(ander, g))).status_code == 200

@@ -117,8 +117,9 @@ def json_export(view: dict, verklaringen: dict) -> bytes:
     return json.dumps(uit, ensure_ascii=False, indent=2).encode()
 
 
-def _cel(value: Any) -> str:
-    # Aanhalingstekens houden een spreadsheetformule niet tegen; een voorloopapostrof wel.
+def cel(value: Any) -> str:
+    """Eén CSV-cel die een spreadsheet niet als formule leest (CSV-injectie). Aanhalingstekens houden een formule niet
+    tegen; een voorloopapostrof wel. Elke CSV-export van de api gebruikt deze, ook `begrip_store.csv_export`."""
     value = str(value)
     return "'" + value if value[:1] in {"=", "+", "-", "@", "\t", "\r"} else value
 
@@ -138,19 +139,19 @@ def csv_export(view: dict, verklaringen: dict, provenance) -> bytes:
     for e in view["elementen"]:
         laagstatus = next((l["status"] for l in view["lagen"] if l["id"] == e["laag_id"]), "")
         r = herkomst_regels(e, verklaringen)
-        writer.writerow(["element"] + [_cel(e.get(k, "")) for k in
+        writer.writerow(["element"] + [cel(e.get(k, "")) for k in
             ("id", "eigenaar_iri", "klasse", "tekst", "lifecycle", "snapshot_id")]
             + [json.dumps(e["ankers"], ensure_ascii=False), json.dumps(e["beslissingen"], ensure_ascii=False),
                e["herkomst"], json.dumps(provenance(e), ensure_ascii=False), laagstatus]
-            + [_cel(r["subtype"]), _cel(r["aandacht"]), _cel(r["besloten_door"]), _cel(_lijst(r["regels"])),
-               _cel(_lijst(r["detectoren"])), _cel(_lijst(r["twijfel"])), _cel(_lijst(r["resolutieregel"])),
-               _cel(_lijst(r["mogelijke_klassen"])), _cel(_lijst(r["validatie"])),
-               "ja" if r["gedegradeerd"] else "nee", _cel(r["jurist"])])
+            + [cel(r["subtype"]), cel(r["aandacht"]), cel(r["besloten_door"]), cel(_lijst(r["regels"])),
+               cel(_lijst(r["detectoren"])), cel(_lijst(r["twijfel"])), cel(_lijst(r["resolutieregel"])),
+               cel(_lijst(r["mogelijke_klassen"])), cel(_lijst(r["validatie"])),
+               "ja" if r["gedegradeerd"] else "nee", cel(r["jurist"])])
     for ref in view["verwijzingen"]:
         writer.writerow(["verwijzing", ref["id"], ref["eigenaar_iri"], ref["klasse"], ref["label"], "", snapshot_id,
                          "[]", "[]", "", "", ""] + leeg)
     for segment in view["segmenten"]:
-        writer.writerow(["brontekst", "", segment["bron_iri"], "", _cel(segment["tekst"]), "", snapshot_id,
+        writer.writerow(["brontekst", "", segment["bron_iri"], "", cel(segment["tekst"]), "", snapshot_id,
                          "[]", "[]", "", "", ""] + leeg)
     for audit in view.get("audit") or []:
         writer.writerow(["audit", audit.get("element_id", ""), "", "", "", audit["actie"], snapshot_id,

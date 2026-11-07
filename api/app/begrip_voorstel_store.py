@@ -30,15 +30,14 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 from sqlalchemy import insert, select, update
 
-from . import begrip_onderzoek, begrip_store, db, verbruik
+from . import begrip_onderzoek, begrip_store, db, runs, verbruik
 from .begrip_contracts import BegripInhoud
 from .begrip_voorstel_contracts import (
     MODEL_ACTIES, VELDEN, KaartRunStart, KaartUitkomst, VoorstelInvoer, VoorstelOvername,
 )
-from .begrippen_run_store import VERLOPEN, _werkgebied
 from .begrippen_verdieping import definitie_fouten, fragment_fouten, fragmentruimte
 from .werkgebied_inventaris import nodes_met_titel
-from .werkgebied_store import _audit as werkgebied_audit
+from .werkgebied_store import _audit as werkgebied_audit, werkgebied_rij
 
 Resolver = Callable[[dict], Awaitable[dict]]
 
@@ -49,15 +48,9 @@ def _hash(data) -> str:
     return hashlib.sha256(json.dumps(data, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
 
 
-def _status(row) -> str:
-    if row.status in ("wacht", "loopt") and db.utcnow() - db.aware(row.gewijzigd) > VERLOPEN:
-        return "mislukt"
-    return row.status
-
-
 def _run(row, met_invoer: bool = False) -> dict:
     uit = {"id": row.id, "werkgebied_id": row.werkgebied_id, "begrip_id": row.begrip_id, "actie": row.actie,
-           "invoer_id": row.invoer_id, "status": _status(row), "melding": row.melding, "reden": row.reden,
+           "invoer_id": row.invoer_id, "status": runs.status(row), "melding": row.melding, "reden": row.reden,
            "basis_revisie": row.invoer["begrip"]["revisie"],
            "ander_begrip_id": (row.invoer.get("ander") or {}).get("id"),
            "gestart_door": row.gestart_door, "gestart": db.aware(row.gestart).isoformat(),
@@ -140,14 +133,14 @@ async def start(werkgebied: dict, begrip_id: str, s: KaartRunStart, actor: str, 
     invoer["invoer_id"] = iid = _invoer_id(invoer)
     r, v = db.begrip_kaartruns, db.begrip_voorstellen
     async with db.get_engine().begin() as conn:
-        await _werkgebied(conn, wid, slot=True)
+        await werkgebied_rij(conn, wid, slot=True)
         bestaand = (await conn.execute(select(r).where(r.c.begrip_id == begrip_id, r.c.actie == s.actie,
                                                        r.c.invoer_id == iid).order_by(r.c.gestart.desc()).limit(1))).first()
         if bestaand is not None:
-            stand = _status(bestaand)
+            stand = runs.status(bestaand)
             open_ = (await conn.execute(select(v.c.id).where(v.c.run_id == bestaand.id, v.c.status == "open")
                                         .limit(1))).first() is not None
-            if stand in ("wacht", "loopt") or (stand == "klaar" and open_):
+            if stand in runs.LOPEND or (stand == "klaar" and open_):
                 return _run(bestaand), False
         nu, rid = db.utcnow(), str(uuid.uuid4())
         await conn.execute(insert(r).values(
@@ -171,31 +164,21 @@ async def _run_rij(conn, werkgebied_id: str, begrip_id: str, run_id: str, slot: 
 
 async def haal_run(werkgebied_id: str, begrip_id: str, run_id: str, met_invoer: bool = False) -> dict:
     async with db.get_engine().connect() as conn:
-        await _werkgebied(conn, werkgebied_id)
+        await werkgebied_rij(conn, werkgebied_id)
         return _run(await _run_rij(conn, werkgebied_id, begrip_id, run_id), met_invoer)
 
 
 async def loopt(werkgebied_id: str, begrip_id: str, run_id: str) -> dict:
     """graph-qa begint (of leeft nog): de stilteklok begint opnieuw."""
-    r = db.begrip_kaartruns
-    async with db.get_engine().begin() as conn:
-        row = await _run_rij(conn, werkgebied_id, begrip_id, run_id, slot=True)
-        if row.status != "klaar":
-            await conn.execute(update(r).where(r.c.id == run_id).values(status="loopt", gewijzigd=db.utcnow()))
-        row = await _run_rij(conn, werkgebied_id, begrip_id, run_id)
-    return _run(row)
+    await haal_run(werkgebied_id, begrip_id, run_id)            # 404 als de run hier niet hoort
+    await runs.zet_loopt(db.begrip_kaartruns, run_id)
+    return await haal_run(werkgebied_id, begrip_id, run_id)
 
 
 async def mislukt(werkgebied_id: str, begrip_id: str, run_id: str, reden: str) -> dict:
-    r = db.begrip_kaartruns
-    async with db.get_engine().begin() as conn:
-        row = await _run_rij(conn, werkgebied_id, begrip_id, run_id, slot=True)
-        if row.status == "klaar":
-            raise HTTPException(409, "Deze run is al klaar.")
-        await conn.execute(update(r).where(r.c.id == run_id).values(status="mislukt", reden=reden[:2000],
-                                                                    gewijzigd=db.utcnow()))
-        row = await _run_rij(conn, werkgebied_id, begrip_id, run_id)
-    return _run(row)
+    await haal_run(werkgebied_id, begrip_id, run_id)
+    await runs.zet_mislukt(db.begrip_kaartruns, run_id, reden)
+    return await haal_run(werkgebied_id, begrip_id, run_id)
 
 
 # --- de uitkomst van graph-qa --------------------------------------------------------------------
@@ -264,7 +247,7 @@ async def zet_uitkomst(werkgebied_id: str, begrip_id: str, run_id: str, u: Kaart
                              if k in u.meting["onderzoek"]}
     r, t = db.begrip_kaartruns, db.begrip_voorstellen
     async with db.get_engine().begin() as conn:
-        await _werkgebied(conn, werkgebied_id, slot=True)
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
         row = await _run_rij(conn, werkgebied_id, begrip_id, run_id, slot=True)
         if row.status == "klaar":                                     # tegelijk binnengekomen
             if row.uitkomst_hash == h:
@@ -306,7 +289,7 @@ async def _voorstellen_in(conn, werkgebied_id: str, begrip_id: str) -> dict:
 async def voorstellen(werkgebied_id: str, begrip_id: str) -> dict:
     """De voorstellen van Lex bij dit begrip (open en besloten, nieuwste eerst) en per actie de laatste run."""
     async with db.get_engine().connect() as conn:
-        await _werkgebied(conn, werkgebied_id)
+        await werkgebied_rij(conn, werkgebied_id)
         return await _voorstellen_in(conn, werkgebied_id, begrip_id)
 
 
@@ -409,7 +392,7 @@ async def afwijzen(werkgebied_id: str, begrip_id: str, voorstel_id: str, reden: 
     """Het voorstel blijft bewaard, met wie het afwees en waarom; het begrip verandert niet."""
     t = db.begrip_voorstellen
     async with db.get_engine().begin() as conn:
-        await _werkgebied(conn, werkgebied_id, slot=True)
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
         row = await _voorstel_rij(conn, werkgebied_id, begrip_id, voorstel_id)
         await conn.execute(update(t).where(t.c.id == voorstel_id).values(
             status="afgewezen", reden=reden.strip(), besloten_door=actor, besloten_op=db.utcnow()))
