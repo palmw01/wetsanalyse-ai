@@ -26,6 +26,7 @@ import json
 import logging
 from typing import Any
 
+from ..llm_stap import Rol, lijst, vraag_tool
 from .besluit import Beslissing, onzeker, uit_modelkeuze
 from .kandidaten import GEEN_ANNOTATIE, Candidate
 from .profielen import laad
@@ -140,18 +141,6 @@ def promptversie(spankeuze: bool = False) -> str:
     return hashlib.sha256(vast.encode()).hexdigest()[:12]
 
 
-def _lees(resp: Any) -> list[dict[str, Any]] | None:
-    for blok in getattr(resp, "content", []) or []:
-        if getattr(blok, "type", "") == "tool_use" and getattr(blok, "name", "") == TOOL:
-            try:
-                invoer = blok.input if isinstance(blok.input, dict) else json.loads(blok.input)
-            except (TypeError, ValueError):
-                return None
-            items = invoer.get("beslissingen") if isinstance(invoer, dict) else None
-            return items if isinstance(items, list) else None
-    return None
-
-
 def valideer(kandidaten: list[Candidate], items: list[dict[str, Any]] | None,
              spankeuze: bool = True) -> list[Beslissing]:
     """Toets de modeluitvoer per kandidaat. Alles wat niet klopt wordt UNCERTAIN, met reden."""
@@ -191,18 +180,9 @@ def classificeer(llm: Any, model: str, kandidaten: list[Candidate], brontekst: s
         messages=[{"role": "user", "content": userprompt(kandidaten, brontekst, spankeuze, context)}],
         tool_choice={"type": "auto"}, temperature=temperature,
     )
-    items = None
-    for _poging in range(2):
-        resp = llm.create(**verzoek)
-        if meting is not None:
-            meting["llm_calls"] = meting.get("llm_calls", 0) + 1
-        items = _lees(resp)
-        if meting is not None and getattr(resp, "stop_reason", "") == "max_tokens":
-            meting["afgekapt"] = meting.get("afgekapt", 0) + 1
-        if items is not None:
-            break
-        logger.info("classifier gaf geen tool-aanroep", extra={"stop_reden": getattr(resp, "stop_reason", "")})
-    return valideer(kandidaten, items, spankeuze)
+    uit = vraag_tool(llm, Rol.JAS_CLASSIFIER, verzoek=verzoek, pogingen=2, haal=lijst("beslissingen"),
+                     meting=meting, afgekapt_teller="afgekapt")
+    return valideer(kandidaten, uit.waarde, spankeuze)
 
 
 def batches(kandidaten: list[Candidate], granulariteit: str) -> list[list[Candidate]]:

@@ -18,6 +18,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
+from ..llm_stap import Rol, lijst, vraag_tool
 from .kandidaten import Candidate
 from .onzekerheid import Twijfel
 
@@ -135,21 +136,11 @@ def beoordeel(llm: Any, model: str, twijfels: list[Twijfel], kandidaten_per_labe
             "prompt_sha256": hashlib.sha256((SYSTEEM + _prompt(twijfels, kandidaten_per_label, brontekst, context)).encode()).hexdigest(),
             "schema_sha256": hashlib.sha256(json.dumps(_schema(twijfels), sort_keys=True).encode()).hexdigest()})
     # Ruim budget (in de baselineproef stopte iedere reviewaanroep op max_tokens vóór de aanroep).
-    resp = llm.create(model=model, max_tokens=min(8000, 1536 + 256 * len(twijfels)), system=SYSTEEM,
-                      tools=[_schema(twijfels)], tool_choice={"type": "auto"},
-                      messages=[{"role": "user", "content": _prompt(twijfels, kandidaten_per_label, brontekst, context)}])
-    if meting is not None:
-        meting["review_calls"] = meting.get("review_calls", 0) + 1
-        if getattr(resp, "stop_reason", "") == "max_tokens":
-            meting["review_afgekapt"] = meting.get("review_afgekapt", 0) + 1
-    items = None
-    for blok in getattr(resp, "content", []) or []:
-        if getattr(blok, "type", "") == "tool_use" and getattr(blok, "name", "") == TOOL:
-            try:
-                invoer = blok.input if isinstance(blok.input, dict) else json.loads(blok.input)
-                items = invoer.get("oordelen") if isinstance(invoer, dict) else None
-            except (TypeError, ValueError):
-                items = None
-    if items is None:
-        logger.info("reviewer gaf geen bruikbare tool-aanroep")
-    return valideer(twijfels, items)
+    # Eén poging: een twijfelgeval zonder oordeel gaat geel naar de jurist (ADR-001), en dat is de veilige kant.
+    uit = vraag_tool(llm, Rol.JAS_REVIEWER, pogingen=1, haal=lijst("oordelen"), meting=meting, teller="review_calls",
+                     afgekapt_teller="review_afgekapt",
+                     verzoek=dict(model=model, max_tokens=min(8000, 1536 + 256 * len(twijfels)), system=SYSTEEM,
+                                  tools=[_schema(twijfels)], tool_choice={"type": "auto"},
+                                  messages=[{"role": "user",
+                                             "content": _prompt(twijfels, kandidaten_per_label, brontekst, context)}]))
+    return valideer(twijfels, uit.waarde)
