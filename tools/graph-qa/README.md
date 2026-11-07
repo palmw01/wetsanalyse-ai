@@ -135,6 +135,7 @@ werk door en legt de agent de uitkomst zelf vast.
 | `GET /v1/runs/{id}/events?vanaf=<seq>` | **SSE**: eerst replay vanaf `vanaf`, dan live. Elk frame draagt zijn `seq`. |
 | `POST /v1/runs/{id}/cancel` | 202 – stoppen is een verzoek: de lopende stap maakt zichzelf af. |
 | `GET /v1/conversations/{id}/run` | De run waar je op kunt aanhaken, of `null`. |
+| `GET /v1/runs?actief=true` | Je eigen runs die lopen of de laatste 10 minuten eindigden, nieuwste eerst: `[{run_id, conversation_id, status, afgerond_op}]`. Voor de sidebar en de tab; geen rate-limit. |
 | `DELETE /v1/conversations/{id}` | Wist het agent-geheugen van één gesprek (idempotent → 204) en stopt een lopende beurt. |
 | `POST /v1/chat` | Eén beurt **aan de verbinding gekoppeld** (SSE, zelfde body, maar 422 bij een `actie` of een werkgebied-modus). Zonder eigenaarscontrole en zonder vastleggen: voor scripts en handmatig testen, niet voor de webapp. |
 

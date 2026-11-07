@@ -66,7 +66,7 @@ from agent.reeks import reeks_run  # noqa: E402
 from agent.werkgebied_annotatie import werkgebied_annotatie_beurt, zonder_api  # noqa: E402
 from agent.config import Settings  # noqa: E402
 from agent.models import (  # noqa: E402
-    WERKGEBIED_MODI, ChatRequest, RunStart,
+    WERKGEBIED_MODI, ChatRequest, RunStand, RunStart,
     Verbruiksmeter,
 )
 from agent.runstore import Run, RunBestaatAl, RunStore  # noqa: E402
@@ -498,6 +498,22 @@ async def stop_run(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Onbekende run")
     await runs.vraag_stop(run)
     return RunStart(**run.samenvatting())
+
+
+@app.get("/v1/runs")
+async def runs_van_gebruiker(
+    actief: bool = False,
+    gebruiker: str = Depends(_aanroeper),
+    _auth: None = Depends(_check_auth),
+) -> list[RunStand]:
+    """De runs van de aanroeper die lopen of net eindigden (`RECENT_S`), nieuwste eerst.
+
+    Voor de sidebar en de tab: zie je dat een beurt in een ander gesprek loopt of klaar is. Alleen je eigen runs,
+    zoals bij `/events`. Geen rate-limit: de werkplek peilt dit zolang er iets loopt, en het is één lichte query.
+    Alleen `?actief=true` bestaat; een volledige runhistorie hoort hier niet (die staat in het gesprek)."""
+    if not actief:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Alleen ?actief=true wordt ondersteund")
+    return [RunStand(**run.stand()) for run in await runs.voor_gebruiker(gebruiker)]
 
 
 @app.get("/v1/conversations/{conversation_id}/run")
