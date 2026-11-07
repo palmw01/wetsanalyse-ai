@@ -14,7 +14,8 @@ from typing import Literal, Union, get_args, get_origin
 import pytest
 
 from app import annotatie_v2_store as store, bestandsnaam, markdown_opmaak, pdf_opmaak, werkgebied_export as export, werkgebieden
-from app.werkgebied_rapport import Rapport, Stand, deelvragen_regels, dossier_regels, rapport_regels
+from app.werkgebied_rapport import (Begrippen, Rapport, Stand, Wettekst, deelvragen_regels, dossier_regels, niet_meegenomen_regels,
+                                   rapport_regels)
 from pydantic import BaseModel, ValidationError
 from test_annotatie_v2 import ART, LAW, ONE, TWO, element, request, snapshot
 from test_begrippen import _annoteer, _begrip, _beslis, _keur_alles_goed, _url, _werkgebied
@@ -69,7 +70,9 @@ async def test_de_delen_staan_op_volgorde_met_elke_bepaling_een_keer(client):
     wg, _ids = await _gevuld(client)
     regels = export.regels(await _data(wg), V)
     koppen = [t for s, t in regels if s == "Heading1"]
-    assert koppen == ["Samenvatting", "1. Dossier", "2. Deelvragen en bronnen", "3. Wettekst en annotaties", "4. Begrippen", "5. Verantwoording"]
+    assert koppen == ["1. Samenvatting", "2. Leeswijzer", "3. Werkgebied", "4. Deelvragen en bronnen", "5. Analyse per bepaling",
+                      "6. Begrippen", "Bijlage A. Begripskaarten", "Bijlage B. Bronnenregister", "Bijlage C. Contextbepalingen",
+                      "Bijlage D. Niet meegenomen", "Bijlage E. Verantwoording"]
     assert [i for i, (s, _t) in enumerate(regels) if s == pdf_opmaak.INHOUD]
     # Lid 1 heeft een emoji vooraan: de offsets tellen codepoints, en de tekst staat letterlijk en één keer.
     assert sum(s == "Citaat" and t == "😀 Alfa Alfa" for s, t in regels) == 1
@@ -80,7 +83,8 @@ async def test_elke_markering_staat_er_precies_een_keer_met_haar_status(client):
     wg, _ids = await _gevuld(client)
     data = await _data(wg)
     regels = export.regels(data, V)
-    koppen = [t for s, t in regels if s.startswith(pdf_opmaak.MARKERING)]
+    legenda = regels.index(("Heading1", "3. Werkgebied"))               # de legenda in de leeswijzer toont elke klasse
+    koppen = [t for s, t in regels[legenda:] if s.startswith(pdf_opmaak.MARKERING)]
     assert len(koppen) == len(data["inventaris"]["elementen"]) + len(data["inventaris"]["afgewezen"]) == 3
     assert sum("beoordeeld: akkoord" in k for k in koppen) == 2 and sum(k.endswith("afgewezen") for k in koppen) == 1
     teksten = [t for _s, t in regels]
@@ -152,7 +156,7 @@ async def test_een_onbereikbare_regeling_staat_op_voorblad_en_plek(client, graaf
     assert data["inventaris"]["volledig"] is False
     regels = export.regels(data, V)
     waarschuwingen = [(i, t) for i, (s, t) in enumerate(regels) if s == "Waarschuwing"]
-    eerste_deel = regels.index(("Heading1", "1. Dossier"))
+    eerste_deel = regels.index(("Heading1", "3. Werkgebied"))
     assert any(i < eerste_deel and t.startswith("Niet in dit dossier") for i, t in waarschuwingen)
     assert any(i > eerste_deel and t.startswith("De tekst ontbreekt") for i, t in waarschuwingen)
 
@@ -296,7 +300,7 @@ async def test_de_echte_pdf_is_letterlijk_met_inhoud_en_bladwijzers(client, graa
     assert "■" not in tekst
     assert "Een bedrag ≥ € 10 – na 1‑1‑2026 → Māori § 3" in tekst and "“citaat” & <tag>" in tekst
     assert fragment["tekst"] in tekst and "Tekens: ≥ en ā." in tekst
-    assert "1. Dossier" in tekst.split("Dossier", 1)[0] + "Dossier"          # de inhoudsopgave
+    assert tekst.index("3. Werkgebied") < tekst.index("Aanleiding")             # eerst in de inhoudsopgave
     assert b"/Outlines" in r.content and b"/FontFile2" in r.content
     assert pdf_opmaak.aantal_paginas(r.content) >= 7                         # voorblad, inhoud en vijf delen
 
@@ -342,7 +346,9 @@ async def test_een_lang_begrip_loopt_door_en_het_volgende_begint_vers(client):
 async def test_een_groepskop_staat_nooit_alleen_en_er_is_geen_blanke_pagina(client):
     spoor = await _spoor(await _met_begrippen(client, "termijn", "uitstel"))
     laatste = max(r["pagina"] for r in spoor)
-    assert {r["pagina"] for r in spoor} == set(range(2, laatste + 1))         # pagina 1 is het getekende titelblad
+    # Pagina 1 is het getekende titelblad; een inhoudsopgave die doorloopt, heeft geen alinea's in het spoor.
+    eerste = next(r["pagina"] for r in spoor if r["stijl"] == "Heading1")
+    assert set(range(2, laatste + 1)) - {r["pagina"] for r in spoor} <= set(range(4, eerste))     # na colofon en begin inhoud
     for r in spoor:
         if r["stijl"] == "Heading2" and "begrippen (" in r["tekst"].lower():
             assert any(x["stijl"] == pdf_opmaak.BEGRIP and x["pagina"] == r["pagina"] for x in spoor)
@@ -350,7 +356,7 @@ async def test_een_groepskop_staat_nooit_alleen_en_er_is_geen_blanke_pagina(clie
 
 async def test_voorstellen_en_afgewezen_hangen_niet_aan_het_vorige_stuk(client):
     spoor = await _spoor(await _met_begrippen(client, "termijn"))
-    for kop in ("Afgewezen markeringen", "Open voorstellen van Lex"):
+    for kop in ("Afgewezen markeringen", "Open voorstellen van Lex voor begrippen"):
         assert any(r["tekst"] == kop and r["bovenaan"] for r in spoor), kop
 
 
@@ -373,7 +379,7 @@ async def test_de_begrippagina_heeft_altijd_dezelfde_kopjes(client):
     wg, _ids = await _gevuld(client)
     regels = export.regels(await _data(wg), V)
     begin = [i for i, (s, _t) in enumerate(regels) if s == pdf_opmaak.BEGRIP]
-    einde = max(i for i, (s, t) in enumerate(regels) if t == "Open voorstellen van Lex")      # deel 2 heeft dezelfde kop
+    einde = regels.index(("Heading1", "Bijlage B. Bronnenregister"))
     kopjes = ["Definitie", "Uitleg", "Toelichting", "Voorbeelden", "Waarop de definitie rust", "Passages", "Relaties", "Nog open", "Beoordeling"]
     assert len(begin) == 2
     for van, tot in zip(begin, [*begin[1:], einde]):
@@ -428,14 +434,17 @@ def test_dossier_en_deelvragen_staan_in_het_rapport_met_hun_codes_en_komen_er_le
 
     assert deelvragen.deelvragen[0].status == "in_behandeling"           # de code; het label maakt de tekstlaag
     assert dossier_regels(dossier)[:5] == [
-        ("Pagina", ""), ("Heading1", "1. Dossier"), ("Heading4", "Aanleiding"), ("BodyText", "Eerste alinea."), ("BodyText", "Tweede alinea.")]
+        ("Pagina", ""), ("Heading1", "3. Werkgebied"), ("Heading4", "Aanleiding"), ("BodyText", "Eerste alinea."), ("BodyText", "Tweede alinea.")]
     assert dossier_regels(dossier)[-1] == ("BodyText", "BWBR1 (BWBR1)")
     assert deelvragen_regels(deelvragen)[2:] == [
         ("BlokBegin", ""), ("Heading2", "Deelvraag 1"), ("BodyText", "Wie?"), ("Meta", "Stand: In behandeling · 1 bron"),
-        ("BodyText", "Artikel 9 · context: Kern"), ("Meta", "jci1.3:c:negen"), ("BlokEind", ""),
+        ("BodyText", "Artikel 9 · context: Kern"), ("Meta", "jci1.3:c:negen"), ("BlokEind", "")]
+    # Wat niet meedoet, staat in de bijlage.
+    assert niet_meegenomen_regels(deelvragen, Wettekst(markeringen=0, beoordeeld=0), Begrippen())[:9] == [
         ("Heading2", "Uitgesloten bronnen"), ("BodyText", "Artikel 3 · uitgesloten voor deelvraag 1. Reden: niet vastgelegd"),
         ("Meta", "urn:drie"),
-        ("Heading2", "Open voorstellen van Lex"), ("Meta", "Hierover is nog geen besluit genomen; ze horen niet tot de analyse."),
+        ("Heading2", "Open voorstellen van Lex voor deelvragen en bronnen"),
+        ("Meta", "Hierover is nog geen besluit genomen; ze horen niet tot de analyse."),
         ("Voorstel", "Voorstel voor een deelvraag: Nog een vraag?"),
         ("Heading2", "Zoekdekking"), ("BodyText", "Lex heeft gezocht, maar niet alles kon worden doorzocht: tekst."),
         ("Waarschuwing", "Het werkgebied veranderde na het zoeken.")]
@@ -529,8 +538,8 @@ async def test_elke_bron_in_deel_2_draagt_haar_bronreferentie_en_wie_haar_opnam(
     wg, _ids = await _gevuld(client)
     data = await _data(wg)
     regels = export.regels(data, V)
-    begin = next(i for i, (_s, t) in enumerate(regels) if t == "2. Deelvragen en bronnen")
-    eind = next(i for i, (_s, t) in enumerate(regels) if t == "3. Wettekst en annotaties")
+    begin = next(i for i, (_s, t) in enumerate(regels) if t == "4. Deelvragen en bronnen")
+    eind = next(i for i, (_s, t) in enumerate(regels) if t == "5. Analyse per bepaling")
     bron = data["overzicht"]["deelvragen"][0]["bronnen"][0]
     assert ("Meta", bron["bron_iri"]) in regels[begin:eind]
     s = data["werkgebied"]["bronnen"][0]
@@ -573,7 +582,7 @@ async def test_de_route_geeft_markdown_met_een_eigen_naam(client):
     r = await client.get(f"/v1/werkgebieden/{wg['id']}/export?formaat=md")
     assert r.status_code == 200 and r.headers["content-type"].startswith("text/markdown") and r.text.startswith("# ")
     assert re.search(r'filename="werkgebied-.*-\d{8}-\d{6}\.md"', r.headers["content-disposition"])
-    assert "## 4. Begrippen" in r.text and "|---" not in r.text
+    assert "## 6. Begrippen" in r.text and "## Bijlage A. Begripskaarten" in r.text and "|---" not in r.text
 
 
 @pytest.mark.parametrize("wettekst", ["*vet* en _schuin_ en `code`", "# geen kop", "1. geen lijst", "- geen lijst", "> geen citaat",
@@ -638,7 +647,7 @@ async def test_samenvatting_telt_in_een_vaste_volgorde(client):
     assert [(t.code, t.aantal) for t in k.begrippen] == [("geaccordeerd", 1), ("concept", 1)]
     assert [t.code for t in k.markeringen][0] == "beoordeeld" and k.markeringen[-1].code == "afgewezen"
     regels = rapport_regels(rapport)
-    assert ("Heading1", "Samenvatting") in regels
+    assert ("Heading1", "1. Samenvatting") in regels
     assert ("BodyText", "Begrippen – geaccordeerd: 1, concept: 1") in regels
 
 
@@ -667,3 +676,28 @@ async def test_het_rapport_begint_met_een_titelblad_en_dan_het_colofon(client):
     assert regels[len(blad):len(blad) + 2] == [("Pagina", ""), ("Heading4", "Colofon")]
     md = markdown_opmaak.markdown(regels)
     assert md.startswith(f"# {wg['naam']}\n") and f"- **Kenmerk:** {rapport.document.kenmerk}" in md
+
+
+def test_een_contextbepaling_zonder_markering_staat_in_de_bijlage_en_niet_in_de_analyse():
+    from bronmodel.antwoord import Vindplaats
+    from app.werkgebied_rapport import Artikel, Bepaling, Regeling, context_regels, wettekst_regels
+    ctx = Bepaling(vindplaats=Vindplaats(iri="urn:c", label="Artikel 2, lid 1"), rol="context", tekst="Contexttekst.")
+    hoofd = Bepaling(vindplaats=Vindplaats(iri="urn:h", label="Artikel 3"), rol="analyseren", tekst="Analysetekst.")
+    w = Wettekst(markeringen=0, beoordeeld=0, regelingen=[Regeling(bwb_id="BWBR1", titel="Wet", artikelen=[Artikel(kop="Artikel 3", bepalingen=[hoofd])],
+                                                                    context=[Artikel(kop="Artikel 2", bepalingen=[ctx])])])
+    analyse, bijlage = wettekst_regels(w), context_regels(w)
+    assert ("Citaat", "Analysetekst.") in analyse and ("Citaat", "Contexttekst.") not in analyse
+    assert ("Citaat", "Contexttekst.") in bijlage and ("Heading3", "Artikel 2") in bijlage
+    assert ("Meta", "De contextbepalingen zonder markering staan in de bijlage Contextbepalingen.") in analyse
+
+
+async def test_de_leeswijzer_toont_elke_klasse_met_naam_en_de_bijlagen_hebben_letters(client):
+    from app.jas_klassen import JAS_KLASSEN_VOLGORDE
+    from app.werkgebied_rapport import BIJLAGEN
+    wg, _ids = await _gevuld(client)
+    regels = export.regels(await _data(wg), V)
+    begin, eind = regels.index(("Heading1", "2. Leeswijzer")), regels.index(("Heading1", "3. Werkgebied"))
+    assert [t for s, t in regels[begin:eind] if s.startswith(pdf_opmaak.MARKERING)] == list(JAS_KLASSEN_VOLGORDE)
+    bijlagen = [t for s, t in regels if s == "Heading1" and t.startswith("Bijlage")]
+    assert bijlagen == [f"Bijlage {letter}. {naam}" for letter, naam in zip("ABCDE", BIJLAGEN)]
+    assert regels.index(("Heading1", "6. Begrippen")) < regels.index(("Heading1", bijlagen[0]))

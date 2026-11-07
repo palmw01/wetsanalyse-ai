@@ -18,6 +18,7 @@ from zoneinfo import ZoneInfo
 from bronmodel.antwoord import Vindplaats
 from pydantic import BaseModel, ConfigDict
 
+from .jas_klassen import JAS_KLASSEN_VOLGORDE
 from .pdf_opmaak import BEGRIP, BLOK_BEGIN, BLOK_EIND, INHOUD, MARKERING, PAGINA, TITELBLAD
 
 VERSIE = 2
@@ -215,6 +216,7 @@ class Regeling(_Deel):
     bwb_id: str
     titel: str
     artikelen: list[Artikel] = []
+    context: list[Artikel] = []                      # bepalingen met rol context en zonder markering: naslag, in een bijlage
 
 
 class Onbereikbaar(_Deel):
@@ -465,7 +467,7 @@ def _signaal(s: Signaal) -> str:
                         "passages bij begrippen veranderden; toen en nu staan bij het begrip.")
     if s.soort == "opnieuw_bekijken":
         return "Opnieuw te bekijken na een wijziging van de scope: deelvraag " + ", ".join(map(str, s.nrs)) + "."
-    return "Het zoeken naar bronnen is onvolledig of verouderd; zie deel 2."
+    return "Het zoeken naar bronnen is onvolledig of verouderd; zie de bijlage Niet meegenomen."
 
 
 def titelblad_regels(doc: Document, v: Voorblad, stand: Stand) -> list[Regel]:
@@ -505,12 +507,23 @@ def signalen_regels(v: Voorblad) -> list[Regel]:
 
 
 def leeswijzer_regels() -> list[Regel]:
-    return [("Heading4", "Zo lees je dit rapport"),
-            ("Meta", "Dit is een analyse-uitkomst, geen wettelijke definitie en geen juridisch oordeel. De wettekst is "
-                     "letterlijk overgenomen uit de kennisgraaf, die gevuld is uit de officiële publicatie. Bij elke "
-                     "bepaling staat de vindplaats en de bronreferentie (jci)."),
-            ("Meta", "Lex stelt voor, de jurist beslist. Beoordeeld of geaccordeerd betekent dat een jurist het bevestigde. "
-                     "Voorstel en concept zijn nog niet bevestigd; afgewezen en uitgesloten zijn bewust niet meegenomen.")]
+    """Hoe je het rapport leest: één keer de statussen, de herkomst en de klassen, zodat ze niet bij elk stuk terugkomen."""
+    uit: list[Regel] = [(PAGINA, ""), ("Heading1", "2. Leeswijzer"),
+                        ("BodyText", "Dit is een analyse-uitkomst volgens de methode Wetsanalyse, geen wettelijke definitie en geen "
+                                     "juridisch oordeel. De wettekst is letterlijk overgenomen uit de kennisgraaf, die gevuld is uit "
+                                     "de officiële publicatie. Bij elke bepaling staan de vindplaats en de bronreferentie (jci)."),
+                        ("Heading4", "Wie stelde voor, wie besliste"),
+                        ("BodyText", "Lex stelt voor, de jurist beslist. Beoordeeld of geaccordeerd betekent dat een jurist het "
+                                     "bevestigde. Voorstel en concept zijn nog niet bevestigd. Afgewezen en uitgesloten zijn bewust "
+                                     "niet meegenomen; ze staan in een bijlage, zodat niets stil verdwijnt."),
+                        ("Heading4", "Opbouw"),
+                        ("BodyText", "Hoofdstuk 3 tot en met 6 dragen de analyse: het werkgebied, de deelvragen met hun bronnen, de "
+                                     "analyse per bepaling en de begrippen. De bijlagen zijn naslag: de volledige begripskaarten, het "
+                                     "bronnenregister, de contextbepalingen, wat niet is meegenomen en de verantwoording."),
+                        ("Heading4", "De klassen van het Juridisch Analyseschema"),
+                        ("Meta", "Een markering draagt de kleur van haar klasse, en altijd ook de naam: de kleur is nooit de enige drager.")]
+    uit += [(MARKERING + k, k) for k in JAS_KLASSEN_VOLGORDE]
+    return uit
 
 
 def colofon_regels(doc: Document, v: Voorblad, stand: Stand, verantwoording: Verantwoording) -> list[Regel]:
@@ -533,7 +546,7 @@ def colofon_regels(doc: Document, v: Voorblad, stand: Stand, verantwoording: Ver
                      "De toestand per regeling staat in het rapport."),
             ("Meta", "Dit rapport is een analyse-uitkomst volgens de methode Wetsanalyse, geen wettelijke definitie en geen "
                      "juridisch oordeel.")]
-    return [*uit, *bronstand_regels(v), *leeswijzer_regels()]
+    return [*uit, *bronstand_regels(v)]
 
 
 def _tellingen(t: list[Telling], labels: dict[str, str]) -> str:
@@ -542,7 +555,7 @@ def _tellingen(t: list[Telling], labels: dict[str, str]) -> str:
 
 def samenvatting_regels(k: Kerncijfers, v: Voorblad, d: Deelvragen) -> list[Regel]:
     """De kern op één pagina: de vraag, de cijfers en wat een lezer eerst moet weten."""
-    uit: list[Regel] = [(PAGINA, ""), ("Heading1", "Samenvatting")]
+    uit: list[Regel] = [(PAGINA, ""), ("Heading1", "1. Samenvatting")]
     if v.analysevraag:
         uit += [("Heading4", "Analysevraag"), *alinea(v.analysevraag)]
     uit += signalen_regels(v)
@@ -559,7 +572,7 @@ def samenvatting_regels(k: Kerncijfers, v: Voorblad, d: Deelvragen) -> list[Rege
 
 
 def dossier_regels(d: Dossier) -> list[Regel]:
-    uit: list[Regel] = [(PAGINA, ""), ("Heading1", "1. Dossier")]
+    uit: list[Regel] = [(PAGINA, ""), ("Heading1", "3. Werkgebied")]
     for v in d.velden:
         uit.append(("Heading4", _DOSSIER[v.veld]))
         uit += alinea(v.tekst) or [("Meta", "Niet ingevuld.")]
@@ -570,7 +583,7 @@ def dossier_regels(d: Dossier) -> list[Regel]:
 
 
 def deelvragen_regels(d: Deelvragen) -> list[Regel]:
-    uit: list[Regel] = [(PAGINA, ""), ("Heading1", "2. Deelvragen en bronnen")]
+    uit: list[Regel] = [(PAGINA, ""), ("Heading1", "4. Deelvragen en bronnen")]
     for v in d.deelvragen:
         uit += [*BLOK, ("Heading2", "Analysevraag" if d.modus == "analysevraag" else f"Deelvraag {v.nr}"), ("BodyText", v.vraag)]
         stand = "Opnieuw bekijken" if v.opnieuw_bekijken else _VOORTGANG.get(v.status, v.status)
@@ -585,6 +598,12 @@ def deelvragen_regels(d: Deelvragen) -> list[Regel]:
             uit.append(("Meta", meervoud(v.niet_gekozen, "voorstel van Lex is niet gekozen.", "voorstellen van Lex zijn niet gekozen.")))
         uit += BLOK_UIT
 
+    return uit
+
+
+def niet_meegenomen_regels(d: Deelvragen, w: Wettekst, b: Begrippen) -> list[Regel]:
+    """Bijlage: wat bewust niet meedoet, en wat nog open staat. Het staat apart, zodat het de analyse niet vertroebelt."""
+    uit: list[Regel] = []
     uit.append(("Heading2", "Uitgesloten bronnen"))
     if not d.uitgesloten:
         uit.append(("Meta", "Er zijn geen bronnen uitgesloten."))
@@ -594,7 +613,7 @@ def deelvragen_regels(d: Deelvragen) -> list[Regel]:
                     + f". Reden: {k.reden or 'niet vastgelegd'}"))
         uit.append(("Meta", _verwijzing(k.vindplaats)))
 
-    uit.append(("Heading2", "Open voorstellen van Lex"))
+    uit.append(("Heading2", "Open voorstellen van Lex voor deelvragen en bronnen"))
     if not d.open_vragen and not d.open_bronnen:
         uit.append(("Meta", "Er staan geen voorstellen open."))
     else:
@@ -613,6 +632,13 @@ def deelvragen_regels(d: Deelvragen) -> list[Regel]:
             uit.append(("Waarschuwing", "Het werkgebied veranderde na het zoeken."))
         if d.zoekdekking.reden:
             uit.append(("Meta", d.zoekdekking.reden))
+
+
+    uit += [(PAGINA, ""), ("Heading2", "Afgewezen markeringen"),
+            ("Meta", "Deze markeringen verwierp een jurist; ze horen niet tot de analyse." if w.afgewezen else "Er zijn geen markeringen afgewezen.")]
+    for m in w.afgewezen:
+        uit += _markering(m)
+    uit += [(PAGINA, ""), *open_begrippen_regels(b)]
     return uit
 
 
@@ -659,7 +685,7 @@ def _markering(m: Markering, eigen_iri: str = "") -> list[Regel]:
 
 def wettekst_regels(w: Wettekst) -> list[Regel]:
     """Per regeling, in de volgorde van de bronboom, elke bronnode één keer met haar markeringen eronder."""
-    uit: list[Regel] = [(PAGINA, ""), ("Heading1", "3. Wettekst en annotaties"),
+    uit: list[Regel] = [(PAGINA, ""), ("Heading1", "5. Analyse per bepaling"),
                         ("BodyText", f"{meervoud(w.markeringen, 'markering', 'markeringen')}, waarvan {w.beoordeeld} "
                                      f"beoordeeld door een jurist; {len(w.afgewezen)} afgewezen.")]
     uit += [("Meta", f"{k.klasse or 'Nog geen klasse'}: {k.aantal}") for k in w.per_klasse]
@@ -668,23 +694,41 @@ def wettekst_regels(w: Wettekst) -> list[Regel]:
         for a in r.artikelen:
             uit.append(("Heading3", a.kop))
             for b in a.bepalingen:
-                uit.append(("Meta", f"{b.vindplaats.label} · rol {_BRONROL.get(b.rol, b.rol)} · {_verwijzing(b.vindplaats)}"))
-                if b.bron_gewijzigd:
-                    uit.append(("Waarschuwing", "Deze bron veranderde sinds de selectie."))
-                if b.tekst:
-                    uit.append(("Citaat", b.tekst))
-                for m in b.markeringen:
-                    uit += _markering(m, b.vindplaats.iri)
+                uit += _bepaling(b)
     for o in w.onbereikbaar:
         uit += [("Heading3", o.label), ("Waarschuwing", f"De tekst ontbreekt: {o.reden}")]
     if w.buiten_tekst:
         uit += [(PAGINA, ""), ("Heading2", "Markeringen buiten de getoonde tekst")]
         for m in w.buiten_tekst:
             uit += _markering(m)
-    uit += [(PAGINA, ""), ("Heading2", "Afgewezen markeringen"),
-            ("Meta", "Deze markeringen verwierp een jurist; ze horen niet tot de analyse." if w.afgewezen else "Er zijn geen markeringen afgewezen.")]
-    for m in w.afgewezen:
-        uit += _markering(m)
+    if any(r.context for r in w.regelingen):
+        uit.append(("Meta", "De contextbepalingen zonder markering staan in de bijlage Contextbepalingen."))
+    return uit
+
+
+def _bepaling(b: Bepaling) -> list[Regel]:
+    uit: list[Regel] = [("Meta", f"{b.vindplaats.label} · rol {_BRONROL.get(b.rol, b.rol)} · {_verwijzing(b.vindplaats)}")]
+    if b.bron_gewijzigd:
+        uit.append(("Waarschuwing", "Deze bron veranderde sinds de selectie."))
+    if b.tekst:
+        uit.append(("Citaat", b.tekst))
+    for m in b.markeringen:
+        uit += _markering(m, b.vindplaats.iri)
+    return uit
+
+
+def context_regels(w: Wettekst) -> list[Regel]:
+    """Bijlage: de tekst van de bepalingen die alleen context geven. Ze dragen geen markering, dus ze horen niet in de analyse."""
+    uit: list[Regel] = [("Meta", "Bepalingen die als context zijn opgenomen en geen markering dragen, letterlijk uit de bron.")]
+    regelingen = [r for r in w.regelingen if r.context]
+    if not regelingen:
+        uit.append(("Meta", "Er zijn geen contextbepalingen zonder markering."))
+    for r in regelingen:
+        uit.append(("Heading2", r.titel))
+        for a in r.context:
+            uit.append(("Heading3", a.kop))
+            for b in a.bepalingen:
+                uit += _bepaling(b)
     return uit
 
 
@@ -759,9 +803,34 @@ def _begrip(b: Begrip) -> list[Regel]:
     return uit
 
 
-def begrippen_regels(d: Begrippen) -> list[Regel]:
-    uit: list[Regel] = [(PAGINA, ""), ("Heading1", "4. Begrippen"),
+def begrippenlijst_regels(d: Begrippen) -> list[Regel]:
+    """Hoofdstuk 6: de geaccordeerde begrippen met hun definitie. De volledige kaarten staan in de bijlage."""
+    uit: list[Regel] = [(PAGINA, ""), ("Heading1", "6. Begrippen"),
                         ("Meta", "Begrippen zijn analyse-uitkomsten van dit werkgebied, geen wettelijke definities.")]
+    akkoord = [b for b in d.begrippen if b.status == "geaccordeerd"]
+    if not akkoord:
+        uit.append(("Meta", "Er zijn nog geen geaccordeerde begrippen."))
+    for b in akkoord:
+        uit += [*BLOK, ("Heading4", b.naam)]
+        if b.definitie.strip():
+            uit.append(("Citaat" if b.definitie_herkomst == "letterlijk" else "BodyText", b.definitie))
+            if b.definitie_vindplaats:
+                uit.append(("Meta", f"Vindplaats: {b.definitie_vindplaats.label} · {_verwijzing(b.definitie_vindplaats)}"))
+        else:
+            uit.append(("Meta", "Nog geen definitie."))
+        uit += BLOK_UIT
+    rest = len(d.begrippen) - len(akkoord)
+    if rest:
+        uit.append(("Meta", meervoud(rest, "begrip is", "begrippen zijn") + " nog niet geaccordeerd of vervangen; "
+                    "ze staan met de volledige kaarten in de bijlage Begripskaarten."))
+    elif akkoord:
+        uit.append(("Meta", "De volledige kaarten staan in de bijlage Begripskaarten."))
+    return uit
+
+
+def begrippen_regels(d: Begrippen) -> list[Regel]:
+    """Bijlage: elk begrip op een eigen pagina, op status."""
+    uit: list[Regel] = [("Meta", "Begrippen zijn analyse-uitkomsten van dit werkgebied, geen wettelijke definities.")]
     if not d.begrippen:
         uit.append(("Meta", "Dit werkgebied heeft nog geen begrippen."))
     # Een groepskop staat boven zijn eerste begrip, dus de breuk komt vóór de kop en niet erna: een kop blijft nooit alleen.
@@ -780,9 +849,11 @@ def begrippen_regels(d: Begrippen) -> list[Regel]:
             if n:
                 uit.append((PAGINA, ""))
             uit += _begrip(b)
-    if d.begrippen:
-        uit.append((PAGINA, ""))
-    uit.append(("Heading2", "Open voorstellen van Lex"))
+    return uit
+
+
+def open_begrippen_regels(d: Begrippen) -> list[Regel]:
+    uit: list[Regel] = [("Heading2", "Open voorstellen van Lex voor begrippen")]
     if not d.open_groepen and not d.open_relaties:
         uit.append(("Meta", "Er staan geen voorstellen open."))
     else:
@@ -794,8 +865,23 @@ def begrippen_regels(d: Begrippen) -> list[Regel]:
     return uit
 
 
+def register_regels(v: Voorblad, ver: Verantwoording) -> list[Regel]:
+    """Bijlage: elke regeling met haar toestand, en elke bronselectie met haar volledige bronreferentie."""
+    uit: list[Regel] = [("Heading2", "Regelingen")]
+    uit += bronstand_regels(v)[1:] or [("Meta", "Er zijn geen regelingen in dit werkgebied.")]
+    uit.append(("Heading2", "Bronselecties"))
+    if not ver.bronnen:
+        uit.append(("Meta", "Er zijn geen bronnen geselecteerd."))
+    for s in ver.bronnen:
+        uit += [*BLOK, ("BodyText", s.vindplaats.label), ("Meta", f"Rol {_BRONROL.get(s.rol, s.rol)} · {_verwijzing(s.vindplaats)}")]
+        if s.toegevoegd_door:
+            uit.append(("Meta", f"Opgenomen door {s.toegevoegd_door} op {datum(s.toegevoegd)}."))
+        uit += BLOK_UIT
+    return uit
+
+
 def verantwoording_regels(v: Verantwoording) -> list[Regel]:
-    uit: list[Regel] = [(PAGINA, ""), ("Heading1", "5. Verantwoording"), ("Heading2", "Wie deed wat"),
+    uit: list[Regel] = [("Heading2", "Wie deed wat"),
                         ("BodyText", f"Aangemaakt door {v.aangemaakt_door} op {datum(v.aangemaakt)}, laatst gewijzigd op {datum(v.gewijzigd)}.")]
     if v.juristen:
         uit.append(("BodyText", "Markeringen beoordeeld door: " + ", ".join(v.juristen) + "."))
@@ -814,17 +900,23 @@ def verantwoording_regels(v: Verantwoording) -> list[Regel]:
                     + (f": {b.onderwerp}" if b.onderwerp else "")))
         if b.reden:
             uit.append(("Meta", "Reden: " + b.reden))
-    uit.append(("Heading2", "Bronnen"))
-    for s in v.bronnen:
-        uit += [("BodyText", s.vindplaats.label), ("Meta", f"Rol {_BRONROL.get(s.rol, s.rol)} · {_verwijzing(s.vindplaats)}")]
-        if s.toegevoegd_door:
-            uit.append(("Meta", f"Opgenomen door {s.toegevoegd_door} op {datum(s.toegevoegd)}."))
     return uit
 
 
+BIJLAGEN = ("Begripskaarten", "Bronnenregister", "Contextbepalingen", "Niet meegenomen", "Verantwoording")
+
+
 def rapport_regels(r: Rapport) -> list[Regel]:
-    """Het hele rapport als (stijl, tekst), de vorm die elke uitvoer leest."""
-    return [*titelblad_regels(r.document, r.voorblad, r.stand), *colofon_regels(r.document, r.voorblad, r.stand, r.verantwoording),
-            (PAGINA, ""), ("Heading4", "Inhoud"), (INHOUD, ""), *samenvatting_regels(r.samenvatting, r.voorblad, r.deelvragen), *dossier_regels(r.dossier),
-            *deelvragen_regels(r.deelvragen), *wettekst_regels(r.wettekst), *begrippen_regels(r.begrippen),
-            *verantwoording_regels(r.verantwoording)]
+    """Het hele rapport als (stijl, tekst), de vorm die elke uitvoer leest. Vooraan de analyse, achteraan de naslag."""
+    bijlagen = {"Begripskaarten": begrippen_regels(r.begrippen),
+                "Bronnenregister": register_regels(r.voorblad, r.verantwoording),
+                "Contextbepalingen": context_regels(r.wettekst),
+                "Niet meegenomen": niet_meegenomen_regels(r.deelvragen, r.wettekst, r.begrippen),
+                "Verantwoording": verantwoording_regels(r.verantwoording)}
+    uit = [*titelblad_regels(r.document, r.voorblad, r.stand), *colofon_regels(r.document, r.voorblad, r.stand, r.verantwoording),
+           (PAGINA, ""), ("Heading4", "Inhoud"), (INHOUD, ""), *samenvatting_regels(r.samenvatting, r.voorblad, r.deelvragen),
+           *leeswijzer_regels(), *dossier_regels(r.dossier), *deelvragen_regels(r.deelvragen), *wettekst_regels(r.wettekst),
+           *begrippenlijst_regels(r.begrippen)]
+    for letter, naam in zip("ABCDEFGH", BIJLAGEN):
+        uit += [(PAGINA, ""), ("Heading1", f"Bijlage {letter}. {naam}"), *bijlagen[naam]]
+    return uit

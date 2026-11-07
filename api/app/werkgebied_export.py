@@ -248,7 +248,16 @@ def _wettekst(data: dict, nodes: dict[str, dict], verklaringen: dict) -> Wetteks
                 vindplaats=_plek(iri, nodes), rol=rollen[iri], bron_gewijzigd=iri in gewijzigd, tekst=tekst if tekst.strip() else "",
                 markeringen=[_markering(e, nodes, verklaringen) for e in eigen]))
             getoond |= {e["id"] for e in eigen}
-        regelingen.append(Regeling(bwb_id=bwb, titel=_regeling_titel(bwb, data), artikelen=artikelen))
+        # Een contextbepaling zonder markering is naslag: die gaat naar de bijlage, de rest is de analyse.
+        analyse, context = [], []
+        for a in artikelen:
+            hoofd = [b for b in a.bepalingen if b.rol != "context" or b.markeringen]
+            rest = [b for b in a.bepalingen if b.rol == "context" and not b.markeringen]
+            if hoofd:
+                analyse.append(Artikel(kop=a.kop, bepalingen=hoofd))
+            if rest:
+                context.append(Artikel(kop=a.kop, bepalingen=rest))
+        regelingen.append(Regeling(bwb_id=bwb, titel=_regeling_titel(bwb, data), artikelen=analyse, context=context))
     return Wettekst(
         markeringen=len(inv["elementen"]), beoordeeld=sum(e["lifecycle"] in BEOORDEELD for e in inv["elementen"]),
         per_klasse=[KlasseTelling(klasse="" if k == "Nog geen klasse" else k, aantal=per_klasse[k]) for k in sorted(per_klasse, key=jas_sorteersleutel)],
