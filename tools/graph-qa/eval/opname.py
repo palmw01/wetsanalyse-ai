@@ -18,7 +18,7 @@ from typing import Any
 def nieuwe_opname(vraag: str, vraagtype: str) -> dict[str, Any]:
     return {"vraag": vraag, "vraagtype": vraagtype, "tekst": "", "antwoord": None,
             "grounding": {"grounded": True, "cited": 0, "unsupported": []}, "sources": [],
-            "status": [], "routes": [], "tools": [], "overzicht": None, "error": None}
+            "status": [], "routes": [], "tools": [], "overzicht": None, "error": None, "verbruik": None, "weigeringen": []}
 
 
 def neem_op(opname: dict[str, Any], ev: dict[str, Any]) -> None:
