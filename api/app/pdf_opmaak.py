@@ -131,6 +131,7 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib.units import mm
+    from reportlab.pdfbase.pdfmetrics import stringWidth
     from reportlab.pdfgen.canvas import Canvas
     from reportlab.platypus import (BaseDocTemplate, Flowable, Frame, KeepTogether, NextPageTemplate, PageBreak, PageBreakIfNotEmpty,
                                     PageTemplate, Paragraph, TableStyle)
@@ -202,75 +203,118 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
         canvas.drawString(x0 + 17 * mm, y0 - 8.5 * mm, "Lex · Wetsanalyse")
 
         tekstbreedte = breedte - links - rechts
-        y = hoogte - 90 * mm
         velden: dict[str, list[str]] = {}
         for veld, tekst in blad:
             velden.setdefault(veld, []).append(tekst)
+        getekend: list[dict] = []
 
-        def alinea(tekst, stijl, y):
-            p = Paragraph(opgemaakt(tekst), stijl)
-            _w, h = p.wrap(tekstbreedte, hoogte)
-            p.drawOn(canvas, links, y - h)
+        def stijl(naam, letter, grootte, regel, kleur):
+            return ParagraphStyle(naam, fontName=letter, fontSize=grootte, leading=regel, textColor=HexColor(kleur))
+
+        def teken(tekst, st, x, y, w, max_regels=None, waar=""):
+            """Een alinea met echte afbreking binnen `w`, de bovenkant op `y`. Past ze niet in `max_regels`, dan wordt ze op
+            een woordgrens ingekort met een ellips, en zegt een noot waar de volledige tekst staat: niets verdwijnt stil."""
+            tekst, afgekapt = passend(tekst, st, w, max_regels)
+            p = Paragraph(opgemaakt(tekst), st)
+            _w, h = p.wrap(w, hoogte)
+            p.drawOn(canvas, x, y - h)
+            getekend.append({"tekst": tekst, "x": x, "y": y - h, "breedte": w, "hoogte": h, "afgekapt": afgekapt})
+            if afgekapt and waar:
+                n = Paragraph(opgemaakt(waar), stijl("Noot", "Fira-Italic", 8, 11, GRIJS))
+                _w, nh = n.wrap(w, hoogte)
+                n.drawOn(canvas, x, y - h - nh)
+                getekend.append({"tekst": waar, "x": x, "y": y - h - nh, "breedte": w, "hoogte": nh, "afgekapt": False})
+                h += nh
             return y - h
 
+        # Onderaan staat de voetnoot; alles erboven moet daarboven blijven.
+        ondergrens = 18 * mm
+        voetstijl = stijl("Titelbladvoet", "Fira", 8, 11, GRIJS)
+        for t in velden.get("voetnoot", []):
+            h = _hoogte(passend(t, voetstijl, tekstbreedte, 4)[0], voetstijl, tekstbreedte)
+            teken(t, voetstijl, links, ondergrens + h, tekstbreedte, max_regels=4)
+            ondergrens += h + 6 * mm
+
+        y = hoogte - 90 * mm
         for t in velden.get("soort", []):
-            y = alinea(t.upper(), ParagraphStyle("Soort", fontName="Fira-SemiBold", fontSize=9, leading=12,
-                                                 textColor=HexColor(GRIJS)), y) - 4 * mm
+            y = teken(t.upper(), stijl("Soort", "Fira-SemiBold", 9, 12, GRIJS), links, y, tekstbreedte, max_regels=2) - 4 * mm
         for t in velden.get("titel", []):
-            y = alinea(t, ParagraphStyle("Titelbladtitel", fontName="Fira-SemiBold", fontSize=26, leading=31,
-                                         textColor=HexColor(LINTBLAUW)), y) - 4 * mm
+            y = teken(t, stijl("Titelbladtitel", "Fira-SemiBold", 26, 31, LINTBLAUW), links, y, tekstbreedte, max_regels=4,
+                      waar="De volledige titel staat in het colofon.") - 4 * mm
         canvas.setStrokeColor(HexColor(LINTBLAUW))
         canvas.setLineWidth(2)
         canvas.line(links, y, links + 20 * mm, y)
         y -= 8 * mm
-        for t in velden.get("vraag", []):
-            y = alinea(t, ParagraphStyle("Titelbladvraag", fontName="Fira", fontSize=11.5, leading=16,
-                                         textColor=HexColor(GRIJS)), y) - 10 * mm
 
+        # Het statusblok en de regelingen hebben een vaste plek nodig; de vraag krijgt wat er daarboven over is.
+        labelbreedte, binnen = 36 * mm, 6 * mm
+        waardestijl = stijl("Statuswaarde", "Fira", 9.5, 12.5, TEKST)
         rijen = [r.split(": ", 1) if ": " in r else (r, "") for r in velden.get("rij", [])]
+        waardebreedte = tekstbreedte - labelbreedte - 2 * binnen
+        notenhoogte = _hoogte("Volledig in het colofon.", stijl("Noot", "Fira-Italic", 8, 11, GRIJS), waardebreedte)
+
+        def rijhoogte(w):
+            """Een rij is zo hoog als haar gezette waarde, plus de noot als ze is ingekort: de volgende rij begint eronder."""
+            tekst, af = passend(w, waardestijl, waardebreedte, 3)
+            return max(_hoogte(tekst, waardestijl, waardebreedte), 12.5) + (notenhoogte if af else 0) + 5
+
+        rijhoogtes = [rijhoogte(w) for _l, w in rijen]
+        blokhoogte = sum(rijhoogtes) + 8 * mm if rijen else 0
+        regstijl = stijl("Titelbladregelingen", "Fira", 9, 13, GRIJS)
+        reghoogte = sum(_hoogte(passend(t, regstijl, tekstbreedte, 3)[0], regstijl, tekstbreedte) + 4 * mm + 11
+                        for t in velden.get("regelingen", []))
+        vraagstijl = stijl("Titelbladvraag", "Fira", 11.5, 16, GRIJS)
+        ruimte = y - ondergrens - blokhoogte - reghoogte - 18 * mm
+        for t in velden.get("vraag", []):
+            y = teken(t, vraagstijl, links, y, tekstbreedte, max_regels=max(2, int(ruimte // 16) - 1),
+                      waar="De volledige analysevraag staat in de samenvatting.") - 10 * mm
+
         if rijen:
-            regelhoogte = 6.2 * mm
-            blokhoogte = len(rijen) * regelhoogte + 8 * mm
-            y = min(y, 120 * mm)
+            y = min(y, max(120 * mm, ondergrens + blokhoogte + reghoogte + 8 * mm))
             canvas.setFillColor(HexColor(STATUSVLAK))
             canvas.rect(links, y - blokhoogte, tekstbreedte, blokhoogte, stroke=0, fill=1)
-            ry = y - 4 * mm - 4.2 * mm
-            for label, waarde in rijen:
-                canvas.setFillColor(HexColor(GRIJS))
-                canvas.setFont("Fira-SemiBold", 9)
-                canvas.drawString(links + 6 * mm, ry, opgemaakt_plat(label))
-                canvas.setFillColor(HexColor(TEKST))
-                canvas.setFont("Fira", 9.5)
-                canvas.drawString(links + 36 * mm, ry, opgemaakt_plat(waarde)[:95])
-                ry -= regelhoogte
+            getekend.append({"tekst": "statusblok", "x": links, "y": y - blokhoogte, "breedte": tekstbreedte, "hoogte": blokhoogte,
+                             "afgekapt": False, "vlak": True})
+            ry = y - 4 * mm
+            labelstijl = stijl("Statuslabel", "Fira-SemiBold", 9, 12.5, GRIJS)
+            for (label, waarde), rh in zip(rijen, rijhoogtes):
+                teken(label, labelstijl, links + binnen, ry, labelbreedte - 2 * mm, max_regels=2)
+                teken(waarde, waardestijl, links + binnen + labelbreedte, ry, waardebreedte, max_regels=3,
+                      waar="Volledig in het colofon.")
+                ry -= rh
             y -= blokhoogte + 8 * mm
         for t in velden.get("regelingen", []):
-            y = alinea(t, ParagraphStyle("Titelbladregelingen", fontName="Fira", fontSize=9, leading=13,
-                                         textColor=HexColor(GRIJS)), y) - 4 * mm
-        for t in velden.get("voetnoot", []):
-            p = Paragraph(opgemaakt(t), ParagraphStyle("Titelbladvoet", fontName="Fira", fontSize=8, leading=11,
-                                                       textColor=HexColor(GRIJS)))
-            _w, h = p.wrap(tekstbreedte, hoogte)
-            p.drawOn(canvas, links, 18 * mm)
+            y = teken(t, regstijl, links, y, tekstbreedte, max_regels=3, waar="Alle regelingen staan in het colofon.") - 4 * mm
         canvas.restoreState()
         if paginas is not None:
-            paginas.append({"pagina": doc.page, "kopregel": "", "voetregel": "", "titelblad": True})
+            paginas.append({"pagina": doc.page, "kopregel": "", "voetregel": "", "titelblad": True, "getekend": getekend})
 
     def kader(canvas, doc):
         """Kop- en voetregel; de voetregel krijgt zijn totaal pas bij het opslaan (`Teller`)."""
         canvas._zonder_voet = False
         canvas.saveState()
         kopregel = ""
+        getekend: list[dict] = []
+        tekstbreedte = A4[0] - links - rechts
+
+        def schrijf(tekst, x, y, max_breedte, rechts_uitgelijnd=False):
+            tekst = op_breedte(opgemaakt_plat(tekst), "Fira", 8, max_breedte)
+            w = stringWidth(tekst, "Fira", 8)
+            (canvas.drawRightString if rechts_uitgelijnd else canvas.drawString)(x, y, tekst)
+            getekend.append({"tekst": tekst, "x": x - w if rechts_uitgelijnd else x, "breedte": w})
+            return tekst
+
         if doc.page > 1:
-            kopregel = " · ".join(filter(None, [titel[:70], doc.hoofdstuk, doc.plaats]))
             canvas.setFont("Fira", 8)
             canvas.setFillColor(HexColor(GRIJS))
             # Met een plaats in de opbouw schuiven titel en hoofdstuk een regel omhoog; de plaats staat vlak boven de lijn.
+            # Titel links en hoofdstuk rechts delen de breedte; wat niet past, krijgt een ellips op breedte.
             hoogte = A4[1] - (10.5 if doc.plaats else 14) * mm
-            canvas.drawString(links, hoogte, opgemaakt_plat(titel[:70]))
-            canvas.drawRightString(A4[0] - rechts, hoogte, opgemaakt_plat(doc.hoofdstuk[:70]))
-            if doc.plaats:
-                canvas.drawRightString(A4[0] - rechts, A4[1] - 14 * mm, opgemaakt_plat(doc.plaats[:110]))
+            rechts_deel = min(stringWidth(opgemaakt_plat(doc.hoofdstuk), "Fira", 8), tekstbreedte * 0.45)
+            links_tekst = schrijf(titel, links, hoogte, tekstbreedte - rechts_deel - 6 * mm)
+            rechts_tekst = schrijf(doc.hoofdstuk, A4[0] - rechts, hoogte, rechts_deel, rechts_uitgelijnd=True) if doc.hoofdstuk else ""
+            plaats_tekst = schrijf(doc.plaats, A4[0] - rechts, A4[1] - 14 * mm, tekstbreedte, rechts_uitgelijnd=True) if doc.plaats else ""
+            kopregel = " · ".join(filter(None, [links_tekst, rechts_tekst, plaats_tekst]))
             canvas.setStrokeColor(HexColor(HAARLIJN))
             canvas.setLineWidth(0.5)
             canvas.line(links, A4[1] - 16 * mm, A4[0] - rechts, A4[1] - 16 * mm)
@@ -279,10 +323,11 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
         canvas.line(links, 14 * mm, A4[0] - rechts, 14 * mm)
         canvas.setFont("Fira", 8)
         canvas.setFillColor(HexColor(GRIJS))
-        canvas.drawString(links, 10 * mm, opgemaakt_plat(voet[:100]))
+        # Rechts staat "Pagina n van N" (`Teller`): daar blijft ruimte voor.
+        voetregel = schrijf(voet, links, 10 * mm, tekstbreedte - stringWidth("Pagina 999 van 999", "Fira", 8) - 6 * mm)
         canvas.restoreState()
         if paginas is not None:
-            paginas.append({"pagina": doc.page, "kopregel": kopregel, "voetregel": voet[:100], "titelblad": False})
+            paginas.append({"pagina": doc.page, "kopregel": kopregel, "voetregel": voetregel, "titelblad": False, "getekend": getekend})
 
     class Teller(Canvas):
         """Schrijft "Pagina n van N": het totaal is pas bekend als alle pagina's gezet zijn."""
@@ -440,6 +485,37 @@ def gemarkeerd(tekst: str, spans: list[tuple[int, int, int, str]]) -> str:
         if eindigt:                              # meer nummers op één plek: met komma's, anders leest "2" en "4" als 24
             uit.append(f'<super><font size="6.5">{",".join(map(str, eindigt))}</font></super>')
     return "".join(uit)
+
+
+def _hoogte(tekst: str, stijl, breedte: float) -> float:
+    from reportlab.platypus import Paragraph
+    return Paragraph(opgemaakt(tekst), stijl).wrap(breedte, 10 ** 6)[1]
+
+
+def passend(tekst: str, stijl, breedte: float, max_regels: int | None) -> tuple[str, bool]:
+    """De tekst zo dat hij, echt gezet, in `max_regels` regels van `breedte` past: anders ingekort op een woordgrens met een ellips.
+    Geeft (tekst, afgekapt). Gemeten met dezelfde zetter als de PDF, dus ook met de DejaVu-terugval."""
+    if max_regels is None or _hoogte(tekst, stijl, breedte) <= max_regels * stijl.leading + 0.5:
+        return tekst, False
+    woorden = tekst.split()
+    laag, hoog = 0, len(woorden)
+    while laag < hoog:                                   # het grootste aantal woorden dat met "…" nog past
+        midden = (laag + hoog + 1) // 2
+        if _hoogte(" ".join(woorden[:midden]) + " …", stijl, breedte) <= max_regels * stijl.leading + 0.5:
+            laag = midden
+        else:
+            hoog = midden - 1
+    return (" ".join(woorden[:laag]) + " …").strip(), True
+
+
+def op_breedte(tekst: str, letter: str, grootte: float, breedte: float) -> str:
+    """Eén regel die in `breedte` past: anders afgekapt op breedte, met een ellips."""
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+    if stringWidth(tekst, letter, grootte) <= breedte:
+        return tekst
+    while tekst and stringWidth(tekst.rstrip() + "…", letter, grootte) > breedte:
+        tekst = tekst[:-1]
+    return tekst.rstrip() + "…"
 
 
 def opgemaakt_plat(tekst: str) -> str:

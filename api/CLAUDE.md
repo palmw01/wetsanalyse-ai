@@ -426,6 +426,10 @@ spoor D (*Werkgebied als node*).
   en geen niet-ingesloten letter. De inhoudsopgave krijgt daarom een eigen tabelstijl, want de standaard zet Helvetica op elke cel.
   Regels `Titelblad:<veld>` (`TITELBLAD_VELDEN`) vooraan worden op pagina 1 getekend: het Lex-merk (`MERK`, een test vergelijkt het met
   `frontend/merk/lex-merk.svg`), titel, vraag en een statusblok, zonder kop- en voetregel. Markdown maakt er een `#`-kop en een lijst van.
+  Alles op het titelblad wordt echt gezet binnen de breedte (`passend`: dezelfde zetter, met DejaVu-terugval). Wat niet in zijn ruimte
+  past, wordt op een woordgrens ingekort met een ellips, en een noot zegt waar de volledige tekst staat (colofon of samenvatting). Kop- en
+  voetregel kappen af op breedte (`op_breedte`); de voetregel laat ruimte voor "Pagina n van N". `paginas[i]["getekend"]` legt elk getekend
+  blok vast, zodat een test kan nagaan dat niets buiten de marges of over elkaar valt.
 - Tests: `tests/test_werkgebieden.py` en `tests/test_werkgebied_werkvoorraad.py` (SQLite) en
   `tests/test_werkgebieden_postgres.py` (het rij-slot, met `ANNOTATIE_TEST_DSN`).
 

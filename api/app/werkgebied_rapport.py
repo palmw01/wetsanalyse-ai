@@ -605,7 +605,8 @@ def colofon_regels(doc: Document, v: Voorblad, stand: Stand, verantwoording: Ver
                          + " (SHA-256 over de inhoud, zonder het exportmoment: gelijke inhoud, gelijke code)"),
                         ("Meta", "Werkgebied: " + doc.werkgebied_id),
                         ("Meta", f"Status: {status} · revisie {v.revisie}"),
-                        ("Meta", "Peildatum: " + (datum(v.peildatum) or "niet vastgelegd")),
+                        ("Meta", "Peildatum: " + (datum(v.peildatum) or "niet vastgelegd") + (" (de aanmaakdag)" if v.peildatum_standaard else "")),
+                        *([("Meta", "Thema: " + v.thema)] if v.thema else []),
                         ("Meta", f"Stand van {datum_tijd(stand.op)}, geëxporteerd door {stand.door}."),
                         ("Meta", "Opgesteld door: " + verantwoording.aangemaakt_door)]
     if verantwoording.juristen:

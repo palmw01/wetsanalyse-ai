@@ -107,7 +107,8 @@ def test_het_titelblad_is_pagina_een_zonder_kop_en_voetregel():
     paginas: list[dict] = []
     spoor: list[dict] = []
     pdf_opmaak.render(_met_titelblad(), titel="Mijn werkgebied", voet="Werkgebiedrapport", paginas=paginas, spoor=spoor)
-    assert paginas[0] == {"pagina": 1, "kopregel": "", "voetregel": "", "titelblad": True, "totaal": len(paginas)}
+    assert {k: paginas[0][k] for k in ("pagina", "kopregel", "voetregel", "titelblad", "totaal")} == {
+        "pagina": 1, "kopregel": "", "voetregel": "", "titelblad": True, "totaal": len(paginas)}
     assert not any(p["titelblad"] for p in paginas[1:]) and all(p["voetregel"] == "Werkgebiedrapport" for p in paginas[1:])
     # Niets van de lopende tekst staat op het titelblad: het colofon begint bovenaan pagina 2.
     assert min(r["pagina"] for r in spoor) == 2 and spoor[0]["bovenaan"]
@@ -121,4 +122,83 @@ def test_het_titelblad_staat_in_de_bladwijzers():
 def test_zonder_titelblad_blijft_de_eerste_pagina_gewone_tekst():
     paginas: list[dict] = []
     pdf_opmaak.render([("Heading1", "Een")], paginas=paginas)
-    assert paginas == [{"pagina": 1, "kopregel": "", "voetregel": "", "titelblad": False, "totaal": 1}]
+    assert [{k: p[k] for k in ("pagina", "kopregel", "voetregel", "titelblad", "totaal")} for p in paginas] == [
+        {"pagina": 1, "kopregel": "", "voetregel": "", "titelblad": False, "totaal": 1}]
+
+
+
+_LANG = ("Wet " + "bijzonder-lange-samenstelling-zonder-spaties-" * 4 + " en nog " + "heel veel woorden " * 40).strip()
+
+
+def _extreem() -> list[tuple[str, str]]:
+    T = pdf_opmaak.TITELBLAD
+    return [(T + "titel", "Een uitzonderlijk lange titel van een werkgebied " * 8), (T + "soort", "Wetsanalyse · rapport " * 6),
+            (T + "vraag", "Wat zijn de rechten en plichten van alle betrokkenen? " * 40),
+            (T + "rij", "Status: In voorbereiding · concept"), (T + "rij", "Peildatum: 5 november 2026 " + "(een lange toelichting) " * 12),
+            (T + "rij", "Thema: " + _LANG), (T + "rij", "Inhoudscode: 0123456789ab"),
+            (T + "regelingen", "Regelingen: " + " · ".join(f"Een lange citeertitel van regeling {i}" for i in range(30))),
+            (T + "voetnoot", "Een analyse-uitkomst, geen juridisch oordeel."),
+            (pdf_opmaak.PAGINA, ""), ("Heading1", "1. " + "Een heel lang hoofdstuk " * 10),
+            (pdf_opmaak.PLAATS, "Hoofdstuk 2 – " + "Een lange titel " * 20), ("BodyText", "tekst")]
+
+
+def test_niets_op_het_titelblad_valt_buiten_de_marges_of_over_elkaar_en_wat_inkort_zegt_waar_het_staat():
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    paginas: list[dict] = []
+    pdf_opmaak.render(_extreem(), titel="Een uitzonderlijk lange titel " * 6, voet="Werkgebiedrapport · " * 12, paginas=paginas)
+    items = paginas[0]["getekend"]
+    links, rechts = 25 * mm, A4[0] - 20 * mm
+    for i in items:
+        assert i["x"] >= links - 0.5 and i["x"] + i["breedte"] <= rechts + 0.5, i["tekst"][:40]
+        assert i["y"] >= 15 * mm and i["y"] + i["hoogte"] <= A4[1] - 6 * mm, i["tekst"][:40]
+    # Geen overlap: tekstblokken (buiten het statusvlak, waarin de rijen staan) lopen van boven naar onder zonder elkaar te raken.
+    vlak = next(i for i in items if i.get("vlak"))
+    los = sorted((i for i in items if not i.get("vlak") and not (vlak["y"] <= i["y"] <= vlak["y"] + vlak["hoogte"])),
+                 key=lambda i: -i["y"])
+    for boven, onder in zip(los, los[1:]):
+        assert onder["y"] + onder["hoogte"] <= boven["y"] + 0.5, (boven["tekst"][:30], onder["tekst"][:30])
+    rijen = [i for i in items if not i.get("vlak") and vlak["y"] <= i["y"] <= vlak["y"] + vlak["hoogte"]]
+    assert all(vlak["y"] - 0.5 <= i["y"] and i["y"] + i["hoogte"] <= vlak["y"] + vlak["hoogte"] + 0.5 for i in rijen)
+    # Ook binnen het vlak: per kolom (labels, waarden met hun noten) raakt niets elkaar.
+    for kolom in {round(i["x"]) for i in rijen}:
+        stapel = sorted((i for i in rijen if round(i["x"]) == kolom), key=lambda i: -i["y"])
+        for boven, onder in zip(stapel, stapel[1:]):
+            assert onder["y"] + onder["hoogte"] <= boven["y"] + 0.5, (boven["tekst"][:30], onder["tekst"][:30])
+    # Wat is ingekort, eindigt op een ellips en heeft een noot die zegt waar de volledige tekst staat.
+    teksten = [i["tekst"] for i in items]
+    for n, i in enumerate(items):
+        if i["afgekapt"]:
+            assert i["tekst"].endswith("…") and items[n + 1]["tekst"].startswith(("De volledige", "Volledig", "Alle regelingen"))
+    assert "De volledige titel staat in het colofon." in teksten and "De volledige analysevraag staat in de samenvatting." in teksten
+    assert any(t.startswith("In voorbereiding") for t in teksten) and "0123456789ab" in teksten     # korte waarden heel
+
+
+def test_kop_en_voetregel_kappen_af_op_breedte_met_een_ellips():
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    paginas: list[dict] = []
+    pdf_opmaak.render(_extreem(), titel="Een uitzonderlijk lange titel " * 6, voet="Werkgebiedrapport · " * 12, paginas=paginas)
+    for p in paginas[1:]:
+        for i in p["getekend"]:
+            assert i["x"] >= 25 * mm - 0.5 and i["x"] + i["breedte"] <= A4[0] - 20 * mm + 0.5, i["tekst"][:40]
+        assert p["voetregel"].endswith("…") and p["kopregel"].split(" · ")[0].endswith("…")
+    # De voetregel laat ruimte voor "Pagina n van N".
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+    voet = next(i for i in paginas[1]["getekend"] if i["tekst"] == paginas[1]["voetregel"])
+    assert voet["x"] + voet["breedte"] <= A4[0] - 20 * mm - stringWidth("Pagina 999 van 999", "Fira", 8)
+
+
+def test_een_gewone_titel_wordt_niet_ingekort():
+    paginas: list[dict] = []
+    pdf_opmaak.render(_met_titelblad(1), titel="Kort", voet="V", paginas=paginas)
+    assert not any(i["afgekapt"] for i in paginas[0]["getekend"])
+    assert paginas[1]["voetregel"] == "V" and paginas[1]["kopregel"].startswith("Kort")
+
+
+def test_passend_kort_in_op_een_woordgrens():
+    from reportlab.lib.styles import ParagraphStyle
+    st = ParagraphStyle("t", fontName="Fira", fontSize=10, leading=14)
+    tekst, af = pdf_opmaak.passend("woord " * 200, st, 200, 2)
+    assert af and tekst.endswith(" …") and set(tekst[:-2].split()) == {"woord"}
+    assert pdf_opmaak.passend("kort", st, 200, 2) == ("kort", False)
