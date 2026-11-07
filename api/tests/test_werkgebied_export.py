@@ -152,7 +152,7 @@ async def test_een_onbereikbare_regeling_staat_op_voorblad_en_plek(client, graaf
     assert data["inventaris"]["volledig"] is False
     regels = export.regels(data, V)
     waarschuwingen = [(i, t) for i, (s, t) in enumerate(regels) if s == "Waarschuwing"]
-    eerste_deel = next(i for i, (s, _t) in enumerate(regels) if s == "Heading1")
+    eerste_deel = regels.index(("Heading1", "1. Dossier"))
     assert any(i < eerste_deel and t.startswith("Niet in dit dossier") for i, t in waarschuwingen)
     assert any(i > eerste_deel and t.startswith("De tekst ontbreekt") for i, t in waarschuwingen)
 
@@ -342,7 +342,7 @@ async def test_een_lang_begrip_loopt_door_en_het_volgende_begint_vers(client):
 async def test_een_groepskop_staat_nooit_alleen_en_er_is_geen_blanke_pagina(client):
     spoor = await _spoor(await _met_begrippen(client, "termijn", "uitstel"))
     laatste = max(r["pagina"] for r in spoor)
-    assert {r["pagina"] for r in spoor} == set(range(1, laatste + 1))
+    assert {r["pagina"] for r in spoor} == set(range(2, laatste + 1))         # pagina 1 is het getekende titelblad
     for r in spoor:
         if r["stijl"] == "Heading2" and "begrippen (" in r["tekst"].lower():
             assert any(x["stijl"] == pdf_opmaak.BEGRIP and x["pagina"] == r["pagina"] for x in spoor)
@@ -561,7 +561,10 @@ async def test_markdown_en_pdf_hebben_dezelfde_inhoud(client):
     data = await _data(wg)
     tekst = _zonder_escape(export.markdown_export(data, V).decode())
     for stijl, regel in export.regels(data, V):
-        if regel and stijl != "Waarschuwing":
+        if stijl == pdf_opmaak.TITELBLAD + "rij":                      # een rij wordt "- **Label:** waarde"
+            label, _, waarde = regel.partition(": ")
+            assert f"- **{label}:** {waarde}" in tekst, regel
+        elif regel and stijl != "Waarschuwing":
             assert regel in tekst, regel
 
 
@@ -650,3 +653,17 @@ async def test_het_besluitenlog_noemt_wie_wat_besloot_met_onderwerp_en_reden(cli
     assert ("Meta", "Reden: Getoetst aan de wet") in regels
     # Werk van Lex is geen besluit: alleen geteld.
     assert not any(b.actie.endswith("-gestart") for b in rapport.verantwoording.besluiten)
+
+
+async def test_het_rapport_begint_met_een_titelblad_en_dan_het_colofon(client):
+    wg, _ids = await _gevuld(client)
+    rapport = export.bouw_rapport(await _data(wg), V)
+    regels = rapport_regels(rapport)
+    blad = [(s.removeprefix(pdf_opmaak.TITELBLAD), t) for s, t in regels if s.startswith(pdf_opmaak.TITELBLAD)]
+    assert regels[:len(blad)] == [(pdf_opmaak.TITELBLAD + v, t) for v, t in blad]       # alleen vooraan
+    assert {v for v, _t in blad} <= set(pdf_opmaak.TITELBLAD_VELDEN)
+    assert ("titel", wg["naam"]) in blad and ("rij", "Kenmerk: " + rapport.document.kenmerk) in blad
+    assert any(v == "rij" and t.startswith("Status: ") for v, t in blad)
+    assert regels[len(blad):len(blad) + 2] == [("Pagina", ""), ("Heading4", "Colofon")]
+    md = markdown_opmaak.markdown(regels)
+    assert md.startswith(f"# {wg['naam']}\n") and f"- **Kenmerk:** {rapport.document.kenmerk}" in md
