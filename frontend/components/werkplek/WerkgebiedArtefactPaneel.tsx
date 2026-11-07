@@ -271,9 +271,9 @@ function WerkgebiedLive({ id, naarWerkgebied, onVerwijderd }: {
   if (!wg) return <SkeletonCard regels={4} />;
   return (
     <div data-werkgebied-inhoud className="space-y-4 text-sm text-ink">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2">
         <p className="text-xs text-muted">{STATUS_LABEL[wg.status]} · revisie {wg.revisie}</p>
-        <VerwijderKnop soort="werkgebied" onBevestig={verwijder} className="ml-auto" />
+        <VerwijderKnop soort="werkgebied" onBevestig={verwijder} />
       </div>
       {melding && <Melding type="waarschuwing" compact>{melding}</Melding>}
       <WerkgebiedSamenvatting wg={wg} />
