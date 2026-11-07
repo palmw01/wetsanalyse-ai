@@ -250,9 +250,7 @@ class ToestandRef:
     geldig_vanaf: str | None = None
     geldig_tot: str | None = None
     zicht_vanaf: str | None = None
-    zicht_tot: str | None = None
     locatie_wti: str | None = None
-    locatie_manifest: str | None = None
 
 
 @dataclass(slots=True)

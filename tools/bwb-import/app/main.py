@@ -48,36 +48,6 @@ def prepare(writer: GraphDbWriter) -> None:
     writer.ensure_fts_connector()
 
 
-def run_import(
-    bwb_id: str, settings: Settings, writer: GraphDbWriter | None = None
-) -> ImportSummary:
-    """Voer de volledige importpijplijn uit voor één regeling.
-
-    Zonder meegegeven ``writer`` (losse aanroep) worden de waarborgen
-    (:func:`prepare`) eerst uitgevoerd; in een batch gebeurt dat één keer.
-
-    De structuurindex bevat hier alleen déze wet — een verwijzing naar een structuurdeel van een
-    ándere regeling blijft dus een open stub. Dat is geen tekortkoming van deze functie maar de
-    grens van één import: die kennis bestaat pas als de doelwet is gezien. `run_imports` haalt alle
-    wetten in één run binnen en heeft die grens niet.
-    """
-    logger.info("Start import voor %s (doel: GraphDB %s)", bwb_id, settings.graphdb_repository)
-
-    if writer is None:
-        writer = maak_writer(settings)
-        prepare(writer)
-
-    item = _verzamel(bwb_id, settings)
-    return _schrijf(
-        item,
-        writer,
-        structuurindex([item.batch]),
-        bepalingsindex([item.batch]),
-        writer.graaf_stand([bwb_id]),
-        settings,
-    )
-
-
 def _haal_en_parse(
     bwb_id: str, settings: Settings
 ) -> tuple[Wet, WtiInfo | None, Path, bool | None]:
