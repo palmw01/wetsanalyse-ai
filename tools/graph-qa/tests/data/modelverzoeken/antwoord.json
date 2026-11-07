@@ -653,7 +653,7 @@
      "strict": true
     },
     {
-     "description": "Rond een vraag om uitleg af: hoe iets werkt, hoe bepalingen zich verhouden, wat ze voor een geval betekenen. Roep deze tool aan nadat je de bepalingen hebt opgehaald, en schrijf geen antwoord ernaast. Jij schrijft de uitleg in eigen woorden en wijst de passages aan die haar dragen; de werkplek toont die passages met hun vindplaats, uit wat de tools teruggaven. Vind je geen bepaling die de vraag draagt, gebruik deze tool dan niet en zeg dat in tekst.",
+     "description": "Rond een vraag om uitleg af: hoe iets werkt, hoe bepalingen zich verhouden, wat ze voor een geval betekenen. Roep deze tool aan nadat je de bepalingen hebt opgehaald, en schrijf geen antwoord ernaast. Jij schrijft de uitleg in eigen woorden en wijst de passages aan die haar dragen, met hun eerste en laatste woorden: schrijf het citaat niet uit, de code neemt de tekst ertussen uit wat de tools teruggaven en de werkplek toont hem met zijn vindplaats. Vind je geen bepaling die de vraag draagt, gebruik deze tool dan niet en zeg dat in tekst.",
      "input_schema": {
       "additionalProperties": false,
       "properties": {
@@ -670,8 +670,12 @@
            "description": "De iri van de bepaling uit het toolresultaat.",
            "type": "string"
           },
-          "fragment": {
-           "description": "Een aaneengesloten stuk uit de tekst van één lid of onderdeel, teken voor teken gekopieerd, zonder weglatingen.",
+          "tot": {
+           "description": "De laatste drie tot acht woorden van de passage, letterlijk, in dezelfde tekst na `van`. Leeg: tot het eind van die tekst.",
+           "type": "string"
+          },
+          "van": {
+           "description": "De eerste drie tot acht woorden van de passage, letterlijk uit de tekst van één lid of onderdeel. Leeg: vanaf het begin van die tekst.",
            "type": "string"
           },
           "waarom": {
@@ -681,7 +685,8 @@
          },
          "required": [
           "bepaling",
-          "fragment",
+          "van",
+          "tot",
           "waarom"
          ],
          "type": "object"
@@ -1373,7 +1378,7 @@
      "strict": true
     },
     {
-     "description": "Rond een vraag om uitleg af: hoe iets werkt, hoe bepalingen zich verhouden, wat ze voor een geval betekenen. Roep deze tool aan nadat je de bepalingen hebt opgehaald, en schrijf geen antwoord ernaast. Jij schrijft de uitleg in eigen woorden en wijst de passages aan die haar dragen; de werkplek toont die passages met hun vindplaats, uit wat de tools teruggaven. Vind je geen bepaling die de vraag draagt, gebruik deze tool dan niet en zeg dat in tekst.",
+     "description": "Rond een vraag om uitleg af: hoe iets werkt, hoe bepalingen zich verhouden, wat ze voor een geval betekenen. Roep deze tool aan nadat je de bepalingen hebt opgehaald, en schrijf geen antwoord ernaast. Jij schrijft de uitleg in eigen woorden en wijst de passages aan die haar dragen, met hun eerste en laatste woorden: schrijf het citaat niet uit, de code neemt de tekst ertussen uit wat de tools teruggaven en de werkplek toont hem met zijn vindplaats. Vind je geen bepaling die de vraag draagt, gebruik deze tool dan niet en zeg dat in tekst.",
      "input_schema": {
       "additionalProperties": false,
       "properties": {
@@ -1390,8 +1395,12 @@
            "description": "De iri van de bepaling uit het toolresultaat.",
            "type": "string"
           },
-          "fragment": {
-           "description": "Een aaneengesloten stuk uit de tekst van één lid of onderdeel, teken voor teken gekopieerd, zonder weglatingen.",
+          "tot": {
+           "description": "De laatste drie tot acht woorden van de passage, letterlijk, in dezelfde tekst na `van`. Leeg: tot het eind van die tekst.",
+           "type": "string"
+          },
+          "van": {
+           "description": "De eerste drie tot acht woorden van de passage, letterlijk uit de tekst van één lid of onderdeel. Leeg: vanaf het begin van die tekst.",
            "type": "string"
           },
           "waarom": {
@@ -1401,7 +1410,8 @@
          },
          "required": [
           "bepaling",
-          "fragment",
+          "van",
+          "tot",
           "waarom"
          ],
          "type": "object"
