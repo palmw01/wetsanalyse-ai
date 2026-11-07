@@ -1,6 +1,9 @@
 """Het sjabloon voor uitleg ("hoe werkt X", "hoe verhoudt Y zich tot Z"): de ene plek waar het model veel schrijft.
 
-Het model schrijft het korte antwoord, de reden per passage en de twijfel, en wijst de passages aan. De code toetst
+Het model schrijft het korte antwoord, de reden per passage en de twijfel, en wijst de passages aan: per passage de
+bepaling en de eerste en laatste woorden. De tekst ertussen neemt de code uit de bron (D5, ADR-010). Het model schreef
+eerst elk citaat voluit, teken voor teken: dat was de meeste uitvoer van een duidingsbeurt, en een citaat dat net niet
+klopte kostte een hele correctieronde. De code toetst
 elke passage tegen de tekst van de aangewezen bepaling, niet tegen alles wat is opgehaald: een echte zin bij het
 verkeerde artikel haalt anders de controle en staat er met een onjuiste vindplaats. De tekst die het model schreef
 gaat als antwoordtekst door `verify`; aan die controle verandert hier niets.
@@ -25,8 +28,8 @@ SCHEMA: dict[str, Any] = {
     "description": (
         "Rond een vraag om uitleg af: hoe iets werkt, hoe bepalingen zich verhouden, wat ze voor een geval betekenen. Roep deze "
         "tool aan nadat je de bepalingen hebt opgehaald, en schrijf geen antwoord ernaast. Jij schrijft de uitleg in eigen woorden "
-        "en wijst de passages aan die haar dragen; de werkplek toont die passages met hun vindplaats, uit wat de tools "
-        "teruggaven. Vind je geen bepaling die de vraag draagt, gebruik deze tool dan niet en zeg dat in tekst."),
+        "en wijst de passages aan die haar dragen, met hun eerste en laatste woorden: schrijf het citaat niet uit, de code neemt "
+        "de tekst ertussen uit wat de tools teruggaven en de werkplek toont hem met zijn vindplaats. Vind je geen bepaling die de vraag draagt, gebruik deze tool dan niet en zeg dat in tekst."),
     "strict": True,
     "input_schema": {
         "type": "object",
@@ -39,10 +42,11 @@ SCHEMA: dict[str, Any] = {
                     "type": "object",
                     "properties": {
                         "bepaling": {"type": "string", "description": "De iri van de bepaling uit het toolresultaat."},
-                        "fragment": {"type": "string", "description": "Een aaneengesloten stuk uit de tekst van één lid of onderdeel, teken voor teken gekopieerd, zonder weglatingen."},
+                        "van": {"type": "string", "description": "De eerste drie tot acht woorden van de passage, letterlijk uit de tekst van één lid of onderdeel. Leeg: vanaf het begin van die tekst."},
+                        "tot": {"type": "string", "description": "De laatste drie tot acht woorden van de passage, letterlijk, in dezelfde tekst na `van`. Leeg: tot het eind van die tekst."},
                         "waarom": {"type": "string", "description": "Eén zin: wat deze passage bijdraagt aan het antwoord."},
                     },
-                    "required": ["bepaling", "fragment", "waarom"],
+                    "required": ["bepaling", "van", "tot", "waarom"],
                     "additionalProperties": False,
                 },
             },
@@ -61,29 +65,57 @@ def _lex(tekst: Any, trace: Trace) -> str:
     return herstel_citaten(str(tekst or "").strip(), trace)[0]
 
 
-def _uit_bron(fragment: str, tekst: str) -> str:
-    """Het fragment zoals het in deze tekst staat, of leeg. Bijna-letterlijk herstelt `herstel_citaten`; die leest
-    aanhalingstekens, dus een fragment dat er zelf een bevat kan alleen letterlijk."""
-    if komt_letterlijk_voor(tekst, fragment):
-        return _normaliseer(fragment)
-    if '"' in fragment:
-        return ""
-    _, hersteld = herstel_citaten(f'"{fragment}"', [("", tekst)])
-    return hersteld[0][1] if hersteld else ""
+#: Zo lang mag een passage zonder `van` en `tot` zijn: een heel lid of onderdeel. Daarboven wijst het model een stuk aan.
+MAX_HELE_TEKST = 600
+
+
+def _ankers(anker: str, tekst: str) -> list[tuple[int, int]]:
+    """Waar het anker in de (genormaliseerde) tekst staat, als (begin, eind). Bijna-letterlijk herstelt `herstel_citaten`;
+    die leest aanhalingstekens, dus een anker dat er zelf een bevat kan alleen letterlijk."""
+    vorm = _normaliseer(anker)
+    if not komt_letterlijk_voor(tekst, vorm) and '"' not in vorm:
+        _, hersteld = herstel_citaten(f'"{vorm}"', [("", tekst)])
+        vorm = hersteld[0][1] if hersteld else ""
+    uit, i = [], tekst.find(vorm) if vorm else -1
+    while i >= 0:
+        uit.append((i, i + len(vorm)))
+        i = tekst.find(vorm, i + 1)
+    return uit
+
+
+def _passage(van: str, tot: str, tekst: str) -> str:
+    """De passage van `van` tot en met `tot`, zoals ze in deze tekst staat, of leeg. Staat `van` er vaker, dan telt de
+    eerste plek waarna `tot` volgt."""
+    tekst = _normaliseer(tekst)
+    if not van and not tot:
+        return tekst if len(tekst) <= MAX_HELE_TEKST else ""
+    begins = _ankers(van, tekst) if van else [(0, 0)]
+    for begin, _ in begins:
+        if not tot:
+            return tekst[begin:]
+        eind = next((e for b, e in _ankers(tot, tekst) if b >= begin), None)
+        if eind is not None:
+            return tekst[begin:eind]
+    return ""
 
 
 def _citaat(stuk: dict[str, Any], rijen: dict[str, dict[str, Any]], trace: Trace, fouten: list[str]) -> Citaat | None:
-    iri, fragment = str(stuk.get("bepaling") or "").strip(), str(stuk.get("fragment") or "").strip()
+    iri = str(stuk.get("bepaling") or "").strip()
+    van, tot = str(stuk.get("van") or "").strip(), str(stuk.get("tot") or "").strip()
     onder = {k: r for k, r in rijen.items() if k == iri or k.startswith(iri + ":")} if iri else {}
     if not onder:
         fouten.append(f"{iri or 'een passage zonder bepaling'}: de tekst is niet (helemaal) opgehaald. Gebruik een iri uit een "
                       "toolresultaat, en haal de bepaling op met get_artikel, get_lid of get_bepaling")
         return None
-    treffers = {k: t for k, r in onder.items() if (t := _uit_bron(fragment, r["tekst"]))}
+    treffers = {k: t for k, r in onder.items() if (t := _passage(van, tot, r["tekst"]))}
     if not treffers:
-        begin = fragment[:80] + ("…" if len(fragment) > 80 else "")
-        fouten.append(f"„{begin}” staat niet in {vindplaats_van(iri).label}. Kopieer een aaneengesloten stuk uit één lid of "
-                      "onderdeel, teken voor teken en zonder weglatingen, en wijs de bepaling aan waar het staat")
+        if not van and not tot:
+            fouten.append(f"{vindplaats_van(iri).label} is te lang om heel te tonen. Wijs met `van` en `tot` de passage aan "
+                          "die de uitleg draagt")
+        else:
+            aangewezen = " … ".join(_kort(x) for x in (van, tot) if x)
+            fouten.append(f"„{aangewezen}” staat niet in {vindplaats_van(iri).label}. Geef de eerste en de laatste woorden van "
+                          "een passage uit één lid of onderdeel, letterlijk, en wijs de bepaling aan waar ze staan")
         return None
     # De vindplaats is de diepste node met deze tekst. Staat de passage in meer leden, dan klopt alleen wat het model aanwees.
     diepste = [k for k in treffers if not any(a.startswith(k + ":") for a in treffers)]
@@ -92,6 +124,10 @@ def _citaat(stuk: dict[str, Any], rijen: dict[str, dict[str, Any]], trace: Trace
     return Citaat(tekst=treffers[diepste[0]], waarom=_lex(stuk.get("waarom"), trace),
                   vindplaats=vindplaats_van(plek, jci=rij.get("jci", ""), regeling=rij.get("citeertitel", ""),
                                             label=rij.get("inLabel") or rij.get("label", "")))
+
+
+def _kort(tekst: str) -> str:
+    return tekst[:60] + ("…" if len(tekst) > 60 else "")
 
 
 def _niet_onderbouwd(uitleg: str, citaten: list[Citaat]) -> list[str]:
