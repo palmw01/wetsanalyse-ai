@@ -1,5 +1,7 @@
 # Tijdsaanduiding (H2:107-109; profiel 10_tijdsaanduiding.yaml). JAS-PRIORITY-001 maakt van een
 # tijdswaarde met dezelfde functie een Tijdsaanduiding; daarom staan var/par hier niet als klasse.
+# Een duur of hoeveelheid (duur, periode van, herhaling) krijgt wel het subtype "verbijzondert parameter"
+# (`subtype.DUURCODES`); het getal erin is een eigen regel in numeriek.yaml (`jas.waarde.getal_in_duur`).
 - id: jas.tijd.datum
   klassen: [Tijdsaanduiding]
   code: TEMPORAL_DATE

@@ -282,7 +282,8 @@ def test_sterk_bewijs_afgeleid_uit_regeldefinities():
            "TEMPORAL_MOMENT", "DEFINITION_ITEM", "DEFINITION_SENTENCE", "DELEGATION_FORMULA",
            "COMPARISON", "ARITHMETIC", "LOCATION_NAME", "LOCATION_DESCRIPTION"}
     # Bewuste baselinekeuze: benoemde maand en herhaalde termijn dragen op zichzelf Tijdsaanduiding.
-    assert STERK_BEWIJS == oud | {"TEMPORAL_MONTH", "TEMPORAL_RECURRENCE"}
+    # ADR-001 PR 8, aanvulling 7 nov 2026: het getal in cijfers van een duur is een parameterwaarde.
+    assert STERK_BEWIJS == oud | {"TEMPORAL_MONTH", "TEMPORAL_RECURRENCE", "DURATION_NUMBER"}
     assert set(KLASSE_VAN_BEWIJS) == STERK_BEWIJS
     assert not STERK_BEWIJS & {"TEMPORAL_KERNEL", "TEMPORAL_DESCRIPTION", "CALCULATION_ASSIGNMENT"}
 

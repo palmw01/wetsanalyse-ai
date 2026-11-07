@@ -199,7 +199,10 @@ pas:
 - **Subtype** (`jas_pipeline/subtype.py`, veld `jas_subtype`). Dit is het onderscheid binnen een
   samengevoegde klasse, zoals variabelewaarde binnen Variabele en variabelewaarde. Het wordt alleen
   gezet als het bewijs het eenduidig maakt. Anders blijft het leeg, en dat betekent "onbepaald" en
-  niet "geraden".
+  niet "geraden". Een Tijdsaanduiding met een duur of hoeveelheid ('zes weken', 'binnen 48 uur') krijgt
+  het subtype "verbijzondert parameter": één element, geen tweede markering Parameter. Alleen een getal
+  in cijfers erin ('48') wordt een geneste Parameter met subtype parameterwaarde (regel
+  `jas.waarde.getal_in_duur`; ADR-001, aanvulling bij PR 8).
 
 ## Bekende beperkingen
 

@@ -46,6 +46,19 @@ def test_zestien_officiele_begrippen_onder_hun_klasse():
         assert g.value(b, SKOS.broader) in {projectie.klasse_iri(n) for n in JAS_KLASSEN_VOLGORDE}
 
 
+def test_de_verbijzondering_is_een_subtype_en_geen_begrip():
+    """ "verbijzondert parameter" hangt onder Tijdsaanduiding, verwijst naar Parameter en telt niet als officieel
+    begrip (H2:107; ADR-001 PR 8, aanvulling 7 nov 2026)."""
+    g = _graaf()
+    [s] = g.subjects(URIRef(JAS_NS + "subtype"), Literal("verbijzondert parameter"))
+    assert (s, RDF.type, URIRef(JAS_NS + "Subtype")) in g
+    assert (s, RDF.type, URIRef(JAS_NS + "Begrip")) not in g
+    assert g.value(s, SKOS.broader) == projectie.klasse_iri("Tijdsaanduiding")
+    assert g.value(s, SKOS.related) == projectie.klasse_iri("Parameter en parameterwaarde")
+    tijd = next(k for k in projectie.verklaringen()["klassen"] if k["naam"] == "Tijdsaanduiding")
+    assert [v["subtype"] for v in tijd["verbijzonderingen"]] == ["verbijzondert parameter"]
+
+
 def test_versie_in_ttl_en_json_is_dezelfde():
     versie, ttl = projectie.vocabulaire()
     assert (projectie.VOCAB_SCHEMA, URIRef(JAS_NS + "vocabulaireVersie"), Literal(versie)) in _graaf()

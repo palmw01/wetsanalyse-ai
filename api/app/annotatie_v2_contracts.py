@@ -58,7 +58,7 @@ class Element(BaseModel):
     # contract zegt dat het meereist en tot in de opslag en de export bewaard blijft.
     trace: dict = Field(default_factory=dict)
     # JAS-subtype binnen een samengevoegde klasse; leeg = onbepaald. Expliciet, net als `trace`.
-    jas_subtype: str = Field(default="", pattern=r"^(|variabele|variabelewaarde|parameter|parameterwaarde|delegatiebevoegdheid|delegatie-invulling)$")
+    jas_subtype: str = Field(default="", pattern=r"^(|variabele|variabelewaarde|parameter|parameterwaarde|delegatiebevoegdheid|delegatie-invulling|verbijzondert parameter)$")
 
 
 class Dekking(BaseModel):
@@ -168,7 +168,8 @@ class Zoekvraag(BaseModel):
     herkomst: list[Literal["agent", "mens"]] = Field(default_factory=list)
     aandacht: list[Literal["groen", "geel"]] = Field(default_factory=list)
     subtype: list[Literal["variabele", "variabelewaarde", "parameter", "parameterwaarde",
-                          "delegatiebevoegdheid", "delegatie-invulling"]] = Field(default_factory=list)
+                          "delegatiebevoegdheid", "delegatie-invulling",
+                          "verbijzondert parameter"]] = Field(default_factory=list)
     beslist_door: list[Literal["regel", "model", "specificiteit", "terugval"]] = Field(default_factory=list)
     # None = geen filter; True = alleen met twijfel in het spoor; False = alleen zonder.
     met_twijfel: bool | None = None

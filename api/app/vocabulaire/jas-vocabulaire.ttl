@@ -523,6 +523,13 @@
     jas:wijstAan <urn:jas-ns:klasse:ParameterEnParameterwaarde>,
         <urn:jas-ns:klasse:VariabeleEnVariabelewaarde> .
 
+<urn:jas-ns:regel:jas.waarde.getal_in_duur> a jas:Detectorregel ;
+    dcterms:source "H2:107" ;
+    skos:prefLabel "Getal in een termijn"@nl ;
+    jas:code <urn:jas-ns:code:DURATION_NUMBER> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:ParameterEnParameterwaarde> .
+
 <urn:jas-ns:regel:jas.waarde.percentage> a jas:Detectorregel ;
     dcterms:source "H2:91" ;
     skos:prefLabel "Percentage"@nl ;
@@ -613,6 +620,15 @@
     skos:definition "De reviewer bevestigde dat het fragment twee functies heeft; beide blijven staan."@nl ;
     skos:prefLabel "Twee functies op één fragment"@nl ;
     jas:codeWaarde "R-SPAN-KEEP" .
+
+<urn:jas-ns:subtype:VerbijzondertParameter> a skos:Concept,
+        jas:Subtype ;
+    dcterms:source "H2:107" ;
+    skos:broader <urn:jas-ns:klasse:Tijdsaanduiding> ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "verbijzondert parameter"@nl ;
+    skos:related <urn:jas-ns:klasse:ParameterEnParameterwaarde> ;
+    jas:subtype "verbijzondert parameter" .
 
 <urn:jas-ns:twijfel:CENTRALE_NORM_AFGEWEZEN> a jas:Twijfelreden ;
     skos:definition "Een normhypothese is afgewezen terwijl objecten of tijdsaanduidingen resteren. Gerichte beoordeling kan de afwijzing bevestigen."@nl ;
@@ -733,6 +749,11 @@
     skos:definition "Deze bepaling wijst aan wat de hogere regeling aan haar overliet."@nl ;
     skos:prefLabel "Aanwijzing op grond van een wet"@nl ;
     jas:codeWaarde "DELEGATION_FILLING" .
+
+<urn:jas-ns:code:DURATION_NUMBER> a jas:Detectiecode ;
+    skos:definition "Het getal in cijfers van een duur ('48' in 'binnen 48 uur'): een vaste waarde in de wettekst. De duur zelf blijft één Tijdsaanduiding die een parameter verbijzondert."@nl ;
+    skos:prefLabel "Getal in een termijn"@nl ;
+    jas:codeWaarde "DURATION_NUMBER" .
 
 <urn:jas-ns:code:LEGAL_EQUATION> a jas:Detectiecode ;
     skos:definition "De bepaling stelt het een met het ander gelijk: geldt als, wordt aangemerkt als."@nl ;
@@ -1002,5 +1023,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "f83b2378568b" .
+    jas:vocabulaireVersie "11539ff357bb" .
 

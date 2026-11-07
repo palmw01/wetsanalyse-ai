@@ -32,7 +32,7 @@ from .broncontext import BronContext
 from .classificatie import batches, classificeer, kandidaatregel, optie_ids, promptversie, toolschema
 from .dekking import controleer_a, structureel
 from .onzekerheid import REVIEWBAAR, signaleer
-from .subtype import bepaal as bepaal_subtype
+from .subtype import bepaal as bepaal_subtype, codes_van
 from .resolver import los_op
 from .reviewload import splits
 from .review import beoordeel
@@ -149,7 +149,7 @@ def _voorstel(k: Candidate, b: Beslissing, kaart: CorpusMap, corpus: str, lid: s
         klasse=b.klasse, tekst=span.tekst, lid=lid, toelichting=_toelichting(k, b, bijdragen),
         alternatieven=alternatieven, grounded=True, vindplaats=vindplaats,
         anker=anker, ankers=[span.anker()],
-        jas_subtype=bepaal_subtype(b.klasse, (e.code for e in k.evidence)),
+        jas_subtype=bepaal_subtype(b.klasse, codes_van(k.evidence)),
         trace=_spoor(k, b, spankeuze),
     ).model_dump()
 

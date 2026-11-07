@@ -13,7 +13,9 @@ buiten de repo. Deze code kent daarom geen enkel pad: alles komt als argument bi
 Wat de vergelijking wel en niet zegt:
 
 - **Recall per klasse** op dezelfde plek (`scoring.klasse_dekking`): de referentie is één analyse, geen gold;
-  `voorstellen - raak` is een bovengrens voor wat onjuist is.
+  `voorstellen - raak` is een bovengrens voor wat onjuist is. Een Tijdsaanduiding met subtype "verbijzondert
+  parameter" dekt ook een Parameter-referentie op die plek (`VERBIJZONDERING`): het platform markeert de duur één
+  keer, waar een team hem soms twee keer markeert.
 - **Strikt en ruim.** Een fragment dat niet letterlijk in de brontekst staat (een parafrase, een los
   operatorwoord, een ellips) kan Lex nooit precies zo markeren: offsets komen uit de bron. Dat telt apart.
 - **Impliciete elementen** (een rechtssubject dat alleen in de toelichting staat) zijn niet annoteerbaar en
@@ -463,17 +465,43 @@ def _som(rijen: list[dict[str, dict[str, int]]]) -> dict[str, dict[str, Any]]:
 
 _STRENG = 0.5
 
+#: Een element van deze klasse met dit subtype dekt ook een referentie van de verbijzonderde klasse op dezelfde
+#: plek: JAS kiest bij samenloop de Tijdsaanduiding (H2:107), en het platform legt de parameter vast als subtype in
+#: plaats van als tweede markering (ADR-001 PR 8, aanvulling 7 nov 2026). Waarde zoals `jas_pipeline.subtype`.
+VERBIJZONDERING: dict[tuple[str, str], str] = {
+    ("Tijdsaanduiding", "verbijzondert parameter"): "Parameter en parameterwaarde",
+}
+
+
+def _klassen(e: dict[str, Any]) -> set[str]:
+    """De klassen die een platformelement dekt: zijn eigen, plus de verbijzonderde klasse uit zijn subtype."""
+    eigen = e.get("klasse") or ""
+    # Inventaris en werkgebied_lezen: `jas_subtype`; annotatie-export v3: `herkomst_regels.subtype`.
+    subtype = e.get("jas_subtype") or (e.get("herkomst_regels") or {}).get("subtype") or ""
+    return {k for k in (eigen, VERBIJZONDERING.get((eigen, subtype))) if k}
+
+
+def _als_dekking(hier: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """De elementen zoals ze referenties dekken: een verbijzonderend element telt daar ook als zijn tweede klasse.
+    Alleen voor de dekking (`n`/`gedekt`/`exact`/`streng`), niet als extra voorstel."""
+    return hier + [{**e, "klasse": k} for e in hier for k in sorted(_klassen(e) - {e.get("klasse")})]
+
 
 def _past(e: dict[str, Any], r: dict[str, Any]) -> bool:
-    """Streng: dezelfde klasse en minstens de helft van de woorden samen (token-IoU). "Zelfde plek" laat een lange
-    markering die het fragment toevallig bevat ook tellen, en zegt dus te weinig over de grens."""
-    return e.get("klasse") == r["klasse"] and _token_iou(e.get("tekst", ""), r["tekst"]) >= _STRENG
+    """Streng: dezelfde klasse (of de verbijzonderde, zie `VERBIJZONDERING`) en minstens de helft van de woorden samen
+    (token-IoU). "Zelfde plek" laat een lange markering die het fragment toevallig bevat ook tellen, en zegt dus te
+    weinig over de grens."""
+    return r["klasse"] in _klassen(e) and _token_iou(e.get("tekst", ""), r["tekst"]) >= _STRENG
 
 
 def _dekking(hier: list[dict[str, Any]], ref: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
     """`scoring.klasse_dekking`, aangevuld met `streng`: hoeveel referenties een platformelement hebben dat
-    `_past`."""
-    d = klasse_dekking(hier, ref)
+    `_past`. Een verbijzonderend element dekt ook zijn tweede klasse; `voorstellen` en `raak` tellen alleen
+    de eigen klasse, want het blijft één markering."""
+    eigen = klasse_dekking(hier, ref)
+    d = {klasse: {**x, "voorstellen": eigen.get(klasse, {}).get("voorstellen", 0),
+                  "raak": eigen.get(klasse, {}).get("raak", 0)}
+         for klasse, x in klasse_dekking(_als_dekking(hier), ref).items() if klasse in eigen or x["n"]}
     for r in ref:
         d[r["klasse"]]["streng"] = d[r["klasse"]].get("streng", 0) + any(_past(e, r) for e in hier)
     return d
@@ -510,7 +538,7 @@ def vergelijk_annotaties(referentie: dict[str, Any], elementen: list[dict[str, A
         strikt.append(d_strikt)
         ruim.append(d_ruim)
         per_status.setdefault(b["status_soort"], []).append(d_strikt)
-        gemist = [r for r in ref_strikt if not any(e.get("klasse") == r["klasse"] and
+        gemist = [r for r in ref_strikt if not any(r["klasse"] in _klassen(e) and
                                                    _zelfde_plek(e.get("tekst", ""), r["tekst"]) for e in hier)]
         verwisseld = []
         for r in gemist:
