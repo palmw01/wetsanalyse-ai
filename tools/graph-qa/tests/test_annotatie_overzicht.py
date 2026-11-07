@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 
 from agent.nodes.annotatie_lezen import overzichtfilters
-from agent.tools.annotatie_tools import dispatch_annotatie
+from agent.tools.annotatie_tools import BEPALING_PAGINAS, dispatch_annotatie
 
 L = "urn:bwb:BWBR0004770:artikel:{}:lid:1"
 
@@ -66,3 +66,57 @@ def test_welke_vraag_met_klasse_wordt_een_overzicht():
     assert overzichtfilters({"question": "En welke zijn er nog meer?",
                              "zelfstandige_vraag": "Welke rechtssubjecten zijn er nog meer gemarkeerd?",
                              "focus": focus})["uitgezonderd_bron_iri"] == L.format(9)
+
+
+class _Paginas:
+    """Een api met `rijen` markeringen, in pagina's zo groot als de limiet; `fout_vanaf` geeft vanaf die offset een storing."""
+
+    def __init__(self, rijen, fout_vanaf=None):
+        self.rijen, self.fout_vanaf, self.vragen = rijen, fout_vanaf, []
+
+    def zoeken(self, filters):
+        self.vragen.append(filters)
+        offset, limit = filters.get("offset", 0), filters.get("limit", 25)
+        if self.fout_vanaf is not None and offset >= self.fout_vanaf:
+            return {"status": "unavailable", "volledig": False, "reden": "api_niet_bereikbaar"}
+        einde = offset + limit
+        return {"status": "ok", "volledig": True, "filters": {"bron_iri": filters.get("bron_iri")},
+                "volgende_offset": einde if einde < self.rijen else None,
+                "resultaten": [{"id": f"e{i}", "klasse": "Rechtssubject", "tekst": "x"} for i in range(offset, min(einde, self.rijen))]}
+
+
+def _zoek(port, **args):
+    return json.loads(dispatch_annotatie("search_annotaties", {"limit": 25, **args}, port))
+
+
+BEPALING = "urn:bwb:BWBR0019237:artikel:6"
+
+
+def test_een_zoekopdracht_op_een_bepaling_is_in_een_keer_compleet():
+    uit = _zoek(_Paginas(154), bron_iri=BEPALING)
+    assert len(uit["resultaten"]) == 154 and uit["status"] == "ok" and uit["volledig"] is True
+    assert uit["volgende_offset"] is None
+
+
+def test_meer_dan_de_grens_blijft_zichtbaar_onvolledig():
+    port = _Paginas(BEPALING_PAGINAS * 100 + 1)
+    uit = _zoek(port, bron_iri=BEPALING)
+    assert len(uit["resultaten"]) == BEPALING_PAGINAS * 100 and uit["volgende_offset"]
+    assert len(port.vragen) == BEPALING_PAGINAS
+
+
+def test_een_storing_op_een_latere_pagina_houdt_de_treffers_en_zegt_het():
+    uit = _zoek(_Paginas(150, fout_vanaf=100), bron_iri=BEPALING)
+    assert len(uit["resultaten"]) == 100 and uit["status"] == "partial" and uit["volledig"] is False
+
+
+def test_een_storing_op_de_eerste_pagina_blijft_een_storing():
+    uit = _zoek(_Paginas(150, fout_vanaf=0), bron_iri=BEPALING)
+    assert uit["status"] == "unavailable" and uit["reden"] == "api_niet_bereikbaar"
+
+
+def test_zoeken_op_een_regeling_en_zelf_bladeren_blijven_een_pagina():
+    port = _Paginas(150)
+    assert len(_zoek(port, bwb_id="BWBR0019237")["resultaten"]) == 25
+    assert len(_zoek(port, bron_iri=BEPALING, offset=25)["resultaten"]) == 25
+    assert len(port.vragen) == 2

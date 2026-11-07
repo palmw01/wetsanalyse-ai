@@ -22,7 +22,7 @@ from ..focus import na_antwoord
 from ..grounding import check_grounding, curate_sources, herstel_citaten
 from ..narratie import _grounding_melding, _stap, _toolregel, ronde_in_denk
 from ..overzicht import bronrijen as overzicht_bronrijen
-from ..sjablonen import SJABLONEN, sjabloon_schemas
+from ..sjablonen import SJABLONEN, sjabloon_schemas, sjabloon_uit_tekst
 from .overzicht import TOOL as OVERZICHT_TOOL
 from ..prompts import SYSTEM_PROMPT
 from ..provenance import collect_sources
@@ -38,6 +38,9 @@ from ..tools.begrip_tools import alleen_begrippen_gezocht, begrens_begrippen_ant
 from .context import Bouw
 
 logger = logging.getLogger("graph_qa.orchestrator")
+
+#: Tools waarmee de agent de weg zoekt: wat ze teruggeven draagt een sjabloonantwoord niet.
+_OPZOEKTOOLS = frozenset({"list_regelingen"})
 
 
 #: De antwoordlus streamt, dus een ruime limiet kost alleen wat er echt geschreven wordt. 4096 kapte lange duidingen af.
@@ -92,6 +95,9 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         final = stream.final_message()
 
     tool_uses, text_parts = _parse_final(final)
+    if not tool_uses and spec.sjablonen and (aanroep := sjabloon_uit_tekst(text_parts, spec.sjablonen)):
+        logger.warning("sjabloon als tekst", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""), "sjabloon": aanroep["name"]})
+        tool_uses, text_parts = [aanroep], []
     # Een sjabloon rondt af: staat hij naast graaftools, dan eerst die, en daarna komt hij vanzelf terug.
     if len(tool_uses) > 1:
         tool_uses = [t for t in tool_uses if t["name"] not in SJABLONEN]
@@ -408,9 +414,10 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
         # Een sjabloon draagt zijn vindplaatsen zelf; cureren op de proza heeft dan geen zin. Zonder doelen (een
         # leemte) rust de toelichting op wat er verder is opgehaald, en dat moet herleidbaar blijven.
         # Een vervolgvraag kan op een eerdere beurt rusten, dus de doelen zoek je in de hele controletrace.
+        # Een regeling opzoeken is geen bron: daarmee vond Lex alleen het BWB-id.
         doelen = {d["iri"] for d in state["antwoord"].get("doelen") or []}
         sources = ([s for s in collect_sources(controletrace(state)) if s.uri in doelen] if doelen
-                   else collect_sources(state.get("source_trace", [])))
+                   else collect_sources([(n, t) for n, t in state.get("source_trace", []) if n not in _OPZOEKTOOLS]))
     else:
         sources = collect_sources(state.get("source_trace", []))
         # Bronnen uit eerdere beurten alleen als het antwoord hun regeling noemt: anders vult elke
