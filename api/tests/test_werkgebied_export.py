@@ -889,6 +889,16 @@ async def test_een_doel_buiten_de_graaf_zegt_dat(monkeypatch):
     assert _verwijst(Verwijzing(van=vp, naar=vp, in_graaf=False)).endswith(" · niet in de kennisgraaf")
 
 
+
+def test_het_doel_van_een_verwijzing_heet_een_keer_en_nooit_als_kale_iri():
+    """Zoals het paneel (#1083): een regeling zonder naam in de graaf krijgt het BWB-id, en een naam staat er niet dubbel."""
+    assert export._doel_label("urn:bwb:BWBR0043423", "", "") == "BWBR0043423"
+    assert export._doel_label("urn:bwb:BWBR0002320", "Algemene wet inzake rijksbelastingen",
+                              "Algemene wet inzake rijksbelastingen") == "Algemene wet inzake rijksbelastingen"
+    assert export._doel_label("urn:bwb:BWBR0005537:artikel:4%3A89", "Algemene wet bestuursrecht", "Artikel 4:89") == (
+        "Algemene wet bestuursrecht – Artikel 4:89")
+    assert export._doel_label("urn:bwb:BWBR0005537:artikel:3", "", "").startswith("Artikel 3")
+
 async def test_tellingen_komen_alleen_mee_als_erom_gevraagd_wordt(monkeypatch):
     gevraagd: list[str] = []
 
