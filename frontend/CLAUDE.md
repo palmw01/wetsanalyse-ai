@@ -68,7 +68,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   klassen bij.
 - **De rekenkern staat in `lib/`**, niet in componenten: vitest draait node-env zonder DOM, dus alleen
   pure helpers zijn testbaar (`selectie`, `annotatie`, `annotatieOverzicht`, `reeks`, `samenhang`,
-  `markering`, `popover`, `wetstructuur`, `lopendeRun`, `rondleiding`, `werkgebied`, `begrippen`,
+  `markering`, `popover`, `wetstructuur`, `lopendeRun`, `geschiedenis` (de bewaarde berichten als items), `rondleiding`, `werkgebied`, `begrippen`,
   `begripVoorstellen`, `begripTermen`, `bronPlaats`, `kaartVoorstel`, `herbeoordeling`, `begripRelaties`, `begripGraaf`, `begrippenOverzicht`, `artefact`, `bronKandidaten`, `deelvragen`, `onbewaard`, `vraagkaart`, `gesprekGroepen`, `werkgebiedPaden`, …).
 - **`app/**/page.tsx`** (Server Components) – data via `lib/server.ts`, interactie in een
   `*Client.tsx`. `app/page.tsx` doet `redirect("/workbench")`. De werkplek zit in

@@ -3,8 +3,8 @@
 import { NodeAnnotatiePaneel } from "@/components/annotaties/NodeAnnotatiePaneel";
 import { samenhangBeschikbaar } from "@/lib/samenhang";
 import { ThreadRij, type ThreadActies, type WerkgebiedAnnoteren } from "@/components/werkplek/ThreadRij";
-import { reeksNavigatie, reeksUitBerichten, verwerkReeksEvent, type Reeks } from "@/lib/reeks";
-import { mergeToolExecution, toolSpoorUit, type NodeDoel, type ToolExecution } from "@/lib/annotatieNode";
+import { reeksNavigatie, verwerkReeksEvent, type Reeks } from "@/lib/reeks";
+import { mergeToolExecution, type NodeDoel, type ToolExecution } from "@/lib/annotatieNode";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { VraagLexContext } from "@/components/werkplek/VraagLexKnop";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
@@ -12,7 +12,7 @@ import type { GraafOpties } from "@/components/graaf/useGraafStand";
 import { WerkgebiedArtefactPaneel } from "@/components/werkplek/WerkgebiedArtefactPaneel";
 import { ContextPaneel, ContextPaneelContext, contextSleutel, overzichtContext, type ContextDoel } from "@/components/werkplek/ContextPaneel";
 import { WerkgebiedUitOverzicht } from "@/components/werkplek/WerkgebiedUitOverzicht";
-import { annotatieDoelVan, artefactSleutel, bronselectieVanKaart, artefactKop, artefactVanBericht, werkgebiedArtefactVan, type Artefact, type WerkgebiedArtefact } from "@/lib/artefact";
+import { annotatieDoelVan, artefactSleutel, bronselectieVanKaart, artefactKop, werkgebiedArtefactVan, type Artefact, type WerkgebiedArtefact } from "@/lib/artefact";
 import { StatusLabel } from "@/components/ui/Lijst";
 import { Suggestie } from "@/components/ui/Suggestie";
 import { Melding } from "@/components/ui/Melding";
@@ -40,10 +40,9 @@ import type {
   Gesprek,
   Verbruiksstand,
 } from "@/lib/types";
-import { metingUitDekking } from "@/lib/agentEvents";
-import { ANNULEER_TEKST, afgehandeld, parseBevestiging, parseBevestigingKeuze } from "@/lib/werkgebiedAnnoteren";
+import { ANNULEER_TEKST, afgehandeld } from "@/lib/werkgebiedAnnoteren";
 import {
-  antwoordOp, antwoordTekst, groepeerVragen, klaarActie, openVraag, parseAntwoordOp, parseVraagkaart, type IntakeActie,
+  antwoordOp, antwoordTekst, groepeerVragen, klaarActie, openVraag, type IntakeActie,
 } from "@/lib/vraagkaart";
 import { VraagDock } from "@/components/werkplek/VraagDock";
 import { BronselectieKaart } from "@/components/werkplek/BronselectieKaart";
@@ -60,8 +59,7 @@ import { bewaarConcept, leesConcept } from "@/lib/conceptVraag";
 import { jasStyle, klasseLabel } from "@/lib/jas";
 import type { ThreadItem } from "@/lib/threadItem";
 import { LEX_KORT, WerkplekHeader } from "./WerkplekHeader";
-import { parseAntwoord } from "@/lib/antwoord";
-import { parseGrounding, parseHergebruik, parseOverzicht, parseUitkomst } from "@/lib/agentEvents";
+import { itemsUitGesprek } from "@/lib/geschiedenis";
 import { DEMO_DOEL, DEMO_SLUG, type DemoScene } from "@/lib/rondleidingDemo";
 import {
   SOORT_LABEL, VERVOLG_TEKST, actieVerzoek, chipTekst, overVan, suggestiesVan, verzoekVan, werkgebiedSuggesties, type Onderwerp, type Vervolg,
@@ -319,47 +317,7 @@ export function WerkplekClient({
       .then((g) => {
         if (!geldt()) return;
         onGesprekGeladen?.(g);
-        // De berichten van één reeks (zelfde `reeks.run_id`) worden weer één reeksblok.
-        const reeksen = new Map<string, typeof g.berichten>();
-        for (const b of g.berichten) if (b.reeks) reeksen.set(b.reeks.run_id, [...(reeksen.get(b.reeks.run_id) ?? []), b]);
-        const geschiedenis = g.berichten.flatMap((b): Item[] => {
-          if (b.reeks) {
-            const groep = reeksen.get(b.reeks.run_id) ?? [];
-            const reeks = groep[0] === b ? reeksUitBerichten(groep) : null;
-            return reeks ? [{ id: uid(), type: "reeks", reeks }] : [];
-          }
-          // Het artefact van de beurt; een ouder bericht met alleen een bronnode wordt er een.
-          const art = b.rol === "user" ? undefined : artefactVanBericht(b);
-          const annotatieDoel = annotatieDoelVan(art);
-          // De bronselectie (spoor J) draagt naast haar artefact een kaartje: dat blijft een antwoord, anders
-          // is de open vraag na herladen weg. Het paneel opent de werkplek zelf (`toonVastgelegdeBeurt`). Zonder
-          // kaartje (een oud bericht *Gevonden bepalingen*, nu een bronselectie) blijft het gewoon een chip.
-          if (art && !annotatieDoel && (art.soort !== "bronselectie" || !b.vraagkaart)) {
-            return [{ id: uid(), type: "artefact" as const, artefact: art, tekst: b.tekst?.trim() || undefined, denk: b.denk }];
-          }
-          return [b.rol === "user"
-            ? { id: uid(), type: "user" as const, tekst: b.tekst, antwoordOp: parseAntwoordOp(b.intake_antwoord),
-                bevestigingKeuze: parseBevestigingKeuze(b.bevestiging_antwoord) }
-            : annotatieDoel
-              ? { id: uid(), type: "annotatie" as const, slug: annotatieDoel.bron_iri,
-                  titel: art?.titel || b.annotatie_titel || undefined, annotatie_doel: annotatieDoel,
-                  tool_executions: toolSpoorUit(b.tool_executions), denk: b.denk,
-                  // De samenvatting van Lex (hoogstens vier zinnen), zoals graph-qa hem bewaarde.
-                  tekst: b.tekst?.trim() || undefined,
-                  // Na herladen moet nog te zien zijn dat er niets opnieuw is bekeken.
-                  hergebruik: b.hergebruik ? parseHergebruik(b.hergebruik) : undefined,
-                  meting: metingUitDekking(b.dekking) }
-              : { id: uid(), type: "antwoord" as const, tekst: b.tekst, denk: b.denk, bronnen: b.bronnen, tool_executions: toolSpoorUit(b.tool_executions),
-                  // Het overzicht zoals graph-qa het opbouwde: na herladen hetzelfde blok en dezelfde graafdoelen.
-                  overzicht: b.overzicht ? parseOverzicht(b.overzicht) : undefined,
-                  antwoord: parseAntwoord(b.antwoord),
-                  bevestiging: parseBevestiging(b.bevestiging),
-                  // Het kaartje van het samenstellen: na herladen nog te beantwoorden als het het laatste is.
-                  vraagkaart: parseVraagkaart(b.vraagkaart),
-                  uitkomst: parseUitkomst(b.uitkomst),
-                  // Het oordeel en de aanwijzing in de tekst blijven zo na herladen staan.
-                  grounding: parseGrounding(b.grounding) }];
-        });
+        const { items: geschiedenis, runIds } = itemsUitGesprek(g.berichten, uid);
         // VÓÓR wat er al staat, niet in plaats daarvan. Verstuurde de jurist een vraag terwijl dit nog
         // laadde (een koude start duurt seconden), dan staan zijn vraag en het lopende antwoord al in
         // de thread – vervangen liet het antwoord onzichtbaar binnenstromen tot een herlaadbeurt.
@@ -367,9 +325,7 @@ export function WerkplekClient({
         // Liep hier nog een beurt terwijl je ergens anders keek? Pak hem weer op. De run-ids uit de
         // geschiedenis gaan mee: daarmee is "afgerond terwijl je weg was" te onderscheiden van
         // "weg door een herstart".
-        // Een reeks bewaart per onderdeel een bericht met run_id `<run>.<n>`; het run-id van de
-        // reeks zelf staat in `reeks.run_id`. Zonder dat telde een afgeronde reeks als verdwenen.
-        void hervatBeurt(id, g.berichten.flatMap((b) => [b.run_id, b.reeks?.run_id ?? ""]).filter(Boolean));
+        void hervatBeurt(id, runIds);
       })
       .catch((e) => {
         if (!geldt()) return;
