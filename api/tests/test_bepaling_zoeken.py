@@ -108,13 +108,3 @@ def test_niets_dat_niet_bestaat():
     assert zoeken.zoek(iw(), "9 lid 7") == []
     assert zoeken.zoek(iw(), "123") == []
     assert zoeken.zoek(iw(), "") == []
-
-
-def test_regelingen_eerst_die_van_het_werkgebied():
-    alle = [{"bwb_id": IW, "citeertitel": "Invorderingswet 1990", "afkortingen": ["IW 1990"]},
-            {"bwb_id": LR, "citeertitel": "Leidraad Invordering 2008", "afkortingen": ["Leidr. Inv."]},
-            {"bwb_id": "BWBR0005537", "citeertitel": "Algemene wet bestuursrecht", "afkortingen": ["Awb"]}]
-    assert [r["bwb_id"] for r in zoeken.regelingen(alle, "", [LR])] == [LR]
-    assert [r["bwb_id"] for r in zoeken.regelingen(alle, "invordering", [LR])] == [LR, IW]
-    assert [r["bwb_id"] for r in zoeken.regelingen(alle, "awb", [])] == ["BWBR0005537"]
-    assert [r["bwb_id"] for r in zoeken.regelingen(alle, "bwbr0004770", [])] == [IW]

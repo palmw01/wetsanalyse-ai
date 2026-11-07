@@ -101,7 +101,7 @@ def test_parameters_komen_uit_wat_er_ligt():
 
 
 def _beurt(vraag: str, llm, *, api=None, **kw) -> list[dict[str, Any]]:
-    settings = _api_settings(enable_decomposition=False)
+    settings = _api_settings()
 
     async def verzamel():
         return [e async for e in answer_stream(vraag, None, settings=settings, llm=llm, graph=FakeGraph(),
@@ -135,7 +135,7 @@ def test_een_getypte_vraag_kiest_de_agent_met_het_model():
 
 def _gesprek(beurten, llm, tmp_path):
     """Beurten in één thread (een echte checkpointer), zoals de gesprekseval."""
-    settings = _api_settings(enable_decomposition=False, checkpoint_db_path=str(tmp_path / "cp.db"))
+    settings = _api_settings(checkpoint_db_path=str(tmp_path / "cp.db"))
     uit = []
     for vraag, kw in beurten:
         async def verzamel(vraag=vraag, kw=kw):

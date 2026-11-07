@@ -131,19 +131,33 @@ async def _mislukt(api: WetsanalyseApi, werkgebied_id: str, run_id: str, reden: 
         logger.warning("mislukte bronnenrun niet gemeld", exc_info=True)
 
 
-def _zoekversie() -> str:
-    """De versie van de zoekcode: een hash van de modules die bepalen wat er gevonden wordt. Gaat mee naar de api
-    (`start_bronnen_run`), zodat nieuwe zoekcode tot een nieuwe zoekopdracht leidt, ook als het werkgebied gelijk
-    bleef – anders bleef de uitkomst van de oude code staan, ook na *Verder onderzoeken* (Rekeningafspraken, 4 nov
-    2026)."""
+def zoekmodules() -> tuple:
+    """De modules die bepalen wat er gevonden wordt: de zoekstappen zelf, de queries (ook de fts) en het lezen van
+    de rijen, de namen en plekken van een treffer, de aanwijzing in de vraag en de gedeelde taallijsten. Niet de
+    toollaag of de taalprovider: die raken veel meer dan zoeken, en elke wijziging daar zou een nieuwe zoekronde
+    starten."""
+    from bronmodel import taal, vindplaats
+
+    from . import (aanwijzing, bepaling_namen, bronnen_vinden, deelvraag_zoeken, overzicht, plekken, regelingnamen,
+                   zoektermen, zoekvragen)
+    from .graph import queries, results, structuur
+
+    return (bronnen_vinden, deelvraag_zoeken, zoekvragen, zoektermen, queries, results, structuur, bepaling_namen,
+            overzicht, plekken, regelingnamen, aanwijzing, taal, vindplaats)
+
+
+def _zoekversie(lees=None) -> str:
+    """De versie van de zoekcode: een hash van `zoekmodules()`. Gaat mee naar de api (`start_bronnen_run`), zodat
+    nieuwe zoekcode tot een nieuwe zoekopdracht leidt, ook als het werkgebied gelijk bleef – anders bleef de uitkomst
+    van de oude code staan, ook na *Verder onderzoeken* (Rekeningafspraken, 4 nov 2026). `lees` (pad → bytes) is er
+    voor de test."""
     import hashlib
     from pathlib import Path
 
-    from . import bronnen_vinden, deelvraag_zoeken, zoekvragen, zoektermen
-
+    lees = lees or Path.read_bytes
     h = hashlib.sha256()
-    for module in (bronnen_vinden, deelvraag_zoeken, zoekvragen, zoektermen):
-        h.update(Path(module.__file__).read_bytes())
+    for module in zoekmodules():
+        h.update(lees(Path(module.__file__)))
     return "z" + h.hexdigest()[:12]
 
 

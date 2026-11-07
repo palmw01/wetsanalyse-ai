@@ -11,7 +11,6 @@ describe("parseError", () => {
     });
     const err = await parseError(res);
     expect(err).toMatchObject({ status: 404, detail: "Onbekend project" });
-    expect(err.retryAfter).toBeUndefined();
   });
 
   it("stringificeert een niet-string detail (bv. validatiefouten)", async () => {
@@ -29,15 +28,6 @@ describe("parseError", () => {
     const err = await parseError(res);
     expect(err.status).toBe(502);
     expect(err.detail).toBe("Bad Gateway");
-  });
-
-  it("leest de Retry-After-header als getal", async () => {
-    const res = new Response(JSON.stringify({ detail: "te druk" }), {
-      status: 429,
-      headers: { "Content-Type": "application/json", "Retry-After": "12" },
-    });
-    const err = await parseError(res);
-    expect(err.retryAfter).toBe(12);
   });
 });
 

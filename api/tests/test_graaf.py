@@ -72,7 +72,7 @@ class Graafbron:
 @pytest.fixture
 def bron(monkeypatch):
     b = Graafbron()
-    monkeypatch.setattr(graaf, "_select", b.select)
+    monkeypatch.setattr(graaf, "sparql_select", b.select)
     monkeypatch.setattr(graaf, "haal_bronrijen", b.bronrijen)
     monkeypatch.setattr(graaf, "snapshot_uit", b.snapshot)
 

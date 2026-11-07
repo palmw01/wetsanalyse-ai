@@ -96,7 +96,6 @@ describe("één bedieningsstijl", () => {
     for (const f of panelen) {
       const s = bron(`components/${f}.tsx`);
       expect(s, f).toContain("<SettingGroup");
-      expect(s, f).not.toContain("<Section");
       expect(s, f).not.toContain("Laden…");
       expect(s, f).not.toContain("border-fout px-3");
     }

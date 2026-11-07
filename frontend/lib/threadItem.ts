@@ -6,7 +6,7 @@
 
 import type { Reeks } from "./reeks";
 import type {
-  AgentDoelInvoer, AgentGrounding, AgentHergebruik, AgentKandidaat, AgentKeuze, Bron, Overzicht,
+  AgentGrounding, AgentHergebruik, AgentKandidaat, AgentKeuze, Bron, Overzicht,
 } from "./types";
 
 export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecution[] } & (
@@ -43,8 +43,6 @@ export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecu
       denk?: string;
       /** Lex hergebruikte de laag (deels) in plaats van opnieuw te annoteren. */
       hergebruik?: AgentHergebruik;
-      /** De bepaling, zodat "Lex opnieuw laten annoteren" hem kan meegeven. */
-      doel?: AgentDoelInvoer;
       annotatie_doel?: import("./annotatieNode").NodeDoel;
       /** De meting van deze ronde: live uit het `run`-event, na herladen uit `Bericht.dekking`. */
       meting?: import("./types").BeurtMeting;

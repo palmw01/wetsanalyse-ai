@@ -12,6 +12,7 @@ from collections import defaultdict
 from typing import Any, Callable
 
 from .corpus import CorpusMap, CorpusSegment, Span, SpanFout
+from .taal import BRON_IRI
 
 RELATIES = ("heeftHoofdstuk", "heeftTiteldeel", "heeftAfdeling", "heeftParagraaf",
             "heeftArtikel", "heeftLid", "heeftOnderdeel", "heeftDivisie", "heeftBijlage")
@@ -19,7 +20,7 @@ TYPEN = ("Regeling", "Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf", "Artikel
          "Lid", "Onderdeel", "Divisie", "Bijlage")
 PAD = "(" + "|".join("bwb:" + r for r in RELATIES) + ")"
 _BWB = re.compile(r"^BWB[RV]\d+$")
-_IRI = re.compile(r"^urn:bwb:(BWB[RV]\d+)(?::[^<>\s\"{}|^`\\]*)?$")
+_IRI = BRON_IRI  # alleen met fullmatch gebruikt
 
 
 class BronFout(ValueError):

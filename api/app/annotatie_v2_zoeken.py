@@ -4,9 +4,9 @@ from __future__ import annotations
 import logging
 import base64
 import json
-import re
 
 from bronmodel import element_actueel
+from bronmodel.taal import BRON_IRI
 from fastapi import HTTPException
 from sqlalchemy import select
 
@@ -78,7 +78,7 @@ async def zoek(req: Zoekvraag) -> dict:
                 raise HTTPException(409, "Zoekresultaten gewijzigd; begin opnieuw.")
             offset = cursor["offset"]
         candidates = await zoek_kandidaten({**req.model_dump(),
-                                            **({"bron_iri": "", "bronnode_id": ""} if history else {}),
+                                            **({"bron_iri": ""} if history else {}),
                                             **({"scoped_nodes": sorted(scope)} if scope else {})})
         if not candidates.get("beschikbaar", True):
             return {**base, "status": "unavailable", "reden": "projectie_onbeschikbaar"}
@@ -129,7 +129,7 @@ async def zoek(req: Zoekvraag) -> dict:
             current = snapshot
             if current is None:
                 owner = e["eigenaar_iri"]
-                match = re.fullmatch(r"urn:bwb:(BWB[RV]\d+)(?::[^<>\s\"{}|^`\\]*)?", owner)
+                match = BRON_IRI.fullmatch(owner)
                 if not match:
                     complete = False
                     continue

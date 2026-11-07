@@ -9,7 +9,6 @@
 // één `acties`-object dat `WerkplekClient` één keer maakt (zie `useThreadActies` daar), en per rij
 // alleen het eigen document en de eigen vlaggen – niet de hele `docs`-map.
 
-import Link from "next/link";
 import { memo, useEffect, useMemo, useState } from "react";
 
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
@@ -24,7 +23,7 @@ import { ReeksBlok } from "@/components/werkplek/ReeksBlok";
 import { ToolSpoor } from "@/components/werkplek/ToolSpoor";
 import { VragenKaart } from "@/components/werkplek/VragenKaart";
 import {
-  annotatieTitel, doelVanKandidaat, doelVoorOpnieuw, kandidaatLabel, kandidaatPrompt,
+  doelVanKandidaat, kandidaatLabel, kandidaatPrompt,
 } from "@/lib/annotatie";
 import type { NodeDoel } from "@/lib/annotatieNode";
 import { ARTEFACT_SOORT_LABEL, artefactKop, isTeOpenen, type Artefact } from "@/lib/artefact";
@@ -32,13 +31,13 @@ import { doelenVanKandidaten, reeksPrompt } from "@/lib/reeks";
 import { antwoordDoelen, antwoordKnopTekst, normaliseerBronnen } from "@/lib/bronnen";
 import { overzichtAlsMarkdown, overzichtDefinities, overzichtDoelen, overzichtFocus, overzichtKnopTekst, telling } from "@/lib/overzicht";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
-import { beurtSamenvatting, laatsteRun } from "@/lib/waarom";
+import { beurtSamenvatting } from "@/lib/waarom";
 import type { ThreadItem } from "@/lib/threadItem";
 import { ANNOTEER_PROMPT, PLAFOND, bepalingen, type BevestigingKeuze } from "@/lib/werkgebiedAnnoteren";
 import { MEEDENK_PROMPT } from "@/lib/begripVoorstellen";
 import type { VragenGroep } from "@/lib/vraagkaart";
 import type {
-  AgentGrounding, AgentKandidaat, AnnotatieDocument, Bron, Overzicht,
+  AgentGrounding, AgentKandidaat, Bron, Overzicht,
   BeurtUitkomst,
 } from "@/lib/types";
 
@@ -80,10 +79,6 @@ interface Props {
   samenhangAan: boolean;
   /** Een reeksblok: loopt déze reeks nu? */
   loopt: boolean;
-  /** Een annotatiekaart: het document erachter, als het geladen is. */
-  doc?: AnnotatieDocument;
-  /** Een annotatiekaart: het document bestaat niet meer. */
-  verwijderd: boolean;
   /** Het eerste item van een reeks vragen (activiteit 1): de Vragen-kaart die het draagt. */
   vragen?: VragenGroep;
   /** Een voorstel van Lex met een bevestiging: al beantwoord (gestart of geannuleerd)? Dan geen knoppen. */
@@ -92,7 +87,7 @@ interface Props {
 }
 
 export const ThreadRij = memo(function ThreadRij({
-  item, streamt, bezig, geblokkeerd, demo, samenhangAan, loopt, doc, verwijderd, vragen, keuze, acties,
+  item, streamt, bezig, geblokkeerd, demo, samenhangAan, loopt, vragen, keuze, acties,
 }: Props) {
   if (vragen) {
     // Het samenstellen van een werkgebied: wat Lex bij de eerste vraag zei, en de vragen met je antwoorden.
@@ -272,33 +267,27 @@ export const ThreadRij = memo(function ThreadRij({
         <p className="mb-1 text-xs font-medium text-muted">Lex</p>
         {item.tekst && <div className="mb-3" data-testid="annotatie-samenvatting"><Markdown tekst={item.tekst} /></div>}
         <AnnotatieChip
-          doc={doc}
           titel={item.titel}
-          aantal={doc?.elementen.filter((e) => !e.verouderd).length}
-          verwijderd={verwijderd}
           onOpen={() => acties.openArtefact(item.slug, item.annotatie_doel)}
         />
         {(() => {
           // De meting van deze ronde: wat er uitkwam, wat zonder zinsontleding ging en hoe lang het
-          // duurde. Uit het bericht zelf; een oud artikeldocument draagt hem nog op zijn elementen.
-          const meting = item.meting ?? (doc ? laatsteRun(doc.elementen)?.instellingen?.meting : undefined);
-          const samenvatting = !verwijderd ? beurtSamenvatting(meting) : "";
+          // duurde. Uit het bericht zelf.
+          const samenvatting = beurtSamenvatting(item.meting);
           return samenvatting && <p className="mt-1 px-1 text-xs text-muted" data-testid="beurtsamenvatting">Laatste ronde van Lex: {samenvatting}</p>;
         })()}
         {(() => {
-          // Alleen op een gedeelde laag: een oud per-gebruiker-document kan niet worden
-          // aangevuld, en een verwijderde annotatie al helemaal niet.
+          // Alleen op een gedeelde laag, dus met een bronnode.
           const opnieuwDoel = item.annotatie_doel ? {
             bwbId: item.annotatie_doel.bwb_id || "", bron_iri: item.annotatie_doel.bron_iri,
-          } : doc?.laag_sleutel && !verwijderd
-            ? doelVoorOpnieuw(item.doel, doc) : undefined;
+          } : undefined;
           if (!item.hergebruik && !opnieuwDoel) return null;
           return (
             <HergebruikMelding
               hergebruik={item.hergebruik}
               uitgeschakeld={bezig || geblokkeerd || demo}
               onOpnieuw={opnieuwDoel ? () => acties.verstuur({
-                prompt: `Annoteer ${item.annotatie_doel?.label || (doc ? annotatieTitel(doc) : "deze bepaling")} opnieuw`,
+                prompt: `Annoteer ${item.annotatie_doel?.label || "deze bepaling"} opnieuw`,
                 doel: opnieuwDoel, hergebruik: "opnieuw",
               }) : undefined}
             />
@@ -381,49 +370,14 @@ function ArtefactChip({ artefact, onOpen }: { artefact: Artefact; onOpen: () => 
 
 /** Compacte kaart in de chatstroom die naar het annotatie-artefact leidt (opent het slide-in paneel). */
 function AnnotatieChip({
-  doc,
   titel,
-  aantal,
-  verwijderd = false,
   onOpen,
 }: {
-  doc?: AnnotatieDocument;
-  /** Het label uit het bericht zelf (`annotatie_titel`); de terugval als `doc` er niet (meer) is. */
+  /** Het label uit het bericht zelf (de titel van het artefact). */
   titel?: string;
-  aantal?: number;
-  verwijderd?: boolean;
   onOpen: () => void;
 }) {
-  const label = doc
-    ? `${doc.werkgebied || doc.bwbId} – art. ${doc.artikel}${doc.lid ? ` lid ${doc.lid}` : ""}`
-    : titel || "Annotatie";
-
-  // Een verwijderde annotatie is geen kapotte knop maar een grafsteen: het gesprek blijft leesbaar
-  // (daarom de bewaarde titel), maar er valt niets meer te openen – dus ook geen knop die dat
-  // suggereert. Wat er nog wél te doen valt is doorlopen naar het overzicht.
-  if (verwijderd) {
-    return (
-      <div className="flex w-full items-center gap-3 rounded-kaart border border-dashed border-line bg-surface px-4 py-3 text-left">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-line/40 text-faint" aria-hidden>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-          </svg>
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium text-muted line-through decoration-faint">
-            {label}
-          </span>
-          <span className="block text-xs text-muted">Deze annotatie is verwijderd</span>
-        </span>
-        <Link
-          href="/annotaties"
-          className="focus-ring inline-flex min-h-[24px] shrink-0 items-center rounded-knop-xs border border-line px-2.5 py-0.5 text-[11px] font-medium text-lint transition-colors hover:bg-surface-2 coarse:min-h-[44px]"
-        >
-          Alle annotaties
-        </Link>
-      </div>
-    );
-  }
+  const label = titel || "Annotatie";
 
   return (
     <button
@@ -441,7 +395,7 @@ function AnnotatieChip({
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium text-ink">{label}</span>
         <span className="block text-xs text-muted">
-          {ARTEFACT_SOORT_LABEL.annotatie}{typeof aantal === "number" ? ` · ${aantal} elementen` : ""} · review openen
+          {ARTEFACT_SOORT_LABEL.annotatie} · review openen
         </span>
       </span>
       <span className="shrink-0 text-muted" aria-hidden>

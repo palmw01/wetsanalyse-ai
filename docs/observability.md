@@ -51,7 +51,7 @@ straat: dat ene exemplaar leest beide workspaces.
 |-----------|---------|--------|---------|
 | **API** (`api/`, FastAPI) | JSON-`dictConfig`, request-id-middleware, access-log | FastAPI-requests, DB | http-server-latency, request-count/foutrate (auto) |
 | **Frontend** (`frontend/`, Next.js) | server-side JSON naar stdout in de BFF-lagen | `@vercel/otel`: route handlers + uitgaande `fetch` (traceparent) | request-count/latency (auto) |
-| **graph-qa** (`tools/graph-qa/`) | gestructureerde JSON-logs | `/v1/runs` (de weg van de werkplek) en `/v1/chat` + GraphDB-MCP-calls | http-server-latency (auto) |
+| **graph-qa** (`tools/graph-qa/`) | gestructureerde JSON-logs | `/v1/runs` (de weg van de werkplek) + GraphDB-MCP-calls | http-server-latency (auto) |
 
 Drie logregels van graph-qa die bij een storing het eerst iets zeggen: **`api-schrijffout`** (met
 `http_status` en, sinds 22 sep 2026, `api_reden` – de korte servertekst van de api, nooit de body),
@@ -66,7 +66,17 @@ het gaat naar de browser en naar het chatbericht, niet naar Log Analytics.
 `uitvoer`, `cache_lees`, `cache_schrijf`, `model`. Geen inhoud. Hij voedt de panelen *Wachttijd per beurtsoort* en
 *Tokens en cachetreffer per beurtsoort*. Bedragen staan er niet bij: prijzen staan nergens in de repo, en de
 boekhouding blijft het verbruiksjournaal van de api. De batchruns van `begrippen_verdieping` zijn geen beurt en
-vallen erbuiten. Welke stap traag was, staat in de spans `graph_qa.node.<naam>`.
+vallen erbuiten. Welke stap traag was, staat in de spans `graph_qa.node.<naam>`. Dezelfde cijfers gaan als
+`meting`-event vlak vóór `done` naar wie de run volgt, met daarbij per modelaanroep `invoer`, `uitvoer`,
+`cache_lees`, `cache_schrijf` en `ms`. Zo is één beurt te meten zonder toegang tot Application Insights, bijvoorbeeld
+met de acceptatie-MCP (`lex_wacht` geeft het event door).
+
+**`venster`** (zelfde logger `graph_qa.beurt`, E6-C1) is één regel per beurt uit `agent_node`, bij de eerste
+modelronde: wat `_trim_messages` van de historie overliet (`berichten.venster_telling`). Velden: `run_id`,
+`chat_session_id`, `historie_tekens`, `venster_tekens`, `beurten_historie` en `beurten_venster` (vragen van de
+jurist, zonder correctieberichten), `ingekort` (tool-resultaten met de krimpnoot) en `register_items`. Geen inhoud.
+Een beurt waarin `beurten_venster < beurten_historie` verloor hele beurten; vallen die bij minder dan 5% van de
+beurten weg, dan blijft `MAX_HISTORY_CHARS` op 40k. In een keten van twee antwoord-workers komt de regel per worker.
 
 De **GraphDB-kennisgraaf en de externe diensten** (overheid.nl-bronnen, de LLM-provider) draaien buiten
 deze repo en zijn niet geïnstrumenteerd; ze verschijnen in de traces als virtuele peer-node (zie de
@@ -74,7 +84,7 @@ service-graph-connector) i.p.v. als eigen span.
 
 ## Correlatie
 
-Eén **trace-id** verbindt de keten: `frontend → API → PostgreSQL` en `frontend → graph-qa` (`/v1/runs`, SSE; `/v1/chat` is de niet-webapp-weg). OTel propageert automatisch via de W3C-`traceparent`-header op
+Eén **trace-id** verbindt de keten: `frontend → API → PostgreSQL` en `frontend → graph-qa` (`/v1/runs`, SSE). OTel propageert automatisch via de W3C-`traceparent`-header op
 uitgaande `fetch`/httpx-calls. Elke logregel draagt `trace_id`/`span_id` zodra er een span actief is,
 plus (in de API) een `request_id` per inkomend verzoek (`X-Request-Id`, gegenereerd of overgenomen en
 in de response geëchood).

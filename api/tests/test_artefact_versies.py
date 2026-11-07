@@ -128,9 +128,9 @@ async def test_een_storing_laat_het_bericht_landen_zonder_versie(client, monkeyp
 
 async def test_deelvraag_en_bronselectie(client):
     wg = await _nieuw(client)
-    r = await client.post(f"/v1/werkgebieden/{wg['id']}/deelvragen",
-                          json={"verwachte_revisie": wg["revisie"], "vraag": "Wie is belastingschuldige?"})
-    assert r.status_code == 201, r.text
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/deelvragen/samen",
+                          json={"verwachte_revisie": wg["revisie"], "nieuw": ["Wie is belastingschuldige?"]})
+    assert r.status_code == 200, r.text
     d = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()["deelvragen"][0]
     gid = await _gesprek(client)
     b = await _beurt(client, gid, "run-1", "deelvraag", {"werkgebied_id": wg["id"], "deelvraag_id": d["id"]})

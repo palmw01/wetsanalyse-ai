@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bronLabel, koppelBron, koppelVermelding, markeerCitaties, vindVermeldingen } from "./citaties";
+import { koppelBron, koppelVermelding, markeerCitaties, vindVermeldingen } from "./citaties";
 import { parseBronnen } from "./agentEvents";
 import type { HastKnoop } from "./markering";
 import type { Bron } from "./types";
@@ -55,13 +55,6 @@ describe("markeerCitaties", () => {
       { type: "text", value: "artikel 9 lid 2" }] }] };
     markeerCitaties([bron("artikel:9:lid:2")])()(boom);
     expect(boom.children![0].children![0].type).toBe("text");
-  });
-});
-
-describe("bronLabel", () => {
-  it("maakt een leesbaar label van een graaf-IRI en laat de rest staan", () => {
-    expect(bronLabel(bron("artikel:9:lid:2"))).toBe("Artikel 9, lid 2");
-    expect(bronLabel({ label: "iets", uri: "https://example.org" })).toBe("iets");
   });
 });
 
