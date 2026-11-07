@@ -936,6 +936,10 @@ def inhoudsopgave(bwb_id: str, vanaf: str | None = None, diepte: int = 4) -> str
 }} ORDER BY ?niveau ?deel"""
 
 
+#: De formule staat vooraan; de langste aanhef boven een definitie in de graaf was 113 tekens (6 nov 2026).
+AANHEF_TEKENS = 200
+
+
 def zoek_definitie(term: str, bwb_id: str | None = None, limit: int = 25,
                    offset: int = 0, meer: bool = False) -> str:
     """Waar DEFINIEERT de wet dit begrip? – via `bwb:definieertBegrip`.
@@ -952,15 +956,19 @@ def zoek_definitie(term: str, bwb_id: str | None = None, limit: int = 25,
     De vindplaats komt van het ONDERDEEL waar de definitie staat, niet van het definitielid: dat is
     dezelfde regel die `get_lid` volgt, en de reden is dat "onderdeel k" citeren met de jci van het
     hele lid naar de verkeerde tekst wijst.
+
+    `?aanhef` is de tekst boven een onderdeel ("Deze wet verstaat onder:"): daar staat voor wie de definitie
+    geldt, en de rij is hier compleet genoeg dat het model het lid vaak niet meer ophaalt.
     """
     lim = max(1, min(int(limit), 100))
     scope = f'\n  FILTER(STRSTARTS(STR(?node), "{NS}{_bwb(bwb_id)}"))' if bwb_id else ""
-    return PREFIXES + f"""SELECT ?node ?begrip ?tekst ?jci ?bwbId ?citeertitel ?nummer ?inLabel WHERE {{
+    return PREFIXES + f"""SELECT ?node ?begrip ?tekst ?aanhef ?jci ?bwbId ?citeertitel ?nummer ?inLabel WHERE {{
   ?node bwb:definieertBegrip ?begrip .
   FILTER(CONTAINS(LCASE(STR(?begrip)), LCASE({_lit(term)}))){scope}
   OPTIONAL {{ ?node bwb:tekst ?tekst }}
   OPTIONAL {{ ?node bwb:jci ?jci }}
   OPTIONAL {{ ?node bwb:nummer ?nummer }}
+  OPTIONAL {{ ?houder bwb:heeftOnderdeel+ ?node ; bwb:tekst ?houdertekst BIND(SUBSTR(STR(?houdertekst), 1, {AANHEF_TEKENS}) AS ?aanhef) }}
   OPTIONAL {{ ?in {BEVAT} ?node . OPTIONAL {{ ?in rdfs:label ?inLabel }} }}
   BIND(SUBSTR(STR(?node), {len(NS) + 1}) AS ?rest)
   BIND(IF(CONTAINS(?rest, "{SEP}"), STRBEFORE(?rest, "{SEP}"), ?rest) AS ?bwbId)

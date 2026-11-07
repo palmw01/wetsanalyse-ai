@@ -14,6 +14,9 @@ from httpx import ASGITransport, AsyncClient
 A = {"X-User-Id": "gebruiker-a"}
 B = {"X-User-Id": "gebruiker-b"}
 _ADMIN = {"Authorization": "Bearer admin-token"}
+# `gebruiker-a` is de eerste en dus de beheerder (`maak_testgebruikers`); `gebruiker-b` is analist.
+_BEHEERDER = {**_ADMIN, "X-User-Id": "gebruiker-a"}
+_ANALIST = {**_ADMIN, "X-User-Id": "gebruiker-b"}
 
 
 @pytest.fixture
@@ -42,12 +45,12 @@ async def client(monkeypatch):
 
     db.init_engine("sqlite+aiosqlite://")
     await db.create_all()
-    # Een nieuwe kolom op `users` (token_budget) komt er op een bestaande tabel via reconcile.
     await db.reconcile_schema()
     await maak_testgebruikers("gebruiker-a", "gebruiker-b")
 
     from app import verbruik
     await verbruik.ensure_seeded(get_settings())
+    await _zet_2fa("gebruiker-a", True)
 
     from app.main import app
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
@@ -56,6 +59,33 @@ async def client(monkeypatch):
     get_settings.cache_clear()
     get_gesprek_store.cache_clear()
     await db.dispose_engine()
+
+
+async def _zet_2fa(userid: str, aan: bool) -> None:
+    from sqlalchemy import update
+
+    from app import db
+
+    async with db.get_engine().begin() as conn:
+        await conn.execute(update(db.users).where(db.users.c.userid == userid).values(totp_enabled=aan))
+
+
+async def _journaal() -> list[tuple]:
+    from sqlalchemy import select
+
+    from app import db
+
+    async with db.get_engine().connect() as conn:
+        return [tuple(r) for r in (await conn.execute(select(db.token_verbruik).order_by(db.token_verbruik.c.id))).all()]
+
+
+async def _audit() -> list[dict]:
+    from sqlalchemy import select
+
+    from app import db
+
+    async with db.get_engine().connect() as conn:
+        return [dict(r) for r in (await conn.execute(select(db.budget_audit).order_by(db.budget_audit.c.id))).mappings().all()]
 
 
 async def _boek(client, *, invoer=100, uitvoer=50, cache_lees=0, cache_schrijf=0,
@@ -74,7 +104,7 @@ def _beleid(dagen=7, anker=None):
     from app.verbruik_contracts import BudgetBeleid
 
     return BudgetBeleid(
-        tokens=1000, periode_dagen=dagen,
+        periode_dagen=dagen,
         anker=anker or datetime(2026, 1, 1, tzinfo=timezone.utc),
     )
 
@@ -152,7 +182,7 @@ async def test_verbruik_buiten_het_venster_telt_niet_mee(client):
     from app.user import _utcnow
 
     # Verschuif het anker naar nu, zodat "gisteren" buiten het venster valt.
-    await verbruik.zet_beleid(tokens=1000, periode_dagen=7, actief=True, anker=_utcnow())
+    await verbruik.zet_beleid(periode_dagen=7, actief=True, anker=_utcnow())
     async with db.get_engine().begin() as conn:
         await conn.execute(insert(db.token_verbruik).values(
             userid="gebruiker-a", bron="agent", model="", invoer=900, uitvoer=0,
@@ -212,65 +242,291 @@ async def test_begrenzing_uit_blokkeert_niets(client):
     from app import verbruik
 
     await _boek(client, invoer=5000, uitvoer=0)
-    await verbruik.zet_beleid(tokens=1000, periode_dagen=7, actief=False)
+    await verbruik.zet_beleid(periode_dagen=7, actief=False)
     stand = (await client.get("/v1/verbruik", headers=A)).json()
     assert stand["actief"] is False and stand["geblokkeerd"] is False
     # Er wordt nog steeds gemeten.
     assert stand["gebruikt"] == 5000
 
 
-# --- per-gebruiker budget -------------------------------------------------------
+# --- het budget volgt uit de rol ------------------------------------------------
 
-async def test_eigen_budget_wint_van_het_beleid(client):
-    r = await client.patch(
-        "/v1/admin/users/gebruiker-a", json={"token_budget": 100}, headers=_ADMIN
-    )
-    assert r.status_code == 200 and r.json()["token_budget"] == 100
+async def test_de_env_seedt_elke_rol_en_daarna_niet_meer(client):
+    from app import verbruik
+    from app.config import Settings
 
-    await _boek(client, invoer=100, uitvoer=0)
-    stand = (await client.get("/v1/verbruik", headers=A)).json()
-    assert stand["budget"] == 100 and stand["geblokkeerd"] is True
-    assert stand["eigen_budget"] is True
-    # De ander volgt nog gewoon het beleid.
-    assert (await client.get("/v1/verbruik", headers=B)).json()["budget"] == 1000
+    r = await client.get("/v1/admin/budget", headers=_ADMIN)
+    assert {x["rol"]: x["tokens"] for x in r.json()["rollen"]} == {"beheerder": 1000, "analist": 1000}
+
+    await client.put("/v1/admin/budget/rollen/analist", json={"tokens": 300}, headers=_BEHEERDER)
+    instellingen = Settings()
+    instellingen.token_budget = 9999
+    await verbruik.ensure_seeded(instellingen)
+    assert (await client.get("/v1/verbruik", headers=B)).json()["budget"] == 300
 
 
-async def test_eigen_budget_wissen(client):
-    await client.patch("/v1/admin/users/gebruiker-a", json={"token_budget": 100}, headers=_ADMIN)
-    r = await client.patch(
-        "/v1/admin/users/gebruiker-a", json={"token_budget_wissen": True}, headers=_ADMIN
-    )
-    assert r.json()["token_budget"] is None
+async def test_elke_rol_heeft_zijn_eigen_budget(client):
+    assert (await client.put(
+        "/v1/admin/budget/rollen/beheerder", json={"tokens": 5000}, headers=_BEHEERDER
+    )).status_code == 200
+    assert (await client.put(
+        "/v1/admin/budget/rollen/analist", json={"tokens": 300}, headers=_BEHEERDER
+    )).status_code == 200
+
+    stand_a = (await client.get("/v1/verbruik", headers=A)).json()
+    stand_b = (await client.get("/v1/verbruik", headers=B)).json()
+    assert (stand_a["budget"], stand_a["rol"]) == (5000, "beheerder")
+    assert (stand_b["budget"], stand_b["rol"]) == (300, "analist")
+
+    regels = {x["userid"]: x for x in (await client.get("/v1/admin/verbruik", headers=_ADMIN)).json()}
+    assert regels["gebruiker-a"]["budget"] == 5000 and regels["gebruiker-a"]["rol"] == "beheerder"
+    assert regels["gebruiker-b"]["budget"] == 300 and regels["gebruiker-b"]["rol"] == "analist"
+
+
+async def test_een_rolbudget_begrenst_ook(client):
+    await client.put("/v1/admin/budget/rollen/analist", json={"tokens": 100}, headers=_BEHEERDER)
+    await _boek(client, invoer=100, uitvoer=0, headers=B)
+    assert (await client.get("/v1/verbruik/controle", headers=B)).json()["toegestaan"] is False
+    assert (await client.get("/v1/verbruik/controle", headers=A)).json()["toegestaan"] is True
+
+
+async def test_rolwissel_geeft_meteen_het_budget_van_de_nieuwe_rol(client):
+    await client.put("/v1/admin/budget/rollen/beheerder", json={"tokens": 5000}, headers=_BEHEERDER)
+    await client.put("/v1/admin/budget/rollen/analist", json={"tokens": 300}, headers=_BEHEERDER)
+    await _boek(client, invoer=400, uitvoer=0, headers=B)
+    assert (await client.get("/v1/verbruik", headers=B)).json()["geblokkeerd"] is True
+
+    r = await client.patch("/v1/admin/users/gebruiker-b", json={"role": "beheerder"}, headers=_ADMIN)
+    assert r.status_code == 200
+
+    stand = (await client.get("/v1/verbruik", headers=B)).json()
+    assert (stand["budget"], stand["rol"]) == (5000, "beheerder")
+    # Het verbruik reist mee: een rolwissel is geen reset.
+    assert stand["gebruikt"] == 400 and stand["geblokkeerd"] is False
+    regels = {x["userid"]: x for x in (await client.get("/v1/admin/verbruik", headers=_ADMIN)).json()}
+    assert regels["gebruiker-b"]["budget"] == 5000
+
+
+async def test_een_limiet_per_gebruiker_bestaat_niet_meer(client):
+    from app import db
+    from app.main import app
+
+    for veld in ({"token_budget": 100}, {"token_budget_wissen": True}):
+        r = await client.patch("/v1/admin/users/gebruiker-a", json=veld, headers=_ADMIN)
+        assert r.status_code == 422, veld
     assert (await client.get("/v1/verbruik", headers=A)).json()["budget"] == 1000
 
+    assert "token_budget" not in db.users.c and "tokens" not in db.budget_beleid.c
+    gebruiker = (await client.get("/v1/admin/users", headers=_ADMIN)).json()[0]
+    assert "token_budget" not in gebruiker
+    stand = (await client.get("/v1/verbruik", headers=A)).json()
+    assert "eigen_budget" not in stand
+    assert "eigen_budget" not in (await client.get("/v1/admin/verbruik", headers=_ADMIN)).json()[0]
+    # De enige routes met een budget erin zijn die van het beleid en de rollen.
+    paden = {pad for pad in app.openapi()["paths"] if "budget" in pad}
+    assert paden == {"/v1/admin/budget", "/v1/admin/budget/rollen/{rol}"}
 
-async def test_patch_zonder_budget_laat_het_staan(client):
-    """Een rolwijziging mag het budget niet stilzwijgend wissen."""
-    await client.patch("/v1/admin/users/gebruiker-a", json={"token_budget": 250}, headers=_ADMIN)
-    r = await client.patch("/v1/admin/users/gebruiker-a", json={"role": "beheerder"}, headers=_ADMIN)
-    assert r.json()["token_budget"] == 250
+
+async def test_reconcile_haalt_de_oude_kolommen_weg(client):
+    from sqlalchemy import inspect, text
+
+    from app import db
+
+    async with db.get_engine().begin() as conn:
+        await conn.execute(text("ALTER TABLE users ADD COLUMN token_budget INTEGER"))
+        await conn.execute(text("ALTER TABLE budget_beleid ADD COLUMN tokens INTEGER"))
+    await db.reconcile_schema()
+    await db.reconcile_schema()  # idempotent
+
+    async with db.get_engine().connect() as conn:
+        for tabel, kolom in (("users", "token_budget"), ("budget_beleid", "tokens")):
+            namen = await conn.run_sync(lambda c, t=tabel: {k["name"] for k in inspect(c).get_columns(t)})
+            assert kolom not in namen
 
 
 # --- beheer ---------------------------------------------------------------------
 
 async def test_beleid_lezen_en_wijzigen(client):
     r = await client.get("/v1/admin/budget", headers=_ADMIN)
-    assert r.status_code == 200 and r.json()["tokens"] == 1000 and r.json()["periode_dagen"] == 7
+    assert r.status_code == 200 and r.json()["periode_dagen"] == 7
     assert r.json()["reset_op"]
+    assert "tokens" not in r.json()
 
     r = await client.put(
-        "/v1/admin/budget", json={"tokens": 500_000, "periode_dagen": 30, "actief": True},
-        headers=_ADMIN,
+        "/v1/admin/budget", json={"periode_dagen": 30, "actief": True}, headers=_BEHEERDER,
     )
-    assert r.status_code == 200 and r.json()["tokens"] == 500_000
-    assert (await client.get("/v1/verbruik", headers=A)).json()["budget"] == 500_000
+    assert r.status_code == 200 and r.json()["periode_dagen"] == 30
+    assert r.json()["updated_by"] == "gebruiker-a"
 
 
 async def test_beleid_weigert_onzin(client):
     r = await client.put(
-        "/v1/admin/budget", json={"tokens": -1, "periode_dagen": 7, "actief": True}, headers=_ADMIN
+        "/v1/admin/budget", json={"periode_dagen": 0, "actief": True}, headers=_BEHEERDER
     )
-    assert r.status_code == 422  # ge=0 op het model
+    assert r.status_code == 422  # ge=1 op het model
+
+
+@pytest.mark.parametrize("tokens", [0, -1, None, 3_000_000_000])
+async def test_rolbudget_weigert_onzin(client, tokens):
+    r = await client.put("/v1/admin/budget/rollen/analist", json={"tokens": tokens}, headers=_BEHEERDER)
+    assert r.status_code == 422
+
+
+async def test_rolbudget_kent_alleen_de_rollen(client):
+    r = await client.put("/v1/admin/budget/rollen/stagiair", json={"tokens": 5}, headers=_BEHEERDER)
+    assert r.status_code == 404
+
+
+async def test_wijzigingen_staan_in_de_audit(client):
+    await client.put("/v1/admin/budget/rollen/analist", json={"tokens": 300}, headers=_BEHEERDER)
+    await client.put("/v1/admin/budget/rollen/analist", json={"tokens": 400}, headers=_BEHEERDER)
+    await client.put("/v1/admin/budget", json={"periode_dagen": 14, "actief": False}, headers=_BEHEERDER)
+
+    regels = await _audit()
+    assert [(x["actie"], x["doel"], x["door"]) for x in regels] == [
+        ("rolbudget_gewijzigd", "analist", "gebruiker-a"),
+        ("rolbudget_gewijzigd", "analist", "gebruiker-a"),
+        ("beleid_gewijzigd", "", "gebruiker-a"),
+    ]
+    assert regels[0]["details"] == {"oud": 1000, "nieuw": 300}
+    assert regels[1]["details"] == {"oud": 300, "nieuw": 400}
+    assert regels[2]["details"]["oud"] == {"periode_dagen": 7, "actief": True}
+    assert regels[2]["details"]["nieuw"]["periode_dagen"] == 14
+
+
+# --- de reset -------------------------------------------------------------------
+
+_RESET_B = "/v1/admin/users/gebruiker-b/verbruik/reset"
+
+
+async def test_reset_geeft_het_volle_budget_terug(client):
+    await _boek(client, invoer=1500, uitvoer=0, headers=B)
+    voor = (await client.get("/v1/verbruik", headers=B)).json()
+    assert voor["geblokkeerd"] is True
+
+    r = await client.post(_RESET_B, headers=_BEHEERDER)
+    assert r.status_code == 200
+    assert r.json()["gebruikt"] == 0 and r.json()["gereset_door"] == "gebruiker-a"
+    assert r.json()["gereset_op"]
+
+    stand = (await client.get("/v1/verbruik", headers=B)).json()
+    assert stand["gebruikt"] == 0 and stand["resterend"] == 1000 and stand["geblokkeerd"] is False
+    assert (await client.get("/v1/verbruik/controle", headers=B)).json()["toegestaan"] is True
+    # Het venster schuift niet op, en wie het deed gaat de gebruiker niets aan.
+    assert stand["reset_op"] == voor["reset_op"]
+    assert stand["gereset_op"] and stand["gereset_door"] == ""
+
+
+async def test_reset_laat_het_journaal_intact(client):
+    await _boek(client, invoer=600, uitvoer=10, run_id="r1", headers=B)
+    await _boek(client, invoer=700, uitvoer=20, run_id="r2", headers=B)
+    await _boek(client, invoer=5, uitvoer=5, run_id="r3", headers=A)
+    voor = await _journaal()
+    assert len(voor) == 3
+
+    assert (await client.post(_RESET_B, headers=_BEHEERDER)).status_code == 200
+
+    # Geen rij gewijzigd, geen rij weg, en geen tegenboeking erbij.
+    assert await _journaal() == voor
+    # Een herhaalde melding van een oude beurt blijft ontdubbeld: het journaal kent hem nog.
+    assert (await _boek(client, invoer=600, uitvoer=10, run_id="r1", headers=B)).json()["geboekt"] is False
+
+
+async def test_wat_na_de_reset_geboekt_wordt_telt_weer_mee(client):
+    await _boek(client, invoer=900, uitvoer=0, headers=B)
+    await client.post(_RESET_B, headers=_BEHEERDER)
+    await _boek(client, invoer=70, uitvoer=0, headers=B)
+
+    assert (await client.get("/v1/verbruik", headers=B)).json()["gebruikt"] == 70
+    regels = {x["userid"]: x for x in (await client.get("/v1/admin/verbruik", headers=_ADMIN)).json()}
+    assert regels["gebruiker-b"]["gebruikt"] == 70
+
+    # Een tweede reset begint opnieuw, en het overzicht toont de laatste.
+    await client.post(_RESET_B, headers=_BEHEERDER)
+    assert (await client.get("/v1/verbruik", headers=B)).json()["gebruikt"] == 0
+
+
+async def test_reset_raakt_alleen_de_gebruiker_zelf(client):
+    await _boek(client, invoer=100, uitvoer=0, headers=A)
+    await _boek(client, invoer=200, uitvoer=0, headers=B)
+    await client.post(_RESET_B, headers=_BEHEERDER)
+
+    assert (await client.get("/v1/verbruik", headers=A)).json()["gebruikt"] == 100
+    regels = {x["userid"]: x for x in (await client.get("/v1/admin/verbruik", headers=_ADMIN)).json()}
+    assert regels["gebruiker-a"]["gebruikt"] == 100 and regels["gebruiker-a"]["gereset_op"] is None
+
+
+async def test_een_reset_uit_een_vorig_venster_doet_niets_meer(client):
+    from sqlalchemy import update
+
+    from app import db, verbruik
+    from app.user import _utcnow
+
+    await client.post(_RESET_B, headers=_BEHEERDER)
+    await _boek(client, invoer=100, uitvoer=0, headers=B)
+    # Een nieuw venster dat vóór de reset begon telt alles; dezelfde reset, naar achteren in de tijd.
+    async with db.get_engine().begin() as conn:
+        await conn.execute(update(db.budget_audit).values(tijdstip=_utcnow() - timedelta(days=30)))
+    assert await verbruik.reset_in_venster("gebruiker-b", _utcnow() - timedelta(days=1)) is None
+    regels = {x["userid"]: x for x in (await client.get("/v1/admin/verbruik", headers=_ADMIN)).json()}
+    assert regels["gebruiker-b"]["gereset_op"] is None and regels["gebruiker-b"]["gereset_door"] == ""
+
+
+async def test_reset_staat_in_de_audit(client):
+    await _boek(client, invoer=800, uitvoer=0, headers=B)
+    await client.post(_RESET_B, headers=_BEHEERDER)
+
+    regels = await _audit()
+    assert len(regels) == 1
+    assert (regels[0]["actie"], regels[0]["doel"], regels[0]["door"]) == ("verbruik_reset", "gebruiker-b", "gebruiker-a")
+    assert regels[0]["details"] == {"gebruikt": 800, "budget": 1000}
+
+
+async def test_reset_van_onbekende_gebruiker(client):
+    assert (await client.post("/v1/admin/users/niemand/verbruik/reset", headers=_BEHEERDER)).status_code == 404
+
+
+# --- wie het mag ----------------------------------------------------------------
+
+_WIJZIGINGEN = [
+    ("POST", _RESET_B, None),
+    ("PUT", "/v1/admin/budget/rollen/analist", {"tokens": 5}),
+    ("PUT", "/v1/admin/budget", {"periode_dagen": 3, "actief": True}),
+]
+
+
+@pytest.mark.parametrize("methode,pad,body", _WIJZIGINGEN)
+async def test_een_analist_mag_het_niet(client, methode, pad, body):
+    """Ook niet met een geldig admin-token: de rol uit `X-User-Id` beslist."""
+    await _zet_2fa("gebruiker-b", True)
+    await _boek(client, invoer=200, uitvoer=0, headers=B)
+    r = await client.request(methode, pad, json=body, headers=_ANALIST)
+    assert r.status_code == 403
+    assert await _audit() == []
+    assert (await client.get("/v1/verbruik", headers=B)).json()["gebruikt"] == 200
+
+
+@pytest.mark.parametrize("methode,pad,body", _WIJZIGINGEN)
+async def test_een_beheerder_zonder_2fa_mag_het_niet(client, methode, pad, body):
+    await _zet_2fa("gebruiker-a", False)
+    r = await client.request(methode, pad, json=body, headers=_BEHEERDER)
+    assert r.status_code == 403 and r.json()["detail"] == "Koppel eerst zelf 2FA."
+    assert await _audit() == []
+
+
+@pytest.mark.parametrize("methode,pad,body", _WIJZIGINGEN)
+async def test_een_kaal_admin_token_mag_het_niet(client, methode, pad, body):
+    """Geen persoon, dus niets om in de audit te zetten: de admin-MCP komt hier niet."""
+    r = await client.request(methode, pad, json=body, headers=_ADMIN)
+    assert r.status_code in (400, 401, 403)
+    assert await _audit() == []
+
+
+@pytest.mark.parametrize("methode,pad,body", _WIJZIGINGEN)
+async def test_zonder_admin_token_mag_het_niet(client, methode, pad, body):
+    r = await client.request(methode, pad, json=body, headers={"X-User-Id": "gebruiker-a"})
+    assert r.status_code == 401
+    assert await _audit() == []
 
 
 async def test_beheeroverzicht_zwaarste_eerst(client):
@@ -288,5 +544,5 @@ async def test_admin_endpoints_vereisen_token(client):
     assert (await client.get("/v1/admin/budget")).status_code == 401
     assert (await client.get("/v1/admin/verbruik")).status_code == 401
     assert (await client.put(
-        "/v1/admin/budget", json={"tokens": 1, "periode_dagen": 1, "actief": True}
+        "/v1/admin/budget", json={"periode_dagen": 1, "actief": True}
     )).status_code == 401

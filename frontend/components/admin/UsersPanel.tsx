@@ -22,8 +22,9 @@ import {
   patchUser,
   resetUser2fa,
   resetUserPassword,
+  resetVerbruik,
 } from "@/lib/api";
-import { tokensKort } from "@/lib/tokenbudget";
+import { budgetHerkomst, resetRegel, tokensKort } from "@/lib/tokenbudget";
 import type { Role, UserOut, VerbruikRegel } from "@/lib/types";
 import { StatusLabel } from "@/components/ui/Lijst";
 
@@ -107,23 +108,19 @@ export function UsersPanel() {
     }
   }
 
-  async function onBudget(u: UserOut, waarde: string) {
-    const leeg = waarde.trim() === "";
+  async function onReset(u: UserOut) {
     try {
-      await patchUser(
-        u.userid,
-        leeg ? { token_budget_wissen: true } : { token_budget: Math.max(0, Number(waarde) || 0) },
-      );
-      await laad();
+      const res = await resetUserPassword(u.userid);
+      setTijdelijk({ userid: res.userid, wachtwoord: res.temp_password });
     } catch (e) {
       melden(e);
     }
   }
 
-  async function onReset(u: UserOut) {
+  async function onResetVerbruik(u: UserOut) {
     try {
-      const res = await resetUserPassword(u.userid);
-      setTijdelijk({ userid: res.userid, wachtwoord: res.temp_password });
+      await resetVerbruik(u.userid);
+      await laad();
     } catch (e) {
       melden(e);
     }
@@ -244,6 +241,13 @@ export function UsersPanel() {
                         {u.active ? "Deactiveren" : "Activeren"}
                       </MenuKnop>
                       <MenuKnop onClick={() => { sluit(); void onReset(u); }}>Wachtwoord resetten</MenuKnop>
+                      {(verbruik[u.userid]?.gebruikt ?? 0) > 0 && (
+                        <MenuVerwijder vraag={`Verbruik van "${u.userid}" resetten?`}
+                          titel="Geeft het volledige budget terug tot de volgende reset. Het verbruik blijft geregistreerd."
+                          onBevestig={() => onResetVerbruik(u)}>
+                          Verbruik resetten
+                        </MenuVerwijder>
+                      )}
                       {u.totp_enabled && (
                         <MenuVerwijder vraag={`2FA van "${u.userid}" resetten?`} onBevestig={() => onReset2fa(u)}>
                           2FA resetten
@@ -255,41 +259,26 @@ export function UsersPanel() {
                 </MeerMenu>
               </div>
 
-              {/* Verbruik + een afwijkend budget. Leeg laten = volg het systeembeleid; het veld
-                  slaat op bij verlaten, zoals de andere acties hier direct doorwerken. */}
+              {/* Verbruik: het budget volgt uit de rol en staat hierboven in te stellen. */}
               {verbruik[u.userid] && (
-                <div className="mt-3 flex flex-wrap items-end gap-x-6 gap-y-3">
-                  <div className="min-w-[12rem] flex-1">
-                    <div className="flex items-baseline justify-between gap-2 text-xs text-muted">
-                      <span>
-                        {tokensKort(verbruik[u.userid].gebruikt)} van{" "}
-                        {tokensKort(verbruik[u.userid].budget)} tokens
-                      </span>
-                      <span>{verbruik[u.userid].percentage}%</span>
-                    </div>
-                    <Meter
-                      percentage={verbruik[u.userid].percentage}
-                      label={`Tokenverbruik van ${u.userid}`}
-                      toon="verbruik"
-                      className="mt-1"
-                    />
+                <div className="mt-3">
+                  <div className="flex items-baseline justify-between gap-2 text-xs text-muted">
+                    <span>
+                      {tokensKort(verbruik[u.userid].gebruikt)} van{" "}
+                      {tokensKort(verbruik[u.userid].budget)} tokens
+                    </span>
+                    <span>{verbruik[u.userid].percentage}%</span>
                   </div>
-                  <label className="flex items-center gap-2 text-xs text-muted">
-                    Eigen budget
-                    <Input
-                      type="number"
-                      min={0}
-                      step={1000}
-                      placeholder="standaard"
-                      className="w-32"
-                      defaultValue={u.token_budget ?? ""}
-                      onBlur={(e) => {
-                        const nieuw = e.target.value.trim();
-                        const huidig = u.token_budget === null ? "" : String(u.token_budget);
-                        if (nieuw !== huidig) void onBudget(u, nieuw);
-                      }}
-                    />
-                  </label>
+                  <Meter
+                    percentage={verbruik[u.userid].percentage}
+                    label={`Tokenverbruik van ${u.userid}`}
+                    toon="verbruik"
+                    className="mt-1"
+                  />
+                  <p className="mt-1 text-xs text-muted" data-budget-herkomst>{budgetHerkomst(verbruik[u.userid])}</p>
+                  {verbruik[u.userid].gereset_op && (
+                    <p className="text-xs text-muted" data-verbruik-gereset>{resetRegel(verbruik[u.userid])}</p>
+                  )}
                 </div>
               )}
             </Card>

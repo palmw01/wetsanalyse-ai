@@ -97,6 +97,10 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   vullen (`Onvulbaar`) is een `is_error`-resultaat en het model gaat verder; een halve vulling bestaat niet. Naast een
   graaftool wacht het sjabloon tot de volgende ronde. Tekst in plaats van de tool blijft geldig (log `sjabloon gemist`).
   Alleen de sjabloontools zijn `strict`, en ze staan niet in `TOOLS`. Per specialist: `Specialist.sjablonen`.
+  `antwoord_duiding` (uitleg) toetst elk fragment tegen de tekst van de aangewezen bepaling, niet tegen de hele trace, en
+  weigert een bepaling die de uitleg noemt zonder passage; kort antwoord, waarom en twijfel gaan als tekst door `verify`.
+  Citeren kan alleen uit rijen met een iri bij hun tekst, dus niet uit `get_context`.
+  `verify_node` toetst de blokken `annotaties`, `begrippen` en `leemte` niet (`NIET_GETOETST`): afgeleide duiding en tekst van de code.
 - **`verify_node`** – `check_grounding(answer, source_trace)`. Bij ongegrond volgt via `correct_node`
   hoogstens één corrigerende ronde (`GROUNDING_CORRECT`, default aan; `state["corrected"]`). De controle
   keurt **twee** dingen af en `correct_node` moet ze allebei benoemen: `unsupported` (een vindplaats die
@@ -1296,20 +1300,25 @@ SPARQL was deterministisch; de keten eromheen niet. Nu is wat feitelijk is code 
    één plek: `kop` per deel ("28 – Invorderingsrente"), `naam` per bepaling **zoals de bron haar noemt**
    (`bwb:label`: "Artikel 79.5a" → "art. 79.5a", "79.5" → "79.5" – de Leidraad wisselt zelf, en dat
    verschil wordt niet weggepoetst), `vindplaats` per definitie (`bronmodel.vindplaats`).
-5. **Uitgangen:** een `overzicht`-event (de werkplek toont het als blok en bewaart het in
+5. **Uitgangen:** een `overzicht`-event (de werkplek toont het als kaartje met paneel en bewaart het in
    `Bericht.overzicht`); de samenvatting als `answer` (`finalize_node` stuurt de `token`) en assistent-bericht na het
    `tool_use`/`tool_result`-paar (`voor_model`, voor vervolgvragen); in de `source_trace` de
    vindplaatsen (`bronrijen`). Route `overzicht_bouwen → verify → finalize`; `route_after_verify` gaat
    met een overzicht nooit naar een correctieronde (die zou het model alsnog laten schrijven).
 6. **Bronnen en controle uit het overzicht:** `finalize_node` neemt de bronnen uit het overzicht;
    `check_grounding(..., overzicht=)` toetst elk genoemd artikel én deel ("Hoofdstuk II", "Titel 5.4")
-   tegen het overzicht, inclusief de bovenliggende delen (`opbouw`) – ook als het model de tool vrij
-   gebruikt.
+   tegen het overzicht, inclusief de bovenliggende delen (`opbouw`).
+7. **Geen sjabloon (ADR-008):** de route heeft niets wat een sjabloon oplost. Er typt geen model feiten
+   over, en `state["overzicht"]` blijft nodig voor de controle en de route. Een `Antwoord` zou alleen
+   een tweede drager van dezelfde gegevens zijn.
 
-De tool `overzicht_onderwerp` levert hetzelfde overzicht buiten de route (MCP, vrije vragen) en
-pagineert per deel binnen de begroting. Bouwt het overzicht niet (graaf weg), dan krijgt het model een
-foutresultaat en zegt het dat; de werkplek toont dan geen blok. `tests/test_overzicht.py` legt
-herkenning, samenstelling, volgorde, de route en de eval-scorer vast.
+De tool `overzicht_onderwerp` (`_h_overzicht`) bouwt met dezelfde code een overzicht buiten de route (MCP,
+vrije vragen) en pagineert per deel binnen de begroting. Onderwerp en afbakening kiest dan de aanroeper.
+Punt 5 en 6 gelden daar **niet**: de tool levert alleen `voor_model`, dus geen `overzicht`-event en geen
+kaartje, en `state["overzicht"]` blijft leeg. De controle en de bronnen zijn dan die van een gewoon
+antwoord. Bouwt het overzicht niet (graaf weg), dan krijgt het model een foutresultaat en zegt het dat;
+de werkplek toont dan geen kaartje. `tests/test_overzicht.py` legt herkenning, samenstelling, volgorde,
+de route en de eval-scorer vast.
 
 ## De leesroute: vragen óver bestaande annotaties
 
@@ -1331,7 +1340,11 @@ herkenning, samenstelling, volgorde, de route en de eval-scorer vast.
 3. **Een storing wordt nooit een leeg antwoord** (`begrens_antwoord`): zonder bruikbaar zoekresultaat
    vervangt die het modelantwoord door een eerlijke melding, met een logregel. Die melding gaat **niet**
    in `messages`: anders leest het model zijn eigen "ik kon niet raadplegen" in de volgende beurt als
-   feit.
+   feit. Die begrenzing vangt het vrije antwoord; het sjabloon `antwoord_annotaties` (`sjablonen/annotaties.py`) gaat er niet
+   langs en gebruikt dezelfde meldingen: een storing of nul treffers is een `leemte` en de toelichting van het model vervalt.
+   Getoond wordt de laatste zoekopdracht (pagina's voegen samen); `volledig` is ook onwaar bij een `volgende_offset`, want
+   de api zet `volledig` alleen op de dekking van de projectie, niet op de paginering. `begrens_begrippen_antwoord` en
+   `antwoord_begrip` delen zo `begrippen_stand`.
 
 **Wat de doelbepaling leest is alleen deze beurt** (`doel._deze_beurt`). De thread bewaart alle
 beurten; las `_doel_uit_toolcalls` de hele historie, dan filterde de leesroute op de wet van een
