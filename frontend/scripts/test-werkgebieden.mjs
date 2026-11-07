@@ -433,6 +433,13 @@ try {
     aantal: el.children.length, wrap: getComputedStyle(el).flexWrap, x: getComputedStyle(el).overflowX }));
   assert.deepEqual(chips, { regels: 1, aantal: 4, wrap: "nowrap", x: "auto" }, "statusfilters op één regel");
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+  // Openen en Verwijderen op de kaart: twee gelijke helften, even hoog, op één regel.
+  const acties = page.locator("[data-werkgebied-kaart=wg1] [data-kaart-acties]");
+  const [open, weg] = await Promise.all([acties.getByRole("link", { name: "Openen" }).boundingBox(),
+    acties.getByRole("button", { name: "Werkgebied verwijderen" }).boundingBox()]);
+  assert.ok(Math.abs(open.y - weg.y) <= 1 && Math.abs(open.height - weg.height) <= 1 && Math.abs(open.width - weg.width) <= 1,
+    `Openen en Verwijderen gelijk (${JSON.stringify({ open, weg })})`);
+  assert.ok(open.width > 140, "elke knop een halve kaart breed");
   await foto("werkgebieden-mobiel");
   // Op een tablet staan chips en zoekveld op dezelfde regel; het zoekveld staat niet los op een eigen regel.
   await page.setViewportSize({ width: 768, height: 1000 });
