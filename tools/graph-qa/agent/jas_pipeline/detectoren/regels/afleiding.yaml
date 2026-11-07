@@ -1,5 +1,9 @@
 # Afleidingsregel (H2:71-73; profiel 06_afleidingsregel.yaml). De span is het normsegment
 # (tussen . ; :), want de regel draagt invoer, bewerking en uitkomst; een los 'bedraagt' is geen regel.
+# Een rechtsgevolg dat een moment vastlegt ('vervalt één maand na …', code DATE_ASSIGNMENT,
+# jas.afleiding.datumtoewijzing) staat niet hier maar in de gevolgdetector: het vraagt de parse (hoofdzin)
+# én de treffers van tijd.yaml, geen eigen tijdregex. 'wordt … gesteld op' dekken wordt_gesteld_op hieronder
+# en de passieve toewijzing in functies.py al.
 - id: jas.afleiding.bedraagt
   klassen: [Afleidingsregel, Parameter en parameterwaarde]
   code: CALCULATION_COPULA

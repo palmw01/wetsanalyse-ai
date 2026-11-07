@@ -112,6 +112,10 @@
       "naam": "Aantal",
       "uitleg": "Een getal direct na een grens als 'ten hoogste' of 'niet meer dan'."
     },
+    "DATE_ASSIGNMENT": {
+      "naam": "Datum uit een rechtsgevolg",
+      "uitleg": "Een rechtsgevolg legt een moment vast ('vervalt één maand na de dagtekening', 'vervalt op 15 april'): ook een afleiding van een datum. Met een voorwaarde ervoor is de hele als-dan-zin een eigen kandidaat."
+    },
     "DATE_COMPARISON": {
       "naam": "Vergelijking met een moment",
       "uitleg": "'Vóór', 'na' of 'uiterlijk' direct voor een datum, of 'of eerder'/'of later' erna: een vergelijking met dat moment. De tijdsaanduiding zelf blijft een eigen fragment."
@@ -135,6 +139,10 @@
     "DELEGATION_FORMULA": {
       "naam": "Delegatieformule",
       "uitleg": "'Bij of krachtens … worden regels gesteld': de vaste vorm waarmee de wet een bevoegdheid delegeert."
+    },
+    "DURATION_NP": {
+      "naam": "Duur als naamwoordgroep",
+      "uitleg": "Een aantal dagen, weken, maanden of jaren. Een duur is geen drager en geen voorwerp van een recht; de tijdsaanduiding gaat voor (JAS-PRIORITY-001)."
     },
     "DURATION_OFFSET": {
       "naam": "Duur vanaf een moment",
@@ -222,7 +230,7 @@
     },
     "PROPERTY_NOUN": {
       "naam": "Eigenschap",
-      "uitleg": "'De hoogte van', 'het bedrag van': een naamwoordgroep die een eigenschap noemt."
+      "uitleg": "'De hoogte van', 'het bedrag van', 'de betalingstermijn': een naamwoordgroep die een eigenschap of grootheid noemt."
     },
     "RESTRICTIVE_RELATIVE": {
       "naam": "Beperkende bijzin",
@@ -921,5 +929,5 @@
       "uitleg": "Waarschuwing: hetzelfde fragment kreeg twee klassen."
     }
   },
-  "vocabulaire_versie": "07cfc049ae69"
+  "vocabulaire_versie": "9d496e945c0a"
 }

@@ -126,3 +126,16 @@ def test_iw01_end_to_end_via_de_detectoren():
     assert any(k.span.tekst == "zes weken na de dagtekening van het aanslagbiljet" for k in tijd)
     assert not any(k.span.tekst == "zes weken" and {P, V} & set(k.possible_classes)
                    and k.status is not CandidateStatus.REJECTED for k in f.kandidaten)
+
+
+def test_een_duur_houdt_na_fusie_alleen_de_tijdsaanduiding():
+    """Overlap: de duur als naamwoordgroep (alleen Variabele) en de tijdregel komen samen; JAS-PRIORITY-001 laat
+    Tijdsaanduiding over. Geen Rechtssubject of Rechtsobject, en geen dubbele markering met Variabele of Parameter."""
+    from agent.jas_pipeline.taal import SpacyProvider
+    p = SpacyProvider("nl_core_news_md")
+    if p.analyseer("x").gedegradeerd:
+        pytest.skip("nl_core_news_md vereist")
+    for tekst, duur in ((TEKST, "zes weken"), ("De termijn bedraagt één maand.", "één maand")):
+        f = fuseer(detecteer_alles(BronTekst.van_tekst("urn:t", tekst, analyse=p.analyseer(tekst))))
+        [k] = [k for k in f.kandidaten if k.span.tekst == duur]
+        assert k.possible_classes == (T,), (tekst, k.possible_classes)

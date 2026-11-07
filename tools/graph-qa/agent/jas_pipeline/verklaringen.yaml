@@ -59,11 +59,13 @@ detectie:
   MEANING_TERM: {naam: "Begrip met betekenis", uitleg: "Het begrip dat in een begripsbepaling een betekenis krijgt."}
   # zinsontleding (detectoren/syntactisch.py)
   NORMATIVE_PREDICATE: {naam: "Normatief gezegde", uitleg: "'Is verplicht', 'kan', 'heeft recht op', 'is bevoegd': een recht of plicht."}
+  DATE_ASSIGNMENT: {naam: "Datum uit een rechtsgevolg", uitleg: "Een rechtsgevolg legt een moment vast ('vervalt één maand na de dagtekening', 'vervalt op 15 april'): ook een afleiding van een datum. Met een voorwaarde ervoor is de hele als-dan-zin een eigen kandidaat."}
   LEGAL_EFFECT_CLAUSE: {naam: "Rechtsgevolg als hoofdzin", uitleg: "Het gezegde van de hoofdzin drukt zelf een rechtsgevolg uit ('de termijn vervalt', 'de schuld ontstaat'). Niet in een bijzin; de span is de eigen zin."}
   NORM_IN_PRESENT_TENSE: {naam: "Norm in de tegenwoordige tijd", uitleg: "Het gezegde van de hoofdzin gebiedt zonder modaal werkwoord ('de ontvanger betaalt'). Of het een plicht of een gebeurtenis is, vraagt een oordeel."}
   APPLICABILITY_CONSEQUENCE: {naam: "Toepasselijkheid als gevolg", uitleg: "De bepaling zegt dat een andere regel toepassing vindt. Dat is het gevolg zelf; de voorwaarde ervoor is een eigen markering."}
   PARAMETER_NOUN: {naam: "Parameterwoord", uitleg: "'Tarief', 'drempel', 'vrijstelling': een woord dat een vaste waarde benoemt."}
-  PROPERTY_NOUN: {naam: "Eigenschap", uitleg: "'De hoogte van', 'het bedrag van': een naamwoordgroep die een eigenschap noemt."}
+  PROPERTY_NOUN: {naam: "Eigenschap", uitleg: "'De hoogte van', 'het bedrag van', 'de betalingstermijn': een naamwoordgroep die een eigenschap of grootheid noemt."}
+  DURATION_NP: {naam: "Duur als naamwoordgroep", uitleg: "Een aantal dagen, weken, maanden of jaren. Een duur is geen drager en geen voorwerp van een recht; de tijdsaanduiding gaat voor (JAS-PRIORITY-001)."}
   PERSON_PRONOUN: {naam: "Verwijzend voornaamwoord", uitleg: "'Hij', 'degene', 'een ieder': een voornaamwoord dat naar een persoon verwijst."}
   SUBJECT_NP: {naam: "Onderwerp bij een recht of plicht", uitleg: "Het onderwerp van een zin met een normatief gezegde – vaak de drager van het recht of de plicht."}
   ENUMERATED_NP: {naam: "Opsommingsonderdeel", uitleg: "Een naamwoordgroep als onderdeel van een opsomming."}

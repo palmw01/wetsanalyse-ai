@@ -191,6 +191,11 @@
     skos:prefLabel "Verkorte voorwaarde"@nl ;
     jas:codeWaarde "CONDITIONAL_ELLIPSIS" .
 
+<urn:jas-ns:code:DATE_ASSIGNMENT> a jas:Detectiecode ;
+    skos:definition "Een rechtsgevolg legt een moment vast ('vervalt één maand na de dagtekening', 'vervalt op 15 april'): ook een afleiding van een datum. Met een voorwaarde ervoor is de hele als-dan-zin een eigen kandidaat."@nl ;
+    skos:prefLabel "Datum uit een rechtsgevolg"@nl ;
+    jas:codeWaarde "DATE_ASSIGNMENT" .
+
 <urn:jas-ns:code:DEFINITION_ITEM> a jas:Detectiecode ;
     skos:definition "Een onderdeel van een begripsbepalingenartikel: 'a. X: …'."@nl ;
     skos:prefLabel "Begripsbepaling (onderdeel)"@nl ;
@@ -200,6 +205,11 @@
     skos:definition "'In deze wet wordt verstaan onder X: …'."@nl ;
     skos:prefLabel "Begripsbepaling (zin)"@nl ;
     jas:codeWaarde "DEFINITION_SENTENCE" .
+
+<urn:jas-ns:code:DURATION_NP> a jas:Detectiecode ;
+    skos:definition "Een aantal dagen, weken, maanden of jaren. Een duur is geen drager en geen voorwerp van een recht; de tijdsaanduiding gaat voor (JAS-PRIORITY-001)."@nl ;
+    skos:prefLabel "Duur als naamwoordgroep"@nl ;
+    jas:codeWaarde "DURATION_NP" .
 
 <urn:jas-ns:code:ENUMERATED_NP> a jas:Detectiecode ;
     skos:definition "Een naamwoordgroep als onderdeel van een opsomming."@nl ;
@@ -262,7 +272,7 @@
     jas:codeWaarde "PRIORITY_APPLIED" .
 
 <urn:jas-ns:code:PROPERTY_NOUN> a jas:Detectiecode ;
-    skos:definition "'De hoogte van', 'het bedrag van': een naamwoordgroep die een eigenschap noemt."@nl ;
+    skos:definition "'De hoogte van', 'het bedrag van', 'de betalingstermijn': een naamwoordgroep die een eigenschap of grootheid noemt."@nl ;
     skos:prefLabel "Eigenschap"@nl ;
     jas:codeWaarde "PROPERTY_NOUN" .
 
@@ -1064,5 +1074,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "07cfc049ae69" .
+    jas:vocabulaireVersie "9d496e945c0a" .
 
