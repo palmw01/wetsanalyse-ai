@@ -48,16 +48,16 @@ const wg = { id: "wg1", naam: "Invorderbaarheid", status: "in_voorbereiding", re
 
 // Wat de graaf verder over de bepaling weet (`GET bepaling`, ADR-008 *Detail bij een antwoord*).
 const VP = (iri, label, regeling = "Invorderingswet 1990") => ({ iri, label, jci: "", regeling });
-const LEEG = { aantal: 0, items: [] };
+const LEEG = { aantal: 0, volledig: true, items: [] };
 const BEPALING = {
   schema_versie: 1, bron_iri: LID, beschikbaar: true, vindplaats: VP(LID, "Artikel 9, lid 2"),
   plaats: [{ soort: "hoofdstuk", nummer: "II", titel: "Invordering in eerste aanleg", iri: "urn:bwb:BWBR0004770:hoofdstuk:II" }],
   status: "goed", inwerking: "2010-07-04", terugwerkend_tot: null, gewijzigd_bij: "Stb.2009-610", geldig_vanaf: "2026-10-01", geldig_tot: null,
-  toestand_url: "", verwijst_naar_volledig: true,
+  toestand_url: "", verwijst_naar_aantal: 2, verwijst_naar_volledig: true,
   verwijst_naar: [{ van: VP(LID, "Artikel 9, lid 2"), naar: VP("urn:bwb:BWBR0004770:artikel:8", "Artikel 8"), anker: "artikel 8", in_graaf: true, door: "bron" },
     { van: VP(LID, "Artikel 9, lid 2"), naar: VP("urn:bwb:BWBR0005291:artikel:45", "Artikel 45", ""), anker: "Artikel 45 van Boek 3 van het Burgerlijk Wetboek", in_graaf: false, door: "bron" }],
-  verwezen_door: { aantal: 14, items: [VP("urn:bwb:BWBR0004770:artikel:56:lid:1", "Artikel 56, lid 1")] },
-  grondslag_voor: LEEG, bevoegdheid_voor: { aantal: 2, items: [VP("urn:bwb:BWBR0004772", "Uitvoeringsbesluit Invorderingswet 1990", "Uitvoeringsbesluit Invorderingswet 1990")] },
+  verwezen_door: { aantal: 14, volledig: true, items: [VP("urn:bwb:BWBR0004770:artikel:56:lid:1", "Artikel 56, lid 1")] },
+  grondslag_voor: LEEG, bevoegdheid_voor: { aantal: 2, volledig: true, items: [VP("urn:bwb:BWBR0004772", "Uitvoeringsbesluit Invorderingswet 1990", "Uitvoeringsbesluit Invorderingswet 1990")] },
   genoemd_in: LEEG, definieert: [],
 };
 let graafWeg = false;
