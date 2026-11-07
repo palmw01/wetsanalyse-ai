@@ -79,6 +79,26 @@ def test_een_telling_noemt_het_aantal_en_hoogstens_tien_voorbeelden():
     assert d.genoemd_in.aantal == 1
 
 
+def test_een_regeling_in_een_telling_staat_er_een_keer_en_nooit_als_kale_iri():
+    """Acceptatie 8 nov 2026: "Invorderingswet 1990, Invorderingswet 1990", en "urn:bwb:BWBR0043423" voor een regeling die de
+    graaf alleen als doel van een WTI-relatie kent, zonder naam."""
+    uit = [t("verwijzingDoor", IW, iri=True, naam="Invorderingswet 1990"), t("bevoegdheidVoor", "urn:bwb:BWBR0043423", iri=True)]
+    d = detail(uit=uit)
+    assert [(v.label, v.regeling) for v in d.genoemd_in.items] == [("Invorderingswet 1990", "")]
+    assert [(v.label, v.regeling) for v in d.bevoegdheid_voor.items] == [("BWBR0043423", "")]
+
+
+def test_een_verwijzing_naar_een_hele_regeling_heet_naar_die_regeling():
+    """Een verwijzing naar de AWR als geheel: de citeertitel, niet de IRI; en een regeling buiten de graaf heet naar haar anker."""
+    verw = [{"richting": "uit", "van": f"{A36}:lid:1", "naar": "urn:bwb:BWBR0002320", "anker": "Algemene wet inzake rijksbelastingen",
+             "vanLabel": "Artikel 36, lid 1", "naarInGraaf": "true"},
+            {"richting": "uit", "van": f"{A36}:lid:1", "naar": "urn:bwb:BWBR0002448", "anker": "Algemene termijnenwet",
+             "vanLabel": "Artikel 36, lid 1", "naarInGraaf": "false"}]
+    d = detail(verw=verw, citeertitels=CITEER | {"BWBR0002320": "Algemene wet inzake rijksbelastingen"})
+    assert sorted((v.naar.label, v.naar.regeling) for v in d.verwijst_naar) == [
+        ("Algemene termijnenwet", ""), ("Algemene wet inzake rijksbelastingen", "")]
+
+
 def test_wat_de_graaf_niet_heeft_blijft_leeg():
     d = detail(uit=[], reg=[], verw=[], plaats={}, titels={})
     assert d.plaats == [] and d.inwerking is None and d.status == "" and d.geldig_vanaf is None
