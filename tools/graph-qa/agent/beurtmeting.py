@@ -41,6 +41,9 @@ def route_van(state: Mapping[str, Any]) -> str:
         return f"{taak['agent']}:{taak.get('taak') or '?'}"
     if state.get("overzicht_route"):
         return "overzicht"
+    if state.get("afwijzen"):
+        # Een eigen statusregel (R3: doorvragen) of de afwijzing zelf; zonder dit stond de route op "onbekend".
+        return "verduidelijken" if state.get("afwijs_stap") else "afgewezen"
     return str(state.get("specialist") or "")
 
 

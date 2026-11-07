@@ -293,6 +293,10 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # Op acceptatie ging zo'n vervolgvraag de open lus in (4 rondes, 18 s) in plaats van de workflow (1 ronde).
         # De regeling raadt de code niet zelf uit de vorige beurt: het model leest het gesprek, de code beslist daarna.
         return {**upd, **_bepaling(writer, bepaling)}
+    if modus == "auto" and vraag and state.get("werkgebied_id") and is_dekkingsvraag(zelfstandig):
+        # "Welke bronnen horen daarbij?" is pas herschreven een vraag naar de stand ("… bij de deelvraag '…'"). Op
+        # acceptatie ging hij de open lus in: 188 s en 7 rondes voor wat de api zonder model weet.
+        return {**upd, **_agent(writer, state, "deelvragen", "dekking", zelfstandig)}
 
     plan += _herschreven(vraag)
     if afwijzen:

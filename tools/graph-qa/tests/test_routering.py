@@ -130,3 +130,17 @@ def test_een_herschreven_uitlegvraag_blijft_bij_de_specialist():
                           {"role": "assistant", "content": "…"}, {"role": "user", "content": "En wat betekent dat?"}]}
     upd = supervisie.supervisor_node(b, state)
     assert supervisie._entry_node(b, {**state, **upd}) == "agent" and upd["specialist"] == "duiding"
+
+
+def test_een_herschreven_vraag_naar_de_bronnen_van_een_deelvraag_gaat_naar_de_dekking():
+    """Acceptatie 7 nov 2026: "Welke bronnen horen daarbij?" ging de open lus in (188 s, 7 rondes)."""
+    b = _bouw(_Supervisor("VRAAG: Welke bronnen horen bij de deelvraag 'Wie kan om een rekeningafspraak verzoeken?'\n"
+                          "WORKERS: antwoord\nSPECIALIST: duiding\nPLAN: bronnen"))
+    state = {"question": "Welke bronnen horen daarbij?", "modus": "auto", "werkgebied_id": "w1", "focus": {},
+             "messages": [{"role": "user", "content": "Welke deelvraag is het minst uitgewerkt?"},
+                          {"role": "assistant", "content": "Deelvraag 5."},
+                          {"role": "user", "content": "Welke bronnen horen daarbij?"}]}
+    upd = supervisie.supervisor_node(b, state)
+    taak = upd["agent_taak"]
+    assert (taak["agent"], taak["taak"]) == ("deelvragen", "dekking")
+    assert "Wie kan om een rekeningafspraak verzoeken" in taak["parameters"]["vraag"]
