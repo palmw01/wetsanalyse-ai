@@ -115,6 +115,15 @@ herstelcodes = Table(
     Column("created", _DT, nullable=False),
 )
 
+# Een userid die ooit een account was. Audit en verbruik dragen hem als naam van een persoon; een nieuw account met
+# dezelfde userid zou die geschiedenis, en vroeger ook de gesprekken, erven. Daarom wordt hij nooit opnieuw uitgegeven.
+verwijderde_userids = Table(
+    "verwijderde_userids",
+    metadata,
+    Column("userid", String(64), primary_key=True),
+    Column("verwijderd", _DT, nullable=False),
+)
+
 # --- Zelfregistratie ------------------------------------------------------------
 # Aanvragen voor een account. Een bezoeker vult naam, e-mail en een zelfgekozen wachtwoord in; het
 # systeem leidt een userid af. Pas als een beheerder goedkeurt ontstaat er een rij in `users` – tot

@@ -29,6 +29,7 @@ from .users import (
     _norm_userid,
     _valideer_email,
     get_user,
+    userid_ooit_verwijderd,
     get_user_by_email,
     hash_wachtwoord,
     insert_user_met_hash,
@@ -73,7 +74,7 @@ async def _userid_bezet(userid: str) -> bool:
     Er is geen statusfilter nodig: een afgewezen aanvraag wordt verwijderd, dus elke rij die er nog
     staat houdt zijn volgnummer terecht vast.
     """
-    if await get_user(userid) is not None:
+    if await get_user(userid) is not None or await userid_ooit_verwijderd(userid):
         return True
     async with db.get_engine().connect() as conn:
         n = (await conn.execute(
