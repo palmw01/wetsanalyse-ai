@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   groeneVoorstellen, heeftOordeel,
   bronVan,
+  documentStand,
   documentStatusLabel,
   regelsVan,
   pastInFilter,
@@ -23,10 +24,31 @@ import {
 } from "./annotatie";
 import type { AnnotatieElement, GraafArtikel } from "./types";
 
+describe("documentStand", () => {
+  const laag = { status: "in_review" as const, aantal_elementen: 3, te_beoordelen: 1 };
+
+  it("houdt de status zolang er iets te beoordelen is", () => {
+    expect(documentStand(laag)).toEqual({ label: "In behandeling", toon: "geel" });
+  });
+
+  it("toont een eigen label als alleen het afronden ontbreekt", () => {
+    const stand = documentStand({ ...laag, te_beoordelen: 0 });
+    expect(stand.label).toBe("Klaar om af te ronden");
+    expect(stand.toon).toBe("neutraal");
+    expect(stand.uitleg).toBeTruthy();
+  });
+
+  it("laat een lege laag en een afgeronde laag met rust", () => {
+    expect(documentStand({ ...laag, aantal_elementen: 0, te_beoordelen: 0 }).label).toBe("In behandeling");
+    expect(documentStand({ ...laag, status: "geaccordeerd", te_beoordelen: 0 }))
+      .toEqual({ label: "Afgerond", toon: "groen" });
+  });
+});
+
 describe("documentStatusLabel", () => {
   it("mapt de drie documentstatussen naar NL-labels", () => {
     expect(documentStatusLabel("in_review")).toBe("In behandeling");
-    expect(documentStatusLabel("geaccordeerd")).toBe("Geaccordeerd");
+    expect(documentStatusLabel("geaccordeerd")).toBe("Afgerond");
     expect(documentStatusLabel("gepromoveerd")).toBe("In de graaf");
   });
 });

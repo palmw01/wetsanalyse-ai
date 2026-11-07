@@ -91,7 +91,10 @@ await page.route("**/api/**", async (route) => {
   if (url.pathname.endsWith("/node-lagen")) return route.fulfill({ json: verwijderd.has("urn:lid2") ? [] : [{
     bron_iri: "urn:lid2", label: "Artikel 9 · Lid 2", snapshot_id: "snapshot", slug: "lid2", bwbId: "BWBR0004770", artikel: "9",
     lid: "2", citeertitel: "Invorderingswet 1990", werkgebied: "", status: "in_review", aantal_elementen: 1, te_beoordelen: 1,
-    per_aandacht: { geel: 1 }, per_klasse: {}, laatste_model: "", updated: null }] });
+    per_aandacht: { geel: 1 }, per_klasse: {}, laatste_model: "", updated: null }, {
+    bron_iri: "urn:lid3", label: "Artikel 9 · Lid 3", snapshot_id: "snapshot", slug: "lid3", bwbId: "BWBR0004770", artikel: "9",
+    lid: "3", citeertitel: "Invorderingswet 1990", werkgebied: "", status: "in_review", aantal_elementen: 2, te_beoordelen: 0,
+    per_aandacht: {}, per_klasse: {}, laatste_model: "", updated: null }] });
   if (url.pathname.endsWith("/weergave")) body = view(url.searchParams.get("bron_iri"));
   else if (url.pathname.endsWith("/verklaringen")) body = verklaringen;
   else if (url.pathname.endsWith("/elementen/e1/graaf")) body = { element_id: "e1", laag_id: "laag1",
@@ -263,10 +266,26 @@ try {
   await page.getByText("search_annotaties", { exact: true }).first().waitFor();
   assert.equal(await page.getByText("meer resultaten beschikbaar", { exact: false }).count() >= 1, true);
 
+  // De weergaven volgen de weg van een annotatie: wat alleen nog afgerond moet, heeft een eigen knop en een eigen label.
+  await page.goto(`${base}/annotaties`);
+  await page.getByRole("button", { name: "Te beoordelen (1)" }).waitFor();
+  await page.getByRole("button", { name: "Afgerond (0)" }).waitFor();
+  await page.getByRole("button", { name: "Alles (2)" }).waitFor();
+  assert.equal(await page.getByText("Klaar om af te ronden", { exact: true }).count(), 0);
+  await page.getByRole("button", { name: "Af te ronden (1)" }).click();
+  await page.waitForURL("**/annotaties?weergave=af-te-ronden");
+  await page.locator("article", { hasText: "art. 9 lid 3" }).getByText("Klaar om af te ronden", { exact: true }).waitFor();
+  assert.equal(await page.locator("article").count(), 1);
+  await page.getByRole("button", { name: "Alles (2)" }).click();
+  await page.locator("article", { hasText: "art. 9 lid 2" }).getByText("In behandeling", { exact: true }).waitFor();
+  await page.getByLabel("Zoeken in annotaties").fill("artikel 9 lid 3");
+  await page.locator("article", { hasText: "art. 9 lid 3" }).waitFor();
+  assert.equal(await page.locator("article").count(), 1);
+
   // In de lijst: dezelfde knop per kaart als in het paneel; eerst de weergave (de revisies), dan
   // hetzelfde verzoek. De kaart gaat meteen weg.
   await page.goto(`${base}/annotaties?weergave=alles`);
-  const kaart = page.locator("article", { hasText: "Artikel 9 · Lid 2" });
+  const kaart = page.locator("article", { hasText: "art. 9 lid 2" });
   await kaart.getByRole("button", { name: "Annotatie verwijderen", exact: true }).click();
   await kaart.getByRole("button", { name: "Verwijderen?", exact: true }).click();
   await kaart.waitFor({ state: "detached" });

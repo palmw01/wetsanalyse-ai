@@ -14,7 +14,7 @@ import { foutTekst, isApiError, lijstLagen } from "@/lib/api";
 import { verwijderAnnotatie } from "@/lib/annotatieNode";
 import { metSpoor } from "@/lib/uiSpoor";
 import {
-  WEERGAVEN, groepeerPerRegeling, isTeDoen, sorteerTeDoen, zoek,
+  WEERGAVEN, groepeerPerRegeling, inWeergave, legeWeergave, sorteerTeBeoordelen, uitlegWeergave, zoek,
   type Weergave,
 } from "@/lib/annotatieOverzicht";
 import type { DocumentSamenvatting } from "@/lib/types";
@@ -25,9 +25,9 @@ import type { DocumentSamenvatting } from "@/lib/types";
  *  geannoteerd is niet opnieuw hoeft te doen. "Door mij bewerkt" beperkt de lijst
  *  tot de lagen waar je zelf iets aan deed – een laag heeft geen eigenaar, dus dat staat in de audit.
  *
- *  Twee weergaven op één lijst. *Te doen* is werkvoorraad – wat vraagt nog aandacht, rood eerst.
- *  *Alles* is het archief, gegroepeerd per regeling, want juristen zoeken in wetten en niet in
- *  documenten-op-datum. De stand staat in de URL zodat terugbladeren en delen werken. */
+ *  Vier weergaven op één lijst, langs de weg van een annotatie. *Te beoordelen* is werkvoorraad, rood
+ *  eerst. *Af te ronden*, *Afgerond* en *Alles* staan per regeling, want juristen zoeken in wetten en
+ *  niet in documenten-op-datum. De stand staat in de URL zodat terugbladeren en delen werken. */
 export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave }) {
   const router = useRouter();
   const [docs, setDocs] = useState<DocumentSamenvatting[] | null>(null);
@@ -71,16 +71,14 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
     setWeergave(nieuw);
     // `replace`, niet `push`: een wissel tussen twee weergaven van dezelfde lijst is geen stap in de
     // geschiedenis – anders moet je vijf keer terug om weg te komen.
-    router.replace(nieuw === "alles" ? "/annotaties?weergave=alles" : "/annotaties", {
+    router.replace(nieuw === "te-beoordelen" ? "/annotaties" : `/annotaties?weergave=${nieuw}`, {
       scroll: false,
     });
   }
 
   const alles = docs ?? [];
   const gezocht = zoek(alles, term);
-  const teDoen = sorteerTeDoen(gezocht.filter(isTeDoen));
-  const getoond = weergave === "te-doen" ? teDoen : gezocht;
-  const aantalTeDoen = alles.filter(isTeDoen).length;
+  const getoond = gezocht.filter((d) => inWeergave(d, weergave));
 
   return (
     <div className="relative flex h-screen h-[100dvh] flex-col overflow-hidden bg-surface">
@@ -108,7 +106,7 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
             </header>
 
             <OverzichtBalk
-              filters={WEERGAVEN.map((w) => ({ ...w, aantal: w.waarde === "te-doen" ? aantalTeDoen : alles.length }))}
+              filters={WEERGAVEN.map((w) => ({ ...w, aantal: alles.filter((d) => inWeergave(d, w.waarde)).length }))}
               gekozen={weergave}
               onKies={kiesWeergave}
               filterLabel="Weergave"
@@ -117,8 +115,12 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
               zoekterm={term}
               onZoek={setTerm}
               zoekLabel="Zoeken in annotaties"
-              placeholder="Zoek op wet, artikel of onderwerp"
+              placeholder="Zoek op wet, artikel of lid"
             />
+
+            {alles.length > 0 && (
+              <p className="-mt-2 mb-4 text-xs text-muted">{uitlegWeergave(weergave)}</p>
+            )}
 
             {fout && (
               <Melding type="fout" className="mb-4">
@@ -142,13 +144,11 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
               </p>
             ) : getoond.length === 0 ? (
               <p className="rounded-kaart border border-dashed border-line px-3 py-6 text-center text-sm text-muted">
-                {weergave === "te-doen"
-                  ? "Niets meer te beoordelen – alles is afgehandeld."
-                  : "Geen annotatie die hierop past."}
+                {term.trim() ? "Geen annotatie die hierop past." : legeWeergave(weergave)}
               </p>
-            ) : weergave === "te-doen" ? (
+            ) : weergave === "te-beoordelen" ? (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {getoond.map((d) => (
+                {sorteerTeBeoordelen(getoond).map((d) => (
                   <AnnotatieKaart key={d.slug} doc={d} onVerwijder={() => verwijder(d)} />
                 ))}
               </div>
