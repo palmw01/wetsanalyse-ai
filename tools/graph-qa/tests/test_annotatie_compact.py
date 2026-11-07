@@ -89,3 +89,9 @@ def test_een_adviesvraag_is_geen_leesvraag():
     vraag = "Welke klasse past het best bij dit fragment?"
     assert is_leesvraag(vraag)
     assert not is_leesvraag(vraag, "advies")
+
+
+def test_het_model_leest_de_beoordeling_in_de_woorden_van_de_werkplek():
+    """Acceptatie 7 nov 2026: "lifecycle `voorgesteld`" en "human_approved" stonden letterlijk in de toelichting."""
+    treffer = json.loads(dispatch_annotatie("search_annotaties", {}, Poort()))["resultaten"][0]
+    assert treffer["beoordeling"] == "voorstel van Lex" and "lifecycle" not in treffer

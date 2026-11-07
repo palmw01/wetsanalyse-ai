@@ -29,7 +29,7 @@ def test_volledige_stroom_plan_tools_verify_finalize():
     types = [e["type"] for e in events]
 
     assert types[0] == "status" and "Aanpak" in events[0]["message"]          # plan-node eerst
-    assert any(e["type"] == "status" and "Graaf bevragen" in e["message"] for e in events)  # tools-node
+    assert any(e["type"] == "status" and e["message"].startswith("Lex · leest artikel 9") for e in events)  # tools-node
     assert graph.queries                                                       # tool echt uitgevoerd
     # volgorde aan het eind: sources → grounding → done
     assert types.index("sources") < types.index("grounding") < types.index("done")

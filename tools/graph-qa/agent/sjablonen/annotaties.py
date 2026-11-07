@@ -23,8 +23,9 @@ SCHEMA: dict[str, Any] = {
         "Rond een vraag naar bestaande annotaties of markeringen af. Roep deze tool aan nadat de zoekopdracht klaar is, en "
         "schrijf geen antwoord ernaast. De werkplek toont de treffers van je laatste zoekopdracht zelf, met hun aantal en of "
         "ze compleet zijn: herhaal die niet. Jij levert alleen een korte toelichting in eigen woorden: de gebruikte filters "
-        "en wat opvalt. Een annotatie is duiding, geen wettekst: citeer niet. Is er niets gevonden of mislukte het zoeken, dan "
-        "zegt de werkplek dat zelf."),
+        "en wat opvalt. Een annotatie is duiding, geen wettekst: citeer niet. Schrijf voor een jurist: noem een bepaling bij "
+        "haar vindplaats (artikel, lid), niet bij haar iri, en gebruik geen veldnamen of filternamen. Is er niets gevonden of "
+        "mislukte het zoeken, dan zegt de werkplek dat zelf."),
     "strict": True,
     "input_schema": {
         "type": "object",
