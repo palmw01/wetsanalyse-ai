@@ -13,6 +13,7 @@ import logging
 from collections import Counter
 from typing import Any
 
+from bronmodel.antwoord import NIET_GETOETST, Antwoord, antwoord_tekst
 from langgraph.config import get_stream_writer
 
 from ..berichten import CORRECTIE, _parse_final, _schoon_messages, _trim_messages, beurt_start
@@ -113,7 +114,9 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     # Anders belandt er een assistant(tool_use) zónder tool_result in de checkpointer (orphan →
     # de volgende beurt in dezelfde conversatie crasht op Anthropic 400) én blijft het antwoord
     # leeg. Laat de tools dan vallen en lever een net eind-antwoord (desnoods een korte melding).
-    if tool_uses and tool_uses[0]["name"] not in SJABLONEN and state.get("turns", 0) + 1 >= b.settings.max_turns:
+    # Een sjabloon mag de laatste beurt nog afronden, maar een sjabloon dat onvulbaar blijft mag er niet voorbij.
+    limiet = b.settings.max_turns if tool_uses and tool_uses[0]["name"] in SJABLONEN else b.settings.max_turns - 1
+    if tool_uses and state.get("turns", 0) >= limiet:
         tool_uses = []
         if not any(p and p.strip() for p in text_parts):
             text_parts = [
@@ -257,7 +260,9 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
     # Getoetst tegen deze beurt én wat eerder in het gesprek letterlijk is opgehaald: een vervolgantwoord
     # dat een citaat uit het vorige antwoord herhaalt, is niet minder brongetrouw dan dat antwoord.
-    report = check_grounding(state.get("answer", ""), controletrace(state), overzicht=state.get("overzicht") or None)
+    # Bij een sjabloon niet de blokken die afgeleide duiding of tekst van de code dragen (`NIET_GETOETST`).
+    tekst = antwoord_tekst(Antwoord.model_validate(state["antwoord"]), zonder=NIET_GETOETST) if state.get("antwoord") else state.get("answer", "")
+    report = check_grounding(tekst, controletrace(state), overzicht=state.get("overzicht") or None)
     # Wettekst uit een sjabloon staat zonder aanhalingstekens, dus de toets ziet "niets te controleren". Maar de code
     # toonde hem uit de tool-rijen, met de vindplaats erbij: de melding dat er geen vindplaats is, zou onwaar zijn.
     if report.niveau == "onbepaald" and not report.onbevestigd and (state.get("antwoord") or {}).get("doelen"):
@@ -397,13 +402,15 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
 
     if state.get("overzicht"):
         # De overzichtsroute: de bronnen zijn de vindplaatsen van het overzicht, en hangen dus niet af
-        # van hoe de duiding geformuleerd is – geen cureren op de proza, geen bronnen van eerder.
+        # van de tekst – geen cureren op de proza, geen bronnen van eerder.
         sources = collect_sources([(OVERZICHT_TOOL, overzicht_bronrijen(state["overzicht"]))])
     elif state.get("antwoord"):
         # Een sjabloon draagt zijn vindplaatsen zelf; cureren op de proza heeft dan geen zin. Zonder doelen (een
         # leemte) rust de toelichting op wat er verder is opgehaald, en dat moet herleidbaar blijven.
+        # Een vervolgvraag kan op een eerdere beurt rusten, dus de doelen zoek je in de hele controletrace.
         doelen = {d["iri"] for d in state["antwoord"].get("doelen") or []}
-        sources = [s for s in collect_sources(state.get("source_trace", [])) if not doelen or s.uri in doelen]
+        sources = ([s for s in collect_sources(controletrace(state)) if s.uri in doelen] if doelen
+                   else collect_sources(state.get("source_trace", [])))
     else:
         sources = collect_sources(state.get("source_trace", []))
         # Bronnen uit eerdere beurten alleen als het antwoord hun regeling noemt: anders vult elke

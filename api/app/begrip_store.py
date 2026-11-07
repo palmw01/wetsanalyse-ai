@@ -458,9 +458,9 @@ async def bewijzen(werkgebied: dict, element_ids: list[str], resolve: Resolver) 
                                   "melding": "Niet elk element valt binnen dit werkgebied, of het is verworpen "
                                              "of bestaat niet meer."})
     uit = {}
+    details = await annotaties.details(element_ids)
     for eid in dict.fromkeys(element_ids):
-        inv_el = per_id[eid]
-        detail = await annotaties.detail(eid)
+        detail, inv_el = details[eid], per_id[eid]
         el = detail["element"]
         sel = inv_el["selecties"][0]
         knoop = next((n for n in detail["bronnen"] if n["bron_iri"] == el["eigenaar_iri"]), None)

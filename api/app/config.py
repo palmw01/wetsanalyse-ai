@@ -124,8 +124,9 @@ class Settings:
         # LLM-call en zit alleen achter het admin-token – een gelekt token mag geen kosten stapelen.
         self.admin_test_rate_max = int(os.environ.get("WETSANALYSE_ADMIN_TEST_RATE_MAX", "10"))
         self.admin_test_rate_window_s = float(os.environ.get("WETSANALYSE_ADMIN_TEST_RATE_WINDOW", "60"))
-        # Tokenbudget per gebruiker. Dit zijn alleen de SEED-waarden voor de allereerste start: het
-        # beleid leeft daarna in de tabel `budget_beleid` en wordt door een beheerder beheerd, want
+        # Tokenbudget. Dit zijn alleen de SEED-waarden voor de allereerste start: `token_budget` wordt
+        # het budget van elke rol. Daarna leven ze in `budget_rol` en `budget_beleid` en worden ze door
+        # een beheerder beheerd, want
         # een limiet aanpassen mag geen redeploy vragen.
         self.token_budget = int(os.environ.get("WETSANALYSE_TOKEN_BUDGET", "500000"))
         self.token_budget_dagen = int(os.environ.get("WETSANALYSE_TOKEN_BUDGET_DAGEN", "7"))

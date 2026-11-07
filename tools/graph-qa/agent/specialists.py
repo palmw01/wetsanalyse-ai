@@ -70,6 +70,18 @@ _AFRONDEN_BEPALING = (
 )
 
 
+# De duiding-specialist heeft twee afrondingen: de wettekst zelf, of uitleg die op aangewezen passages rust.
+_AFRONDEN_DUIDING = (
+    "AFRONDEN: je schrijft geen antwoord in tekst, je rondt als laatste stap af met een sjabloontool.\n"
+    "- Vraagt de gebruiker alleen wat er in een bepaling staat → antwoord_bepaling.\n"
+    "- Vraagt de gebruiker om uitleg (hoe werkt X, hoe verhoudt Y zich tot Z, wat betekent dit voor een geval) → "
+    "antwoord_duiding. Citeren kan alleen uit de hele tekst van een bepaling: haal elke bepaling waarop je leunt op met "
+    "get_artikel, get_lid of get_bepaling; get_context en zoekresultaten tonen de samenhang maar zijn daarvoor niet genoeg. "
+    "Noem je in je uitleg een bepaling, wijs er dan een passage uit aan.\n"
+    "- Vond je geen bepaling die de vraag draagt, dan antwoord je in tekst en zeg je dat."
+)
+
+
 SPECIALISTS: dict[str, Specialist] = {
     "annotaties_lezen": Specialist(
         system=("Je raadpleegt uitsluitend bestaande annotaties. De eerste zoekopdracht is al voor "
@@ -81,9 +93,14 @@ SPECIALISTS: dict[str, Specialist] = {
                 "Een toolfout of gedeeltelijk resultaat betekent niet dat niets bestaat. "
                 "Annotaties en beoordelingen zijn afgeleide duiding, geen wettelijke bron. "
                 "Haal bij inhoudelijke wetsclaims de bepaling afzonderlijk op met een brontool. "
-                "Gebruik zoekresultaten uit wetgeving nooit als vervanging voor annotatiezoekresultaten."),
+                "Gebruik zoekresultaten uit wetgeving nooit als vervanging voor annotatiezoekresultaten.\n"
+                "AFRONDEN: vraagt de gebruiker welke annotaties of markeringen er zijn, dan schrijf je geen antwoord in "
+                "tekst maar roep je als laatste stap antwoord_annotaties aan: de werkplek toont de treffers uit je laatste "
+                "zoekopdracht zelf, met of ze compleet zijn. Gaat de vraag om meer (waarom deze klasse, hoe verhouden ze zich), "
+                "dan antwoord je in tekst."),
         tools=frozenset({"search_annotaties", "overzicht_annotaties", "get_annotatie", "get_annotatiedekking",
                          "get_artikel", "get_lid", "get_bepaling", "list_regelingen", "inhoudsopgave"}),
+        sjablonen=frozenset({"antwoord_annotaties"}),
     ),
     "begrippen_lezen": Specialist(
         system=("Je raadpleegt de begrippen die juristen in werkgebieden vastlegden. De eerste zoekopdracht is al "
@@ -93,9 +110,14 @@ SPECIALISTS: dict[str, Specialist] = {
                 "Noem per begrip de status en het werkgebied; bij een vervangen begrip de opvolger. Een begrip is "
                 "een analyse-uitkomst, geen wettelijke definitie: zet de definitie niet tussen aanhalingstekens, "
                 "en haal bij inhoudelijke wetsclaims de bepaling afzonderlijk op met een brontool. Een toolfout "
-                "of onvolledig resultaat betekent niet dat een begrip niet bestaat."),
+                "of onvolledig resultaat betekent niet dat een begrip niet bestaat.\n"
+                "AFRONDEN: vraagt de gebruiker welke begrippen er liggen of of een term is vastgelegd, dan schrijf je "
+                "geen antwoord in tekst maar roep je als laatste stap antwoord_begrip aan met een leeg begrip: de werkplek "
+                "toont de begrippen uit je laatste zoekopdracht zelf. Wil de gebruiker ook weten wat de wet zegt, zoek "
+                "dan met zoek_definitie en noem het begrip. Gaat de vraag om meer (passages, relaties), dan antwoord je in tekst."),
         tools=frozenset({"search_begrippen", "get_begrip", "zoek_definitie", "get_artikel", "get_lid",
                          "get_bepaling", "list_regelingen"}),
+        sjablonen=frozenset({"antwoord_begrip"}),
     ),
     "definitie": Specialist(
         system=(
@@ -128,9 +150,9 @@ SPECIALISTS: dict[str, Specialist] = {
     "duiding": Specialist(
         system=(
             "Je bent de DUIDINGS-specialist. Je legt de betekenis, structuur en samenhang van een "
-            "bepaling uit.\n" + _AFRONDEN_BEPALING + "\n"
+            "bepaling uit.\n" + _AFRONDEN_DUIDING + "\n"
             "- get_context: de bepaling met haar inbedding, leden en verwijzingen in één call – "
-            "begin daar;\n"
+            "begin daar voor de samenhang;\n"
             "- follow_verwijzingen (waarheen) en verwijst_naar_deze (wie citeert dit) om "
             "kruisverwijzingen in beide richtingen te volgen; referenced_by geeft alleen de "
             "regelingen, dus grofmaziger;\n"
@@ -151,7 +173,7 @@ SPECIALISTS: dict[str, Specialist] = {
             # lezen, en de klasse-omschrijving alleen raden.
             "get_annotatie", "jas_klasse_opvragen",
         }),
-        sjablonen=frozenset({"antwoord_bepaling"}),
+        sjablonen=frozenset({"antwoord_bepaling", "antwoord_duiding"}),
     ),
     "algemeen": Specialist(system=_AFRONDEN_BEPALING, tools=None, sjablonen=frozenset({"antwoord_bepaling"})),
     # De OPHAAL-agent voor de annotatie-flow: dezelfde volledige retrieval-kist als Lex + get_bepaling,

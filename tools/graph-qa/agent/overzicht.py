@@ -17,8 +17,8 @@ Hier gebeurt alles wat feitelijk is in code, met vaste queries en een vaste orde
 4. **Trefwoord** – regelingen waaraan de redactie dit trefwoord hangt (`queries.trefwoord_regelingen`):
    een redactionele indeling, geen wettelijke duiding.
 
-Het model krijgt het overzicht en schrijft er een korte duiding bij; de werkplek toont het overzicht
-zelf. Zo zijn lijst, bronnen en graaf bij dezelfde vraag dezelfde. `semantic_search` doet bewust niet
+In de overzichtsroute komen overzicht en tekst allebei hieruit, zonder model (`nodes/overzicht.py`). Zo
+zijn lijst, tekst, bronnen en graaf bij dezelfde vraag dezelfde. `semantic_search` doet bewust niet
 mee: die geeft altijd de k dichtstbijzijnde treffers, zonder ondergrens – een vaste maar willekeurige
 staart.
 """
@@ -603,8 +603,9 @@ def aantal_bepalingen(ov: dict[str, Any]) -> int:
 
 
 def voor_model(ov: dict[str, Any], *, offset: int = 0, args: dict[str, Any] | None = None) -> str:
-    """Wat het model leest: de opbouw per regeling met tellingen, zonder de nummerlijsten – die toont de
-    werkplek. Genoeg om te duiden ("vijf hoofdstukken van de Iw, afdeling 4.4.4 Awb"), te weinig om een
+    """Wat het model leest: de opbouw per regeling met tellingen, zonder de nummerlijsten. Dit is het
+    resultaat van de tool `overzicht_onderwerp` en, in de route, het paar in de historie voor een vervolgvraag.
+    Genoeg om te duiden ("vijf hoofdstukken van de Iw, afdeling 4.4.4 Awb"), te weinig om een
     lijst over te typen. Eén rij per deel plus per regeling één 'ook genoemd'-rij; past het niet binnen de
     begroting, dan met een `vervolg` naar `overzicht_onderwerp` vanaf de volgende rij (het contract:
     niets wordt afgeknipt)."""
@@ -632,7 +633,7 @@ def voor_model(ov: dict[str, Any], *, offset: int = 0, args: dict[str, Any] | No
         **({"afgebakend_tot": ov["scope"]} if ov["scope"] else {}),
     }
     if not offset:
-        # De kop draagt hoogstens vijf van elk, met het totaal: het model duidt, de werkplek toont alles.
+        # De kop draagt hoogstens vijf van elk, met het totaal.
         if ov["definities"]:
             extra["definities"] = [compact({"begrip": d["begrip"], "vindplaats": d["jci"] or d["iri"],
                                             "regeling": d["citeertitel"]}) for d in ov["definities"][:KOP]]
@@ -643,9 +644,8 @@ def voor_model(ov: dict[str, Any], *, offset: int = 0, args: dict[str, Any] | No
                                       for t in ov["trefwoorden"][:KOP]]
             extra["trefwoorden_totaal"] = len(ov["trefwoorden"])
     toelichting = (
-        "Dit overzicht is al voor je opgebouwd uit de graaf en de werkplek toont het volledig, met alle "
-        "nummers. Schrijf alleen een korte duiding (2–4 zinnen): waar het onderwerp vooral geregeld is en "
-        "wat opvalt. Herhaal geen lijsten of nummers, en noem geen bepaling die hier niet in staat."
+        "Dit overzicht komt uit de graaf en geeft per deel het aantal bepalingen, niet hun nummers: die "
+        "haal je op met inhoudsopgave. Noem geen bepaling die hier niet in staat."
     )
     vervolg_args = args or {"onderwerp": ov["gevraagd"], **({"bwb_id": ov["scope"][0]} if len(ov["scope"]) == 1 else {})}
 

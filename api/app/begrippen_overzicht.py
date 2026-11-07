@@ -26,7 +26,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import func, or_, select
 
-from . import begrip_projectie, begrip_relatie_store, begrip_store, db
+from . import begrip_projectie, begrip_relatie_store, begrip_store, bestandsnaam, db
 from .begrip_relatie_contracts import NieuweBetekenis
 from .auth import require_client
 from .begrip_contracts import Accordering, BegripStatus, BegripVerificatie, BegripWijziging, BegripZoekvraag, Revisie
@@ -188,7 +188,7 @@ async def get_export(inclusief: Literal["geaccordeerd", "alle"] = "geaccordeerd"
     """Het generieke begrippenkader als Turtle (NL-SBB)."""
     body = await begrip_projectie.export_turtle(begrip_projectie.GENERIEK, alles=inclusief == "alle")
     return Response(body, media_type="text/turtle; charset=utf-8",
-                    headers={"Content-Disposition": 'attachment; filename="generieke-begrippen.ttl"'})
+                    headers={"Content-Disposition": f'attachment; filename="{bestandsnaam.met_tijd("generieke-begrippen", "ttl")}"'})
 
 
 @router.get("/conformiteit")

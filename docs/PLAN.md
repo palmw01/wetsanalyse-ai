@@ -110,6 +110,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | L | Getypte bepalingen bij het samenstellen, één plek voor de bronnen per deelvraag | Af: L1 (#772), L2–L3 (#773) |
 | M | Betekenisonderzoek: begrippen vanuit hun juridische context | M1–M4 gemerged (#774–#777) |
 | N | Begrippen: nieuwe bediening en generieke begrippen | Gemerged (#836–#847) en op acceptatie, met de opvolging van de review (#848–#852) |
+| P | Antwoordsjablonen: vaste vorm per vraagtype (ADR-008) | Gebouwd: `begrip`, `bepaling`, `duiding`, `annotaties`; de overzichtsroute bewust zonder sjabloon. Open: tokens en duur meten, `verwijzingen` als blok alleen als het vast kan, en de eval `gesprek` (kost geld) |
 | O | Acceptatietesten via MCP | Accounttoken en acceptatie-MCP gebouwd, eerste scenario gedraaid; open: de fixtures voor de Playwright-mocks |
 
 ---
