@@ -66,7 +66,10 @@ het gaat naar de browser en naar het chatbericht, niet naar Log Analytics.
 `uitvoer`, `cache_lees`, `cache_schrijf`, `model`. Geen inhoud. Hij voedt de panelen *Wachttijd per beurtsoort* en
 *Tokens en cachetreffer per beurtsoort*. Bedragen staan er niet bij: prijzen staan nergens in de repo, en de
 boekhouding blijft het verbruiksjournaal van de api. De batchruns van `begrippen_verdieping` zijn geen beurt en
-vallen erbuiten. Welke stap traag was, staat in de spans `graph_qa.node.<naam>`.
+vallen erbuiten. Welke stap traag was, staat in de spans `graph_qa.node.<naam>`. Dezelfde cijfers gaan als
+`meting`-event vlak vóór `done` naar wie de run volgt, met daarbij per modelaanroep `invoer`, `uitvoer`,
+`cache_lees`, `cache_schrijf` en `ms`. Zo is één beurt te meten zonder toegang tot Application Insights, bijvoorbeeld
+met de acceptatie-MCP (`lex_wacht` geeft het event door).
 
 **`venster`** (zelfde logger `graph_qa.beurt`, E6-C1) is één regel per beurt uit `agent_node`, bij de eerste
 modelronde: wat `_trim_messages` van de historie overliet (`berichten.venster_telling`). Velden: `run_id`,

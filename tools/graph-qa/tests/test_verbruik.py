@@ -127,6 +127,17 @@ def test_adapter_telt_bij_stream():
     assert llm.meter.totaal == 25
 
 
+def test_de_adapter_geeft_elke_aanroep_zijn_duur_mee():
+    """Voor de meting per beurt: create en stream komen allebei als eigen aanroep, met hoe lang hij duurde."""
+    llm = _adapter([SimpleNamespace(usage=_usage(30, 10), content=[], stop_reason="end_turn"),
+                    SimpleNamespace(usage=_usage(20, 5, 7), content=[], stop_reason="end_turn")])
+    llm.create(model="m", max_tokens=10, system="s", tools=[], messages=[])
+    with llm.stream(model="m", max_tokens=10, system="s", tools=[], messages=[]) as stream:
+        stream.final_message()
+    assert [(a["invoer"], a["cache_lees"]) for a in llm.meter.aanroepen] == [(30, 0), (20, 7)]
+    assert all(isinstance(a["ms"], int) and a["ms"] >= 0 for a in llm.meter.aanroepen)
+
+
 # --- boeken bij de api ----------------------------------------------------------
 
 class _NepApi:
