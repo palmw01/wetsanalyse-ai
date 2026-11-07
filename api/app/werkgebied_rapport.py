@@ -18,7 +18,7 @@ from zoneinfo import ZoneInfo
 from bronmodel.antwoord import Vindplaats
 from pydantic import BaseModel, ConfigDict
 
-from .pdf_opmaak import BEGRIP, BLOK_BEGIN, BLOK_EIND, INHOUD, MARKERING, PAGINA
+from .pdf_opmaak import BEGRIP, BLOK_BEGIN, BLOK_EIND, INHOUD, MARKERING, PAGINA, TITELBLAD
 
 VERSIE = 2
 SCHEMA = "werkgebied-rapport-v2"
@@ -468,15 +468,26 @@ def _signaal(s: Signaal) -> str:
     return "Het zoeken naar bronnen is onvolledig of verouderd; zie deel 2."
 
 
-def voorblad_regels(v: Voorblad, stand: Stand) -> list[Regel]:
-    uit: list[Regel] = [("Title", v.naam), ("Subtitle", "Wetsanalyse: dossier van het werkgebied")]
+def titelblad_regels(doc: Document, v: Voorblad, stand: Stand) -> list[Regel]:
+    """Pagina 1: wat dit is, waarover, en in welke stand. De PDF tekent het als titelblad, Markdown als kop met een lijst."""
+    status = _WERKGEBIED_STATUS.get(v.status, v.status) + (" · concept" if doc.concept else "")
+    uit: list[Regel] = [(TITELBLAD + "titel", v.naam), (TITELBLAD + "soort", "Wetsanalyse · rapport van het werkgebied")]
     if v.analysevraag:
-        uit.append(("BodyText", "Analysevraag: " + v.analysevraag))
-    uit.append(("BodyText", f"Status: {_WERKGEBIED_STATUS.get(v.status, v.status)} · revisie {v.revisie}"))
+        uit.append((TITELBLAD + "vraag", v.analysevraag))
+    uit += [(TITELBLAD + "rij", "Status: " + status), (TITELBLAD + "rij", f"Revisie: {v.revisie}"),
+            (TITELBLAD + "rij", "Peildatum: " + (datum(v.peildatum) or "niet vastgelegd") + (" (de aanmaakdag)" if v.peildatum_standaard else "")),
+            (TITELBLAD + "rij", "Stand van: " + datum_tijd(stand.op)), (TITELBLAD + "rij", "Kenmerk: " + doc.kenmerk)]
     if v.thema:
-        uit.append(("BodyText", "Thema: " + v.thema))
-    uit.append(("BodyText", "Peildatum: " + (datum(v.peildatum) or "niet vastgelegd") + (" (de aanmaakdag)" if v.peildatum_standaard else "")))
-    uit.append(("BodyText", f"Stand van {datum(stand.op)}, geëxporteerd door {stand.door}."))
+        uit.append((TITELBLAD + "rij", "Thema: " + v.thema))
+    if v.regelingen:
+        uit.append((TITELBLAD + "regelingen", "Regelingen: " + " · ".join(r.citeertitel for r in v.regelingen)))
+    uit.append((TITELBLAD + "voetnoot", "Een analyse-uitkomst volgens de methode Wetsanalyse, geen wettelijke definitie en geen "
+                                        "juridisch oordeel. Lex stelt voor, de jurist beslist."))
+    return uit
+
+
+def bronstand_regels(v: Voorblad) -> list[Regel]:
+    uit: list[Regel] = []
     if v.regelingen:
         uit.append(("Heading4", "Bronstand per regeling"))
         for r in v.regelingen:
@@ -484,16 +495,22 @@ def voorblad_regels(v: Voorblad, stand: Stand) -> list[Regel]:
             tot = f" tot {datum(r.geldig_tot)}" if r.geldig_tot and r.geldig_tot < "9999" else ""
             vanaf = f"geldt vanaf {datum(r.geldig_vanaf)}{tot}" if r.geldig_vanaf else "geldigheid onbekend"
             uit.append(("Meta", f"{r.citeertitel} ({r.bwb_id}): {vanaf}"))
-    if v.signalen:
-        uit.append(("Heading4", "Let op"))
-        uit += [("Waarschuwing", _signaal(s)) for s in v.signalen]
-    uit += [("Heading4", "Zo lees je dit dossier"),
+    return uit
+
+
+def signalen_regels(v: Voorblad) -> list[Regel]:
+    if not v.signalen:
+        return []
+    return [("Heading4", "Let op"), *[("Waarschuwing", _signaal(s)) for s in v.signalen]]
+
+
+def leeswijzer_regels() -> list[Regel]:
+    return [("Heading4", "Zo lees je dit rapport"),
             ("Meta", "Dit is een analyse-uitkomst, geen wettelijke definitie en geen juridisch oordeel. De wettekst is "
                      "letterlijk overgenomen uit de kennisgraaf, die gevuld is uit de officiële publicatie. Bij elke "
                      "bepaling staat de vindplaats en de bronreferentie (jci)."),
             ("Meta", "Lex stelt voor, de jurist beslist. Beoordeeld of geaccordeerd betekent dat een jurist het bevestigde. "
                      "Voorstel en concept zijn nog niet bevestigd; afgewezen en uitgesloten zijn bewust niet meegenomen.")]
-    return uit
 
 
 def colofon_regels(doc: Document, v: Voorblad, stand: Stand, verantwoording: Verantwoording) -> list[Regel]:
@@ -516,7 +533,7 @@ def colofon_regels(doc: Document, v: Voorblad, stand: Stand, verantwoording: Ver
                      "De toestand per regeling staat in het rapport."),
             ("Meta", "Dit rapport is een analyse-uitkomst volgens de methode Wetsanalyse, geen wettelijke definitie en geen "
                      "juridisch oordeel.")]
-    return uit
+    return [*uit, *bronstand_regels(v), *leeswijzer_regels()]
 
 
 def _tellingen(t: list[Telling], labels: dict[str, str]) -> str:
@@ -528,6 +545,7 @@ def samenvatting_regels(k: Kerncijfers, v: Voorblad, d: Deelvragen) -> list[Rege
     uit: list[Regel] = [(PAGINA, ""), ("Heading1", "Samenvatting")]
     if v.analysevraag:
         uit += [("Heading4", "Analysevraag"), *alinea(v.analysevraag)]
+    uit += signalen_regels(v)
     uit += [("Heading4", "Kerncijfers"),
             ("BodyText", "Deelvragen – " + _tellingen(k.deelvragen, _VOORTGANG)),
             ("BodyText", "Bronnen – " + _tellingen(k.bronnen, {"analyseren": "te analyseren", "context": "context"})),
@@ -806,7 +824,7 @@ def verantwoording_regels(v: Verantwoording) -> list[Regel]:
 
 def rapport_regels(r: Rapport) -> list[Regel]:
     """Het hele rapport als (stijl, tekst), de vorm die elke uitvoer leest."""
-    return [*voorblad_regels(r.voorblad, r.stand), *colofon_regels(r.document, r.voorblad, r.stand, r.verantwoording),
+    return [*titelblad_regels(r.document, r.voorblad, r.stand), *colofon_regels(r.document, r.voorblad, r.stand, r.verantwoording),
             (PAGINA, ""), ("Heading4", "Inhoud"), (INHOUD, ""), *samenvatting_regels(r.samenvatting, r.voorblad, r.deelvragen), *dossier_regels(r.dossier),
             *deelvragen_regels(r.deelvragen), *wettekst_regels(r.wettekst), *begrippen_regels(r.begrippen),
             *verantwoording_regels(r.verantwoording)]
