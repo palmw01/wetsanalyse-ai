@@ -7,7 +7,8 @@ import { nodeRequest } from "@/lib/annotatieNode";
 
 export interface Structuurdeel { soort: string; nummer: string; titel: string; iri: string }
 export interface Verwijzing { van: AntwoordVindplaats; naar: AntwoordVindplaats; anker: string; in_graaf: boolean; door: "bron" }
-export interface Telling { aantal: number; items: AntwoordVindplaats[] }
+/** `volledig: false` = het aantal kon niet geteld worden en is "minstens" (de rijen stonden op hun grens). */
+export interface Telling { aantal: number; volledig: boolean; items: AntwoordVindplaats[] }
 
 export interface BepalingDetail {
   schema_versie: number;
@@ -23,6 +24,7 @@ export interface BepalingDetail {
   geldig_tot: string | null;
   toestand_url: string;
   verwijst_naar: Verwijzing[];
+  verwijst_naar_aantal: number;
   verwijst_naar_volledig: boolean;
   verwezen_door: Telling;
   grondslag_voor: Telling;
@@ -34,14 +36,14 @@ export interface BepalingDetail {
 /** De velden van `BepalingDetail`, in de volgorde van het contract: de drifttest vergelijkt ze met de Python-bron. */
 export const BEPALING_DETAIL_VELDEN = [
   "schema_versie", "bron_iri", "beschikbaar", "vindplaats", "plaats", "status", "inwerking", "terugwerkend_tot", "gewijzigd_bij",
-  "geldig_vanaf", "geldig_tot", "toestand_url", "verwijst_naar", "verwijst_naar_volledig", "verwezen_door", "grondslag_voor",
+  "geldig_vanaf", "geldig_tot", "toestand_url", "verwijst_naar", "verwijst_naar_aantal", "verwijst_naar_volledig", "verwezen_door", "grondslag_voor",
   "bevoegdheid_voor", "genoemd_in", "definieert",
 ] as const satisfies readonly (keyof BepalingDetail)[];
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const isVindplaats = (v: unknown): v is AntwoordVindplaats => isObject(v) && typeof v.iri === "string" && typeof v.label === "string";
 const isTelling = (v: unknown): v is Telling =>
-  isObject(v) && typeof v.aantal === "number" && Array.isArray(v.items) && v.items.every(isVindplaats);
+  isObject(v) && typeof v.aantal === "number" && typeof v.volledig === "boolean" && Array.isArray(v.items) && v.items.every(isVindplaats);
 
 /** Streng: past het antwoord niet, dan geen detail (het paneel zegt dat), nooit een half detail. */
 export function parseBepalingDetail(v: unknown): BepalingDetail | undefined {

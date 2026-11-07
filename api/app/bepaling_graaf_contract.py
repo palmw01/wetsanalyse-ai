@@ -47,6 +47,8 @@ class Telling(_Deel):
     """Een aantal met de eerste voorbeelden: wat het paneel noemt zonder honderd regels te tonen."""
 
     aantal: int = 0
+    #: Onwaar als het aantal niet geteld kon worden en de rijen op hun grens stonden: dan is het "minstens" `aantal`.
+    volledig: bool = True
     items: list[Vindplaats] = []
 
 
@@ -67,6 +69,8 @@ class BepalingDetail(_Deel):
     geldig_tot: str | None = None
     toestand_url: str = ""
     verwijst_naar: list[Verwijzing] = []
+    #: Het echte aantal uitgaande verwijzingen; `verwijst_naar` draagt er hoogstens `MAX_UITGAAND`.
+    verwijst_naar_aantal: int = 0
     verwijst_naar_volledig: bool = True
     verwezen_door: Telling = Telling()
     grondslag_voor: Telling = Telling()
