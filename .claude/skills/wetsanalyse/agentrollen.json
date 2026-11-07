@@ -52,38 +52,12 @@
         "P12"
       ]
     },
-    "decompositie": {
-      "bestand": "references/agentrollen.md",
-      "bronnen": [
-        "M03",
-        "P01",
-        "P03",
-        "P12"
-      ]
-    },
-    "synthese": {
-      "bestand": "references/agentrollen.md",
-      "bronnen": [
-        "M09",
-        "P03",
-        "P09",
-        "P12"
-      ]
-    },
     "deelvragen": {
       "bestand": "references/deelvragen-en-bronnen.md",
       "bronnen": [
         "M03",
         "P13",
         "P14"
-      ]
-    },
-    "begrippen": {
-      "bestand": "references/begrippen.md",
-      "bronnen": [
-        "M01",
-        "M04",
-        "P15"
       ]
     },
     "nl-sbb-taalniveau": {
@@ -114,14 +88,6 @@
       "basis",
       "duiding"
     ],
-    "decompositie": [
-      "basis",
-      "decompositie"
-    ],
-    "synthese": [
-      "basis",
-      "synthese"
-    ],
     "algemeen": [
       "basis",
       "nl-sbb-taalniveau"
@@ -129,11 +95,6 @@
     "deelvragen": [
       "basis",
       "deelvragen"
-    ],
-    "begrippen": [
-      "basis",
-      "begrippen",
-      "nl-sbb-taalniveau"
     ]
   }
 }
