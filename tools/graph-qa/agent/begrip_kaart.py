@@ -25,6 +25,8 @@ import logging
 import re
 from typing import Any, AsyncIterator, Awaitable, Callable
 
+from bronmodel.taal import rangnummers
+
 from .begrippen_pipeline import definities, kaartacties as ka
 from .begrippen_run import manifest_uit, onderzoek_uit
 from .bepaling_namen import bwb_van as _bwb, rijen as _rijen
@@ -89,8 +91,7 @@ def q_teksten(iris: list[str]) -> str:
 }} LIMIT 20"""
 
 
-_RANG = {"eerste": 1, "tweede": 2, "derde": 3, "vierde": 4, "vijfde": 5, "zesde": 6, "zevende": 7, "achtste": 8,
-         "negende": 9, "tiende": 10, "elfde": 11, "twaalfde": 12}
+_RANG = rangnummers(12)
 _ANKER_LID = re.compile(r"\b(\w+)\s+lid\b", re.IGNORECASE)
 _ANKER_ONDERDEEL = re.compile(r"\bonderdeel\s+([a-z]+)\b", re.IGNORECASE)
 

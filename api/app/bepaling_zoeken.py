@@ -17,6 +17,7 @@ import unicodedata
 from dataclasses import dataclass
 
 from bronmodel import bouw_snapshot, subtree
+from bronmodel.taal import rangnummers
 
 from . import annotatie_v2_store as store
 from .bron_resolver import haal_bronrijen
@@ -26,12 +27,7 @@ FRAGMENT = 160
 _TTL = 600.0
 _CACHE: dict[str, tuple[float, list[dict]]] = {}
 
-_RANGTELWOORD = {
-    "eerste": "1", "tweede": "2", "derde": "3", "vierde": "4", "vijfde": "5", "zesde": "6", "zevende": "7",
-    "achtste": "8", "negende": "9", "tiende": "10", "elfde": "11", "twaalfde": "12", "dertiende": "13",
-    "veertiende": "14", "vijftiende": "15", "zestiende": "16", "zeventiende": "17", "achttiende": "18",
-    "negentiende": "19", "twintigste": "20",
-}
+_RANGTELWOORD = {woord: str(n) for woord, n in rangnummers(20).items()}
 _BEPALING = {"Artikel", "Divisie"}
 _SOORT = {"Artikel": "artikel", "Divisie": "artikel", "Lid": "lid", "Onderdeel": "onderdeel"}
 

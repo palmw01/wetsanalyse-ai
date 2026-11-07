@@ -1,10 +1,9 @@
 """Read-only bronresolver: alleen de expliciete BWB-named graph, nooit annotatie-union."""
 from __future__ import annotations
 
-import re
-
 import httpx
 from bronmodel import BronFout, bouw_snapshot, bron_query
+from bronmodel.taal import BRON_IRI
 
 from .graaf_client import sparql_select
 
@@ -14,7 +13,7 @@ def bwb_van(doel: dict) -> str:
     iri = str(doel.get("bron_iri") or "")
     bwb = str(doel.get("bwb_id") or doel.get("bwbId") or "").strip().upper()
     if iri:
-        match = re.fullmatch(r"urn:bwb:(BWB[RV]\d+)(?::[^<>\s\"{}|^`\\]*)?", iri)
+        match = BRON_IRI.fullmatch(iri)
         if not match or (bwb and bwb != match.group(1)):
             raise BronFout("Ongeldige bronnode")
         bwb = match.group(1)

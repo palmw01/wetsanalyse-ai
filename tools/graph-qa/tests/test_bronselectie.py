@@ -649,6 +649,23 @@ def test_andere_zoekcode_zoekt_opnieuw_bij_het_hervatten():
     assert api.zoekopdrachten == 1
 
 
+def test_zoekversie_dekt_de_queries_en_de_namen():
+    """Een wijziging aan de fts-query (`graph/queries.py`) of aan het benoemen van een treffer (`bepaling_namen.py`)
+    verandert wat er gevonden wordt, dus ook `ZOEKVERSIE`: anders bleef de uitkomst van de oude zoekcode staan."""
+    from agent import bronnen_run
+    from agent.graph import queries
+
+    assert bronnen_run._zoekversie() == bronnen_run.ZOEKVERSIE
+    for module in (queries, bn):
+        doel = Path(module.__file__)
+
+        def lees(pad: Path, doel=doel) -> bytes:
+            return pad.read_bytes() + (b"\n# andere fts\n" if pad == doel else b"")
+
+        assert bronnen_run._zoekversie(lees) != bronnen_run.ZOEKVERSIE, module.__name__
+    assert "def fts(" in Path(queries.__file__).read_text(encoding="utf-8")
+
+
 def test_bepalingen_noemen_vanuit_het_gesprek():
     """4 nov 2026, één lijn: de deelvraag (als die niet vaststaat), dan één bepaling per regel; Lex zet ze als
     voorstel in het paneel en toont het compacte kaartje van die deelvraag. ‘als context’ maakt een contextbron; wat

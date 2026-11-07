@@ -20,10 +20,9 @@ deelvragen meet de dekkingscheck per vraag of er een bron en een geaccordeerd be
 """
 from __future__ import annotations
 
-import re
-import unicodedata
 import uuid
 
+from bronmodel.taal import normaliseer_vraag as normaliseer  # agent en api delen deze sleutel
 from fastapi import HTTPException
 from sqlalchemy import func, insert, select, update
 
@@ -36,14 +35,6 @@ from .werkgebied_store import _audit, _gewijzigd, werkgebied_rij
 # De dekking van een deelvraag is of er een bron bij hoort (methode 1g). Begrippen horen bij het werkgebied,
 # niet bij een deelvraag (spoor K); de stand van het wérk staat in de bronselectie (`bronselectie.py`).
 STANDEN = ("geen_bron", "met_bron")
-
-
-def normaliseer(vraag: str) -> str:
-    """Zonder hoofdletters, diakrieten en leestekens: "Wanneer is een aanslag invorderbaar?" en
-    "wanneer is een aanslag invorderbaar" zijn dezelfde vraag."""
-    t = unicodedata.normalize("NFKD", vraag.casefold())
-    t = "".join(c for c in t if not unicodedata.combining(c))
-    return " ".join(re.sub(r"[^\w\s]", " ", t).split())
 
 
 def _deelvraag(row, bronnen: list[str], begrippen: list[str]) -> dict:
