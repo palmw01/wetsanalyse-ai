@@ -5,7 +5,7 @@
  *  constante hier is er voor de meterkleur en moet dezelfde waarde houden.
  */
 
-import type { Verbruiksstand } from "./types";
+import type { Verbruiksstand, VerbruikRegel } from "./types";
 
 /** Gelijk aan `WAARSCHUWINGSDREMPEL` in de api. */
 export const WAARSCHUWINGSDREMPEL = 90;
@@ -30,6 +30,22 @@ export function resetdatum(iso: string): string {
   const datum = d.toLocaleDateString("nl-NL", { weekday: "long", day: "numeric", month: "long" });
   const tijd = d.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" });
   return `${datum} om ${tijd}`;
+}
+
+/** "Analist" – een rol als begin van een regel. */
+export function rolLabel(rol: string): string {
+  return rol.charAt(0).toUpperCase() + rol.slice(1);
+}
+
+/** "Budget van de rol analist: 300.000 tokens" – welke waarde geldt, en waar die vandaan komt. */
+export function budgetHerkomst(regel: Pick<VerbruikRegel, "budget" | "rol">): string {
+  return `Budget van de rol ${regel.rol}: ${tokens(regel.budget)} tokens`;
+}
+
+/** "Gereset op maandag 9 september om 14:00 door wpalm"; leeg als dit venster niemand resette. */
+export function resetRegel(regel: Pick<VerbruikRegel, "gereset_op" | "gereset_door">): string {
+  if (!regel.gereset_op) return "";
+  return `Gereset op ${resetdatum(regel.gereset_op)}${regel.gereset_door ? ` door ${regel.gereset_door}` : ""}`;
 }
 
 /** Hoeveel KALENDERdagen tot de reset; 0 = vandaag nog.

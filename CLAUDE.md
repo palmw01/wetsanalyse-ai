@@ -81,7 +81,7 @@ overzien.
    **chatgeschiedenis** (`/v1/gesprekken/*`), het **login-/gebruikersbeheer** (de API is de
    identiteitsbron van de webapp, inclusief zelfregistratie-aanvragen die een beheerder goedkeurt),
    het **LLM-modelprofielbeheer** (`/v1/admin/*`; de env-`LLM_*`-waarden seeden alleen het eerste
-   default-profiel), het **tokenbudget per gebruiker** (`/v1/verbruik/*`: meten, tonen, begrenzen —
+   default-profiel), het **tokenbudget** (`/v1/verbruik/*`: per gebruiker meten, tonen, begrenzen, met een hoeveelheid per rol —
    verbruik is een append-only journaal en de stand een som over het huidige venster, zodat werk
    weggooien geen tokens teruggeeft en de reset geen cronjob vraagt) en de **werkgebieden**
    (`/v1/werkgebieden/*`: bronselecties met revisies en audit, de inventaris, en de begrippen met
@@ -118,7 +118,7 @@ overzien.
    zoeken met `search_annotaties`, dan pas formuleren – zoeken is een stap in de keten, geen keuze
    van het model) of de **overzichtsroute** voor "welke artikelen gaan over X?" (`overzicht_bouwen`:
    overzicht én tekst komen deterministisch uit de graaf, zonder model, en de werkplek toont het als
-   blok – dezelfde vraag geeft hetzelfde overzicht, dezelfde tekst, dezelfde bronnen en dezelfde
+   kaartje met paneel – dezelfde vraag geeft hetzelfde overzicht, dezelfde tekst, dezelfde bronnen en dezelfde
    graaf).
    Endpoints: `POST /v1/runs` (+ `/events`, `/cancel`; de weg van de werkplek – de beurt draait bij de
    agent, de browser kijkt mee), `POST /v1/chat` (SSE, aan de verbinding gekoppeld en **zonder

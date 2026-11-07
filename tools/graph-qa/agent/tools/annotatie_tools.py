@@ -9,16 +9,26 @@ ANNOTATIE_TOOL_NAMEN = frozenset({"search_annotaties", "overzicht_annotaties", "
                                   "get_annotatiedekking"})
 
 
-def begrens_antwoord(answer: str, trace) -> str:
-    """Een zoekstoring mag in een modelantwoord nooit 'er bestaan geen annotaties' worden."""
-    responses = []
+#: Allemaal "wat er niet is, is niet bewezen": dezelfde zinnen voor een vrij antwoord en voor het sjabloon.
+ANNOTATIES_NIET_TE_RAADPLEGEN = "De opgeslagen annotaties zijn nu niet betrouwbaar te raadplegen. Dit betekent niet dat er geen annotaties zijn."
+ANNOTATIES_ONVOLLEDIG = "Deze zoekuitkomst is onvolledig; ontbrekende treffers zijn niet uitgesloten."
+
+
+def uitkomsten(trace, namen) -> list[dict[str, Any]]:
+    """Wat deze tools teruggaven. Een fouttekst of ander geen-JSON telt als onbeschikbaar, nooit als leeg."""
+    uit: list[dict[str, Any]] = []
     for name, text in trace:
-        if name in ANNOTATIE_TOOL_NAMEN:
+        if name in namen:
             try:
                 value = json.loads(text)
-                responses.append(value if isinstance(value, dict) else {"status": "unavailable"})
+                uit.append(value if isinstance(value, dict) else {"status": "unavailable"})
             except ValueError:
-                responses.append({"status": "unavailable"})
+                uit.append({"status": "unavailable"})
+    return uit
+
+
+def annotatie_storing(responses: list[dict[str, Any]]) -> str:
+    """De melding als er geen bruikbaar zoekresultaat is, anders leeg."""
     if not responses:
         # Hoort in de leesroute niet meer voor te komen: die zoekt zelf vóór de eerste LLM-call
         # (`nodes/annotatie_lezen.py`). Blijft staan als vangnet, met een tekst die zegt wat er
@@ -28,9 +38,17 @@ def begrens_antwoord(answer: str, trace) -> str:
     if all(r.get("status") == "invalid_request" for r in responses):
         return "De annotatiezoekvraag is niet uitgevoerd: controleer de filters of begin opnieuw als de zoekresultaten zijn gewijzigd."
     if not any(r.get("status") in {"ok", "partial"} for r in responses):
-        return "De opgeslagen annotaties zijn nu niet betrouwbaar te raadplegen. Dit betekent niet dat er geen annotaties zijn."
+        return ANNOTATIES_NIET_TE_RAADPLEGEN
+    return ""
+
+
+def begrens_antwoord(answer: str, trace) -> str:
+    """Een zoekstoring mag in een modelantwoord nooit 'er bestaan geen annotaties' worden."""
+    responses = uitkomsten(trace, ANNOTATIE_TOOL_NAMEN)
+    if melding := annotatie_storing(responses):
+        return melding
     if any(r.get("status") != "ok" or r.get("volledig") is False for r in responses):
-        return answer + "\n\nDeze zoekuitkomst is onvolledig; ontbrekende treffers zijn niet uitgesloten."
+        return answer + "\n\n" + ANNOTATIES_ONVOLLEDIG
     return answer
 
 
@@ -256,7 +274,7 @@ def overzicht(args: dict[str, Any], port) -> dict[str, Any]:
     lijst = sorted(groepen.values(), key=lambda g: (volgorde.get(g["klasse"], 99), -g["aantal"], g["tekst"]))
     maximum = int(args.get("max_groepen") or 40)
     return {"status": status, "volledig": volledig and len(lijst) <= maximum,
-            "bekeken": len(elementen), "uitgezonderd": uitgezonderd or None,
+            "bekeken": len(elementen), "uitgezonderd": uitgezonderd or None, "filters": filters,
             "groepen": lijst[:maximum], "meer_groepen": max(0, len(lijst) - maximum)}
 
 
