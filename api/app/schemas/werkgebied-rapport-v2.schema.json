@@ -40,6 +40,31 @@
           },
           "title": "Bepalingen",
           "type": "array"
+        },
+        "plaats": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Structuurdeel"
+          },
+          "title": "Plaats",
+          "type": "array"
+        },
+        "inwerking": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inwerking"
+        },
+        "gewijzigd_bij": {
+          "default": "",
+          "title": "Gewijzigd Bij",
+          "type": "string"
         }
       },
       "required": [
@@ -319,50 +344,6 @@
         "actie"
       ],
       "title": "Besluit",
-      "type": "object"
-    },
-    "Bronstand": {
-      "additionalProperties": false,
-      "description": "Welke toestand van een regeling in het dossier staat.",
-      "properties": {
-        "bwb_id": {
-          "title": "Bwb Id",
-          "type": "string"
-        },
-        "citeertitel": {
-          "title": "Citeertitel",
-          "type": "string"
-        },
-        "geldig_vanaf": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Geldig Vanaf"
-        },
-        "geldig_tot": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Geldig Tot"
-        }
-      },
-      "required": [
-        "bwb_id",
-        "citeertitel"
-      ],
-      "title": "Bronstand",
       "type": "object"
     },
     "Bronvoorstel": {
@@ -1085,6 +1066,80 @@
       "title": "Regeling",
       "type": "object"
     },
+    "RegelingInfo": {
+      "additionalProperties": false,
+      "description": "De regeling zoals de graaf haar kent (WTI en toestand).",
+      "properties": {
+        "bwb_id": {
+          "title": "Bwb Id",
+          "type": "string"
+        },
+        "citeertitel": {
+          "title": "Citeertitel",
+          "type": "string"
+        },
+        "geldig_vanaf": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Geldig Vanaf"
+        },
+        "geldig_tot": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Geldig Tot"
+        },
+        "soort": {
+          "default": "",
+          "title": "Soort",
+          "type": "string"
+        },
+        "afkorting": {
+          "default": "",
+          "title": "Afkorting",
+          "type": "string"
+        },
+        "verantwoordelijke": {
+          "default": "",
+          "title": "Verantwoordelijke",
+          "type": "string"
+        },
+        "organisatie": {
+          "default": "",
+          "title": "Organisatie",
+          "type": "string"
+        },
+        "toestand_url": {
+          "default": "",
+          "title": "Toestand Url",
+          "type": "string"
+        },
+        "url": {
+          "default": "",
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "bwb_id",
+        "citeertitel"
+      ],
+      "title": "RegelingInfo",
+      "type": "object"
+    },
     "Relatie": {
       "additionalProperties": false,
       "properties": {
@@ -1162,7 +1217,8 @@
             "markeringen_veranderd",
             "passages_veranderd",
             "opnieuw_bekijken",
-            "zoeken_onvolledig"
+            "zoeken_onvolledig",
+            "graaf_onvolledig"
           ],
           "title": "Soort",
           "type": "string"
@@ -1226,6 +1282,36 @@
         "door"
       ],
       "title": "Stand",
+      "type": "object"
+    },
+    "Structuurdeel": {
+      "additionalProperties": false,
+      "description": "Een deel van de opbouw boven een artikel: hoofdstuk, afdeling, paragraaf.",
+      "properties": {
+        "soort": {
+          "title": "Soort",
+          "type": "string"
+        },
+        "nummer": {
+          "default": "",
+          "title": "Nummer",
+          "type": "string"
+        },
+        "titel": {
+          "default": "",
+          "title": "Titel",
+          "type": "string"
+        },
+        "iri": {
+          "title": "Iri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "soort",
+        "iri"
+      ],
+      "title": "Structuurdeel",
       "type": "object"
     },
     "Telling": {
@@ -1450,7 +1536,7 @@
         "regelingen": {
           "default": [],
           "items": {
-            "$ref": "#/$defs/Bronstand"
+            "$ref": "#/$defs/RegelingInfo"
           },
           "title": "Regelingen",
           "type": "array"

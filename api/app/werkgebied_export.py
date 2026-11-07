@@ -28,23 +28,51 @@ from .annotatie_v2_contracts import BEOORDEELD
 from .bestandsnaam import met_tijd
 from .jas_klassen import jas_sorteersleutel
 from .werkgebied_inventaris import Resolver, bwb_van, inventaris_met_bronbomen
-from .werkgebied_rapport import (DOSSIERVELDEN, Afwijking, Artikel, Begrip, Begrippen, Bepaling, Bronstand, Bronvoorstel, Deelvraag,
+from .werkgebied_rapport import (DOSSIERVELDEN, Afwijking, Artikel, Begrip, Begrippen, Bepaling, Bronvoorstel, Deelvraag,
                                  DeelvraagBron, Deelvragen, Document, Dossier, DossierVeld, Fragment, Besluit, Handeling, Herkomst, Kerncijfers, KlasseTelling, Markering,
-                                 Onbereikbaar, OpenGroep, OpenRelatie, Passage, Rapport, Regel, Regeling, Relatie, Selectie, Signaal,
+                                 Onbereikbaar, OpenGroep, OpenRelatie, Passage, Rapport, Regel, Regeling, RegelingInfo, Structuurdeel, Relatie, Selectie, Signaal,
                                  Stand, Telling, UitgeslotenBron, Verantwoording, Voorbeeld, Voorblad, Wettekst, Zoekdekking, Zoekregeling,
                                  BESLUITEN, datum, rapport_regels)
 
 
+GraafLezer = Callable[[list[str], list[str]], Awaitable[dict]]
+
+
+async def _geen_graaf(_bwbs: list[str], _iris: list[str]) -> dict:
+    return {"volledig": True, "regelingen": {}, "structuur": {}}
+
+
+def structuur_iris(wg: dict, bomen: dict) -> list[str]:
+    """De voorouders van elke geselecteerde bronnode tot de regeling: daarvan wil het rapport titel en inwerkingtreding."""
+    uit: set[str] = set()
+    for sel in wg["bronnen"]:
+        boom = bomen.get(bwb_van(sel))
+        if not boom:
+            continue
+        nodes = annotatie_v2_store.nodes_van(boom)
+        scope = annotatie_v2_store.bereik_van(boom, sel["bron_iri"]) if sel["bereik"] == "onderliggend" else {sel["bron_iri"]}
+        for iri in scope:
+            gezien: set[str] = set()
+            while iri in nodes and iri not in gezien:
+                gezien.add(iri)
+                if nodes[iri].get("parent_iri") and nodes[iri]["type"] not in ("Lid", "Onderdeel"):     # de wortel is de regeling
+                    uit.add(iri)
+                iri = nodes[iri].get("parent_iri") or ""
+    return sorted(uit)
+
+
 async def verzamel(werkgebied_id: str, actor: str, resolve: Resolver,
-                   toestanden: Callable[[dict], Awaitable[dict]]) -> dict:
-    """De stand van nu, uit dezelfde leesfuncties als de schermen."""
+                   toestanden: Callable[[dict], Awaitable[dict]], graaf: GraafLezer = _geen_graaf) -> dict:
+    """De stand van nu, uit dezelfde leesfuncties als de schermen, en wat de graaf over regeling en opbouw weet."""
     wg = await werkgebied_store.haal(werkgebied_id)
     inventaris, bomen = await inventaris_met_bronbomen(wg["bronnen"], resolve, volledige_elementen=True)
     if wg["bronnen"] and not bomen:
         raise HTTPException(503, "De brongraaf is tijdelijk niet beschikbaar; zonder wettekst is er geen dossier te maken.")
+    tst = await toestanden(wg)
     return {"werkgebied": wg, "inventaris": inventaris, "bomen": bomen,
+            "graaf": await graaf([r["bwb_id"] for r in tst["regelingen"]], structuur_iris(wg, bomen)),
             "overzicht": await bronselectie.overzicht(werkgebied_id),
-            "toestanden": await toestanden(wg),
+            "toestanden": tst,
             "begrippen": (await begrip_store.export(werkgebied_id, actor))["begrippen"],
             "relaties": await begrip_relatie_store.lijst(werkgebied_id),
             "groepen": await begrippen_run_store.groepen(werkgebied_id),
@@ -107,6 +135,8 @@ def _signalen(data: dict, nodes: dict[str, dict]) -> list[Signaal]:
         uit.append(Signaal(soort="passages_veranderd", aantal=n))
     if opnieuw := [v["nr"] for v in data["overzicht"]["deelvragen"] if v["opnieuw_bekijken"]]:
         uit.append(Signaal(soort="opnieuw_bekijken", nrs=opnieuw))
+    if not data.get("graaf", {}).get("volledig", True):
+        uit.append(Signaal(soort="graaf_onvolledig"))
     dekking = data["overzicht"]["zoekdekking"]
     if dekking.get("gezocht") and (dekking.get("verouderd") or not dekking.get("volledig", True)):
         uit.append(Signaal(soort="zoeken_onvolledig"))
@@ -117,8 +147,9 @@ def _voorblad(data: dict, nodes: dict[str, dict]) -> Voorblad:
     wg = data["werkgebied"]
     return Voorblad(naam=wg["naam"], analysevraag=wg.get("analysevraag") or "", status=wg["status"], revisie=wg["revisie"],
                     thema=wg.get("thema_label") or "", peildatum=wg.get("peildatum"), peildatum_standaard=bool(wg.get("peildatum_standaard")),
-                    regelingen=[Bronstand(bwb_id=r["bwb_id"], citeertitel=r["citeertitel"], geldig_vanaf=r["geldig_vanaf"],
-                                          geldig_tot=r["geldig_tot"]) for r in data["toestanden"]["regelingen"]],
+                    regelingen=[RegelingInfo(bwb_id=r["bwb_id"], citeertitel=r["citeertitel"], geldig_vanaf=r["geldig_vanaf"],
+                                             geldig_tot=r["geldig_tot"], **_graaf(data)["regelingen"].get(r["bwb_id"], {}))
+                                for r in data["toestanden"]["regelingen"]],
                     signalen=_signalen(data, nodes))
 
 
@@ -182,6 +213,26 @@ def _markering(e: dict, nodes: dict[str, dict], verklaringen: dict) -> Markering
         verouderd=bool(e.get("verouderd")), deels_buiten=bool(e.get("deels_buiten")), door="analist" if r["herkomst"] == "mens" else "lex")
 
 
+def _graaf(data: dict) -> dict:
+    return data.get("graaf") or {"volledig": True, "regelingen": {}, "structuur": {}}
+
+
+def _artikel(kop: str, nodes: dict[str, dict], data: dict) -> Artikel:
+    """Een artikel met zijn plaats in de opbouw (de voorouders tot de regeling) en wat de graaf over het artikel weet."""
+    structuur = _graaf(data)["structuur"]
+    plaats: list[Structuurdeel] = []
+    iri, gezien = (nodes.get(kop) or {}).get("parent_iri") or "", set()
+    while iri in nodes and iri not in gezien and nodes[iri].get("parent_iri"):      # de wortel is de regeling zelf
+        gezien.add(iri)
+        n = nodes[iri]
+        plaats.append(Structuurdeel(soort=n["type"], nummer=n.get("nummer") or "", titel=(structuur.get(iri) or {}).get("titel") or "",
+                                    iri=iri))
+        iri = n.get("parent_iri") or ""
+    eigen = structuur.get(kop) or {}
+    return Artikel(kop=_vindplaats(kop, nodes), bepalingen=[], plaats=plaats[::-1], inwerking=eigen.get("inwerking") or None,
+                   gewijzigd_bij=eigen.get("gewijzigd_bij") or "")
+
+
 def _kop_van(iri: str, nodes: dict[str, dict]) -> str:
     """De bepaling waarin een bronnode staat: het kopje waaronder haar tekst komt."""
     gezien: set[str] = set()
@@ -243,7 +294,7 @@ def _wettekst(data: dict, nodes: dict[str, dict], verklaringen: dict) -> Wetteks
             nieuw = _kop_van(iri, nodes) or iri
             if nieuw != kop:
                 kop = nieuw
-                artikelen.append(Artikel(kop=_vindplaats(kop, nodes), bepalingen=[]))
+                artikelen.append(_artikel(kop, nodes, data))
             artikelen[-1].bepalingen.append(Bepaling(
                 vindplaats=_plek(iri, nodes), rol=rollen[iri], bron_gewijzigd=iri in gewijzigd, tekst=tekst if tekst.strip() else "",
                 markeringen=[_markering(e, nodes, verklaringen) for e in eigen]))
@@ -254,9 +305,9 @@ def _wettekst(data: dict, nodes: dict[str, dict], verklaringen: dict) -> Wetteks
             hoofd = [b for b in a.bepalingen if b.rol != "context" or b.markeringen]
             rest = [b for b in a.bepalingen if b.rol == "context" and not b.markeringen]
             if hoofd:
-                analyse.append(Artikel(kop=a.kop, bepalingen=hoofd))
+                analyse.append(a.model_copy(update={"bepalingen": hoofd}))
             if rest:
-                context.append(Artikel(kop=a.kop, bepalingen=rest))
+                context.append(a.model_copy(update={"bepalingen": rest}))
         regelingen.append(Regeling(bwb_id=bwb, titel=_regeling_titel(bwb, data), artikelen=analyse, context=context))
     return Wettekst(
         markeringen=len(inv["elementen"]), beoordeeld=sum(e["lifecycle"] in BEOORDEELD for e in inv["elementen"]),
