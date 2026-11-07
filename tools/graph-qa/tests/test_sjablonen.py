@@ -782,3 +782,37 @@ def test_de_regelingnaam_komt_ook_op_de_doelen():
     a = vul("antwoord_bepaling", {"bepalingen": [ART], "toelichting": ""}, [artikel(EEN)])
     _met_regelingen(SimpleNamespace(graph=FakeGraph(result="")), a)
     assert a.doelen[0].regeling == a.blokken[0].items[0].vindplaats.regeling == "Invorderingswet 1990"
+
+
+def test_een_ander_aantal_in_de_toelichting_valt_weg():
+    """Het model nam het getal van zijn eigen `limit` over ("50 annotaties") terwijl de lijst er 54 toonde."""
+    a = vul("antwoord_annotaties", {"toelichting": "Er zijn 50 annotaties gevonden. Opvallend zijn de rechtssubjecten."}, [zoek(M1, M2)])
+    assert a.blokken[1].tekst == "Opvallend zijn de rechtssubjecten."
+
+
+def test_het_juiste_aantal_in_de_toelichting_blijft():
+    tekst = "Er zijn 2 annotaties gevonden, beide in artikel 9."
+    assert vul("antwoord_annotaties", {"toelichting": tekst}, [zoek(M1, M2)]).blokken[1].tekst == tekst
+
+
+def test_een_toelichting_met_alleen_een_ander_aantal_vervalt():
+    a = vul("antwoord_annotaties", {"toelichting": "Er zijn 7 treffers."}, [zoek(M1, M2)])
+    assert [b.soort for b in a.blokken] == ["annotaties"]
+
+
+ALS_TEKST = ('<invoke name="antwoord_annotaties">\n<parameter name="toelichting">Op klasse gefilterd.</parameter>\n</invoke>')
+
+
+def test_een_sjabloonaanroep_als_tekst_wordt_een_echte_aanroep():
+    from agent.sjablonen import sjabloon_uit_tekst
+    aanroep = sjabloon_uit_tekst([ALS_TEKST], frozenset({"antwoord_annotaties"}))
+    assert aanroep["name"] == "antwoord_annotaties" and aanroep["input"] == {"toelichting": "Op klasse gefilterd."}
+    assert sjabloon_uit_tekst([ALS_TEKST], frozenset({"antwoord_begrip"})) is None, "alleen de sjablonen van deze specialist"
+    assert sjabloon_uit_tekst(['<invoke name="antwoord_annotaties"><parameter name="onbekend">x</parameter></invoke>'],
+                              frozenset({"antwoord_annotaties"})) is None, "wat niet bij het schema past blijft tekst"
+
+
+def test_een_beurt_met_de_aanroep_als_tekst_toont_de_blokken_en_geen_markup():
+    events, _ = _leesbeurt(response([text_block(ALS_TEKST)], "end_turn"))
+    assert _eerste(events, "antwoord")["antwoord"]["sjabloon"] == "annotaties"
+    assert "<invoke" not in _eerste(events, "token")["content"]

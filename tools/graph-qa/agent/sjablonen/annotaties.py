@@ -7,6 +7,7 @@ vrije antwoord begrenst; een sjabloon gaat daar niet langs.
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from bronmodel.antwoord import Annotaties, Antwoord, Leemte, Markering, Toelichting
@@ -94,6 +95,18 @@ def _filterregel(filters: dict[str, Any]) -> str:
     return ", ".join(d for d in delen if d)
 
 
+_AANTAL = re.compile(r"\b(\d+)\s+(?:\w+\s+)?(?:annotaties|markeringen|treffers|resultaten|elementen)\b", re.I)
+_ZIN = re.compile(r"(?<=[.!?])\s+")
+
+
+def _zonder_ander_aantal(tekst: str, totaal: int) -> str:
+    """De toelichting zonder zinnen die een ander aantal treffers noemen dan de lijst toont.
+
+    Het model neemt het getal over van zijn eigen zoekopdracht ("50 annotaties" bij `limit: 50`), ook als de code
+    daarna 54 rijen ophaalde. De werkplek toont het aantal zelf, dus een zin die iets anders zegt valt weg."""
+    return " ".join(z for z in _ZIN.split(tekst) if all(int(n) == totaal for n in _AANTAL.findall(z))).strip()
+
+
 def _alleen(tekst: str) -> Antwoord:
     return Antwoord(sjabloon="annotaties", blokken=[Leemte(tekst=tekst)])
 
@@ -116,6 +129,6 @@ def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
         tekst = f"Geen annotaties gevonden met deze zoekopdracht{f' ({filters})' if filters else ''}. Dat zegt niet dat ze er niet zijn."
         return _alleen(tekst if volledig else f"{tekst} {ANNOTATIES_ONVOLLEDIG}")
     blokken: list[Any] = [Annotaties(items=items, totaal=totaal, volledig=volledig)]
-    if toelichting := str(invoer.get("toelichting") or "").strip():
+    if toelichting := _zonder_ander_aantal(str(invoer.get("toelichting") or "").strip(), totaal):
         blokken.append(Toelichting(tekst=toelichting))
     return Antwoord(sjabloon="annotaties", blokken=blokken)

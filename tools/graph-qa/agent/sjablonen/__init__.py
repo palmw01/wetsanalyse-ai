@@ -13,9 +13,12 @@ tekst, dan is dat een geldig vrij antwoord; de log zegt het (`sjabloon_gemist`).
 """
 from __future__ import annotations
 
+import json
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
+from uuid import uuid4
 
 from bronmodel.antwoord import Antwoord
 
@@ -25,7 +28,7 @@ from .bepaling import SCHEMA as _BEPALING, vul as _vul_bepaling
 from .duiding import SCHEMA as _DUIDING, vul as _vul_duiding
 from .vullen import Onvulbaar, Trace
 
-__all__ = ["Onvulbaar", "Sjabloon", "SJABLONEN", "sjabloon_schemas", "vul"]
+__all__ = ["Onvulbaar", "Sjabloon", "SJABLONEN", "sjabloon_schemas", "sjabloon_uit_tekst", "vul"]
 
 
 @dataclass(frozen=True)
@@ -48,3 +51,37 @@ def sjabloon_schemas(namen: frozenset[str]) -> list[dict[str, Any]]:
 
 def vul(naam: str, invoer: dict[str, Any], trace: Trace) -> Antwoord:
     return SJABLONEN[naam].vul(invoer, trace)
+
+
+_AANROEP = re.compile(r'<invoke name="([\w-]+)">(.*?)</invoke>', re.S)
+_PARAMETER = re.compile(r'<parameter name="([\w-]+)">(.*?)</parameter>', re.S)
+
+
+def _invoer(naam: str, binnen: str) -> dict[str, Any] | None:
+    """De argumenten van een als tekst geschreven aanroep, of None als ze niet bij het schema passen."""
+    schema = SJABLONEN[naam].schema["input_schema"]
+    invoer: dict[str, Any] = {}
+    for sleutel, waarde in _PARAMETER.findall(binnen):
+        soort = schema["properties"].get(sleutel, {}).get("type")
+        if soort is None:
+            return None
+        if soort == "string":
+            invoer[sleutel] = waarde.strip()
+            continue
+        try:
+            invoer[sleutel] = json.loads(waarde)
+        except ValueError:
+            return None
+    return invoer if all(k in invoer for k in schema.get("required", [])) else None
+
+
+def sjabloon_uit_tekst(tekst: list[str], namen: frozenset[str]) -> dict[str, Any] | None:
+    """Een sjabloonaanroep die het model als tekst schreef, als echte aanroep.
+
+    Soms schrijft het model de aanroep uit (`<invoke name="antwoord_annotaties">…`) in plaats van de tool aan te
+    roepen. Die tekst is geen antwoord: de jurist kreeg markup te zien en geen blokken. Wat niet bij het schema past,
+    blijft gewoon tekst."""
+    for naam, binnen in _AANROEP.findall("\n".join(tekst)):
+        if naam in namen and (invoer := _invoer(naam, binnen)) is not None:
+            return {"id": f"toolu_tekst_{uuid4().hex}", "name": naam, "input": invoer}
+    return None
