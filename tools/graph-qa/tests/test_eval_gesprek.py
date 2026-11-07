@@ -18,7 +18,7 @@ from eval.gesprek import (
 )
 
 ROUTES = {"annotaties_lezen", "annotatie", "advies", "afgewezen", "definitie", "duiding", "algemeen",
-          "deelvragen", "begrippen", "werkgebied", "overzicht", "begrippen_lezen", "bronselectie"}
+          "deelvragen", "begrippen", "werkgebied", "overzicht", "begrippen_lezen", "bronselectie", "verduidelijken"}
 VELDEN = {"route", "niet_route", "tools_wel", "tools_niet", "max_tools", "bevat", "bevat_een",
           "verboden", "niet_ongegrond"}
 
