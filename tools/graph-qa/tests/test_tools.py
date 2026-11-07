@@ -53,6 +53,37 @@ def test_dispatch_get_artikel():
     assert ":artikel:9>" in g.queries[0]
 
 
+_LID3 = "urn:bwb:BWBR0004770:artikel:22:lid:3"
+_INT = "^^<http://www.w3.org/2001/XMLSchema#integer>"
+
+
+def _lid3(*rijen: tuple[str, str, str, int | None]) -> FakeGraph:
+    kop = "?tekst\t?o\t?onummer\t?otekst\t?ovolg\n"
+    regels = [f'"Behoudens …, kunnen derden nimmer verzet in rechte doen tegen:"\t<{iri}>\t"{nr}"\t"{tekst}"\t'
+              + (f'"{volg}"{_INT}' if volg is not None else "") for iri, nr, tekst, volg in rijen]
+    return FakeGraph(result=kop + "\n".join(regels) + "\n")
+
+
+def test_een_slottekst_staat_na_de_onderdelen_zoals_in_de_wet():
+    """Acceptatie 7 nov 2026: Iw 22 lid 3 stond als aanhef, slotzin, a, b. De query sorteerde op `bwb:volgnummer`, maar
+    de handler sorteerde daarna op de IRI, en een slottekst heeft geen `:o:` in zijn IRI."""
+    slot = f"urn:bwb:BWBR0004770:id:BWBR0004770%2FLid3%2FSlottekst1"
+    g = _lid3((slot, "", "indien de vruchten zich op de bodem bevinden.", 9),
+              (f"{_LID3}:o:a", "a.", "de beslaglegging ter zake van naheffingsaanslagen in:", 1),
+              (f"{_LID3}:o:a:o:1", "1°.", "de loonbelasting;", 2),
+              (f"{_LID3}:o:b", "b.", "de beslaglegging ter zake van:", 6))
+    uit = json.loads(tools.dispatch("get_lid", g, {"bwb_id": "BWBR0004770", "artikel": "22", "lid": "3"}))
+    assert [r.get("nummer", "") for r in uit["resultaten"]] == ["a.", "1°.", "b.", ""]
+    assert "?ovolg" in g.queries[0].split("WHERE")[0], "het volgnummer moet in de SELECT staan, niet alleen in ORDER BY"
+
+
+def test_zonder_volgnummer_blijft_de_volgorde_uit_de_iri():
+    """Een graaf van vóór het volgnummer: dan a … z vóór aa en genest direct na de ouder, zoals altijd."""
+    g = _lid3((f"{_LID3}:o:aa", "aa.", "x", None), (f"{_LID3}:o:b", "b.", "y", None), (f"{_LID3}:o:a", "a.", "z", None))
+    uit = json.loads(tools.dispatch("get_lid", g, {"bwb_id": "BWBR0004770", "artikel": "22", "lid": "3"}))
+    assert [r["nummer"] for r in uit["resultaten"]] == ["a.", "b.", "aa."]
+
+
 def test_een_bepaling_die_nog_niet_geldt_zegt_dat_bij_de_tekst():
     g = FakeGraph(result='?tekst\t?status\n"Tekst."\t"nogniet"\n')
     uit = {"artikel": ("get_artikel", {"artikel": "57a"}), "lid": ("get_lid", {"artikel": "6f", "lid": "1"})}
