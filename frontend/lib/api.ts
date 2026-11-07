@@ -29,6 +29,7 @@ import type {
   LlmProfileOut,
   LoginVerifyResult,
   BudgetBeleid,
+  RolBudget,
   MeAccount,
   RegistratieBulkRegel,
   RegistratieOut,
@@ -235,9 +236,7 @@ export async function createUser(userid: string, email: string, role: Role): Pro
 
 export async function patchUser(
   userid: string,
-  // `token_budget_wissen` bestaat omdat `token_budget: null` anders twee dingen zou betekenen:
-  // niet meegestuurd, of bewust terug naar het beleid.
-  body: { role?: Role; active?: boolean; token_budget?: number; token_budget_wissen?: boolean },
+  body: { role?: Role; active?: boolean },
 ): Promise<UserOut> {
   const res = await fetch(`/api/admin/users/${encodeURIComponent(userid)}`, {
     method: "PATCH",
@@ -255,6 +254,11 @@ export async function resetUserPassword(userid: string): Promise<TempPassword> {
 export async function resetUser2fa(userid: string): Promise<void> {
   const res = await fetch(`/api/admin/users/${pathSegment(userid)}/2fa-reset`, { method: "POST" });
   if (!res.ok) throw await parseError(res);
+}
+
+export async function resetVerbruik(userid: string): Promise<VerbruikRegel> {
+  const res = await fetch(`/api/admin/users/${pathSegment(userid)}/verbruik-reset`, { method: "POST" });
+  return json<VerbruikRegel>(res);
 }
 
 export async function deleteUser(userid: string): Promise<void> {
@@ -276,7 +280,6 @@ export async function getBudgetBeleid(): Promise<BudgetBeleid> {
 }
 
 export async function zetBudgetBeleid(body: {
-  tokens: number;
   periode_dagen: number;
   actief: boolean;
 }): Promise<BudgetBeleid> {
@@ -286,6 +289,15 @@ export async function zetBudgetBeleid(body: {
     body: JSON.stringify(body),
   });
   return json<BudgetBeleid>(res);
+}
+
+export async function zetRolBudget(rol: string, tokens: number): Promise<RolBudget> {
+  const res = await fetch(`/api/admin/budget/rollen/${pathSegment(rol)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tokens }),
+  });
+  return json<RolBudget>(res);
 }
 
 export async function listVerbruik(): Promise<VerbruikRegel[]> {
@@ -914,7 +926,7 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
 }
 
 /** Exportformaten van een annotatie. */
-export type ExportFormaat = "pdf" | "csv" | "json" | "trig"
+export type ExportFormaat = "pdf" | "md" | "csv" | "json" | "trig"
   /** Begrippen (fase F3): NL-SBB als Turtle, standaard alleen geaccordeerd; `ttl-alle` met de rest. */
   | "ttl" | "ttl-alle";
 
@@ -1426,10 +1438,10 @@ export async function exporteerBegrippen(id: string, formaat: "json" | "csv" | "
 }
 
 /** Het hele werkgebied als PDF, op de stand van nu; de naam komt van de server. */
-export async function exporteerWerkgebied(id: string): Promise<void> {
-  const res = await fetch(`${wg(id, "export")}?formaat=pdf`, { cache: "no-store" });
+export async function exporteerWerkgebied(id: string, formaat: ExportFormaat = "pdf"): Promise<void> {
+  const res = await fetch(`${wg(id, "export")}?formaat=${formaat}`, { cache: "no-store" });
   if (!res.ok) throw await parseError(res);
-  await downloadAntwoord(res, "werkgebied.pdf");
+  await downloadAntwoord(res, `werkgebied.${formaat}`);
 }
 
 /** De begrippen voor de samenhangsgraaf (fase F3); `null` als het antwoord niet de verwachte vorm heeft. */

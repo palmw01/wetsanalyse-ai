@@ -6,7 +6,8 @@
  *  - de kop *Beheer* in de tabkolom, alleen voor een beheerder;
  *  - een nieuwe gebruiker via *Nieuwe gebruiker*, en het tijdelijke wachtwoord dat je kunt kopiëren;
  *  - de acties van een gebruiker in het menu ⋯; Escape sluit het menu en niet het venster;
- *  - het tokenbudget: een samenvatting, en bewerken ter plekke;
+ *  - het tokenbudget: een samenvatting per rol, en bewerken ter plekke; alleen de gewijzigde rol gaat over de lijn;
+ *  - per gebruiker geen budgetveld: alleen het budget van zijn rol, en een reset met twee klikken;
  *  - een tab op de volle pagina opent geen venster erbovenop, en een tab in het venster is geen navigatie;
  *  - de berichten verschijnen meteen, en de bulkknop van de aanvragen pas na een selectie;
  *  - op een smal scherm staat de actieve tab in beeld, ook nadat een telbadge de rij breder maakte;
@@ -23,7 +24,7 @@ import { sessieCookies } from "./sessie.mjs";
 const base = process.env.TEST_URL || "http://localhost:3109";
 const nu = "2026-11-05T09:42:00Z", straks = "2026-11-12T09:42:00Z";
 const gebruiker = (userid, role, active = true) => ({ userid, email: `${userid}@example.test`, role, totp_enabled: false, active,
-  token_budget: null, created: nu, updated: nu });
+  created: nu, updated: nu });
 const aanvraag = (id, voornaam) => ({ id, voornaam, achternaam: "Test", email: `${voornaam}@example.test`, userid_voorstel: voornaam,
   status: "aangevraagd", reden: null, userid: null, besloten_door: null, besloten_op: null, created: nu, updated: nu });
 const browser = await chromium.launch();
@@ -37,7 +38,9 @@ async function open(role, viewport = { width: 1280, height: 860 }) {
   page.on("pageerror", (e) => fouten.push(e.message));
   const stand = {
     users: [gebruiker("wpalm", "beheerder"), gebruiker("jdevries", "analist")],
-    budget: { tokens: 1000000, periode_dagen: 7, anker: nu, actief: true, updated_by: "wpalm", updated: nu, reset_op: straks },
+    budget: { periode_dagen: 7, anker: nu, actief: true, updated_by: "wpalm", updated: nu, reset_op: straks,
+      rollen: [{ rol: "beheerder", tokens: 1000000, updated_by: "seed", updated: nu }, { rol: "analist", tokens: 500000, updated_by: "seed", updated: nu }] },
+    verbruik: [],
     verzoeken: [],
     account: { totp_enabled: false, tfa_nodig: false, herstelcodes_over: 0 },
   };
@@ -61,7 +64,17 @@ async function open(role, viewport = { width: 1280, height: 860 }) {
     if (p === "/api/login-2fa") return route.fulfill({ json: { ok: false, code: "totp_required", userid: "wpalm" } });
     if (/\/api\/admin\/users\/[^/]+\/reset/.test(p)) return route.fulfill({ json: { ...gebruiker("jdevries", "analist"), temp_password: "tijdelijk-2" } });
     if (p === "/api/admin/users") return route.fulfill({ json: stand.users });
-    if (p === "/api/admin/verbruik") return route.fulfill({ json: [] });
+    if (p === "/api/admin/verbruik") return route.fulfill({ json: stand.verbruik });
+    if (p.endsWith("/verbruik-reset")) {
+      const regel = stand.verbruik.find((r) => p.includes(`/${r.userid}/`));
+      Object.assign(regel, { gebruikt: 0, percentage: 0, gereset_op: nu, gereset_door: "wpalm" });
+      return route.fulfill({ json: regel });
+    }
+    if (p.startsWith("/api/admin/budget/rollen/")) {
+      const rol = stand.budget.rollen.find((r) => p.endsWith(`/${r.rol}`));
+      rol.tokens = body.tokens;
+      return route.fulfill({ json: rol });
+    }
     if (p === "/api/admin/budget") {
       if (m !== "GET") Object.assign(stand.budget, body);
       return route.fulfill({ json: stand.budget });
@@ -104,17 +117,22 @@ try {
   assert.equal(await wachtwoord.count(), 0);
   await analist.context.close();
 
-  const { page, fouten } = await open("beheerder");
+  const { page, fouten, stand } = await open("beheerder");
   await page.goto(`${base}/instellingen/beheer/gebruikers`);
   await page.getByText("Beheer", { exact: true }).waitFor();
 
   // Het budget is een samenvatting; bewerken gebeurt ter plekke.
   const budget = page.locator("[data-budget-beleid]");
-  await budget.getByText("1.000.000 tokens per 7 dagen", { exact: false }).waitFor();
+  await budget.getByText("Per 7 dagen, per rol", { exact: false }).waitFor();
+  await budget.getByText("Beheerder: 1.000.000 tokens").waitFor();
+  await budget.getByText("Analist: 500.000 tokens").waitFor();
   await budget.getByRole("button", { name: /bewerken/i }).click();
-  await budget.getByLabel(/Tokens per periode/).fill("2000000");
+  await budget.getByLabel(/Analist: tokens per periode/).fill("300000");
   await budget.getByRole("button", { name: "Opslaan" }).click();
-  await budget.getByText("2.000.000 tokens per 7 dagen", { exact: false }).waitFor();
+  await budget.getByText("Analist: 300.000 tokens").waitFor();
+  await budget.getByText("Beheerder: 1.000.000 tokens").waitFor();
+  assert.deepEqual(stand.verzoeken.filter((v) => v.p.startsWith("/api/admin/budget/rollen/")),
+    [{ p: "/api/admin/budget/rollen/analist", m: "PUT", body: { tokens: 300000 } }], "alleen wat veranderde gaat over de lijn");
 
   // Toevoegen staat dicht tot je erom vraagt.
   assert.equal(await page.locator("[data-gebruiker-nieuw]").count(), 0);
@@ -219,6 +237,26 @@ try {
   await reset.page.getByRole("menuitem", { name: /resetten\?/ }).click();
   await rij("jdevries").getByText("2FA aan").waitFor({ state: "detached" });
   assert.equal(reset.stand.verzoeken.filter((v) => v.p === "/api/admin/users/jdevries/2fa-reset").length, 1);
+
+  // Per gebruiker geen budgetveld: je ziet wat zijn rol geeft, en resetten vraagt een tweede klik.
+  const beurt = await open("beheerder");
+  beurt.stand.verbruik = [{ userid: "jdevries", gebruikt: 400000, budget: 500000, percentage: 80, rol: "analist", geblokkeerd: false,
+    gereset_op: null, gereset_door: "" }];
+  await beurt.page.goto(`${base}/instellingen/beheer/gebruikers`);
+  const beurtRij = beurt.page.locator(`[data-gebruiker="jdevries"]`);
+  await beurtRij.getByText("Budget van de rol analist: 500.000 tokens").waitFor();
+  assert.equal(await beurt.page.getByText("Eigen budget").count(), 0);
+  assert.equal(await beurtRij.getByRole("spinbutton").count(), 0);
+  await beurt.page.getByRole("button", { name: "Acties voor wpalm" }).click();
+  assert.equal(await beurt.page.getByRole("menuitem", { name: "Verbruik resetten" }).count(), 0, "zonder verbruik valt er niets te resetten");
+  await beurt.page.keyboard.press("Escape");
+  await beurtRij.getByRole("button", { name: "Acties voor jdevries" }).click();
+  await beurt.page.getByRole("menuitem", { name: "Verbruik resetten" }).click();
+  assert.equal(beurt.stand.verzoeken.filter((v) => v.p.endsWith("/verbruik-reset")).length, 0, "de eerste klik vraagt alleen");
+  await beurt.page.getByRole("menuitem", { name: /Verbruik van "jdevries" resetten\?/ }).click();
+  await beurtRij.getByText(/^Gereset op .* door wpalm$/).waitFor();
+  assert.equal(beurt.stand.verzoeken.filter((v) => v.p === "/api/admin/users/jdevries/verbruik-reset" && v.m === "POST").length, 1);
+  assert.deepEqual(beurt.fouten, []);
 
   // Het 2FA-scherm: de herstelcode gaat door hetzelfde veld, en wisselen maakt het veld leeg.
   const inlog = await open("analist");

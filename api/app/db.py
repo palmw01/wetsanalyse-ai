@@ -84,10 +84,6 @@ users = Table(
     # Sessie-epoch: JWT-sessies met een `loginAt` vóór deze tijd zijn ongeldig (revocatie bij
     # wachtwoordwijziging/-reset). NULL = nooit gewijzigd → geen revocatie.
     Column("sessions_valid_from", _DT, nullable=True),
-    # Afwijkend tokenbudget voor deze gebruiker; NULL = volg `budget_beleid.tokens`. Additief
-    # toegevoegd, dus `reconcile_schema` zet hem op een bestaande tabel bij (geen migratie) – zie de
-    # toelichting bij `feedback_gezien_op` hieronder voor waarom de Column-declaratie ook dan nodig is.
-    Column("token_budget", Integer, nullable=True),
     # Tijdstip waarop een beheerder de feedbacklijst voor het laatst bekeek; NULL = nooit.
     # Declaratief hier (nieuwe DB's via create_all) én idempotent via ALTER in reconcile_schema
     # (bestaande DB's). Zonder deze Column-declaratie crasht elke query die de kolom aanraakt met
@@ -231,7 +227,7 @@ annotatie_v2_batches = Table("annotatie_v2_batches", metadata,
     Column("antwoord", _JSON, nullable=False))
 annotatie_v2_dekking = Table("annotatie_v2_dekking", metadata,
     Column("id", String(64), primary_key=True), Column("bron_iri", Text, nullable=False, index=True),
-    Column("snapshot_id", String(128), nullable=False), Column("inhoud", _JSON, nullable=False))
+    Column("snapshot_id", String(128), nullable=False, index=True), Column("inhoud", _JSON, nullable=False))
 # `laag_id` is gezet waar een regel bij één laag hoort; de regel `revisie` (één per geraakte laag aan
 # het eind van een schrijftransactie) maakt er de revisiehistorie per laag van. Oudere regels hebben
 # hem niet – die laag heeft dan geen historie, geen verkeerde.
@@ -240,7 +236,8 @@ annotatie_v2_audit = Table("annotatie_v2_audit", metadata,
     Column("actor", String(64), nullable=False), Column("actie", String(40), nullable=False),
     Column("detail", _JSON, nullable=False), Column("tijdstip", _DT, nullable=False),
     Column("laag_id", String(64), nullable=True),
-    Index("ix_annotatie_v2_audit_laag", "laag_id", "id"))
+    Index("ix_annotatie_v2_audit_laag", "laag_id", "id"),
+    Index("ix_annotatie_v2_audit_actie", "actie", "id"))
 
 # --- Werkgebieden (spoor D, levering 1) ---------------------------------------
 # Een werkgebied is een benoemde analyse met bronselecties. Gedeeld tussen analisten, net als de
@@ -361,7 +358,7 @@ begrip_koppelingen = Table("begrip_koppelingen", metadata,
     # als historie leesbaar. `bevestigingen` = [{element_hash, bron_hashes, door, op, motivatie}]: de
     # analist zag de veranderde passage en het begrip klopt nog – de nieuwste is de stand waartegen de
     # actualiteit daarna rekent. Additief, dus `reconcile_schema` zet ze bij.
-    Column("vervangen_door", String(64), nullable=True),
+    Column("vervangen_door", String(64), nullable=True, index=True),
     Column("bevestigingen", _JSON, nullable=True))
 # Een element bewust buiten behandeling (fase F1, dekking): geen begrip nodig, met reden. Gedeeld zoals
 # het werkgebied; terugdraaien is soft (tijdstip), zodat de audit en de rij het besluit bewaren.
@@ -611,7 +608,8 @@ begrip_voorstellen = Table("begrip_voorstellen", metadata,
 #      draaien.
 #   3. Elk getal is herleidbaar: "waar zijn mijn tokens heen" is een SELECT.
 #
-# Alleen inserts; nooit update/delete. De tijdlijn = ORDER BY id.
+# Alleen inserts; nooit update/delete. De tijdlijn = ORDER BY id. Ook een reset door een beheerder
+# raakt deze tabel niet: die is een rij in `budget_audit`, en de som begint daarna later.
 token_verbruik = Table(
     "token_verbruik",
     metadata,
@@ -634,15 +632,14 @@ token_verbruik = Table(
     Index("ix_token_verbruik_user_tijd", "userid", "tijdstip"),
 )
 
-# Het budgetbeleid: één rij (id=1). Een tabel en geen env-knop, omdat de beheerder dit zonder
+# Het budgetbeleid: één rij (id=1), voor wat voor iedereen gelijk is. Hoeveel tokens iemand heeft
+# staat in `budget_rol`. Een tabel en geen env-knop, omdat de beheerder dit zonder
 # redeploy moet kunnen wijzigen; de env levert alleen de beginwaarde bij de allereerste start
 # (`verbruik.ensure_seeded`, hetzelfde patroon als bij de modelprofielen).
 budget_beleid = Table(
     "budget_beleid",
     metadata,
     Column("id", Integer, primary_key=True),
-    # Standaardbudget per venster; een gebruiker kan een eigen `users.token_budget` hebben.
-    Column("tokens", Integer, nullable=False, default=500_000),
     Column("periode_dagen", Integer, nullable=False, default=7),
     # Vast startmoment. Alle vensters worden hiervandaan geteld, dus iedereen reset tegelijk en de
     # resetdatum is vooraf te noemen. Verschuif dit niet zonder reden: het verspringt ieders venster.
@@ -651,6 +648,36 @@ budget_beleid = Table(
     Column("actief", Boolean, nullable=False, default=True),
     Column("updated_by", String(128), nullable=False, default=""),
     Column("updated", _DT, nullable=False),
+)
+
+# Het budget per rol: de enige plek die bepaalt hoeveel tokens iemand heeft. Eén rij per rol, geseed
+# door `verbruik.ensure_seeded`. Een budget per gebruiker bestaat niet.
+budget_rol = Table(
+    "budget_rol",
+    metadata,
+    Column("rol", String(16), primary_key=True),
+    Column("tokens", Integer, nullable=False),
+    Column("updated_by", String(128), nullable=False, default=""),
+    Column("updated", _DT, nullable=False),
+)
+
+# Wie wat deed aan het budget: resets en gewijzigde instellingen. Net als `token_verbruik` alleen
+# inserts. Een reset is hier ook de waarheid, niet alleen de melding ervan: de som van een gebruiker
+# begint bij zijn laatste rij met `actie = 'verbruik_reset'` binnen het venster
+# (`verbruik.reset_in_venster`). Zo is er geen tweede plek die kan afwijken van de audit.
+#
+# `doel` is de userid bij een reset, de rol bij een rolbudget en leeg bij het beleid.
+budget_audit = Table(
+    "budget_audit",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("actie", String(32), nullable=False),
+    Column("doel", String(64), nullable=False, default=""),
+    Column("door", String(128), nullable=False),
+    # De stand vlak vóór een reset; de oude en de nieuwe waarde bij een wijziging.
+    Column("details", _JSON, nullable=False, default=dict),
+    Column("tijdstip", _DT, nullable=False),
+    Index("ix_budget_audit_actie_doel_tijd", "actie", "doel", "tijdstip"),
 )
 
 
@@ -808,48 +835,82 @@ def _ontbrekende_kolommen(sync_conn, tabel: Table) -> list[Column]:
     return [col for col in tabel.columns if col.name not in bestaand]
 
 
+async def bouw_schema() -> None:
+    """Het schema bij de start: tabellen maken en bijwerken, per database één replica tegelijk.
+
+    Zonder slot botsen twee gelijktijdige starts op dezelfde `CREATE TABLE` of `ADD COLUMN`. Een tweede replica
+    wacht hier en vindt daarna niets meer te doen. Eén transactie, want een advisory lock tot het einde daarvan
+    hoeft niemand los te laten, ook niet bij een crash."""
+    async with get_engine().begin() as conn:
+        if conn.dialect.name == "postgresql":
+            await conn.execute(text("SELECT pg_advisory_xact_lock(hashtext('wetsanalyse-schema'))"))
+        await conn.run_sync(metadata.create_all)
+        await _reconcile_in(conn)
+
+
 async def reconcile_schema() -> None:
+    async with get_engine().begin() as conn:
+        await _reconcile_in(conn)
+
+
+def _nullable_in_db(sync_conn, tabel: str, kolom: str) -> bool:
+    return next(c["nullable"] for c in sa_inspect(sync_conn).get_columns(tabel) if c["name"] == kolom)
+
+
+async def _reconcile_in(conn) -> None:
     """Additieve kolom-migratie: voeg kolommen toe die in de tabeldefinitie staan maar in de DB
     ontbreken. `create_all` maakt alleen ontbrekende *tabellen*; zonder deze stap breekt een `SELECT`
     over een nieuw gedefinieerde kolom op een bestaande productie-tabel. **Alleen toevoegen** – nooit
     droppen of typewijzigen (dus dataverlies uitgesloten). Veilig op SQLite én Postgres; draait in de
     lifespan vóór het serveren."""
-    engine = get_engine()
+    engine = conn.engine
     preparer = engine.dialect.identifier_preparer
-    async with engine.begin() as conn:
-        for tabel in metadata.tables.values():
-            for col in await conn.run_sync(_ontbrekende_kolommen, tabel):
-                coltype = col.type.compile(dialect=engine.dialect)
-                ddl = (
-                    f"ALTER TABLE {preparer.format_table(tabel)} "
-                    f"ADD COLUMN {preparer.format_column(col)} {coltype}"
-                )
-                # De server_default hoort mee: zonder DEFAULT krijgen bestaande rijen NULL, en dan
-                # klopt niets wat op die kolom filtert. Een partiële index op `<> ''` sluit NULL
-                # bijvoorbeeld stil uit (NULL <> '' is NULL, niet TRUE) en beschermt dan niets.
-                if col.server_default is not None:
-                    standaard = col.server_default.arg
-                    ddl += f" DEFAULT {standaard!r}" if isinstance(standaard, str) else f" DEFAULT {standaard}"
-                await conn.execute(text(ddl))
-                await _na_kolom(conn, tabel, col)
-        # Indexen komen niet uit `create_all` op een bestaande tabel; ze zijn idempotent aan te
-        # maken en dat is precies wat een unieke constraint op een bestaande productietabel nodig
-        # heeft.
-        for tabel in metadata.tables.values():
-            for index in tabel.indexes:
-                await conn.run_sync(lambda sync_conn, ix=index: ix.create(sync_conn, checkfirst=True))
-        # Een generiek begrip heeft geen werkgebied (ADR-006). Geen kolom erbij maar de enige uitzondering op "alleen
-        # toevoegen": er gaat niets verloren, en SQLite maakt de tabel in de tests vers aan.
-        if engine.dialect.name == "postgresql":
-            for naam in ("begrippen", "begrip_relaties"):
+    for tabel in metadata.tables.values():
+        for col in await conn.run_sync(_ontbrekende_kolommen, tabel):
+            coltype = col.type.compile(dialect=engine.dialect)
+            ddl = (
+                f"ALTER TABLE {preparer.format_table(tabel)} "
+                f"ADD COLUMN {preparer.format_column(col)} {coltype}"
+            )
+            # De server_default hoort mee: zonder DEFAULT krijgen bestaande rijen NULL, en dan
+            # klopt niets wat op die kolom filtert. Een partiële index op `<> ''` sluit NULL
+            # bijvoorbeeld stil uit (NULL <> '' is NULL, niet TRUE) en beschermt dan niets.
+            if col.server_default is not None:
+                standaard = col.server_default.arg
+                ddl += f" DEFAULT {standaard!r}" if isinstance(standaard, str) else f" DEFAULT {standaard}"
+            await conn.execute(text(ddl))
+            await _na_kolom(conn, tabel, col)
+    # Indexen komen niet uit `create_all` op een bestaande tabel; ze zijn idempotent aan te
+    # maken en dat is precies wat een unieke constraint op een bestaande productietabel nodig
+    # heeft.
+    for tabel in metadata.tables.values():
+        for index in tabel.indexes:
+            await conn.run_sync(lambda sync_conn, ix=index: ix.create(sync_conn, checkfirst=True))
+    # Het budget volgt alleen uit de rol (`budget_rol`). De tweede uitzondering op "alleen toevoegen":
+    # de oude kolommen dragen niets meer, en `budget_beleid.tokens` is NOT NULL, dus hij moet weg
+    # voordat `ensure_seeded` op een lege tabel een rij zonder die kolom schrijft.
+    for tabel_naam, kolom in (("users", "token_budget"), ("budget_beleid", "tokens")):
+        if await conn.run_sync(_heeft_kolom, tabel_naam, kolom):
+            await conn.execute(text(f"ALTER TABLE {tabel_naam} DROP COLUMN {kolom}"))
+    # Een generiek begrip heeft geen werkgebied (ADR-006). Geen kolom erbij maar de enige uitzondering op "alleen
+    # toevoegen": er gaat niets verloren, en SQLite maakt de tabel in de tests vers aan.
+    if engine.dialect.name == "postgresql":
+        for naam in ("begrippen", "begrip_relaties"):
+            # Alleen als het nog moet: ook een ALTER zonder effect neemt een exclusief tabelslot.
+            if not await conn.run_sync(_nullable_in_db, naam, "werkgebied_id"):
                 await conn.execute(text(f"ALTER TABLE {naam} ALTER COLUMN werkgebied_id DROP NOT NULL"))
-        # Het besluit *later* bestaat niet meer (sinds spoor J kies je per deelvraag): een oude rij is een voorstel.
-        # Idempotent; daarna kent de code de waarde niet meer.
-        if await conn.run_sync(lambda c: sa_inspect(c).has_table("bron_kandidaten")):
-            await conn.execute(text("UPDATE bron_kandidaten SET status = 'voorgesteld', besloten_door = NULL, "
-                                    "besloten_op = NULL WHERE status = 'later'"))
-        if await conn.run_sync(lambda c: sa_inspect(c).has_table("bron_kandidaat_deelvragen")):
-            await conn.execute(text("DELETE FROM bron_kandidaat_deelvragen WHERE status = 'later'"))
+    # Het besluit *later* bestaat niet meer (sinds spoor J kies je per deelvraag): een oude rij is een voorstel.
+    # Idempotent; daarna kent de code de waarde niet meer.
+    if await conn.run_sync(lambda c: sa_inspect(c).has_table("bron_kandidaten")):
+        await conn.execute(text("UPDATE bron_kandidaten SET status = 'voorgesteld', besloten_door = NULL, "
+                                "besloten_op = NULL WHERE status = 'later'"))
+    if await conn.run_sync(lambda c: sa_inspect(c).has_table("bron_kandidaat_deelvragen")):
+        await conn.execute(text("DELETE FROM bron_kandidaat_deelvragen WHERE status = 'later'"))
+
+
+def _heeft_kolom(sync_conn, tabel: str, kolom: str) -> bool:
+    inspector = sa_inspect(sync_conn)
+    return inspector.has_table(tabel) and kolom in {c["name"] for c in inspector.get_columns(tabel)}
 
 
 async def _na_kolom(conn, tabel, col) -> None:
