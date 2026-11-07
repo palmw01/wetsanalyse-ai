@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { NodeAnnotatiePaneel } from "@/components/annotaties/NodeAnnotatiePaneel";
 import { samenhangBeschikbaar } from "@/lib/samenhang";
-import { ThreadRij, type ThreadActies, type WerkgebiedAnnoteren } from "@/components/werkplek/ThreadRij";
+import { ThreadRij, type ThreadActies } from "@/components/werkplek/ThreadRij";
 import { reeksNavigatie } from "@/lib/reeks";
 import { LEGE_STAND, afronding, frameplanner, stroomReducer, type StroomEvent } from "@/lib/beurtStroom";
 import { type NodeDoel, type ToolExecution } from "@/lib/annotatieNode";
@@ -41,7 +41,7 @@ import type {
 } from "@/lib/types";
 import { ANNULEER_TEKST, afgehandeld } from "@/lib/werkgebiedAnnoteren";
 import {
-  antwoordOp, antwoordTekst, groepeerVragen, klaarActie, openVraag, type IntakeActie,
+  antwoordOp, antwoordTekst, groepeerVragen, klaarActie, openVraag,
 } from "@/lib/vraagkaart";
 import { VraagDock } from "@/components/werkplek/VraagDock";
 import { BronselectieKaart } from "@/components/werkplek/BronselectieKaart";
@@ -59,10 +59,10 @@ import { jasStyle, klasseLabel } from "@/lib/jas";
 import type { ThreadItem } from "@/lib/threadItem";
 import { LEX_KORT, WerkplekHeader } from "./WerkplekHeader";
 import { itemsUitGesprek } from "@/lib/geschiedenis";
+import { bevestigt, startOpties, userVelden, type BeurtVerzoek } from "@/lib/beurtVerzoek";
 import { DEMO_DOEL, DEMO_SLUG, type DemoScene } from "@/lib/rondleidingDemo";
 import {
-  SOORT_LABEL, VERVOLG_TEKST, actieVerzoek, chipTekst, overVan, suggestiesVan, verzoekVan, werkgebiedSuggesties, type Onderwerp, type Vervolg,
-  type VraagLexActie,
+  SOORT_LABEL, VERVOLG_TEKST, chipTekst, overVan, suggestiesVan, werkgebiedSuggesties, type Onderwerp, type Vervolg,
 } from "@/lib/vraagLex";
 
 // De thread-items staan in `lib/threadItem.ts`, zodat de rondleiding er een voorbeeldbeurt
@@ -441,11 +441,8 @@ export function WerkplekClient({
     }
   }
 
-  /** @param doel de bepaling, als die al vaststaat (zie `startRun`).
-   *  @param hergebruik "opnieuw" = de jurist vraagt expliciet om een nieuwe ronde op een al
-   *    geannoteerd artikel; zonder doel betekent dat niets (de agent weet dan nog niet welk). */
-  async function verstuur(vast?: string, doel?: AgentDoelInvoer, hergebruik?: "opnieuw", doelen?: AgentDoelInvoer[],
-    annoteren?: WerkgebiedAnnoteren, intake?: IntakeActie, actie?: VraagLexActie) {
+  /** Start een beurt. Zonder `verzoek.prompt` geldt wat er in het invoerveld staat (`lib/beurtVerzoek.ts`). */
+  async function verstuur(verzoek: BeurtVerzoek = {}) {
     // In de rondleiding is dit venster een voorbeeld: er gaat niets naar de agent. De invoerbalk is
     // ook uitgeschakeld, dit is het vangnet voor Enter en de voorbeeldknoppen.
     if (demo) return;
@@ -453,7 +450,7 @@ export function WerkplekClient({
     // is de zichtbare helft — dit is de sluitende. De eerste versie schermde alleen de verzendknop
     // af, en toen bleven de voorbeeldvragen, de kandidatenlijst en het beginscherm gewoon open.
     if (geblokkeerd) return;
-    const prompt = (vast ?? invoer).trim();
+    const prompt = (verzoek.prompt ?? invoer).trim();
     if (!prompt || bezigRef.current) return;
     bezigRef.current = true;
     setInvoer("");
@@ -472,12 +469,11 @@ export function WerkplekClient({
     // dan halen we precies déze weg. Filteren op de tekst zou een eerdere, identieke vraag treffen.
     const vraagId = uid();
     // De knop bij een voorstel van Lex: dit bericht beantwoordt het, en daarna staat er geen knop meer.
-    const bevestigt = annoteren?.bevestigd !== undefined;
     setItems((xs) => [
       ...xs,
       { id: vraagId, type: "user", tekst: prompt, over: contextLabel || undefined,
-        ...(intake ? { antwoordOp: antwoordOp(intake) } : {}),
-        ...(bevestigt ? { bevestigingKeuze: "gestart" as const } : {}) },
+        ...(verzoek.intake ? { antwoordOp: antwoordOp(verzoek.intake) } : {}),
+        ...(bevestigt(verzoek) ? { bevestigingKeuze: "gestart" as const } : {}) },
       { id: antId, type: "antwoord", tekst: "" },
     ]);
     setBezig(true);
@@ -505,42 +501,17 @@ export function WerkplekClient({
       }
     }
 
-    // De chip is UI-state en reist niet mee naar de api; zonder deze regel leest een herladen gesprek
-    // als een losse vraag zonder onderwerp.
+    // De chip is UI-state en reist niet mee naar de api: de contextregel staat in de tekst (`userVelden`).
     //
     // Bewust GEAWAIT: de vraag moet vastliggen vóórdat de run begint. De volgorde in de thread is de
     // autoincrement-id, dus een snelle beurt zou anders vóór zijn eigen vraag kunnen landen – en bij
     // het aanhaken na een herlaadbeurt is deze regel de user-bubbel waar het antwoord onder hoort.
-    await persisteer(gid, "user", { tekst: contextLabel ? `Bij ${contextLabel}: ${prompt}` : prompt,
-      // Een klik op een vraagkaartje: zo staat het antwoord na herladen weer in de Vragen-kaart.
-      ...(intake ? { intake_antwoord: antwoordOp(intake) } : {}),
-      ...(bevestigt ? { bevestiging_antwoord: { keuze: "gestart" } } : {}) });
-
-    const basis = vraagOver ? verzoekVan(vraagOver) : undefined;
-    // Een vraag over een onderwerp draagt nooit een doel: die route annoteert niet.
-    const extra = doelen?.length && !vraagOver
-      // Meerdere onderdelen van één artikel: één run, elk onderdeel een eigen laag.
-      ? { ...basis, doelen }
-      : doel && !vraagOver ? { ...basis, doel, ...(hergebruik ? { hergebruik } : {}) } : basis;
+    await persisteer(gid, "user", userVelden(verzoek, prompt, contextLabel));
 
     let gestart;
     try {
-      // Het werkgebied annoteren (fase B) is een eigen opdracht: geen context, geen doel, het werkgebied
-      // uit de bevestiging (een oud gesprek kan buiten de context van dat werkgebied staan).
-      gestart = await startRun(prompt, gid, annoteren
-        ? { modus: annoteren.modus ?? "werkgebied_annoteren", werkgebied_id: annoteren.werkgebiedId,
-            ...(annoteren.bevestigd !== undefined ? { bevestigd: annoteren.bevestigd } : {}),
-            ...(annoteren.bereik ? { bereik: annoteren.bereik } : {}),
-            ...(annoteren.deelvraagId ? { deelvraag_id: annoteren.deelvraagId } : {}),
-            ...(annoteren.werkvoorraadId ? { werkvoorraad_id: annoteren.werkvoorraadId } : {}) }
-        // Een klik op een vraagkaartje: geen context en geen doel; het werkgebied van het gesprek mag mee.
-        : intake ? { intake_actie: intake, ...(werkgebiedId ? { werkgebied_id: werkgebiedId } : {}) }
-        // Een suggestie met een actie: een vaste route op het werkgebied van het onderwerp, zonder model.
-        : actie && vraagOver && vraagOver.soort !== "markering"
-          ? { ...actieVerzoek(vraagOver, actie), werkgebied_id: vraagOver.werkgebied_id }
-        // Een werkgebiedsuggestie: dezelfde vaste handeling, op het werkgebied van het gesprek.
-        : actie && werkgebiedId ? { actie, werkgebied_id: werkgebiedId }
-        : werkgebiedId ? { ...extra, werkgebied_id: werkgebiedId } : extra);
+      // Welke route de beurt neemt (annoteren, vraagkaartje, actie, advies of onderwerp): `startOpties`.
+      gestart = await startRun(prompt, gid, startOpties(verzoek, { werkgebiedId, onderwerp: vraagOver }));
     } catch (e) {
       // Er liep al een beurt (bijvoorbeeld in een ander tabblad). Deze vraag is dus NIET aangenomen:
       // zet hem terug in het invoerveld en haal de optimistische bubbels weg, zodat er niets
@@ -775,7 +746,7 @@ export function WerkplekClient({
   useEffect(() => {
     if (!vervolg || vervolgGedaan.current === vervolg.id || bezig || werkgebiedId !== vervolg.werkgebied_id) return;
     vervolgGedaan.current = vervolg.id;
-    void verstuur(VERVOLG_TEKST[vervolg.actie], undefined, undefined, undefined, undefined, undefined, vervolg.actie);
+    void verstuur({ prompt: VERVOLG_TEKST[vervolg.actie], actie: vervolg.actie });
     // `verstuur` is elke render nieuw; het effect hoort alleen bij de vervolgstap en de stand van de beurt.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vervolg, bezig, werkgebiedId]);
@@ -894,7 +865,7 @@ export function WerkplekClient({
   const actiesRef = useRef<ThreadActies | null>(null);
   useLayoutEffect(() => {
     actiesRef.current = {
-      verstuur: (...args) => void verstuur(...args),
+      verstuur: (verzoek) => void verstuur(verzoek),
       openArtefact: (slug, doel) => void openArtefact(slug, doel),
       openArtefactVan: (artefact) => {
         const ref = werkgebiedArtefactVan(artefact);
@@ -919,7 +890,7 @@ export function WerkplekClient({
     };
   });
   const [acties] = useState<ThreadActies>(() => ({
-    verstuur: (...args) => actiesRef.current?.verstuur(...args),
+    verstuur: (verzoek) => actiesRef.current?.verstuur(verzoek),
     openArtefact: (slug, doel) => actiesRef.current?.openArtefact(slug, doel),
     openArtefactVan: (artefact) => actiesRef.current?.openArtefactVan(artefact),
     openSamenhang: (doel, extra, graaf) => actiesRef.current?.openSamenhang(doel, extra, graaf),
@@ -1048,7 +1019,7 @@ export function WerkplekClient({
         ? (deelvraagId: string) => {
           if (deelvraagId !== paneelKaart.deelvraag_id) return;
           const a = klaarActie(paneelKaart);
-          void verstuur(antwoordTekst(paneelKaart, a), undefined, undefined, undefined, undefined, a);
+          void verstuur({ prompt: antwoordTekst(paneelKaart, a), intake: a });
         } : undefined}
       klaarVoor={paneelKaart?.deelvraag_id}
       variant={breed ? "kolom" : "side"}
@@ -1255,7 +1226,7 @@ export function WerkplekClient({
               <div className="mt-6 flex flex-wrap justify-center gap-2">
                 {VOORBEELDEN.map((v) => (
                   <Suggestie key={v} disabled={geblokkeerd} title={geblokkeerd ? "Je tokenbudget is op" : undefined}
-                    onClick={() => void verstuur(v)}>
+                    onClick={() => void verstuur({ prompt: v })}>
                     {v}
                   </Suggestie>
                 ))}
@@ -1307,12 +1278,12 @@ export function WerkplekClient({
           {toonDock && open?.open && open.open.weergave === "paneel" ? (
             <BronselectieKaart key={open.openId} kaart={open.open} uitgeschakeld={geblokkeerd}
               onSluit={() => setWeggeklikt(open.openId ?? null)}
-              onActie={(a) => void verstuur(antwoordTekst(open.open!, a), undefined, undefined, undefined, undefined, a)}
+              onActie={(a) => void verstuur({ prompt: antwoordTekst(open.open!, a), intake: a })}
               onBeoordelen={() => { const doel = bronselectieVanKaart(open.open); if (doel) wisselPaneel(doel, { ook: () => setNodeDoel(undefined) }); }} />
           ) : toonDock && open?.open ? (
             <VraagDock key={open.openId} kaart={open.open} uitgeschakeld={geblokkeerd}
               onSluit={() => setWeggeklikt(open.openId ?? null)}
-              onActie={(a) => void verstuur(antwoordTekst(open.open!, a), undefined, undefined, undefined, undefined, a)} />
+              onActie={(a) => void verstuur({ prompt: antwoordTekst(open.open!, a), intake: a })} />
           ) : (<>
           {/* Waar de volgende vraag over gaat. Zichtbaar zolang hij geldt, want anders stel je
               ongemerkt een adviesvraag over een element dat je allang niet meer voor je hebt. */}
@@ -1370,7 +1341,7 @@ export function WerkplekClient({
                       requestAnimationFrame(() => taRef.current?.setSelectionRange(s.tekst.length, s.tekst.length));
                       return;
                     }
-                    void verstuur(s.tekst, undefined, undefined, undefined, undefined, undefined, s.actie);
+                    void verstuur({ prompt: s.tekst, actie: s.actie });
                   }}
                 >
                   {s.tekst}
