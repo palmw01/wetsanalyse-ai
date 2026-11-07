@@ -29,10 +29,10 @@ from .bestandsnaam import met_tijd
 from .jas_klassen import jas_sorteersleutel
 from .werkgebied_inventaris import Resolver, bwb_van, inventaris_met_bronbomen
 from .werkgebied_rapport import (DOSSIERVELDEN, Afwijking, Artikel, Begrip, Begrippen, Bepaling, Bronstand, Bronvoorstel, Deelvraag,
-                                 DeelvraagBron, Deelvragen, Dossier, DossierVeld, Fragment, Handeling, Herkomst, KlasseTelling, Markering,
+                                 DeelvraagBron, Deelvragen, Document, Dossier, DossierVeld, Fragment, Besluit, Handeling, Herkomst, Kerncijfers, KlasseTelling, Markering,
                                  Onbereikbaar, OpenGroep, OpenRelatie, Passage, Rapport, Regel, Regeling, Relatie, Selectie, Signaal,
-                                 Stand, UitgeslotenBron, Verantwoording, Voorbeeld, Voorblad, Wettekst, Zoekdekking, Zoekregeling,
-                                 datum, rapport_regels)
+                                 Stand, Telling, UitgeslotenBron, Verantwoording, Voorbeeld, Voorblad, Wettekst, Zoekdekking, Zoekregeling,
+                                 BESLUITEN, datum, rapport_regels)
 
 
 async def verzamel(werkgebied_id: str, actor: str, resolve: Resolver,
@@ -305,6 +305,58 @@ def _begrippen(data: dict, nodes: dict[str, dict]) -> Begrippen:
         open_relaties=[OpenRelatie(van=r.get("van_naam", ""), type=r["type"], naar=r.get("naar_naam", "")) for r in data["relaties"]["voorstellen"]])
 
 
+def _document(data: dict) -> Document:
+    wg = data["werkgebied"]
+    return Document(titel=wg["naam"], kenmerk=f"WG-{wg['id'][:8]}-r{wg['revisie']}", werkgebied_id=wg["id"],
+                    concept=wg["status"] != "afgerond")
+
+
+def _telling(teller: Counter, volgorde: tuple[str, ...]) -> list[Telling]:
+    """In een vaste volgorde, en een onbekende code achteraan op alfabet: dezelfde stand geeft dezelfde tekst."""
+    return [Telling(code=c, aantal=teller[c]) for c in [*volgorde, *sorted(set(teller) - set(volgorde))] if teller[c]]
+
+
+def _kerncijfers(data: dict) -> Kerncijfers:
+    inv, overzicht = data["inventaris"], data["overzicht"]
+    voortgang = Counter("opnieuw_bekijken" if v["opnieuw_bekijken"] else v["status"] for v in overzicht["deelvragen"])
+    markeringen = Counter("beoordeeld" if e["lifecycle"] in BEOORDEELD else "voorstel" for e in inv["elementen"])
+    markeringen["afgewezen"] = len(inv["afgewezen"])
+    return Kerncijfers(
+        deelvragen=_telling(voortgang, ("niet_gestart", "in_behandeling", "voorlopig_afgerond", "beoordeeld", "opnieuw_bekijken")),
+        bronnen=_telling(Counter(s["rol"] for s in data["werkgebied"]["bronnen"]), ("analyseren", "context")),
+        markeringen=_telling(markeringen, ("beoordeeld", "voorstel", "afgewezen")),
+        begrippen=_telling(Counter(b["status"] for b in data["begrippen"]), ("geaccordeerd", "concept", "vervangen")))
+
+
+def _onderwerp(detail: dict, data: dict, nodes: dict[str, dict]) -> str:
+    """Waarover een besluit ging, leesbaar gemaakt uit de sleutels in de audit: een bron, een begrip, een deelvraag."""
+    begrippen = {b["id"]: b["inhoud"]["naam"] for b in data["begrippen"]}
+    deelvragen = {v.get("id"): v["nr"] for v in data["overzicht"]["deelvragen"] if v.get("id")}
+    delen = []
+    if detail.get("bron_iri"):
+        delen.append(_vindplaats(detail["bron_iri"], nodes))
+    if detail.get("begrip_id"):
+        delen.append(begrippen.get(detail["begrip_id"], "een begrip dat niet meer bestaat"))
+    if detail.get("van") and detail.get("naar") and detail.get("type"):
+        delen.append(f"{begrippen.get(detail['van'], '?')} – {begrippen.get(detail['naar'], '?')} ({detail['type']})")
+    if detail.get("deelvraag") in deelvragen:
+        delen.append(f"deelvraag {deelvragen[detail['deelvraag']]}")
+    if detail.get("veld"):
+        delen.append(f"veld {detail['veld']}")
+    return " · ".join(delen)
+
+
+def _besluiten(data: dict, nodes: dict[str, dict]) -> list[Besluit]:
+    uit = []
+    for a in sorted(data["audit"], key=lambda a: (a["tijdstip"], a["id"])):
+        detail = a.get("detail") or {}
+        actie = "status-gewijzigd" if a["actie"] == "gewijzigd" and "status" in (detail.get("velden") or []) else a["actie"]
+        if actie in BESLUITEN:
+            uit.append(Besluit(op=a["tijdstip"], door=a["actor"], actie=actie, onderwerp=_onderwerp(detail, data, nodes),
+                               reden=str(detail.get("reden") or "")))
+    return uit
+
+
 def _verantwoording(data: dict, nodes: dict[str, dict]) -> Verantwoording:
     wg, inv = data["werkgebied"], data["inventaris"]
     return Verantwoording(
@@ -312,6 +364,7 @@ def _verantwoording(data: dict, nodes: dict[str, dict]) -> Verantwoording:
         juristen=sorted({b["actor"] for e in [*inv["elementen"], *inv["afgewezen"]] for b in e.get("beslissingen") or [] if b.get("actor")}),
         accordeurs=sorted({b["geaccordeerd_door"] for b in data["begrippen"] if b["status"] == "geaccordeerd" and b["geaccordeerd_door"]}),
         handelingen=[Handeling(actie=a, aantal=n) for a, n in Counter(a["actie"] for a in data["audit"]).most_common()],
+        besluiten=_besluiten(data, nodes),
         bronnen=[Selectie(rol=s["rol"], vindplaats=_plek(s["bron_iri"], nodes, s["label"]), toegevoegd_door=s.get("toegevoegd_door") or "",
                           toegevoegd=s.get("toegevoegd")) for s in wg["bronnen"]])
 
@@ -319,7 +372,8 @@ def _verantwoording(data: dict, nodes: dict[str, dict]) -> Verantwoording:
 def bouw_rapport(data: dict, verklaringen: dict) -> Rapport:
     """Het gestructureerde rapport: alles wat een uitvoervorm mag tonen, en niets anders."""
     nodes = _nodes(data)
-    return Rapport(stand=Stand(op=data["export"]["op"], door=data["export"]["actor"]), voorblad=_voorblad(data, nodes),
+    return Rapport(stand=Stand(op=data["export"]["op"], door=data["export"]["actor"]), document=_document(data),
+                   voorblad=_voorblad(data, nodes), samenvatting=_kerncijfers(data),
                    dossier=_dossier(data), deelvragen=_deelvragen(data, nodes), wettekst=_wettekst(data, nodes, verklaringen),
                    begrippen=_begrippen(data, nodes), verantwoording=_verantwoording(data, nodes))
 
@@ -335,4 +389,8 @@ def markdown_export(data: dict, verklaringen: dict) -> bytes:
 
 def pdf_export(data: dict, verklaringen: dict) -> bytes:
     naam = data["werkgebied"]["naam"]
-    return pdf_opmaak.render(regels(data, verklaringen), titel=naam, voet=f"{naam} · stand van {datum(data['export']['op'])}")
+    wg = data["werkgebied"]
+    concept = " · concept" if wg["status"] != "afgerond" else ""
+    return pdf_opmaak.render(regels(data, verklaringen), titel=naam, voet=f"Werkgebiedrapport{concept} · revisie {wg['revisie']} · stand van {datum(data['export']['op'])}",
+                             onderwerp="Wetsanalyse – rapport van het werkgebied", auteur=data["export"]["actor"],
+                             trefwoorden=", ".join(sorted({bwb_van(s) for s in wg["bronnen"]})))

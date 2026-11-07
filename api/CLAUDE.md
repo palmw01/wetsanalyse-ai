@@ -385,7 +385,9 @@ spoor D (*Werkgebied als node*).
 - **De export** (`GET {id}/export?formaat=pdf|md`, `werkgebied_export.py`): het hele werkgebied als één PDF of Markdown, een
   overdrachtsdossier voor wie niet in Lex werkt. De PDF komt uit één gestructureerd document (`werkgebied_rapport.Rapport`, ADR-009):
   `bouw_rapport` vult het, `rapport_regels` maakt er tekst van, en de uitvoer gaat letterlijk door de JSON heen. Een nieuw
-  veld hoort in het contract én in de tekstlaag; `test_elke_tekst_in_het_rapport_komt_in_de_uitvoer` bewaakt dat. Op de stand van nu en met één vaste inhoud, zonder bovengrens: voorblad met
+  veld hoort in het contract én in de tekstlaag; `test_elke_tekst_in_het_rapport_komt_in_de_uitvoer` bewaakt dat. Versie 2 (ADR-009, aanvulling nov 2026) heeft
+  `document` (kenmerk, concept), `samenvatting` (kerncijfers) en een besluitenlog (`BESLUITEN`: welke audit-acties een besluit zijn). Het
+  JSON-schema (`app/schemas/werkgebied-rapport-v2.schema.json`) maak je opnieuw met `werkgebied_rapport.schrijf_schema()`, en een test vergelijkt het. Op de stand van nu en met één vaste inhoud, zonder bovengrens: voorblad met
   bronstand en waarschuwingen, inhoudsopgave en bladwijzers, dossier, deelvragen en bronnen, wettekst met markeringen,
   begrippen, korte verantwoording. `verzamel` leest met dezelfde functies als de schermen, en `regels` geeft (stijl, tekst),
   zonder reportlab te testen.
@@ -403,6 +405,11 @@ spoor D (*Werkgebied als node*).
   achter elkaar geven een blanke pagina. De lettertypen zijn ingesloten (`app/fonts/`, met licentie):
   de standaardletters kennen alleen cp1252 en maakten van een `ā` of harde afbreekstreep stil een `■`. Wat Fira Sans niet
   heeft, tekent DejaVu per teken (`opgemaakt`). Elke tekst gaat daar doorheen: hij wordt ook geëscaped.
+  Vanaf pagina 2 staat er een kopregel (titel en het lopende hoofdstuk) en op elke pagina een voetregel met "Pagina n van N"
+  (`Teller`: het totaal komt pas bij het opslaan). Het document draagt `/Lang nl-NL`, `DisplayDocTitle` en metadata. Citaten
+  krijgen een lijn (`Lijn`), signalen een kader. Reportlab maakt geen tagged PDF, dus PDF/UA is niet haalbaar (ADR-009, aanvulling).
+  Wat wél kan, bewaakt `tests/test_pdf_opmaak.py`: contrast volgens WCAG AA (`KLEURPAREN` en de JAS-kleuren), taal en metadata,
+  en geen niet-ingesloten letter. De inhoudsopgave krijgt daarom een eigen tabelstijl, want de standaard zet Helvetica op elke cel.
 - Tests: `tests/test_werkgebieden.py` en `tests/test_werkgebied_werkvoorraad.py` (SQLite) en
   `tests/test_werkgebieden_postgres.py` (het rij-slot, met `ANNOTATIE_TEST_DSN`).
 
