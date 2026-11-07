@@ -1,0 +1,41 @@
+# De uitrolpoort: wacht tot de nieuwste revisie van elke app gezond is, en toets daarna de keten.
+#
+# `az containerapp update` en `az deployment group create` keren terug zodra een revisie is AANGEMAAKT,
+# niet zodra hij draait. Zonder deze poort werd een uitrol groen terwijl een container bij het starten
+# crashte. De poort stond eerst zes keer als eigen lus in de workflows en liep uit elkaar (alleen
+# azure-infra kende ScaledToZero). Daarom staat hij hier één keer; tests/poort/test_uitrolpoort.py
+# bewaakt dat geen workflow een eigen kopie houdt.
+#
+# Vereist: een ingelogde `az` en een checkout (het script staat naast dit bestand).
+name: wacht-op-revisie
+description: Wacht tot de nieuwste revisie van elke app gezond is en toets de keten via de frontend.
+
+inputs:
+  apps:
+    description: Namen van de container apps, gescheiden door spaties (volledige naam, met appName ervoor).
+    required: true
+  resource-group:
+    description: De resource group van de apps.
+    required: true
+  keten:
+    description: >-
+      Naam van de frontend-app voor de rooktest (`/api/health?keten=1` moet api én graph-qa als ok
+      melden). Leeg = geen rooktest; dat hoort alleen waar er geen frontend is.
+    required: false
+    default: ""
+  zonder-revisie:
+    description: "`fout` (default) of `overslaan`: wat te doen met een app zonder revisie."
+    required: false
+    default: fout
+
+runs:
+  using: composite
+  steps:
+    - name: Wachten op gezonde revisies en de keten toetsen
+      shell: bash
+      env:
+        WACHT_APPS: ${{ inputs.apps }}
+        WACHT_RG: ${{ inputs.resource-group }}
+        WACHT_KETEN: ${{ inputs.keten }}
+        WACHT_ZONDER_REVISIE: ${{ inputs.zonder-revisie }}
+      run: bash "$GITHUB_ACTION_PATH/wacht.sh"

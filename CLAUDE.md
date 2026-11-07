@@ -417,7 +417,9 @@ secret of var (een overgeslagen stap zou de run groen laten terwijl er niets is 
 een container die bij het starten crasht bleef anders onopgemerkt. `ScaledToZero` telt daarbij als
 gezond: api en graph-qa staan op `minReplicas: 0` (`MIN_REPLICAS_APPS`) en zijn na een deploy zonder
 verkeer terecht ingeschaald. Dezelfde gate zit in de publish-workflows, `promote.yml` en
-`rollback.yml`.
+`rollback.yml`: het is één composite action (`.github/actions/wacht-op-revisie`, bewaakt door
+`tests/poort/test_uitrolpoort.py`), die daarna een rooktest doet op de keten (`/api/health?keten=1`
+van de frontend moet de api en graph-qa bereiken). Geen workflow houdt een eigen kopie van de lus.
 
 **De graaf op Azure is niet-persistent, en vult zichzelf.** GraphDB gebruikt memory-mapped files en
 kan daarom geen netwerkschijf gebruiken; de graaf is echter volledig reproduceerbaar uit overheid.nl.

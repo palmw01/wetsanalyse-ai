@@ -162,6 +162,12 @@ jobs:
             [ -n "${!v:-}" ] || { echo "::error::ontbrekende secret/var: $v (zie deploy/azure/README.md)"; exit 1; }
           done
 
+      # De uitrolpoort staat als composite action in de repo; alleen die map is nodig.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/actions
+          persist-credentials: false
+
       - name: Azure Container App update (frontend)
         env:
           IMAGE_DIGEST_REF: ${{ env.IMAGE }}@${{ needs.build-and-push.outputs.digest }}
@@ -187,24 +193,15 @@ jobs:
             --output none
 
       # `az containerapp update` keert terug zodra de revisie is AANGEMAAKT. Crasht de container bij
-      # het starten, dan bleef de workflow groen en dacht je dat je had uitgerold.
-      - name: Wachten tot de nieuwe revisie draait
+      # het starten, dan bleef de workflow groen en dacht je dat je had uitgerold. De poort wacht op
+      # een gezonde revisie en toetst daarna via de frontend of de keten werkt.
+      - name: Uitrolpoort (revisie gezond, keten werkt)
         if: env.SWAP_OVERGESLAGEN != '1'
-        run: |
-          set -euo pipefail
-          rev=$(az containerapp show -n "$APP-frontend" -g "$RG" --query "properties.latestRevisionName" -o tsv)
-          echo "Nieuwe revisie: $rev"
-          for _ in $(seq 1 30); do
-            st=$(az containerapp revision show -n "$APP-frontend" -g "$RG" --revision "$rev" \
-                   --query "properties.runningState" -o tsv 2>/dev/null || echo Unknown)
-            echo "  $st"
-            case "$st" in
-              Running|RunningAtMaxScale) echo "$rev draait."; exit 0 ;;
-              Failed|Degraded) echo "::error::revisie $rev kwam niet gezond op ($st)"; exit 1 ;;
-            esac
-            sleep 10
-          done
-          echo "::error::revisie $rev werd niet Running binnen 5 minuten"; exit 1
+        uses: ./.github/actions/wacht-op-revisie
+        with:
+          apps: ${{ env.APP }}-frontend
+          resource-group: ${{ env.RG }}
+          keten: ${{ env.APP }}-frontend
 
       - name: Afmelden bij Azure
         if: always()
