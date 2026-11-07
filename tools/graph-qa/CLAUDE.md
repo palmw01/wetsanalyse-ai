@@ -1424,12 +1424,21 @@ cd tools/graph-qa && .venv/bin/python eval/run_eval.py --annotatie             #
 cd tools/graph-qa && .venv/bin/python eval/run_eval.py --gesprek --offline     # gesprekken-harnas
 cd tools/graph-qa && .venv/bin/python eval/run_eval.py --gesprek               # live (kost geld)
 cd tools/graph-qa && .venv/bin/python eval/run_eval.py --retrieval-smoke       # live, alleen de graaf
+cd tools/graph-qa && .venv/bin/python eval/run_eval.py --herscoor run.jsonl    # bewaarde run opnieuw scoren, gratis
 ```
 
 - **`tests/fakes.py`** levert `FakeLLM` / `FakeGraph` / `make_settings`. `FakeLLM` speelt een vaste reeks
   Anthropic-responses af via `create()` én `stream()` (gedeelde index); bouw multi-turn-scenario's met
   `response([text_block(...), tool_block(...)], stop_reason)`. `make_settings` zet de checkpointer
   in-memory en `CLASSIFIER_PARALLEL` op 1.
+- **Vraagtype, bewaren en herscoren.** Elke case in `eval/golden.jsonl` en elke beurt in `eval/golden_gesprek.jsonl`
+  draagt een `vraagtype` uit de vaste lijst in `eval/vraagtypen.py` (een gesprek mag een default geven; een
+  onbekend of ontbrekend type laat `tests/test_eval_kwaliteit.py` falen). Het rapport toont per type aantal,
+  slagingspercentage en toonovertredingen. `volgorde` en `sjabloon` in een case tellen mee voor slagen; de toon
+  (`eval/kwaliteit.py`: emoji, koppen, u-vorm, interne termen, lange zinnen in de lopende tekst) bewust niet.
+  `--bewaar run.jsonl` schrijft per case/beurt de events die de scorers lezen, `--herscoor run.jsonl` scoort ze
+  opnieuw zonder agent of model (`eval/opname.py`). Een nieuwe scorer leest dus alleen uit de opname, anders is
+  hij niet te herscoren.
 - **De retrieval-smoke heeft bewust géén offline-variant.** Hij raakt elke graaftool één keer tegen de
   échte graaf en meldt een lege uitkomst waar data hoort – precies wat een `FakeGraph` niet kan meten.
   `_wacht_op_graaf` stopt bij drie identieke fouten in plaats van het wachtbudget leeg te draaien: een

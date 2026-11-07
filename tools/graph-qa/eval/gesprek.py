@@ -11,8 +11,8 @@ eval-kanaal in de agent: wat hier meetbaar is, ziet de jurist ook.
 
 Verwachtingen per beurt (alle optioneel):
   route        : één van de gezien-routes (`annotaties_lezen`, `annotatie`, `advies`, `afgewezen`,
-                 `definitie`, `duiding`, `algemeen`, `deelvragen`, `begrippen`) die in deze beurt moet
-                 voorkomen
+                 `definitie`, `duiding`, `algemeen`, `deelvragen`, `begrippen`, `werkgebied`, `overzicht`,
+                 `begrippen_lezen`, `bronselectie`) die in deze beurt moet voorkomen
   niet_route   : routes die NIET mogen voorkomen
   tools_wel    : tools waarvan er minstens één moet zijn aangeroepen
   tools_niet   : tools die niet aangeroepen mogen worden
@@ -21,6 +21,8 @@ Verwachtingen per beurt (alle optioneel):
   bevat_een    : minstens één van deze deelstrings staat in het antwoord
   verboden     : deelstrings die er niet in mogen staan
   niet_ongegrond: true → het grounding-niveau mag niet `ongegrond` zijn
+
+Elke beurt heeft een `vraagtype` (eval/vraagtypen.py), zelf of als default van het gesprek.
 
 Per beurt mag de case ook `werkgebied_id` en `onderwerp` meegeven (F3c): de werkplek in een werkgebied, en
 het object waarop de analist *Vraag Lex* koos. Zonder api haalt de eval het object niet op – de supervisor
@@ -38,6 +40,9 @@ from typing import Any
 
 from agent.agent import answer_stream
 from agent.config import Settings
+from eval.kwaliteit import Toon, toon
+from eval.opname import neem_op, nieuwe_opname
+from eval.vraagtypen import print_per_vraagtype, vraagtype_van
 
 GOLDEN_GESPREK = Path(__file__).parent / "golden_gesprek.jsonl"
 
@@ -47,6 +52,11 @@ _ROUTE_REGELS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"^Lex · raadpleegt bestaande annotaties"), "annotaties_lezen"),
     (re.compile(r"^Lex · annoteert de aangewezen bepaling"), "annotatie"),
     (re.compile(r"^Lex · advies bij een bestaande markering"), "advies"),
+    (re.compile(r"^Lex · raadpleegt vastgelegde begrippen"), "begrippen_lezen"),
+    (re.compile(r"^Lex · overzicht van een onderwerp"), "overzicht"),
+    # De bronselectie per deelvraag (spoor J): starten, hervatten, een keuze of een bepaling opzoeken.
+    (re.compile(r"^Lex · (?:bepaalt met je de bronnen per deelvraag|pakt de bronselectie op|verwerkt je keuze in "
+                r"de bronselectie|zoekt met je een bepaling op)"), "bronselectie"),
     (re.compile(r"^Lex · meer dan één artikel genoemd"), "afgewezen"),
     (re.compile(r"^Supervisor · buiten de wet"), "afgewezen"),
     (re.compile(r"^Supervisor · kiest de annotatie-worker"), "annotatie"),
@@ -152,6 +162,8 @@ class Beurt:
     niveau: str
     error: str | None
     fouten: list[str] = field(default_factory=list)
+    vraagtype: str = ""
+    toon: Toon = field(default_factory=Toon)
 
     @property
     def passed(self) -> bool:
@@ -200,42 +212,35 @@ def score_beurt(verwacht: dict[str, Any], beurt: Beurt) -> list[str]:
     return fouten
 
 
-async def run_beurt(spec: dict[str, Any], conversation_id: str, *, settings: Settings,
-                    llm=None, graph=None, annotaties=None, meter=None) -> Beurt:
-    status: list[str] = []
-    tools: list[str] = []
-    tokens: list[str] = []
-    niveau = ""
-    error: str | None = None
+def beurt_uit_opname(spec: dict[str, Any], opname: dict[str, Any]) -> Beurt:
+    """Scoor een opgenomen beurt (eval/opname.py): live, of uit een bewaard bestand."""
+    beurt = Beurt(spec["vraag"], opname["tekst"], routes_uit_status(opname["status"]), opname["tools"],
+                  opname["grounding"].get("niveau", ""), opname["error"], vraagtype=opname["vraagtype"],
+                  toon=toon(opname["tekst"], opname["antwoord"]))
+    beurt.fouten = score_beurt(spec.get("verwacht") or {}, beurt)
+    return beurt
+
+
+async def neem_beurt_op(spec: dict[str, Any], vraagtype: str, conversation_id: str, *, settings: Settings,
+                        llm=None, graph=None, annotaties=None, meter=None) -> dict[str, Any]:
+    opname = nieuwe_opname(spec["vraag"], vraagtype)
     async for ev in answer_stream(
         spec["vraag"], conversation_id, settings=settings, llm=llm, graph=graph, meter=meter,
         modus=spec.get("modus", "auto"), context=spec.get("context"), doel=spec.get("doel"),
         annotaties=annotaties or getattr(graph, "annotaties", None),
         werkgebied_id=spec.get("werkgebied_id", ""), onderwerp=spec.get("onderwerp"),
     ):
-        soort = ev.get("type")
-        if soort == "status":
-            status.append(ev.get("message", ""))
-        elif soort == "tool_execution" and ev.get("phase") == "start":
-            tools.append(ev.get("tool", ""))
-        elif soort == "element" and hasattr(annotaties, "onthoud"):
+        if ev.get("type") == "element" and hasattr(annotaties, "onthoud"):
             # Wat Lex markeerde is in de volgende beurt terug te vinden, zoals in de werkplek.
             annotaties.onthoud(ev["element"])
-        elif soort == "token":
-            tokens.append(ev.get("content", ""))
-        elif soort == "grounding":
-            niveau = ev.get("niveau", "")
-        elif soort == "error":
-            error = ev.get("message")
-    beurt = Beurt(spec["vraag"], "".join(tokens), routes_uit_status(status), tools, niveau, error)
-    beurt.fouten = score_beurt(spec.get("verwacht") or {}, beurt)
-    return beurt
+        neem_op(opname, ev)
+    return opname
 
 
 async def run_gesprek(case: dict[str, Any], *, settings: Settings, llm=None, graph=None,
-                      annotaties=None, meter=None) -> GesprekResult:
+                      annotaties=None, meter=None, regels: list[dict[str, Any]] | None = None) -> GesprekResult:
     """Alle beurten in één thread. Elke run een vers id: een tweede run mag niet voortbouwen op het
-    geheugen van de eerste."""
+    geheugen van de eerste. Met `regels` komt per beurt de opname erbij, om te bewaren (`--bewaar`)."""
     gid = f"eval-{case['id']}-{uuid.uuid4().hex[:8]}"
     if annotaties is None:
         # Per gesprek een verse poort: wat het ene gesprek markeerde, hoort het volgende niet te zien.
@@ -243,9 +248,23 @@ async def run_gesprek(case: dict[str, Any], *, settings: Settings, llm=None, gra
         annotaties = GesprekAnnotaties((graph or _poortgraaf(settings)).sparql, case.get("andere_annotaties"))
     beurten = []
     for spec in case["beurten"]:
-        beurten.append(await run_beurt(spec, gid, settings=settings, llm=llm, graph=graph,
-                                       annotaties=annotaties, meter=meter))
+        opname = await neem_beurt_op(spec, vraagtype_van(case, spec), gid, settings=settings, llm=llm, graph=graph,
+                                     annotaties=annotaties, meter=meter)
+        if regels is not None:
+            regels.append({"soort": "gesprek", "gesprek": {"id": case["id"], "scenario": case.get("scenario", "")},
+                           "beurt": spec, "opname": opname})
+        beurten.append(beurt_uit_opname(spec, opname))
     return GesprekResult(case["id"], case.get("scenario", ""), beurten)
+
+
+def herscoor_gesprekken(regels: list[dict[str, Any]]) -> list[GesprekResult]:
+    """De bewaarde beurten per gesprek, in de volgorde van het bestand."""
+    uit: dict[str, GesprekResult] = {}
+    for r in regels:
+        g = r["gesprek"]
+        uit.setdefault(g["id"], GesprekResult(g["id"], g.get("scenario", ""), [])).beurten.append(
+            beurt_uit_opname(r["beurt"], r["opname"]))
+    return list(uit.values())
 
 
 async def run_gesprek_suite(cases: list[dict[str, Any]], *, settings: Settings, stil: bool = False,
@@ -290,4 +309,8 @@ def print_gesprek_report(results: list[GesprekResult]) -> bool:
         per_scen.setdefault(r.scenario or "-", []).extend(b.passed for b in r.beurten[1:])
     for s, v in sorted(per_scen.items()):
         print(f"  scenario {s}: vervolgbeurten {sum(v)}/{len(v)}")
+    for b in beurten:
+        for t in b.toon.overtredingen:
+            print(f"  toon «{b.vraag[:40]}»: {t}")
+    print_per_vraagtype((b.vraagtype, b.passed, b.toon.aantal, b.toon.lange_zinnen) for b in beurten)
     return all(r.passed for r in results)
