@@ -26,7 +26,7 @@ import { foutTekst, verwijderWerkgebied } from "@/lib/api";
 import { metSpoor } from "@/lib/uiSpoor";
 import { verwijderdUit, verwijderdZin, type Verwijderd } from "@/lib/verwijderen";
 import { isRevisieConflict } from "@/lib/werkgebied";
-import { werkgebiedLabel, type WerkgebiedArtefact } from "@/lib/artefact";
+import { artefactKop, type WerkgebiedArtefact } from "@/lib/artefact";
 import type { ArtefactVersie, Begrip, Deelvraag, GroepenAntwoord, RelatiesAntwoord, Werkgebied } from "@/lib/types";
 import type { BronselectieOverzicht } from "@/lib/bronselectie";
 import { STATUS_LABEL, WERKGEBIED_EXPORT_FORMATEN } from "@/lib/werkgebied";
@@ -50,7 +50,8 @@ function exportVan(doel: WerkgebiedArtefact, opname?: Opname | null): Pick<React
       } };
       case "begrip": return { formaten: [], markdown: () => begripAlsMarkdown(o.begrip!) };
       // De PDF en de exports van het begrippenkader gaan over de stand van nu: niet bij een oude versie.
-      default: return { formaten: [], markdown: () => voorstellenAlsMarkdown(doel.titel, termenVan(o.groepen ?? null)) };
+      default: return { formaten: [], markdown: () => voorstellenAlsMarkdown(
+        o.werkgebied?.naam ? `Begripsvoorstellen – ${o.werkgebied.naam}` : "Begripsvoorstellen", termenVan(o.groepen ?? null)) };
     }
   }
   switch (doel.soort) {
@@ -92,11 +93,6 @@ function paginaVan(doel: WerkgebiedArtefact): string {
     default: return projectPad(id);
   }
 }
-const KOP: Record<WerkgebiedArtefact["soort"], string> = {
-  begrippen: "Begripsvoorstellen van Lex", werkgebied: "Samengesteld met Lex",
-  deelvraag: "Deelvraag", begrip: "Begrip", bronselectie: "Bronselectie met Lex",
-};
-
 /** Een artefact van een werkgebied in de werkplek, in dezelfde schil als een annotatie (een kolom naast
  *  de chat vanaf 1280px, anders een sheet):
  *
@@ -135,16 +131,15 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
   const bewaker = useOnbewaardBewaker(onbewaard);
   const sluit = () => bewaker.bewaak(onSluit, "sluiten");
   const naarWerkgebied = paginaVan(doel);
-  const soort = werkgebiedLabel(doel);
-  const titel = doel.titel || soort;
+  const { soort, titel } = artefactKop(doel);
   // De versiekiezer (deel 2 van de artefacten): `undefined` zolang hij nog kiest, `null` voor *Nu*, anders de versie die
   // het paneel alleen-lezend toont. Zonder versie op de chip is het gewoon *Nu*.
   const metVersie = doel.versie;
   const [opname, setOpname] = useState<Opname | null | undefined>(metVersie ? undefined : null);
   return (
-    <Dialog label={`${soort}: ${titel}`} variant={variant} onSluit={sluit}>
+    <Dialog label={soort ? `${soort}: ${titel}` : titel} variant={variant} onSluit={sluit}>
       <div data-artefact data-artefact-soort={doel.soort} className="flex min-h-0 flex-1 flex-col">
-        <PaneelKop soort={KOP[doel.soort]} titel={titel} pagina={naarWerkgebied} onSluit={sluit}
+        <PaneelKop soort={soort} titel={titel} pagina={naarWerkgebied} onSluit={sluit}
           // Pas als de versie vaststaat: anders gaat de export over de stand van nu in plaats van over wat je zo ziet.
           acties={opname !== undefined && <ExportKnop onFout={setExportFout} titel={titel} {...exportVan(doel, opname)} />}
           onder={metVersie && <VersieKiezer versie={metVersie} onKies={(v) => setOpname(v as Opname | null)} />} />

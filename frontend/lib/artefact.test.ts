@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   annotatieDoelVan, artefactLabel, artefactSleutel, artefactVanBericht, isTeOpenen, parseArtefact, werkgebiedArtefactVan,
-  werkgebiedLabel,
+  artefactKop, ARTEFACT_SOORT_LABEL, bronselectieVanKaart, VERZAMELING,
 } from "./artefact";
 
 const IRI = "urn:bwb:BWBR0004770:artikel:9:lid:1";
@@ -86,9 +86,9 @@ describe("een artefact dat naar één begrip wijst (F3d; F4 als begrippen met be
     const w = werkgebiedArtefactVan(a)!;
     expect(w).toEqual({ soort: "begrip", werkgebied_id: "w", run_id: "", begrip_id: "b1", titel: "Termijn" });
     expect(artefactLabel(a)).toBe("Begrip");
-    expect(werkgebiedLabel(w)).toBe("Begrip");
+    expect(artefactLabel(w)).toBe("Begrip");
     const voorstellen = werkgebiedArtefactVan(parseArtefact({ soort: "begrippen", ref: { werkgebied_id: "w", run_id: "r" } }))!;
-    expect(werkgebiedLabel(voorstellen)).toBe("Begripsvoorstellen");
+    expect(artefactLabel(voorstellen)).toBe("Begripsvoorstellen");
     expect(artefactSleutel(w)).not.toBe(artefactSleutel(voorstellen));
   });
 });
@@ -112,5 +112,33 @@ describe("het werkgebied als artefact (activiteit 1)", () => {
     expect(artefactLabel(a!)).toBe("Werkgebied");
     expect(isTeOpenen(a!)).toBe(true);
     expect(parseArtefact({ soort: "werkgebied", ref: {} })).toBeUndefined();
+  });
+});
+
+describe("de titel van een artefact (artefactKop)", () => {
+  it("noemt een object bij zijn naam, met de soort erboven", () => {
+    expect(artefactKop({ soort: "begrip", titel: "Termijn" })).toEqual({ soort: "Begrip", titel: "Termijn" });
+    expect(artefactKop({ soort: "deelvraag", titel: "Wie betaalt?" })).toEqual({ soort: "Deelvraag", titel: "Wie betaalt?" });
+    expect(artefactKop({ soort: "werkgebied", titel: "Box 3" })).toEqual({ soort: "Werkgebied", titel: "Box 3" });
+    expect(artefactKop({ soort: "annotatie", titel: "Artikel 9, lid 1" })).toEqual({ soort: "JAS-annotatie", titel: "Artikel 9, lid 1" });
+  });
+
+  it("valt zonder naam terug op de soort", () => {
+    expect(artefactKop({ soort: "begrip", titel: " " })).toEqual({ soort: "Begrip", titel: "Begrip" });
+  });
+
+  it("geeft een verzameling de soortnaam als titel, zonder soortregel en zonder de naam van het werkgebied", () => {
+    // Een bericht van vóór 7 nov 2026: de begripsvoorstellen droegen de naam van het werkgebied als titel.
+    const oud = parseArtefact({ soort: "begrippen", ref: { werkgebied_id: "w", run_id: "r" }, titel: "Belastingrente" })!;
+    expect(artefactKop(oud)).toEqual({ titel: "Begripsvoorstellen" });
+    expect(artefactKop(werkgebiedArtefactVan(oud)!)).toEqual({ titel: "Begripsvoorstellen" });
+    expect(artefactKop({ soort: "bronselectie", titel: "Bronselectie" })).toEqual({ titel: "Bronselectie" });
+    expect(artefactKop({ soort: "regels", titel: "" })).toEqual({ titel: "Afleidingsregels" });
+  });
+
+  it("herhaalt bij een verzameling de soort niet als soortregel", () => {
+    for (const soort of VERZAMELING) expect(artefactKop({ soort, titel: ARTEFACT_SOORT_LABEL[soort] }).soort).toBeUndefined();
+    const k = bronselectieVanKaart({ modus: "bronselectie", intake_id: "bs-w" } as Parameters<typeof bronselectieVanKaart>[0])!;
+    expect(artefactKop(k)).toEqual({ titel: "Bronselectie" });
   });
 });

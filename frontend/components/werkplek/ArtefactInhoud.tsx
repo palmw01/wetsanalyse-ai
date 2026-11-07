@@ -1,5 +1,6 @@
 "use client";
 
+import { ARTEFACT_SOORT_LABEL } from "@/lib/artefact";
 import { annotatieAlsMarkdown } from "@/lib/artefactMarkdown";
 import { PaneelKop } from "@/components/ui/PaneelKop";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
@@ -334,7 +335,7 @@ export function ArtefactInhoud({
 
             De acties krijgen hun eigen regel en lijnen rechts uit, onder het kruisje. Dat kost op een
             breed scherm een regel hoogte, en dat is de prijs voor een sluitknop die niet wandelt. */}
-        <PaneelKop soort="Annotatie · JAS" titel={opschrift} pagina={pagina} onSluit={onSluiten} onder={kopOnder} balk={kopBalk} acties={<>
+        <PaneelKop soort={ARTEFACT_SOORT_LABEL.annotatie} titel={opschrift} pagina={pagina} onSluit={onSluiten} onder={kopOnder} balk={kopBalk} acties={<>
           <StatusLabel toon={stand.toon} uitleg={stand.uitleg}>{stand.label}</StatusLabel>
           <ExportKnop onFout={setFout} onDownload={onExport} titel={opschrift} markdown={() => annotatieAlsMarkdown(doc, opschrift)} />
           {onStatus && <StatusKnop status={doc.status} bezig={statusBezig} onZet={zetStatus} />}
