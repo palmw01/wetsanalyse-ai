@@ -541,3 +541,14 @@ async def test_een_veraald_kaartje_breekt_het_gesprek_niet(client):
     assert [(b["tekst"], b["vraagkaart"], b["intake_antwoord"]) for b in r.json()["berichten"]][-2:] == [
         ("Welke onderdelen?", None, None), ("Afdeling 5.1", None, None)]
     assert (await client.delete(f"{BASIS}/{gid}", headers=A)).status_code == 204
+
+
+async def test_eigenaar_van_leest_geen_berichten(client):
+    """Schrijfroutes komen elke beurt langs; de eigenaarscontrole hoeft het gesprek niet te laden."""
+    from app.gesprek_contracts import Gesprek
+    from app.gesprek_store import GesprekStore
+
+    store = GesprekStore()
+    await store.maak_gesprek(Gesprek(id="g-eigen", user_id="gebruiker-a", titel="t"))
+    assert await store.eigenaar_van("g-eigen") == "gebruiker-a"
+    assert await store.eigenaar_van("bestaat-niet") is None
