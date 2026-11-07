@@ -68,7 +68,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   klassen bij.
 - **De rekenkern staat in `lib/`**, niet in componenten: vitest draait node-env zonder DOM, dus alleen
   pure helpers zijn testbaar (`selectie`, `annotatie`, `annotatieOverzicht`, `reeks`, `samenhang`,
-  `markering`, `popover`, `wetstructuur`, `lopendeRun`, `geschiedenis` (de bewaarde berichten als items), `beurtStroom` (wat één poging van een beurt ophoopt), `beurtVerzoek` (wat een beurt vraagt: `verstuur(verzoek)` en de run-aanvraag `startOpties`), `beurtLus` (een run volgen tot hij afloopt), `rondleiding`, `werkgebied`, `begrippen`,
+  `markering`, `popover`, `wetstructuur`, `lopendeRun`, `geschiedenis` (de bewaarde berichten als items), `beurtStroom` (wat één poging van een beurt ophoopt), `beurtVerzoek` (wat een beurt vraagt: `verstuur(verzoek)` en de run-aanvraag `startOpties`), `beurtLus` (een run volgen tot hij afloopt), `beurtFase` (waar de beurt van een venster staat), `rondleiding`, `werkgebied`, `begrippen`,
   `begripVoorstellen`, `begripTermen`, `bronPlaats`, `kaartVoorstel`, `herbeoordeling`, `begripRelaties`, `begripGraaf`, `begrippenOverzicht`, `artefact`, `bronKandidaten`, `deelvragen`, `onbewaard`, `vraagkaart`, `gesprekGroepen`, `werkgebiedPaden`, …).
 - **`app/**/page.tsx`** (Server Components) – data via `lib/server.ts`, interactie in een
   `*Client.tsx`. `app/page.tsx` doet `redirect("/workbench")`. De werkplek zit in
@@ -364,11 +364,14 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
 
 Een beurt draait als **run** bij graph-qa (`POST /api/annotatie/run` → `startRun`); de werkplek kijkt
 mee (`volgRun` op `/api/annotatie/run/[id]/events`). Van gesprek wisselen, naar `/annotaties` lopen of
-herladen breekt hem niet af. Regels:
+herladen breekt hem niet af. De beurt van een venster is **`useBeurt`** (`lib/useBeurt.ts`): één fase
+(`lib/beurtFase.ts`: rust, starten, volgen, herstellen, met `stopt`), synchroon in een ref bijgehouden, zodat twee
+Enters in dezelfde tick geen twee beurten starten (`claim`). Wat het scherm met een beurt doet geeft `WerkplekClient`
+mee (`beurtScherm`). Regels:
 
-- **Unmount koppelt alleen los.** `afbrekenRef.current?.abort()` beëindigt de kijker, niet de run.
+- **Unmount koppelt alleen los.** De cleanup van `useBeurt` aborteert de kijker, niet de run.
   Een `AbortError` in de lus (`volgTotEinde` in `lib/beurtLus.ts`) is daarom géén einde (`losgekoppeld`): niets bewaren, het antwoord komt later.
-- **Bij binnenkomst haak je weer aan** (`hervatBeurt` na de hydratatie): loopt er nog een beurt, dan
+- **Bij binnenkomst haak je weer aan** (`beurt.hervat` na de hydratatie): loopt er nog een beurt, dan
   komt hij vanaf `seq 0` terug. Alleen bij status `loopt` – een afgeronde beurt staat al in de
   gehydrateerde geschiedenis, en twee keer tonen is erger dan missen.
 - **Stoppen is een verzoek** (`stopRun`), geen dichtvallende socket. De agent stopt op een nodegrens,
@@ -397,7 +400,7 @@ herladen breekt hem niet af. Regels:
   uitzondering is de fout als `startRun` zelf mislukt: dan is er geen run en dus geen server die kan schrijven.
   Een eigen markering van de jurist is een andere handeling (`POST elementen` in `NodeAnnotatiePaneel`). Een
   graph-qa zonder API-koppeling meldt zelf met een `error`-event dat niets is vastgelegd (`agent/beurt.py`).
-- **Tokens komen hooguit één keer per frame binnen** (`frameplanner` in `lib/beurtStroom.ts`, gebruikt door `volgBeurt`). Wat een poging ophoopt is één `StroomStand` (`stroomReducer`); elke poging begint leeg, en `afronding` beslist het einde.
+- **Tokens komen hooguit één keer per frame binnen** (`frameplanner` in `lib/beurtStroom.ts`, per poging in `useBeurt`). Wat een poging ophoopt is één `StroomStand` (`stroomReducer`); elke poging begint leeg, en `afronding` beslist het einde.
 
 **Identiteit is een vertrouwensgrens.** De BFF zet `X-User-Id` uit de sessie op alle run-routes en
 verifieert bij het starten eerst bij de API of het gesprek van deze gebruiker is. `conversation_id` is

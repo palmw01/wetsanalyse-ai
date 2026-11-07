@@ -5,8 +5,8 @@ import { NodeAnnotatiePaneel } from "@/components/annotaties/NodeAnnotatiePaneel
 import { samenhangBeschikbaar } from "@/lib/samenhang";
 import { ThreadRij, type ThreadActies } from "@/components/werkplek/ThreadRij";
 import { reeksNavigatie } from "@/lib/reeks";
-import { afronding, frameplanner } from "@/lib/beurtStroom";
-import { volgTotEinde } from "@/lib/beurtLus";
+import { afronding } from "@/lib/beurtStroom";
+import { useBeurt, type BeurtScherm } from "@/lib/useBeurt";
 import { type NodeDoel, type ToolExecution } from "@/lib/annotatieNode";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { VraagLexContext } from "@/components/werkplek/VraagLexKnop";
@@ -21,10 +21,7 @@ import { Suggestie } from "@/components/ui/Suggestie";
 import { Melding } from "@/components/ui/Melding";
 import {
   foutTekst,
-  haalActieveRun,
   startRun,
-  stopRun,
-  volgRun,
   haalGesprek,
   maakGesprek,
   voegBerichtToe,
@@ -49,10 +46,6 @@ import { BronselectieKaart } from "@/components/werkplek/BronselectieKaart";
 import {
   doelInvoerVan, isVerwijderd,
 } from "@/lib/annotatie";
-import {
-  aankondiging, leesLopendeRuns, onthoudRun,
-  schrijfLopendeRuns, standVanVorigeRun, vergeetRun, wachtMetWekker,
-} from "@/lib/lopendeRun";
 import { useBreedScherm } from "@/lib/useBreedScherm";
 import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
 import { bewaarConcept, leesConcept } from "@/lib/conceptVraag";
@@ -176,7 +169,6 @@ export function WerkplekClient({
   // De vraag is geweigerd omdat het tokenbudget op is. Apart van `bewaarFout`: die zegt dat het
   // gesprek niet bewaard wordt, en dat is hier onwaar – er is alleen niets verstuurd.
   const [budgetGeweigerd, setBudgetGeweigerd] = useState(false);
-  const [bezig, setBezig] = useState(false);
   const [nodeDoel, setNodeDoel] = useState<NodeDoel>();
   /** Het open artefact van een werkgebied (begripsvoorstellen of gevonden bepalingen). Er staat
    *  hoogstens één artefact open: wie een annotatie opent, sluit dit, en andersom. */
@@ -242,61 +234,27 @@ export function WerkplekClient({
   // Wat er zojuist is opgeslagen, voor schermlezers. Zonder dit gebeurt elke annotatie-wijziging
   // volledig stil: de kaart verandert visueel, maar er wordt niets aangekondigd.
   const [melding, setMelding] = useState("");
-  // Hoe de laatste beurt afliep, voor de live-regio: een gewone beurt heeft geen melding.
-  const [beurtEinde, setBeurtEinde] = useState("");
   // Een vervolgstap die Lex zelf aankondigde (`opgeslagen.vervolg`): verstuurd zodra de beurt klaar is en de werkplek
   // in dat werkgebied staat, als een klik op de suggestie met die actie.
   const [vervolg, setVervolg] = useState<(Vervolg & { id: string }) | null>(null);
   const vervolgGedaan = useRef("");
-  // De run die nu loopt. Die leeft bij de agent, niet in dit venster: dit id is waarmee we
-  // aanhaken en waarmee de stopknop hem beëindigt.
-  const [runId, setRunId] = useState<string | null>(null);
-  // Stoppen is gevraagd maar nog niet gebeurd. De agent-nodes zijn synchroon, dus een lopende
-  // LLM-call maakt zichzelf af – dat kan tientallen seconden duren en de knop hoort dat te tonen
-  // in plaats van te doen alsof het al klaar is.
-  const [stopt, setStopt] = useState(false);
   // Zojuist geprobeerd te openen, maar de annotatie bestaat niet meer. Geen storing: geen rode balk
   // en geen retry.
   const [artefactWeg, setArtefactWeg] = useState<string | null>(null);
-  // De vorige beurt van dit gesprek is nooit afgekomen: het run-register van de agent is leeg (een
-  // herstart of deploy). Beter dit zeggen dan een gesprek dat halverwege ophoudt zonder uitleg.
-  const [runVerdwenen, setRunVerdwenen] = useState(false);
-  // De verbinding met de lopende beurt is weg en we haken opnieuw aan. Een tóéstand en geen tekst in
-  // de antwoordbubbel: alleen zo kan de melding vanzelf verdwijnen zodra de stroom weer loopt, in
-  // plaats van te blijven staan tot je herlaadt.
-  const [verbindingWeg, setVerbindingWeg] = useState(false);
   const lijstRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
-  // Synchrone guard tegen dubbel-verzenden (twee Enters in dezelfde tick): de `bezig`-state komt te laat
-  // – vóór de eerste `await` (maakGesprek) is die nog false, wat twee gesprekken zou aanmaken.
-  const bezigRef = useRef(false);
-  // Waarmee een lopende beurt is af te breken. Een annotatie duurt tot ~90 seconden; zonder dit is
-  // een verkeerd gestelde vraag anderhalve minuut wachten.
-  const afbrekenRef = useRef<AbortController | null>(null);
   // "Stick-to-bottom": alleen automatisch meescrollen als de gebruiker al onderaan staat, zodat
   // omhoogscrollen tijdens het streamen niet telkens wordt teruggetrokken.
   const stickRef = useRef(true);
-  // Leeft dit venster nog? De unmount-cleanup aborteert `afbrekenRef`, maar een aanhaakactie die ná
-  // die cleanup zijn controller zet, wordt door niets meer opgeruimd – en laat dan een SSE-stroom
-  // open staan voor een scherm dat niemand ziet.
-  const levendRef = useRef(true);
   // Past het artefact naast de chat? Dan wordt het een eigen kolom in plaats van een overlay, en
   // blijft Lex bereikbaar tijdens het reviewen.
   const breed = useBreedScherm();
 
-  // Verdwijnt dit venster (van gesprek wisselen remount het component), dan koppelen we alleen de
-  // KIJKER los. De run zelf draait bij de agent door en wordt opgepakt zodra je terugkomt.
-  //
-  // Geen `abort()` op de beurt zelf: dan breekt van gesprek wisselen, naar het annotatie-overzicht
-  // lopen of herladen het antwoord af waar je op wacht. Stoppen is een expliciete handeling
-  // (`stop()`), geen bijwerking van navigeren.
-  useEffect(() => {
-    levendRef.current = true;
-    return () => {
-      levendRef.current = false;
-      afbrekenRef.current?.abort();
-    };
-  }, []);
+  // De beurt van dit venster: starten, meekijken, opnieuw verbinden, stoppen en weer aanhaken (`lib/useBeurt.ts`).
+  // Unmount koppelt alleen de kijker los; de run draait door bij de agent en komt terug bij binnenkomst. Wat er op
+  // het scherm gebeurt, staat hieronder in `beurtScherm`.
+  const beurt = useBeurt(beurtScherm());
+  const { bezig, runId, stopt, verbindingWeg, runVerdwenen, beurtEinde } = beurt;
 
   // Hydrateer één keer bij mount: bestaande gespreksberichten → thread. Lees de id uit een MOUNT-vaste
   // ref, niet uit de reactieve prop: bij de eerste beurt zet de shell `activeId` (→ prop null→id) zónder
@@ -313,7 +271,7 @@ export function WerkplekClient({
   function hydrateer(id: string) {
     setHydratieFout(null);
     const poging = ++hydratiePoging.current;
-    const geldt = () => levendRef.current && poging === hydratiePoging.current;
+    const geldt = () => beurt.levend() && poging === hydratiePoging.current;
     haalGesprek(id)
       .then((g) => {
         if (!geldt()) return;
@@ -329,7 +287,7 @@ export function WerkplekClient({
         // Liep hier nog een beurt terwijl je ergens anders keek? Pak hem weer op. De run-ids uit de
         // geschiedenis gaan mee: daarmee is "afgerond terwijl je weg was" te onderscheiden van
         // "weg door een herstart".
-        void hervatBeurt(id, runIds);
+        void beurt.hervat(id, runIds);
       })
       .catch((e) => {
         if (!geldt()) return;
@@ -353,7 +311,7 @@ export function WerkplekClient({
     };
     // `hydrateer` bewust niet als dependency: deze hydratatie hoort één keer per mount te draaien (zie
     // de toelichting hierboven), en de functie wordt elke render opnieuw gemaakt. Het afbreken bij
-    // unmount loopt via `levendRef`.
+    // unmount loopt via `beurt.levend()`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydratieId]);
 
@@ -447,8 +405,8 @@ export function WerkplekClient({
     // af, en toen bleven de voorbeeldvragen, de kandidatenlijst en het beginscherm gewoon open.
     if (geblokkeerd) return;
     const prompt = (verzoek.prompt ?? invoer).trim();
-    if (!prompt || bezigRef.current) return;
-    bezigRef.current = true;
+    // Synchrone guard tegen dubbel-verzenden (twee Enters in dezelfde tick): de `bezig`-state komt te laat.
+    if (!prompt || !beurt.claim()) return;
     setInvoer("");
 
     // Een vraag bij een markering gaat als ADVIES: dezelfde thread, maar met contextblok en langs de
@@ -472,14 +430,9 @@ export function WerkplekClient({
         ...(bevestigt(verzoek) ? { bevestigingKeuze: "gestart" as const } : {}) },
       { id: antId, type: "antwoord", tekst: "" },
     ]);
-    setBezig(true);
     stickRef.current = true; // een nieuwe beurt springt altijd naar de bodem
-    // Meldingen over de vórige beurt horen niet bij deze. `runVerdwenen` had geen enkele weg terug
-    // behalve een herlaadbeurt, en bleef dus staan terwijl je alweer een vraag stelde.
-    setRunVerdwenen(false);
-    setVerbindingWeg(false);
+    // Meldingen over de vórige beurt horen niet bij deze (`beurt.claim` wist de zijne).
     setBudgetGeweigerd(false);
-    setBeurtEinde("");
 
     // Zorg voor een gesprek-id (maak er bij de eerste beurt één aan; titel = de vraag, afgekapt).
     let gid = gesprekId;
@@ -491,8 +444,7 @@ export function WerkplekClient({
         onGesprekAangemaakt(gid);
       } catch (e) {
         updateItem(antId, { tekst: `**Er ging iets mis.** ${foutTekst(e)}` });
-        setBezig(false);
-        bezigRef.current = false;
+        beurt.vrij();
         return;
       }
     }
@@ -524,12 +476,12 @@ export function WerkplekClient({
         setBewaarFout(null);
         const hervatId = uid();
         setItems((xs) => [...xs, { id: hervatId, type: "antwoord", tekst: "" }]);
-        await volgBeurt({ runId: lopend, gid, antId: hervatId });
+        await beurt.volg(lopend, gid, hervatId);
         return;
       }
       // Het tokenbudget is op. Net als bij een lopende beurt hierboven: deze vraag is NIET
       // aangenomen, dus geen mislukte antwoordbubbel laten staan maar de vraag teruggeven. En de
-      // verbruiksstand meteen ophalen – dit pad komt nooit bij `volgBeurt`, dus zonder deze
+      // verbruiksstand meteen ophalen – dit pad komt nooit bij `beurt.volg`, dus zonder deze
       // aanroep blijven de strook en de dichte invoerbalk tot een minuut achterlopen. Precies
       // daardoor kón deze vraag überhaupt nog verstuurd worden.
       if ((e as { budgetOp?: true }).budgetOp) {
@@ -539,8 +491,7 @@ export function WerkplekClient({
         setItems((xs) => xs.filter((x) => x.id !== antId));
         setBudgetGeweigerd(true);
         onBeurtKlaar?.();
-        setBezig(false);
-        bezigRef.current = false;
+        beurt.vrij();
         return;
       }
       // De vraag is al bewaard; de foutmelding gaat er als antwoord bij. Anders stond er na een
@@ -548,170 +499,105 @@ export function WerkplekClient({
       const fout = `**Er ging iets mis.** ${foutTekst(e)}`;
       updateItem(antId, { tekst: fout });
       void persisteer(gid, "assistant", { tekst: fout });
-      setBezig(false);
-      bezigRef.current = false;
+      beurt.vrij();
       return;
     }
 
     // Onthoud dát er een beurt liep. Komt de agent tussentijds opnieuw op, dan is dit het enige
     // spoor waarmee de werkplek kan zeggen wat er gebeurd is.
-    schrijfLopendeRuns(onthoudRun(leesLopendeRuns(), gid, gestart.run_id));
-    await volgBeurt({ runId: gestart.run_id, gid, antId });
+    beurt.onthoud(gid, gestart.run_id);
+    await beurt.volg(gestart.run_id, gid, antId);
   }
 
-  /** Haak aan bij een run en volg hem tot het eind (`volgTotEinde` in `lib/beurtLus.ts`): verzamelen wat binnenkomt,
-   *  bij een weggevallen verbinding wachten en opnieuw aanhaken, en tonen wat de agent vastlegde.
-   *
-   *  Eén functie voor twee ingangen – een verse beurt (`verstuur`) en het weer oppakken van een
-   *  beurt die doorliep terwijl je ergens anders keek (`hervatBeurt`). Dat moet dezelfde code zijn,
-   *  anders lopen de twee paden uit elkaar op precies het moment dat het ertoe doet.
-   */
-  async function volgBeurt({ runId: id, gid, antId }: { runId: string; gid: string; antId: string }) {
-    const uitkomst = await volgTotEinde({
-      levend: () => levendRef.current,
-      wacht: (ms) => wachtMetWekker(ms, () => levendRef.current),
-      // Bij een herkansing blijft de bubbel staan zoals hij is: het heraanhaken speelt de eventlog
-      // opnieuw af, dus de tekst wordt zo meteen alsnog opgebouwd. Wat er aan de hand is staat in de
-      // banner – die verdwijnt vanzelf zodra er weer iets binnenkomt (`onLeeft`).
-      opVerbroken: () => setVerbindingWeg(true),
-      naPoging: () => {
-        afbrekenRef.current = null;
-        setRunId(null);
-        setStopt(false);
-        setBezig(false);
-        bezigRef.current = false;
-        // De beurt is klaar (geslaagd of niet): het verbruik is hoe dan ook opgelopen, dus de meter
-        // hoort nu bij te zijn en niet pas bij het volgende minuut-interval.
-        onBeurtKlaar?.();
-      },
-      poging: async (p) => {
-        const beheerser = new AbortController();
-        afbrekenRef.current = beheerser;
-        setRunId(id);
-        bezigRef.current = true;
-        setBezig(true);
-        // Tokens en denkregels hooguit één keer per frame; vóór elke andere bijwerking van dit item eerst de wachtende
-        // stand (`stroom.nu()`), zodat er nooit een oudere tekst overheen komt.
-        const stroom = frameplanner(() => updateItem(antId, { tekst: p.stand().tekst, denk: p.stand().denk }));
-        try {
-          await volgRun(
-            id,
-            {
-              onLeeft: () => {
-                p.pas({ type: "leeft" });
-                setVerbindingWeg(false);
-                // Er ís weer contact met een lopende beurt; een eerdere "de agent is herstart"-melding
-                // slaat nu nergens meer op.
-                setRunVerdwenen(false);
-              },
-              onStatus: (m) => { p.pas({ type: "status", bericht: m }); stroom.plan(); },
-              onReason: (t) => { p.pas({ type: "reason", tekst: t }); stroom.plan(); },
-              onToken: (t) => { p.pas({ type: "token", tekst: t }); stroom.plan(); },
-              onSources: (b) => updateItem(antId, { bronnen: b }),
-              onGrounding: (g) => updateItem(antId, { grounding: g }),
-              onAntwoord: (a) => updateItem(antId, { antwoord: a }),
-              onOverzicht: (o) => {
-                updateItem(antId, { overzicht: o });
-                // Op een breed scherm staat het meteen naast het antwoord, zoals de bronselectie. Op een smal
-                // scherm niet: daar ligt het paneel over het antwoord, en het kaartje is één tik.
-                if (breed && o.regelingen.length) wisselPaneel(undefined, { ook: () => { setNodeDoel(undefined); setCtx(overzichtContext(o)); } });
-              },
-              onVraagkaart: (k) => updateItem(antId, { vraagkaart: k }),
-              onToolExecution: (event) => {
-                p.pas({ type: "tool", event });
-                updateItem(antId, { tool_executions: p.stand().toolExecutions });
-              },
-              onDoel: (d) => p.pas({ type: "doel", doel: d }),
-              onKandidaten: (k, kz) => p.pas({ type: "kandidaten", kandidaten: k, keuze: kz }),
-              onReeksEvent: (ev) => {
-                stroom.nu();
-                const voor = p.stand().reeks;
-                p.pas({ type: "reeks", event: ev });
-                const { reeks: r, tekst } = p.stand();
-                if (r === voor || !r) return;
-                setItems((xs) => xs.map((x) => (x.id === antId ? { id: antId, type: "reeks", reeks: r, tekst } : x)));
-              },
-              onHergebruik: (h) => p.pas({ type: "hergebruik", hergebruik: h }),
-              onRun: (r) => p.pas({ type: "meting", meting: r.instellingen?.meting }),
-              // De eventlog van de run is gecapt: er is narratie weggevallen. Benoem dat, in plaats van
-              // een tekst te tonen die compleet lijkt maar het niet is (`GAT_IN_TEKST`/`GAT_IN_DENK`).
-              onGat: () => {
-                stroom.nu();
-                p.pas({ type: "gat" });
-                updateItem(antId, p.stand().tekst ? { tekst: p.stand().tekst } : { denk: p.stand().denk });
-              },
-              onOpgeslagen: (uitkomst) => p.pas({ type: "opgeslagen", uitkomst }),
-              onWaarschuwing: (bericht) => setMelding(bericht),
-              onDone: (uitkomst) => setBeurtEinde(aankondiging(uitkomst)),
-            },
-            0,
-            beheerser.signal,
-          );
+  /** Wat het scherm met een beurt doet (`useBeurt`): de bubbel bijwerken, een paneel openen, tonen wat de agent
+   *  vastlegde. Elke render vers; de hook leest de laatste via een ref. */
+  function beurtScherm(): BeurtScherm {
+    return {
+      schrijfStroom: (antId, stand) => updateItem(antId, { tekst: stand.tekst, denk: stand.denk }),
+      handlers: (antId, p, stroom) => ({
+        onStatus: (m) => { p.pas({ type: "status", bericht: m }); stroom.plan(); },
+        onReason: (t) => { p.pas({ type: "reason", tekst: t }); stroom.plan(); },
+        onToken: (t) => { p.pas({ type: "token", tekst: t }); stroom.plan(); },
+        onSources: (b) => updateItem(antId, { bronnen: b }),
+        onGrounding: (g) => updateItem(antId, { grounding: g }),
+        onAntwoord: (a) => updateItem(antId, { antwoord: a }),
+        onOverzicht: (o) => {
+          updateItem(antId, { overzicht: o });
+          // Op een breed scherm staat het meteen naast het antwoord, zoals de bronselectie. Op een smal
+          // scherm niet: daar ligt het paneel over het antwoord, en het kaartje is één tik.
+          if (breed && o.regelingen.length) wisselPaneel(undefined, { ook: () => { setNodeDoel(undefined); setCtx(overzichtContext(o)); } });
+        },
+        onVraagkaart: (k) => updateItem(antId, { vraagkaart: k }),
+        onToolExecution: (event) => {
+          p.pas({ type: "tool", event });
+          updateItem(antId, { tool_executions: p.stand().toolExecutions });
+        },
+        onDoel: (d) => p.pas({ type: "doel", doel: d }),
+        onKandidaten: (k, kz) => p.pas({ type: "kandidaten", kandidaten: k, keuze: kz }),
+        onReeksEvent: (ev) => {
           stroom.nu();
-        } catch (e) {
-          // Een half frame met oudere tekst mag de foutmelding of het herstel niet overschrijven.
-          stroom.annuleer();
-          throw e;
+          const voor = p.stand().reeks;
+          p.pas({ type: "reeks", event: ev });
+          const { reeks: r, tekst } = p.stand();
+          if (r === voor || !r) return;
+          setItems((xs) => xs.map((x) => (x.id === antId ? { id: antId, type: "reeks", reeks: r, tekst } : x)));
+        },
+        onHergebruik: (h) => p.pas({ type: "hergebruik", hergebruik: h }),
+        onRun: (r) => p.pas({ type: "meting", meting: r.instellingen?.meting }),
+        // De eventlog van de run is gecapt: er is narratie weggevallen. Benoem dat, in plaats van
+        // een tekst te tonen die compleet lijkt maar het niet is (`GAT_IN_TEKST`/`GAT_IN_DENK`).
+        onGat: () => {
+          stroom.nu();
+          p.pas({ type: "gat" });
+          updateItem(antId, p.stand().tekst ? { tekst: p.stand().tekst } : { denk: p.stand().denk });
+        },
+        onOpgeslagen: (uitkomst) => p.pas({ type: "opgeslagen", uitkomst }),
+        onWaarschuwing: (bericht) => setMelding(bericht),
+      }),
+      opKlaar: async (antId, stand) => {
+        const { tekst, denk, kandidaten, keuze, opgeslagen } = stand;
+        switch (afronding(stand)) {
+          case "reeks": break;
+          case "kandidaten":
+            setItems((xs) =>
+              xs.map((x) => (x.id === antId ? { id: antId, type: "kandidaten", tekst, kandidaten, ...(keuze ? { keuze } : {}) } : x)),
+            );
+            break;
+          case "opgeslagen":
+            await toonVastgelegdeBeurt(opgeslagen!, {
+              antId, tekst, denk, hergebruik: stand.hergebruik, doel: doelInvoerVan(stand.doel),
+              tool_executions: stand.toolExecutions, meting: stand.meting,
+            });
+            // Lex gaat zelf verder (na *Werkgebied aanmaken*: de bronselectie). Alleen live, nooit na herladen: dan
+            // start er niets vanzelf.
+            if (opgeslagen!.vervolg) setVervolg({ ...opgeslagen!.vervolg, id: uid() });
+            break;
+          case "leeg":
+            // Geen `opgeslagen` en geen fout: het gesprek werd verwijderd terwijl de beurt liep.
+            updateItem(antId, { tekst: "(geen antwoord)" });
+            break;
+          case "tekst": break;
         }
+        onGewijzigd();
       },
-    });
-
-    if (uitkomst.soort === "losgekoppeld") {
-      // Zelf losgekoppeld (van gesprek wisselen) of het venster is weg: er valt niets meer te herstellen, dus
-      // ook geen melding daarover laten staan. De run draait door bij de agent en wordt opgepakt zodra dit venster
-      // terugkomt; het definitieve antwoord komt later.
-      setVerbindingWeg(false);
-      return;
-    }
-    if (uitkomst.soort === "mislukt") {
-      // Dezelfde melding als op het bericht dat graph-qa bewaarde: live en na herladen staat er hetzelfde.
-      setVerbindingWeg(false);
-      const { tekst, denk } = uitkomst.stand;
-      updateItem(antId, { tekst, denk, uitkomst: { status: "mislukt", melding: foutTekst(uitkomst.fout) } });
-      setBeurtEinde(aankondiging("mislukt"));
-      return;
-    }
-
-    // De stroom liep tot het einde: deze beurt is afgerond en het spoor mag weg. Bij loskoppelen
-    // komen we hier niet, en dan blijft het spoor terecht staan.
-    vergeetLopendeRun(gid);
-    const stand = uitkomst.stand;
-    const { tekst, denk, kandidaten, keuze, opgeslagen } = stand;
-    try {
-      switch (afronding(stand)) {
-        case "reeks": break;
-        case "kandidaten":
-          setItems((xs) =>
-            xs.map((x) => (x.id === antId ? { id: antId, type: "kandidaten", tekst, kandidaten, ...(keuze ? { keuze } : {}) } : x)),
-          );
-          break;
-        case "opgeslagen":
-          await toonVastgelegdeBeurt(opgeslagen!, {
-            antId, tekst, denk, hergebruik: stand.hergebruik, doel: doelInvoerVan(stand.doel),
-            tool_executions: stand.toolExecutions, meting: stand.meting,
-          });
-          // Lex gaat zelf verder (na *Werkgebied aanmaken*: de bronselectie). Alleen live, nooit na herladen: dan
-          // start er niets vanzelf.
-          if (opgeslagen!.vervolg) setVervolg({ ...opgeslagen!.vervolg, id: uid() });
-          break;
-        case "leeg":
-          // Geen `opgeslagen` en geen fout: het gesprek werd verwijderd terwijl de beurt liep.
-          updateItem(antId, { tekst: "(geen antwoord)" });
-          break;
-        case "tekst": break;
-      }
-      onGewijzigd();
-    } catch (e) {
-      // De beurt zelf is rond; alleen de naverwerking faalde (het document of de wettekst ophalen). Niet opnieuw
-      // aanhaken – dat speelt dezelfde afloop nog eens af – maar zeggen wat er mis is, bij het antwoord.
-      setVerbindingWeg(false);
-      setMelding(foutTekst(e));
-    }
-  }
-
-  /** De beurt is afgerond (of afgebroken); het spoor mag weg. */
-  function vergeetLopendeRun(gid: string) {
-    schrijfLopendeRuns(vergeetRun(leesLopendeRuns(), gid));
+      opMislukt: (antId, stand, fout) => {
+        // Dezelfde melding als op het bericht dat graph-qa bewaarde: live en na herladen staat er hetzelfde.
+        updateItem(antId, { tekst: stand.tekst, denk: stand.denk, uitkomst: { status: "mislukt", melding: foutTekst(fout) } });
+      },
+      // De beurt zelf is rond; alleen de naverwerking faalde (het document of de wettekst ophalen): zeg wat er mis is.
+      opNaverwerkingFout: (fout) => setMelding(foutTekst(fout)),
+      voorHervatten: (runId) => {
+        const antId = uid();
+        // Een lopende reeks heeft de onderdelen die al klaar waren al als berichten bewaard; het aanhaken speelt de
+        // hele stroom opnieuw af. Het gehydrateerde blok gaat dus weg, anders staat de reeks er twee keer.
+        setItems((xs) => [
+          ...xs.filter((x) => !(x.type === "reeks" && x.reeks.runId === runId)),
+          { id: antId, type: "antwoord", tekst: "" },
+        ]);
+        return antId;
+      },
+      onBeurtKlaar,
+    };
   }
 
   useEffect(() => {
@@ -765,69 +651,13 @@ export function WerkplekClient({
     wisselPaneel(undefined, { ook: () => { setNodeGraaf((g) => ({ ...zonderKennisgraaf(g), keten: true })); setNodeDoel(node); } });
   }
 
-  /** Loopt er nog een beurt in dit gesprek? Haak er dan weer op aan.
-   *
-   *  Dit is de terugweg van de omkering: de run overleefde het wegklikken, dus bij binnenkomst
-   *  hoort hij weer in beeld te komen – inclusief wat je gemist hebt (`vanaf: 0` speelt de eventlog
-   *  af). Alleen bij een lópende run: een beurt die klaar is staat al in de gehydrateerde
-   *  geschiedenis, en die twee keer tonen is erger dan hem missen.
-   */
-  async function hervatBeurt(gid: string, berichtRunIds: string[]) {
-    if (bezigRef.current) return;
-    const lopend = await haalActieveRun(gid);
-    // Opnieuw toetsen ná de round-trip: typte de jurist ondertussen een vraag, dan draait die run al
-    // en zouden hier twee lussen naast elkaar komen – met twee placeholders en een `afbrekenRef`
-    // die de eerste kwijtraakt.
-    if (bezigRef.current) return;
-    // Niet kunnen vaststellen is geen "er liep niets": stil laten, anders meld je een afgebroken
-    // beurt die in werkelijkheid gewoon doorloopt.
-    if (lopend === "onbekend") return;
-    if (lopend && lopend.status === "loopt") {
-      const antId = uid();
-      // Een lopende reeks heeft de onderdelen die al klaar waren al als berichten bewaard; het
-      // aanhaken speelt de hele stroom opnieuw af. Het gehydrateerde blok gaat dus weg, anders
-      // staat de reeks er twee keer.
-      setItems((xs) => [
-        ...xs.filter((x) => !(x.type === "reeks" && x.reeks.runId === lopend.run_id)),
-        { id: antId, type: "antwoord", tekst: "" },
-      ]);
-      await volgBeurt({ runId: lopend.run_id, gid, antId });
-      return;
-    }
-
-    // Geen lopende run. Stond er wél een open? Dan is het register leeg – een herstart of deploy —
-    // tenzij de beurt gewoon is afgerond en zijn bericht heeft achtergelaten.
-    const stand = standVanVorigeRun(leesLopendeRuns()[gid], berichtRunIds);
-    if (stand === "verdwenen") setRunVerdwenen(true);
-    if (stand !== "geen") vergeetLopendeRun(gid);
-  }
-
-  /** Stop de lopende beurt. Een verzoek aan de agent, geen dichtvallende verbinding.
-   *
-   *  De agent-nodes zijn synchroon: een lopende LLM-call maakt zichzelf af en de run eindigt op de
-   *  eerstvolgende grens. Dat kan tientallen seconden duren, dus de knop blijft in de "stopt"-stand
-   *  staan tot het echt zover is – doen alsof het meteen klaar is zou liegen. Wat er tot dan toe
-   *  binnenkwam, wordt gewoon vastgelegd zoals bij een normale afloop.
-   */
   /** *Annuleren* bij een voorstel van Lex: niets starten. Geen beurt bij de agent – alleen een bericht in
    *  het gesprek dat het voorstel beantwoordt, zodat de knoppen ook na herladen weg zijn. */
   async function annuleer() {
-    if (demo || bezigRef.current || !gesprekId) return;
+    if (demo || !beurt.magStarten() || !gesprekId) return;
     setItems((xs) => [...xs, { id: uid(), type: "user", tekst: ANNULEER_TEKST, bevestigingKeuze: "geannuleerd" }]);
     stickRef.current = true;
     await persisteer(gesprekId, "user", { tekst: ANNULEER_TEKST, bevestiging_antwoord: { keuze: "geannuleerd" } });
-  }
-
-  async function stop() {
-    if (!runId || stopt) return;
-    setStopt(true);
-    try {
-      await stopRun(runId);
-    } catch {
-      // Mislukt het stopverzoek, dan loopt de beurt gewoon door. Zet de knop terug in plaats van
-      // hem eeuwig op "Stoppen…" te laten staan.
-      setStopt(false);
-    }
   }
 
   // De handelingen van de thread-rijen, als één object dat nooit verandert. `ThreadRij` is een
@@ -854,7 +684,7 @@ export function WerkplekClient({
         setNodeReeks(reeksRun);
         void openArtefact(doel.bron_iri, doel);
       },
-      stop: () => void stop(),
+      stop: () => void beurt.stop(),
       annuleer: () => void annuleer(),
       openOverzicht: (ov) => openContext(overzichtContext(ov)),
       openVraag: () => setWeggeklikt(null),
@@ -1141,7 +971,7 @@ export function WerkplekClient({
             een keer.{" "}
             <button
               type="button"
-              onClick={() => setRunVerdwenen(false)}
+              onClick={beurt.sluitRunVerdwenen}
               className="focus-ring rounded font-medium underline underline-offset-2"
             >
               Sluiten
@@ -1343,7 +1173,7 @@ export function WerkplekClient({
                 niet te zoeken waar je moet klikken om te onderbreken. */}
             <button
               type="button"
-              onClick={() => (bezig ? void stop() : void verstuur())}
+              onClick={() => (bezig ? void beurt.stop() : void verstuur())}
               disabled={Boolean(demo) || geblokkeerd || (!bezig && !invoer.trim()) || stopt}
               aria-label={bezig ? (stopt ? "Bezig met stoppen" : "Stoppen") : "Versturen"}
               title={stopt ? "De agent rondt zijn huidige stap nog af" : undefined}
