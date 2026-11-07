@@ -76,22 +76,56 @@ def _normsegmenten(tekst: str) -> list[tuple[int, int]]:
     return [(g.start, g.eind) for g in analyseer_grenzen(tekst).segmenten(tekst) if _norm_in(tekst[g.start:g.eind])]
 
 
+_ONDERGESCHIKT = {"acl", "acl:relcl", "advcl"}
+
+
+def _modaal_alleen_in_bijzin(a: LinguisticAnalysis, s: int, e: int) -> bool:
+    """Staat elk modaal werkwoord in dit segment in een bijzin? 'de termijn waarbinnen de betaling moet
+    plaatsvinden' noemt een termijn, geen plicht: de norm zit in de relatieve bijzin van een naamwoordgroep.
+    Een bijzin is een `acl`, `acl:relcl` of `advcl` ergens boven het werkwoord in de boom."""
+    modalen = [t for t in a.tokens if s <= t.start < e and _lijst("MODAAL").match(t.tekst)]
+
+    def in_bijzin(i: int) -> bool:
+        gezien = set()
+        while i >= 0 and i not in gezien:
+            gezien.add(i)
+            if a.tokens[i].deprel in _ONDERGESCHIKT:
+                return True
+            i = a.tokens[i].head
+        return False
+    return bool(modalen) and all(in_bijzin(t.i) for t in modalen)
+
+
+def _normsignaal(tekst: str, s: int, e: int, a: LinguisticAnalysis | None) -> tuple[re.Match | None, re.Match | None]:
+    """(modaal, normatief) in het segment `s:e`. Met een parse telt een modaal werkwoord alleen in de hoofdzin;
+    zonder parse lexicaal, zoals altijd. Gedeeld door de norm- en de tegenwoordige-tijddetector, zodat een
+    modaal werkwoord in een bijzin de norm in de hoofdzin niet verbergt."""
+    stuk = tekst[s:e]
+    modaal = re.search(rf"\b(?:{woordenlijsten()['MODAAL']})\b", stuk, re.IGNORECASE)
+    if modaal and a is not None and _modaal_alleen_in_bijzin(a, s, e):
+        modaal = None
+    normatief = None if modaal else re.search(rf"\b(?:{woordenlijsten()['NORMATIEF']})\b", stuk, re.IGNORECASE)
+    return modaal, normatief
+
+
 class NormDetector:
     REGELS: tuple[str, ...] = ("jas.betrekking.modaal_predicaat", "jas.betrekking.vaste_uitdrukking",
                                "jas.betrekking.normatief_adjectief", "jas.feit.rechtsgevolg_in_norm")
     naam = "norm"
-    versie = "3"  # D03: Rechtsfeit alleen met een rechtsgevolg in het segment
+    # 3: D03: Rechtsfeit alleen met een rechtsgevolg in het segment
+    # 4: met een parse telt een modaal werkwoord alleen in de hoofdzin, niet in een bijzin
+    versie = "4"
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         tekst = bron.tekst
         structuur = analyseer_grenzen(tekst)
         zinnen = structuur.zinnen(tekst)
+        a, _ = _parse_of_reden(bron)
         kandidaten = []
         for segment in structuur.segmenten(tekst):
             s, e = segment.start, segment.eind
             stuk = tekst[s:e]
-            modaal = re.search(rf"\b(?:{woordenlijsten()['MODAAL']})\b", stuk, re.IGNORECASE)
-            normatief = None if modaal else _norm_in(stuk)
+            modaal, normatief = _normsignaal(tekst, s, e, a)
             if not (modaal or normatief):
                 continue
             # Delegatieformule ('kunnen … regels worden gesteld') is Delegatiebevoegdheid (H2:127).
@@ -508,8 +542,10 @@ def _norm_in_tegenwoordige_tijd(a: LinguisticAnalysis, i: int, tekst: str, segme
             t.feat("VerbForm") == "Fin" or any(a.tokens[k].deprel == "aux:pass"
                                                and a.tokens[k].feat("VerbForm") == "Fin" for k in a.kinderen(i))):
         return False
-    seg = next((tekst[g.start:g.eind] for g in segmenten if g.start <= t.start < g.eind), "")
-    return not _norm_in(seg) and not re.search(r"\bregels\b.*\bgesteld\b", seg, re.IGNORECASE)
+    g = next((g for g in segmenten if g.start <= t.start < g.eind), None)
+    seg = tekst[g.start:g.eind] if g else ""
+    return (not (g and any(_normsignaal(tekst, g.start, g.eind, a)))
+            and not re.search(r"\bregels\b.*\bgesteld\b", seg, re.IGNORECASE))
 
 
 def _predicaatvorm(a: LinguisticAnalysis, i: int) -> str:
@@ -587,7 +623,7 @@ class TegenwoordigeTijdDetector:
     """
     REGELS: tuple[str, ...] = ("jas.betrekking.tegenwoordige_tijd",)
     naam = "tegenwoordige_tijd"
-    versie = "1"
+    versie = "2"                         # 2: een modaal werkwoord in een bijzin is geen ander normsignaal
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
@@ -620,7 +656,9 @@ class TegenwoordigeTijdDetector:
 class LogischeOperatorDetector:
     REGELS: tuple[str, ...] = ("jas.operator.nevenschikking", "jas.operator.negatie")
     naam = "logisch"
-    versie = "2"                         # 2: geen nevenschikking binnen een naamwoordgroep
+    # 2: geen nevenschikking binnen een naamwoordgroep
+    # 3: een persoonsvorm als hulp- of koppelwerkwoord maakt het conjunct een eigen zin ('of is gesteld op')
+    versie = "3"
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
@@ -634,12 +672,16 @@ class LogischeOperatorDetector:
             # Een logische operator verbindt zinsdelen (voorwaarden, normen), geen woorden binnen één
             # naamwoordgroep ("een verplichting of onthouden aanspraak"; profiel Operator,
             # negative_patterns). Het tweede conjunct moet dus een eigen zin zijn – met een eigen
-            # onderwerp of als persoonsvorm – én het eerste conjunct moet zelf werkwoordelijk zijn.
+            # onderwerp of een persoonsvorm, ook als die persoonsvorm een hulp- of koppelwerkwoord is
+            # ('… of is gesteld op …': de kop is dan een deelwoord) – én het eerste conjunct moet zelf
+            # werkwoordelijk zijn.
             clause = False
             if kop is not None and kop.head >= 0:
                 eerste = a.tokens[kop.head]
                 eigen_zin = (any(a.tokens[k].deprel in _ONDERWERP for k in a.kinderen(kop.i))
-                             or kop.feat("VerbForm") == "Fin")
+                             or kop.feat("VerbForm") == "Fin"
+                             or any(a.tokens[k].deprel in {"aux", "aux:pass", "cop"}
+                                    and a.tokens[k].feat("VerbForm") == "Fin" for k in a.kinderen(kop.i)))
                 clause = kop.deprel == "conj" and eerste.upos in {"VERB", "AUX", "ADJ"} and eigen_zin
             if t.deprel == "cc" and laag in {"en", "of"} and clause:
                 regel, code = "jas.operator.nevenschikking", "CLAUSE_COORDINATION"

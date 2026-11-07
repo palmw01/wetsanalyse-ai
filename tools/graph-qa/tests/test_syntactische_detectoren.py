@@ -359,3 +359,48 @@ def test_een_komma_knipt_een_voorwaardelijke_bijzin_niet(parser, tekst, bijzin):
 def test_nietig_en_toepasselijkheid_zijn_normsignalen(parser, tekst):
     assert NormDetector().detecteer(_bron(tekst)).kandidaten
 
+
+# --- operator: een persoonsvorm als hulpwerkwoord maakt een eigen zin --------------------------------
+
+@pytest.mark.parametrize(("tekst", "verwacht"), [
+    # positief: het tweede conjunct heeft alleen een hulpwerkwoord als persoonsvorm, de kop is een deelwoord
+    ("De termijn is gesteld op zes weken of is gesteld op één maand.", ["of"]),
+    ("De vergunning wordt verleend en wordt bekendgemaakt.", ["en"]),
+    # negatief: tussen naamwoordgroepen blijft het geen operator
+    ("Hij betaalt de loonbelasting en de omzetbelasting.", []),
+    # rand: een deelwoord zonder eigen persoonsvorm verbindt woorden, geen zinnen
+    ("een verplichting of onthouden aanspraak;", []),
+])
+def test_een_hulpwerkwoord_als_persoonsvorm_maakt_het_conjunct_een_eigen_zin(parser, tekst, verwacht):
+    assert [k.span.tekst for k in LogischeOperatorDetector().detecteer(_bron(tekst, parser)).kandidaten] == verwacht
+
+
+def test_operator_in_een_tijdsaanduiding_is_een_eigen_geneste_kandidaat(parser):
+    """Overlap: 'vóór' en 'na' krijgen een eigen Operator-kandidaat; de tijdsaanduiding blijft heel en Tijdsaanduiding."""
+    from agent.jas_pipeline.fusie import fuseer
+    tekst = "De aangifte wordt gedaan vóór 1 april 2027 en de aanslag is invorderbaar zes weken na de dagtekening."
+    ks = fuseer(detecteer_alles(_bron(tekst, parser))).kandidaten
+    per = {k.span.tekst: k.possible_classes for k in ks}
+    assert per["vóór"] == ("Operator",) and per["na"] == ("Operator",)
+    assert "Tijdsaanduiding" in per["vóór 1 april 2027"]
+    assert "Tijdsaanduiding" in per["zes weken na de dagtekening"]
+
+
+# --- norm: een modaal werkwoord telt alleen in de hoofdzin ----------------------------------------
+
+@pytest.mark.parametrize(("tekst", "context", "norm"), [
+    # positief: modaal werkwoord in de hoofdzin
+    ("De aanvrager moet binnen zes weken reageren.", "", True),
+    # negatief: modaal werkwoord alleen in de relatieve bijzin van een naamwoordgroep, onder een aanhef
+    ("b. de periode waarbinnen de aanvrager moet reageren.", "De kennisgeving bevat:", False),
+    # rand: een normatief predicaat in de hoofdzin telt, ook naast een modaal werkwoord in een bijzin
+    ("Indien de aanvrager moet reageren, is hij verplicht de stukken te sturen.", "", True),
+])
+def test_een_modaal_werkwoord_telt_alleen_in_de_hoofdzin(parser, tekst, context, norm):
+    assert bool(NormDetector().detecteer(_bron(tekst, parser, context=context)).kandidaten) is norm
+
+
+def test_zonder_parse_blijft_de_norm_lexicaal():
+    """Een gedegradeerde keten weet niet wat een bijzin is: dan telt het modale werkwoord zoals altijd."""
+    assert NormDetector().detecteer(_bron("b. de periode waarbinnen de aanvrager moet reageren.")).kandidaten
+

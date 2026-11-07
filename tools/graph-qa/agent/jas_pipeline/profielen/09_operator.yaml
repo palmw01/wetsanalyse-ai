@@ -9,6 +9,11 @@ syntactic_signals:
 lexical_signals:
   - "rekenkundig: 'het gezamenlijke bedrag van', 'de som van', 'vermeerderd met', 'verminderd met', 'percentage van', 'tweemaal' – H2:100"
   - "logisch: 'en', 'of', 'niet', 'ten minste', 'dan wel' – H2:100"
+  - "gelijkstelling: 'is gesteld op', 'valt op' of 'vervalt op' met een waarde of dag erachter – H2:98"
+  - "ongelijkheid: 'valt op een andere dag dan' – H2:98 (vergelijking)"
+  - "temporele vergelijking: 'vóór', 'na', 'uiterlijk' direct voor een datum; 'of eerder', 'of later' erna – H2:98"
+  - "rekenkundig: 'na' of 'vóór' tussen een duur en een moment ('zes weken na de dagtekening') – H2:98"
+  - "cumulatie: 'in ieder geval' vóór een opsomming – H2:98 (EN)"
 semantic_signals:
   - "verbindt elementen van een berekening of (samengestelde) voorwaarde (H2:98)"
 structural_signals:
@@ -20,12 +25,21 @@ candidate_rules:
   - {id: jas.waarde.veelvoud, status: geïmplementeerd}
   - {id: jas.operator.nevenschikking, status: geïmplementeerd}
   - {id: jas.operator.negatie, status: geïmplementeerd}
+  - {id: jas.operator.cumulatie, status: geïmplementeerd}
+  - {id: jas.operator.gelijkstelling, status: geïmplementeerd}
+  - {id: jas.operator.ongelijkheid, status: geïmplementeerd}
+  - {id: jas.operator.datumvergelijking, status: geïmplementeerd}
+  - {id: jas.operator.inclusieve_tijdgrens, status: geïmplementeerd}
+  - {id: jas.operator.duur_vanaf_moment, status: geïmplementeerd}
 confusable_classes:
   - {klasse: Afleidingsregel, reden: "de operator is een deel van de regel, niet de regel"}
   - {klasse: Voorwaarde, reden: "de vergelijking tegenover de hele voorwaarde"}
 negative_patterns:
   - {patroon: "'en'/'of' binnen één naamwoordgroep ('de omzetbelasting en de accijns' als opsomming van objecten)", reden: "projectregel markeren-fragmentgrenzen: 'en' kan woorden binnen één naamwoordgroep verbinden"}
   - {patroon: "'en' binnen een woord of eigennaam", reden: "geen token/geen coördinatie"}
+  - {patroon: "'op' als plaats- of onderwerpsvoorzetsel ('de nadruk valt op de uitvoering')", reden: "gelijkstelling alleen met een waarde of dag als tweede lid"}
+  - {patroon: "'na' of 'vóór' zonder voorafgaande duur ('na de dagtekening')", reden: "een referentiemoment, geen bewerking; de tijdsaanduiding draagt het"}
+  - {patroon: "voegwoorden van een voorwaarde ('indien', 'tenzij', 'in afwijking van', 'telkens')", reden: "H2:64: ze leiden een voorwaarde in; geen operator in JAS"}
 required_context:
   - "de operanden (voorwaarden, variabelen of parameters) die hij verbindt"
 deterministic_detection_possible: hoog

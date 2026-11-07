@@ -29,7 +29,11 @@ detectie:
   MULTIPLIER: {naam: "Veelvoud", uitleg: "'Tweemaal', 'het drievoudige': een vermenigvuldiging."}
   COMPARISON: {naam: "Vergelijking", uitleg: "'Meer bedraagt dan', 'ten minste', 'niet meer dan': een vergelijkende operator."}
   ARITHMETIC: {naam: "Rekenkundige bewerking", uitleg: "'Vermeerderd met', 'verminderd met', 'de som van': een rekenkundige operator."}
-  LOGICAL: {naam: "Logische verbinding", uitleg: "'Dan wel', 'en', 'of' tussen voorwaarden: een logische operator."}
+  LOGICAL: {naam: "Logische verbinding", uitleg: "'Dan wel', 'en', 'of' tussen voorwaarden, of 'in ieder geval' vóór een opsomming: een logische operator."}
+  VALUE_EQUATION: {naam: "Gelijkstelling", uitleg: "'Is gesteld op', 'valt op', 'vervalt op' gevolgd door een waarde of dag: een grootheid krijgt een waarde. Ook een afleiding is mogelijk."}
+  VALUE_INEQUALITY: {naam: "Ongelijkheid", uitleg: "'Valt op een andere dag dan': twee waarden of momenten worden vergeleken en verschillen."}
+  DATE_COMPARISON: {naam: "Vergelijking met een moment", uitleg: "'Vóór', 'na' of 'uiterlijk' direct voor een datum, of 'of eerder'/'of later' erna: een vergelijking met dat moment. De tijdsaanduiding zelf blijft een eigen fragment."}
+  DURATION_OFFSET: {naam: "Duur vanaf een moment", uitleg: "'Na' of 'vóór' tussen een duur en een moment ('zes weken na de dagtekening'): het moment plus of min die duur."}
   LOCATION_NAME: {naam: "Plaatsnaam", uitleg: "Een gemeente, provincie of land uit de lijst van bekende namen."}
   LOCATION_DESCRIPTION: {naam: "Gebiedsomschrijving", uitleg: "Een omschreven gebied, zoals 'een lidstaat van de Europese Unie'."}
   ROLE_NOUN: {naam: "Rol of instantie", uitleg: "Een woord uit de lijst van rollen en instanties (de ontvanger, de inspecteur, Onze Minister)."}

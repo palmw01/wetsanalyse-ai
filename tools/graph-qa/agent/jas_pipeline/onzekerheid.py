@@ -42,7 +42,7 @@ class Twijfel(BaseModel):
 
 
 def signaleer(kandidaten: dict[str, Candidate], beslissingen: list[Beslissing], bevindingen: list[Bevinding],
-              gedegradeerd: set[str]) -> list[Twijfel]:
+              gedegradeerd: set[str], onder_aanhef: set[str] | frozenset[str] = frozenset()) -> list[Twijfel]:
     per_label = {k.label: k for k in kandidaten.values()}
     uit: list[Twijfel] = []
     for b in beslissingen:
@@ -67,17 +67,22 @@ def signaleer(kandidaten: dict[str, Candidate], beslissingen: list[Beslissing], 
         if w.code == "W_ZELFDE_SPAN" and w.label in per_label:
             klassen = tuple(w.detail.split(", "))
             uit.append(Twijfel(label=w.label, reden="ZELFDE_SPAN", huidig=klassen[0], alternatieven=klassen[1:]))
-    return uit + centrale_afwijzingen(kandidaten, beslissingen)
+    return uit + centrale_afwijzingen(kandidaten, beslissingen, onder_aanhef)
 
 
-def centrale_afwijzingen(kandidaten, beslissingen):
+def centrale_afwijzingen(kandidaten, beslissingen, onder_aanhef: set[str] | frozenset[str] = frozenset()):
     """NormDetector levert één beschermd normsegment; inspecteer alleen die lokale eenheid.
 
     Een nominalisatie-RF is geen centrale norm. Validatie-afwijzingen worden hier niet
     opnieuw aangeboden. Geen detectorbewijs → geen claim dat een norm ontbreekt.
+
+    Een bronnode onder een aanhef (een onderdeel van een opsomming, `onder_aanhef`) heeft geen eigen centrale
+    norm: die staat in de aanhef van de ouder. Een afgewezen normkandidaat in zo'n onderdeel is dus geen
+    verdwenen hoofdnorm en gaat niet opnieuw naar de reviewer.
     """
     per_id = {b.kandidaat_id: b for b in beslissingen}
-    normen = [k for k in kandidaten.values() if any(e.code == "NORMATIVE_PREDICATE" for e in k.evidence)]
+    normen = [k for k in kandidaten.values() if any(e.code == "NORMATIVE_PREDICATE" for e in k.evidence)
+              and k.span.bron_iri not in onder_aanhef]
     uit = []
     for norm in normen:
         b = per_id.get(norm.id)

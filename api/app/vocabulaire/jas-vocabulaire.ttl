@@ -372,11 +372,53 @@
     jas:regelVersie 1 ;
     jas:wijstAan <urn:jas-ns:klasse:DelegatiebevoegdheidEnDelegatieInvulling> .
 
+<urn:jas-ns:regel:jas.operator.cumulatie> a jas:Detectorregel ;
+    dcterms:source "H2:98" ;
+    skos:prefLabel "Logische verbinding"@nl ;
+    jas:code <urn:jas-ns:code:LOGICAL> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Operator> .
+
+<urn:jas-ns:regel:jas.operator.datumvergelijking> a jas:Detectorregel ;
+    dcterms:source "H2:98" ;
+    skos:prefLabel "Vergelijking met een moment"@nl ;
+    jas:code <urn:jas-ns:code:DATE_COMPARISON> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Operator> .
+
+<urn:jas-ns:regel:jas.operator.duur_vanaf_moment> a jas:Detectorregel ;
+    dcterms:source "H2:98" ;
+    skos:prefLabel "Duur vanaf een moment"@nl ;
+    jas:code <urn:jas-ns:code:DURATION_OFFSET> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Operator> .
+
+<urn:jas-ns:regel:jas.operator.gelijkstelling> a jas:Detectorregel ;
+    dcterms:source "H2:98" ;
+    skos:prefLabel "Gelijkstelling"@nl ;
+    jas:code <urn:jas-ns:code:VALUE_EQUATION> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Operator> .
+
+<urn:jas-ns:regel:jas.operator.inclusieve_tijdgrens> a jas:Detectorregel ;
+    dcterms:source "H2:98" ;
+    skos:prefLabel "Vergelijking met een moment"@nl ;
+    jas:code <urn:jas-ns:code:DATE_COMPARISON> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Operator> .
+
 <urn:jas-ns:regel:jas.operator.logisch> a jas:Detectorregel ;
     dcterms:source "H2:100" ;
     skos:prefLabel "Logische verbinding"@nl ;
     jas:code <urn:jas-ns:code:LOGICAL> ;
     jas:regelVersie 2 ;
+    jas:wijstAan <urn:jas-ns:klasse:Operator> .
+
+<urn:jas-ns:regel:jas.operator.ongelijkheid> a jas:Detectorregel ;
+    dcterms:source "H2:98" ;
+    skos:prefLabel "Ongelijkheid"@nl ;
+    jas:code <urn:jas-ns:code:VALUE_INEQUALITY> ;
+    jas:regelVersie 1 ;
     jas:wijstAan <urn:jas-ns:klasse:Operator> .
 
 <urn:jas-ns:regel:jas.operator.rekenkundig> a jas:Detectorregel ;
@@ -734,6 +776,11 @@
     skos:prefLabel "Aanwijzing op grond van een wet"@nl ;
     jas:codeWaarde "DELEGATION_FILLING" .
 
+<urn:jas-ns:code:DURATION_OFFSET> a jas:Detectiecode ;
+    skos:definition "'Na' of 'vóór' tussen een duur en een moment ('zes weken na de dagtekening'): het moment plus of min die duur."@nl ;
+    skos:prefLabel "Duur vanaf een moment"@nl ;
+    jas:codeWaarde "DURATION_OFFSET" .
+
 <urn:jas-ns:code:LEGAL_EQUATION> a jas:Detectiecode ;
     skos:definition "De bepaling stelt het een met het ander gelijk: geldt als, wordt aangemerkt als."@nl ;
     skos:prefLabel "Gelijkstelling"@nl ;
@@ -753,11 +800,6 @@
     skos:definition "Een gemeente, provincie of land uit de lijst van bekende namen."@nl ;
     skos:prefLabel "Plaatsnaam"@nl ;
     jas:codeWaarde "LOCATION_NAME" .
-
-<urn:jas-ns:code:LOGICAL> a jas:Detectiecode ;
-    skos:definition "'Dan wel', 'en', 'of' tussen voorwaarden: een logische operator."@nl ;
-    skos:prefLabel "Logische verbinding"@nl ;
-    jas:codeWaarde "LOGICAL" .
 
 <urn:jas-ns:code:MONEY_AMOUNT> a jas:Detectiecode ;
     skos:definition "Een bedrag in euro's."@nl ;
@@ -824,6 +866,16 @@
     skos:prefLabel "Relatieve periode"@nl ;
     jas:codeWaarde "TEMPORAL_RELATIVE_PERIOD" .
 
+<urn:jas-ns:code:VALUE_EQUATION> a jas:Detectiecode ;
+    skos:definition "'Is gesteld op', 'valt op', 'vervalt op' gevolgd door een waarde of dag: een grootheid krijgt een waarde. Ook een afleiding is mogelijk."@nl ;
+    skos:prefLabel "Gelijkstelling"@nl ;
+    jas:codeWaarde "VALUE_EQUATION" .
+
+<urn:jas-ns:code:VALUE_INEQUALITY> a jas:Detectiecode ;
+    skos:definition "'Valt op een andere dag dan': twee waarden of momenten worden vergeleken en verschillen."@nl ;
+    skos:prefLabel "Ongelijkheid"@nl ;
+    jas:codeWaarde "VALUE_INEQUALITY" .
+
 <urn:jas-ns:klasse:Brondefinitie> a skos:Concept,
         jas:Klasse ;
     dcterms:source "omschrijving H2:134",
@@ -850,10 +902,20 @@
     jas:uitdrukkingswijze "Te herkennen aan een of meer werkwoorden, langs twee herkenningsroutes: hoofdwerkwoord met hulpwerkwoord — bij een recht: ‘kan verzoeken’, ‘mag wijzigen’; bij een plicht: ‘stelt vast’, ‘mag niet inhalen’, ‘is verplicht informatie te verstrekken’, ‘moet informeren’, ‘dient te voldoen’. samengesteld werkwoord — bij een recht: ‘heeft recht op’, ‘heeft aanspraak op’; bij een plicht: ‘heeft de plicht om’, ‘draagt de last om’."@nl ;
     jas:volgorde 2 .
 
+<urn:jas-ns:code:DATE_COMPARISON> a jas:Detectiecode ;
+    skos:definition "'Vóór', 'na' of 'uiterlijk' direct voor een datum, of 'of eerder'/'of later' erna: een vergelijking met dat moment. De tijdsaanduiding zelf blijft een eigen fragment."@nl ;
+    skos:prefLabel "Vergelijking met een moment"@nl ;
+    jas:codeWaarde "DATE_COMPARISON" .
+
 <urn:jas-ns:code:DELEGATION_FORMULA> a jas:Detectiecode ;
     skos:definition "'Bij of krachtens … worden regels gesteld': de vaste vorm waarmee de wet een bevoegdheid delegeert."@nl ;
     skos:prefLabel "Delegatieformule"@nl ;
     jas:codeWaarde "DELEGATION_FORMULA" .
+
+<urn:jas-ns:code:LOGICAL> a jas:Detectiecode ;
+    skos:definition "'Dan wel', 'en', 'of' tussen voorwaarden, of 'in ieder geval' vóór een opsomming: een logische operator."@nl ;
+    skos:prefLabel "Logische verbinding"@nl ;
+    jas:codeWaarde "LOGICAL" .
 
 <urn:jas-ns:klasse:Rechtsfeit> a skos:Concept,
         jas:Klasse ;
@@ -906,19 +968,6 @@
     jas:herkenningsvraag "Waar (voor welk gebied of welke plaats) geldt de wettelijke regel (niet)?"@nl ;
     jas:uitdrukkingswijze "Uitgedrukt met een algemene beschrijving van het gebied (een lidstaat van de EU) of met de naam van een specifiek gebied (de gemeente Amsterdam, de provincie Limburg, Nederland, Zwitserland)."@nl ;
     jas:volgorde 10 .
-
-<urn:jas-ns:klasse:Operator> a skos:Concept,
-        jas:Klasse ;
-    dcterms:source "omschrijving H2:98",
-        "uitdrukkingswijze H2:100",
-        "vraag H2:99" ;
-    skos:definition "Een operator is een woord, een combinatie van woorden of een teken dat een rekenkundige bewerking, een samengestelde voorwaarde, een gelijkstelling of een vergelijking van twee waarden of berekeningen uitdrukt. Een operator beschrijft hoe verschillende elementen van een berekening, voorwaarde of samengestelde voorwaarde met elkaar verbonden worden om tot een resultaat te leiden. Drie typen: rekenkundige operatoren — voeren een bewerking uit, zoals optellen, aftrekken, vermenigvuldigen; vergelijkingsoperatoren — vergelijken variabelen met elkaar of een variabele met een parameter; logische operatoren — bepalen bij samengestelde voorwaarden of aan (ten minste) één voorwaarde moet worden voldaan (OF, disjunctie, alternatief) of aan alle (EN, conjunctie, cumulatief); ook kan er sprake zijn van een voorwaarde waaraan niet voldaan mag zijn (NIET, negatie)."@nl ;
-    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
-    skos:prefLabel "Operator"@nl ;
-    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
-    jas:herkenningsvraag "Hoe worden variabelen of parameters verbonden in een berekening? In welke verhouding staan voorwaarden tot elkaar? Welke vergelijking wordt in een voorwaarde gemaakt?"@nl ;
-    jas:uitdrukkingswijze "rekenkundig: ‘het gezamenlijke bedrag van’, ‘de som van’, ‘vermeerderd met’, ‘verminderd met’, ‘percentage van’; vergelijking: ‘groter dan’, ‘kleiner dan’, ‘meer bedraagt dan’, ‘is gelijk aan’; logisch: ‘en’, ‘of’, ‘niet’, ‘ten minste’."@nl ;
-    jas:volgorde 8 .
 
 <urn:jas-ns:klasse:Voorwaarde> a skos:Concept,
         jas:Klasse ;
@@ -985,6 +1034,19 @@
     jas:uitdrukkingswijze "Een parameter is te herkennen aan een beschrijving van een waarde, bijvoorbeeld van een tarief, een (drempel)bedrag (eventueel met een maximum of een minimum) of een vrijstelling. Een parameterwaarde is te herkennen aan bijvoorbeeld een bedrag in geld, een percentage of een datum."@nl ;
     jas:volgorde 7 .
 
+<urn:jas-ns:klasse:Operator> a skos:Concept,
+        jas:Klasse ;
+    dcterms:source "omschrijving H2:98",
+        "uitdrukkingswijze H2:100",
+        "vraag H2:99" ;
+    skos:definition "Een operator is een woord, een combinatie van woorden of een teken dat een rekenkundige bewerking, een samengestelde voorwaarde, een gelijkstelling of een vergelijking van twee waarden of berekeningen uitdrukt. Een operator beschrijft hoe verschillende elementen van een berekening, voorwaarde of samengestelde voorwaarde met elkaar verbonden worden om tot een resultaat te leiden. Drie typen: rekenkundige operatoren — voeren een bewerking uit, zoals optellen, aftrekken, vermenigvuldigen; vergelijkingsoperatoren — vergelijken variabelen met elkaar of een variabele met een parameter; logische operatoren — bepalen bij samengestelde voorwaarden of aan (ten minste) één voorwaarde moet worden voldaan (OF, disjunctie, alternatief) of aan alle (EN, conjunctie, cumulatief); ook kan er sprake zijn van een voorwaarde waaraan niet voldaan mag zijn (NIET, negatie)."@nl ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Operator"@nl ;
+    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
+    jas:herkenningsvraag "Hoe worden variabelen of parameters verbonden in een berekening? In welke verhouding staan voorwaarden tot elkaar? Welke vergelijking wordt in een voorwaarde gemaakt?"@nl ;
+    jas:uitdrukkingswijze "rekenkundig: ‘het gezamenlijke bedrag van’, ‘de som van’, ‘vermeerderd met’, ‘verminderd met’, ‘percentage van’; vergelijking: ‘groter dan’, ‘kleiner dan’, ‘meer bedraagt dan’, ‘is gelijk aan’; logisch: ‘en’, ‘of’, ‘niet’, ‘ten minste’."@nl ;
+    jas:volgorde 8 .
+
 <urn:jas-ns:klasse:Tijdsaanduiding> a skos:Concept,
         jas:Klasse ;
     dcterms:source "omschrijving H2:107",
@@ -1002,5 +1064,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "f83b2378568b" .
+    jas:vocabulaireVersie "07cfc049ae69" .
 
