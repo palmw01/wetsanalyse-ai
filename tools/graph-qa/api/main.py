@@ -70,6 +70,7 @@ from agent.models import (  # noqa: E402
     Verbruiksmeter,
 )
 from agent.runstore import Run, RunBestaatAl, RunStore  # noqa: E402
+from agent.regie.regisseur import opdracht_in, regie_stroom  # noqa: E402
 from agent.runstore.geheugen import GeheugenStore  # noqa: E402
 from agent.wetsanalyse_api import WetsanalyseApi  # noqa: E402
 
@@ -331,6 +332,16 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
         if request.intake_actie is not None:
             # Een klik op een vraagkaartje (activiteit 1): altijd de werkgebied-worker.
             return gewone_beurt()
+        if request.is_regie or (request.werkgebied_id and request.actie is None and request.modus == "auto"
+                                and not request.doel and not request.doelen and opdracht_in(request.question or "")):
+            # Een regie (ADR-012): het werk over deelgesprekken verdelen. Een klik, of een getypte opdracht
+            # "zoek per deelvraag de bronnen"; zonder bevestigd plan alleen het voorstel.
+            if not settings.legt_zelf_vast:
+                return zonder_api()
+            return regie_stroom(request, run, settings=settings, user_id=gebruiker,
+                                start_kind=lambda verzoek, wie, ouder: start_beurt(verzoek, wie, ouder_run_id=ouder,
+                                                                                    budget=True),
+                                stop_kind=runs.vraag_stop)
         if request.is_werkgebied_annotatie:
             # Het werkgebied annoteren, als modus of actie: zonder `bevestigd` het voorstel, met de reeks
             # over de nieuwe bepalingen – per bepaling een gewone beurt, dus een eigen stroom en geen taak

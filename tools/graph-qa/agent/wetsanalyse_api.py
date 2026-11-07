@@ -250,6 +250,21 @@ class WetsanalyseApi:
     async def haal_kandidaten(self, werkgebied_id: str) -> dict[str, Any]:
         return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/kandidaten")
 
+    # -- regie binnen een werkgebied (ADR-012) -------------------------------------------------------
+
+    async def start_regie(self, werkgebied_id: str, invoer: dict[str, Any]) -> dict[str, Any]:
+        """`RegieStart`; 409 `regie_loopt_al` als er al een loopt in dit werkgebied of van deze gebruiker."""
+        return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/regies", invoer)
+
+    async def wijzig_regie(self, werkgebied_id: str, regie_id: str, wijziging: dict[str, Any]) -> dict[str, Any]:
+        """De hartslag (`{status: "loopt"}`) of de eindstand met de uitkomst."""
+        return await self._verstuur("PATCH", f"{self._werkgebied_pad(werkgebied_id)}/regies/{quote(regie_id, safe='')}",
+                                    wijziging)
+
+    async def maak_gesprek(self, invoer: dict[str, Any]) -> dict[str, Any]:
+        """Een deelgesprek onder het regiegesprek (`GesprekCreate` met `ouder_id` en `regie_id`)."""
+        return await self._post("/v1/gesprekken", invoer)
+
     # -- bronselectie per deelvraag (spoor J) --------------------------------------------------------
 
     async def haal_bronselectie(self, werkgebied_id: str, na: str = "") -> dict[str, Any]:

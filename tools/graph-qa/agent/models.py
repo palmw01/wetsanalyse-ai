@@ -151,7 +151,10 @@ BRONSELECTIE_ACTIES = ("bronselectie", "bronnen_zoeken", "bepaling_toevoegen")  
 Actie = Literal["werkgebied_annoteren", "deelvragen_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
                 "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie",
                 "scherper", "uitleg", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen",
-                "bronselectie", "bepaling_toevoegen"]
+                "bronselectie", "bepaling_toevoegen", "regie_bronnen", "regie_annoteren"]
+# Een regie binnen het werkgebied (ADR-012): de regisseur verdeelt het werk over deelgesprekken. Geen taak van een agent
+# maar een eigen stroom (`agent/regie/regisseur.py`); met `plan_id` start hij het bevestigde plan.
+REGIE_ACTIES = ("regie_bronnen", "regie_annoteren")
 # Acties die eerst om een bevestiging vragen; alleen daar hoort `bevestigd` bij.
 BEVESTIG_ACTIES = ("werkgebied_annoteren", "deelvragen_annoteren", "begrippen_meedenken")
 
@@ -201,6 +204,8 @@ class ChatRequest(BaseModel):
     onderwerp: Onderwerp | None = None
     # Een klik op een suggestie (F3b): een vaste handeling, zonder model gerouteerd (`ACTIE_TAAK`).
     actie: Actie | None = None
+    # Het plan van een regie dat de jurist bevestigde (ADR-012). Wijkt het plan van nu af, dan begint de regie niet.
+    plan_id: str = Field(default="", pattern=r"^([0-9a-f]{16})?$")
 
     @model_validator(mode="after")
     def _actie_kiest_de_route(self) -> "ChatRequest":
@@ -212,6 +217,8 @@ class ChatRequest(BaseModel):
             self.actie, self.modus = "begrippen_meedenken", "auto"
             if not self.werkgebied_id:
                 raise ValueError("modus 'begrippen_verdiepen' vraagt een werkgebied_id")
+        if self.plan_id and self.actie not in REGIE_ACTIES:
+            raise ValueError("'plan_id' hoort bij een regie")
         if self.actie is None:
             return self
         if self.modus != "auto":
@@ -233,6 +240,12 @@ class ChatRequest(BaseModel):
             if not self.deelvraag_id and self.onderwerp is not None and self.onderwerp.soort == "deelvraag":
                 self.deelvraag_id = self.onderwerp.id
         return self
+
+    @property
+    def is_regie(self) -> bool:
+        """Een regie binnen het werkgebied (ADR-012): een klik op `regie_bronnen`/`regie_annoteren`. Een getypte opdracht
+        herkent `regie.regisseur.opdracht_in` in `_stroom_voor`."""
+        return bool(self.werkgebied_id) and self.actie in REGIE_ACTIES
 
     @property
     def is_werkgebied_annotatie(self) -> bool:

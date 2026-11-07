@@ -946,6 +946,27 @@ meegaat, staat in `buiten` met de reden. `kind_verzoek` maakt het `ChatRequest` 
 op de deelvraag, of `deelvragen_annoteren`/`werkgebied_annoteren` met `bevestigd`, `eenheden` en `budget_aandeel`.
 Tests: `tests/test_regie_plan.py`.
 
+### De regisseur (`agent/regie/regisseur.py`, ADR-012)
+
+Een regie verdeelt het werk in een werkgebied over deelgesprekken: een eigen stroom in `_stroom_voor` (zoals de reeks),
+geen node. Ingang: de acties `regie_bronnen` en `regie_annoteren` (`REGIE_ACTIES`, geen taak van een agent), of een getypte
+opdracht met "per deelvraag" (`opdracht_in`, alleen een verzoek; met bronnen én annoteren eerst de bronnenronde).
+`tests/test_regisseur.py` haalt elke vraag uit de routerings- en gespreksset erdoorheen: geen ervan mag erin vallen.
+
+- **Eerst een bevestiging** (`soort: "regie"`, `plan_id`): zonder `plan_id` gelijk aan het plan van nu alleen het voorstel,
+  met kosten, de grens op tegelijk en wat niet meegaat.
+- **Dan de regie bij de api** (409: er loopt er al een), een hartslag elke `HARTSLAG_S`, en per taak een kindgesprek
+  (`ouder_id`, `regie_id`) met een gewone run langs `start_beurt` (`ouder_run_id`, budgetpoort aan). Hoogstens
+  `REGIE_PARALLEL` (2, max 3) tegelijk, met een semafoor; volgen is `await` op de taak van het kind. De bronnenronde zoekt
+  vooraf één keer (`zoek_run`), zodat de kinderen niet op elkaar wachten.
+- **Stoppen** van de regierun stopt de lopende kinderen (`_stopwacht`), en wie nog wacht, start niet.
+- **De bundel** komt uit de stand bij de api na afloop: opgeleverd, wacht op jou (voorgestelde bronnen, markeringen te
+  beoordelen, wat niet aan bod kwam), mislukt of niet aan bod. Het bericht draagt het artefact `regie`.
+- **Geen besluit.** `API_AANROEPEN` is de lijst api-methoden die de regisseur gebruikt; de test toetst de code en een hele
+  ronde ertegen. Opnemen, uitsluiten, beoordelen, afronden en accorderen staan er niet in.
+- **Eén trace**: `_voer_uit` draait in een eigen taak onder de span `graph_qa.regie`, elk kind onder `graph_qa.regie.taak`;
+  een kind-run erft die context. Logregels `regie_taak` en `regie_afloop`.
+
 ### Lex stelt een werkgebied samen (`agent/werkgebied_intake.py`, `nodes/werkgebied.py`, activiteit 1)
 
 "Kunnen we een werkgebied samenstellen?" of "ik wil een wetsanalyse uitvoeren" (`is_werkgebiedvraag`)
