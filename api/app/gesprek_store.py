@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 
 from pydantic import ValidationError
-from sqlalchemy import delete, func, insert, select, update
+from sqlalchemy import delete, exists, func, insert, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import db
@@ -158,10 +158,11 @@ class GesprekStore:
 
     async def lijst_samenvattingen(
         self, user_id: str, limit: int = 100, offset: int = 0,
-        werkgebied_id: str | None = None, gearchiveerd: bool | None = None,
+        werkgebied_id: str | None = None, gearchiveerd: bool | None = None, zoek: str = "",
     ) -> list[GesprekSamenvatting]:
         """Eigen gesprekken, nieuwste eerst. `werkgebied_id=""` geeft alleen de losse gesprekken;
-        `gearchiveerd=None` geeft alles, zodat de sidebar met één call kan indelen."""
+        `gearchiveerd=None` geeft actief én gearchiveerd. `zoek` zoekt (hoofdletterongevoelig) in de titel
+        en in de tekst van de berichten; `%` en `_` tellen daarbij als gewone tekens."""
         g, b, w = db.gesprekken, db.gesprek_berichten, db.werkgebieden
         aantal = func.count(b.c.id).label("aantal")
         q = (
@@ -173,7 +174,18 @@ class GesprekStore:
             q = q.where(g.c.werkgebied_id == werkgebied_id)
         if gearchiveerd is not None:
             q = q.where(g.c.gearchiveerd.is_not(None) if gearchiveerd else g.c.gearchiveerd.is_(None))
-        q = q.group_by(g.c.id, w.c.naam).order_by(g.c.updated.desc()).limit(limit).offset(offset)
+        if zoek.strip():
+            # De tekst staat in de JSON van het bericht; `as_string()` is `->>` op Postgres en
+            # `json_extract` op SQLite. Een subquery en geen filter op de join: die join telt ook
+            # de berichten, en een filter erop zou `aantal_berichten` laten krimpen.
+            patroon = "%" + zoek.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+            zb = db.gesprek_berichten.alias("zb")
+            q = q.where(or_(
+                g.c.titel.ilike(patroon, escape="\\"),
+                exists().where(zb.c.gesprek_id == g.c.id,
+                               zb.c.inhoud["tekst"].as_string().ilike(patroon, escape="\\")),
+            ))
+        q = q.group_by(g.c.id, w.c.naam).order_by(g.c.updated.desc(), g.c.id).limit(limit).offset(offset)
         async with db.get_engine().connect() as conn:
             rows = (await conn.execute(q)).all()
         return [

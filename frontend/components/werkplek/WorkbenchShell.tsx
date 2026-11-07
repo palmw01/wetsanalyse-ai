@@ -297,7 +297,8 @@ export function WorkbenchShell({
     window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
   }
 
-  const actieveTitel = gesprekken.find((g) => g.id === activeId)?.titel || "Nieuw gesprek";
+  // Uit de lijst, anders uit het geladen gesprek: een gearchiveerd gesprek staat pas in de lijst als het archief open is.
+  const actieveTitel = (actief?.titel ?? geladenActief?.titel) || "Nieuw gesprek";
 
   return (
     <div className="relative flex h-full flex-col">

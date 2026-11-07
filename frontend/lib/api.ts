@@ -514,11 +514,46 @@ export async function lijstLagen(opties: { mijn?: boolean; limit?: number } = {}
 
 // --- Gesprekken (chatgeschiedenis; per-gebruiker via de BFF-X-User-Id) ------
 
-export async function lijstGesprekken(opties: { werkgebiedId?: string; gearchiveerd?: boolean } = {}): Promise<GesprekSamenvatting[]> {
+export interface GesprekFilter {
+  werkgebiedId?: string;
+  gearchiveerd?: boolean;
+  /** Zoek in de titel en de tekst van de berichten (server-side, alleen eigen gesprekken). */
+  q?: string;
+}
+
+export async function lijstGesprekken(
+  opties: GesprekFilter & { limit?: number; offset?: number } = {},
+): Promise<GesprekSamenvatting[]> {
   const qs = new URLSearchParams();
   if (opties.werkgebiedId !== undefined) qs.set("werkgebied_id", opties.werkgebiedId);
   if (opties.gearchiveerd !== undefined) qs.set("gearchiveerd", String(opties.gearchiveerd));
+  if (opties.q?.trim()) qs.set("q", opties.q.trim());
+  if (opties.limit !== undefined) qs.set("limit", String(opties.limit));
+  if (opties.offset) qs.set("offset", String(opties.offset));
   return json<GesprekSamenvatting[]>(await fetch(qs.size ? `/api/gesprekken?${qs}` : "/api/gesprekken", { cache: "no-store" }));
+}
+
+/** De api geeft hoogstens zoveel gesprekken per verzoek (`limit`, `le=200`). */
+export const GESPREKKEN_PER_VERZOEK = 200;
+
+/** De eerste `aantal` gesprekken met dit filter, in zoveel verzoeken als nodig, en of er daarna nog meer zijn.
+ *  Eén extra gevraagd gesprek beantwoordt die vraag; zo verdwijnt er nooit stil een gesprek uit de lijst. */
+export async function laadGesprekken(
+  filter: GesprekFilter,
+  aantal: number,
+): Promise<{ lijst: GesprekSamenvatting[]; meer: boolean }> {
+  const lijst: GesprekSamenvatting[] = [];
+  const gezien = new Set<string>();
+  let offset = 0;
+  while (offset < aantal + 1) {
+    const limit = Math.min(GESPREKKEN_PER_VERZOEK, aantal + 1 - offset);
+    const stuk = await lijstGesprekken({ ...filter, limit, offset });
+    offset += stuk.length;
+    // Tussen twee verzoeken kan een gesprek een plek opschuiven; dan niet twee keer tonen.
+    for (const g of stuk) if (!gezien.has(g.id)) { gezien.add(g.id); lijst.push(g); }
+    if (stuk.length < limit) return { lijst, meer: false };
+  }
+  return { lijst: lijst.slice(0, aantal), meer: true };
 }
 
 export async function maakGesprek(titel = "", werkgebiedId = ""): Promise<Gesprek> {
