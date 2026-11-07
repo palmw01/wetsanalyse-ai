@@ -6,8 +6,8 @@ heeft, ongeacht of hij één artikel of alles laadt.
 
 Kosten en cache. Per regeling is de bronboom één SPARQL-query (Awb: ~2.300 knopen) en de
 verwijzingen nog één. Beide veranderen alleen bij een herimport, dus ze worden per proces bewaard
-onder `(bwb_id, bwb:toestandUrl)`: een nieuwe toestand van de regeling geeft vanzelf een nieuwe
-sleutel. Markeringen veranderen per beoordeling en komen altijd vers uit Postgres. De `versie` in het
+onder `(bwb_id, bwb:inhoudHash)`: andere tekst geeft vanzelf een nieuwe sleutel, ook bij dezelfde
+toestand (een herimport met een andere parser). Een graaf zonder hash valt terug op de toestand. Markeringen veranderen per beoordeling en komen altijd vers uit Postgres. De `versie` in het
 antwoord is de hash van de toestanden: daarop cachet de werkplek de layout.
 
 Dezelfde cache draagt de leesroutes van een werkgebied (`lees_bron`). Die haalden elk elke regeling
@@ -38,19 +38,21 @@ logger = logging.getLogger(__name__)
 # een herimport (nieuwe toestand naast de oude, tot die vervalt) nooit de hele cache verdringt.
 MAX_CACHE = 64
 _CACHE: dict[tuple[str, str], dict] = {}
-# Hoe lang een bronboom geldt, ook bij dezelfde toestand: een herimport met een andere parser verandert de
-# tekst zonder nieuwe toestand, en dat mag niet tot de volgende herstart blijven staan.
+# Hoe lang een bronboom geldt als de graaf nog geen inhoudshash draagt (een import van vóór F4): een herimport met
+# een andere parser verandert de tekst zonder nieuwe toestand. Met `bwb:inhoudHash` is de sleutel de inhoud zelf
+# en vervalt deze grens.
 GELDIG_S = 600
 _SLOTEN: dict[str, asyncio.Lock] = {}
 
 
 def _toestanden_query(bwbs: list[str]) -> str:
     filter_ = ("VALUES ?bwbId { " + " ".join(f'"{b}"' for b in bwbs) + " }") if bwbs else ""
-    return _PREFIXES + f"""SELECT ?bwbId ?toestand ?citeertitel WHERE {{
+    return _PREFIXES + f"""SELECT ?bwbId ?toestand ?inhoud ?citeertitel WHERE {{
   {filter_}
   ?regeling a bwb:Regeling ; bwb:bwbId ?bwbId .
   FILTER(STRSTARTS(STR(?regeling), "urn:bwb:BWB"))
   OPTIONAL {{ ?regeling bwb:toestandUrl ?toestand }}
+  OPTIONAL {{ ?regeling bwb:inhoudHash ?inhoud }}
   OPTIONAL {{ ?regeling bwb:citeertitel ?citeertitel }}
 }} ORDER BY ?bwbId"""
 
@@ -71,9 +73,16 @@ def _verwijzingen_query(bwb: str) -> str:
 _STRUCTUUR: dict[tuple[str, str], dict] = {}
 
 
-def _bewaard(sleutel: tuple[str, str]) -> dict | None:
-    deel = _STRUCTUUR.get(sleutel)
-    return deel if deel and time.monotonic() - deel["gehaald"] < GELDIG_S else None
+def stand_van(rij: dict) -> str:
+    """De cachesleutel van een regeling: haar inhoudshash, of anders haar toestand (met een geldigheidsgrens)."""
+    return f"inhoud:{rij['inhoud']}" if rij.get("inhoud") else f"toestand:{rij.get('toestand', '')}"
+
+
+def _bewaard(sleutel: tuple[str, str], cache: dict | None = None) -> dict | None:
+    deel = (_STRUCTUUR if cache is None else cache).get(sleutel)
+    if deel is None:
+        return None
+    return deel if sleutel[1].startswith("inhoud:") or time.monotonic() - deel["gehaald"] < GELDIG_S else None
 
 
 async def _structuur(bwb: str, toestand: str) -> dict:
@@ -108,7 +117,7 @@ async def lees_bron(doel: dict) -> dict:
         rijen = [r for r in await _select(client, _toestanden_query([bwb])) if r.get("bwbId") == bwb]
     if not rijen:
         raise BronFout("Regeling niet gevonden in de brongraaf")
-    deel = await _structuur(bwb, rijen[0].get("toestand", ""))
+    deel = await _structuur(bwb, stand_van(rijen[0]))
     if (iri := doel.get("bron_iri")) and iri not in deel["nodes"]:
         raise BronFout("De gevraagde bronnode bestaat niet")
     return deel["snapshot"]
@@ -117,11 +126,11 @@ async def lees_bron(doel: dict) -> dict:
 async def _regeling(client: httpx.AsyncClient, bwb: str, toestand: str) -> dict:
     """Structuur en uitgaande verwijzingen van één regeling, uit de cache of vers."""
     sleutel = (bwb, toestand)
-    if sleutel in _CACHE:
-        return _CACHE[sleutel]
+    if deel := _bewaard(sleutel, _CACHE):
+        return deel
     async with _SLOTEN.setdefault(bwb, asyncio.Lock()):
-        if sleutel in _CACHE:           # een gelijktijdig verzoek haalde hem intussen op
-            return _CACHE[sleutel]
+        if deel := _bewaard(sleutel, _CACHE):   # een gelijktijdig verzoek haalde hem intussen op
+            return deel
         structuur = await _structuur(bwb, toestand)
         rijen = await _select(client, _verwijzingen_query(bwb))
         deel = {**structuur, "verwijzingen": rijen}
@@ -145,7 +154,7 @@ async def graaf(bwbs: list[str] | None = None) -> dict:
     async with httpx.AsyncClient(timeout=60) as client:
         toestanden = [r for r in await _select(client, _toestanden_query(sorted(set(bwbs or []))))
                       if r.get("bwbId")]
-        delen = [(r, await _regeling(client, r["bwbId"], r.get("toestand", ""))) for r in toestanden]
+        delen = [(r, await _regeling(client, r["bwbId"], stand_van(r))) for r in toestanden]
 
     knopen: dict[str, Knoop] = {}
     relaties: list[Relatie] = []
@@ -166,7 +175,7 @@ async def graaf(bwbs: list[str] | None = None) -> dict:
     relaties += m_relaties
     relaties += verwijzingen([("uit", rij) for _, deel in delen for rij in deel["verwijzingen"]], knopen)
 
-    versie = store.digest(sorted((r["bwbId"], r.get("toestand", "")) for r, _ in delen))
+    versie = store.digest(sorted((r["bwbId"], stand_van(r)) for r, _ in delen))
     return {
         "schema_versie": 1,
         "versie": versie,
@@ -202,7 +211,7 @@ async def plaatsen(iris: list[str]) -> list[dict]:
     uit: dict[str, dict] = {}
     for bwb, lijst in per_bwb.items():
         r = toestanden.get(bwb)
-        deel = await _structuur(bwb, r.get("toestand", "")) if r else {"nodes": {}, "citeertitel": ""}
+        deel = await _structuur(bwb, stand_van(r)) if r else {"nodes": {}, "citeertitel": ""}
         nodes = deel["nodes"]
         regeling = {"bwb_id": bwb, "citeertitel": (r or {}).get("citeertitel") or deel["citeertitel"]}
         for iri in lijst:

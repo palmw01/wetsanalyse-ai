@@ -45,11 +45,14 @@ class Graafbron:
         self.toestand = {"BWBR0004770": "http://wetten.overheid.nl/id/BWBR0004770/2026-07-01/0",
                          "BWBR0005537": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"}
         self.bronbomen: list[str] = []
+        #: `bwb:inhoudHash` per regeling; leeg = een graaf van vóór de hash (dan telt de toestand, met verloop).
+        self.inhoud: dict[str, str] = {}
 
     async def select(self, client, query: str) -> list[dict]:
         if "bwb:toestandUrl" in query:
             gekozen = [b for b in self.toestand if f'"{b}"' in query] or list(self.toestand)
-            return [{"bwbId": b, "toestand": self.toestand[b], "citeertitel": BRONBOMEN[b][next(iter(BRONBOMEN[b]))]["label"]}
+            return [{"bwbId": b, "toestand": self.toestand[b], "citeertitel": BRONBOMEN[b][next(iter(BRONBOMEN[b]))]["label"],
+                     **({"inhoud": self.inhoud[b]} if b in self.inhoud else {})}
                     for b in sorted(gekozen)]
         if "urn:bwb:graph:BWBR0004770" in query:
             return [{"van": L1, "naar": A4_94A, "anker": "artikel 4:94a van de Awb", "label": "Artikel 4:94a"},
@@ -130,6 +133,19 @@ async def test_lees_bron_bij_dezelfde_toestand_verloopt(bron, monkeypatch):
     monkeypatch.setattr(graaf, "GELDIG_S", 0)
     await graaf.lees_bron({"bron_iri": A9})
     assert bron.bronbomen == ["BWBR0004770"] * 2, "een herimport houdt soms de toestand; de tekst mag niet blijven hangen"
+
+
+async def test_met_een_inhoudshash_verloopt_niets_en_telt_alleen_de_inhoud(bron, monkeypatch):
+    """F4: de sleutel is de inhoud. Dezelfde hash houdt de boom, ook na de grens; andere tekst bij dezelfde toestand
+    (een herimport met een andere parser) haalt hem opnieuw op."""
+    bron.inhoud["BWBR0004770"] = "a" * 64
+    await graaf.lees_bron({"bron_iri": A9})
+    monkeypatch.setattr(graaf, "GELDIG_S", 0)
+    await graaf.lees_bron({"bron_iri": A9})
+    assert bron.bronbomen == ["BWBR0004770"], "zelfde inhoud: geen nieuwe query"
+    bron.inhoud["BWBR0004770"] = "b" * 64
+    await graaf.lees_bron({"bron_iri": A9})
+    assert bron.bronbomen == ["BWBR0004770"] * 2, "andere inhoud, zelfde toestand: opnieuw"
 
 
 async def test_lees_bron_weigert_wat_er_niet_is(bron):
