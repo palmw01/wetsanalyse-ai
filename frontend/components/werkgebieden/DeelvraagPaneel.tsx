@@ -6,7 +6,7 @@ import { Lijst, Sectie, StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { BronnenBijDeelvraag } from "@/components/werkgebieden/BronnenBijDeelvraag";
-import { DeelvraagVoorstel, KoppelDialoog } from "@/components/werkgebieden/Deelvragen";
+import { DeelvraagVoorstel } from "@/components/werkgebieden/Deelvragen";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
 import { foutTekst, haalDeelvraag, haalWerkgebied } from "@/lib/api";
 import { deelvraagStand } from "@/lib/bronselectie";
@@ -15,7 +15,6 @@ import type { Deelvraag, DeelvraagDetail, Werkgebied } from "@/lib/types";
 import type { BronselectieOverzicht } from "@/lib/bronselectie";
 import { useBronselectieStand } from "@/lib/useBronselectieStand";
 import { isRevisieConflict } from "@/lib/werkgebied";
-import { Button } from "@/components/ui/Button";
 
 /** Eén deelvraag naast het gesprek (F3d): wat Lex over haar opleverde, om te beoordelen.
  *
@@ -81,7 +80,6 @@ function DeelvraagLive({ werkgebiedId, deelvraagId, onKies, onGewijzigd, opPagin
   const [detail, setDetail] = useState<DeelvraagDetail | null>(null);
   const [fout, setFout] = useState<string | null>(null);
   const [melding, setMelding] = useState<{ type: "bevestiging" | "waarschuwing"; tekst: string } | null>(null);
-  const [koppelen, setKoppelen] = useState(false);
 
   const laad = useCallback(async () => {
     try {
@@ -183,18 +181,11 @@ function DeelvraagLive({ werkgebiedId, deelvraagId, onKies, onGewijzigd, opPagin
       )}
 
       {/* De bronnen en de voorstellen van Lex bij deze deelvraag, met hun besluiten: dezelfde inhoud als op de tab
-          Bronnen (spoor L). Koppelen gaat in een venster; het bewijs per voorstel staat in de bronverkenner. */}
-      {detail.status === "actief" && (
-        <div className="flex justify-end">
-          <Button size="sm" variant="secondary" onClick={() => setKoppelen(true)}
-            aria-label={`Bronnen bij: ${detail.vraag}`}>Bronnen koppelen</Button>
-        </div>
-      )}
+          Bronnen (spoor L). Het bewijs per voorstel staat in de bronverkenner. */}
       {detail.status === "actief" && (
         <BronnenBijDeelvraag werkgebiedId={werkgebiedId} revisie={wg.revisie} deelvraagId={detail.id}
           beheer={{ wg, muteer, laad: async () => { await laad(); onGewijzigd?.(); } }} />
       )}
-      {koppelen && <KoppelDialoog wg={wg} deelvraag={detail} muteer={muteer} onKlaar={() => setKoppelen(false)} />}
     </div>
   );
 }

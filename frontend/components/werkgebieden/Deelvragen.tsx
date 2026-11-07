@@ -1,27 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { AutoTextarea } from "@/components/ui/AutoTextarea";
 import { BewerkKnop, BewerkVoet, useBewerken } from "@/components/ui/Bewerkbaar";
-import { BronBoom } from "@/components/ui/BronBoom";
-import { Dialog } from "@/components/ui/Dialog";
-import { Koppelen, Prullenbak } from "@/components/ui/Icoon";
-import { MeerMenu, MenuKnop } from "@/components/ui/MeerMenu";
+import { Prullenbak } from "@/components/ui/Icoon";
 import { Button, IcoonKnop } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
 import { Lijst, LijstRij, Sectie, StatusLabel, Voorstel as VoorstelRij } from "@/components/ui/Lijst";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
-import { koppelDeelvraag, slaDeelvragenOp, wijzigDeelvraag } from "@/lib/api";
+import { slaDeelvragenOp, wijzigDeelvraag } from "@/lib/api";
 import { bronnenZin, deelvraagStand, voortgangZin, type DeelvraagSelectie } from "@/lib/bronselectie";
 import {
-  conceptFout, conceptVan, deelvraagStappen, deelvragenSamen, overgenomenZin, splits, vervangtZin, zelfdeSet, type DeelvraagConcept,
+  conceptFout, conceptVan, deelvraagStappen, deelvragenSamen, overgenomenZin, splits, vervangtZin, type DeelvraagConcept,
 } from "@/lib/deelvragen";
 import type { Deelvraag, Werkgebied } from "@/lib/types";
 import { useBronselectieStand } from "@/lib/useBronselectieStand";
-import { bouwBoom, omvangZin, regelingUitLabel } from "@/lib/bronPlaats";
-import { usePlaatsen } from "@/lib/usePlaatsen";
 import { deelvraagPad } from "@/lib/werkgebiedPaden";
 
 /** Deelvragen bij een werkgebied, bovenaan de tab Bronnen (optioneel; open keuze 4).
@@ -74,7 +69,7 @@ export function Deelvragen({ wg, muteer, onOnbewaard }: {
       ) : actief.length > 0 ? (
         <Lijst genummerd label="Deelvragen">
           {actief.map((d, i) => (
-            <DeelvraagRij key={d.id} nummer={i + 1} wg={wg} deelvraag={d} selectie={perId.get(d.id)} muteer={muteer} />
+            <DeelvraagRij key={d.id} nummer={i + 1} wg={wg} deelvraag={d} selectie={perId.get(d.id)} />
           ))}
         </Lijst>
       ) : (
@@ -201,15 +196,13 @@ export function DeelvraagVoorstel({ wgId, deelvraag: d, alle, muteer }: {
 
 /** Eén deelvraag als rij (spoor H3): de vraag als link naar haar pagina, waar de bronnen als boom staan;
  *  hier alleen wie haar stelde en hoeveel er bij hoort. Bewerken en verwijderen gaan via *Bewerken* van het blok
- *  (5 nov 2026); *Bronnen koppelen* staat achter ⋯. */
-function DeelvraagRij({ nummer, wg, deelvraag: d, selectie, muteer }: {
+ *  (5 nov 2026). Bronnen komen bij een deelvraag via de bronselectie, niet hier. */
+function DeelvraagRij({ nummer, wg, deelvraag: d, selectie }: {
   nummer: number;
   wg: Werkgebied;
   deelvraag: Deelvraag;
   selectie?: DeelvraagSelectie;
-  muteer: Mutatie;
 }) {
-  const [koppelen, setKoppelen] = useState(false);
   const bronnen = wg.bronnen.filter((b) => d.bronnen.includes(b.id));
   const regelingen = new Set(bronnen.map((b) => b.bwb_id || b.bron_iri.split(":")[2])).size;
   const omvang = `${bronnenZin(bronnen.length)}${regelingen > 1 ? ` in ${regelingen} regelingen` : ""}`;
@@ -218,71 +211,7 @@ function DeelvraagRij({ nummer, wg, deelvraag: d, selectie, muteer }: {
     <LijstRij data-deelvraag={d.id} voor={`${nummer}.`}
       titel={<Link href={deelvraagPad(wg.id, d.id)} className="focus-ring rounded font-medium text-ink hover:text-lint hover:underline">{d.vraag}</Link>}
       meta={<>{d.herkomst === "lex" ? "Voorgesteld door Lex" : `Door ${d.aangemaakt_door}`} · {omvang}</>}
-      status={(
-        <span className="flex items-center gap-1.5">
-          {st && <StatusLabel toon={st.toon} data-stand={selectie?.status}>{st.label}</StatusLabel>}
-          <MeerMenu label={`Acties: ${d.vraag}`}>
-            {(sluit) => (
-              <MenuKnop icoon={<Koppelen />} ariaLabel={`Bronnen bij: ${d.vraag}`} onClick={() => { sluit(); setKoppelen(true); }}>
-                Bronnen koppelen
-              </MenuKnop>
-            )}
-          </MeerMenu>
-        </span>
-      )}>
-      {koppelen && <KoppelDialoog wg={wg} deelvraag={d} muteer={muteer} onKlaar={() => setKoppelen(false)} />}
-    </LijstRij>
+      status={st && <StatusLabel toon={st.toon} data-stand={selectie?.status}>{st.label}</StatusLabel>} />
   );
 }
 
-/** Welke bronselecties deze deelvraag beantwoorden (spoor H3, methode 1g): in een venster, als boom per
- *  regeling › hoofdstuk › artikel › lid – een heel artikel of hoofdstuk in één vinkje. Eén keer opslaan, de hele
- *  set. Begrippen koppel je hier niet: die horen bij het werkgebied (spoor K); wat er al gekoppeld was, blijft. */
-export function KoppelDialoog({ wg, deelvraag: d, muteer, onKlaar }: {
-  wg: Werkgebied;
-  deelvraag: Pick<Deelvraag, "id" | "vraag" | "bronnen" | "begrippen">;
-  muteer: Mutatie;
-  onKlaar: () => void;
-}) {
-  const [bronnen, setBronnen] = useState<string[]>(d.bronnen);
-  const plaatsen = usePlaatsen(wg.bronnen.map((b) => b.bron_iri));
-  const boom = useMemo(() => bouwBoom(wg.bronnen, {
-    iri: (b) => b.bron_iri, naam: (b) => b.label || b.bron_iri, plaatsen, regelingNaam: (b) => regelingUitLabel(b.label),
-  }), [wg.bronnen, plaatsen]);
-  // De boom vinkt per bron-IRI; de deelvraag koppelt selecties (id's).
-  const idVan = useMemo(() => new Map(wg.bronnen.map((b) => [b.bron_iri, b.id])), [wg.bronnen]);
-  const gekozen = useMemo(() => new Set(wg.bronnen.filter((b) => bronnen.includes(b.id)).map((b) => b.bron_iri)), [wg.bronnen, bronnen]);
-  const ongewijzigd = zelfdeSet(bronnen, d.bronnen);
-  return (
-    <Dialog label={`Bronnen bij: ${d.vraag}`} variant="compact" onSluit={onKlaar}>
-      <div className="flex min-h-0 flex-1 flex-col" data-koppel-dialoog={d.id}>
-        <div className="shrink-0 border-b border-line px-5 py-3.5">
-          <p className="text-xs text-muted">Bronnen bij de deelvraag</p>
-          <h2 className="font-display text-base font-semibold text-lint">{d.vraag}</h2>
-        </div>
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4">
-          <fieldset>
-            <legend className="mb-2 text-sm font-medium text-ink">Bronnen <span className="font-normal text-muted">· {omvangZin(boom)}</span></legend>
-            {wg.bronnen.length === 0 ? <p className="text-sm text-muted">Nog geen bronnen in dit werkgebied.</p> : (
-              <BronBoom boom={boom} label="Bronnen van het werkgebied"
-                vinkjes={{ gekozen, naam: (b) => b.data.label || b.bron_iri, onZet: (iris, aan) => setBronnen((x) => {
-                  const ids = iris.map((i) => idVan.get(i)).filter((i): i is string => !!i);
-                  return aan ? [...new Set([...x, ...ids])] : x.filter((i) => !ids.includes(i));
-                }) }}
-                renderBlad={(b) => <span className="text-sm text-ink">{b.label}</span>} />
-            )}
-          </fieldset>
-        </div>
-        <div className="flex shrink-0 flex-col gap-2 border-t border-line px-5 py-3 sm:flex-row">
-          <Button size="sm" className="w-full sm:w-auto" disabled={ongewijzigd} onClick={async () => {
-            if (await muteer((r) => koppelDeelvraag(wg.id, d.id, { bronnen, begrippen: d.begrippen }, r), { gelukt: "Vastgelegd bij de deelvraag." }))
-              onKlaar();
-          }}>
-            Opslaan
-          </Button>
-          <Button size="sm" variant="ghost" className="w-full sm:w-auto" onClick={onKlaar}>Annuleren</Button>
-        </div>
-      </div>
-    </Dialog>
-  );
-}

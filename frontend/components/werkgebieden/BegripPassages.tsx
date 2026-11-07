@@ -162,7 +162,7 @@ function Passage({ id, begrip, koppeling: k, muteer, geraakt }: {
   );
 }
 
-/** Passages toevoegen uit de inventaris van het werkgebied, als boom met vinkjes, zoals *Bronnen koppelen*. Wat al bij
+/** Passages toevoegen uit de inventaris van het werkgebied, als boom met vinkjes. Wat al bij
  *  dit begrip hoort staat er niet in; wat een ander begrip aanduidt, zegt dat erbij. */
 function PassagesDialoog({ id, begrip, primair, muteer, onKlaar }: {
   id: string;

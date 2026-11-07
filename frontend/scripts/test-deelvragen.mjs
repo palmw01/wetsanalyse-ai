@@ -145,28 +145,12 @@ try {
   const besluit = requests.filter((r) => r.m === "PATCH").at(-1).body;
   assert.deepEqual([besluit.status, besluit.reden], ["afgewezen", "Hoort bij een ander werkgebied"]);
 
-  // 3. Koppelen: alleen bronnen (spoor K); daarna staat de bronselectie van de deelvraag in behandeling.
+  // 3. Bronnen komen bij een deelvraag via de bronselectie (E1): de rij heeft geen koppelknop meer. De api koppelt bij
+  //    een besluit in de bronselectie; hier zet de mock dat besluit neer.
   const vraag = "Wanneer is een aanslag invorderbaar?";
-  // Spoor H3: koppelen staat achter ⋯ en gaat in een venster, met de bronnen als boom per regeling.
-  const koppel = async () => {
-    await sectie().getByRole("button", { name: `Acties: ${vraag}` }).click();
-    await page.getByRole("menuitem", { name: `Bronnen bij: ${vraag}` }).click();
-    const venster = page.getByRole("dialog", { name: `Bronnen bij: ${vraag}` });
-    await venster.locator("[data-bronboom]").waitFor();
-    return venster;
-  };
-  const venster = await koppel();
-  assert.equal(await venster.getByLabel(/termijn/).count(), 0, "geen begrippen in het koppelvenster");
-  await venster.getByLabel("Artikel 9 – Invorderingswet 1990").check();
-  await venster.getByRole("button", { name: "Opslaan" }).click();
-  await venster.waitFor({ state: "detached" });
-  await page.waitForFunction((v) => [...document.querySelectorAll("[data-deelvraag]")]
-    .find((li) => li.textContent.includes(v))?.querySelector("[data-stand]")?.textContent === "In behandeling", vraag);
-  assert.equal(await stand(vraag).textContent(), "In behandeling");
-  // De rij noemt de omvang in plaats van een kommareeks.
-  await rij(vraag).getByText("1 bron", { exact: false }).waitFor();
-  const koppeling = requests.filter((r) => r.m === "PUT").at(-1).body;
-  assert.deepEqual([koppeling.bronnen, koppeling.begrippen], [["s9"], []]);
+  assert.equal(await sectie().getByRole("button", { name: `Acties: ${vraag}` }).count(), 0, "geen koppelknop");
+  assert.equal(await page.getByRole("button", { name: `Bronnen bij: ${vraag}` }).count(), 0, "geen koppelknop");
+  wijzig(() => { wg.deelvragen.find((x) => x.vraag === vraag).bronnen = ["s9"]; });
 
   // Spoor K: de tab Bronnen toont dezelfde ene lijst per deelvraag – de gekoppelde bron onder deelvraag 1, met
   // haar status; de lege deelvraag zegt dat er nog niets bij hoort. Geen boom.

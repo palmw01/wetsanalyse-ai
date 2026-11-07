@@ -1193,14 +1193,6 @@ export async function wijzigDeelvraag(
     jsonInit("PATCH", { ...wijziging, verwachte_revisie: verwachteRevisie })));
 }
 
-/** De hele set: welke bronselecties en begrippen bij deze deelvraag horen. */
-export async function koppelDeelvraag(
-  id: string, deelvraagId: string, koppelingen: { bronnen: string[]; begrippen: string[] }, verwachteRevisie: number,
-): Promise<Werkgebied> {
-  return json<Werkgebied>(await fetch(wg(id, "deelvragen", deelvraagId, "koppelingen"),
-    jsonInit("PUT", { ...koppelingen, verwachte_revisie: verwachteRevisie })));
-}
-
 /** De peildatum en de toestand van de regelingen in de bronnen; faalt stil (`null`). */
 export async function haalToestanden(id: string): Promise<Toestanden | null> {
   try {
