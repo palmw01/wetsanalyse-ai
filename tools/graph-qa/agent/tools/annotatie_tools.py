@@ -113,7 +113,7 @@ ANNOTATIE_TOOLS = [
            "`aandacht` (geel = keuze voor de jurist, groen = bevestigd door review), `subtype`, "
            "`beslist_door` (regel/model/specificiteit/terugval) en `met_twijfel`. "
            "GEEFT TERUG: status en volledig, dan per treffer id, klasse, tekst, vindplaats, bron_iri, "
-           "aandacht, lifecycle, alternatieven en een ingekorte toelichting; plus paginatie "
+           "aandacht, beoordeling, alternatieven en een ingekorte toelichting; plus paginatie "
            "(volgende_offset/cursor); op een bepaling (bron_iri) komen de pagina's vanzelf mee. "
            "Wil je weten WELKE teksten van een klasse er zijn, gebruik dan "
            "overzicht_annotaties; voor het volledige spoor van één treffer get_annotatie.",
@@ -196,6 +196,10 @@ def vindplaats_label(iri: str) -> str:
 # tientallen tot honderden kB. Dat duwde het resultaat door het historievenster heen en verdrong de
 # rest van het gesprek. Wat een jurist vraagt – welke klasse, welke tekst, waar, hoe zeker, waarom –
 # staat hier; het volledige record blijft via `get_annotatie` op te vragen.
+BEOORDELING = {"voorgesteld": "voorstel van Lex", "proposed": "voorstel van Lex", "human_approved": "akkoord",
+               "edited": "door jurist aangepast", "rejected": "verworpen", "published": "gepubliceerd", "reused": "hergebruikt"}
+LAAGSTAND = {"in_review": "in behandeling", "geaccordeerd": "afgerond", "gepromoveerd": "in de graaf"}
+
 _ZOEKVELDEN = ("id", "klasse", "tekst", "jas_subtype", "aandacht", "lifecycle", "verouderd", "soort")
 _TEKSTVELDEN = {"toelichting": 300, "review_uitleg": 300}
 
@@ -213,6 +217,12 @@ def _compact(e: dict[str, Any]) -> dict[str, Any]:
         uit["vindplaats"] = vindplaats_label(iri)
     if isinstance(e.get("laag"), dict) and e["laag"].get("status"):
         uit["laagstatus"] = e["laag"]["status"]
+    # De waarden in de woorden van de werkplek (`frontend/lib/annotatie.ts`): het model nam "lifecycle `voorgesteld`",
+    # "laagstatus `in_review`" en "human_approved" letterlijk over in de toelichting (acceptatie 7 nov 2026).
+    if uit.get("lifecycle") in BEOORDELING:
+        uit["beoordeling"] = BEOORDELING[uit.pop("lifecycle")]
+    if uit.get("laagstatus") in LAAGSTAND:
+        uit["stand_van_de_laag"] = LAAGSTAND[uit.pop("laagstatus")]
     return uit
 
 

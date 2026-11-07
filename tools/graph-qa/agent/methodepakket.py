@@ -1,22 +1,18 @@
 # Gegenereerd uit de wetsanalyse-skill; niet handmatig bewerken.
 # Draai scripts/genereer_jas_klassen.py.
-PAKKET = {'bronbestanden': {'SKILL.md': '01383aed797309c754de389d69335800fa46cc57cade60e2ab0cc7e3d9813126',
-                   'agentrollen.json': 'fdf5eac91127601d3782015f3dfc1a3a347a787c4d74bfb810f9d0955694bc66',
-                   'references/agentrollen.md': 'f46b17b5d7f7054bed32767a063b3212428956ee7c85aa78de68887035291787',
-                   'references/begrippen.md': 'fcedbf969b51d046eedb62b75f210fc9ee44c0edb57a314ef4030d67e955a815',
+PAKKET = {'bronbestanden': {'SKILL.md': '67ce7d6f1872d4f5718b143067c0e5aafca74de622f28af72f96697b7698419d',
+                   'agentrollen.json': '84ad41e689a3ebf7a77fbbc409f5d07a10539cbe0b578cb7111a60feded2f418',
+                   'references/agentrollen.md': 'c95a55241b9190a14be0804ca5875db9f2be58dc045cb8e4d570c8952f77f76b',
                    'references/bronnen.md': 'ab8e9d2016dd6a0509214268675692a132184a5201c0dad8d5a1d0c19c7962fb',
                    'references/deelvragen-en-bronnen.md': '480d3ff17a613799e4f1cc380488e2c47d60bd1babe9256f85ba75c205c17490',
                    'references/jas-klassen-referentie.md': '5fe94a8c3718eb3d0f21a04cda9e89d9c35db4260b39f1900ead19a86ee91a95',
                    'references/nl-sbb-en-b1.md': 'ceeb1110d57ed267ef04fe4289ae701562290689525b14c9783908dcb3575411'},
  'rollen': {'algemeen': ['basis', 'nl-sbb-taalniveau'],
-            'begrippen': ['basis', 'begrippen', 'nl-sbb-taalniveau'],
-            'decompositie': ['basis', 'decompositie'],
             'deelvragen': ['basis', 'deelvragen'],
             'definitie': ['basis', 'definitie', 'nl-sbb-taalniveau'],
             'duiding': ['basis', 'duiding'],
             'retrieval': ['basis', 'retrieval'],
-            'supervisor': ['basis', 'supervisor'],
-            'synthese': ['basis', 'synthese']},
+            'supervisor': ['basis', 'supervisor']},
  'secties': {'basis': {'bestand': 'references/agentrollen.md',
                        'bronnen': ['M01', 'M03', 'P01', 'P03', 'P11', 'P12'],
                        'sha256': '8c9420f83ecbe8cd1e08bace10eb37bc4de08a2706cdda498d6367310be3a306',
@@ -31,68 +27,6 @@ PAKKET = {'bronbestanden': {'SKILL.md': '01383aed797309c754de389d69335800fa46cc5
                                 'of opslag van een dossier zonder uitvoering. Volg het bestaande '
                                 'uitvoercontract van je rol; deze methoderegels verlenen geen '
                                 'extra tools of bevoegdheden.'},
-             'begrippen': {'bestand': 'references/begrippen.md',
-                           'bronnen': ['M01', 'M04', 'P15'],
-                           'sha256': '0398f1ed5d4d9774a5f4eb377a500df5d8bba95fa5fcc51f26a9ed4b54a7a31e',
-                           'tekst': 'Een begrip is een analyse-uitkomst, geen wettelijke '
-                                    'definitie: het brengt de formuleringen samen die in het '
-                                    'werkgebied hetzelfde aanduiden, met de passages waarop het '
-                                    'rust. Het volgt NL-SBB en draagt alleen een term (naam en '
-                                    'alternatieve termen), een definitie, een uitleg, een '
-                                    'toelichting (de grenzen of het gebruik) en voorbeelden; een '
-                                    'begripstype of JAS-duiding stel je niet voor. Een gelijk '
-                                    'woord bewijst geen gelijke betekenis; sterk bewijs is wat de '
-                                    'wet zelf vastlegt – een begripsbepaling binnen haar bereik, '
-                                    'of een verwijzing. Houd de wettelijke definitie en het '
-                                    'vastgelegde begrip uit elkaar.\n'
-                                    'Een definitie noemt het soortbegrip en het onderscheidende '
-                                    'kenmerk, dekt wat de passages aanduiden en niet meer, '
-                                    'gebruikt de naam van het begrip niet als eigen soortbegrip en '
-                                    'is geen rekenregel. De herkomst telt: letterlijk uit de bron '
-                                    'gaat voor samengesteld uit bronfragmenten, en dat gaat voor '
-                                    'zelf geformuleerd. Een geformuleerde definitie is altijd een '
-                                    'voorstel om te beoordelen, met de fragmenten waarop ze rust.\n'
-                                    'Lees een begrip in zijn context: de andere leden van het '
-                                    'artikel, een definitie of kwalificatie elders, een bepaling '
-                                    'waarnaar verwezen wordt. Beginnen bepalingen gelijk en '
-                                    'verschillen ze daarna (zoals "bij herziening van … met een '
-                                    'positief bedrag tot …"), kies dan een algemene definitie die '
-                                    'voor alle varianten geldt, of een specifiek begrip met een '
-                                    'eigen naam; een toepassingsgeval is niet de definitie van het '
-                                    'algemene begrip. Een definitie geeft de wezenlijke kenmerken '
-                                    'en, waar de tekst het zegt, het doel – geen rechtsgevolg, '
-                                    'geen voorwaarde uit één lid en geen afleiding: wat de wet met '
-                                    'een term berekent of verrekent, is een eigen begrip ("bepalen '
-                                    '…"), en een woord dat in één bepaling door een berekening '
-                                    'verandert, kan daar twee begrippen dragen. Een kwalificatie '
-                                    'van een samenstelling ("geldt als het te betalen bedrag aan '
-                                    'belasting") definieert de kale term niet. Is er onvoldoende '
-                                    'bewijs, zeg dan wat er ontbreekt in plaats van een definitie '
-                                    'te raden, en noem open vragen.\n'
-                                    'Voorbeelden toetsen een definitie. Ze komen pas als er een '
-                                    'overgenomen definitie is, en een grensgeval of tegenvoorbeeld '
-                                    'hoort erbij. Elk voorbeeld toetst één kenmerk van de '
-                                    'definitie en zegt of het het begrip toetst of iets anders '
-                                    '(een scenario, een voorwaarde, een rechtsgevolg); twee '
-                                    'voorbeelden die alleen in getallen of namen verschillen, '
-                                    'toetsen hetzelfde. Een betekenisverschil leg je uit met de '
-                                    'context van beide begrippen, niet met het woord alleen; waar '
-                                    'de grens ligt, hoort in de toelichting.\n'
-                                    'Relaties houden hun type – kwalificatie, inclusie, '
-                                    'uitsluiting, soort van, verwant – en hun richting. Een begrip '
-                                    'met een andere betekenis wordt een opvolger, het oude wordt '
-                                    'vervangen. Het begrippenkader volgt NL-SBB.\n'
-                                    'Lex stelt voor; de analist neemt over, past aan of wijst af, '
-                                    'en alleen de analist accordeert.'},
-             'decompositie': {'bestand': 'references/agentrollen.md',
-                              'bronnen': ['M03', 'P01', 'P03', 'P12'],
-                              'sha256': 'a2bf53ae5c9cbe9f5c1991eb256e59c32459b3a6f7eda065f8061e4ff50dfde6',
-                              'tekst': 'Splits alleen als dat nodig is voor de oorspronkelijke '
-                                       'vraag. Behoud regeling, peildatum, toepassingsbereik en '
-                                       'afhankelijkheden tussen definities en normen in de '
-                                       'deelvragen. Verzin geen onderzoeksresultaten of nieuwe '
-                                       'opdracht. Houd je aan het bestaande aantal deelvragen en '
-                                       'contract met genummerde regels.'},
              'deelvragen': {'bestand': 'references/deelvragen-en-bronnen.md',
                             'bronnen': ['M03', 'P13', 'P14'],
                             'sha256': '99aa88287d4332442ad3e40346943a2984b6b25922756fe27bada6fdd09f8057',
@@ -225,16 +159,6 @@ PAKKET = {'bronbestanden': {'SKILL.md': '01383aed797309c754de389d69335800fa46cc5
                                      'annotatie zijn verschillende producten. Beloof geen volledig '
                                      'JAS/JRM-dossier via een route die alleen markeringen of een '
                                      'antwoord levert. Laat inhoudelijke analyse aan de gekozen '
-                                     'rol over.'},
-             'synthese': {'bestand': 'references/agentrollen.md',
-                          'bronnen': ['M09', 'P03', 'P09', 'P12'],
-                          'sha256': 'a125b86195d9326c99ff768ee37218fa087e1a4945412b2da948a362dab1276f',
-                          'tekst': 'Voeg uitsluitend onderbouwde deelbevindingen samen. Behoud hun '
-                                   'bronverwijzingen, toepassingsbereik, onzekerheden en '
-                                   'inhoudelijke tegenspraak. Overeenstemming is geen '
-                                   'onafhankelijk bewijs. Maak onopgeloste '
-                                   'interpretatieverschillen zichtbaar; presenteer ze niet als '
-                                   'vaststaande conclusies. Voeg zonder beschikbare bronnen geen '
-                                   'nieuw juridisch feit toe.'}},
- 'sha256': '849bc2a9c2074e1b66f765f0926954217e70cfe31d79b25172cfac07e048aa7f',
+                                     'rol over.'}},
+ 'sha256': '20d3c60a2a582d1161fe2a5f1a4ce39534f7ed97242f81944bb6a2e8064881e7',
  'versie': '2.1'}

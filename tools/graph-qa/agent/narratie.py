@@ -47,16 +47,44 @@ def ronde_in_denk(writer: Any, tool_uses: list[Any], tekst: list[str], ronde: in
     writer({"type": "reason", "content": ("\n\n" if ronde > 0 else "") + inhoud})
 
 
-def _toolregel(call: dict[str, Any]) -> str:
-    """`get_lid(BWBR0004770, art. 9, lid 1)` – de tool mét waar hij naar kijkt.
+# Wat een tool doet, in de woorden van een jurist. De jurist leest het denkproces: "get_lid(BWBR0004770, 9, 1)" zei hem
+# niets (acceptatie 7 nov 2026). Een tool die hier niet staat, heet "raadpleegt de kennisgraaf".
+_WERKWOORD = {
+    "get_artikel": "leest {bepaling}", "get_lid": "leest {bepaling}", "get_bepaling": "leest {bepaling}",
+    "get_context": "bekijkt de samenhang rond {bepaling}", "follow_verwijzingen": "volgt de verwijzingen in {bepaling}",
+    "verwijst_naar_deze": "zoekt wat naar {bepaling} verwijst", "referenced_by": "zoekt wat naar {bepaling} verwijst",
+    "geldigheid": "kijkt sinds wanneer {bepaling} geldt", "grondslagen": "zoekt de grondslag van {bepaling}",
+    "search_wetgeving": "zoekt {zoekterm}", "semantic_search": "zoekt {zoekterm}", "zoek_opbouw": "zoekt in de opbouw naar {zoekterm}",
+    "zoek_definitie": "zoekt de definitie van {zoekterm}", "resolve_begrip": "zoekt het begrip {zoekterm}",
+    "list_regelingen": "bekijkt welke regelingen er zijn", "get_regeling_info": "leest de gegevens van {regeling}",
+    "inhoudsopgave": "bekijkt de opbouw van {regeling}", "bijlagen": "bekijkt de bijlagen van {regeling}",
+    "overzicht_onderwerp": "maakt een overzicht van {zoekterm}",
+    "search_annotaties": "zoekt in de annotaties", "overzicht_annotaties": "zet de annotaties op een rij",
+    "get_annotatie": "leest een annotatie", "get_annotatiedekking": "bekijkt wat er al geannoteerd is",
+    "search_begrippen": "zoekt in de vastgelegde begrippen", "get_begrip": "leest een begrip",
+}
 
-    Alleen de tool-naam zei te weinig: bij drie opeenvolgende `get_lid`-aanroepen zag je niet dat het
-    om verschillende bepalingen ging.
+
+def _regeling(bwb_id: str) -> str:
+    """De citeertitel als die al bekend is in dit proces (de namenlijst van het overzicht); anders het BWB-id."""
+    from .overzicht import _REGELINGEN_CACHE
+    return next((r["citeertitel"] for r in _REGELINGEN_CACHE if r.get("bwb_id") == bwb_id and r.get("citeertitel")), bwb_id)
+
+
+def _toolregel(call: dict[str, Any]) -> str:
+    """"leest artikel 9, lid 1 (Invorderingswet 1990)" – wat Lex doet, en waarnaar hij kijkt.
+
+    Bij drie opeenvolgende aanroepen moet je zien dat het om verschillende bepalingen gaat, dus de bepaling staat erbij.
     """
     inp = call.get("input") or {}
-    delen = [str(inp[k]).strip() for k in ("bwb_id", "artikel", "nummer", "lid", "query", "term")
-             if str(inp.get(k, "")).strip()]
-    return f"{call.get('name', '?')}({', '.join(truncate(d, 60) for d in delen)})" if delen else str(call.get("name", "?"))
+    regeling = _regeling(str(inp.get("bwb_id") or "").strip()) if inp.get("bwb_id") else ""
+    nummer = str(inp.get("artikel") or inp.get("nummer") or "").strip()
+    bepaling = " ".join(x for x in (f"artikel {nummer}" if nummer else "", f"lid {inp['lid']}" if inp.get("lid") else "") if x)
+    bepaling = (bepaling.replace(" lid", ", lid") + (f" ({regeling})" if regeling else "")) if bepaling else (regeling or "de bepaling")
+    zoekterm = next((f"„{truncate(str(inp[k]).strip(), 60)}”" for k in ("query", "term", "zoekterm", "onderwerp")
+                     if str(inp.get(k, "")).strip()), "")
+    sjabloon = _WERKWOORD.get(str(call.get("name", "")), "raadpleegt de kennisgraaf")
+    return sjabloon.format(bepaling=bepaling, regeling=regeling or "de regeling", zoekterm=zoekterm or "in de wetgeving").strip()
 
 
 

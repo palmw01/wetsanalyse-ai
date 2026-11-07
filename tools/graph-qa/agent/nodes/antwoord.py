@@ -261,7 +261,7 @@ def tools_node(b: Bouw, state: State) -> dict[str, Any]:
     # model eist er een; alleen de eerste voert hem uit.
     gedaan = _al_gedaan(state)
     uit_te_voeren = list({_sleutel(t): t for t in reversed(pending) if _sleutel(t) not in gedaan}.values())[::-1]
-    _stap(writer, "Graaf bevragen", ", ".join(_toolregel(t) for t in uit_te_voeren) or "al opgevraagd in deze beurt")
+    _stap(writer, "Lex", "; ".join(_toolregel(t) for t in uit_te_voeren) or "gebruikt wat er al is opgehaald")
     trace = list(state.get("source_trace", []))
     results = []
     for tu in pending:
