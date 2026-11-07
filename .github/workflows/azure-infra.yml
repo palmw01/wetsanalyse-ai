@@ -7,8 +7,8 @@
 #   wat-if    Azure toont welke resources zouden ontstaan/wijzigen. Veilig, en de enige manier om
 #             de template tegen je echte subscription te valideren (quota, regio, rechten).
 #   deploy    rolt de stack daadwerkelijk uit (10-15 min; PostgreSQL is de trage stap).
-#   afbreken  verwijdert de hele resource group, dus beide straten. Vereist dat je de naam ter
-#             bevestiging intypt.
+#   afbreken  verwijdert de hele resource group, dus beide straten. Alleen vanuit de straat
+#             `productie` (daar zit de reviewer-poort), en je typt de naam ter bevestiging in.
 #   opruimen  verwijdert wat er in de groep staat maar NIET bij deze straat hoort (bicep ruimt zelf
 #             niets op). Toont eerst wat het zou doen; verwijdert pas als je de groepsnaam intypt.
 #   telemetrie vraagt de Log Analytics-workspace of er de laatste 24 uur traces/requests binnenkwamen.
@@ -130,6 +130,12 @@ jobs:
           done
 
           if [ "${{ inputs.actie }}" = "afbreken" ]; then
+            # Afbreken wist de hele resource group, dus beide straten. Alleen vanuit de environment met de
+            # reviewer-poort: anders kon een run in acceptatie ook productie weghalen (ROB-02).
+            if [ "${{ inputs.omgeving }}" != "productie" ]; then
+              echo "::error::Afbreken verwijdert ook productie. Start het vanuit de straat 'productie', waar een reviewer meekijkt."
+              exit 1
+            fi
             if [ "$INVOER_BEVESTIGING" != "$RESOURCE_GROUP" ]; then
               echo "::error::Afbreken verwijdert de hele resource group '$RESOURCE_GROUP'. Typ die naam in het bevestigingsveld."
               exit 1
