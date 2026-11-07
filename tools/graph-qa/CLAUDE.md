@@ -36,6 +36,7 @@ ankerlogica die de api en de agent delen staat in `packages/bronmodel` (`wetsana
 | `nodes/annotatie.py` | annoteer (voorbereiding + `jas_pipeline.keten.analyseer`) en emit |
 | `nodes/annotatie_lezen.py` | de leesroute: eerst zoeken in de opgeslagen annotaties, dan formuleren |
 | `nodes/overzicht.py` | de overzichtsroute: overzicht en tekst uit de graaf, zonder model |
+| `nodes/bepaling.py` | de bepalingsroute (ADR-010, laag 2): de tekst van een bepaling uit `bepaling_workflow`, zonder toollus |
 | `nodes/werkgebied.py` | de werkgebied-worker: één stap van het samenstellen van een werkgebied (activiteit 1) |
 | `nodes/agent_taak.py` | één taak van een agent op een werkgebied (deelvragen, begrippen, het werkgebied annoteren; F3c) |
 | `nodes/context.py` | `Bouw` – wat een node buiten zijn state om nodig heeft |
@@ -50,6 +51,7 @@ supervisor ─┬─ antwoord-worker:  agent ⇄ tools → verify → (correct) 
             ├─ leesroute:        annotaties_zoeken → agent ⇄ tools → verify → finalize
             ├─ begrippen lezen:  begrippen_zoeken → agent ⇄ tools → verify → finalize
             ├─ overzichtsroute:  overzicht_bouwen → verify → finalize   (geen model; bij een bouwfout → agent)
+            ├─ bepalingsroute:   bepaling_lezen → verify → finalize     (tekst uit code, één aanroep voor de toelichting; anders → agent)
             ├─ werkgebied-worker: werkgebied_intake → einde              (één stap van het samenstellen)
             ├─ agents:           agent_taak → einde                        (deelvragen, begrippen; F3c)
             └─ afwijzen (geen wetgevingsvraag)

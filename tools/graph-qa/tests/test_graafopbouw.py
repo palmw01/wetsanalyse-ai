@@ -40,7 +40,7 @@ def test_planning_is_de_standaardvorm():
     nodes, edges = structuur(enable_planning=True)
     assert nodes == {
         "supervisor", "agent", "tools", "sjabloon", "verify", "correct", "finalize", "annotaties_zoeken",
-        "begrippen_zoeken", "overzicht_bouwen", "annoteer", "emit", "advance", "afwijzen",
+        "begrippen_zoeken", "overzicht_bouwen", "bepaling_lezen", "annoteer", "emit", "advance", "afwijzen",
         "werkgebied_intake", "bronselectie", "agent_taak",
     }
     assert edges == {
@@ -62,6 +62,10 @@ def test_planning_is_de_standaardvorm():
         ("supervisor", "overzicht_bouwen", "", True),
         ("overzicht_bouwen", "verify", "", True),
         ("overzicht_bouwen", "agent", "", True),
+        # De tekst van een bepaling (ADR-010, D1): ophalen en vullen in code, dan de controle; lukt het niet, de agent.
+        ("supervisor", "bepaling_lezen", "", True),
+        ("bepaling_lezen", "verify", "", True),
+        ("bepaling_lezen", "agent", "", True),
         ("afwijzen", EIND, "", False),
         # Een werkgebied samenstellen (activiteit 1): één stap van de intake per beurt, zonder
         # verify/finalize – er wordt niets over wetgeving beweerd (nodes/werkgebied.py).
@@ -88,6 +92,7 @@ def test_planning_is_de_standaardvorm():
         ("advance", "annotaties_zoeken", "", True),
         ("advance", "begrippen_zoeken", "", True),
         ("advance", "overzicht_bouwen", "", True),
+        ("advance", "bepaling_lezen", "", True),
         ("advance", "afwijzen", "", True),
         ("advance", "werkgebied_intake", "", True),
         ("advance", "bronselectie", "", True),
@@ -115,5 +120,5 @@ def test_stopbewaking_zit_om_elke_node():
     assert nodes == {
         "supervisor", "agent", "tools", "sjabloon", "correct",
         "annoteer", "emit", "advance", "afwijzen", "verify", "finalize", "annotaties_zoeken",
-        "begrippen_zoeken", "overzicht_bouwen", "werkgebied_intake", "bronselectie", "agent_taak",
+        "begrippen_zoeken", "overzicht_bouwen", "bepaling_lezen", "werkgebied_intake", "bronselectie", "agent_taak",
     }

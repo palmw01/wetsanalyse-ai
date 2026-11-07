@@ -12,7 +12,10 @@ from typing import Any
 
 from langgraph.config import get_stream_writer
 
+from dataclasses import asdict
+
 from ..aanwijzing import lees_aanwijzing, melding_meerdere
+from ..bepaling_workflow import lees as lees_bepalingsvraag
 from ..doel import _heeft_opgegeven_doel
 from ..bronselectie import is_bronselectievraag
 from ..models import ACTIE_TAAK, BRONSELECTIE_ACTIES, INTAKE_ACTIES
@@ -202,6 +205,13 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # Zonder gesprek valt er niets te herschrijven: geen LLM-call, de vorm van de vraag beslist.
         return _overzicht(writer, "")
 
+    if modus == "auto" and (bepaling := lees_bepalingsvraag(state.get("question", ""), b.graph)):
+        # De tekst van een bepaling (ADR-010, D1): de vraag noemt zelf de regeling en het artikel, dus ook in een gesprek
+        # valt er niets te herschrijven. Geen LLM-call; de workflow haalt op en vult het sjabloon.
+        _stap(writer, "Lex", "haalt de tekst van de bepaling op")
+        return {"specialist": "algemeen", "worker_plan": ["algemeen"], "worker_idx": 0, "plan": "de tekst van een bepaling",
+                "afwijzen": False, "annotaties_lezen": False, "bepalingsvraag": asdict(bepaling)}
+
     if modus == "advies":
         # Een adviesvraag bij een bestaande annotatie: geen LLM-keuze, hard naar de
         # duiding-specialist. Dat is een topologische garantie in plaats van een belofte in een
@@ -296,6 +306,8 @@ def _entry_node(b: Bouw, state: State) -> str:
         return "bronselectie"
     if state.get("specialist") == "agent_taak":
         return "agent_taak"
+    if state.get("bepalingsvraag"):
+        return "bepaling_lezen"
     if state.get("overzicht_route"):
         # Eerst het overzicht bouwen, dan duiden.
         return "overzicht_bouwen"

@@ -44,6 +44,9 @@ class State(TypedDict, total=False):
     # `overzicht` is het deterministisch gebouwde overzicht. Beide per beurt gereset.
     overzicht_route: bool
     overzicht: dict[str, Any]
+    # De tekst van een bepaling als workflow (ADR-010, D1): wat `bepaling_workflow.lees` las ({bwb_id, artikel, lid}).
+    # Per beurt gereset; leeg betekent de gewone weg.
+    bepalingsvraag: dict[str, Any]
     # Het antwoord als sjabloon (`agent/sjablonen`, ADR-008): leeg bij vrije tekst.
     antwoord: dict[str, Any]
     bron_snapshot: dict[str, Any]
