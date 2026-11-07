@@ -304,6 +304,17 @@ class RunStart(BaseModel):
     weggevallen: int = 0
 
 
+class RunStand(BaseModel):
+    """Eén run in de lijst van de sidebar (`GET /v1/runs?actief=true`): loopt hij, of is hij net klaar.
+
+    Bewust zonder vraag en events. `afgerond_op` (ISO, UTC) is leeg zolang hij loopt."""
+
+    run_id: str
+    conversation_id: str = ""
+    status: str = "loopt"          # loopt | klaar | gestopt | mislukt
+    afgerond_op: str | None = None
+
+
 class Source(BaseModel):
     label: str
     uri: str

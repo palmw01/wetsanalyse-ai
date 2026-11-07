@@ -357,6 +357,9 @@ kan opnieuw aanhaken. Regels die je niet mag breken:
   elkaar in dezelfde checkpointer-thread. De controle geldt over gebruikers heen.
 - **Een run heeft een eigenaar.** `X-User-Id` (door de BFF uit de sessie gezet) bepaalt wie hem mag
   volgen en stoppen; andermans run geeft 404. Eén identiteitsbron: de header, niet de body.
+  `GET /v1/runs?actief=true` (`RunStore.voor_gebruiker`, E6) geeft alleen runs met precies die gebruiker, lopend of
+  binnen `RECENT_S` geëindigd, als `Run.stand()` – zonder vraag of events; een lege header krijgt niets. Een lopende run
+  zonder hartslag wordt daar ook verweesd verklaard, anders toont de sidebar "bezig" bij een beurt die nergens draait.
 - **Cappen is klassebewust.** Alleen `VLUCHTIGE_TYPES` (`token`/`reason`/`status`) mogen sneuvelen;
   er gaat dan een `gat`-event voorop.
 - **Stoppen is een vlag, geen `task.cancel()`.** Elke node is gewikkeld in `stopbaar()`
