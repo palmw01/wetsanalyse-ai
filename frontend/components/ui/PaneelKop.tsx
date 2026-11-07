@@ -21,7 +21,8 @@ export function SluitKnop({ onSluit, className = "" }: { onSluit: () => void; cl
  *  als de ruimte krap wordt. Twee slots onder de kop: `onder` (één regel: de reeks of de versie) en `balk` (tabs en
  *  *Vergroten*), zodat geen paneel een eigen kop of sluitknop nodig heeft. */
 export function PaneelKop({ soort, titel, pagina, lex, acties, onSluit, onder, balk }: {
-  soort: string;
+  /** De soort, klein boven de titel; weg als de titel de soortnaam al is (`artefactKop` in `lib/artefact.ts`). */
+  soort?: string;
   titel: string;
   /** Waar *Open volledige pagina* heen gaat; zonder geen knop (de rondleiding). */
   pagina?: string;
@@ -39,7 +40,7 @@ export function PaneelKop({ soort, titel, pagina, lex, acties, onSluit, onder, b
     <div className="flex flex-col gap-2 border-b border-line px-5 py-3.5 pt-[max(0.875rem,env(safe-area-inset-top))]">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xs text-muted">{soort}</p>
+          {soort && <p className="truncate text-xs text-muted">{soort}</p>}
           <h2 className="truncate font-display text-base font-semibold text-lint">{titel}</h2>
         </div>
         {onSluit && <SluitKnop onSluit={onSluit} />}

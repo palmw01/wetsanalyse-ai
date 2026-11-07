@@ -252,7 +252,7 @@ try {
 
   // --- Na aanmaken: kaart, eigen paneel, de werkplek in het werkgebied, geen open vraag ---
   const paneel = page.locator("[data-artefact-soort=werkgebied][data-artefact]");
-  await paneel.getByText("Samengesteld met Lex").waitFor();
+  await paneel.locator("[data-paneel-kop]").getByText("Werkgebied", { exact: true }).waitFor();
   // F2: het hele dossier en de deelvragen met hun voortgang (spoor K), ook naast het gesprek.
   await paneel.locator("[data-dossier-veld=context]").getByText("De aangifte 2026 moet blijven werken.").waitFor();
   await paneel.locator("[data-dossier-veld=doel]").getByText("Nog geen doel.").waitFor();

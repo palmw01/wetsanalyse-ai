@@ -27,7 +27,7 @@ import {
   annotatieTitel, doelVanKandidaat, doelVoorOpnieuw, kandidaatLabel, kandidaatPrompt,
 } from "@/lib/annotatie";
 import type { NodeDoel } from "@/lib/annotatieNode";
-import { artefactLabel, isTeOpenen, type Artefact } from "@/lib/artefact";
+import { ARTEFACT_SOORT_LABEL, artefactKop, isTeOpenen, type Artefact } from "@/lib/artefact";
 import { doelenVanKandidaten, reeksPrompt } from "@/lib/reeks";
 import { antwoordDoelen, antwoordKnopTekst, normaliseerBronnen } from "@/lib/bronnen";
 import { overzichtAlsMarkdown, overzichtDefinities, overzichtDoelen, overzichtFocus, overzichtKnopTekst, telling } from "@/lib/overzicht";
@@ -349,14 +349,13 @@ function OverzichtKaartje({ overzicht, onOpen }: { overzicht: Overzicht; onOpen:
 /** De chip van een artefact dat geen annotatie is. Afleidingsregels zijn gereserveerd: de kaart staat
  *  er, maar opent nog niets – en zegt dat, in plaats van een knop die niets doet. */
 function ArtefactChip({ artefact, onOpen }: { artefact: Artefact; onOpen: () => void }) {
-  const soort = artefactLabel(artefact);
-  const titel = artefact.titel || soort;
+  const { soort, titel } = artefactKop(artefact);
   if (!isTeOpenen(artefact)) {
     return (
       <div className="flex w-full items-center gap-3 rounded-kaart border border-dashed border-line bg-surface px-4 py-3" data-artefact-soort={artefact.soort}>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-medium text-ink">{titel}</span>
-          <span className="block text-xs text-muted">{soort} · nog niet te openen in de werkplek</span>
+          <span className="block text-xs text-muted">{soort ? `${soort} · nog niet te openen` : "Nog niet te openen"} in de werkplek</span>
         </span>
       </div>
     );
@@ -376,7 +375,7 @@ function ArtefactChip({ artefact, onOpen }: { artefact: Artefact; onOpen: () => 
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium text-ink">{titel}</span>
-        <span className="block text-xs text-muted">{soort} · {artefact.soort === "werkgebied" ? "bekijken" : "beoordelen"}</span>
+        <span className="block text-xs text-muted">{soort ? `${soort} · ` : ""}{artefact.soort === "werkgebied" ? "bekijken" : "beoordelen"}</span>
       </span>
       <span className="shrink-0 text-muted" aria-hidden>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -449,7 +448,7 @@ function AnnotatieChip({
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium text-ink">{label}</span>
         <span className="block text-xs text-muted">
-          JAS-annotatie{typeof aantal === "number" ? ` · ${aantal} elementen` : ""} · review openen
+          {ARTEFACT_SOORT_LABEL.annotatie}{typeof aantal === "number" ? ` · ${aantal} elementen` : ""} · review openen
         </span>
       </span>
       <span className="shrink-0 text-muted" aria-hidden>

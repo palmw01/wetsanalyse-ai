@@ -264,18 +264,20 @@ await page.route("**/api/**", async (route) => {
 });
 
 // In de kolomvariant is het paneel een `section` met een naam (niet modaal), dus de rol `region`.
-const begrippenPaneel = () => page.getByRole("region", { name: /^Begripsvoorstellen:/ });
+// Een verzameling heet naar haar soort, nooit naar het werkgebied (7 nov 2026): de bewaarde titel "Invordering" telt niet.
+const begrippenPaneel = () => page.getByRole("region", { name: "Begripsvoorstellen", exact: true });
 const begrippenChip = () => page.locator('button[data-artefact-soort="begrippen"]');
 
 try {
   // --- Na herladen: drie soorten, elk met zijn eigen kaart ---
   await page.goto(`${base}/workbench?gesprek=g1`);
   // Wachten op de tekst, niet alleen op de knop: op een koude server staat de chip er even leeg.
-  await begrippenChip().filter({ hasText: /Invordering[\s\S]*Begripsvoorstellen/ }).waitFor();
+  await begrippenChip().filter({ hasText: /Begripsvoorstellen[\s\S]*beoordelen/ }).waitFor();
+  assert.doesNotMatch(await begrippenChip().first().innerText(), /Invordering/, "de chip noemt het werkgebied niet");
   const regels = page.locator('[data-artefact-soort="regels"]');
   assert.equal(await regels.count(), 1, "de kaart van de afleidingsregels hoort er te staan");
   assert.equal(await regels.evaluate((el) => el.tagName), "DIV", "afleidingsregels zijn nog niet te openen: geen knop");
-  assert.match(await regels.innerText(), /nog niet te openen/);
+  assert.match(await regels.innerText(), /Afleidingsregels[\s\S]*nog niet te openen/i);
 
   // --- Begrippen openen: de voorstellen van Lex in het paneel ---
   await begrippenChip().click();
@@ -305,8 +307,9 @@ try {
 
   // --- Dicht: de balk brengt het laatste artefact terug (de begrippen staan het laatst) ---
   await page.getByRole("button", { name: "Sluiten" }).first().click();
-  const balk = page.locator("button", { hasText: "· begripsvoorstellen" });
+  const balk = page.locator("button", { hasText: /^Begripsvoorstellen\s*Openen$/ });
   await balk.waitFor();
+  assert.doesNotMatch(await balk.innerText(), /Invordering|· begripsvoorstellen/, "geen werkgebiednaam en geen dubbele soort in de balk");
   // Intussen deed Lex een nieuwe ronde: het paneel toont die, en zegt dat de chip ouder is.
   run.id = "r2";
   await balk.click();
@@ -361,8 +364,10 @@ try {
   const invoer = page.getByRole("textbox").last();
   await invoer.fill("Stel begrippen voor");
   await invoer.press("Enter");
-  await page.getByRole("region", { name: "Begripsvoorstellen: Live voorstellen" }).waitFor();
-  await page.locator('button[data-artefact-soort="begrippen"]', { hasText: "Live voorstellen" }).waitFor();
+  await begrippenPaneel().waitFor();
+  await page.locator('button[data-artefact-soort="begrippen"]', { hasText: "Begripsvoorstellen" }).last().waitFor();
+  assert.equal(await page.locator('[data-artefact-soort="begrippen"]', { hasText: "Live voorstellen" }).count(), 0,
+    "de bewaarde titel van een verzameling komt niet in beeld");
 
   // --- Vanuit een werkgebied: de context reist mee met elke beurt ---
   runs.length = 0;
@@ -382,7 +387,7 @@ try {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.waitForFunction(() => document.querySelector("[data-tour=invoer] textarea").offsetHeight <= 44);
   await suggesties.getByRole("button", { name: "Stel begrippen voor" }).click();
-  await page.getByRole("region", { name: "Begripsvoorstellen: Live voorstellen" }).waitFor();
+  await begrippenPaneel().waitFor();
   assert.equal(runs[0]?.werkgebied_id, "wg1", "de beurt hoort het werkgebied te dragen");
   assert.equal(runs[0]?.question, "Stel begrippen voor");
   assert.equal(runs[0]?.actie, "begrippen_voorstellen", "de suggestie is een vaste handeling, geen tekstpatroon (F3c)");

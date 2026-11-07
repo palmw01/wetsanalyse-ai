@@ -5,7 +5,7 @@ import { useState } from "react";
 
 import { Popover } from "@/components/ui/Popover";
 import { downloadTekst, foutTekst, type ExportFormaat } from "@/lib/api";
-import { bestandsnaam } from "@/lib/artefactMarkdown";
+import { bestandsnaam, kopVan } from "@/lib/artefactMarkdown";
 
 interface Props {
   onFout: (melding: string) => void;
@@ -17,7 +17,7 @@ interface Props {
   /** Het artefact als Markdown (`lib/artefactMarkdown.ts`): bovenaan *Kopieer als Markdown* en *Download als
    *  Markdown* – één knop voor kopiëren en exporteren bij elke soort (4 nov 2026). Mag ophalen (async). */
   markdown?: () => Promise<string> | string;
-  /** De titel van het artefact: de naam van het Markdown-bestand. */
+  /** De titel van het artefact: de naam van het Markdown-bestand als de tekst geen eigen kop (`# …`) heeft. */
   titel?: string;
 }
 
@@ -48,7 +48,7 @@ export function ExportKnop({ onFout, onDownload, formaten = FORMATEN, markdown, 
         setGekopieerd(true);
         window.setTimeout(() => setGekopieerd(false), 1500);
       } else {
-        downloadTekst(tekst, bestandsnaam(titel), "text/markdown");
+        downloadTekst(tekst, bestandsnaam(kopVan(tekst) || titel), "text/markdown");
       }
       setSleutel((k) => k + 1);
     } catch (e) {
