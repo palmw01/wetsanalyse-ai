@@ -39,6 +39,13 @@ from .context import Bouw
 logger = logging.getLogger("graph_qa.orchestrator")
 
 
+def _bepaling(writer, bepaling) -> dict[str, Any]:
+    """De bepalingsroute (ADR-010, laag 2): de workflow haalt op en vult het sjabloon."""
+    _stap(writer, "Lex", "haalt de tekst van de bepaling op")
+    return {"specialist": "algemeen", "worker_plan": ["algemeen"], "worker_idx": 0, "plan": "de tekst van een bepaling",
+            "afwijzen": False, "annotaties_lezen": False, "bepalingsvraag": asdict(bepaling)}
+
+
 def _doorvraag(state: State) -> str:
     """De doorvraag van R3 op het volledige vorige antwoord: de keuzevraag staat aan het eind, dus niet ingekort."""
     vorige = eerdere_beurten(state.get("messages") or [], state.get("question", ""), aantal=1, per_bericht=100_000)
@@ -225,9 +232,7 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
     if modus == "auto" and (bepaling := lees_bepalingsvraag(state.get("question", ""), b.graph)):
         # De tekst van een bepaling (ADR-010, D1): de vraag noemt zelf de regeling en het artikel, dus ook in een gesprek
         # valt er niets te herschrijven. Geen LLM-call; de workflow haalt op en vult het sjabloon.
-        _stap(writer, "Lex", "haalt de tekst van de bepaling op")
-        return {"specialist": "algemeen", "worker_plan": ["algemeen"], "worker_idx": 0, "plan": "de tekst van een bepaling",
-                "afwijzen": False, "annotaties_lezen": False, "bepalingsvraag": asdict(bepaling)}
+        return _bepaling(writer, bepaling)
 
     if modus == "advies":
         # Een adviesvraag bij een bestaande annotatie: geen LLM-keuze, hard naar de
@@ -283,6 +288,15 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         return {**upd, **_lees(writer, vraag)}
     if is_overzichtsvraag(zelfstandig):
         return {**upd, **_overzicht(writer, vraag)}
+    if modus == "auto" and vraag and (bepaling := lees_bepalingsvraag(zelfstandig, b.graph)):
+        # "Wat staat er in artikel 9?" na een vraag over de Invorderingswet: pas de herschreven vraag noemt de regeling.
+        # Op acceptatie ging zo'n vervolgvraag de open lus in (4 rondes, 18 s) in plaats van de workflow (1 ronde).
+        # De regeling raadt de code niet zelf uit de vorige beurt: het model leest het gesprek, de code beslist daarna.
+        return {**upd, **_bepaling(writer, bepaling)}
+    if modus == "auto" and vraag and state.get("werkgebied_id") and is_dekkingsvraag(zelfstandig):
+        # "Welke bronnen horen daarbij?" is pas herschreven een vraag naar de stand ("… bij de deelvraag '…'"). Op
+        # acceptatie ging hij de open lus in: 188 s en 7 rondes voor wat de api zonder model weet.
+        return {**upd, **_agent(writer, state, "deelvragen", "dekking", zelfstandig)}
 
     plan += _herschreven(vraag)
     if afwijzen:

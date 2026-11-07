@@ -70,3 +70,23 @@ def test_vervolgvraag_na_annotatie_kent_bepaling_en_element_ids(tmp_path):
         assert element["id"] in systeem, "het element is bij id aan te spreken"
     historie = str(llm2.calls[1].get("messages"))
     assert element["id"] in historie and "bronnode urn:bwb:BWBR0004770:artikel:9:lid:1" in historie
+
+
+def test_een_antwoord_over_een_andere_bepaling_laat_de_annotatiefocus_vallen():
+    """Annotatie van art. 9 lid 1, dan een antwoord over art. 26: "en lid 2?" gaat dan niet meer over art. 9."""
+    focus = na_annotatie(SNAPSHOT, "artikel 9 lid 1", "IW 1990", [{"id": "e1", "klasse": "Rechtssubject", "tekst": "x"}])
+    na = na_antwoord(focus, "duiding", ["urn:bwb:BWBR0004770:artikel:26:lid:1"])
+    assert "bron_iri" not in na and "elementen" not in na
+    assert na["bronnen"] == ["urn:bwb:BWBR0004770:artikel:26:lid:1"]
+    assert "Onderwerp:" not in als_context(na, [])
+
+
+def test_een_antwoord_zonder_bronnen_laat_de_focus_staan():
+    focus = na_annotatie(SNAPSHOT, "artikel 9 lid 1", "IW 1990", [])
+    assert na_antwoord(focus, "duiding", [])["bron_iri"] == focus["bron_iri"]
+
+
+def test_de_recentste_bronnen_blijven_in_een_lang_gesprek():
+    gezien = [f"urn:bwb:BWBR0004770:artikel:{n}" for n in range(1, 20)]
+    tekst = als_context({"bronnen": ["urn:bwb:BWBR0004770:artikel:99"]}, gezien)
+    assert "artikel:99" in tekst and "artikel:1," not in tekst

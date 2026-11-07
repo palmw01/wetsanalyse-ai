@@ -159,3 +159,8 @@ def test_de_aanroepen_zijn_begrensd_de_tellers_niet():
 ])
 def test_route_van(state, route):
     assert route_van(state) == route
+
+
+def test_doorvragen_en_afwijzen_hebben_een_route():
+    assert route_van({"afwijzen": True, "afwijs_stap": "vraagt eerst welk artikel je bedoelt"}) == "verduidelijken"
+    assert route_van({"afwijzen": True}) == "afgewezen"

@@ -92,7 +92,7 @@ def test_parameters_komen_uit_wat_er_ligt():
     assert register.parameters("deelvragen", "verbeteren", onderwerp=o, actie="deelvraag_splitsen") == {
         "werkgebied_id": "wg1", "deelvraag_id": "d2", "soort": "splits"}
     assert register.parameters("deelvragen", "dekking", vraag="is deelvraag 2 gedekt?", werkgebied_id="wg1") == {
-        "werkgebied_id": "wg1", "deelvraag_nr": 2}
+        "werkgebied_id": "wg1", "deelvraag_nr": 2, "vraag": "is deelvraag 2 gedekt?"}
     assert register.parameters("begrippen", "voorbeelden", vraag="geef voorbeelden van termijn",
                                onderwerp={"soort": "begrip", "werkgebied_id": "wg1", "id": "b1"}) == {
         "werkgebied_id": "wg1", "begrip_id": "b1", "termen": ["termijn"]}
@@ -325,3 +325,27 @@ def test_de_verbetering_past_in_het_api_contract():
                                         WG["deelvragen"][1], [])
     DeelvraagVoorstellen(vragen=vragen, model="m", vervangt="d2")
 
+
+
+# --- R2b: wat de dekking beantwoordt ----------------------------------------------------------
+
+def test_minst_uitgewerkt_noemt_de_deelvraag_met_de_minste_bronnen():
+    from agent.agents.deelvragen import dekkingstekst
+    tekst = dekkingstekst("Invorderbaarheid", DEKKING, WG, [], vraag="Welke deelvraag is het minst uitgewerkt?")
+    assert "Het minst uitgewerkt, gemeten naar het aantal bronnen: deelvraag 2 (0 bronnen)." in tekst
+    assert "meest uitgewerkt" in dekkingstekst("Invorderbaarheid", DEKKING, WG, [], vraag="Welke is het meest uitgewerkt?")
+    assert "uitgewerkt, gemeten" not in dekkingstekst("Invorderbaarheid", DEKKING, WG, [], vraag="Hoe staat de dekking ervoor?")
+
+
+def test_bij_een_deelvraag_staan_de_bronnen_bij_naam():
+    from agent.agents.deelvragen import dekkingstekst
+    tekst = dekkingstekst("Invorderbaarheid", DEKKING, WG, [], deelvraag_id="d1")
+    assert tekst.endswith("Bronnen bij deze deelvraag:\n- art. 9 Iw")
+
+
+def test_een_herschreven_vraag_wijst_de_deelvraag_aan_met_haar_tekst():
+    """"Welke bronnen horen daarbij?" herschreef de supervisor tot "… bij de deelvraag 'Wanneer vervalt …?'"."""
+    from agent.agents.deelvragen import deelvraag_in
+    vragen = DEKKING["deelvragen"]
+    assert deelvraag_in("Welke bronnen horen bij de deelvraag 'Wanneer vervalt de betalingstermijn?'", vragen) == "d1"
+    assert deelvraag_in("Welke bronnen horen bij deze deelvraag?", vragen) == ""

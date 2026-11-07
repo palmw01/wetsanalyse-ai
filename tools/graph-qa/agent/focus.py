@@ -19,6 +19,7 @@ from __future__ import annotations
 from typing import Any
 
 from .agent_common import truncate
+from .namespace import SEP
 from .tools.annotatie_tools import vindplaats_label
 
 MAX_ELEMENTEN = 30
@@ -49,10 +50,23 @@ def na_annotatie(snapshot: dict[str, Any], plek: str, citeertitel: str,
     }
 
 
+_ANNOTATIEFOCUS = ("bron_iri", "bwb_id", "label", "elementen", "aantal", "hergebruikt", "element")
+
+
+def _zelfde_bepaling(a: str, b: str) -> bool:
+    """Dezelfde bepaling, of de een binnen de ander (artikel 9 en lid 1 daarvan)."""
+    return a == b or a.startswith(b + SEP) or b.startswith(a + SEP)
+
+
 def na_antwoord(oud: dict[str, Any] | None, specialist: str, bronnen: list[str]) -> dict[str, Any]:
-    """Een antwoord vóegt toe: de bepaling en markeringen van een eerdere annotatie blijven het
-    onderwerp, want "en waarom die klasse?" na een uitleg gaat nog steeds daarover."""
+    """Een antwoord over dezelfde bepaling vóegt toe: de bepaling en markeringen van een eerdere annotatie blijven het
+    onderwerp, want "en waarom die klasse?" na een uitleg gaat nog steeds daarover. Gaat het antwoord over een andere
+    bepaling, dan vervalt die annotatiefocus: anders las de supervisor "en lid 2?" na een antwoord over artikel 26 nog
+    als een vraag over het artikel dat eerder geannoteerd was."""
     focus = dict(oud or {})
+    if focus.get("bron_iri") and bronnen and not any(_zelfde_bepaling(focus["bron_iri"], b) for b in bronnen):
+        for veld in _ANNOTATIEFOCUS:
+            focus.pop(veld, None)
     focus["laatste_route"] = specialist or "antwoord"
     if bronnen:
         focus["bronnen"] = bronnen[:MAX_BRONNEN]
@@ -115,8 +129,10 @@ def als_context(focus: dict[str, Any] | None, gezien: list[str] | None,
         regels += [f"- {e.get('klasse', '')} · \"{e.get('tekst', '')}\"" for e in open_ if e.get("tekst")]
     if f.get("laatste_route"):
         regels.append(f"Vorige beurt: {f['laatste_route']}")
-    seen = list(dict.fromkeys(f.get("bronnen") or [])) + [u for u in dict.fromkeys(gezien or [])
-                                                           if u not in (f.get("bronnen") or [])]
+    # Oudste eerst en de bronnen van het laatste antwoord achteraan, zodat `[-12:]` de recentste houdt; stonden die
+    # vooraan, dan vielen ze in een lang gesprek als eerste weg.
+    seen = [u for u in dict.fromkeys(gezien or []) if u not in (f.get("bronnen") or [])] + \
+        list(dict.fromkeys(f.get("bronnen") or []))
     if seen:
         regels.append("Eerder geraadpleegde bepalingen: " + ", ".join(seen[-12:]))
     if not regels:
