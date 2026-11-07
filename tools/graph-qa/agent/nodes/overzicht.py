@@ -1,16 +1,19 @@
-"""De overzichtsroute: eerst het overzicht bouwen, dan pas praten.
+"""De overzichtsroute: overzicht en tekst uit de graaf, zonder model.
 
 Een overzichtsvraag ("welke artikelen gaan over invordering?") liet het model tool, zoekterm en opbouw
 kiezen en de uitkomst overtypen; dezelfde vraag gaf zo telkens een ander antwoord, een andere
 bronnenlijst en een andere 3D-graaf. Deze node bouwt het overzicht deterministisch (`agent/overzicht.py`)
-vóór de eerste LLM-call – zoals `annotaties_zoeken` dat voor de leesroute doet – en geeft het op drie
-manieren door:
+en de tekst daarbij (`overzicht.samenvatting`). Er komt geen model aan te pas, tenzij de bouw faalt: dan
+zegt de agent dat. Het overzicht gaat op drie manieren verder:
 
 - als **`overzicht`-event**: de werkplek toont het volledig, met alle nummers, en bewaart het bij het
-  bericht (dezelfde vraag → hetzelfde blok, ook na herladen);
-- als echt **`tool_use`/`tool_result`-paar** in de historie (`overzicht.voor_model`): het model duidt,
-  met de tellingen en de opbouw, zonder de nummerlijsten om over te typen;
+  bericht (dezelfde vraag → hetzelfde paneel, ook na herladen);
+- als echt **`tool_use`/`tool_result`-paar** in de historie (`overzicht.voor_model`): een vervolgvraag
+  kent de opbouw en de tellingen;
 - in de **`source_trace`** (`overzicht.bronrijen`): bronnen en grounding komen uit het overzicht.
+
+Dit is bewust geen sjabloon (ADR-008): `Bericht.overzicht` draagt alles al, en de controle, de bronnen, de
+graaf en de kopieerknop lezen dat overzicht.
 """
 from __future__ import annotations
 
@@ -52,7 +55,7 @@ def bouw_overzicht_node(b, state: State) -> dict[str, Any]:
         raw = ""
     if not gebouwd:
         # Geen half overzicht: het model krijgt de fout als resultaat en zegt dat; de werkplek toont geen
-        # blok, en de bronnen komen uit wat de agent daarna eventueel zelf ophaalt.
+        # kaartje, en de bronnen komen uit wat de agent daarna eventueel zelf ophaalt.
         _stap(writer, "Overzicht", "niet opgebouwd")
         raw = fout("overzicht_niet_opgebouwd", "Het overzicht kon niet uit de graaf worden opgebouwd; "
                    "zeg dat tegen de gebruiker en zoek eventueel zelf met de tools.")

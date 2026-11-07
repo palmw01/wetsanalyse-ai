@@ -23,7 +23,7 @@ await context.addInitScript(() => localStorage.setItem("wa_rondleiding", JSON.st
 
 const nu = "2026-11-05T10:00:00+00:00";
 const gebruiker = (userid, active) => ({
-  userid, email: `${userid}@example.test`, role: "analist", totp_enabled: false, active, token_budget: null, created: nu, updated: nu,
+  userid, email: `${userid}@example.test`, role: "analist", totp_enabled: false, active, created: nu, updated: nu,
 });
 const tokens = [];
 const bodies = [];

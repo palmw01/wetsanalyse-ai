@@ -413,8 +413,8 @@ bronnenlijst bij: de blokken noemen elke vindplaats (`Vindplaats`: een klik open
 
 ### Het overzicht van een onderwerp
 
-Op "welke artikelen gaan over X?" bouwt graph-qa een overzicht uit de graaf (`agent/overzicht.py`) en
-schrijft Lex er alleen een korte duiding bij. Het overzicht komt als `overzicht`-event
+Op "welke artikelen gaan over X?" bouwt graph-qa een overzicht uit de graaf (`agent/overzicht.py`) met een
+samenvatting erbij, allebei zonder model. Dit is geen sjabloon (ADR-008). Het overzicht komt als `overzicht`-event
 (`parseOverzicht` in `lib/agentEvents.ts`, streng op bron-IRI's: één slechte rij en er is geen blok)
 en reist mee in het bericht (`Bericht.overzicht`), ook als de werkplek het bericht zelf vastlegt.
 Het staat **naast het gesprek** (besluit gebruiker 6 nov 2026, in de lijn van de bronselectie): in het gesprek de
@@ -1741,8 +1741,12 @@ knop. Zie `docs/observability.md`.
     `lib/tokenbudget.ts` en `METER_WAARSCHUWING` in `ui/Meter` bestaan alleen voor de meterkleur en
     moeten dezelfde waarde houden als de API.
   - De gebruiker ziet het volledige beeld in de tab **Verbruik** (`VerbruikPanel`); de beheerder stelt
-    het beleid in bovenaan de tab **Gebruikers** (`BudgetBeleidBlok`), met per gebruiker een afwijkend
-    budget – een budget hoort bij wie er werkt, niet bij het model.
+    het beleid in bovenaan de tab **Gebruikers** (`BudgetBeleidBlok`): het budget **per rol**, de
+    resetperiode en aan/uit. Een budget per gebruiker bestaat niet. Per gebruiker staat wat zijn rol geeft
+    (`budgetHerkomst`), en wie verbruik heeft kan een beheerder resetten in het menu ⋯ (`MenuVerwijder`, twee
+    klikken): het journaal blijft staan, de teller begint opnieuw (`resetRegel` zegt wanneer en door wie).
+  - **Wijzigen draagt een naam.** `PUT /api/admin/budget`, `PUT /api/admin/budget/rollen/[rol]` en `POST
+    /api/admin/users/[userid]/verbruik-reset` zetten `X-User-Id` uit de sessie, naast `proxy(..., { admin: true })`.
 - **CSP met een nonce per request, geen inline scripts.** `proxy.ts` zet de Content-Security-Policy
   (`lib/csp.ts`): `script-src 'self' 'nonce-…' 'strict-dynamic'`, zonder `'unsafe-inline'`. Next zet
   het nonce zelf op zijn scripts; lui geladen chunks (`next/dynamic`, sigma) mogen via
