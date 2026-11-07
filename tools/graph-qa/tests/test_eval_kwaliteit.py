@@ -145,3 +145,13 @@ def test_gesprek_bewaren_en_herscoren_geeft_dezelfde_scores(tmp_path):
     assert [asdict(r) for r in terug] == [asdict(r) for r in live]
     assert [b.vraagtype for b in terug[0].beurten] == ["bepaling", "vervolg"]
     assert all(r["opname"]["status"] for r in lees(pad))
+
+
+def test_de_duidingset_is_geldig_en_vraagt_het_duidingsjabloon():
+    """D5 meet hiermee: elke case is een duiding met sjabloon, een bron en iets wat in het antwoord hoort te staan."""
+    from pathlib import Path
+    cases = run_eval.load_golden(Path(run_eval.__file__).parent / "golden_duiding.jsonl")
+    assert len(cases) >= 5 and len({c["id"] for c in cases}) == len(cases)
+    for c in cases:
+        assert vraagtype_van(c) == "duiding" and c["sjabloon"] == "duiding", c["id"]
+        assert c["expected_sources"] and c["expected_contains"] and c["should_refuse"] is False, c["id"]
