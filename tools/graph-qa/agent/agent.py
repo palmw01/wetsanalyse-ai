@@ -294,6 +294,7 @@ async def answer_stream(
         # vraag in dezelfde thread het blok en de bronnen van de vorige.
         "overzicht_route": False,
         "overzicht": {},
+        "bepalingsvraag": {},
         "antwoord": {},
         "modus": modus,
         "context": context.model_dump() if hasattr(context, "model_dump") else (context or {}),
@@ -311,8 +312,6 @@ async def answer_stream(
         "afgekapt": False,
         "onbevestigd": [],
         "answer": "",
-        "sub_questions": [],
-        "sub_findings": [],
         # Een afwijzing geldt de vráág, niet het gesprek. Bleef deze vlag staan, dan werd elke
         # volgende beurt in dezelfde thread ook afgewezen – dezelfde soort fout als een blijvend
         # corpus hieronder.

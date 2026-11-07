@@ -28,25 +28,11 @@ def test_ontbrekend_bestand_geeft_none(tmp_path):
     assert s.graphdb_token is None
 
 
-def test_decompositie_defaults_uit():
-    s = Settings.from_env({})
-    assert s.enable_decomposition is False
-    assert s.max_subquestions == 5
-
-
-def test_decompositie_via_env():
-    s = Settings.from_env({"ENABLE_DECOMPOSITION": "1", "MAX_SUBQUESTIONS": "3", "SUB_MAX_TURNS": "4"})
-    assert s.enable_decomposition is True
-    assert s.max_subquestions == 3
-    assert s.sub_max_turns == 4
-
-
 def test_lege_env_string_valt_terug_op_default():
     # L3: een gezet-maar-leeg env-var mag niet op int("")-coercie crashen maar de default nemen.
-    s = Settings.from_env({"MAX_TURNS": "", "MAX_HISTORY_CHARS": "", "MAX_SUBQUESTIONS": ""})
+    s = Settings.from_env({"MAX_TURNS": "", "MAX_HISTORY_CHARS": ""})
     assert s.max_turns == 20
     assert s.max_history_chars == 40000
-    assert s.max_subquestions == 5
 
 
 def test_schrijfrecht_zonder_eigen_slot_weigert_te_starten():

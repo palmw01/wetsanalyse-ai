@@ -1,5 +1,5 @@
 """De annotatie-flow in de supervisor-graaf: supervisor → OPHAAL-agent (retrieval) → annoteer
-(de hybride keten, ADR-001) → emit. Draait de échte LangGraph (prod-config: decompositie aan) met
+(de hybride keten, ADR-001) → emit. Draait de échte LangGraph met
 KetenLLM/FakeGraph.
 
 KetenLLM-volgorde per annotatie: supervisor(create) → ophaal-agent turn1(stream, tool_use) →
@@ -53,7 +53,7 @@ def test_ophalen_dan_annoteren_grondt_lid():
     llm = KetenLLM(_aanloop(), kies=_alleen(**{"De ontvanger": "Rechtssubject"}))
     events = _run(answer_stream(
         "annoteer artikel 9 lid 1 van de Invorderingswet 1990",
-        settings=make_settings(enable_decomposition=True), llm=llm, graph=FakeGraph(result=LID_TSV),
+        settings=make_settings(), llm=llm, graph=FakeGraph(result=LID_TSV),
     ))
 
     doel = next(e for e in events if e["type"] == "doel")["doel"]
@@ -76,7 +76,7 @@ def test_get_bepaling_route_voor_decimaal_nummer():
         "annoteer 9.1"))
     events = _run(answer_stream(
         "annoteer artikel 9 lid 1 van de Leidraad Invordering 2008",
-        settings=make_settings(enable_decomposition=True), llm=llm, graph=FakeGraph(result=bep_tsv),
+        settings=make_settings(), llm=llm, graph=FakeGraph(result=bep_tsv),
     ))
     doel = next(e for e in events if e["type"] == "doel")["doel"]
     assert doel["nummer"] == "9.1" and doel["artikel"] == "9.1"
@@ -88,7 +88,7 @@ def test_get_bepaling_route_voor_decimaal_nummer():
 def test_annotatie_laat_leesbaar_spoor_in_geheugen(tmp_path):
     """Na een annotatie-beurt ziet een vervolgvraag (zelfde conversation_id) de gemarkeerde elementen
     terug in de historie – zodat 'waarom Rechtssubject?' context heeft."""
-    settings = make_settings(enable_decomposition=False, checkpoint_db_path=str(tmp_path / "cp.db"))
+    settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"))
 
     # Beurt 1: annoteer art. 9 lid 1.
     llm1 = KetenLLM(_aanloop(), kies=_alleen(**{"De ontvanger": "Rechtssubject"}))
@@ -110,12 +110,11 @@ def test_annotatie_laat_leesbaar_spoor_in_geheugen(tmp_path):
 def test_gewone_vraag_blijft_antwoord_geen_annotatie():
     llm = FakeLLM([
         response([text_block("SPECIALIST: algemeen\nPLAN: direct")], "end_turn"),  # supervisor → antwoord
-        response([text_block("1. Wat is de termijn?")], "end_turn"),               # decompose (één regel)
         response([tool_block("t1", "get_lid", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"})], "tool_use"),
-        response([text_block("Zes weken (BWBR0004770 art. 9).")], "end_turn"),      # solve-antwoord
+        response([text_block("Zes weken (BWBR0004770 art. 9).")], "end_turn"),      # antwoord
     ])
     events = _run(answer_stream(
-        "wat is de betaaltermijn?", settings=make_settings(enable_decomposition=True), llm=llm, graph=FakeGraph(result=LID_TSV),
+        "wat is de betaaltermijn?", settings=make_settings(), llm=llm, graph=FakeGraph(result=LID_TSV),
     ))
     assert not any(e["type"] in ("doel", "element") for e in events)
     tokens = "".join(e["content"] for e in events if e["type"] == "token")
@@ -131,8 +130,7 @@ def test_run_event_draagt_de_herkomst_van_de_beurt():
     llm = KetenLLM(_aanloop())
     events = _run(answer_stream(
         "annoteer artikel 9 lid 1 van de Invorderingswet 1990",
-        settings=make_settings(enable_decomposition=True,
-                               llm_model="claude-sonnet-4-6", agent_versie="9.9.9"),
+        settings=make_settings(llm_model="claude-sonnet-4-6", agent_versie="9.9.9"),
         llm=llm, graph=FakeGraph(result=LID_TSV),
     ))
 
@@ -172,7 +170,7 @@ def test_corpus_blijft_binnen_het_gevraagde_lid():
     graaf = FakeGraph(result=ARTIKEL_TSV)   # élke query levert beide leden; het lid-filter doet het werk
     events = _run(answer_stream(
         "annoteer artikel 9 lid 1 van de Invorderingswet 1990",
-        settings=make_settings(enable_decomposition=True),
+        settings=make_settings(),
         llm=llm, graph=graaf,
     ))
 
@@ -197,7 +195,7 @@ def test_onoplosbare_bronnode_valt_niet_terug_op_de_trace():
 
     events = _run(answer_stream(
         "annoteer artikel 9 lid 1 van de Invorderingswet 1990",
-        settings=make_settings(enable_decomposition=True),
+        settings=make_settings(),
         llm=llm, graph=FakeGraph(results=alleen_voor_de_toolcall),
     ))
 

@@ -67,7 +67,3 @@ export function verbruikSamenvatting(stand: Verbruiksstand, nu: Date = new Date(
   return `${stand.percentage}% gebruikt · ${wanneer}`;
 }
 
-/** Moet de waarschuwingsstrook getoond worden? De server beslist; dit is de leesbare vorm ervan. */
-export function toonWaarschuwing(stand: Verbruiksstand | null): boolean {
-  return Boolean(stand?.actief && stand.waarschuwing);
-}

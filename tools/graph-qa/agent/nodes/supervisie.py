@@ -12,7 +12,10 @@ from typing import Any
 
 from langgraph.config import get_stream_writer
 
+from dataclasses import asdict
+
 from ..aanwijzing import lees_aanwijzing, melding_meerdere
+from ..bepaling_workflow import lees as lees_bepalingsvraag
 from ..doel import _heeft_opgegeven_doel
 from ..bronselectie import is_bronselectievraag
 from ..models import ACTIE_TAAK, BRONSELECTIE_ACTIES, INTAKE_ACTIES
@@ -202,6 +205,13 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # Zonder gesprek valt er niets te herschrijven: geen LLM-call, de vorm van de vraag beslist.
         return _overzicht(writer, "")
 
+    if modus == "auto" and (bepaling := lees_bepalingsvraag(state.get("question", ""), b.graph)):
+        # De tekst van een bepaling (ADR-010, D1): de vraag noemt zelf de regeling en het artikel, dus ook in een gesprek
+        # valt er niets te herschrijven. Geen LLM-call; de workflow haalt op en vult het sjabloon.
+        _stap(writer, "Lex", "haalt de tekst van de bepaling op")
+        return {"specialist": "algemeen", "worker_plan": ["algemeen"], "worker_idx": 0, "plan": "de tekst van een bepaling",
+                "afwijzen": False, "annotaties_lezen": False, "bepalingsvraag": asdict(bepaling)}
+
     if modus == "advies":
         # Een adviesvraag bij een bestaande annotatie: geen LLM-keuze, hard naar de
         # duiding-specialist. Dat is een topologische garantie in plaats van een belofte in een
@@ -285,8 +295,7 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
             "afwijzen": False, "annotaties_lezen": False}
 
 def _entry_node(b: Bouw, state: State) -> str:
-    """Ingang voor de huidige worker: de annotatie-worker draait altijd de agent⇄tools-lus; een
-    antwoord-worker gaat in decompositie-modus langs decompose, anders ook langs de agent-lus.
+    """Ingang voor de huidige worker: een eigen route als die er is, anders de agent⇄tools-lus.
 
     Wees de vraag afgewezen, dan gaat er geen enkele worker draaien – dat is de hele winst."""
     if state.get("afwijzen"):
@@ -297,20 +306,21 @@ def _entry_node(b: Bouw, state: State) -> str:
         return "bronselectie"
     if state.get("specialist") == "agent_taak":
         return "agent_taak"
+    if state.get("bepalingsvraag"):
+        return "bepaling_lezen"
     if state.get("overzicht_route"):
-        # Eerst het overzicht bouwen, dan duiden – ook met decompositie aan.
+        # Eerst het overzicht bouwen, dan duiden.
         return "overzicht_bouwen"
     if state.get("begrippen_lezen"):
         return "begrippen_zoeken"
     if state.get("annotaties_lezen"):
-        # Eerst zoeken, dan formuleren – ook met decompositie aan: `solve_node` bouwt de agent-lus
-        # na en zou de zoekstap dubbel doen.
+        # Eerst zoeken, dan formuleren.
         return "annotaties_zoeken"
     if state.get("specialist") == "annotatie":
         # Doel al bekend → recht naar de annoteerder; de agent⇄tools-lus zou alleen opzoeken
         # wat de aanroeper al meestuurde. `annoteer_node` haalt het corpus zelf gericht op.
         return "annoteer" if _heeft_opgegeven_doel(state) else "agent"
-    return "decompose" if b.settings.enable_decomposition else "agent"
+    return "agent"
 
 def advance_node(b: Bouw, state: State) -> dict[str, Any]:
     """Ga naar de volgende worker in de keten; reset de per-worker werkvelden."""

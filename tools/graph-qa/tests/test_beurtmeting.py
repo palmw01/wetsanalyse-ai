@@ -62,7 +62,9 @@ def test_een_geslaagde_beurt_geeft_een_regel_met_alle_velden(caplog):
         {"type": "token", "content": "Antwoord"},
         {"type": "done"},
     ]
-    assert _draai(_stroom(*events)) == events
+    uit = _draai(_stroom(*events))
+    assert [e for e in uit if e["type"] != "meting"] == events
+    assert [e["type"] for e in uit][-2:] == ["meting", "done"]
 
     [regel] = _regels(caplog)
     assert regel.uitkomst == "klaar" and regel.route == "definitie"
@@ -112,6 +114,41 @@ def test_de_tellers_overleven_de_redactie(caplog):
     _draai(_stroom({"type": "done"}))
     regel = json.loads(JsonFormatter().format(_regels(caplog)[0]))
     assert regel["bericht"] == "beurt_meting" and regel["invoer"] == 10 and regel["cache_lees"] == 7
+
+
+def test_de_meting_gaat_als_event_mee_met_dezelfde_cijfers_als_de_regel(caplog):
+    """Zonder App Insights is een beurt alleen zo te meten: wat hij kostte, per aanroep, en hoeveel uit de cache."""
+    meter = _meter()
+    meter.tel_response(SimpleNamespace(usage=SimpleNamespace(
+        input_tokens=1, output_tokens=2, cache_read_input_tokens=3, cache_creation_input_tokens=0)), ms=1200)
+    uit = _draai(_stroom({"type": "tool_execution", "phase": "start"}, {"type": "done"}), meter=meter)
+    [meting] = [e for e in uit if e["type"] == "meting"]
+    [regel] = _regels(caplog)
+    for veld in ("route", "uitkomst", "duur_ms", "toolaanroepen", "modelrondes", "invoer", "uitvoer", "cache_lees",
+                 "cache_schrijf", "model"):
+        assert meting[veld] == getattr(regel, veld), veld
+    assert meting["modelrondes"] == 2 and meting["toolaanroepen"] == 1
+    assert meting["aanroepen"] == [{"invoer": 10, "uitvoer": 5, "cache_lees": 7, "cache_schrijf": 3},
+                                   {"invoer": 1, "uitvoer": 2, "cache_lees": 3, "cache_schrijf": 0, "ms": 1200}]
+
+
+def test_zonder_done_geen_meting_maar_wel_een_regel(caplog):
+    uit = _draai(_stroom({"type": "token", "content": "a"}))
+    assert not [e for e in uit if e["type"] == "meting"] and len(_regels(caplog)) == 1
+
+
+def test_de_meting_draagt_geen_inhoud():
+    geheim = "de vraag van de jurist"
+    [meting] = [e for e in _draai(_stroom({"type": "token", "content": geheim}, {"type": "done"})) if e["type"] == "meting"]
+    assert geheim not in json.dumps(meting)
+
+
+def test_de_aanroepen_zijn_begrensd_de_tellers_niet():
+    from agent.models import MAX_AANROEPEN
+    meter = Verbruiksmeter()
+    for _ in range(MAX_AANROEPEN + 5):
+        meter.tel_response(SimpleNamespace(usage=SimpleNamespace(input_tokens=1, output_tokens=0)))
+    assert len(meter.aanroepen) == MAX_AANROEPEN and meter.calls == MAX_AANROEPEN + 5 and meter.invoer == MAX_AANROEPEN + 5
 
 
 @pytest.mark.parametrize("state,route", [

@@ -982,10 +982,6 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'WETSANALYSE_API_URL', value: apiInternalUrl }
             { name: 'WETSANALYSE_API_TOKEN_FILE', value: '/run/secrets/wetsanalyse_api_token' }
             { name: 'SIMILARITY_INDEX', value: 'bwb_similarity' }
-            // Uit: dan draait de pure agentische lus. Met decompositie ligt er een vast recept
-            // overheen waarin solve_node een eigen agent-lus nabouwt – een tweede implementatie
-            // met eigen vangnetten, die uiteen kan lopen met agent_node.
-            { name: 'ENABLE_DECOMPOSITION', value: '0' }
             // Gespreksgeheugen in Postgres, NIET op schijf: het filesystem van een container-app is
             // ephemeer en de app kan schalen, dus een SQLite-bestand verliest het geheugen bij
             // elke herstart en is per-replica verschillend.

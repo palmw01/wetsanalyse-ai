@@ -16,7 +16,7 @@ from typing import Any
 from bronmodel.antwoord import NIET_GETOETST, Antwoord, antwoord_tekst
 from langgraph.config import get_stream_writer
 
-from ..berichten import CORRECTIE, _parse_final, _schoon_messages, _trim_messages, beurt_start
+from ..berichten import CORRECTIE, _parse_final, _schoon_messages, _trim_messages, beurt_start, venster_telling
 from ..bronregister import bij, controletrace
 from ..focus import na_antwoord
 from ..grounding import check_grounding, curate_sources, herstel_citaten
@@ -38,6 +38,8 @@ from ..tools.begrip_tools import alleen_begrippen_gezocht, begrens_begrippen_ant
 from .context import Bouw
 
 logger = logging.getLogger("graph_qa.orchestrator")
+# Dezelfde logger als `beurt_meting` (`agent/beurtmeting.py`): de metingen per beurt staan bij elkaar.
+_beurtlog = logging.getLogger("graph_qa.beurt")
 
 #: Tools waarmee de agent de weg zoekt: wat ze teruggeven draagt een sjabloonantwoord niet.
 _OPZOEKTOOLS = frozenset({"list_regelingen"})
@@ -78,6 +80,18 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     # De annotatie-worker produceert JSON, geen leesbaar antwoord – díe narratie tonen we niet
     # (annoteer_node emit straks een korte samenvatting).
     narratie_tonen = state.get("specialist") != "annotatie"
+    historie = _schoon_messages(state["messages"])
+    # Historie begrenzen (tegen onbegrensde promptgroei in een lange sessie); state blijft heel.
+    venster = _trim_messages(historie, b.settings.max_history_chars, state.get("question", ""))
+    if not state.get("turns"):
+        # E6-C1: hoe vaak valt er gesprek uit het venster? Eén regel per beurt, zonder inhoud.
+        _beurtlog.info("venster", extra={
+            "categorie": "functioneel",
+            "run_id": state.get("run_id", "") or "",
+            "chat_session_id": state.get("gesprek_id", "") or "",
+            **venster_telling(historie, venster),
+            "register_items": len(state.get("bronregister") or []),
+        })
     with b.llm.stream(
         # Deze node draait twee verschillende rollen: de OPHAAL-agent (annotatieroute – zoeken
         # en ophalen) en de QA-specialisten (die het antwoord zelf schrijven). Alleen de eerste
@@ -86,9 +100,7 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         max_tokens=MAX_TOKENS_OPHALEN if spec_naam == "retrieval" else MAX_TOKENS_ANTWOORD,
         system=[stabiel, variabel],
         tools=anthropic_schemas(only=spec.tools) + sjabloon_schemas(spec.sjablonen),
-        # Historie begrenzen (tegen onbegrensde promptgroei in een lange sessie); state blijft heel.
-        messages=_trim_messages(_schoon_messages(state["messages"]), b.settings.max_history_chars,
-                                state.get("question", "")),
+        messages=venster,
         # Elke toolronde stuurt de hele historie opnieuw: een cache-punt aan het eind maakt die de volgende ronde goedkoop.
         historie_cache=True,
     ) as stream:
@@ -449,11 +461,4 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
                            "bronregister": bij(state.get("bronregister"), state.get("source_trace")),
                            "focus": na_antwoord(state.get("focus"), state.get("specialist", ""),
                                                 [s["uri"] for s in src_dicts])}
-    # In de decompositie-stroom stroomt het eind-antwoord uit synthesize_node en is het nog niet
-    # in het durabele messages-kanaal beland (agent_node doet dat in de één-loop-stroom). Voeg het
-    # hier één keer toe zodat het gespreksgeheugen het antwoord onthoudt.
-    if b.settings.enable_decomposition:
-        upd["messages"] = [
-            {"role": "assistant", "content": [{"type": "text", "text": state.get("answer", "")}]}
-        ]
     return upd

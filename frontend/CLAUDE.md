@@ -55,7 +55,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
 - **`lib/server.ts`** – server-side helpers voor Server Components en auth
   (`verifyCredentials`/`getAccountStatus`/`getSetupStatus`), rechtstreeks server→server.
 - **`lib/api.ts`** – alle client-side fetch-helpers naar `/api/**`, met één foutcontract
-  (`parseError` → `ApiError` met `retryAfter`); gebruik `isApiError()` en `foutTekst()` in de UI.
+  (`parseError` → `ApiError`); gebruik `isApiError()` en `foutTekst()` in de UI.
 - **`lib/agentEvents.ts`** – validatie van de SSE-stroom van de agent: een ongeldig event slaat
   over, het beëindigt de run niet.
 - **`lib/types.ts`** – met de hand afgeleid van `../api/app/annotatie_v2_contracts.py`,
@@ -277,7 +277,7 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     `aria-label`; het werkgebied staat al in `ChatKop`. Een Markdown-download heet naar zijn eigen kop (`kopVan`), die het
     werkgebied wel noemt. `app/artefactTitels.test.ts` bewaakt het.
   - **annotatie** – het `annotatie`-item met `AnnotatieChip`, dat **`NodeAnnotatiePaneel`** opent
-    (een bericht zonder bronnode wijst naar een verwijderde annotatie: een tombstone). `DocumentPaneel` toont de wettekst met de **letterlijke** fragmenten
+    `DocumentPaneel` toont de wettekst met de **letterlijke** fragmenten
     (`segmenteer` + `lib/jas.ts:jasStyle`), `ReviewQueue` de beslissingskaarten.
   - **begrippen** – het `artefact`-item met `ArtefactChip`, dat
     **`WerkgebiedArtefactPaneel`** opent: dezelfde `BegripVoorstellen` (`inklapbaar={false}`) als op de tab
@@ -591,7 +591,7 @@ heeft *Verzend* (`isLaatsteVraag`), want wat erna komt hangt af van het antwoord
   actie `bronselectie`. Kiezen van een onderwerp klapt een open vraag weg (`kiesOnderwerp`), anders staan chip en
   suggesties eronder; *Een vraag stellen ›* haalt hem terug. *Bepaal de bronnen per deelvraag* staat bij de
   werkgebiedsuggesties en gaat ook in een nieuw gesprek verder waar je was.
-- De allowlist laat `bronselectie`, `bronselectie/{d}/status` en `bronselectie/{d}/kandidaten/{k}` door.
+- De allowlist laat `bronselectie` en `bronselectie/{d}/kandidaten/{k}` door; de stand van een deelvraag zet Lex.
 - **De peildatum staat boven de bronnen** (`PeildatumRegel` in `BronnenBijDeelvraag`, dus op de tab, de deelvraagpagina
   en naast het gesprek): de peildatum (standaard de aanmaakdatum), per regeling sinds wanneer de tekst in de graaf
   geldt, en geel als die pas ná de peildatum ging gelden (`toestandMeldingen`). `GET …/toestanden`, faalt stil;
@@ -699,16 +699,13 @@ begrip, werkgebied), met per soort een module in `MODULES` (`chip`, `suggesties`
   *Opnieuw proberen* (`NodeAnnotatiePaneel`, `LaadStand`). Een mislukte beslissing landt in de
   `Melding` van het artefact (`ArtefactInhoud.beslis`/`wis` vangen), niet als chatbericht.
 - **Een verwijderde annotatie is een toestand, geen fout.** Een bericht verwijst naar zijn annotatie
-  zonder foreign key. Een bericht met alleen een `annotatie_slug` en geen `annotatie_doel` wijst naar
-  iets wat niet meer bestaat: de chip wordt een **tombstone** (grijs, doorgestreepte titel, "Deze
-  annotatie is verwijderd", link naar `/annotaties`) met een neutrale `Melding type="uitleg"` zonder
-  *Opnieuw proberen*. Een bronnode-annotatie die intussen is verwijderd, meldt het paneel zelf
-  (`verwijderd: {op}`). De kaart benoemt zichzelf via **`artefact.titel`** in het berichtcontract
+  zonder foreign key. Een bronnode-annotatie die intussen is verwijderd, meldt het paneel zelf
+  (`verwijderd: {op}`), met een neutrale melding zonder *Opnieuw proberen*. De kaart benoemt zichzelf via **`artefact.titel`** in het berichtcontract
   (bij oude berichten `annotatie_titel`; zonder beide: "Annotatie"). Bewust geen cascade server-side: het gesprek is een verslag van
   wat er gebeurde.
 - **Het laatste artefact blijft bereikbaar** via een balk boven de chat (titel · *Openen*) zodra het
   paneel dicht is, over de soorten heen (stelde Lex na een annotatie begrippen voor, dan zijn dát het
-  laatste werk); verwijderde annotaties en afleidingsregels slaat die balk over.
+  laatste werk); afleidingsregels slaat die balk over.
 - **Een knop die een call doet, toont dat.** `BevestigKnop` await't `onBevestig`, staat zolang op
   `Bezig…` en is uitgeschakeld; `AppSidebar`/`AnnotatiesClient` halen een rij meteen weg en zetten hem
   bij een fout terug. Anders is een trage call (de BFF belt bij het verwijderen van een gesprek
@@ -788,7 +785,7 @@ sidebar blijft staan.
 - **Hergebruik en "opnieuw annoteren" staan bij de annotatie in het gesprek** (`HergebruikMelding`).
   Het `hergebruik`-event (`parseHergebruik`) zegt welke leden uit de laag kwamen; de melding blijft na
   herladen omdat graph-qa hem in het chatbericht zet (`Bericht.hergebruik`). *Lex opnieuw laten
-  annoteren* start een run met `hergebruik: "opnieuw"` en het doel van de beurt (`doelVoorOpnieuw`) –
+  annoteren* start een run met `hergebruik: "opnieuw"` en de bronnode van de beurt (`annotatie_doel`) –
   zonder doel zou de agent de bepaling opnieuw moeten zoeken. Die ronde vult de laag aan; wat
   beoordeeld is blijft staan.
 - **Verouderde markeringen zijn historie** (`splitsVerouderd`). Is de wettekst van een lid veranderd,
@@ -979,8 +976,8 @@ bestaat los van de gesprekken.
     het koppelvenster koppelt alleen bronnen (bestaande begripskoppelingen blijven staan).
   - Een kandidaat die Lex bij een deelvraag vond, zegt dat (`bewijsZin`: "gevonden bij de deelvraag …");
     opnemen koppelt hem aan die deelvraag (api).
-  - De allowlist laat `deelvragen`, `deelvragen/{id}`, `deelvragen/dekking` en `deelvragen/{id}/koppelingen`
-    door, nooit `deelvragen/voorstellen` (van graph-qa).
+  - De allowlist laat `deelvragen/{id}`, `deelvragen/samen` en `deelvragen/dekking` door, nooit
+    `deelvragen/voorstellen` (van graph-qa).
   - Browserregressie: `scripts/test-deelvragen.mjs`.
 - **Deelvragen met structuur** (spoor H3): in het dossier is een deelvraag een rij – de vraag als link naar
   haar pagina, herkomst en omvang ("7 bronnen in 3 regelingen"), de voortgang van haar bronselectie – met
@@ -1106,7 +1103,7 @@ bestaat los van de gesprekken.
     geformuleerd door Lex", met de fragmenten en de toelichting ingeklapt); de aandachtspunten in tekst
     (`AANDACHTSPUNT`, gelijk aan graph-qa `toetsen.TEKST` – `begripVoorstellen.test.ts` leest die bron).
     Bij akkoord vult de api het begrip uit de kaart.
-  - De allowlist laat `verdieping` (lezen) door, nooit `…/batches/*` of `…/verdieping` op een run.
+  - De allowlist laat `verdieping` niet door, en ook `…/batches/*` of `…/verdieping` op een run niet: dat is graph-qa.
   - Browserregressie: `scripts/test-begrippen-verdieping.mjs`.
 - **Lex naast de kaart** (fase E; api §*Lex naast de kaart*, graph-qa §*Lex naast de kaart*). De vier
   acties – de brondefinitie zoeken (zonder model), een scherpere definitie, het betekenisverschil, voorbeelden
