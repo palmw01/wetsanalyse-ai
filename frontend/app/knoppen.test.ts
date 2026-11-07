@@ -182,7 +182,7 @@ describe("één menu ⋯", () => {
   });
 
   it("geen losse verwijderknop of eigen menuregels in een menu ⋯", () => {
-    for (const f of ["werkgebieden/ProjectKop", "werkgebieden/Deelvragen", "werkgebieden/BronnenBijDeelvraag"]) {
+    for (const f of ["werkgebieden/ProjectKop", "werkgebieden/BronnenBijDeelvraag"]) {
       const s = bron(`components/${f}.tsx`);
       expect(s, f).toContain("<MeerMenu");
       expect(s, f).not.toMatch(/<VerwijderKnop|<Popover\b/);

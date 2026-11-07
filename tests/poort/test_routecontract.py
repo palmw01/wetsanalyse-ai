@@ -17,10 +17,7 @@ from routeboek import (
 )
 
 # Bekende breuken, elk met de stap die ze oplost. Een vermelding die niet meer nodig is, laat de test falen.
-BEKEND = {
-    ("METHODE", "PUT", "/api/werkgebieden/{}/deelvragen/{}/koppelingen"):
-        "E1: de catch-all exporteert geen PUT, dus de dialoog slaat nooit op",
-}
+BEKEND: dict[tuple[str, str, str], str] = {}
 
 
 def _zoek(routes: list[Route], aanroep: Aanroep) -> tuple[list[Route], bool]:
