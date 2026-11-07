@@ -31,5 +31,6 @@ SEP = ":"
 
 
 def vindplaats_patroon(basis: str = BASIS) -> str:
-    """Regex-patroon dat een vindplaats-IRI in vrije tekst herkent."""
-    return re.escape(basis) + r"[^\s\"'<>)\]}\\]+"
+    """Regex-patroon dat een vindplaats-IRI in vrije tekst herkent. Een backtick of sterretje hoort er niet bij:
+    dat is Markdown rond de IRI (`` `urn:bwb:…` ``, **…**)."""
+    return re.escape(basis) + r"[^\s\"'<>)\]}\\`*]+"
