@@ -78,7 +78,7 @@ async def zoek(req: Zoekvraag) -> dict:
                 raise HTTPException(409, "Zoekresultaten gewijzigd; begin opnieuw.")
             offset = cursor["offset"]
         candidates = await zoek_kandidaten({**req.model_dump(),
-                                            **({"bron_iri": "", "bronnode_id": ""} if history else {}),
+                                            **({"bron_iri": ""} if history else {}),
                                             **({"scoped_nodes": sorted(scope)} if scope else {})})
         if not candidates.get("beschikbaar", True):
             return {**base, "status": "unavailable", "reden": "projectie_onbeschikbaar"}

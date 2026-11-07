@@ -47,8 +47,7 @@ def _relatie(row, namen: dict[str, str]) -> dict:
 
 async def _begrippen(conn, werkgebied_id: str) -> dict[str, object]:
     b = db.begrippen
-    return {r.id: r for r in (await conn.execute(select(b).where(begrip_store.in_werkgebied(werkgebied_id),
-                                                                 b.c.verwijderd.is_(None)))).all()}
+    return {r.id: r for r in (await conn.execute(select(b).where(begrip_store.in_werkgebied(werkgebied_id)))).all()}
 
 
 async def _rijen(conn, werkgebied_id: str):

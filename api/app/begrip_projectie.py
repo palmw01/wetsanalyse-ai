@@ -11,7 +11,7 @@ de koppelingen met hun bewijsstand en de begripsrelaties met hun juridische type
 - **Direct na de commit, de lus als vangnet.** Elke audited werkgebiedmutatie noteert het werkgebied
   op de verbinding (`werkgebied_store._audit` → `db.noteer_na_commit`); na de commit projecteert
   `na_mutatie` op de achtergrond. `reconcile` vergelijkt de hash in het register met Postgres, dus ook
-  een lege GraphDB na een herstart wordt weer gevuld, en ruimt graphs van gearchiveerde of lege
+  een lege GraphDB na een herstart wordt weer gevuld, en ruimt graphs van verwijderde of lege
   werkgebieden op. Twee projectoren tegelijk kunnen in de verkeerde volgorde schrijven; de volgende
   ronde ziet dan een afwijkende hash en herstelt het.
 - **Alle begrippen met hun status** (besloten 16 okt 2026): concept, geaccordeerd en vervangen. De
@@ -110,13 +110,13 @@ def _kader_van(wg) -> dict:
 
 async def invoer(conn, werkgebied_id: str) -> dict | None:
     """Alles wat de graph van dit werkgebied draagt, als JSON-vorm. None = geen graph: het werkgebied
-    bestaat niet, is gearchiveerd of heeft geen begrippen."""
+    bestaat niet of heeft geen begrippen."""
     w, b, k, r, g = db.werkgebieden, db.begrippen, db.begrip_koppelingen, db.begrip_relaties, db.werkgebied_begrippen
     generiek = werkgebied_id == GENERIEK
     gebruikt: list[str] = []
     if generiek:
         wg = None
-        begrippen = (await conn.execute(select(b).where(b.c.werkgebied_id.is_(None), b.c.verwijderd.is_(None))
+        begrippen = (await conn.execute(select(b).where(b.c.werkgebied_id.is_(None))
                                         .order_by(b.c.id))).all()
         if not begrippen:
             return None
@@ -128,9 +128,9 @@ async def invoer(conn, werkgebied_id: str) -> dict | None:
                                                        r.c.beoordeling == "akkoord").order_by(r.c.id))).all()
     else:
         wg = (await conn.execute(select(w).where(w.c.id == werkgebied_id))).first()
-        if wg is None or wg.gearchiveerd is not None:
+        if wg is None:
             return None
-        begrippen = (await conn.execute(select(b).where(b.c.werkgebied_id == werkgebied_id, b.c.verwijderd.is_(None))
+        begrippen = (await conn.execute(select(b).where(b.c.werkgebied_id == werkgebied_id)
                                         .order_by(b.c.id))).all()
         gebruikt = list((await conn.execute(select(g.c.begrip_id).where(
             g.c.werkgebied_id == werkgebied_id, g.c.verwijderd.is_(None)).order_by(g.c.begrip_id))).scalars().all())
@@ -427,7 +427,7 @@ async def export_turtle(werkgebied_id: str, alles: bool) -> bytes:
         wg = None
         if werkgebied_id != GENERIEK:
             wg = (await conn.execute(select(w).where(w.c.id == werkgebied_id))).first()
-            if wg is None or wg.gearchiveerd is not None:
+            if wg is None:
                 raise HTTPException(404, "Werkgebied bestaat niet.")
         inv = await invoer(conn, werkgebied_id) or {
             "schema": SCHEMA_VERSIE, "werkgebied": _kader_van(wg), "begrippen": [], "relaties": []}
@@ -527,8 +527,7 @@ async def register() -> dict[str, dict]:
 async def postgres_stand() -> dict[str, dict]:
     """Per werkgebied met iets te projecteren: de invoer."""
     async with db.get_engine().connect() as conn:
-        ids = sorted({wid or GENERIEK for wid in (await conn.execute(select(db.begrippen.c.werkgebied_id).where(
-            db.begrippen.c.verwijderd.is_(None)))).scalars()} | set((await conn.execute(
+        ids = sorted({wid or GENERIEK for wid in (await conn.execute(select(db.begrippen.c.werkgebied_id))).scalars()} | set((await conn.execute(
                 select(db.werkgebied_begrippen.c.werkgebied_id).where(
                     db.werkgebied_begrippen.c.verwijderd.is_(None)))).scalars()))
         uit = {}

@@ -12,7 +12,7 @@ dependencies = [
     "sqlalchemy[asyncio]>=2.0.51",
     "asyncpg>=0.30",
     "cryptography>=50.0.0",
-    # Security-floor op een transitive (via fastapi/sse-starlette/mcp): CVE-2026-54283 in <1.3.1.
+    # Security-floor op een transitive (via fastapi): CVE-2026-54283 in <1.3.1.
     "starlette>=1.5.0",
     # Login-module: wachtwoord-hashing (bcrypt) + optionele 2FA (TOTP).
     "bcrypt>=4.1",
@@ -28,9 +28,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# LiteLLM (LLM-adapter) en mcp (MCP-client) zijn alleen nodig voor de engine.
-# Beide worden lazy geïmporteerd, zodat de tests zonder deze (zwaardere) dependencies draaien.
-llm = ["litellm>=1.95.0", "mcp>=2.0.0"]
+# LiteLLM is alleen nodig voor de verbindingstest van een modelprofiel (`app/llm/litellm_client.py`, `/v1/admin`).
+# Lazy geïmporteerd, zodat de tests zonder deze (zware) dependency draaien. De api praat zelf niet met een MCP-server.
+llm = ["litellm>=1.95.0"]
 # OpenTelemetry (traces/metrics/logs). Optioneel: alleen nodig als OTEL_EXPORTER_OTLP_ENDPOINT
 # gezet is; zonder deze extra draait de app met alleen gestructureerde JSON-logging.
 otel = [

@@ -36,7 +36,7 @@ from sqlalchemy import delete, func, insert, or_, select, update
 from . import annotatie_v2_store as annotaties, db
 from .annotatie_v2_contracts import BEOORDEELD
 from .begrip_contracts import (
-    BegripInhoud, BegripInvoer, BegripWijziging, KoppelBeoordelingen, KoppelInvoer, KoppelWijziging,
+    BegripInvoer, BegripWijziging, KoppelBeoordelingen, KoppelInvoer, KoppelWijziging,
 )
 from .werkgebied_inventaris import inventaris
 from .werkgebied_store import _audit as werkgebied_audit, niet_gevonden
@@ -259,7 +259,7 @@ async def _werkgebied_bestaat(conn, werkgebied_id: str, slot: bool = False):
     t = db.werkgebieden
     q = select(t).where(t.c.id == werkgebied_id)
     row = (await conn.execute(q.with_for_update() if slot else q)).first()
-    if row is None or row.gearchiveerd is not None:
+    if row is None:
         raise await niet_gevonden(werkgebied_id)
     return row
 
@@ -313,8 +313,7 @@ async def haal(werkgebied_id: str | None, begrip_id: str) -> dict:
     b = db.begrippen
     async with db.get_engine().connect() as conn:
         await _werkgebied_bestaat(conn, werkgebied_id)
-        row = (await conn.execute(select(b).where(b.c.id == begrip_id, in_werkgebied(werkgebied_id),
-                                                  b.c.verwijderd.is_(None)))).first()
+        row = (await conn.execute(select(b).where(b.c.id == begrip_id, in_werkgebied(werkgebied_id)))).first()
         if row is None:
             raise await niet_gevonden(werkgebied_id, begrip_id)
         uit = _begrip(row, await _koppelingen_van(conn, werkgebied_id, begrip_id), await _opvolging(conn, werkgebied_id))
@@ -325,8 +324,7 @@ async def haal(werkgebied_id: str | None, begrip_id: str) -> dict:
 async def haal_generiek(begrip_id: str) -> dict:
     b = db.begrippen
     async with db.get_engine().connect() as conn:
-        row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id.is_(None),
-                                                  b.c.verwijderd.is_(None)))).first()
+        row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id.is_(None)))).first()
         if row is None:
             raise HTTPException(404, "Begrip bestaat niet.")
         uit = _begrip(row, await _koppelingen_van(conn, None, begrip_id), await _opvolging(conn, None))
@@ -352,7 +350,7 @@ async def gebruik_van(conn, begrip_id: str) -> list[dict]:
     g, w, k = db.werkgebied_begrippen, db.werkgebieden, db.begrip_koppelingen
     rows = (await conn.execute(select(g.c.werkgebied_id, g.c.gezien_revisie, w.c.naam)
                                .join_from(g, w, g.c.werkgebied_id == w.c.id)
-                               .where(g.c.begrip_id == begrip_id, g.c.verwijderd.is_(None), w.c.gearchiveerd.is_(None))
+                               .where(g.c.begrip_id == begrip_id, g.c.verwijderd.is_(None))
                                .order_by(w.c.naam, g.c.werkgebied_id))).all()
     tellingen = dict((await conn.execute(select(k.c.werkgebied_id, func.count()).where(
         k.c.begrip_id == begrip_id, k.c.verwijderd.is_(None)).group_by(k.c.werkgebied_id))).all())
@@ -365,7 +363,7 @@ async def lijst(werkgebied_id: str) -> list[dict]:
     b = db.begrippen
     async with db.get_engine().connect() as conn:
         await _werkgebied_bestaat(conn, werkgebied_id)
-        rows = (await conn.execute(select(b).where(in_werkgebied(werkgebied_id), b.c.verwijderd.is_(None))
+        rows = (await conn.execute(select(b).where(in_werkgebied(werkgebied_id))
                                    .order_by(b.c.aangemaakt, b.c.id))).all()
         alle = await _koppelingen_van(conn, werkgebied_id)
         opvolging = await _opvolging(conn, werkgebied_id)
@@ -384,7 +382,7 @@ async def generieke_buiten(werkgebied_id: str) -> list[dict]:
     b, g = db.begrippen, db.werkgebied_begrippen
     gebruikt = select(g.c.begrip_id).where(g.c.werkgebied_id == werkgebied_id, g.c.verwijderd.is_(None))
     async with db.get_engine().connect() as conn:
-        rows = (await conn.execute(select(b).where(b.c.werkgebied_id.is_(None), b.c.verwijderd.is_(None),
+        rows = (await conn.execute(select(b).where(b.c.werkgebied_id.is_(None),
                                                    b.c.status != "vervangen", b.c.id.not_in(gebruikt))
                                    .order_by(b.c.aangemaakt, b.c.id))).all()
     return [{"id": r.id, "kader": GENERIEK, "status": r.status, "inhoud": slank(r.inhoud), "element_ids": []} for r in rows]
@@ -395,7 +393,7 @@ async def samenhang(werkgebied_id: str) -> dict:
     b = db.begrippen
     async with db.get_engine().connect() as conn:
         await _werkgebied_bestaat(conn, werkgebied_id)
-        rows = (await conn.execute(select(b).where(in_werkgebied(werkgebied_id), b.c.verwijderd.is_(None))
+        rows = (await conn.execute(select(b).where(in_werkgebied(werkgebied_id))
                                    .order_by(b.c.aangemaakt, b.c.id))).all()
         koppelingen = await _koppelingen_van(conn, werkgebied_id)
     return {"begrippen": [{"id": r.id, "iri": begrip_iri(r.id), "naam": r.inhoud.get("naam", ""), "status": r.status,
@@ -412,7 +410,7 @@ async def generiek_bij_elementen(element_ids: set[str]) -> list[dict]:
                                    .join_from(k, b, k.c.begrip_id == b.c.id)
                                    .where(k.c.element_id.in_(element_ids), k.c.verwijderd.is_(None),
                                           k.c.beoordeling != "afgewezen", b.c.werkgebied_id.is_(None),
-                                          b.c.verwijderd.is_(None), b.c.status == "geaccordeerd"))).all()
+                                          b.c.status == "geaccordeerd"))).all()
     return [{"id": r.id, "status": r.status, "naam": r.inhoud.get("naam", ""), "definitie": r.inhoud.get("definitie", ""),
              "element_id": r.element_id, "rol": r.rol} for r in rows]
 
@@ -423,7 +421,7 @@ async def primaire_duidingen(werkgebied_id: str) -> dict[str, dict]:
     async with db.get_engine().connect() as conn:
         rows = (await conn.execute(select(k.c.element_id, b.c.id, b.c.inhoud).join_from(k, b, k.c.begrip_id == b.c.id)
                                    .where(k.c.werkgebied_id == werkgebied_id, k.c.rol == "duiding",
-                                          k.c.verwijderd.is_(None), b.c.verwijderd.is_(None),
+                                          k.c.verwijderd.is_(None),
                                           b.c.status != "vervangen"))).all()
     return {r.element_id: {"begrip_id": r.id, "naam": r.inhoud.get("naam", "")} for r in rows}
 
@@ -506,7 +504,7 @@ async def _gewijzigd_in(conn, werkgebied_id: str | None, begrip_id: str, verwach
     else:
         await _werkgebied_bestaat(conn, werkgebied_id, slot=True)
         waar = in_werkgebied(werkgebied_id)
-    row = (await conn.execute(select(b).where(b.c.id == begrip_id, waar, b.c.verwijderd.is_(None))
+    row = (await conn.execute(select(b).where(b.c.id == begrip_id, waar)
                               .with_for_update())).first()
     if row is None:
         raise HTTPException(404, "Begrip bestaat niet.")
@@ -654,8 +652,8 @@ async def verwijder(werkgebied_id: str, begrip_id: str, verwacht: int, actor: st
     b = db.begrippen
     async with db.get_engine().begin() as conn:
         await _werkgebied_bestaat(conn, werkgebied_id, slot=True)
-        row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id == werkgebied_id,
-                                                  b.c.verwijderd.is_(None)).with_for_update())).first()
+        row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id == werkgebied_id)
+                                   .with_for_update())).first()
         if row is None:
             raise await niet_gevonden(werkgebied_id, begrip_id)
         if row.status == "vervangen":
@@ -706,7 +704,7 @@ async def _herstel_voorgangers(conn, werkgebied_id: str | None, begrip_id: str, 
         await conn.execute(update(r).where(r.c.id == x.id).values(verwijderd=nu))
         if x.type != "opvolging" or x.naar_begrip != begrip_id:
             continue
-        oud = (await conn.execute(select(b).where(b.c.id == x.van_begrip, b.c.verwijderd.is_(None))
+        oud = (await conn.execute(select(b).where(b.c.id == x.van_begrip)
                                   .with_for_update())).first()
         if oud is None or oud.status != "vervangen":
             continue
@@ -877,7 +875,7 @@ async def _toets_term(conn, naam: str, behalve: str) -> None:
     """Dezelfde voorkeursterm staat één keer in het generieke kader; dan is het combineren, of een andere naam."""
     b = db.begrippen
     rows = (await conn.execute(select(b.c.id, b.c.inhoud).where(
-        b.c.werkgebied_id.is_(None), b.c.verwijderd.is_(None), b.c.status != "vervangen", b.c.id != behalve))).all()
+        b.c.werkgebied_id.is_(None), b.c.status != "vervangen", b.c.id != behalve))).all()
     for x in rows:
         andere = x.inhoud.get("naam", "")
         if _term(andere) == _term(naam):
@@ -892,8 +890,8 @@ async def generiek_maken(werkgebied_id: str, begrip_id: str, verwacht: int, acto
     b, g = db.begrippen, db.werkgebied_begrippen
     async with db.get_engine().begin() as conn:
         await _werkgebied_bestaat(conn, werkgebied_id, slot=True)
-        row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id == werkgebied_id,
-                                                  b.c.verwijderd.is_(None)).with_for_update())).first()
+        row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id == werkgebied_id)
+                                   .with_for_update())).first()
         if row is None:
             raise await niet_gevonden(werkgebied_id, begrip_id)
         if row.revisie != verwacht:
@@ -926,8 +924,7 @@ async def gebruik(werkgebied_id: str, begrip_id: str, actor: str) -> dict:
 async def gebruik_in(conn, werkgebied_id: str, begrip_id: str, actor: str) -> None:
     """`gebruik` onder het werkgebiedslot van de aanroeper."""
     b, g = db.begrippen, db.werkgebied_begrippen
-    row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id.is_(None),
-                                              b.c.verwijderd.is_(None)))).first()
+    row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id.is_(None)))).first()
     if row is None:
         raise HTTPException(404, "Generiek begrip bestaat niet.")
     if row.status == "vervangen":
@@ -964,8 +961,8 @@ async def verwijder_generiek(begrip_id: str, verwacht: int, actor: str) -> dict:
     """Echt wissen, maar niet zolang een werkgebied het begrip gebruikt: dat raakt die analyses (409 `in_gebruik`)."""
     b = db.begrippen
     async with db.get_engine().begin() as conn:
-        row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id.is_(None),
-                                                  b.c.verwijderd.is_(None)).with_for_update())).first()
+        row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id.is_(None))
+                                   .with_for_update())).first()
         if row is None:
             raise HTTPException(404, "Begrip bestaat niet.")
         if row.status == "vervangen":
@@ -996,7 +993,7 @@ async def generiek_veranderd(conn, werkgebied_id: str, begrip_id: str | None = N
     ander werkgebied telt niet: de inhoud bleef gelijk."""
     g, b, r, rel = db.werkgebied_begrippen, db.begrippen, db.begrip_revisies, db.begrip_relaties
     q = (select(g.c.gezien_revisie, b).join_from(g, b, g.c.begrip_id == b.c.id)
-         .where(g.c.werkgebied_id == werkgebied_id, g.c.verwijderd.is_(None), b.c.verwijderd.is_(None),
+         .where(g.c.werkgebied_id == werkgebied_id, g.c.verwijderd.is_(None),
                 b.c.werkgebied_id.is_(None)).order_by(b.c.aangemaakt, b.c.id))
     if begrip_id:
         q = q.where(b.c.id == begrip_id)

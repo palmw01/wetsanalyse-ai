@@ -172,12 +172,6 @@ def test_een_klik_op_een_suggestie_gaat_met_zijn_actie_de_beurt_in(client, monke
         main.app.dependency_overrides.clear()
 
 
-def test_chat_weigert_een_actie_op_een_werkgebied(client):
-    c, _main, _ = client
-    r = c.post("/v1/chat", json={"question": "x", "actie": "begrippen_voorstellen", "werkgebied_id": "wg1"})
-    assert r.status_code == 422
-
-
 # --- Het blok per soort ----------------------------------------------------------------------------
 
 def test_een_deelvraag_met_stand_en_wat_eraan_gekoppeld_is():

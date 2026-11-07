@@ -57,8 +57,7 @@ def _werkgebied(row) -> dict:
             "peildatum": peildatum, "peildatum_standaard": peildatum == aanmaakdag, "status": row.status,
             "revisie": row.revisie, "aangemaakt_door": row.aangemaakt_door,
             "aangemaakt": db.aware(row.aangemaakt).isoformat(),
-            "gewijzigd": db.aware(row.gewijzigd).isoformat(),
-            "gearchiveerd": db.aware(row.gearchiveerd).isoformat() if row.gearchiveerd else None}
+            "gewijzigd": db.aware(row.gewijzigd).isoformat()}
 
 
 def _selectie(row) -> dict:
@@ -114,7 +113,7 @@ async def werkgebied_rij(conn, werkgebied_id: str, *, slot: bool = False):
     t = db.werkgebieden
     q = select(t).where(t.c.id == werkgebied_id)
     row = (await conn.execute(q.with_for_update() if slot else q)).first()
-    if row is None or row.gearchiveerd is not None:
+    if row is None:
         raise HTTPException(404, "Werkgebied bestaat niet.")
     return row
 
@@ -133,7 +132,7 @@ async def _gewijzigd(werkgebied_id: str, verwacht: int, actor: str, actie: str |
     t = db.werkgebieden
     async with db.get_engine().begin() as conn:
         row = (await conn.execute(select(t).where(t.c.id == werkgebied_id).with_for_update())).first()
-        if row is None or row.gearchiveerd is not None:
+        if row is None:
             raise HTTPException(404, "Werkgebied bestaat niet.")
         if row.revisie != verwacht:
             raise HTTPException(412, {"fout": "revisie_conflict", "revisie": row.revisie,
@@ -153,7 +152,7 @@ async def _van_intake(intake_id: str) -> str | None:
 
 async def maak(invoer: WerkgebiedInvoer, actor: str) -> dict:
     """Een nieuw werkgebied. Met een `intake_id` idempotent: bestaat er al een uit die intake, dan
-    komt dat terug (ook als het intussen gewijzigd is; gearchiveerd geeft 404).
+    komt dat terug (ook als het intussen gewijzigd is; verwijderd geeft 404).
 
     De deelvragen uit het samenstellen komen in dezelfde transactie mee, actief en op volgorde;
     dezelfde vraag twee keer (genormaliseerd) telt één keer."""
@@ -211,7 +210,6 @@ async def lijst(door: str | None = None, bron_iri: str | None = None) -> list[di
               .group_by(s.c.werkgebied_id).subquery())
     q = (select(t, func.coalesce(aantal.c.n, 0).label("aantal_bronnen"))
          .outerjoin(aantal, aantal.c.werkgebied_id == t.c.id)
-         .where(t.c.gearchiveerd.is_(None))
          .order_by(t.c.gewijzigd.desc(), t.c.id))
     if door:
         q = q.where(t.c.id.in_(select(a.c.werkgebied_id).where(a.c.actor == door)))
@@ -234,11 +232,11 @@ async def selecties(werkgebied_id: str) -> list[dict]:
     return [_selectie(r) for r in rows]
 
 
-async def haal(werkgebied_id: str, met_gearchiveerd: bool = False) -> dict:
+async def haal(werkgebied_id: str) -> dict:
     t = db.werkgebieden
     async with db.get_engine().connect() as conn:
         row = (await conn.execute(select(t).where(t.c.id == werkgebied_id))).first()
-    if row is None or (row.gearchiveerd is not None and not met_gearchiveerd):
+    if row is None:
         raise await niet_gevonden(werkgebied_id)
     from . import werkgebied_deelvragen  # leest dit schrijfpad zelf; dus hier, niet bovenaan
     return {**_werkgebied(row), "bronnen": await selecties(werkgebied_id),
@@ -265,7 +263,7 @@ async def verwijder(werkgebied_id: str, verwacht: int, actor: str) -> dict:
     t = db.werkgebieden
     async with db.get_engine().begin() as conn:
         row = (await conn.execute(select(t).where(t.c.id == werkgebied_id).with_for_update())).first()
-        if row is None or row.gearchiveerd is not None:
+        if row is None:
             raise await niet_gevonden(werkgebied_id)
         if row.revisie != verwacht:
             raise HTTPException(412, {"fout": "revisie_conflict", "revisie": row.revisie,

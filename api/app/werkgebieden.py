@@ -19,8 +19,8 @@ from .graaf_projectie_v2 import verklaringen
 from .graaf import lees_bron as _lees_bron
 from .routers.auth import actieve_userid
 from .werkgebied_contracts import (
-    BronselectieInvoer, BronselectieWijziging, DeelvraagInvoer, DeelvraagKoppelingen, DeelvragenSamen,
-    DeelvraagVoorstellen, DeelvraagWijziging, WerkgebiedInvoer, WerkgebiedWijziging,
+    BronselectieInvoer, BronselectieWijziging, DeelvragenSamen, DeelvraagVoorstellen, DeelvraagWijziging,
+    WerkgebiedInvoer, WerkgebiedWijziging,
 )
 from .werkgebied_inventaris import inventaris
 from .werkgebied_werkvoorraad import selecties_in_bereik, werkvoorraad
@@ -139,22 +139,6 @@ async def get_toestanden(werkgebied_id: str, actor: str = Depends(actieve_userid
 _GRAAF_WEG = "De kennisgraaf is tijdelijk niet bereikbaar."
 
 
-@router.get("/{werkgebied_id}/regelingen")
-async def get_regelingen(werkgebied_id: str, q: str = Query("", max_length=200),
-                         actor: str = Depends(actieve_userid)):
-    """Regelingen voor *Bepaling toevoegen* (graph-qa, de naam bij een treffer): die van het werkgebied vooraan, dan op citeertitel,
-    afkorting of BWB-id. Lege `q`: alleen die van het werkgebied."""
-    from . import bepaling_zoeken as zoeken
-
-    wg = await store.haal(werkgebied_id)
-    eerst = store.regelingen_van(wg)
-    try:
-        alle = await zoeken.alle_regelingen()
-    except (httpx.HTTPError, ConnectionError, ValueError) as exc:
-        raise HTTPException(503, _GRAAF_WEG) from exc
-    return {"regelingen": zoeken.regelingen(alle, q, eerst)}
-
-
 @router.get("/{werkgebied_id}/bepalingen")
 async def get_bepalingen(werkgebied_id: str, bwb_id: str = Query(..., pattern=r"^BWB[RV]\d+$"),
                          q: str = Query("", max_length=200), actor: str = Depends(actieve_userid)):
@@ -216,13 +200,8 @@ async def delete_bron(werkgebied_id: str, selectie_id: str, verwachte_revisie: i
 
 
 # --- Deelvragen (optioneel; open keuze 4) -----------------------------------------------------------
-# Elke wijziging draagt de revisie van het werkgebied en geeft het werkgebied terug, zoals de bronnen.
-# `voorstellen` is voor graph-qa: geen revisie, het raakt de scope pas na overnemen.
-
-@router.post("/{werkgebied_id}/deelvragen", status_code=201)
-async def post_deelvraag(werkgebied_id: str, req: DeelvraagInvoer, actor: str = Depends(actieve_userid)):
-    return await deelvragen.maak(werkgebied_id, req, actor)
-
+# Elke wijziging draagt de revisie van het werkgebied en geeft het werkgebied terug, zoals de bronnen. De
+# werkplek bewerkt ze samen (`samen`) of één tegelijk (`PATCH`). `voorstellen` is voor graph-qa: geen revisie, het raakt de scope pas na overnemen.
 
 @router.post("/{werkgebied_id}/deelvragen/samen")
 async def post_deelvragen_samen(werkgebied_id: str, req: DeelvragenSamen, actor: str = Depends(actieve_userid)):
@@ -251,18 +230,6 @@ async def get_deelvraag(werkgebied_id: str, deelvraag_id: str, actor: str = Depe
 async def patch_deelvraag(werkgebied_id: str, deelvraag_id: str, req: DeelvraagWijziging,
                           actor: str = Depends(actieve_userid)):
     return await deelvragen.wijzig(werkgebied_id, deelvraag_id, req, actor)
-
-
-@router.put("/{werkgebied_id}/deelvragen/{deelvraag_id}/koppelingen")
-async def put_deelvraag_koppelingen(werkgebied_id: str, deelvraag_id: str, req: DeelvraagKoppelingen,
-                                    actor: str = Depends(actieve_userid)):
-    return await deelvragen.koppel(werkgebied_id, deelvraag_id, req, actor)
-
-
-@router.delete("/{werkgebied_id}/deelvragen/{deelvraag_id}")
-async def delete_deelvraag(werkgebied_id: str, deelvraag_id: str, verwachte_revisie: int = Query(ge=1),
-                           actor: str = Depends(actieve_userid)):
-    return await deelvragen.verwijder(werkgebied_id, deelvraag_id, verwachte_revisie, actor)
 
 
 @router.get("/{werkgebied_id}/elementen")
@@ -321,5 +288,5 @@ async def get_export(werkgebied_id: str, formaat: Literal["pdf", "md"] = "pdf", 
 @router.get("/{werkgebied_id}/audit")
 async def get_audit(werkgebied_id: str, limit: int = Query(100, ge=1, le=500),
                     actor: str = Depends(actieve_userid)):
-    await store.haal(werkgebied_id, met_gearchiveerd=True)
+    await store.haal(werkgebied_id)
     return {"audit": await store.audit(werkgebied_id, limit)}

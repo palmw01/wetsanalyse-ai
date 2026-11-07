@@ -7,7 +7,7 @@ from app import bronselectie, db
 from sqlalchemy import select
 from test_annotatie_v2 import ART, ONE
 from test_bronnen_runs import LID3, _start, _uitkomst
-from test_werkgebied_deelvragen import _dv, _koppel, _patch
+from test_werkgebied_deelvragen import _dv, _patch
 from test_werkgebieden import ART2, _nieuw, client, database, graaf  # noqa: F401
 
 VRAGEN = ["Welke algemene betalingstermijn geldt?", "Welke termijnen gelden voor voorlopige aanslagen?",
@@ -141,9 +141,6 @@ async def test_een_bron_bij_twee_deelvragen_is_een_selectie_met_een_rol_per_deel
     # Nog eens dezelfde klik: geen revisiesprong.
     ov2 = await _besluit(client, wg, ids[2], kid, "opnemen", verwachte_revisie=wg["revisie"], rol="context")
     assert ov2["revisie"] == wg["revisie"]
-    # De koppelingen opnieuw zetten (het deelvraagpaneel) laat de rol staan.
-    wg = await _koppel(client, wg, ids[2], bronnen=[wg["bronnen"][0]["id"]])
-    assert [b["rol"] for b in _dq(await _overzicht(client, wg), ids[2])["bronnen"]] == ["context"]
     # Loskoppelen bij 3 laat de selectie en de koppeling bij 1 staan.
     ov = await _besluit(client, wg, ids[2], kid, "loskoppelen", verwachte_revisie=wg["revisie"])
     assert _dq(ov, ids[2])["bronnen"] == [] and len(_dq(ov, ids[0])["bronnen"]) == 1
@@ -230,32 +227,6 @@ async def test_een_oud_besluit_later_wordt_bij_het_opstarten_een_voorstel(client
     assert status == "voorgesteld"
     k = _kid(_dq(await _overzicht(client, wg), ids[0]), ART)
     assert (k["stand"], k["overal"]) == ("voorgesteld", False)
-
-
-async def test_zelf_een_bepaling_toevoegen_bij_een_deelvraag(client):
-    """Een eigen tekst op het kaartje: Lex vond haar niet, de analist kiest haar zelf. Opnemen en koppelen in
-    één keer; bij een tweede deelvraag een koppeling met een eigen rol, geen tweede selectie."""
-    wg, ids = await _vier(client)
-
-    async def voeg_toe(did, rol, verwacht=200, **bron):
-        rev = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()["revisie"]
-        r = await client.post(f"/v1/werkgebieden/{wg['id']}/bronselectie/{did}/bronnen",
-                              json={"verwachte_revisie": rev, "rol": rol, **bron})
-        assert r.status_code == verwacht, r.text
-        return r.json()
-
-    ov = await voeg_toe(ids[1], "analyseren", bron_iri=ONE)
-    assert [(b["bron_iri"], b["rol"]) for b in _dq(ov, ids[1])["bronnen"]] == [(ONE, "analyseren")]
-    assert _dq(ov, ids[1])["status"] == "in_behandeling"
-    ov = await voeg_toe(ids[1], "analyseren", bron_iri=ONE)                    # nog eens: niets dubbel
-    assert len(_dq(ov, ids[1])["bronnen"]) == 1
-    ov = await voeg_toe(ids[2], "context", bron_iri=ONE)
-    assert [b["rol"] for b in _dq(ov, ids[2])["bronnen"]] == ["context"]
-    assert [b["bron_iri"] for b in (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()["bronnen"]] == [ONE]
-    # Regeling + artikel, zoals Lex het uit een eigen tekst haalt; een onbekende bepaling is 422.
-    ov = await voeg_toe(ids[0], "analyseren", bwb_id="BWBR0004770", artikel="9")
-    assert [b["bron_iri"] for b in _dq(ov, ids[0])["bronnen"]] == [ART]
-    await voeg_toe(ids[0], "analyseren", 422, bwb_id="BWBR0004770", artikel="77")
 
 
 async def test_een_gewijzigde_scope_zet_een_afronding_op_opnieuw_bekijken(client):

@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, Response
 from . import begrippen_run_store as store, begrippen_verdieping as verdieping, werkgebied_store
 from .auth import require_client
 from .begrippen_run_contracts import (
-    Akkoord, BatchInvoer, GroepBesluit, GroepKoppeling, MisluktInvoer, Overname, UitkomstInvoer, VerdiepingInvoer, VraagBesluit,
+    Akkoord, BatchInvoer, GroepBesluit, GroepKoppeling, MisluktInvoer, UitkomstInvoer, VerdiepingInvoer, VraagBesluit,
 )
 from .routers.auth import actieve_userid
 from .werkgebieden import lees_bron, resolve_bron
@@ -82,11 +82,6 @@ async def post_vraag(werkgebied_id: str, run_id: str, kandidaat_id: str, req: Vr
 @router.get("/groepen")
 async def get_groepen(werkgebied_id: str, actor: str = Depends(actieve_userid)):
     return await store.groepen(werkgebied_id)
-
-
-@router.post("/groepen/overnemen", status_code=201)
-async def post_overnemen(werkgebied_id: str, req: Overname, actor: str = Depends(actieve_userid)):
-    return await store.overnemen(await werkgebied_store.haal(werkgebied_id), req, actor, resolve_bron)
 
 
 @router.post("/groepen/akkoord", status_code=201)

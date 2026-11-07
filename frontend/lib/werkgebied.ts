@@ -97,16 +97,12 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   if (!id || pad.length > 6) return false;
   if (pad.length === 1) return true;
   if (deel === "bronnen") return pad.length <= 3;
-  // Deelvragen (optioneel): toevoegen, wijzigen, weghalen, samen opslaan, koppelen en de dekking. `voorstellen` zet
-  // graph-qa (de deelvragen-agent, die je in het gesprek vraagt).
-  if (deel === "deelvragen") {
-    if (pad.length === 2) return true;
-    if (pad.length === 3) return !!a && a !== "voorstellen";
-    return pad.length === 4 && !!a && a !== "dekking" && a !== "voorstellen" && b === "koppelingen";
-  }
+  // Deelvragen (optioneel): één lezen of wijzigen, samen opslaan en de dekking. `voorstellen` zet graph-qa (de
+  // deelvragen-agent, die je in het gesprek vraagt).
+  if (deel === "deelvragen") return pad.length === 3 && !!a && a !== "voorstellen";
   // `verdieping` (fase C) is alleen lezen; de batches en de uitkomst zet graph-qa, niet de werkplek.
   if (deel === "export" || deel === "elementen" || deel === "audit" || deel === "annotatie-werkvoorraad" || deel === "verdieping"
-      || deel === "herbeoordelingen" || deel === "thema-voorstel" || deel === "toestanden" || deel === "regelingen" || deel === "bepalingen")
+      || deel === "herbeoordelingen" || deel === "thema-voorstel" || deel === "toestanden" || deel === "bepalingen")
     return pad.length === 2;
   // Relaties (fase F2): lezen en vastleggen, één relatie weghalen of bevestigen, een voorstel afwijzen.
   if (deel === "relaties") {
@@ -129,15 +125,14 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   // over één kandidaat bij één deelvraag. Dezelfde routes gebruikt Lex in het gesprek.
   if (deel === "bronselectie") {
     if (pad.length === 2) return true;
-    // Een bepaling zelf toevoegen bij één deelvraag (*Bepaling toevoegen*, 3 nov 2026).
-    if (pad.length === 4) return !!a && (b === "status" || b === "bronnen");
+    if (pad.length === 4) return !!a && b === "status";
     return pad.length === 5 && !!a && b === "kandidaten" && !!c;
   }
   // De bronverkenner leest alleen (spoor J): kiezen gaat per deelvraag, via `bronselectie`.
   if (deel === "kandidaten") return pad.length === 2;
   if (deel === "groepen") {
     if (pad.length === 2) return true;
-    if (pad.length === 3) return a === "overnemen" || a === "akkoord";
+    if (pad.length === 3) return a === "akkoord";
     return pad.length === 4 && ["koppelen", "afwijzen", "parkeren", "heropenen"].includes(b);
   }
   if (deel !== "begrippen") return false;

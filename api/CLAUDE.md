@@ -321,8 +321,7 @@ spoor D (*Werkgebied als node*).
   Dezelfde bron met dezelfde rol en hetzelfde bereik opnieuw toevoegen is idempotent (200, geen
   revisiesprong); met een andere rol of ander bereik 409.
 - **Bepaling toevoegen zoekt in de echte boom** (`bepaling_zoeken.py`, 3 nov 2026; sinds 4 nov aangeroepen door
-  graph-qa, het kaartje `bs_toevoegen_treffers`): `GET {id}/regelingen?q=` (die van
-  het werkgebied vooraan, dan citeertitel, afkorting of BWB-id; gecachet) en `GET {id}/bepalingen?bwb_id=&q=` leest
+  graph-qa, het kaartje `bs_toevoegen_treffers`): `GET {id}/bepalingen?bwb_id=&q=` leest
   een getypte vindplaats ("9 lid 2", "art. 9, tweede lid", "21.1", "25.4 onderdeel b", "36 lid 5 sub a"; `lees`) en
   zoekt hem in de bronboom van die regeling (`zoek`: precies, dan wat eronder hangt, dan artikelen die met het
   nummer beginnen; zonder nummer op de kop), met vindplaats, titel en het begin van de tekst. Artikel en lid komen
@@ -343,11 +342,12 @@ spoor D (*Werkgebied als node*).
   bronnode. De `intake_id` is daarna weer vrij. Een nieuwe tabel met `werkgebied_id` (of `begrip_id`)
   hoort in de wislijst; `tests/test_werkgebied_verwijderen.py` faalt anders – behalve `gesprekken`: die
   worden los (`werkgebied_id = ""`), niet gewist, want een gesprek is een verslag van de gebruiker. Archiveren bestaat niet
-  meer: oude gearchiveerde rijen blijven onzichtbaar (`gearchiveerd` geeft 404), maar worden niet
-  automatisch gewist.
+  meer, en een zacht verwijderd begrip ook niet: de kolommen `werkgebieden.gearchiveerd` en `begrippen.verwijderd`
+  zijn weg (H3). Wat er nog mee gemarkeerd stond, wist de start eenmalig zoals verwijderen dat doet
+  (`db._wis_oude_zachte_verwijdering`).
 - **Een verwijderd object zegt wanneer en door wie.** `GET` op een verwijderd werkgebied of begrip
   geeft `404 {fout: "verwijderd", soort, op, door, melding}` uit de audit (`niet_gevonden`; ook voor
-  oude gearchiveerde werkgebieden en soft verwijderde begrippen); een id dat nooit bestond blijft een
+  oude gearchiveerde werkgebieden, via hun auditregel `gearchiveerd`); een id dat nooit bestond blijft een
   gewone 404. De werkplek toont dan "… is verwijderd op … door …", zoals bij een annotatie.
 - **Lezen uit de cache, vastleggen tegen de bron van nu.** Eén scherm vraagt `elementen`, `dekking`, `herbeoordelingen`,
   `annotatie-werkvoorraad` en `begrippen-runs/laatste` tegelijk, en elk las alle regelingen van het werkgebied (acceptatie, 5
@@ -514,7 +514,7 @@ bouwt de invoer, toetst en bewaart de uitkomst, en legt de besluiten vast.
   door.
 - **Een besluit hoort bij de groep** (`betekenisgroepen`, sleutel werkgebied + groep-id = de inhoudshash
   van de keten). Komt dezelfde groep in een latere run terug, dan blijft een afwijzing staan.
-- **Overnemen** (`POST groepen/overnemen`) maakt één begrip (concept) met de gekozen leden als
+- **Akkoord** (`POST groepen/akkoord`, fase D) maakt één begrip met de gekozen leden als
   `duiding` – meer groepen is combineren, een deel van de leden splitsen. De letterlijke
   brondefinitie gaat alleen mee als er precies één is (herkomst `letterlijk`). Zonder kaart komt de
   context uit de vindplaatsen (`context_uit`, de tweeling van graph-qa `kaart._context`; een
@@ -523,8 +523,8 @@ bouwt de invoer, toetst en bewaart de uitkomst, en legt de besluiten vast.
   staat; `groep_ids` mag dan leeg zijn. Uit elke gekozen groep moet minstens één eigen passage mee.
   `lijkt_op` per groep: begrippen die een passage delen of de voorgestelde naam als naam of
   alternatieve term dragen.
-- **Akkoord** (`POST groepen/akkoord`, fase D) is overnemen plus het oordeel van de jurist, in **één
-  transactie** (`_neem_over`): begrip, koppelingen met `beoordeling: akkoord`, accorderen als de poort
+  Het oordeel van de jurist zit erin, in **één transactie** (`akkoord`; een los *overnemen* zonder oordeel bestaat
+  sinds H3 niet meer): begrip, koppelingen met `beoordeling: akkoord`, accorderen als de poort
   het toelaat (`begrip_store.accordeer_in`), groepsbesluit en – met `kandidaat_id` of `kandidaat_ids`
   (spoor H4: alle vragen tussen de gekozen passages van een term, ≤ 500) – de twijfelvragen als *samen*.
   Een onbekende vraag is 404; een vraag waarvan een kant niet bij de gekozen passages hoort 422
@@ -718,7 +718,7 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
   (`test_begrippen_postgres.py` bewijst dat). Wat dit proces al zo schreef, slaat hij over.
 - **De lus** (`graaf_projectie_v2.lus`, zelfde interval) roept `begrip_projectie.reconcile` aan met een
   eigen vangnet: projecteert wat afwijkt van de hash in het register of wiens graph ontbreekt, en haalt
-  graphs weg van verwijderde, (oude) gearchiveerde of lege werkgebieden.
+  graphs weg van verwijderde of lege werkgebieden.
 - **Conformiteit** (`conformiteit`, `GET …/begrippen/conformiteit`): diagnostisch, nooit in het
   schrijfpad. Twee lagen: `nl_sbb` (het vastgepinde profiel `shapes/nl-sbb-1.0.0.ttl`, letterlijk uit
   `geonovum/NL-SBB`, CC-BY 4.0; herkomst en hash in `shapes/BRON.md`) en `eigen`
@@ -771,7 +771,7 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
 ## Begrippen lezen
 
 `begrippen_overzicht.py`; PLAN spoor D, fase F4. Alleen lezend, uit Postgres, over alle actieve
-werkgebieden. Een verwijderd begrip of werkgebied (en een oud gearchiveerd werkgebied) bestaat hier niet.
+werkgebieden. Een verwijderd begrip of werkgebied is gewist en bestaat hier dus niet.
 
 - **`GET /v1/begrippen`** (`q`, `status` herhaalbaar, `werkgebied_id`, `eerst`, `limit`, `offset`) is het
   overzicht van de webapp. Zoeken gebeurt in Python (de inhoud is JSON, de tests draaien op SQLite):
@@ -845,11 +845,11 @@ werkgebied zonder deelvragen werkt zoals altijd.
   `vervangen`, `herkomst` `analist` | `lex`, reden, `vervangt`, soft delete) en `werkgebied_deelvraag_koppelingen` (een set per
   deelvraag, `soort` `bron` | `begrip`, zonder foreign key; wat niet meer bestaat valt bij het lezen weg).
   `GET /v1/werkgebieden/{id}` draagt `deelvragen` (actief en voorgesteld, met hun geldige koppelingen).
-- **Een actieve deelvraag hoort bij de scope**: toevoegen, wijzigen (tekst, volgorde, overnemen met
-  `status: actief`, afwijzen met verplichte reden), weghalen en koppelen lopen door
-  `werkgebied_store._gewijzigd` (revisie, 412, audit `deelvraag-*`). Dezelfde vraag nog eens (genormaliseerd:
-  hoofdletters, diakrieten, leestekens) geeft 409 `al_gesteld`; koppelen aan iets buiten het werkgebied 422
-  `buiten_werkgebied`; een voorstel koppelen 409 `niet_actief`.
+- **Een actieve deelvraag hoort bij de scope**: toevoegen en weghalen (`POST …/deelvragen/samen`, de bewerkstand in
+  één revisie) en wijzigen (`PATCH …/deelvragen/{id}`: tekst, volgorde, overnemen met `status: actief`, afwijzen met
+  verplichte reden) lopen door `werkgebied_store._gewijzigd` (revisie, 412, audit `deelvraag-*`). Dezelfde vraag nog
+  eens (genormaliseerd: hoofdletters, diakrieten, leestekens) geeft 409 `al_gesteld`. De koppelingen zet geen client
+  zelf: ze ontstaan bij het opnemen van een kandidaat (`koppel_bron_in`) en gaan mee bij een vervanging.
 - **Voorstellen van Lex** (`POST …/deelvragen/voorstellen {vragen, model}`, graph-qa): geen revisie, alleen
   het slot en een auditregel `deelvragen-voorgesteld`. Wat er al staat, is afgewezen of weggehaald, komt er
   niet bij (`overgeslagen` met de reden).
@@ -890,7 +890,7 @@ na herladen, in een ander gesprek en bij een collega ook is.
 - **Het zoekbereik staat op het werkgebied** (`regelingen: [{bwb_id, label}]`, 4 nov 2026): gekozen bij het
   samenstellen of aanvullen, in de invoer van de bronnenrun (`invoer_van`, alleen als het er is).
   `werkgebied_store.regelingen_van` is de ene plek die "de regelingen van het werkgebied" afleidt: eerst dit veld, dan
-  de regelingen van de bronnen (peildatum/toestanden, thema-voorstel, `GET …/regelingen`).
+  de regelingen van de bronnen (peildatum/toestanden, thema-voorstel).
 - **Voortgang per deelvraag** (`bronselectie_voortgang`, sleutel werkgebied + deelvraag): geen rij =
   `niet_gestart`, dan `in_behandeling`, `voorlopig_afgerond`, `beoordeeld`; plus `fase` (`kern`,
   `afhankelijkheden`, `afronden`) en `open_punten`. Dit is de stand van het werk; de deelvraagstatus
@@ -922,12 +922,6 @@ na herladen, in een ander gesprek en bij een collega ook is.
     uitsluiting naar `bron_kandidaten` en geldt ze bij elke deelvraag. `heropenen` wist het besluit hier, met
     `overal` ook het werkgebiedbrede. Geen revisie, wel het slot en een audit `bronselectie-*`;
   - een besluit start de deelvraag als dat nog niet gebeurd was.
-- **Zelf een bepaling toevoegen** (`POST …/bronselectie/{deelvraag}/bronnen`, `BronselectieInvoer`: bron-IRI, of
-  regeling + artikel (+ lid), met `rol` en `verwachte_revisie`): geverifieerd in de graaf zoals bij zelf opnemen
-  (422 als ze niet bestaat), opgenomen in het werkgebied als ze er nog niet stond en gekoppeld aan deze deelvraag
-  – in één transactie (`bronselectie.toevoegen`). Staat ze er al met een andere rol, dan wordt die de rol bij
-  deze deelvraag. Uitgesloten voor het hele werkgebied: 409. Lex gebruikt dit voor een eigen tekst op het
-  kaartje ("artikel 25 lid 2 Invorderingswet 1990").
 - **`GET …/bronselectie?na=`**: per eenheid `nr`, stand, `revisie`, `opnieuw_bekijken`, `klaar`, `bronnen` (met
   rol hier), `kandidaten` met `stand` hier (`voorgesteld`, `niet_gekozen`, `uitgesloten`, `opgenomen`), `overal`,
   `elders_opgenomen` en `bewijs_soorten` (`verwijzing`, `definitie`, `structuur`, `tekst`, `gelijkenis`:
@@ -1131,7 +1125,9 @@ Er is geen Alembic. `db.bouw_schema` draait bij de start, onder een advisory loc
 `db.create_all` maakt **ontbrekende tabellen** aan;
 `db.reconcile_schema` voegt daarna **ontbrekende kolommen** toe (`ALTER TABLE … ADD COLUMN`, mét
 `server_default`) en maakt **ontbrekende indexen** aan (`checkfirst`). Nooit droppen of van type
-wisselen: dat is een bewuste ingreep, die als benoemde uitzondering in `reconcile_schema` staat. Declareer een nieuwe kolom dus altijd in de
+wisselen: dat is een bewuste ingreep, die als benoemde uitzondering in `reconcile_schema` staat (nu: de oude
+budgetkolommen, de NOT NULL van `werkgebied_id` voor generieke begrippen, en `werkgebieden.gearchiveerd` en
+`begrippen.verwijderd`, waarvan de start eerst de gemarkeerde rijen wist). Declareer een nieuwe kolom dus altijd in de
 `Table` in `db.py`; zonder die declaratie kent SQLAlchemy Core haar niet, ook als ze in de database
 bestaat. `_na_kolom` vult een nieuw toegevoegde kolom waar de waarde al elders stond (nu alleen
 `gesprek_berichten.run_id` uit `inhoud`).

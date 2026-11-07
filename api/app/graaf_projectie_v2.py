@@ -348,7 +348,7 @@ def zoek_query(filters: dict, limit: int = 10001) -> str:
             raise ValueError("Ongeldige bronscope")
         values = " ".join(URIRef(i).n3() for i in iris)
         clauses.append(f"FILTER EXISTS {{ VALUES ?geraakt {{ {values} }} ?e oa:hasTarget/oa:hasSource ?geraakt }}")
-    source = filters.get("bronnode_id") or filters.get("bron_iri")
+    source = filters.get("bron_iri")
     if source:
         match = re.fullmatch(r"urn:bwb:(BWB[RV]\d+)(?::[^<>\s\"{}|^`\\]*)?", str(source))
         if not match:

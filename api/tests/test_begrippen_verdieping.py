@@ -144,18 +144,18 @@ async def test_een_besloten_groep_van_de_keten_blijft_zichtbaar(client):
     assert {x["id"]: x["besluit"] for x in g["groepen"]} == {GM: "open", GA: "afgewezen"}
 
 
-async def test_overnemen_vult_het_begrip_uit_de_kaart(client):
+async def test_akkoord_vult_het_begrip_uit_de_kaart(client):
     ids, wg, run = await _klaar(client)
     await _verdiep(client, ids, wg, run)
-    r = await client.post(f"/v1/werkgebieden/{wg['id']}/groepen/overnemen", json={"groep_ids": [GM], "naam": "alfa"})
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/groepen/akkoord", json={"groep_ids": [GM], "naam": "alfa"})
     assert r.status_code == 201, r.text
-    inhoud = r.json()["inhoud"]
+    inhoud = r.json()["begrip"]["inhoud"]
     assert inhoud["definitie"] == "Alfa Alfa … Beta" and inhoud["definitie_herkomst"] == "samengesteld"
     assert inhoud["alternatieve_termen"] == ["beta"] and "begripstype" not in inhoud
     assert inhoud["context"] == "Komt voor in Lid 1."
     assert "onderbouwing" not in inhoud
     # Het bewijs blijft na overnemen (spoor M), bevroren in de revisie: de fragmenten van de kaart.
-    o = r.json()["definitie_onderbouwing"]
+    o = r.json()["begrip"]["definitie_onderbouwing"]
     assert (o["groep_id"], o["run_id"], o["herkomst"]) == (GM, run["id"], "samengesteld")
     assert o["onderzoek_id"] == run["onderzoek_id"]
     assert [(f["bron_iri"], f["start"], f["eind"], f["rol"]) for f in o["fragmenten"]] == \

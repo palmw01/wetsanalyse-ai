@@ -201,7 +201,7 @@ async def herbeoordelingen(werkgebied: dict, resolve: Resolver, begrip_id: str |
     b = db.begrippen
     async with db.get_engine().connect() as conn:
         await begrip_store._werkgebied_bestaat(conn, werkgebied["id"])
-        q = select(b).where(begrip_store.in_werkgebied(werkgebied["id"]), b.c.verwijderd.is_(None))
+        q = select(b).where(begrip_store.in_werkgebied(werkgebied["id"]))
         if begrip_id:
             q = q.where(b.c.id == begrip_id)
         rows = (await conn.execute(q.order_by(b.c.aangemaakt, b.c.id))).all()
@@ -393,8 +393,7 @@ async def dekking(werkgebied: dict, resolve: Resolver) -> dict:
     async with db.get_engine().connect() as conn:
         await begrip_store._werkgebied_bestaat(conn, werkgebied["id"])
         status = {r.id: (r.status, r.inhoud.get("naam", "")) for r in (await conn.execute(select(b.c.id, b.c.status, b.c.inhoud)
-                  .where(b.c.werkgebied_id == werkgebied["id"], b.c.verwijderd.is_(None),
-                         b.c.status != "vervangen"))).all()}
+                  .where(b.c.werkgebied_id == werkgebied["id"], b.c.status != "vervangen"))).all()}
         koppelingen = await begrip_store._koppelingen_van(conn, werkgebied["id"])
         besluiten = await _besluiten(conn, werkgebied["id"])
         run = await begrippen_run_store._laatste_klare(conn, werkgebied["id"])

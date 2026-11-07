@@ -163,7 +163,7 @@ async def vergelijkingsbegrippen(werkgebied_id: str, namen: set[str]) -> list[di
     b = db.begrippen
     async with db.get_engine().connect() as conn:
         rows = (await conn.execute(select(b.c.id, b.c.werkgebied_id, b.c.status, b.c.inhoud)
-                                   .where(b.c.verwijderd.is_(None)).order_by(b.c.id))).all()
+                                   .order_by(b.c.id))).all()
     eigen, elders = [], []
     for r in rows:
         inhoud = r.inhoud or {}
