@@ -28,7 +28,7 @@ def test_volledige_stroom_plan_tools_verify_finalize():
     events = _run(answer_stream("vraag", settings=settings, llm=llm, graph=graph))
     types = [e["type"] for e in events]
 
-    assert types[0] == "status" and "Aanpak" in events[0]["message"]          # plan-node eerst
+    assert types[0] == "status" and events[0].get("route")                     # plan-node eerst (het plan zelf niet in beeld, G2b)
     assert any(e["type"] == "status" and e["message"].startswith("Lex · leest artikel 9") for e in events)  # tools-node
     assert graph.queries                                                       # tool echt uitgevoerd
     # volgorde aan het eind: sources → grounding → done
