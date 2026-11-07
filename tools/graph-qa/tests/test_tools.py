@@ -15,6 +15,7 @@ EXPECTED = {
     "inhoudsopgave", "zoek_definitie", "grondslagen", "geldigheid", "bijlagen", "get_context",
     "resolve_begrip", "graph_schema", "raw_sparql", "zoek_opbouw", "overzicht_onderwerp",
     "search_begrippen", "get_begrip",
+    "zoek_kamerstukken", "get_kamerstuk",  # bronconnector (ADR-013)
 }
 
 

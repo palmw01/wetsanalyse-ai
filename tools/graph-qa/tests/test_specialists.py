@@ -60,7 +60,7 @@ def test_onbekende_route_valt_terug_op_algemeen():
         response([text_block("Antwoord.")], "end_turn"),
     ])
     _run(answer_stream("vraag", settings=make_settings(), llm=llm, graph=FakeGraph(result="")))
-    assert set(_agent_tools(llm)) == {t["name"] for t in tools.TOOLS} | {"antwoord_bepaling"}  # alle tools, plus het sjabloon
+    assert set(_agent_tools(llm)) == ({t["name"] for t in tools.TOOLS} - tools.CONNECTOR_TOOLS) | {"antwoord_bepaling"}  # alle tools, plus het sjabloon
 
 
 def test_planning_uit_is_algemeen_alle_tools():
@@ -68,4 +68,4 @@ def test_planning_uit_is_algemeen_alle_tools():
     _run(answer_stream("vraag", settings=make_settings(enable_planning=False),
                        llm=llm, graph=FakeGraph(result="")))
     # geen router → llm.calls[0] is de agent-stream-call
-    assert {t["name"] for t in llm.calls[0]["tools"]} == {t["name"] for t in tools.TOOLS} | {"antwoord_bepaling"}
+    assert {t["name"] for t in llm.calls[0]["tools"]} == ({t["name"] for t in tools.TOOLS} - tools.CONNECTOR_TOOLS) | {"antwoord_bepaling"}

@@ -144,6 +144,8 @@ SPECIALISTS: dict[str, Specialist] = {
             "get_artikel", "get_lid", "verwijst_naar_deze", "graph_schema", "raw_sparql",
             # Een vastgelegd begrip (fase F4) naast de wettelijke definitie – gescheiden gehouden.
             "search_begrippen", "get_begrip",
+            # De betekenis die de wetgever bedoelde (ADR-013), alleen met de connector aan.
+            "zoek_kamerstukken", "get_kamerstuk",
         }),
         sjablonen=frozenset({"antwoord_begrip"}),
     ),
@@ -172,6 +174,8 @@ SPECIALISTS: dict[str, Specialist] = {
             # advies). Zonder deze tools kon hij het spoor en de alternatieven van de markering niet
             # lezen, en de klasse-omschrijving alleen raden.
             "get_annotatie", "jas_klasse_opvragen",
+            # Wetsgeschiedenis (ADR-013): alleen als de connector aanstaat (`tools.toegestane_tools`).
+            "zoek_kamerstukken", "get_kamerstuk",
         }),
         sjablonen=frozenset({"antwoord_bepaling", "antwoord_duiding"}),
     ),

@@ -46,6 +46,9 @@ class Settings(BaseModel):
     repository_id: str = "inning"
     graphdb_sparql_tool: str = "sparql_query"  # naam van de SPARQL-tool op de MCP-server
     similarity_index: str = ""                 # GraphDB similarity-index voor semantic_search; leeg = uit
+    # Bronconnectors (ADR-013). Uit tot de straat ze aanzet; de toollaag biedt een uitgezette connector niet aan.
+    connector_kamerstukken: bool = False
+    kamerstukken_sru_url: str = "https://repository.overheid.nl/sru"
 
     # LLM (Azure AI Foundry / Anthropic)
     azure_foundry_api_key: str | None = None
@@ -187,6 +190,8 @@ class Settings(BaseModel):
             "repository_id": e.get("GRAPHDB_REPOSITORY_ID"),
             "graphdb_sparql_tool": e.get("GRAPHDB_SPARQL_TOOL"),
             "similarity_index": e.get("SIMILARITY_INDEX"),
+            "connector_kamerstukken": e.get("CONNECTOR_KAMERSTUKKEN"),
+            "kamerstukken_sru_url": e.get("KAMERSTUKKEN_SRU_URL"),
             "azure_foundry_api_key": _read_secret(e, "AZURE_FOUNDRY_API_KEY"),
             "azure_foundry_base_url": e.get("AZURE_FOUNDRY_BASE_URL"),
             "llm_model": e.get("LLM_MODEL"),

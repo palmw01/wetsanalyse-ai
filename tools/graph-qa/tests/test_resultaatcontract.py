@@ -56,7 +56,8 @@ ARGS: dict[str, dict] = {
 }
 
 
-GRAAFTOOLS = [t["name"] for t in tools.TOOLS if t["name"] not in AFGELEIDE_TOOL_NAMEN]
+# De bronconnectors (ADR-013) lezen niet uit de graaf; hun contract toetst test_kamerstuk_tools.
+GRAAFTOOLS = [t["name"] for t in tools.TOOLS if t["name"] not in AFGELEIDE_TOOL_NAMEN | tools.CONNECTOR_TOOLS]
 # Gerangschikte lijsten: via `vervolg` moet de hele (fake) dataset langskomen.
 PAGINEREND = {"search_wetgeving", "zoek_opbouw", "semantic_search", "verwijst_naar_deze", "zoek_definitie", "list_regelingen",
               "follow_verwijzingen", "referenced_by", "grondslagen", "get_context", "resolve_begrip"}

@@ -33,7 +33,7 @@ from ..specialists import get as get_specialist
 from ..specialists import methoderol as specialist_methoderol
 from ..llm_stap import Rol, stroom
 from ..state import State
-from ..tools import anthropic_schemas
+from ..tools import anthropic_schemas, toegestane_tools
 from ..tool_execution import execute_tool
 from ..tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN, begrens_antwoord
 from ..tools.begrip_tools import alleen_begrippen_gezocht, begrens_begrippen_antwoord
@@ -102,7 +102,7 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         model=b.model_ophaal if spec_naam == "retrieval" else b.model,
         max_tokens=MAX_TOKENS_OPHALEN if spec_naam == "retrieval" else MAX_TOKENS_ANTWOORD,
         system=[stabiel, variabel],
-        tools=anthropic_schemas(only=spec.tools) + sjabloon_schemas(spec.sjablonen),
+        tools=anthropic_schemas(only=toegestane_tools(spec.tools, b.settings)) + sjabloon_schemas(spec.sjablonen),
         messages=venster,
         # Elke toolronde stuurt de hele historie opnieuw: een cache-punt aan het eind maakt die de volgende ronde goedkoop.
         historie_cache=True,

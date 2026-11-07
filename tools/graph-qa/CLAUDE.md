@@ -197,10 +197,21 @@ bruikbaar is.
 
 ## Toollaag & queries
 
-- **`tools/__init__.py`** – `TOOLS` (27 declaraties: 21 graaftools, de vier annotatieleestools uit
-  `tools/annotatie_tools.py` en de twee begrippenleestools uit `tools/begrip_tools.py`), `anthropic_schemas(only=)` en `dispatch()` (vangt
+- **`tools/__init__.py`** – `TOOLS` (29 declaraties: 21 graaftools, de vier annotatieleestools uit
+  `tools/annotatie_tools.py`, de twee begrippenleestools uit `tools/begrip_tools.py` en de twee Kamerstuktools uit
+  `tools/kamerstuk_tools.py`), `anthropic_schemas(only=)` en `dispatch()` (vangt
   `ValueError`/`MCPError`/`KeyError` als tekst). Een tool met `needs_settings` krijgt `settings` mee.
   `tools/jas_tools.py` (`JAS_TOOLS`) is dispatchbaar maar wordt in de draaiende keten niet aangeroepen.
+- **Bronconnectors** (ADR-013): `CONNECTORS` (connector → tools) en `toegestane_tools(tools, settings)`, de ene
+  regel voor de schema's van de antwoordlus, de MCP-server en `dispatch`. Een connector staat uit tot de straat hem
+  aanzet (`CONNECTOR_KAMERSTUKKEN=true`); uit is niet aangeboden, en een aanroep is dan `connector_uit`.
+  **Kamerstukken** (`tools/kamerstuk_tools.py`, transport `adapters/sru_kamerstukken.py`): `zoek_kamerstukken`
+  (een dossier op nummer, of woorden in de titel) en `get_kamerstuk` (per alinea, met de kop, in documentvolgorde;
+  tabellen, illustraties en voetnoten geteld in `overgeslagen`). De CQL bouwt de tool, de document-URL komt uit het
+  SRU-record en alleen `repository.overheid.nl` over https; een SRU-diagnose of storing is een foutresultaat
+  (`bron_onbereikbaar`), nooit een lege lijst. Een rij draagt haar tekst onder `id`, niet onder `iri`/`uri`: een
+  sjabloon citeert er dus niet uit als passage van een bepaling. Cache per proces en per id, met de teksthash in de
+  log. Live meten: `KAMERSTUKKEN_LIVE=1 uv run pytest tests/test_kamerstuk_tools.py`.
 - **`graph/queries.py`** – de SPARQL-bouwers (o.a. `context()` = de GraphRAG-UNION).
   **`graph/schema.py`** – schema-introspectie met een cache van een uur. **`graph/results.py`** –
   `parse_select`: de MCP levert SELECT als JSON-string-gewrapte TSV.

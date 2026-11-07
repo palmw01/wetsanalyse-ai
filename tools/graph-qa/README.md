@@ -209,6 +209,8 @@ Secrets kunnen ook als `<NAAM>_FILE` (pad naar een bestand) worden gezet: `GRAPH
 | `GRAPHDB_REPOSITORY_ID` | `inning` | Repository. |
 | `GRAPHDB_SPARQL_TOOL` | `sparql_query` | Naam van de SPARQL-tool op de MCP-server. |
 | `SIMILARITY_INDEX` | leeg | GraphDB-similarity-index voor `semantic_search` (op Azure `bwb_similarity`). Leeg → de tool degradeert naar `search_wetgeving`. Zie [`docs/embeddings-runbook.md`](docs/embeddings-runbook.md). |
+| `CONNECTOR_KAMERSTUKKEN` | `false` | De bronconnector Kamerstukken (ADR-013): `zoek_kamerstukken` en `get_kamerstuk` op de officiële publicaties van KOOP. Uit = niet aangeboden. |
+| `KAMERSTUKKEN_SRU_URL` | de SRU-dienst van KOOP | Alleen voor een andere SRU-dienst; de documenten komen altijd uit `repository.overheid.nl`. |
 | `AZURE_FOUNDRY_API_KEY` *(verplicht)* | – | Azure-AI-Foundry-key. |
 | `AZURE_FOUNDRY_BASE_URL` *(verplicht)* | – | Foundry-endpoint **met** `/anthropic`-suffix. |
 | `LLM_MODEL` | `claude-sonnet-4-6` | Draagt de classifier, de reviewer en de QA-specialisten; die hebben bewust geen eigen knop. |
