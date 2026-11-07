@@ -6,6 +6,7 @@ import base64
 import json
 import re
 
+from bronmodel import element_actueel
 from fastapi import HTTPException
 from sqlalchemy import select
 
@@ -143,8 +144,7 @@ async def zoek(req: Zoekvraag) -> dict:
                 complete = False
                 continue
             nodes = nodes_van(current)
-            stale = e.get("verouderd", False) or any(a["bron_iri"] not in nodes or nodes[a["bron_iri"]]["bron_hash"] != a["bron_hash"]
-                   or nodes[a["bron_iri"]]["tekst"][a["start"]:a["eind"]] != a["tekst"] for a in e["ankers"])
+            stale = not element_actueel(e, nodes)
             if stale and not req.inclusief_verouderd:
                 continue
             # Een deels buitenliggend element is in dit bereik alleen een verwijzing. De

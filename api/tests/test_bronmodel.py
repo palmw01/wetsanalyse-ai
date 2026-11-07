@@ -1,6 +1,6 @@
 """Contracttests voor dezelfde bronresolver die API en agent gebruiken."""
 import pytest
-from bronmodel import BronFout, BronKeuze, bouw_snapshot, bron_query, eigenaar, onderdelen_om_te_kiezen, valideer_ankers
+from bronmodel import BronFout, BronKeuze, anker_actueel, bouw_snapshot, element_actueel, bron_query, eigenaar, onderdelen_om_te_kiezen, valideer_ankers
 from rdflib.plugins.sparql.parser import parseQuery
 
 BWB = "BWBR0004770"
@@ -23,6 +23,19 @@ def fixture():
 
 def snapshot(**kwargs):
     return bouw_snapshot(fixture(), bwb_id=BWB, **kwargs)
+
+
+def test_een_anker_is_actueel_zolang_node_tekst_en_plek_kloppen():
+    s = snapshot()
+    nodes = {n["bron_iri"]: n for n in s["nodes"]}
+    lid = nodes[ROOT + ":artikel:9:lid:2"]
+    anker = {"bron_iri": lid["bron_iri"], "start": 3, "eind": 12, "tekst": "ontvanger", "bron_hash": lid["bron_hash"]}
+    assert anker_actueel(anker, nodes) and element_actueel({"ankers": [anker]}, nodes)
+    assert not anker_actueel({**anker, "bron_hash": "anders"}, nodes)
+    assert not anker_actueel({**anker, "start": 4, "eind": 13}, nodes)
+    # Een verdwenen bronnode is verouderd: eerder telde de weergave hem als actueel, het zoeken niet.
+    assert not anker_actueel(anker, {k: v for k, v in nodes.items() if k != lid["bron_iri"]})
+    assert not element_actueel({"ankers": [anker], "verouderd": True}, nodes)
 
 
 def test_lid_selection_keeps_xml_identity_and_subtree_without_sibling():
