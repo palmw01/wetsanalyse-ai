@@ -100,8 +100,9 @@ overzien.
    eerste-beheerder-registratie via `/setup`; **zelfregistratie** via `/registreren`, die een beheerder
    goedkeurt voor er een account ontstaat; TOTP-2FA, optioneel behalve voor beheerders: zonder 2FA blijft
    het beheer dicht). De UI volgt de **Rijkshuisstijl**
-   (Belastingdienst-stijlvak: lintblauw, Fira-fonts, het officiële Belastingdienst-logo en
-   JAS-klassekleuren uit `docs/wetsanalyse/wa-table.png`).
+   (Belastingdienst-stijlvak: lintblauw, Fira-fonts en JAS-klassekleuren uit
+   `docs/wetsanalyse/wa-table.png`), met een eigen beeldmerk voor Lex in plaats van een overheidslogo
+   (`frontend/merk/`, zie `frontend/CLAUDE.md` §*Vormgeving*).
 3. **`tools/graph-qa/`** – de eigen **QA/annotatie-agent**, **Lex** (de naam die de gebruiker ziet; de
    code, het image en de env-variabelen heten `graph-qa`), die vragen over wet- en regelgeving
    beantwoordt door de BWB-**kennisgraaf** (GraphDB via MCP) te bevragen en het antwoord

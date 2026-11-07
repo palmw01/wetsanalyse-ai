@@ -41,6 +41,22 @@
   /* Elevation (modern jasje): fijne, lintblauw-getinte schaduwen i.p.v. overal een 1px-rand. */
   --schaduw-zacht: 0 1px 2px rgb(21 66 115 / 0.06), 0 1px 3px rgb(21 66 115 / 0.05);
   --schaduw-kaart: 0 4px 14px rgb(21 66 115 / 0.08), 0 1px 3px rgb(21 66 115 / 0.06);
+
+  /* Het beeldmerk van Lex (`components/ui/LexMerk.tsx`, bron `merk/lex-merk.svg`): drie rollen, geen
+     vaste kleuren in het component. Het geel is een merktoken en geen statuskleur: het betekent
+     "gemarkeerd fragment" en hoort niet op knoppen of labels. */
+  --merk-vlak: 21 66 115; /* #154273 – de tegel (= lintblauw) */
+  --merk-vlak-dekking: 1;
+  --merk-vorm: 255 255 255; /* #FFFFFF – de regels */
+  --merk-markering: 255 216 77; /* #FFD84D – het gemarkeerde fragment (7,4:1 op lintblauw) */
+}
+
+/* De donkere stand van het merk ligt klaar voor de donkere modus van de app: de tegel vervalt, de regels
+   worden lichtgrijs, het geel blijft (12,5:1 op #0F1B2A). Alleen achter `data-theme="dark"`, zodat er nu
+   niets verandert; het thema van later zet dat attribuut. */
+[data-theme="dark"] {
+  --merk-vlak-dekking: 0;
+  --merk-vorm: 232 239 247; /* #E8EFF7 */
 }
 
 * {
