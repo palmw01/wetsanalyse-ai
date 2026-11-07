@@ -128,7 +128,7 @@ def _dossier(data: dict) -> Dossier:
                    zoekbereik=[Zoekregeling(bwb_id=r["bwb_id"], label=r.get("label") or "") for r in wg.get("regelingen") or []])
 
 
-def _deelvragen(data: dict) -> Deelvragen:
+def _deelvragen(data: dict, nodes: dict[str, dict]) -> Deelvragen:
     wg, overzicht = data["werkgebied"], data["overzicht"]
     selecties = {s["id"]: s for s in wg["bronnen"]}
     vragen: list[Deelvraag] = []
@@ -138,7 +138,7 @@ def _deelvragen(data: dict) -> Deelvragen:
         vragen.append(Deelvraag(
             nr=v["nr"], vraag=v["vraag"], status=v["status"], opnieuw_bekijken=bool(v["opnieuw_bekijken"]),
             open_punten=[p["tekst"] for p in v["open_punten"]], niet_gekozen=v["telling"].get("niet_gekozen") or 0,
-            bronnen=[DeelvraagBron(label=b["label"], rol=b["rol"], reden=(selecties.get(b["selectie_id"]) or {}).get("reden") or "")
+            bronnen=[DeelvraagBron(vindplaats=_plek(b["bron_iri"], nodes, b["label"]), rol=b["rol"], reden=(selecties.get(b["selectie_id"]) or {}).get("reden") or "")
                      for b in v["bronnen"]]))
         for k in v["kandidaten"]:
             doel = uitgesloten if k["stand"] == "uitgesloten" else voorstellen if k["stand"] == "voorgesteld" else None
@@ -147,10 +147,10 @@ def _deelvragen(data: dict) -> Deelvragen:
     dekking = overzicht["zoekdekking"]
     return Deelvragen(
         modus=overzicht["modus"], deelvragen=vragen,
-        uitgesloten=[UitgeslotenBron(label=k["label"], overal=bool(k["overal"]), nrs=k["nrs"], besloten_door=k["besloten_door"] or "",
+        uitgesloten=[UitgeslotenBron(vindplaats=_plek(k["bron_iri"], nodes, k["label"]), overal=bool(k["overal"]), nrs=k["nrs"], besloten_door=k["besloten_door"] or "",
                                      reden=k["reden"] or "") for k in uitgesloten.values()],
         open_vragen=[d["vraag"] for d in wg["deelvragen"] if d.get("status") == "voorgesteld"],
-        open_bronnen=[Bronvoorstel(label=k["label"], rol=k["rol"], nrs=k.get("nrs") or [])
+        open_bronnen=[Bronvoorstel(vindplaats=_plek(k["bron_iri"], nodes, k["label"]), rol=k["rol"], nrs=k.get("nrs") or [])
                       for k in [*voorstellen.values(), *overzicht["zonder_deelvraag"]]],
         zoekdekking=Zoekdekking(onvolledig=[str(x) for x in dekking.get("onvolledig") or []], verouderd=bool(dekking.get("verouderd")),
                                 reden=str(dekking.get("reden") or "")) if dekking.get("gezocht") else None)
@@ -159,6 +159,14 @@ def _deelvragen(data: dict) -> Deelvragen:
 def _plek(iri: str, nodes: dict[str, dict], label: str = "") -> Vindplaats:
     """Een vindplaats altijd uit de bronboom; zonder jci blijft de bron-IRI de bronreferentie."""
     return Vindplaats(iri=iri, label=label or _vindplaats(iri, nodes), jci=(nodes.get(iri) or {}).get("jci") or "")
+
+
+def _reden_afwijzing(e: dict) -> str:
+    """De reden bij de laatste afwijzing; alleen als de markering nu ook afgewezen is."""
+    if e["lifecycle"] != "rejected":
+        return ""
+    laatste = next((b for b in reversed(e.get("beslissingen") or []) if b.get("type") == "reject"), {})
+    return laatste.get("review_reason") or laatste.get("comment") or ""
 
 
 def _markering(e: dict, nodes: dict[str, dict], verklaringen: dict) -> Markering:
@@ -170,6 +178,7 @@ def _markering(e: dict, nodes: dict[str, dict], verklaringen: dict) -> Markering
         herkomst=Herkomst(herkomst=r["herkomst"], besloten_door=r["besloten_door"], terugval=bool(r["terugval"]), twijfel=r["twijfel"],
                           gedegradeerd=r["gedegradeerd"], jurist=r["jurist"]),
         afwijkingen=[Afwijking(plek=plek, toen=toen, nu=nu) for plek, toen, nu in _anker_afwijkingen(e, nodes)],
+        reden_afwijzing=_reden_afwijzing(e),
         verouderd=bool(e.get("verouderd")), deels_buiten=bool(e.get("deels_buiten")), door="analist" if r["herkomst"] == "mens" else "lex")
 
 
@@ -255,7 +264,8 @@ def _passage(k: dict, elementen: dict[str, dict], nodes: dict[str, dict]) -> Pas
     nu = elementen.get(k["element_id"]) if k["actualiteit"] != "actueel" else None
     return Passage(tekst=bewijs.get("tekst", ""), vindplaats=_plek(iri, nodes, bewijs.get("vindplaats") or ""), klasse=bewijs.get("klasse") or "",
                    rol=k["rol"], beoordeling=k["beoordeling"], annotatie_beoordeeld=bool(k["annotatie_beoordeeld"]),
-                   motivatie=k.get("motivatie") or "", actualiteit=k["actualiteit"], nu=nu["tekst"] if nu else None)
+                   motivatie=k.get("motivatie") or "", beoordeeld_door=k.get("beoordeeld_door") or "",
+                   beoordeeld_op=k.get("beoordeeld_op"), actualiteit=k["actualiteit"], nu=nu["tekst"] if nu else None)
 
 
 def _begrip(b: dict, data: dict, elementen: dict[str, dict], nodes: dict[str, dict], redenen: dict[str, str]) -> Begrip:
@@ -266,6 +276,7 @@ def _begrip(b: dict, data: dict, elementen: dict[str, dict], nodes: dict[str, di
     return Begrip(
         id=b["id"], naam=i["naam"], status=b["status"], generiek=b.get("kader") == "generiek", alternatieve_termen=i.get("alternatieve_termen") or [],
         definitie=i.get("definitie") or "", definitie_herkomst=i.get("definitie_herkomst") or "", definitie_door=i.get("definitie_door") or "",
+        definitie_vindplaats=_plek(o["definitie_bron_iri"], nodes, o.get("definitie_vindplaats") or "") if o.get("definitie_bron_iri") else None,
         uitleg=i.get("uitleg") or "", toelichting=i.get("context") or "",
         voorbeelden=[Voorbeeld(oordeel=v["oordeel"], tekst=v["tekst"]) for v in i.get("voorbeelden") or []],
         onderbouwing_aangepast=bool(o.get("aangepast")),
@@ -301,14 +312,15 @@ def _verantwoording(data: dict, nodes: dict[str, dict]) -> Verantwoording:
         juristen=sorted({b["actor"] for e in [*inv["elementen"], *inv["afgewezen"]] for b in e.get("beslissingen") or [] if b.get("actor")}),
         accordeurs=sorted({b["geaccordeerd_door"] for b in data["begrippen"] if b["status"] == "geaccordeerd" and b["geaccordeerd_door"]}),
         handelingen=[Handeling(actie=a, aantal=n) for a, n in Counter(a["actie"] for a in data["audit"]).most_common()],
-        bronnen=[Selectie(rol=s["rol"], vindplaats=_plek(s["bron_iri"], nodes, s["label"])) for s in wg["bronnen"]])
+        bronnen=[Selectie(rol=s["rol"], vindplaats=_plek(s["bron_iri"], nodes, s["label"]), toegevoegd_door=s.get("toegevoegd_door") or "",
+                          toegevoegd=s.get("toegevoegd")) for s in wg["bronnen"]])
 
 
 def bouw_rapport(data: dict, verklaringen: dict) -> Rapport:
     """Het gestructureerde rapport: alles wat een uitvoervorm mag tonen, en niets anders."""
     nodes = _nodes(data)
     return Rapport(stand=Stand(op=data["export"]["op"], door=data["export"]["actor"]), voorblad=_voorblad(data, nodes),
-                   dossier=_dossier(data), deelvragen=_deelvragen(data), wettekst=_wettekst(data, nodes, verklaringen),
+                   dossier=_dossier(data), deelvragen=_deelvragen(data, nodes), wettekst=_wettekst(data, nodes, verklaringen),
                    begrippen=_begrippen(data, nodes), verantwoording=_verantwoording(data, nodes))
 
 

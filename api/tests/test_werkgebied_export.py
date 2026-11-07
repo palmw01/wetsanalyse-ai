@@ -416,13 +416,14 @@ def test_het_spoor_is_van_de_laatste_ronde_van_de_inhoudsopgave():
 def test_dossier_en_deelvragen_staan_in_het_rapport_met_hun_codes_en_komen_er_letterlijk_uit():
     wg = {"aanleiding": "Eerste alinea.\n\nTweede alinea.", "regelingen": [{"bwb_id": "BWBR1", "label": ""}], "bronnen": [
         {"id": "s1", "reden": "Kern"}], "deelvragen": [{"vraag": "Nog een vraag?", "status": "voorgesteld"}]}
-    kandidaat = {"id": "k", "label": "Artikel 3", "rol": "kern", "overal": False, "besloten_door": None, "reden": ""}
+    kandidaat = {"id": "k", "bron_iri": "urn:drie", "label": "Artikel 3", "rol": "kern", "overal": False, "besloten_door": None, "reden": ""}
     overzicht = {"modus": "deelvragen", "zonder_deelvraag": [], "zoekdekking": {"gezocht": True, "verouderd": True, "onvolledig": ["tekst"]},
                  "deelvragen": [{"nr": 1, "vraag": "Wie?", "status": "in_behandeling", "opnieuw_bekijken": False, "open_punten": [],
-                                 "telling": {}, "bronnen": [{"label": "Artikel 9", "rol": "context", "selectie_id": "s1"}],
+                                 "telling": {}, "bronnen": [{"bron_iri": "urn:negen", "label": "Artikel 9", "rol": "context", "selectie_id": "s1"}],
                                  "kandidaten": [{**kandidaat, "stand": "uitgesloten"}]}]}
     data = {"werkgebied": wg, "overzicht": overzicht}
-    dossier, deelvragen = export._dossier(data), export._deelvragen(data)
+    nodes = {"urn:negen": {"jci": "jci1.3:c:negen"}}
+    dossier, deelvragen = export._dossier(data), export._deelvragen(data, nodes)
 
     assert deelvragen.deelvragen[0].status == "in_behandeling"           # de code; het label maakt de tekstlaag
     assert dossier_regels(dossier)[:5] == [
@@ -430,8 +431,9 @@ def test_dossier_en_deelvragen_staan_in_het_rapport_met_hun_codes_en_komen_er_le
     assert dossier_regels(dossier)[-1] == ("BodyText", "BWBR1 (BWBR1)")
     assert deelvragen_regels(deelvragen)[2:] == [
         ("BlokBegin", ""), ("Heading2", "Deelvraag 1"), ("BodyText", "Wie?"), ("Meta", "Stand: In behandeling · 1 bron"),
-        ("BodyText", "Artikel 9 · context: Kern"), ("BlokEind", ""),
+        ("BodyText", "Artikel 9 · context: Kern"), ("Meta", "jci1.3:c:negen"), ("BlokEind", ""),
         ("Heading2", "Uitgesloten bronnen"), ("BodyText", "Artikel 3 · uitgesloten voor deelvraag 1. Reden: niet vastgelegd"),
+        ("Meta", "urn:drie"),
         ("Heading2", "Open voorstellen van Lex"), ("Meta", "Hierover is nog geen besluit genomen; ze horen niet tot de analyse."),
         ("Voorstel", "Voorstel voor een deelvraag: Nog een vraag?"),
         ("Heading2", "Zoekdekking"), ("BodyText", "Lex heeft gezocht, maar niet alles kon worden doorzocht: tekst."),
@@ -492,6 +494,46 @@ def _varianten(soort, pad: str, ja: bool, spoor: list[str]) -> list:
         return [_vul(soort, f"{pad}.0", ja, spoor)]
     naam, waarden = keuzes[0]
     return [_vul(soort, pad, ja, spoor).model_copy(update={naam: w}) for w in waarden]
+
+
+async def test_de_reden_van_een_afwijzing_staat_bij_de_markering(client):
+    wg, _ids = await _gevuld(client)
+    regels = export.regels(await _data(wg), V)
+    assert ("Meta", "Reden van afwijzing: Geen rechtssubject") in regels
+
+
+async def test_een_heropende_markering_noemt_de_oude_afwijzing_niet(client):
+    wg, _ids = await _gevuld(client)
+    data = await _data(wg)
+    e = data["inventaris"]["afgewezen"][0]
+    assert export._reden_afwijzing({**e, "lifecycle": "human_approved"}) == ""
+
+
+async def test_een_passage_noemt_wie_haar_beoordeelde(client):
+    wg, _ids = await _gevuld(client)
+    regels = export.regels(await _data(wg), V)
+    assert any(s == "Meta" and t.startswith("Beoordeeld door ") for s, t in regels)
+
+
+async def test_een_brondefinitie_draagt_haar_vindplaats_ook_zonder_fragmenten(client):
+    wg, _ids = await _gevuld(client)
+    data = await _data(wg)
+    b = next(b for b in data["begrippen"] if b["inhoud"]["naam"] == "belastingschuldige")
+    b["inhoud"] = {**b["inhoud"], "definitie_herkomst": "letterlijk"}
+    b["definitie_onderbouwing"] = {"definitie_bron_iri": ONE, "definitie_vindplaats": "Artikel 9, eerste lid", "fragmenten": []}
+    assert ("Meta", f"Vindplaats: Artikel 9, eerste lid · {ONE}") in export.regels(data, V)
+
+
+async def test_elke_bron_in_deel_2_draagt_haar_bronreferentie_en_wie_haar_opnam(client):
+    wg, _ids = await _gevuld(client)
+    data = await _data(wg)
+    regels = export.regels(data, V)
+    begin = next(i for i, (_s, t) in enumerate(regels) if t == "2. Deelvragen en bronnen")
+    eind = next(i for i, (_s, t) in enumerate(regels) if t == "3. Wettekst en annotaties")
+    bron = data["overzicht"]["deelvragen"][0]["bronnen"][0]
+    assert ("Meta", bron["bron_iri"]) in regels[begin:eind]
+    s = data["werkgebied"]["bronnen"][0]
+    assert ("Meta", f"Opgenomen door {s['toegevoegd_door']} op {export.datum(s['toegevoegd'])}.") in regels
 
 
 def test_elke_tekst_in_het_rapport_komt_in_de_uitvoer():

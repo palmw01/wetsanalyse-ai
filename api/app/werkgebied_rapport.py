@@ -84,7 +84,7 @@ class Dossier(_Deel):
 
 
 class DeelvraagBron(_Deel):
-    label: str
+    vindplaats: Vindplaats
     rol: str
     reden: str = ""
 
@@ -101,7 +101,7 @@ class Deelvraag(_Deel):
 
 
 class UitgeslotenBron(_Deel):
-    label: str
+    vindplaats: Vindplaats
     overal: bool = False
     nrs: list[int] = []
     besloten_door: str = ""
@@ -110,7 +110,7 @@ class UitgeslotenBron(_Deel):
 
 
 class Bronvoorstel(_Deel):
-    label: str
+    vindplaats: Vindplaats
     rol: str
     nrs: list[int] = []
     door: Door = "lex"
@@ -166,6 +166,7 @@ class Markering(_Deel):
     toelichting: str = ""
     herkomst: Herkomst
     afwijkingen: list[Afwijking] = []
+    reden_afwijzing: str = ""
     verouderd: bool = False
     deels_buiten: bool = False
     door: Door = "lex"
@@ -225,6 +226,8 @@ class Passage(_Deel):
     beoordeling: str
     annotatie_beoordeeld: bool = False
     motivatie: str = ""
+    beoordeeld_door: str = ""
+    beoordeeld_op: str | None = None
     actualiteit: str = "actueel"
     nu: str | None = None
     door: Door = "bron"
@@ -246,6 +249,7 @@ class Begrip(_Deel):
     definitie: str = ""
     definitie_herkomst: str = ""
     definitie_door: str = ""
+    definitie_vindplaats: Vindplaats | None = None
     uitleg: str = ""
     toelichting: str = ""
     voorbeelden: list[Voorbeeld] = []
@@ -289,6 +293,8 @@ class Handeling(_Deel):
 class Selectie(_Deel):
     rol: str
     vindplaats: Vindplaats
+    toegevoegd_door: str = ""
+    toegevoegd: str | None = None
 
 
 class Verantwoording(_Deel):
@@ -430,7 +436,9 @@ def deelvragen_regels(d: Deelvragen) -> list[Regel]:
         if v.opnieuw_bekijken:
             uit.append(("Waarschuwing", "De scope veranderde na het afronden; deze deelvraag moet opnieuw bekeken worden."))
         uit += [("Waarschuwing", "Open punt: " + p) for p in v.open_punten]
-        uit += [("BodyText", f"{b.label} · {_BRONROL.get(b.rol, b.rol)}" + (f": {b.reden}" if b.reden else "")) for b in v.bronnen]
+        for b in v.bronnen:
+            uit += [("BodyText", f"{b.vindplaats.label} · {_BRONROL.get(b.rol, b.rol)}" + (f": {b.reden}" if b.reden else "")),
+                    ("Meta", _verwijzing(b.vindplaats))]
         if v.niet_gekozen:
             uit.append(("Meta", meervoud(v.niet_gekozen, "voorstel van Lex is niet gekozen.", "voorstellen van Lex zijn niet gekozen.")))
         uit += BLOK_UIT
@@ -440,8 +448,9 @@ def deelvragen_regels(d: Deelvragen) -> list[Regel]:
         uit.append(("Meta", "Er zijn geen bronnen uitgesloten."))
     for k in d.uitgesloten:
         waar = "alle deelvragen" if k.overal else "deelvraag " + ", ".join(map(str, k.nrs))
-        uit.append(("BodyText", f"{k.label} · uitgesloten voor {waar}" + (f" door {k.besloten_door}" if k.besloten_door else "")
+        uit.append(("BodyText", f"{k.vindplaats.label} · uitgesloten voor {waar}" + (f" door {k.besloten_door}" if k.besloten_door else "")
                     + f". Reden: {k.reden or 'niet vastgelegd'}"))
+        uit.append(("Meta", _verwijzing(k.vindplaats)))
 
     uit.append(("Heading2", "Open voorstellen van Lex"))
     if not d.open_vragen and not d.open_bronnen:
@@ -451,7 +460,8 @@ def deelvragen_regels(d: Deelvragen) -> list[Regel]:
     uit += [("Voorstel", "Voorstel voor een deelvraag: " + v) for v in d.open_vragen]
     for k in d.open_bronnen:
         waar = f" · deelvraag {', '.join(map(str, k.nrs))}" if k.nrs else " · bij geen deelvraag"
-        uit.append(("Voorstel", f"Voorstel voor een bron: {k.label} · {_KANDIDAATROL.get(k.rol, k.rol)}{waar}"))
+        uit.append(("Voorstel", f"Voorstel voor een bron: {k.vindplaats.label} · {_KANDIDAATROL.get(k.rol, k.rol)}{waar}"))
+        uit.append(("Meta", _verwijzing(k.vindplaats)))
 
     if d.zoekdekking:
         uit.append(("Heading2", "Zoekdekking"))
@@ -495,6 +505,8 @@ def _markering(m: Markering, eigen_iri: str = "") -> list[Regel]:
     if m.toelichting:
         uit.append(("BodyText", m.toelichting))
     uit.append(("Meta", _herkomst(m.herkomst)))
+    if m.reden_afwijzing:
+        uit.append(("Meta", "Reden van afwijzing: " + m.reden_afwijzing))
     uit += [("Waarschuwing", f"Brontekst gewijzigd bij {a.plek}. Toen: “{a.toen}” Nu: “{a.nu}”") for a in m.afwijkingen]
     if m.verouderd and not m.afwijkingen:
         uit.append(("Waarschuwing", "Verouderd: de bepaling veranderde na het annoteren."))
@@ -541,6 +553,8 @@ def _passage(p: Passage) -> list[Regel]:
                                                           None if p.annotatie_beoordeeld else "annotatie nog niet beoordeeld"])))]
     if p.motivatie:
         uit.append(("Meta", "Motivatie: " + p.motivatie))
+    if p.beoordeeld_door:
+        uit.append(("Meta", f"Beoordeeld door {p.beoordeeld_door} op {datum(p.beoordeeld_op)}."))
     if p.actualiteit != "actueel":
         uit.append(("Waarschuwing", f"Na bevestiging: {_ACTUALITEIT.get(p.actualiteit, p.actualiteit)}. Toen: “{p.tekst}”"
                     + (f" Nu: “{p.nu}”" if p.nu is not None else "")))
@@ -560,6 +574,8 @@ def _begrip(b: Begrip) -> list[Regel]:
     if b.definitie.strip():
         aard = [_DEFINITIE.get(b.definitie_herkomst, "definitie"), _DEFINITIE_DOOR.get(b.definitie_door, "")]
         uit += [("Citaat" if b.definitie_herkomst == "letterlijk" else "BodyText", b.definitie), ("Meta", ", ".join(filter(None, aard)) + ".")]
+        if b.definitie_vindplaats:
+            uit.append(("Meta", f"Vindplaats: {b.definitie_vindplaats.label} · {_verwijzing(b.definitie_vindplaats)}"))
     else:
         uit.append(("Meta", _LEEG))
     uit += [("Heading4", "Uitleg"), *(alinea(b.uitleg) or [("Meta", _LEEG)])]
@@ -649,6 +665,8 @@ def verantwoording_regels(v: Verantwoording) -> list[Regel]:
     uit.append(("Heading2", "Bronnen"))
     for s in v.bronnen:
         uit += [("BodyText", s.vindplaats.label), ("Meta", f"Rol {_BRONROL.get(s.rol, s.rol)} · {_verwijzing(s.vindplaats)}")]
+        if s.toegevoegd_door:
+            uit.append(("Meta", f"Opgenomen door {s.toegevoegd_door} op {datum(s.toegevoegd)}."))
     return uit
 
 
