@@ -1,7 +1,6 @@
-// Rekenkern van de begrippenwerkplek (spoor D, levering 2): labels, het vergelijken van inhoud, de
-// volgorde van passages en de herkenning van de fouten die de api geeft. Puur, voor vitest.
+// Rekenkern van de begrippenwerkplek (spoor D, levering 2): labels, de inhoud aanvullen en de
+// volgorde van passages. Puur, voor vitest.
 
-import { isApiError } from "./api";
 import type {
   Actualiteit,
   Begrip,
@@ -35,39 +34,6 @@ export function volledigeInhoud(inhoud: Partial<BegripInhoud>): BegripInhoud {
   }
   const i = uit as unknown as BegripInhoud;
   return { ...i, voorbeelden: (i.voorbeelden ?? []).map((v) => ({ tekst: v.tekst, oordeel: v.oordeel })) };
-}
-
-/** Wat de api bij opslaan als lijst bewaart: lege regels vallen weg, de rest wordt getrimd. Zo is
- *  "een lege regel toegevoegd" geen wijziging. */
-export function genormaliseerd(i: BegripInhoud): BegripInhoud {
-  const lijst = (xs: string[]) => xs.map((x) => x.trim()).filter(Boolean);
-  return {
-    ...i,
-    naam: i.naam.trim(),
-    alternatieve_termen: lijst(i.alternatieve_termen),
-    voorbeelden: i.voorbeelden.filter((v) => v.tekst.trim()),
-  };
-}
-
-/** Wijkt `nieuw` inhoudelijk af van `oud`? Bepaalt of *Opslaan* aan staat – en dus of er een
- *  revisie komt. Sleutelvolgorde telt niet mee. */
-export function inhoudGewijzigd(oud: BegripInhoud, nieuw: BegripInhoud): boolean {
-  return gewijzigdeVelden(oud, nieuw).length > 0;
-}
-
-export function gewijzigdeVelden(oud: BegripInhoud, nieuw: BegripInhoud): (keyof BegripInhoud)[] {
-  const a = genormaliseerd(volledigeInhoud(oud));
-  const b = genormaliseerd(volledigeInhoud(nieuw));
-  return (Object.keys(LEGE_INHOUD) as (keyof BegripInhoud)[]).filter(
-    (k) => stabiel(a[k]) !== stabiel(b[k]),
-  );
-}
-
-function stabiel(v: unknown): string {
-  if (v && typeof v === "object" && !Array.isArray(v)) {
-    return JSON.stringify(Object.fromEntries(Object.entries(v).sort(([x], [y]) => x.localeCompare(y))));
-  }
-  return JSON.stringify(v ?? null);
 }
 
 export const HERKOMST_LABEL: Record<DefinitieHerkomst, string> = {
@@ -141,16 +107,6 @@ export function sorteerKoppelingen(ks: readonly Koppeling[]): Koppeling[] {
 /** Een id uit de URL, of niets. */
 export function begripUitParam(p: string | undefined): string | undefined {
   return p && /^[A-Za-z0-9-]{1,64}$/.test(p) ? p : undefined;
-}
-
-/** Het element duidt al een ander begrip aan (409 `al_primair`). */
-export function isAlPrimair(e: unknown): boolean {
-  return isApiError(e) && e.status === 409 && e.data?.fout === "al_primair";
-}
-
-/** Accorderen geweigerd door de poort (409 `poort`); de redenen staan in `data.redenen`. */
-export function isPoortFout(e: unknown): boolean {
-  return isApiError(e) && e.status === 409 && e.data?.fout === "poort";
 }
 
 // Een revisie van vóór spoor I1 kan nog andere velden noemen; die verschijnen zoals de api ze noemt.

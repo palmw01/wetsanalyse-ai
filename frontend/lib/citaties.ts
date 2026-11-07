@@ -154,7 +154,3 @@ export function markeerCitaties(bronnen: readonly Bron[]) {
   };
 }
 
-/** Het leesbare label van een bron, in plaats van de rauwe IRI. */
-export function bronLabel(b: Bron): string {
-  return vindplaatsVan(b.bron_iri || b.uri)?.label || b.label;
-}

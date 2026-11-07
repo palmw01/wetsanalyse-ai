@@ -114,17 +114,6 @@ export function overnameVoor(
   };
 }
 
-/** De definitie die mee kan bij een overname: alleen als er precies één is (bij combineren kiest de
- *  analist zelf, zo doet de api het ook). Uit de kaart als die er is, anders de letterlijke. */
-export function enigeDefinitie(groepen: readonly Betekenisgroep[]): GroepDefinitie | null {
-  const defs = new Map<string, GroepDefinitie>();
-  for (const g of groepen) {
-    const d = groepDefinitie(g);
-    if (d) defs.set(`${d.herkomst}\u0000${d.tekst}`, d);
-  }
-  return defs.size === 1 ? [...defs.values()][0] : null;
-}
-
 /** De groepen waar beide passages van een twijfelvraag in staan en die nog open zijn – die zet
  *  "samen" klaar om te combineren. */
 export function groepenVanVraag(vraag: TwijfelVraag, groepen: readonly Betekenisgroep[]): string[] {

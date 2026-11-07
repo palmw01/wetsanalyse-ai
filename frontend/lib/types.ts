@@ -203,7 +203,6 @@ export interface ApiError {
   /** De leesbare reden. Bij een gestructureerde fout is dit het `melding`-veld eruit; alleen als
    *  dat ontbreekt valt hij terug op de ruwe JSON. */
   detail: string;
-  retryAfter?: number;
   /** `detail.reden` bij een gestructureerde fout: "budget_op", "run_loopt_al", … */
   reden?: string;
   /** Het volledige `detail`-object, zodat de aanroeper er losse velden uit kan lezen zonder de
@@ -308,7 +307,6 @@ export interface AnnotatieElement {
   tekst: string;
   lid: string;
   toelichting: string;
-  vindplaats: string;
   /** Wie het element AANMAAKTE (agent | mens) – verandert nooit. */
   herkomst: string;
   /** Wie het daarna inhoudelijk aanpaste ("" | agent | mens). */
@@ -327,7 +325,6 @@ export interface AnnotatieElement {
    *  `index` is de positie in `trace.kandidaat.spanopties` – dat is wat de api terugkrijgt. */
   grensopties?: { index: number; soort: string; tekst: string }[];
   anker?: Anker | null;
-  diff: Record<string, { voor: unknown; na: unknown }>;
   beslissingen: Beslissing[];
   /** null = markering van de jurist, of een agent-ronde van vóór de registratie. */
   geproduceerd_door?: AgentRun | null;
@@ -339,29 +336,15 @@ export interface AnnotatieElement {
 
 export interface AnnotatieDocument {
   slug: string;
-  user_id: string;
-  client_id: string;
-  /** Naam van de regeling zoals hij in beeld komt; los van `werkgebied` (het kennisdomein). */
+  /** Naam van de regeling zoals hij in beeld komt. */
   citeertitel: string;
-  werkgebied: string;
   bwbId: string;
   artikel: string;
   lid: string;
   status: DocumentStatus;
   elementen: AnnotatieElement[];
-  /** Het productiespoor: elke agent-ronde die aan dit document werkte. */
-  runs: AgentRun[];
-  /** De brontekstversies waar de ankers van dit document over gaan (`anker.bron_hash`).
-   *
-   *  Eén waarde is normaal. Méér betekent dat er opnieuw is geïmporteerd terwijl er al geannoteerd
-   *  was, en dan wijzen de offsets van de oudere markeringen naar tekst die verschoven is – de
-   *  markering springt dan naar een ander voorkomen of verdwijnt. Door de api afgeleid en niet
-   *  opgeslagen; oudere responses kennen het veld niet, vandaar optioneel. */
-  bronversies?: string[];
   /** Gevuld = de gedeelde laag van één artikel (voor iedereen, niet te verwijderen). */
   laag_sleutel?: string;
-  created?: string | null;
-  updated?: string | null;
 }
 
 /** Eén regel in het annotatie-overzicht: naam, voortgang en de JAS-verdeling voor de kleurstrip,
@@ -596,8 +579,7 @@ export type Rol = "user" | "assistant";
  *  verwijderd, dan blijft er in de thread een leesbare kaart staan in plaats van een naamloze
  *  verwijzing.
  *
- *  Oudere berichten verwijzen nog via `annotatie_doel` (een bronnode) of alleen een
- *  `annotatie_slug` (een annotatie die niet meer bestaat: de tombstone). */
+ *  Oudere berichten verwijzen nog via `annotatie_doel` (een bronnode). */
 export interface Bericht {
   artefact?: import("./artefact").Artefact | null;
   annotatie_doel?: import("./annotatieNode").NodeDoel;
@@ -607,7 +589,6 @@ export interface Bericht {
   tekst: string;
   denk: string;
   bronnen: Bron[];
-  annotatie_slug?: string;
   annotatie_titel?: string;
   /** Lex hergebruikte (een deel van) de gedeelde laag; zelfde vorm als het `hergebruik`-event
    *  (maar met de leden zoals graph-qa ze stuurde – zie `parseHergebruik`). */
@@ -663,36 +644,6 @@ export interface Bevestiging {
   deelvraag_id?: string;
   /** Bij `begrippen_verdiepen`: de inhoud van de werkvoorraad; de knop stuurt hem terug (spoor M). */
   werkvoorraad_id?: string;
-}
-
-/** Stand van één annotatie-eenheid (een lid, of een artikel zonder leden) in een werkgebied. */
-export type EenheidStatus = "nieuw" | "te_beoordelen" | "beoordeeld" | "zonder_markeringen" | "afgerond";
-
-export interface WerkvoorraadEenheid {
-  bron_iri: string;
-  /** Het pad onder de regeling: "Artikel 9, Lid 1". */
-  label: string;
-  regeling: string;
-  bwb_id: string;
-  stand: { status: EenheidStatus; voorstellen: number; te_beoordelen: number };
-  selecties: string[];
-}
-
-/** `GET /v1/werkgebieden/{id}/annotatie-werkvoorraad` (api `werkgebied_werkvoorraad.py`). */
-export interface AnnotatieWerkvoorraad {
-  werkgebied_id: string;
-  revisie: number;
-  naam: string;
-  selecties: { id: string; bron_iri: string; label: string; bereik: BronBereik; eenheden: number;
-    per_stand: Partial<Record<EenheidStatus, number>>; onbereikbaar: string | null }[];
-  eenheden: WerkvoorraadEenheid[];
-  te_annoteren: string[];
-  context_niet_meegenomen: number;
-  volledig: boolean;
-  open_punten: string[];
-  schatting: { per_bepaling: number; basis: number; totaal: number } | null;
-  schatting_toelichting: string;
-  budget: { resterend: number; budget: number; actief: boolean; geblokkeerd: boolean };
 }
 
 /** Het overzicht van een onderwerp ("welke artikelen gaan over invordering?"), door graph-qa
@@ -765,7 +716,6 @@ export interface BerichtInvoer {
   tekst?: string;
   denk?: string;
   bronnen?: Bron[];
-  annotatie_slug?: string;
   annotatie_titel?: string;
   run_id?: string;
 }
@@ -1417,19 +1367,6 @@ export interface ConceptKaart {
   aandachtspunten: string[];
 }
 
-/** `GET …/verdieping`: wat het model nog moet doen voor de laatste klare run. */
-export interface VerdiepingWerkvoorraad {
-  run: BegrippenRun | null;
-  verdiept: boolean;
-  aantal: number;
-  vragen: string[];
-  kaarten: string[];
-  batches: { id: string; soort: "vraag" | "kaart"; ids: string[] }[];
-  schatting: { per_item: number; basis: number; totaal: number } | null;
-  schatting_toelichting?: string;
-  budget: { resterend: number; budget: number; actief: boolean; geblokkeerd: boolean } | null;
-}
-
 export interface Betekenisgroep {
   id: string;
   aandacht: "groen" | "geel";
@@ -1630,15 +1567,6 @@ export interface KaartVoorstellenAntwoord {
   runs: Partial<Record<KaartActie, KaartRun>>;
   schatting?: Partial<Record<KaartActie, { tokens: number; basis: number }>>;
   budget?: { resterend: number; budget: number; actief: boolean; geblokkeerd: boolean };
-}
-
-/** De 409 bij een verouderd voorstel: wat er stond, wat er nu staat, en wat Lex voorstelde. */
-export interface VoorstelVerouderd {
-  fout: "voorstel_verouderd";
-  toen: { definitie: string; definitie_herkomst: DefinitieHerkomst | null };
-  nu: { definitie: string; definitie_herkomst: DefinitieHerkomst | null };
-  voorstel: { definitie: string; definitie_herkomst: DefinitieHerkomst };
-  melding: string;
 }
 
 /** Eén versie van een artefact (api `artefact_versies`): de stand direct na een beurt van Lex, met haar plek tussen
