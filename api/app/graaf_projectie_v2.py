@@ -35,6 +35,8 @@ _locks: dict[str, asyncio.Lock] = {}
 # draait (GRAPHDB_URL gezet). De taken houden we vast, anders ruimt de garbage collector ze op.
 _actief = False
 _taken: set[asyncio.Task] = set()
+#: Zoveel projecties lopen tegelijk na een mutatie; de rest wacht zijn beurt.
+_GELIJKTIJDIG = asyncio.Semaphore(4)
 
 
 VOCABULAIRE = URIRef("urn:jas:graph:vocabulaire")
@@ -472,16 +474,27 @@ async def laag_invoer(conn, laag: dict) -> tuple[list[dict], dict]:
     return elementen, {iri: m for iri, (_t, m) in dekking.items()}
 
 
+#: Hoe vaak een projectie opnieuw begint als de laag tijdens het schrijven veranderde. Daarna neemt de lus hem mee.
+POGINGEN = 3
+
+
 async def projecteer(laag_id: str) -> bool:
-    """Het rowlock beschermt ook tegen een oudere projector in een ander proces."""
+    """Schrijf één laag naar de graaf, zonder tijdens de HTTP naar GraphDB een rijslot of databaseverbinding vast te
+    houden (F5, API-05): een hangende GraphDB blokkeert dan geen besluit van een jurist.
+
+    Lezen, schrijven, en daarna pas vastleggen dat deze revisie geprojecteerd is, en alleen als de laag intussen niet
+    veranderde. Veranderde hij wel, dan begint de projectie opnieuw met de nieuwe stand. Zo overschrijft een oudere
+    projector een nieuwere laag hooguit even: hij ziet het bij de controle erna en schrijft de nieuwe stand alsnog,
+    en valt hij uit, dan ziet de lus de oude revisie in het register."""
     async with _locks.setdefault(laag_id, asyncio.Lock()):
-        async with db.get_engine().begin() as conn:
-            row = (await conn.execute(select(db.annotatie_v2_lagen).where(
-                db.annotatie_v2_lagen.c.id == laag_id).with_for_update())).mappings().first()
-            if row is None:
-                return False
-            laag = dict(row)
-            elements, dekking = await laag_invoer(conn, laag)
+        for _ in range(POGINGEN):
+            async with db.get_engine().connect() as conn:
+                row = (await conn.execute(select(db.annotatie_v2_lagen).where(
+                    db.annotatie_v2_lagen.c.id == laag_id))).mappings().first()
+                if row is None:
+                    return False
+                laag = dict(row)
+                elements, dekking = await laag_invoer(conn, laag)
             # rdflib is pure Python: in een thread, want deze lus deelt de event loop met elk verzoek.
             data = await asyncio.to_thread(
                 lambda: bouw_graaf(laag, elements, dekking=dekking).serialize(format="turtle").encode())
@@ -501,9 +514,19 @@ INSERT {{ GRAPH <{REGISTER}> {{
 }} }} WHERE {{ OPTIONAL {{ GRAPH <{REGISTER}> {{ {owner} ?p ?o }} }} }}'''
                 r = await client.post(_repo() + "/statements", data={"update": statement})
                 r.raise_for_status()
-            await conn.execute(update(db.annotatie_v2_lagen).where(db.annotatie_v2_lagen.c.id == laag_id)
-                               .values(geprojecteerd_revisie=laag["revisie"]))
-    return True
+            async with db.get_engine().begin() as conn:
+                gezet = await conn.execute(update(db.annotatie_v2_lagen).where(
+                    db.annotatie_v2_lagen.c.id == laag_id, db.annotatie_v2_lagen.c.revisie == laag["revisie"],
+                ).values(geprojecteerd_revisie=laag["revisie"]))
+                if gezet.rowcount:
+                    return True
+                bestaat = (await conn.execute(select(db.annotatie_v2_lagen.c.id).where(
+                    db.annotatie_v2_lagen.c.id == laag_id))).first() is not None
+            if not bestaat:
+                # Gewist terwijl we schreven: dan hoort ook de graph die we net neerzetten weg.
+                await verwijder_projecties([laag_id])
+                return False
+        return False
 
 
 def activeer(aan: bool) -> None:
@@ -526,7 +549,9 @@ def na_mutatie(laag_ids) -> None:
 
     async def _doe(laag_id: str):
         try:
-            await projecteer(laag_id)
+            # Een bulkbesluit raakt veel lagen tegelijk: niet allemaal tegelijk naar GraphDB.
+            async with _GELIJKTIJDIG:
+                await projecteer(laag_id)
         except Exception as exc:  # noqa: BLE001
             logger.warning("annotatie_v2_projectie_uitgesteld",
                            extra={"laag_id": laag_id, "fouttype": type(exc).__name__})

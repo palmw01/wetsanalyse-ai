@@ -155,32 +155,36 @@ GRAPH <{projection.REGISTER}> {{
     assert layer_id in (await projection.zoek_kandidaten({}))["manifest"]
 
 
-async def test_projector_rowlock_keeps_concurrent_review_dirty(graphdb, monkeypatch):
+async def test_een_hangende_graaf_blokkeert_geen_besluit_en_de_projectie_haalt_hem_in(graphdb, monkeypatch):
+    """F5: tijdens de PUT naar GraphDB houdt de projectie geen rijslot vast. Een besluit van de jurist gaat dus door, en
+    de projectie ziet daarna dat de laag veranderde en schrijft de nieuwe stand alsnog."""
     client, _ = graphdb
     snap = snapshot(ONE)
     created = await store.batch(request(snap, [element(snap)]), snap, "a")
     layer_id, eid = created["lagen"][0]["id"], created["elementen"][0]["id"]
     paused, resume = asyncio.Event(), asyncio.Event()
     real_client = httpx.AsyncClient
+    puts = 0
     async def pause_put(req):
+        nonlocal puts
         if req.method == "PUT":
-            paused.set()
-            await asyncio.wait_for(resume.wait(), 10)
+            puts += 1
+            if puts == 1:
+                paused.set()
+                await asyncio.wait_for(resume.wait(), 10)
         return await client.send(req)
     with monkeypatch.context() as patch:
         patch.setattr(projection.httpx, "AsyncClient", lambda **kw: real_client(
             **kw, transport=httpx.MockTransport(pause_put)))
         projecting = asyncio.create_task(projection.projecteer(layer_id))
         await asyncio.wait_for(paused.wait(), 10)
-        reviewing = asyncio.create_task(store.beslis(eid, Beslissing(type="approve",
-            snapshot_id=snap["snapshot_id"], verwachte_revisies={ONE: 1}), snap, "b"))
-        await asyncio.sleep(0.05)
-        assert not reviewing.done()  # DB rowlock, not the process-local projection lock
+        await asyncio.wait_for(store.beslis(eid, Beslissing(type="approve",
+            snapshot_id=snap["snapshot_id"], verwachte_revisies={ONE: 1}), snap, "b"), 5)
         resume.set()
-        await asyncio.wait_for(asyncio.gather(projecting, reviewing), 15)
+        assert await asyncio.wait_for(projecting, 15)
+    assert puts == 2, "de eerste PUT droeg revisie 1; de controle erna zag 2 en schreef opnieuw"
     layer = await store.laag_detail(layer_id)
-    assert layer["revisie"] == 2 and layer["geprojecteerd_revisie"] < 2
-    assert await projection.reconcile() == 1
+    assert layer["revisie"] == 2 and layer["geprojecteerd_revisie"] == 2
     assert (await projection.zoek_kandidaten({"lifecycle": ["human_approved"]}))["ids"] == [eid]
 
 
