@@ -1342,7 +1342,7 @@
     },
     "Structuurdeel": {
       "additionalProperties": false,
-      "description": "Een deel van de opbouw boven een artikel: hoofdstuk, afdeling, paragraaf.",
+      "description": "Een deel boven de bepaling in de opbouw van haar regeling (hoofdstuk, afdeling, paragraaf, divisie, artikel).",
       "properties": {
         "soort": {
           "title": "Soort",
@@ -1501,7 +1501,7 @@
     },
     "Verwijzing": {
       "additionalProperties": false,
-      "description": "Een verwijzing uit een bepaling in het dossier, uit de graaf; de ankertekst staat er letterlijk.",
+      "description": "Eén verwijzing in de tekst, met de ankertekst letterlijk. `van` is het lid of onderdeel waar ze staat.",
       "properties": {
         "van": {
           "$ref": "#/$defs/Vindplaats"
@@ -1514,18 +1514,19 @@
           "title": "Anker",
           "type": "string"
         },
+        "in_graaf": {
+          "default": true,
+          "title": "In Graaf",
+          "type": "boolean"
+        },
         "in_dossier": {
           "default": false,
           "title": "In Dossier",
           "type": "boolean"
         },
         "door": {
+          "const": "bron",
           "default": "bron",
-          "enum": [
-            "bron",
-            "lex",
-            "analist"
-          ],
           "title": "Door",
           "type": "string"
         }
@@ -1710,6 +1711,11 @@
           },
           "title": "Verwijzingen",
           "type": "array"
+        },
+        "verwijzingen_volledig": {
+          "default": true,
+          "title": "Verwijzingen Volledig",
+          "type": "boolean"
         }
       },
       "required": [

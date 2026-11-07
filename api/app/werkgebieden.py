@@ -12,7 +12,7 @@ import httpx
 from bronmodel import BronFout, BronKeuze
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
-from . import annotatie_v2_store, pdf_opmaak, rapport_graaf, werkgebied_deelvragen as deelvragen, werkgebied_export, werkgebied_store as store
+from . import annotatie_v2_store, bepaling_graaf, pdf_opmaak, werkgebied_deelvragen as deelvragen, werkgebied_export, werkgebied_store as store
 from .auth import require_client
 from .bron_resolver import resolve_bron as _resolve_bron
 from .graaf_client import sparql_select
@@ -287,7 +287,7 @@ async def get_export(werkgebied_id: str, formaat: Literal["pdf", "md", "json"] =
     begrippen en een korte verantwoording. De inhoud staat in `werkgebied_export`. Reportlab is puur Python en de api
     deelt de event loop: het zetten gebeurt in een thread."""
     start = time.monotonic()
-    data = await werkgebied_export.verzamel(werkgebied_id, actor, resolve_bron, toestanden_van, rapport_graaf.lees)
+    data = await werkgebied_export.verzamel(werkgebied_id, actor, resolve_bron, toestanden_van, bepaling_graaf.lees)
     maak = {"md": werkgebied_export.markdown_export, "json": werkgebied_export.json_export}.get(formaat, werkgebied_export.pdf_export)
     body = await asyncio.to_thread(maak, data, verklaringen())
     logger.info("werkgebied_export", extra={"werkgebied_id": werkgebied_id, "formaat": formaat, "bytes": len(body),

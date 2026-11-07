@@ -13,7 +13,7 @@ from typing import Literal, Union, get_args, get_origin
 
 import pytest
 
-from app import (annotatie_v2_store as store, bestandsnaam, markdown_opmaak, pdf_opmaak, rapport_graaf, werkgebied_export as export,
+from app import (annotatie_v2_store as store, bestandsnaam, markdown_opmaak, pdf_opmaak, bepaling_graaf, werkgebied_export as export,
                  werkgebieden)
 from app.werkgebied_rapport import (Begrippen, Rapport, Stand, Wettekst, deelvragen_regels, dossier_regels, niet_meegenomen_regels,
                                    rapport_regels)
@@ -36,7 +36,7 @@ def toestanden(monkeypatch):
     monkeypatch.setattr(werkgebieden, "toestanden_van", _toestanden)
 
 
-ECHTE_LEES = rapport_graaf.lees
+ECHTE_LEES = bepaling_graaf.lees
 GRAAF = {"volledig": True,
          "regelingen": {"BWBR0004770": {"soort": "wet", "verantwoordelijke": "Financiën", "afkorting": "IW",
                                         "organisatie": "https://identifier.overheid.nl/tooi/id/ministerie/mnre1090",
@@ -56,7 +56,7 @@ def rapportgraaf(monkeypatch):
     async def lees(bwbs, iris, bronnen):
         gevraagd.append((bwbs, iris, bronnen))
         return copy.deepcopy(GRAAF)
-    monkeypatch.setattr(rapport_graaf, "lees", lees)
+    monkeypatch.setattr(bepaling_graaf, "lees", lees)
     return gevraagd
 
 
@@ -80,7 +80,7 @@ async def _gevuld(client) -> tuple[dict, dict]:
 
 
 async def _data(wg: dict) -> dict:
-    return await export.verzamel(wg["id"], "jurist-a", werkgebieden.resolve_bron, werkgebieden.toestanden_van, rapport_graaf.lees)
+    return await export.verzamel(wg["id"], "jurist-a", werkgebieden.resolve_bron, werkgebieden.toestanden_van, bepaling_graaf.lees)
 
 
 def _teksten(data: dict) -> list[str]:
@@ -759,7 +759,7 @@ async def test_de_graaf_geeft_regeling_en_artikel_en_vraagt_alleen_de_voorouders
 async def test_zonder_graaf_zegt_het_rapport_wat_ontbreekt(client, monkeypatch):
     async def weg(bwbs, iris, bronnen):
         return {"volledig": False, "regelingen": {}, "structuur": {}}
-    monkeypatch.setattr(rapport_graaf, "lees", weg)
+    monkeypatch.setattr(bepaling_graaf, "lees", weg)
     wg, _ids = await _gevuld(client)
     rapport = export.bouw_rapport(await _data(wg), V)
     assert "graaf_onvolledig" in [s.soort for s in rapport.voorblad.signalen]
@@ -780,9 +780,9 @@ def test_de_plaats_van_een_artikel_komt_uit_de_bronboom_met_titels_uit_de_graaf(
 
 
 def test_de_graafquery_neemt_alleen_strikte_iris_en_bwb_ids():
-    q = rapport_graaf.structuur_query(rapport_graaf.geldige_iris(["urn:bwb:BWBR1:artikel:2", "urn:bwb:BWBR1> } DROP <x", "http://x"]))
+    q = bepaling_graaf.structuur_query(bepaling_graaf.geldige_iris(["urn:bwb:BWBR1:artikel:2", "urn:bwb:BWBR1> } DROP <x", "http://x"]))
     assert "<urn:bwb:BWBR1:artikel:2>" in q and "DROP" not in q and "http://x" not in q
-    assert "BWBR0004770" in rapport_graaf.regelingen_query(["BWBR0004770", "BWBR1> }"]) and "> }" not in rapport_graaf.regelingen_query(["x> }"])
+    assert "BWBR0004770" in bepaling_graaf.regelingen_query(["BWBR0004770", "BWBR1> }"]) and "> }" not in bepaling_graaf.regelingen_query(["x> }"])
 
 
 async def test_de_graaf_is_best_effort_en_kiest_bij_meer_waarden_de_kleinste(monkeypatch):
@@ -790,13 +790,13 @@ async def test_de_graaf_is_best_effort_en_kiest_bij_meer_waarden_de_kleinste(mon
 
     async def select(_client, q):
         return list(reversed(rijen)) if "afkorting" in q else []
-    monkeypatch.setattr(rapport_graaf, "sparql_select", select)
+    monkeypatch.setattr(bepaling_graaf, "sparql_select", select)
     uit = await ECHTE_LEES(["BWBR0004770"], [])
     assert uit["volledig"] and uit["regelingen"]["BWBR0004770"]["afkorting"] == "IW"
 
     async def kapot(_client, _q):
         raise ConnectionError("graaf weg")
-    monkeypatch.setattr(rapport_graaf, "sparql_select", kapot)
+    monkeypatch.setattr(bepaling_graaf, "sparql_select", kapot)
     assert (await ECHTE_LEES(["BWBR0004770"], ["urn:bwb:BWBR0004770:artikel:1"]))["volledig"] is False
 
 
@@ -823,7 +823,7 @@ async def test_een_verwijzing_naar_een_artikel_waarvan_een_lid_in_het_dossier_st
 
     async def lees(bwbs, iris, bronnen):
         return graaf
-    monkeypatch.setattr(rapport_graaf, "lees", lees)
+    monkeypatch.setattr(bepaling_graaf, "lees", lees)
     wg, _ids = await _gevuld(client)
     [v] = export.bouw_rapport(await _data(wg), V).wettekst.verwijzingen
     assert v.in_dossier and v.naar.label == "Artikel 9"
@@ -836,10 +836,80 @@ async def test_verwijzingen_uit_de_graaf_zijn_ontdubbeld_en_gesorteerd(monkeypat
 
     async def select(_client, q):
         return rijen if "heeftVerwijzing" in q else []
-    monkeypatch.setattr(rapport_graaf, "sparql_select", select)
+    monkeypatch.setattr(bepaling_graaf, "sparql_select", select)
     uit = await ECHTE_LEES([], [], ["urn:bwb:BWBR1:artikel:1", "urn:bwb:BWBR1:artikel:2"])
     assert [(v["van"][-1], v["label"], v["regeling"]) for v in uit["verwijzingen"]] == [("1", "art. 5 (BWBR2)", ""), ("2", "Artikel 5", "Wet")]
 
+
+
+async def test_een_begrensde_verwijzingenlijst_telt_nooit_als_totaal(monkeypatch):
+    """De grensregel: de query vraagt één rij meer dan de grens. Komt die extra rij, dan is de lijst niet alles."""
+    monkeypatch.setattr(bepaling_graaf, "MAX_VERWIJZINGSRIJEN", 2)
+    gevraagd: list[str] = []
+
+    def rijen(n):
+        return [{"van": "urn:bwb:BWBR1:artikel:1", "naar": f"urn:bwb:BWBR2:artikel:{i}", "anker": "a"} for i in range(n)]
+
+    for n, volledig in ((2, True), (3, False)):
+        async def select(_client, q, n=n):
+            gevraagd.append(q)
+            return rijen(n) if "heeftVerwijzing" in q else []
+        monkeypatch.setattr(bepaling_graaf, "sparql_select", select)
+        uit = await ECHTE_LEES([], [], ["urn:bwb:BWBR1:artikel:1"])
+        assert (uit["volledig"], uit["verwijzingen_volledig"], len(uit["verwijzingen"])) == (volledig, volledig, 2)
+    assert "LIMIT 3" in next(q for q in gevraagd if "heeftVerwijzing" in q)
+
+
+async def test_een_onvolledige_samenhang_zegt_dat_bij_de_lijst_en_op_het_voorblad(client, monkeypatch):
+    graaf = copy.deepcopy(GRAAF) | {"volledig": False, "verwijzingen_volledig": False}
+
+    async def lees(bwbs, iris, bronnen):
+        return graaf
+    monkeypatch.setattr(bepaling_graaf, "lees", lees)
+    wg, _ids = await _gevuld(client)
+    rapport = export.bouw_rapport(await _data(wg), V)
+    assert not rapport.wettekst.verwijzingen_volledig and "graaf_onvolledig" in [s.soort for s in rapport.voorblad.signalen]
+    regels = rapport_regels(rapport)
+    deel = regels[regels.index(("Heading1", "Bijlage D. Samenhang")):regels.index(("Heading1", "Bijlage E. Niet meegenomen"))]
+    assert ("Heading2", "Binnen het dossier (minstens 1)") in deel and any(s == "Waarschuwing" and "onvolledig" in t for s, t in deel)
+
+
+async def test_een_doel_buiten_de_graaf_zegt_dat(monkeypatch):
+    rij = {"van": "urn:bwb:BWBR1:artikel:1", "naar": "urn:bwb:BWBR9:artikel:5", "anker": "a", "inGraaf": "false"}
+
+    async def select(_client, q):
+        return [rij] if "heeftVerwijzing" in q else []
+    monkeypatch.setattr(bepaling_graaf, "sparql_select", select)
+    [v] = (await ECHTE_LEES([], [], ["urn:bwb:BWBR1:artikel:1"]))["verwijzingen"]
+    assert v["in_graaf"] is False
+    from bronmodel.antwoord import Vindplaats
+
+    from app.werkgebied_rapport import Verwijzing, _verwijst
+    vp = Vindplaats(iri=v["naar"], label="Artikel 5")
+    assert _verwijst(Verwijzing(van=vp, naar=vp, in_graaf=False)).endswith(" · niet in de kennisgraaf")
+
+
+async def test_tellingen_komen_alleen_mee_als_erom_gevraagd_wordt(monkeypatch):
+    gevraagd: list[str] = []
+
+    async def select(_client, q):
+        gevraagd.append(q)
+        return [{"wat": "in", "n": "31"}, {"wat": "urn:bwb-ns:grondslagVoor", "n": "2"}] if "COUNT" in q else []
+    monkeypatch.setattr(bepaling_graaf, "sparql_select", select)
+    iri = "urn:bwb:BWBR1:artikel:1"
+    assert "tellingen" not in await ECHTE_LEES([], [], [iri]) and not any("COUNT" in q for q in gevraagd)
+    uit = await ECHTE_LEES([], [], [iri], met_inkomend=True)
+    assert uit["tellingen"] == {iri: {"in": 31, "grondslagVoor": 2}}
+
+
+async def test_structuur_voor_geeft_de_delen_boven_een_bepaling_en_de_bepaling_zelf(monkeypatch):
+    iri = "urn:bwb:BWBR1:hoofdstuk:2:artikel:25"
+
+    async def plaatsen(iris):
+        return [{"bron_iri": i, "pad": [{"iri": "urn:bwb:BWBR1:hoofdstuk:2"}, {"iri": i}]} for i in iris]
+    monkeypatch.setattr(bepaling_graaf.graaf_mod, "plaatsen", plaatsen)
+    assert await bepaling_graaf.structuur_voor([iri, "urn:bwb:BWBR1> } DROP"]) == ["urn:bwb:BWBR1:hoofdstuk:2", iri]
+    assert await bepaling_graaf.structuur_voor([]) == []
 
 async def test_een_markering_staat_gekleurd_en_genummerd_in_de_wettekst_en_het_citaat_blijft_letterlijk(client):
     wg, _ids = await _gevuld(client)
