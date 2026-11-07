@@ -11,6 +11,8 @@ import threading
 import pytest
 
 from app import annotatie_v2_store as store, bestandsnaam, pdf_opmaak, werkgebied_export as export, werkgebieden
+from app.werkgebied_rapport import Deelvragen, Stand, deelvragen_regels, dossier_regels
+from pydantic import ValidationError
 from test_annotatie_v2 import ART, LAW, ONE, TWO, element, request, snapshot
 from test_begrippen import _annoteer, _begrip, _beslis, _keur_alles_goed, _url, _werkgebied
 from test_werkgebieden import ART2, LAW2, _bron, _nieuw, client, database, graaf, snapshot2  # noqa: F401
@@ -407,6 +409,43 @@ def test_het_spoor_is_van_de_laatste_ronde_van_de_inhoudsopgave():
     spoor: list[dict] = []
     pdf_opmaak.render(regels, spoor=spoor)
     assert len([r for r in spoor if r["tekst"] == "Een"]) == 1
+
+
+def test_dossier_en_deelvragen_staan_in_het_rapport_met_hun_codes_en_komen_er_letterlijk_uit():
+    wg = {"aanleiding": "Eerste alinea.\n\nTweede alinea.", "regelingen": [{"bwb_id": "BWBR1", "label": ""}], "bronnen": [
+        {"id": "s1", "reden": "Kern"}], "deelvragen": [{"vraag": "Nog een vraag?", "status": "voorgesteld"}]}
+    kandidaat = {"id": "k", "label": "Artikel 3", "rol": "kern", "overal": False, "besloten_door": None, "reden": ""}
+    overzicht = {"modus": "deelvragen", "zonder_deelvraag": [], "zoekdekking": {"gezocht": True, "verouderd": True, "onvolledig": ["tekst"]},
+                 "deelvragen": [{"nr": 1, "vraag": "Wie?", "status": "in_behandeling", "opnieuw_bekijken": False, "open_punten": [],
+                                 "telling": {}, "bronnen": [{"label": "Artikel 9", "rol": "context", "selectie_id": "s1"}],
+                                 "kandidaten": [{**kandidaat, "stand": "uitgesloten"}]}]}
+    data = {"werkgebied": wg, "overzicht": overzicht}
+    dossier, deelvragen = export._dossier(data), export._deelvragen(data)
+
+    assert deelvragen.deelvragen[0].status == "in_behandeling"           # de code; het label maakt de tekstlaag
+    assert dossier_regels(dossier)[:5] == [
+        ("Pagina", ""), ("Heading1", "1. Dossier"), ("Heading4", "Aanleiding"), ("BodyText", "Eerste alinea."), ("BodyText", "Tweede alinea.")]
+    assert dossier_regels(dossier)[-1] == ("BodyText", "BWBR1 (BWBR1)")
+    assert deelvragen_regels(deelvragen)[2:] == [
+        ("BlokBegin", ""), ("Heading2", "Deelvraag 1"), ("BodyText", "Wie?"), ("Meta", "Stand: In behandeling · 1 bron"),
+        ("BodyText", "Artikel 9 · context: Kern"), ("BlokEind", ""),
+        ("Heading2", "Uitgesloten bronnen"), ("BodyText", "Artikel 3 · uitgesloten voor deelvraag 1. Reden: niet vastgelegd"),
+        ("Heading2", "Open voorstellen van Lex"), ("Meta", "Hierover is nog geen besluit genomen; ze horen niet tot de analyse."),
+        ("Voorstel", "Voorstel voor een deelvraag: Nog een vraag?"),
+        ("Heading2", "Zoekdekking"), ("BodyText", "Lex heeft gezocht, maar niet alles kon worden doorzocht: tekst."),
+        ("Waarschuwing", "Het werkgebied veranderde na het zoeken.")]
+
+
+async def test_de_eerste_delen_overleven_json_heen_en_terug(client):
+    wg, _ids = await _gevuld(client)
+    data = await _data(wg)
+    deel = export._deelvragen(data)
+    assert Deelvragen.model_validate_json(deel.model_dump_json()) == deel
+
+
+def test_het_contract_kent_geen_onbekende_velden():
+    with pytest.raises(ValidationError):
+        Stand(op="2026-11-07", door="a", extra="b")
 
 
 def test_de_bestandsnaam_draagt_de_nederlandse_tijd_op_de_seconde():

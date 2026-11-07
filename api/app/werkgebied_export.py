@@ -1,7 +1,8 @@
 """Het hele werkgebied als één PDF: een overdrachtsdossier voor wie niet in Lex werkt.
 
-`verzamel` leest de stand van nu met dezelfde functies als de schermen, `pdf_regels` zet die om in (stijl, tekst) – los
-van reportlab, zodat de inhoud testbaar is – en `pdf_opmaak` maakt er het bestand van.
+`verzamel` leest de stand van nu met dezelfde functies als de schermen, en de bouwfuncties maken daar het gestructureerde
+rapport van (`werkgebied_rapport`, ADR-009). Dat wordt (stijl, tekst) – los van reportlab, zodat de inhoud testbaar is – en
+`pdf_opmaak` maakt er het bestand van.
 
 Brongetrouw:
 - Een citaat komt uit de bronboom of uit het opgeslagen anker, nooit uit afgeleide tekst, en elke bepaling draagt haar
@@ -15,9 +16,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from collections import Counter
-from datetime import datetime
 from typing import Awaitable, Callable
-from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
 
@@ -29,14 +28,11 @@ from .bestandsnaam import met_tijd
 from .jas_klassen import jas_sorteersleutel
 from .pdf_opmaak import BEGRIP, BLOK_BEGIN, BLOK_EIND, INHOUD, MARKERING, PAGINA
 from .werkgebied_inventaris import Resolver, bwb_van, inventaris_met_bronbomen
+from .werkgebied_rapport import (_BRONROL, DOSSIERVELDEN, Bronstand, Bronvoorstel, Deelvraag, DeelvraagBron, Deelvragen, Dossier,
+                                 DossierVeld, Signaal, Stand, UitgeslotenBron, Voorblad, Zoekdekking, Zoekregeling, deelvragen_regels,
+                                 dossier_regels, voorblad_regels)
+from .werkgebied_rapport import alinea as _alinea, datum as _datum, meervoud as _meervoud
 
-_DOSSIER = (("aanleiding", "Aanleiding"), ("context", "Context"), ("doel", "Doel"), ("analysevraag", "Analysevraag"),
-            ("praktijkvoorbeeld", "Praktijkvoorbeeld"), ("afbakening", "Afbakening"), ("gebeurtenis", "Gebeurtenis"))
-_WERKGEBIED_STATUS = {"in_voorbereiding": "In voorbereiding", "actief": "Actief", "afgerond": "Afgerond"}
-_VOORTGANG = {"niet_gestart": "Nog niet gestart", "in_behandeling": "In behandeling",
-              "voorlopig_afgerond": "Voorlopig afgerond", "beoordeeld": "Beoordeeld"}
-_BRONROL = {"analyseren": "analyseren", "context": "context"}
-_KANDIDAATROL = {"kern": "kernbepaling", "afhankelijkheid": "afhankelijkheid", "aanverwant": "aanverwant"}
 _LIFECYCLE = {"voorgesteld": "voorstel, nog niet beoordeeld", "human_approved": "beoordeeld: akkoord",
               "edited": "beoordeeld: aangepast", "published": "beoordeeld: gepubliceerd",
               "rejected": "afgewezen", "reused": "hergebruikt, nog niet beoordeeld"}
@@ -54,10 +50,6 @@ _DEFINITIE_DOOR = {"lex": "voorgesteld door Lex", "analist": "door de analist"}
 _LEEG = "Niet ingevuld."
 _BLOK = ((BLOK_BEGIN, ""),)
 _BLOK_UIT = ((BLOK_EIND, ""),)
-_ZONE = ZoneInfo("Europe/Amsterdam")
-_MAANDEN = ("januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober",
-            "november", "december")
-
 
 async def verzamel(werkgebied_id: str, actor: str, resolve: Resolver,
                    toestanden: Callable[[dict], Awaitable[dict]]) -> dict:
@@ -76,30 +68,11 @@ async def verzamel(werkgebied_id: str, actor: str, resolve: Resolver,
             "export": {"actor": actor, "op": db.utcnow().isoformat()}}
 
 
-def _datum(iso: str | None) -> str:
-    if not iso:
-        return ""
-    try:
-        d = datetime.fromisoformat(iso)
-    except ValueError:
-        return iso
-    d = d.astimezone(_ZONE) if d.tzinfo else d
-    return f"{d.day} {_MAANDEN[d.month - 1]} {d.year}"
-
-
 def bestandsnaam(data: dict) -> str:
     """Met het moment van de stand in het dossier, dus elke download is een eigen bestand."""
     naam = unicodedata.normalize("NFKD", data["werkgebied"]["naam"]).encode("ascii", "ignore").decode()
     naam = re.sub(r"[^a-z0-9]+", "-", naam.lower()).strip("-")[:80].rstrip("-")
     return met_tijd(f"werkgebied-{naam or data['werkgebied']['id']}", "pdf", data["export"]["op"])
-
-
-def _meervoud(n: int, een: str, meer: str) -> str:
-    return f"{n} {een if n == 1 else meer}"
-
-
-def _alinea(tekst: str, stijl: str = "BodyText") -> list[tuple[str, str]]:
-    return [(stijl, a.strip()) for a in re.split(r"\n\s*\n", tekst) if a.strip()]
 
 
 def _nodes(data: dict) -> dict[str, dict]:
@@ -131,139 +104,72 @@ def _anker_afwijkingen(e: dict, nodes: dict[str, dict]) -> list[tuple[str, str, 
     return uit
 
 
-def _waarschuwingen(data: dict, nodes: dict[str, dict]) -> list[str]:
+def _signalen(data: dict, nodes: dict[str, dict]) -> list[Signaal]:
     """Wat een lezer moet weten voor hij dit dossier gebruikt; dezelfde punten staan ook op hun plek."""
     uit = []
     inv, toestanden = data["inventaris"], data["toestanden"]
     for s in inv["selecties"]:
         if s["onbereikbaar"]:
-            uit.append(f"Niet in dit dossier: {s['label']}. {s['onbereikbaar']}")
+            uit.append(Signaal(soort="niet_in_dossier", label=s["label"], reden=s["onbereikbaar"]))
         elif s["bron_gewijzigd"]:
-            uit.append(f"De bron veranderde sinds de selectie: {s['label']}.")
+            uit.append(Signaal(soort="bron_veranderd", label=s["label"]))
     if not toestanden["volledig"]:
-        uit.append("De toestand per regeling kon niet worden gelezen: de vergelijking met de peildatum ontbreekt.")
-    for r in toestanden["regelingen"]:
-        if r["na_peildatum"]:
-            uit.append(f"{r['citeertitel']}: de tekst in dit dossier geldt pas sinds {_datum(r['geldig_vanaf'])}, na de "
-                       "peildatum. Hij kan afwijken van wat op de peildatum gold.")
+        uit.append(Signaal(soort="toestand_onvolledig"))
+    uit += [Signaal(soort="na_peildatum", label=r["citeertitel"], datum=r["geldig_vanaf"]) for r in toestanden["regelingen"] if r["na_peildatum"]]
     elementen = [*inv["elementen"], *inv["afgewezen"]]
     if n := sum(bool(e.get("verouderd") or _anker_afwijkingen(e, nodes)) for e in elementen):
-        uit.append(_meervoud(n, "markering staat op tekst die veranderde.", "markeringen staan op tekst die veranderde."))
-    passages = sum(k["actualiteit"] != "actueel" for b in data["begrippen"] for k in b["koppelingen"])
-    if passages:
-        uit.append(_meervoud(passages, "passage bij een begrip veranderde; toen en nu staan bij het begrip.",
-                             "passages bij begrippen veranderden; toen en nu staan bij het begrip."))
-    opnieuw = [v["nr"] for v in data["overzicht"]["deelvragen"] if v["opnieuw_bekijken"]]
-    if opnieuw:
-        uit.append("Opnieuw te bekijken na een wijziging van de scope: deelvraag " + ", ".join(map(str, opnieuw)) + ".")
+        uit.append(Signaal(soort="markeringen_veranderd", aantal=n))
+    if n := sum(k["actualiteit"] != "actueel" for b in data["begrippen"] for k in b["koppelingen"]):
+        uit.append(Signaal(soort="passages_veranderd", aantal=n))
+    if opnieuw := [v["nr"] for v in data["overzicht"]["deelvragen"] if v["opnieuw_bekijken"]]:
+        uit.append(Signaal(soort="opnieuw_bekijken", nrs=opnieuw))
     dekking = data["overzicht"]["zoekdekking"]
     if dekking.get("gezocht") and (dekking.get("verouderd") or not dekking.get("volledig", True)):
-        uit.append("Het zoeken naar bronnen is onvolledig of verouderd; zie deel 2.")
+        uit.append(Signaal(soort="zoeken_onvolledig"))
     return uit
 
 
-def _voorblad(data: dict, nodes: dict[str, dict]) -> list[tuple[str, str]]:
-    wg, toestanden, export = data["werkgebied"], data["toestanden"], data["export"]
-    uit = [("Title", wg["naam"]), ("Subtitle", "Wetsanalyse: dossier van het werkgebied")]
-    if wg.get("analysevraag"):
-        uit.append(("BodyText", "Analysevraag: " + wg["analysevraag"]))
-    uit.append(("BodyText", f"Status: {_WERKGEBIED_STATUS.get(wg['status'], wg['status'])} · revisie {wg['revisie']}"))
-    if wg.get("thema_label"):
-        uit.append(("BodyText", "Thema: " + wg["thema_label"]))
-    peildatum = _datum(wg.get("peildatum"))
-    uit.append(("BodyText", "Peildatum: " + (peildatum or "niet vastgelegd")
-                + (" (de aanmaakdag)" if wg.get("peildatum_standaard") else "")))
-    uit.append(("BodyText", f"Stand van {_datum(export['op'])}, geëxporteerd door {export['actor']}."))
-    if toestanden["regelingen"]:
-        uit.append(("Heading4", "Bronstand per regeling"))
-        for r in toestanden["regelingen"]:
-            # De graaf zet een regeling zonder einde op 9999-12-31.
-            tot = f" tot {_datum(r['geldig_tot'])}" if r["geldig_tot"] and r["geldig_tot"] < "9999" else ""
-            vanaf = f"geldt vanaf {_datum(r['geldig_vanaf'])}{tot}" if r["geldig_vanaf"] else "geldigheid onbekend"
-            uit.append(("Meta", f"{r['citeertitel']} ({r['bwb_id']}): {vanaf}"))
-    waarschuwingen = _waarschuwingen(data, nodes)
-    if waarschuwingen:
-        uit.append(("Heading4", "Let op"))
-        uit += [("Waarschuwing", w) for w in waarschuwingen]
-    uit += [("Heading4", "Zo lees je dit dossier"),
-            ("Meta", "Dit is een analyse-uitkomst, geen wettelijke definitie en geen juridisch oordeel. De wettekst is "
-                     "letterlijk overgenomen uit de kennisgraaf, die gevuld is uit de officiële publicatie. Bij elke "
-                     "bepaling staat de vindplaats en de bronreferentie (jci)."),
-            ("Meta", "Lex stelt voor, de jurist beslist. Beoordeeld of geaccordeerd betekent dat een jurist het bevestigde. "
-                     "Voorstel en concept zijn nog niet bevestigd; afgewezen en uitgesloten zijn bewust niet meegenomen.")]
-    return uit
-
-
-def _dossier(data: dict) -> list[tuple[str, str]]:
+def _voorblad(data: dict, nodes: dict[str, dict]) -> Voorblad:
     wg = data["werkgebied"]
-    uit: list[tuple[str, str]] = [(PAGINA, ""), ("Heading1", "1. Dossier")]
-    for veld, label in _DOSSIER:
-        uit.append(("Heading4", label))
-        uit += _alinea(wg.get(veld) or "") or [("Meta", "Niet ingevuld.")]
-    if wg.get("regelingen"):
-        uit.append(("Heading4", "Zoekbereik"))
-        uit += [("BodyText", f"{r.get('label') or r['bwb_id']} ({r['bwb_id']})") for r in wg["regelingen"]]
-    return uit
+    return Voorblad(naam=wg["naam"], analysevraag=wg.get("analysevraag") or "", status=wg["status"], revisie=wg["revisie"],
+                    thema=wg.get("thema_label") or "", peildatum=wg.get("peildatum"), peildatum_standaard=bool(wg.get("peildatum_standaard")),
+                    regelingen=[Bronstand(bwb_id=r["bwb_id"], citeertitel=r["citeertitel"], geldig_vanaf=r["geldig_vanaf"],
+                                          geldig_tot=r["geldig_tot"]) for r in data["toestanden"]["regelingen"]],
+                    signalen=_signalen(data, nodes))
 
 
-def _deelvragen(data: dict, nodes: dict[str, dict]) -> list[tuple[str, str]]:
+def _dossier(data: dict) -> Dossier:
+    wg = data["werkgebied"]
+    return Dossier(velden=[DossierVeld(veld=v, tekst=wg.get(v) or "") for v in DOSSIERVELDEN],
+                   zoekbereik=[Zoekregeling(bwb_id=r["bwb_id"], label=r.get("label") or "") for r in wg.get("regelingen") or []])
+
+
+def _deelvragen(data: dict) -> Deelvragen:
     wg, overzicht = data["werkgebied"], data["overzicht"]
     selecties = {s["id"]: s for s in wg["bronnen"]}
-    uit: list[tuple[str, str]] = [(PAGINA, ""), ("Heading1", "2. Deelvragen en bronnen")]
+    vragen: list[Deelvraag] = []
     uitgesloten: dict[str, dict] = {}
     voorstellen: dict[str, dict] = {}
     for v in overzicht["deelvragen"]:
-        titel = "Analysevraag" if overzicht["modus"] == "analysevraag" else f"Deelvraag {v['nr']}"
-        uit += [*_BLOK, ("Heading2", titel)]
-        uit.append(("BodyText", v["vraag"]))
-        stand = "Opnieuw bekijken" if v["opnieuw_bekijken"] else _VOORTGANG.get(v["status"], v["status"])
-        uit.append(("Meta", f"Stand: {stand} · {_meervoud(len(v['bronnen']), 'bron', 'bronnen')}"))
-        if v["opnieuw_bekijken"]:
-            uit.append(("Waarschuwing", "De scope veranderde na het afronden; deze deelvraag moet opnieuw bekeken worden."))
-        uit += [("Waarschuwing", "Open punt: " + p["tekst"]) for p in v["open_punten"]]
-        for b in v["bronnen"]:
-            reden = (selecties.get(b["selectie_id"]) or {}).get("reden")
-            uit.append(("BodyText", f"{b['label']} · {_BRONROL.get(b['rol'], b['rol'])}" + (f": {reden}" if reden else "")))
-        if niet := v["telling"].get("niet_gekozen"):
-            uit.append(("Meta", _meervoud(niet, "voorstel van Lex is niet gekozen.", "voorstellen van Lex zijn niet gekozen.")))
-        uit += _BLOK_UIT
+        vragen.append(Deelvraag(
+            nr=v["nr"], vraag=v["vraag"], status=v["status"], opnieuw_bekijken=bool(v["opnieuw_bekijken"]),
+            open_punten=[p["tekst"] for p in v["open_punten"]], niet_gekozen=v["telling"].get("niet_gekozen") or 0,
+            bronnen=[DeelvraagBron(label=b["label"], rol=b["rol"], reden=(selecties.get(b["selectie_id"]) or {}).get("reden") or "")
+                     for b in v["bronnen"]]))
         for k in v["kandidaten"]:
             doel = uitgesloten if k["stand"] == "uitgesloten" else voorstellen if k["stand"] == "voorgesteld" else None
             if doel is not None:
                 doel.setdefault(k["id"], {**k, "nrs": []})["nrs"].append(v["nr"])
-
-    uit.append(("Heading2", "Uitgesloten bronnen"))
-    if not uitgesloten:
-        uit.append(("Meta", "Er zijn geen bronnen uitgesloten."))
-    for k in uitgesloten.values():
-        waar = "alle deelvragen" if k["overal"] else "deelvraag " + ", ".join(map(str, k["nrs"]))
-        uit.append(("BodyText", f"{k['label']} · uitgesloten voor {waar}"
-                    + (f" door {k['besloten_door']}" if k["besloten_door"] else "") + f". Reden: {k['reden'] or 'niet vastgelegd'}"))
-
-    open_vragen = [d for d in wg["deelvragen"] if d.get("status") == "voorgesteld"]
-    open_bronnen = [*voorstellen.values(), *overzicht["zonder_deelvraag"]]
-    uit.append(("Heading2", "Open voorstellen van Lex"))
-    if not open_vragen and not open_bronnen:
-        uit.append(("Meta", "Er staan geen voorstellen open."))
-    else:
-        uit.append(("Meta", "Hierover is nog geen besluit genomen; ze horen niet tot de analyse."))
-    uit += [("Voorstel", "Voorstel voor een deelvraag: " + d["vraag"]) for d in open_vragen]
-    for k in open_bronnen:
-        rol = _KANDIDAATROL.get(k["rol"], k["rol"])
-        waar = f" · deelvraag {', '.join(map(str, k['nrs']))}" if k.get("nrs") else " · bij geen deelvraag"
-        uit.append(("Voorstel", f"Voorstel voor een bron: {k['label']} · {rol}{waar}"))
-
     dekking = overzicht["zoekdekking"]
-    if dekking.get("gezocht"):
-        uit.append(("Heading2", "Zoekdekking"))
-        onvolledig = dekking.get("onvolledig") or []
-        uit.append(("BodyText", "Lex heeft gezocht"
-                    + (", maar niet alles kon worden doorzocht: " + ", ".join(map(str, onvolledig)) + "." if onvolledig else ".")))
-        if dekking.get("verouderd"):
-            uit.append(("Waarschuwing", "Het werkgebied veranderde na het zoeken."))
-        if dekking.get("reden"):
-            uit.append(("Meta", str(dekking["reden"])))
-    return uit
+    return Deelvragen(
+        modus=overzicht["modus"], deelvragen=vragen,
+        uitgesloten=[UitgeslotenBron(label=k["label"], overal=bool(k["overal"]), nrs=k["nrs"], besloten_door=k["besloten_door"] or "",
+                                     reden=k["reden"] or "") for k in uitgesloten.values()],
+        open_vragen=[d["vraag"] for d in wg["deelvragen"] if d.get("status") == "voorgesteld"],
+        open_bronnen=[Bronvoorstel(label=k["label"], rol=k["rol"], nrs=k.get("nrs") or [])
+                      for k in [*voorstellen.values(), *overzicht["zonder_deelvraag"]]],
+        zoekdekking=Zoekdekking(onvolledig=[str(x) for x in dekking.get("onvolledig") or []], verouderd=bool(dekking.get("verouderd")),
+                                reden=str(dekking.get("reden") or "")) if dekking.get("gezocht") else None)
 
 
 def _herkomst(e: dict, verklaringen: dict) -> str:
@@ -557,8 +463,10 @@ def _verantwoording(data: dict, nodes: dict[str, dict]) -> list[tuple[str, str]]
 def pdf_regels(data: dict, verklaringen: dict) -> list[tuple[str, str]]:
     """De inhoud van de PDF als (stijl, tekst)."""
     nodes = _nodes(data)
-    return [*_voorblad(data, nodes), (PAGINA, ""), ("Heading4", "Inhoud"), (INHOUD, ""), *_dossier(data),
-            *_deelvragen(data, nodes), *_wettekst(data, nodes, verklaringen), *_begrippen(data, nodes),
+    stand = Stand(op=data["export"]["op"], door=data["export"]["actor"])
+    return [*voorblad_regels(_voorblad(data, nodes), stand), (PAGINA, ""), ("Heading4", "Inhoud"), (INHOUD, ""),
+            *dossier_regels(_dossier(data)), *deelvragen_regels(_deelvragen(data)),
+            *_wettekst(data, nodes, verklaringen), *_begrippen(data, nodes),
             *_verantwoording(data, nodes)]
 
 

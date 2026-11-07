@@ -81,7 +81,7 @@ ombouwen zonder reden.
 | `graaf.py` | De complete graaf (`/graaf`): alle regelingen met structuur, verwijzingen en markeringen; structuur en verwijzingen gecachet per `(bwb_id, toestandUrl)`. Ook `lees_bron`: de gecachete bronboom voor leesroutes. |
 | `knoopinfo.py` | Wat de kennisgraaf over één knoop weet (`/knoop`), voor de inspector van de graaf. |
 | `werkgebieden.py` (router), `werkgebied_store.py`, `werkgebied_contracts.py`, `werkgebied_inventaris.py`, `werkgebied_werkvoorraad.py` | Werkgebieden: bronselecties, revisies, audit, de inventaris en de annotatie-werkvoorraad. |
-| `werkgebied_export.py`, `pdf_opmaak.py`, `fonts/` | Het hele werkgebied als één PDF; de gedeelde PDF-opmaak met ingesloten lettertypen. |
+| `werkgebied_export.py`, `werkgebied_rapport.py`, `pdf_opmaak.py`, `fonts/` | Het hele werkgebied als één rapport (ADR-009): `werkgebied_rapport` is het contract en de tekstlaag, `werkgebied_export` leest de stand en vult het; de gedeelde PDF-opmaak met ingesloten lettertypen. |
 | `werkgebied_deelvragen.py` | Deelvragen: opslag, voorstellen van Lex, koppelingen en de dekkingscheck. |
 | `begrippen.py` (router), `begrip_store.py`, `begrip_contracts.py` | Begrippen: inhoud, koppelingen met bewijsstand, actualiteit, de accorderingspoort, revisies en export. |
 | `begrippen_runs.py` (router), `begrippen_run_store.py`, `begrippen_run_contracts.py`, `begrip_manifest.py` | Voorstellen van Lex: manifest voor de begrippenketen, runs, betekenisgroepen en besluiten. |
