@@ -130,9 +130,8 @@ export async function parseError(res: Response): Promise<ApiError> {
   } catch {
     /* geen JSON-body */
   }
-  const ra = res.headers.get("Retry-After");
   if (res.status === 401) naarInloggen();
-  return { status: res.status, detail, reden, data, retryAfter: ra ? Number(ra) : undefined };
+  return { status: res.status, detail, reden, data };
 }
 
 let opWegNaarInloggen = false;
