@@ -75,7 +75,8 @@ class BwbDownloader:
         if not toestanden:
             raise DownloadError(f"Geen toestanden gevonden voor {bwb_id}")
 
-        toestanden.sort(key=lambda t: t.geldig_vanaf or "")
+        # Twee toestanden met dezelfde ingangsdatum: de laatst zichtbaar gemaakte is de nieuwste (GR-15).
+        toestanden.sort(key=lambda t: (t.geldig_vanaf or "", t.zicht_vanaf or ""))
         logger.info("%d toestanden gevonden voor %s", len(toestanden), bwb_id)
         return toestanden
 
