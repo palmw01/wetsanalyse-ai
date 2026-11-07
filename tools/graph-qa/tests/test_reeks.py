@@ -77,10 +77,10 @@ def _verzoek(*iris):
                        doelen=[{"bron_iri": i, "label": f"Lid {i[-1]}"} for i in iris])
 
 
-def _draai(request, *, run=None, legt_vast=True, budget=None):
+def _draai(request, *, run=None, budget=None):
     async def verzamel():
         return [e async for e in reeks_run(
-            request, run, settings=_settings(), user_id="jurist", legt_vast=legt_vast,
+            request, run, settings=_settings(), user_id="jurist",
             graph=FakeGraph(result=ROWS), llm=KetenLLM(kies=lambda t, f: GEEN_ANNOTATIE),
             annotaties=LeesApi(), budget_toegestaan=budget)]
     return asyncio.run(verzamel())
@@ -136,8 +136,8 @@ def test_onbekend_onderdeel_wordt_geweigerd(api):
     assert not any(e["type"] == "onderdeel" for e in events) and api.batches == []
 
 
-def test_chatroute_legt_niets_vast_maar_heeft_dezelfde_indeling(api):
-    events = _draai(_verzoek(L1, L2), legt_vast=False)
+def test_zonder_run_legt_de_reeks_niets_vast_maar_heeft_dezelfde_indeling(api):
+    events = _draai(_verzoek(L1, L2))
     assert [e["fase"] for e in events if e["type"] == "onderdeel"] == ["start", "eind", "start", "eind"]
     assert api.batches == [] and api.berichten == []
 

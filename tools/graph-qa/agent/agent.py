@@ -311,8 +311,6 @@ async def answer_stream(
         "afgekapt": False,
         "onbevestigd": [],
         "answer": "",
-        "sub_questions": [],
-        "sub_findings": [],
         # Een afwijzing geldt de vráág, niet het gesprek. Bleef deze vlag staan, dan werd elke
         # volgende beurt in dezelfde thread ook afgewezen – dezelfde soort fout als een blijvend
         # corpus hieronder.

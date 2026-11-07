@@ -201,16 +201,6 @@ def _vraag(v: str) -> str:
     return v
 
 
-class DeelvraagInvoer(BaseModel):
-    verwachte_revisie: int = Field(ge=1)
-    vraag: str = Field(min_length=1, max_length=1000)
-
-    @field_validator("vraag")
-    @classmethod
-    def _v(cls, v: str) -> str:
-        return _vraag(v)
-
-
 class DeelvraagTekst(BaseModel):
     id: str = Field(min_length=1, max_length=64)
     vraag: str = Field(min_length=1, max_length=1000)
@@ -265,14 +255,6 @@ class DeelvraagWijziging(BaseModel):
         if self.status == DeelvraagStatus.vervangen:
             raise ValueError("een deelvraag wordt alleen vervangen door een voorstel over te nemen")
         return self
-
-
-class DeelvraagKoppelingen(BaseModel):
-    """De bronselecties en begrippen die deze deelvraag beantwoorden – de hele set, niet een verschil."""
-
-    verwachte_revisie: int = Field(ge=1)
-    bronnen: list[str] = Field(default_factory=list, max_length=200)
-    begrippen: list[str] = Field(default_factory=list, max_length=200)
 
 
 class DeelvraagVoorstellen(BaseModel):

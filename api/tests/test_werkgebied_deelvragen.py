@@ -9,9 +9,10 @@ from test_bronnen_runs import _k, _start, _uitkomst
 from test_werkgebieden import _bron, _nieuw, client, database, graaf  # noqa: F401
 
 
-async def _dv(client, wg, vraag, status=201):
-    r = await client.post(f"/v1/werkgebieden/{wg['id']}/deelvragen",
-                          json={"verwachte_revisie": wg["revisie"], "vraag": vraag})
+async def _dv(client, wg, vraag, status=200):
+    """Eén deelvraag erbij, zoals de werkplek dat doet: via de bewerkstand."""
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/deelvragen/samen",
+                          json={"verwachte_revisie": wg["revisie"], "nieuw": [vraag]})
     assert r.status_code == status, r.text
     return r.json()
 
@@ -23,11 +24,16 @@ async def _patch(client, wg, did, verwacht=200, **velden):
     return r.json()
 
 
-async def _koppel(client, wg, did, verwacht=200, **velden):
-    r = await client.put(f"/v1/werkgebieden/{wg['id']}/deelvragen/{did}/koppelingen",
-                         json={"verwachte_revisie": wg["revisie"], **velden})
-    assert r.status_code == verwacht, r.text
-    return r.json()
+async def _koppel(client, wg, did, bronnen=(), begrippen=()):
+    """Koppelingen van een deelvraag rechtstreeks in de database: de werkplek zet ze niet zelf, ze ontstaan bij het
+    opnemen van een kandidaat (`koppel_bron_in`). Geeft het werkgebied terug (de revisie blijft)."""
+    nu = db.utcnow()
+    async with db.get_engine().begin() as conn:
+        for soort, ids in (("bron", bronnen), ("begrip", begrippen)):
+            for doel in ids:
+                await conn.execute(insert(db.werkgebied_deelvraag_koppelingen).values(
+                    deelvraag_id=did, soort=soort, doel_id=doel, rol="", gekoppeld_door="jurist-a", gekoppeld=nu))
+    return (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()
 
 
 async def _dekking(client, wg) -> dict:
@@ -61,16 +67,14 @@ async def test_toevoegen_wijzigen_en_weghalen_dragen_de_revisie(client):
     assert (d["vraag"], d["status"], d["herkomst"], d["volgorde"]) == \
         ("Wanneer is een aanslag invorderbaar?", "actief", "analist", 0)
     # Dezelfde vraag (andere hoofdletters en leestekens) nog eens: 409.
-    r = await client.post(f"/v1/werkgebieden/{wg['id']}/deelvragen",
-                          json={"verwachte_revisie": wg["revisie"], "vraag": "wanneer is een aanslag invorderbaar"})
-    assert r.status_code == 409 and r.json()["detail"]["fout"] == "al_gesteld"
+    r = await _dv(client, wg, "wanneer is een aanslag invorderbaar", status=409)
+    assert r["detail"]["fout"] == "al_gesteld"
     # Een oude revisie: 412.
-    r = await client.post(f"/v1/werkgebieden/{wg['id']}/deelvragen", json={"verwachte_revisie": 1, "vraag": "Wie?"})
-    assert r.status_code == 412
+    await _dv(client, {**wg, "revisie": 1}, "Wie?", status=412)
     wg = await _patch(client, wg, d["id"], vraag="Wanneer is een belastingaanslag invorderbaar?")
     assert wg["deelvragen"][0]["vraag"] == "Wanneer is een belastingaanslag invorderbaar?"
-    r = await client.delete(f"/v1/werkgebieden/{wg['id']}/deelvragen/{d['id']}",
-                            params={"verwachte_revisie": wg["revisie"]})
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/deelvragen/samen",
+                          json={"verwachte_revisie": wg["revisie"], "verwijderen": [d["id"]]})
     assert r.status_code == 200 and r.json()["deelvragen"] == []
     acties = [a["actie"] for a in (await client.get(f"/v1/werkgebieden/{wg['id']}/audit")).json()["audit"]]
     assert acties[:3] == ["deelvraag-verwijderd", "deelvraag-gewijzigd", "deelvraag-toegevoegd"]
@@ -133,8 +137,6 @@ async def test_voorstellen_van_lex_overnemen_en_afwijzen(client):
     assert wg["revisie"] == 2, "een voorstel raakt de scope niet"
     termijn, uitzondering = (d for d in wg["deelvragen"] if d["status"] == "voorgesteld")
     assert termijn["herkomst"] == "lex"
-    # Een voorstel koppelen kan niet: eerst overnemen.
-    await _koppel(client, wg, termijn["id"], verwacht=409, bronnen=[])
     wg = await _patch(client, wg, termijn["id"], status="actief")
     # Afwijzen vraagt een reden.
     await _patch(client, wg, uitzondering["id"], verwacht=422, status="afgewezen")
@@ -157,10 +159,6 @@ async def test_dekking_per_deelvraag(client):
     geaccordeerd, concept = await _begrip(wg, "invorderbaar", "geaccordeerd"), await _begrip(wg, "termijn", "concept")
     wg = await _koppel(client, wg, a["id"], bronnen=[sel], begrippen=[geaccordeerd])
     wg = await _koppel(client, wg, b["id"], bronnen=[sel], begrippen=[concept])
-    # Iets buiten het werkgebied: 422.
-    r = await client.put(f"/v1/werkgebieden/{wg['id']}/deelvragen/{c['id']}/koppelingen",
-                         json={"verwachte_revisie": wg["revisie"], "bronnen": ["vreemd"]})
-    assert r.status_code == 422 and r.json()["detail"]["ids"] == ["vreemd"]
     d = await _dekking(client, wg)
     # De dekking is of er een bron bij hoort; een begrip telt niet (spoor K: begrippen horen bij het werkgebied).
     assert [x["stand"] for x in d["deelvragen"]] == ["met_bron", "met_bron", "geen_bron"]

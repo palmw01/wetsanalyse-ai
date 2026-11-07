@@ -80,7 +80,7 @@ async def database(monkeypatch):
         return DEFINITIES
 
     monkeypatch.setattr(graaf, "lees_bron", lees_bron)
-    monkeypatch.setattr(samenhang_antwoord, "_select", geen_verwijzingen)
+    monkeypatch.setattr(samenhang_antwoord, "sparql_select", geen_verwijzingen)
     monkeypatch.setattr(samenhang_antwoord, "_definities", definities)
     yield snap
     await db.dispose_engine()
@@ -230,7 +230,7 @@ async def test_onzekere_verwijzing_is_een_telling(monkeypatch):
     async def rijen(client, query):
         return [{"van": L1, "naar": f"{LAW}:artikel:167", "anker": "artikel 167", "betrouwbaarheid": "laag"},
                 {"van": L1, "naar": "urn:bwb:BWBR0002448", "anker": "Algemene termijnenwet", "stub": "BWBR0002448"}]
-    monkeypatch.setattr(samenhang_antwoord, "_select", rijen)
+    monkeypatch.setattr(samenhang_antwoord, "sparql_select", rijen)
     g = await samenhang_antwoord.antwoord([L1])
     assert g["ingekort"]["onzekere_verwijzingen"] == 1
     assert f"{LAW}:artikel:167" not in ids(g)

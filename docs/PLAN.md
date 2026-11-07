@@ -691,8 +691,9 @@ additieve kolom, dus dit vraagt een bewuste migratie (Azure Flexible Server, `ma
 **Geen nieuwe agent.** Er draait één QA-specialist per beurt (`parse_supervisor`). Een aparte
 `beleid`-specialist zou wet en beleid dus juist splitsen. Die komt er pas als de eval aantoont dat
 één prompt de bronsoorten niet uit elkaar houdt, en dat vraagt dan een specialist per worker in de
-supervisor. "Vergelijk wet met handleiding" kan via de bestaande decompositie
-(`ENABLE_DECOMPOSITION`). Er komt geen aparte Critic: `verify_node` is de plek. De annotatie-worker
+supervisor. Voor "vergelijk wet met handleiding" lag er een decompositieketen klaar
+(`ENABLE_DECOMPOSITION`); die is in november 2026 weggehaald en staat in de git-historie
+(`tools/graph-qa/agent/nodes/decompositie.py`), voor als dit spoor hem nodig heeft. Er komt geen aparte Critic: `verify_node` is de plek. De annotatie-worker
 blijft bij de wettekst.
 
 | Fase | Inhoud | Verificatie |

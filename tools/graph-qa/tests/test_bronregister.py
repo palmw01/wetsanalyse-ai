@@ -34,7 +34,7 @@ def test_register_houdt_alleen_opgehaalde_wettekst():
 
 
 def _gesprek(tmp_path, tweede_antwoord: str):
-    settings = make_settings(enable_decomposition=False, checkpoint_db_path=str(tmp_path / "cp.db"))
+    settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"))
     llm1 = FakeLLM([
         response([text_block("WORKERS: antwoord\nSPECIALIST: duiding\nPLAN: lid 1")], "end_turn"),
         response([tool_block("t1", "get_lid", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"})], "tool_use"),

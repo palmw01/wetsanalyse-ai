@@ -36,7 +36,6 @@ class Bouw:
     # Afgeleid uit de state, maar afhankelijk van settings — vandaar dat ze meereizen in plaats van
     # dat elke node ze zelf samenstelt.
     memory_context: Callable[[State], str]
-    corpus: Callable[[State], str]
     advies_context: Callable[[State], str]
     annotaties: object | None = None
     begrippen: object | None = None
