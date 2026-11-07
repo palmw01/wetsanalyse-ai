@@ -144,3 +144,21 @@ def test_een_herschreven_vraag_naar_de_bronnen_van_een_deelvraag_gaat_naar_de_de
     taak = upd["agent_taak"]
     assert (taak["agent"], taak["taak"]) == ("deelvragen", "dekking")
     assert "Wie kan om een rekeningafspraak verzoeken" in taak["parameters"]["vraag"]
+
+
+_INTERN = ("Supervisor", "Specialist", "worker", "-agent", "taak ")
+
+
+def test_de_statusregels_van_de_routering_zijn_in_gebruikerstaal_en_dragen_hun_route(monkeypatch):
+    """G2b: de jurist ziet wat Lex doet, niet welke worker of agent het doet; de eval leest de route uit het veld."""
+    events: list[dict] = []
+    monkeypatch.setattr(supervisie, "get_stream_writer", lambda: events.append)
+    for rij in RIJEN:
+        if rij["verwacht"]["model"] or rij.get("bekend"):
+            continue
+        voor = len(events)
+        _route(rij)
+        nieuw = [e for e in events[voor:] if e.get("type") == "status"]
+        assert any(e.get("route") for e in nieuw), f"{rij['id']}: geen statusregel met een route"
+        for e in nieuw:
+            assert not any(w in e["message"] for w in _INTERN), f"{rij['id']}: {e['message']}"

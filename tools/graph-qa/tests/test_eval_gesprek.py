@@ -14,7 +14,7 @@ import pytest
 from agent.jas_klassen import GELDIGE_JAS_KLASSEN
 from eval import run_eval
 from eval.gesprek import (
-    GOLDEN_GESPREK, Beurt, GesprekAnnotaties, routes_uit_status, run_gesprek_suite, score_beurt,
+    GOLDEN_GESPREK, Beurt, GesprekAnnotaties, routes_van, run_gesprek_suite, score_beurt,
 )
 
 ROUTES = {"annotaties_lezen", "annotatie", "advies", "afgewezen", "definitie", "duiding", "algemeen",
@@ -27,34 +27,18 @@ def _cases():
     return run_eval.load_golden(GOLDEN_GESPREK)
 
 
-def test_routes_uit_status_volgt_de_supervisorregels():
-    assert routes_uit_status([
-        "Supervisor · kiest de antwoord-worker · plan",
-        "Specialist duiding · raadpleegt de kennisgraaf",
-        "Graaf bevragen · get_lid",
-        "Specialist duiding · raadpleegt de kennisgraaf",
-    ]) == ["duiding"]
-    assert routes_uit_status(["Lex · raadpleegt bestaande annotaties", "Specialist annotaties_lezen · x"]) \
-        == ["annotaties_lezen"]
-    assert routes_uit_status(["Supervisor · buiten de wet- en regelgeving in de graaf"]) == ["afgewezen"]
-    assert routes_uit_status(["Lex · meer dan één artikel genoemd (9, 10)"]) == ["afgewezen"]
-    assert routes_uit_status(["Supervisor · kiest de annotatie-worker · annoteer"]) == ["annotatie"]
-    # De agents op een werkgebied (F3c), getypt of als suggestie.
-    assert routes_uit_status(["Supervisor · kiest de deelvragen-agent · taak dekking"]) == ["deelvragen"]
-    assert routes_uit_status(["Supervisor · kiest de begrippen-agent · taak voorbeelden (suggestie)"]) == ["begrippen"]
-    assert routes_uit_status(["Supervisor · kiest de annotatie-agent · taak werkgebied"]) == ["annotatie"]
-    # De werkgebied-worker, ook bij het aanvullen van het dossier.
-    assert routes_uit_status(["Lex · vult met je het dossier aan"]) == ["werkgebied"]
-    assert routes_uit_status(["Lex · stelt met je een werkgebied samen"]) == ["werkgebied"]
-    # De leesroute van begrippen, de overzichtsroute en de bronselectie (agent/nodes/supervisie.py).
-    assert routes_uit_status(["Lex · raadpleegt vastgelegde begrippen", "Begrippen · zoeken: x"]) == ["begrippen_lezen"]
-    assert routes_uit_status(["Lex · overzicht van een onderwerp", "Overzicht · onderwerp: invordering",
-                              "Specialist algemeen · raadpleegt de kennisgraaf"]) == ["overzicht", "algemeen"]
-    for regel in ("bepaalt met je de bronnen per deelvraag", "pakt de bronselectie op waar die was",
-                  "verwerkt je keuze in de bronselectie", "zoekt met je een bepaling op"):
-        assert routes_uit_status([f"Lex · {regel}"]) == ["bronselectie"], regel
-    # Een stap binnen de bronselectie is geen eigen route.
-    assert routes_uit_status(["Lex · zoekt bepalingen bij het werkgebied en zijn deelvragen"]) == []
+def test_de_route_komt_uit_het_veld_niet_uit_de_tekst():
+    """G2b: de tekst van een statusregel is voor de jurist en mag veranderen; de route staat in een eigen veld."""
+    from eval.opname import neem_op, nieuwe_opname
+    opname = nieuwe_opname("v", "duiding")
+    for ev in ({"type": "status", "message": "Lex · legt de bepaling uit", "route": "duiding"},
+               {"type": "status", "message": "Graaf bevragen · get_lid"},
+               {"type": "status", "message": "Lex · zoekt in de kennisgraaf", "route": "duiding"},
+               {"type": "status", "message": "Lex · maakt een overzicht van het onderwerp", "route": "overzicht"}):
+        neem_op(opname, ev)
+    assert routes_van(opname) == ["duiding", "overzicht"]
+    assert len(opname["status"]) == 4
+    assert routes_van({"status": ["Supervisor · kiest de duiding-worker"]}) == [], "zonder veld geen route"
 
 
 def test_de_routeringscases_naar_de_agents_staan_in_de_set():

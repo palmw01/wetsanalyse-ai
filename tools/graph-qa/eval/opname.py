@@ -18,7 +18,7 @@ from typing import Any
 def nieuwe_opname(vraag: str, vraagtype: str) -> dict[str, Any]:
     return {"vraag": vraag, "vraagtype": vraagtype, "tekst": "", "antwoord": None,
             "grounding": {"grounded": True, "cited": 0, "unsupported": []}, "sources": [],
-            "status": [], "tools": [], "overzicht": None, "error": None}
+            "status": [], "routes": [], "tools": [], "overzicht": None, "error": None, "verbruik": None, "weigeringen": []}
 
 
 def neem_op(opname: dict[str, Any], ev: dict[str, Any]) -> None:
@@ -34,6 +34,8 @@ def neem_op(opname: dict[str, Any], ev: dict[str, Any]) -> None:
         opname["sources"] = ev.get("sources") or []
     elif soort == "status":
         opname["status"].append(ev.get("message", ""))
+        if ev.get("route"):
+            opname["routes"].append(ev["route"])
     elif soort == "tool_execution" and ev.get("phase") == "start":
         opname["tools"].append(ev.get("tool", ""))
     elif soort == "overzicht":

@@ -411,7 +411,7 @@ function maakDemoItems(): ThreadItem[] {
         "ontvanger kan aanspreken voor de betaling.\n\n" +
         `_(${DEMO_LABEL}: dit antwoord hoort bij de rondleiding.)_`,
       denk: [
-        "· Supervisor · een vraag naar een begrip: de definitie-specialist (0,6 s)",
+        "· Lex · zoekt de definitie op (0,6 s)",
         "· Graaf · begripsbepaling opgehaald uit artikel 2 van de Invorderingswet 1990 (0,4 s)",
         "· Controle · 1 citaat niet letterlijk in de opgehaalde tekst (0,1 s)",
       ].join("\n"),

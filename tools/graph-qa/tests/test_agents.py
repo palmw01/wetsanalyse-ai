@@ -114,8 +114,8 @@ def test_een_actie_kiest_agent_en_taak_zonder_model():
     llm = FakeLLM([])
     events = _beurt("Hoe staat de dekking ervoor?", llm, actie="dekking")
     assert llm.calls == []
-    assert any(e.get("message", "").startswith("Supervisor · kiest de deelvragen-agent · taak dekking (suggestie)")
-               for e in events)
+    assert any(e.get("route") == "deelvragen" and e["message"] == "Lex · kijkt naar de deelvragen van het werkgebied"
+               for e in events if e["type"] == "status")
     token = "".join(e["content"] for e in events if e["type"] == "token")
     assert "1 van 2 deelvragen gedekt" in token and "alleen context" not in token
     assert "1 kandidaat van Lex open" in token and "nog geen bron" in token
@@ -167,7 +167,7 @@ def test_herschrijven_zet_de_keuze_voor_een_agent_niet_om(tmp_path):
                             "end_turn")])
     _, tweede = _gesprek([("Hoe staat de dekking ervoor?", {"actie": "dekking"}),
                           ("Is deelvraag 2 al gedekt?", {})], llm, tmp_path)
-    assert any("kiest de deelvragen-agent · taak dekking" in m for m in _statussen(tweede))
+    assert any(e.get("route") == "deelvragen" for e in tweede if e["type"] == "status")
     assert not any("raadpleegt bestaande annotaties" in m for m in _statussen(tweede))
     assert not any(e["type"] == "tool_execution" and e.get("tool") == "search_annotaties" for e in tweede)
 

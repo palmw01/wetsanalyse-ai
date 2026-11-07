@@ -6,13 +6,13 @@ een gemarkeerd element. Een case is hier een GESPREK: beurten in één `conversa
 beurt wat er moet gebeuren.
 
 Wat er per beurt getoetst wordt, komt uit de events die de werkplek ook krijgt. De route lezen we
-uit de `status`-regels van de supervisor, de tools uit `tool_execution`. Er is geen apart
+uit het veld `route` op de `status`-regels, de tools uit `tool_execution`. Er is geen apart
 eval-kanaal in de agent: wat hier meetbaar is, ziet de jurist ook.
 
 Verwachtingen per beurt (alle optioneel):
   route        : één van de gezien-routes (`annotaties_lezen`, `annotatie`, `advies`, `afgewezen`,
                  `definitie`, `duiding`, `algemeen`, `deelvragen`, `begrippen`, `werkgebied`, `overzicht`,
-                 `begrippen_lezen`, `bronselectie`, `verduidelijken`) die in deze beurt moet voorkomen
+                 `begrippen_lezen`, `bronselectie`, `verduidelijken`, `bepaling`) die in deze beurt moet voorkomen
   niet_route   : routes die NIET mogen voorkomen
   tools_wel    : tools waarvan er minstens één moet zijn aangeroepen
   tools_niet   : tools die niet aangeroepen mogen worden
@@ -31,7 +31,6 @@ bewaren; gemeten wordt de routering.
 """
 from __future__ import annotations
 
-import re
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -46,29 +45,6 @@ from eval.vraagtypen import print_per_vraagtype, vraagtype_van
 
 GOLDEN_GESPREK = Path(__file__).parent / "golden_gesprek.jsonl"
 
-# Status-regel → route. De supervisor meldt zijn keuze altijd in één van deze vormen
-# (agent/nodes/supervisie.py); een specialist meldt zich met "Specialist <naam> · …".
-_ROUTE_REGELS: tuple[tuple[re.Pattern[str], str], ...] = (
-    (re.compile(r"^Lex · raadpleegt bestaande annotaties"), "annotaties_lezen"),
-    (re.compile(r"^Lex · annoteert de aangewezen bepaling"), "annotatie"),
-    (re.compile(r"^Lex · advies bij een bestaande markering"), "advies"),
-    (re.compile(r"^Lex · raadpleegt vastgelegde begrippen"), "begrippen_lezen"),
-    (re.compile(r"^Lex · overzicht van een onderwerp"), "overzicht"),
-    # De bronselectie per deelvraag (spoor J): starten, hervatten, een keuze of een bepaling opzoeken.
-    (re.compile(r"^Lex · (?:bepaalt met je de bronnen per deelvraag|pakt de bronselectie op|verwerkt je keuze in "
-                r"de bronselectie|zoekt met je een bepaling op)"), "bronselectie"),
-    (re.compile(r"^Lex · meer dan één artikel genoemd"), "afgewezen"),
-    # Een open keuzevraag die de vervolgvraag niet beantwoordt (R3): Lex vraagt opnieuw, zonder model.
-    (re.compile(r"^Lex · vraagt eerst welk artikel je bedoelt"), "verduidelijken"),
-    (re.compile(r"^Supervisor · buiten de wet"), "afgewezen"),
-    (re.compile(r"^Supervisor · kiest de annotatie-worker"), "annotatie"),
-    # De werkgebied-worker: samenstellen, een klik op een kaartje, of het dossier aanvullen.
-    (re.compile(r"^Lex · (?:stelt met je een werkgebied samen|verwerkt het antwoord op het kaartje|vult met je het "
-                r"dossier aan)"), "werkgebied"),
-    # De agents op een werkgebied (F3c): groep 1 is de agent; de annotatie-agent telt als `annotatie`.
-    (re.compile(r"^Supervisor · kiest de (deelvragen|begrippen|annotatie)-agent"), ""),
-    (re.compile(r"^Specialist (\w+) ·"), ""),  # groep 1 is de specialist
-)
 
 
 class GesprekAnnotaties:
@@ -141,18 +117,9 @@ def _poortgraaf(settings: Settings):
     return _POORTGRAAF
 
 
-def routes_uit_status(berichten: list[str]) -> list[str]:
-    """De routes die in deze beurt voorbijkwamen, in volgorde en ontdubbeld."""
-    gezien: list[str] = []
-    for bericht in berichten:
-        for patroon, route in _ROUTE_REGELS:
-            m = patroon.match(bericht)
-            if m:
-                naam = route or m.group(1)
-                if naam not in gezien:
-                    gezien.append(naam)
-                break
-    return gezien
+def routes_van(opname: dict[str, Any]) -> list[str]:
+    """De routes die in deze beurt voorbijkwamen, in volgorde en ontdubbeld: het veld `route` op de statusregels."""
+    return list(dict.fromkeys(opname.get("routes") or []))
 
 
 @dataclass
@@ -216,7 +183,7 @@ def score_beurt(verwacht: dict[str, Any], beurt: Beurt) -> list[str]:
 
 def beurt_uit_opname(spec: dict[str, Any], opname: dict[str, Any]) -> Beurt:
     """Scoor een opgenomen beurt (eval/opname.py): live, of uit een bewaard bestand."""
-    beurt = Beurt(spec["vraag"], opname["tekst"], routes_uit_status(opname["status"]), opname["tools"],
+    beurt = Beurt(spec["vraag"], opname["tekst"], routes_van(opname), opname["tools"],
                   opname["grounding"].get("niveau", ""), opname["error"], vraagtype=opname["vraagtype"],
                   toon=toon(opname["tekst"], opname["antwoord"]))
     beurt.fouten = score_beurt(spec.get("verwacht") or {}, beurt)
