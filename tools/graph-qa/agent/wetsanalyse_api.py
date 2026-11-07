@@ -18,6 +18,7 @@ Drie dingen om te weten:
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 from urllib.parse import quote
@@ -31,6 +32,9 @@ logger = logging.getLogger("graph_qa.api")
 # Ruim genoeg voor een batch met tientallen elementen, krap genoeg dat een hangende api de run niet
 # eindeloos ophoudt.
 TIMEOUT = httpx.Timeout(connect=5.0, read=30.0, write=30.0, pool=5.0)
+#: Wat bij een uitrol of een koude start voorbijkomt en een tel later weg is.
+_TIJDELIJK = frozenset({502, 503, 504})
+HERHAAL_NA_S = 1.0
 # Zelfde grens als de BFF bij het starten van begrippen (`MANIFEST_TIMEOUT_MS`).
 MANIFEST_TIMEOUT = httpx.Timeout(connect=5.0, read=90.0, write=30.0, pool=5.0)
 
@@ -99,13 +103,27 @@ class WetsanalyseApi:
     async def aclose(self) -> None:
         await self._client.aclose()
 
-    async def _post(self, pad: str, payload: dict[str, Any]) -> dict[str, Any]:
-        return await self._verstuur("POST", pad, payload)
+    async def _post(self, pad: str, payload: dict[str, Any], *, herhaal: bool = False) -> dict[str, Any]:
+        return await self._verstuur("POST", pad, payload, herhaal=herhaal)
 
-    async def _verstuur(self, methode: str, pad: str, payload: dict[str, Any]) -> dict[str, Any]:
-        antwoord = await self._client.request(
-            methode, f"{self._basis}{pad}", json=payload, headers=self._headers,
-        )
+    async def _verstuur(self, methode: str, pad: str, payload: dict[str, Any], *,
+                        herhaal: bool = False) -> dict[str, Any]:
+        """`herhaal` alleen voor een schrijfactie die de api ontdubbelt (een sleutel in de payload): dan mag een
+        weggevallen verbinding of een tijdelijke 5xx één keer opnieuw. Elders niet: een tweede PATCH na een
+        geslaagde eerste gaf een valse 412 (ROB-06)."""
+        try:
+            antwoord = await self._client.request(
+                methode, f"{self._basis}{pad}", json=payload, headers=self._headers,
+            )
+            if herhaal and antwoord.status_code in _TIJDELIJK:
+                raise httpx.HTTPStatusError("tijdelijk", request=antwoord.request, response=antwoord)
+        except (httpx.TransportError, httpx.HTTPStatusError):
+            if not herhaal:
+                raise
+            await asyncio.sleep(HERHAAL_NA_S)
+            antwoord = await self._client.request(
+                methode, f"{self._basis}{pad}", json=payload, headers=self._headers,
+            )
         if antwoord.status_code == 404 and "/gesprekken/" in pad:
             raise GesprekVerdwenen(f"{methode} {pad} → 404", 404)
         if antwoord.status_code >= 400:
@@ -124,7 +142,7 @@ class WetsanalyseApi:
 
     async def zet_bronnode_batch(self, payload: dict[str, Any]) -> dict[str, Any]:
         data = {**payload, "elementen": [naar_contract(e) for e in payload.get("elementen", [])]}
-        return await self._post("/v1/annotatie/lagen/batch", data)
+        return await self._post("/v1/annotatie/lagen/batch", data, herhaal=bool(data.get("batch_id")))
 
     # -- begrippen: voorstellen van Lex (spoor D, levering 3a) --------------------------------------
 
@@ -367,7 +385,7 @@ class WetsanalyseApi:
 
     async def voeg_bericht_toe(self, gesprek_id: str, bericht: dict[str, Any]) -> dict[str, Any]:
         """De assistent-beurt in de chatgeschiedenis. `run_id` in de payload maakt dit idempotent."""
-        return await self._post(f"/v1/gesprekken/{gesprek_id}/berichten", bericht)
+        return await self._post(f"/v1/gesprekken/{gesprek_id}/berichten", bericht, herhaal=bool(bericht.get("run_id")))
 
     async def boek_verbruik(
         self, verbruik: dict[str, int], *, model: str = "", gesprek_id: str = "", run_id: str = "",
@@ -386,7 +404,7 @@ class WetsanalyseApi:
             "cache_schrijf": verbruik.get("cache_schrijf", 0),
             "gesprek_id": gesprek_id,
             "run_id": run_id,
-        })
+        }, herhaal=bool(run_id))
 
     async def budget_toegestaan(self) -> tuple[bool, dict[str, Any]]:
         """Mag deze gebruiker een beurt starten? Geeft (toegestaan, stand).

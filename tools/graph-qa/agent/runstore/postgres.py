@@ -253,19 +253,24 @@ class PostgresStore:
     ) -> Run:
         run = Run(run_id=uuid.uuid4().hex, conversation_id=conversation_id,
                   user_id=user_id, vraag=vraag)
-        try:
-            async with self.pool.connection() as conn:
-                await conn.execute(
-                    "INSERT INTO agent_runs (run_id, conversation_id, user_id, vraag) "
-                    "VALUES (%s, %s, %s, %s)",
-                    (run.run_id, conversation_id, user_id, vraag),
-                )
-        except pg_errors.UniqueViolation as botsing:
-            # De partiële index sloeg toe: er loopt al een run op dit gesprek. Bewust zonder
-            # user-filter opgehaald — twee lussen op één thread_id is een dataprobleem, ongeacht wie
-            # ze start.
-            bestaand = await self.actief_voor(conversation_id)
-            raise RunBestaatAl(bestaand.run_id if bestaand else "") from botsing
+        for poging in (1, 2):
+            try:
+                async with self.pool.connection() as conn:
+                    await conn.execute(
+                        "INSERT INTO agent_runs (run_id, conversation_id, user_id, vraag) "
+                        "VALUES (%s, %s, %s, %s)",
+                        (run.run_id, conversation_id, user_id, vraag),
+                    )
+                break
+            except pg_errors.UniqueViolation as botsing:
+                # De partiële index sloeg toe: er loopt al een run op dit gesprek. Bewust zonder
+                # user-filter opgehaald — twee lussen op één thread_id is een dataprobleem, ongeacht wie
+                # ze start. Is die run dood (geen hartslag), dan verklaart het lezen hem verweesd en is
+                # het gesprek vrij: dan één keer opnieuw, in plaats van een 409 zonder run (AG-13).
+                bestaand = await self.actief_voor(conversation_id)
+                if bestaand is None and poging == 1:
+                    continue
+                raise RunBestaatAl(bestaand.run_id if bestaand else "") from botsing
 
         self._lopend[run.run_id] = run
         run.taak = asyncio.create_task(self._draai(run, maak_stroom))
@@ -325,8 +330,10 @@ class PostgresStore:
                     rij = await cur.fetchone()
                 faalt = False
                 if rij and rij["stop_verzocht"]:
+                    # De graaf ziet de vlag. De hartslag loopt wel door: de run rondt nog af (een node die
+                    # een trage modelaanroep doet), en zonder hartslag verklaart een andere replica hem na
+                    # een minuut verweesd terwijl hij nog schrijft (AG-12).
                     run.stop_gevraagd = True
-                    return  # de graaf ziet de vlag; verder polsen heeft geen zin
             except Exception:  # noqa: BLE001 – de pols mag de beurt niet laten vallen
                 if not faalt:
                     logger.warning("run-pols mislukt", exc_info=True,
