@@ -15,6 +15,7 @@ from langgraph.config import get_stream_writer
 from dataclasses import asdict
 
 from ..aanwijzing import lees_aanwijzing, melding_meerdere
+from ..llm_stap import Rol, aanroep
 from ..bepaling_workflow import lees as lees_bepalingsvraag
 from ..doel import _heeft_opgegeven_doel
 from ..bronselectie import is_bronselectievraag
@@ -241,7 +242,8 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
             "focus": bij_advies(state.get("focus"), state.get("context")),
         }
 
-    resp = b.llm.create(
+    resp = aanroep(
+        b.llm, Rol.SUPERVISOR,
         model=b.model_router,
         max_tokens=400,
         system=[SUPERVISOR_SYSTEM + "\n\n" + instructies("supervisor"),
@@ -249,7 +251,7 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
                 + _open_kaartje(state)],
         tools=[],
         messages=[{"role": "user", "content": state["question"]}],
-    )
+    ).resp
     text = "".join(b.text for b in resp.content if b.type == "text")
     vraag = parse_vraag(text) if gesprek else ""
     zelfstandig = vraag or state.get("question", "")

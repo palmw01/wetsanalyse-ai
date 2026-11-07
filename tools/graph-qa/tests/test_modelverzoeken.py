@@ -260,6 +260,15 @@ def test_intake_stelt_voor():
     _vergelijk("intake", llm.calls)
 
 
+# --- de bepalingsroute (ADR-010): de toelichting bij de opgehaalde tekst ----------------------------
+
+def test_bepaling_toelichting():
+    from agent import bepaling_workflow as wf
+    llm = Opnemer(rest=lambda _kw: response([text_block("Je krijgt uitstel als je erom vraagt.")], "end_turn"))
+    wf.schrijf_toelichting(llm, "m", "De ontvanger verleent binnen zes weken uitstel van betaling.")
+    _vergelijk("bepaling_toelichting", llm.calls)
+
+
 # --- de hashes die de herkomst dragen -----------------------------------------------------------
 
 def _hashes() -> dict[str, str]:
