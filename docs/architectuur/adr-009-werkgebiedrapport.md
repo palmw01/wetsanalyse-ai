@@ -14,7 +14,7 @@ De export van een werkgebied maakte regels `(stijl, tekst)` rechtstreeks uit de 
 verzamel → bouw_rapport → Rapport (JSON) → rapport_regels → [(stijl, tekst)] → PDF of Markdown
 ```
 
-- **Contract:** `api/app/werkgebied_rapport.py`, in Pydantic, met `schema`, `versie` en `extra="forbid"`. Het staat in de api, want alleen de api gebruikt het.
+- **Contract:** `api/app/werkgebied_rapport.py`, in Pydantic, met `schema_naam`, `versie` en `extra="forbid"`. Het staat in de api, want alleen de api gebruikt het.
 - **Codes in het document, woorden in de tekstlaag.** Het document draagt `lifecycle: "human_approved"` en ISO-datums. Alleen `rapport_regels` maakt labels en zinnen. Uitzondering: de leesbare herkomstnamen komen uit `verklaringen` en gaan als tekst het document in.
 - **`door`:** `bron`, `lex` of `analist`, bij wat inhoud draagt.
 - **De uitvoer ziet alleen het document.** De PDF gaat letterlijk door de JSON heen, dus wat niet in het document staat, kan niet in het rapport komen.

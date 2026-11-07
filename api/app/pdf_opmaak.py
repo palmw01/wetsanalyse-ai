@@ -1,6 +1,6 @@
 """De opmaak van de PDF's: lettertypen, stijlen en het omzetten van (stijl, tekst)-regels in een bestand.
 
-De exports leveren hun inhoud als regels (`annotatie_export.pdf_regels`, `werkgebied_export.pdf_regels`), zodat die
+De exports leveren hun inhoud als regels (`annotatie_export.pdf_regels`, `werkgebied_rapport.rapport_regels`), zodat die
 zonder reportlab te testen zijn; alles over de vorm staat hier.
 
 **De lettertypen zijn ingesloten.** De standaardletters van een PDF kennen alleen cp1252: een `ā` of een harde

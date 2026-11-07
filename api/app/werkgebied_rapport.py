@@ -16,7 +16,7 @@ from zoneinfo import ZoneInfo
 from bronmodel.antwoord import Vindplaats
 from pydantic import BaseModel, ConfigDict
 
-from .pdf_opmaak import BLOK_BEGIN, BLOK_EIND, PAGINA
+from .pdf_opmaak import BEGRIP, BLOK_BEGIN, BLOK_EIND, INHOUD, MARKERING, PAGINA
 
 VERSIE = 1
 SCHEMA = "werkgebied-rapport-v1"
@@ -131,6 +131,188 @@ class Deelvragen(_Deel):
     zoekdekking: Zoekdekking | None = None
 
 
+class KlasseTelling(_Deel):
+    klasse: str = ""                                 # leeg: een markering die nog geen klasse heeft
+    aantal: int
+
+
+class Herkomst(_Deel):
+    """Wie stelde voor en wat deed de jurist. Het volledige spoor staat in de annotatie-export."""
+
+    herkomst: str = ""
+    besloten_door: str = ""
+    terugval: bool = False
+    twijfel: list[str] = []
+    gedegradeerd: bool = False
+    jurist: str = ""
+
+
+class Afwijking(_Deel):
+    """Een ankerfragment dat niet meer op zijn offsets staat."""
+
+    plek: str
+    toen: str
+    nu: str
+
+
+class Markering(_Deel):
+    id: str
+    klasse: str = ""
+    alternatieven: list[str] = []
+    subtype: str = ""
+    lifecycle: str
+    tekst: str
+    vindplaatsen: list[Vindplaats] = []
+    toelichting: str = ""
+    herkomst: Herkomst
+    afwijkingen: list[Afwijking] = []
+    verouderd: bool = False
+    deels_buiten: bool = False
+    door: Door = "lex"
+
+
+class Bepaling(_Deel):
+    vindplaats: Vindplaats
+    rol: str
+    bron_gewijzigd: bool = False
+    tekst: str = ""
+    markeringen: list[Markering] = []
+    door: Door = "bron"
+
+
+class Artikel(_Deel):
+    kop: str
+    bepalingen: list[Bepaling]
+
+
+class Regeling(_Deel):
+    bwb_id: str
+    titel: str
+    artikelen: list[Artikel] = []
+
+
+class Onbereikbaar(_Deel):
+    label: str
+    reden: str
+
+
+class Wettekst(_Deel):
+    markeringen: int
+    beoordeeld: int
+    per_klasse: list[KlasseTelling] = []
+    regelingen: list[Regeling] = []
+    onbereikbaar: list[Onbereikbaar] = []
+    buiten_tekst: list[Markering] = []
+    afgewezen: list[Markering] = []
+
+
+class Voorbeeld(_Deel):
+    oordeel: str
+    tekst: str
+
+
+class Fragment(_Deel):
+    tekst: str
+    vindplaats: Vindplaats
+    door: Door = "bron"
+
+
+class Passage(_Deel):
+    tekst: str
+    vindplaats: Vindplaats
+    klasse: str = ""
+    rol: str
+    beoordeling: str
+    annotatie_beoordeeld: bool = False
+    motivatie: str = ""
+    actualiteit: str = "actueel"
+    nu: str | None = None
+    door: Door = "bron"
+
+
+class Relatie(_Deel):
+    van: str
+    type: str
+    naar: str
+    toelichting: str = ""
+
+
+class Begrip(_Deel):
+    id: str
+    naam: str
+    status: Literal["geaccordeerd", "concept", "vervangen"]
+    generiek: bool = False
+    alternatieve_termen: list[str] = []
+    definitie: str = ""
+    definitie_herkomst: str = ""
+    definitie_door: str = ""
+    uitleg: str = ""
+    toelichting: str = ""
+    voorbeelden: list[Voorbeeld] = []
+    onderbouwing_aangepast: bool = False
+    fragmenten: list[Fragment] = []
+    passages: list[Passage] = []
+    relaties: list[Relatie] = []
+    open_punten: list[str] = []
+    geaccordeerd_door: str = ""
+    geaccordeerd_op: str | None = None
+    reden: str = ""
+    vervangen: bool = False
+    door: Door = "analist"
+
+
+class OpenGroep(_Deel):
+    naam: str
+    definitie: str = ""
+    leden: list[Fragment] = []
+    door: Door = "lex"
+
+
+class OpenRelatie(_Deel):
+    van: str
+    type: str
+    naar: str
+    door: Door = "lex"
+
+
+class Begrippen(_Deel):
+    begrippen: list[Begrip] = []
+    open_groepen: list[OpenGroep] = []
+    open_relaties: list[OpenRelatie] = []
+
+
+class Handeling(_Deel):
+    actie: str
+    aantal: int
+
+
+class Selectie(_Deel):
+    rol: str
+    vindplaats: Vindplaats
+
+
+class Verantwoording(_Deel):
+    aangemaakt_door: str
+    aangemaakt: str
+    gewijzigd: str
+    juristen: list[str] = []
+    accordeurs: list[str] = []
+    handelingen: list[Handeling] = []
+    bronnen: list[Selectie] = []
+
+
+class Rapport(_Deel):
+    schema_naam: Literal["werkgebied-rapport-v1"] = SCHEMA
+    versie: int = VERSIE
+    stand: Stand
+    voorblad: Voorblad
+    dossier: Dossier
+    deelvragen: Deelvragen
+    wettekst: Wettekst
+    begrippen: Begrippen
+    verantwoording: Verantwoording
+
+
 _DOSSIER = {"aanleiding": "Aanleiding", "context": "Context", "doel": "Doel", "analysevraag": "Analysevraag",
             "praktijkvoorbeeld": "Praktijkvoorbeeld", "afbakening": "Afbakening", "gebeurtenis": "Gebeurtenis"}
 DOSSIERVELDEN = tuple(_DOSSIER)
@@ -139,6 +321,21 @@ _VOORTGANG = {"niet_gestart": "Nog niet gestart", "in_behandeling": "In behandel
               "voorlopig_afgerond": "Voorlopig afgerond", "beoordeeld": "Beoordeeld"}
 _BRONROL = {"analyseren": "analyseren", "context": "context"}
 _KANDIDAATROL = {"kern": "kernbepaling", "afhankelijkheid": "afhankelijkheid", "aanverwant": "aanverwant"}
+_LIFECYCLE = {"voorgesteld": "voorstel, nog niet beoordeeld", "human_approved": "beoordeeld: akkoord",
+              "edited": "beoordeeld: aangepast", "published": "beoordeeld: gepubliceerd",
+              "rejected": "afgewezen", "reused": "hergebruikt, nog niet beoordeeld"}
+_BEGRIPSTATUS = {"geaccordeerd": "Geaccordeerd", "concept": "Concept, nog niet geaccordeerd", "vervangen": "Vervangen"}
+_KOPPELROL = {"duiding": "duidt dit begrip aan", "definitie": "ondersteunt de definitie", "context": "context"}
+_BEOORDELING = {"open": "nog niet beoordeeld", "akkoord": "akkoord", "afgewezen": "afgewezen"}
+_ACTUALITEIT = {"gewijzigd": "de passage veranderde", "verworpen": "de annotatie is verworpen",
+                "verdwenen": "de annotatie bestaat niet meer"}
+_OORDEEL = {"wel": "valt eronder", "niet": "valt er niet onder", "onzeker": "twijfel"}
+_RELATIE = {"kwalificatie": "kwalificeert", "inclusie": "omvat", "uitsluiting": "omvat niet", "hierarchie": "heeft als soort",
+            "verwant": "is verwant met", "opvolging": "wordt opgevolgd door"}
+_DEFINITIE = {"letterlijk": "brondefinitie, letterlijk uit de wettekst", "samengesteld": "analysebegrip, samengesteld uit de wettekst",
+              "geformuleerd": "analysebegrip, geformuleerd"}
+_DEFINITIE_DOOR = {"lex": "voorgesteld door Lex", "analist": "door de analist"}
+_LEEG = "Niet ingevuld."
 _ZONE = ZoneInfo("Europe/Amsterdam")
 _MAANDEN = ("januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober",
             "november", "december")
@@ -265,3 +462,198 @@ def deelvragen_regels(d: Deelvragen) -> list[Regel]:
         if d.zoekdekking.reden:
             uit.append(("Meta", d.zoekdekking.reden))
     return uit
+
+
+def _verwijzing(v: Vindplaats) -> str:
+    """De bronreferentie: de jci, met de bron-IRI als terugval."""
+    return v.jci or v.iri
+
+
+def _herkomst(h: Herkomst) -> str:
+    if not h.besloten_door:
+        delen = ["door een jurist zelf gemarkeerd" if h.herkomst == "mens" else "geen spoor bewaard"]
+    elif h.terugval:
+        delen = [f"{h.besloten_door} – de jurist kiest uit de mogelijke klassen"]
+    else:
+        delen = [f"voorgesteld door Lex ({h.besloten_door})"]
+    if h.twijfel:
+        delen.append("twijfel: " + ", ".join(h.twijfel))
+    if h.gedegradeerd:
+        delen.append("zonder zinsontleding beoordeeld")
+    if h.jurist:
+        delen.append(re.sub(r"\d{4}-\d{2}-\d{2}T\S+", lambda m: datum(m[0]), h.jurist))
+    return "Herkomst: " + "; ".join(delen) + "."
+
+
+def _markering(m: Markering, eigen_iri: str = "") -> list[Regel]:
+    # Een terugval draagt geen klasse: zeg dat, en noem de keuze.
+    kop = m.klasse or "Nog geen klasse (" + ", ".join(m.alternatieven) + ")"
+    if m.subtype:
+        kop += f", {m.subtype}"
+    uit: list[Regel] = [*BLOK, (MARKERING + m.klasse, f"{kop} · {_LIFECYCLE.get(m.lifecycle, m.lifecycle)}"), ("Citaat", f"“{m.tekst}”")]
+    uit += [("Meta", f"Vindplaats: {v.label} · {_verwijzing(v)}") for v in m.vindplaatsen if v.iri != eigen_iri]
+    if m.toelichting:
+        uit.append(("BodyText", m.toelichting))
+    uit.append(("Meta", _herkomst(m.herkomst)))
+    uit += [("Waarschuwing", f"Brontekst gewijzigd bij {a.plek}. Toen: “{a.toen}” Nu: “{a.nu}”") for a in m.afwijkingen]
+    if m.verouderd and not m.afwijkingen:
+        uit.append(("Waarschuwing", "Verouderd: de bepaling veranderde na het annoteren."))
+    if m.deels_buiten:
+        uit.append(("Meta", "Deze markering valt deels buiten de bronselectie."))
+    return [*uit, *BLOK_UIT]
+
+
+def wettekst_regels(w: Wettekst) -> list[Regel]:
+    """Per regeling, in de volgorde van de bronboom, elke bronnode één keer met haar markeringen eronder."""
+    uit: list[Regel] = [(PAGINA, ""), ("Heading1", "3. Wettekst en annotaties"),
+                        ("BodyText", f"{meervoud(w.markeringen, 'markering', 'markeringen')}, waarvan {w.beoordeeld} "
+                                     f"beoordeeld door een jurist; {len(w.afgewezen)} afgewezen.")]
+    uit += [("Meta", f"{k.klasse or 'Nog geen klasse'}: {k.aantal}") for k in w.per_klasse]
+    for r in w.regelingen:
+        uit += [(PAGINA, ""), ("Heading2", r.titel)]
+        for a in r.artikelen:
+            uit.append(("Heading3", a.kop))
+            for b in a.bepalingen:
+                uit.append(("Meta", f"{b.vindplaats.label} · rol {_BRONROL.get(b.rol, b.rol)} · {_verwijzing(b.vindplaats)}"))
+                if b.bron_gewijzigd:
+                    uit.append(("Waarschuwing", "Deze bron veranderde sinds de selectie."))
+                if b.tekst:
+                    uit.append(("Citaat", b.tekst))
+                for m in b.markeringen:
+                    uit += _markering(m, b.vindplaats.iri)
+    for o in w.onbereikbaar:
+        uit += [("Heading3", o.label), ("Waarschuwing", f"De tekst ontbreekt: {o.reden}")]
+    if w.buiten_tekst:
+        uit += [(PAGINA, ""), ("Heading2", "Markeringen buiten de getoonde tekst")]
+        for m in w.buiten_tekst:
+            uit += _markering(m)
+    uit += [(PAGINA, ""), ("Heading2", "Afgewezen markeringen"),
+            ("Meta", "Deze markeringen verwierp een jurist; ze horen niet tot de analyse." if w.afgewezen else "Er zijn geen markeringen afgewezen.")]
+    for m in w.afgewezen:
+        uit += _markering(m)
+    return uit
+
+
+def _passage(p: Passage) -> list[Regel]:
+    uit: list[Regel] = [("Citaat", f"“{p.tekst}”"),
+                        ("Meta", " · ".join(filter(None, [p.vindplaats.label, _verwijzing(p.vindplaats), p.klasse, _KOPPELROL.get(p.rol, p.rol),
+                                                          "passage " + _BEOORDELING.get(p.beoordeling, p.beoordeling),
+                                                          None if p.annotatie_beoordeeld else "annotatie nog niet beoordeeld"])))]
+    if p.motivatie:
+        uit.append(("Meta", "Motivatie: " + p.motivatie))
+    if p.actualiteit != "actueel":
+        uit.append(("Waarschuwing", f"Na bevestiging: {_ACTUALITEIT.get(p.actualiteit, p.actualiteit)}. Toen: “{p.tekst}”"
+                    + (f" Nu: “{p.nu}”" if p.nu is not None else "")))
+    return uit
+
+
+def _begrip(b: Begrip) -> list[Regel]:
+    """Eén begrip op een eigen pagina: elke pagina heeft dezelfde kopjes in dezelfde volgorde, ook als er niets staat."""
+    meta = [_BEGRIPSTATUS.get(b.status, b.status)]
+    if b.generiek:
+        meta.append("generiek begrip, gebruikt in dit werkgebied")
+    uit: list[Regel] = [(BEGRIP, b.naam), ("Meta", " · ".join(meta))]
+    if b.alternatieve_termen:
+        uit.append(("BodyText", "Ook genoemd: " + ", ".join(b.alternatieve_termen)))
+
+    uit.append(("Heading4", "Definitie"))
+    if b.definitie.strip():
+        aard = [_DEFINITIE.get(b.definitie_herkomst, "definitie"), _DEFINITIE_DOOR.get(b.definitie_door, "")]
+        uit += [("Citaat" if b.definitie_herkomst == "letterlijk" else "BodyText", b.definitie), ("Meta", ", ".join(filter(None, aard)) + ".")]
+    else:
+        uit.append(("Meta", _LEEG))
+    uit += [("Heading4", "Uitleg"), *(alinea(b.uitleg) or [("Meta", _LEEG)])]
+    uit += [("Heading4", "Toelichting"), *(alinea(b.toelichting) or [("Meta", _LEEG)])]
+    uit.append(("Heading4", "Voorbeelden"))
+    uit += [("BodyText", f"{_OORDEEL.get(v.oordeel, v.oordeel).capitalize()}: {v.tekst}") for v in b.voorbeelden] or [("Meta", _LEEG)]
+
+    uit.append(("Heading4", "Waarop de definitie rust"))
+    if b.fragmenten:
+        if b.onderbouwing_aangepast:
+            uit.append(("Meta", "De analist paste de definitie aan; deze fragmenten waren het vertrekpunt."))
+        for f in b.fragmenten:
+            uit += [("Citaat", f"“{f.tekst}”"), ("Meta", f"{f.vindplaats.label} · {_verwijzing(f.vindplaats)}")]
+    else:
+        uit.append(("Meta", "Geen fragmenten vastgelegd."))
+
+    uit.append(("Heading4", "Passages"))
+    if b.passages:
+        uit.append(("Meta", meervoud(len(b.passages), "passage", "passages")))
+        for p in b.passages:
+            uit += _passage(p)
+    else:
+        uit.append(("Meta", "Geen passages gekoppeld."))
+
+    uit.append(("Heading4", "Relaties"))
+    uit += [("BodyText", f"{r.van} {_RELATIE.get(r.type, r.type)} {r.naar}" + (f": {r.toelichting}" if r.toelichting else ""))
+            for r in b.relaties] or [("Meta", "Geen relaties vastgelegd.")]
+
+    uit.append(("Heading4", "Nog open"))
+    uit += [("Waarschuwing", p) for p in b.open_punten] or [("Meta", "Geen open punten.")]
+
+    uit.append(("Heading4", "Beoordeling"))
+    if b.status == "geaccordeerd":
+        uit.append(("Meta", f"Geaccordeerd door {b.geaccordeerd_door} op {datum(b.geaccordeerd_op)}" + (f". Reden: {b.reden}" if b.reden else ".")))
+    elif b.vervangen:
+        uit.append(("Meta", "Vervangen door een opvolger; dit begrip is alleen nog te lezen."))
+    else:
+        uit.append(("Meta", "Nog niet geaccordeerd."))
+    return uit
+
+
+def begrippen_regels(d: Begrippen) -> list[Regel]:
+    uit: list[Regel] = [(PAGINA, ""), ("Heading1", "4. Begrippen"),
+                        ("Meta", "Begrippen zijn analyse-uitkomsten van dit werkgebied, geen wettelijke definities.")]
+    if not d.begrippen:
+        uit.append(("Meta", "Dit werkgebied heeft nog geen begrippen."))
+    # Een groepskop staat boven zijn eerste begrip, dus de breuk komt vóór de kop en niet erna: een kop blijft nooit alleen.
+    eerste_groep = True
+    for status, kop in (("geaccordeerd", "Geaccordeerde begrippen"), ("concept", "Conceptbegrippen"), ("vervangen", "Vervangen begrippen")):
+        groep = [b for b in d.begrippen if b.status == status]
+        if not groep:
+            continue
+        if not eerste_groep:
+            uit.append((PAGINA, ""))
+        eerste_groep = False
+        uit.append(("Heading2", f"{kop} ({len(groep)})"))
+        if status == "concept":
+            uit.append(("Meta", "Nog niet geaccordeerd: de inhoud kan veranderen."))
+        for n, b in enumerate(groep):
+            if n:
+                uit.append((PAGINA, ""))
+            uit += _begrip(b)
+    if d.begrippen:
+        uit.append((PAGINA, ""))
+    uit.append(("Heading2", "Open voorstellen van Lex"))
+    if not d.open_groepen and not d.open_relaties:
+        uit.append(("Meta", "Er staan geen voorstellen open."))
+    else:
+        uit.append(("Meta", "Hierover is nog geen besluit genomen; ze horen niet tot de analyse."))
+    for g in d.open_groepen:
+        uit.append(("Voorstel", f"Voorstel voor een begrip: {g.naam}" + (f". Definitie: {g.definitie}" if g.definitie else "")))
+        uit += [("Meta", f"“{f.tekst}” · {f.vindplaats.label} · {_verwijzing(f.vindplaats)}") for f in g.leden]
+    uit += [("Voorstel", f"Voorstel voor een relatie: {r.van} {_RELATIE.get(r.type, r.type)} {r.naar}") for r in d.open_relaties]
+    return uit
+
+
+def verantwoording_regels(v: Verantwoording) -> list[Regel]:
+    uit: list[Regel] = [(PAGINA, ""), ("Heading1", "5. Verantwoording"), ("Heading2", "Wie deed wat"),
+                        ("BodyText", f"Aangemaakt door {v.aangemaakt_door} op {datum(v.aangemaakt)}, laatst gewijzigd op {datum(v.gewijzigd)}.")]
+    if v.juristen:
+        uit.append(("BodyText", "Markeringen beoordeeld door: " + ", ".join(v.juristen) + "."))
+    if v.accordeurs:
+        uit.append(("BodyText", "Begrippen geaccordeerd door: " + ", ".join(v.accordeurs) + "."))
+    uit += [("Heading2", "Handelingen in dit werkgebied"),
+            ("Meta", meervoud(sum(h.aantal for h in v.handelingen), "handeling", "handelingen") + " in de audit, per soort:")]
+    uit += [("Meta", f"{h.actie.replace('-', ' ')}: {h.aantal}") for h in v.handelingen]
+    uit.append(("Heading2", "Bronnen"))
+    for s in v.bronnen:
+        uit += [("BodyText", s.vindplaats.label), ("Meta", f"Rol {_BRONROL.get(s.rol, s.rol)} · {_verwijzing(s.vindplaats)}")]
+    return uit
+
+
+def rapport_regels(r: Rapport) -> list[Regel]:
+    """Het hele rapport als (stijl, tekst), de vorm die elke uitvoer leest."""
+    return [*voorblad_regels(r.voorblad, r.stand), (PAGINA, ""), ("Heading4", "Inhoud"), (INHOUD, ""), *dossier_regels(r.dossier),
+            *deelvragen_regels(r.deelvragen), *wettekst_regels(r.wettekst), *begrippen_regels(r.begrippen),
+            *verantwoording_regels(r.verantwoording)]

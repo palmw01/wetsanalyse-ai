@@ -7,12 +7,14 @@ import re
 import shutil
 import subprocess
 import threading
+import types
+from typing import Literal, Union, get_args, get_origin
 
 import pytest
 
 from app import annotatie_v2_store as store, bestandsnaam, pdf_opmaak, werkgebied_export as export, werkgebieden
-from app.werkgebied_rapport import Deelvragen, Stand, deelvragen_regels, dossier_regels
-from pydantic import ValidationError
+from app.werkgebied_rapport import Rapport, Stand, deelvragen_regels, dossier_regels, rapport_regels
+from pydantic import BaseModel, ValidationError
 from test_annotatie_v2 import ART, LAW, ONE, TWO, element, request, snapshot
 from test_begrippen import _annoteer, _begrip, _beslis, _keur_alles_goed, _url, _werkgebied
 from test_werkgebieden import ART2, LAW2, _bron, _nieuw, client, database, graaf, snapshot2  # noqa: F401
@@ -55,7 +57,7 @@ async def _data(wg: dict) -> dict:
 
 
 def _teksten(data: dict) -> list[str]:
-    return [t for _s, t in export.pdf_regels(data, V)]
+    return [t for _s, t in export.regels(data, V)]
 
 
 def _tekst(pdf: bytes) -> str:
@@ -64,7 +66,7 @@ def _tekst(pdf: bytes) -> str:
 
 async def test_de_delen_staan_op_volgorde_met_elke_bepaling_een_keer(client):
     wg, _ids = await _gevuld(client)
-    regels = export.pdf_regels(await _data(wg), V)
+    regels = export.regels(await _data(wg), V)
     koppen = [t for s, t in regels if s == "Heading1"]
     assert koppen == ["1. Dossier", "2. Deelvragen en bronnen", "3. Wettekst en annotaties", "4. Begrippen", "5. Verantwoording"]
     assert [i for i, (s, _t) in enumerate(regels) if s == pdf_opmaak.INHOUD]
@@ -76,7 +78,7 @@ async def test_de_delen_staan_op_volgorde_met_elke_bepaling_een_keer(client):
 async def test_elke_markering_staat_er_precies_een_keer_met_haar_status(client):
     wg, _ids = await _gevuld(client)
     data = await _data(wg)
-    regels = export.pdf_regels(data, V)
+    regels = export.regels(data, V)
     koppen = [t for s, t in regels if s.startswith(pdf_opmaak.MARKERING)]
     assert len(koppen) == len(data["inventaris"]["elementen"]) + len(data["inventaris"]["afgewezen"]) == 3
     assert sum("beoordeeld: akkoord" in k for k in koppen) == 2 and sum(k.endswith("afgewezen") for k in koppen) == 1
@@ -125,7 +127,7 @@ async def test_een_gewijzigde_brontekst_staat_met_toen_en_nu_op_voorblad_en_plek
     for n in store.nodes_van(data["bomen"]["BWBR0004770"]).values():
         if n["bron_iri"] == ONE:
             n["tekst"] = "😀 Gamma Alfa"
-    regels = export.pdf_regels(data, V)
+    regels = export.regels(data, V)
     waarschuwingen = [t for s, t in regels if s == "Waarschuwing"]
     assert any("markering staat op tekst die veranderde" in w for w in waarschuwingen)
     assert any("Brontekst gewijzigd" in w and "Toen: “Alfa”" in w and "Nu: “Gamm”" in w for w in waarschuwingen)
@@ -137,7 +139,7 @@ async def test_een_veranderde_passage_bij_een_begrip_toont_toen_en_nu(client):
     k = next(b for b in data["begrippen"] if b["inhoud"]["naam"] == "belastingschuldige")["koppelingen"][0]
     k["actualiteit"] = "gewijzigd"
     k["bewijs"] = {**k["bewijs"], "tekst": "Oude passage"}
-    teksten = [t for s, t in export.pdf_regels(data, V) if s == "Waarschuwing"]
+    teksten = [t for s, t in export.regels(data, V) if s == "Waarschuwing"]
     assert any("Na bevestiging: de passage veranderde" in t and "Toen: “Oude passage”" in t and "Nu: “Alfa”" in t for t in teksten)
     assert any("toen en nu staan bij het begrip" in t for t in teksten)
 
@@ -147,7 +149,7 @@ async def test_een_onbereikbare_regeling_staat_op_voorblad_en_plek(client, graaf
     graaf.weg = {LAW2}
     data = await _data(wg)
     assert data["inventaris"]["volledig"] is False
-    regels = export.pdf_regels(data, V)
+    regels = export.regels(data, V)
     waarschuwingen = [(i, t) for i, (s, t) in enumerate(regels) if s == "Waarschuwing"]
     eerste_deel = next(i for i, (s, _t) in enumerate(regels) if s == "Heading1")
     assert any(i < eerste_deel and t.startswith("Niet in dit dossier") for i, t in waarschuwingen)
@@ -167,7 +169,7 @@ async def test_zonder_enige_regeling_geen_dossier(client, graaf, monkeypatch):
 
 async def test_begrippen_op_status_met_herkomst_passages_en_accordering(client):
     wg, _ids = await _gevuld(client)
-    regels = export.pdf_regels(await _data(wg), V)
+    regels = export.regels(await _data(wg), V)
     teksten = [t for _s, t in regels]
     assert teksten.index("Geaccordeerde begrippen (1)") < teksten.index("Conceptbegrippen (1)")
     assert "Degene die schuldig is & blijft <altijd>." in teksten
@@ -191,7 +193,7 @@ async def test_uitgesloten_bronnen_en_open_voorstellen_staan_apart(client):
     data["relaties"]["voorstellen"] = [{"van_naam": "a", "naar_naam": "b", "type": "inclusie"}]
     data["groepen"]["groepen"] = [{"besluit": "open", "voorstel": {"naam": "termijn"}, "kaart": None, "leden": [
         {"tekst": "zes weken", "vindplaats": "Artikel 9", "bron_iri": ONE}]}]
-    regels = export.pdf_regels(data, V)
+    regels = export.regels(data, V)
     voorstel = [t for s, t in regels if s == "Voorstel"]
     assert any("Artikel 3" in t and "door jurist-a" in t and "Reden: Te ruim" in t for _s, t in regels)
     assert "Voorstel voor een bron: Artikel 4 · kernbepaling · deelvraag 1" in voorstel
@@ -300,7 +302,7 @@ async def test_de_echte_pdf_is_letterlijk_met_inhoud_en_bladwijzers(client, graa
 
 async def _spoor(data: dict) -> list[dict]:
     spoor: list[dict] = []
-    pdf_opmaak.render(export.pdf_regels(data, V), spoor=spoor)
+    pdf_opmaak.render(export.regels(data, V), spoor=spoor)
     return spoor
 
 
@@ -368,7 +370,7 @@ async def test_begrippen_staan_in_de_inhoudsopgave_artikelen_niet(client):
 
 async def test_de_begrippagina_heeft_altijd_dezelfde_kopjes(client):
     wg, _ids = await _gevuld(client)
-    regels = export.pdf_regels(await _data(wg), V)
+    regels = export.regels(await _data(wg), V)
     begin = [i for i, (s, _t) in enumerate(regels) if s == pdf_opmaak.BEGRIP]
     einde = max(i for i, (s, t) in enumerate(regels) if t == "Open voorstellen van Lex")      # deel 2 heeft dezelfde kop
     kopjes = ["Definitie", "Uitleg", "Toelichting", "Voorbeelden", "Waarop de definitie rust", "Passages", "Relaties", "Nog open", "Beoordeling"]
@@ -379,7 +381,7 @@ async def test_de_begrippagina_heeft_altijd_dezelfde_kopjes(client):
 
 async def test_een_deelvraag_en_een_markering_blijven_bij_elkaar(client):
     wg, _ids = await _gevuld(client)
-    regels = export.pdf_regels(await _data(wg), V)
+    regels = export.regels(await _data(wg), V)
     stijlen = [s for s, _t in regels]
     assert stijlen.count(pdf_opmaak.BLOK_BEGIN) == stijlen.count(pdf_opmaak.BLOK_EIND) >= 4
     open_ = 0
@@ -436,11 +438,70 @@ def test_dossier_en_deelvragen_staan_in_het_rapport_met_hun_codes_en_komen_er_le
         ("Waarschuwing", "Het werkgebied veranderde na het zoeken.")]
 
 
-async def test_de_eerste_delen_overleven_json_heen_en_terug(client):
+async def test_het_rapport_overleeft_json_heen_en_terug(client):
+    wg, _ids = await _gevuld(client)
+    rapport = export.bouw_rapport(await _data(wg), V)
+    terug = Rapport.model_validate_json(rapport.model_dump_json())
+    assert terug == rapport and rapport_regels(terug) == rapport_regels(rapport)
+    assert rapport.model_dump(mode="json")["schema_naam"] == "werkgebied-rapport-v1"
+
+
+async def test_ook_de_json_draagt_geen_modelvragen_hashes_of_beurtmeting(client):
     wg, _ids = await _gevuld(client)
     data = await _data(wg)
-    deel = export._deelvragen(data)
-    assert Deelvragen.model_validate_json(deel.model_dump_json()) == deel
+    for e in data["inventaris"]["elementen"]:
+        e["trace"] = {"vraag": "GEHEIME-MODELVRAAG", "beslissing": {"door": "model"}}
+        e["geproduceerd_door"] = {"model": "model-x", "instellingen": {"meting": {"fasen": [{"fase": "BEURTMETING"}]}}}
+    alles = export.bouw_rapport(data, V).model_dump_json()
+    assert "GEHEIME-MODELVRAAG" not in alles and "BEURTMETING" not in alles and "model-x" not in alles
+    assert not any(a["bron_hash"] in alles for e in data["inventaris"]["elementen"] for a in e["ankers"])
+
+
+# Velden die de tekst bewust niet toont: sleutels, of een keuze tussen twee velden die de andere kant van de test laat zien.
+_NIET_GETOOND = {"id", "iri", "regeling", "herkomst", "definitie_herkomst", "definitie_door", "oordeel", "modus", "geldig_tot",
+                 "alternatieven", "r.wettekst.regelingen.0.bwb_id"}
+
+
+def _vul(soort, pad: str, ja: bool, spoor: list[str]):
+    """Een waarde voor elk veld: elke tekst is zijn eigen pad, elke keuze wordt doorlopen."""
+    if get_origin(soort) in (Union, types.UnionType):
+        return _vul(next(a for a in get_args(soort) if a is not type(None)), pad, ja, spoor)
+    if get_origin(soort) is list:
+        element = get_args(soort)[0]
+        return _varianten(element, pad, ja, spoor)
+    if get_origin(soort) is Literal:
+        return get_args(soort)[0]
+    if soort is bool:
+        return ja
+    if soort is int:
+        return 3
+    if soort is str:
+        if pad not in _NIET_GETOOND and not _NIET_GETOOND & set(pad.split(".")):
+            spoor.append(pad)
+        return pad
+    return soort(**{naam: _vul(veld.annotation, f"{pad}.{naam}", ja, spoor) for naam, veld in soort.model_fields.items()
+                    if veld.is_required() or naam not in ("door", "schema_naam", "versie")})
+
+
+def _varianten(soort, pad: str, ja: bool, spoor: list[str]) -> list:
+    """Een lijst krijgt een item per keuze in haar model: elke status, elke soort signaal."""
+    if not (isinstance(soort, type) and issubclass(soort, BaseModel)):
+        return [_vul(soort, f"{pad}.0", ja, spoor)]
+    keuzes = [(n, get_args(v.annotation)) for n, v in soort.model_fields.items() if get_origin(v.annotation) is Literal and n != "door"]
+    if not keuzes:
+        return [_vul(soort, f"{pad}.0", ja, spoor)]
+    naam, waarden = keuzes[0]
+    return [_vul(soort, pad, ja, spoor).model_copy(update={naam: w}) for w in waarden]
+
+
+def test_elke_tekst_in_het_rapport_komt_in_de_uitvoer():
+    """Een nieuw veld in het contract dat niemand toont, valt hier op: niets verdwijnt stil. Twee rondes, want een keuze
+    laat soms het ene of het andere veld zien."""
+    gevraagd: list[str] = []
+    alles = ""
+    for ja in (True, False):
+        alles += "\n".join(t for _s, t in rapport_regels(_vul(Rapport, "r", ja, gevraagd)))
+    assert sorted({m for m in gevraagd if m not in alles}) == []
 
 
 def test_het_contract_kent_geen_onbekende_velden():

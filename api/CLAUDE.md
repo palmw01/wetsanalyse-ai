@@ -380,10 +380,12 @@ spoor D (*Werkgebied als node*).
   `deelvraag_id` zonder `bereik=deelvragen` 422; een onbekende deelvraag 404; een niet-actieve 409
   `niet_actief`; geen actieve deelvragen 409 `geen_deelvragen` (elk met `melding`).
 - **De export** (`GET {id}/export?formaat=pdf`, `werkgebied_export.py`): het hele werkgebied als één PDF, een
-  overdrachtsdossier voor wie niet in Lex werkt. Op de stand van nu en met één vaste inhoud, zonder bovengrens: voorblad met
+  overdrachtsdossier voor wie niet in Lex werkt. De PDF komt uit één gestructureerd document (`werkgebied_rapport.Rapport`, ADR-009):
+  `bouw_rapport` vult het, `rapport_regels` maakt er tekst van, en de uitvoer gaat letterlijk door de JSON heen. Een nieuw
+  veld hoort in het contract én in de tekstlaag; `test_elke_tekst_in_het_rapport_komt_in_de_uitvoer` bewaakt dat. Op de stand van nu en met één vaste inhoud, zonder bovengrens: voorblad met
   bronstand en waarschuwingen, inhoudsopgave en bladwijzers, dossier, deelvragen en bronnen, wettekst met markeringen,
-  begrippen, korte verantwoording. `verzamel` leest met dezelfde functies als de schermen, `pdf_regels` geeft (stijl, tekst)
-  en is zonder reportlab te testen.
+  begrippen, korte verantwoording. `verzamel` leest met dezelfde functies als de schermen, en `regels` geeft (stijl, tekst),
+  zonder reportlab te testen.
   - Geen modelvragen, hashes of beurtmeting: dat spoor staat in de annotatie-export.
   - Alles draagt zijn status; voorstellen, afgewezen en uitgesloten staan in eigen delen.
   - Staat een ankerfragment niet meer op zijn offsets, dan toont de PDF toen en nu. Wat niet te lezen was, staat op het
