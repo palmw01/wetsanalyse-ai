@@ -21,7 +21,7 @@ from bronmodel.antwoord import Antwoord, Citaat, Citaten, Toelichting, Twijfel
 from ..annotatie import _normaliseer, komt_letterlijk_voor
 from ..grounding import _bekende_artikelen, herstel_citaten
 from ..overzicht import vermeldingen
-from .vullen import Onvulbaar, Trace, bron_rijen, vindplaats_van
+from .vullen import Onvulbaar, Trace, artikel_in_trace, bron_rijen, iri_van_jci, ouders, vindplaats_van
 
 SCHEMA: dict[str, Any] = {
     "name": "antwoord_duiding",
@@ -69,10 +69,18 @@ def _lex(tekst: Any, trace: Trace) -> str:
 MAX_HELE_TEKST = 600
 
 
+# Typografische tekens die het model als hun gewone vorm schrijft: de wet heeft "personenauto’s", het model
+# "personenauto's" (Iw 9 lid 8, vier weigeringen in de eval van 7 nov 2026). Eén teken voor één teken, dus een plek in de
+# zoekvorm is dezelfde plek in de brontekst: de jurist ziet de bron, niet de zoekvorm.
+_ZOEKVORM = str.maketrans({"’": "'", "‘": "'", "‚": "'", "‛": "'", "“": '"', "”": '"', "„": '"', "‟": '"',
+                           "–": "-", "—": "-", "‑": "-", "\u00a0": " "})
+
+
 def _ankers(anker: str, tekst: str) -> list[tuple[int, int]]:
-    """Waar het anker in de (genormaliseerde) tekst staat, als (begin, eind). Bijna-letterlijk herstelt `herstel_citaten`;
-    die leest aanhalingstekens, dus een anker dat er zelf een bevat kan alleen letterlijk."""
-    vorm = _normaliseer(anker)
+    """Waar het anker in de (genormaliseerde) tekst staat, als (begin, eind). Gezocht wordt in de zoekvorm (`_ZOEKVORM`).
+    Bijna-letterlijk herstelt `herstel_citaten`; die leest aanhalingstekens, dus een anker dat er zelf een bevat kan alleen
+    letterlijk."""
+    tekst, vorm = tekst.translate(_ZOEKVORM), _normaliseer(anker).translate(_ZOEKVORM)
     if not komt_letterlijk_voor(tekst, vorm) and '"' not in vorm:
         _, hersteld = herstel_citaten(f'"{vorm}"', [("", tekst)])
         vorm = hersteld[0][1] if hersteld else ""
@@ -99,15 +107,24 @@ def _passage(van: str, tot: str, tekst: str) -> str:
     return ""
 
 
+def _binnen(node: str, iri: str) -> bool:
+    return bool(node) and (node == iri or node.startswith(iri + ":"))
+
+
 def _citaat(stuk: dict[str, Any], rijen: dict[str, dict[str, Any]], trace: Trace, fouten: list[str]) -> Citaat | None:
     iri = str(stuk.get("bepaling") or "").strip()
+    if iri.startswith("jci"):
+        iri = (jcis := iri_van_jci(trace)).get(iri) or jcis.get(iri.split("&z=", 1)[0]) or iri
     van, tot = str(stuk.get("van") or "").strip(), str(stuk.get("tot") or "").strip()
-    onder = {k: r for k, r in rijen.items() if k == iri or k.startswith(iri + ":")} if iri else {}
+    # Per rij de plek die de jurist ziet: de rij zelf, of het lid van een slotzin met een eigen `:id:`-iri.
+    lid_van = ouders(trace)
+    onder = {k: (k if _binnen(k, iri) else lid_van[k], r) for k, r in rijen.items()
+             if _binnen(k, iri) or _binnen(lid_van.get(k, ""), iri)} if iri else {}
     if not onder:
         fouten.append(f"{iri or 'een passage zonder bepaling'}: de tekst is niet (helemaal) opgehaald. Gebruik een iri uit een "
                       "toolresultaat, en haal de bepaling op met get_artikel, get_lid of get_bepaling")
         return None
-    treffers = {k: t for k, r in onder.items() if (t := _passage(van, tot, r["tekst"]))}
+    treffers = {k: (plek, t) for k, (plek, r) in onder.items() if (t := _passage(van, tot, r["tekst"]))}
     if not treffers:
         if not van and not tot:
             fouten.append(f"{vindplaats_van(iri).label} is te lang om heel te tonen. Wijs met `van` en `tot` de passage aan "
@@ -118,10 +135,12 @@ def _citaat(stuk: dict[str, Any], rijen: dict[str, dict[str, Any]], trace: Trace
                           "een passage uit één lid of onderdeel, letterlijk, en wijs de bepaling aan waar ze staan")
         return None
     # De vindplaats is de diepste node met deze tekst. Staat de passage in meer leden, dan klopt alleen wat het model aanwees.
-    diepste = [k for k in treffers if not any(a.startswith(k + ":") for a in treffers)]
+    plekken = {plek for plek, _ in treffers.values()}
+    diepste = [p for p in plekken if not any(a.startswith(p + ":") for a in plekken)]
     plek = diepste[0] if len(diepste) == 1 else iri
+    tekst = next(t for p, t in treffers.values() if p in diepste)
     rij = rijen.get(plek, {})
-    return Citaat(tekst=treffers[diepste[0]], waarom=_lex(stuk.get("waarom"), trace),
+    return Citaat(tekst=tekst, waarom=_lex(stuk.get("waarom"), trace),
                   vindplaats=vindplaats_van(plek, jci=rij.get("jci", ""), regeling=rij.get("citeertitel", ""),
                                             label=rij.get("inLabel") or rij.get("label", "")))
 
@@ -134,6 +153,44 @@ def _niet_onderbouwd(uitleg: str, citaten: list[Citaat]) -> list[str]:
     """De artikelen die de uitleg noemt en die geen enkele passage draagt of vermeldt."""
     bekend = _bekende_artikelen([("", f"{c.vindplaats.iri} {c.vindplaats.label} {c.tekst}") for c in citaten])
     return [v for v in vermeldingen(uitleg) if v.startswith("artikel ") and v.removeprefix("artikel ").casefold() not in bekend]
+
+
+#: Zoveel artikelen haalt de code in één weigering zelf op; de rest moet het model ophalen of weglaten.
+MAX_OPHALEN = 2
+
+
+def _genoemd_is_gelezen(los: list[str], rijen: dict[str, dict[str, Any]], trace: Trace) -> Onvulbaar:
+    """Wat het antwoord noemt, moet gelezen zijn (D, besluit gebruiker 7 nov 2026). Per artikel zonder passage:
+
+    - de tekst is opgehaald maar niet aangewezen: wijs een passage aan of laat het weg;
+    - de opgehaalde resultaten wijzen het aan zonder tekst (een verwijzing in `get_context`): de code haalt het op, en
+      het model kiest daarna een passage of laat het weg;
+    - het staat nergens in wat er is opgehaald: dan komt het uit het geheugen van het model. Ophalen of weglaten.
+
+    Een markering "niet opgehaald" bestaat niet: een artikel staat in beeld met een passage, of niet."""
+    gelezen, ophalen, onbekend = [], [], []
+    for vermelding in los:
+        nummer = vermelding.removeprefix("artikel ")
+        iri = artikel_in_trace(nummer, trace)
+        if iri and any(_binnen(k, iri) for k in rijen):
+            gelezen.append(vermelding)
+        elif iri and len(ophalen) < MAX_OPHALEN:
+            ophalen.append({"bwb_id": iri.split(":")[2], "artikel": nummer, "vermelding": vermelding})
+        else:
+            onbekend.append(vermelding)
+    zinnen = []
+    if gelezen:
+        zinnen.append(f"Je noemt {', '.join(gelezen)} zonder passage, terwijl de tekst al is opgehaald. Wijs er een passage uit "
+                      "aan, of laat de vermelding weg.")
+    if ophalen:
+        zinnen.append(f"Je noemt {', '.join(o['vermelding'] for o in ophalen)} zonder passage. Wat je noemt, moet gelezen zijn: "
+                      "de tekst staat hieronder. Wijs er een passage uit aan met `bepaling`, `van` en `tot`, of laat de "
+                      "vermelding weg als het artikel er na lezing niet toe doet.")
+    if onbekend:
+        zinnen.append(f"Je noemt {', '.join(onbekend)} zonder passage, en de tekst daarvan heb je niet opgehaald. Haal het op "
+                      "met get_artikel als het ertoe doet en wijs dan een passage aan, of laat de vermelding weg.")
+    return Onvulbaar(" ".join([*zinnen, "Rond daarna opnieuw af."]),
+                     ophalen=[{"bwb_id": o["bwb_id"], "artikel": o["artikel"]} for o in ophalen])
 
 
 def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
@@ -149,8 +206,7 @@ def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
         raise Onvulbaar("Niet te tonen, dus er wordt niets getoond. " + "; ".join(fouten) + ". Rond daarna opnieuw af.")
     twijfel = list(dict.fromkeys(t for x in invoer.get("twijfel") or [] if (t := _lex(x, trace))))
     if los := _niet_onderbouwd("\n".join([kort, *(c.waarom for c in citaten), *twijfel]), citaten):
-        raise Onvulbaar(f"Je noemt {', '.join(los)} zonder passage, dus de jurist kan het niet naslaan. Wijs er een passage uit "
-                        "aan, en haal de bepaling zo nodig op, of laat de vermelding weg. Rond daarna opnieuw af.")
+        raise _genoemd_is_gelezen(los, rijen, trace)
     blokken: list[Any] = [Toelichting(kop="Kort antwoord", tekst=kort), Citaten(items=citaten)]
     if twijfel:
         blokken.append(Twijfel(punten=twijfel))

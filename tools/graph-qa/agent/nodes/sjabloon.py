@@ -5,14 +5,19 @@ het model te horen wat er ontbreekt en mag het verder binnen `max_turns`.
 """
 from __future__ import annotations
 
+import json
 import logging
 import re
 from typing import Any
+from uuid import uuid4
 
 from bronmodel.antwoord import Annotaties, Antwoord, Vindplaats, antwoord_tekst
 from bronmodel.vindplaats import vindplaats
+from langgraph.config import get_stream_writer
 
 from ..bronregister import controletrace
+from ..narratie import _stap, _toolregel
+from ..tool_execution import execute_tool
 from ..regelingnamen import regelingnamen
 from ..sjablonen import Onvulbaar, vul
 from ..state import State
@@ -39,6 +44,24 @@ def _met_regelingen(b: Bouw, antwoord: Antwoord) -> None:
         m.vindplaats = _BWB.sub(lambda x: namen.get(x.group(0), x.group(0)), m.vindplaats)
 
 
+def _lees_wat_genoemd_is(b: Bouw, state: State, fout: Onvulbaar) -> tuple[str, list[tuple[str, str]]]:
+    """Haal de artikelen op die het antwoord noemt en die de opgehaalde tekst alleen aanwijst (D). Dezelfde weg als een
+    tool-aanroep van het model (`execute_tool`: event, begroting, foutvorm), zodat ook de jurist ziet wat er gelezen
+    is. Het resultaat gaat in het bronspoor, dus een passage eruit is daarna gewoon te citeren en te controleren."""
+    trace = list(state.get("source_trace", []))
+    if not fout.ophalen:
+        return str(fout), trace
+    writer = get_stream_writer()
+    delen = [str(fout)]
+    for args in fout.ophalen:
+        aanroep = {"id": f"lees_{uuid4().hex[:12]}", "name": "get_artikel", "input": dict(args)}
+        _stap(writer, "Lex", _toolregel(aanroep))
+        uit = execute_tool(b, state, writer, aanroep)
+        trace.append(("get_artikel", uit))
+        delen.append(f"get_artikel {json.dumps(args, ensure_ascii=False)}:\n{uit}")
+    return "\n\n".join(delen), trace
+
+
 def sjabloon_node(b: Bouw, state: State) -> dict[str, Any]:
     tu = state["pending_tools"][0]
     def resultaat(tekst: str, **extra: Any) -> dict[str, Any]:
@@ -48,8 +71,11 @@ def sjabloon_node(b: Bouw, state: State) -> dict[str, Any]:
         antwoord = vul(tu["name"], tu.get("input") or {}, controletrace(state))
     except Onvulbaar as fout:
         logger.warning("sjabloon niet te vullen", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""),
-                                                         "sjabloon": tu["name"], "reden": str(fout)})
-        return {"messages": [{"role": "user", "content": [resultaat(str(fout), is_error=True)]}], "pending_tools": []}
+                                                         "sjabloon": tu["name"], "reden": str(fout),
+                                                         "opgehaald": len(fout.ophalen)})
+        tekst, trace = _lees_wat_genoemd_is(b, state, fout)
+        return {"messages": [{"role": "user", "content": [resultaat(tekst, is_error=True)]}], "pending_tools": [],
+                **({"source_trace": trace} if fout.ophalen else {})}
     _met_regelingen(b, antwoord)
     tekst = antwoord_tekst(antwoord)
     return {

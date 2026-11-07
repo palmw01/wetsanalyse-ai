@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Iterable, Iterator
 from typing import Any
 
@@ -15,7 +16,15 @@ Trace = list[tuple[str, str]]
 
 class Onvulbaar(ValueError):
     """Het sjabloon kan niet uit de trace gevuld worden. De tekst gaat als fout terug naar het model, dat
-    eerst ophaalt wat ontbreekt: een halve vulling tonen we nooit."""
+    eerst ophaalt wat ontbreekt: een halve vulling tonen we nooit.
+
+    `ophalen` zijn de artikelen die de code zelf ophaalt voordat het model het opnieuw probeert, als
+    `{"bwb_id", "artikel"}` voor `get_artikel`: een artikel dat het antwoord noemt en dat de opgehaalde tekst
+    aanwijst, maar waarvan de tekst er niet bij zit (D, "genoemd is gelezen")."""
+
+    def __init__(self, tekst: str, *, ophalen: Iterable[dict[str, str]] = ()) -> None:
+        super().__init__(tekst)
+        self.ophalen = list(ophalen)
 
 
 def _data(tekst: str) -> dict[str, Any] | None:
@@ -66,6 +75,44 @@ def bron_rijen(trace: Trace) -> dict[str, dict[str, Any]]:
                 if isinstance(iri, str) and iri and len(t) > len(uit.get(iri, {}).get("tekst", "")):
                     uit[iri] = rij
     return uit
+
+
+def ouders(trace: Trace) -> dict[str, str]:
+    """Per onderdeel uit `get_lid` het lid waar het bij hoort. Een slotzin na de onderdelen ("…, indien …") heeft een
+    eigen `:id:`-iri die niet onder die van het lid valt; zonder deze kaart stond hij voor de code in geen enkel lid
+    (Iw 24 lid 1, eval 7 nov 2026)."""
+    uit: dict[str, str] = {}
+    for naam, tekst in trace:
+        data = _data(tekst) if naam == "get_lid" else None
+        lid = ((data or {}).get("lid") or {}).get("iri")
+        for r in (data or {}).get("resultaten") or []:
+            if isinstance(r, dict) and lid and isinstance(r.get("onderdeel"), str):
+                uit[r["onderdeel"]] = lid
+    return uit
+
+
+def iri_van_jci(trace: Trace) -> dict[str, str]:
+    """Per jci die een rij draagt de iri van die rij, ook zonder de toestandsstaart (`&z=…&g=…`). Het model nam soms de
+    jci uit het toolresultaat als bepaling; de rijen staan op hun iri (eval 7 nov 2026)."""
+    uit: dict[str, str] = {}
+    for naam, tekst in trace:
+        for rij in _rijen_diep(None if naam in AFGELEIDE_TOOL_NAMEN else _data(tekst)):
+            jci, iri = rij.get("jci"), next((rij[v] for v in _IRI_VELDEN if isinstance(rij.get(v), str) and rij[v]), "")
+            if isinstance(jci, str) and jci and iri:
+                uit.setdefault(jci, iri)
+                uit.setdefault(jci.split("&z=", 1)[0], iri)
+    return uit
+
+
+def artikel_in_trace(nummer: str, trace: Trace) -> str:
+    """De iri van artikel `nummer` als de opgehaalde resultaten het aanwijzen, en in precies één regeling; anders leeg.
+
+    Een artikel staat vaak in een resultaat zonder zijn tekst: `get_context` noemt de bepalingen die naar het gevraagde
+    artikel verwijzen (Iw 28 verwijst naar 25 en 9; eval 7 nov 2026). Dan weet het model dát het erbij hoort, maar heeft
+    het niets gelezen. In twee regelingen is niet te zeggen welk artikel het antwoord bedoelt: dan haalt de code niets."""
+    patroon = re.compile(rf"urn:bwb:(BWB[RV]\d+):artikel:{re.escape(nummer)}(?![0-9A-Za-z.])")
+    regelingen = {m.group(1) for naam, tekst in trace if naam not in AFGELEIDE_TOOL_NAMEN for m in patroon.finditer(tekst or "")}
+    return f"urn:bwb:{regelingen.pop()}:artikel:{nummer}" if len(regelingen) == 1 else ""
 
 
 def volledige_tekst(iri: str, trace: Trace) -> str:

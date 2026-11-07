@@ -367,6 +367,46 @@ def test_een_onderdeel_van_het_aangewezen_lid_telt_met_zijn_eigen_vindplaats():
     assert a.blokken[1].items[0].vindplaats.iri == A["onderdeel"]
 
 
+# De weigeringen uit de duidingseval van 7 nov 2026: de tekst stond in de bron, de code vond hem niet.
+
+def test_een_typografische_apostrof_in_de_bron_telt_als_de_gewone_en_de_bron_blijft_staan():
+    """Iw 9 lid 8: de wet schrijft personenauto’s, het model personenauto's (vier weigeringen)."""
+    tekst = "Terstond invorderbaar is een naheffingsaanslag ter zake van personenauto’s en motorrijwielen."
+    a = vul("antwoord_duiding", duiding(van="Terstond invorderbaar", tot="personenauto's en motorrijwielen.", bepaling=TIEN_2),
+            [tien(tekst=tekst)])
+    assert a.blokken[1].items[0].tekst == tekst, "de getoonde tekst is die van de bron, met ’"
+    a = vul("antwoord_duiding", duiding(van="een naheffingsaanslag – ter", tot="", bepaling=TIEN_2),
+            [tien(tekst="Het is een naheffingsaanslag – ter zake van iets.")])
+    assert a.blokken[1].items[0].tekst == "een naheffingsaanslag – ter zake van iets."
+
+
+SLOT = {"onderdeel": "urn:bwb:BWBR0004770:id:Slottekst1", "tekst": "Op verzoek van de belastingschuldige is de ontvanger verplicht te verrekenen."}
+
+
+@pytest.mark.parametrize("bepaling", [LID, ART])
+def test_de_slotzin_van_een_lid_met_onderdelen_telt_onder_dat_lid(bepaling):
+    """Iw 24 lid 1: de slotzin heeft een eigen `:id:`-iri, buiten die van het lid (twee weigeringen)."""
+    a = vul("antwoord_duiding", duiding(van="Op verzoek van", tot="te verrekenen.", bepaling=bepaling), [lid(A, SLOT)])
+    c = a.blokken[1].items[0]
+    assert c.tekst == SLOT["tekst"] and c.vindplaats.iri == LID and c.vindplaats.label == "Artikel 9, lid 11"
+
+
+def test_een_slotzin_van_een_ander_lid_telt_niet():
+    with pytest.raises(Onvulbaar, match="staat niet in"):
+        vul("antwoord_duiding", duiding(van="Op verzoek van", tot="te verrekenen.", bepaling=f"{ART}:lid:1"),
+            [artikel(EEN), lid(A, SLOT)])
+
+
+def test_een_jci_als_bepaling_wordt_de_iri_van_de_rij():
+    """Het model nam de jci van het lid uit het toolresultaat, met de toestandsstaart (één weigering)."""
+    jci = "jci1.3:c:BWBR0004770&hoofdstuk=II&artikel=9&lid=11"
+    rij = ("get_lid", json.dumps({"status": "ok", "volledig": True, "lid": {"iri": LID, "nummer": "11", "tekst": "In afwijking van het eerste lid:",
+                                                                               "jci": jci + "&z=2026-10-01&g=2026-10-01"}, "resultaten": [A]}))
+    for opgegeven in (jci + "&z=2026-10-01&g=2026-10-01", jci):
+        a = vul("antwoord_duiding", duiding(van="zolang twijfel", tot="bestaat", bepaling=opgegeven), [rij])
+        assert a.blokken[1].items[0].vindplaats.iri == A["onderdeel"], opgegeven
+
+
 def test_een_passage_over_twee_rijen_is_onvulbaar():
     with pytest.raises(Onvulbaar, match="één lid of onderdeel"):
         vul("antwoord_duiding", duiding(van="De ontvanger kan", tot="nieuwe aanslag ontvangt.", bepaling=TIEN), [tien()])
@@ -873,3 +913,82 @@ def test_een_beurt_met_de_aanroep_als_tekst_toont_de_blokken_en_geen_markup():
     events, _ = _leesbeurt(response([text_block(ALS_TEKST)], "end_turn"))
     assert _eerste(events, "antwoord")["antwoord"]["sjabloon"] == "annotaties"
     assert "<invoke" not in _eerste(events, "token")["content"]
+
+
+# --- D: genoemd is gelezen ------------------------------------------------------------------------------------------
+# Een artikel dat het antwoord noemt, staat in beeld met een passage of niet. Wijst de opgehaalde tekst het aan zonder zijn
+# tekst (get_context: Iw 28 verwijst naar 25 en 9, eval 7 nov 2026), dan haalt de code het op en kiest het model daarna.
+ACHTTIEN = "urn:bwb:BWBR0004770:artikel:28"
+ZIN_28 = "Over het bedrag waarvoor uitstel is verleend, wordt invorderingsrente berekend."
+
+
+def context_met_28(regeling: str = "BWBR0004770") -> tuple[str, str]:
+    rij = {"relatie": "verwezen_door", "node": f"urn:bwb:{regeling}:artikel:28:lid:3", "label": "Artikel 28, lid 3"}
+    return "get_context", json.dumps({"status": "ok", "volledig": True, "aantal": 1, "resultaten": [rij]})
+
+
+def test_een_genoemd_artikel_dat_de_context_aanwijst_haalt_de_code_op():
+    with pytest.raises(Onvulbaar, match="tekst staat hieronder") as fout:
+        vul("antwoord_duiding", duiding(twijfel=["Ook artikel 28 kan hier gelden."]), [tien(), context_met_28()])
+    assert fout.value.ophalen == [{"bwb_id": "BWBR0004770", "artikel": "28"}]
+
+
+def test_een_genoemd_artikel_uit_het_geheugen_wordt_niet_opgehaald_en_blijft_geweigerd():
+    with pytest.raises(Onvulbaar, match="artikel 28 zonder passage, en de tekst daarvan heb je niet opgehaald") as fout:
+        vul("antwoord_duiding", duiding(twijfel=["Ook artikel 28 kan hier gelden."]), [tien()])
+    assert fout.value.ophalen == []
+
+
+def test_staat_het_artikel_in_twee_regelingen_dan_haalt_de_code_niets():
+    with pytest.raises(Onvulbaar, match="niet opgehaald") as fout:
+        vul("antwoord_duiding", duiding(twijfel=["Ook artikel 28 kan hier gelden."]),
+            [tien(), context_met_28(), context_met_28("BWBR0002320")])
+    assert fout.value.ophalen == []
+
+
+def test_een_opgehaald_maar_niet_aangewezen_artikel_wordt_niet_nog_eens_opgehaald():
+    achtentwintig = ("get_artikel", json.dumps({"status": "ok", "volledig": True, "aantal": 1, "artikel": {"iri": ACHTTIEN},
+                                                "resultaten": [{"lid": f"{ACHTTIEN}:lid:3", "nummer": "3", "tekst": ZIN_28}]}))
+    with pytest.raises(Onvulbaar, match="terwijl de tekst al is opgehaald") as fout:
+        vul("antwoord_duiding", duiding(twijfel=["Ook artikel 28 kan hier gelden."]), [tien(), context_met_28(), achtentwintig])
+    assert fout.value.ophalen == []
+
+
+def test_artikel_2_is_niet_artikel_28():
+    from agent.sjablonen.vullen import artikel_in_trace
+    assert artikel_in_trace("2", [context_met_28()]) == ""
+    assert artikel_in_trace("28", [context_met_28()]) == ACHTTIEN
+
+
+CONTEXT_TSV = f'?relatie\t?node\t?label\n"verwezen_door"\t<{ACHTTIEN}:lid:3>\t"Artikel 28, lid 3"\n'
+ACHTTIEN_TSV = f'?lid\t?lidnummer\t?lidtekst\t?lidonderdelen\n<{ACHTTIEN}:lid:3>\t"3"\t"{ZIN_28}"\t"false"\n'
+
+
+def _graaf_met_28(query: str) -> str:
+    if "?relatie" in query:
+        return CONTEXT_TSV
+    return ACHTTIEN_TSV if ":artikel:28" in query or '"28"' in query else TIEN_TSV
+
+
+def test_een_beurt_leest_het_genoemde_artikel_en_citeert_het_daarna():
+    haal_beide = response([tool_block("t1", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": "10"}),
+                           tool_block("t1b", "get_context", {"bwb_id": "BWBR0004770", "artikel": "10"})], "tool_use")
+    met_28 = {**duiding(twijfel=["Of de rente meetelt, regelt artikel 28."]),
+              "onderbouwing": [*duiding()["onderbouwing"],
+                               {"bepaling": f"{ACHTTIEN}:lid:3", "van": "Over het bedrag", "tot": "invorderingsrente berekend.",
+                                "waarom": "Over uitstel loopt rente."}]}
+    llm = FakeLLM([KIES_DUIDING, haal_beide, _sluit_af(twijfel=["Of de rente meetelt, regelt artikel 28."]),
+                   response([tool_block("t3", "antwoord_duiding", met_28)], "tool_use")])
+    settings = make_settings(enable_planning=True, grounding_correct=True)
+
+    async def alles():
+        return [e async for e in answer_stream("Hoe werkt uitstel?", settings=settings, llm=llm, graph=FakeGraph(results=_graaf_met_28))]
+
+    events = asyncio.run(alles())
+    assert llm.index == 4, "één weigering, daarna rondt het model af zonder zelf nog een tool te roepen"
+    gelezen = [e for e in events if e["type"] == "tool_execution" and e["phase"] == "start" and e["doel"].get("artikel") == "28"]
+    assert [e["tool"] for e in gelezen] == ["get_artikel"], "de code las artikel 28, en de jurist ziet dat"
+    assert ZIN_28 in json.dumps(llm.calls[3]["messages"][-1], ensure_ascii=False), "het model kreeg de tekst bij de weigering"
+    citaten = _eerste(events, "antwoord")["antwoord"]["blokken"][1]["items"]
+    assert [c["vindplaats"]["iri"] for c in citaten] == [TIEN_1, f"{ACHTTIEN}:lid:3"] and citaten[1]["tekst"] == ZIN_28
+    assert _eerste(events, "grounding")["grounded"] is True
