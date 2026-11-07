@@ -596,8 +596,7 @@ export type Rol = "user" | "assistant";
  *  verwijderd, dan blijft er in de thread een leesbare kaart staan in plaats van een naamloze
  *  verwijzing.
  *
- *  Oudere berichten verwijzen nog via `annotatie_doel` (een bronnode) of alleen een
- *  `annotatie_slug` (een annotatie die niet meer bestaat: de tombstone). */
+ *  Oudere berichten verwijzen nog via `annotatie_doel` (een bronnode). */
 export interface Bericht {
   artefact?: import("./artefact").Artefact | null;
   annotatie_doel?: import("./annotatieNode").NodeDoel;
@@ -607,7 +606,6 @@ export interface Bericht {
   tekst: string;
   denk: string;
   bronnen: Bron[];
-  annotatie_slug?: string;
   annotatie_titel?: string;
   /** Lex hergebruikte (een deel van) de gedeelde laag; zelfde vorm als het `hergebruik`-event
    *  (maar met de leden zoals graph-qa ze stuurde – zie `parseHergebruik`). */
@@ -765,7 +763,6 @@ export interface BerichtInvoer {
   tekst?: string;
   denk?: string;
   bronnen?: Bron[];
-  annotatie_slug?: string;
   annotatie_titel?: string;
   run_id?: string;
 }

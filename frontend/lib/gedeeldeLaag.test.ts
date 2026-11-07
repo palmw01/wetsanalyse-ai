@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import { parseHergebruik } from "./agentEvents";
 import {
   doelInvoerVan,
-  doelVoorOpnieuw,
   hergebruikTekst,
   LIFECYCLE_LABEL,
   splitsVerouderd,
@@ -55,14 +54,6 @@ describe("hergebruikTekst", () => {
 });
 
 describe("opnieuw annoteren", () => {
-  it("gebruikt het doel van de beurt als dat er is, anders het artikel van de laag", () => {
-    const doel = { bwbId: "BWBR0004770", artikel: "9", lid: "2" };
-    const doc = { bwbId: "BWBR0004770", artikel: "9", citeertitel: "IW 1990" };
-    expect(doelVoorOpnieuw(doel, doc)).toBe(doel);
-    expect(doelVoorOpnieuw(undefined, doc)).toEqual({ bwbId: "BWBR0004770", artikel: "9", citeertitel: "IW 1990" });
-    expect(doelVoorOpnieuw(undefined, undefined)).toBeUndefined();
-  });
-
   it("neemt van een doel-event alleen de aanduiding mee, niet de tekst", () => {
     expect(
       doelInvoerVan({ bwbId: "B", artikel: "9", lid: "", leden_teksten: [{ lid: "", tekst: "…" }] }),

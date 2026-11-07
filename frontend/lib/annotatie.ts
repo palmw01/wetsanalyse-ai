@@ -1,5 +1,5 @@
 import { isApiError } from "./api";
-import { isKlaarOmAfTeRonden, naamVan, vindplaatsLabel } from "./annotatieOverzicht";
+import { isKlaarOmAfTeRonden } from "./annotatieOverzicht";
 import { jasVolgorde } from "./jas";
 import type { LidRegel } from "./selectie";
 import type {
@@ -7,7 +7,6 @@ import type {
   AgentDoelInvoer,
   AgentHergebruik,
   AgentKandidaat,
-  AnnotatieDocument,
   AnnotatieElement,
   GraafArtikel,
   DocumentStatus,
@@ -324,23 +323,6 @@ export const KLASSEVRAAG: Record<string, string> = {
 
 // --- een annotatie die er niet meer is ---------------------------------------------------------
 
-/** Het leesbare label van een annotatie: "Invorderingswet 1990 – art. 9 lid 1".
- *
- *  Eén samenstelling voor de kop van de annotatiepagina én voor het label dat met de chatbeurt wordt
- *  meebewaard (`annotatie_titel`). Dat meebewaren is de kern: een bericht verwijst met een kale slug
- *  naar een document zonder foreign key, dus zodra dat document verwijderd is valt er niets meer op
- *  te halen – en dan moet de kaart in de thread zichzelf nog kunnen benoemen.
- */
-export function annotatieTitel(doc: {
-  citeertitel?: string;
-  werkgebied?: string;
-  bwbId: string;
-  artikel: string;
-  lid: string;
-}): string {
-  return `${naamVan(doc)} – ${vindplaatsLabel(doc)}`;
-}
-
 /** Is deze fout "bestaat niet (meer)" in plaats van "het ging even mis"?
  *
  *  De api geeft 404 zowel bij een verwijderd document als bij dat van iemand anders (bewust: dat lekt
@@ -363,18 +345,6 @@ export function hergebruikTekst(h: AgentHergebruik): string {
   return h.volledig
     ? `${wat} was al geannoteerd en de wettekst is sindsdien niet veranderd. Dit is de bestaande annotatie (${stand}).`
     : `${wat} kwam ongewijzigd uit de bestaande annotatie (${stand}); de rest is nu opnieuw geannoteerd.`;
-}
-
-/** Het doel voor "Lex opnieuw laten annoteren": de bepaling zoals de beurt hem had, of anders het
- *  artikel van de laag. Zonder doel zou de agent de bepaling opnieuw moeten zoeken – en kan hij bij
- *  een andere uitkomen dan waar de jurist op klikte. */
-export function doelVoorOpnieuw(
-  doel: AgentDoelInvoer | undefined,
-  doc: Pick<AnnotatieDocument, "bwbId" | "artikel" | "citeertitel"> | undefined,
-): AgentDoelInvoer | undefined {
-  if (doel?.bwbId) return doel;
-  if (!doc?.bwbId || !doc.artikel) return undefined;
-  return { bwbId: doc.bwbId, artikel: doc.artikel, ...(doc.citeertitel ? { citeertitel: doc.citeertitel } : {}) };
 }
 
 /** Actuele markeringen en de historie: markeringen van een lid waarvan de wettekst sindsdien
