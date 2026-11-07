@@ -309,3 +309,44 @@ async def test_afsluiten_legt_de_lopende_runs_vast(store):
     await asyncio.wait_for(klaar.taak, timeout=5)
     await store.sluit()
     assert gemeld == [run.run_id]
+
+
+@met_store
+async def test_een_dode_run_blokkeert_de_volgende_vraag_niet(store):
+    """Een run zonder hartslag hield het gesprek bezet: de volgende vraag kreeg een 409 zonder run (AG-13)."""
+    async with store.pool.connection() as conn:
+        await conn.execute("INSERT INTO agent_runs (run_id, conversation_id, vraag, hartslag) "
+                           "VALUES ('dood', 'g1', 'v', now() - interval '5 minutes')")
+    run = await store.start(conversation_id="g1", vraag="w", maak_stroom=stroom([{"type": "done"}]))
+    await run.taak
+    assert (await store.get("dood")).status == "mislukt" and run.run_id != "dood"
+
+
+@met_store
+async def test_de_hartslag_loopt_door_na_een_stopverzoek(store):
+    """Na een stop rondt de run nog af; zonder hartslag verklaart een andere replica hem verweesd (AG-12)."""
+    from agent.runstore import postgres
+
+    monkeypatch_s = (postgres.POLS_S, postgres.HARTSLAG_S)
+    postgres.POLS_S, postgres.HARTSLAG_S = 0.05, 0.1
+    try:
+        def rondt_traag_af(run):
+            async def gen():
+                yield {"type": "status", "content": "bezig"}
+                while not run.stop_gevraagd:
+                    await asyncio.sleep(0.02)
+                await asyncio.sleep(0.8)  # een node die na de stop nog een modelaanroep afmaakt
+                yield {"type": "done"}
+            return gen()
+        run = await store.start(conversation_id="g1", vraag="v", maak_stroom=rondt_traag_af)
+        await store.vraag_stop(run)
+        await asyncio.sleep(0.3)
+        async with store.pool.connection() as conn:
+            voor = (await (await conn.execute("SELECT hartslag FROM agent_runs WHERE run_id = %s", (run.run_id,))).fetchone())["hartslag"]
+        await asyncio.sleep(0.3)
+        async with store.pool.connection() as conn:
+            na = (await (await conn.execute("SELECT hartslag FROM agent_runs WHERE run_id = %s", (run.run_id,))).fetchone())["hartslag"]
+        await run.taak
+    finally:
+        postgres.POLS_S, postgres.HARTSLAG_S = monkeypatch_s
+    assert na > voor
