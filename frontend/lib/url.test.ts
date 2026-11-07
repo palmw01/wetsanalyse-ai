@@ -70,6 +70,14 @@ describe("isPuntSegment", () => {
 });
 
 describe("bronHref", () => {
+  it("laat de officiële vindplaatsen van een externe bron door (ADR-013), alleen over https", () => {
+    for (const link of ["https://zoek.officielebekendmakingen.nl/kst-36123-3",
+      "https://deeplink.rechtspraak.nl/uitspraak?id=ECLI:NL:HR:2020:1234",
+      "https://eur-lex.europa.eu/legal-content/NL/TXT/?uri=CELEX:32016R0679",
+      "https://data.europa.eu/eli/reg/2016/679/oj"]) expect(bronHref(link)).toBe(link);
+    expect(bronHref("http://zoek.officielebekendmakingen.nl/kst-36123-3")).toBeUndefined();
+    expect(bronHref("https://zoek.officielebekendmakingen.nl.evil.example/kst")).toBeUndefined();
+  });
   it("laat een TOOI-URI door als link (spoor I6), maar geen andere host van overheid.nl", () => {
     const tooi = "https://identifier.overheid.nl/tooi/id/ministerie/mnre1090";
     expect(bronHref(tooi)).toBe(tooi);

@@ -25,7 +25,7 @@ ADR-010. Dit ADR neemt de bediening van Claude over en houdt de garanties van he
 | Voorbeelden | Kamerstukken (SRU van KOOP), rechtspraak (ECLI), EUR-Lex/CELLAR, LiDO-koppelingen | een eigen MCP-server: Confluence, SharePoint, documenten van de organisatie |
 | Wie voegt toe | de beheerder, in de beheertab | de gebruiker, in de eigen instellingen, alleen als de beheerder dat toestaat |
 | Vorm | getypeerde tools in `agent/tools/`, in onze code, met het resultaatcontract; transport via HTTP of MCP achter een port | een remote MCP-URL plus OAuth aan het eigen account; tools komen van de server, achter een omhulsel van ons |
-| Vindplaats | een eigen soort in `bronmodel.vindplaats`: `kamerstuk`, `uitspraak`, `eu` (naast `wettekst`) | geen; hoogstens een document-URL plus versie als herkomst |
+| Vindplaats | een eigen soort (`bronmodel.extern`, veld `brontype`): `kamerstuk`, `bekendmaking` (Stb., Stcrt.), `uitspraak`, `eu` (naast `wettekst`) | geen; hoogstens een document-URL plus versie als herkomst |
 | Citeren | ja; `grounding` toetst letterlijk, zoals bij wettekst | nooit als bron. Het antwoord markeert zichtbaar "context, geen vindplaats" |
 | Credentials | per straat, door de beheerder, versleuteld met Fernet (`secrets_crypto`) | per gebruiker (OAuth-token), versleuteld met Fernet, nooit gedeeld |
 | Zichtbaar voor | iedereen in een werkgebied (gedeeld dossier) | alleen de gebruiker; komt niet in een gedeeld dossier, tenzij de gebruiker het bewust overneemt als notitie |
@@ -99,7 +99,7 @@ Die geldt voor beide soorten. Voor contextconnectors is hij de voorwaarde.
 
 | Fase | Wat | Voorwaarde |
 |---|---|---|
-| **1a** | het soort vindplaats in `packages/bronmodel` + `provenance`/`grounding`/sjabloon; bronconnector **Kamerstukken** (`zoek_kamerstukken`, `get_kamerstuk`) achter een vlag | dit ADR |
+| **1a** | het soort vindplaats in `packages/bronmodel` (`extern.py`) + `provenance`/`grounding`/werkplek (PR 1); het sjabloon (`door` met brontype) komt met de eerste tool die externe tekst levert; bronconnector **Kamerstukken** (`zoek_kamerstukken`, `get_kamerstuk`) achter een vlag | dit ADR |
 | **1b** | register `/v1/admin/connectors` + beheertab; het menu *Bronnen en tools* per gesprek, de standaard per werkgebied, de stand op het gesprek | 1a |
 | **1c** | LiDO-koppelingen jci↔ECLI in de graaf (importer), bronconnector **rechtspraak**; daarna **EUR-Lex** | endpoint en licentie getoetst |
 | **2a** | contextconnectors die de gebruiker toevoegt, alleen lezen: MCP-URL + OAuth, goedkeuring per tool, de vertrouwensgrens | **besluit ADR-007** |

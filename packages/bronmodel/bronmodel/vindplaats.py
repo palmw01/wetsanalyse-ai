@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import ClassVar
 from urllib.parse import parse_qsl, quote, unquote
 
 _BWB = re.compile(r"^BWB[RV]\d+$")
@@ -34,8 +35,10 @@ _SOORT = {"o": "onderdeel", **{s: s for s in (*STRUCTUUR, "artikel", "lid")}}
 class Vindplaats:
     """`soort` is `regeling`, een structuursoort, `artikel`, `lid`, `onderdeel` of `node` (een
     wet-lokale `id:`-IRI, herkend maar zonder leesbaar label). `label` is leeg voor een regeling:
-    haar naam staat in de graaf, niet in de verwijzing."""
+    haar naam staat in de graaf, niet in de verwijzing. Een vindplaats buiten de wettekst is een
+    `extern.ExterneVindplaats`; `brontype` maakt de twee vergelijkbaar."""
 
+    brontype: ClassVar[str] = "wettekst"
     bron_iri: str
     bwb_id: str
     pad: tuple[tuple[str, str], ...]

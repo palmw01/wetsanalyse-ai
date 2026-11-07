@@ -504,6 +504,11 @@ export interface Bron {
   regeling?: string | null;
   /** De afkortingen van die regeling uit de graaf ("Awb"); oudere berichten hebben ze niet. */
   afkortingen?: string[] | null;
+  /** ADR-013: `wettekst` (ook als het veld ontbreekt), `kamerstuk`, `bekendmaking`, `uitspraak` of `eu`.
+   *  Een externe bron heeft als `uri` haar canonieke id ("kst-36123-3", "ECLI:NL:HR:2020:1234") en als
+   *  `link` de publieke vindplaats; die gaat alleen via `bronHref` in een `href`. */
+  brontype?: string;
+  link?: string | null;
 }
 
 /** De uitkomst van de brongetrouwheidstoets op één antwoord (graph-qa `grounding`-event).

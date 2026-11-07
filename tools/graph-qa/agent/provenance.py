@@ -12,6 +12,7 @@ markeren. We herkennen:
   - document-IRI's in de eigen graafruimte  (zie `agent/namespace.py`)
   - jci-vindplaatsstrings                    (jci1.3:c:BWBR....)
   - kale BWB-id's                            (BWBR\\d+), alleen als losse bron
+  - externe identifiers (ADR-013)            kst-/stb-/stcrt-…, ECLI, CELEX, ELI (`bronmodel.extern`)
 De vocabulaire-namespace (`ONTOLOGIE`) valt er bewust buiten:
 dat zijn predicaten, geen vindplaatsen.
 """
@@ -20,6 +21,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable, Iterator
 
+from bronmodel.extern import externe_verwijzingen, externe_vindplaats
 from bronmodel.vindplaats import vindplaats
 
 from .models import Source
@@ -81,6 +83,11 @@ def iter_refs(text: str) -> Iterator[tuple[str, str | None, str | None]]:
         r = emit(bwb)
         if r:
             yield r
+    # Een externe bron (een Kamerstuk, een uitspraak, EU-recht) staat onder zijn canonieke id.
+    for ext in externe_verwijzingen(text):
+        r = emit(ext.id)
+        if r:
+            yield r
 
 
 def citations_in(text: str) -> list[str]:
@@ -96,7 +103,7 @@ def _labels(text: str) -> dict[str, str]:
     uit: dict[str, str] = {}
     for rij in (data or {}).get("resultaten", []):
         if isinstance(rij, dict) and isinstance(rij.get("label"), str) and rij["label"]:
-            for veld in ("node", "iri"):
+            for veld in ("node", "iri", "id"):
                 if isinstance(rij.get(veld), str):
                     uit.setdefault(rij[veld], rij["label"])
     return uit
@@ -133,6 +140,13 @@ def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
         labels = _labels(text)
         # De waarden van een contractresultaat (`resultaat.waarden`), niet zijn JSON-tekst.
         for uri, iri, jci in iter_refs(waarden(text)):
+            if (ext := externe_vindplaats(uri)) is not None:
+                if ext.id not in per_node:
+                    bron = Source(label=labels.get(ext.id) or ext.label, uri=ext.id, origin_tool=tool,
+                                  brontype=ext.brontype, link=ext.uri or None)
+                    per_node[ext.id] = bron
+                    sources.append(bron)
+                continue
             vp = vindplaats(uri)
             sleutel = vp.bron_iri if vp else uri
             if (bestaand := per_node.get(sleutel)) is not None:

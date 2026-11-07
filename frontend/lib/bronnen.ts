@@ -34,6 +34,13 @@ export interface Bronnenlijst {
   aantal: number;
 }
 
+/** De naam van de groep per brontype (ADR-013), in de volgorde van `bronmodel.extern.BRONTYPEN`. */
+export const BRONTYPE_NAAM: Record<string, string> = {
+  kamerstuk: "Parlementaire stukken", bekendmaking: "Staatsblad en Staatscourant", uitspraak: "Uitspraken",
+  eu: "EU-recht",
+};
+const BRONTYPE_VOLGORDE = ["kamerstuk", "bekendmaking", "uitspraak", "eu"];
+
 const STRUCTUUR = ["hoofdstuk", "titeldeel", "afdeling", "paragraaf"];
 const nummers = new Intl.Collator("nl", { numeric: true, sensitivity: "base" });
 
@@ -76,7 +83,20 @@ export function normaliseerBronnen(bronnen: readonly Bron[]): Bronnenlijst {
   const groepen = new Map<string, BronGroep & { paden: Map<string, [string, string][]> }>();
   const overig: BronItem[] = [];
   const gezien = new Set<string>();
+  const extern = new Map<string, BronGroep>();
   for (const b of bronnen) {
+    // Een externe bron (ADR-013) staat in een eigen groep per brontype, onder de regelingen.
+    if (b.brontype && b.brontype !== "wettekst") {
+      if (gezien.has(b.uri)) continue;
+      gezien.add(b.uri);
+      let groep = extern.get(b.brontype);
+      if (!groep) {
+        groep = { bwb_id: `extern:${b.brontype}`, naam: BRONTYPE_NAAM[b.brontype] ?? b.brontype, items: [] };
+        extern.set(b.brontype, groep);
+      }
+      groep.items.push({ sleutel: b.uri, label: b.label || b.uri, soort: b.brontype, href: bronHref(b.link) });
+      continue;
+    }
     const vp = vindplaatsVan(b.bron_iri || b.uri) ?? vindplaatsVan(b.uri);
     const href = bronHref(b.jci || b.uri) ?? bronHref(b.uri);
     if (!vp) {
@@ -113,6 +133,8 @@ export function normaliseerBronnen(bronnen: readonly Bron[]): Bronnenlijst {
     groep.items.sort((a, b) => vergelijkPad(paden.get(a.sleutel) ?? [], paden.get(b.sleutel) ?? []));
     uit.push(groep);
   }
+  for (const b of BRONTYPE_VOLGORDE) if (extern.has(b)) uit.push(extern.get(b)!);
+  for (const [b, groep] of extern) if (!BRONTYPE_VOLGORDE.includes(b)) uit.push(groep);
   return { groepen: uit, overig, aantal: gezien.size };
 }
 

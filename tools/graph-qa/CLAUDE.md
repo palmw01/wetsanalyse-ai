@@ -325,6 +325,12 @@ hier vandaan maar uit `bronmodel.resolve` (zie §*De annotatieketen*).
   zijn IRI, en een structuurdeel zijn titel ("Hoofdstuk II – Invordering in eerste aanleg") – daaraan
   herkent de werkplek het deel in de tekst (cache per proces; een fout kost
   alleen de naam).
+- **Een externe bron heeft een eigen soort** (ADR-013, `bronmodel.extern`): een Kamerstuk of Handelingen
+  (`kst-36123-3`, `h-tk-…`), het Staatsblad of de Staatscourant (`stb-2023-123`), een uitspraak (ECLI) of EU-recht
+  (`CELEX:…`, ELI). `vindplaats` blijft BWB-only, want tientallen aanroepers nemen een BWB-id aan. `iter_refs` levert de
+  canonieke id; de bron draagt `brontype` en `link` (de publieke vindplaats), en `uri` is de id. `check_grounding` eist
+  dat een genoemde id in de trace staat (op de canonieke vorm), `curate_sources` houdt een externe bron alleen als het
+  antwoord haar id noemt. Een externe bron is geen wettekst: wat de wet zegt, onderbouwt hij niet.
 - **Een annotatie is geen vindplaats.** `urn:jas…`-IRI's bevatten een BWB-id maar worden vóór het
   zoeken weggelaten (`_AFGELEID_RE`); anders lijkt een annotatie wettekst te onderbouwen die niet is
   opgehaald.
