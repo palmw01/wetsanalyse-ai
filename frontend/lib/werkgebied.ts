@@ -54,6 +54,7 @@ export type DossierVeld = (typeof DOSSIER_VELDEN)[number]["veld"];
 export const WERKGEBIED_EXPORT_FORMATEN = [
   { formaat: "pdf" as const, label: "PDF van het werkgebied", uitleg: "dossier, bronnen met wettekst, annotaties en begrippen" },
   { formaat: "md" as const, label: "Rapport als Markdown", uitleg: "dezelfde inhoud als de PDF, als tekst" },
+  { formaat: "json" as const, label: "Rapport als JSON", uitleg: "hetzelfde document, machineleesbaar, met schema (v2)" },
 ];
 
 export const ROL_LABEL: Record<BronRol, string> = {

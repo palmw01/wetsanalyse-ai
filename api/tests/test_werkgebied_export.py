@@ -270,7 +270,7 @@ async def test_de_route_geeft_een_pdf_met_een_veilige_bestandsnaam(client):
     assert re.fullmatch(r'attachment; filename="werkgebied-rekeningafspraken-een-2026-\d{8}-\d{6}\.pdf"', r.headers["content-disposition"])
 
 
-async def test_de_route_kent_alleen_pdf_en_markdown_en_bestaande_werkgebieden(client):
+async def test_de_route_kent_alleen_pdf_markdown_en_json_en_bestaande_werkgebieden(client):
     wg = await _nieuw(client)
     assert (await client.get(f"/v1/werkgebieden/{wg['id']}/export?formaat=docx")).status_code == 422
     assert (await client.get("/v1/werkgebieden/bestaat-niet/export")).status_code == 404
@@ -866,3 +866,16 @@ def test_overlappende_markeringen_zijn_deterministisch_en_de_woorden_blijven_let
     assert "<u>" in a                                                    # waar er twee overlappen
     md = markdown_opmaak.markdown([(pdf_opmaak.SPANS, json.dumps([list(x) for x in spans])), ("Citaat", t)])
     assert md.strip() == "> vindt **uitbetaling⁽¹⁾** **aan de belanghebbende⁽²⁾⁽³⁾** plaats"
+
+
+async def test_de_route_geeft_het_document_als_json_met_een_schema_dat_erbij_hoort(client):
+    wg, _ids = await _gevuld(client)
+    r = await client.get(f"/v1/werkgebieden/{wg['id']}/export?formaat=json")
+    assert r.status_code == 200 and r.headers["content-type"].startswith("application/json")
+    assert re.search(r'filename="werkgebied-.*-\d{8}-\d{6}\.json"', r.headers["content-disposition"])
+    doc = r.json()
+    assert doc["schema_naam"] == "werkgebied-rapport-v2" and Rapport.model_validate(doc).document.werkgebied_id == wg["id"]
+    schema = await client.get("/v1/werkgebieden/export-schema")
+    assert schema.status_code == 200 and schema.json()["$id"] == "urn:wetsanalyse:schema:werkgebied-rapport-v2"
+    # Het document voldoet aan zijn schema: elk verplicht veld staat erin.
+    assert set(schema.json()["required"]) <= set(doc)

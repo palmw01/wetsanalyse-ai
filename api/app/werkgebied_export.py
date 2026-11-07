@@ -480,6 +480,11 @@ def regels(data: dict, verklaringen: dict) -> list[Regel]:
     return rapport_regels(Rapport.model_validate_json(bouw_rapport(data, verklaringen).model_dump_json()))
 
 
+def json_export(data: dict, verklaringen: dict) -> bytes:
+    """Het document zelf (ADR-009): wat PDF en Markdown tonen, machineleesbaar, met `schema_naam` en `versie`."""
+    return bouw_rapport(data, verklaringen).model_dump_json(indent=2).encode()
+
+
 def markdown_export(data: dict, verklaringen: dict) -> bytes:
     return markdown_opmaak.markdown(regels(data, verklaringen)).encode()
 
