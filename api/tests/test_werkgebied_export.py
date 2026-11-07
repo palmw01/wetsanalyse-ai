@@ -13,7 +13,8 @@ from typing import Literal, Union, get_args, get_origin
 
 import pytest
 
-from app import annotatie_v2_store as store, bestandsnaam, markdown_opmaak, pdf_opmaak, werkgebied_export as export, werkgebieden
+from app import (annotatie_v2_store as store, bestandsnaam, markdown_opmaak, pdf_opmaak, rapport_graaf, werkgebied_export as export,
+                 werkgebieden)
 from app.werkgebied_rapport import (Begrippen, Rapport, Stand, Wettekst, deelvragen_regels, dossier_regels, niet_meegenomen_regels,
                                    rapport_regels)
 from pydantic import BaseModel, ValidationError
@@ -33,6 +34,26 @@ async def _toestanden(wg: dict) -> dict:
 @pytest.fixture(autouse=True)
 def toestanden(monkeypatch):
     monkeypatch.setattr(werkgebieden, "toestanden_van", _toestanden)
+
+
+ECHTE_LEES = rapport_graaf.lees
+GRAAF = {"volledig": True,
+         "regelingen": {"BWBR0004770": {"soort": "wet", "verantwoordelijke": "Financiën", "afkorting": "IW",
+                                        "organisatie": "https://identifier.overheid.nl/tooi/id/ministerie/mnre1090",
+                                        "toestand_url": "http://wetten.overheid.nl/id/BWBR0004770/2026-10-01/0",
+                                        "url": "https://wetten.overheid.nl/BWBR0004770"}},
+         "structuur": {ART: {"titel": "", "inwerking": "2024-01-01", "gewijzigd_bij": "Stb.2023-499"}}}
+
+
+@pytest.fixture(autouse=True)
+def rapportgraaf(monkeypatch):
+    gevraagd: list = []
+
+    async def lees(bwbs, iris):
+        gevraagd.append((bwbs, iris))
+        return copy.deepcopy(GRAAF)
+    monkeypatch.setattr(rapport_graaf, "lees", lees)
+    return gevraagd
 
 
 async def _gevuld(client) -> tuple[dict, dict]:
@@ -55,7 +76,7 @@ async def _gevuld(client) -> tuple[dict, dict]:
 
 
 async def _data(wg: dict) -> dict:
-    return await export.verzamel(wg["id"], "jurist-a", werkgebieden.resolve_bron, werkgebieden.toestanden_van)
+    return await export.verzamel(wg["id"], "jurist-a", werkgebieden.resolve_bron, werkgebieden.toestanden_van, rapport_graaf.lees)
 
 
 def _teksten(data: dict) -> list[str]:
@@ -701,3 +722,64 @@ async def test_de_leeswijzer_toont_elke_klasse_met_naam_en_de_bijlagen_hebben_le
     bijlagen = [t for s, t in regels if s == "Heading1" and t.startswith("Bijlage")]
     assert bijlagen == [f"Bijlage {letter}. {naam}" for letter, naam in zip("ABCDE", BIJLAGEN)]
     assert regels.index(("Heading1", "6. Begrippen")) < regels.index(("Heading1", bijlagen[0]))
+
+
+async def test_de_graaf_geeft_regeling_en_artikel_en_vraagt_alleen_de_voorouders(client, rapportgraaf):
+    wg, _ids = await _gevuld(client)
+    data = await _data(wg)
+    bwbs, iris = rapportgraaf[-1]
+    assert bwbs == ["BWBR0004770"] and ART in iris and ONE not in iris and "urn:bwb:BWBR0004770" not in iris
+    rapport = export.bouw_rapport(data, V)
+    [regeling] = rapport.voorblad.regelingen
+    assert (regeling.soort, regeling.verantwoordelijke, regeling.afkorting) == ("wet", "Financiën", "IW")
+    artikel = rapport.wettekst.regelingen[0].artikelen[0]
+    assert artikel.inwerking == "2024-01-01" and artikel.gewijzigd_bij == "Stb.2023-499"
+    regels = rapport_regels(rapport)
+    assert ("Meta", "In werking sinds 1 januari 2024 · laatst gewijzigd bij Stb. 2023, 499.") in regels
+    assert any(t.startswith("Invorderingswet 1990 (BWBR0004770, IW): geldt vanaf") and t.endswith("wet · verantwoordelijk: Financiën")
+               for _s, t in regels)
+    assert ("Meta", "Toestand in de graaf: http://wetten.overheid.nl/id/BWBR0004770/2026-10-01/0") in regels
+
+
+async def test_zonder_graaf_zegt_het_rapport_wat_ontbreekt(client, monkeypatch):
+    async def weg(bwbs, iris):
+        return {"volledig": False, "regelingen": {}, "structuur": {}}
+    monkeypatch.setattr(rapport_graaf, "lees", weg)
+    wg, _ids = await _gevuld(client)
+    rapport = export.bouw_rapport(await _data(wg), V)
+    assert "graaf_onvolledig" in [s.soort for s in rapport.voorblad.signalen]
+    assert rapport.wettekst.regelingen[0].artikelen[0].inwerking is None
+
+
+def test_de_plaats_van_een_artikel_komt_uit_de_bronboom_met_titels_uit_de_graaf():
+    nodes = {"urn:bwb:BWBR1": {"type": "Regeling", "parent_iri": "", "nummer": ""},
+             "urn:bwb:BWBR1:hoofdstuk:2": {"type": "Hoofdstuk", "parent_iri": "urn:bwb:BWBR1", "nummer": "2"},
+             "urn:bwb:BWBR1:hoofdstuk:2:paragraaf:3": {"type": "Paragraaf", "parent_iri": "urn:bwb:BWBR1:hoofdstuk:2", "nummer": "3"},
+             "urn:bwb:BWBR1:artikel:25": {"type": "Artikel", "parent_iri": "urn:bwb:BWBR1:hoofdstuk:2:paragraaf:3", "nummer": "25",
+                                          "vindplaats": "Artikel 25"}}
+    data = {"graaf": {"volledig": True, "regelingen": {}, "structuur": {"urn:bwb:BWBR1:hoofdstuk:2": {"titel": "Uitbetaling"}}}}
+    artikel = export._artikel("urn:bwb:BWBR1:artikel:25", nodes, data)
+    assert [(d.soort, d.nummer, d.titel) for d in artikel.plaats] == [("Hoofdstuk", "2", "Uitbetaling"), ("Paragraaf", "3", "")]
+    from app.werkgebied_rapport import _plaats
+    assert _plaats(artikel.plaats) == "Hoofdstuk 2 – Uitbetaling › § 3"
+
+
+def test_de_graafquery_neemt_alleen_strikte_iris_en_bwb_ids():
+    q = rapport_graaf.structuur_query(rapport_graaf.geldige_iris(["urn:bwb:BWBR1:artikel:2", "urn:bwb:BWBR1> } DROP <x", "http://x"]))
+    assert "<urn:bwb:BWBR1:artikel:2>" in q and "DROP" not in q and "http://x" not in q
+    assert "BWBR0004770" in rapport_graaf.regelingen_query(["BWBR0004770", "BWBR1> }"]) and "> }" not in rapport_graaf.regelingen_query(["x> }"])
+
+
+async def test_de_graaf_is_best_effort_en_kiest_bij_meer_waarden_de_kleinste(monkeypatch):
+    rijen = [{"r": "urn:bwb:BWBR0004770", "afkorting": "IW", "soort": "wet"}, {"r": "urn:bwb:BWBR0004770", "afkorting": "Iw 1990"}]
+
+    async def select(_client, q):
+        return list(reversed(rijen)) if "afkorting" in q else []
+    monkeypatch.setattr(rapport_graaf, "sparql_select", select)
+    uit = await ECHTE_LEES(["BWBR0004770"], [])
+    assert uit["volledig"] and uit["regelingen"]["BWBR0004770"]["afkorting"] == "IW"
+
+    async def kapot(_client, _q):
+        raise ConnectionError("graaf weg")
+    monkeypatch.setattr(rapport_graaf, "sparql_select", kapot)
+    assert (await ECHTE_LEES(["BWBR0004770"], ["urn:bwb:BWBR0004770:artikel:1"]))["volledig"] is False
