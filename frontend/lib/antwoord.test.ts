@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { BLOK_SOORTEN, parseAntwoord } from "./antwoord";
+import { BLOK_SOORTEN, NIET_GETOETST, alleenNietGetoetst, bepalingenVan, groepeerWettekst, parseAntwoord } from "./antwoord";
 
 const v = { iri: "urn:bwb:BWBR1:artikel:2", label: "Artikel 2", jci: "", regeling: "Wet" };
 
@@ -34,5 +35,34 @@ describe("parseAntwoord", () => {
     const bron = readFileSync(new URL("../../packages/bronmodel/bronmodel/antwoord.py", import.meta.url), "utf8");
     const soorten = [...bron.matchAll(/soort: Literal\["(\w+)"\]/g)].map((m) => m[1]);
     expect([...soorten].sort()).toEqual([...BLOK_SOORTEN].sort());
+  });
+
+  it("zet opeenvolgende leden van één artikel onder één kop, en laat een los lid staan", () => {
+    const vp = (lid: string, art = "9") => ({ vindplaats: { iri: `urn:bwb:BWBR0004770:artikel:${art}:lid:${lid}`, label: `Artikel ${art}, lid ${lid}`,
+      jci: `jci1.3:c:BWBR0004770&artikel=${art}&lid=${lid}&z=2026-10-01&g=2026-10-01`, regeling: "Invorderingswet 1990" } });
+    const g = groepeerWettekst([vp("1"), vp("2"), vp("10"), vp("1", "10")]);
+    expect(g).toHaveLength(2);
+    expect(g[0].artikel).toEqual({ iri: "urn:bwb:BWBR0004770:artikel:9", label: "Artikel 9", regeling: "Invorderingswet 1990",
+      jci: "jci1.3:c:BWBR0004770&artikel=9&z=2026-10-01&g=2026-10-01" });
+    expect(g[0].items.map((i) => i.lid)).toEqual(["1", "2", "10"]);
+    expect(g[1].artikel).toBeUndefined();
+    expect(groepeerWettekst([{ vindplaats: { iri: "urn:bwb:BWBR0004770:artikel:9", label: "Artikel 9", jci: "", regeling: "" } }])[0].artikel).toBeUndefined();
+  });
+
+  it("opent bij annotaties de bronnodes van de markeringen, anders de doelen", () => {
+    const blok = { soort: "annotaties" as const, door: "bron" as const, totaal: 3, volledig: true, items: [
+      { id: "e1", klasse: "Rechtsfeit", tekst: "x", vindplaats: "Invorderingswet 1990 art. 9 lid 1", bron_iri: "urn:bwb:BWBR0004770:artikel:9:lid:1" },
+      { id: "e2", klasse: "Rechtsobject", tekst: "y", vindplaats: "Invorderingswet 1990 art. 9 lid 1", bron_iri: "urn:bwb:BWBR0004770:artikel:9:lid:1" },
+      { id: "e3", klasse: "Rechtsobject", tekst: "z", vindplaats: "2×: …" }] };
+    const a = { sjabloon: "annotaties", versie: 1, blokken: [blok], doelen: [] };
+    expect(bepalingenVan(a).map((v) => v.iri)).toEqual(["urn:bwb:BWBR0004770:artikel:9:lid:1"]);
+    expect(alleenNietGetoetst(a)).toBe(true);
+    expect(alleenNietGetoetst({ ...a, blokken: [blok, { soort: "toelichting", door: "lex", kop: "Toelichting van Lex", tekst: "t" }] })).toBe(false);
+  });
+
+  it("kent dezelfde niet-getoetste blokken als het contract", () => {
+    const bron = readFileSync(join(__dirname, "../../packages/bronmodel/bronmodel/antwoord.py"), "utf8");
+    const set = /NIET_GETOETST = frozenset\(\{([^}]*)\}\)/.exec(bron)![1];
+    expect([...set.matchAll(/"(\w+)"/g)].map((m) => m[1]).sort()).toEqual([...NIET_GETOETST].sort());
   });
 });

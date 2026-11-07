@@ -9,9 +9,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from bronmodel.antwoord import Antwoord, Bepaling, Toelichting, Wettekst
+from bronmodel.antwoord import Antwoord, Bepaling, Toelichting, Vindplaats, Wettekst
 
-from .vullen import Onvulbaar, Trace, resultaten, vindplaats_van
+from .vullen import Onvulbaar, Trace, met_toestand, resultaten, toestanden, vindplaats_van
 
 SCHEMA: dict[str, Any] = {
     "name": "antwoord_bepaling",
@@ -40,6 +40,7 @@ class _Stuk:
 
     tekst: str = ""
     nummer: str = ""
+    jci: str = ""
     delen: dict[str, dict[str, Any]] = field(default_factory=dict)
     verwacht: int | None = None  # zoveel delen zegt de tool dat er zijn
     onderdelen_elders: bool = False  # een lid uit `get_artikel`: zijn onderdelen staan daar niet in
@@ -53,6 +54,7 @@ def _stukken(trace: Trace) -> dict[str, _Stuk]:
     def stuk(iri: str, rij: dict[str, Any]) -> _Stuk:
         s = uit.setdefault(iri, _Stuk())
         s.tekst, s.nummer = rij.get("tekst") or s.tekst, rij.get("nummer") or s.nummer
+        s.jci = s.jci or rij.get("jci") or ""
         s.nog_niet_in_werking = s.nog_niet_in_werking or bool(rij.get("nog_niet_in_werking"))
         return s
 
@@ -89,7 +91,14 @@ def _tekst(iri: str, stukken: dict[str, _Stuk]) -> str:
     return "\n".join(t for t in (s.tekst, *map(_regel, onder)) if t)
 
 
-def _bepalingen(iri: str, stukken: dict[str, _Stuk], ontbreekt: list[str], nog_niet: bool = False) -> list[Bepaling]:
+def _vindplaats(iri: str, stukken: dict[str, _Stuk], staarten: dict[str, str]) -> Vindplaats:
+    """De vindplaats met de jci uit de rij, aangevuld met de toestand die de tools lazen: de link opent die versie."""
+    s = stukken.get(iri)
+    return vindplaats_van(iri, jci=met_toestand(s.jci if s else "", staarten))
+
+
+def _bepalingen(iri: str, stukken: dict[str, _Stuk], ontbreekt: list[str], staarten: dict[str, str],
+                nog_niet: bool = False) -> list[Bepaling]:
     s = stukken.get(iri)
     label = vindplaats_van(iri).label
     if s is None:
@@ -107,9 +116,9 @@ def _bepalingen(iri: str, stukken: dict[str, _Stuk], ontbreekt: list[str], nog_n
     nog_niet = nog_niet or s.nog_niet_in_werking  # een lid erft het van zijn artikel
     uit: list[Bepaling] = []
     if tekst := _tekst(iri, stukken):
-        uit.append(Bepaling(tekst=tekst, vindplaats=vindplaats_van(iri), nog_niet_in_werking=nog_niet))
+        uit.append(Bepaling(tekst=tekst, vindplaats=_vindplaats(iri, stukken, staarten), nog_niet_in_werking=nog_niet))
     for lid in (k for k, d in s.delen.items() if d.get("lid")):
-        uit += _bepalingen(lid, stukken, ontbreekt, nog_niet)
+        uit += _bepalingen(lid, stukken, ontbreekt, staarten, nog_niet)
     if not uit and not ontbreekt:
         ontbreekt.append(f"{label}: geen tekst in het resultaat. Haal de bepaling op met get_artikel of get_lid")
     return uit
@@ -119,11 +128,11 @@ def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
     iris = list(dict.fromkeys(str(i).strip() for i in invoer.get("bepalingen") or [] if str(i).strip()))
     if not iris:
         raise Onvulbaar("Wijs de bepalingen aan met hun iri.")
-    stukken, ontbreekt = _stukken(trace), []
-    items = [b for iri in iris for b in _bepalingen(iri, stukken, ontbreekt)]
+    stukken, ontbreekt, staarten = _stukken(trace), [], toestanden(trace)
+    items = [b for iri in iris for b in _bepalingen(iri, stukken, ontbreekt, staarten)]
     if ontbreekt:
         raise Onvulbaar("Nog niet compleet, dus er wordt niets getoond. " + "; ".join(ontbreekt) + ". Rond daarna opnieuw af.")
     blokken: list[Any] = [Wettekst(items=items)]
     if toelichting := str(invoer.get("toelichting") or "").strip():
         blokken.append(Toelichting(tekst=toelichting))
-    return Antwoord(sjabloon="bepaling", blokken=blokken, doelen=[vindplaats_van(iri) for iri in iris])
+    return Antwoord(sjabloon="bepaling", blokken=blokken, doelen=[_vindplaats(iri, stukken, staarten) for iri in iris])

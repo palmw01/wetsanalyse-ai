@@ -121,7 +121,12 @@ def test_historische_replay_alleen_volledig_beschikbaar_voor_lid1(pakket, detect
     uit, _ = speel(c, {b["label"]: b["klasse"] or "Geen annotatie" for b in oud["beslissingen"]})
     # De run van toen wees de centrale norm af nadat de reviewer dat bevestigde; nu beslist de jurist (R-CENTRAAL-KEEP).
     toen = oud["run"]["instellingen"]["meting"]["per_status"]
-    assert uit.meting["per_status"] == {**toen, "REJECTED": toen["REJECTED"] - 1, "HUMAN_REVIEW": toen["HUMAN_REVIEW"] + 1}
+    # Kandidaten die de detectoren sinds die run extra aanreiken (de operator 'na' in 'zes weken na …') kent de
+    # besliskaart niet; de replay wijst ze af. Ze staan niet in de elementen van toen en raken de rest niet.
+    nieuw = uit.meting["kandidaten"] - len(oud["beslissingen"])
+    assert nieuw >= 0
+    assert uit.meting["per_status"] == {**toen, "REJECTED": toen["REJECTED"] - 1 + nieuw,
+                                        "HUMAN_REVIEW": toen["HUMAN_REVIEW"] + 1}
     assert {(v["tekst"], v["klasse"]) for v in uit.voorstellen if v["klasse"]} == {(v["tekst"], v["klasse"]) for v in oud["elementen"]}
     [vraag] = [v for v in uit.voorstellen if not v["klasse"]]
     assert vraag["aandacht"] == "geel" and vraag["review_uitleg"].startswith("De reviewer ziet hier geen norm: ")

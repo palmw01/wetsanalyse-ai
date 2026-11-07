@@ -22,7 +22,7 @@ from bronmodel.vindplaats import vindplaats
 from ..annotatie import _normaliseer, komt_letterlijk_voor
 from ..grounding import _bekende_artikelen, herstel_citaten
 from ..overzicht import vermeldingen
-from .vullen import Onvulbaar, Trace, artikel_in_trace, bron_rijen, iri_van_jci, ouders, vindplaats_van
+from .vullen import Onvulbaar, Trace, artikel_in_trace, bron_rijen, iri_van_jci, met_toestand, ouders, toestanden, vindplaats_van
 
 SCHEMA: dict[str, Any] = {
     "name": "antwoord_duiding",
@@ -145,7 +145,7 @@ def _citaat(stuk: dict[str, Any], rijen: dict[str, dict[str, Any]], trace: Trace
     tekst = next(t for p, t in treffers.values() if p in diepste)
     rij = rijen.get(plek, {})
     return Citaat(tekst=tekst, waarom=_lex(stuk.get("waarom"), trace),
-                  vindplaats=vindplaats_van(plek, jci=rij.get("jci", ""), regeling=rij.get("citeertitel", ""),
+                  vindplaats=vindplaats_van(plek, jci=met_toestand(rij.get("jci", ""), toestanden(trace)), regeling=rij.get("citeertitel", ""),
                                             label=rij.get("inLabel") or rij.get("label", "")))
 
 

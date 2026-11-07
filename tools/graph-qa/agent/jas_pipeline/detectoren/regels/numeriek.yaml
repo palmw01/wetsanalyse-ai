@@ -39,6 +39,23 @@
                {tekst: "De raad vergadert meer dan eens.", span: "eens"}]
     rand: [{tekst: "ten minste 12 leden", span: "12"}]
     overlap: [{tekst: "minimaal twee en maximaal vier leden", spans: ["twee", "vier"]}]
+# Het getal in een duur ('48' in 'binnen 48 uur'): de duur zelf is een Tijdsaanduiding met subtype
+# "verbijzondert parameter" (JAS-PRIORITY-001, H2:107); het getal in cijfers is een geneste parameterwaarde
+# (ADR-001 PR 8, aanvulling 7 nov 2026). Alleen cijfers: 'zes' in 'zes weken' is geen los getal maar deel
+# van de duur. De code begint bewust niet met TEMPORAL_, anders schrapt `specificiteit` de Parameter weer.
+- id: jas.waarde.getal_in_duur
+  klassen: [Parameter en parameterwaarde]
+  code: DURATION_NUMBER
+  bewijs: sterk
+  bron: "H2:107"
+  versie: 1
+  patroon: '(?<![\d.,])\b\d+(?=\s+(?:{PERIODE})\b)'
+  tests:
+    positief: [{tekst: "Het bericht wordt binnen 48 uur bevestigd.", span: "48"}]
+    negatief: [{tekst: "De termijn bedraagt zes weken.", span: "zes"},
+               {tekst: "Deze wet treedt in werking op 1 september 2009.", span: "1"}]
+    rand: [{tekst: "een termijn van 6 weken.", span: "6"}]
+    overlap: [{tekst: "binnen 14 dagen of uiterlijk 2 jaren", spans: ["14", "2"]}]
 - id: jas.waarde.veelvoud
   klassen: [Operator, Parameter en parameterwaarde]
   code: MULTIPLIER

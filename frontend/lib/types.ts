@@ -213,7 +213,7 @@ export interface ApiError {
 // --- Annotatie-domein: het weergavemodel van het artefact (zie lib/annotatieNodeAdapter.ts) ---
 
 export type Lifecycle =
-  | "voorgesteld" | "human_approved" | "edited" | "rejected" | "published" | "reused";
+  | "voorgesteld" | "human_approved" | "edited" | "rejected" | "published" | "reused" | "vervangen";
 export type BeslissingType = "markering" | "approve" | "edit" | "reject" | "comment" | "heropen" | "grens";
 export type ReviewReason =
   | "verkeerde_klasse" | "bron_gemist" | "tekst" | "interpretatie" | "onvoldoende_context" | "anders";
@@ -953,6 +953,8 @@ export interface Inventaris {
   elementen: InventarisElement[];
   /** De verworpen elementen: apart, zodat ze niet meegaan in koppelen en tellingen. */
   afgewezen?: InventarisElement[];
+  /** De voorstellen die een nieuwe ronde van Lex niet meer maakte (lifecycle `vervangen`): apart, om dezelfde reden. */
+  vervangen?: InventarisElement[];
   volledig: boolean;
 }
 

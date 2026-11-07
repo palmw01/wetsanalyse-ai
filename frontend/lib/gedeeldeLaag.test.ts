@@ -74,6 +74,6 @@ describe("splitsVerouderd", () => {
 
 it("elke lifecycle heeft een label", () => {
   expect(Object.keys(LIFECYCLE_LABEL).sort()).toEqual(
-    ["edited", "human_approved", "published", "rejected", "reused", "voorgesteld"],
+    ["edited", "human_approved", "published", "rejected", "reused", "vervangen", "voorgesteld"],
   );
 });

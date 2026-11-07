@@ -6,7 +6,7 @@ import re
 
 import pytest
 
-from app.annotatie_v2_contracts import AFGEHANDELD, BEOORDEELD
+from app.annotatie_v2_contracts import AFGEHANDELD, BEOORDEELD, NIET_ACTUEEL
 from app.config import PROJECT_ROOT
 
 ANNOTATIE_TS = PROJECT_ROOT / "frontend" / "lib" / "annotatie.ts"
@@ -18,6 +18,7 @@ def _lijst(naam: str, bron: str) -> set[str]:
     return set(re.findall(r'"([a-z_]+)"', m.group(1)))
 
 
-@pytest.mark.parametrize("naam, waarden", [("BEOORDEELD_LIFECYCLES", BEOORDEELD), ("BESLIST_LIFECYCLES", AFGEHANDELD)])
+@pytest.mark.parametrize("naam, waarden", [("BEOORDEELD_LIFECYCLES", BEOORDEELD), ("BESLIST_LIFECYCLES", AFGEHANDELD),
+                                           ("NIET_ACTUELE_LIFECYCLES", NIET_ACTUEEL)])
 def test_de_werkplek_draagt_dezelfde_definitie(naam, waarden):
     assert _lijst(naam, ANNOTATIE_TS.read_text(encoding="utf-8")) == set(waarden)

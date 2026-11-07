@@ -40,6 +40,12 @@ klassen om dezelfde functie, noteer een alternatief met reden. De hiërarchie in
 geen algemene beslisboom die grotere elementen verwijdert. Alleen de expliciete
 voorrang van tijd/plaats boven variabele/parameter geldt bij dezelfde functie.
 
+Bij een duur of hoeveelheid in een tijdsaanduiding ('zes weken na …', 'binnen 48 uur')
+markeer je de tijdsaanduiding één keer, met het subtype *verbijzondert parameter*; geen
+tweede markering Parameter op dezelfde formulering. Een getal in cijfers daarin ('48') is
+wel een eigen, geneste parameterwaarde: een andere functie (de waarde) binnen de
+omschrijving. Zie jas-klassen-referentie.md §10, *Verbijzondering*.
+
 ## Verwijzende formuleringen
 
 Zoek het antecedent en controleer opnieuw de juridische functie. 'Een dergelijke

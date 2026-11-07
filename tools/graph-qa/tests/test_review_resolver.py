@@ -183,3 +183,45 @@ def test_zelfde_span_waarschuwing_wordt_een_twijfel():
     tw = signaleer({k.id: k}, [], [Bevinding(code="W_ZELFDE_SPAN", label="C001", detail=f"{F}, {V}",
                                              ernst="waarschuwing")], set())
     assert [(t.reden, t.huidig, t.alternatieven) for t in tw] == [("ZELFDE_SPAN", F, (V,))]
+
+
+def _afgewezen_norm_naast_een_object():
+    from agent.jas_pipeline.besluit import GEEN_ANNOTATIE_REDEN
+    norm = _k("C001", ["Rechtsbetrekking"], code="NORMATIVE_PREDICATE", start=0, eind=27)
+    obj = _k("C002", ["Rechtsobject"], code="OBJECT_NP", start=13, eind=27)
+    besluiten = [Beslissing(kandidaat_id=norm.id, label="C001", status=CandidateStatus.REJECTED,
+                            reden=GEEN_ANNOTATIE_REDEN, door="model"), _b(obj, klasse="Rechtsobject")]
+    return {norm.id: norm, obj.id: obj}, besluiten
+
+
+def test_een_afgewezen_norm_onder_een_aanhef_is_geen_verdwenen_hoofdnorm():
+    """Een onderdeel onder een aanhef draagt zijn centrale norm in de ouder: geen herbeoordeling, en dus ook
+    geen terugval-element zonder klasse. Elders blijft de controle staan."""
+    ks, besluiten = _afgewezen_norm_naast_een_object()
+    assert [t.reden for t in signaleer(ks, besluiten, [], set())] == ["CENTRALE_NORM_AFGEWEZEN"]
+    assert signaleer(ks, besluiten, [], set(), onder_aanhef={"urn:t"}) == []
+    assert [t.reden for t in signaleer(ks, besluiten, [], set(), onder_aanhef={"urn:ander"})] == [
+        "CENTRALE_NORM_AFGEWEZEN"]
+
+
+@pytest.mark.parametrize(("ouder", "twijfel"), [("De aanvraag gaat vergezeld van:", []),
+                                                ("De aanvraag gaat vergezeld van de stukken.", ["CENTRALE_NORM_AFGEWEZEN"])])
+def test_de_keten_kent_het_onderdeel_onder_een_aanhef(ouder, twijfel):
+    """Regressie door de hele keten: een afgewezen norm in een onderdeel onder een aanhef gaat niet naar de reviewer
+    en wordt geen element zonder klasse (R-CENTRAAL-KEEP). Het terugvalgedrag zelf blijft elders gelijk."""
+    from agent.jas_pipeline.detectoren import BronTekst, detecteer_alles
+    from agent.jas_pipeline.fusie import fuseer
+    from agent.jas_pipeline.taal import SpacyProvider
+    from eval.onderzoek_invordering import speel
+    tekst = "b. de aanvrager moet de stukken overleggen."
+    provider = SpacyProvider("nl_core_news_md")
+    if provider.analyseer(tekst).gedegradeerd:
+        pytest.skip("nl_core_news_md vereist")
+    c = {"bron_iri": "urn:test:o:b", "parent_iri": "urn:test", "tekst": tekst, "bron_hash": tekst_hash(tekst),
+         "type": "Onderdeel", "nummer": "b", "volgorde": 2, "ouder_context": ouder}
+    ks = fuseer(detecteer_alles(BronTekst.van_tekst(c["bron_iri"], tekst, analyse=provider.analyseer(tekst),
+                                                     context=ouder))).kandidaten
+    obj = next(k for k in ks if k.span.tekst == "de stukken" and "Rechtsobject" in k.possible_classes)
+    uit, _ = speel(c, {obj.label: "Rechtsobject"})
+    assert [t["reden"] for t in uit.meting["twijfels"]] == twijfel
+    assert all(v["klasse"] for v in uit.voorstellen) is (not twijfel)

@@ -139,9 +139,18 @@ Hieronder wat je moet weten om de code te wijzigen.
 - **Verouderd.** Wijkt de hash van een geankerde bronnode af van de actuele bron, dan is het
   element verouderd: alleen-lezen (409), telt niet mee bij afronden. De lifecycle blijft staan als
   historie.
+- **Opnieuw annoteren ruimt op** (`_vervang_oude_voorstellen`). Een batch met `run.modus == "opnieuw"` en een voltooide
+  dekking zet elk element met de eigenaar in het bereik dat van de agent komt, actueel is, geen oordeel draagt en niet
+  opnieuw in de batch zit op `vervangen` (`vervangen_in`, auditregel `element-vervangen`); wissen doet hij niet. De
+  respons draagt `vervangen` (ids). Komt hetzelfde id later terug, dan leeft het op (`element-hersteld`). `vervangen` is
+  niet actueel (`NIET_ACTUEEL`, `is_vervangen`): `weergave` en `actuele_elementen` laten het weg (de weergave en de
+  inventaris noemen het apart in `vervangen`, `actuele_elementen(inclusief_vervangen=True)` voor wie het wil tonen), net
+  als zoeken, werkvoorraad, statistiek, overzicht, afronden en `laag_invoer` (de projectie); `slot_van` en `_beslis_in`
+  maken het alleen-lezen; `begrip_store.actualiteit` geeft `gewijzigd`. Een nieuwe lezer van de elementtabel moet
+  dezelfde keuze maken. Zie de specificatie §*Opslag en projectie*.
 - **Eén definitie van beoordeeld** (`annotatie_v2_contracts`): `BEOORDEELD` (`human_approved`, `edited`, `published`),
-  `AFGEHANDELD` (daarnaast `rejected`) en `VERGRENDELD` (`AFGEHANDELD` zonder `edited`). Schrijf de lifecycles
-  nergens los uit; `frontend/lib/annotatie.ts` draagt dezelfde waarden en `tests/test_lifecycle_drift.py` bewaakt dat.
+  `AFGEHANDELD` (daarnaast `rejected`), `VERGRENDELD` (`AFGEHANDELD` zonder `edited`) en `NIET_ACTUEEL` (`vervangen`).
+  Schrijf de lifecycles nergens los uit; `frontend/lib/annotatie.ts` draagt dezelfde waarden en `tests/test_lifecycle_drift.py` bewaakt dat.
 - **Een oordeel vergrendelt.** Een element in `VERGRENDELD` dat van de agent komt of een oordeel draagt
   (`heeft_oordeel`), accepteert alleen `comment` en `heropen` (`annotatie_v2_store._beslis_in`). Afronden (`zet_status`
   → `geaccordeerd`) kan pas als elk actueel element afgehandeld is en de bron niet veranderde.
@@ -240,6 +249,12 @@ Hieronder wat je moet weten om de code te wijzigen.
   in de graaf niet draagt), en **alle** uitgaande triples ruw, zodat er nooit iets ontbreekt. Een
   nieuw predicaat verschijnt dus eerst alleen ruw; geef hem een plek in `FEITEN`. De IRI gaat
   letterlijk een query in en moet `samenhang._IRI` volledig matchen (422); een haperende graaf 503.
+  **`/bepaling`** (`bepaling_detail.py`, `bron_iri`; ADR-008 *Detail bij een antwoord*) is wat het paneel naast het gesprek
+  over één bepaling toont: plek in de opbouw met opschriften (`graaf.plaatsen` + `bwb:titel`), geldigheid, de verwijzingen
+  vanuit de bepaling en haar leden met ankertekst, wie ernaar verwijst (telling, de eerste tien, zonder de bepaling zelf),
+  grondslag en bevoegdheid, genoemd in en gedefinieerde begrippen. De vorm staat in `bepaling_graaf_contract.py`
+  (`Structuurdeel`, `Verwijzing`, `Telling`, `BepalingDetail`), de ene graaflezing per bepaling die het werkgebiedrapport
+  deelt (ADR-009). `detail_uit` is puur; een haperende graaf geeft `beschikbaar: false` met status 200, nooit een leeg detail.
 
 ### Projectie naar de kennisgraaf
 
@@ -382,21 +397,28 @@ spoor D (*Werkgebied als node*).
   `bereik`, `deelvragen` (`{id, vraag, selecties}`) en `buiten_bereik` (analysebronnen die niet meegaan).
   `deelvraag_id` zonder `bereik=deelvragen` 422; een onbekende deelvraag 404; een niet-actieve 409
   `niet_actief`; geen actieve deelvragen 409 `geen_deelvragen` (elk met `melding`).
-- **De export** (`GET {id}/export?formaat=pdf|md`, `werkgebied_export.py`): het hele werkgebied als één PDF of Markdown, een
+- **De export** (`GET {id}/export?formaat=pdf|md|json`, `werkgebied_export.py`; het schema op `GET /v1/werkgebieden/export-schema`): het hele werkgebied als één PDF of Markdown, een
   overdrachtsdossier voor wie niet in Lex werkt. De PDF komt uit één gestructureerd document (`werkgebied_rapport.Rapport`, ADR-009):
   `bouw_rapport` vult het, `rapport_regels` maakt er tekst van, en de uitvoer gaat letterlijk door de JSON heen. Een nieuw
   veld hoort in het contract én in de tekstlaag; `test_elke_tekst_in_het_rapport_komt_in_de_uitvoer` bewaakt dat. Versie 2 (ADR-009, aanvulling nov 2026) heeft
-  `document` (kenmerk, concept), `samenvatting` (kerncijfers) en een besluitenlog (`BESLUITEN`: welke audit-acties een besluit zijn). Het
+  `document` (kenmerk, concept, `inhoud_hash`: SHA-256 over de inhoud zonder `stand`, gelijk bij gelijke inhoud), `samenvatting` (kerncijfers) en een besluitenlog (`BESLUITEN`: welke audit-acties een besluit zijn). Het
   JSON-schema (`app/schemas/werkgebied-rapport-v2.schema.json`) maak je opnieuw met `werkgebied_rapport.schrijf_schema()`, en een test vergelijkt het. Op de stand van nu en met één vaste inhoud, zonder bovengrens: voorblad met
   bronstand en waarschuwingen, inhoudsopgave en bladwijzers, dossier, deelvragen en bronnen, wettekst met markeringen,
   begrippen, korte verantwoording. De indeling (v2): titelblad, colofon, inhoud, 1 Samenvatting, 2 Leeswijzer (met de JAS-legenda),
   3 Werkgebied, 4 Deelvragen en bronnen, 5 Analyse per bepaling, 6 Begrippen (lijst), dan de bijlagen (`BIJLAGEN`, letters op volgorde):
-  Begripskaarten, Bronnenregister, Contextbepalingen (rol context zonder markering, `Regeling.context`), Niet meegenomen, Verantwoording.
+  Begripskaarten, Bronnenregister, Contextbepalingen (rol context zonder markering, `Regeling.context`), Samenhang, Niet meegenomen,
+  Verantwoording.
   - **Graaf in het rapport** (`rapport_graaf.lees`, best-effort zoals de toestanden): per regeling de WTI-gegevens (soort,
     eerstverantwoordelijke, TOOI-organisatie, afkorting, toestand-URL), en per voorouder van een geselecteerde bronnode
     (`werkgebied_export.structuur_iris`) de titel, `bwb:inwerking` en `bwb:bron`. Een artikel krijgt zo zijn `plaats` in de opbouw, die
     boven het artikel en in de kopregel staat (`PLAATS`). Alleen strikte IRI's gaan de query in (`BRON_IRI`). Een haperende graaf geeft het
-    signaal `graaf_onvolledig`. De router geeft `rapport_graaf.lees` mee, de tests vervangen hem. `verzamel` leest met dezelfde functies als de schermen, en `regels` geeft (stijl, tekst),
+    signaal `graaf_onvolledig`. De router geeft `rapport_graaf.lees` mee, de tests vervangen hem.
+    De verwijzingen komen uit `bwb:heeftVerwijzing`/`bwb:naar`, alleen vanuit bronnodes in het dossier (`bron_iris`; inkomende verwijzingen
+    zijn ruis), met `bwb:ankerTekst` letterlijk. Ze staan bij de bepaling en in de bijlage Samenhang. Een doel telt als "in dit dossier" als het
+    daar zelf staat of als een van zijn delen er staat.
+  - **Markeringen in de wettekst**: `Bepaling.spans` (alleen ankers die nog letterlijk op hun offsets staan) gaan als regel `SPANS` (JSON)
+    vlak vóór het citaat mee. `pdf_opmaak.gemarkeerd` kleurt en nummert, `markdown_opmaak` maakt vet met ⁽ⁿ⁾. Een markering in de tekst
+    draagt haar nummer, en de lijst eronder herhaalt het citaat niet. `verzamel` leest met dezelfde functies als de schermen, en `regels` geeft (stijl, tekst),
   zonder reportlab te testen.
   - Geen modelvragen, hashes of beurtmeting: dat spoor staat in de annotatie-export.
   - Alles draagt zijn status; voorstellen, afgewezen en uitgesloten staan in eigen delen.
@@ -419,6 +441,10 @@ spoor D (*Werkgebied als node*).
   en geen niet-ingesloten letter. De inhoudsopgave krijgt daarom een eigen tabelstijl, want de standaard zet Helvetica op elke cel.
   Regels `Titelblad:<veld>` (`TITELBLAD_VELDEN`) vooraan worden op pagina 1 getekend: het Lex-merk (`MERK`, een test vergelijkt het met
   `frontend/merk/lex-merk.svg`), titel, vraag en een statusblok, zonder kop- en voetregel. Markdown maakt er een `#`-kop en een lijst van.
+  Alles op het titelblad wordt echt gezet binnen de breedte (`passend`: dezelfde zetter, met DejaVu-terugval). Wat niet in zijn ruimte
+  past, wordt op een woordgrens ingekort met een ellips, en een noot zegt waar de volledige tekst staat (colofon of samenvatting). Kop- en
+  voetregel kappen af op breedte (`op_breedte`); de voetregel laat ruimte voor "Pagina n van N". `paginas[i]["getekend"]` legt elk getekend
+  blok vast, zodat een test kan nagaan dat niets buiten de marges of over elkaar valt.
 - Tests: `tests/test_werkgebieden.py` en `tests/test_werkgebied_werkvoorraad.py` (SQLite) en
   `tests/test_werkgebieden_postgres.py` (het rij-slot, met `ANNOTATIE_TEST_DSN`).
 

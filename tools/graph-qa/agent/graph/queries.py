@@ -512,7 +512,7 @@ def get_artikel(bwb_id: str, artikel: str) -> str:
     wie hem als het hele lid toont, laat stil de helft van de wet weg (artikel 9, lid 11 IW 1990).
     """
     iri = artikel_iri(bwb_id, artikel)
-    return PREFIXES + f"""SELECT ?tekst ?jci ?status ?lid ?lidnummer ?lidtekst ?lidonderdelen ?o ?onderdeel ?onderdeeltekst WHERE {{
+    return PREFIXES + f"""SELECT ?tekst ?jci ?status ?lid ?lidnummer ?lidtekst ?lidjci ?lidonderdelen ?o ?onderdeel ?onderdeeltekst WHERE {{
   OPTIONAL {{ <{iri}> bwb:tekst ?tekst }}
   OPTIONAL {{ <{iri}> bwb:jci ?jci }}
   OPTIONAL {{ <{iri}> bwb:status ?status }}
@@ -521,6 +521,7 @@ def get_artikel(bwb_id: str, artikel: str) -> str:
     FILTER(STRSTARTS(STR(?lid), "{NS}"))
     OPTIONAL {{ ?lid bwb:nummer ?lidnummer }}
     OPTIONAL {{ ?lid bwb:tekst ?lidtekst }}
+    OPTIONAL {{ ?lid bwb:jci ?lidjci }}
     BIND(EXISTS {{ ?lid bwb:heeftOnderdeel ?lidonderdeel }} AS ?lidonderdelen)
     # Numeriek sorteren, niet lexicaal: anders staat lid 10 vóór lid 2. SPARQL moet het doen, want
     # de tool levert zijn rijen rechtstreeks aan het model. "1a" telt als 1 en houdt zijn plaats via ?lid.

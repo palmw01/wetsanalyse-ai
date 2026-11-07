@@ -471,7 +471,7 @@ plan mag verouderen.
   legt Vraag Lex en de agents onder de supervisor vast (F3). `adr-006-generieke-begrippen.md` legt
   het generieke begrippenkader boven de werkgebieden vast (spoor N). `adr-007-llm-pad-en-verwerker.md` is
   een concept: wat vastligt over het LLM-pad en wat de eigenaar nog moet besluiten. `adr-008-antwoordsjablonen.md`
-  legt het antwoord als toolaanroep vast: vaste blokken per vraagtype, de feiten uit de code. `adr-009-werkgebiedrapport.md` legt het rapport van een werkgebied vast: één JSON-document waaruit PDF en Markdown komen. `adr-010-agentarchitectuur.md` legt het eindbeeld van de agents vast: routering in code, vaste workflows voor vaste vragen, taakagents met een contract, en één open laag; met gedeelde modelstap, context en kwaliteitsmeting.
+  legt het antwoord als toolaanroep vast: vaste blokken per vraagtype, de feiten uit de code. `adr-009-werkgebiedrapport.md` legt het rapport van een werkgebied vast: één JSON-document waaruit PDF en Markdown komen. `adr-010-agentarchitectuur.md` legt het eindbeeld van de agents vast: routering in code, vaste workflows voor vaste vragen, taakagents met een contract, en één open laag; met gedeelde modelstap, context en kwaliteitsmeting. `adr-012-multi-agent-regie.md` legt de regie binnen een werkgebied vast: een regisseur in code die per deelvraag een kindgesprek met een gewone run start, met de jurist als poort tussen bronnen zoeken en annoteren.
 - `docs/architectuur/annotatieketen.md` – hoe de annotatieketen **nu** werkt: stappen,
   configuratie (`CLASSIFIER_GRANULARITEIT` e.d.), beslisbeleid, detectoren en bekende beperkingen.
   `docs/architectuur/metingen/README.md` is het meetlogboek: welke meting bij welke code hoort.

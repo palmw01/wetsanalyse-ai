@@ -257,3 +257,36 @@ def test_streng_telt_een_lange_markering_niet_als_raak(referentie):
     lang = _el("Tijdsaanduiding", CITAAT[2:])
     a = ed.vergelijk(referentie, {"elementen": [lang]})["annotaties"]["per_klasse_strikt"]["Tijdsaanduiding"]
     assert a["gedekt"] >= 1 and a["streng"] == 0
+
+
+BELEID = f"urn:bwb:{BWB}:id:{BWB}%2FCirculaire.divisie4%2FCirculaire.divisie4.2"
+
+
+def test_een_verbijzonderende_tijdsaanduiding_dekt_de_parameter_op_die_plek(referentie):
+    """De referentie markeert "drie maanden" als Parameter; het platform markeert de duur één keer, als
+    Tijdsaanduiding met subtype "verbijzondert parameter" (H2:107, ADR-001 PR 8). Dat dekt de Parameter; zonder
+    subtype niet. Het blijft één voorstel, van de eigen klasse."""
+    met = {**_el("Tijdsaanduiding", "drie maanden", iri=BELEID), "jas_subtype": "verbijzondert parameter"}
+    a = ed.vergelijk(referentie, {"elementen": [met]})["annotaties"]
+    p = a["per_klasse_strikt"]["Parameter en parameterwaarde"]
+    assert (p["n"], p["gedekt"], p["streng"], p["exact"], p["voorstellen"]) == (1, 1, 1, 1, 0)
+    assert a["per_klasse_strikt"]["Tijdsaanduiding"]["voorstellen"] == 1
+    b = a["bepalingen"][1]
+    assert b["gemist"] == [] and b["zonder_tegenhanger"] == [] and b["klasse_verwisseld"] == []
+
+    zonder = _el("Tijdsaanduiding", "drie maanden", iri=BELEID)
+    a = ed.vergelijk(referentie, {"elementen": [zonder]})["annotaties"]
+    assert a["per_klasse_strikt"]["Parameter en parameterwaarde"]["gedekt"] == 0
+    assert a["bepalingen"][1]["klasse_verwisseld"] == [
+        {"tekst": "drie maanden", "referentie": "Parameter en parameterwaarde", "platform": ["Tijdsaanduiding"]}]
+
+
+def test_alleen_de_tijdsaanduiding_verbijzondert(referentie):
+    """Het subtype geldt per klasse: een Rechtsobject met dat subtype dekt niets extra. De export v3 draagt het
+    subtype onder `herkomst_regels`."""
+    vreemd = {**_el("Rechtsobject", "drie maanden", iri=BELEID), "jas_subtype": "verbijzondert parameter"}
+    a = ed.vergelijk(referentie, {"elementen": [vreemd]})["annotaties"]
+    assert a["per_klasse_strikt"]["Parameter en parameterwaarde"]["gedekt"] == 0
+    export = {**_el("Tijdsaanduiding", "drie maanden", iri=BELEID), "herkomst_regels": {"subtype": "verbijzondert parameter"}}
+    a = ed.vergelijk(referentie, {"elementen": [export]})["annotaties"]
+    assert a["per_klasse_strikt"]["Parameter en parameterwaarde"]["gedekt"] == 1

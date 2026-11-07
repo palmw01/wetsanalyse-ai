@@ -23,6 +23,7 @@ from sqlalchemy import select, update
 from sqlalchemy.exc import SQLAlchemyError
 
 from . import db
+from .annotatie_v2_contracts import is_vervangen
 from .config import get_settings
 from .graaf_client import repo, sparql_ask, sparql_select
 
@@ -442,8 +443,9 @@ async def laag_invoer(conn, laag: dict) -> tuple[list[dict], dict]:
     """Wat `bouw_graaf` voor deze laag nodig heeft: de elementen, en de structurele dekking van de
     recentste batch op dezelfde bronstand (snapshot). Eén functie voor projectie én graafcontrole,
     zodat die twee nooit uit verschillende invoer bouwen."""
-    elementen = list((await conn.execute(select(db.annotatie_v2_elementen.c.inhoud).where(
-        db.annotatie_v2_elementen.c.laag_id == laag["id"]))).scalars().all())
+    # Een vervangen element is niet actueel en hoort niet in de graaf (Postgres bewaart het als historie).
+    elementen = [e for e in (await conn.execute(select(db.annotatie_v2_elementen.c.inhoud).where(
+        db.annotatie_v2_elementen.c.laag_id == laag["id"]))).scalars().all() if not is_vervangen(e)]
     rijen = (await conn.execute(select(db.annotatie_v2_dekking.c.inhoud).where(
         db.annotatie_v2_dekking.c.snapshot_id == laag.get("snapshot_id", "")))).scalars().all()
     eigen = {i for e in elementen for i in [e.get("eigenaar_iri")] if i} | {laag["bron_iri"]}

@@ -501,7 +501,9 @@ wordt **per beurt gereset** in `answer_stream`, net als de andere annotatievelde
    vóór de eerste modelcall (volledig hergebruik: `emit` stuurt `hergebruik` + een `run` met
    `modus="hergebruik"`). **Een onleesbare dekking stopt de beurt** – een api-storing is geen bewijs dat
    annotaties ontbreken. Daarom kan de keten niet annoteren zonder api. `hergebruik: "opnieuw"`
-   annoteert alles opnieuw, behalve afgeronde lagen.
+   annoteert alles opnieuw, behalve afgeronde lagen. Is die ronde voltooid, dan zet de api de oude voorstellen van
+   Lex zonder oordeel die ze niet meer maakte op `vervangen` (de respons van de batch draagt hun ids); `_leg_vast`
+   zet er één zin achter de samenvatting over (`annotatie_samenvatting.vervangen_zin`), live en in het bericht.
 4. **Analyse** (`jas_pipeline.keten.analyseer`): de hele bepaling is context, alleen de niet-hergebruikte
    nodes leveren kandidaten. De classificatiebatches gaan tegelijk naar het model
    (`CLASSIFIER_PARALLEL`, `_classificeer_batches`), elk met een eigen meting en in batchvolgorde terug.
@@ -561,8 +563,14 @@ reviewer (`review.py`), de resolver (`resolver.py`), dekking, beslisregister en 
   `categorie` nooit in de reviewer-prompt: dat is een promptwijziging, en die hoort pas na de
   V7-baseline.
 - **Het JAS-subtype** (`subtype.py`: variabele/variabelewaarde, parameter/parameterwaarde,
-  delegatiebevoegdheid) wordt alleen gezet bij eenduidig bewijs uit de detectiecodes, anders leeg. Het
-  reist via het contract naar de api, de graaf (`jas:subtype`) en de exports.
+  delegatiebevoegdheid, en op een Tijdsaanduiding "verbijzondert parameter") wordt alleen gezet bij
+  eenduidig bewijs uit de detectiecodes, anders leeg. Het reist via het contract naar de api, de graaf
+  (`jas:subtype`) en de exports. De toegestane waarden staan in `ALLE_SUBTYPEN`; de api-patroon en de
+  zoektool moeten daar precies mee overeenkomen (`test_contract_drift.py`).
+- **Een duur is één Tijdsaanduiding** (JAS-PRIORITY-001) met subtype "verbijzondert parameter"; alleen een
+  getal in cijfers erin ('48' in 'binnen 48 uur') wordt een geneste Parameter (`jas.waarde.getal_in_duur`,
+  code `DURATION_NUMBER`). Die code mag niet met `TEMPORAL_` beginnen, anders schrapt `specificiteit` hem
+  (ADR-001, aanvulling bij PR 8).
 - **Elke code in een `trace` heeft een verklaring** in `verklaringen.yaml`; `tests/test_verklaringen.py`
   weigert een code zonder verklaring en een verklaring zonder code. Draai daarna
   `python scripts/genereer_jas_vocabulaire.py`: die schrijft de vocabulairegraaf en `verklaringen.json`

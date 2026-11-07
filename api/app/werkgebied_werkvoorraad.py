@@ -23,7 +23,7 @@ from bronmodel import BronFout, annotatie_eenheden, subtree
 from sqlalchemy import select
 
 from . import annotatie_v2_store as store, db, verbruik
-from .annotatie_v2_contracts import AFGEHANDELD
+from .annotatie_v2_contracts import AFGEHANDELD, is_vervangen
 from .werkgebied_inventaris import Resolver, bronbomen, bwb_van, nodes_met_titel
 
 SCHATTING_BASIS = 20                    # de laatste n annotatiebeurten
@@ -66,7 +66,7 @@ async def _annotatiestaat(nodes: dict[str, dict]) -> tuple[dict[str, dict], list
     async with store.leestransactie() as conn:
         lagen = {r["bron_iri"]: dict(r) for r in
                  (await conn.execute(select(db.annotatie_v2_lagen))).mappings().all()}
-        elementen = await store.compacte_elementen(conn)
+        elementen = [e for e in await store.compacte_elementen(conn) if not is_vervangen(e)]
         dekking = [r for r in (await conn.execute(select(db.annotatie_v2_dekking))).mappings().all()
                    if any(i in nodes for i in r["inhoud"].get("bereik", []))]
         standen = await _bronstanden(conn, {r["snapshot_id"] for r in dekking})

@@ -34,6 +34,7 @@ sys.path.insert(0, str(GRAPH_QA))
 
 from agent.jas_klassen import JAS_KLASSEN, REGELS  # noqa: E402
 from agent.jas_pipeline.profielen import laad as laad_profielen  # noqa: E402
+from agent.jas_pipeline.subtype import VERBIJZONDERINGEN  # noqa: E402
 from agent.jas_pipeline.verklaringen import SECTIES, laad as laad_verklaringen  # noqa: E402
 
 DOEL = GRAPH_QA.parents[1] / "api" / "app" / "vocabulaire"
@@ -102,6 +103,19 @@ def bouw() -> tuple[Graph, dict]:
             if b.get("subtype"):
                 g.add((begrip, JAS.subtype, Literal(b["subtype"])))
 
+    # Een verbijzondering is geen officieel begrip (dat blijven er zestien), maar een subtype dat een element van de
+    # ene klasse kan dragen omdat het ook de andere klasse is (H2:107, JAS-PRIORITY-001).
+    for subtype, (klasse, verbijzonderd, bron) in sorted(VERBIJZONDERINGEN.items()):
+        iri = URIRef("urn:jas-ns:subtype:" + slug(subtype))
+        g.add((iri, RDF.type, SKOS.Concept))
+        g.add((iri, RDF.type, JAS.Subtype))
+        g.add((iri, SKOS.inScheme, SCHEMA))
+        g.add((iri, SKOS.prefLabel, Literal(subtype, lang="nl")))
+        g.add((iri, SKOS.broader, klasse_iri(klasse)))
+        g.add((iri, SKOS.related, klasse_iri(verbijzonderd)))
+        g.add((iri, JAS.subtype, Literal(subtype)))
+        g.add((iri, DCTERMS.source, Literal(bron)))
+
     for r in REGELS:
         iri = URIRef("urn:jas-ns:regel:" + r.id)
         g.add((iri, RDF.type, JAS.Methoderegel))
@@ -135,7 +149,10 @@ def bouw() -> tuple[Graph, dict]:
         "jas_versie": JAS_VERSIE,
         "klassen": [{"naam": k.naam, "iri": str(klasse_iri(k.naam)), "omschrijving": k.omschrijving,
                      "vraag": k.vraag, "bron": profielen[k.naam].bron,
-                     "begrippen": profielen[k.naam].data.get("begrippen", [])} for k in JAS_KLASSEN],
+                     "begrippen": profielen[k.naam].data.get("begrippen", []),
+                     "verbijzonderingen": [{"subtype": s, "verbijzondert": v, "bron": b}
+                                           for s, (kl, v, b) in sorted(VERBIJZONDERINGEN.items()) if kl == k.naam]}
+                    for k in JAS_KLASSEN],
         "regels": {**{r.id: {"naam": r.id, "uitleg": r.description, "soort": "methode"} for r in REGELS},
                    **{r["id"]: {"naam": verklaringen["detectie"][r["code"]]["naam"],
                                 "uitleg": verklaringen["detectie"][r["code"]]["uitleg"],

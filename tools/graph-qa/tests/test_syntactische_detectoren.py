@@ -248,11 +248,11 @@ def test_geen_fusiekandidaat_met_een_zaak_als_kop_krijgt_rechtssubject(parser):
 # --- nominalisatie: de context bepaalt of Voorwaarde een hypothese is ----------------------------
 
 @pytest.mark.parametrize("tekst,np,klassen,regel", [
-    # referentiemoment achter een tijdvoorzetsel
+    # referentiemoment achter een tijdvoorzetsel: het tijdstip van het feit is ook een Variabele
     ("De termijn vervalt één maand na de dagtekening van het aanslagbiljet.", "de dagtekening van het aanslagbiljet",
-     ("Rechtsfeit",), "jas.feit.nominalisatie_referentiemoment"),
+     ("Rechtsfeit", "Variabele en variabelewaarde"), "jas.feit.nominalisatie_referentiemoment"),
     ("Sinds de bekendmaking van het besluit loopt de termijn.", "de bekendmaking van het besluit",
-     ("Rechtsfeit",), "jas.feit.nominalisatie_referentiemoment"),
+     ("Rechtsfeit", "Variabele en variabelewaarde"), "jas.feit.nominalisatie_referentiemoment"),
     # onderwerp in een voorwaardelijke bijzin
     ("Indien de toepassing van het eerste lid niet leidt tot een bedrag, vervalt de aanslag.",
      "de toepassing van het eerste lid", ("Rechtsfeit", "Rechtsobject"), "jas.feit.nominalisatie_in_voorwaarde"),
@@ -358,4 +358,131 @@ def test_een_komma_knipt_een_voorwaardelijke_bijzin_niet(parser, tekst, bijzin):
                                    "Het vijfde lid is van overeenkomstige toepassing."])
 def test_nietig_en_toepasselijkheid_zijn_normsignalen(parser, tekst):
     assert NormDetector().detecteer(_bron(tekst)).kandidaten
+
+
+# --- operator: een persoonsvorm als hulpwerkwoord maakt een eigen zin --------------------------------
+
+@pytest.mark.parametrize(("tekst", "verwacht"), [
+    # positief: het tweede conjunct heeft alleen een hulpwerkwoord als persoonsvorm, de kop is een deelwoord
+    ("De termijn is gesteld op zes weken of is gesteld op één maand.", ["of"]),
+    ("De vergunning wordt verleend en wordt bekendgemaakt.", ["en"]),
+    # negatief: tussen naamwoordgroepen blijft het geen operator
+    ("Hij betaalt de loonbelasting en de omzetbelasting.", []),
+    # rand: een deelwoord zonder eigen persoonsvorm verbindt woorden, geen zinnen
+    ("een verplichting of onthouden aanspraak;", []),
+])
+def test_een_hulpwerkwoord_als_persoonsvorm_maakt_het_conjunct_een_eigen_zin(parser, tekst, verwacht):
+    assert [k.span.tekst for k in LogischeOperatorDetector().detecteer(_bron(tekst, parser)).kandidaten] == verwacht
+
+
+def test_operator_in_een_tijdsaanduiding_is_een_eigen_geneste_kandidaat(parser):
+    """Overlap: 'vóór' en 'na' krijgen een eigen Operator-kandidaat; de tijdsaanduiding blijft heel en Tijdsaanduiding."""
+    from agent.jas_pipeline.fusie import fuseer
+    tekst = "De aangifte wordt gedaan vóór 1 april 2027 en de aanslag is invorderbaar zes weken na de dagtekening."
+    ks = fuseer(detecteer_alles(_bron(tekst, parser))).kandidaten
+    per = {k.span.tekst: k.possible_classes for k in ks}
+    assert per["vóór"] == ("Operator",) and per["na"] == ("Operator",)
+    assert "Tijdsaanduiding" in per["vóór 1 april 2027"]
+    assert "Tijdsaanduiding" in per["zes weken na de dagtekening"]
+
+
+# --- norm: een modaal werkwoord telt alleen in de hoofdzin ----------------------------------------
+
+@pytest.mark.parametrize(("tekst", "context", "norm"), [
+    # positief: modaal werkwoord in de hoofdzin
+    ("De aanvrager moet binnen zes weken reageren.", "", True),
+    # negatief: modaal werkwoord alleen in de relatieve bijzin van een naamwoordgroep, onder een aanhef
+    ("b. de periode waarbinnen de aanvrager moet reageren.", "De kennisgeving bevat:", False),
+    # rand: een normatief predicaat in de hoofdzin telt, ook naast een modaal werkwoord in een bijzin
+    ("Indien de aanvrager moet reageren, is hij verplicht de stukken te sturen.", "", True),
+])
+def test_een_modaal_werkwoord_telt_alleen_in_de_hoofdzin(parser, tekst, context, norm):
+    assert bool(NormDetector().detecteer(_bron(tekst, parser, context=context)).kandidaten) is norm
+
+
+def test_zonder_parse_blijft_de_norm_lexicaal():
+    """Een gedegradeerde keten weet niet wat een bijzin is: dan telt het modale werkwoord zoals altijd."""
+    assert NormDetector().detecteer(_bron("b. de periode waarbinnen de aanvrager moet reageren.")).kandidaten
+
+
+# --- afleidingsregel: een rechtsgevolg dat een moment vastlegt (H2:71) -----------------------------
+
+BETR_FEIT_AR = ("Rechtsbetrekking", "Rechtsfeit", "Afleidingsregel")
+
+
+def _gevolg_met_codes(tekst, parser):
+    return [(k.span.tekst, k.possible_classes, sorted({e.code for e in k.evidence}))
+            for k in GevolgDetector().detecteer(_bron(tekst, parser)).kandidaten]
+
+
+@pytest.mark.parametrize("tekst,verwacht", [
+    # positief: een duur met een startmoment, en een datum
+    ("De termijn vervalt één maand na de dagtekening.",
+     [("De termijn vervalt één maand na de dagtekening", BETR_FEIT_AR, ["DATE_ASSIGNMENT", "LEGAL_EFFECT_CLAUSE"])]),
+    ("Het voorschot vervalt op 1 april.",
+     [("Het voorschot vervalt op 1 april", BETR_FEIT_AR, ["DATE_ASSIGNMENT", "LEGAL_EFFECT_CLAUSE"])]),
+    # negatief: geen tijd, of alleen een tijdsverloop zonder toegekend moment
+    ("De vergunning vervalt.", [("De vergunning vervalt", ("Rechtsbetrekking", "Rechtsfeit"), ["LEGAL_EFFECT_CLAUSE"])]),
+    ("De vordering vervalt na vijf jaar.",
+     [("De vordering vervalt na vijf jaar", ("Rechtsbetrekking", "Rechtsfeit"), ["LEGAL_EFFECT_CLAUSE"])]),
+    # rand: een inversie als voorwaarde; de als-dan-zin is een eigen kandidaat, de clause een optie
+    ("Is de termijn zes weken, dan vervalt de termijn op 26 april.",
+     [("dan vervalt de termijn op 26 april", BETR_FEIT_AR, ["DATE_ASSIGNMENT", "LEGAL_EFFECT_CLAUSE"]),
+      ("Is de termijn zes weken, dan vervalt de termijn op 26 april.", ("Afleidingsregel", "Rechtsbetrekking"),
+       ["DATE_ASSIGNMENT"])]),
+])
+def test_een_rechtsgevolg_dat_een_moment_vastlegt_is_ook_een_afleiding(parser, tekst, verwacht):
+    assert _gevolg_met_codes(tekst, parser) == verwacht
+
+
+def test_de_afleiding_laat_de_tijdsaanduiding_en_de_voorwaarde_bestaan(parser):
+    """Overlap: de als-dan-zin, de clause, de tijdsaanduiding en de voorwaarde blijven elk een eigen kandidaat."""
+    from agent.jas_pipeline.fusie import fuseer
+    tekst = "Indien de aanslag is opgelegd, vervalt de termijn één maand na de dagtekening."
+    per = {k.span.tekst: k.possible_classes for k in fuseer(detecteer_alles(_bron(tekst, parser))).kandidaten}
+    assert "Afleidingsregel" in per[tekst] and "Afleidingsregel" in per["vervalt de termijn één maand na de dagtekening"]
+    assert "Tijdsaanduiding" in per["één maand na de dagtekening"]
+    assert "Voorwaarde" in per["Indien de aanslag is opgelegd"]
+    [seg] = [k for k in GevolgDetector().detecteer(_bron(tekst, parser)).kandidaten if k.span.tekst == tekst]
+    assert {o.soort: o.span.tekst for o in seg.span_options} == {"clause": "vervalt de termijn één maand na de dagtekening"}
+
+
+# --- variabele: grootheid als eigenschap, duur als waarde --------------------------------------------
+
+def _np(tekst, parser, woord):
+    return [k for k in NaamwoordgroepDetector().detecteer(_bron(tekst, parser)).kandidaten if k.span.tekst == woord]
+
+
+@pytest.mark.parametrize(("tekst", "woord"), [
+    # positief: een samenstelling op een grootheid, als onderwerp
+    ("De betalingstermijn vervalt op 1 april.", "De betalingstermijn"),
+    # rand: de grootheid zelf, als lijdend voorwerp
+    ("De inspecteur stelt de vervaldag vast.", "de vervaldag"),
+])
+def test_een_grootheid_is_een_eigenschap_zonder_rechtssubject(parser, tekst, woord):
+    [k] = _np(tekst, parser, woord)
+    assert k.possible_classes == ("Variabele en variabelewaarde", "Rechtsobject")
+    assert k.evidence[0].code == "PROPERTY_NOUN"
+
+
+def test_een_woord_dat_geen_grootheid_is_blijft_een_gewone_naamwoordgroep(parser):
+    """Negatief: 'het jaarverslag' is geen eigenschap."""
+    [k] = _np("De ontvanger stelt het jaarverslag vast.", parser, "het jaarverslag")
+    assert k.evidence[0].code != "PROPERTY_NOUN"
+
+
+@pytest.mark.parametrize(("tekst", "duur"), [
+    # positief: een duur als onderwerp en als bepaling
+    ("Zes weken is de termijn.", "Zes weken"),
+    ("De aanslag is invorderbaar zes weken na de dagtekening.", "zes weken"),
+])
+def test_een_duur_is_geen_subject_of_object(parser, tekst, duur):
+    [k] = _np(tekst, parser, duur)
+    assert k.possible_classes == ("Variabele en variabelewaarde",) and k.evidence[0].code == "DURATION_NP"
+
+
+def test_een_naamwoordgroep_met_een_periodewoord_is_nog_geen_duur(parser):
+    """Rand: zonder telwoord ('de termijn', 'de eerste weken') is het geen kale duur."""
+    assert not [k for k in NaamwoordgroepDetector().detecteer(_bron("De eerste weken betaalt de huurder niets.", parser))
+                .kandidaten if k.evidence[0].code == "DURATION_NP"]
 

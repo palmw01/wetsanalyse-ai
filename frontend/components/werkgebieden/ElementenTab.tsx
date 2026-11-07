@@ -43,7 +43,8 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
   const [dekkingFout, setDekkingFout] = useState<string | null>(null);
   const [fout, setFout] = useState<string | null>(null);
   const [filter, setFilter] = useState<ElementFilter>({ rol: "alle", klasse: "alle", term: "" });
-  const [verworpen, setVerworpen] = useState(false);
+  // Apart te bekijken: wat een jurist verwierp, en wat een nieuwe ronde van Lex verving. Geen van beide telt mee.
+  const [apart, setApart] = useState<"" | "verworpen" | "vervangen">("");
   // De gekozen elementen, voor "nieuw begrip uit selectie" of "koppelen aan begrip".
   const [selectie, setSelectie] = useState<Set<string>>(new Set());
 
@@ -104,7 +105,9 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
     return <p className="text-sm text-muted">Nog geen bronnen, dus nog geen elementen. Neem eerst een bepaling op.</p>;
 
   const verworpenElementen = inv.afgewezen ?? [];
-  const getoond = filterElementen(verworpen ? verworpenElementen : inv.elementen, filter);
+  const vervangenElementen = inv.vervangen ?? [];
+  const getoond = filterElementen(
+    apart === "verworpen" ? verworpenElementen : apart === "vervangen" ? vervangenElementen : inv.elementen, filter);
   const groepen = groepeerPerSelectie(inv.selecties, getoond).filter(
     (g) => g.elementen.length > 0 || g.selectie.onbereikbaar || filter.rol === "alle",
   );
@@ -158,18 +161,22 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
               {k.label}
             </button>
           ))}
-          {verworpenElementen.length > 0 && (
-            <button
-              type="button"
-              aria-pressed={verworpen}
-              onClick={() => setVerworpen(!verworpen)}
-              className={`focus-ring min-h-[24px] rounded-knop-xs border px-2.5 py-0.5 text-[0.7rem] transition coarse:min-h-[44px] ${
-                verworpen ? "border-lint bg-lint text-paper" : "border-line text-muted hover:border-lint hover:text-ink"
-              }`}
-            >
-              Verworpen ({verworpenElementen.length})
-            </button>
-          )}
+          {([["verworpen", "Verworpen", verworpenElementen.length], ["vervangen", "Vervangen", vervangenElementen.length]] as const)
+            .filter(([, , n]) => n > 0)
+            .map(([soort, label, n]) => (
+              <button
+                key={soort}
+                type="button"
+                aria-pressed={apart === soort}
+                title={soort === "vervangen" ? "Voorstellen die een nieuwe ronde van Lex niet meer maakte" : undefined}
+                onClick={() => setApart(apart === soort ? "" : soort)}
+                className={`focus-ring min-h-[24px] rounded-knop-xs border px-2.5 py-0.5 text-[0.7rem] transition coarse:min-h-[44px] ${
+                  apart === soort ? "border-lint bg-lint text-paper" : "border-line text-muted hover:border-lint hover:text-ink"
+                }`}
+              >
+                {label} ({n})
+              </button>
+            ))}
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <Select
@@ -225,7 +232,7 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
                     key={e.id}
                     element={e}
                     gekozen={selectie.has(e.id)}
-                    onWissel={verworpen ? undefined : () => wissel(e.id)}
+                    onWissel={apart ? undefined : () => wissel(e.id)}
                     primair={begrippen?.primair[e.id]}
                     onNaarBegrip={onNaarBegrip}
                     dekking={dekkingPer.get(e.id)}

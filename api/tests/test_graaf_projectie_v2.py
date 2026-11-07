@@ -98,6 +98,36 @@ def test_herkomstfilters_vinden_precies_wat_de_projectie_schreef(filters, verwac
     assert {str(r.id) for r in ds.query(zoek_query(filters))} == verwacht
 
 
+def test_een_verbijzonderende_tijdsaanduiding_reist_tot_in_de_graaf():
+    """ADR-001 PR 8 (aanvulling 7 nov 2026): een duur is één Tijdsaanduiding met subtype "verbijzondert parameter".
+    Het contract laat dat subtype toe (en geen verzonnen variant), de projectie schrijft `jas:subtype` en de
+    zoekvraag vindt hem terug."""
+    from pydantic import ValidationError
+
+    from app.annotatie_v2_contracts import Element, Zoekvraag
+
+    anker = {"bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1", "start": 0, "eind": 13, "tekst": "binnen 48 uur",
+             "bron_hash": "a"}
+    duur = {"id": "duur", "klasse": "Tijdsaanduiding", "tekst": "binnen 48 uur", "toelichting": "",
+            "lifecycle": "voorgesteld", "herkomst": "agent", "jas_subtype": "verbijzondert parameter", "ankers": [anker]}
+    Element.model_validate(duur)
+    with pytest.raises(ValidationError):
+        Element.model_validate({**duur, "jas_subtype": "verbijzondert"})
+    assert Zoekvraag(subtype=["verbijzondert parameter"]).subtype == ["verbijzondert parameter"]
+
+    ds = Dataset()
+    laag = {"id": "layer-t", "bron_iri": "urn:bwb:BWBR0004770:artikel:9", "revisie": 1, "status": "in_review"}
+    graph = ds.graph(graph_iri(laag["id"]))
+    for triple in bouw_graaf(laag, [duur]):
+        graph.add(triple)
+    ds.graph(REGISTER).add((SCHEMA, JAS.versie, Literal(SCHEMA_VERSIE)))
+    ds.graph(REGISTER).add((laag_iri(laag["id"]), JAS.inGraaf, graph.identifier))
+    ds.graph(REGISTER).add((laag_iri(laag["id"]), JAS.revisie, Literal(1)))
+    assert Literal("verbijzondert parameter") in set(graph.objects(None, JAS.subtype))
+    assert {str(r.id) for r in ds.query(zoek_query({"subtype": ["verbijzondert parameter"]}))} == {"duur"}
+    assert not list(ds.query(zoek_query({"subtype": ["parameter"]})))
+
+
 def test_herkomstfilters_veranderen_de_querystructuur_niet():
     parseQuery(zoek_query({"herkomst": ['agent") } UNION { ?s ?p ?o } #'], "beslist_door": ["model> } SERVICE <x"]}))
 

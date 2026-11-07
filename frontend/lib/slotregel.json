@@ -36,6 +36,15 @@
     "slot": "element"
   },
   {
+    "geval": "vervangen voorstel",
+    "element": {
+      "lifecycle": "vervangen",
+      "herkomst": "agent"
+    },
+    "laag_status": "in_review",
+    "slot": "alleen-lezen"
+  },
+  {
     "geval": "gepubliceerd element",
     "element": {
       "lifecycle": "published",
