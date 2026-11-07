@@ -105,6 +105,10 @@ class CaseResult:
     volgorde_ok: bool = True
     sjabloon_ok: bool = True
     toon: Toon = field(default_factory=Toon)
+    # Wat de beurt kostte (`eval/opname.py`): tokens, modelrondes, duur. Leeg bij een opname van vóór deze velden.
+    verbruik: dict[str, int] | None = None
+    # Waarom het sjabloon een afrondpoging weigerde, per poging; elke weigering kost een modelronde.
+    weigeringen: list[str] = field(default_factory=list)
     passed: bool = field(init=False)
 
     def __post_init__(self) -> None:
@@ -149,8 +153,10 @@ def score_case(
 
 def score_opname(case: dict[str, Any], opname: dict[str, Any]) -> CaseResult:
     """Scoor een opgenomen case (eval/opname.py): live, of uit een bewaard bestand."""
-    return score_case(case, opname["tekst"], opname["sources"], opname["grounding"], opname["error"],
-                      opname["overzicht"], opname["antwoord"])
+    r = score_case(case, opname["tekst"], opname["sources"], opname["grounding"], opname["error"],
+                   opname["overzicht"], opname["antwoord"])
+    r.verbruik, r.weigeringen = opname.get("verbruik"), list(opname.get("weigeringen") or [])
+    return r
 
 
 # --- Annotatie: meten wat de duurste keten oplevert ----------------------------------------------

@@ -9,6 +9,7 @@ import { markeerCitaties } from "@/lib/citaties";
 import { markeerPassages } from "@/lib/markering";
 import type { Bron } from "@/lib/types";
 import { bronHref } from "@/lib/url";
+import { zonderEmoji } from "@/lib/zonderEmoji";
 
 /** Rendert een agent-antwoord als (GitHub-flavored) Markdown. Geen rauwe HTML (geen rehype-raw), dus
  *  veilig. Een link in modeltekst opent alleen naar de bron (`bronHref`, host-pinning); wat een mens
@@ -29,7 +30,7 @@ const TEKST_CLASS =
  *  opmaak (lijstjes, vet) pas verschijnt als de beurt klaar is; door dezelfde klassen te gebruiken
  *  blijft dat bij lopende tekst onzichtbaar en verspringt alleen wat écht opmaak heeft. */
 export function StreamendeTekst({ tekst }: { tekst: string }) {
-  return <div className={`whitespace-pre-wrap ${TEKST_CLASS}`}>{tekst}</div>;
+  return <div className={`whitespace-pre-wrap ${TEKST_CLASS}`}>{zonderEmoji(tekst)}</div>;
 }
 
 /** Waar een link heen mag. Bron is de standaard: wie Markdown toevoegt voor modeltekst, hoeft er niet aan te denken. */
@@ -52,6 +53,7 @@ export const Markdown = memo(function Markdown({
   onOpenSamenhang,
   links = "bron",
 }: {
+  /** Modeltekst (`links="bron"`) gaat zonder emoji in beeld (`zonderEmoji`); wat een mens schreef blijft zoals het is. */
   tekst: string;
   /** Passages die de brongetrouwheidscontrole afkeurde (`grounding.niet_letterlijk`). */
   nietLetterlijk?: readonly string[];
@@ -60,6 +62,7 @@ export const Markdown = memo(function Markdown({
   onOpenSamenhang?: (doel: NodeDoel) => void;
   links?: "bron" | "vrij";
 }) {
+  const weergave = links === "bron" ? zonderEmoji(tekst) : tekst;
   const teMarkeren = nietLetterlijk?.length ? nietLetterlijk : null;
   const plugins = [...(teMarkeren ? [markeerPassages(teMarkeren)] : []), ...(bronnen?.length ? [markeerCitaties(bronnen)] : [])];
   return (
@@ -84,7 +87,7 @@ export const Markdown = memo(function Markdown({
           // Een lijstnummer is inhoud: "3." kan onderdeel 3 van een bepaling zijn. Daarom het getal uit de
           // tekst zelf, per item. `start` op de `ol` dekt een lijst met een gat niet ("1.", "3.").
           li: ({ node, children, ...props }) => (
-            <li {...props} value={lijstnummer(tekst, node?.position?.start.offset)}>{children}</li>
+            <li {...props} value={lijstnummer(weergave, node?.position?.start.offset)}>{children}</li>
           ),
           h1: ({ children }) => <p className="text-sm font-semibold text-lint">{children}</p>,
           h2: ({ children }) => <p className="text-sm font-semibold text-lint">{children}</p>,
@@ -123,7 +126,7 @@ export const Markdown = memo(function Markdown({
           td: ({ children }) => <td className="border border-line px-2 py-1 align-top">{children}</td>,
         }}
       >
-        {tekst}
+        {weergave}
       </ReactMarkdown>
     </div>
   );

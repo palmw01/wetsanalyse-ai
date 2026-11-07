@@ -14,7 +14,7 @@ def _duur(ms: int) -> str:
     return f"{ms / 1000:.1f} s".replace(".", ",") if ms < 10_000 else f"{round(ms / 1000)} s"
 
 
-def _stap(writer: Any, actor: str, bericht: str, duur_ms: int | None = None) -> None:
+def _stap(writer: Any, actor: str, bericht: str, duur_ms: int | None = None, route: str = "") -> None:
     """Meld één stap in de keten: `Actor · wat er gebeurde`.
 
     Bestaat om het idioom af te dwingen. Zonder deze helper verzint elke node zijn eigen vorm – zo
@@ -23,8 +23,13 @@ def _stap(writer: Any, actor: str, bericht: str, duur_ms: int | None = None) -> 
 
     Met `duur_ms` staat de duur achter de regel (`… (0,4 s)`) én als eigen veld op het event: de
     tekst reist als `denk` mee naar het chatbericht, dus zo blijft de duur na herladen bewaard.
+
+    `route` zegt welke weg de beurt neemt, als eigen veld: de tekst is voor de jurist en mag veranderen, de eval leest
+    de route (G2b). Eerst las de eval hem uit de tekst, dus "Supervisor · kiest de duiding-worker" kon niet weg.
     """
     event: dict[str, Any] = {"type": "status", "message": f"{actor} · {bericht}"}
+    if route:
+        event["route"] = route
     if duur_ms is not None:
         event["message"] += f" ({_duur(duur_ms)})"
         event["duur_ms"] = duur_ms
