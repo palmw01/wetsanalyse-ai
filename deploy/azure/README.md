@@ -274,7 +274,7 @@ Actions → **azure-infra** → *Run workflow*, met een keuze voor de straat en 
 |---|---|
 | `wat-if` *(default)* | Azure toont welke resources zouden ontstaan of wijzigen. Maakt niets aan – de enige manier om de template tegen je echte subscription te toetsen (quota, regio, rechten). |
 | `deploy` | rolt de stack uit (10-15 min; PostgreSQL is de trage stap), wacht tot elke app een gezonde revisie draait (`ScaledToZero` telt als gezond) en start daarna meteen de import-job, want de graaf komt leeg op. Met `graphdb_proxy: true` (alleen acceptatie) komt de MCP-proxy mee. |
-| `afbreken` | verwijdert de hele resource group – dus beide straten. Vraagt om de naam ter bevestiging. |
+| `afbreken` | verwijdert de hele resource group – dus beide straten. Alleen vanuit de straat `productie` (met de reviewer-poort), en vraagt om de naam ter bevestiging. |
 | `opruimen` | verwijdert wat er in de groep staat maar niet bij een straat hoort. Toont eerst wat het zou doen; verwijdert pas als je de groepsnaam intypt. |
 | `vul-graaf` | start de import-job en wacht hem af. |
 | `eval` | draait de eval-job: eerst de retrieval-smoke (gratis), daarna **drie** metingen van de annotatieketen en drie van de gesprekken, met het rapport in de workflow-samenvatting. Kost LLM-tokens. Met `eval_set` = `gesprek`, `annotatie` of `concept` draait alleen die set (na de smoke): de job krijgt tijdelijk andere args en een `always()`-stap zet de args uit de bicep terug – geen `deploy` nodig. Vereist een eerdere `deploy` (die maakt de job aan). **Niet vlak na een `deploy` draaien**: die start de importjob, en zolang die loopt herschrijft GraphDB de graaf. De smoke wacht daar zelf op, maar dat kost wachttijd. |
