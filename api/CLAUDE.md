@@ -81,7 +81,7 @@ ombouwen zonder reden.
 | `graaf.py` | De complete graaf (`/graaf`): alle regelingen met structuur, verwijzingen en markeringen; structuur en verwijzingen gecachet per `(bwb_id, toestandUrl)`. Ook `lees_bron`: de gecachete bronboom voor leesroutes. |
 | `knoopinfo.py` | Wat de kennisgraaf over één knoop weet (`/knoop`), voor de inspector van de graaf. |
 | `werkgebieden.py` (router), `werkgebied_store.py`, `werkgebied_contracts.py`, `werkgebied_inventaris.py`, `werkgebied_werkvoorraad.py` | Werkgebieden: bronselecties, revisies, audit, de inventaris en de annotatie-werkvoorraad. |
-| `werkgebied_export.py`, `werkgebied_rapport.py`, `pdf_opmaak.py`, `fonts/` | Het hele werkgebied als één rapport (ADR-009): `werkgebied_rapport` is het contract en de tekstlaag, `werkgebied_export` leest de stand en vult het; de gedeelde PDF-opmaak met ingesloten lettertypen. |
+| `werkgebied_export.py`, `werkgebied_rapport.py`, `markdown_opmaak.py`, `pdf_opmaak.py`, `fonts/` | Het hele werkgebied als één rapport (ADR-009): `werkgebied_rapport` is het contract en de tekstlaag, `werkgebied_export` leest de stand en vult het; de gedeelde PDF-opmaak met ingesloten lettertypen. |
 | `werkgebied_deelvragen.py` | Deelvragen: opslag, voorstellen van Lex, koppelingen en de dekkingscheck. |
 | `begrippen.py` (router), `begrip_store.py`, `begrip_contracts.py` | Begrippen: inhoud, koppelingen met bewijsstand, actualiteit, de accorderingspoort, revisies en export. |
 | `begrippen_runs.py` (router), `begrippen_run_store.py`, `begrippen_run_contracts.py`, `begrip_manifest.py` | Voorstellen van Lex: manifest voor de begrippenketen, runs, betekenisgroepen en besluiten. |
@@ -379,7 +379,7 @@ spoor D (*Werkgebied als node*).
   `bereik`, `deelvragen` (`{id, vraag, selecties}`) en `buiten_bereik` (analysebronnen die niet meegaan).
   `deelvraag_id` zonder `bereik=deelvragen` 422; een onbekende deelvraag 404; een niet-actieve 409
   `niet_actief`; geen actieve deelvragen 409 `geen_deelvragen` (elk met `melding`).
-- **De export** (`GET {id}/export?formaat=pdf`, `werkgebied_export.py`): het hele werkgebied als één PDF, een
+- **De export** (`GET {id}/export?formaat=pdf|md`, `werkgebied_export.py`): het hele werkgebied als één PDF of Markdown, een
   overdrachtsdossier voor wie niet in Lex werkt. De PDF komt uit één gestructureerd document (`werkgebied_rapport.Rapport`, ADR-009):
   `bouw_rapport` vult het, `rapport_regels` maakt er tekst van, en de uitvoer gaat letterlijk door de JSON heen. Een nieuw
   veld hoort in het contract én in de tekstlaag; `test_elke_tekst_in_het_rapport_komt_in_de_uitvoer` bewaakt dat. Op de stand van nu en met één vaste inhoud, zonder bovengrens: voorblad met

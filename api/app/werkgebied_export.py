@@ -21,8 +21,8 @@ from typing import Awaitable, Callable
 from bronmodel.antwoord import Vindplaats
 from fastapi import HTTPException
 
-from . import (annotatie_v2_store, begrip_relatie_store, begrip_store, begrippen_run_store, bronselectie, db, pdf_opmaak,
-               werkgebied_store)
+from . import (annotatie_v2_store, begrip_relatie_store, begrip_store, begrippen_run_store, bronselectie, db, markdown_opmaak,
+               pdf_opmaak, werkgebied_store)
 from .annotatie_export import herkomst_regels
 from .annotatie_v2_contracts import BEOORDEELD
 from .bestandsnaam import met_tijd
@@ -52,11 +52,11 @@ async def verzamel(werkgebied_id: str, actor: str, resolve: Resolver,
             "export": {"actor": actor, "op": db.utcnow().isoformat()}}
 
 
-def bestandsnaam(data: dict) -> str:
+def bestandsnaam(data: dict, extensie: str = "pdf") -> str:
     """Met het moment van de stand in het dossier, dus elke download is een eigen bestand."""
     naam = unicodedata.normalize("NFKD", data["werkgebied"]["naam"]).encode("ascii", "ignore").decode()
     naam = re.sub(r"[^a-z0-9]+", "-", naam.lower()).strip("-")[:80].rstrip("-")
-    return met_tijd(f"werkgebied-{naam or data['werkgebied']['id']}", "pdf", data["export"]["op"])
+    return met_tijd(f"werkgebied-{naam or data['werkgebied']['id']}", extensie, data["export"]["op"])
 
 
 def _nodes(data: dict) -> dict[str, dict]:
@@ -327,6 +327,10 @@ def bouw_rapport(data: dict, verklaringen: dict) -> Rapport:
 def regels(data: dict, verklaringen: dict) -> list[Regel]:
     """De regels van het rapport, langs de JSON: elke uitvoer ziet alleen wat in het document staat."""
     return rapport_regels(Rapport.model_validate_json(bouw_rapport(data, verklaringen).model_dump_json()))
+
+
+def markdown_export(data: dict, verklaringen: dict) -> bytes:
+    return markdown_opmaak.markdown(regels(data, verklaringen)).encode()
 
 
 def pdf_export(data: dict, verklaringen: dict) -> bytes:

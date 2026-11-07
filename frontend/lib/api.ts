@@ -914,7 +914,7 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
 }
 
 /** Exportformaten van een annotatie. */
-export type ExportFormaat = "pdf" | "csv" | "json" | "trig"
+export type ExportFormaat = "pdf" | "md" | "csv" | "json" | "trig"
   /** Begrippen (fase F3): NL-SBB als Turtle, standaard alleen geaccordeerd; `ttl-alle` met de rest. */
   | "ttl" | "ttl-alle";
 
@@ -1426,10 +1426,10 @@ export async function exporteerBegrippen(id: string, formaat: "json" | "csv" | "
 }
 
 /** Het hele werkgebied als PDF, op de stand van nu; de naam komt van de server. */
-export async function exporteerWerkgebied(id: string): Promise<void> {
-  const res = await fetch(`${wg(id, "export")}?formaat=pdf`, { cache: "no-store" });
+export async function exporteerWerkgebied(id: string, formaat: ExportFormaat = "pdf"): Promise<void> {
+  const res = await fetch(`${wg(id, "export")}?formaat=${formaat}`, { cache: "no-store" });
   if (!res.ok) throw await parseError(res);
-  await downloadAntwoord(res, "werkgebied.pdf");
+  await downloadAntwoord(res, `werkgebied.${formaat}`);
 }
 
 /** De begrippen voor de samenhangsgraaf (fase F3); `null` als het antwoord niet de verwachte vorm heeft. */

@@ -12,7 +12,7 @@ from typing import Literal, Union, get_args, get_origin
 
 import pytest
 
-from app import annotatie_v2_store as store, bestandsnaam, pdf_opmaak, werkgebied_export as export, werkgebieden
+from app import annotatie_v2_store as store, bestandsnaam, markdown_opmaak, pdf_opmaak, werkgebied_export as export, werkgebieden
 from app.werkgebied_rapport import Rapport, Stand, deelvragen_regels, dossier_regels, rapport_regels
 from pydantic import BaseModel, ValidationError
 from test_annotatie_v2 import ART, LAW, ONE, TWO, element, request, snapshot
@@ -240,7 +240,7 @@ async def test_de_route_geeft_een_pdf_met_een_veilige_bestandsnaam(client):
     assert re.fullmatch(r'attachment; filename="werkgebied-rekeningafspraken-een-2026-\d{8}-\d{6}\.pdf"', r.headers["content-disposition"])
 
 
-async def test_de_route_kent_alleen_pdf_en_bestaande_werkgebieden(client):
+async def test_de_route_kent_alleen_pdf_en_markdown_en_bestaande_werkgebieden(client):
     wg = await _nieuw(client)
     assert (await client.get(f"/v1/werkgebieden/{wg['id']}/export?formaat=docx")).status_code == 422
     assert (await client.get("/v1/werkgebieden/bestaat-niet/export")).status_code == 404
@@ -549,6 +549,47 @@ def test_elke_tekst_in_het_rapport_komt_in_de_uitvoer():
 def test_het_contract_kent_geen_onbekende_velden():
     with pytest.raises(ValidationError):
         Stand(op="2026-11-07", door="a", extra="b")
+
+
+def _zonder_escape(tekst: str) -> str:
+    return re.sub(r"\\(.)", r"\1", tekst)
+
+
+async def test_markdown_en_pdf_hebben_dezelfde_inhoud(client):
+    wg, _ids = await _gevuld(client)
+    data = await _data(wg)
+    tekst = _zonder_escape(export.markdown_export(data, V).decode())
+    for stijl, regel in export.regels(data, V):
+        if regel and stijl != "Waarschuwing":
+            assert regel in tekst, regel
+
+
+async def test_de_route_geeft_markdown_met_een_eigen_naam(client):
+    wg, _ids = await _gevuld(client)
+    r = await client.get(f"/v1/werkgebieden/{wg['id']}/export?formaat=md")
+    assert r.status_code == 200 and r.headers["content-type"].startswith("text/markdown") and r.text.startswith("# ")
+    assert re.search(r'filename="werkgebied-.*-\d{8}-\d{6}\.md"', r.headers["content-disposition"])
+    assert "## 4. Begrippen" in r.text and "|---" not in r.text
+
+
+@pytest.mark.parametrize("wettekst", ["*vet* en _schuin_ en `code`", "# geen kop", "1. geen lijst", "- geen lijst", "> geen citaat",
+                                      "a <b> [c](d) \\ e", "regel een\nregel twee"])
+def test_wettekst_blijft_in_markdown_letterlijk_en_wordt_geen_opmaak(wettekst):
+    uit = markdown_opmaak.markdown([("Citaat", wettekst)])
+    assert all(r == ">" or r.startswith("> ") for r in uit.strip().split("\n"))
+    regels = [r[2:] for r in uit.strip().split("\n") if r != ">"]
+    assert _zonder_escape("\n".join(regels)) == wettekst
+    los = markdown_opmaak.markdown([("BodyText", wettekst)]).strip()
+    assert _zonder_escape(los) == wettekst and not re.match(r"(#|-|>|\d+\.)", los)
+
+
+def test_markdown_zet_koppen_en_stijlen_om_zonder_tabellen():
+    uit = markdown_opmaak.markdown([
+        ("Title", "Titel"), (pdf_opmaak.PAGINA, ""), (pdf_opmaak.PAGINA, ""), (pdf_opmaak.INHOUD, ""), ("Heading1", "1. Dossier"), (pdf_opmaak.BLOK_BEGIN, ""),
+        ("Heading4", "Kopje"), (pdf_opmaak.MARKERING + "Rechtssubject", "Rechtssubject"), ("Waarschuwing", "Pas op"), ("Voorstel", "Een voorstel"),
+        (pdf_opmaak.BEGRIP, "termijn"), (pdf_opmaak.BLOK_EIND, "")])
+    assert uit == ("# Titel\n\n---\n\n- 1\\. Dossier\n\n## 1. Dossier\n\n**Kopje**\n\n**Rechtssubject**\n\n**Let op:** Pas op\n\n"
+                   "*Een voorstel*\n\n#### termijn\n")
 
 
 def test_de_bestandsnaam_draagt_de_nederlandse_tijd_op_de_seconde():
