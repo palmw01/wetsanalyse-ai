@@ -9,12 +9,12 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query, Response
 from pydantic import BaseModel, Field
 
-from . import annotatie_v2_store, bronnen_run_store as store, bronselectie, werkgebied_store
+from . import bronnen_run_store as store, bronselectie, werkgebied_store
 from .auth import require_client
 from .bronnen_run_contracts import BronnenMislukt, BronnenUitkomst
 from .bronselectie_contracts import GenoemdVoorstel, KandidaatBesluit, StatusActie
 from .routers.auth import actieve_userid
-from .werkgebieden import resolve_bron
+from .werkgebieden import geverifieerde_bron
 
 router = APIRouter(prefix="/werkgebieden/{werkgebied_id}", tags=["bronnen-runs"],
                    dependencies=[Depends(require_client)])
@@ -71,17 +71,7 @@ async def _bron_van(werkgebied_id: str, kandidaat_id: str) -> dict:
     bron_iri = await store.bron_iri_van(werkgebied_id, kandidaat_id)
     if not bron_iri:
         return {"bron_iri": ""}
-    return await _geverifieerd({"bron_iri": bron_iri})
-
-
-async def _geverifieerd(doel_in: dict) -> dict:
-    """De bron uit de resolver: canonieke IRI, label, regeling, snapshot en hash. 422 als hij niet bestaat."""
-    snapshot = await resolve_bron(doel_in)
-    doel = snapshot["doel"]
-    node = annotatie_v2_store.nodes_van(snapshot).get(doel["bron_iri"], {})
-    return {"bron_iri": doel["bron_iri"], "label": doel.get("label") or node.get("label", ""),
-            "bwb_id": doel.get("bwb_id") or node.get("bwb_id", ""),
-            "snapshot_id": snapshot.get("snapshot_id", ""), "bron_hash": node.get("bron_hash", "")}
+    return await geverifieerde_bron({"bron_iri": bron_iri})
 
 
 # --- Bronselectie per deelvraag (spoor J) ------------------------------------------------------
@@ -111,7 +101,7 @@ async def post_bronselectie_besluit(werkgebied_id: str, deelvraag_id: str, kandi
         wg = await werkgebied_store.haal(werkgebied_id)
         iri = await store.bron_iri_van(werkgebied_id, kandidaat_id)
         if iri and iri not in {b["bron_iri"] for b in wg["bronnen"]}:
-            bron = await _geverifieerd({"bron_iri": iri})
+            bron = await geverifieerde_bron({"bron_iri": iri})
     await bronselectie.besluit(werkgebied_id, deelvraag_id, kandidaat_id, req, bron, actor)
     return await bronselectie.overzicht(werkgebied_id, na=deelvraag_id)
 
@@ -122,6 +112,6 @@ async def post_bronselectie_voorstel(werkgebied_id: str, deelvraag_id: str, req:
     """Een bepaling die de analist zelf noemt, als voorstel bij één deelvraag: daarna staat ze in het paneel met de
     voorstellen van Lex, en daar besluit de analist. De api verifieert haar in de graaf."""
     await werkgebied_store.haal(werkgebied_id)                 # 404 vóór de graaf wordt gevraagd
-    bron = await _geverifieerd({"bron_iri": req.bron_iri})
+    bron = await geverifieerde_bron({"bron_iri": req.bron_iri})
     await bronselectie.noem(werkgebied_id, deelvraag_id, req, bron, actor)
     return await bronselectie.overzicht(werkgebied_id, na=deelvraag_id)

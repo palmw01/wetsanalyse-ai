@@ -5,7 +5,7 @@
   hetzelfde manifest, en elk element-id komt uit dat manifest (PLAN D, stap 5).
 - **Idempotent op (werkgebied, manifest).** Dezelfde invoer geeft dezelfde groepen, dus een tweede
   start op hetzelfde manifest rekent niet opnieuw. Een run die blijft hangen (`wacht`/`loopt` zonder
-  teken van leven, `VERLOPEN`) mag opnieuw.
+  teken van leven, `runs.VERLOPEN`) mag opnieuw.
 - **Een besluit hoort bij de groep, niet bij de run.** Een groep-id is de inhoudshash van de keten;
   komt dezelfde groep in een latere run terug, dan blijft een afwijzing of overname staan.
 - **Een besluit wijzigt nooit annotaties.** Overnemen maakt een begrip (concept) via `begrip_store`,
@@ -22,29 +22,27 @@ import hashlib
 import json
 import re
 import uuid
-from datetime import timedelta
 from typing import Awaitable, Callable
 
 from fastapi import HTTPException
 from pydantic import ValidationError
 from sqlalchemy import insert, or_, select, update
 
-from . import begrip_onderzoek, begrip_store, db
+from . import begrip_onderzoek, begrip_store, db, runs
 from .annotatie_v2_contracts import BEOORDEELD
 from .begrip_contracts import BegripInhoud
 from .begrippen_run_contracts import Aanpassing, Akkoord, GroepKoppeling, Overname, UitkomstInvoer
-from .werkgebied_store import _audit as werkgebied_audit
+from .werkgebied_store import _audit as werkgebied_audit, werkgebied_rij
 
 Resolver = Callable[[dict], Awaitable[dict]]
 
 #: Na zoveel stilte telt een run die niet klaar is als vastgelopen; dan mag hij opnieuw.
-VERLOPEN = timedelta(minutes=5)
 
 
 def _run(row, met_manifest: bool = False) -> dict:
     uit = {"id": row.id, "werkgebied_id": row.werkgebied_id, "manifest_id": row.manifest_id,
            "onderzoek_id": row.onderzoek_id or "", "onderzoek_samenvatting": onderzoek_samenvatting(row.onderzoek),
-           "status": _status(row), "reden": row.reden, "overgeslagen": row.overgeslagen,
+           "status": runs.status(row), "reden": row.reden, "overgeslagen": row.overgeslagen,
            "aantal_formuleringen": len(row.manifest.get("formuleringen", [])),
            "uitkomst": row.uitkomst, "vragen_besluiten": row.vragen_besluiten,
            "gestart_door": row.gestart_door, "gestart": db.aware(row.gestart).isoformat(),
@@ -70,21 +68,6 @@ def onderzoek_samenvatting(onderzoek: dict | None) -> dict | None:
 
 
 
-def _status(row) -> str:
-    if row.status in ("wacht", "loopt") and db.utcnow() - db.aware(row.gewijzigd) > VERLOPEN:
-        return "mislukt"
-    return row.status
-
-
-async def _werkgebied(conn, werkgebied_id: str, slot: bool = False):
-    t = db.werkgebieden
-    q = select(t).where(t.c.id == werkgebied_id)
-    row = (await conn.execute(q.with_for_update() if slot else q)).first()
-    if row is None:
-        raise HTTPException(404, "Werkgebied bestaat niet.")
-    return row
-
-
 async def start(werkgebied: dict, actor: str, resolve: Resolver) -> tuple[dict, bool]:
     """Bouwt het manifest en geeft de run erop: de bestaande als die er al is, anders een nieuwe.
     Geeft (run, nieuw). De sleutel is (werkgebied, manifest, onderzoek): een nieuwe contextbron of een
@@ -99,12 +82,12 @@ async def start(werkgebied: dict, actor: str, resolve: Resolver) -> tuple[dict, 
                                   "melding": "Er zijn minder dan twee bruikbare passages; daar valt niets te groeperen."})
     r = db.begrippen_runs
     async with db.get_engine().begin() as conn:
-        await _werkgebied(conn, werkgebied["id"], slot=True)
+        await werkgebied_rij(conn, werkgebied["id"], slot=True)
         bestaand = (await conn.execute(select(r).where(
             r.c.werkgebied_id == werkgebied["id"], r.c.manifest_id == m["manifest_id"],
             r.c.onderzoek_id == m["onderzoek_id"])
             .order_by(r.c.gestart.desc()).limit(1))).first()
-        if bestaand is not None and _status(bestaand) in ("wacht", "loopt", "klaar"):
+        if bestaand is not None and runs.status(bestaand) in (*runs.LOPEND, "klaar"):
             return _run(bestaand), False
         nu, rid = db.utcnow(), str(uuid.uuid4())
         await conn.execute(insert(r).values(
@@ -122,7 +105,7 @@ async def start(werkgebied: dict, actor: str, resolve: Resolver) -> tuple[dict, 
 async def haal(werkgebied_id: str, run_id: str, met_manifest: bool = False) -> dict:
     r = db.begrippen_runs
     async with db.get_engine().connect() as conn:
-        await _werkgebied(conn, werkgebied_id)
+        await werkgebied_rij(conn, werkgebied_id)
         row = (await conn.execute(select(r).where(r.c.id == run_id, r.c.werkgebied_id == werkgebied_id))).first()
     if row is None:
         raise HTTPException(404, "Run bestaat niet.")
@@ -135,7 +118,7 @@ async def laatste(werkgebied: dict, resolve: Resolver) -> dict | None:
     weg, dan is dat onbekend (`None`), geen "actueel"."""
     r = db.begrippen_runs
     async with db.get_engine().connect() as conn:
-        await _werkgebied(conn, werkgebied["id"])
+        await werkgebied_rij(conn, werkgebied["id"])
         row = (await conn.execute(select(r).where(r.c.werkgebied_id == werkgebied["id"])
                                   .order_by(r.c.gestart.desc()).limit(1))).first()
     if row is None:
@@ -149,26 +132,16 @@ async def laatste(werkgebied: dict, resolve: Resolver) -> dict | None:
     return {**_run(row), "verouderd": verouderd}
 
 
-async def _zet(run_id: str, **waarden) -> None:
-    async with db.get_engine().begin() as conn:
-        await conn.execute(update(db.begrippen_runs).where(db.begrippen_runs.c.id == run_id)
-                           .values(gewijzigd=db.utcnow(), **waarden))
-
-
 async def loopt(werkgebied_id: str, run_id: str) -> dict:
     """graph-qa begint (of leeft nog): de stilteklok begint opnieuw."""
-    run = await haal(werkgebied_id, run_id)
-    if run["status"] == "klaar":
-        return run
-    await _zet(run_id, status="loopt")
+    await haal(werkgebied_id, run_id)                           # 404 als de run hier niet hoort
+    await runs.zet_loopt(db.begrippen_runs, run_id)
     return await haal(werkgebied_id, run_id)
 
 
 async def mislukt(werkgebied_id: str, run_id: str, reden: str) -> dict:
-    run = await haal(werkgebied_id, run_id)
-    if run["status"] == "klaar":
-        raise HTTPException(409, "De run is al klaar.")
-    await _zet(run_id, status="mislukt", reden=reden)
+    await haal(werkgebied_id, run_id)
+    await runs.zet_mislukt(db.begrippen_runs, run_id, reden)
     return await haal(werkgebied_id, run_id)
 
 
@@ -181,7 +154,7 @@ async def zet_uitkomst(werkgebied_id: str, run_id: str, invoer: UitkomstInvoer, 
     r, g = db.begrippen_runs, db.betekenisgroepen
     h = _payload_hash(invoer)
     async with db.get_engine().begin() as conn:
-        await _werkgebied(conn, werkgebied_id, slot=True)
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
         row = (await conn.execute(select(r).where(r.c.id == run_id, r.c.werkgebied_id == werkgebied_id)
                                   .with_for_update())).first()
         if row is None:
@@ -244,7 +217,7 @@ async def groepen(werkgebied_id: str) -> dict:
     na een akkoord nog zou tegenhouden (`poort_vooraf`, fase D), zodat de werkplek dat vooraf zegt."""
     g = db.betekenisgroepen
     async with db.get_engine().connect() as conn:
-        await _werkgebied(conn, werkgebied_id)
+        await werkgebied_rij(conn, werkgebied_id)
         run = await _laatste_klare(conn, werkgebied_id)
         if run is None:
             return {"run": None, "groepen": [], "passages": {}, "verdieping": None}
@@ -330,7 +303,7 @@ async def _besluit(werkgebied_id: str, groep_ids: list[str], besluit: str, actor
                    begrip_id: str | None = None) -> None:
     g = db.betekenisgroepen
     async with db.get_engine().begin() as conn:
-        await _werkgebied(conn, werkgebied_id, slot=True)
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
         await _groepen_rij(conn, werkgebied_id, groep_ids)
         await conn.execute(update(g).where(g.c.werkgebied_id == werkgebied_id, g.c.id.in_(groep_ids)).values(
             besluit=besluit, reden=reden, begrip_id=begrip_id, besloten_door=actor, besloten_op=db.utcnow()))
@@ -496,7 +469,7 @@ async def akkoord(werkgebied: dict, a: Akkoord, actor: str, resolve: Resolver) -
     # Het bewijs vraagt de graaf (de inventaris); dat gebeurt vóór de schrijftransactie.
     bewijs = await begrip_store.bewijzen(werkgebied, leden, resolve)
     async with db.get_engine().begin() as conn:
-        await _werkgebied(conn, wid, slot=True)
+        await werkgebied_rij(conn, wid, slot=True)
         # Opnieuw onder het slot: een tweede akkoord tegelijk ziet het besluit van het eerste.
         rows = await _groepen_rij(conn, wid, a.groep_ids, slot=True) if a.groep_ids else []
         _niet_al_besloten(rows)
@@ -561,7 +534,7 @@ async def koppelen(werkgebied: dict, groep_id: str, k: GroepKoppeling, actor: st
     bewijs = await begrip_store.bewijzen(werkgebied, leden, resolve)
     b = db.begrippen
     async with db.get_engine().begin() as conn:
-        await _werkgebied(conn, wid, slot=True)
+        await werkgebied_rij(conn, wid, slot=True)
         [row] = await _groepen_rij(conn, wid, [groep_id], slot=True)
         _niet_al_besloten([row])
         _kies_leden([row], leden, None)
@@ -591,7 +564,7 @@ async def vraag(werkgebied_id: str, run_id: str, kandidaat_id: str, antwoord: st
     """Een twijfelvraag beantwoorden. "Samen" maakt nog niets: de werkplek biedt daarna de overname
     van beide aan. Het antwoord ligt vast, met wie en wanneer."""
     async with db.get_engine().begin() as conn:
-        await _werkgebied(conn, werkgebied_id, slot=True)
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
         await _vraag_in(conn, werkgebied_id, run_id, kandidaat_id, antwoord, actor)
     return await haal(werkgebied_id, run_id)
 

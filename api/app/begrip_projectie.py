@@ -47,7 +47,8 @@ from . import db
 from bronmodel.vindplaats import vindplaats as bronmodel_vindplaats
 
 from .config import get_settings
-from .graaf_projectie_v2 import _lit, _repo, _select, element_iri, is_verbindingsfout
+from .graaf_client import repo, sparql_select
+from .graaf_projectie_v2 import _lit, element_iri, is_verbindingsfout
 
 logger = logging.getLogger(__name__)
 
@@ -379,7 +380,7 @@ async def paginas(bronnen: set[str]) -> dict[str, str]:
         return {}
     try:
         async with httpx.AsyncClient(timeout=20) as client:
-            rijen = await _select(client, _PAGINA_QUERY.format(waarden=" ".join(URIRef(i).n3() for i in iris)))
+            rijen = await sparql_select(client, _PAGINA_QUERY.format(waarden=" ".join(URIRef(i).n3() for i in iris)))
     except (httpx.HTTPError, ConnectionError, ValueError) as exc:
         logger.warning("begrippen_export_paginas_onbeschikbaar", extra={"fouttype": type(exc).__name__})
         return {}
@@ -409,7 +410,7 @@ async def uitgevers(bronnen: set[str]) -> dict[str, str]:
         return {}
     try:
         async with httpx.AsyncClient(timeout=20) as client:
-            rijen = await _select(client, _UITGEVER_QUERY.format(waarden=" ".join(URIRef(r).n3() for r in regelingen)))
+            rijen = await sparql_select(client, _UITGEVER_QUERY.format(waarden=" ".join(URIRef(r).n3() for r in regelingen)))
     except (httpx.HTTPError, ConnectionError, ValueError) as exc:
         logger.warning("begrippen_export_uitgevers_onbeschikbaar", extra={"fouttype": type(exc).__name__})
         return {}
@@ -420,15 +421,10 @@ async def uitgevers(bronnen: set[str]) -> dict[str, str]:
 async def export_turtle(werkgebied_id: str, alles: bool) -> bytes:
     """De Turtle-export: dezelfde `bouw_graaf` als de projectie (standaard alleen geaccordeerd), met
     `foaf:page` naar de wettekst, de NL-SBB-versie en per begrip `wa:nlSbbConform`."""
-    from fastapi import HTTPException
+    from .werkgebied_store import werkgebied_rij  # schrijft de werkgebieden; de projectie leest alleen
 
     async with db.get_engine().connect() as conn:
-        w = db.werkgebieden
-        wg = None
-        if werkgebied_id != GENERIEK:
-            wg = (await conn.execute(select(w).where(w.c.id == werkgebied_id))).first()
-            if wg is None:
-                raise HTTPException(404, "Werkgebied bestaat niet.")
+        wg = await werkgebied_rij(conn, werkgebied_id) if werkgebied_id != GENERIEK else None
         inv = await invoer(conn, werkgebied_id) or {
             "schema": SCHEMA_VERSIE, "werkgebied": _kader_van(wg), "begrippen": [], "relaties": []}
     if not alles:
@@ -497,15 +493,15 @@ async def projecteer(werkgebied_id: str, zeker: bool = False) -> str:
             return "ongewijzigd"
         async with httpx.AsyncClient(timeout=30) as client:
             if inv is None:
-                r = await client.post(_repo() + "/statements", data={"update": _register_statement(werkgebied_id, None)})
+                r = await client.post(repo() + "/statements", data={"update": _register_statement(werkgebied_id, None)})
                 r.raise_for_status()
                 _geschreven[werkgebied_id] = None
                 return "verwijderd"
             data = await asyncio.to_thread(lambda: bouw_graaf(inv).serialize(format="turtle").encode())
-            r = await client.put(_repo() + "/rdf-graphs/service", params={"graph": str(graph_iri(werkgebied_id))},
+            r = await client.put(repo() + "/rdf-graphs/service", params={"graph": str(graph_iri(werkgebied_id))},
                                  content=data, headers={"Content-Type": "text/turtle"})
             r.raise_for_status()
-            r = await client.post(_repo() + "/statements", data={"update": _register_statement(werkgebied_id, stand)})
+            r = await client.post(repo() + "/statements", data={"update": _register_statement(werkgebied_id, stand)})
             r.raise_for_status()
             _geschreven[werkgebied_id] = stand
     return "geschreven"
@@ -521,7 +517,7 @@ _GRAPHS_QUERY = f"""SELECT DISTINCT ?g WHERE {{ GRAPH ?g {{ ?k <{WA.werkgebiedId
 
 async def register() -> dict[str, dict]:
     async with httpx.AsyncClient(timeout=20) as client:
-        return {r["id"]: r for r in await _select(client, _REGISTER_QUERY)}
+        return {r["id"]: r for r in await sparql_select(client, _REGISTER_QUERY)}
 
 
 async def postgres_stand() -> dict[str, dict]:
@@ -542,7 +538,7 @@ async def reconcile() -> int:
     """Projecteer wat afwijkt van het register, en ruim graphs op van werkgebieden zonder begrippen."""
     stand, reg = await postgres_stand(), await register()
     async with httpx.AsyncClient(timeout=20) as client:
-        graphs = {r["g"] for r in await _select(client, _GRAPHS_QUERY)}
+        graphs = {r["g"] for r in await sparql_select(client, _GRAPHS_QUERY)}
     teller = 0
     for wid, inv in stand.items():
         if reg.get(wid, {}).get("hash") != invoer_hash(inv) or str(graph_iri(wid)) not in graphs:

@@ -317,9 +317,8 @@ async def zet_status(werkgebied_id: str, deelvraag_id: str, req: StatusActie, ac
             return
         if row is None:
             raise HTTPException(409, {"fout": "niet_gestart", "melding": "Begin eerst aan deze deelvraag."})
-        if row.revisie != req.verwachte_revisie:
-            raise HTTPException(412, {"fout": "revisie_conflict", "revisie": row.revisie,
-                                      "melding": "Iemand anders werkte intussen aan deze deelvraag; laad haar opnieuw."})
+        werkgebied_store.toets_revisie(row.revisie, req.verwachte_revisie,
+                                       melding="Iemand anders werkte intussen aan deze deelvraag; laad haar opnieuw.")
         toegestaan = {"afronden": (Voortgang.in_behandeling.value, Voortgang.voorlopig_afgerond.value),
                       "beoordelen": (Voortgang.in_behandeling.value, Voortgang.voorlopig_afgerond.value,
                                      Voortgang.beoordeeld.value),

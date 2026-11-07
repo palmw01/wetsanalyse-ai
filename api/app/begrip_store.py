@@ -34,12 +34,13 @@ from fastapi import HTTPException
 from sqlalchemy import delete, func, insert, or_, select, update
 
 from . import annotatie_v2_store as annotaties, db
+from .annotatie_export import cel
 from .annotatie_v2_contracts import BEOORDEELD
 from .begrip_contracts import (
     BegripInvoer, BegripWijziging, KoppelBeoordelingen, KoppelInvoer, KoppelWijziging,
 )
 from .werkgebied_inventaris import inventaris
-from .werkgebied_store import _audit as werkgebied_audit, niet_gevonden
+from .werkgebied_store import _audit as werkgebied_audit, niet_gevonden, toets_revisie, werkgebied_rij
 
 Resolver = Callable[[dict], Awaitable[dict]]
 
@@ -255,15 +256,6 @@ async def _opvolging(conn, werkgebied_id: str | None) -> dict[str, dict]:
     return uit
 
 
-async def _werkgebied_bestaat(conn, werkgebied_id: str, slot: bool = False):
-    t = db.werkgebieden
-    q = select(t).where(t.c.id == werkgebied_id)
-    row = (await conn.execute(q.with_for_update() if slot else q)).first()
-    if row is None:
-        raise await niet_gevonden(werkgebied_id)
-    return row
-
-
 async def definitie_onderbouwing(conn, begrip_id: str, inhoud: dict) -> dict | None:
     """Waarop de huidige definitie rust (spoor M), afgeleid en alleen gelezen: het voorstel achter de
     revisie die deze definitie zette (`begrip_revisies.detail.voorstel_id`), met zijn fragmenten, de
@@ -312,7 +304,7 @@ async def haal(werkgebied_id: str | None, begrip_id: str) -> dict:
         return await haal_generiek(begrip_id)
     b = db.begrippen
     async with db.get_engine().connect() as conn:
-        await _werkgebied_bestaat(conn, werkgebied_id)
+        await werkgebied_rij(conn, werkgebied_id)
         row = (await conn.execute(select(b).where(b.c.id == begrip_id, in_werkgebied(werkgebied_id)))).first()
         if row is None:
             raise await niet_gevonden(werkgebied_id, begrip_id)
@@ -362,7 +354,7 @@ async def lijst(werkgebied_id: str) -> list[dict]:
     """De begrippen in beeld bij het werkgebied, zonder de koppelingen zelf (wel tellingen en aandacht)."""
     b = db.begrippen
     async with db.get_engine().connect() as conn:
-        await _werkgebied_bestaat(conn, werkgebied_id)
+        await werkgebied_rij(conn, werkgebied_id)
         rows = (await conn.execute(select(b).where(in_werkgebied(werkgebied_id))
                                    .order_by(b.c.aangemaakt, b.c.id))).all()
         alle = await _koppelingen_van(conn, werkgebied_id)
@@ -392,7 +384,7 @@ async def samenhang(werkgebied_id: str) -> dict:
     """Begrippen en hun koppelingen, zonder bewijs: wat de samenhangsgraaf tekent (fase F3)."""
     b = db.begrippen
     async with db.get_engine().connect() as conn:
-        await _werkgebied_bestaat(conn, werkgebied_id)
+        await werkgebied_rij(conn, werkgebied_id)
         rows = (await conn.execute(select(b).where(in_werkgebied(werkgebied_id))
                                    .order_by(b.c.aangemaakt, b.c.id))).all()
         koppelingen = await _koppelingen_van(conn, werkgebied_id)
@@ -502,7 +494,7 @@ async def _gewijzigd_in(conn, werkgebied_id: str | None, begrip_id: str, verwach
     if werkgebied_id is None:
         waar = b.c.werkgebied_id.is_(None)
     else:
-        await _werkgebied_bestaat(conn, werkgebied_id, slot=True)
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
         waar = in_werkgebied(werkgebied_id)
     row = (await conn.execute(select(b).where(b.c.id == begrip_id, waar)
                               .with_for_update())).first()
@@ -515,9 +507,7 @@ async def _gewijzigd_in(conn, werkgebied_id: str | None, begrip_id: str, verwach
     if row.status == "vervangen" and not mag_vervangen:
         raise HTTPException(409, {"fout": "vervangen", "melding": "Dit begrip is vervangen door een opvolger en "
                                   "is alleen nog te lezen. Verwijder de opvolger om het terug te zetten."})
-    if row.revisie != verwacht:
-        raise HTTPException(412, {"fout": "revisie_conflict", "revisie": row.revisie,
-                                  "melding": "Iemand anders wijzigde dit begrip intussen; laad het opnieuw."})
+    toets_revisie(row.revisie, verwacht, "dit begrip")
     stand = {"inhoud": row.inhoud, "status": None, "waarden": {}, "geen_wijziging": False}
     yield conn, row, stand
     if stand["geen_wijziging"]:
@@ -609,7 +599,7 @@ async def maak_in(conn, werkgebied_id: str, inhoud: dict, bewijs: dict[str, dict
     """Een nieuw begrip (revisie 1, concept) binnen de transactie van de aanroeper; geeft het id.
     `onderbouwing` (een groep van de keten) gaat in het revisiedetail, waar `definitie_onderbouwing` haar leest."""
     bid, nu = str(uuid.uuid4()), db.utcnow()
-    await _werkgebied_bestaat(conn, werkgebied_id, slot=True)
+    await werkgebied_rij(conn, werkgebied_id, slot=True)
     await conn.execute(insert(db.begrippen).values(
         id=bid, werkgebied_id=werkgebied_id, status="concept", revisie=1, inhoud=inhoud,
         aangemaakt_door=actor, aangemaakt=nu, gewijzigd=nu))
@@ -651,7 +641,7 @@ async def verwijder(werkgebied_id: str, begrip_id: str, verwacht: int, actor: st
     vorige status terug. Een vervangen begrip zelf gaat niet weg: verwijder dan de opvolger."""
     b = db.begrippen
     async with db.get_engine().begin() as conn:
-        await _werkgebied_bestaat(conn, werkgebied_id, slot=True)
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
         row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id == werkgebied_id)
                                    .with_for_update())).first()
         if row is None:
@@ -659,9 +649,7 @@ async def verwijder(werkgebied_id: str, begrip_id: str, verwacht: int, actor: st
         if row.status == "vervangen":
             raise HTTPException(409, {"fout": "vervangen", "melding": "Dit begrip is vervangen door een opvolger. "
                                       "Verwijder de opvolger om het terug te zetten."})
-        if row.revisie != verwacht:
-            raise HTTPException(412, {"fout": "revisie_conflict", "revisie": row.revisie,
-                                      "melding": "Iemand anders wijzigde dit begrip intussen; laad het opnieuw."})
+        toets_revisie(row.revisie, verwacht, "dit begrip")
         hersteld = await _herstel_voorgangers(conn, werkgebied_id, begrip_id, actor, db.utcnow())
         await wis_begrippen(conn, [begrip_id])
         await werkgebied_audit(conn, werkgebied_id, actor, "begrip-verwijderd",
@@ -889,14 +877,12 @@ async def generiek_maken(werkgebied_id: str, begrip_id: str, verwacht: int, acto
     gebruikt het voortaan. Alleen een geaccordeerd begrip: een concept delen met andere analyses is te vroeg."""
     b, g = db.begrippen, db.werkgebied_begrippen
     async with db.get_engine().begin() as conn:
-        await _werkgebied_bestaat(conn, werkgebied_id, slot=True)
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
         row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id == werkgebied_id)
                                    .with_for_update())).first()
         if row is None:
             raise await niet_gevonden(werkgebied_id, begrip_id)
-        if row.revisie != verwacht:
-            raise HTTPException(412, {"fout": "revisie_conflict", "revisie": row.revisie,
-                                      "melding": "Iemand anders wijzigde dit begrip intussen; laad het opnieuw."})
+        toets_revisie(row.revisie, verwacht, "dit begrip")
         if row.status != "geaccordeerd":
             raise HTTPException(409, {"fout": "niet_geaccordeerd",
                                       "melding": "Alleen een geaccordeerd begrip kan generiek worden."})
@@ -916,7 +902,7 @@ async def generiek_maken(werkgebied_id: str, begrip_id: str, verwacht: int, acto
 async def gebruik(werkgebied_id: str, begrip_id: str, actor: str) -> dict:
     """Een generiek begrip gebruiken in dit werkgebied. Idempotent; de passages koppel je daarna hier."""
     async with db.get_engine().begin() as conn:
-        await _werkgebied_bestaat(conn, werkgebied_id, slot=True)
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
         await gebruik_in(conn, werkgebied_id, begrip_id, actor)
     return await haal(werkgebied_id, begrip_id)
 
@@ -944,7 +930,7 @@ async def stop_gebruik(werkgebied_id: str, begrip_id: str, actor: str) -> dict:
     de annotaties blijven."""
     g, k = db.werkgebied_begrippen, db.begrip_koppelingen
     async with db.get_engine().begin() as conn:
-        await _werkgebied_bestaat(conn, werkgebied_id, slot=True)
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
         rij = (await conn.execute(select(g.c.id).where(g.c.werkgebied_id == werkgebied_id, g.c.begrip_id == begrip_id,
                                                        g.c.verwijderd.is_(None)))).first()
         if rij is None:
@@ -967,9 +953,7 @@ async def verwijder_generiek(begrip_id: str, verwacht: int, actor: str) -> dict:
             raise HTTPException(404, "Begrip bestaat niet.")
         if row.status == "vervangen":
             raise HTTPException(409, {"fout": "vervangen", "melding": "Dit begrip is vervangen door een opvolger."})
-        if row.revisie != verwacht:
-            raise HTTPException(412, {"fout": "revisie_conflict", "revisie": row.revisie,
-                                      "melding": "Iemand anders wijzigde dit begrip intussen; laad het opnieuw."})
+        toets_revisie(row.revisie, verwacht, "dit begrip")
         if gebruikers := await _gebruikers(conn, begrip_id):
             plek = "1 werkgebied" if len(gebruikers) == 1 else f"{len(gebruikers)} werkgebieden"
             raise HTTPException(409, {"fout": "in_gebruik", "werkgebieden": gebruikers,
@@ -1021,7 +1005,7 @@ async def bevestig_gebruik(werkgebied_id: str, begrip_id: str, actor: str) -> di
     """Het begrip klopt nog voor dit werkgebied: de stand van nu is wat het zag."""
     g, b = db.werkgebied_begrippen, db.begrippen
     async with db.get_engine().begin() as conn:
-        await _werkgebied_bestaat(conn, werkgebied_id, slot=True)
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
         rij = (await conn.execute(select(g.c.id).where(g.c.werkgebied_id == werkgebied_id, g.c.begrip_id == begrip_id,
                                                        g.c.verwijderd.is_(None)))).first()
         if rij is None:
@@ -1042,12 +1026,6 @@ _KOLOMMEN = ["begrip_iri", "begrip", "status", "revisie", "definitie", "definiti
              "passage", "klasse_passage", "vindplaats", "bron_iri", "element_id", "motivatie", "definitie_door"]
 
 
-def _cel(value) -> str:
-    # Zelfde verdediging als de annotatie-export: een voorloopapostrof houdt een formule tegen.
-    value = str(value)
-    return "'" + value if value[:1] in {"=", "+", "-", "@", "\t", "\r"} else value
-
-
 async def export(werkgebied_id: str, actor: str) -> dict:
     wg = (await _lees_werkgebied(werkgebied_id))
     begrippen = [await haal(werkgebied_id, b["id"]) for b in await lijst(werkgebied_id)]
@@ -1060,7 +1038,7 @@ async def export(werkgebied_id: str, actor: str) -> dict:
 
 async def _lees_werkgebied(werkgebied_id: str):
     async with db.get_engine().connect() as conn:
-        return await _werkgebied_bestaat(conn, werkgebied_id)
+        return await werkgebied_rij(conn, werkgebied_id)
 
 
 def json_export(data: dict) -> bytes:
@@ -1080,11 +1058,11 @@ def csv_export(data: dict) -> bytes:
                "; ".join(i.get("alternatieve_termen", []))]
         door = i.get("definitie_door") or ""
         if not b["koppelingen"]:
-            w.writerow([_cel(v) for v in kop] + [""] * (len(_KOLOMMEN) - len(kop) - 1) + [_cel(door)])
+            w.writerow([cel(v) for v in kop] + [""] * (len(_KOLOMMEN) - len(kop) - 1) + [cel(door)])
         for k in b["koppelingen"]:
             bron = k["bewijs"].get("ankers", [{}])[0].get("bron_iri", "") if k["bewijs"].get("ankers") \
                 else k["bewijs"].get("eigenaar_iri", "")
-            w.writerow([_cel(v) for v in kop + [
+            w.writerow([cel(v) for v in kop + [
                 k["rol"], k["beoordeling"], k["actualiteit"], "ja" if k["annotatie_beoordeeld"] else "nee",
                 k["bewijs"].get("tekst", ""), k["bewijs"].get("klasse", ""), k["bewijs"].get("vindplaats", ""),
                 bron, k["element_id"], k["motivatie"], door]])

@@ -4,9 +4,9 @@ from __future__ import annotations
 import re
 
 import httpx
-from bronmodel import BronFout, bouw_snapshot, bron_query, parse_rows
+from bronmodel import BronFout, bouw_snapshot, bron_query
 
-from .config import get_settings
+from .graaf_client import sparql_select
 
 
 def bwb_van(doel: dict) -> str:
@@ -23,16 +23,8 @@ def bwb_van(doel: dict) -> str:
 
 async def haal_bronrijen(bwb: str) -> list[dict]:
     """De hele bronboom van één regeling: één SPARQL-query op de BWB-named graph."""
-    settings = get_settings()
-    if not settings.graphdb_url:
-        raise ConnectionError("De brongraaf is niet geconfigureerd")
     async with httpx.AsyncClient(timeout=30) as client:
-        response = await client.post(
-            f"{settings.graphdb_url}/repositories/{settings.graphdb_repository}",
-            data={"query": bron_query(bwb)}, headers={"Accept": "application/sparql-results+json"},
-        )
-        response.raise_for_status()
-    return parse_rows(response.json())
+        return await sparql_select(client, bron_query(bwb))
 
 
 def snapshot_uit(rijen: list[dict], bwb: str, doel: dict) -> dict:
