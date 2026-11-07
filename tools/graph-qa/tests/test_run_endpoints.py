@@ -43,6 +43,18 @@ def client(monkeypatch):
         yield c
 
 
+def _wacht_op_status(client, gesprek: str, *, binnen_s: float = 5.0) -> str:
+    """De status van de run van dit gesprek zodra hij niet meer loopt, of de laatste als dat niet binnen de tijd gebeurt."""
+    eind = time.monotonic() + binnen_s
+    status = ""
+    while time.monotonic() < eind:
+        status = (client.get(f"/v1/conversations/{gesprek}/run").json() or {}).get("status", "")
+        if status and status != "loopt":
+            return status
+        time.sleep(0.02)
+    return status
+
+
 def _tokens(response) -> str:
     tekst = ""
     for regel in response.iter_lines():
@@ -216,10 +228,10 @@ def test_gesprek_verwijderen_stopt_de_lopende_beurt(client):
     run_id = client.post("/v1/runs", json={"question": "v", "conversation_id": "g1"}).json()["run_id"]
     assert client.delete("/v1/conversations/g1").status_code == 204
 
-    time.sleep(0.4)
-    stand = client.get(f"/v1/runs/{run_id}/events?vanaf=0")
-    assert stand.status_code == 200
-    assert client.get("/v1/conversations/g1/run").json()["status"] == "gestopt"
+    # Wacht op de toestand, niet op een vaste tijd: hoe snel de achtergrondtaak de stopvlag ziet, hangt van de machine
+    # af (een vaste `sleep(0.4)` faalde af en toe in CI).
+    assert _wacht_op_status(client, "g1") == "gestopt"
+    assert client.get(f"/v1/runs/{run_id}/events?vanaf=0").status_code == 200
 
 
 def test_gesprek_van_een_ander_verwijderen_stopt_zijn_beurt_niet(client):

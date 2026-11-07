@@ -1,0 +1,26 @@
+# De routeringsset (ADR-010, Q2): per vraag en context de route die de supervisor kiest, en of daar een model voor nodig
+# is. `model: false` draait gratis in CI (tests/test_routering.py, met een model dat faalt als het wordt aangeroepen).
+# `model: true` legt alleen vast dat de code het model laat kiezen; de keuze zelf vraagt een opname (later).
+# `bekend`: een gemeten misroute die een verbeterstap moet oplossen; de test verwacht dan nog de fout (strict xfail).
+{"id": "overzicht", "vraag": "Welke artikelen gaan over bestuurdersaansprakelijkheid?", "verwacht": {"route": "overzicht_bouwen", "model": false}}
+{"id": "bepaling-lid", "vraag": "Wat staat er in artikel 9, eerste lid, van de Invorderingswet 1990?", "verwacht": {"route": "bepaling_lezen", "model": false}}
+{"id": "bepaling-artikel", "vraag": "Wat zegt artikel 25 van de Invorderingswet 1990?", "verwacht": {"route": "bepaling_lezen", "model": false}}
+{"id": "annotaties-lezen", "vraag": "Welke annotaties zijn er gemaakt bij artikel 9 van de Invorderingswet 1990?", "verwacht": {"route": "annotaties_zoeken", "model": false}}
+{"id": "begrippen-lezen", "vraag": "Welke begrippen hebben we al vastgelegd?", "verwacht": {"route": "begrippen_zoeken", "model": false}}
+{"id": "werkgebied-samenstellen", "vraag": "Kunnen we een werkgebied samenstellen?", "verwacht": {"route": "werkgebied_intake", "model": false}}
+{"id": "bronselectie-zin", "vraag": "Help mij de bronnen bij dit werkgebied te bepalen", "context": {"werkgebied_id": "w1"}, "verwacht": {"route": "bronselectie", "model": false}}
+{"id": "bronselectie-actie", "vraag": "Bepaal de bronnen", "context": {"werkgebied_id": "w1", "actie": "bronselectie"}, "verwacht": {"route": "bronselectie", "model": false}}
+{"id": "advies", "vraag": "Klopt deze markering?", "context": {"modus": "advies", "context": {"fragment": "de ontvanger", "bwbId": "BWBR0004770"}}, "verwacht": {"route": "agent", "specialist": "duiding", "model": false}}
+{"id": "doel-annoteren", "vraag": "Annoteer dit", "context": {"doel": {"bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1"}}, "verwacht": {"route": "annoteer", "model": false}}
+{"id": "duiding", "vraag": "Wat betekent artikel 9 van de Invorderingswet 1990?", "verwacht": {"model": true}}
+{"id": "begrip", "vraag": "Wat is een belastingschuld?", "verwacht": {"model": true}}
+{"id": "bepaling-zonder-regeling", "vraag": "Wat staat er in artikel 3?", "verwacht": {"model": true}}
+{"id": "jas-methodevraag", "vraag": "Wat is de JAS-klasse Rechtsfeit?", "verwacht": {"model": true}}
+{"id": "jas-klasse-welke", "vraag": "Welke elementen zijn als Rechtsfeit gemarkeerd?", "verwacht": {"route": "annotaties_zoeken", "model": false}}
+{"id": "jas-klasse-welke-zonder-gemarkeerd", "vraag": "Welke klassen komen in artikel 9 het meest voor?", "verwacht": {"route": "annotaties_zoeken", "model": false}}
+{"id": "jas-element-hoe", "vraag": "Hoe herken ik het element voorwaarde?", "verwacht": {"model": true}}
+{"id": "dekking-minst-uitgewerkt", "vraag": "Welke deelvraag is nog het minst uitgewerkt?", "context": {"werkgebied_id": "w1"}, "verwacht": {"route": "agent_taak", "model": false}}
+{"id": "dekking-gedekt", "vraag": "Is deelvraag 2 al gedekt?", "context": {"werkgebied_id": "w1"}, "verwacht": {"route": "agent_taak", "model": false}}
+{"id": "dekking-ontbreekt", "vraag": "Welke bepalingen ontbreken nog bij dit werkgebied?", "context": {"werkgebied_id": "w1"}, "verwacht": {"route": "agent_taak", "model": false}}
+{"id": "dekking-geen-handeling", "vraag": "Annoteer deelvraag 2.", "context": {"werkgebied_id": "w1"}, "verwacht": {"model": true}}
+{"id": "dekking-buiten-werkgebied", "vraag": "Welke deelvraag is het minst uitgewerkt?", "verwacht": {"model": true}}

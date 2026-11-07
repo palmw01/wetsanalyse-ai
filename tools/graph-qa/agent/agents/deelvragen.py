@@ -16,6 +16,8 @@ Bronnen zoeken en kiezen is de bronselectie per deelvraag (spoor J, `agent/brons
 """
 from __future__ import annotations
 
+import re
+
 from enum import StrEnum
 from typing import Any, Literal
 
@@ -148,3 +150,19 @@ async def dekking(ctx: Context, werkgebied_id: str, deelvraag_id: str = "") -> U
     return Uitkomst(taak=taak, tekst=dekkingstekst(naam, dek, wg, kandidaten, deelvraag_id),
                     artefact=deelvraag_artefact(werkgebied_id, d) if d else werkgebied_artefact(wg),
                     meting={"telling": dek.get("telling") or {}, "kandidaten": len(kandidaten), "model": False})
+
+
+_STAND = re.compile(r"\b(?:gedekt|dekking|uitgewerkt|ontbreek\w*|ontbreken|stand|status|hoe\s+ver|minst|meest"
+                    r"|welke\s+(?:bronnen|bepalingen)\s+(?:horen|hangen|staan|zijn))\b", re.IGNORECASE)
+_ONDERWERP = re.compile(r"\b(?:deelvra(?:ag|gen)|dit\s+werkgebied|het\s+werkgebied)\b", re.IGNORECASE)
+_HANDELING = re.compile(r"\b(?:annote\w*|stel\w*|voorstel\w*|splits\w*|verbeter\w*|herformuleer\w*|formuleer\w*|voeg\w*"
+                        r"|maak|maken|zoek\w*|bepaal\w*|kies|kiezen)\b", re.IGNORECASE)
+
+
+def is_dekkingsvraag(vraag: str) -> bool:
+    """Een vraag naar de stand van het werkgebied: hoe ver de deelvragen zijn, welke bronnen erbij horen, wat er
+    ontbreekt. Het antwoord staat bij de api (de taak `dekking`, zonder model). Op acceptatie (7 nov 2026) beantwoordde
+    de duidingspecialist "Welke deelvraag is het minst uitgewerkt?" zelf: 18 graafaanroepen, 171k tokens, een verkeerd
+    BWB-id en de conclusie dat een deelvraag geen bronnen had die er twee had. Een handeling (annoteer, stel voor,
+    splits, zoek, bepaal) is geen stand: die heeft een eigen taak."""
+    return bool(_ONDERWERP.search(vraag or "") and _STAND.search(vraag or "") and not _HANDELING.search(vraag or ""))

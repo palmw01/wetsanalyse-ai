@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from urllib.parse import unquote
 
 from .annotatie import _normaliseer, komt_letterlijk_voor
+from .hoeveelheden import buiten as hoeveelheden_buiten
 from .models import Source
 from .provenance import _BWB_RE, citations_in, first_bwb
 from .resultaat import waarden
@@ -127,6 +128,8 @@ def _onbevestigd(answer_text: str, source_trace: list[tuple[str, str]], trace_te
     for passage in _blockquotes(answer_text):
         if "\\" not in passage and not komt_letterlijk_voor(trace_text, passage):
             uit.append(passage if len(passage) <= 80 else passage[:80].rstrip() + "…")
+    # Een termijn, bedrag of datum die het antwoord noemt en het opgehaalde niet (R4a): "1 oktober 2026" zonder bron.
+    uit += hoeveelheden_buiten(answer_text, trace_text)
     return uit
 
 

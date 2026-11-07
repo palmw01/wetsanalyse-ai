@@ -8,8 +8,10 @@ import { MeerKnop } from "@/components/ui/MeerMenu";
 import { MENU_PANEEL } from "@/components/ui/Menu";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { BewerkVoet, useBewerken } from "@/components/ui/Bewerkbaar";
+import { GesprekStatus } from "@/components/ui/GesprekStatus";
 import { GesprekActies } from "@/components/werkplek/GesprekActies";
 import { bewaarDicht, deelIn, leesDicht } from "@/lib/gesprekGroepen";
+import type { GesprekRunStand } from "@/lib/runStanden";
 import type { GesprekSamenvatting } from "@/lib/types";
 
 function korteDatum(iso?: string): string {
@@ -39,6 +41,8 @@ export interface GesprekLijstStand {
   onMeer: () => void;
   archief: Gepagineerd & { open: boolean; onWissel: () => void };
   zoek: Gepagineerd & { term: string; onTerm: (term: string) => void };
+  /** Per gesprek: Lex is bezig, of er staat een antwoord dat je nog niet zag (E6, `useRunStanden`). */
+  runStanden?: Record<string, GesprekRunStand>;
 }
 
 interface Props {
@@ -112,7 +116,8 @@ export function GesprekLijst({ gesprekken, stand, activeId, onNieuwInWerkgebied,
   const rijen = (lijst: GesprekSamenvatting[], toonPlek = false) => (
     <ul className="flex flex-col gap-0.5">
       {lijst.map((g) => (
-        <Rij key={g.id} gesprek={g} actief={g.id === activeId} acties={acties} toonPlek={toonPlek} />
+        <Rij key={g.id} gesprek={g} actief={g.id === activeId} acties={acties} toonPlek={toonPlek}
+          status={stand?.runStanden?.[g.id]} />
       ))}
     </ul>
   );
@@ -253,8 +258,9 @@ export function GesprekLijst({ gesprekken, stand, activeId, onNieuwInWerkgebied,
   );
 }
 
-function Rij({ gesprek, actief, acties, toonPlek = false }: {
+function Rij({ gesprek, actief, acties, toonPlek = false, status }: {
   gesprek: GesprekSamenvatting; actief: boolean; acties: RijActies;
+  status?: GesprekRunStand;
   /** In de zoekresultaten staan alle groepen door elkaar: daar zegt de rij waar het gesprek staat. */
   toonPlek?: boolean;
 }) {
@@ -292,8 +298,11 @@ function Rij({ gesprek, actief, acties, toonPlek = false }: {
           aria-current={actief ? "page" : undefined}
           className="min-w-0 flex-1 px-2.5 py-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-lint"
         >
-          <span className={`block truncate text-sm ${actief ? "font-medium text-lint" : "text-ink"}`}>
-            {label}
+          <span className="flex items-center gap-1.5">
+            <span className={`min-w-0 truncate text-sm ${actief ? "font-medium text-lint" : "text-ink"}`}>
+              {label}
+            </span>
+            {status && <GesprekStatus stand={status} />}
           </span>
           {/* Op de actieve rij (bg-lint/10) haalt faint de 4,5:1 niet: daar muted. */}
           <span className={`mt-0.5 block text-[0.65rem] ${actief ? "text-muted" : "text-faint"}`}>

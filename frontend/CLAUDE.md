@@ -68,7 +68,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   klassen bij.
 - **De rekenkern staat in `lib/`**, niet in componenten: vitest draait node-env zonder DOM, dus alleen
   pure helpers zijn testbaar (`selectie`, `annotatie`, `annotatieOverzicht`, `reeks`, `samenhang`,
-  `markering`, `popover`, `wetstructuur`, `lopendeRun`, `rondleiding`, `werkgebied`, `begrippen`,
+  `markering`, `popover`, `wetstructuur`, `lopendeRun`, `geschiedenis` (de bewaarde berichten als items), `beurtStroom` (wat één poging van een beurt ophoopt), `beurtVerzoek` (wat een beurt vraagt: `verstuur(verzoek)` en de run-aanvraag `startOpties`), `beurtLus` (een run volgen tot hij afloopt), `beurtFase` (waar de beurt van een venster staat), `rondleiding`, `werkgebied`, `begrippen`,
   `begripVoorstellen`, `begripTermen`, `bronPlaats`, `kaartVoorstel`, `herbeoordeling`, `begripRelaties`, `begripGraaf`, `begrippenOverzicht`, `artefact`, `bronKandidaten`, `deelvragen`, `onbewaard`, `vraagkaart`, `gesprekGroepen`, `werkgebiedPaden`, …).
 - **`app/**/page.tsx`** (Server Components) – data via `lib/server.ts`, interactie in een
   `*Client.tsx`. `app/page.tsx` doet `redirect("/workbench")`. De werkplek zit in
@@ -364,11 +364,14 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
 
 Een beurt draait als **run** bij graph-qa (`POST /api/annotatie/run` → `startRun`); de werkplek kijkt
 mee (`volgRun` op `/api/annotatie/run/[id]/events`). Van gesprek wisselen, naar `/annotaties` lopen of
-herladen breekt hem niet af. Regels:
+herladen breekt hem niet af. De beurt van een venster is **`useBeurt`** (`lib/useBeurt.ts`): één fase
+(`lib/beurtFase.ts`: rust, starten, volgen, herstellen, met `stopt`), synchroon in een ref bijgehouden, zodat twee
+Enters in dezelfde tick geen twee beurten starten (`claim`). Wat het scherm met een beurt doet geeft `WerkplekClient`
+mee (`beurtScherm`). Regels:
 
-- **Unmount koppelt alleen los.** `afbrekenRef.current?.abort()` beëindigt de kijker, niet de run.
-  Een `AbortError` in `volgBeurt` is daarom géén einde: niets bewaren, het antwoord komt later.
-- **Bij binnenkomst haak je weer aan** (`hervatBeurt` na de hydratatie): loopt er nog een beurt, dan
+- **Unmount koppelt alleen los.** De cleanup van `useBeurt` aborteert de kijker, niet de run.
+  Een `AbortError` in de lus (`volgTotEinde` in `lib/beurtLus.ts`) is daarom géén einde (`losgekoppeld`): niets bewaren, het antwoord komt later.
+- **Bij binnenkomst haak je weer aan** (`beurt.hervat` na de hydratatie): loopt er nog een beurt, dan
   komt hij vanaf `seq 0` terug. Alleen bij status `loopt` – een afgeronde beurt staat al in de
   gehydrateerde geschiedenis, en twee keer tonen is erger dan missen.
 - **Stoppen is een verzoek** (`stopRun`), geen dichtvallende socket. De agent stopt op een nodegrens,
@@ -380,12 +383,12 @@ herladen breekt hem niet af. Regels:
   dat `run_id` staat in de geschiedenis) of echt verdwenen is. Alleen in dat tweede geval komt er een
   melding; zonder die controle zou elke normale afloop als "afgebroken" gemeld worden.
 - **Een weggevallen verbinding is geen mislukte beurt.** Bij een deploy wordt de frontend-container
-  vervangen terwijl de run doorloopt. `volgBeurt` haakt daarom opnieuw aan zonder
+  vervangen terwijl de run doorloopt. `volgTotEinde` haakt daarom opnieuw aan – één `while`-lus per run, geen recursie – zonder
   pogingen-cap, met oplopende wachttijd (`naEenGebrokenStream`, `herstelWachttijd`: 1,5 tot 15 s). De
   uitleg staat bij `naEenGebrokenStream` in `lib/lopendeRun.ts`.
 - **Alleen `done` sluit een beurt.** graph-qa eindigt elke run met precies één `done` (met `uitkomst`:
   klaar, mislukt of gestopt; `runstore.sluit_af`, en `volg` bij een afgebroken run). Een stroom die sluit
-  zonder `done` is een verbroken verbinding: `verwerkSseStroom` gooit, en `volgBeurt` haakt opnieuw aan.
+  zonder `done` is een verbroken verbinding: `verwerkSseStroom` gooit, en `volgTotEinde` haakt opnieuw aan.
 - **De uitkomst staat op het bericht** (`Bericht.uitkomst`, `parseUitkomst`): een mislukte beurt toont live en
   na herladen dezelfde melding (`BeurtUitkomstBlok` in `ThreadRij`), gestopt zegt de tekst zelf.
 - **Bij een 409 op `startRun`** (er loopt al een beurt op dit gesprek) haakt de client aan bij die run
@@ -397,7 +400,14 @@ herladen breekt hem niet af. Regels:
   uitzondering is de fout als `startRun` zelf mislukt: dan is er geen run en dus geen server die kan schrijven.
   Een eigen markering van de jurist is een andere handeling (`POST elementen` in `NodeAnnotatiePaneel`). Een
   graph-qa zonder API-koppeling meldt zelf met een `error`-event dat niets is vastgelegd (`agent/beurt.py`).
-- **Tokens komen hooguit één keer per frame binnen** (`planStroom` in `volgBeurt`).
+- **Tokens komen hooguit één keer per frame binnen** (`frameplanner` in `lib/beurtStroom.ts`, per poging in `useBeurt`). Wat een poging ophoopt is één `StroomStand` (`stroomReducer`); elke poging begint leeg, en `afronding` beslist het einde.
+- **Runs buiten het open gesprek zijn zichtbaar** (E6, `lib/runStanden.ts`, `useRunStanden` in `WorkbenchShell`): de
+  sidebar toont per gesprek de stip `components/ui/GesprekStatus` (*Lex is bezig* / *Nieuw antwoord*) en de tab heet
+  `Bezig · …` of, bij een antwoord in een verborgen tab, `Klaar · …` (`lib/tabTitel.ts`). Bron: `GET
+  /api/annotatie/run?actief=1` (graph-qa `/v1/runs?actief=true`). Peilen bij laden, focus, zichtbaar worden en
+  `verversSignaal`; elke 5 s alleen zolang er een spoor is (`wa_lopende_run`, of een run die nog liep). Het register
+  `wa_runs_gezien` staat in `localStorage` (try/catch); een run in het open gesprek telt als gezien. Geen
+  browsermeldingen. Browserregressie: `scripts/test-runstanden.mjs`.
 
 **Identiteit is een vertrouwensgrens.** De BFF zet `X-User-Id` uit de sessie op alle run-routes en
 verifieert bij het starten eerst bij de API of het gesprek van deze gebruiker is. `conversation_id` is

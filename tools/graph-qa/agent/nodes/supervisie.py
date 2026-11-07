@@ -26,6 +26,8 @@ from ..state import State
 from ..methode import instructies
 from ..berichten import eerdere_beurten
 from ..agents import register
+from ..agents.deelvragen import is_dekkingsvraag
+from ..verduidelijken import doorvraag
 from ..supervisor import INTAKE_SYSTEM, SUPERVISOR_SYSTEM, VERVOLG_SYSTEM, parse_supervisor, parse_taak, parse_vraag
 from ..overzicht import is_overzichtsvraag
 from ..tools.annotatie_tools import is_leesvraag
@@ -34,6 +36,12 @@ from ..werkgebied_intake import is_aanvullen, is_open, is_werkgebiedvraag, kaart
 from .context import Bouw
 
 logger = logging.getLogger("graph_qa.orchestrator")
+
+
+def _doorvraag(state: State) -> str:
+    """De doorvraag van R3 op het volledige vorige antwoord: de keuzevraag staat aan het eind, dus niet ingekort."""
+    vorige = eerdere_beurten(state.get("messages") or [], state.get("question", ""), aantal=1, per_bericht=100_000)
+    return doorvraag(state.get("question", ""), vorige[-1][1]) if vorige else ""
 
 
 def _vervolgcontext(b: Bouw, state: State) -> str:
@@ -175,8 +183,16 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         return _bronselectie(writer, "bepaalt met je de bronnen per deelvraag")
     if modus == "auto" and is_werkgebiedvraag(state.get("question", "")):
         return _werkgebied(writer, "stelt met je een werkgebied samen")
+    if modus == "auto" and state.get("werkgebied_id") and is_dekkingsvraag(state.get("question", "")):
+        # De stand van het werkgebied staat bij de api: geen LLM-call, en geen model dat een eigen indeling bouwt.
+        return _agent(writer, state, "deelvragen", "dekking", "")
 
     gesprek = _vervolgcontext(b, state)
+    if gesprek and modus == "auto" and (melding := _doorvraag(state)):
+        # Een open keuzevraag van Lex, en een vervolgvraag die hem niet beantwoordt: opnieuw vragen, niet gokken (R3).
+        _stap(writer, "Lex", "vraagt eerst welk artikel je bedoelt")
+        return {"specialist": "", "plan": "", "worker_plan": [], "worker_idx": 0, "afwijzen": True,
+                "afwijs_melding": melding, "afwijs_stap": "vraagt eerst welk artikel je bedoelt", "annotaties_lezen": False}
     # Vóór de annotatie-leesvraag: "welke begrippen hebben we" noemt geen annotatie, maar "welke
     # begrippen rusten op deze markering" wel – het begrip is dan het onderwerp.
     begripvraag = modus == "auto" and is_begrip_leesvraag(state.get("question", ""))
@@ -279,6 +295,11 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         return {**upd, **_bronselectie(writer, "bepaalt met je de bronnen per deelvraag")}
     if eerste == "werkgebied" and taak == "aanvullen":
         return {**upd, **_werkgebied(writer, "vult met je het dossier aan", aanvullen=True)}
+    if eerste == "werkgebied" and state.get("werkgebied_id") and not is_werkgebiedvraag(zelfstandig):
+        # In een bestaand werkgebied is een vraag over zijn deelvragen of bronnen geen verzoek om een nieuw samen te
+        # stellen. Op acceptatie (7 nov 2026) startte "Welke bronnen horen daarbij?" de intake ("Hoe noemen we het
+        # werkgebied?"). De stand per deelvraag komt uit de api: de taak `dekking`, zonder model.
+        return {**upd, **_agent(writer, state, "deelvragen", "dekking", zelfstandig)}
     if eerste == "werkgebied":
         return {**upd, **_werkgebied(writer, "stelt met je een werkgebied samen")}
     if eerste == "annotatie":
@@ -361,7 +382,7 @@ def afwijs_node(b: Bouw, state: State) -> dict[str, Any]:
     if state.get("afwijs_melding"):
         melding = state["afwijs_melding"]
         writer({"type": "token", "content": melding})
-        _stap(writer, "Klaar", "niet geannoteerd – vraag opnieuw voor één artikel")
+        _stap(writer, "Klaar", state.get("afwijs_stap") or "niet geannoteerd – vraag opnieuw voor één artikel")
         return {"answer": melding, "messages": [{"role": "assistant", "content": melding}]}
     melding = (
         "Deze vraag gaat niet over Nederlandse wet- en regelgeving, dus daar kan ik je niet mee "
