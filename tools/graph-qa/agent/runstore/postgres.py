@@ -67,6 +67,10 @@ STOP_CACHE_S = 2.0
 # Hoe lang een afgeronde run bewaard blijft. Hij dient om na herladen of op een andere replica aan te haken, en
 # draagt de vraag en het antwoord: daarna is hij alleen nog een kopie van wat in het gesprek staat.
 BEWAAR_DAGEN = 30
+# Hoe lang het afsluiten wacht op lopende beurten voor het ze afbreekt. Een uitrol of inschalen stopt de replica; een
+# beurt van een paar minuten hoort dan af te ronden in plaats van te sneuvelen (ROB-05). Samen met uvicorns
+# `--timeout-graceful-shutdown` (Dockerfile) binnen `terminationGracePeriodSeconds` van de app (main.bicep).
+DRAIN_S = 150.0
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS agent_runs (
@@ -151,7 +155,10 @@ class PostgresStore:
         async with self.pool.connection() as conn:
             await conn.execute("DELETE FROM agent_runs WHERE conversation_id = %s AND status <> 'loopt'", (conversation_id,))
 
-    async def sluit(self) -> None:
+    async def sluit(self, *, wacht_s: float = DRAIN_S) -> None:
+        # Eerst laten afronden wat loopt; pas wat daarna nog loopt, wordt afgebroken en als gestopt vastgelegd.
+        if self._taken and wacht_s > 0:
+            await asyncio.wait(list(self._taken.values()), timeout=wacht_s)
         run_ids = list(self._taken)
         taken = list(self._taken.values())
         afgebroken = list(self._lopend.values())
