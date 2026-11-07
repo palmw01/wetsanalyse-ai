@@ -1,0 +1,1625 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:wetsanalyse:schema:werkgebied-rapport-v2",
+  "$defs": {
+    "Afwijking": {
+      "additionalProperties": false,
+      "description": "Een ankerfragment dat niet meer op zijn offsets staat.",
+      "properties": {
+        "plek": {
+          "title": "Plek",
+          "type": "string"
+        },
+        "toen": {
+          "title": "Toen",
+          "type": "string"
+        },
+        "nu": {
+          "title": "Nu",
+          "type": "string"
+        }
+      },
+      "required": [
+        "plek",
+        "toen",
+        "nu"
+      ],
+      "title": "Afwijking",
+      "type": "object"
+    },
+    "Artikel": {
+      "additionalProperties": false,
+      "properties": {
+        "kop": {
+          "title": "Kop",
+          "type": "string"
+        },
+        "bepalingen": {
+          "items": {
+            "$ref": "#/$defs/Bepaling"
+          },
+          "title": "Bepalingen",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kop",
+        "bepalingen"
+      ],
+      "title": "Artikel",
+      "type": "object"
+    },
+    "Begrip": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "naam": {
+          "title": "Naam",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "geaccordeerd",
+            "concept",
+            "vervangen"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "generiek": {
+          "default": false,
+          "title": "Generiek",
+          "type": "boolean"
+        },
+        "alternatieve_termen": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Alternatieve Termen",
+          "type": "array"
+        },
+        "definitie": {
+          "default": "",
+          "title": "Definitie",
+          "type": "string"
+        },
+        "definitie_herkomst": {
+          "default": "",
+          "title": "Definitie Herkomst",
+          "type": "string"
+        },
+        "definitie_door": {
+          "default": "",
+          "title": "Definitie Door",
+          "type": "string"
+        },
+        "definitie_vindplaats": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Vindplaats"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "uitleg": {
+          "default": "",
+          "title": "Uitleg",
+          "type": "string"
+        },
+        "toelichting": {
+          "default": "",
+          "title": "Toelichting",
+          "type": "string"
+        },
+        "voorbeelden": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Voorbeeld"
+          },
+          "title": "Voorbeelden",
+          "type": "array"
+        },
+        "onderbouwing_aangepast": {
+          "default": false,
+          "title": "Onderbouwing Aangepast",
+          "type": "boolean"
+        },
+        "fragmenten": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Fragment"
+          },
+          "title": "Fragmenten",
+          "type": "array"
+        },
+        "passages": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Passage"
+          },
+          "title": "Passages",
+          "type": "array"
+        },
+        "relaties": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Relatie"
+          },
+          "title": "Relaties",
+          "type": "array"
+        },
+        "open_punten": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Open Punten",
+          "type": "array"
+        },
+        "geaccordeerd_door": {
+          "default": "",
+          "title": "Geaccordeerd Door",
+          "type": "string"
+        },
+        "geaccordeerd_op": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Geaccordeerd Op"
+        },
+        "reden": {
+          "default": "",
+          "title": "Reden",
+          "type": "string"
+        },
+        "vervangen": {
+          "default": false,
+          "title": "Vervangen",
+          "type": "boolean"
+        },
+        "door": {
+          "default": "analist",
+          "enum": [
+            "bron",
+            "lex",
+            "analist"
+          ],
+          "title": "Door",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "naam",
+        "status"
+      ],
+      "title": "Begrip",
+      "type": "object"
+    },
+    "Begrippen": {
+      "additionalProperties": false,
+      "properties": {
+        "begrippen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Begrip"
+          },
+          "title": "Begrippen",
+          "type": "array"
+        },
+        "open_groepen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/OpenGroep"
+          },
+          "title": "Open Groepen",
+          "type": "array"
+        },
+        "open_relaties": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/OpenRelatie"
+          },
+          "title": "Open Relaties",
+          "type": "array"
+        }
+      },
+      "title": "Begrippen",
+      "type": "object"
+    },
+    "Bepaling": {
+      "additionalProperties": false,
+      "properties": {
+        "vindplaats": {
+          "$ref": "#/$defs/Vindplaats"
+        },
+        "rol": {
+          "title": "Rol",
+          "type": "string"
+        },
+        "bron_gewijzigd": {
+          "default": false,
+          "title": "Bron Gewijzigd",
+          "type": "boolean"
+        },
+        "tekst": {
+          "default": "",
+          "title": "Tekst",
+          "type": "string"
+        },
+        "markeringen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Markering"
+          },
+          "title": "Markeringen",
+          "type": "array"
+        },
+        "door": {
+          "default": "bron",
+          "enum": [
+            "bron",
+            "lex",
+            "analist"
+          ],
+          "title": "Door",
+          "type": "string"
+        }
+      },
+      "required": [
+        "vindplaats",
+        "rol"
+      ],
+      "title": "Bepaling",
+      "type": "object"
+    },
+    "Besluit": {
+      "additionalProperties": false,
+      "description": "Een beslissende handeling uit de audit: wie besloot wat, en wanneer.",
+      "properties": {
+        "op": {
+          "title": "Op",
+          "type": "string"
+        },
+        "door": {
+          "title": "Door",
+          "type": "string"
+        },
+        "actie": {
+          "title": "Actie",
+          "type": "string"
+        },
+        "onderwerp": {
+          "default": "",
+          "title": "Onderwerp",
+          "type": "string"
+        },
+        "reden": {
+          "default": "",
+          "title": "Reden",
+          "type": "string"
+        }
+      },
+      "required": [
+        "op",
+        "door",
+        "actie"
+      ],
+      "title": "Besluit",
+      "type": "object"
+    },
+    "Bronstand": {
+      "additionalProperties": false,
+      "description": "Welke toestand van een regeling in het dossier staat.",
+      "properties": {
+        "bwb_id": {
+          "title": "Bwb Id",
+          "type": "string"
+        },
+        "citeertitel": {
+          "title": "Citeertitel",
+          "type": "string"
+        },
+        "geldig_vanaf": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Geldig Vanaf"
+        },
+        "geldig_tot": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Geldig Tot"
+        }
+      },
+      "required": [
+        "bwb_id",
+        "citeertitel"
+      ],
+      "title": "Bronstand",
+      "type": "object"
+    },
+    "Bronvoorstel": {
+      "additionalProperties": false,
+      "properties": {
+        "vindplaats": {
+          "$ref": "#/$defs/Vindplaats"
+        },
+        "rol": {
+          "title": "Rol",
+          "type": "string"
+        },
+        "nrs": {
+          "default": [],
+          "items": {
+            "type": "integer"
+          },
+          "title": "Nrs",
+          "type": "array"
+        },
+        "door": {
+          "default": "lex",
+          "enum": [
+            "bron",
+            "lex",
+            "analist"
+          ],
+          "title": "Door",
+          "type": "string"
+        }
+      },
+      "required": [
+        "vindplaats",
+        "rol"
+      ],
+      "title": "Bronvoorstel",
+      "type": "object"
+    },
+    "Deelvraag": {
+      "additionalProperties": false,
+      "properties": {
+        "nr": {
+          "title": "Nr",
+          "type": "integer"
+        },
+        "vraag": {
+          "title": "Vraag",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "opnieuw_bekijken": {
+          "default": false,
+          "title": "Opnieuw Bekijken",
+          "type": "boolean"
+        },
+        "open_punten": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Open Punten",
+          "type": "array"
+        },
+        "bronnen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/DeelvraagBron"
+          },
+          "title": "Bronnen",
+          "type": "array"
+        },
+        "niet_gekozen": {
+          "default": 0,
+          "title": "Niet Gekozen",
+          "type": "integer"
+        },
+        "door": {
+          "default": "analist",
+          "enum": [
+            "bron",
+            "lex",
+            "analist"
+          ],
+          "title": "Door",
+          "type": "string"
+        }
+      },
+      "required": [
+        "nr",
+        "vraag",
+        "status"
+      ],
+      "title": "Deelvraag",
+      "type": "object"
+    },
+    "DeelvraagBron": {
+      "additionalProperties": false,
+      "properties": {
+        "vindplaats": {
+          "$ref": "#/$defs/Vindplaats"
+        },
+        "rol": {
+          "title": "Rol",
+          "type": "string"
+        },
+        "reden": {
+          "default": "",
+          "title": "Reden",
+          "type": "string"
+        }
+      },
+      "required": [
+        "vindplaats",
+        "rol"
+      ],
+      "title": "DeelvraagBron",
+      "type": "object"
+    },
+    "Deelvragen": {
+      "additionalProperties": false,
+      "properties": {
+        "modus": {
+          "title": "Modus",
+          "type": "string"
+        },
+        "deelvragen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Deelvraag"
+          },
+          "title": "Deelvragen",
+          "type": "array"
+        },
+        "uitgesloten": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/UitgeslotenBron"
+          },
+          "title": "Uitgesloten",
+          "type": "array"
+        },
+        "open_vragen": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Open Vragen",
+          "type": "array"
+        },
+        "open_bronnen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Bronvoorstel"
+          },
+          "title": "Open Bronnen",
+          "type": "array"
+        },
+        "zoekdekking": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Zoekdekking"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "modus"
+      ],
+      "title": "Deelvragen",
+      "type": "object"
+    },
+    "Document": {
+      "additionalProperties": false,
+      "description": "Wat het rapport als document identificeert: titelblad en colofon.",
+      "properties": {
+        "titel": {
+          "title": "Titel",
+          "type": "string"
+        },
+        "kenmerk": {
+          "title": "Kenmerk",
+          "type": "string"
+        },
+        "werkgebied_id": {
+          "title": "Werkgebied Id",
+          "type": "string"
+        },
+        "concept": {
+          "title": "Concept",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "titel",
+        "kenmerk",
+        "werkgebied_id",
+        "concept"
+      ],
+      "title": "Document",
+      "type": "object"
+    },
+    "Dossier": {
+      "additionalProperties": false,
+      "properties": {
+        "velden": {
+          "items": {
+            "$ref": "#/$defs/DossierVeld"
+          },
+          "title": "Velden",
+          "type": "array"
+        },
+        "zoekbereik": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Zoekregeling"
+          },
+          "title": "Zoekbereik",
+          "type": "array"
+        }
+      },
+      "required": [
+        "velden"
+      ],
+      "title": "Dossier",
+      "type": "object"
+    },
+    "DossierVeld": {
+      "additionalProperties": false,
+      "properties": {
+        "veld": {
+          "enum": [
+            "aanleiding",
+            "context",
+            "doel",
+            "analysevraag",
+            "praktijkvoorbeeld",
+            "afbakening",
+            "gebeurtenis"
+          ],
+          "title": "Veld",
+          "type": "string"
+        },
+        "tekst": {
+          "default": "",
+          "title": "Tekst",
+          "type": "string"
+        },
+        "door": {
+          "default": "analist",
+          "enum": [
+            "bron",
+            "lex",
+            "analist"
+          ],
+          "title": "Door",
+          "type": "string"
+        }
+      },
+      "required": [
+        "veld"
+      ],
+      "title": "DossierVeld",
+      "type": "object"
+    },
+    "Fragment": {
+      "additionalProperties": false,
+      "properties": {
+        "tekst": {
+          "title": "Tekst",
+          "type": "string"
+        },
+        "vindplaats": {
+          "$ref": "#/$defs/Vindplaats"
+        },
+        "door": {
+          "default": "bron",
+          "enum": [
+            "bron",
+            "lex",
+            "analist"
+          ],
+          "title": "Door",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tekst",
+        "vindplaats"
+      ],
+      "title": "Fragment",
+      "type": "object"
+    },
+    "Handeling": {
+      "additionalProperties": false,
+      "properties": {
+        "actie": {
+          "title": "Actie",
+          "type": "string"
+        },
+        "aantal": {
+          "title": "Aantal",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "actie",
+        "aantal"
+      ],
+      "title": "Handeling",
+      "type": "object"
+    },
+    "Herkomst": {
+      "additionalProperties": false,
+      "description": "Wie stelde voor en wat deed de jurist. Het volledige spoor staat in de annotatie-export.",
+      "properties": {
+        "herkomst": {
+          "default": "",
+          "title": "Herkomst",
+          "type": "string"
+        },
+        "besloten_door": {
+          "default": "",
+          "title": "Besloten Door",
+          "type": "string"
+        },
+        "terugval": {
+          "default": false,
+          "title": "Terugval",
+          "type": "boolean"
+        },
+        "twijfel": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Twijfel",
+          "type": "array"
+        },
+        "gedegradeerd": {
+          "default": false,
+          "title": "Gedegradeerd",
+          "type": "boolean"
+        },
+        "jurist": {
+          "default": "",
+          "title": "Jurist",
+          "type": "string"
+        }
+      },
+      "title": "Herkomst",
+      "type": "object"
+    },
+    "Kerncijfers": {
+      "additionalProperties": false,
+      "description": "De samenvatting: codes en getallen, de zinnen maakt de tekstlaag.",
+      "properties": {
+        "deelvragen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Telling"
+          },
+          "title": "Deelvragen",
+          "type": "array"
+        },
+        "bronnen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Telling"
+          },
+          "title": "Bronnen",
+          "type": "array"
+        },
+        "markeringen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Telling"
+          },
+          "title": "Markeringen",
+          "type": "array"
+        },
+        "begrippen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Telling"
+          },
+          "title": "Begrippen",
+          "type": "array"
+        }
+      },
+      "title": "Kerncijfers",
+      "type": "object"
+    },
+    "KlasseTelling": {
+      "additionalProperties": false,
+      "properties": {
+        "klasse": {
+          "default": "",
+          "title": "Klasse",
+          "type": "string"
+        },
+        "aantal": {
+          "title": "Aantal",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "aantal"
+      ],
+      "title": "KlasseTelling",
+      "type": "object"
+    },
+    "Markering": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "klasse": {
+          "default": "",
+          "title": "Klasse",
+          "type": "string"
+        },
+        "alternatieven": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Alternatieven",
+          "type": "array"
+        },
+        "subtype": {
+          "default": "",
+          "title": "Subtype",
+          "type": "string"
+        },
+        "lifecycle": {
+          "title": "Lifecycle",
+          "type": "string"
+        },
+        "tekst": {
+          "title": "Tekst",
+          "type": "string"
+        },
+        "vindplaatsen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Vindplaats"
+          },
+          "title": "Vindplaatsen",
+          "type": "array"
+        },
+        "toelichting": {
+          "default": "",
+          "title": "Toelichting",
+          "type": "string"
+        },
+        "herkomst": {
+          "$ref": "#/$defs/Herkomst"
+        },
+        "afwijkingen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Afwijking"
+          },
+          "title": "Afwijkingen",
+          "type": "array"
+        },
+        "reden_afwijzing": {
+          "default": "",
+          "title": "Reden Afwijzing",
+          "type": "string"
+        },
+        "verouderd": {
+          "default": false,
+          "title": "Verouderd",
+          "type": "boolean"
+        },
+        "deels_buiten": {
+          "default": false,
+          "title": "Deels Buiten",
+          "type": "boolean"
+        },
+        "door": {
+          "default": "lex",
+          "enum": [
+            "bron",
+            "lex",
+            "analist"
+          ],
+          "title": "Door",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "lifecycle",
+        "tekst",
+        "herkomst"
+      ],
+      "title": "Markering",
+      "type": "object"
+    },
+    "Onbereikbaar": {
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "reden": {
+          "title": "Reden",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "reden"
+      ],
+      "title": "Onbereikbaar",
+      "type": "object"
+    },
+    "OpenGroep": {
+      "additionalProperties": false,
+      "properties": {
+        "naam": {
+          "title": "Naam",
+          "type": "string"
+        },
+        "definitie": {
+          "default": "",
+          "title": "Definitie",
+          "type": "string"
+        },
+        "leden": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Fragment"
+          },
+          "title": "Leden",
+          "type": "array"
+        },
+        "door": {
+          "default": "lex",
+          "enum": [
+            "bron",
+            "lex",
+            "analist"
+          ],
+          "title": "Door",
+          "type": "string"
+        }
+      },
+      "required": [
+        "naam"
+      ],
+      "title": "OpenGroep",
+      "type": "object"
+    },
+    "OpenRelatie": {
+      "additionalProperties": false,
+      "properties": {
+        "van": {
+          "title": "Van",
+          "type": "string"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "naar": {
+          "title": "Naar",
+          "type": "string"
+        },
+        "door": {
+          "default": "lex",
+          "enum": [
+            "bron",
+            "lex",
+            "analist"
+          ],
+          "title": "Door",
+          "type": "string"
+        }
+      },
+      "required": [
+        "van",
+        "type",
+        "naar"
+      ],
+      "title": "OpenRelatie",
+      "type": "object"
+    },
+    "Passage": {
+      "additionalProperties": false,
+      "properties": {
+        "tekst": {
+          "title": "Tekst",
+          "type": "string"
+        },
+        "vindplaats": {
+          "$ref": "#/$defs/Vindplaats"
+        },
+        "klasse": {
+          "default": "",
+          "title": "Klasse",
+          "type": "string"
+        },
+        "rol": {
+          "title": "Rol",
+          "type": "string"
+        },
+        "beoordeling": {
+          "title": "Beoordeling",
+          "type": "string"
+        },
+        "annotatie_beoordeeld": {
+          "default": false,
+          "title": "Annotatie Beoordeeld",
+          "type": "boolean"
+        },
+        "motivatie": {
+          "default": "",
+          "title": "Motivatie",
+          "type": "string"
+        },
+        "beoordeeld_door": {
+          "default": "",
+          "title": "Beoordeeld Door",
+          "type": "string"
+        },
+        "beoordeeld_op": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Beoordeeld Op"
+        },
+        "actualiteit": {
+          "default": "actueel",
+          "title": "Actualiteit",
+          "type": "string"
+        },
+        "nu": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Nu"
+        },
+        "door": {
+          "default": "bron",
+          "enum": [
+            "bron",
+            "lex",
+            "analist"
+          ],
+          "title": "Door",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tekst",
+        "vindplaats",
+        "rol",
+        "beoordeling"
+      ],
+      "title": "Passage",
+      "type": "object"
+    },
+    "Regeling": {
+      "additionalProperties": false,
+      "properties": {
+        "bwb_id": {
+          "title": "Bwb Id",
+          "type": "string"
+        },
+        "titel": {
+          "title": "Titel",
+          "type": "string"
+        },
+        "artikelen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Artikel"
+          },
+          "title": "Artikelen",
+          "type": "array"
+        }
+      },
+      "required": [
+        "bwb_id",
+        "titel"
+      ],
+      "title": "Regeling",
+      "type": "object"
+    },
+    "Relatie": {
+      "additionalProperties": false,
+      "properties": {
+        "van": {
+          "title": "Van",
+          "type": "string"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "naar": {
+          "title": "Naar",
+          "type": "string"
+        },
+        "toelichting": {
+          "default": "",
+          "title": "Toelichting",
+          "type": "string"
+        }
+      },
+      "required": [
+        "van",
+        "type",
+        "naar"
+      ],
+      "title": "Relatie",
+      "type": "object"
+    },
+    "Selectie": {
+      "additionalProperties": false,
+      "properties": {
+        "rol": {
+          "title": "Rol",
+          "type": "string"
+        },
+        "vindplaats": {
+          "$ref": "#/$defs/Vindplaats"
+        },
+        "toegevoegd_door": {
+          "default": "",
+          "title": "Toegevoegd Door",
+          "type": "string"
+        },
+        "toegevoegd": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Toegevoegd"
+        }
+      },
+      "required": [
+        "rol",
+        "vindplaats"
+      ],
+      "title": "Selectie",
+      "type": "object"
+    },
+    "Signaal": {
+      "additionalProperties": false,
+      "description": "Wat een lezer moet weten voor hij het rapport gebruikt. Dezelfde punten staan ook op hun plek.",
+      "properties": {
+        "soort": {
+          "enum": [
+            "niet_in_dossier",
+            "bron_veranderd",
+            "toestand_onvolledig",
+            "na_peildatum",
+            "markeringen_veranderd",
+            "passages_veranderd",
+            "opnieuw_bekijken",
+            "zoeken_onvolledig"
+          ],
+          "title": "Soort",
+          "type": "string"
+        },
+        "label": {
+          "default": "",
+          "title": "Label",
+          "type": "string"
+        },
+        "reden": {
+          "default": "",
+          "title": "Reden",
+          "type": "string"
+        },
+        "datum": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Datum"
+        },
+        "aantal": {
+          "default": 0,
+          "title": "Aantal",
+          "type": "integer"
+        },
+        "nrs": {
+          "default": [],
+          "items": {
+            "type": "integer"
+          },
+          "title": "Nrs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "soort"
+      ],
+      "title": "Signaal",
+      "type": "object"
+    },
+    "Stand": {
+      "additionalProperties": false,
+      "properties": {
+        "op": {
+          "title": "Op",
+          "type": "string"
+        },
+        "door": {
+          "title": "Door",
+          "type": "string"
+        }
+      },
+      "required": [
+        "op",
+        "door"
+      ],
+      "title": "Stand",
+      "type": "object"
+    },
+    "Telling": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "aantal": {
+          "title": "Aantal",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "code",
+        "aantal"
+      ],
+      "title": "Telling",
+      "type": "object"
+    },
+    "UitgeslotenBron": {
+      "additionalProperties": false,
+      "properties": {
+        "vindplaats": {
+          "$ref": "#/$defs/Vindplaats"
+        },
+        "overal": {
+          "default": false,
+          "title": "Overal",
+          "type": "boolean"
+        },
+        "nrs": {
+          "default": [],
+          "items": {
+            "type": "integer"
+          },
+          "title": "Nrs",
+          "type": "array"
+        },
+        "besloten_door": {
+          "default": "",
+          "title": "Besloten Door",
+          "type": "string"
+        },
+        "reden": {
+          "default": "",
+          "title": "Reden",
+          "type": "string"
+        },
+        "door": {
+          "default": "analist",
+          "enum": [
+            "bron",
+            "lex",
+            "analist"
+          ],
+          "title": "Door",
+          "type": "string"
+        }
+      },
+      "required": [
+        "vindplaats"
+      ],
+      "title": "UitgeslotenBron",
+      "type": "object"
+    },
+    "Verantwoording": {
+      "additionalProperties": false,
+      "properties": {
+        "aangemaakt_door": {
+          "title": "Aangemaakt Door",
+          "type": "string"
+        },
+        "aangemaakt": {
+          "title": "Aangemaakt",
+          "type": "string"
+        },
+        "gewijzigd": {
+          "title": "Gewijzigd",
+          "type": "string"
+        },
+        "juristen": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Juristen",
+          "type": "array"
+        },
+        "accordeurs": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Accordeurs",
+          "type": "array"
+        },
+        "handelingen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Handeling"
+          },
+          "title": "Handelingen",
+          "type": "array"
+        },
+        "besluiten": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Besluit"
+          },
+          "title": "Besluiten",
+          "type": "array"
+        },
+        "bronnen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Selectie"
+          },
+          "title": "Bronnen",
+          "type": "array"
+        }
+      },
+      "required": [
+        "aangemaakt_door",
+        "aangemaakt",
+        "gewijzigd"
+      ],
+      "title": "Verantwoording",
+      "type": "object"
+    },
+    "Vindplaats": {
+      "description": "Waar iets staat, altijd uit de tool-rijen: nooit overgetypt door het model.",
+      "properties": {
+        "iri": {
+          "title": "Iri",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "jci": {
+          "default": "",
+          "title": "Jci",
+          "type": "string"
+        },
+        "regeling": {
+          "default": "",
+          "title": "Regeling",
+          "type": "string"
+        }
+      },
+      "required": [
+        "iri",
+        "label"
+      ],
+      "title": "Vindplaats",
+      "type": "object"
+    },
+    "Voorbeeld": {
+      "additionalProperties": false,
+      "properties": {
+        "oordeel": {
+          "title": "Oordeel",
+          "type": "string"
+        },
+        "tekst": {
+          "title": "Tekst",
+          "type": "string"
+        }
+      },
+      "required": [
+        "oordeel",
+        "tekst"
+      ],
+      "title": "Voorbeeld",
+      "type": "object"
+    },
+    "Voorblad": {
+      "additionalProperties": false,
+      "properties": {
+        "naam": {
+          "title": "Naam",
+          "type": "string"
+        },
+        "analysevraag": {
+          "default": "",
+          "title": "Analysevraag",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "revisie": {
+          "title": "Revisie",
+          "type": "integer"
+        },
+        "thema": {
+          "default": "",
+          "title": "Thema",
+          "type": "string"
+        },
+        "peildatum": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Peildatum"
+        },
+        "peildatum_standaard": {
+          "default": false,
+          "title": "Peildatum Standaard",
+          "type": "boolean"
+        },
+        "regelingen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Bronstand"
+          },
+          "title": "Regelingen",
+          "type": "array"
+        },
+        "signalen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Signaal"
+          },
+          "title": "Signalen",
+          "type": "array"
+        }
+      },
+      "required": [
+        "naam",
+        "status",
+        "revisie"
+      ],
+      "title": "Voorblad",
+      "type": "object"
+    },
+    "Wettekst": {
+      "additionalProperties": false,
+      "properties": {
+        "markeringen": {
+          "title": "Markeringen",
+          "type": "integer"
+        },
+        "beoordeeld": {
+          "title": "Beoordeeld",
+          "type": "integer"
+        },
+        "per_klasse": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/KlasseTelling"
+          },
+          "title": "Per Klasse",
+          "type": "array"
+        },
+        "regelingen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Regeling"
+          },
+          "title": "Regelingen",
+          "type": "array"
+        },
+        "onbereikbaar": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Onbereikbaar"
+          },
+          "title": "Onbereikbaar",
+          "type": "array"
+        },
+        "buiten_tekst": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Markering"
+          },
+          "title": "Buiten Tekst",
+          "type": "array"
+        },
+        "afgewezen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Markering"
+          },
+          "title": "Afgewezen",
+          "type": "array"
+        }
+      },
+      "required": [
+        "markeringen",
+        "beoordeeld"
+      ],
+      "title": "Wettekst",
+      "type": "object"
+    },
+    "Zoekdekking": {
+      "additionalProperties": false,
+      "properties": {
+        "onvolledig": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Onvolledig",
+          "type": "array"
+        },
+        "verouderd": {
+          "default": false,
+          "title": "Verouderd",
+          "type": "boolean"
+        },
+        "reden": {
+          "default": "",
+          "title": "Reden",
+          "type": "string"
+        }
+      },
+      "title": "Zoekdekking",
+      "type": "object"
+    },
+    "Zoekregeling": {
+      "additionalProperties": false,
+      "properties": {
+        "bwb_id": {
+          "title": "Bwb Id",
+          "type": "string"
+        },
+        "label": {
+          "default": "",
+          "title": "Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "bwb_id"
+      ],
+      "title": "Zoekregeling",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_naam": {
+      "const": "werkgebied-rapport-v2",
+      "default": "werkgebied-rapport-v2",
+      "title": "Schema Naam",
+      "type": "string"
+    },
+    "versie": {
+      "default": 2,
+      "title": "Versie",
+      "type": "integer"
+    },
+    "stand": {
+      "$ref": "#/$defs/Stand"
+    },
+    "document": {
+      "$ref": "#/$defs/Document"
+    },
+    "voorblad": {
+      "$ref": "#/$defs/Voorblad"
+    },
+    "samenvatting": {
+      "$ref": "#/$defs/Kerncijfers"
+    },
+    "dossier": {
+      "$ref": "#/$defs/Dossier"
+    },
+    "deelvragen": {
+      "$ref": "#/$defs/Deelvragen"
+    },
+    "wettekst": {
+      "$ref": "#/$defs/Wettekst"
+    },
+    "begrippen": {
+      "$ref": "#/$defs/Begrippen"
+    },
+    "verantwoording": {
+      "$ref": "#/$defs/Verantwoording"
+    }
+  },
+  "required": [
+    "stand",
+    "document",
+    "voorblad",
+    "samenvatting",
+    "dossier",
+    "deelvragen",
+    "wettekst",
+    "begrippen",
+    "verantwoording"
+  ],
+  "title": "Rapport",
+  "type": "object"
+}
