@@ -7,6 +7,7 @@ Metingen per case (QA-route):
   - bron-recall          : aandeel verwachte bronnen (BWB-id/IRI) dat in de bronnenlijst zit.
   - contains             : verwachte deelstrings staan in het antwoord.
   - refusal              : off-topic vraag → geweigerd (geen bronnen); on-topic → beantwoord.
+  - volgorde / sjabloon  : als de case ze noemt (eval/kwaliteit.py); de toon telt apart, niet voor slagen.
 
 Metingen per case (annotatie-route):
   - letterlijkheid       : alle markeringen staan letterlijk in de corpus (garantie, ≥1.0).
@@ -30,6 +31,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
+
+from eval.kwaliteit import Toon, sjabloon_ok, toon, volgorde_ok
+from eval.vraagtypen import vraagtype_van
 
 
 def faithfulness(grounding: dict[str, Any]) -> float:
@@ -97,6 +101,10 @@ class CaseResult:
     zonder_verboden_ok: bool = True
     overzicht_ok: bool = True
     error: str | None = None
+    vraagtype: str = ""
+    volgorde_ok: bool = True
+    sjabloon_ok: bool = True
+    toon: Toon = field(default_factory=Toon)
     passed: bool = field(init=False)
 
     def __post_init__(self) -> None:
@@ -108,6 +116,8 @@ class CaseResult:
             and self.refusal_ok
             and self.zonder_verboden_ok
             and self.overzicht_ok
+            and self.volgorde_ok
+            and self.sjabloon_ok
         )
 
 
@@ -118,6 +128,7 @@ def score_case(
     grounding: dict[str, Any],
     error: str | None = None,
     overzicht: dict[str, Any] | None = None,
+    antwoord: dict[str, Any] | None = None,
 ) -> CaseResult:
     should_refuse = bool(case.get("should_refuse", False))
     return CaseResult(
@@ -129,7 +140,17 @@ def score_case(
         zonder_verboden_ok=zonder_verboden(answer, case.get("verboden", [])),
         overzicht_ok=overzicht_ok(overzicht, case.get("verwacht_overzicht")),
         error=error,
+        vraagtype=vraagtype_van(case),
+        volgorde_ok=volgorde_ok(answer, case.get("volgorde")),
+        sjabloon_ok=sjabloon_ok(antwoord, case.get("sjabloon")),
+        toon=toon(answer, antwoord),
     )
+
+
+def score_opname(case: dict[str, Any], opname: dict[str, Any]) -> CaseResult:
+    """Scoor een opgenomen case (eval/opname.py): live, of uit een bewaard bestand."""
+    return score_case(case, opname["tekst"], opname["sources"], opname["grounding"], opname["error"],
+                      opname["overzicht"], opname["antwoord"])
 
 
 # --- Annotatie: meten wat de duurste keten oplevert ----------------------------------------------
