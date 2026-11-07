@@ -21,8 +21,11 @@ export type ProjectTab = (typeof PROJECT_TABS)[number]["key"];
  *  26 okt 2026, geen eigen tabel). *Specificaties* (afleidingsregels) blijft gereserveerd. */
 export const ARTEFACT_SOORTEN = ["dossier", "bronselectie", "annotaties", "begrippen"] as const;
 export type ArtefactSoort = (typeof ARTEFACT_SOORTEN)[number];
+/** De naam van elk artefact van een werkgebied, overal gelijk: kaart, kop van de pagina, kruimelpad en filter. Een
+ *  artefact van het werkgebied is een verzameling, dus de naam is de titel, en het werkgebied staat er niet in: dat
+ *  noemen de kop van het project en het kruimelpad al (besluit gebruiker 7 nov 2026, `artefactKop` in `lib/artefact.ts`). */
 export const ARTEFACT_LABEL: Record<ArtefactSoort, string> = {
-  dossier: "Dossier", bronselectie: "Bronselectie", annotaties: "Annotaties", begrippen: "Begrippen",
+  dossier: "Analysedossier", bronselectie: "Bronselectie", annotaties: "JAS-annotaties", begrippen: "Begrippenkader",
 };
 
 export function isArtefactSoort(s: string | undefined): s is ArtefactSoort {
@@ -157,7 +160,7 @@ export function artefactKaarten(wg: Werkgebied, extra: {
 
   return [
     {
-      soort: "dossier", titel: `Analysedossier ${wg.naam}`,
+      soort: "dossier", titel: ARTEFACT_LABEL.dossier,
       omschrijving: "Aanleiding, context, doel, analysevraag, praktijkvoorbeeld, afbakening en deelvragen.",
       versie: `revisie ${wg.revisie}`,
       status: gevuld === velden.length
@@ -165,13 +168,13 @@ export function artefactKaarten(wg: Werkgebied, extra: {
         : { tekst: `${gevuld} van ${velden.length} velden · ${deelvragen} deelvragen`, toon: "neutraal" },
     },
     {
-      soort: "bronselectie", titel: "Bronselectie en afbakening",
+      soort: "bronselectie", titel: ARTEFACT_LABEL.bronselectie,
       omschrijving: "De bepalingen van dit werkgebied, met hun rol en reden.",
       versie: `${wg.bronnen.length} bepalingen · ${analyse} om te analyseren`,
       status: open ? { tekst: `${open} ${open === 1 ? "voorstel" : "voorstellen"} van Lex`, toon: "geel" } : null,
     },
     {
-      soort: "annotaties", titel: "JAS-annotaties",
+      soort: "annotaties", titel: ARTEFACT_LABEL.annotaties,
       omschrijving: "De geannoteerde elementen van de bepalingen om te analyseren, met hun beoordeling.",
       versie: wv ? `${eenheden} bepalingen` : "",
       status: !wv || !eenheden ? null
@@ -179,7 +182,7 @@ export function artefactKaarten(wg: Werkgebied, extra: {
         : { tekst: `${klaar} van ${eenheden} beoordeeld`, toon: klaar ? "geel" : "neutraal" },
     },
     {
-      soort: "begrippen", titel: `Begrippenkader ${wg.naam}`,
+      soort: "begrippen", titel: ARTEFACT_LABEL.begrippen,
       omschrijving: "De begrippen van dit werkgebied: betekenis, passages, relaties en beoordeling.",
       versie: b ? `${actief} begrippen` : "",
       status: !b || !actief ? null

@@ -13,7 +13,7 @@ import type { GraafOpties } from "@/components/graaf/useGraafStand";
 import { WerkgebiedArtefactPaneel } from "@/components/werkplek/WerkgebiedArtefactPaneel";
 import { ContextPaneel, ContextPaneelContext, contextSleutel, overzichtContext, type ContextDoel } from "@/components/werkplek/ContextPaneel";
 import { WerkgebiedUitOverzicht } from "@/components/werkplek/WerkgebiedUitOverzicht";
-import { annotatieDoelVan, artefactSleutel, bronselectieVanKaart, werkgebiedLabel, artefactVanBericht, werkgebiedArtefactVan, type Artefact, type WerkgebiedArtefact } from "@/lib/artefact";
+import { annotatieDoelVan, artefactSleutel, bronselectieVanKaart, artefactKop, artefactVanBericht, werkgebiedArtefactVan, type Artefact, type WerkgebiedArtefact } from "@/lib/artefact";
 import { StatusLabel } from "@/components/ui/Lijst";
 import { Suggestie } from "@/components/ui/Suggestie";
 import { Melding } from "@/components/ui/Melding";
@@ -1028,6 +1028,7 @@ export function WerkplekClient({
   const laatsteNodeAnnotatie = laatsteAnnotatieItem?.annotatie_doel ? laatsteAnnotatieItem : undefined;
   const laatsteWgArtefact = laatsteBronselectie
     ?? (!laatsteOverzicht && laatsteItem?.type === "artefact" ? werkgebiedArtefactVan(laatsteItem.artefact) : undefined);
+  const laatsteKop = laatsteWgArtefact && artefactKop(laatsteWgArtefact);
   // Het samenstellen van een werkgebied (activiteit 1): de vragen per reeks als één kaart, de open vraag
   // onderaan in plaats van het invoerveld.
   const { groepen: vraagGroepen, verborgen: verborgenItems } = useStabieleGroepen(items, bezig);
@@ -1191,7 +1192,7 @@ export function WerkplekClient({
           onClick={() => setWgArtefact(laatsteWgArtefact)}
           className="focus-ring flex w-full shrink-0 items-center gap-2 border-b border-line bg-surface px-4 py-2 text-left text-xs text-muted transition hover:bg-surface-2"
         >
-          <span className="truncate"><span className="font-medium text-ink">{laatsteWgArtefact.titel || werkgebiedLabel(laatsteWgArtefact)}</span> · {werkgebiedLabel(laatsteWgArtefact).toLowerCase()}</span>
+          <span className="truncate"><span className="font-medium text-ink">{laatsteKop?.titel}</span>{laatsteKop?.soort && <> · {laatsteKop.soort.toLowerCase()}</>}</span>
           <span className="ml-auto shrink-0 font-medium text-lint">Openen</span>
         </button>
       )}

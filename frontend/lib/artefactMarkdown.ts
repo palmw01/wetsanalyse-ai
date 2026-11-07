@@ -90,6 +90,12 @@ export function begrippenAlsMarkdown(naam: string, begrippen: Pick<Begrip, "inho
 
 /** Een bestandsnaam uit een titel: kleine letters, streepjes, zonder tekens die een bestandssysteem weigert. Met datum en
  *  tijd, zodat elke download een eigen bestand is; dezelfde vorm als de exports van de api (`app/bestandsnaam.py`). */
+/** De eerste kop (`# …`) van een Markdown-tekst, of leeg. Een download heet naar zijn eigen kop: die noemt ook het
+ *  werkgebied, terwijl de titel van een artefact dat bewust niet doet (`artefactKop` in `lib/artefact.ts`). */
+export function kopVan(tekst: string): string {
+  return /^# +(.+)$/m.exec(tekst)?.[1].trim() ?? "";
+}
+
 export function bestandsnaam(titel: string, extensie = "md", nu = new Date()): string {
   const stam = titel.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase()
     .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "artefact";

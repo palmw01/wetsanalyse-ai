@@ -247,6 +247,13 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
 - **Wat Lex oplevert is een artefact** (`Bericht.artefact`, `lib/artefact.ts`): `{soort, ref, titel}`
   met soort `annotatie`, `begrippen`, `werkgebied`, `deelvraag`, `begrip`, `bronselectie` of `regels`. Elke soort heeft een chip in de thread en een paneel
   in dezelfde schil (kolom vanaf 800px, anders een sheet); er staat er hoogstens één open.
+  - **De titel noemt het object zelf, nooit het werkgebied waar het in staat** (besluit gebruiker 7 nov 2026, `artefactKop`
+    in `lib/artefact.ts`): een object met een eigen naam (bepaling, begrip, deelvraag, het werkgebied zelf) heeft die naam als
+    titel en de soort klein erboven; een verzameling (`VERZAMELING`: begripsvoorstellen, bronselectie, afleidingsregels) heeft
+    de soortnaam als titel en geen soortregel. De bewaarde `titel` telt bij een verzameling niet, dus een oud bericht krijgt
+    vanzelf de nieuwe titel. Eén namentabel (`ARTEFACT_SOORT_LABEL`) voor chip, `PaneelKop`, de balk *laatste artefact* en het
+    `aria-label`; het werkgebied staat al in `ChatKop`. Een Markdown-download heet naar zijn eigen kop (`kopVan`), die het
+    werkgebied wel noemt. `app/artefactTitels.test.ts` bewaakt het.
   - **annotatie** – het `annotatie`-item met `AnnotatieChip`, dat **`NodeAnnotatiePaneel`** opent
     (een bericht zonder bronnode wijst naar een verwijderde annotatie: een tombstone). `DocumentPaneel` toont de wettekst met de **letterlijke** fragmenten
     (`segmenteer` + `lib/jas.ts:jasStyle`), `ReviewQueue` de beslissingskaarten.

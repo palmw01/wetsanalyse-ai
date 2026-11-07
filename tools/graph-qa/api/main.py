@@ -320,6 +320,8 @@ async def verwijder_conversation(
                    "chat_session_id": conversation_id},
         )
     await delete_conversation(conversation_id, settings=settings)
+    # De runs dragen de vraag en het antwoord ook. Een lopende run ruimt zichzelf op als hij afrondt.
+    await runs.wis_gesprek(conversation_id)
 
 
 # --- Runs: de beurt is van de server ---------------------------------------------------------

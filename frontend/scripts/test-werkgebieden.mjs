@@ -254,7 +254,10 @@ try {
   await tab("Artefacten (4)").click();
   await page.waitForURL("**/werkgebieden/wg1/artefacten");
   assert.equal(await page.locator("[data-artefact-kaart]").count(), 4);
-  await page.getByRole("button", { name: "Begrippen", exact: true }).click();
+  // Kort, en zonder de naam van het werkgebied (7 nov 2026).
+  assert.deepEqual(await page.locator("[data-artefact-kaart] .font-display").allInnerTexts(),
+    ["Analysedossier", "Bronselectie", "JAS-annotaties", "Begrippenkader"]);
+  await page.getByRole("button", { name: "Begrippenkader", exact: true }).click();
   assert.equal(await page.locator("[data-artefact-kaart]").count(), 1);
   await page.getByRole("button", { name: "Alles", exact: true }).click();
   await page.locator("[data-artefact-kaart=dossier]").click();

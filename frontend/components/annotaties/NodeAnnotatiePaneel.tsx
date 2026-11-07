@@ -1,5 +1,6 @@
 "use client";
 
+import { ARTEFACT_SOORT_LABEL } from "@/lib/artefact";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -11,10 +12,11 @@ import { Melding } from "@/components/ui/Melding";
 import { PaneelKop } from "@/components/ui/PaneelKop";
 import { VersieKiezer } from "@/components/ui/VersieKiezer";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { NogNietInWerking } from "@/components/bronnen/NogNietInWerking";
 import { ArtefactInhoud } from "@/components/werkplek/ArtefactInhoud";
 import { foutTekst, type ExportFormaat } from "@/lib/api";
 import {
-  apiOpslag, momentopnameOpslag, nodeLink, verwachteRevisies,
+  apiOpslag, momentopnameOpslag, nodeLink, nogNietInWerking, verwachteRevisies,
   type NodeDoel, type NodeElement, type NodeOpslag, type NodeWeergave,
 } from "@/lib/annotatieNode";
 import {
@@ -249,7 +251,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
     ? nodeLink({ bron_iri: view.doel.bron_iri ?? doel.bron_iri, snapshot_id: doel.snapshot_id }) : undefined;
   const inhoud = !view || !nb || !doc ? (
     <div data-artefact-schil className="flex min-h-0 flex-1 flex-col">
-      <PaneelKop soort="Annotatie · JAS" titel={view?.doel.label || doel.label || "Laden…"} onSluit={onSluit} onder={reeksBalk} />
+      <PaneelKop soort={ARTEFACT_SOORT_LABEL.annotatie} titel={view?.doel.label || doel.label || "Laden…"} onSluit={onSluit} onder={reeksBalk} />
       <LaadStand fout={laadFout} onOpnieuw={() => void laad()} />
     </div>
   ) : (
@@ -257,7 +259,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
       <p className="sr-only" aria-live="polite">{melding}</p>
       {/* Eén kop voor beide tabs: op de tab Tekst draagt de inhoud hem (met de acties), op de graaf het paneel. */}
       {toonTabs && tab === "graaf" && (
-        <PaneelKop soort="Annotatie · JAS" titel={titel} pagina={pagina} onSluit={onSluit} onder={reeksBalk} balk={tabs} />
+        <PaneelKop soort={ARTEFACT_SOORT_LABEL.annotatie} titel={titel} pagina={pagina} onSluit={onSluit} onder={reeksBalk} balk={tabs} />
       )}
       {toonTabs && graafGeopend && (
         <div className={tab === "graaf" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
@@ -267,6 +269,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
             onVraag={onVraag || onVraagOverBron ? vraagOverKnoop : undefined} />
         </div>
       )}
+      {(!toonTabs || tab === "tekst") && view?.segmenten.some(nogNietInWerking) && <div className="px-4 pt-3"><NogNietInWerking /></div>}
       {(!toonTabs || tab === "tekst") && <ArtefactInhoud
         doc={doc}
         info={nb.info}

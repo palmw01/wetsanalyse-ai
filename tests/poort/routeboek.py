@@ -259,6 +259,11 @@ def _waarde(e: ast.AST, env: dict[str, str]) -> str:
 
 
 def agent_aanroepen() -> list[Aanroep]:
+    """Alles wat graph-qa bij de api aanroept: de client (`agent/wetsanalyse_api.py`) en de leesclients."""
+    return _client_aanroepen_agent() + agent_leesaanroepen()
+
+
+def _client_aanroepen_agent() -> list[Aanroep]:
     """De client van graph-qa naar de api (`agent/wetsanalyse_api.py`)."""
     py = WORTEL / "tools" / "graph-qa" / "agent" / "wetsanalyse_api.py"
     uit = []
@@ -281,6 +286,29 @@ def agent_aanroepen() -> list[Aanroep]:
             elif (isinstance(eigenaar, ast.Attribute) and eigenaar.attr == "_client"
                   and naam in ("get", "post", "patch", "delete") and fn.name != "_haal"):
                 uit.append(Aanroep(naam.upper(), normaal(_waarde(c.args[0], env)), _plek(py, c.lineno)))
+    return uit
+
+
+def _lees_pad(e: ast.AST) -> str:
+    if isinstance(e, ast.Constant):
+        return str(e.value)
+    if isinstance(e, ast.BinOp) and isinstance(e.op, ast.Add):
+        return _lees_pad(e.left) + _lees_pad(e.right)
+    return "{x}"
+
+
+def agent_leesaanroepen() -> list[Aanroep]:
+    """De leesclients van graph-qa (`annotatie_read.py`, `begrip_read.py`): `self._request("GET", pad, …)` onder de
+    basis die `_request` zelf aan de url plakt."""
+    uit = []
+    for naam in ("annotatie_read.py", "begrip_read.py"):
+        py = WORTEL / "tools" / "graph-qa" / "agent" / naam
+        tekst = py.read_text(encoding="utf-8")
+        basis = re.search(r'\+ "(/v1/[a-z-]+)" \+ path', tekst).group(1)
+        for c in ast.walk(ast.parse(tekst)):
+            if (isinstance(c, ast.Call) and isinstance(c.func, ast.Attribute) and c.func.attr == "_request"
+                    and len(c.args) >= 2 and isinstance(c.args[0], ast.Constant)):
+                uit.append(Aanroep(c.args[0].value, normaal(basis + _lees_pad(c.args[1])), _plek(py, c.lineno)))
     return uit
 
 

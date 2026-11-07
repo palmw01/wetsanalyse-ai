@@ -8,7 +8,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 import httpx
-from bronmodel import BronFout
+from bronmodel import BronFout, element_actueel
 
 from . import annotatie_export as export
 from . import annotatie_v2_store as store
@@ -196,9 +196,7 @@ async def get_element(element_id: str, actor: str = Depends(actieve_userid)):
         raise HTTPException(422, "Opgeslagen bronidentiteit is ongeldig.")
     snapshot = await resolve_bron({"bwb_id": law.group(1)})
     nodes = store.nodes_van(snapshot)
-    result["element"]["verouderd"] = result["element"].get("verouderd", False) or any(
-        a["bron_iri"] not in nodes or nodes[a["bron_iri"]]["bron_hash"] != a["bron_hash"]
-        for a in result["element"]["ankers"])
+    result["element"]["verouderd"] = not element_actueel(result["element"], nodes)
     result["actuele_snapshot_id"] = snapshot["snapshot_id"]
     result["bronverwijzing"].update(snapshot_id=result["snapshot_id"],
                                     historisch=result["element"]["verouderd"])

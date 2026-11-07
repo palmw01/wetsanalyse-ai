@@ -60,4 +60,6 @@ USER appuser
 
 EXPOSE 8080
 
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8080"]
+# `--timeout-graceful-shutdown`: na zoveel seconden sluit uvicorn de open SSE-verbindingen (een kijker haakt opnieuw aan
+# op een andere replica), waarna de lifespan de lopende beurten laat afronden (`runstore.postgres.DRAIN_S`).
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8080", "--timeout-graceful-shutdown", "120"]

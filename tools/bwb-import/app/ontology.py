@@ -147,6 +147,13 @@ _OBJECT_PROPS: dict[str, tuple[str, str, tuple[URIRef, ...], str | None]] = {
         (),
         None,
     ),
+    "inhoudHash": (
+        "inhoudshash",
+        "sha256 over de inhoud van de named graph van deze regeling: verandert bij elke andere tekst, ook zonder "
+        "nieuwe toestand.",
+        (),
+        None,
+    ),
     "bronUrl": (
         "bron-URL",
         "Vindplaats van dit tekstdeel in de gepubliceerde toestand op wetten.overheid.nl "

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { annotatieAlsMarkdown, begripAlsMarkdown, bestandsnaam, bronselectieAlsMarkdown, dossierAlsMarkdown, voorstellenAlsMarkdown } from "./artefactMarkdown";
+import { annotatieAlsMarkdown, begripAlsMarkdown, bestandsnaam, kopVan, bronselectieAlsMarkdown, dossierAlsMarkdown, voorstellenAlsMarkdown } from "./artefactMarkdown";
 import { parseBronselectie } from "./bronselectie";
 import type { AnnotatieDocument, Begrip, Werkgebied } from "./types";
 
@@ -51,6 +51,11 @@ describe("artefacten als Markdown", () => {
     const a = annotatieAlsMarkdown(doc, "Artikel 9 – Iw 1990");
     expect(a).toContain("- “de ontvanger” (lid 1) – akkoord");
     expect(a).not.toContain("weg");
+  });
+
+  it("een download heet naar zijn eigen kop, die het werkgebied wel noemt", () => {
+    expect(kopVan("# Bronselectie – Belastingrente\n\n## Deelvraag 1\n")).toBe("Bronselectie – Belastingrente");
+    expect(kopVan("tekst zonder kop\n## Sub\n")).toBe("");
   });
 
   it("een bestandsnaam uit de titel", () => {

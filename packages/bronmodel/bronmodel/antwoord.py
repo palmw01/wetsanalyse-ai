@@ -50,6 +50,8 @@ class VastgelegdBegrip(BaseModel):
 class Bepaling(BaseModel):
     tekst: str
     vindplaats: Vindplaats
+    #: De bepaling staat al in de regeling maar geldt nog niet (`bwb:status`, van de code).
+    nog_niet_in_werking: bool = False
 
 
 class Citaat(BaseModel):
@@ -141,6 +143,7 @@ class Antwoord(BaseModel):
 
 
 #: Een onvolledig resultaat blijft ook in de tekst zichtbaar: die voedt de historie, *Kopieer* en de eval.
+NOG_NIET_TEKST = " (nog niet in werking getreden)"
 NIET_ALLES = "Dit zijn niet alle markeringen; ontbrekende treffers zijn niet uitgesloten."
 
 #: Wat de brongetrouwheidscontrole niet leest. Annotaties en begrippen zijn afgeleide duiding die niet als bron telt, en
@@ -162,7 +165,8 @@ def _blok_tekst(b: BaseModel) -> str:
             f"- **{x.naam}** ({x.status}{', ' + x.werkgebied if x.werkgebied else ''})" + (f": {x.definitie}" if x.definitie else "")
             for x in b.items)
     if isinstance(b, Wettekst):
-        return "\n\n".join(f"**{_vindplaats_regel(x.vindplaats)}**\n\n{x.tekst}" for x in b.items)
+        return "\n\n".join(f"**{_vindplaats_regel(x.vindplaats)}**{NOG_NIET_TEKST if x.nog_niet_in_werking else ''}\n\n{x.tekst}"
+                           for x in b.items)
     if isinstance(b, Citaten):
         return "\n\n".join(
             f'> "{c.tekst}"\n\n{_vindplaats_regel(c.vindplaats)}' + (f"\n\n{c.waarom}" if c.waarom else "")

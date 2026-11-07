@@ -929,6 +929,9 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
       ]
     }
     template: {
+      // Een uitrol of inschalen stopt de replica met SIGTERM. Zoveel tijd krijgt hij om lopende beurten af te ronden
+      // (uvicorn 120 s, daarna de drain van `runstore.postgres`, 150 s) voor SIGKILL volgt (ROB-05).
+      terminationGracePeriodSeconds: 300
       volumes: [
         {
           name: 'graph-qa-secrets'

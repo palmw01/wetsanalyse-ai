@@ -70,7 +70,7 @@ describe("bronselectie", () => {
   it("een kaartje van de bronselectie wijst naar het paneel van zijn werkgebied", () => {
     const k = parseVraagkaart({ intake_id: "bs-wg1", modus: "bronselectie", stap: "bs_afronden", deelvraag_id: "d2",
       vraag: "Hoe rond je deelvraag 2 af?" });
-    expect(bronselectieVanKaart(k)).toEqual({ soort: "bronselectie", werkgebied_id: "wg1", run_id: "", deelvraag_id: "d2", titel: "Bronselectie" });
+    expect(bronselectieVanKaart(k)).toEqual({ soort: "bronselectie", werkgebied_id: "wg1", run_id: "", deelvraag_id: "d2", titel: "" });
     expect(bronselectieVanKaart(parseVraagkaart({ intake_id: "ik1", stap: "naam", vraag: "Naam?" }))).toBeUndefined();
   });
 });

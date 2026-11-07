@@ -12,6 +12,9 @@ export interface NodeDoel {
 export interface NodeSegment {
   bron_iri: string; parent_iri?: string; type: string; label: string; nummer?: string;
   tekst: string; bron_hash: string; volgorde: number;
+  /** `bwb:status`, geërfd van het artikel. `nogniet` staat in de regeling maar geldt nog niet. Een oudere snapshot heeft
+   *  hem niet. */
+  status?: string;
 }
 export interface NodeAnker { bron_iri: string; start: number; eind: number; tekst: string; bron_hash: string }
 export interface NodeElement {
@@ -113,6 +116,10 @@ export function heeftInhoud(waarde: unknown): boolean {
   if (typeof waarde === "string") return waarde.trim() !== "";
   return !!waarde && typeof waarde === "object" && Object.keys(waarde).length > 0;
 }
+export function nogNietInWerking(segment: { status?: string }): boolean {
+  return segment.status === "nogniet";
+}
+
 export function nodeLink(doel: NodeDoel): string {
   return `/annotaties/node?${new URLSearchParams({ bron_iri: doel.bron_iri,
     ...(doel.snapshot_id ? { snapshot_id: doel.snapshot_id } : {}) })}`;

@@ -549,6 +549,11 @@ async def _leg_vast(
             "gesprek verdwenen tijdens de beurt",
             extra={"categorie": "functioneel", "run_id": run.run_id, "chat_session_id": gesprek_id},
         )
+        # Wat deze beurt na het wissen nog schreef, gaat alsnog weg: de checkpoint die de graaf intussen bijwerkte, en
+        # de run zelf zodra hij afrondt. De wisroute kon die nog niet raken, want de beurt liep nog.
+        run.gewist = True
+        from .agent import delete_conversation
+        await delete_conversation(gesprek_id, settings=settings)
     except (WetsanalyseApiFout, Exception) as exc:
         logger.exception(
             "beurt niet vastgelegd",

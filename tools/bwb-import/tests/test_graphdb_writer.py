@@ -1054,3 +1054,17 @@ def test_nummer_van(nummer, verwacht) -> None:
     from app.collect import nummer_van
 
     assert nummer_van(nummer) == verwacht
+
+
+def test_de_regeling_draagt_een_inhoudshash() -> None:
+    """De api cachet de bronboom op deze hash (F4): dezelfde inhoud geeft dezelfde hash, andere tekst een andere."""
+    from rdflib import Literal
+
+    g, _ = _writer().build_graph(_kleine_wet())
+    hashes = list(g.objects(None, V.ns.inhoudHash))
+    assert len(hashes) == 1 and len(str(hashes[0])) == 64
+    assert list(_writer().build_graph(_kleine_wet())[0].objects(None, V.ns.inhoudHash)) == hashes
+    wet = _kleine_wet()
+    wet.citeertitel += " (anders)"
+    assert list(_writer().build_graph(wet)[0].objects(None, V.ns.inhoudHash)) != hashes
+    assert isinstance(hashes[0], Literal)

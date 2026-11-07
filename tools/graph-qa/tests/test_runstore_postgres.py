@@ -222,7 +222,7 @@ async def test_sluiten_bewaart_eindstatus_voordat_databasepool_sluit(store):
         await asyncio.Event().wait()
     run = await store.start(conversation_id="shutdown", vraag="v", maak_stroom=stream, user_id="u1")
     await asyncio.wait_for(started.wait(), timeout=5)
-    await store.sluit()
+    await store.sluit(wacht_s=0)  # het afbreken zelf: niet wachten
     assert run.taak.done()
     replica = PostgresStore(DSN)
     await replica.setup()
@@ -238,7 +238,7 @@ async def test_sluiten_bewaart_eindstatus_voordat_databasepool_sluit(store):
 @met_store
 async def test_sluiten_direct_na_start_laat_geen_lopende_run_achter(store):
     run = await store.start(conversation_id="instant", vraag="v", maak_stroom=blijf_draaien())
-    await store.sluit()
+    await store.sluit(wacht_s=0)  # het afbreken zelf: niet wachten
     replica = PostgresStore(DSN)
     await replica.setup()
     try:
@@ -307,5 +307,89 @@ async def test_afsluiten_legt_de_lopende_runs_vast(store):
     run = await store.start(conversation_id="uitrol", vraag="v", maak_stroom=blijf_draaien())
     klaar = await store.start(conversation_id="klaar", vraag="v", maak_stroom=stroom([{"type": "done"}]))
     await asyncio.wait_for(klaar.taak, timeout=5)
-    await store.sluit()
+    await store.sluit(wacht_s=0)  # het afbreken zelf: niet wachten
     assert gemeld == [run.run_id]
+
+
+@met_store
+async def test_gesprek_wissen_en_een_gewiste_run_laten_niets_achter(store):
+    klaar = await store.start(conversation_id="g1", vraag="Geheime vraag", maak_stroom=stroom([{"type": "done"}]))
+    await klaar.taak
+    await store.wis_gesprek("g1")
+
+    def gewist_tijdens(run):
+        async def stroom():
+            run.gewist = True
+            yield {"type": "done"}
+        return stroom()
+    lopend = await store.start(conversation_id="g2", vraag="Geheime vraag", maak_stroom=gewist_tijdens)
+    await lopend.taak
+    async with store.pool.connection() as conn:
+        rijen = await (await conn.execute("SELECT count(*) AS n FROM agent_runs WHERE vraag = 'Geheime vraag'")).fetchone()
+        events = await (await conn.execute("SELECT count(*) AS n FROM agent_run_events")).fetchone()
+    assert rijen["n"] == 0 and events["n"] == 0
+
+
+@met_store
+async def test_oude_afgeronde_runs_verdwijnen_bij_de_start(store):
+    run = await store.start(conversation_id="g1", vraag="v", maak_stroom=stroom([{"type": "done"}]))
+    await run.taak
+    async with store.pool.connection() as conn:
+        await conn.execute("UPDATE agent_runs SET gestart = now() - interval '31 days'")
+    await store.setup()
+    assert await store.get(run.run_id) is None
+
+
+@met_store
+async def test_een_dode_run_blokkeert_de_volgende_vraag_niet(store):
+    """Een run zonder hartslag hield het gesprek bezet: de volgende vraag kreeg een 409 zonder run (AG-13)."""
+    async with store.pool.connection() as conn:
+        await conn.execute("INSERT INTO agent_runs (run_id, conversation_id, vraag, hartslag) "
+                           "VALUES ('dood', 'g1', 'v', now() - interval '5 minutes')")
+    run = await store.start(conversation_id="g1", vraag="w", maak_stroom=stroom([{"type": "done"}]))
+    await run.taak
+    assert (await store.get("dood")).status == "mislukt" and run.run_id != "dood"
+
+
+@met_store
+async def test_de_hartslag_loopt_door_na_een_stopverzoek(store):
+    """Na een stop rondt de run nog af; zonder hartslag verklaart een andere replica hem verweesd (AG-12)."""
+    from agent.runstore import postgres
+
+    monkeypatch_s = (postgres.POLS_S, postgres.HARTSLAG_S)
+    postgres.POLS_S, postgres.HARTSLAG_S = 0.05, 0.1
+    try:
+        def rondt_traag_af(run):
+            async def gen():
+                yield {"type": "status", "content": "bezig"}
+                while not run.stop_gevraagd:
+                    await asyncio.sleep(0.02)
+                await asyncio.sleep(0.8)  # een node die na de stop nog een modelaanroep afmaakt
+                yield {"type": "done"}
+            return gen()
+        run = await store.start(conversation_id="g1", vraag="v", maak_stroom=rondt_traag_af)
+        await store.vraag_stop(run)
+        await asyncio.sleep(0.3)
+        async with store.pool.connection() as conn:
+            voor = (await (await conn.execute("SELECT hartslag FROM agent_runs WHERE run_id = %s", (run.run_id,))).fetchone())["hartslag"]
+        await asyncio.sleep(0.3)
+        async with store.pool.connection() as conn:
+            na = (await (await conn.execute("SELECT hartslag FROM agent_runs WHERE run_id = %s", (run.run_id,))).fetchone())["hartslag"]
+        await run.taak
+    finally:
+        postgres.POLS_S, postgres.HARTSLAG_S = monkeypatch_s
+    assert na > voor
+
+
+@met_store
+async def test_afsluiten_laat_een_lopende_beurt_eerst_afronden(store):
+    """Een uitrol stopt de replica; een beurt die binnen de grens klaar is, rondt af in plaats van te sneuvelen (ROB-05)."""
+    run = await store.start(conversation_id="uitrol", vraag="v",
+                            maak_stroom=stroom([{"type": "status", "content": "bezig"}, {"type": "done"}], vertraag=0.3))
+    await store.sluit(wacht_s=5)
+    replica = PostgresStore(DSN)
+    await replica.setup()
+    try:
+        assert (await replica.get(run.run_id)).status == "klaar"
+    finally:
+        await replica.sluit()

@@ -6,6 +6,7 @@
 
 import Link from "next/link";
 
+import { NogNietInWerking } from "@/components/bronnen/NogNietInWerking";
 import { Citaat } from "@/components/ui/Citaat";
 import { StatusLabel } from "@/components/ui/Lijst";
 import { Vindplaats } from "./Vindplaats";
@@ -57,7 +58,7 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
   wettekst: ({ blok }) => (
     <Sectie kop="Wettekst">
       <div className="space-y-3">
-        {blok.items.map((b) => <div key={b.vindplaats.iri} className="space-y-1"><Citaat>{b.tekst}</Citaat><p className="text-xs text-muted"><Vindplaats vindplaats={b.vindplaats} /></p></div>)}
+        {blok.items.map((b) => <div key={b.vindplaats.iri} className="space-y-1">{b.nog_niet_in_werking && <NogNietInWerking />}<Citaat>{b.tekst}</Citaat><p className="text-xs text-muted"><Vindplaats vindplaats={b.vindplaats} /></p></div>)}
       </div>
     </Sectie>
   ),

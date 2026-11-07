@@ -43,8 +43,10 @@ def test_het_artefact_past_in_het_gesprekscontract():
         pytest.skip("api-pakket niet importeerbaar in deze omgeving")
     finally:
         sys.path.pop(0)
-    a = Artefact(**begrippen_artefact("wg1", "r1", "Invordering"))
+    a = Artefact(**begrippen_artefact("wg1", "r1"))
     assert a.soort == "begrippen" and a.ref == {"werkgebied_id": "wg1", "run_id": "r1"}
+    # De titel noemt de soort, nooit het werkgebied (7 nov 2026).
+    assert a.titel == "Begripsvoorstellen"
 
 
 def test_de_samenvatting_noemt_de_getallen():
@@ -130,7 +132,7 @@ def test_een_nieuwe_run_rekent_en_geeft_een_begrippenartefact(nep):
     api = nep()
     uit, meldingen = _uit()
     assert any("Groeperen" in m for m in meldingen)      # de fasen van de keten, live
-    assert uit.status == "ok" and uit.artefact == {"soort": "begrippen", "titel": "Invordering",
+    assert uit.status == "ok" and uit.artefact == {"soort": "begrippen", "titel": "Begripsvoorstellen",
                                                    "ref": {"werkgebied_id": "wg1", "run_id": "r1"}}
     assert api.uitkomst is not None and uit.voorstellen == ["G1", "G2"] and uit.meting["model"] is False
     assert "**2** begrippen" in uit.tekst and "1 twijfelpunt " in uit.tekst

@@ -1,7 +1,8 @@
 "use client";
 
 import { jasStyle } from "@/lib/jas";
-import type { NodeElement, NodeSegment } from "@/lib/annotatieNode";
+import { NogNietInWerking } from "@/components/bronnen/NogNietInWerking";
+import { nogNietInWerking, type NodeElement, type NodeSegment } from "@/lib/annotatieNode";
 import { spansVan } from "@/lib/graaf/spans";
 
 /** De wettekst van een bepaling in de inspector, met de markeringen erin in hun JAS-kleur. Een klik
@@ -21,7 +22,7 @@ export function KnoopTekst({ segmenten, elementen, gekozen, kiesbaar, onKies, gr
   const perId = new Map(elementen.map((e) => [e.id, e]));
   const metTekst = segmenten.filter((s) => s.tekst.trim());
   if (!metTekst.length) return null;
-  return <div className={`space-y-1.5 border-l-2 border-lint/20 pl-3 ${groot ? "text-sm leading-7" : "text-xs leading-relaxed"} text-ink`} data-testid="graaf-knooptekst">
+  return <>{segmenten.some(nogNietInWerking) && <NogNietInWerking />}<div className={`space-y-1.5 border-l-2 border-lint/20 pl-3 ${groot ? "text-sm leading-7" : "text-xs leading-relaxed"} text-ink`} data-testid="graaf-knooptekst">
     {metTekst.map((s) => {
       const nummer = s.nummer?.trim();
       return <p key={s.bron_iri} className={s.type === "Onderdeel" ? "pl-3" : ""}>
@@ -39,5 +40,5 @@ export function KnoopTekst({ segmenten, elementen, gekozen, kiesbaar, onKies, gr
         })}
       </p>;
     })}
-  </div>;
+  </div></>;
 }

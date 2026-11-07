@@ -17,6 +17,8 @@ from __future__ import annotations
 import hashlib
 from typing import Awaitable, Callable
 
+from bronmodel import element_actueel
+
 from .werkgebied_inventaris import inventaris_met_bronbomen, nodes_met_titel
 
 Resolver = Callable[[dict], Awaitable[dict]]
@@ -67,7 +69,7 @@ async def bouw_met_bronbomen(werkgebied: dict, resolve: Resolver) -> tuple[dict,
         a = ankers[0]
         node = nodes.get(a["bron_iri"])
         tekst = (node or {}).get("tekst") or ""
-        if el.get("verouderd") or node is None or tekst[a["start"]:a["eind"]] != a.get("tekst", el.get("tekst")):
+        if not element_actueel(el, nodes):
             overgeslagen.append({"element_id": el["id"], "tekst": el.get("tekst", ""),
                                  "reden": "De brontekst veranderde sinds deze markering; beoordeel haar eerst opnieuw."})
             continue

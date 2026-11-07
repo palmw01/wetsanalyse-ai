@@ -32,10 +32,13 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy import event
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlalchemy.pool import StaticPool
+
+logger = logging.getLogger(__name__)
 
 # JSONB op Postgres (indexeerbaar, efficiënt), gewone JSON op SQLite (tests).
 _JSON = JSON().with_variant(JSONB(), "postgresql")
@@ -113,6 +116,15 @@ herstelcodes = Table(
     Column("userid", String(64), primary_key=True),
     Column("code_hash", String(64), primary_key=True),
     Column("created", _DT, nullable=False),
+)
+
+# Een userid die ooit een account was. Audit en verbruik dragen hem als naam van een persoon; een nieuw account met
+# dezelfde userid zou die geschiedenis, en vroeger ook de gesprekken, erven. Daarom wordt hij nooit opnieuw uitgegeven.
+verwijderde_userids = Table(
+    "verwijderde_userids",
+    metadata,
+    Column("userid", String(64), primary_key=True),
+    Column("verwijderd", _DT, nullable=False),
 )
 
 # --- Zelfregistratie ------------------------------------------------------------
@@ -241,6 +253,8 @@ annotatie_v2_audit = Table("annotatie_v2_audit", metadata,
     Column("actor", String(64), nullable=False), Column("actie", String(40), nullable=False),
     Column("detail", _JSON, nullable=False), Column("tijdstip", _DT, nullable=False),
     Column("laag_id", String(64), nullable=True),
+    # Welke client het verzoek deed (`auth.huidige_client`): de jurist via de webapp of de agent. `actor` is de persoon.
+    Column("client", String(64), nullable=True),
     Index("ix_annotatie_v2_audit_laag", "laag_id", "id"),
     Index("ix_annotatie_v2_audit_actie", "actie", "id"))
 
@@ -301,6 +315,7 @@ werkgebied_audit = Table("werkgebied_audit", metadata,
     Column("actie", String(40), nullable=False),
     Column("detail", _JSON, nullable=False),
     Column("tijdstip", _DT, nullable=False),
+    Column("client", String(64), nullable=True),  # zie `annotatie_v2_audit.client`
     Index("ix_werkgebied_audit_werkgebied", "werkgebied_id", "id"))
 
 # --- Begrippen (spoor D, levering 2) ------------------------------------------
@@ -635,6 +650,11 @@ token_verbruik = Table(
     Column("run_id", String(64), nullable=True),
     Column("tijdstip", _DT, nullable=False),
     Index("ix_token_verbruik_user_tijd", "userid", "tijdstip"),
+    # Eén boeking per (run, bron): `verbruik.boek` toetst dat al, maar twee gelijktijdige meldingen van dezelfde beurt
+    # komen allebei langs die toets. Partieel, want een boeking zonder run (de verbindingstest) ontdubbelt niet.
+    Index("ux_token_verbruik_run_bron", "run_id", "bron", unique=True,
+          sqlite_where=text("run_id IS NOT NULL AND run_id <> ''"),
+          postgresql_where=text("run_id IS NOT NULL AND run_id <> ''")),
 )
 
 # Het budgetbeleid: één rij (id=1), voor wat voor iedereen gelijk is. Hoeveel tokens iemand heeft
@@ -890,7 +910,18 @@ async def _reconcile_in(conn) -> None:
     # heeft.
     for tabel in metadata.tables.values():
         for index in tabel.indexes:
-            await conn.run_sync(lambda sync_conn, ix=index: ix.create(sync_conn, checkfirst=True))
+            if not index.unique:
+                await conn.run_sync(lambda sync_conn, ix=index: ix.create(sync_conn, checkfirst=True))
+                continue
+            # Een unieke index op een tabel die al dubbelen heeft, faalt. Dat mag de start niet tegenhouden, en een
+            # journaal ruimen we niet stil op: de index komt er dan niet, met een waarschuwing, en de toets in de code
+            # blijft het werk doen.
+            try:
+                async with conn.begin_nested():
+                    await conn.run_sync(lambda sync_conn, ix=index: ix.create(sync_conn, checkfirst=True))
+            except IntegrityError:
+                logger.warning("unieke index niet aangemaakt: de tabel heeft dubbelen",
+                               extra={"categorie": "technisch", "index": index.name, "tabel": tabel.name})
     # Het budget volgt alleen uit de rol (`budget_rol`). De tweede uitzondering op "alleen toevoegen":
     # de oude kolommen dragen niets meer, en `budget_beleid.tokens` is NOT NULL, dus hij moet weg
     # voordat `ensure_seeded` op een lege tabel een rij zonder die kolom schrijft.

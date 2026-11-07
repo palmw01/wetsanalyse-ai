@@ -5,6 +5,7 @@ Elke regel hier heeft ooit iets gekost, en breekt zonder test stil. De bestanden
 from __future__ import annotations
 
 import re
+import subprocess
 
 import pytest
 
@@ -79,3 +80,16 @@ def test_een_client_component_komt_niet_bij_de_tokens():
                 r'from\s+"@/lib/(config|server)"', s):
             fout.append(str(pad.relative_to(WORTEL)))
     assert not fout, f"client component importeert serverconfig: {fout}"
+
+
+def test_geen_eigen_image_draait_als_root():
+    """SEC-12: elk eigen image zet een USER vóór zijn startcommando; zonder draait de container als root."""
+    # Alleen wat git kent: een lokale worktree onder `.claude/worktrees` heeft zijn eigen kopie van elk image.
+    bekend = subprocess.run(["git", "ls-files", "*Dockerfile"], cwd=WORTEL, capture_output=True, text=True, check=True)
+    dockerfiles = [WORTEL / p for p in bekend.stdout.split()]
+    assert len(dockerfiles) >= 4, dockerfiles
+    for pad in dockerfiles:
+        regels = [r.strip() for r in pad.read_text(encoding="utf-8").splitlines()]
+        start = max(i for i, r in enumerate(regels) if r.startswith(("CMD", "ENTRYPOINT")))
+        gebruikers = [r.split(None, 1)[1] for r in regels[:start] if r.startswith("USER ")]
+        assert gebruikers and gebruikers[-1] not in ("root", "0"), pad.relative_to(WORTEL)

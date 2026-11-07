@@ -53,6 +53,9 @@ describe("artefactKaarten", () => {
   it("vier kaarten uit wat er ligt; zonder data geen status", () => {
     const k = artefactKaarten(wg());
     expect(k.map((x) => x.soort)).toEqual(["dossier", "bronselectie", "annotaties", "begrippen"]);
+    // Kort, en zonder de naam van het werkgebied: die staat al in de kop van het project (7 nov 2026).
+    expect(k.map((x) => x.titel)).toEqual(["Analysedossier", "Bronselectie", "JAS-annotaties", "Begrippenkader"]);
+    for (const x of k) expect(x.titel).not.toContain(wg().naam);
     expect(k[0].status?.tekst).toBe("1 van 6 velden · 0 deelvragen");
     expect(k[2].status).toBeNull();
     expect(k[3].status).toBeNull();

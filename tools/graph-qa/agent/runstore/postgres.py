@@ -64,6 +64,13 @@ POLL_S = 0.25
 # Hoe lang een stopverzoek gecachet wordt. De graaf vraagt het per node; zonder cache is dat een
 # query per node en dat is zonde voor een vlag die zelden aan staat.
 STOP_CACHE_S = 2.0
+# Hoe lang een afgeronde run bewaard blijft. Hij dient om na herladen of op een andere replica aan te haken, en
+# draagt de vraag en het antwoord: daarna is hij alleen nog een kopie van wat in het gesprek staat.
+BEWAAR_DAGEN = 30
+# Hoe lang het afsluiten wacht op lopende beurten voor het ze afbreekt. Een uitrol of inschalen stopt de replica; een
+# beurt van een paar minuten hoort dan af te ronden in plaats van te sneuvelen (ROB-05). Samen met uvicorns
+# `--timeout-graceful-shutdown` (Dockerfile) binnen `terminationGracePeriodSeconds` van de app (main.bicep).
+DRAIN_S = 150.0
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS agent_runs (
@@ -138,8 +145,20 @@ class PostgresStore:
             await self._pool.open()
         async with self._pool.connection() as conn:
             await conn.execute(_SCHEMA)
+            # Retentie bij de start: de dienst start vaak genoeg op (inschalen naar nul) om zonder eigen taak te kunnen.
+            await conn.execute("DELETE FROM agent_runs WHERE status <> 'loopt' AND gestart < now() - make_interval(days => %s)",
+                               (BEWAAR_DAGEN,))
 
-    async def sluit(self) -> None:
+    async def wis_gesprek(self, conversation_id: str) -> None:
+        if not conversation_id:
+            return
+        async with self.pool.connection() as conn:
+            await conn.execute("DELETE FROM agent_runs WHERE conversation_id = %s AND status <> 'loopt'", (conversation_id,))
+
+    async def sluit(self, *, wacht_s: float = DRAIN_S) -> None:
+        # Eerst laten afronden wat loopt; pas wat daarna nog loopt, wordt afgebroken en als gestopt vastgelegd.
+        if self._taken and wacht_s > 0:
+            await asyncio.wait(list(self._taken.values()), timeout=wacht_s)
         run_ids = list(self._taken)
         taken = list(self._taken.values())
         afgebroken = list(self._lopend.values())
@@ -241,19 +260,24 @@ class PostgresStore:
     ) -> Run:
         run = Run(run_id=uuid.uuid4().hex, conversation_id=conversation_id,
                   user_id=user_id, vraag=vraag)
-        try:
-            async with self.pool.connection() as conn:
-                await conn.execute(
-                    "INSERT INTO agent_runs (run_id, conversation_id, user_id, vraag) "
-                    "VALUES (%s, %s, %s, %s)",
-                    (run.run_id, conversation_id, user_id, vraag),
-                )
-        except pg_errors.UniqueViolation as botsing:
-            # De partiële index sloeg toe: er loopt al een run op dit gesprek. Bewust zonder
-            # user-filter opgehaald — twee lussen op één thread_id is een dataprobleem, ongeacht wie
-            # ze start.
-            bestaand = await self.actief_voor(conversation_id)
-            raise RunBestaatAl(bestaand.run_id if bestaand else "") from botsing
+        for poging in (1, 2):
+            try:
+                async with self.pool.connection() as conn:
+                    await conn.execute(
+                        "INSERT INTO agent_runs (run_id, conversation_id, user_id, vraag) "
+                        "VALUES (%s, %s, %s, %s)",
+                        (run.run_id, conversation_id, user_id, vraag),
+                    )
+                break
+            except pg_errors.UniqueViolation as botsing:
+                # De partiële index sloeg toe: er loopt al een run op dit gesprek. Bewust zonder
+                # user-filter opgehaald — twee lussen op één thread_id is een dataprobleem, ongeacht wie
+                # ze start. Is die run dood (geen hartslag), dan verklaart het lezen hem verweesd en is
+                # het gesprek vrij: dan één keer opnieuw, in plaats van een 409 zonder run (AG-13).
+                bestaand = await self.actief_voor(conversation_id)
+                if bestaand is None and poging == 1:
+                    continue
+                raise RunBestaatAl(bestaand.run_id if bestaand else "") from botsing
 
         self._lopend[run.run_id] = run
         run.taak = asyncio.create_task(self._draai(run, maak_stroom))
@@ -313,8 +337,10 @@ class PostgresStore:
                     rij = await cur.fetchone()
                 faalt = False
                 if rij and rij["stop_verzocht"]:
+                    # De graaf ziet de vlag. De hartslag loopt wel door: de run rondt nog af (een node die
+                    # een trage modelaanroep doet), en zonder hartslag verklaart een andere replica hem na
+                    # een minuut verweesd terwijl hij nog schrijft (AG-12).
                     run.stop_gevraagd = True
-                    return  # de graaf ziet de vlag; verder polsen heeft geen zin
             except Exception:  # noqa: BLE001 – de pols mag de beurt niet laten vallen
                 if not faalt:
                     logger.warning("run-pols mislukt", exc_info=True,
@@ -325,6 +351,9 @@ class PostgresStore:
         run.status = status
         run.eind_op = time.monotonic()
         async with self.pool.connection() as conn:
+            if run.gewist:  # de events gaan mee (ON DELETE CASCADE)
+                await conn.execute("DELETE FROM agent_runs WHERE run_id = %s", (run.run_id,))
+                return
             await conn.execute(
                 "UPDATE agent_runs SET status = %s, afgerond = now() WHERE run_id = %s",
                 (status, run.run_id),

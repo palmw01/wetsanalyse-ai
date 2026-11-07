@@ -67,7 +67,7 @@ def _kandidaten_uit_json(text: str) -> list[dict[str, str]]:
             continue
         kandidaat = {
             veld: str(k.get(veld, "")).strip()
-            for veld in ("bwbId", "artikel", "lid", "citeertitel", "fragment")
+            for veld in ("bwbId", "artikel", "lid", "citeertitel")
         }
         if not (kandidaat["bwbId"] and kandidaat["artikel"]):
             continue
@@ -77,6 +77,36 @@ def _kandidaten_uit_json(text: str) -> list[dict[str, str]]:
         gezien.add(sleutel)
         uit.append(kandidaat)
     return uit[:8]
+
+
+#: Zoveel tekens van de bepaling staan op de kandidatenkaart: genoeg om haar te herkennen.
+_FRAGMENT_TEKENS = 160
+
+
+def _eerste_zin(tekst: str) -> str:
+    tekst = " ".join(tekst.split())
+    eind = tekst.find(". ")
+    zin = tekst[: eind + 1] if 0 <= eind < _FRAGMENT_TEKENS else tekst[:_FRAGMENT_TEKENS]
+    return zin if len(zin) == len(tekst) or zin.endswith(".") else zin.rstrip() + "…"
+
+
+def kandidaten_uit_graaf(graph: Any, kandidaten: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Het begin van elke kandidaat uit de graaf, niet van het model (C7, AG-08).
+
+    Het model wijst alleen de vindplaats aan. Wat de jurist op de kaart leest, komt letterlijk uit de wettekst; een
+    kandidaat die de graaf niet kent, valt weg in plaats van met een verzonnen zin op de kaart te staan."""
+    uit = []
+    for k in kandidaten:
+        try:
+            q = (queries.get_lid(k["bwbId"], k["artikel"], k["lid"]) if k.get("lid")
+                 else queries.get_artikel(k["bwbId"], k["artikel"]))
+            rijen = parse_select(graph.sparql(q))
+        except Exception:  # noqa: BLE001 – een ongeldige of onbereikbare vindplaats is geen kandidaat
+            continue
+        tekst = next((r.get(v) for r in rijen for v in ("tekst", "lidtekst", "onderdeeltekst", "otekst") if r.get(v)), "")
+        if tekst:
+            uit.append({**k, "fragment": _eerste_zin(tekst)})
+    return uit
 
 
 # --- meldingen over het samenspel -----------------------------------------------------------------

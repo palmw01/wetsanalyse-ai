@@ -37,7 +37,7 @@ export interface WerkgebiedArtefact {
   versie?: string;
 }
 
-/** Hoe de chip de soort noemt. */
+/** De naam van elke soort, overal gelijk: chip, kop van het paneel, de balk *laatste artefact*. */
 export const ARTEFACT_SOORT_LABEL: Record<ArtefactSoort, string> = {
   annotatie: "JAS-annotatie",
   begrippen: "Begripsvoorstellen",
@@ -119,13 +119,25 @@ export function werkgebiedArtefactVan(a: Artefact | undefined): WerkgebiedArtefa
 }
 
 /** Hoe de chip dit artefact noemt. */
-export function artefactLabel(a: Artefact): string {
+export function artefactLabel(a: Pick<Artefact, "soort">): string {
   return ARTEFACT_SOORT_LABEL[a.soort];
 }
 
-/** Idem voor een geopend werkgebiedartefact. */
-export function werkgebiedLabel(a: WerkgebiedArtefact): string {
-  return ARTEFACT_SOORT_LABEL[a.soort];
+/** Artefacten die een verzameling van het werkgebied zijn, geen object met een eigen naam: hun titel is de soortnaam. */
+export const VERZAMELING: ReadonlySet<ArtefactSoort> = new Set<ArtefactSoort>(["begrippen", "bronselectie", "regels"]);
+
+/** Soort en titel van een artefact, voor elke plek waar het zich noemt (7 nov 2026). Eén regel: **de titel noemt het
+ *  object zelf, nooit het werkgebied waar het in staat** – dat staat al in de chatkop en het kruimelpad.
+ *
+ *  - Een object met een eigen naam (bepaling, begrip, deelvraag, het werkgebied zelf): de naam is de titel, de soort
+ *    staat klein erboven.
+ *  - Een verzameling van het werkgebied (begripsvoorstellen, bronselectie, afleidingsregels): de soortnaam is de titel
+ *    en er is geen soortregel. De bewaarde `titel` telt dan niet, zodat een oud bericht (begripsvoorstellen met de
+ *    naam van het werkgebied) vanzelf de nieuwe titel krijgt. */
+export function artefactKop(a: Pick<Artefact, "soort" | "titel">): { soort?: string; titel: string } {
+  const label = ARTEFACT_SOORT_LABEL[a.soort];
+  if (VERZAMELING.has(a.soort)) return { titel: label };
+  return { soort: label, titel: a.titel.trim() || label };
 }
 
 /** Een sleutel die per artefact verschilt (React `key`). */
@@ -144,5 +156,5 @@ export function isTeOpenen(a: Artefact): boolean {
 export function bronselectieVanKaart(k: Vraagkaart | undefined): WerkgebiedArtefact | undefined {
   if (k?.modus !== "bronselectie" || !k.intake_id.startsWith("bs-") || k.intake_id.length <= 3) return undefined;
   return { soort: "bronselectie", werkgebied_id: k.intake_id.slice(3), run_id: "",
-    ...(k.deelvraag_id ? { deelvraag_id: k.deelvraag_id } : {}), titel: "Bronselectie" };
+    ...(k.deelvraag_id ? { deelvraag_id: k.deelvraag_id } : {}), titel: "" };
 }

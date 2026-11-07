@@ -146,7 +146,7 @@ def bron_query(bwb_id: str, *, limit: int | None = None, offset: int = 0) -> str
         raise BronFout("Ongeldig BWB-id")
     types = " ".join("bwb:" + t for t in TYPEN)
     query = f'''PREFIX bwb: <urn:bwb-ns:>
-SELECT DISTINCT ?node ?type ?parent ?nummer ?label ?titel ?tekst ?vorige ?jci ?url ?toestand ?citeertitel ?vindplaats ?bepaling WHERE {{
+SELECT DISTINCT ?node ?type ?parent ?nummer ?label ?titel ?tekst ?vorige ?jci ?url ?toestand ?citeertitel ?vindplaats ?bepaling ?status WHERE {{
  GRAPH <urn:bwb:graph:{bwb_id}> {{
   VALUES ?type {{ {types} }}
   ?node a ?type .
@@ -160,6 +160,7 @@ SELECT DISTINCT ?node ?type ?parent ?nummer ?label ?titel ?tekst ?vorige ?jci ?u
   OPTIONAL {{ ?node <http://www.w3.org/2002/07/owl#sameAs> ?url }}
   OPTIONAL {{ ?node bwb:vindplaats ?vindplaats }}
   OPTIONAL {{ ?node bwb:inBepaling ?bepaling }}
+  OPTIONAL {{ ?node bwb:status ?status }}
   OPTIONAL {{ <urn:bwb:{bwb_id}> bwb:toestandUrl ?toestand }}
   OPTIONAL {{ <urn:bwb:{bwb_id}> bwb:citeertitel ?citeertitel }}
  }}
@@ -253,6 +254,19 @@ def eigenaar(nodes: list[dict], iris: list[str]) -> str:
     raise BronFout("Ankers horen niet bij dezelfde bronboom")
 
 
+def anker_actueel(anker: dict, nodes: dict[str, dict]) -> bool:
+    """Staat dit anker nog op de tekst van nu? De bronnode bestaat nog, zijn tekst is dezelfde, en de passage staat
+    er op de plek van het anker. Een verdwenen node is dus verouderd, niet actueel."""
+    node = nodes.get(anker["bron_iri"])
+    return (node is not None and node.get("bron_hash") == anker["bron_hash"]
+            and node.get("tekst", "")[anker["start"]:anker["eind"]] == anker["tekst"])
+
+
+def element_actueel(element: dict, nodes: dict[str, dict]) -> bool:
+    """Een element is actueel zolang het niet als verouderd is vastgelegd en al zijn ankers actueel zijn."""
+    return not element.get("verouderd") and all(anker_actueel(a, nodes) for a in element.get("ankers") or [])
+
+
 def valideer_ankers(snapshot: dict, ankers: list[dict]) -> str:
     nodes = {n["bron_iri"]: n for n in snapshot["nodes"]}
     if not ankers:
@@ -315,7 +329,13 @@ def _kop(n: dict) -> str:
 
 # Velden die de importer als naam bij een node schrijft (`bwb:vindplaats`, `bwb:inBepaling`). Ze staan op
 # de node, maar tellen niet mee in de snapshot-id.
-PLEK = ("vindplaats", "bepaling")
+# Wat een node draagt zonder dat het zijn identiteit is. De bron schrijft de status op artikel en divisie, en een
+# wijziging ervan (een artikel treedt in werking) verandert de tekst niet.
+PLEK = ("vindplaats", "bepaling", "status")
+
+#: `bwb:status` van een bepaling die al in de regeling staat maar nog niet geldt. `vervallen` hoeft geen eigen stand:
+#: daar zegt de tekst het zelf.
+NOG_NIET = "nogniet"
 
 
 def _vast(n: dict) -> dict:
@@ -331,7 +351,10 @@ def bouw_snapshot(rows: list[dict], *, bron_iri: str = "", bwb_id: str,
         if kind not in TYPEN or not _IRI.fullmatch(iri) or _IRI.fullmatch(iri).group(1) != bwb_id:
             raise BronFout("Onbekende of bronvreemde node")
         item = {"bron_iri": iri, "parent_iri": row.get("parent", ""), "type": kind,
-                "nummer": row.get("nummer", ""), "label": row.get("label") or row.get("titel")
+                "nummer": row.get("nummer", ""),
+                # Een artikel zonder eigen label heet naar zijn nummer, niet naar zijn opschrift (`bwb:titel`): dat
+                # opschrift kwam er pas later bij, en de naam van een node hoort bij zijn identiteit.
+                "label": row.get("label") or (row.get("titel") if kind != "Artikel" else "")
                 or f"{kind} {row.get('nummer', '')}".strip(), "tekst": row.get("tekst", ""),
                 "bwb_id": bwb_id, "vorige": row.get("vorige", ""), "url": row.get("url", ""),
                 "jci": row.get("jci", "")}
@@ -374,6 +397,9 @@ def bouw_snapshot(rows: list[dict], *, bron_iri: str = "", bwb_id: str,
     visit("")
     if len(visited) != len(nodes):
         raise BronFout("Niet alle nodes zijn verbonden")
+    for n in ordered:  # de ouder staat eerder in de lijst: een lid erft van zijn artikel, een onderdeel van zijn lid
+        if not n["status"] and n["parent_iri"]:
+            n["status"] = nodes[n["parent_iri"]]["status"]
     titel = next((r["citeertitel"] for r in rows if r.get("citeertitel")), bwb_id)
     if not bron_iri:
         if artikel:
