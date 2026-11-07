@@ -119,16 +119,12 @@ async def _voorraad_met(client, wg, status=200, **query) -> dict:
 
 
 async def _deelvraag(client, wg, vraag, bronnen) -> tuple[dict, str]:
-    r = await client.post(f"/v1/werkgebieden/{wg['id']}/deelvragen",
-                          json={"verwachte_revisie": wg["revisie"], "vraag": vraag})
-    assert r.status_code == 201, r.text
-    wg = r.json()
+    from test_werkgebied_deelvragen import _dv, _koppel
+
+    wg = await _dv(client, wg, vraag)
     did = next(d["id"] for d in wg["deelvragen"] if d["vraag"] == vraag)
     if bronnen:
-        r = await client.put(f"/v1/werkgebieden/{wg['id']}/deelvragen/{did}/koppelingen",
-                             json={"verwachte_revisie": wg["revisie"], "bronnen": bronnen})
-        assert r.status_code == 200, r.text
-        wg = r.json()
+        wg = await _koppel(client, wg, did, bronnen=bronnen)
     return wg, did
 
 

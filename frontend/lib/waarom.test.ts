@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { AgentRun, ElementTrace } from "./types";
-import { beurtSamenvatting, graafStatusTekst, laatsteJuristBeslissing, laatsteRun, redenVoorAlternatief, waaromVan } from "./waarom";
+import type { ElementTrace } from "./types";
+import { beurtSamenvatting, graafStatusTekst, laatsteJuristBeslissing, redenVoorAlternatief, waaromVan } from "./waarom";
 import { metingUitDekking } from "./agentEvents";
 import { verklaar, type Verklaringen } from "./verklaringen";
 
@@ -94,14 +94,10 @@ describe("laatsteJuristBeslissing", () => {
 });
 
 describe("beurtsamenvatting", () => {
-  const run = (tijd: string, meting?: object) => ({ ronde: 1, model: "m", provider: "p", agent_versie: "", stop_reden: "", tijd,
-    instellingen: meting ? { meting } : undefined }) as AgentRun;
-
-  it("vat de laatste ronde samen: resultaat, zonder zinsontleding en duur", () => {
+  it("vat de ronde samen: resultaat, zonder zinsontleding en duur", () => {
     const meting = { fasen: [{ fase: "Detectie", samenvatting: "…", ms: 1200 }, { fase: "Resultaat", samenvatting: "12 voorgesteld", ms: 3000 }],
       gedegradeerd: ["urn:a"] };
-    const r = laatsteRun([{ geproduceerd_door: run("2026-10-01T10:00:00Z") }, { geproduceerd_door: run("2026-10-02T10:00:00Z", meting) }, { geproduceerd_door: null }]);
-    expect(beurtSamenvatting(r?.instellingen?.meting)).toBe("12 voorgesteld · 1 bronnode zonder zinsontleding · 4,2 s");
+    expect(beurtSamenvatting(meting)).toBe("12 voorgesteld · 1 bronnode zonder zinsontleding · 4,2 s");
   });
 
   it("is leeg zonder meting", () => {

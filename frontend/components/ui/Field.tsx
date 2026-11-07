@@ -50,6 +50,3 @@ export function Select({ className = "", ...props }: React.SelectHTMLAttributes<
     </span>
   );
 }
-
-/** De klassen van een keuzelijst, voor een `<select>` die geen `Select` kan zijn; zonder eigen chevron. */
-export const SELECT_KLASSE = `${inputBase} cursor-pointer`;

@@ -107,7 +107,7 @@ de opgeslagen annotaties en 2 op de begrippen. Die laatste zes lopen via de wets
 - **Begrippen** – `search_begrippen`, `get_begrip`.
 - **Introspectie** – `graph_schema`; **laatste redmiddel** – `raw_sparql` (read-only).
 
-`jas_klasse_opvragen` en `jas_regels_opvragen` staan daarbuiten en zijn opt-in per specialist.
+`jas_klasse_opvragen` staat daarbuiten en is opt-in per specialist.
 
 ### Brongetrouwheid en geheugen
 
@@ -124,7 +124,7 @@ de opgeslagen annotaties en 2 op de begrippen. Die laatste zes lopen via de wets
 
 ## API
 
-**De werkplek gebruikt de run-endpoints, niet `/v1/chat`.** Een beurt kan minuten duren; de run
+**De werkplek gebruikt de run-endpoints; een andere weg is er niet.** Een beurt kan minuten duren; de run
 draait als achtergrondtaak bij de agent en de browser kijkt mee. Sluit je het tabblad, dan loopt het
 werk door en legt de agent de uitkomst zelf vast.
 
@@ -136,7 +136,6 @@ werk door en legt de agent de uitkomst zelf vast.
 | `POST /v1/runs/{id}/cancel` | 202 – stoppen is een verzoek: de lopende stap maakt zichzelf af. |
 | `GET /v1/conversations/{id}/run` | De run waar je op kunt aanhaken, of `null`. |
 | `DELETE /v1/conversations/{id}` | Wist het agent-geheugen van één gesprek (idempotent → 204) en stopt een lopende beurt. |
-| `POST /v1/chat` | Eén beurt **aan de verbinding gekoppeld** (SSE, zelfde body, maar 422 bij een `actie` of een werkgebied-modus). Zonder eigenaarscontrole en zonder vastleggen: voor scripts en handmatig testen, niet voor de webapp. |
 
 **Events.** Antwoord: `status` · `reason` (denkproces) · `token` (eindantwoord) · `sources` ·
 `grounding` · `conversation_id` · `tool_execution` · `overzicht` · `antwoord` (de blokken van een
@@ -208,7 +207,6 @@ Secrets kunnen ook als `<NAAM>_FILE` (pad naar een bestand) worden gezet: `GRAPH
 | `GRAPHDB_TOKEN` *(verplicht)* | – | Bearer-token voor de GraphDB-MCP. |
 | `GRAPHDB_REPOSITORY_ID` | `inning` | Repository. |
 | `GRAPHDB_SPARQL_TOOL` | `sparql_query` | Naam van de SPARQL-tool op de MCP-server. |
-| `GRAPHDB_BASE_IRI` / `GRAPHDB_ONTOLOGY_IRI` | `urn:bwb:` / `urn:bwb-ns:` | IRI-ruimtes; gelijk aan die van de importer. |
 | `SIMILARITY_INDEX` | leeg | GraphDB-similarity-index voor `semantic_search` (op Azure `bwb_similarity`). Leeg → de tool degradeert naar `search_wetgeving`. Zie [`docs/embeddings-runbook.md`](docs/embeddings-runbook.md). |
 | `AZURE_FOUNDRY_API_KEY` *(verplicht)* | – | Azure-AI-Foundry-key. |
 | `AZURE_FOUNDRY_BASE_URL` *(verplicht)* | – | Foundry-endpoint **met** `/anthropic`-suffix. |
@@ -228,8 +226,6 @@ Secrets kunnen ook als `<NAAM>_FILE` (pad naar een bestand) worden gezet: `GRAPH
 | `CHECKPOINT_DB_PATH` | `conversations_checkpoints.db` | SQLite-bestand als `CHECKPOINT_DB_URL` leeg is (relatief = t.o.v. `tools/graph-qa`, per instance). |
 | `MAX_TURNS` / `MAX_HISTORY_CHARS` | `20` / `40000` | Max. reason↔retrieve-beurten per vraag; historiebudget per beurt naar de LLM. |
 | `GROUNDING_CORRECT` | `true` | Eén corrigerende ronde bij een ongegrond antwoord; kost alleen een call als er iets mis is. |
-| `ENABLE_DECOMPOSITION` | uit | `1` = samengestelde vragen eerst in deelvragen splitsen. Op Azure uit. |
-| `MAX_SUBQUESTIONS` / `SUB_MAX_TURNS` | `5` / `8` | Cap op deelvragen en op beurten per deelvraag. |
 | `TAAL_PROVIDER` | `spacy:nl_core_news_md` | Taalanalyse voor de detectoren. |
 | `CLASSIFIER_GRANULARITEIT` | `klasseverzameling` | Eén classificatiecall voor alles (`universeel`), per klassefamilie (`familie`) of per toegestane klasseverzameling. |
 | `CLASSIFIER_PARALLEL` | `4` | Classificatiebatches tegelijk; de uitkomst verandert niet. |

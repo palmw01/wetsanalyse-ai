@@ -90,7 +90,7 @@ describe("verwerkReeksEvent", () => {
 
 describe("reeksUitBerichten", () => {
   const bericht = (index: number, extra: Partial<Bericht> = {}): Bericht => ({
-    rol: "assistant", tekst: "", denk: `· stap ${index}`, bronnen: [], annotatie_slug: "", annotatie_titel: "",
+    rol: "assistant", tekst: "", denk: `· stap ${index}`, bronnen: [], annotatie_titel: "",
     run_id: `run-1.${index + 1}`, reeks: { run_id: "run-1", index, totaal: 3, ouder: "Artikel 9" },
     annotatie_doel: { bron_iri: [L1, L2, L3][index], label: `Lid ${index + 1}` }, ...extra,
   });

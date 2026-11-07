@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 import httpx
 from bronmodel import BronFout, element_actueel
+from bronmodel.taal import BRON_IRI
 
 from . import annotatie_export as export
 from . import annotatie_v2_store as store
@@ -192,7 +193,7 @@ async def get_element(element_id: str, actor: str = Depends(actieve_userid)):
         result["element"].get("geproduceerd_door") or {})}
     # DB-identiteit/historie is waarheid; actualiteit volgt uit huidige gecontroleerde bron.
     owner = result["element"]["eigenaar_iri"]
-    law = re.fullmatch(r"urn:bwb:(BWB[RV]\d+)(?::[^<>\s\"{}|^`\\]*)?", owner)
+    law = BRON_IRI.fullmatch(owner)
     if law is None:
         raise HTTPException(422, "Opgeslagen bronidentiteit is ongeldig.")
     snapshot = await resolve_bron({"bwb_id": law.group(1)})

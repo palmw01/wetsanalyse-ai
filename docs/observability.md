@@ -51,7 +51,7 @@ straat: dat ene exemplaar leest beide workspaces.
 |-----------|---------|--------|---------|
 | **API** (`api/`, FastAPI) | JSON-`dictConfig`, request-id-middleware, access-log | FastAPI-requests, DB | http-server-latency, request-count/foutrate (auto) |
 | **Frontend** (`frontend/`, Next.js) | server-side JSON naar stdout in de BFF-lagen | `@vercel/otel`: route handlers + uitgaande `fetch` (traceparent) | request-count/latency (auto) |
-| **graph-qa** (`tools/graph-qa/`) | gestructureerde JSON-logs | `/v1/runs` (de weg van de werkplek) en `/v1/chat` + GraphDB-MCP-calls | http-server-latency (auto) |
+| **graph-qa** (`tools/graph-qa/`) | gestructureerde JSON-logs | `/v1/runs` (de weg van de werkplek) + GraphDB-MCP-calls | http-server-latency (auto) |
 
 Drie logregels van graph-qa die bij een storing het eerst iets zeggen: **`api-schrijffout`** (met
 `http_status` en, sinds 22 sep 2026, `api_reden` – de korte servertekst van de api, nooit de body),
@@ -74,7 +74,7 @@ service-graph-connector) i.p.v. als eigen span.
 
 ## Correlatie
 
-Eén **trace-id** verbindt de keten: `frontend → API → PostgreSQL` en `frontend → graph-qa` (`/v1/runs`, SSE; `/v1/chat` is de niet-webapp-weg). OTel propageert automatisch via de W3C-`traceparent`-header op
+Eén **trace-id** verbindt de keten: `frontend → API → PostgreSQL` en `frontend → graph-qa` (`/v1/runs`, SSE). OTel propageert automatisch via de W3C-`traceparent`-header op
 uitgaande `fetch`/httpx-calls. Elke logregel draagt `trace_id`/`span_id` zodra er een span actief is,
 plus (in de API) een `request_id` per inkomend verzoek (`X-Request-Id`, gegenereerd of overgenomen en
 in de response geëchood).

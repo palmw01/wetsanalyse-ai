@@ -70,8 +70,8 @@ def test_in_de_keten_ziet_de_jurist_alleen_het_herstelde_citaat():
     ])
 
     async def run():
-        return [e async for e in answer_stream("Wanneer is een aanslag invorderbaar?", settings=make_settings(
-            enable_decomposition=False), llm=llm, graph=FakeGraph(result=tsv))]
+        return [e async for e in answer_stream("Wanneer is een aanslag invorderbaar?", settings=make_settings(),
+                                               llm=llm, graph=FakeGraph(result=tsv))]
     events = asyncio.run(run())
     tokens = "".join(e["content"] for e in events if e["type"] == "token")
     assert tokens == 'De termijn: "zes weken na de dagtekening van het aanslagbiljet". (BWBR0004770)'

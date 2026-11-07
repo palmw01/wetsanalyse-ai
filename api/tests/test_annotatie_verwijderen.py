@@ -50,8 +50,8 @@ def in_register(nep, laag_id: str) -> bool:
 async def test_verwijdert_de_lagen_in_beeld_met_elementen_dekking_audit_en_graaf(monkeypatch):
     nep = installeer(monkeypatch)
     art, lid = snapshot(), snapshot(ONE)
-    a = await store.batch(request(art, [over_beide_leden(art), element(art, TWO, 0, 4)],
-                                  dekking={"voltooid": True, "bereik": [ONE, TWO], "parent_context": True}), art, "a")
+    await store.batch(request(art, [over_beide_leden(art), element(art, TWO, 0, 4)],
+                              dekking={"voltooid": True, "bereik": [ONE, TWO], "parent_context": True}), art, "a")
     await store.batch(request(lid, [element(lid)], batch_id="lid", revisions={ONE: 1}), lid, "b")
     ids = [l["id"] for l in (await store.weergave(art))["lagen"]]
     assert len(ids) == 3

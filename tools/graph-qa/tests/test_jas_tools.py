@@ -7,7 +7,6 @@ from agent.tools.jas_tools import (
     JAS_TOOL_NAMEN,
     JAS_TOOLS,
     _jas_klasse_opvragen,
-    _jas_regels_opvragen,
 )
 
 
@@ -35,48 +34,9 @@ class TestJasKlasseOpvragen:
             assert r["naam"] == naam, f"Klasse {naam} niet gevonden"
 
 
-class TestJasRegelsOpvragen:
-    def test_tijdsaanduiding_wint_van_variabele(self):
-        result = json.loads(_jas_regels_opvragen(
-            "Variabele en variabelewaarde", "Tijdsaanduiding"
-        ))
-        assert "regels" in result
-        regel = result["regels"][0]
-        assert regel["winnaar"] == "Tijdsaanduiding"
-        assert "JAS-PRIORITY-001" in regel["regel_id"]
-
-    def test_omgekeerde_volgorde_zelfde_uitkomst(self):
-        a = json.loads(_jas_regels_opvragen("Tijdsaanduiding", "Parameter en parameterwaarde"))
-        b = json.loads(_jas_regels_opvragen("Parameter en parameterwaarde", "Tijdsaanduiding"))
-        assert a["regels"][0]["winnaar"] == "Tijdsaanduiding"
-        assert b["regels"][0]["winnaar"] == "Tijdsaanduiding"
-
-    def test_plaatsaanduiding_wint_van_parameter(self):
-        result = json.loads(_jas_regels_opvragen(
-            "Plaatsaanduiding", "Parameter en parameterwaarde"
-        ))
-        assert result["regels"][0]["winnaar"] == "Plaatsaanduiding"
-
-    def test_geen_regel_geeft_boodschap(self):
-        result = json.loads(_jas_regels_opvragen("Rechtssubject", "Rechtsobject"))
-        assert "boodschap" in result
-        assert "regels" not in result
-
-    def test_gelijke_prioriteit_geeft_geen_winnaar(self):
-        # Variabele en Parameter zitten beide in PRIORITY-001/002 met gelijke rang (50).
-        # Er zijn regels, maar geen winnaar.
-        result = json.loads(_jas_regels_opvragen(
-            "Variabele en variabelewaarde", "Parameter en parameterwaarde"
-        ))
-        assert "regels" in result
-        for regel in result["regels"]:
-            assert regel["winnaar"] is None
-
-
 class TestJasToolsRegistratie:
     def test_namen(self):
-        assert "jas_klasse_opvragen" in JAS_TOOL_NAMEN
-        assert "jas_regels_opvragen" in JAS_TOOL_NAMEN
+        assert JAS_TOOL_NAMEN == {"jas_klasse_opvragen"}
 
     def test_schema_structuur(self):
         for tool in JAS_TOOLS:

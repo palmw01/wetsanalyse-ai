@@ -123,18 +123,17 @@ describe("scopeInModel", async () => {
 describe("isWerkgebiedRoute", async () => {
   const { isWerkgebiedRoute } = await import("./werkgebied");
   it.each([
-    [["w"]], [["w", "bronnen"]], [["w", "bronnen", "s"]], [["w", "elementen"]], [["w", "audit"]], [["w", "toestanden"]], [["w", "regelingen"]], [["w", "bepalingen"]],
-    [["w", "bronselectie", "d1", "bronnen"]],
+    [["w"]], [["w", "bronnen"]], [["w", "bronnen", "s"]], [["w", "elementen"]], [["w", "audit"]], [["w", "toestanden"]],
     [["w", "begrippen"]], [["w", "begrippen", "export"]], [["w", "begrippen", "b"]],
     [["w", "begrippen", "b", "koppelingen"]], [["w", "begrippen", "b", "accorderen"]],
     [["w", "begrippen", "b", "heropenen"]], [["w", "begrippen", "b", "revisies"]],
     [["w", "begrippen", "b", "koppelingen", "k"]],
     [["w", "begrippen", "b", "koppelingen", "beoordelen"]], [["w", "begrippen", "b", "koppelingen", "bevestigen"]],
     [["w", "begrippen-runs", "laatste"]], [["w", "begrippen-runs", "r"]], [["w", "begrippen-runs", "r", "vragen", "P1"]],
-    [["w", "groepen"]], [["w", "groepen", "overnemen"]], [["w", "groepen", "akkoord"]], [["w", "groepen", "G1", "koppelen"]],
+    [["w", "groepen"]], [["w", "groepen", "akkoord"]], [["w", "groepen", "G1", "koppelen"]],
     [["w", "groepen", "G1", "afwijzen"]], [["w", "groepen", "G1", "parkeren"]], [["w", "groepen", "G1", "heropenen"]],
     [["w", "bronnen-runs", "laatste"]], [["w", "bronnen-runs", "r"]], [["w", "kandidaten"]],
-    [["w", "annotatie-werkvoorraad"]], [["w", "verdieping"]],
+    [["w", "annotatie-werkvoorraad"]],
     // Lex naast de kaart (fase E): voorstellen lezen en besluiten.
     [["w", "begrippen", "b", "voorstellen"]], [["w", "begrippen", "b", "voorstellen", "v", "overnemen"]],
     [["w", "begrippen", "b", "voorstellen", "v", "afwijzen"]],
@@ -147,10 +146,9 @@ describe("isWerkgebiedRoute", async () => {
     [["w", "relaties", "voorstellen", "R1", "afwijzen"]], [["w", "begrippen", "b", "nieuwe-betekenis"]],
     [["w", "begrippen", "b", "combineren"]],
     // Deelvragen (optioneel).
-    [["w", "deelvragen"]], [["w", "deelvragen", "d"]], [["w", "deelvragen", "dekking"]], [["w", "deelvragen", "samen"]],
-    [["w", "deelvragen", "d", "koppelingen"]],
+    [["w", "deelvragen", "d"]], [["w", "deelvragen", "dekking"]], [["w", "deelvragen", "samen"]],
     // De bronselectie per deelvraag (spoor J).
-    [["w", "bronselectie"]], [["w", "bronselectie", "d", "status"]], [["w", "bronselectie", "d", "kandidaten", "K1"]],
+    [["w", "bronselectie"]], [["w", "bronselectie", "d", "kandidaten", "K1"]],
     [["w1", "export"]],
   ])("laat %j door", (pad) => expect(isWerkgebiedRoute(pad)).toBe(true));
   it.each([
@@ -160,14 +158,18 @@ describe("isWerkgebiedRoute", async () => {
     // Alleen graph-qa maakt de run en schrijft de uitkomst (de begrippen-agent).
     [["w", "begrippen-runs"]], [["w", "begrippen-runs", "r", "uitkomst"]], [["w", "begrippen-runs", "r", "loopt"]],
     [["w", "begrippen-runs", "r", "mislukt"]], [["w", "begrippen-runs", "r", "vragen"]],
-    [["w", "groepen", "G1"]], [["w", "groepen", "G1", "verwijderen"]], [["w", "groepen", "overnemen", "x"]], [["w", "groepen", "akkoord", "x"]],
+    [["w", "groepen", "G1"]], [["w", "groepen", "G1", "verwijderen"]], [["w", "groepen", "akkoord", "x"]],
+    // Niets in de werkplek gebruikt ze (meer): de verdieping, de regelingen en bepalingen van het oude zoekvenster,
+    // de stand van een deelvraag en zelf een bepaling toevoegen (dat gaat via Lex), en `groepen/overnemen`.
+    [["w", "verdieping"]], [["w", "regelingen"]], [["w", "bepalingen"]], [["w", "groepen", "overnemen"]],
+    [["w", "bronselectie", "d1", "status"]], [["w", "bronselectie", "d1", "bronnen"]],
     // Ook bij de bronnen: de run is van graph-qa (de deelvragen-agent).
     [["w", "bronnen-runs"]], [["w", "bronnen-runs", "r", "uitkomst"]], [["w", "bronnen-runs", "r", "loopt"]],
     [["w", "bronnen-runs", "r", "mislukt"]], [["w", "kandidaten", "K1"]], [["w", "kandidaten", "K1", "wissen"]],
     // Spoor J: de bronverkenner beslist niets meer.
     [["w", "kandidaten", "K1", "opnemen"]], [["w", "kandidaten", "K1", "later"]], [["w", "kandidaten", "K1", "uitsluiten"]],
     [["w", "annotatie-werkvoorraad", "x"]],
-    // De verdieping (fase C): lezen mag, de batches en de uitkomst zijn van graph-qa.
+    // De verdieping (fase C): de batches en de uitkomst zijn van graph-qa.
     [["w", "verdieping", "x"]], [["w", "begrippen-runs", "r", "batches", "B1"]], [["w", "begrippen-runs", "r", "verdieping"]],
     // Een kaartrun, de run zelf (met invoer) en zijn uitkomst zijn van graph-qa (de begrippen-agent).
     [["w", "begrippen", "b", "kaart-runs"]], [["w", "begrippen", "b", "kaart-runs", "r"]],
@@ -179,7 +181,9 @@ describe("isWerkgebiedRoute", async () => {
     [["w", "relaties", "r", "wissen"]], [["w", "relaties", "voorstellen", "R1", "akkoord"]], [["w", "relaties", "r", "x", "y"]],
     // Voorstellen van deelvragen zet graph-qa (de deelvragen-agent).
     [["w", "deelvragen", "voorstellen"]], [["w", "deelvragen", "d", "x"]], [["w", "deelvragen", "dekking", "koppelingen"]],
-    [["w", "deelvragen", "d", "koppelingen", "x"]],
+    // Een deelvraag toevoegen of weghalen gaat via `samen`; koppelen en zelf een bepaling toevoegen zijn weg (H3).
+    [["w", "deelvragen"]], [["w", "deelvragen", "d", "koppelingen"]], [["w", "bronselectie", "d", "bronnen"]],
+    [["w", "regelingen"]],
     [["w", "bronselectie", "d"]], [["w", "bronselectie", "d", "kandidaten"]], [["w", "bronselectie", "d", "wissen"]],
     [["w", "bronselectie", "d", "kandidaten", "K1", "x"]],
     [["w1", "export", "pdf"]],

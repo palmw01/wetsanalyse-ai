@@ -36,7 +36,7 @@ from .annotatie_v2_contracts import BEOORDEELD
 from .begrip_manifest import _vindplaats
 from .begrip_onderhoud_contracts import Bevestiging, Bevestigingen, BuitenBehandeling, Herkoppeling
 from .werkgebied_inventaris import Resolver, inventaris, inventaris_met_bronbomen, nodes_met_titel
-from .werkgebied_store import _audit as werkgebied_audit
+from .werkgebied_store import _audit as werkgebied_audit, werkgebied_rij
 
 MAX_OPVOLGERS = 5
 SLOTTEKST = "Slottekst"                      # `bwb:label` van tekst na een opsomming (tools/bwb-import)
@@ -200,8 +200,8 @@ async def herbeoordelingen(werkgebied: dict, resolve: Resolver, begrip_id: str |
     opgehaald = set(per_bwb)
     b = db.begrippen
     async with db.get_engine().connect() as conn:
-        await begrip_store._werkgebied_bestaat(conn, werkgebied["id"])
-        q = select(b).where(begrip_store.in_werkgebied(werkgebied["id"]), b.c.verwijderd.is_(None))
+        await werkgebied_rij(conn, werkgebied["id"])
+        q = select(b).where(begrip_store.in_werkgebied(werkgebied["id"]))
         if begrip_id:
             q = q.where(b.c.id == begrip_id)
         rows = (await conn.execute(q.order_by(b.c.aangemaakt, b.c.id))).all()
@@ -391,10 +391,9 @@ async def dekking(werkgebied: dict, resolve: Resolver) -> dict:
     inv = await inventaris(werkgebied["bronnen"], resolve)
     b = db.begrippen
     async with db.get_engine().connect() as conn:
-        await begrip_store._werkgebied_bestaat(conn, werkgebied["id"])
+        await werkgebied_rij(conn, werkgebied["id"])
         status = {r.id: (r.status, r.inhoud.get("naam", "")) for r in (await conn.execute(select(b.c.id, b.c.status, b.c.inhoud)
-                  .where(b.c.werkgebied_id == werkgebied["id"], b.c.verwijderd.is_(None),
-                         b.c.status != "vervangen"))).all()}
+                  .where(b.c.werkgebied_id == werkgebied["id"], b.c.status != "vervangen"))).all()}
         koppelingen = await begrip_store._koppelingen_van(conn, werkgebied["id"])
         besluiten = await _besluiten(conn, werkgebied["id"])
         run = await begrippen_run_store._laatste_klare(conn, werkgebied["id"])
@@ -439,7 +438,7 @@ async def zet_buiten_behandeling(werkgebied: dict, bb: BuitenBehandeling, actor:
                                   "melding": "Niet elk element valt binnen dit werkgebied."})
     t = db.werkgebied_element_besluiten
     async with db.get_engine().begin() as conn:
-        await begrip_store._werkgebied_bestaat(conn, werkgebied["id"], slot=True)
+        await werkgebied_rij(conn, werkgebied["id"], slot=True)
         al = set(await _besluiten(conn, werkgebied["id"]))
         nieuw = [i for i in dict.fromkeys(bb.element_ids) if i not in al]
         nu = db.utcnow()
@@ -456,7 +455,7 @@ async def zet_buiten_behandeling(werkgebied: dict, bb: BuitenBehandeling, actor:
 async def terug_in_behandeling(werkgebied_id: str, element_id: str, actor: str) -> dict:
     t = db.werkgebied_element_besluiten
     async with db.get_engine().begin() as conn:
-        await begrip_store._werkgebied_bestaat(conn, werkgebied_id, slot=True)
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
         r = await conn.execute(update(t).where(t.c.werkgebied_id == werkgebied_id, t.c.element_id == element_id,
                                                t.c.verwijderd.is_(None)).values(verwijderd=db.utcnow()))
         if not r.rowcount:

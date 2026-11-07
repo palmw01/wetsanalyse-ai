@@ -74,7 +74,7 @@ def _events(hergebruik: str = "auto") -> list[dict]:
     async def verzamel():
         return [e async for e in answer_stream(
             "annoteer artikel 9 lid 2 van de Invorderingswet 1990",
-            settings=make_settings(enable_decomposition=True),
+            settings=make_settings(),
             llm=llm, graph=FakeGraph(result=ARTIKEL_TSV), hergebruik=hergebruik,
         )]
 

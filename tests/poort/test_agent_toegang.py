@@ -26,7 +26,7 @@ BESLISSINGEN = {
     ("POST", "/v1/werkgebieden/{}/begrippen/{}/koppelingen/{}/bevestigen"),
     ("POST", "/v1/werkgebieden/{}/begrippen/{}/voorstellen/{}/overnemen"),
     ("POST", "/v1/werkgebieden/{}/bronselectie/{}/kandidaten/{}"),
-    ("POST", "/v1/werkgebieden/{}/groepen/overnemen"),
+    ("POST", "/v1/werkgebieden/{}/groepen/akkoord"),
     ("POST", "/v1/werkgebieden/{}/relaties/{}/bevestigen"),
 }
 

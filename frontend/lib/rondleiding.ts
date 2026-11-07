@@ -270,11 +270,6 @@ export function toetsActie(t: ToetsContext): "volgende" | "vorige" | "sluiten" |
   return null;
 }
 
-/** Moet het artefact openstaan om van `van` naar `naar` te kunnen? */
-export function vraagtArtefact(stappen: Stap[], index: number): boolean {
-  return Boolean(stappen[index]?.artefactOpen);
-}
-
 /** Wat er met het artefactpaneel moet gebeuren om bij `naar` te passen.
  *
  *  Het paneel hoort bij de stap, in beide richtingen. Alleen openen was niet genoeg: liep je terug

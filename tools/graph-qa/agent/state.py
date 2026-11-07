@@ -89,10 +89,6 @@ class State(TypedDict, total=False):
     pending_tools: list[dict[str, Any]]
     turns: int
     corrected: bool
-    # Decompositie (multi-hop): deelvragen + per-deelvraag bevindingen (last-value-wins;
-    # solve_node zet ze in één keer). De per-deelvraag agent⇄tools-loop draait lokaal in solve_node.
-    sub_questions: list[str]
-    sub_findings: list[dict[str, str]]
     # Het doel dat de AANROEPER meegaf ({bwbId, artikel, lid?, citeertitel?}). Weet de werkplek de
     # bepaling al – een open document, een item uit de werkvoorraad, een gekozen kandidaat – dan
     # hoeft niemand hem meer te zoeken: de supervisor doet geen LLM-call en de ophaal-agent draait

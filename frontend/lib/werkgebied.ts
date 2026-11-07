@@ -61,16 +61,6 @@ export const ROL_LABEL: Record<BronRol, string> = {
   context: "Contextbron",
 };
 
-export const ROL_UITLEG: Record<BronRol, string> = {
-  analyseren: "De elementen horen bij de werkvoorraad van dit werkgebied.",
-  context: "Ondersteunt de analyse, bijvoorbeeld met een definitie; de elementen tellen niet als werkvoorraad.",
-};
-
-export const BEREIK_LABEL: Record<BronBereik, string> = {
-  onderliggend: "met alles eronder",
-  node: "alleen deze bepaling",
-};
-
 /** Iemand anders wijzigde het werkgebied tussendoor (412 met `revisie_conflict`). */
 export function isRevisieConflict(e: unknown): boolean {
   return isApiError(e) && e.status === 412 && e.data?.fout === "revisie_conflict";
@@ -97,16 +87,11 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   if (!id || pad.length > 6) return false;
   if (pad.length === 1) return true;
   if (deel === "bronnen") return pad.length <= 3;
-  // Deelvragen (optioneel): toevoegen, wijzigen, weghalen, samen opslaan, koppelen en de dekking. `voorstellen` zet
-  // graph-qa (de deelvragen-agent, die je in het gesprek vraagt).
-  if (deel === "deelvragen") {
-    if (pad.length === 2) return true;
-    if (pad.length === 3) return !!a && a !== "voorstellen";
-    return pad.length === 4 && !!a && a !== "dekking" && a !== "voorstellen" && b === "koppelingen";
-  }
-  // `verdieping` (fase C) is alleen lezen; de batches en de uitkomst zet graph-qa, niet de werkplek.
-  if (deel === "export" || deel === "elementen" || deel === "audit" || deel === "annotatie-werkvoorraad" || deel === "verdieping"
-      || deel === "herbeoordelingen" || deel === "thema-voorstel" || deel === "toestanden" || deel === "regelingen" || deel === "bepalingen")
+  // Deelvragen (optioneel): één lezen of wijzigen, samen opslaan en de dekking. `voorstellen` zet graph-qa (de
+  // deelvragen-agent, die je in het gesprek vraagt).
+  if (deel === "deelvragen") return pad.length === 3 && !!a && a !== "voorstellen";
+  if (deel === "export" || deel === "elementen" || deel === "audit" || deel === "annotatie-werkvoorraad"
+      || deel === "herbeoordelingen" || deel === "thema-voorstel" || deel === "toestanden")
     return pad.length === 2;
   // Relaties (fase F2): lezen en vastleggen, één relatie weghalen of bevestigen, een voorstel afwijzen.
   if (deel === "relaties") {
@@ -125,19 +110,17 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   // Bronnen vinden met Lex (fase A): zelfde regel – een run maken, `loopt`, `uitkomst` en `mislukt`
   // zijn van graph-qa (de deelvragen-agent).
   if (deel === "bronnen-runs") return pad.length === 3 && !!a;
-  // De bronselectie per deelvraag (spoor J): het overzicht lezen, de stand van één deelvraag en een besluit
-  // over één kandidaat bij één deelvraag. Dezelfde routes gebruikt Lex in het gesprek.
+  // De bronselectie per deelvraag (spoor J): het overzicht lezen en een besluit over één kandidaat bij één
+  // deelvraag. De stand van een deelvraag zet Lex in het gesprek, en een bepaling toevoegen is een suggestie bij Lex.
   if (deel === "bronselectie") {
     if (pad.length === 2) return true;
-    // Een bepaling zelf toevoegen bij één deelvraag (*Bepaling toevoegen*, 3 nov 2026).
-    if (pad.length === 4) return !!a && (b === "status" || b === "bronnen");
     return pad.length === 5 && !!a && b === "kandidaten" && !!c;
   }
   // De bronverkenner leest alleen (spoor J): kiezen gaat per deelvraag, via `bronselectie`.
   if (deel === "kandidaten") return pad.length === 2;
   if (deel === "groepen") {
     if (pad.length === 2) return true;
-    if (pad.length === 3) return a === "overnemen" || a === "akkoord";
+    if (pad.length === 3) return a === "akkoord";
     return pad.length === 4 && ["koppelen", "afwijzen", "parkeren", "heropenen"].includes(b);
   }
   if (deel !== "begrippen") return false;
