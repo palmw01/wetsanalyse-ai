@@ -17,6 +17,7 @@ from bronmodel.antwoord import Vindplaats
 from bronmodel.vindplaats import vindplaats as bron_vindplaats
 
 from . import graaf as graaf_mod
+from .bepaling_graaf import _IN, _UIT, _tellingen, aantallen_uit
 from .bepaling_graaf_contract import MAX_UITGAAND, MAX_VOORBEELDEN, BepalingDetail, Structuurdeel, Telling, Verwijzing
 from .graaf_client import sparql_select
 from .knoopinfo import BWB, MAX_TRIPLES, _regeling_geldigheid, _uitgaand
@@ -27,14 +28,6 @@ log = logging.getLogger(__name__)
 _BWB_ID = re.compile(r"urn:bwb:(BWB[RV]\d+)")
 #: Een bovengrens op de verwijzingsquery: een artikel met veel leden wordt door de Leidraad vaak honderden keren genoemd.
 MAX_VERWIJZINGSRIJEN = 1000
-
-
-_UIT = """<{iri}> (bwb:heeftLid|bwb:heeftOnderdeel)* ?van . ?van bwb:heeftVerwijzing ?v . ?v bwb:naar ?naar .
-     OPTIONAL {{ ?v bwb:ankerTekst ?anker }}"""
-_IN = """<{iri}> (bwb:heeftLid|bwb:heeftOnderdeel)* ?naar . ?v bwb:naar ?naar . ?van bwb:heeftVerwijzing ?v .
-     FILTER(STRSTARTS(STR(?van), "urn:bwb:") && ?van != <{iri}> && !STRSTARTS(STR(?van), "{iri}:"))"""
-#: De tellingen uit de triples van de bepaling zelf; de rijen van `_uitgaand` zijn begrensd op `MAX_TRIPLES`.
-_TELPREDICATEN = ("grondslagVoor", "bevoegdheidVoor", "verwijzingDoor")
 
 
 def _verwijzingen(iri: str, richting: str) -> str:
@@ -49,27 +42,6 @@ def _verwijzingen(iri: str, richting: str) -> str:
   OPTIONAL {{ ?naar bwb:vindplaats ?naarLabel }}
   BIND(EXISTS {{ ?naar bwb:nummer ?n }} || EXISTS {{ ?naar bwb:citeertitel ?c }} AS ?naarInGraaf)
 }} LIMIT {MAX_VERWIJZINGSRIJEN}"""
-
-
-def _tellingen(iri: str) -> str:
-    """Het echte aantal, los van de begrensde rijen: de rijen dragen alleen de voorbeelden. Zonder dit toonde het paneel bij
-    meer dan `MAX_VERWIJZINGSRIJEN` verwijzingen een te laag aantal, alsof het alles was (review #1064)."""
-    waarden = " ".join(f"bwb:{p}" for p in _TELPREDICATEN)
-    return _PREFIXES + f"""SELECT ?wat ?n WHERE {{
-  {{ SELECT ("uit" AS ?wat) (COUNT(*) AS ?n) WHERE {{ SELECT DISTINCT ?van ?naar ?anker WHERE {{ {_UIT.format(iri=iri)} }} }} }}
-  UNION {{ SELECT ("in" AS ?wat) (COUNT(DISTINCT ?van) AS ?n) WHERE {{ {_IN.format(iri=iri)} }} }}
-  UNION {{ SELECT (STR(?p) AS ?wat) (COUNT(DISTINCT ?o) AS ?n) WHERE {{ VALUES ?p {{ {waarden} }} <{iri}> ?p ?o . FILTER(isIRI(?o)) }} GROUP BY ?p }}
-}}"""
-
-
-def aantallen_uit(rijen: list[dict]) -> dict[str, int]:
-    """`{"uit": n, "in": n, "grondslagVoor": n, …}` uit de rijen van `_tellingen`; een rij die geen getal is valt weg."""
-    uit: dict[str, int] = {}
-    for r in rijen:
-        wat, n = str(r.get("wat", "")).removeprefix(BWB), str(r.get("n", ""))
-        if wat and n.isdigit():
-            uit[wat] = int(n)
-    return uit
 
 
 def _titels(iris: list[str]) -> str:

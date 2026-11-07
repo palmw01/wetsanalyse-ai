@@ -85,7 +85,7 @@ ombouwen zonder reden.
 | `graaf.py` | De complete graaf (`/graaf`): alle regelingen met structuur, verwijzingen en markeringen; structuur en verwijzingen gecachet per `(bwb_id, toestandUrl)`. Ook `lees_bron`: de gecachete bronboom voor leesroutes. |
 | `knoopinfo.py` | Wat de kennisgraaf over één knoop weet (`/knoop`), voor de inspector van de graaf. |
 | `werkgebieden.py` (router), `werkgebied_store.py`, `werkgebied_contracts.py`, `werkgebied_inventaris.py`, `werkgebied_werkvoorraad.py` | Werkgebieden: bronselecties, revisies, audit, de inventaris en de annotatie-werkvoorraad. Elke store vraagt het werkgebied via `werkgebied_store.werkgebied_rij` (404 via `niet_gevonden`) en toetst een revisie met `toets_revisie`; een bepaling opnemen verifieert `werkgebieden.geverifieerde_bron`. |
-| `werkgebied_export.py`, `werkgebied_rapport.py`, `markdown_opmaak.py`, `pdf_opmaak.py`, `fonts/` | Het hele werkgebied als één rapport (ADR-009): `werkgebied_rapport` is het contract en de tekstlaag, `werkgebied_export` leest de stand en vult het; de gedeelde PDF-opmaak met ingesloten lettertypen. |
+| `werkgebied_export.py`, `werkgebied_rapport.py`, `bepaling_graaf.py`, `markdown_opmaak.py`, `pdf_opmaak.py`, `fonts/` | Het hele werkgebied als één rapport (ADR-009; `bepaling_graaf` is de graaflezing die het deelt met het paneel bij een antwoord): `werkgebied_rapport` is het contract en de tekstlaag, `werkgebied_export` leest de stand en vult het; de gedeelde PDF-opmaak met ingesloten lettertypen. |
 | `werkgebied_deelvragen.py` | Deelvragen: opslag, voorstellen van Lex, koppelingen en de dekkingscheck. |
 | `begrippen.py` (router), `begrip_store.py`, `begrip_contracts.py` | Begrippen: inhoud, koppelingen met bewijsstand, actualiteit, de accorderingspoort, revisies en export. |
 | `begrippen_runs.py` (router), `begrippen_run_store.py`, `begrippen_run_contracts.py`, `begrip_manifest.py` | Voorstellen van Lex: manifest voor de begrippenketen, runs, betekenisgroepen en besluiten. |
@@ -411,13 +411,13 @@ spoor D (*Werkgebied als node*).
   3 Werkgebied, 4 Deelvragen en bronnen, 5 Analyse per bepaling, 6 Begrippen (lijst), dan de bijlagen (`BIJLAGEN`, letters op volgorde):
   Begripskaarten, Bronnenregister, Contextbepalingen (rol context zonder markering, `Regeling.context`), Samenhang, Niet meegenomen,
   Verantwoording.
-  - **Graaf in het rapport** (`rapport_graaf.lees`, best-effort zoals de toestanden): per regeling de WTI-gegevens (soort,
+  - **Graaf in het rapport** (`bepaling_graaf.lees`, best-effort zoals de toestanden; dezelfde lezer als het paneel bij een antwoord, met het contract in `bepaling_graaf_contract`, ADR-009 is de eigenaar): per regeling de WTI-gegevens (soort,
     eerstverantwoordelijke, TOOI-organisatie, afkorting, toestand-URL), en per voorouder van een geselecteerde bronnode
     (`werkgebied_export.structuur_iris`) de titel, `bwb:inwerking` en `bwb:bron`. Een artikel krijgt zo zijn `plaats` in de opbouw, die
     boven het artikel en in de kopregel staat (`PLAATS`). Alleen strikte IRI's gaan de query in (`BRON_IRI`). Een haperende graaf geeft het
-    signaal `graaf_onvolledig`. De router geeft `rapport_graaf.lees` mee, de tests vervangen hem.
+    signaal `graaf_onvolledig`. De router geeft `bepaling_graaf.lees` mee, de tests vervangen hem. Tellingen (inkomend, grondslag, bevoegdheid) komen alleen met `met_inkomend=True`, voor het paneel; `structuur_voor(iris)` geeft de delen boven losse bepalingen.
     De verwijzingen komen uit `bwb:heeftVerwijzing`/`bwb:naar`, alleen vanuit bronnodes in het dossier (`bron_iris`; inkomende verwijzingen
-    zijn ruis), met `bwb:ankerTekst` letterlijk. Ze staan bij de bepaling en in de bijlage Samenhang. Een doel telt als "in dit dossier" als het
+    zijn ruis), met `bwb:ankerTekst` letterlijk. De query is begrensd (`MAX_VERWIJZINGSRIJEN`, hij vraagt er één meer): raakt hij de grens, dan `volledig: false` en `verwijzingen_volledig: false`, en de bijlage zegt "minstens". Tel nooit een begrensde rijenlijst als totaal. Ze staan bij de bepaling en in de bijlage Samenhang. Een doel telt als "in dit dossier" als het
     daar zelf staat of als een van zijn delen er staat.
   - **Markeringen in de wettekst**: `Bepaling.spans` (alleen ankers die nog letterlijk op hun offsets staan) gaan als regel `SPANS` (JSON)
     vlak vóór het citaat mee. `pdf_opmaak.gemarkeerd` kleurt en nummert, `markdown_opmaak` maakt vet met ⁽ⁿ⁾. Een markering in de tekst

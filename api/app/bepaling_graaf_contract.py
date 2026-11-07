@@ -1,8 +1,8 @@
 """Wat de graaf over één bepaling weet, als contract: gedeeld door het paneel naast het gesprek en het werkgebiedrapport.
 
 ADR-008 (*Detail bij een antwoord*) en ADR-009: geen gedeeld blokkenmodel tussen gesprek en rapport, wel één graaflezing per
-bepaling. `Structuurdeel` en `Verwijzing` zijn de bouwstenen die het rapport ook gebruikt; `BepalingDetail` is wat het paneel
-toont. Alles komt letterlijk uit de graaf, zonder model: een waarde die de graaf niet heeft, is leeg en wordt niet geraden.
+bepaling (`bepaling_graaf`, ADR-009 is de eigenaar). `Structuurdeel`, `Verwijzing` en `RegelingInfo` zijn de bouwstenen die het
+rapport ook gebruikt; `BepalingDetail` is wat het paneel toont. Alles komt letterlijk uit de graaf, zonder model: een waarde die de graaf niet heeft, is leeg en wordt niet geraden.
 """
 from __future__ import annotations
 
@@ -40,7 +40,27 @@ class Verwijzing(_Deel):
     anker: str = ""
     #: Staat het doel in de graaf? Een regeling buiten de import is niet te openen.
     in_graaf: bool = True
+    #: Staat het doel in het werkgebied (zelf, of een van zijn delen)? Alleen het rapport vult het; het paneel kent geen dossier.
+    in_dossier: bool = False
     door: Literal["bron"] = "bron"
+
+
+class RegelingInfo(_Deel):
+    """De regeling zoals de graaf haar kent (WTI en toestand)."""
+
+    bwb_id: str
+    citeertitel: str
+    geldig_vanaf: str | None = None
+    geldig_tot: str | None = None
+    soort: str = ""
+    afkorting: str = ""
+    #: `bwb:eerstverantwoordelijke`
+    verantwoordelijke: str = ""
+    #: TOOI-IRI van de verantwoordelijke organisatie
+    organisatie: str = ""
+    toestand_url: str = ""
+    #: De regeling op wetten.overheid.nl
+    url: str = ""
 
 
 class Telling(_Deel):

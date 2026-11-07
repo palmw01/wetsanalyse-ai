@@ -19,6 +19,7 @@ from zoneinfo import ZoneInfo
 from bronmodel.antwoord import Vindplaats
 from pydantic import BaseModel, ConfigDict
 
+from .bepaling_graaf_contract import RegelingInfo, Structuurdeel, Verwijzing
 from .jas_klassen import JAS_KLASSEN_VOLGORDE
 from .pdf_opmaak import BEGRIP, BLOK_BEGIN, BLOK_EIND, INHOUD, MARKERING, PAGINA, PLAATS, SPANS, TITELBLAD, TOELICHTING
 
@@ -69,26 +70,6 @@ class Bronstand(_Deel):
     citeertitel: str
     geldig_vanaf: str | None = None
     geldig_tot: str | None = None
-
-
-class RegelingInfo(Bronstand):
-    """De regeling zoals de graaf haar kent (WTI en toestand)."""
-
-    soort: str = ""
-    afkorting: str = ""
-    verantwoordelijke: str = ""                      # bwb:eerstverantwoordelijke
-    organisatie: str = ""                            # TOOI-IRI van de verantwoordelijke organisatie
-    toestand_url: str = ""
-    url: str = ""                                    # de regeling op wetten.overheid.nl
-
-
-class Structuurdeel(_Deel):
-    """Een deel van de opbouw boven een artikel: hoofdstuk, afdeling, paragraaf."""
-
-    soort: str
-    nummer: str = ""
-    titel: str = ""
-    iri: str
 
 
 class Signaal(_Deel):
@@ -230,16 +211,6 @@ class Markering(_Deel):
     door: Door = "lex"
 
 
-class Verwijzing(_Deel):
-    """Een verwijzing uit een bepaling in het dossier, uit de graaf; de ankertekst staat er letterlijk."""
-
-    van: Vindplaats
-    naar: Vindplaats
-    anker: str = ""
-    in_dossier: bool = False
-    door: Door = "bron"
-
-
 class Bepaling(_Deel):
     vindplaats: Vindplaats
     rol: str
@@ -280,6 +251,8 @@ class Wettekst(_Deel):
     buiten_tekst: list[Markering] = []
     afgewezen: list[Markering] = []
     verwijzingen: list[Verwijzing] = []              # alle verwijzingen uit het dossier, in de volgorde van de bronboom
+    #: Onwaar als de graaf meer verwijzingen gaf dan de grens (`bepaling_graaf.MAX_VERWIJZINGSRIJEN`): dan is de lijst niet alles.
+    verwijzingen_volledig: bool = True
 
 
 class Voorbeeld(_Deel):
@@ -532,7 +505,8 @@ def _signaal(s: Signaal) -> str:
     if s.soort == "opnieuw_bekijken":
         return "Opnieuw te bekijken na een wijziging van de scope: deelvraag " + ", ".join(map(str, s.nrs)) + "."
     if s.soort == "graaf_onvolledig":
-        return "De kennisgraaf gaf niet alle gegevens over de regelingen en hun opbouw; wat ontbreekt, staat niet in dit rapport."
+        return ("De kennisgraaf gaf niet alle gegevens over de regelingen, hun opbouw of de verwijzingen; wat ontbreekt, staat niet in "
+                "dit rapport. Een onvolledige lijst zegt dat bij de lijst zelf.")
     return "Het zoeken naar bronnen is onvolledig of verouderd; zie de bijlage Niet meegenomen."
 
 
@@ -835,16 +809,19 @@ def _bepaling(b: Bepaling) -> list[Regel]:
 
 def _verwijst(v: Verwijzing) -> str:
     return (f"Verwijst naar {v.naar.label}" + (f" (“{v.anker}”)" if v.anker else "")
-            + (" · in dit dossier" if v.in_dossier else ""))
+            + (" · in dit dossier" if v.in_dossier else "") + ("" if v.in_graaf else " · niet in de kennisgraaf"))
 
 
 def samenhang_regels(w: Wettekst) -> list[Regel]:
     """Bijlage: de verwijzingen uit het dossier, eerst die binnen het dossier blijven, dan die naar buiten wijzen."""
     uit: list[Regel] = [("Meta", "Uit de kennisgraaf: de verwijzingen die vertrekken uit een bepaling in dit dossier, met de verwijzende "
                                  "tekst letterlijk. Verwijzingen naar deze bepalingen vanuit andere regelingen staan er niet in.")]
+    if not w.verwijzingen_volledig:
+        uit.append(("Waarschuwing", "Deze lijst is onvolledig: de kennisgraaf gaf meer verwijzingen dan het rapport opneemt. "
+                                    "De aantallen hieronder zijn dus een ondergrens."))
     for binnen, kop in ((True, "Binnen het dossier"), (False, "Naar buiten het dossier")):
         groep = [v for v in w.verwijzingen if v.in_dossier == binnen]
-        uit.append(("Heading2", f"{kop} ({len(groep)})"))
+        uit.append(("Heading2", f"{kop} ({'' if w.verwijzingen_volledig else 'minstens '}{len(groep)})"))
         if not groep:
             uit.append(("Meta", "Geen."))
         for v in groep:
