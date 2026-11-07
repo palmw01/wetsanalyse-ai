@@ -64,6 +64,10 @@ POLL_S = 0.25
 # Hoe lang een stopverzoek gecachet wordt. De graaf vraagt het per node; zonder cache is dat een
 # query per node en dat is zonde voor een vlag die zelden aan staat.
 STOP_CACHE_S = 2.0
+# Hoe lang het afsluiten wacht op lopende beurten voor het ze afbreekt. Een uitrol of inschalen stopt de replica; een
+# beurt van een paar minuten hoort dan af te ronden in plaats van te sneuvelen (ROB-05). Samen met uvicorns
+# `--timeout-graceful-shutdown` (Dockerfile) binnen `terminationGracePeriodSeconds` van de app (main.bicep).
+DRAIN_S = 150.0
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS agent_runs (
@@ -139,7 +143,10 @@ class PostgresStore:
         async with self._pool.connection() as conn:
             await conn.execute(_SCHEMA)
 
-    async def sluit(self) -> None:
+    async def sluit(self, *, wacht_s: float = DRAIN_S) -> None:
+        # Eerst laten afronden wat loopt; pas wat daarna nog loopt, wordt afgebroken en als gestopt vastgelegd.
+        if self._taken and wacht_s > 0:
+            await asyncio.wait(list(self._taken.values()), timeout=wacht_s)
         run_ids = list(self._taken)
         taken = list(self._taken.values())
         afgebroken = list(self._lopend.values())

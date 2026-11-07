@@ -222,7 +222,7 @@ async def test_sluiten_bewaart_eindstatus_voordat_databasepool_sluit(store):
         await asyncio.Event().wait()
     run = await store.start(conversation_id="shutdown", vraag="v", maak_stroom=stream, user_id="u1")
     await asyncio.wait_for(started.wait(), timeout=5)
-    await store.sluit()
+    await store.sluit(wacht_s=0)  # het afbreken zelf: niet wachten
     assert run.taak.done()
     replica = PostgresStore(DSN)
     await replica.setup()
@@ -238,7 +238,7 @@ async def test_sluiten_bewaart_eindstatus_voordat_databasepool_sluit(store):
 @met_store
 async def test_sluiten_direct_na_start_laat_geen_lopende_run_achter(store):
     run = await store.start(conversation_id="instant", vraag="v", maak_stroom=blijf_draaien())
-    await store.sluit()
+    await store.sluit(wacht_s=0)  # het afbreken zelf: niet wachten
     replica = PostgresStore(DSN)
     await replica.setup()
     try:
@@ -307,5 +307,19 @@ async def test_afsluiten_legt_de_lopende_runs_vast(store):
     run = await store.start(conversation_id="uitrol", vraag="v", maak_stroom=blijf_draaien())
     klaar = await store.start(conversation_id="klaar", vraag="v", maak_stroom=stroom([{"type": "done"}]))
     await asyncio.wait_for(klaar.taak, timeout=5)
-    await store.sluit()
+    await store.sluit(wacht_s=0)  # het afbreken zelf: niet wachten
     assert gemeld == [run.run_id]
+
+
+@met_store
+async def test_afsluiten_laat_een_lopende_beurt_eerst_afronden(store):
+    """Een uitrol stopt de replica; een beurt die binnen de grens klaar is, rondt af in plaats van te sneuvelen (ROB-05)."""
+    run = await store.start(conversation_id="uitrol", vraag="v",
+                            maak_stroom=stroom([{"type": "status", "content": "bezig"}, {"type": "done"}], vertraag=0.3))
+    await store.sluit(wacht_s=5)
+    replica = PostgresStore(DSN)
+    await replica.setup()
+    try:
+        assert (await replica.get(run.run_id)).status == "klaar"
+    finally:
+        await replica.sluit()
