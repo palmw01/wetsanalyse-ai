@@ -175,6 +175,9 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
       `rounded-full`. Alleen de verstuurknop van het invoerveld is rond, als hoofdactie van het gesprek zoals bij Claude.
       Ook een sluitknop (✕) of icoonknop is een afgerond vierkant (`rounded-knop`). Een teller, voortgangsbalk of
       avatar mag rond blijven: die is niet klikbaar;
+  - **de actierij van een overzichtskaart is `KaartActies`** (7 nov 2026): *Openen* (`knopKlasse("secondary", "sm")`)
+    en `VerwijderKnop maat="sm"` als twee gelijke helften. `VerwijderKnop` deelt vorm en maat met `Button` (`knopVorm`):
+    `xs` tussen de kleine gereedschappen van een paneelkop, `sm` op een kaart. `app/uitlijning.test.ts` bewaakt het;
   - **kaarten zijn één familie**: `rounded-kaart`, een lichte rand en `shadow-zacht`; klikbaar met `KLIK_KAART`
     (`components/ui/Pagina`: een lichte lift, een lintblauwe rand en `shadow-kaart` bij hover, zoals het
     artefactkaartje in het gesprek) – de tellers, de artefactkaarten en de drie overzichtskaarten;
@@ -754,7 +757,9 @@ sidebar blijft staan.
   2026: op een telefoon de filterknoppen met tellers op één scrollende regel, het zoekveld over de volle breedte en dan
   *Door mij bewerkt* met eventueel iets extra's; vanaf `sm:` de filterknoppen links en het zoekveld rechts op één
   regel, *Door mij bewerkt* eronder), en daaronder kaarten in twee kolommen (`AnnotatieKaart`, `WerkgebiedKaart`,
-  `BegripOverzichtKaart`) met de naam als link en onderaan *Openen* en *Verwijderen*. *Door mij bewerkt*
+  `BegripOverzichtKaart`) met de naam als link en onderaan *Openen* en *Verwijderen* in `KaartActies`
+  (`components/ui/Pagina`, 7 nov 2026): twee gelijke helften op elke breedte, even hoog, nooit een knop die met
+  `ml-auto` wegspringt. *Door mij bewerkt*
   komt overal uit de audit (de api, `mijn`).
 - **`/annotaties`** (`AnnotatiesClient`) heeft twee weergaven op één lijst: *te doen* (rood → geel →
   langst stil) en *alles* (per regeling). De stand staat in de URL (`?weergave=alles`, via `replace` –
