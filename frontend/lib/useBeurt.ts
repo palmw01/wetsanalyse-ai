@@ -17,7 +17,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { haalActieveRun, stopRun, volgRun, type AgentHandlers } from "./api";
 import { RUST, faseReducer, isBezig, lopendeRunId, magStarten, stoptNu, type BeurtFase, type FaseActie } from "./beurtFase";
-import { volgTotEinde, type PogingStand } from "./beurtLus";
+import { faseHaken, volgTotEinde, type PogingStand } from "./beurtLus";
 import { frameplanner, type StroomStand } from "./beurtStroom";
 import {
   aankondiging, leesLopendeRuns, onthoudRun, schrijfLopendeRuns, standVanVorigeRun, vergeetRun, wachtMetWekker,
@@ -38,7 +38,7 @@ export interface BeurtScherm {
   opNaverwerkingFout: (fout: unknown) => void;
   /** Hervatten: maak de bubbel voor een run die doorliep, en geef zijn id. */
   voorHervatten: (runId: string) => string;
-  /** Na elke poging: het verbruik is opgelopen. */
+  /** Na de beurt (één keer, wat de afloop ook is): het verbruik is opgelopen. */
   onBeurtKlaar?: () => void;
 }
 
@@ -86,15 +86,21 @@ export function useBeurt(scherm: BeurtScherm) {
      *  weer oppakken van een beurt die doorliep – zodat de paden niet uit elkaar lopen. */
     async function volg(runId: string, gid: string, antId: string) {
       const s = () => schermRef.current;
+      const haken = faseHaken(zet);
       const uitkomst = await volgTotEinde({
         levend: () => levendRef.current,
         wacht: (ms) => wachtMetWekker(ms, () => levendRef.current),
         // Bij een herkansing blijft de bubbel staan zoals hij is: het heraanhaken speelt de eventlog opnieuw af. Wat
         // er aan de hand is staat in de banner – die verdwijnt vanzelf zodra er weer iets binnenkomt (`onLeeft`).
-        opVerbroken: () => setVerbindingWeg(true),
-        naPoging: () => {
-          afbrekenRef.current = null;
-          zet({ type: "einde" });
+        // Tussen twee pogingen staat de fase op `herstellen`, niet op rust: de run loopt door, en een getypte vraag of
+        // `hervat` mag geen tweede lus op dezelfde run starten (`faseHaken`).
+        opVerbroken: (poging) => {
+          setVerbindingWeg(true);
+          haken.opVerbroken(poging);
+        },
+        naPoging: () => { afbrekenRef.current = null; },
+        opEinde: () => {
+          haken.opEinde();
           // De beurt is klaar (geslaagd of niet): het verbruik is hoe dan ook opgelopen.
           s().onBeurtKlaar?.();
         },

@@ -10,6 +10,7 @@
 // - Losgekoppeld (unmount, van gesprek wisselen, de stopknop koppelt niet los) is geen einde en geen fout: de run
 //   draait door bij de agent.
 
+import type { FaseActie } from "./beurtFase";
 import { LEGE_STAND, stroomReducer, type StroomEvent, type StroomStand } from "./beurtStroom";
 import { definitieveStroomfout, herstelWachttijd, naEenGebrokenStream } from "./lopendeRun";
 
@@ -38,6 +39,18 @@ export interface LusDeps {
   opVerbroken?: (poging: number) => void;
   /** Na elke poging die begon, wat de afloop ook is. */
   naPoging?: () => void;
+  /** Eén keer, als de lus terugkomt (klaar, mislukt of losgekoppeld). Niet tussen twee pogingen: dan loopt de beurt nog. */
+  opEinde?: () => void;
+}
+
+/** Wat de lus met de fase van het venster doet. Tussen twee pogingen loopt de run door bij de agent, dus staat de fase op
+ *  `herstellen` (stopknop zichtbaar, geen nieuwe beurt) en niet op rust: anders kon een getypte vraag of `hervat` een
+ *  tweede lus op dezelfde run starten. Rust komt pas als de lus echt terugkomt. */
+export function faseHaken(zet: (a: FaseActie) => void): Required<Pick<LusDeps, "opVerbroken" | "opEinde">> {
+  return {
+    opVerbroken: (poging) => zet({ type: "verbroken", poging }),
+    opEinde: () => zet({ type: "einde" }),
+  };
 }
 
 /** Is dit een door onszelf afgebroken stream, of een echte fout? */
@@ -46,6 +59,14 @@ export function isAfgebroken(e: unknown): boolean {
 }
 
 export async function volgTotEinde(deps: LusDeps): Promise<LusUitkomst> {
+  try {
+    return await lus(deps);
+  } finally {
+    deps.opEinde?.();
+  }
+}
+
+async function lus(deps: LusDeps): Promise<LusUitkomst> {
   // Kwam er iets over een verbinding binnen, dan telt de volgende breuk als een verse onderbreking en begint de
   // wachttijd weer onderaan – anders zou een lange beurt met twee losse dips in de hoogste backoff blijven hangen.
   let herstel = 0;
