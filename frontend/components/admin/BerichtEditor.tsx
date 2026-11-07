@@ -4,6 +4,7 @@ import { BewerkVoet } from "@/components/ui/Bewerkbaar";
 import { useState } from "react";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
+import { FormRaster } from "@/components/ui/SettingRow";
 import { Tabs } from "@/components/ui/Tabs";
 import { Markdown } from "@/components/werkplek/Markdown";
 import { isApiError, maakBericht, updateBericht } from "@/lib/api";
@@ -59,7 +60,7 @@ export function BerichtEditor({ bericht, onCancel, onDone }: Props) {
     <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
       {fout && <Melding type="fout" compact>{fout}</Melding>}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <FormRaster>
         <Field label="Titel" required>
           <Input
             value={titel}
@@ -77,7 +78,7 @@ export function BerichtEditor({ bericht, onCancel, onDone }: Props) {
             placeholder="bijv. v1.3.0 of 2026-08"
           />
         </Field>
-      </div>
+      </FormRaster>
 
       <Field label="Type">
         <Select value={type} onChange={(e) => setType(e.target.value as BerichtType)}>

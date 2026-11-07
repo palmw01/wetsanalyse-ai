@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { KopieerVeld } from "@/components/admin/KopieerVeld";
 import { Button } from "@/components/ui/Button";
-import { SettingGroup, SettingList, SettingRow } from "@/components/ui/SettingRow";
+import { FormKnoppen, FormRij, SettingGroup, SettingList, SettingRow } from "@/components/ui/SettingRow";
 import { Field, Input } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
 import { StatusLabel } from "@/components/ui/Lijst";
@@ -40,17 +40,19 @@ function CodeFormulier({ uitleg, knop, gevaar = false, bezig, onBevestig, onAnnu
       className="mt-4 space-y-3"
     >
       <p className="text-sm text-muted">{uitleg}</p>
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+      <FormRij>
         <Field label="Code" hint="6 cijfers uit de app, of een herstelcode">
           <Input autoComplete="one-time-code" required value={code} onChange={(e) => setCode(e.target.value)} />
         </Field>
-        <Button type="submit" size="sm" variant={gevaar ? "danger" : undefined} disabled={bezig} className="w-full sm:w-auto">
-          {knop}
-        </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={onAnnuleer} disabled={bezig} className="w-full sm:w-auto">
-          Annuleren
-        </Button>
-      </div>
+        <FormKnoppen>
+          <Button type="submit" size="sm" variant={gevaar ? "danger" : undefined} disabled={bezig}>
+            {knop}
+          </Button>
+          <Button type="button" size="sm" variant="ghost" onClick={onAnnuleer} disabled={bezig}>
+            Annuleren
+          </Button>
+        </FormKnoppen>
+      </FormRij>
     </form>
   );
 }
@@ -247,7 +249,7 @@ export function AccountClient() {
               <p className="text-sm text-muted">
                 Voer je huidige wachtwoord in om een authenticator-app aan dit account te koppelen.
               </p>
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+              <FormRij>
                 <Field label="Huidig wachtwoord">
                   <Input
                     type="password"
@@ -257,20 +259,21 @@ export function AccountClient() {
                     onChange={(e) => setWachtwoord(e.target.value)}
                   />
                 </Field>
-                <Button type="submit" size="sm" disabled={bezig} className="w-full sm:w-auto">
-                  Doorgaan
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => { setWachtwoord(""); setInschakelen(false); }}
-                  disabled={bezig}
-                  className="w-full sm:w-auto"
-                >
-                  Annuleren
-                </Button>
-              </div>
+                <FormKnoppen>
+                  <Button type="submit" size="sm" disabled={bezig}>
+                    Doorgaan
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => { setWachtwoord(""); setInschakelen(false); }}
+                    disabled={bezig}
+                  >
+                    Annuleren
+                  </Button>
+                </FormKnoppen>
+              </FormRij>
             </form>
           ) : koppeling ? (
             <div className="mt-4 space-y-3">
@@ -284,29 +287,32 @@ export function AccountClient() {
                 Handmatige sleutel:{" "}
                 <code className="rounded bg-surface px-1.5 py-0.5 font-mono text-xs">{secretUit(koppeling.uri)}</code>
               </p>
-              <form onSubmit={onBevestig} className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-                <Field label="Code uit de app" hint="6 cijfers">
-                  <Input
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    required
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                  />
-                </Field>
-                <Button type="submit" size="sm" disabled={bezig} className="w-full sm:w-auto">
-                  Bevestigen
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setKoppeling(null)}
-                  disabled={bezig}
-                  className="w-full sm:w-auto"
-                >
-                  Annuleren
-                </Button>
+              <form onSubmit={onBevestig}>
+                <FormRij>
+                  <Field label="Code uit de app" hint="6 cijfers">
+                    <Input
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      required
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                    />
+                  </Field>
+                  <FormKnoppen>
+                    <Button type="submit" size="sm" disabled={bezig}>
+                      Bevestigen
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setKoppeling(null)}
+                      disabled={bezig}
+                    >
+                      Annuleren
+                    </Button>
+                  </FormKnoppen>
+                </FormRij>
               </form>
             </div>
           ) : null}
