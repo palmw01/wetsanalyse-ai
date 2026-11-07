@@ -452,12 +452,31 @@ def _som(rijen: list[dict[str, dict[str, int]]]) -> dict[str, dict[str, Any]]:
     totaal: dict[str, dict[str, Any]] = {}
     for r in rijen:
         for klasse, x in r.items():
-            t = totaal.setdefault(klasse, dict(n=0, gedekt=0, exact=0, voorstellen=0, raak=0))
+            t = totaal.setdefault(klasse, dict(n=0, gedekt=0, streng=0, exact=0, voorstellen=0, raak=0))
             for k in t:
-                t[k] += x[k]
+                t[k] += x.get(k, 0)
     for t in totaal.values():
         t["recall"] = round(t["gedekt"] / t["n"], 3) if t["n"] else None
+        t["recall_streng"] = round(t["streng"] / t["n"], 3) if t["n"] else None
     return dict(sorted(totaal.items()))
+
+
+_STRENG = 0.5
+
+
+def _past(e: dict[str, Any], r: dict[str, Any]) -> bool:
+    """Streng: dezelfde klasse en minstens de helft van de woorden samen (token-IoU). "Zelfde plek" laat een lange
+    markering die het fragment toevallig bevat ook tellen, en zegt dus te weinig over de grens."""
+    return e.get("klasse") == r["klasse"] and _token_iou(e.get("tekst", ""), r["tekst"]) >= _STRENG
+
+
+def _dekking(hier: list[dict[str, Any]], ref: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
+    """`scoring.klasse_dekking`, aangevuld met `streng`: hoeveel referenties een platformelement hebben dat
+    `_past`."""
+    d = klasse_dekking(hier, ref)
+    for r in ref:
+        d[r["klasse"]]["streng"] = d[r["klasse"]].get("streng", 0) + any(_past(e, r) for e in hier)
+    return d
 
 
 def _referentie(b: dict[str, Any], strikt: bool) -> list[dict[str, Any]]:
@@ -487,7 +506,7 @@ def vergelijk_annotaties(referentie: dict[str, Any], elementen: list[dict[str, A
     for i, b in enumerate(bepalingen):
         hier = per[i]
         ref_strikt, ref_ruim = _referentie(b, True), _referentie(b, False)
-        d_strikt, d_ruim = klasse_dekking(hier, ref_strikt), klasse_dekking(hier, ref_ruim)
+        d_strikt, d_ruim = _dekking(hier, ref_strikt), _dekking(hier, ref_ruim)
         strikt.append(d_strikt)
         ruim.append(d_ruim)
         per_status.setdefault(b["status_soort"], []).append(d_strikt)
@@ -500,8 +519,13 @@ def vergelijk_annotaties(referentie: dict[str, Any], elementen: list[dict[str, A
             if ander:
                 verwisseld.append({"tekst": r["tekst"], "referentie": r["klasse"],
                                    "platform": sorted({e.get("klasse") or "" for e in ander})})
-        extra = [{"klasse": e.get("klasse"), "tekst": e.get("tekst"), "id": e.get("id")} for e in hier
-                 if not any(_zelfde_plek(e.get("tekst", ""), r["tekst"]) for r in ref_ruim)]
+        def rij(e: dict[str, Any]) -> dict[str, Any]:
+            return {"klasse": e.get("klasse"), "tekst": e.get("tekst"), "id": e.get("id")}
+        # Zonder tegenhanger: geen referentie met dezelfde klasse en grens. Buiten de referentie: ook geen referentie
+        # van een andere klasse op die plek; dat is wat de jurist als mogelijk extra of ruis beoordeelt.
+        zonder = [rij(e) for e in hier if not any(_past(e, r) for r in ref_ruim)]
+        buiten = [rij(e) for e in hier if not any(_token_iou(e.get("tekst", ""), r["tekst"]) >= _STRENG
+                                                  for r in ref_ruim)]
         rapport_bepalingen.append({
             "label": b["label"], "bron": bron_sleutel(b["bron"]), "status": b["status_soort"],
             "getoetst_tegen": b.get("getoetst_tegen", "niet getoetst"),
@@ -510,7 +534,7 @@ def vergelijk_annotaties(referentie: dict[str, Any], elementen: list[dict[str, A
             "impliciet": [e["tekst"] for e in b["elementen"] if e["impliciet"]],
             "zonder_klasse": [e["klasse_extern"] for e in b["elementen"] if not e["klasse"]],
             "gemist": [{"klasse": r["klasse"], "tekst": r["tekst"]} for r in gemist],
-            "klasse_verwisseld": verwisseld, "alleen_platform": extra})
+            "klasse_verwisseld": verwisseld, "zonder_tegenhanger": zonder, "buiten_referentie": buiten})
     return {"per_klasse_strikt": _som(strikt), "per_klasse_ruim": _som(ruim),
             "per_status_strikt": {s: _som(r) for s, r in sorted(per_status.items())},
             "bepalingen": rapport_bepalingen,
@@ -608,11 +632,13 @@ def _print(rapport: dict[str, Any]) -> None:
     print(f"Platformelementen: {rapport['platform_elementen']}  (niet toegewezen: {len(a['niet_toegewezen'])})")
     print("\nRecall per klasse (strikt: alleen letterlijke referentiefragmenten)")
     for k, x in a["per_klasse_strikt"].items():
-        print(f"  {k:<46} {x['gedekt']:>3}/{x['n']:<3} recall {x['recall']}  voorstellen {x['voorstellen']}, raak {x['raak']}")
+        print(f"  {k:<46} {x['gedekt']:>3}/{x['n']:<3} recall {x['recall']} (streng {x['recall_streng']}, exact "
+              f"{x['exact']})  voorstellen {x['voorstellen']}, raak {x['raak']}")
     for b in a["bepalingen"]:
         print(f"\n{b['label']} [{b['status']}, getoetst tegen {b['getoetst_tegen']}]: platform {b['platform']}, "
               f"referentie {b['referentie_strikt']} strikt / {b['referentie_ruim']} ruim; gemist {len(b['gemist'])}, "
-              f"klasse anders {len(b['klasse_verwisseld'])}, alleen platform {len(b['alleen_platform'])}")
+              f"klasse anders {len(b['klasse_verwisseld'])}, zonder tegenhanger {len(b['zonder_tegenhanger'])}, "
+              f"buiten referentie {len(b['buiten_referentie'])}")
     if "bronselectie" in rapport:
         print("\nBronselectie per deelvraag")
         for d in rapport["bronselectie"]:

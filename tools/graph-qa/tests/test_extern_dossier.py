@@ -151,11 +151,13 @@ def test_recall_per_klasse_verwisseling_en_wat_alleen_het_platform_vond(referent
     r = ed.vergelijk(referentie, platform)
     a = r["annotaties"]
     assert r["platform_elementen"] == 4
-    assert a["per_klasse_strikt"]["Rechtsobject"] == {"n": 2, "gedekt": 1, "exact": 1, "voorstellen": 1, "raak": 1,
-                                                       "recall": 0.5}
+    assert a["per_klasse_strikt"]["Rechtsobject"] == {"n": 2, "gedekt": 1, "streng": 1, "exact": 1, "voorstellen": 1,
+                                                       "raak": 1, "recall": 0.5, "recall_streng": 0.5}
     b = a["bepalingen"][0]
     assert {"tekst": "het besluit", "referentie": "Rechtsobject", "platform": ["Rechtssubject"]} in b["klasse_verwisseld"]
-    assert [x["id"] for x in b["alleen_platform"]] == ["d"]
+    assert [x["id"] for x in b["buiten_referentie"]] == ["d"]
+    # "het besluit" als Rechtssubject staat op een referentieplek, maar met een andere klasse: geen tegenhanger.
+    assert {x["id"] for x in b["zonder_tegenhanger"]} == {"b", "d"}
     assert b["impliciet"] == ["de inspecteur"]
     # Strikt telt alleen wat letterlijk in de bron staat; ruim telt ook de rest.
     assert "Variabele en variabelewaarde" in a["per_klasse_ruim"]
@@ -248,3 +250,10 @@ def test_annotatie_volgt_een_expliciete_golden(tmp_path):
     assert run_eval.annotatieset(ns()) == run_eval.GOLDEN_ANNOTATIE
     assert run_eval.annotatieset(ns(golden=eigen)) == eigen
     assert run_eval.annotatieset(ns(golden=eigen, concept=True)) == run_eval.GOLDEN_CONCEPT
+
+
+def test_streng_telt_een_lange_markering_niet_als_raak(referentie):
+    """"Zelfde plek" is soepel: een markering van een hele zin dekt elk fragment erin. Streng eist de grens."""
+    lang = _el("Tijdsaanduiding", CITAAT[2:])
+    a = ed.vergelijk(referentie, {"elementen": [lang]})["annotaties"]["per_klasse_strikt"]["Tijdsaanduiding"]
+    assert a["gedekt"] >= 1 and a["streng"] == 0
