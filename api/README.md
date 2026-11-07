@@ -244,7 +244,7 @@ wint. Op Azure staan alle secrets als bestand onder `/run/secrets/`.
 | `WETSANALYSE_LLM_MAX_PROMPT_TOKENS` | `0` | Cap op prompt-tokens (`0` = afleiden uit het model) |
 | `WETSANALYSE_LLM_PROMPT_CACHING` | `1` | Prompt caching aan/uit |
 | `WETSANALYSE_LLM_MAX_CONCURRENCY` | `4` | Plafond op gelijktijdige LLM-calls (`0` = uit) |
-| `WETSANALYSE_RATE_LIMIT_MAX` / `_WINDOW` | `30` / `60` (s) | Rate limit op `POST /v1/feedback` (per client), de login (per userid plus een ruimer globaal plafond) en wachtwoord en 2FA (per userid); `0` = uit |
+| `WETSANALYSE_RATE_LIMIT_MAX` / `_WINDOW` | `30` / `60` (s) | Rate limit op `POST /v1/feedback` (per client), de login (missers per client-IP en userid, plus een ruimer globaal plafond) en wachtwoord en 2FA (per userid); `0` = uit |
 | `WETSANALYSE_ADMIN_TEST_RATE_MAX` / `_WINDOW` | `10` / `60` (s) | Rate limit op de verbindingstest |
 | `WETSANALYSE_TOKEN_BUDGET` | `500000` | Seed van het tokenbudget van elke rol; daarna leeft het budget per rol in de database |
 | `WETSANALYSE_TOKEN_BUDGET_DAGEN` | `7` | Seed van de resetperiode |
