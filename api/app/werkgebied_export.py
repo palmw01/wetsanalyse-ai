@@ -242,10 +242,10 @@ def _doel_label(naar: str, regeling: str, label: str) -> str:
     """Het doel van een verwijzing zoals het paneel het noemt (#1083): regeling en vindplaats, een naam nooit twee keer, en zonder
     naam in de graaf het label uit de IRI of het BWB-id: nooit de kale IRI."""
     vp = bron_vindplaats(naar)
-    eigen = label or (vp.label if vp else "")
-    if eigen == regeling:                                   # een verwijzing naar de regeling zelf
-        eigen = ""
     m = re.match(r"urn:bwb:(BWB[RV]\d+)", naar)
+    eigen = label or (vp.label if vp else "")
+    if eigen in (regeling, m.group(1) if m else None):      # een verwijzing naar de regeling zelf: het importerlabel is haar BWB-id
+        eigen = ""
     return " – ".join(filter(None, [regeling, eigen])) or (m.group(1) if m else naar)
 
 
