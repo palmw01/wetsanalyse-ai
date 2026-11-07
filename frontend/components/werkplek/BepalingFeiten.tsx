@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { AntwoordVindplaats } from "@/lib/antwoord";
-import { afwijkendeToestand, haalBepalingDetail, plaatsZin, type BepalingDetail, type Telling } from "@/lib/bepalingDetail";
+import { aantalTekst, afwijkendeToestand, haalBepalingDetail, meerTekst, plaatsZin, type BepalingDetail, type Telling } from "@/lib/bepalingDetail";
 import { datumTekst } from "@/lib/graaf/knoopinfo";
 
 /** Wat de graaf verder over de bepaling weet, onder de wettekst in het paneel naast het gesprek (ADR-008, *Detail bij een
@@ -54,7 +54,8 @@ export function BepalingFeiten({ bronIri, gelezenJci, onOpen }: {
         )}
       </Blok>
       {d.verwijst_naar.length > 0 && (
-        <Blok kop={`Verwijst naar (${d.verwijst_naar.length}${d.verwijst_naar_volledig ? "" : "+"})`}>
+        // Het aantal is wat de api telde (`verwijst_naar_aantal`), niet wat er geladen is.
+        <Blok kop={`Verwijst naar (${aantalTekst(Math.max(d.verwijst_naar_aantal, d.verwijst_naar.length), d.verwijst_naar_volledig)})`}>
           <ul className="divide-y divide-line">
             {d.verwijst_naar.map((v) => (
               <li key={`${v.van.iri}|${v.naar.iri}|${v.anker}`} className="py-1.5 text-sm" data-feit="verwijst-naar">
@@ -96,13 +97,13 @@ function TellingBlok({ kop, t, open = false, onOpen, feit }: {
   kop: string; t: Telling; open?: boolean; onOpen: (v: AntwoordVindplaats) => void; feit: string;
 }) {
   if (!t.aantal) return null;
-  const meer = t.aantal - t.items.length;
+  const meer = meerTekst(t);
   return (
-    <Blok kop={`${kop} (${t.aantal})`}>
+    <Blok kop={`${kop} (${aantalTekst(t.aantal, t.volledig)})`}>
       <ul className="space-y-0.5 text-sm" data-feit={feit}>
         {t.items.map((v) => <li key={v.iri}><Doel v={v} open={open} onOpen={onOpen} /></li>)}
       </ul>
-      {meer > 0 && <p className="mt-1 text-xs text-muted">en {meer} meer</p>}
+      {meer && <p className="mt-1 text-xs text-muted">{meer}</p>}
     </Blok>
   );
 }
