@@ -254,6 +254,19 @@ def eigenaar(nodes: list[dict], iris: list[str]) -> str:
     raise BronFout("Ankers horen niet bij dezelfde bronboom")
 
 
+def anker_actueel(anker: dict, nodes: dict[str, dict]) -> bool:
+    """Staat dit anker nog op de tekst van nu? De bronnode bestaat nog, zijn tekst is dezelfde, en de passage staat
+    er op de plek van het anker. Een verdwenen node is dus verouderd, niet actueel."""
+    node = nodes.get(anker["bron_iri"])
+    return (node is not None and node.get("bron_hash") == anker["bron_hash"]
+            and node.get("tekst", "")[anker["start"]:anker["eind"]] == anker["tekst"])
+
+
+def element_actueel(element: dict, nodes: dict[str, dict]) -> bool:
+    """Een element is actueel zolang het niet als verouderd is vastgelegd en al zijn ankers actueel zijn."""
+    return not element.get("verouderd") and all(anker_actueel(a, nodes) for a in element.get("ankers") or [])
+
+
 def valideer_ankers(snapshot: dict, ankers: list[dict]) -> str:
     nodes = {n["bron_iri"]: n for n in snapshot["nodes"]}
     if not ankers:

@@ -14,7 +14,7 @@ from fastapi import HTTPException
 from sqlalchemy import delete, insert, literal_column, select, update
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import IntegrityError
-from bronmodel import BronFout, valideer_ankers
+from bronmodel import BronFout, anker_actueel, element_actueel, valideer_ankers
 
 from . import db
 from .annotatie_v2_contracts import AFGEHANDELD, VERGRENDELD, Batch, Beslissing, Element, Laagbesluiten
@@ -287,8 +287,7 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
         current = {r["id"]: r["inhoud"] for r in all_elements}
         # Een nieuwe brontekst heropent de getroffen laag, maar wist nooit het oude oordeel.
         changed_owners = {e["eigenaar_iri"] for e in current.values() if not e.get("verouderd") and any(
-            a["bron_iri"] in scope and nodes_van(snapshot)[a["bron_iri"]]["bron_hash"] != a["bron_hash"]
-            for a in e["ankers"])}
+            a["bron_iri"] in scope and not anker_actueel(a, nodes_van(snapshot)) for a in e["ankers"])}
         for iri in changed_owners:
             layer = layers.get(iri)
             if layer and layer["status"] != "in_review":
@@ -319,8 +318,7 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
         for old in current.values():
             if reuse or old.get("verouderd") or not any(a["bron_iri"] in scope for a in old["ankers"]):
                 continue
-            if any(a["bron_iri"] in scope and nodes_van(snapshot)[a["bron_iri"]]["bron_hash"] != a["bron_hash"]
-                   for a in old["ankers"]):
+            if any(a["bron_iri"] in scope and not anker_actueel(a, nodes_van(snapshot)) for a in old["ankers"]):
                 owner = old["eigenaar_iri"]
                 if owner not in touched:
                     touched[owner] = await _laag(conn, layers, owner, req.snapshot_id, req.verwachte_revisies)
@@ -441,10 +439,8 @@ async def dekking(snapshot: dict, conn=None) -> dict:
 
 
 def _met_veroudering(value: dict, nodes: dict) -> dict:
-    """Een element is verouderd als de tekst van een van zijn geankerde bronknopen sindsdien veranderde."""
-    value["verouderd"] = value.get("verouderd", False) or any(
-        a["bron_iri"] in nodes and nodes[a["bron_iri"]]["bron_hash"] != a["bron_hash"]
-        for a in value["ankers"])
+    """Een element is verouderd als een van zijn ankers niet meer op de tekst van nu staat (`bronmodel.anker_actueel`)."""
+    value["verouderd"] = not element_actueel(value, nodes)
     return value
 
 
@@ -571,8 +567,7 @@ async def _beslis_in(conn, element_id: str, req, verwacht: dict[str, int], snaps
         raise HTTPException(404, "Element niet gevonden.")
     old = row["inhoud"]
     nodes = nodes_van(snapshot)
-    if old.get("verouderd") or any(a["bron_iri"] not in nodes or
-        nodes[a["bron_iri"]]["bron_hash"] != a["bron_hash"] for a in old["ankers"]):
+    if not element_actueel(old, nodes):
         raise HTTPException(409, "Verouderd element is alleen-lezen.")
     snapshot_id = snapshot["snapshot_id"]
     touched.setdefault(old["eigenaar_iri"], await _laag(conn, layers, old["eigenaar_iri"], snapshot_id, verwacht))
@@ -693,8 +688,7 @@ async def zet_status(laag_id: str, status: str, expected: int, actor: str, snaps
             db.annotatie_v2_elementen.c.laag_id == laag_id))).scalars().all()
         if status == "geaccordeerd" and snapshot is not None:
             nodes = nodes_van(snapshot)
-            if any(not e.get("verouderd") and any(a["bron_iri"] not in nodes or
-                nodes[a["bron_iri"]]["bron_hash"] != a["bron_hash"] for a in e["ankers"]) for e in elements):
+            if any(not e.get("verouderd") and not element_actueel(e, nodes) for e in elements):
                 raise HTTPException(409, "Brontekst gewijzigd; annoteer de actuele bron vóór afronden.")
         if status == "geaccordeerd" and any(not e.get("verouderd") and e["lifecycle"] not in AFGEHANDELD
             for e in elements):
