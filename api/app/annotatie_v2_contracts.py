@@ -12,6 +12,7 @@ class Lifecycle(str, Enum):
     rejected = "rejected"
     published = "published"
     reused = "reused"
+    vervangen = "vervangen"
 
 
 #: Eén definitie, voor de hele api: een jurist bevestigde dit element (ook `edited`: een aanpassing ís een oordeel).
@@ -22,6 +23,15 @@ AFGEHANDELD = BEOORDEELD | {Lifecycle.rejected.value}
 #: Wat alleen na een heropening nog wijzigt. Bewust zonder `edited`: een klasse wijzigen en er een toelichting bij
 #: typen is één doorlopende handeling (`slotVan` in de werkplek).
 VERGRENDELD = AFGEHANDELD - {Lifecycle.edited.value}
+#: Niet meer actueel, wel bewaard: een nieuwe ronde van Lex (`run.modus == "opnieuw"`) maakte dit voorstel niet meer
+#: (`annotatie_v2_store.batch`). Het telt nergens mee als actueel – weergave, inventaris, zoeken, werkvoorraad,
+#: projectie – maar de rij, de herkomst en de audit blijven, en de weergave en de inventaris noemen het apart.
+NIET_ACTUEEL = frozenset({Lifecycle.vervangen.value})
+
+
+def is_vervangen(element: dict) -> bool:
+    """Is dit element door een nieuwe ronde van Lex vervangen (`NIET_ACTUEEL`)?"""
+    return element.get("lifecycle") in NIET_ACTUEEL
 
 
 class LaagStatus(str, Enum):

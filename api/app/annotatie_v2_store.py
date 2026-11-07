@@ -18,7 +18,8 @@ from bronmodel import BronFout, anker_actueel, element_actueel, valideer_ankers
 
 from . import db
 from .auth import huidige_client
-from .annotatie_v2_contracts import AFGEHANDELD, VERGRENDELD, Batch, Beslissing, Element, Laagbesluiten
+from .annotatie_v2_contracts import (AFGEHANDELD, VERGRENDELD, Batch, Beslissing, Element, Laagbesluiten, Lifecycle,
+                                      is_vervangen)
 from .validation import GELDIGE_JAS_KLASSEN
 
 
@@ -213,9 +214,9 @@ def slot_van(element: dict, laag_status: str | None) -> str:
     """Waarom dit element niet zomaar te wijzigen is. De werkplek rekent dezelfde regel (`slotVan`), met
     dezelfde gevallen in `frontend/lib/slotregel.json`, zodat er geen knop staat waar de api een 409 geeft.
 
-    `alleen-lezen`: verouderd, er kan niets meer. `laag`: eerst de laag heropenen. `element`: heropenen of
+    `alleen-lezen`: verouderd of vervangen, er kan niets meer. `laag`: eerst de laag heropenen. `element`: heropenen of
     een opmerking kan, de rest niet. Een eigen markering zonder oordeel van een ander blijft bewerkbaar."""
-    if element.get("verouderd"):
+    if element.get("verouderd") or is_vervangen(element):
         return "alleen-lezen"
     if laag_status not in (None, "in_review"):
         return "laag"
@@ -304,13 +305,16 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
             raise HTTPException(409, "Dit bereik is nog niet volledig geannoteerd.")
         # Dekkingsregistratie is geen inhoudswijziging: een ouderanalyse mag afgeronde,
         # ongewijzigde kindlagen hergebruiken zonder hun status/revisie aan te raken.
+        def levend(e: dict) -> bool:
+            # Verouderd en vervangen zijn historie: een nieuw voorstel vergelijkt er niet mee.
+            return not e.get("verouderd") and not is_vervangen(e)
         existing_keys = {digest({"klasse": e["klasse"], "ankers": e["ankers"]})
-                         for e in current.values() if not e.get("verouderd")}
+                         for e in current.values() if levend(e)}
         def bekend(value: dict) -> dict | None:
             # Het id volgt uit de kandidaat. Is het element daarna gecorrigeerd, dan wijkt de digest af
             # terwijl het hetzelfde voorstel blijft: een nieuwe ronde mag daar niet op stranden.
             bestaand = current.get(value["id"]) if value["id"] else None
-            return bestaand if bestaand and not bestaand.get("verouderd") else None
+            return bestaand if bestaand and levend(bestaand) else None
         owners = set() if reuse else ({v["eigenaar_iri"] for v in values
             if digest({"klasse": v["klasse"], "ankers": v["ankers"]}) not in existing_keys and not bekend(v)}
             | {i for i in req.dekking.bereik if i not in layers} | changed_owners)
@@ -332,7 +336,7 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
         for value in values:
             # Canonieke ankers onderscheiden identieke woorden op verschillende plekken.
             key = digest({"klasse": value["klasse"], "ankers": value["ankers"]})
-            existing = next((x for x in current.values() if not x.get("verouderd")
+            existing = next((x for x in current.values() if levend(x)
                              and digest({"klasse": x["klasse"], "ankers": x["ankers"]}) == key), None)
             existing = existing or bekend(value)
             if existing:
@@ -341,7 +345,7 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
             # Een terugval (geen klasse) en een element mét klasse op dezelfde ankers zijn hetzelfde
             # voorstel. Een nieuwe terugval laat een bestaande klasse staan; een nieuwe klassekeuze
             # vervangt een terugval die nog niemand beoordeelde – anders staan ze naast elkaar.
-            zelfde = next((x for x in current.values() if not x.get("verouderd") and x["ankers"] == value["ankers"]
+            zelfde = next((x for x in current.values() if levend(x) and x["ankers"] == value["ankers"]
                            and (x["klasse"] == "" or value["klasse"] == "")), None)
             if zelfde and value["klasse"] == "":
                 saved.append(zelfde)
@@ -357,6 +361,20 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
                 current[zelfde["id"]] = bijgewerkt
                 saved.append(bijgewerkt)
                 continue
+            # Maakt een latere ronde een vervangen voorstel weer (zelfde id), dan leeft het weer op: niemand
+            # besliste erover (anders was het niet vervangen), dus de nieuwe uitkomst neemt zijn plaats in.
+            terug = current.get(value["id"]) if value["id"] and not mens else None
+            if terug and is_vervangen(terug) and not terug.get("verouderd"):
+                hersteld = {**{k: v for k, v in terug.items() if k != "vervangen_in"},
+                            **{k: v for k, v in value.items() if k != "id"},
+                            "laag_id": touched[value["eigenaar_iri"]]["id"], "lifecycle": Lifecycle.voorgesteld.value,
+                            "geproduceerd_door": req.run}
+                await conn.execute(update(db.annotatie_v2_elementen).where(
+                    db.annotatie_v2_elementen.c.id == terug["id"]).values(laag_id=hersteld["laag_id"], inhoud=hersteld))
+                await _audit(conn, actor, "element-hersteld", {"batch_id": req.batch_id}, terug["id"], hersteld["laag_id"])
+                current[terug["id"]] = hersteld
+                saved.append(hersteld)
+                continue
             # Een verouderd element met dit id blijft als historie staan; het nieuwe krijgt een eigen id.
             element_id = value["id"] if value["id"] and value["id"] not in current else uuid.uuid4().hex
             value.update(id=element_id, laag_id=touched[value["eigenaar_iri"]]["id"],
@@ -370,6 +388,8 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
             await _audit(conn, actor, "element-gemaakt", {"batch_id": req.batch_id}, element_id, value["laag_id"])
             current[element_id] = value
             saved.append(value)
+        vervangen = await _vervang_oude_voorstellen(conn, req, current, saved, scope, layers, touched, actor) \
+            if req.run.get("modus") == "opnieuw" and req.dekking.voltooid and not mens else []
         for layer in touched.values():
             await _raak(conn, layer, req.snapshot_id)
         if req.dekking.voltooid:
@@ -380,7 +400,7 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
         result = {"schema_versie": 2, "batch_id": req.batch_id, "doel": snapshot["doel"],
                   "annotatie_doel": {**snapshot["doel"], "snapshot_id": req.snapshot_id},
                   "snapshot_id": req.snapshot_id, "lagen": [publiek_laag(x) for x in touched.values()],
-                  "elementen": saved}
+                  "elementen": saved, "vervangen": vervangen}
         # Het beslisregister (V4) hoort bij de batch en staat daarom in dit auditrecord: zo is het
         # terug te lezen via de weergave en de export, ook voor kandidaten zonder element.
         await _audit(conn, actor, "batch", {"batch_id": req.batch_id,
@@ -389,6 +409,35 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
         await conn.execute(insert(db.annotatie_v2_batches).values(
             id=req.batch_id, payload_hash=fingerprint, antwoord=result))
         return result
+
+
+async def _vervang_oude_voorstellen(conn, req: Batch, current: dict, saved: list[dict], scope: set[str], layers: dict,
+                                    touched: dict, actor: str) -> list[str]:
+    """Een ronde `opnieuw` met voltooide dekking is de nieuwe uitkomst voor haar bereik: een voorstel van Lex dat
+    ze niet meer maakte, is daarna `vervangen`. Alleen wat van de agent kwam, nog actueel is en waarover niemand
+    besliste (geen oordeel, geen opmerking); een eigen markering, een besluit en een afgeronde laag blijven staan.
+    Niets wordt gewist: de rij, de herkomst en de audit blijven, met een regel `element-vervangen`."""
+    nieuw = {v["id"] for v in saved}
+    uit = []
+    for old in sorted(current.values(), key=lambda e: e["id"]):
+        if (old["id"] in nieuw or old["eigenaar_iri"] not in scope or old.get("herkomst") == "mens"
+                or old.get("verouderd") or is_vervangen(old) or old["lifecycle"] in AFGEHANDELD or heeft_oordeel(old)):
+            continue
+        owner = old["eigenaar_iri"]
+        layer = touched.get(owner) or layers.get(owner)
+        if layer is None or layer["status"] != "in_review":
+            continue
+        if owner not in touched:
+            touched[owner] = await _laag(conn, layers, owner, req.snapshot_id, req.verwachte_revisies)
+        value = {**old, "lifecycle": Lifecycle.vervangen.value,
+                 "vervangen_in": {"batch_id": req.batch_id, "tijd": db.utcnow().isoformat()}}
+        await conn.execute(update(db.annotatie_v2_elementen).where(
+            db.annotatie_v2_elementen.c.id == old["id"]).values(inhoud=value))
+        await _audit(conn, actor, "element-vervangen", {"batch_id": req.batch_id, "run": run_sleutel(req.run)},
+                     old["id"], old["laag_id"])
+        current[old["id"]] = value
+        uit.append(old["id"])
+    return uit
 
 
 async def dekking(snapshot: dict, conn=None) -> dict:
@@ -456,14 +505,16 @@ async def compacte_elementen(conn) -> list[dict]:
     return [compact_element(v) for v in (await conn.execute(select(inhoud))).scalars().all()]
 
 
-async def actuele_elementen(nodes: dict, *, compact: bool = False) -> list[dict]:
+async def actuele_elementen(nodes: dict, *, compact: bool = False, inclusief_vervangen: bool = False) -> list[dict]:
     """De elementen waarvan de eigenaar in `nodes` ligt (een of meer hele bronbomen), met
     `verouderd` bepaald tegen die bronbomen. De complete graaf (`graaf.py`) leest het spoor; wie dat niet doet,
-    vraagt `compact`."""
+    vraagt `compact`. Een vervangen element is niet actueel en blijft weg, tenzij de lezer het apart wil tonen
+    (`inclusief_vervangen`, de inventaris)."""
     async with leestransactie() as conn:
         rows = (await compacte_elementen(conn) if compact else
                 (await conn.execute(select(db.annotatie_v2_elementen.c.inhoud))).scalars().all())
-    return [_met_veroudering(dict(v), nodes) for v in rows if v["eigenaar_iri"] in nodes]
+    return [_met_veroudering(dict(v), nodes) for v in rows
+            if v["eigenaar_iri"] in nodes and (inclusief_vervangen or not is_vervangen(v))]
 
 
 async def weergave(snapshot: dict) -> dict:
@@ -472,10 +523,17 @@ async def weergave(snapshot: dict) -> dict:
     async with leestransactie() as conn:
         layers = await _lagen(conn)
         rows = (await conn.execute(select(db.annotatie_v2_elementen))).mappings().all()
-        elements, refs = [], []
+        elements, refs, vervangen = [], [], []
         for row in rows:
             value = _met_veroudering(dict(row["inhoud"]), nodes)
             anchor_ids = {a["bron_iri"] for a in value["ankers"]}
+            if is_vervangen(value):
+                # Niet actueel, wel terug te vinden: kort, met de weg naar het hele element.
+                if value["eigenaar_iri"] in scope:
+                    vervangen.append({"id": value["id"], "eigenaar_iri": value["eigenaar_iri"], "klasse": value["klasse"],
+                                      "tekst": value["tekst"], "vervangen_in": value.get("vervangen_in") or {},
+                                      "detail_url": f"/v1/annotatie/elementen/{value['id']}"})
+                continue
             if value["eigenaar_iri"] in scope:
                 elements.append(value)
             elif anchor_ids & scope:
@@ -485,7 +543,7 @@ async def weergave(snapshot: dict) -> dict:
         lagen = [publiek_laag(l) for i, l in layers.items() if i in scope]
         return {"schema_versie": 2, "doel": snapshot["doel"], "snapshot_id": snapshot["snapshot_id"],
                 "segmenten": [n for n in nodes.values() if n["bron_iri"] in scope and n.get("tekst")],
-                "lagen": lagen, "elementen": elements, "verwijzingen": refs,
+                "lagen": lagen, "elementen": elements, "verwijzingen": refs, "vervangen": vervangen,
                 "dekking": await dekking(snapshot, conn),
                 # Een lege weergave kan twee dingen zijn: nooit geannoteerd, of verwijderd. Het tweede
                 # hoort de jurist te lezen (zoals een verwijderd document in v1).
@@ -571,6 +629,8 @@ async def _beslis_in(conn, element_id: str, req, verwacht: dict[str, int], snaps
     nodes = nodes_van(snapshot)
     if not element_actueel(old, nodes):
         raise HTTPException(409, "Verouderd element is alleen-lezen.")
+    if is_vervangen(old):
+        raise HTTPException(409, "Dit voorstel is vervangen door een nieuwe ronde van Lex en is alleen-lezen.")
     snapshot_id = snapshot["snapshot_id"]
     touched.setdefault(old["eigenaar_iri"], await _laag(conn, layers, old["eigenaar_iri"], snapshot_id, verwacht))
     if slot_van(old, None) == "element" and req.type not in {"heropen", "comment"}:
@@ -653,7 +713,8 @@ async def beslis_laag(laag_id: str, req: Laagbesluiten, snapshot: dict, actor: s
         await _raak(conn, layer, req.snapshot_id)
         rest = (await conn.execute(select(e.c.inhoud).where(e.c.laag_id == laag_id))).scalars().all()
         return {"laag": publiek_laag(layer), "elementen": uit,
-                "open": sum(not x.get("verouderd") and x["lifecycle"] not in AFGEHANDELD for x in rest)}
+                "open": sum(not x.get("verouderd") and not is_vervangen(x) and x["lifecycle"] not in AFGEHANDELD
+                            for x in rest)}
 
 
 async def revisies(laag_id: str, limit: int = 100) -> list[dict]:
@@ -690,10 +751,10 @@ async def zet_status(laag_id: str, status: str, expected: int, actor: str, snaps
             db.annotatie_v2_elementen.c.laag_id == laag_id))).scalars().all()
         if status == "geaccordeerd" and snapshot is not None:
             nodes = nodes_van(snapshot)
-            if any(not e.get("verouderd") and not element_actueel(e, nodes) for e in elements):
+            if any(not e.get("verouderd") and not is_vervangen(e) and not element_actueel(e, nodes) for e in elements):
                 raise HTTPException(409, "Brontekst gewijzigd; annoteer de actuele bron vóór afronden.")
-        if status == "geaccordeerd" and any(not e.get("verouderd") and e["lifecycle"] not in AFGEHANDELD
-            for e in elements):
+        if status == "geaccordeerd" and any(not e.get("verouderd") and not is_vervangen(e)
+                                            and e["lifecycle"] not in AFGEHANDELD for e in elements):
             raise HTTPException(409, "Beoordeel eerst alle actuele elementen van deze laag.")
         layer["status"] = status
         await _raak(conn, layer, layer["snapshot_id"])
@@ -808,7 +869,7 @@ async def overzicht(actor: str | None, bwb_id: str, limit: int, offset: int) -> 
             if actor and not any(e.get("aangemaakt_door") == actor or
                 any(b.get("actor") == actor for b in e.get("beslissingen", [])) for e in local):
                 continue
-            current = [e for e in local if not e.get("verouderd")]
+            current = [e for e in local if not e.get("verouderd") and not is_vervangen(e)]
             results.append({**publiek_laag(layer), "slug": layer["id"], "bwbId": law,
                 "artikel": article, "lid": lid, "label": node.get("label", ""), "soort": node["type"],
                 "citeertitel": node.get("citeertitel") or snapshot["doel"].get("citeertitel") or law,
@@ -816,7 +877,9 @@ async def overzicht(actor: str | None, bwb_id: str, limit: int, offset: int) -> 
                     e["lifecycle"] not in AFGEHANDELD for e in current),
                 "per_klasse": dict(Counter(e["klasse"] for e in current)),
                 "per_aandacht": dict(Counter(e.get("aandacht") for e in current if e.get("aandacht"))),
-                "laatste_model": "", "laag_sleutel": layer["bron_iri"], "verouderd": len(local) - len(current),
+                "laatste_model": "", "laag_sleutel": layer["bron_iri"],
+                "verouderd": sum(bool(e.get("verouderd")) for e in local),
+                "vervangen": sum(not e.get("verouderd") and is_vervangen(e) for e in local),
                 "updated": db.aware(layer["updated"]).isoformat()})
         return results[offset:offset + limit]
 

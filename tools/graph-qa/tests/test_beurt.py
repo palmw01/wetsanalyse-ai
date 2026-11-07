@@ -466,3 +466,42 @@ async def test_het_oordeel_van_de_controle_staat_op_het_bericht(api):
                   {"type": "done"}])
     assert api.berichten[0][1]["grounding"] == {"grounded": False, "cited": 0, "unsupported": ["BWBR9"],
                                                 "niet_letterlijk": [], "niveau": "ongegrond", "afgekapt": True}
+
+
+@asyncio_test
+async def test_een_ronde_opnieuw_noemt_de_vervangen_voorstellen(api):
+    """De api meldt welke oude voorstellen deze ronde verving (`vervangen`); Lex zegt hoeveel, live én na herladen."""
+    async def batch(payload):
+        api.batches.append(payload)
+        return {"lagen": [], "elementen": [], "vervangen": ["oud-1", "oud-2", "oud-3"]}
+    api.zet_bronnode_batch = batch
+    uit = await _draai([
+        {"type": "doel", "doel": _doel()},
+        {"type": "run", "run": {"model": "claude", "modus": "opnieuw"}},
+        {"type": "element", "element": {"id": "e1", "klasse": "Rechtssubject", "tekst": "de ontvanger"}},
+        {"type": "token", "content": "Ik heb artikel 9 lid 1 geanalyseerd en één JAS-element gevonden."},
+        {"type": "done"},
+    ])
+    zin = "Drie voorstellen uit een eerdere ronde maak ik nu niet meer; die zijn vervangen en tellen niet meer mee."
+    _, bericht = api.berichten[0]
+    assert bericht["tekst"] == "Ik heb artikel 9 lid 1 geanalyseerd en één JAS-element gevonden. " + zin
+    assert {"type": "token", "content": " " + zin} in uit
+
+
+@asyncio_test
+async def test_zonder_vervangen_voorstellen_blijft_de_samenvatting_gelijk(api):
+    await _draai([
+        {"type": "doel", "doel": _doel()},
+        {"type": "run", "run": {"model": "claude", "modus": "opnieuw"}},
+        {"type": "element", "element": {"id": "e1", "klasse": "Rechtssubject", "tekst": "de ontvanger"}},
+        {"type": "token", "content": "Ik heb artikel 9 lid 1 geanalyseerd."},
+        {"type": "done"},
+    ])
+    assert api.berichten[0][1]["tekst"] == "Ik heb artikel 9 lid 1 geanalyseerd."
+
+
+def test_vervangen_zin_telt_in_woorden():
+    from agent.nodes.annotatie_samenvatting import vervangen_zin
+    assert vervangen_zin(0) == ""
+    assert vervangen_zin(1).startswith("Eén voorstel uit een eerdere ronde")
+    assert vervangen_zin(14).startswith("14 voorstellen")

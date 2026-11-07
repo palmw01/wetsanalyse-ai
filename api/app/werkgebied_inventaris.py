@@ -10,6 +10,8 @@
   stil verbreed.
 - Afgewezen elementen staan apart (`afgewezen`) en worden per selectie geteld. In `elementen` horen ze niet: wat daaruit
   leest (het manifest, koppelen) mag ze niet oppakken. Ze blijven wel terug te vinden.
+- Vervangen elementen (een nieuwe ronde van Lex maakte ze niet meer) staan om dezelfde reden apart (`vervangen`), zonder
+  telling per selectie: het zijn geen voorstellen meer.
 - Per selectie: `bron_gewijzigd` als de huidige hash van de bronnode afwijkt van de bewaarde (een
   signaal, geen ongeldigverklaring), en `onbereikbaar` als de bronboom niet op te halen is. De rest
   van de inventaris komt dan gewoon: een niet-beschikbare bron is een open punt.
@@ -21,6 +23,7 @@ from typing import Awaitable, Callable
 from fastapi import HTTPException
 
 from . import annotatie_v2_store as store
+from .annotatie_v2_contracts import is_vervangen
 
 Resolver = Callable[[dict], Awaitable[dict]]
 
@@ -97,19 +100,21 @@ async def inventaris_met_bronbomen(selecties: list[dict], resolve: Resolver, *,
             volgorde.setdefault(n["bron_iri"], n.get("volgorde", i))
         regel["bron_gewijzigd"] = bool(sel["bron_hash"]) and nodes[sel["bron_iri"]].get("bron_hash") != sel["bron_hash"]
 
-    elementen = await store.actuele_elementen(alle_nodes, compact=True) if alle_nodes else []
+    elementen = await store.actuele_elementen(alle_nodes, compact=True, inclusief_vervangen=True) if alle_nodes else []
     alle_scope = set(alle_nodes)
     per_id = {r["id"]: r for r in samenvatting}
-    uit, afgewezen = [], []
+    uit, afgewezen, vervangen = [], [], []
     for el in elementen:
         dekkend = [sid for sid, scope in scopes.items() if el["eigenaar_iri"] in scope]
         if not dekkend:
             continue
         verworpen = el.get("lifecycle") == "rejected"
-        for sid in dekkend:
-            per_id[sid]["afgewezen" if verworpen else "aantal"] += 1
+        weg = is_vervangen(el)
+        if not weg:
+            for sid in dekkend:
+                per_id[sid]["afgewezen" if verworpen else "aantal"] += 1
         analyse = any(per_id[sid]["rol"] == "analyseren" for sid in dekkend)
-        (afgewezen if verworpen else uit).append({
+        (vervangen if weg else afgewezen if verworpen else uit).append({
             **(el if volledige_elementen else {k: el.get(k) for k in _VELDEN if k in el}),
             "rol": "analyseren" if analyse else "context",
             "selecties": sorted(dekkend),
@@ -122,5 +127,6 @@ async def inventaris_met_bronbomen(selecties: list[dict], resolve: Resolver, *,
 
     uit.sort(key=sleutel)
     afgewezen.sort(key=sleutel)
-    return {"selecties": samenvatting, "elementen": uit, "afgewezen": afgewezen,
+    vervangen.sort(key=sleutel)
+    return {"selecties": samenvatting, "elementen": uit, "afgewezen": afgewezen, "vervangen": vervangen,
             "volledig": not any(r["onbereikbaar"] for r in samenvatting)}, per_bwb

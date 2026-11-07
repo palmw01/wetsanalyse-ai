@@ -495,7 +495,9 @@ wordt **per beurt gereset** in `answer_stream`, net als de andere annotatievelde
    vóór de eerste modelcall (volledig hergebruik: `emit` stuurt `hergebruik` + een `run` met
    `modus="hergebruik"`). **Een onleesbare dekking stopt de beurt** – een api-storing is geen bewijs dat
    annotaties ontbreken. Daarom kan de keten niet annoteren zonder api. `hergebruik: "opnieuw"`
-   annoteert alles opnieuw, behalve afgeronde lagen.
+   annoteert alles opnieuw, behalve afgeronde lagen. Is die ronde voltooid, dan zet de api de oude voorstellen van
+   Lex zonder oordeel die ze niet meer maakte op `vervangen` (de respons van de batch draagt hun ids); `_leg_vast`
+   zet er één zin achter de samenvatting over (`annotatie_samenvatting.vervangen_zin`), live en in het bericht.
 4. **Analyse** (`jas_pipeline.keten.analyseer`): de hele bepaling is context, alleen de niet-hergebruikte
    nodes leveren kandidaten. De classificatiebatches gaan tegelijk naar het model
    (`CLASSIFIER_PARALLEL`, `_classificeer_batches`), elk met een eigen meting en in batchvolgorde terug.

@@ -126,6 +126,9 @@ export const BEOORDEELD_LIFECYCLES = ["human_approved", "edited", "published"];
 /** Elementen waar de jurist al over besloten heeft. Ook `edited`: een aanpassing ís een besluit. Dezelfde definitie als
  *  `AFGEHANDELD` in de api. */
 export const BESLIST_LIFECYCLES = ["human_approved", "edited", "published", "rejected"];
+/** Niet meer actueel, wel bewaard: een nieuwe ronde van Lex maakte dit voorstel niet meer. Dezelfde definitie als
+ *  `NIET_ACTUEEL` in de api; de weergave laat ze weg, de inventaris zet ze apart. */
+export const NIET_ACTUELE_LIFECYCLES = ["vervangen"];
 
 export type ReviewFilter = "alles" | "te_beoordelen" | "aandacht";
 
@@ -169,7 +172,7 @@ const VERGRENDELDE_LIFECYCLES = ["human_approved", "rejected", "published"];
 
 /** Waarom een element niet zomaar te wijzigen is. Dezelfde regel als `slot_van` in de api, met dezelfde gevallen
  *  in `slotregel.json`: zo verschijnt er geen knop waar de server een 409 geeft.
- *  - `alleen-lezen`: verouderd, er kan niets meer.
+ *  - `alleen-lezen`: verouderd of vervangen, er kan niets meer.
  *  - `laag`: de laag is afgerond; eerst de laag heropenen.
  *  - `element`: een eindoordeel; heropenen of een opmerking kan, de rest niet.
  *  Je eigen markering staat meteen op `human_approved`, maar dat is "gemaakt", niet "beoordeeld": wat je zelf
@@ -180,7 +183,7 @@ export function slotVan(
   el: { lifecycle: string; herkomst: string; verouderd?: boolean; beslissingen?: { type: string }[] },
   laagStatus?: string | null,
 ): Slot {
-  if (el.verouderd) return "alleen-lezen";
+  if (el.verouderd || NIET_ACTUELE_LIFECYCLES.includes(el.lifecycle)) return "alleen-lezen";
   if (laagStatus && laagStatus !== "in_review") return "laag";
   if (VERGRENDELDE_LIFECYCLES.includes(el.lifecycle) && (el.herkomst !== "mens" || heeftOordeel(el))) return "element";
   return "geen";
@@ -381,4 +384,5 @@ export const LIFECYCLE_LABEL: Record<Lifecycle, string> = {
   rejected: "verworpen",
   published: "gepubliceerd",
   reused: "hergebruikt",
+  vervangen: "vervangen door een nieuwe ronde",
 };

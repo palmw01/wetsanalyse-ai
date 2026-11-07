@@ -329,7 +329,8 @@ _BRONROL = {"analyseren": "analyseren", "context": "context"}
 _KANDIDAATROL = {"kern": "kernbepaling", "afhankelijkheid": "afhankelijkheid", "aanverwant": "aanverwant"}
 _LIFECYCLE = {"voorgesteld": "voorstel, nog niet beoordeeld", "human_approved": "beoordeeld: akkoord",
               "edited": "beoordeeld: aangepast", "published": "beoordeeld: gepubliceerd",
-              "rejected": "afgewezen", "reused": "hergebruikt, nog niet beoordeeld"}
+              "rejected": "afgewezen", "reused": "hergebruikt, nog niet beoordeeld",
+              "vervangen": "vervangen door een nieuwe ronde van Lex"}
 _BEGRIPSTATUS = {"geaccordeerd": "Geaccordeerd", "concept": "Concept, nog niet geaccordeerd", "vervangen": "Vervangen"}
 _KOPPELROL = {"duiding": "duidt dit begrip aan", "definitie": "ondersteunt de definitie", "context": "context"}
 _BEOORDELING = {"open": "nog niet beoordeeld", "akkoord": "akkoord", "afgewezen": "afgewezen"}

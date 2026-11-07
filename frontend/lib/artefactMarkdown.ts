@@ -67,7 +67,7 @@ export function begripAlsMarkdown(b: Pick<Begrip, "inhoud">): string {
 
 const LIFECYCLE: Record<string, string> = {
   voorgesteld: "voorstel van Lex", human_approved: "akkoord", edited: "door de jurist aangepast", rejected: "verworpen",
-  published: "gepubliceerd", reused: "hergebruikt",
+  published: "gepubliceerd", reused: "hergebruikt", vervangen: "vervangen door een nieuwe ronde",
 };
 
 /** Een annotatie: de markeringen per JAS-klasse (in de volgorde van de tabel) met hun fragment en stand. Verworpen

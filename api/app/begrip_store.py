@@ -14,7 +14,7 @@ Een begrip hoort bij één werkgebied, met een impliciet begrippenkader (`urn:wa
 - **Een koppeling draagt haar bewijsstand.** Annotatie-elementen worden hard verwijderd; een
   koppeling cascadeert daar niet in mee, maar wordt bij het lezen `verdwenen`. De actualiteit komt
   uit Postgres, zonder graaf: `actueel`, `gewijzigd` (tekst, klasse of ankers anders, of het element
-  verouderd), `verworpen` of `verdwenen`.
+  verouderd of door een nieuwe ronde van Lex vervangen), `verworpen` of `verdwenen`.
 - **De poort** (`poort`) rekent de server; de werkplek toont dezelfde zinnen.
 - **Een generiek begrip** wijzig je alleen met `werkgebied_id=None` (`/v1/begrippen/{id}`), niet vanuit een werkgebied
   (409 `generiek`), zodat niemand ongemerkt andere analyses wijzigt. Een passage in een werkgebied heropent het niet:
@@ -35,7 +35,7 @@ from sqlalchemy import delete, func, insert, or_, select, update
 
 from . import annotatie_v2_store as annotaties, db
 from .annotatie_export import cel
-from .annotatie_v2_contracts import BEOORDEELD
+from .annotatie_v2_contracts import BEOORDEELD, is_vervangen
 from .begrip_contracts import (
     BegripInvoer, BegripWijziging, KoppelBeoordelingen, KoppelInvoer, KoppelWijziging,
 )
@@ -108,7 +108,7 @@ def actualiteit(k: dict, huidig: dict | None) -> dict:
         stand = "verdwenen"
     elif huidig.get("lifecycle") == "rejected":
         stand = "verworpen"
-    elif huidig.get("verouderd") or element_hash(huidig) != referentie_hash(k):
+    elif huidig.get("verouderd") or is_vervangen(huidig) or element_hash(huidig) != referentie_hash(k):
         stand = "gewijzigd"
     else:
         stand = "actueel"
