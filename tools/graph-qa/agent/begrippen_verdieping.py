@@ -161,7 +161,7 @@ async def verdieping_kern(ctx: Context, werkgebied_id: str, bevestigd: int | Non
     if not api_run:
         return geweigerd(taak, f"In werkgebied *{naam}* zijn nog geen begripsvoorstellen om over mee te denken. "
                                "Vraag eerst om begrippen.")
-    artefact = begrippen_artefact(werkgebied_id, str(api_run["id"]), naam)
+    artefact = begrippen_artefact(werkgebied_id, str(api_run["id"]))
     if wv.get("verdiept"):
         return Uitkomst(taak=taak, artefact=artefact, tekst=f"Over de voorstellen in werkgebied *{naam}* heb ik al "
                                                             "meegedacht; open ze om ze te beoordelen.")
