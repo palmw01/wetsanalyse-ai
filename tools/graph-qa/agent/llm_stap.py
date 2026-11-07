@@ -12,7 +12,8 @@ Twee lagen:
   herhaalt zelf bij transportfouten (`llm_max_retries`), de adapter doet de cache-terugval, en een fout is van de aanroeper.
 - **`vraag_tool`**: de aanroepen met één strict tool (classifier, reviewer, begrippen, kaartacties, deelvragen, intake). Het
   aantal pogingen is verplicht en expliciet, en de tellers houden hun bestaande namen (`llm_calls`, `review_calls`,
-  `afgekapt`), zodat metingen vergelijkbaar blijven. Wat de items zijn en of ze kloppen, blijft bij de module: dat is het
+  `afgekapt`), zodat metingen vergelijkbaar blijven. Een weigering of een afgekapt antwoord krijgt geen tweede poging
+  (`GEEN_HERHALING`): dezelfde vraag met hetzelfde budget levert dan hetzelfde op, en kost alleen tokens. Wat de items zijn en of ze kloppen, blijft bij de module: dat is het
   contract van die stap, niet van de aanroep.
 """
 from __future__ import annotations
@@ -131,6 +132,12 @@ def lijst(sleutel: str) -> Callable[[dict[str, Any]], list[Any] | None]:
     return haal
 
 
+# Na deze stopredenen geen nieuwe poging (besluit van de eigenaar, 7 nov 2026). Een weigering komt met dezelfde vraag
+# terug; een antwoord dat op `max_tokens` stuitte heeft met hetzelfde budget dezelfde ruimte. Schreef het model tekst in
+# plaats van de tool (`end_turn`), of riep het de tool aan met onbruikbare invoer, dan helpt een tweede poging wel.
+GEEN_HERHALING = frozenset({Stopreden.REFUSAL, Stopreden.MAX_TOKENS})
+
+
 @dataclass(frozen=True)
 class ToolUitkomst:
     """`waarde` is wat `haal` uit de tool-aanroep haalde, of `None` als geen poging iets bruikbaars gaf."""
@@ -153,7 +160,7 @@ def vraag_tool(llm: Any, rol: Rol, *, verzoek: dict[str, Any], pogingen: int,
 
     Een poging is bruikbaar als de tool-aanroep leesbaar is en `haal` er iets anders dan `None` uit haalt. Elke poging
     telt in `meting[teller]`, een afgekapte (`max_tokens`) ook in `meting[afgekapt_teller]`. Een onbruikbare poging
-    logt één regel met de stopreden."""
+    logt één regel met de stopreden; na een stopreden uit `GEEN_HERHALING` stopt hij meteen."""
     if pogingen < 1:
         raise ValueError("pogingen moet minstens 1 zijn")
     naam = verzoek["tools"][0]["name"]
@@ -170,4 +177,6 @@ def vraag_tool(llm: Any, rol: Rol, *, verzoek: dict[str, Any], pogingen: int,
             return ToolUitkomst(waarde, stop, poging)
         logger.info("geen bruikbare tool-aanroep", extra={"categorie": "functioneel", "rol": rol.naam, "tool": naam,
                                                           "stopreden": str(stop), "poging": poging})
+        if stop in GEEN_HERHALING:
+            return ToolUitkomst(None, stop, poging)
     return ToolUitkomst(None, stop, pogingen)
