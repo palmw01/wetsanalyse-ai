@@ -37,6 +37,7 @@ import logging
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any, Protocol, runtime_checkable
 
 logger = logging.getLogger("graph_qa.runs")
@@ -48,6 +49,10 @@ MAX_EVENTS = 4000
 # Hoe lang een afgeronde run nog opvraagbaar blijft. Lang genoeg dat je koffie kunt halen en de
 # uitkomst alsnog ziet; kort genoeg dat het geheugen niet volloopt.
 BEWAAR_NA_AFLOOP_S = 600.0
+
+# Hoe lang een afgeronde run nog in `voor_gebruiker` staat: lang genoeg dat de sidebar een antwoord dat klaarkwam
+# terwijl je elders werkte nog als nieuw toont, en gelijk aan wat de geheugenstore bewaart.
+RECENT_S = BEWAAR_NA_AFLOOP_S
 
 # Welke events bij het cappen mogen sneuvelen. Narratie is volume; betekenis is `doel`, `element`,
 # `run`, `ontbrekend`, `sources`, `grounding`, `kandidaten`, `done` en `error` – die blijven staan,
@@ -96,6 +101,8 @@ class Run:
     geproduceerd: int = 0
     gestart: float = field(default_factory=time.monotonic)
     eind_op: float | None = None
+    # Wanneer hij eindigde, op de wandklok (`eind_op` is monotoon en alleen in dit proces te lezen).
+    afgerond_op: datetime | None = None
     stop_gevraagd: bool = False
     # Hoe de stroom eindigde (`sluit_af`): klaar, mislukt of gestopt. Leeg zolang hij loopt.
     uitkomst: str = ""
@@ -123,6 +130,16 @@ class Run:
             "status": self.status,
             "volgende_seq": self.volgende_seq,
             "weggevallen": self.weggevallen,
+        }
+
+    def stand(self) -> dict[str, Any]:
+        """Wat de sidebar van een run moet weten: van welk gesprek, of hij loopt, en wanneer hij eindigde. Geen vraag
+        en geen events: wie meer wil, haakt aan."""
+        return {
+            "run_id": self.run_id,
+            "conversation_id": self.conversation_id,
+            "status": self.status,
+            "afgerond_op": self.afgerond_op.isoformat() if self.afgerond_op else None,
         }
 
 
@@ -193,6 +210,13 @@ class RunStore(Protocol):
 
     async def actief_voor(self, conversation_id: str, *, user_id: str | None = None) -> Run | None:
         """De lopende run van dit gesprek, als die er is."""
+        ...
+
+    async def voor_gebruiker(self, user_id: str, *, recent_s: float = RECENT_S) -> list[Run]:
+        """De runs van deze gebruiker die lopen of de laatste `recent_s` seconden eindigden, nieuwste eerst.
+
+        Voor de sidebar: zie je een beurt elders lopen of klaarkomen. Alleen runs met precies deze `user_id`; een
+        lege gebruiker krijgt niets."""
         ...
 
     async def start(

@@ -416,3 +416,39 @@ async def test_een_run_die_merkt_dat_zijn_gesprek_weg_is_ruimt_zichzelf_op():
     run = await register.start(conversation_id="g1", vraag="v", maak_stroom=maak)
     await _wacht_af(run)
     assert await register.get(run.run_id) is None
+
+
+# -- voor_gebruiker: wat de sidebar ziet (E6) --------------------------------------------------------
+
+
+@asyncio_test
+async def test_voor_gebruiker_toont_lopend_en_net_klaar_van_alleen_jezelf():
+    store = GeheugenStore()
+    klaar = await store.start(conversation_id="g1", vraag="v", maak_stroom=_stroom([{"type": "done"}]),
+                              user_id="a")
+    await _wacht_af(klaar)
+    lopend = await store.start(conversation_id="g2", vraag="v", user_id="a",
+                               maak_stroom=_stroom([{"type": "done"}], vertraag=0.5))
+    await store.start(conversation_id="g3", vraag="v", user_id="b",
+                      maak_stroom=_stroom([{"type": "done"}], vertraag=0.5))
+
+    runs = await store.voor_gebruiker("a")
+    assert [r.run_id for r in runs] == [lopend.run_id, klaar.run_id]  # nieuwste eerst
+    standen = {r.conversation_id: r.stand() for r in runs}
+    assert standen["g2"]["status"] == "loopt" and standen["g2"]["afgerond_op"] is None
+    assert standen["g1"]["status"] == "klaar" and standen["g1"]["afgerond_op"]  # ISO, wandklok
+    assert set(standen["g1"]) == {"run_id", "conversation_id", "status", "afgerond_op"}  # geen vraag
+    await _wacht_af(lopend)
+
+
+@asyncio_test
+async def test_voor_gebruiker_laat_oude_runs_en_een_lege_gebruiker_weg():
+    store = GeheugenStore()
+    run = await store.start(conversation_id="g1", vraag="v", maak_stroom=_stroom([{"type": "done"}]),
+                            user_id="a")
+    await _wacht_af(run)
+    assert await store.voor_gebruiker("a", recent_s=0) == []
+    # Een run zonder eigenaar (een test, de CLI) is van niemand: een lege header krijgt hem niet.
+    zonder = await store.start(conversation_id="g2", vraag="v", maak_stroom=_stroom([{"type": "done"}]))
+    await _wacht_af(zonder)
+    assert await store.voor_gebruiker("") == []

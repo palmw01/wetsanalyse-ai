@@ -48,7 +48,7 @@ def _eerste_beurt(settings, gid):
 
 
 def test_vervolgvraag_wordt_met_het_gesprek_gelezen_en_herschreven(tmp_path):
-    settings = make_settings(enable_decomposition=False, checkpoint_db_path=str(tmp_path / "cp.db"))
+    settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"))
     _eerste_beurt(settings, "g-vervolg")
     llm = FakeLLM([
         response([text_block("VRAAG: Wat regelt artikel 9 lid 2 van de Invorderingswet 1990?\n"
@@ -68,7 +68,7 @@ def test_vervolgvraag_wordt_met_het_gesprek_gelezen_en_herschreven(tmp_path):
 
 
 def test_een_herschreven_leesvraag_gaat_de_leesroute_in_met_het_klassefilter(tmp_path):
-    settings = make_settings(enable_decomposition=False, checkpoint_db_path=str(tmp_path / "cp.db"))
+    settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"))
     _eerste_beurt(settings, "g-lees")
     api = ReadApi(snapshot())
     llm = FakeLLM([
@@ -86,7 +86,7 @@ def test_een_herschreven_leesvraag_gaat_de_leesroute_in_met_het_klassefilter(tmp
 
 
 def test_zonder_vraagregel_blijft_de_eigen_vraag_gelden(tmp_path):
-    settings = make_settings(enable_decomposition=False, checkpoint_db_path=str(tmp_path / "cp.db"))
+    settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"))
     _eerste_beurt(settings, "g-geen")
     llm = FakeLLM([
         response([text_block("WORKERS: antwoord\nSPECIALIST: duiding\nPLAN: leg uit")], "end_turn"),

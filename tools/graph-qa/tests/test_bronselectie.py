@@ -384,7 +384,7 @@ def _beurt(tmp_path, nep, vraag, llm=None, **kw):
     from agent.agent import answer_stream
     from fakes import FakeGraph, FakeLLM, make_settings
 
-    settings = make_settings(enable_decomposition=False, checkpoint_db_path=str(tmp_path / "cp.db"),
+    settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"),
                              wetsanalyse_api_url="http://api", wetsanalyse_api_token="t")
     llm = llm or FakeLLM([])
 
@@ -647,6 +647,23 @@ def test_andere_zoekcode_zoekt_opnieuw_bij_het_hervatten():
     assert api.zoekopdrachten == 1
     _run(bs.start(api, WID, api.zoek))                       # nu dezelfde versie: niet nog eens
     assert api.zoekopdrachten == 1
+
+
+def test_zoekversie_dekt_de_queries_en_de_namen():
+    """Een wijziging aan de fts-query (`graph/queries.py`) of aan het benoemen van een treffer (`bepaling_namen.py`)
+    verandert wat er gevonden wordt, dus ook `ZOEKVERSIE`: anders bleef de uitkomst van de oude zoekcode staan."""
+    from agent import bronnen_run
+    from agent.graph import queries
+
+    assert bronnen_run._zoekversie() == bronnen_run.ZOEKVERSIE
+    for module in (queries, bn):
+        doel = Path(module.__file__)
+
+        def lees(pad: Path, doel=doel) -> bytes:
+            return pad.read_bytes() + (b"\n# andere fts\n" if pad == doel else b"")
+
+        assert bronnen_run._zoekversie(lees) != bronnen_run.ZOEKVERSIE, module.__name__
+    assert "def fts(" in Path(queries.__file__).read_text(encoding="utf-8")
 
 
 def test_bepalingen_noemen_vanuit_het_gesprek():

@@ -129,6 +129,28 @@ async def test_de_eigenaarscontrole_geldt_ook_cross_replica(store):
 
 
 @met_store
+async def test_voor_gebruiker_ziet_runs_van_een_andere_replica(store):
+    """De sidebar peilt op een willekeurige replica: ook een run die elders draait of daar eindigde, telt (E6)."""
+    replica_b = PostgresStore(DSN)
+    await replica_b.setup()
+    try:
+        klaar = await store.start(conversation_id="g1", vraag="v", maak_stroom=stroom([{"type": "done"}]),
+                                  user_id="u1")
+        await asyncio.wait_for(klaar.taak, timeout=5)
+        lopend = await store.start(conversation_id="g2", vraag="v", maak_stroom=blijf_draaien(), user_id="u1")
+        await store.start(conversation_id="g3", vraag="v", maak_stroom=blijf_draaien(), user_id="u2")
+
+        runs = await replica_b.voor_gebruiker("u1")
+        assert [r.run_id for r in runs] == [lopend.run_id, klaar.run_id]
+        assert runs[0].stand()["status"] == "loopt" and runs[0].afgerond_op is None
+        assert runs[1].stand()["status"] == "klaar" and runs[1].afgerond_op is not None
+        assert [r.run_id for r in await replica_b.voor_gebruiker("u1", recent_s=0)] == [lopend.run_id]
+        assert await replica_b.voor_gebruiker("") == []
+    finally:
+        await replica_b.sluit()
+
+
+@met_store
 async def test_een_tweede_run_op_hetzelfde_gesprek_botst_op_de_database(store):
     """Niet check-then-insert maar een unieke index: dit is de enige vorm die tussen twee
     replica's standhoudt."""

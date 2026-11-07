@@ -16,8 +16,7 @@ toevoegt:
   lopend onderdeel maakt altijd af – een halve annotatie is erger dan een kleine overschrijding.
 - **Een fout in één onderdeel stopt de rest niet.** Hij wordt bij dat onderdeel gemeld.
 
-Beide SSE-wegen (`/v1/runs` en `/v1/chat`) gebruiken `reeks_stroom`; ze verschillen alleen in hoe
-één beurt draait (met of zonder vastleggen).
+`/v1/runs` gebruikt `reeks_stroom`; elk onderdeel is daar een gewone beurt die zijn uitkomst vastlegt.
 """
 from __future__ import annotations
 
@@ -123,7 +122,6 @@ async def reeks_run(
     *,
     settings,
     user_id: str = "",
-    legt_vast: bool = True,
     graph=None,
     llm=None,
     annotaties=None,
@@ -131,9 +129,8 @@ async def reeks_run(
 ) -> AsyncIterator[dict[str, Any]]:
     """De eventstroom van een reeks voor `request.doelen`.
 
-    `legt_vast`: via `/v1/runs` legt elke beurt zijn uitkomst vast (`voer_beurt_uit`); via
-    `/v1/chat` niet – dezelfde verdeling als bij een gewone beurt. `graph`, `llm` en `annotaties`
-    zijn er voor tests; in productie bouwt elke beurt ze zelf.
+    Elke beurt legt zijn uitkomst vast (`voer_beurt_uit`), als er een run is. `graph`, `llm` en
+    `annotaties` zijn er voor tests; in productie bouwt elke beurt ze zelf.
     """
     doelen = [d.model_dump() if hasattr(d, "model_dump") else dict(d) for d in request.doelen]
     run_id = getattr(run, "run_id", "") or ""
@@ -159,19 +156,19 @@ async def reeks_run(
         if graph is None:
             controle.close()
 
-    if budget_toegestaan is None and legt_vast and settings.legt_zelf_vast and user_id:
+    if budget_toegestaan is None and settings.legt_zelf_vast and user_id:
         budget_toegestaan = _budget_poort(settings, user_id)
 
     beurt = beurt_fabriek(run, gesprek_id=request.conversation_id, hergebruik=request.hergebruik,
                           totaal=len(doelen), ouder=ouder.get("label", ""), settings=settings,
-                          user_id=user_id, legt_vast=legt_vast, graph=graph, llm=llm, annotaties=annotaties)
+                          user_id=user_id, graph=graph, llm=llm, annotaties=annotaties)
     async for event in reeks_stroom(doelen, run_id=run_id, beurt=beurt, ouder=ouder,
                                     stop_gevraagd=stop, budget_toegestaan=budget_toegestaan):
         yield event
 
 
 def beurt_fabriek(run, *, gesprek_id: str | None, hergebruik: str, totaal: int, ouder: str, settings,
-                  user_id: str = "", legt_vast: bool = True, graph=None, llm=None, annotaties=None) -> BeurtFabriek:
+                  user_id: str = "", graph=None, llm=None, annotaties=None) -> BeurtFabriek:
     """Eén gewone annotatiebeurt per onderdeel, met een eigen run-id (`DeelRun`) en – als hij
     vastlegt – `reeks: {run_id, index, totaal, ouder}` in het bericht."""
     from .agent import answer_stream
@@ -191,7 +188,7 @@ def beurt_fabriek(run, *, gesprek_id: str | None, hergebruik: str, totaal: int, 
             annotaties=annotaties, user_id=user_id, run_id=deel.run_id if deel else "",
             stop_check=stop, meter=meter,
         )
-        if not legt_vast or deel is None:
+        if deel is None:
             return stroom
         uitgevoerd = voer_beurt_uit(stroom, settings=settings, run=deel, gesprek_id=gesprek_id or "",
                                     user_id=user_id, meter=meter,

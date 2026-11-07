@@ -331,7 +331,7 @@ async def test_search_filters_are_and_lists_or(monkeypatch):
         return snap
     monkeypatch.setattr(graaf_projectie_v2, "zoek_kandidaten", candidates)
     monkeypatch.setattr(annotatie_v2_zoeken, "resolve_bron", resolve)
-    query = Zoekvraag(bronnode_id=ONE, jas_klassen=["Voorwaarde", "Rechtssubject"],
+    query = Zoekvraag(bron_iri=ONE, jas_klassen=["Voorwaarde", "Rechtssubject"],
         lifecycle=["voorgesteld", "human_approved"], laagstatus=["in_review"],
         tekstveld="toelichting", tekst="BIJZONDERE", match="bevat")
     assert len((await annotatie_v2_zoeken.zoek(query))["resultaten"]) == 1

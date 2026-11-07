@@ -29,7 +29,7 @@ from bronmodel import BronFout
 
 from . import annotatie_v2_store as store
 from .bron_resolver import bwb_van, haal_bronrijen, snapshot_uit
-from .graaf_projectie_v2 import _select
+from .graaf_client import sparql_select
 from .samenhang import _PREFIXES, Knoop, Relatie, _label, bronknoop, citeertitel_van, markeringen, verwijzingen
 
 logger = logging.getLogger(__name__)
@@ -114,7 +114,7 @@ async def lees_bron(doel: dict) -> dict:
     if not _BWB.match(bwb):
         raise BronFout("Ongeldig BWB-id")
     async with httpx.AsyncClient(timeout=30) as client:
-        rijen = [r for r in await _select(client, _toestanden_query([bwb])) if r.get("bwbId") == bwb]
+        rijen = [r for r in await sparql_select(client, _toestanden_query([bwb])) if r.get("bwbId") == bwb]
     if not rijen:
         raise BronFout("Regeling niet gevonden in de brongraaf")
     deel = await _structuur(bwb, stand_van(rijen[0]))
@@ -132,7 +132,7 @@ async def _regeling(client: httpx.AsyncClient, bwb: str, toestand: str) -> dict:
         if deel := _bewaard(sleutel, _CACHE):   # een gelijktijdig verzoek haalde hem intussen op
             return deel
         structuur = await _structuur(bwb, toestand)
-        rijen = await _select(client, _verwijzingen_query(bwb))
+        rijen = await sparql_select(client, _verwijzingen_query(bwb))
         deel = {**structuur, "verwijzingen": rijen}
         for oud in [k for k in _CACHE if k[0] == bwb]:
             del _CACHE[oud]             # een vorige toestand van deze regeling is voorbij
@@ -152,7 +152,7 @@ async def graaf(bwbs: list[str] | None = None) -> dict:
     if any(not _BWB.match(b) for b in bwbs or []):
         raise ValueError("Ongeldig BWB-id.")
     async with httpx.AsyncClient(timeout=60) as client:
-        toestanden = [r for r in await _select(client, _toestanden_query(sorted(set(bwbs or []))))
+        toestanden = [r for r in await sparql_select(client, _toestanden_query(sorted(set(bwbs or []))))
                       if r.get("bwbId")]
         delen = [(r, await _regeling(client, r["bwbId"], stand_van(r))) for r in toestanden]
 
@@ -207,7 +207,7 @@ async def plaatsen(iris: list[str]) -> list[dict]:
             raise ValueError(f"Geen bron-IRI: {iri[:80]}")
         per_bwb.setdefault(m.group(1), []).append(iri)
     async with httpx.AsyncClient(timeout=60) as client:
-        toestanden = {r["bwbId"]: r for r in await _select(client, _toestanden_query(sorted(per_bwb))) if r.get("bwbId")}
+        toestanden = {r["bwbId"]: r for r in await sparql_select(client, _toestanden_query(sorted(per_bwb))) if r.get("bwbId")}
     uit: dict[str, dict] = {}
     for bwb, lijst in per_bwb.items():
         r = toestanden.get(bwb)

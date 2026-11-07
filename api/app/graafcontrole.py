@@ -31,7 +31,8 @@ from sqlalchemy import select
 
 from . import db
 from .config import get_settings
-from .graaf_projectie_v2 import (JAS, REGISTER, VOCAB_SCHEMA, VOCABULAIRE, _lit, _repo, _select, bouw_graaf,
+from .graaf_client import repo, sparql_ask, sparql_select
+from .graaf_projectie_v2 import (JAS, REGISTER, VOCAB_SCHEMA, VOCABULAIRE, _lit, bouw_graaf,
                                  graph_iri, laag_iri, laag_invoer, vocabulaire)
 
 logger = logging.getLogger(__name__)
@@ -53,14 +54,8 @@ _V2_GRAPHS_QUERY = '''SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o }
   FILTER(STRSTARTS(STR(?g), "urn:jas:graph:v2:")) }'''
 
 
-async def _ask(client: httpx.AsyncClient, query: str) -> bool:
-    r = await client.post(_repo(), data={"query": query}, headers={"Accept": "application/sparql-results+json"})
-    r.raise_for_status()
-    return bool(r.json().get("boolean"))
-
-
 async def _haal_graph(client: httpx.AsyncClient, iri: str) -> Graph:
-    r = await client.get(_repo() + "/rdf-graphs/service", params={"graph": iri}, headers={"Accept": "text/turtle"})
+    r = await client.get(repo() + "/rdf-graphs/service", params={"graph": iri}, headers={"Accept": "text/turtle"})
     if r.status_code == 404:
         return Graph()
     r.raise_for_status()
@@ -155,7 +150,7 @@ async def controleer_laag(laag_id: str, *, shacl: bool = True) -> dict[str, Any]
         return uit
     try:
         async with httpx.AsyncClient(timeout=30) as client:
-            rijen = await _select(client, _REGISTER_QUERY.replace(
+            rijen = await sparql_select(client, _REGISTER_QUERY.replace(
                 "?laag jas:laagId ?id ;", f"?laag jas:laagId ?id ; jas:laagId {_lit(laag_id)} ;"))
             reg = next((r for r in rijen if r["id"] == laag_id), None)
             achter, afw, bev = await _controleer_laag(client, laag, invoer, reg, shacl)
@@ -183,10 +178,10 @@ async def _controleer_begrippen(client: httpx.AsyncClient, shacl: bool) -> dict[
     from . import begrip_projectie as bp
 
     stand = await bp.postgres_stand()
-    reg = {r["id"]: r for r in await _select(client, bp._REGISTER_QUERY)}
-    graphs = {r["g"] for r in await _select(client, bp._GRAPHS_QUERY)}
+    reg = {r["id"]: r for r in await sparql_select(client, bp._REGISTER_QUERY)}
+    graphs = {r["g"] for r in await sparql_select(client, bp._GRAPHS_QUERY)}
     uit: dict[str, Any] = {"werkgebieden": len(stand), "achterstand": [], "afwijkingen": [], "verweesd": [],
-                           "invariant_schoon": not await _ask(client, _BEGRIPPEN_SCHOON), "nl_sbb_niet_conform": None}
+                           "invariant_schoon": not await sparql_ask(client, _BEGRIPPEN_SCHOON), "nl_sbb_niet_conform": None}
     niet_conform = 0
     for wid, inv in sorted(stand.items()):
         if reg.get(wid, {}).get("hash") != bp.invoer_hash(inv):
@@ -222,8 +217,8 @@ async def controleer(*, shacl: bool = True) -> dict[str, Any]:
         return uit
     try:
         async with httpx.AsyncClient(timeout=30) as client:
-            register = {r["id"]: r for r in await _select(client, _REGISTER_QUERY)}
-            v2_graphs = {r["g"] for r in await _select(client, _V2_GRAPHS_QUERY)}
+            register = {r["id"]: r for r in await sparql_select(client, _REGISTER_QUERY)}
+            v2_graphs = {r["g"] for r in await sparql_select(client, _V2_GRAPHS_QUERY)}
             uit["graaf_beschikbaar"] = True
             shacl_uit: dict[str, Any] = {"beschikbaar": _pyshacl_aanwezig(), "conform": True, "bevindingen": []}
             for laag in sorted(lagen, key=lambda x: x["id"]):
@@ -243,9 +238,9 @@ async def controleer(*, shacl: bool = True) -> dict[str, Any]:
                 + [{"soort": "graph", "graph": g} for g in v2_graphs
                    if g not in {str(graph_iri(i)) for i in bekend}], key=str)
             for naam, query in _INVARIANTEN.items():
-                uit["invarianten"][naam] = not await _ask(client, query)
+                uit["invarianten"][naam] = not await sparql_ask(client, query)
             versie, _ttl = vocabulaire()
-            uit["vocabulaire"] = {"versie": versie, "aanwezig": await _ask(client, (
+            uit["vocabulaire"] = {"versie": versie, "aanwezig": await sparql_ask(client, (
                 f"ASK {{ GRAPH <{VOCABULAIRE}> {{ <{VOCAB_SCHEMA}> <{JAS.vocabulaireVersie}> {_lit(versie)} }} }}"))}
             if shacl:
                 uit["shacl"] = shacl_uit

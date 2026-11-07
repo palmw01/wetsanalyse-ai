@@ -32,7 +32,7 @@ bevindingen hieronder beschrijven de stand op de datum van deze toets.
 
 | punt van Claude | stand in de werkplek | oordeel |
 |---|---|---|
-| 1. chip in de thread | Elke soort heeft een chip met soort en titel (`ArtefactChip`, `AnnotatieChip`); een verwijderde annotatie wordt een tombstone. | **Er.** |
+| 1. chip in de thread | Elke soort heeft een chip met soort en titel (`ArtefactChip`, `AnnotatieChip`); een verwijderde annotatie meldt het paneel zelf. | **Er.** |
 | 2. één tegelijk naast het gesprek | Kolom vanaf 1280px, daaronder een sheet. `nodeDoel`, `wgArtefact` en `ctx` sluiten elkaar uit. | **Er.** |
 | 3. versies via het gesprek | Een artefact is een levend object bij de api (werkgebied, begrip, annotatielaag). Een beurt van Lex wijzigt het. Sinds 5 nov 2026 legt de api bij elke beurt de stand vast (`artefact_versies`), en de chip opent zijn eigen versie met ‹ versie n van m › en *Nu* (`VersieKiezer`). | **Opgelost.** Stond als grootste afwijking van Claude. |
 | 4. kleine bewerkingen erop | Dossier (*Gegevens bewerken*), definitie en uitleg van een begrip, besluiten in het paneel en in de reviewlijst. | **Er.** |

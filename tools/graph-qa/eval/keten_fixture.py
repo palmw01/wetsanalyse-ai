@@ -32,7 +32,7 @@ def ketensettings(settings: Any) -> Any:
     return settings.model_copy(update={
         'checkpoint_db_path': None, 'checkpoint_db_url': None,
         'llm_timeout_seconds': 60, 'llm_max_retries': 0,
-        'enable_planning': True, 'enable_decomposition': False,
+        'enable_planning': True,
     })
 
 

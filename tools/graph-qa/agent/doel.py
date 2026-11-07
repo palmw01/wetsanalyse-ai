@@ -263,28 +263,3 @@ def _heeft_opgegeven_doel(state: State) -> bool:
         return True
     return bool(str(doel.get("bwbId", "")).strip()
                 and (str(doel.get("artikel", "")).strip() or str(doel.get("nummer", "")).strip()))
-
-
-def _corpus_uit_trace(source_trace: list[tuple[str, str]]) -> str:
-    """Reconstrueer de opgehaalde artikeltekst uit de get_lid/get_artikel-resultaten in de trace.
-
-    **Terugval, geen eerste keus** – zie `_corpus_voor_doel`. Deze reconstructie plakt álle
-    fetch-resultaten van de beurt aaneen, terwijl het doel de láátste fetch-call is: haalde de
-    ophaal-agent eerst het hele artikel op en daarna het gevraagde lid, dan zit de tekst van de
-    andere leden er ook in – en dan keurt de brongetrouwheidscheck een fragment uit lid 2 goed als
-    markering "in lid 1". Bovendien is elk tool-resultaat afgekapt op 8000 tekens (`truncate`),
-    dus bij een lange bepaling ontbreekt hier stilzwijgend het staartstuk.
-    """
-    delen: list[str] = []
-    for naam, resultaat in source_trace:
-        if naam not in ("get_lid", "get_artikel", "get_bepaling"):
-            continue
-        for r in parse_select(resultaat):
-            tekst = (r.get("lidtekst") or r.get("tekst") or "").strip()
-            if tekst:
-                delen.append(tekst)
-    return "\n\n".join(delen)
-
-
-
-
