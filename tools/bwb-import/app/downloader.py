@@ -1,4 +1,4 @@
-"""Download van BWB-bronbestanden: toestand-XML, WTI, manifest en XSD's.
+"""Download van BWB-bronbestanden: toestand-XML en WTI.
 
 De ``BwbDownloader`` ontdekt beschikbare toestanden via de SRU-zoekdienst en
 haalt de gewenste toestand-XML op, met lokale caching. Een ``requests.Session``
@@ -27,7 +27,6 @@ _SRU_NS = {
 }
 
 # XSD-schema-namespace voor het volgen van imports/includes/redefines.
-_XSD_NS = "http://www.w3.org/2001/XMLSchema"
 
 
 class DownloadError(RuntimeError):
@@ -90,9 +89,7 @@ class BwbDownloader:
             geldig_vanaf=gzd.findtext(".//bwb:geldigheidsperiode_startdatum", namespaces=_SRU_NS),
             geldig_tot=gzd.findtext(".//bwb:geldigheidsperiode_einddatum", namespaces=_SRU_NS),
             zicht_vanaf=gzd.findtext(".//bwb:zichtperiode_startdatum", namespaces=_SRU_NS),
-            zicht_tot=gzd.findtext(".//bwb:zichtperiode_einddatum", namespaces=_SRU_NS),
             locatie_wti=gzd.findtext(".//bwb:locatie_wti", namespaces=_SRU_NS),
-            locatie_manifest=gzd.findtext(".//bwb:locatie_manifest", namespaces=_SRU_NS),
         )
 
     def latest_toestand(self, bwb_id: str) -> ToestandRef:
@@ -128,39 +125,4 @@ class BwbDownloader:
             raise DownloadError(f"Download mislukt ({response.status_code}) voor {url}")
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(response.content)
-        return target
-
-    # --------------------------------------------------------------------- XSD's
-    def fetch_schemas(self, entry_url: str) -> Path:
-        """Download een XSD plus al zijn afhankelijkheden naar de schemas-map.
-
-        Volgt ``xs:import``/``xs:include``/``xs:redefine`` recursief, zodat lxml
-        het schema lokaal kan oplossen (de redefine van ``toestand_base`` is
-        relatief). Geeft het pad naar het ingangs-XSD terug.
-        """
-        self._settings.schemas_dir.mkdir(parents=True, exist_ok=True)
-        seen: set[str] = set()
-        entry_path = self._fetch_schema_recursive(entry_url, seen)
-        logger.info("XSD's opgehaald (%d bestanden) in %s", len(seen), self._settings.schemas_dir)
-        return entry_path
-
-    def _fetch_schema_recursive(self, url: str, seen: set[str]) -> Path:
-        if url in seen:
-            return self._settings.schemas_dir / url.rsplit("/", 1)[-1]
-        seen.add(url)
-
-        response = self._session.get(url, timeout=60)
-        if response.status_code != 200 or not response.content:
-            raise DownloadError(f"XSD-download mislukt ({response.status_code}) voor {url}")
-        filename = url.rsplit("/", 1)[-1]
-        target = self._settings.schemas_dir / filename
-        target.write_bytes(response.content)
-
-        base = url.rsplit("/", 1)[0]
-        schema = etree.fromstring(response.content)
-        for tag in ("import", "include", "redefine"):
-            for node in schema.iter(f"{{{_XSD_NS}}}{tag}"):
-                location = node.get("schemaLocation")
-                if location and not location.startswith("http"):
-                    self._fetch_schema_recursive(f"{base}/{location}", seen)
         return target
