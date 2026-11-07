@@ -68,7 +68,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   klassen bij.
 - **De rekenkern staat in `lib/`**, niet in componenten: vitest draait node-env zonder DOM, dus alleen
   pure helpers zijn testbaar (`selectie`, `annotatie`, `annotatieOverzicht`, `reeks`, `samenhang`,
-  `markering`, `popover`, `wetstructuur`, `lopendeRun`, `geschiedenis` (de bewaarde berichten als items), `rondleiding`, `werkgebied`, `begrippen`,
+  `markering`, `popover`, `wetstructuur`, `lopendeRun`, `geschiedenis` (de bewaarde berichten als items), `beurtStroom` (wat één poging van een beurt ophoopt), `rondleiding`, `werkgebied`, `begrippen`,
   `begripVoorstellen`, `begripTermen`, `bronPlaats`, `kaartVoorstel`, `herbeoordeling`, `begripRelaties`, `begripGraaf`, `begrippenOverzicht`, `artefact`, `bronKandidaten`, `deelvragen`, `onbewaard`, `vraagkaart`, `gesprekGroepen`, `werkgebiedPaden`, …).
 - **`app/**/page.tsx`** (Server Components) – data via `lib/server.ts`, interactie in een
   `*Client.tsx`. `app/page.tsx` doet `redirect("/workbench")`. De werkplek zit in
@@ -397,7 +397,7 @@ herladen breekt hem niet af. Regels:
   uitzondering is de fout als `startRun` zelf mislukt: dan is er geen run en dus geen server die kan schrijven.
   Een eigen markering van de jurist is een andere handeling (`POST elementen` in `NodeAnnotatiePaneel`). Een
   graph-qa zonder API-koppeling meldt zelf met een `error`-event dat niets is vastgelegd (`agent/beurt.py`).
-- **Tokens komen hooguit één keer per frame binnen** (`planStroom` in `volgBeurt`).
+- **Tokens komen hooguit één keer per frame binnen** (`frameplanner` in `lib/beurtStroom.ts`, gebruikt door `volgBeurt`). Wat een poging ophoopt is één `StroomStand` (`stroomReducer`); elke poging begint leeg, en `afronding` beslist het einde.
 
 **Identiteit is een vertrouwensgrens.** De BFF zet `X-User-Id` uit de sessie op alle run-routes en
 verifieert bij het starten eerst bij de API of het gesprek van deze gebruiker is. `conversation_id` is
