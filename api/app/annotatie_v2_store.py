@@ -207,6 +207,21 @@ def publiek_laag(layer: dict) -> dict:
     return {k: v for k, v in layer.items() if k != "updated"}
 
 
+def slot_van(element: dict, laag_status: str | None) -> str:
+    """Waarom dit element niet zomaar te wijzigen is. De werkplek rekent dezelfde regel (`slotVan`), met
+    dezelfde gevallen in `frontend/lib/slotregel.json`, zodat er geen knop staat waar de api een 409 geeft.
+
+    `alleen-lezen`: verouderd, er kan niets meer. `laag`: eerst de laag heropenen. `element`: heropenen of
+    een opmerking kan, de rest niet. Een eigen markering zonder oordeel van een ander blijft bewerkbaar."""
+    if element.get("verouderd"):
+        return "alleen-lezen"
+    if laag_status not in (None, "in_review"):
+        return "laag"
+    if element["lifecycle"] in VERGRENDELD and (element.get("herkomst") != "mens" or heeft_oordeel(element)):
+        return "element"
+    return "geen"
+
+
 async def _bewaar_snapshot(conn, snapshot: dict):
     table = db.annotatie_v2_snapshots
     if not (await conn.execute(select(table.c.id).where(table.c.id == snapshot["snapshot_id"]))).first():
@@ -561,8 +576,7 @@ async def _beslis_in(conn, element_id: str, req, verwacht: dict[str, int], snaps
         raise HTTPException(409, "Verouderd element is alleen-lezen.")
     snapshot_id = snapshot["snapshot_id"]
     touched.setdefault(old["eigenaar_iri"], await _laag(conn, layers, old["eigenaar_iri"], snapshot_id, verwacht))
-    frozen = old["lifecycle"] in VERGRENDELD and (old.get("herkomst") != "mens" or heeft_oordeel(old))
-    if frozen and req.type not in {"heropen", "comment"}:
+    if slot_van(old, None) == "element" and req.type not in {"heropen", "comment"}:
         raise _heropen_eerst("Heropen het element voordat je het wijzigt.")
     value = dict(old)
     wijziging = req.wijziging
