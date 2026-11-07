@@ -355,3 +355,27 @@ def test_het_verschil_tussen_bronnen_en_bepalingen_wordt_uitgelegd():
     een = _onder(L1, L2)
     een["selecties"] = [{"id": "s1", "per_stand": {"nieuw": 1}}, {"id": "s2", "per_stand": {"nieuw": 1}}]
     assert "Ze komen uit" not in wa.voorstel("Inv", een)[0]
+
+
+# --- een deel van de werkvoorraad (ADR-012, de kinderen van een regie) -------------------------------------------
+
+def test_eenheden_annoteert_alleen_dat_deel(api):
+    wapi = WerkgebiedApi(_werkvoorraad(L1, L2, ART8))
+    events = _draai(_verzoek(bevestigd=2, eenheden=[ART8, L1, ONBEKEND]), wapi)
+    assert not [e for e in events if e["type"] == "error"], events
+    # In de volgorde van de werkvoorraad; wat de api niet als nieuw kent, komt er niet bij.
+    assert [b["doel"]["bron_iri"] for b in api.batches] == [L1, ART8]
+
+
+def test_eenheden_telt_de_doorsnede_bij_de_bevestiging(api):
+    wapi = WerkgebiedApi(_werkvoorraad(L1, L2))
+    _draai(_verzoek(bevestigd=2, eenheden=[L1, ONBEKEND]), wapi)
+    assert not api.batches and "De werkvoorraad veranderde" in wapi.berichten[-1]["tekst"]
+
+
+def test_een_budgetaandeel_stopt_voor_de_volgende_die_niet_past(api):
+    # 3000 tokens per bepaling geschat: de eerste mag (een lopende maakt altijd af), de tweede past niet in 2000.
+    wapi = WerkgebiedApi(_werkvoorraad(L1, L2, ART8))
+    events = _draai(_verzoek(bevestigd=3, budget_aandeel=2000), wapi)
+    eind = [e for e in events if e["type"] == "reeks"][-1]
+    assert eind["reden"] == "budget_op" and len(api.batches) == 1

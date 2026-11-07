@@ -188,6 +188,12 @@ class ChatRequest(BaseModel):
     # actieve deelvragen (met `deelvraag_id`: onder die ene). De bevestigingsknop stuurt het terug.
     bereik: Literal["werkgebied", "deelvragen"] = "werkgebied"
     deelvraag_id: str = Field(default="", pattern=r"^[A-Za-z0-9-]{0,64}$")
+    # Een deel van de werkvoorraad (ADR-012): de regisseur verdeelt het werkgebied over kind-runs zonder overlap. Alleen
+    # een doorsnede met wat de api als werkvoorraad geeft, dus nooit méér dan zonder; `bevestigd` telt die doorsnede.
+    eenheden: list[str] | None = Field(default=None, min_length=1, max_length=40)
+    # Hoeveel tokens deze run hoogstens mag gebruiken (ADR-012, het aandeel van een kind). Tussen twee bepalingen stopt hij
+    # als de volgende er niet meer in past; een lopende maakt af.
+    budget_aandeel: int | None = Field(default=None, ge=1, le=100_000_000)
     # Een klik op een vraagkaartje (activiteit 1): de supervisor stuurt de beurt dan zonder modelaanroep
     # naar de werkgebied-worker, en geen van de harde werkgebiedroutes neemt hem over.
     intake_actie: IntakeActie | None = None
@@ -246,6 +252,8 @@ class ChatRequest(BaseModel):
             raise ValueError("'bereik' en 'deelvraag_id' horen bij het annoteren van het werkgebied")
         if self.deelvraag_id and self.bereik != "deelvragen":
             raise ValueError("'deelvraag_id' hoort bij bereik 'deelvragen'")
+        if (self.eenheden is not None or self.budget_aandeel is not None) and self.modus != "werkgebied_annoteren":
+            raise ValueError("'eenheden' en 'budget_aandeel' horen bij het annoteren van het werkgebied")
         return self
 
     @model_validator(mode="after")

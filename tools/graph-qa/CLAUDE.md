@@ -919,7 +919,21 @@ het voorstel met de bevestiging (`werkgebied_voorstel`, F3c).
   een fout in één eenheid stopt de rest niet. Hoogstens `PLAFOND` (40) per run.
 - **Aan het eind** een samenvatting (geannoteerd, mislukt, niet aan bod gekomen en waarom, wat buiten
   het plafond bleef) als gewoon bericht met het `run_id` van de hele run.
+- **Een deel van de werkvoorraad** (ADR-012): `eenheden` neemt alleen de doorsnede met wat de api als nieuw geeft
+  (`deel_van`), en `bevestigd` telt die doorsnede. `budget_aandeel` stopt de run tussen twee bepalingen zodra de volgende
+  (de mediaan, of het gemiddelde tot nu toe, uit de `meting`-events) er niet meer in past (`binnen_aandeel`); de poort van
+  de api blijft gelden. Zo werken de kinderen van een regie zonder overlap en binnen hun aandeel.
 - Tests: `tests/test_werkgebied_annotatie.py`.
+
+### Het plan van een regie (`agent/regie/plan.py`, ADR-012)
+
+Zuiver en deterministisch, uit de stand bij de api: `plan_bronnen` (per deelvraag die niet klaar is een taak) en
+`plan_annoteren` (de werkvoorraad zonder overlap: elke bepaling naar de eerste deelvraag waaronder ze valt; hoogstens
+`PLAFOND`; krimpt tot de bovenkant `MARGE × mediaan` in het resterende budget past; per kind een aandeel `AANDEEL ×
+schatting`, zonder schatting het budget gelijk verdeeld). `plan_id` hasht alleen het werk, niet de schatting. Wat niet
+meegaat, staat in `buiten` met de reden. `kind_verzoek` maakt het `ChatRequest` van een kind: de actie `bronselectie`
+op de deelvraag, of `deelvragen_annoteren`/`werkgebied_annoteren` met `bevestigd`, `eenheden` en `budget_aandeel`.
+Tests: `tests/test_regie_plan.py`.
 
 ### Lex stelt een werkgebied samen (`agent/werkgebied_intake.py`, `nodes/werkgebied.py`, activiteit 1)
 

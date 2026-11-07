@@ -231,6 +231,31 @@ async def werkgebied_voorstel(ctx: Context, werkgebied_id: str, bereik: str = "w
                     meting={"te_annoteren": len(wv.get("te_annoteren") or []), "model": False})
 
 
+def deel_van(wv: dict[str, Any], eenheden: list[str] | None) -> dict[str, Any]:
+    """Alleen de eenheden die de regisseur dit kind gaf (ADR-012), in de volgorde van de werkvoorraad. Een doorsnede:
+    wat de api niet als nieuw kent, komt er niet bij, en wat een ander kind heeft, gaat er niet in."""
+    if not eenheden:
+        return wv
+    gevraagd = set(eenheden)
+    return {**wv, "te_annoteren": [i for i in wv.get("te_annoteren") or [] if i in gevraagd]}
+
+
+def binnen_aandeel(aandeel: int, verbruikt: list[int], per_bepaling: int | None,
+                   api_poort: Callable[[], Awaitable[bool]] | None) -> Callable[[], Awaitable[bool]]:
+    """De poort tussen twee bepalingen voor een kind met een budgetaandeel (ADR-012): de volgende moet er nog in passen,
+    geschat op de mediaan (`per_bepaling`) of anders op het gemiddelde tot nu toe. De poort van de api blijft gelden."""
+    gedaan = [0]
+
+    async def toegestaan() -> bool:
+        gedaan[0] += 1
+        # Gevraagd vóór elke volgende bepaling, dus na `gedaan` afgeronde.
+        volgende = per_bepaling or verbruikt[0] // gedaan[0]
+        if verbruikt[0] + volgende > aandeel:
+            return False
+        return await api_poort() if api_poort is not None else True
+    return toegestaan
+
+
 async def werkgebied_annotatie_beurt(
     request: Any,
     run: Any,
@@ -276,6 +301,7 @@ async def werkgebied_annotatie_beurt(
                 yield ev
             return
         naam = str(wv.get("naam") or "zonder naam")
+        wv = deel_van(wv, getattr(request, "eenheden", None))
         te = list(wv.get("te_annoteren") or [])
         bevestigd = getattr(request, "bevestigd", None)
 
@@ -302,6 +328,11 @@ async def werkgebied_annotatie_beurt(
             ouder = {"bron_iri": f"urn:wa:werkgebied:{werkgebied_id}:deelvragen", "label": f"deelvragen van {naam}"}
         if budget_toegestaan is None and settings.legt_zelf_vast and user_id:
             budget_toegestaan = budget_poort(settings, user_id)
+        verbruikt = [0]
+        aandeel = getattr(request, "budget_aandeel", None)
+        if aandeel:
+            budget_toegestaan = binnen_aandeel(aandeel, verbruikt, (wv.get("schatting") or {}).get("per_bepaling"),
+                                               budget_toegestaan)
         beurt = beurt_fabriek(run, gesprek_id=request.conversation_id, hergebruik="auto", totaal=len(doelen),
                               ouder=ouder["label"], settings=settings, user_id=user_id,
                               graph=graph, llm=llm, annotaties=annotaties)
@@ -312,6 +343,8 @@ async def werkgebied_annotatie_beurt(
                                      stop_gevraagd=stop, budget_toegestaan=budget_toegestaan):
             if ev["type"] == "done":
                 continue
+            if ev["type"] == "meting":
+                verbruikt[0] += sum(int(ev.get(k) or 0) for k in ("invoer", "uitvoer", "cache_lees", "cache_schrijf"))
             if ev["type"] == "onderdeel" and ev.get("fase") == "eind":
                 uitkomsten[ev["bron_iri"]] = ev.get("uitkomst", "")
             elif ev["type"] == "reeks" and ev.get("fase") == "eind":
