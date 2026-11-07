@@ -31,9 +31,9 @@ from . import BronTekst, resultaat
 from .ontleding import bereik, in_verwijzing, parse_of_reden, zonder_randfunctie
 from .regels import maskers, woordenlijsten
 
-SUBJ, OBJ, BETR, FEIT, VW, VAR, PAR, OP = (
+SUBJ, OBJ, BETR, FEIT, VW, VAR, PAR, OP, AR = (
     "Rechtssubject", "Rechtsobject", "Rechtsbetrekking", "Rechtsfeit", "Voorwaarde",
-    "Variabele en variabelewaarde", "Parameter en parameterwaarde", "Operator")
+    "Variabele en variabelewaarde", "Parameter en parameterwaarde", "Operator", "Afleidingsregel")
 
 _ONDERWERP = {"nsubj", "nsubj:pass", "obl:agent", "csubj"}
 
@@ -76,22 +76,56 @@ def _normsegmenten(tekst: str) -> list[tuple[int, int]]:
     return [(g.start, g.eind) for g in analyseer_grenzen(tekst).segmenten(tekst) if _norm_in(tekst[g.start:g.eind])]
 
 
+_ONDERGESCHIKT = {"acl", "acl:relcl", "advcl"}
+
+
+def _modaal_alleen_in_bijzin(a: LinguisticAnalysis, s: int, e: int) -> bool:
+    """Staat elk modaal werkwoord in dit segment in een bijzin? 'de termijn waarbinnen de betaling moet
+    plaatsvinden' noemt een termijn, geen plicht: de norm zit in de relatieve bijzin van een naamwoordgroep.
+    Een bijzin is een `acl`, `acl:relcl` of `advcl` ergens boven het werkwoord in de boom."""
+    modalen = [t for t in a.tokens if s <= t.start < e and _lijst("MODAAL").match(t.tekst)]
+
+    def in_bijzin(i: int) -> bool:
+        gezien = set()
+        while i >= 0 and i not in gezien:
+            gezien.add(i)
+            if a.tokens[i].deprel in _ONDERGESCHIKT:
+                return True
+            i = a.tokens[i].head
+        return False
+    return bool(modalen) and all(in_bijzin(t.i) for t in modalen)
+
+
+def _normsignaal(tekst: str, s: int, e: int, a: LinguisticAnalysis | None) -> tuple[re.Match | None, re.Match | None]:
+    """(modaal, normatief) in het segment `s:e`. Met een parse telt een modaal werkwoord alleen in de hoofdzin;
+    zonder parse lexicaal, zoals altijd. Gedeeld door de norm- en de tegenwoordige-tijddetector, zodat een
+    modaal werkwoord in een bijzin de norm in de hoofdzin niet verbergt."""
+    stuk = tekst[s:e]
+    modaal = re.search(rf"\b(?:{woordenlijsten()['MODAAL']})\b", stuk, re.IGNORECASE)
+    if modaal and a is not None and _modaal_alleen_in_bijzin(a, s, e):
+        modaal = None
+    normatief = None if modaal else re.search(rf"\b(?:{woordenlijsten()['NORMATIEF']})\b", stuk, re.IGNORECASE)
+    return modaal, normatief
+
+
 class NormDetector:
     REGELS: tuple[str, ...] = ("jas.betrekking.modaal_predicaat", "jas.betrekking.vaste_uitdrukking",
                                "jas.betrekking.normatief_adjectief", "jas.feit.rechtsgevolg_in_norm")
     naam = "norm"
-    versie = "3"  # D03: Rechtsfeit alleen met een rechtsgevolg in het segment
+    # 3: D03: Rechtsfeit alleen met een rechtsgevolg in het segment
+    # 4: met een parse telt een modaal werkwoord alleen in de hoofdzin, niet in een bijzin
+    versie = "4"
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         tekst = bron.tekst
         structuur = analyseer_grenzen(tekst)
         zinnen = structuur.zinnen(tekst)
+        a, _ = _parse_of_reden(bron)
         kandidaten = []
         for segment in structuur.segmenten(tekst):
             s, e = segment.start, segment.eind
             stuk = tekst[s:e]
-            modaal = re.search(rf"\b(?:{woordenlijsten()['MODAAL']})\b", stuk, re.IGNORECASE)
-            normatief = None if modaal else _norm_in(stuk)
+            modaal, normatief = _normsignaal(tekst, s, e, a)
             if not (modaal or normatief):
                 continue
             # Delegatieformule ('kunnen … regels worden gesteld') is Delegatiebevoegdheid (H2:127).
@@ -190,9 +224,16 @@ def referent(a: LinguisticAnalysis, t: Token, uitgesloten: list[tuple[int, int]]
     return ONBEKEND
 
 
+@cache
+def _duur() -> re.Pattern:
+    """Een kale duur: telwoord + periode ('zes weken', 'één maand')."""
+    return re.compile(rf"(?:{woordenlijsten()['TELWOORD']})\s+(?:{woordenlijsten()['PERIODE']})", re.IGNORECASE)
+
+
 class NaamwoordgroepDetector:
     REGELS: tuple[str, ...] = (
         "jas.parameter.beschrijving", "jas.variabele.uitvoer_van_afleiding", "jas.variabele.eigenschap_np",
+        "jas.variabele.duur_np",
         "jas.subject.voornaamwoord", "jas.subject.rollexicon", "jas.subject.partij", "jas.object.zaak_als_kern",
         "jas.object.handeling_als_kern", "jas.subject.np_bij_normatief_predicaat",
         "jas.subject.np", "jas.object.opsommingsonderdeel", "jas.object.np_bij_normatief_predicaat", "jas.object.np")
@@ -200,13 +241,15 @@ class NaamwoordgroepDetector:
     # Grammaticale rol zonder juridische functie: blokkeert sterk patroonbewijs niet (audit D05). Een
     # getypeerde zaak of handeling is net zo generiek: het zegt wat de groep níét is, geen functie.
     BEWIJS = {"SUBJECT_NP": ("generiek", ""), "OBJECT_NP": ("generiek", ""), "ENUMERATED_NP": ("generiek", ""),
-              "THING_NP": ("generiek", ""), "ACTION_NP": ("generiek", ""), "PARTY_NP": ("generiek", "")}
+              "THING_NP": ("generiek", ""), "ACTION_NP": ("generiek", ""), "PARTY_NP": ("generiek", ""),
+              "DURATION_NP": ("generiek", "")}
     # 3: een zaak of handeling als kop krijgt geen Rechtssubject (art. 9 lid 5 IW 1990)
     # 4: een onderdeel onder een aanhef heeft normcontext
     # 5: een partij buiten de rollenlijst krijgt Rechtssubject als hypothese
     # 6: geen kale kern van een nominalisatie, niets binnen een vaste uitdrukking
     # 7: een aantalsgrens valt buiten de groep
-    versie = f"7+verwijzing.{VERWIJZING_VERSIE}"
+    # 8: een grootheid ('de betalingstermijn') is een eigenschap; een duur ('zes weken') geen subject of object
+    versie = f"8+verwijzing.{VERWIJZING_VERSIE}"
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
@@ -243,7 +286,13 @@ class NaamwoordgroepDetector:
                 continue
             lemma = (t.lemma or t.tekst).lower()
             norm = onder_aanhef or any(s <= t.start < e for s, e in normen)
-            bewijs, klassen = self._classificeer_signaal(a, t, lemma, norm, referent(a, t, uitgesloten))
+            if _duur().fullmatch(bron.tekst[slice(*grenzen[0][0])]):
+                # Een duur is geen drager en geen voorwerp van een recht (H2:26, H2:35): alleen een waarde, en de
+                # tijdsaanduiding eromheen gaat daar weer voor (JAS-PRIORITY-001).
+                bewijs, klassen = [Evidence(detector=self.naam, code="DURATION_NP", regel="jas.variabele.duur_np",
+                                            relatie=t.deprel, detail=t.tekst)], [VAR]
+            else:
+                bewijs, klassen = self._classificeer_signaal(a, t, lemma, norm, referent(a, t, uitgesloten))
             kandidaten.append(_kandidaat(bron, grenzen, klassen, bewijs))
         return resultaat(self, bron, kandidaten)
 
@@ -260,7 +309,8 @@ class NaamwoordgroepDetector:
         if _lijst("PARAMETERWOORD").match(lemma) or _lijst("PARAMETERWOORD").match(t.tekst):
             return [Evidence(detector=self.naam, code="PARAMETER_NOUN", regel="jas.parameter.beschrijving",
                              relatie=rel, detail=t.tekst)], [PAR, VAR]
-        if any(lemma.endswith(w) for w in woordenlijsten()["EIGENSCHAP"].split("|")):
+        # Een grootheid ('de betalingstermijn', 'de vervaldag') is net zo goed een kenmerk: één lijst, twee lezers.
+        if any(lemma.endswith(w) for naam in ("EIGENSCHAP", "GROOTHEID") for w in woordenlijsten()[naam].split("|")):
             regel = ("jas.variabele.uitvoer_van_afleiding"
                      if rel in _ONDERWERP and (a.tokens[t.head].lemma or "") in {"bedragen"}
                      else "jas.variabele.eigenschap_np")
@@ -420,7 +470,8 @@ class NominalisatieDetector:
     alleen géén eigen Voorwaarde waar de zin haar al een andere rol geeft:
 
     - **referentiemoment** – achter een tijdvoorzetsel ('één maand na de dagtekening van …'): het
-      moment waarvan een termijn loopt; de tijdsaanduiding eromheen draagt de functie;
+      moment waarvan een termijn loopt; de tijdsaanduiding eromheen draagt de functie. Het tijdstip van zo'n
+      rechtsfeit is wel een gegeven waarmee gerekend wordt, dus ook een Variabele (H2:80);
     - **in een voorwaarde** – onderwerp of lijdend voorwerp van het gezegde van een voorwaardelijke
       bijzin ('Indien de toepassing van … niet leidt tot …'): de bijzin is de voorwaarde, niet het
       naamwoord erin.
@@ -437,7 +488,8 @@ class NominalisatieDetector:
     # 5: de context bepaalt of Voorwaarde een hypothese is (art. 9 lid 5 IW 1990)
     # 6: een zaak op -ing is geen handeling
     # 7: met een eigen voorwerp geen Rechtsobject; de grens begint na een vaste uitdrukking
-    versie = f"7+verwijzing.{VERWIJZING_VERSIE}"
+    # 8: het tijdstip van een referentiemoment is ook een Variabele ('na de dagtekening van …')
+    versie = f"8+verwijzing.{VERWIJZING_VERSIE}"
     _AAN_DE_RAND = {"case", "cc", "advmod", "mark", "punct"}
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
@@ -478,7 +530,7 @@ class NominalisatieDetector:
         from .functies import VOORWAARDE_VOEGWOORDEN
         if any(a.tokens[k].deprel == "case" and _lijst("TIJDVOORZETSEL").match(a.tokens[k].tekst)
                for k in a.kinderen(t.i)):
-            return "jas.feit.nominalisatie_referentiemoment", [FEIT]
+            return "jas.feit.nominalisatie_referentiemoment", [FEIT, VAR]
         gezegde = a.tokens[t.head] if t.head >= 0 else None
         if (t.deprel in {"nsubj", "nsubj:pass", "obj"} and gezegde is not None and gezegde.deprel == "advcl"
                 and any(a.tokens[m].deprel == "mark" and (a.tokens[m].lemma or a.tokens[m].tekst).lower()
@@ -508,8 +560,10 @@ def _norm_in_tegenwoordige_tijd(a: LinguisticAnalysis, i: int, tekst: str, segme
             t.feat("VerbForm") == "Fin" or any(a.tokens[k].deprel == "aux:pass"
                                                and a.tokens[k].feat("VerbForm") == "Fin" for k in a.kinderen(i))):
         return False
-    seg = next((tekst[g.start:g.eind] for g in segmenten if g.start <= t.start < g.eind), "")
-    return not _norm_in(seg) and not re.search(r"\bregels\b.*\bgesteld\b", seg, re.IGNORECASE)
+    g = next((g for g in segmenten if g.start <= t.start < g.eind), None)
+    seg = tekst[g.start:g.eind] if g else ""
+    return (not (g and any(_normsignaal(tekst, g.start, g.eind, a)))
+            and not re.search(r"\bregels\b.*\bgesteld\b", seg, re.IGNORECASE))
 
 
 def _predicaatvorm(a: LinguisticAnalysis, i: int) -> str:
@@ -536,10 +590,13 @@ class GevolgDetector:
 
     Zonder parse slaat hij zich zichtbaar over.
     """
-    REGELS: tuple[str, ...] = ("jas.betrekking.rechtsgevolg_hoofdzin", "jas.betrekking.toepassingsgevolg")
-    CODES = ("LEGAL_EFFECT_CLAUSE", "APPLICABILITY_CONSEQUENCE")
+    REGELS: tuple[str, ...] = ("jas.betrekking.rechtsgevolg_hoofdzin", "jas.betrekking.toepassingsgevolg",
+                               "jas.afleiding.datumtoewijzing")
+    CODES = ("LEGAL_EFFECT_CLAUSE", "APPLICABILITY_CONSEQUENCE", "DATE_ASSIGNMENT")
     naam = "gevolg"
-    versie = "1"
+    # 2: een rechtsgevolg dat een moment vastlegt is ook een afleiding (H2:71), met het ALS→DAN-segment als
+    #    eigen kandidaat
+    versie = "2"
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         from .functies import toepassingskeuze
@@ -547,6 +604,7 @@ class GevolgDetector:
         if a is None:
             return resultaat(self, bron, overgeslagen=True, reden=reden)
         segmenten = analyseer_grenzen(bron.tekst).segmenten(bron.tekst)
+        momenten = _momenten(bron)
         kandidaten, gezien = [], set()
         for p in predicaten(a):
             if not _in_hoofdzin(a, p.kop):
@@ -572,10 +630,69 @@ class GevolgDetector:
             if a.aaneengesloten(p.tokens):
                 grenzen.append(((p.start, p.eind), "predicaat"))
             detail = {"predicaat": vorm, **({} if clause else {"clause_onderbroken": True})}
-            kandidaten.append(_kandidaat(bron, grenzen, klassen, [Evidence(
-                detector=self.naam, code=code, regel=regel, relatie=t.deprel,
-                detail=json.dumps(detail, ensure_ascii=False, sort_keys=True))]))
+            bewijs = [Evidence(detector=self.naam, code=code, regel=regel, relatie=t.deprel,
+                               detail=json.dumps(detail, ensure_ascii=False, sort_keys=True))]
+            # Een rechtsgevolg dat een moment vastlegt ('vervalt één maand na de dagtekening', 'vervalt op 15 april')
+            # leidt een datum af uit bestaande gegevens (H2:71): Afleidingsregel als hypothese, het model kiest.
+            moment = code == self.CODES[0] and next(
+                ((ms, me) for ms, me in momenten if span[0] <= ms < span[1]), None)
+            if moment:
+                klassen = [*klassen, AR]
+                bewijs.append(Evidence(detector=self.naam, code=self.CODES[2], regel=self.REGELS[2], relatie=t.deprel,
+                                       detail=bron.tekst[moment[0]:moment[1]]))
+            kandidaten.append(_kandidaat(bron, grenzen, klassen, bewijs))
+            # Staat er een voorwaarde vóór het gevolg in hetzelfde segment ('Indien …, vervalt …', 'Is …, dan vervalt
+            # …'), dan is de hele ALS→DAN-zin de regel: een eigen kandidaat op het segment, de clause als optie.
+            segspan = _trim(bron.tekst, *seg) if seg else None
+            if moment and segspan and span[0] > segspan[0] and _voorwaarde_voor(a, p.kop, segspan):
+                if segspan not in gezien:
+                    gezien.add(segspan)
+                    kandidaten.append(_kandidaat(bron, [(segspan, "segment"), (span, "clause")], [AR, BETR], [Evidence(
+                        detector=self.naam, code=self.CODES[2], regel=self.REGELS[2], relatie=t.deprel,
+                        detail=json.dumps({"predicaat": vorm, "voorwaarde": True}, ensure_ascii=False,
+                                          sort_keys=True))]))
         return resultaat(self, bron, kandidaten)
+
+
+# Tijdtreffers die een moment aanwijzen, niet alleen een tijdsduur: een datum, een maand, een tijdstip, een
+# herhaling ('telkens een maand later'), of een duur met een startmoment ('één maand na de dagtekening').
+# 'na vijf jaar' alleen is een tijdsverloop, geen toegekend moment.
+_MOMENTCODES = frozenset({"TEMPORAL_DATE", "TEMPORAL_MONTH", "TEMPORAL_MOMENT", "TEMPORAL_RECURRENCE"})
+
+
+def _momenten(bron: BronTekst) -> list[tuple[int, int]]:
+    """De bereiken van de tijdregels (regels/tijd.yaml) die een moment aanwijzen; buiten een verwijzing."""
+    from .regels import alle_regels
+    weg = maskers(bron.tekst).get("verwijzing", [])
+    uit = []
+    for r in alle_regels():
+        if r.detector != "tijd" or r.code not in _MOMENTCODES | {"TEMPORAL_DURATION"}:
+            continue
+        for grenzen in r.vind(bron.tekst, bron.analyse):
+            kern = grenzen[0]
+            if any(ms <= kern[0] and kern[1] <= me for ms, me in weg):
+                continue
+            if r.code == "TEMPORAL_DURATION":
+                met_start = [g for g in grenzen if g[1] > kern[1]]
+                if met_start:
+                    uit.append(max(met_start, key=lambda g: g[1] - g[0]))
+            else:
+                uit.append(grenzen[-1])
+    return sorted(uit)
+
+
+def _voorwaarde_voor(a: LinguisticAnalysis, kop: int, seg: tuple[int, int]) -> bool:
+    """Hangt er een voorwaarde vóór predicaat `kop` in segment `seg`: een voorwaardelijke bijzin (`advcl` met een
+    voorwaardelijk voegwoord), of een inversie ('Is de termijn zes weken, (dan) vervalt …': het segment begint met
+    een persoonsvorm vóór het predicaat)."""
+    t = a.tokens[kop]
+    for k in a.kinderen(kop):
+        if a.tokens[k].deprel == "advcl" and a.tokens[k].start < t.start and any(
+                a.tokens[m].deprel == "mark" and a.tokens[m].tekst.lower() in _VOORWAARDELIJK for m in a.subboom(k)):
+            return True
+    eerste = next((x for x in a.tokens if x.start >= seg[0] and x.upos != "PUNCT"), None)
+    return (eerste is not None and eerste.i != kop and eerste.start < t.start
+            and eerste.upos in {"AUX", "VERB"} and eerste.feat("VerbForm") == "Fin")
 
 
 class TegenwoordigeTijdDetector:
@@ -587,7 +704,7 @@ class TegenwoordigeTijdDetector:
     """
     REGELS: tuple[str, ...] = ("jas.betrekking.tegenwoordige_tijd",)
     naam = "tegenwoordige_tijd"
-    versie = "1"
+    versie = "2"                         # 2: een modaal werkwoord in een bijzin is geen ander normsignaal
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
@@ -620,7 +737,9 @@ class TegenwoordigeTijdDetector:
 class LogischeOperatorDetector:
     REGELS: tuple[str, ...] = ("jas.operator.nevenschikking", "jas.operator.negatie")
     naam = "logisch"
-    versie = "2"                         # 2: geen nevenschikking binnen een naamwoordgroep
+    # 2: geen nevenschikking binnen een naamwoordgroep
+    # 3: een persoonsvorm als hulp- of koppelwerkwoord maakt het conjunct een eigen zin ('of is gesteld op')
+    versie = "3"
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
@@ -634,12 +753,16 @@ class LogischeOperatorDetector:
             # Een logische operator verbindt zinsdelen (voorwaarden, normen), geen woorden binnen één
             # naamwoordgroep ("een verplichting of onthouden aanspraak"; profiel Operator,
             # negative_patterns). Het tweede conjunct moet dus een eigen zin zijn – met een eigen
-            # onderwerp of als persoonsvorm – én het eerste conjunct moet zelf werkwoordelijk zijn.
+            # onderwerp of een persoonsvorm, ook als die persoonsvorm een hulp- of koppelwerkwoord is
+            # ('… of is gesteld op …': de kop is dan een deelwoord) – én het eerste conjunct moet zelf
+            # werkwoordelijk zijn.
             clause = False
             if kop is not None and kop.head >= 0:
                 eerste = a.tokens[kop.head]
                 eigen_zin = (any(a.tokens[k].deprel in _ONDERWERP for k in a.kinderen(kop.i))
-                             or kop.feat("VerbForm") == "Fin")
+                             or kop.feat("VerbForm") == "Fin"
+                             or any(a.tokens[k].deprel in {"aux", "aux:pass", "cop"}
+                                    and a.tokens[k].feat("VerbForm") == "Fin" for k in a.kinderen(kop.i)))
                 clause = kop.deprel == "conj" and eerste.upos in {"VERB", "AUX", "ADJ"} and eigen_zin
             if t.deprel == "cc" and laag in {"en", "of"} and clause:
                 regel, code = "jas.operator.nevenschikking", "CLAUSE_COORDINATION"

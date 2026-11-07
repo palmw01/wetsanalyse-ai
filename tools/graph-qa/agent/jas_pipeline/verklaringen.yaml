@@ -30,7 +30,11 @@ detectie:
   MULTIPLIER: {naam: "Veelvoud", uitleg: "'Tweemaal', 'het drievoudige': een vermenigvuldiging."}
   COMPARISON: {naam: "Vergelijking", uitleg: "'Meer bedraagt dan', 'ten minste', 'niet meer dan': een vergelijkende operator."}
   ARITHMETIC: {naam: "Rekenkundige bewerking", uitleg: "'Vermeerderd met', 'verminderd met', 'de som van': een rekenkundige operator."}
-  LOGICAL: {naam: "Logische verbinding", uitleg: "'Dan wel', 'en', 'of' tussen voorwaarden: een logische operator."}
+  LOGICAL: {naam: "Logische verbinding", uitleg: "'Dan wel', 'en', 'of' tussen voorwaarden, of 'in ieder geval' vóór een opsomming: een logische operator."}
+  VALUE_EQUATION: {naam: "Gelijkstelling", uitleg: "'Is gesteld op', 'valt op', 'vervalt op' gevolgd door een waarde of dag: een grootheid krijgt een waarde. Ook een afleiding is mogelijk."}
+  VALUE_INEQUALITY: {naam: "Ongelijkheid", uitleg: "'Valt op een andere dag dan': twee waarden of momenten worden vergeleken en verschillen."}
+  DATE_COMPARISON: {naam: "Vergelijking met een moment", uitleg: "'Vóór', 'na' of 'uiterlijk' direct voor een datum, of 'of eerder'/'of later' erna: een vergelijking met dat moment. De tijdsaanduiding zelf blijft een eigen fragment."}
+  DURATION_OFFSET: {naam: "Duur vanaf een moment", uitleg: "'Na' of 'vóór' tussen een duur en een moment ('zes weken na de dagtekening'): het moment plus of min die duur."}
   LOCATION_NAME: {naam: "Plaatsnaam", uitleg: "Een gemeente, provincie of land uit de lijst van bekende namen."}
   LOCATION_DESCRIPTION: {naam: "Gebiedsomschrijving", uitleg: "Een omschreven gebied, zoals 'een lidstaat van de Europese Unie'."}
   ROLE_NOUN: {naam: "Rol of instantie", uitleg: "Een woord uit de lijst van rollen en instanties (de ontvanger, de inspecteur, Onze Minister)."}
@@ -56,11 +60,13 @@ detectie:
   MEANING_TERM: {naam: "Begrip met betekenis", uitleg: "Het begrip dat in een begripsbepaling een betekenis krijgt."}
   # zinsontleding (detectoren/syntactisch.py)
   NORMATIVE_PREDICATE: {naam: "Normatief gezegde", uitleg: "'Is verplicht', 'kan', 'heeft recht op', 'is bevoegd': een recht of plicht."}
+  DATE_ASSIGNMENT: {naam: "Datum uit een rechtsgevolg", uitleg: "Een rechtsgevolg legt een moment vast ('vervalt één maand na de dagtekening', 'vervalt op 15 april'): ook een afleiding van een datum. Met een voorwaarde ervoor is de hele als-dan-zin een eigen kandidaat."}
   LEGAL_EFFECT_CLAUSE: {naam: "Rechtsgevolg als hoofdzin", uitleg: "Het gezegde van de hoofdzin drukt zelf een rechtsgevolg uit ('de termijn vervalt', 'de schuld ontstaat'). Niet in een bijzin; de span is de eigen zin."}
   NORM_IN_PRESENT_TENSE: {naam: "Norm in de tegenwoordige tijd", uitleg: "Het gezegde van de hoofdzin gebiedt zonder modaal werkwoord ('de ontvanger betaalt'). Of het een plicht of een gebeurtenis is, vraagt een oordeel."}
   APPLICABILITY_CONSEQUENCE: {naam: "Toepasselijkheid als gevolg", uitleg: "De bepaling zegt dat een andere regel toepassing vindt. Dat is het gevolg zelf; de voorwaarde ervoor is een eigen markering."}
   PARAMETER_NOUN: {naam: "Parameterwoord", uitleg: "'Tarief', 'drempel', 'vrijstelling': een woord dat een vaste waarde benoemt."}
-  PROPERTY_NOUN: {naam: "Eigenschap", uitleg: "'De hoogte van', 'het bedrag van': een naamwoordgroep die een eigenschap noemt."}
+  PROPERTY_NOUN: {naam: "Eigenschap", uitleg: "'De hoogte van', 'het bedrag van', 'de betalingstermijn': een naamwoordgroep die een eigenschap of grootheid noemt."}
+  DURATION_NP: {naam: "Duur als naamwoordgroep", uitleg: "Een aantal dagen, weken, maanden of jaren. Een duur is geen drager en geen voorwerp van een recht; de tijdsaanduiding gaat voor (JAS-PRIORITY-001)."}
   PERSON_PRONOUN: {naam: "Verwijzend voornaamwoord", uitleg: "'Hij', 'degene', 'een ieder': een voornaamwoord dat naar een persoon verwijst."}
   SUBJECT_NP: {naam: "Onderwerp bij een recht of plicht", uitleg: "Het onderwerp van een zin met een normatief gezegde – vaak de drager van het recht of de plicht."}
   ENUMERATED_NP: {naam: "Opsommingsonderdeel", uitleg: "Een naamwoordgroep als onderdeel van een opsomming."}

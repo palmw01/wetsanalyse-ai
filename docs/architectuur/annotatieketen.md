@@ -103,6 +103,8 @@ metingen `AGENT_VERSION` op de commit.
   normeenheid. De oorspronkelijke afwijzing blijft bewaard. Ontbreekt de gevraagde context, dan gaat
   het naar de mens. Bevestigt de reviewer de afwijzing (`R-CENTRAAL-KEEP`), dan gaat het ook naar de
   mens, zonder klasse en met de motivering: de hoofdnorm van een bepaling verdwijnt niet stil.
+  Niet in een bronnode onder een aanhef (de oudertekst eindigt op ':'): de centrale norm van een
+  onderdeel staat in de aanhef van de ouder, dus een afgewezen normkandidaat daar is geen verdwenen hoofdnorm.
 - **Onzekerheid** wordt uitgedrukt in codes en aandacht-niveau, nooit in een confidence-getal.
 - **Geen klasse gekozen** (abstain zonder bruikbaar reviewoordeel, `R-ABSTAIN-HUMAN`/`R-ONGELDIG`,
   of een centrale norm die het model afwees, `R-CENTRAAL-HUMAN`/`R-CENTRAAL-KEEP`): het voorstel draagt **geen
@@ -161,7 +163,7 @@ Brondefinitie. Actuele versies staan in de runmeting. De regels en hun vier test
 |---|---|---|---|---|
 | tijd | datum (ook zonder jaartal), duur, periode, moment, bijwoord | T | nee | contextloze tijdswoorden; `binnen een redelijke termijn` gemist |
 | voorwaarde | conditioneel of causaal voegwoord, vaste formule | VW (bij *wegens* ook RF) | nee | `zodra`, samengestelde eisen; een komma kapt een bijzin af |
-| operator | vergelijkings-, reken- en logische lexemen | O | nee | operanden ontbreken |
+| operator | vergelijkings-, reken- en logische lexemen; gelijkstelling (*is gesteld op*, *valt op* + dag), *in ieder geval*, *vóór*/*na*/*uiterlijk* + datum, *of eerder/later*, *na* tussen een duur en een moment. Binnen een tijdsaanduiding een eigen geneste kandidaat; de tijdspan blijft heel | O | nee | operanden ontbreken; voegwoorden van een voorwaarde (H2:64) en *en/of* tussen naamwoordgroepen bewust niet |
 | afleiding | *bedraagt*, passieve berekening, fictie of vermoeden | AR (bij *bedraagt* ook P) | nee | invoer en uitvoer niet gemodelleerd |
 | numeriek | eurobedrag, percentage, veelvoud | P/V, veelvoud O/P | nee | kaal getal niet gedekt |
 | delegatie | *bij/krachtens … regels gesteld* | D | nee | delegatie-invulling heeft geen eigen route |
@@ -169,11 +171,11 @@ Brondefinitie. Actuele versies staan in de runmeting. De regels en hun vier test
 | subject | rolwoord of voornaamwoord | RS/RO | nee | een rolvermelding bewijst geen drager |
 | definitie | *verstaan onder* + term:omschrijving | B | nee | varianten buiten het patroon |
 | betekenis | *betekent:* + term | VW/RO | nee | niet elke betekent-formule is een VW |
-| norm | modaal of normatief lexeme per segment | RB; RF alleen met rechtsgevolg (`LEGAL_EFFECT_PREDICATE`) | nee | impliciete normen |
-| gevolg | rechtsgevolg als predicaat van de hoofdzin (*vervalt*, *ontstaat*, *gaat over*, *treedt in werking*); *vindt … toepassing* | RB/RF; toepassingsgevolg RB. Span = eigen clause, opties segment en predicaat | ja | alleen het lexicon `GEVOLGPREDICAAT`; een gevolg in een bijzin bewust niet |
-| naamwoordgroep | NP-kop, rol, eigenschap, grammaticale positie, referent (persoon, zaak, handeling) | P/V, V/RO, RS; generiek RS/RO/V. Geen RS zonder normcontext bij object en lijdend onderwerp, en nooit bij een zaak (`THING_NP`) of handeling (`ACTION_NP`) als kop | ja | grammatica als juridische keuzeruimte; generieke NP's ("de termijn", "het jaar") houden RS; parsergrenzen |
+| norm | modaal of normatief lexeme per segment; met een parse telt een modaal werkwoord alleen in de hoofdzin, niet in een bijzin (`acl`, `acl:relcl`, `advcl`) | RB; RF alleen met rechtsgevolg (`LEGAL_EFFECT_PREDICATE`) | nee | impliciete normen; een verkeerd opgehangen bijzin houdt de norm |
+| gevolg | rechtsgevolg als predicaat van de hoofdzin (*vervalt*, *ontstaat*, *gaat over*, *treedt in werking*); *vindt … toepassing* | RB/RF; toepassingsgevolg RB. Span = eigen clause, opties segment en predicaat. Legt het gevolg een moment vast (een datum-, maand-, herhalings- of tijdstiptreffer van `tijd`, of een duur met startmoment), dan ook AR (`DATE_ASSIGNMENT`); met een voorwaarde ervoor (voorwaardelijke bijzin of inversie) ook de als-dan-zin als eigen kandidaat AR/RB | ja | alleen het lexicon `GEVOLGPREDICAAT`; een gevolg in een bijzin bewust niet |
+| naamwoordgroep | NP-kop, rol, eigenschap, grammaticale positie, referent (persoon, zaak, handeling) | P/V, V/RO (eigenschap of grootheid, ook *de betalingstermijn*), RS; een kale duur (*zes weken*) alleen V (`DURATION_NP`), waarna JAS-PRIORITY-001 T overlaat; generiek RS/RO/V. Geen RS zonder normcontext bij object en lijdend onderwerp, en nooit bij een zaak (`THING_NP`) of handeling (`ACTION_NP`) als kop | ja | grammatica als juridische keuzeruimte; generieke NP's ("het jaar") houden RS; parsergrenzen |
 | bijzin | *als* + eigen predicatie; restrictieve relatieve bijzin | VW; relatief VW/RS/RO, bij een zaak of handeling VW/RO | ja | vergelijkend *als* met werkwoord; ellipsen |
-| nominalisatie | Inf + *het*, of -ing met van/door-bepaling | RF/VW/RO; als referentiemoment achter een tijdvoorzetsel RF; als onderwerp of voorwerp in een voorwaardelijke bijzin RF/RO | ja | actienamen buiten -ing; andere contexten (*in de dagtekening … vermeld*) houden VW |
+| nominalisatie | Inf + *het*, of -ing met van/door-bepaling | RF/VW/RO; als referentiemoment achter een tijdvoorzetsel RF/V; als onderwerp of voorwerp in een voorwaardelijke bijzin RF/RO | ja | actienamen buiten -ing; andere contexten (*in de dagtekening … vermeld*) houden VW |
 | logisch | nevenschikking tussen predicaten, negatie in voorwaarde | O | ja | bereik en operanden ontbreken |
 | functie | datumtoewijzing (ook passief), aantalberekening (*zoveel … als*), kalenderpositie, relatieve datum, elliptische voorwaarde, toepassingskeuze | T/AR/VW (hypothesen). Aantal en toepassingskeuze op hun eigen span (de constructie, de clause van *vindt*), het segment als optie | ja | begrensde patronen, geen juridische redeneerder; toewijzing en kalenderpositie nog op het segment |
 

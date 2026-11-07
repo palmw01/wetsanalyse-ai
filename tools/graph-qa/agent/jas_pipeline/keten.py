@@ -286,7 +286,9 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
     # de resolver voert een vaste tabel uit en schrijft elke transitie weg.
     per_label = {k.label: k for k in fusie.kandidaten}
     label_van = {v["id"]: b.label for v, b in paren}
-    twijfels = signaleer(per_id, beslissingen, bevindingen, set(meting["gedegradeerd"]))
+    # Een onderdeel onder een aanhef draagt zijn centrale norm in de ouder (onzekerheid.centrale_afwijzingen).
+    onder_aanhef = {t.bron_iri for t in teksten if t.context.rstrip().endswith(":")}
+    twijfels = signaleer(per_id, beslissingen, bevindingen, set(meting["gedegradeerd"]), onder_aanhef)
     if context.ontbreekt:
         twijfels = [t.model_copy(update={"detail": t.detail + "; ontbrekende aangevraagde context: "
                                         + ", ".join(context.ontbreekt)})

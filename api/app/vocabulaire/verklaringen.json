@@ -112,6 +112,14 @@
       "naam": "Aantal",
       "uitleg": "Een getal direct na een grens als 'ten hoogste' of 'niet meer dan'."
     },
+    "DATE_ASSIGNMENT": {
+      "naam": "Datum uit een rechtsgevolg",
+      "uitleg": "Een rechtsgevolg legt een moment vast ('vervalt één maand na de dagtekening', 'vervalt op 15 april'): ook een afleiding van een datum. Met een voorwaarde ervoor is de hele als-dan-zin een eigen kandidaat."
+    },
+    "DATE_COMPARISON": {
+      "naam": "Vergelijking met een moment",
+      "uitleg": "'Vóór', 'na' of 'uiterlijk' direct voor een datum, of 'of eerder'/'of later' erna: een vergelijking met dat moment. De tijdsaanduiding zelf blijft een eigen fragment."
+    },
     "DEFINITION_ITEM": {
       "naam": "Begripsbepaling (onderdeel)",
       "uitleg": "Een onderdeel van een begripsbepalingenartikel: 'a. X: …'."
@@ -132,9 +140,17 @@
       "naam": "Delegatieformule",
       "uitleg": "'Bij of krachtens … worden regels gesteld': de vaste vorm waarmee de wet een bevoegdheid delegeert."
     },
+    "DURATION_NP": {
+      "naam": "Duur als naamwoordgroep",
+      "uitleg": "Een aantal dagen, weken, maanden of jaren. Een duur is geen drager en geen voorwerp van een recht; de tijdsaanduiding gaat voor (JAS-PRIORITY-001)."
+    },
     "DURATION_NUMBER": {
       "naam": "Getal in een termijn",
       "uitleg": "Het getal in cijfers van een duur ('48' in 'binnen 48 uur'): een vaste waarde in de wettekst. De duur zelf blijft één Tijdsaanduiding die een parameter verbijzondert."
+    },
+    "DURATION_OFFSET": {
+      "naam": "Duur vanaf een moment",
+      "uitleg": "'Na' of 'vóór' tussen een duur en een moment ('zes weken na de dagtekening'): het moment plus of min die duur."
     },
     "ENUMERATED_NP": {
       "naam": "Opsommingsonderdeel",
@@ -166,7 +182,7 @@
     },
     "LOGICAL": {
       "naam": "Logische verbinding",
-      "uitleg": "'Dan wel', 'en', 'of' tussen voorwaarden: een logische operator."
+      "uitleg": "'Dan wel', 'en', 'of' tussen voorwaarden, of 'in ieder geval' vóór een opsomming: een logische operator."
     },
     "MEANING_TERM": {
       "naam": "Begrip met betekenis",
@@ -218,7 +234,7 @@
     },
     "PROPERTY_NOUN": {
       "naam": "Eigenschap",
-      "uitleg": "'De hoogte van', 'het bedrag van': een naamwoordgroep die een eigenschap noemt."
+      "uitleg": "'De hoogte van', 'het bedrag van', 'de betalingstermijn': een naamwoordgroep die een eigenschap of grootheid noemt."
     },
     "RESTRICTIVE_RELATIVE": {
       "naam": "Beperkende bijzin",
@@ -279,6 +295,14 @@
     "THING_NP": {
       "naam": "Document of rechtshandeling als ding",
       "uitleg": "De kern is een zaak ('het aanslagbiljet', 'een belastingaanslag'): geen drager van een recht of plicht, dus geen rechtssubject – ook niet als onderwerp."
+    },
+    "VALUE_EQUATION": {
+      "naam": "Gelijkstelling",
+      "uitleg": "'Is gesteld op', 'valt op', 'vervalt op' gevolgd door een waarde of dag: een grootheid krijgt een waarde. Ook een afleiding is mogelijk."
+    },
+    "VALUE_INEQUALITY": {
+      "naam": "Ongelijkheid",
+      "uitleg": "'Valt op een andere dag dan': twee waarden of momenten worden vergeleken en verschillen."
     }
   },
   "jas_versie": "1.0.10",
@@ -610,12 +634,54 @@
       "soort": "detector",
       "uitleg": "'Bij of krachtens … worden regels gesteld': de vaste vorm waarmee de wet een bevoegdheid delegeert."
     },
+    "jas.operator.cumulatie": {
+      "bron": "H2:98",
+      "code": "LOGICAL",
+      "naam": "Logische verbinding",
+      "soort": "detector",
+      "uitleg": "'Dan wel', 'en', 'of' tussen voorwaarden, of 'in ieder geval' vóór een opsomming: een logische operator."
+    },
+    "jas.operator.datumvergelijking": {
+      "bron": "H2:98",
+      "code": "DATE_COMPARISON",
+      "naam": "Vergelijking met een moment",
+      "soort": "detector",
+      "uitleg": "'Vóór', 'na' of 'uiterlijk' direct voor een datum, of 'of eerder'/'of later' erna: een vergelijking met dat moment. De tijdsaanduiding zelf blijft een eigen fragment."
+    },
+    "jas.operator.duur_vanaf_moment": {
+      "bron": "H2:98",
+      "code": "DURATION_OFFSET",
+      "naam": "Duur vanaf een moment",
+      "soort": "detector",
+      "uitleg": "'Na' of 'vóór' tussen een duur en een moment ('zes weken na de dagtekening'): het moment plus of min die duur."
+    },
+    "jas.operator.gelijkstelling": {
+      "bron": "H2:98",
+      "code": "VALUE_EQUATION",
+      "naam": "Gelijkstelling",
+      "soort": "detector",
+      "uitleg": "'Is gesteld op', 'valt op', 'vervalt op' gevolgd door een waarde of dag: een grootheid krijgt een waarde. Ook een afleiding is mogelijk."
+    },
+    "jas.operator.inclusieve_tijdgrens": {
+      "bron": "H2:98",
+      "code": "DATE_COMPARISON",
+      "naam": "Vergelijking met een moment",
+      "soort": "detector",
+      "uitleg": "'Vóór', 'na' of 'uiterlijk' direct voor een datum, of 'of eerder'/'of later' erna: een vergelijking met dat moment. De tijdsaanduiding zelf blijft een eigen fragment."
+    },
     "jas.operator.logisch": {
       "bron": "H2:100",
       "code": "LOGICAL",
       "naam": "Logische verbinding",
       "soort": "detector",
-      "uitleg": "'Dan wel', 'en', 'of' tussen voorwaarden: een logische operator."
+      "uitleg": "'Dan wel', 'en', 'of' tussen voorwaarden, of 'in ieder geval' vóór een opsomming: een logische operator."
+    },
+    "jas.operator.ongelijkheid": {
+      "bron": "H2:98",
+      "code": "VALUE_INEQUALITY",
+      "naam": "Ongelijkheid",
+      "soort": "detector",
+      "uitleg": "'Valt op een andere dag dan': twee waarden of momenten worden vergeleken en verschillen."
     },
     "jas.operator.rekenkundig": {
       "bron": "H2:100",
@@ -893,5 +959,5 @@
       "uitleg": "Waarschuwing: hetzelfde fragment kreeg twee klassen."
     }
   },
-  "vocabulaire_versie": "11539ff357bb"
+  "vocabulaire_versie": "092af713e453"
 }
