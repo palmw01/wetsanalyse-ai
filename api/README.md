@@ -48,7 +48,7 @@ honderd routes; die vind je in `/docs`, en het gedrag staat in [`CLAUDE.md`](CLA
 | `/v1/annotatie` | Lagen op bronnodes, beslissingen, weergave, zoeken, samenhang, graaf, export | gedeeld |
 | `/v1/werkgebieden` | Dossier, bronselecties, deelvragen, bronselectie per deelvraag, inventaris, werkvoorraad, export | gedeeld |
 | `/v1/werkgebieden/{id}/begrippen` | Begrippen, koppelingen, voorstellen van Lex per veld | gedeeld |
-| `/v1/werkgebieden/{id}/…` | `begrippen-runs`, `groepen`, `verdieping`, `bronnen-runs`, `kandidaten`, `herbeoordelingen`, `dekking`, `relaties` | gedeeld |
+| `/v1/werkgebieden/{id}/…` | `begrippen-runs`, `groepen`, `verdieping`, `bronnen-runs`, `kandidaten`, `herbeoordelingen`, `dekking`, `relaties`, `regies` (ADR-012) | gedeeld |
 | `/v1/begrippen` | Begrippen over werkgebieden heen, generieke begrippen, verificatie voor Lex | gedeeld |
 | `/v1/artefact-versies` | De stand van een artefact na een beurt van Lex | gedeeld |
 | `/v1/gesprekken` | Chatgeschiedenis | per gebruiker |
@@ -95,6 +95,7 @@ zijn gedeeld tussen gebruikers; wie wat deed staat in de audit. Specificatie:
 | Methode | Pad | Wat het doet |
 |---------|-----|--------------|
 | `POST` `GET` | `/v1/gesprekken` | Gesprek aanmaken / eigen gesprekken |
+| `GET` | `/v1/gesprekken?ouder_id=` | De deelgesprekken van een regiegesprek (ADR-012) |
 | `GET` `PATCH` `DELETE` | `/v1/gesprekken/{id}` | Ophalen / hernoemen, aan een werkgebied koppelen of archiveren / verwijderen |
 | `POST` | `/v1/gesprekken/{id}/berichten` | Bericht toevoegen (idempotent op `run_id`) |
 

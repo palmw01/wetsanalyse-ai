@@ -56,6 +56,8 @@ ombouwen zonder reden.
    Lex, voor de versiekiezer – zie §*Versies van artefacten*.
 19. **Generieke begrippen** (`/v1/begrippen/{id}`, `…/begrippen/gebruik/*`, `…/generiek-maken`, ADR-006): begrippen boven
    de werkgebieden, gebruikt zonder kopie – zie §*Generieke begrippen*.
+20. **Regies** (`/v1/werkgebieden/{id}/regies/*`, ADR-012): het object waarmee de regisseur van graph-qa het werk in een
+   werkgebied over deelgesprekken verdeelt – zie §*Regies*.
 
 > **De wettekst komt uit de graaf.** De API leest uit GraphDB de **bronboom** (`bron_resolver.py`):
 > daarmee toetst hij ankers, legt hij snapshots vast en levert hij de segmenten van de weergave.
@@ -95,6 +97,7 @@ ombouwen zonder reden.
 | `begrip_relaties.py` (router), `begrip_relatie_store.py`, `begrip_relatie_contracts.py` | Begripsrelaties (voorstellen uit de keten, vastleggen, afwijzen, doorwerking) en opvolging: nieuwe betekenis, combineren. |
 | `begrip_projectie.py`, `shapes/nl-sbb-1.0.0.ttl`, `shapes/begrippen-wa.ttl` | Begrippen naar de kennisgraaf (NL-SBB), conformiteit per begrip en de Turtle-export. |
 | `begrippen_overzicht.py` (router) | Begrippen over werkgebieden heen: zoeken, verifiëren voor Lex, één begrip. |
+| `regies.py` (router), `regie_store.py`, `regie_contracts.py` | Regies (ADR-012): één lopende per werkgebied en per gebruiker, hartslag en afronden. |
 | `artefact_versies.py` | Versies van artefacten: de momentopname bij een beurt van Lex, en de routes om ze te lezen. |
 | `annotatie_statistiek.py`, `scripts/statistiek.py` | Reviewstatistiek over de elementen: uitkomst per klasse en per model, klasse-verschuivingen, aandacht tegenover correctie. |
 | `jas_klassen.py`, `validation.py` | De dertien JAS-klassen, volgorde en kleuren (canoniek); `GELDIGE_JAS_KLASSEN`, `JAS_KLASSE_KLEUREN`, `jas_sorteersleutel`. |
@@ -978,6 +981,24 @@ na herladen, in een ander gesprek en bij een collega ook is.
   (een afhankelijkheid).
 - Tests: `tests/test_bronselectie.py`.
 
+## Regies
+
+`regies.py`, `regie_store.py`, `regie_contracts.py`; het ontwerp is ADR-012 (PLAN spoor S). De regisseur in graph-qa
+verdeelt het werk in een werkgebied over deelgesprekken; de api houdt het object bij en de deelgesprekken
+(`gesprekken.ouder_id`, §*Gesprekken*). Stijl C: de store gooit de fouten.
+
+- **Eén lopende regie per werkgebied én per gebruiker** (partiële unieke indexen op `status = 'loopt'`, dus race-vrij
+  tussen replica's). Een tweede start geeft 409 `regie_loopt_al` met `regie_id` en `werkgebied_id` van wie het slot heeft.
+- **Een regie zonder hartslag telt als mislukt.** graph-qa stuurt `PATCH {status: "loopt"}` als teken van leven; na
+  `VERWEESD_NA` (3 min) zonder leest de regie als `mislukt`, en een nieuwe start legt hem eerst zo vast (`uitkomst:
+  {reden: "verweesd"}`), anders blokkeert een omgevallen replica het werkgebied.
+- **Afronden is eenmalig**: een eindstand (`klaar`, `gestopt`, `mislukt`) met de `uitkomst`; dezelfde nog eens is
+  idempotent, een andere 409 `regie_afgerond`. Alleen de eigenaar wijzigt (anders 404).
+- **Het regiegesprek** is een eigen gesprek in het werkgebied (404 of 409 `ander_werkgebied`).
+- De api voert niets uit: het plan is wat de jurist bevestigde, bewaard als JSON. Besluiten over bronnen en markeringen
+  lopen via hun eigen routes, door de jurist.
+- Tests: `tests/test_regies.py`.
+
 ## Versies van artefacten
 
 `artefact_versies.py`, tabel `artefact_versies`; het ontwerp staat in `docs/architectuur/artefacten-langs-claude.md`
@@ -1028,6 +1049,10 @@ de stand van die beurt zien, dan heb je een momentopname nodig. Alleen een begri
   foreign key: een gewist werkgebied maakt zijn gesprekken los (`werkgebied_store.wis`), en een gewist
   gesprek raakt niets in de andere domeinen. Archiveren, verplaatsen en verwijderen zijn bewust drie
   handelingen; verwijderen blijft echt wissen.
+- **Deelgesprekken** (ADR-012): `ouder_id` en `regie_id` op het gesprek. `POST` toetst dat de ouder een eigen gesprek is in
+  hetzelfde werkgebied en zelf geen ouder heeft (404, 409 `ander_werkgebied`/`te_diep`), en dat de regie bij die ouder hoort
+  (409 `andere_regie`). `GET ?ouder_id=` geeft de deelgesprekken (`""` = alleen gesprekken zonder ouder). Een ouder
+  verwijderen, het gesprek verhuizen of het werkgebied wissen maakt een deelgesprek los; het wordt nooit mee gewist.
 
 - Een bericht verwijst via **`artefact`** naar wat de beurt opleverde: `{soort, ref, titel}` met
   `soort` `annotatie` (ref `{bron_iri, label?, snapshot_id?}`), `begrippen` (ref

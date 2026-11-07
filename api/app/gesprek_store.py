@@ -121,6 +121,8 @@ class GesprekStore:
                 user_id=gesprek.user_id,
                 titel=gesprek.titel,
                 werkgebied_id=gesprek.werkgebied_id,
+                ouder_id=gesprek.ouder_id,
+                regie_id=gesprek.regie_id,
                 created=now,
                 updated=now,
             ))
@@ -150,6 +152,8 @@ class GesprekStore:
             user_id=d["user_id"],
             titel=d["titel"],
             werkgebied_id=d["werkgebied_id"] or "",
+            ouder_id=d["ouder_id"] or "",
+            regie_id=d["regie_id"] or "",
             gearchiveerd=db.aware(d["gearchiveerd"]),
             berichten=[_bericht_uit_row(b) for b in berichten],
             created=db.aware(d["created"]),
@@ -159,6 +163,7 @@ class GesprekStore:
     async def lijst_samenvattingen(
         self, user_id: str, limit: int = 100, offset: int = 0,
         werkgebied_id: str | None = None, gearchiveerd: bool | None = None, zoek: str = "",
+        ouder_id: str | None = None,
     ) -> list[GesprekSamenvatting]:
         """Eigen gesprekken, nieuwste eerst. `werkgebied_id=""` geeft alleen de losse gesprekken;
         `gearchiveerd=None` geeft actief én gearchiveerd. `zoek` zoekt (hoofdletterongevoelig) in de titel
@@ -172,6 +177,8 @@ class GesprekStore:
         )
         if werkgebied_id is not None:
             q = q.where(g.c.werkgebied_id == werkgebied_id)
+        if ouder_id is not None:
+            q = q.where(g.c.ouder_id == ouder_id)
         if gearchiveerd is not None:
             q = q.where(g.c.gearchiveerd.is_not(None) if gearchiveerd else g.c.gearchiveerd.is_(None))
         if zoek.strip():
@@ -196,6 +203,8 @@ class GesprekStore:
                 updated=db.aware(r._mapping["updated"]),
                 werkgebied_id=r._mapping["werkgebied_id"] or "",
                 werkgebied_naam=r._mapping["werkgebied_naam"] or "",
+                ouder_id=r._mapping["ouder_id"] or "",
+                regie_id=r._mapping["regie_id"] or "",
                 gearchiveerd=db.aware(r._mapping["gearchiveerd"]),
             )
             for r in rows
@@ -277,7 +286,8 @@ class GesprekStore:
         if titel is not None:
             waarden.update(titel=titel, updated=db.utcnow())
         if werkgebied_id is not None:
-            waarden["werkgebied_id"] = werkgebied_id
+            # Een ander werkgebied maakt een deelgesprek los: de ouder hoort bij het oude.
+            waarden.update(werkgebied_id=werkgebied_id, ouder_id="", regie_id="")
         if gearchiveerd is not None:
             waarden["gearchiveerd"] = db.utcnow() if gearchiveerd else None
         if not waarden:
@@ -291,3 +301,6 @@ class GesprekStore:
                 delete(db.gesprek_berichten).where(db.gesprek_berichten.c.gesprek_id == gesprek_id)
             )
             await conn.execute(delete(db.gesprekken).where(db.gesprekken.c.id == gesprek_id))
+            # De deelgesprekken blijven: het zijn verslagen. Ze worden los, zoals bij een gewist werkgebied.
+            await conn.execute(update(db.gesprekken).where(db.gesprekken.c.ouder_id == gesprek_id)
+                               .values(ouder_id="", regie_id=""))

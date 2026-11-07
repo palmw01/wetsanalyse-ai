@@ -7,7 +7,7 @@ uit de auth-router); de router zit achter de client-bearer (`require_client`), z
 404 (niet 403) bij andermans gesprek, zodat het bestaan niet lekt.
 
 POST   /v1/gesprekken                       – nieuw gesprek
-GET    /v1/gesprekken?limit=&offset=&werkgebied_id=&gearchiveerd=&q=
+GET    /v1/gesprekken?limit=&offset=&werkgebied_id=&ouder_id=&gearchiveerd=&q=
                                             – eigen gesprekken (samenvatting, nieuwste eerst);
                                               `q` zoekt in de titel en de tekst van de berichten
 GET    /v1/gesprekken/{id}                  – volledig gesprek (met berichten)
@@ -56,6 +56,28 @@ async def _bestaand_werkgebied(werkgebied_id: str) -> None:
         await werkgebied_store.haal(werkgebied_id)
 
 
+async def _geldige_ouder(store: GesprekStore, req: GesprekCreate, user_id: str) -> None:
+    """Een deelgesprek (ADR-012) hangt onder een eigen gesprek in hetzelfde werkgebied, één niveau diep. De regie
+    hoort dan bij die ouder. Een ouder van een ander geeft 404, zoals elk vreemd gesprek."""
+    if not req.ouder_id:
+        if req.regie_id:
+            raise HTTPException(422, {"fout": "regie_zonder_ouder", "melding": "Een regie hoort bij een regiegesprek."})
+        return
+    ouder = await store.laad_gesprek(req.ouder_id)
+    if ouder is None or ouder.user_id != user_id:
+        raise HTTPException(404, f"Onbekend gesprek: {req.ouder_id}")
+    if not req.werkgebied_id or ouder.werkgebied_id != req.werkgebied_id:
+        raise HTTPException(409, {"fout": "ander_werkgebied",
+                                  "melding": "Een deelgesprek hoort bij het werkgebied van zijn ouder."})
+    if ouder.ouder_id:
+        raise HTTPException(409, {"fout": "te_diep", "melding": "Een deelgesprek heeft zelf geen deelgesprekken."})
+    if req.regie_id:
+        from .. import regie_store
+        regie = await regie_store.haal(req.werkgebied_id, req.regie_id)
+        if regie.gesprek_id != req.ouder_id:
+            raise HTTPException(409, {"fout": "andere_regie", "melding": "De regie hoort bij een ander gesprek."})
+
+
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=Gesprek)
 async def maak_gesprek(
     req: GesprekCreate,
@@ -63,8 +85,9 @@ async def maak_gesprek(
     store: GesprekStore = Depends(get_gesprek_store),
 ):
     await _bestaand_werkgebied(req.werkgebied_id)
+    await _geldige_ouder(store, req, user_id)
     gesprek = Gesprek(id=uuid.uuid4().hex[:16], user_id=user_id, titel=req.titel,
-                      werkgebied_id=req.werkgebied_id)
+                      werkgebied_id=req.werkgebied_id, ouder_id=req.ouder_id, regie_id=req.regie_id)
     await store.maak_gesprek(gesprek)
     return await store.laad_gesprek(gesprek.id)
 
@@ -74,12 +97,14 @@ async def lijst_gesprekken(
     limit: int = Query(100, ge=1, le=200),
     offset: int = Query(0, ge=0),
     werkgebied_id: str | None = Query(None, description='Leeg ("") = alleen losse gesprekken.'),
+    ouder_id: str | None = Query(None, max_length=64, description='De deelgesprekken van één gesprek; "" = alleen gesprekken zonder ouder.'),
     gearchiveerd: bool | None = Query(None, description="Weglaten = actief én gearchiveerd."),
     q: str = Query("", max_length=200, description="Zoek in de titel en de tekst van de berichten."),
     user_id: str = Depends(actieve_userid),
     store: GesprekStore = Depends(get_gesprek_store),
 ):
-    return await store.lijst_samenvattingen(user_id, limit, offset, werkgebied_id, gearchiveerd, zoek=q)
+    return await store.lijst_samenvattingen(user_id, limit, offset, werkgebied_id, gearchiveerd, zoek=q,
+                                            ouder_id=ouder_id)
 
 
 @router.get("/{gesprek_id}", response_model=Gesprek)
