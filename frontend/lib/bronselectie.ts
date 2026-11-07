@@ -11,7 +11,7 @@
 export type Voortgang = "niet_gestart" | "in_behandeling" | "voorlopig_afgerond" | "beoordeeld";
 /** `niet_gekozen`: bij het beantwoorden van het kaartje niet aangevinkt (de api leidt het af uit de fase). Er is
  *  geen *later*: wie de vragen doorloopt, kiest; opnieuw doorlopen maakt er weer een keuze van. */
-export type KandidaatStand = "voorgesteld" | "niet_gekozen" | "uitgesloten" | "opgenomen";
+export type KandidaatStand = "voorgesteld" | "niet_gekozen" | "uitgesloten" | "opgenomen" | "onbekend";
 /** De vier zoekvragen van de bronselectie (skill `zoekvragen-bronselectie.md`). */
 export type Zoekvraag = "a" | "b" | "c" | "d";
 export const ZOEKVRAAG_LABEL: Record<Zoekvraag, string> = {
@@ -113,6 +113,7 @@ export function bronnenZin(n: number): string {
 
 export const STAND_LABEL: Record<KandidaatStand, string> = {
   voorgesteld: "voorstel", niet_gekozen: "niet gekozen", uitgesloten: "uitgesloten", opgenomen: "opgenomen",
+  onbekend: "onbekende stand, herlaad de pagina",
 };
 
 /** Een tekstuele overeenkomst is geen bewijs van noodzaak; een verwijzing of definitie in de graaf wel van
@@ -133,7 +134,8 @@ const obj = (v: unknown) => (v && typeof v === "object" && !Array.isArray(v) ? v
 const een = <T extends string>(v: unknown, mag: readonly T[], anders: T): T => (mag.includes(v as T) ? v as T : anders);
 
 const VOORTGANGEN = ["niet_gestart", "in_behandeling", "voorlopig_afgerond", "beoordeeld"] as const;
-const STANDEN = ["voorgesteld", "niet_gekozen", "uitgesloten", "opgenomen"] as const;
+// Een stand die de werkplek niet kent (een nieuwere api) is geen voorstel: `onbekend` toont dat en biedt geen keuze aan.
+const STANDEN = ["voorgesteld", "niet_gekozen", "uitgesloten", "opgenomen", "onbekend"] as const;
 const BEWIJZEN = ["grondslag", "genoemd", "verwijzing", "definitie", "structuur", "tekst", "gelijkenis"] as const;
 
 /** De zoekvragen in het bewijs van een voorstel (`detail.zoekvraag`, a–d), elk één keer en op volgorde. */
@@ -171,7 +173,7 @@ export function parseBronselectie(ruw: unknown): BronselectieOverzicht | undefin
           bewijs_soorten: Array.isArray(k.bewijs_soorten) ? k.bewijs_soorten.filter((s): s is BewijsSoort => BEWIJZEN.includes(s as BewijsSoort)) : [],
           // De api geeft de zoekvragen; een oude versie van het artefact draagt nog het hele bewijs.
           zoekvragen: Array.isArray(k.zoekvragen) ? k.zoekvragen.filter((z): z is Zoekvraag => typeof z === "string" && z in ZOEKVRAAG_LABEL) : zoekvragenUit(k.bewijs),
-          stand: een(k.stand, STANDEN, "voorgesteld"), overal: k.overal === true, elders_opgenomen: k.elders_opgenomen === true,
+          stand: een(k.stand, STANDEN, "onbekend"), overal: k.overal === true, elders_opgenomen: k.elders_opgenomen === true,
           reden: tekst(k.reden) }] : [];
       }) : [],
       telling: { voorgesteld: getal(t.voorgesteld), niet_gekozen: getal(t.niet_gekozen), uitgesloten: getal(t.uitgesloten),

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import io
+import re
 
 import pytest
 from sqlalchemy import delete
@@ -103,7 +104,7 @@ async def test_uit_meerdere_annotaties_een_begrip_en_elke_passage_terug(client):
     [exp] = data["begrippen"]
     assert exp["iri"] == f"urn:wa:begrip:{b['id']}" and len(exp["koppelingen"]) == 3
     r = await client.get(f"/v1/werkgebieden/{wg['id']}/begrippen/export", params={"formaat": "csv"})
-    assert r.headers["content-disposition"] == 'attachment; filename="begrippen.csv"'
+    assert re.fullmatch(r'attachment; filename="begrippen-\d{8}-\d{6}\.csv"', r.headers["content-disposition"])
     rijen = list(csv.DictReader(io.StringIO(r.content.decode("utf-8-sig"))))
     assert len(rijen) == 3
     assert {(x["vindplaats"], x["bron_iri"]) for x in rijen} == {

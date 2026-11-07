@@ -48,8 +48,6 @@ export interface UserOut {
   role: Role;
   totp_enabled: boolean;
   active: boolean;
-  /** Afwijkend tokenbudget; null = volg het systeembrede beleid. */
-  token_budget: number | null;
   created: string;
   updated: string;
 }
@@ -81,12 +79,22 @@ export interface Verbruiksstand {
   geblokkeerd: boolean;
   /** False = de begrenzing staat uit; er wordt wel gemeten. */
   actief: boolean;
-  eigen_budget: boolean;
+  /** Het budget volgt uit de rol. */
+  rol: string;
+  /** ISO-8601: de laatste reset door een beheerder in dit venster. Niet `reset_op`, het einde van het venster. */
+  gereset_op: string | null;
 }
 
-/** Het systeembrede beleid (beheer). */
-export interface BudgetBeleid {
+/** Het tokenbudget van één rol (beheer). */
+export interface RolBudget {
+  rol: string;
   tokens: number;
+  updated_by: string;
+  updated: string | null;
+}
+
+/** Het systeembrede beleid (beheer). Hoeveel tokens iemand heeft staat bij `rollen`. */
+export interface BudgetBeleid {
   periode_dagen: number;
   anker: string;
   actief: boolean;
@@ -94,6 +102,7 @@ export interface BudgetBeleid {
   updated: string;
   /** Afgeleid: einde van het huidige venster. */
   reset_op: string;
+  rollen: RolBudget[];
 }
 
 /** Eén regel in het beheeroverzicht. */
@@ -102,8 +111,11 @@ export interface VerbruikRegel {
   gebruikt: number;
   budget: number;
   percentage: number;
-  eigen_budget: boolean;
+  rol: string;
   geblokkeerd: boolean;
+  /** De laatste reset door een beheerder in dit venster. */
+  gereset_op: string | null;
+  gereset_door: string;
 }
 
 // --- Zelfregistratie: aanvragen (admin) ---------------------------------------

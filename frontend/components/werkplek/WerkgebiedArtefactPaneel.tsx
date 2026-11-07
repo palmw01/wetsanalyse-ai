@@ -55,7 +55,7 @@ function exportVan(doel: WerkgebiedArtefact, opname?: Opname | null): Pick<React
   }
   switch (doel.soort) {
     case "werkgebied":
-      return { formaten: WERKGEBIED_EXPORT_FORMATEN, onDownload: () => exporteerWerkgebied(id),
+      return { formaten: WERKGEBIED_EXPORT_FORMATEN, onDownload: (f) => exporteerWerkgebied(id, f),
         markdown: async () => dossierAlsMarkdown(await haalWerkgebied(id), await haalBronselectie(id).catch(() => undefined)) };
     case "bronselectie":
       return { formaten: [], markdown: async () => bronselectieAlsMarkdown(await haalBronselectie(id)) };

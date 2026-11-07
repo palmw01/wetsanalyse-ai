@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  budgetHerkomst,
   dagenTotReset,
   resetdatum,
+  resetRegel,
+  rolLabel,
   tokens,
   tokensKort,
   toonWaarschuwing,
@@ -32,10 +35,32 @@ function stand(over: Partial<Verbruiksstand> = {}): Verbruiksstand {
     waarschuwing: false,
     geblokkeerd: false,
     actief: true,
-    eigen_budget: false,
+    rol: "analist",
+    gereset_op: null,
     ...over,
   };
 }
+
+describe("budget per rol", () => {
+  it("zegt welke waarde geldt en waar die vandaan komt", () => {
+    expect(budgetHerkomst({ budget: 300_000, rol: "analist" })).toBe("Budget van de rol analist: 300.000 tokens");
+  });
+
+  it("zet een rol aan het begin van een regel", () => {
+    expect(rolLabel("beheerder")).toBe("Beheerder");
+  });
+});
+
+describe("resetRegel", () => {
+  it("is leeg zolang niemand resette", () => {
+    expect(resetRegel({ gereset_op: null, gereset_door: "" })).toBe("");
+  });
+
+  it("noemt moment en beheerder", () => {
+    const regel = resetRegel({ gereset_op: lokaal(9), gereset_door: "wpalm" });
+    expect(regel).toMatch(/^Gereset op .*9 september.* door wpalm$/);
+  });
+});
 
 describe("tokens", () => {
   it("maakt grote getallen leesbaar in nl-NL", () => {

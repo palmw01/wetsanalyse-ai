@@ -21,9 +21,11 @@ VOL = 100
 
 
 class BudgetBeleid(BaseModel):
-    """Het systeembrede beleid: hoeveel, hoe lang, en vanaf wanneer gerekend."""
+    """Het systeembrede beleid: hoe lang een venster duurt, en vanaf wanneer gerekend.
 
-    tokens: int = 500_000
+    Hoeveel tokens iemand heeft staat niet hier maar bij zijn rol (`RolBudget`).
+    """
+
     periode_dagen: int = 7
     # Vast anker: alle vensters worden hiervandaan geteld, dus iedereen reset tegelijk.
     anker: datetime = Field(default_factory=_utcnow)
@@ -33,11 +35,19 @@ class BudgetBeleid(BaseModel):
     updated: datetime = Field(default_factory=_utcnow)
 
 
+class RolBudget(BaseModel):
+    """Het tokenbudget van één rol, per venster."""
+
+    rol: str
+    tokens: int
+    updated_by: str = ""
+    updated: datetime | None = None
+
+
 class Verbruiksstand(BaseModel):
     """Waar één gebruiker staat in het huidige venster.
 
-    `budget` is het effectieve budget (de eigen afwijking, anders het beleid). `percentage` is
-    gekapt op 100 zodat de meter niet overloopt; `gebruikt` is dat niet – een overschrijding hoort
+    `budget` is het budget van zijn `rol`. `percentage` is gekapt op 100 zodat de meter niet overloopt; `gebruikt` is dat niet – een overschrijding hoort
     zichtbaar te blijven voor de beheerder.
     """
 
@@ -52,5 +62,10 @@ class Verbruiksstand(BaseModel):
     geblokkeerd: bool = False
     # False = de begrenzing staat uit; er wordt dan wel geboekt maar niets tegengehouden.
     actief: bool = True
-    # Heeft deze gebruiker een eigen budget, of volgt hij het beleid? Alleen voor de beheer-UI.
-    eigen_budget: bool = False
+    # Leeg als er geen account bij hoort (een boeking op een tokenlabel).
+    rol: str = ""
+    # De laatste reset door een beheerder in dit venster; None = geen. Iets anders dan `reset_op`,
+    # het einde van het venster: een reset verschuift dat einde niet.
+    gereset_op: datetime | None = None
+    # Wie dat deed. Alleen ingevuld voor het beheeroverzicht (`verbruik.standen`).
+    gereset_door: str = ""

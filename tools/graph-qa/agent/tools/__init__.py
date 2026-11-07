@@ -23,7 +23,7 @@ import httpx
 from ..graph import queries, schema
 from ..graph.results import parse_select
 from ..graph.structuur import inhoudsopgave_resultaat
-from ..mcp_client import MCPError
+from ..mcp_client import MCPError, sparql_kern
 from ..ports import GraphPort
 from .jas_tools import JAS_TOOL_NAMEN, JAS_TOOLS  # noqa: F401 – re-exporteerd voor orchestrator
 from .annotatie_tools import ANNOTATIE_TOOLS, ANNOTATIE_TOOL_NAMEN, dispatch_annotatie
@@ -252,8 +252,11 @@ def _h_zoek_definitie(g: GraphPort, a: dict[str, Any]) -> str:
     limit, offset = _geheel(a.get("limit"), 25, 1, 100), _geheel(a.get("offset"), 0, 0, 100_000)
     rijen = parse_select(g.sparql(queries.zoek_definitie(
         a["term"], a.get("bwb_id") or None, limit, offset=offset, meer=True)))
+    # `term` en `bwb_id` terug in het resultaat: het sjabloon zegt alleen "geen wettelijke definitie" over wat er
+    # echt is gezocht, ook als een eerdere beurt op een andere term zocht (`sjablonen/begrip.py`).
     return pagina([_met_voorproef(r, _VOORPROEF_DEFINITIE) for r in rijen], tool="zoek_definitie",
-                  args={**a, "limit": limit}, limit=limit, offset=offset)
+                  args={**a, "limit": limit}, limit=limit, offset=offset,
+                  extra={"term": a["term"], **({"bwb_id": a["bwb_id"]} if a.get("bwb_id") else {})})
 
 
 def _h_grondslagen(g: GraphPort, a: dict[str, Any]) -> str:
@@ -321,6 +324,20 @@ _STAART_RE = re.compile(r"\}\s*((?:GROUP\s+BY|HAVING|ORDER\s+BY)[^{}]*?)?\s*LIMI
                         re.IGNORECASE)
 
 
+# Een rij van raw_sparql telt als bron bij de citaatcontrole, dus hij moet uit de graaf komen: de query mag geen eigen
+# waarden bedenken. Daarom geen `AS` (BIND, een expressie in SELECT of GROUP BY), behalve een aggregaat over een
+# variabele, en geen tekst in VALUES. Zo blijft een citaat uit een terechte query gewoon gegrond.
+_AGGREGAAT_RE = re.compile(r"\(\s*(?:count|sum|min|max|avg|sample)\s*\(\s*(?:distinct\s+)?(?:[?$]\w+|\*)\s*\)\s*as\s+[?$]\w+\s*\)",
+                           re.IGNORECASE)
+_EIGEN_WAARDE_RE = re.compile(r"\bas\s+[?$]\w+", re.IGNORECASE)
+_VALUES_TEKST_RE = re.compile(r"\bvalues\b[^{]*\{[^}]*\"", re.IGNORECASE)
+
+
+def _bedenkt_waarden(query: str) -> bool:
+    kern = _AGGREGAAT_RE.sub(" ", sparql_kern(query))
+    return bool(_EIGEN_WAARDE_RE.search(kern) or _VALUES_TEKST_RE.search(kern))
+
+
 def _h_raw_sparql(g: GraphPort, a: dict[str, Any]) -> str:
     query = str(a["query"]).strip()
     zonder_prefix = re.sub(r"^\s*(PREFIX\s+\S*\s*<[^>]*>\s*)*", "", query, flags=re.IGNORECASE)
@@ -333,6 +350,9 @@ def _h_raw_sparql(g: GraphPort, a: dict[str, Any]) -> str:
                     "meer rijen ORDER BY + OFFSET, zodat elke pagina een vaste volgorde heeft.")
     if int(staart.group(2)) > _RAW_MAX:
         return fout("limit_te_hoog", f"LIMIT is hoogstens {_RAW_MAX}; pagineer met ORDER BY + OFFSET.")
+    if _bedenkt_waarden(query):
+        return fout("eigen_waarden", "raw_sparql leest rijen uit de graaf en bedenkt geen waarden: geen BIND, geen expressie "
+                    "in de kolommen of in GROUP BY (tellen mag wel, met COUNT over een variabele) en geen tekst in VALUES.")
     rijen = [compact(r) for r in parse_select(g.sparql(query))]
     try:
         return geheel(rijen, tool="raw_sparql",
@@ -501,7 +521,7 @@ TOOLS: list[dict[str, Any]] = [
             "opbouw (een bepaling binnen een gevonden deel staat er niet nog eens los), waar de wet het "
             "begrip definieert en welke regelingen het als trefwoord dragen.\n"
             "GEEFT TERUG per regeling: de delen met het aantal bepalingen, het aantal 'ook genoemd' en de "
-            "delen waarin die staan; plus definities en trefwoorden. De nummers zelf toont de werkplek."
+            "delen waarin die staan; plus definities en trefwoorden. De nummers van een deel: inhoudsopgave."
             + _CONTRACT
         ),
         "input_schema": _obj(
@@ -807,7 +827,8 @@ TOOLS: list[dict[str, Any]] = [
             "LAATSTE REDMIDDEL: voer een eigen read-only SPARQL SELECT-query uit als geen enkele andere "
             "tool volstaat. Eisen: alleen SELECT, met LIMIT (≤ 200) aan het eind na de laatste }; voor "
             "meer rijen ORDER BY + OFFSET. Het hele resultaat moet binnen de begroting passen, anders "
-            "volgt een fout met de reden. Updates worden geweigerd.\n"
+            "volgt een fout met de reden. Updates worden geweigerd, en de query bedenkt geen waarden: geen BIND, "
+            "geen expressies behalve COUNT/SUM/MIN/MAX/AVG/SAMPLE over een variabele, geen tekst in VALUES.\n"
             "GEEFT TERUG: de rijen van de query." + _CONTRACT
         ),
         "input_schema": _obj({"query": {"type": "string", "description": "SPARQL SELECT met LIMIT."}}, ["query"]),

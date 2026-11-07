@@ -33,7 +33,7 @@ def nep_import(monkeypatch: pytest.MonkeyPatch):
         "maak_writer",
         # Geen kaal object(): `run_imports` waarborgt na afloop de similarity-index.
         lambda settings: SimpleNamespace(
-            ensure_similarity_index=lambda: None, graaf_stand=lambda bwb_ids: {}
+            ensure_similarity_index=lambda **_: None, graaf_stand=lambda bwb_ids: {}
         ),
     )
     monkeypatch.setattr(main_module, "prepare", lambda writer: None)
@@ -182,8 +182,9 @@ class _PoortWriter:
     def vervang_wet(self, bwb_id, graph) -> None:
         self.puts.append(bwb_id)
 
-    def ensure_similarity_index(self) -> None:
+    def ensure_similarity_index(self, *, herbouw: bool = False) -> None:
         self.similarity += 1
+        self.herbouw = herbouw
 
 
 def _instellingen(*, wti: bool = False, drempel: float = 0.995) -> SimpleNamespace:
@@ -303,6 +304,14 @@ def _batch(monkeypatch: pytest.MonkeyPatch, writer, stand) -> None:
     monkeypatch.setattr(main_module, "structuurindex", lambda batches: {})
     monkeypatch.setattr(main_module, "bepalingsindex", lambda batches: set())
     monkeypatch.setattr(main_module, "bron_tekens", lambda _pad: 1000)
+
+
+@pytest.mark.parametrize("tekens, herbouw", [(0, True), (1000, False)])
+def test_een_nieuwe_wet_herbouwt_de_similarity_index(monkeypatch: pytest.MonkeyPatch, tekens, herbouw) -> None:
+    writer = _PoortWriter(tekens=1000)
+    _batch(monkeypatch, writer, lambda ids: {b: Stand(tekens=tekens) for b in ids})
+    assert main_module.main(["BWBR0005537"]) == 0
+    assert writer.herbouw is herbouw
 
 
 def test_tegengehouden_wet_geeft_exitcode_twee(

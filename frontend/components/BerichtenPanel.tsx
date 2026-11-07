@@ -47,7 +47,7 @@ function BerichtItem({ bericht }: { bericht: BerichtOut }) {
         </div>
         <p className="mt-1 text-sm font-semibold text-ink">{bericht.titel}</p>
         <div className="mt-1">
-          <Markdown tekst={bericht.inhoud} />
+          <Markdown tekst={bericht.inhoud} links="vrij" />
         </div>
         <p className="mt-1.5 text-xs text-faint">{datum}</p>
       </div>

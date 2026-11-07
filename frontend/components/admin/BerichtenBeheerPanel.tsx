@@ -134,7 +134,7 @@ export function BerichtenBeheerPanel() {
                 {open && (
                   <div className="border-t border-line px-4 pb-4 pt-3">
                     <div className="text-sm">
-                      <Markdown tekst={b.inhoud} />
+                      <Markdown tekst={b.inhoud} links="vrij" />
                     </div>
                     <ButtonRow align="start" className="mt-3">
                       <Button size="sm" variant="secondary" onClick={() => setEditBericht(b)}>
