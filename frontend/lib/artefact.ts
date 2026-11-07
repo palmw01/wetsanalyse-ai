@@ -14,7 +14,7 @@ import type { Vraagkaart } from "./vraagkaart";
 /** Sinds 4 nov 2026 geen `bronnen` (gevonden bepalingen) meer: een oud bericht met die soort opent de bronselectie
  *  van het werkgebied (`parseArtefact`); de bronverkenner blijft als pagina. */
 export type ArtefactSoort = "annotatie" | "begrippen" | "werkgebied" | "deelvraag" | "begrip" | "bronselectie"
-  | "regels";
+  | "regie" | "regels";
 
 export interface Artefact {
   soort: ArtefactSoort;
@@ -45,6 +45,7 @@ export const ARTEFACT_SOORT_LABEL: Record<ArtefactSoort, string> = {
   deelvraag: "Deelvraag",
   begrip: "Begrip",
   bronselectie: "Bronselectie",
+  regie: "Regie",
   regels: "Afleidingsregels",
 };
 
@@ -56,6 +57,8 @@ const VERPLICHT: Record<ArtefactSoort, string[]> = {
   begrip: ["werkgebied_id", "begrip_id"],
   // De bronselectie per deelvraag (spoor J); `deelvraag_id` is de deelvraag waar het gesprek nu staat.
   bronselectie: ["werkgebied_id"],
+  // Een regie over deelgesprekken (ADR-012). Ze opent het werkgebied: daar staat wat de deelgesprekken opleverden.
+  regie: ["werkgebied_id", "regie_id"],
   regels: [],
 };
 
@@ -109,7 +112,8 @@ export function werkgebiedArtefactVan(a: Artefact | undefined): WerkgebiedArtefa
   if (!p) return undefined;
   const r = p.ref;
   return {
-    soort: p.soort as WerkgebiedArtefact["soort"], werkgebied_id: tekst(r.werkgebied_id), run_id: tekst(r.run_id),
+    soort: (p.soort === "regie" ? "werkgebied" : p.soort) as WerkgebiedArtefact["soort"],
+    werkgebied_id: tekst(r.werkgebied_id), run_id: tekst(r.run_id),
     ...(p.soort === "begrip" ? { begrip_id: tekst(r.begrip_id) } : {}),
     ...(p.soort === "deelvraag" || (p.soort === "bronselectie" && tekst(r.deelvraag_id))
       ? { deelvraag_id: tekst(r.deelvraag_id) } : {}),

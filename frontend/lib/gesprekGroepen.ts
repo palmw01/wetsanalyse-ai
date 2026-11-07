@@ -38,7 +38,24 @@ export function deelIn(gesprekken: GesprekSamenvatting[]): GesprekIndeling {
     }
     groep.gesprekken.push(g);
   }
+  for (const groep of groepen.values()) groep.gesprekken = metDeelgesprekken(groep.gesprekken);
   return { werkgebieden: [...groepen.values()], recent, archief };
+}
+
+/** Deelgesprekken (ADR-012) direct onder hun regiegesprek, in hun eigen volgorde; het regiegesprek houdt zijn plek. Een
+ *  deelgesprek waarvan de ouder niet in de lijst staat (een andere pagina, of gearchiveerd), blijft gewoon staan. */
+export function metDeelgesprekken(lijst: GesprekSamenvatting[]): GesprekSamenvatting[] {
+  const ids = new Set(lijst.map((g) => g.id));
+  const kinderen = new Map<string, GesprekSamenvatting[]>();
+  for (const g of lijst) {
+    if (g.ouder_id && ids.has(g.ouder_id)) kinderen.set(g.ouder_id, [...(kinderen.get(g.ouder_id) ?? []), g]);
+  }
+  const uit: GesprekSamenvatting[] = [];
+  for (const g of lijst) {
+    if (g.ouder_id && ids.has(g.ouder_id)) continue;
+    uit.push(g, ...(kinderen.get(g.id) ?? []));
+  }
+  return uit;
 }
 
 /** Welke werkgebiedgroepen dichtgeklapt staan, per browser. Een open groep is de standaard: wie een

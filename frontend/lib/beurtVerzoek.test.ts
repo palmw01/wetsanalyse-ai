@@ -87,3 +87,14 @@ describe("userVelden", () => {
     expect(bevestigt({ annoteren: { werkgebiedId: "wg", bevestigd: 0 } })).toBe(true);
   });
 });
+
+describe("de knop van een regie (ADR-012)", () => {
+  it("start de regie met het bevestigde plan, op het werkgebied van de bevestiging", () => {
+    const v: BeurtVerzoek = { prompt: "Zoek per deelvraag de bronnen",
+      regie: { werkgebiedId: "w9", opdracht: "bronnen", planId: "0123456789abcdef" } };
+    expect(startOpties(v, { werkgebiedId: "ander" })).toEqual(
+      { actie: "regie_bronnen", werkgebied_id: "w9", plan_id: "0123456789abcdef" });
+    expect(startOpties({ ...v, regie: { ...v.regie!, opdracht: "annoteren" } }, {})?.actie).toBe("regie_annoteren");
+    expect(bevestigt(v)).toBe(true);
+  });
+});

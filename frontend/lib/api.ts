@@ -649,6 +649,9 @@ export type AgentHandlers = {
   /** De beurt slaagde, maar er is iets dat de jurist hoort te weten: nu alleen een taalanalyse die
    *  gedegradeerd draaide. Een bewaarfout is een `error`. */
   onWaarschuwing?: (bericht: string) => void;
+  /** Een regie (ADR-012) startte of sloot een deelgesprek: de sidebar haalt de lijst opnieuw, zodat het deelgesprek
+   *  onder het regiegesprek verschijnt en zijn stand toont. */
+  onRegieTaak?: (fase: "start" | "eind") => void;
   /** De beurt is afgelopen. Een mislukte beurt gooit al bij het `error`-event, dus dit is klaar of gestopt. */
   onDone?: (uitkomst: BeurtUitkomst["status"]) => void;
 };
@@ -701,6 +704,8 @@ export async function startRun(
     onderwerp?: Extract<import("./vraagLex").OnderwerpVerzoek, { onderwerp: unknown }>["onderwerp"];
     /** Een klik op een suggestie: een taak van een agent, zonder model gekozen (graph-qa `models.ACTIE_TAAK`). */
     actie?: import("./vraagLex").VraagLexActie;
+    /** Het bevestigde plan van een regie (ADR-012); hoort bij `regie_bronnen`/`regie_annoteren`. */
+    plan_id?: string;
   },
 ): Promise<RunStart> {
   const res = await fetch("/api/annotatie/run", {
@@ -724,6 +729,7 @@ export async function startRun(
       ...(extra?.intake_actie ? { intake_actie: extra.intake_actie } : {}),
       ...(extra?.onderwerp ? { onderwerp: extra.onderwerp } : {}),
       ...(extra?.actie ? { actie: extra.actie } : {}),
+      ...(extra?.plan_id ? { plan_id: extra.plan_id } : {}),
     }),
   });
   if (res.status === 409) {
@@ -957,6 +963,7 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
             ...(parseBevestiging(ev.bevestiging) ? { bevestiging: parseBevestiging(ev.bevestiging) } : {}),
             ...(parseVervolg(ev.vervolg) ? { vervolg: parseVervolg(ev.vervolg) } : {}) });
         else if (ev.type === "waarschuwing") handlers.onWaarschuwing?.(ev.message ?? "");
+        else if (ev.type === "regie_taak") handlers.onRegieTaak?.((ev as { fase?: unknown }).fase === "eind" ? "eind" : "start");
         // `agentFout` onderscheidt dit van een 502 die zegt "de BFF kon graph-qa niet bereiken":
         // die is tijdelijk en mag opnieuw, deze is een uitkomst van de beurt zelf.
         else if (ev.type === "error")

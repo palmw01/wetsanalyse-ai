@@ -638,7 +638,8 @@ export interface BeurtUitkomst {
  *  `werkgebied_annoteren` (fase B): de nieuwe bepalingen annoteren. `begrippen_verdiepen` (fase C):
  *  meedenken over twijfelpunten en begrippen zonder definitie; `aantal` telt die samen. */
 export interface Bevestiging {
-  soort: "werkgebied_annoteren" | "begrippen_verdiepen";
+  /** `regie` (ADR-012): het plan van een regie over deelgesprekken; `aantal` telt de deelgesprekken. */
+  soort: "werkgebied_annoteren" | "begrippen_verdiepen" | "regie";
   werkgebied_id: string;
   aantal: number;
   /** Tokens voor deze run, of `null` zonder eerdere annotatiebeurten om op te baseren. */
@@ -649,6 +650,9 @@ export interface Bevestiging {
   deelvraag_id?: string;
   /** Bij `begrippen_verdiepen`: de inhoud van de werkvoorraad; de knop stuurt hem terug (spoor M). */
   werkvoorraad_id?: string;
+  /** Bij `regie`: het plan dat de knop bevestigt, en wat de regie doet. */
+  plan_id?: string;
+  opdracht?: "bronnen" | "annoteren";
 }
 
 /** Het overzicht van een onderwerp ("welke artikelen gaan over invordering?"), door graph-qa
@@ -709,6 +713,9 @@ export interface GesprekSamenvatting {
   updated?: string;
   werkgebied_id?: string;
   werkgebied_naam?: string;
+  /** Een deelgesprek van een regiegesprek (ADR-012): de sidebar zet het eronder. */
+  ouder_id?: string;
+  regie_id?: string;
   gearchiveerd?: string | null;
 }
 

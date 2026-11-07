@@ -142,3 +142,12 @@ describe("de titel van een artefact (artefactKop)", () => {
     expect(artefactKop(k)).toEqual({ titel: "Bronselectie" });
   });
 });
+
+describe("het artefact van een regie (ADR-012)", () => {
+  it("vraagt werkgebied en regie, en opent het werkgebied", () => {
+    const a = parseArtefact({ soort: "regie", ref: { werkgebied_id: "w", regie_id: "r" }, titel: "Regie · bronnen" });
+    expect(a?.soort).toBe("regie");
+    expect(werkgebiedArtefactVan(a)).toMatchObject({ soort: "werkgebied", werkgebied_id: "w" });
+    expect(parseArtefact({ soort: "regie", ref: { werkgebied_id: "w" } })).toBeUndefined();
+  });
+});

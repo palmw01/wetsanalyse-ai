@@ -95,7 +95,7 @@ describe("een object stuurt alleen soort en id's", () => {
 describe("contract met graph-qa", () => {
   const models = readFileSync(resolve(__dirname, "../../tools/graph-qa/agent/models.py"), "utf8");
 
-  it("de acties zijn die van Actie: de taken uit ACTIE_TAAK, het dossier aanvullen en de bronselectie", () => {
+  it("de acties zijn die van Actie: de taken uit ACTIE_TAAK, het dossier aanvullen, de bronselectie en de regie", () => {
     const begin = models.indexOf("ACTIE_TAAK: dict[str, tuple[str, str]] = {");
     expect(begin).toBeGreaterThan(-1);
     const blok = models.slice(begin, models.indexOf("\n}", begin));
@@ -104,7 +104,9 @@ describe("contract met graph-qa", () => {
     expect(intake).toEqual(["dossier_aanvullen"]);
     const bronselectie = [...(models.match(/^BRONSELECTIE_ACTIES = \((.*?)\)/m)?.[1] ?? "").matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
     expect(bronselectie).toEqual(["bronselectie", "bronnen_zoeken", "bepaling_toevoegen"]);
-    expect([...taken, ...intake, ...bronselectie].sort()).toEqual([...ACTIES].sort());
+    const regie = [...(models.match(/^REGIE_ACTIES = \((.*?)\)/m)?.[1] ?? "").matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
+    expect(regie).toEqual(["regie_bronnen", "regie_annoteren"]);
+    expect([...taken, ...intake, ...bronselectie, ...regie].sort()).toEqual([...ACTIES].sort());
     const actie = models.match(/^Actie = Literal\[(.*?)\]/ms)?.[1] ?? "";
     expect([...actie.matchAll(/"([a-z_]+)"/g)].map((m) => m[1]).sort()).toEqual([...ACTIES].sort());
   });

@@ -22,11 +22,17 @@ export function parseBevestiging(ruw: unknown): Bevestiging | undefined {
   if (!ruw || typeof ruw !== "object") return undefined;
   const r = ruw as Record<string, unknown>;
   // Een soort die deze werkplek niet kent, krijgt geen knop: liever niets dan een knop die iets anders start.
-  if (r.soort !== "werkgebied_annoteren" && r.soort !== "begrippen_verdiepen") return undefined;
+  if (r.soort !== "werkgebied_annoteren" && r.soort !== "begrippen_verdiepen" && r.soort !== "regie") return undefined;
   if (typeof r.werkgebied_id !== "string" || !r.werkgebied_id) return undefined;
   if (typeof r.aantal !== "number" || !Number.isInteger(r.aantal) || r.aantal < 0) return undefined;
   const schatting = typeof r.schatting === "number" && Number.isFinite(r.schatting) ? r.schatting : null;
   const uit: Bevestiging = { soort: r.soort, werkgebied_id: r.werkgebied_id, aantal: r.aantal, schatting };
+  // Een regie (ADR-012) start alleen met het plan dat Lex voorstelde; zonder geldig plan geen knop.
+  if (r.soort === "regie") {
+    if (typeof r.plan_id !== "string" || !/^[0-9a-f]{16}$/.test(r.plan_id)) return undefined;
+    if (r.opdracht !== "bronnen" && r.opdracht !== "annoteren") return undefined;
+    return { ...uit, plan_id: r.plan_id, opdracht: r.opdracht };
+  }
   // Alleen een bereik dat deze werkplek kent; anders het hele werkgebied, zoals een oud bericht.
   if (r.soort === "werkgebied_annoteren" && r.bereik === "deelvragen") {
     uit.bereik = "deelvragen";
@@ -60,6 +66,15 @@ export function afgehandeld(items: ThreadItem[]): Map<string, BevestigingKeuze> 
     }
   }
   return uit;
+}
+
+/** De vraag bij de knop van een regie; graph-qa herkent de opdracht aan de actie, niet aan deze tekst. */
+export function regiePrompt(opdracht: "bronnen" | "annoteren"): string {
+  return opdracht === "bronnen" ? "Zoek per deelvraag de bronnen" : "Annoteer per deelvraag de kern";
+}
+
+export function deelgesprekken(n: number): string {
+  return n === 1 ? "1 deelgesprek" : `${n} deelgesprekken`;
 }
 
 export function bepalingen(n: number): string {

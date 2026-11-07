@@ -286,7 +286,8 @@ function Rij({ gesprek, actief, acties, toonPlek = false, status }: {
   }
 
   return (
-    <li data-gesprek-rij={gesprek.id}>
+    <li data-gesprek-rij={gesprek.id} {...(gesprek.ouder_id ? { "data-deelgesprek": gesprek.ouder_id } : {})}
+      className={gesprek.ouder_id ? "ml-4 border-l border-line pl-1" : undefined}>
       <div
         className={`group relative flex items-center rounded-lg transition-colors ${
           actief ? "bg-lint/10" : "hover:bg-paper"
