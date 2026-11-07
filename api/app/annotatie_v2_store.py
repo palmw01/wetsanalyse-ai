@@ -46,7 +46,21 @@ def bereik_van(snapshot: dict, iri: str | None = None) -> set[str]:
     iri = iri or snapshot["doel"]["bron_iri"]
     if iri not in nodes:
         raise HTTPException(404, "Bronnode bestaat niet in deze bronstand.")
-    return {key for key in nodes if iri in keten(nodes, key)}
+    # Elke knoop één keer: per knoop de hele keten lopen is kwadratisch, en een regeling telt duizenden knopen.
+    binnen: dict[str, bool] = {}
+    for start in nodes:
+        pad: list[str] = []
+        key = start
+        while key and key not in binnen:
+            if key not in nodes or key in pad:
+                raise HTTPException(422, "Onvolledige of cyclische bronstructuur.")
+            pad.append(key)
+            key = nodes[key].get("parent_iri") or ""
+        onder = binnen.get(key, False)
+        for key in reversed(pad):
+            onder = onder or key == iri
+            binnen[key] = onder
+    return {key for key, onder in binnen.items() if onder}
 
 
 #: Wat een eigen markering vastlegt: wie markeerde is een feit voor de audit, maar geen oordeel over een voorstel.
@@ -379,6 +393,10 @@ async def dekking(snapshot: dict, conn=None) -> dict:
     structureel: dict[str, tuple[str, dict]] = {}
     def signature(tree: dict, keys: set[str]):
         return {i: (tree[i].get("parent_iri"), tree[i]["bron_hash"]) for i in keys}
+    huidig = signature(nodes, scope)
+    text_nodes = {i for i in scope if nodes[i].get("tekst")}
+    # Per bronstand één keer vergelijken: de rijen van één regeling delen meestal dezelfde stand.
+    zelfde_stand: dict[str, bool] = {}
     for row in rows:
         old_snapshot = snapshots.get(row["snapshot_id"])
         if old_snapshot is None:
@@ -395,13 +413,12 @@ async def dekking(snapshot: dict, conn=None) -> dict:
                        and old[i].get("parent_iri") == nodes[i].get("parent_iri"))
         if target not in old or row["bron_iri"] not in old:
             continue
-        if target not in bereik_van(old_snapshot, row["bron_iri"]):
+        if row["bron_iri"] not in keten(old, target):
             continue
-        old_scope = bereik_van(old_snapshot, target)
-        same = signature(old, old_scope) == signature(nodes, scope)
-        text_nodes = {i for i in scope if nodes[i].get("tekst")}
+        if row["snapshot_id"] not in zelfde_stand:
+            zelfde_stand[row["snapshot_id"]] = signature(old, bereik_van(old_snapshot, target)) == huidig
         context = len(text_nodes) <= 1 or row["inhoud"].get("parent_context", False)
-        if same and text_nodes <= reached and context:
+        if zelfde_stand[row["snapshot_id"]] and text_nodes <= reached and context:
             complete, parent_context = True, True
     return {"status": "ok", "doel": snapshot["doel"], "snapshot_id": snapshot["snapshot_id"],
             "voltooid": complete, "bereik": sorted(covered), "parent_context": parent_context,
@@ -462,21 +479,33 @@ async def weergave(snapshot: dict) -> dict:
                 "verwijderd": None if lagen else await _verwijderd(conn, scope)}
 
 
-async def detail(element_id: str) -> dict:
+async def details(element_ids: list[str]) -> dict[str, dict]:
+    """De details van een reeks elementen in één lezing, met elke bronstand één keer gedecodeerd:
+    die bronstand is veruit het zwaarste deel, en de elementen van een bewijs delen hem meestal."""
+    gevraagd = list(dict.fromkeys(element_ids))
     async with db.get_engine().connect() as conn:
         e, l = db.annotatie_v2_elementen, db.annotatie_v2_lagen
-        row = (await conn.execute(select(e.c.inhoud, l).join_from(e, l, e.c.laag_id == l.c.id).where(
-            e.c.id == element_id))).mappings().first()
-        if row is None:
+        rows = (await conn.execute(select(e.c.id.label("element_id"), e.c.inhoud, l).join_from(
+            e, l, e.c.laag_id == l.c.id).where(e.c.id.in_(gevraagd)))).mappings().all()
+        if len(rows) != len(gevraagd):
             raise HTTPException(404, "Element niet gevonden.")
-        layer = {key: row[key] for key in l.c.keys()}
-        source = (await conn.execute(select(db.annotatie_v2_snapshots.c.inhoud).where(
-            db.annotatie_v2_snapshots.c.id == row["inhoud"]["snapshot_id"]))).scalar_one()
-        anchor_ids = {a["bron_iri"] for a in row["inhoud"]["ankers"]}
-        return {"status": "ok", "element": row["inhoud"], "laag": publiek_laag(layer),
-                "snapshot_id": row["inhoud"]["snapshot_id"],
-                "bronnen": [n for i, n in nodes_van(source).items() if i in anchor_ids],
-                "bronverwijzing": {"bron_iri": row["inhoud"]["eigenaar_iri"]}}
+        s = db.annotatie_v2_snapshots
+        bronstanden = {r.id: nodes_van(r.inhoud) for r in (await conn.execute(select(s).where(
+            s.c.id.in_({row["inhoud"]["snapshot_id"] for row in rows})))).all()}
+    uit = {}
+    for row in rows:
+        element = row["inhoud"]
+        anchor_ids = {a["bron_iri"] for a in element["ankers"]}
+        uit[row["element_id"]] = {
+            "status": "ok", "element": element, "laag": publiek_laag({key: row[key] for key in l.c.keys()}),
+            "snapshot_id": element["snapshot_id"],
+            "bronnen": [n for i, n in bronstanden[element["snapshot_id"]].items() if i in anchor_ids],
+            "bronverwijzing": {"bron_iri": element["eigenaar_iri"]}}
+    return uit
+
+
+async def detail(element_id: str) -> dict:
+    return (await details([element_id]))[element_id]
 
 
 async def historische_snapshot(snapshot_id: str) -> dict:
