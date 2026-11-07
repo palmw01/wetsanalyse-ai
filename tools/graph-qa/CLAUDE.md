@@ -165,6 +165,12 @@ bruikbaar is.
   stil waardeloos. Onder `_MIN_CACHE_TEKENS` gaat er geen cache-punt op. Weigert de provider
   `cache_control` (op Foundry een beta-functie), dan zet de adapter zichzelf uit en herhaalt de call
   zonder – caching mag nooit "de dienst ligt plat" kosten. Knop: `PROMPT_CACHING=false`.
+- **`llm_stap.py`** – de gedeelde modelstap (H5). `aanroep(llm, rol, **verzoek)` geeft de kwargs ongewijzigd door,
+  geeft een `Stopreden` terug, logt één `model_aanroep` (rol, model, stopreden, duur, gebruik; geen inhoud) en eist dat
+  de systeemprompt de methodetekst van de rol draagt (`Rol.methoderol`). `vraag_tool` is de vorm voor één strict tool:
+  `pogingen` verplicht, `haal` bepaalt wat bruikbaar is, de tellers houden hun namen (`llm_calls`, `review_calls`,
+  `afgekapt`). Geen eigen retry (dat doet de SDK) en geen except. Een nieuwe modelaanroep gaat hierlangs, met een
+  eigen `Rol` en een scenario in `tests/test_modelverzoeken.py`: dat legt elk verzoek byte voor byte vast.
 - **`adapters/graphdb_graph.py`** – `make_graph(settings)` → `MCPClient`; roept `require_graph()`.
 - **`mcp_client.py`** – synchrone MCP-client (Streamable HTTP): `sparql()` via `sparql_query`,
   `semantic_search()` via `similarity_search`, één persistente `httpx.Client`. `_reject_updates`

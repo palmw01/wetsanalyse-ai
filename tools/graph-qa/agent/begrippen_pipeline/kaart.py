@@ -25,6 +25,7 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import Any
 
+from ..llm_stap import Rol, lijst, vraag_tool
 from . import betekenis, definities, fragmenten as fragmenten_mod, toetsen
 from .model import (
     Aandacht, Fragment, Herkomst, Kaart, Manifest, Onderzoek, Taalanalyse,
@@ -199,18 +200,6 @@ def promptversie() -> str:
     return hashlib.sha256(vast.encode()).hexdigest()[:12]
 
 
-def lees(resp: Any) -> list[dict[str, Any]] | None:
-    for blok in getattr(resp, "content", []) or []:
-        if getattr(blok, "type", "") == "tool_use" and getattr(blok, "name", "") == TOOL:
-            try:
-                invoer = blok.input if isinstance(blok.input, dict) else json.loads(blok.input)
-            except (TypeError, ValueError):
-                return None
-            items = invoer.get("kaarten") if isinstance(invoer, dict) else None
-            return items if isinstance(items, list) else None
-    return None
-
-
 def _uit_item(manifest: Manifest, o: Opdracht, item: dict[str, Any] | None) -> tuple[Kaart, list[str]]:
     """De kaart na het voorstel van het model, en extra aandachtspunten. Ongeldig = niets overnemen."""
     k = o.kaart
@@ -271,16 +260,8 @@ def vul(llm: Any, model: str, manifest: Manifest, opdrachten: list[Opdracht], gr
     verzoek = dict(model=model, max_tokens=min(8000, 1024 + 400 * len(opdrachten)), system=SYSTEEM,
                    tools=[toolschema(opdrachten)], tool_choice={"type": "auto"},
                    messages=[{"role": "user", "content": userprompt(manifest, opdrachten)}])
-    items = None
-    for _poging in range(2):
-        resp = llm.create(**verzoek)
-        if meting is not None:
-            meting["llm_calls"] = meting.get("llm_calls", 0) + 1
-        items = lees(resp)
-        if items is not None:
-            break
-        logger.info("kaart-model gaf geen tool-aanroep", extra={"stop_reden": getattr(resp, "stop_reason", "")})
-    return valideer(manifest, opdrachten, items, groep_geel)
+    uit = vraag_tool(llm, Rol.BEGRIP_KAART, verzoek=verzoek, pogingen=2, haal=lijst("kaarten"), meting=meting)
+    return valideer(manifest, opdrachten, uit.waarde, groep_geel)
 
 
 def batches(opdrachten: list[Opdracht], grootte: int = BATCH) -> list[list[Opdracht]]:

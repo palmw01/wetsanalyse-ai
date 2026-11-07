@@ -18,7 +18,7 @@ import logging
 from typing import Any
 
 from .agents import Context, Uitkomst
-from .begrippen_pipeline.kaartacties import lees
+from .llm_stap import Rol, vraag_tool
 from .methode import instructies
 from .werkgebied_context import context_tekst
 from .wetsanalyse_api import WetsanalyseApiFout
@@ -81,12 +81,8 @@ def vraag_model(llm: Any, model: str, werkgebied: dict[str, Any], meting: dict[s
     """Eén aanroep (plus hooguit één nieuwe poging zonder tool-aanroep)."""
     verzoek = dict(model=model, max_tokens=800, system=systeem(), tools=[schema()], tool_choice={"type": "auto"},
                    messages=[{"role": "user", "content": prompt(werkgebied)}])
-    for _poging in range(2):
-        resp = llm.create(**verzoek)
-        meting["llm_calls"] = meting.get("llm_calls", 0) + 1
-        if (item := lees(resp, TOOL)) is not None:
-            return valideer(item)
-    return []
+    item = vraag_tool(llm, Rol.DEELVRAGEN_VOORSTEL, verzoek=verzoek, pogingen=2, meting=meting).waarde
+    return valideer(item) if item is not None else []
 
 
 def samenvatting(naam: str, uitkomst: dict[str, Any]) -> str:
@@ -156,17 +152,12 @@ def valideer_verbetering(item: dict[str, Any] | None, deelvraag: dict[str, Any],
 
 def verbeter_model(llm: Any, model: str, werkgebied: dict[str, Any], deelvraag: dict[str, Any], soort: str,
                    meting: dict[str, int]) -> tuple[str, list[str], str]:
-    from .begrippen_pipeline.kaartacties import lees as lees_tool
     bestaand = [d["vraag"] for d in werkgebied.get("deelvragen") or [] if d.get("id") != deelvraag.get("id")]
     verzoek = dict(model=model, max_tokens=800, system=systeem(SYSTEEM_VERBETER), tools=[schema_verbeter()],
                    tool_choice={"type": "auto"},
                    messages=[{"role": "user", "content": prompt_verbeter(werkgebied, deelvraag, soort)}])
-    for _poging in range(2):
-        resp = llm.create(**verzoek)
-        meting["llm_calls"] = meting.get("llm_calls", 0) + 1
-        if (item := lees_tool(resp, TOOL_VERBETER)) is not None:
-            return valideer_verbetering(item, deelvraag, bestaand)
-    return "geen", [], ""
+    item = vraag_tool(llm, Rol.DEELVRAAG_VERBETER, verzoek=verzoek, pogingen=2, meting=meting).waarde
+    return valideer_verbetering(item, deelvraag, bestaand) if item is not None else ("geen", [], "")
 
 
 def verbetertekst(deelvraag: str, soort: str, uitkomst: dict[str, Any], motivatie: str) -> str:

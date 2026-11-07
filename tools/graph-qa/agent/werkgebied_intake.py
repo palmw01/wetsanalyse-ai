@@ -52,6 +52,7 @@ from typing import Any
 from bronmodel.taal import normaliseer_vraag as normaliseer  # gelijk aan de api (`werkgebied_deelvragen`)
 
 from .graph import queries
+from .llm_stap import Rol, vraag_tool
 from .ports import GraphPort
 from .werkgebied_context import context_tekst
 from .zoektermen import valt_buiten
@@ -808,14 +809,12 @@ def _sleutels(lijst: Any, geldig: dict[str, str], n: int) -> list[str]:
 def stel_voor(llm: Any, model: str, intake: dict[str, Any]) -> dict[str, Any]:
     """Eén aanroep met het hele dossier; bij een storing of een ongeldig antwoord: geen voorstellen (het
     kaartje werkt ook zonder)."""
-    from .begrippen_pipeline.kaartacties import lees
-
     lijsten = ("Aanleidingen (sleutel: omschrijving):\n" + "\n".join(f"- {k}: {label}" for k, label, _ in AANLEIDINGEN)
                + "\n\nDoelen (sleutel: omschrijving):\n" + "\n".join(f"- {k}: {label}" for k, label, _ in DOELEN))
     try:
-        resp = llm.create(model=model, max_tokens=600, system=SYSTEEM, tools=[schema()], tool_choice={"type": "auto"},
-                          messages=[{"role": "user", "content": f"{dossier(intake)}\n\n{lijsten}"}])
-        item = lees(resp, TOOL) or {}
+        item = vraag_tool(llm, Rol.INTAKE, pogingen=1, verzoek=dict(
+            model=model, max_tokens=600, system=SYSTEEM, tools=[schema()], tool_choice={"type": "auto"},
+            messages=[{"role": "user", "content": f"{dossier(intake)}\n\n{lijsten}"}])).waarde or {}
     except Exception:  # noqa: BLE001 – een voorstel is een gemak, geen voorwaarde
         logger.warning("intake: geen voorstellen van het model", exc_info=True)
         item = {}
