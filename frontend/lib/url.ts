@@ -116,6 +116,10 @@ export function veiligDecoderen(waarde: string): string | undefined {
 //   - al complete http(s)-URL     → alleen toegestaan als de host wetten.overheid.nl is (host-pinning) —
 //     een vreemde host wordt platte tekst, geen phishing-link;
 //   - alles anders (javascript:, data:, leeg) → undefined ⇒ render als platte tekst, geen <a>.
+/** De hosts van een externe bron (ADR-013), zoals `bronmodel.extern` ze als link geeft. Alleen https. */
+const EXTERNE_HOSTS = new Set(["zoek.officielebekendmakingen.nl", "deeplink.rechtspraak.nl", "uitspraken.rechtspraak.nl",
+  "eur-lex.europa.eu", "data.europa.eu"]);
+
 export function bronHref(ref?: string | null): string | undefined {
   if (!ref) return undefined;
   const trimmed = ref.trim();
@@ -125,6 +129,8 @@ export function bronHref(ref?: string | null): string | undefined {
       // Ook een TOOI-URI (spoor I6: de organisatie achter een regeling) is een vertrouwde link.
       const u = new URL(trimmed);
       if (u.hostname === "identifier.overheid.nl" && u.protocol === "https:" && u.pathname.startsWith("/tooi/")) return trimmed;
+      // ADR-013: de officiële vindplaatsen van een externe bron (Kamerstukken, uitspraken, EU-recht).
+      if (u.protocol === "https:" && EXTERNE_HOSTS.has(u.hostname)) return trimmed;
       return u.hostname === "wetten.overheid.nl" ? trimmed : undefined;
     } catch {
       return undefined;

@@ -329,6 +329,11 @@ class Source(BaseModel):
     soort: str | None = None
     regeling: str | None = None
     afkortingen: list[str] | None = None
+    # ADR-013: `wettekst` (de BWB, ook als het veld ontbreekt), `kamerstuk`, `bekendmaking`, `uitspraak`
+    # of `eu`. Een externe bron heeft `uri` = zijn canonieke id (`bronmodel.extern`) en `link` = de publieke
+    # vindplaats.
+    brontype: str | None = None
+    link: str | None = None
 
 
 # --- Annotatie (JAS) ---------------------------------------------------------
