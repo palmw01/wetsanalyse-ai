@@ -65,8 +65,12 @@ def is_leesvraag(question: str, modus: str = "auto") -> bool:
     # Let op de groepering: `markeringen?` maakt alleen de slot-n optioneel en matcht dus
     # "markeringe", nooit het enkelvoud "markering". Verkeerd gegroepeerd gaat "welke markering is
     # een Rechtssubject?" langs de zoektool heen.
-    onderwerp = re.search(r"\b(annotatie(s)?|markering(en)?|element(en)?|klasse(n)?|jas-klasse(n)?"
-                          r"|gemarkeerd|geannoteerd|geclassificeerd|annotatiedekking)\b", q)
+    onderwerp = re.search(r"\b(annotatie(s)?|markering(en)?|gemarkeerd|geannoteerd|geclassificeerd|annotatiedekking)\b", q)
+    # "Klasse" en "element" zijn ook woorden van de methode: "Wat is de JAS-klasse Rechtsfeit?" vraagt naar de
+    # methode, niet naar wat er geannoteerd is. Die woorden alleen maken pas een leesvraag met een woord dat naar
+    # bestaande markeringen vraagt (welke, hoeveel, zoek, al …), niet met "wat" of "hoe".
+    if not onderwerp and re.search(r"\b(element(en)?|klasse(n)?|jas-klasse(n)?)\b", q):
+        onderwerp = re.search(r"\b(zoek|vind|toon|bekijk|welke|hoeveel|bestaande|opgeslagen|al|dekking)\b", q)
     lezen = re.search(r"\b(zoek|vind|toon|bekijk|laat|zien|welke?|wat|waar|hoe|hoeveel|bestaande|opgeslagen|al|dekking)\b", q)
     # `markeer`/`classificeer` horen hier ook: "markeer de JAS-elementen in artikel 9" is een opdracht
     # om te annoteren, geen vraag naar wat er al staat.

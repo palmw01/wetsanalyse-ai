@@ -279,6 +279,11 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         return {**upd, **_bronselectie(writer, "bepaalt met je de bronnen per deelvraag")}
     if eerste == "werkgebied" and taak == "aanvullen":
         return {**upd, **_werkgebied(writer, "vult met je het dossier aan", aanvullen=True)}
+    if eerste == "werkgebied" and state.get("werkgebied_id") and not is_werkgebiedvraag(zelfstandig):
+        # In een bestaand werkgebied is een vraag over zijn deelvragen of bronnen geen verzoek om een nieuw samen te
+        # stellen. Op acceptatie (7 nov 2026) startte "Welke bronnen horen daarbij?" de intake ("Hoe noemen we het
+        # werkgebied?"). De stand per deelvraag komt uit de api: de taak `dekking`, zonder model.
+        return {**upd, **_agent(writer, state, "deelvragen", "dekking", zelfstandig)}
     if eerste == "werkgebied":
         return {**upd, **_werkgebied(writer, "stelt met je een werkgebied samen")}
     if eerste == "annotatie":
