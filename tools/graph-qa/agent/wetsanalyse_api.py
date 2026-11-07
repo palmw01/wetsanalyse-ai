@@ -170,15 +170,6 @@ class WetsanalyseApi:
         terug. Een 412: iemand anders wijzigde het intussen."""
         return await self._verstuur("PATCH", self._werkgebied_pad(werkgebied_id), wijziging)
 
-    async def voeg_bron_toe(self, werkgebied_id: str, bron: dict[str, Any]) -> dict[str, Any]:
-        """Een bronselectie; geeft `{selectie, werkgebied}` terug (met de nieuwe revisie)."""
-        return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronnen", bron)
-
-    async def koppel_deelvraag(self, werkgebied_id: str, deelvraag_id: str, koppelingen: dict[str, Any]) -> dict[str, Any]:
-        """De bronselecties en begrippen bij een deelvraag – de hele set; geeft het werkgebied terug."""
-        return await self._verstuur("PUT", f"{self._werkgebied_pad(werkgebied_id)}/deelvragen/"
-                                           f"{quote(deelvraag_id, safe='')}/koppelingen", koppelingen)
-
     async def start_begrippen_run(self, werkgebied_id: str) -> dict[str, Any]:
         """Manifest vastleggen en de run maken, of de bestaande op dezelfde stand (`nieuw: false`).
 
@@ -282,17 +273,6 @@ class WetsanalyseApi:
         tekst}`, bewijs `genoemd`); 409 als ze er al staat of werkgebiedbreed is uitgesloten. Geeft het overzicht."""
         return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronselectie/"
                                 f"{quote(deelvraag_id, safe='')}/voorstellen", voorstel)
-
-    async def zoek_regelingen(self, werkgebied_id: str, q: str) -> list[dict[str, Any]]:
-        """Regelingen op citeertitel, afkorting of BWB-id, die van het werkgebied vooraan."""
-        uit = await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/regelingen", q=q)
-        return list(uit.get("regelingen") or [])
-
-    async def voeg_bepaling_toe(self, werkgebied_id: str, deelvraag_id: str, bron: dict[str, Any]) -> dict[str, Any]:
-        """Zelf een bepaling als keuze bij één deelvraag (`BronselectieInvoer`); de api toetst haar in de graaf (422
-        als ze niet bestaat). Geeft het overzicht."""
-        return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronselectie/"
-                                f"{quote(deelvraag_id, safe='')}/bronnen", bron)
 
     async def haal_groepen(self, werkgebied_id: str) -> dict[str, Any]:
         """De betekenisgroepen van de laatste klare run, met hun besluiten."""

@@ -35,8 +35,8 @@ def _literal(pad: Path, patroon: str) -> str:
 @pytest.mark.parametrize(
     "naam, patroon_importer, patroon_agent",
     [
-        ("basis", r'DEFAULT_BASE_IRI\s*=\s*"([^"]+)"', r'BASIS\s*=\s*os\.getenv\([^)]*\)\s*or\s*"([^"]+)"'),
-        ("ontologie", r'DEFAULT_ONTOLOGY_IRI\s*=\s*"([^"]+)"', r'ONTOLOGIE\s*=\s*os\.getenv\([^)]*\)\s*or\s*"([^"]+)"'),
+        ("basis", r'DEFAULT_BASE_IRI\s*=\s*"([^"]+)"', r'BASIS\s*=\s*"([^"]+)"'),
+        ("ontologie", r'DEFAULT_ONTOLOGY_IRI\s*=\s*"([^"]+)"', r'ONTOLOGIE\s*=\s*"([^"]+)"'),
     ],
 )
 def test_agent_volgt_de_importer(naam: str, patroon_importer: str, patroon_agent: str) -> None:
@@ -44,8 +44,7 @@ def test_agent_volgt_de_importer(naam: str, patroon_importer: str, patroon_agent
     agent = _literal(NAMESPACE, patroon_agent)
     assert agent == importer, (
         f"{naam}-IRI loopt uiteen: de importer schrijft {importer!r}, graph-qa zoekt {agent!r}. "
-        "Dat levert geen fout op maar een leeg antwoord – pas beide aan, of geef graph-qa "
-        "GRAPHDB_BASE_IRI/GRAPHDB_ONTOLOGY_IRI mee."
+        "Dat levert geen fout op maar een leeg antwoord – pas beide aan."
     )
 
 

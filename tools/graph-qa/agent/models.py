@@ -76,17 +76,14 @@ class IntakeActie(BaseModel):
                   "bs_toevoegen",
                   # De keuzekaart van de begrippen-agent (`intake_id` `bk-…`): welk begrip bedoel je?
                   "begrip_kiezen"]
-    # Bij de bepalingen: het kaartje van welke deelvraag (0-based); een ander deel is een oud kaartje.
-    deel: int = Field(default=0, ge=0, le=19)
     # `aanmaken` sluit het samenstellen af, `opslaan` het aanvullen van een bestaand werkgebied.
     actie: Literal["antwoord", "overslaan", "wijzig", "aanmaken", "opslaan", "afbreken", "klaar"] = "antwoord"
     keuzes: list[str] = Field(default_factory=list, max_length=20)
     tekst: str = Field(default="", max_length=4000)
     # Meer dan één eigen antwoord (de deelvragen, `meer_tekst` op het kaartje).
     teksten: list[str] = Field(default_factory=list, max_length=20)
-    # Bij `wijzig`: naar welke stap, en bij de bepalingen naar welk deel.
+    # Bij `wijzig`: naar welke stap.
     naar: str = ""
-    naar_deel: int = Field(default=0, ge=0, le=19)
     # De bronselectie (spoor J, `intake_id` `bs-…`): de deelvraag van het kaartje.
     deelvraag_id: str = Field(default="", pattern=r"^[A-Za-z0-9-]{0,64}$")
 

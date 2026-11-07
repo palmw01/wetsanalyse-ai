@@ -107,7 +107,7 @@ de opgeslagen annotaties en 2 op de begrippen. Die laatste zes lopen via de wets
 - **Begrippen** – `search_begrippen`, `get_begrip`.
 - **Introspectie** – `graph_schema`; **laatste redmiddel** – `raw_sparql` (read-only).
 
-`jas_klasse_opvragen` en `jas_regels_opvragen` staan daarbuiten en zijn opt-in per specialist.
+`jas_klasse_opvragen` staat daarbuiten en is opt-in per specialist.
 
 ### Brongetrouwheid en geheugen
 
@@ -208,7 +208,6 @@ Secrets kunnen ook als `<NAAM>_FILE` (pad naar een bestand) worden gezet: `GRAPH
 | `GRAPHDB_TOKEN` *(verplicht)* | – | Bearer-token voor de GraphDB-MCP. |
 | `GRAPHDB_REPOSITORY_ID` | `inning` | Repository. |
 | `GRAPHDB_SPARQL_TOOL` | `sparql_query` | Naam van de SPARQL-tool op de MCP-server. |
-| `GRAPHDB_BASE_IRI` / `GRAPHDB_ONTOLOGY_IRI` | `urn:bwb:` / `urn:bwb-ns:` | IRI-ruimtes; gelijk aan die van de importer. |
 | `SIMILARITY_INDEX` | leeg | GraphDB-similarity-index voor `semantic_search` (op Azure `bwb_similarity`). Leeg → de tool degradeert naar `search_wetgeving`. Zie [`docs/embeddings-runbook.md`](docs/embeddings-runbook.md). |
 | `AZURE_FOUNDRY_API_KEY` *(verplicht)* | – | Azure-AI-Foundry-key. |
 | `AZURE_FOUNDRY_BASE_URL` *(verplicht)* | – | Foundry-endpoint **met** `/anthropic`-suffix. |

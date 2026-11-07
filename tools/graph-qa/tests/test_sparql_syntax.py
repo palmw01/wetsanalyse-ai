@@ -104,7 +104,7 @@ def test_query_is_geldige_sparql(naam: str, sparql: str):
 
 
 # Functies met een query in de eigen tekst, zonder aparte bouwer. Ze hebben een eigen test tegen fakes.
-INLINE = {"bepaling_namen.bepaling_in_graaf"}
+INLINE: set[str] = set()
 
 
 def _sparql_bouwers() -> set[str]:
