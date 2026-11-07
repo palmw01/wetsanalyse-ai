@@ -25,6 +25,18 @@ def snapshot(**kwargs):
     return bouw_snapshot(fixture(), bwb_id=BWB, **kwargs)
 
 
+def test_bijlagen_staan_na_de_tekst_van_de_regeling():
+    """volgtOp ketent per soort; zonder regel tussen soorten kwam bijlage 1 tussen hoofdstuk 1 en 2 (D5)."""
+    def rij(suffix, kind, nummer="", vorige=""):
+        return {"node": ROOT + suffix, "type": "urn:bwb-ns:" + kind, "parent": ROOT if suffix else "",
+                "nummer": nummer, "tekst": "t" if suffix else "", "vorige": ROOT + vorige if vorige else ""}
+    rijen = [rij("", "Regeling")] + [rij(f":hoofdstuk:{i}", "Hoofdstuk", str(i), f":hoofdstuk:{i - 1}" if i > 1 else "")
+                                    for i in (1, 2, 3)]
+    rijen += [rij(":id:b1", "Bijlage", "1"), rij(":id:b2", "Bijlage", "2", ":id:b1")]
+    volgorde = [(n["type"], n["nummer"]) for n in bouw_snapshot(rijen, bwb_id=BWB)["nodes"][1:]]
+    assert volgorde == [("Hoofdstuk", "1"), ("Hoofdstuk", "2"), ("Hoofdstuk", "3"), ("Bijlage", "1"), ("Bijlage", "2")]
+
+
 def test_lid_selection_keeps_xml_identity_and_subtree_without_sibling():
     s = snapshot(artikel="9", lid="1")
     assert s["doel"]["bron_iri"] == ROOT + ":id:lid-een"
