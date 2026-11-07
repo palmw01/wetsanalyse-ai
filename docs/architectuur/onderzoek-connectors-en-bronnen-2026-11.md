@@ -1,6 +1,6 @@
 # Connectors en externe bronnen voor Lex: analyse en aanbeveling
 
-> Onderzoek, 7 nov 2026. Alleen lezend; er is niets gebouwd. Basis voor een eventuele ADR-011.
+> Onderzoek, 7 nov 2026. Alleen lezend; er is niets gebouwd. Basis voor een eventuele ADR-013.
 
 
 ## Context
@@ -192,7 +192,7 @@ werkgebiednotities) mag het model sturen, maar komt nooit in de bronnenlijst en 
    - *Waarde:* middel, per domein.
    - *Moeite:* middel. Het NL-SBB-contract (ADR-003) ligt er al, de import per kader niet.
 
-**Eerste stap.** Schrijf ADR-011 *Externe bronnen* (het brontype in de vindplaats, bron of context, graaf of live, de
+**Eerste stap.** Schrijf ADR-013 *Externe bronnen* (het brontype in de vindplaats, bron of context, graaf of live, de
 vertrouwensgrens). Doe daarna één verkenning op Kamerstukken, alleen lezend en achter een vlag:
 
 - tools `zoek_kamerstukken` en `get_kamerstuk` met het resultaatcontract;
@@ -221,7 +221,7 @@ per nieuwe taakagent of workflow toch al een contract.
 ## Te kiezen door de gebruiker
 
 - A. Alleen deze analyse in de repo zetten (`docs/architectuur/onderzoek-connectors-en-bronnen-2026-11.md`) en stoppen.
-- B. Daarna ADR-011 uitschrijven (concept).
+- B. Daarna ADR-013 uitschrijven (concept).
 - C. Daarna de verkenning op Kamerstukken plannen, met de PR-indeling.
 - D. Eerst het LiDO-endpoint en de licentie van Rechtspraak laten toetsen (alleen lezen).
 
