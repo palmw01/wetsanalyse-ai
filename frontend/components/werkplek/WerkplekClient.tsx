@@ -16,7 +16,7 @@ import { ContextPaneel, ContextPaneelContext, contextSleutel, overzichtContext, 
 import { WerkgebiedUitOverzicht } from "@/components/werkplek/WerkgebiedUitOverzicht";
 import { annotatieDoelVan, artefactSleutel, bronselectieVanKaart, artefactKop, werkgebiedArtefactVan, type Artefact, type WerkgebiedArtefact } from "@/lib/artefact";
 import { StatusLabel } from "@/components/ui/Lijst";
-import { Suggestie } from "@/components/ui/Suggestie";
+import { Suggestie, SuggestieRij } from "@/components/ui/Suggestie";
 import { Melding } from "@/components/ui/Melding";
 import {
   foutTekst,
@@ -994,14 +994,14 @@ export function WerkplekClient({
                   </button>
                 </div>
               )}
-              <div className="mt-6 flex flex-wrap justify-center gap-2">
+              <SuggestieRij className="mt-6">
                 {VOORBEELDEN.map((v) => (
                   <Suggestie key={v} disabled={geblokkeerd} title={geblokkeerd ? "Je tokenbudget is op" : undefined}
                     onClick={() => void verstuur({ prompt: v })}>
                     {v}
                   </Suggestie>
                 ))}
-              </div>
+              </SuggestieRij>
             </div>
           )}
 
