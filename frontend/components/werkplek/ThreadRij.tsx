@@ -36,29 +36,21 @@ import { beurtSamenvatting, laatsteRun } from "@/lib/waarom";
 import type { ThreadItem } from "@/lib/threadItem";
 import { ANNOTEER_PROMPT, PLAFOND, bepalingen, type BevestigingKeuze } from "@/lib/werkgebiedAnnoteren";
 import { MEEDENK_PROMPT } from "@/lib/begripVoorstellen";
-import type { IntakeActie, VragenGroep } from "@/lib/vraagkaart";
+import type { VragenGroep } from "@/lib/vraagkaart";
 import type {
-  AgentDoelInvoer, AgentGrounding, AgentKandidaat, AnnotatieDocument, Bron, Overzicht,
+  AgentGrounding, AgentKandidaat, AnnotatieDocument, Bron, Overzicht,
   BeurtUitkomst,
 } from "@/lib/types";
 
 /** Een werkgebiedopdracht die Lex pas na akkoord start: het werkgebied annoteren (fase B, de default)
  *  of meedenken over de begripsvoorstellen (fase C). `bevestigd` = het aantal dat de analist zag. */
-export interface WerkgebiedAnnoteren {
-  werkgebiedId: string;
-  bevestigd?: number;
-  modus?: "werkgebied_annoteren" | "begrippen_verdiepen";
-  /** Alleen de bronnen onder de deelvragen (met `deelvraagId`: onder die ene), uit de bevestiging. */
-  bereik?: "deelvragen";
-  deelvraagId?: string;
-  /** Bij meedenken: de inhoud van de werkvoorraad uit de bevestiging (spoor M). */
-  werkvoorraadId?: string;
-}
+export type { WerkgebiedAnnoteren } from "@/lib/beurtVerzoek";
+import type { BeurtVerzoek } from "@/lib/beurtVerzoek";
 
 /** Wat een rij kan laten gebeuren. Eén stabiel object per venster, zodat `memo` iets oplevert. */
 export interface ThreadActies {
-  verstuur: (vast?: string, doel?: AgentDoelInvoer, hergebruik?: "opnieuw", doelen?: AgentDoelInvoer[],
-    annoteren?: WerkgebiedAnnoteren, intake?: IntakeActie) => void;
+  /** Een nieuwe beurt (`lib/beurtVerzoek.ts`): alleen wat erin staat gaat mee. */
+  verstuur: (verzoek: BeurtVerzoek) => void;
   openArtefact: (slug: string, doel?: NodeDoel) => void;
   /** Een artefact dat geen annotatie is (begripsvoorstellen) in het artefactpaneel openen. */
   openArtefactVan: (artefact: Artefact) => void;
@@ -185,19 +177,19 @@ export const ThreadRij = memo(function ThreadRij({
           {item.bevestiging.soort === "begrippen_verdiepen" ? (
             <Button size="sm" className="w-full sm:w-auto" disabled={bezig || geblokkeerd}
               data-bevestiging={item.bevestiging.aantal}
-              onClick={() => acties.verstuur(MEEDENK_PROMPT, undefined, undefined, undefined,
+              onClick={() => acties.verstuur({ prompt: MEEDENK_PROMPT, annoteren:
                 { werkgebiedId: item.bevestiging!.werkgebied_id, bevestigd: item.bevestiging!.aantal,
                   modus: "begrippen_verdiepen",
-                  ...(item.bevestiging!.werkvoorraad_id ? { werkvoorraadId: item.bevestiging!.werkvoorraad_id } : {}) })}>
+                  ...(item.bevestiging!.werkvoorraad_id ? { werkvoorraadId: item.bevestiging!.werkvoorraad_id } : {}) } })}>
               Laat Lex meedenken ({item.bevestiging.aantal})
             </Button>
           ) : (
             <Button size="sm" className="w-full sm:w-auto" disabled={bezig || geblokkeerd}
               data-bevestiging={item.bevestiging.aantal}
-              onClick={() => acties.verstuur(ANNOTEER_PROMPT, undefined, undefined, undefined,
+              onClick={() => acties.verstuur({ prompt: ANNOTEER_PROMPT, annoteren:
                 { werkgebiedId: item.bevestiging!.werkgebied_id, bevestigd: item.bevestiging!.aantal,
                   ...(item.bevestiging!.bereik ? { bereik: item.bevestiging!.bereik } : {}),
-                  ...(item.bevestiging!.deelvraag_id ? { deelvraagId: item.bevestiging!.deelvraag_id } : {}) })}>
+                  ...(item.bevestiging!.deelvraag_id ? { deelvraagId: item.bevestiging!.deelvraag_id } : {}) } })}>
               Laat Lex annoteren ({bepalingen(Math.min(item.bevestiging.aantal, PLAFOND))})
             </Button>
           )}
@@ -223,14 +215,14 @@ export const ThreadRij = memo(function ThreadRij({
             keuze={item.keuze}
             uitgeschakeld={bezig || geblokkeerd || demo}
             onKies={(ks) => ks.length === 1
-              ? acties.verstuur(kandidaatPrompt(ks[0]), doelVanKandidaat(ks[0]))
-              : acties.verstuur(reeksPrompt(item.keuze?.ouder ?? "", ks), undefined, undefined, doelenVanKandidaten(ks))}
+              ? acties.verstuur({ prompt: kandidaatPrompt(ks[0]), doel: doelVanKandidaat(ks[0]) })
+              : acties.verstuur({ prompt: reeksPrompt(item.keuze?.ouder ?? "", ks), doelen: doelenVanKandidaten(ks) })}
           />
         ) : (
           <KandidatenKeuze
             kandidaten={item.kandidaten}
             uitgeschakeld={bezig || geblokkeerd}
-            onKies={(k) => acties.verstuur(kandidaatPrompt(k), doelVanKandidaat(k))}
+            onKies={(k) => acties.verstuur({ prompt: kandidaatPrompt(k), doel: doelVanKandidaat(k) })}
           />
         )}
       </div>
@@ -305,9 +297,10 @@ export const ThreadRij = memo(function ThreadRij({
             <HergebruikMelding
               hergebruik={item.hergebruik}
               uitgeschakeld={bezig || geblokkeerd || demo}
-              onOpnieuw={opnieuwDoel ? () => acties.verstuur(
-                `Annoteer ${item.annotatie_doel?.label || (doc ? annotatieTitel(doc) : "deze bepaling")} opnieuw`, opnieuwDoel, "opnieuw",
-              ) : undefined}
+              onOpnieuw={opnieuwDoel ? () => acties.verstuur({
+                prompt: `Annoteer ${item.annotatie_doel?.label || (doc ? annotatieTitel(doc) : "deze bepaling")} opnieuw`,
+                doel: opnieuwDoel, hergebruik: "opnieuw",
+              }) : undefined}
             />
           );
         })()}
