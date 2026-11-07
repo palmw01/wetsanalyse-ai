@@ -133,66 +133,6 @@ def test_beurt_narratie_krijgt_alinea_scheiding_in_reason():
     assert "Ik zoek nu op.\n\nNu de tweede stap." in reason       # alinea-scheiding op de beurt-grens
 
 
-def test_decompositie_deelvragen_retrieval_en_synthese():
-    settings = make_settings(enable_decomposition=True)
-    graph = FakeGraph(result=f"<{ART_IRI}> bwb:tekst 'zes weken' .")
-    llm = FakeLLM([
-        response([text_block("SPECIALIST: algemeen\nPLAN: opsplitsen")], "end_turn"),               # router
-        response([text_block("1. Wat is de termijn?\n2. Wie is de belastingschuldige?")], "end_turn"),  # decompose
-        response([tool_block("t1", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": "9"})], "tool_use"),  # dv1 turn1
-        response([text_block(f"Termijn: zes weken ({ART_IRI}).")], "end_turn"),                       # dv1 turn2
-        response([text_block(f"Belastingschuldige: degene te wiens naam ({ART_IRI}).")], "end_turn"),  # dv2 (direct)
-        response([text_block(f"Samenvatting: zes weken; belastingschuldige is degene ({ART_IRI}).")], "end_turn"),  # synthese
-    ])
-    events = _run(answer_stream("samengestelde vraag", settings=settings, llm=llm, graph=graph))
-    types = [e["type"] for e in events]
-
-    # opsplitsing + per-deelvraag status
-    assert any(e["type"] == "status" and "Decompositie · 2 deelvragen" in e["message"] for e in events)
-    assert any(e["type"] == "status" and "Deelvraag 1/2" in e["message"] for e in events)
-    assert any(e["type"] == "status" and "Deelvraag 2/2" in e["message"] for e in events)
-    # alleen de synthese streamt tokens (deelvraag-narratie niet)
-    tokens = "".join(e["content"] for e in events if e["type"] == "token")
-    assert "Samenvatting" in tokens
-    assert "Termijn: zes weken" not in tokens
-    # retrieval echt uitgevoerd; bronnen uit de trace; volgorde sources→grounding→done
-    assert graph.queries
-    sources = next(e for e in events if e["type"] == "sources")["sources"]
-    assert ART_IRI in [s["uri"] for s in sources]
-    assert types.index("sources") < types.index("grounding") < types.index("done")
-
-
-def test_decompositie_een_deelvraag_slaat_synthese_over():
-    # Simpele vraag → decompose geeft één deelvraag → solve streamt direct, GEEN synthese-call.
-    settings = make_settings(enable_decomposition=True)
-    graph = FakeGraph(result=f"<{ART_IRI}> bwb:tekst 'zes weken' .")
-    llm = FakeLLM([
-        response([text_block("SPECIALIST: algemeen\nPLAN: direct")], "end_turn"),           # router
-        response([text_block("1. Wat is de termijn?")], "end_turn"),                          # decompose (één regel)
-        response([tool_block("t1", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": "9"})], "tool_use"),  # solve turn1
-        response([text_block(f"Termijn: zes weken ({ART_IRI}).")], "end_turn"),               # solve turn2 (antwoord)
-        # géén synthese-respons: als synthesize tóch liep, zou FakeLLM._next een IndexError geven.
-    ])
-    events = _run(answer_stream("vraag", settings=settings, llm=llm, graph=graph))
-    assert llm.index == 4                                    # router+decompose+2×solve; synthese niet gedraaid
-    assert not any("Opgesplitst in" in e.get("message", "") for e in events)
-    # het sub-antwoord is direct gestreamd
-    tokens = "".join(e["content"] for e in events if e["type"] == "token")
-    assert "Termijn: zes weken" in tokens
-    sources = next(e for e in events if e["type"] == "sources")["sources"]
-    assert ART_IRI in [s["uri"] for s in sources]
-    assert "done" in [e["type"] for e in events]
-
-
-def test_decompositie_uit_geen_deelvraag_status():
-    # Regressie: met de toggle uit is er geen decompositie-gedrag.
-    settings = make_settings(enable_planning=False)
-    graph = FakeGraph(result=ART_IRI)
-    llm = FakeLLM([response([text_block("Direct antwoord.")], "end_turn")])
-    events = _run(answer_stream("vraag", settings=settings, llm=llm, graph=graph))
-    assert not any(e["type"] == "status" and "Deelvraag" in e.get("message", "") for e in events)
-
-
 def test_geen_planning_geen_plan_status():
     settings = make_settings(enable_planning=False)
     graph = FakeGraph(result=ART_IRI)
@@ -221,30 +161,6 @@ def test_leeg_antwoord_levert_melding_geen_stilte():
     # de bronnen blijven gewoon meekomen
     assert any(e["type"] == "sources" for e in events)
     assert "done" in [e["type"] for e in events]
-
-
-def test_deelvraag_beurtlimiet_dwingt_antwoord_af():
-    """Raakt de deelvraag-lus zijn beurtlimiet, dan moet er alsnog een antwoord komen.
-
-    Breekt de lus alleen af als het model géén tools meer aanroept, dan loopt hij bij een model dat
-    blijft zoeken af met een leeg `antwoord` en ziet de gebruiker alleen bronnen. Op de laatste beurt
-    worden daarom geen tools meer aangeboden, zodat het model wel moet antwoorden op wat er is opgehaald.
-    """
-    # sub_max_turns=2: de eerste beurt zoekt nog, de tweede is de laatste en krijgt geen tools meer.
-    settings = make_settings(enable_planning=False, enable_decomposition=True, sub_max_turns=2)
-    graph = FakeGraph(result=f"<{ART_IRI}> bwb:tekst 'x' .")
-    llm = FakeLLM([
-        response([text_block("supervisor")], "end_turn"),                                    # supervisor
-        response([text_block('{"deelvragen": ["Wat is een belastingschuldige?"]}')], "end_turn"),  # decompose
-        response([tool_block("t1", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": "9"})], "tool_use"),
-        response([text_block(f"Volgens {ART_IRI} is dat X.")], "end_turn"),  # laatste beurt: tools-loos
-    ])
-    events = _run(answer_stream("vraag", settings=settings, llm=llm, graph=graph))
-
-    tokens = "".join(e["content"] for e in events if e["type"] == "token")
-    assert "Volgens" in tokens, "de laatste beurt moet een echt antwoord opleveren"
-    assert "geen antwoord formuleren" not in tokens, "het finalize-vangnet mag niet nodig zijn"
-    assert any(e["type"] == "status" and "beurtlimiet bereikt" in e.get("message", "") for e in events)
 
 
 def test_correctie_op_een_citaat_dat_niet_letterlijk_is():

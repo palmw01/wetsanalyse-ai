@@ -98,12 +98,6 @@ class Settings(BaseModel):
     enable_planning: bool = True      # lichte plan-node vóór de agent (plan→retrieve→reason→verify)
     enable_memory_context: bool = True  # eerder geraadpleegde bepalingen als pointer-context injecteren
 
-    # Decompositie (multi-hop): samengestelde vraag → deelvragen → retrieval per deelvraag → synthese.
-    # Uit = de bestaande één-loop-stroom (byte-voor-byte ongewijzigd).
-    enable_decomposition: bool = False
-    max_subquestions: int = 5         # cap op het aantal deelvragen (kosten/latency begrenzen)
-    sub_max_turns: int = 8            # agent⇄tools-beurten per deelvraag (los van max_turns)
-
     # Taalanalyse voor de annotatieketen (ADR-002). Zonder geïnstalleerd model degradeert hij
     # zichtbaar naar alleen tokens; de parsedetectoren melden zich dan overgeslagen.
     taal_provider: str = "spacy:nl_core_news_md"
@@ -202,9 +196,6 @@ class Settings(BaseModel):
             "agent_versie": e.get("AGENT_VERSION") or _pakketversie(),
             "max_turns": e.get("MAX_TURNS"),
             "max_history_chars": e.get("MAX_HISTORY_CHARS"),
-            "enable_decomposition": e.get("ENABLE_DECOMPOSITION"),
-            "max_subquestions": e.get("MAX_SUBQUESTIONS"),
-            "sub_max_turns": e.get("SUB_MAX_TURNS"),
             "taal_provider": e.get("TAAL_PROVIDER"),
             "classifier_granulariteit": e.get("CLASSIFIER_GRANULARITEIT"),
             "classifier_temperature": e.get("CLASSIFIER_TEMPERATURE"),

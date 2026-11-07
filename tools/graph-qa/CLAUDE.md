@@ -33,7 +33,6 @@ ankerlogica die de api en de agent delen staat in `packages/bronmodel` (`wetsana
 | `nodes/supervisie.py` | supervisor, `_entry_node`, advance, afwijzen |
 | `nodes/antwoord.py` | agent ⇄ tools, verify, correct, finalize |
 | `nodes/sjabloon.py` | de afronding met een sjabloon (ADR-008): vullen uit de trace |
-| `nodes/decompositie.py` | decompose, solve, synthesize, resynth |
 | `nodes/annotatie.py` | annoteer (voorbereiding + `jas_pipeline.keten.analyseer`) en emit |
 | `nodes/annotatie_lezen.py` | de leesroute: eerst zoeken in de opgeslagen annotaties, dan formuleren |
 | `nodes/overzicht.py` | de overzichtsroute: overzicht en tekst uit de graaf, zonder model |
@@ -56,12 +55,11 @@ supervisor ─┬─ antwoord-worker:  agent ⇄ tools → verify → (correct) 
             └─ afwijzen (geen wetgevingsvraag)
 ```
 
-De vorm ligt vast in `tests/test_graafopbouw.py` (nodes en edges per configuratietak). Wijzig je de
-routering, dan faalt die test – dat hoort, maar het moet een bewuste wijziging zijn. De annotatieketen
-legt één helper (`annotatieketen()`) in elke tak identiek; de antwoordketen staat per tak apart omdat
-die echt verschilt (`verify → resynth` bij decompositie, `verify → correct` anders). Decompositie
-(`ENABLE_DECOMPOSITION`, op Azure uit) bouwt in `solve_node` een eigen agent-lus per deelvraag na met
-lokale scratch-messages.
+De vorm ligt vast in `tests/test_graafopbouw.py` (nodes en edges, met en zonder supervisor). Wijzig je
+de routering, dan faalt die test – dat hoort, maar het moet een bewuste wijziging zijn. Zonder supervisor
+(`enable_planning=False`, alleen in tests) blijft alleen de antwoordketen over. De decompositieketen
+(`ENABLE_DECOMPOSITION`) is in november 2026 weggehaald; hij staat in de git-historie
+(`agent/nodes/decompositie.py`).
 
 Ondersteunend, op agent-niveau omdat meerdere ketens ze delen: `agent/state.py` (de `State`-TypedDict;
 `messages` en `entities_seen` zijn `operator.add`-reducers), `agent/berichten.py` (het venster naar de
@@ -107,8 +105,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   niet uit de graaf kwam) en `niet_letterlijk` (een citaat dat niet letterlijk in de opgehaalde tekst
   staat). Bij de citaten gaan de passages zelf mee (afgekapt) – zonder de tekst weet het model niet
   wélk citaat het moet herstellen.
-- **`finalize_node`** – de enige plek in de antwoordketen die `token` uitstuurt (ook voor het overzicht en
-  de decompositie; `tests/test_uitgifte_na_controle.py` bewaakt het). Een controle die volgt op publicatie
+- **`finalize_node`** – de enige plek in de antwoordketen die `token` uitstuurt (ook voor het overzicht; `tests/test_uitgifte_na_controle.py` bewaakt het). Een controle die volgt op publicatie
   houdt niets tegen, dus de jurist ziet een antwoord pas ná `verify` en afgekeurde tekst nooit, ook niet in
   het denkproces (besluit 6 nov 2026). Blijft de tekst na de correctieronde afgekeurd, dan gaat hij mee met
   het oordeel in het `grounding`-event: de controle keurt ook terechte citaten af. Daarna `collect_sources`
@@ -1518,8 +1515,8 @@ Nog **niet** gemeten: injectie via graafdata.
   eval-job. Hij draait ook bij wijzigingen in `packages/bronmodel/**` en `.claude/skills/wetsanalyse/**`.
 - **Azure** (`deploy/azure/main.bicep`, `<appName>-graph-qa`): intern (`external: false`), poort 8080,
   `maxReplicas: 2`. Secrets als bestanden onder `/run/secrets` via `*_FILE`-env (`config._read_secret`);
-  gespreksgeheugen en run-register in Postgres (`CHECKPOINT_DB_URL_FILE`); `SIMILARITY_INDEX=bwb_similarity`;
-  `ENABLE_DECOMPOSITION=0`. `tests/test_deploy_drift.py` bewaakt dat de bicep `WETSANALYSE_API_URL`/`_TOKEN`
+  gespreksgeheugen en run-register in Postgres (`CHECKPOINT_DB_URL_FILE`); `SIMILARITY_INDEX=bwb_similarity`.
+  `tests/test_deploy_drift.py` bewaakt dat de bicep `WETSANALYSE_API_URL`/`_TOKEN`
   zet – zonder die twee legt de agent niets vast en toont de werkplek markeringen die nergens landen.
 - **Werkplek:** de frontend gebruikt de run-endpoints (BFF-routes in `frontend/app/api/annotatie/run/**`);
   de review-state en de wettekst van het paneel lopen via de api (`/v1/annotatie/*`), waar graph-qa

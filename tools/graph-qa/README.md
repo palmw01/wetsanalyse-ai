@@ -228,8 +228,6 @@ Secrets kunnen ook als `<NAAM>_FILE` (pad naar een bestand) worden gezet: `GRAPH
 | `CHECKPOINT_DB_PATH` | `conversations_checkpoints.db` | SQLite-bestand als `CHECKPOINT_DB_URL` leeg is (relatief = t.o.v. `tools/graph-qa`, per instance). |
 | `MAX_TURNS` / `MAX_HISTORY_CHARS` | `20` / `40000` | Max. reason↔retrieve-beurten per vraag; historiebudget per beurt naar de LLM. |
 | `GROUNDING_CORRECT` | `true` | Eén corrigerende ronde bij een ongegrond antwoord; kost alleen een call als er iets mis is. |
-| `ENABLE_DECOMPOSITION` | uit | `1` = samengestelde vragen eerst in deelvragen splitsen. Op Azure uit. |
-| `MAX_SUBQUESTIONS` / `SUB_MAX_TURNS` | `5` / `8` | Cap op deelvragen en op beurten per deelvraag. |
 | `TAAL_PROVIDER` | `spacy:nl_core_news_md` | Taalanalyse voor de detectoren. |
 | `CLASSIFIER_GRANULARITEIT` | `klasseverzameling` | Eén classificatiecall voor alles (`universeel`), per klassefamilie (`familie`) of per toegestane klasseverzameling. |
 | `CLASSIFIER_PARALLEL` | `4` | Classificatiebatches tegelijk; de uitkomst verandert niet. |

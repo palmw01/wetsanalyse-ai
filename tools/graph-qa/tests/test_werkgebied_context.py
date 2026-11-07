@@ -57,7 +57,7 @@ def test_in_een_gesprek_binnen_een_werkgebied_krijgt_lex_het_dossier_mee(monkeyp
         return als_blok(WG)
 
     monkeypatch.setattr(agent_mod, "_werkgebied_blok", blok)
-    settings = make_settings(enable_decomposition=False, checkpoint_db_path=str(tmp_path / "cp.db"))
+    settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"))
     llm = FakeLLM([response([text_block("WORKERS: antwoord\nSPECIALIST: algemeen\nPLAN: uitleg")], "end_turn"),
                    response([text_block("Box 3 gaat over sparen en beleggen.")], "end_turn")])
 

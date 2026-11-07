@@ -247,7 +247,7 @@ def _beurt(vraag: str, *antwoorden: str):
     llm = FakeLLM([response([text_block(a)], "end_turn") for a in antwoorden])
 
     async def run():
-        return [e async for e in answer_stream(vraag, settings=make_settings(enable_decomposition=False),
+        return [e async for e in answer_stream(vraag, settings=make_settings(),
                                                llm=llm, graph=Graaf())]
     return asyncio.run(run()), llm
 
@@ -289,7 +289,7 @@ def test_mislukt_het_bouwen_dan_zegt_het_model_dat():
 
     async def run():
         return [e async for e in answer_stream("Welke artikelen gaan over invordering?",
-                                               settings=make_settings(enable_decomposition=False), llm=llm, graph=Kapot())]
+                                               settings=make_settings(), llm=llm, graph=Kapot())]
     events = asyncio.run(run())
     assert not [e for e in events if e["type"] == "overzicht"], "geen half overzicht"
     assert len(llm.calls) == 1 and "overzicht_niet_opgebouwd" in json.dumps(llm.calls[0]["messages"])
