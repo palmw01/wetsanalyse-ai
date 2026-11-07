@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { isAfgebroken, volgTotEinde, type LusDeps, type PogingStand } from "./beurtLus";
+import { faseHaken, isAfgebroken, volgTotEinde, type LusDeps, type PogingStand } from "./beurtLus";
+import { RUST, faseReducer, magStarten, stopBaar, type BeurtFase } from "./beurtFase";
 import { herstelWachttijd } from "./lopendeRun";
 
 /** Een poging uit een script: welke events komen er binnen, en eindigt hij met `done` of met een fout. */
@@ -108,5 +109,49 @@ describe("volgTotEinde", () => {
     expect(u.soort === "klaar" && u.stand.tekst).toBe("ok");
     expect(t.pogingen()).toBe(501);
     expect(t.wachttijden.at(-1)).toBe(15_000);
+  });
+});
+
+
+describe("de fase tijdens verbindingsherstel", () => {
+  // Dezelfde koppeling als `useBeurt`: elke poging haakt aan, en `faseHaken` zet de rest.
+  function metFase(stappen: Stap[], levend = () => true) {
+    let fase: BeurtFase = faseReducer(RUST, { type: "claim" });
+    const zet = (a: Parameters<typeof faseReducer>[1]) => { fase = faseReducer(fase, a); };
+    const tijdensWachten: BeurtFase[] = [];
+    let einde = 0;
+    const haken = faseHaken(zet);
+    const t = lus(stappen, {
+      levend,
+      ...haken,
+      opEinde: () => { einde++; haken.opEinde(); },
+      poging: async (p) => {
+        zet({ type: "aangehaakt", runId: "r1" });
+        const stap = stappen.shift() ?? {};
+        for (const e of stap.events ?? []) p.pas(e);
+        if (stap.fout) throw stap.fout;
+      },
+      wacht: async () => { tijdensWachten.push(fase); return true; },
+    });
+    return { ...t, fase: () => fase, tijdensWachten, einde: () => einde };
+  }
+
+  it("staat tussen twee pogingen op herstellen, niet op rust: geen tweede beurt, wel de stopknop", async () => {
+    const t = metFase([{ fout: breuk() }, { fout: breuk() }, {}]);
+    expect((await t.uitkomst).soort).toBe("klaar");
+    expect(t.tijdensWachten.map((f) => f.soort)).toEqual(["herstellen", "herstellen"]);
+    expect(t.tijdensWachten.every((f) => !magStarten(f) && stopBaar(f))).toBe(true);
+    expect(t.fase()).toEqual(RUST);
+    expect(t.einde()).toBe(1);
+  });
+
+  it("komt ook na een mislukte of losgekoppelde beurt precies één keer in rust", async () => {
+    const mislukt = metFase([{ fout: Object.assign(new Error("geweigerd"), { status: 403 }) }]);
+    expect((await mislukt.uitkomst).soort).toBe("mislukt");
+    expect([mislukt.fase(), mislukt.einde()]).toEqual([RUST, 1]);
+
+    const los = metFase([{ fout: afbreken() }], () => false);
+    expect((await los.uitkomst).soort).toBe("losgekoppeld");
+    expect([los.fase(), los.einde()]).toEqual([RUST, 1]);
   });
 });
