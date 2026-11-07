@@ -10,10 +10,12 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { toetsToegankelijkheid } from "./axe.mjs";
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
-const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+// Een eigen context: axe opent voor zijn eindberekening een tweede pagina, en dat mag niet in die van `browser.newPage()`.
+const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
 const errors = [], requests = [];
 page.on("pageerror", (e) => errors.push(e.message));
 await page.context().addCookies(await sessieCookies(base));
@@ -170,6 +172,7 @@ try {
   await page.goto(`${base}/werkgebieden`);
   await page.getByText("Nog geen werkgebieden", { exact: false }).waitFor();
   await foto("werkgebieden-leeg");
+  await toetsToegankelijkheid(page, "werkgebieden (leeg)");
   assert.equal(await page.getByRole("link", { name: "Werkgebieden" }).first().getAttribute("aria-current"), "page");
   // Aanmaken gaat via Lex: geen formulier, wel een link naar de werkplek met de vraag klaar.
   assert.equal(await page.getByRole("button", { name: "Nieuw werkgebied" }).count(), 0);
@@ -288,6 +291,8 @@ try {
   await page.reload();
   await page.locator("[data-artefact-pagina=annotaties]").waitFor();
   await page.goto(`${base}/werkgebieden/wg1`);
+  await page.getByRole("link", { name: "Gegevens bewerken" }).waitFor();
+  await toetsToegankelijkheid(page, "werkgebied");
   // Spoor I6: in Gegevens bewerken stelt Lex een TOOI-thema voor; overnemen en opslaan stuurt de URI.
   // 4 nov 2026: bewerken gebeurt ter plekke, op de kaart van het dossier – geen venster. *Gegevens bewerken* in de
   // kop opent die met het formulier open; Escape annuleert.

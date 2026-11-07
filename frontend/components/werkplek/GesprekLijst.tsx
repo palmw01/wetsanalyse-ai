@@ -202,7 +202,8 @@ function Rij({ gesprek, actief, acties }: { gesprek: GesprekSamenvatting; actief
           <span className={`block truncate text-sm ${actief ? "font-medium text-lint" : "text-ink"}`}>
             {label}
           </span>
-          <span className="mt-0.5 block text-[0.65rem] text-faint">
+          {/* Op de actieve rij (bg-lint/10) haalt faint de 4,5:1 niet: daar muted. */}
+          <span className={`mt-0.5 block text-[0.65rem] ${actief ? "text-muted" : "text-faint"}`}>
             {gesprek.aantal_berichten} berichten{korteDatum(gesprek.updated) ? ` · ${korteDatum(gesprek.updated)}` : ""}
           </span>
         </button>
