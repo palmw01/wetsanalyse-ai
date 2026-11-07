@@ -268,6 +268,14 @@ export function GroepRij({ href, uitklap, titel, sub, status, eind, onder, ...re
 export const KLIK_KAART = "focus-ring rounded-kaart border border-line bg-paper shadow-zacht transition "
   + "hover:-translate-y-0.5 hover:border-lint/40 hover:shadow-kaart motion-reduce:hover:translate-y-0";
 
+/** De actierij onderaan een overzichtskaart (7 nov 2026, melding van de gebruiker: *Openen* en *Verwijderen* stonden
+ *  als ongelijke knoppen ver uit elkaar). Twee gelijke helften op elke breedte – *Openen* links, *Verwijderen* rechts –,
+ *  even hoog (`knopKlasse`/`VerwijderKnop` in maat `sm`); `mt-auto` zet de rij onderaan, ook als kaarten naast elkaar
+ *  verschillend hoog zijn. Ontbreekt *Verwijderen*, dan blijft *Openen* op zijn plek. */
+export function KaartActies({ children }: { children: React.ReactNode }) {
+  return <div data-kaart-acties className="mt-auto grid grid-cols-2 gap-2 pt-1 [&>*]:w-full">{children}</div>;
+}
+
 export function Tellers({ children }: { children: React.ReactNode }) {
   return <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">{children}</div>;
 }

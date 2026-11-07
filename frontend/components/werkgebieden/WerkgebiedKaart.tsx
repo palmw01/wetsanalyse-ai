@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 
+import { knopKlasse } from "@/components/ui/Button";
+import { KaartActies } from "@/components/ui/Pagina";
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
 import type { WerkgebiedSamenvatting } from "@/lib/types";
 import { STATUS_LABEL } from "@/lib/werkgebied";
@@ -28,13 +30,10 @@ export function WerkgebiedKaart({ wg, onVerwijder }: { wg: WerkgebiedSamenvattin
       <p className="text-xs text-muted">
         {wg.aantal_bronnen === 1 ? "1 bron" : `${wg.aantal_bronnen ?? 0} bronnen`} · gewijzigd {datum(wg.gewijzigd)}
       </p>
-      <div className="flex flex-wrap items-center gap-2">
-        <Link href={href}
-          className="focus-ring inline-flex min-h-[24px] items-center rounded-knop-xs border border-line px-2.5 py-0.5 text-[11px] font-medium text-lint transition-colors hover:bg-surface coarse:min-h-[44px]">
-          Openen
-        </Link>
-        <VerwijderKnop soort="werkgebied" onBevestig={onVerwijder} className="ml-auto" />
-      </div>
+      <KaartActies>
+        <Link href={href} className={`focus-ring ${knopKlasse("secondary", "sm")}`}>Openen</Link>
+        <VerwijderKnop soort="werkgebied" maat="sm" onBevestig={onVerwijder} />
+      </KaartActies>
     </article>
   );
 }

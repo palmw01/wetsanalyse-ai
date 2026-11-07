@@ -43,3 +43,31 @@ describe("filterchips staan in één KeuzeRij", () => {
     expect(balk).not.toMatch(/flex-wrap/);
   });
 });
+
+describe("een overzichtskaart eindigt in KaartActies", () => {
+  const KAARTEN = ["components/werkgebieden/WerkgebiedKaart.tsx", "components/annotaties/AnnotatieKaart.tsx",
+    "components/begrippen/BegripOverzichtKaart.tsx"];
+
+  it("twee gelijke helften, even hoog", () => {
+    const pagina = bron("components/ui/Pagina.tsx");
+    const acties = pagina.slice(pagina.indexOf("export function KaartActies"), pagina.indexOf("export function Tellers"));
+    expect(acties).toMatch(/grid grid-cols-2/);
+    expect(acties).toMatch(/\[&>\*\]:w-full/);
+    for (const f of KAARTEN) {
+      const s = bron(f);
+      expect(s, f).toMatch(/<KaartActies>/);
+      expect(s, f).toMatch(/knopKlasse\("secondary", "sm"\)\}`\}>Openen</);
+      expect(s, f).toMatch(/<VerwijderKnop[^>]*maat="sm"/);
+      // Geen handgemaakte rijactie meer naast de knoppen.
+      expect(s, f).not.toMatch(/text-\[11px\]/);
+    }
+  });
+
+  it("Verwijderen springt nergens met ml-auto naar rechts, en deelt de maten van Button", () => {
+    const metMarge = tsx().filter((f) => /<VerwijderKnop[^>]*ml-auto/.test(bron(f)));
+    expect(metMarge).toEqual([]);
+    const knop = bron("components/ui/VerwijderKnop.tsx");
+    expect(knop).toMatch(/knopVorm\(maat\)/);
+    expect(knop).not.toMatch(/min-h-\[|text-\[11px\]/);
+  });
+});
