@@ -39,9 +39,10 @@ WEIGERING = {
 }
 
 
-def begrippen_artefact(werkgebied_id: str, run_id: str, titel: str) -> dict[str, Any]:
-    """In de vorm van `api/app/gesprek_contracts.Artefact`."""
-    return {"soort": "begrippen", "titel": titel[:300], "ref": {"werkgebied_id": werkgebied_id, "run_id": run_id}}
+def begrippen_artefact(werkgebied_id: str, run_id: str) -> dict[str, Any]:
+    """In de vorm van `api/app/gesprek_contracts.Artefact`. De titel is de soort, niet de naam van het werkgebied: een
+    artefact noemt het object zelf, en het werkgebied staat al in de kop van het gesprek (frontend `artefactKop`)."""
+    return {"soort": "begrippen", "titel": "Begripsvoorstellen", "ref": {"werkgebied_id": werkgebied_id, "run_id": run_id}}
 
 
 def samenvatting(naam: str, open_groepen: int, passages: int, vragen: int, al_gerekend: bool) -> str:
@@ -131,7 +132,7 @@ async def begrippen_kern(ctx: Context, werkgebied_id: str) -> Uitkomst:
     tekst += onderzoekszin(api_run.get("onderzoek_samenvatting"))
     aanbod, bevestiging = await meedenk_aanbod(api, werkgebied_id, ctx.settings.llm_model)
     return Uitkomst(taak=taak, tekst=tekst + aanbod, voorstellen=open_ids, bevestiging=bevestiging,
-                    artefact=begrippen_artefact(werkgebied_id, str(api_run["id"]), naam),
+                    artefact=begrippen_artefact(werkgebied_id, str(api_run["id"])),
                     meting={"groepen": len(open_ids), "vragen": vragen, "model": False})
 
 
