@@ -501,7 +501,7 @@ async def test_admin_users_http(client):
     assert rp.status_code == 200 and rp.json()["temp_password"]
 
     d = await client.delete("/v1/admin/users/analist1", headers=_ADMIN)
-    assert d.status_code == 204
+    assert d.status_code == 200 and d.json() == {"gesprekken": []}
 
 
 async def test_2fa_http_via_header(client):
@@ -862,6 +862,34 @@ async def test_verwijderen_ruimt_herstelcodes_op(monkeypatch, db):
     await _met_2fa("weg")
     await users.delete_user("weg")
     assert await users.aantal_herstelcodes("weg") == 0
+
+
+async def test_verwijderen_wist_de_gesprekken_en_houdt_de_userid_bezet(monkeypatch, db):
+    """Een nieuw account met een oude userid erfde de gesprekken van de vorige eigenaar (API-03)."""
+    _fresh_settings(monkeypatch)
+    from datetime import datetime, timezone
+
+    from sqlalchemy import insert, select
+
+    from app import db as dbm, registraties, users
+
+    await users.bootstrap_admin("baas", "u@example.com", "wachtwoord1")
+    await users.create_user("palmw01", "w@example.com")
+    nu = datetime.now(timezone.utc)
+    async with dbm.get_engine().begin() as conn:
+        await conn.execute(insert(dbm.gesprekken).values(id="g1", user_id="palmw01", titel="t", created=nu, updated=nu))
+        await conn.execute(insert(dbm.gesprek_berichten).values(gesprek_id="g1", rol="user", inhoud={"tekst": "vraag"},
+                                                                created=nu))
+        await conn.execute(insert(dbm.gesprekken).values(id="g2", user_id="baas", titel="t", created=nu, updated=nu))
+
+    assert await users.delete_user("palmw01") == ["g1"]
+    async with dbm.get_engine().connect() as conn:
+        assert (await conn.execute(select(dbm.gesprekken.c.id))).scalars().all() == ["g2"]
+        assert (await conn.execute(select(dbm.gesprek_berichten.c.id))).scalars().all() == []
+    with pytest.raises(users.UserError, match="eerder gebruikt"):
+        await users.create_user("palmw01", "nieuw@example.com")
+    # De zelfregistratie slaat hem over en kiest het volgende volgnummer.
+    assert await registraties.unieke_userid("Willard", "Palm") == "palmw02"
 
 
 async def test_plicht_geldt_voor_elke_weg_naar_beheerder(monkeypatch, db):

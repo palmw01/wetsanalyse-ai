@@ -219,7 +219,10 @@ async def test_nieuw_account_erft_geen_tokens_van_het_oude(analist):
 
     _, plaintext = await api_tokens.create_gebruiker("x", "analist1")
     await users.delete_user("analist1")
-    await users.create_user("analist1", "ander@example.org")
+    assert await api_tokens.verify_gebruiker(plaintext) is None
+    # Een nieuw account krijgt de userid niet eens meer (B3), en de tokens blijven ook dan dood.
+    with pytest.raises(users.UserError):
+        await users.create_user("analist1", "ander@example.org")
     assert await api_tokens.verify_gebruiker(plaintext) is None
 
 

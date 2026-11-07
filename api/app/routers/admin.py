@@ -351,13 +351,16 @@ async def reset_user_verbruik(userid: str, door: str = Depends(beheerder_met_2fa
     return next(_regel(s) for s in await verbruik_svc.standen() if s.userid == user.userid)
 
 
-@router.delete("/users/{userid}", status_code=status.HTTP_204_NO_CONTENT)
-async def verwijder_user(userid: str):
+@router.delete("/users/{userid}")
+async def verwijder_user(userid: str) -> dict[str, list[str]]:
+    """Verwijder het account en zijn gesprekken. Het antwoord noemt die gesprekken: hun agent-geheugen staat bij
+    graph-qa, en de BFF wist dat daarna (`frontend/app/api/admin/users/[userid]/route.ts`)."""
     try:
-        await users.delete_user(userid)
+        gesprekken = await users.delete_user(userid)
     except users.UserError as e:
         raise HTTPException(status_code=409, detail=str(e))
     vergeet_actief(userid)
+    return {"gesprekken": gesprekken}
 
 
 # --- tokenbudget ---------------------------------------------------------------

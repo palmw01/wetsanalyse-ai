@@ -490,6 +490,8 @@ async def insert_user_met_hash(userid: str, email: str, password_hash: str, *, r
     # uiteindelijke vangrail bij een race).
     if await get_user(norm_id) is not None:
         raise UserError(f"Userid bestaat al: {norm_id}")
+    if await userid_ooit_verwijderd(norm_id):
+        raise UserError(f"Userid is eerder gebruikt en wordt niet opnieuw uitgegeven: {norm_id}")
     if await get_user_by_email(norm_email) is not None:
         raise UserError(f"E-mailadres bestaat al: {norm_email}")
     now = _utcnow()
@@ -619,17 +621,34 @@ async def change_own_password(userid: str, current: str, nieuw: str) -> None:
     await _update(user.userid, password_hash=await hash_wachtwoord(nieuw), sessions_valid_from=_utcnow())
 
 
-async def delete_user(userid: str) -> None:
+async def userid_ooit_verwijderd(userid: str) -> bool:
+    async with db.get_engine().connect() as conn:
+        return (await conn.execute(select(db.verwijderde_userids.c.userid).where(
+            db.verwijderde_userids.c.userid == userid))).first() is not None
+
+
+async def delete_user(userid: str) -> list[str]:
+    """Verwijder het account en zijn gesprekken. Geeft de id's van die gesprekken terug, zodat de aanroeper ook het
+    agent-geheugen ervan kan wissen; dat staat bij graph-qa, niet hier.
+
+    De userid blijft bezet (`verwijderde_userids`). Audit en verbruik blijven staan: dat is wie wat deed."""
     user = await _require_user(userid)
     if user.role == "beheerder" and user.active and await _aantal_actieve_beheerders() <= 1:
         raise UserError("Kan de laatste actieve beheerder niet verwijderen.")
+    g, b = db.gesprekken, db.gesprek_berichten
     async with db.get_engine().begin() as conn:
+        gesprekken = list((await conn.execute(select(g.c.id).where(g.c.user_id == user.userid))).scalars().all())
+        if gesprekken:
+            await conn.execute(delete(b).where(b.c.gesprek_id.in_(gesprekken)))
+            await conn.execute(delete(g).where(g.c.id.in_(gesprekken)))
+        await conn.execute(insert(db.verwijderde_userids).values(userid=user.userid, verwijderd=_utcnow()))
         # Een nieuw account met dezelfde userid mag de accounttokens van het oude niet erven.
         await conn.execute(
             update(db.api_tokens).where(db.api_tokens.c.userid == user.userid).values(active=False)
         )
         await conn.execute(delete(db.herstelcodes).where(db.herstelcodes.c.userid == user.userid))
         await conn.execute(delete(db.users).where(db.users.c.userid == user.userid))
+    return gesprekken
 
 
 async def _update(userid: str, **waarden) -> None:
