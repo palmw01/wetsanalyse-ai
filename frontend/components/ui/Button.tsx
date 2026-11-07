@@ -44,6 +44,13 @@ export function knopKlasse(variant: Variant = "primary", size: Size = "md"): str
   return `${base} ${vorm[size]} ${sizes[size]} ${variants[variant]}${metSchaduw(variant, size)}`;
 }
 
+/** Vorm en maat van een knop zonder kleur, voor een knop met een eigen kleurgedrag (`VerwijderKnop`: rustig, rood bij
+ *  hover en scherp). Zo is hij in elke maat even hoog en even rond als de knop ernaast; vanaf `sm` met de schaduw van een
+ *  tweede keuze. */
+export function knopVorm(size: Size = "sm"): string {
+  return `${base} ${vorm[size]} ${sizes[size]}${metSchaduw("secondary", size)}`;
+}
+
 /** Een rijactie in een lijst (`size="xs"`), rustig: lijn en lintblauwe tekst. Wat de losse `KNOP`-constanten
  *  in de werkgebiedcomponenten waren; de kleur zet de aanroeper erbij als die iets betekent. */
 export const KNOP_GEVAAR = knopKlasse("danger", "sm");

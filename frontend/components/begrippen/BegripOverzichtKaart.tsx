@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { knopKlasse } from "@/components/ui/Button";
+import { KaartActies } from "@/components/ui/Pagina";
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
 import { BEGRIP_STATUS_LABEL, kaartUrl, kort, type BegripOverzichtRij } from "@/lib/begrippenOverzicht";
 import type { BegripStatus } from "@/lib/types";
@@ -44,10 +45,10 @@ export function BegripOverzichtKaart({ b, onVerwijder }: { b: BegripOverzichtRij
           Herbeoordelen: {b.herbeoordelen === 1 ? "1 dragende passage veranderde" : `${b.herbeoordelen} dragende passages veranderden`} na het accorderen.
         </p>
       )}
-      <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
-        <Link href={href} className={`focus-ring ${knopKlasse("secondary", "xs")}`}>Openen</Link>
-        {b.status !== "vervangen" && <VerwijderKnop soort="begrip" onBevestig={onVerwijder} className="ml-auto" />}
-      </div>
+      <KaartActies>
+        <Link href={href} className={`focus-ring ${knopKlasse("secondary", "sm")}`}>Openen</Link>
+        {b.status !== "vervangen" && <VerwijderKnop soort="begrip" maat="sm" onBevestig={onVerwijder} />}
+      </KaartActies>
     </article>
   );
 }

@@ -13,3 +13,14 @@ export function Suggestie({ klein = false, className = "", ...props }: { klein?:
   & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return <button type="button" className={`${suggestieKlasse(klein)} ${className}`} {...props} />;
 }
+
+/** De voorbeeldvragen onder elkaar (7 nov 2026): op een telefoon elke suggestie over de volle breedte, met de tekst links –
+ *  gecentreerd en wrappend gaven ze daar elk een andere breedte. Vanaf `sm:` naast elkaar, gecentreerd. De suggesties
+ *  boven het invoerveld zijn een eigen rij die zijwaarts schuift (`WerkplekClient`). */
+export function SuggestieRij({ className = "", children }: { className?: string; children: React.ReactNode }) {
+  return (
+    <div data-suggestierij className={`flex flex-col gap-2 [&>*]:w-full sm:flex-row sm:flex-wrap sm:justify-center sm:[&>*]:w-auto ${className}`}>
+      {children}
+    </div>
+  );
+}
