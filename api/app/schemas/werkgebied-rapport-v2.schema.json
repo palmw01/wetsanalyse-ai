@@ -557,6 +557,11 @@
         "concept": {
           "title": "Concept",
           "type": "boolean"
+        },
+        "inhoud_hash": {
+          "default": "",
+          "title": "Inhoud Hash",
+          "type": "string"
         }
       },
       "required": [

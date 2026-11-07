@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
+import hashlib
 import json
 from pathlib import Path
 from typing import Literal
@@ -41,9 +42,10 @@ class Document(_Deel):
     """Wat het rapport als document identificeert: titelblad en colofon."""
 
     titel: str
-    kenmerk: str                                     # "WG-<eerste 8 tekens van het id>-r<revisie>"
+    kenmerk: str                                     # "WG-<eerste 8 tekens van het id>-r<revisie>": welk werkgebied, welke revisie
     werkgebied_id: str
     concept: bool                                    # zolang het werkgebied niet afgerond is
+    inhoud_hash: str = ""                            # "sha256:<hex>" over de inhoud (`inhoud_hash`): welke analyseversie precies
 
 
 class Telling(_Deel):
@@ -405,6 +407,21 @@ class Rapport(_Deel):
     verantwoording: Verantwoording
 
 
+def inhoud_hash(r: "Rapport") -> str:
+    """De identiteit van de inhoud: SHA-256 over het document zonder `stand` (wanneer en door wie geëxporteerd) en zonder de hash
+    zelf, als JSON met gesorteerde sleutels. Gelijke inhoud geeft dezelfde hash, op elk moment en voor elke exporteur; een
+    andere annotatie, beoordeling, begrip of graafgegeven geeft een andere. De werkgebiedrevisie (`kenmerk`) ziet dat niet.
+    Narekenen: zet `document.inhoud_hash` op "" en laat `stand` weg."""
+    inhoud = r.model_dump(mode="json", exclude={"stand": True, "document": {"inhoud_hash"}})
+    tekst = json.dumps(inhoud, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return "sha256:" + hashlib.sha256(tekst.encode()).hexdigest()
+
+
+def kort(h: str) -> str:
+    """De eerste twaalf tekens van de hash: genoeg om twee rapporten naast elkaar te herkennen."""
+    return h.removeprefix("sha256:")[:12]
+
+
 SCHEMA_PAD = Path(__file__).parent / "schemas" / f"{SCHEMA}.schema.json"
 
 
@@ -527,6 +544,8 @@ def titelblad_regels(doc: Document, v: Voorblad, stand: Stand) -> list[Regel]:
     uit += [(TITELBLAD + "rij", "Status: " + status), (TITELBLAD + "rij", f"Revisie: {v.revisie}"),
             (TITELBLAD + "rij", "Peildatum: " + (datum(v.peildatum) or "niet vastgelegd") + (" (de aanmaakdag)" if v.peildatum_standaard else "")),
             (TITELBLAD + "rij", "Stand van: " + datum_tijd(stand.op)), (TITELBLAD + "rij", "Kenmerk: " + doc.kenmerk)]
+    if doc.inhoud_hash:
+        uit.append((TITELBLAD + "rij", "Inhoudscode: " + kort(doc.inhoud_hash)))
     if v.thema:
         uit.append((TITELBLAD + "rij", "Thema: " + v.thema))
     if v.regelingen:
@@ -582,6 +601,8 @@ def colofon_regels(doc: Document, v: Voorblad, stand: Stand, verantwoording: Ver
     uit: list[Regel] = [(PAGINA, ""), ("Heading4", "Colofon"),
                         ("Meta", "Titel: " + doc.titel),
                         ("Meta", "Kenmerk: " + doc.kenmerk),
+                        ("Meta", "Inhoudscode: " + (doc.inhoud_hash or "niet berekend")
+                         + " (SHA-256 over de inhoud, zonder het exportmoment: gelijke inhoud, gelijke code)"),
                         ("Meta", "Werkgebied: " + doc.werkgebied_id),
                         ("Meta", f"Status: {status} · revisie {v.revisie}"),
                         ("Meta", "Peildatum: " + (datum(v.peildatum) or "niet vastgelegd")),

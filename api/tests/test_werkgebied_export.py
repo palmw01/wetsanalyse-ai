@@ -879,3 +879,40 @@ async def test_de_route_geeft_het_document_als_json_met_een_schema_dat_erbij_hoo
     assert schema.status_code == 200 and schema.json()["$id"] == "urn:wetsanalyse:schema:werkgebied-rapport-v2"
     # Het document voldoet aan zijn schema: elk verplicht veld staat erin.
     assert set(schema.json()["required"]) <= set(doc)
+
+
+async def test_de_inhoudscode_is_gelijk_bij_gelijke_inhoud_en_anders_bij_andere(client):
+    from app.werkgebied_rapport import inhoud_hash, kort
+    wg, ids = await _gevuld(client)
+    data = await _data(wg)
+    een = export.bouw_rapport(data, V)
+    assert re.fullmatch(r"sha256:[0-9a-f]{64}", een.document.inhoud_hash)
+    # Een ander exportmoment of een andere exporteur verandert de inhoud niet.
+    later = copy.deepcopy(data)
+    later["export"] = {"actor": "jurist-b", "op": "2030-01-01T00:00:00+00:00"}
+    assert export.bouw_rapport(later, V).document.inhoud_hash == een.document.inhoud_hash
+    # Een andere beslissing wel, ook als de werkgebiedrevisie gelijk blijft.
+    await _beslis(ids["lid2"], "heropen", snapshot())
+    ander = export.bouw_rapport(await _data(wg), V)
+    assert ander.document.kenmerk == een.document.kenmerk and ander.document.inhoud_hash != een.document.inhoud_hash
+    # Na te rekenen uit de JSON: de hash leeg en zonder stand.
+    terug = Rapport.model_validate_json(een.model_dump_json())
+    assert inhoud_hash(terug) == een.document.inhoud_hash
+    regels = rapport_regels(een)
+    assert (pdf_opmaak.TITELBLAD + "rij", "Inhoudscode: " + kort(een.document.inhoud_hash)) in regels
+    assert any(s == "Meta" and t.startswith("Inhoudscode: " + een.document.inhoud_hash) for s, t in regels)
+
+
+async def test_de_voetregel_draagt_de_inhoudscode(client, monkeypatch):
+    from app.werkgebied_rapport import kort
+    wg, _ids = await _gevuld(client)
+    data = await _data(wg)
+    gezien = {}
+    echt = pdf_opmaak.render
+
+    def render(regels, **kw):
+        gezien.update(kw)
+        return echt(regels, **kw)
+    monkeypatch.setattr(pdf_opmaak, "render", render)
+    export.pdf_export(data, V)
+    assert f"inhoud {kort(export.bouw_rapport(data, V).document.inhoud_hash)}" in gezien["voet"]

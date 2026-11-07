@@ -32,7 +32,7 @@ from .werkgebied_rapport import (DOSSIERVELDEN, Afwijking, Artikel, Begrip, Begr
                                  DeelvraagBron, Deelvragen, Document, Dossier, DossierVeld, Fragment, Besluit, Handeling, Herkomst, Kerncijfers, KlasseTelling, Markering,
                                  Onbereikbaar, OpenGroep, OpenRelatie, Passage, Rapport, Regel, Regeling, RegelingInfo, Span, Structuurdeel, Verwijzing, Relatie, Selectie, Signaal,
                                  Stand, Telling, UitgeslotenBron, Verantwoording, Voorbeeld, Voorblad, Wettekst, Zoekdekking, Zoekregeling,
-                                 BESLUITEN, datum, rapport_regels)
+                                 BESLUITEN, datum, inhoud_hash, kort, rapport_regels)
 
 
 GraafLezer = Callable[[list[str], list[str], list[str]], Awaitable[dict]]
@@ -469,10 +469,11 @@ def _verantwoording(data: dict, nodes: dict[str, dict]) -> Verantwoording:
 def bouw_rapport(data: dict, verklaringen: dict) -> Rapport:
     """Het gestructureerde rapport: alles wat een uitvoervorm mag tonen, en niets anders."""
     nodes = _nodes(data)
-    return Rapport(stand=Stand(op=data["export"]["op"], door=data["export"]["actor"]), document=_document(data),
-                   voorblad=_voorblad(data, nodes), samenvatting=_kerncijfers(data),
-                   dossier=_dossier(data), deelvragen=_deelvragen(data, nodes), wettekst=_wettekst(data, nodes, verklaringen),
-                   begrippen=_begrippen(data, nodes), verantwoording=_verantwoording(data, nodes))
+    r = Rapport(stand=Stand(op=data["export"]["op"], door=data["export"]["actor"]), document=_document(data),
+                voorblad=_voorblad(data, nodes), samenvatting=_kerncijfers(data),
+                dossier=_dossier(data), deelvragen=_deelvragen(data, nodes), wettekst=_wettekst(data, nodes, verklaringen),
+                begrippen=_begrippen(data, nodes), verantwoording=_verantwoording(data, nodes))
+    return r.model_copy(update={"document": r.document.model_copy(update={"inhoud_hash": inhoud_hash(r)})})
 
 
 def regels(data: dict, verklaringen: dict) -> list[Regel]:
@@ -493,6 +494,9 @@ def pdf_export(data: dict, verklaringen: dict) -> bytes:
     naam = data["werkgebied"]["naam"]
     wg = data["werkgebied"]
     concept = " · concept" if wg["status"] != "afgerond" else ""
-    return pdf_opmaak.render(regels(data, verklaringen), titel=naam, voet=f"Werkgebiedrapport{concept} · revisie {wg['revisie']} · stand van {datum(data['export']['op'])}",
+    rapport = Rapport.model_validate_json(bouw_rapport(data, verklaringen).model_dump_json())
+    voet = (f"Werkgebiedrapport{concept} · revisie {wg['revisie']} · inhoud {kort(rapport.document.inhoud_hash)} · "
+            f"stand van {datum(data['export']['op'])}")
+    return pdf_opmaak.render(rapport_regels(rapport), titel=naam, voet=voet,
                              onderwerp="Wetsanalyse – rapport van het werkgebied", auteur=data["export"]["actor"],
                              trefwoorden=", ".join(sorted({bwb_van(s) for s in wg["bronnen"]})))
