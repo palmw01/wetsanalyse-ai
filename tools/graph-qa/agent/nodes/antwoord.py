@@ -39,6 +39,9 @@ from .context import Bouw
 
 logger = logging.getLogger("graph_qa.orchestrator")
 
+#: Tools waarmee de agent de weg zoekt: wat ze teruggeven draagt een sjabloonantwoord niet.
+_OPZOEKTOOLS = frozenset({"list_regelingen"})
+
 
 #: De antwoordlus streamt, dus een ruime limiet kost alleen wat er echt geschreven wordt. 4096 kapte lange duidingen af.
 MAX_TOKENS_ANTWOORD = 16000
@@ -408,9 +411,10 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
         # Een sjabloon draagt zijn vindplaatsen zelf; cureren op de proza heeft dan geen zin. Zonder doelen (een
         # leemte) rust de toelichting op wat er verder is opgehaald, en dat moet herleidbaar blijven.
         # Een vervolgvraag kan op een eerdere beurt rusten, dus de doelen zoek je in de hele controletrace.
+        # Een regeling opzoeken is geen bron: daarmee vond Lex alleen het BWB-id.
         doelen = {d["iri"] for d in state["antwoord"].get("doelen") or []}
         sources = ([s for s in collect_sources(controletrace(state)) if s.uri in doelen] if doelen
-                   else collect_sources(state.get("source_trace", [])))
+                   else collect_sources([(n, t) for n, t in state.get("source_trace", []) if n not in _OPZOEKTOOLS]))
     else:
         sources = collect_sources(state.get("source_trace", []))
         # Bronnen uit eerdere beurten alleen als het antwoord hun regeling noemt: anders vult elke
