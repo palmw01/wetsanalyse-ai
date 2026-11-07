@@ -17,6 +17,7 @@ from __future__ import annotations
 from typing import Any
 
 from bronmodel.antwoord import Antwoord, Citaat, Citaten, Toelichting, Twijfel
+from bronmodel.vindplaats import vindplaats
 
 from ..annotatie import _normaliseer, komt_letterlijk_voor
 from ..grounding import _bekende_artikelen, herstel_citaten
@@ -114,7 +115,10 @@ def _binnen(node: str, iri: str) -> bool:
 def _citaat(stuk: dict[str, Any], rijen: dict[str, dict[str, Any]], trace: Trace, fouten: list[str]) -> Citaat | None:
     iri = str(stuk.get("bepaling") or "").strip()
     if iri.startswith("jci"):
-        iri = (jcis := iri_van_jci(trace)).get(iri) or jcis.get(iri.split("&z=", 1)[0]) or iri
+        # Eerst de rij die deze jci draagt; draagt geen rij hem (de leden van `get_artikel` hebben vaak geen eigen jci,
+        # eval 7 nov 2026), dan het graafadres uit de jci zelf, met dezelfde regels als de importer.
+        vp = vindplaats(iri)
+        iri = (jcis := iri_van_jci(trace)).get(iri) or jcis.get(iri.split("&z=", 1)[0]) or (vp.bron_iri if vp else iri)
     van, tot = str(stuk.get("van") or "").strip(), str(stuk.get("tot") or "").strip()
     # Per rij de plek die de jurist ziet: de rij zelf, of het lid van een slotzin met een eigen `:id:`-iri.
     lid_van = ouders(trace)
