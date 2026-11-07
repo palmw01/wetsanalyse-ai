@@ -5,6 +5,8 @@ import json
 import re
 from typing import Any
 
+from ..jas_pipeline.subtype import ALLE_SUBTYPEN
+
 ANNOTATIE_TOOL_NAMEN = frozenset({"search_annotaties", "overzicht_annotaties", "get_annotatie",
                                   "get_annotatiedekking"})
 
@@ -126,8 +128,7 @@ ANNOTATIE_TOOLS = [
             "scope": {"type": "string", "enum": ["node", "subtree"]},
             "inclusief_verouderd": {"type": "boolean"}, "cursor": S,
             "herkomst": keuzes("agent", "mens"), "aandacht": keuzes("groen", "geel"),
-            "subtype": keuzes("variabele", "variabelewaarde", "parameter", "parameterwaarde",
-                              "delegatiebevoegdheid", "delegatie-invulling"),
+            "subtype": keuzes(*ALLE_SUBTYPEN),
             "beslist_door": keuzes("regel", "model", "specificiteit", "terugval"),
             "met_twijfel": {"type": "boolean"},
             "limit": {"type": "integer", "minimum": 1, "maximum": 100},
@@ -197,7 +198,8 @@ def vindplaats_label(iri: str) -> str:
 # rest van het gesprek. Wat een jurist vraagt – welke klasse, welke tekst, waar, hoe zeker, waarom –
 # staat hier; het volledige record blijft via `get_annotatie` op te vragen.
 BEOORDELING = {"voorgesteld": "voorstel van Lex", "proposed": "voorstel van Lex", "human_approved": "akkoord",
-               "edited": "door jurist aangepast", "rejected": "verworpen", "published": "gepubliceerd", "reused": "hergebruikt"}
+               "edited": "door jurist aangepast", "rejected": "verworpen", "published": "gepubliceerd", "reused": "hergebruikt",
+               "vervangen": "vervangen door een nieuwe ronde"}
 LAAGSTAND = {"in_review": "in behandeling", "geaccordeerd": "afgerond", "gepromoveerd": "in de graaf"}
 
 _ZOEKVELDEN = ("id", "klasse", "tekst", "jas_subtype", "aandacht", "lifecycle", "verouderd", "soort")

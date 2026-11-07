@@ -16,6 +16,7 @@ candidate_rules:
   - {id: jas.waarde.bedrag, status: geïmplementeerd}
   - {id: jas.waarde.percentage, status: geïmplementeerd}
   - {id: jas.waarde.aantal, status: geïmplementeerd}
+  - {id: jas.waarde.getal_in_duur, status: geïmplementeerd}
   - {id: jas.parameter.beschrijving, status: geïmplementeerd}
 confusable_classes:
   - {klasse: Variabele en variabelewaarde, reden: "constant of per geval verschillend"}
@@ -24,7 +25,7 @@ confusable_classes:
   - {klasse: Operator, reden: "'tweemaal' als vermenigvuldiging"}
 negative_patterns:
   - {patroon: "nummer in een verwijzing ('artikel 9', 'derde lid', 'onderdeel a')", reden: "verwijzing, geen waarde"}
-  - {patroon: "tijdsduur binnen een tijdsaanduiding met dezelfde functie ('zes weken' in 'zes weken na …')", reden: "JAS-PRIORITY-001; projectregel annotatieprotocol"}
+  - {patroon: "tijdsduur binnen een tijdsaanduiding met dezelfde functie ('zes weken' in 'zes weken na …')", reden: "JAS-PRIORITY-001; de Tijdsaanduiding draagt het subtype 'verbijzondert parameter', alleen een getal in cijfers wordt een geneste parameterwaarde"}
 required_context:
   - "of de waarde voor alle rechtssubjecten gelijk is"
 deterministic_detection_possible: hoog

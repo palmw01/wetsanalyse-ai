@@ -30,16 +30,26 @@ from .jas_klassen import jas_sorteersleutel
 from .werkgebied_inventaris import Resolver, bwb_van, inventaris_met_bronbomen
 from .werkgebied_rapport import (DOSSIERVELDEN, Afwijking, Artikel, Begrip, Begrippen, Bepaling, Bronvoorstel, Deelvraag,
                                  DeelvraagBron, Deelvragen, Document, Dossier, DossierVeld, Fragment, Besluit, Handeling, Herkomst, Kerncijfers, KlasseTelling, Markering,
-                                 Onbereikbaar, OpenGroep, OpenRelatie, Passage, Rapport, Regel, Regeling, RegelingInfo, Structuurdeel, Relatie, Selectie, Signaal,
+                                 Onbereikbaar, OpenGroep, OpenRelatie, Passage, Rapport, Regel, Regeling, RegelingInfo, Span, Structuurdeel, Verwijzing, Relatie, Selectie, Signaal,
                                  Stand, Telling, UitgeslotenBron, Verantwoording, Voorbeeld, Voorblad, Wettekst, Zoekdekking, Zoekregeling,
-                                 BESLUITEN, datum, rapport_regels)
+                                 BESLUITEN, datum, inhoud_hash, kort, rapport_regels)
 
 
-GraafLezer = Callable[[list[str], list[str]], Awaitable[dict]]
+GraafLezer = Callable[[list[str], list[str], list[str]], Awaitable[dict]]
 
 
-async def _geen_graaf(_bwbs: list[str], _iris: list[str]) -> dict:
-    return {"volledig": True, "regelingen": {}, "structuur": {}}
+async def _geen_graaf(_bwbs: list[str], _iris: list[str], _bronnen: list[str]) -> dict:
+    return {"volledig": True, "regelingen": {}, "structuur": {}, "verwijzingen": []}
+
+
+def bron_iris(wg: dict, bomen: dict) -> list[str]:
+    """Elke bronnode in het dossier: daaruit vertrekken de verwijzingen die het rapport toont."""
+    uit: set[str] = set()
+    for sel in wg["bronnen"]:
+        boom = bomen.get(bwb_van(sel))
+        if boom:
+            uit |= annotatie_v2_store.bereik_van(boom, sel["bron_iri"]) if sel["bereik"] == "onderliggend" else {sel["bron_iri"]}
+    return sorted(uit)
 
 
 def structuur_iris(wg: dict, bomen: dict) -> list[str]:
@@ -70,7 +80,7 @@ async def verzamel(werkgebied_id: str, actor: str, resolve: Resolver,
         raise HTTPException(503, "De brongraaf is tijdelijk niet beschikbaar; zonder wettekst is er geen dossier te maken.")
     tst = await toestanden(wg)
     return {"werkgebied": wg, "inventaris": inventaris, "bomen": bomen,
-            "graaf": await graaf([r["bwb_id"] for r in tst["regelingen"]], structuur_iris(wg, bomen)),
+            "graaf": await graaf([r["bwb_id"] for r in tst["regelingen"]], structuur_iris(wg, bomen), bron_iris(wg, bomen)),
             "overzicht": await bronselectie.overzicht(werkgebied_id),
             "toestanden": tst,
             "begrippen": (await begrip_store.export(werkgebied_id, actor))["begrippen"],
@@ -213,8 +223,31 @@ def _markering(e: dict, nodes: dict[str, dict], verklaringen: dict) -> Markering
         verouderd=bool(e.get("verouderd")), deels_buiten=bool(e.get("deels_buiten")), door="analist" if r["herkomst"] == "mens" else "lex")
 
 
+def _spans(eigen: list[dict], iri: str, tekst: str) -> list[Span]:
+    """De ankers die op deze bepaling liggen en nog letterlijk op hun offsets staan; de rest staat als afwijking bij de markering."""
+    uit = []
+    for n, e in enumerate(eigen, 1):
+        for a in e.get("ankers") or []:
+            if a["bron_iri"] == iri and 0 <= a["start"] < a["eind"] <= len(tekst) and tekst[a["start"]:a["eind"]] == a["tekst"]:
+                uit.append(Span(start=a["start"], eind=a["eind"], nr=n, klasse=e.get("klasse") or ""))
+    return sorted(uit, key=lambda x: (x.start, -x.eind, x.nr))
+
+
 def _graaf(data: dict) -> dict:
-    return data.get("graaf") or {"volledig": True, "regelingen": {}, "structuur": {}}
+    return {"volledig": True, "regelingen": {}, "structuur": {}, "verwijzingen": [], **(data.get("graaf") or {})}
+
+
+def _verwijzingen(data: dict, nodes: dict[str, dict], in_dossier: set[str]) -> dict[str, list[Verwijzing]]:
+    """Per bronnode de verwijzingen eruit. Een doel staat in het dossier als het daar zelf staat of een van zijn delen er staat."""
+    uit: dict[str, list[Verwijzing]] = {}
+    for v in _graaf(data)["verwijzingen"]:
+        naar = v["naar"]
+        binnen = naar in in_dossier or any(i.startswith(naar + ":") for i in in_dossier)
+        label = " – ".join(filter(None, [v.get("regeling"), v.get("label")])) or naar
+        uit.setdefault(v["van"], []).append(Verwijzing(
+            van=_plek(v["van"], nodes), naar=Vindplaats(iri=naar, label=label, jci=v.get("jci") or ""), anker=v.get("anker") or "",
+            in_dossier=binnen))
+    return uit
 
 
 def _artikel(kop: str, nodes: dict[str, dict], data: dict) -> Artikel:
@@ -282,6 +315,8 @@ def _wettekst(data: dict, nodes: dict[str, dict], verklaringen: dict) -> Wetteks
 
     getoond: set[str] = set()
     regelingen: list[Regeling] = []
+    verwijzingen = _verwijzingen(data, nodes, set(rollen))
+    alle_verwijzingen: list[Verwijzing] = []
     for bwb in per_bwb:
         boom = annotatie_v2_store.nodes_van(data["bomen"][bwb])
         artikelen: list[Artikel] = []
@@ -295,9 +330,11 @@ def _wettekst(data: dict, nodes: dict[str, dict], verklaringen: dict) -> Wetteks
             if nieuw != kop:
                 kop = nieuw
                 artikelen.append(_artikel(kop, nodes, data))
+            markeringen = [_markering(e, nodes, verklaringen).model_copy(update={"nr": n}) for n, e in enumerate(eigen, 1)]
             artikelen[-1].bepalingen.append(Bepaling(
                 vindplaats=_plek(iri, nodes), rol=rollen[iri], bron_gewijzigd=iri in gewijzigd, tekst=tekst if tekst.strip() else "",
-                markeringen=[_markering(e, nodes, verklaringen) for e in eigen]))
+                markeringen=markeringen, spans=_spans(eigen, iri, tekst), verwijzingen=verwijzingen.get(iri, [])))
+            alle_verwijzingen += verwijzingen.get(iri, [])
             getoond |= {e["id"] for e in eigen}
         # Een contextbepaling zonder markering is naslag: die gaat naar de bijlage, de rest is de analyse.
         analyse, context = [], []
@@ -312,7 +349,7 @@ def _wettekst(data: dict, nodes: dict[str, dict], verklaringen: dict) -> Wetteks
     return Wettekst(
         markeringen=len(inv["elementen"]), beoordeeld=sum(e["lifecycle"] in BEOORDEELD for e in inv["elementen"]),
         per_klasse=[KlasseTelling(klasse="" if k == "Nog geen klasse" else k, aantal=per_klasse[k]) for k in sorted(per_klasse, key=jas_sorteersleutel)],
-        regelingen=regelingen, onbereikbaar=onbereikbaar,
+        regelingen=regelingen, onbereikbaar=onbereikbaar, verwijzingen=alle_verwijzingen,
         buiten_tekst=[_markering(e, nodes, verklaringen) for e in inv["elementen"] if e["id"] not in getoond],
         afgewezen=[_markering(e, nodes, verklaringen) for e in inv["afgewezen"]])
 
@@ -432,15 +469,21 @@ def _verantwoording(data: dict, nodes: dict[str, dict]) -> Verantwoording:
 def bouw_rapport(data: dict, verklaringen: dict) -> Rapport:
     """Het gestructureerde rapport: alles wat een uitvoervorm mag tonen, en niets anders."""
     nodes = _nodes(data)
-    return Rapport(stand=Stand(op=data["export"]["op"], door=data["export"]["actor"]), document=_document(data),
-                   voorblad=_voorblad(data, nodes), samenvatting=_kerncijfers(data),
-                   dossier=_dossier(data), deelvragen=_deelvragen(data, nodes), wettekst=_wettekst(data, nodes, verklaringen),
-                   begrippen=_begrippen(data, nodes), verantwoording=_verantwoording(data, nodes))
+    r = Rapport(stand=Stand(op=data["export"]["op"], door=data["export"]["actor"]), document=_document(data),
+                voorblad=_voorblad(data, nodes), samenvatting=_kerncijfers(data),
+                dossier=_dossier(data), deelvragen=_deelvragen(data, nodes), wettekst=_wettekst(data, nodes, verklaringen),
+                begrippen=_begrippen(data, nodes), verantwoording=_verantwoording(data, nodes))
+    return r.model_copy(update={"document": r.document.model_copy(update={"inhoud_hash": inhoud_hash(r)})})
 
 
 def regels(data: dict, verklaringen: dict) -> list[Regel]:
     """De regels van het rapport, langs de JSON: elke uitvoer ziet alleen wat in het document staat."""
     return rapport_regels(Rapport.model_validate_json(bouw_rapport(data, verklaringen).model_dump_json()))
+
+
+def json_export(data: dict, verklaringen: dict) -> bytes:
+    """Het document zelf (ADR-009): wat PDF en Markdown tonen, machineleesbaar, met `schema_naam` en `versie`."""
+    return bouw_rapport(data, verklaringen).model_dump_json(indent=2).encode()
 
 
 def markdown_export(data: dict, verklaringen: dict) -> bytes:
@@ -451,6 +494,9 @@ def pdf_export(data: dict, verklaringen: dict) -> bytes:
     naam = data["werkgebied"]["naam"]
     wg = data["werkgebied"]
     concept = " · concept" if wg["status"] != "afgerond" else ""
-    return pdf_opmaak.render(regels(data, verklaringen), titel=naam, voet=f"Werkgebiedrapport{concept} · revisie {wg['revisie']} · stand van {datum(data['export']['op'])}",
+    rapport = Rapport.model_validate_json(bouw_rapport(data, verklaringen).model_dump_json())
+    voet = (f"Werkgebiedrapport{concept} · revisie {wg['revisie']} · inhoud {kort(rapport.document.inhoud_hash)} · "
+            f"stand van {datum(data['export']['op'])}")
+    return pdf_opmaak.render(rapport_regels(rapport), titel=naam, voet=voet,
                              onderwerp="Wetsanalyse – rapport van het werkgebied", auteur=data["export"]["actor"],
                              trefwoorden=", ".join(sorted({bwb_van(s) for s in wg["bronnen"]})))

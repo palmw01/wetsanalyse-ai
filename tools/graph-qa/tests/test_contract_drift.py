@@ -209,6 +209,17 @@ def test_search_annotaties_vraagt_niets_wat_de_api_niet_kent():
         assert set(enum) == set(re.findall(r'"([^"]+)"', m.group(1))), naam
 
 
+def test_de_api_kent_precies_de_subtypen_van_de_keten():
+    """`jas_subtype` op een element is een vaste lijst bij de api (een patroon) en in de zoektool (een keuzelijst).
+    Een subtype dat de keten zet en de api niet kent, laat de hele batch op een 422 vallen."""
+    from agent.jas_pipeline.subtype import ALLE_SUBTYPEN, REGELS
+
+    m = re.search(r'jas_subtype: str = Field\(default="", pattern=r"\^\(\|([^)]*)\)\$"\)', CONTRACT.read_text())
+    assert m, "jas_subtype-patroon niet gevonden in Element"
+    assert set(m.group(1).split("|")) == set(ALLE_SUBTYPEN)
+    assert {s for regels in REGELS.values() for s, _ in regels} <= set(ALLE_SUBTYPEN)
+
+
 def test_de_stappen_van_de_intake_zijn_overal_dezelfde():
     """Vier lijsten van dezelfde stappen (F3f): graph-qa `STAPPEN`, `IntakeActie.stap`, api `IntakeStap`
     en de werkplek (`frontend/lib/vraagkaart.ts`). Een stap die er aan één kant niet is, maakt het

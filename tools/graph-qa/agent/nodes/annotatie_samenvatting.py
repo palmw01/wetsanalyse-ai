@@ -64,6 +64,17 @@ def _gevonden(n: int, bekend: int) -> str:
     return f"{gevonden}: {_getal(nieuw)} {'is' if nieuw == 1 else 'zijn'} nieuw, {_getal(bekend)} {'lag' if bekend == 1 else 'lagen'} er al"
 
 
+def vervangen_zin(n: int) -> str:
+    """Wat een ronde `opnieuw` opruimde (`vervangen` in de respons van de batch): oude voorstellen van Lex die deze
+    ronde niet meer maakte. Ze tellen niet meer mee, maar zijn niet gewist. Leeg als er niets vervangen is."""
+    if n <= 0:
+        return ""
+    if n == 1:
+        return "Eén voorstel uit een eerdere ronde maak ik nu niet meer; dat is vervangen en telt niet meer mee."
+    return (f"{_hoofdletter(_getal(n))} voorstellen uit een eerdere ronde maak ik nu niet meer; die zijn vervangen "
+            "en tellen niet meer mee.")
+
+
 def samenvatting(voorstellen: list[dict[str, Any]], doel: dict[str, Any], bekend: int = 0) -> str:
     """Hoogstens `MAX_ZINNEN` zinnen over deze annotatieronde. `bekend`: de voorstellen die er al lagen."""
     n = len(voorstellen)

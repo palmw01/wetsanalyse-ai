@@ -36,6 +36,14 @@ def _stap(writer: Any, actor: str, bericht: str, duur_ms: int | None = None, rou
     writer(event)
 
 
+def met_regelgrens(denk: str, inhoud: str) -> str:
+    """`inhoud` van een `reason`-event, met een regelgrens als het denkproces op een statusregel eindigt. De eerste ronde
+    draagt geen alinea-scheiding (`ronde_in_denk`), dus plakte "· Lex · zoekt in de kennisgraaf" aan "Ik zoek …"
+    (acceptatie 7 nov 2026). `frontend/lib/beurtStroom.ts` doet hetzelfde voor wie meekijkt."""
+    laatste = denk.rsplit("\n", 1)[-1]
+    return "\n" + inhoud if inhoud and laatste.startswith("· ") and not inhoud.startswith("\n") else inhoud
+
+
 def ronde_in_denk(writer: Any, tool_uses: list[Any], tekst: list[str], ronde: int) -> None:
     """Zet de tekst van een afgelopen modelronde in het denkproces (`reason`), als het narratie is.
 
@@ -130,6 +138,8 @@ def _grounding_melding(report: Any) -> str:
         goed.append(f"{len(report.cited)} " + ("verwijzingen" if len(report.cited) > 1 else "verwijzing"))
     if aantal_citaten:
         goed.append(f"{aantal_citaten} " + ("citaten" if aantal_citaten > 1 else "citaat"))
+    if not goed:  # een vaste tekst van de code (de bepalingsroute): niets aangehaald, dus ook niets geteld
+        return "brongetrouwheid: gecontroleerd, niets aangehaald"
     return f"brongetrouwheid: {' en '.join(goed)} gecontroleerd"
 
 

@@ -37,3 +37,91 @@
     negatief: [{tekst: "tentoonstelling", span: "ten"}]
     rand: [{tekst: "Ten minste.", span: "Ten minste"}]
     overlap: [{tekst: "ten minste twee dan wel drie", spans: ["ten minste", "dan wel"]}]
+# Cumulatie (H2:98, EN): "in ieder geval" opent een opsomming waarvan alles geldt. Niet als het een
+# geval inleidt ("in elk geval waarin …"): dan is het een voorwaarde.
+- id: jas.operator.cumulatie
+  klassen: [Operator]
+  code: LOGICAL
+  bewijs: zwak
+  bron: "H2:98"
+  versie: 1
+  patroon: '\bin\s+(?:ieder|elk)\s+geval\b(?!\s+(?:waarin|waarbij|dat|als|indien)\b)'
+  tests:
+    positief: [{tekst: "De kennisgeving vermeldt in ieder geval:", span: "in ieder geval"}]
+    negatief: [{tekst: "in elk geval waarin een aanvraag is ingediend", span: "in elk geval"}]
+    rand: [{tekst: "In elk geval bevat het verzoek de naam.", span: "In elk geval"}]
+    overlap: [{tekst: "bevat in ieder geval ten minste twee namen", spans: ["in ieder geval", "ten minste"]}]
+# Gelijkstelling (H2:98): een grootheid krijgt een waarde. Zwak: "is gesteld op" is ook een afleiding
+# (afleiding.yaml), en "valt op" telt alleen met een dag of datum erachter ("de nadruk valt op" is niets).
+- id: jas.operator.gelijkstelling
+  klassen: [Operator]
+  code: VALUE_EQUATION
+  bewijs: zwak
+  bron: "H2:98"
+  versie: 1
+  patroon: '\b(?:(?:is|zijn|wordt|worden)\s+gesteld\s+op(?!\s+(?:grond|basis)\b)|(?:valt|vallen|vervalt|vervallen)\s+op(?!\s+een\s+andere\b)(?=\s+(?:(?:de|een|die|dezelfde)\s+)?(?:\w+\s+)?(?:\d{1,2}\s+{MAAND}\b|\w*dag\b|datum\b)))'
+  tests:
+    positief: [{tekst: "De betalingstermijn is gesteld op één maand.", span: "is gesteld op"},
+               {tekst: "De vervaldag valt op een zaterdag.", span: "valt op"}]
+    negatief: [{tekst: "De nadruk valt op de uitvoering.", span: "valt op"},
+               {tekst: "Er worden regels gesteld op grond van artikel 4.", span: "gesteld op"}]
+    rand: [{tekst: "Het voorschot vervalt op 1 april.", span: "vervalt op"}]
+    overlap: [{tekst: "De termijn is gesteld op zes weken of is gesteld op één maand.", spans: ["is gesteld op", "zes weken", "één maand"]}]
+# Ongelijkheid (H2:98, vergelijking): "valt op een andere dag dan …" vergelijkt twee momenten.
+- id: jas.operator.ongelijkheid
+  klassen: [Operator]
+  code: VALUE_INEQUALITY
+  bewijs: zwak
+  bron: "H2:98"
+  versie: 1
+  patroon: '\b(?:valt|vallen)\s+op\s+een\s+andere\s+\w+\s+dan\b'
+  tests:
+    positief: [{tekst: "Indien de vervaldag valt op een andere dag dan een werkdag", span: "valt op een andere dag dan"}]
+    negatief: [{tekst: "Hij kiest een andere dag dan gisteren.", span: "andere dag dan"}]
+    rand: [{tekst: "als de termijnen vallen op een andere datum dan 1 april", span: "vallen op een andere datum dan"}]
+    overlap: [{tekst: "valt op een andere dag dan 1 april", spans: ["valt op een andere dag dan", "1 april"]}]
+# Temporele vergelijking (H2:98, vergelijking van twee waarden): "vóór 1 april", "uiterlijk 31 december".
+# Een eigen, geneste kandidaat: de tijdsaanduiding eromheen (tijd.yaml) blijft heel, het voorzetsel is
+# daar een spanoptie. "op 1 april" en "tot" vergelijken niet, die blijven alleen tijd.
+- id: jas.operator.datumvergelijking
+  klassen: [Operator]
+  code: DATE_COMPARISON
+  bewijs: zwak
+  bron: "H2:98"
+  versie: 1
+  patroon: '\b(?:vóór|voor|na|uiterlijk|later\s+dan|eerder\s+dan)(?=\s+(?:op\s+)?(?:\d{1,2}\s+)?{MAAND}\b)'
+  tests:
+    positief: [{tekst: "De aangifte wordt gedaan vóór 1 april 2027.", span: "vóór"}]
+    negatief: [{tekst: "De wet treedt in werking op 1 april 2027.", span: "op"},
+               {tekst: "voor de toepassing van dit artikel", span: "voor"}]
+    rand: [{tekst: "uiterlijk op 31 december", span: "uiterlijk"}]
+    overlap: [{tekst: "betaald na 1 januari 2027", spans: ["na", "na 1 januari 2027"]}]
+# "of eerder", "of later" na een moment: een niet-strikte vergelijking (≤, ≥) bij dat moment.
+- id: jas.operator.inclusieve_tijdgrens
+  klassen: [Operator]
+  code: DATE_COMPARISON
+  bewijs: zwak
+  bron: "H2:98"
+  versie: 1
+  patroon: '\bof\s+(?:eerder|later)\b'
+  alleen_na: '\b(?:{MAAND}|\d{4}|dag|datum|tijdstip)\s+'
+  tests:
+    positief: [{tekst: "gedagtekend in november of eerder", span: "of eerder"}]
+    negatief: [{tekst: "vroeg of later komt het", span: "of later"}]
+    rand: [{tekst: "op 1 januari 2027 of later.", span: "of later"}]
+    overlap: [{tekst: "gedagtekend in november of eerder", spans: ["of eerder", "in november of eerder"]}]
+# Rekenkundig (H2:98): "zes weken na de dagtekening" is het moment plus een duur. Alleen direct na een
+# duur; "na de dagtekening" zonder duur is een referentiemoment, geen bewerking.
+- id: jas.operator.duur_vanaf_moment
+  klassen: [Operator]
+  code: DURATION_OFFSET
+  bewijs: zwak
+  bron: "H2:98"
+  versie: 1
+  patroon: '\b(?:na|vóór|voor)\b(?=\s+(?:de|het|een|die|dat|deze)\b)'
+  alleen_na: '\b{TELWOORD}\s+{PERIODE}\s+'
+  tests:
+    positief: [{tekst: "Een aanslag is invorderbaar zes weken na de dagtekening.", span: "na"}]
+    negatief: [{tekst: "De inspecteur beslist na de dagtekening.", span: "na"}]
+    rand: [{tekst: "uiterlijk twee weken vóór de zitting", span: "vóór"}]
+    overlap: [{tekst: "binnen zes weken na de dagtekening", spans: ["na", "binnen zes weken na de dagtekening"]}]

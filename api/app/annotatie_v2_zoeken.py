@@ -11,7 +11,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 
 from . import db
-from .annotatie_v2_contracts import Zoekvraag
+from .annotatie_v2_contracts import Zoekvraag, is_vervangen
 from .annotatie_v2_store import bereik_van, nodes_van, publiek_laag, digest, leestransactie, historische_snapshot
 from .annotatie_v2 import resolve_bron
 
@@ -103,6 +103,8 @@ async def zoek(req: Zoekvraag) -> dict:
             e = by_id.get(element_id)
             if not e or (e.get("verouderd") and not req.inclusief_verouderd):
                 continue
+            if is_vervangen(e):
+                continue  # niet actueel: ook als de graaf hem nog draagt (een achterlopende projectie)
             if scope is not None and not any(a["bron_iri"] in scope for a in e["ankers"]):
                 continue
             if req.jas_klassen and e["klasse"] not in req.jas_klassen:

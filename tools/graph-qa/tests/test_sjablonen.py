@@ -691,6 +691,12 @@ def test_de_treffers_komen_uit_de_rijen():
     assert blok.items[0].vindplaats == M1["vindplaats"] and blok.door == "bron"
 
 
+def test_een_markering_draagt_haar_bronnode_zodat_de_werkplek_de_bepaling_opent():
+    a = vul("antwoord_annotaties", {"toelichting": ""}, [zoek(M1, M2, {**M2, "id": "e3", "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:3"})])
+    assert [m.bron_iri for m in a.blokken[0].items] == [M1["bron_iri"], "", "urn:bwb:BWBR0004770:artikel:9:lid:3"]
+    assert a.doelen == []  # een annotatie is geen bron: geen doelen, dus geen invloed op controle en bronnen
+
+
 def test_een_volgende_pagina_is_onvolledig_ook_als_de_api_volledig_zegt():
     """De api zet `volledig` op de dekking van de projectie; de paginering staat in `volgende_offset`."""
     a = vul("antwoord_annotaties", {"toelichting": ""}, [zoek(M1, volgende_offset=25)])
@@ -1005,3 +1011,38 @@ def test_een_jci_van_een_bepaling_die_niet_is_opgehaald_blijft_onvulbaar():
     jci = "jci1.3:c:BWBR0004770&hoofdstuk=IV&artikel=11&lid=1"
     with pytest.raises(Onvulbaar, match="artikel:11:lid:1: de tekst is niet"):
         vul("antwoord_duiding", duiding(bepaling=jci), [tien()])
+
+
+# De vindplaats draagt de jci van de rij met de toestand die de tools lazen: de link opent die versie, niet de actuele
+# (acceptatie 7 nov 2026: bij `bepaling` en `duiding` was de jci leeg).
+STAART = "&z=2026-10-01&g=2026-10-01"
+ART_JCI = f"jci1.3:c:BWBR0004770&hoofdstuk=II&artikel=9{STAART}"
+
+
+def test_een_lid_krijgt_zijn_jci_met_de_toestand_van_het_artikel():
+    rij = {**EEN, "jci": "jci1.3:c:BWBR0004770&hoofdstuk=II&artikel=9&lid=1"}
+    a = vul("antwoord_bepaling", {"bepalingen": [ART], "toelichting": ""}, [artikel(rij, jci=ART_JCI)])
+    assert a.blokken[0].items[0].vindplaats.jci == f"jci1.3:c:BWBR0004770&hoofdstuk=II&artikel=9&lid=1{STAART}"
+    assert a.doelen[0].jci == ART_JCI
+
+
+def test_een_onderdeel_uit_get_lid_krijgt_de_toestand_van_zijn_regeling():
+    a_jci = {**A, "jci": "jci1.3:c:BWBR0004770&hoofdstuk=II&artikel=9&lid=11&o=a"}
+    lid_rij = {**ELF, "jci": "jci1.3:c:BWBR0004770&hoofdstuk=II&artikel=9&lid=11"}
+    a = vul("antwoord_bepaling", {"bepalingen": [ART], "toelichting": ""}, [artikel(EEN, lid_rij, jci=ART_JCI), lid(a_jci)])
+    jcis = {i.vindplaats.iri: i.vindplaats.jci for i in a.blokken[0].items}
+    assert jcis[LID].endswith(f"&lid=11{STAART}")
+
+
+def test_zonder_jci_in_de_rij_blijft_de_jci_leeg():
+    a = vul("antwoord_bepaling", {"bepalingen": [ART], "toelichting": ""}, [artikel(EEN)])
+    assert a.blokken[0].items[0].vindplaats.jci == ""
+
+
+def test_een_citaat_draagt_de_jci_van_zijn_lid_met_de_toestand():
+    leden = [{"lid": TIEN_1, "nummer": "1", "tekst": ZIN_1, "jci": "jci1.3:c:BWBR0004770&artikel=10&lid=1"},
+             {"lid": TIEN_2, "nummer": "2", "tekst": ZIN_2}]
+    trace = [("get_artikel", json.dumps({"status": "ok", "volledig": True, "aantal": 2, "resultaten": leden,
+                                          "artikel": {"iri": TIEN, "delen": 2, "jci": f"jci1.3:c:BWBR0004770&artikel=10{STAART}"}}))]
+    a = vul("antwoord_duiding", duiding(), trace)
+    assert a.blokken[1].items[0].vindplaats.jci == f"jci1.3:c:BWBR0004770&artikel=10&lid=1{STAART}"

@@ -367,7 +367,7 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     `graphQaBaseUrl()` + `GRAPH_QA_TOKEN` en `X-User-Id` (`startRun`/`volgRun`/`stopRun`/
     `haalActieveRun`).
   - *Review-state via de API* – de catch-all `app/api/annotatie/v2/[...pad]/route.ts` → `/v1/annotatie/{weergave,elementen,lagen,
-    node-lagen,samenhang,graaf,knoop,capabilities,verklaringen}` (een allowlist op het eerste padsegment), met client-helpers in `lib/annotatieNode.ts`. De lagen zijn **gedeeld**,
+    node-lagen,samenhang,graaf,knoop,bepaling,capabilities,verklaringen}` (een allowlist op het eerste padsegment), met client-helpers in `lib/annotatieNode.ts`. De lagen zijn **gedeeld**,
     niet per gebruiker; gesprekken zijn per gebruiker.
 
 ### De beurt is van de server, niet van dit tabblad
@@ -467,6 +467,14 @@ tekent de blokken: elk soort één functie in `BLOKKEN`, dus een nieuw soort zon
 achtergrond, geen rand**: een sjabloon is een vorm van antwoorden, geen artefact (`app/knoppen.test.ts` bewaakt het). Wat Lex schreef
 staat onder een eigen kop. Een ongeldig blok geeft geen sjabloon en dan is `tekst` het antwoord, net als bij vrije tekst. Heeft het sjabloon doelen, dan staat er geen
 bronnenlijst bij: de blokken noemen elke vindplaats (`Vindplaats`: een klik opent de bepaling naast het gesprek).
+
+**Detail bij een antwoord** (ADR-008, aanvulling 7 nov 2026). Onder het antwoord staat per bepaling een chip
+(`components/antwoord/BepalingChip`, de vorm van de annotatiechip; `bepalingenVan` in `lib/antwoord.ts`: de doelen, of bij
+`annotaties` de `bron_iri` van de markeringen). Die opent de context `bron`, en daar toont `BepalingFeiten` onder de wettekst wat
+de graaf verder weet (`GET bepaling`, `lib/bepalingDetail.ts` met een drifttest op `api/app/bepaling_graaf_contract.py`). Geen
+artefactsoort: een bepaling is context, er valt niets te beoordelen. De jci die Lex las gaat mee; draagt de graaf een latere
+toestand, dan zegt het paneel dat (`afwijkendeToestand`). Leden van één artikel staan in het blok `wettekst` onder één kop
+(`groepeerWettekst`). Een antwoord met alleen `NIET_GETOETST`-blokken krijgt geen "niets te controleren".
 
 ### Het overzicht van een onderwerp
 

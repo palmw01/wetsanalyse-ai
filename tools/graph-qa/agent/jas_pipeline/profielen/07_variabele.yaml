@@ -6,6 +6,9 @@ begrippen:
 syntactic_signals:
   - "naamwoordgroep die een eigenschap noemt ('het toetsingsinkomen van de verzekerde', 'de hoogte van …')"
   - "onderwerp van een afleidingsregel (uitvoervariabele)"
+  - "een grootheid uit GROOTHEID ('de betalingstermijn', 'de vervaldag') als kenmerk, zonder Rechtssubject"
+  - "het tijdstip van een rechtsfeit als referentiemoment ('na de dagtekening van …'): Rechtsfeit of Variabele"
+  - "een kale duur ('zes weken') is alleen een waarde: geen Rechtssubject of Rechtsobject; de Tijdsaanduiding gaat voor (JAS-PRIORITY-001)"
   - "limitatieve opsomming van mogelijke waarden (enumeratie) – H2:82"
 lexical_signals:
   - "inkomen, bedrag, hoogte, duur, aantal, leeftijd, naam, geregistreerd"
@@ -16,6 +19,7 @@ structural_signals: []
 candidate_rules:
   - {id: jas.variabele.eigenschap_np, status: geïmplementeerd}
   - {id: jas.variabele.uitvoer_van_afleiding, status: geïmplementeerd}
+  - {id: jas.variabele.duur_np, status: geïmplementeerd}
   - {id: jas.waarde.numeriek, status: gepland}
 confusable_classes:
   - {klasse: Parameter en parameterwaarde, reden: "variabel per geval of constant voor iedereen"}

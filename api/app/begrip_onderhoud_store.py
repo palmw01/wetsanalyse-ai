@@ -32,7 +32,7 @@ from bronmodel import tekst_hash
 from sqlalchemy import insert, select, update
 
 from . import begrip_relatie_store, begrip_store, begrippen_run_store, db
-from .annotatie_v2_contracts import BEOORDEELD
+from .annotatie_v2_contracts import BEOORDEELD, is_vervangen
 from .begrip_manifest import _vindplaats
 from .begrip_onderhoud_contracts import Bevestiging, Bevestigingen, BuitenBehandeling, Herkoppeling
 from .werkgebied_inventaris import Resolver, inventaris, inventaris_met_bronbomen, nodes_met_titel
@@ -113,6 +113,8 @@ def _redenen(k: dict, huidig: dict | None, bron: list[dict]) -> list[str]:
         uit.append("De annotatie bestaat niet meer.")
     elif k["actualiteit"] == "verworpen":
         uit.append("Een jurist verwierp de annotatie.")
+    elif k["actualiteit"] == "gewijzigd" and is_vervangen(huidig or {}):
+        uit.append("De annotatie is vervangen: Lex annoteerde de bepaling opnieuw en maakte dit voorstel niet meer.")
     elif k["actualiteit"] == "gewijzigd":
         uit.append("De annotatie is verouderd: de wettekst onder het anker veranderde en de bepaling is opnieuw "
                    "geannoteerd." if (huidig or {}).get("verouderd")
@@ -145,7 +147,7 @@ def opvolgers(ref: dict, oud_element_id: str, kandidaten: list[dict], primair: d
     oude = {a["bron_iri"]: a for a in ref.get("ankers", [])}
     uit = []
     for e in kandidaten:
-        if e["id"] == oud_element_id or e.get("verouderd") or e.get("lifecycle") == "rejected":
+        if e["id"] == oud_element_id or e.get("verouderd") or e.get("lifecycle") == "rejected" or is_vervangen(e):
             continue
         ankers = e.get("ankers") or []
         if not (any(a["bron_iri"] in oude for a in ankers) or e.get("eigenaar_iri") == ref.get("eigenaar_iri")):
@@ -233,7 +235,7 @@ async def herbeoordelingen(werkgebied: dict, resolve: Resolver, begrip_id: str |
             kan_opvolgen = k["actualiteit"] != "actueel" or (h or {}).get("verouderd")
             # Bevestigen: de annotatie bestaat nog, is niet verworpen of door herannotatie vervangen, en
             # elk fragment staat letterlijk op zijn plek – anders hoort de bepaling opnieuw geannoteerd.
-            kan_bevestigen = (h is not None and h.get("lifecycle") != "rejected" and not h.get("verouderd")
+            kan_bevestigen = (h is not None and h.get("lifecycle") != "rejected" and not h.get("verouderd") and not is_vervangen(h)
                               and all(x["stand"] == "ongewijzigd" or (x["stand"] == "gewijzigd" and x["fragment_gelijk"])
                                       for x in bron_signalen(h.get("ankers", []), nodes, opgehaald)))
             opv = opvolgers(ref, k["element_id"], inv["elementen"], primair, row.id, k["rol"]) if kan_opvolgen else []
@@ -313,7 +315,7 @@ async def _bevestig_in(conn, begrip_id: str, koppeling_id: str, nodes: dict[str,
     """Eén nieuwe bewijsstand naast de oude, of `None` als er niets te bevestigen is."""
     oud = await _koppeling_rij(conn, begrip_id, koppeling_id)
     h = (await begrip_store._huidige_elementen(conn, {oud.element_id})).get(oud.element_id)
-    if h is None or h.get("lifecycle") == "rejected" or h.get("verouderd"):
+    if h is None or h.get("lifecycle") == "rejected" or h.get("verouderd") or is_vervangen(h):
         raise HTTPException(422, {"fout": "niet_te_bevestigen", "koppeling_id": koppeling_id,
                                   "melding": "Deze annotatie bestaat niet meer, is verworpen of door een nieuwe "
                                              "annotatie vervangen; herkoppel of koppel los."})
