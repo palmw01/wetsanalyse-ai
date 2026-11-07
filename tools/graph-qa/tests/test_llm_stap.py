@@ -142,3 +142,25 @@ def test_een_fout_van_het_model_gaat_naar_de_aanroeper():
             raise RuntimeError("provider weg")
     with pytest.raises(RuntimeError, match="provider weg"):
         vraag_tool(Kapot(), Rol.KAARTACTIE, verzoek=_verzoek(), pogingen=2)
+
+
+# --- H5d: herhalen alleen als een tweede poging iets kan opleveren ---------------------------------
+
+@pytest.mark.parametrize("stop", ["refusal", "max_tokens"])
+def test_na_een_weigering_of_afkapping_geen_tweede_poging(stop):
+    llm = FakeLLM([response([text_block("nee")], stop), _tool({"a": 1})])
+    meting: dict = {}
+    uit = vraag_tool(llm, Rol.KAARTACTIE, verzoek=_verzoek(), pogingen=2, meting=meting, afgekapt_teller="afgekapt")
+    assert (uit.waarde, uit.pogingen, str(uit.stopreden)) == (None, 1, stop) and len(llm.calls) == 1
+    assert meting["llm_calls"] == 1 and meting.get("afgekapt", 0) == (1 if stop == "max_tokens" else 0)
+
+
+@pytest.mark.parametrize("eerste", [
+    response([text_block("Ik denk dat …")], "end_turn"),            # tekst in plaats van de tool
+    _tool({"items": "geen lijst"}),                                # de tool, maar onbruikbaar
+    response([text_block("…")], "pause_turn"),
+])
+def test_tekst_of_onbruikbare_invoer_krijgt_wel_een_tweede_poging(eerste):
+    llm = FakeLLM([eerste, _tool({"items": [1]})])
+    uit = vraag_tool(llm, Rol.BEGRIP_KAART, verzoek=_verzoek(), pogingen=2, haal=lijst("items"))
+    assert uit.waarde == [1] and uit.pogingen == 2 and len(llm.calls) == 2

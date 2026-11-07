@@ -343,7 +343,8 @@ def test_afgekapte_modelantwoorden_worden_geteld_en_budget_is_ruim():
     k = _kandidaat(["Tijdsaanduiding", "Rechtsobject"], ["TEMPORAL_DURATION", "NOMINALIZED_ACTION"])
     meting = {}
     classificeer(Afgekapt(), "m", [k], "tekst", meting=meting)
-    assert meting["afgekapt"] == 2 and verzoeken[0]["max_tokens"] >= 1536
+    # Afgekapt is geen reden voor een tweede poging: met hetzelfde budget stuit hij weer op dezelfde grens (H5d).
+    assert meting["afgekapt"] == 1 and meting["llm_calls"] == 1 and verzoeken[0]["max_tokens"] >= 1536
     t = Twijfel(label=k.label, reden="CLASSIFIER_ABSTAIN", alternatieven=("Tijdsaanduiding",))
     beoordeel(Afgekapt(), "m", [t], {k.label: k}, "tekst", meting)
     assert meting["review_afgekapt"] == 1 and verzoeken[-1]["max_tokens"] >= 1536
