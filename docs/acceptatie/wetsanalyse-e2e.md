@@ -124,6 +124,45 @@ onnodig veel beurten of tokens, en wat zou een jurist niet begrijpen.
 Toets op eigenschappen en niet op exacte tekst: annotatieruns verschillen sterk. Dit is ook geen blinde meting
 van de zoekkwaliteit als het onderwerp al in de ontwikkelsets zit.
 
+## Vergelijken met een bestaande analyse
+
+Ligt er van hetzelfde onderwerp al een analyse die buiten het platform is gemaakt, bijvoorbeeld een wiki-export
+met per bepaling een tabel *Klasse | Formulering uit wettekst | Toelichting*, dan is die een referentie voor
+stap 1 tot en met 3. Zo'n analyse is materiaal van derden. Ze staat met alles wat eruit komt in
+`docs/acceptatie/lokaal/<naam>/`: de export, de referentie, de transcriptie van de diagrammen en het rapport.
+Toets elk bestand met `git check-ignore -v`.
+
+1. **Inlezen** (coördinator): `cd tools/graph-qa && uv run python -m eval.extern_dossier lees --export <map>
+   --uit <lokaal>/referentie.json`. Geef met `--bronteksten` de wettekst uit `bron_lezen` mee, anders telt het
+   citaat uit de export voor de letterlijkheid. Controleer de aantallen per bepaling met een steekproef tegen
+   de pagina.
+2. **Diagrammen**, als die er zijn: een plaatje bevat geen machinaal leesbare knopen. Schrijf de knopen
+   (klasse, label, letterlijk/nee/impliciet) en de kanten (van, naar, type) één keer over naar
+   `<lokaal>/relaties.json`, in de vorm die `lees_relaties` beschrijft, en laat de agent-jurist ze naast de tabel
+   controleren. Verschillen tussen diagram en tabel zijn een bevinding over de referentie.
+3. **Werkgebied**: de agent-jurist neemt analysevraag, deelvragen, praktijkvoorbeeld en wat erbuiten valt
+   letterlijk over uit het dossier; wat er niet in staat (de gebeurtenis), vult hij aan en noteert hij.
+4. **Vergelijken** na stap 3: bewaar de uitvoer van `werkgebied_lezen` als `<lokaal>/werkgebied.json`, en draai
+   `uv run python -m eval.extern_dossier vergelijk --referentie … --platform <lokaal>/werkgebied.json
+   --werkgebied <lokaal>/werkgebied.json [--relaties …] --uit <lokaal>/vergelijking.json`.
+5. **Beoordelen**: de agent-jurist loopt de lijsten *gemist*, *klasse anders* en *alleen platform* door. Een gemist
+   fragment kan anders begrensd maar juist zijn, een klasseverschil kan de export zijn die afwijkt van de skill.
+   Elk oordeel komt met argument in het logboek.
+
+Wat de vergelijking zegt:
+
+- **Recall per klasse**, strikt over de fragmenten die letterlijk in de bron staan, ruim over alles. Een
+  parafrase of los operatorwoord kan Lex niet zo markeren.
+- **Bronselectie per deelvraag**, tegen de deelvraagnummers in de bronnentabel.
+- **Relaties** legt het platform in activiteit 2 niet vast. Gemeten wordt alleen of beide eindpunten van een
+  kant zijn geannoteerd.
+- Uitgesplitst naar de status in de export (definitief of concept): een concept is een zwakkere referentie.
+
+Het is één analyse, geen gold, en zit het onderwerp al in de ontwikkelsets, dan is het geen blinde meting. Wil je
+de annotatieketen erop meten, maak dan lokaal een set in de vorm van `eval/golden_annotatie.jsonl`, met de
+letterlijke fragmenten van de definitieve bepalingen als ankers. Draai die met `run_eval.py --annotatie --golden
+<pad>` (kost geld, dus alleen na akkoord).
+
 ## Verbeteren
 
 Elke bevinding krijgt een soort en een zwaarte:
