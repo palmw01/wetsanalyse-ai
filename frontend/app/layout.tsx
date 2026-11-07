@@ -8,23 +8,13 @@ import { sans, mono } from "./fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Wetsanalyse | Belastingdienst",
+  title: "Lex · Wetsanalyse",
   description:
     "Gestructureerd, brongetrouw en traceerbaar duiden van Nederlandse wet- en regelgeving (JAS).",
-  manifest: "/manifest.webmanifest",
-  applicationName: "Wetsanalyse | Belastingdienst",
-  appleWebApp: { capable: true, title: "Wetsanalyse", statusBarStyle: "default" },
-  icons: {
-    icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
-      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
-      { url: "/favicon-48.png", sizes: "48x48", type: "image/png" },
-      { url: "/favicon-192.png", sizes: "192x192", type: "image/png" },
-    ],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
-  },
+  // Favicon, apple-icon en manifest komen uit de bestandsconventies van Next (`app/favicon.ico`,
+  // `app/icon.svg`, `app/apple-icon.png`, `app/manifest.ts`), gemaakt met `npm run iconen`.
+  applicationName: "Lex – Wetsanalyse",
+  appleWebApp: { capable: true, title: "Lex", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

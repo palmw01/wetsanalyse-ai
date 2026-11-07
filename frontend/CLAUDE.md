@@ -108,11 +108,27 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
 ### Vormgeving (Rijkshuisstijl, Belastingdienst-stijlvak)
 
 - **Tokens, geen hex-waarden.** Kleur en typografie lopen via CSS-variabelen in `app/globals.css` →
-  Tailwind in `tailwind.config.ts` (en `lib/jas.ts` voor de JAS-badges). Het logo-asset
-  `public/belastingdienst-logo.svg` blijft ongewijzigd; de JAS-klassekleuren komen exact uit
+  Tailwind in `tailwind.config.ts` (en `lib/jas.ts` voor de JAS-badges). De JAS-klassekleuren komen exact uit
   `docs/wetsanalyse/wa-table.png`. Uitzondering: `app/global-error.tsx` gebruikt inline stijl met
   vaste huisstijlkleuren, omdat die boundary de hele documentboom vervangt en de app-CSS niet kan
   veronderstellen.
+- **Het beeldmerk van Lex** (besluit gebruiker 7 nov 2026, richting *Markering*): drie regels wettekst, in de
+  middelste één fragment gemarkeerd. Het is het logo van de applicatie en vervangt het Belastingdienst-logo op
+  elke plek (besluit gebruiker 7 nov 2026); geen wapen, lint of ander overheidsbeeld. `LexLogo` (in `components/ui/LexMerk.tsx`;
+  merk + "Lex" + "Juridische analyse met AI") staat in de sidebar (`compact`) en boven `AuthFrame` (`groot`).
+  - **Eén bron**: `merk/lex-merk.svg` (raster van 32 met even maten, zodat het op 16 px op hele pixels valt) en
+    `merk/lex-merk-mono.svg` (currentColor, voor print en getinte standen). `npm run iconen`
+    (`scripts/genereer-iconen.mjs`, sharp) maakt er `app/icon.svg` (met een donkere stand via
+    `prefers-color-scheme`), `app/favicon.ico` (16/32/48), `app/apple-icon.png` (180, opaak) en
+    `public/icons/` (192, 512, maskable met de veilige zone) van. Next zet de `<link>`-tags; `app/manifest.ts`
+    is het manifest. Wijzig de bron en draai het script, nooit de uitvoer.
+  - **In de app** is het `components/ui/LexMerk` (decoratief, `aria-hidden`), met kleuren uit de merktokens
+    `--merk-vlak`, `--merk-vorm` en `--merk-markering` in `globals.css`. De donkere stand ligt klaar achter
+    `data-theme="dark"`: de tegel vervalt, de regels worden licht, het geel blijft. Het geel is een merkkleur en
+    geen statuskleur: niet op knoppen of labels.
+  - `app/iconen.test.ts` bewaakt de formaten, de veilige zone, SVG's zonder font of beeld, één themakleur
+    (`--lint`), dat component en bron dezelfde rechthoeken tekenen, en dat het Rijkswapen en het
+    Belastingdienst-logo niet terugkomen.
 - **De root-font-size is overal 100%.** Schaal met de Tailwind-tekstklassen, niet met een globale
   krimp.
 - **Primitives in `components/ui/`**: 40px-knoppen/velden die onder de `coarse:`-variant
@@ -1596,7 +1612,7 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
 
 Alles wat geen app-schil is – inloggen, 2FA, de eerste beheerder, registratie, de blokkerende
 disclaimer en de fout-/laadpagina's – gebruikt **`components/auth/AuthFrame.tsx`**: een gecentreerde
-kaart op `bg-surface` met het logo erboven. Bewust geen vervaagde werkplek achter het inlogscherm: dat
+kaart op `bg-surface` met het logo van Lex (`LexLogo`) erboven. Bewust geen vervaagde werkplek achter het inlogscherm: dat
 leest als "hij laadt", niet als "log eerst in".
 
 - **De app-schil scrollt niet mee, ook niet op mobiel.** De body is `min-h-screen min-h-[100dvh]`:

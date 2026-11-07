@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Beeldmerk van Lex: drie regels wettekst, in de middelste één fragment gemarkeerd.
+       Raster van 32 met even maten, zodat het op 16 en 32 px op hele pixels valt.
+       Rollen: vlak (lintblauw), vorm (wit), markering (markeerstiftgeel). Dit bestand is de bron:
+       `npm run iconen` maakt er alle iconen van, en components/ui/LexMerk.tsx tekent dezelfde
+       rechthoeken (app/iconen.test.ts bewaakt beide). -->
+  <rect class="vlak" width="32" height="32" rx="7" fill="#154273"/>
+  <g class="vorm" fill="#FFFFFF">
+    <rect x="6" y="6" width="20" height="4"/>
+    <rect x="6" y="14" width="6" height="4"/>
+    <rect x="6" y="22" width="14" height="4"/>
+  </g>
+  <rect class="markering" x="16" y="14" width="10" height="4" fill="#FFD84D"/>
+</svg>

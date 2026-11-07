@@ -1,7 +1,7 @@
 "use client";
 
 import { Opstellen } from "@/components/ui/Icoon";
-import Image from "next/image";
+import { LexLogo } from "@/components/ui/LexMerk";
 import Link from "next/link";
 import { InstellingenLink } from "@/components/instellingen/InstellingenLink";
 import { usePathname } from "next/navigation";
@@ -52,7 +52,7 @@ interface Props {
   verbruik?: Verbruiksstand | null;
 }
 
-/** De linker-sidebar van de werkplek: bovenin het Belastingdienst-logo, daaronder de chatgeschiedenis,
+/** De linker-sidebar van de werkplek: bovenin het logo van Lex, daaronder de chatgeschiedenis,
  *  onderin het instellingen-/gebruikersblok. Vult de volle hoogte; alleen de gesprekslijst scrollt. */
 export function GesprekSidebar({
   gesprekken,
@@ -106,22 +106,8 @@ export function GesprekSidebar({
           niet aan de bel, zodat het net als het gebruikersmenu onderin de volle sidebarbreedte
           volgt (inset-x-3) en nooit buiten de kolom valt. */}
       <div className="relative flex items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        {/* Het officiële logo blijft ongewijzigd (het woordmerk zit erin); de naam van de assistent
-            en wat hij doet staan eronder, als tekst. */}
-        <Link href="/" aria-label="Lex, juridische analyse met AI – naar de werkplek" className="block py-1">
-          <Image
-            src="/belastingdienst-logo.svg"
-            alt="Belastingdienst"
-            width={275}
-            height={125}
-            unoptimized
-            priority
-            className="block h-auto w-[8.5rem]"
-          />
-          <span className="mt-1 block pl-[0.15rem] leading-tight">
-            <span className="block font-display text-base font-semibold text-lint">Lex</span>
-            <span className="block text-xs text-muted">Juridische analyse met AI</span>
-          </span>
+        <Link href="/" aria-label="Lex, juridische analyse met AI – naar de werkplek" className="block py-1.5">
+          <LexLogo />
         </Link>
         <div className="flex items-center">
           <BerichtenPanel positie="inset-x-3 top-full mt-1" containerClassName="static" />

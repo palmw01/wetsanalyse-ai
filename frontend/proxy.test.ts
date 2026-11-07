@@ -53,8 +53,12 @@ describe("routegate-matcher", () => {
 
   it("laat echte statische bestanden met rust", () => {
     expect(bewaakt("/favicon.ico")).toBe(false);
-    expect(bewaakt("/belastingdienst-logo.svg")).toBe(false);
-    expect(bewaakt("/apple-touch-icon.png")).toBe(false);
     expect(bewaakt("/manifest.webmanifest")).toBe(false);
+    // De iconen van Lex (Next-bestandsconventies en het manifest): ook zonder sessie bereikbaar,
+    // anders krijgt het inlogscherm geen favicon en een installatie geen icoon.
+    expect(bewaakt("/icon.svg")).toBe(false);
+    expect(bewaakt("/apple-icon.png")).toBe(false);
+    expect(bewaakt("/icons/icon-192.png")).toBe(false);
+    expect(bewaakt("/icons/icon-maskable-512.png")).toBe(false);
   });
 });

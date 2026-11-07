@@ -239,7 +239,6 @@ Niet alles in deze repository is van ons, en die delen vallen buiten de EUPL:
 |---|---|
 | [`docs/wetsanalyse/wetsanalyse-rijk/`](docs/wetsanalyse/wetsanalyse-rijk/BRON.md) | De methode en het JAS, van het ministerie van BZK, onder de **W3C Software and Document License** – zie de [`LICENSE`](docs/wetsanalyse/wetsanalyse-rijk/LICENSE) in die map. |
 | `docs/wetsanalyse/WetsTaal.md` | De WetsTaal-handreiking (Belastingdienst / PNA Group), publiek gepubliceerd. |
-| `frontend/public/belastingdienst-logo.svg` | Beeldmerk van de Belastingdienst. Merkrecht; geen onderdeel van de licentie en niet vrij herbruikbaar. |
 | De wettekst in de graaf | Van overheid.nl (SRU + BWB-repository), **CC-0**. Geen API-sleutel nodig. |
 | GraphDB | Vereist een eigen licentie van Ontotext; zonder licentiebestand komt de database read-only op. |
 
