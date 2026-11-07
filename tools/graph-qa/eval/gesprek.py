@@ -12,7 +12,7 @@ eval-kanaal in de agent: wat hier meetbaar is, ziet de jurist ook.
 Verwachtingen per beurt (alle optioneel):
   route        : één van de gezien-routes (`annotaties_lezen`, `annotatie`, `advies`, `afgewezen`,
                  `definitie`, `duiding`, `algemeen`, `deelvragen`, `begrippen`, `werkgebied`, `overzicht`,
-                 `begrippen_lezen`, `bronselectie`) die in deze beurt moet voorkomen
+                 `begrippen_lezen`, `bronselectie`, `verduidelijken`) die in deze beurt moet voorkomen
   niet_route   : routes die NIET mogen voorkomen
   tools_wel    : tools waarvan er minstens één moet zijn aangeroepen
   tools_niet   : tools die niet aangeroepen mogen worden
@@ -58,6 +58,8 @@ _ROUTE_REGELS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"^Lex · (?:bepaalt met je de bronnen per deelvraag|pakt de bronselectie op|verwerkt je keuze in "
                 r"de bronselectie|zoekt met je een bepaling op)"), "bronselectie"),
     (re.compile(r"^Lex · meer dan één artikel genoemd"), "afgewezen"),
+    # Een open keuzevraag die de vervolgvraag niet beantwoordt (R3): Lex vraagt opnieuw, zonder model.
+    (re.compile(r"^Lex · vraagt eerst welk artikel je bedoelt"), "verduidelijken"),
     (re.compile(r"^Supervisor · buiten de wet"), "afgewezen"),
     (re.compile(r"^Supervisor · kiest de annotatie-worker"), "annotatie"),
     # De werkgebied-worker: samenstellen, een klik op een kaartje, of het dossier aanvullen.
