@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import re
 
-from .pdf_opmaak import BEGRIP, BLOK_BEGIN, BLOK_EIND, INHOUD, MARKERING, PAGINA
+from .pdf_opmaak import BEGRIP, BLOK_BEGIN, BLOK_EIND, INHOUD, MARKERING, PAGINA, TITELBLAD
 
 _KOP = {"Title": "#", "Heading1": "##", "Heading2": "###", "Heading3": "####", BEGRIP: "####"}
 _TEKENS = re.compile(r"([\\`*_\[\]<>])")
@@ -29,6 +29,23 @@ def markdown(regels: list[tuple[str, str]]) -> str:
     uit: list[str] = []
     for stijl, tekst in regels:
         if stijl in (BLOK_BEGIN, BLOK_EIND):
+            continue
+        if stijl.startswith(TITELBLAD):
+            veld = stijl.removeprefix(TITELBLAD)
+            if veld == "titel":
+                uit.append(f"# {_TEKENS.sub(r'\\\1', tekst)}")
+            elif veld == "rij":
+                label, _, waarde = tekst.partition(": ")
+                rij = f"- **{_veilig(label)}:** {_veilig(waarde)}"
+                # De rijen vormen samen één lijst.
+                if uit and uit[-1].startswith("- **"):
+                    uit[-1] += "\n" + rij
+                else:
+                    uit.append(rij)
+            elif veld == "voetnoot":
+                uit.append(f"*{_veilig(tekst)}*")
+            else:
+                uit.append(_alinea(tekst))
             continue
         if stijl == PAGINA:
             if uit and uit[-1] != "---":

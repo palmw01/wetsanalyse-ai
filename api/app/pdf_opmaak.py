@@ -42,6 +42,16 @@ BLOK_BEGIN, BLOK_EIND = "BlokBegin", "BlokEind"
 BEGRIP = "Begrip"
 """De kop van een begrip: die van `Heading3`, maar wel in de inhoudsopgave. Een begrip heeft een eigen pagina."""
 
+TITELBLAD = "Titelblad:"
+"""Voorvoegsel: `Titelblad:<veld>` is een veld van het titelblad (`soort`, `titel`, `vraag`, `rij`, `regelingen`, `voetnoot`).
+Staan zulke regels vooraan, dan worden ze op pagina 1 getekend, zonder kop- en voetregel. Een `rij` is "Label: waarde"."""
+TITELBLAD_VELDEN = ("soort", "titel", "vraag", "rij", "regelingen", "voetnoot")
+
+MERK = (("vlak", 0, 0, 32, 32, LINTBLAUW), ("vorm", 6, 6, 20, 4, "#FFFFFF"), ("vorm", 6, 14, 6, 4, "#FFFFFF"),
+        ("vorm", 6, 22, 14, 4, "#FFFFFF"), ("markering", 16, 14, 10, 4, "#FFD84D"))
+"""Het Lex-beeldmerk op een raster van 32, zoals `frontend/merk/lex-merk.svg`; een test vergelijkt beide."""
+STATUSVLAK = "#E8EEF5"
+
 _NIVEAU = {"Heading1": 0, "Heading2": 1, "Heading3": 2, BEGRIP: 2}
 _IN_INHOUD = 2                                 # koppen boven dit niveau staan in de inhoudsopgave, plus elk begrip
 
@@ -112,7 +122,8 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
     from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib.units import mm
     from reportlab.pdfgen.canvas import Canvas
-    from reportlab.platypus import BaseDocTemplate, Flowable, Frame, KeepTogether, PageBreakIfNotEmpty, PageTemplate, Paragraph, TableStyle
+    from reportlab.platypus import (BaseDocTemplate, Flowable, Frame, KeepTogether, NextPageTemplate, PageBreak, PageBreakIfNotEmpty,
+                                    PageTemplate, Paragraph, TableStyle)
     from reportlab.platypus.tableofcontents import TableOfContents
 
     _registreer()
@@ -159,8 +170,85 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
             self.canv.restoreState()
             self.alinea.drawOn(self.canv, 0, 0)
 
+    blad = [(stijl.removeprefix(TITELBLAD), tekst) for stijl, tekst in regels if stijl.startswith(TITELBLAD)]
+    regels = [(stijl, tekst) for stijl, tekst in regels if not stijl.startswith(TITELBLAD)]
+
+    def titelblad(canvas, doc):
+        """Pagina 1: merk, titel, vraag en een statusblok, op vaste plekken. Geen kop- of voetregel."""
+        breedte, hoogte = A4
+        canvas.saveState()
+        canvas._zonder_voet = True
+        canvas.setFillColor(HexColor(LINTBLAUW))
+        canvas.rect(0, hoogte - 6 * mm, breedte, 6 * mm, stroke=0, fill=1)
+        maat, x0, y0 = 13 * mm / 32, links, hoogte - 22 * mm
+        for _rol, x, y, w, h, kleur in MERK:
+            canvas.setFillColor(HexColor(kleur))
+            if _rol == "vlak":
+                canvas.roundRect(x0, y0 - 32 * maat, w * maat, h * maat, 7 * maat, stroke=0, fill=1)
+            else:
+                canvas.rect(x0 + x * maat, y0 - (y + h) * maat, w * maat, h * maat, stroke=0, fill=1)
+        canvas.setFont("Fira-SemiBold", 11)
+        canvas.setFillColor(HexColor(LINTBLAUW))
+        canvas.drawString(x0 + 17 * mm, y0 - 8.5 * mm, "Lex · Wetsanalyse")
+
+        tekstbreedte = breedte - links - rechts
+        y = hoogte - 90 * mm
+        velden: dict[str, list[str]] = {}
+        for veld, tekst in blad:
+            velden.setdefault(veld, []).append(tekst)
+
+        def alinea(tekst, stijl, y):
+            p = Paragraph(opgemaakt(tekst), stijl)
+            _w, h = p.wrap(tekstbreedte, hoogte)
+            p.drawOn(canvas, links, y - h)
+            return y - h
+
+        for t in velden.get("soort", []):
+            y = alinea(t.upper(), ParagraphStyle("Soort", fontName="Fira-SemiBold", fontSize=9, leading=12,
+                                                 textColor=HexColor(GRIJS)), y) - 4 * mm
+        for t in velden.get("titel", []):
+            y = alinea(t, ParagraphStyle("Titelbladtitel", fontName="Fira-SemiBold", fontSize=26, leading=31,
+                                         textColor=HexColor(LINTBLAUW)), y) - 4 * mm
+        canvas.setStrokeColor(HexColor(LINTBLAUW))
+        canvas.setLineWidth(2)
+        canvas.line(links, y, links + 20 * mm, y)
+        y -= 8 * mm
+        for t in velden.get("vraag", []):
+            y = alinea(t, ParagraphStyle("Titelbladvraag", fontName="Fira", fontSize=11.5, leading=16,
+                                         textColor=HexColor(GRIJS)), y) - 10 * mm
+
+        rijen = [r.split(": ", 1) if ": " in r else (r, "") for r in velden.get("rij", [])]
+        if rijen:
+            regelhoogte = 6.2 * mm
+            blokhoogte = len(rijen) * regelhoogte + 8 * mm
+            y = min(y, 120 * mm)
+            canvas.setFillColor(HexColor(STATUSVLAK))
+            canvas.rect(links, y - blokhoogte, tekstbreedte, blokhoogte, stroke=0, fill=1)
+            ry = y - 4 * mm - 4.2 * mm
+            for label, waarde in rijen:
+                canvas.setFillColor(HexColor(GRIJS))
+                canvas.setFont("Fira-SemiBold", 9)
+                canvas.drawString(links + 6 * mm, ry, opgemaakt_plat(label))
+                canvas.setFillColor(HexColor(TEKST))
+                canvas.setFont("Fira", 9.5)
+                canvas.drawString(links + 36 * mm, ry, opgemaakt_plat(waarde)[:95])
+                ry -= regelhoogte
+            y -= blokhoogte + 8 * mm
+        for t in velden.get("regelingen", []):
+            y = alinea(t, ParagraphStyle("Titelbladregelingen", fontName="Fira", fontSize=9, leading=13,
+                                         textColor=HexColor(GRIJS)), y) - 4 * mm
+        for t in velden.get("voetnoot", []):
+            p = Paragraph(opgemaakt(t), ParagraphStyle("Titelbladvoet", fontName="Fira", fontSize=8, leading=11,
+                                                       textColor=HexColor(GRIJS)))
+            _w, h = p.wrap(tekstbreedte, hoogte)
+            p.drawOn(canvas, links, 18 * mm)
+        canvas.restoreState()
+        if paginas is not None:
+            paginas.append({"pagina": doc.page, "kopregel": "", "voetregel": "", "titelblad": True})
+
     def kader(canvas, doc):
         """Kop- en voetregel; de voetregel krijgt zijn totaal pas bij het opslaan (`Teller`)."""
+        canvas._zonder_voet = False
         canvas.saveState()
         kopregel = ""
         if doc.page > 1:
@@ -180,7 +268,7 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
         canvas.drawString(links, 10 * mm, opgemaakt_plat(voet[:100]))
         canvas.restoreState()
         if paginas is not None:
-            paginas.append({"pagina": doc.page, "kopregel": kopregel, "voetregel": voet[:100]})
+            paginas.append({"pagina": doc.page, "kopregel": kopregel, "voetregel": voet[:100], "titelblad": False})
 
     class Teller(Canvas):
         """Schrijft "Pagina n van N": het totaal is pas bekend als alle pagina's gezet zijn."""
@@ -199,6 +287,9 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
                 p["totaal"] = totaal
             for stand in self._standen:
                 self.__dict__.update(stand)
+                if getattr(self, "_zonder_voet", False):
+                    super().showPage()
+                    continue
                 self.saveState()
                 self.setFont("Fira", 8)
                 self.setFillColor(HexColor(GRIJS))
@@ -232,6 +323,20 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
             self.canv.addOutlineEntry(flowable.platte_tekst, flowable.sleutel, flowable.niveau, closed=flowable.niveau > 0)
             if flowable.in_inhoud:
                 self.notify("TOCEntry", (flowable.niveau, flowable.platte_tekst, self.page, flowable.sleutel))
+
+    class _Bladwijzer(Flowable):
+        """Een bladwijzer zonder tekst op de pagina: het titelblad staat zo ook in het overzicht."""
+
+        def __init__(self, naam):
+            super().__init__()
+            self.naam = naam
+
+        def wrap(self, *_):
+            return 0, 0
+
+        def draw(self):
+            self.canv.bookmarkPage("titelblad")
+            self.canv.addOutlineEntry(self.naam, "titelblad", 0, closed=False)
 
     heeft_inhoud, laatste, blok = False, -1, None
     for stijl, tekst in regels:
@@ -270,8 +375,14 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
     doc = Document(output, pagesize=A4, title=titel, author=auteur, subject=onderwerp, keywords=trefwoorden,
                    creator="Lex – wetsanalyseplatform", lang="nl-NL", displayDocTitle=True, initialFontName="Fira",
                    leftMargin=links, rightMargin=rechts, topMargin=boven, bottomMargin=onder)
-    doc.addPageTemplates(PageTemplate(id="pagina", onPageEnd=kader, frames=[
-        Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id="tekst")]))
+    sjablonen = [PageTemplate(id="pagina", onPageEnd=kader, frames=[
+        Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id="tekst")])]
+    if blad:
+        # Het titelblad is een eigen sjabloon met een leeg kader: alles erop tekent `titelblad`.
+        sjablonen.insert(0, PageTemplate(id="titelblad", onPage=titelblad, frames=[
+            Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id="blad")]))
+        verhaal[:0] = [NextPageTemplate("pagina"), _Bladwijzer("Titelblad"), PageBreak()]
+    doc.addPageTemplates(sjablonen)
     if heeft_inhoud:
         doc.multiBuild(verhaal, canvasmaker=Teller)
     else:
