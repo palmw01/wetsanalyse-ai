@@ -53,6 +53,7 @@ export type DossierVeld = (typeof DOSSIER_VELDEN)[number]["veld"];
 /** Het hele werkgebied als één bestand (api `werkgebied_export`): één vaste inhoud, op de stand van nu. */
 export const WERKGEBIED_EXPORT_FORMATEN = [
   { formaat: "pdf" as const, label: "PDF van het werkgebied", uitleg: "dossier, bronnen met wettekst, annotaties en begrippen" },
+  { formaat: "md" as const, label: "Rapport als Markdown", uitleg: "dezelfde inhoud als de PDF, als tekst" },
 ];
 
 export const ROL_LABEL: Record<BronRol, string> = {

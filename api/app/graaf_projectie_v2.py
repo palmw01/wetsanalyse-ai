@@ -19,6 +19,7 @@ from typing import Any
 import httpx
 from rdflib import BNode, Graph, Literal, Namespace, RDF, URIRef
 from sqlalchemy import select, update
+from sqlalchemy.exc import SQLAlchemyError
 
 from . import db
 from .config import get_settings
@@ -536,6 +537,14 @@ def na_mutatie(laag_ids) -> None:
         taak.add_done_callback(_taken.discard)
 
 
+def is_verbindingsfout(exc: Exception) -> bool:
+    """Ligt GraphDB of de database eruit? Dan raakt het elke volgende rij ook, en stopt de ronde: anders wacht elke
+    rij een time-out af. Al het andere is een fout in die ene laag, en die houdt de rest niet op."""
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response.status_code >= 500
+    return isinstance(exc, (httpx.TransportError, SQLAlchemyError, OSError))
+
+
 async def reconcile() -> int:
     async with db.get_engine().connect() as conn:
         lagen = (await conn.execute(select(db.annotatie_v2_lagen))).mappings().all()
@@ -545,7 +554,13 @@ async def reconcile() -> int:
     count = 0
     for row in lagen:
         if manifest.get(row["id"]) != row["revisie"] or row["geprojecteerd_revisie"] != row["revisie"]:
-            count += bool(await projecteer(row["id"]))
+            try:
+                count += bool(await projecteer(row["id"]))
+            except Exception as exc:  # noqa: BLE001
+                if is_verbindingsfout(exc):
+                    raise
+                logger.warning("annotatie_v2_laag_niet_geprojecteerd",
+                               extra={"laag_id": row["id"], "fouttype": type(exc).__name__})
     if not lagen:
         async with httpx.AsyncClient(timeout=20) as client:
             r = await client.post(_repo() + "/statements", data={"update":

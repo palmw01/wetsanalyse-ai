@@ -30,7 +30,7 @@ from .users import (
     _valideer_email,
     get_user,
     get_user_by_email,
-    hash_password,
+    hash_wachtwoord,
     insert_user_met_hash,
 )
 
@@ -186,7 +186,7 @@ async def maak_aanvraag(voornaam: str, achternaam: str, email: str, wachtwoord: 
         achternaam=achternaam,
         email=norm_email,
         userid_voorstel=await unieke_userid(voornaam, achternaam),
-        password_hash=hash_password(wachtwoord),
+        password_hash=await hash_wachtwoord(wachtwoord),
         status="aangevraagd",
         created=now,
         updated=now,

@@ -91,6 +91,10 @@ export async function postAuthVerify(
   if (res.status === 429) {
     return { status: 429, body: { ok: false, code: "rate", userid: "", email: "", role: "" } };
   }
+  // De api is even vol (bcrypt-wachtrij): dat is geen fout wachtwoord.
+  if (res.status === 503) {
+    return { status: 503, body: { ok: false, code: "onbereikbaar", userid: "", email: "", role: "" } };
+  }
   const body = (await res
     .json()
     .catch(() => ({ ok: false, code: "invalid", userid: "", email: "", role: "" }))) as VerifyResult;

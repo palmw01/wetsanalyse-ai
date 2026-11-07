@@ -48,36 +48,6 @@ def prepare(writer: GraphDbWriter) -> None:
     writer.ensure_fts_connector()
 
 
-def run_import(
-    bwb_id: str, settings: Settings, writer: GraphDbWriter | None = None
-) -> ImportSummary:
-    """Voer de volledige importpijplijn uit voor één regeling.
-
-    Zonder meegegeven ``writer`` (losse aanroep) worden de waarborgen
-    (:func:`prepare`) eerst uitgevoerd; in een batch gebeurt dat één keer.
-
-    De structuurindex bevat hier alleen déze wet — een verwijzing naar een structuurdeel van een
-    ándere regeling blijft dus een open stub. Dat is geen tekortkoming van deze functie maar de
-    grens van één import: die kennis bestaat pas als de doelwet is gezien. `run_imports` haalt alle
-    wetten in één run binnen en heeft die grens niet.
-    """
-    logger.info("Start import voor %s (doel: GraphDB %s)", bwb_id, settings.graphdb_repository)
-
-    if writer is None:
-        writer = maak_writer(settings)
-        prepare(writer)
-
-    item = _verzamel(bwb_id, settings)
-    return _schrijf(
-        item,
-        writer,
-        structuurindex([item.batch]),
-        bepalingsindex([item.batch]),
-        writer.graaf_stand([bwb_id]),
-        settings,
-    )
-
-
 def _haal_en_parse(
     bwb_id: str, settings: Settings
 ) -> tuple[Wet, WtiInfo | None, Path, bool | None]:
@@ -172,8 +142,10 @@ def run_imports(bwb_ids: list[str], settings: Settings) -> list[ImportResult]:
     # met wat er wordt geschreven) is een similarity-index een momentopname: hij wordt bij het
     # aanmaken getraind over wat er op dát moment staat. In `prepare()` zou hij dus over een lege
     # graaf worden gebouwd en daarna nooit iets vinden.
-    if any(not summary.tegengehouden for summary in verwerkt.values()):
-        writer.ensure_similarity_index()
+    geschreven = [bwb_id for bwb_id, summary in verwerkt.items() if not summary.tegengehouden]
+    if geschreven:
+        # Kwam er een wet bij, dan mist een bestaande index die: bijvoorbeeld na een run waarin ze mislukte.
+        writer.ensure_similarity_index(herbouw=any(not stand[b].tekens for b in geschreven if b in stand))
 
     # De volgorde van `bwb_ids` aanhouden: het overzicht leest zoals de gebruiker het opgaf.
     resultaten: list[ImportResult] = []

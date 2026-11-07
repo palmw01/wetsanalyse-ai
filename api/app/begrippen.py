@@ -7,7 +7,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, Response
 
-from . import begrip_projectie, begrip_relatie_store, begrip_store as store, werkgebied_store
+from . import begrip_projectie, begrip_relatie_store, begrip_store as store, bestandsnaam, werkgebied_store
 from .auth import require_client
 from .begrip_contracts import (
     Accordering, BegripInvoer, BegripWijziging, GebruikInvoer, KoppelBeoordelingen, KoppelInvoer, KoppelWijziging, Revisie,
@@ -63,7 +63,7 @@ async def get_export(werkgebied_id: str, formaat: Literal["json", "csv", "ttl"] 
         data = await store.export(werkgebied_id, actor)
         body = store.json_export(data) if formaat == "json" else store.csv_export(data)
     return Response(body, media_type=_MIME[formaat],
-                    headers={"Content-Disposition": f'attachment; filename="begrippen.{formaat}"'})
+                    headers={"Content-Disposition": f'attachment; filename="{bestandsnaam.met_tijd("begrippen", formaat)}"'})
 
 
 @router.get("/conformiteit")

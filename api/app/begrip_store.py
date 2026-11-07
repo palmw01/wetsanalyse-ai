@@ -458,9 +458,9 @@ async def bewijzen(werkgebied: dict, element_ids: list[str], resolve: Resolver) 
                                   "melding": "Niet elk element valt binnen dit werkgebied, of het is verworpen "
                                              "of bestaat niet meer."})
     uit = {}
+    details = await annotaties.details(element_ids)
     for eid in dict.fromkeys(element_ids):
-        inv_el = per_id[eid]
-        detail = await annotaties.detail(eid)
+        detail, inv_el = details[eid], per_id[eid]
         el = detail["element"]
         sel = inv_el["selecties"][0]
         knoop = next((n for n in detail["bronnen"] if n["bron_iri"] == el["eigenaar_iri"]), None)
@@ -631,9 +631,12 @@ async def wijzig(werkgebied_id: str | None, begrip_id: str, w: BegripWijziging, 
     # `_gewijzigd` leest `detail` pas na het blok: de velden zijn pas onder het slot bekend.
     detail: dict = {}
     async with _gewijzigd(werkgebied_id, begrip_id, w.verwachte_revisie, actor, "begrip-gewijzigd",
-                          detail) as (_, row, stand):
+                          detail) as (conn, row, stand):
         oud = slank(row.inhoud)
         nieuw = met_afgeleid(oud, nieuw)
+        # Een generiek begrip heet één keer zo, ook na een nieuwe naam (`generiek_maken` toetst hetzelfde).
+        if werkgebied_id is None and _term(nieuw.get("naam", "")) != _term(oud.get("naam", "")):
+            await _toets_term(conn, nieuw.get("naam", ""), begrip_id)
         # Herkomst en `definitie_door` volgen uit de definitie en zijn dus geen eigen wijziging (een
         # begrip van vóór fase E mist het veld; opslaan zonder wijziging mag daar geen revisie van maken).
         detail["velden"] = sorted(k for k in nieuw if k not in ("definitie_door", "definitie_herkomst")
@@ -748,6 +751,7 @@ async def wijzig_koppeling(werkgebied_id: str, begrip_id: str, koppeling_id: str
     async with _gewijzigd(werkgebied_id, begrip_id, w.verwachte_revisie, actor, "koppeling-gewijzigd",
                           detail, passage=True) as (conn, _, stand):
         row = (await conn.execute(select(k).where(k.c.id == koppeling_id, k.c.begrip_id == begrip_id,
+                                                  k.c.werkgebied_id == werkgebied_id,
                                                   k.c.verwijderd.is_(None)))).first()
         if row is None:
             raise HTTPException(404, "Koppeling bestaat niet.")
@@ -783,7 +787,8 @@ async def beoordeel_koppelingen(werkgebied_id: str, begrip_id: str, w: KoppelBeo
     async with _gewijzigd(werkgebied_id, begrip_id, w.verwachte_revisie, actor, "koppeling-gewijzigd",
                           detail, passage=True) as (conn, _, stand):
         rijen = {r.id: r for r in (await conn.execute(select(k).where(
-            k.c.id.in_(w.koppeling_ids), k.c.begrip_id == begrip_id, k.c.verwijderd.is_(None)))).all()}
+            k.c.id.in_(w.koppeling_ids), k.c.begrip_id == begrip_id, k.c.werkgebied_id == werkgebied_id,
+            k.c.verwijderd.is_(None)))).all()}
         if onbekend := [i for i in w.koppeling_ids if i not in rijen]:
             raise HTTPException(404, {"fout": "onbekende_koppeling", "koppeling_ids": onbekend,
                                       "melding": f"{len(onbekend)} koppeling(en) bestaan niet (meer) bij dit begrip."})
@@ -817,6 +822,7 @@ async def ontkoppel(werkgebied_id: str, begrip_id: str, koppeling_id: str, verwa
     async with _gewijzigd(werkgebied_id, begrip_id, verwacht, actor, "koppeling-verwijderd",
                           {"koppeling": koppeling_id}, passage=True) as (conn, _, __):
         row = (await conn.execute(select(k.c.id).where(k.c.id == koppeling_id, k.c.begrip_id == begrip_id,
+                                                       k.c.werkgebied_id == werkgebied_id,
                                                        k.c.verwijderd.is_(None)))).first()
         if row is None:
             raise HTTPException(404, "Koppeling bestaat niet.")

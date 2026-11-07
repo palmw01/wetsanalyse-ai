@@ -88,11 +88,14 @@ export function begrippenAlsMarkdown(naam: string, begrippen: Pick<Begrip, "inho
   return [`# Begrippen – ${naam}`, "", ...begrippen.map((b) => begripAlsMarkdown(b).replace(/^# /, "## "))].join("\n").trim() + "\n";
 }
 
-/** Een bestandsnaam uit een titel: kleine letters, streepjes, zonder tekens die een bestandssysteem weigert. */
-export function bestandsnaam(titel: string, extensie = "md"): string {
+/** Een bestandsnaam uit een titel: kleine letters, streepjes, zonder tekens die een bestandssysteem weigert. Met datum en
+ *  tijd, zodat elke download een eigen bestand is; dezelfde vorm als de exports van de api (`app/bestandsnaam.py`). */
+export function bestandsnaam(titel: string, extensie = "md", nu = new Date()): string {
   const stam = titel.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase()
     .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "artefact";
-  return `${stam}.${extensie}`;
+  const twee = (n: number) => String(n).padStart(2, "0");
+  const dag = `${nu.getFullYear()}${twee(nu.getMonth() + 1)}${twee(nu.getDate())}`;
+  return `${stam}-${dag}-${twee(nu.getHours())}${twee(nu.getMinutes())}${twee(nu.getSeconds())}.${extensie}`;
 }
 
 /** De voorstellen van Lex per term, voor een oude versie van het artefact: wat er toen lag, zonder de passages. */

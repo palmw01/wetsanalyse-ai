@@ -43,6 +43,12 @@ async def _gesprek_or_404(store: GesprekStore, gesprek_id: str, user_id: str) ->
     return gesprek
 
 
+async def _eigen_gesprek_of_404(store: GesprekStore, gesprek_id: str, user_id: str) -> None:
+    """Zelfde controle, zonder de berichten te laden: voor schrijfroutes, die elke beurt langskomen."""
+    if await store.eigenaar_van(gesprek_id) != user_id:
+        raise HTTPException(status_code=404, detail=f"Onbekend gesprek: {gesprek_id}")
+
+
 async def _bestaand_werkgebied(werkgebied_id: str) -> None:
     """Werkgebieden zijn gedeeld, dus bestaan is genoeg; een gearchiveerd werkgebied telt niet."""
     if werkgebied_id:
@@ -90,7 +96,7 @@ async def voeg_bericht_toe(
     user_id: str = Depends(actieve_userid),
     store: GesprekStore = Depends(get_gesprek_store),
 ):
-    await _gesprek_or_404(store, gesprek_id, user_id)
+    await _eigen_gesprek_of_404(store, gesprek_id, user_id)
     if req.rol == Rol.assistant and req.artefact and req.run_id:
         # De versie van het artefact bij deze beurt (`artefact_versies`): een gemak, nooit een voorwaarde.
         try:
@@ -110,7 +116,7 @@ async def wijzig_gesprek(
     user_id: str = Depends(actieve_userid),
     store: GesprekStore = Depends(get_gesprek_store),
 ):
-    await _gesprek_or_404(store, gesprek_id, user_id)
+    await _eigen_gesprek_of_404(store, gesprek_id, user_id)
     if req.werkgebied_id:
         await _bestaand_werkgebied(req.werkgebied_id)
     await store.wijzig_gesprek(gesprek_id, titel=req.titel, werkgebied_id=req.werkgebied_id,
@@ -124,5 +130,5 @@ async def verwijder_gesprek(
     user_id: str = Depends(actieve_userid),
     store: GesprekStore = Depends(get_gesprek_store),
 ):
-    await _gesprek_or_404(store, gesprek_id, user_id)
+    await _eigen_gesprek_of_404(store, gesprek_id, user_id)
     await store.verwijder_gesprek(gesprek_id)

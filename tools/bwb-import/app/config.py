@@ -23,7 +23,6 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 # Officiële endpoints van het Basiswettenbestand (geverifieerd).
 DEFAULT_SRU_BASE_URL = "https://zoekservice.overheid.nl/sru/Search"
-DEFAULT_REPO_BASE_URL = "https://repository.officiele-overheidspublicaties.nl"
 
 
 def _as_bool(value: str | None, *, default: bool) -> bool:
@@ -58,11 +57,9 @@ class Settings:
     schemas_dir: Path
     default_bwb_id: str
     sru_base_url: str
-    repo_base_url: str
     validate_xsd: bool
     detect_tekstuele_refs: bool
     import_wti: bool
-    service_api_key: str | None
     graphdb_url: str
     graphdb_repository: str
     graphdb_user: str | None
@@ -81,18 +78,15 @@ class Settings:
 
         data_dir = Path(os.getenv("BWB_DATA_DIR", str(PROJECT_ROOT / "data")))
         schemas_dir = Path(os.getenv("BWB_SCHEMAS_DIR", str(PROJECT_ROOT / "schemas")))
-        api_key = os.getenv("BWB_SERVICE_API_KEY") or None
 
         return cls(
             data_dir=data_dir,
             schemas_dir=schemas_dir,
             default_bwb_id=os.getenv("BWB_DEFAULT_ID", "BWBR0004770"),
             sru_base_url=os.getenv("BWB_SRU_URL", DEFAULT_SRU_BASE_URL),
-            repo_base_url=os.getenv("BWB_REPO_URL", DEFAULT_REPO_BASE_URL),
             validate_xsd=_as_bool(os.getenv("BWB_VALIDATE_XSD"), default=True),
             detect_tekstuele_refs=_as_bool(os.getenv("BWB_DETECT_TEKSTUELE_REFS"), default=True),
             import_wti=_as_bool(os.getenv("BWB_IMPORT_WTI"), default=False),
-            service_api_key=api_key,
             graphdb_url=os.getenv("GRAPHDB_URL", "http://localhost:7200"),
             graphdb_repository=os.getenv("GRAPHDB_REPOSITORY", "inning"),
             graphdb_user=os.getenv("GRAPHDB_USER") or None,

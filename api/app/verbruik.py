@@ -1,8 +1,9 @@
 """Service-laag voor het tokenbudget: boeken, optellen, begrenzen.
 
 Het dragende idee: **verbruik is een journaal, de stand is een som.** Er wordt nergens een teller
-opgeslagen en nooit iets gereset. Elke LLM-call levert één rij in `token_verbruik`; hoeveel iemand
-nu verbruikt heeft is `sum(...) WHERE userid = ? AND tijdstip >= venster_start`.
+opgeslagen en het journaal verandert nooit. Elke LLM-call levert één rij in `token_verbruik`; hoeveel
+iemand nu verbruikt heeft is `sum(...) WHERE userid = ? AND tijdstip >= vanaf`, en `vanaf` is het
+begin van het venster, of de laatste reset door een beheerder als die later ligt.
 
 Dat is geen stijlkeuze maar de reden dat drie dingen kloppen:
 
@@ -12,6 +13,15 @@ Dat is geen stijlkeuze maar de reden dat drie dingen kloppen:
 - **De reset kan niet mislukken.** Er is geen periodieke taak die de tellers nulzet; het vensterbegin
   wordt uit het anker gerekend. Draait de dienst een week niet, dan klopt de stand daarna nog steeds.
 - **Elk getal is navraagbaar**, tot op de call.
+
+Een reset door een beheerder is daarom een **begrenzing van de som** en geen wijziging van het
+journaal: er komt een rij in `budget_audit` en de som begint daarna later. Een tegenboeking in het
+journaal kan dat niet: die maakt van elke rij een call behalve de ene die er geen is, en wat later
+over de calls wordt geteld (de schatting per beurt, een gewogen variant) moet hem dan overal uitsluiten.
+In het volgende venster doet de reset vanzelf niets meer: dan ligt hij vóór het begin.
+
+**Het budget van iemand volgt uit zijn rol** (`budget_rol`), en uit niets anders: een rolwissel geeft
+meteen het budget van de nieuwe rol. Alleen wie geen account of rolrij heeft, valt terug op de seedwaarde.
 
 Wat meetelt: invoer + uitvoer + cache_lees + cache_schrijf, dus het **volle promptvolume**. Een
 cache-read kost bij de provider ~0,1×, maar het is wél tekst die het model verwerkte. Het budget
@@ -23,18 +33,32 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
+from typing import Any
 
-from sqlalchemy import func, insert, select, update
+from sqlalchemy import func, insert, or_, select, update
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 from . import db
 from .config import Settings, get_settings
-from .user import _utcnow
-from .verbruik_contracts import VOL, WAARSCHUWINGSDREMPEL, BudgetBeleid, Verbruiksstand
+from .user import ROLLEN, _utcnow
+from .verbruik_contracts import VOL, WAARSCHUWINGSDREMPEL, BudgetBeleid, RolBudget, Verbruiksstand
 
 logger = logging.getLogger(__name__)
 
 # Er is precies één beleidsrij.
 _BELEID_ID = 1
+
+# De acties in `budget_audit`.
+ACTIE_RESET = "verbruik_reset"
+ACTIE_ROLBUDGET = "rolbudget_gewijzigd"
+ACTIE_BELEID = "beleid_gewijzigd"
+
+
+async def _audit(conn: AsyncConnection, actie: str, *, door: str, doel: str = "", **details: Any) -> None:
+    """Eén regel in `budget_audit`, in de transactie van de wijziging zelf."""
+    await conn.execute(insert(db.budget_audit).values(
+        actie=actie, doel=doel, door=door, details=details, tijdstip=_utcnow(),
+    ))
 
 
 # --- beleid --------------------------------------------------------------------
@@ -42,7 +66,6 @@ _BELEID_ID = 1
 def _row_to_beleid(row) -> BudgetBeleid:
     m = dict(row)
     return BudgetBeleid(
-        tokens=m["tokens"],
         periode_dagen=m["periode_dagen"],
         anker=db.aware(m["anker"]),
         actief=m["actief"],
@@ -52,30 +75,35 @@ def _row_to_beleid(row) -> BudgetBeleid:
 
 
 async def ensure_seeded(settings: Settings | None = None) -> None:
-    """Zet bij de allereerste start één beleidsrij uit de env-waarden (idempotent).
+    """Zet bij de allereerste start de beleidsrij en per rol een budget uit de env (idempotent).
 
-    Daarna is de tabel de waarheid: een beheerder past het beleid aan via `/v1/admin/budget` en de
-    env-waarden doen niets meer. Zelfde afspraak als bij de modelprofielen.
+    Daarna zijn de tabellen de waarheid: een beheerder past ze aan en de env-waarden doen niets meer.
+    Zelfde afspraak als bij de modelprofielen. Per rol apart, zodat een rol die er later bij komt ook
+    een rij krijgt.
     """
+    s = settings or get_settings()
+    now = _utcnow()
     async with db.get_engine().begin() as conn:
         bestaat = (await conn.execute(
             select(func.count()).select_from(db.budget_beleid)
         )).scalar() or 0
-        if bestaat:
-            return
-        s = settings or get_settings()
-        now = _utcnow()
-        await conn.execute(insert(db.budget_beleid).values(
-            id=_BELEID_ID,
-            tokens=s.token_budget,
-            periode_dagen=s.token_budget_dagen,
-            # Het anker is het moment van seeden. Vanaf hier telt elk venster; dat maakt de eerste
-            # resetdatum meteen noembaar zonder dat iemand iets hoeft in te stellen.
-            anker=now,
-            actief=True,
-            updated_by="seed",
-            updated=now,
-        ))
+        if not bestaat:
+            await conn.execute(insert(db.budget_beleid).values(
+                id=_BELEID_ID,
+                periode_dagen=s.token_budget_dagen,
+                # Het anker is het moment van seeden. Vanaf hier telt elk venster; dat maakt de eerste
+                # resetdatum meteen noembaar zonder dat iemand iets hoeft in te stellen.
+                anker=now,
+                actief=True,
+                updated_by="seed",
+                updated=now,
+            ))
+        aanwezig = set((await conn.execute(select(db.budget_rol.c.rol))).scalars().all())
+        for rol in ROLLEN:
+            if rol not in aanwezig:
+                await conn.execute(insert(db.budget_rol).values(
+                    rol=rol, tokens=s.token_budget, updated_by="seed", updated=now,
+                ))
 
 
 async def get_beleid() -> BudgetBeleid:
@@ -88,25 +116,29 @@ async def get_beleid() -> BudgetBeleid:
 
 
 async def zet_beleid(
-    *, tokens: int, periode_dagen: int, actief: bool, anker: datetime | None = None, actor: str = "",
+    *, periode_dagen: int, actief: bool, anker: datetime | None = None, actor: str = "",
 ) -> BudgetBeleid:
     """Werk het beleid bij. `anker` weglaten laat het staan – dat is bijna altijd wat je wilt.
 
     Het anker verschuiven verplaatst ieders venster (en dus ieders resetdatum) in één klap; dat is
-    een aparte, bewuste handeling en geen bijvangst van "budget omhoog".
+    een aparte, bewuste handeling en geen bijvangst van een andere periode.
     """
-    if tokens < 0:
-        raise ValueError("Een budget kan niet negatief zijn.")
     if periode_dagen < 1:
         raise ValueError("De resetperiode is minimaal één dag.")
     now = _utcnow()
-    waarden = {
-        "tokens": tokens, "periode_dagen": periode_dagen, "actief": actief,
-        "updated_by": actor, "updated": now,
-    }
+    waarden = {"periode_dagen": periode_dagen, "actief": actief, "updated_by": actor, "updated": now}
     if anker is not None:
         waarden["anker"] = anker
     async with db.get_engine().begin() as conn:
+        oud = (await conn.execute(
+            select(db.budget_beleid.c.periode_dagen, db.budget_beleid.c.actief)
+            .where(db.budget_beleid.c.id == _BELEID_ID)
+        )).mappings().first()
+        await _audit(
+            conn, ACTIE_BELEID, door=actor, oud=dict(oud) if oud is not None else None,
+            nieuw={"periode_dagen": periode_dagen, "actief": actief,
+                   "anker": anker.isoformat() if anker is not None else None},
+        )
         res = await conn.execute(
             update(db.budget_beleid).where(db.budget_beleid.c.id == _BELEID_ID).values(**waarden)
         )
@@ -116,6 +148,40 @@ async def zet_beleid(
             waarden.setdefault("anker", now)
             await conn.execute(insert(db.budget_beleid).values(id=_BELEID_ID, **waarden))
     return await get_beleid()
+
+
+# --- budget per rol ------------------------------------------------------------
+
+async def rolbudgetten() -> list[RolBudget]:
+    """Het budget van elke rol. Een rol zonder rij (nog niet geseed) staat op de seedwaarde."""
+    async with db.get_engine().connect() as conn:
+        rijen = {r["rol"]: r for r in (await conn.execute(select(db.budget_rol))).mappings().all()}
+    return [
+        RolBudget(
+            rol=rol, tokens=rijen[rol]["tokens"], updated_by=rijen[rol]["updated_by"],
+            updated=db.aware(rijen[rol]["updated"]),
+        ) if rol in rijen else RolBudget(rol=rol, tokens=get_settings().token_budget)
+        for rol in ROLLEN
+    ]
+
+
+async def zet_rolbudget(rol: str, tokens: int, *, actor: str) -> RolBudget:
+    """Zet het budget van een rol. Het geldt meteen voor iedereen met die rol."""
+    if rol not in ROLLEN:
+        raise ValueError(f"Onbekende rol: {rol}")
+    if tokens < 1:
+        raise ValueError("Een budget is minimaal één token.")
+    now = _utcnow()
+    waarden = {"tokens": tokens, "updated_by": actor, "updated": now}
+    async with db.get_engine().begin() as conn:
+        oud = (await conn.execute(
+            select(db.budget_rol.c.tokens).where(db.budget_rol.c.rol == rol)
+        )).scalar()
+        await _audit(conn, ACTIE_ROLBUDGET, door=actor, doel=rol, oud=oud, nieuw=tokens)
+        res = await conn.execute(update(db.budget_rol).where(db.budget_rol.c.rol == rol).values(**waarden))
+        if res.rowcount == 0:
+            await conn.execute(insert(db.budget_rol).values(rol=rol, **waarden))
+    return RolBudget(rol=rol, tokens=tokens, updated_by=actor, updated=now)
 
 
 # --- het venster ---------------------------------------------------------------
@@ -204,15 +270,38 @@ async def _gebruikt(userid: str, vanaf: datetime) -> int:
         )).scalar() or 0
 
 
-async def _eigen_budget(userid: str) -> int | None:
+async def _budget_van(userid: str) -> tuple[int, str]:
+    """Het budget van deze gebruiker en zijn rol. Alleen de rol bepaalt het.
+
+    Elke keer vers uit de tabel, dus een rolwissel werkt meteen door. Geen account (een boeking op een
+    tokenlabel) of geen rolrij betekent de seedwaarde.
+    """
+    gebruikers, rollen = db.users, db.budget_rol
     async with db.get_engine().connect() as conn:
-        return (await conn.execute(
-            select(db.users.c.token_budget).where(db.users.c.userid == userid)
+        rij = (await conn.execute(
+            select(gebruikers.c.role, rollen.c.tokens)
+            .select_from(gebruikers.outerjoin(rollen, rollen.c.rol == gebruikers.c.role))
+            .where(gebruikers.c.userid == userid)
+        )).first()
+    rol, tokens = rij if rij is not None else ("", None)
+    return (tokens if tokens is not None else get_settings().token_budget), rol
+
+
+async def reset_in_venster(userid: str, venster: datetime) -> datetime | None:
+    """De laatste reset van deze gebruiker binnen het venster dat op `venster` begint."""
+    a = db.budget_audit.c
+    async with db.get_engine().connect() as conn:
+        moment = (await conn.execute(
+            select(func.max(a.tijdstip)).where(
+                a.actie == ACTIE_RESET, a.doel == userid, a.tijdstip >= venster,
+            )
         )).scalar()
+    return db.aware(moment) if moment is not None else None
 
 
-def _maak_stand(userid: str, gebruikt: int, budget: int, beleid: BudgetBeleid,
-                *, eigen: bool, nu: datetime | None = None) -> Verbruiksstand:
+def _maak_stand(userid: str, gebruikt: int, budget: int, rol: str, beleid: BudgetBeleid,
+                *, gereset_op: datetime | None = None, gereset_door: str = "",
+                nu: datetime | None = None) -> Verbruiksstand:
     percentage = min(VOL, int(gebruikt * 100 / budget)) if budget > 0 else VOL
     vol = budget > 0 and gebruikt >= budget
     return Verbruiksstand(
@@ -226,7 +315,9 @@ def _maak_stand(userid: str, gebruikt: int, budget: int, beleid: BudgetBeleid,
         # Staat de begrenzing uit, dan blijft de meter gewoon lopen maar houdt niets iemand tegen.
         geblokkeerd=bool(beleid.actief and vol),
         actief=beleid.actief,
-        eigen_budget=eigen,
+        rol=rol,
+        gereset_op=gereset_op,
+        gereset_door=gereset_door,
     )
 
 
@@ -234,41 +325,70 @@ async def stand(userid: str, beleid: BudgetBeleid | None = None) -> Verbruikssta
     """Waar deze gebruiker staat in het huidige venster."""
     userid = (userid or "").strip().lower()
     beleid = beleid or await get_beleid()
-    eigen = await _eigen_budget(userid)
-    gebruikt = await _gebruikt(userid, venster_start(beleid))
-    budget = eigen if eigen is not None else beleid.tokens
-    return _maak_stand(userid, gebruikt, budget, beleid, eigen=eigen is not None)
+    venster = venster_start(beleid)
+    gereset_op = await reset_in_venster(userid, venster)
+    gebruikt = await _gebruikt(userid, gereset_op or venster)
+    budget, rol = await _budget_van(userid)
+    return _maak_stand(userid, gebruikt, budget, rol, beleid, gereset_op=gereset_op)
+
+
+async def reset_verbruik(userid: str, *, door: str) -> Verbruiksstand:
+    """Geef een gebruiker zijn volledige budget terug voor de rest van dit venster.
+
+    Het journaal blijft zoals het is: er komt alleen een rij in `budget_audit`, met de stand van vlak
+    ervoor, en de som begint vanaf dat moment. Wat daarna geboekt wordt telt weer mee, ook als het een
+    beurt is die al liep. Het einde van het venster verandert niet.
+    """
+    userid = (userid or "").strip().lower()
+    voor = await stand(userid)
+    async with db.get_engine().begin() as conn:
+        await _audit(conn, ACTIE_RESET, door=door, doel=userid, gebruikt=voor.gebruikt, budget=voor.budget)
+    return await stand(userid)
 
 
 async def standen() -> list[Verbruiksstand]:
     """De stand van alle gebruikers, de zwaarste verbruiker eerst.
 
-    Eén query voor het verbruik en één voor de budgetten, in plaats van `stand()` per gebruiker:
-    dat scheelt twee queries per rij en houdt het beheerscherm ook bij een groeiende groep snel.
+    Vaste queries in plaats van `stand()` per gebruiker: dat houdt het beheerscherm ook bij een
+    groeiende groep snel.
     """
     beleid = await get_beleid()
     vanaf = venster_start(beleid)
-    kolommen = db.token_verbruik.c
-    som = func.sum(kolommen.invoer + kolommen.uitvoer + kolommen.cache_lees + kolommen.cache_schrijf)
+    k = db.token_verbruik.c
+    a = db.budget_audit.c
+    som = func.sum(k.invoer + k.uitvoer + k.cache_lees + k.cache_schrijf)
+    resets = (
+        select(a.doel, func.max(a.tijdstip).label("op"))
+        .where(a.actie == ACTIE_RESET, a.tijdstip >= vanaf)
+        .group_by(a.doel)
+        .subquery()
+    )
     async with db.get_engine().connect() as conn:
         verbruik = {
             r[0]: r[1] or 0
             for r in (await conn.execute(
-                select(kolommen.userid, som).where(kolommen.tijdstip >= vanaf)
-                .group_by(kolommen.userid)
+                select(k.userid, som)
+                .select_from(db.token_verbruik.outerjoin(resets, resets.c.doel == k.userid))
+                .where(k.tijdstip >= vanaf, or_(resets.c.op.is_(None), k.tijdstip >= resets.c.op))
+                .group_by(k.userid)
             )).all()
         }
-        gebruikers = (await conn.execute(
-            select(db.users.c.userid, db.users.c.token_budget)
-        )).all()
-    standen = [
-        _maak_stand(
-            userid,
-            verbruik.get(userid, 0),
-            eigen if eigen is not None else beleid.tokens,
-            beleid,
-            eigen=eigen is not None,
-        )
-        for userid, eigen in gebruikers
-    ]
-    return sorted(standen, key=lambda s: (-s.gebruikt, s.userid))
+        # Oud naar nieuw: de laatste reset van iemand overschrijft de eerdere.
+        laatste_reset = {
+            doel: (tijdstip, door)
+            for doel, tijdstip, door in (await conn.execute(
+                select(a.doel, a.tijdstip, a.door)
+                .where(a.actie == ACTIE_RESET, a.tijdstip >= vanaf)
+                .order_by(a.tijdstip, a.id)
+            )).all()
+        }
+        gebruikers = (await conn.execute(select(db.users.c.userid, db.users.c.role))).all()
+    per_rol = {r.rol: r.tokens for r in await rolbudgetten()}
+    uit = []
+    for userid, rol in gebruikers:
+        gereset_op, gereset_door = laatste_reset.get(userid, (None, ""))
+        uit.append(_maak_stand(
+            userid, verbruik.get(userid, 0), per_rol.get(rol, get_settings().token_budget), rol, beleid,
+            gereset_op=db.aware(gereset_op), gereset_door=gereset_door,
+        ))
+    return sorted(uit, key=lambda s: (-s.gebruikt, s.userid))
