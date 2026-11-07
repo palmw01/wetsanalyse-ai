@@ -92,3 +92,24 @@ def test_raw_sparql_update_nog_steeds_geweigerd(monkeypatch):
     with pytest.raises(MCPError):
         c.sparql("INSERT DATA { <a> <b> <c> }")
     assert c.sparql("SELECT ?s WHERE { ?s ?p ?o }") == ""  # SELECT gewoon door
+
+
+@pytest.mark.parametrize("query", [
+    "SELECT * { SERVICE <http://x.example/sparql> { ?s ?p ?o } }",
+    "select * { service silent ?eindpunt { ?s ?p ?o } }",
+    "SELECT * { # commentaar\n  SERVICE <http://x.example/> { ?s ?p ?o } }",
+    "SELECT * { \\u0053ERVICE <http://x.example/> { ?s ?p ?o } }",
+])
+def test_een_query_blijft_binnen_de_graaf(monkeypatch, query):
+    with pytest.raises(MCPError, match="SERVICE"):
+        _client(monkeypatch).sparql(query)
+
+
+@pytest.mark.parametrize("query", [
+    'SELECT ?s { ?s ?p "de service aan burgers" }',
+    "SELECT ?service { ?service a bwb:Artikel }",
+    "SELECT ?s { ?s bwb:service ?o }",
+    "SELECT ?s { ?s <urn:x:service> ?o } # service",
+])
+def test_het_woord_service_mag_in_tekst_en_namen(monkeypatch, query):
+    assert _client(monkeypatch).sparql(query) == ""

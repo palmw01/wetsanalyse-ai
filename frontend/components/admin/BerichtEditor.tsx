@@ -111,7 +111,7 @@ export function BerichtEditor({ bericht, onCancel, onDone }: Props) {
               key: "preview",
               label: "Preview",
               content: inhoud.trim()
-                ? <Markdown tekst={inhoud} />
+                ? <Markdown tekst={inhoud} links="vrij" />
                 : <p className="text-sm text-muted">Schrijf inhoud om een preview te zien.</p>,
             },
           ]}
