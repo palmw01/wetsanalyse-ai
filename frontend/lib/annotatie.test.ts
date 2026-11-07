@@ -18,10 +18,11 @@ import {
   annotatieTitel,
   isVerwijderd,
   isBeslist,
-  isVergrendeld,
+  slotVan,
   isDocumentVergrendeld,
   alGemarkeerd,
 } from "./annotatie";
+import slotregel from "./slotregel.json";
 import type { AnnotatieElement, GraafArtikel } from "./types";
 
 describe("documentStand", () => {
@@ -221,30 +222,16 @@ describe("pastInFilter", () => {
   });
 });
 
-describe("isVergrendeld", () => {
-  // Een eindoordeel zet het element op slot; wijzigen kan pas na een expliciete heropening. Bewust
-  // een ander begrip dan `isBeslist`, dat de filters en de telling stuurt.
-  it("vergrendelt een goedgekeurd en een verworpen element", () => {
-    expect(isVergrendeld(el("a", { lifecycle: "human_approved" }))).toBe(true);
-    expect(isVergrendeld(el("b", { lifecycle: "rejected" }))).toBe(true);
+describe("slotVan", () => {
+  // Dezelfde gevallen draaien tegen `slot_van` in de api (`api/tests/test_slotregel_drift.py`).
+  it.each(slotregel)("$geval", ({ element, laag_status, slot }) => {
+    expect(slotVan(element, laag_status)).toBe(slot);
   });
 
-  it("laat een aangepast element bewerkbaar", () => {
-    // Klasse wijzigen en er daarna een toelichting bij typen is één doorlopende handeling; een slot
-    // na de eerste wijziging zou daar een heropening tussen wringen.
+  it("is een ander begrip dan beslist: een aangepast element is beslist maar blijft bewerkbaar", () => {
     const bewerkt = el("c", { lifecycle: "edited" });
     expect(isBeslist(bewerkt)).toBe(true);
-    expect(isVergrendeld(bewerkt)).toBe(false);
-  });
-
-  it("laat een onbeoordeeld element met rust", () => {
-    expect(isVergrendeld(el("d"))).toBe(false);
-  });
-
-  it("vergrendelt een eigen markering niet", () => {
-    // Die staat bij het aanmaken al op `human_approved`: gemaakt, niet beoordeeld. Op slot zetten
-    // zou je eigen verse markering meteen onbewerkbaar maken, wisknop en al.
-    expect(isVergrendeld(el("eigen", { lifecycle: "human_approved", herkomst: "mens" }))).toBe(false);
+    expect(slotVan(bewerkt)).toBe("geen");
   });
 });
 

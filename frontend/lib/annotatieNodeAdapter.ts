@@ -11,7 +11,7 @@
 //    mét het "1. "-voorvoegsel van een lid en een "a. " voor elk onderdeel.
 // Alles wat van het ene naar het andere gaat, loopt via `SegmentPlek.begin`.
 
-import { bronVan, regelsVan } from "./annotatie";
+import { bronVan, regelsVan, slotVan } from "./annotatie";
 import { segmentAnker, type NodeAnker, type NodeElement, type NodeSegment, type NodeWeergave } from "./annotatieNode";
 import { maakAnker, snapSelectie, vindPositie } from "./selectie";
 import type {
@@ -185,7 +185,7 @@ export function runSleutel(run: { ronde?: number; tijd?: string; model?: string 
  *  eerste tot het laatste anker, precies zoals een markering over onderdelen er in het paneel al
  *  uitzag. De tekst is dan het stuk bron dat ertussen staat, inclusief het onderdeelnummer; de
  *  letterlijke ankers blijven ongewijzigd in de api staan. */
-export function elementVanNode(el: NodeElement, nb: NodeBron, runs?: NodeWeergave["runs"]): AnnotatieElement {
+export function elementVanNode(el: NodeElement, nb: NodeBron, runs?: NodeWeergave["runs"], lagen?: NodeWeergave["lagen"]): AnnotatieElement {
   const bereik = el.verouderd ? null : bereikVan(nb, el.ankers);
   const run = (el.geproduceerd_door && runs?.[runSleutel(el.geproduceerd_door)]) ?? el.geproduceerd_door ?? null;
   return {
@@ -198,6 +198,7 @@ export function elementVanNode(el: NodeElement, nb: NodeBron, runs?: NodeWeergav
     herkomst: el.herkomst,
     gewijzigd_door: el.gewijzigd_door ?? "",
     lifecycle: el.lifecycle as Lifecycle,
+    slot: slotVan(el, lagen?.find((l) => l.bron_iri === el.eigenaar_iri)?.status),
     alternatieven: el.alternatieven ?? [],
     aandacht: (el.aandacht as AnnotatieElement["aandacht"]) ?? null,
     review_uitleg: el.review_uitleg,
@@ -226,7 +227,7 @@ export function documentVanNode(view: NodeWeergave, nb: NodeBron): AnnotatieDocu
     artikel: nb.info.artikel,
     lid: view.doel.lid ?? "",
     status: afgerond ? "geaccordeerd" : "in_review",
-    elementen: view.elementen.map((e) => elementVanNode(e, nb, view.runs)),
+    elementen: view.elementen.map((e) => elementVanNode(e, nb, view.runs, view.lagen)),
     runs: [],
     // Gedeelde laag: het paneel toont dan geen verwijderknop voor het geheel.
     laag_sleutel: view.doel.bron_iri,

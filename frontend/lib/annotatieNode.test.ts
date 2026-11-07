@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { codepointOffset, momentopnameOpslag, segmentAnker, mergeToolExecution, parseToolExecution, elementVergrendeld,
-  nodeLink, nodeError, toolSpoorUit, heeftInhoud, toolDoelLabel, duurTekst, type NodeWeergave, type NodeElement, type ToolExecution } from "./annotatieNode";
+import { codepointOffset, momentopnameOpslag, segmentAnker, mergeToolExecution, parseToolExecution,
+  nodeLink, nodeError, toolSpoorUit, heeftInhoud, toolDoelLabel, duurTekst, type NodeWeergave, type ToolExecution } from "./annotatieNode";
 
 describe("canonieke bronnode-annotaties", () => {
   it("maakt een gestructureerd revisieconflict handelbaar en bewaart laagmeldingen", async () => {
@@ -19,11 +19,6 @@ describe("canonieke bronnode-annotaties", () => {
     expect(codepointOffset(segment.tekst, 3)).toBe(2);
     expect(segmentAnker(segment, 1, 3)).toEqual({ bron_iri: "urn:lid2", start: 1, eind: 2, tekst: "😀", bron_hash: "sha256" });
     expect(segmentAnker(segment, 4, 8).tekst).toBe("café");
-  });
-  it("blokkeert uitsluitend de eigenaarlaag van een element", () => {
-    const view = { lagen: [{ bron_iri: "urn:lid1", status: "geaccordeerd" }, { bron_iri: "urn:lid2", status: "in_review" }] } as NodeWeergave;
-    expect(elementVergrendeld(view, { eigenaar_iri: "urn:lid1" } as NodeElement)).toBe(true);
-    expect(elementVergrendeld(view, { eigenaar_iri: "urn:lid2" } as NodeElement)).toBe(false);
   });
   it("bewaart node en bronversie in deelbare links", () => {
     const url = new URL(nodeLink({ bron_iri: "urn:lid:1/a", snapshot_id: "v2" }), "http://localhost");

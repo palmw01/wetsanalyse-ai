@@ -1,6 +1,5 @@
 import { downloadAntwoord, naarInloggen, type ExportFormaat } from "./api";
 import { pathSegment } from "./url";
-import { heeftOordeel } from "./annotatie";
 
 /** Canonieke bronnodeweergave. Posities zijn Unicode-codepunten, niet UTF-16. */
 export interface NodeDoel {
@@ -128,11 +127,6 @@ export function segmentAnker(segment: NodeSegment, startUtf16: number, eindUtf16
 }
 export function verwachteRevisies(view: NodeWeergave): Record<string, number> {
   return Object.fromEntries(view.lagen.map((l) => [l.bron_iri, l.revisie]));
-}
-export function elementVergrendeld(view: NodeWeergave, el: NodeElement): boolean {
-  return !!el.verouderd || el.lifecycle === "published"
-    || ((el.herkomst !== "mens" || heeftOordeel(el)) && ["human_approved", "rejected"].includes(el.lifecycle))
-    || view.lagen.some((l) => l.bron_iri === el.eigenaar_iri && l.status === "geaccordeerd");
 }
 export async function nodeError(response: Response): Promise<Error> {
   const error = await response.json().catch(() => ({}));

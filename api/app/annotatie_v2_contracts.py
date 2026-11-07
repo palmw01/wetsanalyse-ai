@@ -20,7 +20,7 @@ BEOORDEELD = frozenset({Lifecycle.human_approved.value, Lifecycle.edited.value, 
 #: Geen open werk meer aan dit element: bevestigd, of verworpen.
 AFGEHANDELD = BEOORDEELD | {Lifecycle.rejected.value}
 #: Wat alleen na een heropening nog wijzigt. Bewust zonder `edited`: een klasse wijzigen en er een toelichting bij
-#: typen is één doorlopende handeling (`isVergrendeld` in de werkplek).
+#: typen is één doorlopende handeling (`slotVan` in de werkplek).
 VERGRENDELD = AFGEHANDELD - {Lifecycle.edited.value}
 
 

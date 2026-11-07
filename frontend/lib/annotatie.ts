@@ -163,19 +163,28 @@ export function alGemarkeerd(elementen: AnnotatieElement[], klasse: string, frag
   );
 }
 
-/** Lifecycles waarin het element een eindoordeel draagt en dus op slot zit – wijzigen kan pas na een
- *  expliciete heropening (`type: "heropen"`). Bewust NIET hetzelfde begrip als `isBeslist`, dat de
- *  filters en de telling stuurt: `edited` telt wel als beslist maar blijft bewerkbaar, want een
- *  klasse wijzigen en er daarna een toelichting bij typen is één doorlopende handeling. */
-const VERGRENDELDE_LIFECYCLES = ["human_approved", "rejected"];
+/** Lifecycles met een eindoordeel. Bewust NIET hetzelfde begrip als `isBeslist`, dat de filters en de telling
+ *  stuurt: `edited` telt wel als beslist maar blijft bewerkbaar, want een klasse wijzigen en er daarna een
+ *  toelichting bij typen is één doorlopende handeling. */
+const VERGRENDELDE_LIFECYCLES = ["human_approved", "rejected", "published"];
 
-export function isVergrendeld(el: AnnotatieElement): boolean {
-  // Je eigen markering staat meteen op `human_approved` – je hoeft hem niet nog eens goed te keuren.
-  // Dat is "gemaakt", niet "beoordeeld": vergrendelen zou hem bij het aanmaken al op slot zetten,
-  // inclusief de wisknop. Wat je zelf maakte wis je (met een bevestiging); het slot beschermt een
-  // review-oordeel over een voorstel van Lex.
-  if (el.herkomst === "mens") return false;
-  return VERGRENDELDE_LIFECYCLES.includes(el.lifecycle);
+/** Waarom een element niet zomaar te wijzigen is. Dezelfde regel als `slot_van` in de api, met dezelfde gevallen
+ *  in `slotregel.json`: zo verschijnt er geen knop waar de server een 409 geeft.
+ *  - `alleen-lezen`: verouderd, er kan niets meer.
+ *  - `laag`: de laag is afgerond; eerst de laag heropenen.
+ *  - `element`: een eindoordeel; heropenen of een opmerking kan, de rest niet.
+ *  Je eigen markering staat meteen op `human_approved`, maar dat is "gemaakt", niet "beoordeeld": wat je zelf
+ *  maakte blijft bewerkbaar en te wissen, tot er een oordeel op ligt. */
+export type Slot = "geen" | "element" | "laag" | "alleen-lezen";
+
+export function slotVan(
+  el: { lifecycle: string; herkomst: string; verouderd?: boolean; beslissingen?: { type: string }[] },
+  laagStatus?: string | null,
+): Slot {
+  if (el.verouderd) return "alleen-lezen";
+  if (laagStatus && laagStatus !== "in_review") return "laag";
+  if (VERGRENDELDE_LIFECYCLES.includes(el.lifecycle) && (el.herkomst !== "mens" || heeftOordeel(el))) return "element";
+  return "geen";
 }
 
 /** Een afgerond document is in zijn geheel bevroren – ook voor een nieuwe agent-ronde. De api
