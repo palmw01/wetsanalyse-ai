@@ -7,6 +7,8 @@
 // frontend → API → graph-qa precies op de plek waar hij begint.
 
 import "server-only";
+import { headers } from "next/headers";
+import { clientIpUitHeaders } from "./clientIp";
 import { apiBaseUrl, authHeader } from "./config";
 import { logger } from "./logger";
 import { metTrace } from "./trace";
@@ -57,6 +59,18 @@ export interface VerifyOpts {
   remember?: boolean;
 }
 
+/** `X-Client-IP` voor de inlogrem van de api, uit het verzoek van de browser (`lib/clientIp.ts`). Alle aanroepers
+ *  (de twee login-routes en `authorize` in `auth.ts`) draaien binnen een verzoek; daarbuiten gaat er niets mee en
+ *  remt de api op de userid alleen. */
+async function clientIpHeader(): Promise<Record<string, string>> {
+  try {
+    const ip = clientIpUitHeaders(await headers());
+    return ip ? { "X-Client-IP": ip } : {};
+  } catch {
+    return {};
+  }
+}
+
 /** Lage-niveau POST naar `/v1/auth/verify` – geeft de VOLLEDIGE respons (incl. ticket/trusted_token)
  *  zodat de BFF-login-routes de cookies kunnen zetten. Server→server; nooit vanuit een client.
  *
@@ -71,7 +85,7 @@ export async function postAuthVerify(
   try {
     res = await fetch(`${apiBaseUrl()}/v1/auth/verify`, {
       method: "POST",
-      headers: metTrace({ ...authHeader(), "Content-Type": "application/json" }),
+      headers: metTrace({ ...authHeader(), ...(await clientIpHeader()), "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
       cache: "no-store",
       signal: AbortSignal.timeout(AUTH_VERIFY_TIMEOUT_MS),
