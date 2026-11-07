@@ -170,6 +170,8 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
       wrappen; past hij niet, dan scrolt hij horizontaal, net als de tabs. Geen eigen `flex flex-wrap` om chips heen;
       `app/uitlijning.test.ts` bewaakt het.
     - **Suggestie**: `Suggestie`, de vorm van de voorbeeldvragen in de lege werkplek; `klein` boven het invoerveld.
+      Meer dan één onder elkaar staat in **`SuggestieRij`** (7 nov 2026): op een telefoon elk over de volle breedte, met de
+      tekst links; vanaf `sm:` gecentreerd naast elkaar. Boven het invoerveld is het één rij die zijwaarts schuift.
     - De JAS-klasse op de reviewkaart is een knop in de kleur van de klasse: een rechthoek met ▾ en een hover-rand.
     - `app/knoppen.test.ts` bewaakt het voor de hele app: een element met `focus-ring` (elke knop en link) is nooit
       `rounded-full`. Alleen de verstuurknop van het invoerveld is rond, als hoofdactie van het gesprek zoals bij Claude.

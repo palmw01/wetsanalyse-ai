@@ -91,3 +91,21 @@ describe("een hoofdknop buiten de paginakop staat op een telefoon over de volle 
     expect(bron("components/werkplek/VraagLexKnop.tsx")).toMatch(/const PRIMAIR = `\$\{knopKlasse\("primary", "sm"\)\} w-full sm:w-auto`/);
   });
 });
+
+describe("suggesties en kleine knoprijen", () => {
+  it("de voorbeeldvragen staan in SuggestieRij: op een telefoon onder elkaar over de volle breedte", () => {
+    const rij = bron("components/ui/Suggestie.tsx");
+    expect(rij.slice(rij.indexOf("export function SuggestieRij"))).toMatch(/flex flex-col gap-2 \[&>\*\]:w-full sm:flex-row/);
+    expect(bron("components/werkplek/WerkplekClient.tsx")).toMatch(/<SuggestieRij[^>]*>\s*\{VOORBEELDEN\.map/);
+  });
+
+  it("geen handgemaakte knop naast knopKlasse in KeuzeKaart en ElementPagina", () => {
+    for (const f of ["components/werkplek/KeuzeKaart.tsx", "components/annotaties/ElementPagina.tsx"]) {
+      const knoppen = [...bron(f).matchAll(/<button\b[\s\S]*?>/g)].map((m) => m[0]);
+      const zelf = knoppen.filter((k) => /className="[^"]*\brounded-knop(-xs)?\b[^"]*\bborder\b/.test(k));
+      expect(zelf, f).toEqual([]);
+    }
+    // De hint in de voet krijgt op een telefoon een eigen regel en springt pas vanaf sm naar rechts.
+    expect(bron("components/werkplek/KeuzeKaart.tsx")).toMatch(/basis-full text-\[11px\] text-faint sm:ml-auto/);
+  });
+});

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
-import { Button, knopKlasse } from "@/components/ui/Button";
+import { Button, knopKlasse, knopVorm } from "@/components/ui/Button";
 import { Regel, Regels, StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { Kaart, PaginaKop, SplitDetail, Stip } from "@/components/ui/Pagina";
@@ -160,7 +160,7 @@ export function ElementPagina({ id }: { id: string }) {
                     <div className="flex flex-wrap gap-1.5">
                       {REDENEN.map((r) => (
                         <button key={r.waarde} type="button" disabled={bezig} onClick={() => void beslis("reject", r.waarde)}
-                          className="focus-ring min-h-[32px] rounded-knop border border-line px-3 text-xs font-medium text-ink hover:border-fout hover:text-fout">
+                          className={`focus-ring ${knopVorm("sm")} border-line text-ink hover:border-fout hover:text-fout`}>
                           {r.label}
                         </button>
                       ))}
