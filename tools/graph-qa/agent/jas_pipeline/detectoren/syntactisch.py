@@ -734,12 +734,20 @@ class TegenwoordigeTijdDetector:
 
 # --- Operator: nevenschikking tussen clauses en negatie ----------------------------------------
 
+_NAAMWOORD = {"NOUN", "PROPN"}
+# Een nevenschikking van structuurnummers is een verwijzing ('artikel 3 en artikel 4'), geen operator.
+_STRUCTUURWOORD = {"artikel", "lid", "onderdeel", "hoofdstuk", "afdeling", "paragraaf", "titel", "bijlage",
+                   "volzin"}
+
+
 class LogischeOperatorDetector:
-    REGELS: tuple[str, ...] = ("jas.operator.nevenschikking", "jas.operator.negatie")
+    REGELS: tuple[str, ...] = ("jas.operator.nevenschikking", "jas.operator.negatie", "jas.operator.woordgroep")
+    CODES = ("CLAUSE_COORDINATION", "NEGATION_IN_CONDITION", "PHRASE_COORDINATION")
     naam = "logisch"
     # 2: geen nevenschikking binnen een naamwoordgroep
     # 3: een persoonsvorm als hulp- of koppelwerkwoord maakt het conjunct een eigen zin ('of is gesteld op')
-    versie = "3"
+    # 4: 'en'/'of' tussen naamwoordgroepen is een eigen, zwakkere regel (H2:98: EN/OF tussen operanden)
+    versie = "4"
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
@@ -764,11 +772,28 @@ class LogischeOperatorDetector:
                              or any(a.tokens[k].deprel in {"aux", "aux:pass", "cop"}
                                     and a.tokens[k].feat("VerbForm") == "Fin" for k in a.kinderen(kop.i)))
                 clause = kop.deprel == "conj" and eerste.upos in {"VERB", "AUX", "ADJ"} and eigen_zin
+            # 'en'/'of' tussen twee naamwoordgroepen ('de aanslag of de beschikking'): een operator
+            # binnen een voorwaarde, berekening of opsomming (H2:98: EN/OF verbindt operanden). Zwakker
+            # dan tussen zinnen, want het kan ook een gewone opsomming van objecten zijn; dat oordeel
+            # is aan de classifier. Niet tussen een naamwoord en een bijvoeglijk of werkwoordelijk
+            # conjunct ('in november of eerder' heeft een eigen regel, 'verplichting of onthouden
+            # aanspraak' verbindt woorden), niet tussen structuurnummers en niet in een verwijzing. Ook
+            # niet in 'tussen X en Y': dat noemt de twee kanten van een relatie, geen EN. Het voorzetsel
+            # hangt aan het eerste conjunct of staat tussen dat conjunct en het voegwoord (de parse hangt
+            # 'tussen de Dienst en die houder' soms aan het woord ervoor).
+            woordgroep = (kop is not None and kop.deprel == "conj" and kop.head >= 0
+                          and kop.upos in _NAAMWOORD and a.tokens[kop.head].upos in _NAAMWOORD
+                          and not {kop.lemma.lower(), a.tokens[kop.head].lemma.lower()} & _STRUCTUURWOORD
+                          and not any(a.tokens[k].deprel == "case" and a.tokens[k].tekst.lower() == "tussen"
+                                      for k in (*a.kinderen(kop.head), *range(kop.head + 1, t.i))))
             if t.deprel == "cc" and laag in {"en", "of"} and clause:
-                regel, code = "jas.operator.nevenschikking", "CLAUSE_COORDINATION"
+                regel, code = self.REGELS[0], self.CODES[0]
             elif laag in {"niet", "geen"} and t.deprel in {"advmod", "det"} and kop is not None \
                     and any(a.tokens[k].deprel == "mark" for k in a.kinderen(kop.i)):
-                regel, code = "jas.operator.negatie", "NEGATION_IN_CONDITION"
+                regel, code = self.REGELS[1], self.CODES[1]
+            elif t.deprel == "cc" and laag in {"en", "of"} and woordgroep \
+                    and not _in_verwijzing(bron, a.tokens[kop.head].start, kop.eind):
+                regel, code = self.REGELS[2], self.CODES[2]
             else:
                 continue
             kandidaten.append(_kandidaat(bron, [((t.start, t.eind), "kern")], [OP], [Evidence(

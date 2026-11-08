@@ -186,6 +186,11 @@
     skos:prefLabel "Aantal uit een restant"@nl ;
     jas:codeWaarde "CALCULATION_QUANTITY" .
 
+<urn:jas-ns:code:CLAUSE_COORDINATION> a jas:Detectiecode ;
+    skos:definition "'En' of 'of' tussen twee (bij)zinnen of gezegden, elk met een eigen werkwoord: alle voorwaarden of normen gelden (EN), of één ervan (OF)."@nl ;
+    skos:prefLabel "Logische verbinding tussen zinnen"@nl ;
+    jas:codeWaarde "CLAUSE_COORDINATION" .
+
 <urn:jas-ns:code:CONDITIONAL_ELLIPSIS> a jas:Detectiecode ;
     skos:definition "Een nominale bepaling zoals bij afwijkende omstandigheden begrenst de bijbehorende uitspraak."@nl ;
     skos:prefLabel "Verkorte voorwaarde"@nl ;
@@ -231,6 +236,11 @@
     skos:prefLabel "Begrip met betekenis"@nl ;
     jas:codeWaarde "MEANING_TERM" .
 
+<urn:jas-ns:code:NEGATION_IN_CONDITION> a jas:Detectiecode ;
+    skos:definition "'Niet' of 'geen' in een voorwaardelijke bijzin: aan die voorwaarde mag niet voldaan zijn (logisch NIET)."@nl ;
+    skos:prefLabel "Ontkenning in een voorwaarde"@nl ;
+    jas:codeWaarde "NEGATION_IN_CONDITION" .
+
 <urn:jas-ns:code:NOMINALIZED_ACTION> a jas:Detectiecode ;
     skos:definition "'Het indienen van', 'de dagtekening van': een handeling of gebeurtenis als naamwoord."@nl ;
     skos:prefLabel "Handeling als zelfstandig naamwoord"@nl ;
@@ -265,6 +275,11 @@
     skos:definition "'Hij', 'degene', 'een ieder': een voornaamwoord dat naar een persoon verwijst."@nl ;
     skos:prefLabel "Verwijzend voornaamwoord"@nl ;
     jas:codeWaarde "PERSON_PRONOUN" .
+
+<urn:jas-ns:code:PHRASE_COORDINATION> a jas:Detectiecode ;
+    skos:definition "'En' of 'of' tussen twee naamwoordgroepen ('de aanslag of de beschikking'): een operator binnen een voorwaarde, berekening of opsomming. Het kan ook een gewone opsomming zijn; dat vraagt een oordeel."@nl ;
+    skos:prefLabel "Logische verbinding tussen woordgroepen"@nl ;
+    jas:codeWaarde "PHRASE_COORDINATION" .
 
 <urn:jas-ns:code:PRIORITY_APPLIED> a jas:Detectiecode ;
     skos:definition "Een specifiekere klasse ging voor op een algemenere, volgens de JAS-voorrangsregels."@nl ;
@@ -428,6 +443,13 @@
     dcterms:source "H2:98" ;
     skos:prefLabel "Ongelijkheid"@nl ;
     jas:code <urn:jas-ns:code:VALUE_INEQUALITY> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Operator> .
+
+<urn:jas-ns:regel:jas.operator.ontkende_voorwaarde> a jas:Detectorregel ;
+    dcterms:source "H2:98" ;
+    skos:prefLabel "Ontkende voorwaarde"@nl ;
+    jas:code <urn:jas-ns:code:NEGATED_CONDITION> ;
     jas:regelVersie 1 ;
     jas:wijstAan <urn:jas-ns:klasse:Operator> .
 
@@ -842,6 +864,11 @@
     skos:prefLabel "Veelvoud"@nl ;
     jas:codeWaarde "MULTIPLIER" .
 
+<urn:jas-ns:code:NEGATED_CONDITION> a jas:Detectiecode ;
+    skos:definition "'Tenzij': het gevolg treedt in zolang de voorwaarde erna níét vervuld is (logisch NIET). De bijzin zelf blijft een eigen Voorwaarde."@nl ;
+    skos:prefLabel "Ontkende voorwaarde"@nl ;
+    jas:codeWaarde "NEGATED_CONDITION" .
+
 <urn:jas-ns:code:PERCENTAGE> a jas:Detectiecode ;
     skos:definition "Een percentage, in cijfers of woorden."@nl ;
     skos:prefLabel "Percentage"@nl ;
@@ -1052,19 +1079,6 @@
     jas:uitdrukkingswijze "vier varianten: getal of datum — een concreet bedrag, een concrete datum, een concrete tijdsduur of een andere numerieke waarde; tekst — bijvoorbeeld de variabele ‘naam van een werkgever’; enumeratiewaarde — een limitatieve opsomming van de mogelijke waarden, in getallen of tekst; booleaanse waarde — een bijzondere enumeratiewaarde met twee waarden, ‘ja’ (waar) of ‘nee’ (onwaar); bijvoorbeeld de variabele ‘geregistreerd in het donorregister’."@nl ;
     jas:volgorde 6 .
 
-<urn:jas-ns:klasse:Operator> a skos:Concept,
-        jas:Klasse ;
-    dcterms:source "omschrijving H2:98",
-        "uitdrukkingswijze H2:100",
-        "vraag H2:99" ;
-    skos:definition "Een operator is een woord, een combinatie van woorden of een teken dat een rekenkundige bewerking, een samengestelde voorwaarde, een gelijkstelling of een vergelijking van twee waarden of berekeningen uitdrukt. Een operator beschrijft hoe verschillende elementen van een berekening, voorwaarde of samengestelde voorwaarde met elkaar verbonden worden om tot een resultaat te leiden. Drie typen: rekenkundige operatoren — voeren een bewerking uit, zoals optellen, aftrekken, vermenigvuldigen; vergelijkingsoperatoren — vergelijken variabelen met elkaar of een variabele met een parameter; logische operatoren — bepalen bij samengestelde voorwaarden of aan (ten minste) één voorwaarde moet worden voldaan (OF, disjunctie, alternatief) of aan alle (EN, conjunctie, cumulatief); ook kan er sprake zijn van een voorwaarde waaraan niet voldaan mag zijn (NIET, negatie)."@nl ;
-    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
-    skos:prefLabel "Operator"@nl ;
-    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
-    jas:herkenningsvraag "Hoe worden variabelen of parameters verbonden in een berekening? In welke verhouding staan voorwaarden tot elkaar? Welke vergelijking wordt in een voorwaarde gemaakt?"@nl ;
-    jas:uitdrukkingswijze "rekenkundig: ‘het gezamenlijke bedrag van’, ‘de som van’, ‘vermeerderd met’, ‘verminderd met’, ‘percentage van’; vergelijking: ‘groter dan’, ‘kleiner dan’, ‘meer bedraagt dan’, ‘is gelijk aan’; logisch: ‘en’, ‘of’, ‘niet’, ‘ten minste’."@nl ;
-    jas:volgorde 8 .
-
 <urn:jas-ns:klasse:ParameterEnParameterwaarde> a skos:Concept,
         jas:Klasse ;
     dcterms:source "omschrijving H2:89",
@@ -1077,6 +1091,19 @@
     jas:herkenningsvraag "Is sprake van een waarde die gedurende een periode een vaste hoogte heeft voor alle rechtssubjecten en rechtsobjecten?"@nl ;
     jas:uitdrukkingswijze "Een parameter is te herkennen aan een beschrijving van een waarde, bijvoorbeeld van een tarief, een (drempel)bedrag (eventueel met een maximum of een minimum) of een vrijstelling. Een parameterwaarde is te herkennen aan bijvoorbeeld een bedrag in geld, een percentage of een datum."@nl ;
     jas:volgorde 7 .
+
+<urn:jas-ns:klasse:Operator> a skos:Concept,
+        jas:Klasse ;
+    dcterms:source "omschrijving H2:98",
+        "uitdrukkingswijze H2:100",
+        "vraag H2:99" ;
+    skos:definition "Een operator is een woord, een combinatie van woorden of een teken dat een rekenkundige bewerking, een samengestelde voorwaarde, een gelijkstelling of een vergelijking van twee waarden of berekeningen uitdrukt. Een operator beschrijft hoe verschillende elementen van een berekening, voorwaarde of samengestelde voorwaarde met elkaar verbonden worden om tot een resultaat te leiden. Drie typen: rekenkundige operatoren — voeren een bewerking uit, zoals optellen, aftrekken, vermenigvuldigen; vergelijkingsoperatoren — vergelijken variabelen met elkaar of een variabele met een parameter; logische operatoren — bepalen bij samengestelde voorwaarden of aan (ten minste) één voorwaarde moet worden voldaan (OF, disjunctie, alternatief) of aan alle (EN, conjunctie, cumulatief); ook kan er sprake zijn van een voorwaarde waaraan niet voldaan mag zijn (NIET, negatie)."@nl ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Operator"@nl ;
+    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
+    jas:herkenningsvraag "Hoe worden variabelen of parameters verbonden in een berekening? In welke verhouding staan voorwaarden tot elkaar? Welke vergelijking wordt in een voorwaarde gemaakt?"@nl ;
+    jas:uitdrukkingswijze "rekenkundig: ‘het gezamenlijke bedrag van’, ‘de som van’, ‘vermeerderd met’, ‘verminderd met’, ‘percentage van’; vergelijking: ‘groter dan’, ‘kleiner dan’, ‘meer bedraagt dan’, ‘is gelijk aan’; logisch: ‘en’, ‘of’, ‘niet’, ‘ten minste’."@nl ;
+    jas:volgorde 8 .
 
 <urn:jas-ns:klasse:Tijdsaanduiding> a skos:Concept,
         jas:Klasse ;
@@ -1095,5 +1122,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "092af713e453" .
+    jas:vocabulaireVersie "cdfd9304aeb7" .
 

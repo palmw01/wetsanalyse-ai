@@ -5,6 +5,7 @@ begrippen:
 syntactic_signals:
   - "nevenschikkend voegwoord (cc) tussen voorwaarden, clauses of termen van een berekening – logische operator"
   - "ontkenning (advmod 'niet', 'geen') binnen een voorwaarde – negatie (H2:98)"
+  - "nevenschikkend voegwoord (cc) 'en'/'of' tussen twee naamwoordgroepen (conj NOUN/PROPN) – geneste logische operator binnen een voorwaarde, berekening of opsomming (H2:98); zwak, want het kan ook een opsomming van objecten zijn"
   - "vergelijkende constructie: 'groter dan', 'kleiner dan', 'meer bedraagt dan', 'minder bedraagt dan', 'is gelijk aan' – H2:100"
 lexical_signals:
   - "rekenkundig: 'het gezamenlijke bedrag van', 'de som van', 'vermeerderd met', 'verminderd met', 'percentage van', 'tweemaal' – H2:100"
@@ -14,6 +15,7 @@ lexical_signals:
   - "temporele vergelijking: 'vóór', 'na', 'uiterlijk' direct voor een datum; 'of eerder', 'of later' erna – H2:98"
   - "rekenkundig: 'na' of 'vóór' tussen een duur en een moment ('zes weken na de dagtekening') – H2:98"
   - "cumulatie: 'in ieder geval' vóór een opsomming – H2:98 (EN)"
+  - "ontkende voorwaarde: 'tenzij' – H2:98 (NIET: een voorwaarde waaraan niet voldaan mag zijn); de bijzin blijft een Voorwaarde"
 semantic_signals:
   - "verbindt elementen van een berekening of (samengestelde) voorwaarde (H2:98)"
 structural_signals:
@@ -31,15 +33,19 @@ candidate_rules:
   - {id: jas.operator.datumvergelijking, status: geïmplementeerd}
   - {id: jas.operator.inclusieve_tijdgrens, status: geïmplementeerd}
   - {id: jas.operator.duur_vanaf_moment, status: geïmplementeerd}
+  - {id: jas.operator.ontkende_voorwaarde, status: geïmplementeerd}
+  - {id: jas.operator.woordgroep, status: geïmplementeerd}
 confusable_classes:
   - {klasse: Afleidingsregel, reden: "de operator is een deel van de regel, niet de regel"}
   - {klasse: Voorwaarde, reden: "de vergelijking tegenover de hele voorwaarde"}
 negative_patterns:
-  - {patroon: "'en'/'of' binnen één naamwoordgroep ('de omzetbelasting en de accijns' als opsomming van objecten)", reden: "projectregel markeren-fragmentgrenzen: 'en' kan woorden binnen één naamwoordgroep verbinden"}
+  - {patroon: "'en'/'of' tussen een naamwoord en een bijvoeglijk of werkwoordelijk conjunct ('een verplichting of onthouden aanspraak')", reden: "projectregel markeren-fragmentgrenzen: 'en' kan woorden binnen één naamwoordgroep verbinden"}
+  - {patroon: "'en'/'of' tussen structuurnummers of in een verwijzing ('artikel 3 en artikel 4')", reden: "een verwijzing, geen operator"}
+  - {patroon: "'tussen X en Y'", reden: "noemt de twee kanten van een relatie, geen EN"}
   - {patroon: "'en' binnen een woord of eigennaam", reden: "geen token/geen coördinatie"}
   - {patroon: "'op' als plaats- of onderwerpsvoorzetsel ('de nadruk valt op de uitvoering')", reden: "gelijkstelling alleen met een waarde of dag als tweede lid"}
   - {patroon: "'na' of 'vóór' zonder voorafgaande duur ('na de dagtekening')", reden: "een referentiemoment, geen bewerking; de tijdsaanduiding draagt het"}
-  - {patroon: "voegwoorden van een voorwaarde ('indien', 'tenzij', 'in afwijking van', 'telkens')", reden: "H2:64: ze leiden een voorwaarde in; geen operator in JAS"}
+  - {patroon: "voegwoorden van een voorwaarde ('indien', 'als', 'mits', 'in afwijking van', 'telkens')", reden: "H2:64: ze leiden een voorwaarde in; geen operator in JAS. 'Tenzij' wel: die ontkent de voorwaarde (H2:98)"}
 required_context:
   - "de operanden (voorwaarden, variabelen of parameters) die hij verbindt"
 deterministic_detection_possible: hoog
