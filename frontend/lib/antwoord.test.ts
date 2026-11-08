@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { BLOK_SOORTEN, NIET_GETOETST, alleenNietGetoetst, bepalingenVan, groepeerWettekst, parseAntwoord } from "./antwoord";
+import { BLOK_SOORTEN, externGroepen, NIET_GETOETST, alleenNietGetoetst, bepalingenVan, groepeerWettekst, parseAntwoord } from "./antwoord";
 
 const v = { iri: "urn:bwb:BWBR1:artikel:2", label: "Artikel 2", jci: "", regeling: "Wet" };
 
@@ -69,6 +69,20 @@ describe("parseAntwoord", () => {
     // De versie die Lex las (review ADR-013, punt 3) reist mee; een ouder bericht zonder versie blijft geldig.
     const metVersie = { ...blok, bron_hash: "abc", gewijzigd: "2026-01-02" };
     expect(parseAntwoord({ sjabloon: "extern", blokken: [metVersie] })?.blokken[0]).toEqual(metVersie);
+  });
+
+  it("deelt de passages van een bron naast de wet in: alinea, voetnoot en tabel met haar rijen", () => {
+    const p = (nr: number, soort: string, extra: object = {}) => ({ nr, tekst: `t${nr}`, kop: "", soort, ...extra }) as never;
+    const g = externGroepen([p(1, "alinea"), p(2, "voetnoot"), p(3, "tabel", { cellen: ["", "2014"] }),
+      p(4, "tabelrij", { cellen: ["Totaal", "12"] }), p(5, "tabelrij", { cellen: ["Vpb", "8"] }), p(6, "alinea"),
+      p(7, "tabelrij", { cellen: ["x"] })]);
+    expect(g.map((x) => x.soort)).toEqual(["tekst", "voetnoot", "tabel", "tekst", "tabel"]);
+    const tabel = g[2] as Extract<typeof g[number], { soort: "tabel" }>;
+    expect(tabel.kop?.nr).toBe(3);
+    expect(tabel.rijen.map((r) => r.nr)).toEqual([4, 5]);
+    expect((g[4] as typeof tabel).kop).toBeUndefined();
+    // Een ouder bericht zonder soort is gewoon tekst.
+    expect(externGroepen([{ nr: 1, tekst: "x", kop: "" }]).map((x) => x.soort)).toEqual(["tekst"]);
   });
 
   it("kent dezelfde niet-getoetste blokken als het contract", () => {

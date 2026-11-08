@@ -37,6 +37,8 @@ class ConnectorBeschrijving:
     #: een leestool: het resultaat draagt `stuk: {id, label, link, bron_hash, gewijzigd?}` en per rij `{nr, tekst, kop?}`
     #: (genummerde passages in documentvolgorde), zodat het blok `extern` (ADR-008) voor elke connector met dezelfde code
     #: wordt gevuld. `bron_hash` is de hash van het gelezen document: de passages van één blok komen uit één lezing.
+    #: Een rij mag `soort` dragen (`alinea`, `voetnoot`, `tabel`, `tabelrij`); een `tabel` draagt `openen` naar deze
+    #: leestool (de tabel zelf, met de kolommen als `cellen` op de kop), een `tabelrij` haar `cellen`.
     leestool: str
     #: De vorm van het id dat het antwoord noemt (`extern.externe_vindplaats` leest het).
     id_prefixen: tuple[str, ...]
