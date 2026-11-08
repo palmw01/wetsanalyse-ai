@@ -65,3 +65,58 @@ register laat het zien.
   - het aantal rondes en de tokens van vraag 1–4;
   - vraag 7 binnen de spreiding van vóór.
 - Faalt een garantie, dan is dat een bevinding met de opname erbij, geen reden om de vraag te wijzigen.
+
+## Lezen in een stuk (vervolg, 8 nov 2026)
+
+Run `d35fb681` (bundel 20) las kst-33755-3 in twee pagina's en stopte. Het contract zei terecht `volledig: false`. Wat
+er sindsdien veranderde:
+- de eigen inhoudsopgave en de tabelcellen zijn geen alinea's meer;
+- een tussenkop noemt het artikel;
+- de eerste pagina draagt `inhoud`, met per kop de offset (#1132);
+- voetnoten zijn rijen met hun verwijzing (#1135);
+- een tabel opent met `tabel=` (#1137) en verschijnt als tabel in het antwoord (#1138).
+
+Deze meting toetst of Lex daardoor gericht leest. Zelfde voorwaarden en werkwijze als hierboven:
+- `extra: {"bronnen": ["kamerstukken"], "bronnen_herkomst": "gesprek"}`;
+- elke vraag in een nieuw gesprek;
+- drie runs per vraag.
+
+**Wanneer:**
+- **vóór**: op acceptatie met bundel 21 (#1132 erin, #1135–#1138 niet);
+- **na**: met de bundel die #1135–#1138 bevat;
+- **alleen na akkoord van de gebruiker**.
+
+| # | Vraag | Verwacht na | Vóór? |
+|---|---|---|---|
+| L1 | Wat is volgens de memorie van toelichting bij Kamerstuk 33755, nr. 3 het doel van het voorstel? | 1 aanroep van `get_kamerstuk`; passages uit "1. Inleiding" | ja |
+| L2 | Wat zegt de memorie van toelichting bij Kamerstuk 33755, nr. 3 over artikel 29 van de Invorderingswet 1990? | een sprong met een `offset` uit `inhoud`; een passage met kop "… Artikel II (artikel 29 van de Invorderingswet 1990)"; ≤ 2 aanroepen | ja |
+| L3 | Wat is volgens Kamerstuk 33755, nr. 3 de budgettaire opbrengst per jaar? | de tabel geopend (`tabel=`); de cijfers uit een tabelrij in het blok `extern` | nee: kon niet |
+| L4 | Naar welk stuk verwijst Kamerstuk 33755, nr. 3 voor het regeerakkoord? | de voetnoot gelezen; `kst-33410-15` genoemd | nee: kon niet |
+| L5 | Wat staat er in Kamerstuk 36200-IX, nr. 2 over de Belastingdienst? | een sprong via `inhoud`; ≤ 3 aanroepen; een passage waarvan de kop de Belastingdienst noemt | ja |
+
+**Vastgelegd per run:**
+- het aantal aanroepen van `get_kamerstuk`, en hun `offset` en `tabel`;
+- **gesprongen**: de eerste `offset` die niet het `vervolg` van de vorige pagina is;
+- of er een tabel is geopend en een voetnoot is gelezen;
+- de koppen van de passages in het blok `extern`;
+- de grounding (niveau, `niet_letterlijk`);
+- het sjabloon;
+- tokens (delta verbruik) en duur.
+
+**Criteria (vooraf):**
+- **Garanties, op 3/3:**
+  - geen run ongegrond;
+  - geen passage in het blok `extern` die niet in een gelezen pagina staat;
+  - een cijfer uit een tabel komt uit een gelezen tabelrij.
+- **Slagen, op ≥ 2/3:**
+  - L2 en L5 springen, met minder aanroepen dan vóór;
+  - L3 opent de tabel;
+  - L4 noemt `kst-33410-15`.
+- **Trend:** L1 kost niet meer tokens dan vóór (± de spreiding van drie runs).
+
+**Kosten:**
+- 24 runs: L1, L2 en L5 vóór en na (3 vragen × 3 runs × 2 = 18), plus L3 en L4 alleen na (2 × 3 = 6).
+- Run `d35fb681` kostte ~60k tokens, cache meegeteld. Samen ~1,4M tokens.
+
+De uitkomst komt in `../architectuur/metingen/kamerstuk-lezen-2026-11-…`, met een regel in het meetlogboek. Faalt een
+garantie, dan is dat een bevinding met de opname erbij, geen reden om de vraag te wijzigen.
