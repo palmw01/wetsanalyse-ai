@@ -128,7 +128,8 @@ def test_een_nieuwe_connector_komt_er_zonder_code_bij(monkeypatch):
         naam="testbron", label="Testbron", brontype="uitspraak", groep="Uitspraken",
         dekt="uitspraken van een testgerecht", signalen=(r"\btestgerecht\b",), tools=frozenset({"zoek_testbron"}),
         leestool="zoek_testbron", id_prefixen=("ECLI:",), specialisten=frozenset({"duiding"}),
-        rol_in_antwoord="een uitspraak onderbouwt een uitleg, nooit wat de wet zegt", kop_in_antwoord="Uit de testrechtspraak", grenzen="alleen een test",
+        rol_in_antwoord="een uitspraak onderbouwt een uitleg, nooit wat de wet zegt", kop_in_antwoord="Uit de testrechtspraak", levert=("uitspraken",), niet_in_tekst=(),
+        werkwoorden={"zoek_testbron": ("zoekt uitspraken over „{zoekterm}”", "zoekt uitspraken")}, grenzen="alleen een test",
         beheer="Een nep-connector.", voorbeeldvragen=("Wat zei het testgerecht?",))
     assert nep.herkent("Wat zei het testgerecht hierover?") and nep.herkent("Lees ECLI:NL:HR:2020:1234")
     assert not nep.herkent(WETSVRAGEN[0])
@@ -181,3 +182,30 @@ def test_een_invoerfout_noemt_een_geldig_voorbeeld(c: bm.ConnectorBeschrijving):
         assert meldingen, f"{pad.name}: geen invoerfouten gevonden; klopt de toets nog?"
         for reden, tekst in meldingen:
             assert "bijvoorbeeld" in tekst, f"{pad.name}: '{reden}' noemt geen voorbeeld"
+
+
+@pytest.mark.parametrize("c", BESCHRIJVINGEN, ids=IDS)
+def test_elke_tool_heeft_een_werkwoord_voor_het_denkproces(c: bm.ConnectorBeschrijving):
+    """Acceptatie 8 nov 2026: Lex las kst-35496-F en het denkproces zei "raadpleegt de kennisgraaf"."""
+    from agent.narratie import _toolregel
+
+    assert set(c.werkwoorden) == set(c.tools), "elke tool van de connector een werkwoord, en niet meer"
+    for tool, vormen in c.werkwoorden.items():
+        assert vormen and all(isinstance(v, str) and v for v in vormen)
+        assert "kennisgraaf" not in _toolregel({"name": tool, "input": {}})
+        assert "{" not in _toolregel({"name": tool, "input": {}}), "zonder argumenten blijft er geen gat staan"
+
+
+@pytest.mark.parametrize("c", BESCHRIJVINGEN, ids=IDS)
+def test_de_capaciteit_spreekt_zichzelf_niet_tegen(c: bm.ConnectorBeschrijving):
+    assert c.levert, "wat de leestool levert"
+    assert not {w.split()[0] for w in c.levert} & {w.split()[0] for w in c.niet_in_tekst}
+
+
+def test_de_algemene_stappen_noemen_de_bronnen_van_de_beurt():
+    from agent import bronstand
+
+    stand = bronstand.bepaal(Settings(), None)
+    assert bronstand.waar(stand) == "de kennisgraaf"
+    stand["kamerstukken"].update(aan=True, reden="aan")
+    assert bronstand.waar(stand) == "de wetgeving en Kamerstukken"

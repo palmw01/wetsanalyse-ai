@@ -70,7 +70,8 @@ def test_een_nieuwe_connector_staat_zonder_code_in_het_blok(monkeypatch):
     nep = bm.ConnectorBeschrijving(
         naam="testbron", label="Testbron", brontype="uitspraak", groep="Uitspraken", dekt="uitspraken van een test",
         signalen=(r"\btestgerecht\b",), tools=frozenset({"zoek_testbron"}), leestool="zoek_testbron",
-        id_prefixen=("ECLI:",), specialisten=frozenset({"duiding"}), rol_in_antwoord="onderbouwt een uitleg", kop_in_antwoord="Uit de testrechtspraak",
+        id_prefixen=("ECLI:",), specialisten=frozenset({"duiding"}), rol_in_antwoord="onderbouwt een uitleg", kop_in_antwoord="Uit de testrechtspraak", levert=("uitspraken",), niet_in_tekst=(),
+        werkwoorden={"zoek_testbron": ("zoekt uitspraken over „{zoekterm}”", "zoekt uitspraken")},
         grenzen="alleen een test", beheer="Nep.", voorbeeldvragen=("Wat zei het testgerecht?",))
     monkeypatch.setitem(bm.CONNECTORS, nep.naam, nep)
     s = AAN.model_copy(update={"connector_testbron": True}) if "connector_testbron" in AAN.model_fields else AAN

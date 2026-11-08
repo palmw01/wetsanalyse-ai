@@ -461,3 +461,25 @@ def test_uit_een_tabelrij_citeren_is_gegrond():
     bron = NepBron(DOSSIER, TABELLEN)
     tekst = tools.dispatch("get_kamerstuk", None, {"id": "kst-99001-3", "tabel": 2}, AAN, kamerstukken=bron)
     assert check_grounding('Tabel 1 van kst-99001-3: "Totaal | 12 | 106 | 267"', [("get_kamerstuk", tekst)]).niveau == "gegrond"
+
+
+def test_de_capaciteit_in_de_beschrijving_is_wat_de_leestool_levert():
+    """Bundel 22 gaf voetnoten en tabellen, maar de beschrijving zei nog "staan er niet in" (acceptatie 8 nov 2026). Wat
+    `get_kamerstuk` op deze fixtures teruggeeft, moet de beschrijving noemen; wat hij overslaat, ook. Vergeleken op de
+    stam (`voetnoot` ↔ "voetnoten")."""
+    from bronmodel.connectors import KAMERSTUKKEN
+
+    soorten = set()
+    for xml in (XML, NOTEN, TABELLEN):
+        soorten |= {r.get("soort", "alinea") for r in roep("get_kamerstuk", {"id": "kst-99001-3"},
+                                                          NepBron(DOSSIER, xml))["resultaten"]}
+    levert = " ".join(KAMERSTUKKEN.levert)
+    for soort in soorten - {"tabelrij"}:
+        assert soort[:6] in levert, f"de leestool levert {soort}, de beschrijving zegt het niet"
+    plaatjes = XML.replace(b"<al>Het doel is", b"<illustratie/><al>Het doel is")
+    overgeslagen = roep("get_kamerstuk", {"id": "kst-99001-3"}, NepBron(DOSSIER, plaatjes)).get("overgeslagen") or {}
+    niet = " ".join(KAMERSTUKKEN.niet_in_tekst)
+    # Een tabel buiten CALS (`<tabel>`) telt nog als overgeslagen; tabellen als soort levert de tool wel.
+    for soort in set(overgeslagen) - {"inhoudsopgave"} - soorten:
+        assert soort[:6] in niet, f"de leestool slaat {soort} over, de beschrijving zegt het niet"
+    assert not any(s[:6] in niet for s in soorten), "de beschrijving zegt dat iets ontbreekt wat de leestool levert"
