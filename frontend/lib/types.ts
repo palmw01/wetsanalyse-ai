@@ -94,6 +94,24 @@ export interface RolBudget {
 }
 
 /** Het systeembrede beleid (beheer). Hoeveel tokens iemand heeft staat bij `rollen`. */
+/** Een bronconnector (ADR-013) zoals de api hem in het register toont. */
+export interface Connector {
+  naam: string;
+  label: string;
+  brontype: string;
+  beschrijving: string;
+  aan: boolean;
+  door: string;
+  bijgewerkt: string;
+}
+
+export interface ConnectorAuditRegel {
+  actie: string;
+  door: string;
+  details: Record<string, unknown>;
+  tijdstip: string;
+}
+
 export interface BudgetBeleid {
   periode_dagen: number;
   anker: string;

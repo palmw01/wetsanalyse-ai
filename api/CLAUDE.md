@@ -1163,6 +1163,21 @@ Daaruit volgt:
   én `beheerder_met_2fa`: de BFF zet `X-User-Id` uit de sessie, een kaal admin-token (de admin-MCP) komt er niet
   door, en de `door` komt in `budget_audit`, append-only, met de oude en de nieuwe waarde.
 
+## Bronconnectors (ADR-013)
+
+`app/connectors.py`: het register van de bronconnectors; de beheerroutes staan in `routers/admin.py`. **Welke er bestaan staat in de code** (`BEKEND`, gelijk aan
+`tools.CONNECTORS` van graph-qa; `tools/graph-qa/tests/test_bronschakelaar.py` leest deze bron): een bronconnector is een
+getypeerde tool met een eigen soort vindplaats, geen configuratie. Het register zegt alleen aan of uit (tabel `connectors`;
+een rij ontbreekt = uit), en elke wijziging is een regel in `connector_audit`.
+
+- `GET /v1/admin/connectors`, `GET …/{naam}/audit`: admin-token.
+- `PUT /v1/admin/connectors/{naam}` `{aan}`: een beheerder mét 2FA uit de sessie (`beheerder_met_2fa`, zoals het budget),
+  dus niet met een los token of de admin-MCP. Dubbel aanzetten is geen auditregel.
+- `GET /v1/connectors` (`routers/connectors.py`, `require_client`, en op de lijst van het agent-token in `agent_toegang.py`):
+  `{aan: [naam]}`, voor graph-qa per beurt. Graph-qa zet daarnaast zijn eigen
+  straatvlag (`CONNECTOR_<NAAM>`); een connector draait alleen als beide aanstaan, en een onleesbaar register zet niets aan.
+- Credentials en een rate-limit per connector komen met de eerste connector die ze nodig heeft (EUR-Lex).
+
 ## Schema
 
 Er is geen Alembic. `db.bouw_schema` draait bij de start, onder een advisory lock zodat replica's op elkaar wachten:

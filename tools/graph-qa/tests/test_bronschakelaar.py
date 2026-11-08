@@ -66,3 +66,53 @@ def test_het_model_krijgt_een_uitgezette_bron_niet_aangeboden():
     assert not (tools.CONNECTOR_TOOLS & _tools_van_de_agent(AAN, []))
     # Uit is byte-gelijk aan vóór de connector: dezelfde toolset als een straat zonder connectors.
     assert _tools_van_de_agent(AAN, []) == _tools_van_de_agent(UIT, None)
+
+
+class _NepApi:
+    def __init__(self, aan=None, fout=False):
+        self.aan, self.fout = aan or [], fout
+
+    async def connectors(self):
+        if self.fout:
+            raise RuntimeError("api weg")
+        return self.aan
+
+    async def aclose(self):
+        pass
+
+
+@pytest.mark.parametrize("register,fout,bronnen,verwacht", [
+    (["kamerstukken"], False, None, ["kamerstukken"]),
+    ([], False, None, []),                 # de beheerder zette hem niet aan
+    (["kamerstukken"], False, [], []),      # de beurt zet hem uit
+    (["kamerstukken"], True, None, []),     # onleesbaar register: niets aan
+])
+def test_het_register_van_de_beheerder_begrenst(monkeypatch, register, fout, bronnen, verwacht):
+    from agent import agent as agentmod
+    from agent import wetsanalyse_api
+
+    monkeypatch.setattr(wetsanalyse_api, "WetsanalyseApi", lambda *_a, **_k: _NepApi(register, fout))
+    s = AAN.model_copy(update={"wetsanalyse_api_url": "https://api.test", "wetsanalyse_api_token": "t"})
+    assert s.legt_zelf_vast
+    assert asyncio.run(agentmod._bronnen_van_beurt(s, "u", bronnen)) == verwacht
+
+
+def test_zonder_connector_in_de_straat_geen_registervraag(monkeypatch):
+    from agent import agent as agentmod
+    from agent import wetsanalyse_api
+
+    monkeypatch.setattr(wetsanalyse_api, "WetsanalyseApi", lambda *_a, **_k: pytest.fail("geen api-aanroep"))
+    s = UIT.model_copy(update={"wetsanalyse_api_url": "https://api.test", "wetsanalyse_api_token": "t"})
+    assert asyncio.run(agentmod._bronnen_van_beurt(s, "u", None)) is None
+
+
+def test_het_register_van_de_api_kent_dezelfde_connectors():
+    """`api/app/connectors.py:BEKEND` en `tools.CONNECTORS` zijn één lijst; uit de bron gelezen, zoals de contracten."""
+    import ast
+    from pathlib import Path
+
+    bron = Path(__file__).resolve().parents[3] / "api" / "app" / "connectors.py"
+    boom = ast.parse(bron.read_text(encoding="utf-8"))
+    bekend = next(n.value for n in ast.walk(boom) if isinstance(n, ast.AnnAssign)
+                  and getattr(n.target, "id", "") == "BEKEND")
+    assert {k.value for k in bekend.keys} == set(tools.CONNECTORS)

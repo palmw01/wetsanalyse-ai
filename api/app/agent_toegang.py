@@ -18,6 +18,7 @@ AGENT_CLIENT = "graph-qa"
 
 TOEGESTAAN: frozenset[tuple[str, str]] = frozenset({
     ("GET", "/v1/annotatie/dekking"),
+    ("GET", "/v1/connectors"),
     ("GET", "/v1/annotatie/elementen/{}"),
     ("GET", "/v1/annotatie/weergave"),
     ("GET", "/v1/begrippen"),

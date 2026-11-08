@@ -29,6 +29,8 @@ import type {
   LlmProfileOut,
   LoginVerifyResult,
   BudgetBeleid,
+  Connector,
+  ConnectorAuditRegel,
   RolBudget,
   MeAccount,
   RegistratieBulkRegel,
@@ -271,6 +273,25 @@ export async function deleteUser(userid: string): Promise<void> {
 export async function getVerbruik(): Promise<Verbruiksstand> {
   const res = await fetch("/api/account/verbruik", { cache: "no-store" });
   return json<Verbruiksstand>(res);
+}
+
+export async function listConnectors(): Promise<Connector[]> {
+  const res = await fetch("/api/admin/connectors", { cache: "no-store" });
+  return json<Connector[]>(res);
+}
+
+export async function zetConnector(naam: string, aan: boolean): Promise<Connector> {
+  const res = await fetch(`/api/admin/connectors/${pathSegment(naam)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ aan }),
+  });
+  return json<Connector>(res);
+}
+
+export async function connectorAudit(naam: string): Promise<ConnectorAuditRegel[]> {
+  const res = await fetch(`/api/admin/connectors/${pathSegment(naam)}/audit`, { cache: "no-store" });
+  return json<ConnectorAuditRegel[]>(res);
 }
 
 export async function getBudgetBeleid(): Promise<BudgetBeleid> {
