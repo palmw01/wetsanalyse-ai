@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 
 VERSIE = 1
 
-Sjabloon = Literal["begrip", "bepaling", "duiding", "annotaties"]
+Sjabloon = Literal["begrip", "bepaling", "duiding", "annotaties", "extern"]
 
 
 class Vindplaats(BaseModel):
@@ -122,6 +122,29 @@ class Twijfel(BaseModel):
     punten: list[str]
 
 
+class ExternePassage(BaseModel):
+    nr: int
+    tekst: str
+    #: De kop van het deel waarin de passage staat, zoals de bron hem noemt.
+    kop: str = ""
+
+
+class Extern(BaseModel):
+    """Een bron naast de wet (ADR-013): letterlijke passages uit één stuk, met zijn eigen vindplaats en brontype. Geen
+    wettekst: het blok staat in een antwoord ná de wettekst en onderbouwt nooit wat de wet zegt. Alles komt uit de rijen
+    van de leestool van de connector; het model wees alleen het stuk en de passages aan. Eén blok per stuk."""
+
+    soort: Literal["extern"] = "extern"
+    door: Literal["bron"] = "bron"
+    brontype: str
+    id: str
+    label: str
+    link: str = ""
+    #: Uit de connectorbeschrijving (`kop_in_antwoord`).
+    kop: str
+    passages: list[ExternePassage]
+
+
 class Leemte(BaseModel):
     """Wat het hoofddeel van een sjabloon niet kon vinden: gezegd, niet opgevuld. Altijd "in de graaf",
     nooit "bestaat niet"."""
@@ -132,7 +155,7 @@ class Leemte(BaseModel):
 
 
 Blok = Annotated[
-    Definities | Begrippen | Wettekst | Citaten | Verwijzingen | Annotaties | Toelichting | Twijfel | Leemte,
+    Definities | Begrippen | Wettekst | Citaten | Verwijzingen | Annotaties | Toelichting | Twijfel | Extern | Leemte,
     Field(discriminator="soort"),
 ]
 
@@ -183,6 +206,9 @@ def _blok_tekst(b: BaseModel) -> str:
         return b.tekst
     if isinstance(b, Twijfel):
         return "\n".join(f"- {p}" for p in b.punten)
+    if isinstance(b, Extern):
+        regel = f"[{b.label}]({b.link})" if b.link else b.label
+        return "\n\n".join(f'> "{p.tekst}"' for p in b.passages) + f"\n\n{regel}"
     if isinstance(b, Leemte):
         return b.tekst
     return ""
@@ -199,6 +225,6 @@ def antwoord_tekst(antwoord: Antwoord, zonder: frozenset[str] = frozenset()) -> 
         tekst = "" if b.soort in zonder else _blok_tekst(b)
         if not tekst:
             continue
-        kop = b.kop if isinstance(b, Toelichting) else KOPPEN.get(b.soort, "")
+        kop = b.kop if isinstance(b, (Toelichting, Extern)) else KOPPEN.get(b.soort, "")
         delen.append(f"**{kop}**\n\n{tekst}" if kop else tekst)
     return "\n\n".join(delen)

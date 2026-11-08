@@ -14,7 +14,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from .extern import externe_verwijzingen
+from .extern import externe_verwijzingen, externe_vindplaats
 
 
 @dataclass(frozen=True)
@@ -33,7 +33,9 @@ class ConnectorBeschrijving:
     signalen: tuple[str, ...]
     #: De tools van de connector in graph-qa.
     tools: frozenset[str]
-    #: De tool waarvan het resultaat de citeerbare tekst draagt; een zoekresultaat draagt alleen titels.
+    #: De tool waarvan het resultaat de citeerbare tekst draagt; een zoekresultaat draagt alleen titels. Het contract van
+    #: een leestool: het resultaat draagt `stuk: {id, label, link}` en per rij `{nr, tekst, kop?}` (genummerde passages
+    #: in documentvolgorde), zodat het blok `extern` (ADR-008) voor elke connector met dezelfde code wordt gevuld.
     leestool: str
     #: De vorm van het id dat het antwoord noemt (`extern.externe_vindplaats` leest het).
     id_prefixen: tuple[str, ...]
@@ -41,6 +43,8 @@ class ConnectorBeschrijving:
     specialisten: frozenset[str]
     #: Waar de bron in een antwoord voor staat, en waarvoor niet.
     rol_in_antwoord: str
+    #: De kop boven het blok `extern` in een antwoord ("Uit de parlementaire geschiedenis").
+    kop_in_antwoord: str
     #: Wat de connector niet kan: de jurist moet het weten voor hij op een stilte vertrouwt.
     grenzen: str
     #: De beschrijving in de beheertab.
@@ -82,6 +86,7 @@ KAMERSTUKKEN = ConnectorBeschrijving(
     specialisten=frozenset({"definitie", "duiding", "algemeen"}),
     rol_in_antwoord=("een Kamerstuk laat zien wat de wetgever bedoelde; het onderbouwt nooit wat de wet zegt – dat "
                      "doet alleen de opgehaalde bepaling"),
+    kop_in_antwoord="Uit de parlementaire geschiedenis",
     grenzen=("zoeken gaat op dossiernummer of op woorden uit de titel, niet in de volle tekst; tabellen, illustraties "
              "en voetnoten staan niet in de opgehaalde tekst"),
     beheer=("Wetsgeschiedenis uit de officiële publicaties: memorie van toelichting, nota's, verslagen en het advies "
@@ -104,3 +109,17 @@ NAMEN: tuple[str, ...] = tuple(CONNECTORS)
 def herkende(tekst: str) -> tuple[str, ...]:
     """De connectors waar deze tekst (ook) over gaat, in de volgorde van `CONNECTORS`."""
     return tuple(n for n, c in CONNECTORS.items() if c.herkent(tekst))
+
+
+def van_id(ident: str) -> ConnectorBeschrijving | None:
+    """De connector die een extern id levert: zijn brontype en de vorm van zijn id. None als geen connector het levert
+    (een ECLI zonder connector voor rechtspraak, of geen extern id)."""
+    vp = externe_vindplaats(ident)
+    if vp is None:
+        return None
+    return next((c for c in CONNECTORS.values() if c.brontype == vp.brontype and vp.id.startswith(c.id_prefixen)), None)
+
+
+def leestools() -> frozenset[str]:
+    """De tools waarvan het resultaat citeerbare tekst van een bron naast de wet draagt."""
+    return frozenset(c.leestool for c in CONNECTORS.values())

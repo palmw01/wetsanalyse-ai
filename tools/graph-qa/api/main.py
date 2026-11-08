@@ -497,6 +497,20 @@ async def stop_run(
     return RunStart(**run.samenvatting())
 
 
+@app.get("/v1/bronnen")
+async def bronnen(_auth: None = Depends(_check_auth)) -> dict:
+    """De bronconnectors (ADR-013) en of deze straat ze aanbiedt (`CONNECTOR_<NAAM>`). De werkplek toont in het menu
+    *Bronnen en tools* alleen wat de straat aanbiedt én de beheerder aanzette (het register bij de api): een schakelaar
+    die niets doet, is erger dan geen schakelaar. Uit de beschrijving, zonder connector met naam."""
+    from bronmodel.connectors import CONNECTORS
+
+    from agent.tools import connectors_aan
+
+    aan = connectors_aan(settings)
+    return {"bronnen": [{"naam": c.naam, "label": c.label, "brontype": c.brontype, "groep": c.groep,
+                         "straat": c.naam in aan} for c in CONNECTORS.values()]}
+
+
 @app.get("/v1/runs")
 async def runs_van_gebruiker(
     actief: bool = False,

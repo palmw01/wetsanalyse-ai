@@ -24,6 +24,7 @@ from urllib.parse import unquote
 from .annotatie import _normaliseer, komt_letterlijk_voor
 from .hoeveelheden import buiten as hoeveelheden_buiten
 from .models import Source
+from bronmodel.connectors import leestools, van_id
 from bronmodel.extern import externe_verwijzingen, externe_vindplaats
 
 from .provenance import _BWB_RE, citations_in, first_bwb
@@ -220,6 +221,17 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
 
     # De overzichtsroute heeft hierboven elke genoemde bepaling al hard getoetst.
     onbevestigd = [] if overzicht else _onbevestigd(answer_text, source_trace, trace_text)
+    # Een stuk van een bronconnector (ADR-013) dat het antwoord noemt, maar dat alleen in een zoekresultaat stond: de
+    # titel is gevonden, de tekst niet gelezen. Geen afkeuring – het id bestaat – maar wat het antwoord erover zegt,
+    # rust niet op de bron. De leestool komt uit de beschrijving.
+    lees = leestools()
+    gelezen = {e.id for name, t in source_trace if t and name in lees for e in externe_verwijzingen(waarden(t))}
+    for c in cited:
+        if (ext := externe_vindplaats(c)) is not None and van_id(ext.id) is not None and ext.id in trace_extern \
+                and ext.id not in gelezen:
+            regel = f"{ext.label}: alleen gevonden, niet gelezen"
+            if regel not in onbevestigd:
+                onbevestigd.append(regel)
 
     if unsupported:
         niveau = "ongegrond"

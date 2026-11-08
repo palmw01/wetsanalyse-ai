@@ -58,6 +58,39 @@ graph-qa, het register – en niets per connector met de hand. Een nieuwe connec
 `agent/tools/` en een straatvlag `CONNECTOR_<NAAM>`. `tools/graph-qa/tests/test_connectorbeschrijving.py` maakt een
 onvolledige beschrijving rood.
 
+**In het antwoord** (vervolg op 1a, 8 nov 2026). Een bron naast de wet krijgt binnen ADR-008 een vaste vorm: het blok
+`extern` in de gesloten catalogus (`door: bron`, met brontype, id, label, link, de kop uit de beschrijving en de
+letterlijke passages). Elk sjabloon krijgt het als subsjabloon, met één plat veld `extern: [{id, van_nr, tot_nr}]`. Een
+vraag die alleen over zo'n bron gaat, heeft een eigen sjabloon (`antwoord_extern`) met dezelfde blokken. Allebei staan ze
+er alleen als er een connector aanstaat. Het model wijst aan, de code vult uit de rijen van de leestool; het blok komt ná
+de wettekst en vult nooit een `doel`.
+
+**Wat de keten eruit afleidt** (PR 1–6 van *connectors consequent*):
+
+| Waar | Wat | Code |
+|---|---|---|
+| scope | de supervisor kent elke bekende connector als binnen de wetgeving, ook uitgezet | `supervisor._scope_bronnen` |
+| routering | een vraag die alleen over een uitgezette bron gaat: een melding zonder model, met reden en wie hem aanzet; AFWIJZEN bij een bronvraag draait de code terug | `nodes/supervisie._bron_uit`, `bronstand` |
+| bronstand | per connector aan, of uit door `straat`, `gesprek`, `werkgebied`, `beheerder` of `register_onleesbaar` | `agent/bronstand.py` |
+| tools | de rollen uit `specialisten` krijgen de tools; `toegestane_tools` blijft het ene filter | `specialists._met_connectors` |
+| prompt | BRONSOORTEN generiek in het stabiele deel; BRONNEN IN DEZE BEURT na het cachepunt | `prompts.py`, `bronstand.prompt_blok` |
+| antwoord | het blok `extern` als subsjabloon en het sjabloon `antwoord_extern` | `sjablonen/extern.py` |
+| verificatie | een stuk dat alleen gevonden is, is `onbevestigd` | `grounding.check_grounding`, `connectors.leestools` |
+| werkplek | het menu toont wat straat én register aanzetten; *Zet … aan* na `bron_uit` | `GET /v1/bronnen`, `connectorsMenu` |
+
+**Een nieuwe connector toevoegen (checklist):**
+
+1. een beschrijving in `bronmodel/connectors.py` (alle velden; `brontype` uit `extern.BRONTYPEN`, eventueel een nieuw
+   soort id in `extern.py` met vectoren);
+2. de tools in `tools/graph-qa/agent/tools/`, met het resultaatcontract; de leestool levert `stuk: {id, label, link}` en
+   rijen `{nr, tekst, kop?}`, en een tak in `dispatch`;
+3. de straatvlag: `Settings.connector_<naam>`, `CONNECTOR_<NAAM>` in `config.py` en de bicep (default uit);
+4. de groep in `frontend/lib/bronnen.ts` (`BRONTYPE_NAAM`);
+5. `tools/graph-qa/tests/test_connectorbeschrijving.py` en de kruistests groen; daarna meten zoals
+   [`../acceptatie/connectors-meting.md`](../acceptatie/connectors-meting.md).
+
+Verder hoeft er niets bij: geen prompttekst, geen route, geen sjabloon, geen werkplekcomponent per connector.
+
 ### Toestemming per handeling
 
 - **Connectors die alleen lezen** (alle bronconnectors, en de contextconnectors in fase 2a): de schakelaar is de

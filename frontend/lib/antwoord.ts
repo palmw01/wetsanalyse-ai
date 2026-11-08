@@ -13,13 +13,15 @@ export type AntwoordBlok =
   | { soort: "annotaties"; door: "bron"; items: { id: string; klasse: string; tekst: string; vindplaats: string; bron_iri?: string }[]; totaal: number; volledig: boolean }
   | { soort: "toelichting"; door: "lex"; kop: string; tekst: string }
   | { soort: "twijfel"; door: "lex"; punten: string[] }
+  | { soort: "extern"; door: "bron"; brontype: string; id: string; label: string; link: string; kop: string;
+      passages: { nr: number; tekst: string; kop: string }[] }
   | { soort: "leemte"; door: "bron"; tekst: string }
 
 export type BlokSoort = AntwoordBlok["soort"];
 
 export interface Antwoord { sjabloon: string; versie: number; blokken: AntwoordBlok[]; doelen: AntwoordVindplaats[] }
 
-export const BLOK_SOORTEN: readonly BlokSoort[] = ["definities", "begrippen", "wettekst", "citaten", "verwijzingen", "annotaties", "toelichting", "twijfel", "leemte"];
+export const BLOK_SOORTEN: readonly BlokSoort[] = ["definities", "begrippen", "wettekst", "citaten", "verwijzingen", "annotaties", "toelichting", "twijfel", "extern", "leemte"];
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
@@ -38,6 +40,8 @@ function isBlok(b: unknown): b is AntwoordBlok {
     case "annotaties": return lijst((x) => isObject(x) && typeof x.klasse === "string" && typeof x.tekst === "string");
     case "toelichting": case "leemte": return typeof b.tekst === "string";
     case "twijfel": return Array.isArray(b.punten) && b.punten.every((p) => typeof p === "string");
+    case "extern": return typeof b.id === "string" && typeof b.label === "string" && typeof b.kop === "string" &&
+      Array.isArray(b.passages) && b.passages.every((p) => isObject(p) && typeof p.tekst === "string");
   }
 }
 

@@ -108,6 +108,12 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   van het model haalt de code niets op. Een markering "niet opgehaald" bestaat bewust niet.
   Citeren kan alleen uit rijen met een iri bij hun tekst, dus niet uit `get_context`.
   `verify_node` toetst de blokken `annotaties`, `begrippen` en `leemte` niet (`NIET_GETOETST`): afgeleide duiding en tekst van de code.
+  **Bronnen naast de wet** (`sjablonen/extern.py`, ADR-013): het blok `extern` (brontype, id, label, link, kop uit
+  `kop_in_antwoord`, letterlijke passages). Als subsjabloon krijgt elk sjabloon het platte veld `extern: [{id, van_nr,
+  tot_nr}]`, en als eigen sjabloon is er `antwoord_extern`, allebei alleen als er een connector aanstaat die de rol bedient
+  (`agent_node`); zonder connector zijn de schema's byte-gelijk. De tekst komt uit de rijen van de leestool (contract:
+  `stuk: {id, label, link}`, rijen `{nr, tekst, kop?}`). `check_grounding` noemt een stuk dat alleen in een zoekresultaat
+  stond `onbevestigd` ("alleen gevonden, niet gelezen"). `tests/test_extern_sjabloon.py`.
 - **`verify_node`** – `check_grounding(answer, source_trace)`. Bij ongegrond volgt via `correct_node`
   hoogstens één corrigerende ronde (`GROUNDING_CORRECT`, default aan; `state["corrected"]`). De controle
   keurt **twee** dingen af en `correct_node` moet ze allebei benoemen: `unsupported` (een vindplaats die
@@ -215,7 +221,11 @@ bruikbaar is.
   `tool_execution` geeft de stand aan `dispatch`, dus ook een workflow die een tool in code aanroept valt eronder.
   **De bronstand** (`agent/bronstand.py`, `State.bronstand`) zegt per connector waaróm hij uit staat (`straat`,
   `gesprek`/`werkgebied` uit `ChatRequest.bronnen_herkomst`, `register_onleesbaar`, `beheerder`) en gaat als eerste
-  event (`bronstand`) de stroom in; de logregel `beurt_meting` leest hem (`kamerstukken:aan`). `tests/test_bronschakelaar.py`.
+  event (`bronstand`) de stroom in; de logregel `beurt_meting` leest hem (`kamerstukken:aan`).
+  **De prompt**: BRONSOORTEN in `SYSTEM_PROMPT` is generiek (geen connector met naam, binnen de cache); BRONNEN IN DEZE
+  BEURT (`bronstand.prompt_blok`, ná het cachepunt in `agent_node`) zegt per connector uit de beschrijving wat hij dekt
+  en waarvoor hij staat, of waarom hij uit staat en wie hem aanzet. Zonder aangeboden connector en zonder genoemde bron
+  is dat blok leeg. `tests/test_bronprompt.py`. `tests/test_bronschakelaar.py`.
   **Kamerstukken** (`tools/kamerstuk_tools.py`, transport `adapters/sru_kamerstukken.py`): `zoek_kamerstukken`
   (een dossier op nummer, of woorden in de titel) en `get_kamerstuk` (per alinea, met de kop, in documentvolgorde;
   tabellen, illustraties en voetnoten geteld in `overgeslagen`). De CQL bouwt de tool, de document-URL komt uit het
@@ -1480,7 +1490,12 @@ als het antwoord een lijst of element draagt.
 melding, geen specialist, geen graafverkeer. Afwijzen mag alleen als de vraag **niet over wetgeving
 gaat**. Of een bepaalde regeling in de graaf zit weet de supervisor niet (hij heeft geen tools), dus
 zo'n vraag gaat naar de antwoord-worker, die zoekt en zelf zegt als er niets is. Een afwijzing kost
-niets, een onterechte kost het antwoord. De vlag hoort in de per-beurt-reset van `answer_stream`,
+niets, een onterechte kost het antwoord. **Een bron naast de wet is binnen scope** (ADR-013): `SUPERVISOR_SYSTEM`
+noemt elke bekende connector uit de beschrijving (`_scope_bronnen`), en de code draait een AFWIJZEN terug als de vraag een
+connector raakt (`bronmodel.connectors.herkende`). Gaat de vraag alleen over bronnen die in deze beurt uit staan (en noemt
+ze geen artikel), dan zegt Lex zonder model waarom en wie ze aanzet (`_bron_uit`, `bronstand.melding_uit`; route
+`bron_uit`, met een `bron_uit`-event waarmee de werkplek *Zet aan* aanbiedt). `GET /v1/bronnen` zegt per connector of de
+straat hem aanbiedt; de BFF (`/api/connectors`) toont in het menu alleen wat straat én register aanzetten. De vlag hoort in de per-beurt-reset van `answer_stream`,
 anders wijst één afgewezen vraag de hele thread af. De workerlijst is een **allowlist**
 (`antwoord`/`annotatie`/`werkgebied`/`deelvragen`/`begrippen`; de laatste drie staan altijd alleen) met een cap van twee: een onbekende naam zou anders een extra antwoord-worker
 worden.
