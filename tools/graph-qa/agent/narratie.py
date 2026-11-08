@@ -96,7 +96,13 @@ def _toolregel(call: dict[str, Any]) -> str:
     bepaling = (bepaling.replace(" lid", ", lid") + (f" ({regeling})" if regeling else "")) if bepaling else (regeling or "de bepaling")
     zoekterm = next((f"„{truncate(str(inp[k]).strip(), 60)}”" for k in ("query", "term", "zoekterm", "onderwerp")
                      if str(inp.get(k, "")).strip()), "")
-    sjabloon = _WERKWOORD.get(str(call.get("name", "")), "raadpleegt de kennisgraaf")
+    naam = str(call.get("name", ""))
+    # Een tool van een bronconnector (ADR-013): het werkwoord staat in zijn beschrijving, niet hier.
+    from bronmodel.connectors import CONNECTORS
+    for c in CONNECTORS.values():
+        if (regel := c.werkwoord(naam, inp)) is not None:
+            return regel
+    sjabloon = _WERKWOORD.get(naam, "raadpleegt de kennisgraaf")
     return sjabloon.format(bepaling=bepaling, regeling=regeling or "de regeling", zoekterm=zoekterm or "in de wetgeving").strip()
 
 
