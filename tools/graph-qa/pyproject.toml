@@ -93,4 +93,9 @@ testpaths = ["tests"]
 addopts = "-p tests._alias_httpx"
 # Tests die een echte PostgreSQL nodig hebben (de gedeelde run-store). Standaard overgeslagen; ze
 # slaan zichzelf over zonder RUNSTORE_TEST_DSN. Draaien met `-m integration`.
-markers = ["integration: vereist een echte PostgreSQL (RUNSTORE_TEST_DSN)"]
+markers = [
+    "integration: vereist een echte PostgreSQL (RUNSTORE_TEST_DSN)",
+    # De live-proef van de bronconnectors (ADR-013): raakt de echte externe dienst, zonder graaf of model. Slaat
+    # zichzelf over zonder BRONNEN_LIVE=1; draait dagelijks in `.github/workflows/bronnenwacht.yml`, niet in de poort.
+    "live: raakt een echte externe bron (BRONNEN_LIVE=1)",
+]

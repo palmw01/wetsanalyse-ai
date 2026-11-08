@@ -11,7 +11,7 @@ waarin de wetsgeschiedenis door de uitleg loopt. Eén herbruikbaar blok, generie
   van Lex, dezelfde `extern`-aanwijzing en de twijfel.
 
 Het model wijst alleen het stuk en de passages aan. De tekst, de vindplaats, het brontype en de kop komen uit de code:
-de rijen van de leestool van de connector (contract: `stuk: {id, label, link}` en rijen `{nr, tekst, kop?}`) en de
+de rijen van de leestool van de connector (contract: `stuk: {id, label, link, bron_hash, gewijzigd?}` en rijen `{nr, tekst, kop?}`) en de
 beschrijving (`kop_in_antwoord`). Een id dat niet gelezen is, of een passage die er niet is, is `Onvulbaar`: het model
 haalt dan eerst op, net als bij `van`/`tot` in de duiding.
 """
@@ -84,19 +84,29 @@ def met_veld(schema: dict[str, Any]) -> dict[str, Any]:
     return uit
 
 
-def _gelezen(trace: Trace, c: ConnectorBeschrijving, ident: str) -> tuple[dict[str, Any], dict[int, dict[str, Any]]]:
-    """Het stuk en zijn passages op nummer, uit alle pagina's van de leestool voor dit id."""
-    stuk: dict[str, Any] = {}
-    rijen: dict[int, dict[str, Any]] = {}
+def _gelezen(trace: Trace, c: ConnectorBeschrijving, ident: str
+             ) -> tuple[dict[str, Any], dict[int, dict[str, Any]], set[int]]:
+    """Het stuk en zijn passages op nummer, uit de pagina's van de laatste lezing van dit id (dezelfde `bron_hash`), en
+    de nummers die alleen in een eerdere lezing staan. Twee lezingen mengen kan niet: het register gaat over beurten
+    heen, en een bron kan intussen een nieuwe versie publiceren (review ADR-013, punt 3)."""
+    lezingen: list[tuple[dict[str, Any], list[dict[str, Any]]]] = []
     for data in resultaten(trace, [c.leestool]):
         s = data.get("stuk") or {}
-        if s.get("id") != ident:
-            continue
-        stuk = stuk or s
-        for r in data.get("resultaten") or []:
-            if isinstance(r, dict) and isinstance(r.get("nr"), int) and isinstance(r.get("tekst"), str):
+        if s.get("id") == ident:
+            lezingen.append((s, [r for r in data.get("resultaten") or []
+                                 if isinstance(r, dict) and isinstance(r.get("nr"), int) and isinstance(r.get("tekst"), str)]))
+    if not lezingen:
+        return {}, {}, set()
+    laatste = lezingen[-1][0]
+    rijen: dict[int, dict[str, Any]] = {}
+    eerder: set[int] = set()
+    for s, rs in lezingen:
+        if s.get("bron_hash") == laatste.get("bron_hash"):
+            for r in rs:
                 rijen.setdefault(r["nr"], r)
-    return stuk, rijen
+        else:
+            eerder |= {r["nr"] for r in rs}
+    return laatste, rijen, eerder - set(rijen)
 
 
 def blokken(items: Any, trace: Trace) -> list[Extern]:
@@ -112,7 +122,7 @@ def blokken(items: Any, trace: Trace) -> list[Extern]:
         c = van_id(ident)
         if vp is None or c is None:
             raise Onvulbaar(f"'{ident}' is geen id van een bron naast de wet die hier aanstaat.")
-        stuk, rijen = _gelezen(trace, c, vp.id)
+        stuk, rijen, alleen_eerder = _gelezen(trace, c, vp.id)
         if not stuk:
             raise Onvulbaar(f"{vp.label} is in dit gesprek niet gelezen: haal het stuk eerst op met {c.leestool}, en wijs "
                             "dan de passages aan.")
@@ -122,12 +132,17 @@ def blokken(items: Any, trace: Trace) -> list[Extern]:
         if tot - van + 1 > MAX_PASSAGES:
             raise Onvulbaar(f"{vp.label}: hoogstens {MAX_PASSAGES} alinea's per aanwijzing; vat de rest in eigen woorden samen.")
         ontbreekt = [n for n in range(van, tot + 1) if n not in rijen]
+        if ontbreekt and set(ontbreekt) & alleen_eerder:
+            raise Onvulbaar(f"{vp.label} is veranderd sinds alinea {', '.join(map(str, sorted(set(ontbreekt) & alleen_eerder)))} "
+                            f"gelezen werd. Haal het stuk opnieuw op met {c.leestool}, en wijs de passages aan in de "
+                            "versie van nu.")
         if ontbreekt:
             raise Onvulbaar(f"{vp.label}: alinea {', '.join(map(str, ontbreekt))} is niet opgehaald. Haal het vervolg op, "
                             "of wijs alinea's aan die in het resultaat staan.")
         blok = per_stuk.setdefault(vp.id, Extern(
             brontype=vp.brontype, id=vp.id, label=str(stuk.get("label") or vp.label),
-            link=str(stuk.get("link") or vp.uri), kop=c.kop_in_antwoord, passages=[]))
+            link=str(stuk.get("link") or vp.uri), kop=c.kop_in_antwoord, passages=[],
+            bron_hash=str(stuk.get("bron_hash") or ""), gewijzigd=str(stuk.get("gewijzigd") or "")))
         al = {p.nr for p in blok.passages}
         blok.passages += [ExternePassage(nr=n, tekst=rijen[n]["tekst"], kop=str(rijen[n].get("kop") or ""))
                           for n in range(van, tot + 1) if n not in al]

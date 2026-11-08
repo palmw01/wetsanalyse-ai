@@ -230,11 +230,12 @@ try {
   assert.equal(creation.body.element.tekst, "😀");
   assert.equal(creation.body.snapshot_id, "snapshot");
   assert.deepEqual(creation.body.verwachte_revisies, { "urn:lid1": 1 });
-  await page.getByRole("button", { name: "Exporteren", exact: true }).click();
-  await page.getByRole("button", { name: /^JSON/ }).click();
+  // Exporteren staat in het menu ⋯ van de paneelkop (8 nov 2026).
+  await page.locator("[data-paneel-kop] [data-meer-knop]").first().click();
+  await page.getByRole("menuitem", { name: /^JSON/ }).click();
   assert.deepEqual((await verzoek((r) => r.path.endsWith("/weergave/export"))).body, { bron_iri: "urn:lid1", snapshot_id: "snapshot", formaat: "json" });
-  await page.getByRole("button", { name: "Exporteren", exact: true }).click();
-  await page.getByRole("button", { name: /^RDF \(TriG\)/ }).click();
+  await page.locator("[data-paneel-kop] [data-meer-knop]").first().click();
+  await page.getByRole("menuitem", { name: /^RDF \(TriG\)/ }).click();
   assert.deepEqual((await verzoek((r) => r.path.endsWith("/weergave/export") && r.body?.formaat === "trig")).body,
     { bron_iri: "urn:lid1", snapshot_id: "snapshot", formaat: "trig" });
   // Een selectie over twee leden wordt twee bronankers, zonder lidnummer ertussen.
@@ -260,13 +261,21 @@ try {
   assert.equal(await page.getByTestId("dekking-gevonden").first().textContent(), "Gevonden: actor 1 · niets: tijd");
   await page.getByTestId("dekking-balk").getByRole("button", { name: "Verbergen" }).click();
   assert.equal(await wettekst().locator("[data-ongedekt]").count(), 0);
-  // Verwijderen: naast afronden, tweede klik bevestigt, alle lagen in beeld met hun revisie.
-  await page.getByRole("button", { name: "Annotatie verwijderen", exact: true }).click();
-  await page.getByRole("button", { name: "Verwijderen?", exact: true }).click();
+  // Verwijderen: onderaan in het menu ⋯, tweede klik bevestigt, alle lagen in beeld met hun revisie.
+  await page.locator("[data-paneel-kop] [data-meer-knop]").first().click();
+  await page.getByRole("menuitem", { name: "Annotatie verwijderen", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Verwijderen?", exact: true }).click();
   assert.deepEqual((await verzoek((r) => r.path.endsWith("/weergave/verwijder"))).body,
     { bron_iri: "urn:artikel9", snapshot_id: "snapshot", verwachte_revisies: { "urn:lid1": 1, "urn:lid2": 1 } });
   await page.getByText("Deze annotatie is verwijderd op", { exact: false }).waitFor();
-  assert.equal(await page.getByRole("button", { name: "Annotatie verwijderen", exact: true }).count(), 0);
+  // Een verwijderde annotatie is niet nog eens te verwijderen (het menu houdt alleen de export).
+  const meer = page.locator("[data-paneel-kop] [data-meer-knop]:visible");
+  if (await meer.count()) {
+    await meer.first().click();
+    await page.locator("[data-meer-menu]").last().waitFor();
+    assert.equal(await page.getByRole("menuitem", { name: "Annotatie verwijderen", exact: true }).count(), 0);
+    await page.keyboard.press("Escape");
+  }
   assert.equal(await page.getByRole("button", { name: "Annotatie afronden", exact: true }).count(), 0);
   await page.goto(`${base}/workbench?gesprek=g1`);
   // Na herladen staat wat Lex over de annotatie zei boven de kaart; in een gesprek is de header compact.

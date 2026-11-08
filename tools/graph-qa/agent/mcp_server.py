@@ -45,7 +45,10 @@ from agent import tools
 from agent.adapters.graphdb_graph import make_graph
 from agent.config import Settings
 from agent.ports import GraphPort
-from agent.resultaat import is_fout
+from agent.resultaat import CONTRACT_SCHEMA, is_fout
+from agent.tools.begrip_tools import AFGELEIDE_TOOL_NAMEN
+from bronmodel.connectors import CONNECTORS as CONNECTORBESCHRIJVINGEN
+
 from agent.annotatie_read import AnnotatieReadApi
 from agent.begrip_read import BegripReadApi
 
@@ -59,6 +62,35 @@ def dispatch_mcp(name: str, arguments: dict, graph: GraphPort, settings: Setting
                           begrippen=BegripReadApi(settings, settings.annotatie_read_user_id))
 
 
+#: De tools met het resultaatcontract (`agent/resultaat.py`): de graaftools en de bronconnectors. De leestools van
+#: annotaties en begrippen hebben hun eigen vorm, dus geen `outputSchema` (wel `structuredContent`).
+CONTRACT_TOOLS = frozenset(t["name"] for t in tools.TOOLS) - AFGELEIDE_TOOL_NAMEN
+
+
+def gedrag(naam: str) -> dict[str, bool]:
+    """Wat een tool doet, als MCP-annotaties (ADR-013). Elke tool hier leest alleen en is herhaalbaar; een bronconnector
+    leest een externe dienst (`openWorldHint`), de rest de eigen graaf of api. Afgeleid, niet per tool: een nieuwe
+    connector krijgt het vanzelf. Een schrijvende contextconnector (fase 2b) hoort hier niet zonder eigen regel."""
+    return {"read_only_hint": True, "destructive_hint": False, "idempotent_hint": True,
+            "open_world_hint": naam in tools.CONNECTOR_TOOLS}
+
+
+def resultaat_inhoud(naam: str, tekst: str) -> dict[str, Any]:
+    """De onderdelen van een MCP-toolresultaat: de tekst (wat het model ook in Lex krijgt), het object als
+    `structuredContent` als de tekst JSON is, en bij een leestool van een connector een `resource_link` naar het gelezen
+    stuk met `lastModified` – de versie die gelezen is (review ADR-013, punt 3)."""
+    try:
+        data = json.loads(tekst)
+    except ValueError:
+        data = None
+    uit: dict[str, Any] = {"tekst": tekst, "structuur": data if isinstance(data, dict) else None, "stuk": None}
+    leestools = {c.leestool for c in CONNECTORBESCHRIJVINGEN.values()}
+    stuk = data.get("stuk") if isinstance(data, dict) and naam in leestools else None
+    if isinstance(stuk, dict) and stuk.get("link"):
+        uit["stuk"] = stuk
+    return uit
+
+
 def _bouw_server() -> tuple[Any, Settings, GraphPort]:
     """Bouw de MCP-server met de toollaag erachter.
 
@@ -67,7 +99,7 @@ def _bouw_server() -> tuple[Any, Settings, GraphPort]:
     plus TCP+TLS kosten.
     """
     from mcp.server.lowlevel import Server
-    from mcp.types import CallToolResult, ListToolsResult, TextContent, Tool
+    from mcp.types import Annotations, CallToolResult, ListToolsResult, ResourceLink, TextContent, Tool, ToolAnnotations
 
     settings = Settings.from_env()
     settings.require_graph()          # fail-fast: zonder graaf heeft deze server geen bestaansrecht
@@ -76,7 +108,9 @@ def _bouw_server() -> tuple[Any, Settings, GraphPort]:
     async def lijst(_ctx: Any, _params: Any) -> Any:
         return ListToolsResult(
             tools=[
-                Tool(name=t["name"], description=t["description"], input_schema=t["input_schema"])
+                Tool(name=t["name"], description=t["description"], input_schema=t["input_schema"],
+                     output_schema=CONTRACT_SCHEMA if t["name"] in CONTRACT_TOOLS else None,
+                     annotations=ToolAnnotations(**gedrag(t["name"])))
                 # Dezelfde regel als de agent: een bronconnector die uit staat, wordt niet aangeboden (ADR-013).
                 for t in tools.anthropic_schemas(only=tools.toegestane_tools(None, settings))
             ]
@@ -90,7 +124,14 @@ def _bouw_server() -> tuple[Any, Settings, GraphPort]:
         # `dispatch` werpt niet: een toolfout komt terug als tekst, met uitleg voor het model. Die
         # afspraak houden we hier vast — een MCP-fout zou de client dwingen te raden of het aan de
         # vraag lag of aan de graaf, terwijl de tekst dat gewoon zegt.
-        return CallToolResult(content=[TextContent(type="text", text=resultaat)], is_error=is_fout(resultaat))
+        inhoud = resultaat_inhoud(params.name, resultaat)
+        content: list[Any] = [TextContent(type="text", text=resultaat)]
+        if (stuk := inhoud["stuk"]) is not None:
+            content.append(ResourceLink(type="resource_link", uri=stuk["link"], name=str(stuk.get("id") or stuk["link"]),
+                                        title=stuk.get("label"), mime_type="text/html",
+                                        annotations=Annotations(last_modified=stuk["gewijzigd"])
+                                        if stuk.get("gewijzigd") else None))
+        return CallToolResult(content=content, structured_content=inhoud["structuur"], is_error=is_fout(resultaat))
 
     # De low-level server neemt de handlers als constructor-argumenten. Bewust niet de high-level
     # MCPServer: die leidt het JSON-schema af uit een Python-functiesignatuur, terwijl onze schema's

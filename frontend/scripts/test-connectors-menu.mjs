@@ -10,7 +10,9 @@
  *  - na herladen komt de stand van het gesprek terug (`Gesprek.connectors`);
  *  - in een werkgebied geldt zijn standaard, en *Maak dit de standaard* zet `standaard_connectors` met de revisie;
  *  - een beurt draagt de herkomst van de stand (`bronnen_herkomst`), en na een `bron_uit` zet *Zet … aan* de bron aan in
- *    het gesprek; een bron die de beheerder uitzette krijgt geen knop.
+ *    het gesprek; een bron die de beheerder uitzette krijgt geen knop;
+ *  - was graph-qa niet te lezen (beschikbaarheid `onbekend`), dan staat de bron er zonder schakelaar, gaat de keuze
+ *    ongewijzigd mee met de beurt, en komt de schakelaar terug zodra de stand bij het openen weer bekend is.
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -37,7 +39,10 @@ async function open({ beschikbaar = [KST], gesprekConnectors, wgStandaard = null
   await page.route("**/api/**", async (route) => {
     const req = route.request(), p = new URL(req.url()).pathname, m = req.method();
     if (p.startsWith("/api/auth/")) return route.continue();
-    if (p === "/api/connectors") return route.fulfill({ json: { aan: beschikbaar.map((c) => c.naam), connectors: beschikbaar } });
+    if (p === "/api/connectors") {
+      const lijst = typeof beschikbaar === "function" ? beschikbaar() : beschikbaar;
+      return route.fulfill({ json: { aan: lijst.map((c) => c.naam), connectors: lijst } });
+    }
     if (p === "/api/annotatie/run") {
       if (m === "GET") return route.fulfill({ json: null });
       runs.push(req.postDataJSON());
@@ -176,6 +181,32 @@ const menu = (page) => page.locator("[data-connectors-menu]");
   await b.page.getByText("Kamerstukken staat uit in dit gesprek.").waitFor();
   assert.equal(await b.page.locator("[data-bron-uit]").count(), 0, "de beheerder zet je niet aan vanuit het gesprek");
   await b.context.close();
+}
+
+// 6. graph-qa niet te lezen: geen schakelaar die niets doet (review ADR-013, punt 2), en terug zodra de stand bekend is.
+{
+  let bekend = false;
+  const beschikbaar = () => [{ ...KST, beschikbaarheid: bekend ? "aan" : "onbekend" }];
+  const { page, context, errors, runs, patches } = await open({ beschikbaar, gesprekConnectors: ["kamerstukken"],
+    url: "/workbench?gesprek=g1" });
+  await menu(page).waitFor();
+  await page.waitForFunction(() => document.querySelector("[data-connectors-menu]")?.getAttribute("aria-label")?.includes("Kamerstukken onbekend"));
+  await menu(page).click();
+  await page.locator("[data-connector-onbekend=kamerstukken]").waitFor();
+  assert.equal(await page.getByRole("menuitemradio", { name: "Kamerstukken" }).count(), 0, "geen schakelaar bij een onbekende stand");
+  await page.locator("[data-connector-onbekend=kamerstukken]").click();
+  await page.waitForTimeout(300);
+  assert.equal(patches.length, 0, "een klik op een onbekende bron verandert niets");
+  await page.keyboard.press("Escape");
+  await vraag(page, "Wat staat er in de memorie van toelichting?");
+  await wachtOp(page, runs, 1);
+  assert.deepEqual(runs[0].bronnen, ["kamerstukken"], "de beurt houdt de opgeslagen keuze");
+
+  bekend = true;
+  await menu(page).click();
+  await page.getByRole("menuitemradio", { name: "Kamerstukken" }).waitFor();
+  assert.deepEqual(errors, []);
+  await context.close();
 }
 
 console.log("ok - Bronnen en tools");

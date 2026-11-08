@@ -66,6 +66,9 @@ describe("parseAntwoord", () => {
       passages: [{ nr: 4, tekst: "Het doel is eenvoud.", kop: "1. Inleiding" }] };
     expect(parseAntwoord({ sjabloon: "extern", blokken: [blok] })?.blokken[0]).toEqual(blok);
     expect(parseAntwoord({ sjabloon: "extern", blokken: [{ ...blok, passages: undefined }] })).toBeUndefined();
+    // De versie die Lex las (review ADR-013, punt 3) reist mee; een ouder bericht zonder versie blijft geldig.
+    const metVersie = { ...blok, bron_hash: "abc", gewijzigd: "2026-01-02" };
+    expect(parseAntwoord({ sjabloon: "extern", blokken: [metVersie] })?.blokken[0]).toEqual(metVersie);
   });
 
   it("kent dezelfde niet-getoetste blokken als het contract", () => {

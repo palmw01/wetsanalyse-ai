@@ -11,6 +11,7 @@ import { ChevronOmlaag } from "@/components/ui/Icoon";
 import { IcoonBevestig } from "@/components/ui/IcoonBevestig";
 import { Lijst, LijstRij, Regel, Regels, Sectie, StatusLabel } from "@/components/ui/Lijst";
 import { MeerMenu, MenuKnop, MenuVerwijder } from "@/components/ui/MeerMenu";
+import { usePaneelKopVulling } from "@/components/ui/PaneelKop";
 import { Melding } from "@/components/ui/Melding";
 import { ObjectRij, ObjectRijen, SplitDetail } from "@/components/ui/Pagina";
 import { SkeletonCard } from "@/components/ui/Skeleton";
@@ -151,51 +152,63 @@ function BegripLaadStand({ stand }: { stand: BegripStand }) {
   );
 }
 
-/** Het menu ⋯ van een begrip: de zware, zeldzame handelingen. Een vervangen begrip heeft het niet: verwijder dan de
- *  opvolger. Nieuwe betekenis en combineren openen een venster, want ze vragen een reden. */
+/** De regels van het menu ⋯ van een begrip: de zware, zeldzame handelingen, met het venster dat ze openen. Een vervangen
+ *  begrip heeft ze niet: verwijder dan de opvolger. Nieuwe betekenis en combineren openen een venster, want ze vragen een
+ *  reden. Op de pagina staan ze in `BegripMenu`, naast het gesprek in het menu ⋯ van de paneelkop (`BegripCompact`). */
+export function useBegripMenu({ stand, onNaarBegrip, onGestopt }: {
+  stand: BegripStand;
+  onNaarBegrip?: (begripId: string) => void;
+  /** Dit werkgebied gebruikt het generieke begrip niet meer. */
+  onGestopt?: () => void | Promise<void>;
+}): { regels: ((sluit: () => void) => React.ReactNode) | null; venster: React.ReactNode } {
+  const [opvolging, setOpvolging] = useState<"nieuw" | "combineren" | "generiek" | null>(null);
+  const b = stand.begrip;
+  if (!b || b.status === "vervangen" || stand.alleenLezen) return { regels: null, venster: null };
+  const kandidaten = (stand.lijst?.begrippen ?? []).filter((x) => x.id !== b.id && x.status !== "vervangen" && x.kader !== "generiek");
+  // Een generiek begrip in een werkgebied: dit werkgebied beslist alleen of het het gebruikt.
+  if (b.kader === "generiek" && !stand.generiek) {
+    return {
+      regels: () => (
+        <MenuVerwijder vraag="Stoppen?" ariaLabel="Dit begrip niet meer gebruiken"
+          titel="Dit werkgebied gebruikt het begrip niet meer. Zijn passages hier gaan los; het begrip en de annotaties blijven."
+          onBevestig={async () => { await stopGebruik(stand.id, b.id); await onGestopt?.(); }}>
+          Niet meer gebruiken
+        </MenuVerwijder>
+      ),
+      venster: null,
+    };
+  }
+  return {
+    regels: (sluit) => <>
+      {!stand.generiek && b.status === "geaccordeerd" && (
+        <MenuKnop onClick={() => { sluit(); void stand.muteer((r) => maakGeneriek(stand.id, b.id, r),
+          { gelukt: "Dit begrip is nu generiek." }); }}>Generiek maken</MenuKnop>
+      )}
+      <MenuKnop onClick={() => { sluit(); setOpvolging("nieuw"); }}>Nieuwe betekenis</MenuKnop>
+      {!stand.generiek && kandidaten.length > 0 && <MenuKnop onClick={() => { sluit(); setOpvolging("combineren"); }}>Combineren met…</MenuKnop>}
+      {!stand.generiek && <MenuKnop onClick={() => { sluit(); setOpvolging("generiek"); }}>Combineren met generiek begrip…</MenuKnop>}
+      <MenuVerwijder ariaLabel={verwijderLabel("begrip")} titel={VERWIJDER_UITLEG.begrip} onBevestig={async () => { await stand.verwijder(); sluit(); }} />
+    </>,
+    venster: opvolging && (
+      <BegripOpvolging soort={opvolging} id={stand.id} begrip={b} kandidaten={kandidaten} onSluit={() => setOpvolging(null)}
+        onKlaar={(naar) => { setOpvolging(null); void stand.laad(); onNaarBegrip?.(naar); }} />
+    ),
+  };
+}
+
+/** Het menu ⋯ van een begrip in de kop van zijn pagina (`KleineActies`). */
 export function BegripMenu({ stand, maat = "sm", onNaarBegrip, onGestopt }: {
   stand: BegripStand;
   maat?: "xs" | "sm";
   onNaarBegrip?: (begripId: string) => void;
-  /** Dit werkgebied gebruikt het generieke begrip niet meer. */
   onGestopt?: () => void | Promise<void>;
 }) {
-  const [opvolging, setOpvolging] = useState<"nieuw" | "combineren" | "generiek" | null>(null);
-  const b = stand.begrip;
-  if (!b || b.status === "vervangen" || stand.alleenLezen) return null;
-  const kandidaten = (stand.lijst?.begrippen ?? []).filter((x) => x.id !== b.id && x.status !== "vervangen" && x.kader !== "generiek");
-  // Een generiek begrip in een werkgebied: dit werkgebied beslist alleen of het het gebruikt.
-  if (b.kader === "generiek" && !stand.generiek) {
-    return (
-      <MeerMenu label="Meer voor dit begrip" maat={maat}>
-        {() => (
-          <MenuVerwijder vraag="Stoppen?" ariaLabel="Dit begrip niet meer gebruiken"
-            titel="Dit werkgebied gebruikt het begrip niet meer. Zijn passages hier gaan los; het begrip en de annotaties blijven."
-            onBevestig={async () => { await stopGebruik(stand.id, b.id); await onGestopt?.(); }}>
-            Niet meer gebruiken
-          </MenuVerwijder>
-        )}
-      </MeerMenu>
-    );
-  }
+  const { regels, venster } = useBegripMenu({ stand, onNaarBegrip, onGestopt });
+  if (!regels) return null;
   return (
     <>
-      <MeerMenu label="Meer voor dit begrip" maat={maat}>
-        {(sluit) => <>
-          {!stand.generiek && b.status === "geaccordeerd" && (
-            <MenuKnop onClick={() => { sluit(); void stand.muteer((r) => maakGeneriek(stand.id, b.id, r),
-              { gelukt: "Dit begrip is nu generiek." }); }}>Generiek maken</MenuKnop>
-          )}
-          <MenuKnop onClick={() => { sluit(); setOpvolging("nieuw"); }}>Nieuwe betekenis</MenuKnop>
-          {!stand.generiek && kandidaten.length > 0 && <MenuKnop onClick={() => { sluit(); setOpvolging("combineren"); }}>Combineren met…</MenuKnop>}
-          {!stand.generiek && <MenuKnop onClick={() => { sluit(); setOpvolging("generiek"); }}>Combineren met generiek begrip…</MenuKnop>}
-          <MenuVerwijder ariaLabel={verwijderLabel("begrip")} titel={VERWIJDER_UITLEG.begrip} onBevestig={stand.verwijder} />
-        </>}
-      </MeerMenu>
-      {opvolging && (
-        <BegripOpvolging soort={opvolging} id={stand.id} begrip={b} kandidaten={kandidaten} onSluit={() => setOpvolging(null)}
-          onKlaar={(naar) => { setOpvolging(null); void stand.laad(); onNaarBegrip?.(naar); }} />
-      )}
+      <MeerMenu label="Meer voor dit begrip" maat={maat}>{regels}</MeerMenu>
+      {venster}
     </>
   );
 }
@@ -210,15 +223,16 @@ export function BegripCompact({ context, begripId, opname, onOnbewaard, onNaarBe
 }) {
   const stand = useBegrip({ context, begripId, opname });
   const b = stand.begrip;
+  const { regels, venster } = useBegripMenu({ stand, onNaarBegrip });
+  // De stand en het menu ⋯ staan in de kop van het paneel (`PaneelKop`, 8 nov 2026), niet in een eigen rij.
+  usePaneelKopVulling(b ? {
+    status: <><StatusLabel toon={BEGRIP_STATUS_TOON[b.status]}>{BEGRIP_STATUS_LABEL[b.status]}</StatusLabel>
+      <span className="text-xs text-muted">revisie {b.revisie}</span></>,
+    menu: regels ?? undefined,
+  } : null, b ? `${b.status}|${b.revisie}|${b.kader}|${stand.alleenLezen}|${regels ? 1 : 0}` : "");
   return (
     <div className="space-y-3">
-      {b && (
-        <div className="flex flex-wrap items-center gap-2">
-          <StatusLabel toon={BEGRIP_STATUS_TOON[b.status]}>{BEGRIP_STATUS_LABEL[b.status]}</StatusLabel>
-          <span className="text-xs text-muted">revisie {b.revisie}</span>
-          <span className="ml-auto"><BegripMenu stand={stand} maat="xs" onNaarBegrip={onNaarBegrip} /></span>
-        </div>
-      )}
+      {venster}
       <BegripInhoud stand={stand} weergave="paneel" onOnbewaard={onOnbewaard} onNaarBegrip={onNaarBegrip} />
     </div>
   );
