@@ -165,7 +165,8 @@ async def wijzig_gesprek(
     if req.werkgebied_id:
         await _bestaand_werkgebied(req.werkgebied_id)
     await store.wijzig_gesprek(gesprek_id, titel=req.titel, werkgebied_id=req.werkgebied_id,
-                               gearchiveerd=req.gearchiveerd)
+                               gearchiveerd=req.gearchiveerd, connectors=req.connectors,
+                               connectors_zetten="connectors" in req.model_fields_set)
     return await store.laad_gesprek(gesprek_id)
 
 

@@ -155,6 +155,7 @@ class GesprekStore:
             ouder_id=d["ouder_id"] or "",
             regie_id=d["regie_id"] or "",
             gearchiveerd=db.aware(d["gearchiveerd"]),
+            connectors=d["connectors"],
             berichten=[_bericht_uit_row(b) for b in berichten],
             created=db.aware(d["created"]),
             updated=db.aware(d["updated"]),
@@ -279,6 +280,7 @@ class GesprekStore:
     async def wijzig_gesprek(
         self, gesprek_id: str, *, titel: str | None = None,
         werkgebied_id: str | None = None, gearchiveerd: bool | None = None,
+        connectors: list[str] | None = None, connectors_zetten: bool = False,
     ) -> None:
         """Titel, werkgebied of archief. Alleen een nieuwe titel telt als bijwerken (`updated`):
         verplaatsen of archiveren mag een gesprek niet bovenaan de lijst zetten."""
@@ -290,6 +292,9 @@ class GesprekStore:
             waarden.update(werkgebied_id=werkgebied_id, ouder_id="", regie_id="")
         if gearchiveerd is not None:
             waarden["gearchiveerd"] = db.utcnow() if gearchiveerd else None
+        if connectors_zetten:
+            # Geen `updated`: het menu omzetten zet een gesprek niet bovenaan de lijst.
+            waarden["connectors"] = list(dict.fromkeys(connectors)) if connectors is not None else None
         if not waarden:
             return
         async with db.get_engine().begin() as conn:

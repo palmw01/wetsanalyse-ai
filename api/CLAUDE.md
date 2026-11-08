@@ -1217,6 +1217,11 @@ een rij ontbreekt = uit), en elke wijziging is een regel in `connector_audit`.
 - `GET /v1/connectors` (`routers/connectors.py`, `require_client`, en op de lijst van het agent-token in `agent_toegang.py`):
   `{aan: [naam]}`, voor graph-qa per beurt. Graph-qa zet daarnaast zijn eigen
   straatvlag (`CONNECTOR_<NAAM>`); een connector draait alleen als beide aanstaan, en een onleesbaar register zet niets aan.
+- `GET /v1/connectors` draagt ook `connectors: [{naam, label, brontype}]`: wat de werkplek in het menu toont.
+- **De stand per gesprek en per werkgebied** (fase 1b, het menu *Bronnen en tools*): `Gesprek.connectors`
+  (`PATCH /v1/gesprekken/{id}` `{connectors}`; `null` = terug naar de standaard, weggelaten = ongewijzigd, geen `updated`)
+  en `standaard_connectors` op het werkgebied (`PATCH` met de revisie). Niet `bronnen`: zo heten de bronselecties al in de
+  uitvoer van een werkgebied. De werkplek rekent de stand en stuurt hem per beurt als `bronnen` naar graph-qa.
 - Credentials en een rate-limit per connector komen met de eerste connector die ze nodig heeft (EUR-Lex).
 
 ## Schema
