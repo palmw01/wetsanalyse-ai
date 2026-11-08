@@ -348,6 +348,8 @@ jobs:
           # Inloggen met een accounttoken (de acceptatie-MCP): de frontend is overal publiek, dus dit
           # staat los van de ingress en hoort net zo min op productie.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--api-token-login)
+          # De bronconnector Kamerstukken (ADR-013): de straat biedt hem aan, het register zet hem aan.
+          [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--connector-kamerstukken)
           # De GraphDB-MCP-proxy: standaard NIET, en net als de api-ingress alleen op acceptatie.
           # GraphDB zelf blijft altijd intern – deze vlag zet er een nginx met tokencontrole naast.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && [ "${{ inputs.graphdb_proxy }}" = "true" ] && args+=(--graphdb-proxy-extern)
@@ -384,6 +386,8 @@ jobs:
           # Inloggen met een accounttoken (de acceptatie-MCP): de frontend is overal publiek, dus dit
           # staat los van de ingress en hoort net zo min op productie.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--api-token-login)
+          # De bronconnector Kamerstukken (ADR-013): de straat biedt hem aan, het register zet hem aan.
+          [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--connector-kamerstukken)
           # De GraphDB-MCP-proxy: standaard NIET, en net als de api-ingress alleen op acceptatie.
           # GraphDB zelf blijft altijd intern – deze vlag zet er een nginx met tokencontrole naast.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && [ "${{ inputs.graphdb_proxy }}" = "true" ] && args+=(--graphdb-proxy-extern)
