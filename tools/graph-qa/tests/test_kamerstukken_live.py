@@ -118,8 +118,9 @@ def test_de_memorie_van_toelichting_is_te_lezen():
     xml = SruKamerstukken().document(MVT).xml
     _, rijen, overgeslagen = alineas(xml)
     assert len(rijen) >= 15, "de XML-opbouw (stuk › divisie › al) levert bijna geen alinea's meer op"
-    # De tabellen (CALS `table`: de inhoudsopgave, de budgettabel) zijn geen alinea's, maar worden geteld.
-    assert overgeslagen.get("tabel"), "de tabellen heten geen `table` meer, of worden niet geteld"
+    # De tabellen (CALS `table`) zijn geen alinea's: de inhoudsopgave telt apart, de budgettabel is een tabelrij.
+    assert overgeslagen.get("inhoudsopgave") == 1 and any(r.get("soort") == "tabel" for r in rijen), (
+        "de tabellen heten geen `table` meer")
     assert not any(r["tekst"] in {"Inhoudsopgave", "blz."} for r in rijen)
     # De tussenkop per artikel draagt de artikelsgewijze toelichting.
     assert any("Artikel II (artikel 29 van de Invorderingswet 1990)" in r.get("kop", "") for r in rijen)
@@ -191,3 +192,34 @@ def test_een_voetnoot_is_een_rij_met_zijn_verwijzing():
     assert noten, "geen voetnoten meer: heet het element nog `noot` met `noot.nr` en `noot.al`?"
     assert any("kst-33410-15" in r.get("verwijst_naar", []) for r in noten), "de extref naar het regeerakkoord"
     assert overgeslagen.get("inhoudsopgave") == 1
+
+
+def test_de_budgettabel_van_de_mvt_is_te_lezen():
+    args, rij = {"id": MVT}, None
+    for _ in range(10):
+        d = json.loads(tools.dispatch("get_kamerstuk", None, args, AAN))
+        rij = next((r for r in d["resultaten"] if r.get("soort") == "tabel"), None)
+        if rij or d["volledig"]:
+            break
+        args = d["vervolg"]["args"]
+    assert rij, "geen tabelrij in de MvT"
+    tab = json.loads(tools.dispatch(rij["openen"]["tool"], None, rij["openen"]["args"], AAN))
+    kop, totaal = tab["resultaten"][:2]
+    assert kop["tekst"].startswith("Tabel 1") and len(kop["cellen"]) == 6, kop
+    assert totaal["cellen"][0].startswith("Totaal") and totaal["cellen"][1] == "12", totaal
+
+
+def test_de_grootste_tabel_van_een_begroting_pagineert_compleet():
+    from agent.tools.kamerstuk_tools import lees
+
+    _, _, _, tabellen = lees(SruKamerstukken().document("kst-36200-IX-2").xml)
+    nr = max(tabellen, key=lambda n: len(tabellen[n][0]))
+    args, gezien = {"id": "kst-36200-IX-2", "tabel": nr}, 0
+    for _ in range(200):
+        d = json.loads(tools.dispatch("get_kamerstuk", None, args, AAN))
+        assert d["status"] == "ok", d
+        gezien += d["aantal"]
+        if d["volledig"]:
+            break
+        args = d["vervolg"]["args"]
+    assert gezien == len(tabellen[nr][0]) > 100

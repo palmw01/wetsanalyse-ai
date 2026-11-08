@@ -318,11 +318,12 @@ MVT = """<?xml version="1.0" encoding="UTF-8"?>
 </divisie></tekst></vrije-tekst></algemeen></stuk></kamerstuk></officiele-publicatie>""".encode()
 
 
-def test_een_cals_tabel_is_geen_alinea_maar_wordt_geteld():
+def test_een_cals_tabel_is_geen_alinea_maar_een_tabelrij():
     _, rijen, overgeslagen = alineas(MVT)
     teksten = [r["tekst"] for r in rijen]
     assert "Inhoudsopgave" not in teksten and "2014" not in teksten and "blz." not in teksten
-    assert overgeslagen == {"inhoudsopgave": 1, "tabel": 1}
+    assert overgeslagen == {"inhoudsopgave": 1}
+    assert [r["soort"] for r in rijen if r.get("soort")] == ["tabel"]
     assert teksten[0] == "Dit voorstel regelt de rente."
 
 
@@ -398,3 +399,65 @@ def test_uit_een_voetnoot_citeren_is_gegrond():
     goed = check_grounding('Voetnoot 1 van kst-99001-3: "Regeerakkoord, Kamerstuk 33 410, nr. 15, bijlage B"',
                            [("get_kamerstuk", tekst)])
     assert goed.niveau == "gegrond"
+
+
+
+# ── Tabellen via `openen` (plan tabellen en voetnoten, PR 2) ─────────────────────────────────────────────────────
+
+TABELLEN = """<?xml version="1.0" encoding="UTF-8"?>
+<officiele-publicatie><kamerstuk><stuk><titel>MEMORIE VAN TOELICHTING</titel><algemeen><vrije-tekst><tekst>
+<table><tgroup cols="2"><tbody><row><entry><al>Inhoudsopgave</al></entry><entry><al>blz.</al></entry></row></tbody>
+</tgroup></table>
+<divisie><kop><nr>5.</nr><titel>Budgettaire aspecten</titel></kop><al>De opbrengst staat in tabel 1.</al>
+<table><title>Tabel 1 Opbrengst (€ mln)</title><tgroup cols="4">
+<colspec colname="c1"/><colspec colname="c2"/><colspec colname="c3"/><colspec colname="c4"/>
+<thead><row><entry colname="c1"/><entry colname="c2"><al>2014</al></entry><entry colname="c3"><al>2015</al></entry>
+<entry colname="c4"><al>struc</al></entry></row></thead>
+<tbody><row><entry colname="c1"><al>Totaal</al></entry><entry colname="c2"><al>12</al></entry>
+<entry colname="c3"><al>106</al></entry><entry colname="c4"><al>267</al></entry></row>
+<row><entry colname="c1" morerows="1"><al>Waarvan Vpb<noot id="t1" type="tabel"><noot.nr>a</noot.nr><noot.al>Raming.</noot.al>
+</noot></al></entry><entry namest="c2" nameend="c3"><al>nvt</al></entry><entry colname="c4"><al>8</al></entry></row>
+<row><entry colname="c2"><al>1</al></entry><entry colname="c3"><al>2</al></entry><entry colname="c4"><al>3</al></entry></row>
+</tbody></tgroup></table><al>Na de tabel.</al></divisie></tekst></vrije-tekst></algemeen></stuk></kamerstuk>
+</officiele-publicatie>""".encode()
+
+
+def _tabel(args=None):
+    bron = NepBron(DOSSIER, TABELLEN)
+    tekst = roep("get_kamerstuk", {"id": "kst-99001-3"}, bron)
+    [rij] = [r for r in tekst["resultaten"] if r.get("soort") == "tabel"]
+    return bron, tekst, rij, roep("get_kamerstuk", args or rij["openen"]["args"], bron)
+
+
+def test_een_tabel_is_een_rij_met_openen_en_de_inhoudsopgave_niet():
+    _, tekst, rij, _ = _tabel()
+    assert [r.get("soort", "alinea") for r in tekst["resultaten"]] == ["alinea", "tabel", "alinea"]
+    assert rij["tekst"] == "Tabel 1 Opbrengst (€ mln)" and rij["omvang"] == "3 rijen, 4 kolommen"
+    assert rij["openen"] == {"tool": "get_kamerstuk", "args": {"id": "kst-99001-3", "tabel": rij["nr"]}}
+    assert tekst["overgeslagen"] == {"inhoudsopgave": 1}
+    # Eén nummering per stuk: de alinea na de tabel komt na de rijen en de tabelnoot.
+    assert tekst["resultaten"][2]["nr"] == rij["tot_nr"] + 1
+
+
+def test_de_tabel_zelf_met_kolommen_cellen_samengevoegde_cellen_en_tabelnoten():
+    _, _, rij, tab = _tabel()
+    kop, *rijen, noot = tab["resultaten"]
+    assert kop == {"nr": rij["nr"], "soort": "tabel", "kop": "5. Budgettaire aspecten", "tekst": "Tabel 1 Opbrengst (€ mln)",
+                   "cellen": ["", "2014", "2015", "struc"]}
+    assert [r["cellen"] for r in rijen] == [["Totaal", "12", "106", "267"], ["Waarvan Vpb", "nvt", "", "8"],
+                                            ["", "1", "2", "3"]]
+    assert rijen[0]["tekst"] == "Totaal | 12 | 106 | 267"
+    assert noot["soort"] == "voetnoot" and noot["noot"] == "a" and noot["tekst"] == "Raming."
+    assert tab["samengevoegd"] == 2 and tab["volledig"] and tab["stuk"]["id"] == "kst-99001-3"
+
+
+def test_een_onbekende_tabel_is_een_fout_met_een_voorbeeld():
+    _, _, rij, tab = _tabel({"id": "kst-99001-3", "tabel": 999})
+    assert tab["status"] == "error" and tab["reden"] == "ongeldige_tabel"
+    assert f'"tabel": {rij["nr"]}' in tab["melding"]
+
+
+def test_uit_een_tabelrij_citeren_is_gegrond():
+    bron = NepBron(DOSSIER, TABELLEN)
+    tekst = tools.dispatch("get_kamerstuk", None, {"id": "kst-99001-3", "tabel": 2}, AAN, kamerstukken=bron)
+    assert check_grounding('Tabel 1 van kst-99001-3: "Totaal | 12 | 106 | 267"', [("get_kamerstuk", tekst)]).niveau == "gegrond"

@@ -254,13 +254,19 @@ class NepSru:
     """De zoekdienst van KOOP: `n` stukken in één dossier, startRecord/maximumRecords zoals de dienst, en een document
     met `alineas` lange alinea's."""
 
-    def __init__(self, n: int, alineas: int = 400) -> None:
+    def __init__(self, n: int, alineas: int = 400, tabel: int = 0) -> None:
         self.records = [Record(id=f"kst-99001-{i}", titel=f"Wet x; Stuk {i}", datum="2026-01-02",
                                vergaderjaar="2025-2026", dossiers=("99001",), ondernummer=str(i),
                                xml_url=f"https://repository.overheid.nl/x/kst-99001-{i}.xml") for i in range(1, n + 1)]
         als = "".join(f"<al>{i}. {_LANG[:1500]}</al>" for i in range(alineas))
+        # Een CALS-tabel zoals KOOP ze schrijft: `tabel` rijen van vier kolommen, met een kop.
+        rij = lambda i: "<row>" + "".join(f"<entry colname='c{k}'><al>{i}.{k} {_LANG[:60]}</al></entry>"
+                                          for k in range(4)) + "</row>"
+        tab = (f"<table><title>Tabel 1</title><tgroup cols='4'>" + "".join(f"<colspec colname='c{k}'/>" for k in range(4))
+               + "<thead>" + rij("kop") + "</thead><tbody>" + "".join(rij(i) for i in range(tabel)) + "</tbody></tgroup></table>"
+               if tabel else "")
         self.xml = (f"<kamerstuk><stuk><titel>MEMORIE VAN TOELICHTING</titel><divisie><kop><titel>Deel</titel></kop>"
-                    f"{als}</divisie></stuk></kamerstuk>").encode()
+                    f"{als}{tab}</divisie></stuk></kamerstuk>").encode()
 
     def zoek(self, cql, *, start=1, maximum=50):
         return len(self.records), self.records[start - 1:start - 1 + maximum]
@@ -317,3 +323,32 @@ def test_contract_van_een_connectortool(naam: str, args: dict, soort: str, omvan
         pytest.fail(f"{naam}: na 400 vervolgen nog niet volledig")
     assert len(gezien) == len(set(gezien)), f"{naam}: een rij kwam twee keer langs"
     assert len(gezien) == omvang, f"{naam}: {len(gezien)} van de {omvang} kwamen langs"
+
+
+
+@pytest.mark.parametrize("rijen", [1, 40, 400])
+def test_openen_van_een_connectortool_haalt_hetzelfde_contract(rijen: int):
+    """Een tabel staat als één rij met `openen` (verdieping, geen onvolledigheid). Wat `openen` aanroept, haalt hetzelfde
+    contract, en alle pagina's samen zijn precies de tabel: de kop met de kolommen en elke rij één keer."""
+    bron = NepSru(1, alineas=3, tabel=rijen)
+    instellingen = make_settings(connector_kamerstukken=True)
+
+    def roep(n: str, a: dict) -> dict:
+        uit = tools.dispatch(n, None, a, instellingen, kamerstukken=bron)
+        data = is_contract(uit)
+        assert data is not None, uit[:200]
+        _pagina_haalt_het_contract(n, uit, data)
+        return data
+
+    pagina = roep("get_kamerstuk", {"id": "kst-99001-1"})
+    [tabel] = [r for r in pagina["resultaten"] if r.get("soort") == "tabel"]
+    assert pagina["volledig"] and tabel["omvang"].startswith(f"{rijen} rij")
+    data, gezien = roep(tabel["openen"]["tool"], tabel["openen"]["args"]), []
+    for _ in range(400):
+        gezien += data["resultaten"]
+        if data["volledig"]:
+            break
+        data = roep(data["vervolg"]["tool"], data["vervolg"]["args"])
+    assert [r["soort"] for r in gezien] == ["tabel"] + ["tabelrij"] * rijen
+    assert len(gezien[0]["cellen"]) == 4 and len({r["nr"] for r in gezien}) == len(gezien)
+    assert gezien[-1]["nr"] == tabel["tot_nr"]

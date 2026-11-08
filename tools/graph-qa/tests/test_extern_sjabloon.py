@@ -171,3 +171,45 @@ def test_een_ouder_bericht_zonder_versie_blijft_geldig():
            "passages": [{"nr": 1, "tekst": "t"}]}
     a = Antwoord.model_validate({"sjabloon": "extern", "blokken": [oud]})
     assert a.blokken[0].bron_hash == ""
+
+
+
+# ── Een tabel in het blok (plan tabellen en voetnoten, PR 2) ────────────────────────────────────────────────────
+
+from test_kamerstuk_tools import TABELLEN  # noqa: E402
+
+
+def _tabeltrace(open_: bool):
+    bron = NepBron(DOSSIER, TABELLEN)
+    trace = [("get_kamerstuk", tools.dispatch("get_kamerstuk", None, {"id": ID}, AAN, kamerstukken=bron))]
+    if open_:
+        trace.append(("get_kamerstuk", tools.dispatch("get_kamerstuk", None, {"id": ID, "tabel": 2}, AAN, kamerstukken=bron)))
+    return trace
+
+
+def test_een_tabel_komt_met_kolommen_en_cellen_in_het_blok():
+    a = sjablonen.vul("antwoord_extern", {"kort_antwoord": "x", "extern": [{"id": ID, "van_nr": 2, "tot_nr": 3}],
+                                          "twijfel": []}, _tabeltrace(True))
+    kop, rij = next(b for b in a.blokken if b.soort == "extern").passages
+    assert kop.soort == "tabel" and kop.cellen == ["", "2014", "2015", "struc"], "de kop met de kolommen wint"
+    assert rij.soort == "tabelrij" and rij.cellen == ["Totaal", "12", "106", "267"] and rij.tekst == "Totaal | 12 | 106 | 267"
+
+
+def test_een_passage_over_een_niet_geopende_tabel_toont_de_titel():
+    a = sjablonen.vul("antwoord_extern", {"kort_antwoord": "x", "extern": [{"id": ID, "van_nr": 1, "tot_nr": 7}],
+                                          "twijfel": []}, _tabeltrace(False))
+    passages = next(b for b in a.blokken if b.soort == "extern").passages
+    assert [p.soort for p in passages] == ["alinea", "tabel", "alinea"]
+    assert passages[1].tekst == "Tabel 1 Opbrengst (€ mln)" and passages[1].cellen is None
+
+
+def test_een_voetnoot_in_het_blok_draagt_zijn_verwijzing_met_label_en_link():
+    from test_kamerstuk_tools import NOTEN
+
+    trace = [("get_kamerstuk", tools.dispatch("get_kamerstuk", None, {"id": ID}, AAN, kamerstukken=NepBron(DOSSIER, NOTEN)))]
+    a = sjablonen.vul("antwoord_extern", {"kort_antwoord": "x", "extern": [{"id": ID, "van_nr": 1, "tot_nr": 2}],
+                                          "twijfel": []}, trace)
+    noot = next(b for b in a.blokken if b.soort == "extern").passages[1]
+    assert noot.soort == "voetnoot" and [v.id for v in noot.verwijst_naar] == ["kst-33410-15"]
+    assert noot.verwijst_naar[0].label == "Kamerstukken 33410, nr. 15"
+    assert noot.verwijst_naar[0].link == "https://zoek.officielebekendmakingen.nl/kst-33410-15"

@@ -130,8 +130,9 @@ woorden; de bron is de *Handleiding SRU 2.0* van KOOP (v1.3, mei 2025, via data.
   `w.versienummer`, de laatste wijziging in `dt.modified`. De cache valideert daarop, en `get_kamerstuk` noemt de
   versie en de hash van wat gelezen is.
 - **De tekst** van een stuk staat in `stuk › divisie › al`, met koppen per divisie en een `tussenkop` per artikel in de
-  artikelsgewijze toelichting. Tabellen zijn CALS (`table`, ook de inhoudsopgave van het stuk) en worden geteld, niet als
-  alinea's gegeven. Een voetnoot (`noot` met `noot.nr` en `noot.al`) is een eigen rij direct na zijn alinea; een
+  artikelsgewijze toelichting. Tabellen zijn CALS (`table`, met `tgroup`, `thead`, `tbody`, `colspec` en cellen die met `namest`/`nameend`
+  of `morerows` meer kolommen of rijen beslaan). Een tabel staat als één rij met `openen`; `get_kamerstuk(tabel=<nr>)`
+  geeft de kolommen en per rij de cellen. De eigen inhoudsopgave van het stuk telt apart. Een voetnoot (`noot` met `noot.nr` en `noot.al`) is een eigen rij direct na zijn alinea; een
   `extref soort="document"` erin wordt `verwijst_naar`, een stuk dat Lex kan volgen. De eerste pagina van `get_kamerstuk` noemt per kop de offset (`inhoud`).
 - **Fouten**: een SRU-diagnose of een onbereikbare dienst is een foutresultaat (`bron_onbereikbaar`), nooit een lege
   lijst. De JSON-uitvoer van de dienst is volgens de handleiding nog beperkt; de koppeling leest XML.

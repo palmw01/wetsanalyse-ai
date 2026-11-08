@@ -20,7 +20,7 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-from bronmodel.antwoord import Antwoord, Extern, ExternePassage, Toelichting, Twijfel
+from bronmodel.antwoord import Antwoord, Extern, ExternePassage, ExterneVerwijzing, Toelichting, Twijfel
 from bronmodel.connectors import ConnectorBeschrijving, van_id
 from bronmodel.extern import externe_vindplaats
 
@@ -85,7 +85,7 @@ def met_veld(schema: dict[str, Any]) -> dict[str, Any]:
 
 
 def _gelezen(trace: Trace, c: ConnectorBeschrijving, ident: str
-             ) -> tuple[dict[str, Any], dict[int, dict[str, Any]], set[int]]:
+             ) -> tuple[dict[str, Any], dict[int, dict[str, Any]], set[int], set[int]]:
     """Het stuk en zijn passages op nummer, uit de pagina's van de laatste lezing van dit id (dezelfde `bron_hash`), en
     de nummers die alleen in een eerdere lezing staan. Twee lezingen mengen kan niet: het register gaat over beurten
     heen, en een bron kan intussen een nieuwe versie publiceren (review ADR-013, punt 3)."""
@@ -96,17 +96,31 @@ def _gelezen(trace: Trace, c: ConnectorBeschrijving, ident: str
             lezingen.append((s, [r for r in data.get("resultaten") or []
                                  if isinstance(r, dict) and isinstance(r.get("nr"), int) and isinstance(r.get("tekst"), str)]))
     if not lezingen:
-        return {}, {}, set()
+        return {}, {}, set(), set()
     laatste = lezingen[-1][0]
     rijen: dict[int, dict[str, Any]] = {}
     eerder: set[int] = set()
     for s, rs in lezingen:
         if s.get("bron_hash") == laatste.get("bron_hash"):
             for r in rs:
-                rijen.setdefault(r["nr"], r)
+                # De kop van een tabel staat op de tekstpagina (titel) en in de tabel zelf (titel en kolommen): de
+                # rijkste wint, zodat de kolommen meekomen.
+                if r["nr"] not in rijen or (r.get("cellen") and not rijen[r["nr"]].get("cellen")):
+                    rijen[r["nr"]] = r
         else:
             eerder |= {r["nr"] for r in rs}
-    return laatste, rijen, eerder - set(rijen)
+    # Een tabel die niet geopend is: haar rijen zijn niet gelezen, maar een passage mag eroverheen lopen (de titel staat
+    # erin). `tot_nr` op de tabelrij zegt welke nummers bij de tabel horen.
+    in_tabel = {n for r in rijen.values() if r.get("soort") == "tabel" and isinstance(r.get("tot_nr"), int)
+                for n in range(r["nr"] + 1, r["tot_nr"] + 1)} - set(rijen)
+    return laatste, rijen, eerder - set(rijen), in_tabel
+
+
+def _verwijzingen(rij: dict[str, Any]) -> list[ExterneVerwijzing] | None:
+    """De stukken waar een rij naar verwijst, met label en link uit de code (nooit uit het model)."""
+    uit = [ExterneVerwijzing(id=vp.id, label=vp.label, link=vp.uri) for i in rij.get("verwijst_naar") or []
+           if isinstance(i, str) and (vp := externe_vindplaats(i)) is not None]
+    return uit or None
 
 
 def blokken(items: Any, trace: Trace) -> list[Extern]:
@@ -122,16 +136,16 @@ def blokken(items: Any, trace: Trace) -> list[Extern]:
         c = van_id(ident)
         if vp is None or c is None:
             raise Onvulbaar(f"'{ident}' is geen id van een bron naast de wet die hier aanstaat.")
-        stuk, rijen, alleen_eerder = _gelezen(trace, c, vp.id)
+        stuk, rijen, alleen_eerder, in_tabel = _gelezen(trace, c, vp.id)
         if not stuk:
             raise Onvulbaar(f"{vp.label} is in dit gesprek niet gelezen: haal het stuk eerst op met {c.leestool}, en wijs "
                             "dan de passages aan.")
         van, tot = item.get("van_nr"), item.get("tot_nr")
         if not isinstance(van, int) or not isinstance(tot, int) or van > tot:
             raise Onvulbaar(f"{vp.label}: van_nr en tot_nr zijn alineanummers, met van_nr ≤ tot_nr.")
-        if tot - van + 1 > MAX_PASSAGES:
+        if sum(1 for n in range(van, tot + 1) if n not in in_tabel) > MAX_PASSAGES:
             raise Onvulbaar(f"{vp.label}: hoogstens {MAX_PASSAGES} alinea's per aanwijzing; vat de rest in eigen woorden samen.")
-        ontbreekt = [n for n in range(van, tot + 1) if n not in rijen]
+        ontbreekt = [n for n in range(van, tot + 1) if n not in rijen and n not in in_tabel]
         if ontbreekt and set(ontbreekt) & alleen_eerder:
             raise Onvulbaar(f"{vp.label} is veranderd sinds alinea {', '.join(map(str, sorted(set(ontbreekt) & alleen_eerder)))} "
                             f"gelezen werd. Haal het stuk opnieuw op met {c.leestool}, en wijs de passages aan in de "
@@ -144,8 +158,11 @@ def blokken(items: Any, trace: Trace) -> list[Extern]:
             link=str(stuk.get("link") or vp.uri), kop=c.kop_in_antwoord, passages=[],
             bron_hash=str(stuk.get("bron_hash") or ""), gewijzigd=str(stuk.get("gewijzigd") or "")))
         al = {p.nr for p in blok.passages}
-        blok.passages += [ExternePassage(nr=n, tekst=rijen[n]["tekst"], kop=str(rijen[n].get("kop") or ""))
-                          for n in range(van, tot + 1) if n not in al]
+        blok.passages += [ExternePassage(nr=n, tekst=rijen[n]["tekst"], kop=str(rijen[n].get("kop") or ""),
+                                         soort=str(rijen[n].get("soort") or "alinea"),
+                                         cellen=[str(x) for x in rijen[n]["cellen"]] if isinstance(rijen[n].get("cellen"), list)
+                                         else None, verwijst_naar=_verwijzingen(rijen[n]))
+                          for n in range(van, tot + 1) if n not in al and n in rijen]
     if len(per_stuk) > MAX_STUKKEN:
         raise Onvulbaar(f"Hoogstens {MAX_STUKKEN} stukken per antwoord.")
     for b in per_stuk.values():
