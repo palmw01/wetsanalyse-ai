@@ -142,20 +142,52 @@ Toets elk bestand met `git check-ignore -v`.
    controleren. Verschillen tussen diagram en tabel zijn een bevinding over de referentie.
 3. **Werkgebied**: de agent-jurist neemt analysevraag, deelvragen, praktijkvoorbeeld en wat erbuiten valt
    letterlijk over uit het dossier; wat er niet in staat (de gebeurtenis), vult hij aan en noteert hij.
-4. **Vergelijken** na stap 3: bewaar de uitvoer van `werkgebied_lezen` als `<lokaal>/werkgebied.json`, en draai
+4. **Relaties leggen en beoordelen** na stap 3 (ADR-011): de agent-jurist legt in de geannoteerde bepalingen de
+   relaties tussen de markeringen, met de typen uit de catalogus (`.claude/skills/wetsanalyse/relaties.json`), en
+   een impliciete partij waar de tekst er geen noemt. Hij beoordeelt elke relatie (goedkeuren of afwijzen, met een
+   reden). Doe dat zonder naar de diagrammen van de referentie te kijken, anders meet je overschrijven. Bewaar per
+   bepaling de weergave (`bff` GET `/api/annotatie/v2/weergave?…`) als `<lokaal>/weergaven/<bepaling>.json`.
+5. **Vertaaltabel**, één keer per referentie: het team gebruikt een eigen notatie voor relaties. Leg in
+   `<lokaal>/relatie-mapping.json` per teamtype vast welk catalogustype het is:
+
+   ```json
+   {"versie": 1, "typen": {
+     "<teamtype>": {"type": "<code uit relaties.json>", "omgekeerd": false},
+     "<teamtype in de andere richting>": {"type": "<code>", "omgekeerd": true},
+     "<teamtype zonder catalogustype>": null
+   }}
+   ```
+
+   `omgekeerd` draait de richting om, als het team de kant andersom tekent dan de catalogus. `null` betekent geen
+   catalogustype: regelinhoud of regelstructuur, die buiten activiteit 2 valt. Die kanten tellen apart
+   (*buiten de catalogus*), net als teamtypen die niet in de tabel staan. Een code die de catalogus niet kent, is een
+   fout. De tabel volgt de notatie van het team en blijft dus lokaal, naast de referentie.
+6. **Vergelijken**: bewaar de uitvoer van `werkgebied_lezen` als `<lokaal>/werkgebied.json`, en draai
    `uv run python -m eval.extern_dossier vergelijk --referentie … --platform <lokaal>/werkgebied.json
-   --werkgebied <lokaal>/werkgebied.json [--relaties …] --uit <lokaal>/vergelijking.json`.
-5. **Beoordelen**: de agent-jurist loopt de lijsten *gemist*, *klasse anders* en *alleen platform* door. Een gemist
+   --werkgebied <lokaal>/werkgebied.json [--relaties <lokaal>/relaties.json] --uit <lokaal>/vergelijking.json`.
+   Met `--weergaven <lokaal>/weergaven` (een map, of losse bestanden) en `--relatie-mapping
+   <lokaal>/relatie-mapping.json` erbij, samen en alleen met `--relaties`, komen de relaties van het platform mee.
+   Zonder die twee opties is de uitvoer zoals voorheen.
+7. **Beoordelen**: de agent-jurist loopt de lijsten *gemist*, *klasse anders* en *alleen platform* door. Een gemist
    fragment kan anders begrensd maar juist zijn, een klasseverschil kan de export zijn die afwijkt van de skill.
-   Elk oordeel komt met argument in het logboek.
+   Bij de relaties loopt hij de kanten met uitkomst *gemist*, de relaties *alleen platform* en de regels die niet
+   volledig zijn door. Elk oordeel komt met argument in het logboek.
 
 Wat de vergelijking zegt:
 
 - **Recall per klasse**, strikt over de fragmenten die letterlijk in de bron staan, ruim over alles. Een
   parafrase of los operatorwoord kan Lex niet zo markeren.
 - **Bronselectie per deelvraag**, tegen de deelvraagnummers in de bronnentabel.
-- **Relaties** legt het platform in activiteit 2 niet vast. Gemeten wordt alleen of beide eindpunten van een
-  kant zijn geannoteerd.
+- **Eindpuntdekking van de relaties**: zijn beide eindpunten van een kant geannoteerd, met de juiste klasse op
+  dezelfde plek?
+- **Recall per catalogustype** (met weergaven en vertaaltabel): een kant van de referentie is *gevonden* als het
+  platform een relatie van hetzelfde type heeft met passende eindpunten: dezelfde klasse en dezelfde plek, of bij een
+  impliciete knoop een impliciete partij met dezelfde klasse. Een kant met een parafrase als eindpunt is *niet
+  meetbaar* en telt niet mee in de recall. *Alleen platform* zijn de relaties op een bepaling die geen kant van de
+  referentie raken, ter informatie.
+- **Regelskelet**: per afleidingsregel van de referentie, heeft het platform de regel gemarkeerd, en zijn uitvoer,
+  minstens één invoer en elke voorwaarde als relatie gelegd? Uitkomst *volledig*, *deels* of *niet*, met wat
+  ontbreekt. Alleen kanten die op de catalogus te vertalen zijn, tellen mee.
 - Uitgesplitst naar de status in de export (definitief of concept): een concept is een zwakkere referentie.
 
 Het is één analyse, geen gold, en zit het onderwerp al in de ontwikkelsets, dan is het geen blinde meting. Wil je
