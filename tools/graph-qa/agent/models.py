@@ -148,6 +148,10 @@ INTAKE_ACTIES = ("dossier_aanvullen",)
 # api bewaart. Ook geen taak van een agent.
 # Ook zelf een bepaling toevoegen hoort daar: zoeken in de graaf gaat via het gesprek, niet via het artefact.
 BRONSELECTIE_ACTIES = ("bronselectie", "bronnen_zoeken", "bepaling_toevoegen")   # zoeken is een stap van de bronselectie
+#: De bronconnectors die een beurt kan aan- of uitzetten (ADR-013); gelijk aan `tools.CONNECTORS`
+#: (`tests/test_bronschakelaar.py`). Wetgeving is geen connector: die staat altijd aan.
+Connector = Literal["kamerstukken"]
+
 Actie = Literal["werkgebied_annoteren", "deelvragen_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
                 "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie",
                 "scherper", "uitleg", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties", "dossier_aanvullen",
@@ -195,6 +199,9 @@ class ChatRequest(BaseModel):
     onderwerp: Onderwerp | None = None
     # Een klik op een suggestie (F3b): een vaste handeling, zonder model gerouteerd (`ACTIE_TAAK`).
     actie: Actie | None = None
+    # De bronnen die aanstaan in dit gesprek (ADR-013, *Bronnen en tools*). Leeg = alleen wetgeving; weggelaten =
+    # wat de straat aanbiedt. Een connector die de straat niet aanbiedt, gaat nooit aan.
+    bronnen: list[Connector] | None = Field(default=None, max_length=8)
 
     @model_validator(mode="after")
     def _actie_kiest_de_route(self) -> "ChatRequest":

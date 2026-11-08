@@ -206,6 +206,7 @@ async def answer_stream(
     bevestigd: int | None = None,
     werkvoorraad_id: str = "",
     agent_api: Any = None,
+    bronnen: list[str] | None = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """
     Async generator die SSE-events yield:
@@ -271,6 +272,8 @@ async def answer_stream(
         "specialist": "annotaties_lezen" if is_leesvraag(question, modus) else "",
         "begrippen_lezen": False,
         "werkgebied_id": werkgebied_id or "",
+        # De bronnen van deze beurt (ADR-013): toollaag en dispatch filteren erop.
+        "bronnen": list(bronnen) if bronnen is not None else None,
         # Het dossier van dat werkgebied, per beurt vers uit de api: elke bewaarde wijziging telt meteen.
         "werkgebied_context": await _werkgebied_blok(settings, user_id, werkgebied_id) if werkgebied_id else "",
         # Waar de analist *Vraag Lex* op koos: alleen deze beurt; het object blijft in de focus.

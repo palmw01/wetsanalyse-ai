@@ -54,6 +54,7 @@ async def gemeten(
     run: Any,
     gesprek_id: str,
     model: str,
+    bronnen: str = "",
 ) -> AsyncIterator[dict[str, Any]]:
     """Geef de events ongewijzigd door en log aan het eind één `beurt_meting`."""
     begin = time.perf_counter()
@@ -95,6 +96,8 @@ async def gemeten(
             "run_id": getattr(run, "run_id", "") or "",
             "chat_session_id": gesprek_id,
             **(waarden or meting()),
+            # De bronconnectors die aanstonden (ADR-013); leeg als de aanroeper ze niet meegaf.
+            **({"bronnen": bronnen} if bronnen else {}),
         })
 
     try:

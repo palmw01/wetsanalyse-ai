@@ -873,10 +873,18 @@ def connectors_aan(settings: Any) -> frozenset[str]:
     return frozenset(c for c in CONNECTORS if getattr(settings, f"connector_{c}", False))
 
 
-def toegestane_tools(tools: frozenset[str] | set[str] | None, settings: Any) -> frozenset[str] | None:
+def actieve_connectors(settings: Any, bronnen: Any = None) -> frozenset[str]:
+    """De connectors die in deze beurt aanstaan: wat de straat aanbiedt, beperkt tot `bronnen` als de beurt die
+    meegeeft (`ChatRequest.bronnen`; None = alles wat de straat aanbiedt, een lege lijst = alleen wetgeving)."""
+    aan = connectors_aan(settings)
+    return aan if bronnen is None else aan & frozenset(bronnen)
+
+
+def toegestane_tools(tools: frozenset[str] | set[str] | None, settings: Any,
+                     bronnen: Any = None) -> frozenset[str] | None:
     """De tools van een specialist zonder die van een connector die uit staat. Eén filter: de schema's voor het
-    model en `dispatch` gebruiken dezelfde regel."""
-    uit = CONNECTOR_TOOLS - frozenset().union(*(CONNECTORS[c] for c in connectors_aan(settings)))
+    model, de MCP-server en `dispatch` gebruiken dezelfde regel."""
+    uit = CONNECTOR_TOOLS - frozenset().union(*(CONNECTORS[c] for c in actieve_connectors(settings, bronnen)))
     if tools is None:
         return frozenset(t["name"] for t in TOOLS) - uit
     return frozenset(tools) - uit
@@ -925,10 +933,13 @@ def _graaf_is_weg(exc: Exception) -> bool:
 
 
 def dispatch(name: str, graph: GraphPort, args: dict[str, Any] | None, settings: Any = None,
-             *, annotaties=None, begrippen=None, kamerstukken=None) -> str:
+             *, annotaties=None, begrippen=None, kamerstukken=None, bronnen=None) -> str:
     tool = _BY_NAME.get(name)
     if tool is None:
         return f"Onbekende tool: {name}"
+    if name in CONNECTOR_TOOLS and name not in toegestane_tools(None, settings, bronnen):
+        # Ook een workflow die een tool in code aanroept, komt hier langs: dezelfde regel als de schema's.
+        return fout("connector_uit", "Deze bron staat uit in dit gesprek. Zeg dat, en antwoord niet uit eigen kennis.")
     try:
         if name in KAMERSTUK_TOOL_NAMEN:
             from ..adapters.sru_kamerstukken import KamerstukFout

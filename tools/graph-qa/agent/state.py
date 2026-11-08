@@ -22,6 +22,8 @@ class State(TypedDict, total=False):
     # Het werkgebied van waaruit de werkplek het gesprek opende (of leeg). Zijn begrippen staan vooraan
     # bij `search_begrippen`; het is context, geen filter. Komt elke beurt opnieuw van het verzoek.
     werkgebied_id: str
+    # ADR-013: de bronconnectors die in deze beurt aanstaan (None = wat de straat aanbiedt). Per beurt.
+    bronnen: list[str] | None
     # Het dossier van dat werkgebied als contextblok (`werkgebied_context.als_blok`), per beurt opgehaald;
     # `memory_context` zet het naast de focus. Context, geen filter.
     werkgebied_context: str

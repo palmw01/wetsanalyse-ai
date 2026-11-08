@@ -204,7 +204,11 @@ bruikbaar is.
   `tools/jas_tools.py` (`JAS_TOOLS`) is dispatchbaar maar wordt in de draaiende keten niet aangeroepen.
 - **Bronconnectors** (ADR-013): `CONNECTORS` (connector → tools) en `toegestane_tools(tools, settings)`, de ene
   regel voor de schema's van de antwoordlus, de MCP-server en `dispatch`. Een connector staat uit tot de straat hem
-  aanzet (`CONNECTOR_KAMERSTUKKEN=true`); uit is niet aangeboden, en een aanroep is dan `connector_uit`.
+  aanzet (`CONNECTOR_KAMERSTUKKEN=true`); uit is niet aangeboden, en een aanroep is dan `connector_uit`. **De beurt
+  beperkt verder** (`ChatRequest.bronnen`, `State.bronnen`, per beurt): weggelaten = wat de straat aanbiedt, een lege
+  lijst = alleen wetgeving, en een connector die de straat niet aanbiedt gaat nooit aan (`actieve_connectors`).
+  `tool_execution` geeft de stand aan `dispatch`, dus ook een workflow die een tool in code aanroept valt eronder; de
+  logregel `beurt_meting` noemt de actieve bronnen. `tests/test_bronschakelaar.py`.
   **Kamerstukken** (`tools/kamerstuk_tools.py`, transport `adapters/sru_kamerstukken.py`): `zoek_kamerstukken`
   (een dossier op nummer, of woorden in de titel) en `get_kamerstuk` (per alinea, met de kop, in documentvolgorde;
   tabellen, illustraties en voetnoten geteld in `overgeslagen`). De CQL bouwt de tool, de document-URL komt uit het
