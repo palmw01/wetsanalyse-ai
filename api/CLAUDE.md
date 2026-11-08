@@ -215,8 +215,12 @@ Hieronder wat je moet weten om de code te wijzigen.
   `tests/test_vocabulaire.py` bewaakt dat elke klasse van de API een concept heeft.
 - **Elke export is een eigen bestand** (`bestandsnaam.met_tijd`): de naam draagt datum en tijd op de seconde, in Nederland,
   in dezelfde vorm als de Markdown van de werkplek (`bestandsnaam` in `frontend/lib/artefactMarkdown.ts`).
-- **Export** (`POST weergave/export`, `annotatie_export.py`): `json` (v3, schema in
-  `schemas/annotatie-export-v3.schema.json`, ook op `GET export-schema`), `csv`, `pdf` en `trig`.
+- **Export** (`POST weergave/export`, `annotatie_export.py`): `json` (v4, schema in
+  `schemas/annotatie-export-v4.schema.json`, ook op `GET export-schema`; v3 blijft staan als historie), `csv`, `pdf` en `trig`.
+  v4 maakt `relaties` en `impliciet` (ADR-011) expliciet, ook als ze leeg zijn. De CSV krijgt per relatie een rij van soort
+  `relatie`, met de kolommen `leesvorm`, `relatietype`, `van_*`/`naar_*` (klasse en tekst), `volgorde` en `veranderd` achteraan
+  (lifecycle en herkomst in de bestaande kolommen); de PDF een lijst *Relaties* per bepaling (de dragerlaag) en de impliciete
+  partijen. Hier staan ook afgewezen relaties, met hun lifecycle, net als afgewezen markeringen.
   `herkomst_regels` zet het spoor om in de leesbare namen uit `verklaringen.json`, met dezelfde
   opzoekregels als `frontend/lib/waarom.ts`. De oude CSV-kolommen blijven vooraan staan; nieuwe komen
   erachter. TriG bouwt per laag met `laag_invoer` + `bouw_graaf`, dus exact wat de projectie schrijft.
@@ -427,6 +431,10 @@ spoor D (*Werkgebied als node*).
   3 Werkgebied, 4 Deelvragen en bronnen, 5 Analyse per bepaling, 6 Begrippen (lijst), dan de bijlagen (`BIJLAGEN`, letters op volgorde):
   Begripskaarten, Bronnenregister, Contextbepalingen (rol context zonder markering, `Regeling.context`), Samenhang, Niet meegenomen,
   Verantwoording.
+  - **Relaties en regelskelet** (ADR-009, aanvulling relaties; ADR-011): `Bepaling.relaties` (elke relatie één keer, bij de bepaling
+    van de drager) en per Afleidingsregel `Markering.regelskelet` (uitvoer, invoer op volgorde, operatoren met operanden, voorwaarden,
+    parameters met waarde, tijd, uitzonderingen, toepassing), uit `annotatie_v2_relaties.bij_elementen`. Een afgewezen relatie staat er
+    niet in; wat ontbreekt zegt het skelet ("Geen uitvoer vastgelegd."). Altijd lijsten, nooit tabellen.
   - **Graaf in het rapport** (`bepaling_graaf.lees`, best-effort zoals de toestanden; dezelfde lezer als het paneel bij een antwoord, met het contract in `bepaling_graaf_contract`, ADR-009 is de eigenaar): per regeling de WTI-gegevens (soort,
     eerstverantwoordelijke, TOOI-organisatie, afkorting, toestand-URL), en per voorouder van een geselecteerde bronnode
     (`werkgebied_export.structuur_iris`) de titel, `bwb:inwerking` en `bwb:bron`. Een artikel krijgt zo zijn `plaats` in de opbouw, die

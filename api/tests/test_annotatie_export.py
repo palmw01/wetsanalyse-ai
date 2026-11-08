@@ -66,7 +66,7 @@ def _view(elementen) -> dict:
             "dekking": {"structureel": {ONE: {"dimensies": {"tijd": "uitgevoerd", "plaats": "overgeslagen"},
                                               "ongedekt": [{"tekst": "Alfa", "start": 0, "eind": 4}]}}},
             "audit": [{"id": 1, "actie": "batch", "actor": "lex", "tijdstip": "2026-10-05T10:00:00+00:00", "detail": {}}],
-            "export": {"versie": 3, "actor": "jan", "op": "2026-10-05T12:00:00+00:00"}}
+            "export": {"versie": 4, "actor": "jan", "op": "2026-10-05T12:00:00+00:00"}}
 
 
 def test_herkomst_regels_in_leesbare_woorden():
@@ -106,7 +106,7 @@ def test_json_v3_valideert_tegen_het_schema_en_ontdubbelt_de_runs():
     view = _view([_element(), _element(id="e2")])
     uit = json.loads(export.json_export(view, V))
     jsonschema.validate(uit, json.loads(export.SCHEMA_PAD.read_text(encoding="utf-8")))
-    assert uit["export"]["versie"] == 3 and len(uit["runs"]) == 1
+    assert uit["export"]["versie"] == 4 and len(uit["runs"]) == 1
     assert uit["elementen"][0]["trace"]["vraag"].startswith("k1 |")
     assert uit["elementen"][0]["herkomst_regels"]["besloten_door"] == "model"
 
@@ -193,3 +193,61 @@ def test_pdf_en_json_noemen_wat_alleen_als_geheel_geraakt_werd():
     teksten = [t for _s, t in export.pdf_regels(view, V)]
     assert "Alleen als geheel gemarkeerd: “Een aanslag is invorderbaar.”" in teksten
     jsonschema.validate(json.loads(export.json_export(view, V)), json.loads(export.SCHEMA_PAD.read_text(encoding="utf-8")))
+
+
+async def test_een_relatie_staat_in_csv_pdf_en_json_v4(database):
+    """Twee lagen (ADR-011): de relatie hoort bij de drager in lid 1, het eindpunt staat in lid 2."""
+    from app import annotatie_v2_relaties as rel
+    from app.annotatie_v2_contracts import RelatieInvoer
+    snap = snapshot()
+    uit = await store.batch(request(snap, [{**element(snap, ONE), "klasse": "Rechtsbetrekking"},
+                                           {**element(snap, TWO, 0, 4), "klasse": "Voorwaarde", "tekst": "Beta"}]), snap, "lex")
+    ids = {e["klasse"]: e["id"] for e in uit["elementen"]}
+    view = await store.weergave(snap)
+    revs = {l["bron_iri"]: l["revisie"] for l in view["lagen"]}
+    r = (await rel.leg(RelatieInvoer(van={"soort": "element", "id": ids["Rechtsbetrekking"]},
+                                     naar={"soort": "element", "id": ids["Voorwaarde"]}, type="voorwaarde",
+                                     toelichting="=1+1", verwachte_revisies=revs), "jurist"))["relatie"]
+    view = await store.weergave(snap)
+    view["audit"], view["export"] = [], {"versie": export.EXPORT_VERSIE, "actor": "jan", "op": "2026-11-08T12:00:00+00:00"}
+
+    # JSON v4: relaties en impliciet staan er expliciet in, en het schema toetst ze.
+    uit = json.loads(export.json_export(view, V))
+    jsonschema.validate(uit, json.loads(export.SCHEMA_PAD.read_text(encoding="utf-8")))
+    assert uit["export"] == {**uit["export"], "versie": 4, "schema": "annotatie-export-v4"}
+    assert [x["id"] for x in uit["relaties"]] == [r["id"]] and uit["impliciet"] == []
+
+    # CSV: een rij van soort relatie, de nieuwe kolommen achteraan, de oude vooraan.
+    rijen = list(csv.reader(io.StringIO(export.csv_export(view, V, lambda e: {}).decode("utf-8-sig"))))
+    kop = rijen[0]
+    assert kop[:12] == export._OUDE_KOLOMMEN and kop[-8:] == export._RELATIEKOLOMMEN
+    assert all(len(x) == len(kop) for x in rijen)
+    [rij] = [dict(zip(kop, x)) for x in rijen if x[0] == "relatie"]
+    assert rijen[-1][0] == "relatie"
+    assert (rij["id"], rij["relatietype"], rij["leesvorm"], rij["lifecycle"], rij["herkomst"], rij["veranderd"]) == (
+        r["id"], "voorwaarde", "geldt onder voorwaarde", "human_approved", "mens", "nee")
+    assert (rij["van_klasse"], rij["van_tekst"], rij["naar_klasse"], rij["naar_tekst"]) == (
+        "Rechtsbetrekking", "Alfa", "Voorwaarde", "Beta")
+    assert rij["tekst"] == "“Alfa” (Rechtsbetrekking) geldt onder voorwaarde “Beta” (Voorwaarde)" and rij["volgorde"] == ""
+
+    # PDF: per bepaling een lijst, geen tabel.
+    regels = export.pdf_regels(view, V)
+    i = regels.index(("Heading2", "Relaties"))
+    assert regels[i + 1] == ("Heading4", "Lid 1")
+    assert regels[i + 2] == ("BodyText", "“Alfa” (Rechtsbetrekking) geldt onder voorwaarde “Beta” (Voorwaarde) (human_approved)")
+    assert ("BodyText", "Toelichting: =1+1") in regels
+    assert export.pdf_export(view, V).startswith(b"%PDF")
+
+
+def test_een_veranderde_relatie_met_volgorde_en_een_formule_in_de_csv():
+    rel = {"id": "R1", "type": "invoer", "leesvorm": "is invoer van", "volgorde": 2, "lifecycle": "voorgesteld", "herkomst": "agent",
+           "laag_id": "l1", "veranderd": True, "beslissingen": [],
+           "van": {"soort": "element", "id": "e2", "bestaat": True, "klasse": "Parameter en parameterwaarde", "tekst": "=SOM(A1)"},
+           "naar": {"soort": "element", "id": "e1", "bestaat": True, "klasse": "Afleidingsregel", "tekst": "Alfa"}}
+    view = {**_view([_element()]), "relaties": [rel], "impliciet": []}
+    rijen = list(csv.reader(io.StringIO(export.csv_export(view, V, lambda e: {}).decode("utf-8-sig"))))
+    rij = dict(zip(rijen[0], rijen[-1]))
+    assert (rij["volgorde"], rij["veranderd"], rij["van_tekst"]) == ("2", "ja", "'=SOM(A1)")
+    teksten = [t for _s, t in export.pdf_regels(view, V)]
+    assert any(t.endswith("· plek 2 (voorgesteld)") for t in teksten)
+    assert any(t.startswith("Veranderd: ") for t in teksten)

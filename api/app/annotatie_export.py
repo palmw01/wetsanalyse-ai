@@ -20,8 +20,9 @@ from rdflib import Dataset
 
 from . import pdf_opmaak
 
-SCHEMA_PAD = Path(__file__).parent / "schemas" / "annotatie-export-v3.schema.json"
-EXPORT_VERSIE = 3
+EXPORT_VERSIE = 4
+SCHEMA_NAAM = f"annotatie-export-v{EXPORT_VERSIE}"
+SCHEMA_PAD = Path(__file__).parent / "schemas" / f"{SCHEMA_NAAM}.schema.json"
 
 # De secties van de vocabulaire die de export opzoekt. `api/tests/test_annotatie_export.py` toetst
 # dat ze bestaan en dat de werkplek (`GEBRUIKTE_SECTIES` in `frontend/lib/verklaringen.ts`) niet
@@ -33,6 +34,8 @@ _OUDE_KOLOMMEN = ["soort", "id", "eigenaar_iri", "klasse", "tekst", "lifecycle",
                   "beslissingen", "herkomst", "provenance", "laagstatus"]
 _NIEUWE_KOLOMMEN = ["subtype", "aandacht", "besloten_door", "regels", "detectoren", "twijfel", "resolutieregel",
                     "mogelijke_klassen", "validatie", "gedegradeerd", "jurist"]
+# Relaties tussen markeringen (ADR-011): alleen gevuld op een rij van soort `relatie`.
+_RELATIEKOLOMMEN = ["leesvorm", "relatietype", "van_klasse", "van_tekst", "naar_klasse", "naar_tekst", "volgorde", "veranderd"]
 
 
 def naam(verklaringen: dict, sectie: str, code: str) -> str:
@@ -113,7 +116,10 @@ def runs(view: dict) -> list[dict]:
 def json_export(view: dict, verklaringen: dict) -> bytes:
     uit = {**view, "runs": runs(view),
            "elementen": [{**e, "herkomst_regels": herkomst_regels(e, verklaringen)} for e in view["elementen"]]}
-    uit["export"] = {**view.get("export", {}), "versie": EXPORT_VERSIE, "schema": "annotatie-export-v3"}
+    # v4: de relaties tussen markeringen en de impliciete partijen staan er expliciet in, ook als er geen zijn.
+    uit["relaties"] = list(view.get("relaties") or [])
+    uit["impliciet"] = list(view.get("impliciet") or [])
+    uit["export"] = {**view.get("export", {}), "versie": EXPORT_VERSIE, "schema": SCHEMA_NAAM}
     return json.dumps(uit, ensure_ascii=False, indent=2).encode()
 
 
@@ -128,13 +134,27 @@ def _lijst(waarden: list[str]) -> str:
     return "; ".join(waarden)
 
 
+def eindpunt(kant: dict) -> str:
+    """Eén kant van een relatie in woorden: de tekst van de markering (of het label van de impliciete partij) en haar klasse."""
+    if not kant.get("bestaat", True):
+        return "een eindpunt dat niet meer bestaat"
+    soort = ", impliciete partij" if kant.get("soort") == "impliciet" else ""
+    return f"“{kant.get('tekst', '')}” ({kant.get('klasse', '')}{soort})"
+
+
+def relatie_zin(r: dict) -> str:
+    """"“de ontvanger” (Rechtssubject) is plichthebbende van “…” (Rechtsbetrekking)": de leesvorm tussen de twee kanten."""
+    return f"{eindpunt(r['van'])} {r.get('leesvorm') or r['type']} {eindpunt(r['naar'])}"
+
+
 def csv_export(view: dict, verklaringen: dict, provenance) -> bytes:
-    """Eén rij per element (plus verwijzingen, brontekst en audit). `provenance(element)` levert de
+    """Eén rij per element (plus verwijzingen, brontekst, audit en relaties). `provenance(element)` levert de
     run met het spoor, zoals de router hem ook elders gebruikt."""
     tekst = io.StringIO()
     writer = csv.writer(tekst)
-    writer.writerow(_OUDE_KOLOMMEN + _NIEUWE_KOLOMMEN)
-    leeg = [""] * len(_NIEUWE_KOLOMMEN)
+    writer.writerow(_OUDE_KOLOMMEN + _NIEUWE_KOLOMMEN + _RELATIEKOLOMMEN)
+    leeg = [""] * (len(_NIEUWE_KOLOMMEN) + len(_RELATIEKOLOMMEN))
+    geen_relatie = [""] * len(_RELATIEKOLOMMEN)
     snapshot_id = view.get("snapshot_id", "")
     for e in view["elementen"]:
         laagstatus = next((l["status"] for l in view["lagen"] if l["id"] == e["laag_id"]), "")
@@ -146,7 +166,7 @@ def csv_export(view: dict, verklaringen: dict, provenance) -> bytes:
             + [cel(r["subtype"]), cel(r["aandacht"]), cel(r["besloten_door"]), cel(_lijst(r["regels"])),
                cel(_lijst(r["detectoren"])), cel(_lijst(r["twijfel"])), cel(_lijst(r["resolutieregel"])),
                cel(_lijst(r["mogelijke_klassen"])), cel(_lijst(r["validatie"])),
-               "ja" if r["gedegradeerd"] else "nee", cel(r["jurist"])])
+               "ja" if r["gedegradeerd"] else "nee", cel(r["jurist"])] + geen_relatie)
     for ref in view["verwijzingen"]:
         writer.writerow(["verwijzing", ref["id"], ref["eigenaar_iri"], ref["klasse"], ref["label"], "", snapshot_id,
                          "[]", "[]", "", "", ""] + leeg)
@@ -156,6 +176,16 @@ def csv_export(view: dict, verklaringen: dict, provenance) -> bytes:
     for audit in view.get("audit") or []:
         writer.writerow(["audit", audit.get("element_id", ""), "", "", "", audit["actie"], snapshot_id,
                          "[]", json.dumps(audit, ensure_ascii=False, default=str), "", "", ""] + leeg)
+    for rel in view.get("relaties") or []:
+        laagstatus = next((l["status"] for l in view["lagen"] if l["id"] == rel.get("laag_id")), "")
+        van, naar = rel["van"], rel["naar"]
+        writer.writerow(["relatie", rel["id"], "", "", cel(relatie_zin(rel)), cel(rel.get("lifecycle", "")), snapshot_id,
+                         "[]", json.dumps(rel.get("beslissingen") or [], ensure_ascii=False), cel(rel.get("herkomst", "")), "",
+                         laagstatus]
+                        + [""] * len(_NIEUWE_KOLOMMEN)
+                        + [cel(rel.get("leesvorm", "")), cel(rel["type"]), cel(van.get("klasse", "")), cel(van.get("tekst", "")),
+                           cel(naar.get("klasse", "")), cel(naar.get("tekst", "")),
+                           "" if rel.get("volgorde") is None else str(rel["volgorde"]), "ja" if rel.get("veranderd") else "nee"])
     return tekst.getvalue().encode("utf-8-sig")
 
 
@@ -190,6 +220,7 @@ def pdf_regels(view: dict, verklaringen: dict) -> list[tuple[str, str]]:
             uit.append(("BodyText", "Beoordelingen: " + "; ".join(
                 f"{b.get('type', '')} door {b.get('actor', '')} op {b.get('tijd', '')}"
                 + (f" ({b['comment']})" if b.get("comment") else "") for b in e["beslissingen"])))
+    uit += _relatie_regels(view)
     if view["verwijzingen"]:
         uit.append(("BodyText", "Dit bereik bevat verwijzingen naar annotaties met een ruimere bronselectie."))
         for ref in view["verwijzingen"]:
@@ -230,6 +261,35 @@ def pdf_regels(view: dict, verklaringen: dict) -> list[tuple[str, str]]:
         uit.append(("Heading2", "Historie"))
         for audit in view["audit"]:
             uit.append(("Code", json.dumps(audit, ensure_ascii=False, default=str)))
+    return uit
+
+
+def _relatie_regels(view: dict) -> list[tuple[str, str]]:
+    """Per bepaling (de laag die de relatie draagt) een korte lijst, geen tabel; daarna de impliciete partijen."""
+    relaties = view.get("relaties") or []
+    if not relaties and not view.get("impliciet"):
+        return []
+    labels = {s["bron_iri"]: s.get("label") or s["bron_iri"] for s in view.get("segmenten") or []}
+    lagen = {l["id"]: l["bron_iri"] for l in view["lagen"]}
+    uit: list[tuple[str, str]] = [("Heading2", "Relaties")]
+    groepen: dict[str, list[dict]] = {}
+    for r in relaties:
+        groepen.setdefault(lagen.get(r.get("laag_id"), ""), []).append(r)
+    for bron_iri in [*(l["bron_iri"] for l in view["lagen"]), ""]:
+        if bron_iri not in groepen:
+            continue
+        uit.append(("Heading4", labels.get(bron_iri, bron_iri) if bron_iri else "Met de drager in een andere bepaling"))
+        for r in groepen[bron_iri]:
+            plek = f" · plek {r['volgorde']}" if r.get("volgorde") is not None else ""
+            uit.append(("BodyText", f"{relatie_zin(r)}{plek} ({r.get('lifecycle', '')})"))
+            if r.get("toelichting"):
+                uit.append(("BodyText", "Toelichting: " + r["toelichting"]))
+            if r.get("veranderd"):
+                uit.append(("BodyText", "Veranderd: een eindpunt veranderde na het vastleggen; deze relatie vraagt opnieuw een oordeel."))
+    if view.get("impliciet"):
+        uit.append(("Heading4", "Impliciete partijen"))
+        for p in view["impliciet"]:
+            uit.append(("BodyText", f"{p.get('label', '')} ({p.get('klasse', '')}): {p.get('toelichting', '')}"))
     return uit
 
 

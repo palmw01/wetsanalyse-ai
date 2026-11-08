@@ -309,6 +309,14 @@
           "title": "Verwijzingen",
           "type": "array"
         },
+        "relaties": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Markeringsrelatie"
+          },
+          "title": "Relaties",
+          "type": "array"
+        },
         "door": {
           "default": "bron",
           "enum": [
@@ -860,6 +868,17 @@
           "title": "Deels Buiten",
           "type": "boolean"
         },
+        "regelskelet": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Regelskelet"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "door": {
           "default": "lex",
           "enum": [
@@ -878,6 +897,76 @@
         "herkomst"
       ],
       "title": "Markering",
+      "type": "object"
+    },
+    "Markeringsrelatie": {
+      "additionalProperties": false,
+      "description": "Een vastgelegde relatie tussen twee markeringen, bij de bepaling van de drager. Een afgewezen relatie staat er niet in.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "leesvorm": {
+          "title": "Leesvorm",
+          "type": "string"
+        },
+        "van": {
+          "$ref": "#/$defs/RelatieEind"
+        },
+        "naar": {
+          "$ref": "#/$defs/RelatieEind"
+        },
+        "volgorde": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Volgorde"
+        },
+        "lifecycle": {
+          "title": "Lifecycle",
+          "type": "string"
+        },
+        "veranderd": {
+          "default": false,
+          "title": "Veranderd",
+          "type": "boolean"
+        },
+        "toelichting": {
+          "default": "",
+          "title": "Toelichting",
+          "type": "string"
+        },
+        "door": {
+          "default": "analist",
+          "enum": [
+            "bron",
+            "lex",
+            "analist"
+          ],
+          "title": "Door",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "code",
+        "leesvorm",
+        "van",
+        "naar",
+        "lifecycle"
+      ],
+      "title": "Markeringsrelatie",
       "type": "object"
     },
     "Onbereikbaar": {
@@ -1166,6 +1255,78 @@
       "title": "RegelingInfo",
       "type": "object"
     },
+    "Regelskelet": {
+      "additionalProperties": false,
+      "description": "De opbouw van een afleidingsregel uit haar relaties (ADR-011, de grondstof voor activiteit 3b). Alleen wat als relatie\nis vastgelegd en niet afgewezen; wat ontbreekt, zegt de tekstlaag.",
+      "properties": {
+        "uitvoer": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Skeletdeel"
+          },
+          "title": "Uitvoer",
+          "type": "array"
+        },
+        "invoer": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Skeletdeel"
+          },
+          "title": "Invoer",
+          "type": "array"
+        },
+        "operatoren": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SkeletOperator"
+          },
+          "title": "Operatoren",
+          "type": "array"
+        },
+        "voorwaarden": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Skeletdeel"
+          },
+          "title": "Voorwaarden",
+          "type": "array"
+        },
+        "parameters": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SkeletParameter"
+          },
+          "title": "Parameters",
+          "type": "array"
+        },
+        "tijd": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Skeletdeel"
+          },
+          "title": "Tijd",
+          "type": "array"
+        },
+        "uitzonderingen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Skeletdeel"
+          },
+          "title": "Uitzonderingen",
+          "type": "array"
+        },
+        "toepassing": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Skeletdeel"
+          },
+          "title": "Toepassing",
+          "type": "array"
+        }
+      },
+      "title": "Regelskelet",
+      "type": "object"
+    },
     "Relatie": {
       "additionalProperties": false,
       "properties": {
@@ -1193,6 +1354,48 @@
         "naar"
       ],
       "title": "Relatie",
+      "type": "object"
+    },
+    "RelatieEind": {
+      "additionalProperties": false,
+      "description": "Eén kant van een relatie tussen markeringen (ADR-011), zoals het eindpunt nu is.",
+      "properties": {
+        "soort": {
+          "default": "element",
+          "enum": [
+            "element",
+            "impliciet"
+          ],
+          "title": "Soort",
+          "type": "string"
+        },
+        "nr": {
+          "default": 0,
+          "title": "Nr",
+          "type": "integer"
+        },
+        "klasse": {
+          "default": "",
+          "title": "Klasse",
+          "type": "string"
+        },
+        "tekst": {
+          "default": "",
+          "title": "Tekst",
+          "type": "string"
+        },
+        "elders": {
+          "default": "",
+          "title": "Elders",
+          "type": "string"
+        },
+        "bestaat": {
+          "default": true,
+          "title": "Bestaat",
+          "type": "boolean"
+        }
+      },
+      "title": "RelatieEind",
       "type": "object"
     },
     "Selectie": {
@@ -1289,6 +1492,89 @@
         "soort"
       ],
       "title": "Signaal",
+      "type": "object"
+    },
+    "SkeletOperator": {
+      "additionalProperties": false,
+      "properties": {
+        "operator": {
+          "$ref": "#/$defs/Skeletdeel"
+        },
+        "operanden": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Skeletdeel"
+          },
+          "title": "Operanden",
+          "type": "array"
+        }
+      },
+      "required": [
+        "operator"
+      ],
+      "title": "SkeletOperator",
+      "type": "object"
+    },
+    "SkeletParameter": {
+      "additionalProperties": false,
+      "properties": {
+        "parameter": {
+          "$ref": "#/$defs/Skeletdeel"
+        },
+        "waarden": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Skeletdeel"
+          },
+          "title": "Waarden",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parameter"
+      ],
+      "title": "SkeletParameter",
+      "type": "object"
+    },
+    "Skeletdeel": {
+      "additionalProperties": false,
+      "description": "Eén onderdeel van een regelskelet: het eindpunt aan de andere kant van de relatie.",
+      "properties": {
+        "eind": {
+          "$ref": "#/$defs/RelatieEind"
+        },
+        "volgorde": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Volgorde"
+        },
+        "inkomend": {
+          "default": false,
+          "title": "Inkomend",
+          "type": "boolean"
+        },
+        "lifecycle": {
+          "title": "Lifecycle",
+          "type": "string"
+        },
+        "veranderd": {
+          "default": false,
+          "title": "Veranderd",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "eind",
+        "lifecycle"
+      ],
+      "title": "Skeletdeel",
       "type": "object"
     },
     "Span": {

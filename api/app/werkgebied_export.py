@@ -22,7 +22,7 @@ from bronmodel.antwoord import Vindplaats
 from bronmodel.vindplaats import vindplaats as bron_vindplaats
 from fastapi import HTTPException
 
-from . import (annotatie_v2_store, begrip_relatie_store, begrip_store, begrippen_run_store, bronselectie, db, markdown_opmaak,
+from . import (annotatie_v2_relaties, annotatie_v2_store, begrip_relatie_store, jas_relaties, begrip_store, begrippen_run_store, bronselectie, db, markdown_opmaak,
                pdf_opmaak, werkgebied_store)
 from .annotatie_export import herkomst_regels
 from .annotatie_v2_contracts import BEOORDEELD
@@ -31,6 +31,7 @@ from .jas_klassen import jas_sorteersleutel
 from .werkgebied_inventaris import Resolver, bwb_van, inventaris_met_bronbomen
 from .werkgebied_rapport import (DOSSIERVELDEN, Afwijking, Artikel, Begrip, Begrippen, Bepaling, Bronvoorstel, Deelvraag,
                                  DeelvraagBron, Deelvragen, Document, Dossier, DossierVeld, Fragment, Besluit, Handeling, Herkomst, Kerncijfers, KlasseTelling, Markering,
+                                 Markeringsrelatie, Regelskelet, RelatieEind, SkeletOperator, SkeletParameter, Skeletdeel,
                                  Onbereikbaar, OpenGroep, OpenRelatie, Passage, Rapport, Regel, Regeling, RegelingInfo, Span, Structuurdeel, Verwijzing, Relatie, Selectie, Signaal,
                                  Stand, Telling, UitgeslotenBron, Verantwoording, Voorbeeld, Voorblad, Wettekst, Zoekdekking, Zoekregeling,
                                  BESLUITEN, datum, inhoud_hash, kort, rapport_regels)
@@ -80,7 +81,9 @@ async def verzamel(werkgebied_id: str, actor: str, resolve: Resolver,
     if wg["bronnen"] and not bomen:
         raise HTTPException(503, "De brongraaf is tijdelijk niet beschikbaar; zonder wettekst is er geen dossier te maken.")
     tst = await toestanden(wg)
+    element_ids = {e["id"] for e in [*inventaris["elementen"], *inventaris["afgewezen"]]}
     return {"werkgebied": wg, "inventaris": inventaris, "bomen": bomen,
+            "markeringsrelaties": await annotatie_v2_relaties.bij_elementen(element_ids) if element_ids else [],
             "graaf": await graaf([r["bwb_id"] for r in tst["regelingen"]], structuur_iris(wg, bomen), bron_iris(wg, bomen)),
             "overzicht": await bronselectie.overzicht(werkgebied_id),
             "toestanden": tst,
@@ -234,6 +237,87 @@ def _spans(eigen: list[dict], iri: str, tekst: str) -> list[Span]:
     return sorted(uit, key=lambda x: (x.start, -x.eind, x.nr))
 
 
+Plek = dict[str, tuple[str, int]]                    # element-id → (bepaling, nummer van de markering daarin)
+
+
+def _plaatsnaam(iri: str, nodes: dict[str, dict]) -> str:
+    if iri in nodes:
+        return _vindplaats(iri, nodes)
+    vp = bron_vindplaats(iri)
+    return vp.label if vp else iri
+
+
+def _relatie_eind(kant: dict, eigen_iri: str, plek: Plek, nodes: dict[str, dict]) -> RelatieEind:
+    """Een kant van een relatie, gezien vanuit de bepaling `eigen_iri`: daar draagt ze haar nummer, elders haar vindplaats."""
+    if kant["soort"] == "impliciet":
+        return RelatieEind(soort="impliciet", klasse=kant.get("klasse") or "", tekst=kant.get("tekst") or "",
+                           bestaat=bool(kant.get("bestaat", True)))
+    waar, nr = plek.get(kant["id"], (kant.get("eigenaar_iri") or "", 0))
+    hier = waar == eigen_iri
+    return RelatieEind(nr=nr if hier else 0, klasse=kant.get("klasse") or "", tekst=kant.get("tekst") or "",
+                       elders="" if hier or not waar else _plaatsnaam(waar, nodes), bestaat=bool(kant.get("bestaat", True)))
+
+
+def _geldend(data: dict) -> list[dict]:
+    """De relaties die het rapport toont: vastgelegd en niet afgewezen (ADR-011)."""
+    return [r for r in data.get("markeringsrelaties") or [] if r.get("lifecycle") != "rejected"]
+
+
+def _per_bepaling(relaties: list[dict], plek: Plek, nodes: dict[str, dict]) -> dict[str, list[Markeringsrelatie]]:
+    """Elke relatie één keer, bij de bepaling van de drager; staat die niet in het rapport, dan bij die van de andere kant."""
+    uit: dict[str, list[tuple[tuple, Markeringsrelatie]]] = {}
+    for r in relaties:
+        kanten = (r["van"], r["naar"]) if jas_relaties.RELATIETYPEN.get(r["type"], {}).get("drager", "van") == "van" else (r["naar"], r["van"])
+        iri = next((plek[k["id"]][0] for k in kanten if k["soort"] == "element" and k["id"] in plek), None)
+        if iri is None:
+            continue
+        van, naar = _relatie_eind(r["van"], iri, plek, nodes), _relatie_eind(r["naar"], iri, plek, nodes)
+        m = Markeringsrelatie(id=r["id"], code=r["type"], leesvorm=r.get("leesvorm") or r["type"], van=van, naar=naar,
+                              volgorde=r.get("volgorde"), lifecycle=r["lifecycle"], veranderd=bool(r.get("veranderd")),
+                              toelichting=r.get("toelichting") or "", door="analist" if r.get("herkomst") == "mens" else "lex")
+        eerste = min([e.nr for e in (van, naar) if e.nr] or [10 ** 6])
+        uit.setdefault(iri, []).append(((eerste, r["type"], r.get("volgorde") or 0, r["id"]), m))
+    return {iri: [m for _k, m in sorted(lijst, key=lambda x: x[0])] for iri, lijst in uit.items()}
+
+
+def _regelskelet(regel_id: str, eigen_iri: str, relaties: list[dict], plek: Plek, nodes: dict[str, dict]) -> Regelskelet:
+    """De opbouw van één afleidingsregel uit haar relaties: uitvoer, invoer op volgorde, operatoren met hun operanden,
+    voorwaarden, parameters met hun waarde, tijd, uitzonderingen en toepassing."""
+    def deel(r: dict, kant: str, inkomend: bool = False) -> Skeletdeel:
+        return Skeletdeel(eind=_relatie_eind(r[kant], eigen_iri, plek, nodes), volgorde=r.get("volgorde"), inkomend=inkomend,
+                          lifecycle=r["lifecycle"], veranderd=bool(r.get("veranderd")))
+
+    def is_(ep: dict, id_: str) -> bool:
+        return ep["soort"] == "element" and ep["id"] == id_
+
+    def op_volgorde(lijst: list[dict]) -> list[dict]:
+        return sorted(lijst, key=lambda r: (r.get("volgorde") is None, r.get("volgorde") or 0, r["id"]))
+
+    def van_type(code: str) -> list[dict]:
+        return [r for r in relaties if r["type"] == code]
+    invoer = op_volgorde([r for r in van_type("invoer") if is_(r["naar"], regel_id)])
+    operatoren = [r for r in van_type("operator_in") if is_(r["naar"], regel_id) and r["van"]["soort"] == "element"]
+    operanden = {o["van"]["id"]: op_volgorde([r for r in van_type("operand") if is_(r["naar"], o["van"]["id"])]) for o in operatoren}
+    parameters: dict[str, dict] = {}
+    for r in [*invoer, *(x for o in operatoren for x in operanden[o["van"]["id"]])]:
+        if r["van"]["soort"] == "element" and r["van"].get("klasse") == "Parameter en parameterwaarde":
+            parameters.setdefault(r["van"]["id"], r)
+
+    def beide(code: str) -> list[Skeletdeel]:
+        return [deel(r, "naar") if is_(r["van"], regel_id) else deel(r, "van", inkomend=True)
+                for r in van_type(code) if is_(r["van"], regel_id) or is_(r["naar"], regel_id)]
+    return Regelskelet(
+        uitvoer=[deel(r, "naar") for r in van_type("uitvoer") if is_(r["van"], regel_id)],
+        invoer=[deel(r, "van") for r in invoer],
+        operatoren=[SkeletOperator(operator=deel(o, "van"), operanden=[deel(r, "van") for r in operanden[o["van"]["id"]]]) for o in operatoren],
+        voorwaarden=[deel(r, "naar") for r in van_type("voorwaarde") if is_(r["van"], regel_id)],
+        parameters=[SkeletParameter(parameter=deel(r, "van"),
+                                    waarden=[deel(w, "van") for w in van_type("waarde") if is_(w["naar"], pid)])
+                    for pid, r in parameters.items()],
+        tijd=[deel(r, "naar") for r in van_type("tijd") if is_(r["van"], regel_id)],
+        uitzonderingen=beide("uitzondering_op"), toepassing=beide("toepassing"))
+
+
 def _graaf(data: dict) -> dict:
     return {"volledig": True, "regelingen": {}, "structuur": {}, "verwijzingen": [], "verwijzingen_volledig": True, **(data.get("graaf") or {})}
 
@@ -328,6 +412,9 @@ def _wettekst(data: dict, nodes: dict[str, dict], verklaringen: dict) -> Wetteks
             gewijzigd.add(sel["bron_iri"])
         per_bwb[bwb_van(sel)] = None
 
+    plek: Plek = {e["id"]: (iri, n) for iri, eigen in per_eigenaar.items() for n, e in enumerate(eigen, 1)}
+    relaties = _geldend(data)
+    per_bepaling = _per_bepaling(relaties, plek, nodes)
     getoond: set[str] = set()
     regelingen: list[Regeling] = []
     verwijzingen = _verwijzingen(data, nodes, set(rollen))
@@ -345,10 +432,13 @@ def _wettekst(data: dict, nodes: dict[str, dict], verklaringen: dict) -> Wetteks
             if nieuw != kop:
                 kop = nieuw
                 artikelen.append(_artikel(kop, nodes, data))
-            markeringen = [_markering(e, nodes, verklaringen).model_copy(update={"nr": n}) for n, e in enumerate(eigen, 1)]
+            markeringen = [_markering(e, nodes, verklaringen).model_copy(update={
+                "nr": n, "regelskelet": _regelskelet(e["id"], iri, relaties, plek, nodes) if e.get("klasse") == "Afleidingsregel" else None})
+                for n, e in enumerate(eigen, 1)]
             artikelen[-1].bepalingen.append(Bepaling(
                 vindplaats=_plek(iri, nodes), rol=rollen[iri], bron_gewijzigd=iri in gewijzigd, tekst=tekst if tekst.strip() else "",
-                markeringen=markeringen, spans=_spans(eigen, iri, tekst), verwijzingen=verwijzingen.get(iri, [])))
+                markeringen=markeringen, spans=_spans(eigen, iri, tekst), verwijzingen=verwijzingen.get(iri, []),
+                relaties=per_bepaling.get(iri, [])))
             alle_verwijzingen += verwijzingen.get(iri, [])
             getoond |= {e["id"] for e in eigen}
         # Een contextbepaling zonder markering is naslag: die gaat naar de bijlage, de rest is de analyse.

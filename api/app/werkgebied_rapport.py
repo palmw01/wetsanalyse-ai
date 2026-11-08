@@ -193,6 +193,66 @@ class Span(_Deel):
     klasse: str = ""
 
 
+class RelatieEind(_Deel):
+    """Eén kant van een relatie tussen markeringen (ADR-011), zoals het eindpunt nu is."""
+
+    soort: Literal["element", "impliciet"] = "element"
+    nr: int = 0                                      # het nummer van de markering in dezelfde bepaling; 0 als ze elders staat
+    klasse: str = ""
+    tekst: str = ""                                  # de tekst van de markering, of het label van een impliciete partij
+    elders: str = ""                                 # de vindplaats als het eindpunt in een andere bepaling staat
+    bestaat: bool = True
+
+
+class Markeringsrelatie(_Deel):
+    """Een vastgelegde relatie tussen twee markeringen, bij de bepaling van de drager. Een afgewezen relatie staat er niet in."""
+
+    id: str
+    code: str                                        # het type uit de catalogus (`jas_relaties.RELATIETYPEN`)
+    leesvorm: str
+    van: RelatieEind
+    naar: RelatieEind
+    volgorde: int | None = None
+    lifecycle: str
+    veranderd: bool = False                          # een eindpunt veranderde na het vastleggen: opnieuw beoordelen
+    toelichting: str = ""
+    door: Door = "analist"
+
+
+class Skeletdeel(_Deel):
+    """Eén onderdeel van een regelskelet: het eindpunt aan de andere kant van de relatie."""
+
+    eind: RelatieEind
+    volgorde: int | None = None
+    inkomend: bool = False                           # bij uitzondering en toepassing: de andere kant wijst naar deze regel
+    lifecycle: str
+    veranderd: bool = False
+
+
+class SkeletOperator(_Deel):
+    operator: Skeletdeel
+    operanden: list[Skeletdeel] = []                 # op volgorde
+
+
+class SkeletParameter(_Deel):
+    parameter: Skeletdeel
+    waarden: list[Skeletdeel] = []
+
+
+class Regelskelet(_Deel):
+    """De opbouw van een afleidingsregel uit haar relaties (ADR-011, de grondstof voor activiteit 3b). Alleen wat als relatie
+    is vastgelegd en niet afgewezen; wat ontbreekt, zegt de tekstlaag."""
+
+    uitvoer: list[Skeletdeel] = []
+    invoer: list[Skeletdeel] = []                    # op volgorde, zonder volgorde achteraan
+    operatoren: list[SkeletOperator] = []
+    voorwaarden: list[Skeletdeel] = []
+    parameters: list[SkeletParameter] = []           # de parameters onder de invoer en de operanden, met hun waarde
+    tijd: list[Skeletdeel] = []
+    uitzonderingen: list[Skeletdeel] = []
+    toepassing: list[Skeletdeel] = []
+
+
 class Markering(_Deel):
     id: str
     nr: int = 0                                      # het nummer binnen de bepaling; 0 buiten de wettekst
@@ -208,6 +268,7 @@ class Markering(_Deel):
     reden_afwijzing: str = ""
     verouderd: bool = False
     deels_buiten: bool = False
+    regelskelet: Regelskelet | None = None           # alleen bij een afleidingsregel
     door: Door = "lex"
 
 
@@ -219,6 +280,7 @@ class Bepaling(_Deel):
     markeringen: list[Markering] = []
     spans: list[Span] = []                           # alleen ankers die nog op hun offsets staan; een afwijking staat bij de markering
     verwijzingen: list[Verwijzing] = []
+    relaties: list[Markeringsrelatie] = []           # de relaties waarvan de drager hier staat (ADR-011)
     door: Door = "bron"
 
 
@@ -732,7 +794,74 @@ def _markering(m: Markering, eigen_iri: str = "", in_tekst: bool = False) -> lis
         uit.append(("Waarschuwing", "Verouderd: de bepaling veranderde na het annoteren."))
     if m.deels_buiten:
         uit.append(("Meta", "Deze markering valt deels buiten de bronselectie."))
+    uit += BLOK_UIT
+    if m.regelskelet is not None:
+        uit += regelskelet_regels(m)
+    return uit
+
+
+def _eind(e: RelatieEind) -> str:
+    """Een kant van een relatie: het nummer in deze bepaling, de tekst letterlijk, de klasse en waar ze staat als dat elders is."""
+    if not e.bestaat:
+        return "een markering die niet meer bestaat"
+    nummer = f"{e.nr} · " if e.nr else ""
+    soort = ", impliciete partij" if e.soort == "impliciet" else ""
+    waar = f", in {e.elders}" if e.elders else ""
+    return f"{nummer}“{e.tekst}” ({e.klasse}{soort}{waar})"
+
+
+def _stand(lifecycle: str, veranderd: bool) -> str:
+    return _LIFECYCLE.get(lifecycle, lifecycle) + (" · veranderd na het vastleggen, opnieuw beoordelen" if veranderd else "")
+
+
+def _deel(label: str, d: Skeletdeel) -> Regel:
+    return ("BodyText", f"{label}: {_eind(d.eind)} · {_stand(d.lifecycle, d.veranderd)}")
+
+
+def _op_volgorde(label: str, d: Skeletdeel) -> Regel:
+    return _deel(f"{label} {d.volgorde}" if d.volgorde is not None else f"{label} (zonder volgorde)", d)
+
+
+def regelskelet_regels(m: Markering) -> list[Regel]:
+    """Het regelskelet van een afleidingsregel, als lijst: wat ontbreekt staat er met zoveel woorden bij."""
+    k = m.regelskelet
+    assert k is not None
+    nummer = f"{m.nr} · " if m.nr else ""
+    uit: list[Regel] = [*BLOK, ("Heading4", f"Regelskelet bij {nummer}“{m.tekst}”"),
+                        ("Meta", "Uit de vastgelegde relaties; een afgewezen relatie telt niet mee.")]
+    uit += [_deel("Uitvoer", d) for d in k.uitvoer] or [("Meta", "Geen uitvoer vastgelegd.")]
+    if len(k.uitvoer) > 1:
+        uit.append(("Waarschuwing", f"Een afleidingsregel heeft precies één uitvoer; hier zijn er {len(k.uitvoer)} vastgelegd."))
+    uit += [_op_volgorde("Invoer", d) for d in k.invoer] or [("Meta", "Geen invoer vastgelegd.")]
+    for o in k.operatoren:
+        uit.append(_deel("Operator", o.operator))
+        uit += [_op_volgorde("Operand", d) for d in o.operanden] or [("Meta", "Geen operanden vastgelegd.")]
+    if not k.operatoren:
+        uit.append(("Meta", "Geen operatoren vastgelegd."))
+    uit += [_deel("Voorwaarde", d) for d in k.voorwaarden] or [("Meta", "Geen voorwaarden vastgelegd.")]
+    for p in k.parameters:
+        uit.append(_deel("Parameter", p.parameter))
+        uit += [_deel("Waarde", d) for d in p.waarden] or [("Meta", "Geen waarde vastgelegd.")]
+    if not k.parameters:
+        uit.append(("Meta", "Geen parameters vastgelegd."))
+    uit += [_deel("Tijd", d) for d in k.tijd] or [("Meta", "Geen tijdsaanduiding vastgelegd.")]
+    uit += [_deel("Uitzondering op deze regel" if d.inkomend else "Maakt een uitzondering op", d) for d in k.uitzonderingen] \
+        or [("Meta", "Geen uitzonderingen vastgelegd.")]
+    uit += [_deel("Vindt toepassing op deze regel" if d.inkomend else "Vindt toepassing op", d) for d in k.toepassing] \
+        or [("Meta", "Geen toepassing vastgelegd.")]
     return [*uit, *BLOK_UIT]
+
+
+def relaties_regels(relaties: list[Markeringsrelatie]) -> list[Regel]:
+    """De relaties bij een bepaling, als lijst en nooit als tabel."""
+    if not relaties:
+        return []
+    uit: list[Regel] = [("Heading4", "Relaties")]
+    for r in relaties:
+        plek = f" · plek {r.volgorde}" if r.volgorde is not None else ""
+        uit.append(("BodyText", f"{_eind(r.van)} {r.leesvorm} {_eind(r.naar)}{plek}"))
+        uit.append(("Meta", _stand(r.lifecycle, r.veranderd) + (f" · {r.toelichting}" if r.toelichting else "")))
+    return uit
 
 
 def wettekst_regels(w: Wettekst) -> list[Regel]:
@@ -803,6 +932,7 @@ def _bepaling(b: Bepaling) -> list[Regel]:
     in_tekst = {x.nr for x in b.spans}
     for m in b.markeringen:
         uit += _markering(m, b.vindplaats.iri, m.nr in in_tekst)
+    uit += relaties_regels(b.relaties)
     uit += [("Meta", _verwijst(v)) for v in b.verwijzingen]
     return uit
 
