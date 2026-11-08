@@ -62,7 +62,7 @@ async def test_verwijdert_de_lagen_in_beeld_met_elementen_dekking_audit_en_graaf
     view = await store.weergave(art)
     uit = await store.verwijder_weergave(art, revisies(view), "c")
 
-    assert uit == {"verwijderd": {"lagen": 3, "elementen": 3}, "graaf": "verwijderd"}
+    assert uit == {"verwijderd": {"lagen": 3, "elementen": 3, "relaties": 0, "impliciet": 0}, "graaf": "verwijderd"}
     na = await store.weergave(art)
     assert not na["lagen"] and not na["elementen"] and na["verwijderd"]["op"]
     assert not await dekkingrijen()
@@ -86,7 +86,7 @@ async def test_een_lid_verwijderen_laat_de_laag_van_het_artikel_staan_en_snoeit_
 
     uit = await store.verwijder_weergave(lid, revisies(await store.weergave(lid)), "c")
 
-    assert uit["verwijderd"] == {"lagen": 1, "elementen": 1}
+    assert uit["verwijderd"] == {"lagen": 1, "elementen": 1, "relaties": 0, "impliciet": 0}
     assert uit["graaf"] == "uit"
     na = await store.weergave(art)
     assert sorted(l["bron_iri"] for l in na["lagen"]) == [ART, TWO]
@@ -183,7 +183,7 @@ async def test_endpoint_verwijdert_op_de_bewaarde_bronstand_zonder_de_brongraaf(
         assert (await client.post("/v1/annotatie/weergave/verwijder", json=body)).status_code == 401
         r = await client.post("/v1/annotatie/weergave/verwijder", json=body, headers=headers)
         assert r.status_code == 200, r.text
-        assert r.json()["verwijderd"] == {"lagen": 1, "elementen": 1}
+        assert r.json()["verwijderd"] == {"lagen": 1, "elementen": 1, "relaties": 0, "impliciet": 0}
         # Een onbekende bronstand kan alleen via de brongraaf; die is hier weg.
         body["snapshot_id"] = "onbekend"
         assert (await client.post("/v1/annotatie/weergave/verwijder", json=body, headers=headers)).status_code == 503

@@ -1,0 +1,475 @@
+{
+  "versie": "1",
+  "toelichting": "Catalogus van relaties tussen markeringen (activiteit 2, deelactiviteit 2c). De codes en leesvormen zijn een projectkeuze; de rollen en verbanden komen uit de methode (zie references/relaties.md en ADR-011). Gegenereerd naar api en werkplek; bewerk dit bestand, niet de afgeleide code.",
+  "bron": "P18",
+  "centrale_klassen": [
+    "Rechtsbetrekking",
+    "Rechtsfeit",
+    "Afleidingsregel",
+    "Voorwaarde"
+  ],
+  "impliciet_toegestaan": [
+    "Rechtssubject"
+  ],
+  "typen": {
+    "rechthebbende": {
+      "leesvorm": "is rechthebbende van",
+      "invers": "heeft als rechthebbende",
+      "van": [
+        "Rechtssubject"
+      ],
+      "naar": [
+        "Rechtsbetrekking"
+      ],
+      "drager": "naar",
+      "methodisch": true,
+      "bron": [
+        "H2:44",
+        "M01",
+        "M02",
+        "M05"
+      ]
+    },
+    "plichthebbende": {
+      "leesvorm": "is plichthebbende van",
+      "invers": "heeft als plichthebbende",
+      "van": [
+        "Rechtssubject"
+      ],
+      "naar": [
+        "Rechtsbetrekking"
+      ],
+      "drager": "naar",
+      "methodisch": true,
+      "bron": [
+        "H2:44",
+        "M01",
+        "M02",
+        "M05"
+      ]
+    },
+    "verricht": {
+      "leesvorm": "verricht",
+      "invers": "wordt verricht door",
+      "van": [
+        "Rechtssubject"
+      ],
+      "naar": [
+        "Rechtsfeit"
+      ],
+      "drager": "naar",
+      "methodisch": true,
+      "bron": [
+        "H2:53",
+        "M01",
+        "M05"
+      ]
+    },
+    "voorwerp": {
+      "leesvorm": "heeft als voorwerp",
+      "invers": "is voorwerp van",
+      "van": [
+        "Rechtsbetrekking",
+        "Rechtsfeit"
+      ],
+      "naar": [
+        "Rechtsobject"
+      ],
+      "drager": "van",
+      "methodisch": true,
+      "bron": [
+        "H2:35",
+        "M01",
+        "M02"
+      ]
+    },
+    "voorwaarde": {
+      "leesvorm": "geldt onder voorwaarde",
+      "invers": "is voorwaarde voor",
+      "van": [
+        "Rechtsbetrekking",
+        "Rechtsfeit",
+        "Rechtssubject",
+        "Rechtsobject",
+        "Afleidingsregel"
+      ],
+      "naar": [
+        "Voorwaarde"
+      ],
+      "drager": "van",
+      "methodisch": true,
+      "bron": [
+        "H2:62",
+        "M01",
+        "M02",
+        "M06"
+      ]
+    },
+    "creeert": {
+      "leesvorm": "creëert",
+      "invers": "ontstaat door",
+      "van": [
+        "Rechtsfeit"
+      ],
+      "naar": [
+        "Rechtsbetrekking"
+      ],
+      "drager": "van",
+      "methodisch": true,
+      "bron": [
+        "H2:53",
+        "M01",
+        "M05"
+      ]
+    },
+    "wijzigt": {
+      "leesvorm": "wijzigt",
+      "invers": "wordt gewijzigd door",
+      "van": [
+        "Rechtsfeit"
+      ],
+      "naar": [
+        "Rechtsbetrekking"
+      ],
+      "drager": "van",
+      "methodisch": true,
+      "bron": [
+        "H2:53",
+        "M01",
+        "M05"
+      ]
+    },
+    "beeindigt": {
+      "leesvorm": "beëindigt",
+      "invers": "eindigt door",
+      "van": [
+        "Rechtsfeit"
+      ],
+      "naar": [
+        "Rechtsbetrekking"
+      ],
+      "drager": "van",
+      "methodisch": true,
+      "bron": [
+        "H2:53",
+        "M01",
+        "M05"
+      ]
+    },
+    "invoer": {
+      "leesvorm": "is invoer van",
+      "invers": "gebruikt als invoer",
+      "van": [
+        "Variabele en variabelewaarde",
+        "Parameter en parameterwaarde",
+        "Voorwaarde",
+        "Tijdsaanduiding",
+        "Rechtssubject",
+        "Rechtsobject",
+        "Rechtsbetrekking"
+      ],
+      "naar": [
+        "Afleidingsregel"
+      ],
+      "drager": "naar",
+      "volgorde": true,
+      "methodisch": true,
+      "bron": [
+        "H2:71",
+        "M01",
+        "M05",
+        "M06"
+      ]
+    },
+    "uitvoer": {
+      "leesvorm": "levert op",
+      "invers": "is uitvoer van",
+      "van": [
+        "Afleidingsregel"
+      ],
+      "naar": [
+        "Variabele en variabelewaarde",
+        "Rechtssubject",
+        "Rechtsobject",
+        "Tijdsaanduiding"
+      ],
+      "drager": "van",
+      "methodisch": true,
+      "bron": [
+        "H2:71",
+        "M01",
+        "M05"
+      ]
+    },
+    "kenmerk": {
+      "leesvorm": "is kenmerk van",
+      "invers": "heeft als kenmerk",
+      "van": [
+        "Variabele en variabelewaarde"
+      ],
+      "naar": [
+        "Rechtssubject",
+        "Rechtsobject",
+        "Rechtsbetrekking",
+        "Rechtsfeit"
+      ],
+      "drager": "naar",
+      "methodisch": true,
+      "bron": [
+        "H2:80",
+        "M01"
+      ]
+    },
+    "waarde": {
+      "leesvorm": "is waarde van",
+      "invers": "heeft als waarde",
+      "van": [
+        "Variabele en variabelewaarde",
+        "Parameter en parameterwaarde"
+      ],
+      "naar": [
+        "Variabele en variabelewaarde",
+        "Parameter en parameterwaarde",
+        "Tijdsaanduiding"
+      ],
+      "paren": [
+        {
+          "van": "Variabele en variabelewaarde",
+          "van_subtype": "variabelewaarde",
+          "naar": "Variabele en variabelewaarde"
+        },
+        {
+          "van": "Parameter en parameterwaarde",
+          "van_subtype": "parameterwaarde",
+          "naar": "Parameter en parameterwaarde"
+        },
+        {
+          "van": "Parameter en parameterwaarde",
+          "van_subtype": "parameterwaarde",
+          "naar": "Tijdsaanduiding",
+          "naar_subtype": "verbijzondert parameter"
+        }
+      ],
+      "drager": "naar",
+      "methodisch": true,
+      "bron": [
+        "H2:80",
+        "H2:89",
+        "M01"
+      ]
+    },
+    "operator_in": {
+      "leesvorm": "is operator in",
+      "invers": "gebruikt operator",
+      "van": [
+        "Operator"
+      ],
+      "naar": [
+        "Voorwaarde",
+        "Afleidingsregel"
+      ],
+      "drager": "naar",
+      "methodisch": true,
+      "bron": [
+        "H2:62",
+        "H2:98",
+        "M01"
+      ]
+    },
+    "operand": {
+      "leesvorm": "is operand van",
+      "invers": "heeft als operand",
+      "van": [
+        "Variabele en variabelewaarde",
+        "Parameter en parameterwaarde",
+        "Voorwaarde",
+        "Tijdsaanduiding",
+        "Rechtssubject",
+        "Rechtsobject",
+        "Operator"
+      ],
+      "naar": [
+        "Operator"
+      ],
+      "drager": "naar",
+      "volgorde": true,
+      "methodisch": true,
+      "bron": [
+        "H2:62",
+        "H2:98",
+        "M01"
+      ]
+    },
+    "tijd": {
+      "leesvorm": "heeft als tijdsaanduiding",
+      "invers": "is tijdsaanduiding van",
+      "van": [
+        "Rechtsbetrekking",
+        "Rechtsfeit",
+        "Afleidingsregel",
+        "Variabele en variabelewaarde",
+        "Parameter en parameterwaarde"
+      ],
+      "naar": [
+        "Tijdsaanduiding"
+      ],
+      "drager": "van",
+      "methodisch": true,
+      "bron": [
+        "H2:107",
+        "M01"
+      ]
+    },
+    "plaats": {
+      "leesvorm": "heeft als plaatsaanduiding",
+      "invers": "is plaatsaanduiding van",
+      "van": [
+        "Rechtsbetrekking",
+        "Rechtsfeit",
+        "Afleidingsregel",
+        "Variabele en variabelewaarde",
+        "Parameter en parameterwaarde"
+      ],
+      "naar": [
+        "Plaatsaanduiding"
+      ],
+      "drager": "van",
+      "methodisch": true,
+      "bron": [
+        "H2:116",
+        "M01"
+      ]
+    },
+    "delegatie_over": {
+      "leesvorm": "delegeert over",
+      "invers": "wordt nader geregeld door",
+      "van": [
+        "Delegatiebevoegdheid en delegatie-invulling"
+      ],
+      "naar": [
+        "Rechtsbetrekking",
+        "Rechtsfeit",
+        "Afleidingsregel"
+      ],
+      "drager": "naar",
+      "methodisch": true,
+      "bron": [
+        "H2:125",
+        "M01"
+      ]
+    },
+    "bevoegde": {
+      "leesvorm": "is bevoegd tot",
+      "invers": "komt toe aan",
+      "van": [
+        "Rechtssubject"
+      ],
+      "naar": [
+        "Delegatiebevoegdheid en delegatie-invulling"
+      ],
+      "drager": "naar",
+      "methodisch": true,
+      "bron": [
+        "H2:125",
+        "M01"
+      ]
+    },
+    "definieert": {
+      "leesvorm": "definieert",
+      "invers": "wordt gedefinieerd in",
+      "van": [
+        "Brondefinitie"
+      ],
+      "naar": [
+        "Rechtssubject",
+        "Rechtsobject",
+        "Rechtsbetrekking",
+        "Rechtsfeit",
+        "Variabele en variabelewaarde",
+        "Parameter en parameterwaarde",
+        "Tijdsaanduiding",
+        "Plaatsaanduiding"
+      ],
+      "drager": "van",
+      "methodisch": true,
+      "bron": [
+        "H2:134",
+        "M01"
+      ]
+    },
+    "onderdeel": {
+      "leesvorm": "bevat",
+      "invers": "is onderdeel van",
+      "van": [
+        "Rechtsobject"
+      ],
+      "naar": [
+        "Rechtsobject"
+      ],
+      "drager": "van",
+      "methodisch": false,
+      "bron": [
+        "M06",
+        "P18"
+      ]
+    },
+    "uitzondering_op": {
+      "leesvorm": "maakt een uitzondering op",
+      "invers": "kent een uitzondering in",
+      "van": [
+        "Afleidingsregel",
+        "Rechtsbetrekking",
+        "Voorwaarde"
+      ],
+      "naar": [
+        "Afleidingsregel",
+        "Rechtsbetrekking"
+      ],
+      "drager": "van",
+      "tekstueel": true,
+      "methodisch": false,
+      "bron": [
+        "H2:62",
+        "P06",
+        "P18"
+      ]
+    },
+    "toepassing": {
+      "leesvorm": "vindt toepassing op",
+      "invers": "past toe",
+      "van": [
+        "Afleidingsregel"
+      ],
+      "naar": [
+        "Rechtsbetrekking",
+        "Rechtsfeit",
+        "Afleidingsregel"
+      ],
+      "drager": "van",
+      "tekstueel": true,
+      "methodisch": false,
+      "bron": [
+        "P06",
+        "P18"
+      ]
+    }
+  },
+  "kardinaliteit": {
+    "Afleidingsregel": {
+      "uitvoer": {
+        "min": 1,
+        "max": 1
+      },
+      "invoer": {
+        "min": 1
+      }
+    }
+  },
+  "buiten_activiteit_2": [
+    "relaties tussen afleidingsregels (vertakking, volgorde, herhaling)",
+    "waarden en takken als label op een relatie",
+    "specialisatie van een begrip (activiteit 3, begripsrelatie soort van)",
+    "rechtsgevolg en juridisch relevant feit als eigen element (JRM 2-werkversie)",
+    "feittypen, objecttypen, datatypen en regelsyntaxis (activiteit 3b en 6)"
+  ]
+}

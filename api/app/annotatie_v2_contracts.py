@@ -205,3 +205,44 @@ class Zoekvraag(BaseModel):
         if set(self.laagstatus) - {x.value for x in LaagStatus}:
             raise ValueError("Onbekende laagstatus.")
         return self
+
+
+# --- relaties tussen markeringen (ADR-011) ------------------------------------------------------------------------
+
+class Eindpunt(BaseModel):
+    """Een kant van een relatie: een markering (element) of een impliciete partij. Een element mag in een andere laag
+    liggen dan de relatie."""
+    soort: Literal["element", "impliciet"]
+    id: str = Field(min_length=1, max_length=64)
+
+
+class RelatieInvoer(BaseModel):
+    """Een relatie die de jurist legt. `verwachte_revisies` gaat over de laag van de drager (per bron-IRI, zoals bij
+    elementen); het type en de klassen toetst de api tegen de catalogus (`jas_relaties`)."""
+    van: Eindpunt
+    naar: Eindpunt
+    type: str = Field(min_length=1, max_length=32)
+    volgorde: int | None = Field(default=None, ge=1, le=99)
+    toelichting: str = Field(default="", max_length=2000)
+    verwachte_revisies: dict[str, int] = Field(default_factory=dict)
+
+
+class RelatieBeslissing(BaseModel):
+    """Een oordeel over een relatie. `approve` legt ook de stand van beide eindpunten opnieuw vast: wie een veranderde
+    relatie goedkeurt, zag hoe ze nu is."""
+    type: Literal["approve", "reject", "heropen", "comment"]
+    comment: str = Field(default="", max_length=2000)
+    verwachte_revisies: dict[str, int] = Field(default_factory=dict)
+
+
+class ImplicietInvoer(BaseModel):
+    """Een partij die de tekst niet noemt (ADR-011). Alleen een rechtssubject, alleen door de jurist, met een
+    toelichting waaruit ze volgt. Geen markering: geen ankers, geen tekst, geen dekking."""
+    doel: Doel
+    snapshot_id: str
+    klasse: Literal["Rechtssubject"] = "Rechtssubject"
+    label: str = Field(min_length=1, max_length=200)
+    toelichting: str = Field(min_length=1, max_length=2000)
+    vindplaats: str = Field(default="", max_length=500)
+    zelfde_als: str = Field(default="", max_length=64)
+    verwachte_revisies: dict[str, int] = Field(default_factory=dict)

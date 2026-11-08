@@ -1,9 +1,9 @@
 # Gegenereerd uit de wetsanalyse-skill; niet handmatig bewerken.
 # Draai scripts/genereer_jas_klassen.py.
-PAKKET = {'bronbestanden': {'SKILL.md': '67ce7d6f1872d4f5718b143067c0e5aafca74de622f28af72f96697b7698419d',
+PAKKET = {'bronbestanden': {'SKILL.md': '490265482de89f6399bec7c64b3a115ca21171d29a72e698d7a261b8083f898e',
                    'agentrollen.json': '84ad41e689a3ebf7a77fbbc409f5d07a10539cbe0b578cb7111a60feded2f418',
                    'references/agentrollen.md': 'c95a55241b9190a14be0804ca5875db9f2be58dc045cb8e4d570c8952f77f76b',
-                   'references/bronnen.md': 'ab8e9d2016dd6a0509214268675692a132184a5201c0dad8d5a1d0c19c7962fb',
+                   'references/bronnen.md': '0e2bca467b3e2b348ce4121ea1833d0dba4493258110dfd0e84638d0155a2e06',
                    'references/deelvragen-en-bronnen.md': '480d3ff17a613799e4f1cc380488e2c47d60bd1babe9256f85ba75c205c17490',
                    'references/jas-klassen-referentie.md': 'fcff29a0b63d54e457dcb32de3706552a327033b0e7571e8b26025dd552da429',
                    'references/nl-sbb-en-b1.md': 'ceeb1110d57ed267ef04fe4289ae701562290689525b14c9783908dcb3575411'},
@@ -160,5 +160,5 @@ PAKKET = {'bronbestanden': {'SKILL.md': '67ce7d6f1872d4f5718b143067c0e5aafca74de
                                      'JAS/JRM-dossier via een route die alleen markeringen of een '
                                      'antwoord levert. Laat inhoudelijke analyse aan de gekozen '
                                      'rol over.'}},
- 'sha256': 'd098ab93d173552ab0a92cd8407d4359c29d8cbcbb598eb49d36d156333b262a',
+ 'sha256': 'e42a57a64c0f3281461389a10e9da150df11adc52a45eeee4cb7d58ee7d76ba4',
  'versie': '2.1'}

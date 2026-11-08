@@ -135,6 +135,10 @@ def main() -> int:
     if args.check and (not PAKKET_DOEL.exists() or PAKKET_DOEL.read_text() != pakket):
         print("methodepakket.py wijkt af: draai scripts/genereer_jas_klassen.py", file=sys.stderr)
         return 1
+    # De relatiecatalogus (ADR-011) komt uit dezelfde skill; zo dekt deze ene --check in CI hem ook.
+    from scripts import genereer_jas_relaties
+    if genereer_jas_relaties.main(["--check"] if args.check else []):
+        return 1
     if not args.check:
         PAKKET_DOEL.write_text(pakket, encoding="utf-8")
     if args.check:

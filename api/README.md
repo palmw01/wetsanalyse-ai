@@ -87,6 +87,11 @@ zijn gedeeld tussen gebruikers; wie wat deed staat in de audit. Specificatie:
 | `POST` | `/v1/annotatie/zoeken` | Zoeken in opgeslagen annotaties; kandidaten uit de graaf, geverifieerd tegen PostgreSQL |
 | `GET` | `/v1/annotatie/node-lagen` | Overzicht van de lagen (werkvoorraad; `?mijn=`, `?bwbId=`, gepagineerd) |
 | `POST` | `/v1/annotatie/weergave/verwijder` | De annotatie van de bepaling in beeld verwijderen (iedere gebruiker; staat in de audit) |
+| `POST` | `/v1/annotatie/relaties` | Een relatie tussen twee markeringen leggen (ADR-011; type en klassen uit de catalogus) |
+| `POST` | `/v1/annotatie/relaties/{id}/beslissing` | Een relatie goedkeuren, afwijzen, heropenen of becommentariëren |
+| `POST` | `/v1/annotatie/relaties/{id}/wis` | Een eigen relatie wissen |
+| `POST` | `/v1/annotatie/impliciet` | Een impliciete partij (rechtssubject zonder anker) vastleggen, alleen door de jurist |
+| `POST` | `/v1/annotatie/impliciet/{id}/wis` | Een eigen impliciete partij wissen, met haar relaties |
 | `POST` | `/v1/annotatie/weergave/export` | Export als `pdf\|csv\|json\|trig` |
 | `GET` | `/v1/annotatie/export-schema` | Het JSON-schema van de export |
 

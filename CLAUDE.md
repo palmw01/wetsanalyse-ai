@@ -234,13 +234,16 @@ erop. Ze horen in de api en niet in de skill, zodat het productie-image geen Cla
 te dragen om te kunnen starten.
 
 De **inhoudelijke duiding** – omschrijving, herkenningsvraag en uitdrukkingswijze per klasse – komt
-uit de skill. Twee bestanden in graph-qa zijn daarvan **afgeleid**:
+uit de skill. Daarvan zijn **afgeleid**:
 
 - `tools/graph-qa/agent/jas_klassen.py` – het JAS_KLASSEN-blok, gegenereerd door
   `tools/graph-qa/scripts/genereer_jas_klassen.py`, bewaakt door `tests/test_methode_drift.py`;
 - `tools/graph-qa/agent/methodepakket.py` – de methodetekst per agentrol (`agentrollen.json` +
   `references/agentrollen.md`), gegenereerd door `scripts/genereer_methodepakket.py`, bewaakt door
-  `tests/test_methodepakket.py`.
+  `tests/test_methodepakket.py`;
+- `api/app/jas_relaties.py` en `frontend/lib/jasRelaties.ts` – de relatiecatalogus (ADR-011) uit `relaties.json`,
+  gegenereerd door `tools/graph-qa/scripts/genereer_jas_relaties.py` (dat `genereer_jas_klassen.py` meedraait), bewaakt
+  door `tests/poort/test_relatiecatalogus.py`.
 
 Wil je het gedrag van de agent bijsturen, bewerk dan de markdown en draai het script; bewerk je de
 Python, dan faalt de test. Omdat de skill een build-input is, draait `poort` de graph-qa-suite ook
@@ -471,7 +474,7 @@ plan mag verouderen.
   legt Vraag Lex en de agents onder de supervisor vast (F3). `adr-006-generieke-begrippen.md` legt
   het generieke begrippenkader boven de werkgebieden vast (spoor N). `adr-007-llm-pad-en-verwerker.md` is
   een concept: wat vastligt over het LLM-pad en wat de eigenaar nog moet besluiten. `adr-008-antwoordsjablonen.md`
-  legt het antwoord als toolaanroep vast: vaste blokken per vraagtype, de feiten uit de code. `adr-009-werkgebiedrapport.md` legt het rapport van een werkgebied vast: één JSON-document waaruit PDF en Markdown komen. `adr-010-agentarchitectuur.md` legt het eindbeeld van de agents vast: routering in code, vaste workflows voor vaste vragen, taakagents met een contract, en één open laag; met gedeelde modelstap, context en kwaliteitsmeting. `adr-012-multi-agent-regie.md` legt de regie binnen een werkgebied vast: een regisseur in code die per deelvraag een kindgesprek met een gewone run start, met de jurist als poort tussen bronnen zoeken en annoteren.
+  legt het antwoord als toolaanroep vast: vaste blokken per vraagtype, de feiten uit de code. `adr-009-werkgebiedrapport.md` legt het rapport van een werkgebied vast: één JSON-document waaruit PDF en Markdown komen. `adr-010-agentarchitectuur.md` legt het eindbeeld van de agents vast: routering in code, vaste workflows voor vaste vragen, taakagents met een contract, en één open laag; met gedeelde modelstap, context en kwaliteitsmeting. `adr-011-relaties-tussen-markeringen.md` legt de relaties tussen markeringen vast (deelactiviteit 2c): een catalogus in de skill, opslag per drager, een impliciete partij alleen door de jurist, en het regelskelet als grondstof voor activiteit 3b. `adr-012-multi-agent-regie.md` legt de regie binnen een werkgebied vast: een regisseur in code die per deelvraag een kindgesprek met een gewone run start, met de jurist als poort tussen bronnen zoeken en annoteren.
 - `docs/architectuur/annotatieketen.md` – hoe de annotatieketen **nu** werkt: stappen,
   configuratie (`CLASSIFIER_GRANULARITEIT` e.d.), beslisbeleid, detectoren en bekende beperkingen.
   `docs/architectuur/metingen/README.md` is het meetlogboek: welke meting bij welke code hoort.
