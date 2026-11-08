@@ -10,11 +10,19 @@
  *    de delen en bepalingen die het antwoord noemt; anders (3) alles. Wat geen nadruk heeft, is
  *    gedimd: het blijft als kaart staan, zonder eigen label (`label: null`); de tekenaar geeft het
  *    hooguit een grijs oriëntatielabel als er ruimte over is. Op de achtergrond klikken heft de keuze
- *    op en brengt de focus terug. */
+ *    op en brengt de focus terug.
+ *
+ *  **Relaties tussen markeringen** (ADR-011, `jas_relatie`) zijn de ene uitzondering: met de laag *Relaties* uit
+ *  (de standaard) staan ze alleen binnen de nadruk in beeld – rond de keuze of in de focus –, met de impliciete
+ *  partijen rond de keuze. Anders worden ze op de hele kaart een tweede kluwen. Is de keuze een markering van een
+ *  centrale klasse (`CENTRALE_KLASSEN`), dan is de nadruk het **diagram** (deelactiviteit 2c): de buurt over
+ *  relaties tot diepte twee (`diagramBuurt`). */
+import { CENTRALE_KLASSEN } from "@/lib/jasRelaties";
 import { pastBijMarkeringFilter, type MarkeringFilter } from "@/lib/samenhang";
 import { ankerVan, type GraafModel, type KnoopData, type RelatieData } from "./model";
 import {
-  DEKKINGSKLEUR, eigenKleur, GEDIMD, GEDIMDE_LIJN, GEKOZEN_FACTOR, GROOTTE, LIJNDIKTE, LIJNKLEUR, NADRUK_LIJN, RANDKLEUR,
+  DEKKINGSKLEUR, eigenKleur, GEDIMD, GEDIMDE_LIJN, GEKOZEN_FACTOR, GROOTTE, IMPLICIET_VULLING, LIJNDIKTE, LIJNKLEUR, NADRUK_LIJN,
+  RANDKLEUR, relatieStijl,
 } from "./stijl";
 
 export interface Lagen {
@@ -28,8 +36,43 @@ export interface Lagen {
   dekking: boolean;
   /** De begrippen van een werkgebied met hun passages en relaties (alleen op de tab Samenhang). */
   begrippen: boolean;
+  /** Relaties tussen markeringen en impliciete partijen (ADR-011) op de hele kaart. Uit = alleen binnen de
+   *  nadruk (de keuze, het diagram, de focus). */
+  relaties: boolean;
 }
-export const STANDAARD_LAGEN: Lagen = { leden: true, verwijzingen: true, annotaties: true, dekking: true, begrippen: true };
+export const STANDAARD_LAGEN: Lagen = { leden: true, verwijzingen: true, annotaties: true, dekking: true, begrippen: true, relaties: false };
+
+/** Hoe ver het diagram rond een centrale markering reikt, in relaties. Twee stappen: de rechtsbetrekking met
+ *  haar partijen en voorwerp, en wat daar weer aan hangt (de voorwaarde van een rechtsfeit, de invoer van de
+ *  afleidingsregel die het voorwerp oplevert). Verder wordt het diagram de hele laag. */
+export const DIAGRAM_DIEPTE = 2;
+
+const isRelatie = (a: RelatieData) => a.soort === "jas_relatie" && a.lifecycle !== "rejected";
+
+/** Het diagram rond een markering van een centrale klasse (deelactiviteit 2c): de markering en wat er over
+ *  relaties tussen markeringen bereikbaar is tot `diepte`, in beide richtingen. `null` als de knoop geen
+ *  markering van een centrale klasse is. Alleen wat is vastgelegd; afgewezen relaties tellen niet. */
+export function diagramBuurt(g: GraafModel, id: string, diepte = DIAGRAM_DIEPTE): Set<string> | null {
+  if (!g.hasNode(id)) return null;
+  const a = g.getNodeAttributes(id);
+  if (a.soort !== "markering" || !CENTRALE_KLASSEN.includes(a.klasse)) return null;
+  const buurt = new Set([id]);
+  let rand = [id];
+  for (let d = 0; d < diepte && rand.length; d++) {
+    const volgende: string[] = [];
+    for (const knoop of rand) {
+      for (const e of g.edges(knoop)) {
+        if (!isRelatie(g.getEdgeAttributes(e))) continue;
+        const ander = g.opposite(knoop, e);
+        if (buurt.has(ander)) continue;
+        buurt.add(ander);
+        volgende.push(ander);
+      }
+    }
+    rand = volgende;
+  }
+  return buurt;
+}
 
 /** Wat het antwoord noemt: de `doelen` zelf (krijgen altijd een label) en hun `bereik` (de doelen met
  *  wat ze bevatten, plus de markeringen daarop). */
@@ -94,7 +137,8 @@ export function ketenFocus(g: GraafModel, doelen: Iterable<string>, ketting: rea
 export function verborgenKnopen(g: GraafModel, lagen: Lagen, markering: MarkeringFilter): Set<string> {
   const weg = new Set<string>();
   g.forEachNode((id, a) => {
-    if (!lagen.annotaties && (a.soort === "markering" || a.soort === "klasse")) weg.add(id);
+    if (!lagen.annotaties && (a.soort === "markering" || a.soort === "klasse" || a.soort === "impliciet")) weg.add(id);
+    else if (!lagen.relaties && a.soort === "impliciet") weg.add(id);
     else if (!lagen.begrippen && a.soort === "begrip") weg.add(id);
     else if (!lagen.leden && (a.soort === "lid" || a.soort === "onderdeel")) weg.add(id);
     else if (!lagen.verwijzingen && (a.rand || a.soort === "extern")) weg.add(id);
@@ -128,12 +172,25 @@ export interface WeergaveContext {
 export const MAX_VASTE_LABELS = 30;
 
 export function weergaveContext(g: GraafModel, stand: WeergaveStand): WeergaveContext {
-  const verborgen = verborgenKnopen(g, stand.lagen, stand.markering);
+  let verborgen = verborgenKnopen(g, stand.lagen, stand.markering);
   let nadruk: Set<string> | null = null;
   let vastLabel = new Set<string>();
   const sel = stand.selectie;
   if (sel && g.hasNode(sel) && !verborgen.has(sel)) {
-    nadruk = new Set([sel, ...g.neighbors(sel).filter((n) => !verborgen.has(n))]);
+    const diagram = diagramBuurt(g, sel);
+    // Een buur alleen via een afgewezen relatie is geen buur: die lijn staat niet in beeld.
+    const buren = g.neighbors(sel).filter((n) => g.edges(sel, n).concat(g.edges(n, sel))
+      .some((e) => g.getEdgeAttribute(e, "lifecycle") !== "rejected"));
+    const buurt = [...buren, ...(diagram ?? [])];
+    // Met de laag Relaties uit komen de impliciete partijen rond de keuze toch in beeld (zie de kop).
+    if (!stand.lagen.relaties && stand.lagen.annotaties) {
+      const partijen = buurt.filter((n) => verborgen.has(n) && g.getNodeAttribute(n, "soort") === "impliciet");
+      if (partijen.length) {
+        verborgen = new Set(verborgen);
+        for (const n of partijen) verborgen.delete(n);
+      }
+    }
+    nadruk = new Set([sel, ...buurt.filter((n) => !verborgen.has(n))]);
     vastLabel = nadruk.size <= MAX_VASTE_LABELS + 1 ? nadruk : new Set([sel]);
   } else if (stand.focus) {
     const zichtbaar = [...stand.focus.bereik].filter((id) => g.hasNode(id) && !verborgen.has(id));
@@ -166,10 +223,12 @@ export function knoopBeeld(id: string, a: KnoopData, ctx: WeergaveContext): Knoo
   const gedimd = !!nadruk && !nadruk.has(id);
   const eigen = eigenKleur(a);
   const dekking = stand.lagen.dekking && stand.ongedekt.has(id);
+  // Een impliciete partij is hol: wit, met een omtrek in haar klasse (gedimd: een grijze omtrek).
+  const hol = a.soort === "impliciet";
   return {
     verborgen,
-    kleur: gedimd ? GEDIMD : eigen,
-    omtrek: gedimd ? null : dekking ? DEKKINGSKLEUR : a.rand ? RANDKLEUR : null,
+    kleur: hol ? IMPLICIET_VULLING : gedimd ? GEDIMD : eigen,
+    omtrek: hol ? (gedimd ? GEDIMD : eigen) : gedimd ? null : dekking ? DEKKINGSKLEUR : a.rand ? RANDKLEUR : null,
     grootte: GROOTTE[a.soort] * (gekozen ? GEKOZEN_FACTOR : 1),
     label: gedimd ? null : a.kort,
     altijdLabel: ctx.vastLabel.has(id),
@@ -194,6 +253,7 @@ export function lijnBeeld(a: RelatieData, bron: string, doel: string, ctx: Weerg
   const raaktKeuze = !!sel && (bron === sel || doel === sel);
   const laagUit = (a.groep === "verwijzingen" && !stand.lagen.verwijzingen) || (a.groep === "annotaties" && !stand.lagen.annotaties)
     || (a.groep === "begrippen" && !stand.lagen.begrippen);
+  if (a.soort === "jas_relatie") return relatieLijnBeeld(a, bron, doel, ctx, raaktKeuze);
   // Lijnen naar een klasse alleen bij een gekozen markering of klasse: dertien knopen met elk honderden
   // lijnen dekken anders de hele kaart af.
   const klasselijn = a.soort === "heeft_klasse" && !raaktKeuze;
@@ -205,6 +265,22 @@ export function lijnBeeld(a: RelatieData, bron: string, doel: string, ctx: Weerg
   if (raaktKeuze) return { verborgen: false, kleur: NADRUK_LIJN, dikte: LIJNDIKTE[a.soort] * 2, pijl, niveau: 2 };
   const gedimd = !!nadruk && !(nadruk.has(bron) && nadruk.has(doel));
   return { verborgen: false, kleur: gedimd ? GEDIMDE_LIJN : LIJNKLEUR[a.soort], dikte: LIJNDIKTE[a.soort], pijl, niveau: gedimd ? 0 : 1 };
+}
+
+/** Een relatie tussen markeringen: gericht, in de kleur van haar beoordeling (`relatieStijl`). Met de laag uit
+ *  alleen binnen de nadruk; rond de keuze (en in het diagram) dikker, maar in haar eigen kleur: een voorstel blijft
+ *  zo ook in de nadruk geel. */
+function relatieLijnBeeld(a: RelatieData, bron: string, doel: string, ctx: WeergaveContext, raaktKeuze: boolean): LijnBeeld {
+  const { stand, nadruk, verborgen } = ctx;
+  const { kleur, zichtbaar } = relatieStijl(a);
+  const binnen = !!nadruk && nadruk.has(bron) && nadruk.has(doel);
+  if (!zichtbaar || !stand.lagen.annotaties || verborgen.has(bron) || verborgen.has(doel) || (!stand.lagen.relaties && !binnen)) {
+    return { verborgen: true, kleur: GEDIMDE_LIJN, dikte: 0, pijl: true, niveau: 0 };
+  }
+  const opDeKeuze = raaktKeuze || (!!stand.selectie && binnen);
+  if (opDeKeuze) return { verborgen: false, kleur, dikte: LIJNDIKTE.jas_relatie * 1.6, pijl: true, niveau: 2 };
+  const gedimd = !!nadruk && !binnen;
+  return { verborgen: false, kleur: gedimd ? GEDIMDE_LIJN : kleur, dikte: LIJNDIKTE.jas_relatie, pijl: true, niveau: gedimd ? 0 : 1 };
 }
 
 /** De lagen (en het markeringsfilter) waarin `id` zichtbaar is: zoeken en de inspector kunnen een
@@ -220,6 +296,7 @@ export function lagenVoor(g: GraafModel, id: string, lagen: Lagen, markering: Ma
     if (k.soort === "lid" || k.soort === "onderdeel") nieuw.leden = true;
     if (k.rand || k.soort === "extern") nieuw.verwijzingen = true;
     if (k.soort === "begrip") nieuw.begrippen = true;
+    if (k.soort === "impliciet") { nieuw.annotaties = true; nieuw.relaties = true; }
   };
   raakt(a);
   if (anker) raakt(g.getNodeAttributes(anker));

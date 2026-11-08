@@ -2,11 +2,11 @@
 
 import { useId } from "react";
 import { Lagen as LagenIcoon } from "@/components/ui/Icoon";
-import { BEGRIPKLEUR, BRONKLEUR, DEKKINGSKLEUR, GEDIMD, LIJNKLEUR, RANDKLEUR, VOORSTELKLEUR, WETBEGRIPKLEUR, klasseKleur } from "@/lib/graaf/stijl";
+import { BEGRIPKLEUR, BRONKLEUR, DEKKINGSKLEUR, GEDIMD, IMPLICIET_VULLING, LIJNKLEUR, RANDKLEUR, RELATIEKLEUR, VOORSTELKLEUR, WETBEGRIPKLEUR, klasseKleur } from "@/lib/graaf/stijl";
 import type { Lagen } from "@/lib/graaf/weergave";
 import { MARKERING_FILTERS, type MarkeringFilter } from "@/lib/samenhang";
 
-type Laag = Exclude<keyof Lagen, "dekking" | "begrippen">;
+type Laag = Exclude<keyof Lagen, "dekking" | "begrippen" | "relaties">;
 const LAGEN: { laag: Laag; naam: string; uitleg: string; kleur: string; voorbeeld: React.ReactNode }[] = [
   { laag: "leden", naam: "Leden en onderdelen", uitleg: "uit: de kaart tot op artikelniveau", kleur: BRONKLEUR.lid,
     voorbeeld: <><circle cx="4" cy="6" r="3" fill={BRONKLEUR.artikel} /><path d="M7 6h10" stroke={LIJNKLEUR.bevat} strokeWidth="1.6" /><circle cx="20" cy="6" r="2.2" fill={BRONKLEUR.lid} /></> },
@@ -24,13 +24,15 @@ const SOORTEN: { naam: string; kleur: string; r: number }[] = [
 
 /** Wat er in beeld staat: lagen, markeringsfilter en legenda in één paneel, linksonder in het canvas.
  *  De legenda zegt ook wat gedimd betekent, zodat de keuze in de graaf geen raadsel is. */
-export function GraafLagen({ lagen, onWissel, open, onOpen, dekking, begrippen = false, markering }: {
+export function GraafLagen({ lagen, onWissel, open, onOpen, dekking, begrippen = false, relaties = false, markering }: {
   lagen: Lagen; onWissel: (laag: keyof Lagen) => void;
   open: boolean; onOpen: (open: boolean) => void;
   /** Is er een meting van de detectoren (alleen voor de geopende bepaling)? Anders geen laag Dekking. */
   dekking: boolean;
   /** Staan er begrippen op de kaart (tab Samenhang van een werkgebied)? Anders geen laag Begrippen. */
   begrippen?: boolean;
+  /** Staan er relaties tussen markeringen of impliciete partijen op de kaart (ADR-011)? Anders geen laag Relaties. */
+  relaties?: boolean;
   markering: { waarde: MarkeringFilter; onKies: (f: MarkeringFilter) => void };
 }) {
   const kiesId = useId();
@@ -68,6 +70,17 @@ export function GraafLagen({ lagen, onWissel, open, onOpen, dekking, begrippen =
           <span className="block text-[10px] text-faint">wettelijke begrippen en analyse-uitkomsten, met hun passages</span>
         </span>
       </label>}
+      {relaties && <label className={rij}>
+        <input type="checkbox" checked={lagen.relaties} onChange={() => onWissel("relaties")} className="h-3.5 w-3.5 shrink-0 accent-lint" />
+        <svg viewBox="0 0 24 12" className="h-3 w-6 shrink-0" aria-hidden="true">
+          <circle cx="4" cy="6" r="2.6" fill={klasseKleur("Rechtssubject")} /><path d="M7 6h8" stroke={RELATIEKLEUR} strokeWidth="1.4" />
+          <path d="m15 3.5 3 2.5-3 2.5Z" fill={RELATIEKLEUR} /><circle cx="21" cy="6" r="2.6" fill={klasseKleur("Rechtsbetrekking")} />
+        </svg>
+        <span className="min-w-0">
+          <span className={`block text-xs ${lagen.relaties ? "text-ink" : "text-faint"}`}>Relaties</span>
+          <span className="block text-[10px] text-faint">op de hele kaart; uit: alleen bij je keuze of in de focus</span>
+        </span>
+      </label>}
       {lagen.annotaties && <div className="flex items-center gap-2 px-2 py-1.5">
         <label htmlFor={kiesId} className="shrink-0 text-xs text-ink">Markeringen</label>
         <select id={kiesId} value={markering.waarde} onChange={(e) => markering.onKies(e.target.value as MarkeringFilter)}
@@ -103,6 +116,16 @@ export function GraafLagen({ lagen, onWissel, open, onOpen, dekking, begrippen =
               Relatie voorgesteld door Lex
             </li>
           </>}
+          {relaties && <>
+            <li className="flex items-center gap-1" data-testid="legenda-impliciet">
+              <svg viewBox="0 0 10 10" className="h-2.5 w-2.5" aria-hidden="true"><circle cx="5" cy="5" r="3.4" fill={IMPLICIET_VULLING} stroke={klasseKleur("Rechtssubject")} strokeWidth="1.6" /></svg>
+              Impliciete partij: niet in de tekst
+            </li>
+            <li className="flex items-center gap-1">
+              <svg viewBox="0 0 14 10" className="h-2.5 w-3.5" aria-hidden="true"><path d="M1 5h12" stroke={VOORSTELKLEUR} strokeWidth="1.6" /></svg>
+              Relatie: voorstel of veranderd
+            </li>
+          </>}
           <li className="flex items-center gap-1">
             <svg viewBox="0 0 10 10" className="h-2.5 w-2.5" aria-hidden="true"><circle cx="5" cy="5" r="3.6" fill={GEDIMD} /></svg>
             Gedimd: niet verbonden met je keuze
@@ -118,6 +141,7 @@ export function GraafLagen({ lagen, onWissel, open, onOpen, dekking, begrippen =
         {LAGEN.map((l) => <span key={l.laag} className={`h-1.5 w-1.5 rounded-full ${lagen[l.laag] ? "" : "opacity-25"}`} style={{ backgroundColor: l.kleur }} />)}
         {dekking && <span className={`h-1.5 w-1.5 rounded-full ${lagen.dekking ? "" : "opacity-25"}`} style={{ backgroundColor: DEKKINGSKLEUR }} />}
         {begrippen && <span className={`h-1.5 w-1.5 rounded-full ${lagen.begrippen ? "" : "opacity-25"}`} style={{ backgroundColor: BEGRIPKLEUR.geaccordeerd }} />}
+        {relaties && <span className={`h-1.5 w-1.5 rounded-full ${lagen.relaties ? "" : "opacity-25"}`} style={{ backgroundColor: RELATIEKLEUR }} />}
       </span>
     </button>
   </div>;

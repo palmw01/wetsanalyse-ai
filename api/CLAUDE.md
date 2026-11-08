@@ -237,6 +237,13 @@ Hieronder wat je moet weten om de code te wijzigen.
   doel een **structuurdeel** (hoofdstuk, titeldeel, afdeling, paragraaf), dan is het een overzicht: het
   deel met de structuur en artikelen eronder, zonder leden, onderdelen, markeringen en verwijzingen
   (die horen bij een geopend artikel; anders wordt een hoofdstuk een kluwen van honderden knopen).
+  Daarnaast de **relaties tussen markeringen** (ADR-011): `samenhang.jas_relaties` zet `weergave["relaties"]` om in
+  lijnen `jas_relatie` (groep `relaties`, met `type`, `leesvorm` – ook in `anker_tekst` –, `lifecycle`, `veranderd`
+  en `volgorde`) en `weergave["impliciet"]` in knopen `impliciet` (`impliciet:<id>`, met `klasse`, `label`,
+  `toelichting`). Alleen wat is vastgelegd, niets afgeleid; een afgewezen relatie valt weg, en een relatie met een
+  eindpunt dat niet in de graaf staat (ander artikel, verworpen, verouderd) ook, geteld in `relaties_weggelaten`.
+  `/samenhang/meer` loopt via `samenhang()` en krijgt ze dus mee; `/graaf` leest ze in één leestransactie
+  (`annotatie_v2_relaties.alle_relaties`), met een impliciete partij alleen als de bronnode van haar laag in beeld is.
   **`/samenhang/meer`** (hoogstens 30 `bron_iri`'s) geeft de samenhang van meerdere doelen in één
   verzoek en haalt per regeling de bronboom één keer op (`bron_resolver.haal_bronrijen` +
   `snapshot_uit`); een doel dat niet resolvet staat in `fouten`. Een overzicht opent zo 15 delen met 4

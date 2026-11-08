@@ -1,4 +1,4 @@
-"""De complete graaf: alle regelingen (of een keuze) met structuur, verwijzingen en markeringen.
+"""De complete graaf: alle regelingen (of een keuze) met structuur, verwijzingen, markeringen en hun relaties.
 
 Voor de graafweergave in de werkplek, die de hele kennisgraaf moet kunnen tonen – geen grens op het
 aantal delen. De vorm is die van `samenhang.py` (`Knoop`/`Relatie`), zodat de werkplek één model
@@ -27,10 +27,11 @@ import time
 import httpx
 from bronmodel import BronFout
 
+from . import annotatie_v2_relaties
 from . import annotatie_v2_store as store
 from .bron_resolver import bwb_van, haal_bronrijen, snapshot_uit
 from .graaf_client import sparql_select
-from .samenhang import _PREFIXES, Knoop, Relatie, _label, bronknoop, citeertitel_van, markeringen, verwijzingen
+from .samenhang import _PREFIXES, Knoop, Relatie, _label, bronknoop, citeertitel_van, jas_relaties, markeringen, verwijzingen
 
 logger = logging.getLogger(__name__)
 
@@ -173,6 +174,11 @@ async def graaf(bwbs: list[str] | None = None) -> dict:
     m_knopen, m_relaties = markeringen(await store.actuele_elementen(alle_nodes), set(knopen))
     knopen.update({k.id: k for k in m_knopen})
     relaties += m_relaties
+    # Relaties tussen markeringen (ADR-011), in één lezing. Een impliciete partij staat erin als haar laag bij een
+    # regeling in beeld hoort; een relatie met een eindpunt buiten de graaf valt weg en telt.
+    alle, partijen = await annotatie_v2_relaties.alle_relaties()
+    r_relaties, weggelaten = jas_relaties(alle, [p for p in partijen if p["bron_iri"] in alle_nodes], knopen)
+    relaties += r_relaties
     relaties += verwijzingen([("uit", rij) for _, deel in delen for rij in deel["verwijzingen"]], knopen)
 
     versie = store.digest(sorted((r["bwbId"], stand_van(r)) for r, _ in delen))
@@ -183,6 +189,7 @@ async def graaf(bwbs: list[str] | None = None) -> dict:
                         "toestand": r.get("toestand", "")} for r, deel in delen],
         "knopen": [k.model_dump() for k in knopen.values()],
         "relaties": [rel.model_dump() for rel in relaties],
+        "relaties_weggelaten": weggelaten,
     }
 
 

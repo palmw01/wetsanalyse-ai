@@ -1506,6 +1506,14 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
     bepaling ook haar verwijzingen (één stap, in- en uitgaand) – bij een hoofdstuk niet, dat zijn er
     honderden.
   - lijnen naar een JAS-klasse alleen bij een gekozen markering of klasse.
+  - **relaties tussen markeringen** (ADR-011, lijnsoort `jas_relatie`, knoopsoort `impliciet`): de laag
+    *Relaties* staat standaard uit, en dan staan relaties alleen binnen de nadruk (rond de keuze, in de focus), met
+    de impliciete partijen rond de keuze – de ene plek waar een keuze iets in beeld brengt. Gericht, geel bij een
+    voorstel of een veranderde relatie, neutraal (`RELATIEKLEUR`) als beoordeeld, afgewezen niet (`relatieStijl`).
+    Een impliciete partij is een holle knoop (wit, omtrek in haar klasse; WebGL kent geen stippelrand). **Diagrammodus**
+    (deelactiviteit 2c): is de keuze een markering van een `CENTRALE_KLASSEN`, dan is de nadruk de buurt over
+    relaties tot `DIAGRAM_DIEPTE` 2 (`diagramBuurt`). Relaties trekken niet in de layout; een impliciete partij staat
+    bij het zwaartepunt van haar relaties (`plaatsAnnotaties`), dus `LAYOUT_VERSIE` bleef gelijk.
 - **`lib/graaf/labels.ts`** – **welke knopen een label krijgen**: nooit twee over elkaar, en meer detail
   naarmate je inzoomt. Sigma's eigen labelraster toetst de breedte van een label niet en zet
   `labelVisibility: "visible"` ongetoetst bovenop; daarom staat het op nul (`labelDensity: 0`) en kiest
