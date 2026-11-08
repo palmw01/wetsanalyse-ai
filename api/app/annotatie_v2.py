@@ -412,8 +412,8 @@ async def _laaggrafen(view: dict) -> list:
         rijen = (await conn.execute(select(store.db.annotatie_v2_lagen).where(
             store.db.annotatie_v2_lagen.c.id.in_(ids)))).mappings().all()
         for rij in sorted((dict(r) for r in rijen), key=lambda r: ids.index(r["id"])):
-            elementen, dekking = await laag_invoer(conn, rij)
-            graaf = await asyncio.to_thread(bouw_graaf, rij, elementen, dekking=dekking)
+            elementen, dekking, relaties = await laag_invoer(conn, rij)
+            graaf = await asyncio.to_thread(bouw_graaf, rij, elementen, dekking=dekking, relaties=relaties)
             uit.append((graph_iri(rij["id"]), graaf))
     return uit
 

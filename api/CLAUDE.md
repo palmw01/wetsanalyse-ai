@@ -159,6 +159,10 @@ Hieronder wat je moet weten om de code te wijzigen.
   - Een impliciete partij (`annotatie_v2_impliciet`) is geen markering. Een nieuwe lezer van de elemententabel
     hoeft haar dus niet te kennen.
   - De weergave draagt `relaties` en `impliciet`.
+  - De projectie (schema 4) zet ze in de graph van de dragerlaag (`laag_invoer` levert ze, `bouw_graaf(…,
+    relaties=)`). Een directe triple `rel:<type>` komt er alleen bij een beoordeelde relatie; `veranderd` niet,
+    want dat hangt af van een andere laag.
+  - De graafcontrole meldt `relaties.hangend` en `relaties.kardinaliteit`, diagnostisch en buiten `in_orde`.
   - Zie de specificatie §*Relaties tussen markeringen*.
 - **Een oordeel vergrendelt.** Een element in `VERGRENDELD` dat van de agent komt of een oordeel draagt
   (`heeft_oordeel`), accepteert alleen `comment` en `heropen` (`annotatie_v2_store._beslis_in`). Afronden (`zet_status`

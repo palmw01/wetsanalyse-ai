@@ -81,3 +81,16 @@ async def test_de_projectie_zet_de_vocabulaire_neer_en_alleen_als_het_moet(monke
         assert len(nep.ds.graph(projectie.VOCABULAIRE)) == len(_graaf())
     finally:
         get_settings.cache_clear()
+
+
+def test_elk_relatietype_heeft_een_concept_zonder_schema_axioma():
+    """ADR-011: de relatietypen uit de catalogus staan als concept in de vocabulaire, met de klassen als
+    `jas:vanKlasse`/`jas:naarKlasse` en nooit als domain/range."""
+    from app.jas_relaties import RELATIETYPEN
+    g = Graph().parse(data=projectie.vocabulaire()[1], format="turtle")
+    for code, t in RELATIETYPEN.items():
+        iri = projectie.relatietype_iri(code)
+        assert (iri, RDF.type, SKOS.Concept) in g, code
+        assert g.value(iri, SKOS.notation) == Literal(code)
+        assert {str(o) for o in g.objects(iri, projectie.JAS.vanKlasse)} == {str(projectie.klasse_iri(k)) for k in t["van"]}
+        assert not list(g.triples((iri, RDFS.domain, None))) and not list(g.triples((iri, RDFS.range, None)))

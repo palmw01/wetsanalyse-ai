@@ -51,15 +51,16 @@ Van een jurist staat er in de graaf geen persoonsgegeven: zijn beoordelingen sta
 tijdstip en klassewissel, maar de actor, vrije commentaartekst en het volledige auditspoor blijven in
 Postgres. De graaf heeft geen authenticatie.
 
-## Het model (projectieschema 3)
+## Het model (projectieschema 4)
 
 Sinds 25 sep 2026 (plan herkomst PR 3b) draagt een laag alles wat Postgres over een markering weet
-en geen persoon is. `jas:schemaVersie` is 3; het register draagt `jas:versie 3`, en na een
+en geen persoon is. Sinds schema 4 (ADR-011) draagt ze ook de relaties en impliciete partijen waarvan
+zij de drager is. `jas:schemaVersie` is 4; het register draagt `jas:versie 4`, en na een
 schemawijziging projecteert de reconcile-lus alle lagen opnieuw.
 
 | node | typen | draagt |
 |---|---|---|
-| laag | `jas:AnnotatieLaag` | `jas:laagId`, `jas:revisie`, `jas:status`, `jas:schemaVersie` (3), `jas:snapshotId`, `jas:bepaling` → de bronnode, `jas:dekking` (per bronnode) |
+| laag | `jas:AnnotatieLaag` | `jas:laagId`, `jas:revisie`, `jas:status`, `jas:schemaVersie` (4), `jas:snapshotId`, `jas:bepaling` → de bronnode, `jas:dekking` (per bronnode) |
 | markering | `jas:Markering`, `oa:Annotation` | `jas:inLaag`, `jas:elementId`, `jas:klasse` → concept in de vocabulaire, `jas:klasseNaam`, `jas:lifecycle`, `jas:verouderd`, `jas:tekst`, `jas:toelichting`, `jas:herkomst` (agent/mens), `jas:aandacht`, `jas:subtype`, `oa:motivatedBy oa:classifying`, `oa:hasBody` (tekst én klasse-concept), `oa:hasTarget` (één per anker), `jas:alternatief`, `jas:grensoptie`, `jas:beoordeling`, `prov:wasGeneratedBy` |
 | body | `oa:TextualBody` | `rdf:value` – de toelichting |
 | doel | `oa:SpecificResource` | `oa:hasSource` → de bronnode, `jas:volgorde`, `jas:bronHash`, `jas:snapshotId`, `oa:hasSelector` |
@@ -69,12 +70,19 @@ schemawijziging projecteert de reconcile-lus alle lagen opnieuw.
 | besluit | `prov:Activity`, `jas:Besluit` | `jas:beslistDoor` → `urn:jas-ns:besluit:*`, `jas:bewijs` → codes, `jas:regel` → regels, `jas:detector`, `jas:mogelijkeKlasse`, `jas:twijfel`, `jas:resolutieregel`, `jas:validatie`, `jas:modelvraag`, `jas:jasVersie`, `prov:wasInformedBy` → de ronde |
 | ronde | `prov:Activity`, `jas:AgentRonde` (`urn:jas:run:<hash>`) | `prov:wasAssociatedWith` → het model (`prov:SoftwareAgent`), `jas:agentVersie`, `jas:promptHash`, `jas:methodeVersie`, `jas:taalModel`, `jas:modus`, `prov:startedAtTime` |
 | beoordeling | `jas:Beoordeling` | `jas:soort` (approve/reject/heropen/comment/edit), `prov:atTime`, `jas:reden`, bij een klassewissel `jas:van`/`jas:naar` – **nooit** actor of commentaartekst |
+| relatie | `jas:Relatie` (`urn:jas:relatie:<id>`) | `jas:inLaag` (de drager), `jas:relatieId`, `jas:relatietype` → concept `urn:jas-ns:relatie:<code>`, `jas:relatietypeNaam`, `jas:van`/`jas:naar` → `urn:jas:element:*` (ook uit een andere laag) of `urn:jas:impliciet:*`, `jas:volgorde`, `jas:lifecycle`, `jas:herkomst`, `jas:toelichting`; een beoordeelde relatie ook als directe triple `<van> rel:<code> <naar>` (`urn:jas-ns:rel:`) |
+| impliciete partij | `jas:ImplicietElement` (`urn:jas:impliciet:<id>`) | `jas:inLaag`, `jas:impliciet` (het id), `jas:klasse`/`jas:klasseNaam` (alleen Rechtssubject), `jas:label`, `jas:toelichting`, `jas:herkomst` (mens), `jas:vindplaats` → de bronnode als object, `jas:zelfdeAls` → een markering (nooit `owl:sameAs`). Geen `oa:hasTarget`: geen markering |
 | dekking | `jas:Dekking` | `jas:bron`, `jas:dimensie` (`jas:naam`, `jas:stand`), `jas:ongedekt` en `jas:alleenAlsGeheel` (elk een `oa:SpecificResource` met selectors) |
 
 Een element met meerdere ankers draagt meerdere `oa:hasTarget`-nodes, in bronvolgorde; de eigenaar
 van de laag is de diepste gezamenlijke voorouder van die ankers. De IRI's van codes, regels en
 klassen wijzen naar de vocabulaire hieronder, zodat een SPARQL-query naast het id ook de leesbare
 naam en de H2-bron kan ophalen.
+
+**Relaties.** Of een eindpunt intussen veranderde (`veranderd` in de api), staat bewust niet in de graaf: het hangt
+af van een andere laag, en dan zou deze graph niet meer alleen uit zijn eigen laag te bouwen zijn. De directe triple
+staat er dus bij elke beoordeelde relatie; wie wil weten of een eindpunt nog actueel is, leest `jas:verouderd` en
+`jas:lifecycle` van de markering zelf.
 
 **Verouderd.** Verandert de wettekst van een bronnode, dan blijven de oude markeringen staan met
 `jas:verouderd true`: het oordeel van de jurist is historie, geen afval. Een query naar de actuele
@@ -182,6 +190,12 @@ Vier vragen, elk apart gerapporteerd:
 3. **SHACL** per niveau (`rdf` / `jas_model`).
 4. **Invarianten**: geen `urn:bwb:`-subject, geen `urn:bwb-ns:`-predicaat en geen schema-axioma's
    (domain/range/subClassOf/sameAs) in een `urn:jas:graph:*`.
+
+Daarnaast een diagnose van de relaties (`relaties`), uit Postgres en buiten `in_orde`, net als het SHACL-oordeel over
+begrippen:
+
+- `hangend`: een eindpunt dat in geen enkele laaggraph staat, zoals een vervangen element;
+- `kardinaliteit`: een verbonden afleidingsregel zonder precies één `uitvoer` of zonder `invoer`.
 
 Een laag die nog niet geprojecteerd is (`geprojecteerd_revisie < revisie`) heet **achterstand** en
 telt niet als afwijking; de directe projectie en de reconcile-lus halen hem in. Een onbereikbare of

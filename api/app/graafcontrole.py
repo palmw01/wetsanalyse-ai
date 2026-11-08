@@ -76,7 +76,7 @@ def _vergelijk(verwacht: Graph, echt: Graph) -> dict[str, int] | None:
     return None if isomorphic(verwacht, echt) else _verschil(verwacht, echt)
 
 
-async def _postgres() -> tuple[list[dict], dict[str, tuple[list[dict], dict]]]:
+async def _postgres() -> tuple[list[dict], dict[str, tuple[list[dict], dict, dict]]]:
     async with db.get_engine().connect() as conn:
         lagen = [dict(r) for r in (await conn.execute(select(db.annotatie_v2_lagen))).mappings().all()]
         invoer = {laag["id"]: await laag_invoer(conn, laag) for laag in lagen}
@@ -96,7 +96,7 @@ def _pyshacl_aanwezig() -> bool:
     return True
 
 
-async def _controleer_laag(client: httpx.AsyncClient, laag: dict, invoer: tuple[list[dict], dict],
+async def _controleer_laag(client: httpx.AsyncClient, laag: dict, invoer: tuple[list[dict], dict, dict],
                           reg: dict | None, shacl: bool) -> tuple[dict | None, list[dict], dict | None]:
     """Eén laag tegen de graaf: (achterstand of None, afwijkingen, SHACL-uitkomst of None).
 
@@ -117,8 +117,8 @@ async def _controleer_laag(client: httpx.AsyncClient, laag: dict, invoer: tuple[
     graaf_rev = echt.value(laag_iri(lid), JAS.revisie)
     if graaf_rev != Literal(rev):
         afw.append({"laag_id": lid, "soort": "graphrevisie", "detail": {"postgres": rev, "graph": str(graaf_rev)}})
-    els, dekking = invoer
-    verschil = await asyncio.to_thread(lambda: _vergelijk(bouw_graaf(laag, els, dekking=dekking), echt))
+    els, dekking, relaties = invoer
+    verschil = await asyncio.to_thread(lambda: _vergelijk(bouw_graaf(laag, els, dekking=dekking, relaties=relaties), echt))
     if verschil is not None:
         afw.append({"laag_id": lid, "soort": "inhoud_wijkt_af", "detail": verschil})
     if not shacl:
@@ -205,6 +205,44 @@ async def _controleer_begrippen(client: httpx.AsyncClient, shacl: bool) -> dict[
     return uit
 
 
+def relatie_diagnose(invoer: dict[str, tuple[list[dict], dict, dict]]) -> dict[str, Any]:
+    """Relaties tussen markeringen (ADR-011), uit Postgres en zonder graaf. Diagnostisch: het telt niet mee voor
+    `in_orde`, net als het SHACL-oordeel over een begrip.
+
+    - `hangend`: een eindpunt dat in geen enkele laaggraph staat (een vervangen of gewist element, een gewiste partij).
+      De relatie wijst dan in de graaf naar een IRI zonder knoop; de api noemt haar `veranderd`.
+    - `kardinaliteit`: een afleidingsregel met een relatie, maar zonder precies één `uitvoer` of zonder `invoer`
+      (`jas_relaties.KARDINALITEIT`; beperking D08). Een regel zonder relaties is nog niet verbonden en telt niet."""
+    from .jas_relaties import KARDINALITEIT, RELATIETYPEN
+    elementen = {e["id"]: e for els, _d, _r in invoer.values() for e in els}
+    impliciet = {p["id"] for _e, _d, r in invoer.values() for p in r.get("impliciet") or []}
+    relaties = [x for _e, _d, r in invoer.values() for x in r.get("relaties") or [] if x.get("lifecycle") != "rejected"]
+    hangend = []
+    for r in relaties:
+        for kant in ("van", "naar"):
+            ep = r[kant]
+            if ep["id"] not in (elementen if ep["soort"] == "element" else impliciet):
+                hangend.append({"relatie": r["id"], "kant": kant, **ep})
+    kardinaliteit = []
+    for klasse, regels in KARDINALITEIT.items():
+        for eid, e in sorted(elementen.items()):
+            if e.get("klasse") != klasse:
+                continue
+            def raakt(r: dict, kant: str) -> bool:
+                return r[kant] == {"soort": "element", "id": eid}
+            # De kant van de regel volgt uit het type: bij `uitvoer` is de regel `van`, bij `invoer` `naar`.
+            telling = {type_: sum(1 for r in relaties if r["type"] == type_
+                                  and raakt(r, "van" if klasse in RELATIETYPEN[type_]["van"] else "naar"))
+                       for type_ in regels}
+            if not any(raakt(r, "van") or raakt(r, "naar") for r in relaties):
+                continue
+            fout = {t: n for t, n in telling.items()
+                    if n < regels[t].get("min", 0) or ("max" in regels[t] and n > regels[t]["max"])}
+            if fout:
+                kardinaliteit.append({"element_id": eid, "klasse": klasse, "telling": telling, "buiten_grens": sorted(fout)})
+    return {"relaties": len(relaties), "impliciet": len(impliciet), "hangend": hangend, "kardinaliteit": kardinaliteit}
+
+
 async def controleer(*, shacl: bool = True) -> dict[str, Any]:
     """Volledige controle. `shacl=False` voor de lichte variant in de reconcile-lus."""
     uit: dict[str, Any] = {"graaf_beschikbaar": False, "in_orde": None, "lagen": 0, "achterstand": [],
@@ -212,6 +250,7 @@ async def controleer(*, shacl: bool = True) -> dict[str, Any]:
                            "shacl": None, "begrippen": None}
     lagen, elementen = await _postgres()
     uit["lagen"] = len(lagen)
+    uit["relaties"] = relatie_diagnose(elementen)
     if not get_settings().graphdb_url:
         uit["reden"] = "graafprojectie_uit"
         return uit
@@ -222,7 +261,7 @@ async def controleer(*, shacl: bool = True) -> dict[str, Any]:
             uit["graaf_beschikbaar"] = True
             shacl_uit: dict[str, Any] = {"beschikbaar": _pyshacl_aanwezig(), "conform": True, "bevindingen": []}
             for laag in sorted(lagen, key=lambda x: x["id"]):
-                achter, afw, bev = await _controleer_laag(client, laag, elementen.get(laag["id"], ([], {})),
+                achter, afw, bev = await _controleer_laag(client, laag, elementen.get(laag["id"], ([], {}, {})),
                                                          register.get(laag["id"]), shacl)
                 if achter:
                     uit["achterstand"].append(achter)

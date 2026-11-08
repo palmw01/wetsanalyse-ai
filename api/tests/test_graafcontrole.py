@@ -273,3 +273,23 @@ async def test_het_rdflib_werk_draait_niet_op_de_event_loop(omgeving, monkeypatc
     assert (await controleer())["in_orde"] is True
     assert set(threads) == {"projectie", "bouw", "isomorfie", "parse"}
     assert all(lus not in t for t in threads.values()), threads
+
+
+def test_relatie_diagnose_noemt_hangende_eindpunten_en_een_regel_zonder_uitvoer():
+    """ADR-011: diagnostisch, uit Postgres. Een regel zonder relaties telt niet; een regel met alleen invoer mist zijn
+    uitvoer; een relatie naar een element dat in geen laag (meer) staat, hangt."""
+    from app.graafcontrole import relatie_diagnose
+    ar = {"id": "ar", "klasse": "Afleidingsregel"}
+    los = {"id": "los", "klasse": "Afleidingsregel"}
+    var = {"id": "var", "klasse": "Variabele en variabelewaarde"}
+    rel = lambda i, t, v, n, lc="human_approved": {"id": i, "type": t, "van": {"soort": "element", "id": v},
+                                                   "naar": {"soort": "element", "id": n}, "lifecycle": lc}
+    invoer = {"l1": ([ar, los, var], {}, {"relaties": [rel("R1", "invoer", "var", "ar"),
+                                                       rel("R2", "invoer", "weg", "ar"),
+                                                       rel("R3", "uitvoer", "los", "var", "rejected")],
+                                          "impliciet": []})}
+    uit = relatie_diagnose(invoer)
+    assert uit["relaties"] == 2                                     # een afgewezen relatie telt niet
+    assert uit["hangend"] == [{"relatie": "R2", "kant": "van", "soort": "element", "id": "weg"}]
+    assert uit["kardinaliteit"] == [{"element_id": "ar", "klasse": "Afleidingsregel",
+                                     "telling": {"uitvoer": 0, "invoer": 2}, "buiten_grens": ["uitvoer"]}]

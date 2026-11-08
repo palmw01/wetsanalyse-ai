@@ -178,7 +178,7 @@ async def test_lezers_zien_vervangen_niet_als_actueel():
     # De projectie: alleen het actuele element gaat de graaf in.
     laag = (await store.weergave(snap))["lagen"][0]
     async with db.get_engine().connect() as conn:
-        elementen, _ = await graaf_projectie_v2.laag_invoer(conn, laag)
+        elementen, _, _ = await graaf_projectie_v2.laag_invoer(conn, laag)
     assert [e["id"] for e in elementen] == ["ontvanger"]
     # Een begrip dat op het vervangen element rustte, ziet dat als een gewijzigde passage – nooit stil actueel.
     koppeling = {"bewijs": {"element_hash": element_hash(stelt_toen)}, "bevestigingen": []}
