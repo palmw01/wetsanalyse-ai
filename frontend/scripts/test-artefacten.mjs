@@ -24,6 +24,17 @@ import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
 
+/** Open het menu ⋯ van de paneelkop in `paneel`, doe `fn` op het menu en sluit het weer (Escape). */
+async function inKopMenu(paneel, fn) {
+  await paneel.locator("[data-paneel-kop] [data-meer-knop]").first().click();
+  const menu = paneel.page().locator("[data-meer-menu]").last();
+  await menu.waitFor();
+  const uit = await fn(menu);
+  await paneel.page().keyboard.press("Escape");
+  await menu.waitFor({ state: "detached" });
+  return uit;
+}
+
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
@@ -471,12 +482,12 @@ try {
   const ap = page.locator("[data-artefact-schil]");
   await ap.locator("[data-versiekiezer]").getByText("Versie 1 van 2").waitFor();
   await ap.getByText("De oude tekst van de opname.").waitFor();
-  assert.equal(await ap.getByRole("button", { name: "Annotatie verwijderen" }).count(), 0, "een oude annotatie is niet te verwijderen");
+  assert.equal(await inKopMenu(ap, (m) => m.getByRole("menuitem", { name: "Annotatie verwijderen" }).count()), 0, "een oude annotatie is niet te verwijderen");
   assert.equal(await ap.getByRole("button", { name: "Graaf", exact: true }).count(), 0, "een oude annotatie heeft geen graaf");
   assert.equal(await ap.getByText("op slot", { exact: false }).count(), 0, "geen uitleg over heropenen");
   await ap.locator("[data-oude-versie]").getByRole("button", { name: "Ga naar de huidige versie" }).click();
   await ap.locator('[data-versiekiezer][data-versie-plek="nu"]').waitFor();
-  await ap.getByRole("button", { name: "Annotatie verwijderen" }).waitFor();
+  await inKopMenu(ap, (m) => m.getByRole("menuitem", { name: "Annotatie verwijderen" }).waitFor());
   await ap.getByText("De ontvanger stelt de belastingschuldige in kennis.").waitFor();
   // Op Nu naar de graaf en terug: de kiezer blijft op Nu (hij wordt daar opnieuw gemonteerd).
   await ap.getByRole("button", { name: "Graaf", exact: true }).click();
@@ -488,19 +499,19 @@ try {
   const bv = page.getByRole("region", { name: "Begrip: Termijn" });
   // Zolang de kiezer de versie laadt (de mock wacht even) is er niets te exporteren: het zou de stand van nu zijn.
   await bv.locator("[data-artefact]").waitFor();
-  assert.equal(await bv.getByRole("button", { name: "Exporteren" }).count(), 0, "geen export voordat de versie vaststaat");
+  assert.equal(await bv.locator("[data-paneel-kop] [data-meer-knop]").count(), 0, "geen export voordat de versie vaststaat");
   await bv.locator("[data-versiekiezer]").getByText("Versie 1 van 2").waitFor();
-  await bv.getByRole("button", { name: "Exporteren" }).waitFor();
+  await bv.locator("[data-paneel-kop] [data-meer-knop]").waitFor();
   await bv.locator("[data-begrip-paneel][data-alleen-lezen]").getByText("De oude definitie.").waitFor();
   assert.equal(await bv.getByRole("button", { name: "Betekenis bewerken" }).count(), 0, "een oude versie is niet te bewerken");
-  assert.equal(await bv.getByRole("button", { name: "Begrip verwijderen" }).count(), 0);
+  assert.equal(await inKopMenu(bv, (m) => m.getByRole("menuitem", { name: "Begrip verwijderen" }).count()), 0);
   await bv.locator("[data-oude-versie]").getByRole("button", { name: "Ga naar de huidige versie" }).click();
   await bv.getByRole("button", { name: "Betekenis bewerken" }).waitFor();
 
   await page.goto(`${base}/workbench?gesprek=g3`);
   await page.locator('button[data-artefact-soort="begrip"]', { hasText: "Termijn" }).click();
   const bp = page.getByRole("region", { name: "Begrip: Termijn" });
-  await bp.getByRole("button", { name: "Meer voor dit begrip" }).click();
+  await bp.locator("[data-paneel-kop] [data-meer-knop]").click();
   await bp.getByRole("menuitem", { name: "Begrip verwijderen" }).click();
   await bp.getByRole("menuitem", { name: /verwijderen/i }).click();
   await bp.locator("[data-verwijderd]").getByText("Dit begrip is verwijderd op 15 okt 2026 door t.").waitFor();
@@ -514,14 +525,14 @@ try {
   await kiezer.getByText("Versie 1 van 2").waitFor();
   await vp.locator("[data-oude-versie]").getByText("alleen lezen", { exact: false }).waitFor();
   await vp.locator("[data-werkgebied-inhoud][data-alleen-lezen]").getByText("De oude aanleiding.").waitFor();
-  assert.equal(await vp.getByRole("button", { name: "Werkgebied verwijderen" }).count(), 0, "een oude versie heeft geen knoppen");
+  assert.equal(await inKopMenu(vp, (m) => m.getByRole("menuitem", { name: "Werkgebied verwijderen" }).count()), 0, "een oude versie heeft geen knoppen");
   await kiezer.getByRole("button", { name: "Naar de huidige versie", exact: true }).count().then((n) => assert.equal(n, 0));
   await kiezer.getByRole("button", { name: "Volgende versie" }).click();
   await kiezer.getByText("Versie 2 van 2").waitFor();
   await vp.getByText("De nieuwe aanleiding.").waitFor();
   await kiezer.getByRole("button", { name: "Naar de huidige versie", exact: true }).click();
   await kiezer.getByText("Nu", { exact: true }).waitFor();
-  await vp.getByRole("button", { name: "Werkgebied verwijderen" }).waitFor();
+  await inKopMenu(vp, (m) => m.getByRole("menuitem", { name: "Werkgebied verwijderen" }).waitFor());
   assert.equal(await vp.locator("[data-oude-versie]").count(), 0);
   await kiezer.getByRole("button", { name: "Vorige versie" }).click();
   await kiezer.getByText("Versie 2 van 2").waitFor();
@@ -530,7 +541,7 @@ try {
   // De chip van de laatste beurt is het werk van nu.
   await chips6.nth(1).click();
   await vp.locator('[data-versiekiezer][data-versie-plek="nu"]').locator("[data-laatste-versie]", { hasText: "laatste versie van Lex: 5 nov" }).waitFor();
-  await vp.getByRole("button", { name: "Werkgebied verwijderen" }).waitFor();
+  await inKopMenu(vp, (m) => m.getByRole("menuitem", { name: "Werkgebied verwijderen" }).waitFor());
 
   // Werkgebied: g5 hoort bij wg1, dus de werkplek staat erin; na verwijderen wordt het gesprek los.
   await page.goto(`${base}/workbench?gesprek=g5`);
@@ -539,15 +550,16 @@ try {
   const wp = page.getByRole("region", { name: "Werkgebied: Invordering" });
   await wp.locator("[data-werkgebied-inhoud]").waitFor();
   assert.equal(await wp.locator("[data-versiekiezer]").count(), 0, "een bericht zonder versie heeft geen kiezer");
-  // Eén knop voor kopiëren en exporteren in elke paneelkop (4 nov 2026): het dossier als Markdown, als bestand.
-  await wp.getByRole("button", { name: /Exporteren/ }).click();
+  // Kopiëren en exporteren in het menu ⋯ van elke paneelkop (8 nov 2026): het dossier als Markdown, als bestand.
+  await wp.locator("[data-paneel-kop] [data-meer-knop]").click();
   const [md] = await Promise.all([page.waitForEvent("download"), page.locator("[data-markdown=md]").click()]);
   assert.match(md.suggestedFilename(), /^invordering.*\.md$/);
   const mdTekst = await (await import("node:fs/promises")).readFile(await md.path(), "utf8");
   assert.match(mdTekst, /^# Invordering/);
   await page.locator("[data-markdown=kopie]").count().then((n) => assert.equal(n, 0, "het menu sluit na de download"));
-  await wp.getByRole("button", { name: "Werkgebied verwijderen" }).click();
-  await wp.getByRole("button", { name: "Verwijderen?", exact: true }).click();
+  await wp.locator("[data-paneel-kop] [data-meer-knop]").click();
+  await wp.getByRole("menuitem", { name: "Werkgebied verwijderen" }).click();
+  await wp.getByRole("menuitem", { name: "Verwijderen?", exact: true }).click();
   await wp.locator("[data-verwijderd]").getByText("Dit werkgebied is verwijderd op 15 okt 2026 door t.").waitFor();
   await balk2.waitFor({ state: "detached" });
   // Een oud gesprek dat het opent, krijgt dezelfde stand in plaats van een fout.

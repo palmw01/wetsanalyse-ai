@@ -146,7 +146,7 @@ try {
   for (const [label, verwacht] of [["Turtle (NL-SBB)", "?formaat=ttl"], ["Turtle, alle begrippen", "?formaat=ttl&inclusief=alle"]]) {
     await page.getByRole("button", { name: "Exporteren" }).click();
     const download = page.waitForEvent("download");
-    await page.getByRole("button", { name: new RegExp(`^${label.replace(/[()]/g, "\\$&")}`) }).click();
+    await page.getByRole("menuitem", { name: new RegExp(`^${label.replace(/[()]/g, "\\$&")}`) }).click();
     assert.equal((await download).suggestedFilename(), "begrippen.ttl");
     assert.equal(requests.filter((r) => r.p.endsWith("/begrippen/export")).at(-1).q, verwacht);
   }

@@ -368,7 +368,7 @@ try {
   await page.goto(`${base}/werkgebieden/wg1/artefacten/begrippen`);
   await page.locator("[data-begrip-rij]").first().waitFor();
   await page.getByRole("button", { name: "Exporteren" }).click();
-  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: /^CSV/ }).click()]);
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: /^CSV/ }).click()]);
   assert.equal(download.suggestedFilename(), "begrippen.csv");
   const csv = await readFile(await download.path(), "utf8");
   for (const v of ["Invorderingswet 1990 – artikel 9 · Lid 1", "Invorderingswet 1990 – artikel 9 · Lid 2", "AWR – artikel 2"])
