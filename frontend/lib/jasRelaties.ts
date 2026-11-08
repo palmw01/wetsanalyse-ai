@@ -16,7 +16,7 @@ export type RelatieType = {
   bron: readonly string[];
 };
 
-export const CATALOGUS_VERSIE = "71269e0680bf";
+export const CATALOGUS_VERSIE = "850faa640ba3";
 
 export const RELATIETYPEN: Record<string, RelatieType> = {
   "beeindigt": {
@@ -138,7 +138,8 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
       "Rechtsbetrekking"
     ],
     "naar": [
-      "Afleidingsregel"
+      "Afleidingsregel",
+      "Voorwaarde"
     ],
     "paren": [],
     "drager": "naar",
@@ -147,6 +148,7 @@ export const RELATIETYPEN: Record<string, RelatieType> = {
     "methodisch": true,
     "bron": [
       "H2:71",
+      "H2:62",
       "M01",
       "M05",
       "M06"
@@ -533,3 +535,20 @@ export const CENTRALE_KLASSEN: readonly string[] = [
 export const IMPLICIET_TOEGESTAAN: readonly string[] = [
   "Rechtssubject"
 ];
+
+/** Past dit klassenpaar bij het type? Bij een type met `paren` telt alleen een paar uit die lijst, en een paar dat een
+ * subtype noemt eist dat subtype; anders telt elke klasse aan beide kanten (zoals `toegestaan` in de api). */
+export function toegestaan(code: string, vanKlasse: string, naarKlasse: string, vanSubtype = "", naarSubtype = ""): boolean {
+  const t = RELATIETYPEN[code];
+  if (!t) return false;
+  if (t.paren.length) {
+    return t.paren.some((p) => p.van === vanKlasse && p.naar === naarKlasse
+      && (p.van_subtype ?? vanSubtype) === vanSubtype && (p.naar_subtype ?? naarSubtype) === naarSubtype);
+  }
+  return t.van.includes(vanKlasse) && t.naar.includes(naarKlasse);
+}
+
+/** De typen die tussen deze twee klassen passen, in deze richting: de keuzelijst bij *Verbind met…*. */
+export function typenTussen(vanKlasse: string, naarKlasse: string, vanSubtype = "", naarSubtype = ""): string[] {
+  return Object.keys(RELATIETYPEN).filter((code) => toegestaan(code, vanKlasse, naarKlasse, vanSubtype, naarSubtype));
+}

@@ -54,7 +54,9 @@ en beoordeeld zoals markeringen, en de graaf maakt er het 2c-diagram van. Geen l
   tijdsaanduiding. Een regel kan een moment opleveren (een vervaldag) of een specialisatie van een subject of object
   (H2:71).
 - **`invoer`** komt van een variabele, parameter, voorwaarde, tijdsaanduiding, rechtssubject, rechtsobject of
-  rechtsbetrekking.
+  rechtsbetrekking, en gaat naar een afleidingsregel of een **voorwaarde** (aanvulling 8 nov 2026, besluit gebruiker:
+  een voorwaarde bestaat uit operanden, H2:62; een jurist legt wat vergeleken wordt vaak direct aan de voorwaarde,
+  zonder aparte operator).
 - **`invoer` en `operand` dragen een optionele `volgorde`** (een geheel getal, uniek per regel of operator). Zonder
   volgorde is de relatie onvolledig voor een niet-commutatieve bewerking. Dat is een signaal, geen fout.
 - **Buiten activiteit 2** blijven:

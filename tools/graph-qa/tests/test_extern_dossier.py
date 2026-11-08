@@ -504,3 +504,65 @@ def test_de_cli_zonder_de_nieuwe_opties_is_ongewijzigd(referentie, tmp_path, cap
     assert "eindpuntdekking" in uit and "catalogustype" not in uit and "Regelskelet" not in uit
     assert rapport == ed.vergelijk(referentie, {"elementen": [_el("Rechtsobject", "de toeslag")]},
                                    relaties=REFERENTIE_RELATIES)
+
+
+# --- iteratie 4.0: samenvoegen, per relatie tellen, regels per klassenpaar, dubbelzinnige labels --------------------
+
+def test_dezelfde_relatie_uit_twee_weergaven_draagt_de_bepalingen_van_beide():
+    """Een relatie over twee lagen staat in de weergave van elke laag, en elke weergave kent alleen haar eigen laag."""
+    rel = _rel("R1", "voorwaarde", _ep("Rechtsbetrekking", "x", laag="L12"), _ep("Voorwaarde", "y", laag="L13"))
+    alleen_12 = {"schema_versie": 2, "lagen": [{"id": "L12", "bron_iri": IRI_12}], "elementen": [],
+                 "relaties": [rel], "impliciet": []}
+    alleen_13 = {**alleen_12, "lagen": [{"id": "L13", "bron_iri": IRI_13}]}
+    [r] = ed.platform_relaties([alleen_12, alleen_13])
+    assert r["bron_iris"] == sorted([IRI_12, IRI_13])
+
+
+def test_alleen_platform_telt_een_relatie_een_keer_ook_bij_meer_alineas():
+    """Twee referentiebepalingen met dezelfde bron (alinea's van één divisie) telden een relatie dubbel."""
+    dubbel = {"bepalingen": [REFERENTIE_RELATIES["bepalingen"][0], REFERENTIE_RELATIES["bepalingen"][0]]}
+    prels = ed.platform_relaties([_weergave([
+        _rel("R9", "voorwerp", _ep("Rechtsbetrekking", "iets anders"), _ep("Rechtsobject", "het besluit"))])])
+    r = ed.vergelijk_relaties_inhoudelijk(ed.lees_relaties(dubbel), prels, ed.lees_mapping(MAPPING, CATALOGUS))
+    assert [x["id"] for x in r["alleen_platform"]] == ["R9"]
+
+
+def test_een_teamtype_met_regels_per_klassenpaar():
+    """Hetzelfde teamtype is per klassenpaar een ander catalogustype; een paar zonder regel is een gat in de tabel."""
+    mapping = ed.lees_mapping({"versie": 1, "typen": {"verbindt": {"regels": [
+        {"van": "rechtsbetrekking", "naar": "rechtssubject", "type": "rechthebbende", "omgekeerd": True},
+        {"van": "rechtsbetrekking", "naar": "rechtsobject", "type": "voorwerp"},
+        {"van": "rechtsbetrekking", "naar": "voorwaarde", "type": None},
+    ]}}}, CATALOGUS)
+    ref = {"bepalingen": [{"bron": {"bwb_id": BWB, "artikel": "12", "lid": "3"}, "knopen": [
+        {"id": "a", "klasse": "rechtssubject", "label": "De aanvrager", "letterlijk": "ja"},
+        {"id": "rb", "klasse": "rechtsbetrekking", "label": "De aanvrager ontvangt de toeslag", "letterlijk": "ja"},
+        {"id": "o", "klasse": "rechtsobject", "label": "de toeslag", "letterlijk": "ja"},
+        {"id": "v", "klasse": "voorwaarde", "label": "indien hij ingezetene is", "letterlijk": "ja"},
+        {"id": "t", "klasse": "tijdsaanduiding", "label": "binnen een jaar", "letterlijk": "ja"},
+    ], "kanten": [{"van": "rb", "naar": "a", "type": "verbindt"}, {"van": "rb", "naar": "o", "type": "verbindt"},
+                  {"van": "rb", "naar": "v", "type": "verbindt"}, {"van": "rb", "naar": "t", "type": "verbindt"}]}]}
+    prels = ed.platform_relaties([_weergave([
+        _rel("R1", "rechthebbende", _ep("Rechtssubject", "De aanvrager"),
+             _ep("Rechtsbetrekking", "De aanvrager ontvangt de toeslag"))])])
+    r = ed.vergelijk_relaties_inhoudelijk(ed.lees_relaties(ref), prels, mapping)
+    assert r["per_type"]["rechthebbende"]["gevonden"] == 1
+    assert r["per_type"]["voorwerp"]["n"] == 1
+    assert r["buiten_catalogus"] == {"verbindt": 1} and r["zonder_mapping"] == {"verbindt": 1}
+    with pytest.raises(ValueError, match="beide kanten"):
+        ed.lees_mapping({"versie": 1, "typen": {"x": {"regels": [{"van": "rechtsobject", "type": "voorwerp"}]}}},
+                        CATALOGUS)
+
+
+def test_twee_knopen_met_hetzelfde_label_zijn_niet_meetbaar():
+    """"vervalt op" op twee plekken kwam met `_zelfde_plek` twee keer op hetzelfde element uit."""
+    ref = {"bepalingen": [{"bron": {"bwb_id": BWB, "artikel": "12", "lid": "3"}, "knopen": [
+        {"id": "rb", "klasse": "rechtsbetrekking", "label": "De aanvrager ontvangt de toeslag", "letterlijk": "ja"},
+        {"id": "o1", "klasse": "rechtsobject", "label": "de toeslag", "letterlijk": "ja"},
+        {"id": "o2", "klasse": "rechtsobject", "label": "de toeslag", "letterlijk": "ja"},
+    ], "kanten": [{"van": "rb", "naar": "o1", "type": "heeft als X"}, {"van": "rb", "naar": "o2", "type": "heeft als X"}]}]}
+    prels = ed.platform_relaties([_weergave([
+        _rel("R1", "voorwerp", _ep("Rechtsbetrekking", "De aanvrager ontvangt de toeslag"),
+             _ep("Rechtsobject", "de toeslag"))])])
+    r = ed.vergelijk_relaties_inhoudelijk(ed.lees_relaties(ref), prels, ed.lees_mapping(MAPPING, CATALOGUS))
+    assert r["per_type"]["voorwerp"] == {"n": 2, "gevonden": 0, "niet_meetbaar": 2, "recall": None}

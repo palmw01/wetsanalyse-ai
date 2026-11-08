@@ -169,13 +169,15 @@
         "Rechtsbetrekking"
       ],
       "naar": [
-        "Afleidingsregel"
+        "Afleidingsregel",
+        "Voorwaarde"
       ],
       "drager": "naar",
       "volgorde": true,
       "methodisch": true,
       "bron": [
         "H2:71",
+        "H2:62",
         "M01",
         "M05",
         "M06"
