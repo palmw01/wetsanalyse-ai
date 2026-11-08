@@ -158,6 +158,10 @@ class WetsanalyseApi:
             raise WetsanalyseApiFout(f"GET {pad} → {antwoord.status_code}", antwoord.status_code, api_reden(antwoord))
         return antwoord.json()
 
+    async def connectors(self) -> list[str]:
+        """De bronconnectors die de beheerder heeft aangezet (ADR-013, `GET /v1/connectors`)."""
+        return list((await self._haal("/v1/connectors")).get("aan") or [])
+
     async def haal_werkgebied(self, werkgebied_id: str) -> dict[str, Any]:
         return await self._haal(self._werkgebied_pad(werkgebied_id))
 
@@ -249,6 +253,21 @@ class WetsanalyseApi:
 
     async def haal_kandidaten(self, werkgebied_id: str) -> dict[str, Any]:
         return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/kandidaten")
+
+    # -- regie binnen een werkgebied (ADR-012) -------------------------------------------------------
+
+    async def start_regie(self, werkgebied_id: str, invoer: dict[str, Any]) -> dict[str, Any]:
+        """`RegieStart`; 409 `regie_loopt_al` als er al een loopt in dit werkgebied of van deze gebruiker."""
+        return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/regies", invoer)
+
+    async def wijzig_regie(self, werkgebied_id: str, regie_id: str, wijziging: dict[str, Any]) -> dict[str, Any]:
+        """De hartslag (`{status: "loopt"}`) of de eindstand met de uitkomst."""
+        return await self._verstuur("PATCH", f"{self._werkgebied_pad(werkgebied_id)}/regies/{quote(regie_id, safe='')}",
+                                    wijziging)
+
+    async def maak_gesprek(self, invoer: dict[str, Any]) -> dict[str, Any]:
+        """Een deelgesprek onder het regiegesprek (`GesprekCreate` met `ouder_id` en `regie_id`)."""
+        return await self._post("/v1/gesprekken", invoer)
 
     # -- bronselectie per deelvraag (spoor J) --------------------------------------------------------
 

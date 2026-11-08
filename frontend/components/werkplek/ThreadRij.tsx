@@ -35,7 +35,7 @@ import { overzichtAlsMarkdown, overzichtDefinities, overzichtDoelen, overzichtFo
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 import { beurtSamenvatting } from "@/lib/waarom";
 import type { ThreadItem } from "@/lib/threadItem";
-import { ANNOTEER_PROMPT, PLAFOND, bepalingen, type BevestigingKeuze } from "@/lib/werkgebiedAnnoteren";
+import { ANNOTEER_PROMPT, PLAFOND, bepalingen, deelgesprekken, regiePrompt, type BevestigingKeuze } from "@/lib/werkgebiedAnnoteren";
 import { MEEDENK_PROMPT } from "@/lib/begripVoorstellen";
 import type { VragenGroep } from "@/lib/vraagkaart";
 import type {
@@ -173,7 +173,15 @@ export const ThreadRij = memo(function ThreadRij({
         )}
         {item.bevestiging && item.bevestiging.aantal > 0 && !demo && !keuze && (
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-          {item.bevestiging.soort === "begrippen_verdiepen" ? (
+          {item.bevestiging.soort === "regie" && item.bevestiging.plan_id && item.bevestiging.opdracht ? (
+            <Button size="sm" className="w-full sm:w-auto" disabled={bezig || geblokkeerd}
+              data-bevestiging={item.bevestiging.aantal}
+              onClick={() => acties.verstuur({ prompt: regiePrompt(item.bevestiging!.opdracht!), regie:
+                { werkgebiedId: item.bevestiging!.werkgebied_id, opdracht: item.bevestiging!.opdracht!,
+                  planId: item.bevestiging!.plan_id! } })}>
+              Start de regie ({deelgesprekken(item.bevestiging.aantal)})
+            </Button>
+          ) : item.bevestiging.soort === "begrippen_verdiepen" ? (
             <Button size="sm" className="w-full sm:w-auto" disabled={bezig || geblokkeerd}
               data-bevestiging={item.bevestiging.aantal}
               onClick={() => acties.verstuur({ prompt: MEEDENK_PROMPT, annoteren:

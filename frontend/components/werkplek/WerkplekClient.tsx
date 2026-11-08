@@ -540,6 +540,7 @@ export function WerkplekClient({
         },
         onOpgeslagen: (uitkomst) => p.pas({ type: "opgeslagen", uitkomst }),
         onWaarschuwing: (bericht) => setMelding(bericht),
+        onRegieTaak: () => onGewijzigd(),
       }),
       opKlaar: async (antId, stand) => {
         const { tekst, denk, kandidaten, keuze, opgeslagen } = stand;

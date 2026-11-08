@@ -37,3 +37,18 @@ describe("deelIn", () => {
     expect(deelIn([g("a", { werkgebied_id: "w1" })]).werkgebieden[0].naam).toBe("Werkgebied");
   });
 });
+
+describe("deelgesprekken van een regie (ADR-012)", () => {
+  it("staan direct onder hun regiegesprek, de rest houdt zijn volgorde", () => {
+    const w = { werkgebied_id: "w1", werkgebied_naam: "W" };
+    const uit = deelIn([
+      g("k2", { ...w, ouder_id: "r" }), g("los", w), g("r", w), g("k1", { ...w, ouder_id: "r" }),
+    ]);
+    expect(uit.werkgebieden[0].gesprekken.map((x) => x.id)).toEqual(["los", "r", "k2", "k1"]);
+  });
+
+  it("een deelgesprek zonder zijn ouder in de lijst blijft staan", () => {
+    const uit = deelIn([g("k", { werkgebied_id: "w1", ouder_id: "weg" }), g("a", { werkgebied_id: "w1" })]);
+    expect(uit.werkgebieden[0].gesprekken.map((x) => x.id)).toEqual(["k", "a"]);
+  });
+});

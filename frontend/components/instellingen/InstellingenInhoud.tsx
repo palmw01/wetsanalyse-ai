@@ -7,6 +7,7 @@ import { RondleidingPanel } from "@/components/account/RondleidingPanel";
 import { VerbruikPanel } from "@/components/account/VerbruikPanel";
 import { ApiTokensPanel } from "@/components/admin/ApiTokensPanel";
 import { BerichtenBeheerPanel } from "@/components/admin/BerichtenBeheerPanel";
+import { ConnectorsPanel } from "@/components/admin/ConnectorsPanel";
 import { FeedbackLijstClient } from "@/components/admin/FeedbackLijstClient";
 import { BerichtenArchiefClient } from "@/components/berichten/BerichtenArchiefClient";
 import { ProfielenPanel } from "@/components/admin/ProfielenPanel";
@@ -28,6 +29,7 @@ const PANEEL: Record<TabKey, React.ReactNode> = {
   gebruikers: <UsersPanel />,
   registraties: <RegistratiesPanel />,
   "api-tokens": <ApiTokensPanel />,
+  connectors: <ConnectorsPanel />,
   berichten: <BerichtenArchiefClient />,
   berichtenbeheer: <BerichtenBeheerPanel />,
   feedback: <FeedbackLijstClient />,

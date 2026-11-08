@@ -89,11 +89,13 @@ def test_nominalisatie_is_kandidaat_rechtsfeit(parser):
     assert any("indienen van een bezwaarschrift" in k.span.tekst and k.possible_classes[0] == "Rechtsfeit" for k in ks)
 
 
-def test_en_tussen_clauses_is_operator_maar_niet_binnen_een_opsomming_van_objecten(parser):
-    ks = LogischeOperatorDetector().detecteer(_bron("De inspecteur stelt de aanslag vast en hij verzendt het aanslagbiljet.", parser)).kandidaten
-    assert [k.span.tekst for k in ks] == ["en"]
-    ks = LogischeOperatorDetector().detecteer(_bron("Hij betaalt de loonbelasting en de omzetbelasting.", parser)).kandidaten
-    assert ks == ()
+def _codes(tekst, parser):
+    return [(k.span.tekst, k.evidence[0].code) for k in LogischeOperatorDetector().detecteer(_bron(tekst, parser)).kandidaten]
+
+
+def test_en_tussen_clauses_is_een_zinsverbinding_en_tussen_objecten_een_woordgroepverbinding(parser):
+    assert _codes("De inspecteur stelt de aanslag vast en hij verzendt het aanslagbiljet.", parser) == [("en", "CLAUSE_COORDINATION")]
+    assert _codes("Hij betaalt de loonbelasting en de omzetbelasting.", parser) == [("en", "PHRASE_COORDINATION")]
 
 
 # --- structuur: betekenisregel ------------------------------------------------------------------
@@ -366,13 +368,40 @@ def test_nietig_en_toepasselijkheid_zijn_normsignalen(parser, tekst):
     # positief: het tweede conjunct heeft alleen een hulpwerkwoord als persoonsvorm, de kop is een deelwoord
     ("De termijn is gesteld op zes weken of is gesteld op één maand.", ["of"]),
     ("De vergunning wordt verleend en wordt bekendgemaakt.", ["en"]),
-    # negatief: tussen naamwoordgroepen blijft het geen operator
+    # negatief: tussen naamwoordgroepen is het geen zinsverbinding (wel een woordgroepverbinding, hieronder)
     ("Hij betaalt de loonbelasting en de omzetbelasting.", []),
     # rand: een deelwoord zonder eigen persoonsvorm verbindt woorden, geen zinnen
     ("een verplichting of onthouden aanspraak;", []),
 ])
 def test_een_hulpwerkwoord_als_persoonsvorm_maakt_het_conjunct_een_eigen_zin(parser, tekst, verwacht):
-    assert [k.span.tekst for k in LogischeOperatorDetector().detecteer(_bron(tekst, parser)).kandidaten] == verwacht
+    assert [t for t, code in _codes(tekst, parser) if code == "CLAUSE_COORDINATION"] == verwacht
+
+
+# --- operator: 'en'/'of' tussen naamwoordgroepen (jas.operator.woordgroep, H2:98) -------------------
+
+@pytest.mark.parametrize(("tekst", "verwacht"), [
+    # positief: twee naamwoordgroepen als alternatieve of cumulatieve operanden
+    ("Indien de aanslag of de beschikking onherroepelijk vaststaat, betaalt hij.", ["of"]),
+    ("De ontvanger vordert het bedrag en de rente in.", ["en"]),
+    # negatief: structuurnummers zijn een verwijzing, een bijvoeglijk conjunct heeft een eigen regel
+    ("De artikelen 3 en 4 zijn van toepassing.", []),
+    ("Dit geldt voor artikel 3 en artikel 4.", []),
+    ("gedagtekend in november of eerder", []),
+    ("De overeenkomst komt tot stand tussen de ontvanger en de belastingschuldige.", []),
+    ("Dan vindt de verrekening tussen de Dienst Inning en die schuldenaar plaats.", []),
+    # rand: een opsomming van drie geeft één operator, bij het laatste voegwoord
+    ("Hij betaalt de loonbelasting, de omzetbelasting en de accijns.", ["en"]),
+])
+def test_en_of_tussen_naamwoordgroepen_is_een_geneste_operator(parser, tekst, verwacht):
+    assert [t for t, code in _codes(tekst, parser) if code == "PHRASE_COORDINATION"] == verwacht
+
+
+def test_een_woordgroepoperator_laat_de_naamwoordgroep_en_de_voorwaarde_heel(parser):
+    """Overlap: 'of' is een eigen kandidaat; de voorwaarde eromheen en de naamwoordgroepen blijven bestaan."""
+    tekst = "Indien de aanslag of de beschikking onherroepelijk vaststaat, betaalt hij."
+    grenzen = _grenzen(kandidaten_van(detecteer_alles(_bron(tekst, parser))))
+    assert {"of", "de aanslag"} <= grenzen
+    assert any(g.startswith("Indien de aanslag of de beschikking") for g in grenzen)
 
 
 def test_operator_in_een_tijdsaanduiding_is_een_eigen_geneste_kandidaat(parser):

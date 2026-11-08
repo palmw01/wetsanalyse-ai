@@ -29,6 +29,7 @@ from ..ports import GraphPort
 from .jas_tools import JAS_TOOL_NAMEN, JAS_TOOLS  # noqa: F401 – re-exporteerd voor orchestrator
 from .annotatie_tools import ANNOTATIE_TOOLS, ANNOTATIE_TOOL_NAMEN, dispatch_annotatie
 from .begrip_tools import BEGRIP_TOOLS, BEGRIP_TOOL_NAMEN, dispatch_begrip
+from .kamerstuk_tools import CONNECTOR as _KST, KAMERSTUK_TOOLS, KAMERSTUK_TOOL_NAMEN, dispatch_kamerstuk
 from ..resultaat import BUDGET, TeGroot, compact, fout, geheel, pagina, per_eenheid, voorproef
 from ..graph.structuur import natuurlijke_sleutel
 from .. import overzicht
@@ -859,7 +860,49 @@ TOOLS: list[dict[str, Any]] = [
 
 TOOLS += ANNOTATIE_TOOLS
 TOOLS += BEGRIP_TOOLS
+TOOLS += KAMERSTUK_TOOLS
 _BY_NAME: dict[str, dict[str, Any]] = {t["name"]: t for t in TOOLS + JAS_TOOLS}
+
+#: De bronconnectors (ADR-013): per connector zijn tools. Wetgeving (de graaf) is geen connector en staat altijd aan.
+CONNECTORS: dict[str, frozenset[str]] = {_KST: KAMERSTUK_TOOL_NAMEN}
+CONNECTOR_TOOLS: frozenset[str] = frozenset().union(*CONNECTORS.values())
+
+
+def connectors_aan(settings: Any) -> frozenset[str]:
+    """De connectors die deze straat aanbiedt (`CONNECTOR_<NAAM>`); zonder settings geen."""
+    return frozenset(c for c in CONNECTORS if getattr(settings, f"connector_{c}", False))
+
+
+def actieve_connectors(settings: Any, bronnen: Any = None) -> frozenset[str]:
+    """De connectors die in deze beurt aanstaan: wat de straat aanbiedt, beperkt tot `bronnen` als de beurt die
+    meegeeft (`ChatRequest.bronnen`; None = alles wat de straat aanbiedt, een lege lijst = alleen wetgeving)."""
+    aan = connectors_aan(settings)
+    return aan if bronnen is None else aan & frozenset(bronnen)
+
+
+def toegestane_tools(tools: frozenset[str] | set[str] | None, settings: Any,
+                     bronnen: Any = None) -> frozenset[str] | None:
+    """De tools van een specialist zonder die van een connector die uit staat. Eén filter: de schema's voor het
+    model, de MCP-server en `dispatch` gebruiken dezelfde regel."""
+    uit = CONNECTOR_TOOLS - frozenset().union(*(CONNECTORS[c] for c in actieve_connectors(settings, bronnen)))
+    if tools is None:
+        return frozenset(t["name"] for t in TOOLS) - uit
+    return frozenset(tools) - uit
+
+
+_KAMERSTUKBRON: Any = None
+
+
+def _kamerstukbron(settings: Any) -> Any:
+    """Eén bron per proces, zodat de cache per identifier gedeeld wordt."""
+    global _KAMERSTUKBRON
+    if _KST not in connectors_aan(settings):
+        return None
+    if _KAMERSTUKBRON is None:
+        from ..adapters.sru_kamerstukken import SruKamerstukken
+        _KAMERSTUKBRON = SruKamerstukken(sru_url=getattr(settings, "kamerstukken_sru_url", "") or
+                                         "https://repository.overheid.nl/sru")
+    return _KAMERSTUKBRON
 
 
 def anthropic_schemas(only: set[str] | frozenset[str] | None = None) -> list[dict[str, Any]]:
@@ -890,11 +933,25 @@ def _graaf_is_weg(exc: Exception) -> bool:
 
 
 def dispatch(name: str, graph: GraphPort, args: dict[str, Any] | None, settings: Any = None,
-             *, annotaties=None, begrippen=None) -> str:
+             *, annotaties=None, begrippen=None, kamerstukken=None, bronnen=None) -> str:
     tool = _BY_NAME.get(name)
     if tool is None:
         return f"Onbekende tool: {name}"
+    if name in CONNECTOR_TOOLS and name not in toegestane_tools(None, settings, bronnen):
+        # Ook een workflow die een tool in code aanroept, komt hier langs: dezelfde regel als de schema's.
+        return fout("connector_uit", "Deze bron staat uit in dit gesprek. Zeg dat, en antwoord niet uit eigen kennis.")
     try:
+        if name in KAMERSTUK_TOOL_NAMEN:
+            from ..adapters.sru_kamerstukken import KamerstukFout
+            bron = kamerstukken if kamerstukken is not None else _kamerstukbron(settings)
+            try:
+                return dispatch_kamerstuk(name, args or {}, bron)
+            except TeGroot:
+                raise
+            except KamerstukFout as exc:
+                return fout("bron_onbereikbaar", str(exc))
+            except (ValueError, TypeError) as exc:
+                return fout("ongeldige_argumenten", str(exc))
         if name in ANNOTATIE_TOOL_NAMEN:
             if annotaties is None and settings is not None:
                 from ..annotatie_read import AnnotatieReadApi

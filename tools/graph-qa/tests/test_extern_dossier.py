@@ -290,3 +290,217 @@ def test_alleen_de_tijdsaanduiding_verbijzondert(referentie):
     export = {**_el("Tijdsaanduiding", "drie maanden", iri=BELEID), "herkomst_regels": {"subtype": "verbijzondert parameter"}}
     a = ed.vergelijk(referentie, {"elementen": [export]})["annotaties"]
     assert a["per_klasse_strikt"]["Parameter en parameterwaarde"]["gedekt"] == 1
+
+
+# --- Relaties van het platform (ADR-011) -----------------------------------------------------------------------
+#
+# Alles hieronder is verzonnen: de teamtypen ("heeft als X", "rekent uit" …), de regeling en de teksten.
+
+IRI_12 = f"urn:bwb:{BWB}:artikel:12:lid:3"
+IRI_13 = f"urn:bwb:{BWB}:artikel:13"
+CATALOGUS = {"rechthebbende", "plichthebbende", "voorwerp", "invoer", "uitvoer", "voorwaarde"}
+
+MAPPING = {"versie": 1, "typen": {
+    "recht van": {"type": "rechthebbende", "omgekeerd": False},
+    "heeft als recht": {"type": "rechthebbende", "omgekeerd": True},
+    "plicht van": {"type": "plichthebbende"},
+    "heeft als X": {"type": "voorwerp", "omgekeerd": False},
+    "rekent uit": {"type": "uitvoer", "omgekeerd": False},
+    "gebruikt": {"type": "invoer", "omgekeerd": True},
+    "onder voorwaarde": {"type": "voorwaarde", "omgekeerd": False},
+    "dan-tak": None,
+}}
+
+REFERENTIE_RELATIES = {"bepalingen": [
+    {"bron": {"bwb_id": BWB, "artikel": "12", "lid": "3"}, "knopen": [
+        {"id": "a", "klasse": "rechtssubject", "label": "De aanvrager", "letterlijk": "ja"},
+        {"id": "s", "klasse": "rechtssubject", "label": "de inspecteur", "letterlijk": "impliciet"},
+        {"id": "rb", "klasse": "rechtsbetrekking", "label": "De aanvrager ontvangt de toeslag", "letterlijk": "ja"},
+        {"id": "o", "klasse": "rechtsobject", "label": "de toeslag", "letterlijk": "ja"},
+        {"id": "p", "klasse": "rechtsobject", "label": "een uitkering in geld", "letterlijk": "nee"},
+    ], "kanten": [
+        {"van": "rb", "naar": "a", "type": "heeft als recht"},   # omgekeerd: a → rb
+        {"van": "s", "naar": "rb", "type": "plicht van"},        # impliciet
+        {"van": "rb", "naar": "o", "type": "heeft als X"},
+        {"van": "rb", "naar": "p", "type": "heeft als X"},       # parafrase: niet meetbaar
+        {"van": "rb", "naar": "o", "type": "dan-tak"},           # buiten de catalogus
+        {"van": "rb", "naar": "o", "type": "volgt na"},          # niet in de tabel
+    ]},
+    {"bron": {"bwb_id": BWB, "artikel": "13"}, "knopen": [
+        {"id": "r", "klasse": "afleidingsregel", "label": "is gelijk aan", "letterlijk": "ja"},
+        {"id": "u", "klasse": "variabele", "label": "het bedrag van de toeslag", "letterlijk": "ja"},
+        {"id": "i1", "klasse": "variabele", "label": "het inkomen", "letterlijk": "ja"},
+        {"id": "i2", "klasse": "parameter", "label": "het percentage", "letterlijk": "ja"},
+        {"id": "v", "klasse": "voorwaarde", "label": "indien de aanvrager ingezetene is", "letterlijk": "ja"},
+    ], "kanten": [
+        {"van": "r", "naar": "u", "type": "rekent uit"},
+        {"van": "r", "naar": "i1", "type": "gebruikt"},
+        {"van": "r", "naar": "i2", "type": "gebruikt"},
+        {"van": "r", "naar": "v", "type": "onder voorwaarde"},
+    ]},
+]}
+
+
+def _ep(klasse, tekst, soort="element", id_="x", laag="L12"):
+    return {"soort": soort, "id": id_, "bestaat": True, "klasse": klasse, "tekst": tekst, "laag_id": laag,
+            "actueel": True}
+
+
+def _rel(id_, type_, van, naar, lifecycle="voorgesteld", laag="L12"):
+    return {"id": id_, "type": type_, "volgorde": None, "lifecycle": lifecycle, "laag_id": laag,
+            "van": van, "naar": naar, "veranderd": False}
+
+
+def _weergave(relaties, elementen=()):
+    return {"schema_versie": 2, "lagen": [{"id": "L12", "bron_iri": IRI_12}, {"id": "L13", "bron_iri": IRI_13}],
+            "elementen": list(elementen), "relaties": relaties, "impliciet": []}
+
+
+def _skelet_relaties(*welke):
+    """De relaties van de regel uit artikel 13; `welke` kiest uit uitvoer, invoer, voorwaarde."""
+    r = _ep("Afleidingsregel", "is gelijk aan", laag="L13")
+    alle = {"uitvoer": _rel("u", "uitvoer", r, _ep("Variabele en variabelewaarde", "het bedrag van de toeslag",
+                                                   laag="L13"), laag="L13"),
+            "invoer": _rel("i", "invoer", _ep("Variabele en variabelewaarde", "het inkomen", laag="L13"), r, laag="L13"),
+            "voorwaarde": _rel("v", "voorwaarde", r, _ep("Voorwaarde", "indien de aanvrager ingezetene is", laag="L13"),
+                               laag="L13")}
+    return [alle[w] for w in welke]
+
+
+def test_platform_relaties_uit_weergaven_ontdubbeld_en_zonder_afgewezen():
+    rel = _rel("R1", "voorwerp", _ep("Rechtsbetrekking", "De aanvrager ontvangt de toeslag"),
+               _ep("Rechtsobject", "de toeslag"))
+    weg = _rel("R2", "voorwerp", _ep("Rechtsbetrekking", "ontvangt"), _ep("Rechtsobject", "het besluit"),
+               lifecycle="rejected")
+    partij = _ep("Rechtssubject", "de inspecteur", soort="impliciet", id_="I1")
+    impl = _rel("R3", "plichthebbende", partij, _ep("Rechtsbetrekking", "ontvangt"))
+    # Ruw en verpakt onder `data`, met dezelfde relatie twee keer.
+    prels = ed.platform_relaties([_weergave([rel, weg]), {"status": 200, "data": _weergave([rel, impl])}])
+    assert [r["id"] for r in prels] == ["R1", "R3"]
+    assert prels[0]["van"] == {"klasse": "Rechtsbetrekking", "tekst": "De aanvrager ontvangt de toeslag",
+                               "impliciet": False}
+    assert prels[0]["bron_iris"] == [IRI_12]
+    assert prels[1]["van"]["impliciet"] is True
+    assert {"type", "volgorde", "lifecycle", "van", "naar"} <= set(prels[0])
+
+
+def test_lees_mapping_geldig_null_en_onbekende_code():
+    m = ed.lees_mapping(MAPPING, CATALOGUS)
+    assert m["gebruikt"] == {"type": "invoer", "omgekeerd": True}
+    assert m["plicht van"] == {"type": "plichthebbende", "omgekeerd": False}
+    assert m["dan-tak"] is None
+    with pytest.raises(ValueError, match="relatiecatalogus"):
+        ed.lees_mapping({"versie": 1, "typen": {"heeft als Y": {"type": "bestaat_niet"}}}, CATALOGUS)
+    with pytest.raises(ValueError, match="versie"):
+        ed.lees_mapping({"versie": 2, "typen": {}}, CATALOGUS)
+
+
+def test_lees_mapping_toetst_tegen_de_catalogus_van_de_skill():
+    codes = ed.catalogus_typen()
+    assert {"rechthebbende", "invoer", "uitvoer", "voorwaarde"} <= codes
+    assert ed.lees_mapping(MAPPING)["heeft als X"]["type"] == "voorwerp"
+
+
+def _inhoudelijk(prels):
+    return ed.vergelijk_relaties_inhoudelijk(ed.lees_relaties(REFERENTIE_RELATIES), prels,
+                                             ed.lees_mapping(MAPPING, CATALOGUS))
+
+
+def test_recall_per_catalogustype_met_omgekeerde_richting_impliciet_en_niet_meetbaar():
+    prels = ed.platform_relaties([_weergave([
+        # "heeft als recht" is omgekeerd: in de catalogus loopt hij van het subject naar de betrekking.
+        _rel("R1", "rechthebbende", _ep("Rechtssubject", "De aanvrager"),
+             _ep("Rechtsbetrekking", "De aanvrager ontvangt de toeslag")),
+        _rel("R2", "plichthebbende", _ep("Rechtssubject", "de inspecteur", soort="impliciet", id_="I1"),
+             _ep("Rechtsbetrekking", "De aanvrager ontvangt de toeslag")),
+        _rel("R3", "voorwerp", _ep("Rechtsbetrekking", "De aanvrager ontvangt de toeslag"),
+             _ep("Rechtsobject", "het besluit")),  # ander eindpunt: geen treffer, wel alleen platform
+    ])])
+    r = _inhoudelijk(prels)
+    assert r["per_type"]["rechthebbende"] == {"n": 1, "gevonden": 1, "niet_meetbaar": 0, "recall": 1.0}
+    assert r["per_type"]["plichthebbende"]["gevonden"] == 1
+    assert r["per_type"]["voorwerp"] == {"n": 2, "gevonden": 0, "niet_meetbaar": 1, "recall": 0.0}
+    assert r["buiten_catalogus"] == {"dan-tak": 1}
+    assert r["zonder_mapping"] == {"volgt na": 1}
+    assert [x["id"] for x in r["alleen_platform"]] == ["R3"]
+
+
+def test_de_verkeerde_richting_en_een_letterlijke_partij_tellen_niet():
+    prels = ed.platform_relaties([_weergave([
+        _rel("R1", "rechthebbende", _ep("Rechtsbetrekking", "De aanvrager ontvangt de toeslag"),
+             _ep("Rechtssubject", "De aanvrager")),
+        # Een impliciete referentieknoop past alleen op een impliciete partij.
+        _rel("R2", "plichthebbende", _ep("Rechtssubject", "de inspecteur"),
+             _ep("Rechtsbetrekking", "De aanvrager ontvangt de toeslag")),
+    ])])
+    r = _inhoudelijk(prels)
+    assert r["per_type"]["rechthebbende"]["gevonden"] == 0
+    assert r["per_type"]["plichthebbende"]["gevonden"] == 0
+
+
+def test_een_afgewezen_relatie_telt_niet_mee():
+    rel = _rel("R1", "rechthebbende", _ep("Rechtssubject", "De aanvrager"),
+               _ep("Rechtsbetrekking", "De aanvrager ontvangt de toeslag"), lifecycle="rejected")
+    r = _inhoudelijk(ed.platform_relaties([_weergave([rel])]))
+    assert r["per_type"]["rechthebbende"]["gevonden"] == 0 and r["alleen_platform"] == []
+
+
+def _skelet(prels, elementen=()):
+    return ed.regelskelet(ed.lees_relaties(REFERENTIE_RELATIES), prels, ed.lees_mapping(MAPPING, CATALOGUS),
+                          list(elementen))
+
+
+def test_regelskelet_volledig_deels_en_niet():
+    volledig = _skelet(ed.platform_relaties([_weergave(_skelet_relaties("uitvoer", "invoer", "voorwaarde"))]))
+    assert volledig["telling"] == {"volledig": 1, "deels": 0, "niet": 0, "niet_meetbaar": 0}
+    assert volledig["regels"][0]["ontbreekt"] == []
+
+    # Eén invoer is genoeg; zonder voorwaarde is de regel deels af.
+    deels = _skelet(ed.platform_relaties([_weergave(_skelet_relaties("uitvoer", "invoer"))]))
+    assert deels["regels"][0]["uitkomst"] == "deels"
+    assert deels["regels"][0]["ontbreekt"] == ["voorwaarde: indien de aanvrager ingezetene is"]
+
+    # Alleen de markering van de regel, zonder relaties: deels. Niets: niet.
+    regel = _el("Afleidingsregel", "is gelijk aan", iri=IRI_13)
+    alleen = _skelet([], [regel])
+    assert alleen["regels"][0]["uitkomst"] == "deels"
+    assert set(alleen["regels"][0]["ontbreekt"]) == {"uitvoer: het bedrag van de toeslag", "invoer",
+                                                     "voorwaarde: indien de aanvrager ingezetene is"}
+    niet = _skelet([])
+    assert niet["telling"]["niet"] == 1
+    assert niet["regels"][0]["ontbreekt"][0] == "regel"
+
+
+def test_vergelijk_met_relaties_van_het_platform(referentie, tmp_path, capsys):
+    (tmp_path / "ref.json").write_text(json.dumps(referentie))
+    (tmp_path / "els.json").write_text(json.dumps({"elementen": [_el("Rechtsobject", "de toeslag")]}))
+    (tmp_path / "rel.json").write_text(json.dumps(REFERENTIE_RELATIES))
+    (tmp_path / "w").mkdir()
+    (tmp_path / "w" / "a.json").write_text(json.dumps(_weergave(_skelet_relaties("uitvoer", "invoer", "voorwaarde"))))
+    (tmp_path / "w" / "b.json").write_text(json.dumps({"data": _weergave(_skelet_relaties("uitvoer"))}))
+    (tmp_path / "map.json").write_text(json.dumps(MAPPING))
+    basis = ["vergelijk", "--referentie", str(tmp_path / "ref.json"), "--platform", str(tmp_path / "els.json"),
+             "--relaties", str(tmp_path / "rel.json")]
+    assert ed.main(basis + ["--weergaven", str(tmp_path / "w"), "--relatie-mapping", str(tmp_path / "map.json"),
+                            "--uit", str(tmp_path / "r.json")]) == 0
+    uit = capsys.readouterr().out
+    assert "recall per catalogustype" in uit and "Regelskelet: volledig=1" in uit
+    rapport = json.loads((tmp_path / "r.json").read_text())
+    assert rapport["platform_relaties"] == 3
+    assert rapport["relaties_inhoudelijk"]["per_type"]["uitvoer"]["gevonden"] == 1
+    with pytest.raises(SystemExit):
+        ed.main(basis + ["--weergaven", str(tmp_path / "w")])
+
+
+def test_de_cli_zonder_de_nieuwe_opties_is_ongewijzigd(referentie, tmp_path, capsys):
+    (tmp_path / "ref.json").write_text(json.dumps(referentie))
+    (tmp_path / "els.json").write_text(json.dumps({"elementen": [_el("Rechtsobject", "de toeslag")]}))
+    (tmp_path / "rel.json").write_text(json.dumps(REFERENTIE_RELATIES))
+    assert ed.main(["vergelijk", "--referentie", str(tmp_path / "ref.json"), "--platform", str(tmp_path / "els.json"),
+                    "--relaties", str(tmp_path / "rel.json"), "--uit", str(tmp_path / "r.json")]) == 0
+    uit = capsys.readouterr().out
+    rapport = json.loads((tmp_path / "r.json").read_text())
+    assert set(rapport) == {"schema", "platform_elementen", "annotaties", "relaties"}
+    assert "eindpuntdekking" in uit and "catalogustype" not in uit and "Regelskelet" not in uit
+    assert rapport == ed.vergelijk(referentie, {"elementen": [_el("Rechtsobject", "de toeslag")]},
+                                   relaties=REFERENTIE_RELATIES)

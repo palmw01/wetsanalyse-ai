@@ -50,7 +50,8 @@ def test_biedt_exact_de_tools_van_de_agent_aan(server_met_fake):
     server, _ = server_met_fake
     resultaat = asyncio.run(_handler(server, "tools/list")(None, None))
 
-    verwacht = tools.anthropic_schemas()
+    # Zonder CONNECTOR_*: de graaftools, zonder de bronconnectors (ADR-013).
+    verwacht = [t for t in tools.anthropic_schemas() if t["name"] not in tools.CONNECTOR_TOOLS]
     assert [t.name for t in resultaat.tools] == [t["name"] for t in verwacht]
     assert [t.input_schema for t in resultaat.tools] == [t["input_schema"] for t in verwacht]
     assert [t.description for t in resultaat.tools] == [t["description"] for t in verwacht]

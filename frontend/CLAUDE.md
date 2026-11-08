@@ -97,7 +97,9 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   - `graaf/` – de samenhangsgraaf (sigma); de rekenkern staat in `lib/graaf/`.
   - `admin/` – de beheertabs achter het admin-token: `ProfielenPanel` (+ `ProfileEditor`),
     `UsersPanel` (+ `BudgetBeleidBlok`), `RegistratiesPanel`, `ApiTokensPanel`,
-    `BerichtenBeheerPanel` (+ `BerichtEditor`), `FeedbackLijstClient`.
+    `BerichtenBeheerPanel` (+ `BerichtEditor`), `FeedbackLijstClient`, `ConnectorsPanel` (de bronconnectors van ADR-013: aan of
+    uit per beheerder mét 2FA, met de audit ingeklapt; welke er bestaan staat in de code; browserregressie
+    `scripts/test-connectors.mjs`).
   - `account/`, `auth/` – account, login/2FA/setup/registratie, disclaimer, `AuthFrame`.
   - `instellingen/` – `InstellingenVenster` (leest de parameter), `InstellingenDialog` (de dialoogschil),
     `InstellingenInhoud` (de tabs) en `InstellingenLink`. De tabdefinities en helpers staan in `lib/instellingen.ts`,
@@ -629,6 +631,20 @@ heeft *Verzend* (`isLaatsteVraag`), want wat erna komt hangt af van het antwoord
   dan toont de tab de bronnen van het werkgebied met een melding: een storing kost de indeling, niet de lijst.
 - Browserregressie: `scripts/test-bronselectie.mjs` (vier deelvragen: 1 → 2, tussenvraag, via het paneel naar
   4, herladen, hervatten, een ander gesprek, de pagina).
+
+### Een regie over deelgesprekken (ADR-012)
+
+"Zoek per deelvraag de bronnen" (of de suggestie met de actie `regie_bronnen`/`regie_annoteren`) laat graph-qa's regisseur
+het werk in het werkgebied verdelen. Lex legt eerst het plan voor: een `bevestiging` met `soort: "regie"`, `plan_id` en
+`opdracht` (`parseBevestiging`: zonder geldig plan geen knop). *Start de regie (n deelgesprekken)* stuurt
+`verstuur({regie})` → `startRun({actie, werkgebied_id, plan_id})`; *Annuleren* zoals bij de andere bevestigingen.
+
+- **Deelgesprekken staan onder hun regiegesprek** in de sidebar (`metDeelgesprekken` in `lib/gesprekGroepen.ts`, op
+  `ouder_id`; ingesprongen, `data-deelgesprek`). Elk is een gewoon gesprek met zijn eigen runstand (E6).
+- **Live**: een `regie_taak`-event (`onRegieTaak`) ververst de lijst, zodat een deelgesprek verschijnt zodra het start.
+- **Stop alles** is de stopknop van het regiegesprek: graph-qa stopt met de regierun ook zijn kinderen.
+- **De bundel** is een gewoon bericht met het artefact `regie` (ref `{werkgebied_id, regie_id}`); de chip opent het
+  werkgebied (`werkgebiedArtefactVan`).
 
 ### Kiezen binnen één artikel, en de reeks
 

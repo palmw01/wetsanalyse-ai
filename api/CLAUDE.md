@@ -154,6 +154,19 @@ Hieronder wat je moet weten om de code te wijzigen.
 - **Eén definitie van beoordeeld** (`annotatie_v2_contracts`): `BEOORDEELD` (`human_approved`, `edited`, `published`),
   `AFGEHANDELD` (daarnaast `rejected`), `VERGRENDELD` (`AFGEHANDELD` zonder `edited`) en `NIET_ACTUEEL` (`vervangen`).
   Schrijf de lifecycles nergens los uit; `frontend/lib/annotatie.ts` draagt dezelfde waarden en `tests/test_lifecycle_drift.py` bewaakt dat.
+- **Relaties tussen markeringen** (ADR-011, `annotatie_v2_relaties.py`).
+  - Een relatie hoort bij de laag van de drager: leggen, beoordelen en wissen lopen door het schrijfslot met
+    revisie, 412 en audit.
+  - De typen en klassenparen komen uit de gegenereerde `jas_relaties.py`; bewerk die niet.
+  - Een gewist element of een verwijderde bepaling neemt haar relaties mee (`wis_bij`).
+  - Een impliciete partij (`annotatie_v2_impliciet`) is geen markering. Een nieuwe lezer van de elemententabel
+    hoeft haar dus niet te kennen.
+  - De weergave draagt `relaties` en `impliciet`.
+  - De projectie (schema 4) zet ze in de graph van de dragerlaag (`laag_invoer` levert ze, `bouw_graaf(…,
+    relaties=)`). Een directe triple `rel:<type>` komt er alleen bij een beoordeelde relatie; `veranderd` niet,
+    want dat hangt af van een andere laag.
+  - De graafcontrole meldt `relaties.hangend` en `relaties.kardinaliteit`, diagnostisch en buiten `in_orde`.
+  - Zie de specificatie §*Relaties tussen markeringen*.
 - **Een oordeel vergrendelt.** Een element in `VERGRENDELD` dat van de agent komt of een oordeel draagt
   (`heeft_oordeel`), accepteert alleen `comment` en `heropen` (`annotatie_v2_store._beslis_in`). Afronden (`zet_status`
   → `geaccordeerd`) kan pas als elk actueel element afgehandeld is en de bron niet veranderde.
@@ -257,7 +270,10 @@ Hieronder wat je moet weten om de code te wijzigen.
   vanuit de bepaling en haar leden met ankertekst, wie ernaar verwijst (telling, de eerste tien, zonder de bepaling zelf),
   grondslag en bevoegdheid, genoemd in en gedefinieerde begrippen. De vorm staat in `bepaling_graaf_contract.py`
   (`Structuurdeel`, `Verwijzing`, `Telling`, `BepalingDetail`), de ene graaflezing per bepaling die het werkgebiedrapport
-  deelt (ADR-009). `detail_uit` is puur; een haperende graaf geeft `beschikbaar: false` met status 200, nooit een leeg detail.
+  deelt (ADR-009). De opschriften, de uitgaande verwijzingen en de tellingen komen uit `bepaling_graaf.lees`: de bepaling met
+  `met_inkomend=True`, haar leden en onderdelen zonder (één telquery, niet één per lid). Alleen wie ernaar verwijst, de
+  geldigheid en grondslag/bevoegdheid/genoemd in leest het endpoint zelf: dat wil het rapport niet. `detail_uit` is puur; een
+  haperende graaf geeft `beschikbaar: false` met status 200, nooit een leeg detail.
 
 ### Projectie naar de kennisgraaf
 
@@ -1051,7 +1067,7 @@ de stand van die beurt zien, dan heb je een momentopname nodig. Alleen een begri
   handelingen; verwijderen blijft echt wissen.
 - **Deelgesprekken** (ADR-012): `ouder_id` en `regie_id` op het gesprek. `POST` toetst dat de ouder een eigen gesprek is in
   hetzelfde werkgebied en zelf geen ouder heeft (404, 409 `ander_werkgebied`/`te_diep`), en dat de regie bij die ouder hoort
-  (409 `andere_regie`). `GET ?ouder_id=` geeft de deelgesprekken (`""` = alleen gesprekken zonder ouder). Een ouder
+  (409 `andere_regie`), en van dezelfde gebruiker is. **Het agent-token maakt alleen zo'n deelgesprek**, onder een regie die loopt (403 `alleen_deelgesprek`, 409 `regie_afgerond`): anders kon het namens elke `X-User-Id` gesprekken aanmaken. `GET ?ouder_id=` geeft de deelgesprekken (`""` = alleen gesprekken zonder ouder). Een ouder
   verwijderen, het gesprek verhuizen of het werkgebied wissen maakt een deelgesprek los; het wordt nooit mee gewist.
 
 - Een bericht verwijst via **`artefact`** naar wat de beurt opleverde: `{soort, ref, titel}` met
@@ -1187,6 +1203,21 @@ Daaruit volgt:
 - **Wijzigen draagt iemands naam.** Reset, `PUT /v1/admin/budget` en het rolbudget staan achter `require_admin`
   én `beheerder_met_2fa`: de BFF zet `X-User-Id` uit de sessie, een kaal admin-token (de admin-MCP) komt er niet
   door, en de `door` komt in `budget_audit`, append-only, met de oude en de nieuwe waarde.
+
+## Bronconnectors (ADR-013)
+
+`app/connectors.py`: het register van de bronconnectors; de beheerroutes staan in `routers/admin.py`. **Welke er bestaan staat in de code** (`BEKEND`, gelijk aan
+`tools.CONNECTORS` van graph-qa; `tools/graph-qa/tests/test_bronschakelaar.py` leest deze bron): een bronconnector is een
+getypeerde tool met een eigen soort vindplaats, geen configuratie. Het register zegt alleen aan of uit (tabel `connectors`;
+een rij ontbreekt = uit), en elke wijziging is een regel in `connector_audit`.
+
+- `GET /v1/admin/connectors`, `GET …/{naam}/audit`: admin-token.
+- `PUT /v1/admin/connectors/{naam}` `{aan}`: een beheerder mét 2FA uit de sessie (`beheerder_met_2fa`, zoals het budget),
+  dus niet met een los token of de admin-MCP. Dubbel aanzetten is geen auditregel.
+- `GET /v1/connectors` (`routers/connectors.py`, `require_client`, en op de lijst van het agent-token in `agent_toegang.py`):
+  `{aan: [naam]}`, voor graph-qa per beurt. Graph-qa zet daarnaast zijn eigen
+  straatvlag (`CONNECTOR_<NAAM>`); een connector draait alleen als beide aanstaan, en een onleesbaar register zet niets aan.
+- Credentials en een rate-limit per connector komen met de eerste connector die ze nodig heeft (EUR-Lex).
 
 ## Schema
 

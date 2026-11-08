@@ -18,6 +18,7 @@ AGENT_CLIENT = "graph-qa"
 
 TOEGESTAAN: frozenset[tuple[str, str]] = frozenset({
     ("GET", "/v1/annotatie/dekking"),
+    ("GET", "/v1/connectors"),
     ("GET", "/v1/annotatie/elementen/{}"),
     ("GET", "/v1/annotatie/weergave"),
     ("GET", "/v1/begrippen"),
@@ -39,9 +40,11 @@ TOEGESTAAN: frozenset[tuple[str, str]] = frozenset({
     ("GET", "/v1/werkgebieden/{}/thema-voorstel"),
     ("GET", "/v1/werkgebieden/{}/verdieping"),
     ("PATCH", "/v1/werkgebieden/{}"),
+    ("PATCH", "/v1/werkgebieden/{}/regies/{}"),
     ("POST", "/v1/annotatie/lagen/batch"),
     ("POST", "/v1/annotatie/zoeken"),
     ("POST", "/v1/begrippen/verifieer"),
+    ("POST", "/v1/gesprekken"),
     ("POST", "/v1/gesprekken/{}/berichten"),
     ("POST", "/v1/verbruik"),
     ("POST", "/v1/werkgebieden"),
@@ -57,6 +60,7 @@ TOEGESTAAN: frozenset[tuple[str, str]] = frozenset({
     ("POST", "/v1/werkgebieden/{}/bronselectie/{}/status"),
     ("POST", "/v1/werkgebieden/{}/bronselectie/{}/voorstellen"),
     ("POST", "/v1/werkgebieden/{}/deelvragen/voorstellen"),
+    ("POST", "/v1/werkgebieden/{}/regies"),
     ("PUT", "/v1/werkgebieden/{}/begrippen-runs/{}/batches/{}"),
     ("PUT", "/v1/werkgebieden/{}/begrippen-runs/{}/uitkomst"),
     ("PUT", "/v1/werkgebieden/{}/begrippen-runs/{}/verdieping"),

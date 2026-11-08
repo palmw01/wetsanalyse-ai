@@ -51,3 +51,30 @@ async def test_de_audit_noemt_de_client(client):
     async with db.get_engine().connect() as conn:
         clients = (await conn.execute(select(db.werkgebied_audit.c.client))).scalars().all()
     assert clients and set(clients) == {"frontend"}
+
+
+async def test_het_agent_token_maakt_alleen_een_deelgesprek_van_een_lopende_regie(client):
+    """ADR-012: Lex maakt deelgesprekken onder een regie, en niets anders, voor de gebruiker van die regie."""
+    from conftest import maak_testgebruikers
+    await maak_testgebruikers("user2")
+    wg = (await client.post("/v1/werkgebieden", headers=WEBAPP, json={"naam": "Regie", "analysevraag": "Wat?"})).json()
+    ouder = (await client.post("/v1/gesprekken", headers=WEBAPP, json={"werkgebied_id": wg["id"]})).json()
+    regie = (await client.post(f"/v1/werkgebieden/{wg['id']}/regies", headers=AGENT, json={
+        "gesprek_id": ouder["id"], "opdracht": "bronnen", "plan_id": "0123456789abcdef"})).json()
+    kind = {"titel": "Bronnen · deelvraag 1", "werkgebied_id": wg["id"], "ouder_id": ouder["id"], "regie_id": regie["id"]}
+
+    res = await client.post("/v1/gesprekken", headers=AGENT, json=kind)
+    assert res.status_code == 201, res.text
+    assert (res.json()["ouder_id"], res.json()["user_id"]) == (ouder["id"], "user1")
+    # Een los gesprek, of een gesprek zonder regie, maakt het agent-token niet; de webapp wel.
+    for body in ({"titel": "Los"}, {"werkgebied_id": wg["id"]}, {**kind, "regie_id": ""}):
+        res = await client.post("/v1/gesprekken", headers=AGENT, json=body)
+        assert res.status_code == 403 and res.json()["detail"]["fout"] == "alleen_deelgesprek", (body, res.text)
+    assert (await client.post("/v1/gesprekken", headers=WEBAPP, json={"titel": "Los"})).status_code == 201
+    # Namens een andere gebruiker: de ouder en de regie zijn niet van hem.
+    ander = {**AGENT, "X-User-Id": "user2"}
+    assert (await client.post("/v1/gesprekken", headers=ander, json=kind)).status_code == 404
+    # Na afloop van de regie geen nieuwe deelgesprekken meer.
+    await client.patch(f"/v1/werkgebieden/{wg['id']}/regies/{regie['id']}", headers=AGENT, json={"status": "klaar"})
+    res = await client.post("/v1/gesprekken", headers=AGENT, json=kind)
+    assert res.status_code == 409 and res.json()["detail"]["fout"] == "regie_afgerond"

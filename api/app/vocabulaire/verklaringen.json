@@ -88,6 +88,10 @@
       "naam": "Oorzaak",
       "uitleg": "'Wegens', 'ten gevolge van': een oorzaak die een voorwaarde of rechtsfeit kan zijn."
     },
+    "CLAUSE_COORDINATION": {
+      "naam": "Logische verbinding tussen zinnen",
+      "uitleg": "'En' of 'of' tussen twee (bij)zinnen of gezegden, elk met een eigen werkwoord: alle voorwaarden of normen gelden (EN), of één ervan (OF)."
+    },
     "COMPARISON": {
       "naam": "Vergelijking",
       "uitleg": "'Meer bedraagt dan', 'ten minste', 'niet meer dan': een vergelijkende operator."
@@ -196,6 +200,14 @@
       "naam": "Veelvoud",
       "uitleg": "'Tweemaal', 'het drievoudige': een vermenigvuldiging."
     },
+    "NEGATED_CONDITION": {
+      "naam": "Ontkende voorwaarde",
+      "uitleg": "'Tenzij': het gevolg treedt in zolang de voorwaarde erna níét vervuld is (logisch NIET). De bijzin zelf blijft een eigen Voorwaarde."
+    },
+    "NEGATION_IN_CONDITION": {
+      "naam": "Ontkenning in een voorwaarde",
+      "uitleg": "'Niet' of 'geen' in een voorwaardelijke bijzin: aan die voorwaarde mag niet voldaan zijn (logisch NIET)."
+    },
     "NOMINALIZED_ACTION": {
       "naam": "Handeling als zelfstandig naamwoord",
       "uitleg": "'Het indienen van', 'de dagtekening van': een handeling of gebeurtenis als naamwoord."
@@ -227,6 +239,10 @@
     "PERSON_PRONOUN": {
       "naam": "Verwijzend voornaamwoord",
       "uitleg": "'Hij', 'degene', 'een ieder': een voornaamwoord dat naar een persoon verwijst."
+    },
+    "PHRASE_COORDINATION": {
+      "naam": "Logische verbinding tussen woordgroepen",
+      "uitleg": "'En' of 'of' tussen twee naamwoordgroepen ('de aanslag of de beschikking'): een operator binnen een voorwaarde, berekening of opsomming. Het kan ook een gewone opsomming zijn; dat vraagt een oordeel."
     },
     "PRIORITY_APPLIED": {
       "naam": "Voorrangsregel toegepast",
@@ -683,6 +699,13 @@
       "soort": "detector",
       "uitleg": "'Valt op een andere dag dan': twee waarden of momenten worden vergeleken en verschillen."
     },
+    "jas.operator.ontkende_voorwaarde": {
+      "bron": "H2:98",
+      "code": "NEGATED_CONDITION",
+      "naam": "Ontkende voorwaarde",
+      "soort": "detector",
+      "uitleg": "'Tenzij': het gevolg treedt in zolang de voorwaarde erna níét vervuld is (logisch NIET). De bijzin zelf blijft een eigen Voorwaarde."
+    },
     "jas.operator.rekenkundig": {
       "bron": "H2:100",
       "code": "ARITHMETIC",
@@ -959,5 +982,5 @@
       "uitleg": "Waarschuwing: hetzelfde fragment kreeg twee klassen."
     }
   },
-  "vocabulaire_versie": "092af713e453"
+  "vocabulaire_versie": "3ba6eab2a905"
 }

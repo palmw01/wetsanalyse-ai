@@ -56,3 +56,16 @@ describe("het antwoord op een bevestiging", () => {
     expect(afgehandeld([vraag("v", "gestart"), voorstel("a")]).size).toBe(0);
   });
 });
+
+describe("de bevestiging van een regie (ADR-012)", () => {
+  const regie = { soort: "regie", werkgebied_id: "w", aantal: 3, schatting: 0, plan_id: "0123456789abcdef",
+    opdracht: "bronnen" };
+  it("draagt het plan en de opdracht", () => {
+    expect(parseBevestiging(regie)).toEqual({ soort: "regie", werkgebied_id: "w", aantal: 3, schatting: 0,
+      plan_id: "0123456789abcdef", opdracht: "bronnen" });
+  });
+  it("zonder geldig plan of opdracht geen knop", () => {
+    expect(parseBevestiging({ ...regie, plan_id: "x" })).toBeUndefined();
+    expect(parseBevestiging({ ...regie, opdracht: "begrippen" })).toBeUndefined();
+  });
+});

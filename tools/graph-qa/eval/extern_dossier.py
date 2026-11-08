@@ -20,15 +20,18 @@ Wat de vergelijking wel en niet zegt:
   operatorwoord, een ellips) kan Lex nooit precies zo markeren: offsets komen uit de bron. Dat telt apart.
 - **Impliciete elementen** (een rechtssubject dat alleen in de toelichting staat) zijn niet annoteerbaar en
   tellen niet mee; ze worden genoemd.
-- **Relaties** legt het platform in activiteit 2 niet vast. Uit een transcriptie van de diagrammen
-  (`relaties.json`, zie `lees_relaties`) is alleen de eindpuntdekking te meten: zijn beide knopen van een kant
-  als element met de juiste klasse geannoteerd?
+- **Relaties.** Uit een transcriptie van de diagrammen (`relaties.json`, zie `lees_relaties`) komt de
+  eindpuntdekking: zijn beide knopen van een kant als element met de juiste klasse geannoteerd? Sinds ADR-011
+  legt het platform ook zelf relaties vast. Met de weergaven (`platform_relaties`) en een vertaaltabel van de
+  notatie van het team naar de catalogus (`lees_mapping`) komen er de recall per catalogustype
+  (`vergelijk_relaties_inhoudelijk`) en het regelskelet per afleidingsregel (`regelskelet`) bij.
 
 Gebruik:
 
     uv run python -m eval.extern_dossier lees --export <map> --uit <referentie.json>
     uv run python -m eval.extern_dossier vergelijk --referentie <referentie.json> --platform <elementen.json> \\
-        [--werkgebied <werkgebied.json>] [--relaties <relaties.json>] [--uit <rapport.json>]
+        [--werkgebied <werkgebied.json>] [--relaties <relaties.json>] [--uit <rapport.json>] \\
+        [--weergaven <weergave.json …|map> --relatie-mapping <vertaaltabel.json>]
 """
 from __future__ import annotations
 
@@ -613,6 +616,209 @@ def vergelijk_relaties(relaties: list[dict[str, Any]], elementen: list[dict[str,
     return {"per_type": dict(sorted(per_type.items())), "knopen": knoopstand}
 
 
+# --- Relaties: wat het platform vastlegde (ADR-011) -----------------------------------------------------------
+
+#: De relatiecatalogus van de skill. De vergelijker draait in de repo, dus hij mag hem lezen.
+CATALOGUS = Path(__file__).resolve().parents[3] / ".claude" / "skills" / "wetsanalyse" / "relaties.json"
+
+
+def catalogus_typen(pad: Path | None = None) -> set[str]:
+    """De codes uit de relatiecatalogus (`relaties.json` → `typen`)."""
+    return set(json.loads((pad or CATALOGUS).read_text(encoding="utf-8"))["typen"])
+
+
+def _weergave(x: Any) -> dict[str, Any] | None:
+    """Een weergave (`GET /v1/annotatie/weergave`), ruw of verpakt onder `data` (zoals de BFF-tool hem teruggeeft)."""
+    while isinstance(x, dict):
+        if "relaties" in x or ("elementen" in x and "lagen" in x):
+            return x
+        x = x.get("data")
+    return None
+
+
+def _weergaven(data: Any) -> list[dict[str, Any]]:
+    lijst = data if isinstance(data, list) else [data]
+    return [w for w in (_weergave(x) for x in lijst) if w]
+
+
+def _eindpunt(ep: dict[str, Any]) -> dict[str, Any]:
+    return {"klasse": ep.get("klasse"), "tekst": ep.get("tekst") or "", "impliciet": ep.get("soort") == "impliciet"}
+
+
+def platform_relaties(weergaven: list[Any]) -> list[dict[str, Any]]:
+    """De relaties uit een of meer weergaven, ontdubbeld op id: per relatie `{type, volgorde, lifecycle, van: {klasse,
+    tekst, impliciet}, naar: {…}}`, plus `id` en `bron_iris` (de bepalingen waar de laag of een eindpunt bij hoort).
+    Een afgewezen relatie (`lifecycle == "rejected"`) telt niet mee."""
+    gezien: dict[str, dict[str, Any]] = {}
+    for w in _weergaven(weergaven):
+        lagen = {l.get("id"): l.get("bron_iri") or "" for l in w.get("lagen") or []}
+        elementen = {e.get("id"): e for e in w.get("elementen") or []}
+        for r in w.get("relaties") or []:
+            if r.get("lifecycle") == "rejected" or r.get("id") in gezien:
+                continue
+            iris = {lagen.get(r.get("laag_id"))}
+            for ep in (r.get("van") or {}, r.get("naar") or {}):
+                iris.add(lagen.get(ep.get("laag_id")))
+                if ep.get("soort") == "element" and ep.get("id") in elementen:
+                    iris.update(_iris(elementen[ep["id"]]))
+            gezien[r.get("id") or f"r{len(gezien)}"] = {
+                "id": r.get("id"), "type": r.get("type"), "volgorde": r.get("volgorde"),
+                "lifecycle": r.get("lifecycle"), "van": _eindpunt(r.get("van") or {}),
+                "naar": _eindpunt(r.get("naar") or {}), "bron_iris": sorted(i for i in iris if i)}
+    return list(gezien.values())
+
+
+def weergave_elementen(weergaven: list[Any]) -> list[dict[str, Any]]:
+    """De elementen uit de weergaven, ontdubbeld op id."""
+    uit: dict[str, dict[str, Any]] = {}
+    for w in _weergaven(weergaven):
+        for e in w.get("elementen") or []:
+            uit.setdefault(e.get("id") or f"e{len(uit)}", e)
+    return list(uit.values())
+
+
+def lees_mapping(data: dict[str, Any], catalogus: set[str] | None = None) -> dict[str, dict[str, Any] | None]:
+    """De vertaaltabel van de notatie van een team naar de catalogus: `{"versie": 1, "typen": {"<teamtype>":
+    {"type": "<code>", "omgekeerd": false} | null}}`. `null` is geen catalogustype (regelinhoud of regelstructuur)
+    en geen fout; een code die de catalogus niet kent wel. De tabel van een team blijft buiten de repo."""
+    if data.get("versie") != 1:
+        raise ValueError(f"onbekende versie van de vertaaltabel: {data.get('versie')!r}")
+    codes = catalogus if catalogus is not None else catalogus_typen()
+    uit: dict[str, dict[str, Any] | None] = {}
+    for teamtype, doel in (data.get("typen") or {}).items():
+        if doel is None:
+            uit[teamtype] = None
+            continue
+        if not isinstance(doel, dict) or doel.get("type") not in codes:
+            raise ValueError(f"teamtype {teamtype!r}: {doel!r} is geen type uit de relatiecatalogus")
+        uit[teamtype] = {"type": doel["type"], "omgekeerd": bool(doel.get("omgekeerd", False))}
+    return uit
+
+
+def _meetbaar(k: dict[str, Any]) -> bool:
+    """Een knoop is meetbaar als hij letterlijk in de tekst staat of impliciet is; een parafrase niet."""
+    return k.get("letterlijk", "ja") in ("ja", "impliciet")
+
+
+def _knoop_past(k: dict[str, Any], ep: dict[str, Any]) -> bool:
+    """Een referentieknoop tegen een platformeindpunt: dezelfde klasse, en dezelfde plek (letterlijk) of allebei
+    impliciet. Een parafraseknoop past nooit; die telt als niet meetbaar."""
+    if k.get("klasse") != ep.get("klasse"):
+        return False
+    if k.get("letterlijk") == "impliciet":
+        return bool(ep.get("impliciet"))
+    return not ep.get("impliciet") and _zelfde_plek(ep.get("tekst", ""), k.get("label", ""))
+
+
+def _bij_bepaling(prels: list[dict[str, Any]], bron: dict[str, str]) -> list[dict[str, Any]]:
+    """De platformrelaties van een bepaling; een relatie zonder bekende bepaling kan overal staan."""
+    return [r for r in prels if not r["bron_iris"] or any(_iri_past(i, bron) for i in r["bron_iris"])]
+
+
+def _vertaal(b: dict[str, Any], mapping: dict[str, dict[str, Any] | None]) -> tuple[list, list, list]:
+    """De kanten van een bepaling op de catalogus: (van-id, type, naar-id, teamtype), met de richting omgedraaid bij
+    `omgekeerd`. Daarnaast de teamtypen die `null` zijn en de teamtypen die niet in de tabel staan."""
+    vertaald, buiten, zonder = [], [], []
+    for kant in b["kanten"]:
+        if kant["type"] not in mapping:
+            zonder.append(kant["type"])
+        elif (doel := mapping[kant["type"]]) is None:
+            buiten.append(kant["type"])
+        else:
+            a, z = (kant["naar"], kant["van"]) if doel["omgekeerd"] else (kant["van"], kant["naar"])
+            vertaald.append((a, doel["type"], z, kant["type"]))
+    return vertaald, buiten, zonder
+
+
+def _gevonden(b: dict[str, Any], a: str, t: str, z: str, hier: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    ka, kz = b["knopen"][a], b["knopen"][z]
+    return [r for r in hier if r["type"] == t and _knoop_past(ka, r["van"]) and _knoop_past(kz, r["naar"])]
+
+
+def vergelijk_relaties_inhoudelijk(relaties: list[dict[str, Any]], prels: list[dict[str, Any]],
+                                   mapping: dict[str, dict[str, Any] | None]) -> dict[str, Any]:
+    """Recall per catalogustype op (van, type, naar). Een kant is `gevonden` als er een platformrelatie van hetzelfde
+    type is waarvan beide eindpunten passen (`_knoop_past`), `niet_meetbaar` als een eindpunt een parafrase is;
+    `recall` = gevonden / (n - niet_meetbaar). Daarnaast `buiten_catalogus` (teamtype `null`), `zonder_mapping`
+    (teamtype niet in de tabel) en `alleen_platform`: platformrelaties op een bepaling zonder referentiekant ernaast."""
+    per_type: dict[str, dict[str, Any]] = {}
+    buiten: dict[str, int] = {}
+    zonder: dict[str, int] = {}
+    kanten, alleen = [], []
+    for b in relaties:
+        hier = _bij_bepaling(prels, b["bron"])
+        vertaald, bt, zm = _vertaal(b, mapping)
+        for x in bt:
+            buiten[x] = buiten.get(x, 0) + 1
+        for x in zm:
+            zonder[x] = zonder.get(x, 0) + 1
+        raak: set[int] = set()
+        for a, t, z, teamtype in vertaald:
+            rij = per_type.setdefault(t, dict(n=0, gevonden=0, niet_meetbaar=0))
+            rij["n"] += 1
+            if not (_meetbaar(b["knopen"][a]) and _meetbaar(b["knopen"][z])):
+                rij["niet_meetbaar"] += 1
+                uitkomst = "niet_meetbaar"
+            elif treffers := _gevonden(b, a, t, z, hier):
+                rij["gevonden"] += 1
+                raak.update(id(r) for r in treffers)
+                uitkomst = "gevonden"
+            else:
+                uitkomst = "gemist"
+            kanten.append({"bron": bron_sleutel(b["bron"]), "teamtype": teamtype, "type": t,
+                           "van": b["knopen"][a]["label"], "naar": b["knopen"][z]["label"], "uitkomst": uitkomst})
+        alleen += [{"bron": bron_sleutel(b["bron"]), "type": r["type"], "van": r["van"]["tekst"],
+                    "naar": r["naar"]["tekst"], "id": r["id"]} for r in hier if id(r) not in raak]
+    for rij in per_type.values():
+        meetbaar = rij["n"] - rij["niet_meetbaar"]
+        rij["recall"] = round(rij["gevonden"] / meetbaar, 3) if meetbaar else None
+    return {"per_type": dict(sorted(per_type.items())), "buiten_catalogus": dict(sorted(buiten.items())),
+            "zonder_mapping": dict(sorted(zonder.items())), "alleen_platform": alleen, "kanten": kanten}
+
+
+def regelskelet(relaties: list[dict[str, Any]], prels: list[dict[str, Any]],
+                mapping: dict[str, dict[str, Any] | None], elementen: list[dict[str, Any]]) -> dict[str, Any]:
+    """Regelskelet-compleet (ADR-011 §Meten): per Afleidingsregel uit de referentie, is de regel gemarkeerd (een
+    element of relatie-eindpunt op die plek), en zijn zijn uitvoer, minstens één invoer en elke voorwaarde als
+    platformrelatie gevonden? Alleen kanten die op de catalogus te vertalen en meetbaar zijn, tellen mee; een
+    parafraseregel telt niet als ongemarkeerd. Uitkomst `volledig`, `deels` of `niet`, en `niet_meetbaar` als er
+    niets te meten valt."""
+    regels, telling = [], {"volledig": 0, "deels": 0, "niet": 0, "niet_meetbaar": 0}
+    for b in relaties:
+        hier = _bij_bepaling(prels, b["bron"])
+        els = [e for e in elementen if any(_iri_past(x, b["bron"]) for x in _iris(e) if x)]
+        eindpunten = [_eindpunt({**e, "soort": "element"}) for e in els] + \
+                     [ep for r in hier for ep in (r["van"], r["naar"])]
+        vertaald, _, _ = _vertaal(b, mapping)
+
+        def meetbaar(a: str, z: str) -> bool:
+            return _meetbaar(b["knopen"][a]) and _meetbaar(b["knopen"][z])
+        for rid, k in b["knopen"].items():
+            if k["klasse"] != "Afleidingsregel":
+                continue
+            eisen: list[tuple[str, bool]] = []  # (wat, gevonden)
+            if _meetbaar(k):
+                eisen.append(("regel", any(_knoop_past(k, ep) for ep in eindpunten)))
+            for a, t, z, _tt in vertaald:
+                if t in ("uitvoer", "voorwaarde") and a == rid and meetbaar(a, z):
+                    eisen.append((f"{t}: {b['knopen'][z]['label']}", bool(_gevonden(b, a, t, z, hier))))
+            invoer = [(a, z) for a, t, z, _tt in vertaald if t == "invoer" and z == rid and meetbaar(a, z)]
+            if invoer:
+                eisen.append(("invoer", any(_gevonden(b, a, "invoer", z, hier) for a, z in invoer)))
+            if not eisen:
+                uitkomst = "niet_meetbaar"
+            elif all(g for _, g in eisen):
+                uitkomst = "volledig"
+            elif any(g for _, g in eisen):
+                uitkomst = "deels"
+            else:
+                uitkomst = "niet"
+            telling[uitkomst] += 1
+            regels.append({"bron": bron_sleutel(b["bron"]), "regel": k["label"], "uitkomst": uitkomst,
+                           "ontbreekt": [w for w, g in eisen if not g]})
+    return {"telling": telling, "regels": regels}
+
+
 # --- Bronselectie per deelvraag -----------------------------------------------------------------------------
 
 def vergelijk_bronnen(referentie: dict[str, Any], werkgebied: dict[str, Any]) -> list[dict[str, Any]]:
@@ -642,14 +848,24 @@ def _omvat(iri: str, bron: dict[str, str]) -> bool:
 
 
 def vergelijk(referentie: dict[str, Any], platform: Any, *, werkgebied: dict[str, Any] | None = None,
-              relaties: dict[str, Any] | None = None) -> dict[str, Any]:
+              relaties: dict[str, Any] | None = None, weergaven: list[Any] | None = None,
+              relatie_mapping: dict[str, Any] | None = None) -> dict[str, Any]:
+    """De vergelijking. Met `relaties`, `weergaven` en `relatie_mapping` samen komen er de recall per catalogustype
+    (`relaties_inhoudelijk`) en het regelskelet bij; zonder blijft de uitvoer zoals hij was."""
     elementen = platform_elementen(platform)
     uit: dict[str, Any] = {"schema": "extern-vergelijking-v1", "platform_elementen": len(elementen),
                            "annotaties": vergelijk_annotaties(referentie, elementen)}
     if werkgebied is not None:
         uit["bronselectie"] = vergelijk_bronnen(referentie, werkgebied)
     if relaties is not None:
-        uit["relaties"] = vergelijk_relaties(lees_relaties(relaties), elementen)
+        gelezen = lees_relaties(relaties)
+        uit["relaties"] = vergelijk_relaties(gelezen, elementen)
+        if weergaven is not None and relatie_mapping is not None:
+            mapping = lees_mapping(relatie_mapping)
+            prels = platform_relaties(weergaven)
+            uit["platform_relaties"] = len(prels)
+            uit["relaties_inhoudelijk"] = vergelijk_relaties_inhoudelijk(gelezen, prels, mapping)
+            uit["regelskelet"] = regelskelet(gelezen, prels, mapping, elementen + weergave_elementen(weergaven))
     return uit
 
 
@@ -676,6 +892,18 @@ def _print(rapport: dict[str, Any]) -> None:
         for t, x in rapport["relaties"]["per_type"].items():
             print(f"  {t:<24} n={x['n']} beide={x['beide']} één={x['een']} geen={x['geen']} "
                   f"niet meetbaar={x['niet_meetbaar']}")
+    if "relaties_inhoudelijk" in rapport:
+        ri = rapport["relaties_inhoudelijk"]
+        print(f"\nRelaties: recall per catalogustype (platformrelaties: {rapport['platform_relaties']})")
+        for t, x in ri["per_type"].items():
+            print(f"  {t:<24} {x['gevonden']:>3}/{x['n']:<3} recall {x['recall']}  niet meetbaar={x['niet_meetbaar']}")
+        for naam, sleutel in (("buiten de catalogus", "buiten_catalogus"), ("niet in de vertaaltabel", "zonder_mapping")):
+            if ri[sleutel]:
+                print(f"  {naam}: " + ", ".join(f"{t} ({n})" for t, n in ri[sleutel].items()))
+        print(f"  alleen platform: {len(ri['alleen_platform'])}")
+        t = rapport["regelskelet"]["telling"]
+        print(f"\nRegelskelet: volledig={t['volledig']} deels={t['deels']} niet={t['niet']} "
+              f"niet meetbaar={t['niet_meetbaar']}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -690,11 +918,23 @@ def main(argv: list[str] | None = None) -> int:
     verg.add_argument("--platform", type=Path, required=True, help="elementen (inventaris of werkgebied_lezen)")
     verg.add_argument("--werkgebied", type=Path, help="het werkgebied met deelvragen en bronnen")
     verg.add_argument("--relaties", type=Path, help="transcriptie van de diagrammen")
+    verg.add_argument("--weergaven", type=Path, nargs="+",
+                      help="weergaven met relaties (GET /v1/annotatie/weergave), als bestanden of een map met *.json")
+    verg.add_argument("--relatie-mapping", type=Path, help="vertaaltabel van de teamtypen naar de relatiecatalogus")
     verg.add_argument("--uit", type=Path)
     args = ap.parse_args(argv)
+    if args.actie == "vergelijk" and (args.weergaven or args.relatie_mapping) and not (
+            args.weergaven and args.relatie_mapping and args.relaties):
+        ap.error("--weergaven en --relatie-mapping horen samen, en vragen --relaties")
 
     def laad(p: Path | None) -> Any:
         return json.loads(p.read_text(encoding="utf-8")) if p else None
+
+    def laad_weergaven(paden: list[Path] | None) -> list[Any] | None:
+        if not paden:
+            return None
+        bestanden = [f for p in paden for f in (sorted(p.glob("*.json")) if p.is_dir() else [p])]
+        return [laad(f) for f in bestanden]
 
     if args.actie == "lees":
         paden = sorted(args.export.glob("*.html")) if args.export.is_dir() else [args.export]
@@ -704,7 +944,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{len(referentie['bepalingen'])} bepalingen, {n} fragmenten, {len(referentie['bronnen'])} bronnen")
         return 0
     rapport = vergelijk(laad(args.referentie), laad(args.platform), werkgebied=laad(args.werkgebied),
-                        relaties=laad(args.relaties))
+                        relaties=laad(args.relaties), weergaven=laad_weergaven(args.weergaven),
+                        relatie_mapping=laad(args.relatie_mapping))
     if args.uit:
         args.uit.write_text(json.dumps(rapport, ensure_ascii=False, indent=2), encoding="utf-8")
     _print(rapport)

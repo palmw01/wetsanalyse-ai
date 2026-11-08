@@ -197,10 +197,25 @@ bruikbaar is.
 
 ## Toollaag & queries
 
-- **`tools/__init__.py`** – `TOOLS` (27 declaraties: 21 graaftools, de vier annotatieleestools uit
-  `tools/annotatie_tools.py` en de twee begrippenleestools uit `tools/begrip_tools.py`), `anthropic_schemas(only=)` en `dispatch()` (vangt
+- **`tools/__init__.py`** – `TOOLS` (29 declaraties: 21 graaftools, de vier annotatieleestools uit
+  `tools/annotatie_tools.py`, de twee begrippenleestools uit `tools/begrip_tools.py` en de twee Kamerstuktools uit
+  `tools/kamerstuk_tools.py`), `anthropic_schemas(only=)` en `dispatch()` (vangt
   `ValueError`/`MCPError`/`KeyError` als tekst). Een tool met `needs_settings` krijgt `settings` mee.
   `tools/jas_tools.py` (`JAS_TOOLS`) is dispatchbaar maar wordt in de draaiende keten niet aangeroepen.
+- **Bronconnectors** (ADR-013): `CONNECTORS` (connector → tools) en `toegestane_tools(tools, settings)`, de ene
+  regel voor de schema's van de antwoordlus, de MCP-server en `dispatch`. Een connector staat uit tot de straat hem
+  aanzet (`CONNECTOR_KAMERSTUKKEN=true`); uit is niet aangeboden, en een aanroep is dan `connector_uit`. **De beurt
+  beperkt verder** (`ChatRequest.bronnen`, `State.bronnen`, per beurt): weggelaten = wat de straat aanbiedt, een lege
+  lijst = alleen wetgeving, en een connector die de straat niet aanbiedt gaat nooit aan (`actieve_connectors`).
+  `tool_execution` geeft de stand aan `dispatch`, dus ook een workflow die een tool in code aanroept valt eronder; de
+  logregel `beurt_meting` noemt de actieve bronnen. `tests/test_bronschakelaar.py`.
+  **Kamerstukken** (`tools/kamerstuk_tools.py`, transport `adapters/sru_kamerstukken.py`): `zoek_kamerstukken`
+  (een dossier op nummer, of woorden in de titel) en `get_kamerstuk` (per alinea, met de kop, in documentvolgorde;
+  tabellen, illustraties en voetnoten geteld in `overgeslagen`). De CQL bouwt de tool, de document-URL komt uit het
+  SRU-record en alleen `repository.overheid.nl` over https; een SRU-diagnose of storing is een foutresultaat
+  (`bron_onbereikbaar`), nooit een lege lijst. Een rij draagt haar tekst onder `id`, niet onder `iri`/`uri`: een
+  sjabloon citeert er dus niet uit als passage van een bepaling. Cache per proces en per id, met de teksthash in de
+  log. Live meten: `KAMERSTUKKEN_LIVE=1 uv run pytest tests/test_kamerstuk_tools.py`.
 - **`graph/queries.py`** – de SPARQL-bouwers (o.a. `context()` = de GraphRAG-UNION).
   **`graph/schema.py`** – schema-introspectie met een cache van een uur. **`graph/results.py`** –
   `parse_select`: de MCP levert SELECT als JSON-string-gewrapte TSV.
@@ -945,6 +960,27 @@ schatting`, zonder schatting het budget gelijk verdeeld). `plan_id` hasht alleen
 meegaat, staat in `buiten` met de reden. `kind_verzoek` maakt het `ChatRequest` van een kind: de actie `bronselectie`
 op de deelvraag, of `deelvragen_annoteren`/`werkgebied_annoteren` met `bevestigd`, `eenheden` en `budget_aandeel`.
 Tests: `tests/test_regie_plan.py`.
+
+### De regisseur (`agent/regie/regisseur.py`, ADR-012)
+
+Een regie verdeelt het werk in een werkgebied over deelgesprekken: een eigen stroom in `_stroom_voor` (zoals de reeks),
+geen node. Ingang: de acties `regie_bronnen` en `regie_annoteren` (`REGIE_ACTIES`, geen taak van een agent), of een getypte
+opdracht met "per deelvraag" (`opdracht_in`, alleen een verzoek; met bronnen én annoteren eerst de bronnenronde).
+`tests/test_regisseur.py` haalt elke vraag uit de routerings- en gespreksset erdoorheen: geen ervan mag erin vallen.
+
+- **Eerst een bevestiging** (`soort: "regie"`, `plan_id`): zonder `plan_id` gelijk aan het plan van nu alleen het voorstel,
+  met kosten, de grens op tegelijk en wat niet meegaat.
+- **Dan de regie bij de api** (409: er loopt er al een), een hartslag elke `HARTSLAG_S`, en per taak een kindgesprek
+  (`ouder_id`, `regie_id`) met een gewone run langs `start_beurt` (`ouder_run_id`, budgetpoort aan). Hoogstens
+  `REGIE_PARALLEL` (2, max 3) tegelijk, met een semafoor; volgen is `await` op de taak van het kind. De bronnenronde zoekt
+  vooraf één keer (`zoek_run`), zodat de kinderen niet op elkaar wachten.
+- **Stoppen** van de regierun stopt de lopende kinderen (`_stopwacht`), en wie nog wacht, start niet.
+- **De bundel** komt uit de stand bij de api na afloop: opgeleverd, wacht op jou (voorgestelde bronnen, markeringen te
+  beoordelen, wat niet aan bod kwam), mislukt of niet aan bod. Het bericht draagt het artefact `regie`.
+- **Geen besluit.** `API_AANROEPEN` is de lijst api-methoden die de regisseur gebruikt; de test toetst de code en een hele
+  ronde ertegen. Opnemen, uitsluiten, beoordelen, afronden en accorderen staan er niet in.
+- **Eén trace**: `_voer_uit` draait in een eigen taak onder de span `graph_qa.regie`, elk kind onder `graph_qa.regie.taak`;
+  een kind-run erft die context. Logregels `regie_taak` en `regie_afloop`.
 
 ### Lex stelt een werkgebied samen (`agent/werkgebied_intake.py`, `nodes/werkgebied.py`, activiteit 1)
 

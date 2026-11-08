@@ -37,6 +37,8 @@ export interface BeurtVerzoek {
   intake?: IntakeActie;
   /** Een suggestie met een actie: een vaste route, zonder model. */
   actie?: VraagLexActie;
+  /** De knop bij een regie (ADR-012): het bevestigde plan van een regie over deelgesprekken. */
+  regie?: { werkgebiedId: string; opdracht: "bronnen" | "annoteren"; planId: string };
 }
 
 export type StartOpties = NonNullable<Parameters<typeof startRun>[2]>;
@@ -47,7 +49,12 @@ export function startOpties(
   v: BeurtVerzoek,
   { werkgebiedId, onderwerp }: { werkgebiedId?: string | null; onderwerp?: Onderwerp },
 ): StartOpties | undefined {
-  const { annoteren, intake, actie, doel, doelen, hergebruik } = v;
+  const { annoteren, intake, actie, doel, doelen, hergebruik, regie } = v;
+  // Een regie: het plan uit de bevestiging, op het werkgebied van de bevestiging.
+  if (regie) {
+    return { actie: regie.opdracht === "bronnen" ? "regie_bronnen" : "regie_annoteren", werkgebied_id: regie.werkgebiedId,
+      plan_id: regie.planId };
+  }
   // Het werkgebied annoteren (fase B) is een eigen opdracht: geen context, geen doel, het werkgebied uit de bevestiging
   // (een oud gesprek kan buiten de context van dat werkgebied staan).
   if (annoteren) {
@@ -77,7 +84,7 @@ export function startOpties(
 
 /** Een knop bij een voorstel van Lex beantwoordt dat voorstel; daarna staat er geen knop meer. */
 export function bevestigt(v: BeurtVerzoek): boolean {
-  return v.annoteren?.bevestigd !== undefined;
+  return v.annoteren?.bevestigd !== undefined || v.regie !== undefined;
 }
 
 /** Wat het user-bericht draagt. De chip is UI-state en reist niet mee naar de api, dus de contextregel staat in de
