@@ -1,4 +1,4 @@
-"""Projectieschema 3: de graaf draagt alles wat Postgres over een markering weet en geen persoon is.
+"""Projectieschema 4: de graaf draagt alles wat Postgres over een markering weet en geen persoon is.
 
 Eén realistisch element – met het herkomstspoor van de hybride keten, een alternatief, twee
 beoordelingen van een jurist en de dekking van zijn bronnode – moet SHACL-conform zijn, zijn
@@ -48,12 +48,25 @@ ELEMENT = {
 }
 DEKKING = {BRON: {"dimensies": {"tijd": "uitgevoerd", "definitie": "overgeslagen"},
                   "ongedekt": [{"tekst": "is invorderbaar", "start": 21, "eind": 36}]}}
+# Een relatie (ADR-011, schema 4): de rechtsbetrekking in een andere laag heeft deze tijdsaanduiding, beoordeeld; en een
+# voorgestelde relatie van een impliciete partij. Alleen de beoordeelde krijgt een directe triple.
+IMPLICIET = {"id": "I0123456789abcdef", "klasse": "Rechtssubject", "label": "de belastingschuldige",
+             "toelichting": "volgt uit de aanslag", "vindplaats": "urn:bwb:BWBR0004770:artikel:1", "zelfde_als": "",
+             "herkomst": "mens", "laag_id": LAAG["id"]}
+RELATIES = {"impliciet": [IMPLICIET], "relaties": [
+    {"id": "R0123456789abcdef", "type": "tijd", "van": {"soort": "element", "id": "e9"},
+     "naar": {"soort": "element", "id": "e3"}, "volgorde": None, "lifecycle": "human_approved", "herkomst": "mens",
+     "toelichting": "", "laag_id": LAAG["id"]},
+    {"id": "R1123456789abcdef", "type": "rechthebbende", "van": {"soort": "impliciet", "id": IMPLICIET["id"]},
+     "naar": {"soort": "element", "id": "e9"}, "volgorde": None, "lifecycle": "voorgesteld", "herkomst": "agent",
+     "toelichting": "", "laag_id": LAAG["id"]},
+]}
 FIXTURE = Path(__file__).resolve().parents[2] / "tools" / "graph-qa" / "tests" / "fixtures" / "jas_laag_v3_voorbeeld.ttl"
 
 
 @pytest.fixture(scope="module")
 def graaf() -> Graph:
-    return bouw_graaf(LAAG, [ELEMENT], dekking=DEKKING)
+    return bouw_graaf(LAAG, [ELEMENT], dekking=DEKKING, relaties=RELATIES)
 
 
 def test_de_rijke_laag_is_shacl_conform(graaf):
@@ -119,3 +132,33 @@ def test_graph_qa_fixture_v3_volgt_de_projectie(graaf):
     """Faalt dit na een wijziging aan de projectie: schrijf `bouw_graaf(LAAG, [ELEMENT], dekking=DEKKING)`
     als Turtle naar tools/graph-qa/tests/fixtures/jas_laag_v3_voorbeeld.ttl en draai daar de isolatietest."""
     assert isomorphic(Graph().parse(FIXTURE, format="turtle"), graaf)
+
+
+def test_relaties_als_knoop_met_een_directe_triple_alleen_na_een_oordeel(graaf):
+    """ADR-011: een n-aire `jas:Relatie` met type als concept, eindpunten ook buiten deze laag; de directe triple
+    `rel:<type>` alleen bij een beoordeelde relatie."""
+    from app.graaf_projectie_v2 import RELP, impliciet_iri, relatie_iri, relatietype_iri
+    r = relatie_iri("R0123456789abcdef")
+    assert (r, RDF.type, JAS.Relatie) in graaf
+    assert graaf.value(r, JAS.relatietype) == relatietype_iri("tijd")
+    assert (graaf.value(r, JAS.van), graaf.value(r, JAS.naar)) == (element_iri("e9"), element_iri("e3"))
+    assert (element_iri("e9"), RELP["tijd"], element_iri("e3")) in graaf
+    # De voorgestelde relatie heeft geen directe triple.
+    assert not list(graaf.triples((impliciet_iri("I0123456789abcdef"), RELP["rechthebbende"], None)))
+
+
+def test_een_impliciete_partij_is_geen_markering(graaf):
+    from app.graaf_projectie_v2 import impliciet_iri
+    i = impliciet_iri("I0123456789abcdef")
+    assert (i, RDF.type, JAS.ImplicietElement) in graaf and (i, RDF.type, JAS.Markering) not in graaf
+    assert not list(graaf.triples((i, OA.hasTarget, None)))
+    # De vindplaats is een bronnode, alleen als object.
+    assert graaf.value(i, JAS.vindplaats) == URIRef("urn:bwb:BWBR0004770:artikel:1")
+    assert not [s for s in graaf.subjects() if str(s).startswith("urn:bwb:")]
+
+
+def test_een_impliciete_partij_die_geen_rechtssubject_is_breekt_de_shape():
+    pytest.importorskip("pyshacl")
+    fout = {**RELATIES, "impliciet": [{**IMPLICIET, "klasse": "Rechtsobject"}]}
+    uit = valideer(bouw_graaf(LAAG, [ELEMENT], dekking=DEKKING, relaties=fout))
+    assert uit["conform"] is False and uit["jas_model"]

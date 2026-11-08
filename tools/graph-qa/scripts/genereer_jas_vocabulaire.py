@@ -116,6 +116,25 @@ def bouw() -> tuple[Graph, dict]:
         g.add((iri, JAS.subtype, Literal(subtype)))
         g.add((iri, DCTERMS.source, Literal(bron)))
 
+    # De relatietypen (ADR-011) uit de catalogus van de skill. Concepten, geen predicaten: geen domain/range
+    # (invariant 3); de toegestane klassen staan als `jas:vanKlasse`/`jas:naarKlasse`.
+    from scripts.genereer_jas_relaties import lees as lees_relaties
+    for code, t in lees_relaties()["typen"].items():
+        iri = URIRef("urn:jas-ns:relatie:" + code)
+        g.add((iri, RDF.type, SKOS.Concept))
+        g.add((iri, RDF.type, JAS.Relatietype))
+        g.add((iri, SKOS.inScheme, SCHEMA))
+        g.add((iri, SKOS.prefLabel, Literal(t["leesvorm"], lang="nl")))
+        g.add((iri, SKOS.notation, Literal(code)))
+        g.add((iri, JAS.inverseLeesvorm, Literal(t["invers"], lang="nl")))
+        g.add((iri, JAS.methodisch, Literal(bool(t["methodisch"]))))
+        for kant, pred in (("van", JAS.vanKlasse), ("naar", JAS.naarKlasse)):
+            for klasse in t[kant]:
+                g.add((iri, pred, klasse_iri(klasse)))
+        g.add((iri, JAS.drager, Literal(t["drager"])))
+        for bron in t["bron"]:
+            g.add((iri, DCTERMS.source, Literal(bron)))
+
     for r in REGELS:
         iri = URIRef("urn:jas-ns:regel:" + r.id)
         g.add((iri, RDF.type, JAS.Methoderegel))

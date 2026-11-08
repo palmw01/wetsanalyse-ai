@@ -108,8 +108,9 @@ en beoordeeld zoals markeringen, en de graaf maakt er het 2c-diagram van. Geen l
 - **Een n-aire knoop `jas:Relatie`** in de graph van de dragerlaag, met `jas:van`, `jas:naar`, `jas:relatietype`,
   `jas:volgorde`, lifecycle, herkomst en `prov:wasGeneratedBy` bij een agentvoorstel. Een impliciete partij is een
   `jas:ImplicietElement` met `jas:label` en `jas:vindplaats`.
-- **Een directe triple alleen bij een beoordeelde relatie die niet veranderd is**, voor eenvoudige SPARQL, zoals bij
-  begripsrelaties.
+- **Een directe triple alleen bij een beoordeelde relatie**, voor eenvoudige SPARQL, zoals bij begripsrelaties
+  (`<van> rel:<code> <naar>`, `urn:jas-ns:rel:`). *Veranderd* staat niet in de graaf: dat hangt af van een eindpunt
+  in een andere laag, en de projectie per laag blijft zuiver. De api meldt het (aanvulling bij 3D, 8 nov 2026).
 - **De typen zijn SKOS-concepten** in de vocabulaire (`urn:jas-ns:relatie:<code>`), met leesvorm, inverse, bron en
   `jas:vanKlasse`/`jas:naarKlasse`. Geen `rdfs:domain`, `range` of `owl:sameAs`: rdfsplus zou anders afleiden wat de
   jurist niet vastlegde.

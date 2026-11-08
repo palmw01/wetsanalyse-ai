@@ -153,8 +153,8 @@ async def test_trig_is_per_laag_wat_de_projectie_bouwt(database):
     async with store.leestransactie() as conn:
         for laag in view["lagen"]:
             rij = await store.laag_detail(laag["id"])
-            elementen, dekking = await laag_invoer(conn, rij)
-            assert isomorphic(ds.graph(graph_iri(laag["id"])), bouw_graaf(rij, elementen, dekking=dekking))
+            elementen, dekking, relaties = await laag_invoer(conn, rij)
+            assert isomorphic(ds.graph(graph_iri(laag["id"])), bouw_graaf(rij, elementen, dekking=dekking, relaties=relaties))
     assert not any(str(s).startswith("urn:bwb:") for g in ds.graphs() for s in g.subjects())
 
 

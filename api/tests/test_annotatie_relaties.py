@@ -206,3 +206,21 @@ async def test_alleen_een_eigen_relatie_is_te_wissen(lagen):
     assert exc.value.status_code == 409
     await rel.wis(r["id"], {ONE: 2}, "jurist")
     assert (await store.weergave(snapshot(ONE)))["relaties"] == []
+
+
+async def test_de_projectie_krijgt_de_relaties_van_de_dragerlaag(lagen):
+    """Projectie en graafcontrole bouwen uit `laag_invoer`: de relatie en de impliciete partij zitten erin, alleen
+    bij de laag die ze draagt."""
+    from app import graaf_projectie_v2 as projectie
+    s1, s2 = lagen
+    p = (await rel.maak_impliciet(ImplicietInvoer(doel={"bron_iri": ONE}, snapshot_id=s1["snapshot_id"], label="x",
+                                                  toelichting="y", verwachte_revisies={ONE: 1}), s1, "jurist"))["impliciet"]
+    r = (await rel.leg(leg("zin", "termijn", "voorwaarde", {ONE: 2}), "jurist"))["relatie"]
+    lagen_ = {l["bron_iri"]: l for l in (await store.weergave(s1))["lagen"] + (await store.weergave(s2))["lagen"]}
+    async with db.get_engine().connect() as conn:
+        _e, _d, eigen = await projectie.laag_invoer(conn, lagen_[ONE])
+        _e, _d, ander = await projectie.laag_invoer(conn, lagen_[TWO])
+    assert [x["id"] for x in eigen["relaties"]] == [r["id"]] and [x["id"] for x in eigen["impliciet"]] == [p["id"]]
+    assert ander == {"relaties": [], "impliciet": []}
+    g = projectie.bouw_graaf(lagen_[ONE], _e, relaties=eigen)
+    assert (projectie.relatie_iri(r["id"]), projectie.JAS.naar, projectie.element_iri("termijn")) in g

@@ -99,7 +99,8 @@ def element_iri(element_id: str) -> URIRef:
     return URIRef("urn:jas:element:" + quote(element_id, safe=""))
 
 
-SCHEMA_VERSIE = 3
+#: 4: relaties tussen markeringen en impliciete partijen (ADR-011).
+SCHEMA_VERSIE = 4
 XSD = Namespace("http://www.w3.org/2001/XMLSchema#")
 
 
@@ -115,12 +116,76 @@ def run_iri(run: dict) -> URIRef:
     return URIRef("urn:jas:run:" + hashlib.sha256(sleutel.encode()).hexdigest()[:16])
 
 
+def relatie_iri(relatie_id: str) -> URIRef:
+    return URIRef("urn:jas:relatie:" + quote(relatie_id, safe=""))
+
+
+def impliciet_iri(impliciet_id: str) -> URIRef:
+    return URIRef("urn:jas:impliciet:" + quote(impliciet_id, safe=""))
+
+
+def relatietype_iri(code: str) -> URIRef:
+    """Het type als concept in de vocabulaire (`genereer_jas_vocabulaire.py`)."""
+    return URIRef("urn:jas-ns:relatie:" + quote(code, safe="_"))
+
+
+#: Het predicaat van de directe triple (alleen bij een beoordeelde relatie). Een eigen ruimte: het concept van het
+#: type is geen predicaat, en `urn:jas-ns:` kent al termen als `volgorde`.
+RELP = Namespace("urn:jas-ns:rel:")
+
+
+def _eindpunt_iri(ep: dict) -> URIRef:
+    return element_iri(ep["id"]) if ep["soort"] == "element" else impliciet_iri(ep["id"])
+
+
+def _relaties(g: Graph, owner: URIRef, relaties: dict) -> None:
+    """Relaties en impliciete partijen van de dragerlaag (ADR-011): een n-aire `jas:Relatie` met type, eindpunten,
+    volgorde, lifecycle en herkomst; een directe triple `rel:<type>` alleen als een jurist de relatie beoordeelde.
+    Of een eindpunt intussen veranderde, staat niet in de graaf: dat hangt af van een andere laag en zou deze graph
+    onzuiver maken. De api meldt het (`veranderd` in de weergave)."""
+    from .annotatie_v2_contracts import BEOORDEELD
+    for p in relaties.get("impliciet") or []:
+        i = impliciet_iri(p["id"])
+        g.add((i, RDF.type, JAS.ImplicietElement))
+        g.add((i, JAS.inLaag, owner))
+        for pred, waarde in ((JAS.impliciet, p["id"]), (JAS.label, p["label"]), (JAS.toelichting, p.get("toelichting", "")),
+                             (JAS.herkomst, p.get("herkomst", "mens")), (JAS.klasseNaam, p["klasse"])):
+            g.add((i, pred, Literal(waarde)))
+        g.add((i, JAS.klasse, klasse_iri(p["klasse"])))
+        vindplaats = p.get("vindplaats") or ""
+        if vindplaats:
+            # Een bronnode is alleen object (invariant 1); vrije tekst blijft tekst.
+            g.add((i, JAS.vindplaats, URIRef(vindplaats) if BRON_IRI.fullmatch(vindplaats) else Literal(vindplaats)))
+        if p.get("zelfde_als"):
+            g.add((i, JAS.zelfdeAls, element_iri(p["zelfde_als"])))   # nooit owl:sameAs (invariant 3)
+    for r in relaties.get("relaties") or []:
+        x = relatie_iri(r["id"])
+        van, naar = _eindpunt_iri(r["van"]), _eindpunt_iri(r["naar"])
+        g.add((x, RDF.type, JAS.Relatie))
+        g.add((x, JAS.inLaag, owner))
+        g.add((x, JAS.relatieId, Literal(r["id"])))
+        g.add((x, JAS.relatietype, relatietype_iri(r["type"])))
+        g.add((x, JAS.relatietypeNaam, Literal(r["type"])))
+        g.add((x, JAS.van, van))
+        g.add((x, JAS.naar, naar))
+        g.add((x, JAS.lifecycle, Literal(r.get("lifecycle", ""))))
+        g.add((x, JAS.herkomst, Literal(r.get("herkomst", ""))))
+        if r.get("volgorde") is not None:
+            g.add((x, JAS.volgorde, Literal(int(r["volgorde"]))))
+        if r.get("toelichting"):
+            g.add((x, JAS.toelichting, Literal(r["toelichting"])))
+        if r.get("lifecycle") in BEOORDEELD:
+            g.add((van, RELP[r["type"]], naar))
+
+
 def _code_iri(ruimte: str, code: str) -> URIRef:
     return URIRef(f"urn:jas-ns:{ruimte}:" + quote(str(code), safe="-_."))
 
 
-def bouw_graaf(laag: dict, elementen: list[dict], prov: bool = True, dekking: dict | None = None) -> Graph:
-    """De named graph van één laag (projectieschema 3).
+def bouw_graaf(laag: dict, elementen: list[dict], prov: bool = True, dekking: dict | None = None,
+               relaties: dict | None = None) -> Graph:
+    """De named graph van één laag (projectieschema 4; sinds 4 met de relaties en impliciete partijen die deze laag
+    draagt, ADR-011).
 
     Naast de markering zelf (klasse, fragment, ankers, lifecycle) draagt hij sinds plan-herkomst PR 3b
     alles wat Postgres over haar weet en geen persoon is: de klasse als concept uit de vocabulaire,
@@ -138,6 +203,8 @@ def bouw_graaf(laag: dict, elementen: list[dict], prov: bool = True, dekking: di
         g.add((owner, JAS.snapshotId, Literal(laag["snapshot_id"])))
     if dekking:
         _dekking(g, owner, dekking)
+    if relaties:
+        _relaties(g, owner, relaties)
     for element in elementen:
         e = element_iri(element["id"])
         g.add((e, RDF.type, JAS.Markering))
@@ -439,10 +506,10 @@ _OUDE_SCHEMAVERSIES = (f"DELETE {{ GRAPH <{REGISTER}> {{ <{SCHEMA}> <{JAS.versie
                        f"GRAPH <{REGISTER}> {{ <{SCHEMA}> <{JAS.versie}> ?v FILTER(?v != {SCHEMA_VERSIE}) }} }};\n")
 
 
-async def laag_invoer(conn, laag: dict) -> tuple[list[dict], dict]:
-    """Wat `bouw_graaf` voor deze laag nodig heeft: de elementen, en de structurele dekking van de
-    recentste batch op dezelfde bronstand (snapshot). Eén functie voor projectie én graafcontrole,
-    zodat die twee nooit uit verschillende invoer bouwen."""
+async def laag_invoer(conn, laag: dict) -> tuple[list[dict], dict, dict]:
+    """Wat `bouw_graaf` voor deze laag nodig heeft: de elementen, de structurele dekking van de
+    recentste batch op dezelfde bronstand (snapshot), en de relaties en impliciete partijen die de laag draagt.
+    Eén functie voor projectie én graafcontrole, zodat die twee nooit uit verschillende invoer bouwen."""
     # Een vervangen element is niet actueel en hoort niet in de graaf (Postgres bewaart het als historie).
     elementen = [e for e in (await conn.execute(select(db.annotatie_v2_elementen.c.inhoud).where(
         db.annotatie_v2_elementen.c.laag_id == laag["id"]))).scalars().all() if not is_vervangen(e)]
@@ -455,7 +522,10 @@ async def laag_invoer(conn, laag: dict) -> tuple[list[dict], dict]:
         for iri, meting in (inhoud.get("structureel") or {}).items():
             if iri in eigen and tijd >= dekking.get(iri, ("", {}))[0]:
                 dekking[iri] = (tijd, meting)
-    return elementen, {iri: m for iri, (_t, m) in dekking.items()}
+    relaties = {naam: sorted((dict(r) for r in (await conn.execute(select(tabel.c.inhoud).where(
+        tabel.c.laag_id == laag["id"]))).scalars().all()), key=lambda r: r["id"])
+        for naam, tabel in (("relaties", db.annotatie_v2_relaties), ("impliciet", db.annotatie_v2_impliciet))}
+    return elementen, {iri: m for iri, (_t, m) in dekking.items()}, relaties
 
 
 #: Hoe vaak een projectie opnieuw begint als de laag tijdens het schrijven veranderde. Daarna neemt de lus hem mee.
@@ -478,10 +548,10 @@ async def projecteer(laag_id: str) -> bool:
                 if row is None:
                     return False
                 laag = dict(row)
-                elements, dekking = await laag_invoer(conn, laag)
+                elements, dekking, relaties = await laag_invoer(conn, laag)
             # rdflib is pure Python: in een thread, want deze lus deelt de event loop met elk verzoek.
             data = await asyncio.to_thread(
-                lambda: bouw_graaf(laag, elements, dekking=dekking).serialize(format="turtle").encode())
+                lambda: bouw_graaf(laag, elements, dekking=dekking, relaties=relaties).serialize(format="turtle").encode())
             async with httpx.AsyncClient(timeout=30) as client:
                 r = await client.put(repo() + "/rdf-graphs/service", params={"graph": str(graph_iri(laag_id))},
                                      content=data,
