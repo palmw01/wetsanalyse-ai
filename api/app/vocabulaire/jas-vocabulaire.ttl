@@ -698,7 +698,8 @@
 
 <urn:jas-ns:relatie:invoer> a skos:Concept,
         jas:Relatietype ;
-    dcterms:source "H2:71",
+    dcterms:source "H2:62",
+        "H2:71",
         "M01",
         "M05",
         "M06" ;
@@ -708,7 +709,8 @@
     jas:drager "naar" ;
     jas:inverseLeesvorm "gebruikt als invoer"@nl ;
     jas:methodisch true ;
-    jas:naarKlasse <urn:jas-ns:klasse:Afleidingsregel> ;
+    jas:naarKlasse <urn:jas-ns:klasse:Afleidingsregel>,
+        <urn:jas-ns:klasse:Voorwaarde> ;
     jas:vanKlasse <urn:jas-ns:klasse:ParameterEnParameterwaarde>,
         <urn:jas-ns:klasse:Rechtsbetrekking>,
         <urn:jas-ns:klasse:Rechtsobject>,
@@ -1341,19 +1343,6 @@
     jas:uitdrukkingswijze "Verplichte delegatie: ‘bij (of krachtens) algemene maatregel van bestuur / bij ministeriële regeling worden regels gesteld (…)’. Facultatieve bevoegdheid: ‘kunnen regels worden gesteld’. Bij ‘bij of krachtens’ kan subdelegatie plaatsvinden."@nl ;
     jas:volgorde 11 .
 
-<urn:jas-ns:klasse:Voorwaarde> a skos:Concept,
-        jas:Klasse ;
-    dcterms:source "omschrijving H2:62",
-        "uitdrukkingswijze H2:64",
-        "vraag H2:63" ;
-    skos:definition "Een voorwaarde is een conditie die beschrijft aan welke omstandigheid voldaan moet zijn voor het intreden van een rechtsgevolg. Een voorwaarde kan ook betrekking hebben op een rechtssubject of op een waarde die bij een rechtsobject of bij een afleidingsregel hoort. Een voorwaarde bevat vaste elementen, die in de logica operanden en operatoren worden genoemd. Operanden kunnen rechtssubjecten of rechtsobjecten, eigenschappen van rechtssubjecten of rechtsobjecten, berekeningen of waarden zijn. Een operator is de beschrijving van een vergelijking die in de voorwaarde voorkomt, zoals ‘groter dan’, ‘kleiner dan’ en ‘gelijk aan’."@nl ;
-    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
-    skos:prefLabel "Voorwaarde"@nl ;
-    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
-    jas:herkenningsvraag "Welke eisen worden gesteld aan een rechtssubject, een rechtsobject, een rechtsbetrekking of een rechtsfeit? Onder welke omstandigheden geldt een waarde bij een rechtsobject?"@nl ;
-    jas:uitdrukkingswijze "Te herkennen aan een voorwaardelijke bijzin, in de meeste gevallen ingeleid door een voegwoord zoals ‘indien’, ‘als’, ‘tenzij’, ‘mits’ of een combinatie van woorden, zoals ‘met dien verstande dat’ of ‘met uitzondering van’. Ook kan een voorwaarde afgeleid worden uit een bijwoord bij een werkwoord, zoals ‘schriftelijk’ of ‘elektronisch’. Voorwaarden kunnen enkelvoudig of samengesteld zijn: een samengestelde voorwaarde bestaat uit verschillende eisen die alle vervuld moeten zijn (cumulatief) of waarvan er één vervuld moet zijn (alternatief)."@nl ;
-    jas:volgorde 4 .
-
 <urn:jas-ns:klasse:Rechtsobject> a skos:Concept,
         jas:Klasse ;
     dcterms:source "omschrijving H2:35",
@@ -1366,6 +1355,19 @@
     jas:herkenningsvraag "Wat is het voorwerp van een recht of plicht? Waar is het rechtssubject eigenaar of houder van? Waar heeft een waarde betrekking op? Waarover is iets verschuldigd?"@nl ;
     jas:uitdrukkingswijze "Te herkennen aan een zelfstandig naamwoord waarmee het voorwerp van een recht of plicht wordt omschreven, bijvoorbeeld een studie, een woning of een dienstbetrekking. Ook een aanwijzend of betrekkelijk voornaamwoord kan wijzen op een rechtsobject, bijvoorbeeld ‘dat’, ‘hetgeen’ en ‘welk(e)’."@nl ;
     jas:volgorde 1 .
+
+<urn:jas-ns:klasse:Voorwaarde> a skos:Concept,
+        jas:Klasse ;
+    dcterms:source "omschrijving H2:62",
+        "uitdrukkingswijze H2:64",
+        "vraag H2:63" ;
+    skos:definition "Een voorwaarde is een conditie die beschrijft aan welke omstandigheid voldaan moet zijn voor het intreden van een rechtsgevolg. Een voorwaarde kan ook betrekking hebben op een rechtssubject of op een waarde die bij een rechtsobject of bij een afleidingsregel hoort. Een voorwaarde bevat vaste elementen, die in de logica operanden en operatoren worden genoemd. Operanden kunnen rechtssubjecten of rechtsobjecten, eigenschappen van rechtssubjecten of rechtsobjecten, berekeningen of waarden zijn. Een operator is de beschrijving van een vergelijking die in de voorwaarde voorkomt, zoals ‘groter dan’, ‘kleiner dan’ en ‘gelijk aan’."@nl ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Voorwaarde"@nl ;
+    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
+    jas:herkenningsvraag "Welke eisen worden gesteld aan een rechtssubject, een rechtsobject, een rechtsbetrekking of een rechtsfeit? Onder welke omstandigheden geldt een waarde bij een rechtsobject?"@nl ;
+    jas:uitdrukkingswijze "Te herkennen aan een voorwaardelijke bijzin, in de meeste gevallen ingeleid door een voegwoord zoals ‘indien’, ‘als’, ‘tenzij’, ‘mits’ of een combinatie van woorden, zoals ‘met dien verstande dat’ of ‘met uitzondering van’. Ook kan een voorwaarde afgeleid worden uit een bijwoord bij een werkwoord, zoals ‘schriftelijk’ of ‘elektronisch’. Voorwaarden kunnen enkelvoudig of samengesteld zijn: een samengestelde voorwaarde bestaat uit verschillende eisen die alle vervuld moeten zijn (cumulatief) of waarvan er één vervuld moet zijn (alternatief)."@nl ;
+    jas:volgorde 4 .
 
 <urn:jas-ns:klasse:Rechtssubject> a skos:Concept,
         jas:Klasse ;
@@ -1475,5 +1477,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "3ba6eab2a905" .
+    jas:vocabulaireVersie "12f0e684e31c" .
 

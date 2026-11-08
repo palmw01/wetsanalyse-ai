@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 #: De eerste twaalf tekens van de sha256 van de bron.
-CATALOGUS_VERSIE = '71269e0680bf'
+CATALOGUS_VERSIE = '850faa640ba3'
 
 #: code → type.
 RELATIETYPEN = {'beeindigt': {'leesvorm': 'beëindigt',
@@ -73,13 +73,13 @@ RELATIETYPEN = {'beeindigt': {'leesvorm': 'beëindigt',
                     'Rechtssubject',
                     'Rechtsobject',
                     'Rechtsbetrekking'],
-            'naar': ['Afleidingsregel'],
+            'naar': ['Afleidingsregel', 'Voorwaarde'],
             'paren': [],
             'drager': 'naar',
             'volgorde': True,
             'tekstueel': False,
             'methodisch': True,
-            'bron': ['H2:71', 'M01', 'M05', 'M06']},
+            'bron': ['H2:71', 'H2:62', 'M01', 'M05', 'M06']},
  'kenmerk': {'leesvorm': 'is kenmerk van',
              'invers': 'heeft als kenmerk',
              'van': ['Variabele en variabelewaarde'],
