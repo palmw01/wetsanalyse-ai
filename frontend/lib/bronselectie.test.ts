@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { bronselectieVanKaart } from "./artefact";
 import {
-  ordenVoorstellen,
+  ledenVan, ordenVoorstellen,
   bronnenZin, deelvraagStand, parseBronselectie, zoekvraagZin, slotZin, voortgangToon, voortgangZin, zoekBeperkingen,
 } from "./bronselectie";
 import { parseVraagkaart } from "./vraagkaart";
@@ -102,5 +102,20 @@ describe("zoekvragen in het overzicht", () => {
   it("leest ze van de api, en van het bewijs in een oude versie", () => {
     expect(parseBronselectie(ruw({ zoekvragen: ["a", "x", "c"] }))?.deelvragen[0].kandidaten[0].zoekvragen).toEqual(["a", "c"]);
     expect(parseBronselectie(ruw({ bewijs: [{ detail: { zoekvraag: "b" } }] }))?.deelvragen[0].kandidaten[0].zoekvragen).toEqual(["b"]);
+  });
+});
+
+describe("per lid opnemen (WA TRM H1, 8 nov 2026)", () => {
+  it("de leden van een artikel zijn wat het direct bevat, in de volgorde van de api", () => {
+    const A = "urn:bwb:BWBR0004770:artikel:9";
+    const s = {
+      knopen: [{ id: A, soort: "artikel", label: "Artikel 9" }, { id: `${A}:lid:1`, soort: "lid", label: "Lid 1" },
+        { id: `${A}:lid:2`, soort: "lid", label: "Lid 2" }, { id: `${A}:lid:2:onderdeel:a`, soort: "onderdeel", label: "a" },
+        { id: "urn:bwb:BWBR0004770:artikel:10:lid:1", soort: "lid", label: "Lid 1" }],
+      relaties: [{ bron: A, doel: `${A}:lid:1`, soort: "bevat" }, { bron: A, doel: `${A}:lid:2`, soort: "bevat" },
+        { bron: `${A}:lid:2`, doel: `${A}:lid:2:onderdeel:a`, soort: "bevat" }, { bron: A, doel: `${A}:lid:1`, soort: "verwijst_naar" }],
+    };
+    expect(ledenVan(s, A)).toEqual([{ bron_iri: `${A}:lid:1`, label: "Lid 1" }, { bron_iri: `${A}:lid:2`, label: "Lid 2" }]);
+    expect(ledenVan(s, `${A}:lid:1`)).toEqual([]);
   });
 });

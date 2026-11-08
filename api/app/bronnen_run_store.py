@@ -299,7 +299,7 @@ async def _haal_kandidaat(conn, werkgebied_id: str, kid: str, slot: bool = False
 
 
 async def opnemen(werkgebied_id: str, kid: str, req: Opnemen, bron: dict, actor: str, *,
-                  deelvraag_ids: list[str], koppel_rol: str = "", binnen=None) -> dict:
+                  deelvraag_ids: list[str], koppel_rol: str = "", binnen=None, bron_iri: str = "") -> dict:
     """De kandidaat wordt een bronselectie; beide in één transactie. `bron` komt uit de resolver, net als bij
     zelf opnemen. De bronselectie per deelvraag (`bronselectie.besluit`) geeft de deelvraag mee (leeg zonder
     deelvragen), met `koppel_rol` als de rol bij die deelvraag, en `binnen` om in dezelfde transactie het besluit
@@ -307,11 +307,14 @@ async def opnemen(werkgebied_id: str, kid: str, req: Opnemen, bron: dict, actor:
     k = db.bron_kandidaten
     async with db.get_engine().connect() as conn:
         row = await _haal_kandidaat(conn, werkgebied_id, kid)
-    if row.status != "voorgesteld":
+    # Al opgenomen mag ook: een ander lid, of het geheel na een lid (per lid opnemen); de selectie is idempotent.
+    if row.status not in ("voorgesteld", "opgenomen"):
         raise HTTPException(409, {"fout": "status", "status": row.status,
                                   "melding": "Alleen een open voorstel kun je opnemen."})
     rol = req.rol or ("analyseren" if row.rol == "kern" else "context")
-    invoer = BronselectieInvoer(verwachte_revisie=req.verwachte_revisie, bron_iri=row.bron_iri,
+    # `bron_iri`: een lid of onderdeel van de kandidaat in plaats van het geheel (de bronselectie per deelvraag toetst dat).
+    doel = bron_iri or row.bron_iri
+    invoer = BronselectieInvoer(verwachte_revisie=req.verwachte_revisie, bron_iri=doel,
                                 bereik=Bereik.onderliggend, rol=Rol(rol),
                                 reden=req.reden.strip())
     # Wie de bepaling voorstelde volgt uit het bewijs: zelf genoemd is van de analist, de rest vond Lex. Een
@@ -323,9 +326,9 @@ async def opnemen(werkgebied_id: str, kid: str, req: Opnemen, bron: dict, actor:
         await conn.execute(update(k).where(k.c.werkgebied_id == werkgebied_id, k.c.id == kid).values(
             status="opgenomen", reden="", besloten_door=actor, besloten_op=nu, gewijzigd=nu))
         await werkgebied_audit(conn, werkgebied_id, actor, "kandidaat-opgenomen",
-                               {"kandidaat": kid, "bron_iri": row.bron_iri, "rol": rol})
+                               {"kandidaat": kid, "bron_iri": doel, "rol": rol})
         s = db.werkgebied_bronselecties
-        sid = (await conn.execute(select(s.c.id).where(s.c.werkgebied_id == werkgebied_id, s.c.bron_iri == row.bron_iri,
+        sid = (await conn.execute(select(s.c.id).where(s.c.werkgebied_id == werkgebied_id, s.c.bron_iri == doel,
                                                        s.c.verwijderd.is_(None)))).scalar()
         if sid:
             await werkgebied_deelvragen.koppel_bron_in(conn, werkgebied_id, sid, deelvraag_ids, actor, rol=koppel_rol,

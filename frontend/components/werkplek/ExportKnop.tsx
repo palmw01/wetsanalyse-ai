@@ -14,7 +14,10 @@ interface Props {
   onFout: (melding: string) => void;
   /** De download zelf. Zonder (de rondleiding, die geen api heeft) sluit het keuzepaneel zonder
    *  bestand. */
-  onDownload?: (formaat: ExportFormaat) => Promise<void>;
+  onDownload?: (formaat: ExportFormaat, opties?: { metVoorstellen: boolean }) => Promise<void>;
+  /** Het werkgebiedrapport: standaard alleen wat een jurist beoordeelde, met een vinkje ook de voorstellen van Lex
+   *  (WA TRM H1, 8 nov 2026). Zonder deze vlag geen keuze. */
+  voorstellenKeuze?: boolean;
   /** Welke vormen er te kiezen zijn; standaard die van een annotatie. Leeg = alleen Markdown. */
   formaten?: { formaat: ExportFormaat; label: string; uitleg: string }[];
   /** Het artefact als Markdown (`lib/artefactMarkdown.ts`): bovenaan *Kopieer als Markdown* en *Download als
@@ -41,8 +44,10 @@ interface RegelProps extends Props {
 /** De regels van het exportmenu – de ene bron voor kopiëren en exporteren (4 nov 2026). Ze staan in het menu ⋯ van een
  *  paneelkop (`PaneelKop.menu`, 8 nov 2026: een smal paneel heeft geen plek voor een losse knop) en in `ExportKnop` op
  *  een pagina. Elke regel is een `menuitem` in een `MenuLijst`; na een geslaagde keuze gaat het menu dicht. */
-export function ExportRegels({ onFout, onDownload, formaten = FORMATEN, markdown, titel = "artefact", sluit, onGekopieerd }: RegelProps) {
+export function ExportRegels({ onFout, onDownload, formaten = FORMATEN, markdown, titel = "artefact", sluit, onGekopieerd,
+  voorstellenKeuze = false }: RegelProps) {
   const [bezig, setBezig] = useState<ExportFormaat | "kopie" | "md" | null>(null);
+  const [metVoorstellen, setMetVoorstellen] = useState(false);
 
   async function alsMarkdown(hoe: "kopie" | "md") {
     if (!markdown) return;
@@ -66,7 +71,7 @@ export function ExportRegels({ onFout, onDownload, formaten = FORMATEN, markdown
   async function download(formaat: ExportFormaat) {
     setBezig(formaat);
     try {
-      await onDownload?.(formaat);
+      await onDownload?.(formaat, voorstellenKeuze ? { metVoorstellen } : undefined);
       sluit();
     } catch (e) {
       onFout(foutTekst(e, "Exporteren is niet gelukt."));
@@ -83,6 +88,18 @@ export function ExportRegels({ onFout, onDownload, formaten = FORMATEN, markdown
   ];
   return (
     <>
+      {onDownload && voorstellenKeuze && (
+        // Een keuze die meteen geldt en het menu openlaat; de formaten eronder gebruiken haar.
+        <li role="none">
+          <button type="button" role="menuitemcheckbox" aria-checked={metVoorstellen} data-met-voorstellen
+            onClick={() => setMetVoorstellen((v) => !v)} className={`${MENU_RIJ} flex-col !items-start !gap-0.5`}>
+            <span className="text-sm font-medium text-ink">{metVoorstellen ? "Met de voorstellen van Lex" : "Alleen beoordeeld"}</span>
+            <span className="text-xs text-muted">{metVoorstellen
+              ? "het rapport toont ook de voorstellen die nog niemand beoordeelde – klik voor alleen beoordeeld"
+              : "het rapport toont wat een jurist beoordeelde – klik om de voorstellen van Lex mee te nemen"}</span>
+          </button>
+        </li>
+      )}
       {regels.map((r) => (
         <li key={r.sleutel} role="none">
           <button type="button" role="menuitem" disabled={bezig !== null} onClick={r.doe} data-markdown={r.data}

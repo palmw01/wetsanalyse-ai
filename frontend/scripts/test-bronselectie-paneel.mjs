@@ -113,6 +113,12 @@ await context.route("**/api/**", async (route) => {
   if (events) return route.fulfill({ contentType: "text/event-stream", body: sse(stromen[events[1]] ?? [{ type: "done" }]) });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: false } });
+  // De leden van artikel 10, voor *Een lid opnemen…* (per lid opnemen).
+  if (p.endsWith("/samenhang") && url.searchParams.get("bron_iri") === A10) return route.fulfill({ json: {
+    schema_versie: 1, doel: { bron_iri: A10 }, snapshot_id: "s", artikel_iri: A10, verwijzingen_beschikbaar: false, afgekapt: false,
+    knopen: [A10, `${A10}:lid:1`, `${A10}:lid:2`].map((id, i) => ({ id, soort: i ? "lid" : "artikel", label: i ? `Lid ${i}` : "Artikel 10",
+      tekst: "", klasse: "", lifecycle: "", element_id: "", bwb_id: IW, artikel: "10", lid: i ? String(i) : "", rand: false })),
+    relaties: [1, 2].map((i) => ({ bron: A10, doel: `${A10}:lid:${i}`, soort: "bevat" })) } });
   return route.fulfill({ json: [] });
 });
 
@@ -206,8 +212,15 @@ try {
   await k11.getByRole("button", { name: "Opnemen", exact: true }).click();
   for (let i = 0; i < 100 && besluiten.at(-1)?.kid !== "K11"; i++) await page.waitForTimeout(50);
   assert.deepEqual([besluiten.at(-1).kid, besluiten.at(-1).besluit, besluiten.at(-1).reden], ["K11", "opnemen", "regelt de vervaldag"]);
+  // Een lid van een artikel apart opnemen (WA TRM H1): de leden komen uit de samenhang, het besluit draagt het lid.
+  const k10 = page.locator('[data-kandidaat-hier="K10"]');
+  await k10.getByRole("button", { name: /^Meer besluiten/ }).click();
+  await page.getByRole("menuitem", { name: "Een lid opnemen…" }).click();
+  await k10.locator("[data-lidkeuze]").getByRole("button", { name: "Opnemen: Lid 2" }).click();
+  for (let i = 0; i < 100 && besluiten.at(-1)?.kid !== "K10"; i++) await page.waitForTimeout(50);
+  assert.deepEqual([besluiten.at(-1).kid, besluiten.at(-1).besluit, besluiten.at(-1).bron_iri], ["K10", "opnemen", `${A10}:lid:2`]);
 
-  console.log("Browser OK: compact kaartje zonder vinkjes, paneel met uitklapbare wettekst, opnemen werkt de telling live bij, zelf bepalingen noemen per regel (geen venster), Klaar in het paneel (actie klaar), het paneel als sheet op een telefoon, opnemen met reden via het menu ⋯.");
+  console.log("Browser OK: compact kaartje zonder vinkjes, paneel met uitklapbare wettekst, opnemen werkt de telling live bij, zelf bepalingen noemen per regel (geen venster), Klaar in het paneel (actie klaar), het paneel als sheet op een telefoon, opnemen met reden via het menu ⋯, een lid apart opnemen.");
 } finally {
   await browser.close();
 }

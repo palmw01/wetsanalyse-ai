@@ -320,7 +320,7 @@ async def test_de_echte_pdf_is_letterlijk_met_inhoud_en_bladwijzers(client, graa
     wg = await _nieuw(client, naam="Tekens")
     wg = (await _bron(client, wg, bron_iri=ART))["werkgebied"]
 
-    r = await client.get(f"/v1/werkgebieden/{wg['id']}/export")
+    r = await client.get(f"/v1/werkgebieden/{wg['id']}/export?inhoud=alles")
     tekst = _tekst(r.content)
     assert "■" not in tekst
     # Het fragment (4–22) staat gemarkeerd in de tekst, met zijn nummer erachter: de woorden eromheen staan er letterlijk.
@@ -506,6 +506,9 @@ _NIET_GETOOND = {"id", "iri", "regeling", "herkomst", "code", "definitie_herkoms
                  "r.wettekst.verwijzingen.0.van.jci"}
 
 
+_EINDPUNT_LIFECYCLE = (".van.lifecycle", ".naar.lifecycle", ".eind.lifecycle")
+
+
 def _vul(soort, pad: str, ja: bool, spoor: list[str]):
     """Een waarde voor elk veld: elke tekst is zijn eigen pad, elke keuze wordt doorlopen."""
     if get_origin(soort) in (Union, types.UnionType):
@@ -520,7 +523,8 @@ def _vul(soort, pad: str, ja: bool, spoor: list[str]):
     if soort is int:
         return 3
     if soort is str:
-        if pad not in _NIET_GETOOND and not _NIET_GETOOND & set(pad.split(".")):
+        # De lifecycle van een relatie-eindpunt is een code die alleen het label kiest ("nog een voorstel van Lex").
+        if pad not in _NIET_GETOOND and not _NIET_GETOOND & set(pad.split(".")) and not pad.endswith(_EINDPUNT_LIFECYCLE):
             spoor.append(pad)
         return pad
     return soort(**{naam: _vul(veld.annotation, f"{pad}.{naam}", ja, spoor) for naam, veld in soort.model_fields.items()
@@ -1033,9 +1037,10 @@ def _el(snap, iri, start, eind, klasse, **extra) -> dict:
     return {**element(snap, iri, start, eind, **extra), "klasse": klasse}
 
 
-async def _regel_met_relaties(client, *, compleet: bool = True) -> tuple[dict, dict]:
+async def _regel_met_relaties(client, *, compleet: bool = True, beoordeeld: bool = True) -> tuple[dict, dict]:
     """Een afleidingsregel in lid 1 met haar relaties; operator, operand, voorwaarde, tijd en een uitzondering staan in lid 2.
-    Lid 1 is "😀 Alfa Alfa", lid 2 "Beta"."""
+    Lid 1 is "😀 Alfa Alfa", lid 2 "Beta". Met `beoordeeld` keurt een jurist eerst alle markeringen goed; anders zijn de
+    eindpunten van de relaties nog voorstellen van Lex."""
     from app import annotatie_v2_relaties as rel
     from app.annotatie_v2_contracts import RelatieBeslissing, RelatieInvoer
 
@@ -1048,6 +1053,9 @@ async def _regel_met_relaties(client, *, compleet: bool = True) -> tuple[dict, d
                       _el(snap, TWO, 1, 4, RF)]
     uit = await store.batch(request(snap, elementen), snap, "lex")
     ids = {(e["klasse"], e["tekst"]): e["id"] for e in uit["elementen"]}
+    if beoordeeld:
+        for e in uit["elementen"]:
+            await _beslis(e["id"], "approve", snap)
     wg = (await _bron(client, await _nieuw(client), bron_iri=ART))["werkgebied"]
     if not compleet:
         return wg, ids
@@ -1074,7 +1082,8 @@ async def _regel_met_relaties(client, *, compleet: bool = True) -> tuple[dict, d
     await leg(regel, ids[(RF, "eta")], "toepassing")
     # Een tweede uitvoer, afgewezen: die staat nergens, en telt niet als tweede uitvoer.
     weg = await leg(regel, ids[(TA, "a")], "uitvoer", toelichting="afgewezen uitvoer")
-    await rel.beslis(weg["id"], RelatieBeslissing(type="reject", verwachte_revisies=await revisies()), "jurist-a")
+    await rel.beslis(weg["id"], RelatieBeslissing(type="reject", verwachte_revisies=await revisies(), comment="geen uitvoer"),
+                     "jurist-a")
     return wg, ids
 
 
@@ -1120,15 +1129,23 @@ async def test_het_regelskelet_is_volledig_en_op_volgorde(client):
     assert len({a["pagina"] for a in gezet[begin:begin + 13]}) == 1
 
 
-async def test_een_afgewezen_relatie_staat_nergens_in_het_rapport(client):
+async def test_een_afgewezen_relatie_staat_alleen_in_de_bijlage_met_haar_reden(client):
+    """WA TRM H1 (8 nov 2026): afgewezen relaties stonden nergens. Ze tellen niet mee in de analyse en het skelet, maar
+    de lezer ziet in de bijlage wat een jurist afwees en waarom."""
     wg, _ids = await _regel_met_relaties(client)
     data = await _data(wg)
     assert any(r["lifecycle"] == "rejected" for r in data["markeringsrelaties"])
     regels = export.regels(data, V)
-    alles = "\n".join(t for _s, t in regels)
-    assert "afgewezen uitvoer" not in alles and "precies één uitvoer" not in alles
+    begin = regels.index(("Heading2", "Afgewezen relaties"))
+    analyse = "\n".join(t for _s, t in regels[:begin])
+    assert "afgewezen uitvoer" not in analyse and "precies één uitvoer" not in analyse
     assert sum(t.startswith("Uitvoer: ") for _s, t in regels) == 1
-    assert "afgewezen uitvoer" not in export.json_export(data, V).decode()
+    rapport = export.bouw_rapport(data, V)
+    assert all(r.lifecycle != "rejected" for b in rapport.wettekst.regelingen[0].artikelen[0].bepalingen for r in b.relaties)
+    [weg] = rapport.wettekst.afgewezen_relaties
+    assert (weg.code, weg.reden_afwijzing) == ("uitvoer", "geen uitvoer")
+    assert regels[begin + 2] == ("BodyText", "1 · “😀 Alfa Alfa” (Afleidingsregel) levert op “a” (Tijdsaanduiding, in Lid 2)")
+    assert regels[begin + 3] == ("Meta", "afgewezen · afgewezen uitvoer · Reden van afwijzing: geen uitvoer")
 
 
 async def test_een_vervangen_relatie_staat_nergens_in_het_rapport(client):
@@ -1174,3 +1191,46 @@ async def test_een_ontbrekende_uitvoer_terwijl_de_rest_er_staat(client):
     data["markeringsrelaties"] = [r for r in data["markeringsrelaties"] if r["type"] != "uitvoer"]
     skelet = [t for _s, t in _skelet(export.regels(data, V))]
     assert "Geen uitvoer vastgelegd." in skelet and any(t.startswith("Invoer 1: ") for t in skelet)
+
+
+async def test_een_relatie_heet_niet_akkoord_zolang_haar_eindpunten_voorstel_zijn(client):
+    """WA TRM H1 (8 nov 2026): een relatie die de jurist legde tussen twee voorstellen van Lex heette "beoordeeld:
+    akkoord". Een goedgekeurde relatie keurt haar eindpunten niet goed (ADR-011)."""
+    wg, _ids = await _regel_met_relaties(client, beoordeeld=False)
+    data = await _data(wg)
+    regels = export.regels(data, V)
+    i = regels.index(("BodyText", "1 · “😀 Alfa Alfa” (Afleidingsregel, nog een voorstel van Lex) levert op "
+                                  "2 · “Alfa” (Variabele en variabelewaarde, nog een voorstel van Lex)"))
+    assert regels[i + 1] == ("Meta", "vastgelegd; een eindpunt is nog een voorstel van Lex")
+    skelet = [t for _s, t in _skelet(regels)]
+    assert "Uitvoer: 2 · “Alfa” (Variabele en variabelewaarde, nog een voorstel van Lex) · vastgelegd; een eindpunt is nog " \
+        "een voorstel van Lex" in skelet
+    assert not any(t.endswith("beoordeeld: akkoord") for t in skelet)
+
+
+async def test_standaard_toont_het_rapport_alleen_wat_een_jurist_beoordeelde(client):
+    """WA TRM H1 (8 nov 2026): alle onbeoordeelde voorstellen stonden uitgeschreven (153 kB). Met `inhoud=beoordeeld`
+    (de standaard van de route) staat in de analyse alleen wat een jurist beoordeelde; de telling noemt wat er niet staat.
+    Een relatie die de jurist legde blijft staan, ook als haar eindpunten nog voorstellen zijn."""
+    wg, _ids = await _regel_met_relaties(client, beoordeeld=False)
+    alles = await _data(wg)
+    data = await export.verzamel(wg["id"], "jurist-a", werkgebieden.resolve_bron, werkgebieden.toestanden_van,
+                                 bepaling_graaf.lees, inhoud="beoordeeld")
+    rapport = export.bouw_rapport(data, V)
+    assert rapport.document.inhoud == "beoordeeld" and export.bouw_rapport(alles, V).document.inhoud == "alles"
+    bepalingen = [b for r in rapport.wettekst.regelingen for a in r.artikelen for b in a.bepalingen]
+    assert not any(m for b in bepalingen for m in b.markeringen) and not rapport.wettekst.buiten_tekst
+    assert rapport.wettekst.weggelaten_voorstellen == rapport.wettekst.markeringen > 0
+    assert any(r.code == "uitvoer" for b in bepalingen for r in b.relaties), "de relatie van de jurist blijft"
+    regels = export.regels(data, V)
+    assert any(t.endswith("niet in dit rapport: het toont alleen wat een jurist beoordeelde. Exporteer met voorstellen om ze "
+                          "te zien.") for _s, t in regels)
+    assert len(export.markdown_export(data, V)) < len(export.markdown_export(alles, V))
+
+
+async def test_de_route_kiest_standaard_alleen_beoordeeld(client):
+    wg, _ids = await _regel_met_relaties(client, beoordeeld=False)
+    standaard = (await client.get(f"/v1/werkgebieden/{wg['id']}/export?formaat=json")).json()
+    met = (await client.get(f"/v1/werkgebieden/{wg['id']}/export?formaat=json&inhoud=alles")).json()
+    assert (standaard["document"]["inhoud"], met["document"]["inhoud"]) == ("beoordeeld", "alles")
+    assert (await client.get(f"/v1/werkgebieden/{wg['id']}/export?inhoud=soms")).status_code == 422

@@ -46,6 +46,9 @@ class Document(_Deel):
     kenmerk: str                                     # "WG-<eerste 8 tekens van het id>-r<revisie>": welk werkgebied, welke revisie
     werkgebied_id: str
     concept: bool                                    # zolang het werkgebied niet afgerond is
+    #: Wat de analyse per bepaling toont (WA TRM H1, 8 nov 2026): `beoordeeld` alleen markeringen waarover een jurist
+    #: besliste (en wat hij zelf markeerde), `alles` ook de voorstellen van Lex. De kerncijfers tellen altijd alles.
+    inhoud: Literal["beoordeeld", "alles"] = "alles"
     inhoud_hash: str = ""                            # "sha256:<hex>" over de inhoud (`inhoud_hash`): welke analyseversie precies
 
 
@@ -206,10 +209,12 @@ class RelatieEind(_Deel):
     tekst: str = ""                                  # de tekst van de markering, of het label van een impliciete partij
     elders: str = ""                                 # de vindplaats als het eindpunt in een andere bepaling staat
     bestaat: bool = True
+    lifecycle: str = ""                              # van de markering zelf: een relatie keurt haar eindpunten niet goed
 
 
 class Markeringsrelatie(_Deel):
-    """Een vastgelegde relatie tussen twee markeringen, bij de bepaling van de drager. Een afgewezen relatie staat er niet in."""
+    """Een vastgelegde relatie tussen twee markeringen, bij de bepaling van de drager. Een afgewezen relatie staat niet bij
+    de bepaling maar in de bijlage (`Wettekst.afgewezen_relaties`), met haar reden."""
 
     id: str
     code: str                                        # het type uit de catalogus (`jas_relaties.RELATIETYPEN`)
@@ -221,6 +226,7 @@ class Markeringsrelatie(_Deel):
     veranderd: bool = False                          # een eindpunt veranderde na het vastleggen: opnieuw beoordelen
     toelichting: str = ""
     door: Door = "analist"
+    reden_afwijzing: str = ""
 
 
 class Skeletdeel(_Deel):
@@ -316,6 +322,9 @@ class Wettekst(_Deel):
     onbereikbaar: list[Onbereikbaar] = []
     buiten_tekst: list[Markering] = []
     afgewezen: list[Markering] = []
+    afgewezen_relaties: list[Markeringsrelatie] = []
+    #: Voorstellen van Lex die bij `inhoud: beoordeeld` niet in de analyse staan (wel in `markeringen` geteld).
+    weggelaten_voorstellen: int = 0
     verwijzingen: list[Verwijzing] = []              # alle verwijzingen uit het dossier, in de volgorde van de bronboom
     #: Onwaar als de graaf meer verwijzingen gaf dan de grens (`bepaling_graaf.MAX_VERWIJZINGSRIJEN`): dan is de lijst niet alles.
     verwijzingen_volledig: bool = True
@@ -763,6 +772,14 @@ def niet_meegenomen_regels(d: Deelvragen, w: Wettekst, b: Begrippen) -> list[Reg
             ("Meta", "Deze markeringen verwierp een jurist; ze horen niet tot de analyse." if w.afgewezen else "Er zijn geen markeringen afgewezen.")]
     for m in w.afgewezen:
         uit += _markering(m)
+    uit += [("Heading2", "Afgewezen relaties"),
+            ("Meta", "Deze relaties wees een jurist af; ze tellen niet mee in de analyse en het regelskelet."
+             if w.afgewezen_relaties else "Er zijn geen relaties afgewezen.")]
+    for r in w.afgewezen_relaties:
+        plek = f" · plek {r.volgorde}" if r.volgorde is not None else ""
+        uit.append(("BodyText", f"{_eind(r.van)} {r.leesvorm} {_eind(r.naar)}{plek}"))
+        uit.append(("Meta", _stand(r.lifecycle, r.veranderd) + (f" · {r.toelichting}" if r.toelichting else "")
+                    + " · Reden van afwijzing: " + (r.reden_afwijzing or "niet vastgelegd")))
     uit += [(PAGINA, ""), *open_begrippen_regels(b)]
     return uit
 
@@ -823,19 +840,30 @@ def _eind(e: RelatieEind) -> str:
     nummer = f"{e.nr} · " if e.nr else ""
     soort = ", impliciete partij" if e.soort == "impliciet" else ""
     waar = f", in {e.elders}" if e.elders else ""
-    return f"{nummer}“{e.tekst}” ({e.klasse}{soort}{waar})"
+    voorstel = ", nog een voorstel van Lex" if e.soort == "element" and e.lifecycle in _ONBEOORDEELD else ""
+    return f"{nummer}“{e.tekst}” ({e.klasse}{soort}{waar}{voorstel})"
 
 
-def _stand(lifecycle: str, veranderd: bool) -> str:
-    return _LIFECYCLE.get(lifecycle, lifecycle) + (" · veranderd na het vastleggen, opnieuw beoordelen" if veranderd else "")
+#: Een markering waarover nog geen jurist besliste.
+_ONBEOORDEELD = frozenset({"voorgesteld", "reused"})
 
 
-def _deel(label: str, d: Skeletdeel) -> Regel:
-    return ("BodyText", f"{label}: {_eind(d.eind)} · {_stand(d.lifecycle, d.veranderd)}")
+def _stand(lifecycle: str, veranderd: bool, *einden: RelatieEind) -> str:
+    """De stand van een relatie. Akkoord op een relatie keurt haar eindpunten niet goed (ADR-011, WA TRM H1): staat een
+    eindpunt nog als voorstel, dan heet ze vastgelegd en niet "beoordeeld: akkoord"."""
+    open_eind = any(e.soort == "element" and e.lifecycle in _ONBEOORDEELD for e in einden)
+    tekst = "vastgelegd; een eindpunt is nog een voorstel van Lex" if lifecycle == "human_approved" and open_eind \
+        else _LIFECYCLE.get(lifecycle, lifecycle)
+    return tekst + (" · veranderd na het vastleggen, opnieuw beoordelen" if veranderd else "")
 
 
-def _op_volgorde(label: str, d: Skeletdeel) -> Regel:
-    return _deel(f"{label} {d.volgorde}" if d.volgorde is not None else f"{label} (zonder volgorde)", d)
+def _deel(label: str, d: Skeletdeel, regel: RelatieEind | None = None) -> Regel:
+    einden = (d.eind, regel) if regel is not None else (d.eind,)
+    return ("BodyText", f"{label}: {_eind(d.eind)} · {_stand(d.lifecycle, d.veranderd, *einden)}")
+
+
+def _op_volgorde(label: str, d: Skeletdeel, regel: RelatieEind | None = None) -> Regel:
+    return _deel(f"{label} {d.volgorde}" if d.volgorde is not None else f"{label} (zonder volgorde)", d, regel)
 
 
 def regelskelet_regels(m: Markering) -> list[Regel]:
@@ -843,27 +871,28 @@ def regelskelet_regels(m: Markering) -> list[Regel]:
     k = m.regelskelet
     assert k is not None
     nummer = f"{m.nr} · " if m.nr else ""
+    zelf = RelatieEind(nr=m.nr, klasse=m.klasse, tekst=m.tekst, lifecycle=m.lifecycle)
     uit: list[Regel] = [*BLOK, ("Heading4", f"Regelskelet bij {nummer}“{m.tekst}”"),
-                        ("Meta", "Uit de vastgelegde relaties; een afgewezen relatie telt niet mee.")]
-    uit += [_deel("Uitvoer", d) for d in k.uitvoer] or [("Meta", "Geen uitvoer vastgelegd.")]
+                        ("Meta", "Uit de vastgelegde relaties; een afgewezen relatie telt niet mee (zie de bijlage Afgewezen relaties).")]
+    uit += [_deel("Uitvoer", d, zelf) for d in k.uitvoer] or [("Meta", "Geen uitvoer vastgelegd.")]
     if len(k.uitvoer) > 1:
         uit.append(("Waarschuwing", f"Een afleidingsregel heeft precies één uitvoer; hier zijn er {len(k.uitvoer)} vastgelegd."))
-    uit += [_op_volgorde("Invoer", d) for d in k.invoer] or [("Meta", "Geen invoer vastgelegd.")]
+    uit += [_op_volgorde("Invoer", d, zelf) for d in k.invoer] or [("Meta", "Geen invoer vastgelegd.")]
     for o in k.operatoren:
-        uit.append(_deel("Operator", o.operator))
-        uit += [_op_volgorde("Operand", d) for d in o.operanden] or [("Meta", "Geen operanden vastgelegd.")]
+        uit.append(_deel("Operator", o.operator, zelf))
+        uit += [_op_volgorde("Operand", d, o.operator.eind) for d in o.operanden] or [("Meta", "Geen operanden vastgelegd.")]
     if not k.operatoren:
         uit.append(("Meta", "Geen operatoren vastgelegd."))
-    uit += [_deel("Voorwaarde", d) for d in k.voorwaarden] or [("Meta", "Geen voorwaarden vastgelegd.")]
+    uit += [_deel("Voorwaarde", d, zelf) for d in k.voorwaarden] or [("Meta", "Geen voorwaarden vastgelegd.")]
     for p in k.parameters:
-        uit.append(_deel("Parameter", p.parameter))
-        uit += [_deel("Waarde", d) for d in p.waarden] or [("Meta", "Geen waarde vastgelegd.")]
+        uit.append(_deel("Parameter", p.parameter, zelf))
+        uit += [_deel("Waarde", d, p.parameter.eind) for d in p.waarden] or [("Meta", "Geen waarde vastgelegd.")]
     if not k.parameters:
         uit.append(("Meta", "Geen parameters vastgelegd."))
-    uit += [_deel("Tijd", d) for d in k.tijd] or [("Meta", "Geen tijdsaanduiding vastgelegd.")]
-    uit += [_deel("Uitzondering op deze regel" if d.inkomend else "Maakt een uitzondering op", d) for d in k.uitzonderingen] \
+    uit += [_deel("Tijd", d, zelf) for d in k.tijd] or [("Meta", "Geen tijdsaanduiding vastgelegd.")]
+    uit += [_deel("Uitzondering op deze regel" if d.inkomend else "Maakt een uitzondering op", d, zelf) for d in k.uitzonderingen] \
         or [("Meta", "Geen uitzonderingen vastgelegd.")]
-    uit += [_deel("Vindt toepassing op deze regel" if d.inkomend else "Vindt toepassing op", d) for d in k.toepassing] \
+    uit += [_deel("Vindt toepassing op deze regel" if d.inkomend else "Vindt toepassing op", d, zelf) for d in k.toepassing] \
         or [("Meta", "Geen toepassing vastgelegd.")]
     return [*uit, *BLOK_UIT]
 
@@ -876,7 +905,8 @@ def relaties_regels(relaties: list[Markeringsrelatie]) -> list[Regel]:
     for r in relaties:
         plek = f" · plek {r.volgorde}" if r.volgorde is not None else ""
         uit.append(("BodyText", f"{_eind(r.van)} {r.leesvorm} {_eind(r.naar)}{plek}"))
-        uit.append(("Meta", _stand(r.lifecycle, r.veranderd) + (f" · {r.toelichting}" if r.toelichting else "")))
+        uit.append(("Meta", _stand(r.lifecycle, r.veranderd, r.van, r.naar) + (f" · {r.toelichting}" if r.toelichting else "")
+                    + (f" · Reden van afwijzing: {r.reden_afwijzing}" if r.reden_afwijzing else "")))
     return uit
 
 
@@ -885,6 +915,9 @@ def wettekst_regels(w: Wettekst) -> list[Regel]:
     uit: list[Regel] = [(PAGINA, ""), ("Heading1", "5. Analyse per bepaling"),
                         ("BodyText", f"{meervoud(w.markeringen, 'markering', 'markeringen')}, waarvan {w.beoordeeld} "
                                      f"beoordeeld door een jurist; {len(w.afgewezen)} afgewezen.")]
+    if w.weggelaten_voorstellen:
+        uit.append(("Meta", meervoud(w.weggelaten_voorstellen, "voorstel van Lex staat", "voorstellen van Lex staan")
+                    + " niet in dit rapport: het toont alleen wat een jurist beoordeelde. Exporteer met voorstellen om ze te zien."))
     uit += [("Meta", f"{k.klasse or 'Nog geen klasse'}: {k.aantal}") for k in w.per_klasse]
     for r in w.regelingen:
         uit += [(PAGINA, ""), ("Heading2", r.titel)]

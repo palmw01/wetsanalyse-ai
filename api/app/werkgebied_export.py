@@ -74,8 +74,10 @@ def structuur_iris(wg: dict, bomen: dict) -> list[str]:
 
 
 async def verzamel(werkgebied_id: str, actor: str, resolve: Resolver,
-                   toestanden: Callable[[dict], Awaitable[dict]], graaf: GraafLezer = _geen_graaf) -> dict:
-    """De stand van nu, uit dezelfde leesfuncties als de schermen, en wat de graaf over regeling en opbouw weet."""
+                   toestanden: Callable[[dict], Awaitable[dict]], graaf: GraafLezer = _geen_graaf,
+                   inhoud: str = "alles") -> dict:
+    """De stand van nu, uit dezelfde leesfuncties als de schermen, en wat de graaf over regeling en opbouw weet.
+    `inhoud`: `beoordeeld` laat in de analyse de voorstellen van Lex weg (de route kiest dat standaard)."""
     wg = await werkgebied_store.haal(werkgebied_id)
     inventaris, bomen = await inventaris_met_bronbomen(wg["bronnen"], resolve, volledige_elementen=True)
     if wg["bronnen"] and not bomen:
@@ -91,7 +93,7 @@ async def verzamel(werkgebied_id: str, actor: str, resolve: Resolver,
             "relaties": await begrip_relatie_store.lijst(werkgebied_id),
             "groepen": await begrippen_run_store.groepen(werkgebied_id),
             "audit": await werkgebied_store.audit(werkgebied_id, None),
-            "export": {"actor": actor, "op": db.utcnow().isoformat()}}
+            "export": {"actor": actor, "op": db.utcnow().isoformat(), "inhoud": inhoud}}
 
 
 def bestandsnaam(data: dict, extensie: str = "pdf") -> str:
@@ -258,12 +260,24 @@ def _relatie_eind(kant: dict, eigen_iri: str, plek: Plek, nodes: dict[str, dict]
     waar, nr = plek.get(kant["id"], (kant.get("eigenaar_iri") or "", 0))
     hier = waar == eigen_iri
     return RelatieEind(nr=nr if hier else 0, klasse=kant.get("klasse") or "", tekst=kant.get("tekst") or "",
-                       elders="" if hier or not waar else _plaatsnaam(waar, nodes), bestaat=bool(kant.get("bestaat", True)))
+                       elders="" if hier or not waar else _plaatsnaam(waar, nodes), bestaat=bool(kant.get("bestaat", True)),
+                       lifecycle=kant.get("lifecycle") or "")
+
+
+def alleen_beoordeeld(data: dict) -> bool:
+    return (data.get("export") or {}).get("inhoud") == "beoordeeld"
 
 
 def _geldend(data: dict) -> list[dict]:
-    """De relaties die het rapport toont: vastgelegd, niet afgewezen en niet vervangen (ADR-011)."""
-    return [r for r in data.get("markeringsrelaties") or [] if r.get("lifecycle") not in ("rejected", "vervangen")]
+    """De relaties die het rapport bij de bepalingen toont: niet afgewezen en niet vervangen (ADR-011). Met `inhoud:
+    beoordeeld` ook niet de voorstellen van de keten: wat Lex voorstelde en niemand beoordeelde, hoort daar niet."""
+    weg = {"rejected", "vervangen"} | ({"voorgesteld"} if alleen_beoordeeld(data) else set())
+    return [r for r in data.get("markeringsrelaties") or [] if r.get("lifecycle") not in weg]
+
+
+def _reden_relatie(r: dict) -> str:
+    laatste = next((b for b in reversed(r.get("beslissingen") or []) if b.get("type") == "reject"), {})
+    return laatste.get("comment") or laatste.get("review_reason") or ""
 
 
 def _per_bepaling(relaties: list[dict], plek: Plek, nodes: dict[str, dict]) -> dict[str, list[Markeringsrelatie]]:
@@ -272,12 +286,16 @@ def _per_bepaling(relaties: list[dict], plek: Plek, nodes: dict[str, dict]) -> d
     for r in relaties:
         kanten = (r["van"], r["naar"]) if jas_relaties.RELATIETYPEN.get(r["type"], {}).get("drager", "van") == "van" else (r["naar"], r["van"])
         iri = next((plek[k["id"]][0] for k in kanten if k["soort"] == "element" and k["id"] in plek), None)
+        # Geen kant in de analyse (beide nog een voorstel bij `inhoud: beoordeeld`): de bepaling van de drager. Een
+        # relatie die de jurist legde, verdwijnt niet omdat haar eindpunten nog niet beoordeeld zijn.
+        iri = iri or next((k.get("eigenaar_iri") for k in kanten if k["soort"] == "element" and k.get("eigenaar_iri")), None)
         if iri is None:
             continue
         van, naar = _relatie_eind(r["van"], iri, plek, nodes), _relatie_eind(r["naar"], iri, plek, nodes)
         m = Markeringsrelatie(id=r["id"], code=r["type"], leesvorm=r.get("leesvorm") or r["type"], van=van, naar=naar,
                               volgorde=r.get("volgorde"), lifecycle=r["lifecycle"], veranderd=bool(r.get("veranderd")),
-                              toelichting=r.get("toelichting") or "", door="analist" if r.get("herkomst") == "mens" else "lex")
+                              toelichting=r.get("toelichting") or "", door="analist" if r.get("herkomst") == "mens" else "lex",
+                              reden_afwijzing=_reden_relatie(r) if r["lifecycle"] == "rejected" else "")
         eerste = min([e.nr for e in (van, naar) if e.nr] or [10 ** 6])
         uit.setdefault(iri, []).append(((eerste, r["type"], r.get("volgorde") or 0, r["id"]), m))
     return {iri: [m for _k, m in sorted(lijst, key=lambda x: x[0])] for iri, lijst in uit.items()}
@@ -393,8 +411,11 @@ def _wettekst(data: dict, nodes: dict[str, dict], verklaringen: dict) -> Wetteks
     """Per regeling, in de volgorde van de bronboom, elke bronnode één keer met haar markeringen eronder."""
     inv = data["inventaris"]
     per_klasse = Counter(e.get("klasse") or "Nog geen klasse" for e in inv["elementen"])
+    # Met `inhoud: beoordeeld` staat in de analyse alleen waarover een jurist besliste, ook wat hij zelf markeerde
+    # (WA TRM H1: 235 onbeoordeelde voorstellen maakten de export 153 kB). De tellingen blijven alles tellen.
+    getoonde = [e for e in inv["elementen"] if not alleen_beoordeeld(data) or e["lifecycle"] in BEOORDEELD]
     per_eigenaar: dict[str, list[dict]] = {}
-    for e in inv["elementen"]:
+    for e in getoonde:
         per_eigenaar.setdefault(e["eigenaar_iri"], []).append(e)
     rollen: dict[str, str] = {}                      # bronnode → rol; analyseren wint van context
     gewijzigd: set[str] = set()
@@ -459,8 +480,12 @@ def _wettekst(data: dict, nodes: dict[str, dict], verklaringen: dict) -> Wetteks
         per_klasse=[KlasseTelling(klasse="" if k == "Nog geen klasse" else k, aantal=per_klasse[k]) for k in sorted(per_klasse, key=jas_sorteersleutel)],
         regelingen=regelingen, onbereikbaar=onbereikbaar, verwijzingen=alle_verwijzingen,
         verwijzingen_volledig=bool(_graaf(data).get("verwijzingen_volledig", True)),
-        buiten_tekst=[_markering(e, nodes, verklaringen) for e in inv["elementen"] if e["id"] not in getoond],
-        afgewezen=[_markering(e, nodes, verklaringen) for e in inv["afgewezen"]])
+        buiten_tekst=[_markering(e, nodes, verklaringen) for e in getoonde if e["id"] not in getoond],
+        afgewezen=[_markering(e, nodes, verklaringen) for e in inv["afgewezen"]],
+        afgewezen_relaties=[m for lijst in _per_bepaling(
+            [r for r in data.get("markeringsrelaties") or [] if r.get("lifecycle") == "rejected"], plek, nodes).values()
+            for m in lijst],
+        weggelaten_voorstellen=len(inv["elementen"]) - len(getoonde))
 
 
 def _passage(k: dict, elementen: dict[str, dict], nodes: dict[str, dict]) -> Passage:
@@ -514,7 +539,7 @@ def _begrippen(data: dict, nodes: dict[str, dict]) -> Begrippen:
 def _document(data: dict) -> Document:
     wg = data["werkgebied"]
     return Document(titel=wg["naam"], kenmerk=f"WG-{wg['id'][:8]}-r{wg['revisie']}", werkgebied_id=wg["id"],
-                    concept=wg["status"] != "afgerond")
+                    concept=wg["status"] != "afgerond", inhoud="beoordeeld" if alleen_beoordeeld(data) else "alles")
 
 
 def _telling(teller: Counter, volgorde: tuple[str, ...]) -> list[Telling]:

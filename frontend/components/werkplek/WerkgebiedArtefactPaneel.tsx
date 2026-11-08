@@ -37,7 +37,7 @@ import { artefactPad, begripPad, deelvraagPad, projectPad } from "@/lib/werkgebi
 /** Kopiëren en exporteren per soort (4 nov 2026): altijd Markdown, bij het werkgebied de PDF en bij de begrippen de
  *  bestaande exports van het begrippenkader. De inhoud wordt bij de klik opgehaald – de kop kent de gegevens van de
  *  inhoud niet. */
-function exportVan(doel: WerkgebiedArtefact, opname?: Opname | null): Pick<React.ComponentProps<typeof ExportKnop>, "markdown" | "formaten" | "onDownload"> {
+function exportVan(doel: WerkgebiedArtefact, opname?: Opname | null): Pick<React.ComponentProps<typeof ExportKnop>, "markdown" | "formaten" | "onDownload" | "voorstellenKeuze"> {
   const id = doel.werkgebied_id;
   // Een oude versie: kopiëren en exporteren gaan over wat je ziet (besluit gebruiker), dus uit de opname.
   if (opname) {
@@ -57,7 +57,7 @@ function exportVan(doel: WerkgebiedArtefact, opname?: Opname | null): Pick<React
   }
   switch (doel.soort) {
     case "werkgebied":
-      return { formaten: WERKGEBIED_EXPORT_FORMATEN, onDownload: (f) => exporteerWerkgebied(id, f),
+      return { formaten: WERKGEBIED_EXPORT_FORMATEN, onDownload: (f, o) => exporteerWerkgebied(id, f, o), voorstellenKeuze: true,
         markdown: async () => dossierAlsMarkdown(await haalWerkgebied(id), await haalBronselectie(id).catch(() => undefined)) };
     case "bronselectie":
       return { formaten: [], markdown: async () => bronselectieAlsMarkdown(await haalBronselectie(id)) };

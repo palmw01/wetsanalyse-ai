@@ -633,7 +633,9 @@ heeft *Verzend* (`isLaatsteVraag`), want wat erna komt hangt af van het antwoord
   onderzoekspunten, de zoekbeperkingen en de slotzin (`slotZin`: nooit "volledig"). De volgorde is die van het werk (`ordenVoorstellen`): eerst wat op een besluit wacht, dan
   wat uitgesloten is; wat je in een eerdere stap niet koos staat ingeklapt onder *Niet gekozen (n)*, zodat de rijen die om een
   besluit vragen dezelfde zijn als die op het kaartje. Per voorstel opnemen,
-  uitsluiten met reden of heropenen (`besluitBronselectie`); de stappen zet Lex. **Geen *later***: wat je op het
+  uitsluiten met reden of heropenen (`besluitBronselectie`); de stappen zet Lex. In het menu ⋯ van een voorstel staan
+  *Opnemen met reden…* en, bij een artikel, *Een lid opnemen…* (WA TRM H1, 8 nov 2026): de leden komen lui uit de samenhang
+  (`ledenVan`), en het besluit draagt `bron_iri`; een deel dat is opgenomen staat in de regel ("opgenomen: Lid 2"). **Geen *later***: wat je op het
   kaartje niet aanvinkt, is *niet gekozen*; iets toevoegen doe je door de vragen opnieuw te doorlopen, of door
   een bepaling in het tekstveld van het kaartje te typen.
 - **Het kaartje van de bepalingen is compact, het paneel beslist** (3 nov 2026, het artefactpatroon van Claude):
@@ -1489,7 +1491,9 @@ JSON / RDF (TriG)**. De vorm staat in de api (`api/app/annotatie_export.py`); de
 *Exporteren* in de kop van het werkgebied (`ProjectKop`) en het menu ⋯ van het werkgebiedpaneel naast het gesprek bieden naast de
 Markdown van het dossier de **PDF van het werkgebied** en **Rapport als Markdown** (`exporteerWerkgebied`, `GET …/export`). Beide
 komen uit één document in de api (`api/app/werkgebied_rapport.py`, ADR-009), dus met dezelfde inhoud; *Kopieer* en *Download als
-Markdown* blijven het korte dossier uit `lib/artefactMarkdown.ts`. Eén vaste inhoud, dus geen keuzes bij het exporteren. Het rapport
+Markdown* blijven het korte dossier uit `lib/artefactMarkdown.ts`. Eén keuze (WA TRM H1, 8 nov 2026): standaard staat alleen in het
+rapport wat een jurist beoordeelde; het vinkje *Met de voorstellen van Lex* (`voorstellenKeuze` op `ExportKnop`) vraagt
+`inhoud=alles`. Het rapport
 gaat over de stand van nu en staat daarom niet op een oude versie. De route krijgt een ruime timeout, want hij leest de bronbomen.
 
 ## De samenhangsgraaf (sigma.js)

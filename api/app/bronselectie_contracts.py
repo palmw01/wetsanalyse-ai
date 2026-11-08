@@ -67,6 +67,8 @@ class KandidaatBesluit(BaseModel):
     rol: Literal["analyseren", "context"] | None = None
     reden: str = Field(default="", max_length=2000)
     overal: bool = False
+    #: Per lid opnemen (WA TRM H1, 8 nov 2026): de kandidaat zelf of een lid of onderdeel eronder; leeg = de kandidaat.
+    bron_iri: str = Field(default="", max_length=2000, pattern=r"^(urn:bwb:BWB[A-Z]\d{7}(:.+)?)?$")
 
     @model_validator(mode="after")
     def _velden(self):

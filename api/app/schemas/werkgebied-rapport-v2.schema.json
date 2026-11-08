@@ -581,6 +581,15 @@
           "title": "Concept",
           "type": "boolean"
         },
+        "inhoud": {
+          "default": "alles",
+          "enum": [
+            "beoordeeld",
+            "alles"
+          ],
+          "title": "Inhoud",
+          "type": "string"
+        },
         "inhoud_hash": {
           "default": "",
           "title": "Inhoud Hash",
@@ -916,7 +925,7 @@
     },
     "Markeringsrelatie": {
       "additionalProperties": false,
-      "description": "Een vastgelegde relatie tussen twee markeringen, bij de bepaling van de drager. Een afgewezen relatie staat er niet in.",
+      "description": "Een vastgelegde relatie tussen twee markeringen, bij de bepaling van de drager. Een afgewezen relatie staat niet bij\nde bepaling maar in de bijlage (`Wettekst.afgewezen_relaties`), met haar reden.",
       "properties": {
         "id": {
           "title": "Id",
@@ -970,6 +979,11 @@
             "analist"
           ],
           "title": "Door",
+          "type": "string"
+        },
+        "reden_afwijzing": {
+          "default": "",
+          "title": "Reden Afwijzing",
           "type": "string"
         }
       },
@@ -1408,6 +1422,11 @@
           "default": true,
           "title": "Bestaat",
           "type": "boolean"
+        },
+        "lifecycle": {
+          "default": "",
+          "title": "Lifecycle",
+          "type": "string"
         }
       },
       "title": "RelatieEind",
@@ -2004,6 +2023,19 @@
           },
           "title": "Afgewezen",
           "type": "array"
+        },
+        "afgewezen_relaties": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Markeringsrelatie"
+          },
+          "title": "Afgewezen Relaties",
+          "type": "array"
+        },
+        "weggelaten_voorstellen": {
+          "default": 0,
+          "title": "Weggelaten Voorstellen",
+          "type": "integer"
         },
         "verwijzingen": {
           "default": [],
