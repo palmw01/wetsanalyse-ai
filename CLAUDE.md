@@ -234,13 +234,16 @@ erop. Ze horen in de api en niet in de skill, zodat het productie-image geen Cla
 te dragen om te kunnen starten.
 
 De **inhoudelijke duiding** – omschrijving, herkenningsvraag en uitdrukkingswijze per klasse – komt
-uit de skill. Twee bestanden in graph-qa zijn daarvan **afgeleid**:
+uit de skill. Daarvan zijn **afgeleid**:
 
 - `tools/graph-qa/agent/jas_klassen.py` – het JAS_KLASSEN-blok, gegenereerd door
   `tools/graph-qa/scripts/genereer_jas_klassen.py`, bewaakt door `tests/test_methode_drift.py`;
 - `tools/graph-qa/agent/methodepakket.py` – de methodetekst per agentrol (`agentrollen.json` +
   `references/agentrollen.md`), gegenereerd door `scripts/genereer_methodepakket.py`, bewaakt door
-  `tests/test_methodepakket.py`.
+  `tests/test_methodepakket.py`;
+- `api/app/jas_relaties.py` en `frontend/lib/jasRelaties.ts` – de relatiecatalogus (ADR-011) uit `relaties.json`,
+  gegenereerd door `tools/graph-qa/scripts/genereer_jas_relaties.py` (dat `genereer_jas_klassen.py` meedraait), bewaakt
+  door `tests/poort/test_relatiecatalogus.py`.
 
 Wil je het gedrag van de agent bijsturen, bewerk dan de markdown en draai het script; bewerk je de
 Python, dan faalt de test. Omdat de skill een build-input is, draait `poort` de graph-qa-suite ook

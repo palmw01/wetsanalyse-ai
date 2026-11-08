@@ -114,3 +114,14 @@ def test_de_uitleg_verwijst_naar_de_catalogus():
     """De typen staan in de catalogus; de uitleg verwijst ernaar en naar zijn bron."""
     uitleg = (SKILL / "references" / "relaties.md").read_text(encoding="utf-8")
     assert "relaties.json" in uitleg and "P18" in uitleg
+
+
+def test_de_gegenereerde_kopieen_volgen_de_catalogus():
+    """api en werkplek dragen een gegenereerde kopie (`genereer_jas_relaties.py`). Een kopie die met de hand is
+    bewerkt, of een catalogus die veranderde zonder het script te draaien, loopt hier vast – ook bij een PR die
+    alleen de api of de frontend raakt."""
+    import runpy
+
+    script = runpy.run_path(str(WORTEL / "tools" / "graph-qa" / "scripts" / "genereer_jas_relaties.py"))
+    for doel, inhoud in script["genereer"]().items():
+        assert doel.read_text(encoding="utf-8") == inhoud, f"{doel.relative_to(WORTEL)}: draai genereer_jas_relaties.py"
