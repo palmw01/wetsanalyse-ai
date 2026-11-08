@@ -1690,7 +1690,7 @@ export async function haalBronselectie(id: string): Promise<BronselectieOverzich
 }
 
 export type BronselectieBesluit =
-  | { besluit: "opnemen"; verwachte_revisie: number; rol?: "analyseren" | "context"; reden?: string }
+  | { besluit: "opnemen"; verwachte_revisie: number; rol?: "analyseren" | "context"; reden?: string; bron_iri?: string }
   | { besluit: "loskoppelen"; verwachte_revisie: number }
   | { besluit: "heropenen"; overal?: boolean }
   | { besluit: "uitsluiten"; reden: string; overal?: boolean };

@@ -6,7 +6,7 @@ De routes `…/uitkomst`, `…/loopt` en `…/mislukt` zijn voor graph-qa; de BF
 niet door, en de api toetst de uitkomst tegen de eigen invoer."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 
 from . import bronnen_run_store as store, bronselectie, werkgebied_store
@@ -99,7 +99,11 @@ async def post_bronselectie_besluit(werkgebied_id: str, deelvraag_id: str, kandi
     bron = {"bron_iri": ""}
     if req.besluit == "opnemen":
         wg = await werkgebied_store.haal(werkgebied_id)
-        iri = await store.bron_iri_van(werkgebied_id, kandidaat_id)
+        kandidaat = await store.bron_iri_van(werkgebied_id, kandidaat_id)
+        iri = req.bron_iri or kandidaat
+        if kandidaat and not bronselectie.onder(iri, kandidaat):
+            raise HTTPException(422, {"fout": "niet_onder_kandidaat",
+                                      "melding": "Kies de bepaling zelf, of een lid of onderdeel ervan."})
         if iri and iri not in {b["bron_iri"] for b in wg["bronnen"]}:
             bron = await geverifieerde_bron({"bron_iri": iri})
     await bronselectie.besluit(werkgebied_id, deelvraag_id, kandidaat_id, req, bron, actor)

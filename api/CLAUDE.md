@@ -1012,6 +1012,11 @@ na herladen, in een ander gesprek en bij een collega ook is.
     `werkgebied_bronselecties.voorgesteld_door` (`analist` bij bewijs `genoemd` of zelf toevoegen, anders `lex`). De
     kandidaat met stand `opgenomen` en de bron in het overzicht dragen `reden` en `besloten_door` van de koppeling, en
     het rapport toont "Opgenomen door X, voorgesteld door Lex / zelf genoemd" (WA TRM H1, 8 nov 2026);
+    **per lid**: `bron_iri` kiest de kandidaat zelf of een lid of onderdeel eronder (`bronselectie.onder`; anders 422
+    `niet_onder_kandidaat`), en de selectie komt op dat deel. Een lid onder een artikel dat bij deze deelvraag al staat
+    is 409 `valt_onder`; een artikel over opgenomen leden heen mag. De kandidaat heet dan `opgenomen` met
+    `opgenomen_delen`; loskoppelen en uitsluiten gaan over alles van de kandidaat bij die deelvraag, en een weggehaalde
+    lid-selectie maakt de kandidaat weer een voorstel als er geen deel meer staat;
   - `loskoppelen` haalt alleen de koppeling weg (revisie);
   - `uitsluiten` (reden verplicht) schrijft `bron_kandidaat_deelvragen`; met `overal: true` gaat de
     uitsluiting naar `bron_kandidaten` en geldt ze bij elke deelvraag. `heropenen` wist het besluit hier, met

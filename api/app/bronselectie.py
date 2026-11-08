@@ -127,6 +127,11 @@ async def _lees(werkgebied: dict) -> dict:
             "selecties": selecties, "koppelingen": koppelingen, "voorgangers": voorgangers, "basis": basis}
 
 
+def onder(iri: str, ouder: str) -> bool:
+    """`iri` is `ouder` zelf, of een lid of onderdeel eronder (het pad van de IRI, zoals `werkgebied_store.omvat`)."""
+    return iri == ouder or iri.startswith(ouder + ":")
+
+
 def _hoort_bij(kandidaat, did: str, eigen: set[str], kern_iris: set[str]) -> bool:
     """Deterministisch: gevonden bij deze deelvraag (of een voorganger), of een afhankelijkheid van een
     bron die al bij deze deelvraag hoort."""
@@ -181,8 +186,10 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
                                    or _hoort_bij(kd, did, eigen, iris_hier)):
                 continue
             rij = besluit.get((kd.id, did))
-            elders = kd.bron_iri in sel_per_iri and kd.bron_iri not in iris_hier
-            if kd.bron_iri in iris_hier:
+            # Opgenomen kan het geheel zijn, of een lid of onderdeel ervan (per lid opnemen).
+            delen_hier = sorted(i for i in iris_hier if onder(i, kd.bron_iri))
+            elders = any(onder(i, kd.bron_iri) for i in sel_per_iri) and not delen_hier
+            if delen_hier:
                 stand, overal = "opgenomen", False
             elif kd.status == "uitgesloten":
                 stand, overal = "uitgesloten", True
@@ -202,7 +209,7 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
             if stand == "opgenomen":
                 # Opgenomen is een koppeling van de selectie aan deze deelvraag: wie dat deed en waarom staat daar
                 # (zonder deelvragen: op de selectie). Eerder stond hier altijd een lege reden en `None`.
-                sel = sel_per_iri[kd.bron_iri]
+                sel = sel_per_iri[kd.bron_iri if kd.bron_iri in delen_hier else delen_hier[0]]
                 kop = koppelrij.get((did, sel.id))
                 reden = (getattr(kop, "reden", "") or "") if kop is not None else ""
                 reden = reden or sel.reden or ""
@@ -211,7 +218,10 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
                           "rol": kd.rol, "bewijs_soorten": bewijs_soorten(kd.bewijs or []), "zoekvragen": zoekvragen(kd.bewijs or []),
                           "_bewijzen": len(kd.bewijs or []),
                           "stand": stand, "overal": overal, "elders_opgenomen": elders,
-                          "reden": reden, "besloten_door": besloten_door})
+                          "reden": reden, "besloten_door": besloten_door,
+                          # Een deel opgenomen in plaats van het geheel: welke leden of onderdelen (anders leeg).
+                          "opgenomen_delen": [{"bron_iri": i, "label": sel_per_iri[i].label} for i in delen_hier
+                                              if i != kd.bron_iri]})
         lijst.sort(key=lambda x: (ROL_VOLGORDE.get(x["rol"], 9), BEWIJS_VOLGORDE.get(
             (x["bewijs_soorten"] or ["tekst"])[0], 9), -x.pop("_bewijzen"), x["label"], x["bron_iri"]))
         telling = {st: sum(1 for x in lijst if x["stand"] == st) for st in STANDEN_TELLING}
@@ -385,13 +395,27 @@ async def besluit(werkgebied_id: str, deelvraag_id: str, kandidaat_id: str, req:
         kd = (await conn.execute(select(k).where(k.c.werkgebied_id == werkgebied_id, k.c.id == kandidaat_id))).first()
         if kd is None:
             raise HTTPException(404, "Kandidaat bestaat niet.")
-        sid = (await conn.execute(select(s.c.id).where(s.c.werkgebied_id == werkgebied_id, s.c.bron_iri == kd.bron_iri,
-                                                       s.c.verwijderd.is_(None)))).scalar()
-        koppeling = None if alleen or not sid else (await conn.execute(select(kp).where(
+        # Per lid opnemen (WA TRM H1, 8 nov 2026): `bron_iri` kiest de kandidaat zelf of een lid of onderdeel eronder.
+        doel = req.bron_iri or kd.bron_iri
+        if not onder(doel, kd.bron_iri):
+            raise HTTPException(422, {"fout": "niet_onder_kandidaat",
+                                      "melding": "Kies de bepaling zelf, of een lid of onderdeel ervan."})
+        sels = (await conn.execute(select(s).where(s.c.werkgebied_id == werkgebied_id, s.c.verwijderd.is_(None)))).all()
+        hier_ids = set() if alleen else set((await conn.execute(select(kp.c.doel_id).where(
+            kp.c.deelvraag_id == deelvraag_id, kp.c.soort == "bron"))).scalars())
+        hier = [x for x in sels if alleen or x.id in hier_ids]
+        if req.besluit == "opnemen":
+            sid = next((x.id for x in sels if x.bron_iri == doel), None)
+            kiezen = [sid] if sid else []
+        else:
+            # Loskoppelen en uitsluiten gaan over wat van deze kandidaat hier staat: het geheel, of de leden ervan.
+            kiezen = [x.id for x in hier if onder(x.bron_iri, kd.bron_iri) and (not req.bron_iri or x.bron_iri == doel)]
+            sid = kiezen[0] if kiezen else None
+        koppeling = None if alleen or not sid or sid not in hier_ids else (await conn.execute(select(kp).where(
             kp.c.deelvraag_id == deelvraag_id, kp.c.soort == "bron", kp.c.doel_id == sid))).first()
         rij = (await conn.execute(select(b).where(b.c.werkgebied_id == werkgebied_id, b.c.kandidaat_id == kandidaat_id,
                                                   b.c.deelvraag_id == deelvraag_id))).first()
-    detail = {"deelvraag": deelvraag_id, "kandidaat": kandidaat_id, "bron_iri": kd.bron_iri}
+    detail = {"deelvraag": deelvraag_id, "kandidaat": kandidaat_id, "bron_iri": doel}
 
     async def wis_besluit(conn) -> None:
         await conn.execute(delete(b).where(b.c.werkgebied_id == werkgebied_id, b.c.kandidaat_id == kandidaat_id,
@@ -401,12 +425,19 @@ async def besluit(werkgebied_id: str, deelvraag_id: str, kandidaat_id: str, req:
         if kd.status == "uitgesloten":
             raise HTTPException(409, {"fout": "status", "status": "uitgesloten",
                                       "melding": "Deze bepaling is voor het hele werkgebied uitgesloten; heropen haar eerst."})
+        ruimer = next((x for x in hier if x.bereik == "onderliggend" and doel.startswith(x.bron_iri + ":")), None)
+        if ruimer is not None:
+            # Een lid onder een artikel dat hier al staat: dubbelop, en twee rollen voor één tekst.
+            raise HTTPException(409, {"fout": "valt_onder", "selectie_id": ruimer.id,
+                                      "melding": f"Dit valt al onder {ruimer.label or ruimer.bron_iri}, dat bij deze "
+                                                 "deelvraag is opgenomen."})
         if sid is None:
             # Nog niet in het werkgebied: opnemen zoals altijd, gekoppeld aan alleen deze deelvraag.
             await bronnen_run_store.opnemen(
                 werkgebied_id, kandidaat_id,
                 Opnemen(verwachte_revisie=req.verwachte_revisie, rol=req.rol, reden=req.reden), bron, actor,
-                deelvraag_ids=[] if alleen else [deelvraag_id], koppel_rol=req.rol or "", binnen=wis_besluit)
+                deelvraag_ids=[] if alleen else [deelvraag_id], koppel_rol=req.rol or "", binnen=wis_besluit,
+                bron_iri=doel)
         elif not alleen:
             await _koppel(werkgebied_id, deelvraag_id, sid, req.rol or "", req.verwachte_revisie, actor, detail,
                           koppeling, binnen=wis_besluit, reden=req.reden.strip())
@@ -414,13 +445,13 @@ async def besluit(werkgebied_id: str, deelvraag_id: str, kandidaat_id: str, req:
         if alleen:
             raise HTTPException(422, {"fout": "geen_deelvraag",
                                       "melding": "Zonder deelvragen haal je een bron weg op de tab Bronnen."})
-        if koppeling is not None:
+        if kiezen:
             async with _gewijzigd(werkgebied_id, req.verwachte_revisie, actor, "bronselectie-losgekoppeld",
                                   detail) as (conn, _):
                 await conn.execute(delete(kp).where(kp.c.deelvraag_id == deelvraag_id, kp.c.soort == "bron",
-                                                    kp.c.doel_id == sid))
+                                                    kp.c.doel_id.in_(kiezen)))
     elif req.besluit == "uitsluiten":
-        if koppeling is not None or (alleen and sid):
+        if kiezen:
             raise HTTPException(409, {"fout": "status", "status": "opgenomen",
                                       "melding": "Deze bepaling is bij deze deelvraag opgenomen; koppel haar eerst los."})
         naar = "uitgesloten"

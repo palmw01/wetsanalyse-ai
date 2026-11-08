@@ -44,6 +44,16 @@ export interface KandidaatHier {
   /** Al opgenomen bij een andere deelvraag. */
   elders_opgenomen: boolean;
   reden: string;
+  /** Opgenomen is een lid of onderdeel van de kandidaat, niet het geheel (per lid opnemen); anders leeg. */
+  opgenomen_delen: { bron_iri: string; label: string }[];
+}
+
+/** De leden van een artikel uit zijn samenhang (`GET samenhang`): wat het artikel in de opbouw direct bevat, in de
+ *  volgorde van de api. Leeg voor een bepaling zonder leden – dan valt er niets apart op te nemen. */
+export function ledenVan(s: { knopen: { id: string; soort: string; label: string }[]; relaties: { bron: string; doel: string; soort: string }[] },
+  artikelIri: string): { bron_iri: string; label: string }[] {
+  const kind = new Set(s.relaties.filter((r) => r.soort === "bevat" && r.bron === artikelIri).map((r) => r.doel));
+  return s.knopen.filter((k) => k.soort === "lid" && kind.has(k.id)).map((k) => ({ bron_iri: k.id, label: k.label }));
 }
 
 export interface DeelvraagSelectie {
@@ -174,7 +184,11 @@ export function parseBronselectie(ruw: unknown): BronselectieOverzicht | undefin
           // De api geeft de zoekvragen; een oude versie van het artefact draagt nog het hele bewijs.
           zoekvragen: Array.isArray(k.zoekvragen) ? k.zoekvragen.filter((z): z is Zoekvraag => typeof z === "string" && z in ZOEKVRAAG_LABEL) : zoekvragenUit(k.bewijs),
           stand: een(k.stand, STANDEN, "onbekend"), overal: k.overal === true, elders_opgenomen: k.elders_opgenomen === true,
-          reden: tekst(k.reden) }] : [];
+          reden: tekst(k.reden),
+          opgenomen_delen: Array.isArray(k.opgenomen_delen) ? k.opgenomen_delen.flatMap((x) => {
+            const o = obj(x);
+            return tekst(o.bron_iri) ? [{ bron_iri: tekst(o.bron_iri), label: tekst(o.label) }] : [];
+          }) : [] }] : [];
       }) : [],
       telling: { voorgesteld: getal(t.voorgesteld), niet_gekozen: getal(t.niet_gekozen), uitgesloten: getal(t.uitgesloten),
         opgenomen: getal(t.opgenomen) },
