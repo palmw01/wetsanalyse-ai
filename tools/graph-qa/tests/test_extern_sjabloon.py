@@ -39,12 +39,14 @@ def test_de_leestool_houdt_zich_aan_het_contract():
 
 def test_het_eigen_sjabloon_neemt_de_tekst_uit_de_bron():
     a = sjablonen.vul("antwoord_extern", {"kort_antwoord": "De MvT legt het doel uit.",
-                                          "extern": [{"id": ID, "van_nr": 1, "tot_nr": 2}], "twijfel": []}, TRACE)
+                                          "extern": [{"id": ID, "van_nr": 1, "tot_nr": 3}], "twijfel": []}, TRACE)
     assert a.sjabloon == "extern"
     blok = next(b for b in a.blokken if b.soort == "extern")
     assert blok.door == "bron" and blok.brontype == "kamerstuk" and blok.kop == "Uit de parlementaire geschiedenis"
-    assert [p.tekst for p in blok.passages] == ["Dit voorstel regelt de invorderingsrente opnieuw.", "Het doel is eenvoud."]
-    assert blok.link.endswith(ID) and blok.passages[1].kop == "1. Inleiding › Doel"
+    # De voetnoot staat als eigen passage direct na zijn alinea.
+    assert [p.tekst for p in blok.passages] == ["Dit voorstel regelt de invorderingsrente opnieuw.", "Zie de nota.",
+                                                "Het doel is eenvoud."]
+    assert blok.link.endswith(ID) and blok.passages[2].kop == "1. Inleiding › Doel"
     Antwoord.model_validate(a.model_dump())  # het contract dat api en werkplek lezen
     tekst = antwoord_tekst(a)
     assert "**Uit de parlementaire geschiedenis**" in tekst and '> "Het doel is eenvoud."' in tekst
@@ -160,8 +162,8 @@ def test_het_blok_draagt_de_versie_die_lex_las():
 def test_passages_komen_uit_de_laatste_lezing_en_mengen_niet():
     blok = next(b for b in _vul([OUD, NIEUW], 1, 1).blokken if b.soort == "extern")
     assert blok.bron_hash == "h2" and [p.tekst for p in blok.passages] == ["Dit voorstel regelt de invorderingsrente opnieuw."]
-    with pytest.raises(Onvulbaar, match="veranderd sinds alinea 2"):
-        _vul([OUD, NIEUW], 1, 2)
+    with pytest.raises(Onvulbaar, match="veranderd sinds alinea 3"):
+        _vul([OUD, NIEUW], 1, 3)
 
 
 def test_een_ouder_bericht_zonder_versie_blijft_geldig():

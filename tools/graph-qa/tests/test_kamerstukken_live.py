@@ -183,3 +183,11 @@ def test_de_adapter_leest_de_versie_van_het_document():
     """De cache valideert op dt.modified, documentstatus en versie (review ADR-013, punt 3)."""
     doc = SruKamerstukken().document(MVT)
     assert doc.gewijzigd and doc.documentstatus and doc.hash and doc.gevalideerd
+
+
+def test_een_voetnoot_is_een_rij_met_zijn_verwijzing():
+    _, rijen, overgeslagen = alineas(SruKamerstukken().document(MVT).xml)
+    noten = [r for r in rijen if r.get("soort") == "voetnoot"]
+    assert noten, "geen voetnoten meer: heet het element nog `noot` met `noot.nr` en `noot.al`?"
+    assert any("kst-33410-15" in r.get("verwijst_naar", []) for r in noten), "de extref naar het regeerakkoord"
+    assert overgeslagen.get("inhoudsopgave") == 1

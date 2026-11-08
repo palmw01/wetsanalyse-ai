@@ -97,9 +97,11 @@ KAMERSTUK_TOOLS: list[dict[str, Any]] = [
             "memorie van toelichting bijvoorbeeld de artikelsgewijze toelichting bij een artikel) in plaats van alles te "
             "lezen.\n"
             "GEEFT TERUG: het stuk (id, label, titel, link, bron_hash en de stand bij KOOP: gewijzigd, documentstatus, "
-            "versie) en per alinea nr, kop en tekst. Is de documentstatus 'Onopgemaakt', zeg dan dat de opgemaakte versie "
-            "kan afwijken; staat er gevalideerd: false, dan kon de nieuwste versie niet worden gecontroleerd. Tabellen, "
-            "illustraties en voetnoten staan er niet in; de telling ervan staat in 'overgeslagen'." + _CONTRACT
+            "versie) en per alinea nr, kop en tekst. Een voetnoot staat als eigen rij direct na zijn alinea (soort "
+            "'voetnoot', met noot en verwijst_naar: een ander stuk dat je met get_kamerstuk kunt lezen). Is de "
+            "documentstatus 'Onopgemaakt', zeg dan dat de opgemaakte versie kan afwijken; staat er gevalideerd: false, "
+            "dan kon de nieuwste versie niet worden gecontroleerd. Tabellen en illustraties staan er niet in; de telling "
+            "ervan staat in 'overgeslagen'." + _CONTRACT
         ),
         "input_schema": {
             "type": "object",
@@ -211,19 +213,50 @@ def _zoek(bron: KamerstukBron, a: dict[str, Any]) -> str:
                        leeg="Geen Kamerstukken met die woorden in de titel.")
 
 
-def _platte_tekst(e: ET.Element, overgeslagen: dict[str, int]) -> str:
+def _platte_tekst(e: ET.Element, overgeslagen: dict[str, int], noten: list[ET.Element] | None = None) -> str:
+    """De tekst van een element zonder opmaak. Een voetnoot gaat naar `noten` (als die er is), anders telt hij mee in
+    `overgeslagen`: hij hoort niet in de lopende tekst, maar valt ook niet stil weg."""
     delen: list[str] = [e.text or ""]
     for kind in e:
-        if kind.tag in _OVERGESLAGEN:
+        if kind.tag == "noot" and noten is not None:
+            noten.append(kind)
+        elif kind.tag in _OVERGESLAGEN:
             overgeslagen[_OVERGESLAGEN[kind.tag]] = overgeslagen.get(_OVERGESLAGEN[kind.tag], 0) + 1
         else:
-            delen.append(_platte_tekst(kind, overgeslagen))
+            delen.append(_platte_tekst(kind, overgeslagen, noten))
         delen.append(kind.tail or "")
     return "".join(delen)
 
 
+def _voetnoot(noot: ET.Element) -> tuple[str, str, list[str]]:
+    """(nummer, tekst, verwijst_naar) van een `<noot>`. Alleen een `extref soort="document"` met een geldige externe
+    vindplaats wordt een verwijzing (Lex kan die met de leestool volgen); een URL blijft tekst."""
+    nr = " ".join((noot.findtext("noot.nr") or "").split())
+    delen = list(noot.iter("noot.al")) or [k for k in noot if k.tag != "noot.nr"]
+    tekst = " ".join(" ".join(_platte_tekst(a, {}).split()) for a in delen).strip()
+    naar: list[str] = []
+    for ref in noot.iter("extref"):
+        vp = externe_vindplaats(ref.get("doc") or "") if ref.get("soort") == "document" else None
+        if vp is not None and vp.id not in naar:
+            naar.append(vp.id)
+    return nr, tekst, naar
+
+
+def _is_inhoudsopgave(tabel: ET.Element) -> bool:
+    """De eigen inhoudsopgave van een stuk: een tabel zonder titel die met de cel "Inhoudsopgave" begint. Ze telt apart:
+    `inhoud` doet hetzelfde werk, en haar regels zijn geen tekst van het stuk."""
+    if tabel.find("title") is not None:
+        return False
+    eerste = next((" ".join(_platte_tekst(a, {}).split()) for a in tabel.iter("al")), "")
+    return eerste.lower() == "inhoudsopgave"
+
+
 def alineas(xml: bytes) -> tuple[dict[str, str], list[dict[str, Any]], dict[str, int]]:
-    """(kop van het stuk, alinea's in documentvolgorde, overgeslagen per soort) uit de XML van een Kamerstuk."""
+    """(kop van het stuk, rijen in documentvolgorde, overgeslagen per soort) uit de XML van een Kamerstuk.
+
+    Een rij is een alinea, of een voetnoot direct na de alinea waar hij in staat (`soort: "voetnoot"`, met `noot` en
+    `verwijst_naar`); de alinea zelf houdt haar letterlijke tekst en noemt haar noten (`noten`). Eén nummering per stuk
+    (`nr`), want het blok `extern` voegt pagina's samen op `nr`."""
     root = ET.fromstring(xml)
     stuk = root.find(".//stuk")
     if stuk is None:
@@ -243,7 +276,9 @@ def alineas(xml: bytes) -> tuple[dict[str, str], list[dict[str, Any]], dict[str,
         tussen = ""
         for kind in e:
             hier = (*koppen, tussen) if tussen else koppen
-            if kind.tag in _OVERGESLAGEN:
+            if kind.tag in {"table", "tabel"} and _is_inhoudsopgave(kind):
+                overgeslagen["inhoudsopgave"] = overgeslagen.get("inhoudsopgave", 0) + 1
+            elif kind.tag in _OVERGESLAGEN:
                 overgeslagen[_OVERGESLAGEN[kind.tag]] = overgeslagen.get(_OVERGESLAGEN[kind.tag], 0) + 1
             elif kind.tag == "tussenkop":
                 tussen = " ".join(_platte_tekst(kind, overgeslagen).split())
@@ -251,9 +286,19 @@ def alineas(xml: bytes) -> tuple[dict[str, str], list[dict[str, Any]], dict[str,
                 kop = kop_van(kind)
                 loop(kind, (*hier, kop) if kop else hier)
             elif kind.tag == "al":
-                tekst = " ".join(_platte_tekst(kind, overgeslagen).split())
+                noten: list[ET.Element] = []
+                tekst = " ".join(_platte_tekst(kind, overgeslagen, noten).split())
+                kop = " › ".join(hier)
+                gelezen = [_voetnoot(n) for n in noten]
                 if tekst:
-                    uit.append(compact({"nr": len(uit) + 1, "kop": " › ".join(hier), "tekst": tekst}))
+                    uit.append(compact({"nr": len(uit) + 1, "kop": kop, "tekst": tekst,
+                                        "noten": [nr for nr, _, _ in gelezen if nr]}))
+                for nr, ntekst, naar in gelezen:
+                    if not ntekst:  # een lege noot valt niet stil weg
+                        overgeslagen["voetnoot"] = overgeslagen.get("voetnoot", 0) + 1
+                    else:
+                        uit.append(compact({"nr": len(uit) + 1, "soort": "voetnoot", "noot": nr, "kop": kop,
+                                            "tekst": ntekst, "verwijst_naar": naar}))
             elif kind.tag not in {"kop", "stuknr", "titel"}:
                 loop(kind, hier)
 

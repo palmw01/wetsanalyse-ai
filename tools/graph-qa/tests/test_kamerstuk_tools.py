@@ -90,14 +90,15 @@ def test_alineas_in_volgorde_met_kop_en_zonder_noten():
     kop, rijen, overgeslagen = alineas(XML)
     assert kop == {"documenttitel": "MEMORIE VAN TOELICHTING"}
     assert rijen == [{"nr": 1, "kop": "1. Inleiding", "tekst": "Dit voorstel regelt de invorderingsrente opnieuw."},
-                     {"nr": 2, "kop": "1. Inleiding › Doel", "tekst": "Het doel is eenvoud."}]
-    assert overgeslagen == {"voetnoot": 1, "tabel": 1}
+                     {"nr": 2, "soort": "voetnoot", "kop": "1. Inleiding", "tekst": "Zie de nota."},
+                     {"nr": 3, "kop": "1. Inleiding › Doel", "tekst": "Het doel is eenvoud."}]
+    assert overgeslagen == {"tabel": 1}
 
 
 def test_get_kamerstuk_is_een_bron_en_gronding_klopt():
     tekst = tools.dispatch("get_kamerstuk", None, {"id": "kst-99001-3"}, AAN, kamerstukken=NepBron(DOSSIER))
     d = json.loads(tekst)
-    assert d["stuk"]["id"] == "kst-99001-3" and d["overgeslagen"] == {"voetnoot": 1, "tabel": 1}
+    assert d["stuk"]["id"] == "kst-99001-3" and d["overgeslagen"] == {"tabel": 1}
     [bron] = collect_sources([("get_kamerstuk", tekst)])
     assert (bron.uri, bron.brontype) == ("kst-99001-3", "kamerstuk")
     goed = check_grounding('De MvT (kst-99001-3): "Dit voorstel regelt de invorderingsrente opnieuw."',
@@ -321,7 +322,7 @@ def test_een_cals_tabel_is_geen_alinea_maar_wordt_geteld():
     _, rijen, overgeslagen = alineas(MVT)
     teksten = [r["tekst"] for r in rijen]
     assert "Inhoudsopgave" not in teksten and "2014" not in teksten and "blz." not in teksten
-    assert overgeslagen == {"tabel": 2}
+    assert overgeslagen == {"inhoudsopgave": 1, "tabel": 1}
     assert teksten[0] == "Dit voorstel regelt de rente."
 
 
@@ -358,3 +359,42 @@ def test_een_inhoud_die_niet_past_gaat_een_niveau_omhoog_en_zegt_het_als_hij_ing
     assert not alle and 1 < len(lijst) <= MAX_INHOUD
     d = roep("get_kamerstuk", {"id": "kst-99001-3"}, NepBron(DOSSIER, MVT))
     assert d["status"] == "ok"
+
+
+# ── Voetnoten als rij (plan tabellen en voetnoten, PR 1) ─────────────────────────────────────────────────────────
+
+NOTEN = """<?xml version="1.0" encoding="UTF-8"?>
+<officiele-publicatie><kamerstuk><stuk><titel>MEMORIE VAN TOELICHTING</titel><algemeen><vrije-tekst><tekst>
+<divisie><kop><nr>1.</nr><titel>Inleiding</titel></kop>
+<al>In het regeerakkoord<noot id="n1" type="voet"><noot.nr>1</noot.nr><noot.al>Regeerakkoord, Kamerstuk
+<extref doc="kst-33410-15" soort="document" status="actief">33 410, nr. 15</extref>, bijlage B; zie ook
+<extref doc="https://www.rijksoverheid.nl/x" soort="URL">rijksoverheid.nl</extref>.</noot.al></noot> is dit
+afgesproken.<noot id="n2" type="voet"><noot.nr>2</noot.nr><noot.al>Zie <extref doc="geen-id" soort="document">x</extref>.
+</noot.al></noot></al>
+<al>Een tweede alinea.</al><al><noot id="n3" type="voet"><noot.nr>3</noot.nr></noot></al>
+</divisie></tekst></vrije-tekst></algemeen></stuk></kamerstuk></officiele-publicatie>""".encode()
+
+
+def test_een_voetnoot_staat_als_rij_direct_na_zijn_alinea():
+    _, rijen, overgeslagen = alineas(NOTEN)
+    assert [(r["nr"], r.get("soort", "alinea"), r.get("noot", "")) for r in rijen] == [
+        (1, "alinea", ""), (2, "voetnoot", "1"), (3, "voetnoot", "2"), (4, "alinea", "")]
+    # De alinea houdt haar letterlijke tekst, zonder ingevoegd teken, en noemt haar noten.
+    assert rijen[0]["tekst"] == "In het regeerakkoord is dit afgesproken." and rijen[0]["noten"] == ["1", "2"]
+    assert rijen[1]["tekst"].startswith("Regeerakkoord, Kamerstuk 33 410, nr. 15, bijlage B")
+    assert rijen[1]["kop"] == "1. Inleiding"
+    # Een lege noot valt niet stil weg.
+    assert overgeslagen == {"voetnoot": 1}
+
+
+def test_alleen_een_geldig_document_wordt_een_verwijzing():
+    _, rijen, _ = alineas(NOTEN)
+    assert rijen[1]["verwijst_naar"] == ["kst-33410-15"], "een URL wordt geen vindplaats"
+    assert "verwijst_naar" not in rijen[2], "een extref zonder geldig id wordt geen vindplaats"
+
+
+def test_uit_een_voetnoot_citeren_is_gegrond():
+    tekst = tools.dispatch("get_kamerstuk", None, {"id": "kst-99001-3"}, AAN, kamerstukken=NepBron(DOSSIER, NOTEN))
+    goed = check_grounding('Voetnoot 1 van kst-99001-3: "Regeerakkoord, Kamerstuk 33 410, nr. 15, bijlage B"',
+                           [("get_kamerstuk", tekst)])
+    assert goed.niveau == "gegrond"

@@ -233,7 +233,8 @@ bruikbaar is.
   **Kamerstukken** (`tools/kamerstuk_tools.py`, transport `adapters/sru_kamerstukken.py`): `zoek_kamerstukken`
   (een dossier of subdossier, `w.dossiernummer=="36200-IX"`; tot `MAX_DOSSIER` stukken op nummer, daarboven op datum met
   een exact vervolg en `volgorde: "datum"` – nooit afgekapt; of woorden in de titel; zonder bijlagen, `dt.type==Kamerstuk`) en `get_kamerstuk` (per alinea, met de kop, in documentvolgorde;
-  tabellen (ook CALS `table`), illustraties en voetnoten geteld in `overgeslagen`; een `tussenkop` hoort bij de alinea's erna, zodat
+  tabellen (ook CALS `table`) en illustraties geteld in `overgeslagen`, de eigen inhoudsopgave apart; een voetnoot is een rij direct
+  na zijn alinea (`soort: "voetnoot"`, `verwijst_naar` uit een `extref` naar een document), en de alinea noemt haar `noten`; een `tussenkop` hoort bij de alinea's erna, zodat
   de artikelsgewijze toelichting haar artikel noemt; de eerste pagina draagt `inhoud`, per kop de offset, om te springen). De CQL bouwt de tool, de document-URL komt uit het
   SRU-record en alleen `repository.overheid.nl` over https; een SRU-diagnose of storing is een foutresultaat
   (`bron_onbereikbaar`), nooit een lege lijst. Een rij draagt haar tekst onder `id`, niet onder `iri`/`uri`: een
