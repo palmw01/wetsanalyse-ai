@@ -23,7 +23,7 @@ from sqlalchemy import delete, insert, select, update
 
 from . import db
 from . import jas_relaties
-from .annotatie_v2_contracts import AFGEHANDELD, Eindpunt, ImplicietInvoer, Lifecycle, RelatieBeslissing, RelatieInvoer, is_vervangen
+from .annotatie_v2_contracts import AFGEHANDELD, NIET_ACTUEEL, Eindpunt, ImplicietInvoer, Lifecycle, RelatieBeslissing, RelatieInvoer, is_vervangen
 from .annotatie_v2_store import _audit, _laag, _lagen, _raak, publiek_laag, schrijftransactie
 from .begrip_store import element_hash
 
@@ -261,6 +261,25 @@ def beschrijf(relatie: dict, elementen: dict, impliciet: dict) -> dict:
                      and info_van["stand"] == relatie.get("stand_van") and info_naar["stand"] == relatie.get("stand_naar"))
     return {**{k: v for k, v in relatie.items() if k not in ("van", "naar")}, "leesvorm": t.get("leesvorm", ""),
             "van": kant(relatie["van"], info_van), "naar": kant(relatie["naar"], info_naar), "veranderd": veranderd}
+
+
+async def van_element(element_id: str) -> list[dict]:
+    """De relaties waarin dit element een eindpunt is, zoals `beschrijf` ze geeft, voor het detail van één element (en
+    zo voor Lex, die er in een vervolgvraag naar vraagt). Een afgewezen of vervangen relatie telt niet mee: die is niet
+    (meer) vastgelegd. Alleen lezen; de elementen aan de andere kant komen mee voor klasse, tekst en `veranderd`."""
+    async with db.get_engine().connect() as conn:
+        relaties = [r for r in (await _alle(conn, db.annotatie_v2_relaties)).values()
+                    if element_id in {k["id"] for k in (r["van"], r["naar"]) if k["soort"] == "element"}
+                    and r.get("lifecycle") != Lifecycle.rejected.value and r.get("lifecycle") not in NIET_ACTUEEL]
+        if not relaties:
+            return []
+        ids = {k["id"] for r in relaties for k in (r["van"], r["naar"])}
+        e, i = db.annotatie_v2_elementen, db.annotatie_v2_impliciet
+        elementen = {r["id"]: dict(r["inhoud"]) for r in (await conn.execute(
+            select(e).where(e.c.id.in_(sorted(ids))))).mappings().all()}
+        impliciet = {r["id"]: dict(r["inhoud"]) for r in (await conn.execute(
+            select(i).where(i.c.id.in_(sorted(ids))))).mappings().all()}
+    return [beschrijf(r, elementen, impliciet) for r in sorted(relaties, key=lambda r: r["id"])]
 
 
 async def bij_weergave(conn, element_ids: set[str], laag_ids: set[str], elementen: dict) -> tuple[list[dict], list[dict]]:

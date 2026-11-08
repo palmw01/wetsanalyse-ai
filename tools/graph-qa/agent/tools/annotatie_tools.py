@@ -134,7 +134,11 @@ ANNOTATIE_TOOLS = [
             "limit": {"type": "integer", "minimum": 1, "maximum": 100},
             "offset": {"type": "integer", "minimum": 0}}),
     schema("get_annotatie", "Lees één opgeslagen annotatie inclusief eigenaar, alle lokale "
-           "ankers en beoordeling. Dit is duiding; haal de bron apart op voor juridische claims.",
+           "ankers en beoordeling. Dit is duiding; haal de bron apart op voor juridische claims. "
+           "GEEFT OOK de vastgelegde relaties met andere markeringen (`relaties`, ADR-011): per relatie "
+           "de zin (bv. 'de ontvanger is plichthebbende van deze markering'), de leesvorm, de andere kant, "
+           "de beoordeling, en `veranderd` als een kant sindsdien wijzigde. Alleen wat vastgelegd is; "
+           "afgewezen relaties staan er niet bij.",
            {"id": _d(S, "Het id van een annotatie, uit een zoekresultaat of de GESPREKSCONTEXT.")}, ("id",)),
     schema("get_annotatiedekking", "Controleer of een bronnode/subtree daadwerkelijk geannoteerd "
            "is; aanwezigheid van enkele elementen bewijst geen volledige dekking. Geef bron_iri, of "
@@ -228,6 +232,38 @@ def _compact(e: dict[str, Any]) -> dict[str, Any]:
     return uit
 
 
+#: Zoveel relaties toont `get_annotatie` hoogstens, en zo lang is de tekst van de andere kant. Een rechtsbetrekking met
+#: haar subjecten, object, voorwaarden en afleiding komt zelden boven de tien; daarboven zegt `relaties_meer` hoeveel.
+MAX_RELATIES = 15
+_RELATIE_TEKST = 160
+
+
+def _compacte_relatie(r: dict[str, Any], element_id: str) -> dict[str, Any]:
+    """Eén relatie vanuit dit element gelezen: de zin, de leesvorm, de andere kant, de beoordeling en `veranderd`.
+
+    Wat de jurist vroeg ("wie is de plichthebbende?") staat in de zin; de ruwe velden (stand, beslissingen, laag) niet.
+    Een relatie is vastgelegde duiding, geen wettekst: dat zegt de toolbeschrijving, en grounding leest haar niet."""
+    van, naar = r.get("van") or {}, r.get("naar") or {}
+    andere = naar if van.get("soort") == "element" and van.get("id") == element_id else van
+
+    def benoem(kant: dict[str, Any]) -> str:
+        if kant is not andere:
+            return "deze markering"
+        if not kant.get("bestaat", True):
+            return "(een markering die er niet meer is)"
+        tekst = " ".join(str(kant.get("tekst") or "").split())
+        tekst = tekst if len(tekst) <= _RELATIE_TEKST else tekst[:_RELATIE_TEKST] + "…"
+        return f"«{tekst}»"
+
+    leesvorm = str(r.get("leesvorm") or r.get("type") or "")
+    uit = {"zin": f"{benoem(van)} {leesvorm} {benoem(naar)}", "leesvorm": leesvorm,
+           "andere_kant": benoem(andere).strip("«»"), "klasse_andere_kant": andere.get("klasse"),
+           "impliciete_partij": andere.get("soort") == "impliciet" or None, "volgorde": r.get("volgorde"),
+           "beoordeling": BEOORDELING.get(str(r.get("lifecycle") or ""), r.get("lifecycle")),
+           "veranderd": True if r.get("veranderd") else None}
+    return {k: v for k, v in uit.items() if v not in (None, "", [], {})}
+
+
 def compacte_uitkomst(name: str, result: dict[str, Any]) -> dict[str, Any]:
     """Status en volledigheid vóórop, dan de compacte treffers. Wie alleen het begin leest – een
     model met een krap venster – ziet zo eerst óf het resultaat te vertrouwen is."""
@@ -239,6 +275,11 @@ def compacte_uitkomst(name: str, result: dict[str, Any]) -> dict[str, Any]:
         # Eén element: het spoor (`trace`) blijft, dat is het antwoord op "waarom deze klasse?".
         # Alleen de run van de hele batch gaat eruit.
         rest["element"] = {k: v for k, v in rest["element"].items() if k != "geproduceerd_door"}
+        if isinstance(rest.get("relaties"), list):
+            relaties = [r for r in rest["relaties"] if isinstance(r, dict)]
+            rest["relaties"] = [_compacte_relatie(r, str(rest["element"].get("id") or "")) for r in relaties[:MAX_RELATIES]]
+            if len(relaties) > MAX_RELATIES:
+                rest["relaties_meer"] = len(relaties) - MAX_RELATIES
     return {**kop, **rest}
 
 
