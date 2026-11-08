@@ -1,6 +1,6 @@
 # Meetlogboek
 
-Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 7 november 2026
+Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 8 november 2026
 
 Hier staat per datum wat er gemeten is, op welke code, wat eruit kwam en waar de gegevens staan.
 Nieuwste bovenaan. De meetbestanden zelf zijn bewijs: **wijzig ze niet achteraf**. Een correctie
@@ -17,6 +17,7 @@ of herhaling krijgt een eigen map of rij. Hoe de keten nu werkt, staat in
 
 | Datum | Meting | Code | Uitkomst in één regel | Gegevens |
 |---|---|---|---|---|
+| 8 nov | **Regie binnen een werkgebied** (ADR-012): bronnenronde en annoteerronde met 2 deelgesprekken tegelijk, op acceptatie, via de acceptatie-MCP | `c53dd3f5` (bundel 17) | Bronnen 52 s en 0 tokens; annoteren 80 s en 37.026 tokens tegen een schatting van 30.996 (bovenkant 46.494), geen dubbele laag. Het plan noemt al geannoteerde bepalingen niet, en de schatting kent de lengte van een lid niet. *Stop alles* en de trace niet gemeten | [`regie-2026-11-08/`](regie-2026-11-08/README.md) |
 | 6 nov | **Conceptset met model, nameting**: na de reparaties uit de heropname, drie runs | `25424a4c` | Gedekt 43 van 58 (was 41–42), exact 32 (was 30); Rechtsfeit bleef 1 van 7: het model kiest nu "geen annotatie" | [`concept-eval-na-2026-11-06/`](concept-eval-na-2026-11-06/) |
 | 6 nov | **Conceptset met model**: nulmeting vóór de reparaties uit de heropname, drie runs | `dbdad9b8` | Gedekt 41–42 van 58; Rechtsfeit 1 van 7 in alle runs, Rechtsbetrekking 4–5 van 10, Delegatie en Rechtssubject volledig | [`concept-eval-2026-11-06/`](concept-eval-2026-11-06/) |
 | 6 nov | **Kandidaatruimte per klasse**: nulmeting vóór de verbetering van de detectoren, alle dertien klassen met hypothesen en precisie, op v1 en de conceptcasussen `UBT01`–`UBT14`, 0 modelcalls | branch `eval-kandidaatruimte-per-klasse` | v1: 89% met klasse, maar een zwakke maat voor wat er ontbreekt: Rechtsfeit staat met 0 referenties op 19 hypothesen. Concept (geen jurist gezien, gold niet volledig): 34% met klasse, Delegatie 0 van 6, Afleidingsregel 0 van 3, Rechtsbetrekking 1 van 10, Rechtssubject 8 van 15. Hier mist de klasse in de keuzeruimte, dus het model kon haar niet kiezen | [`kandidaatruimte-2026-11-06/`](kandidaatruimte-2026-11-06/README.md) |

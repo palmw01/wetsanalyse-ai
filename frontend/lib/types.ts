@@ -718,6 +718,8 @@ export interface Gesprek {
   /** Leeg = een los gesprek; anders krijgt elke beurt het dossier van dit werkgebied mee. */
   werkgebied_id?: string;
   gearchiveerd?: string | null;
+  /** ADR-013: de bronconnectors die in dit gesprek aanstaan; `null` = de standaard (werkgebied, anders de beheerder). */
+  connectors?: string[] | null;
   berichten: Bericht[];
   created?: string;
   updated?: string;
@@ -845,6 +847,8 @@ export interface WerkgebiedSamenvatting {
   /** Spoor I6: het thema als TOOI-URI uit tooitop, met zijn naam; leeg = nog niet gekozen. */
   thema?: string;
   thema_label?: string;
+  /** ADR-013: de standaard van het menu *Bronnen en tools* voor gesprekken in dit werkgebied; `null` = de beheerder. */
+  standaard_connectors?: string[] | null;
   /** Standaard de dag van aanmaken (api, 3 nov 2026); `peildatum_standaard` zegt of hij dat nog is. */
   peildatum: string | null;
   peildatum_standaard?: boolean;
@@ -911,6 +915,8 @@ export interface WerkgebiedWijziging {
   thema?: string;
   peildatum?: string | null;
   status?: WerkgebiedStatus;
+  /** ADR-013: de standaard van het menu *Bronnen en tools*; `null` = wat de beheerder aanzette. */
+  standaard_connectors?: string[] | null;
 }
 
 /** De peildatum naast de toestand van elke regeling in de bronnen (`GET …/toestanden`). De graaf heeft per

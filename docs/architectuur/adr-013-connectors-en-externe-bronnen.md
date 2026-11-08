@@ -100,7 +100,7 @@ Die geldt voor beide soorten. Voor contextconnectors is hij de voorwaarde.
 | Fase | Wat | Voorwaarde |
 |---|---|---|
 | **1a** | het soort vindplaats in `packages/bronmodel` (`extern.py`) + `provenance`/`grounding`/werkplek (PR 1); de bronconnector Kamerstukken achter `CONNECTOR_KAMERSTUKKEN` (PR 2). Een Kamerstuk komt niet in een sjabloonblok (de rij draagt `id`, geen `iri`); het staat in de uitleg en de bronnenlijst, en `verify` toetst het citaat. `door` met brontype volgt pas als een blok externe tekst draagt; bronconnector **Kamerstukken** (`zoek_kamerstukken`, `get_kamerstuk`) achter een vlag | dit ADR |
-| **1b** | register `/v1/admin/connectors` + beheertab; het menu *Bronnen en tools* per gesprek, de standaard per werkgebied, de stand op het gesprek | 1a |
+| **1b** | register `/v1/admin/connectors` + beheertab; het menu *Bronnen en tools* per gesprek, de standaard per werkgebied, de stand op het gesprek (`Gesprek.connectors`, `standaard_connectors`) – gebouwd in PR 3–5 | 1a |
 | **1c** | LiDO-koppelingen jci↔ECLI in de graaf (importer), bronconnector **rechtspraak**; daarna **EUR-Lex** | endpoint en licentie getoetst |
 | **2a** | contextconnectors die de gebruiker toevoegt, alleen lezen: MCP-URL + OAuth, goedkeuring per tool, de vertrouwensgrens | **besluit ADR-007** |
 | **2b** | contextconnectors die schrijven, met toestemming per handeling | 2a + aparte toets |

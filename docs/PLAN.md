@@ -113,7 +113,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | P | Antwoordsjablonen: vaste vorm per vraagtype (ADR-008) | Gebouwd: `begrip`, `bepaling`, `duiding`, `annotaties`; de overzichtsroute bewust zonder sjabloon. Open: tokens en duur meten, `verwijzingen` als blok alleen als het vast kan, en de eval `gesprek` (kost geld) |
 | O | Acceptatietesten via MCP | Accounttoken en acceptatie-MCP gebouwd, eerste scenario gedraaid; open: de fixtures voor de Playwright-mocks |
 | R | Verbeterplan uit de applicatiereview (6 nov 2026) | Ronde 1 en 2 gemerged (t/m #951); ronde 3 als losse PR's (#963–#985), zie de sectie. Uitgesteld: F2, F3, E4, E6, H5; bij de eigenaar: G2 (meldkanaal), G4, G9 |
-| S | Multi-agent regie binnen een werkgebied (ADR-012) | Ontwerp aangenomen (7 nov 2026); bouw in zeven stappen, zie de sectie |
+| S | Multi-agent regie binnen een werkgebied (ADR-012) | Gebouwd (#1081, #1082, #1085, #1087, #1088, #1100) en op acceptatie gemeten (8 nov 2026); open: zie de sectie |
 
 ---
 
@@ -1369,7 +1369,14 @@ regisseur maakt in code een plan, start per deelvraag een kindgesprek met een ge
 6. Werkplek: de kindgesprekken, het regiekaartje en *Stop alles*.
 7. Meting op acceptatie, na akkoord (kost tokens).
 
-**Open.** Begrippen in de regie, een reservering bij de api, `minReplicas: 1` voor graph-qa, en een Grafana-paneel.
+**Stand (8 nov 2026).** Stap 1–6 zijn gemerged (#1076, #1081, #1082, #1085, #1087, #1088, met de begrenzing van het
+agent-token #1100). Stap 7, de meting op acceptatie, staat in `architectuur/metingen/regie-2026-11-08/`.
+
+**Open.**
+- Het plan noemt bepalingen die al een annotatie hebben, met de reden waarom ze niet meegaan.
+- Een schatting naar de lengte van een bepaling, als een meting dat waard blijkt.
+- *Stop alles* en de trace op acceptatie meten.
+- Begrippen in de regie, een reservering bij de api, `minReplicas: 1` voor graph-qa, en een Grafana-paneel.
 
 ## Volgorde en samenhang
 

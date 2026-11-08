@@ -443,6 +443,20 @@ de beurt bewaard en bij hydratatie teruggehaald. Achteraf moet te zien zijn hoe 
 stand kwam. `ToolSpoor` toont de graafaanroepen van de beurt (`tool_executions`), één regel per
 aanroep.
 
+### Bronnen en tools boven het invoerveld (ADR-013)
+
+`ConnectorsMenu` (rekenkern `lib/connectorsMenu.ts`) staat boven het invoerveld zodra de beheerder een bronconnector
+aanzette (`GET /api/connectors` → api `/v1/connectors`, één keer per venster, stil falend: dan geen menu). De knop noemt
+*Wetgeving · Kamerstukken …* met een vinkje of *uit* (een icoon, geen teken: dat valt buiten het font); het menu zet per
+connector aan of uit (`MenuKeuze`), en in een werkgebied *Maak dit de standaard van het werkgebied*.
+
+- **De stand**: het gesprek (`Gesprek.connectors`, PATCH via `wijzigGesprek`) gaat voor het werkgebied
+  (`standaard_connectors`, PATCH met de revisie), en dat voor alles wat de beheerder aanzette. Wat de beheerder niet
+  aanbiedt, gaat nooit aan. Gekozen vóór er een gesprek was, wordt na het aanmaken bewaard (`connectorsTeBewaren`).
+- **De beurt draagt `bronnen`** (`startRun`) alleen met een menu; zonder connector bij de beheerder beslist graph-qa.
+- Het menu omzetten zet een gesprek niet bovenaan de lijst (geen `updated`).
+- Browserregressie: `scripts/test-connectors-menu.mjs`.
+
 ### Brongetrouwheid onder en in het antwoord
 
 - **`Brongetrouwheid`** (`ThreadRij`) leest het `grounding`-event. Het zwijgt bij

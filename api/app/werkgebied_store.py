@@ -54,6 +54,7 @@ def _werkgebied(row) -> dict:
             "doel": row.doel, "praktijkvoorbeeld": row.praktijkvoorbeeld, "gebeurtenis": row.gebeurtenis,
             "regelingen": list(row.regelingen or []),
             "thema": row.thema, "thema_label": tooi.thema_label(row.thema),
+            "standaard_connectors": row.standaard_connectors,
             "peildatum": peildatum, "peildatum_standaard": peildatum == aanmaakdag, "status": row.status,
             "revisie": row.revisie, "aangemaakt_door": row.aangemaakt_door,
             "aangemaakt": db.aware(row.aangemaakt).isoformat(),
