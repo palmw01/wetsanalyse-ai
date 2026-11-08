@@ -480,6 +480,21 @@
           "default": "",
           "title": "Reden",
           "type": "string"
+        },
+        "besloten_door": {
+          "default": "",
+          "title": "Besloten Door",
+          "type": "string"
+        },
+        "voorgesteld_door": {
+          "default": "",
+          "enum": [
+            "lex",
+            "analist",
+            ""
+          ],
+          "title": "Voorgesteld Door",
+          "type": "string"
         }
       },
       "required": [

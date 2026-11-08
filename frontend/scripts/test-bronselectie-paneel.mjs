@@ -87,7 +87,7 @@ await context.route("**/api/**", async (route) => {
   const besluit = p.match(/^\/api\/werkgebieden\/wg1\/bronselectie\/d1\/kandidaten\/(K\d+)$/);
   if (besluit && m === "POST") {
     besluiten.push({ kid: besluit[1], ...body });
-    if (body.besluit === "opnemen") stand.opgenomen.push(besluit[1]);
+    if (body.besluit === "opnemen" && KAND.some((k) => k[0] === besluit[1])) stand.opgenomen.push(besluit[1]);
     stand.revisie++; wg.revisie++;
     return route.fulfill({ json: overzicht() });
   }
@@ -197,8 +197,17 @@ try {
   assert.equal(await page.locator('[data-kandidaat-hier="K11"]').count(), 0, "ingeklapt");
   await nietGekozen.getByRole("button", { name: "Niet gekozen (1)" }).click();
   await page.locator('[data-kandidaat-hier="K11"]').getByRole("button", { name: /^Opnemen/ }).waitFor();
+  // Opnemen met een eigen reden gaat via het menu ⋯ en stuurt de reden mee (WA TRM H1: anders schreef de api
+  // "Voorgesteld door Lex" als reden in het rapport).
+  const k11 = page.locator('[data-kandidaat-hier="K11"]');
+  await k11.getByRole("button", { name: /^Meer besluiten/ }).click();
+  await page.getByRole("menuitem", { name: "Opnemen met reden…" }).click();
+  await k11.getByPlaceholder("Waarom bij deze deelvraag?").fill("regelt de vervaldag");
+  await k11.getByRole("button", { name: "Opnemen", exact: true }).click();
+  for (let i = 0; i < 100 && besluiten.at(-1)?.kid !== "K11"; i++) await page.waitForTimeout(50);
+  assert.deepEqual([besluiten.at(-1).kid, besluiten.at(-1).besluit, besluiten.at(-1).reden], ["K11", "opnemen", "regelt de vervaldag"]);
 
-  console.log("Browser OK: compact kaartje zonder vinkjes, paneel met uitklapbare wettekst, opnemen werkt de telling live bij, zelf bepalingen noemen per regel (geen venster), Klaar in het paneel (actie klaar), het paneel als sheet op een telefoon.");
+  console.log("Browser OK: compact kaartje zonder vinkjes, paneel met uitklapbare wettekst, opnemen werkt de telling live bij, zelf bepalingen noemen per regel (geen venster), Klaar in het paneel (actie klaar), het paneel als sheet op een telefoon, opnemen met reden via het menu ⋯.");
 } finally {
   await browser.close();
 }

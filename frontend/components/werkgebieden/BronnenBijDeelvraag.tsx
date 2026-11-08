@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
-import { MeerMenu, MenuKeuze, MenuVerwijder } from "@/components/ui/MeerMenu";
+import { MeerMenu, MenuKeuze, MenuKnop, MenuVerwijder } from "@/components/ui/MeerMenu";
 import { StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { Groep, GroepRij } from "@/components/ui/Pagina";
@@ -335,7 +335,11 @@ function Voorstel({ o, d, k, beslis, inGesprek = false, alleenLezen = false }: {
   k: KandidaatHier;
   beslis: (d: DeelvraagSelectie, k: KandidaatHier, b: BronselectieBesluit) => Promise<void>;
 }) {
-  const [uitsluiten, setUitsluiten] = useState(false);
+  // Een besluit met een eigen reden: uitsluiten vraagt er altijd een, opnemen alleen als de analist hem wil vastleggen
+  // (WA TRM H1, 8 nov 2026: zonder reden schreef de api "Voorgesteld door Lex" in het rapport).
+  const [metReden, setMetReden] = useState<"uitsluiten" | "opnemen" | null>(null);
+  const uitsluiten = metReden !== null;
+  const setUitsluiten = (aan: boolean) => setMetReden(aan ? "uitsluiten" : null);
   const [tekst, setTekst] = useState(false);
   const [reden, setReden] = useState("");
   const [bezig, setBezig] = useState(false);
@@ -343,6 +347,8 @@ function Voorstel({ o, d, k, beslis, inGesprek = false, alleenLezen = false }: {
     setBezig(true);
     try { await beslis(d, k, b); } finally { setBezig(false); }
   };
+  const opnemen = (r?: string): BronselectieBesluit => ({ besluit: "opnemen", verwachte_revisie: o.revisie,
+    rol: k.rol === "kern" ? "analyseren" : "context", ...(r ? { reden: r } : {}) });
   const { bepaling, regeling } = bepalingEnRegeling(k.label || k.bron_iri);
   const sub = [regeling, k.rol === "kern" ? "kernbepaling" : k.rol === "afhankelijkheid" ? "afhankelijkheid" : "mogelijk relevant",
     // Bij welke zoekvraag (a–d) het hoort: waarom het er staat in de termen van de methode.
@@ -360,22 +366,32 @@ function Voorstel({ o, d, k, beslis, inGesprek = false, alleenLezen = false }: {
           {uitsluiten ? (
             <form className="flex w-full flex-col gap-2 sm:flex-row" onSubmit={(e) => {
               e.preventDefault();
-              if (reden.trim()) void doe({ besluit: "uitsluiten", reden: reden.trim() }).then(() => setUitsluiten(false));
+              if (!reden.trim()) return;
+              const b: BronselectieBesluit = metReden === "opnemen" ? opnemen(reden.trim()) : { besluit: "uitsluiten", reden: reden.trim() };
+              void doe(b).then(() => setUitsluiten(false));
             }}>
-              <Input autoFocus aria-label={`Waarom sluit je ${k.label} uit bij deze deelvraag?`} value={reden}
-                onChange={(e) => setReden(e.target.value)} placeholder="Waarom niet bij deze deelvraag?" />
-              <Button type="submit" size="xs" variant="secondary" disabled={!reden.trim() || bezig}>Uitsluiten</Button>
+              <Input autoFocus value={reden} onChange={(e) => setReden(e.target.value)}
+                aria-label={metReden === "opnemen" ? `Waarom neem je ${k.label} op bij deze deelvraag?` : `Waarom sluit je ${k.label} uit bij deze deelvraag?`}
+                placeholder={metReden === "opnemen" ? "Waarom bij deze deelvraag?" : "Waarom niet bij deze deelvraag?"} />
+              <Button type="submit" size="xs" variant="secondary" disabled={!reden.trim() || bezig}>
+                {metReden === "opnemen" ? "Opnemen" : "Uitsluiten"}
+              </Button>
               <Button type="button" size="xs" variant="ghost" onClick={() => setUitsluiten(false)}>Annuleren</Button>
             </form>
           ) : k.stand === "onbekend" ? null : k.stand !== "uitgesloten" ? (
             <>
               <Button size="xs" variant="secondary" disabled={bezig} aria-label={`Opnemen: ${k.label}`}
-                onClick={() => doe({ besluit: "opnemen", verwachte_revisie: o.revisie, rol: k.rol === "kern" ? "analyseren" : "context" })}>
+                onClick={() => doe(opnemen())}>
                 Opnemen
               </Button>
               <Button size="xs" variant="secondary" disabled={bezig} aria-label={`Uitsluiten: ${k.label}`} onClick={() => setUitsluiten(true)}>
                 Uitsluiten…
               </Button>
+              <MeerMenu label={`Meer besluiten: ${k.label}`}>
+                {(sluit) => (
+                  <MenuKnop onClick={() => { sluit(); setMetReden("opnemen"); }}>Opnemen met reden…</MenuKnop>
+                )}
+              </MeerMenu>
             </>
           ) : (
             <Button size="xs" variant="secondary" disabled={bezig} onClick={() => doe({ besluit: "heropenen", overal: k.overal })}>

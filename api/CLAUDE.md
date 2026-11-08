@@ -1007,6 +1007,11 @@ na herladen, in een ander gesprek en bij een collega ook is.
     leeg = de rol van de selectie). Staat ze nog niet in het werkgebied, dan loopt het via
     `bronnen_run_store.opnemen` met `deelvraag_ids=[deze]`. Eén selectie, meer koppelingen: nooit een duplicaat.
     Scope, dus `verwachte_revisie` van het werkgebied; dezelfde koppeling nog eens geeft geen revisie;
+    een optionele `reden` staat op de koppeling (per deelvraag) en, bij een nieuwe selectie, ook op de selectie. Er is
+    **geen standaardreden** meer: wie besloot is `gekoppeld_door`/`toegevoegd_door`, wie voorstelde
+    `werkgebied_bronselecties.voorgesteld_door` (`analist` bij bewijs `genoemd` of zelf toevoegen, anders `lex`). De
+    kandidaat met stand `opgenomen` en de bron in het overzicht dragen `reden` en `besloten_door` van de koppeling, en
+    het rapport toont "Opgenomen door X, voorgesteld door Lex / zelf genoemd" (WA TRM H1, 8 nov 2026);
   - `loskoppelen` haalt alleen de koppeling weg (revisie);
   - `uitsluiten` (reden verplicht) schrijft `bron_kandidaat_deelvragen`; met `overal: true` gaat de
     uitsluiting naar `bron_kandidaten` en geldt ze bij elke deelvraag. `heropenen` wist het besluit hier, met
