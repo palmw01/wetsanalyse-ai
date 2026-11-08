@@ -576,6 +576,20 @@ async def test_elke_bron_in_deel_2_draagt_haar_bronreferentie_en_wie_haar_opnam(
     assert ("Meta", bron["bron_iri"]) in regels[begin:eind]
     s = data["werkgebied"]["bronnen"][0]
     assert ("Meta", f"Opgenomen door {s['toegevoegd_door']} op {export.datum(s['toegevoegd'])}.") in regels
+    # Per deelvraag: wie haar opnam en wie haar voorstelde, en nooit als reden vermomd (WA TRM H1, 8 nov 2026).
+    assert ("Meta", f"Opgenomen door {bron['besloten_door']}.") in regels[begin:eind] or \
+        any(t.startswith(f"Opgenomen door {bron['besloten_door']}") for _s, t in regels[begin:eind])
+    assert not any("Voorgesteld door Lex (" in t for _s, t in regels)
+
+
+def test_de_bronregel_noemt_besluiter_en_herkomst():
+    from app.werkgebied_rapport import DeelvraagBron, Vindplaats, _bronherkomst
+    plek = Vindplaats(label="Artikel 9", iri=ONE)
+    assert _bronherkomst(DeelvraagBron(vindplaats=plek, rol="analyseren", besloten_door="jurist-a",
+                                       voorgesteld_door="lex")) == "Opgenomen door jurist-a, voorgesteld door Lex."
+    assert _bronherkomst(DeelvraagBron(vindplaats=plek, rol="analyseren", besloten_door="jurist-a",
+                                       voorgesteld_door="analist")) == "Opgenomen door jurist-a, zelf genoemd."
+    assert _bronherkomst(DeelvraagBron(vindplaats=plek, rol="analyseren")) == ""
 
 
 def test_elke_tekst_in_het_rapport_komt_in_de_uitvoer():

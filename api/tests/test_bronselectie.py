@@ -447,3 +447,27 @@ async def test_het_overzicht_noemt_de_zoekvragen_maar_herhaalt_het_bewijs_niet(c
 def test_zoekvragen_uit_het_bewijs():
     assert bronselectie.zoekvragen([{"detail": {"zoekvraag": "b"}}, {"detail": {"zoekvraag": "a"}}, {"detail": {"zoekvraag": "a"}},
                                     {"detail": {"zoekvraag": "x"}}, {"detail": None}, {}]) == ["a", "b"]
+
+
+async def test_een_bronbesluit_bewaart_reden_besluiter_en_wie_voorstelde(client):
+    """WA TRM H1 (8 nov 2026): het rapport schreef "Voorgesteld door Lex" bij bronnen die de jurist zelf koos, en de
+    kandidaat droeg na opnemen een lege reden en `besloten_door: null`. Nu: de reden is wat de analist schreef (per
+    deelvraag), wie besloot staat bij de deelvraag, en wie voorstelde volgt uit het bewijs."""
+    wg, ids = await _vier(client)
+    await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=[ids[0], ids[2]])])
+    ov = await _noem(client, wg, ids[1], ONE, tekst="artikel 9 lid 1 Iw 1990")
+    # Zelf genoemd, opgenomen zonder reden: geen verzonnen reden, wel de jurist als besluiter.
+    ov = await _besluit(client, wg, ids[1], _kid(_dq(ov, ids[1]), ONE)["id"], "opnemen", verwachte_revisie=ov["revisie"])
+    k = _kid(_dq(ov, ids[1]), ONE)
+    assert (k["stand"], k["reden"], k["besloten_door"]) == ("opgenomen", "", "jurist-a")
+    [b] = _dq(ov, ids[1])["bronnen"]
+    assert (b["reden"], b["besloten_door"], b["voorgesteld_door"]) == ("", "jurist-a", "analist")
+    # Een zoektreffer van Lex, opgenomen met reden bij deelvraag 1, en met een andere reden bij deelvraag 3.
+    kid = _kid(_dq(ov, ids[0]), ART)["id"]
+    ov = await _besluit(client, wg, ids[0], kid, "opnemen", verwachte_revisie=ov["revisie"], reden="de hoofdregel")
+    ov = await _besluit(client, wg, ids[2], kid, "opnemen", verwachte_revisie=ov["revisie"], reden="ook hier nodig")
+    assert _kid(_dq(ov, ids[0]), ART)["reden"] == "de hoofdregel"
+    assert _kid(_dq(ov, ids[2]), ART)["reden"] == "ook hier nodig"
+    assert [(b["reden"], b["voorgesteld_door"]) for b in _dq(ov, ids[2])["bronnen"]] == [("ook hier nodig", "lex")]
+    wg = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()
+    assert {b["bron_iri"]: b["voorgesteld_door"] for b in wg["bronnen"]} == {ONE: "analist", ART: "lex"}

@@ -183,7 +183,10 @@ def _deelvragen(data: dict, nodes: dict[str, dict]) -> Deelvragen:
         vragen.append(Deelvraag(
             nr=v["nr"], vraag=v["vraag"], status=v["status"], opnieuw_bekijken=bool(v["opnieuw_bekijken"]),
             open_punten=[p["tekst"] for p in v["open_punten"]], niet_gekozen=v["telling"].get("niet_gekozen") or 0,
-            bronnen=[DeelvraagBron(vindplaats=_plek(b["bron_iri"], nodes, b["label"]), rol=b["rol"], reden=(selecties.get(b["selectie_id"]) or {}).get("reden") or "")
+            bronnen=[DeelvraagBron(vindplaats=_plek(b["bron_iri"], nodes, b["label"]), rol=b["rol"],
+                                   reden=b.get("reden") or (selecties.get(b["selectie_id"]) or {}).get("reden") or "",
+                                   besloten_door=b.get("besloten_door") or "",
+                                   voorgesteld_door=b.get("voorgesteld_door") or "")
                      for b in v["bronnen"]]))
         for k in v["kandidaten"]:
             doel = uitgesloten if k["stand"] == "uitgesloten" else voorstellen if k["stand"] == "voorgesteld" else None

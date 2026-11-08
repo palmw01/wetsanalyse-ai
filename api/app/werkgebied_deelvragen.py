@@ -274,7 +274,7 @@ async def _verwijder_in(conn, werkgebied_id: str, deelvraag_id: str) -> None:
 
 
 async def koppel_bron_in(conn, werkgebied_id: str, selectie_id: str, deelvraag_ids: list[str], actor: str,
-                         rol: str = "") -> None:
+                         rol: str = "", reden: str = "") -> None:
     """Binnen een lopende transactie (opnemen van een kandidaat): de nieuwe selectie hoort bij de
     deelvragen waarvoor Lex haar vond. Alleen actieve deelvragen van dit werkgebied. `rol` is de rol bij
     die deelvragen (leeg = de rol van de selectie)."""
@@ -292,7 +292,7 @@ async def koppel_bron_in(conn, werkgebied_id: str, selectie_id: str, deelvraag_i
             k.c.deelvraag_id == did, k.c.soort == "bron", k.c.doel_id == selectie_id))).first()
         if bestaat is None:
             await conn.execute(insert(k).values(deelvraag_id=did, soort="bron", doel_id=selectie_id, rol=rol,
-                                                gekoppeld_door=actor, gekoppeld=db.utcnow()))
+                                                reden=reden, gekoppeld_door=actor, gekoppeld=db.utcnow()))
 
 
 async def stel_voor(werkgebied_id: str, v: DeelvraagVoorstellen, actor: str) -> dict:

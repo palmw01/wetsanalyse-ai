@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from typing import Any
 
 from fastapi import HTTPException
 from sqlalchemy import delete, insert, select, update
@@ -142,9 +143,11 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
     selecties, kandidaten = lees["selecties"], lees["kandidaten"]
     sel_per_iri = {r.bron_iri: r for r in selecties.values()}
     gekoppeld: dict[str, dict[str, str]] = {}            # deelvraag → selectie-id → rol
+    koppelrij: dict[tuple[str, str], Any] = {}           # (deelvraag, selectie-id) → koppeling (wie, reden)
     for x in lees["koppelingen"]:
         if x.doel_id in selecties:
             gekoppeld.setdefault(x.deelvraag_id, {})[x.doel_id] = x.rol or ""
+            koppelrij[(x.deelvraag_id, x.doel_id)] = x
     besluit = {(x.kandidaat_id, x.deelvraag_id): x for x in lees["besluiten"]}
     uit = []
     for nr, vraag in enumerate(lees["vragen"], start=1):
@@ -154,7 +157,11 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
         if alleen:
             hier = {sid: "" for sid in selecties}
         bronnen = [{"selectie_id": sid, "bron_iri": selecties[sid].bron_iri, "label": selecties[sid].label,
-                    "rol": rol or selecties[sid].rol, "rol_selectie": selecties[sid].rol}
+                    "rol": rol or selecties[sid].rol, "rol_selectie": selecties[sid].rol,
+                    # Wie haar hier opnam en waarom (de koppeling; zonder deelvragen de selectie), en wie haar voorstelde.
+                    "reden": (getattr(koppelrij.get((did, sid)), "reden", "") or "") or selecties[sid].reden or "",
+                    "besloten_door": getattr(koppelrij.get((did, sid)), "gekoppeld_door", "") or selecties[sid].toegevoegd_door,
+                    "voorgesteld_door": selecties[sid].voorgesteld_door or ""}
                    for sid, rol in hier.items()]
         bronnen.sort(key=lambda x: (x["rol"] != "analyseren", x["label"], x["bron_iri"]))
         iris_hier = {x["bron_iri"] for x in bronnen}
@@ -190,12 +197,21 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
             else:
                 stand, overal = "voorgesteld", False
             uitgesloten_hier = rij is not None and stand == "uitgesloten" and not overal
+            reden, besloten_door = (rij.reden, rij.besloten_door) if uitgesloten_hier else \
+                (kd.reden, kd.besloten_door) if overal else ("", None)
+            if stand == "opgenomen":
+                # Opgenomen is een koppeling van de selectie aan deze deelvraag: wie dat deed en waarom staat daar
+                # (zonder deelvragen: op de selectie). Eerder stond hier altijd een lege reden en `None`.
+                sel = sel_per_iri[kd.bron_iri]
+                kop = koppelrij.get((did, sel.id))
+                reden = (getattr(kop, "reden", "") or "") if kop is not None else ""
+                reden = reden or sel.reden or ""
+                besloten_door = kop.gekoppeld_door if kop is not None else sel.toegevoegd_door
             lijst.append({"id": kd.id, "bron_iri": kd.bron_iri, "label": kd.label, "bwb_id": kd.bwb_id,
                           "rol": kd.rol, "bewijs_soorten": bewijs_soorten(kd.bewijs or []), "zoekvragen": zoekvragen(kd.bewijs or []),
                           "_bewijzen": len(kd.bewijs or []),
                           "stand": stand, "overal": overal, "elders_opgenomen": elders,
-                          "reden": rij.reden if uitgesloten_hier else kd.reden if overal else "",
-                          "besloten_door": rij.besloten_door if uitgesloten_hier else kd.besloten_door if overal else None})
+                          "reden": reden, "besloten_door": besloten_door})
         lijst.sort(key=lambda x: (ROL_VOLGORDE.get(x["rol"], 9), BEWIJS_VOLGORDE.get(
             (x["bewijs_soorten"] or ["tekst"])[0], 9), -x.pop("_bewijzen"), x["label"], x["bron_iri"]))
         telling = {st: sum(1 for x in lijst if x["stand"] == st) for st in STANDEN_TELLING}
@@ -393,7 +409,7 @@ async def besluit(werkgebied_id: str, deelvraag_id: str, kandidaat_id: str, req:
                 deelvraag_ids=[] if alleen else [deelvraag_id], koppel_rol=req.rol or "", binnen=wis_besluit)
         elif not alleen:
             await _koppel(werkgebied_id, deelvraag_id, sid, req.rol or "", req.verwachte_revisie, actor, detail,
-                          koppeling, binnen=wis_besluit)
+                          koppeling, binnen=wis_besluit, reden=req.reden.strip())
     elif req.besluit == "loskoppelen":
         if alleen:
             raise HTTPException(422, {"fout": "geen_deelvraag",
@@ -444,16 +460,18 @@ async def besluit(werkgebied_id: str, deelvraag_id: str, kandidaat_id: str, req:
 
 
 async def _koppel(werkgebied_id: str, deelvraag_id: str, sid: str, rol: str, verwacht: int, actor: str,
-                  detail: dict, koppeling, binnen=None) -> None:
-    """Een bronselectie die al in het werkgebied staat aan deze deelvraag koppelen, met haar rol hier. Dezelfde
-    koppeling met dezelfde rol nog eens: niets, ook geen revisie."""
-    if koppeling is not None and (not rol or (koppeling.rol or "") == rol):
+                  detail: dict, koppeling, binnen=None, reden: str = "") -> None:
+    """Een bronselectie die al in het werkgebied staat aan deze deelvraag koppelen, met haar rol en reden hier.
+    Dezelfde koppeling met dezelfde rol (en geen nieuwe reden) nog eens: niets, ook geen revisie."""
+    if koppeling is not None and (not rol or (koppeling.rol or "") == rol) and (not reden or koppeling.reden == reden):
         return
+    rol = rol or (koppeling.rol if koppeling is not None else "") or ""
     kp = db.werkgebied_deelvraag_koppelingen
-    async with _gewijzigd(werkgebied_id, verwacht, actor, "bronselectie-opgenomen", {**detail, "rol": rol}) as (conn, _):
+    async with _gewijzigd(werkgebied_id, verwacht, actor, "bronselectie-opgenomen",
+                          {**detail, "rol": rol, **({"reden": reden} if reden else {})}) as (conn, _):
         await conn.execute(delete(kp).where(kp.c.deelvraag_id == deelvraag_id, kp.c.soort == "bron", kp.c.doel_id == sid))
         await conn.execute(insert(kp).values(deelvraag_id=deelvraag_id, soort="bron", doel_id=sid, rol=rol,
-                                             gekoppeld_door=actor, gekoppeld=db.utcnow()))
+                                             reden=reden, gekoppeld_door=actor, gekoppeld=db.utcnow()))
         if binnen is not None:
             await binnen(conn)
 

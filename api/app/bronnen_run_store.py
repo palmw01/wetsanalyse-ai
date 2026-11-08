@@ -313,7 +313,10 @@ async def opnemen(werkgebied_id: str, kid: str, req: Opnemen, bron: dict, actor:
     rol = req.rol or ("analyseren" if row.rol == "kern" else "context")
     invoer = BronselectieInvoer(verwachte_revisie=req.verwachte_revisie, bron_iri=row.bron_iri,
                                 bereik=Bereik.onderliggend, rol=Rol(rol),
-                                reden=req.reden or f"Voorgesteld door Lex ({row.rol}).")
+                                reden=req.reden.strip())
+    # Wie de bepaling voorstelde volgt uit het bewijs: zelf genoemd is van de analist, de rest vond Lex. Een
+    # standaardzin als reden ("Voorgesteld door Lex") schreef de keuze van de jurist eerder aan Lex toe.
+    voorgesteld_door = "analist" if genoemd(row.bewijs) else "lex"
 
     async def markeer(conn) -> None:
         nu = db.utcnow()
@@ -325,11 +328,13 @@ async def opnemen(werkgebied_id: str, kid: str, req: Opnemen, bron: dict, actor:
         sid = (await conn.execute(select(s.c.id).where(s.c.werkgebied_id == werkgebied_id, s.c.bron_iri == row.bron_iri,
                                                        s.c.verwijderd.is_(None)))).scalar()
         if sid:
-            await werkgebied_deelvragen.koppel_bron_in(conn, werkgebied_id, sid, deelvraag_ids, actor, rol=koppel_rol)
+            await werkgebied_deelvragen.koppel_bron_in(conn, werkgebied_id, sid, deelvraag_ids, actor, rol=koppel_rol,
+                                                       reden=req.reden.strip())
         if binnen is not None:
             await binnen(conn)
 
-    selectie, nieuw = await werkgebied_store.voeg_bron_toe(werkgebied_id, invoer, bron, actor, binnen=markeer)
+    selectie, nieuw = await werkgebied_store.voeg_bron_toe(werkgebied_id, invoer, bron, actor, binnen=markeer,
+                                                           voorgesteld_door=voorgesteld_door)
     if not nieuw:
         # Stond al in de selectie (met dezelfde rol): dan alleen de kandidaat bijwerken.
         async with db.get_engine().begin() as conn:
