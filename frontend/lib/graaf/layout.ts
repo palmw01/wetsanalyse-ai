@@ -7,8 +7,9 @@
  *     dezelfde kaart. Dit is het dure deel; het draait in een worker (`layout.worker.ts`) en de
  *     uitkomst wordt bewaard (`cache.ts`).
  *  2. **De annotaties** (markeringen en JAS-klassen) worden afgeleid, niet gesimuleerd
- *     (`plaatsAnnotaties`): een markering bij haar anker, de klassen op een ring om de kaart. Een
- *     beoordeling of een nieuwe markering verschuift daardoor niets en vraagt geen nieuwe layout.
+ *     (`plaatsAnnotaties`): een markering bij haar anker, de klassen op een ring om de kaart, een begrip of
+ *     impliciete partij bij het zwaartepunt van wat ze verbindt. Een beoordeling, een nieuwe markering of een
+ *     relatie verschuift daardoor niets en vraagt geen nieuwe layout.
  *
  *  Afstand en positie betekenen juridisch niets; ze houden de kaart herkenbaar en leesbaar. */
 import Graph from "graphology";
@@ -170,6 +171,7 @@ function vormend(r: Structuur["relaties"][number], inBoom: ReadonlySet<string>):
 /** De ruimte die een knoop in de layout inneemt (voor `adjustSizes`), in layout-eenheden. */
 const RUIMTE: Record<KnoopSoort, number> = {
   regeling: 3, deel: 1.6, artikel: 0.9, lid: 0.6, onderdeel: 0.45, extern: 0.45, markering: 0.4, klasse: 1, begrip: 0.8,
+  impliciet: 0.5,
 };
 
 /** Hoeveel iteraties, naar grootte: genoeg om uit te kristalliseren, begrensd zodat de hele
@@ -319,6 +321,18 @@ export function plaatsAnnotaties(g: GraafModel, bron: Posities): Posities {
       ? [passages.reduce((s, p) => s + p[0], 0) / passages.length, passages.reduce((s, p) => s + p[1], 0) / passages.length]
       : midden;
     const [dx, dy] = pool(passages.length ? maat * 1.2 : straal * 0.6, 2 * Math.PI * hash01(id, 17));
+    pos.set(id, [cx + dx, cy + dy]);
+  });
+  // Een impliciete partij (ADR-011) staat bij de markeringen waarmee ze een relatie heeft, zoals een begrip bij zijn
+  // passages. Relaties trekken niet: ze tellen niet in de layout, net als verwijzingen tussen geladen bepalingen.
+  g.forEachNode((id, a) => {
+    if (a.soort !== "impliciet") return;
+    const eind = g.edges(id).filter((e) => g.getEdgeAttribute(e, "soort") === "jas_relatie")
+      .map((e) => pos.get(g.opposite(id, e))).filter((p): p is Punt => !!p);
+    const [cx, cy] = eind.length
+      ? [eind.reduce((s, p) => s + p[0], 0) / eind.length, eind.reduce((s, p) => s + p[1], 0) / eind.length]
+      : midden;
+    const [dx, dy] = pool(eind.length ? maat * 0.9 : straal * 0.6, 2 * Math.PI * hash01(id, 23));
     pos.set(id, [cx + dx, cy + dy]);
   });
   g.forEachNode((id, a) => {

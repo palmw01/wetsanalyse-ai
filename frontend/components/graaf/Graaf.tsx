@@ -145,6 +145,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
     [model, weergave, onWisselArtikel]);
   const gekozenData = gekozen ? model.getNodeAttributes(gekozen) : undefined;
   const heeftBegrippen = useMemo(() => model.someNode((_, a) => a.soort === "begrip"), [model]);
+  const heeftRelaties = useMemo(() => model.someEdge((_, a) => a.soort === "jas_relatie") || model.someNode((_, a) => a.soort === "impliciet"), [model]);
   const actie = gekozen && gekozenData ? bepaalHoofdactie(gekozenData, gekozen, inPaneel) : null;
   // De tekst voor de inspector: van de gekozen bepaling, of bij een markering van haar anker. Alleen
   // bepalingen: de tekst van een heel hoofdstuk of een regeling past niet in een inspector.
@@ -283,7 +284,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
           <div className="flex items-end justify-between gap-2">
             <GraafLagen lagen={lagen} open={lagenOpen} onOpen={setLagenOpen}
               onWissel={(l) => setLagen((oud) => ({ ...oud, [l]: !oud[l] }))}
-              dekking={ongedekt.size > 0} begrippen={heeftBegrippen} markering={{ waarde: markering, onKies: setMarkering }} />
+              dekking={ongedekt.size > 0} begrippen={heeftBegrippen} relaties={heeftRelaties} markering={{ waarde: markering, onKies: setMarkering }} />
             <GraafHint klaar={aangeraakt} terug={benaming.terug} />
             <GraafBeeld onPasIn={() => bediening.current?.pasIn()} onZoom={(f) => bediening.current?.zoom(f)}
               onNaarAntwoord={focus ? naarAntwoord : undefined} terug={benaming.terug} />
@@ -313,7 +314,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
           onCentreer={() => gekozen && bediening.current?.focus(gekozen)}
           onSluit={() => kies(null)}
           onHoofdactie={doeHoofdactie}
-          onVraag={onVraag && gekozenData && gekozenData.soort !== "klasse" && gekozenData.soort !== "begrip" ? () => onVraag(gekozenData) : undefined}
+          onVraag={onVraag && gekozenData && gekozenData.soort !== "klasse" && gekozenData.soort !== "begrip" && gekozenData.soort !== "impliciet" ? () => onVraag(gekozenData) : undefined}
           doelenKop={benaming.naam} extra={bijKnoop && gekozen && gekozenData ? bijKnoop({ ...gekozenData, id: gekozen }) : undefined}
           onKies={(id) => kies(id)} />
         </div>

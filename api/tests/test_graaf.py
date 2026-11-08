@@ -227,3 +227,38 @@ async def test_de_route_plaatsen(bron, monkeypatch):
     assert r.status_code == 200 and r.json()["plaatsen"][0]["pad"][-1]["label"] == "Lid 1"
     assert fout.status_code == 422
     get_settings.cache_clear()
+
+
+async def test_relaties_tussen_markeringen_in_de_complete_graaf(bron, monkeypatch):
+    """ADR-011: één lezing van alle relaties; een eindpunt dat niet in de graaf staat valt weg en telt, een partij
+    van een laag buiten de regelingen in beeld komt er niet in, een afgewezen relatie ook niet."""
+    from app import annotatie_v2_relaties
+
+    async def elementen(nodes):
+        return [{"id": e, "klasse": k, "tekst": e, "lifecycle": "voorgesteld", "eigenaar_iri": L1,
+                 "ankers": [{"bron_iri": L1}], "trace": {}} for e, k in (("e1", "Rechtssubject"), ("e2", "Rechtsbetrekking"))]
+
+    def eindpunt(x):
+        return {"soort": "impliciet" if x.startswith("I") else "element", "id": x}
+
+    def relatie(van, naar, type_="plichthebbende", lifecycle="voorgesteld"):
+        return {"id": f"R{van}{naar}", "type": type_, "leesvorm": f"is {type_} van", "lifecycle": lifecycle,
+                "veranderd": False, "volgorde": None, "van": eindpunt(van), "naar": eindpunt(naar)}
+
+    async def alle():
+        return ([relatie("e1", "e2"), relatie("I1", "e2", "rechthebbende", "human_approved"),
+                 relatie("e1", "elders"), relatie("I2", "e2"), relatie("e2", "e1", "voorwerp", "rejected")],
+                [{"id": "I1", "klasse": "Rechtssubject", "label": "de schuldenaar", "toelichting": "t", "bron_iri": L1},
+                 {"id": "I2", "klasse": "Rechtssubject", "label": "elders", "toelichting": "t",
+                  "bron_iri": "urn:bwb:BWBR0000001:artikel:1"}])
+
+    monkeypatch.setattr(store, "actuele_elementen", elementen)
+    monkeypatch.setattr(annotatie_v2_relaties, "alle_relaties", alle)
+    g = await graaf.graaf()
+    ids = {k["id"]: k for k in g["knopen"]}
+    assert ids["impliciet:I1"]["soort"] == "impliciet" and "impliciet:I2" not in ids
+    lijnen = {(r["bron"], r["doel"]): r for r in g["relaties"] if r["soort"] == "jas_relatie"}
+    assert set(lijnen) == {("element:e1", "element:e2"), ("impliciet:I1", "element:e2")}
+    assert lijnen[("impliciet:I1", "element:e2")]["lifecycle"] == "human_approved"
+    assert lijnen[("element:e1", "element:e2")]["groep"] == "relaties"
+    assert g["relaties_weggelaten"] == 2          # naar "elders", en van een partij buiten beeld

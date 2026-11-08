@@ -24,7 +24,7 @@ from sqlalchemy import delete, insert, select, update
 from . import db
 from . import jas_relaties
 from .annotatie_v2_contracts import AFGEHANDELD, Eindpunt, ImplicietInvoer, Lifecycle, RelatieBeslissing, RelatieInvoer, is_vervangen
-from .annotatie_v2_store import _audit, _laag, _lagen, _raak, publiek_laag, schrijftransactie
+from .annotatie_v2_store import _audit, _laag, _lagen, _raak, leestransactie, publiek_laag, schrijftransactie
 from .begrip_store import element_hash
 
 
@@ -275,3 +275,17 @@ async def bij_weergave(conn, element_ids: set[str], laag_ids: set[str], elemente
     genoemd = {k["id"] for r in relaties for k in (r["van"], r["naar"]) if k["soort"] == "impliciet"}
     partijen = [p for i, p in sorted(impliciet.items()) if p["laag_id"] in laag_ids or i in genoemd]
     return relaties, partijen
+
+
+async def alle_relaties() -> tuple[list[dict], list[dict]]:
+    """Alle relaties (beschreven, zoals in een weergave) en alle impliciete partijen in één leestransactie, voor de
+    complete graaf (`graaf.py`). Een partij draagt `bron_iri`: de bronnode van haar laag, zodat de graaf haar kan
+    toetsen tegen de regelingen in beeld."""
+    async with leestransactie() as conn:
+        elementen = await _alle(conn, db.annotatie_v2_elementen)
+        impliciet = await _alle(conn, db.annotatie_v2_impliciet)
+        relaties = await _alle(conn, db.annotatie_v2_relaties)
+        per_id = _layers_per_id(await _lagen(conn))
+    beschreven = [beschrijf(r, elementen, impliciet) for _, r in sorted(relaties.items())]
+    partijen = [{**p, "bron_iri": (per_id.get(p["laag_id"]) or {}).get("bron_iri", "")} for _, p in sorted(impliciet.items())]
+    return beschreven, partijen
