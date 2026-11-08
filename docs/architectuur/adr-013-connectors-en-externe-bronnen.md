@@ -86,10 +86,40 @@ de wettekst en vult nooit een `doel`.
    rijen `{nr, tekst, kop?}`, en een tak in `dispatch`;
 3. de straatvlag: `Settings.connector_<naam>`, `CONNECTOR_<NAAM>` in `config.py` en de bicep (default uit);
 4. de groep in `frontend/lib/bronnen.ts` (`BRONTYPE_NAAM`);
-5. `tools/graph-qa/tests/test_connectorbeschrijving.py` en de kruistests groen; daarna meten zoals
+5. een nepbron in de contractharnas (`NEPBRONNEN` en `CONNECTOR_ARGS` in `tests/test_resultaatcontract.py`): elke
+   pagina haalt het contract, en alle pagina's samen zijn precies de dataset;
+6. een live-proef `tools/graph-qa/tests/test_<naam>_live.py` met de marker `live` tegen de echte dienst (indexen,
+   recordvorm, versievelden); `bronnenwacht.yml` draait hem dagelijks, nooit in de poort;
+7. `tools/graph-qa/tests/test_connectorbeschrijving.py` (ook de naamconventie `zoek_…`/`get_…` en een voorbeeld in elke
+   invoerfout) en de kruistests groen; daarna meten zoals
    [`../acceptatie/connectors-meting.md`](../acceptatie/connectors-meting.md).
 
 Verder hoeft er niets bij: geen prompttekst, geen route, geen sjabloon, geen werkplekcomponent per connector.
+
+### Review van de Kamerstuk-connector (8 nov 2026)
+
+Een externe review noemde vier punten; alle vier klopten, en de handleiding SRU 2.0 van KOOP maakte er twee zwaarder.
+Niet opnieuw ontworpen: elk punt is opgelost in wat er al lag.
+
+| punt | wat er mis was | besluit |
+|---|---|---|
+| onvolledig dossier | na 300 records `volledig: true`, `totaal` van de lijst; een subdossier zocht op het hoofdnummer en vond niets | geen vlag naast `volledig`: tot 1000 op nummer, daarboven op datum met een exact vervolg (`volgorde`); subdossier in de CQL; de connectortools in de contractharnas |
+| uitval van graph-qa | het menu toonde dan het register met schakelaars | één leesmodel in de BFF met `beschikbaarheid` `aan`/`onbekend`; onbekend = geen schakelaar, de beurt houdt de keuze |
+| cache en bronhash | 64 items zonder vervaltijd; een stuk verandert na publicatie (onopgemaakt → opgemaakt, herdruk); de hash bereikte het antwoord niet | valideren op `dt.modified`/documentstatus/versie na `VERS_S`, grens in bytes, `gevalideerd: false` bij storing; `bron_hash` en `gewijzigd` op het blok `extern`; passages uit één lezing |
+| alleen een nep | de live-test draaide nergens | een live-proef per connector, dagelijks in `bronnenwacht.yml`, niet in de poort |
+
+Uit de connectorarchitectuur van Claude/MCP (specificatie 2025-11-25) komt de buitenkant van de graaf-MCP: per tool
+`annotations` (alleen lezen, `openWorldHint` voor een bronconnector), het resultaatcontract als `outputSchema` met
+`structuredContent`, en een gelezen stuk als `resource_link` met `lastModified`.
+
+**Vervolg, nog niet gebouwd:**
+
+- **Een snapshot bij de bronselectie.** Wat in een bronselectie wordt opgenomen, bevriest de api (onderzoek §4.4). Een
+  externe bron kan nog niet in een bronselectie; als dat komt, draagt de snapshot `bron_hash` en `gewijzigd` uit het
+  leestoolcontract.
+- **De tweede connector.** Rechtspraak is de beste proef van herbruikbaarheid (dezelfde vorm, een andere id en XML),
+  maar wacht op de toets van endpoint en licentie (fase 1c). EUR-Lex is de terugval zonder licentieblokkade. LiDO hoort
+  als graafverrijking, niet als connector. Open keuze voor de eigenaar.
 
 ### Toestemming per handeling
 
