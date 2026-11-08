@@ -71,6 +71,19 @@ MARKERING = "markering"
 ZWAAR = frozenset({"trace", "geproduceerd_door"})
 
 
+#: De duiding van een agentvoorstel die een ronde opnieuw mag verversen (`batch`). Klasse, tekst en ankers horen
+#: daar niet bij: die maken het id, dus een ander voorstel heeft een ander id. `trace` reist mee als er iets verandert.
+VERVERS = frozenset({"jas_subtype", "toelichting", "alternatieven", "aandacht", "review_uitleg", "grounded"})
+
+
+def _ververs(bestaand: dict, nieuw: dict) -> bool:
+    """Mag een ronde opnieuw dit voorstel bijwerken, en verandert er iets? Alleen een actueel agentvoorstel waar
+    niemand iets over besloot; een gelijk voorstel blijft byte-gelijk staan."""
+    return (bestaand.get("herkomst") == "agent" and bestaand.get("lifecycle") == "voorgesteld"
+            and not heeft_oordeel(bestaand) and not bestaand.get("verouderd")
+            and any(bestaand.get(k) != nieuw.get(k) for k in VERVERS if k in nieuw))
+
+
 def heeft_oordeel(element: dict) -> bool:
     """Draagt dit element een oordeel? De regel van de eigen markering zelf telt niet: die mag de maker nog
     bijwerken en wissen, tot iemand er iets over besloot."""
@@ -333,12 +346,29 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
                     db.annotatie_v2_elementen.c.id == old["id"]).values(inhoud=old))
                 await _audit(conn, actor, "bron-gewijzigd", {"snapshot_id": req.snapshot_id}, old["id"], old["laag_id"])
         saved = []
+        opnieuw = req.run.get("modus") == "opnieuw" and not mens
         for value in values:
             # Canonieke ankers onderscheiden identieke woorden op verschillende plekken.
             key = digest({"klasse": value["klasse"], "ankers": value["ankers"]})
             existing = next((x for x in current.values() if levend(x)
                              and digest({"klasse": x["klasse"], "ankers": x["ankers"]}) == key), None)
             existing = existing or bekend(value)
+            if existing and opnieuw and _ververs(existing, value):
+                # Een ronde opnieuw ververst een voorstel waar niemand over besliste: anders bereikt een betere
+                # keten (subtype, toelichting, alternatieven) een element met hetzelfde id nooit.
+                eigenaar = existing["eigenaar_iri"]
+                if eigenaar not in touched:
+                    touched[eigenaar] = await _laag(conn, layers, eigenaar, req.snapshot_id, req.verwachte_revisies)
+                velden = sorted(k for k in VERVERS if existing.get(k) != value.get(k))
+                bijgewerkt = {**existing, **{k: value[k] for k in VERVERS | {"trace"} if k in value},
+                              "geproduceerd_door": req.run}
+                await conn.execute(update(db.annotatie_v2_elementen).where(
+                    db.annotatie_v2_elementen.c.id == existing["id"]).values(inhoud=bijgewerkt))
+                await _audit(conn, actor, "element-bijgewerkt", {"batch_id": req.batch_id, "velden": velden},
+                             existing["id"], existing["laag_id"])
+                current[existing["id"]] = bijgewerkt
+                saved.append(bijgewerkt)
+                continue
             if existing:
                 saved.append(existing)
                 continue  # nooit menselijke historie of afwijzingen met agentwerk overschrijven

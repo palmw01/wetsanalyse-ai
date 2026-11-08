@@ -329,32 +329,38 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
         if paginas is not None:
             paginas.append({"pagina": doc.page, "kopregel": kopregel, "voetregel": voetregel, "titelblad": False, "getekend": getekend})
 
+    # Het totaal van de vorige zetronde. Een pagina wordt meteen aan het document toegevoegd: een uitgestelde `showPage`
+    # (de bekende "NumberedCanvas") koppelt elke bladwijzer en elke link in de inhoudsopgave aan pagina 1, want ReportLab
+    # bindt een bestemming aan de pagina die op dat moment in het document staat (ADR-009, review 8 nov 2026).
+    totaal: dict = {"n": None, "juist": False}
+
     class Teller(Canvas):
-        """Schrijft "Pagina n van N": het totaal is pas bekend als alle pagina's gezet zijn."""
+        """Schrijft "Pagina n van N" met het totaal van de vorige ronde; `render` zet zo nodig een ronde extra."""
 
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
-            self._standen: list[dict] = []
+            self._gebruikt = totaal["n"]
 
         def showPage(self):
-            self._standen.append(dict(self.__dict__))
-            self._startPage()
-
-        def save(self):
-            totaal = len(self._standen)
-            for p in paginas or []:
-                p["totaal"] = totaal
-            for stand in self._standen:
-                self.__dict__.update(stand)
-                if getattr(self, "_zonder_voet", False):
-                    super().showPage()
-                    continue
+            if not getattr(self, "_zonder_voet", False):
                 self.saveState()
                 self.setFont("Fira", 8)
                 self.setFillColor(HexColor(GRIJS))
-                self.drawRightString(A4[0] - rechts, 10 * mm, f"Pagina {self._pageNumber} van {totaal}")
+                n = self._gebruikt if self._gebruikt is not None else "…"
+                nummer = f"Pagina {self._pageNumber} van {n}"
+                self.drawRightString(A4[0] - rechts, 10 * mm, nummer)
                 self.restoreState()
-                super().showPage()
+                if paginas and paginas[-1]["pagina"] == self._pageNumber:
+                    paginas[-1]["nummer"] = nummer
+            self._zonder_voet = False
+            super().showPage()
+
+        def save(self):
+            aantal = self._pageNumber - 1
+            totaal["juist"] = self._gebruikt == aantal
+            totaal["n"] = aantal
+            for p in paginas or []:
+                p["totaal"] = aantal
             super().save()
 
     class Document(BaseDocTemplate):
@@ -401,64 +407,73 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
             self.canv.bookmarkPage("titelblad")
             self.canv.addOutlineEntry(self.naam, "titelblad", 0, closed=False)
 
-    heeft_inhoud, laatste, blok, spans = False, -1, None, None
-    for stijl, tekst in regels:
-        if stijl == SPANS:
-            spans = [tuple(x) for x in json.loads(tekst)]
-            continue
-        doel = verhaal if blok is None else blok
-        if stijl == BLOK_BEGIN:
-            blok = []
-        elif stijl == BLOK_EIND:
-            verhaal.append(KeepTogether(blok))
-            blok = None
-        elif stijl == PAGINA:
-            doel.append(PageBreakIfNotEmpty())
-        elif stijl == INHOUD:
-            heeft_inhoud = True
-            # De standaardtabelstijl zet Helvetica op elke cel: een niet-ingesloten letter in een verder ingesloten document.
-            inhoud = TableOfContents(dotsMinLevel=0, tableStyle=TableStyle([
-                ("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-                ("FONTNAME", (0, 0), (-1, -1), "Fira")]))
-            inhoud.levelStyles = [
-                ParagraphStyle("Inhoud0", parent=stijlen["BodyText"], fontName="Fira-SemiBold", spaceBefore=7, spaceAfter=2,
-                               textColor=HexColor(LINTBLAUW)),
-                ParagraphStyle("Inhoud1", parent=stijlen["BodyText"], leftIndent=14, spaceAfter=1),
-                ParagraphStyle("Inhoud2", parent=stijlen["BodyText"], leftIndent=28, spaceAfter=0, textColor=HexColor(GRIJS))]
-            doel.append(inhoud)
-        elif stijl in _NIVEAU:
-            # Een bladwijzer mag maar één niveau dieper dan de vorige: een kop zonder bovenliggende kop schuift op.
-            laatste = min(_NIVEAU[stijl], laatste + 1)
-            doel.append(Kop(opgemaakt(tekst), stijlen[stijl], tekst, laatste, laatste < _IN_INHOUD or stijl == BEGRIP))
-        elif stijl == PLAATS:
-            alinea = Paragraph(opgemaakt(tekst), stijlen[PLAATS])
-            alinea.platte_plaats = tekst
-            doel.append(alinea)
-        elif stijl == "Citaat":
-            doel.append(Lijn(Paragraph(gemarkeerd(tekst, spans) if spans else opgemaakt(tekst), stijlen["Citaat"])))
-            spans = None
-        elif stijl == "Waarschuwing":
-            doel.append(Paragraph('<font name="Fira-SemiBold">Let op: </font>' + opgemaakt(tekst), stijlen["Waarschuwing"]))
-        else:
-            doel.append(Paragraph(opgemaakt(tekst), stijlen[stijl] if stijl in stijlen else stijlen["Markering"]))
+    def bouw() -> bytes:
+        """Eén zetronde: het verhaal en het document vers, zodat een tweede ronde niets van de eerste erft."""
+        verhaal.clear()
+        teller["kop"] = 0
+        heeft_inhoud, laatste, blok, spans = False, -1, None, None
+        for stijl, tekst in regels:
+            if stijl == SPANS:
+                spans = [tuple(x) for x in json.loads(tekst)]
+                continue
+            doel = verhaal if blok is None else blok
+            if stijl == BLOK_BEGIN:
+                blok = []
+            elif stijl == BLOK_EIND:
+                verhaal.append(KeepTogether(blok))
+                blok = None
+            elif stijl == PAGINA:
+                doel.append(PageBreakIfNotEmpty())
+            elif stijl == INHOUD:
+                heeft_inhoud = True
+                # De standaardtabelstijl zet Helvetica op elke cel: een niet-ingesloten letter in een verder ingesloten document.
+                inhoud = TableOfContents(dotsMinLevel=0, tableStyle=TableStyle([
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                    ("FONTNAME", (0, 0), (-1, -1), "Fira")]))
+                inhoud.levelStyles = [
+                    ParagraphStyle("Inhoud0", parent=stijlen["BodyText"], fontName="Fira-SemiBold", spaceBefore=7, spaceAfter=2,
+                                   textColor=HexColor(LINTBLAUW)),
+                    ParagraphStyle("Inhoud1", parent=stijlen["BodyText"], leftIndent=14, spaceAfter=1),
+                    ParagraphStyle("Inhoud2", parent=stijlen["BodyText"], leftIndent=28, spaceAfter=0, textColor=HexColor(GRIJS))]
+                doel.append(inhoud)
+            elif stijl in _NIVEAU:
+                # Een bladwijzer mag maar één niveau dieper dan de vorige: een kop zonder bovenliggende kop schuift op.
+                laatste = min(_NIVEAU[stijl], laatste + 1)
+                doel.append(Kop(opgemaakt(tekst), stijlen[stijl], tekst, laatste, laatste < _IN_INHOUD or stijl == BEGRIP))
+            elif stijl == PLAATS:
+                alinea = Paragraph(opgemaakt(tekst), stijlen[PLAATS])
+                alinea.platte_plaats = tekst
+                doel.append(alinea)
+            elif stijl == "Citaat":
+                doel.append(Lijn(Paragraph(gemarkeerd(tekst, spans) if spans else opgemaakt(tekst), stijlen["Citaat"])))
+                spans = None
+            elif stijl == "Waarschuwing":
+                doel.append(Paragraph('<font name="Fira-SemiBold">Let op: </font>' + opgemaakt(tekst), stijlen["Waarschuwing"]))
+            else:
+                doel.append(Paragraph(opgemaakt(tekst), stijlen[stijl] if stijl in stijlen else stijlen["Markering"]))
 
-    output = io.BytesIO()
-    doc = Document(output, pagesize=A4, title=titel, author=auteur, subject=onderwerp, keywords=trefwoorden,
-                   creator="Lex – wetsanalyseplatform", lang="nl-NL", displayDocTitle=True, initialFontName="Fira",
-                   leftMargin=links, rightMargin=rechts, topMargin=boven, bottomMargin=onder)
-    sjablonen = [PageTemplate(id="pagina", onPageEnd=kader, frames=[
-        Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id="tekst")])]
-    if blad:
-        # Het titelblad is een eigen sjabloon met een leeg kader: alles erop tekent `titelblad`.
-        sjablonen.insert(0, PageTemplate(id="titelblad", onPage=titelblad, frames=[
-            Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id="blad")]))
-        verhaal[:0] = [NextPageTemplate("pagina"), _Bladwijzer("Titelblad"), PageBreak()]
-    doc.addPageTemplates(sjablonen)
-    if heeft_inhoud:
-        doc.multiBuild(verhaal, canvasmaker=Teller)
-    else:
-        doc.build(verhaal, canvasmaker=Teller)
-    return output.getvalue()
+        output = io.BytesIO()
+        doc = Document(output, pagesize=A4, title=titel, author=auteur, subject=onderwerp, keywords=trefwoorden,
+                       creator="Lex – wetsanalyseplatform", lang="nl-NL", displayDocTitle=True, initialFontName="Fira",
+                       leftMargin=links, rightMargin=rechts, topMargin=boven, bottomMargin=onder)
+        sjablonen = [PageTemplate(id="pagina", onPageEnd=kader, frames=[
+            Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id="tekst")])]
+        if blad:
+            # Het titelblad is een eigen sjabloon met een leeg kader: alles erop tekent `titelblad`.
+            sjablonen.insert(0, PageTemplate(id="titelblad", onPage=titelblad, frames=[
+                Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id="blad")]))
+            verhaal[:0] = [NextPageTemplate("pagina"), _Bladwijzer("Titelblad"), PageBreak()]
+        doc.addPageTemplates(sjablonen)
+        if heeft_inhoud:
+            doc.multiBuild(verhaal, canvasmaker=Teller)
+        else:
+            doc.build(verhaal, canvasmaker=Teller)
+        return output.getvalue()
+
+    pdf = bouw()
+    if not totaal["juist"]:
+        pdf = bouw()       # het totaal is nu bekend; de opmaak verandert er niet door
+    return pdf
 
 
 def _segmenten(tekst: str, spans: list[tuple[int, int, int, str]]):

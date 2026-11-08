@@ -180,7 +180,7 @@ export const parseRun: Parser<AgentRun> = (v) =>
 
 // Alles wat de bron draagt: de citatie-chip vergelijkt een genoemde regeling met `regeling` en
 // `afkortingen`, en die moeten live hetzelfde zijn als na herladen (daar leest de werkplek het bericht).
-const BRON_VELDEN = ["bron_iri", "jci", "bwb_id", "soort", "regeling"] as const;
+const BRON_VELDEN = ["bron_iri", "jci", "bwb_id", "soort", "regeling", "brontype", "link"] as const;
 
 export const parseBronnen = lijst<Bron>((v) =>
   isObject(v)

@@ -71,6 +71,22 @@ describe("normaliseerBronnen", () => {
     expect(lijst.overig.map((i) => i.label)).toEqual([vreemd]);
     expect(lijst.aantal).toBe(1);
   });
+
+  it("zet externe bronnen (ADR-013) in een groep per brontype, na de regelingen", () => {
+    const kst: Bron = { label: "Kamerstukken 36123, nr. 3", uri: "kst-36123-3", brontype: "kamerstuk",
+      link: "https://zoek.officielebekendmakingen.nl/kst-36123-3" };
+    const ecli: Bron = { label: "ECLI:NL:HR:2020:1234", uri: "ECLI:NL:HR:2020:1234", brontype: "uitspraak",
+      link: "https://deeplink.rechtspraak.nl/uitspraak?id=ECLI:NL:HR:2020:1234" };
+    const vreemd: Bron = { label: "kst-1-1", uri: "kst-1-1", brontype: "kamerstuk", link: "https://evil.example/kst-1-1" };
+    const lijst = normaliseerBronnen([ecli, kst, oud(iri(IW, "artikel", "9")), kst, vreemd]);
+    expect(lijst.groepen.map((g) => g.naam)).toEqual(["BWBR0004770", "Parlementaire stukken", "Uitspraken"]);
+    const stukken = lijst.groepen[1];
+    expect(stukken.items.map((i) => [i.label, i.href])).toEqual([
+      ["Kamerstukken 36123, nr. 3", "https://zoek.officielebekendmakingen.nl/kst-36123-3"],
+      ["kst-1-1", undefined],
+    ]);
+    expect(lijst.aantal).toBe(4);
+  });
 });
 
 describe("antwoordDoelen", () => {

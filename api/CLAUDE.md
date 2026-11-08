@@ -56,6 +56,8 @@ ombouwen zonder reden.
    Lex, voor de versiekiezer – zie §*Versies van artefacten*.
 19. **Generieke begrippen** (`/v1/begrippen/{id}`, `…/begrippen/gebruik/*`, `…/generiek-maken`, ADR-006): begrippen boven
    de werkgebieden, gebruikt zonder kopie – zie §*Generieke begrippen*.
+20. **Regies** (`/v1/werkgebieden/{id}/regies/*`, ADR-012): het object waarmee de regisseur van graph-qa het werk in een
+   werkgebied over deelgesprekken verdeelt – zie §*Regies*.
 
 > **De wettekst komt uit de graaf.** De API leest uit GraphDB de **bronboom** (`bron_resolver.py`):
 > daarmee toetst hij ankers, legt hij snapshots vast en levert hij de segmenten van de weergave.
@@ -83,7 +85,7 @@ ombouwen zonder reden.
 | `graaf.py` | De complete graaf (`/graaf`): alle regelingen met structuur, verwijzingen en markeringen; structuur en verwijzingen gecachet per `(bwb_id, toestandUrl)`. Ook `lees_bron`: de gecachete bronboom voor leesroutes. |
 | `knoopinfo.py` | Wat de kennisgraaf over één knoop weet (`/knoop`), voor de inspector van de graaf. |
 | `werkgebieden.py` (router), `werkgebied_store.py`, `werkgebied_contracts.py`, `werkgebied_inventaris.py`, `werkgebied_werkvoorraad.py` | Werkgebieden: bronselecties, revisies, audit, de inventaris en de annotatie-werkvoorraad. Elke store vraagt het werkgebied via `werkgebied_store.werkgebied_rij` (404 via `niet_gevonden`) en toetst een revisie met `toets_revisie`; een bepaling opnemen verifieert `werkgebieden.geverifieerde_bron`. |
-| `werkgebied_export.py`, `werkgebied_rapport.py`, `markdown_opmaak.py`, `pdf_opmaak.py`, `fonts/` | Het hele werkgebied als één rapport (ADR-009): `werkgebied_rapport` is het contract en de tekstlaag, `werkgebied_export` leest de stand en vult het; de gedeelde PDF-opmaak met ingesloten lettertypen. |
+| `werkgebied_export.py`, `werkgebied_rapport.py`, `bepaling_graaf.py`, `markdown_opmaak.py`, `pdf_opmaak.py`, `fonts/` | Het hele werkgebied als één rapport (ADR-009; `bepaling_graaf` is de graaflezing die het deelt met het paneel bij een antwoord): `werkgebied_rapport` is het contract en de tekstlaag, `werkgebied_export` leest de stand en vult het; de gedeelde PDF-opmaak met ingesloten lettertypen. |
 | `werkgebied_deelvragen.py` | Deelvragen: opslag, voorstellen van Lex, koppelingen en de dekkingscheck. |
 | `begrippen.py` (router), `begrip_store.py`, `begrip_contracts.py` | Begrippen: inhoud, koppelingen met bewijsstand, actualiteit, de accorderingspoort, revisies en export. |
 | `begrippen_runs.py` (router), `begrippen_run_store.py`, `begrippen_run_contracts.py`, `begrip_manifest.py` | Voorstellen van Lex: manifest voor de begrippenketen, runs, betekenisgroepen en besluiten. |
@@ -95,6 +97,7 @@ ombouwen zonder reden.
 | `begrip_relaties.py` (router), `begrip_relatie_store.py`, `begrip_relatie_contracts.py` | Begripsrelaties (voorstellen uit de keten, vastleggen, afwijzen, doorwerking) en opvolging: nieuwe betekenis, combineren. |
 | `begrip_projectie.py`, `shapes/nl-sbb-1.0.0.ttl`, `shapes/begrippen-wa.ttl` | Begrippen naar de kennisgraaf (NL-SBB), conformiteit per begrip en de Turtle-export. |
 | `begrippen_overzicht.py` (router) | Begrippen over werkgebieden heen: zoeken, verifiëren voor Lex, één begrip. |
+| `regies.py` (router), `regie_store.py`, `regie_contracts.py` | Regies (ADR-012): één lopende per werkgebied en per gebruiker, hartslag en afronden. |
 | `artefact_versies.py` | Versies van artefacten: de momentopname bij een beurt van Lex, en de routes om ze te lezen. |
 | `annotatie_statistiek.py`, `scripts/statistiek.py` | Reviewstatistiek over de elementen: uitkomst per klasse en per model, klasse-verschuivingen, aandacht tegenover correctie. |
 | `jas_klassen.py`, `validation.py` | De dertien JAS-klassen, volgorde en kleuren (canoniek); `GELDIGE_JAS_KLASSEN`, `JAS_KLASSE_KLEUREN`, `jas_sorteersleutel`. |
@@ -142,7 +145,7 @@ Hieronder wat je moet weten om de code te wijzigen.
 - **Opnieuw annoteren ruimt op** (`_vervang_oude_voorstellen`). Een batch met `run.modus == "opnieuw"` en een voltooide
   dekking zet elk element met de eigenaar in het bereik dat van de agent komt, actueel is, geen oordeel draagt en niet
   opnieuw in de batch zit op `vervangen` (`vervangen_in`, auditregel `element-vervangen`); wissen doet hij niet. De
-  respons draagt `vervangen` (ids). Komt hetzelfde id later terug, dan leeft het op (`element-hersteld`). `vervangen` is
+  respons draagt `vervangen` (ids). Komt hetzelfde id later terug, dan leeft het op (`element-hersteld`). Staat het er nog met een andere duiding (`VERVERS`: subtype, toelichting, alternatieven, aandacht, reviewuitleg, grounded), dan ververst de ronde het als niemand erover besliste (`_ververs`, auditregel `element-bijgewerkt` met de velden); een gelijk voorstel blijft byte-gelijk. `vervangen` is
   niet actueel (`NIET_ACTUEEL`, `is_vervangen`): `weergave` en `actuele_elementen` laten het weg (de weergave en de
   inventaris noemen het apart in `vervangen`, `actuele_elementen(inclusief_vervangen=True)` voor wie het wil tonen), net
   als zoeken, werkvoorraad, statistiek, overzicht, afronden en `laag_invoer` (de projectie); `slot_van` en `_beslis_in`
@@ -408,13 +411,13 @@ spoor D (*Werkgebied als node*).
   3 Werkgebied, 4 Deelvragen en bronnen, 5 Analyse per bepaling, 6 Begrippen (lijst), dan de bijlagen (`BIJLAGEN`, letters op volgorde):
   Begripskaarten, Bronnenregister, Contextbepalingen (rol context zonder markering, `Regeling.context`), Samenhang, Niet meegenomen,
   Verantwoording.
-  - **Graaf in het rapport** (`rapport_graaf.lees`, best-effort zoals de toestanden): per regeling de WTI-gegevens (soort,
+  - **Graaf in het rapport** (`bepaling_graaf.lees`, best-effort zoals de toestanden; dezelfde lezer als het paneel bij een antwoord, met het contract in `bepaling_graaf_contract`, ADR-009 is de eigenaar): per regeling de WTI-gegevens (soort,
     eerstverantwoordelijke, TOOI-organisatie, afkorting, toestand-URL), en per voorouder van een geselecteerde bronnode
     (`werkgebied_export.structuur_iris`) de titel, `bwb:inwerking` en `bwb:bron`. Een artikel krijgt zo zijn `plaats` in de opbouw, die
     boven het artikel en in de kopregel staat (`PLAATS`). Alleen strikte IRI's gaan de query in (`BRON_IRI`). Een haperende graaf geeft het
-    signaal `graaf_onvolledig`. De router geeft `rapport_graaf.lees` mee, de tests vervangen hem.
+    signaal `graaf_onvolledig`. De router geeft `bepaling_graaf.lees` mee, de tests vervangen hem. Tellingen (inkomend, grondslag, bevoegdheid) komen alleen met `met_inkomend=True`, voor het paneel; `structuur_voor(iris)` geeft de delen boven losse bepalingen.
     De verwijzingen komen uit `bwb:heeftVerwijzing`/`bwb:naar`, alleen vanuit bronnodes in het dossier (`bron_iris`; inkomende verwijzingen
-    zijn ruis), met `bwb:ankerTekst` letterlijk. Ze staan bij de bepaling en in de bijlage Samenhang. Een doel telt als "in dit dossier" als het
+    zijn ruis), met `bwb:ankerTekst` letterlijk. De query is begrensd (`MAX_VERWIJZINGSRIJEN`, hij vraagt er één meer): raakt hij de grens, dan `volledig: false` en `verwijzingen_volledig: false`, en de bijlage zegt "minstens". Tel nooit een begrensde rijenlijst als totaal. Ze staan bij de bepaling en in de bijlage Samenhang. Een doel telt als "in dit dossier" als het
     daar zelf staat of als een van zijn delen er staat.
   - **Markeringen in de wettekst**: `Bepaling.spans` (alleen ankers die nog letterlijk op hun offsets staan) gaan als regel `SPANS` (JSON)
     vlak vóór het citaat mee. `pdf_opmaak.gemarkeerd` kleurt en nummert, `markdown_opmaak` maakt vet met ⁽ⁿ⁾. Een markering in de tekst
@@ -978,6 +981,24 @@ na herladen, in een ander gesprek en bij een collega ook is.
   (een afhankelijkheid).
 - Tests: `tests/test_bronselectie.py`.
 
+## Regies
+
+`regies.py`, `regie_store.py`, `regie_contracts.py`; het ontwerp is ADR-012 (PLAN spoor S). De regisseur in graph-qa
+verdeelt het werk in een werkgebied over deelgesprekken; de api houdt het object bij en de deelgesprekken
+(`gesprekken.ouder_id`, §*Gesprekken*). Stijl C: de store gooit de fouten.
+
+- **Eén lopende regie per werkgebied én per gebruiker** (partiële unieke indexen op `status = 'loopt'`, dus race-vrij
+  tussen replica's). Een tweede start geeft 409 `regie_loopt_al` met `regie_id` en `werkgebied_id` van wie het slot heeft.
+- **Een regie zonder hartslag telt als mislukt.** graph-qa stuurt `PATCH {status: "loopt"}` als teken van leven; na
+  `VERWEESD_NA` (3 min) zonder leest de regie als `mislukt`, en een nieuwe start legt hem eerst zo vast (`uitkomst:
+  {reden: "verweesd"}`), anders blokkeert een omgevallen replica het werkgebied.
+- **Afronden is eenmalig**: een eindstand (`klaar`, `gestopt`, `mislukt`) met de `uitkomst`; dezelfde nog eens is
+  idempotent, een andere 409 `regie_afgerond`. Alleen de eigenaar wijzigt (anders 404).
+- **Het regiegesprek** is een eigen gesprek in het werkgebied (404 of 409 `ander_werkgebied`).
+- De api voert niets uit: het plan is wat de jurist bevestigde, bewaard als JSON. Besluiten over bronnen en markeringen
+  lopen via hun eigen routes, door de jurist.
+- Tests: `tests/test_regies.py`.
+
 ## Versies van artefacten
 
 `artefact_versies.py`, tabel `artefact_versies`; het ontwerp staat in `docs/architectuur/artefacten-langs-claude.md`
@@ -1028,6 +1049,10 @@ de stand van die beurt zien, dan heb je een momentopname nodig. Alleen een begri
   foreign key: een gewist werkgebied maakt zijn gesprekken los (`werkgebied_store.wis`), en een gewist
   gesprek raakt niets in de andere domeinen. Archiveren, verplaatsen en verwijderen zijn bewust drie
   handelingen; verwijderen blijft echt wissen.
+- **Deelgesprekken** (ADR-012): `ouder_id` en `regie_id` op het gesprek. `POST` toetst dat de ouder een eigen gesprek is in
+  hetzelfde werkgebied en zelf geen ouder heeft (404, 409 `ander_werkgebied`/`te_diep`), en dat de regie bij die ouder hoort
+  (409 `andere_regie`). `GET ?ouder_id=` geeft de deelgesprekken (`""` = alleen gesprekken zonder ouder). Een ouder
+  verwijderen, het gesprek verhuizen of het werkgebied wissen maakt een deelgesprek los; het wordt nooit mee gewist.
 
 - Een bericht verwijst via **`artefact`** naar wat de beurt opleverde: `{soort, ref, titel}` met
   `soort` `annotatie` (ref `{bron_iri, label?, snapshot_id?}`), `begrippen` (ref

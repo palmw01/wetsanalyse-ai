@@ -720,9 +720,40 @@ gesprekken = Table(
     # Het werkgebied waar dit gesprek bij hoort (leeg = een los gesprek). Geen foreign key: een
     # gewist werkgebied maakt het gesprek los (`werkgebied_store.wis`), het verslag blijft staan.
     Column("werkgebied_id", String(64), nullable=False, default="", server_default=""),
+    # Het regiegesprek waar dit gesprek een deelgesprek van is (ADR-012; leeg = geen). Zelfde werkgebied en
+    # dezelfde gebruiker; verdwijnt de ouder of verhuist het gesprek, dan wordt het weer los.
+    Column("ouder_id", String(64), nullable=False, default="", server_default=""),
+    Column("regie_id", String(64), nullable=False, default="", server_default=""),
     # Gearchiveerd = uit de navigatie, niet weg.
     Column("gearchiveerd", _DT, nullable=True),
     Index("ix_gesprekken_user_updated", "user_id", "updated"),
+)
+
+# Een regie (ADR-012): een regisseur in graph-qa verdeelt het werk in een werkgebied over kindgesprekken. De api houdt
+# het object bij: het plan dat de jurist bevestigde, de stand en de uitkomst. Er loopt hoogstens één regie per werkgebied
+# en één per gebruiker (de partiële unieke indexen); een regie die `VERWEESD_NA` niets van zich liet horen, telt als
+# mislukt en houdt geen slot meer vast (`regie_store`).
+regies = Table(
+    "regies",
+    metadata,
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False),
+    Column("gesprek_id", String(64), nullable=False),
+    Column("user_id", String(64), nullable=False),
+    Column("opdracht", String(32), nullable=False),
+    Column("plan_id", String(64), nullable=False),
+    Column("plan", _JSON, nullable=False, default=dict),
+    Column("status", String(16), nullable=False),
+    Column("uitkomst", _JSON, nullable=False, default=dict),
+    Column("budget_aandeel", Integer, nullable=False, default=0, server_default="0"),
+    Column("gestart", _DT, nullable=False),
+    Column("hartslag", _DT, nullable=False),
+    Column("afgerond", _DT, nullable=True),
+    Index("ix_regies_werkgebied", "werkgebied_id", "gestart"),
+    Index("ux_regies_lopend_werkgebied", "werkgebied_id", unique=True,
+          sqlite_where=text("status = 'loopt'"), postgresql_where=text("status = 'loopt'")),
+    Index("ux_regies_lopend_gebruiker", "user_id", unique=True,
+          sqlite_where=text("status = 'loopt'"), postgresql_where=text("status = 'loopt'")),
 )
 
 # De berichten binnen een gesprek. `inhoud` (JSON) draagt de heterogene payload van één beurt – de

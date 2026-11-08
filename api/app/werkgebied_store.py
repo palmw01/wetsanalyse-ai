@@ -82,7 +82,7 @@ WERKGEBIED_TABELLEN = ("werkgebied_bronselecties", "werkgebied_element_besluiten
                        "begrippen", "begrip_koppelingen", "begrip_relaties", "begrip_voorstellen",
                        "begrip_kaartruns", "bronnen_runs", "bron_kandidaten", "begrippen_runs",
                        "betekenisgroepen", "begrippen_batches", "bronselectie_voortgang",
-                       "bron_kandidaat_deelvragen", "artefact_versies", "werkgebied_begrippen")
+                       "bron_kandidaat_deelvragen", "artefact_versies", "werkgebied_begrippen", "regies")
 #: Wat bij een verwijderd object in de audit staat (oude stand: archiveren, een soft verwijderd begrip).
 VERWIJDERD_ACTIES = ("werkgebied-verwijderd", "gearchiveerd")
 
@@ -289,7 +289,7 @@ async def wis(conn, werkgebied_id: str) -> None:
         await conn.execute(delete(t[naam]).where(t[naam].c.werkgebied_id == werkgebied_id))
     # De gesprekken blijven: het zijn verslagen van de gebruiker, en ze worden weer los.
     await conn.execute(update(db.gesprekken).where(db.gesprekken.c.werkgebied_id == werkgebied_id)
-                       .values(werkgebied_id=""))
+                       .values(werkgebied_id="", ouder_id="", regie_id=""))
     await conn.execute(delete(db.werkgebieden).where(db.werkgebieden.c.id == werkgebied_id))
 
 

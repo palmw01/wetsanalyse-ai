@@ -325,6 +325,12 @@ hier vandaan maar uit `bronmodel.resolve` (zie §*De annotatieketen*).
   zijn IRI, en een structuurdeel zijn titel ("Hoofdstuk II – Invordering in eerste aanleg") – daaraan
   herkent de werkplek het deel in de tekst (cache per proces; een fout kost
   alleen de naam).
+- **Een externe bron heeft een eigen soort** (ADR-013, `bronmodel.extern`): een Kamerstuk of Handelingen
+  (`kst-36123-3`, `h-tk-…`), het Staatsblad of de Staatscourant (`stb-2023-123`), een uitspraak (ECLI) of EU-recht
+  (`CELEX:…`, ELI). `vindplaats` blijft BWB-only, want tientallen aanroepers nemen een BWB-id aan. `iter_refs` levert de
+  canonieke id; de bron draagt `brontype` en `link` (de publieke vindplaats), en `uri` is de id. `check_grounding` eist
+  dat een genoemde id in de trace staat (op de canonieke vorm), `curate_sources` houdt een externe bron alleen als het
+  antwoord haar id noemt. Een externe bron is geen wettekst: wat de wet zegt, onderbouwt hij niet.
 - **Een annotatie is geen vindplaats.** `urn:jas…`-IRI's bevatten een BWB-id maar worden vóór het
   zoeken weggelaten (`_AFGELEID_RE`); anders lijkt een annotatie wettekst te onderbouwen die niet is
   opgehaald.
@@ -380,6 +386,11 @@ kan opnieuw aanhaken. Regels die je niet mag breken:
   `GET /v1/runs?actief=true` (`RunStore.voor_gebruiker`, E6) geeft alleen runs met precies die gebruiker, lopend of
   binnen `RECENT_S` geëindigd, als `Run.stand()` – zonder vraag of events; een lege header krijgt niets. Een lopende run
   zonder hartslag wordt daar ook verweesd verklaard, anders toont de sidebar "bezig" bij een beurt die nergens draait.
+- **Eén ingang: `start_beurt`** (`api/main.py`). `POST /v1/runs` en de regisseur (ADR-012) starten een run langs
+  dezelfde functie: het gesprek-slot, de eigenaar en `_stroom_voor` met vastleggen en boeken. Een kind-run draagt
+  `ouder_run_id` (`Run`, kolom in `agent_runs`, in `RunStand` voor de sidebar). `stop_met_kinderen` stopt bij
+  `cancel` en bij het verwijderen van een gesprek ook de lopende kinderen (`RunStore.kinderen`, over replica's heen).
+  De budgetpoort is bij de route een dependency; `start_beurt(budget=True)` doet hem voor een aanroeper zonder route.
 - **Cappen is klassebewust.** Alleen `VLUCHTIGE_TYPES` (`token`/`reason`/`status`) mogen sneuvelen;
   er gaat dan een `gat`-event voorop.
 - **Stoppen is een vlag, geen `task.cancel()`.** Elke node is gewikkeld in `stopbaar()`
@@ -919,7 +930,21 @@ het voorstel met de bevestiging (`werkgebied_voorstel`, F3c).
   een fout in één eenheid stopt de rest niet. Hoogstens `PLAFOND` (40) per run.
 - **Aan het eind** een samenvatting (geannoteerd, mislukt, niet aan bod gekomen en waarom, wat buiten
   het plafond bleef) als gewoon bericht met het `run_id` van de hele run.
+- **Een deel van de werkvoorraad** (ADR-012): `eenheden` neemt alleen de doorsnede met wat de api als nieuw geeft
+  (`deel_van`), en `bevestigd` telt die doorsnede. `budget_aandeel` stopt de run tussen twee bepalingen zodra de volgende
+  (de mediaan, of het gemiddelde tot nu toe, uit de `meting`-events) er niet meer in past (`binnen_aandeel`); de poort van
+  de api blijft gelden. Zo werken de kinderen van een regie zonder overlap en binnen hun aandeel.
 - Tests: `tests/test_werkgebied_annotatie.py`.
+
+### Het plan van een regie (`agent/regie/plan.py`, ADR-012)
+
+Zuiver en deterministisch, uit de stand bij de api: `plan_bronnen` (per deelvraag die niet klaar is een taak) en
+`plan_annoteren` (de werkvoorraad zonder overlap: elke bepaling naar de eerste deelvraag waaronder ze valt; hoogstens
+`PLAFOND`; krimpt tot de bovenkant `MARGE × mediaan` in het resterende budget past; per kind een aandeel `AANDEEL ×
+schatting`, zonder schatting het budget gelijk verdeeld). `plan_id` hasht alleen het werk, niet de schatting. Wat niet
+meegaat, staat in `buiten` met de reden. `kind_verzoek` maakt het `ChatRequest` van een kind: de actie `bronselectie`
+op de deelvraag, of `deelvragen_annoteren`/`werkgebied_annoteren` met `bevestigd`, `eenheden` en `budget_aandeel`.
+Tests: `tests/test_regie_plan.py`.
 
 ### Lex stelt een werkgebied samen (`agent/werkgebied_intake.py`, `nodes/werkgebied.py`, activiteit 1)
 

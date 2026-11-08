@@ -24,6 +24,8 @@ from urllib.parse import unquote
 from .annotatie import _normaliseer, komt_letterlijk_voor
 from .hoeveelheden import buiten as hoeveelheden_buiten
 from .models import Source
+from bronmodel.extern import externe_verwijzingen, externe_vindplaats
+
 from .provenance import _BWB_RE, citations_in, first_bwb
 from .resultaat import waarden
 from .tools.begrip_tools import AFGELEIDE_TOOL_NAMEN
@@ -183,11 +185,16 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
     # Exacte BWB-id's uit de trace (woordgrens via _BWB_RE), zodat een gehallucineerde prefix-id
     # (bv. BWBR0001 t.o.v. het opgehaalde BWBR00012345) niet vals als gegrond geldt.
     trace_bwbs = set(_BWB_RE.findall(trace_text))
+    # Een externe bron (ADR-013) op zijn canonieke id: `celex:` en `CELEX:`, een ELI over http of https.
+    trace_extern = {e.id for e in externe_verwijzingen(trace_text)}
     cited = citations_in(answer_text)
     unsupported: list[str] = []
     for c in cited:
         bwb = first_bwb(c)
-        if bwb is not None:
+        if (ext := externe_vindplaats(c)) is not None:
+            if ext.id not in trace_extern:
+                unsupported.append(c)
+        elif bwb is not None:
             if bwb not in trace_bwbs:
                 unsupported.append(c)
         elif c not in trace_text:
@@ -289,6 +296,10 @@ def curate_sources(sources: list[Source], answer_text: str) -> list[Source]:
     bwbs = set(_BWB_RE.findall(answer_text))
     if not bwbs:
         return sources
+    # Een externe bron (ADR-013) blijft staan als het antwoord haar id noemt; zonder id volgt ze de regel
+    # van de regelingen: onbesproken, dus weg zodra het antwoord wél regelingen noemt.
+    genoemd_extern = {e.id for e in externe_verwijzingen(answer_text)}
+    extern = [s for s in sources if s.brontype not in (None, "wettekst") and s.uri in genoemd_extern]
     # Exacte BWB-id-match (woordgrens) i.p.v. substring, zodat een genoemde prefix-id geen bron van
     # een langere regeling meesleept.
     kept = [s for s in sources if (m := _BWB_RE.search(s.uri)) and m.group(0) in bwbs]
@@ -300,7 +311,7 @@ def curate_sources(sources: list[Source], answer_text: str) -> list[Source]:
         if loc and loc[1]:
             geciteerd.setdefault(loc[0], []).append(loc[1])
     if not geciteerd:
-        return kept
+        return [*kept, *extern]
 
     def blijft(s: Source) -> bool:
         loc = _locatie(s.uri)
@@ -309,4 +320,4 @@ def curate_sources(sources: list[Source], answer_text: str) -> list[Source]:
         return any(_op_pad(loc[1], pad) for pad in geciteerd[loc[0]])
 
     fijn = [s for s in kept if blijft(s)]
-    return fijn or kept
+    return [*(fijn or kept), *extern]

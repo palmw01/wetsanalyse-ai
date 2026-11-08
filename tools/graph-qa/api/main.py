@@ -270,7 +270,7 @@ async def verwijder_conversation(
     if lopend is not None and gebruiker and lopend.user_id and lopend.user_id != gebruiker:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Onbekend gesprek")
     if lopend is not None and lopend.loopt:
-        await runs.vraag_stop(lopend)
+        await stop_met_kinderen(lopend)
         logger.info(
             "run gestopt: gesprek verwijderd",
             extra={"categorie": "functioneel", "run_id": lopend.run_id,
@@ -346,6 +346,11 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
 
 
 async def _budget_check(gebruiker: str = Depends(_aanroeper)) -> None:
+    """De poort als dependency, voor `POST /v1/runs` (zie `controleer_budget`)."""
+    await controleer_budget(gebruiker)
+
+
+async def controleer_budget(gebruiker: str) -> None:
     """Weiger een nieuwe beurt als het tokenbudget van deze gebruiker op is.
 
     Een dependency en geen middleware, om dezelfde reden als `_rate_limit`: middleware buffert de
@@ -392,17 +397,31 @@ async def start_run(
     dezelfde checkpointer-thread. De aanroeper hoort dan aan te haken bij het meegegeven run_id.
     """
     try:
-        run = await runs.start(
-            conversation_id=request.conversation_id or "",
-            vraag=request.question or "",
-            maak_stroom=_stroom_voor(request, gebruiker),
-            user_id=gebruiker,
-        )
+        run = await start_beurt(request, gebruiker)
     except RunBestaatAl as al:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={"reden": "run_loopt_al", "run_id": al.run_id},
         ) from al
+    return RunStart(**run.samenvatting())
+
+
+async def start_beurt(request: ChatRequest, gebruiker: str, *, ouder_run_id: str = "",
+                      budget: bool = False) -> Run:
+    """De enige weg naar een run: de route hierboven en de regisseur (ADR-012) gebruiken hem allebei.
+
+    Een kind-run is dus een gewone run: hetzelfde gesprek-slot (`RunBestaatAl`), dezelfde eigenaar en dezelfde
+    stroom met vastleggen en boeken. `budget` doet de poort vooraf hier; de route doet hem als dependency (429 vóór
+    de body), de regisseur hier. `ouder_run_id` maakt de run een kind van een regierun."""
+    if budget:
+        await controleer_budget(gebruiker)
+    run = await runs.start(
+        conversation_id=request.conversation_id or "",
+        vraag=request.question or "",
+        maak_stroom=_stroom_voor(request, gebruiker),
+        user_id=gebruiker,
+        ouder_run_id=ouder_run_id,
+    )
     logger.info(
         "run gestart",
         extra={
@@ -410,9 +429,18 @@ async def start_run(
             "run_id": run.run_id,
             "chat_session_id": run.conversation_id,
             "chat_vraag_lengte": len(request.question or ""),
+            **({"ouder_run_id": ouder_run_id} if ouder_run_id else {}),
         },
     )
-    return RunStart(**run.samenvatting())
+    return run
+
+
+async def stop_met_kinderen(run: Run) -> None:
+    """Stop een run en, als hij een regie is, zijn kinderen (ADR-012). De regisseur stopt ze zelf ook, maar die kan
+    op een replica draaien die net wegviel; de vlag in de store bereikt elk kind."""
+    await runs.vraag_stop(run)
+    for kind in await runs.kinderen(run.run_id):
+        await runs.vraag_stop(kind)
 
 
 @app.get("/v1/runs/{run_id}/events")
@@ -452,7 +480,7 @@ async def stop_run(
     run = await runs.get(run_id, user_id=gebruiker)
     if run is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Onbekende run")
-    await runs.vraag_stop(run)
+    await stop_met_kinderen(run)
     return RunStart(**run.samenvatting())
 
 

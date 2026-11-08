@@ -202,3 +202,36 @@ def test_passend_kort_in_op_een_woordgrens():
     tekst, af = pdf_opmaak.passend("woord " * 200, st, 200, 2)
     assert af and tekst.endswith(" …") and set(tekst[:-2].split()) == {"woord"}
     assert pdf_opmaak.passend("kort", st, 200, 2) == ("kort", False)
+
+
+def _hoofdstukken(n: int = 5) -> list[tuple[str, str]]:
+    regels = [(pdf_opmaak.TITELBLAD + "titel", "Proef"), (pdf_opmaak.INHOUD, "")]
+    for h in range(1, n + 1):
+        regels += [(pdf_opmaak.PAGINA, ""), ("Heading1", f"Hoofdstuk {h}")] + [("BodyText", "tekst " * 80)] * 12
+    return regels
+
+
+def _bestemmingen(pdf: bytes) -> list[int]:
+    """De paginanummers waar elke bladwijzer en elke link in de inhoudsopgave naartoe wijst."""
+    s = pdf.decode("latin-1")
+    kids = [int(x) for x in re.findall(r"(\d+) 0 R", re.search(r"/Kids \[([^\]]*)\]", s).group(1))]
+    return [kids.index(int(ref)) + 1 for ref in re.findall(r"/Dest \[ ?(\d+) 0 R", s)]
+
+
+def test_bladwijzers_en_de_inhoudsopgave_wijzen_naar_de_pagina_van_hun_kop():
+    """Een uitgestelde `showPage` (de oude `Teller`) bond elke bestemming aan pagina 1 (review 8 nov 2026)."""
+    spoor: list[dict] = []
+    pdf = pdf_opmaak.render(_hoofdstukken(), titel="Proef", voet="V", spoor=spoor)
+    koppen = [x["pagina"] for x in spoor if x["tekst"]]
+    bestemmingen = _bestemmingen(pdf)
+    assert len(set(koppen)) == 5 and min(koppen) > 1
+    assert set(koppen) <= set(bestemmingen), "elke kop is een bestemming op zijn eigen pagina"
+    assert set(bestemmingen) == set(koppen) | {1}, "alleen het titelblad wijst naar pagina 1"
+
+
+def test_elke_pagina_noemt_het_echte_totaal():
+    paginas: list[dict] = []
+    pdf = pdf_opmaak.render(_hoofdstukken(3), titel="Proef", voet="V", paginas=paginas)
+    totaal = pdf_opmaak.aantal_paginas(pdf)
+    gewone = [p for p in paginas if not p["titelblad"]]
+    assert gewone and all(p["nummer"] == f"Pagina {p['pagina']} van {totaal}" for p in gewone)

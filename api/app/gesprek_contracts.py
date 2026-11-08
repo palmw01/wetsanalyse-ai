@@ -45,9 +45,11 @@ class Artefact(BaseModel):
     `{werkgebied_id}`; deelvraag (één deelvraag, F3d): `{werkgebied_id, deelvraag_id}`; begrip (één begrip,
     F3d): `{werkgebied_id, begrip_id, kaart_run_id?, actie?}` – bewaarde berichten van vóór F3d dragen
     dat als begrippen mét `begrip_id`; bronselectie (de bronselectie per deelvraag, spoor J): `{werkgebied_id,
-    deelvraag_id?}`; regels: nog niet in gebruik (gereserveerd)."""
+    deelvraag_id?}`; regie (een regie over deelgesprekken, ADR-012): `{werkgebied_id, regie_id}`; regels: nog niet in
+    gebruik (gereserveerd)."""
 
-    soort: Literal["annotatie", "begrippen", "bronnen", "werkgebied", "deelvraag", "begrip", "bronselectie", "regels"]
+    soort: Literal["annotatie", "begrippen", "bronnen", "werkgebied", "deelvraag", "begrip", "bronselectie", "regie",
+                   "regels"]
     ref: dict
     titel: str = Field(default="", max_length=300)
 
@@ -56,7 +58,8 @@ class Artefact(BaseModel):
         nodig = {"annotatie": ("bron_iri",), "begrippen": ("werkgebied_id", "run_id"),
                  "bronnen": ("werkgebied_id", "run_id"), "werkgebied": ("werkgebied_id",),
                  "deelvraag": ("werkgebied_id", "deelvraag_id"), "begrip": ("werkgebied_id", "begrip_id"),
-                 "bronselectie": ("werkgebied_id",), "regels": ()}[self.soort]
+                 "bronselectie": ("werkgebied_id",), "regie": ("werkgebied_id", "regie_id"),
+                 "regels": ()}[self.soort]
         if self.soort == "begrippen" and self.ref.get("begrip_id"):
             nodig = ("werkgebied_id", "begrip_id")
         ontbreekt = [k for k in nodig if not isinstance(self.ref.get(k), str) or not self.ref.get(k)]
@@ -83,7 +86,8 @@ class Bevestiging(BaseModel):
     veranderd, dan weigert graph-qa en komt er een nieuwe bevestiging."""
 
     # `begrippen_verdiepen` (fase C): het model op twijfelparen en kaarten; `aantal` telt die samen.
-    soort: Literal["werkgebied_annoteren", "begrippen_verdiepen"]
+    # `regie` (ADR-012): het plan van een regie; `aantal` telt de deelgesprekken, `plan_id` is wat de knop bevestigt.
+    soort: Literal["werkgebied_annoteren", "begrippen_verdiepen", "regie"]
     werkgebied_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
     aantal: int = Field(ge=0, le=100_000)
     schatting: int | None = Field(default=None, ge=0)
@@ -94,13 +98,18 @@ class Bevestiging(BaseModel):
     # Bij `begrippen_verdiepen` (spoor M): de inhoud van de werkvoorraad die de knop bevestigt. De knop
     # stuurt hem terug; wijkt hij af, dan begint Lex niet, ook niet bij een gelijk aantal.
     werkvoorraad_id: str = Field(default="", pattern=r"^(W[0-9a-f]{16})?$")
+    # Bij `regie`: het plan dat de knop bevestigt en de opdracht die hij start.
+    plan_id: str = Field(default="", pattern=r"^([0-9a-f]{16})?$")
+    opdracht: Literal["", "bronnen", "annoteren"] = ""
 
     @model_serializer(mode="wrap")
     def _zonder_lege_werkvoorraad(self, handler):
-        """Zonder werkvoorraad (annoteren, of een bericht van vóór spoor M) blijft het bericht zoals het was."""
+        """Zonder werkvoorraad of plan (annoteren, of een bericht van vóór spoor M) blijft het bericht zoals het was."""
         data = handler(self)
-        if isinstance(data, dict) and not data.get("werkvoorraad_id"):
-            data.pop("werkvoorraad_id", None)
+        if isinstance(data, dict):
+            for veld in ("werkvoorraad_id", "plan_id", "opdracht"):
+                if not data.get(veld):
+                    data.pop(veld, None)
         return data
 
 
@@ -295,6 +304,9 @@ class Gesprek(BaseModel):
     titel: str = ""
     # Leeg = een los gesprek. Met een werkgebied krijgt elke beurt dat dossier als context mee.
     werkgebied_id: str = ""
+    # Een deelgesprek van een regiegesprek (ADR-012): de ouder en de regie die het startte. Leeg = geen.
+    ouder_id: str = ""
+    regie_id: str = ""
     gearchiveerd: datetime | None = None
     berichten: list[Bericht] = []
     created: datetime | None = None
@@ -306,6 +318,9 @@ class Gesprek(BaseModel):
 class GesprekCreate(BaseModel):
     titel: str = ""
     werkgebied_id: str = ""
+    # Een deelgesprek (ADR-012): de ouder is een eigen gesprek in hetzelfde werkgebied, zelf zonder ouder.
+    ouder_id: str = Field(default="", max_length=64)
+    regie_id: str = Field(default="", max_length=64)
 
 
 class GesprekPatch(BaseModel):
@@ -351,4 +366,6 @@ class GesprekSamenvatting(BaseModel):
     werkgebied_id: str = ""
     # De naam erbij, zodat de sidebar per werkgebied kan groeperen zonder tweede call.
     werkgebied_naam: str = ""
+    ouder_id: str = ""
+    regie_id: str = ""
     gearchiveerd: datetime | None = None

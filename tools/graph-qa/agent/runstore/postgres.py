@@ -106,6 +106,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS agent_runs_een_lopende_per_gesprek
 
 -- `voor_gebruiker` (de sidebar) zoekt per gebruiker; zonder index is dat een scan over 30 dagen runs.
 CREATE INDEX IF NOT EXISTS agent_runs_per_gebruiker ON agent_runs (user_id, gestart DESC);
+
+-- De regierun die een run startte (ADR-012). Additief: een bestaande tabel krijgt de kolom erbij.
+ALTER TABLE agent_runs ADD COLUMN IF NOT EXISTS ouder_run_id TEXT NOT NULL DEFAULT '';
+CREATE INDEX IF NOT EXISTS agent_runs_per_ouder ON agent_runs (ouder_run_id) WHERE ouder_run_id <> '';
 """
 
 
@@ -121,6 +125,7 @@ def _naar_run(rij: dict[str, Any]) -> Run:
         geproduceerd=rij["geproduceerd"],
         stop_gevraagd=rij["stop_verzocht"],
         afgerond_op=rij.get("afgerond"),
+        ouder_run_id=rij.get("ouder_run_id") or "",
     )
 
 
@@ -278,16 +283,17 @@ class PostgresStore:
         vraag: str,
         maak_stroom: Callable[[Run], AsyncIterator[dict[str, Any]]],
         user_id: str = "",
+        ouder_run_id: str = "",
     ) -> Run:
         run = Run(run_id=uuid.uuid4().hex, conversation_id=conversation_id,
-                  user_id=user_id, vraag=vraag)
+                  user_id=user_id, vraag=vraag, ouder_run_id=ouder_run_id)
         for poging in (1, 2):
             try:
                 async with self.pool.connection() as conn:
                     await conn.execute(
-                        "INSERT INTO agent_runs (run_id, conversation_id, user_id, vraag) "
-                        "VALUES (%s, %s, %s, %s)",
-                        (run.run_id, conversation_id, user_id, vraag),
+                        "INSERT INTO agent_runs (run_id, conversation_id, user_id, vraag, ouder_run_id) "
+                        "VALUES (%s, %s, %s, %s, %s)",
+                        (run.run_id, conversation_id, user_id, vraag, ouder_run_id),
                     )
                 break
             except pg_errors.UniqueViolation as botsing:
@@ -304,6 +310,15 @@ class PostgresStore:
         run.taak = asyncio.create_task(self._draai(run, maak_stroom))
         self._taken[run.run_id] = run.taak
         return run
+
+    async def kinderen(self, run_id: str) -> list[Run]:
+        if not run_id:
+            return []
+        async with self.pool.connection() as conn:
+            cur = await conn.execute(
+                "SELECT * FROM agent_runs WHERE ouder_run_id = %s AND status = 'loopt'", (run_id,))
+            rijen = await cur.fetchall()
+        return [r for r in [await self._verweesd_afhandelen(_naar_run(rij)) for rij in rijen] if r.loopt]
 
     async def _draai(self, run: Run, maak_stroom: Callable[[Run], AsyncIterator[dict[str, Any]]]) -> None:
         hart = asyncio.create_task(self._pols(run))
