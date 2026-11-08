@@ -14,6 +14,7 @@ De query bouwt deze module, het model kiest alleen dossier, woorden en het stuk.
 """
 from __future__ import annotations
 
+import json
 import re
 import xml.etree.ElementTree as ET
 from typing import Any, Protocol
@@ -41,7 +42,12 @@ _STAP = 250
 _BASIS = "c.product-area==officielepublicaties AND w.publicatienaam==Kamerstuk AND dt.type==Kamerstuk"
 _OP_DATUM = " sortBy dt.available/sort.ascending"
 #: Elementen die geen lopende tekst zijn; ze worden geteld en genoemd, nooit stil weggelaten.
-_OVERGESLAGEN = {"tabel": "tabel", "illustratie": "illustratie", "noot": "voetnoot"}
+#: De XML van KOOP gebruikt CALS-tabellen (`table`): zonder die sleutel kwamen tabelcellen als losse alinea's mee, zoals
+#: de inhoudsopgave en de cijfers van een budgettabel zonder hun kolommen (acceptatie 8 nov 2026: 43 van de 63 alinea's
+#: van kst-33755-3).
+_OVERGESLAGEN = {"tabel": "tabel", "table": "tabel", "illustratie": "illustratie", "noot": "voetnoot"}
+#: Zo veel koppen staan hoogstens in `inhoud` op de eerste pagina; meer en alleen de bovenste twee niveaus.
+MAX_INHOUD = 40
 
 
 class KamerstukBron(Protocol):
@@ -86,7 +92,10 @@ KAMERSTUK_TOOLS: list[dict[str, Any]] = [
         "name": "get_kamerstuk",
         "description": (
             "De tekst van één Kamerstuk, per alinea in documentvolgorde, met de kop van het deel erboven. Gebruik "
-            "het id uit zoek_kamerstukken." + _UITLEG + " Citeer letterlijk uit 'tekst'.\n"
+            "het id uit zoek_kamerstukken." + _UITLEG + " Citeer letterlijk uit 'tekst'. Op de eerste pagina staat "
+            "'inhoud': per kop de offset waar dat deel begint. Ga met die offset naar het deel dat de vraag raakt (in de "
+            "memorie van toelichting bijvoorbeeld de artikelsgewijze toelichting bij een artikel) in plaats van alles te "
+            "lezen.\n"
             "GEEFT TERUG: het stuk (id, label, titel, link, bron_hash en de stand bij KOOP: gewijzigd, documentstatus, "
             "versie) en per alinea nr, kop en tekst. Is de documentstatus 'Onopgemaakt', zeg dan dat de opgemaakte versie "
             "kan afwijken; staat er gevalideerd: false, dan kon de nieuwste versie niet worden gecontroleerd. Tabellen, "
@@ -229,22 +238,55 @@ def alineas(xml: bytes) -> tuple[dict[str, str], list[dict[str, Any]], dict[str,
         return " ".join(" ".join(_platte_tekst(k, {}).split()) for k in kop if k.tag in {"nr", "titel"}).strip()
 
     def loop(e: ET.Element, koppen: tuple[str, ...]) -> None:
+        # Een `tussenkop` ("Artikel I (artikel 30hb …)") geldt voor de alinea's die erna komen in dezelfde divisie: in de
+        # artikelsgewijze toelichting zegt juist die kop bij welk artikel een alinea hoort. Eerst viel hij stil weg.
+        tussen = ""
         for kind in e:
+            hier = (*koppen, tussen) if tussen else koppen
             if kind.tag in _OVERGESLAGEN:
                 overgeslagen[_OVERGESLAGEN[kind.tag]] = overgeslagen.get(_OVERGESLAGEN[kind.tag], 0) + 1
+            elif kind.tag == "tussenkop":
+                tussen = " ".join(_platte_tekst(kind, overgeslagen).split())
             elif kind.tag == "divisie":
                 kop = kop_van(kind)
-                loop(kind, (*koppen, kop) if kop else koppen)
+                loop(kind, (*hier, kop) if kop else hier)
             elif kind.tag == "al":
                 tekst = " ".join(_platte_tekst(kind, overgeslagen).split())
                 if tekst:
-                    uit.append(compact({"nr": len(uit) + 1, "kop": " › ".join(koppen), "tekst": tekst}))
+                    uit.append(compact({"nr": len(uit) + 1, "kop": " › ".join(hier), "tekst": tekst}))
             elif kind.tag not in {"kop", "stuknr", "titel"}:
-                loop(kind, koppen)
+                loop(kind, hier)
 
     loop(stuk, ())
     titel = " ".join(_platte_tekst(stuk.find("titel"), {}).split()) if stuk.find("titel") is not None else ""
     return {"documenttitel": titel}, uit, overgeslagen
+
+
+def inhoud(rijen: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], bool]:
+    """De koppen van het stuk met de offset waar ze beginnen, voor de eerste pagina, en of dat alle koppen zijn. Zo springt
+    Lex naar het deel dat de vraag raakt in plaats van het stuk pagina voor pagina te lezen (acceptatie 8 nov 2026: twee
+    pagina's gelezen, de artikelsgewijze toelichting niet). Het diepste niveau dat helemaal past (hoogstens `MAX_INHOUD`
+    koppen en een kwart van de begroting: de inhoud wijst de weg, de alinea's zijn de inhoud); past zelfs het bovenste
+    niveau niet, dan het begin ervan, en dat zegt het resultaat (`inhoud_ingekort`). Leeg bij één kop."""
+    def koppen(diepte: int | None) -> list[dict[str, Any]]:
+        uit: list[dict[str, Any]] = []
+        for i, r in enumerate(rijen):
+            delen = r.get("kop", "").split(" › ")
+            kop = " › ".join(delen[:diepte] if diepte else delen)
+            if kop and all(u["kop"] != kop for u in uit):
+                uit.append({"kop": kop, "offset": i})
+        return uit
+
+    def past(lijst: list[dict[str, Any]]) -> bool:
+        return len(lijst) <= MAX_INHOUD and len(json.dumps(lijst, ensure_ascii=False)) <= BUDGET // 4
+
+    for diepte in (None, 2, 1):
+        if past(lijst := koppen(diepte)):
+            return (lijst, True) if len(lijst) > 1 else ([], True)
+    lijst = koppen(1)
+    while lijst and not past(lijst):
+        lijst = lijst[:-1]
+    return lijst, False
 
 
 def _get(bron: KamerstukBron, a: dict[str, Any]) -> str:
@@ -262,8 +304,15 @@ def _get(bron: KamerstukBron, a: dict[str, Any]) -> str:
                     "bron_hash": doc.hash, "gewijzigd": getattr(doc, "gewijzigd", ""),
                     "documentstatus": getattr(doc, "documentstatus", ""), "versie": getattr(doc, "versie", ""),
                     **({"gevalideerd": False} if getattr(doc, "gevalideerd", True) is False else {})})
+    offset = max(int(a.get("offset") or 0), 0)
     extra = {"stuk": stuk, **({"overgeslagen": overgeslagen} if overgeslagen else {}), "totaal": len(rijen)}
-    return per_eenheid(rijen, tool="get_kamerstuk", args={"id": vp.id}, offset=max(int(a.get("offset") or 0), 0),
+    if offset == 0:
+        inh, alle = inhoud(rijen)
+        if inh:
+            extra["inhoud"] = inh
+        if not alle:
+            extra["inhoud_ingekort"] = True
+    return per_eenheid(rijen, tool="get_kamerstuk", args={"id": vp.id}, offset=offset,
                        extra=extra, toelichting="" if rijen else "Dit stuk heeft geen lopende tekst in de XML.")
 
 

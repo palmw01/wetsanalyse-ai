@@ -116,8 +116,14 @@ def test_de_memorie_van_toelichting_is_te_lezen():
     assert d["stuk"]["titel"] == "MEMORIE VAN TOELICHTING" and d["stuk"]["bron_hash"]
     assert d["resultaten"] and all(r["tekst"] for r in d["resultaten"])
     xml = SruKamerstukken().document(MVT).xml
-    _, rijen, _ = alineas(xml)
-    assert len(rijen) > 20, "de XML-opbouw (stuk › divisie › al) levert bijna geen alinea's meer op"
+    _, rijen, overgeslagen = alineas(xml)
+    assert len(rijen) >= 15, "de XML-opbouw (stuk › divisie › al) levert bijna geen alinea's meer op"
+    # De tabellen (CALS `table`: de inhoudsopgave, de budgettabel) zijn geen alinea's, maar worden geteld.
+    assert overgeslagen.get("tabel"), "de tabellen heten geen `table` meer, of worden niet geteld"
+    assert not any(r["tekst"] in {"Inhoudsopgave", "blz."} for r in rijen)
+    # De tussenkop per artikel draagt de artikelsgewijze toelichting.
+    assert any("Artikel II (artikel 29 van de Invorderingswet 1990)" in r.get("kop", "") for r in rijen)
+    assert len(d["inhoud"]) > 1 and all(isinstance(i["offset"], int) for i in d["inhoud"])
 
 
 def test_een_subdossier_staat_in_de_index_van_het_dossiernummer():

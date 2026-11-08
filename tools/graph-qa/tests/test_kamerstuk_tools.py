@@ -294,3 +294,67 @@ def test_het_stuk_noemt_zijn_versie():
                                   kamerstukken=_adapter(dienst, [0.0])))
     assert d["stuk"]["documentstatus"] == "Onopgemaakt" and d["stuk"]["gewijzigd"] == "2026-01-02"
     assert d["stuk"]["bron_hash"] and "gevalideerd" not in d["stuk"]
+
+
+# ── Wat een Kamerstuk echt bevat (acceptatie 8 nov 2026) ─────────────────────────────────────────────────────────
+#
+# De XML van KOOP gebruikt CALS-tabellen (`table`) en tussenkoppen per artikel. De tabellen kwamen als losse cellen
+# mee (de inhoudsopgave en de cijfers van een budgettabel) en de tussenkoppen vielen weg, terwijl juist die zeggen bij
+# welk artikel een alinea van de artikelsgewijze toelichting hoort. Zelfgemaakte XML in de opbouw van KOOP.
+
+MVT = """<?xml version="1.0" encoding="UTF-8"?>
+<officiele-publicatie><kamerstuk><stuk><titel>MEMORIE VAN TOELICHTING</titel><algemeen><vrije-tekst><tekst>
+<table><tgroup cols="2"><tbody><row><entry><al>Inhoudsopgave</al></entry><entry><al>blz.</al></entry></row>
+<row><entry><al>1. Inleiding</al></entry><entry><al>1</al></entry></row></tbody></tgroup></table>
+<divisie><kop><nr>I.</nr><titel>ALGEMEEN</titel></kop>
+<divisie><kop><nr>1.</nr><titel>Inleiding</titel></kop><al>Dit voorstel regelt de rente.</al></divisie>
+<divisie><kop><nr>2.</nr><titel>Budgettaire aspecten</titel></kop><al>De opbrengst staat in de tabel.</al>
+<table><tgroup cols="2"><tbody><row><entry><al>2014</al></entry><entry><al>50</al></entry></row></tbody></tgroup></table>
+</divisie></divisie>
+<divisie><kop><nr>II.</nr><titel>ARTIKELSGEWIJZE TOELICHTING</titel></kop>
+<tussenkop>Artikel I (artikel 30hb AWR)</tussenkop><al>Het eerste lid regelt de ondergrens.</al><al>Het tweede lid de Vpb.</al>
+<tussenkop>Artikel II (artikel 29 Iw)</tussenkop><al>Hetzelfde voor de invorderingsrente.</al>
+</divisie></tekst></vrije-tekst></algemeen></stuk></kamerstuk></officiele-publicatie>""".encode()
+
+
+def test_een_cals_tabel_is_geen_alinea_maar_wordt_geteld():
+    _, rijen, overgeslagen = alineas(MVT)
+    teksten = [r["tekst"] for r in rijen]
+    assert "Inhoudsopgave" not in teksten and "2014" not in teksten and "blz." not in teksten
+    assert overgeslagen == {"tabel": 2}
+    assert teksten[0] == "Dit voorstel regelt de rente."
+
+
+def test_een_tussenkop_hoort_bij_de_alineas_erna():
+    _, rijen, _ = alineas(MVT)
+    kop = {r["tekst"]: r["kop"] for r in rijen}
+    assert kop["Het tweede lid de Vpb."] == "II. ARTIKELSGEWIJZE TOELICHTING › Artikel I (artikel 30hb AWR)"
+    assert kop["Hetzelfde voor de invorderingsrente."] == "II. ARTIKELSGEWIJZE TOELICHTING › Artikel II (artikel 29 Iw)"
+    assert kop["Dit voorstel regelt de rente."] == "I. ALGEMEEN › 1. Inleiding"
+
+
+def test_de_eerste_pagina_wijst_met_offsets_naar_elk_deel():
+    bron = NepBron(DOSSIER, MVT)
+    d = roep("get_kamerstuk", {"id": "kst-99001-3"}, bron)
+    assert [i["kop"] for i in d["inhoud"]] == [
+        "I. ALGEMEEN › 1. Inleiding", "I. ALGEMEEN › 2. Budgettaire aspecten",
+        "II. ARTIKELSGEWIJZE TOELICHTING › Artikel I (artikel 30hb AWR)",
+        "II. ARTIKELSGEWIJZE TOELICHTING › Artikel II (artikel 29 Iw)"]
+    for i in d["inhoud"]:
+        sprong = roep("get_kamerstuk", {"id": "kst-99001-3", "offset": i["offset"]}, bron)
+        assert sprong["resultaten"][0]["kop"] == i["kop"]
+        assert ("inhoud" in sprong) is (i["offset"] == 0), "de inhoud staat alleen op de eerste pagina"
+    assert "inhoud_ingekort" not in d
+
+
+def test_een_inhoud_die_niet_past_gaat_een_niveau_omhoog_en_zegt_het_als_hij_ingekort_is():
+    from agent.tools.kamerstuk_tools import MAX_INHOUD, inhoud
+
+    veel = [{"nr": i + 1, "kop": f"Deel {i // 20} › Paragraaf {i}", "tekst": "x"} for i in range(400)]
+    lijst, alle = inhoud(veel)
+    assert alle and [x["kop"] for x in lijst][:2] == ["Deel 0", "Deel 1"]
+    te_veel = [{"nr": i + 1, "kop": f"Hoofdstuk {i} met een lange titel over de invordering", "tekst": "x"} for i in range(400)]
+    lijst, alle = inhoud(te_veel)
+    assert not alle and 1 < len(lijst) <= MAX_INHOUD
+    d = roep("get_kamerstuk", {"id": "kst-99001-3"}, NepBron(DOSSIER, MVT))
+    assert d["status"] == "ok"
