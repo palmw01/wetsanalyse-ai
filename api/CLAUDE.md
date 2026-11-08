@@ -151,6 +151,15 @@ Hieronder wat je moet weten om de code te wijzigen.
 - **Eén definitie van beoordeeld** (`annotatie_v2_contracts`): `BEOORDEELD` (`human_approved`, `edited`, `published`),
   `AFGEHANDELD` (daarnaast `rejected`), `VERGRENDELD` (`AFGEHANDELD` zonder `edited`) en `NIET_ACTUEEL` (`vervangen`).
   Schrijf de lifecycles nergens los uit; `frontend/lib/annotatie.ts` draagt dezelfde waarden en `tests/test_lifecycle_drift.py` bewaakt dat.
+- **Relaties tussen markeringen** (ADR-011, `annotatie_v2_relaties.py`).
+  - Een relatie hoort bij de laag van de drager: leggen, beoordelen en wissen lopen door het schrijfslot met
+    revisie, 412 en audit.
+  - De typen en klassenparen komen uit de gegenereerde `jas_relaties.py`; bewerk die niet.
+  - Een gewist element of een verwijderde bepaling neemt haar relaties mee (`wis_bij`).
+  - Een impliciete partij (`annotatie_v2_impliciet`) is geen markering. Een nieuwe lezer van de elemententabel
+    hoeft haar dus niet te kennen.
+  - De weergave draagt `relaties` en `impliciet`.
+  - Zie de specificatie §*Relaties tussen markeringen*.
 - **Een oordeel vergrendelt.** Een element in `VERGRENDELD` dat van de agent komt of een oordeel draagt
   (`heeft_oordeel`), accepteert alleen `comment` en `heropen` (`annotatie_v2_store._beslis_in`). Afronden (`zet_status`
   → `geaccordeerd`) kan pas als elk actueel element afgehandeld is en de bron niet veranderde.

@@ -541,7 +541,11 @@ async def weergave(snapshot: dict) -> dict:
                              "klasse": value["klasse"], "label": "Onderdeel van een ruimere annotatie",
                              "detail_url": f"/v1/annotatie/elementen/{value['id']}"})
         lagen = [publiek_laag(l) for i, l in layers.items() if i in scope]
+        from .annotatie_v2_relaties import bij_weergave
+        relaties, impliciet = await bij_weergave(conn, {e["id"] for e in elements}, {l["id"] for l in lagen},
+                                                 {r["id"]: dict(r["inhoud"]) for r in rows})
         return {"schema_versie": 2, "doel": snapshot["doel"], "snapshot_id": snapshot["snapshot_id"],
+                "relaties": relaties, "impliciet": impliciet,
                 "segmenten": [n for n in nodes.values() if n["bron_iri"] in scope and n.get("tekst")],
                 "lagen": lagen, "elementen": elements, "verwijzingen": refs, "vervangen": vervangen,
                 "dekking": await dekking(snapshot, conn),
@@ -777,7 +781,10 @@ async def verwijder(element_id: str, expected: int, actor: str) -> dict:
         await conn.execute(delete(db.annotatie_v2_elementen).where(db.annotatie_v2_elementen.c.id == element_id))
         await _raak(conn, layer, layer["snapshot_id"])
         await _audit(conn, actor, "element-verwijderd", {"element": value}, element_id, value["laag_id"])
-        return {"verwijderd": element_id, "laag": publiek_laag(layer)}
+        # Een gewist element neemt zijn relaties mee (ADR-011); een andere dragerlaag krijgt een revisie.
+        from .annotatie_v2_relaties import wis_bij
+        gewist = await wis_bij(conn, actor, layers, element_ids={element_id})
+        return {"verwijderd": element_id, "laag": publiek_laag(layer), "relaties": gewist["relaties"]}
 
 
 async def verwijder_weergave(snapshot: dict, verwachte_revisies: dict[str, int], actor: str) -> dict:
@@ -807,6 +814,10 @@ async def verwijder_weergave(snapshot: dict, verwachte_revisies: dict[str, int],
         per_laag: dict[str, list[str]] = {}
         for element_id, laag_id in rows:
             per_laag.setdefault(laag_id, []).append(element_id)
+        # Relaties met een eindpunt hier of een drager hier, en de impliciete partijen van deze lagen, gaan mee
+        # (ADR-011). Een dragerlaag buiten deze weergave krijgt een revisie.
+        from .annotatie_v2_relaties import wis_bij
+        gewist = await wis_bij(conn, actor, layers, element_ids={e for e, _ in rows}, laag_ids=set(ids))
         await conn.execute(delete(db.annotatie_v2_elementen).where(db.annotatie_v2_elementen.c.laag_id.in_(ids)))
         await conn.execute(delete(db.annotatie_v2_lagen).where(db.annotatie_v2_lagen.c.id.in_(ids)))
         for row in (await conn.execute(select(db.annotatie_v2_dekking))).mappings().all():
@@ -833,7 +844,8 @@ async def verwijder_weergave(snapshot: dict, verwachte_revisies: dict[str, int],
             revisie=db.annotatie_v2_state.c.revisie + 1))
     from .graaf_projectie_v2 import verwijder_projecties
     graaf = await verwijder_projecties(ids)
-    return {"verwijderd": {"lagen": len(ids), "elementen": len(rows)}, "graaf": graaf}
+    return {"verwijderd": {"lagen": len(ids), "elementen": len(rows), "relaties": len(gewist["relaties"]),
+                           "impliciet": len(gewist["impliciet"])}, "graaf": graaf}
 
 
 async def _verwijderd(conn, scope: set[str]) -> dict | None:

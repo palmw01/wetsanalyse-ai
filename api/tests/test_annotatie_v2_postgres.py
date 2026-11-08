@@ -96,3 +96,20 @@ async def test_concurrent_move_and_review_cannot_split_owner_or_history():
     assert result["element"]["laag_id"] == result["laag"]["id"]
     assert result["element"]["eigenaar_iri"] == result["laag"]["bron_iri"]
     assert len(result["element"]["beslissingen"]) == 1
+
+
+async def test_twee_relaties_op_dezelfde_drager_tegelijk_geven_een_412_en_geen_verloren_revisie():
+    """Een relatie raakt de laag van haar drager onder het schrijfslot (ADR-011): twee gelijktijdige relaties met
+    dezelfde verwachte revisie leveren één relatie en één 412, nooit twee relaties op één revisie."""
+    import test_annotatie_relaties as t
+    from app import annotatie_v2_relaties as rel
+
+    s1 = t.snapshot(t.ONE)
+    await store.batch(t.batch(s1, [t.element(s1, t.ONE, 0, 34, "zin", t.RB), t.element(s1, t.ONE, 3, 12, "ontvanger", t.RS),
+                                   t.element(s1, t.ONE, 19, 29, "aanslag", t.RO)], "lex-1"), s1, "lex")
+    results = await asyncio.gather(rel.leg(t.leg("ontvanger", "zin", "plichthebbende", {t.ONE: 1}), "a"),
+                                   rel.leg(t.leg("zin", "aanslag", "voorwerp", {t.ONE: 1}), "b"), return_exceptions=True)
+    assert sum(isinstance(r, dict) for r in results) == 1
+    assert [r.status_code for r in results if isinstance(r, HTTPException)] == [412]
+    view = await store.weergave(s1)
+    assert len(view["relaties"]) == 1 and view["lagen"][0]["revisie"] == 2

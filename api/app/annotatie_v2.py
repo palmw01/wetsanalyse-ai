@@ -15,12 +15,14 @@ from bronmodel.taal import BRON_IRI
 from . import annotatie_export as export
 from . import bepaling_detail as bepaling_detail_mod
 from . import annotatie_v2_store as store
+from . import annotatie_v2_relaties as relaties
 from . import bestandsnaam
 from . import graaf as graaf_mod
 from . import knoopinfo as knoopinfo_mod
 from . import samenhang as samenhang_mod
 from . import samenhang_antwoord
-from .annotatie_v2_contracts import Batch, Beslissing, Doel, Element, Laagbesluiten, Zoekvraag
+from .annotatie_v2_contracts import (Batch, Beslissing, Doel, Element, ImplicietInvoer, Laagbesluiten,
+                                     RelatieBeslissing, RelatieInvoer, Zoekvraag)
 from .auth import require_client
 from .bron_resolver import bwb_van, haal_bronrijen, snapshot_uit
 from .bron_resolver import resolve_bron as _resolve_bron
@@ -261,6 +263,37 @@ async def post_element(req: MensInvoer, actor: str = Depends(actieve_userid)):
 async def delete_element(element_id: str, verwachte_revisie: int = Query(ge=0),
                          actor: str = Depends(actieve_userid)):
     return await store.verwijder(element_id, verwachte_revisie, actor)
+
+
+# --- relaties tussen markeringen en impliciete partijen (ADR-011) ---------------------------------------------------
+
+class Revisies(BaseModel):
+    verwachte_revisies: dict[str, int] = Field(default_factory=dict)
+
+
+@router.post("/relaties", status_code=201)
+async def post_relatie(req: RelatieInvoer, actor: str = Depends(actieve_userid)):
+    return await relaties.leg(req, actor)
+
+
+@router.post("/relaties/{relatie_id}/beslissing")
+async def post_relatie_beslissing(relatie_id: str, req: RelatieBeslissing, actor: str = Depends(actieve_userid)):
+    return await relaties.beslis(relatie_id, req, actor)
+
+
+@router.post("/relaties/{relatie_id}/wis")
+async def post_relatie_wis(relatie_id: str, req: Revisies, actor: str = Depends(actieve_userid)):
+    return await relaties.wis(relatie_id, req.verwachte_revisies, actor)
+
+
+@router.post("/impliciet", status_code=201)
+async def post_impliciet(req: ImplicietInvoer, actor: str = Depends(actieve_userid)):
+    return await relaties.maak_impliciet(req, await resolve_bron(req.doel.model_dump()), actor)
+
+
+@router.post("/impliciet/{impliciet_id}/wis")
+async def post_impliciet_wis(impliciet_id: str, req: Revisies, actor: str = Depends(actieve_userid)):
+    return await relaties.wis_impliciet(impliciet_id, req.verwachte_revisies, actor)
 
 
 class StatusInvoer(BaseModel):

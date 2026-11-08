@@ -27,6 +27,55 @@ Een batch is aanvullend: een voorstel dat er al lag (zelfde id, of zelfde klasse
 
 Verwijderen (`POST /v1/annotatie/weergave/verwijder`, elke gebruiker) haalt alle lagen in het bereik van de bepaling in beeld weg, met hun elementen en de dekkingsrijen van die bronnodes; een dekkingsrij van een ruimere bepaling verliest die bronnodes uit haar bereik en is daarna niet meer voltooid. Elementen van een voorouderlaag blijven staan. De audit krijgt per laag `laag-verwijderd` en blijft verder ongewijzigd; de weergave leest daaruit `verwijderd`. Na de commit gaan de graph en de registerregels van die lagen direct weg; lukt dat niet, dan ruimt de achtergrondtaak ze op als wees. Een nieuwe annotatie op dezelfde bepaling krijgt een nieuwe laag-id en botst dus nooit met een achtergebleven projectie.
 
+## Relaties tussen markeringen (ADR-011)
+
+Het besluit staat in [ADR-011](adr-011-relaties-tussen-markeringen.md), de typen in de catalogus van de skill
+(`relaties.json`, gegenereerd naar `api/app/jas_relaties.py`). De opslag staat in `annotatie_v2_relaties.py`.
+
+- **Een relatie** (`annotatie_v2_relaties`, JSON-inhoud per rij) verbindt `van` en `naar`. Elk eindpunt is
+  `{soort: element|impliciet, id}`, en een element mag in een andere laag liggen.
+- **Wat een relatie draagt:** `type`, `volgorde` (alleen bij `invoer` en `operand`, uniek per eindpunt `naar`),
+  `toelichting`, `herkomst`, `lifecycle` en `beslissingen`, en de stand van beide eindpunten (`stand_van`/`stand_naar`:
+  `begrip_store.element_hash`).
+- **Het id is `R` + hash(van, naar, type, volgorde).** Dezelfde relatie nog eens is een 409 `al_vastgelegd`.
+- **De drager.** De relatie hoort bij de laag van de kant die de catalogus aanwijst (`drager_kant`). Leggen,
+  beoordelen en wissen raken die laag: schrijfslot, `verwachte_revisies` (412), status (409, heropen eerst), revisie,
+  auditregel (`relatie-gelegd`, `relatie-beoordeeld`, `relatie-gewist`) en projectie.
+- **De api toetst:**
+  - het type bestaat;
+  - het klassenpaar past (`toegestaan`, bij `waarde` met subtype);
+  - geen relatie naar zichzelf;
+  - de eindpunten bestaan en zijn actueel (niet verworpen, verouderd of vervangen).
+
+  Elke weigering is een 422 met `fout` en `melding`. Juridische juistheid toetst de api niet.
+- **Oordeel.**
+  - Een relatie van de jurist is meteen `human_approved`, met een regel `markering`, zoals een eigen markering.
+  - `approve`, `reject`, `heropen` en `comment` volgen de lifecycle van elementen. Na `reject` kan alleen `heropen` of
+    `comment`.
+  - `approve` legt de stand van nu vast en toetst het klassenpaar opnieuw.
+- **Doorwerking.** Wijkt een eindpunt af van zijn stand, of is het niet meer actueel, dan draagt de relatie in de
+  weergave `veranderd: true`.
+- **Wissen.**
+  - Een eigen relatie kan worden gewist. Een voorstel van Lex wijs je af; dat blijft als historie staan.
+  - Een gewist element (`verwijder`) of een verwijderde bepaling (`verwijder_weergave`) neemt de relaties mee, met
+    een auditregel. Een dragerlaag die blijft, krijgt een revisie.
+- **Impliciete partij** (`annotatie_v2_impliciet`): een rechtssubject dat de tekst niet noemt, alleen van de jurist,
+  met een verplichte toelichting en optioneel `vindplaats` en `zelfde_als`.
+  - Ze hoort bij de laag van de bepaling in beeld.
+  - Ze is geen markering: geen ankers, geen dekking, en ze telt niet in de inventaris, de statistiek of de afronding.
+  - Wissen kan alleen door wie haar maakte, en haar relaties gaan mee.
+- **Lezen.** `GET weergave` draagt `relaties` (met `leesvorm`, de eindpunten met klasse en tekst, en `veranderd`) en
+  `impliciet`. Daarin staat elke relatie met een eindpunt in beeld of de drager in een van de lagen.
+- **Routes onder `/v1/annotatie`:**
+  - `POST relaties`;
+  - `POST relaties/{id}/beslissing`;
+  - `POST relaties/{id}/wis`;
+  - `POST impliciet`;
+  - `POST impliciet/{id}/wis`.
+
+  De BFF laat `relaties` en `impliciet` door.
+- **Nog niet:** de projectie naar de graaf (3D) en voorstellen uit de keten (4C).
+
 ## Echte leestoegang en uitvoeringsspoor
 
 Lex en MCP registreren dezelfde drie tools:

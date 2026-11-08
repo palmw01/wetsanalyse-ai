@@ -239,6 +239,14 @@ annotatie_v2_lagen = Table("annotatie_v2_lagen", metadata,
 annotatie_v2_elementen = Table("annotatie_v2_elementen", metadata,
     Column("id", String(64), primary_key=True), Column("laag_id", String(64), nullable=False, index=True),
     Column("inhoud", _JSON, nullable=False))
+# Relaties tussen markeringen en impliciete partijen (ADR-011). Net als de elementen een JSON-inhoud per rij, met de
+# laag van de drager: een mutatie raakt die laag, dus revisie, 412, audit en projectie lopen gelijk op.
+annotatie_v2_relaties = Table("annotatie_v2_relaties", metadata,
+    Column("id", String(64), primary_key=True), Column("laag_id", String(64), nullable=False, index=True),
+    Column("inhoud", _JSON, nullable=False))
+annotatie_v2_impliciet = Table("annotatie_v2_impliciet", metadata,
+    Column("id", String(64), primary_key=True), Column("laag_id", String(64), nullable=False, index=True),
+    Column("inhoud", _JSON, nullable=False))
 annotatie_v2_batches = Table("annotatie_v2_batches", metadata,
     Column("id", String(128), primary_key=True), Column("payload_hash", String(64), nullable=False),
     Column("antwoord", _JSON, nullable=False))
