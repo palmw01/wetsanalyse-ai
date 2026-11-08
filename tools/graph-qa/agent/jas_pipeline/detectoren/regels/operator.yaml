@@ -125,3 +125,20 @@
     negatief: [{tekst: "De inspecteur beslist na de dagtekening.", span: "na"}]
     rand: [{tekst: "uiterlijk twee weken vóór de zitting", span: "vóór"}]
     overlap: [{tekst: "binnen zes weken na de dagtekening", spans: ["na", "binnen zes weken na de dagtekening"]}]
+# Ontkende voorwaarde (H2:98, NIET: "een voorwaarde waaraan niet voldaan mag zijn"): "tenzij" zegt dat
+# het gevolg intreedt zolang de voorwaarde erna níét vervuld is. Het voegwoord is een eigen, geneste
+# kandidaat; de bijzin zelf blijft de Voorwaarde (voorwaarde.yaml). "Indien", "als" en "mits" zijn
+# alleen een voorwaarde, geen operator.
+- id: jas.operator.ontkende_voorwaarde
+  klassen: [Operator]
+  code: NEGATED_CONDITION
+  bewijs: zwak
+  bron: "H2:98"
+  versie: 1
+  patroon: '\btenzij\b(?!-)'
+  tests:
+    positief: [{tekst: "De termijn is zes weken, tenzij de inspecteur anders bepaalt.", span: "tenzij"}]
+    negatief: [{tekst: "Deze tenzijbepaling staat in het tweede lid.", span: "tenzij"},
+               {tekst: "Indien de aanvrager dat wenst, wordt de termijn verlengd.", span: "Indien"}]
+    rand: [{tekst: "Tenzij het verzoek te laat is, beslist de ontvanger binnen een maand.", span: "Tenzij"}]
+    overlap: [{tekst: "De termijn is zes weken, tenzij de inspecteur anders bepaalt.", spans: ["tenzij", "tenzij de inspecteur anders bepaalt"]}]
