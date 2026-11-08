@@ -24,28 +24,36 @@ UIT = [
     t("definieertBegrip", "bestuurder"),
 ]
 REG = [{"p": BWB + "geldigVanaf", "o": "2026-10-01"}, {"p": BWB + "toestandUrl", "o": "http://wetten.overheid.nl/id/BWBR0004770/2026-10-01/0"}]
-VERW = [
-    {"richting": "uit", "van": f"{A36}:lid:8", "naar": "urn:bwb:BWBR0005291:artikel:45", "anker": "Artikel 45, leden 4 en 5, van Boek 3 van het Burgerlijk Wetboek",
-     "vanLabel": "Artikel 36, lid 8", "naarInGraaf": "false"},
-    {"richting": "uit", "van": f"{A36}:lid:1", "naar": "urn:bwb:BWBR0007168:artikel:1", "anker": "artikel 1 van de Wet belastingen op milieugrondslag",
-     "vanLabel": "Artikel 36, lid 1", "naarInGraaf": "true"},
-    {"richting": "uit", "van": f"{A36}:lid:1", "naar": "urn:bwb:BWBR0007168:artikel:1", "anker": "artikel 1 van de Wet belastingen op milieugrondslag",
-     "vanLabel": "Artikel 36, lid 1", "naarInGraaf": "true"},
-    {"richting": "in", "van": f"{LIDR}:id:BWBR0024096%2FCirculaire.divisie36%2FCirculaire.divisie36.8", "naar": A36, "vanLabel": "Artikel 36.8"},
-    {"richting": "in", "van": f"{IW}:artikel:56:lid:1", "naar": A36, "vanLabel": "Artikel 56, lid 1"},
-    {"richting": "in", "van": f"{IW}:artikel:56:lid:1", "naar": f"{A36}:lid:2", "vanLabel": "Artikel 56, lid 1"},
-    {"richting": "in", "van": f"{A36}:lid:5", "naar": f"{A36}:lid:1", "vanLabel": "Artikel 36, lid 5"},
+def v(van, naar, anker, *, van_label="", label="", regeling="", in_graaf=True):
+    """Een verwijzing zoals `bepaling_graaf.lees` hem geeft."""
+    return {"van": van, "naar": naar, "anker": anker, "van_label": van_label, "label": label, "jci": "", "regeling": regeling,
+            "in_graaf": in_graaf}
+
+
+#: De uitgaande verwijzingen uit `bepaling_graaf.lees` (ontdubbeld per van, naar en anker, zoals de lezer doet).
+GRAAF = {"volledig": True, "verwijzingen_volledig": True, "tellingen": {},
+         "structuur": {f"{IW}:hoofdstuk:VI": {"titel": "Aansprakelijkheid", "inwerking": "", "gewijzigd_bij": ""}},
+         "verwijzingen": [
+             v(f"{A36}:lid:8", "urn:bwb:BWBR0005291:artikel:45", "Artikel 45, leden 4 en 5, van Boek 3 van het Burgerlijk Wetboek",
+               in_graaf=False),
+             v(f"{A36}:lid:1", "urn:bwb:BWBR0007168:artikel:1", "artikel 1 van de Wet belastingen op milieugrondslag",
+               regeling="Wet belastingen op milieugrondslag")]}
+#: Wie naar de bepaling verwijst, uit `_inkomend`; de laatste is een verwijzing binnen de bepaling zelf.
+INKOMEND = [
+    {"van": f"{LIDR}:id:BWBR0024096%2FCirculaire.divisie36%2FCirculaire.divisie36.8", "vanLabel": "Artikel 36.8"},
+    {"van": f"{IW}:artikel:56:lid:1", "vanLabel": "Artikel 56, lid 1"},
+    {"van": f"{IW}:artikel:56:lid:1", "vanLabel": "Artikel 56, lid 1"},
+    {"van": f"{A36}:lid:5", "vanLabel": "Artikel 36, lid 5"},
 ]
 PLAATS = {"bron_iri": A36, "regeling": {"bwb_id": "BWBR0004770"}, "pad": [
     {"iri": f"{IW}:hoofdstuk:VI", "type": "Hoofdstuk", "nummer": "VI", "label": "Hoofdstuk VI"},
     {"iri": f"{IW}:hoofdstuk:VI:afdeling:1", "type": "Afdeling", "nummer": "1", "label": "Afdeling 1"},
     {"iri": A36, "type": "Artikel", "nummer": "36", "label": "Artikel 36"}]}
-TITELS = {f"{IW}:hoofdstuk:VI": "Aansprakelijkheid"}
-CITEER = {"BWBR0004770": "Invorderingswet 1990", "BWBR0024096": "Leidraad Invordering 2008", "BWBR0007168": "Wet belastingen op milieugrondslag"}
+CITEER = {"BWBR0004770": "Invorderingswet 1990", "BWBR0024096": "Leidraad Invordering 2008"}
 
 
 def detail(**over) -> BepalingDetail:
-    args = {"uit": UIT, "reg": REG, "verw": VERW, "plaats": PLAATS, "titels": TITELS, "citeertitels": CITEER} | over
+    args = {"uit": UIT, "reg": REG, "inkomend_rijen": INKOMEND, "plaats": PLAATS, "graaf": GRAAF, "citeertitels": CITEER} | over
     return bepaling_detail.detail_uit(A36, **args)
 
 
@@ -90,17 +98,16 @@ def test_een_regeling_in_een_telling_staat_er_een_keer_en_nooit_als_kale_iri():
 
 def test_een_verwijzing_naar_een_hele_regeling_heet_naar_die_regeling():
     """Een verwijzing naar de AWR als geheel: de citeertitel, niet de IRI; en een regeling buiten de graaf heet naar haar anker."""
-    verw = [{"richting": "uit", "van": f"{A36}:lid:1", "naar": "urn:bwb:BWBR0002320", "anker": "Algemene wet inzake rijksbelastingen",
-             "vanLabel": "Artikel 36, lid 1", "naarInGraaf": "true"},
-            {"richting": "uit", "van": f"{A36}:lid:1", "naar": "urn:bwb:BWBR0002448", "anker": "Algemene termijnenwet",
-             "vanLabel": "Artikel 36, lid 1", "naarInGraaf": "false"}]
-    d = detail(verw=verw, citeertitels=CITEER | {"BWBR0002320": "Algemene wet inzake rijksbelastingen"})
+    graaf = GRAAF | {"verwijzingen": [
+        v(f"{A36}:lid:1", "urn:bwb:BWBR0002320", "Algemene wet inzake rijksbelastingen", regeling="Algemene wet inzake rijksbelastingen"),
+        v(f"{A36}:lid:1", "urn:bwb:BWBR0002448", "Algemene termijnenwet", in_graaf=False)]}
+    d = detail(graaf=graaf)
     assert sorted((v.naar.label, v.naar.regeling) for v in d.verwijst_naar) == [
         ("Algemene termijnenwet", ""), ("Algemene wet inzake rijksbelastingen", "")]
 
 
 def test_wat_de_graaf_niet_heeft_blijft_leeg():
-    d = detail(uit=[], reg=[], verw=[], plaats={}, titels={})
+    d = detail(uit=[], reg=[], inkomend_rijen=[], plaats={}, graaf={})
     assert d.plaats == [] and d.inwerking is None and d.status == "" and d.geldig_vanaf is None
     assert d.verwijst_naar == [] and d.verwezen_door.aantal == 0 and d.beschikbaar
 
@@ -165,11 +172,8 @@ def _nepgraaf(monkeypatch, *, inkomend: int, telling: dict | None, uitgaand_trip
             if telling is None:
                 raise httpx.ConnectError("telling weg")
             return [{"wat": k if k in ("uit", "in") else BWB + k, "n": str(v)} for k, v in telling.items()]
-        if 'BIND("in" AS ?richting)' in query:
-            return [{"richting": "in", "van": f"{LIDR}:artikel:{n}", "naar": A36, "vanLabel": f"Artikel {n}"}
-                    for n in range(min(inkomend, GRENS))]
-        if 'BIND("uit" AS ?richting)' in query:
-            return []
+        if "SELECT ?van ?vanLabel" in query:
+            return [{"van": f"{LIDR}:artikel:{n}", "vanLabel": f"Artikel {n}"} for n in range(min(inkomend, GRENS))]
         if "SELECT ?p ?o ?isIri" in query:
             return [t("bevoegdheidVoor", f"urn:bwb:BWBR9{n:06d}", iri=True) for n in range(min(uitgaand_triples, bepaling_detail.MAX_TRIPLES))]
         return []
@@ -177,6 +181,7 @@ def _nepgraaf(monkeypatch, *, inkomend: int, telling: dict | None, uitgaand_trip
     async def plaatsen(iris):
         return [{"bron_iri": iris[0], "regeling": {}, "pad": []}]
     monkeypatch.setattr(bepaling_detail, "sparql_select", select)
+    monkeypatch.setattr(bepaling_detail.bepaling_graaf, "sparql_select", select)  # dezelfde nepgraaf voor de gedeelde lezer
     monkeypatch.setattr(bepaling_detail.graaf_mod, "plaatsen", plaatsen)
 
 
@@ -212,5 +217,39 @@ async def test_ook_grondslag_en_genoemd_in_tellen_los_van_de_begrensde_triples(m
 
 
 def test_de_telquery_leest_ook_een_predicaat_als_volle_iri():
-    assert bepaling_detail.aantallen_uit([{"wat": "in", "n": "25"}, {"wat": BWB + "bevoegdheidVoor", "n": "11"}, {"wat": "uit", "n": "x"}]) == {
+    assert bepaling_detail.bepaling_graaf.aantallen_uit([{"wat": "in", "n": "25"}, {"wat": BWB + "bevoegdheidVoor", "n": "11"}, {"wat": "uit", "n": "x"}]) == {
         "in": 25, "bevoegdheidVoor": 11}
+
+
+def test_de_bron_van_een_verwijzing_heet_zoals_de_graaf_hem_noemt_ook_zonder_label_in_bronmodel():
+    """Een Leidraad-divisie heeft een `id:`-IRI zonder label in bronmodel: dan `van_label` uit de lezer, niet het BWB-id."""
+    divisie = f"{LIDR}:id:BWBR0024096%2FCirculaire.divisie36%2FCirculaire.divisie36.2"
+    d = detail(graaf=GRAAF | {"verwijzingen": [v(divisie, A36, "artikel 36 van de wet", van_label="Artikel 36.2")]})
+    assert (d.verwijst_naar[0].van.label, d.verwijst_naar[0].van.regeling) == ("Artikel 36.2", "Leidraad Invordering 2008")
+
+
+async def test_de_verwijzingen_van_de_leden_komen_uit_de_gedeelde_lezer_zonder_telquery_per_lid(monkeypatch):
+    """Verwijzingen hangen aan het lid: het paneel geeft de leden aan `bepaling_graaf.lees`, maar telt alleen de bepaling zelf."""
+    tellingen: list[str] = []
+
+    async def select(client, query):
+        if "COUNT(" in query:
+            tellingen.append(query)
+            return [{"wat": "uit", "n": "1"}, {"wat": "in", "n": "0"}]
+        if "(bwb:heeftLid|bwb:heeftOnderdeel)+ ?x" in query:
+            return [{"x": f"{A36}:lid:1"}, {"x": f"{A36}:lid:2"}]
+        if "VALUES ?van" in query and f"<{A36}:lid:1>" in query:
+            return [{"van": f"{A36}:lid:1", "naar": "urn:bwb:BWBR0002320", "anker": "Algemene wet inzake rijksbelastingen",
+                     "regeling": "Algemene wet inzake rijksbelastingen", "inGraaf": "true"}]
+        return []
+
+    async def plaatsen(iris):
+        return [{"bron_iri": iris[0], "regeling": {}, "pad": []}]
+    monkeypatch.setattr(bepaling_detail, "sparql_select", select)
+    monkeypatch.setattr(bepaling_detail.bepaling_graaf, "sparql_select", select)
+    monkeypatch.setattr(bepaling_detail.graaf_mod, "plaatsen", plaatsen)
+    d = await bepaling_detail.bepaling_detail(A36)
+    assert [(x.van.label, x.naar.label, x.in_graaf) for x in d.verwijst_naar] == [
+        ("Artikel 36, lid 1", "Algemene wet inzake rijksbelastingen", True)]
+    assert d.verwijst_naar_aantal == 1 and d.verwijst_naar_volledig
+    assert len(tellingen) == 1 and f"<{A36}>" in tellingen[0]
