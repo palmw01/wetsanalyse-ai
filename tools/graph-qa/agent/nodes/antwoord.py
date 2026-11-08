@@ -33,6 +33,7 @@ from ..specialists import get as get_specialist
 from ..specialists import methoderol as specialist_methoderol
 from ..llm_stap import Rol, stroom
 from ..state import State
+from ..bronstand import prompt_blok as bronstand_blok
 from ..tools import anthropic_schemas, toegestane_tools
 from ..tool_execution import execute_tool
 from ..tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN, begrens_antwoord
@@ -78,6 +79,8 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         variabel += f"AANPAK (door jou gepland):\n{state['plan']}"
     variabel += b.memory_context(state)
     variabel += b.advies_context(state)
+    # Welke bronnen naast de wet aanstaan, en waarom niet (ADR-013): na het cachepunt, want het verschilt per beurt.
+    variabel += bronstand_blok(state.get("bronstand") or {}, state.get("zelfstandige_vraag") or state.get("question", ""))
 
     # De annotatie-worker produceert JSON, geen leesbaar antwoord – díe narratie tonen we niet
     # (annoteer_node emit straks een korte samenvatting).

@@ -215,7 +215,11 @@ bruikbaar is.
   `tool_execution` geeft de stand aan `dispatch`, dus ook een workflow die een tool in code aanroept valt eronder.
   **De bronstand** (`agent/bronstand.py`, `State.bronstand`) zegt per connector waaróm hij uit staat (`straat`,
   `gesprek`/`werkgebied` uit `ChatRequest.bronnen_herkomst`, `register_onleesbaar`, `beheerder`) en gaat als eerste
-  event (`bronstand`) de stroom in; de logregel `beurt_meting` leest hem (`kamerstukken:aan`). `tests/test_bronschakelaar.py`.
+  event (`bronstand`) de stroom in; de logregel `beurt_meting` leest hem (`kamerstukken:aan`).
+  **De prompt**: BRONSOORTEN in `SYSTEM_PROMPT` is generiek (geen connector met naam, binnen de cache); BRONNEN IN DEZE
+  BEURT (`bronstand.prompt_blok`, ná het cachepunt in `agent_node`) zegt per connector uit de beschrijving wat hij dekt
+  en waarvoor hij staat, of waarom hij uit staat en wie hem aanzet. Zonder aangeboden connector en zonder genoemde bron
+  is dat blok leeg. `tests/test_bronprompt.py`. `tests/test_bronschakelaar.py`.
   **Kamerstukken** (`tools/kamerstuk_tools.py`, transport `adapters/sru_kamerstukken.py`): `zoek_kamerstukken`
   (een dossier op nummer, of woorden in de titel) en `get_kamerstuk` (per alinea, met de kop, in documentvolgorde;
   tabellen, illustraties en voetnoten geteld in `overgeslagen`). De CQL bouwt de tool, de document-URL komt uit het
