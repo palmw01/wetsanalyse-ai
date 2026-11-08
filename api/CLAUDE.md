@@ -1067,7 +1067,7 @@ de stand van die beurt zien, dan heb je een momentopname nodig. Alleen een begri
   handelingen; verwijderen blijft echt wissen.
 - **Deelgesprekken** (ADR-012): `ouder_id` en `regie_id` op het gesprek. `POST` toetst dat de ouder een eigen gesprek is in
   hetzelfde werkgebied en zelf geen ouder heeft (404, 409 `ander_werkgebied`/`te_diep`), en dat de regie bij die ouder hoort
-  (409 `andere_regie`). `GET ?ouder_id=` geeft de deelgesprekken (`""` = alleen gesprekken zonder ouder). Een ouder
+  (409 `andere_regie`), en van dezelfde gebruiker is. **Het agent-token maakt alleen zo'n deelgesprek**, onder een regie die loopt (403 `alleen_deelgesprek`, 409 `regie_afgerond`): anders kon het namens elke `X-User-Id` gesprekken aanmaken. `GET ?ouder_id=` geeft de deelgesprekken (`""` = alleen gesprekken zonder ouder). Een ouder
   verwijderen, het gesprek verhuizen of het werkgebied wissen maakt een deelgesprek los; het wordt nooit mee gewist.
 
 - Een bericht verwijst via **`artefact`** naar wat de beurt opleverde: `{soort, ref, titel}` met
