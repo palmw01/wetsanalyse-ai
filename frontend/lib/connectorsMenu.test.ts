@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { actieveConnectors, herkomstVan, menuNaam, menuRegel, wissel, type ConnectorStand } from "./connectorsMenu";
+import { actieveConnectors, beurtBronnen, herkomstVan, menuNaam, menuRegel, wissel, type ConnectorStand } from "./connectorsMenu";
 
 const KST = { naam: "kamerstukken", label: "Kamerstukken", brontype: "kamerstuk" };
 const ECLI = { naam: "rechtspraak", label: "Rechtspraak", brontype: "uitspraak" };
@@ -12,6 +12,12 @@ describe("connectorsMenu", () => {
     expect(actieveConnectors({ ...basis, werkgebied: ["rechtspraak"], gesprek: [] })).toEqual([]);
     expect(herkomstVan({ ...basis, werkgebied: [] })).toBe("werkgebied");
     expect(herkomstVan({ ...basis, gesprek: [] })).toBe("gesprek");
+  });
+
+  it("een beurt stuurt de stand en zijn herkomst mee, zonder menu niets", () => {
+    expect(beurtBronnen({ beschikbaar: [] })).toEqual({});
+    expect(beurtBronnen({ beschikbaar: [KST], werkgebied: [] })).toEqual({ bronnen: [], bronnen_herkomst: "werkgebied" });
+    expect(beurtBronnen({ beschikbaar: [KST] })).toEqual({ bronnen: ["kamerstukken"], bronnen_herkomst: "standaard" });
   });
 
   it("wat de beheerder niet aanbiedt, gaat nooit aan", () => {

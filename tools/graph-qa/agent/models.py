@@ -214,6 +214,9 @@ class ChatRequest(BaseModel):
     # De bronnen die aanstaan in dit gesprek (ADR-013, *Bronnen en tools*). Leeg = alleen wetgeving; weggelaten =
     # wat de straat aanbiedt. Een connector die de straat niet aanbiedt, gaat nooit aan.
     bronnen: list[Connector] | None = Field(default=None, max_length=8)
+    # Waar die stand vandaan komt (`frontend/lib/connectorsMenu.herkomstVan`): zo zegt Lex wie een uitgezette bron
+    # weer aanzet (`agent/bronstand.py`).
+    bronnen_herkomst: Literal["gesprek", "werkgebied", "standaard"] | None = None
 
     @model_validator(mode="after")
     def _actie_kiest_de_route(self) -> "ChatRequest":
