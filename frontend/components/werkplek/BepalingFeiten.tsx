@@ -41,7 +41,7 @@ export function BepalingFeiten({ bronIri, gelezenJci, onOpen }: {
       )}
       <Blok kop="Geldigheid">
         <ul className="space-y-0.5 text-sm text-ink">
-          {d.inwerking && <li data-feit="inwerking">In werking sinds {datumTekst(d.inwerking)}</li>}
+          {d.inwerking && <li data-feit="inwerking">Deze tekst in werking sinds {datumTekst(d.inwerking)}</li>}
           {d.terugwerkend_tot && <li>Terugwerkende kracht tot {datumTekst(d.terugwerkend_tot)}</li>}
           {d.gewijzigd_bij && <li data-feit="gewijzigd">Laatst gewijzigd bij {d.gewijzigd_bij}</li>}
           {d.geldig_vanaf && <li data-feit="toestand">Tekst in de graaf geldt vanaf {datumTekst(d.geldig_vanaf)}</li>}
