@@ -103,6 +103,12 @@ def geldige_iris(iris) -> list[str]:
     return sorted({i for i in iris if BRON_IRI.fullmatch(i)})
 
 
+def _doellabel(r: dict) -> str:
+    """De naam van het doel uit de graaf. De importer zet bij een regeling-doel het BWB-id als `bwb:doelLabel`; dat is geen naam."""
+    label = r.get("vindplaats") or r.get("doellabel") or ""
+    return "" if _BWB.fullmatch(label) else label
+
+
 def _kleinste(rijen: list[dict], veld: str) -> str:
     return min((r[veld] for r in rijen if r.get(veld)), default="")
 
@@ -160,7 +166,7 @@ async def lees(bwb_ids: list[str], structuur_iris: list[str], bron_iris: list[st
                     oud = gezien.get(sleutel, {})
                     gezien[sleutel] = {"van": r["van"], "naar": r["naar"], "anker": r.get("anker") or "",
                                        "van_label": min(filter(None, [oud.get("van_label"), r.get("vanlabel")]), default=""),
-                                       "label": min(filter(None, [oud.get("label"), r.get("vindplaats") or r.get("doellabel")]), default=""),
+                                       "label": min(filter(None, [oud.get("label"), _doellabel(r)]), default=""),
                                        "jci": min(filter(None, [oud.get("jci"), r.get("jci")]), default=""),
                                        "regeling": min(filter(None, [oud.get("regeling"), r.get("regeling")]), default=""),
                                        "in_graaf": oud.get("in_graaf", False) or r.get("inGraaf") != "false"}
