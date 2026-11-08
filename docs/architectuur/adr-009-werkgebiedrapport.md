@@ -54,4 +54,20 @@ Een JSON-export voor de gebruiker vraagt `formaat=json`, een schemabestand uit `
 
 - **Relaties bij de bepaling.** `Bepaling.relaties` draagt de relaties tussen markeringen (`Markeringsrelatie`: `code` uit de catalogus, leesvorm, `van` en `naar` als `RelatieEind`, volgorde, lifecycle, `veranderd`, toelichting). Elke relatie staat één keer, bij de bepaling van de drager (de kant die de catalogus aanwijst); staat die niet in het rapport, dan bij die van de andere kant. Een eindpunt in dezelfde bepaling draagt het nummer van de markering, een eindpunt elders zijn vindplaats. De tekstlaag zet ze na de markeringen als lijst *Relaties*, nooit als tabel.
 - **Regelskelet.** Een markering van klasse Afleidingsregel draagt `regelskelet`: uitvoer, invoer op `volgorde`, operatoren met hun operanden op volgorde, voorwaarden, de parameters onder invoer en operanden met hun waarde, tijd, uitzonderingen (`uitzondering_op`, beide richtingen) en toepassing. Ontbreekt een onderdeel, dan zegt het blok dat ("Geen uitvoer vastgelegd."); meer dan één uitvoer is een waarschuwing, geen weigering. Het skelet is de grondstof voor activiteit 3b; het rapport stelt geen regel op.
-- **Alleen wat vastgelegd en niet afgewezen is.** Een afgewezen relatie staat nergens in het rapport, ook niet in de JSON. De relaties komen uit dezelfde stand als de markeringen (`annotatie_v2_relaties.bij_elementen`, met de operanden en waarden van een operator of parameter die eraan hangt). Het schema blijft `werkgebied-rapport-v2`: de velden zijn toegevoegd met een standaardwaarde, en het schemabestand is opnieuw gemaakt.
+- **Alleen wat vastgelegd en niet afgewezen is.** Een afgewezen relatie staat niet bij de bepalingen en niet in het regelskelet. *Herzien 8 nov 2026 (e2e WA TRM H1):* ze staat wel in de bijlage *Afgewezen relaties*, met haar reden (`Wettekst.afgewezen_relaties`), net als afgewezen markeringen: de lezer moet kunnen zien wat een jurist verwierp. En een relatie heet pas "beoordeeld: akkoord" als haar eindpunten beoordeeld zijn; anders "vastgelegd; een eindpunt is nog een voorstel van Lex". De relaties komen uit dezelfde stand als de markeringen (`annotatie_v2_relaties.bij_elementen`, met de operanden en waarden van een operator of parameter die eraan hangt). Het schema blijft `werkgebied-rapport-v2`: de velden zijn toegevoegd met een standaardwaarde, en het schemabestand is opnieuw gemaakt.
+
+
+## Aanvulling: standaard alleen wat beoordeeld is (8 nov 2026)
+
+De e2e van WA TRM H1 op acceptatie gaf een rapport van 153 kB, omdat alle onbeoordeelde voorstellen van Lex erin stonden
+uitgeschreven. Een overdrachtsdossier draagt het oordeel van de jurist, niet de werkvoorraad. Daarom heeft de export één
+keuze, `inhoud`:
+
+- `beoordeeld` (standaard van de route): in de analyse per bepaling staan alleen markeringen waarover een jurist besliste
+  (`BEOORDEELD`, ook een eigen markering) en geen relatievoorstellen van de keten. De kerncijfers tellen alles, en een zin
+  noemt hoeveel voorstellen er niet in staan (`Wettekst.weggelaten_voorstellen`). Een relatie die de jurist legde blijft
+  staan, ook als haar eindpunten nog voorstellen zijn, met dat label.
+- `alles`: ook de voorstellen, zoals voorheen.
+
+`Document.inhoud` legt de keuze vast, zodat de JSON zegt wat hij weglaat; het telt mee in `inhoud_hash`. De werkplek toont
+het als vinkje *Met de voorstellen van Lex* in het exportmenu.

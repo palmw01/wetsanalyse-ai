@@ -1524,9 +1524,12 @@ export async function exporteerBegrippen(id: string, formaat: "json" | "csv" | "
   await downloadAntwoord(res, `begrippen.${formaat === "ttl-alle" ? "ttl" : formaat}`);
 }
 
-/** Het hele werkgebied als PDF, op de stand van nu; de naam komt van de server. */
-export async function exporteerWerkgebied(id: string, formaat: ExportFormaat = "pdf"): Promise<void> {
-  const res = await fetch(`${wg(id, "export")}?formaat=${formaat}`, { cache: "no-store" });
+/** Het hele werkgebied als PDF, op de stand van nu; de naam komt van de server. Standaard alleen wat een jurist
+ *  beoordeelde (de api: `inhoud=beoordeeld`); met `metVoorstellen` ook de voorstellen van Lex. */
+export async function exporteerWerkgebied(id: string, formaat: ExportFormaat = "pdf",
+  opties?: { metVoorstellen: boolean }): Promise<void> {
+  const qs = new URLSearchParams({ formaat, inhoud: opties?.metVoorstellen ? "alles" : "beoordeeld" });
+  const res = await fetch(`${wg(id, "export")}?${qs}`, { cache: "no-store" });
   if (!res.ok) throw await parseError(res);
   await downloadAntwoord(res, `werkgebied.${formaat}`);
 }

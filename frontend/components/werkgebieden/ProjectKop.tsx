@@ -54,7 +54,7 @@ export function ProjectKop({ tab }: { tab: ProjectTab }) {
           <>
             <KleineActies
               links={<ExportKnop onFout={setFout} titel={wg.naam} formaten={WERKGEBIED_EXPORT_FORMATEN}
-                onDownload={(f) => exporteerWerkgebied(wg.id, f)}
+                onDownload={(f, o) => exporteerWerkgebied(wg.id, f, o)} voorstellenKeuze
                 markdown={async () => dossierAlsMarkdown(wg, await haalBronselectie(wg.id).catch(() => undefined))} />}
               rechts={<MeerMenu label="Meer voor dit werkgebied" maat="sm">
                 {() => <MenuVerwijder ariaLabel={verwijderLabel("werkgebied")} titel={VERWIJDER_UITLEG.werkgebied} onBevestig={verwijder} />}

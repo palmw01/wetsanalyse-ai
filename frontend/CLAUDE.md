@@ -1489,7 +1489,9 @@ JSON / RDF (TriG)**. De vorm staat in de api (`api/app/annotatie_export.py`); de
 *Exporteren* in de kop van het werkgebied (`ProjectKop`) en het menu ⋯ van het werkgebiedpaneel naast het gesprek bieden naast de
 Markdown van het dossier de **PDF van het werkgebied** en **Rapport als Markdown** (`exporteerWerkgebied`, `GET …/export`). Beide
 komen uit één document in de api (`api/app/werkgebied_rapport.py`, ADR-009), dus met dezelfde inhoud; *Kopieer* en *Download als
-Markdown* blijven het korte dossier uit `lib/artefactMarkdown.ts`. Eén vaste inhoud, dus geen keuzes bij het exporteren. Het rapport
+Markdown* blijven het korte dossier uit `lib/artefactMarkdown.ts`. Eén keuze (WA TRM H1, 8 nov 2026): standaard staat alleen in het
+rapport wat een jurist beoordeelde; het vinkje *Met de voorstellen van Lex* (`voorstellenKeuze` op `ExportKnop`) vraagt
+`inhoud=alles`. Het rapport
 gaat over de stand van nu en staat daarom niet op een oude versie. De route krijgt een ruime timeout, want hij leest de bronbomen.
 
 ## De samenhangsgraaf (sigma.js)

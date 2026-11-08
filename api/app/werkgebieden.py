@@ -282,15 +282,16 @@ async def get_annotatie_werkvoorraad(werkgebied_id: str,
 
 
 @router.get("/{werkgebied_id}/export")
-async def get_export(werkgebied_id: str, formaat: Literal["pdf", "md", "json"] = "pdf", actor: str = Depends(actieve_userid)):
+async def get_export(werkgebied_id: str, formaat: Literal["pdf", "md", "json"] = "pdf",
+                     inhoud: Literal["beoordeeld", "alles"] = "beoordeeld", actor: str = Depends(actieve_userid)):
     """Het hele werkgebied als één PDF of Markdown, op de stand van nu en met dezelfde inhoud: dossier, deelvragen en bronnen met hun wettekst, annotaties,
     begrippen en een korte verantwoording. De inhoud staat in `werkgebied_export`. Reportlab is puur Python en de api
     deelt de event loop: het zetten gebeurt in een thread."""
     start = time.monotonic()
-    data = await werkgebied_export.verzamel(werkgebied_id, actor, resolve_bron, toestanden_van, bepaling_graaf.lees)
+    data = await werkgebied_export.verzamel(werkgebied_id, actor, resolve_bron, toestanden_van, bepaling_graaf.lees, inhoud=inhoud)
     maak = {"md": werkgebied_export.markdown_export, "json": werkgebied_export.json_export}.get(formaat, werkgebied_export.pdf_export)
     body = await asyncio.to_thread(maak, data, verklaringen())
-    logger.info("werkgebied_export", extra={"werkgebied_id": werkgebied_id, "formaat": formaat, "bytes": len(body),
+    logger.info("werkgebied_export", extra={"werkgebied_id": werkgebied_id, "formaat": formaat, "inhoud": inhoud, "bytes": len(body),
                                             "paginas": pdf_opmaak.aantal_paginas(body) if formaat == "pdf" else None,
                                             "ms": round((time.monotonic() - start) * 1000)})
     soort = {"md": "text/markdown; charset=utf-8", "json": "application/json"}.get(formaat, "application/pdf")

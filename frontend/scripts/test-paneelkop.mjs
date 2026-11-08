@@ -178,6 +178,33 @@ for (const breedte of [375, 400, 800, 1280]) {
   await page.close();
 }
 
+// Het rapport van het werkgebied vanuit het menu ⋯: standaard alleen beoordeeld, met de keuze ook de voorstellen van Lex
+// (WA TRM H1, 8 nov 2026). Dezelfde regels als de exportknop op de pagina (`ExportRegels`).
+{
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  page.on("pageerror", (e) => fouten.push(`export: ${e.message}`));
+  await mock(page, true);
+  const gevraagd = [];
+  await page.route("**/api/werkgebieden/wg1/export*", (route) => {
+    gevraagd.push(new URL(route.request().url()).searchParams.get("inhoud"));
+    return route.fulfill({ body: "%PDF-1.4", contentType: "application/pdf",
+      headers: { "Content-Disposition": 'attachment; filename="werkgebied.pdf"' } });
+  });
+  await page.goto(`${base}/workbench?gesprek=g1`);
+  await page.locator('button[data-artefact-soort="werkgebied"]').click();
+  for (const met of [false, true]) {
+    await page.locator("[data-paneel-kop]").last().locator("[data-meer-knop]").click();
+    const menu = page.locator("[data-meer-menu]").last();
+    const keuze = menu.locator("[data-met-voorstellen]");
+    assert.equal(await keuze.getAttribute("aria-checked"), "false", "elke keer begint de keuze op alleen beoordeeld");
+    if (met) await keuze.click();
+    await menu.getByRole("menuitem", { name: /PDF van het werkgebied/ }).click();
+    for (let i = 0; i < 60 && gevraagd.length < (met ? 2 : 1); i++) await page.waitForTimeout(50);
+  }
+  assert.deepEqual(gevraagd, ["beoordeeld", "alles"]);
+  await page.close();
+}
+
 // Een aanraakscherm: elke knop in de kop minstens 44 × 44 px.
 {
   const ctx = await browser.newContext({ viewport: { width: 400, height: 900 }, hasTouch: true, isMobile: true });
@@ -201,4 +228,4 @@ for (const breedte of [375, 400, 800, 1280]) {
 
 assert.deepEqual(fouten, []);
 await browser.close();
-console.log("Browser OK: één paneelkop voor annotatie (Tekst en Graaf), begripsvoorstellen, werkgebied, begrip, deelvraag, Bronnen en de annotatiepagina op 375, 400, 800 en 1280 px; geen horizontale scroll, hoogstens twee rijen, ↗ ⋯ ✕ rechtsboven, Verwijderen onderaan in ⋯, 44 px op touch.");
+console.log("Browser OK: één paneelkop voor annotatie (Tekst en Graaf), begripsvoorstellen, werkgebied, begrip, deelvraag, Bronnen en de annotatiepagina op 375, 400, 800 en 1280 px; geen horizontale scroll, hoogstens twee rijen, ↗ ⋯ ✕ rechtsboven, Verwijderen onderaan in ⋯, 44 px op touch, het rapport vanuit ⋯ met en zonder voorstellen van Lex.");

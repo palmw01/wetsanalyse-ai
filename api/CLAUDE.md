@@ -439,7 +439,7 @@ spoor D (*Werkgebied als node*).
   `bereik`, `deelvragen` (`{id, vraag, selecties}`) en `buiten_bereik` (analysebronnen die niet meegaan).
   `deelvraag_id` zonder `bereik=deelvragen` 422; een onbekende deelvraag 404; een niet-actieve 409
   `niet_actief`; geen actieve deelvragen 409 `geen_deelvragen` (elk met `melding`).
-- **De export** (`GET {id}/export?formaat=pdf|md|json`, `werkgebied_export.py`; het schema op `GET /v1/werkgebieden/export-schema`): het hele werkgebied als één PDF of Markdown, een
+- **De export** (`GET {id}/export?formaat=pdf|md|json&inhoud=beoordeeld|alles`, `werkgebied_export.py`; het schema op `GET /v1/werkgebieden/export-schema`): het hele werkgebied als één PDF of Markdown, een
   overdrachtsdossier voor wie niet in Lex werkt. De PDF komt uit één gestructureerd document (`werkgebied_rapport.Rapport`, ADR-009):
   `bouw_rapport` vult het, `rapport_regels` maakt er tekst van, en de uitvoer gaat letterlijk door de JSON heen. Een nieuw
   veld hoort in het contract én in de tekstlaag; `test_elke_tekst_in_het_rapport_komt_in_de_uitvoer` bewaakt dat. Versie 2 (ADR-009, aanvulling nov 2026) heeft
@@ -453,7 +453,14 @@ spoor D (*Werkgebied als node*).
   - **Relaties en regelskelet** (ADR-009, aanvulling relaties; ADR-011): `Bepaling.relaties` (elke relatie één keer, bij de bepaling
     van de drager) en per Afleidingsregel `Markering.regelskelet` (uitvoer, invoer op volgorde, operatoren met operanden, voorwaarden,
     parameters met waarde, tijd, uitzonderingen, toepassing), uit `annotatie_v2_relaties.bij_elementen`. Een afgewezen relatie staat er
-    niet in; wat ontbreekt zegt het skelet ("Geen uitvoer vastgelegd."). Altijd lijsten, nooit tabellen.
+    niet in maar in de bijlage *Afgewezen relaties* (`Wettekst.afgewezen_relaties`, met de reden); wat ontbreekt zegt het skelet
+    ("Geen uitvoer vastgelegd."). Altijd lijsten, nooit tabellen. Een relatie heet pas "beoordeeld: akkoord" als haar
+    element-eindpunten beoordeeld zijn (`RelatieEind.lifecycle`); anders "vastgelegd; een eindpunt is nog een voorstel van Lex".
+  - **De inhoud** (WA TRM H1, 8 nov 2026): de route kiest standaard `inhoud=beoordeeld`. Dan staan in de analyse alleen
+    markeringen in `BEOORDEELD` (ook wat de jurist zelf markeerde) en geen relatievoorstellen van de keten; de kerncijfers en
+    `Wettekst.markeringen` tellen alles, `weggelaten_voorstellen` zegt wat er niet staat, en `Document.inhoud` legt de keuze
+    vast. Een relatie die de jurist legde blijft staan, ook als haar eindpunten nog voorstellen zijn. `verzamel` zelf heeft
+    `inhoud="alles"` als standaard (de tests).
   - **Graaf in het rapport** (`bepaling_graaf.lees`, best-effort zoals de toestanden; dezelfde lezer als het paneel bij een antwoord, met het contract in `bepaling_graaf_contract`, ADR-009 is de eigenaar): per regeling de WTI-gegevens (soort,
     eerstverantwoordelijke, TOOI-organisatie, afkorting, toestand-URL), en per voorouder van een geselecteerde bronnode
     (`werkgebied_export.structuur_iris`) de titel, `bwb:inwerking` en `bwb:bron`. Een artikel krijgt zo zijn `plaats` in de opbouw, die

@@ -148,7 +148,8 @@ stelt de keten relaties voor (ADR-001: kennis in regels en tests), achter een pr
 7. rollen, via een lexicon van predicaten.
 
 Een strikte modelstap voor ambigue aanhechting en rollen volgt pas na een meting. Een voorstel is altijd een voorstel:
-een goedgekeurde markering keurt haar relaties niet goed.
+een goedgekeurde markering keurt haar relaties niet goed. Omgekeerd keurt een goedgekeurde relatie haar eindpunten niet
+goed: zolang een eindpunt een voorstel is, heet de relatie in het rapport "vastgelegd", niet "akkoord" (8 nov 2026).
 
 **Gebouwd (4C, 8 nov 2026): de stappen 1 tot en met 4**, in `tools/graph-qa/agent/jas_pipeline/relaties.py`, achter de
 proefvlag `RELATIE_VOORSTELLEN` (standaard uit; uit is de uitkomst van de keten bitgelijk). Elke regel heeft een code

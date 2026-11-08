@@ -81,6 +81,8 @@ await page.route("**/api/**", async (route) => {
     nieuwWerkgebied(req.postDataJSON());
     return route.fulfill({ status: 201, json: uit() });
   }
+  if (p === "/api/werkgebieden/wg1/export") return route.fulfill({ body: "%PDF-1.4", contentType: "application/pdf",
+    headers: { "Content-Disposition": 'attachment; filename="werkgebied.pdf"' } });
   if (p === "/api/werkgebieden/wg1" && m === "GET") {
     // Verwijderd: een 404 met wanneer en door wie, zoals de api (`werkgebied_store.niet_gevonden`).
     if (wg.verwijderd) return route.fulfill({ status: 404, json: { detail: { fout: "verwijderd", soort: "werkgebied",
@@ -347,6 +349,18 @@ try {
   assert.deepEqual(Object.keys(versieBody).sort(), ["peildatum", "status", "verwachte_revisie"]);
   // Het dossier is een eigen pagina (zonder de tabs): terug naar het werkgebied voor de historie.
   await page.goto(`${base}/werkgebieden/wg1`);
+  // Het rapport: standaard alleen wat een jurist beoordeelde, met het vinkje ook de voorstellen van Lex (WA TRM H1).
+  const exporteer = async (met) => {
+    await page.getByRole("button", { name: "Exporteren" }).first().click();
+    if (met) await page.locator("[data-met-voorstellen]").click();
+    await page.getByRole("menuitem", { name: /PDF van het werkgebied/ }).click();
+    for (let i = 0; i < 60 && !requests.some((r) => r.p.endsWith("/export") && r.q.includes(`inhoud=${met ? "alles" : "beoordeeld"}`)); i++)
+      await page.waitForTimeout(50);
+  };
+  await exporteer(false);
+  await exporteer(true);
+  assert.deepEqual(requests.filter((r) => r.p === "/api/werkgebieden/wg1/export").map((r) => new URLSearchParams(r.q).get("inhoud")),
+    ["beoordeeld", "alles"]);
   await page.getByRole("navigation", { name: "Werkgebied" }).getByRole("link", { name: "Historie" }).click();
   await page.waitForURL("**/werkgebieden/wg1/historie");
   assert.equal(await page.getByRole("navigation", { name: "Werkgebied" }).getByRole("link", { name: "Historie" })
@@ -497,7 +511,7 @@ try {
   await page.getByText("Nog geen werkgebieden", { exact: false }).waitFor();
   assert.equal(requests.filter((r) => r.m === "DELETE" && r.p === "/api/werkgebieden/wg1").at(-1).q, "?verwachte_revisie=1");
   assert.deepEqual(errors, []);
-  console.log("Browser OK: overzicht met status, tellers, zoeken en Door mij bewerkt, aanmaken via Lex, het projectoverzicht en de tabs als paden, bron opnemen in een venster (ongeldig/idempotent/422/context), rol wijzigen, revisieconflict, inventaris met open punt en signalen, tab in de URL, historie, samenhang met opnemen vanuit de inspector, weghalen met bevestiging, opnemen vanaf een annotatie met herkansing na 412, smal scherm, verwijderen op de pagina (met 412) en in de lijst, de verwijderd-stand.");
+  console.log("Browser OK: overzicht met status, tellers, zoeken en Door mij bewerkt, aanmaken via Lex, het projectoverzicht en de tabs als paden, bron opnemen in een venster (ongeldig/idempotent/422/context), rol wijzigen, revisieconflict, inventaris met open punt en signalen, tab in de URL, historie, samenhang met opnemen vanuit de inspector, weghalen met bevestiging, opnemen vanaf een annotatie met herkansing na 412, smal scherm, verwijderen op de pagina (met 412) en in de lijst, de verwijderd-stand, het rapport standaard alleen beoordeeld en met het vinkje met voorstellen.");
 } catch (e) {
   await foto("fout");
   throw e;

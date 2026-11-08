@@ -479,6 +479,6 @@ async def bij_elementen(element_ids: set[str]) -> list[dict]:
         b = beschrijf(r, elementen, impliciet)
         for kant in ("van", "naar"):
             e = elementen.get(b[kant]["id"]) if b[kant]["soort"] == "element" else None
-            b[kant] = {**b[kant], "eigenaar_iri": e["eigenaar_iri"] if e else ""}
+            b[kant] = {**b[kant], "eigenaar_iri": e["eigenaar_iri"] if e else "", "lifecycle": e.get("lifecycle", "") if e else ""}
         uit.append(b)
     return uit
