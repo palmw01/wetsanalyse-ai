@@ -113,3 +113,25 @@ def test_een_nieuwe_connector_wordt_herkend_en_gemeld_zonder_code(monkeypatch):
     events = _run(answer_stream("Wat zei het testgerecht erover?", settings=AAN, llm=llm,
                                 graph=FakeGraph(result=""), bronnen=["kamerstukken"]))
     assert "Testbron is op deze omgeving niet beschikbaar" in _tekst(events) and llm.calls == []
+
+
+def test_de_melding_draagt_een_event_waarmee_de_werkplek_hem_aanzet():
+    events = _run(answer_stream(INCIDENT_1, settings=AAN, llm=FakeLLM([]), graph=FakeGraph(result=""), bronnen=[],
+                                bronnen_herkomst="gesprek"))
+    uit, = [e for e in events if e["type"] == "bron_uit"]
+    assert uit["bronnen"] == [{"naam": "kamerstukken", "label": "Kamerstukken", "reden": "gesprek"}]
+
+
+def test_het_endpoint_noemt_elke_connector_met_de_straat(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    import api.main as main
+
+    monkeypatch.setattr(main.settings, "qa_api_token", "", raising=False)
+    for aan in (False, True):
+        monkeypatch.setattr(main.settings, "connector_kamerstukken", aan, raising=False)
+        # Zonder `with`: de lifespan (graaf, api) hoort niet bij deze lichte route.
+        r = TestClient(main.app).get("/v1/bronnen")
+        assert r.status_code == 200
+        assert r.json()["bronnen"] == [{"naam": n, "label": b.label, "brontype": b.brontype, "groep": b.groep,
+                                        "straat": aan} for n, b in bm.CONNECTORS.items()]

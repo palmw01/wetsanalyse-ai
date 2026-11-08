@@ -155,6 +155,10 @@ def _bron_uit(writer, state: State, vraag: str) -> dict[str, Any] | None:
         return None
     labels = ", ".join((stand.get(n) or {}).get("label") or n for n in uit)
     _stap(writer, "Lex", f"{labels} staat uit in deze beurt", route="bron_uit")
+    # De werkplek biedt daarmee *Zet aan* aan, als de jurist de bron zelf kan aanzetten (gesprek of werkgebied).
+    writer({"type": "bron_uit", "bronnen": [
+        {"naam": n, "label": (stand.get(n) or {}).get("label") or n, "reden": (stand.get(n) or {}).get("reden", "straat")}
+        for n in uit]})
     logger.info("bron uit", extra={"categorie": "functioneel", "bronnen": ",".join(
         f"{n}:{(stand.get(n) or {}).get('reden', 'straat')}" for n in uit)})
     return {"specialist": "", "plan": "", "worker_plan": [], "worker_idx": 0, "afwijzen": True,

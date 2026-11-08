@@ -1482,7 +1482,8 @@ niets, een onterechte kost het antwoord. **Een bron naast de wet is binnen scope
 noemt elke bekende connector uit de beschrijving (`_scope_bronnen`), en de code draait een AFWIJZEN terug als de vraag een
 connector raakt (`bronmodel.connectors.herkende`). Gaat de vraag alleen over bronnen die in deze beurt uit staan (en noemt
 ze geen artikel), dan zegt Lex zonder model waarom en wie ze aanzet (`_bron_uit`, `bronstand.melding_uit`; route
-`bron_uit`). De vlag hoort in de per-beurt-reset van `answer_stream`,
+`bron_uit`, met een `bron_uit`-event waarmee de werkplek *Zet aan* aanbiedt). `GET /v1/bronnen` zegt per connector of de
+straat hem aanbiedt; de BFF (`/api/connectors`) toont in het menu alleen wat straat én register aanzetten. De vlag hoort in de per-beurt-reset van `answer_stream`,
 anders wijst één afgewezen vraag de hele thread af. De workerlijst is een **allowlist**
 (`antwoord`/`annotatie`/`werkgebied`/`deelvragen`/`begrippen`; de laatste drie staan altijd alleen) met een cap van twee: een onbekende naam zou anders een extra antwoord-worker
 worden.
