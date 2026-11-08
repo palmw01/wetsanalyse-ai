@@ -133,6 +133,35 @@ def _groepen(werkgebied: dict[str, Any], te: list[str], per_iri: dict[str, dict]
     return groepen, buiten
 
 
+#: Hoe het plan de stand noemt van een bepaling die al een annotatie heeft (api `werkgebied_werkvoorraad._stand`).
+STAND_ZIN = {"te_beoordelen": "wacht op beoordeling", "beoordeeld": "beoordeeld", "afgerond": "afgerond",
+             "zonder_markeringen": "geannoteerd, zonder markeringen"}
+#: Zoveel bepalingen noemt het plan bij naam; de rest telt het.
+MAX_GENOEMD = 5
+_NIVEAUS = {"Hoofdstuk", "Afdeling", "Titel", "Titeldeel", "Paragraaf", "Divisie"}
+
+
+def _naam(eenheid: dict[str, Any]) -> str:
+    """"Artikel 9, Lid 1": zonder een kaal niveau ("Hoofdstuk, …") dat de werkvoorraad soms zonder nummer draagt."""
+    delen = [d for d in str(eenheid.get("label") or "").split(", ") if d and d not in _NIVEAUS]
+    return ", ".join(delen) or str(eenheid.get("bron_iri") or "")
+
+
+def _al_geannoteerd(werkvoorraad: dict[str, Any]) -> list[str]:
+    """Bepalingen die al een annotatie hebben, gaan niet mee, en dat staat erbij: anders lijkt een opgenomen bron stil
+    uit het plan te vallen (meting 8 nov 2026). De lagen zijn gedeeld, dus ook werk van een collega telt."""
+    al = [e for e in werkvoorraad.get("eenheden") or [] if (e.get("stand") or {}).get("status", "nieuw") != "nieuw"]
+    if not al:
+        return []
+    namen = [f"{_naam(e)} ({STAND_ZIN.get((e.get('stand') or {}).get('status', ''), 'al geannoteerd')})"
+             for e in al[:MAX_GENOEMD]]
+    rest = len(al) - len(namen)
+    n = len(al)
+    return [f"{n} {_bepalingen(n)} {'heeft' if n == 1 else 'hebben'} al een annotatie en {'is' if n == 1 else 'zijn'} "
+            f"overgeslagen: {', '.join(namen)}{f' en {rest} meer' if rest else ''}. Opnieuw annoteren vraag je per "
+            "bepaling in het gesprek."]
+
+
 def _hoogstens(groepen: list, n: int) -> list:
     """De eerste `n` bepalingen, in de volgorde van de deelvragen."""
     uit = []
@@ -152,6 +181,7 @@ def plan_annoteren(werkgebied: dict[str, Any], werkvoorraad: dict[str, Any], *, 
     te = list(werkvoorraad.get("te_annoteren") or [])
     per_iri = {e["bron_iri"]: e for e in werkvoorraad.get("eenheden") or []}
     groepen, buiten = _groepen(werkgebied, te, per_iri)
+    buiten = _al_geannoteerd(werkvoorraad) + buiten
 
     totaal = sum(len(g[3]) for g in groepen)
     if totaal > plafond:

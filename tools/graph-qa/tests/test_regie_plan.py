@@ -137,3 +137,28 @@ def test_binnen_aandeel_houdt_de_poort_van_de_api():
     async def op():
         return False
     assert not asyncio.run(binnen_aandeel(10**9, [0], 1, op)())
+
+
+def test_al_geannoteerde_bepalingen_staan_erbij_als_overgeslagen():
+    """Meting 8 nov 2026: art. 9 lid 1, 5 en 6 waren al geannoteerd en vielen stil uit het plan."""
+    wg = _werkgebied(("d1", ["s1"], "actief"))
+    wv = _wv({"a:1": ["s1"]}, per_bepaling=1000)
+    wv["eenheden"] += [
+        {"bron_iri": "a:9", "label": "Hoofdstuk, Artikel 9, Lid 1", "selecties": ["s1"],
+         "stand": {"status": "te_beoordelen"}},
+        {"bron_iri": "a:8", "label": "Artikel 8", "selecties": ["s1"], "stand": {"status": "afgerond"}}]
+    for e in wv["eenheden"][:1]:
+        e["stand"] = {"status": "nieuw"}
+    plan = plan_annoteren(wg, wv)
+    assert [t.eenheden for t in plan.taken] == [("a:1",)]
+    assert plan.buiten[0] == ("2 bepalingen hebben al een annotatie en zijn overgeslagen: Artikel 9, Lid 1 (wacht op "
+                              "beoordeling), Artikel 8 (afgerond). Opnieuw annoteren vraag je per bepaling in het gesprek.")
+
+
+def test_alles_al_geannoteerd_geeft_geen_taak_maar_wel_de_reden():
+    wv = _wv({})
+    wv["eenheden"] = [{"bron_iri": f"a:{i}", "label": f"Artikel {i}", "selecties": ["s1"],
+                       "stand": {"status": "beoordeeld"}} for i in range(7)]
+    plan = plan_annoteren({"id": WG, "deelvragen": []}, wv)
+    assert plan.taken == () and plan.buiten[0].startswith("7 bepalingen hebben al een annotatie")
+    assert plan.buiten[0].count("(beoordeeld)") == 5 and "en 2 meer" in plan.buiten[0]
