@@ -35,6 +35,7 @@ from ..specialists import methoderol as specialist_methoderol
 from ..llm_stap import Rol, stroom
 from ..state import State
 from ..bronstand import prompt_blok as bronstand_blok
+from ..bronstand import waar as bronstand_waar
 from ..tools import anthropic_schemas, toegestane_tools
 from ..tool_execution import execute_tool
 from ..tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN, begrens_antwoord
@@ -64,7 +65,7 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     # zou dit bij elke tool-lus opnieuw voorbijkomen.
     if not state.get("turns"):
         spec_naam = state.get("specialist") or DEFAULT_SPECIALIST
-        _stap(writer, "Lex", "zoekt in de kennisgraaf", route=spec_naam)
+        _stap(writer, "Lex", f"zoekt in {bronstand_waar(state.get('bronstand'))}", route=spec_naam)
     # De annotatie-route draait de agent⇄tools-lus als OPHAAL-agent (retrieval-specialist): hij
     # vindt de exacte bepaling. De JAS-annotatie gebeurt daarna in annoteer_node (pure LLM-call).
     spec_naam = "retrieval" if state.get("specialist") == "annotatie" else state.get("specialist")

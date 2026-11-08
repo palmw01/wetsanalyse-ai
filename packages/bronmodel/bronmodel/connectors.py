@@ -17,6 +17,16 @@ from dataclasses import dataclass, field
 from .extern import externe_verwijzingen, externe_vindplaats
 
 
+def _opsomming(delen: tuple[str, ...]) -> str:
+    return delen[0] if len(delen) == 1 else ", ".join(delen[:-1]) + " en " + delen[-1]
+
+
+def bronnen_tekst(labels: list[str] | tuple[str, ...]) -> str:
+    """Waar Lex zoekt, voor de algemene stappen in het denkproces: "de kennisgraaf" zonder connector, anders "de
+    wetgeving en Kamerstukken"."""
+    return "de kennisgraaf" if not labels else "de wetgeving en " + _opsomming(tuple(labels))
+
+
 @dataclass(frozen=True)
 class ConnectorBeschrijving:
     #: De sleutel: in het register, in `ChatRequest.bronnen`, in `Settings.connector_<naam>`.
@@ -48,8 +58,18 @@ class ConnectorBeschrijving:
     rol_in_antwoord: str
     #: De kop boven het blok `extern` in een antwoord ("Uit de parlementaire geschiedenis").
     kop_in_antwoord: str
-    #: Wat de connector niet kan: de jurist moet het weten voor hij op een stilte vertrouwt.
+    #: Wat de connector niet kan bij het zoeken: de jurist moet het weten voor hij op een stilte vertrouwt.
     grenzen: str
+    #: Wat de leestool levert, als rijsoorten in de woorden van de jurist (`alinea` → "alinea's"); en wat er niet in de
+    #: opgehaalde tekst staat. Daaruit komt `capaciteit`, zodat Lex niet zegt dat iets ontbreekt wat de tool wel geeft
+    #: (bundel 22: tabellen en voetnoten kwamen erbij, de vaste tekst bleef "staan er niet in"). Een test toetst het
+    #: tegen wat de leestool echt teruggeeft.
+    levert: tuple[str, ...]
+    niet_in_tekst: tuple[str, ...]
+    #: Per tool wat Lex doet, in de woorden van de jurist, voor het denkproces (`narratie._toolregel`). Per tool een of
+    #: meer vormen met `{argument}`; de eerste waarvan alle argumenten in de aanroep staan, telt. Een tool zonder
+    #: werkwoord heette "raadpleegt de kennisgraaf", ook als Lex een Kamerstuk las (acceptatie 8 nov 2026).
+    werkwoorden: dict[str, tuple[str, ...]]
     #: De beschrijving in de beheertab.
     beheer: str
     #: Vragen die binnen scope vallen en deze bron raken; routering, tests en de meting gebruiken ze.
@@ -58,6 +78,24 @@ class ConnectorBeschrijving:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "_patronen", tuple(re.compile(s, re.IGNORECASE) for s in self.signalen))
+
+    @property
+    def capaciteit(self) -> str:
+        """"levert alinea's, voetnoten en tabellen; illustraties staan niet in de opgehaalde tekst"."""
+        zin = f"de tekst komt per stuk met {_opsomming(self.levert)}"
+        return zin + (f"; {_opsomming(self.niet_in_tekst)} staan niet in de opgehaalde tekst" if self.niet_in_tekst else "")
+
+    def werkwoord(self, tool: str, invoer: dict) -> str | None:
+        """Wat Lex doet met deze aanroep, of None als de tool niet van deze connector is."""
+        vormen = self.werkwoorden.get(tool)
+        if not vormen:
+            return None
+        waarden = {k: str(v).strip() for k, v in (invoer or {}).items() if str(v).strip()}
+        for vorm in vormen:
+            nodig = re.findall(r"\{(\w+)\}", vorm)
+            if all(n in waarden for n in nodig):
+                return vorm.format(**{n: waarden[n][:60] for n in nodig})
+        return re.sub(r"\s*\{\w+\}", "", vormen[-1]).strip()
 
     @property
     def env(self) -> str:
@@ -90,8 +128,14 @@ KAMERSTUKKEN = ConnectorBeschrijving(
     rol_in_antwoord=("een Kamerstuk laat zien wat de wetgever bedoelde; het onderbouwt nooit wat de wet zegt – dat "
                      "doet alleen de opgehaalde bepaling"),
     kop_in_antwoord="Uit de parlementaire geschiedenis",
-    grenzen=("zoeken gaat op dossiernummer of op woorden uit de titel, niet in de volle tekst; tabellen, illustraties "
-             "en voetnoten staan niet in de opgehaalde tekst"),
+    grenzen="zoeken gaat op dossiernummer of op woorden uit de titel, niet in de volle tekst",
+    levert=("alinea's", "voetnoten", "tabellen (op te halen met hun rijen)"),
+    niet_in_tekst=("illustraties",),
+    werkwoorden={
+        "zoek_kamerstukken": ("zoekt de Kamerstukken van dossier {dossier}", "zoekt Kamerstukken over „{woorden}”",
+                              "zoekt Kamerstukken"),
+        "get_kamerstuk": ("leest tabel {tabel} van Kamerstuk {id}", "leest Kamerstuk {id}", "leest een Kamerstuk"),
+    },
     beheer=("Wetsgeschiedenis uit de officiële publicaties: memorie van toelichting, nota's, verslagen en het advies "
             "van de Raad van State. Openbaar, zonder sleutel."),
     voorbeeldvragen=(

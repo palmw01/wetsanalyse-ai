@@ -374,7 +374,8 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
             return {**upd, "specialist": "", "plan": plan, "worker_plan": [], "worker_idx": 0,
                     "afwijzen": True, "afwijs_melding": melding_meerdere(aanwijzing.artikelen),
                     "annotaties_lezen": False}
-    _stap(writer, "Lex", _WORKER_STAP.get(eerste, "zoekt het antwoord in de kennisgraaf"), route=eerste)
+    _stap(writer, "Lex", _WORKER_STAP.get(eerste, f"zoekt het antwoord in {bronstand.waar(state.get('bronstand'))}"),
+          route=eerste)
     logger.info("worker gekozen", extra={"categorie": "functioneel", "worker": eerste})
     return {**upd, "specialist": eerste, "plan": plan, "worker_plan": worker_plan, "worker_idx": 0,
             "afwijzen": False, "annotaties_lezen": False}

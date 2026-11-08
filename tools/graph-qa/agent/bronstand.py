@@ -90,7 +90,7 @@ def prompt_blok(stand: dict[str, dict[str, Any]], vraag: str = "") -> str:
     for naam, s in stand.items():
         c = CONNECTORS[naam]
         if s["aan"]:
-            regels.append(f"- {c.label}: aan. Dekt {c.dekt}. Rol: {c.rol_in_antwoord}. Grenzen: {c.grenzen}. Noem een "
+            regels.append(f"- {c.label}: aan. Dekt {c.dekt}. Rol: {c.rol_in_antwoord}. Grenzen: {c.grenzen}; {c.capaciteit}. Noem een "
                           f"stuk met zijn id ({' of '.join(p + '…' for p in c.id_prefixen)}).")
         elif s["reden"] != "straat" or naam in genoemd:
             regels.append(f"- {c.label}: uit. {uit_zin(stand, naam)} Zoek er niet in en vul niet uit eigen kennis "
@@ -111,3 +111,10 @@ def event(stand: dict[str, dict[str, Any]]) -> dict[str, Any]:
     """Het `bronstand`-event aan het begin van de beurt: de werkplek toont er een hint mee, de meting leest het.
     Alleen als de straat minstens één connector aanbiedt (`agent.answer_stream`)."""
     return {"type": "bronstand", "bronnen": list(stand.values())}
+
+
+def waar(stand: dict[str, dict[str, Any]] | None) -> str:
+    """"de kennisgraaf", of "de wetgeving en Kamerstukken" als er connectors aanstaan: voor de algemene stappen."""
+    from bronmodel.connectors import bronnen_tekst
+
+    return bronnen_tekst([s["label"] for s in (stand or {}).values() if s.get("aan")])
