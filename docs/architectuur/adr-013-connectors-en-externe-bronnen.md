@@ -77,10 +77,12 @@ de wettekst en vult nooit een `doel`.
 | antwoord | het blok `extern` als subsjabloon en het sjabloon `antwoord_extern` | `sjablonen/extern.py` |
 | verificatie | een stuk dat alleen gevonden is, is `onbevestigd` | `grounding.check_grounding`, `connectors.leestools` |
 | werkplek | het menu toont wat straat én register aanzetten; *Zet … aan* na `bron_uit` | `GET /v1/bronnen`, `connectorsMenu` |
+| denkproces | de werkwoorden per tool ("leest Kamerstuk kst-…"), en de algemene stappen noemen de bronnen van de beurt | `narratie._toolregel`, `bronstand.waar` |
 
 **Een nieuwe connector toevoegen (checklist):**
 
-1. een beschrijving in `bronmodel/connectors.py` (alle velden; `brontype` uit `extern.BRONTYPEN`, eventueel een nieuw
+1. een beschrijving in `bronmodel/connectors.py` (alle velden, ook de werkwoorden per tool voor het denkproces en wat
+   de leestool levert en niet levert; `brontype` uit `extern.BRONTYPEN`, eventueel een nieuw
    soort id in `extern.py` met vectoren);
 2. de tools in `tools/graph-qa/agent/tools/`, met het resultaatcontract; de leestool levert `stuk: {id, label, link, bron_hash, gewijzigd?}` en
    rijen `{nr, tekst, kop?, soort?}` (één nummering per stuk; `soort` is `alinea`, `voetnoot`, `tabel` of `tabelrij`, een
