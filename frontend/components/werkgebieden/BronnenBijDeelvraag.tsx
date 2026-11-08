@@ -15,8 +15,9 @@ import { PeildatumRegel } from "@/components/werkgebieden/Peildatum";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import { besluitBronselectie, foutTekst, haalBronselectie, verwijderBron, wijzigBron, type BronselectieBesluit } from "@/lib/api";
+import { haalSamenhang } from "@/lib/samenhang";
 import {
-  BRONSELECTIE_GEWIJZIGD, BEWIJS_LABEL, STAND_LABEL, ordenVoorstellen, zoekvraagZin, meldBronselectieGewijzigd, bronnenZin, deelvraagStand, slotZin, voortgangZin, zoekBeperkingen,
+  BRONSELECTIE_GEWIJZIGD, BEWIJS_LABEL, STAND_LABEL, ledenVan, ordenVoorstellen, zoekvraagZin, meldBronselectieGewijzigd, bronnenZin, deelvraagStand, slotZin, voortgangZin, zoekBeperkingen,
   type BronselectieOverzicht, type DeelvraagSelectie, type KandidaatHier,
 } from "@/lib/bronselectie";
 import { bepalingEnRegeling, ookBijZin } from "@/lib/bronnenPerDeelvraag";
@@ -347,12 +348,24 @@ function Voorstel({ o, d, k, beslis, inGesprek = false, alleenLezen = false }: {
     setBezig(true);
     try { await beslis(d, k, b); } finally { setBezig(false); }
   };
-  const opnemen = (r?: string): BronselectieBesluit => ({ besluit: "opnemen", verwachte_revisie: o.revisie,
-    rol: k.rol === "kern" ? "analyseren" : "context", ...(r ? { reden: r } : {}) });
+  const opnemen = (r?: string, deel?: string): BronselectieBesluit => ({ besluit: "opnemen", verwachte_revisie: o.revisie,
+    rol: k.rol === "kern" ? "analyseren" : "context", ...(r ? { reden: r } : {}), ...(deel ? { bron_iri: deel } : {}) });
+  // Per lid opnemen (WA TRM H1, 8 nov 2026): de leden van een artikel, pas opgehaald als je erom vraagt.
+  const [leden, setLeden] = useState<{ bron_iri: string; label: string }[] | "laden" | "geen" | null>(null);
+  const kiesLid = async () => {
+    setLeden("laden");
+    try {
+      const l = ledenVan(await haalSamenhang({ bron_iri: k.bron_iri }), k.bron_iri);
+      setLeden(l.length ? l : "geen");
+    } catch {
+      setLeden("geen");
+    }
+  };
   const { bepaling, regeling } = bepalingEnRegeling(k.label || k.bron_iri);
   const sub = [regeling, k.rol === "kern" ? "kernbepaling" : k.rol === "afhankelijkheid" ? "afhankelijkheid" : "mogelijk relevant",
     // Bij welke zoekvraag (a–d) het hoort: waarom het er staat in de termen van de methode.
     ...k.zoekvragen.map(zoekvraagZin), ...k.bewijs_soorten.map((s) => BEWIJS_LABEL[s]), k.elders_opgenomen ? "al opgenomen bij een andere deelvraag" : "",
+    k.opgenomen_delen.length ? `opgenomen: ${k.opgenomen_delen.map((d) => d.label || d.bron_iri).join(", ")}` : "",
     k.reden ? `reden: ${k.reden}` : "", k.overal ? "geldt voor het hele werkgebied" : ""].filter(Boolean).join(" · ");
   const label = k.stand === "voorgesteld" ? "Ter beoordeling" : STAND_LABEL[k.stand].charAt(0).toUpperCase() + STAND_LABEL[k.stand].slice(1);
   return (
@@ -378,6 +391,18 @@ function Voorstel({ o, d, k, beslis, inGesprek = false, alleenLezen = false }: {
               </Button>
               <Button type="button" size="xs" variant="ghost" onClick={() => setUitsluiten(false)}>Annuleren</Button>
             </form>
+          ) : leden !== null ? (
+            <div className="flex w-full flex-col items-stretch gap-1 sm:items-start" data-lidkeuze>
+              {leden === "laden" ? <span className="text-xs text-muted">Leden ophalen…</span>
+                : leden === "geen" ? <span className="text-xs text-muted">Deze bepaling heeft geen leden om apart op te nemen.</span>
+                : leden.map((l) => (
+                  <Button key={l.bron_iri} size="xs" variant="secondary" disabled={bezig} aria-label={`Opnemen: ${l.label}`}
+                    onClick={() => void doe(opnemen(undefined, l.bron_iri)).then(() => setLeden(null))}>
+                    {l.label}
+                  </Button>
+                ))}
+              <Button type="button" size="xs" variant="ghost" onClick={() => setLeden(null)}>Annuleren</Button>
+            </div>
           ) : k.stand === "onbekend" ? null : k.stand !== "uitgesloten" ? (
             <>
               <Button size="xs" variant="secondary" disabled={bezig} aria-label={`Opnemen: ${k.label}`}
@@ -388,9 +413,12 @@ function Voorstel({ o, d, k, beslis, inGesprek = false, alleenLezen = false }: {
                 Uitsluiten…
               </Button>
               <MeerMenu label={`Meer besluiten: ${k.label}`}>
-                {(sluit) => (
+                {(sluit) => (<>
                   <MenuKnop onClick={() => { sluit(); setMetReden("opnemen"); }}>Opnemen met reden…</MenuKnop>
-                )}
+                  {!/:lid:|:onderdeel:/.test(k.bron_iri) && (
+                    <MenuKnop onClick={() => { sluit(); void kiesLid(); }}>Een lid opnemen…</MenuKnop>
+                  )}
+                </>)}
               </MeerMenu>
             </>
           ) : (

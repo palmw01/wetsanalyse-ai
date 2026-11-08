@@ -370,10 +370,16 @@ async def verwijder_bron(werkgebied_id: str, selectie_id: str, verwacht: int, ac
         await conn.execute(update(s).where(s.c.id == selectie_id).values(verwijderd=db.utcnow()))
         # Kwam de bron uit een voorstel van Lex, dan is hij weer een voorstel (fase A). Geen nieuwe run
         # nodig: de vorige vond hem al, met zijn bewijs.
+        # Ook als alleen een lid van de kandidaat de selectie was, en er geen ander deel meer opgenomen staat.
         k = db.bron_kandidaten
-        await conn.execute(update(k).where(k.c.werkgebied_id == werkgebied_id, k.c.bron_iri == (bron_iri or ""),
-                                           k.c.status == "opgenomen")
-                           .values(status="voorgesteld", besloten_door=None, besloten_op=None, gewijzigd=db.utcnow()))
+        rest = set((await conn.execute(select(s.c.bron_iri).where(
+            s.c.werkgebied_id == werkgebied_id, s.c.verwijderd.is_(None)))).scalars())
+        for kid, kiri in (await conn.execute(select(k.c.id, k.c.bron_iri).where(
+                k.c.werkgebied_id == werkgebied_id, k.c.status == "opgenomen"))).all():
+            van_deze = bron_iri == kiri or (bron_iri or "").startswith(kiri + ":")
+            if van_deze and not any(i == kiri or i.startswith(kiri + ":") for i in rest):
+                await conn.execute(update(k).where(k.c.werkgebied_id == werkgebied_id, k.c.id == kid).values(
+                    status="voorgesteld", besloten_door=None, besloten_op=None, gewijzigd=db.utcnow()))
     return await haal(werkgebied_id)
 
 

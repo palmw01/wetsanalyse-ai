@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from app import bronselectie, db
 from sqlalchemy import select
-from test_annotatie_v2 import ART, ONE
+from test_annotatie_v2 import ART, ONE, TWO
 from test_bronnen_runs import LID3, _start, _uitkomst
 from test_werkgebied_deelvragen import _dv, _patch
 from test_werkgebieden import ART2, _nieuw, client, database, graaf  # noqa: F401
@@ -471,3 +471,44 @@ async def test_een_bronbesluit_bewaart_reden_besluiter_en_wie_voorstelde(client)
     assert [(b["reden"], b["voorgesteld_door"]) for b in _dq(ov, ids[2])["bronnen"]] == [("ook hier nodig", "lex")]
     wg = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()
     assert {b["bron_iri"]: b["voorgesteld_door"] for b in wg["bronnen"]} == {ONE: "analist", ART: "lex"}
+
+
+async def test_een_lid_van_een_artikelkandidaat_is_apart_op_te_nemen(client):
+    """WA TRM H1 (8 nov 2026): IW 9 kon alleen als heel artikel. Nu kiest `bron_iri` een lid of onderdeel van de
+    kandidaat; het overzicht zegt welk deel, een lid onder een artikel dat hier al staat is 409, en een bepaling die
+    niet onder de kandidaat valt 422."""
+    wg, ids = await _vier(client)
+    await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=[ids[0], ids[2]])])
+    ov = await _overzicht(client, wg)
+    kid = _kid(_dq(ov, ids[0]), ART)["id"]
+    await _besluit(client, wg, ids[0], kid, "opnemen", 422, verwachte_revisie=ov["revisie"], bron_iri=ART2)
+    ov = await _besluit(client, wg, ids[0], kid, "opnemen", verwachte_revisie=ov["revisie"], bron_iri=ONE)
+    k = _kid(_dq(ov, ids[0]), ART)
+    assert k["stand"] == "opgenomen" and [d["bron_iri"] for d in k["opgenomen_delen"]] == [ONE]
+    assert [b["bron_iri"] for b in _dq(ov, ids[0])["bronnen"]] == [ONE]
+    # Bij deelvraag 3 eerst het hele artikel; een lid erbij is dan dubbelop.
+    ov = await _besluit(client, wg, ids[2], kid, "opnemen", verwachte_revisie=ov["revisie"])
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/bronselectie/{ids[2]}/kandidaten/{kid}",
+                          json={"besluit": "opnemen", "verwachte_revisie": ov["revisie"], "bron_iri": TWO})
+    assert r.status_code == 409 and r.json()["detail"]["fout"] == "valt_onder"
+    # Een tweede lid bij deelvraag 1 mag, naast het eerste.
+    ov = await _besluit(client, wg, ids[0], kid, "opnemen", verwachte_revisie=ov["revisie"], bron_iri=TWO)
+    assert sorted(b["bron_iri"] for b in _dq(ov, ids[0])["bronnen"]) == [ONE, TWO]
+    # Loskoppelen haalt alles van deze kandidaat bij deze deelvraag weg; de selecties en deelvraag 3 blijven.
+    ov = await _besluit(client, wg, ids[0], kid, "loskoppelen", verwachte_revisie=ov["revisie"])
+    assert _dq(ov, ids[0])["bronnen"] == [] and [b["bron_iri"] for b in _dq(ov, ids[2])["bronnen"]] == [ART]
+    wg = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()
+    assert sorted(b["bron_iri"] for b in wg["bronnen"]) == sorted([ONE, TWO, ART])
+
+
+async def test_een_lid_als_selectie_weghalen_maakt_de_kandidaat_weer_een_voorstel(client):
+    wg, ids = await _vier(client)
+    await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=[ids[0]])])
+    ov = await _overzicht(client, wg)
+    kid = _kid(_dq(ov, ids[0]), ART)["id"]
+    await _besluit(client, wg, ids[0], kid, "opnemen", verwachte_revisie=ov["revisie"], bron_iri=ONE)
+    wg = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()
+    [sel] = wg["bronnen"]
+    r = await client.delete(f"/v1/werkgebieden/{wg['id']}/bronnen/{sel['id']}", params={"verwachte_revisie": wg["revisie"]})
+    assert r.status_code == 200, r.text
+    assert _kid(_dq(await _overzicht(client, wg), ids[0]), ART)["stand"] == "voorgesteld"
