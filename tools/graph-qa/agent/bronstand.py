@@ -25,15 +25,32 @@ from bronmodel.connectors import CONNECTORS
 Reden = Literal["aan", "straat", "register_onleesbaar", "beheerder", "gesprek", "werkgebied"]
 Herkomst = Literal["gesprek", "werkgebied", "standaard"]
 
-#: Wie een uitgezette connector weer aanzet, in de woorden van de jurist.
+#: Waarom een connector uit staat en wie hem aanzet, in de woorden van de jurist (`{label}` wordt ingevuld).
 WIE_ZET_AAN: dict[str, str] = {
-    "straat": "Deze bron is op deze omgeving niet beschikbaar; dat regelt de beheerder van de omgeving.",
-    "register_onleesbaar": "De lijst met bronnen kon niet worden gelezen. Probeer het straks opnieuw.",
-    "beheerder": "De beheerder heeft deze bron uitgezet.",
-    "gesprek": "Je kunt hem aanzetten bij *Bronnen en tools* boven het invoerveld.",
-    "werkgebied": "Hij staat uit in de standaard van dit werkgebied. Je kunt hem aanzetten bij *Bronnen en tools* "
-                  "boven het invoerveld.",
+    "straat": "{label} is op deze omgeving niet beschikbaar. Dat regelt de beheerder van de omgeving.",
+    "register_onleesbaar": "Ik kon niet nagaan of {label} aanstaat, omdat de lijst met bronnen niet te lezen was. "
+                           "Probeer het straks opnieuw.",
+    "beheerder": "{label} staat uit: de beheerder heeft deze bron uitgezet.",
+    "gesprek": "{label} staat uit in dit gesprek. Je kunt de bron aanzetten bij *Bronnen en tools* boven het "
+               "invoerveld.",
+    "werkgebied": "{label} staat uit in de standaard van dit werkgebied. Je kunt de bron aanzetten bij *Bronnen en "
+                  "tools* boven het invoerveld.",
 }
+
+#: Achter de melding: wat Lex dan wél doet, en dat hij niets invult.
+NIET_VERZINNEN = ("Uit mijn eigen kennis vul ik niet in wat daar staat. Over de wet- en regelgeving zelf kan ik je wel "
+                  "helpen.")
+
+
+def uit_zin(stand: dict[str, dict[str, Any]], naam: str) -> str:
+    """De zin over één uitgezette connector; een onbekende stand telt als niet aangeboden door de straat."""
+    s = stand.get(naam) or {"reden": "straat", "label": CONNECTORS[naam].label}
+    return WIE_ZET_AAN[s["reden"]].format(label=s.get("label") or CONNECTORS[naam].label)
+
+
+def melding_uit(stand: dict[str, dict[str, Any]], namen: list[str] | tuple[str, ...]) -> str:
+    """De melding als een vraag alleen over uitgezette bronnen gaat: per bron waarom, en wat Lex dan doet."""
+    return " ".join([*(uit_zin(stand, n) for n in namen), NIET_VERZINNEN])
 
 
 def bepaal(settings: Any, bronnen: list[str] | None, herkomst: str | None = None, *,

@@ -10,10 +10,12 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from bronmodel.connectors import herkende as bronnen_in_vraag
 from langgraph.config import get_stream_writer
 
 from dataclasses import asdict
 
+from .. import bronstand
 from ..aanwijzing import lees_aanwijzing, melding_meerdere
 from ..llm_stap import Rol, aanroep
 from ..bepaling_workflow import lees as lees_bepalingsvraag
@@ -139,6 +141,27 @@ def _begrip_keuze(writer, state: State) -> dict[str, Any]:
             "agent_taak": {"agent": "begrippen", "taak": keuze["taak"], "parameters": parameters}}
 
 
+def _bron_uit(writer, state: State, vraag: str) -> dict[str, Any] | None:
+    """Een vraag die alleen over bronnen naast de wet gaat (ADR-013, `bronmodel.connectors.herkende`), terwijl die
+    bronnen in deze beurt uit staan: een eerlijke melding met wie ze aanzet, zonder model en zonder tools. Noemt de
+    vraag ook een artikel, dan is er wetgeving te zoeken en beslist de supervisor; het promptblok zegt dan wat uit
+    staat. Dezelfde vorm als een afwijzing (`afwijs_melding`), maar het is er geen: de vraag hoort bij de werkplek."""
+    genoemd = bronnen_in_vraag(vraag)
+    if not genoemd:
+        return None
+    stand = state.get("bronstand") or {}
+    uit = [n for n in genoemd if not (stand.get(n) or {}).get("aan")]
+    if len(uit) != len(genoemd) or lees_aanwijzing(vraag).artikelen:
+        return None
+    labels = ", ".join((stand.get(n) or {}).get("label") or n for n in uit)
+    _stap(writer, "Lex", f"{labels} staat uit in deze beurt", route="bron_uit")
+    logger.info("bron uit", extra={"categorie": "functioneel", "bronnen": ",".join(
+        f"{n}:{(stand.get(n) or {}).get('reden', 'straat')}" for n in uit)})
+    return {"specialist": "", "plan": "", "worker_plan": [], "worker_idx": 0, "afwijzen": True,
+            "afwijs_melding": bronstand.melding_uit(stand, uit),
+            "afwijs_stap": "niet gezocht – de gevraagde bron staat uit", "annotaties_lezen": False}
+
+
 def _open_kaartje(state: State) -> str:
     intake = state.get("intake") or {}
     if not is_open(intake):
@@ -253,6 +276,10 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
             "focus": bij_advies(state.get("focus"), state.get("context")),
         }
 
+    if modus == "auto" and (uit := _bron_uit(writer, state, state.get("question", ""))):
+        # Een vraag naar een bron die uit staat: zeggen wie hem aanzet, niet raden of afwijzen (ADR-013).
+        return uit
+
     resp = aanroep(
         b.llm, Rol.SUPERVISOR,
         model=b.model_router,
@@ -305,6 +332,16 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         return {**upd, **_agent(writer, state, "deelvragen", "dekking", zelfstandig)}
 
     plan += _herschreven(vraag)
+    if vraag and modus == "auto" and (uit := _bron_uit(writer, state, zelfstandig)):
+        # "En wat zegt de MvT daarover?" is pas herschreven een vraag die alleen over die bron gaat.
+        return {**upd, **uit}
+    if afwijzen and bronnen_in_vraag(zelfstandig):
+        # Een vraag over een bron naast de wet is nooit buiten de scope (ADR-013); de worker zoekt, of zegt dat de
+        # bron uit staat. De prompt zegt het ook, maar de code beslist.
+        logger.info("afwijzing teruggedraaid: bron naast de wet", extra={"categorie": "functioneel"})
+        afwijzen = False
+        worker_plan = worker_plan or ["duiding"]
+        plan = "Zoek in de bron naast de wet die de vraag noemt, en zeg het als die uit staat." + _herschreven(vraag)
     if afwijzen:
         # Buiten de scope. Dit hoort hier te eindigen en niet als "AANPAK: AFWIJZEN" de
         # systeemprompt van een specialist in te gaan, waar een tweede modelbeslissing bepaalt
