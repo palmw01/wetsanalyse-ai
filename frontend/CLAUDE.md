@@ -454,6 +454,11 @@ connector aan of uit (`MenuKeuze`), en in een werkgebied *Maak dit de standaard 
   (`standaard_connectors`, PATCH met de revisie), en dat voor alles wat de beheerder aanzette. Wat de beheerder niet
   aanbiedt, gaat nooit aan. Gekozen vóór er een gesprek was, wordt na het aanmaken bewaard (`connectorsTeBewaren`).
 - **De beurt draagt `bronnen`** (`startRun`) alleen met een menu; zonder connector bij de beheerder beslist graph-qa.
+- **Eén leesmodel, in de BFF** (`app/api/connectors/route.ts`, `metBeschikbaarheid`): het register met per connector
+  `beschikbaarheid`. Wat de straat niet aanbiedt valt weg; is graph-qa niet te lezen, dan is hij `onbekend` en staat hij in
+  het menu zonder schakelaar ("beschikbaarheid nu onbekend", `data-connector-onbekend`) en zonder *Zet … aan* (review
+  ADR-013, punt 2). De beurt houdt dan de opgeslagen keuze (graph-qa toetst de straat zelf); de werkplek haalt de stand
+  opnieuw op bij het openen van het menu en na een beurt (`heeftOnbekend`), zonder timer.
 - Het menu omzetten zet een gesprek niet bovenaan de lijst (geen `updated`).
 - Browserregressie: `scripts/test-connectors-menu.mjs`.
 

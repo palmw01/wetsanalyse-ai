@@ -7,7 +7,7 @@ import { reeksNavigatie } from "@/lib/reeks";
 import { afronding } from "@/lib/beurtStroom";
 import { useBeurt, type BeurtScherm } from "@/lib/useBeurt";
 import { type NodeDoel, type ToolExecution } from "@/lib/annotatieNode";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { VraagLexContext } from "@/components/werkplek/VraagLexKnop";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 
@@ -47,7 +47,7 @@ import {
 import { VraagDock } from "@/components/werkplek/VraagDock";
 import { BronselectieKaart } from "@/components/werkplek/BronselectieKaart";
 import { ConnectorsMenu } from "@/components/werkplek/ConnectorsMenu";
-import { actieveConnectors, beurtBronnen, wissel as wisselConnector, zelfAanTeZetten, type BronUit, type ConnectorStand } from "@/lib/connectorsMenu";
+import { actieveConnectors, beurtBronnen, heeftOnbekend, wissel as wisselConnector, zelfAanTeZetten, type BronUit, type ConnectorStand } from "@/lib/connectorsMenu";
 import {
   doelInvoerVan, isVerwijderd,
 } from "@/lib/annotatie";
@@ -404,13 +404,14 @@ export function WerkplekClient({
   }
 
   /** Start een beurt. Zonder `verzoek.prompt` geldt wat er in het invoerveld staat (`lib/beurtVerzoek.ts`). */
-  // Wat de beheerder aanzette: één keer per venster, stil falend (dan geen menu en beslist graph-qa zelf).
-  useEffect(() => {
+  // Wat de beheerder aanzette: één keer per venster, stil falend (dan geen menu en beslist graph-qa zelf). Was de
+  // beschikbaarheid onbekend (graph-qa niet te lezen), dan opnieuw bij het openen van het menu en na een beurt.
+  const verversConnectors = useCallback(() => {
     if (demo) return;
-    let levend = true;
-    haalConnectors().then((c) => levend && setConnectorStand((s) => ({ ...s, beschikbaar: c.connectors ?? [] }))).catch(() => {});
-    return () => { levend = false; };
+    haalConnectors().then((c) => setConnectorStand((s) => ({ ...s, beschikbaar: c.connectors ?? [] }))).catch(() => {});
   }, [demo]);
+  useEffect(() => { verversConnectors(); }, [verversConnectors]);
+  const verversAlsOnbekend = () => { if (heeftOnbekend(connectorRef.current)) verversConnectors(); };
 
   // De standaard van het werkgebied, alleen als er een menu is.
   const heeftConnectors = connectorBasis.beschikbaar.length > 0;
@@ -660,7 +661,7 @@ export function WerkplekClient({
         ]);
         return antId;
       },
-      onBeurtKlaar,
+      onBeurtKlaar: () => { verversAlsOnbekend(); onBeurtKlaar?.(); },
     };
   }
 
@@ -1223,7 +1224,7 @@ export function WerkplekClient({
           )}
           {!demo && connectorStand.beschikbaar.length > 0 && (
             <div className="mb-1 flex min-w-0">
-              <ConnectorsMenu stand={connectorStand} onWissel={kiesConnector}
+              <ConnectorsMenu stand={connectorStand} onWissel={kiesConnector} onOpen={verversAlsOnbekend}
                 onAlsStandaard={werkgebiedId ? () => void maakConnectorStandaard() : undefined}
                 onTerugNaarStandaard={() => zetGesprekConnectors(null)} />
             </div>

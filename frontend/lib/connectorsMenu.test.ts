@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { actieveConnectors, alleenInDeStraat, beurtBronnen, herkomstVan, menuNaam, menuRegel, wissel, zelfAanTeZetten, type ConnectorStand } from "./connectorsMenu";
+import { actieveConnectors, beurtBronnen, heeftOnbekend, herkomstVan, menuNaam, menuRegel, metBeschikbaarheid, wissel, zelfAanTeZetten, type ConnectorStand } from "./connectorsMenu";
 
 const KST = { naam: "kamerstukken", label: "Kamerstukken", brontype: "kamerstuk" };
 const ECLI = { naam: "rechtspraak", label: "Rechtspraak", brontype: "uitspraak" };
@@ -20,10 +20,32 @@ describe("connectorsMenu", () => {
     expect(beurtBronnen({ beschikbaar: [KST] })).toEqual({ bronnen: ["kamerstukken"], bronnen_herkomst: "standaard" });
   });
 
-  it("het menu toont alleen wat de straat aanbiedt; zonder graph-qa blijft het register", () => {
-    expect(alleenInDeStraat([KST, ECLI], [{ naam: "kamerstukken", straat: false }, { naam: "rechtspraak", straat: true }])).toEqual([ECLI]);
-    expect(alleenInDeStraat([KST], [])).toEqual([]);
-    expect(alleenInDeStraat([KST], null)).toEqual([KST]);
+  it("het menu toont alleen wat de straat aanbiedt, met de beschikbaarheid erbij", () => {
+    expect(metBeschikbaarheid([KST, ECLI], [{ naam: "kamerstukken", straat: false }, { naam: "rechtspraak", straat: true }]))
+      .toEqual([{ ...ECLI, beschikbaarheid: "aan" }]);
+    expect(metBeschikbaarheid([KST], [])).toEqual([]);
+  });
+
+  it("zonder graph-qa is de beschikbaarheid onbekend, en dan is er geen schakelaar (review ADR-013, punt 2)", () => {
+    const beschikbaar = metBeschikbaarheid([KST, ECLI], null);
+    expect(beschikbaar.map((c) => c.beschikbaarheid)).toEqual(["onbekend", "onbekend"]);
+    const stand: ConnectorStand = { beschikbaar, gesprek: ["kamerstukken"] };
+    expect(heeftOnbekend(stand)).toBe(true);
+    // Omzetten doet niets: een schakelaar die niets doet is erger dan geen.
+    expect(wissel(stand, "rechtspraak")).toEqual(["kamerstukken"]);
+    expect(wissel(stand, "kamerstukken")).toEqual(["kamerstukken"]);
+    // De beurt houdt de opgeslagen keuze: graph-qa toetst de straat zelf en noemt dan de juiste reden.
+    expect(beurtBronnen(stand)).toEqual({ bronnen: ["kamerstukken"], bronnen_herkomst: "gesprek" });
+    // *Zet … aan* na een bron_uit biedt hem niet aan.
+    expect(zelfAanTeZetten([{ naam: "kamerstukken", label: "Kamerstukken", reden: "gesprek" }], stand)).toEqual([]);
+    expect(menuRegel(stand)).toEqual([{ label: "Wetgeving", aan: true }, { label: "Kamerstukken", aan: false, onbekend: true },
+      { label: "Rechtspraak", aan: false, onbekend: true }]);
+    expect(menuNaam(stand)).toBe("Bronnen: Wetgeving aan, Kamerstukken onbekend, Rechtspraak onbekend");
+  });
+
+  it("een oudere BFF zonder beschikbaarheid telt als aan", () => {
+    expect(heeftOnbekend({ beschikbaar: [KST] })).toBe(false);
+    expect(wissel({ beschikbaar: [KST] }, "kamerstukken")).toEqual([]);
   });
 
   it("zet aan alleen wat de jurist zelf kan aanzetten", () => {
