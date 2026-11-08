@@ -81,6 +81,21 @@ const TOOLS = [
         input: S({ shacl: z.boolean().optional() }),
         run: (a) => apiFetch("GET", `/v1/admin/annotatie/graafcontrole${a.shacl === false ? "?shacl=false" : ""}`),
     },
+    // – bronconnectors (ADR-013) —
+    // Alleen lezen: aan- of uitzetten vraagt een beheerder mét 2FA uit de sessie (`beheerder_met_2fa`), en een los token
+    // hoort daar niet bij te kunnen.
+    {
+        name: "list_connectors",
+        description: "Lijst de bronconnectors (zoals Kamerstukken) met hun stand: aan of uit, wie het deed en wanneer.",
+        input: S({}),
+        run: () => apiFetch("GET", "/v1/admin/connectors"),
+    },
+    {
+        name: "connector_audit",
+        description: "De auditregels van één bronconnector: wie hem wanneer aan- of uitzette.",
+        input: S({ naam: z.string() }),
+        run: (a) => apiFetch("GET", `/v1/admin/connectors/${seg(a.naam)}/audit`),
+    },
     // – modelprofielen —
     {
         name: "list_profiles",

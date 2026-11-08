@@ -35,6 +35,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .. import (
     api_tokens,
+    connectors,
     berichten as berichten_svc,
     feedback as feedback_svc,
     profiles,
@@ -68,6 +69,28 @@ async def beheerder_met_2fa(door: str = Depends(huidige_beheerder)) -> str:
     if uitvoerder is None or not uitvoerder.totp_enabled:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Koppel eerst zelf 2FA.")
     return uitvoerder.userid
+
+
+# --- bronconnectors (ADR-013) -------------------------------------------------
+
+@router.get("/connectors", response_model=list[connectors.Connector])
+async def lijst_connectors():
+    return await connectors.lijst()
+
+
+@router.put("/connectors/{naam}", response_model=connectors.Connector)
+async def zet_connector(naam: str, body: connectors.ConnectorIn, door: str = Depends(beheerder_met_2fa)):
+    """Wie het deed, komt uit de sessie (`X-User-Id`, zoals bij het budget): een beheerder mét 2FA."""
+    if naam not in connectors.BEKEND:
+        raise HTTPException(status_code=404, detail=f"Onbekende connector: {naam}")
+    return await connectors.zet(naam, body.aan, door)
+
+
+@router.get("/connectors/{naam}/audit", response_model=list[connectors.AuditRegel])
+async def connector_audit(naam: str):
+    if naam not in connectors.BEKEND:
+        raise HTTPException(status_code=404, detail=f"Onbekende connector: {naam}")
+    return await connectors.audit(naam)
 
 
 # --- modellen ------------------------------------------------------------------

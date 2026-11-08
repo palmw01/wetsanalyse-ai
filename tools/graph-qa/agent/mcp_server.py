@@ -77,7 +77,8 @@ def _bouw_server() -> tuple[Any, Settings, GraphPort]:
         return ListToolsResult(
             tools=[
                 Tool(name=t["name"], description=t["description"], input_schema=t["input_schema"])
-                for t in tools.anthropic_schemas()
+                # Dezelfde regel als de agent: een bronconnector die uit staat, wordt niet aangeboden (ADR-013).
+                for t in tools.anthropic_schemas(only=tools.toegestane_tools(None, settings))
             ]
         )
 

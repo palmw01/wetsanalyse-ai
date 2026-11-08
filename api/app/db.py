@@ -690,6 +690,29 @@ budget_rol = Table(
 # (`verbruik.reset_in_venster`). Zo is er geen tweede plek die kan afwijken van de audit.
 #
 # `doel` is de userid bij een reset, de rol bij een rolbudget en leeg bij het beleid.
+# De bronconnectors (ADR-013): welke de beheerder heeft aangezet. Welke er bestaan, staat in de code
+# (`app/connectors.py`, gelijk aan `tools.CONNECTORS` van graph-qa); een rij ontbreekt = uit.
+connectors = Table(
+    "connectors",
+    metadata,
+    Column("naam", String(64), primary_key=True),
+    Column("aan", Boolean, nullable=False, default=False),
+    Column("door", String(128), nullable=False, default=""),
+    Column("bijgewerkt", _DT, nullable=False),
+)
+
+connector_audit = Table(
+    "connector_audit",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("naam", String(64), nullable=False),
+    Column("actie", String(32), nullable=False),
+    Column("door", String(128), nullable=False),
+    Column("details", _JSON, nullable=False, default=dict),
+    Column("tijdstip", _DT, nullable=False),
+    Index("ix_connector_audit_naam", "naam", "id"),
+)
+
 budget_audit = Table(
     "budget_audit",
     metadata,

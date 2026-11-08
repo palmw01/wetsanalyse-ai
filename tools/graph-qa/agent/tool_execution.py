@@ -45,7 +45,8 @@ def execute_tool(b, state, writer, tool, *, operation=None):
     start = monotonic()
     try:
         raw = operation() if operation else dispatch(name, b.graph, args, b.settings,
-                                                     annotaties=read_port(b, state), begrippen=begrip_port(b, state))
+                                                     annotaties=read_port(b, state), begrippen=begrip_port(b, state),
+                                                     bronnen=state.get("bronnen"))
         if not isinstance(raw, str):
             raw = json.dumps(raw, ensure_ascii=False)
         try:

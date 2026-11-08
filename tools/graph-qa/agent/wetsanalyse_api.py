@@ -158,6 +158,10 @@ class WetsanalyseApi:
             raise WetsanalyseApiFout(f"GET {pad} → {antwoord.status_code}", antwoord.status_code, api_reden(antwoord))
         return antwoord.json()
 
+    async def connectors(self) -> list[str]:
+        """De bronconnectors die de beheerder heeft aangezet (ADR-013, `GET /v1/connectors`)."""
+        return list((await self._haal("/v1/connectors")).get("aan") or [])
+
     async def haal_werkgebied(self, werkgebied_id: str) -> dict[str, Any]:
         return await self._haal(self._werkgebied_pad(werkgebied_id))
 

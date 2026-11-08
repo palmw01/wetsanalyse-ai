@@ -103,7 +103,9 @@ def test_elke_graaftool_zit_in_de_retrieval_smoke():
     # hun API/MCP-contracten worden in test_bronnode_keten getoetst.
     # Idem de begrippentools: hun graafdeel is de projectie van de api (getoetst in test_begrip_tools).
     buiten = {"semantic_search", "raw_sparql", "search_annotaties", "overzicht_annotaties", "get_annotatie",
-              "get_annotatiedekking", "search_begrippen", "get_begrip"}
+              "get_annotatiedekking", "search_begrippen", "get_begrip",
+              # De bronconnectors (ADR-013) raken de graaf niet; hun live-proef staat in test_kamerstuk_tools.
+              *tools.CONNECTOR_TOOLS}
     ongedekt = {t["name"] for t in tools.TOOLS} - gedekt - buiten
     assert not ongedekt, (
         f"deze tools worden nergens tegen de echte graaf geraakt: {sorted(ongedekt)}. "

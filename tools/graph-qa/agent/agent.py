@@ -167,6 +167,29 @@ async def _werkgebied_blok(settings: Settings, user_id: str, werkgebied_id: str)
         await api.aclose()
 
 
+async def _bronnen_van_beurt(settings: Settings, user_id: str, bronnen: list[str] | None) -> list[str] | None:
+    """De bronconnectors van deze beurt: wat de beurt vraagt (of de straat aanbiedt), beperkt tot wat de beheerder
+    in het register aanzette (ADR-013). Zonder connector in de straat of zonder api blijft de vraag zoals hij is.
+    Een onleesbaar register zet niets aan: liever alleen wetgeving dan een bron die de beheerder uitzette."""
+    from .tools import actieve_connectors
+
+    gevraagd = actieve_connectors(settings, bronnen)
+    if not gevraagd or not settings.legt_zelf_vast:
+        return bronnen
+    from .wetsanalyse_api import WetsanalyseApi
+
+    api = WetsanalyseApi(settings, user_id)
+    try:
+        register = set(await api.connectors())
+    except Exception:  # noqa: BLE001
+        logger.warning("connectorregister niet gelezen; alleen wetgeving", extra={"categorie": "technisch"},
+                       exc_info=True)
+        return []
+    finally:
+        await api.aclose()
+    return sorted(gevraagd & register)
+
+
 async def _onderwerp_blok(settings: Settings, user_id: str, onderwerp: dict[str, Any]) -> str:
     """Het contextblok van het aangewezen object (`onderwerp.haal`). Zonder api zegt het blok dat de
     gegevens ontbreken, met het label uit de werkplek."""
@@ -206,6 +229,7 @@ async def answer_stream(
     bevestigd: int | None = None,
     werkvoorraad_id: str = "",
     agent_api: Any = None,
+    bronnen: list[str] | None = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """
     Async generator die SSE-events yield:
@@ -271,6 +295,8 @@ async def answer_stream(
         "specialist": "annotaties_lezen" if is_leesvraag(question, modus) else "",
         "begrippen_lezen": False,
         "werkgebied_id": werkgebied_id or "",
+        # De bronnen van deze beurt (ADR-013): toollaag en dispatch filteren erop.
+        "bronnen": await _bronnen_van_beurt(settings, user_id, list(bronnen) if bronnen is not None else None),
         # Het dossier van dat werkgebied, per beurt vers uit de api: elke bewaarde wijziging telt meteen.
         "werkgebied_context": await _werkgebied_blok(settings, user_id, werkgebied_id) if werkgebied_id else "",
         # Waar de analist *Vraag Lex* op koos: alleen deze beurt; het object blijft in de focus.
