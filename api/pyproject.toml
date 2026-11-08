@@ -47,7 +47,7 @@ dev = [
     "pytest-httpx>=0.30",
     # In-memory SQLite-backend voor de unit-tests (portable SQL → ook Postgres in productie).
     "aiosqlite>=0.20",
-    # Toetst de JSON-export tegen zijn schema (app/schemas/annotatie-export-v3.schema.json).
+    # Toetst de JSON-export tegen zijn schema (app/schemas/annotatie-export-v4.schema.json).
     "jsonschema>=4.23",
 ]
 

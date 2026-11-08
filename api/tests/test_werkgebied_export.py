@@ -1007,3 +1007,145 @@ async def test_de_voetregel_draagt_de_inhoudscode(client, monkeypatch):
     monkeypatch.setattr(pdf_opmaak, "render", render)
     export.pdf_export(data, V)
     assert f"inhoud {kort(export.bouw_rapport(data, V).document.inhoud_hash)}" in gezien["voet"]
+
+
+# --- relaties tussen markeringen en het regelskelet (ADR-011) ----------------------------------------------------------
+
+AR, VAR, PAR, OP, VW, TA, RF = ("Afleidingsregel", "Variabele en variabelewaarde", "Parameter en parameterwaarde", "Operator",
+                                "Voorwaarde", "Tijdsaanduiding", "Rechtsfeit")
+
+
+def _el(snap, iri, start, eind, klasse, **extra) -> dict:
+    return {**element(snap, iri, start, eind, **extra), "klasse": klasse}
+
+
+async def _regel_met_relaties(client, *, compleet: bool = True) -> tuple[dict, dict]:
+    """Een afleidingsregel in lid 1 met haar relaties; operator, operand, voorwaarde, tijd en een uitzondering staan in lid 2.
+    Lid 1 is "😀 Alfa Alfa", lid 2 "Beta"."""
+    from app import annotatie_v2_relaties as rel
+    from app.annotatie_v2_contracts import RelatieBeslissing, RelatieInvoer
+
+    snap = snapshot()
+    elementen = [_el(snap, ONE, 0, 11, AR), _el(snap, ONE, 2, 6, VAR),
+                 _el(snap, ONE, 7, 11, PAR, jas_subtype="parameter")]
+    if compleet:
+        elementen += [_el(snap, TWO, 0, 2, OP), _el(snap, TWO, 2, 4, VAR), _el(snap, TWO, 0, 4, VW),
+                      _el(snap, TWO, 1, 3, PAR, jas_subtype="parameterwaarde"), _el(snap, TWO, 3, 4, TA),
+                      _el(snap, TWO, 1, 4, RF)]
+    uit = await store.batch(request(snap, elementen), snap, "lex")
+    ids = {(e["klasse"], e["tekst"]): e["id"] for e in uit["elementen"]}
+    wg = (await _bron(client, await _nieuw(client), bron_iri=ART))["werkgebied"]
+    if not compleet:
+        return wg, ids
+    regel = ids[(AR, "😀 Alfa Alfa")]
+
+    async def revisies() -> dict:
+        return {l["bron_iri"]: l["revisie"] for l in (await store.weergave(snap))["lagen"]}
+
+    async def leg(van, naar, type_, **extra) -> dict:
+        def ep(x):
+            return {"soort": "element", "id": x}
+        return (await rel.leg(RelatieInvoer(van=ep(van), naar=ep(naar), type=type_, verwachte_revisies=await revisies(), **extra),
+                              "jurist-a"))["relatie"]
+    await leg(regel, ids[(VAR, "Alfa")], "uitvoer")
+    await leg(ids[(PAR, "Alfa")], regel, "invoer", volgorde=2)
+    await leg(ids[(VAR, "ta")], regel, "invoer", volgorde=1)
+    await leg(ids[(OP, "Be")], regel, "operator_in")
+    await leg(ids[(VAR, "ta")], ids[(OP, "Be")], "operand", volgorde=2)
+    await leg(ids[(PAR, "Alfa")], ids[(OP, "Be")], "operand", volgorde=1)
+    await leg(regel, ids[(VW, "Beta")], "voorwaarde")
+    await leg(ids[(PAR, "et")], ids[(PAR, "Alfa")], "waarde")
+    await leg(regel, ids[(TA, "a")], "tijd")
+    await leg(ids[(VW, "Beta")], regel, "uitzondering_op")
+    await leg(regel, ids[(RF, "eta")], "toepassing")
+    # Een tweede uitvoer, afgewezen: die staat nergens, en telt niet als tweede uitvoer.
+    weg = await leg(regel, ids[(TA, "a")], "uitvoer", toelichting="afgewezen uitvoer")
+    await rel.beslis(weg["id"], RelatieBeslissing(type="reject", verwachte_revisies=await revisies()), "jurist-a")
+    return wg, ids
+
+
+def _skelet(regels: list) -> list[tuple[str, str]]:
+    begin = next(i for i, (s, t) in enumerate(regels) if s == "Heading4" and t.startswith("Regelskelet bij"))
+    return regels[begin:regels.index((pdf_opmaak.BLOK_EIND, ""), begin)]
+
+
+async def test_het_regelskelet_is_volledig_en_op_volgorde(client):
+    wg, _ids = await _regel_met_relaties(client)
+    data = await _data(wg)
+    teksten = [t for _s, t in _skelet(export.regels(data, V))]
+    assert teksten[0] == "Regelskelet bij 1 · “😀 Alfa Alfa”"
+    akkoord = " · beoordeeld: akkoord"
+    assert [t for t in teksten[2:]] == [x + akkoord for x in (
+        "Uitvoer: 2 · “Alfa” (Variabele en variabelewaarde)",
+        "Invoer 1: “ta” (Variabele en variabelewaarde, in Lid 2)",
+        "Invoer 2: 3 · “Alfa” (Parameter en parameterwaarde)",
+        "Operator: “Be” (Operator, in Lid 2)",
+        "Operand 1: 3 · “Alfa” (Parameter en parameterwaarde)",
+        "Operand 2: “ta” (Variabele en variabelewaarde, in Lid 2)",
+        "Voorwaarde: “Beta” (Voorwaarde, in Lid 2)",
+        "Parameter: 3 · “Alfa” (Parameter en parameterwaarde)",
+        "Waarde: “et” (Parameter en parameterwaarde, in Lid 2)",
+        "Tijd: “a” (Tijdsaanduiding, in Lid 2)",
+        "Uitzondering op deze regel: “Beta” (Voorwaarde, in Lid 2)",
+        "Vindt toepassing op: “eta” (Rechtsfeit, in Lid 2)")]
+    # Lijsten, geen tabellen.
+    assert not any(r.lstrip().startswith("|") for r in export.markdown_export(data, V).decode().splitlines())
+    # Het skelet staat ook in het document zelf.
+    regel = export.bouw_rapport(data, V).wettekst.regelingen[0].artikelen[0].bepalingen[0].markeringen[0]
+    assert regel.klasse == AR and [d.volgorde for d in regel.regelskelet.invoer] == [1, 2]
+    assert [o.operator.eind.tekst for o in regel.regelskelet.operatoren] == ["Be"]
+    # En in de PDF, langs dezelfde regels: elke regel van het skelet wordt een eigen alinea, op één pagina.
+    regels = export.regels(data, V)
+    spoor = await _spoor(data)
+    soorten = ("Heading4", "BodyText")
+    gezet = [a for a in spoor if a["stijl"] in soorten]
+    getoond = [t for s, t in regels if s in soorten]
+    assert len(gezet) == len(getoond)
+    begin = getoond.index("Regelskelet bij 1 · “😀 Alfa Alfa”")
+    assert gezet[begin]["stijl"] == "Heading4"
+    assert len({a["pagina"] for a in gezet[begin:begin + 13]}) == 1
+
+
+async def test_een_afgewezen_relatie_staat_nergens_in_het_rapport(client):
+    wg, _ids = await _regel_met_relaties(client)
+    data = await _data(wg)
+    assert any(r["lifecycle"] == "rejected" for r in data["markeringsrelaties"])
+    regels = export.regels(data, V)
+    alles = "\n".join(t for _s, t in regels)
+    assert "afgewezen uitvoer" not in alles and "precies één uitvoer" not in alles
+    assert sum(t.startswith("Uitvoer: ") for _s, t in regels) == 1
+    assert "afgewezen uitvoer" not in export.json_export(data, V).decode()
+
+
+async def test_de_relaties_staan_als_lijst_bij_de_bepaling_van_de_drager(client):
+    wg, _ids = await _regel_met_relaties(client)
+    data = await _data(wg)
+    lid1, lid2 = export.bouw_rapport(data, V).wettekst.regelingen[0].artikelen[0].bepalingen
+    # Elke relatie één keer, bij de drager: de regel en de parameter in lid 1; de operator en de uitzondering in lid 2.
+    assert sorted(r.code for r in lid1.relaties) == sorted(["uitvoer", "invoer", "invoer", "operator_in", "voorwaarde", "tijd",
+                                                            "toepassing", "waarde"])
+    assert sorted(r.code for r in lid2.relaties) == ["operand", "operand", "uitzondering_op"]
+    regels = export.regels(data, V)
+    i = regels.index(("BodyText", "1 · “😀 Alfa Alfa” (Afleidingsregel) levert op 2 · “Alfa” (Variabele en variabelewaarde)"))
+    assert ("Heading4", "Relaties") in regels[:i] and regels[i + 1] == ("Meta", "beoordeeld: akkoord")
+    assert ("BodyText", "“ta” (Variabele en variabelewaarde, in Lid 2) is invoer van 1 · “😀 Alfa Alfa” (Afleidingsregel) · plek 1") in regels
+    assert "levert op 2 · “Alfa”" in export.markdown_export(data, V).decode()
+
+
+async def test_een_regel_zonder_relaties_zegt_wat_ontbreekt(client):
+    wg, _ids = await _regel_met_relaties(client, compleet=False)
+    regels = export.regels(await _data(wg), V)
+    skelet = [t for _s, t in _skelet(regels)]
+    for zin in ("Geen uitvoer vastgelegd.", "Geen invoer vastgelegd.", "Geen operatoren vastgelegd.", "Geen voorwaarden vastgelegd.",
+                "Geen parameters vastgelegd.", "Geen tijdsaanduiding vastgelegd.", "Geen uitzonderingen vastgelegd.",
+                "Geen toepassing vastgelegd."):
+        assert zin in skelet
+    assert ("Heading4", "Relaties") not in regels
+
+
+async def test_een_ontbrekende_uitvoer_terwijl_de_rest_er_staat(client):
+    wg, _ids = await _regel_met_relaties(client)
+    data = await _data(wg)
+    data["markeringsrelaties"] = [r for r in data["markeringsrelaties"] if r["type"] != "uitvoer"]
+    skelet = [t for _s, t in _skelet(export.regels(data, V))]
+    assert "Geen uitvoer vastgelegd." in skelet and any(t.startswith("Invoer 1: ") for t in skelet)

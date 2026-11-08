@@ -289,3 +289,29 @@ async def alle_relaties() -> tuple[list[dict], list[dict]]:
     beschreven = [beschrijf(r, elementen, impliciet) for _, r in sorted(relaties.items())]
     partijen = [{**p, "bron_iri": (per_id.get(p["laag_id"]) or {}).get("bron_iri", "")} for _, p in sorted(impliciet.items())]
     return beschreven, partijen
+
+
+async def bij_elementen(element_ids: set[str]) -> list[dict]:
+    """De relaties met een eindpunt onder deze markeringen, beschreven zoals de weergave ze toont, voor het werkgebiedrapport.
+    Daarbij de operanden en waarden van een operator of parameter die eraan hangt, ook als die elders staat: zonder die
+    stap is het regelskelet van een afleidingsregel niet compleet. Een element-eindpunt draagt ook zijn `eigenaar_iri`, zodat
+    de lezer weet bij welke bepaling het hoort. Afgewezen relaties komen mee; de lezer kiest wat hij toont."""
+    async with leestransactie() as conn:
+        elementen = await _alle(conn, db.annotatie_v2_elementen)
+        impliciet = await _alle(conn, db.annotatie_v2_impliciet)
+        alle = await _alle(conn, db.annotatie_v2_relaties)
+
+    def eindpunten(r: dict) -> set[str]:
+        return {k["id"] for k in (r["van"], r["naar"]) if k["soort"] == "element"}
+    gekozen = {i: r for i, r in alle.items() if eindpunten(r) & element_ids}
+    verder = {e for r in gekozen.values() for e in eindpunten(r)} - set(element_ids)
+    gekozen |= {i: r for i, r in alle.items() if r["type"] in ("operand", "waarde")
+                and r["naar"]["soort"] == "element" and r["naar"]["id"] in verder}
+    uit = []
+    for _i, r in sorted(gekozen.items()):
+        b = beschrijf(r, elementen, impliciet)
+        for kant in ("van", "naar"):
+            e = elementen.get(b[kant]["id"]) if b[kant]["soort"] == "element" else None
+            b[kant] = {**b[kant], "eigenaar_iri": e["eigenaar_iri"] if e else ""}
+        uit.append(b)
+    return uit
