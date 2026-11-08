@@ -199,7 +199,11 @@ bruikbaar is.
 - **`mcp_server.py`** – de andere kant op: een stdio-MCP-server over de eigen toollaag (`graph-qa-mcp`,
   `mcp`-extra). `tools/list` is `anthropic_schemas()`, `tools/call` is `dispatch()` – een doorgeefluik,
   geen kopie. Hij bestaat zodat een externe agent niet zelf SPARQL schrijft en in de valkuilen hieronder
-  loopt. `tests/test_mcp_server.py` bewaakt dat hij exact de tools van de agent aanbiedt.
+  loopt. `tests/test_mcp_server.py` bewaakt dat hij exact de tools van de agent aanbiedt. Naar buiten draagt hij het
+  contract als MCP (review ADR-013): per tool `annotations` (`gedrag`: alleen lezen, herhaalbaar, `openWorldHint` voor een
+  bronconnector), een `outputSchema` (`resultaat.CONTRACT_SCHEMA`) voor de graaftools en connectortools, het resultaat ook
+  als `structuredContent` (gevalideerd tegen dat schema voor elke contracttool, elke pagina), en bij een gelezen stuk een
+  `resource_link` met `lastModified` = de versie die gelezen is. In de antwoordlus van Lex verandert niets.
 
 ## Toollaag & queries
 

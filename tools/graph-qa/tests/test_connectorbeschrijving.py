@@ -158,3 +158,26 @@ def test_elke_connector_heeft_een_live_proef(c: bm.ConnectorBeschrijving):
     tekst = pad.read_text(encoding="utf-8")
     assert "pytest.mark.live" in tekst and 'os.environ.get("BRONNEN_LIVE")' in tekst, (
         f"{pad.name}: de proef hoort de marker `live` te dragen en zich zonder BRONNEN_LIVE over te slaan")
+
+
+@pytest.mark.parametrize("c", BESCHRIJVINGEN, ids=IDS)
+def test_de_tools_volgen_de_naamconventie(c: bm.ConnectorBeschrijving):
+    """Eén vorm per connector: `zoek_<x>` vindt, `get_<x>` leest (de leestool). Zo herkent het model een connector
+    aan zijn tools; met de tweede connector toetsen we of een voorvoegsel per dienst beter werkt (Anthropic)."""
+    assert c.leestool.startswith("get_"), f"{c.naam}: de leestool heet get_…"
+    assert all(t.startswith("zoek_") for t in c.tools - {c.leestool}), f"{c.naam}: een zoektool heet zoek_…"
+
+
+@pytest.mark.parametrize("c", BESCHRIJVINGEN, ids=IDS)
+def test_een_invoerfout_noemt_een_geldig_voorbeeld(c: bm.ConnectorBeschrijving):
+    """Een foutmelding over de invoer zegt wat er moet en hoe geldige invoer eruitziet, zodat het model zich herstelt
+    (MCP: tool execution errors; Anthropic, *Writing tools for agents*)."""
+    modules = [p for p in (WORTEL / "tools" / "graph-qa" / "agent" / "tools").glob("*.py")
+               if any(f'"name": "{t}"' in p.read_text(encoding="utf-8") for t in c.tools)]
+    assert modules, f"{c.naam}: geen module met zijn tools"
+    for pad in modules:
+        bron = pad.read_text(encoding="utf-8")
+        meldingen = re.findall(r'fout\(\s*"(ongeldig[a-z_]*)",\s*((?:f?"[^"]*(?:\\"[^"]*)*"\s*)+)\)', bron)
+        assert meldingen, f"{pad.name}: geen invoerfouten gevonden; klopt de toets nog?"
+        for reden, tekst in meldingen:
+            assert "bijvoorbeeld" in tekst, f"{pad.name}: '{reden}' noemt geen voorbeeld"
