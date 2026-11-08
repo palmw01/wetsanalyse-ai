@@ -202,7 +202,12 @@ bruikbaar is.
   `tools/kamerstuk_tools.py`), `anthropic_schemas(only=)` en `dispatch()` (vangt
   `ValueError`/`MCPError`/`KeyError` als tekst). Een tool met `needs_settings` krijgt `settings` mee.
   `tools/jas_tools.py` (`JAS_TOOLS`) is dispatchbaar maar wordt in de draaiende keten niet aangeroepen.
-- **Bronconnectors** (ADR-013): `CONNECTORS` (connector → tools) en `toegestane_tools(tools, settings)`, de ene
+- **Bronconnectors** (ADR-013): **de beschrijving in `bronmodel.connectors` is de enige bron** (naam, label, brontype,
+  groep, wat hij dekt, signalen, tools, leestool, id-vorm, rollen, rol in het antwoord, grenzen, voorbeeldvragen).
+  `CONNECTORS` (connector → tools), de connectortools van de specialisten (`specialists._met_connectors`), de
+  `Literal`s van de contracten en het register van de api komen eruit; een nieuwe connector is een beschrijving, zijn
+  tools en een straatvlag. `tests/test_connectorbeschrijving.py` maakt een onvolledige beschrijving of handwerk ernaast
+  rood, met een nep-connector als bewijs dat er niets per connector bij hoeft. `toegestane_tools(tools, settings)` is de ene
   regel voor de schema's van de antwoordlus, de MCP-server en `dispatch`. Een connector staat uit tot de straat hem
   aanzet (`CONNECTOR_KAMERSTUKKEN=true`); uit is niet aangeboden, en een aanroep is dan `connector_uit`. **De beurt
   beperkt verder** (`ChatRequest.bronnen`, `State.bronnen`, per beurt): weggelaten = wat de straat aanbiedt, een lege

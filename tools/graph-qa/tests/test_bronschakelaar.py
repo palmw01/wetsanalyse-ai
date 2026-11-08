@@ -107,12 +107,9 @@ def test_zonder_connector_in_de_straat_geen_registervraag(monkeypatch):
 
 
 def test_het_register_van_de_api_kent_dezelfde_connectors():
-    """`api/app/connectors.py:BEKEND` en `tools.CONNECTORS` zijn één lijst; uit de bron gelezen, zoals de contracten."""
-    import ast
-    from pathlib import Path
+    """`api/app/connectors.py:BEKEND` en `tools.CONNECTORS` komen uit één beschrijving (`bronmodel.connectors`);
+    de vorm van de afleiding toetst `tests/poort/test_connectorbeschrijving.py`."""
+    from bronmodel.connectors import CONNECTORS
 
-    bron = Path(__file__).resolve().parents[3] / "api" / "app" / "connectors.py"
-    boom = ast.parse(bron.read_text(encoding="utf-8"))
-    bekend = next(n.value for n in ast.walk(boom) if isinstance(n, ast.AnnAssign)
-                  and getattr(n.target, "id", "") == "BEKEND")
-    assert {k.value for k in bekend.keys} == set(tools.CONNECTORS)
+    assert set(tools.CONNECTORS) == set(CONNECTORS)
+    assert all(tools.CONNECTORS[n] == c.tools for n, c in CONNECTORS.items())

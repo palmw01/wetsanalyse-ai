@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 
+from bronmodel.connectors import CONNECTORS
+
 from .methode import instructies
 
 
@@ -144,8 +146,6 @@ SPECIALISTS: dict[str, Specialist] = {
             "get_artikel", "get_lid", "verwijst_naar_deze", "graph_schema", "raw_sparql",
             # Een vastgelegd begrip (fase F4) naast de wettelijke definitie – gescheiden gehouden.
             "search_begrippen", "get_begrip",
-            # De betekenis die de wetgever bedoelde (ADR-013), alleen met de connector aan.
-            "zoek_kamerstukken", "get_kamerstuk",
         }),
         sjablonen=frozenset({"antwoord_begrip"}),
     ),
@@ -174,8 +174,6 @@ SPECIALISTS: dict[str, Specialist] = {
             # advies). Zonder deze tools kon hij het spoor en de alternatieven van de markering niet
             # lezen, en de klasse-omschrijving alleen raden.
             "get_annotatie", "jas_klasse_opvragen",
-            # Wetsgeschiedenis (ADR-013): alleen als de connector aanstaat (`tools.toegestane_tools`).
-            "zoek_kamerstukken", "get_kamerstuk",
         }),
         sjablonen=frozenset({"antwoord_bepaling", "antwoord_duiding"}),
     ),
@@ -196,6 +194,21 @@ SPECIALISTS: dict[str, Specialist] = {
         }),
     ),
 }
+
+
+
+def _met_connectors(specs: dict[str, Specialist]) -> dict[str, Specialist]:
+    """De tools van elke bronconnector (ADR-013) bij de rollen die zijn beschrijving noemt. Of hij in een beurt
+    aanstaat, beslist `tools.toegestane_tools`; hier staat alleen wie hem mág krijgen. `tools=None` (algemeen) heeft
+    ze al."""
+    for c in CONNECTORS.values():
+        for rol in c.specialisten:
+            if specs[rol].tools is not None:
+                specs[rol] = replace(specs[rol], tools=specs[rol].tools | c.tools)
+    return specs
+
+
+SPECIALISTS = _met_connectors(SPECIALISTS)
 
 DEFAULT = "algemeen"
 

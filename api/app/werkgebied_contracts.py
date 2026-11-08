@@ -5,6 +5,7 @@ import re
 from enum import Enum
 from typing import Literal
 
+from bronmodel.connectors import NAMEN as CONNECTOR_NAMEN
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from . import tooi
@@ -139,7 +140,7 @@ class WerkgebiedWijziging(BaseModel):
     peildatum: str | None = None
     status: Status | None = None
     # ADR-013: de standaard van het menu *Bronnen en tools* voor gesprekken in dit werkgebied; `null` = de beheerder.
-    standaard_connectors: list[Literal["kamerstukken"]] | None = Field(default=None, max_length=8)
+    standaard_connectors: list[Literal[CONNECTOR_NAMEN]] | None = Field(default=None, max_length=8)  # type: ignore[valid-type]
 
     @field_validator("regelingen")
     @classmethod

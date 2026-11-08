@@ -48,6 +48,16 @@ ADR-010. Dit ADR neemt de bediening van Claude over en houdt de garanties van he
 - De beheerder bepaalt wat er in het menu kan staan. Een connector die de beheerder uitzet, verdwijnt overal, ook uit
   bestaande standaardstanden.
 
+### De connectorbeschrijving (8 nov 2026)
+
+Elke bronconnector heeft één beschrijving in `packages/bronmodel/bronmodel/connectors.py`: naam, label, brontype, de
+groep in de bronnenlijst, wat hij dekt (voor de router en de scope), signalen om een vraag te herkennen, zijn tools en
+de tool die de citeerbare tekst draagt, de vorm van zijn id, de rollen die zijn tools krijgen, waar hij in een antwoord
+voor staat en wat hij niet kan. De keten leidt er alles uit af – toollaag, specialisten, de toegestane namen in api en
+graph-qa, het register – en niets per connector met de hand. Een nieuwe connector is: een beschrijving, zijn tools in
+`agent/tools/` en een straatvlag `CONNECTOR_<NAAM>`. `tools/graph-qa/tests/test_connectorbeschrijving.py` maakt een
+onvolledige beschrijving rood.
+
 ### Toestemming per handeling
 
 - **Connectors die alleen lezen** (alle bronconnectors, en de contextconnectors in fase 2a): de schakelaar is de

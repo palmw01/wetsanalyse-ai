@@ -1,8 +1,8 @@
 """Het register van de bronconnectors (ADR-013, fase 1b): welke de beheerder heeft aangezet.
 
 Welke connectors er bestaan, staat in de code: een bronconnector is een getypeerde tool in graph-qa met een
-eigen soort vindplaats, geen configuratie. `BEKEND` is daarom gelijk aan `tools.CONNECTORS` van graph-qa
-(`tests/poort/test_waardensets.py` bewaakt het). Het register zegt alleen *aan* of *uit*; een connector zonder
+eigen soort vindplaats, geen configuratie. `BEKEND` komt daarom uit de gedeelde beschrijving
+(`bronmodel.connectors`), net als `tools.CONNECTORS` van graph-qa. Het register zegt alleen *aan* of *uit*; een connector zonder
 rij staat uit. Elke wijziging is een regel in `connector_audit`, append-only.
 
 De routes staan in `routers/admin.py` (beheer) en `routers/connectors.py` (graph-qa). Graph-qa leest het register per
@@ -14,18 +14,15 @@ from __future__ import annotations
 
 from typing import Literal
 
+from bronmodel.connectors import CONNECTORS, NAMEN
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import insert, select, update
 
 from . import db
 
 #: naam → (label, brontype, beschrijving). De volgorde is die van de beheertab.
-BEKEND: dict[str, tuple[str, str, str]] = {
-    "kamerstukken": ("Kamerstukken", "kamerstuk",
-                     "Wetsgeschiedenis uit de officiële publicaties: memorie van toelichting, nota's, verslagen en het "
-                     "advies van de Raad van State. Openbaar, zonder sleutel."),
-}
-Naam = Literal["kamerstukken"]
+BEKEND: dict[str, tuple[str, str, str]] = {n: (c.label, c.brontype, c.beheer) for n, c in CONNECTORS.items()}
+Naam = Literal[NAMEN]  # type: ignore[valid-type]
 
 
 class Connector(BaseModel):
