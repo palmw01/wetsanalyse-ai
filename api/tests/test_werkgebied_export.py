@@ -1117,6 +1117,17 @@ async def test_een_afgewezen_relatie_staat_nergens_in_het_rapport(client):
     assert "afgewezen uitvoer" not in export.json_export(data, V).decode()
 
 
+async def test_een_vervangen_relatie_staat_nergens_in_het_rapport(client):
+    """`vervangen` is niet actueel (ADR-011): de lezer laat hem weg, en het rapport ook als hij er toch in staat."""
+    wg, _ids = await _regel_met_relaties(client)
+    data = await _data(wg)
+    data["markeringsrelaties"] = [{**r, "lifecycle": "vervangen"} if r["type"] == "uitvoer" and r["lifecycle"] != "rejected"
+                                  else r for r in data["markeringsrelaties"]]
+    regels = export.regels(data, V)
+    assert not any(t.startswith("Uitvoer: ") for _s, t in regels)
+    assert all(r["lifecycle"] != "vervangen" for r in export._geldend(data))
+
+
 async def test_de_relaties_staan_als_lijst_bij_de_bepaling_van_de_drager(client):
     wg, _ids = await _regel_met_relaties(client)
     data = await _data(wg)

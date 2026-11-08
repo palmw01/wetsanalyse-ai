@@ -69,3 +69,28 @@ async def test_alle_relaties_in_een_lezing(lagen):
     relaties, partijen = await rel.alle_relaties()
     assert [x["id"] for x in relaties] == [r["id"]] and relaties[0]["leesvorm"] == "is rechthebbende van"
     assert [(x["id"], x["bron_iri"]) for x in partijen] == [(p["id"], ONE)]
+
+
+async def _maak_vervangen(relatie_id: str) -> None:
+    """Zoals een ronde `opnieuw` (4C) een oud voorstel zet: `vervangen` is niet actueel (ADR-011)."""
+    from sqlalchemy import select, update
+
+    from app import db
+    async with store.schrijftransactie() as conn:
+        rij = (await conn.execute(select(db.annotatie_v2_relaties).where(db.annotatie_v2_relaties.c.id == relatie_id))).mappings().one()
+        await conn.execute(update(db.annotatie_v2_relaties).where(db.annotatie_v2_relaties.c.id == relatie_id)
+                           .values(inhoud={**dict(rij["inhoud"]), "lifecycle": "vervangen"}))
+
+
+async def test_een_vervangen_relatie_staat_niet_in_de_graaf(lagen, monkeypatch):
+    _geen_verwijzingen(monkeypatch)
+    s1, _ = lagen
+    r = (await rel.leg(leg("zin", "aanslag", "voorwerp", {ONE: 1}), "jurist"))["relatie"]
+    await _maak_vervangen(r["id"])
+    relaties, _ = await rel.alle_relaties()
+    assert relaties == []
+    g = await samenhang.samenhang(s1)
+    assert not [x for x in g["relaties"] if x["soort"] == "jas_relatie"] and g["relaties_weggelaten"] == 0
+    # Ook als een lezer hem toch aanlevert, laat de graaf hem weg.
+    uit, weg = samenhang.jas_relaties([{**r, "lifecycle": "vervangen"}], [], {})
+    assert uit == [] and weg == 0

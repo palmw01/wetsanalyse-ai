@@ -450,7 +450,9 @@ async def alle_relaties() -> tuple[list[dict], list[dict]]:
         impliciet = await _alle(conn, db.annotatie_v2_impliciet)
         relaties = await _alle(conn, db.annotatie_v2_relaties)
         per_id = _layers_per_id(await _lagen(conn))
-    beschreven = [beschrijf(r, elementen, impliciet) for _, r in sorted(relaties.items())]
+    # Een vervangen relatie is niet actueel (ADR-011): historie en audit, geen graaf.
+    beschreven = [beschrijf(r, elementen, impliciet) for _, r in sorted(relaties.items())
+                  if r.get("lifecycle") not in NIET_ACTUEEL]
     partijen = [{**p, "bron_iri": (per_id.get(p["laag_id"]) or {}).get("bron_iri", "")} for _, p in sorted(impliciet.items())]
     return beschreven, partijen
 
@@ -463,7 +465,8 @@ async def bij_elementen(element_ids: set[str]) -> list[dict]:
     async with leestransactie() as conn:
         elementen = await _alle(conn, db.annotatie_v2_elementen)
         impliciet = await _alle(conn, db.annotatie_v2_impliciet)
-        alle = await _alle(conn, db.annotatie_v2_relaties)
+        alle = {i: r for i, r in (await _alle(conn, db.annotatie_v2_relaties)).items()
+                if r.get("lifecycle") not in NIET_ACTUEEL}   # vervangen: historie, niet in het rapport
 
     def eindpunten(r: dict) -> set[str]:
         return {k["id"] for k in (r["van"], r["naar"]) if k["soort"] == "element"}

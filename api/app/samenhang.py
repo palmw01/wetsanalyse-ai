@@ -233,7 +233,7 @@ def _eindpunt(ep: dict) -> str:
 def jas_relaties(relaties: list[dict], partijen: list[dict], knopen: dict[str, Knoop]) -> tuple[list[Relatie], int]:
     """De vastgelegde relaties tussen markeringen (ADR-011) als `jas_relatie`, en de impliciete partijen als knopen
     (`knopen` wordt aangevuld). `relaties` zoals `annotatie_v2_relaties.beschrijf` ze geeft. Een relatie met een
-    eindpunt buiten `knopen` valt weg en telt mee in het tweede getal; een afgewezen relatie valt stil weg. Niets
+    eindpunt buiten `knopen` valt weg en telt mee in het tweede getal; een afgewezen of vervangen relatie valt stil weg. Niets
     afgeleid: alleen wat is vastgelegd."""
     for p in partijen:
         kid = impliciet_knoop_id(p["id"])
@@ -242,7 +242,7 @@ def jas_relaties(relaties: list[dict], partijen: list[dict], knopen: dict[str, K
     uit: list[Relatie] = []
     weggelaten = 0
     for r in relaties:
-        if r.get("lifecycle") == "rejected":
+        if r.get("lifecycle") in ("rejected", "vervangen"):   # niet actueel: historie, geen graaf
             continue
         bron, doel = _eindpunt(r["van"]), _eindpunt(r["naar"])
         if bron not in knopen or doel not in knopen:

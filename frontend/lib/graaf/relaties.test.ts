@@ -88,6 +88,7 @@ describe("relaties: stijl", () => {
     expect(relatieStijl({ lifecycle: "human_approved", veranderd: true }).kleur).toBe(VOORSTELKLEUR);
     expect(relatieStijl({ lifecycle: "human_approved" })).toEqual({ kleur: RELATIEKLEUR, zichtbaar: true });
     expect(relatieStijl({ lifecycle: "rejected" }).zichtbaar).toBe(false);
+    expect(relatieStijl({ lifecycle: "vervangen" }).zichtbaar).toBe(false);   // niet actueel (ADR-011)
   });
 
   it("een impliciete partij is hol: wit met een omtrek in haar klasse", () => {

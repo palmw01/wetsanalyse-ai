@@ -50,10 +50,10 @@ export const LIJNDIKTE: Record<RelatieData["soort"], number> = {
 
 /** De stijl van een relatie tussen markeringen, naar haar beoordeling. Een voorstel van Lex is geel, zoals elk
  *  voorstel in de werkplek (`begripsvoorstel`), en een veranderde relatie ook: die vraagt opnieuw een oordeel. Een
- *  beoordeelde relatie is neutraal. Een afgewezen relatie staat niet in beeld. Altijd gericht: de leesvorm loopt van
+ *  beoordeelde relatie is neutraal. Een afgewezen of vervangen relatie staat niet in beeld (vervangen is niet actueel, ADR-011). Altijd gericht: de leesvorm loopt van
  *  bron naar doel ("is plichthebbende van"). */
 export function relatieStijl(a: Pick<RelatieData, "lifecycle" | "veranderd">): { kleur: string; zichtbaar: boolean } {
-  if (a.lifecycle === "rejected") return { kleur: RELATIEKLEUR, zichtbaar: false };
+  if (a.lifecycle === "rejected" || a.lifecycle === "vervangen") return { kleur: RELATIEKLEUR, zichtbaar: false };
   return { kleur: a.lifecycle === "voorgesteld" || a.veranderd ? VOORSTELKLEUR : RELATIEKLEUR, zichtbaar: true };
 }
 

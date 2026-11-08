@@ -259,8 +259,8 @@ def _relatie_eind(kant: dict, eigen_iri: str, plek: Plek, nodes: dict[str, dict]
 
 
 def _geldend(data: dict) -> list[dict]:
-    """De relaties die het rapport toont: vastgelegd en niet afgewezen (ADR-011)."""
-    return [r for r in data.get("markeringsrelaties") or [] if r.get("lifecycle") != "rejected"]
+    """De relaties die het rapport toont: vastgelegd, niet afgewezen en niet vervangen (ADR-011)."""
+    return [r for r in data.get("markeringsrelaties") or [] if r.get("lifecycle") not in ("rejected", "vervangen")]
 
 
 def _per_bepaling(relaties: list[dict], plek: Plek, nodes: dict[str, dict]) -> dict[str, list[Markeringsrelatie]]:
