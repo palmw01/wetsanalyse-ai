@@ -64,6 +64,8 @@ export interface ArtefactInhoudProps {
   onExport?: (formaat: ExportFormaat) => Promise<void>;
   /** Aanvullende blokken onder de reviewlijst, in dezelfde scrollzone. */
   extra?: ReactNode;
+  /** Een blok in de uitgeklapte reviewkaart van een element (de relaties van een bronnode-annotatie). */
+  elementExtra?: (el: AnnotatieElement) => ReactNode;
   /** Zinsdelen zonder detectortreffer, in de offsets van de samengestelde bron (de dekkingsmeting). */
   ongedekt?: { start: number; eind: number }[];
 }
@@ -76,7 +78,7 @@ export interface ArtefactInhoudProps {
  *  schillen – anders gaan de twee weergaven uit elkaar lopen. */
 export function ArtefactInhoud({
   doc, info, actiefId, onKies, onBeslissing, onAkkoordGroen, onEigenMarkering,
-  onWisEigenMarkering, onVraag, onStatus, onVerwijder, onSluiten, pagina, onExport, extra, ongedekt, kopOnder, kopBalk, alleenLezen = false,
+  onWisEigenMarkering, onVraag, onStatus, onVerwijder, onSluiten, pagina, onExport, extra, elementExtra, ongedekt, kopOnder, kopBalk, alleenLezen = false,
 }: ArtefactInhoudProps) {
   // Eén bron voor de bewoording: `vindplaatsLabel` weet uit het graaf-`soort` of dit een artikel
   // met leden is of een bepaling van een beleidsregel. Hier raden op puntjes in het nummer zou bij
@@ -407,6 +409,7 @@ export function ArtefactInhoud({
               onAkkoordGroen={onAkkoordGroen && !vergrendeld ? akkoordGroen : undefined}
               onVerwijder={onWisEigenMarkering && !vergrendeld ? wis : undefined}
               onVraag={onVraag}
+              elementExtra={elementExtra}
               docVergrendeld={vergrendeld}
               // Alleen als het document méér dan één lid beslaat. Is het tot één lid afgebakend, dan
               // staat dat al in de kop hierboven en herhaalt elke kaart dezelfde mededeling.

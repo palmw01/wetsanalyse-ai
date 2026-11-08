@@ -3,7 +3,7 @@
 import { BewerkVoet, useBewerken } from "@/components/ui/Bewerkbaar";
 import { IcoonBevestig } from "@/components/ui/IcoonBevestig";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { groeneVoorstellen, isBeslist, slotVan, type ReviewFilter } from "@/lib/annotatie";
 import { BevestigKnop } from "@/components/ui/BevestigKnop";
@@ -162,6 +162,7 @@ function DecisionCard({
   onOpen,
   onAkkoord,
   onVraag,
+  extra,
   docVergrendeld,
   toonLid,
   tourAnker,
@@ -183,6 +184,8 @@ function DecisionCard({
   onAkkoord: () => Promise<void>;
   /** Zet een vraag over dít element klaar in het centrale chatvenster. Weglaten verbergt de knop. */
   onVraag?: () => void;
+  /** Een blok in de uitgeklapte kaart, onder de alternatieven: de relaties van het element (ADR-011). */
+  extra?: ReactNode;
   /** De hele annotatie is afgerond: dan ligt ook het opmerkingveld stil, want de api weigert élke
    *  mutatie tot het document heropend wordt. */
   docVergrendeld?: boolean;
@@ -517,6 +520,8 @@ function DecisionCard({
         </div>
       )}
 
+      {uitgeklapt && extra && <div onClick={(e) => e.stopPropagation()}>{extra}</div>}
+
       {/* Vragen doe je in het centrale gespreksvenster, niet in een tweede chatje hier. Deze knop zet
           de vraag daar klaar mét de context van dit element; het antwoord komt in de thread – inclusief
           bronnen en grounding, die een draadje in de kaart nooit toonde. */}
@@ -590,6 +595,7 @@ export function ReviewQueue({
   onAkkoordGroen,
   onVerwijder,
   onVraag,
+  elementExtra,
   docVergrendeld,
   toonLid,
 }: {
@@ -614,6 +620,8 @@ export function ReviewQueue({
   onVerwijder?: (elementId: string) => Promise<void>;
   /** Zet een vraag over een element klaar in het centrale chatvenster. */
   onVraag?: (el: AnnotatieElement) => void;
+  /** Een blok in de uitgeklapte kaart van een element (`DecisionCard.extra`). */
+  elementExtra?: (el: AnnotatieElement) => ReactNode;
   /** De annotatie is afgerond: de hele lijst staat op slot tot hij heropend wordt. */
   docVergrendeld?: boolean;
   /** Zie `Kaart`: alleen tonen als het document meer dan één lid beslaat. */
@@ -709,6 +717,7 @@ export function ReviewQueue({
           onBeslissing={(req) => onBeslissing(el.id, req)}
           onVerwijder={onVerwijder && el.herkomst === "mens" ? () => onVerwijder(el.id) : undefined}
           onVraag={onVraag ? () => onVraag(el) : undefined}
+          extra={el.id === actiefId ? elementExtra?.(el) : undefined}
           docVergrendeld={docVergrendeld}
           toonLid={toonLid}
         />

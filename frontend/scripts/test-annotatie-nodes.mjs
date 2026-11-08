@@ -77,6 +77,30 @@ const berichten = [1, 2].flatMap((lid) => [
   { rol: "assistant", tekst: lid === 1 ? SAMENVATTING : "", denk: "", bronnen: [], annotatie_slug: "zelfde-oude-laag", annotatie_titel: "Artikel 9", annotatie_doel: doel(lid),
     tool_executions: trace, run_id: `r${lid}` },
 ]);
+// Relaties tussen markeringen (ADR-011): één bepaling met drie markeringen in één laag, twee relaties en later een
+// impliciete partij. De eerste beslissing op een relatie krijgt een 412, zoals wanneer iemand intussen iets wijzigde.
+const rel = { impliciet: [], relaties: [], eerste412: true };
+const relEl = (id, klasse, tekst, start) => ({ id, eigenaar_iri: "urn:rel", laag_id: "lr", klasse, tekst, toelichting: "",
+  lifecycle: "voorgesteld", herkomst: "agent", beslissingen: [], alternatieven: [],
+  ankers: [{ bron_iri: "urn:rel", start, eind: start + tekst.length, tekst, bron_hash: "hrel" }] });
+const relEp = (id, tekst, klasse, soort = "element") => ({ soort, id, bestaat: true, tekst, klasse, laag_id: "lr", actueel: true });
+const relView = () => ({ schema_versie: 2, snapshot_id: "snapshot",
+  doel: { bron_iri: "urn:rel", label: "Invorderingswet – artikel 3 lid 1", type: "Lid", bwb_id: "BWBR0004770", artikel: "3", lid: "1",
+    citeertitel: "Invorderingswet 1990", snapshot_id: "snapshot" },
+  segmenten: [{ bron_iri: "urn:rel", parent_iri: "urn:artikel3", type: "Lid", nummer: "1", label: "Lid 1",
+    tekst: "De ontvanger is verplicht de belasting te innen.", bron_hash: "hrel", volgorde: 1 }],
+  lagen: [{ id: "lr", bron_iri: "urn:rel", status: "in_review", revisie: 1 }],
+  elementen: [relEl("es", "Rechtssubject", "ontvanger", 3), relEl("eb", "Rechtsbetrekking", "verplicht", 16),
+    relEl("eo", "Rechtsobject", "belasting", 29)],
+  verwijzingen: [], dekking: {}, impliciet: rel.impliciet,
+  relaties: [
+    { id: "R2", type: "voorwerp", leesvorm: "heeft als voorwerp", volgorde: null, lifecycle: "human_approved", herkomst: "mens",
+      aangemaakt_door: "browser-test", laag_id: "lr", toelichting: "", beslissingen: [], veranderd: false,
+      van: relEp("eb", "verplicht", "Rechtsbetrekking"), naar: relEp("eo", "belasting", "Rechtsobject") },
+    { id: "R1", type: "plichthebbende", leesvorm: "is plichthebbende van", volgorde: null, lifecycle: "voorgesteld", herkomst: "agent",
+      laag_id: "lr", toelichting: "", beslissingen: [], veranderd: true,
+      van: relEp("es", "ontvanger", "Rechtssubject"), naar: relEp("eb", "verplicht", "Rechtsbetrekking") },
+    ...rel.relaties] });
 await page.route("**/api/**", async (route) => {
   const req = route.request(), url = new URL(req.url());
   if (url.pathname.startsWith("/api/auth/")) return route.continue();
@@ -88,6 +112,18 @@ await page.route("**/api/**", async (route) => {
     { type: "token", content: "Het element betreft de handelende instantie." },
     { type: "opgeslagen", run_id: "live", annotatie_slug: "" }, { type: "done" },
   ].map((event) => `data: ${JSON.stringify(event)}\n\n`).join("") });
+  if (url.pathname.endsWith("/weergave") && url.searchParams.get("bron_iri") === "urn:rel") return route.fulfill({ json: relView() });
+  if (/\/v2\/relaties\/[^/]+\/beslissing$/.test(url.pathname) && rel.eerste412) {
+    rel.eerste412 = false;
+    return route.fulfill({ status: 412, json: { detail: { fout: "revisie_conflict", bron_iri: "urn:rel", revisie: 2 } } });
+  }
+  if (url.pathname.endsWith("/v2/impliciet") && req.method() === "POST") {
+    const b = req.postDataJSON();
+    rel.impliciet.push({ id: "I9", klasse: "Rechtssubject", label: b.label, toelichting: b.toelichting, herkomst: "mens",
+      aangemaakt_door: "browser-test", laag_id: "lr" });
+    return route.fulfill({ status: 201, json: { impliciet: rel.impliciet.at(-1) } });
+  }
+  if (/\/v2\/(relaties|impliciet)(\/|$)/.test(url.pathname)) return route.fulfill({ json: {} });
   let body = [];
   // Het overzicht /annotaties: één annotatie (lid 2), weg zodra ze verwijderd is.
   if (url.pathname.endsWith("/node-lagen")) return route.fulfill({ json: verwijderd.has("urn:lid2") ? [] : [{
@@ -296,6 +332,66 @@ try {
   await kaart.waitFor({ state: "detached" });
   assert.deepEqual((await verzoek((r) => r.path.endsWith("/weergave/verwijder"), 2)).body,
     { bron_iri: "urn:lid2", snapshot_id: "snapshot", verwachte_revisies: { "urn:lid2": 1 } });
+
+  // Relaties (ADR-011): het blok in de kaart, een veranderde relatie bovenaan, beslissen, een 412 met opnieuw lezen,
+  // een impliciete partij en verbinden in beide richtingen.
+  await page.goto(`${base}/annotaties/node?bron_iri=urn:rel&snapshot_id=snapshot`);
+  await page.locator('[data-review-kaart="eb"]').click();
+  const blok = page.locator('[data-relaties="eb"]');
+  await blok.getByText("Een eindpunt is veranderd sinds deze relatie werd vastgelegd", { exact: false }).waitFor();
+  assert.deepEqual(await blok.locator("[data-relatie]").evaluateAll((rijen) => rijen.map((r) => r.getAttribute("data-relatie"))), ["R1", "R2"]);
+  await blok.getByText("heeft als plichthebbende", { exact: true }).waitFor();
+  await blok.getByText("voorstel van Lex", { exact: false }).waitFor();
+  await blok.getByText("door jou gelegd", { exact: false }).waitFor();
+  const weergaven = () => requests.filter((r) => r.path.endsWith("/weergave") && r.query.includes("urn%3Arel")).length;
+  const voor412 = weergaven();
+  const akkoord = blok.getByRole("button", { name: "Akkoord: heeft als plichthebbende ontvanger" });
+  await akkoord.click();
+  await blok.getByRole("button", { name: "Akkoord?" }).click();
+  await blok.getByText("intussen gewijzigd", { exact: false }).waitFor();
+  assert.ok(weergaven() > voor412, "na een 412 leest het paneel de weergave opnieuw");
+  await akkoord.click();
+  await blok.getByRole("button", { name: "Akkoord?" }).click();
+  const isBeslissing = (r) => /\/relaties\/R1\/beslissing$/.test(r.path);
+  const goed = await verzoek(isBeslissing, 2);
+  assert.deepEqual(goed.body, { type: "approve", comment: "", verwachte_revisies: { "urn:rel": 1 } });
+  await blok.getByRole("button", { name: "Wijs af: heeft als plichthebbende ontvanger" }).click();
+  await blok.getByLabel("Reden om “heeft als plichthebbende ontvanger” af te wijzen").fill("De ontvanger is hier geen partij");
+  await blok.getByRole("button", { name: "Afwijzen", exact: true }).click();
+  assert.deepEqual((await verzoek(isBeslissing, 3)).body,
+    { type: "reject", comment: "De ontvanger is hier geen partij", verwachte_revisies: { "urn:rel": 1 } });
+  // Een eigen, beoordeelde relatie: heropenen en wissen.
+  await blok.getByRole("button", { name: "Heropen: heeft als voorwerp belasting" }).click();
+  assert.equal((await verzoek((r) => r.path.endsWith("/relaties/R2/beslissing"))).body.type, "heropen");
+  await blok.getByRole("button", { name: "Wis relatie: heeft als voorwerp belasting" }).click();
+  await blok.getByRole("button", { name: "Wissen?" }).click();
+  assert.deepEqual((await verzoek((r) => r.path.endsWith("/relaties/R2/wis"))).body, { verwachte_revisies: { "urn:rel": 1 } });
+  assert.equal(await page.locator('[data-relaties="eb"] [data-relatie="R1"]').getByRole("button", { name: /^Wis relatie/ }).count(), 0);
+  // Een impliciete partij bij de bepaling: label en verplichte toelichting.
+  const partijen = page.locator("[data-impliciet]");
+  await partijen.getByRole("button", { name: "Partij toevoegen" }).click();
+  await partijen.getByLabel("Naam van de partij").fill("de belastingschuldige");
+  assert.equal(await partijen.getByRole("button", { name: "Toevoegen", exact: true }).isDisabled(), true);
+  await partijen.getByLabel("Waaruit volgt de partij").fill("Wie de belasting verschuldigd is, volgt uit artikel 2");
+  await partijen.getByRole("button", { name: "Toevoegen", exact: true }).click();
+  assert.deepEqual((await verzoek((r) => r.path.endsWith("/v2/impliciet") && r.method === "POST")).body, {
+    doel: { bron_iri: "urn:rel" }, snapshot_id: "snapshot", label: "de belastingschuldige",
+    toelichting: "Wie de belasting verschuldigd is, volgt uit artikel 2", verwachte_revisies: { "urn:rel": 1 } });
+  await partijen.getByText("de belastingschuldige", { exact: true }).waitFor();
+  // Verbind met…: de partij is nu kiesbaar; het type komt uit de catalogus, in beide richtingen.
+  await blok.getByRole("button", { name: "Verbind met…" }).click();
+  await blok.getByLabel("Andere kant").selectOption("impliciet:I9");
+  const typen = await blok.getByLabel("Soort relatie").locator("option").allTextContents();
+  assert.ok(typen.includes("is rechthebbende van") && typen.includes("is plichthebbende van"), typen.join(", "));
+  await blok.getByLabel("Soort relatie").selectOption("in:rechthebbende");
+  await blok.locator("[data-verbind-zin]").getByText("de belastingschuldige is rechthebbende van “verplicht”", { exact: false }).waitFor();
+  assert.equal(await blok.getByLabel("Plek in de volgorde").count(), 0);
+  await blok.getByRole("button", { name: "Verbinden", exact: true }).click();
+  assert.deepEqual((await verzoek((r) => r.path.endsWith("/v2/relaties") && r.method === "POST")).body, {
+    van: { soort: "impliciet", id: "I9" }, naar: { soort: "element", id: "eb" }, type: "rechthebbende", volgorde: null,
+    toelichting: "", verwachte_revisies: { "urn:rel": 1 } });
+  await toetsToegankelijkheid(page, "annotatiepaneel met relaties");
+
   assert.deepEqual(errors, []);
-  console.log("Browser OK: vertrouwd paneel op bronnodes, verwijderen met bevestiging, lidselectie, twee doelen, herladen toolspoor, Unicode/multiankers, klasse via palet, Vraag Lex/live SSE, mutatie/exportcontract, samenvatting van Lex na herladen en verwijderen vanuit de lijst.");
+  console.log("Browser OK: relaties in het paneel (zien, beslissen, 412, impliciete partij, verbinden); vertrouwd paneel op bronnodes, verwijderen met bevestiging, lidselectie, twee doelen, herladen toolspoor, Unicode/multiankers, klasse via palet, Vraag Lex/live SSE, mutatie/exportcontract, samenvatting van Lex na herladen en verwijderen vanuit de lijst.");
 } finally { await browser.close(); }

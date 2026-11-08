@@ -74,7 +74,9 @@ Het besluit staat in [ADR-011](adr-011-relaties-tussen-markeringen.md), de typen
   - `POST impliciet/{id}/wis`.
 
   De BFF laat `relaties` en `impliciet` door.
-- **Nog niet:** de projectie naar de graaf (3D) en voorstellen uit de keten (4C).
+- **In de werkplek** (4A): het blok *Relaties* per element in het annotatiepaneel, *Verbind met…* en de impliciete
+  partijen bij de bepaling (`frontend/CLAUDE.md` §*De reviewkaart*). Bulk neemt relaties nog niet mee.
+- **Nog niet:** voorstellen uit de keten (4C).
 
 ## Echte leestoegang en uitvoeringsspoor
 
