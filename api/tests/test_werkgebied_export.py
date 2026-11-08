@@ -832,14 +832,16 @@ async def test_een_verwijzing_naar_een_artikel_waarvan_een_lid_in_het_dossier_st
 async def test_verwijzingen_uit_de_graaf_zijn_ontdubbeld_en_gesorteerd(monkeypatch):
     rijen = [{"van": "urn:bwb:BWBR1:artikel:2", "naar": "urn:bwb:BWBR2:artikel:5", "anker": "a", "vindplaats": "Artikel 5", "vanlabel": "Artikel 2"},
              {"van": "urn:bwb:BWBR1:artikel:1", "naar": "urn:bwb:BWBR2:artikel:5", "anker": "b", "doellabel": "art. 5 (BWBR2)"},
+             {"van": "urn:bwb:BWBR1:artikel:1", "naar": "urn:bwb:BWBR0002448", "anker": "c", "doellabel": "BWBR0002448"},
              {"van": "urn:bwb:BWBR1:artikel:2", "naar": "urn:bwb:BWBR2:artikel:5", "anker": "a", "vindplaats": "Artikel 5", "regeling": "Wet"}]
 
     async def select(_client, q):
         return rijen if "heeftVerwijzing" in q else []
     monkeypatch.setattr(bepaling_graaf, "sparql_select", select)
     uit = await ECHTE_LEES([], [], ["urn:bwb:BWBR1:artikel:1", "urn:bwb:BWBR1:artikel:2"])
-    assert [(v["van"][-1], v["label"], v["regeling"]) for v in uit["verwijzingen"]] == [("1", "art. 5 (BWBR2)", ""), ("2", "Artikel 5", "Wet")]
-    assert [v["van_label"] for v in uit["verwijzingen"]] == ["", "Artikel 2"]    # de bron zoals de graaf haar noemt (Leidraad: id:-IRI)
+    assert [(v["van"][-1], v["label"], v["regeling"]) for v in uit["verwijzingen"]] == [
+        ("1", "", ""), ("1", "art. 5 (BWBR2)", ""), ("2", "Artikel 5", "Wet")]     # een kaal BWB-id als doelLabel is geen naam
+    assert [v["van_label"] for v in uit["verwijzingen"]] == ["", "", "Artikel 2"]    # de bron zoals de graaf haar noemt (Leidraad: id:-IRI)
 
 
 
@@ -898,6 +900,8 @@ async def test_een_doel_buiten_de_graaf_zegt_dat(monkeypatch):
 def test_het_doel_van_een_verwijzing_heet_een_keer_en_nooit_als_kale_iri():
     """Zoals het paneel (#1083): een regeling zonder naam in de graaf krijgt het BWB-id, en een naam staat er niet dubbel."""
     assert export._doel_label("urn:bwb:BWBR0043423", "", "") == "BWBR0043423"
+    assert export._doel_label("urn:bwb:BWBR0002448", "", "", "Algemene termijnenwet") == "Algemene termijnenwet"
+    assert export._doel_label("urn:bwb:BWBR0005537:artikel:3", "", "", "artikel 3 van de Awb").startswith("Artikel 3")
     assert export._doel_label("urn:bwb:BWBR0002320", "Algemene wet inzake rijksbelastingen", "BWBR0002320") == (
         "Algemene wet inzake rijksbelastingen")                     # zo staat het op acceptatie (art. 36 lid 1 Iw)
     assert export._doel_label("urn:bwb:BWBR0002320", "Algemene wet inzake rijksbelastingen",
