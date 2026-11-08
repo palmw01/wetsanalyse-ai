@@ -20,7 +20,8 @@ from bronmodel import BronFout, BronKeuze, onderdelen_om_te_kiezen
 
 from ..agent_common import truncate
 from ..annotatie import aanduiding_in_woorden
-from ..bron_annotatie import controleer_hergebruik, doel_event, lees_bron, lokale_elementen, stand_per_optie
+from ..bron_annotatie import (controleer_hergebruik, doel_event, lees_bron, lokale_elementen, lokale_relaties,
+                              stand_per_optie)
 from ..aanwijzing import lees_aanwijzing, melding_meerdere
 from ..bronregister import bij
 from ..focus import na_annotatie
@@ -198,6 +199,10 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
                                               uitkomst.voorstellen, uitkomst.fusie.bijdragen),
                "detectoren": [list(d) for d in uitkomst.fusie.detectoren],
                "overgeslagen": [o.model_dump() for o in uitkomst.fusie.overgeslagen]}
+    if b.settings.relatie_voorstellen:
+        # Proefvlag (ADR-011): de voorstellen tussen de voorstellen, met ankers als eindpunten. Alleen met de vlag
+        # een veld, zodat de analyse zonder vlag bitgelijk blijft.
+        analyse["relaties"] = uitkomst.relaties
     if not uitkomst.voorstellen:
         leeg = f"Ik vond geen JAS-elementen om te markeren in {plek}."
         writer({"type": "token", "content": leeg})
@@ -214,6 +219,7 @@ def _instellingen(b: Bouw, state: State) -> dict[str, Any]:
             "classifier_temperature": s.classifier_temperature, "classifier_spankeuze": s.classifier_spankeuze,
             "classifier_parallel": s.classifier_parallel,
             "deterministisch_accepteren": s.deterministisch_accepteren, "gerichte_review": s.gerichte_review,
+            "relatie_voorstellen": s.relatie_voorstellen,
             "meting": (state.get("analyse") or {}).get("meting", {})}
 
 
@@ -263,6 +269,11 @@ def emit_node(b: Bouw, state: State) -> dict[str, Any]:
 
     for v in voorstellen:
         writer({"type": "element", "element": v})
+    # Relatievoorstellen (ADR-011, proefvlag): na de elementen, met de ankers van beide eindpunten. Alleen wat naar
+    # een uitgestuurd element wijst gaat mee; de api zet de ankers na het opslaan om naar element-id's.
+    relaties = lokale_relaties((state.get("analyse") or {}).get("relaties") or [], voorstellen, state)
+    if relaties:
+        writer({"type": "relaties", "relaties": relaties})
 
     plek = f"artikel {aanduiding}" + (f" lid {doel['lid']}" if doel.get("lid") else "")
     # Hoogstens vier zinnen, alles uit de voorstellen zelf – geen modelaanroep, niets verzonnen.

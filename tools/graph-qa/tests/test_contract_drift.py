@@ -26,7 +26,9 @@ CONTRACT = Path(__file__).resolve().parents[3] / "api" / "app" / "annotatie_v2_c
 #: Gedeelde velden met een bewust verschil dat de api zelf afhandelt: "" betekent daar "geen id".
 OPGEVANGEN = {("AnnotatieVoorstel", "id")}
 
-PAREN = [("AnnotatieVoorstel", "Element")]
+PAREN = [("AnnotatieVoorstel", "Element"), ("RelatieVoorstel", "RelatieVoorstel")]
+#: Ankers als dicts aan de agentkant, getypeerd (`list[Anker]`) bij de api; de roundtrips hieronder bewaken de grens.
+ANKERVELDEN = {("AnnotatieVoorstel", "ankers"), ("RelatieVoorstel", "van_ankers"), ("RelatieVoorstel", "naar_ankers")}
 
 
 def _api_velden(klasse: str, bestand: Path = CONTRACT) -> dict[str, str]:
@@ -67,9 +69,9 @@ def test_geen_stil_verschil_met_het_api_contract(agent_klasse, api_klasse):
     api = _api_velden(api_klasse)
 
     for naam, veld in agent.items():
-        if (agent_klasse, naam) == ("AnnotatieVoorstel", "ankers"):
+        if (agent_klasse, naam) in ANKERVELDEN:
             # Getypeerde multiankers aan de api-kant; de runtime-roundtrip hieronder bewaakt deze grens.
-            assert _vorm(veld.annotation) == "list[dict]"
+            assert _vorm(veld.annotation) == "list[dict]" and _vorm(api[naam]) == "list[Anker]"
             continue
         if (agent_klasse, naam) in OPGEVANGEN or naam not in api:
             continue
@@ -98,6 +100,25 @@ def test_v2_multiankers_blijven_getypeerd_en_behouden_aan_de_api_grens():
     assert actual["klasse"] == "Rechtsfeit" and actual["tekst"] == "😀 test"
     with pytest.raises(ValueError):
         module.Element.model_validate({"klasse": "Rechtsfeit", "tekst": "x", "ankers": [{"bron_iri": "urn:x"}]})
+
+
+@pytest.mark.skipif(not CONTRACT.exists(), reason="api-contract niet beschikbaar (los uitgecheckt)")
+def test_een_relatievoorstel_van_de_keten_haalt_het_api_contract():
+    """Wat `jas_pipeline/relaties.py` maakt, gaat via `relatie_naar_contract` door het echte api-model, met precies
+    dezelfde velden: een onbekend veld zou pydantic daar stil laten vallen."""
+    import importlib.util
+    import sys
+    from agent.wetsanalyse_api import relatie_naar_contract
+    spec = importlib.util.spec_from_file_location("v2_contract_relatie", CONTRACT)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    anker = {"bron_iri": "urn:x", "start": 0, "eind": 3, "tekst": "abc", "bron_hash": "h"}
+    voorstel = {"van_ankers": [anker], "naar_ankers": [{**anker, "start": 1}], "type": "operand", "volgorde": 1,
+                "spoor": {"door": "regel", "regel": "REL_OPERAND_WOORDVOLGORDE"}}
+    contract = relatie_naar_contract(voorstel)
+    assert set(contract) == set(module.RelatieVoorstel.model_fields) == set(am.RelatieVoorstel.model_fields)
+    assert module.RelatieVoorstel.model_validate(contract).model_dump() == voorstel
 
 
 def test_de_vertaling_dekt_alles_wat_in_opgevangen_staat():

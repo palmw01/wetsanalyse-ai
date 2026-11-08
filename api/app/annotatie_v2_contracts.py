@@ -108,6 +108,18 @@ class KandidaatBeslissing(BaseModel):
     classifier_reden: str = Field(default="", max_length=200)
 
 
+class RelatieVoorstel(BaseModel):
+    """Een relatie die de keten voorstelt (ADR-011, proefvlag `RELATIE_VOORSTELLEN` in graph-qa). Een eindpunt wijst de
+    agent aan met de ankers van zijn voorstel, nooit met een element-id: de api zet die na het opslaan van de elementen
+    om naar het element in de batch met precies die ankers (`annotatie_v2_store.batch`)."""
+    van_ankers: list[Anker] = Field(min_length=1, max_length=100)
+    naar_ankers: list[Anker] = Field(min_length=1, max_length=100)
+    type: str = Field(min_length=1, max_length=32)
+    volgorde: int | None = Field(default=None, ge=1, le=99)
+    # Herkomst per relatie: regel, versie, de voorstel-id's van de keten en wat de regel zag (UD-pad e.d.).
+    spoor: dict = Field(default_factory=dict)
+
+
 class Batch(BaseModel):
     batch_id: str = Field(min_length=1, max_length=128)
     doel: Doel
@@ -117,6 +129,7 @@ class Batch(BaseModel):
     dekking: Dekking = Field(default_factory=Dekking)
     run: dict = Field(default_factory=dict)
     beslissingen: list[KandidaatBeslissing] = Field(default_factory=list, max_length=5000)
+    relaties: list[RelatieVoorstel] = Field(default_factory=list, max_length=5000)
 
 
 class Beslissing(BaseModel):

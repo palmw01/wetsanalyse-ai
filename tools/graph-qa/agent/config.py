@@ -135,6 +135,9 @@ class Settings(BaseModel):
     # Directe ouderteksten uit de graaf als apart contextblok voor classifier en reviewer. Context is
     # bewijs voor duiding, nooit een annotatiedoel of offsetruimte (broncontext.py).
     broncontext: bool = True
+    # Proefvlag (ADR-011): de keten stelt relaties tussen haar voorstellen voor, deterministisch en zonder model
+    # (`jas_pipeline/relaties.py`). Standaard uit; uit = de uitkomst van de keten is bitgelijk aan zonder deze code.
+    relatie_voorstellen: bool = False
 
     # Geheugen (LangGraph-checkpointer). Voorrang: `checkpoint_db_url` (Postgres, gedeeld → horizontaal
     # veilig) → anders `checkpoint_db_path` (durable AsyncSqliteSaver, per-instance) → anders in-memory.
@@ -209,6 +212,7 @@ class Settings(BaseModel):
             "gerichte_review": e.get("GERICHTE_REVIEW"),
             "classifier_spankeuze": e.get("CLASSIFIER_SPANKEUZE"),
             "broncontext": e.get("BRONCONTEXT"),
+            "relatie_voorstellen": e.get("RELATIE_VOORSTELLEN"),
             "grounding_correct": e.get("GROUNDING_CORRECT"),
             "prompt_caching": e.get("PROMPT_CACHING"),
             "llm_timeout_seconds": e.get("LLM_TIMEOUT_SECONDS"),

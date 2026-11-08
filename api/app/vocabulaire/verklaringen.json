@@ -868,6 +868,32 @@
       "uitleg": "'Tweemaal', 'het drievoudige': een vermenigvuldiging."
     }
   },
+  "relatie": {
+    "REL_INVOER_FUNCTIE": {
+      "naam": "Invoer van de berekening",
+      "uitleg": "De afleidingsregel noemt waaruit ze rekent ('… als er maanden overblijven'); de markeringen op die plek binnen de regel zijn haar invoer, zonder volgorde."
+    },
+    "REL_OPERAND_WOORDVOLGORDE": {
+      "naam": "Operand naast de operator",
+      "uitleg": "De markering direct links (plek 1) of rechts (plek 2) van de operator, binnen dezelfde voorwaarde of regel, is een operand. De woordvolgorde geeft de plek; een andere operator ertussen breekt de reeks."
+    },
+    "REL_OPERATOR_IN_NESTING": {
+      "naam": "Operator in de voorwaarde of regel",
+      "uitleg": "De operator staat binnen een voorwaarde of afleidingsregel; de binnenste daarvan gebruikt hem."
+    },
+    "REL_UITVOER_FUNCTIE": {
+      "naam": "Uitkomst van de berekening",
+      "uitleg": "De afleidingsregel noemt wat er uitkomt ('zoveel termijnen als …'); de enige markering op die plek binnen de regel is haar uitvoer."
+    },
+    "REL_VOORWAARDE_AANHECHTING": {
+      "naam": "Voorwaarde bij het hoofdpredicaat",
+      "uitleg": "Een voorwaardelijke bijzin ('indien', 'als', 'tenzij' …) hangt in de zinsontleding aan het hoofdpredicaat; de enige rechtsbetrekking of afleidingsregel die dat predicaat draagt, geldt onder die voorwaarde."
+    },
+    "REL_WAARDE_NESTING": {
+      "naam": "Waarde binnen de grootheid",
+      "uitleg": "Een parameter- of variabelewaarde staat binnen een parameter, een variabele of een termijn die een parameter verbijzondert; de binnenste is de grootheid waarvan ze de waarde is."
+    }
+  },
   "resolutie": {
     "R-ABSTAIN-CHANGE": {
       "naam": "Reviewer koos een klasse",
@@ -982,5 +1008,5 @@
       "uitleg": "Waarschuwing: hetzelfde fragment kreeg twee klassen."
     }
   },
-  "vocabulaire_versie": "12f0e684e31c"
+  "vocabulaire_versie": "348417810de3"
 }

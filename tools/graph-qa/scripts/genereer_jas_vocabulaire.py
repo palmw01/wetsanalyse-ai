@@ -46,7 +46,9 @@ SCHEMA = URIRef("urn:jas-ns:schema:jas-" + JAS_VERSIE)
 # Per sectie van de verklaringen een eigen IRI-ruimte en type.
 SECTIE_IRI = {"detectie": ("code", JAS.Detectiecode), "besluit": ("besluit", JAS.Besluitwijze),
               "twijfel": ("twijfel", JAS.Twijfelreden), "resolutie": ("resolutie", JAS.Resolutieregel),
-              "validatie": ("validatie", JAS.Validatiecode), "classifier": ("classifier", JAS.Classifiercode)}
+              "validatie": ("validatie", JAS.Validatiecode), "classifier": ("classifier", JAS.Classifiercode),
+              # Niet `relatie:`: daar staan de relatietypen zelf (ADR-011).
+              "relatie": ("relatieregel", JAS.Relatieregel)}
 
 
 def slug(naam: str) -> str:

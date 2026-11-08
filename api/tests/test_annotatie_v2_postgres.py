@@ -113,3 +113,22 @@ async def test_twee_relaties_op_dezelfde_drager_tegelijk_geven_een_412_en_geen_v
     assert [r.status_code for r in results if isinstance(r, HTTPException)] == [412]
     view = await store.weergave(s1)
     assert len(view["relaties"]) == 1 and view["lagen"][0]["revisie"] == 2
+
+
+async def test_een_relatievoorstel_en_dezelfde_relatie_van_de_jurist_tegelijk_geven_een_rij():
+    """Het id volgt uit de inhoud, en batch en `leg` delen het schrijfslot (ADR-011, 4C): wie ook wint, er staat één
+    relatie, nooit een IntegrityError of een dubbele rij."""
+    import test_relatievoorstellen_batch as t
+    from app import annotatie_v2_relaties as rel
+    from app.annotatie_v2_contracts import RelatieInvoer
+
+    await store.batch(t.batch("b1", []), t.SNAP, "lex")
+    jurist = RelatieInvoer(van={"soort": "element", "id": "zin"}, naar={"soort": "element", "id": "aanslag"},
+                           type="voorwerp", verwachte_revisies={t.ONE: 1})
+    results = await asyncio.gather(store.batch(t.batch("b2", [t.voorstel(t.ZIN, t.AANSLAG, "voorwerp")], revisie=1),
+                                               t.SNAP, "lex"),
+                                   rel.leg(jurist, "jurist"), return_exceptions=True)
+    assert not [r for r in results if isinstance(r, Exception) and not isinstance(r, HTTPException)]
+    async with db.get_engine().connect() as conn:
+        rijen = (await conn.execute(select(db.annotatie_v2_relaties.c.id))).scalars().all()
+    assert len(rijen) == 1

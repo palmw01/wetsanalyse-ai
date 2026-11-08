@@ -602,6 +602,18 @@ reviewer (`review.py`), de resolver (`resolver.py`), dekking, beslisregister en 
   weigert een code zonder verklaring en een verklaring zonder code. Draai daarna
   `python scripts/genereer_jas_vocabulaire.py`: die schrijft de vocabulairegraaf en `verklaringen.json`
   naar `api/app/vocabulaire/`, bewaakt door `tests/test_vocabulaire_drift.py`.
+- **Relatievoorstellen, achter een proefvlag** (`RELATIE_VOORSTELLEN`, standaard uit; ADR-011 §*Voorstellen komen
+  later*). `jas_pipeline/relaties.py` stelt na de keten relaties tussen haar voorstellen voor, zonder model, met vier
+  regels: `uitvoer`/`invoer` uit de spans van `CALCULATION_QUANTITY` (`REL_UITVOER_FUNCTIE`, `REL_INVOER_FUNCTIE`),
+  `waarde` uit de nesting met subtype (`REL_WAARDE_NESTING`), `operator_in` en `operand` met de woordvolgorde als
+  `volgorde` (`REL_OPERATOR_IN_NESTING`, `REL_OPERAND_WOORDVOLGORDE`) en `voorwaarde` uit `advcl`+`mark` aan het
+  hoofdpredicaat (`REL_VOORWAARDE_AANHECHTING`). Bij twijfel geen voorstel; elk voorstel gaat door de catalogus
+  (`agent/jas_relaties.py`, gegenereerd door `scripts/genereer_jas_relaties.py`, dezelfde Python als de api). Een
+  eindpunt is de lijst ankers van een voorstel; de api zet die om naar het element-id. Zonder vlag is de uitkomst
+  bitgelijk (geen veld, geen fase, geen meting; `tests/test_relatievoorstellen.py`). Met vlag: `Uitkomst.relaties`,
+  `meting.relaties`, `analyse.relaties`, één `relaties`-event na de elementen (`bron_annotatie.lokale_relaties`) en
+  `relaties` in de batch. De vlag staat in `run.instellingen`. Kenmerk, tijd en rollen doet de keten nog niet. Een regel
+  krijgt een code in `verklaringen.yaml` (sectie `relatie`) en vier testsoorten in `tests/test_relatievoorstellen.py`.
 - **De klassenduiding komt uit de skill.** Het JAS_KLASSEN-blok in `agent/jas_klassen.py` en
   `agent/methodepakket.py` worden gegenereerd door `scripts/genereer_jas_klassen.py` (CI draait
   `--check`), bewaakt door `tests/test_methode_drift.py`. Bewerk de markdown in

@@ -975,6 +975,36 @@
     jas:naarKlasse <urn:jas-ns:klasse:Rechtsbetrekking> ;
     jas:vanKlasse <urn:jas-ns:klasse:Rechtsfeit> .
 
+<urn:jas-ns:relatieregel:REL_INVOER_FUNCTIE> a jas:Relatieregel ;
+    skos:definition "De afleidingsregel noemt waaruit ze rekent ('… als er maanden overblijven'); de markeringen op die plek binnen de regel zijn haar invoer, zonder volgorde."@nl ;
+    skos:prefLabel "Invoer van de berekening"@nl ;
+    jas:codeWaarde "REL_INVOER_FUNCTIE" .
+
+<urn:jas-ns:relatieregel:REL_OPERAND_WOORDVOLGORDE> a jas:Relatieregel ;
+    skos:definition "De markering direct links (plek 1) of rechts (plek 2) van de operator, binnen dezelfde voorwaarde of regel, is een operand. De woordvolgorde geeft de plek; een andere operator ertussen breekt de reeks."@nl ;
+    skos:prefLabel "Operand naast de operator"@nl ;
+    jas:codeWaarde "REL_OPERAND_WOORDVOLGORDE" .
+
+<urn:jas-ns:relatieregel:REL_OPERATOR_IN_NESTING> a jas:Relatieregel ;
+    skos:definition "De operator staat binnen een voorwaarde of afleidingsregel; de binnenste daarvan gebruikt hem."@nl ;
+    skos:prefLabel "Operator in de voorwaarde of regel"@nl ;
+    jas:codeWaarde "REL_OPERATOR_IN_NESTING" .
+
+<urn:jas-ns:relatieregel:REL_UITVOER_FUNCTIE> a jas:Relatieregel ;
+    skos:definition "De afleidingsregel noemt wat er uitkomt ('zoveel termijnen als …'); de enige markering op die plek binnen de regel is haar uitvoer."@nl ;
+    skos:prefLabel "Uitkomst van de berekening"@nl ;
+    jas:codeWaarde "REL_UITVOER_FUNCTIE" .
+
+<urn:jas-ns:relatieregel:REL_VOORWAARDE_AANHECHTING> a jas:Relatieregel ;
+    skos:definition "Een voorwaardelijke bijzin ('indien', 'als', 'tenzij' …) hangt in de zinsontleding aan het hoofdpredicaat; de enige rechtsbetrekking of afleidingsregel die dat predicaat draagt, geldt onder die voorwaarde."@nl ;
+    skos:prefLabel "Voorwaarde bij het hoofdpredicaat"@nl ;
+    jas:codeWaarde "REL_VOORWAARDE_AANHECHTING" .
+
+<urn:jas-ns:relatieregel:REL_WAARDE_NESTING> a jas:Relatieregel ;
+    skos:definition "Een parameter- of variabelewaarde staat binnen een parameter, een variabele of een termijn die een parameter verbijzondert; de binnenste is de grootheid waarvan ze de waarde is."@nl ;
+    skos:prefLabel "Waarde binnen de grootheid"@nl ;
+    jas:codeWaarde "REL_WAARDE_NESTING" .
+
 <urn:jas-ns:resolutie:R-ABSTAIN-CHANGE> a jas:Resolutieregel ;
     skos:definition "Het model gaf geen keuze; de reviewer koos een van de toegestane klassen."@nl ;
     skos:prefLabel "Reviewer koos een klasse"@nl ;
@@ -1477,5 +1507,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "12f0e684e31c" .
+    jas:vocabulaireVersie "348417810de3" .
 

@@ -422,6 +422,17 @@ class AgentRun(BaseModel):
     tijd: datetime | None = None
 
 
+class RelatieVoorstel(BaseModel):
+    """Een relatievoorstel van de keten (ADR-011, `jas_pipeline/relaties.py`), in de vorm van `RelatieVoorstel` bij de
+    api. Eindpunten zijn de ankers van een voorstel, nooit een element-id; de api zet ze na het opslaan om."""
+
+    van_ankers: list[dict[str, Any]]
+    naar_ankers: list[dict[str, Any]]
+    type: str
+    volgorde: int | None = None
+    spoor: dict[str, Any] = Field(default_factory=dict)
+
+
 class AnnotatieVoorstel(BaseModel):
     """Eén door de agent voorgesteld JAS-annotatie-element voor een artikel.
 

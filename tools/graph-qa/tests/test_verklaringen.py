@@ -38,6 +38,7 @@ def _uitgegeven() -> dict[str, set[str]]:
         "validatie": set(re.findall(r'"([VW]_[A-Z_]+)"', _bron("validatie.py"))),
         "classifier": set(re.findall(r'"(CLASSIFIER_[A-Z_]+)', python)) - {"CLASSIFIER_ABSTAIN"}
                       | {"VALIDATION_ERROR"},
+        "relatie": set(re.findall(r'^REL_[A-Z_]+ = "(REL_[A-Z_]+)"', _bron("relaties.py"), re.M)),
     }
 
 

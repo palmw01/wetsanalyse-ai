@@ -52,6 +52,13 @@ def naar_contract(element: dict[str, Any]) -> dict[str, Any]:
     return _leeg_is_niets(element)
 
 
+def relatie_naar_contract(relatie: dict[str, Any]) -> dict[str, Any]:
+    """Eén relatievoorstel (ADR-011) in de vorm die de api verwacht: eindpunten als ankers, nooit als element-id.
+    `RelatieVoorstel` valideert de vorm; `tests/test_contract_drift.py` houdt hem gelijk aan de api."""
+    from .models import RelatieVoorstel
+    return RelatieVoorstel.model_validate(relatie).model_dump()
+
+
 class WetsanalyseApiFout(Exception):
     """De uitkomst kon niet worden vastgelegd. Expliciet, want stil verliezen is het ergste."""
 
@@ -142,6 +149,8 @@ class WetsanalyseApi:
 
     async def zet_bronnode_batch(self, payload: dict[str, Any]) -> dict[str, Any]:
         data = {**payload, "elementen": [naar_contract(e) for e in payload.get("elementen", [])]}
+        if payload.get("relaties"):
+            data["relaties"] = [relatie_naar_contract(r) for r in payload["relaties"]]
         return await self._post("/v1/annotatie/lagen/batch", data, herhaal=bool(data.get("batch_id")))
 
     # -- begrippen: voorstellen van Lex (spoor D, levering 3a) --------------------------------------
