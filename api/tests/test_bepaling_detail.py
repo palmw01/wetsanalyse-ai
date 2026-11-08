@@ -98,12 +98,14 @@ def test_een_regeling_in_een_telling_staat_er_een_keer_en_nooit_als_kale_iri():
 
 def test_een_bwb_id_als_doellabel_is_geen_naam():
     """Acceptatie 8 nov 2026: de graaf draagt bij de AWR en de Algemene termijnenwet `doelLabel` "BWBR…"; het paneel toonde
-    dat in plaats van de citeertitel of het anker."""
+    dat in plaats van de citeertitel of het anker. De gedeelde lezer laat zo'n label weg (`bepaling_graaf._doellabel`)."""
+    def label(bwb):
+        return bepaling_detail.bepaling_graaf._doellabel({"doellabel": bwb})
     graaf = GRAAF | {"verwijzingen": [
-        v(f"{A36}:lid:1", "urn:bwb:BWBR0002320", "Algemene wet inzake rijksbelastingen", label="BWBR0002320",
+        v(f"{A36}:lid:1", "urn:bwb:BWBR0002320", "Algemene wet inzake rijksbelastingen", label=label("BWBR0002320"),
           regeling="Algemene wet inzake rijksbelastingen"),
-        v(f"{A36}:lid:10", "urn:bwb:BWBR0002448", "Algemene termijnenwet", label="BWBR0002448", in_graaf=False),
-        v(f"{A36}:lid:2", "urn:bwb:BWBR0099999", "", label="BWBR0099999", in_graaf=False)]}
+        v(f"{A36}:lid:10", "urn:bwb:BWBR0002448", "Algemene termijnenwet", label=label("BWBR0002448"), in_graaf=False),
+        v(f"{A36}:lid:2", "urn:bwb:BWBR0099999", "", label=label("BWBR0099999"), in_graaf=False)]}
     d = detail(graaf=graaf)
     assert [(x.naar.label, x.naar.regeling) for x in d.verwijst_naar] == [
         ("Algemene wet inzake rijksbelastingen", ""), ("BWBR0099999", ""), ("Algemene termijnenwet", "")]

@@ -111,10 +111,9 @@ def detail_uit(iri: str, uit: list[dict], reg: list[dict], inkomend_rijen: list[
         if not van or not naar or (van, naar, anker) in uitgaand:
             continue
         doel = bron_vindplaats(naar)
-        # De importer zet bij een regeling die niet in de graaf staat het BWB-id als `doelLabel`: dat is geen naam. Dan wint
-        # de citeertitel of het anker ("Algemene termijnenwet"), en pas daarna het BWB-id (`_vindplaats`).
-        label = "" if r.get("label") == _bwb(naar) else r.get("label") or ""
-        label = label or (anker if not (doel and doel.label) else "")
+        # Zonder naam uit de graaf (`lees` laat een kaal BWB-id als `doelLabel` weg) wint het anker ("Algemene termijnenwet"),
+        # dan de citeertitel en pas daarna het BWB-id (`_vindplaats`).
+        label = r.get("label") or (anker if not (doel and doel.label) else "")
         regelingen = citeertitels | ({_bwb(naar): r["regeling"]} if r.get("regeling") and _bwb(naar) else {})
         uitgaand[(van, naar, anker)] = Verwijzing(van=_vindplaats(van, r.get("van_label", ""), citeertitels),
                                                   naar=_vindplaats(naar, label, regelingen), anker=anker,
