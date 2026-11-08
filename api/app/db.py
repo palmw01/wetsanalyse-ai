@@ -318,7 +318,11 @@ werkgebied_bronselecties = Table("werkgebied_bronselecties", metadata,
     Column("bron_hash", String(64), nullable=False, default=""),
     Column("toegevoegd_door", String(64), nullable=False),
     Column("toegevoegd", _DT, nullable=False),
-    Column("verwijderd", _DT, nullable=True))
+    Column("verwijderd", _DT, nullable=True),
+    # Wie de bepaling voorstelde (WA TRM H1, 8 nov 2026): `lex` (een kandidaat uit de zoeker), `analist` (zelf
+    # genoemd of zelf toegevoegd) of leeg (vóór dit veld). Wie besloot staat in `toegevoegd_door`; de reden is wat de
+    # analist schreef, nooit een standaardzin.
+    Column("voorgesteld_door", String(16), nullable=False, default="", server_default=""))
 werkgebied_audit = Table("werkgebied_audit", metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("werkgebied_id", String(64), nullable=False),
@@ -430,7 +434,9 @@ werkgebied_deelvraag_koppelingen = Table("werkgebied_deelvraag_koppelingen", met
     Column("gekoppeld", _DT, nullable=False),
     # Bij een bron (spoor J): de rol bij díé deelvraag – `analyseren` of `context`. Leeg = de rol van de
     # selectie. Zo is één bepaling kernbron bij de ene deelvraag en contextbron bij de andere.
-    Column("rol", String(16), nullable=False, default="", server_default=""))
+    Column("rol", String(16), nullable=False, default="", server_default=""),
+    # De reden bij díé deelvraag, zoals de analist hem gaf bij opnemen; leeg = geen reden gegeven.
+    Column("reden", Text, nullable=False, default="", server_default=""))
 
 # --- Bronselectie per deelvraag (spoor J) --------------------------------------
 # De voortgang van de bronselectie, per deelvraag (`deelvraag_id` leeg = de analysevraag van een werkgebied

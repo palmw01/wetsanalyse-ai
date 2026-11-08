@@ -8,7 +8,9 @@
  *  - een vermelding die een andere regeling noemt dan de bron, krijgt geen citatie-chip; de juiste wel, ook
  *    live: `parseBronnen` moet de naam van de regeling en de afkortingen doorlaten;
  *  - een sjabloon staat als blokken in de tekst, zonder kaart en zonder bronnenlijst; een ongeldig sjabloon valt terug
- *    op `tekst`.
+ *    op `tekst`;
+ *  - een bron naast de wet: een tabel als tabel met kolommen (scrolt op een telefoon in haar eigen vak), een voetnoot
+ *    klein met een link naar het stuk waar ze naar verwijst.
  */
 import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
@@ -156,6 +158,40 @@ try {
   await vraag.press("Enter");
   await page.locator("[data-leemte]").waitFor();
   assert.equal(await page.getByText("er valt niets te controleren", { exact: false }).count(), 0, "een leemte van de code is geen controlemelding");
+
+  // Een Kamerstuk met een tabel en een voetnoot (ADR-013): de tabel als tabel met kolommen, de voetnoot klein met een link.
+  const extern = { sjabloon: "extern", versie: 1, doelen: [], blokken: [
+    { soort: "toelichting", door: "lex", kop: "Toelichting van Lex", tekst: "De opbrengst staat in tabel 1." },
+    { soort: "extern", door: "bron", brontype: "kamerstuk", id: "kst-33755-3", label: "Kamerstukken 33755, nr. 3",
+      link: "https://zoek.officielebekendmakingen.nl/kst-33755-3", kop: "Uit de parlementaire geschiedenis", bron_hash: "h", gewijzigd: "2014-06-24",
+      passages: [
+        { nr: 1, soort: "alinea", kop: "I. ALGEMEEN › 1. Inleiding", tekst: "In het regeerakkoord is dit afgesproken." },
+        { nr: 2, soort: "voetnoot", kop: "I. ALGEMEEN › 1. Inleiding", tekst: "Regeerakkoord, Kamerstuk 33 410, nr. 15, bijlage B.",
+          verwijst_naar: [{ id: "kst-33410-15", label: "Kamerstukken 33410, nr. 15", link: "https://zoek.officielebekendmakingen.nl/kst-33410-15" }] },
+        { nr: 13, soort: "tabel", kop: "I. ALGEMEEN › 5. Budgettaire aspecten", tekst: "Tabel 1 Gevolgen voor uitgavenkader (€ miljoenen)",
+          cellen: ["", "2014", "2015", "2016", "2017", "struc"] },
+        { nr: 14, soort: "tabelrij", kop: "", tekst: "Totaal | 12 | 106 | 155 | 193 | 267",
+          cellen: ["Totaal Wet wijziging percentages belasting- en invorderingsrente", "12", "106", "155", "193", "267"] },
+      ] }] };
+  huidige = sjabloonStroom(extern);
+  bewaar(extern);
+  await page.goto(`${base}/workbench`);
+  await vraag.fill("Wat is de budgettaire opbrengst volgens de MvT?");
+  await vraag.press("Enter");
+  const tabel = page.locator("[data-extern-tabel] table");
+  await tabel.waitFor();
+  assert.deepEqual(await tabel.locator("th").allInnerTexts(), ["", "2014", "2015", "2016", "2017", "struc"]);
+  assert.deepEqual((await tabel.locator("td").allInnerTexts()).slice(0, 2), ["Totaal Wet wijziging percentages belasting- en invorderingsrente", "12"]);
+  assert.match(await tabel.locator("caption").innerText(), /^Tabel 1 Gevolgen voor uitgavenkader/);
+  const noot = page.locator("[data-extern-voetnoot]");
+  assert.match(await noot.innerText(), /Voetnoot: Regeerakkoord, Kamerstuk 33 410, nr\. 15/);
+  assert.equal(await noot.getByRole("link", { name: "Kamerstukken 33410, nr. 15" }).getAttribute("href"),
+    "https://zoek.officielebekendmakingen.nl/kst-33410-15");
+  await page.screenshot({ path: `${shots}/extern-tabel.png` });
+  await page.setViewportSize({ width: 375, height: 800 });
+  assert.ok(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), "een brede tabel scrolt in zijn eigen vak");
+  await page.screenshot({ path: `${shots}/extern-tabel-mobiel.png` });
+  await page.setViewportSize({ width: 1280, height: 900 });
 
   // Klopt het sjabloon niet, dan is `tekst` het antwoord.
   huidige = sjabloonStroom({ sjabloon: "begrip", blokken: [{ soort: "onbekend" }] });

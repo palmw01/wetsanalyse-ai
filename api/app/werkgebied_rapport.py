@@ -116,6 +116,10 @@ class DeelvraagBron(_Deel):
     vindplaats: Vindplaats
     rol: str
     reden: str = ""
+    #: Wie de bron bij deze deelvraag opnam.
+    besloten_door: str = ""
+    #: Wie haar voorstelde: `lex` (de zoeker), `analist` (zelf genoemd of toegevoegd), leeg = onbekend.
+    voorgesteld_door: Literal["lex", "analist", ""] = ""
 
 
 class Deelvraag(_Deel):
@@ -703,11 +707,23 @@ def deelvragen_regels(d: Deelvragen) -> list[Regel]:
         for b in v.bronnen:
             uit += [("BodyText", f"{b.vindplaats.label} · {_BRONROL.get(b.rol, b.rol)}" + (f": {b.reden}" if b.reden else "")),
                     ("Meta", _verwijzing(b.vindplaats))]
+            if herkomst := _bronherkomst(b):
+                uit.append(("Meta", herkomst))
         if v.niet_gekozen:
             uit.append(("Meta", meervoud(v.niet_gekozen, "voorstel van Lex is niet gekozen.", "voorstellen van Lex zijn niet gekozen.")))
         uit += BLOK_UIT
 
     return uit
+
+
+_VOORGESTELD = {"lex": "voorgesteld door Lex", "analist": "zelf genoemd"}
+
+
+def _bronherkomst(b: DeelvraagBron) -> str:
+    """'Opgenomen door X, voorgesteld door Lex.' – wie besloot en wie voorstelde, nooit als reden vermomd."""
+    delen = [f"Opgenomen door {b.besloten_door}" if b.besloten_door else "", _VOORGESTELD.get(b.voorgesteld_door, "")]
+    tekst = ", ".join(d for d in delen if d)
+    return (tekst[0].upper() + tekst[1:] + ".") if tekst else ""
 
 
 def niet_meegenomen_regels(d: Deelvragen, w: Wettekst, b: Begrippen) -> list[Regel]:

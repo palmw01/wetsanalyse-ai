@@ -65,7 +65,8 @@ def _selectie(row) -> dict:
     return {"id": row.id, "bron_iri": row.bron_iri, "bereik": row.bereik, "rol": row.rol,
             "reden": row.reden, "label": row.label, "bwb_id": row.bwb_id,
             "snapshot_id": row.snapshot_id, "bron_hash": row.bron_hash,
-            "toegevoegd_door": row.toegevoegd_door, "toegevoegd": db.aware(row.toegevoegd).isoformat()}
+            "toegevoegd_door": row.toegevoegd_door, "toegevoegd": db.aware(row.toegevoegd).isoformat(),
+            "voorgesteld_door": row.voorgesteld_door or ""}
 
 
 async def _audit(conn, werkgebied_id: str, actor: str, actie: str, detail: dict) -> None:
@@ -295,7 +296,8 @@ async def wis(conn, werkgebied_id: str) -> None:
 
 
 async def voeg_bron_toe(werkgebied_id: str, invoer: BronselectieInvoer, bron: dict, actor: str,
-                        binnen: Callable[[Any], Awaitable[None]] | None = None) -> tuple[dict, bool]:
+                        binnen: Callable[[Any], Awaitable[None]] | None = None,
+                        voorgesteld_door: str = "analist") -> tuple[dict, bool]:
     """Neemt een geverifieerde bron op. Geeft (selectie, nieuw) terug.
 
     `bron` komt uit de resolver: {bron_iri, label, bwb_id, snapshot_id, bron_hash}. Staat dezelfde
@@ -304,6 +306,7 @@ async def voeg_bron_toe(werkgebied_id: str, invoer: BronselectieInvoer, bron: di
 
     `binnen(conn)` draait in dezelfde transactie, na het opnemen: zo landt een kandidaat die wordt
     opgenomen samen met zijn selectie, of geen van beide (`bronnen_run_store.opnemen`).
+    `voorgesteld_door`: `analist` bij zelf toevoegen, `lex` of `analist` bij een kandidaat (naar het bewijs).
     """
     s = db.werkgebied_bronselecties
     async with db.get_engine().connect() as conn:
@@ -328,7 +331,8 @@ async def voeg_bron_toe(werkgebied_id: str, invoer: BronselectieInvoer, bron: di
             id=sid, werkgebied_id=werkgebied_id, bron_iri=bron["bron_iri"], bereik=invoer.bereik.value,
             rol=invoer.rol.value, reden=invoer.reden, label=bron.get("label", ""),
             bwb_id=bron.get("bwb_id", ""), snapshot_id=bron.get("snapshot_id", ""),
-            bron_hash=bron.get("bron_hash", ""), toegevoegd_door=actor, toegevoegd=db.utcnow()))
+            bron_hash=bron.get("bron_hash", ""), toegevoegd_door=actor, toegevoegd=db.utcnow(),
+            voorgesteld_door=voorgesteld_door))
         if binnen is not None:
             await binnen(conn)
     async with db.get_engine().connect() as conn:

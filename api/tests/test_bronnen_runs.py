@@ -202,7 +202,9 @@ async def test_opnemen_maakt_een_bronselectie_met_de_rol_van_de_kandidaat(client
     wg = await _haal(client, wg)
     assert (await _lijst(client, wg))[ART2]["status"] == "opgenomen"
     [sel] = wg["bronnen"]
-    assert (sel["bron_iri"], sel["rol"], sel["reden"]) == (ART2, "context", "Voorgesteld door Lex (afhankelijkheid).")
+    # Geen standaardzin als reden (WA TRM H1): wie voorstelde staat in een eigen veld, wie besloot in toegevoegd_door.
+    assert (sel["bron_iri"], sel["rol"], sel["reden"], sel["voorgesteld_door"], sel["toegevoegd_door"]) == \
+        (ART2, "context", "", "lex", "jurist-a")
     # Kern → analyseren; de analist mag de rol overschrijven.
     await _besluit(client, wg, lijst[ART]["id"], "opnemen", verwachte_revisie=wg["revisie"], rol="context")
     wg = await _haal(client, wg)

@@ -122,11 +122,25 @@ class Twijfel(BaseModel):
     punten: list[str]
 
 
+class ExterneVerwijzing(BaseModel):
+    """Een stuk waar een passage naar verwijst (de `extref` van een voetnoot), met de vindplaats uit `bronmodel.extern`."""
+
+    id: str
+    label: str
+    link: str = ""
+
+
 class ExternePassage(BaseModel):
     nr: int
     tekst: str
     #: De kop van het deel waarin de passage staat, zoals de bron hem noemt.
     kop: str = ""
+    #: `alinea`, `voetnoot`, `tabel` (de titel, met de kolomkoppen als `cellen`) of `tabelrij` (met `cellen`). Zo tekent
+    #: de werkplek een tabel als tabel; de tekst blijft wat er letterlijk staat.
+    soort: str = "alinea"
+    cellen: list[str] | None = None
+    #: Bij een voetnoot: de stukken waar hij naar verwijst.
+    verwijst_naar: list[ExterneVerwijzing] | None = None
 
 
 class Extern(BaseModel):
