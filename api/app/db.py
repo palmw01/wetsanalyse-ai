@@ -291,6 +291,10 @@ werkgebieden = Table("werkgebieden", metadata,
     Column("regelingen", _JSON, nullable=False, server_default="[]", default=list),
     # Spoor I6: het thema als TOOI-URI uit tooitop (`app/tooi.py`); leeg = nog niet gekozen.
     Column("thema", String(200), nullable=False, server_default="", default=""),
+    # ADR-013: de bronconnectors die een gesprek in dit werkgebied standaard aan heeft; NULL = wat de beheerder
+    # aanzette. Een gesprek met een eigen stand (`gesprekken.connectors`) gaat voor. (Niet `bronnen`: zo heten de
+    # bronselecties in de uitvoer.)
+    Column("standaard_connectors", _JSON, nullable=True),
     Column("peildatum", String(10), nullable=True),
     Column("status", String(24), nullable=False, default="in_voorbereiding"),
     Column("revisie", Integer, nullable=False, default=1),
@@ -757,6 +761,9 @@ gesprekken = Table(
     Column("regie_id", String(64), nullable=False, default="", server_default=""),
     # Gearchiveerd = uit de navigatie, niet weg.
     Column("gearchiveerd", _DT, nullable=True),
+    # ADR-013: de bronconnectors die in dit gesprek aanstaan (het menu boven het invoerveld); NULL = de standaard van
+    # het werkgebied, en zonder werkgebied wat de beheerder aanzette.
+    Column("connectors", _JSON, nullable=True),
     Index("ix_gesprekken_user_updated", "user_id", "updated"),
 )
 

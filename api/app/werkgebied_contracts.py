@@ -138,6 +138,8 @@ class WerkgebiedWijziging(BaseModel):
     thema: str | None = Field(default=None, max_length=200)
     peildatum: str | None = None
     status: Status | None = None
+    # ADR-013: de standaard van het menu *Bronnen en tools* voor gesprekken in dit werkgebied; `null` = de beheerder.
+    standaard_connectors: list[Literal["kamerstukken"]] | None = Field(default=None, max_length=8)
 
     @field_validator("regelingen")
     @classmethod

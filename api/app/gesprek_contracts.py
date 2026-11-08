@@ -296,6 +296,10 @@ class Bericht(BaseModel):
     created: datetime | None = None
 
 
+#: De namen uit het register (`connectors.BEKEND`).
+ConnectorNaam = Literal["kamerstukken"]
+
+
 class Gesprek(BaseModel):
     """Eén chat-gesprek van een gebruiker, met zijn berichten."""
 
@@ -308,6 +312,8 @@ class Gesprek(BaseModel):
     ouder_id: str = ""
     regie_id: str = ""
     gearchiveerd: datetime | None = None
+    # ADR-013: de bronconnectors die in dit gesprek aanstaan; None = de standaard (werkgebied, anders de beheerder).
+    connectors: list[str] | None = None
     berichten: list[Bericht] = []
     created: datetime | None = None
     updated: datetime | None = None
@@ -329,6 +335,8 @@ class GesprekPatch(BaseModel):
     titel: str | None = None
     werkgebied_id: str | None = None
     gearchiveerd: bool | None = None
+    # ADR-013: het menu *Bronnen en tools*. Meegestuurd als `null` = terug naar de standaard; weggelaten = ongewijzigd.
+    connectors: list[ConnectorNaam] | None = Field(default=None, max_length=8)
 
 
 class BerichtInvoer(BaseModel):

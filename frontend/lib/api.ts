@@ -19,6 +19,7 @@ import {
 } from "./agentEvents";
 import { isBegripSamenhang, isConformiteit, type BegripSamenhang, type Conformiteit } from "./begripGraaf";
 import type { BegrippenOverzicht } from "./begrippenOverzicht";
+import type { BeschikbareConnector } from "./connectorsMenu";
 import type {
   ThemaVoorstel,
   Toestanden,
@@ -273,6 +274,12 @@ export async function deleteUser(userid: string): Promise<void> {
 export async function getVerbruik(): Promise<Verbruiksstand> {
   const res = await fetch("/api/account/verbruik", { cache: "no-store" });
   return json<Verbruiksstand>(res);
+}
+
+/** Wat de beheerder aanzette, voor het menu *Bronnen en tools* (ADR-013). */
+export async function haalConnectors(): Promise<{ aan: string[]; connectors: BeschikbareConnector[] }> {
+  const res = await fetch("/api/connectors", { cache: "no-store" });
+  return json<{ aan: string[]; connectors: BeschikbareConnector[] }>(res);
 }
 
 export async function listConnectors(): Promise<Connector[]> {
@@ -605,7 +612,7 @@ export async function hernoemGesprek(id: string, titel: string): Promise<Gesprek
 /** Titel, werkgebied (`""` = loskoppelen) of archief; alleen wat meekomt verandert. */
 export async function wijzigGesprek(
   id: string,
-  wijziging: { titel?: string; werkgebied_id?: string; gearchiveerd?: boolean },
+  wijziging: { titel?: string; werkgebied_id?: string; gearchiveerd?: boolean; connectors?: string[] | null },
 ): Promise<Gesprek> {
   const res = await fetch(`/api/gesprekken/${pathSegment(id)}`, {
     method: "PATCH",
@@ -727,6 +734,8 @@ export async function startRun(
     actie?: import("./vraagLex").VraagLexActie;
     /** Het bevestigde plan van een regie (ADR-012); hoort bij `regie_bronnen`/`regie_annoteren`. */
     plan_id?: string;
+    /** De bronconnectors die in dit gesprek aanstaan (ADR-013, *Bronnen en tools*); weggelaten = graph-qa beslist. */
+    bronnen?: string[];
   },
 ): Promise<RunStart> {
   const res = await fetch("/api/annotatie/run", {
@@ -751,6 +760,7 @@ export async function startRun(
       ...(extra?.onderwerp ? { onderwerp: extra.onderwerp } : {}),
       ...(extra?.actie ? { actie: extra.actie } : {}),
       ...(extra?.plan_id ? { plan_id: extra.plan_id } : {}),
+      ...(extra?.bronnen ? { bronnen: extra.bronnen } : {}),
     }),
   });
   if (res.status === 409) {

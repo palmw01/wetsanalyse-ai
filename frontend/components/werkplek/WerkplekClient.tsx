@@ -24,6 +24,10 @@ import {
   haalGesprek,
   maakGesprek,
   voegBerichtToe,
+  haalConnectors,
+  haalWerkgebied,
+  wijzigGesprek,
+  wijzigWerkgebied,
 } from "@/lib/api";
 import { resetdatum } from "@/lib/tokenbudget";
 import type {
@@ -42,6 +46,8 @@ import {
 } from "@/lib/vraagkaart";
 import { VraagDock } from "@/components/werkplek/VraagDock";
 import { BronselectieKaart } from "@/components/werkplek/BronselectieKaart";
+import { ConnectorsMenu } from "@/components/werkplek/ConnectorsMenu";
+import { actieveConnectors, wissel as wisselConnector, type ConnectorStand } from "@/lib/connectorsMenu";
 import {
   doelInvoerVan, isVerwijderd,
 } from "@/lib/annotatie";
@@ -140,6 +146,17 @@ export function WerkplekClient({
   // `geblokkeerd` per definitie false en verandert er niets.
   const geblokkeerd = Boolean(verbruik?.actief && verbruik.geblokkeerd);
   const [gesprekId, setGesprekId] = useState<string | null>(initialGesprekId);
+  // ADR-013, *Bronnen en tools*: wat de beheerder aanzette, de stand van dit gesprek en de standaard van het werkgebied.
+  // De ref volgt de stand, zodat `verstuur` de stand van nu leest; `connectorsTeBewaren` = gekozen vóór er een gesprek was.
+  const [connectorBasis, setConnectorStand] = useState<ConnectorStand>({ beschikbaar: [] });
+  // De standaard van het werkgebied hoort bij dát werkgebied: na een wissel telt de oude niet meer.
+  const [wgConnectors, setWgConnectors] = useState<{ id: string; connectors: string[] | null } | null>(null);
+  const connectorStand: ConnectorStand = {
+    ...connectorBasis, werkgebied: werkgebiedId && wgConnectors?.id === werkgebiedId ? wgConnectors.connectors : null,
+  };
+  const connectorRef = useRef(connectorStand);
+  connectorRef.current = connectorStand;
+  const connectorsTeBewaren = useRef(false);
   const [items, setItems] = useState<Item[]>(demo?.items ?? []);
   // De open vraag die je met ✕ wegklikte (het item-id); "Een vraag stellen ›" opent hem weer.
   const [weggeklikt, setWeggeklikt] = useState<string | null>(null);
@@ -269,6 +286,7 @@ export function WerkplekClient({
       .then((g) => {
         if (!geldt()) return;
         onGesprekGeladen?.(g);
+        setConnectorStand((s) => ({ ...s, gesprek: g.connectors ?? null }));
         const { items: geschiedenis, runIds } = itemsUitGesprek(g.berichten, uid);
         // VÓÓR wat er al staat, niet in plaats daarvan. Verstuurde de jurist een vraag terwijl dit nog
         // laadde (een koude start duurt seconden), dan staan zijn vraag en het lopende antwoord al in
@@ -383,6 +401,49 @@ export function WerkplekClient({
   }
 
   /** Start een beurt. Zonder `verzoek.prompt` geldt wat er in het invoerveld staat (`lib/beurtVerzoek.ts`). */
+  // Wat de beheerder aanzette: één keer per venster, stil falend (dan geen menu en beslist graph-qa zelf).
+  useEffect(() => {
+    if (demo) return;
+    let levend = true;
+    haalConnectors().then((c) => levend && setConnectorStand((s) => ({ ...s, beschikbaar: c.connectors ?? [] }))).catch(() => {});
+    return () => { levend = false; };
+  }, [demo]);
+
+  // De standaard van het werkgebied, alleen als er een menu is.
+  const heeftConnectors = connectorBasis.beschikbaar.length > 0;
+  useEffect(() => {
+    if (!werkgebiedId || !heeftConnectors) return;
+    let levend = true;
+    haalWerkgebied(werkgebiedId)
+      .then((wg) => levend && setWgConnectors({ id: werkgebiedId, connectors: wg.standaard_connectors ?? null }))
+      .catch(() => {});
+    return () => { levend = false; };
+  }, [werkgebiedId, heeftConnectors]);
+
+  function zetGesprekConnectors(connectors: string[] | null) {
+    setConnectorStand((s) => ({ ...s, gesprek: connectors }));
+    if (gesprekId) void wijzigGesprek(gesprekId, { connectors }).catch(() => {});
+    else connectorsTeBewaren.current = connectors != null;
+  }
+
+  function kiesConnector(naam: string) {
+    zetGesprekConnectors(wisselConnector(connectorRef.current, naam));
+  }
+
+  /** De stand van nu wordt de standaard van het werkgebied, en dit gesprek volgt die weer. */
+  async function maakConnectorStandaard() {
+    if (!werkgebiedId) return;
+    const actief = actieveConnectors(connectorRef.current);
+    try {
+      const wg = await haalWerkgebied(werkgebiedId);
+      await wijzigWerkgebied(werkgebiedId, { verwachte_revisie: wg.revisie, standaard_connectors: actief });
+      setWgConnectors({ id: werkgebiedId, connectors: actief });
+      zetGesprekConnectors(null);
+    } catch {
+      // Een 412 of storing: de stand van het gesprek blijft zoals hij was.
+    }
+  }
+
   async function verstuur(verzoek: BeurtVerzoek = {}) {
     // In de rondleiding is dit venster een voorbeeld: er gaat niets naar de agent. De invoerbalk is
     // ook uitgeschakeld, dit is het vangnet voor Enter en de voorbeeldknoppen.
@@ -429,6 +490,11 @@ export function WerkplekClient({
         gid = g.id;
         setGesprekId(gid);
         onGesprekAangemaakt(gid);
+        if (connectorsTeBewaren.current && connectorRef.current.gesprek != null) {
+          // Gekozen in een nieuw gesprek: nu er een gesprek is, bewaren (stil falend; de beurt draagt de stand toch).
+          connectorsTeBewaren.current = false;
+          void wijzigGesprek(gid, { connectors: connectorRef.current.gesprek }).catch(() => {});
+        }
       } catch (e) {
         updateItem(antId, { tekst: `**Er ging iets mis.** ${foutTekst(e)}` });
         beurt.vrij();
@@ -446,7 +512,12 @@ export function WerkplekClient({
     let gestart;
     try {
       // Welke route de beurt neemt (annoteren, vraagkaartje, actie, advies of onderwerp): `startOpties`.
-      gestart = await startRun(prompt, gid, startOpties(verzoek, { werkgebiedId, onderwerp: vraagOver }));
+      const stand = connectorRef.current;
+      gestart = await startRun(prompt, gid, {
+        ...startOpties(verzoek, { werkgebiedId, onderwerp: vraagOver }),
+        // Alleen met een menu: zonder connector bij de beheerder beslist graph-qa zelf (alleen wetgeving).
+        ...(stand.beschikbaar.length ? { bronnen: actieveConnectors(stand) } : {}),
+      });
     } catch (e) {
       // Er liep al een beurt (bijvoorbeeld in een ander tabblad). Deze vraag is dus NIET aangenomen:
       // zet hem terug in het invoerveld en haal de optimistische bubbels weg, zodat er niets
@@ -1118,6 +1189,13 @@ export function WerkplekClient({
                   {s.tekst}
                 </Suggestie>
               ))}
+            </div>
+          )}
+          {!demo && connectorStand.beschikbaar.length > 0 && (
+            <div className="mb-1 flex min-w-0">
+              <ConnectorsMenu stand={connectorStand} onWissel={kiesConnector}
+                onAlsStandaard={werkgebiedId ? () => void maakConnectorStandaard() : undefined}
+                onTerugNaarStandaard={() => zetGesprekConnectors(null)} />
             </div>
           )}
           <div data-tour="invoer" className="flex items-end gap-2 rounded-bubbel border border-line bg-white px-2 py-1.5 shadow-zacht transition-shadow focus-within:border-lint focus-within:shadow-kaart">
