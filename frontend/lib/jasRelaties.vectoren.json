@@ -1,0 +1,17 @@
+{
+  "toelichting": "Gevallen voor toegestaan(): dezelfde uitkomst in de api (api/tests/test_jas_relaties.py) en in de werkplek (frontend/lib/jasRelaties.test.ts). Met de hand bijgehouden; de catalogus zelf staat in .claude/skills/wetsanalyse/relaties.json.",
+  "gevallen": [
+    {"type": "plichthebbende", "van": "Rechtssubject", "naar": "Rechtsbetrekking", "verwacht": true},
+    {"type": "plichthebbende", "van": "Rechtsbetrekking", "naar": "Rechtssubject", "verwacht": false},
+    {"type": "bestaat_niet", "van": "Rechtssubject", "naar": "Rechtsbetrekking", "verwacht": false},
+    {"type": "uitvoer", "van": "Afleidingsregel", "naar": "Tijdsaanduiding", "verwacht": true},
+    {"type": "invoer", "van": "Variabele en variabelewaarde", "naar": "Voorwaarde", "verwacht": true},
+    {"type": "invoer", "van": "Tijdsaanduiding", "naar": "Afleidingsregel", "verwacht": true},
+    {"type": "invoer", "van": "Variabele en variabelewaarde", "naar": "Rechtsobject", "verwacht": false},
+    {"type": "waarde", "van": "Parameter en parameterwaarde", "naar": "Parameter en parameterwaarde", "van_subtype": "parameterwaarde", "verwacht": true},
+    {"type": "waarde", "van": "Parameter en parameterwaarde", "naar": "Parameter en parameterwaarde", "van_subtype": "parameter", "verwacht": false},
+    {"type": "waarde", "van": "Parameter en parameterwaarde", "naar": "Tijdsaanduiding", "van_subtype": "parameterwaarde", "naar_subtype": "verbijzondert parameter", "verwacht": true},
+    {"type": "waarde", "van": "Parameter en parameterwaarde", "naar": "Tijdsaanduiding", "van_subtype": "parameterwaarde", "verwacht": false},
+    {"type": "waarde", "van": "Variabele en variabelewaarde", "naar": "Parameter en parameterwaarde", "van_subtype": "variabelewaarde", "verwacht": false}
+  ]
+}

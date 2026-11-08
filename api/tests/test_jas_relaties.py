@@ -47,3 +47,16 @@ def test_waarde_eist_het_subtype_van_het_paar():
 
 def test_volgorde_alleen_bij_invoer_en_operand():
     assert {c for c, t in rel.RELATIETYPEN.items() if t["volgorde"]} == {"invoer", "operand"}
+
+
+def test_toegestaan_volgt_de_gedeelde_gevallen():
+    """Dezelfde gevallen als `frontend/lib/jasRelaties.test.ts`: de werkplek filtert *Verbind met…* met dezelfde regel
+    als de api toetst."""
+    import json
+    from app.config import PROJECT_ROOT
+    pad = PROJECT_ROOT / "frontend" / "lib" / "jasRelaties.vectoren.json"
+    if not pad.exists():
+        pytest.skip("frontend niet aanwezig (api-only image)")
+    for g in json.loads(pad.read_text(encoding="utf-8"))["gevallen"]:
+        uit = rel.toegestaan(g["type"], g["van"], g["naar"], g.get("van_subtype", ""), g.get("naar_subtype", ""))
+        assert uit is g["verwacht"], g

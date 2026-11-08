@@ -84,6 +84,9 @@ def main() -> None:
     p.add_argument("--api-token-login", action="store_true", default=None,
                    help="Inloggen met een accounttoken toestaan (alleen acceptatie; zie "
                         "main.bicep:apiTokenLogin).")
+    p.add_argument("--connector-kamerstukken", action="store_true", default=None,
+                   help="De bronconnector Kamerstukken aanbieden (alleen acceptatie; zie "
+                        "main.bicep:connectorKamerstukken).")
     p.add_argument("--graphdb-proxy-extern", action="store_true", default=None,
                    help="De externe GraphDB-MCP-proxy uitrollen (alleen acceptatie; zie "
                         "main.bicep:graphdbProxyExtern). Vereist WA_GRAPHDB_PROXY_TOKEN.")
@@ -170,6 +173,7 @@ def main() -> None:
         (args.min_replicas_api, "minReplicasApi"),
         (args.api_extern, "apiExtern"),
         (args.api_token_login, "apiTokenLogin"),
+        (args.connector_kamerstukken, "connectorKamerstukken"),
         (args.graphdb_proxy_extern, "graphdbProxyExtern"),
         (args.api_image, "apiImage"),
         (args.frontend_image, "frontendImage"),

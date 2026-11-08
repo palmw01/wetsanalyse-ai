@@ -54,6 +54,27 @@ def drager_kant(code: str) -> str:
 '''
 
 
+#: Dezelfde regel als `toegestaan` in de api; `frontend/lib/jasRelaties.vectoren.json` toetst beide kanten.
+_TS_FUNCTIES = """
+/** Past dit klassenpaar bij het type? Bij een type met `paren` telt alleen een paar uit die lijst, en een paar dat een
+ * subtype noemt eist dat subtype; anders telt elke klasse aan beide kanten (zoals `toegestaan` in de api). */
+export function toegestaan(code: string, vanKlasse: string, naarKlasse: string, vanSubtype = "", naarSubtype = ""): boolean {
+  const t = RELATIETYPEN[code];
+  if (!t) return false;
+  if (t.paren.length) {
+    return t.paren.some((p) => p.van === vanKlasse && p.naar === naarKlasse
+      && (p.van_subtype ?? vanSubtype) === vanSubtype && (p.naar_subtype ?? naarSubtype) === naarSubtype);
+  }
+  return t.van.includes(vanKlasse) && t.naar.includes(naarKlasse);
+}
+
+/** De typen die tussen deze twee klassen passen, in deze richting: de keuzelijst bij *Verbind met…*. */
+export function typenTussen(vanKlasse: string, naarKlasse: string, vanSubtype = "", naarSubtype = ""): string[] {
+  return Object.keys(RELATIETYPEN).filter((code) => toegestaan(code, vanKlasse, naarKlasse, vanSubtype, naarSubtype));
+}
+"""
+
+
 def lees(bron: Path = BRON) -> dict:
     """De catalogus, met elk type aangevuld tot alle velden van `VELDEN`."""
     data = json.loads(bron.read_text(encoding="utf-8"))
@@ -101,7 +122,8 @@ def frontend_bron(catalogus: dict) -> str:
             f"export const CATALOGUS_VERSIE = {j(catalogus['versie'])};\n\n"
             f"export const RELATIETYPEN: Record<string, RelatieType> = {j(catalogus['typen'])};\n\n"
             f"export const CENTRALE_KLASSEN: readonly string[] = {j(catalogus['centrale_klassen'])};\n\n"
-            f"export const IMPLICIET_TOEGESTAAN: readonly string[] = {j(catalogus['impliciet_toegestaan'])};\n")
+            f"export const IMPLICIET_TOEGESTAAN: readonly string[] = {j(catalogus['impliciet_toegestaan'])};\n"
+            + _TS_FUNCTIES)
 
 
 def genereer(bron: Path = BRON) -> dict[Path, str]:

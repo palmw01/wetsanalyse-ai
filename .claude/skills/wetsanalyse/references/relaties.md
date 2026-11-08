@@ -15,6 +15,8 @@ centrale klassen: de rechtsbetrekking, het rechtsfeit, de afleidingsregel en de 
   - Een rechtsbetrekking heeft een rechthebbende en een plichthebbende, en een voorwerp.
   - Een rechtsfeit creëert, wijzigt of beëindigt een rechtsbetrekking.
   - Een afleidingsregel heeft invoer en precies één uitvoer.
+  - Een voorwaarde vergelijkt operanden: wat vergeleken wordt (een variabele, een tijdsaanduiding) is invoer van
+    de voorwaarde, ook als er geen aparte operator gemarkeerd is (M04 H2:62).
   - Een variabele is een kenmerk van een subject, object, betrekking of feit.
   - Een voorwaarde en een afleidingsregel bestaan uit operanden en operatoren.
 

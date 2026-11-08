@@ -154,9 +154,17 @@ Toets elk bestand met `git check-ignore -v`.
    {"versie": 1, "typen": {
      "<teamtype>": {"type": "<code uit relaties.json>", "omgekeerd": false},
      "<teamtype in de andere richting>": {"type": "<code>", "omgekeerd": true},
-     "<teamtype zonder catalogustype>": null
+     "<teamtype zonder catalogustype>": null,
+     "<teamtype dat per klassenpaar verschilt>": {"regels": [
+       {"van": "<klasse>", "naar": "<klasse>", "type": "<code>", "omgekeerd": false},
+       {"van": "<klasse>", "naar": "<klasse>", "type": null}
+     ]}
    }}
    ```
+
+   Met `regels` kies je het catalogustype per klassenpaar van de kant. Een paar zonder regel telt als *niet in de
+   tabel*. Twee knopen met dezelfde klasse en hetzelfde label op één bepaling zijn met de tekst niet uit elkaar te
+   houden; die tellen als *niet meetbaar*.
 
    `omgekeerd` draait de richting om, als het team de kant andersom tekent dan de catalogus. `null` betekent geen
    catalogustype: regelinhoud of regelstructuur, die buiten activiteit 2 valt. Die kanten tellen apart

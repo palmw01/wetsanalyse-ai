@@ -648,20 +648,25 @@ def _eindpunt(ep: dict[str, Any]) -> dict[str, Any]:
 def platform_relaties(weergaven: list[Any]) -> list[dict[str, Any]]:
     """De relaties uit een of meer weergaven, ontdubbeld op id: per relatie `{type, volgorde, lifecycle, van: {klasse,
     tekst, impliciet}, naar: {…}}`, plus `id` en `bron_iris` (de bepalingen waar de laag of een eindpunt bij hoort).
-    Een afgewezen relatie (`lifecycle == "rejected"`) telt niet mee."""
+    Staat dezelfde relatie in meer weergaven (een relatie over twee lagen), dan tellen de bepalingen van alle
+    weergaven: elke weergave kent maar haar eigen lagen en elementen. Een afgewezen relatie telt niet mee."""
     gezien: dict[str, dict[str, Any]] = {}
     for w in _weergaven(weergaven):
         lagen = {l.get("id"): l.get("bron_iri") or "" for l in w.get("lagen") or []}
         elementen = {e.get("id"): e for e in w.get("elementen") or []}
         for r in w.get("relaties") or []:
-            if r.get("lifecycle") == "rejected" or r.get("id") in gezien:
+            if r.get("lifecycle") == "rejected":
                 continue
             iris = {lagen.get(r.get("laag_id"))}
             for ep in (r.get("van") or {}, r.get("naar") or {}):
                 iris.add(lagen.get(ep.get("laag_id")))
                 if ep.get("soort") == "element" and ep.get("id") in elementen:
                     iris.update(_iris(elementen[ep["id"]]))
-            gezien[r.get("id") or f"r{len(gezien)}"] = {
+            sleutel = r.get("id") or f"r{len(gezien)}"
+            if sleutel in gezien:
+                gezien[sleutel]["bron_iris"] = sorted(set(gezien[sleutel]["bron_iris"]) | {i for i in iris if i})
+                continue
+            gezien[sleutel] = {
                 "id": r.get("id"), "type": r.get("type"), "volgorde": r.get("volgorde"),
                 "lifecycle": r.get("lifecycle"), "van": _eindpunt(r.get("van") or {}),
                 "naar": _eindpunt(r.get("naar") or {}), "bron_iris": sorted(i for i in iris if i)}
@@ -678,26 +683,56 @@ def weergave_elementen(weergaven: list[Any]) -> list[dict[str, Any]]:
 
 
 def lees_mapping(data: dict[str, Any], catalogus: set[str] | None = None) -> dict[str, dict[str, Any] | None]:
-    """De vertaaltabel van de notatie van een team naar de catalogus: `{"versie": 1, "typen": {"<teamtype>":
-    {"type": "<code>", "omgekeerd": false} | null}}`. `null` is geen catalogustype (regelinhoud of regelstructuur)
-    en geen fout; een code die de catalogus niet kent wel. De tabel van een team blijft buiten de repo."""
+    """De vertaaltabel van de notatie van een team naar de catalogus: `{"versie": 1, "typen": {"<teamtype>": …}}`.
+
+    Een teamtype is `null` (geen catalogustype: regelinhoud of regelstructuur, geen fout), `{"type": "<code>",
+    "omgekeerd": false}`, of `{"regels": [{"van": klasse, "naar": klasse, "type": code | null, "omgekeerd": bool}]}`
+    als hetzelfde teamtype per klassenpaar iets anders is (een "operator" van een operator naar een operand is
+    `operand`, omgekeerd; van een operator naar een voorwaarde `operator_in`). Een code die de catalogus niet kent is
+    een fout. De tabel van een team blijft buiten de repo."""
     if data.get("versie") != 1:
         raise ValueError(f"onbekende versie van de vertaaltabel: {data.get('versie')!r}")
     codes = catalogus if catalogus is not None else catalogus_typen()
+
+    def doel_van(teamtype: str, doel: Any) -> dict[str, Any]:
+        if not isinstance(doel, dict) or doel.get("type") not in codes:
+            raise ValueError(f"teamtype {teamtype!r}: {doel!r} is geen type uit de relatiecatalogus")
+        return {"type": doel["type"], "omgekeerd": bool(doel.get("omgekeerd", False))}
     uit: dict[str, dict[str, Any] | None] = {}
     for teamtype, doel in (data.get("typen") or {}).items():
         if doel is None:
             uit[teamtype] = None
-            continue
-        if not isinstance(doel, dict) or doel.get("type") not in codes:
-            raise ValueError(f"teamtype {teamtype!r}: {doel!r} is geen type uit de relatiecatalogus")
-        uit[teamtype] = {"type": doel["type"], "omgekeerd": bool(doel.get("omgekeerd", False))}
+        elif isinstance(doel, dict) and "regels" in doel:
+            regels = []
+            for r in doel["regels"]:
+                if not (isinstance(r, dict) and r.get("van") and r.get("naar")):
+                    raise ValueError(f"teamtype {teamtype!r}: een regel noemt de klassen van beide kanten")
+                regels.append({"van": klasse_van(r["van"]) or r["van"], "naar": klasse_van(r["naar"]) or r["naar"],
+                               **({"type": None} if r.get("type") is None else doel_van(teamtype, r))})
+            uit[teamtype] = {"regels": regels}
+        else:
+            uit[teamtype] = doel_van(teamtype, doel)
     return uit
 
 
 def _meetbaar(k: dict[str, Any]) -> bool:
-    """Een knoop is meetbaar als hij letterlijk in de tekst staat of impliciet is; een parafrase niet."""
-    return k.get("letterlijk", "ja") in ("ja", "impliciet")
+    """Een knoop is meetbaar als hij letterlijk in de tekst staat of impliciet is; een parafrase niet, en een
+    dubbelzinnige knoop ook niet (`_dubbelzinnig`)."""
+    return k.get("letterlijk", "ja") in ("ja", "impliciet") and not k.get("dubbelzinnig")
+
+
+def _dubbelzinnig(b: dict[str, Any]) -> dict[str, Any]:
+    """Twee letterlijke knopen met dezelfde klasse en hetzelfde label op één bepaling ("vervalt op" op twee plekken)
+    zijn met `_zelfde_plek` niet uit elkaar te houden: ze kwamen allebei uit op hetzelfde element. Ze tellen als niet
+    meetbaar in plaats van op de eerste plek te matchen."""
+    tel: dict[tuple[str, str], int] = {}
+    for k in b["knopen"].values():
+        if k.get("letterlijk", "ja") == "ja":
+            sleutel = (k.get("klasse") or "", _norm(k.get("label", "")))
+            tel[sleutel] = tel.get(sleutel, 0) + 1
+    knopen = {kid: {**k, "dubbelzinnig": k.get("letterlijk", "ja") == "ja"
+                    and tel[(k.get("klasse") or "", _norm(k.get("label", "")))] > 1} for kid, k in b["knopen"].items()}
+    return {**b, "knopen": knopen}
 
 
 def _knoop_past(k: dict[str, Any], ep: dict[str, Any]) -> bool:
@@ -720,9 +755,16 @@ def _vertaal(b: dict[str, Any], mapping: dict[str, dict[str, Any] | None]) -> tu
     `omgekeerd`. Daarnaast de teamtypen die `null` zijn en de teamtypen die niet in de tabel staan."""
     vertaald, buiten, zonder = [], [], []
     for kant in b["kanten"]:
-        if kant["type"] not in mapping:
+        doel = mapping.get(kant["type"], ...)
+        if doel is not None and doel is not ... and "regels" in doel:
+            # Per klassenpaar: de eerste regel die past. Geen passende regel is een gat in de tabel, geen fout.
+            paar = (b["knopen"][kant["van"]]["klasse"], b["knopen"][kant["naar"]]["klasse"])
+            doel = next((r for r in doel["regels"] if (r["van"], r["naar"]) == paar), ...)
+            if doel is not ... and doel["type"] is None:
+                doel = None
+        if doel is ...:
             zonder.append(kant["type"])
-        elif (doel := mapping[kant["type"]]) is None:
+        elif doel is None:
             buiten.append(kant["type"])
         else:
             a, z = (kant["naar"], kant["van"]) if doel["omgekeerd"] else (kant["van"], kant["naar"])
@@ -744,8 +786,8 @@ def vergelijk_relaties_inhoudelijk(relaties: list[dict[str, Any]], prels: list[d
     per_type: dict[str, dict[str, Any]] = {}
     buiten: dict[str, int] = {}
     zonder: dict[str, int] = {}
-    kanten, alleen = [], []
-    for b in relaties:
+    kanten, raak_overal = [], set()
+    for b in map(_dubbelzinnig, relaties):
         hier = _bij_bepaling(prels, b["bron"])
         vertaald, bt, zm = _vertaal(b, mapping)
         for x in bt:
@@ -767,8 +809,11 @@ def vergelijk_relaties_inhoudelijk(relaties: list[dict[str, Any]], prels: list[d
                 uitkomst = "gemist"
             kanten.append({"bron": bron_sleutel(b["bron"]), "teamtype": teamtype, "type": t,
                            "van": b["knopen"][a]["label"], "naar": b["knopen"][z]["label"], "uitkomst": uitkomst})
-        alleen += [{"bron": bron_sleutel(b["bron"]), "type": r["type"], "van": r["van"]["tekst"],
-                    "naar": r["naar"]["tekst"], "id": r["id"]} for r in hier if id(r) not in raak]
+        raak_overal |= raak
+    # Per relatie, niet per alinea: een bepaling met meer alinea's (dezelfde bron) telde een relatie anders vaker.
+    alleen = [{"bronnen": sorted({bron_sleutel(b["bron"]) for b in relaties if r in _bij_bepaling(prels, b["bron"])}),
+               "type": r["type"], "van": r["van"]["tekst"], "naar": r["naar"]["tekst"], "id": r["id"]}
+              for r in prels if id(r) not in raak_overal and any(r in _bij_bepaling(prels, b["bron"]) for b in relaties)]
     for rij in per_type.values():
         meetbaar = rij["n"] - rij["niet_meetbaar"]
         rij["recall"] = round(rij["gevonden"] / meetbaar, 3) if meetbaar else None
@@ -784,7 +829,7 @@ def regelskelet(relaties: list[dict[str, Any]], prels: list[dict[str, Any]],
     parafraseregel telt niet als ongemarkeerd. Uitkomst `volledig`, `deels` of `niet`, en `niet_meetbaar` als er
     niets te meten valt."""
     regels, telling = [], {"volledig": 0, "deels": 0, "niet": 0, "niet_meetbaar": 0}
-    for b in relaties:
+    for b in map(_dubbelzinnig, relaties):
         hier = _bij_bepaling(prels, b["bron"])
         els = [e for e in elementen if any(_iri_past(x, b["bron"]) for x in _iris(e) if x)]
         eindpunten = [_eindpunt({**e, "soort": "element"}) for e in els] + \
