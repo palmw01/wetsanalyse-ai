@@ -106,3 +106,26 @@ export function groepeerWettekst<T extends { vindplaats: AntwoordVindplaats }>(i
   }
   return groepen;
 }
+
+type ExternePassage = Extract<AntwoordBlok, { soort: "extern" }>["passages"][number];
+
+/** Een groep passages in het blok `extern`: een alinea, een voetnoot of een tabel (de kop met haar kolommen en de
+ *  rijen die eronder vallen). Opeenvolgende tabelrijen horen bij de laatste tabelkop ervoor; tabelrijen zonder kop (een
+ *  tabel waarvan Lex alleen rijen aanwees) krijgen een tabel zonder kolomkoppen. */
+export type ExternGroep =
+  | { soort: "tekst"; passage: ExternePassage }
+  | { soort: "voetnoot"; passage: ExternePassage }
+  | { soort: "tabel"; kop?: ExternePassage; rijen: ExternePassage[] };
+
+export function externGroepen(passages: readonly ExternePassage[]): ExternGroep[] {
+  const uit: ExternGroep[] = [];
+  for (const p of passages) {
+    const laatste = uit.at(-1);
+    if (p.soort === "tabel") uit.push({ soort: "tabel", kop: p, rijen: [] });
+    else if (p.soort === "tabelrij") {
+      if (laatste?.soort === "tabel") laatste.rijen.push(p);
+      else uit.push({ soort: "tabel", rijen: [p] });
+    } else uit.push({ soort: p.soort === "voetnoot" ? "voetnoot" : "tekst", passage: p });
+  }
+  return uit;
+}
