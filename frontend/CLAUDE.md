@@ -98,7 +98,8 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   - `admin/` – de beheertabs achter het admin-token: `ProfielenPanel` (+ `ProfileEditor`),
     `UsersPanel` (+ `BudgetBeleidBlok`), `RegistratiesPanel`, `ApiTokensPanel`,
     `BerichtenBeheerPanel` (+ `BerichtEditor`), `FeedbackLijstClient`, `ConnectorsPanel` (de bronconnectors van ADR-013: aan of
-    uit per beheerder mét 2FA, met de audit ingeklapt; welke er bestaan staat in de code).
+    uit per beheerder mét 2FA, met de audit ingeklapt; welke er bestaan staat in de code; browserregressie
+    `scripts/test-connectors.mjs`).
   - `account/`, `auth/` – account, login/2FA/setup/registratie, disclaimer, `AuthFrame`.
   - `instellingen/` – `InstellingenVenster` (leest de parameter), `InstellingenDialog` (de dialoogschil),
     `InstellingenInhoud` (de tabs) en `InstellingenLink`. De tabdefinities en helpers staan in `lib/instellingen.ts`,
