@@ -112,7 +112,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   `kop_in_antwoord`, letterlijke passages). Als subsjabloon krijgt elk sjabloon het platte veld `extern: [{id, van_nr,
   tot_nr}]`, en als eigen sjabloon is er `antwoord_extern`, allebei alleen als er een connector aanstaat die de rol bedient
   (`agent_node`); zonder connector zijn de schema's byte-gelijk. De tekst komt uit de rijen van de leestool (contract:
-  `stuk: {id, label, link}`, rijen `{nr, tekst, kop?}`). `check_grounding` noemt een stuk dat alleen in een zoekresultaat
+  `stuk: {id, label, link, bron_hash, gewijzigd?}`, rijen `{nr, tekst, kop?}`). `check_grounding` noemt een stuk dat alleen in een zoekresultaat
   stond `onbevestigd` ("alleen gevonden, niet gelezen"). `tests/test_extern_sjabloon.py`.
 - **`verify_node`** – `check_grounding(answer, source_trace)`. Bij ongegrond volgt via `correct_node`
   hoogstens één corrigerende ronde (`GROUNDING_CORRECT`, default aan; `state["corrected"]`). De controle
@@ -199,7 +199,11 @@ bruikbaar is.
 - **`mcp_server.py`** – de andere kant op: een stdio-MCP-server over de eigen toollaag (`graph-qa-mcp`,
   `mcp`-extra). `tools/list` is `anthropic_schemas()`, `tools/call` is `dispatch()` – een doorgeefluik,
   geen kopie. Hij bestaat zodat een externe agent niet zelf SPARQL schrijft en in de valkuilen hieronder
-  loopt. `tests/test_mcp_server.py` bewaakt dat hij exact de tools van de agent aanbiedt.
+  loopt. `tests/test_mcp_server.py` bewaakt dat hij exact de tools van de agent aanbiedt. Naar buiten draagt hij het
+  contract als MCP (review ADR-013): per tool `annotations` (`gedrag`: alleen lezen, herhaalbaar, `openWorldHint` voor een
+  bronconnector), een `outputSchema` (`resultaat.CONTRACT_SCHEMA`) voor de graaftools en connectortools, het resultaat ook
+  als `structuredContent` (gevalideerd tegen dat schema voor elke contracttool, elke pagina), en bij een gelezen stuk een
+  `resource_link` met `lastModified` = de versie die gelezen is. In de antwoordlus van Lex verandert niets.
 
 ## Toollaag & queries
 
@@ -227,12 +231,20 @@ bruikbaar is.
   en waarvoor hij staat, of waarom hij uit staat en wie hem aanzet. Zonder aangeboden connector en zonder genoemde bron
   is dat blok leeg. `tests/test_bronprompt.py`. `tests/test_bronschakelaar.py`.
   **Kamerstukken** (`tools/kamerstuk_tools.py`, transport `adapters/sru_kamerstukken.py`): `zoek_kamerstukken`
-  (een dossier op nummer, of woorden in de titel) en `get_kamerstuk` (per alinea, met de kop, in documentvolgorde;
-  tabellen, illustraties en voetnoten geteld in `overgeslagen`). De CQL bouwt de tool, de document-URL komt uit het
+  (een dossier of subdossier, `w.dossiernummer=="36200-IX"`; tot `MAX_DOSSIER` stukken op nummer, daarboven op datum met
+  een exact vervolg en `volgorde: "datum"` – nooit afgekapt; of woorden in de titel; zonder bijlagen, `dt.type==Kamerstuk`) en `get_kamerstuk` (per alinea, met de kop, in documentvolgorde;
+  tabellen (ook CALS `table`), illustraties en voetnoten geteld in `overgeslagen`; een `tussenkop` hoort bij de alinea's erna, zodat
+  de artikelsgewijze toelichting haar artikel noemt; de eerste pagina draagt `inhoud`, per kop de offset, om te springen). De CQL bouwt de tool, de document-URL komt uit het
   SRU-record en alleen `repository.overheid.nl` over https; een SRU-diagnose of storing is een foutresultaat
   (`bron_onbereikbaar`), nooit een lege lijst. Een rij draagt haar tekst onder `id`, niet onder `iri`/`uri`: een
-  sjabloon citeert er dus niet uit als passage van een bepaling. Cache per proces en per id, met de teksthash in de
-  log. Live meten: `KAMERSTUKKEN_LIVE=1 uv run pytest tests/test_kamerstuk_tools.py`.
+  sjabloon citeert er dus niet uit als passage van een bepaling. **Cache met versiecontrole** (een Kamerstuk verandert
+  na publicatie: onopgemaakt → opgemaakt, herdruk, rectificatie): binnen `VERS_S` geen aanroep, daarna een lichte
+  metadatavraag op `dt.modified`/documentstatus/versie en alleen bij een verschil de XML opnieuw (log
+  `kamerstuk_gewijzigd`); bij een storing de bewaarde versie met `gevalideerd: false`; grenzen `MAX_CACHE` en
+  `MAX_CACHE_BYTES`. Het `stuk` noemt `bron_hash`, `gewijzigd`, `documentstatus` en `versie`, en het blok `extern`
+  bewaart `bron_hash` en `gewijzigd`; `_gelezen` neemt de passages uit één lezing (dezelfde hash). Het contract met de echte dienst (indexen, sortering, recordvorm, documentstatus) toetst
+  `tests/test_kamerstukken_live.py`: dagelijks in `bronnenwacht.yml`, lokaal met `BRONNEN_LIVE=1 uv run pytest -m live`
+  (marker `live`; elke connector heeft er een, `test_connectorbeschrijving.py`). Niet in de poort.
 - **`graph/queries.py`** – de SPARQL-bouwers (o.a. `context()` = de GraphRAG-UNION).
   **`graph/schema.py`** – schema-introspectie met een cache van een uur. **`graph/results.py`** –
   `parse_select`: de MCP levert SELECT als JSON-string-gewrapte TSV.

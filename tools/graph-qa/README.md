@@ -81,8 +81,9 @@ rol wijst een bepaling **aan**, hij duidt haar niet.
 
 ### De toollaag
 
-Het model krijgt geen vrije SPARQL maar 27 getypeerde tools (`agent/tools/`): 21 op de kennisgraaf, 4 op
-de opgeslagen annotaties en 2 op de begrippen. Die laatste zes lopen via de wetsanalyse-API.
+Het model krijgt geen vrije SPARQL maar 29 getypeerde tools (`agent/tools/`): 21 op de kennisgraaf, 4 op
+de opgeslagen annotaties, 2 op de begrippen en 2 op de Kamerstukken. De annotatie- en begriptools lopen via de
+wetsanalyse-API; de Kamerstuktools staan achter een vlag (hieronder).
 
 - **Zoeken** – `search_wetgeving` (full-text, veldgericht, te beperken tot één regeling of knooptype,
   met paginatie), `semantic_search` (op betekenis, via een GraphDB-similarity-index), `zoek_opbouw`
@@ -108,6 +109,31 @@ de opgeslagen annotaties en 2 op de begrippen. Die laatste zes lopen via de wets
 - **Introspectie** – `graph_schema`; **laatste redmiddel** – `raw_sparql` (read-only).
 
 `jas_klasse_opvragen` staat daarbuiten en is opt-in per specialist.
+
+### Bronnen naast de wet: Kamerstukken (ADR-013)
+
+Achter `CONNECTOR_KAMERSTUKKEN` krijgt Lex `zoek_kamerstukken` en `get_kamerstuk`, op de SRU 2.0-zoekdienst van KOOP
+(`repository.overheid.nl/sru`, collectie `officielepublicaties`). Wat de koppeling van die dienst gebruikt, in eigen
+woorden; de bron is de *Handleiding SRU 2.0* van KOOP (v1.3, mei 2025, via data.overheid.nl), en de live-proef
+(`tests/test_kamerstukken_live.py`, dagelijks in `bronnenwacht.yml`) houdt deze lijst eerlijk:
+
+- **Zoeken** in CQL op `w.publicatienaam==Kamerstuk` en `dt.type==Kamerstuk` (zonder dat tweede komen de bijlagen
+  mee), met `w.dossiernummer` (een subdossier als `36200-IX` is een eigen waarde, geen voorvoegsel) of woorden in
+  `dt.title`. De query bouwt de tool; het model kiest alleen dossier, woorden en het stuk.
+- **Hoeveel**: tot 1000 records per aanroep; `maximumRecords=0` geeft alleen het totaal. Een dossier tot 1000 stukken
+  zet de tool zelf op nummer; een groter dossier pagineert op datum (`sortBy dt.available/sort.ascending`) met een
+  exact vervolg. De dienst sorteert `w.ondernummer` als tekst, dus "10" vóór "2".
+- **Het document** komt uit het record (`itemUrl` met `manifestation="xml"`), alleen van `repository.overheid.nl` over
+  https. Het model kiest nooit een URL.
+- **Versies**: een parlementair stuk verschijnt vaak eerst onopgemaakt en wordt later vervangen door de opgemaakte
+  versie onder hetzelfde id (`w.documentstatus`); herdruk en rectificatie staan in `w.versieinformatie` en
+  `w.versienummer`, de laatste wijziging in `dt.modified`. De cache valideert daarop, en `get_kamerstuk` noemt de
+  versie en de hash van wat gelezen is.
+- **De tekst** van een stuk staat in `stuk › divisie › al`, met koppen per divisie en een `tussenkop` per artikel in de
+  artikelsgewijze toelichting. Tabellen zijn CALS (`table`, ook de inhoudsopgave van het stuk) en worden geteld, niet als
+  alinea's gegeven; voetnoten ook. De eerste pagina van `get_kamerstuk` noemt per kop de offset (`inhoud`).
+- **Fouten**: een SRU-diagnose of een onbereikbare dienst is een foutresultaat (`bron_onbereikbaar`), nooit een lege
+  lijst. De JSON-uitvoer van de dienst is volgens de handleiding nog beperkt; de koppeling leest XML.
 
 ### Brongetrouwheid en geheugen
 

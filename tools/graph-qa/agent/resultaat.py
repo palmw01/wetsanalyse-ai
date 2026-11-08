@@ -219,6 +219,37 @@ def waarden(tekst: str) -> str:
     return "\n".join(uit)
 
 
+#: Het resultaatcontract als JSON Schema, voor de `outputSchema` van de MCP-server (review ADR-013). Eén schema voor
+#: elke tool met het contract: een externe client kan `volledig` en `vervolg` zo valideren in plaats van tekst te lezen.
+#: Bij `status: ok` zijn `volledig`, `aantal` en `resultaten` verplicht, en `vervolg` alleen als `volledig` onwaar is;
+#: een fout draagt `reden`. Andere velden (`stuk`, `totaal`, `volgorde` …) mogen: die horen bij de tool.
+CONTRACT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "status": {"type": "string", "enum": ["ok", "error"]},
+        "volledig": {"type": "boolean", "description": "Alles binnen de scope van déze aanroep staat erin."},
+        "aantal": {"type": "integer", "minimum": 0},
+        "totaal": {"type": "integer", "minimum": 0},
+        "vervolg": {"type": "object", "properties": {"tool": {"type": "string"}, "args": {"type": "object"}},
+                    "required": ["tool", "args"],
+                    "description": "De aanroep die dezelfde set aanvult; alleen als volledig onwaar is."},
+        "resultaten": {"type": "array", "items": {"type": "object"}},
+        "toelichting": {"type": "string"},
+        "reden": {"type": "string"},
+    },
+    "required": ["status"],
+    "allOf": [
+        {"if": {"properties": {"status": {"const": "ok"}}},
+         "then": {"required": ["volledig", "aantal", "resultaten"]}},
+        {"if": {"properties": {"status": {"const": "ok"}, "volledig": {"const": True}}, "required": ["volledig"]},
+         "then": {"not": {"required": ["vervolg"]}}},
+        {"if": {"properties": {"status": {"const": "ok"}, "volledig": {"const": False}}, "required": ["volledig"]},
+         "then": {"required": ["vervolg"]}},
+        {"if": {"properties": {"status": {"const": "error"}}}, "then": {"required": ["reden"]}},
+    ],
+}
+
+
 def is_contract(tekst: str) -> dict[str, Any] | None:
     """Het geparste contract, of None als de tekst er geen is."""
     try:
