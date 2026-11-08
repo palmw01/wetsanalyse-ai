@@ -477,9 +477,11 @@ Het image dat elke app draait is een parameter (`apiImage`, `graphQaImage`, `fro
 `bwbImportImage`), zodat CI een digest kan meegeven in plaats van `:latest`. Ook te zetten:
 `graphdbImage`, `otelCollectorImage`, `dbServerName`, `graphdbHeap` en `llmProvider`.
 
-Drie vlaggen staan alleen op acceptatie aan, alle drie met default `false` en bewaakt door `poort.yml`:
+Vier vlaggen staan alleen op acceptatie aan, alle vier met default `false` en bewaakt door `poort.yml`:
 - `apiExtern` (`--api-extern`): de publieke api-ingress;
 - `apiTokenLogin` (`--api-token-login`): inloggen met een accounttoken voor de
   [acceptatie-MCP](../../tools/wetsanalyse-acceptatie-mcp/README.md);
 - `connectorKamerstukken` (`--connector-kamerstukken`): graph-qa biedt de bronconnector Kamerstukken (ADR-013)
   aan. Of hij in een gesprek draait, bepalen daarna het register in de beheertab en het menu *Bronnen en tools*.
+- `relatieVoorstellen` (`--relatie-voorstellen`): de annotatieketen stelt relaties tussen markeringen voor (ADR-011,
+  `RELATIE_VOORSTELLEN`, een proefvlag). Op graph-qa en de eval-job; uit is de uitkomst gelijk aan zonder deze code.

@@ -397,6 +397,8 @@ alleen lokaal bestaan. Daarvóór staan structurele guards:
 - `apiExtern` staat default op `false` en wordt alleen op acceptatie gezet;
 - inloggen met een accounttoken (`apiTokenLogin`) staat default uit en alleen op acceptatie aan;
 - de bronconnector Kamerstukken (`connectorKamerstukken`, ADR-013) staat default uit en alleen op acceptatie aan;
+- de relatievoorstellen uit de annotatieketen (`relatieVoorstellen`, ADR-011, een proefvlag) staan default uit en alleen op
+  acceptatie aan;
 - GraphDB blijft `external: false`; de proxy staat default uit, alleen op acceptatie, alleen mét
   token, en met een `revisionSuffix` uit de config-hash (secrets zijn niet revisie-scoped, dus een
   configwijziging rolt anders niet uit).
