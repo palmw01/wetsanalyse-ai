@@ -58,6 +58,13 @@ graph-qa, het register – en niets per connector met de hand. Een nieuwe connec
 `agent/tools/` en een straatvlag `CONNECTOR_<NAAM>`. `tools/graph-qa/tests/test_connectorbeschrijving.py` maakt een
 onvolledige beschrijving rood.
 
+**In het antwoord** (vervolg op 1a, 8 nov 2026). Een bron naast de wet krijgt binnen ADR-008 een vaste vorm: het blok
+`extern` in de gesloten catalogus (`door: bron`, met brontype, id, label, link, de kop uit de beschrijving en de
+letterlijke passages). Elk sjabloon krijgt het als subsjabloon, met één plat veld `extern: [{id, van_nr, tot_nr}]`. Een
+vraag die alleen over zo'n bron gaat, heeft een eigen sjabloon (`antwoord_extern`) met dezelfde blokken. Allebei staan ze
+er alleen als er een connector aanstaat. Het model wijst aan, de code vult uit de rijen van de leestool; het blok komt ná
+de wettekst en vult nooit een `doel`.
+
 ### Toestemming per handeling
 
 - **Connectors die alleen lezen** (alle bronconnectors, en de contextconnectors in fase 2a): de schakelaar is de

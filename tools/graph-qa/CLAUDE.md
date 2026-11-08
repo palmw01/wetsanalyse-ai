@@ -108,6 +108,12 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   van het model haalt de code niets op. Een markering "niet opgehaald" bestaat bewust niet.
   Citeren kan alleen uit rijen met een iri bij hun tekst, dus niet uit `get_context`.
   `verify_node` toetst de blokken `annotaties`, `begrippen` en `leemte` niet (`NIET_GETOETST`): afgeleide duiding en tekst van de code.
+  **Bronnen naast de wet** (`sjablonen/extern.py`, ADR-013): het blok `extern` (brontype, id, label, link, kop uit
+  `kop_in_antwoord`, letterlijke passages). Als subsjabloon krijgt elk sjabloon het platte veld `extern: [{id, van_nr,
+  tot_nr}]`, en als eigen sjabloon is er `antwoord_extern`, allebei alleen als er een connector aanstaat die de rol bedient
+  (`agent_node`); zonder connector zijn de schema's byte-gelijk. De tekst komt uit de rijen van de leestool (contract:
+  `stuk: {id, label, link}`, rijen `{nr, tekst, kop?}`). `check_grounding` noemt een stuk dat alleen in een zoekresultaat
+  stond `onbevestigd` ("alleen gevonden, niet gelezen"). `tests/test_extern_sjabloon.py`.
 - **`verify_node`** – `check_grounding(answer, source_trace)`. Bij ongegrond volgt via `correct_node`
   hoogstens één corrigerende ronde (`GROUNDING_CORRECT`, default aan; `state["corrected"]`). De controle
   keurt **twee** dingen af en `correct_node` moet ze allebei benoemen: `unsupported` (een vindplaats die

@@ -14,6 +14,7 @@ from collections import Counter
 from typing import Any
 
 from bronmodel.antwoord import NIET_GETOETST, Antwoord, antwoord_tekst
+from bronmodel.connectors import CONNECTORS
 from langgraph.config import get_stream_writer
 
 from ..berichten import CORRECTIE, _parse_final, _schoon_messages, _trim_messages, beurt_start, venster_telling
@@ -22,7 +23,7 @@ from ..focus import na_antwoord
 from ..grounding import check_grounding, curate_sources, herstel_citaten
 from ..narratie import _grounding_melding, _stap, _toolregel, ronde_in_denk
 from ..overzicht import bronrijen as overzicht_bronrijen
-from ..sjablonen import SJABLONEN, sjabloon_schemas, sjabloon_uit_tekst
+from ..sjablonen import EXTERN, SJABLONEN, sjabloon_schemas, sjabloon_uit_tekst
 from .overzicht import TOOL as OVERZICHT_TOOL
 from ..prompts import SYSTEM_PROMPT
 from ..provenance import collect_sources
@@ -68,6 +69,12 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     # vindt de exacte bepaling. De JAS-annotatie gebeurt daarna in annoteer_node (pure LLM-call).
     spec_naam = "retrieval" if state.get("specialist") == "annotatie" else state.get("specialist")
     spec = get_specialist(spec_naam)
+    # ADR-013: staat er een connector aan die deze rol bedient, dan krijgt elk sjabloon het veld voor bronnen naast de
+    # wet (het subsjabloon) en is er het eigen sjabloon `antwoord_extern`. Anders blijven de schema's gelijk.
+    rol = spec_naam or DEFAULT_SPECIALIST
+    extern_aan = bool(spec.sjablonen) and any(
+        s.get("aan") and n in CONNECTORS and rol in CONNECTORS[n].specialisten for n, s in (state.get("bronstand") or {}).items())
+    sjablonen = spec.sjablonen | {EXTERN} if extern_aan else spec.sjablonen
     # Twee delen, en de volgorde is betekenisdragend: het stabiele deel (identiteit +
     # specialist) is bij elke tool-ronde van elke beurt hetzelfde en draagt daarom het
     # prompt-cache-punt; het plan, de geheugen-context en de adviescontext verschillen per
@@ -105,7 +112,7 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         model=b.model_ophaal if spec_naam == "retrieval" else b.model,
         max_tokens=MAX_TOKENS_OPHALEN if spec_naam == "retrieval" else MAX_TOKENS_ANTWOORD,
         system=[stabiel, variabel],
-        tools=anthropic_schemas(only=toegestane_tools(spec.tools, b.settings, state.get("bronnen"))) + sjabloon_schemas(spec.sjablonen),
+        tools=anthropic_schemas(only=toegestane_tools(spec.tools, b.settings, state.get("bronnen"))) + sjabloon_schemas(sjablonen, extern=extern_aan),
         messages=venster,
         # Elke toolronde stuurt de hele historie opnieuw: een cache-punt aan het eind maakt die de volgende ronde goedkoop.
         historie_cache=True,
@@ -115,7 +122,7 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         final = stream.final_message()
 
     tool_uses, text_parts = _parse_final(final)
-    if not tool_uses and spec.sjablonen and (aanroep := sjabloon_uit_tekst(text_parts, spec.sjablonen)):
+    if not tool_uses and sjablonen and (aanroep := sjabloon_uit_tekst(text_parts, sjablonen)):
         logger.warning("sjabloon als tekst", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""), "sjabloon": aanroep["name"]})
         tool_uses, text_parts = [aanroep], []
     # Een sjabloon rondt af: staat hij naast graaftools, dan eerst die, en daarna komt hij vanzelf terug.
@@ -165,7 +172,7 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         "afgekapt": afgekapt,
     }
     if not tool_uses:
-        if spec.sjablonen and not state.get("corrected"):
+        if sjablonen and not state.get("corrected"):
             logger.info("sjabloon gemist", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""), "specialist": spec_naam})
         # De tool-loze beurt is het eindantwoord. Het gaat de state in en pas in `finalize_node` naar
         # de jurist: `verify` kan het nog afkeuren.

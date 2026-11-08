@@ -12,6 +12,7 @@ import { StatusLabel } from "@/components/ui/Lijst";
 import { Vindplaats } from "./Vindplaats";
 import { Markdown } from "@/components/werkplek/Markdown";
 import { groepeerWettekst, type Antwoord as AntwoordData, type AntwoordBlok, type BlokSoort } from "@/lib/antwoord";
+import { BRONTYPE_NAAM } from "@/lib/bronnen";
 import { begripPad, generiekPad } from "@/lib/werkgebiedPaden";
 import type { Bron } from "@/lib/types";
 
@@ -113,6 +114,25 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
   twijfel: ({ blok, bronnen, nietLetterlijk }) => (
     <Sectie kop="Twijfel en aannames">
       <ul className="ml-4 list-disc space-y-0.5">{blok.punten.map((p) => <li key={p}><Markdown tekst={p} bronnen={bronnen} nietLetterlijk={nietLetterlijk} /></li>)}</ul>
+    </Sectie>
+  ),
+  // Een bron naast de wet (ADR-013): letterlijk, met haar eigen vindplaats, en zichtbaar geen wettekst.
+  extern: ({ blok }) => (
+    <Sectie kop={blok.kop}>
+      <p className="text-xs text-muted">{BRONTYPE_NAAM[blok.brontype] ?? "Bron naast de wet"}, geen wettekst: het onderbouwt een uitleg, niet wat de wet zegt.</p>
+      <div className="space-y-3" data-extern={blok.id}>
+        {blok.passages.map((p) => (
+          <div key={p.nr} className="space-y-1">
+            {p.kop && <p className="text-xs font-medium text-muted">{p.kop}</p>}
+            <Citaat>{p.tekst}</Citaat>
+          </div>
+        ))}
+      </div>
+      <p className="text-xs text-muted">
+        {blok.link
+          ? <a href={blok.link} target="_blank" rel="noopener noreferrer" className="focus-ring rounded underline underline-offset-2">{blok.label}</a>
+          : blok.label}
+      </p>
     </Sectie>
   ),
   leemte: ({ blok }) => <p className="text-muted" data-leemte>{blok.tekst}</p>,
