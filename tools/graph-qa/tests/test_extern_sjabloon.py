@@ -1,7 +1,7 @@
 """Bronnen naast de wet in het antwoord (ADR-008 + ADR-013): het blok `extern`, als subsjabloon en als eigen sjabloon.
 
 De echte leestool (`get_kamerstuk` tegen een nepbron) levert de trace, zodat het contract van een leestool hier
-meetelt: `stuk: {id, label, link}` en rijen `{nr, tekst, kop?}`. Het model wijst alleen het stuk en de alinea's aan.
+meetelt: `stuk: {id, label, link, bron_hash, gewijzigd?}` en rijen `{nr, tekst, kop?}`. Het model wijst alleen het stuk en de alinea's aan.
 """
 from __future__ import annotations
 
@@ -123,3 +123,49 @@ def test_de_beurt_biedt_het_subsjabloon_alleen_met_een_connector_aan():
     assert "antwoord_extern" in aan and "extern" in aan["antwoord_bepaling"]["input_schema"]["properties"]
     assert "antwoord_extern" not in uit and "extern" not in uit["antwoord_bepaling"]["input_schema"]["properties"]
     assert uit == _schemas_van_de_beurt(make_settings(), None), "uit is gelijk aan een straat zonder connector"
+
+
+# ── Eén lezing per blok, met de versie erbij (review ADR-013, punt 3) ────────────────────────────────────────────
+
+from agent.adapters.sru_kamerstukken import Document  # noqa: E402
+from test_kamerstuk_tools import XML  # noqa: E402
+
+
+class Versie(NepBron):
+    def __init__(self, xml: bytes, h: str, gewijzigd: str):
+        super().__init__(DOSSIER, xml)
+        self.h, self.gewijzigd = h, gewijzigd
+
+    def document(self, ident):
+        return Document(ident, self.xml, self.h, gewijzigd=self.gewijzigd, documentstatus="Opgemaakt")
+
+
+OUD = ("get_kamerstuk", tools.dispatch("get_kamerstuk", None, {"id": ID}, AAN, kamerstukken=Versie(XML, "h1", "2026-01-02")))
+# De opgemaakte versie: de tweede alinea is weg.
+NIEUW_XML = XML.replace(b"<al>Het doel is   eenvoud.</al>", b"")
+NIEUW = ("get_kamerstuk", tools.dispatch("get_kamerstuk", None, {"id": ID}, AAN,
+                                         kamerstukken=Versie(NIEUW_XML, "h2", "2026-02-01")))
+
+
+def _vul(trace, van, tot):
+    return sjablonen.vul("antwoord_extern", {"kort_antwoord": "x", "extern": [{"id": ID, "van_nr": van, "tot_nr": tot}],
+                                             "twijfel": []}, trace)
+
+
+def test_het_blok_draagt_de_versie_die_lex_las():
+    blok = next(b for b in _vul([OUD], 1, 2).blokken if b.soort == "extern")
+    assert blok.bron_hash == "h1" and blok.gewijzigd == "2026-01-02"
+
+
+def test_passages_komen_uit_de_laatste_lezing_en_mengen_niet():
+    blok = next(b for b in _vul([OUD, NIEUW], 1, 1).blokken if b.soort == "extern")
+    assert blok.bron_hash == "h2" and [p.tekst for p in blok.passages] == ["Dit voorstel regelt de invorderingsrente opnieuw."]
+    with pytest.raises(Onvulbaar, match="veranderd sinds alinea 2"):
+        _vul([OUD, NIEUW], 1, 2)
+
+
+def test_een_ouder_bericht_zonder_versie_blijft_geldig():
+    oud = {"soort": "extern", "door": "bron", "brontype": "kamerstuk", "id": ID, "label": "x", "kop": "k",
+           "passages": [{"nr": 1, "tekst": "t"}]}
+    a = Antwoord.model_validate({"sjabloon": "extern", "blokken": [oud]})
+    assert a.blokken[0].bron_hash == ""

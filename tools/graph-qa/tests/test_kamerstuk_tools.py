@@ -6,6 +6,7 @@ Kamerstuk (kamerstuk › stuk › divisie › kop/al), niet overgenomen. De live
 """
 from __future__ import annotations
 
+import dataclasses
 import json
 from dataclasses import dataclass
 
@@ -199,3 +200,97 @@ def test_een_onvolledig_antwoord_van_de_dienst_is_een_fout():
 
     d = roep("zoek_kamerstukken", {"dossier": "99001"}, Hapert(_veel(400)))
     assert d["status"] == "error" and d["reden"] == "onvolledig_antwoord"
+
+
+# ── Het cachebeleid (review ADR-013, punt 3) ─────────────────────────────────────────────────────────────────────
+#
+# Een Kamerstuk kan na publicatie veranderen: de onopgemaakte versie wordt vervangen door de opgemaakte, en er zijn
+# herdruk en rectificatie. De adapter valideert een hit daarom na VERS_S met een lichte metadatavraag.
+
+from agent.adapters import sru_kamerstukken as sru  # noqa: E402
+
+
+class Dienst:
+    """Een nep-SRU-dienst over HTTP: één record met `dt.modified` en documentstatus, en het document zelf."""
+
+    def __init__(self) -> None:
+        self.gewijzigd, self.status, self.xml = "2026-01-02", "Onopgemaakt", XML
+        self.vragen: list[str] = []
+        self.weg = False
+
+    def __call__(self, r: httpx.Request) -> httpx.Response:
+        if self.weg:
+            raise httpx.ConnectError("weg", request=r)
+        if r.url.path.endswith(".xml"):
+            self.vragen.append("document")
+            return httpx.Response(200, content=self.xml)
+        self.vragen.append("record")
+        return httpx.Response(200, content=f"""<sru:searchRetrieveResponse
+            xmlns:sru="http://docs.oasis-open.org/ns/search-ws/sruResponse" xmlns:dcterms="http://purl.org/dc/terms/"
+            xmlns:ow="http://standaarden.overheid.nl/wetgeving/" xmlns:gzd="http://standaarden.overheid.nl/sru">
+            <sru:numberOfRecords>1</sru:numberOfRecords><sru:records><sru:record>
+            <dcterms:identifier>kst-99001-3</dcterms:identifier><dcterms:title>Wet x; MvT</dcterms:title>
+            <dcterms:modified>{self.gewijzigd}</dcterms:modified><ow:documentstatus>{self.status}</ow:documentstatus>
+            <gzd:itemUrl manifestation="xml">https://repository.overheid.nl/frbr/kst-99001-3.xml</gzd:itemUrl>
+            </sru:record></sru:records></sru:searchRetrieveResponse>""".encode())
+
+
+def _adapter(dienst: Dienst, nu: list[float]) -> SruKamerstukken:
+    return SruKamerstukken(client=httpx.Client(transport=httpx.MockTransport(dienst)), klok=lambda: nu[0])
+
+
+def test_binnen_het_venster_geen_aanroep_daarna_alleen_de_metadata():
+    dienst, nu = Dienst(), [0.0]
+    bron = _adapter(dienst, nu)
+    eerste = bron.document("kst-99001-3")
+    assert dienst.vragen == ["record", "document"] and eerste.documentstatus == "Onopgemaakt"
+    nu[0] = sru.VERS_S - 1
+    assert bron.document("kst-99001-3") is eerste and len(dienst.vragen) == 2, "binnen het venster geen aanroep"
+    nu[0] = sru.VERS_S + 1
+    assert bron.document("kst-99001-3") is eerste and dienst.vragen[2:] == ["record"], "niets veranderd: geen XML"
+
+
+def test_een_nieuwe_versie_wordt_opnieuw_opgehaald_en_gelogd(caplog):
+    dienst, nu = Dienst(), [0.0]
+    bron = _adapter(dienst, nu)
+    oud = bron.document("kst-99001-3")
+    dienst.gewijzigd, dienst.status, dienst.xml = "2026-02-01", "Opgemaakt na onopgemaakt", XML.replace(b"eenvoud", b"helderheid")
+    nu[0] = sru.VERS_S + 1
+    with caplog.at_level("INFO", logger="graph_qa.kamerstukken"):
+        nieuw = bron.document("kst-99001-3")
+    assert dienst.vragen[2:] == ["record", "document"]
+    assert nieuw.hash != oud.hash and nieuw.gewijzigd == "2026-02-01" and nieuw.documentstatus == "Opgemaakt na onopgemaakt"
+    melding = next(r for r in caplog.records if r.getMessage() == "kamerstuk_gewijzigd")
+    assert melding.oude_hash == oud.hash and melding.bron_hash == nieuw.hash
+
+
+def test_een_storing_bij_het_valideren_geeft_de_bewaarde_versie_met_de_vlag():
+    dienst, nu = Dienst(), [0.0]
+    bron = _adapter(dienst, nu)
+    oud = bron.document("kst-99001-3")
+    dienst.weg, nu[0] = True, sru.VERS_S + 1
+    doc = bron.document("kst-99001-3")
+    assert doc.hash == oud.hash and doc.gevalideerd is False
+    with pytest.raises(KamerstukFout):
+        bron.document("kst-99001-4")  # een miss zonder dienst blijft een fout
+    d = json.loads(tools.dispatch("get_kamerstuk", None, {"id": "kst-99001-3"}, AAN, kamerstukken=bron))
+    assert d["stuk"]["gevalideerd"] is False and d["stuk"]["bron_hash"] == oud.hash
+
+
+def test_de_bytegrens_zet_de_oudste_eruit(monkeypatch):
+    monkeypatch.setattr(sru, "MAX_CACHE_BYTES", len(XML) * 2 + 1)
+    bron = SruKamerstukken(client=httpx.Client(transport=httpx.MockTransport(Dienst())))
+    nep = Record(id="", titel="", datum="", vergaderjaar="", dossiers=(), ondernummer="",
+                 xml_url="https://repository.overheid.nl/frbr/x.xml")
+    monkeypatch.setattr(bron, "_record", lambda ident: dataclasses.replace(nep, id=ident))
+    for i in range(1, 4):
+        bron.document(f"kst-99001-{i}")
+    assert list(bron._cache) == ["kst-99001-2", "kst-99001-3"]
+
+
+def test_het_stuk_noemt_zijn_versie():
+    dienst = Dienst()
+    d = json.loads(tools.dispatch("get_kamerstuk", None, {"id": "kst-99001-3"}, AAN,
+                                  kamerstukken=_adapter(dienst, [0.0])))
+    assert d["stuk"]["documentstatus"] == "Onopgemaakt" and d["stuk"]["gewijzigd"] == "2026-01-02"
+    assert d["stuk"]["bron_hash"] and "gevalideerd" not in d["stuk"]

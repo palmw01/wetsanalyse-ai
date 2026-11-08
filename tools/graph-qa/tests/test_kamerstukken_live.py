@@ -171,3 +171,9 @@ def test_de_tool_vindt_een_subdossier():
     d = json.loads(tools.dispatch("zoek_kamerstukken", None, {"dossier": SUB}, AAN))
     assert d["status"] == "ok" and d["resultaten"], "het subdossier gaf niets (zoeken op het hoofdnummer?)"
     assert all(r["id"].upper().startswith(f"KST-{SUB}-") for r in d["resultaten"])
+
+
+def test_de_adapter_leest_de_versie_van_het_document():
+    """De cache valideert op dt.modified, documentstatus en versie (review ADR-013, punt 3)."""
+    doc = SruKamerstukken().document(MVT)
+    assert doc.gewijzigd and doc.documentstatus and doc.hash and doc.gevalideerd

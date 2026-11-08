@@ -82,7 +82,7 @@ de wettekst en vult nooit een `doel`.
 
 1. een beschrijving in `bronmodel/connectors.py` (alle velden; `brontype` uit `extern.BRONTYPEN`, eventueel een nieuw
    soort id in `extern.py` met vectoren);
-2. de tools in `tools/graph-qa/agent/tools/`, met het resultaatcontract; de leestool levert `stuk: {id, label, link}` en
+2. de tools in `tools/graph-qa/agent/tools/`, met het resultaatcontract; de leestool levert `stuk: {id, label, link, bron_hash, gewijzigd?}` en
    rijen `{nr, tekst, kop?}`, en een tak in `dispatch`;
 3. de straatvlag: `Settings.connector_<naam>`, `CONNECTOR_<NAAM>` in `config.py` en de bicep (default uit);
 4. de groep in `frontend/lib/bronnen.ts` (`BRONTYPE_NAAM`);

@@ -112,7 +112,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   `kop_in_antwoord`, letterlijke passages). Als subsjabloon krijgt elk sjabloon het platte veld `extern: [{id, van_nr,
   tot_nr}]`, en als eigen sjabloon is er `antwoord_extern`, allebei alleen als er een connector aanstaat die de rol bedient
   (`agent_node`); zonder connector zijn de schema's byte-gelijk. De tekst komt uit de rijen van de leestool (contract:
-  `stuk: {id, label, link}`, rijen `{nr, tekst, kop?}`). `check_grounding` noemt een stuk dat alleen in een zoekresultaat
+  `stuk: {id, label, link, bron_hash, gewijzigd?}`, rijen `{nr, tekst, kop?}`). `check_grounding` noemt een stuk dat alleen in een zoekresultaat
   stond `onbevestigd` ("alleen gevonden, niet gelezen"). `tests/test_extern_sjabloon.py`.
 - **`verify_node`** – `check_grounding(answer, source_trace)`. Bij ongegrond volgt via `correct_node`
   hoogstens één corrigerende ronde (`GROUNDING_CORRECT`, default aan; `state["corrected"]`). De controle
@@ -232,8 +232,12 @@ bruikbaar is.
   tabellen, illustraties en voetnoten geteld in `overgeslagen`). De CQL bouwt de tool, de document-URL komt uit het
   SRU-record en alleen `repository.overheid.nl` over https; een SRU-diagnose of storing is een foutresultaat
   (`bron_onbereikbaar`), nooit een lege lijst. Een rij draagt haar tekst onder `id`, niet onder `iri`/`uri`: een
-  sjabloon citeert er dus niet uit als passage van een bepaling. Cache per proces en per id, met de teksthash in de
-  log. Het contract met de echte dienst (indexen, sortering, recordvorm, documentstatus) toetst
+  sjabloon citeert er dus niet uit als passage van een bepaling. **Cache met versiecontrole** (een Kamerstuk verandert
+  na publicatie: onopgemaakt → opgemaakt, herdruk, rectificatie): binnen `VERS_S` geen aanroep, daarna een lichte
+  metadatavraag op `dt.modified`/documentstatus/versie en alleen bij een verschil de XML opnieuw (log
+  `kamerstuk_gewijzigd`); bij een storing de bewaarde versie met `gevalideerd: false`; grenzen `MAX_CACHE` en
+  `MAX_CACHE_BYTES`. Het `stuk` noemt `bron_hash`, `gewijzigd`, `documentstatus` en `versie`, en het blok `extern`
+  bewaart `bron_hash` en `gewijzigd`; `_gelezen` neemt de passages uit één lezing (dezelfde hash). Het contract met de echte dienst (indexen, sortering, recordvorm, documentstatus) toetst
   `tests/test_kamerstukken_live.py`: dagelijks in `bronnenwacht.yml`, lokaal met `BRONNEN_LIVE=1 uv run pytest -m live`
   (marker `live`; elke connector heeft er een, `test_connectorbeschrijving.py`). Niet in de poort.
 - **`graph/queries.py`** – de SPARQL-bouwers (o.a. `context()` = de GraphRAG-UNION).

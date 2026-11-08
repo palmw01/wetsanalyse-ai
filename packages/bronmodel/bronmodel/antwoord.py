@@ -143,6 +143,11 @@ class Extern(BaseModel):
     #: Uit de connectorbeschrijving (`kop_in_antwoord`).
     kop: str
     passages: list[ExternePassage]
+    #: De versie die Lex las (review ADR-013, punt 3): de hash van het gelezen document en de stand bij de bron
+    #: (`dt.modified` bij KOOP). Leeg bij een ouder bericht. Zo blijft een passage herleidbaar, ook als de bron later
+    #: een nieuwe versie publiceert.
+    bron_hash: str = ""
+    gewijzigd: str = ""
 
 
 class Leemte(BaseModel):

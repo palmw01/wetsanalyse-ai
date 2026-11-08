@@ -87,8 +87,10 @@ KAMERSTUK_TOOLS: list[dict[str, Any]] = [
         "description": (
             "De tekst van één Kamerstuk, per alinea in documentvolgorde, met de kop van het deel erboven. Gebruik "
             "het id uit zoek_kamerstukken." + _UITLEG + " Citeer letterlijk uit 'tekst'.\n"
-            "GEEFT TERUG: het stuk (id, label, titel, link) en per alinea nr, kop en tekst. Tabellen, illustraties "
-            "en voetnoten staan er niet in; de telling ervan staat in 'overgeslagen'." + _CONTRACT
+            "GEEFT TERUG: het stuk (id, label, titel, link, bron_hash en de stand bij KOOP: gewijzigd, documentstatus, "
+            "versie) en per alinea nr, kop en tekst. Is de documentstatus 'Onopgemaakt', zeg dan dat de opgemaakte versie "
+            "kan afwijken; staat er gevalideerd: false, dan kon de nieuwste versie niet worden gecontroleerd. Tabellen, "
+            "illustraties en voetnoten staan er niet in; de telling ervan staat in 'overgeslagen'." + _CONTRACT
         ),
         "input_schema": {
             "type": "object",
@@ -115,7 +117,7 @@ def _rij(rec: Any) -> dict[str, Any] | None:
     # zich per stuk en gaat één keer mee (`dossiertitel`).
     stuk = rec.titel.rsplit("; ", 1)[-1] if "; " in rec.titel else rec.titel
     return compact({"id": vp.id, "label": vp.label, "stuk": stuk, "datum": rec.datum,
-                    "vergaderjaar": rec.vergaderjaar, "link": vp.uri})
+                    "vergaderjaar": rec.vergaderjaar, "link": vp.uri, "versie": getattr(rec, "versie", "")})
 
 
 def _dossiertitel(records: list[Any]) -> str:
@@ -254,8 +256,12 @@ def _get(bron: KamerstukBron, a: dict[str, Any]) -> str:
         kop, rijen, overgeslagen = alineas(doc.xml)
     except (ET.ParseError, ValueError) as exc:
         return fout("onleesbaar_document", f"{vp.id} kon niet worden gelezen: {exc}")
+    # De versie die Lex las (review ADR-013, punt 3): de hash van de XML en de stand bij KOOP. Een onopgemaakte versie
+    # wordt later vervangen door de opgemaakte; `gevalideerd: false` als de dienst bij het valideren niet te bereiken was.
     stuk = compact({"id": vp.id, "label": vp.label, "titel": kop["documenttitel"], "link": vp.uri,
-                    "bron_hash": doc.hash})
+                    "bron_hash": doc.hash, "gewijzigd": getattr(doc, "gewijzigd", ""),
+                    "documentstatus": getattr(doc, "documentstatus", ""), "versie": getattr(doc, "versie", ""),
+                    **({"gevalideerd": False} if getattr(doc, "gevalideerd", True) is False else {})})
     extra = {"stuk": stuk, **({"overgeslagen": overgeslagen} if overgeslagen else {}), "totaal": len(rijen)}
     return per_eenheid(rijen, tool="get_kamerstuk", args={"id": vp.id}, offset=max(int(a.get("offset") or 0), 0),
                        extra=extra, toelichting="" if rijen else "Dit stuk heeft geen lopende tekst in de XML.")

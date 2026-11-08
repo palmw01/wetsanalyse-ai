@@ -304,6 +304,9 @@ def test_contract_van_een_connectortool(naam: str, args: dict, soort: str, omvan
     gezien: list[str] = []
     for _ in range(400):
         _pagina_haalt_het_contract(naam, uit, data)
+        if naam == CONNECTORS[c].leestool:
+            # Het leestoolcontract: het stuk met zijn vindplaats en de hash van wat gelezen is (één lezing per blok).
+            assert {"id", "label", "link", "bron_hash"} <= set(data["stuk"]), f"{naam}: stuk mist velden: {data['stuk']}"
         gezien += [json.dumps(r, sort_keys=True, ensure_ascii=False) for r in data["resultaten"]]
         if data["volledig"]:
             break
