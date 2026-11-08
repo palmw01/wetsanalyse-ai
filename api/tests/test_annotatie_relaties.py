@@ -224,3 +224,35 @@ async def test_de_projectie_krijgt_de_relaties_van_de_dragerlaag(lagen):
     assert ander == {"relaties": [], "impliciet": []}
     g = projectie.bouw_graaf(lagen_[ONE], _e, relaties=eigen)
     assert (projectie.relatie_iri(r["id"]), projectie.JAS.naar, projectie.element_iri("termijn")) in g
+
+
+async def test_het_detail_van_een_element_draagt_zijn_vastgelegde_relaties(lagen, monkeypatch):
+    """Lex leest relaties via de leesroute (ADR-011, *Gevolgen*): het detail van één element noemt de relaties waarin
+    het een eindpunt is, met leesvorm en de andere kant. Afgewezen en vervangen relaties tellen niet mee."""
+    from sqlalchemy import update
+
+    from app import annotatie_v2
+    s1, _ = lagen
+    plicht = (await rel.leg(leg("ontvanger", "zin", "plichthebbende", {ONE: 1}), "jurist"))["relatie"]
+    voorwerp = (await rel.leg(leg("zin", "aanslag", "voorwerp", {ONE: 2}), "jurist"))["relatie"]
+    voorwaarde = (await rel.leg(leg("zin", "termijn", "voorwaarde", {ONE: 3}), "jurist"))["relatie"]
+    await rel.beslis(voorwerp["id"], RelatieBeslissing(type="reject", verwachte_revisies={ONE: 4}), "jurist")
+    # Een vervangen relatie (lifecycle `vervangen`) is niet meer vastgelegd.
+    async with db.get_engine().begin() as conn:
+        r = db.annotatie_v2_relaties
+        inhoud = (await conn.execute(select(r.c.inhoud).where(r.c.id == voorwaarde["id"]))).scalar_one()
+        await conn.execute(update(r).where(r.c.id == voorwaarde["id"]).values(inhoud={**inhoud, "lifecycle": "vervangen"}))
+
+    [gelezen] = await rel.van_element("zin")
+    assert gelezen["id"] == plicht["id"] and gelezen["leesvorm"] == "is plichthebbende van"
+    assert gelezen["van"] == {**gelezen["van"], "id": "ontvanger", "klasse": RS, "tekst": "ontvanger", "bestaat": True}
+    assert gelezen["naar"]["id"] == "zin" and gelezen["lifecycle"] == "human_approved" and gelezen["veranderd"] is False
+    assert [x["id"] for x in await rel.van_element("ontvanger")] == [plicht["id"]]
+    assert await rel.van_element("aanslag") == [] and await rel.van_element("termijn") == []
+
+    async def resolve(goal):
+        return s1
+    monkeypatch.setattr(annotatie_v2, "resolve_bron", resolve)
+    detail = await annotatie_v2.get_element("ontvanger", "jurist")
+    assert [x["id"] for x in detail["relaties"]] == [plicht["id"]]
+    assert (await annotatie_v2.get_element("aanslag", "jurist"))["relaties"] == []

@@ -216,6 +216,9 @@ async def get_element(element_id: str, actor: str = Depends(actieve_userid)):
     result["actuele_snapshot_id"] = snapshot["snapshot_id"]
     result["bronverwijzing"].update(snapshot_id=result["snapshot_id"],
                                     historisch=result["element"]["verouderd"])
+    # Wat er over dit element vastgelegd is aan relaties (ADR-011), zodat een vervolgvraag ("wie is de plichthebbende?")
+    # daaruit leest in plaats van het af te leiden. Afgewezen en vervangen relaties tellen niet mee.
+    result["relaties"] = await relaties.van_element(element_id)
     return result
 
 
