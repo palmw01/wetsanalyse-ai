@@ -20,7 +20,7 @@ from langgraph.config import get_stream_writer
 from ..berichten import CORRECTIE, _parse_final, _schoon_messages, _trim_messages, beurt_start, venster_telling
 from ..bronregister import bij, controletrace
 from ..focus import na_antwoord
-from ..grounding import check_grounding, curate_sources, herstel_citaten
+from ..grounding import alleen_gelezen_extern, check_grounding, curate_sources, herstel_citaten
 from ..narratie import _grounding_melding, _stap, _toolregel, ronde_in_denk
 from ..overzicht import bronrijen as overzicht_bronrijen
 from ..sjablonen import EXTERN, SJABLONEN, sjabloon_schemas, sjabloon_uit_tekst
@@ -453,6 +453,9 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
         sources += hergebruikte_bronnen(state.get("bronregister") or [], state.get("answer", ""), sources)
         if b.settings.curate_sources:
             sources = curate_sources(sources, state.get("answer", ""))
+    if not state.get("overzicht"):
+        # Een bron naast de wet alleen als ze gelezen en genoemd is; een zoekresultaat is geen bron (ADR-013).
+        sources = alleen_gelezen_extern(sources, controletrace(state), state.get("answer", ""))
     # Na het cureren: alleen de namen van regelingen die in de lijst blijven (één query per beurt).
     sources = met_regelingnamen(b.graph, sources)
     src_dicts = [s.model_dump() for s in sources]

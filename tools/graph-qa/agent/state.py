@@ -26,6 +26,8 @@ class State(TypedDict, total=False):
     bronnen: list[str] | None
     # Per connector `{naam, label, aan, reden}` (`agent/bronstand.py`): waarom een bron uit staat. Per beurt.
     bronstand: dict[str, dict[str, Any]]
+    # De leestool-aanroepen voor stukken die de vraag bij id noemt (`nodes/bron_lezen.py`); per beurt, één keer.
+    bron_lezen: list[dict[str, Any]]
     # Het dossier van dat werkgebied als contextblok (`werkgebied_context.als_blok`), per beurt opgehaald;
     # `memory_context` zet het naast de focus. Context, geen filter.
     werkgebied_context: str

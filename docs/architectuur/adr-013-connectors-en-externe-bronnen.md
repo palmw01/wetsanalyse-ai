@@ -77,6 +77,7 @@ de wettekst en vult nooit een `doel`.
 | antwoord | het blok `extern` als subsjabloon en het sjabloon `antwoord_extern` | `sjablonen/extern.py` |
 | verificatie | een stuk dat alleen gevonden is, is `onbevestigd` | `grounding.check_grounding`, `connectors.leestools` |
 | werkplek | het menu toont wat straat én register aanzetten; *Zet … aan* na `bron_uit` | `GET /v1/bronnen`, `connectorsMenu` |
+| genoemd stuk | een id in de vraag leest de code vooraf met de leestool; een zoekresultaat is geen bron | `nodes/bron_lezen.py`, `grounding.alleen_gelezen_extern` |
 | denkproces | de werkwoorden per tool ("leest Kamerstuk kst-…"), en de algemene stappen noemen de bronnen van de beurt | `narratie._toolregel`, `bronstand.waar` |
 
 **Een nieuwe connector toevoegen (checklist):**

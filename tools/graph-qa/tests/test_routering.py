@@ -162,3 +162,38 @@ def test_de_statusregels_van_de_routering_zijn_in_gebruikerstaal_en_dragen_hun_r
         assert any(e.get("route") for e in nieuw), f"{rij['id']}: geen statusregel met een route"
         for e in nieuw:
             assert not any(w in e["message"] for w in _INTERN), f"{rij['id']}: {e['message']}"
+
+
+_AAN = {"kamerstukken": {"naam": "kamerstukken", "label": "Kamerstukken", "aan": True, "reden": "aan"}}
+
+
+def test_een_vraag_over_een_kamerstuk_start_geen_werkgebied():
+    """Acceptatie 8 nov 2026 (gesprek met een lange geschiedenis): de herschreven vraag "Wat staat er in Kamerstuk 35496,
+    onderdeel F?" kreeg van het model WORKERS: werkgebied, en Lex vroeg "Hoe noemen we het werkgebied?"."""
+    b = _bouw(_Supervisor("VRAAG: Wat staat er in Kamerstuk 35496, onderdeel F?\nWORKERS: werkgebied\n"
+                          "SPECIALIST: algemeen\nTAAK:\nPLAN: werkgebied samenstellen"))
+    state = {"question": "En wat staat er in Kamerstuk 35496 onderdeel F?", "modus": "auto", "focus": {},
+             "bronstand": _AAN,
+             "messages": [{"role": "user", "content": "Wat zegt de MvT bij kst-33755-3?"},
+                          {"role": "assistant", "content": "De memorie legt het doel uit."},
+                          {"role": "user", "content": "En wat staat er in Kamerstuk 35496 onderdeel F?"}]}
+    upd = supervisie.supervisor_node(b, state)
+    assert supervisie._entry_node(b, {**state, **upd}) == "agent" and upd["specialist"] == "duiding"
+
+
+def test_een_genoemd_id_wordt_zonder_model_gelezen():
+    state = {"question": "Wat staat er in kst-35496-F?", "modus": "auto", "focus": {}, "bronstand": _AAN,
+             "messages": [{"role": "user", "content": "Wat staat er in kst-35496-F?"}]}
+    b = _bouw()  # _GeenModel faalt als de supervisor het model vraagt
+    upd = supervisie.supervisor_node(b, state)
+    assert supervisie._entry_node(b, {**state, **upd}) == "bron_lezen"
+    assert upd["bron_lezen"] == [{"name": "get_kamerstuk", "input": {"id": "kst-35496-F"}}]
+
+
+def test_een_genoemd_id_van_een_uitgezette_bron_wordt_niet_gelezen():
+    uit = {"kamerstukken": {**_AAN["kamerstukken"], "aan": False, "reden": "gesprek"}}
+    state = {"question": "Wat staat er in kst-35496-F?", "modus": "auto", "focus": {}, "bronstand": uit,
+             "messages": [{"role": "user", "content": "Wat staat er in kst-35496-F?"}]}
+    b = _bouw()
+    upd = supervisie.supervisor_node(b, state)
+    assert supervisie._entry_node(b, {**state, **upd}) == "afwijzen" and not upd.get("bron_lezen")

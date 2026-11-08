@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from bronmodel.connectors import herkende as bronnen_in_vraag
+from bronmodel.connectors import genoemde_stukken, herkende as bronnen_in_vraag
 from langgraph.config import get_stream_writer
 
 from dataclasses import asdict
@@ -139,6 +139,31 @@ def _begrip_keuze(writer, state: State) -> dict[str, Any]:
     return {"specialist": "agent_taak", "worker_plan": ["agent_taak"], "worker_idx": 0, "plan": f"begrippen: {keuze['taak']}",
             "afwijzen": False, "annotaties_lezen": False,
             "agent_taak": {"agent": "begrippen", "taak": keuze["taak"], "parameters": parameters}}
+
+
+#: Zo veel genoemde stukken leest de code hoogstens vooraf; meer is een overzicht, en dat zoekt de agent.
+MAX_GENOEMD = 3
+
+
+def _te_lezen(state: State, vraag: str) -> list[dict[str, Any]]:
+    """De leestool-aanroepen voor de stukken die de vraag bij id noemt, van connectors die in deze beurt aanstaan
+    (uit de beschrijving: `leestool`, `lees_argument`). Leeg als er niets genoemd is of de connector uit staat."""
+    stand = state.get("bronstand") or {}
+    uit: list[dict[str, Any]] = []
+    for c, ident in genoemde_stukken(vraag):
+        aanroep = {"name": c.leestool, "input": {c.lees_argument: ident}}
+        if (stand.get(c.naam) or {}).get("aan") and aanroep not in uit:
+            uit.append(aanroep)
+    return uit[:MAX_GENOEMD]
+
+
+def _lees_genoemd(writer, aanroepen: list[dict[str, Any]], vraag: str) -> dict[str, Any]:
+    """Een vraag die alleen over genoemde stukken gaat: lezen in code, dan formuleert de duiding. Geen supervisorcall."""
+    _stap(writer, "Lex", "leest het stuk dat je noemt" if len(aanroepen) == 1 else "leest de stukken die je noemt",
+          route="bron_lezen")
+    return {"specialist": "duiding", "worker_plan": ["duiding"], "worker_idx": 0, "afwijzen": False,
+            "annotaties_lezen": False, "bron_lezen": aanroepen,
+            "plan": "Beantwoord de vraag uit de tekst van het genoemde stuk, die al is opgehaald." + _herschreven(vraag)}
 
 
 def _bron_uit(writer, state: State, vraag: str) -> dict[str, Any] | None:
@@ -283,6 +308,11 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
     if modus == "auto" and (uit := _bron_uit(writer, state, state.get("question", ""))):
         # Een vraag naar een bron die uit staat: zeggen wie hem aanzet, niet raden of afwijzen (ADR-013).
         return uit
+    vraag_nu = state.get("question", "")
+    if modus == "auto" and (aanroepen := _te_lezen(state, vraag_nu)) and not lees_aanwijzing(vraag_nu).artikelen:
+        # De vraag noemt een stuk bij zijn id: lezen in code, zoals een genoemd artikel (acceptatie 8 nov 2026: zes
+        # rondes zoeken voor kst-35496-F). Ook in een lopend gesprek: het id staat er letterlijk.
+        return _lees_genoemd(writer, aanroepen, "")
 
     resp = aanroep(
         b.llm, Rol.SUPERVISOR,
@@ -354,6 +384,12 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         return {**upd, "specialist": "", "plan": plan, "worker_plan": [], "worker_idx": 0,
                 "afwijzen": True, "annotaties_lezen": False}
     eerste = worker_plan[0]
+    if eerste == "werkgebied" and not taak and bronnen_in_vraag(zelfstandig) and not is_werkgebiedvraag(zelfstandig) \
+            and not _open_kaartje(state):
+        # Een vraag over een bron naast de wet is geen verzoek om een werkgebied samen te stellen. In een lang gesprek
+        # koos het model dat toch, voor "Wat staat er in Kamerstuk 35496, onderdeel F?" (acceptatie 8 nov 2026).
+        logger.info("werkgebied teruggedraaid: vraag over een bron naast de wet", extra={"categorie": "functioneel"})
+        eerste, worker_plan = "duiding", ["duiding"]
     if eerste == "werkgebied" and taak == "bronselectie":
         return {**upd, **_bronselectie(writer, "bepaalt met je de bronnen per deelvraag")}
     if eerste == "werkgebied" and taak == "aanvullen":
@@ -374,6 +410,9 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
             return {**upd, "specialist": "", "plan": plan, "worker_plan": [], "worker_idx": 0,
                     "afwijzen": True, "afwijs_melding": melding_meerdere(aanwijzing.artikelen),
                     "annotaties_lezen": False}
+    if eerste in ("duiding", "definitie", "algemeen") and (aanroepen := _te_lezen(state, zelfstandig)):
+        # Noemt de (herschreven) vraag ook een stuk bij id, dan leest de code het eerst; de agent zoekt de rest.
+        upd["bron_lezen"] = aanroepen
     _stap(writer, "Lex", _WORKER_STAP.get(eerste, f"zoekt het antwoord in {bronstand.waar(state.get('bronstand'))}"),
           route=eerste)
     logger.info("worker gekozen", extra={"categorie": "functioneel", "worker": eerste})
@@ -394,6 +433,9 @@ def _entry_node(b: Bouw, state: State) -> str:
         return "agent_taak"
     if state.get("bepalingsvraag"):
         return "bepaling_lezen"
+    if state.get("bron_lezen"):
+        # Een stuk dat de vraag bij id noemt: eerst lezen (`nodes/bron_lezen.py`), dan formuleren.
+        return "bron_lezen"
     if state.get("overzicht_route"):
         # Eerst het overzicht bouwen, dan duiden.
         return "overzicht_bouwen"

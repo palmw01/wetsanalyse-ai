@@ -304,6 +304,7 @@ async def answer_stream(
         # De bronnen van deze beurt (ADR-013): toollaag en dispatch filteren erop; de stand zegt per connector waarom.
         "bronnen": beurtbronnen,
         "bronstand": bronstand_nu,
+        "bron_lezen": [],
         # Het dossier van dat werkgebied, per beurt vers uit de api: elke bewaarde wijziging telt meteen.
         "werkgebied_context": await _werkgebied_blok(settings, user_id, werkgebied_id) if werkgebied_id else "",
         # Waar de analist *Vraag Lex* op koos: alleen deze beurt; het object blijft in de focus.

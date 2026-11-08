@@ -333,3 +333,15 @@ def curate_sources(sources: list[Source], answer_text: str) -> list[Source]:
 
     fijn = [s for s in kept if blijft(s)]
     return [*(fijn or kept), *extern]
+
+
+def alleen_gelezen_extern(sources: list[Source], trace: list[tuple[str, str]], answer_text: str) -> list[Source]:
+    """Een bron naast de wet (ADR-013) staat alleen in de bronnenlijst als ze gelezen is (in een resultaat van de
+    leestool van haar connector) én het antwoord haar noemt. Wat alleen gevonden is, is geen bron: dat staat al als
+    "alleen gevonden, niet gelezen" in `onbevestigd` (acceptatie 8 nov 2026: "Klaar · 32 bronnen" voor één gelezen
+    Kamerstuk, omdat `curate_sources` zonder BWB-id in het antwoord niets snoeit). Wettekst blijft ongemoeid."""
+    lees = leestools()
+    gelezen = {e.id for name, t in trace if t and name in lees for e in externe_verwijzingen(waarden(t))}
+    genoemd = {e.id for e in externe_verwijzingen(answer_text or "")}
+    return [s for s in sources
+            if s.brontype in (None, "wettekst") or van_id(s.uri) is None or (s.uri in gelezen and s.uri in genoemd)]
