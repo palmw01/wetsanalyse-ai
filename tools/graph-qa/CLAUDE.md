@@ -202,13 +202,20 @@ bruikbaar is.
   `tools/kamerstuk_tools.py`), `anthropic_schemas(only=)` en `dispatch()` (vangt
   `ValueError`/`MCPError`/`KeyError` als tekst). Een tool met `needs_settings` krijgt `settings` mee.
   `tools/jas_tools.py` (`JAS_TOOLS`) is dispatchbaar maar wordt in de draaiende keten niet aangeroepen.
-- **Bronconnectors** (ADR-013): `CONNECTORS` (connector → tools) en `toegestane_tools(tools, settings)`, de ene
+- **Bronconnectors** (ADR-013): **de beschrijving in `bronmodel.connectors` is de enige bron** (naam, label, brontype,
+  groep, wat hij dekt, signalen, tools, leestool, id-vorm, rollen, rol in het antwoord, grenzen, voorbeeldvragen).
+  `CONNECTORS` (connector → tools), de connectortools van de specialisten (`specialists._met_connectors`), de
+  `Literal`s van de contracten en het register van de api komen eruit; een nieuwe connector is een beschrijving, zijn
+  tools en een straatvlag. `tests/test_connectorbeschrijving.py` maakt een onvolledige beschrijving of handwerk ernaast
+  rood, met een nep-connector als bewijs dat er niets per connector bij hoeft. `toegestane_tools(tools, settings)` is de ene
   regel voor de schema's van de antwoordlus, de MCP-server en `dispatch`. Een connector staat uit tot de straat hem
   aanzet (`CONNECTOR_KAMERSTUKKEN=true`); uit is niet aangeboden, en een aanroep is dan `connector_uit`. **De beurt
   beperkt verder** (`ChatRequest.bronnen`, `State.bronnen`, per beurt): weggelaten = wat de straat aanbiedt, een lege
   lijst = alleen wetgeving, en een connector die de straat niet aanbiedt gaat nooit aan (`actieve_connectors`).
-  `tool_execution` geeft de stand aan `dispatch`, dus ook een workflow die een tool in code aanroept valt eronder; de
-  logregel `beurt_meting` noemt de actieve bronnen. `tests/test_bronschakelaar.py`.
+  `tool_execution` geeft de stand aan `dispatch`, dus ook een workflow die een tool in code aanroept valt eronder.
+  **De bronstand** (`agent/bronstand.py`, `State.bronstand`) zegt per connector waaróm hij uit staat (`straat`,
+  `gesprek`/`werkgebied` uit `ChatRequest.bronnen_herkomst`, `register_onleesbaar`, `beheerder`) en gaat als eerste
+  event (`bronstand`) de stroom in; de logregel `beurt_meting` leest hem (`kamerstukken:aan`). `tests/test_bronschakelaar.py`.
   **Kamerstukken** (`tools/kamerstuk_tools.py`, transport `adapters/sru_kamerstukken.py`): `zoek_kamerstukken`
   (een dossier op nummer, of woorden in de titel) en `get_kamerstuk` (per alinea, met de kop, in documentvolgorde;
   tabellen, illustraties en voetnoten geteld in `overgeslagen`). De CQL bouwt de tool, de document-URL komt uit het

@@ -47,7 +47,7 @@ import {
 import { VraagDock } from "@/components/werkplek/VraagDock";
 import { BronselectieKaart } from "@/components/werkplek/BronselectieKaart";
 import { ConnectorsMenu } from "@/components/werkplek/ConnectorsMenu";
-import { actieveConnectors, wissel as wisselConnector, type ConnectorStand } from "@/lib/connectorsMenu";
+import { actieveConnectors, beurtBronnen, wissel as wisselConnector, type ConnectorStand } from "@/lib/connectorsMenu";
 import {
   doelInvoerVan, isVerwijderd,
 } from "@/lib/annotatie";
@@ -516,7 +516,7 @@ export function WerkplekClient({
       gestart = await startRun(prompt, gid, {
         ...startOpties(verzoek, { werkgebiedId, onderwerp: vraagOver }),
         // Alleen met een menu: zonder connector bij de beheerder beslist graph-qa zelf (alleen wetgeving).
-        ...(stand.beschikbaar.length ? { bronnen: actieveConnectors(stand) } : {}),
+        ...beurtBronnen(stand),
       });
     } catch (e) {
       // Er liep al een beurt (bijvoorbeeld in een ander tabblad). Deze vraag is dus NIET aangenomen:

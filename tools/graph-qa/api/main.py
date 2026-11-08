@@ -59,7 +59,6 @@ from sse_starlette.sse import EventSourceResponse  # noqa: E402
 load_dotenv()  # laad .env als die naast de server staat
 
 from agent import observability  # noqa: E402
-from agent import tools  # noqa: E402
 from agent.agent import answer_stream, delete_conversation  # noqa: E402
 from agent.beurt import leg_afbraak_vast, voer_beurt_uit  # noqa: E402
 from agent.beurtmeting import gemeten  # noqa: E402
@@ -321,6 +320,7 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
                     bevestigd=request.bevestigd,
                     werkvoorraad_id=request.werkvoorraad_id,
                     bronnen=request.bronnen,
+                    bronnen_herkomst=request.bronnen_herkomst,
                 ),
                 settings=settings,
                 run=run,
@@ -329,8 +329,7 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
                 meter=meter,
             )
             return gemeten(beurt, meter=meter, run=run, gesprek_id=request.conversation_id or "",
-                           model=settings.llm_model,
-                           bronnen=",".join(tools.actieve_connectors(settings, request.bronnen)) or "geen")
+                           model=settings.llm_model)
 
         if request.intake_actie is not None:
             # Een klik op een vraagkaartje (activiteit 1): altijd de werkgebied-worker.

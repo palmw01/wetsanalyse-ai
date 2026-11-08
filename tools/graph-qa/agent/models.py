@@ -7,6 +7,7 @@ import threading
 from datetime import datetime
 from typing import Any, Literal
 
+from bronmodel.connectors import NAMEN as CONNECTOR_NAMEN
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -148,9 +149,9 @@ INTAKE_ACTIES = ("dossier_aanvullen",)
 # api bewaart. Ook geen taak van een agent.
 # Ook zelf een bepaling toevoegen hoort daar: zoeken in de graaf gaat via het gesprek, niet via het artefact.
 BRONSELECTIE_ACTIES = ("bronselectie", "bronnen_zoeken", "bepaling_toevoegen")   # zoeken is een stap van de bronselectie
-#: De bronconnectors die een beurt kan aan- of uitzetten (ADR-013); gelijk aan `tools.CONNECTORS`
-#: (`tests/test_bronschakelaar.py`). Wetgeving is geen connector: die staat altijd aan.
-Connector = Literal["kamerstukken"]
+#: De bronconnectors die een beurt kan aan- of uitzetten (ADR-013): de namen uit `bronmodel.connectors`, waar ook
+#: `tools.CONNECTORS` uit komt. Wetgeving is geen connector: die staat altijd aan.
+Connector = Literal[CONNECTOR_NAMEN]  # type: ignore[valid-type]
 
 Actie = Literal["werkgebied_annoteren", "deelvragen_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
                 "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie",
@@ -213,6 +214,9 @@ class ChatRequest(BaseModel):
     # De bronnen die aanstaan in dit gesprek (ADR-013, *Bronnen en tools*). Leeg = alleen wetgeving; weggelaten =
     # wat de straat aanbiedt. Een connector die de straat niet aanbiedt, gaat nooit aan.
     bronnen: list[Connector] | None = Field(default=None, max_length=8)
+    # Waar die stand vandaan komt (`frontend/lib/connectorsMenu.herkomstVan`): zo zegt Lex wie een uitgezette bron
+    # weer aanzet (`agent/bronstand.py`).
+    bronnen_herkomst: Literal["gesprek", "werkgebied", "standaard"] | None = None
 
     @model_validator(mode="after")
     def _actie_kiest_de_route(self) -> "ChatRequest":

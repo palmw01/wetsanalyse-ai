@@ -31,6 +31,16 @@ export function herkomstVan({ gesprek, werkgebied }: ConnectorStand): "gesprek" 
   return gesprek != null ? "gesprek" : werkgebied != null ? "werkgebied" : "standaard";
 }
 
+/** Wat een beurt over de bronnen meestuurt: de stand en waar die vandaan komt. Zonder menu niets: graph-qa beslist dan
+ *  zelf (alleen wetgeving). */
+export function beurtBronnen(stand: ConnectorStand): {
+  bronnen?: string[];
+  bronnen_herkomst?: "gesprek" | "werkgebied" | "standaard";
+} {
+  if (!stand.beschikbaar.length) return {};
+  return { bronnen: actieveConnectors(stand), bronnen_herkomst: herkomstVan(stand) };
+}
+
 /** Eén connector om: de nieuwe eigen stand van het gesprek. */
 export function wissel(stand: ConnectorStand, naam: string): string[] {
   const nu = actieveConnectors(stand);

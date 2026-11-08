@@ -736,6 +736,8 @@ export async function startRun(
     plan_id?: string;
     /** De bronconnectors die in dit gesprek aanstaan (ADR-013, *Bronnen en tools*); weggelaten = graph-qa beslist. */
     bronnen?: string[];
+    /** Waar die stand vandaan komt (`connectorsMenu.herkomstVan`): zo zegt Lex wie een uitgezette bron aanzet. */
+    bronnen_herkomst?: "gesprek" | "werkgebied" | "standaard";
   },
 ): Promise<RunStart> {
   const res = await fetch("/api/annotatie/run", {
@@ -761,6 +763,7 @@ export async function startRun(
       ...(extra?.actie ? { actie: extra.actie } : {}),
       ...(extra?.plan_id ? { plan_id: extra.plan_id } : {}),
       ...(extra?.bronnen ? { bronnen: extra.bronnen } : {}),
+      ...(extra?.bronnen_herkomst ? { bronnen_herkomst: extra.bronnen_herkomst } : {}),
     }),
   });
   if (res.status === 409) {

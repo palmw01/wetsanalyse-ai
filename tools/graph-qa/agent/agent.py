@@ -167,15 +167,18 @@ async def _werkgebied_blok(settings: Settings, user_id: str, werkgebied_id: str)
         await api.aclose()
 
 
-async def _bronnen_van_beurt(settings: Settings, user_id: str, bronnen: list[str] | None) -> list[str] | None:
-    """De bronconnectors van deze beurt: wat de beurt vraagt (of de straat aanbiedt), beperkt tot wat de beheerder
-    in het register aanzette (ADR-013). Zonder connector in de straat of zonder api blijft de vraag zoals hij is.
-    Een onleesbaar register zet niets aan: liever alleen wetgeving dan een bron die de beheerder uitzette."""
+async def _bronnen_van_beurt(settings: Settings, user_id: str, bronnen: list[str] | None,
+                             herkomst: str | None = None) -> tuple[list[str] | None, dict[str, dict[str, Any]]]:
+    """De bronconnectors van deze beurt en hun stand (ADR-013, `bronstand`): wat de beurt vraagt (of de straat
+    aanbiedt), beperkt tot wat de beheerder in het register aanzette. Zonder connector in de straat of zonder api
+    blijft de vraag zoals hij is. Een onleesbaar register zet niets aan: liever alleen wetgeving dan een bron die de
+    beheerder uitzette."""
+    from . import bronstand
     from .tools import actieve_connectors
 
     gevraagd = actieve_connectors(settings, bronnen)
     if not gevraagd or not settings.legt_zelf_vast:
-        return bronnen
+        return bronnen, bronstand.bepaal(settings, bronnen, herkomst)
     from .wetsanalyse_api import WetsanalyseApi
 
     api = WetsanalyseApi(settings, user_id)
@@ -184,10 +187,10 @@ async def _bronnen_van_beurt(settings: Settings, user_id: str, bronnen: list[str
     except Exception:  # noqa: BLE001
         logger.warning("connectorregister niet gelezen; alleen wetgeving", extra={"categorie": "technisch"},
                        exc_info=True)
-        return []
+        return [], bronstand.bepaal(settings, bronnen, herkomst, register_fout=True)
     finally:
         await api.aclose()
-    return sorted(gevraagd & register)
+    return sorted(gevraagd & register), bronstand.bepaal(settings, bronnen, herkomst, register=register)
 
 
 async def _onderwerp_blok(settings: Settings, user_id: str, onderwerp: dict[str, Any]) -> str:
@@ -230,6 +233,7 @@ async def answer_stream(
     werkvoorraad_id: str = "",
     agent_api: Any = None,
     bronnen: list[str] | None = None,
+    bronnen_herkomst: str | None = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """
     Async generator die SSE-events yield:
@@ -287,6 +291,8 @@ async def answer_stream(
         "recursion_limit": _recursielimiet(settings),
     }
     # Per beurt: nieuwe user-message (append-reducer) + reset van de werkvelden.
+    beurtbronnen, bronstand_nu = await _bronnen_van_beurt(
+        settings, user_id, list(bronnen) if bronnen is not None else None, bronnen_herkomst)
     init: dict[str, Any] = {
         "question": question,
         "run_id": run_id or uuid.uuid4().hex,
@@ -295,8 +301,9 @@ async def answer_stream(
         "specialist": "annotaties_lezen" if is_leesvraag(question, modus) else "",
         "begrippen_lezen": False,
         "werkgebied_id": werkgebied_id or "",
-        # De bronnen van deze beurt (ADR-013): toollaag en dispatch filteren erop.
-        "bronnen": await _bronnen_van_beurt(settings, user_id, list(bronnen) if bronnen is not None else None),
+        # De bronnen van deze beurt (ADR-013): toollaag en dispatch filteren erop; de stand zegt per connector waarom.
+        "bronnen": beurtbronnen,
+        "bronstand": bronstand_nu,
         # Het dossier van dat werkgebied, per beurt vers uit de api: elke bewaarde wijziging telt meteen.
         "werkgebied_context": await _werkgebied_blok(settings, user_id, werkgebied_id) if werkgebied_id else "",
         # Waar de analist *Vraag Lex* op koos: alleen deze beurt; het object blijft in de focus.
@@ -356,6 +363,11 @@ async def answer_stream(
 
     tracer = get_tracer(__name__)
     grounded = True
+    if any(s["reden"] != "straat" for s in bronstand_nu.values()):
+        # Vóór alles: de werkplek en de meting weten zo welke bronnen deze beurt had, en waarom niet. Biedt de straat
+        # geen connector aan, dan is er niets te melden en blijft de stroom gelijk aan een straat zonder connectors.
+        from .bronstand import event as bronstand_event
+        yield bronstand_event(bronstand_nu)
     try:
         async with _checkpointer_ctx(settings) as saver:
             app = builder.compile(checkpointer=saver)
