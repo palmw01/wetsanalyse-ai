@@ -89,6 +89,8 @@ Het besluit staat in [ADR-011](adr-011-relaties-tussen-markeringen.md), de typen
     van de jurist en een relatie met een oordeel blijven staan. Vervangen is niet actueel: niet in de weergave, niet in
     de projectie. Komt het voorstel later terug, dan leeft het op (`relatie-hersteld`).
   - De respons draagt `relaties` (de ids van wat er nu ligt), `relaties_overgeslagen` en `relaties_vervangen`.
+- **In de werkplek** (4A): het blok *Relaties* per element in het annotatiepaneel, *Verbind met…* en de impliciete
+  partijen bij de bepaling (`frontend/CLAUDE.md` §*De reviewkaart*). Bulk neemt relaties nog niet mee.
 
 ## Echte leestoegang en uitvoeringsspoor
 

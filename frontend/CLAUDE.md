@@ -1347,6 +1347,17 @@ de markering (`DocumentPaneel`) en de kaart (`ReviewQueue`), met respect voor
   zonder dubbelen). Een klik stuurt `{type: "grens", wijziging: {optie}}`; het anker rekent de api.
 - **Geen lifecycle-jargon in beeld**: "voorstel van Lex" / "door jou aangepast" / "door jou
   gemarkeerd" + tijd. Het volledige spoor staat in het auditlog.
+- **Relaties** (ADR-011, stap 4A; `components/annotaties/Relaties.tsx`, rekenkern in `lib/annotatieNodeAdapter.ts` en
+  `dragerRevisies` in `lib/annotatieNode.ts`). De uitgeklapte kaart draagt het blok *Relaties* (`elementExtra` van
+  `ArtefactInhoud`): een lijst, gelezen vanaf dit element (de inverse als het element `naar` is), een veranderde relatie
+  bovenaan met "Een eindpunt is veranderd …", herkomst en oordeel als bij een element. Akkoord (`IcoonBevestig`), *Klopt
+  nog* bij een veranderde beoordeelde, *Afwijzen* met een optionele reden, *Heropenen*, en wissen alleen van een eigen
+  relatie (de userid uit de sessie). *Verbind met…* kiest uit wat in beeld is (markeringen en impliciete partijen, geen
+  zoekvenster) en biedt de typen uit `typenTussen` in beide richtingen, met de zin die zegt wat van en wat naar is; een plek
+  alleen bij `invoer`/`operand`. *Impliciete partijen* staat bij de bepaling (`extra`): label en verplichte toelichting.
+  `verwachte_revisies` is die van de dragerlaag; ligt die niet in beeld, dan volgt een 412 en leest het paneel opnieuw.
+  Bulk (*Akkoord met de groene*) neemt relaties niet mee: `beslis_laag` kent alleen elementen. Browserregressie in
+  `scripts/test-annotatie-nodes.mjs`.
 
 ### Reviewen zonder formulier
 

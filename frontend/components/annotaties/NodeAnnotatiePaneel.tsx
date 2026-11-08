@@ -2,9 +2,11 @@
 
 import { ARTEFACT_SOORT_LABEL } from "@/lib/artefact";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { DekkingOverzicht } from "@/components/annotaties/DekkingOverzicht";
+import { ImplicietePartijen, RelatieBlok, type RelatieBediening } from "@/components/annotaties/Relaties";
 import { ongedektPerBron } from "@/lib/dekking";
 import { RevisieHistorie } from "@/components/annotaties/RevisieHistorie";
 import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
@@ -16,8 +18,8 @@ import { NogNietInWerking } from "@/components/bronnen/NogNietInWerking";
 import { ArtefactInhoud } from "@/components/werkplek/ArtefactInhoud";
 import { foutTekst, type ExportFormaat } from "@/lib/api";
 import {
-  apiOpslag, momentopnameOpslag, nodeLink, nogNietInWerking, verwachteRevisies,
-  type NodeDoel, type NodeElement, type NodeOpslag, type NodeWeergave,
+  apiOpslag, bepalingRevisies, dragerRevisies, momentopnameOpslag, nodeLink, nogNietInWerking, verwachteRevisies,
+  type NodeDoel, type NodeElement, type NodeImpliciet, type NodeOpslag, type NodeRelatie, type NodeWeergave, type RelatieInvoer,
 } from "@/lib/annotatieNode";
 import {
   beslissingNaarNode, documentVanNode, nodeAnkersUitSelectie, nodeBronVan, nogOngedekt, ongedektVanNode, tekstVanAnkers,
@@ -86,6 +88,8 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
   const [laadFout, setLaadFout] = useState("");
   const [actiefId, setActiefId] = useState<string | undefined>(beginElement);
   const [melding, setMelding] = useState("");
+  const { data: sessie } = useSession();
+  const gebruiker = sessie?.user?.userid ?? undefined;
 
   const laad = useCallback(async () => {
     if (opname === undefined) return;       // de kiezer kiest nog: geen knoppen op wat een oude versie blijkt
@@ -197,6 +201,37 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
       : "Annotatie verwijderd.");
   }
 
+  // --- Relaties en impliciete partijen (ADR-011). De revisie is die van de dragerlaag; ligt die niet in beeld, dan
+  // geeft de api een 412 en leest `muteer` de weergave opnieuw.
+  const laagOpen = (laagId?: string) => view?.lagen.find((l) => l.id === laagId)?.status !== "geaccordeerd";
+  const relatieBediening: RelatieBediening | undefined = view && !opname && opslag.legRelatie && opslag.beslisRelatie
+    && opslag.wisRelatie ? {
+      async leg(invoer: RelatieInvoer) {
+        await muteer(() => opslag.legRelatie!({ ...invoer, verwachte_revisies: dragerRevisies(view, invoer) }));
+        setMelding("Relatie gelegd.");
+      },
+      async beslis(r: NodeRelatie, type, comment = "") {
+        await muteer(() => opslag.beslisRelatie!(r.id, { type, comment, verwachte_revisies: dragerRevisies(view, r) }));
+        setMelding(type === "approve" ? "Relatie akkoord." : type === "reject" ? "Relatie afgewezen." : "Relatie heropend.");
+      },
+      async wis(r: NodeRelatie) {
+        await muteer(() => opslag.wisRelatie!(r.id, { verwachte_revisies: dragerRevisies(view, r) }));
+        setMelding("Relatie gewist.");
+      },
+    } : undefined;
+
+  async function maakImpliciet(invoer: { label: string; toelichting: string }) {
+    if (!view || !opslag.maakImpliciet) return;
+    await muteer(() => opslag.maakImpliciet!({ doel: { bron_iri: view.doel.bron_iri }, snapshot_id: view.snapshot_id,
+      ...invoer, verwachte_revisies: bepalingRevisies(view) }));
+    setMelding(`Impliciete partij ${invoer.label} toegevoegd.`);
+  }
+  async function wisImpliciet(p: NodeImpliciet) {
+    if (!view || !opslag.wisImpliciet) return;
+    await muteer(() => opslag.wisImpliciet!(p.id, { verwachte_revisies: dragerRevisies(view, p) }));
+    setMelding(`Impliciete partij ${p.label} gewist.`);
+  }
+
   async function exporteer(formaat: ExportFormaat) {
     if (!view) return;
     await opslag.exporteer({ bron_iri: view.doel.bron_iri, snapshot_id: view.snapshot_id, formaat });
@@ -291,7 +326,17 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
         kopOnder={reeksBalk}
         kopBalk={tabs || undefined}
         onExport={opname ? undefined : exporteer}
-        extra={<NodeExtra view={view} doel={doel} onKies={setActiefId} historie={opslag.levend} />}
+        extra={<>
+          <NodeExtra view={view} doel={doel} onKies={setActiefId} historie={opslag.levend} />
+          <ImplicietePartijen partijen={view.impliciet ?? []} gebruiker={gebruiker}
+            onMaak={!opname && opslag.maakImpliciet && laagOpen(view.lagen.find((l) => l.bron_iri === view.doel.bron_iri)?.id) ? maakImpliciet : undefined}
+            onWis={!opname && opslag.wisImpliciet ? wisImpliciet : undefined} />
+        </>}
+        elementExtra={(el) => {
+          const node = view.elementen.find((e) => e.id === el.id);
+          return node ? <RelatieBlok view={view} elementId={el.id} gebruiker={gebruiker}
+            bediening={relatieBediening && laagOpen(node.laag_id) ? relatieBediening : undefined} /> : null;
+        }}
         ongedekt={ongedekt}
       />}
     </div>
