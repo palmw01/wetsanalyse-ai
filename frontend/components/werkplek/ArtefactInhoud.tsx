@@ -8,10 +8,12 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { vindplaatsLabel } from "@/lib/annotatieOverzicht";
 import { foutTekst, type ExportFormaat } from "@/lib/api";
 
-import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
+import { MenuVerwijder } from "@/components/ui/MeerMenu";
+import { knopKlasse } from "@/components/ui/Button";
+import { VERWIJDER_UITLEG, verwijderLabel } from "@/lib/verwijderen";
 import { Melding } from "@/components/ui/Melding";
 import { DocumentPaneel } from "@/components/werkplek/DocumentPaneel";
-import { ExportKnop } from "@/components/werkplek/ExportKnop";
+import { ExportRegels } from "@/components/werkplek/ExportKnop";
 import { ReviewQueue, type OpenRij } from "@/components/werkplek/ReviewQueue";
 import { SelectiePopover, type SelectieDoel } from "@/components/werkplek/SelectiePopover";
 import {
@@ -83,11 +85,7 @@ export function ArtefactInhoud({
   // Eén bron voor de bewoording: `vindplaatsLabel` weet uit het graaf-`soort` of dit een artikel
   // met leden is of een bepaling van een beleidsregel. Hier raden op puntjes in het nummer zou bij
   // de Invorderingswet en de Leidraad verschillend moeten uitpakken voor hetzelfde nummer "25".
-  const opschrift = `${info.citeertitel || doc.bwbId} – ${vindplaatsLabel({
-    artikel: info.artikel,
-    lid: doc.lid,
-    soort: info.soort,
-  })}`;
+  const opschrift = annotatieOpschrift(doc, info);
   // Eén keer per artikel opbouwen, niet per render: de regels zijn de identiteit waarop het
   // documentpaneel zijn eigen `useMemo`'s hangt, dus een verse array per render zette die uit.
   const regels = useMemo(() => regelsVan(info), [info]);
@@ -96,12 +94,6 @@ export function ArtefactInhoud({
   // werkvoorraad: ze gaan over tekst die er niet meer staat. Ze blijven wél zichtbaar als historie,
   // met het oordeel dat er destijds over werd geveld.
   const { actueel, historie } = useMemo(() => splitsVerouderd(doc.elementen), [doc.elementen]);
-  // Dezelfde telling als de samenvatting op de kaart: alleen actuele markeringen.
-  const stand = documentStand({
-    status: doc.status, aantal_elementen: actueel.length,
-    te_beoordelen: actueel.filter((el) => !isBeslist(el)).length,
-  });
-
   // Eén lus, twee antwoorden – beide uit dezelfde `vindPositie` als de weergave, dus ze kloppen
   // altijd met wat je ziet:
   //  • welke markeringen niet (meer) in de wettekst te vinden zijn (die vielen stilzwijgend weg);
@@ -123,7 +115,6 @@ export function ArtefactInhoud({
   const [fout, setFout] = useState<string | null>(null);
   const [filter, setFilter] = useState<ReviewFilter>("alles");
   const [open, setOpen] = useState<OpenRij>("geen");
-  const [statusBezig, setStatusBezig] = useState(false);
 
   // Raakt de selectie de markering die in beeld staat? Dan is dit vermoedelijk een correctie op dát
   // element (inkorten/uitbreiden) en niet een nieuwe markering. De positie komt uit dezelfde
@@ -179,31 +170,6 @@ export function ArtefactInhoud({
    *  bediening stil zodat de jurist die fout nooit tegenkomt – een knop die alleen nog een
    *  foutmelding oplevert is erger dan geen knop. Heropenen staat in de kop en is één klik. */
   const vergrendeld = alleenLezen || isDocumentVergrendeld(doc);
-
-  /** Afronden of heropenen. De fout landt in dezelfde melding als de beslissingen – de jurist hoeft
-   *  niet op twee plekken te kijken. */
-  async function zetStatus(status: "geaccordeerd" | "in_review") {
-    if (!onStatus) return;
-    setFout(null);
-    setStatusBezig(true);
-    try {
-      await onStatus(status);
-    } catch (e) {
-      setFout(foutTekst(e, "De status is niet gewijzigd."));
-    } finally {
-      setStatusBezig(false);
-    }
-  }
-
-  async function verwijder() {
-    if (!onVerwijder) return;
-    setFout(null);
-    try {
-      await onVerwijder();
-    } catch (e) {
-      setFout(foutTekst(e, "De annotatie is niet verwijderd."));
-    }
-  }
 
   /** Escape is de uitweg: de bovenste laag eerst (selectie → bedieningsrij → gekozen element → sluiten).
    *  Andere toetsen doet het artefact niet: Lex heeft geen sneltoetsen (besluit gebruiker 26 okt 2026);
@@ -328,23 +294,12 @@ export function ArtefactInhoud({
     // (het paneel is in de kolom-variant niet modaal), en moet Escape uit de chat ernaast kunnen
     // onderscheiden van Escape in een eigen invoerveld.
     <div data-artefact className="flex min-h-0 flex-1 flex-col">
-        {/* Kop in twee vaste regels: titel + sluitknop, daaronder de acties.
-
-            Het kruisje hoort altijd rechtsboven te staan, op dezelfde plek als in het
-            instellingenvenster en de gesprekkendrawer – sluiten is de uitweg, en die zoek je op één
-            plek. In één wrappende rij verhuisde het mee met de knoppen zodra de ruimte krap werd, en
-            dan stond het op een telefoon ineens onder de titel tussen Exporteren en Afronden.
-
-            De acties krijgen hun eigen regel en lijnen rechts uit, onder het kruisje. Dat kost op een
-            breed scherm een regel hoogte, en dat is de prijs voor een sluitknop die niet wandelt. */}
-        <PaneelKop soort={ARTEFACT_SOORT_LABEL.annotatie} titel={opschrift} pagina={pagina} onSluit={onSluiten} onder={kopOnder} balk={kopBalk} acties={<>
-          <StatusLabel toon={stand.toon} uitleg={stand.uitleg}>{stand.label}</StatusLabel>
-          <ExportKnop onFout={setFout} onDownload={onExport} titel={opschrift} markdown={() => annotatieAlsMarkdown(doc, opschrift)} />
-          {onStatus && <StatusKnop status={doc.status} bezig={statusBezig} onZet={zetStatus} />}
-          {/* Elke gebruiker mag dit, ook op een afgeronde annotatie; de audit legt vast wie het deed.
-              Tweede klik bevestigt, zoals elders in de app. */}
-          {onVerwijder && <VerwijderKnop soort="annotatie" onBevestig={verwijder} />}
-        </>} />
+        {/* De vaste kop (`PaneelKop`, 8 nov 2026): titel met ↗ ⋯ ✕ rechtsboven, daaronder de status links en
+            afronden rechts. Exporteren en verwijderen staan in het menu ⋯: in een paneel van 360 px braken ze anders
+            af naar een derde rij. Elke gebruiker mag verwijderen, ook op een afgeronde annotatie; de audit legt vast
+            wie het deed, en de tweede klik bevestigt. */}
+        <AnnotatieKop doc={doc} opschrift={opschrift} pagina={pagina} onSluiten={onSluiten} onder={kopOnder} balk={kopBalk}
+          onStatus={onStatus} onVerwijder={onVerwijder} onExport={onExport} onFout={setFout} />
 
         {/* Twee zones met een EIGEN scroll. Eén gedeelde scroller liet de wettekst uit beeld lopen
             zodra je verderop in de lijst kwam – precies de context die je nodig hebt om te oordelen. */}
@@ -454,6 +409,76 @@ export function focusBijArtefact(doel: EventTarget | null): boolean {
  *  als tevreden zijn. Afronden zet de hele annotatie op slot, dus dit is óók de enige weg terug —
  *  heropenen kan altijd, want een knop die niet terug kan durft niemand te gebruiken. Bij een
  *  gepromoveerd document (in de graaf) is er niets meer te wisselen. */
+/** Het opschrift van een annotatie: regeling en vindplaats. */
+export function annotatieOpschrift(doc: AnnotatieDocument, info: GraafArtikel): string {
+  return `${info.citeertitel || doc.bwbId} – ${vindplaatsLabel({ artikel: info.artikel, lid: doc.lid, soort: info.soort })}`;
+}
+
+/** De kop van een annotatie (`PaneelKop`): de status links, afronden rechts, exporteren en verwijderen in het menu ⋯.
+ *  Eén component voor de tab Tekst (hier) en de tab Graaf (`NodeAnnotatiePaneel`), zodat de kop bij een tabwissel
+ *  niet springt. Een fout landt via `onFout` in de melding van de tab die openstaat. */
+export function AnnotatieKop({ doc, opschrift, pagina, onSluiten, onder, balk, onStatus, onVerwijder, onExport, onFout }: {
+  doc: AnnotatieDocument;
+  opschrift: string;
+  pagina?: string;
+  onSluiten?: () => void;
+  onder?: ReactNode;
+  balk?: ReactNode;
+  onStatus?: (status: "geaccordeerd" | "in_review") => Promise<void>;
+  onVerwijder?: () => Promise<void>;
+  onExport?: (formaat: ExportFormaat) => Promise<void>;
+  onFout: (fout: string | null) => void;
+}) {
+  const [statusBezig, setStatusBezig] = useState(false);
+  const { actueel } = splitsVerouderd(doc.elementen);
+  // Dezelfde telling als de samenvatting op de kaart: alleen actuele markeringen.
+  const stand = documentStand({
+    status: doc.status, aantal_elementen: actueel.length,
+    te_beoordelen: actueel.filter((el) => !isBeslist(el)).length,
+  });
+
+  /** Afronden of heropenen. De fout landt in dezelfde melding als de beslissingen – de jurist hoeft
+   *  niet op twee plekken te kijken. */
+  async function zetStatus(status: "geaccordeerd" | "in_review") {
+    if (!onStatus) return;
+    onFout(null);
+    setStatusBezig(true);
+    try {
+      await onStatus(status);
+    } catch (e) {
+      onFout(foutTekst(e, "De status is niet gewijzigd."));
+    } finally {
+      setStatusBezig(false);
+    }
+  }
+
+  /** Verwijdert en zegt of het lukte: dan gaat het menu dicht, anders blijft het open bij de melding. */
+  async function verwijder(): Promise<boolean> {
+    if (!onVerwijder) return false;
+    onFout(null);
+    try {
+      await onVerwijder();
+      return true;
+    } catch (e) {
+      onFout(foutTekst(e, "De annotatie is niet verwijderd."));
+      return false;
+    }
+  }
+
+  return (
+    // De vaste kop (8 nov 2026): titel met ↗ ⋯ ✕ rechtsboven, daaronder de status links en afronden rechts. Exporteren
+    // en verwijderen staan in het menu ⋯: in een paneel van 360 px braken ze anders af naar een derde rij. Elke
+    // gebruiker mag verwijderen, ook op een afgeronde annotatie; de audit legt vast wie het deed, de tweede klik bevestigt.
+    <PaneelKop soort={ARTEFACT_SOORT_LABEL.annotatie} titel={opschrift} pagina={pagina} onSluit={onSluiten} onder={onder} balk={balk}
+      status={<StatusLabel toon={stand.toon} uitleg={stand.uitleg}>{stand.label}</StatusLabel>}
+      hoofdactie={onStatus && <StatusKnop status={doc.status} bezig={statusBezig} onZet={zetStatus} />}
+      menu={(sluit) => <>
+        <ExportRegels sluit={sluit} onFout={onFout} onDownload={onExport} titel={opschrift} markdown={() => annotatieAlsMarkdown(doc, opschrift)} />
+        {onVerwijder && <MenuVerwijder onBevestig={async () => { if (await verwijder()) sluit(); }} ariaLabel={verwijderLabel("annotatie")} titel={VERWIJDER_UITLEG.annotatie} />}
+      </>} />
+  );
+}
+
 function StatusKnop({
   status, bezig, onZet,
 }: {
@@ -468,7 +493,8 @@ function StatusKnop({
       type="button"
       disabled={bezig}
       onClick={() => onZet(afgerond ? "in_review" : "geaccordeerd")}
-      className="focus-ring inline-flex min-h-[24px] shrink-0 items-center gap-1 rounded-knop-xs border border-line px-2 py-0.5 text-[11px] font-medium text-muted transition-colors hover:bg-surface hover:text-ink disabled:opacity-60 coarse:min-h-[44px] coarse:px-3"
+      data-status-knop
+      className={knopKlasse("secondary", "xs")}
     >
       {bezig ? "Bezig…" : afgerond ? "Heropenen" : "Annotatie afronden"}
     </button>

@@ -196,8 +196,9 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     wat onbewaard openstaat meldt zich bij de bewaker. Geen venster om tekst te bewerken – *Gegevens bewerken* opent
     de dossierkaart met het formulier open (`GegevensFormulier`, `?bewerk=1`). Een keuze die meteen geldt (klasse,
     rol) en een selectie in een boom (*Bronnen koppelen*) vallen erbuiten. `app/knoppen.test.ts` bewaakt het;
-  - **kopiëren en exporteren** is één knop in de kop van elk paneel (`ExportKnop`, 4 nov 2026): bovenaan *Kopieer als
-    Markdown* en *Download als Markdown* (`lib/artefactMarkdown.ts`: dossier, deelvraag, bronselectie, begrip,
+  - **kopiëren en exporteren** heeft één bron (`ExportRegels` in `ExportKnop.tsx`, 4 nov 2026): in een paneel naast het
+    gesprek staan de regels in het menu ⋯ van de paneelkop, op een pagina in de knop *Exporteren* (`ExportKnop`, in
+    `KleineActies`). Bovenaan *Kopieer als Markdown* en *Download als Markdown* (`lib/artefactMarkdown.ts`: dossier, deelvraag, bronselectie, begrip,
     begrippen, annotatie – kopjes en lijsten, geen tabellen), daaronder de formaten van de soort (annotatie
     PDF/CSV/JSON/TriG, begrippen CSV/JSON/Turtle). De inhoud wordt bij de klik opgehaald; `downloadTekst` in
     `lib/api.ts` maakt het bestand;
@@ -219,10 +220,22 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     - `app/knoppen.test.ts` bewaakt dat het icoon ⋯ alleen in `MeerKnop` staat;
     - een `Groep` heeft geen `overflow-hidden`, want dat knipt het menu van de onderste rij af;
   - **`Select`** heeft een eigen chevron (`appearance-none`) en dezelfde maat en focus als `Input`;
-  - **elk zijpaneel** heeft dezelfde kop (`components/ui/PaneelKop`: soort, titel, *Open volledige pagina*,
-    `SluitKnop` rechtsboven, eventuele acties op een eigen regel; de slots `onder` voor één regel – de reeks, de
-    versie – en `balk` voor tabs en *Vergroten*). Eén schil voor elk artefact (4 nov 2026): ook de annotatie heeft
-    die kop op de tab Tekst, op de graaf en tijdens het laden; geen paneel bouwt een eigen kop of sluitknop. Het
+  - **elk zijpaneel** heeft dezelfde kop (`components/ui/PaneelKop`; één vaste indeling sinds 8 nov 2026, melding van
+    de gebruiker: de annotatiekop stond in drie rijen met twee uitlijningen). Hoogstens twee rijen, nooit wrappend:
+    - rij 1: soort en titel (afgekapt), rechtsboven het kopgereedschap in vaste volgorde: ↗ *Open volledige pagina*
+      (een icoonknop-link, `NaarPagina`), ⋯ (`MeerMenu sm`) en ✕ (`SluitKnop`);
+    - rij 2, alleen als er iets is: de status links (`status`: een `StatusLabel`, eventueel met "revisie n") en
+      hoogstens één hoofdactie rechts (`hoofdactie`, `knopKlasse("secondary", "xs")`; de annotatie: *Annotatie afronden*);
+    - in het menu ⋯ (`menu`): eerst kopiëren en exporteren (`ExportRegels`), dan de zeldzame handelingen van de soort,
+      onderaan rood *Verwijderen* (`MenuVerwijder`). In een paneel van 360 px passen ze niet naast de status;
+    - een inhoud die zijn eigen object laadt (`WerkgebiedInhoud`, `BegripCompact`) zet zijn stand en menu in de kop met
+      `usePaneelKopVulling`; de schil zet er `PaneelKopVuller` omheen. Geen kopregel in de inhoud;
+    - de slots `onder` (één regel: de reeks, de versie) en `balk` (tabs en *Vergroten*) staan eronder;
+    - de annotatie heeft die kop via `AnnotatieKop` (in `ArtefactInhoud`) op de tab Tekst én op de graaf, dus hij springt
+      niet bij een tabwissel; de annotatiepagina `/annotaties/node` is hetzelfde paneel. Een pagina met `PaginaKop` houdt
+      `KleineActies` (Exporteren en ⋯ op één rij): daar is ruimte.
+    `app/paneelKop.test.ts` bewaakt het; `scripts/test-paneelkop.mjs` meet elk paneel op 375, 400, 800 en 1280 px en
+    op touch (44 px). Geen paneel bouwt een eigen kop of sluitknop. Het
     `lex`-slot gebruikt alleen nog het annotatiepaneel; de werkgebiedpanelen hebben geen *Vraag Lex* (spoor K).
 - **Symbolen zijn iconen, geen tekens.** `components/ui/Icoon.tsx` levert chevron, waarschuwing,
   vinkje, ruit en cirkel als inline SVG (`1em`, `currentColor`). Het font laadt alleen de
@@ -836,8 +849,8 @@ sidebar blijft staan.
   graph-qa heeft dezelfde toets op zijn strings (`tests/test_verwijderen_niet_weghalen.py`).
   `metSpoor` met `annotatie_verwijderen`,
   `werkgebied_verwijderen` en `begrip_verwijderen`. Archiveren bestaat niet meer.
-- **Verwijderen staat naast afronden**: *Verwijderen* in de actierij van `ArtefactInhoud`
-  (`onVerwijder`, alleen als er een laag in beeld is), als `BevestigKnop`. Elke gebruiker mag het, ook
+- **Verwijderen staat in het menu ⋯ van de kop**: onderaan in het menu van `AnnotatieKop`
+  (`onVerwijder`, alleen als er een laag in beeld is), als `MenuVerwijder`. Elke gebruiker mag het, ook
   op een afgeronde annotatie; de audit legt vast wie. `NodeAnnotatiePaneel.verwijder` stuurt
   `weergave/verwijder` met de revisies in beeld (412 als iemand intussen iets wijzigde) en laadt
   opnieuw. De API haalt alle lagen van de bepaling in beeld weg, ook uit de graaf; de weergave draagt
@@ -871,8 +884,8 @@ bepaling). De paginaschil (sidebar, mobiele topbar, terug naar het overzicht) is
 want de `Dialog`-schil is er niet altijd. `NodeAnnotatiePaneel` geeft `Dialog` daarom (op de Tekst-tab) een **no-op**
 `onEscape`; reageert die ook, dan springt Escape in één klap door alle lagen heen.
 
-**Het kruisje staat altijd rechtsboven.** De kop van `ArtefactInhoud` is twee vaste regels: titel +
-sluitknop, daaronder de acties (status, exporteren, afronden, verwijderen) rechts uitgelijnd. In één
+**Het kruisje staat altijd rechtsboven.** De kop van `ArtefactInhoud` is de vaste `PaneelKop` (`AnnotatieKop`): titel
+met ↗ ⋯ ✕, daaronder de status links en *Annotatie afronden* rechts; exporteren en verwijderen staan in het menu ⋯. In één
 wrappende rij verhuist het kruisje mee zodra de ruimte krap wordt. Sluiten zit op dezelfde plek en met
 hetzelfde icoon (viewBox 20, `strokeWidth` 1.6) als in `InstellingenDialog`, `DisclaimerDialog`,
 `FeedbackDialoog` en de gesprekkendrawer.
@@ -1448,7 +1461,7 @@ agent-ronde) en zijn meteen `human_approved`.
 
 ### De annotatie exporteren
 
-*Exporteren* in de kop van het artefact (`components/werkplek/ExportKnop.tsx`) biedt **PDF / CSV /
+Het menu ⋯ in de kop van het artefact (`ExportRegels` in `components/werkplek/ExportKnop.tsx`) biedt **PDF / CSV /
 JSON / RDF (TriG)**. De vorm staat in de api (`api/app/annotatie_export.py`); de werkplek kiest alleen.
 
 - **Ook halverwege.** Geen statusdrempel: het bestand zegt zelf hoeveel er nog te beoordelen is.
@@ -1466,7 +1479,7 @@ JSON / RDF (TriG)**. De vorm staat in de api (`api/app/annotatie_export.py`); de
 
 ### Het werkgebied exporteren
 
-*Exporteren* in de kop van het werkgebied (`ProjectKop`) en in het werkgebiedpaneel naast het gesprek biedt naast de
+*Exporteren* in de kop van het werkgebied (`ProjectKop`) en het menu ⋯ van het werkgebiedpaneel naast het gesprek bieden naast de
 Markdown van het dossier de **PDF van het werkgebied** en **Rapport als Markdown** (`exporteerWerkgebied`, `GET …/export`). Beide
 komen uit één document in de api (`api/app/werkgebied_rapport.py`, ADR-009), dus met dezelfde inhoud; *Kopieer* en *Download als
 Markdown* blijven het korte dossier uit `lib/artefactMarkdown.ts`. Eén vaste inhoud, dus geen keuzes bij het exporteren. Het rapport

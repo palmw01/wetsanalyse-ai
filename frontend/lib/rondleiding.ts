@@ -210,10 +210,10 @@ export const STAPPEN: Stap[] = [
     fase: "afronding",
     titel: "Afronden en exporteren",
     tekst:
-      "Exporteren kan altijd, ook halverwege: als PDF, CSV, JSON of RDF. Het bestand vermeldt hoeveel " +
-      "er nog openstaat en bevat het volledige spoor, inclusief het model waarmee Lex de voorstellen " +
-      "maakte. Afronden zet de annotatie vast; heropenen kan daarna nog steeds. Verwijderen haalt de " +
-      "annotatie van deze bepaling voor iedereen weg.",
+      "Afronden zet de annotatie vast; heropenen kan daarna nog steeds. In het menu ⋯ staan exporteren en " +
+      "verwijderen. Exporteren kan altijd, ook halverwege: als PDF, CSV, JSON of RDF. Het bestand vermeldt " +
+      "hoeveel er nog openstaat en bevat het volledige spoor, inclusief het model waarmee Lex de voorstellen " +
+      "maakte. Verwijderen haalt de annotatie van deze bepaling voor iedereen weg.",
     waarom: "Alle kaarten beslissen is iets anders dan klaar zijn. Dat oordeel blijft aan jou.",
   },
 ];

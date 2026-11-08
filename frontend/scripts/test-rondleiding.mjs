@@ -226,8 +226,11 @@ try {
 
   await openenWachtOpKlik(page);
   await binnenBeeld(page);
-  // De demo staat in hetzelfde paneel als echt werk (`NodeAnnotatiePaneel`): alleen dat kent Verwijderen.
-  await page.locator('[data-tour="artefact-acties"]').getByRole("button", { name: /verwijderen/i }).waitFor();
+  // De demo staat in hetzelfde paneel als echt werk (`NodeAnnotatiePaneel`): alleen dat kent Verwijderen, in het menu ⋯.
+  // De rondleiding legt een scherm over de pagina; de klik gaat daarom rechtstreeks naar de knop.
+  await page.locator('[data-tour="artefact-acties"] [data-meer-knop]').dispatchEvent("click");
+  await page.getByRole("menuitem", { name: /verwijderen/i }).waitFor();
+  await page.keyboard.press("Escape");
 
   // "Jij beslist": Enter op Akkoord beslist, en de rondleiding blijft staan.
   await naarStap(page, "Jij beslist");

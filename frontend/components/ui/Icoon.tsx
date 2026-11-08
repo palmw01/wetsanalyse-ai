@@ -176,3 +176,13 @@ export function Archief({ className = "" }: IcoonProps) {
 export function Koppelen({ className = "" }: IcoonProps) {
   return svg(<path d="M6.8 9.2a2.6 2.6 0 0 0 3.7 0l2.2-2.2a2.6 2.6 0 0 0-3.7-3.7l-.9.9M9.2 6.8a2.6 2.6 0 0 0-3.7 0L3.3 9a2.6 2.6 0 0 0 3.7 3.7l.9-.9" />, className);
 }
+
+/** Naar de volledige pagina: een vak met een pijl naar buiten, rechtsboven in de kop van een paneel. */
+export function NaarPagina({ className = "" }: IcoonProps) {
+  return svg(<path d="M9.5 2.5h4v4M13.5 2.5 7.5 8.5M12 9.5v3a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3" />, className);
+}
+
+/** Exporteren: een pijl omlaag naar een streep. */
+export function Downloaden({ className = "" }: IcoonProps) {
+  return svg(<path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M3 13.5h10" />, className);
+}

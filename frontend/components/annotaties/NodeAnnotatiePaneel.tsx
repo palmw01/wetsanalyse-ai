@@ -15,7 +15,7 @@ import { PaneelKop } from "@/components/ui/PaneelKop";
 import { VersieKiezer } from "@/components/ui/VersieKiezer";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { NogNietInWerking } from "@/components/bronnen/NogNietInWerking";
-import { ArtefactInhoud } from "@/components/werkplek/ArtefactInhoud";
+import { AnnotatieKop, ArtefactInhoud, annotatieOpschrift } from "@/components/werkplek/ArtefactInhoud";
 import { foutTekst, type ExportFormaat } from "@/lib/api";
 import {
   apiOpslag, bepalingRevisies, dragerRevisies, momentopnameOpslag, nodeLink, nogNietInWerking, verwachteRevisies,
@@ -88,6 +88,8 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
   const [laadFout, setLaadFout] = useState("");
   const [actiefId, setActiefId] = useState<string | undefined>(beginElement);
   const [melding, setMelding] = useState("");
+  // Een fout van afronden, exporteren of verwijderen op de tab Graaf (op de tab Tekst landt hij in de inhoud).
+  const [kopFout, setKopFout] = useState<string | null>(null);
   const { data: sessie } = useSession();
   const gebruiker = sessie?.user?.userid ?? undefined;
 
@@ -281,7 +283,6 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
       onKies={(v) => { setActiefId(undefined); setOpname(v); }} />}
   </>;
 
-  const titel = view?.doel.label || doel.label || "Annotatie";
   const pagina = onSluit && basisOpslag.levend && view
     ? nodeLink({ bron_iri: view.doel.bron_iri ?? doel.bron_iri, snapshot_id: doel.snapshot_id }) : undefined;
   const inhoud = !view || !nb || !doc ? (
@@ -294,7 +295,13 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
       <p className="sr-only" aria-live="polite">{melding}</p>
       {/* Eén kop voor beide tabs: op de tab Tekst draagt de inhoud hem (met de acties), op de graaf het paneel. */}
       {toonTabs && tab === "graaf" && (
-        <PaneelKop soort={ARTEFACT_SOORT_LABEL.annotatie} titel={titel} pagina={pagina} onSluit={onSluit} onder={reeksBalk} balk={tabs} />
+        <>
+          <AnnotatieKop doc={doc} opschrift={annotatieOpschrift(doc, nb.info)} pagina={pagina} onSluiten={onSluit} onder={reeksBalk} balk={tabs}
+            onStatus={view.lagen.length && !opname ? status : undefined}
+            onVerwijder={view.lagen.length && !opname ? verwijder : undefined}
+            onExport={opname ? undefined : exporteer} onFout={setKopFout} />
+          {kopFout && <div className="px-4 pt-3"><Melding type="fout" compact>{kopFout}</Melding></div>}
+        </>
       )}
       {toonTabs && graafGeopend && (
         <div className={tab === "graaf" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>

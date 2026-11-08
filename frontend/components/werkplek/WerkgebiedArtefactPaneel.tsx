@@ -1,11 +1,11 @@
 "use client";
 
-import { ExportKnop } from "@/components/werkplek/ExportKnop";
+import { ExportRegels, type ExportKnop } from "@/components/werkplek/ExportKnop";
 import { EXPORT_FORMATEN } from "@/lib/begrippen";
 import { exporteerBegrippen, exporteerWerkgebied, haalBegrip, haalBronselectie, haalWerkgebied, lijstBegrippen } from "@/lib/api";
 import { begripAlsMarkdown, begrippenAlsMarkdown, bronselectieAlsMarkdown, deelvraagAlsMarkdown, dossierAlsMarkdown, voorstellenAlsMarkdown } from "@/lib/artefactMarkdown";
 import { termenVan } from "@/lib/begripTermen";
-import { PaneelKop } from "@/components/ui/PaneelKop";
+import { PaneelKop, PaneelKopVuller, usePaneelKopVulling } from "@/components/ui/PaneelKop";
 import { VersieKiezer } from "@/components/ui/VersieKiezer";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -20,11 +20,12 @@ import { OnbewaardMelding } from "@/components/werkgebieden/OnbewaardMelding";
 import { WerkgebiedSamenvatting } from "@/components/werkgebieden/WerkgebiedSamenvatting";
 import { Melding } from "@/components/ui/Melding";
 import { SkeletonCard } from "@/components/ui/Skeleton";
-import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
+import { MenuVerwijder } from "@/components/ui/MeerMenu";
+import { StatusLabel } from "@/components/ui/Lijst";
 import { knopKlasse } from "@/components/ui/Button";
 import { foutTekst, verwijderWerkgebied } from "@/lib/api";
 import { metSpoor } from "@/lib/uiSpoor";
-import { verwijderdUit, verwijderdZin, type Verwijderd } from "@/lib/verwijderen";
+import { VERWIJDER_UITLEG, verwijderLabel, verwijderdUit, verwijderdZin, type Verwijderd } from "@/lib/verwijderen";
 import { isRevisieConflict } from "@/lib/werkgebied";
 import { artefactKop, type WerkgebiedArtefact } from "@/lib/artefact";
 import type { ArtefactVersie, Begrip, Deelvraag, GroepenAntwoord, RelatiesAntwoord, Werkgebied } from "@/lib/types";
@@ -147,10 +148,12 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", bewaker, onOn
   const [opname, setOpname] = useState<Opname | null | undefined>(metVersie ? undefined : null);
   return (
     <Dialog label={soort ? `${soort}: ${titel}` : titel} variant={variant} onSluit={sluit}>
+      <PaneelKopVuller>
       <div data-artefact data-artefact-soort={doel.soort} className="flex min-h-0 flex-1 flex-col">
         <PaneelKop soort={soort} titel={titel} pagina={naarWerkgebied} onSluit={sluit}
-          // Pas als de versie vaststaat: anders gaat de export over de stand van nu in plaats van over wat je zo ziet.
-          acties={opname !== undefined && <ExportKnop onFout={setExportFout} titel={titel} {...exportVan(doel, opname)} />}
+          // Pas als de versie vaststaat: anders gaat de export over de stand van nu in plaats van over wat je zo ziet. De
+          // stand en de handelingen van de inhoud (verwijderen, de begripsregels) komen via `usePaneelKopVulling` erbij.
+          menu={opname !== undefined ? (afsluit) => <ExportRegels sluit={afsluit} onFout={setExportFout} titel={titel} {...exportVan(doel, opname)} /> : undefined}
           onder={metVersie && <VersieKiezer versie={metVersie} onKies={(v) => setOpname(v as Opname | null)} />} />
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           {exportFout && <Melding type="waarschuwing" className="mb-4">{exportFout}</Melding>}
@@ -191,6 +194,7 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", bewaker, onOn
           )}
         </div>
       </div>
+      </PaneelKopVuller>
     </Dialog>
   );
 }
@@ -204,17 +208,28 @@ function WerkgebiedInhoud({ id, naarWerkgebied, onVerwijderd, opname }: {
   /** Een oude versie: alleen lezen, uit de opname, zonder verwijderen. */
   opname?: Opname["inhoud"];
 }) {
-  if (opname?.werkgebied) {
-    const w = opname.werkgebied;
-    return (
+  if (opname?.werkgebied) return <WerkgebiedOpname opname={opname} naarWerkgebied={naarWerkgebied} />;
+  return <WerkgebiedLive id={id} naarWerkgebied={naarWerkgebied} onVerwijderd={onVerwijderd} />;
+}
+
+/** De stand van een werkgebied in de paneelkop: status en revisie, links op de tweede rij. */
+function WerkgebiedStand({ wg }: { wg: Werkgebied }) {
+  return <>
+    <StatusLabel>{STATUS_LABEL[wg.status]}</StatusLabel>
+    <span className="text-xs text-muted">revisie {wg.revisie}</span>
+  </>;
+}
+
+/** Een oude versie: alleen lezen, dus wel de stand in de kop, maar geen verwijderen. */
+function WerkgebiedOpname({ opname, naarWerkgebied }: { opname: Opname["inhoud"]; naarWerkgebied: string }) {
+  const w = opname.werkgebied!;
+  usePaneelKopVulling({ status: <WerkgebiedStand wg={w} /> }, `${w.status}|${w.revisie}`);
+  return (
       <div data-werkgebied-inhoud data-alleen-lezen className="space-y-4 text-sm text-ink">
-        <p className="text-xs text-muted">{STATUS_LABEL[w.status]} · revisie {w.revisie}</p>
         <WerkgebiedSamenvatting wg={w} bronselectie={opname.bronselectie ?? null} />
         <Link href={naarWerkgebied} className={`${knopKlasse("secondary", "md")} w-full sm:w-auto`}>Open het werkgebied</Link>
       </div>
-    );
-  }
-  return <WerkgebiedLive id={id} naarWerkgebied={naarWerkgebied} onVerwijderd={onVerwijderd} />;
+  );
 }
 
 function WerkgebiedLive({ id, naarWerkgebied, onVerwijderd }: {
@@ -255,6 +270,12 @@ function WerkgebiedLive({ id, naarWerkgebied, onVerwijderd }: {
     }
   }
 
+  // De stand en *Verwijderen* staan in de kop van het paneel (`PaneelKop`, 8 nov 2026), niet in de inhoud.
+  usePaneelKopVulling(wg && !verwijderd ? {
+    status: <WerkgebiedStand wg={wg} />,
+    menu: (sluit) => <MenuVerwijder onBevestig={async () => { await verwijder(); sluit(); }} ariaLabel={verwijderLabel("werkgebied")} titel={VERWIJDER_UITLEG.werkgebied} />,
+  } : null, wg ? `${wg.status}|${wg.revisie}` : "");
+
   if (verwijderd) {
     return <Melding type="uitleg"><span data-verwijderd>{verwijderdZin(verwijderd)}</span></Melding>;
   }
@@ -271,10 +292,6 @@ function WerkgebiedLive({ id, naarWerkgebied, onVerwijderd }: {
   if (!wg) return <SkeletonCard regels={4} />;
   return (
     <div data-werkgebied-inhoud className="space-y-4 text-sm text-ink">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-muted">{STATUS_LABEL[wg.status]} · revisie {wg.revisie}</p>
-        <VerwijderKnop soort="werkgebied" onBevestig={verwijder} />
-      </div>
       {melding && <Melding type="waarschuwing" compact>{melding}</Melding>}
       <WerkgebiedSamenvatting wg={wg} />
       <Link href={naarWerkgebied}
