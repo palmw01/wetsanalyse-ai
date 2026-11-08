@@ -957,7 +957,7 @@ Zuiver en deterministisch, uit de stand bij de api: `plan_bronnen` (per deelvraa
 `plan_annoteren` (de werkvoorraad zonder overlap: elke bepaling naar de eerste deelvraag waaronder ze valt; hoogstens
 `PLAFOND`; krimpt tot de bovenkant `MARGE × mediaan` in het resterende budget past; per kind een aandeel `AANDEEL ×
 schatting`, zonder schatting het budget gelijk verdeeld). `plan_id` hasht alleen het werk, niet de schatting. Wat niet
-meegaat, staat in `buiten` met de reden. `kind_verzoek` maakt het `ChatRequest` van een kind: de actie `bronselectie`
+meegaat, staat in `buiten` met de reden, ook een bepaling die al een annotatie heeft (`_al_geannoteerd`: "al een annotatie en overgeslagen", met haar stand). `kind_verzoek` maakt het `ChatRequest` van een kind: de actie `bronselectie`
 op de deelvraag, of `deelvragen_annoteren`/`werkgebied_annoteren` met `bevestigd`, `eenheden` en `budget_aandeel`.
 Tests: `tests/test_regie_plan.py`.
 
