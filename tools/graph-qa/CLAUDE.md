@@ -108,6 +108,12 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   van het model haalt de code niets op. Een markering "niet opgehaald" bestaat bewust niet.
   Citeren kan alleen uit rijen met een iri bij hun tekst, dus niet uit `get_context`.
   `verify_node` toetst de blokken `annotaties`, `begrippen` en `leemte` niet (`NIET_GETOETST`): afgeleide duiding en tekst van de code.
+  **Bronnen naast de wet** (`sjablonen/extern.py`, ADR-013): het blok `extern` (brontype, id, label, link, kop uit
+  `kop_in_antwoord`, letterlijke passages). Als subsjabloon krijgt elk sjabloon het platte veld `extern: [{id, van_nr,
+  tot_nr}]`, en als eigen sjabloon is er `antwoord_extern`, allebei alleen als er een connector aanstaat die de rol bedient
+  (`agent_node`); zonder connector zijn de schema's byte-gelijk. De tekst komt uit de rijen van de leestool (contract:
+  `stuk: {id, label, link}`, rijen `{nr, tekst, kop?}`). `check_grounding` noemt een stuk dat alleen in een zoekresultaat
+  stond `onbevestigd` ("alleen gevonden, niet gelezen"). `tests/test_extern_sjabloon.py`.
 - **`verify_node`** – `check_grounding(answer, source_trace)`. Bij ongegrond volgt via `correct_node`
   hoogstens één corrigerende ronde (`GROUNDING_CORRECT`, default aan; `state["corrected"]`). De controle
   keurt **twee** dingen af en `correct_node` moet ze allebei benoemen: `unsupported` (een vindplaats die
@@ -202,13 +208,24 @@ bruikbaar is.
   `tools/kamerstuk_tools.py`), `anthropic_schemas(only=)` en `dispatch()` (vangt
   `ValueError`/`MCPError`/`KeyError` als tekst). Een tool met `needs_settings` krijgt `settings` mee.
   `tools/jas_tools.py` (`JAS_TOOLS`) is dispatchbaar maar wordt in de draaiende keten niet aangeroepen.
-- **Bronconnectors** (ADR-013): `CONNECTORS` (connector → tools) en `toegestane_tools(tools, settings)`, de ene
+- **Bronconnectors** (ADR-013): **de beschrijving in `bronmodel.connectors` is de enige bron** (naam, label, brontype,
+  groep, wat hij dekt, signalen, tools, leestool, id-vorm, rollen, rol in het antwoord, grenzen, voorbeeldvragen).
+  `CONNECTORS` (connector → tools), de connectortools van de specialisten (`specialists._met_connectors`), de
+  `Literal`s van de contracten en het register van de api komen eruit; een nieuwe connector is een beschrijving, zijn
+  tools en een straatvlag. `tests/test_connectorbeschrijving.py` maakt een onvolledige beschrijving of handwerk ernaast
+  rood, met een nep-connector als bewijs dat er niets per connector bij hoeft. `toegestane_tools(tools, settings)` is de ene
   regel voor de schema's van de antwoordlus, de MCP-server en `dispatch`. Een connector staat uit tot de straat hem
   aanzet (`CONNECTOR_KAMERSTUKKEN=true`); uit is niet aangeboden, en een aanroep is dan `connector_uit`. **De beurt
   beperkt verder** (`ChatRequest.bronnen`, `State.bronnen`, per beurt): weggelaten = wat de straat aanbiedt, een lege
   lijst = alleen wetgeving, en een connector die de straat niet aanbiedt gaat nooit aan (`actieve_connectors`).
-  `tool_execution` geeft de stand aan `dispatch`, dus ook een workflow die een tool in code aanroept valt eronder; de
-  logregel `beurt_meting` noemt de actieve bronnen. `tests/test_bronschakelaar.py`.
+  `tool_execution` geeft de stand aan `dispatch`, dus ook een workflow die een tool in code aanroept valt eronder.
+  **De bronstand** (`agent/bronstand.py`, `State.bronstand`) zegt per connector waaróm hij uit staat (`straat`,
+  `gesprek`/`werkgebied` uit `ChatRequest.bronnen_herkomst`, `register_onleesbaar`, `beheerder`) en gaat als eerste
+  event (`bronstand`) de stroom in; de logregel `beurt_meting` leest hem (`kamerstukken:aan`).
+  **De prompt**: BRONSOORTEN in `SYSTEM_PROMPT` is generiek (geen connector met naam, binnen de cache); BRONNEN IN DEZE
+  BEURT (`bronstand.prompt_blok`, ná het cachepunt in `agent_node`) zegt per connector uit de beschrijving wat hij dekt
+  en waarvoor hij staat, of waarom hij uit staat en wie hem aanzet. Zonder aangeboden connector en zonder genoemde bron
+  is dat blok leeg. `tests/test_bronprompt.py`. `tests/test_bronschakelaar.py`.
   **Kamerstukken** (`tools/kamerstuk_tools.py`, transport `adapters/sru_kamerstukken.py`): `zoek_kamerstukken`
   (een dossier op nummer, of woorden in de titel) en `get_kamerstuk` (per alinea, met de kop, in documentvolgorde;
   tabellen, illustraties en voetnoten geteld in `overgeslagen`). De CQL bouwt de tool, de document-URL komt uit het
@@ -595,6 +612,18 @@ reviewer (`review.py`), de resolver (`resolver.py`), dekking, beslisregister en 
   weigert een code zonder verklaring en een verklaring zonder code. Draai daarna
   `python scripts/genereer_jas_vocabulaire.py`: die schrijft de vocabulairegraaf en `verklaringen.json`
   naar `api/app/vocabulaire/`, bewaakt door `tests/test_vocabulaire_drift.py`.
+- **Relatievoorstellen, achter een proefvlag** (`RELATIE_VOORSTELLEN`, standaard uit; ADR-011 §*Voorstellen komen
+  later*). `jas_pipeline/relaties.py` stelt na de keten relaties tussen haar voorstellen voor, zonder model, met vier
+  regels: `uitvoer`/`invoer` uit de spans van `CALCULATION_QUANTITY` (`REL_UITVOER_FUNCTIE`, `REL_INVOER_FUNCTIE`),
+  `waarde` uit de nesting met subtype (`REL_WAARDE_NESTING`), `operator_in` en `operand` met de woordvolgorde als
+  `volgorde` (`REL_OPERATOR_IN_NESTING`, `REL_OPERAND_WOORDVOLGORDE`) en `voorwaarde` uit `advcl`+`mark` aan het
+  hoofdpredicaat (`REL_VOORWAARDE_AANHECHTING`). Bij twijfel geen voorstel; elk voorstel gaat door de catalogus
+  (`agent/jas_relaties.py`, gegenereerd door `scripts/genereer_jas_relaties.py`, dezelfde Python als de api). Een
+  eindpunt is de lijst ankers van een voorstel; de api zet die om naar het element-id. Zonder vlag is de uitkomst
+  bitgelijk (geen veld, geen fase, geen meting; `tests/test_relatievoorstellen.py`). Met vlag: `Uitkomst.relaties`,
+  `meting.relaties`, `analyse.relaties`, één `relaties`-event na de elementen (`bron_annotatie.lokale_relaties`) en
+  `relaties` in de batch. De vlag staat in `run.instellingen`. Kenmerk, tijd en rollen doet de keten nog niet. Een regel
+  krijgt een code in `verklaringen.yaml` (sectie `relatie`) en vier testsoorten in `tests/test_relatievoorstellen.py`.
 - **De klassenduiding komt uit de skill.** Het JAS_KLASSEN-blok in `agent/jas_klassen.py` en
   `agent/methodepakket.py` worden gegenereerd door `scripts/genereer_jas_klassen.py` (CI draait
   `--check`), bewaakt door `tests/test_methode_drift.py`. Bewerk de markdown in
@@ -1461,7 +1490,12 @@ als het antwoord een lijst of element draagt.
 melding, geen specialist, geen graafverkeer. Afwijzen mag alleen als de vraag **niet over wetgeving
 gaat**. Of een bepaalde regeling in de graaf zit weet de supervisor niet (hij heeft geen tools), dus
 zo'n vraag gaat naar de antwoord-worker, die zoekt en zelf zegt als er niets is. Een afwijzing kost
-niets, een onterechte kost het antwoord. De vlag hoort in de per-beurt-reset van `answer_stream`,
+niets, een onterechte kost het antwoord. **Een bron naast de wet is binnen scope** (ADR-013): `SUPERVISOR_SYSTEM`
+noemt elke bekende connector uit de beschrijving (`_scope_bronnen`), en de code draait een AFWIJZEN terug als de vraag een
+connector raakt (`bronmodel.connectors.herkende`). Gaat de vraag alleen over bronnen die in deze beurt uit staan (en noemt
+ze geen artikel), dan zegt Lex zonder model waarom en wie ze aanzet (`_bron_uit`, `bronstand.melding_uit`; route
+`bron_uit`, met een `bron_uit`-event waarmee de werkplek *Zet aan* aanbiedt). `GET /v1/bronnen` zegt per connector of de
+straat hem aanbiedt; de BFF (`/api/connectors`) toont in het menu alleen wat straat én register aanzetten. De vlag hoort in de per-beurt-reset van `answer_stream`,
 anders wijst één afgewezen vraag de hele thread af. De workerlijst is een **allowlist**
 (`antwoord`/`annotatie`/`werkgebied`/`deelvragen`/`begrippen`; de laatste drie staan altijd alleen) met een cap van twee: een onbekende naam zou anders een extra antwoord-worker
 worden.

@@ -91,6 +91,77 @@ def test_een_adviesvraag_is_geen_leesvraag():
     assert not is_leesvraag(vraag, "advies")
 
 
+def _relatie(i, van, naar, **extra):
+    return {"id": f"R{i}", "type": "plichthebbende", "leesvorm": "is plichthebbende van", "lifecycle": "human_approved",
+            "volgorde": None, "laag_id": "l1", "stand_van": "a", "stand_naar": "b",
+            "beslissingen": [{"type": "markering", "actor": "jurist"}], "veranderd": False,
+            "van": van, "naar": naar, **extra}
+
+
+ONTVANGER = {"soort": "element", "id": "e1", "bestaat": True, "klasse": "Rechtssubject", "tekst": "de ontvanger",
+             "laag_id": "l1", "actueel": True}
+ZIN = {"soort": "element", "id": "e2", "bestaat": True, "klasse": "Rechtsbetrekking",
+       "tekst": "De ontvanger stelt de aanslag vast", "laag_id": "l1", "actueel": True}
+
+
+class RelatiePoort(Poort):
+    def __init__(self, relaties):
+        super().__init__()
+        self.relaties = relaties
+
+    def element(self, _id):
+        return {**super().element(_id), "relaties": self.relaties}
+
+
+def test_detail_noemt_de_vastgelegde_relaties_kort():
+    """ADR-011, *Gevolgen*: Lex leest relaties via de leesroute. Per relatie de zin, de leesvorm, de andere kant, de
+    beoordeling en `veranderd`; niet de stand, de beslissingen of de laag."""
+    relaties = [_relatie(1, ONTVANGER, ZIN),
+                _relatie(2, {"soort": "impliciet", "id": "I1", "bestaat": True, "klasse": "Rechtssubject",
+                             "tekst": "de belastingplichtige"}, ONTVANGER, type="vertegenwoordiging",
+                         leesvorm="vertegenwoordigt", lifecycle="voorgesteld", veranderd=True)]
+    data = json.loads(dispatch_annotatie("get_annotatie", {"id": "e1"}, RelatiePoort(relaties)))
+    eerste, tweede = data["relaties"]
+    assert eerste == {"zin": "deze markering is plichthebbende van «De ontvanger stelt de aanslag vast»",
+                      "leesvorm": "is plichthebbende van", "andere_kant": "De ontvanger stelt de aanslag vast",
+                      "klasse_andere_kant": "Rechtsbetrekking", "beoordeling": "akkoord"}
+    assert tweede["zin"] == "«de belastingplichtige» vertegenwoordigt deze markering"
+    assert tweede["impliciete_partij"] is True and tweede["veranderd"] is True
+    assert tweede["beoordeling"] == "voorstel van Lex"
+
+
+def test_detail_begrenst_de_relaties():
+    from agent.resultaat import BUDGET
+    from agent.tools.annotatie_tools import MAX_RELATIES
+
+    lang = {**ZIN, "tekst": "woord " * 400}
+    relaties = [_relatie(i, ONTVANGER, lang) for i in range(MAX_RELATIES + 5)]
+    raw = dispatch_annotatie("get_annotatie", {"id": "e1"}, RelatiePoort(relaties))
+    data = json.loads(raw)
+    assert len(data["relaties"]) == MAX_RELATIES and data["relaties_meer"] == 5
+    assert all(len(r["andere_kant"]) <= 161 for r in data["relaties"])
+    relatiedeel = json.dumps(data["relaties"], ensure_ascii=False, separators=(",", ":"))
+    assert len(relatiedeel) <= BUDGET, "de relaties passen binnen de begroting van één toolresultaat"
+
+
+def test_een_relatie_is_duiding_en_geen_bron():
+    """Een relatie is vastgelegde duiding: haar tekst onderbouwt geen citaat, en ze wordt geen bron of registerregel."""
+    from agent.bronregister import bij
+    from agent.grounding import check_grounding
+    from agent.provenance import collect_sources
+    from agent.tools.begrip_tools import AFGELEIDE_TOOL_NAMEN
+
+    assert "get_annotatie" in AFGELEIDE_TOOL_NAMEN
+    tekst = "De ontvanger stelt de aanslag vast op grond van urn:bwb:BWBR0004770:artikel:9:lid:1"
+    raw = dispatch_annotatie("get_annotatie", {"id": "e1"},
+                             RelatiePoort([_relatie(1, ONTVANGER, {**ZIN, "tekst": tekst})]))
+    trace = [("get_annotatie", raw)]
+    rapport = check_grounding('Volgens de relatie: "De ontvanger stelt de aanslag vast op grond van"', trace)
+    assert rapport.niet_letterlijk, "een citaat dat alleen in een relatie staat, is niet onderbouwd"
+    assert collect_sources(trace) == []
+    assert bij([], trace) == []
+
+
 def test_het_model_leest_de_beoordeling_in_de_woorden_van_de_werkplek():
     """Acceptatie 7 nov 2026: "lifecycle `voorgesteld`" en "human_approved" stonden letterlijk in de toelichting."""
     treffer = json.loads(dispatch_annotatie("search_annotaties", {}, Poort()))["resultaten"][0]

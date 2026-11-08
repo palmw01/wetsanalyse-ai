@@ -20,6 +20,32 @@ export interface ConnectorStand {
   werkgebied?: string[] | null;
 }
 
+/** Wat de straat aanbiedt (graph-qa `GET /v1/bronnen`, `straat`), uit wat de beheerder aanzette. Een schakelaar in
+ *  het menu die niets doet, is erger dan geen schakelaar: incident van 8 nov 2026, Kamerstukken ✓ terwijl de straat hem
+ *  niet aanbood. Kan graph-qa niet worden gelezen (`straat` null), dan blijft het register: de beurt toetst zelf ook. */
+export function alleenInDeStraat<T extends { naam: string }>(
+  register: T[],
+  straat: { naam: string; straat: boolean }[] | null,
+): T[] {
+  if (!straat) return register;
+  const aan = new Set(straat.filter((b) => b.straat).map((b) => b.naam));
+  return register.filter((c) => aan.has(c.naam));
+}
+
+/** Een bron die een beurt nodig had maar die uit stond (graph-qa-event `bron_uit`). */
+export interface BronUit {
+  naam: string;
+  label: string;
+  reden: string;
+}
+
+/** De uitgezette bronnen die de jurist zelf kan aanzetten: die van het gesprek of van de standaard van het werkgebied.
+ *  De beheerder en de straat zet je niet aan vanuit het gesprek. */
+export function zelfAanTeZetten(bronnen: BronUit[], stand: ConnectorStand): BronUit[] {
+  const aangeboden = new Set(stand.beschikbaar.map((c) => c.naam));
+  return bronnen.filter((b) => (b.reden === "gesprek" || b.reden === "werkgebied") && aangeboden.has(b.naam));
+}
+
 /** De connectors die in deze beurt aanstaan, in de volgorde van `beschikbaar`. */
 export function actieveConnectors({ beschikbaar, gesprek, werkgebied }: ConnectorStand): string[] {
   const gekozen = gesprek ?? werkgebied ?? beschikbaar.map((c) => c.naam);
@@ -29,6 +55,16 @@ export function actieveConnectors({ beschikbaar, gesprek, werkgebied }: Connecto
 /** Waar de stand vandaan komt, voor de toelichting in het menu. */
 export function herkomstVan({ gesprek, werkgebied }: ConnectorStand): "gesprek" | "werkgebied" | "standaard" {
   return gesprek != null ? "gesprek" : werkgebied != null ? "werkgebied" : "standaard";
+}
+
+/** Wat een beurt over de bronnen meestuurt: de stand en waar die vandaan komt. Zonder menu niets: graph-qa beslist dan
+ *  zelf (alleen wetgeving). */
+export function beurtBronnen(stand: ConnectorStand): {
+  bronnen?: string[];
+  bronnen_herkomst?: "gesprek" | "werkgebied" | "standaard";
+} {
+  if (!stand.beschikbaar.length) return {};
+  return { bronnen: actieveConnectors(stand), bronnen_herkomst: herkomstVan(stand) };
 }
 
 /** Eén connector om: de nieuwe eigen stand van het gesprek. */

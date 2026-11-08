@@ -15,6 +15,7 @@ from enum import Enum
 from typing import Literal
 
 from bronmodel.antwoord import Antwoord
+from bronmodel.connectors import NAMEN as CONNECTOR_NAMEN
 from pydantic import BaseModel, Field, model_serializer, model_validator
 
 
@@ -296,8 +297,8 @@ class Bericht(BaseModel):
     created: datetime | None = None
 
 
-#: De namen uit het register (`connectors.BEKEND`).
-ConnectorNaam = Literal["kamerstukken"]
+#: De namen uit de connectorbeschrijving (`bronmodel.connectors`), dezelfde als het register.
+ConnectorNaam = Literal[CONNECTOR_NAMEN]  # type: ignore[valid-type]
 
 
 class Gesprek(BaseModel):

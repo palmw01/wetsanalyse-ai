@@ -522,8 +522,9 @@ async def laag_invoer(conn, laag: dict) -> tuple[list[dict], dict, dict]:
         for iri, meting in (inhoud.get("structureel") or {}).items():
             if iri in eigen and tijd >= dekking.get(iri, ("", {}))[0]:
                 dekking[iri] = (tijd, meting)
+    # Een vervangen relatie gaat, net als een vervangen element, niet de graaf in (ADR-011, voorstellen van de keten).
     relaties = {naam: sorted((dict(r) for r in (await conn.execute(select(tabel.c.inhoud).where(
-        tabel.c.laag_id == laag["id"]))).scalars().all()), key=lambda r: r["id"])
+        tabel.c.laag_id == laag["id"]))).scalars().all() if r.get("lifecycle") != "vervangen"), key=lambda r: r["id"])
         for naam, tabel in (("relaties", db.annotatie_v2_relaties), ("impliciet", db.annotatie_v2_impliciet))}
     return elementen, {iri: m for iri, (_t, m) in dekking.items()}, relaties
 

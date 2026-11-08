@@ -24,7 +24,7 @@ from typing import Any
 
 from bronmodel import CorpusMap, Span
 
-from . import uitleg
+from . import relaties as relatieregels, uitleg
 from ..annotatie import _maak_anker
 from ..models import AnnotatieAlternatief, AnnotatieVoorstel
 from .besluit import Beslissing, deterministisch, ontdubbel_tijd
@@ -71,6 +71,8 @@ class Uitkomst:
     fusie: Fusie
     beslissingen: list[Beslissing]
     meting: dict[str, Any] = field(default_factory=dict)
+    # Relatievoorstellen tussen de voorstellen (ADR-011, `relaties.py`); alleen met `RELATIE_VOORSTELLEN`.
+    relaties: list[dict[str, Any]] = field(default_factory=list)
 
 
 def _classificeer_batches(alle_batches: list[list[Candidate]], llm: Any, model: str, corpus: str,
@@ -332,5 +334,11 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
     ter_keuze = meting["per_status"].get("HUMAN_REVIEW", 0)
     fasen.klaar("Resultaat", f"{len(voorstellen)} voorgesteld" + (f", {ter_keuze} ter keuze aan de jurist" if ter_keuze else "")
                 + (f", {ongedekt} zinsdeel/-delen zonder kandidaat" if ongedekt else ""))
+    relaties: list[dict[str, Any]] = []
+    if getattr(settings, "relatie_voorstellen", False):
+        # Proefvlag (ADR-011): zonder vlag blijft de uitkomst bitgelijk – geen veld, geen fase, geen meting.
+        relaties = relatieregels.stel_voor(voorstellen, fusie, {t.bron_iri: t.analyse for t in teksten})
+        meting["relaties"] = relatieregels.telling(relaties)
+        fasen.klaar("Relaties", f"{len(relaties)} relatie(s) voorgesteld")
     meting["fasen"] = fasen.lijst
-    return Uitkomst(voorstellen, fusie, beslissingen, meting)
+    return Uitkomst(voorstellen, fusie, beslissingen, meting, relaties)

@@ -7,10 +7,11 @@ import { voegToe, type GraafModel, type KnoopData, type KnoopSoort, type Relatie
 export const SOORT_LABEL: Record<KnoopSoort, string> = {
   regeling: "Regeling", deel: "Structuur", artikel: "Artikel", lid: "Lid", onderdeel: "Onderdeel",
   markering: "Markering", klasse: "JAS-klasse", extern: "Niet-geïmporteerde bepaling", begrip: "Begrip",
+  impliciet: "Impliciete partij",
 };
 
 const normaal = (s: string) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLocaleLowerCase("nl");
-const RANG: Record<KnoopSoort, number> = { artikel: 0, lid: 1, onderdeel: 2, regeling: 3, deel: 3, begrip: 4, markering: 4, klasse: 5, extern: 6 };
+const RANG: Record<KnoopSoort, number> = { artikel: 0, lid: 1, onderdeel: 2, regeling: 3, deel: 3, begrip: 4, markering: 4, impliciet: 4, klasse: 5, extern: 6 };
 
 /** Knopen die bij de zoekvraag passen, over het hele model (ook wat een laag verbergt): eerst wat met
  *  de vraag begint, dan wat hem bevat; daarbinnen geladen vóór rand, bronnen vóór markeringen en
@@ -30,21 +31,30 @@ export function zoekKnopen(g: GraafModel, vraag: string, max = 12): string[] {
 }
 
 export type RelatieGroepNaam = "Onderdeel van" | "Bevat" | "Markeringen" | "Markeert" | "Klasse" | "Verwijst naar" | "Wordt verwezen door"
-  | "Begrippen" | "Dragende passages" | "Relaties met begrippen" | "Voorgestelde relaties" | "Definieert" | "Wettelijke definitie" | "Komt voor in";
+  | "Begrippen" | "Dragende passages" | "Relaties met begrippen" | "Voorgestelde relaties" | "Definieert" | "Wettelijke definitie" | "Komt voor in"
+  | "Relaties" | "Relaties hierheen";
 export interface RelatieRegel { id: string; anker_tekst: string }
 
 const UIT: Record<RelatieData["soort"], RelatieGroepNaam> = {
   bevat: "Bevat", verwijst_naar: "Verwijst naar", markeert: "Markeert", heeft_klasse: "Klasse",
   duidt: "Dragende passages", begripsrelatie: "Relaties met begrippen", begripsvoorstel: "Voorgestelde relaties",
-  definieert: "Definieert", komt_voor_in: "Komt voor in",
+  definieert: "Definieert", komt_voor_in: "Komt voor in", jas_relatie: "Relaties",
 };
 const IN: Record<RelatieData["soort"], RelatieGroepNaam> = {
   bevat: "Onderdeel van", verwijst_naar: "Wordt verwezen door", markeert: "Markeringen", heeft_klasse: "Markeringen",
   duidt: "Begrippen", begripsrelatie: "Relaties met begrippen", begripsvoorstel: "Voorgestelde relaties",
-  definieert: "Wettelijke definitie", komt_voor_in: "Begrippen",
+  definieert: "Wettelijke definitie", komt_voor_in: "Begrippen", jas_relatie: "Relaties hierheen",
 };
 const VOLGORDE: RelatieGroepNaam[] = ["Onderdeel van", "Bevat", "Begrippen", "Wettelijke definitie", "Definieert", "Komt voor in", "Markeringen", "Markeert", "Klasse",
-  "Dragende passages", "Relaties met begrippen", "Voorgestelde relaties", "Verwijst naar", "Wordt verwezen door"];
+  "Relaties", "Relaties hierheen", "Dragende passages", "Relaties met begrippen", "Voorgestelde relaties", "Verwijst naar", "Wordt verwezen door"];
+
+/** De tekst bij een lijn in de inspector: het anker, en bij een relatie tussen markeringen de leesvorm met haar
+ *  stand ("is plichthebbende van · voorstel van Lex"). Een relatie leest van bron naar doel. */
+export function relatieTekst(a: Pick<RelatieData, "soort" | "anker_tekst" | "lifecycle" | "veranderd">): string {
+  if (a.soort !== "jas_relatie") return a.anker_tekst;
+  return [a.anker_tekst, a.lifecycle === "voorgesteld" ? "voorstel van Lex" : "", a.veranderd ? "veranderd, vraagt een oordeel" : ""]
+    .filter(Boolean).join(" · ");
+}
 
 /** De relaties van een knoop, per soort en richting, in vaste volgorde. Over het hele model: een buur
  *  die een laag verbergt staat er ook in, zodat je hem vanuit de inspector kunt kiezen. */
@@ -52,8 +62,8 @@ export function relatieGroepen(g: GraafModel, id: string): { naam: RelatieGroepN
   if (!g.hasNode(id)) return [];
   const groepen = new Map<RelatieGroepNaam, RelatieRegel[]>();
   const voeg = (naam: RelatieGroepNaam, ander: string, anker_tekst: string) => voegToe(groepen, naam, { id: ander, anker_tekst });
-  g.forEachOutEdge(id, (_, a, __, doel) => voeg(UIT[a.soort], doel, a.anker_tekst));
-  g.forEachInEdge(id, (_, a, bron) => voeg(IN[a.soort], bron, a.anker_tekst));
+  g.forEachOutEdge(id, (_, a, __, doel) => voeg(UIT[a.soort], doel, relatieTekst(a)));
+  g.forEachInEdge(id, (_, a, bron) => voeg(IN[a.soort], bron, relatieTekst(a)));
   const opNaam = (x: RelatieRegel, y: RelatieRegel) =>
     g.getNodeAttribute(x.id, "naam").localeCompare(g.getNodeAttribute(y.id, "naam"), "nl", { numeric: true });
   return VOLGORDE.filter((n) => groepen.has(n)).map((naam) => ({ naam, regels: groepen.get(naam)!.sort(opNaam) }));
@@ -69,7 +79,7 @@ export function relatieGroepen(g: GraafModel, id: string): { naam: RelatieGroepN
 export type Hoofdactie = "tekst" | "wissel" | "laden" | null;
 
 export function hoofdactie(a: Pick<KnoopData, "soort" | "rand" | "bwb_id">, id: string, inPaneel?: ReadonlySet<string>): Hoofdactie {
-  if (a.soort === "klasse" || a.soort === "extern" || a.soort === "begrip") return null;
+  if (a.soort === "klasse" || a.soort === "extern" || a.soort === "begrip" || a.soort === "impliciet") return null;
   if (a.rand) return a.bwb_id ? "laden" : null;
   if (inPaneel && !inPaneel.has(id)) return a.soort === "regeling" ? null : "wissel";
   return "tekst";

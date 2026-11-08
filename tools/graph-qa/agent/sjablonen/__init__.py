@@ -26,9 +26,10 @@ from .annotaties import SCHEMA as _ANNOTATIES, vul as _vul_annotaties
 from .begrip import SCHEMA as _BEGRIP, vul as _vul_begrip
 from .bepaling import SCHEMA as _BEPALING, vul as _vul_bepaling
 from .duiding import SCHEMA as _DUIDING, vul as _vul_duiding
+from . import extern as _extern
 from .vullen import Onvulbaar, Trace
 
-__all__ = ["Onvulbaar", "Sjabloon", "SJABLONEN", "sjabloon_schemas", "sjabloon_uit_tekst", "vul"]
+__all__ = ["EXTERN", "Onvulbaar", "Sjabloon", "SJABLONEN", "sjabloon_schemas", "sjabloon_uit_tekst", "vul"]
 
 
 @dataclass(frozen=True)
@@ -42,15 +43,33 @@ SJABLONEN: dict[str, Sjabloon] = {
     _BEGRIP["name"]: Sjabloon(_BEGRIP, _vul_begrip),
     _BEPALING["name"]: Sjabloon(_BEPALING, _vul_bepaling),
     _DUIDING["name"]: Sjabloon(_DUIDING, _vul_duiding),
+    _extern.SCHEMA["name"]: Sjabloon(_extern.SCHEMA, _extern.vul),
 }
 
+#: Het eigen sjabloon voor een vraag die alleen over een bron naast de wet gaat (ADR-013). Een specialist krijgt het
+#: alleen als een connector aanstaat die zijn rol bedient (`nodes/antwoord.py`).
+EXTERN = _extern.SCHEMA["name"]
 
-def sjabloon_schemas(namen: frozenset[str]) -> list[dict[str, Any]]:
-    return [SJABLONEN[n].schema for n in sorted(namen)]
+
+def sjabloon_schemas(namen: frozenset[str], *, extern: bool = False) -> list[dict[str, Any]]:
+    """De schema's voor het model. Met `extern` krijgt elk sjabloon het veld voor bronnen naast de wet (het subsjabloon,
+    `sjablonen/extern.py`); zonder is het schema gelijk aan vóór ADR-013."""
+    return [SJABLONEN[n].schema if not extern or n == EXTERN else _extern.met_veld(SJABLONEN[n].schema)
+            for n in sorted(namen)]
 
 
 def vul(naam: str, invoer: dict[str, Any], trace: Trace) -> Antwoord:
-    return SJABLONEN[naam].vul(invoer, trace)
+    """Vul het sjabloon uit de trace. Draagt de aanroep het veld `extern` (het subsjabloon), dan komen de blokken met
+    de bronnen naast de wet ná de wettekst en de uitleg, vóór de twijfel."""
+    if naam == EXTERN or _extern.VELD not in invoer:
+        return SJABLONEN[naam].vul(invoer, trace)
+    rest = {k: v for k, v in invoer.items() if k != _extern.VELD}
+    extra = _extern.blokken(invoer[_extern.VELD], trace)
+    antwoord = SJABLONEN[naam].vul(rest, trace)
+    if extra:
+        plek = next((i for i, b in enumerate(antwoord.blokken) if b.soort in ("twijfel", "leemte")), len(antwoord.blokken))
+        antwoord.blokken[plek:plek] = extra
+    return antwoord
 
 
 _AANROEP = re.compile(r'<invoke name="([\w-]+)">(.*?)</invoke>', re.S)

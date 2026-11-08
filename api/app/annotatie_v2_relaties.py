@@ -11,6 +11,9 @@ laag, dus alles loopt door het schrijfslot van `annotatie_v2_store`: revisie, 41
 - Een gewist element of een gewiste impliciete partij neemt haar relaties mee (`wis_bij`), met een auditregel.
 - Een impliciete partij is alleen een rechtssubject en alleen van de jurist. Ze is geen markering: geen ankers, geen
   dekking, en ze telt niet in de inventaris.
+- Een voorstel van de keten komt mee in de batch (`leg_voorstellen`, binnen de transactie van `annotatie_v2_store.batch`):
+  eindpunten als ankers, omgezet naar de elementen die de batch net opsloeg. Wat niet op te lossen is, wordt gemeld en
+  nooit geraden. Een ronde `opnieuw` zet oude voorstellen zonder oordeel die ze niet meer maakte op `vervangen`.
 """
 from __future__ import annotations
 
@@ -23,8 +26,9 @@ from sqlalchemy import delete, insert, select, update
 
 from . import db
 from . import jas_relaties
-from .annotatie_v2_contracts import AFGEHANDELD, Eindpunt, ImplicietInvoer, Lifecycle, RelatieBeslissing, RelatieInvoer, is_vervangen
-from .annotatie_v2_store import _audit, _laag, _lagen, _raak, publiek_laag, schrijftransactie
+from .annotatie_v2_contracts import (AFGEHANDELD, NIET_ACTUEEL, Eindpunt, ImplicietInvoer, Lifecycle, RelatieBeslissing,
+                                      RelatieInvoer, RelatieVoorstel, is_vervangen)
+from .annotatie_v2_store import _audit, _laag, _lagen, _raak, leestransactie, publiek_laag, schrijftransactie, zonder_meting
 from .begrip_store import element_hash
 
 
@@ -120,6 +124,145 @@ async def leg(req: RelatieInvoer, actor: str) -> dict:
         await _raak(conn, layer, layer["snapshot_id"])
         await _audit(conn, actor, "relatie-gelegd", {"relatie": relatie}, None, layer["id"])
         return {"relatie": beschrijf(relatie, elementen, impliciet), "laag": publiek_laag(layer)}
+
+
+def _ankersleutel(ankers: list[dict]) -> tuple:
+    return tuple((a["bron_iri"], a["start"], a["eind"], a["bron_hash"]) for a in ankers)
+
+
+def _los_op(r: RelatieVoorstel, per_anker: dict[tuple, list[dict]], elementen: dict, impliciet: dict
+            ) -> tuple[dict, dict, dict, dict] | str:
+    """De eindpunten van één voorstel: het element in de batch met precies die ankers, aan elke kant. Staan er twee
+    markeringen op dezelfde ankers (twee klassen), dan beslist de catalogus, maar alleen als er precies één paar past.
+    Geeft (van, naar, info_van, info_naar), of de reden waarom het niet kan."""
+    t = jas_relaties.type_van(r.type)
+    if t is None:
+        return "onbekend_type"
+    if r.volgorde is not None and not t["volgorde"]:
+        return "geen_volgorde"
+    kanten = []
+    for kant, ankers in (("van", r.van_ankers), ("naar", r.naar_ankers)):
+        kandidaten = per_anker.get(_ankersleutel([a.model_dump() for a in ankers]), [])
+        if not kandidaten:
+            return f"eindpunt_onbekend:{kant}"
+        kanten.append(kandidaten)
+    paren = []
+    for a in kanten[0]:
+        for b in kanten[1]:
+            van, naar = {"soort": "element", "id": a["id"]}, {"soort": "element", "id": b["id"]}
+            info_van, info_naar = _info(van, elementen, impliciet), _info(naar, elementen, impliciet)
+            if van != naar and info_van and info_naar and jas_relaties.toegestaan(
+                    r.type, info_van["klasse"], info_naar["klasse"], info_van["subtype"], info_naar["subtype"]):
+                paren.append((van, naar, info_van, info_naar))
+    if not paren:
+        return "naar_zichzelf" if kanten[0] == kanten[1] and len(kanten[0]) == 1 else "klassen_passen_niet"
+    if len(paren) > 1:
+        return "dubbelzinnig"
+    van, naar, info_van, info_naar = paren[0]
+    if not (info_van["actueel"] and info_naar["actueel"]):
+        return "eindpunt_niet_actueel"
+    return paren[0]
+
+
+async def leg_voorstellen(conn, req, saved: list[dict], layers: dict, touched: dict, scope: set[str], actor: str,
+                          *, opnieuw: bool) -> dict:
+    """In de lopende schrijftransactie van een batch (`annotatie_v2_store.batch`), ná de elementen: de
+    relatievoorstellen van de keten (ADR-011).
+
+    - Een eindpunt is het element in `saved` met precies die ankers; wat niet op te lossen is, staat in
+      `overgeslagen` met een reden, nooit geraden.
+    - De catalogus toetst klassen, richting en subtype (`toegestaan`), zoals bij `leg`.
+    - Vastgelegd als `herkomst: "agent"`, `lifecycle: "voorgesteld"`, `aandacht: "groen"`, met het spoor van de keten.
+      Het id volgt uit de inhoud: een gelijk voorstel blijft gelijk, een afgewezen voorstel komt niet terug, en een
+      vervangen voorstel leeft weer op.
+    - `opnieuw` (een ronde opnieuw met voltooide dekking): een oud voorstel van Lex in het bereik, zonder oordeel en niet
+      opnieuw voorgesteld, wordt `vervangen`. Een relatie van de jurist blijft altijd staan.
+
+    De dragerlaag gaat in `touched`; de batch raakt haar daarna één keer (`_raak`)."""
+    elementen = await _alle(conn, db.annotatie_v2_elementen)
+    impliciet = await _alle(conn, db.annotatie_v2_impliciet)
+    bestaand = await _alle(conn, db.annotatie_v2_relaties)
+    per_laag = _layers_per_id(layers)
+    per_anker: dict[tuple, list[dict]] = {}
+    for e in saved:
+        huidig = elementen.get(e["id"], e)
+        lijst = per_anker.setdefault(_ankersleutel(huidig["ankers"]), [])
+        if all(x["id"] != huidig["id"] for x in lijst):
+            lijst.append(huidig)
+
+    nieuw: dict[str, tuple[dict, RelatieVoorstel]] = {}
+    overgeslagen = []
+    for i, r in enumerate(req.relaties):
+        opgelost = _los_op(r, per_anker, elementen, impliciet)
+        if isinstance(opgelost, str):
+            overgeslagen.append({"index": i, "type": r.type, "reden": opgelost})
+            continue
+        van, naar, info_van, info_naar = opgelost
+        drager = info_van if jas_relaties.drager_kant(r.type) == "van" else info_naar
+        layer = per_laag.get(drager["laag_id"])
+        if layer is None or layer["status"] != "in_review":
+            overgeslagen.append({"index": i, "type": r.type, "reden": "laag_afgerond"})
+            continue
+        rid = relatie_id(van, naar, r.type, r.volgorde)
+        nieuw.setdefault(rid, ({"id": rid, "type": r.type, "van": van, "naar": naar, "volgorde": r.volgorde,
+                                "toelichting": "", "herkomst": "agent", "aangemaakt_door": actor,
+                                "lifecycle": Lifecycle.voorgesteld.value, "aandacht": "groen", "laag_id": layer["id"],
+                                "stand_van": info_van["stand"], "stand_naar": info_naar["stand"],
+                                "spoor": r.spoor, "geproduceerd_door": zonder_meting(req.run),
+                                "beslissingen": []}, r))
+
+    async def raak(laag_id: str) -> None:
+        layer = per_laag[laag_id]
+        if layer["bron_iri"] not in touched:
+            touched[layer["bron_iri"]] = await _laag(conn, layers, layer["bron_iri"], req.snapshot_id,
+                                                     req.verwachte_revisies)
+
+    vervangen = []
+    if opnieuw:
+        for r in sorted(bestaand.values(), key=lambda r: r["id"]):
+            layer = per_laag.get(r["laag_id"])
+            if (r["id"] in nieuw or r.get("herkomst") != "agent" or r.get("lifecycle") != Lifecycle.voorgesteld.value
+                    or r.get("beslissingen") or layer is None or layer["bron_iri"] not in scope
+                    or layer["status"] != "in_review"):
+                continue
+            await raak(r["laag_id"])
+            r = {**r, "lifecycle": Lifecycle.vervangen.value,
+                 "vervangen_in": {"batch_id": req.batch_id, "tijd": db.utcnow().isoformat()}}
+            await conn.execute(update(db.annotatie_v2_relaties).where(
+                db.annotatie_v2_relaties.c.id == r["id"]).values(inhoud=r))
+            await _audit(conn, actor, "relatie-vervangen", {"relatie": r["id"], "batch_id": req.batch_id}, None,
+                         r["laag_id"])
+            bestaand[r["id"]] = r
+            vervangen.append(r["id"])
+
+    gelegd = []
+    for rid, (relatie, r) in nieuw.items():
+        oud = bestaand.get(rid)
+        if oud is not None and oud.get("lifecycle") not in NIET_ACTUEEL:
+            gelegd.append(rid)                     # gelijk voorstel blijft gelijk; een oordeel erover ook
+            continue
+        if relatie["volgorde"] is not None and any(
+                x["id"] != rid and x["type"] == relatie["type"] and x["naar"] == relatie["naar"]
+                and x.get("volgorde") == relatie["volgorde"]
+                and x.get("lifecycle") not in (*NIET_ACTUEEL, Lifecycle.rejected.value) for x in bestaand.values()):
+            overgeslagen.append({"index": req.relaties.index(r), "type": r.type, "reden": "volgorde_bezet"})
+            continue
+        await raak(relatie["laag_id"])
+        if oud is not None:                        # een vervangen voorstel dat terugkomt, leeft op
+            relatie = {**{k: v for k, v in oud.items() if k != "vervangen_in"}, **relatie,
+                       "beslissingen": oud.get("beslissingen", [])}
+            await conn.execute(update(db.annotatie_v2_relaties).where(
+                db.annotatie_v2_relaties.c.id == rid).values(laag_id=relatie["laag_id"], inhoud=relatie))
+            await _audit(conn, actor, "relatie-hersteld", {"relatie": rid, "batch_id": req.batch_id}, None,
+                         relatie["laag_id"])
+        else:
+            await conn.execute(insert(db.annotatie_v2_relaties).values(id=rid, laag_id=relatie["laag_id"],
+                                                                      inhoud=relatie))
+            await _audit(conn, actor, "relatie-voorgesteld", {"relatie": relatie, "batch_id": req.batch_id}, None,
+                         relatie["laag_id"])
+        bestaand[rid] = relatie
+        gelegd.append(rid)
+    return {"relaties": gelegd, "overgeslagen": sorted(overgeslagen, key=lambda x: x["index"]), "vervangen": vervangen}
 
 
 async def beslis(relatie_id_: str, req: RelatieBeslissing, actor: str) -> dict:
@@ -263,15 +406,79 @@ def beschrijf(relatie: dict, elementen: dict, impliciet: dict) -> dict:
             "van": kant(relatie["van"], info_van), "naar": kant(relatie["naar"], info_naar), "veranderd": veranderd}
 
 
+async def van_element(element_id: str) -> list[dict]:
+    """De relaties waarin dit element een eindpunt is, zoals `beschrijf` ze geeft, voor het detail van één element (en
+    zo voor Lex, die er in een vervolgvraag naar vraagt). Een afgewezen of vervangen relatie telt niet mee: die is niet
+    (meer) vastgelegd. Alleen lezen; de elementen aan de andere kant komen mee voor klasse, tekst en `veranderd`."""
+    async with db.get_engine().connect() as conn:
+        relaties = [r for r in (await _alle(conn, db.annotatie_v2_relaties)).values()
+                    if element_id in {k["id"] for k in (r["van"], r["naar"]) if k["soort"] == "element"}
+                    and r.get("lifecycle") != Lifecycle.rejected.value and r.get("lifecycle") not in NIET_ACTUEEL]
+        if not relaties:
+            return []
+        ids = {k["id"] for r in relaties for k in (r["van"], r["naar"])}
+        e, i = db.annotatie_v2_elementen, db.annotatie_v2_impliciet
+        elementen = {r["id"]: dict(r["inhoud"]) for r in (await conn.execute(
+            select(e).where(e.c.id.in_(sorted(ids))))).mappings().all()}
+        impliciet = {r["id"]: dict(r["inhoud"]) for r in (await conn.execute(
+            select(i).where(i.c.id.in_(sorted(ids))))).mappings().all()}
+    return [beschrijf(r, elementen, impliciet) for r in sorted(relaties, key=lambda r: r["id"])]
+
+
 async def bij_weergave(conn, element_ids: set[str], laag_ids: set[str], elementen: dict) -> tuple[list[dict], list[dict]]:
     """De relaties en impliciete partijen die bij een weergave horen: een eindpunt in beeld, of de drager in een van
     de lagen. Impliciete partijen: die in de lagen, en die waar een getoonde relatie naar wijst."""
     impliciet = await _alle(conn, db.annotatie_v2_impliciet)
     relaties = []
     for r in sorted((await _alle(conn, db.annotatie_v2_relaties)).values(), key=lambda r: r["id"]):
+        if r.get("lifecycle") in NIET_ACTUEEL:
+            continue                               # net als een vervangen element: historie, niet in beeld
         eind = {k["id"] for k in (r["van"], r["naar"]) if k["soort"] == "element"}
         if r["laag_id"] in laag_ids or eind & element_ids:
             relaties.append(beschrijf(r, elementen, impliciet))
     genoemd = {k["id"] for r in relaties for k in (r["van"], r["naar"]) if k["soort"] == "impliciet"}
     partijen = [p for i, p in sorted(impliciet.items()) if p["laag_id"] in laag_ids or i in genoemd]
     return relaties, partijen
+
+
+async def alle_relaties() -> tuple[list[dict], list[dict]]:
+    """Alle relaties (beschreven, zoals in een weergave) en alle impliciete partijen in één leestransactie, voor de
+    complete graaf (`graaf.py`). Een partij draagt `bron_iri`: de bronnode van haar laag, zodat de graaf haar kan
+    toetsen tegen de regelingen in beeld."""
+    async with leestransactie() as conn:
+        elementen = await _alle(conn, db.annotatie_v2_elementen)
+        impliciet = await _alle(conn, db.annotatie_v2_impliciet)
+        relaties = await _alle(conn, db.annotatie_v2_relaties)
+        per_id = _layers_per_id(await _lagen(conn))
+    # Een vervangen relatie is niet actueel (ADR-011): historie en audit, geen graaf.
+    beschreven = [beschrijf(r, elementen, impliciet) for _, r in sorted(relaties.items())
+                  if r.get("lifecycle") not in NIET_ACTUEEL]
+    partijen = [{**p, "bron_iri": (per_id.get(p["laag_id"]) or {}).get("bron_iri", "")} for _, p in sorted(impliciet.items())]
+    return beschreven, partijen
+
+
+async def bij_elementen(element_ids: set[str]) -> list[dict]:
+    """De relaties met een eindpunt onder deze markeringen, beschreven zoals de weergave ze toont, voor het werkgebiedrapport.
+    Daarbij de operanden en waarden van een operator of parameter die eraan hangt, ook als die elders staat: zonder die
+    stap is het regelskelet van een afleidingsregel niet compleet. Een element-eindpunt draagt ook zijn `eigenaar_iri`, zodat
+    de lezer weet bij welke bepaling het hoort. Afgewezen relaties komen mee; de lezer kiest wat hij toont."""
+    async with leestransactie() as conn:
+        elementen = await _alle(conn, db.annotatie_v2_elementen)
+        impliciet = await _alle(conn, db.annotatie_v2_impliciet)
+        alle = {i: r for i, r in (await _alle(conn, db.annotatie_v2_relaties)).items()
+                if r.get("lifecycle") not in NIET_ACTUEEL}   # vervangen: historie, niet in het rapport
+
+    def eindpunten(r: dict) -> set[str]:
+        return {k["id"] for k in (r["van"], r["naar"]) if k["soort"] == "element"}
+    gekozen = {i: r for i, r in alle.items() if eindpunten(r) & element_ids}
+    verder = {e for r in gekozen.values() for e in eindpunten(r)} - set(element_ids)
+    gekozen |= {i: r for i, r in alle.items() if r["type"] in ("operand", "waarde")
+                and r["naar"]["soort"] == "element" and r["naar"]["id"] in verder}
+    uit = []
+    for _i, r in sorted(gekozen.items()):
+        b = beschrijf(r, elementen, impliciet)
+        for kant in ("van", "naar"):
+            e = elementen.get(b[kant]["id"]) if b[kant]["soort"] == "element" else None
+            b[kant] = {**b[kant], "eigenaar_iri": e["eigenaar_iri"] if e else ""}
+        uit.append(b)
+    return uit

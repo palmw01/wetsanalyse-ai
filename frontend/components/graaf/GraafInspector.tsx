@@ -137,6 +137,10 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
       {knoop.soort === "begrip" && knoop.begrip_bron !== "wet" && <p className="text-[11px] text-muted" data-testid="graaf-begrip">
         {BEGRIP_STATUS[knoop.status ?? ""] ?? "Begrip"} · een analyse-uitkomst van dit werkgebied, geen wettelijke definitie.
         {!knoop.tekst && " Er is nog geen definitie."}</p>}
+      {knoop.soort === "impliciet" && <div className="space-y-1 text-xs" data-testid="graaf-impliciet">
+        <p className="text-[11px] text-muted">Impliciete partij · de tekst noemt haar niet; vastgelegd door een jurist.</p>
+        {knoop.toelichting && <p className="border-l-2 border-line pl-2 text-ink">{knoop.toelichting}</p>}
+      </div>}
       {knoop.begrip_bron !== "wet" && <Wettekst detail={detail} knoop={knoop} gekozen={knoop.soort === "markering" ? knoop.element_id : undefined}
         kiesbaar={(e) => model.hasNode(`element:${e}`)} onKies={(e) => onKies(`element:${e}`)} />}
       {knoop.soort === "markering" && element === "laden" && <p className="text-xs text-faint">Details ophalen…</p>}

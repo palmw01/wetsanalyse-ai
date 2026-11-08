@@ -17,6 +17,21 @@ QA-flows/tests ongewijzigd.
 """
 from __future__ import annotations
 
+from bronmodel.connectors import CONNECTORS
+
+
+def _scope_bronnen() -> str:
+    """Wat naast de wet binnen scope valt, uit de connectorbeschrijvingen (ADR-013). Alle bekende connectors, ook als ze
+    uit staan: scope gaat over het domein, de schakelaar alleen over of Lex kan zoeken – en dat zegt hij dan zelf. Vast
+    per image, dus de cache van de supervisor blijft heel."""
+    if not CONNECTORS:
+        return ""
+    regels = "; ".join(f"{c.label} ({c.dekt})" for c in CONNECTORS.values())
+    return ("Ook binnen de wetgeving vallen vragen over deze bronnen naast de wet: " + regels + ". Zo'n vraag wijs je "
+            "nooit af en kies je als 'antwoord' (met SPECIALIST duiding, of definitie voor de betekenis van een "
+            "begrip), ook als je niet weet of de bron aanstaat.\n")
+
+
 SUPERVISOR_SYSTEM = (
     "Je bent de supervisor van een juridische agent over een kennisgraaf met Nederlandse wet- en "
     "regelgeving (invordering/belastingen). Bepaal welke agent(s) de vraag nodig heeft en in welke "
@@ -34,6 +49,7 @@ SUPERVISOR_SYSTEM = (
     "dat ze niet in de graaf zit. Dat is niet aan jou om te weten: je hebt geen tools en je hebt niet "
     "gekeken. De worker zoekt het op en zegt zelf dat het niet in de kennisgraaf staat als hij niets "
     "vindt – en vindt hij iets aangrenzends, dan is dat een beter antwoord dan een afwijzing.\n"
+    + _scope_bronnen() +
     "Kies 'annotatie' als de gebruiker vraagt een ARTIKEL of LID te ANNOTEREN volgens het JAS (de "
     "juridische elementen markeren en classificeren). Kies anders 'antwoord' (een vraag beantwoorden, "
     "duiden of een begrip definiëren) met de passende SPECIALIST: 'definitie' voor begrip-/definitie"

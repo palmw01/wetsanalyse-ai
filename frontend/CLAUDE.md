@@ -1347,6 +1347,17 @@ de markering (`DocumentPaneel`) en de kaart (`ReviewQueue`), met respect voor
   zonder dubbelen). Een klik stuurt `{type: "grens", wijziging: {optie}}`; het anker rekent de api.
 - **Geen lifecycle-jargon in beeld**: "voorstel van Lex" / "door jou aangepast" / "door jou
   gemarkeerd" + tijd. Het volledige spoor staat in het auditlog.
+- **Relaties** (ADR-011, stap 4A; `components/annotaties/Relaties.tsx`, rekenkern in `lib/annotatieNodeAdapter.ts` en
+  `dragerRevisies` in `lib/annotatieNode.ts`). De uitgeklapte kaart draagt het blok *Relaties* (`elementExtra` van
+  `ArtefactInhoud`): een lijst, gelezen vanaf dit element (de inverse als het element `naar` is), een veranderde relatie
+  bovenaan met "Een eindpunt is veranderd …", herkomst en oordeel als bij een element. Akkoord (`IcoonBevestig`), *Klopt
+  nog* bij een veranderde beoordeelde, *Afwijzen* met een optionele reden, *Heropenen*, en wissen alleen van een eigen
+  relatie (de userid uit de sessie). *Verbind met…* kiest uit wat in beeld is (markeringen en impliciete partijen, geen
+  zoekvenster) en biedt de typen uit `typenTussen` in beide richtingen, met de zin die zegt wat van en wat naar is; een plek
+  alleen bij `invoer`/`operand`. *Impliciete partijen* staat bij de bepaling (`extra`): label en verplichte toelichting.
+  `verwachte_revisies` is die van de dragerlaag; ligt die niet in beeld, dan volgt een 412 en leest het paneel opnieuw.
+  Bulk (*Akkoord met de groene*) neemt relaties niet mee: `beslis_laag` kent alleen elementen. Browserregressie in
+  `scripts/test-annotatie-nodes.mjs`.
 
 ### Reviewen zonder formulier
 
@@ -1506,6 +1517,14 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
     bepaling ook haar verwijzingen (één stap, in- en uitgaand) – bij een hoofdstuk niet, dat zijn er
     honderden.
   - lijnen naar een JAS-klasse alleen bij een gekozen markering of klasse.
+  - **relaties tussen markeringen** (ADR-011, lijnsoort `jas_relatie`, knoopsoort `impliciet`): de laag
+    *Relaties* staat standaard uit, en dan staan relaties alleen binnen de nadruk (rond de keuze, in de focus), met
+    de impliciete partijen rond de keuze – de ene plek waar een keuze iets in beeld brengt. Gericht, geel bij een
+    voorstel of een veranderde relatie, neutraal (`RELATIEKLEUR`) als beoordeeld, afgewezen niet (`relatieStijl`).
+    Een impliciete partij is een holle knoop (wit, omtrek in haar klasse; WebGL kent geen stippelrand). **Diagrammodus**
+    (deelactiviteit 2c): is de keuze een markering van een `CENTRALE_KLASSEN`, dan is de nadruk de buurt over
+    relaties tot `DIAGRAM_DIEPTE` 2 (`diagramBuurt`). Relaties trekken niet in de layout; een impliciete partij staat
+    bij het zwaartepunt van haar relaties (`plaatsAnnotaties`), dus `LAYOUT_VERSIE` bleef gelijk.
 - **`lib/graaf/labels.ts`** – **welke knopen een label krijgen**: nooit twee over elkaar, en meer detail
   naarmate je inzoomt. Sigma's eigen labelraster toetst de breedte van een label niet en zet
   `labelVisibility: "visible"` ongetoetst bovenop; daarom staat het op nul (`labelDensity: 0`) en kiest

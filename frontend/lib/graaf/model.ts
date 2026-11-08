@@ -21,6 +21,10 @@ export interface RelatieData {
   soort: SamenhangRelatie["soort"];
   groep: SamenhangRelatie["groep"];
   anker_tekst: string;
+  /** Alleen bij een `jas_relatie` (ADR-011): het type, de beoordeling en of een eindpunt veranderde. */
+  type?: string;
+  lifecycle?: string;
+  veranderd?: boolean;
 }
 export type GraafModel = Graph<KnoopData, RelatieData>;
 
@@ -39,7 +43,10 @@ export interface KennisgraafAntwoord extends GraafBron {
   regelingen: { bwb_id: string; citeertitel: string; toestand: string }[];
 }
 
-export const relatieSleutel = (r: Pick<SamenhangRelatie, "bron" | "soort" | "doel">) => `${r.bron}|${r.soort}|${r.doel}`;
+/** Bron, soort en doel; bij een relatie tussen markeringen ook het type en de plek, want tussen dezelfde twee
+ *  markeringen kunnen meer relaties liggen (en een operand op plek 1 en 2). */
+export const relatieSleutel = (r: Pick<SamenhangRelatie, "bron" | "soort" | "doel" | "type" | "volgorde">) =>
+  r.soort === "jas_relatie" ? `${r.bron}|${r.soort}:${r.type ?? ""}:${r.volgorde ?? ""}|${r.doel}` : `${r.bron}|${r.soort}|${r.doel}`;
 
 const KORT_MAX = 27;
 const inkorten = (tekst: string) => (tekst.length > KORT_MAX ? tekst.slice(0, KORT_MAX - 2) + "…" : tekst);
@@ -80,7 +87,10 @@ export function bouwModel(bronnen: readonly GraafBron[]): GraafModel {
   for (const sleutel of [...relaties.keys()].sort()) {
     const r = relaties.get(sleutel)!;
     if (!g.hasNode(r.bron) || !g.hasNode(r.doel)) continue;
-    g.addDirectedEdgeWithKey(sleutel, r.bron, r.doel, { soort: r.soort, groep: r.groep, anker_tekst: r.anker_tekst ?? "" });
+    g.addDirectedEdgeWithKey(sleutel, r.bron, r.doel, {
+      soort: r.soort, groep: r.groep, anker_tekst: r.anker_tekst ?? "",
+      ...(r.soort === "jas_relatie" ? { type: r.type ?? "", lifecycle: r.lifecycle ?? "", veranderd: !!r.veranderd } : {}),
+    });
   }
   return g;
 }
@@ -94,8 +104,10 @@ export function voegToe<K, V>(map: Map<K, V[]>, sleutel: K, waarde: V): void {
   else map.set(sleutel, [waarde]);
 }
 
-/** Een bronknoop (wettekst: regeling, deel, artikel, lid, onderdeel, extern) en geen annotatie. */
-export const isBron = (k: Pick<SamenhangKnoop, "soort">) => k.soort !== "markering" && k.soort !== "klasse" && k.soort !== "begrip";
+/** Een bronknoop (wettekst: regeling, deel, artikel, lid, onderdeel, extern) en geen annotatie, begrip of
+ *  impliciete partij. */
+export const isBron = (k: Pick<SamenhangKnoop, "soort">) =>
+  k.soort !== "markering" && k.soort !== "klasse" && k.soort !== "begrip" && k.soort !== "impliciet";
 
 /** De bronknoop die een markering markeert (`markeert`). */
 export function ankerVan(g: GraafModel, markering: string): string | undefined {

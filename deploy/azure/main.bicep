@@ -80,6 +80,9 @@ param apiTokenLogin bool = false
 @description('Biedt graph-qa de bronconnector Kamerstukken aan (ADR-013)? Alleen acceptatie; default false. Aan of uit per gesprek bepalen daarna het register in de beheertab en het menu Bronnen en tools.')
 param connectorKamerstukken bool = false
 
+@description('Stelt de annotatieketen van graph-qa relaties tussen markeringen voor (ADR-011, RELATIE_VOORSTELLEN)? Een proefvlag, alleen acceptatie; default false. Uit is de uitkomst van de keten gelijk aan zonder deze code.')
+param relatieVoorstellen bool = false
+
 @description('Rolt de externe MCP-proxy vóór GraphDB uit, zodat een MCP-client van buiten de graaf kan bevragen. Alleen acceptatie; default false. GraphDB zelf blijft altijd intern – deze parameter raakt die ingress niet.')
 param graphdbProxyExtern bool = false
 
@@ -986,6 +989,7 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'WETSANALYSE_API_TOKEN_FILE', value: '/run/secrets/wetsanalyse_api_token' }
             { name: 'SIMILARITY_INDEX', value: 'bwb_similarity' }
             { name: 'CONNECTOR_KAMERSTUKKEN', value: connectorKamerstukken ? 'true' : 'false' }
+            { name: 'RELATIE_VOORSTELLEN', value: relatieVoorstellen ? 'true' : 'false' }
             // Gespreksgeheugen in Postgres, NIET op schijf: het filesystem van een container-app is
             // ephemeer en de app kan schalen, dus een SQLite-bestand verliest het geheugen bij
             // elke herstart en is per-replica verschillend.
@@ -1113,6 +1117,7 @@ resource evalJob 'Microsoft.App/jobs@2024-03-01' = {
             { name: 'GRAPHDB_REPOSITORY_ID', value: 'inning' }
             { name: 'SIMILARITY_INDEX', value: 'bwb_similarity' }
             { name: 'CONNECTOR_KAMERSTUKKEN', value: connectorKamerstukken ? 'true' : 'false' }
+            { name: 'RELATIE_VOORSTELLEN', value: relatieVoorstellen ? 'true' : 'false' }
             // Korter wachten dan de werkplek (120 s). Een jurist die zit te wachten heeft baat bij
             // doorwachten; een meting die tien cases achter elkaar draait niet. Geeft de provider
             // `overloaded_error`, dan kost elke call anders 120 s x 3 pogingen en duwt dat de run over

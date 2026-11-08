@@ -1,4 +1,5 @@
 import { downloadAntwoord, parseError, type ExportFormaat } from "./api";
+import { RELATIETYPEN } from "./jasRelaties";
 import { pathSegment } from "./url";
 
 /** Canonieke bronnodeweergave. Posities zijn Unicode-codepunten, niet UTF-16. */
@@ -48,6 +49,30 @@ export interface NodeDekking {
   structureel?: Record<string, StructureleDekking>;
 }
 export interface NodeLaag { id: string; bron_iri: string; revisie: number; status: string }
+/** Eén kant van een relatie, zoals de api hem vraagt (ADR-011): een markering of een impliciete partij. */
+export interface NodeEindpuntRef { soort: "element" | "impliciet"; id: string }
+/** Een kant van een relatie zoals de weergave hem toont (`beschrijf` in `api/app/annotatie_v2_relaties.py`). Een
+ *  element mag in een andere laag liggen; `bestaat: false` als het weg is. */
+export interface NodeEindpunt extends NodeEindpuntRef {
+  bestaat: boolean; klasse?: string; tekst?: string; laag_id?: string; actueel?: boolean;
+}
+/** Een relatie tussen twee markeringen. Ze hoort bij de laag van de drager (`laag_id`); `veranderd` zegt dat een
+ *  eindpunt afwijkt van hoe het was toen de relatie werd vastgelegd of beoordeeld. */
+export interface NodeRelatie {
+  id: string; type: string; leesvorm: string; volgorde?: number | null; lifecycle: string; herkomst: string;
+  aangemaakt_door?: string; laag_id: string; toelichting?: string;
+  beslissingen?: import("./types").Beslissing[]; veranderd: boolean;
+  van: NodeEindpunt; naar: NodeEindpunt;
+}
+/** Een partij die de tekst niet noemt (ADR-011): alleen een rechtssubject, alleen van de jurist. Geen markering. */
+export interface NodeImpliciet {
+  id: string; klasse: string; label: string; toelichting: string; vindplaats?: string; zelfde_als?: string;
+  herkomst: string; aangemaakt_door?: string; laag_id: string; op?: string;
+}
+/** Een nieuwe relatie (`POST relaties`), zonder de revisies: die rekent `dragerRevisies`. */
+export interface RelatieInvoer {
+  van: NodeEindpuntRef; naar: NodeEindpuntRef; type: string; volgorde?: number | null; toelichting?: string;
+}
 export interface NodeWeergave {
   schema_versie: 2; doel: NodeDoel; snapshot_id: string; segmenten: NodeSegment[];
   lagen: NodeLaag[]; elementen: NodeElement[];
@@ -58,6 +83,10 @@ export interface NodeWeergave {
   verwijderd?: { op: string } | null;
   /** De agent-rondes met hun meting, elk één keer (`run_sleutel` in de api); een element draagt zijn ronde zonder. */
   runs?: Record<string, import("./types").AgentRun>;
+  /** De relaties met een eindpunt in beeld of de drager in een van de lagen (ADR-011). Een oudere api heeft ze niet. */
+  relaties?: NodeRelatie[];
+  /** De impliciete partijen van de lagen in beeld, en die waar een getoonde relatie naar wijst. */
+  impliciet?: NodeImpliciet[];
 }
 export interface ToolExecution {
   run_id: string; call_id: string; tool: string; phase: "started" | "completed" | "failed";
@@ -135,6 +164,36 @@ export function segmentAnker(segment: NodeSegment, startUtf16: number, eindUtf16
 export function verwachteRevisies(view: NodeWeergave): Record<string, number> {
   return Object.fromEntries(view.lagen.map((l) => [l.bron_iri, l.revisie]));
 }
+/** De revisie van één laag als `verwachte_revisies`, of niets als die laag niet in beeld is: dan geeft de api een 412
+ *  en leest het paneel de weergave opnieuw, zoals bij elke andere mutatie. */
+function revisieVanLaag(view: NodeWeergave, laagId: string | undefined): Record<string, number> {
+  const laag = laagId ? view.lagen.find((l) => l.id === laagId) : undefined;
+  return laag ? { [laag.bron_iri]: laag.revisie } : {};
+}
+
+/** De laag van een eindpunt in beeld: van de markering of van de impliciete partij. */
+function laagVanEindpunt(view: NodeWeergave, ep: NodeEindpuntRef): string | undefined {
+  return ep.soort === "element"
+    ? view.elementen.find((e) => e.id === ep.id)?.laag_id
+    : view.impliciet?.find((i) => i.id === ep.id)?.laag_id;
+}
+
+/** `verwachte_revisies` voor een relatie: alleen de **dragerlaag** telt, de laag van de kant die de catalogus aanwijst
+ *  (`drager` in `RELATIETYPEN`). Een bestaande relatie draagt haar laag zelf (`laag_id`); bij een nieuwe is het de laag
+ *  van het eindpunt aan de dragerkant. Die kan een andere zijn dan de laag van het element waar je staat. */
+export function dragerRevisies(view: NodeWeergave, r: Pick<NodeRelatie, "laag_id"> | RelatieInvoer): Record<string, number> {
+  if ("laag_id" in r) return revisieVanLaag(view, r.laag_id);
+  const kant = RELATIETYPEN[r.type]?.drager;
+  return kant ? revisieVanLaag(view, laagVanEindpunt(view, r[kant])) : {};
+}
+
+/** `verwachte_revisies` voor een nieuwe impliciete partij: de laag van de bepaling in beeld, of 0 als die er nog niet
+ *  is (dan maakt de api haar aan). */
+export function bepalingRevisies(view: NodeWeergave): Record<string, number> {
+  const iri = view.doel.bron_iri;
+  return { [iri]: view.lagen.find((l) => l.bron_iri === iri)?.revisie ?? 0 };
+}
+
 export async function nodeError(response: Response): Promise<Error> {
   if (response.status === 412)
     return new Error("Deze annotatie is intussen gewijzigd. Laad opnieuw en controleer de laatste stand voordat je de wijziging opnieuw opslaat.");
@@ -222,6 +281,14 @@ export interface NodeOpslag {
   status(laagId: string, body: { status: string; verwachte_revisie: number }): Promise<unknown>;
   verwijder(body: Record<string, unknown>): Promise<{ graaf?: string } | undefined>;
   exporteer(body: { bron_iri: string; snapshot_id: string; formaat: ExportFormaat }): Promise<void>;
+  /** Relaties en impliciete partijen (ADR-011). Weglaten (de rondleiding, een oude versie) maakt het blok
+   *  *Relaties* alleen-lezen. */
+  legRelatie?(body: RelatieInvoer & { verwachte_revisies: Record<string, number> }): Promise<unknown>;
+  beslisRelatie?(relatieId: string, body: { type: "approve" | "reject" | "heropen" | "comment"; comment: string; verwachte_revisies: Record<string, number> }): Promise<unknown>;
+  wisRelatie?(relatieId: string, body: { verwachte_revisies: Record<string, number> }): Promise<unknown>;
+  maakImpliciet?(body: { doel: { bron_iri: string }; snapshot_id: string; label: string; toelichting: string;
+    vindplaats?: string; zelfde_als?: string; verwachte_revisies: Record<string, number> }): Promise<unknown>;
+  wisImpliciet?(implicietId: string, body: { verwachte_revisies: Record<string, number> }): Promise<unknown>;
   /** Hoort er een kennisgraaf en een revisiehistorie achter? Zonder (de rondleiding) toont het
    *  paneel geen Graaf-tab en geen Historie: daar is niets op te halen. */
   levend: boolean;
@@ -253,6 +320,11 @@ export const apiOpslag: NodeOpslag = {
   wis: (id, revisie) => nodeRequest(`elementen/${encodeURIComponent(id)}?verwachte_revisie=${revisie}`, {}, "DELETE"),
   status: (laagId, body) => nodeRequest(`lagen/${encodeURIComponent(laagId)}/status`, body),
   verwijder: (body) => nodeRequest("weergave/verwijder", body),
+  legRelatie: (body) => nodeRequest("relaties", body),
+  beslisRelatie: (id, body) => nodeRequest(`relaties/${pathSegment(id)}/beslissing`, body),
+  wisRelatie: (id, body) => nodeRequest(`relaties/${pathSegment(id)}/wis`, body),
+  maakImpliciet: (body) => nodeRequest("impliciet", body),
+  wisImpliciet: (id, body) => nodeRequest(`impliciet/${pathSegment(id)}/wis`, body),
   async exporteer(body) {
     const response = await fetch("/api/annotatie/v2/weergave/export", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),

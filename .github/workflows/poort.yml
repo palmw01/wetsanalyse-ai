@@ -237,6 +237,17 @@ jobs:
               if "--connector-kamerstukken" in regel and not regel.strip().startswith("#") and "acceptatie" not in regel:
                   fout.append(f"azure-infra.yml: `--connector-kamerstukken` zonder acceptatie-conditie: {regel.strip()}")
 
+          # Relatievoorstellen uit de annotatieketen (ADR-011) zijn een proefvlag: alleen acceptatie, tot een meting beslist.
+          m = re.search(r"^param relatieVoorstellen bool = (\w+)$", bicep, re.M)
+          if not m or m.group(1) != "false":
+              fout.append("main.bicep: `param relatieVoorstellen bool = false` niet gevonden")
+          for regel in re.findall(r".*name: 'RELATIE_VOORSTELLEN'.*", bicep):
+              if "value: relatieVoorstellen ?" not in regel:
+                  fout.append(f"main.bicep: RELATIE_VOORSTELLEN zonder de parameter: {regel.strip()}")
+          for regel in flow.splitlines():
+              if "--relatie-voorstellen" in regel and not regel.strip().startswith("#") and "acceptatie" not in regel:
+                  fout.append(f"azure-infra.yml: `--relatie-voorstellen` zonder acceptatie-conditie: {regel.strip()}")
+
           if fout:
               print("\n".join(f"  {f}" for f in fout))
               sys.exit(1)

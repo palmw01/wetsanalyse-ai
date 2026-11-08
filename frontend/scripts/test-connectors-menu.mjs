@@ -8,7 +8,9 @@
  *  - met een connector staat *Wetgeving · Kamerstukken* boven het invoerveld, en een beurt draagt `bronnen`;
  *  - uitzetten in een nieuw gesprek gaat mee met de beurt en wordt na het aanmaken op het gesprek bewaard;
  *  - na herladen komt de stand van het gesprek terug (`Gesprek.connectors`);
- *  - in een werkgebied geldt zijn standaard, en *Maak dit de standaard* zet `standaard_connectors` met de revisie.
+ *  - in een werkgebied geldt zijn standaard, en *Maak dit de standaard* zet `standaard_connectors` met de revisie;
+ *  - een beurt draagt de herkomst van de stand (`bronnen_herkomst`), en na een `bron_uit` zet *Zet … aan* de bron aan in
+ *    het gesprek; een bron die de beheerder uitzette krijgt geen knop.
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -20,7 +22,9 @@ const nu = "2026-11-08T10:00:00+00:00";
 const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
 const KST = { naam: "kamerstukken", label: "Kamerstukken", brontype: "kamerstuk" };
 
-async function open({ beschikbaar = [KST], gesprekConnectors, wgStandaard = null, url = "/workbench" } = {}) {
+const GOED = [{ type: "token", content: "Goed." }, { type: "done" }];
+
+async function open({ beschikbaar = [KST], gesprekConnectors, wgStandaard = null, url = "/workbench", events = GOED } = {}) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
   const errors = [], runs = [], patches = [], wgPatches = [];
@@ -40,7 +44,7 @@ async function open({ beschikbaar = [KST], gesprekConnectors, wgStandaard = null
       return route.fulfill({ json: { run_id: "live", conversation_id: req.postDataJSON().conversation_id, status: "loopt" } });
     }
     if (p === "/api/annotatie/run/live/events")
-      return route.fulfill({ contentType: "text/event-stream", body: sse([{ type: "token", content: "Goed." }, { type: "done" }]) });
+      return route.fulfill({ contentType: "text/event-stream", body: sse(events) });
     if (p === "/api/werkgebieden/wg1" && m === "PATCH") {
       const body = req.postDataJSON();
       wgPatches.push(body);
@@ -150,5 +154,29 @@ const menu = (page) => page.locator("[data-connectors-menu]");
   await context.close();
 }
 
-await browser.close();
+// 5. Een vraag naar een bron die uit staat: de herkomst gaat mee, en *Zet Kamerstukken aan* zet hem aan in het gesprek.
+{
+  const uit = (reden) => [{ type: "bron_uit", bronnen: [{ naam: "kamerstukken", label: "Kamerstukken", reden }] },
+    { type: "token", content: "Kamerstukken staat uit in dit gesprek." }, { type: "done" }];
+  const { page, context, errors, runs, patches } = await open({ gesprekConnectors: [], url: "/workbench?gesprek=g1", events: uit("gesprek") });
+  await page.waitForFunction(() => document.querySelector("[data-connectors-menu]")?.getAttribute("aria-label")?.includes("Kamerstukken uit"));
+  await vraag(page, "Wat staat er in de memorie van toelichting?");
+  await wachtOp(page, runs, 1);
+  assert.equal(runs[0].bronnen_herkomst, "gesprek");
+  await page.getByRole("button", { name: "Zet Kamerstukken aan" }).click();
+  await wachtOp(page, patches, 1);
+  assert.deepEqual(patches.at(-1), { connectors: ["kamerstukken"] });
+  await page.waitForFunction(() => !document.querySelector("[data-bron-uit]"));
+  assert.deepEqual(errors, []);
+  await context.close();
+
+  const b = await open({ events: uit("beheerder") });
+  await vraag(b.page, "Wat staat er in de memorie van toelichting?");
+  await wachtOp(b.page, b.runs, 1);
+  await b.page.getByText("Kamerstukken staat uit in dit gesprek.").waitFor();
+  assert.equal(await b.page.locator("[data-bron-uit]").count(), 0, "de beheerder zet je niet aan vanuit het gesprek");
+  await b.context.close();
+}
+
 console.log("ok - Bronnen en tools");
+await browser.close();

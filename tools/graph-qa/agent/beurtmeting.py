@@ -110,6 +110,9 @@ async def gemeten(
                 toolaanroepen += event.get("phase") == "start"
             elif soort == "error":
                 fout = True
+            elif soort == "bronstand":
+                # De stand van de bronconnectors (ADR-013), met de reden per connector.
+                bronnen = ",".join(f"{b['naam']}:{b['reden']}" for b in event.get("bronnen") or [])
             elif soort == "done":
                 # Vóór het doorgeven: na `done` stopt de lezer, en dan komt een `finally` pas bij het
                 # opruimen van de generator. Het event gaat ervoor, want na `done` leest niemand meer.

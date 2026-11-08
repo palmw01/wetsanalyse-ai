@@ -60,6 +60,14 @@ describe("parseAntwoord", () => {
     expect(alleenNietGetoetst({ ...a, blokken: [blok, { soort: "toelichting", door: "lex", kop: "Toelichting van Lex", tekst: "t" }] })).toBe(false);
   });
 
+  it("leest een blok extern (ADR-013) en weigert er een zonder passages", () => {
+    const blok = { soort: "extern", door: "bron", brontype: "kamerstuk", id: "kst-33755-3", label: "Kamerstukken 33755, nr. 3",
+      link: "https://zoek.officielebekendmakingen.nl/kst-33755-3", kop: "Uit de parlementaire geschiedenis",
+      passages: [{ nr: 4, tekst: "Het doel is eenvoud.", kop: "1. Inleiding" }] };
+    expect(parseAntwoord({ sjabloon: "extern", blokken: [blok] })?.blokken[0]).toEqual(blok);
+    expect(parseAntwoord({ sjabloon: "extern", blokken: [{ ...blok, passages: undefined }] })).toBeUndefined();
+  });
+
   it("kent dezelfde niet-getoetste blokken als het contract", () => {
     const bron = readFileSync(join(__dirname, "../../packages/bronmodel/bronmodel/antwoord.py"), "utf8");
     const set = /NIET_GETOETST = frozenset\(\{([^}]*)\}\)/.exec(bron)![1];

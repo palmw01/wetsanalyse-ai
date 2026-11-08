@@ -166,6 +166,18 @@ Hieronder wat je moet weten om de code te wijzigen.
     relaties=)`). Een directe triple `rel:<type>` komt er alleen bij een beoordeelde relatie; `veranderd` niet,
     want dat hangt af van een andere laag.
   - De graafcontrole meldt `relaties.hangend` en `relaties.kardinaliteit`, diagnostisch en buiten `in_orde`.
+  - **Voorstellen van de keten** komen mee in de batch (`Batch.relaties`, `RelatieVoorstel`: `van_ankers`, `naar_ankers`,
+    `type`, `volgorde`, `spoor`; graph-qa-proefvlag `RELATIE_VOORSTELLEN`). `annotatie_v2_relaties.leg_voorstellen` draait
+    ná de elementen in dezelfde transactie: een eindpunt is het element in `saved` met precies die ankers (twee klassen
+    op dezelfde ankers: de catalogus kiest, anders `dubbelzinnig`), daarna `toegestaan`. Vastgelegd als `herkomst:
+    "agent"`, `voorgesteld`, `aandacht: "groen"`, met het spoor en `geproduceerd_door` (zonder meting); auditregel
+    `relatie-voorgesteld`. Wat niet kan, staat in `relaties_overgeslagen` met een reden (`eindpunt_onbekend:<kant>`,
+    `klassen_passen_niet`, `dubbelzinnig`, `eindpunt_niet_actueel`, `laag_afgerond`, `volgorde_bezet`, …), nooit geraden.
+    Het id volgt uit de inhoud: een gelijk voorstel blijft gelijk, een afgewezen komt niet terug. Een ronde `opnieuw` met
+    voltooide dekking zet oude agentrelaties zonder oordeel in het bereik die niet opnieuw kwamen op `vervangen`
+    (`relaties_vervangen`, `relatie-vervangen`); een relatie van de jurist nooit. Een vervangen relatie staat niet in de
+    weergave en niet in de projectie; komt ze terug, dan leeft ze op (`relatie-hersteld`). Zonder relaties is de
+    vingerafdruk van de batch dezelfde als voor het veld bestond.
   - Zie de specificatie §*Relaties tussen markeringen*.
 - **Een oordeel vergrendelt.** Een element in `VERGRENDELD` dat van de agent komt of een oordeel draagt
   (`heeft_oordeel`), accepteert alleen `comment` en `heropen` (`annotatie_v2_store._beslis_in`). Afronden (`zet_status`
@@ -215,8 +227,12 @@ Hieronder wat je moet weten om de code te wijzigen.
   `tests/test_vocabulaire.py` bewaakt dat elke klasse van de API een concept heeft.
 - **Elke export is een eigen bestand** (`bestandsnaam.met_tijd`): de naam draagt datum en tijd op de seconde, in Nederland,
   in dezelfde vorm als de Markdown van de werkplek (`bestandsnaam` in `frontend/lib/artefactMarkdown.ts`).
-- **Export** (`POST weergave/export`, `annotatie_export.py`): `json` (v3, schema in
-  `schemas/annotatie-export-v3.schema.json`, ook op `GET export-schema`), `csv`, `pdf` en `trig`.
+- **Export** (`POST weergave/export`, `annotatie_export.py`): `json` (v4, schema in
+  `schemas/annotatie-export-v4.schema.json`, ook op `GET export-schema`; v3 blijft staan als historie), `csv`, `pdf` en `trig`.
+  v4 maakt `relaties` en `impliciet` (ADR-011) expliciet, ook als ze leeg zijn. De CSV krijgt per relatie een rij van soort
+  `relatie`, met de kolommen `leesvorm`, `relatietype`, `van_*`/`naar_*` (klasse en tekst), `volgorde` en `veranderd` achteraan
+  (lifecycle en herkomst in de bestaande kolommen); de PDF een lijst *Relaties* per bepaling (de dragerlaag) en de impliciete
+  partijen. Hier staan ook afgewezen relaties, met hun lifecycle, net als afgewezen markeringen.
   `herkomst_regels` zet het spoor om in de leesbare namen uit `verklaringen.json`, met dezelfde
   opzoekregels als `frontend/lib/waarom.ts`. De oude CSV-kolommen blijven vooraan staan; nieuwe komen
   erachter. TriG bouwt per laag met `laag_invoer` + `bouw_graaf`, dus exact wat de projectie schrijft.
@@ -237,6 +253,13 @@ Hieronder wat je moet weten om de code te wijzigen.
   doel een **structuurdeel** (hoofdstuk, titeldeel, afdeling, paragraaf), dan is het een overzicht: het
   deel met de structuur en artikelen eronder, zonder leden, onderdelen, markeringen en verwijzingen
   (die horen bij een geopend artikel; anders wordt een hoofdstuk een kluwen van honderden knopen).
+  Daarnaast de **relaties tussen markeringen** (ADR-011): `samenhang.jas_relaties` zet `weergave["relaties"]` om in
+  lijnen `jas_relatie` (groep `relaties`, met `type`, `leesvorm` – ook in `anker_tekst` –, `lifecycle`, `veranderd`
+  en `volgorde`) en `weergave["impliciet"]` in knopen `impliciet` (`impliciet:<id>`, met `klasse`, `label`,
+  `toelichting`). Alleen wat is vastgelegd, niets afgeleid; een afgewezen relatie valt weg, en een relatie met een
+  eindpunt dat niet in de graaf staat (ander artikel, verworpen, verouderd) ook, geteld in `relaties_weggelaten`.
+  `/samenhang/meer` loopt via `samenhang()` en krijgt ze dus mee; `/graaf` leest ze in één leestransactie
+  (`annotatie_v2_relaties.alle_relaties`), met een impliciete partij alleen als de bronnode van haar laag in beeld is.
   **`/samenhang/meer`** (hoogstens 30 `bron_iri`'s) geeft de samenhang van meerdere doelen in één
   verzoek en haalt per regeling de bronboom één keer op (`bron_resolver.haal_bronrijen` +
   `snapshot_uit`); een doel dat niet resolvet staat in `fouten`. Een overzicht opent zo 15 delen met 4
@@ -427,6 +450,10 @@ spoor D (*Werkgebied als node*).
   3 Werkgebied, 4 Deelvragen en bronnen, 5 Analyse per bepaling, 6 Begrippen (lijst), dan de bijlagen (`BIJLAGEN`, letters op volgorde):
   Begripskaarten, Bronnenregister, Contextbepalingen (rol context zonder markering, `Regeling.context`), Samenhang, Niet meegenomen,
   Verantwoording.
+  - **Relaties en regelskelet** (ADR-009, aanvulling relaties; ADR-011): `Bepaling.relaties` (elke relatie één keer, bij de bepaling
+    van de drager) en per Afleidingsregel `Markering.regelskelet` (uitvoer, invoer op volgorde, operatoren met operanden, voorwaarden,
+    parameters met waarde, tijd, uitzonderingen, toepassing), uit `annotatie_v2_relaties.bij_elementen`. Een afgewezen relatie staat er
+    niet in; wat ontbreekt zegt het skelet ("Geen uitvoer vastgelegd."). Altijd lijsten, nooit tabellen.
   - **Graaf in het rapport** (`bepaling_graaf.lees`, best-effort zoals de toestanden; dezelfde lezer als het paneel bij een antwoord, met het contract in `bepaling_graaf_contract`, ADR-009 is de eigenaar): per regeling de WTI-gegevens (soort,
     eerstverantwoordelijke, TOOI-organisatie, afkorting, toestand-URL), en per voorouder van een geselecteerde bronnode
     (`werkgebied_export.structuur_iris`) de titel, `bwb:inwerking` en `bwb:bron`. Een artikel krijgt zo zijn `plaats` in de opbouw, die

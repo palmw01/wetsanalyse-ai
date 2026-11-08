@@ -47,7 +47,7 @@ import {
 import { VraagDock } from "@/components/werkplek/VraagDock";
 import { BronselectieKaart } from "@/components/werkplek/BronselectieKaart";
 import { ConnectorsMenu } from "@/components/werkplek/ConnectorsMenu";
-import { actieveConnectors, wissel as wisselConnector, type ConnectorStand } from "@/lib/connectorsMenu";
+import { actieveConnectors, beurtBronnen, wissel as wisselConnector, zelfAanTeZetten, type BronUit, type ConnectorStand } from "@/lib/connectorsMenu";
 import {
   doelInvoerVan, isVerwijderd,
 } from "@/lib/annotatie";
@@ -247,6 +247,9 @@ export function WerkplekClient({
   // Wat er zojuist is opgeslagen, voor schermlezers. Zonder dit gebeurt elke annotatie-wijziging
   // volledig stil: de kaart verandert visueel, maar er wordt niets aangekondigd.
   const [melding, setMelding] = useState("");
+  // Een vraag ging over een bron naast de wet die uit stond (ADR-013, graph-qa `bron_uit`): de jurist kan hem hier
+  // aanzetten. Weg bij de volgende vraag.
+  const [bronUit, setBronUit] = useState<BronUit[]>([]);
   // Een vervolgstap die Lex zelf aankondigde (`opgeslagen.vervolg`): verstuurd zodra de beurt klaar is en de werkplek
   // in dat werkgebied staat, als een klik op de suggestie met die actie.
   const [vervolg, setVervolg] = useState<(Vervolg & { id: string }) | null>(null);
@@ -456,6 +459,7 @@ export function WerkplekClient({
     // Synchrone guard tegen dubbel-verzenden (twee Enters in dezelfde tick): de `bezig`-state komt te laat.
     if (!prompt || !beurt.claim()) return;
     setInvoer("");
+    setBronUit([]);
 
     // Een vraag bij een markering gaat als ADVIES: dezelfde thread, maar met contextblok en langs de
     // antwoordroute – die kan topologisch geen annotatie wijzigen. Een ander object gaat als
@@ -516,7 +520,7 @@ export function WerkplekClient({
       gestart = await startRun(prompt, gid, {
         ...startOpties(verzoek, { werkgebiedId, onderwerp: vraagOver }),
         // Alleen met een menu: zonder connector bij de beheerder beslist graph-qa zelf (alleen wetgeving).
-        ...(stand.beschikbaar.length ? { bronnen: actieveConnectors(stand) } : {}),
+        ...beurtBronnen(stand),
       });
     } catch (e) {
       // Er liep al een beurt (bijvoorbeeld in een ander tabblad). Deze vraag is dus NIET aangenomen:
@@ -611,6 +615,7 @@ export function WerkplekClient({
         },
         onOpgeslagen: (uitkomst) => p.pas({ type: "opgeslagen", uitkomst }),
         onWaarschuwing: (bericht) => setMelding(bericht),
+        onBronUit: (bronnen) => setBronUit(bronnen),
         onRegieTaak: () => onGewijzigd(),
       }),
       opKlaar: async (antId, stand) => {
@@ -1009,6 +1014,31 @@ export function WerkplekClient({
       {/* De vraag is geweigerd omdat het budget op is. Kort houden: wanneer het weer kan staat al in
           de strook bovenaan het scherm én onder de invoerbalk – dezelfde datum drie keer noemen
           leest als een storing. Geen sluitknop: hij verdwijnt zodra je weer een vraag verstuurt. */}
+      {/* Een gevraagde bron stond uit, en de jurist kan hem zelf aanzetten (ADR-013). Lex zei het al in het antwoord;
+          dit is de knop erbij. */}
+      {zelfAanTeZetten(bronUit, connectorStand).length > 0 && (
+        <div className="shrink-0 px-4 pt-2" data-bron-uit>
+          <Melding type="uitleg" compact>
+            {zelfAanTeZetten(bronUit, connectorStand).map((b) => (
+              <span key={b.naam} className="mr-3 inline-flex items-center gap-2">
+                {b.label} staat uit.
+                <button
+                  type="button"
+                  onClick={() => {
+                    zetGesprekConnectors(wisselConnector(connectorStand, b.naam));
+                    setBronUit((nu) => nu.filter((x) => x.naam !== b.naam));
+                  }}
+                  className="focus-ring rounded font-medium underline underline-offset-2"
+                >
+                  Zet {b.label} aan
+                </button>
+              </span>
+            ))}
+            Stel je vraag daarna opnieuw.
+          </Melding>
+        </div>
+      )}
+
       {budgetGeweigerd && (
         <div className="shrink-0 px-4 pt-2">
           <Melding type="waarschuwing" compact>

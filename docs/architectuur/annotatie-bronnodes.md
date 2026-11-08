@@ -74,7 +74,23 @@ Het besluit staat in [ADR-011](adr-011-relaties-tussen-markeringen.md), de typen
   - `POST impliciet/{id}/wis`.
 
   De BFF laat `relaties` en `impliciet` door.
-- **Nog niet:** de projectie naar de graaf (3D) en voorstellen uit de keten (4C).
+- **Voorstellen uit de keten (4C, proefvlag `RELATIE_VOORSTELLEN` in graph-qa).** De batch draagt `relaties`: per
+  voorstel `van_ankers`, `naar_ankers`, `type`, optioneel `volgorde`, en `spoor` (regel, versie, wat de regel zag).
+  - Na het opslaan van de elementen, onder hetzelfde schrijfslot, zet de api elk eindpunt om naar het element in de
+    batch met precies die ankers. Liggen er twee markeringen op dezelfde ankers, dan telt alleen een paar dat in de
+    catalogus past, en alleen als het er één is.
+  - Wat niet op te lossen of te toetsen is, gaat niet mee en staat in `relaties_overgeslagen` (`index`, `type`,
+    `reden`). Niets wordt geraden.
+  - Een voorstel is `herkomst: "agent"`, `lifecycle: "voorgesteld"`, `aandacht: "groen"`, met het spoor; auditregel
+    `relatie-voorgesteld`, en de dragerlaag krijgt één revisie met de rest van de batch.
+  - Het id volgt uit de inhoud, dus een gelijk voorstel blijft gelijk en een afgewezen voorstel komt niet terug.
+  - Een ronde `opnieuw` met voltooide dekking zet een agentrelatie in het bereik die niet opnieuw voorgesteld is en
+    geen oordeel draagt op `vervangen` (`vervangen_in`, `relatie-vervangen`, respons `relaties_vervangen`). Een relatie
+    van de jurist en een relatie met een oordeel blijven staan. Vervangen is niet actueel: niet in de weergave, niet in
+    de projectie. Komt het voorstel later terug, dan leeft het op (`relatie-hersteld`).
+  - De respons draagt `relaties` (de ids van wat er nu ligt), `relaties_overgeslagen` en `relaties_vervangen`.
+- **In de werkplek** (4A): het blok *Relaties* per element in het annotatiepaneel, *Verbind met…* en de impliciete
+  partijen bij de bepaling (`frontend/CLAUDE.md` §*De reviewkaart*). Bulk neemt relaties nog niet mee.
 
 ## Echte leestoegang en uitvoeringsspoor
 

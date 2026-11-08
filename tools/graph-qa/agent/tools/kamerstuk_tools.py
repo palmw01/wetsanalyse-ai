@@ -18,12 +18,14 @@ import re
 import xml.etree.ElementTree as ET
 from typing import Any, Protocol
 
+from bronmodel.connectors import KAMERSTUKKEN
 from bronmodel.extern import externe_vindplaats
 
 from ..resultaat import BUDGET, TeGroot, compact, fout, per_eenheid, resultaat
 
-KAMERSTUK_TOOL_NAMEN = frozenset({"zoek_kamerstukken", "get_kamerstuk"})
-CONNECTOR = "kamerstukken"
+#: Uit de beschrijving (`bronmodel.connectors`); de poorttest toetst dat `KAMERSTUK_TOOLS` precies deze namen heeft.
+KAMERSTUK_TOOL_NAMEN = KAMERSTUKKEN.tools
+CONNECTOR = KAMERSTUKKEN.naam
 
 _DOSSIER_RE = re.compile(r"^\d{4,6}(?:-[A-Z0-9]{1,6})?$")
 _WOORD_RE = re.compile(r"[0-9A-Za-zÀ-ÿ]{3,}")

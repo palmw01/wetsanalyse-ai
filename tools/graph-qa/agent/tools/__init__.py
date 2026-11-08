@@ -20,6 +20,7 @@ from typing import Any
 
 import httpx
 from bronmodel import NOG_NIET
+from bronmodel.connectors import CONNECTORS as _BESCHRIJVINGEN
 
 from ..graph import queries, schema
 from ..graph.results import parse_select
@@ -863,8 +864,9 @@ TOOLS += BEGRIP_TOOLS
 TOOLS += KAMERSTUK_TOOLS
 _BY_NAME: dict[str, dict[str, Any]] = {t["name"]: t for t in TOOLS + JAS_TOOLS}
 
-#: De bronconnectors (ADR-013): per connector zijn tools. Wetgeving (de graaf) is geen connector en staat altijd aan.
-CONNECTORS: dict[str, frozenset[str]] = {_KST: KAMERSTUK_TOOL_NAMEN}
+#: De bronconnectors (ADR-013): per connector zijn tools, uit de gedeelde beschrijving (`bronmodel.connectors`).
+#: Wetgeving (de graaf) is geen connector en staat altijd aan.
+CONNECTORS: dict[str, frozenset[str]] = {n: c.tools for n, c in _BESCHRIJVINGEN.items()}
 CONNECTOR_TOOLS: frozenset[str] = frozenset().union(*CONNECTORS.values())
 
 

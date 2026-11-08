@@ -24,6 +24,8 @@ class State(TypedDict, total=False):
     werkgebied_id: str
     # ADR-013: de bronconnectors die in deze beurt aanstaan (None = wat de straat aanbiedt). Per beurt.
     bronnen: list[str] | None
+    # Per connector `{naam, label, aan, reden}` (`agent/bronstand.py`): waarom een bron uit staat. Per beurt.
+    bronstand: dict[str, dict[str, Any]]
     # Het dossier van dat werkgebied als contextblok (`werkgebied_context.als_blok`), per beurt opgehaald;
     # `memory_context` zet het naast de focus. Context, geen filter.
     werkgebied_context: str

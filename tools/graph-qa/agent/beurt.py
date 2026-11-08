@@ -116,6 +116,8 @@ class BeurtSchrijver:
     def __init__(self) -> None:
         self.doel: dict[str, Any] | None = None
         self.elementen: list[dict[str, Any]] = []
+        # Relatievoorstellen van de keten (ADR-011, proefvlag `RELATIE_VOORSTELLEN`): eindpunten als ankers.
+        self.relaties: list[dict[str, Any]] = []
         self.run: dict[str, Any] | None = None
         self.kandidaten: list[dict[str, Any]] = []
         self.hergebruik: dict[str, Any] = {}
@@ -153,6 +155,8 @@ class BeurtSchrijver:
             self.doel = event.get("doel") or {}
         elif soort == "element":
             self._voeg_element_toe(event.get("element") or {})
+        elif soort == "relaties":
+            self.relaties = list(event.get("relaties") or [])
         elif soort == "run":
             self.run = event.get("run") or {}
         elif soort == "kandidaten":
@@ -429,6 +433,8 @@ async def _leg_vast(
                 # bij de batch; het staat niet op de elementen, want dan draagt elk element de hele
                 # lijst.
                 "beslissingen": schrijver.dekking.get("beslissingen") or [],
+                # Alleen als de keten ze voorstelde: zonder proefvlag blijft de batch bitgelijk.
+                **({"relaties": schrijver.relaties} if schrijver.relaties else {}),
             })
             annotatie_bewaard = True
             # Een ronde `opnieuw` ruimt de oude voorstellen op die ze niet meer maakte; dat hoort de jurist te lezen,

@@ -12,7 +12,7 @@ from typing import Any
 import yaml
 
 PAD = Path(__file__).with_name("verklaringen.yaml")
-SECTIES = ("detectie", "besluit", "twijfel", "resolutie", "validatie", "classifier")
+SECTIES = ("detectie", "besluit", "twijfel", "resolutie", "validatie", "classifier", "relatie")
 
 
 @cache

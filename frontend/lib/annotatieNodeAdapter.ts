@@ -12,7 +12,11 @@
 // Alles wat van het ene naar het andere gaat, loopt via `SegmentPlek.begin`.
 
 import { bronVan, regelsVan, slotVan } from "./annotatie";
-import { segmentAnker, type NodeAnker, type NodeElement, type NodeSegment, type NodeWeergave } from "./annotatieNode";
+import {
+  segmentAnker, type NodeAnker, type NodeEindpunt, type NodeEindpuntRef, type NodeElement, type NodeRelatie, type NodeSegment,
+  type NodeWeergave,
+} from "./annotatieNode";
+import { RELATIETYPEN, typenTussen } from "./jasRelaties";
 import { maakAnker, snapSelectie, vindPositie } from "./selectie";
 import type {
   Anker, AnnotatieDocument, AnnotatieElement, BeslissingInvoer, GraafArtikel, Lifecycle,
@@ -281,4 +285,90 @@ function zoekFragment(nb: NodeBron, tekst: string, anker?: Anker | null): { star
   const fragment = tekst.trim();
   const start = vindPositie(nb.bron, fragment, anker, []);
   return start < 0 ? null : { start, eind: start + fragment.length };
+}
+
+// --- Relaties tussen markeringen (ADR-011) ------------------------------------------------------------------------
+
+/** Eén relatie zoals het blok *Relaties* van een element haar toont: gelezen vanaf dít element. Staat het element aan
+ *  de kant `naar`, dan is de zin de inverse ("is plichthebbende in" wordt "heeft als plichthebbende"). */
+export interface RelatieRegel {
+  relatie: NodeRelatie;
+  /** `uit`: dit element is `van`; `in`: dit element is `naar`. */
+  richting: "uit" | "in";
+  zin: string;
+  ander: NodeEindpunt;
+}
+
+/** De relaties van of naar één element, met een relatie waarvan een eindpunt veranderde bovenaan: die vraagt
+ *  opnieuw een oordeel. Verder in de volgorde van de api. */
+export function relatiesBijElement(view: Pick<NodeWeergave, "relaties">, elementId: string): RelatieRegel[] {
+  const regels: RelatieRegel[] = [];
+  for (const r of view.relaties ?? []) {
+    const uit = r.van.soort === "element" && r.van.id === elementId;
+    const inn = r.naar.soort === "element" && r.naar.id === elementId;
+    if (!uit && !inn) continue;
+    const t = RELATIETYPEN[r.type];
+    regels.push(uit
+      ? { relatie: r, richting: "uit", zin: r.leesvorm || t?.leesvorm || r.type, ander: r.naar }
+      : { relatie: r, richting: "in", zin: t?.invers || r.leesvorm || r.type, ander: r.van });
+  }
+  return regels.map((r, i) => ({ r, i }))
+    .sort((a, b) => Number(b.r.relatie.veranderd) - Number(a.r.relatie.veranderd) || a.i - b.i)
+    .map(({ r }) => r);
+}
+
+/** Is de relatie beoordeeld of afgewezen? Dezelfde verzameling als `AFGEHANDELD` in de api. */
+export function relatieAfgehandeld(r: Pick<NodeRelatie, "lifecycle">): boolean {
+  return ["human_approved", "edited", "published", "reused", "rejected"].includes(r.lifecycle);
+}
+
+/** Herkomst en oordeel in mensentaal, zoals bij een element ("voorstel van Lex", "door jou gemarkeerd"). */
+export function relatieStatus(r: Pick<NodeRelatie, "lifecycle" | "herkomst" | "aangemaakt_door">, gebruiker?: string): string {
+  if (r.lifecycle === "rejected") return "afgewezen";
+  if (r.herkomst === "mens") return gebruiker && r.aangemaakt_door === gebruiker
+    ? "door jou gelegd" : `door ${r.aangemaakt_door || "een jurist"} gelegd`;
+  if (relatieAfgehandeld(r)) return "akkoord bevonden";
+  return "voorstel van Lex";
+}
+
+/** Alleen een eigen relatie kun je wissen; een voorstel van Lex wijs je af (`wis` in de api). */
+export function eigenRelatie(r: Pick<NodeRelatie, "herkomst" | "aangemaakt_door">, gebruiker?: string): boolean {
+  return !!gebruiker && r.herkomst === "mens" && r.aangemaakt_door === gebruiker;
+}
+
+/** Een eindpunt dat *Verbind met…* kan kiezen: een markering in beeld of een impliciete partij. */
+export interface Verbindbaar {
+  ref: NodeEindpuntRef;
+  klasse: string;
+  subtype: string;
+  /** Hoe het in de keuzelijst staat: de tekst, of het label van de partij. */
+  naam: string;
+  impliciet: boolean;
+}
+
+/** Wat in beeld staat en verbonden kan worden: actuele markeringen met een klasse (niet verworpen, niet verouderd) en
+ *  de impliciete partijen. Geen zoekvenster: alleen wat de weergave draagt (het artefactmodel). */
+export function verbindbaar(view: Pick<NodeWeergave, "elementen" | "impliciet">): Verbindbaar[] {
+  return [
+    ...view.elementen
+      .filter((e) => e.klasse && !e.verouderd && e.lifecycle !== "rejected" && e.lifecycle !== "vervangen")
+      .map((e) => ({ ref: { soort: "element" as const, id: e.id }, klasse: e.klasse, subtype: e.jas_subtype ?? "",
+        naam: e.tekst, impliciet: false })),
+    ...(view.impliciet ?? []).map((i) => ({ ref: { soort: "impliciet" as const, id: i.id }, klasse: i.klasse, subtype: "",
+      naam: i.label, impliciet: true })),
+  ];
+}
+
+/** Een keuze in de lijst van typen: het type en welke kant `van` is. */
+export interface TypeKeuze { code: string; richting: "uit" | "in"; leesvorm: string; volgorde: boolean }
+
+/** De typen tussen dit element en de andere kant, in beide richtingen (`typenTussen` op het klassenpaar). `uit`: dit
+ *  element is `van`; `in`: de andere kant is `van`. */
+export function typeKeuzes(dit: Pick<Verbindbaar, "klasse" | "subtype">, ander: Pick<Verbindbaar, "klasse" | "subtype">): TypeKeuze[] {
+  const keuze = (code: string, richting: "uit" | "in") => ({ code, richting, leesvorm: RELATIETYPEN[code].leesvorm,
+    volgorde: RELATIETYPEN[code].volgorde });
+  return [
+    ...typenTussen(dit.klasse, ander.klasse, dit.subtype, ander.subtype).map((c) => keuze(c, "uit")),
+    ...typenTussen(ander.klasse, dit.klasse, ander.subtype, dit.subtype).map((c) => keuze(c, "in")),
+  ];
 }

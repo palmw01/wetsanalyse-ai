@@ -216,6 +216,9 @@ async def get_element(element_id: str, actor: str = Depends(actieve_userid)):
     result["actuele_snapshot_id"] = snapshot["snapshot_id"]
     result["bronverwijzing"].update(snapshot_id=result["snapshot_id"],
                                     historisch=result["element"]["verouderd"])
+    # Wat er over dit element vastgelegd is aan relaties (ADR-011), zodat een vervolgvraag ("wie is de plichthebbende?")
+    # daaruit leest in plaats van het af te leiden. Afgewezen en vervangen relaties tellen niet mee.
+    result["relaties"] = await relaties.van_element(element_id)
     return result
 
 
@@ -376,7 +379,7 @@ _EXPORT_MIME = {"json": "application/json", "csv": "text/csv; charset=utf-8", "p
 
 @router.post("/weergave/export")
 async def post_export(req: ExportInvoer, actor: str = Depends(actieve_userid)):
-    """De weergave als bestand: JSON (v3, met schema), CSV, PDF of TriG. De vorm staat in
+    """De weergave als bestand: JSON (v4, met schema), CSV, PDF of TriG. De vorm staat in
     `annotatie_export`; hier alleen de bronstand, de audit en de keuze."""
     if req.formaat not in _EXPORT_MIME:
         raise HTTPException(422, "Kies json, csv, pdf of trig.")
@@ -420,5 +423,5 @@ async def _laaggrafen(view: dict) -> list:
 
 @router.get("/export-schema")
 async def get_export_schema(actor: str = Depends(actieve_userid)):
-    """Het JSON-schema van de export (versie 3)."""
+    """Het JSON-schema van de export (versie 4)."""
     return json.loads(export.SCHEMA_PAD.read_text(encoding="utf-8"))

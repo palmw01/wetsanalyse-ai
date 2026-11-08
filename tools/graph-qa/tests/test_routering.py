@@ -43,7 +43,7 @@ def _route(rij: dict) -> tuple[str, str]:
     ctx = rij.get("context") or {}
     state = {"question": rij["vraag"], "messages": [{"role": "user", "content": rij["vraag"]}], "modus": ctx.get("modus", "auto"),
              "werkgebied_id": ctx.get("werkgebied_id", ""), "actie": ctx.get("actie", ""), "context": ctx.get("context") or {},
-             "opgegeven_doel": ctx.get("doel") or {}, "focus": {}}
+             "opgegeven_doel": ctx.get("doel") or {}, "focus": {}, "bronstand": ctx.get("bronstand") or {}}
     b = _bouw()
     upd = supervisie.supervisor_node(b, state)
     return supervisie._entry_node(b, {**state, **upd}), upd.get("specialist", "")

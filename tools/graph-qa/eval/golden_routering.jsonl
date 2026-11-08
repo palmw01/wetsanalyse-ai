@@ -24,3 +24,7 @@
 {"id": "dekking-ontbreekt", "vraag": "Welke bepalingen ontbreken nog bij dit werkgebied?", "context": {"werkgebied_id": "w1"}, "verwacht": {"route": "agent_taak", "model": false}}
 {"id": "dekking-geen-handeling", "vraag": "Annoteer deelvraag 2.", "context": {"werkgebied_id": "w1"}, "verwacht": {"model": true}}
 {"id": "dekking-buiten-werkgebied", "vraag": "Welke deelvraag is het minst uitgewerkt?", "verwacht": {"model": true}}
+{"id": "bron-uit-wat-kun-je-vinden", "vraag": "wat kun je nog vinden in de kamerstukken?", "context": {"bronstand": {"kamerstukken": {"naam": "kamerstukken", "label": "Kamerstukken", "aan": false, "reden": "gesprek"}}}, "verwacht": {"route": "afwijzen", "model": false}}
+{"id": "bron-uit-mvt-kamerstuk", "vraag": "Wat staat er in de memorie van toelichting bij Kamerstuk 33755, nummer 3?", "context": {"bronstand": {"kamerstukken": {"naam": "kamerstukken", "label": "Kamerstukken", "aan": false, "reden": "gesprek"}}}, "verwacht": {"route": "afwijzen", "model": false}}
+{"id": "bron-aan-mvt-kamerstuk", "vraag": "Wat staat er in de memorie van toelichting bij Kamerstuk 33755, nummer 3?", "context": {"bronstand": {"kamerstukken": {"naam": "kamerstukken", "label": "Kamerstukken", "aan": true, "reden": "aan"}}}, "verwacht": {"model": true}}
+{"id": "bron-uit-gemengd", "vraag": "Wat bedoelde de wetgever met artikel 36 van de Invorderingswet 1990?", "context": {"bronstand": {"kamerstukken": {"naam": "kamerstukken", "label": "Kamerstukken", "aan": false, "reden": "gesprek"}}}, "verwacht": {"model": true}}

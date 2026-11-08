@@ -59,7 +59,6 @@ from sse_starlette.sse import EventSourceResponse  # noqa: E402
 load_dotenv()  # laad .env als die naast de server staat
 
 from agent import observability  # noqa: E402
-from agent import tools  # noqa: E402
 from agent.agent import answer_stream, delete_conversation  # noqa: E402
 from agent.beurt import leg_afbraak_vast, voer_beurt_uit  # noqa: E402
 from agent.beurtmeting import gemeten  # noqa: E402
@@ -321,6 +320,7 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
                     bevestigd=request.bevestigd,
                     werkvoorraad_id=request.werkvoorraad_id,
                     bronnen=request.bronnen,
+                    bronnen_herkomst=request.bronnen_herkomst,
                 ),
                 settings=settings,
                 run=run,
@@ -329,8 +329,7 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
                 meter=meter,
             )
             return gemeten(beurt, meter=meter, run=run, gesprek_id=request.conversation_id or "",
-                           model=settings.llm_model,
-                           bronnen=",".join(tools.actieve_connectors(settings, request.bronnen)) or "geen")
+                           model=settings.llm_model)
 
         if request.intake_actie is not None:
             # Een klik op een vraagkaartje (activiteit 1): altijd de werkgebied-worker.
@@ -496,6 +495,20 @@ async def stop_run(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Onbekende run")
     await stop_met_kinderen(run)
     return RunStart(**run.samenvatting())
+
+
+@app.get("/v1/bronnen")
+async def bronnen(_auth: None = Depends(_check_auth)) -> dict:
+    """De bronconnectors (ADR-013) en of deze straat ze aanbiedt (`CONNECTOR_<NAAM>`). De werkplek toont in het menu
+    *Bronnen en tools* alleen wat de straat aanbiedt én de beheerder aanzette (het register bij de api): een schakelaar
+    die niets doet, is erger dan geen schakelaar. Uit de beschrijving, zonder connector met naam."""
+    from bronmodel.connectors import CONNECTORS
+
+    from agent.tools import connectors_aan
+
+    aan = connectors_aan(settings)
+    return {"bronnen": [{"naam": c.naam, "label": c.label, "brontype": c.brontype, "groep": c.groep,
+                         "straat": c.naam in aan} for c in CONNECTORS.values()]}
 
 
 @app.get("/v1/runs")

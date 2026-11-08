@@ -4,8 +4,10 @@ import { nodeRequest, type NodeDoel } from "./annotatieNode";
 /** Het antwoord van `GET /v1/annotatie/samenhang` (api/app/samenhang.py). */
 export type KnoopSoort = "regeling" | "deel" | "artikel" | "lid" | "onderdeel" | "markering" | "klasse" | "extern"
   /** Een begrip van het werkgebied (fase F3): alleen op de tab Samenhang, uit `lib/begripGraaf.ts`. */
-  | "begrip";
-export type RelatieGroep = "structuur" | "verwijzingen" | "annotaties" | "begrippen";
+  | "begrip"
+  /** Een partij die de tekst niet noemt (ADR-011): een rechtssubject van de jurist, geen markering. */
+  | "impliciet";
+export type RelatieGroep = "structuur" | "verwijzingen" | "annotaties" | "begrippen" | "relaties";
 export interface SamenhangKnoop {
   id: string; soort: KnoopSoort; label: string; tekst: string; klasse: string; lifecycle: string;
   element_id: string; bwb_id: string; artikel: string; lid: string; rand: boolean;
@@ -19,6 +21,8 @@ export interface SamenhangKnoop {
   begrip_bron?: "" | "wet" | "werkgebied" | "generiek";
   werkgebied_id?: string;
   definities?: BegripDefinitie[];
+  /** Alleen bij een impliciete partij: waaruit ze volgt, in de woorden van de jurist. */
+  toelichting?: string;
 }
 /** Eén wettelijke definitie van een begrip, zoals de bron haar geeft. */
 export interface BegripDefinitie {
@@ -52,12 +56,19 @@ export interface SamenhangRelatie {
   soort: "bevat" | "verwijst_naar" | "markeert" | "heeft_klasse" | "duidt" | "begripsrelatie" | "begripsvoorstel"
     /** Alleen in de ketting: een bepaling definieert een begrip; een begrip staat letterlijk in een tekst
      *  (het fragment in `anker_tekst`). Dat laatste zegt niets over de juridische relatie. */
-    | "definieert" | "komt_voor_in";
+    | "definieert" | "komt_voor_in"
+    /** Een vastgelegde relatie tussen markeringen (ADR-011), met de leesvorm in `anker_tekst`. */
+    | "jas_relatie";
   groep: RelatieGroep; anker_tekst: string;
+  /** Alleen bij een `jas_relatie`: het type uit de catalogus (`lib/jasRelaties.ts`), de leesvorm, de
+   *  beoordeling, of een eindpunt sinds het vastleggen veranderde, en de plek bij invoer of operand. */
+  type?: string; leesvorm?: string; lifecycle?: string; veranderd?: boolean; volgorde?: number | null;
 }
 export interface Samenhang {
   schema_versie: 1; doel: NodeDoel; snapshot_id: string; artikel_iri: string;
   knopen: SamenhangKnoop[]; relaties: SamenhangRelatie[]; verwijzingen_beschikbaar: boolean; afgekapt: boolean;
+  /** Relaties tussen markeringen met een eindpunt buiten deze graaf (api ≥ ADR-011, stap 4B). */
+  relaties_weggelaten?: number;
   /** Alleen de ketting bij een antwoord (`GET samenhang/antwoord`). */
   keten?: true; doelen?: string[]; begrippen_beschikbaar?: boolean; ingekort?: Ingekort;
   fouten?: { bron_iri: string; reden: string }[];

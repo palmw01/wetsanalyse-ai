@@ -142,6 +142,30 @@ def lokale_elementen(voorstellen: list[dict[str, Any]], state) -> list[dict[str,
     return result
 
 
+def _ankersleutel(ankers: list[dict[str, Any]]) -> tuple:
+    return tuple((a["bron_iri"], a["start"], a["eind"], a["bron_hash"]) for a in ankers)
+
+
+def lokale_relaties(relaties: list[dict[str, Any]], elementen: list[dict[str, Any]], state) -> list[dict[str, Any]]:
+    """De relatievoorstellen van de keten (ADR-011) in contractvorm: elk eindpunt de ankers van een element dat `emit`
+    uitstuurt, getoetst tegen de snapshot zoals bij elementen. Een relatie naar een element dat niet meegaat (een
+    hergebruikte bronnode), valt weg: de api kan het eindpunt dan toch niet oplossen."""
+    if not relaties:
+        return []
+    snapshot = state["bron_snapshot"]
+    uitgestuurd = {_ankersleutel(e.get("ankers") or []) for e in elementen}
+    uit = []
+    for r in relaties:
+        van, naar = list(r.get("van_ankers") or []), list(r.get("naar_ankers") or [])
+        if not van or not naar or _ankersleutel(van) not in uitgestuurd or _ankersleutel(naar) not in uitgestuurd:
+            continue
+        valideer_ankers(snapshot, van)
+        valideer_ankers(snapshot, naar)
+        uit.append({"van_ankers": van, "naar_ankers": naar, "type": r["type"], "volgorde": r.get("volgorde"),
+                    "spoor": dict(r.get("spoor") or {})})
+    return uit
+
+
 
 
 

@@ -6,7 +6,13 @@ Voor de 3D-weergave in de werkplek. De graaf bestaat uit drie soorten relaties, 
 - **verwijzingen** – `bwb:heeftVerwijzing`/`bwb:verwijstNaar` zoals de BWB-import ze uit de tekst
   haalde, één stap uitgaand en inkomend. Een doel buiten het artikel wordt een *randknoop*; de
   werkplek kan die later zelf openen;
-- **annotaties** – actuele markeringen van de gedeelde laag en hun JAS-klasse.
+- **annotaties** – actuele markeringen van de gedeelde laag en hun JAS-klasse;
+- **relaties** – de relaties tussen markeringen die de jurist (of Lex, als voorstel) vastlegde (ADR-011,
+  `jas_relatie`), met de impliciete partijen waar ze naar wijzen (knoopsoort `impliciet`). Een eigen groep en
+  niet `annotaties`: de werkplek toont ze als eigen laag, standaard alleen bij een keuze. Eindpunten zijn de
+  markeringsknopen; een relatie met een eindpunt dat niet in de graaf staat (een markering in een ander
+  artikel, of verworpen of verouderd) valt weg en telt in `relaties_weggelaten`. Een afgewezen relatie komt
+  er niet in.
 
 Er wordt niets afgeleid: geen juridische afhankelijkheid, geen gewicht, geen positie. De reikwijdte
 is het artikel (of de Leidraad-divisie) waartoe het gevraagde doel behoort, ook als een lid werd
@@ -40,8 +46,8 @@ _OVERZICHT = {"Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf", "Artikel", "Div
 _SOORT = {"Regeling": "regeling", "Artikel": "artikel", "Divisie": "artikel", "Lid": "lid", "Onderdeel": "onderdeel"}
 _PREFIXES = "PREFIX bwb: <urn:bwb-ns:>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n"
 
-Soort = Literal["regeling", "deel", "artikel", "lid", "onderdeel", "markering", "klasse", "extern"]
-Groep = Literal["structuur", "verwijzingen", "annotaties"]
+Soort = Literal["regeling", "deel", "artikel", "lid", "onderdeel", "markering", "klasse", "extern", "impliciet"]
+Groep = Literal["structuur", "verwijzingen", "annotaties", "relaties"]
 
 
 class Knoop(BaseModel):
@@ -65,14 +71,24 @@ class Knoop(BaseModel):
     subtype: str = ""
     beslist_door: str = ""         # regel | model | specificiteit, leeg zonder spoor
     twijfel: bool = False
+    # Alleen bij een impliciete partij (ADR-011): waaruit ze volgt, in de woorden van de jurist.
+    toelichting: str = ""
 
 
 class Relatie(BaseModel):
     bron: str
     doel: str
-    soort: Literal["bevat", "verwijst_naar", "markeert", "heeft_klasse"]
+    soort: Literal["bevat", "verwijst_naar", "markeert", "heeft_klasse", "jas_relatie"]
     groep: Groep
+    # Bij een verwijzing het anker uit de bron; bij een `jas_relatie` de leesvorm ("is plichthebbende van").
     anker_tekst: str = ""
+    # Alleen bij een `jas_relatie`: het type uit de catalogus (`jas_relaties`), de beoordeling, en of een eindpunt
+    # sinds het vastleggen veranderde (`annotatie_v2_relaties.beschrijf`).
+    type: str = ""
+    leesvorm: str = ""
+    lifecycle: str = ""
+    veranderd: bool = False
+    volgorde: int | None = None
 
 
 class Samenhang(BaseModel):
@@ -84,6 +100,7 @@ class Samenhang(BaseModel):
     relaties: list[Relatie]
     verwijzingen_beschikbaar: bool
     afgekapt: bool = False
+    relaties_weggelaten: int = 0
 
 
 def citeertitel_van(snapshot: dict) -> str:
@@ -205,6 +222,38 @@ def markeringen(elementen: list[dict], aanwezig: set[str]) -> tuple[list[Knoop],
     return list(knopen.values()), relaties
 
 
+def impliciet_knoop_id(partij_id: str) -> str:
+    return f"impliciet:{partij_id}"
+
+
+def _eindpunt(ep: dict) -> str:
+    return f"element:{ep['id']}" if ep["soort"] == "element" else impliciet_knoop_id(ep["id"])
+
+
+def jas_relaties(relaties: list[dict], partijen: list[dict], knopen: dict[str, Knoop]) -> tuple[list[Relatie], int]:
+    """De vastgelegde relaties tussen markeringen (ADR-011) als `jas_relatie`, en de impliciete partijen als knopen
+    (`knopen` wordt aangevuld). `relaties` zoals `annotatie_v2_relaties.beschrijf` ze geeft. Een relatie met een
+    eindpunt buiten `knopen` valt weg en telt mee in het tweede getal; een afgewezen of vervangen relatie valt stil weg. Niets
+    afgeleid: alleen wat is vastgelegd."""
+    for p in partijen:
+        kid = impliciet_knoop_id(p["id"])
+        knopen.setdefault(kid, Knoop(id=kid, soort="impliciet", label=p["label"], klasse=p["klasse"],
+                                     toelichting=p.get("toelichting", ""), herkomst=p.get("herkomst") or ""))
+    uit: list[Relatie] = []
+    weggelaten = 0
+    for r in relaties:
+        if r.get("lifecycle") in ("rejected", "vervangen"):   # niet actueel: historie, geen graaf
+            continue
+        bron, doel = _eindpunt(r["van"]), _eindpunt(r["naar"])
+        if bron not in knopen or doel not in knopen:
+            weggelaten += 1
+            continue
+        uit.append(Relatie(bron=bron, doel=doel, soort="jas_relatie", groep="relaties", anker_tekst=r.get("leesvorm", ""),
+                           type=r["type"], leesvorm=r.get("leesvorm", ""), lifecycle=r.get("lifecycle", ""),
+                           veranderd=bool(r.get("veranderd")), volgorde=r.get("volgorde")))
+    return uit, weggelaten
+
+
 def _noemt_naam(anker: str) -> bool:
     """Noemt de brontekst een naam ("hoofdstuk 9 van de Algemene douanewet"), of alleen een plek
     ("artikel 2, eerste lid")? Een plek zegt zonder de wet minder dan het label van de importer."""
@@ -276,6 +325,10 @@ async def samenhang(snapshot: dict) -> dict:
     knopen.update({k.id: k for k in m_knopen})
     relaties += m_relaties
 
+    # Relaties tussen de markeringen hierboven, en de impliciete partijen van deze lagen (ADR-011).
+    r_relaties, weggelaten = jas_relaties(weergave.get("relaties", []), weergave.get("impliciet", []), knopen)
+    relaties += r_relaties
+
     # Verwijzingen: één stap, uitgaand en inkomend, alleen wat letterlijk in de bron staat.
     # Bij een structuurdeel geen verwijzingen: die hangen aan de leden, en die staan niet in het overzicht.
     rijen = ([], []) if deel else await _verwijzingen(sorted(scope))
@@ -287,4 +340,5 @@ async def samenhang(snapshot: dict) -> dict:
                                  + [("in", r) for r in inn[:MAX_VERWIJZINGEN]], knopen)
     return Samenhang(doel=snapshot["doel"], snapshot_id=snapshot["snapshot_id"], artikel_iri=artikel_iri,
                      knopen=list(knopen.values()), relaties=relaties,
-                     verwijzingen_beschikbaar=rijen is not None, afgekapt=afgekapt).model_dump()
+                     verwijzingen_beschikbaar=rijen is not None, afgekapt=afgekapt,
+                     relaties_weggelaten=weggelaten).model_dump()
