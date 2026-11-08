@@ -198,6 +198,11 @@ def _dossier(bron: KamerstukBron, dossier: str, cql: str, args: dict[str, Any], 
 
 
 def _zoek(bron: KamerstukBron, a: dict[str, Any]) -> str:
+    for veld in ("dossier", "woorden"):
+        if (vp := externe_vindplaats((a.get(veld) or "").strip())) is not None and vp.id.startswith("kst-"):
+            # Een id is geen zoekterm: het stuk staat vast, lees het (acceptatie 8 nov 2026: eerst
+            # ongeldige_argumenten, dan het hele dossier, en pas daarna het stuk).
+            return fout("is_een_id", f"'{vp.id}' is het id van één stuk: lees het met get_kamerstuk(id='{vp.id}').")
     dossier = (a.get("dossier") or "").strip().upper().replace(" ", "")
     offset = max(int(a.get("offset") or 0), 0)
     if dossier and not _DOSSIER_RE.fullmatch(dossier):

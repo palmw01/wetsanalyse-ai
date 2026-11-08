@@ -39,7 +39,7 @@ ANNOTATIE_NODES = {"annoteer", "emit"}
 def test_planning_is_de_standaardvorm():
     nodes, edges = structuur(enable_planning=True)
     assert nodes == {
-        "supervisor", "agent", "tools", "sjabloon", "verify", "correct", "finalize", "annotaties_zoeken",
+        "supervisor", "agent", "tools", "sjabloon", "verify", "correct", "finalize", "annotaties_zoeken", "bron_lezen",
         "begrippen_zoeken", "overzicht_bouwen", "bepaling_lezen", "annoteer", "emit", "advance", "afwijzen",
         "werkgebied_intake", "bronselectie", "agent_taak",
     }
@@ -54,6 +54,9 @@ def test_planning_is_de_standaardvorm():
         # De leesroute zoekt eerst zelf; pas daarna formuleert de agent (zie nodes/annotatie_lezen.py).
         ("supervisor", "annotaties_zoeken", "", True),
         ("annotaties_zoeken", "agent", "", False),
+        # Een stuk dat de vraag bij id noemt (ADR-013): eerst lezen in code (nodes/bron_lezen.py), dan formuleren.
+        ("supervisor", "bron_lezen", "", True),
+        ("bron_lezen", "agent", "", False),
         # Idem voor vastgelegde begrippen (nodes/begrippen_lezen.py, fase F4).
         ("supervisor", "begrippen_zoeken", "", True),
         ("begrippen_zoeken", "agent", "", False),
@@ -90,6 +93,7 @@ def test_planning_is_de_standaardvorm():
         ("advance", "agent", "", True),
         ("advance", "annoteer", "", True),
         ("advance", "annotaties_zoeken", "", True),
+        ("advance", "bron_lezen", "", True),
         ("advance", "begrippen_zoeken", "", True),
         ("advance", "overzicht_bouwen", "", True),
         ("advance", "bepaling_lezen", "", True),
@@ -119,6 +123,6 @@ def test_stopbewaking_zit_om_elke_node():
     # is dat een signaal om te controleren of het via add() ging.
     assert nodes == {
         "supervisor", "agent", "tools", "sjabloon", "correct",
-        "annoteer", "emit", "advance", "afwijzen", "verify", "finalize", "annotaties_zoeken",
+        "annoteer", "emit", "advance", "afwijzen", "verify", "finalize", "annotaties_zoeken", "bron_lezen",
         "begrippen_zoeken", "overzicht_bouwen", "bepaling_lezen", "werkgebied_intake", "bronselectie", "agent_taak",
     }

@@ -50,6 +50,9 @@ class ConnectorBeschrijving:
     #: Een rij mag `soort` dragen (`alinea`, `voetnoot`, `tabel`, `tabelrij`); een `tabel` draagt `openen` naar deze
     #: leestool (de tabel zelf, met de kolommen als `cellen` op de kop), een `tabelrij` haar `cellen`.
     leestool: str
+    #: Het argument van de leestool dat het id draagt: een vraag die een id noemt, leest de code direct
+    #: (`nodes/bron_lezen.py`), zonder dat het model eerst gaat zoeken.
+    lees_argument: str
     #: De vorm van het id dat het antwoord noemt (`extern.externe_vindplaats` leest het).
     id_prefixen: tuple[str, ...]
     #: De rollen (specialisten) die de tools krijgen, als de connector aanstaat.
@@ -123,6 +126,7 @@ KAMERSTUKKEN = ConnectorBeschrijving(
               r"\bbedoel(?:de|ing\s+van)\s+de\s+wetgever\b"),
     tools=frozenset({"zoek_kamerstukken", "get_kamerstuk"}),
     leestool="get_kamerstuk",
+    lees_argument="id",
     id_prefixen=("kst-",),
     specialisten=frozenset({"definitie", "duiding", "algemeen"}),
     rol_in_antwoord=("een Kamerstuk laat zien wat de wetgever bedoelde; het onderbouwt nooit wat de wet zegt – dat "
@@ -170,3 +174,12 @@ def van_id(ident: str) -> ConnectorBeschrijving | None:
 def leestools() -> frozenset[str]:
     """De tools waarvan het resultaat citeerbare tekst van een bron naast de wet draagt."""
     return frozenset(c.leestool for c in CONNECTORS.values())
+
+
+def genoemde_stukken(tekst: str) -> list[tuple[ConnectorBeschrijving, str]]:
+    """De ids van een connector die de tekst letterlijk noemt (`kst-35496-F`), in de volgorde van de tekst."""
+    uit: list[tuple[ConnectorBeschrijving, str]] = []
+    for e in externe_verwijzingen(tekst or ""):
+        if (c := van_id(e.id)) is not None:
+            uit.append((c, e.id))
+    return uit

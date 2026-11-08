@@ -104,7 +104,7 @@ def test_een_nieuwe_connector_wordt_herkend_en_gemeld_zonder_code(monkeypatch):
     nep = bm.ConnectorBeschrijving(
         naam="testbron", label="Testbron", brontype="uitspraak", groep="Uitspraken",
         dekt="uitspraken van een testgerecht", signalen=(r"\btestgerecht\b",), tools=frozenset({"zoek_testbron"}),
-        leestool="zoek_testbron", id_prefixen=("ECLI:",), specialisten=frozenset({"duiding"}),
+        leestool="zoek_testbron", lees_argument="id", id_prefixen=("ECLI:",), specialisten=frozenset({"duiding"}),
         rol_in_antwoord="een uitspraak onderbouwt een uitleg", kop_in_antwoord="Uit de testrechtspraak", levert=("uitspraken",), niet_in_tekst=(),
         werkwoorden={"zoek_testbron": ("zoekt uitspraken over „{zoekterm}”", "zoekt uitspraken")}, grenzen="alleen een test", beheer="Nep.",
         voorbeeldvragen=("Wat zei het testgerecht?",))
@@ -136,3 +136,40 @@ def test_het_endpoint_noemt_elke_connector_met_de_straat(monkeypatch):
         assert r.status_code == 200
         assert r.json()["bronnen"] == [{"naam": n, "label": b.label, "brontype": b.brontype, "groep": b.groep,
                                         "straat": aan} for n, b in bm.CONNECTORS.items()]
+
+
+def _nep_kamerstukken(monkeypatch):
+    from agent import tools as t
+    from test_kamerstuk_tools import DOSSIER, NepBron
+
+    monkeypatch.setattr(t, "_KAMERSTUKBRON", NepBron(DOSSIER))
+
+
+def test_een_genoemd_stuk_wordt_vooraf_gelezen_en_alleen_het_gelezen_stuk_is_een_bron(monkeypatch):
+    """Acceptatie 8 nov 2026: zes rondes zoeken voor kst-35496-F, en "Klaar · 32 bronnen" voor één gelezen stuk."""
+    from fakes import tool_block
+
+    _nep_kamerstukken(monkeypatch)
+    llm = FakeLLM([
+        response([tool_block("t1", "zoek_kamerstukken", {"dossier": "99001"})], "tool_use"),
+        response([text_block("In kst-99001-3 staat het doel; het dossier bevat ook kst-99001-10.")], "end_turn")])
+    events = _run(answer_stream("Wat staat er in kst-99001-3?", settings=AAN, llm=llm, graph=FakeGraph(result=""),
+                                bronnen=["kamerstukken"]))
+    eerste = llm.calls[0]
+    assert len(llm.calls) == 2, "geen supervisorcall: het id bepaalt de route"
+    gelezen = [b for m in eerste["messages"] for b in (m["content"] if isinstance(m["content"], list) else [])
+               if b.get("type") == "tool_use"]
+    assert [(g["name"], g["input"]) for g in gelezen] == [("get_kamerstuk", {"id": "kst-99001-3"})]
+    starts = [e["tool"] for e in events if e["type"] == "tool_execution" and e.get("phase") == "start"]
+    assert starts[0] == "get_kamerstuk"
+    bronnen, = [e["sources"] for e in events if e["type"] == "sources"]
+    assert [b["uri"] for b in bronnen] == ["kst-99001-3"], "gevonden is geen bron, gelezen en genoemd wel"
+
+
+def test_een_id_als_zoekterm_wijst_naar_de_leestool():
+    from agent import tools as t
+    from test_kamerstuk_tools import DOSSIER, NepBron
+
+    for args in ({"dossier": "kst-35496-F"}, {"woorden": "kst-35496-F"}):
+        d = __import__("json").loads(t.dispatch("zoek_kamerstukken", None, args, AAN, kamerstukken=NepBron(DOSSIER)))
+        assert d["reden"] == "is_een_id" and "get_kamerstuk(id='kst-35496-F')" in d["melding"]
