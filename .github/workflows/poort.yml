@@ -226,6 +226,17 @@ jobs:
               if "--api-token-login" in regel and not regel.strip().startswith("#") and "acceptatie" not in regel:
                   fout.append(f"azure-infra.yml: `--api-token-login` zonder acceptatie-conditie: {regel.strip()}")
 
+          # De bronconnector Kamerstukken haalt tekst van buiten de graaf: alleen acceptatie, tot de eigenaar anders besluit.
+          m = re.search(r"^param connectorKamerstukken bool = (\w+)$", bicep, re.M)
+          if not m or m.group(1) != "false":
+              fout.append("main.bicep: `param connectorKamerstukken bool = false` niet gevonden")
+          for regel in re.findall(r".*name: 'CONNECTOR_KAMERSTUKKEN'.*", bicep):
+              if "value: connectorKamerstukken ?" not in regel:
+                  fout.append(f"main.bicep: CONNECTOR_KAMERSTUKKEN zonder de parameter: {regel.strip()}")
+          for regel in flow.splitlines():
+              if "--connector-kamerstukken" in regel and not regel.strip().startswith("#") and "acceptatie" not in regel:
+                  fout.append(f"azure-infra.yml: `--connector-kamerstukken` zonder acceptatie-conditie: {regel.strip()}")
+
           if fout:
               print("\n".join(f"  {f}" for f in fout))
               sys.exit(1)
