@@ -151,3 +151,23 @@ def test_zoeken_op_woorden_in_de_titel():
     d = json.loads(tools.dispatch("zoek_kamerstukken", None, {"woorden": "Invorderingswet"}, AAN))
     assert d["status"] == "ok" and d["resultaten"], d
     assert all(r["id"].startswith("kst-") for r in d["resultaten"])
+
+
+def test_de_tool_zet_een_klein_dossier_op_nummer():
+    d = json.loads(tools.dispatch("zoek_kamerstukken", None, {"dossier": KLEIN}, AAN))
+    assert d["status"] == "ok" and d["volgorde"] == "nummer" and d["volledig"], d.get("toelichting")
+    eigen = [r["id"] for r in d["resultaten"] if r["id"].startswith(f"kst-{KLEIN}-")]
+    assert eigen[:3] == [f"kst-{KLEIN}-1", f"kst-{KLEIN}-2", f"kst-{KLEIN}-3"]
+
+
+def test_de_tool_pagineert_een_groot_dossier_op_datum_met_het_echte_totaal():
+    d = json.loads(tools.dispatch("zoek_kamerstukken", None, {"dossier": GROOT}, AAN))
+    assert d["status"] == "ok" and d["volgorde"] == "datum" and not d["volledig"] and d["totaal"] > 1000
+    v = json.loads(tools.dispatch("zoek_kamerstukken", None, d["vervolg"]["args"], AAN))
+    assert not {r["id"] for r in d["resultaten"]} & {r["id"] for r in v["resultaten"]}
+
+
+def test_de_tool_vindt_een_subdossier():
+    d = json.loads(tools.dispatch("zoek_kamerstukken", None, {"dossier": SUB}, AAN))
+    assert d["status"] == "ok" and d["resultaten"], "het subdossier gaf niets (zoeken op het hoofdnummer?)"
+    assert all(r["id"].upper().startswith(f"KST-{SUB}-") for r in d["resultaten"])

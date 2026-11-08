@@ -19,7 +19,7 @@ from agent.grounding import check_grounding
 from agent.provenance import collect_sources
 from agent.resultaat import BUDGET
 from agent.sjablonen.vullen import bron_rijen
-from agent.tools.kamerstuk_tools import alineas
+from agent.tools.kamerstuk_tools import MAX_DOSSIER, alineas
 
 AAN = Settings(connector_kamerstukken=True)
 
@@ -75,7 +75,7 @@ def test_de_query_komt_uit_de_code():
     bron = NepBron(DOSSIER)
     roep("zoek_kamerstukken", {"woorden": 'Invorderingswet") OR (x'}, bron)
     assert bron.vragen == ['c.product-area==officielepublicaties AND w.publicatienaam==Kamerstuk AND '
-                           'dt.title any "invorderingswet"']
+                           'dt.type==Kamerstuk AND dt.title any "invorderingswet"']
 
 
 @pytest.mark.parametrize("args,reden", [({"dossier": "drop table"}, "ongeldig_dossier"), ({}, "ongeldige_argumenten"),
@@ -145,3 +145,57 @@ def test_adapter_weigert_een_vreemde_host_en_leest_een_diagnose():
             b'<diag:message>Unsupported index</diag:message></diag:diagnostic></r>')
     with pytest.raises(KamerstukFout, match="Unsupported index"):
         lees_records(diag)
+
+
+def _veel(n: int, dossier: str = "99001") -> list[Record]:
+    return [rec(f"kst-{dossier}-{i}", f"Wet x; Stuk {i}", str(i)) for i in range(1, n + 1)]
+
+
+def _alle(args: dict, bron: NepBron) -> tuple[list[dict], list[dict]]:
+    """Alle pagina's van een zoekvraag: (rijen, contracten)."""
+    rijen, paginas = [], []
+    d = roep("zoek_kamerstukken", args, bron)
+    for _ in range(200):
+        paginas.append(d)
+        rijen += d["resultaten"]
+        if d["volledig"]:
+            return rijen, paginas
+        d = roep(d["vervolg"]["tool"], d["vervolg"]["args"], bron)
+    raise AssertionError("geen einde")
+
+
+def test_een_dossier_tot_de_grens_staat_op_nummer_en_is_compleet():
+    bron = NepBron(list(reversed(_veel(MAX_DOSSIER))))
+    rijen, paginas = _alle({"dossier": "99001"}, bron)
+    assert [r["id"] for r in rijen] == [f"kst-99001-{i}" for i in range(1, MAX_DOSSIER + 1)]
+    assert all(p["volgorde"] == "nummer" and p["totaal"] == MAX_DOSSIER for p in paginas)
+
+
+def test_een_groot_dossier_wordt_niet_afgekapt_maar_staat_op_datum():
+    """Review ADR-013, punt 1: een dossier boven de grens heette volledig na de eerste 300 stukken."""
+    n = MAX_DOSSIER + 1
+    bron = NepBron(_veel(n))
+    rijen, paginas = _alle({"dossier": "99001"}, bron)
+    assert len(rijen) == n and len({r["id"] for r in rijen}) == n, "alle stukken, elk één keer"
+    assert all(p["volgorde"] == "datum" and p["totaal"] == n for p in paginas)
+    assert not paginas[0]["volledig"] and "datum" in paginas[0]["toelichting"]
+    # Per pagina één telvraag (zonder records) en één pagina op datum.
+    assert sum(v.endswith(" sortBy dt.available/sort.ascending") for v in bron.vragen) == len(paginas)
+
+
+def test_een_subdossier_zoekt_op_zijn_eigen_nummer():
+    """`36200-IX` staat als eigen waarde in w.dossiernummer; zoeken op 36200 en achteraf filteren vond niets."""
+    bron = NepBron(_veel(3, "36200-IX"))
+    d = roep("zoek_kamerstukken", {"dossier": "36200-ix"}, bron)
+    assert d["status"] == "ok" and d["aantal"] == 3 and d["volledig"]
+    assert all('w.dossiernummer=="36200-IX"' in v for v in bron.vragen)
+
+
+def test_een_onvolledig_antwoord_van_de_dienst_is_een_fout():
+    class Hapert(NepBron):
+        def zoek(self, cql, *, start=1, maximum=50):
+            totaal, deel = super().zoek(cql, start=start, maximum=maximum)
+            return totaal, deel if start == 1 else []
+
+    d = roep("zoek_kamerstukken", {"dossier": "99001"}, Hapert(_veel(400)))
+    assert d["status"] == "error" and d["reden"] == "onvolledig_antwoord"

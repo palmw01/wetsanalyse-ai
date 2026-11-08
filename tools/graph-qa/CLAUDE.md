@@ -227,7 +227,8 @@ bruikbaar is.
   en waarvoor hij staat, of waarom hij uit staat en wie hem aanzet. Zonder aangeboden connector en zonder genoemde bron
   is dat blok leeg. `tests/test_bronprompt.py`. `tests/test_bronschakelaar.py`.
   **Kamerstukken** (`tools/kamerstuk_tools.py`, transport `adapters/sru_kamerstukken.py`): `zoek_kamerstukken`
-  (een dossier op nummer, of woorden in de titel) en `get_kamerstuk` (per alinea, met de kop, in documentvolgorde;
+  (een dossier of subdossier, `w.dossiernummer=="36200-IX"`; tot `MAX_DOSSIER` stukken op nummer, daarboven op datum met
+  een exact vervolg en `volgorde: "datum"` – nooit afgekapt; of woorden in de titel; zonder bijlagen, `dt.type==Kamerstuk`) en `get_kamerstuk` (per alinea, met de kop, in documentvolgorde;
   tabellen, illustraties en voetnoten geteld in `overgeslagen`). De CQL bouwt de tool, de document-URL komt uit het
   SRU-record en alleen `repository.overheid.nl` over https; een SRU-diagnose of storing is een foutresultaat
   (`bron_onbereikbaar`), nooit een lege lijst. Een rij draagt haar tekst onder `id`, niet onder `iri`/`uri`: een

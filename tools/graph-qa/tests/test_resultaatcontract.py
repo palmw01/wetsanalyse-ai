@@ -56,7 +56,7 @@ ARGS: dict[str, dict] = {
 }
 
 
-# De bronconnectors (ADR-013) lezen niet uit de graaf; hun contract toetst test_kamerstuk_tools.
+# De bronconnectors (ADR-013) lezen niet uit de graaf; hun contract toetst onderaan dezelfde harnas, met een nepbron.
 GRAAFTOOLS = [t["name"] for t in tools.TOOLS if t["name"] not in AFGELEIDE_TOOL_NAMEN | tools.CONNECTOR_TOOLS]
 # Gerangschikte lijsten: via `vervolg` moet de hele (fake) dataset langskomen.
 PAGINEREND = {"search_wetgeving", "zoek_opbouw", "semantic_search", "verwijst_naar_deze", "zoek_definitie", "list_regelingen",
@@ -237,3 +237,80 @@ def test_raw_sparql_is_streng_en_geeft_nooit_een_half_antwoord():
     ok = is_contract(_aanroep("raw_sparql", {"query": "PREFIX bwb: <urn:bwb-ns:>\nSELECT ?s WHERE { ?s ?p ?o } "
                                                        "ORDER BY ?s LIMIT 5 OFFSET 10"}, WorstCaseGraaf()))
     assert ok is not None and ok["volledig"] is True and ok["aantal"] == 5
+
+
+
+# ── De bronconnectors (ADR-013): hetzelfde contract, tegen een nepbron per connector ──────────────────────────
+#
+# Een connectortool viel eerst buiten deze harnas, en daardoor heette een dossier van meer dan 300 stukken volledig
+# na de eerste 300. Elke connector krijgt hier een nepbron die zich gedraagt als zijn dienst (paginering, totaal) en
+# argumenten per tool; elke pagina haalt het contract en alle pagina's samen zijn precies de dataset.
+
+from agent.adapters.sru_kamerstukken import Document, Record  # noqa: E402
+from bronmodel.connectors import CONNECTORS  # noqa: E402
+
+
+class NepSru:
+    """De zoekdienst van KOOP: `n` stukken in één dossier, startRecord/maximumRecords zoals de dienst, en een document
+    met `alineas` lange alinea's."""
+
+    def __init__(self, n: int, alineas: int = 400) -> None:
+        self.records = [Record(id=f"kst-99001-{i}", titel=f"Wet x; Stuk {i}", datum="2026-01-02",
+                               vergaderjaar="2025-2026", dossiers=("99001",), ondernummer=str(i),
+                               xml_url=f"https://repository.overheid.nl/x/kst-99001-{i}.xml") for i in range(1, n + 1)]
+        als = "".join(f"<al>{i}. {_LANG[:1500]}</al>" for i in range(alineas))
+        self.xml = (f"<kamerstuk><stuk><titel>MEMORIE VAN TOELICHTING</titel><divisie><kop><titel>Deel</titel></kop>"
+                    f"{als}</divisie></stuk></kamerstuk>").encode()
+
+    def zoek(self, cql, *, start=1, maximum=50):
+        return len(self.records), self.records[start - 1:start - 1 + maximum]
+
+    def document(self, ident):
+        return Document(ident, self.xml, "h")
+
+
+#: Per connector: een nepbron per omvang, en per tool de argumenten en de omvang van de dataset die terug moet komen.
+NEPBRONNEN = {"kamerstukken": NepSru}
+CONNECTOR_ARGS: dict[str, list[tuple[dict, str]]] = {
+    "zoek_kamerstukken": [({"dossier": "99001"}, "dossier"), ({"woorden": "Invorderingswet"}, "dossier"),
+                          ({"dossier": "99001", "woorden": "stuk"}, "dossier")],
+    "get_kamerstuk": [({"id": "kst-99001-1"}, "alineas")],
+}
+OMVANGEN = (1, 40, 300, 301, 1000, 1001, 1200)
+
+
+def test_elke_connector_heeft_een_nepbron_en_elke_connectortool_argumenten():
+    assert set(NEPBRONNEN) == set(CONNECTORS), "voeg een nepbron toe voor de nieuwe connector"
+    assert set(CONNECTOR_ARGS) == set(tools.CONNECTOR_TOOLS), "voeg de nieuwe connectortool toe aan CONNECTOR_ARGS"
+
+
+def _connector(naam: str) -> str:
+    return next(c.naam for c in CONNECTORS.values() if naam in c.tools)
+
+
+@pytest.mark.parametrize("omvang", OMVANGEN)
+@pytest.mark.parametrize("naam,args,soort", [(n, a, s) for n, lijst in CONNECTOR_ARGS.items() for a, s in lijst])
+def test_contract_van_een_connectortool(naam: str, args: dict, soort: str, omvang: int):
+    c = _connector(naam)
+    bron = NEPBRONNEN[c](omvang, alineas=omvang)
+    instellingen = make_settings(**{f"connector_{c}": True})
+
+    def roep(n: str, a: dict) -> str:
+        return tools.dispatch(n, None, a, instellingen, **{c: bron})
+
+    uit = roep(naam, args)
+    data = is_contract(uit)
+    assert data is not None, f"{naam} levert geen contract: {uit[:200]}"
+    gezien: list[str] = []
+    for _ in range(400):
+        _pagina_haalt_het_contract(naam, uit, data)
+        gezien += [json.dumps(r, sort_keys=True, ensure_ascii=False) for r in data["resultaten"]]
+        if data["volledig"]:
+            break
+        uit = roep(data["vervolg"]["tool"], data["vervolg"]["args"])
+        data = is_contract(uit)
+        assert data is not None, f"{naam}: vervolg levert geen contract: {uit[:200]}"
+    else:
+        pytest.fail(f"{naam}: na 400 vervolgen nog niet volledig")
+    assert len(gezien) == len(set(gezien)), f"{naam}: een rij kwam twee keer langs"
+    assert len(gezien) == omvang, f"{naam}: {len(gezien)} van de {omvang} kwamen langs"

@@ -31,9 +31,15 @@ _DOSSIER_RE = re.compile(r"^\d{4,6}(?:-[A-Z0-9]{1,6})?$")
 _WOORD_RE = re.compile(r"[0-9A-Za-zÀ-ÿ]{3,}")
 MAX_WOORDEN = 6
 LIMIT = 25
-#: Hoeveel stukken van één dossier hoogstens worden opgehaald om ze op nummer te sorteren.
-MAX_DOSSIER = 300
-_BASIS = "c.product-area==officielepublicaties AND w.publicatienaam==Kamerstuk"
+#: Tot zo veel stukken zet de tool een dossier zelf op nummer: ze haalt ze allemaal op. De zoekdienst sorteert
+#: `w.ondernummer` als tekst ("10" vóór "2"), dus dat kan hij niet zelf. Een groter dossier staat op datum van
+#: publicatie (`sortBy dt.available`), per record gepagineerd met een exact vervolg: nooit afgekapt.
+MAX_DOSSIER = 1000
+#: Records per aanroep bij het ophalen van een dossier (de zoekdienst staat er 1000 toe).
+_STAP = 250
+#: `dt.type==Kamerstuk` laat de bijlagen weg; `w.publicatienaam==Kamerstuk` alleen doet dat niet.
+_BASIS = "c.product-area==officielepublicaties AND w.publicatienaam==Kamerstuk AND dt.type==Kamerstuk"
+_OP_DATUM = " sortBy dt.available/sort.ascending"
 #: Elementen die geen lopende tekst zijn; ze worden geteld en genoemd, nooit stil weggelaten.
 _OVERGESLAGEN = {"tabel": "tabel", "illustratie": "illustratie", "noot": "voetnoot"}
 
@@ -61,7 +67,9 @@ KAMERSTUK_TOOLS: list[dict[str, Any]] = [
             "stukken van dat dossier op volgorde van nummer; met 'woorden' Kamerstukken waarvan de titel elk woord "
             "draagt (bijvoorbeeld de naam van een wet)." + _UITLEG + "\n"
             "GEEFT TERUG per stuk: id (kst-…), label, stuk (het soort, zoals 'Memorie van toelichting' of 'MvT'), "
-            "datum, vergaderjaar en link; bij een dossier ook de dossiertitel." + _CONTRACT
+            "datum, vergaderjaar en link; bij een dossier ook de dossiertitel en de volgorde: 'nummer' (tot "
+            f"{MAX_DOSSIER} stukken) of 'datum' (een groter dossier). Zoek in een groot dossier gericht met dossier "
+            "én woorden, bijvoorbeeld 'memorie van toelichting'." + _CONTRACT
         ),
         "input_schema": {
             "type": "object",
@@ -121,37 +129,13 @@ def _cql_woorden(woorden: str) -> str:
     return " AND ".join(f'dt.title any "{w}"' for w in gevonden)
 
 
-def _zoek(bron: KamerstukBron, a: dict[str, Any]) -> str:
-    dossier = (a.get("dossier") or "").strip().upper().replace(" ", "")
-    offset = max(int(a.get("offset") or 0), 0)
-    if dossier and not _DOSSIER_RE.fullmatch(dossier):
-        return fout("ongeldig_dossier", f"'{dossier}' is geen dossiernummer (bijvoorbeeld '33755' of '36200-IX').")
-    if not dossier and not (a.get("woorden") or "").strip():
-        return fout("ongeldige_argumenten", "geef een dossiernummer of woorden uit de titel")
-    args = {k: v for k, v in (("dossier", dossier), ("woorden", (a.get("woorden") or "").strip())) if v}
-    cql = _BASIS + (f" AND w.dossiernummer=={dossier.split('-')[0]}" if dossier else "")
-    if args.get("woorden"):
-        cql += " AND " + _cql_woorden(args["woorden"])
-    if dossier:
-        # Een dossier is begrensd: alles ophalen en op nummer zetten, dan zelf pagineren.
-        rijen, start, totaal = [], 1, 1
-        while start <= min(totaal, MAX_DOSSIER):
-            totaal, deel = bron.zoek(cql, start=start, maximum=100)
-            if not deel:
-                break
-            rijen += [(r.ondernummer, r) for r in deel if not dossier.count("-") or r.id.upper().startswith(
-                f"KST-{dossier}-")]
-            start += len(deel)
-        rijen.sort(key=lambda p: _ondersleutel(p[0]))
-        lijst = [r for _, r in ((n, _rij(rec)) for n, rec in rijen) if r]
-        titel = _dossiertitel([rec for _, rec in rijen])
-        toelichting = (f"Het dossier telt meer dan {MAX_DOSSIER} stukken; alleen de eerste {MAX_DOSSIER} zijn "
-                       "op nummer gezet." if totaal > MAX_DOSSIER else "")
-        return per_eenheid(lijst, tool="zoek_kamerstukken", args=args, offset=offset, toelichting=toelichting,
-                           extra=compact({"totaal": len(lijst), "dossiertitel": titel}) if lijst else None)
+def _per_record(bron: KamerstukBron, cql: str, args: dict[str, Any], offset: int, *, toelichting: str = "",
+                leeg: str = "", extra: dict[str, Any] | None = None, dossier: bool = False) -> str:
+    """Een pagina in de volgorde van de zoekdienst. Per record één rij of niets; het vervolg telt in records, zoals de
+    zoekdienst, en `totaal` is het aantal records van de hele zoekvraag."""
     totaal, deel = bron.zoek(cql, start=offset + 1, maximum=LIMIT)
-    # Per record één rij of niets (een bijlage valt af); het vervolg telt in records, zoals de zoekdienst.
     paren = [(i, r) for i, r in enumerate(_rij(rec) for rec in deel) if r]
+    titel = _dossiertitel(deel) if dossier else ""
 
     def maak(k: int) -> str:
         gelezen = paren[k][0] if k < len(paren) else len(deel)
@@ -159,7 +143,8 @@ def _zoek(bron: KamerstukBron, a: dict[str, Any]) -> str:
         return resultaat([r for _, r in paren[:k]], volledig=not meer, totaal=totaal,
                          vervolg={"tool": "zoek_kamerstukken", "args": {**args, "offset": offset + gelezen}}
                          if meer else None,
-                         toelichting="" if paren else "Geen Kamerstukken met die woorden in de titel.")
+                         toelichting=toelichting if paren else (leeg or toelichting),
+                         extra=compact({**(extra or {}), "dossiertitel": titel}) or None)
 
     k = len(paren)
     while k > 0 and len(maak(k)) > BUDGET:
@@ -167,6 +152,52 @@ def _zoek(bron: KamerstukBron, a: dict[str, Any]) -> str:
     if paren and k == 0:
         raise TeGroot("zoek_kamerstukken: één rij is groter dan de begroting", omvang=len(maak(1)))
     return maak(k)
+
+
+def _dossier(bron: KamerstukBron, dossier: str, cql: str, args: dict[str, Any], offset: int) -> str:
+    """De stukken van één dossier (of subdossier: `36200-IX` staat als eigen waarde in `w.dossiernummer`)."""
+    totaal, _ = bron.zoek(cql, start=1, maximum=0)
+    if totaal > MAX_DOSSIER:
+        return _per_record(
+            bron, cql + _OP_DATUM, args, offset, extra={"volgorde": "datum"}, dossier=True,
+            toelichting=(f"Het dossier {dossier} telt {totaal} stukken: te veel om op nummer te zetten, dus ze staan op "
+                         "datum van publicatie. Zoek gericht met dossier én woorden, bijvoorbeeld 'memorie van "
+                         "toelichting'."))
+    # Een dossier tot MAX_DOSSIER: alles ophalen en op nummer zetten, dan zelf pagineren op hele rijen.
+    records: list[Any] = []
+    while len(records) < totaal:
+        _, deel = bron.zoek(cql + _OP_DATUM, start=len(records) + 1, maximum=_STAP)
+        if not deel:
+            break
+        records += deel
+    if len(records) < totaal:
+        return fout("onvolledig_antwoord", f"De zoekdienst gaf {len(records)} van de {totaal} stukken van dossier "
+                    f"{dossier}. Probeer het opnieuw; een onvolledige lijst noem ik niet volledig.")
+    records.sort(key=lambda r: _ondersleutel(r.ondernummer))
+    lijst = [r for r in (_rij(rec) for rec in records) if r]
+    extra = compact({"totaal": len(lijst), "volgorde": "nummer", "dossiertitel": _dossiertitel(records)})
+    return per_eenheid(lijst, tool="zoek_kamerstukken", args=args, offset=offset,
+                       toelichting="" if lijst else f"Geen Kamerstukken in dossier {dossier}.",
+                       extra=extra if lijst else None)
+
+
+def _zoek(bron: KamerstukBron, a: dict[str, Any]) -> str:
+    dossier = (a.get("dossier") or "").strip().upper().replace(" ", "")
+    offset = max(int(a.get("offset") or 0), 0)
+    if dossier and not _DOSSIER_RE.fullmatch(dossier):
+        return fout("ongeldig_dossier", f"'{dossier}' is geen dossiernummer (bijvoorbeeld '33755' of '36200-IX').")
+    if not dossier and not (a.get("woorden") or "").strip():
+        return fout("ongeldige_argumenten", "geef een dossiernummer of woorden uit de titel, bijvoorbeeld "
+                    "{\"dossier\": \"33755\"} of {\"woorden\": \"Invorderingswet\"}")
+    args = {k: v for k, v in (("dossier", dossier), ("woorden", (a.get("woorden") or "").strip())) if v}
+    cql = _BASIS + (f' AND w.dossiernummer=="{dossier}"' if dossier else "")
+    if args.get("woorden"):
+        cql += " AND " + _cql_woorden(args["woorden"])
+    if dossier and not args.get("woorden"):
+        return _dossier(bron, dossier, cql, args, offset)
+    # Met een dossier op datum, voor een vaste volgorde; alleen woorden houdt de rangschikking van de zoekdienst.
+    return _per_record(bron, cql + (_OP_DATUM if dossier else ""), args, offset, dossier=bool(dossier),
+                       leeg="Geen Kamerstukken met die woorden in de titel.")
 
 
 def _platte_tekst(e: ET.Element, overgeslagen: dict[str, int]) -> str:
