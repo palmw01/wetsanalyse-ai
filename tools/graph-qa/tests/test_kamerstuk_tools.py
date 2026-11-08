@@ -1,13 +1,12 @@
 """ADR-013 fase 1a: de bronconnector Kamerstukken.
 
 Tegen een nepbron met de vorm van de SRU-dienst van KOOP; de XML hieronder is zelfgemaakt in de opbouw van een
-Kamerstuk (kamerstuk › stuk › divisie › kop/al), niet overgenomen. De live-proef staat onderaan, achter
-`KAMERSTUKKEN_LIVE=1`.
+Kamerstuk (kamerstuk › stuk › divisie › kop/al), niet overgenomen. De live-proef tegen de echte dienst staat in
+`test_kamerstukken_live.py` (`BRONNEN_LIVE=1`).
 """
 from __future__ import annotations
 
 import json
-import os
 from dataclasses import dataclass
 
 import httpx
@@ -146,10 +145,3 @@ def test_adapter_weigert_een_vreemde_host_en_leest_een_diagnose():
             b'<diag:message>Unsupported index</diag:message></diag:diagnostic></r>')
     with pytest.raises(KamerstukFout, match="Unsupported index"):
         lees_records(diag)
-
-
-@pytest.mark.skipif(not os.environ.get("KAMERSTUKKEN_LIVE"), reason="live: zet KAMERSTUKKEN_LIVE=1")
-def test_live_memorie_van_toelichting():
-    """Raakt de echte officiële publicaties (geen graaf, geen model): `KAMERSTUKKEN_LIVE=1 pytest …`."""
-    d = json.loads(tools.dispatch("get_kamerstuk", None, {"id": "kst-33755-3"}, AAN))
-    assert d["status"] == "ok" and d["stuk"]["titel"] == "MEMORIE VAN TOELICHTING" and d["resultaten"]

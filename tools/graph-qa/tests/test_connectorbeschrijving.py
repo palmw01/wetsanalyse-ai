@@ -147,3 +147,14 @@ def test_een_nieuwe_connector_komt_er_zonder_code_bij(monkeypatch):
     afgeleid = specialists._met_connectors(dict(specialists.SPECIALISTS))
     assert "zoek_testbron" in afgeleid["duiding"].tools
     assert "zoek_testbron" not in afgeleid["definitie"].tools
+
+
+@pytest.mark.parametrize("c", BESCHRIJVINGEN, ids=IDS)
+def test_elke_connector_heeft_een_live_proef(c: bm.ConnectorBeschrijving):
+    """Een nepbron bevestigt niet wat de connector van de echte dienst aanneemt. Per connector staat er een live-proef
+    in `tests/test_<naam>_live.py` met de marker `live`; `bronnenwacht.yml` draait die dagelijks (ADR-013, stap 6)."""
+    pad = WORTEL / "tools" / "graph-qa" / "tests" / f"test_{c.naam}_live.py"
+    assert pad.exists(), f"{c.naam}: geen live-proef in {pad.name}"
+    tekst = pad.read_text(encoding="utf-8")
+    assert "pytest.mark.live" in tekst and 'os.environ.get("BRONNEN_LIVE")' in tekst, (
+        f"{pad.name}: de proef hoort de marker `live` te dragen en zich zonder BRONNEN_LIVE over te slaan")

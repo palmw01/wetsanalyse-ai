@@ -1,0 +1,61 @@
+# De bronnenwacht: bewaakt dat de bronconnectors (ADR-013) nog passen op de echte externe dienst.
+#
+# WAAROM DIT BESTAAT. De suite van graph-qa draait tegen een nep van elke externe dienst (voor Kamerstukken de
+# SRU-zoekdienst van KOOP). Een nep bevestigt niet wat de connector van de echte dienst aanneemt: welke indexen er
+# zijn en of ze sorteren, de vorm van een record, waar het document staat, de versievelden. Verandert de dienst, dan
+# merkten we dat pas aan Lex.
+#
+# WAAROM NIET IN DE POORT. Dan hangt elke PR af van een externe dienst, zoals de poort nu al faalt als GitHub het
+# spaCy-model niet levert. De wacht meet daarom de toestand op een schema, zoals `bouwwacht.yml` en de graafwacht, en
+# faalt zichtbaar: GitHub meldt een mislukte geplande run, en de samenvatting zegt wat er brak. Een storing van de
+# dienst heet `DIENST ONBEREIKBAAR`; elke andere fout is een veranderd contract.
+#
+# HOE. Per connector `tools/graph-qa/tests/test_<naam>_live.py` met de marker `live` (afgedwongen door
+# `test_connectorbeschrijving.py`). Geen graaf, geen model, geen secrets: de bronnen zijn openbaar. `--frozen` is
+# nodig: zonder controleert uv de lock en haalt hij het spaCy-wiel (extra `nlp`) van GitHub, ook als het niet wordt
+# geïnstalleerd – precies de storing die de wacht niet mag erven.
+
+name: bronnenwacht
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bronnenwacht
+  cancel-in-progress: false
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: tools/graph-qa
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - name: Afhankelijkheden (zonder spaCy)
+        run: uv sync --frozen --extra dev --extra mcp
+      - name: Live-proef
+        env:
+          BRONNEN_LIVE: "1"
+        run: |
+          set -o pipefail
+          uv run --no-sync pytest -m live -q -rfE tests/test_*_live.py 2>&1 | tee /tmp/live.txt
+      - name: Samenvatting
+        if: always()
+        run: |
+          {
+            echo "## Bronnenwacht"
+            if grep -q "DIENST ONBEREIKBAAR" /tmp/live.txt 2>/dev/null; then
+              echo "Een externe dienst was onbereikbaar (na één herhaling). Geen contractwijziging vastgesteld."
+            fi
+            echo '```'
+            tail -n 40 /tmp/live.txt 2>/dev/null || echo "geen uitvoer"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -232,7 +232,9 @@ bruikbaar is.
   SRU-record en alleen `repository.overheid.nl` over https; een SRU-diagnose of storing is een foutresultaat
   (`bron_onbereikbaar`), nooit een lege lijst. Een rij draagt haar tekst onder `id`, niet onder `iri`/`uri`: een
   sjabloon citeert er dus niet uit als passage van een bepaling. Cache per proces en per id, met de teksthash in de
-  log. Live meten: `KAMERSTUKKEN_LIVE=1 uv run pytest tests/test_kamerstuk_tools.py`.
+  log. Het contract met de echte dienst (indexen, sortering, recordvorm, documentstatus) toetst
+  `tests/test_kamerstukken_live.py`: dagelijks in `bronnenwacht.yml`, lokaal met `BRONNEN_LIVE=1 uv run pytest -m live`
+  (marker `live`; elke connector heeft er een, `test_connectorbeschrijving.py`). Niet in de poort.
 - **`graph/queries.py`** – de SPARQL-bouwers (o.a. `context()` = de GraphRAG-UNION).
   **`graph/schema.py`** – schema-introspectie met een cache van een uur. **`graph/results.py`** –
   `parse_select`: de MCP levert SELECT als JSON-string-gewrapte TSV.
