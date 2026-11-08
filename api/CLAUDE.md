@@ -166,6 +166,18 @@ Hieronder wat je moet weten om de code te wijzigen.
     relaties=)`). Een directe triple `rel:<type>` komt er alleen bij een beoordeelde relatie; `veranderd` niet,
     want dat hangt af van een andere laag.
   - De graafcontrole meldt `relaties.hangend` en `relaties.kardinaliteit`, diagnostisch en buiten `in_orde`.
+  - **Voorstellen van de keten** komen mee in de batch (`Batch.relaties`, `RelatieVoorstel`: `van_ankers`, `naar_ankers`,
+    `type`, `volgorde`, `spoor`; graph-qa-proefvlag `RELATIE_VOORSTELLEN`). `annotatie_v2_relaties.leg_voorstellen` draait
+    ná de elementen in dezelfde transactie: een eindpunt is het element in `saved` met precies die ankers (twee klassen
+    op dezelfde ankers: de catalogus kiest, anders `dubbelzinnig`), daarna `toegestaan`. Vastgelegd als `herkomst:
+    "agent"`, `voorgesteld`, `aandacht: "groen"`, met het spoor en `geproduceerd_door` (zonder meting); auditregel
+    `relatie-voorgesteld`. Wat niet kan, staat in `relaties_overgeslagen` met een reden (`eindpunt_onbekend:<kant>`,
+    `klassen_passen_niet`, `dubbelzinnig`, `eindpunt_niet_actueel`, `laag_afgerond`, `volgorde_bezet`, …), nooit geraden.
+    Het id volgt uit de inhoud: een gelijk voorstel blijft gelijk, een afgewezen komt niet terug. Een ronde `opnieuw` met
+    voltooide dekking zet oude agentrelaties zonder oordeel in het bereik die niet opnieuw kwamen op `vervangen`
+    (`relaties_vervangen`, `relatie-vervangen`); een relatie van de jurist nooit. Een vervangen relatie staat niet in de
+    weergave en niet in de projectie; komt ze terug, dan leeft ze op (`relatie-hersteld`). Zonder relaties is de
+    vingerafdruk van de batch dezelfde als voor het veld bestond.
   - Zie de specificatie §*Relaties tussen markeringen*.
 - **Een oordeel vergrendelt.** Een element in `VERGRENDELD` dat van de agent komt of een oordeel draagt
   (`heeft_oordeel`), accepteert alleen `comment` en `heropen` (`annotatie_v2_store._beslis_in`). Afronden (`zet_status`

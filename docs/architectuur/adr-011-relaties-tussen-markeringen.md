@@ -1,6 +1,6 @@
 # ADR-011 — Relaties tussen markeringen (deelactiviteit 2c)
 
-Status: **aangenomen, nog niet gebouwd** · Datum: 2026-11-08 · Hoort bij: [ADR-001](adr-001-hybride-jas-pijplijn.md),
+Status: **aangenomen; opslag, projectie en de eerste keten-voorstellen (4C) gebouwd** · Datum: 2026-11-08 · Hoort bij: [ADR-001](adr-001-hybride-jas-pijplijn.md),
 [annotatie-bronnodes](annotatie-bronnodes.md), [PLAN open keuze 7](../PLAN.md#open-keuzes), skill
 [`references/relaties.md`](../../.claude/skills/wetsanalyse/references/relaties.md)
 
@@ -149,6 +149,15 @@ stelt de keten relaties voor (ADR-001: kennis in regels en tests), achter een pr
 
 Een strikte modelstap voor ambigue aanhechting en rollen volgt pas na een meting. Een voorstel is altijd een voorstel:
 een goedgekeurde markering keurt haar relaties niet goed.
+
+**Gebouwd (4C, 8 nov 2026): de stappen 1 tot en met 4**, in `tools/graph-qa/agent/jas_pipeline/relaties.py`, achter de
+proefvlag `RELATIE_VOORSTELLEN` (standaard uit; uit is de uitkomst van de keten bitgelijk). Elke regel heeft een code
+(`REL_UITVOER_FUNCTIE`, `REL_INVOER_FUNCTIE`, `REL_WAARDE_NESTING`, `REL_OPERATOR_IN_NESTING`,
+`REL_OPERAND_WOORDVOLGORDE`, `REL_VOORWAARDE_AANHECHTING`) met een verklaring en vier testsoorten. Bij twijfel komt er
+geen voorstel, en elk voorstel gaat door de catalogus, die graph-qa als gegenereerde kopie draagt. Een eindpunt is de
+lijst ankers van een voorstel; de api zet die in de batch om naar het element-id en meldt wat niet lukt. Een ronde
+`opnieuw` vervangt oude voorstellen zonder oordeel, zoals bij elementen. Kenmerk, tijd en rollen (stappen 5 tot en met
+7) volgen nog; een meting op een referentie ook.
 
 ## Gevolgen
 

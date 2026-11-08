@@ -276,7 +276,9 @@ async def _raak(conn, layer: dict, snapshot_id: str):
 
 
 async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -> dict:
-    fingerprint = digest({"request": req.model_dump(mode="json"), "actor": actor, "mens": mens})
+    # Zonder relatievoorstellen dezelfde vingerafdruk als voor het veld bestond: een herhaalde batch blijft idempotent.
+    fingerprint = digest({"request": req.model_dump(mode="json", exclude=None if req.relaties else {"relaties"}),
+                          "actor": actor, "mens": mens})
     async with schrijftransactie() as conn:
         cached = (await conn.execute(select(db.annotatie_v2_batches).where(
             db.annotatie_v2_batches.c.id == req.batch_id))).mappings().first()
@@ -420,6 +422,13 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
             saved.append(value)
         vervangen = await _vervang_oude_voorstellen(conn, req, current, saved, scope, layers, touched, actor) \
             if req.run.get("modus") == "opnieuw" and req.dekking.voltooid and not mens else []
+        # Relatievoorstellen van de keten (ADR-011): ná de elementen, onder hetzelfde slot, met de ankers omgezet naar de
+        # elementen die hier net zijn opgeslagen. Een eigen markering (`mens`) draagt er geen.
+        relaties = {"relaties": [], "overgeslagen": [], "vervangen": []}
+        if not mens and (req.relaties or (opnieuw and req.dekking.voltooid)):
+            from .annotatie_v2_relaties import leg_voorstellen
+            relaties = await leg_voorstellen(conn, req, saved, layers, touched, scope, actor,
+                                             opnieuw=opnieuw and req.dekking.voltooid)
         for layer in touched.values():
             await _raak(conn, layer, req.snapshot_id)
         if req.dekking.voltooid:
@@ -430,7 +439,8 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
         result = {"schema_versie": 2, "batch_id": req.batch_id, "doel": snapshot["doel"],
                   "annotatie_doel": {**snapshot["doel"], "snapshot_id": req.snapshot_id},
                   "snapshot_id": req.snapshot_id, "lagen": [publiek_laag(x) for x in touched.values()],
-                  "elementen": saved, "vervangen": vervangen}
+                  "elementen": saved, "vervangen": vervangen, "relaties": relaties["relaties"],
+                  "relaties_overgeslagen": relaties["overgeslagen"], "relaties_vervangen": relaties["vervangen"]}
         # Het beslisregister (V4) hoort bij de batch en staat daarom in dit auditrecord: zo is het
         # terug te lezen via de weergave en de export, ook voor kandidaten zonder element.
         await _audit(conn, actor, "batch", {"batch_id": req.batch_id,

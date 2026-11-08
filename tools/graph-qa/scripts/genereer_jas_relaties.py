@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Genereer de relatiecatalogus (ADR-011) uit de wetsanalyse-skill naar de api en de werkplek.
+"""Genereer de relatiecatalogus (ADR-011) uit de wetsanalyse-skill naar de api, graph-qa en de werkplek.
 
 De bron is `.claude/skills/wetsanalyse/relaties.json`. De api en de werkplek dragen elk een gegenereerde kopie, want
-het productie-image van de api draagt de skill niet en een browser kan geen JSON uit de repo lezen. Wie een type wil
+het productie-image van de api draagt de skill niet en een browser kan geen JSON uit de repo lezen. graph-qa draagt
+dezelfde Python als de api (`agent/jas_relaties.py`): de relatievoorstellen van de keten (`jas_pipeline/relaties.py`)
+toetsen ermee wat de api daarna opnieuw toetst, dus beide kanten lezen letterlijk dezelfde regels. Wie een type wil
 wijzigen, bewerkt de JSON en draait dit script; een met de hand bewerkte kopie faalt op `--check`.
 
 Alleen de standaardbibliotheek: `tests/poort` gebruikt `genereer()` ook. `scripts/genereer_jas_klassen.py` roept dit
@@ -22,6 +24,7 @@ from pathlib import Path
 WORTEL = Path(__file__).resolve().parents[3]
 BRON = WORTEL / ".claude" / "skills" / "wetsanalyse" / "relaties.json"
 API_DOEL = WORTEL / "api" / "app" / "jas_relaties.py"
+GRAPHQA_DOEL = WORTEL / "tools" / "graph-qa" / "agent" / "jas_relaties.py"
 FRONTEND_DOEL = WORTEL / "frontend" / "lib" / "jasRelaties.ts"
 
 #: De velden van een type in de gegenereerde vorm, met hun standaard.
@@ -129,7 +132,7 @@ def frontend_bron(catalogus: dict) -> str:
 def genereer(bron: Path = BRON) -> dict[Path, str]:
     """Doelbestand → verwachte inhoud."""
     catalogus = lees(bron)
-    return {API_DOEL: api_bron(catalogus), FRONTEND_DOEL: frontend_bron(catalogus)}
+    return {API_DOEL: api_bron(catalogus), GRAPHQA_DOEL: api_bron(catalogus), FRONTEND_DOEL: frontend_bron(catalogus)}
 
 
 def main(argv: list[str] | None = None) -> int:
