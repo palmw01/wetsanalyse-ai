@@ -24,6 +24,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import { lexStart, type LexStartArgs } from "./beurt.js";
 import { BronClient } from "./bron.js";
 import { AcceptatieClient, controleerUrl } from "./client.js";
 import { GraafClient } from "./graaf.js";
@@ -114,10 +115,12 @@ const TOOLS: ToolDef[] = [
   {
     name: "lex_start",
     description:
-      "Start een beurt van Lex, zoals de werkplek (POST /api/annotatie/run). Maak eerst een gesprek met " +
-      "`bff` POST /api/gesprekken. Een klik gaat als `intake_actie` of `actie`, met dezelfde inhoud als de " +
-      "knop stuurt; `extra` draagt de overige velden van een run (modus, bevestigd, bereik, deelvraag_id, " +
-      "onderwerp, context). Geeft het run_id; volg de beurt met lex_wacht.",
+      "Start een beurt van Lex, zoals de werkplek: eerst de vraag als user-bericht in het gesprek " +
+      "(POST /api/gesprekken/<id>/berichten), dan de run (POST /api/annotatie/run). Zo ziet wie meekijkt de vraag " +
+      "of klik én het antwoord. Maak eerst een gesprek met `bff` POST /api/gesprekken. Een klik gaat als " +
+      "`intake_actie` of `actie`, met dezelfde inhoud als de knop stuurt; `extra` draagt de overige velden van een " +
+      "run (modus, bevestigd, bereik, deelvraag_id, onderwerp, context). `vraag_bewaren: false` start alleen de run. " +
+      "Geeft het run_id (en in `vraag` hoe het bewaren ging); volg de beurt met lex_wacht.",
     input: S({
       vraag: z.string(),
       conversation_id: z.string(),
@@ -125,17 +128,10 @@ const TOOLS: ToolDef[] = [
       intake_actie: z.unknown().optional(),
       actie: z.unknown().optional(),
       extra: z.record(z.string(), z.unknown()).optional(),
+      vraag_bewaren: z.boolean().optional(),
       als: Als,
     }),
-    run: (a) =>
-      client(a.als).bff("POST", "/api/annotatie/run", {
-        question: a.vraag,
-        conversation_id: a.conversation_id,
-        ...(a.extra as Record<string, unknown> | undefined),
-        ...(a.werkgebied_id ? { werkgebied_id: a.werkgebied_id } : {}),
-        ...(a.intake_actie ? { intake_actie: a.intake_actie } : {}),
-        ...(a.actie ? { actie: a.actie } : {}),
-      }),
+    run: (a) => lexStart(client(a.als), a as unknown as LexStartArgs),
   },
   {
     name: "lex_wacht",

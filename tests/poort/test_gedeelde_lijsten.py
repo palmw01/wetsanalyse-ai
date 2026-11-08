@@ -60,3 +60,23 @@ def test_geheime_logvelden_lopen_niet_uiteen():
     assert m, "GEHEIME_VELDEN staat niet meer in frontend/lib/logger.ts"
     gevonden["frontend"] = set(re.findall(r'"([^"]+)"', m.group(1)))
     assert gevonden == {dienst: _KERN | eigen for dienst, eigen in _EIGEN.items()}
+
+
+def _velden(pad, functie: str) -> set[str]:
+    """De velden die een TypeScript-functie zet (`naam:` in een object of `bericht.naam =`), zonder de parameters en
+    het commentaar."""
+    m = re.search(rf"export function {functie}\(.*?\{{\n(.*?)\n\}}\n", pad.read_text(encoding="utf-8"), re.S)
+    assert m, f"{functie} staat niet meer in {pad}"
+    code = re.sub(r"//[^\n]*", "", m.group(1))
+    return {a or b for a, b in re.findall(r"\b([a-z_]+):\s|\bbericht\.([a-z_]+) =", code)}
+
+
+def test_de_acceptatie_mcp_bewaart_de_vraag_zoals_de_werkplek():
+    """De werkplek bewaart de vraag zelf als user-bericht (`userVelden`, met `antwoordOp` bij een vraagkaart-klik); de
+    acceptatie-MCP doet hetzelfde in `vraagBericht`, zodat wie meekijkt de vraag ziet. Een veld dat de werkplek erbij
+    zet en de MCP niet, maakt het gesprek na herladen anders (de Vragen-kaart, de knop bij een voorstel)."""
+    werkplek = _velden(FRONTEND / "lib" / "beurtVerzoek.ts", "userVelden") | _velden(
+        FRONTEND / "lib" / "vraagkaart.ts", "antwoordOp")
+    assert {"tekst", "intake_antwoord", "bevestiging_antwoord", "intake_id", "stap", "actie"} <= werkplek
+    mcp = _velden(WORTEL / "tools" / "wetsanalyse-acceptatie-mcp" / "src" / "beurt.ts", "vraagBericht")
+    assert werkplek - mcp == set()
