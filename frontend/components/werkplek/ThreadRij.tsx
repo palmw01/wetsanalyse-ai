@@ -22,7 +22,6 @@ import { Melding } from "@/components/ui/Melding";
 import { KeuzeKaart } from "@/components/werkplek/KeuzeKaart";
 import { Markdown, StreamendeTekst } from "@/components/werkplek/Markdown";
 import { ReeksBlok } from "@/components/werkplek/ReeksBlok";
-import { ToolSpoor } from "@/components/werkplek/ToolSpoor";
 import { VragenKaart } from "@/components/werkplek/VragenKaart";
 import {
   doelVanKandidaat, kandidaatLabel, kandidaatPrompt,
@@ -126,7 +125,6 @@ export const ThreadRij = memo(function ThreadRij({
       <div className="min-w-0 flex-1 text-sm text-ink">
         <p className="mb-1 text-xs font-medium text-muted">Lex</p>
         {item.denk && <DenkProces tekst={item.denk} actief={bezig && !item.tekst} />}
-        <ToolSpoor events={item.tool_executions} />
         {item.antwoord ? (
           <Antwoord antwoord={item.antwoord} bronnen={item.bronnen} nietLetterlijk={item.grounding?.niet_letterlijk} />
         ) : item.tekst ? (
@@ -248,12 +246,7 @@ export const ThreadRij = memo(function ThreadRij({
           onOpen={(o) => {
             if (o.annotatie_doel) acties.openReeksLid(item.reeks.runId, o.annotatie_doel);
           }}
-          spoor={(o, actief) => (
-            <>
-              {o.denk && <DenkProces tekst={o.denk} actief={actief} label="Zo is dit tot stand gekomen" />}
-              <ToolSpoor events={o.tool_executions} />
-            </>
-          )}
+          spoor={(o, actief) => o.denk && <DenkProces tekst={o.denk} actief={actief} label="Zo is dit tot stand gekomen" />}
         />
         {/* De samenvatting van een werkgebied-run komt ná de bepalingen. */}
         {item.tekst && <div className="mt-3"><Markdown tekst={item.tekst} /></div>}
@@ -307,7 +300,6 @@ export const ThreadRij = memo(function ThreadRij({
           );
         })()}
         {item.denk && <div className="mt-3"><DenkProces tekst={item.denk} actief={false} label="Zo is dit tot stand gekomen" /></div>}
-        <ToolSpoor events={item.tool_executions} />
       </div>
     </div>
   );

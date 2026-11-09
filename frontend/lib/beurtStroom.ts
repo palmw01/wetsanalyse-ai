@@ -8,7 +8,7 @@
 
 import type { AgentDoel, AgentHergebruik, AgentKandidaat, AgentKeuze, BeurtMeting, Bevestiging } from "./types";
 import type { Artefact } from "./artefact";
-import { mergeToolExecution, type NodeDoel, type ToolExecution } from "./annotatieNode";
+import { type NodeDoel } from "./annotatieNode";
 import { verwerkReeksEvent, type Reeks } from "./reeks";
 import type { Vervolg } from "./vraagLex";
 
@@ -32,13 +32,12 @@ export interface StroomStand {
   hergebruik?: AgentHergebruik;
   meting?: BeurtMeting;
   opgeslagen: Opgeslagen | null;
-  toolExecutions: ToolExecution[];
   /** Kwam er iets over déze verbinding binnen? Dan telt een volgende breuk als een verse onderbreking. */
   ontving: boolean;
 }
 
 export const LEGE_STAND: StroomStand = {
-  tekst: "", denk: "", reeks: null, kandidaten: [], doel: null, opgeslagen: null, toolExecutions: [], ontving: false,
+  tekst: "", denk: "", reeks: null, kandidaten: [], doel: null, opgeslagen: null, ontving: false,
 };
 
 export type StroomEvent =
@@ -46,7 +45,6 @@ export type StroomEvent =
   | { type: "status"; bericht: string }
   | { type: "reason"; tekst: string }
   | { type: "token"; tekst: string }
-  | { type: "tool"; event: ToolExecution }
   | { type: "doel"; doel: AgentDoel }
   | { type: "kandidaten"; kandidaten: AgentKandidaat[]; keuze?: AgentKeuze }
   | { type: "reeks"; event: Record<string, unknown> }
@@ -75,7 +73,6 @@ export function stroomReducer(s: StroomStand, e: StroomEvent): StroomStand {
     case "status": return { ...s, denk: s.denk + (s.denk ? "\n" : "") + "· " + e.bericht };
     case "reason": return { ...s, denk: s.denk + metRegelgrens(s.denk, e.tekst) };
     case "token": return { ...s, tekst: s.tekst + e.tekst };
-    case "tool": return { ...s, toolExecutions: mergeToolExecution(s.toolExecutions, e.event) };
     case "doel": return { ...s, doel: e.doel };
     case "kandidaten": return { ...s, kandidaten: e.kandidaten, keuze: e.keuze };
     case "reeks": {

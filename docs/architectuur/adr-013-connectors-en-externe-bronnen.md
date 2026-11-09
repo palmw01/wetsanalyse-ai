@@ -84,7 +84,10 @@ de wettekst en vult nooit een `doel`.
 
 1. een beschrijving in `bronmodel/connectors.py` (alle velden, ook de werkwoorden per tool voor het denkproces en wat
    de leestool levert en niet levert; `brontype` uit `extern.BRONTYPEN`, eventueel een nieuw
-   soort id in `extern.py` met vectoren);
+   soort id in `extern.py` met vectoren). Daarbij de **metadata** per stuk (`metadata`, `MetadataVeld`): in de vaste
+   sleutels van `METADATA_SLEUTELS` (minstens `datum`, `titel` en `leesbaar`), per veld waar het bij de dienst
+   vandaan komt, wat het betekent en op welk zoekargument het filtert, en de `standaard_datum` voor "nieuwste".
+   Alleen velden die de dienst echt levert: toets dat met de live-proef;
 2. de tools in `tools/graph-qa/agent/tools/`, met het resultaatcontract; de leestool levert `stuk: {id, label, link, bron_hash, gewijzigd?}` en
    rijen `{nr, tekst, kop?, soort?}` (één nummering per stuk; `soort` is `alinea`, `voetnoot`, `tabel` of `tabelrij`, een
    `tabel` draagt `openen` naar de leestool en een `tabelrij` haar `cellen`), en een tak in `dispatch`;
@@ -99,6 +102,19 @@ de wettekst en vult nooit een `doel`.
    [`../acceptatie/connectors-meting.md`](../acceptatie/connectors-meting.md).
 
 Verder hoeft er niets bij: geen prompttekst, geen route, geen sjabloon, geen werkplekcomponent per connector.
+
+### Metadata als deel van het contract (9 nov 2026)
+
+Een feit over een stuk (de datum, het soort, het dossier, de status) komt uit de dienst, niet uit de tekst van het model:
+in gesprek e906567a op acceptatie noemde Lex het verkeerde "laatste stuk" van een dossier, twee keer, en de datum van een
+gelezen motie kwam uit de modeltekst. Daarom beschrijft elke connector zijn metadata in vaste sleutels
+(`METADATA_SLEUTELS`), zodat dezelfde code de lijst in een antwoord, de kop van een gelezen stuk en de werkplek vult.
+De poorttest eist datum, titel en leesbaar, een sorteerbare `standaard_datum`, en dat elk filter een argument van een
+zoektool is. Wat de SRU van KOOP levert en wat niet, is live getoetst (9 nov 2026): `sortBy` in de CQL werkt, de
+parameter `sortKeys` wordt stil genegeerd; documentdatum (`dt.date`) en publicatiedatum (`dt.available`) lopen soms
+weken uiteen, en "nieuwste" ordent op de documentdatum (besluit gebruiker). Het vervolg (de adapter leest alle velden,
+filters en volgorde in de zoektool, een lijstblok in het antwoord, zoeken in de tekst, een vaste route voor lijstvragen)
+volgt in aparte PR's.
 
 ### Review van de Kamerstuk-connector (8 nov 2026)
 

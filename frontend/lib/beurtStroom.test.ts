@@ -43,14 +43,6 @@ describe("stroomReducer", () => {
     expect(r.tekst).toBe("Inleiding");
   });
 
-  it("tool-events worden samengevoegd per aanroep", () => {
-    const s = speel([
-      { type: "tool", event: { type: "tool_execution", run_id: "r", call_id: "c1", tool: "t", phase: "start" } as never },
-      { type: "tool", event: { type: "tool_execution", run_id: "r", call_id: "c1", tool: "t", phase: "end", status: "ok" } as never },
-    ]);
-    expect(s.toolExecutions).toHaveLength(1);
-  });
-
   it("dezelfde eventlog twee keer afspelen geeft dezelfde stand (opnieuw verbinden vanaf seq 0)", () => {
     const log: StroomEvent[] = [
       { type: "leeft" }, { type: "status", bericht: "Bron" }, { type: "token", tekst: "Antwoord" },

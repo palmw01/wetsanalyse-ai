@@ -33,6 +33,33 @@ from typing import Any
 # Eén begroting per toolresultaat, in tekens van de JSON zoals het model hem krijgt.
 BUDGET = 8000
 
+_NIET_BEREIKBAAR = "niet bereikbaar"
+_NIET_BESCHIKBAAR = "niet beschikbaar in deze omgeving"
+_TE_GROOT = "gaf meer dan Lex in één keer kan verwerken"
+_VRAAG_KLOPTE_NIET = "de zoekvraag klopte niet"
+
+#: Wat een `reden` (of de `foutcode` van `tool_execution`) betekent, in de woorden van de jurist: het denkproces zegt
+#: zo wat er ontbrak, zonder code (`spoorbronnen.uitkomstregel`). Voer je een nieuwe reden in, zet hem hier;
+#: `tests/test_spoorbronnen.py` zoekt elke reden in de code op. Een onbekende reden heet "gaf een fout".
+REDEN_ZIN: dict[str, str] = {
+    "bron_onbereikbaar": _NIET_BEREIKBAAR, "graaf_onbereikbaar": _NIET_BEREIKBAAR,
+    "annotatie_api_onbereikbaar": _NIET_BEREIKBAAR, "begrippen_api_onbereikbaar": _NIET_BEREIKBAAR,
+    "annotatie_api_niet_ingesteld": _NIET_BESCHIKBAAR, "begrippen_api_niet_ingesteld": _NIET_BESCHIKBAAR,
+    "annotatie_gebruikerscontext_ontbreekt": _NIET_BESCHIKBAAR,
+    "begrippen_gebruikerscontext_ontbreekt": _NIET_BESCHIKBAAR,
+    "connector_uit": "staat uit in dit gesprek",
+    "tool_mislukt": "mislukt",
+    "tool_resultaat_te_groot": _TE_GROOT, "resultaatcontract_overschreden": _TE_GROOT,
+    "resultaat_te_groot": _TE_GROOT, "ondeelbare_eenheid_te_groot": _TE_GROOT,
+    "ongeldige_argumenten": _VRAAG_KLOPTE_NIET, "ongeldig_id": _VRAAG_KLOPTE_NIET,
+    "ongeldige_tabel": _VRAAG_KLOPTE_NIET, "ongeldig_dossier": _VRAAG_KLOPTE_NIET,
+    "limit_te_hoog": _VRAAG_KLOPTE_NIET, "limit_ontbreekt": _VRAAG_KLOPTE_NIET, "alleen_select": _VRAAG_KLOPTE_NIET,
+    "is_een_id": _VRAAG_KLOPTE_NIET, "eigen_waarden": _VRAAG_KLOPTE_NIET,
+    "onleesbaar_document": "het stuk is niet te lezen",
+    "overzicht_niet_opgebouwd": "het overzicht kon niet worden opgebouwd",
+    "onvolledig_antwoord": "gaf een onvolledig antwoord",
+}
+
 
 def compact(rij: dict[str, Any]) -> dict[str, Any]:
     """Een rij zonder lege velden: een lege OPTIONAL is geen informatie, wel ruis."""

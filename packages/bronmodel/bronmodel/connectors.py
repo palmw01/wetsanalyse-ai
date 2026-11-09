@@ -27,6 +27,49 @@ def bronnen_tekst(labels: list[str] | tuple[str, ...]) -> str:
     return "de kennisgraaf" if not labels else "de wetgeving en " + _opsomming(tuple(labels))
 
 
+#: De metadata van een stuk, in vaste sleutels voor elke connector, met hun type. Een connector levert een deel ervan;
+#: welk deel, en waar het bij de dienst vandaan komt, staat in zijn beschrijving (`metadata`). Zo vult dezelfde code de
+#: lijst in een antwoord, de kop van een gelezen stuk en de werkplek, welke connector het ook is: een feit als de datum
+#: komt uit de dienst, niet uit de tekst van het model.
+METADATA_SLEUTELS: dict[str, str] = {
+    "datum": "datum",          # de datum van het stuk zelf
+    "gepubliceerd": "datum",   # wanneer de dienst het publiceerde
+    "gewijzigd": "datum",      # wanneer de dienst de publicatie het laatst bijwerkte
+    "titel": "tekst",          # de titel van het stuk zelf
+    "soort": "tekst",          # het soort stuk ("Memorie van toelichting", "Motie", "Uitspraak")
+    "reeks": "lijst",          # waar het stuk bij hoort (een dossier, een zaak); de eerste is de hoofdreeks
+    "reekstitel": "tekst",     # de titel van de hoofdreeks
+    "nummer": "tekst",         # het nummer binnen de reeks
+    "jaar": "tekst",           # het (vergader)jaar
+    "orgaan": "tekst",         # wie het stuk uitbracht (een Kamer, een gerecht)
+    "indieners": "lijst",      # wie het stuk indiende of ondertekende
+    "status": "tekst",         # de stand van de publicatie (onopgemaakt, opgemaakt)
+    "versie": "tekst",         # herdruk, rectificatie
+    "leesbaar": "waarheid",    # of de leestool de tekst kan lezen
+}
+
+
+@dataclass(frozen=True)
+class MetadataVeld:
+    """Eén metadataveld dat een connector per stuk levert."""
+    #: Een sleutel uit `METADATA_SLEUTELS`.
+    sleutel: str
+    #: In de woorden van de jurist ("documentdatum", "dossier").
+    label: str
+    #: Waar het bij de dienst vandaan komt (de index of het element), voor wie de connector onderhoudt.
+    bron: str
+    #: Wat het veld betekent, in één zin; ook wat het níet is, als dat verwarring voorkomt.
+    betekenis: str
+    #: Het argument van de zoektool dat op dit veld filtert; leeg als dat (nog) niet kan.
+    filter: str = ""
+    #: Of Lex de stukken op dit veld kan ordenen (bij de dienst of in de tool).
+    sorteerbaar: bool = False
+
+    @property
+    def type(self) -> str:
+        return METADATA_SLEUTELS.get(self.sleutel, "")
+
+
 @dataclass(frozen=True)
 class ConnectorBeschrijving:
     #: De sleutel: in het register, in `ChatRequest.bronnen`, in `Settings.connector_<naam>`.
@@ -77,6 +120,11 @@ class ConnectorBeschrijving:
     beheer: str
     #: Vragen die binnen scope vallen en deze bron raken; routering, tests en de meting gebruiken ze.
     voorbeeldvragen: tuple[str, ...]
+    #: Wat de connector per stuk aan metadata levert (`MetadataVeld`, sleutels uit `METADATA_SLEUTELS`). Leeg mag alleen
+    #: voor een nep in een test; de poorttest eist het voor elke echte connector.
+    metadata: tuple[MetadataVeld, ...] = ()
+    #: De datum waar "nieuwste" en "oudste" op ordenen: een sleutel van het type `datum` uit `metadata`.
+    standaard_datum: str = ""
     _patronen: tuple[re.Pattern[str], ...] = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
@@ -99,6 +147,15 @@ class ConnectorBeschrijving:
             if all(n in waarden for n in nodig):
                 return vorm.format(**{n: waarden[n][:60] for n in nodig})
         return re.sub(r"\s*\{\w+\}", "", vormen[-1]).strip()
+
+    def veld(self, sleutel: str) -> MetadataVeld | None:
+        """Het metadataveld met deze sleutel, of None als de connector het niet levert."""
+        return next((v for v in self.metadata if v.sleutel == sleutel), None)
+
+    @property
+    def filters(self) -> dict[str, MetadataVeld]:
+        """Per argument van de zoektool het metadataveld waarop het filtert."""
+        return {v.filter: v for v in self.metadata if v.filter}
 
     @property
     def env(self) -> str:
@@ -149,6 +206,35 @@ KAMERSTUKKEN = ConnectorBeschrijving(
         "Wat zegt kst-33755-3 over de bestuurdersaansprakelijkheid?",
         "Wat bedoelde de wetgever met artikel 36 van de Invorderingswet 1990?",
     ),
+    # Uit de SRU-records van KOOP (handleiding SRU 2.0 v1.4, p. 16–23), live getoetst op 9 nov 2026. `w.ondertekening`
+    # en `w.datumBrief` bestaan als index, maar stonden in geen enkel Kamerstukrecord: die bieden we niet aan.
+    metadata=(
+        MetadataVeld("datum", "documentdatum", "dt.date",
+                     "de datum van het stuk zelf; daarop ordenen 'nieuwste' en 'oudste'", sorteerbaar=True),
+        MetadataVeld("gepubliceerd", "gepubliceerd", "dt.available",
+                     "wanneer KOOP het stuk publiceerde; dat kan weken na de documentdatum zijn", sorteerbaar=True),
+        MetadataVeld("gewijzigd", "gewijzigd", "dt.modified",
+                     "wanneer KOOP de publicatie het laatst bijwerkte, niet wanneer het stuk zelf veranderde"),
+        MetadataVeld("titel", "titel", "w.documenttitel", "de titel van het stuk, zonder de dossiertitel"),
+        MetadataVeld("soort", "soort stuk", "w.subrubriek",
+                     "het soort Kamerstuk, zoals 'Memorie van toelichting', 'Motie' of 'Brief regering'"),
+        MetadataVeld("reeks", "dossier", "w.dossiernummer",
+                     "de dossiers waar het stuk bij hoort; het eerste is het hoofddossier", filter="dossier"),
+        MetadataVeld("reekstitel", "dossiertitel", "w.dossiertitel", "de titel van het hoofddossier"),
+        MetadataVeld("nummer", "nummer", "w.ondernummer",
+                     "het nummer binnen het dossier; letters zijn stukken van de Eerste Kamer", sorteerbaar=True),
+        MetadataVeld("jaar", "vergaderjaar", "w.vergaderjaar", "het vergaderjaar, zoals '2025-2026'"),
+        MetadataVeld("orgaan", "Kamer", "dt.creator", "de Tweede of de Eerste Kamer der Staten-Generaal"),
+        MetadataVeld("indieners", "indieners", "w.indiener", "wie het stuk indiende, bij een motie of amendement"),
+        MetadataVeld("status", "documentstatus", "w.documentstatus",
+                     "Onopgemaakt, Opgemaakt of Opgemaakt na onopgemaakt; een onopgemaakt stuk wordt later vervangen "
+                     "door de opgemaakte versie, onder een ander id"),
+        MetadataVeld("versie", "versie", "w.versieinformatie, w.versienummer",
+                     "herdruk, rectificatie of herplaatsing; een herdruk heeft een eigen id (kst-…-n1)"),
+        MetadataVeld("leesbaar", "leesbaar", "itemUrl manifestation=xml",
+                     "of de tekst te lezen is; een onopgemaakt stuk heeft vaak alleen een PDF"),
+    ),
+    standaard_datum="datum",
 )
 
 #: De bronconnectors, in de volgorde van het menu en de beheertab.

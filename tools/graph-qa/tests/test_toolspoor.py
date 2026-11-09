@@ -43,7 +43,7 @@ def _voer_uit(name: str, antwoord: dict) -> list[dict]:
     events: list[dict] = []
     execute_tool(SimpleNamespace(), {"run_id": "r1"}, events.append, {"name": name, "id": "c1", "input": {}},
                  operation=lambda: json.dumps(antwoord))
-    return events
+    return [e for e in events if e.get("type") == "tool_execution"]
 
 
 def test_dekking_heeft_geen_aantal():
