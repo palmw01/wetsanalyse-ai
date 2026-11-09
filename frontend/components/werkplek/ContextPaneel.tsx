@@ -6,7 +6,6 @@ import { StandMelding } from "@/components/ui/StandMelding";
 import Link from "next/link";
 import { createContext, useEffect, useState } from "react";
 
-import { KnoopTekst } from "@/components/graaf/KnoopTekst";
 import { BepalingFeiten } from "@/components/werkplek/BepalingFeiten";
 import { WaaromUitklap } from "@/components/annotaties/WaaromUitklap";
 import { OverzichtPaneel } from "@/components/werkplek/OverzichtPaneel";
@@ -15,7 +14,9 @@ import { StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { LIFECYCLE_LABEL } from "@/lib/annotatie";
-import { haalElementDetail, haalNodeWeergave, nodeLink, type ElementDetail, type NodeWeergave } from "@/lib/annotatieNode";
+import { haalElementDetail, nodeLink, type ElementDetail } from "@/lib/annotatieNode";
+import { useBepaling } from "@/lib/useBron";
+import { WettekstBlok } from "@/components/wettekst/WettekstBlok";
 import { foutTekst, haalWerkgebied } from "@/lib/api";
 import { jasStyle, klasseLabel } from "@/lib/jas";
 import { herkomstKop, vindplaatsTekst, type StandMeldingData } from "@/lib/herkomst";
@@ -101,18 +102,9 @@ function Kop({ children }: { children: React.ReactNode }) {
 function BronInhoud({ doel, onWissel, meldingen }: {
   doel: Extract<ContextDoel, { soort: "bron" }>; onWissel: (d: ContextDoel) => void; meldingen: StandMeldingData[];
 }) {
-  const [view, setView] = useState<NodeWeergave | null>(null);
-  const [fout, setFout] = useState<string | null>(null);
-  useEffect(() => {
-    let levend = true;
-    haalNodeWeergave({ bron_iri: doel.bron_iri })
-      .then((v) => levend && setView(v))
-      .catch((e) => levend && setFout(foutTekst(e, "De bepaling kon niet worden geladen.")));
-    return () => { levend = false; };
-  }, [doel.bron_iri]);
+  const { view, actueel, fout } = useBepaling(doel.bron_iri);
   if (fout) return <Melding type="fout" compact>{fout}</Melding>;
   if (!view) return <Laden />;
-  const actueel = view.elementen.filter((e) => !e.verouderd && e.lifecycle !== "rejected");
   const openElement = (id: string) => {
     const e = actueel.find((x) => x.id === id);
     onWissel({ soort: "element", element_id: id, titel: e ? `${klasseLabel(e.klasse)} · “${e.tekst}”` : "" });
@@ -121,7 +113,7 @@ function BronInhoud({ doel, onWissel, meldingen }: {
     <StandMelding meldingen={meldingen} />
     <section>
       <Kop>Wettekst</Kop>
-      <KnoopTekst segmenten={view.segmenten} elementen={actueel} kiesbaar={() => true} onKies={openElement} />
+      <WettekstBlok segmenten={view.segmenten} elementen={actueel} kiesbaar={() => true} onKies={openElement} />
     </section>
     <section>
       <Kop>JAS-elementen ({actueel.length})</Kop>
@@ -170,7 +162,7 @@ function ElementInhoud({ id }: { id: string }) {
     </div>
     <section>
       <Kop>Bronvoorkomen</Kop>
-      <KnoopTekst segmenten={d.bronnen} elementen={[el]} kiesbaar={() => false} onKies={() => {}} />
+      <WettekstBlok segmenten={d.bronnen} elementen={[el]} />
     </section>
     {el.toelichting?.trim() && <section><Kop>Toelichting</Kop><p className="text-sm text-ink">{el.toelichting}</p></section>}
     {el.review_uitleg && <section><Kop>Review</Kop><p className="text-sm text-ink">{el.review_uitleg}</p></section>}

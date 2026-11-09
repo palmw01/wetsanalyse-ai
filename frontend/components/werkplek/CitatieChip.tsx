@@ -5,11 +5,12 @@ import { createPortal } from "react-dom";
 
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
 import { HerkomstRegel } from "@/components/ui/HerkomstRegel";
+import { BepalingTekst } from "@/components/wettekst/WettekstBlok";
 import { ContextPaneelContext } from "@/components/werkplek/ContextPaneel";
 import type { NodeDoel } from "@/lib/annotatieNode";
 import { herkomstLabel, herkomstVan } from "@/lib/herkomst";
 import { plaatsPopover } from "@/lib/popover";
-import { bronDoel, haalSamenhang } from "@/lib/samenhang";
+import { bronDoel } from "@/lib/samenhang";
 import type { Bron } from "@/lib/types";
 import { bronHref } from "@/lib/url";
 
@@ -47,15 +48,6 @@ function BronKaart({ doel, bron, rect, onSluit, onOpenSamenhang }: {
   const ref = useRef<HTMLDivElement>(null);
   // In de werkplek: de bepaling naast het gesprek openen (spoor G4), met haar markeringen en elementen.
   const openContext = useContext(ContextPaneelContext);
-  const [tekst, setTekst] = useState<string>();
-  const [fout, setFout] = useState(false);
-  useEffect(() => {
-    let weg = false;
-    haalSamenhang(doel).then((s) => {
-      if (!weg) setTekst(s.knopen.find((k) => k.id === doel.bron_iri)?.tekst ?? "");
-    }, () => { if (!weg) setFout(true); });
-    return () => { weg = true; };
-  }, [doel]);
   useEffect(() => {
     ref.current?.focus();
     const opToets = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopPropagation(); onSluit(); } };
@@ -73,11 +65,7 @@ function BronKaart({ doel, bron, rect, onSluit, onOpenSamenhang }: {
     className="z-50 rounded-kaart border border-line bg-paper p-3 text-left text-xs shadow-kaart outline-none">
     <p className="font-semibold text-lint">{herkomst.bepaling}</p>
     <HerkomstRegel herkomst={herkomst} link={false} />
-    <p className="mt-1.5 max-h-32 overflow-y-auto leading-relaxed text-ink">
-      {fout ? <span className="text-muted">De tekst kon niet worden opgehaald.</span>
-        : tekst === undefined ? <span className="text-muted">Tekst ophalen…</span>
-        : tekst || <span className="text-muted">Deze bepaling heeft geen eigen tekst.</span>}
-    </p>
+    <BepalingTekst bronIri={doel.bron_iri} className="mt-1.5 max-h-32 overflow-y-auto" />
     <div className="mt-2 flex flex-wrap items-center gap-3">
       {href && <a href={href} target="_blank" rel="noopener noreferrer" className="text-lint underline underline-offset-2">wetten.overheid.nl</a>}
       {openContext && <button type="button" data-naast-gesprek

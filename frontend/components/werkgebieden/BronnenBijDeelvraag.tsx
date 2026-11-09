@@ -10,7 +10,7 @@ import { StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { Groep, GroepRij } from "@/components/ui/Pagina";
 import { SkeletonCard } from "@/components/ui/Skeleton";
-import { Wettekst } from "@/components/bronnen/Wettekst";
+import { BepalingTekst } from "@/components/wettekst/WettekstBlok";
 import { PeildatumRegel } from "@/components/werkgebieden/Peildatum";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
@@ -307,7 +307,7 @@ function BronRij({ werkgebiedId, bronIri, label, rol, selectie, beheer, ook, sta
           }}
         </MeerMenu>
       )}
-      onder={tekst && <Wettekst bronIri={bronIri} werkgebiedId={werkgebiedId} />} />
+      onder={tekst && <BepalingTekst bronIri={bronIri} werkgebiedId={werkgebiedId} link className={"rounded-kaart border border-line bg-surface/60 px-3 py-2.5 mx-4 mb-2"} />} />
   );
 }
 
@@ -374,7 +374,7 @@ function Voorstel({ o, d, k, beslis, inGesprek = false, alleenLezen = false }: {
         : { href: bronPad(k.bron_iri, o.werkgebied_id) })}
       status={<StatusLabel toon={k.stand === "voorgesteld" ? "geel" : "neutraal"}>{label}</StatusLabel>}
       onder={(<>
-        {tekst && <Wettekst bronIri={k.bron_iri} werkgebiedId={o.werkgebied_id} />}
+        {tekst && <BepalingTekst bronIri={k.bron_iri} werkgebiedId={o.werkgebied_id} link className={"rounded-kaart border border-line bg-surface/60 px-3 py-2.5 mx-4 mb-2"} />}
         {!alleenLezen && <div className="flex flex-col gap-2 px-4 pb-3 sm:flex-row sm:items-center">
           {uitsluiten ? (
             <form className="flex w-full flex-col gap-2 sm:flex-row" onSubmit={(e) => {

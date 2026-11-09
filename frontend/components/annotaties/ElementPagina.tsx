@@ -8,7 +8,7 @@ import { Regel, Regels, StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { Kaart, PaginaKop, SplitDetail, Stip } from "@/components/ui/Pagina";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { KnoopTekst } from "@/components/graaf/KnoopTekst";
+import { WettekstBlok } from "@/components/wettekst/WettekstBlok";
 import { WaaromUitklap } from "@/components/annotaties/WaaromUitklap";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
 import { isBeslist, LIFECYCLE_LABEL } from "@/lib/annotatie";
@@ -126,7 +126,7 @@ export function ElementPagina({ id }: { id: string }) {
                     De wettekst is veranderd sinds dit element is gemaakt. Het blijft staan als historie en is alleen-lezen.
                   </Melding>
                 )}
-                <KnoopTekst groot segmenten={d.bronnen} elementen={[el]} kiesbaar={() => false} onKies={() => {}} />
+                <WettekstBlok groot segmenten={d.bronnen} elementen={[el]} />
               </Kaart>
               <Kaart titel="Classificatie">
                 <Regels className="text-sm">

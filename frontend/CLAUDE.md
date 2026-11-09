@@ -130,6 +130,16 @@ stand komt uit `lib/herkomst.ts`.
   van `bronmodel.vindplaats`), geen eigen zin over de stand.
 - Wat het venster opent, is een `BronDoel` (`lib/bronDoel.ts`): een bepaling of een stuk uit een bronconnector.
 
+**De wettekst** (het bronvenster, PR 2; `app/wettekst.test.ts`) wordt op één manier getekend en opgehaald.
+- `components/wettekst/WettekstBlok` tekent de segmenten met de markeringen op hun ankers (`kiesbaar`/`onKies`,
+  `gekozen`, `groot`), of een losse tekst met één fragment aangewezen (`tekst` + `markeer`, de herbeoordeling).
+  `BepalingTekst` haalt de tekst van één bepaling zelf op, met laadregel, foutzin en eventueel *Open de bepaling*.
+- `lib/useBron.ts` (`useBepaling`, `haalBepalingWeergave`, `vergeetBepalingWeergave`) is de enige plek naast de
+  annotatieopslag die `haalNodeWeergave` aanroept: wat bewaard is staat er meteen, de lezing ernaast houdt de
+  markeringen bij (`maakWeergaveCache` in `lib/bronWeergave.ts`). `actueleElementen` is de ene filter op de markeringen
+  in de lopende tekst.
+- Geen eigen component `Wettekst`, geen `KnoopTekst`; het annotatiepaneel (`DocumentPaneel`) blijft tot de annoteerfase.
+
 ### Vormgeving (Rijkshuisstijl, Belastingdienst-stijlvak)
 
 - **Tokens, geen hex-waarden.** Kleur en typografie lopen via CSS-variabelen in `app/globals.css` →
@@ -550,7 +560,7 @@ en reist mee in het bericht (`Bericht.overzicht`), ook als de werkplek het beric
 Het staat **naast het gesprek** (besluit gebruiker 6 nov 2026, in de lijn van de bronselectie): in het gesprek de
 samenvatting met een kaartje (`OverzichtKaartje`), en **`OverzichtPaneel`** in het `ContextPaneel` (`soort: "overzicht"`,
 de inhoud uit het bericht, zonder pagina). Het paneel opent vanzelf vanaf 800px; daaronder met het kaartje of de balk
-boven de chat. Het toont, naast de samenvatting die graph-qa uit dezelfde data schrijft, zonder model: per regeling de delen als uitklapbare rijen met **al** hun bepalingen, één tegelijk met de wettekst (`Wettekst`) eronder (`kop`/`naam` uit de data via `deelKop` en
+boven de chat. Het toont, naast de samenvatting die graph-qa uit dezelfde data schrijft, zonder model: per regeling de delen als uitklapbare rijen met **al** hun bepalingen, één tegelijk met de wettekst (`BepalingTekst`) eronder (`kop`/`naam` uit de data via `deelKop` en
 `bepalingNaam` – nooit een bereik; de naam zoals de bron hem geeft, ook waar de Leidraad wisselt), wat het onderwerp verder noemt met zijn
 plek in de opbouw (ingeklapt; open als de regeling geen deel heeft), de wettelijke definitie met haar
 `vindplaats`, het redactionele trefwoord en waarop er gezocht is (`zoekverantwoording`). **Bij een
@@ -565,7 +575,7 @@ Een vindplaats die Lex in gewone taal noemt ("artikel 9 lid 2", "art. 10a, derde
 artikelbron bij "artikel 9, eerste lid" opent dat lid via `data-doel`). De rehype-plugin `markeerCitaties` wikkelt de
 vermelding in een `cite` – de tekst zelf verandert niet, net als bij `markeerPassages`. Een klik
 opent `CitatieChip` → een bronkaart via een portal (een `Popover` is een `div` en mag niet in een
-alinea), met de wettekst (lui via `haalSamenhang`), een link naar wetten.overheid.nl en *Bekijk
+alinea), met de wettekst (lui via `BepalingTekst`, de gedeelde weergave), een link naar wetten.overheid.nl en *Bekijk
 in de graaf*. Geen chip bij twijfel: liever een vermelding zonder kaart dan een kaart bij de
 verkeerde bepaling. Werkt ook na herladen, want alleen `tekst` en `bronnen` zijn nodig. De lijst
 *Bronnen (n)* is **één bron per bepaling, gegroepeerd per regeling** (`normaliseerBronnen` in
@@ -672,7 +682,7 @@ heeft *Verzend* (`isLaatsteVraag`), want wat erna komt hangt af van het antwoord
   via `paneelTelling` en het venster-event `BRONSELECTIE_GEWIJZIGD`) met *Bronnen beoordelen* (opent het paneel),
   *Klaar* (`klaarActie`) en regels om zelf bepalingen te noemen (`MeerRegels`, `typActie` met `teksten`; ze worden
   voorstellen in het paneel). In het paneel (`inGesprek`) klappen kandidaten en bronnen uit met
-  de wettekst (`GroepRij uitklap`, `Wettekst`), in plaats van naar de bronpagina te gaan. Onder de actieve
+  de wettekst (`GroepRij uitklap`, `BepalingTekst`), in plaats van naar de bronpagina te gaan. Onder de actieve
   deelvraag staat *Klaar met deze deelvraag*; die stuurt de actie van het open
   kaartje (`onKlaar`/`klaarVoor` vanuit `WerkplekClient`). Browserregressie: `scripts/test-bronselectie-paneel.mjs`.
 - **Een bronselectiebeurt blijft een antwoord met kaartje**: het artefact `bronselectie` maakt er geen
@@ -989,7 +999,7 @@ bestaat los van de gesprekken.
     werkgebied hoort); verwijderen staat in het menu ⋯.
 - **Elk juridisch object heeft een eigen pagina** (spoor G3; paden in `lib/werkgebiedPaden.ts`):
   - **Bepaling** `/bronnen?bron_iri=…[&werkgebied=]` (`components/bronnen/BronPagina`): de letterlijke
-    wettekst met álle markeringen in hun JAS-kleur (`KnoopTekst groot`; een klik opent het element), de
+    wettekst met álle markeringen in hun JAS-kleur (`WettekstBlok groot`; een klik opent het element), de
     elementen als rijen, wat de kennisgraaf weet (`KnoopFeiten`), de werkgebieden met deze bepaling
     (`lijstWerkgebieden({bronIri})`) en *Opnemen in werkgebied*. Met `werkgebied` gaat het kruimelpad via
     dat werkgebied en staat *Bespreek met Lex* over de bronselectie in de kop. Het bronregister linkt hierheen.
@@ -1663,12 +1673,12 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   de kaart blijft liggen. Een niet-geïmporteerde bepaling (`extern`) is niet te laden. Afstand en
   positie betekenen juridisch niets; dat staat in de legenda.
 - **De inspector** (`GraafInspector`) **toont alles meteen, zonder de graaf te verlaten**: soort en naam,
-  *Centreren* en ✕, de wettekst met de markeringen erin in hun JAS-kleur (`KnoopTekst`; een klik op een
+  *Centreren* en ✕, de wettekst met de markeringen erin in hun JAS-kleur (`WettekstBlok`; een klik op een
   span kiest die markering in de graaf), bij een markering ook toelichting, review-uitleg,
   alternatieven en de Waarom-uitklap (open), en de relaties per soort. Alleen lezen: beoordelen gebeurt
   in de tekst. De gevulde knop is er alleen voor wat in de graaf blijft (*In de graaf laden*); *Bekijk
   in de tekst* / *Beoordeel in de tekst* / *Open in het paneel* zijn rustige links. De tekst komt uit de
-  weergave van het paneel, en anders één keer per knoop via `GET weergave` (`useKnoopDetail`, cache
+  weergave van het paneel, en anders één keer per knoop via `GET weergave` (`useKnoopDetail` op `haalBepalingWeergave`, cache
   per paneel, leeg na `ververs`) – de hele kennisgraaf draagt bewust geen tekst. Het element van een
   markering wordt bij het kiezen opgehaald (`useMarkeringElement`). Zonder keuze: *Dit antwoord* (de
   doelen, klikbaar) en wat er geladen is. Smal onder de graaf (details in te klappen); vergroot een

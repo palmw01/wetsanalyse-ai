@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState, type RefObject } from "react";
-import { haalElement, haalNodeWeergave, type NodeElement, type NodeSegment, type NodeWeergave } from "@/lib/annotatieNode";
+import { haalElement, type NodeElement, type NodeSegment, type NodeWeergave } from "@/lib/annotatieNode";
 import { hoortBijWeergave } from "@/lib/graaf/bediening";
 import { haalKnoopInfo, type KnoopInfo } from "@/lib/graaf/knoopinfo";
 import { segmentenVan } from "@/lib/graaf/spans";
+import { haalBepalingWeergave } from "@/lib/useBron";
 
 /** De wettekst van een bronknoop met de markeringen die erop liggen. */
 export interface KnoopDetail { segmenten: NodeSegment[]; elementen: NodeElement[] }
@@ -58,7 +59,7 @@ export function useKnoopDetail(bron: string | null, eigen: NodeWeergave | undefi
     let weg = false;
     let verzoek = cache.current.get(bron);
     if (!verzoek) {
-      verzoek = haalNodeWeergave({ bron_iri: bron });
+      verzoek = haalBepalingWeergave(bron);
       cache.current.set(bron, verzoek);
       // Een mislukte poging blijft niet hangen: de volgende keuze probeert het opnieuw.
       verzoek.catch(() => cache.current.delete(bron));

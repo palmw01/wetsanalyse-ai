@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { KnoopFeiten } from "@/components/graaf/KnoopFeiten";
-import { KnoopTekst } from "@/components/graaf/KnoopTekst";
+import { WettekstBlok } from "@/components/wettekst/WettekstBlok";
 import { Regel, Regels, StatusLabel } from "@/components/ui/Lijst";
 import { HerkomstRegel } from "@/components/ui/HerkomstRegel";
 import { Melding } from "@/components/ui/Melding";
@@ -15,7 +15,9 @@ import { OpnemenInWerkgebied } from "@/components/werkgebieden/OpnemenInWerkgebi
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import { BEOORDEELD_LIFECYCLES, LIFECYCLE_LABEL } from "@/lib/annotatie";
-import { haalNodeWeergave, nodeLink, type NodeWeergave } from "@/lib/annotatieNode";
+import { nodeLink, type NodeWeergave } from "@/lib/annotatieNode";
+import { actueleElementen } from "@/lib/bronWeergave";
+import { haalBepalingWeergave } from "@/lib/useBron";
 import { foutTekst, haalWerkgebied, lijstWerkgebieden } from "@/lib/api";
 import { haalKnoopInfo, type KnoopInfo } from "@/lib/graaf/knoopinfo";
 import { herkomstVan } from "@/lib/herkomst";
@@ -38,7 +40,7 @@ export function BronPagina({ bronIri, werkgebiedId }: { bronIri: string; werkgeb
 
   useEffect(() => {
     let levend = true;
-    haalNodeWeergave({ bron_iri: bronIri })
+    haalBepalingWeergave(bronIri)
       .then((v) => levend && setView(v))
       .catch((e) => levend && setFout(foutTekst(e, "De bepaling kon niet worden geladen.")));
     haalKnoopInfo(bronIri).then((i) => levend && setInfo(i)).catch(() => levend && setInfo("fout"));
@@ -52,7 +54,7 @@ export function BronPagina({ bronIri, werkgebiedId }: { bronIri: string; werkgeb
   const herkomst = herkomstVan({ iri: bronIri, label: doel?.label, regeling: view?.doel.citeertitel,
     jci: view?.doel.jci, url: view?.doel.url });
   const naam = herkomst.bepaling;
-  const actueel = (view?.elementen ?? []).filter((e) => !e.verouderd && e.lifecycle !== "rejected");
+  const actueel = actueleElementen(view);
   const beoordeeld = actueel.filter((e) => BEOORDEELD_LIFECYCLES.includes(e.lifecycle)).length;
   const afgerond = !!view?.lagen.length && view.lagen.every((l) => l.status === "geaccordeerd");
   const selectie = wg?.bronnen.find((b) => b.bron_iri === bronIri);
@@ -92,7 +94,7 @@ export function BronPagina({ bronIri, werkgebiedId }: { bronIri: string; werkgeb
           <SplitDetail
             hoofd={<>
               <Kaart titel="Wettekst" toelichting="Letterlijk uit de BWB-graaf. De markeringen hebben de kleur van hun JAS-klasse; een klik opent het element.">
-                <KnoopTekst groot segmenten={view.segmenten} elementen={actueel} kiesbaar={() => true}
+                <WettekstBlok groot segmenten={view.segmenten} elementen={actueel} kiesbaar={() => true}
                   onKies={(id) => router.push(elementPad(id))} />
               </Kaart>
               <Kaart titel="JAS-elementen" telling={actueel.length}

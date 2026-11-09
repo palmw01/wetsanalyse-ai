@@ -10,7 +10,7 @@
 
 import { useState } from "react";
 
-import { Wettekst } from "@/components/bronnen/Wettekst";
+import { BepalingTekst } from "@/components/wettekst/WettekstBlok";
 import { Button } from "@/components/ui/Button";
 import { Groep, GroepRij } from "@/components/ui/Pagina";
 import { bepalingNaam, deelKop, telling, zoekverantwoording } from "@/lib/overzicht";
@@ -42,7 +42,7 @@ function Bepalingen({ bepalingen, naam }: { bepalingen: OverzichtBepaling[]; naa
           </li>
         ))}
       </ul>
-      {open && <Wettekst key={open} bronIri={open} className="mt-2" />}
+      {open && <BepalingTekst key={open} bronIri={open} link className={"rounded-kaart border border-line bg-surface/60 px-3 py-2.5 mt-2"} />}
     </div>
   );
 }
