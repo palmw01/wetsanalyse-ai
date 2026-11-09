@@ -658,13 +658,20 @@ BASIS = "c.product-area==officielepublicaties AND w.publicatienaam==Kamerstuk AN
      ' AND w.vergaderjaar=="2025-2026" AND dt.creator=="Eerste Kamer der Staten-Generaal"'
      " sortBy dt.date/sort.ascending dt.identifier/sort.ascending"),
     ({"woorden": "Invorderingswet"}, ' AND dt.title any "invorderingswet"'),
+    # Zoeken in de hele tekst: een zinsdeel tussen aanhalingstekens als zinsdeel, losse woorden allemaal.
+    ({"tekst": '"één bankrekeningnummer" toeslagen'},
+     ' AND cql.textAndIndexes adj "één bankrekeningnummer" AND cql.textAndIndexes all "toeslagen"'),
+    ({"tekst": "POBR1", "vanaf": "2011", "tot": "2016", "volgorde": "oudste"},
+     ' AND cql.textAndIndexes all "pobr1" AND dt.date>=2011-01-01 AND dt.date<=2016-12-31'
+     " sortBy dt.date/sort.ascending dt.identifier/sort.ascending"),
 ])
 def test_de_filters_worden_cql_uit_de_code(args, verwacht):
     bron = NepBron(DOSSIER)
     d = roep("zoek_kamerstukken", args, bron)
     assert d["status"] == "ok", d
     assert bron.vragen[-1] == BASIS + verwacht
-    assert d["zoekvraag"]["volgorde"] == (args.get("volgorde") or ("relevantie" if "woorden" in args else "nieuwste"))
+    assert d["zoekvraag"]["volgorde"] == (args.get("volgorde") or ("relevantie" if {"woorden", "tekst"} & set(args)
+                                                                   else "nieuwste"))
 
 
 def test_het_aantal_begrenst_de_pagina_en_het_vervolg_houdt_de_zoekvraag():
@@ -695,6 +702,8 @@ def test_een_dossier_alleen_staat_nog_op_nummer():
     ({"volgorde": "nieuwste", "aantal": 26}, "ongeldig_aantal"),
     ({"dossier": "99001", "volgorde": "nummer", "aantal": 5}, "ongeldig_aantal"),
     ({}, "ongeldige_argumenten"),
+    ({"tekst": "a b"}, "ongeldige_tekst"),
+    ({"tekst": '"een twee drie vier vijf" zes zeven'}, "ongeldige_tekst"),
 ])
 def test_een_invoerfout_zegt_wat_wel_kan(args, reden):
     d = roep("zoek_kamerstukken", args)

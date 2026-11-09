@@ -240,7 +240,9 @@ bruikbaar is.
   is dat blok leeg. `tests/test_bronprompt.py`. `tests/test_bronschakelaar.py`.
   **Kamerstukken** (`tools/kamerstuk_tools.py`, transport `adapters/sru_kamerstukken.py`): `zoek_kamerstukken`
   (filters, te combineren: een dossier of subdossier, `w.dossiernummer=="36200-IX"`, met `nummer` voor één stuk; woorden in
-  de titel; `soort` in `w.subrubriek` óf de titel, want oudere stukken hebben de rubriek "Overig"; `vanaf`/`tot` op de
+  de titel; `soort` in `w.subrubriek` óf de titel, want oudere stukken hebben de rubriek "Overig"; `tekst` in de hele tekst
+  (`cql.textAndIndexes`: een zinsdeel tussen aanhalingstekens als `adj`, losse woorden als `all`, hoogstens zes; meting
+  `kamerstukken-tekstzoeken-2026-11-09`: 8 van 8 tegen 3 in de titel); `vanaf`/`tot` op de
   documentdatum, ook `JJJJ` of `JJJJ-MM`; `vergaderjaar`; `kamer`. De `volgorde` is de enum uit
   `KAMERSTUKKEN.volgordes`: `nieuwste`/`oudste` op `dt.date` met het id als tweede sleutel (alleen `sortBy` in de CQL
   sorteert, `sortKeys` negeert de dienst), `nummer` binnen een dossier (tot `MAX_DOSSIER` op nummer, daarboven de oudste

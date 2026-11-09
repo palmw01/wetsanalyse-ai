@@ -196,13 +196,15 @@ KAMERSTUKKEN = ConnectorBeschrijving(
     rol_in_antwoord=("een Kamerstuk laat zien wat de wetgever bedoelde; het onderbouwt nooit wat de wet zegt – dat "
                      "doet alleen de opgehaalde bepaling"),
     kop_in_antwoord="Uit de parlementaire geschiedenis",
-    grenzen=("zoeken gaat op dossier en nummer, woorden uit de titel, soort, documentdatum, vergaderjaar en Kamer, en "
-             "ordent op nummer, op datum of op relevantie; niet in de volle tekst"),
+    grenzen=("zoeken gaat op dossier en nummer, woorden uit de titel of de hele tekst, soort, documentdatum, "
+             "vergaderjaar en Kamer, en ordent op nummer, op datum of op relevantie. Een stuk dat alleen als PDF bestaat "
+             "(nog onopgemaakt) wordt gevonden, maar de tekst is niet te lezen; zoeken in de tekst gaat op de index van "
+             "KOOP, niet op wat Lex las"),
     levert=("alinea's", "voetnoten", "tabellen (op te halen met hun rijen)"),
     niet_in_tekst=("illustraties",),
     werkwoorden={
         "zoek_kamerstukken": ("zoekt de Kamerstukken van dossier {dossier}", "zoekt Kamerstukken over „{woorden}”",
-                              "zoekt Kamerstukken"),
+                              "zoekt in de tekst van Kamerstukken naar „{tekst}”", "zoekt Kamerstukken"),
         "get_kamerstuk": ("leest tabel {tabel} van Kamerstuk {id}", "leest Kamerstuk {id}", "leest een Kamerstuk"),
     },
     beheer=("Wetsgeschiedenis uit de officiële publicaties: memorie van toelichting, nota's, verslagen en het advies "

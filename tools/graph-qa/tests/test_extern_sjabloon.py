@@ -302,6 +302,8 @@ def test_het_blok_extern_noemt_datum_en_soort_uit_het_stuk():
     ({"soort": "motie", "vanaf": "2024-01-01", "tot": "2024-12-31", "volgorde": "oudste"},
      "Gezocht op soort stuk motie, documentdatum vanaf 2024-01-01, documentdatum tot en met 2024-12-31, oudste eerst."),
     ({"woorden": "Invorderingswet", "volgorde": "relevantie"}, "Gezocht op „Invorderingswet” in de titel, op relevantie."),
+    ({"tekst": '"één bankrekeningnummer"', "volgorde": "relevantie"},
+     "Gezocht op „één bankrekeningnummer” in de tekst, op relevantie."),
     ({}, ""),
 ])
 def test_de_zoekvraag_in_woorden(zoekvraag, verwacht):

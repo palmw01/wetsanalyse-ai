@@ -81,10 +81,12 @@ KAMERSTUK_TOOLS: list[dict[str, Any]] = [
         "description": (
             "Zoek Kamerstukken (wetsgeschiedenis: voorstel van wet, memorie van toelichting, nota's, verslagen, moties, "
             "brieven, het advies van de Raad van State en het nader rapport) in de officiële publicaties. Combineer de "
-            "filters: 'dossier' (en 'nummer' voor één stuk), 'woorden' in de titel, 'soort', een periode op de datum "
-            "van het stuk ('vanaf', 'tot'), 'vergaderjaar' en 'kamer'. Kies de 'volgorde': 'nieuwste' of 'oudste' (op "
-            "de datum van het stuk), 'nummer' (binnen een dossier) of 'relevantie' (bij woorden). Zonder volgorde: "
-            "een dossier op nummer, woorden op relevantie, de rest nieuwste eerst. Voor 'de laatste stukken van een "
+            "filters: 'dossier' (en 'nummer' voor één stuk), 'woorden' in de titel, 'tekst' in de hele tekst van het "
+            "stuk, 'soort', een periode op de datum van het stuk ('vanaf', 'tot'), 'vergaderjaar' en 'kamer'. Zoek op "
+            "'tekst' als het onderwerp niet in de titel hoeft te staan: een brief over 'één bankrekeningnummer' heet "
+            "vaak alleen 'Brief regering'. Kies de 'volgorde': 'nieuwste' of 'oudste' (op de datum van het stuk), "
+            "'nummer' (binnen een dossier) of 'relevantie' (bij woorden of tekst); voor een tijdlijn 'oudste' met een "
+            "periode. Zonder volgorde: een dossier op nummer, woorden of tekst op relevantie, de rest nieuwste eerst. Voor 'de laatste stukken van een "
             "dossier' of 'de 10 meest recente': volgorde 'nieuwste' met 'aantal', in één aanroep; blader niet door "
             "het hele dossier." + _UITLEG + "\n"
             "GEEFT TERUG per stuk: id (kst-…), label, soort (zoals 'Memorie van toelichting', 'Motie' of 'Brief "
@@ -103,6 +105,10 @@ KAMERSTUK_TOOLS: list[dict[str, Any]] = [
                 "nummer": {"type": "string", "description": "Het nummer van één stuk in het dossier, bijvoorbeeld "
                                                             "'342' of 'A'; alleen met 'dossier'."},
                 "woorden": {"type": "string", "description": "Woorden uit de titel, bijvoorbeeld 'Invorderingswet'."},
+                "tekst": {"type": "string", "description": "Waar het stuk over gaat, gezocht in de hele tekst. Zet een "
+                                                           "vaste term tussen dubbele aanhalingstekens (\"één "
+                                                           "bankrekeningnummer\"); losse woorden moeten er allemaal "
+                                                           "in staan. Hoogstens zes woorden."},
                 "soort": {"type": "string", "description": "Het soort stuk, bijvoorbeeld 'memorie van toelichting', "
                                                            "'motie', 'brief regering' of 'nota van wijziging'."},
                 "vanaf": {"type": "string", "description": "Vanaf deze datum van het stuk: JJJJ-MM-DD, JJJJ-MM of "
@@ -112,7 +118,7 @@ KAMERSTUK_TOOLS: list[dict[str, Any]] = [
                 "kamer": {"type": "string", "enum": list(_KAMERS), "description": "De Kamer die het stuk uitbracht."},
                 "volgorde": {"type": "string", "enum": list(KAMERSTUKKEN.volgordes),
                              "description": "nieuwste of oudste (datum van het stuk), nummer (in een dossier) of "
-                                            "relevantie (bij woorden)."},
+                                            "relevantie (bij woorden of tekst)."},
                 "aantal": {"type": "integer", "description": f"Hoeveel stukken per pagina, 1 tot {LIMIT}; niet bij "
                                                             "volgorde 'nummer'."},
                 "offset": {"type": "integer", "description": "Voor het vervolg; begin bij 0."},
@@ -316,6 +322,29 @@ def _vergaderjaar(waarde: str) -> str | None:
     return f"{begin}-{eind}" if eind == begin + 1 else None
 
 
+_ZINSDEEL_RE = re.compile(r'"([^"]*)"|„([^”]*)”')
+
+
+def _tekst_cql(tekst: str) -> str:
+    """De hele tekst van het stuk (`cql.textAndIndexes`): een zinsdeel tussen aanhalingstekens als zinsdeel (`adj`), de
+    losse woorden allemaal (`all`). Live getoetst op 9 nov 2026: 'één bankrekeningnummer' vond de acht stukken uit het
+    onderzoek naar één bankrekeningnummer, in de titel drie (meting kamerstukken-tekstzoeken-2026-11-09)."""
+    zinsdelen = [" ".join(_WOORD_RE.findall(a or b)).lower() for a, b in _ZINSDEEL_RE.findall(tekst)]
+    los = list(dict.fromkeys(w.lower() for w in _WOORD_RE.findall(_ZINSDEEL_RE.sub(" ", tekst))))
+    delen, aantal = [], 0
+    for z in (z for z in dict.fromkeys(zinsdelen) if z):
+        delen.append(f'cql.textAndIndexes adj "{z}"')
+        aantal += len(z.split())
+    if aantal + len(los) > MAX_WOORDEN:
+        # `_zoek` weigert dit al met een invoerfout: hier nooit stil inkorten.
+        raise ValueError(f"tekst: hoogstens {MAX_WOORDEN} woorden")
+    if los:
+        delen.append(f'cql.textAndIndexes all "{" ".join(los)}"')
+    if not delen:
+        raise ValueError("tekst")
+    return " AND " + " AND ".join(delen)
+
+
 def _soort_cql(soort: str) -> str:
     """Het soort in `w.subrubriek` óf in de titel: bij oudere stukken is de rubriek 'Overig' en staat het soort alleen
     in de titel (kst-33755-3; live, 9 nov 2026)."""
@@ -335,6 +364,7 @@ def _zoek(bron: KamerstukBron, a: dict[str, Any]) -> str:
     dossier = (a.get("dossier") or "").strip().upper().replace(" ", "")
     nummer = (a.get("nummer") or "").strip().upper().replace(" ", "")
     woorden = (a.get("woorden") or "").strip()
+    tekst = (a.get("tekst") or "").strip()
     soort = (a.get("soort") or "").strip()
     offset = max(int(a.get("offset") or 0), 0)
     if dossier and not _DOSSIER_RE.fullmatch(dossier):
@@ -365,8 +395,11 @@ def _zoek(bron: KamerstukBron, a: dict[str, Any]) -> str:
     aantal = a.get("aantal")
     if aantal is not None and (not isinstance(aantal, int) or isinstance(aantal, bool) or not 1 <= aantal <= LIMIT):
         return fout("ongeldig_aantal", f"'aantal' is een getal van 1 tot {LIMIT}, bijvoorbeeld {{\"aantal\": 10}}.")
-    filters = {"dossier": dossier, "nummer": nummer, "woorden": woorden, "soort": soort, "vanaf": vanaf, "tot": tot,
-               "vergaderjaar": jaar, "kamer": kamer}
+    if tekst and not 0 < len(set(_WOORD_RE.findall(tekst.lower()))) <= MAX_WOORDEN:
+        return fout("ongeldige_tekst", f"geef één tot {MAX_WOORDEN} woorden van minstens drie letters, bijvoorbeeld "
+                    "{\"tekst\": \"bankrekeningnummer toeslagen\"}.")
+    filters = {"dossier": dossier, "nummer": nummer, "woorden": woorden, "tekst": tekst, "soort": soort,
+               "vanaf": vanaf, "tot": tot, "vergaderjaar": jaar, "kamer": kamer}
     if volgorde == "nummer" and not dossier:
         return fout("ongeldige_volgorde", "op nummer kan alleen binnen een dossier, bijvoorbeeld "
                     "{\"dossier\": \"33755\", \"volgorde\": \"nummer\"}.")
@@ -375,9 +408,10 @@ def _zoek(bron: KamerstukBron, a: dict[str, Any]) -> str:
                     "vraag de nieuwste stukken, bijvoorbeeld {\"dossier\": \"33755\"} of "
                     "{\"volgorde\": \"nieuwste\", \"aantal\": 10}")
     alleen_dossier = bool(dossier) and not any(v for k, v in filters.items() if k != "dossier")
-    volgorde = volgorde or ("nummer" if alleen_dossier else "relevantie" if woorden and not dossier else "nieuwste")
-    if volgorde == "relevantie" and not woorden:
-        return fout("ongeldige_volgorde", "relevantie gaat over woorden: geef 'woorden', of kies een datum, "
+    gezocht = bool(woorden or tekst)
+    volgorde = volgorde or ("nummer" if alleen_dossier else "relevantie" if gezocht and not dossier else "nieuwste")
+    if volgorde == "relevantie" and not gezocht:
+        return fout("ongeldige_volgorde", "relevantie gaat over woorden: geef 'woorden' of 'tekst', of kies een datum, "
                     "bijvoorbeeld {\"volgorde\": \"nieuwste\"}.")
     if volgorde == "nummer" and aantal is not None:
         return fout("ongeldig_aantal", "op nummer komt het hele dossier op pagina's; laat 'aantal' weg, of kies "
@@ -387,6 +421,7 @@ def _zoek(bron: KamerstukBron, a: dict[str, Any]) -> str:
     cql = _BASIS + (f' AND w.dossiernummer=="{dossier}"' if dossier else "")
     cql += f' AND w.ondernummer=="{nummer}"' if nummer else ""
     cql += (" AND " + _cql_woorden(woorden)) if woorden else ""
+    cql += _tekst_cql(tekst) if tekst else ""
     cql += _soort_cql(soort) if soort else ""
     cql += (f" AND dt.date>={vanaf}" if vanaf else "") + (f" AND dt.date<={tot}" if tot else "")
     cql += f' AND w.vergaderjaar=="{jaar}"' if jaar else ""

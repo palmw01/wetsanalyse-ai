@@ -159,6 +159,18 @@ def test_filters_op_soort_periode_vergaderjaar_en_kamer():
     assert all(r["orgaan"] == "Eerste Kamer" and "2026-01-01" <= r["datum"] <= "2026-03-31" for r in d["resultaten"])
 
 
+def test_zoeken_in_de_tekst_vindt_wat_de_titel_niet_draagt():
+    """Meting kamerstukken-tekstzoeken-2026-11-09: de Fiscale agenda van 2011 heet 'Brief regering', maar gaat over één
+    bankrekeningnummer. In de titel vindt de dienst haar niet, in de tekst wel, en op de oudste eerst staat ze bovenaan."""
+    d = json.loads(tools.dispatch("zoek_kamerstukken", None, {"tekst": '"één bankrekeningnummer"', "vanaf": "2011",
+                                                               "tot": "2016", "volgorde": "oudste", "aantal": 10}, AAN))
+    assert d["status"] == "ok" and d["resultaten"][0]["id"] == "kst-32740-1-n1", [r["id"] for r in d["resultaten"]]
+    assert "kst-33004-3" in [r["id"] for r in d["resultaten"]], "de memorie van toelichting bij Overige fiscale maatregelen 2012"
+    titel = json.loads(tools.dispatch("zoek_kamerstukken", None, {"woorden": "bankrekeningnummer", "vanaf": "2011",
+                                                                   "tot": "2011"}, AAN))
+    assert "kst-32740-1-n1" not in [r["id"] for r in titel.get("resultaten") or []]
+
+
 def test_meer_dan_duizend_records_is_een_diagnose():
     with pytest.raises(KamerstukFout) as fout:
         SruKamerstukken().zoek(BASIS, maximum=1001)

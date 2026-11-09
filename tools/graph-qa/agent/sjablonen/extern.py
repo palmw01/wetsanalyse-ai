@@ -18,6 +18,7 @@ haalt dan eerst op, net als bij `van`/`tot` in de duiding.
 from __future__ import annotations
 
 import copy
+import re
 from typing import Any
 
 from bronmodel.antwoord import Antwoord, Extern, ExternePassage, ExterneVerwijzing, Stuk, Stukken, Toelichting, Twijfel
@@ -207,6 +208,9 @@ def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any]) -> str:
             delen.append(f"{label} tot en met {waarde}")
         elif arg == "woorden":
             delen.append(f"„{waarde}” in de titel")
+        elif arg == "tekst":
+            kaal = " ".join(re.sub(r'["„”]', " ", str(waarde)).split())
+            delen.append(f"„{kaal}” in de tekst")
         else:
             delen.append(f"{label} {waarde}")
     volgorde = _VOLGORDE_TEKST.get(str(zoekvraag.get("volgorde") or ""), "")
