@@ -9,7 +9,7 @@ import type {
   AgentGrounding, AgentHergebruik, AgentKandidaat, AgentKeuze, Bron, Overzicht,
 } from "./types";
 
-export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecution[] } & (
+export type ThreadItem = (
   // `nietVerstuurd`: de vraag is bewaard maar niet aangenomen (er liep al een beurt). Hij blijft in
   // beeld omdat hij na herladen tóch terugkomt – wat je ziet moet kloppen met wat er bewaard is.
   | { id: string; type: "user"; tekst: string; over?: string; nietVerstuurd?: boolean;

@@ -61,7 +61,7 @@ function OnderdeelRegel({
 }) {
   const [keuze, setKeuze] = useState<boolean | null>(null);
   const open = keuze ?? actief;
-  const heeftSpoor = !!(o.denk || o.tool_executions.length);
+  const heeftSpoor = !!o.denk;
   return (
     <li className="px-4 py-2.5">
       <div className="flex items-center gap-3">

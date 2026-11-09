@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { codepointOffset, momentopnameOpslag, segmentAnker, mergeToolExecution, parseToolExecution,
-  nodeLink, nodeError, toolSpoorUit, heeftInhoud, toolDoelLabel, duurTekst, type NodeWeergave, type ToolExecution } from "./annotatieNode";
+import { codepointOffset, momentopnameOpslag, segmentAnker,
+  nodeLink, nodeError, type NodeWeergave } from "./annotatieNode";
 
 describe("canonieke bronnode-annotaties", () => {
   it("maakt een gestructureerd revisieconflict handelbaar en bewaart laagmeldingen", async () => {
@@ -31,71 +31,6 @@ describe("canonieke bronnode-annotaties", () => {
     expect(url.searchParams.get("snapshot_id")).toBe("v2");
   });
 });
-describe("werkelijk uitgevoerd toolspoor", () => {
-  const started: ToolExecution = { run_id: "run", call_id: "call", tool: "search_annotaties", phase: "started" };
-  it("ontdubbelt replay en draait afgeronde calls niet terug", () => {
-    const done = { ...started, phase: "completed" as const, aantal: 4 };
-    const events = mergeToolExecution(mergeToolExecution([started], done), started);
-    expect(events).toEqual([done]);
-    expect(mergeToolExecution(events, done)).toEqual([done]);
-    expect(mergeToolExecution(events, { ...done, run_id: "andere-run" })).toHaveLength(2);
-  });
-  it("normaliseert wire phases en behoudt expliciete storing", () => {
-    expect(parseToolExecution({ ...started, phase: "start" })?.phase).toBe("started");
-    expect(parseToolExecution({ ...started, phase: "end", status: "unavailable" })?.phase).toBe("failed");
-    expect(parseToolExecution({ tool: "verzonnen" })).toBeUndefined();
-  });
-});
-
-describe("toolSpoorUit", () => {
-  const start = (id: string) => ({ run_id: "r", call_id: id, tool: "get_bronnode", actie: "bron_lezen", phase: "start", status: "running" });
-  const eind = (id: string, duur: number) => ({ run_id: "r", call_id: id, tool: "get_bronnode", actie: "bron_lezen", phase: "end", status: "ok", duur_ms: duur });
-
-  it("maakt van start + einde per aanroep één regel, met de eindstand", () => {
-    const bewaard = ["a", "b", "c", "d", "e"].flatMap((id, i) => [start(id), eind(id, 100 * i)]);
-    const spoor = toolSpoorUit(bewaard);
-    expect(spoor).toHaveLength(5);
-    expect(spoor.every((e) => e.phase === "completed")).toBe(true);
-    expect(spoor[3].duur_ms).toBe(300);
-  });
-
-  it("laat een laat binnengekomen start een afgeronde aanroep niet terugdraaien", () => {
-    const spoor = toolSpoorUit([eind("a", 40), start("a")]);
-    expect(spoor).toHaveLength(1);
-    expect(spoor[0].phase).toBe("completed");
-  });
-
-  it("slaat onleesbare regels over en verdraagt een ontbrekend spoor", () => {
-    expect(toolSpoorUit([null, { tool: "x" }, start("a")])).toHaveLength(1);
-    expect(toolSpoorUit(undefined)).toEqual([]);
-  });
-});
-
-describe("heeftInhoud", () => {
-  it("telt een leeg object of lege tekst niet als inhoud", () => {
-    expect(heeftInhoud({})).toBe(false);
-    expect(heeftInhoud("  ")).toBe(false);
-    expect(heeftInhoud(undefined)).toBe(false);
-    expect(heeftInhoud({ snapshot_id: "x" })).toBe(true);
-    expect(heeftInhoud("peilmoment")).toBe(true);
-  });
-});
-
-describe("toolDoelLabel en duurTekst", () => {
-  it("noemt de bepaling van een aanroep", () => {
-    expect(toolDoelLabel({ bwb_id: "BWBR0004770", artikel: "9", lid: "1" })).toBe("BWBR0004770 art. 9 lid 1");
-    expect(toolDoelLabel({ bron_iri: "urn:bwb:BWBR0004770:artikel:2:lid:1" })).toBe("BWBR0004770 artikel 2 lid 1");
-    expect(toolDoelLabel({})).toBe("");
-    expect(toolDoelLabel(undefined)).toBe("");
-  });
-
-  it("toont korte duren in ms en lange in seconden", () => {
-    expect(duurTekst(40)).toBe("40 ms");
-    expect(duurTekst(0)).toBe("0 ms");
-    expect(duurTekst(4700)).toBe("4,7 s");
-  });
-});
-
 describe("momentopnameOpslag", () => {
   const weergave = { doel: { bron_iri: "urn:x" } } as unknown as NodeWeergave;
 

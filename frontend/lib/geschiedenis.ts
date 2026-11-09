@@ -7,7 +7,6 @@
 import { parseGrounding, parseHergebruik, parseOverzicht, parseUitkomst, metingUitDekking } from "./agentEvents";
 import { parseAntwoord } from "./antwoord";
 import { annotatieDoelVan, artefactVanBericht } from "./artefact";
-import { toolSpoorUit } from "./annotatieNode";
 import { reeksUitBerichten } from "./reeks";
 import type { ThreadItem } from "./threadItem";
 import type { Bericht } from "./types";
@@ -47,13 +46,13 @@ export function itemsUitGesprek(berichten: Bericht[], uid: () => string): Geschi
       : annotatieDoel
         ? { id: uid(), type: "annotatie" as const, slug: annotatieDoel.bron_iri,
             titel: art?.titel || b.annotatie_titel || undefined, annotatie_doel: annotatieDoel,
-            tool_executions: toolSpoorUit(b.tool_executions), denk: b.denk,
+            denk: b.denk,
             // De samenvatting van Lex (hoogstens vier zinnen), zoals graph-qa hem bewaarde.
             tekst: b.tekst?.trim() || undefined,
             // Na herladen moet nog te zien zijn dat er niets opnieuw is bekeken.
             hergebruik: b.hergebruik ? parseHergebruik(b.hergebruik) : undefined,
             meting: metingUitDekking(b.dekking) }
-        : { id: uid(), type: "antwoord" as const, tekst: b.tekst, denk: b.denk, bronnen: b.bronnen, tool_executions: toolSpoorUit(b.tool_executions),
+        : { id: uid(), type: "antwoord" as const, tekst: b.tekst, denk: b.denk, bronnen: b.bronnen,
             // Het overzicht zoals graph-qa het opbouwde: na herladen hetzelfde blok en dezelfde graafdoelen.
             overzicht: b.overzicht ? parseOverzicht(b.overzicht) : undefined,
             antwoord: parseAntwoord(b.antwoord),

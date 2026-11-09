@@ -88,63 +88,6 @@ export interface NodeWeergave {
   /** De impliciete partijen van de lagen in beeld, en die waar een getoonde relatie naar wijst. */
   impliciet?: NodeImpliciet[];
 }
-export interface ToolExecution {
-  run_id: string; call_id: string; tool: string; phase: "started" | "completed" | "failed";
-  actie?: string; filters?: Record<string, unknown>; doel?: unknown; status?: string;
-  aantal?: number; has_more?: boolean; duur_ms?: number; actualiteit?: string | Record<string, unknown>;
-  foutcode?: string; melding?: string;
-}
-export function parseToolExecution(value: unknown): ToolExecution | undefined {
-  if (!value || typeof value !== "object") return;
-  const v = { ...value } as Record<string, unknown>;
-  if (v.phase === "start") v.phase = "started";
-  if (v.phase === "end") v.phase = ["error", "unavailable", "invalid_request"].includes(String(v.status)) ? "failed" : "completed";
-  if (typeof v.run_id !== "string" || typeof v.call_id !== "string" || typeof v.tool !== "string"
-    || !["started", "completed", "failed"].includes(String(v.phase))) return;
-  return v as unknown as ToolExecution;
-}
-export function mergeToolExecution(events: ToolExecution[], event: ToolExecution): ToolExecution[] {
-  const index = events.findIndex((e) => e.run_id === event.run_id && e.call_id === event.call_id);
-  if (index < 0) return [...events, event];
-  // Een vertraagd/replayed started-event mag een afgeronde aanroep niet terugdraaien.
-  if (events[index].phase !== "started" && event.phase === "started") return events;
-  return events.map((e, i) => i === index ? { ...e, ...event } : e);
-}
-/** Het toolspoor zoals het in een bewaard bericht staat, als één regel per aanroep.
- *
- *  graph-qa stuurt per aanroep twee events – start en einde, met hetzelfde `call_id` – en een bewaard
- *  spoor kan die allebei los bevatten. Live voegt de werkplek ze samen; zonder datzelfde bij het
- *  laden van een gesprek staat elke aanroep er twee keer ("Bezig", daarna "Uitgevoerd") en telt de
- *  kop het dubbele. Hier dezelfde regel als live. */
-export function toolSpoorUit(ruw: readonly unknown[] | null | undefined): ToolExecution[] {
-  return (ruw ?? []).reduce<ToolExecution[]>((spoor, r) => {
-    const e = parseToolExecution(r);
-    return e ? mergeToolExecution(spoor, e) : spoor;
-  }, []);
-}
-/** Waar een aanroep over ging, kort: "BWBR0004770 art. 9 lid 1", of het laatste stuk van de IRI.
- *  Zonder dit stonden er twee regels "bron_lezen · Uitgevoerd" onder elkaar, en was niet te zien
- *  wélke bepaling er gelezen was. */
-export function toolDoelLabel(doel: unknown): string {
-  if (!doel || typeof doel !== "object") return "";
-  const d = doel as Record<string, unknown>;
-  const tekst = (k: string) => (typeof d[k] === "string" || typeof d[k] === "number" ? String(d[k]).trim() : "");
-  const delen = [tekst("bwb_id"), tekst("artikel") && `art. ${tekst("artikel")}`, tekst("lid") && `lid ${tekst("lid")}`].filter(Boolean);
-  if (delen.length) return delen.join(" ");
-  const iri = tekst("bron_iri") || tekst("id");
-  return iri.startsWith("urn:bwb:") ? iri.slice("urn:bwb:".length).replace(/:/g, " ") : iri;
-}
-
-/** Een duur zoals een mens hem leest: onder een seconde in ms ("0.0 s" zei niets), daarboven in s. */
-export function duurTekst(ms: number): string {
-  return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1).replace(".", ",")} s`;
-}
-
-/** Een leeg object is truthy; "Actualiteit: {}" onder elke graafaanroep zei niets. */
-export function heeftInhoud(waarde: unknown): boolean {
-  if (typeof waarde === "string") return waarde.trim() !== "";
-  return !!waarde && typeof waarde === "object" && Object.keys(waarde).length > 0;
-}
 export function nogNietInWerking(segment: { status?: string }): boolean {
   return segment.status === "nogniet";
 }

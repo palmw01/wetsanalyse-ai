@@ -43,7 +43,8 @@ describe("verwerkReeksEvent", () => {
     expect(a.denk).toBe("· Bron · lid 1");
     expect(b.denk).toBe("· Bron · lid 2");
     expect(a.voorstellen).toBe(4);
-    expect(a.tool_executions).toHaveLength(1);
+    // Toolaanroepen tonen we niet meer los: wat de jurist moet weten, staat als regel in `denk`.
+    expect(a).not.toHaveProperty("tool_executions");
     expect(a.annotatie_doel?.bron_iri).toBe(L1);
     expect(actiefOnderdeel(r)).toBe(L2);
     expect(reeksSamenvatting(r)).toBe("1 van 3 klaar");
@@ -116,7 +117,7 @@ describe("reeksUitBerichten", () => {
 
   it("zonder zinsontleding: live en na herladen dezelfde melding, uit dezelfde dekking", () => {
     const leeg: Reeks = { runId: "r", ouder: { bron_iri: "", label: "" }, afgerond: false, onderdelen: [
-      { bron_iri: L1, label: "Lid 1", status: "bezig", voorstellen: 0, denk: "", tool_executions: [] }] };
+      { bron_iri: L1, label: "Lid 1", status: "bezig", voorstellen: 0, denk: "" }] };
     expect(reeksDegradatie(leeg)).toBe("");
     const live = verwerkReeksEvent(leeg, { type: "dekking", onderdeel: L1, dekking: { gedegradeerd: ["a", "b"] } })!;
     const herladen = reeksUitBerichten([bericht(0, { dekking: { gedegradeerd: ["a", "b"] } })])!;

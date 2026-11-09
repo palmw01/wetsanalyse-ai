@@ -606,7 +606,9 @@ export type Rol = "user" | "assistant";
 export interface Bericht {
   artefact?: import("./artefact").Artefact | null;
   annotatie_doel?: import("./annotatieNode").NodeDoel;
-  tool_executions?: import("./annotatieNode").ToolExecution[];
+  /** De ruwe toolaanroepen van de beurt: audit en eval. De werkplek toont ze niet; wat de jurist moet weten, staat als
+   *  resultaatregel in `denk` (graph-qa `agent/spoorbronnen.py`). */
+  tool_executions?: unknown[];
   id?: number;
   rol: Rol;
   tekst: string;
@@ -743,7 +745,7 @@ export interface GesprekSamenvatting {
 export interface BerichtInvoer {
   artefact?: import("./artefact").Artefact;
   annotatie_doel?: import("./annotatieNode").NodeDoel;
-  tool_executions?: import("./annotatieNode").ToolExecution[];
+  tool_executions?: unknown[];
   rol: Rol;
   tekst?: string;
   denk?: string;

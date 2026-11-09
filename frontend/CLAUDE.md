@@ -83,7 +83,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   `useSearchParams` de stap niet en blijft het venster dicht. `app/instellingen/[[...tab]]`, `app/beheer` en `app/account`
   zijn doorverwijzingen naar de werkplek met het venster open; een losse instellingenpagina bestaat niet.
 - **`components/`**:
-  - `werkplek/` – de hele chat-werkruimte: schil, sidebar, thread (`ThreadRij`, `ToolSpoor`,
+  - `werkplek/` – de hele chat-werkruimte: schil, sidebar, thread (`ThreadRij`,
     `KeuzeKaart`, `VraagDock`, `VragenKaart`, `ReeksBlok`, `HergebruikMelding`, `Markdown`) en het annotatiegereedschap in het
     artefactpaneel (`ArtefactInhoud`, `DocumentPaneel`, `ReviewQueue`,
     `SelectiePopover`, `ExportKnop`).
@@ -453,8 +453,14 @@ Lex: naam, zijn **samenvatting** (`tekst`, hoogstens vier zinnen, door graph-qa 
 in `agent/nodes/annotatie_samenvatting.py` en als berichttekst bewaard), dan de chip. Het draagt ook
 een `denk`-veld: de tijdlijn staat ingeklapt onderaan als *"Zo is dit tot stand gekomen"*, wordt met
 de beurt bewaard en bij hydratatie teruggehaald. Achteraf moet te zien zijn hoe een annotatie tot
-stand kwam. `ToolSpoor` toont de graafaanroepen van de beurt (`tool_executions`), één regel per
-aanroep.
+stand kwam.
+
+**Eén spoor per beurt** (9 nov 2026). Er is geen tweede blok met de toolaanroepen ("Graaf geraadpleegd · N
+aanroepen": toolnamen, ruwe JSON en milliseconden, en "graaf" ook bij een Kamerstuk). Wat de jurist eruit nodig heeft,
+zet graph-qa als regel in het denkproces, met de bron als actor uit één register (`agent/spoorbronnen.py`, ook voor elke
+connector): "Kamerstukken · 16 gevonden", "Begrippen · niets gevonden", "Kamerstukken · kst-33755-3 deels gelezen, er
+is meer dan dit", "Wetgeving · niet bereikbaar". Het `tool_execution`-event en `Bericht.tool_executions` blijven voor
+eval en audit; de werkplek leest ze niet. `app/eenSpoor.test.ts` bewaakt dat het tweede blok niet terugkomt.
 
 ### Bronnen en tools boven het invoerveld (ADR-013)
 

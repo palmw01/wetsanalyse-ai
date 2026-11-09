@@ -633,7 +633,6 @@ export async function verwijderGesprek(id: string): Promise<void> {
 /** De callbacks waarmee een beurt binnenkomt. Gedeeld door het starten van een run (`startRun`) en
  *  het aanhaken bij een lopende (`volgRun`) – één contract, twee ingangen. */
 export type AgentHandlers = {
-    onToolExecution?: (event: import("./annotatieNode").ToolExecution) => void;
     onStatus?: (m: string) => void;
     onReason?: (t: string) => void;
     onToken?: (t: string) => void;
@@ -987,11 +986,6 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
         else if (ev.type === "hergebruik" && ev.hergebruik) {
           const hergebruik = geldig(parseHergebruik, ev.hergebruik, "hergebruik");
           if (hergebruik) handlers.onHergebruik?.(hergebruik);
-        }
-        else if (ev.type === "tool_execution") {
-          const { parseToolExecution } = await import("./annotatieNode");
-          const execution = parseToolExecution(ev);
-          if (execution) handlers.onToolExecution?.(execution);
         }
         else if (ev.type === "opgeslagen")
           handlers.onOpgeslagen?.({ run_id: ev.run_id ?? "", annotatie_doel: ev.annotatie_doel,

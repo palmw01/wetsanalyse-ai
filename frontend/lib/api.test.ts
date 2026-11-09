@@ -45,16 +45,17 @@ function sseResponse(frames: string[]): Response {
 describe("verwerkSseStroom – via volgRun", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("geeft echte graafcalls en het canonieke opgeslagen doel door zonder artikel-slug", async () => {
+  it("negeert tool_execution en geeft het canonieke opgeslagen doel door zonder artikel-slug", async () => {
     const execution = { type: "tool_execution", run_id: "r", call_id: "c", tool: "search_annotaties",
       phase: "end", status: "ok", aantal: 2, has_more: true, actualiteit: { volledig: true } };
     const doel = { bron_iri: "urn:lid1", snapshot_id: "v1", label: "Artikel 9 lid 1" };
     const artefact = { soort: "annotatie", ref: doel, titel: "Artikel 9 lid 1" };
     const events = [execution, { type: "opgeslagen", run_id: "r", annotatie_doel: doel, artefact }, { type: "done" }];
     vi.stubGlobal("fetch", vi.fn(async () => sseResponse(events.map((e) => `data: ${JSON.stringify(e)}\n\n`))));
-    const tool = vi.fn(), opgeslagen = vi.fn();
-    await volgRun("r", { onToolExecution: tool, onOpgeslagen: opgeslagen });
-    expect(tool).toHaveBeenCalledWith(expect.objectContaining({ call_id: "c", phase: "completed", aantal: 2, has_more: true }));
+    const status = vi.fn(), opgeslagen = vi.fn();
+    await volgRun("r", { onStatus: status, onOpgeslagen: opgeslagen });
+    // Het event is voor eval en audit; de werkplek toont alleen de resultaatregel die als `status` komt.
+    expect(status).not.toHaveBeenCalled();
     expect(opgeslagen).toHaveBeenCalledWith({ run_id: "r", annotatie_doel: doel, artefact });
   });
 
