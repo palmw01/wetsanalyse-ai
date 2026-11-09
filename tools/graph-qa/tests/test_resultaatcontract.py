@@ -255,9 +255,19 @@ class NepSru:
     met `alineas` lange alinea's."""
 
     def __init__(self, n: int, alineas: int = 400, tabel: int = 0) -> None:
+        # Met de metadata zoals KOOP ze levert, op het ruimst: een lange eigen titel, drie indieners, meer dossiers, en
+        # elk vijfde stuk onopgemaakt met alleen een PDF en later gepubliceerd. Zo telt de begroting de echte rijen.
+        def onopgemaakt(i: int) -> bool:
+            return i > 1 and i % 5 == 0
         self.records = [Record(id=f"kst-99001-{i}", titel=f"Wet x; Stuk {i}", datum="2026-01-02",
-                               vergaderjaar="2025-2026", dossiers=("99001",), ondernummer=str(i),
-                               xml_url=f"https://repository.overheid.nl/x/kst-99001-{i}.xml") for i in range(1, n + 1)]
+                               gepubliceerd="2026-02-20" if onopgemaakt(i) else "2026-01-02",
+                               vergaderjaar="2025-2026", dossiers=("99001", "99002", "99003") if i % 3 == 0 else ("99001",),
+                               ondernummer=str(i), soort="Brief regering", documenttitel=f"Stuk {i} " + _LANG[:140],
+                               dossiertitel="Wet x", kamer="Tweede Kamer der Staten-Generaal",
+                               indieners=("A.B. de Vries", "C.D. Jansen", "E.F. van den Berg") if i % 2 else (),
+                               documentstatus="Onopgemaakt" if onopgemaakt(i) else "Opgemaakt na onopgemaakt",
+                               xml_url="" if onopgemaakt(i) else f"https://repository.overheid.nl/x/kst-99001-{i}.xml",
+                               pdf_url=f"https://repository.overheid.nl/x/kst-99001-{i}.pdf") for i in range(1, n + 1)]
         als = "".join(f"<al>{i}. {_LANG[:1500]}</al>" for i in range(alineas))
         # Een CALS-tabel zoals KOOP ze schrijft: `tabel` rijen van vier kolommen, met een kop.
         rij = lambda i: "<row>" + "".join(f"<entry colname='c{k}'><al>{i}.{k} {_LANG[:60]}</al></entry>"
@@ -272,7 +282,8 @@ class NepSru:
         return len(self.records), self.records[start - 1:start - 1 + maximum]
 
     def document(self, ident):
-        return Document(ident, self.xml, "h")
+        rec = next((r for r in self.records if r.id == ident), None)
+        return Document(ident, self.xml, "h", record=rec)
 
 
 #: Per connector: een nepbron per omvang, en per tool de argumenten en de omvang van de dataset die terug moet komen.
@@ -288,6 +299,32 @@ OMVANGEN = (1, 40, 300, 301, 1000, 1001, 1200)
 def test_elke_connector_heeft_een_nepbron_en_elke_connectortool_argumenten():
     assert set(NEPBRONNEN) == set(CONNECTORS), "voeg een nepbron toe voor de nieuwe connector"
     assert set(CONNECTOR_ARGS) == set(tools.CONNECTOR_TOOLS), "voeg de nieuwe connectortool toe aan CONNECTOR_ARGS"
+
+
+#: Wat een rij of een stuk mag dragen naast de metadata: de vindplaats en, bij een gelezen stuk, de versie.
+VINDPLAATS_SLEUTELS = {"id", "label", "link", "bron_hash", "gevalideerd"}
+
+
+@pytest.mark.parametrize("naam,args,soort", [(n, a, s) for n, lijst in CONNECTOR_ARGS.items() for a, s in lijst])
+def test_rijen_en_stuk_dragen_de_metadatasleutels(naam: str, args: dict, soort: str):
+    """Elke connector levert zijn metadata in de vaste sleutels (`METADATA_SLEUTELS`), en alleen die hij beschrijft: dan
+    vult dezelfde code de lijst, de kop van een gelezen stuk en de werkplek. De rijen van een leestool zijn passages en
+    vallen erbuiten; het stuk erboven niet."""
+    from bronmodel.connectors import METADATA_SLEUTELS
+
+    c = CONNECTORS[_connector(naam)]
+    beschreven = {v.sleutel for v in c.metadata} | VINDPLAATS_SLEUTELS
+    assert beschreven - VINDPLAATS_SLEUTELS <= set(METADATA_SLEUTELS)
+    data = json.loads(tools.dispatch(naam, None, args, make_settings(**{f"connector_{c.naam}": True}),
+                                     **{c.naam: NEPBRONNEN[c.naam](40, alineas=3)}))
+    assert data["status"] == "ok", data
+    if naam == c.leestool:
+        assert set(data["stuk"]) <= beschreven, f"{naam}: stuk met {set(data['stuk']) - beschreven}"
+        assert {"datum", "label"} <= set(data["stuk"])
+    else:
+        for rij in data["resultaten"]:
+            assert set(rij) <= beschreven, f"{naam}: rij met {set(rij) - beschreven}"
+            assert {"id", "label", "datum"} <= set(rij)
 
 
 def _connector(naam: str) -> str:
