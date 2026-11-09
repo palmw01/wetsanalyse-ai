@@ -86,14 +86,15 @@ export function uitBronstand(beschikbaar: BeschikbareConnector[], regels: Bronst
 export function menuMelding(stand: ConnectorStand): string | null {
   if (stand.laden === "mislukt") {
     return stand.beschikbaar.length
-      ? "De bronnen zijn nu niet te controleren. Dit is de laatst bekende stand."
-      : "De bronnen zijn nu niet te controleren.";
+      ? "Lex kan de bronnen nu niet controleren. Je ziet de laatst bekende stand."
+      : "Lex kan de bronnen nu niet controleren.";
   }
   const weg = stand.beschikbaar.filter((c) => c.beschikbaarheid === "niet_aangeboden").map((c) => c.label);
   const onbekend = stand.beschikbaar.filter((c) => c.beschikbaarheid === "onbekend").map((c) => c.label);
+  const meer = (xs: string[], een: string, twee: string) => (xs.length > 1 ? twee : een);
   const zinnen = [
-    weg.length ? `${opsomming(weg)} ${weg.length > 1 ? "staan" : "staat"} aan, maar ${weg.length > 1 ? "zijn" : "is"} op deze omgeving niet beschikbaar.` : "",
-    onbekend.length ? `Of ${opsomming(onbekend)} nu bereikbaar ${onbekend.length > 1 ? "zijn" : "is"}, is niet te controleren.` : "",
+    weg.length ? `${opsomming(weg)} ${meer(weg, "staat", "staan")} aan, maar ${meer(weg, "is", "zijn")} hier niet beschikbaar. Lex gebruikt ${meer(weg, "deze bron", "deze bronnen")} dan niet.` : "",
+    onbekend.length ? `Lex kan nu niet nagaan of ${opsomming(onbekend)} bereikbaar ${meer(onbekend, "is", "zijn")}.` : "",
   ].filter(Boolean);
   return zinnen.length ? zinnen.join(" ") : null;
 }

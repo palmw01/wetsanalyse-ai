@@ -34,7 +34,7 @@ describe("connectorsMenu", () => {
     expect(menuRegel(stand)).toEqual([{ label: "Wetgeving", stand: "aan" }, { label: "Kamerstukken", stand: "niet_aangeboden" },
       { label: "Rechtspraak", stand: "aan" }]);
     expect(menuNaam(stand)).toBe("Bronnen: Wetgeving aan, Kamerstukken niet beschikbaar, Rechtspraak aan");
-    expect(menuMelding(stand)).toBe("Kamerstukken staat aan, maar is op deze omgeving niet beschikbaar.");
+    expect(menuMelding(stand)).toBe("Kamerstukken staat aan, maar is hier niet beschikbaar. Lex gebruikt deze bron dan niet.");
     // Een vaste stand van de omgeving: geen reden om te blijven peilen.
     expect(moetVerversen(stand)).toBe(false);
   });
@@ -54,10 +54,10 @@ describe("connectorsMenu", () => {
     expect(toonMenu(leeg)).toBe(true);
     expect(moetVerversen(leeg)).toBe(true);
     expect(menuRegel(leeg)).toEqual([{ label: "Wetgeving", stand: "aan" }]);
-    expect(menuMelding(leeg)).toBe("De bronnen zijn nu niet te controleren.");
+    expect(menuMelding(leeg)).toBe("Lex kan de bronnen nu niet controleren.");
     expect(menuNaam(leeg)).toBe("Bronnen: Wetgeving aan (nu niet te controleren)");
     const oud: ConnectorStand = { beschikbaar: [{ ...KST, beschikbaarheid: "aan" }], laden: "mislukt" };
-    expect(menuMelding(oud)).toBe("De bronnen zijn nu niet te controleren. Dit is de laatst bekende stand.");
+    expect(menuMelding(oud)).toBe("Lex kan de bronnen nu niet controleren. Je ziet de laatst bekende stand.");
     // De laatst bekende keuze gaat gewoon mee met de beurt.
     expect(beurtBronnen(oud)).toEqual({ bronnen: ["kamerstukken"], bronnen_herkomst: "standaard" });
   });
@@ -91,7 +91,7 @@ describe("connectorsMenu", () => {
     expect(zelfAanTeZetten([{ naam: "kamerstukken", label: "Kamerstukken", reden: "gesprek" }], stand)).toEqual([]);
     expect(menuRegel(stand)).toEqual([{ label: "Wetgeving", stand: "aan" }, { label: "Kamerstukken", stand: "onbekend" },
       { label: "Rechtspraak", stand: "onbekend" }]);
-    expect(menuMelding(stand)).toBe("Of Kamerstukken en Rechtspraak nu bereikbaar zijn, is niet te controleren.");
+    expect(menuMelding(stand)).toBe("Lex kan nu niet nagaan of Kamerstukken en Rechtspraak bereikbaar zijn.");
     expect(menuNaam(stand)).toBe("Bronnen: Wetgeving aan, Kamerstukken onbekend, Rechtspraak onbekend");
   });
 
@@ -115,6 +115,13 @@ describe("connectorsMenu", () => {
     const stand: ConnectorStand = { beschikbaar: [KST, ECLI], gesprek: ["rechtspraak"] };
     expect(wissel(stand, "kamerstukken")).toEqual(["kamerstukken", "rechtspraak"]);
     expect(wissel(stand, "rechtspraak")).toEqual([]);
+  });
+
+  it("de toelichting zegt in de je-vorm wat er geldt, zonder beheertaal", () => {
+    const teksten = [menuMelding({ beschikbaar: [], laden: "mislukt" }),
+      menuMelding({ beschikbaar: [{ ...KST, beschikbaarheid: "niet_aangeboden" }] }),
+      menuMelding({ beschikbaar: [{ ...KST, beschikbaarheid: "onbekend" }] })];
+    for (const t of teksten) expect(t).not.toMatch(/beheerder|omgeving|straat|register|connector/i);
   });
 
   it("de regel op de knop", () => {

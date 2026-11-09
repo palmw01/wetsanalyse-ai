@@ -11,15 +11,15 @@ import { MENU_RIJ } from "@/components/ui/Menu";
 import { herkomstVan, menuMelding, menuNaam, menuRegel, actieveConnectors, schakelbaar, STAND_WOORD, toonMenu, type ConnectorStand } from "@/lib/connectorsMenu";
 
 const HERKOMST = {
-  gesprek: "Eigen keuze voor dit gesprek.",
-  werkgebied: "De standaard van dit werkgebied.",
-  standaard: "Alles wat de beheerder aanzette.",
+  gesprek: "Je koos dit voor dit gesprek.",
+  werkgebied: "Zoals ingesteld voor dit werkgebied.",
+  standaard: "Standaard: alle beschikbare bronnen staan aan.",
 } as const;
 
 /** De reden achter een connector zonder schakelaar. */
 const REDEN = {
-  onbekend: "beschikbaarheid nu niet te controleren",
-  niet_aangeboden: "op deze omgeving niet beschikbaar",
+  onbekend: "nu niet te controleren",
+  niet_aangeboden: "hier niet beschikbaar",
 } as const;
 
 /** *Bronnen en tools* boven het invoerveld (ADR-013): welke bronnen buiten de wettekst Lex in dit gesprek mag
@@ -68,7 +68,7 @@ export function ConnectorsMenu({ stand, onWissel, onAlsStandaard, onTerugNaarSta
             </Melding>
           )}
           <p className="px-2 pb-1 pt-1.5 text-xs text-muted">
-            Wetgeving staat altijd aan. Een bron is geen wettekst: Lex citeert eruit met de eigen vindplaats.
+            Wetgeving staat altijd aan. Andere bronnen zijn geen wettekst. Lex citeert eruit met hun eigen vindplaats.
           </p>
           <MenuLijst>
             {stand.beschikbaar.map((c) => schakelbaar(c) ? (
