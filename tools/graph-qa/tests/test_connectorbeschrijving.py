@@ -51,6 +51,29 @@ def test_de_beschrijving_is_volledig(c: bm.ConnectorBeschrijving):
 
 
 @pytest.mark.parametrize("c", BESCHRIJVINGEN, ids=IDS)
+def test_de_metadata_gebruikt_de_vaste_sleutels(c: bm.ConnectorBeschrijving):
+    """Een feit als de datum komt uit de dienst, in dezelfde sleutels voor elke connector: dan vult één stuk code de
+    lijst, de kop van een gelezen stuk en de werkplek (gesprek e906567a, 9 nov 2026: de datum kwam uit modeltekst)."""
+    sleutels = [v.sleutel for v in c.metadata]
+    assert len(sleutels) == len(set(sleutels)), f"{c.naam}: een metadatasleutel dubbel"
+    for v in c.metadata:
+        assert v.sleutel in bm.METADATA_SLEUTELS, f"{c.naam}: '{v.sleutel}' is geen vaste sleutel"
+        assert v.label and v.bron and v.betekenis, f"{c.naam}: '{v.sleutel}' mist label, bron of betekenis"
+    assert {"datum", "titel", "leesbaar"} <= set(sleutels), f"{c.naam}: elke bron levert datum, titel en leesbaar"
+    datum = c.veld(c.standaard_datum)
+    assert datum is not None and datum.type == "datum" and datum.sorteerbaar, (
+        f"{c.naam}: 'nieuwste' ordent op een sorteerbare datum uit de metadata")
+
+
+@pytest.mark.parametrize("c", BESCHRIJVINGEN, ids=IDS)
+def test_elk_filter_is_een_argument_van_een_zoektool(c: bm.ConnectorBeschrijving):
+    argumenten = {a for t in tools.TOOLS if t["name"] in c.tools - {c.leestool}
+                  for a in t["input_schema"]["properties"]}
+    for arg, veld in c.filters.items():
+        assert arg in argumenten, f"{c.naam}: '{veld.sleutel}' filtert op '{arg}', maar geen zoektool heeft dat argument"
+
+
+@pytest.mark.parametrize("c", BESCHRIJVINGEN, ids=IDS)
 def test_de_tools_bestaan_en_horen_bij_een_connector(c: bm.ConnectorBeschrijving):
     bestaand = {t["name"] for t in tools.TOOLS}
     assert c.tools <= bestaand, f"{c.naam}: tools zonder implementatie: {c.tools - bestaand}"
