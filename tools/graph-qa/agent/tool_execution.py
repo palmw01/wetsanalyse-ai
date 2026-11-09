@@ -12,7 +12,9 @@ from .begrip_read import BegripReadApi
 from .tools import dispatch
 from .tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN
 from .tools.begrip_tools import AFGELEIDE_TOOL_NAMEN, BEGRIP_TOOL_NAMEN
+from .narratie import _stap
 from .resultaat import BUDGET, fout, is_contract
+from .spoorbronnen import bron_van, uitkomstregel
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +43,9 @@ def execute_tool(b, state, writer, tool, *, operation=None):
                        "begrippen_lezen" if name in BEGRIP_TOOL_NAMEN else "bron_lezen"),
              "filters": {k: v for k, v in args.items() if k in {"klasse", "jas_klassen", "tekst", "lifecycle", "laagstatus", "tekstveld", "match", "scope", "bronversie", "inclusief_verouderd", "limit", "offset", "cursor", "herkomst", "aandacht", "subtype", "beslist_door", "met_twijfel", "zoekterm", "status", "werkgebied_id"}},
              "doel": {k: v for k, v in args.items() if k in {"bron_iri", "bwb_id", "artikel", "lid", "id"}}}
+    bron = bron_van(name)
+    if bron is not None:
+        event["bron"] = bron.naam
     writer({**event, "phase": "start", "status": "running"})
     start = monotonic()
     try:
@@ -69,7 +74,7 @@ def execute_tool(b, state, writer, tool, *, operation=None):
                        omvang=omvang, budget=BUDGET)
             status = "error"
         results = data.get("resultaten") or ([] if not data.get("element") else [data["element"]])
-        writer({**event, "phase": "end", "status": status,
+        eind = {**event, "phase": "end", "status": status,
                 # Alleen een antwoord dat een lijst of een element dráágt heeft een aantal. De dekking
                 # heeft geen van beide, en toonde daardoor altijd "0 resultaten".
                 "aantal": len(results) if ((name in AFGELEIDE_TOOL_NAMEN or contract) and status in ("ok", "partial")
@@ -82,11 +87,25 @@ def execute_tool(b, state, writer, tool, *, operation=None):
                 "actualiteit": {k: data[k] for k in ("snapshot_id", "peilmoment", "volledig") if k in data},
                 "foutcode": ("tool_resultaat_te_groot" if te_groot else data.get("reden", ""))
                             if status not in ("ok", "partial") else "",
-                **({"omvang": omvang, "budget": BUDGET} if te_groot else {})})
+                **({"omvang": omvang, "budget": BUDGET} if te_groot else {})}
+        writer(eind)
+        _meld_uitkomst(writer, name, args, eind, data)
         # Toolresultaten worden nooit afgeknipt: elke graaftool begrenst zelf (`agent/resultaat.py`),
         # een te groot resultaat is hierboven al een foutresultaat geworden.
         return raw
     except Exception:
-        writer({**event, "phase": "end", "status": "unavailable",
-                "duur_ms": round((monotonic() - start) * 1000), "foutcode": "tool_mislukt"})
+        eind = {**event, "phase": "end", "status": "unavailable",
+                "duur_ms": round((monotonic() - start) * 1000), "foutcode": "tool_mislukt"}
+        writer(eind)
+        _meld_uitkomst(writer, name, args, eind, {})
         raise
+
+
+def _meld_uitkomst(writer, name, args, eind, data) -> None:
+    """Wat de bron opleverde, als regel in het denkproces, als er iets te melden is ("Kamerstukken · 16 gevonden",
+    "Begrippen · niets gevonden"). De actor is de bron, uit het register (`agent/spoorbronnen.py`). Het
+    `tool_execution`-event blijft het contract voor eval, meting en audit; dit is wat de jurist ervan leest."""
+    regel = uitkomstregel(name, args, eind, data)
+    bron = bron_van(name)
+    if regel:
+        _stap(writer, bron.label if bron else "Kennisgraaf", regel, bron=bron.naam if bron else "")

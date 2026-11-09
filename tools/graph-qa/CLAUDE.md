@@ -254,7 +254,18 @@ bruikbaar is.
   **`graph/schema.py`** – schema-introspectie met een cache van een uur. **`graph/results.py`** –
   `parse_select`: de MCP levert SELECT als JSON-string-gewrapte TSV.
 - **`tool_execution.execute_tool`** – de ene uitvoeringsgrens voor tool-calls buiten de agent-lus
-  (bron, dekking, leesroute), met `tool_execution`-events (start/einde, filters, status, aantal, duur).
+  (bron, dekking, leesroute), met `tool_execution`-events (start/einde, filters, status, aantal, duur, `bron`). Dat event is
+  het contract voor eval, meting en audit; de jurist leest het niet. Wat hij moet weten zet `execute_tool` na het einde als
+  **resultaatregel** in het denkproces, met de bron als actor: "Kamerstukken · 16 gevonden", "Begrippen · niets gevonden",
+  "Kamerstukken · kst-33755-3 deels gelezen, er is meer dan dit", "Wetgeving · niet bereikbaar". Een aantal alleen bij
+  een zoektool (bij een leestool telt het rijen, geen inhoud), een fout in woorden (`resultaat.REDEN_ZIN`), geen toolnaam,
+  JSON of duur. Het tweede blok onder het antwoord ("Graaf geraadpleegd") is daarmee weg (9 nov 2026).
+- **`agent/spoorbronnen.py`** – één register van wat Lex raadpleegt, intern (`WETGEVING`, `ANNOTATIES`, `BEGRIPPEN`,
+  `METHODE`) en per connector afgeleid uit zijn beschrijving (`uit_connector`: label, werkwoorden, leestool = lezen, de
+  rest zoekt). Daaruit komen het werkwoord van de statusregel (`toolregel`, achter `narratie._toolregel`) en de
+  resultaatregel (`uitkomstregel`). Een nieuwe connector staat er zonder code in; een nieuwe graaftool krijgt hier een
+  werkwoord en een zoek/lees-indeling, een nieuwe `reden` een zin in `REDEN_ZIN` – `tests/test_spoorbronnen.py` eist alle
+  drie.
 
 **Lees dit vóór je een graaftool toevoegt of wijzigt.** De faalmodus die deze regels bestrijden is
 telkens **stille onvolledigheid**: geen fout, geen leeg resultaat, gewoon een antwoord dat minder weet
@@ -1560,7 +1571,8 @@ wie een oordeel velt over wetgeving hoort niet met een env-var te verzwakken.
   `Besluit` / `Classificatie` / `Review` / `Resultaat`), met `(0,4 s)` in de tekst en `duur_ms` op het
   event – de tekst reist als `denk` mee naar het chatbericht en is zo na herladen nog te zien. De
   antwoordroute meldt `Controle · …`, `Correctie · …`, `Synthese · …`, `Klaar · N bronnen`; de
-  LLM-narratie zelf blijft `reason`.
+  LLM-narratie zelf blijft `reason`. Na een toolaanroep volgt zo nodig een resultaatregel met de bron als actor
+  (`Kamerstukken · 16 gevonden`), met `bron` als eigen veld op het event (`agent/spoorbronnen.py`).
 - **Onderwerp-afbakening & injectie.** De agent antwoordt alleen over wetgeving en behandelt graaftekst
   als data. Verzwak `SYSTEM_PROMPT`/`SUPERVISOR_SYSTEM` hierin niet zonder reden.
 
