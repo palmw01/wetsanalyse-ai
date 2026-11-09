@@ -36,6 +36,7 @@ ankerlogica die de api en de agent delen staat in `packages/bronmodel` (`wetsana
 | `nodes/annotatie.py` | annoteer (voorbereiding + `jas_pipeline.keten.analyseer`) en emit |
 | `nodes/annotatie_lezen.py` | de leesroute: eerst zoeken in de opgeslagen annotaties, dan formuleren |
 | `nodes/bron_lezen.py` | een stuk dat de vraag bij id noemt (ADR-013): de leestool van de connector in code, dan formuleren |
+| `nodes/bron_lijst.py` | een lijstvraag over een bron naast de wet ("het laatste stuk van dossier 32140"): de zoektool in code, het blok `stukken`, zonder model |
 | `nodes/overzicht.py` | de overzichtsroute: overzicht en tekst uit de graaf, zonder model |
 | `nodes/bepaling.py` | de bepalingsroute (ADR-010, laag 2): de tekst van een bepaling uit `bepaling_workflow`, zonder toollus |
 | `nodes/werkgebied.py` | de werkgebied-worker: één stap van het samenstellen van een werkgebied (activiteit 1) |
@@ -51,6 +52,7 @@ supervisor ─┬─ antwoord-worker:  agent ⇄ tools → verify → (correct) 
             ├─ annotatie-worker: [agent ⇄ tools als ophaal-agent] → annoteer → emit → advance
             ├─ leesroute:        annotaties_zoeken → agent ⇄ tools → verify → finalize
             ├─ genoemd stuk:     bron_lezen → agent ⇄ tools → verify → finalize   (een id als kst-35496-F, ADR-013)
+            ├─ lijstvraag:       bron_lijst → verify → finalize   (zoektool in code, geen model; bij een fout → agent)
             ├─ begrippen lezen:  begrippen_zoeken → agent ⇄ tools → verify → finalize
             ├─ overzichtsroute:  overzicht_bouwen → verify → finalize   (geen model; bij een bouwfout → agent)
             ├─ bepalingsroute:   bepaling_lezen → verify → finalize     (tekst uit code, één aanroep voor de toelichting; anders → agent)
@@ -1535,8 +1537,15 @@ noemt elke bekende connector uit de beschrijving (`_scope_bronnen`), en de code 
 connector raakt (`bronmodel.connectors.herkende`). Gaat de vraag alleen over bronnen die in deze beurt uit staan (en noemt
 ze geen artikel), dan zegt Lex zonder model waarom en wie ze aanzet (`_bron_uit`, `bronstand.melding_uit`; route
 `bron_uit`, met een `bron_uit`-event waarmee de werkplek *Zet aan* aanbiedt). **Noemt de vraag een stuk bij id** van een
-connector die aanstaat (`connectors.genoemde_stukken`), dan leest de code het vooraf (`_te_lezen`, `nodes/bron_lezen.py`, de
-`leestool` met `lees_argument`); zonder artikel in de vraag zonder supervisorcall. Een vraag over een bron naast de wet start
+connector die aanstaat (`connectors.genoemde_stukken`, ook in een citeervorm van de beschrijving: "Kamerstuk 32140, nr.
+342" → `kst-32140-342`, dat de leestool bij de bron oplost), dan leest de code het vooraf (`_te_lezen`,
+`nodes/bron_lezen.py`, de `leestool` met `lees_argument`); zonder artikel in de vraag zonder supervisorcall. **Een
+lijstvraag** ("geef de 10 meest recente Kamerstukken", "de laatste vijf moties van de Eerste Kamer") leest
+`agent/bron_lijst.py` helemaal in code – volgorde, aantal, dossier, soort (`ConnectorBeschrijving.soorten`), periode,
+vergaderjaar, Kamer (`organen`) en een onderwerp van hoogstens vier woorden ("over …") als `tekst` – en dan zoekt
+`nodes/bron_lijst.py` één keer, zonder model, met het blok `stukken` (leeg: een leemte met de zoekvraag; een fout: de
+agent). Blijft er een woord over dat de code niet plaatst, of vraagt de vraag naar de inhoud, dan geen route. Ook in een
+gesprek vóór het model, en daarna op de herschreven vraag. `tests/test_bron_lijst.py`, `eval/golden_routering.jsonl`. Een vraag over een bron naast de wet start
 nooit een werkgebied (het model koos dat in een lang gesprek). In de bronnenlijst staat een bron naast de wet alleen als ze
 gelezen en genoemd is (`grounding.alleen_gelezen_extern`). `GET /v1/bronnen` zegt per connector of de
 straat hem aanbiedt; de BFF (`/api/connectors`) toont in het menu alleen wat straat én register aanzetten. De vlag hoort in de per-beurt-reset van `answer_stream`,

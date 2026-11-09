@@ -132,10 +132,38 @@ class ConnectorBeschrijving:
     standaard_datum: str = ""
     #: De volgordes die de zoektool kent (uit `VOLGORDES`); het argument `volgorde` van de zoektool is precies deze enum.
     volgordes: tuple[str, ...] = ()
+    #: Hoe een jurist een stuk noemt zonder id ("Kamerstuk 32140, nr. 342"): per vorm een patroon met benoemde groepen
+    #: en het id dat eruit volgt ("kst-{dossier}-{nummer}"). De leestool lost dat id op bij de bron, ook als het stuk
+    #: daar een ander id draagt (een herdruk, een onopgemaakt stuk). Zo leest de code een genoemd stuk direct, net als
+    #: een id (gesprek e906567a: "Kamerstuk 32140, nr. 342" ging langs het model en heette onbereikbaar).
+    citeervormen: tuple[tuple[str, str], ...] = ()
+    #: De soorten stukken in de woorden van de jurist, met een patroon dat ook het meervoud vindt; voor de vaste route
+    #: van een lijstvraag ("de laatste vijf moties"). De waarde gaat als filter `soort` naar de zoektool.
+    soorten: tuple[tuple[str, str], ...] = ()
+    #: Wie een stuk uitbrengt, zoals de zoektool het filter `orgaan` kent ("Eerste Kamer").
+    organen: tuple[str, ...] = ()
     _patronen: tuple[re.Pattern[str], ...] = field(init=False, repr=False, compare=False)
+    _citeer: tuple[tuple[re.Pattern[str], str], ...] = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "_patronen", tuple(re.compile(s, re.IGNORECASE) for s in self.signalen))
+        object.__setattr__(self, "_citeer", tuple((re.compile(p, re.IGNORECASE), v) for p, v in self.citeervormen))
+
+    def geciteerd(self, tekst: str) -> list[tuple[int, str]]:
+        """(plek, id) van elk stuk dat de tekst in een citeervorm noemt, zonder id ("Kamerstuk 32140, nr. 342"). Een
+        groep wordt hoofdletters zonder spaties ("36200 ix" → "36200-IX"); een id dat geen vindplaats is, telt niet."""
+        uit: list[tuple[int, str]] = []
+        for patroon, vorm in self._citeer:
+            for m in patroon.finditer(tekst or ""):
+                delen = {k: re.sub(r"\s+", "-", v.strip()).upper() for k, v in m.groupdict().items() if v}
+                try:
+                    ident = vorm.format(**delen)
+                except KeyError:
+                    continue
+                vp = externe_vindplaats(ident)
+                if vp is not None and vp.brontype == self.brontype and vp.id.startswith(self.id_prefixen):
+                    uit.append((m.start(), vp.id))
+        return uit
 
     @property
     def capaciteit(self) -> str:
@@ -253,6 +281,23 @@ KAMERSTUKKEN = ConnectorBeschrijving(
     ),
     standaard_datum="datum",
     volgordes=VOLGORDES,
+    # "Kamerstuk 32140, nr. 342", "Kamerstukken II 2013/14, 33754, nr. 7", "kamerstuk 36200 IX nummer 2".
+    citeervormen=((r"\bkamerstuk(?:ken)?\s+(?:I{1,2}\s+)?(?:\d{4}\s*/\s*\d{2,4},?\s+)?"
+                   r"(?P<dossier>\d{4,6}(?:[- ](?:[IVXLC]{1,6}|[A-Z]|\d{1,2})\b)?),?\s*(?:nr\.?|nummer)\s*"
+                   r"(?P<nummer>[0-9A-Z]{1,6})\b", "kst-{dossier}-{nummer}"),),
+    soorten=(
+        ("memorie van toelichting", r"\bmemorie(?:s)?\s+van\s+toelichting\b|\bmvt'?s?\b"),
+        ("voorstel van wet", r"\b(?:wets)?voorstel(?:len)?\s+van\s+wet\b|\bwetsvoorstel(?:len)?\b"),
+        ("nota van wijziging", r"\bnota'?s\s+van\s+wijziging\b|\bnota\s+van\s+wijziging\b"),
+        ("nota naar aanleiding van het verslag", r"\bnota'?s?\s+naar\s+aanleiding\s+van\s+het\s+verslag\b"),
+        ("advies raad van state", r"\badvie(?:s|zen)\s+van\s+de\s+raad\s+van\s+state\b"),
+        ("nader rapport", r"\bnader(?:e)?\s+rapport(?:en)?\b"),
+        ("motie", r"\bmotie(?:s)?\b"),
+        ("amendement", r"\bamendement(?:en)?\b"),
+        ("verslag", r"\bverslag(?:en)?\b"),
+        ("brief", r"\bbrie(?:f|ven)\b"),
+    ),
+    organen=("Tweede Kamer", "Eerste Kamer"),
 )
 
 #: De bronconnectors, in de volgorde van het menu en de beheertab.
@@ -281,9 +326,16 @@ def leestools() -> frozenset[str]:
 
 
 def genoemde_stukken(tekst: str) -> list[tuple[ConnectorBeschrijving, str]]:
-    """De ids van een connector die de tekst letterlijk noemt (`kst-35496-F`), in de volgorde van de tekst."""
-    uit: list[tuple[ConnectorBeschrijving, str]] = []
+    """De stukken van een connector die de tekst noemt, in de volgorde van de tekst: bij id (`kst-35496-F`) of in een
+    citeervorm van de connector ("Kamerstuk 32140, nr. 342" → `kst-32140-342`). Ontdubbeld op id."""
+    gevonden: list[tuple[int, ConnectorBeschrijving, str]] = []
     for e in externe_verwijzingen(tekst or ""):
         if (c := van_id(e.id)) is not None:
-            uit.append((c, e.id))
+            gevonden.append(((tekst or "").find(e.id.split("-", 1)[-1]), c, e.id))
+    for c in CONNECTORS.values():
+        gevonden += [(plek, c, ident) for plek, ident in c.geciteerd(tekst)]
+    uit: list[tuple[ConnectorBeschrijving, str]] = []
+    for _, c, ident in sorted(gevonden, key=lambda x: x[0]):
+        if all(ident != i for _, i in uit):
+            uit.append((c, ident))
     return uit
