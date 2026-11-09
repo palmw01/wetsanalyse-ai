@@ -5,7 +5,7 @@ import { annotatieAlsMarkdown } from "@/lib/artefactMarkdown";
 import { PaneelKop } from "@/components/ui/PaneelKop";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { vindplaatsLabel } from "@/lib/annotatieOverzicht";
+import { annotatieKopTekst } from "@/lib/herkomst";
 import { foutTekst, type ExportFormaat } from "@/lib/api";
 
 import { MenuVerwijder } from "@/components/ui/MeerMenu";
@@ -82,10 +82,10 @@ export function ArtefactInhoud({
   doc, info, actiefId, onKies, onBeslissing, onAkkoordGroen, onEigenMarkering,
   onWisEigenMarkering, onVraag, onStatus, onVerwijder, onSluiten, pagina, onExport, extra, elementExtra, ongedekt, kopOnder, kopBalk, alleenLezen = false,
 }: ArtefactInhoudProps) {
-  // Eén bron voor de bewoording: `vindplaatsLabel` weet uit het graaf-`soort` of dit een artikel
+  // Eén bron voor de bewoording (`lib/herkomst.ts`): `bepalingKort` weet uit het graaf-`soort` of dit een artikel
   // met leden is of een bepaling van een beleidsregel. Hier raden op puntjes in het nummer zou bij
   // de Invorderingswet en de Leidraad verschillend moeten uitpakken voor hetzelfde nummer "25".
-  const opschrift = annotatieOpschrift(doc, info);
+  const opschrift = annotatieKopTekst(info, doc);
   // Eén keer per artikel opbouwen, niet per render: de regels zijn de identiteit waarop het
   // documentpaneel zijn eigen `useMemo`'s hangt, dus een verse array per render zette die uit.
   const regels = useMemo(() => regelsVan(info), [info]);
@@ -409,11 +409,6 @@ export function focusBijArtefact(doel: EventTarget | null): boolean {
  *  als tevreden zijn. Afronden zet de hele annotatie op slot, dus dit is óók de enige weg terug —
  *  heropenen kan altijd, want een knop die niet terug kan durft niemand te gebruiken. Bij een
  *  gepromoveerd document (in de graaf) is er niets meer te wisselen. */
-/** Het opschrift van een annotatie: regeling en vindplaats. */
-export function annotatieOpschrift(doc: AnnotatieDocument, info: GraafArtikel): string {
-  return `${info.citeertitel || doc.bwbId} – ${vindplaatsLabel({ artikel: info.artikel, lid: doc.lid, soort: info.soort })}`;
-}
-
 /** De kop van een annotatie (`PaneelKop`): de status links, afronden rechts, exporteren en verwijderen in het menu ⋯.
  *  Eén component voor de tab Tekst (hier) en de tab Graaf (`NodeAnnotatiePaneel`), zodat de kop bij een tabwissel
  *  niet springt. Een fout landt via `onFout` in de melding van de tab die openstaat. */

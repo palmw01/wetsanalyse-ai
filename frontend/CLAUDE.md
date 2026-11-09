@@ -107,6 +107,29 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   - `rondleiding/` – de rondleiding door de werkplek (zie §*Rondleiding*).
   - `ui/` – de primitives.
 
+### Generieke componenten (kernprincipe, besluit gebruiker 9 nov 2026)
+
+**Eén component per patroon, en geen deeloplossingen ernaast.** Wat op meer plekken terugkomt – een kop, een label, een
+weergave van wettekst, een melding – is één component of één functie, en elke plek gebruikt die. Een tweede variant
+verdwijnt; hij blijft niet "voorlopig" naast de nieuwe staan. Een vormtest in `app/*.test.ts` bewaakt dat er geen
+tweede terugkomt (in de lijn van `knoppen.test.ts` en `eenSpoor.test.ts`). Bouw je iets wat er al bijna is, breid dan
+het bestaande uit.
+
+**De herkomst van een bepaling** (het bronvenster, PR 1; `app/herkomst.test.ts`): welke wet, waar in de wet en welke
+stand komt uit `lib/herkomst.ts`.
+- `herkomstVan` maakt de herkomst uit wat een plek weet (vindplaats, `BepalingDetail`). Het label komt uit de IRI als
+  de bron alleen een staart gaf ("Lid 2" wordt "Artikel 9, lid 2"); een label dat de regeling al draagt wordt gesplitst.
+  `vindplaatsTekst` is het volle label ("Artikel 9, lid 2, Invorderingswet 1990"), `bepalingKort` de korte vorm van een
+  annotatie ("art. 9 lid 2"), `annotatieKopTekst` het opschrift van een annotatie.
+- De kop van een paneel met een bepaling: `herkomstKop` als titel, `HerkomstRegel` (`components/ui`) als tweede regel:
+  regeling · plek (`plaatsKort`, voluit in de tooltip) · stand · wetten.overheid.nl. `useBronHerkomst` haalt het
+  detail (`haalBepalingDetail`, per sessie gecachet) en de peildatum van het werkgebied.
+- Over de stand zegt alleen `StandMelding` iets (`standMeldingen`): nog niet in werking, een nieuwere toestand dan Lex
+  las, een stand ná de peildatum. De graaf draagt één toestand per regeling; de melding suggereert nooit een oudere versie.
+- Geen eigen `` `${v.label}, ${v.regeling}` ``, geen tweede `vindplaatsLabel` (die van `lib/samenhang.ts` is de spiegel
+  van `bronmodel.vindplaats`), geen eigen zin over de stand.
+- Wat het venster opent, is een `BronDoel` (`lib/bronDoel.ts`): een bepaling of een stuk uit een bronconnector.
+
 ### Vormgeving (Rijkshuisstijl, Belastingdienst-stijlvak)
 
 - **Tokens, geen hex-waarden.** Kleur en typografie lopen via CSS-variabelen in `app/globals.css` →
@@ -515,7 +538,7 @@ bronnenlijst bij: de blokken noemen elke vindplaats (`Vindplaats`: een klik open
 `annotaties` de `bron_iri` van de markeringen). Die opent de context `bron`, en daar toont `BepalingFeiten` onder de wettekst wat
 de graaf verder weet (`GET bepaling`, `lib/bepalingDetail.ts` met een drifttest op `api/app/bepaling_graaf_contract.py`). Geen
 artefactsoort: een bepaling is context, er valt niets te beoordelen. De jci die Lex las gaat mee; draagt de graaf een latere
-toestand, dan zegt het paneel dat (`afwijkendeToestand`). Leden van één artikel staan in het blok `wettekst` onder één kop
+toestand, dan zegt het paneel dat (`standMeldingen` in `lib/herkomst.ts`, getoond door `StandMelding`). Leden van één artikel staan in het blok `wettekst` onder één kop
 (`groepeerWettekst`). Een antwoord met alleen `NIET_GETOETST`-blokken krijgt geen "niets te controleren".
 
 ### Het overzicht van een onderwerp
@@ -1069,11 +1092,10 @@ bestaat los van de gesprekken.
     `deelvragen/voorstellen` (van graph-qa).
   - Browserregressie: `scripts/test-deelvragen.mjs`.
 - **Deelvragen met structuur** (spoor H3): in het dossier is een deelvraag een rij – de vraag als link naar
-  haar pagina, herkomst en omvang ("7 bronnen in 3 regelingen"), de voortgang van haar bronselectie – met
-  *Bronnen koppelen* achter ⋯; bewerken en verwijderen gaan via *Bewerken* van het blok. Koppelen gaat in een venster
-  (`KoppelDialoog`): de bronnen als `BronBoom` met vinkjes (een heel artikel, hoofdstuk of regeling in één
-  klik); begrippen koppel je niet aan een deelvraag (spoor K). Op de deelvraagpagina staan haar bronnen als
-  rijen (`Groep`/`GroepRij`), met *Koppelen*. Een bronselectie
+  haar pagina, herkomst en omvang ("7 bronnen in 3 regelingen"), de voortgang van haar bronselectie; bewerken en
+  verwijderen gaan via *Bewerken* van het blok. Bronnen komen bij een deelvraag via de bronselectie, niet via een
+  koppelvenster; begrippen koppel je niet aan een deelvraag (spoor K). Op de deelvraagpagina staan haar bronnen als
+  rijen (`Groep`/`GroepRij`). Een bronselectie
   heet *Verwijderen uit werkgebied*. Ruwe IRI's in oudere dossiertekst toont de werkplek als hun plek
   (`metLeesbareBronnen`).
 - **Opnemen vanuit een annotatie**: *Opnemen in werkgebied* in de kop van `/annotaties/node`

@@ -1,6 +1,8 @@
 "use client";
 
+import { HerkomstRegel } from "@/components/ui/HerkomstRegel";
 import { PaneelKop } from "@/components/ui/PaneelKop";
+import { StandMelding } from "@/components/ui/StandMelding";
 import Link from "next/link";
 import { createContext, useEffect, useState } from "react";
 
@@ -16,7 +18,9 @@ import { LIFECYCLE_LABEL } from "@/lib/annotatie";
 import { haalElementDetail, haalNodeWeergave, nodeLink, type ElementDetail, type NodeWeergave } from "@/lib/annotatieNode";
 import { foutTekst, haalWerkgebied } from "@/lib/api";
 import { jasStyle, klasseLabel } from "@/lib/jas";
+import { herkomstKop, vindplaatsTekst, type StandMeldingData } from "@/lib/herkomst";
 import type { Lifecycle, Overzicht, Werkgebied } from "@/lib/types";
+import { useBronHerkomst } from "@/lib/useBronHerkomst";
 import { ROL_LABEL } from "@/lib/werkgebied";
 import { bronPad, elementPad, projectPad } from "@/lib/werkgebiedPaden";
 
@@ -67,13 +71,16 @@ export function ContextPaneel({ doel, variant, onSluit, onWissel, onMaakWerkgebi
   /** *Maak hier een werkgebied van* bij een overzicht. */
   onMaakWerkgebied?: (overzicht: Overzicht) => void;
 }) {
-  const titel = doel.titel || KOP[doel.soort];
+  // Een bepaling krijgt de kop van haar herkomst: de bepaling als titel, regeling · plek · stand · bron eronder.
+  const bron = useBronHerkomst(doel.soort === "bron" ? doel : undefined);
+  const kop = bron.herkomst ? herkomstKop(bron.herkomst) : { soort: KOP[doel.soort], titel: doel.titel || KOP[doel.soort] };
   return (
-    <Dialog label={`${KOP[doel.soort]}: ${titel}`} variant={variant} onSluit={onSluit}>
+    <Dialog label={`${kop.soort}: ${kop.titel}`} variant={variant} onSluit={onSluit}>
       <div data-context-paneel={doel.soort} className="flex min-h-0 flex-1 flex-col">
-        <PaneelKop soort={KOP[doel.soort]} titel={titel} pagina={paginaVanContext(doel)} onSluit={onSluit} />
+        <PaneelKop soort={kop.soort} titel={kop.titel} pagina={paginaVanContext(doel)} onSluit={onSluit}
+          status={bron.herkomst && <HerkomstRegel herkomst={bron.herkomst} />} />
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-          {doel.soort === "bron" ? <BronInhoud doel={doel} onWissel={onWissel} />
+          {doel.soort === "bron" ? <BronInhoud doel={doel} onWissel={onWissel} meldingen={bron.meldingen} />
             : doel.soort === "element" ? <ElementInhoud id={doel.element_id} />
             : doel.soort === "overzicht" ? <OverzichtPaneel overzicht={doel.overzicht} onMaakWerkgebied={onMaakWerkgebied} />
             : <BibliotheekInhoud werkgebiedId={doel.werkgebied_id} onWissel={onWissel} />}
@@ -91,7 +98,9 @@ function Kop({ children }: { children: React.ReactNode }) {
   return <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-faint">{children}</h3>;
 }
 
-function BronInhoud({ doel, onWissel }: { doel: Extract<ContextDoel, { soort: "bron" }>; onWissel: (d: ContextDoel) => void }) {
+function BronInhoud({ doel, onWissel, meldingen }: {
+  doel: Extract<ContextDoel, { soort: "bron" }>; onWissel: (d: ContextDoel) => void; meldingen: StandMeldingData[];
+}) {
   const [view, setView] = useState<NodeWeergave | null>(null);
   const [fout, setFout] = useState<string | null>(null);
   useEffect(() => {
@@ -109,6 +118,7 @@ function BronInhoud({ doel, onWissel }: { doel: Extract<ContextDoel, { soort: "b
     onWissel({ soort: "element", element_id: id, titel: e ? `${klasseLabel(e.klasse)} · “${e.tekst}”` : "" });
   };
   return <>
+    <StandMelding meldingen={meldingen} />
     <section>
       <Kop>Wettekst</Kop>
       <KnoopTekst segmenten={view.segmenten} elementen={actueel} kiesbaar={() => true} onKies={openElement} />
@@ -133,8 +143,8 @@ function BronInhoud({ doel, onWissel }: { doel: Extract<ContextDoel, { soort: "b
         Beoordelen in de annotatie
       </Link>
     </section>
-    <BepalingFeiten key={doel.bron_iri} bronIri={doel.bron_iri} gelezenJci={doel.jci}
-      onOpen={(v) => onWissel({ soort: "bron", bron_iri: v.iri, werkgebied_id: doel.werkgebied_id, titel: v.regeling ? `${v.label}, ${v.regeling}` : v.label })} />
+    <BepalingFeiten key={doel.bron_iri} bronIri={doel.bron_iri}
+      onOpen={(v) => onWissel({ soort: "bron", bron_iri: v.iri, werkgebied_id: doel.werkgebied_id, titel: vindplaatsTekst(v) })} />
   </>;
 }
 
@@ -192,9 +202,9 @@ function BibliotheekInhoud({ werkgebiedId, onWissel }: { werkgebiedId: string; o
             {lijst.map((b) => (
               <li key={b.id}>
                 <button type="button" data-context-bron={b.id}
-                  onClick={() => onWissel({ soort: "bron", bron_iri: b.bron_iri, werkgebied_id: werkgebiedId, titel: b.label || "Bepaling" })}
+                  onClick={() => onWissel({ soort: "bron", bron_iri: b.bron_iri, werkgebied_id: werkgebiedId, titel: vindplaatsTekst({ iri: b.bron_iri, label: b.label }) })}
                   className="focus-ring block w-full rounded-md px-1 py-2 text-left hover:bg-surface">
-                  <span className="block text-sm font-medium text-ink">{b.label || "Bepaling"}</span>
+                  <span className="block text-sm font-medium text-ink">{vindplaatsTekst({ iri: b.bron_iri, label: b.label })}</span>
                   {b.reden && <span className="block text-xs text-muted">{b.reden}</span>}
                 </button>
               </li>

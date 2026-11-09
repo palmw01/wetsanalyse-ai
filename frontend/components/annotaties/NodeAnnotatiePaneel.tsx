@@ -14,8 +14,8 @@ import { Melding } from "@/components/ui/Melding";
 import { PaneelKop } from "@/components/ui/PaneelKop";
 import { VersieKiezer } from "@/components/ui/VersieKiezer";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { NogNietInWerking } from "@/components/bronnen/NogNietInWerking";
-import { AnnotatieKop, ArtefactInhoud, annotatieOpschrift } from "@/components/werkplek/ArtefactInhoud";
+import { StandMelding } from "@/components/ui/StandMelding";
+import { AnnotatieKop, ArtefactInhoud } from "@/components/werkplek/ArtefactInhoud";
 import { foutTekst, type ExportFormaat } from "@/lib/api";
 import {
   apiOpslag, bepalingRevisies, dragerRevisies, momentopnameOpslag, nodeLink, nogNietInWerking, verwachteRevisies,
@@ -30,6 +30,7 @@ import { metSpoor } from "@/lib/uiSpoor";
 import { samenhangBeschikbaar } from "@/lib/samenhang";
 import type { KnoopData } from "@/lib/graaf/model";
 import type { Anker, ArtefactVersie, BeslissingInvoer } from "@/lib/types";
+import { NOG_NIET_IN_WERKING, annotatieKopTekst } from "@/lib/herkomst";
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
 import { Graaf } from "@/components/graaf/Graaf";
 import { useGraafStand, type GraafOpties } from "@/components/graaf/useGraafStand";
@@ -296,7 +297,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
       {/* Eén kop voor beide tabs: op de tab Tekst draagt de inhoud hem (met de acties), op de graaf het paneel. */}
       {toonTabs && tab === "graaf" && (
         <>
-          <AnnotatieKop doc={doc} opschrift={annotatieOpschrift(doc, nb.info)} pagina={pagina} onSluiten={onSluit} onder={reeksBalk} balk={tabs}
+          <AnnotatieKop doc={doc} opschrift={annotatieKopTekst(nb.info, doc)} pagina={pagina} onSluiten={onSluit} onder={reeksBalk} balk={tabs}
             onStatus={view.lagen.length && !opname ? status : undefined}
             onVerwijder={view.lagen.length && !opname ? verwijder : undefined}
             onExport={opname ? undefined : exporteer} onFout={setKopFout} />
@@ -311,7 +312,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
             onVraag={onVraag || onVraagOverBron ? vraagOverKnoop : undefined} />
         </div>
       )}
-      {(!toonTabs || tab === "tekst") && view?.segmenten.some(nogNietInWerking) && <div className="px-4 pt-3"><NogNietInWerking /></div>}
+      {(!toonTabs || tab === "tekst") && view?.segmenten.some(nogNietInWerking) && <div className="px-4 pt-3"><StandMelding meldingen={[NOG_NIET_IN_WERKING]} /></div>}
       {(!toonTabs || tab === "tekst") && <ArtefactInhoud
         doc={doc}
         info={nb.info}

@@ -4,8 +4,10 @@ import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
+import { HerkomstRegel } from "@/components/ui/HerkomstRegel";
 import { ContextPaneelContext } from "@/components/werkplek/ContextPaneel";
 import type { NodeDoel } from "@/lib/annotatieNode";
+import { herkomstLabel, herkomstVan } from "@/lib/herkomst";
 import { plaatsPopover } from "@/lib/popover";
 import { bronDoel, haalSamenhang } from "@/lib/samenhang";
 import type { Bron } from "@/lib/types";
@@ -65,10 +67,12 @@ function BronKaart({ doel, bron, rect, onSluit, onOpenSamenhang }: {
   const plek = plaatsPopover({ midden: rect.left + rect.width / 2, boven: rect.top, onder: rect.bottom },
     { breedte: BREEDTE, hoogte: 220 }, { breedte: window.innerWidth, hoogte: window.innerHeight });
   const href = bronHref(bron.uri);
-  return <div ref={ref} role="dialog" aria-label={`Bron: ${doel.label ?? "bepaling"}`} tabIndex={-1} data-testid="bronkaart"
+  const herkomst = herkomstVan({ iri: doel.bron_iri, label: doel.label ?? bron.label, regeling: bron.regeling ?? undefined });
+  return <div ref={ref} role="dialog" aria-label={`Bron: ${herkomstLabel(herkomst)}`} tabIndex={-1} data-testid="bronkaart"
     style={{ position: "fixed", top: plek.top, left: plek.left, width: BREEDTE }}
     className="z-50 rounded-kaart border border-line bg-paper p-3 text-left text-xs shadow-kaart outline-none">
-    <p className="font-semibold text-lint">{doel.label ?? bron.label}</p>
+    <p className="font-semibold text-lint">{herkomst.bepaling}</p>
+    <HerkomstRegel herkomst={herkomst} link={false} />
     <p className="mt-1.5 max-h-32 overflow-y-auto leading-relaxed text-ink">
       {fout ? <span className="text-muted">De tekst kon niet worden opgehaald.</span>
         : tekst === undefined ? <span className="text-muted">Tekst ophalen…</span>
@@ -77,7 +81,7 @@ function BronKaart({ doel, bron, rect, onSluit, onOpenSamenhang }: {
     <div className="mt-2 flex flex-wrap items-center gap-3">
       {href && <a href={href} target="_blank" rel="noopener noreferrer" className="text-lint underline underline-offset-2">wetten.overheid.nl</a>}
       {openContext && <button type="button" data-naast-gesprek
-        onClick={() => { onSluit(); openContext({ soort: "bron", bron_iri: doel.bron_iri, titel: doel.label ?? bron.label }); }}
+        onClick={() => { onSluit(); openContext({ soort: "bron", bron_iri: doel.bron_iri, titel: herkomstLabel(herkomst) }); }}
         className="focus-ring inline-flex items-center gap-1 rounded text-lint underline underline-offset-2 hover:no-underline">
         Naast het gesprek</button>}
       {onOpenSamenhang && <button type="button" onClick={() => { onSluit(); onOpenSamenhang(doel); }}

@@ -268,3 +268,21 @@ async def test_de_verwijzingen_van_de_leden_komen_uit_de_gedeelde_lezer_zonder_t
         ("Artikel 36, lid 1", "Algemene wet inzake rijksbelastingen", True)]
     assert d.verwijst_naar_aantal == 1 and d.verwijst_naar_volledig
     assert len(tellingen) == 1 and f"<{A36}>" in tellingen[0]
+
+
+def test_de_vindplaats_draagt_de_jci_met_de_toestand_die_de_graaf_heeft():
+    """De link opent de versie die het paneel toont, niet de actuele (acceptatie 8 nov 2026: `&z=&g=` ontbrak)."""
+    sameas = {"p": bepaling_detail.OWL_SAMEAS, "o": "https://wetten.overheid.nl/jci1.3:c:BWBR0004770&hoofdstuk=VI&artikel=36",
+              "isIri": "true"}
+    d = detail(uit=[*UIT, sameas])
+    assert d.vindplaats.jci == "jci1.3:c:BWBR0004770&hoofdstuk=VI&artikel=36&z=2026-10-01&g=2026-10-01"
+    assert d.bwb_id == "BWBR0004770"
+    assert d.url == sameas["o"]
+
+
+def test_zonder_jci_vorm_geen_verzonnen_jci():
+    """Een `id:`-divisie heeft alleen een `bronUrl`: dan geen jci, wel de link."""
+    bron = {"p": BWB + "bronUrl", "o": "https://wetten.overheid.nl/BWBR0024096/2026-01-01#Circulaire.divisie36", "isIri": "true"}
+    d = detail(uit=[*UIT, bron])
+    assert d.vindplaats.jci == ""
+    assert d.url == bron["o"]

@@ -14,6 +14,7 @@ import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
 import { isBeslist, LIFECYCLE_LABEL } from "@/lib/annotatie";
 import { beslisElement, haalElementDetail, nodeLink, type ElementDetail } from "@/lib/annotatieNode";
 import { foutTekst } from "@/lib/api";
+import { herkomstVan } from "@/lib/herkomst";
 import { jasStyle, klasseLabel } from "@/lib/jas";
 import type { Lifecycle, ReviewReason } from "@/lib/types";
 import { metSpoor } from "@/lib/uiSpoor";
@@ -84,7 +85,8 @@ export function ElementPagina({ id }: { id: string }) {
 
   const el = d?.element;
   const bepaling = d?.bronnen.find((b) => b.bron_iri === el?.eigenaar_iri);
-  const bepalingNaam = bepaling?.label || "Bepaling";
+  // Het pad uit de IRI, niet het kale segmentlabel: "Artikel 9, lid 2" in plaats van "Lid 2".
+  const bepalingNaam = el ? herkomstVan({ iri: el.eigenaar_iri, label: bepaling?.label }).bepaling : "Bepaling";
   const naarAnnotatie = el ? `${nodeLink({ bron_iri: el.eigenaar_iri })}&element=${encodeURIComponent(el.id)}` : "/annotaties";
   const afgerond = d?.laag.status === "geaccordeerd";
   const beoordeeld = !!el && isBeslist(el);

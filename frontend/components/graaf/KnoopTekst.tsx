@@ -1,7 +1,8 @@
 "use client";
 
 import { jasStyle } from "@/lib/jas";
-import { NogNietInWerking } from "@/components/bronnen/NogNietInWerking";
+import { StandMelding } from "@/components/ui/StandMelding";
+import { NOG_NIET_IN_WERKING } from "@/lib/herkomst";
 import { nogNietInWerking, type NodeElement, type NodeSegment } from "@/lib/annotatieNode";
 import { spansVan } from "@/lib/graaf/spans";
 
@@ -22,7 +23,7 @@ export function KnoopTekst({ segmenten, elementen, gekozen, kiesbaar, onKies, gr
   const perId = new Map(elementen.map((e) => [e.id, e]));
   const metTekst = segmenten.filter((s) => s.tekst.trim());
   if (!metTekst.length) return null;
-  return <>{segmenten.some(nogNietInWerking) && <NogNietInWerking />}<div className={`space-y-1.5 border-l-2 border-lint/20 pl-3 ${groot ? "text-sm leading-7" : "text-xs leading-relaxed"} text-ink`} data-testid="graaf-knooptekst">
+  return <>{segmenten.some(nogNietInWerking) && <StandMelding meldingen={[NOG_NIET_IN_WERKING]} />}<div className={`space-y-1.5 border-l-2 border-lint/20 pl-3 ${groot ? "text-sm leading-7" : "text-xs leading-relaxed"} text-ink`} data-testid="graaf-knooptekst">
     {metTekst.map((s) => {
       const nummer = s.nummer?.trim();
       return <p key={s.bron_iri} className={s.type === "Onderdeel" ? "pl-3" : ""}>

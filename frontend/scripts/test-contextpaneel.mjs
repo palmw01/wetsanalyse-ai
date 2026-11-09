@@ -103,6 +103,11 @@ try {
     `/bronnen?bron_iri=${encodeURIComponent(LID)}&werkgebied=wg1`, "de pagina in het werkgebied van het gesprek");
   // De chat blijft bruikbaar ernaast.
   assert.ok(await page.getByRole("textbox").last().isVisible());
+  // De kop noemt de herkomst (het bronvenster, PR 1): de bepaling als titel, regeling · plek · stand · bron eronder.
+  await paneel("bron").getByRole("heading", { name: "Artikel 9, lid 2", exact: true }).waitFor();
+  const herkomst = paneel("bron").locator("[data-paneel-kop] [data-herkomst]");
+  await herkomst.waitFor();
+  assert.match(await herkomst.textContent(), /^Invorderingswet 1990 · H II · stand 1 oktober 2026 · wetten\.overheid\.nl$/);
 
   // Onder de wettekst: wat de graaf verder weet, letterlijk uit het detail, zonder iets erbij te verzinnen.
   const feiten = paneel("bron").locator("[data-bepaling-feiten=gereed]");
@@ -127,10 +132,13 @@ try {
   // Een verwijzing in de graaf opent in hetzelfde paneel.
   await feiten.getByRole("button", { name: "Artikel 56, lid 1, Invorderingswet 1990" }).click();
   await paneel("bron").locator("[data-feit=plek]").waitFor();
-  await page.getByRole("heading", { name: "Artikel 56, lid 1, Invorderingswet 1990" }).waitFor();
+  await page.getByRole("heading", { name: "Artikel 56, lid 1", exact: true }).waitFor();
 
-  // Een haperende graaf zegt dat, en laat de wettekst staan.
+  // Een haperende graaf zegt dat, en laat de wettekst staan. Een geslaagde lezing blijft per sessie bewaard, dus eerst
+  // herladen.
   graafWeg = true;
+  await page.reload();
+  await page.getByRole("button", { name: "Artikel 9 lid 2", exact: true }).waitFor();
   await page.getByRole("button", { name: "Artikel 9 lid 2", exact: true }).click();
   await page.getByTestId("bronkaart").getByRole("button", { name: "Naast het gesprek" }).click();
   await paneel("bron").locator("[data-bepaling-feiten=niet-beschikbaar]").waitFor();

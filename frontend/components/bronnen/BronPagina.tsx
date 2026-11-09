@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { KnoopFeiten } from "@/components/graaf/KnoopFeiten";
 import { KnoopTekst } from "@/components/graaf/KnoopTekst";
 import { Regel, Regels, StatusLabel } from "@/components/ui/Lijst";
+import { HerkomstRegel } from "@/components/ui/HerkomstRegel";
 import { Melding } from "@/components/ui/Melding";
 import { Kaart, ObjectRij, ObjectRijen, PaginaKop, SplitDetail, Stip, type Kruimel } from "@/components/ui/Pagina";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -17,6 +18,7 @@ import { BEOORDEELD_LIFECYCLES, LIFECYCLE_LABEL } from "@/lib/annotatie";
 import { haalNodeWeergave, nodeLink, type NodeWeergave } from "@/lib/annotatieNode";
 import { foutTekst, haalWerkgebied, lijstWerkgebieden } from "@/lib/api";
 import { haalKnoopInfo, type KnoopInfo } from "@/lib/graaf/knoopinfo";
+import { herkomstVan } from "@/lib/herkomst";
 import { jasStyle, klasseLabel } from "@/lib/jas";
 import type { Lifecycle, Werkgebied, WerkgebiedSamenvatting } from "@/lib/types";
 import { ROL_LABEL } from "@/lib/werkgebied";
@@ -46,7 +48,10 @@ export function BronPagina({ bronIri, werkgebiedId }: { bronIri: string; werkgeb
   }, [bronIri, werkgebiedId]);
 
   const doel = view?.segmenten.find((s) => s.bron_iri === bronIri);
-  const naam = view?.doel.label || doel?.label || "Bepaling";
+  // De herkomst uit de IRI en de citeertitel: nooit een kaal "Lid 2" of een BWB-id zonder naam.
+  const herkomst = herkomstVan({ iri: bronIri, label: doel?.label, regeling: view?.doel.citeertitel,
+    jci: view?.doel.jci, url: view?.doel.url });
+  const naam = herkomst.bepaling;
   const actueel = (view?.elementen ?? []).filter((e) => !e.verouderd && e.lifecycle !== "rejected");
   const beoordeeld = actueel.filter((e) => BEOORDEELD_LIFECYCLES.includes(e.lifecycle)).length;
   const afgerond = !!view?.lagen.length && view.lagen.every((l) => l.status === "geaccordeerd");
@@ -69,7 +74,7 @@ export function BronPagina({ bronIri, werkgebiedId }: { bronIri: string; werkgeb
             titel={naam}
             sub="De bepaling zoals ze in de kennisgraaf staat, met haar annotaties en waar ze gebruikt wordt."
             meta={<>
-              {view.doel.bwb_id && <span>{view.doel.bwb_id}</span>}
+              <HerkomstRegel herkomst={herkomst} className="inline" />
               {selectie && <><Stip /><StatusLabel>{ROL_LABEL[selectie.rol]}</StatusLabel></>}
               <Stip />
               <StatusLabel toon={afgerond ? "groen" : beoordeeld < actueel.length ? "geel" : "neutraal"}>

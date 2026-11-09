@@ -6,7 +6,8 @@
 
 import Link from "next/link";
 
-import { NogNietInWerking } from "@/components/bronnen/NogNietInWerking";
+import { StandMelding } from "@/components/ui/StandMelding";
+import { NOG_NIET_IN_WERKING } from "@/lib/herkomst";
 import { Citaat } from "@/components/ui/Citaat";
 import { StatusLabel } from "@/components/ui/Lijst";
 import { Vindplaats } from "./Vindplaats";
@@ -66,14 +67,14 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
             <p className="text-xs font-medium text-muted"><Vindplaats vindplaats={g.artikel} /></p>
             {g.items.map(({ item: b, lid }) => (
               <div key={b.vindplaats.iri} className="space-y-1">
-                {b.nog_niet_in_werking && <NogNietInWerking />}
-                <p className="text-xs text-muted"><Vindplaats vindplaats={{ ...b.vindplaats, label: `lid ${lid}`, regeling: "" }} /></p>
+                {b.nog_niet_in_werking && <StandMelding meldingen={[NOG_NIET_IN_WERKING]} />}
+                <p className="text-xs text-muted"><Vindplaats vindplaats={{ ...b.vindplaats, label: `lid ${lid}` }} kort /></p>
                 <Citaat>{b.tekst}</Citaat>
               </div>
             ))}
           </div>
         ) : g.items.map(({ item: b }) => (
-          <div key={b.vindplaats.iri} className="space-y-1">{b.nog_niet_in_werking && <NogNietInWerking />}<Citaat>{b.tekst}</Citaat><p className="text-xs text-muted"><Vindplaats vindplaats={b.vindplaats} /></p></div>
+          <div key={b.vindplaats.iri} className="space-y-1">{b.nog_niet_in_werking && <StandMelding meldingen={[NOG_NIET_IN_WERKING]} />}<Citaat>{b.tekst}</Citaat><p className="text-xs text-muted"><Vindplaats vindplaats={b.vindplaats} /></p></div>
         )))}
       </div>
     </Sectie>

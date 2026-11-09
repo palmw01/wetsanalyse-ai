@@ -4,6 +4,7 @@ import { useContext } from "react";
 
 import { ContextPaneelContext } from "@/components/werkplek/ContextPaneel";
 import type { AntwoordVindplaats } from "@/lib/antwoord";
+import { vindplaatsTekst } from "@/lib/herkomst";
 
 /** Hoeveel bepalingen een eigen chip krijgen; daarboven één chip die de eerste opent. De andere staan als link in de blokken. */
 export const MAX_BEPALINGCHIPS = 3;
@@ -15,10 +16,10 @@ export function BepalingChips({ bepalingen }: { bepalingen: readonly AntwoordVin
   const opener = useContext(ContextPaneelContext);
   if (!opener || !bepalingen.length) return null;
   const open = (v: AntwoordVindplaats) =>
-    opener({ soort: "bron", bron_iri: v.iri, titel: v.regeling ? `${v.label}, ${v.regeling}` : v.label, jci: v.jci || undefined });
+    opener({ soort: "bron", bron_iri: v.iri, titel: vindplaatsTekst(v), jci: v.jci || undefined });
   const chips = bepalingen.length > MAX_BEPALINGCHIPS
     ? [{ v: bepalingen[0], titel: `${bepalingen.length} bepalingen`, sub: `Bepaling · bekijken, te beginnen bij ${bepalingen[0].label}` }]
-    : bepalingen.map((v) => ({ v, titel: v.regeling ? `${v.label}, ${v.regeling}` : v.label, sub: "Bepaling · bekijken" }));
+    : bepalingen.map((v) => ({ v, titel: vindplaatsTekst(v), sub: "Bepaling · bekijken" }));
   return (
     <div className="mt-3 space-y-2" data-bepaling-chips={bepalingen.length}>
       {chips.map(({ v, titel, sub }) => (

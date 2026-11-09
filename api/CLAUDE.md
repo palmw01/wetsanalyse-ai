@@ -296,7 +296,10 @@ Hieronder wat je moet weten om de code te wijzigen.
   deelt (ADR-009). De opschriften, de uitgaande verwijzingen en de tellingen komen uit `bepaling_graaf.lees`: de bepaling met
   `met_inkomend=True`, haar leden en onderdelen zonder (één telquery, niet één per lid). Alleen wie ernaar verwijst, de
   geldigheid en grondslag/bevoegdheid/genoemd in leest het endpoint zelf: dat wil het rapport niet. `detail_uit` is puur; een
-  haperende graaf geeft `beschikbaar: false` met status 200, nooit een leeg detail.
+  haperende graaf geeft `beschikbaar: false` met status 200, nooit een leeg detail. De herkomst voor de kop van het
+  bronvenster: `vindplaats.jci` komt uit `owl:sameAs` mét de toestand die de graaf draagt (`&z=…&g=<geldig_vanaf>`), zodat
+  de link de versie opent die het paneel toont; een `id:`-divisie zonder jci-vorm krijgt geen verzonnen jci. Daarnaast
+  `bwb_id` en `url` (`bwb:bronUrl`, anders `owl:sameAs`).
 
 ### Projectie naar de kennisgraaf
 
