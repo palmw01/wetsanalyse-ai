@@ -49,7 +49,7 @@ def test_een_te_groot_contractresultaat_bereikt_het_model_niet(monkeypatch):
     data = json.loads(uit)
     assert data["status"] == "error" and data["reden"] == "resultaatcontract_overschreden"
     assert "x" * 100 not in uit
-    einde = events[-1]
+    einde = [e for e in events if e.get("type") == "tool_execution"][-1]
     assert einde["status"] == "error" and einde["foutcode"] == "tool_resultaat_te_groot"
     assert einde["omvang"] > BUDGET and einde["budget"] == BUDGET
 
@@ -61,4 +61,4 @@ def test_has_more_is_een_afleiding_van_volledig(monkeypatch):
     events: list[dict] = []
     b = SimpleNamespace(graph=None, settings=SimpleNamespace(annotatie_read_user_id=""), annotaties=object())
     tool_execution.execute_tool(b, {}, events.append, {"name": "search_wetgeving", "input": {"query": "x"}})
-    assert events[-1]["has_more"] is True and events[-1]["aantal"] == 1
+    assert [e for e in events if e.get("type") == "tool_execution"][-1]["has_more"] is True and [e for e in events if e.get("type") == "tool_execution"][-1]["aantal"] == 1
