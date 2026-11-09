@@ -1,0 +1,312 @@
+{
+ "populatie_paren": 5332,
+ "seed": 20261110,
+ "beoordeeld_door": "Claude, op fragmenten; geen jurist",
+ "telling": {
+  "grond": 25,
+  "terloops": 4,
+  "onzeker": 1
+ },
+ "steekproef": [
+  {
+   "nr": 0,
+   "artikel": "30",
+   "ecli": "ECLI:NL:GHSHE:2017:3644",
+   "vermeldingen_patroon": 1,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": "elet op het arrest van de Hoge Raad van 3 maart 2017, nr. 16/01176, ECLI:NL:HR:2017:341, BNB 2017/99. De ontvanger is bij uitsluiting bevoegd om op de voet van artikel 30, lid 1, van de Invorderingswet 1990 (hierna: IW) bij voor bezwaar vatbare beschikking vast te stellen of en in hoeverre invorderi"
+  },
+  {
+   "nr": 1,
+   "artikel": "9",
+   "ecli": "ECLI:NL:RBNHO:2026:1505",
+   "vermeldingen_patroon": 1,
+   "vermelding_klopt": true,
+   "oordeel": "terloops",
+   "toelichting": "",
+   "fragment": "naf het einde van het tijdvak waarover de belasting wordt geheven en eindigt op de dag voorafgaand aan de dag waarop de aanslag, (…), invorderbaar is ingevolge artikel 9 van de Invorderingswet 1990 en heeft als grondslag het te betalen bedrag aan belasting. 3. Ingeval de aanslag is vastgesteld overe"
+  },
+  {
+   "nr": 2,
+   "artikel": "25",
+   "ecli": "ECLI:NL:RBNNE:2024:343",
+   "vermeldingen_patroon": 2,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": ":HR:2012:BV6722, r.o. 3.2. Zie Hoge Raad 17 februari 2012, ECLI:NL:HR:2012:BV3927, r.o. 3.3.2. en Hoge Raad 18 november 2016, ECLI:NL:HR:2016:2603, r.o. 2.2.2. Artikel 25 van de IW 1990 in samenhang met artikel 25 van de Leidraad Invordering 2008. Zie artikel 25, tweede lid, van de IW 1990 in samenh"
+  },
+  {
+   "nr": 3,
+   "artikel": "58",
+   "ecli": "ECLI:NL:GHARL:2020:10405",
+   "vermeldingen_patroon": 2,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": "ontkennend beantwoordt. De Ontvanger voert aan: dat de administratie van [A] een aantal ernstige gebreken vertoont en voorts dat [A] hem niet, zoals vereist in artikel 58 van de IW, de gegevens en inlichtingen heeft verstrekt welke voor de invordering te haren aanzien van belang kunnen zijn; dat [A]"
+  },
+  {
+   "nr": 4,
+   "artikel": "36b",
+   "ecli": "ECLI:NL:HR:2014:2875",
+   "vermeldingen_patroon": 3,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": "c 2014-10-02T09:33:26 2014-10-03 Raad voor de Rechtspraak nl ECLI:NL:HR:2014:2875 Hoge Raad , 03-10-2014 / 13/05364 Art. 33, lid 1, letter a, en lid 3, alsmede art. 36b Invorderingswet 1990. De artikelen 33 en 36b van de Invorderingswet 1990 zijn zelfstandige regelingen voor het aansprakelijk stelle"
+  },
+  {
+   "nr": 5,
+   "artikel": "34",
+   "ecli": "ECLI:NL:RBGEL:2024:7777",
+   "vermeldingen_patroon": 2,
+   "vermelding_klopt": true,
+   "oordeel": "terloops",
+   "toelichting": "",
+   "fragment": "oekeloosheid van die werkgever onderscheidenlijk verzekerde. 2. Voor de toepassing van het vorige lid wordt mede als werkgever beschouwd de inlener, bedoeld in artikel 34 van de Invorderingswet 1990. ” 2.6. In de artikelen 99 lid 1 WIA en 100 WIA is het volgende bepaald: “ Artikel 99 1. Het UWV heef"
+  },
+  {
+   "nr": 6,
+   "artikel": "32",
+   "ecli": "ECLI:NL:GHAMS:2004:AP1862",
+   "vermeldingen_patroon": 1,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": "air tot verklaring voor recht dat belanghebbende geen recht heeft op terugbetaling van hetgeen door hem is betaald uit hoofde van de aansprakelijkstellingen ex artikel 32 en 36 van de IW. Het beroep is op 30 oktober 2003 ter zitting behandeld. Op deze zitting waren aanwezig belanghebbende alsmede mr"
+  },
+  {
+   "nr": 7,
+   "artikel": "26",
+   "ecli": "ECLI:NL:GHARN:2004:AR4846",
+   "vermeldingen_patroon": 1,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": " gevallen als de onderhavige een kwijtschelding als door de Inspecteur bedoeld wellicht op een beleidsregel zal zijn gebaseerd. Het door de Inspecteur genoemde artikel 26, tweede lid, onderdeel b, van de IW, biedt naar het oordeel van het Hof geen mogelijkheden voor een door de Inspecteur bedoelde k"
+  },
+  {
+   "nr": 8,
+   "artikel": "52",
+   "ecli": "ECLI:NL:GHSHE:2025:1549",
+   "vermeldingen_patroon": 1,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": "vanger en vindt die aansprakelijkstelling niet plaats vóór het tijdstip waarop de belastingschuldige in gebreke is met de betaling van zijn belastingschuld. In artikel 52, lid 1, IW 1990 is geregeld dat het bedrag, zoals vermeld in de aansprakelijkstellingsbeschikking, invorderbaar is zes weken na d"
+  },
+  {
+   "nr": 9,
+   "artikel": "32",
+   "ecli": "ECLI:NL:GHSGR:2009:BL6324",
+   "vermeldingen_patroon": 1,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": "6 (inclusief kosten) omvattende het vierde kwartaal van 2005. De beschikking heeft mede betrekking op de op de aanslagen belopen kosten en rente op de voet van artikel 32, tweede lid, IW. 1.2. Na daartegen op 28 februari 2007 gemaakt bezwaar heeft de Ontvanger bij uitspraak op bezwaar, gedagtekend 3"
+  },
+  {
+   "nr": 10,
+   "artikel": "28c",
+   "ecli": "ECLI:NL:GHARL:2018:7273",
+   "vermeldingen_patroon": 1,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": "aangewend (vgl. arrest HR 3 maart 2017, nr. 16/01176, ECLI:NL:HR:2017:341, BNB 2017/99). De stelling van belanghebbende dat de renteregeling zoals opgenomen in artikel 28c van de Invorderingswet 1990 in strijd is met het Unierecht, dient naar het oordeel van het Hof te worden verworpen. Voor de gron"
+  },
+  {
+   "nr": 11,
+   "artikel": "32",
+   "ecli": "ECLI:NL:GHSHE:2006:AY8369",
+   "vermeldingen_patroon": 2,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": "den en de in de belastingaanslagen begrepen heffingsrente en boeten, en wel voor een bedrag van in totaal € 62.618,72. De aansprakelijkstelling is gebaseerd op artikel 32, lid 2 en artikel 36 van de IW 1990 en artikel 16 van de Wet financiering volksverzekeringen. In de beschikking aansprakelijkstel"
+  },
+  {
+   "nr": 12,
+   "artikel": "49",
+   "ecli": "ECLI:NL:PHR:2004:AQ7358",
+   "vermeldingen_patroon": 24,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": "januari 1996 in staat van faillissement verklaard. (c) Aan Kemira zijn twee op 18 september 1997 gedateerde kennisgevingen aansprakelijkstelling als bedoeld in art. 49 IW 1990 betekend, en wel tot een bedrag van f 151.473,- wegens loonheffing, respectievelijk tot een bedrag van f 70.007,- wegens omz"
+  },
+  {
+   "nr": 13,
+   "artikel": "49",
+   "ecli": "ECLI:NL:RBMNE:2021:3698",
+   "vermeldingen_patroon": 0,
+   "vermelding_klopt": true,
+   "oordeel": "terloops",
+   "toelichting": "opsomming \"artikelen 30, 49 of 62a\" (patroon miste het)",
+   "fragment": ""
+  },
+  {
+   "nr": 14,
+   "artikel": "36",
+   "ecli": "ECLI:NL:GHARL:2016:4086",
+   "vermeldingen_patroon": 1,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": "at hij geen overeenkomst heeft getekend waaruit blijkt dat hij een dergelijke aansprakelijkheid heeft aanvaard faalt, nu deze aansprakelijkheid voortvloeit uit artikel 36 van de Invorderingswet 1990. 4.6. Ten slotte brengt ook de omstandigheid dat de politie strafrechtelijke aangiftes die belanghebb"
+  },
+  {
+   "nr": 15,
+   "artikel": "49",
+   "ecli": "ECLI:NL:PHR:2010:BN9780",
+   "vermeldingen_patroon": 34,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": "el betoogd dat de wetgever met de in de Leidraad Invordering vastgelegde dagvaardingstermijn heeft aangesloten bij de algemene bezwaartermijn en de termijn van art. 49 lid 3 (oud) Iw 1990 waarbinnen de aansprakelijkgestelde de aansprakelijkstelling moet betwisten. Aangezien beide termijnen met de in"
+  },
+  {
+   "nr": 16,
+   "artikel": "24",
+   "ecli": "ECLI:NL:HR:2021:1999",
+   "vermeldingen_patroon": 1,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": "anghebbende tegen een uitspraak van de Rechtbank Gelderland (nr. AWB 18/6280) betreffende een ten aanzien van belanghebbende gegeven beschikking als bedoeld in artikel 24, lid 8 van de Invorderingswet 1990. 1 Beoordeling van de ontvankelijkheid van het beroep in cassatie De Hoge Raad heeft de klacht"
+  },
+  {
+   "nr": 17,
+   "artikel": "33",
+   "ecli": "ECLI:NL:PHR:2018:427",
+   "vermeldingen_patroon": 96,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": "en is geweest. De CV nam steeds meer werknemers in dienst ondanks oplopende verliezen en is uiteindelijk failliet verklaard. De aansprakelijkstelling berust op artikel 33 van de Invorderingswet 1990. Ingevolge het eerste lid daarvan is hoofdelijk aansprakelijk voor de rijksbelastingen, verschuldigd "
+  },
+  {
+   "nr": 18,
+   "artikel": "68",
+   "ecli": "ECLI:NL:PHR:2011:BP3073",
+   "vermeldingen_patroon": 0,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "\"artikel 68 van de Wet\" (patroon miste het)",
+   "fragment": ""
+  },
+  {
+   "nr": 19,
+   "artikel": "36",
+   "ecli": "ECLI:NL:RBBRE:2012:BW7889",
+   "vermeldingen_patroon": 5,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": "/html public 2013-04-05T10:17:47 2012-06-08 Raad voor de Rechtspraak nl ECLI:NL:RBBRE:2012:BW7889 Rechtbank Breda , 15-03-2012 / 10/5433 Aansprakelijkstelling- artikel 36 IW Belanghebbende heeft verklaard dat het aan de grove schuld van de adviseur te wijten dat onjuiste aangiften zijn ingediend. Na"
+  },
+  {
+   "nr": 20,
+   "artikel": "36",
+   "ecli": "ECLI:NL:GHARL:2013:BY9435",
+   "vermeldingen_patroon": 16,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": "07, november 2007, januari 2008 en februari 2008 heeft de BV niet betaald. 2.3. De Ontvanger heeft belanghebbende bij beschikking van 6 april 2009 op grond van artikel 36 van de Invorderingswet 1990 aansprakelijk gesteld voor de onbetaald gebleven naheffingsaanslagen in de loonbelasting van de BV. 2"
+  },
+  {
+   "nr": 21,
+   "artikel": "28a",
+   "ecli": "ECLI:NL:RBOVE:2026:3647",
+   "vermeldingen_patroon": 2,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": "8/347858 / HA ZA 26-167 verklaring voor recht dat ontvanger niet bevoegd is tot verrekening vordering betaling geldsom te vermeerderen met invorderingsrente ex art. 28a IW vordering BIK en advieskosten RECHTBANK Overijssel Civiel recht Zittingsplaats Zwolle Zaaknummer: C/08/347858 / HA ZA 26-167 Von"
+  },
+  {
+   "nr": 22,
+   "artikel": "25",
+   "ecli": "ECLI:NL:RBNNE:2024:347",
+   "vermeldingen_patroon": 2,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": ":HR:2012:BV6722, r.o. 3.2. Zie Hoge Raad 17 februari 2012, ECLI:NL:HR:2012:BV3927, r.o. 3.3.2. en Hoge Raad 18 november 2016, ECLI:NL:HR:2016:2603, r.o. 2.2.2. Artikel 25 van de IW 1990 in samenhang met artikel 25 van de Leidraad Invordering 2008. Zie artikel 25, tweede lid, van de IW 1990 in samenh"
+  },
+  {
+   "nr": 23,
+   "artikel": "57",
+   "ecli": "ECLI:NL:PHR:2017:1257",
+   "vermeldingen_patroon": 2,
+   "vermelding_klopt": true,
+   "oordeel": "terloops",
+   "toelichting": "",
+   "fragment": "atste geval subrogeert de pandhouder in de vordering van de fiscus op de failliet met het daaraan verbonden voorrecht van art. 21 IW 1990 (vgl. art. 6:12 BW en art. 57 IW 1990). Zou die vordering van de fiscus een niet-verifieerbare vordering zijn, dan zou de pandhouder aan die subrogatie niet veel "
+  },
+  {
+   "nr": 24,
+   "artikel": "42c",
+   "ecli": "ECLI:NL:PHR:2016:28",
+   "vermeldingen_patroon": 1,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": "icht en die wist of had moeten weten dat de ter zake van die levering verschuldigde omzetbelasting niet of niet volledig is of zal worden voldaan, op grond van artikel 42c, lid 1, van de Invorderingswet 1990, jo artikel 40a van de Uitvoeringsregeling Invorderingswet 1990 hoofdelijk aansprakelijk wor"
+  },
+  {
+   "nr": 25,
+   "artikel": "49",
+   "ecli": "ECLI:NL:RBBRE:2012:BZ2562",
+   "vermeldingen_patroon": 2,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": "etbelasting 1968 wel aan de fiscale eenheid een naheffingsaanslag kan worden opgelegd. b) Is aan de formele vereisten van de aansprakelijkstelling op grond van artikel 49 Invorderingswet 1990 (IW 1990) voldaan? Meer specifiek: was de belastingschuldige vóór de aansprakelijkstelling in gebreke met de"
+  },
+  {
+   "nr": 26,
+   "artikel": "28",
+   "ecli": "ECLI:NL:GHAMS:2017:2600",
+   "vermeldingen_patroon": 2,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": "n vóór 1 januari 2013 (Kamerstukken II 2011/12, 33.003, nr. 3, blz. 131). Naar het oordeel van het Hof valt het onderhavige geval derhalve onder het bereik van artikel 28 Iw 1990 (oud, tekst 2012). Belanghebbende heeft derhalve op grond van deze bepaling - anders dan zij zelf lijkt te veronderstelle"
+  },
+  {
+   "nr": 27,
+   "artikel": "25",
+   "ecli": "ECLI:NL:GHARN:2004:AQ5255",
+   "vermeldingen_patroon": 8,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": "L:GHARN:2004:AQ5255 Gerechtshof Arnhem , 09-07-2004 / 01-01666 Tussen partijen is in geschil het antwoord op de vraag of de uitstelfaciliteit als neergelegd in artikel 25, lid 9, letter b, van de Invorderingswet terecht is geweigerd, welke vraag belanghebbende ontkennend en de Inspecteur bevestigend"
+  },
+  {
+   "nr": 28,
+   "artikel": "25",
+   "ecli": "ECLI:NL:PHR:2009:BD0236",
+   "vermeldingen_patroon": 7,
+   "vermelding_klopt": true,
+   "oordeel": "grond",
+   "toelichting": "",
+   "fragment": "ng van 18 april 2003 het verzoek afgewezen. 1.3. Belanghebbende heeft tevens een verzoek ingediend tot uitstel van betaling van bedoelde aanslag als bedoeld in artikel 25, lid 11, onderdeel b, IW 1990. Bij beschikking van 18 april 2003 heeft de Ontvanger ook dit verzoek afgewezen. 1.4. Belanghebbend"
+  },
+  {
+   "nr": 29,
+   "artikel": "28",
+   "ecli": "ECLI:NL:GHARL:2019:2605",
+   "vermeldingen_patroon": 0,
+   "vermelding_klopt": true,
+   "oordeel": "onzeker",
+   "toelichting": "\"artikel 28, eerste lid, van de Inv\" (patroon miste het)",
+   "fragment": ""
+  }
+ ]
+}
