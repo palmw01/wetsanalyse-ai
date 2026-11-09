@@ -91,7 +91,9 @@ def prompt_blok(stand: dict[str, dict[str, Any]], vraag: str = "") -> str:
         c = CONNECTORS[naam]
         if s["aan"]:
             regels.append(f"- {c.label}: aan. Dekt {c.dekt}. Rol: {c.rol_in_antwoord}. Grenzen: {c.grenzen}; {c.capaciteit}. Noem een "
-                          f"stuk met zijn id ({' of '.join(p + '…' for p in c.id_prefixen)}).")
+                          f"stuk met zijn id ({' of '.join(p + '…' for p in c.id_prefixen)}). Stukken die je vond maar niet "
+                          "las, geef je als lijst in het veld 'stukken' van je antwoordsjabloon: de code toont dan label, "
+                          "soort, datum en titel uit de bron. Schrijf zo'n lijst niet zelf uit.")
         elif s["reden"] != "straat" or naam in genoemd:
             regels.append(f"- {c.label}: uit. {uit_zin(stand, naam)} Zoek er niet in en vul niet uit eigen kennis "
                           "in wat erin staat.")

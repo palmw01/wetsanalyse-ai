@@ -103,10 +103,14 @@ def test_het_veld_is_plat():
     assert extern.STUKKEN_ITEMS["items"] == {"type": "string"}, "een lijst ids, niets anders"
 
 
-def test_een_stuk_dat_alleen_gevonden_is_is_onbevestigd():
-    rapport = check_grounding("Zie Kamerstukken kst-99001-10 over het verslag.", TRACE[:1])
-    assert any("alleen gevonden, niet gelezen" in o for o in rapport.onbevestigd)
-    assert not any("niet gelezen" in o for o in check_grounding(f"Zie {ID}.", TRACE).onbevestigd)
+def test_een_gevonden_stuk_is_geen_signaal():
+    """Acceptatie 9 nov 2026: een lijst opvolgende stukken in lopende tekst gaf 13 keer "alleen gevonden, niet gelezen",
+    en het niveau zakte naar onbepaald. Het zoekresultaat draagt label, soort, datum en titel uit de bron: wie een
+    gevonden stuk noemt, beweert niets wat er niet staat. Een id dat nergens gevonden is, blijft ongegrond."""
+    rapport = check_grounding("Zie kst-99001-10 (Verslag) en het doel in kst-99001-3.", TRACE[:1])
+    assert rapport.onbevestigd == [] and rapport.niveau == "gegrond" and not rapport.unsupported
+    verzonnen = check_grounding("Zie kst-99001-77.", TRACE[:1])
+    assert verzonnen.unsupported and verzonnen.niveau == "ongegrond"
 
 
 def _schemas_van_de_beurt(settings, bronnen):
@@ -236,7 +240,7 @@ def test_de_lijst_neemt_elk_feit_uit_de_zoekrijen():
     assert all(x.datum == rijen[x.id]["datum"] and x.label == rijen[x.id]["label"] for x in blok.items)
     # Het totaal van de dienst (de nepbron telt een bijlage mee, zoals KOOP zijn records telt).
     assert blok.kop == "Gevonden Kamerstukken" and blok.door == "bron" and blok.totaal == 4
-    assert blok.zoekvraag == "Gezocht op dossier 99001, nieuwste eerst."
+    assert blok.zoekvraag == "Gezocht op dossier 99001. Nieuwste eerst."
     Antwoord.model_validate(a.model_dump())
     tekst = antwoord_tekst(a)
     assert "**Gevonden Kamerstukken**" in tekst and "2 van de 4 stukken." in tekst
@@ -300,10 +304,15 @@ def test_het_blok_extern_noemt_datum_en_soort_uit_het_stuk():
 @pytest.mark.parametrize("zoekvraag,verwacht", [
     ({"volgorde": "nieuwste", "aantal": 10}, "Nieuwste eerst."),
     ({"soort": "motie", "vanaf": "2024-01-01", "tot": "2024-12-31", "volgorde": "oudste"},
-     "Gezocht op soort stuk motie, documentdatum vanaf 2024-01-01, documentdatum tot en met 2024-12-31, oudste eerst."),
-    ({"woorden": "Invorderingswet", "volgorde": "relevantie"}, "Gezocht op „Invorderingswet” in de titel, op relevantie."),
+     "Gezocht op soort stuk „motie” en van 1 januari 2024 tot en met 31 december 2024. Oudste eerst."),
+    ({"woorden": "Invorderingswet", "volgorde": "relevantie"},
+     "Gezocht op „Invorderingswet” in de titel. Meest relevante eerst."),
     ({"tekst": '"één bankrekeningnummer"', "volgorde": "relevantie"},
-     "Gezocht op „één bankrekeningnummer” in de tekst, op relevantie."),
+     "Gezocht op „één bankrekeningnummer” in de tekst. Meest relevante eerst."),
+    # Acceptatie 9 nov 2026: "Kamer Eerste Kamer". Een waarde die zegt wat ze is, krijgt geen label.
+    ({"tekst": "invorderingsrente", "vergaderjaar": "2025-2026", "kamer": "Eerste Kamer", "volgorde": "relevantie"},
+     "Gezocht op „invorderingsrente” in de tekst, vergaderjaar 2025-2026 en van de Eerste Kamer. Meest relevante eerst."),
+    ({"vanaf": "2011-01-01"}, "Gezocht op vanaf 1 januari 2011."),
     ({}, ""),
 ])
 def test_de_zoekvraag_in_woorden(zoekvraag, verwacht):
