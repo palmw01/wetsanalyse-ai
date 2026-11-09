@@ -1352,6 +1352,20 @@ terwijl de chat ernaast bereikbaar moet zijn); Escape sluit in alle varianten. D
 `side`-sheet (mobiel een bottom-sheet). De splitsing zit in `WerkplekClient` en niet in
 `WorkbenchShell`, anders moeten `docs`/`infos` en alle handlers omhoog en weer omlaag.
 
+**Het zijpaneel** (het bronvenster, PR 3a; `components/ui/Zijpaneel`, rekenkern `lib/zijpaneel.ts`) is die kolom: één
+vaste kolom rechts, naar het voorbeeld van Claude Code.
+- **De scheiding** (`role="separator"`, `data-paneel-scheiding`) versleep je tussen 320 px en 60% van de werkplek, en het
+  gesprek houdt minstens 300 px. Met de focus erop doen ←/→ een stap van 16 px en Home/End de grenzen; dubbelklik zet de
+  standaard (`min(34rem,46%)`) terug.
+- ***Inklappen*** maakt er een strook van 40 px van (`data-paneel-ingeklapt`); de inhoud blijft gemount. Iets anders
+  openen (`sleutel`) klapt hem weer uit, want een klik op een ingang moet zichtbaar iets doen.
+- ***Vergroten*** legt het paneel over het gesprek; Escape verkleint eerst. Er is één *Vergroten*: in het zijpaneel leest
+  de graaf `ZijpaneelContext.vergroot`, en op de graaf claimt `NodeAnnotatiePaneel` Escape (`claimEscape`), zodat zijn
+  volgorde lagen → selectie → verkleinen → sluiten blijft. Op de sheet en op `/annotaties/node` houdt de graaf zijn knop.
+- **Per browser bewaard** (`lib/opslag.ts`, in try/catch, na het mounten): `lex.paneel.breedte`, en
+  `lex.paneel.ingeklapt`, dat alleen telt bij een herstelde inhoud (`hersteld`, de tabs per gesprek).
+- In de rondleiding is het paneel `vast`: altijd uitgeklapt, niets bewaard. Browserregressie: `scripts/test-zijpaneel.mjs`.
+
 Wettekst en reviewlijst hebben **elk een eigen scroll** (tekst `max-h-[45%]` bovenin), zodat de tekst
 niet uit beeld loopt als je verderop in de lijst bent. Selecteren scrolt **beide kanten** in beeld:
 de markering (`DocumentPaneel`) en de kaart (`ReviewQueue`), met respect voor

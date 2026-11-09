@@ -18,6 +18,7 @@ import { annotatieDoelVan, artefactSleutel, bronselectieVanKaart, artefactKop, w
 import { StatusLabel } from "@/components/ui/Lijst";
 import { Suggestie, SuggestieRij } from "@/components/ui/Suggestie";
 import { Melding } from "@/components/ui/Melding";
+import { Zijpaneel } from "@/components/ui/Zijpaneel";
 import {
   foutTekst,
   startRun,
@@ -896,6 +897,8 @@ export function WerkplekClient({
     wisselPaneel(undefined, { ook: () => { setNodeDoel(undefined); setCtx(naar); } });
   }
 
+  // Wat er in het paneel staat: iets anders openen klapt een ingeklapt zijpaneel uit.
+  const paneelSleutel = ctx ? contextSleutel(ctx) : nodeDoel ? `node:${nodeDoel.bron_iri}:${nodeTab}` : wgArtefact ? artefactSleutel(wgArtefact) : "";
   const paneel = ctx ? (
     <ContextPaneel key={contextSleutel(ctx)} doel={ctx} variant={breed ? "kolom" : "side"}
       onSluit={() => setCtx(undefined)} onWissel={setCtx} onMaakWerkgebied={setWgUitOverzicht} />
@@ -917,7 +920,7 @@ export function WerkplekClient({
   return (
     <VraagLexContext.Provider value={demo ? null : kiesOnderwerp}>
     <ContextPaneelContext.Provider value={demo ? null : openContext}>
-    <div className="flex min-h-0 min-w-0 flex-1">
+    <div className="relative flex min-h-0 min-w-0 flex-1">
     <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
       {/* Beknopte statusmelding voor schermlezers (niet de hele thread live maken → geen token-spam). */}
       <p className="sr-only" aria-live="polite">
@@ -1288,9 +1291,7 @@ export function WerkplekClient({
     </div>
 
     {/* Op een breed scherm staat het ernaast: chat en review tegelijk in beeld. */}
-    {breed && paneel && (
-      <div className="hidden w-[min(34rem,46%)] shrink-0 min-[800px]:block">{paneel}</div>
-    )}
+    {breed && paneel && <Zijpaneel label="Paneel" sleutel={paneelSleutel} vast={Boolean(demo)}>{paneel}</Zijpaneel>}
     </div>
     </ContextPaneelContext.Provider>
     </VraagLexContext.Provider>
