@@ -63,18 +63,18 @@ const verklaringen = {
   twijfel: { DETECTOR_CONFLICT: { naam: "Detectoren spreken elkaar tegen", uitleg: "Twee klassen kwamen in aanmerking." } },
   resolutie: { "R-CONFLICT-KEEP": { naam: "Klasse behouden", uitleg: "De reviewer bevestigde de klasse." } },
 };
-// Een bewaard spoor met start én einde van dezelfde aanroep los. Na herladen
-// hoort dat één regel te zijn ("1 aanroepen"), niet twee.
+// Het ruwe spoor blijft op het bericht (audit, eval), maar de werkplek toont het niet meer apart: wat de jurist
+// moet weten, staat als regel in het denkproces (graph-qa `agent/spoorbronnen.py`).
 const trace = [
-  { run_id: "r1", call_id: "call1", tool: "search_annotaties", phase: "start", status: "running" },
   { run_id: "r1", call_id: "call1", tool: "search_annotaties", phase: "end", status: "ok", aantal: 2, has_more: true },
 ];
+const SPOOR = "· Lex · zoekt in de annotaties\n· Annotaties · 2 gevonden, er is meer dan dit";
 // De samenvatting zoals graph-qa hem bewaart: hoogstens vier zinnen, uit de data.
 const SAMENVATTING = "Ik heb artikel 9 lid 1 van de Invorderingswet 1990 geanalyseerd en één JAS-element gevonden. "
   + "Geen voorstel vraagt om een keuze van jou. Alle voorstellen koos het model.";
 const berichten = [1, 2].flatMap((lid) => [
   { rol: "user", tekst: `Annoteer artikel 9 lid ${lid}`, denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" },
-  { rol: "assistant", tekst: lid === 1 ? SAMENVATTING : "", denk: "", bronnen: [], annotatie_slug: "zelfde-oude-laag", annotatie_titel: "Artikel 9", annotatie_doel: doel(lid),
+  { rol: "assistant", tekst: lid === 1 ? SAMENVATTING : "", denk: SPOOR, bronnen: [], annotatie_slug: "zelfde-oude-laag", annotatie_titel: "Artikel 9", annotatie_doel: doel(lid),
     tool_executions: trace, run_id: `r${lid}` },
 ]);
 // Relaties tussen markeringen (ADR-011): één bepaling met drie markeringen in één laag, twee relaties en later een
@@ -109,6 +109,7 @@ await page.route("**/api/**", async (route) => {
   if (url.pathname.endsWith("/events")) return route.fulfill({ contentType: "text/event-stream", body: [
     { type: "tool_execution", run_id: "live", call_id: "live-call", tool: "get_annotatie", phase: "start", status: "running" },
     { type: "tool_execution", run_id: "live", call_id: "live-call", tool: "get_annotatie", phase: "end", status: "ok", aantal: 1 },
+    { type: "status", message: "Lex · leest een annotatie" },
     { type: "token", content: "Het element betreft de handelende instantie." },
     { type: "opgeslagen", run_id: "live", annotatie_slug: "" }, { type: "done" },
   ].map((event) => `data: ${JSON.stringify(event)}\n\n`).join("") });
@@ -301,8 +302,11 @@ try {
   const advice = requests.find((r) => r.path === "/api/annotatie/run").body;
   assert.equal(advice.modus, "advies"); assert.equal(advice.context.element_id, "e1");
   assert.equal(advice.context.bron_iri, "urn:lid1");
-  await page.getByText("Graaf geraadpleegd · 1 aanroepen", { exact: true }).last().click();
-  await page.getByText("get_annotatie", { exact: true }).waitFor();
+  // Live: het tool_execution-event staat niet los in beeld, de statusregel wel, in het denkproces.
+  assert.equal(await page.getByText("geraadpleegd", { exact: false }).count(), 0, "geen tweede spoorblok");
+  await page.getByRole("button", { name: "Denkproces" }).last().click();
+  await page.getByText("Lex · leest een annotatie", { exact: false }).last().waitFor();
+  assert.equal(await page.getByText("get_annotatie", { exact: false }).count(), 0);
   await page.getByRole("button", { name: "Sluiten", exact: true }).last().click();
   await page.getByText("Invorderingswet – artikel 9 lid 2", { exact: true }).last().click();
   await wettekst().getByText("UITSLUITEND TWEE", { exact: false }).waitFor();
@@ -311,9 +315,11 @@ try {
   await page.getByRole("button", { name: "Kies een klasse" }).first().waitFor();
   assert.equal(await page.getByRole("button", { name: "Akkoord", exact: true }).first().isDisabled(), true);
   await page.reload();
-  await page.getByText("Graaf geraadpleegd · 1 aanroepen", { exact: true }).first().click();
-  await page.getByText("search_annotaties", { exact: true }).first().waitFor();
-  assert.equal(await page.getByText("meer resultaten beschikbaar", { exact: false }).count() >= 1, true);
+  // Na herladen: het spoor staat in "Zo is dit tot stand gekomen", in woorden, zonder toolnaam of tweede blok.
+  await page.getByRole("button", { name: "Zo is dit tot stand gekomen" }).first().click();
+  await page.getByText("Annotaties · 2 gevonden, er is meer dan dit", { exact: false }).first().waitFor();
+  assert.equal(await page.getByText("search_annotaties", { exact: false }).count(), 0);
+  assert.equal(await page.getByText("geraadpleegd", { exact: false }).count(), 0);
 
   // De weergaven volgen de weg van een annotatie: wat alleen nog afgerond moet, heeft een eigen knop en een eigen label.
   await page.goto(`${base}/annotaties`);

@@ -12,8 +12,7 @@
 
 import { parseHergebruik, parseUitkomst } from "./agentEvents";
 import { annotatieDoelVan, artefactVanBericht } from "./artefact";
-import type { NodeDoel, ToolExecution } from "./annotatieNode";
-import { mergeToolExecution, parseToolExecution, toolSpoorUit } from "./annotatieNode";
+import type { NodeDoel } from "./annotatieNode";
 import type { AgentDoelInvoer, AgentHergebruik, AgentKandidaat, Bericht } from "./types";
 
 export type OnderdeelStatus = "wacht" | "bezig" | "klaar" | "hergebruik" | "fout" | "gestopt" | "overgeslagen";
@@ -25,7 +24,6 @@ export interface ReeksOnderdeel {
   voorstellen: number;
   fout?: string;
   denk: string;
-  tool_executions: ToolExecution[];
   /** Waar de annotatie van dit onderdeel staat; gezet zodra hij is vastgelegd. */
   annotatie_doel?: NodeDoel;
   hergebruik?: AgentHergebruik;
@@ -51,7 +49,7 @@ const EIND_STATUS: Record<string, OnderdeelStatus> = {
 };
 
 function nieuwOnderdeel(bron_iri: string, label: string): ReeksOnderdeel {
-  return { bron_iri, label: label || bron_iri, status: "wacht", voorstellen: 0, denk: "", tool_executions: [] };
+  return { bron_iri, label: label || bron_iri, status: "wacht", voorstellen: 0, denk: "" };
 }
 
 function werkBij(reeks: Reeks, iri: string, f: (o: ReeksOnderdeel) => ReeksOnderdeel): Reeks {
@@ -105,10 +103,6 @@ export function verwerkReeksEvent(reeks: Reeks | null, ev: Ruw): Reeks | null {
       return werkBij(reeks, iri, (o) => ({ ...o, denk: o.denk + (o.denk ? "\n" : "") + "· " + str(ev.message) }));
     case "reason":
       return werkBij(reeks, iri, (o) => ({ ...o, denk: o.denk + str(ev.content) }));
-    case "tool_execution": {
-      const uitvoering = parseToolExecution(ev);
-      return uitvoering ? werkBij(reeks, iri, (o) => ({ ...o, tool_executions: mergeToolExecution(o.tool_executions, uitvoering) })) : reeks;
-    }
     case "dekking":
       return werkBij(reeks, iri, (o) => ({ ...o, zonderZinsontleding: zonderZinsontleding(ev.dekking) }));
     case "hergebruik": {
@@ -190,7 +184,6 @@ export function reeksUitBerichten(berichten: Bericht[]): Reeks | null {
       voorstellen: 0,
       ...(doel || uitkomst?.status === "gestopt" ? {} : { fout: uitkomst?.melding || b.tekst || "Niet vastgelegd." }),
       denk: b.denk ?? "",
-      tool_executions: toolSpoorUit(b.tool_executions),
       ...(doel ? { annotatie_doel: doel } : {}),
       ...(hergebruik ? { hergebruik } : {}),
       ...(zonderZinsontleding(b.dekking) ? { zonderZinsontleding: zonderZinsontleding(b.dekking) } : {}),

@@ -6,7 +6,7 @@ import { ThreadRij, type ThreadActies } from "@/components/werkplek/ThreadRij";
 import { reeksNavigatie } from "@/lib/reeks";
 import { afronding } from "@/lib/beurtStroom";
 import { useBeurt, type BeurtScherm } from "@/lib/useBeurt";
-import { type NodeDoel, type ToolExecution } from "@/lib/annotatieNode";
+import { type NodeDoel } from "@/lib/annotatieNode";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { VraagLexContext } from "@/components/werkplek/VraagLexKnop";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
@@ -591,10 +591,6 @@ export function WerkplekClient({
           if (breed && o.regelingen.length) wisselPaneel(undefined, { ook: () => { setNodeDoel(undefined); setCtx(overzichtContext(o)); } });
         },
         onVraagkaart: (k) => updateItem(antId, { vraagkaart: k }),
-        onToolExecution: (event) => {
-          p.pas({ type: "tool", event });
-          updateItem(antId, { tool_executions: p.stand().toolExecutions });
-        },
         onDoel: (d) => p.pas({ type: "doel", doel: d }),
         onKandidaten: (k, kz) => p.pas({ type: "kandidaten", kandidaten: k, keuze: kz }),
         onReeksEvent: (ev) => {
@@ -631,7 +627,7 @@ export function WerkplekClient({
           case "opgeslagen":
             await toonVastgelegdeBeurt(opgeslagen!, {
               antId, tekst, denk, hergebruik: stand.hergebruik, doel: doelInvoerVan(stand.doel),
-              tool_executions: stand.toolExecutions, meting: stand.meting,
+              meting: stand.meting,
             });
             // Lex gaat zelf verder (na *Werkgebied aanmaken*: de bronselectie). Alleen live, nooit na herladen: dan
             // start er niets vanzelf.
@@ -680,9 +676,9 @@ export function WerkplekClient({
    */
   async function toonVastgelegdeBeurt(
     uitkomst: { artefact?: Artefact; annotatie_doel?: NodeDoel; bevestiging?: Bevestiging },
-    { antId, tekst, denk, hergebruik, doel, tool_executions, meting }: {
+    { antId, tekst, denk, hergebruik, doel, meting }: {
       antId: string; tekst?: string; denk: string;
-      hergebruik?: AgentHergebruik; doel?: AgentDoelInvoer; tool_executions?: ToolExecution[];
+      hergebruik?: AgentHergebruik; doel?: AgentDoelInvoer;
       meting?: BeurtMeting;
     },
   ) {
@@ -711,7 +707,7 @@ export function WerkplekClient({
     if (!node) return; // een gewoon antwoord staat al in beeld
     setItems((xs) => xs.map((x) => x.id === antId ? { id: antId, type: "annotatie", slug: node.bron_iri,
       annotatie_doel: node, titel: uitkomst.artefact?.titel || node.label, tekst: tekst?.trim() || undefined, denk, hergebruik,
-      tool_executions, meting } : x));
+      meting } : x));
     // Deze beurt veranderde de annotaties: een kennisgraaf die een vorig paneel doorgaf, klopt niet meer.
     wisselPaneel(undefined, { ook: () => { setNodeGraaf((g) => ({ ...zonderKennisgraaf(g), keten: true })); setNodeDoel(node); } });
   }
